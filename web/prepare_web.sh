@@ -1,5 +1,5 @@
 #!/bin/sh
-#$Id: prepare_web.sh,v 1.12 2004-04-17 08:12:09 mschimek Exp $
+#$Id: prepare_web.sh,v 1.13 2004-04-17 08:26:51 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -20,6 +20,7 @@ rm -fR zapping
 chmod a+rX cgi-bin
 cd cgi-bin
 chmod a+rx printenv testenv view
+chmod a+r setlib.cfg
 cd -
 
 chmod a+rX htdocs
