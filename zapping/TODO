@@ -14,7 +14,7 @@ Outstanding issues for the next release (0.6.5)
 	+ PIP?
 	+ Take TTX out of the context menus when Zapping doesn't
 	  receive TTX. (event timestamps?)
-	+ Better audio support.
+	+ Better audio support, reexamine mute code.
 	+ Make Zapping UTF-8 clean (for now by moving all string ops
           into one place, propose zmisc.c, avoiding strcmp etc).
 	+ Finish WSS.
