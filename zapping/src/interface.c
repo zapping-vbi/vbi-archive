@@ -254,7 +254,7 @@ create_about2 (void)
   GtkWidget *about2;
 
   about2 = gnome_about_new ("Zapping", VERSION,
-                        _("(C) Iñaki García Etxebarria"),
+                        "(C) Iñaki García Etxebarria",
                         authors,
                         _("A TV viewer for the Gnome Desktop Environment"),
                         "zapping/logo.png");
