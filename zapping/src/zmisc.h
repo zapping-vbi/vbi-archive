@@ -591,6 +591,10 @@ z_tree_view_remove_selected	(GtkTreeView *		tree_view,
 				 GtkTreeSelection *	selection,
 				 GtkTreeModel *		model);
 
+extern gboolean
+z_overwrite_file		(GtkWindow *		parent,
+				 const gchar *		filename);
+
 void
 from_old_tveng_capture_mode	(display_mode *		dmode,
 				 capture_mode *		cmode,
@@ -602,11 +606,24 @@ extern gboolean
 z_set_overlay_buffer		(tveng_device_info *	info,
 				 const tv_screen *	screen,
 				 const GdkWindow *	window);
-
 extern void
 z_toggle_action_connect_gconf_key
 				(GtkToggleAction *	toggle_action,
 				 const gchar *		key);
+extern GtkWidget *
+z_gconf_combo_box_new		(const gchar **		option_menu,
+				 const gchar *		gconf_key,
+				 GConfEnumStringPair *	lookup_table);
+extern gboolean
+z_gconf_get_string_enum		(gint *			enum_value,
+				 const gchar *		gconf_key,
+				 const GConfEnumStringPair *lookup_table);
+extern void
+z_action_set_sensitive		(GtkAction *		action,
+				 gboolean		sensitive);
+extern void
+z_action_set_visible		(GtkAction *		action,
+				 gboolean		visible);
 
 /* Common constants for item position in Gtk insert functions. */
 #define PREPEND 0
