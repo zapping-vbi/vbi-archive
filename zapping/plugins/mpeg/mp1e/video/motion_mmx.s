@@ -18,7 +18,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: motion_mmx.s,v 1.1 2000-09-25 17:08:57 mschimek Exp $
+# $Id: motion_mmx.s,v 1.2 2000-11-01 13:48:22 mschimek Exp $
 
 		.text
 		.align		16
@@ -331,3 +331,129 @@ p6_predict_forward_planar:
 		popl		%esi
 		popl		%edi
 		ret
+
+		.text
+		.align		16
+		.globl		mmx_predict_bidirectional_packed
+
+# XXX needs work
+
+mmx_predict_bidirectional_packed:
+
+	subl $28,%esp
+	movl $mblock,%eax
+	pushl %ebp
+	pushl %edi
+	pushl %esi
+	pushl %ebx
+	xorl %edi,%edi
+	movl $32,%ebp
+	movl 48(%esp),%ebx
+	movl 52(%esp),%esi
+#APP
+		pxor		%mm5,%mm5;
+		pxor		%mm6,%mm6;
+		pxor		%mm7,%mm7;
+1:
+		movq		(%ebx,%edi),%mm0;
+		punpcklbw	c0,%mm0;
+		movq		(%esi,%edi),%mm1;
+		punpcklbw	c0,%mm1;
+		movq		(%eax,%edi,2),%mm2;
+		movq		%mm2,%mm3;
+		movq		%mm2,%mm4;
+		psubw		%mm0,%mm3;
+		movq		%mm3,768(%eax,%edi,2);
+		pmaddwd		%mm3,%mm3;
+		paddd		%mm3,%mm5;
+		psubw		%mm1,%mm4;
+		movq		%mm4,1536(%eax,%edi,2);
+		pmaddwd		%mm4,%mm4;
+		paddd		%mm4,%mm6;
+		paddw		%mm1,%mm0;
+		paddw		c1,%mm0;
+		psrlw		$1,%mm0;
+		psubw		%mm0,%mm2;
+		movq		%mm2,2304(%eax,%edi,2);
+		pmaddwd		%mm2,%mm2;
+		paddd		%mm2,%mm7;		
+		
+		movq		(%ebx,%edi),%mm0;
+		punpckhbw	c0,%mm0;
+		movq		(%esi,%edi),%mm1;
+		punpckhbw	c0,%mm1;
+		movq		8(%eax,%edi,2),%mm2;
+		movq		%mm2,%mm3;
+		movq		%mm2,%mm4;
+		psubw		%mm0,%mm3;
+		movq		%mm3,768+8(%eax,%edi,2);
+		pmaddwd		%mm3,%mm3;
+		paddd		%mm3,%mm5;
+		psubw		%mm1,%mm4;
+		movq		%mm4,1536+8(%eax,%edi,2);
+		pmaddwd		%mm4,%mm4;
+		paddd		%mm4,%mm6;
+		paddw		%mm1,%mm0;
+		paddw		c1,%mm0;
+		psrlw		$1,%mm0;
+		psubw		%mm0,%mm2;
+		movq		%mm2,2304+8(%eax,%edi,2);
+		pmaddwd		%mm2,%mm2;
+		paddd		%mm2,%mm7;
+
+		addl		$8,%edi;
+		decl		%ebp;
+		jne		1b;
+
+		movq		%mm7,%mm0;		psrlq		$32,%mm7;
+		paddd		%mm7,%mm0;		movq		%mm5,%mm1;
+		psrlq		$32,%mm5;		movq		%mm6,%mm2;
+		movd		%mm0,28(%esp);		paddd		%mm5,%mm1;
+		psrlq		$32,%mm6;		pxor		%mm7,%mm7;
+		movd		%mm1,%edx;		paddd		%mm6,%mm2;		
+		movl		$256,%edi;		movl		$16,%ebp;
+		movd		%mm2,%ecx;
+2:
+		movq		(%ebx,%edi),%mm0;
+		movq		(%esi,%edi),%mm1;	movq		%mm0,%mm5;
+		movq		%mm1,%mm6;		punpcklbw	%mm7,%mm0;
+		movq		(%eax,%edi,2),%mm2;	punpckhbw	%mm7,%mm5;
+		movq		%mm2,%mm3;		punpcklbw	%mm7,%mm1;
+		psubw		%mm0,%mm3;		punpckhbw	%mm7,%mm6;		
+		movq		%mm2,%mm4;		paddw		%mm1,%mm0;
+		movq		%mm3,768(%eax,%edi,2);	psubw		%mm1,%mm4;
+		paddw		c1,%mm0;
+		movq		%mm4,1536(%eax,%edi,2);
+		psrlw		$1,%mm0;
+		psubw		%mm0,%mm2;
+		movq		%mm2,2304(%eax,%edi,2);
+
+		movq		8(%eax,%edi,2),%mm2;
+		movq		%mm2,%mm3;
+		movq		%mm2,%mm4;
+		psubw		%mm5,%mm3;
+		movq		%mm3,768+8(%eax,%edi,2);
+		psubw		%mm6,%mm4;
+		movq		%mm4,1536+8(%eax,%edi,2);
+		paddw		%mm6,%mm5;
+		paddw		c1,%mm5;
+		psrlw		$1,%mm5;
+		psubw		%mm5,%mm2;
+		movq		%mm2,2304+8(%eax,%edi,2);
+
+		addl		$8,%edi;
+		decl		%ebp;
+		jne		2b;
+	
+#NO_APP
+	movl 56(%esp),%eax
+	movl %edx,(%eax)
+	movl 60(%esp),%eax
+	movl %ecx,(%eax)
+	movl 28(%esp),%eax
+	popl %ebx
+	popl %esi
+	popl %edi
+	popl %ebp
+	addl $28,%esp
+	ret

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: predict.h,v 1.2 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: predict.h,v 1.3 2000-11-01 13:48:22 mschimek Exp $ */
 
 #include "mblock.h"
 
@@ -198,7 +198,12 @@ predict_bidirectional_planar(unsigned char *from1, unsigned char *from2, int *vm
  *  MMX
  */
 
-static inline int
+extern int mmx_predict_bidirectional_packed(unsigned char *from1,
+	unsigned char *from2, int *vmc1, int *vmc2);
+
+#if 0 // fscking asm
+
+static  int
 mmx_predict_bidirectional_packed(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2)
 {
 	extern mmx_t c0, c1;
@@ -306,3 +311,5 @@ mmx_predict_bidirectional_packed(unsigned char *from1, unsigned char *from2, int
 
 	return n;
 }
+
+#endif
