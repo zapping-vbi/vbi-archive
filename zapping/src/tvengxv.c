@@ -286,9 +286,7 @@ p_tvengxv_open_device(tveng_device_info *info,
   if (p_info->encodings <= 0)
     {
       info->tveng_errno = -1;
-      t_error_msg("encodings",
-		  "You have no encodings available",
-		  info);
+      tv_error_msg(info, "You have no encodings available");
       goto failure;
     }
 
@@ -370,7 +368,7 @@ enable_overlay			(tveng_device_info *	info,
 
   	if (p_info->window == 0 || p_info->gc == 0) {
 		info->tveng_errno = -1;
-		t_error_msg("win", "The window value hasn't been set", info);
+		tv_error_msg(info, "The window value hasn't been set");
 		return FALSE;
 	}
 
@@ -1121,8 +1119,7 @@ int tvengxv_attach_device(const char* device_file _unused_,
   if (info->disable_xv_video || disable_overlay)
     {
       info->tveng_errno = -1;
-      t_error_msg("disable_xv",
-		  "XVideo support has been disabled", info);
+      tv_error_msg(info, "XVideo support has been disabled");
       return -1;
     }
 
@@ -1166,8 +1163,7 @@ int tvengxv_attach_device(const char* device_file _unused_,
       info -> fd = p_tvengxv_open_device(info,window);
       break;
     default:
-      t_error_msg("switch()", "This module only supports TVENG_ATTACH_XV",
-		  info);
+      tv_error_msg(info, "This module only supports TVENG_ATTACH_XV");
       goto error1;
     };
 

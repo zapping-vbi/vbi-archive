@@ -290,8 +290,8 @@ read_frame			(tveng_device_info *	info,
   if (info -> capture_mode != CAPTURE_MODE_READ)
     {
       info -> tveng_errno = -1;
-      t_error_msg("check", "Current capture mode is not READ (%d)",
-		  info, info->capture_mode);
+      tv_error_msg(info, "Current capture mode is not READ (%d)",
+		   info->capture_mode);
       return -1;
     }
 
@@ -475,7 +475,7 @@ int tvengemu_attach_device(const char* device_file,
   info->overlay.buffer.format.width = info->caps.maxwidth;
   info->overlay.buffer.format.height = info->caps.maxheight;
   /*  info->overlay.buffer.depth = 17;
-    info->overlay.buffer.bytes_per_line = (info->overlay.buffer.depth+7)/8 *
+    info->overlay.buffer.bytes_per_line[0] = (info->overlay.buffer.depth+7)/8 *
       info->overlay.buffer.width;
   */
   /* Tuner bounds */
