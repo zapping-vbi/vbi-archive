@@ -39,6 +39,10 @@
 #include "tveng2.h"
 #include "videodev2.h" /* the V4L2 definitions */
 
+/* Private, builds the controls structure */
+int
+p_tveng2_build_controls(tveng_device_info * info);
+
 /*
   Return fd for the device file opened. Checks if the device is a
   valid video device. -1 on error.
@@ -261,7 +265,7 @@ int tveng2_attach_device(const char* device_file,
   /* Query present controls */
   info->num_controls = 0;
   info->controls = NULL;
-  error = tveng2_get_controls(info);
+  error = p_tveng2_get_controls(info);
   if (error == -1)
       return -1;
 
@@ -318,7 +322,7 @@ int tveng2_attach_device(const char* device_file,
   This function always succeeds.
 */
 void
-tveng1_describe_controller(char ** short_str, char ** long_str,
+tveng2_describe_controller(char ** short_str, char ** long_str,
 			   tveng_device_info * info)
 {
   t_assert(info != NULL);
@@ -329,7 +333,7 @@ tveng1_describe_controller(char ** short_str, char ** long_str,
 }
 
 /* Closes a device opened with tveng_init_device */
-void tveng1_close_device(tveng_device_info * info)
+void tveng2_close_device(tveng_device_info * info)
 {
   switch (info->current_mode)
     {
@@ -366,51 +370,116 @@ void tveng1_close_device(tveng_device_info * info)
   Returns the number of inputs in the given device and fills in info
   with the correct info, allocating memory as needed
 */
-int tveng2_get_inputs(tveng2_device_info * info)
+int tveng2_get_inputs(tveng_device_info * info)
 {
-  int err = 0;
+  struct v4l2_input input;
   int i;
 
-  for (i = 0; err == 0; i++)
+  t_assert(info != NULL);
+
+  if (info->inputs)
+    free(info->inputs);
+
+  info->inputs = NULL;
+  info->num_inputs = 0;
+  info->cur_input = 0;
+
+  for (i=0;;i++)
     {
-      info->inputs = realloc(info->inputs, (i+1)*sizeof(tveng2_input));
-      info->inputs[i].input.index = i;
-      info->inputs[i].info = info;
-      err = ioctl(info -> fd, VIDIOC_ENUMINPUT, &(info->inputs[i].input));
+      input.index = i;
+      memset(&input, 0, sizeof(struct v4l2_input));
+      if (ioctl(info->fd, VIDIOC_ENUMINPUT, &input))
+	break;
+      info->inputs = realloc(info->inputs, (i+1)*
+			     sizeof(struct tveng_enum_input));
+      info->inputs[i].id = i;
+      snprintf(info->inputs[i].name, 32, input.name);
+      info->inputs[i].flags = 0;
+      if (input.type & V4L2_INPUT_TYPE_TUNER)
+	{
+	  info->inputs[i].flags |= TVENG_INPUT_TUNER;
+	  info->inputs[i].tuners = 1;
+	  info->inputs[i].type = TVENG_INPUT_TYPE_TV;
+	}
+      else
+	{
+	  info->inputs[i].tuners = 0;
+	  info->inputs[i].type = TVENG_INPUT_TYPE_CAMERA;
+	}
+      if (input.capability & V4L2_INPUT_CAP_AUDIO)
+	info->inputs[i].flags |= TVENG_INPUT_AUDIO;
     }
-  i--; /* Get rid of last (invalid) entry */
-  info->inputs = realloc(info->inputs, (i)*sizeof(tveng2_input));
+
+  if (i) /* If there is any input present, switch to the first one */
+    {
+      input.index = 0;
+      if (ioctl(info -> fd, VIDIOC_S_INPUT, &input))
+	{
+	  info -> tveng_errno = errno;
+	  t_error("VIDIOC_S_INPUT", info);
+	  return -1;
+	}
+    }
+
   return (info->num_inputs = i);
 }
 
 /*
   Sets the current input for the capture
 */
-int tveng2_set_input(int input, tveng2_device_info * info)
+int tveng2_set_input(struct tveng_enum_input * input,
+		     tveng_device_info * info)
 {
-  int was_mute = -1;
+  enum tveng_capture_mode current_mode;
+  struct v4l2_input new_input;
 
-  g_assert(input < info->num_inputs);
+  t_assert(info != NULL);
+  t_assert(input != NULL);
 
-  if (tveng2_get_mute(&was_mute, info))
-    was_mute = -1;
+  current_mode = info -> current_mode;
+
+  /* Stop any current capture */
+  switch (info -> current_mode)
+    {
+    case TVENG_CAPTURE_READ:
+      if (tveng2_stop_capturing(info) == -1)
+	return -1;
+      break;
+    case TVENG_CAPTURE_PREVIEW:
+      if (tveng2_stop_previewing(info) == -1)
+	return -1;
+      break;
+    default:
+      break;
+    }
+
+  new_input.index = input->id;
+  if (ioctl(info->fd, VIDIOC_S_INPUT, &new_input))
+    {
+      info -> tveng_errno = errno;
+      t_error("VIDIOC_S_INPUT", info);
+      return -1;
+    }
+
+  /* Start capturing again as if nothing had happened */
+  switch (current_mode)
+    {
+    case TVENG_CAPTURE_READ:
+      if (tveng2_start_capturing(info) == -1)
+	return -1;
+      break;
+    case TVENG_CAPTURE_PREVIEW:
+      if (tveng2_start_previewing(info) == -1)
+	return -1;
+      break;
+    default:
+      break;
+    }
   
-  if (tveng2_stop_capturing(info) == -1)
-    return -1;
+  info->cur_input = input->id;
 
-  if (was_mute == 0)
-    tveng2_set_mute(1, info);
-
-  if (ioctl(info->fd, VIDIOC_S_INPUT, &(info->inputs[input].input)))
-    {printf("Setting stardard failed\n"); return -1;}
-  
-  if (tveng2_start_capturing(info) == NULL)
-    return -1;
-
-  if (was_mute == 0)
-    tveng2_set_mute(0, info);
-
-  info->cur_input = input;
+  /* Maybe there are some other standards, get'em again */
+  tveng2_get_standards(info);
 
   return 0;
 }
@@ -419,14 +488,57 @@ int tveng2_set_input(int input, tveng2_device_info * info)
   Sets the input named name as the active input. -1 on error.
 */
 int
-tveng2_set_input_by_name(gchar * name, tveng2_device_info * info)
+tveng2_set_input_by_name(const char * input_name,
+			 tveng_device_info * info)
 {
   int i;
+
+  t_assert(input_name != NULL);
+  t_assert(info != NULL);
+
   for (i = 0; i < info->num_inputs; i++)
-    if (!strcasecmp(info->inputs[i].input.name, name))
-      return tveng2_set_input(i, info);
+    if (!strcasecmp(info->inputs[i].name, input_name))
+      return tveng2_set_input(&(info->inputs[i]), info);
+
+  info->tveng_errno = -1;
+  snprintf(info->error, 256,
+	   _("Input %s doesn't appear to exist"), input_name);
 
   return -1; /* String not found */
+}
+
+/*
+  Sets the active input by its id (may not be the same as its array
+  index, but it should be). -1 on error
+*/
+int
+tveng2_set_input_by_id(int id, tveng_device_info * info)
+{
+  int i;
+
+  t_assert(info != NULL);
+
+  for (i = 0; i < info->num_inputs; i++)
+    if (info->inputs[i].id == id)
+      return tveng2_set_input(&(info->inputs[i]), info);
+
+  info->tveng_errno = -1;
+  snprintf(info->error, 256, 
+	   _("Input number %d doesn't appear to exist"), id);
+
+  return -1; /* String not found */
+}
+
+/*
+  Sets the active input by its index in inputs. -1 on error
+*/
+int
+tveng2_set_input_by_index(int index, tveng_device_info * info)
+{
+  t_assert(info != NULL);
+  t_assert(index > -1);
+  t_assert(index < info -> num_inputs);
+  return (tveng2_set_input(&(info -> inputs[index]), info));
 }
 
 /*
@@ -435,158 +547,437 @@ tveng2_set_input_by_name(gchar * name, tveng2_device_info * info)
 */
 int tveng2_get_standards(tveng2_device_info * info)
 {
-  int err = 0;
+  int count = 0; /* Number of available standards */
+  struct v4l2_enumstd enumstd;
+  struct v4l2_standard std;
   int i;
 
-  for (i = 0; err == 0; i++)
+  /* free any previously allocated mem */
+  if (info->standards)
+    free(info->standards);
+
+  info->standards = NULL;
+  info->cur_standard = 0;
+  info->num_standards = 0;
+  info->tveng_errno = 0;
+
+  /* Start querying for the supported standards */
+  for (i = 0;; i++)
     {
+      memset(&enumstd, 0, sizeof (struct v4l2_enumstd));
+      enumstd.index = i;
+      if (ioctl(info->fd, VIDIOC_ENUMSTD, &enumstd))
+	break;
+
+      /* Check that this standard is supported by the current input */
+      if ((enumstd.inputs & (1 << info->cur_input)) == 0)
+	break; /* Unsupported by the current input */
+
       info->standards = realloc(info->standards, 
-				(i+1)*sizeof(tveng2_enumstd));
-      info->standards[i].std.index = i;
-      info->standards[i].info = info;
-      err = ioctl(info -> fd, VIDIOC_ENUMSTD, &(info->standards[i].std));
+				(count+1)*sizeof(tveng2_enumstd));
+      info->standards[count].index = count;
+      info->standards[count].id = i;
+      snprintf(info->standards[count].name, 32, enumstd.name);
+      count++;
     }
 
-  i--; /* Get rid of last (invalid) entry */
-  info->standards = realloc(info->standards, (i)*sizeof(tveng2_enumstd));
-  return (info->num_standards = i);
+  info -> num_standards = count;
+
+  if (info->num_standards == 0)
+    return 0; /* We are done, avoid the rest */
+
+  /* Get the current standard */
+  memset(&std, 0, sizeof(struct v4l2_standard));
+  if (ioctl(info->fd, VIDIOC_G_STD, &std))
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_G_STD", info);
+      return -1;
+    }
+
+  for (i=0; i<info->num_standards; i++)
+    if (!strcasecmp(std.name, info->standards[i].name))
+      {
+	info->cur_standard = i;
+	break;
+      }
+
+  if (i == info->num_standards) /* Current standard not found */
+    {
+      /* Set the first standard as active */
+      fprintf(stderr, "FIXME: current standard not found");
+      tveng1_set_standard(&(info->standards[0]), info);
+    }
+
+  return (info->num_standards);
 }
 
 /*
   Sets the current standard for the capture. standard is the name for
   the desired standard. updates cur_standard
 */
-int tveng2_set_standard(gchar * name, tveng2_device_info * info)
+int tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
 {
-  int i = 0;
+  enum tveng_capture_mode current_mode;
+  struct v4l2_enumstd enumstd;
 
-  /* Query the list of standards to get the standard we are to set */
-  for (; i < info->num_standards; i++)
-    if (!strcasecmp(info->standards[i].std.std.name, name))
-      break; /* Stop the loop */
+  t_assert(info != NULL);
+  t_assert(std != NULL);
 
-  if (i == info->num_standards)
-    return -1; /* The given name doesn't seem to be valid */
+  current_mode = info -> current_mode;
 
-  if (tveng2_stop_capturing(info) == -1)
-    return -1;
-
-  if (ioctl(info->fd, VIDIOC_S_STD, &(info->standards[i].std.std)))
+  /* Stop any current capture (this is a big deal) */
+  switch (info -> current_mode)
     {
-      perror("Setting stardard failed");
-      return -1;
-    }
-  
-  if (tveng2_start_capturing(info) == NULL)
-    {
-      perror("Cannot restart capture\n");
-      return -1;
+    case TVENG_CAPTURE_READ:
+      if (tveng2_stop_capturing(info) == -1)
+	return -1;
+      break;
+    case TVENG_CAPTURE_PREVIEW:
+      if (tveng2_stop_previewing(info) == -1)
+	return -1;
+      break;
+    default:
+      break;
     }
 
-  /* Update the current standard */
-  tveng2_update_standard(info);
+  /* Get info about the standard we are going to set */
+  memset(&enumstd, 0, sizoef(struct v4l2_enumstd));
+  enumstd.index = std -> id;
+  if (ioctl(info->fd, VIDIOC_ENUMSTD, &enumstd))
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_ENUMSTD", info);
+      return -1;
+    }
 
-  if (!strcasecmp(info->cur_standard.name, name))
-    return 0;
+  /* Now set it */
+  if (ioctl(info->fd, VIDIOC_S_STD, &(enumstd.std)))
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_S_STD", info);
+      return -1;
+    }
 
-  printf("Standard re-checking failed\n");
-  return -1;
-}
+  info->cur_standard = std->index;
 
-/*
-  Updates the value stored in cur_input. Returns -1 on error
-*/
-int tveng2_update_input(tveng2_device_info * info)
-{
-  if (ioctl(info->fd, VIDIOC_G_INPUT, &(info->cur_input)) != 0)
-    return -1;
+  /* Start capturing again as if nothing had happened */
+  switch (current_mode)
+    {
+    case TVENG_CAPTURE_READ:
+      if (tveng2_start_capturing(info) == -1)
+	return -1;
+      break;
+    case TVENG_CAPTURE_PREVIEW:
+      if (tveng2_start_previewing(info) == -1)
+	return -1;
+      break;
+    default:
+      break;
+    }
+
   return 0;
 }
 
 /*
-  Updates the value stored in cur_standard. Returns -1 on error
+  Sets the standard by name. -1 on error
 */
-int tveng2_update_standard(tveng2_device_info * info)
+int
+tveng2_set_standard_by_name(char * name, tveng_device_info * info)
 {
-  info -> cur_standard_index = -1;
+  int i;
+  for (i = 0; i < info->num_standards; i++)
+    if (!strcmp(name, info->standards[i].name))
+      return tveng2_set_standard(&(info->standards[i]), info);
 
-  if (ioctl(info->fd, VIDIOC_G_STD, &(info->cur_standard)) != 0)
-    return -1;
+  info->tveng_errno = -1;
+  snprintf(info->error, 256, 
+	   _("Standard %s doesn't appear to exist"), name);
 
-  /* Fill cur_standard_index with its current value */
-  for (info -> cur_standard_index = 0; 
-       info -> cur_standard_index < info -> num_standards;)
+  return -1; /* String not found */  
+}
+
+/*
+  Sets the standard by id.
+*/
+int
+tveng2_set_standard_by_id(int id, tveng_device_info * info)
+{
+  int i;
+  for (i = 0; i < info->num_standards; i++)
+    if (info->standards[i].id == id)
+      return tveng2_set_standard(&(info->standards[i]), info);
+
+  info->tveng_errno = -1;
+  snprintf(info->error, 256, 
+	   _("Standard %d doesn't appear to exist"), id);
+
+  return -1; /* id not found */
+}
+
+/*
+  Sets the standard by index. -1 on error
+*/
+int
+tveng2_set_standard_by_index(int index, tveng_device_info * info)
+{
+  t_assert(info != NULL);
+  t_assert(index < info->num_standards);
+  t_assert(index > -1);
+
+  return (tveng2_set_standard(&(info->standards[index]), info));
+}
+
+int
+tveng2_update_capture_format(tveng_device_info * info)
+{
+  struct v4l2_format format;
+  struct v4l2_window window;
+
+  t_assert(info != NULL);
+
+  memset(&format, 0, sizeof(struct v4l2_format));
+  memset(&window, 0, sizeof(struct v4l2_window));
+
+  format.type = V4L2_BUF_TYPE_CAPTURE;
+  if (ioctl(info->fd, VIDIOC_G_FMT, &format))
     {
-      if (!strcasecmp(info -> cur_standard.name, 
-		      info -> standards[info -> 
-				       cur_standard_index].std.std.name))
-	return 0; /* We have found the standard, exit */
-      info -> cur_standard_index ++; /* This isn't the standard */
+      info->tveng_errno = errno;
+      t_error("VIDIOC_G_FMT", info);
+      return -1;
+    }
+  if (info->fd, VIDIOC_G_WIN, &window)
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_G_WIN", info);
+      return -1;
+    }
+  info->format.bpp = (format.pix.depth + 7)>>3;
+  info->format.width = format.pix.width;
+  info->format.height = format.pix.height;
+  if (format.pix.flags & V4L2_FMT_FLAG_BYTESPERLINE)
+    info->format.bytesperline = format.pix.bytesperline;
+  else
+    info->format.bytesperline = info->format.bpp * info->format.width;
+  info->format.sizeimage = format.pix.sizeimage;
+  switch (format.pix.pixelformat)
+    {
+    case V4L2_PIX_FMT_RGB565:
+      info->format.depth = 16;
+      info->format.pixformat = TVENG_PIX_RGB565;
+      break;
+    case V4L2_PIX_FMT_RGB24:
+      info->format.depth = 24;
+      info->format.pixformat = TVENG_PIX_RGB24;
+      break;
+    case V4L2_PIX_FMT_BGR24:
+      info->format.depth = 24;
+      info->format.pixformat = TVENG_PIX_BGR24;
+      break;
+    case V4L2_PIX_FMT_RGB32:
+      info->format.depth = 32;
+      info->format.pixformat = TVENG_PIX_RGB32;
+      break;
+    case V4L2_PIX_FMT_BGR32:
+      info->format.depth = 32;
+      info->format.pixformat = TVENG_PIX_BGR32;
+      break;
+    default:
+      info->tveng_errno = -1; /* unknown */
+      t_error_msg("switch()",
+		  _("Cannot understand the actual palette"), info);
+      return -1;    
+    };
+  info->window.x = window.x;
+  info->window.y = window.y;
+  info->window.width = window.width;
+  info->window.height = window.height;
+  info->window.chromakey = window.chromakey;
+  /* These two are defined as read-only */
+  info->window.clipcount = 0;
+  if (info->window.clips)
+    free(info->window.clips);
+  info->window.clips = NULL;
+  return 0;
+}
+
+/* -1 if failed. Sets the pixformat and fills in info -> pix_format
+   with the correct values  */
+int
+tveng2_set_capture_format(tveng_device_info * info)
+{
+  struct v4l2_format format;
+
+  t_assert(info != NULL);
+
+  memset(&format, 0, sizeof(struct v4l2_format));
+
+  format.type = V4L2_BUF_TYPE_CAPTURE;
+
+  /* Transform the given palette value into a V4L value */
+  switch(info->format.pixformat)
+    {
+    case TVENG_PIX_RGB565:
+      format.pix.pixelformat = V4L2_PIX_FMT_RGB565;
+      format.pix.depth = 16;
+      break;
+    case TVENG_PIX_RGB24:
+      format.pix.pixelformat = V4L2_PIX_FMT_RGB24;
+      format.pix.depth = 24;
+      break;
+    case TVENG_PIX_BGR24:
+      format.pix.pixelformat = V4L2_PIX_FMT_BGR24;
+      format.pix.depth = 24;
+      break;
+    case TVENG_PIX_RGB32:
+      format.pix.pixelformat = V4L2_PIX_FMT_RGB32;
+      format.pix.depth = 32;
+      break;
+    case TVENG_PIX_BGR32:
+      format.pix.pixelformat = V4L2_PIX_FMT_BGR32;
+      format.pix.depth = 32;
+      break;
+    default:
+      info->tveng_errno = -1; /* unknown */
+      t_error_msg("switch()", _("Cannot understand the given palette"),
+		  info);
+      return -1;
     }
 
-  g_assert_not_reached(); /* This shouldn't be reached if
-			     VIDIOC_ENUMSTD works OK*/
+  /* Adjust the given dimensions */
+  /* Make them 4-byte multiplus to avoid errors */
+  info->format.width = (info->format.width+3) & ~3;
+  info->format.height = (info->format.height+3) & ~3;
+  if (info->format.height < info->caps.minheight)
+    info->format.height = info->caps.minheight;
+  if (info->format.height > info->caps.maxheight)
+    info->format.height = info->caps.maxheight;
+  if (info->format.width < info->caps.minwidth)
+    info->format.width = info->caps.minwidth;
+  if (info->format.width > info->caps.maxwidth)
+    info->format.width = info->caps.maxwidth;
   
-  info -> cur_standard_index = -1;
+  format.pix.width = (info->format.width+3) & ~3;
+  format.pix.height = (info->format.height+3) & ~3;
+  format.pix.bytesperline = ((format.pix.depth+7)>>3) *
+    format.pix.width;
+  format.pix.sizeimage = format.pix.bytesperline * format.pix.height;
+  format.pix.flags = V4L2_FMT_FLAG_INTERLACED;
 
-  printf(_("Error: ENUMSTD doesn't completely work\n"));
+  /* everything is set up */
+  if (ioctl(info->fd, VIDIOC_S_FMT, &format))
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_S_FMT", info);
+      return -1;
+    }
 
-  return -1; /* We have set an standard that didn't appear when we
-		ENUMSTD ? Really weird*/
+  /* Check fill in info with the current values (may not be the ones
+     requested) */
+  if (tveng2_update_capture_format(info) == -1)
+    return -1; /* error */
+
+  return 0; /* Success */
 }
 
-/*
-  Test if a given control is supported by the driver and fills in the
-  structure qc with some info about this control. Returns EINVAL in
-  case of failure. Return value of this function should be considered
-  valid only if it is 0. Usually tveng2_set_control will be used
-  instead of this function directly.
-*/
-int tveng2_test_control(int control_id, struct v4l2_queryctrl * qc,
-		       tveng2_device_info * info)
+/* private, add a control to the control structure, -1 means ENOMEM */
+int
+p_tveng2_append_control(struct tveng_control * new_control, 
+			tveng_device_info * info);
+
+int
+p_tveng2_append_control(struct tveng_control * new_control, 
+			tveng_device_info * info)
 {
-  qc -> id = control_id;
-  return (ioctl(info->fd, VIDIOC_QUERYCTRL, qc));
+  struct tveng_control * new_pointer = (struct tveng_control*)
+    realloc(info->controls, (info->num_controls+1)*
+	    sizeof(struct tveng_control));
+
+  if (!new_pointer)
+    {
+      info->tveng_errno = errno;
+      t_error("realloc", info);
+      return -1;
+    }
+  info->controls = new_pointer;
+
+  memcpy(&info->controls[info->num_controls], new_control, sizeof(struct
+							   tveng_control));
+  info->num_controls++;
+  return 0;
 }
 
-/*
-  Set the value for specific controls. Some of this functions have
-  wrappers, such as tveng2_set_mute(). Returns 1 in case the value is
-  lower than the allowed minimum, and 2 in case the value is higher
-  than the allowed maximum. The value is set to ne nearest valid value
-  and we set it. returns 0 on success
-*/
-int tveng2_set_control(int control_id, int value,
-		      tveng2_device_info * info)
+/* To aid i18n, possible label isn't actually used */
+struct p_tveng_control_with_i18n
+{
+  __u32 cid;
+  char * possible_label;
+};
+
+/* Private, builds the controls structure */
+int
+p_tveng1_build_controls(tveng_device_info * info)
 {
   struct v4l2_queryctrl qc;
-  struct v4l2_control c;
-  int bounds_flag = 0;
-  int err;
+  struct tveng_control control;
+  int i;
 
-  /* Check if the control is available */
-  if (tveng2_test_control(control_id, &qc, info) != 0)
-    return -1;
+  /* This shouldn't be neccessary is control querying worked properly */
+  /* FIXME: add some ifdef's to use the sane way to query controls */
+  struct p_tveng_control_with_i18n cids[] =
+  {
+    {V4L2_CID_BRIGHTNESS, N_("Brightness")},
+    {V4L2_CID_CONTRAST, N_("Contrast")},
+    {V4L2_CID_SATURATION, N_("Saturation")},
+    {V4L2_CID_HUE, N_("Hue")},
+    {V4L2_CID_WHITENESS, N_("Whiteness")},
+    {V4L2_CID_BLACK_LEVEL, N_("Black level")},
+    {V4L2_CID_AUTO_WHITE_BALANCE, N_("White balance")},
+    {V4L2_CID_DO_WHITE_BALANCE, N_("Do white balance")},
+    {V4L2_CID_RED_BALANCE, N_("Red balance")},
+    {V4L2_CID_BLUE_BALANCE, N_("Blue balance")},
+    {V4L2_CID_GAMMA, N_("Gamma")},
+    {V4L2_CID_EXPOSURE, N_("Exposure")},
+    {V4L2_CID_GAIN, N_("Gain")},
+    {V4L2_CID_HCENTER, N_("HCenter")},
+    {V4L2_CID_VCENTER, N_("VCenter")},
+    {V4L2_CID_HFLIP, N_("Horizontal flipping")},
+    {V4L2_CID_VFLIP, N_("Vertical flipping")},
+    {V4L2_CID_AUDIO_VOLUME, N_("Volume")},
+    {V4L2_CID_AUDIO_MUTE, N_("Mute")},
+    {V4L2_CID_AUDIO_BALANCE, N_("Balance")},
+    {V4L2_CID_AUDIO_TREBLE, N_("Treble")},
+    {V4L2_CID_LOUDNESS, N_("Loudness")}
+  };
 
-  if (value > qc.maximum)
+  memset(&qc, 0, sizeof(struct v4l2_queryctrl));
+  for (i = 0; i < (sizeof(cids)/sizeof(__u32)); i++)
     {
-      bounds_flag = 2;
-      value = qc.maximum;
+      qc.id = cids[i].cid;
+      if (ioctl(info->fd, VIDIOC_QUERYCTRL, &qc) == 0)
+	{
+	  if (!strcasecmp(qc.name, cids[i].possible_label))
+	    snprintf(control.name, 32, _(cids[i].possible_label));
+	  else
+	    {
+	      fprintf(stderr,
+		  "%s found: Please contact garetxe@users.sourceforge.net", 
+		      qc.name);
+	      snprintf(control.name, 32, _(qc.name));
+	    }
+	  control.min = qc.minimum;
+	  control.max = qc.maximum;
+	  switch (qc.type)
+	    {
+	    case V4L2_CTRL_TYPE_INTEGER:
+	      control.type = TVENG_CONTROL_SLIDER;
+	      control.data = NULL;
+	    }
+	  /* FIXME: i'm here */
+	  /* FIXME: Fix memory leak concerning menu controls */
+	}
     }
-  if (value < qc.minimum)
-    {
-      bounds_flag = 1;
-      value = qc.minimum;
-    }
-
-  c.id = control_id;
-  c.value = value;
-
-  err = ioctl(info -> fd, VIDIOC_S_CTRL, &c);
-  if (err == 0)
-    return (bounds_flag);
-  else
-    return err;
+  return 0;
 }
 
 /*

@@ -43,7 +43,6 @@
 */
 #define TVENG1_BTTV_MUTE_BUG_WORKAROUND 1
 #include "tveng1.h"
-#include "videodev.h" /* the V4L definitions */
 
 /*
   If this is enabled, some specific features of the bttv driver are
@@ -487,6 +486,11 @@ int tveng1_set_input(struct tveng_enum_input * input,
       return -1;
     }
 
+  info->cur_input = input->id;
+
+  /* Maybe there are some other standards, get'em */
+  tveng1_get_standards(info);
+
   /* Start capturing again as if nothing had happened */
   switch (current_mode)
     {
@@ -501,11 +505,6 @@ int tveng1_set_input(struct tveng_enum_input * input,
     default:
       break;
     }
-
-  info->cur_input = input->id;
-
-  /* Maybe there are some other standards, get'em */
-  tveng1_get_standards(info);
 
   return 0;
 }
@@ -824,6 +823,8 @@ tveng1_update_capture_format(tveng_device_info * info)
   info->window.chromakey = window.chromakey;
   /* These two are write-only */
   info->window.clipcount = 0;
+  if (info->window.clips)
+    free(info->window.clips);
   info->window.clips = NULL;
   return 0;
 }
@@ -882,6 +883,8 @@ tveng1_set_capture_format(tveng_device_info * info)
 
   /* Fill in the new width and height parameters */
   /* Make them 4-byte multiplus to avoid errors */
+  info->format.width = (info->format.width+3) & ~3;
+  info->format.height = (info->format.height+3) & ~3;
   if (info->format.height < info->caps.minheight)
     info->format.height = info->caps.minheight;
   if (info->format.height > info->caps.maxheight)

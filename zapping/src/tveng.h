@@ -118,7 +118,7 @@ enum tveng_field
 /* The format of a pixel, similar to the V4L2 ones, but they aren't
    fourcc'ed */
 enum tveng_frame_pixformat{
-  TVENG_PIX_RGB555,
+  TVENG_PIX_RGB555, /* This one isn't supported yet */
   TVENG_PIX_RGB565,
   TVENG_PIX_RGB24,
   TVENG_PIX_BGR24,

@@ -6,8 +6,9 @@
  *	Author: Bill Dirks <bdirks@pacbell.net>
  */
 
-#ifndef __LINUX_VIDEODEV_H
-#define __LINUX_VIDEODEV_H
+/* This tweak is for compatibility with the V4L1 driver */
+#ifndef __LINUX_VIDEODEV2_H
+#define __LINUX_VIDEODEV2_H
 
 #define V4L2_MAJOR_VERSION	0
 #define V4L2_MINOR_VERSION	20

@@ -301,13 +301,13 @@ gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
     {
       Convert_RGB565_RGB24, "Convert_RGB565_RGB24",
       N_("Converts a row in RGB565 format to RGB24. Returns the destination."),
-      "gchar * Convert_RGB16_RGB24 ( gint width, gchar * src, gchar * dest);",
+      "gchar * Convert_RGB565_RGB24 ( gint width, gchar * src, gchar * dest);",
       0x1234
     },
     {
       Convert_RGB555_RGB24, "Convert_RGB555_RGB24",
       N_("Converts a row in RGB555 format to RGB24. Returns the destination."),
-      "gchar * Convert_RGB15_RGB24 ( gint width, gchar * src, gchar * dest);",
+      "gchar * Convert_RGB555_RGB24 ( gint width, gchar * src, gchar * dest);",
       0x1234
     },
     {

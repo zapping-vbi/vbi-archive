@@ -1,6 +1,10 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Create tveng2 (tveng V4L2 version)
+	-> Create tveng2 (tveng V4L2 version)
+	+ Change plugins to add themselves to a GtkNotebook instead of
+a GnomePropertyBox (This will allow for multiple properties dialogs).
+	+ Add categories for the plugins
+	+ Add the option for fixed increments a la xawtv	
 	+ Add timestamps to TVeng
 	+ Fix all the bugs in BUGS
 	+ Add desktop (and root menu) entries
@@ -8,4 +12,7 @@ Outstanding issues for the next release
 	+ Full i18n
 	+ Fix all fixme's
 	+ Bug Track
-	> Release 0.5.0 (public)
+	> Release 0.5.0
+	+ Write docs on tveng and plugins
+	+ Fix bugs
+	> Release 0.5.1
