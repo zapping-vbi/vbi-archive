@@ -8,7 +8,7 @@ noinst_PROGRAMS = rte_test
 
 INCLUDES = -D_GNU_SOURCE -D_REENTRANT -D_LARGEFILE64_SOURCE
 
-EXTRA_DIST = rte.spec.in rte.spec
+EXTRA_DIST = rte.spec.in rte.spec rte.sym
 
 ffmpeg = ffmpeg/libffmpeg.la ffmpeg/libav/libav.la \
 ffmpeg/libavcodec/libavcodec.la ffmpeg/libavcodec/i386/libi386.la \
@@ -22,7 +22,7 @@ librteincludedir = $(includedir)
 librteinclude_HEADERS = rte.h
 librte_la_SOURCES = rte.c rte.h rtepriv.h
 librte_la_LIBADD = $(ffmpeg) $(mp1e) -lpthread -lm
-librte_la_LDFLAGS = -export-dynamic -release @VERSION@
+librte_la_LDFLAGS = -export-dynamic -release @VERSION@ -export-symbols rte.sym
 
 rte_test_SOURCES = rte_test_main.c
 
