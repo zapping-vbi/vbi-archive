@@ -348,20 +348,28 @@ threads_init (gchar *dev_name, int given_fd)
                                         &services, /* strict */ -1,
 					&_errstr, !!debug_msg)))
     {
-      if (errno == ENOENT || errno == ENXIO || errno == ENODEV)
-	{
-	  gchar *s = g_strconcat(_errstr, "\n", mknod_hint);
+      if (_errstr)
+	free (_errstr);
 
-	  ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, s);
-	  g_free (s);
-	}
-      else
+      if (!(capture = vbi_capture_v4l_sidecar_new (dev_name, given_fd,
+						   &services, /* strict */ -1,
+						   &_errstr, !!debug_msg)))
 	{
-	  ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, _errstr);
+	  if (errno == ENOENT || errno == ENXIO || errno == ENODEV)
+	    {
+	      gchar *s = g_strconcat(_errstr, "\n", mknod_hint);
+	      
+	      ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, s);
+	      g_free (s);
+	    }
+	  else
+	    {
+	      ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, _errstr);
+	    }
+	  free (_errstr);
+	  vbi_decoder_delete (vbi);
+	  return FALSE;
 	}
-      free (_errstr);
-      vbi_decoder_delete (vbi);
-      return FALSE;
     }
 
   D();
