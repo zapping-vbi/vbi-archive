@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet.c,v 1.9.2.1 2003-02-16 21:03:37 mschimek Exp $ */
+/* $Id: packet.c,v 1.9.2.2 2003-04-29 17:11:46 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -46,7 +46,7 @@
 static vbi_bool convert_drcs(vt_page *vtp, const uint8_t *raw);
 
 static inline void
-dump_pagenum(pagenum page)
+dump_pagenum(vt_pagenum page)
 {
 	printf("T%x %3x/%04x\n", page.type, page.pgno, page.subno);
 }
@@ -146,8 +146,8 @@ dump_page_info			(const struct teletext *vt)
 	putchar('\n');
 }
 
-static inline vbi_bool
-hamm8_page_number		(pagenum *		p,
+static __inline__ vbi_bool
+hamm8_page_number		(vt_pagenum *		pn,
 				 const uint8_t *	raw,
 				 int			magazine)
 {
@@ -162,8 +162,8 @@ hamm8_page_number		(pagenum *		p,
 
 	m = ((b3 >> 5) & 6) + (b2 >> 7);
 
-	p->pgno  = ((magazine ^ m) ? : 8) * 256 + b1;
-	p->subno = (b3 * 256 + b2) & 0x3F7F;
+	pn->pgno  = ((magazine ^ m) ? : 8) * 256 + b1;
+	pn->subno = (b3 * 256 + b2) & 0x3F7F;
 
 	return TRUE;
 }
@@ -677,10 +677,12 @@ static const int dec2bcdp[20] = {
 };
 
 static vbi_bool
-top_page_number(pagenum *p, const uint8_t *raw)
+top_page_number(vt_pagenum *pn, const uint8_t *raw)
 {
 	int n[8];
-	int pgno, err, i;
+	vbi_pgno pgno;
+	int err;
+	int i;
 
 	for (err = i = 0; i < 8; i++)
 		err |= n[i] = vbi_hamm8(raw[i]);
@@ -690,9 +692,9 @@ top_page_number(pagenum *p, const uint8_t *raw)
 	if (err < 0 || pgno > 0x8FF)
 		return FALSE;
 
-	p->pgno = pgno;
-	p->subno = ((n[3] << 12) | (n[4] << 8) | (n[5] << 4) | n[6]) & 0x3f7f; // ?
-	p->type = n[7]; // ?
+	pn->pgno = pgno;
+	pn->subno = ((n[3] << 12) | (n[4] << 8) | (n[5] << 4) | n[6]) & 0x3f7f; // ?
+	pn->type = n[7]; // ?
 
 	return TRUE;
 }
@@ -781,7 +783,7 @@ parse_btt(vbi_decoder *vbi, const uint8_t *raw, int packet)
 
 	case 21 ... 23:
 	    {
-		pagenum *p = vbi->vt.btt_link + (packet - 21) * 5;
+		vt_pagenum *p = vbi->vt.btt_link + (packet - 21) * 5;
 		int i;
 
 		vbi->vt.top = TRUE;
@@ -876,7 +878,7 @@ static inline vbi_bool
 parse_mpt_ex(struct teletext *vt, const uint8_t *raw, int packet)
 {
 	int i, code, subc;
-	pagenum p;
+	vt_pagenum p;
 
 	switch (packet) {
 	case 1 ... 23:
