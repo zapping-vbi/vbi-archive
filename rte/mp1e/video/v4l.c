@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: v4l.c,v 1.3 2001-08-10 22:41:09 garetxe Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -92,9 +92,9 @@ v4l_cap_thread(void *unused)
 
 		ASSERT("ioctl VIDIOCSYNC", r >= 0);
 
+		b->used = b->size;
 		memcpy(b->data, (unsigned char *)(buf_base
 			+ buf.offsets[cframe]), b->used);
-		b->used = b->size;
 
 		vmmap.frame = cframe;
 
