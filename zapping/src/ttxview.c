@@ -637,6 +637,7 @@ static void selection_handle		(GtkWidget	*widget,
 
 	  if ((e = vbi_export_open(buffer, NULL)))
 	    {
+#ifdef ENABLE_V4L
 	      char *str;
 	      size_t size;
 	      FILE *fp = open_memstream(&str, &size);
@@ -657,6 +658,7 @@ static void selection_handle		(GtkWidget	*widget,
 		}
 	      if (str)
 	        free(str);
+#endif
 	      vbi_export_close(e);
 	    }
 	  else

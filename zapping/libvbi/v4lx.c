@@ -17,16 +17,17 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.34 2001-08-22 01:26:53 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.35 2001-08-25 12:01:18 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#ifdef ENABLE_V4L
-
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef ENABLE_V4L
+
 #include <string.h>
 #include <math.h>
 #include <errno.h>
@@ -72,6 +73,8 @@ typedef enum {
 	OPEN_SUCCESS,
 } open_result;
 
+#endif ENABLE_V4L
+
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
 
 extern int /* gboolean */ debug_msg;
@@ -94,6 +97,8 @@ do {									\
 #if WSS_TEST
 static unsigned char wss_test_data[768 * 4];
 #endif
+
+#ifdef ENABLE_V4L
 
 typedef struct {
 	fifo			fifo;			/* world interface */

@@ -403,7 +403,7 @@ int main(int argc, char * argv[])
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
   program_invocation_name = argv[0];
-  program_invocation_short_name = g_get_progname();
+  program_invocation_short_name = g_get_prgname();
 #endif
 
   if (x11_get_bpp() < 15)
@@ -414,7 +414,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.129 2001-08-23 22:33:56 garetxe Exp $",
+	 "$Id: main.c,v 1.130 2001-08-25 12:01:18 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
