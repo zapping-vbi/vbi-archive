@@ -1,6 +1,10 @@
 noinst_LIBRARIES = libcommon.a
 
-EXTRA_DIST = README
+EXTRA_DIST = README \
+	fprintf_videodev.h \
+	fprintf_videodev2.h \
+	fprintf_videodev25.h \
+	fprintf_bktr.h
 
 INCLUDES = $(DEFAULT_CFLAGS) $(UNICODE_CFLAGS) @COMMON_INCLUDES@
 
@@ -66,7 +70,7 @@ fprintf_videodev2.h: structpr_gen.pl videodev2.h
 
 fprintf_videodev25.h: structpr_gen.pl videodev25.h
 	./structpr_gen.pl <videodev25.h \
-	"v4l2_fract={ fprintf (fp, \"%lu/%lu\", t->numerator, t->denominator); }" \
+	"v4l2_fract={ fprintf (fp, \"%u/%u\", t->numerator, t->denominator); }" \
 	v4l2_capability.driver=string \
 	v4l2_capability.card=string \
 	v4l2_capability.bus_info=string \
