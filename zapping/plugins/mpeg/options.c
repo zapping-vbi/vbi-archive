@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.19.2.7 2003-10-20 21:32:16 mschimek Exp $ */
+/* $Id: options.c,v 1.19.2.8 2003-10-31 19:08:20 mschimek Exp $ */
 
 #include "src/plugin_common.h"
 
@@ -153,10 +153,13 @@ create_entry (grte_options *opts, rte_option_info *ro, int index)
   label = ro_label_new (ro);
 
   entry = gtk_entry_new ();
-  t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
-  g_assert (t != NULL);
-  z_tooltip_set (entry, t);
-  g_free (t);
+  if (ro->tooltip)
+    {
+      t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+      g_assert (t != NULL);
+      z_tooltip_set (entry, t);
+      g_free (t);
+    }
   gtk_widget_show (entry);
 
   g_assert (rte_codec_option_get (opts->codec, ro->keyword, &val));
@@ -202,6 +205,7 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
   for (i = ro->min.num; i <= ro->max.num; i++)
     {
       char *str;
+      gchar *t;
 
       switch (ro->type) 
 	{
@@ -225,7 +229,10 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
 	}
 
       g_assert(str != NULL);
-      menu_item = gtk_menu_item_new_with_label (str);
+      t = g_locale_to_utf8 (str, -1, NULL, NULL, NULL);
+      g_assert (t != NULL);
+      menu_item = gtk_menu_item_new_with_label (t);
+      g_free (t);
       free(str);
 
       g_object_set_data (G_OBJECT (menu_item), "key", ro->keyword);
@@ -243,10 +250,13 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
   gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu), current);
   gtk_widget_show (menu);
-  t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
-  g_assert (t != NULL);
-  z_tooltip_set (option_menu, t);
-  g_free (t);
+  if (ro->tooltip)
+    {
+      t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+      g_assert (t != NULL);
+      z_tooltip_set (option_menu, t);
+      g_free (t);
+    }
   gtk_widget_show (option_menu);
 
   gtk_table_resize (GTK_TABLE (opts->table), index + 1, 2);
@@ -323,10 +333,13 @@ create_checkbutton (grte_options *opts, rte_option_info *ro, int index)
   g_free (t);
 
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (cb), FALSE);
-  t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
-  g_assert (t != NULL);
-  z_tooltip_set (cb, t);
-  g_free (t);
+  if (ro->tooltip)
+    {
+      t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+      g_assert (t != NULL);
+      z_tooltip_set (cb, t);
+      g_free (t);
+    }
   gtk_widget_show (cb);
 
   g_assert (rte_codec_option_get (opts->codec, ro->keyword, &val));
@@ -573,30 +586,58 @@ grte_options_save		(rte_codec *		codec,
 	    /* Create won't set an already existing variable,
 	     * Set won't create one with description.
 	     */
-	    t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
-	    g_assert (t != NULL);
+	    if (ro->tooltip)
+	      {
+		t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+		g_assert (t != NULL);
+	      }
+	    else
+	      {
+		t = NULL;
+	      }
 	    zconf_create_boolean (val.num, t, zcname);
 	    g_free (t);
 	    zconf_set_boolean (val.num, zcname);
 	    break;
 	  case RTE_OPTION_INT:
 	  case RTE_OPTION_MENU:
-	    t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
-	    g_assert (t != NULL);
+	    if (ro->tooltip)
+	      {
+		t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+		g_assert (t != NULL);
+	      }
+	    else
+	      {
+		t = NULL;
+	      }
 	    zconf_create_integer (val.num, t, zcname);
 	    g_free (t);
 	    zconf_set_integer (val.num, zcname);
 	    break;
 	  case RTE_OPTION_REAL:
-	    t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
-	    g_assert (t != NULL);
+	    if (ro->tooltip)
+	      {
+		t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+		g_assert (t != NULL);
+	      }
+	    else
+	      {
+		t = NULL;
+	      }
 	    zconf_create_float (val.dbl, t, zcname);
 	    g_free (t);
 	    zconf_set_float (val.dbl, zcname);
 	    break;
 	  case RTE_OPTION_STRING:
-	    t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
-	    g_assert (t != NULL);
+	    if (ro->tooltip)
+	      {
+		t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+		g_assert (t != NULL);
+	      }
+	    else
+	      {
+		t = NULL;
+	      }
 	    zconf_create_string (val.str, t, zcname);
 	    g_free (t);
 	    zconf_set_string (val.str, zcname);
@@ -713,10 +754,13 @@ grte_codec_create_menu		(rte_context *		context,
       g_free (t);
       g_object_set_data (G_OBJECT (menu_item), "keyword",
 			   (void *) cdinfo->keyword);
-      t = g_locale_to_utf8 (R_(cdinfo->tooltip), -1, NULL, NULL, NULL);
-      g_assert (t != NULL);
-      z_tooltip_set (menu_item, t);
-      g_free (t);
+      if (cdinfo->tooltip)
+	{
+	  t = g_locale_to_utf8 (R_(cdinfo->tooltip), -1, NULL, NULL, NULL);
+	  g_assert (t != NULL);
+	  z_tooltip_set (menu_item, t);
+	  g_free (t);
+	}
       gtk_widget_show (menu_item);
       gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
@@ -918,10 +962,13 @@ grte_context_create_menu	(const gchar *		zc_root,
 
       g_object_set_data (G_OBJECT (menu_item), "keyword",
 			   (void *) info->keyword);
-      t = g_locale_to_utf8 (R_(info->tooltip), -1, NULL, NULL, NULL);
-      g_assert (t != NULL);
-      z_tooltip_set (menu_item, t);
-      g_free (t);
+      if (info->tooltip)
+	{
+	  t = g_locale_to_utf8 (R_(info->tooltip), -1, NULL, NULL, NULL);
+	  g_assert (t != NULL);
+	  z_tooltip_set (menu_item, t);
+	  g_free (t);
+	}
       gtk_widget_show (menu_item);
       gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
