@@ -107,6 +107,7 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp,
   new_object->private->port = None;
   new_object->private->filter = None;
   new_object->private->colorkey = None;
+  new_object->private->double_buffer = None;
 #endif
 
   new_object->current_controller = TVENG_CONTROLLER_NONE;
@@ -584,7 +585,16 @@ tveng_update_controls(tveng_device_info * info)
 			     info->private->filter,
 			     &(info->controls[i].cur_value));
 	  return 0;
-	}      
+	}
+      else if ((control->id == (int)info->private->double_buffer) &&
+	       (info->private->port))
+	{
+	  XvGetPortAttribute(info->private->display,
+			     info->private->port,
+			     info->private->double_buffer,
+			     &(info->controls[i].cur_value));
+	  return 0;
+	}
       else if ((control->id == (int)info->private->colorkey) &&
 	       (info->private->port != None))
 	{
@@ -660,6 +670,15 @@ tveng_set_control(struct tveng_control * control, int value,
 	  XvSetPortAttribute(info->private->display,
 			     info->private->port,
 			     info->private->filter,
+			     value);
+	  return 0;
+	}
+      else if ((control->id == (int)info->private->double_buffer) &&
+	       (info->private->port != None))
+	{
+	  XvSetPortAttribute(info->private->display,
+			     info->private->port,
+			     info->private->double_buffer,
 			     value);
 	  return 0;
 	}
@@ -1798,6 +1817,13 @@ void tveng_set_debug_level(tveng_device_info * info, int level)
   info->debug_level = level;
 }
 
+void tveng_set_xv_support(int disabled, tveng_device_info * info)
+{
+  t_assert(info != NULL);
+
+  info->private->disable_xv = disabled;
+}
+
 #ifdef USE_XV
 void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 {
@@ -1808,7 +1834,8 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 
   info->private->port = port;
   dpy = info->private->display;
-  info->private->filter = info->private->colorkey = None;
+  info->private->filter = info->private->colorkey =
+    info->private->double_buffer = None;
 
   /* Add the controls in this port to the struct of controls */
   at = XvQueryPortAttributes(dpy, port, &attributes);
@@ -1821,11 +1848,31 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 		(at[i].flags & XvSettable) ? " settable" : "",
 		at[i].min_value, at[i].max_value);
 
+      /* Any attribute not settable and Gettable is of little value */
+      if ((!(at[i].flags & XvGettable)) ||
+	  (!(at[i].flags & XvSettable)))
+	continue;
+
       if (!strcmp("XV_FILTER", at[i].name))
 	  {
 	    info->private->filter = XInternAtom(dpy, "XV_FILTER",
 						False);
 	    control.id = (int)info->private->filter;
+	    snprintf(control.name, 32, _("Filter"));
+	    control.min = at[i].min_value;
+	    control.max = at[i].max_value;
+	    control.type = TVENG_CONTROL_CHECKBOX;
+	    control.data = NULL;
+	    control.controller = TVENG_CONTROLLER_MOTHER;
+	    if (p_tveng_append_control(&control, info) == -1)
+	      return;
+	  }
+
+      if (!strcmp("XV_DOUBLE_BUFFER", at[i].name))
+	  {
+	    info->private->double_buffer = XInternAtom(dpy, "XV_DOUBLE_BUFFER",
+						       False);
+	    control.id = (int)info->private->double_buffer;
 	    snprintf(control.name, 32, _("Filter"));
 	    control.min = at[i].min_value;
 	    control.max = at[i].max_value;

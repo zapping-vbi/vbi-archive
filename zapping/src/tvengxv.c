@@ -43,7 +43,7 @@ struct private_tvengxv_device_info
   int encodings; /* number of encodings */
   /* This atoms define the controls */
   Atom	encoding;
-  int encoding_max, encoding_min;
+  int encoding_max, encoding_min, encoding_gettable;
   Atom	color;
   int color_max, color_min;
   Atom	hue;
@@ -97,6 +97,9 @@ p_tvengxv_open_device(tveng_device_info *info)
 				 &pAdaptors))
     goto error1;
 
+  if (nAdaptors <= 0)
+    goto error1;
+
   for (i=0; i<nAdaptors; i++)
     {
       pAdaptor = pAdaptors + i;
@@ -122,8 +125,16 @@ p_tvengxv_open_device(tveng_device_info *info)
 				  &p_info->encodings, &p_info->ei))
     goto error3;
 
-  /* create the atom that handles the encoding */
+  if (p_info->encodings <= 0)
+    {
+      info->tveng_errno = -1;
+      t_error_msg("encodings",
+		  "You have no encodings available",
+		  info);
+      goto error3;
+    }
 
+  /* create the atom that handles the encoding */
   at = XvQueryPortAttributes(dpy, p_info->port, &attributes);
   if (!at)
     goto error4;
@@ -133,7 +144,11 @@ p_tvengxv_open_device(tveng_device_info *info)
   return 0xbeaf; /* the port seems to work ok, success */
 
  error4:
-  XvFreeEncodingInfo(p_info->ei);
+  if (p_info->ei)
+    {
+      XvFreeEncodingInfo(p_info->ei);
+      p_info->ei = NULL;
+    }
  error3:
   XvUngrabPort(dpy, p_info->port, CurrentTime);
  error2:
@@ -165,6 +180,15 @@ int tvengxv_attach_device(const char* device_file,
   Display *dpy;
 
   t_assert(info != NULL);
+
+  if (info->private->disable_xv)
+    {
+      info->tveng_errno = -1;
+      t_error_msg("disable_xv",
+		  "XVideo support has been disabled", info);
+      return -1;
+    }
+
   dpy = info->private->display;;
 
   if (info -> fd) /* If the device is already attached, detach it */
@@ -175,6 +199,7 @@ int tvengxv_attach_device(const char* device_file,
     = p_info->brightness = p_info->contrast = p_info->freq =
     p_info->mute = p_info->volume = p_info->colorkey =
     p_info->interlace = None;
+  p_info->ei = NULL;
 
   /* In this module, the given device file doesn't matter */
   info -> file_name = strdup(_("XVideo"));
@@ -220,11 +245,20 @@ int tvengxv_attach_device(const char* device_file,
 		(at[i].flags & XvGettable) ? " gettable" : "",
 		(at[i].flags & XvSettable) ? " settable" : "",
 		at[i].min_value, at[i].max_value);
+      /* Any attribute not settable and Gettable is of little value,
+       except XV_ENCODING, which is allowed */
+      if (((!(at[i].flags & XvGettable)) ||
+	  (!(at[i].flags & XvSettable))) &&
+	  (strcmp("XV_ENCODING", at[i].name)))
+	continue;
       if (!strcmp("XV_ENCODING", at[i].name))
 	{
+	  if (!(at[i].flags & XvSettable))
+	    continue;
 	  p_info->encoding = XInternAtom(dpy, "XV_ENCODING", False);
 	  p_info->encoding_max = at[i].max_value;
 	  p_info->encoding_min = at[i].min_value;
+	  p_info->encoding_gettable = at[i].flags & XvGettable;
 	}
       if (!strcmp("XV_COLOR", at[i].name))
 	{
@@ -364,8 +398,9 @@ static void tvengxv_close_device(tveng_device_info * info)
 
   tveng_stop_everything(info);
 
-  //  XvUngrabPort(info->private->display, p_info->port, CurrentTime);
-  XvFreeEncodingInfo(p_info->ei);
+  if (p_info->ei)
+    XvFreeEncodingInfo(p_info->ei);
+  p_info->ei = NULL;
 
   info -> fd = 0;
   info -> current_controller = TVENG_CONTROLLER_NONE;
@@ -438,6 +473,9 @@ tvengxv_get_inputs(tveng_device_info *info)
   info->num_inputs = 0;
   info->cur_input = 0;
 
+  if (p_info->encoding == None)
+    return 0; /* Nothing settable */
+
   for (i=0; i<p_info->encodings; i++)
     {
       if (info->debug_level > 0)
@@ -474,13 +512,15 @@ tvengxv_get_inputs(tveng_device_info *info)
     }
   /* Get the current input */
   val = 0;
-  if (p_info->encoding != None)
+  if ((p_info->encoding != None) &&
+      (p_info->encoding_gettable))
     XvGetPortAttribute(info->private->display, p_info->port,
 		       p_info->encoding, &val);
 
-  if ((2 == sscanf(p_info->ei[val].name, "%63[^-]-%63s", norm, input)) &&
-      (-1 != (i=tvengxv_find_input(input, info))))
-    info->cur_input = i;
+  if (p_info->ei)
+    if ((2 == sscanf(p_info->ei[val].name, "%63[^-]-%63s", norm, input)) &&
+	(-1 != (i=tvengxv_find_input(input, info))))
+      info->cur_input = i;
 
   return (info->num_inputs);
 }
@@ -580,6 +620,9 @@ tvengxv_get_standards(tveng_device_info *info)
   info->num_standards = 0;
   info->cur_standard = 0;
 
+  if (p_info->encoding == None)
+    return 0;
+
   for (i=0; i<p_info->encodings; i++)
     {
       if (2 != sscanf(p_info->ei[i].name, "%63[^-]-%63s", norm, input))
@@ -598,13 +641,15 @@ tvengxv_get_standards(tveng_device_info *info)
     }
   /* Get the current input */
   val = 0;
-  if (p_info->encoding != None)
+  if ((p_info->encoding != None) &&
+      (p_info->encoding_gettable))
     XvGetPortAttribute(info->private->display, p_info->port,
 		       p_info->encoding, &val);
 
-  if ((2 == sscanf(p_info->ei[val].name, "%63[^-]-%63s", norm, input)) &&
-      (-1 != (i=tvengxv_find_standard(norm, info))))
-    info->cur_standard = i;
+  if (p_info->ei)
+    if ((2 == sscanf(p_info->ei[val].name, "%63[^-]-%63s", norm, input)) &&
+	(-1 != (i=tvengxv_find_standard(norm, info))))
+      info->cur_standard = i;
 
   return (info->num_standards);
 }
@@ -974,7 +1019,8 @@ tvengxv_set_preview(int on, tveng_device_info * info)
 	       &dummy, &dummy, &width, &height, &dummy, &dummy);
 
   val = 0;
-  if (p_info->encoding != None)
+  if ((p_info->encoding != None) &&
+      (p_info->encoding_gettable))
     XvGetPortAttribute(info->private->display, p_info->port,
 		       p_info->encoding, &val);
 

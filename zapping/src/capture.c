@@ -48,6 +48,8 @@
 
 /* Some global stuff we need, see descriptions in main.c */
 extern GList		*plugin_list;
+extern gboolean		disable_xv; /* TRUE is XVideo should be
+				       disabled */
 static gboolean		have_xv = FALSE; /* Can we use the Xv extension? */
 static GdkImage		*gdkimage=NULL; /* gdk, possibly shm, image */
 
@@ -153,6 +155,12 @@ startup_xv(void)
   XvImageFormatValues *pImgFormats=NULL;
   int nImgFormats;
 
+  if (disable_xv)
+    {
+      have_xv = FALSE;
+      return;
+    }
+
   if (Success != XvQueryExtension(dpy, &version, &revision,
 				  &major_opcode, &event_base,
 				  &error_base))
@@ -161,7 +169,11 @@ startup_xv(void)
   if (version < 2 || revision < 2)
     goto error1;
 
-  XvQueryAdaptors(dpy, root_window, &nAdaptors, &pAdaptors);
+  if (Success != XvQueryAdaptors(dpy, root_window, &nAdaptors,
+				 &pAdaptors))
+    goto error1;
+  if (nAdaptors <= 0)
+    goto error1;
 
   for (i=0; i<nAdaptors; i++)
     {

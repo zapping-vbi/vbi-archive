@@ -56,6 +56,8 @@ tveng_channels		*current_country = NULL;
 GList			*plugin_list = NULL;
 gboolean		disable_preview = FALSE;/* preview should be
 						   disabled */
+gboolean		disable_xv = FALSE; /* XVideo should be
+					       disabled */
 gboolean		print_info_inited = FALSE;
 GtkWidget		*main_window;
 gboolean		was_fullscreen=FALSE; /* will be TRUE if when
@@ -229,6 +231,15 @@ int main(int argc, char * argv[])
       N_("NORM")
     },
     {
+      "no-xv",
+      'v',
+      POPT_ARG_NONE,
+      &disable_xv,
+      0,
+      N_("Disable XVideo extension support"),
+      NULL
+    },
+    {
       NULL,
     } /* end the list */
   };
@@ -247,7 +258,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.68 2000-12-02 19:47:06 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.69 2000-12-04 21:55:11 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -280,6 +291,7 @@ int main(int argc, char * argv[])
       return -1;
     }
   tveng_set_debug_level(main_info, debug_msg);
+  tveng_set_xv_support(disable_xv, main_info);
   D();
   if (!startup_zapping())
     {
@@ -431,7 +443,6 @@ int main(int argc, char * argv[])
   /* disable VBI if needed */
   if (!zvbi_get_object())
     {
-      fprintf(stderr, "Removing GUI items\n");
       printv("VBI disabled, removing GUI items\n");
       gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
 			       FALSE);

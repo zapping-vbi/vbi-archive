@@ -130,7 +130,8 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
       return;
     }
 
-  if (main_info->inputs[main_info->cur_input].tuners == 0)
+  if ((main_info->num_inputs == 0) ||
+      (main_info->inputs[main_info->cur_input].tuners == 0))
     {
       ShowBox(_("Sorry, but the current input has no tuners"),
 	      GNOME_MESSAGE_BOX_ERROR);

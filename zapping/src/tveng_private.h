@@ -89,11 +89,13 @@ struct tveng_private {
 
   int		zapping_setup_fb_verbosity;
   int		change_mode;
+  int		disable_xv; /* 1 if XVideo should be disabled */
 
   /* Controls managed directly by tveng.c */
 #ifdef USE_XV
   XvPortID	port;
   Atom filter;
+  Atom double_buffer;
   Atom colorkey; /* colorkey doesn't have min, max, it's defined by
 		    RGB triplets */
 #endif

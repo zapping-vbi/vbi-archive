@@ -483,8 +483,9 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
       tveng_tuned_channel * tuned;
       /* it needs to be realized before operating on it */
       gtk_widget_realize(GTK_WIDGET(menu));
-      if (!(main_info->inputs[main_info->cur_input].flags &
-	    TVENG_INPUT_TUNER))
+      if ((main_info->num_inputs == 0) ||
+	  (!(main_info->inputs[main_info->cur_input].flags &
+	     TVENG_INPUT_TUNER)))
 	{
 	  menuitem = z_gtk_pixmap_menu_item_new(_("No tuner"),
 						GNOME_STOCK_PIXMAP_CLOSE);

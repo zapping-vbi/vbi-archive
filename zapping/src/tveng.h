@@ -700,6 +700,9 @@ int tveng_get_debug_level(tveng_device_info * info);
 /* set the debug level. The value will be clipped to valid values */
 void tveng_set_debug_level(tveng_device_info * info, int level);
 
+/* sets xv support on/off, 1 means off */
+void tveng_set_xv_support(int disabled, tveng_device_info * info);
+
 #ifdef USE_XV
 /* Add special XV controls to the device */
 void tveng_set_xv_port(XvPortID port, tveng_device_info * info);
