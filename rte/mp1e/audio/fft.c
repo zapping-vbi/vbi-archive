@@ -17,7 +17,7 @@
  *
  */
 
-/* $Id: fft.c,v 1.1.1.1 2001-08-07 22:09:42 garetxe Exp $ */
+/* $Id: fft.c,v 1.2 2001-09-23 19:45:44 mschimek Exp $ */
 
 /* http://www.fftw.org */
 
@@ -67,7 +67,8 @@ static const fftw_real K707106781 = FFTW_KONST(+0.707106781186547524400844362104
  */
 
 static inline void
-fftw_real2hc_32(const short *input, int istride, const fftw_real *H, fftw_real *real_output, fftw_real *imag_output)
+fftw_real2hc_32(const short *input, int istride, const fftw_real *H,
+		fftw_real *real_output, fftw_real *imag_output)
 {
      static const int real_ostride = 1;
      static const int imag_ostride = -1;
@@ -2602,15 +2603,48 @@ fftw_hc2hc_forward_32(fftw_real *A, fftw_complex *W)
      }
 }
 
-static const char twiddle_order[] =
-{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31 };
+void
+mp1e_mp2_fft_step_1(short *input, FLOAT *output)
+{
+	int i;
 
-static void init_hann_table(void) __attribute__ ((constructor));
-static void fftw_compute_twiddle(void) __attribute__ ((constructor));
+	/* align stack for temp variables (twiddles inlined) */
+	if ((i = ((long)(__builtin_alloca(0))) & 31))
+		__builtin_alloca(32 - i);
+
+	for (i = 0; i < 32; i++)
+		fftw_real2hc_32(input + i, 1, H + 32 * i, output + 32 * i, output + 32 + 32 * i);
+
+	fftw_hc2hc_forward_32(output, W);
+}
+
+void
+mp1e_mp2_fft_step_2(short *input, FLOAT *output)
+{
+	int i;
+
+	/* align stack for temp variables (twiddles inlined) */
+	if ((i = ((long)(__builtin_alloca(0))) & 31))
+		__builtin_alloca(32 - i);
+
+	for (i = 0; i < 32; i++)
+		fftw_real2hc_32(input + i, 2,
+			H + 32 * i, output + 32 * i, output + 32 + 32 * i);
+
+	fftw_hc2hc_forward_32(output, W);
+}
 
 /*
- * Compute the W coefficients (that is, powers of the root of 1)
- * and store them into an array.
+ *  Initialization
+ */
+
+static const char twiddle_order[] =
+{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+  17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31 };
+
+/*
+ *  Compute the W coefficients (that is, powers of the root of 1)
+ *  and store them into an array.
  */
 static void
 fftw_compute_twiddle(void)
@@ -2639,77 +2673,103 @@ init_hann_table(void)
 	for (i = 0; i < 32; i++)
 		for (j = 0; j < 32; j++)
 			H[i * 32 + j] = 
-				0.5 * (1 - cos(2.0 * M_PI * ((j * 32 + i) - 0.5) / 1024));
+				0.5 * (1 - cos(2.0 * M_PI
+					       * ((j * 32 + i) - 0.5) / 1024));
 }
 
-#if 0
-
 static void
-test(short *input)
+fft_test(void)
 {
+	short input[1024];
 	double ir[1024], ii[1024];
 	double or[1024], oi[1024];
+	double err_avg, err_max;
 	FLOAT hc[1025];
 	double wr, wi;
-	int i, j;
+	int n, i, j, err_ct;
 
-	// Hann window
-	
-	for (i = 0; i < 1024; i++) {
-    		ir[i] = (double) input[i] * 0.5 * (1 - cos(2.0 * M_PI * (i - 0.5) / 1024));
-		ii[i] = 0.0;
-	}
+	err_avg = 0.0;
+	err_max = 0.0;
+	err_ct = 0;
 
-	// 1024 point forward FFT
+	srand(0x76543210);
 
-	for (j = 0; j < 1024; j++) {
-		or[j] = oi[j] = 0.0;
+	printv(1, "\n");
+
+	for (n = 99; n >= 0; n--) {
+		printv(1, "\rAudio FFT test ... %u %%", 100 - n);
+
+		for (i = 0; i < 1024; i++)
+			input[i] = rand();
+
+		/* Hann window */
+
 		for (i = 0; i < 1024; i++) {
-			wr =  cos((2.0 * M_PI * (i * j % 1024)) / 1024);
-			wi = -sin((2.0 * M_PI * (i * j % 1024)) / 1024);
-			or[j] += ir[i] * wr - ii[i] * wi;
-			oi[j] += ii[i] * wr + ir[i] * wi;
+			ir[i] = (double) input[i] * 0.5
+				* (1 - cos(2.0 * M_PI * (i - 0.5) / 1024));
+			ii[i] = 0.0;
+		}
+
+		/* 1024 point forward FFT */
+
+		for (j = 0; j < 1024; j++) {
+			or[j] = oi[j] = 0.0;
+			for (i = 0; i < 1024; i++) {
+				wr =  cos((2.0 * M_PI * (i * j % 1024)) / 1024);
+				wi = -sin((2.0 * M_PI * (i * j % 1024)) / 1024);
+				or[j] += ir[i] * wr - ii[i] * wi;
+				oi[j] += ii[i] * wr + ir[i] * wi;
+			}
+		}
+
+		oi[512] = or[512];
+
+		for (i = 0; i < 32; i++)
+			fftw_real2hc_32(input + i, 1, H + 32 * i,
+					hc + 32 * i, hc + 32 + 32 * i);
+
+		fftw_hc2hc_forward_32(hc, W);
+
+		for (i = 0; i < 513; i++) {
+			double err;
+
+			printv(2, "%4d/%3d: R%16.8f I%16.8f   R%16.8f I%16.8f\n",
+			n, i, or[i], oi[i], hc[i], hc[1024 - i]);
+
+			err_avg += err = fabs(or[i] - hc[i]);
+			if (err > err_max)
+				err_max = err;
+			err_avg += err = fabs(oi[i] - hc[1024 - i]);
+			if (err > err_max)
+				err_max = err;
+			err_ct += 2;
 		}
 	}
 
-	for (i = 0; i < 32; i++)
-		fftw_real2hc_32(input + i, 1, H + 32 * i, hc + 32 * i, hc + 32 + 32 * i);
+	err_avg /= err_ct;
 
-	fftw_hc2hc_forward_32(hc, W);
-
-	for (i = 0; i < 513; i++)
-		fprintf(stderr, "%d: R%16.8f I%16.8f   R%16.8f I%16.8f\n", i, or[i], oi[i], hc[i], hc[1024 - i]);
-}
-
-#endif
-
-void
-fft_step_1(short *input, FLOAT *output)
-{
-	int i;
-
-	/* align stack for temp variables (twiddles inlined) */
-	if ((i = ((long)(__builtin_alloca(0))) & 31))
-		__builtin_alloca(32 - i);
-
-	for (i = 0; i < 32; i++)
-		fftw_real2hc_32(input + i, 1, H + 32 * i, output + 32 * i, output + 32 + 32 * i);
-
-	fftw_hc2hc_forward_32(output, W);
+	if (err_avg > 0.05 || err_max > 0.5) {
+		printv(1, " failed - avg %12f max %12f\n",
+		       err_avg, err_max);
+		exit(EXIT_FAILURE);
+	} else
+		printv(1, " passed\n");
 }
 
 void
-fft_step_2(short *input, FLOAT *output)
+mp1e_mp2_fft_init(int test)
 {
-	int i;
+	fftw_compute_twiddle();
 
-	/* align stack for temp variables (twiddles inlined) */
-	if ((i = ((long)(__builtin_alloca(0))) & 31))
-		__builtin_alloca(32 - i);
+	init_hann_table();
 
-	for (i = 0; i < 32; i++)
-		fftw_real2hc_32(input + i, 2,
-			H + 32 * i, output + 32 * i, output + 32 + 32 * i);
-
-	fftw_hc2hc_forward_32(output, W);
+	if (test)
+		fft_test();
 }
+
+
+
+
+
+
+

@@ -34,7 +34,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.5 2001-09-20 23:35:07 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.6 2001-09-23 19:45:42 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -570,14 +570,19 @@ typedef struct {
   int			value;
 } rte_option_menu_val;
 
+typedef union {
+  char *		str;		/* gettext()ized _N() */
+  int			num;
+  int			foo1[2];
+  double		foo2;
+  rte_option_menu_val   foo3;
+} rte_option_value;
+
 typedef struct {
   rte_option_type	type;
   char *		keyword;
   char *		label;		/* gettext()ized _N() */
-  union {
-    char *		  str;		/* gettext()ized _N() */
-    int			  num;
-  }			def;		/* default (reset) */
+  rte_option_value	def;		/* default (reset) */
   int			min, max;
   union {
     char **               label;	/* gettext()ized _N() */
@@ -600,12 +605,11 @@ extern rte_codec_info *rte_enum_codec(rte_context *context, int index);
 
 typedef struct rte_codec rte_codec; /* opaque */
 
-extern rte_codec *rte_get_codec(rte_context *context,
-  rte_stream_type stream_type, int stream_index, char **codec_keyword_p);
-extern rte_codec *rte_set_codec(rte_context *context,
-  rte_stream_type stream_type, int stream_index, char *codec_keyword);
+extern rte_codec *rte_get_codec(rte_context *, rte_stream_type, int, char **);
+extern rte_codec *rte_set_codec(rte_context *, rte_stream_type, int, char *);
 
-extern rte_option *rte_enum_option(rte_context *, rte_codec *, int index);
-extern int rte_set_option(rte_context *, rte_codec *, char *option_keyword, ...);
+extern rte_option *rte_enum_option(rte_codec *, int);
+extern int rte_get_option(rte_codec *, char *, rte_option_value *);
+extern int rte_set_option(rte_codec *, char *, ...);
 
 #endif /* rtelib.h */

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.8 2001-09-13 17:15:42 garetxe Exp $ */
+/* $Id: rte.c,v 1.9 2001-09-23 19:45:42 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -1083,31 +1083,46 @@ rte_set_codec(rte_context *context, rte_stream_type stream_type,
 }
 
 rte_option *
-rte_enum_option(rte_context *context, rte_codec *codec, int index)
+rte_enum_option(rte_codec *codec, int index)
 {
-	nullcheck(context, return NULL);
+	rte_context *context;
+
+	nullcheck(codec && (context = codec->context), return 0);
 
 	if (!BACKEND->enum_option)
 		return NULL;
 
-	return BACKEND->enum_option(context, codec, index);
+	return BACKEND->enum_option(codec, index);
 }
 
 int
-rte_set_option(rte_context *context, rte_codec *codec,
-	       char *option_keyword, ...)
+rte_get_option(rte_codec *codec, char *keyword, rte_option_value *v)
 {
-	va_list args;
-	int r;
+	rte_context *context;
 
-	nullcheck(context, return 0);
+	nullcheck(codec && (context = codec->context), return 0);
 
 	if (!BACKEND->set_option)
 		return 0;
 
-	va_start(args, option_keyword);
+	return BACKEND->get_option(codec, keyword, v);
+}
 
-	r = BACKEND->set_option(context, codec, option_keyword, args);
+int
+rte_set_option(rte_codec *codec, char *keyword, ...)
+{
+	rte_context *context;
+	va_list args;
+	int r;
+
+	nullcheck(codec && (context = codec->context), return 0);
+
+	if (!BACKEND->set_option)
+		return 0;
+
+	va_start(args, keyword);
+
+	r = BACKEND->set_option(codec, keyword, args);
 
 	va_end(args);
 

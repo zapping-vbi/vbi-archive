@@ -17,11 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libaudio.h,v 1.4 2001-09-20 23:35:07 mschimek Exp $ */
+/* $Id: libaudio.h,v 1.5 2001-09-23 19:45:44 mschimek Exp $ */
 
 #include "../common/fifo.h"
 #include "../systems/libsystems.h"
 
+// XXX remove
 struct pcm_context {
 	fifo		fifo;
 	producer	producer;
@@ -30,24 +31,27 @@ struct pcm_context {
 	bool		stereo;
 };
 
-extern fifo *		audio_fifo;
+/* mp2.c */
 
-extern void *		mpeg_audio_layer_ii_mono(void *cap_fifo);
-extern void *		mpeg_audio_layer_ii_stereo(void *cap_fifo);
+#include "../rtepriv.h"
+
+rte_codec_class		mp1e_mpeg1_layer2_codec, mp1e_mpeg2_layer2_codec;
+
+/* preliminary */
+extern void		mp1e_mp2_init(rte_codec *, fifo *cap_fifo, multiplexer *);
+extern void *		mp1e_mp2_thread(void *foo);
+
+/* historic */
 extern void		audio_parameters(int *sampling_freq, int *bit_rate);
-extern void		audio_init(int sampling_freq, int stereo,
-				int audio_mode, int bit_rate,
-				int psycho_loops, multiplexer *mux);
-
 extern int		audio_frame_count;
 extern int		audio_frames_dropped;
 
-/* oss.c */
+/* oss.c (mp1e) */
 
 extern void		mix_init(void);
 extern char *		mix_sources(void);
 
-/* misc */
+/* misc (mp1e) */
 
 extern fifo *		open_pcm_oss(char *dev_name, int sampling_rate, bool stereo);
 extern fifo *		open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo);

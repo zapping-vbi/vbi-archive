@@ -17,17 +17,17 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: filter_mmx.s,v 1.2 2001-08-22 01:28:07 mschimek Exp $
+# $Id: filter_mmx.s,v 1.3 2001-09-23 19:45:44 mschimek Exp $
 
 	.text
 	.align		16
-	.globl		mmx_filterbank
+	.globl		mp1e_mp2_mmx_filterbank
 
-mmx_filterbank:
+mp1e_mp2_mmx_filterbank:
 
 	pushl		%ebx;
 	pushl		%ecx;				leal		64(%edx),%ebx;
-	movq		(%ebx),%mm0;			movl		$fb_filter_coeff,%ecx;
+	movq		(%ebx),%mm0;			movl		$mp1e_mp2_fb_filter_coeff,%ecx;
 	movq		8(%ebx),%mm1;			movq		%mm0,%mm2;	// 07 06 05 04
 	movq		16(%ebx),%mm6;			punpcklwd	%mm1,%mm0;	// 05 01 04 00
 	movq		24(%ebx),%mm7;			punpckhwd	%mm1,%mm2;	// 07 03 06 02
@@ -183,18 +183,18 @@ mmx_filterbank:
 	ret
 
 # void
-# mmx_window_mono(short *z [eax], mmx_t *temp [edx])
+# mp1e_mp2_mmx_window_mono(short *z [eax], mmx_t *temp [edx])
 	
 	.text
 	.align		16
-	.globl		mmx_window_mono
+	.globl		mp1e_mp2_mmx_window_mono
 
-mmx_window_mono:
+mp1e_mp2_mmx_window_mono:
 
 	pushl %edi;					leal 32(%eax),%eax;			// read z[0], z[1], ...
 	pushl %esi;					movl $0,16(%edx);			// .so.ud[0] shift-out
 	pushl %ecx;					leal 130(%edx),%edi;			// .y[31-2+4]
-	pushl %ebx;					movl $fb_window_coeff,%esi;
+	pushl %ebx;					movl $mp1e_mp2_fb_window_coeff,%esi;
 	movl $8,%ecx;					movl $28*2,%ebx;
 
 	.align		16
@@ -254,14 +254,14 @@ mmx_window_mono:
 
 	.text
 	.align		16
-	.globl		mmx_window_left
+	.globl		mp1e_mp2_mmx_window_left
 
-mmx_window_left:
+mp1e_mp2_mmx_window_left:
 
 	pushl %edi;					leal 64(%eax),%eax;			// read z[0], z[2], ...
 	pushl %esi;					movl $0,16(%edx);			// .so.ud[0] shift-out
 	pushl %ecx;					leal 130(%edx),%edi;			// .y[31-2+4]
-	pushl %ebx;					movl $fb_window_coeff,%esi;
+	pushl %ebx;					movl $mp1e_mp2_fb_window_coeff,%esi;
 	movl $8,%ecx;					movl $28*4,%ebx;
 
 	.align		16
@@ -349,14 +349,14 @@ mmx_window_left:
 
 	.text
 	.align		16
-	.globl		mmx_window_right
+	.globl		mp1e_mp2_mmx_window_right
 
-mmx_window_right:
+mp1e_mp2_mmx_window_right:
 
 	pushl %edi;					leal 64(%eax),%eax;			// read z[1], z[3], ...
 	pushl %esi;					movl $0,16(%edx);			// .so.ud[0] shift-out
 	pushl %ecx;					leal 130(%edx),%edi;			// .y[31-2+4]
-	pushl %ebx;					movl $fb_window_coeff,%esi;
+	pushl %ebx;					movl $mp1e_mp2_fb_window_coeff,%esi;
 	movl $8,%ecx;					movl $28*4,%ebx;
 
 	.align		16

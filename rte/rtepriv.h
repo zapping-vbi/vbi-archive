@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.5 2001-09-13 17:15:42 garetxe Exp $
+ * $Id: rtepriv.h,v 1.6 2001-09-23 19:45:43 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -35,6 +35,28 @@ typedef void (*_rte_filter)(const char * src, char * dest, int width,
 
 /* for the sake of clarity, prototype of wait_data in rte.c */
 typedef void (*_wait_data)(rte_context *context, int video);
+
+typedef struct rte_codec_class {
+	rte_codec_info		public;
+
+	rte_codec *		(* new)(void);
+	void			(* delete)(rte_codec *);
+
+	rte_option *		(* enum_option)(rte_codec *, int index);
+	int			(* get_option)(rte_codec *, char *, rte_option_value *);
+	int			(* set_option)(rte_codec *, char *, va_list);
+} rte_codec_class;
+
+struct rte_codec {
+	rte_codec *		next;
+
+	rte_context *		context;
+	rte_codec_class *	class;
+
+	int			stream;
+
+	/* append codec private stuff */
+};
 
 typedef struct {
 	char		*name;
@@ -55,7 +77,9 @@ typedef struct {
 					enum rte_mux_mode *mux_mode);
 	void		(*status)(rte_context * context,
 				  struct rte_status_info *status);
+
 	/* Experimental */
+
 	rte_codec_info *(* enum_codec)(rte_context *context, int index);
 	rte_codec *	(* get_codec)(rte_context *context,
 				      rte_stream_type stream_type,
@@ -63,8 +87,11 @@ typedef struct {
 	rte_codec *	(* set_codec)(rte_context *context,
 				      rte_stream_type stream_type,
 				      int stream_index, char *keyword);
-	rte_option *	(* enum_option)(rte_context *, rte_codec *, int index);
-	int		(* set_option)(rte_context *, rte_codec *, char *, va_list);
+
+	rte_option *	(* enum_option)(rte_codec *, int index);
+	int		(* get_option)(rte_codec *, char *, rte_option_value *);
+	int		(* set_option)(rte_codec *, char *, va_list);
+
 } rte_backend_info;
 
 #define RC(X) ((rte_context*)X)

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.8 2001-09-20 23:35:07 mschimek Exp $ */
+/* $Id: main.c,v 1.9 2001-09-23 19:45:44 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -67,7 +67,8 @@ int			debug_msg; /* v4lx.c */
 
 static pthread_t	audio_thread_id;
 static fifo *		audio_cap_fifo;
-int			stereo;
+static rte_codec *	audio_codec;
+static int		stereo;
 
 pthread_t		video_thread_id;
 static fifo *		video_cap_fifo;
@@ -114,6 +115,16 @@ terminate(int signum)
 	}
 
 	printv(1, "\nStop at %f\n", now);
+}
+
+static void
+set_option(rte_codec *codec, char *keyword, ...)
+{
+	va_list args;
+
+	va_start(args, keyword);
+	assert(codec->class->set_option(codec, keyword, args));
+	va_end(args);
 }
 
 int
@@ -264,8 +275,21 @@ main(int ac, char **av)
 		if (modules & MOD_VIDEO)
 			audio_num_frames = MIN(n, (long long) INT_MAX);
 
-		audio_init(sampling_rate, stereo, /* pcm_context* */
-			audio_mode, audio_bit_rate, psycho_loops, mux);
+		/* Initialize audio codec */
+
+		if (sampling_rate < 32000)
+			audio_codec = mp1e_mpeg2_layer2_codec.new();
+		else
+			audio_codec = mp1e_mpeg1_layer2_codec.new();
+
+		ASSERT("create audio context", audio_codec);
+
+		set_option(audio_codec, "sampling_rate", sampling_rate);
+		set_option(audio_codec, "bit_rate", audio_bit_rate);
+		set_option(audio_codec, "audio_mode", (int) "\1\3\2\0"[audio_mode]);
+		set_option(audio_codec, "psycho", psycho_loops);
+
+		mp1e_mp2_init(audio_codec, audio_cap_fifo, mux);
 	}
 
 	if (modules & MOD_VIDEO) {
@@ -326,9 +350,7 @@ main(int ac, char **av)
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
 			!pthread_create(&audio_thread_id, NULL,
-			stereo ? mpeg_audio_layer_ii_stereo :
-				 mpeg_audio_layer_ii_mono,
-				 audio_cap_fifo));
+			mp1e_mp2_thread, audio_codec));
 
 		printv(2, "Audio compression thread launched\n");
 	}

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.4 2001-09-20 23:35:07 mschimek Exp $ */
+/* $Id: audio.h,v 1.5 2001-09-23 19:45:44 mschimek Exp $ */
 
 #include <pthread.h>
 #include "../common/fifo.h"
@@ -32,11 +32,10 @@
 #define CBANDS 63
 #define e_save_new e_save_oldest
 
-extern struct audio_seg
-{
-	struct bs_rec		out;
-
+typedef struct mp2_context {
 	/* Buffers */
+
+	unsigned char		wrap[(SAMPLES_PER_FRAME + 512 - 32) * 4];
 
 	int			sb_samples[2][3][12][SBLIMIT];	// channel, scale group, sample
 	char			bit_alloc[2][SBLIMIT];
@@ -51,6 +50,8 @@ extern struct audio_seg
 	float			mnr[2][SBLIMIT];
 	int			sblimit;
 	int			sum_nbal;
+
+	struct bs_rec		out;
 
 	/* Tables */
 
@@ -95,18 +96,21 @@ extern struct audio_seg
 	FLOAT *			h_save_new;
 	FLOAT *			h_save_old;
 	FLOAT *			h_save_oldest;
+
 	int			psycho_loops;
 
-	unsigned char		wrap[(SAMPLES_PER_FRAME + 512 - 32) * 4]
-		__attribute__ ((aligned (CACHE_LINE)));
-
-	/* Misc */
+	/* Input */
 
 	consumer		cons;
 	buffer *		ibuf;
 	int			i16, e16;
 	double			time;
 	synchr_stream 		sstr;
+
+	/* Output */
+
+	fifo *			fifo;
+	producer		prod;
 
 	unsigned int		header_template;
 	double			frame_period;
@@ -115,28 +119,42 @@ extern struct audio_seg
 	int			spf_rest, spf_lag;
 
 	int			audio_frame_count;
-} aseg;
+
+	/* Options */
+
+	rte_codec		codec;
+
+	int			mpeg_version;
+	int			sampling_freq_code;
+	int			bit_rate_code;
+	int			audio_mode;
+
+} mp2_context;
+
+extern mp2_context aseg;
 
 /* psycho.c */
 
-extern void		psycho_init(struct audio_seg *, int, int);
-extern void		psycho(struct audio_seg *, short *, float *, int);
+extern void		mp1e_mp2_psycho_init(mp2_context *, int sampling_freq);
+extern void		mp1e_mp2_psycho(mp2_context *, short *, float *, int);
 
 /* fft.c */
 
-extern void		fft_step_1(short *, FLOAT *);
-extern void		fft_step_2(short *, FLOAT *);
+extern void		mp1e_mp2_fft_init(int test);
+extern void		mp1e_mp2_fft_step_1(short *, FLOAT *);
+extern void		mp1e_mp2_fft_step_2(short *, FLOAT *);
 
 /* filter.c */
 
-extern void		subband_filter_init(struct audio_seg *mp2);
-extern void		mmx_window_mono(short *z, mmx_t *) __attribute__ ((regparm (2)));
-extern void		mmx_window_left(short *z, mmx_t *) __attribute__ ((regparm (2)));
-extern void		mmx_window_right(short *z, mmx_t *) __attribute__ ((regparm (2)));
-extern void		mmx_filterbank(int *, mmx_t *) __attribute__ ((regparm (2)));
+extern void		mp1e_mp2_subband_filter_init(int test);
+
+extern void		mp1e_mp2_mmx_window_mono(short *z, mmx_t *) __attribute__ ((regparm (2)));
+extern void		mp1e_mp2_mmx_window_left(short *z, mmx_t *) __attribute__ ((regparm (2)));
+extern void		mp1e_mp2_mmx_window_right(short *z, mmx_t *) __attribute__ ((regparm (2)));
+extern void		mp1e_mp2_mmx_filterbank(int *, mmx_t *) __attribute__ ((regparm (2)));
 
 static inline void
-mmx_filter_mono(struct audio_seg *mp2, short *p, int *samples)
+mmx_filter_mono(mp2_context *mp2, short *p, int *samples)
 {
 	int j;
 
@@ -146,15 +164,15 @@ mmx_filter_mono(struct audio_seg *mp2, short *p, int *samples)
 	mp2->sf.fb_temp[1].d[1] = 32768L;
 
 	for (j = 0; j < 3 * SCALE_BLOCK; j++, p += 32, samples += 32) {
-		mmx_window_mono(p, mp2->sf.fb_temp);
-		mmx_filterbank(samples, mp2->sf.fb_temp);
+		mp1e_mp2_mmx_window_mono(p, mp2->sf.fb_temp);
+		mp1e_mp2_mmx_filterbank(samples, mp2->sf.fb_temp);
 	}
 
 	emms();
 }
 
 static inline void
-mmx_filter_stereo(struct audio_seg *mp2, short *p, int *samples)
+mmx_filter_stereo(mp2_context *mp2, short *p, int *samples)
 {
 	int j;
 
@@ -168,11 +186,11 @@ mmx_filter_stereo(struct audio_seg *mp2, short *p, int *samples)
 		 *  Subband window code could be optimized,
 		 *  I've just adapted the mono version.
 		 */
-		mmx_window_left(p, mp2->sf.fb_temp);
-		mmx_filterbank(samples, mp2->sf.fb_temp);
+		mp1e_mp2_mmx_window_left(p, mp2->sf.fb_temp);
+		mp1e_mp2_mmx_filterbank(samples, mp2->sf.fb_temp);
 
-		mmx_window_right(p, mp2->sf.fb_temp);
-		mmx_filterbank(samples + 3 * SCALE_BLOCK * 32, mp2->sf.fb_temp);
+		mp1e_mp2_mmx_window_right(p, mp2->sf.fb_temp);
+		mp1e_mp2_mmx_filterbank(samples + 3 * SCALE_BLOCK * 32, mp2->sf.fb_temp);
 	}
 
 	emms();

@@ -19,7 +19,8 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.10 2001-09-20 23:35:07 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.11 2001-09-23 19:45:44 mschimek Exp $ */
+
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -59,6 +60,8 @@ typedef struct {
 	/* Experimental */
 
 	unsigned int codec_set;
+	rte_codec *audio_codec;
+
 } backend_private;
 
 /* translates the context options to the global mp1e options */
@@ -200,10 +203,7 @@ start			(rte_context	*context)
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
 			!pthread_create(&priv->audio_thread_id,
-					NULL,
-					stereo ? mpeg_audio_layer_ii_stereo :
-					         mpeg_audio_layer_ii_mono,
-					(fifo *) &(context->private->aud)));
+					NULL, mp1e_mp2_thread, priv->audio_codec));
 
 		printv(2, "Audio compression thread launched\n");
 	}
@@ -427,9 +427,29 @@ static void rte_audio_init(backend_private *priv) /* init audio capture */
 		
 		if (modules & MOD_VIDEO)
 			audio_num_frames = MIN(n, (long long) INT_MAX);
-		
-		audio_init(sampling_rate, stereo, /* pcm_context */
-			audio_mode, audio_bit_rate, psycho_loops, priv->mux);
+
+		/* preliminary */
+
+		if (!priv->audio_codec) {
+
+		if (sampling_rate < 32000)
+			priv->audio_codec = mp1e_mpeg2_layer2_codec.new();
+		else
+			priv->audio_codec = mp1e_mpeg1_layer2_codec.new();
+
+		assert(priv->audio_codec);
+
+		rte_set_option(priv->audio_codec,
+			       "sampling_rate", sampling_rate);
+		rte_set_option(priv->audio_codec,
+			       "bit_rate", audio_bit_rate);
+		rte_set_option(priv->audio_codec,
+			       "audio_mode", (int) "\1\3\2\0"[audio_mode]);
+		rte_set_option(priv->audio_codec,
+			       "psycho", (int) psycho_loops);
+		}
+
+		mp1e_mp2_init(priv->audio_codec, &priv->priv.aud, priv->mux);
 	}
 }
 
@@ -447,38 +467,38 @@ static void rte_video_init(backend_private *priv) /* init video capture */
 
 /* Experimental */
 
-static rte_codec_info
-codec_table[] = {
-	{
+static rte_codec_class
+mp1e_video_codec = {
+	.public = {
 		.stream_type = RTE_STREAM_VIDEO,
 		.stream_formats = RTE_PIXFMTS_YUV420 |
-				  RTE_PIXFMTS_YUYV,
+		                  RTE_PIXFMTS_YUYV,
 		.keyword = "mpeg1_video",
 		.label = "MPEG-1 Video",
-	}, {
-		.stream_type = RTE_STREAM_AUDIO,
-		.stream_formats = RTE_SNDFMTS_S16LE,
-		.keyword = "mpeg1_audio_layer2",
-		.label = "MPEG-1 Audio Layer II",
-	}, {
-		.stream_type = RTE_STREAM_AUDIO,
-		.stream_formats = RTE_SNDFMTS_S16LE,
-		.keyword = "mpeg2_audio_layer2",
-		.label = "MPEG-2 Audio Layer II LFE",
-		.tooltip = "MPEG-2 Low (Sampling) Frequency Extension to MPEG-1 "
-			   "Audio Layer II. Caution: Not all MPEG video and "
-			   "audio players support MPEG-2 audio."
-	}, {
+	}
+};
+
+static rte_codec_class
+mp1e_vbi_codec = {
+	.public = {
 		.stream_type = RTE_STREAM_SLICED_VBI,
 		.stream_formats = RTE_VBIFMTS_TELETEXT_B_L10_625 |
 		                  RTE_VBIFMTS_TELETEXT_B_L25_625,
 		.keyword = "dvb_vbi",
 		.label = "DVB VBI Stream (Subtitles)",
 		.tooltip = "Note the recording of Teletext and Closed Caption "
-		           "services in *MPEG-1* Program Streams is not covered "
-		           "by the DVB standard. Unaware players (all at this "
-			   "time I have to admit) will ignore VBI data.",
+			"services in *MPEG-1* Program Streams is not covered "
+			"by the DVB standard. Unaware players should ignore "
+			"VBI data.",
 	},
+};
+
+static rte_codec_class *
+codec_table[] = {
+	&mp1e_video_codec,
+	&mp1e_mpeg1_layer2_codec,
+	&mp1e_mpeg2_layer2_codec,
+	&mp1e_vbi_codec,
 };
 
 #define NUM_CODECS (sizeof(codec_table) / sizeof(codec_table[0]))
@@ -489,7 +509,7 @@ enum_codec(rte_context *context, int index)
 	if (index < 0 || index >= NUM_CODECS)
 		return NULL;
 
-	return codec_table + index;
+	return &codec_table[index]->public;
 }
 
 static rte_codec *
@@ -497,31 +517,33 @@ get_codec(rte_context *context, rte_stream_type stream_type,
 	  int stream_index, char **codec_keyword_p)
 {
 	backend_private *priv = (backend_private *) context->private;
-	rte_codec_info *info;
+	rte_codec_class *info;
+	rte_codec *codec;
 
 	if (stream_index != 0)
 		goto bad;
 
 	switch (stream_type) {
 	case RTE_STREAM_VIDEO:
+		codec = (rte_codec *) 1;
 		if (priv->codec_set & 0x01)
-			info = codec_table + 0;
+			info = &mp1e_video_codec;
 		else
 			goto bad;
 		break;
 
 	case RTE_STREAM_AUDIO:
-		if (priv->codec_set & 0x02)
-			info = codec_table + 1;
-		else if (priv->codec_set & 0x04)
-			info = codec_table + 2;
+		/* find in stream table */
+		if ((codec = priv->audio_codec))
+			info = priv->audio_codec->class;
 		else
 			goto bad;
 		break;
 
 	case RTE_STREAM_SLICED_VBI:
+		codec = (rte_codec *) 4;
 		if (priv->codec_set & 0x08)
-			info = codec_table + 3;
+			info = &mp1e_vbi_codec;
 		else
 			goto bad;
 		break;
@@ -534,9 +556,9 @@ get_codec(rte_context *context, rte_stream_type stream_type,
 	}
 
 	if (codec_keyword_p)
-		*codec_keyword_p = info->keyword;
+		*codec_keyword_p = info->public.keyword;
 
-	return (rte_codec *)(info - codec_table + 1);
+	return codec;
 }
 
 static rte_codec *
@@ -544,30 +566,55 @@ set_codec(rte_context *context, rte_stream_type stream_type,
 	  int stream_index, char *codec_keyword)
 {
 	backend_private *priv = (backend_private *) context->private;
+	rte_codec *codec = NULL;
 	int i;
 
 	if (stream_index != 0)
 		return NULL; /* TODO */
 
 	for (i = 0; i < NUM_CODECS; i++)
-		if (codec_table[i].stream_type == stream_type
+		if (codec_table[i]->public.stream_type == stream_type
 		    && (!codec_keyword
-			|| 0 == strcmp(codec_table[i].keyword,
+			|| 0 == strcmp(codec_table[i]->public.keyword,
 				       codec_keyword)))
 			break;
 
 	if (i >= NUM_CODECS)
 		return NULL;
 
-	if (i == 3)
-		return NULL; /* VBI TODO */
+	switch (stream_type) {
+	case RTE_STREAM_VIDEO:
+		/* preliminary */
+		if (codec_keyword) {
+			codec = (rte_codec *) 1;
+			priv->codec_set |= 1 << 0;
+		} else {
+			priv->codec_set &= ~(1 << 0);
+		}
+		break;
 
-	if (codec_keyword) {
-		if (i > 0) /* toggle MPEG-1/2 audio */
-			priv->codec_set &= ~(1 << (3 - i));
-		priv->codec_set |= 1 << i;
-	} else
-		priv->codec_set &= ~(1 << i);
+	case RTE_STREAM_AUDIO:
+		if (priv->audio_codec) {
+			priv->audio_codec->class->delete(priv->audio_codec);
+			priv->audio_codec = NULL;
+			/* preliminary */ priv->codec_set &= ~(1 << 1);
+		}
+
+		if (codec_keyword) {
+			codec = codec_table[i]->new();
+
+			if ((priv->audio_codec = codec)) {
+				codec->context = context;
+				priv->codec_set |= 1 << 0;
+			}
+		}
+
+		break;
+
+	case RTE_STREAM_SLICED_VBI:
+	default:
+		return NULL; /* todo */
+	}
 
 	switch (priv->codec_set) {
 	case 0:
@@ -588,137 +635,34 @@ set_codec(rte_context *context, rte_stream_type stream_type,
 		assert(!"reached");
 	}
 
-	return (rte_codec *)(i + 1); /* preliminary */
-}
-
-/*
-   Options are not supposed to be handled at this level
-   (but it can intercept and modify options), rather a
-   private (of the backend) extension of rte_codec_info
-   should point to the apropriate stuff. The backend may even
-   gather rte_codec_infos from the respective libsoandso,
-   and relate rte_codec (another backend private thing)
-   to codec private runtime data.
- */
-
-#define elements(array) (sizeof(array) / sizeof((array)[0]))
-
-/* Attention: Canonical order */
-static char *
-menu_audio_mode[] = {
-	/* 0 */ "Mono",
-	/* 1 */ "Stereo",
-	/* 2 */ "Bilingual",
-	/* 3 TODO "Joint Stereo", */
-};
-
-/* Attention: Canonical order */
-static char *
-menu_audio_psycho[] = {
-	/* 0 */ "Static",
-	/* 1 */ "Fast",
-	/* 2 */ "Accurate",
-};
-
-/* Random */
-static char *menu_audio_bitrate[2][14];
-static char *menu_audio_sampling[2][3];
-
-static rte_option
-audio1_options[] = {
-		/*
-		 *  type, unique keyword (for command line etc), label,
-		 *  default (union), minimum, maximum, menu (union), tooltip
-		 */
-	{
-		RTE_OPTION_MENU,	"bit_rate",	"Bit rate",
-		{ .num = 4 }, 0, 13, { .label = menu_audio_bitrate[0] },
-		"Output bit rate, all channels together"
-	}, {
-		RTE_OPTION_MENU,	"sampling_rate", "Sampling frequency",
-		{ .num = 0 }, 0, 2, { .label = menu_audio_sampling[0] }, NULL
-	}, {
-		RTE_OPTION_MENU,	"audio_mode",	"Mode",
-		{ .num = 0 }, 0, elements(menu_audio_mode) - 1,
-		{ .label = menu_audio_mode }, NULL
-	}, {
-		RTE_OPTION_MENU,	"psycho",	"Psychoacoustic analysis",
-		{ .num = 0 }, 0, elements(menu_audio_psycho) - 1,
-		{ .label = menu_audio_psycho },
-		"Speed/quality tradeoff. Selecting 'Accurate' is recommended "
-		"below 80 kbit/s per channel, when you have bat ears or a "
-		"little more CPU load doesn't matter."
-	},
-};
-
-static rte_option audio2_options[elements(audio1_options)];
-
-static void init_audio_menu(void) __attribute__ ((constructor));
-
-static void
-init_audio_menu(void)
-{
-	char buf[256];
-	int i, j;
-
-	for (i = 0; i < 2; i++) {
-		int mpeg = i ? MPEG_VERSION_2 : MPEG_VERSION_1;
-
-		for (j = 0; j < 14; j++) {
-			snprintf(buf, sizeof(buf), "%u kbit/s",
-				 bit_rate_value[mpeg][1 + j] / 1000);
-			assert((menu_audio_bitrate[i][j] = strdup(buf)));
-		}
-
-		for (j = 0; j < 3; j++) {
-			snprintf(buf, sizeof(buf), "%u Hz",
-				 sampling_freq_value[mpeg][2 - j]);
-			assert((menu_audio_sampling[i][j] = strdup(buf)));
-		}
-	}
-
-	memcpy(audio2_options, audio1_options, sizeof(audio2_options));
-
-	audio2_options[0].menu.label = menu_audio_bitrate[1];
-	audio2_options[1].menu.label = menu_audio_sampling[1];
+	return codec;
 }
 
 static rte_option *
-enum_option(rte_context *context, rte_codec *codec, int index)
+enum_option(rte_codec *codec, int index)
 {
+//	rte_context *context = codec->context;
+
 	/* Preliminary */
 
 	switch ((int) codec) {
 	case 1: /* MPEG-1 Video */
 		return NULL; /* TODO */
 
-	case 2: /* MPEG-1 Audio */
-		if (index < 0 || index >= elements(audio1_options))
-			return NULL;
-		return audio1_options + index;
-
-	case 3: /* MPEG-2 Audio */
-		if (index < 0 || index >= elements(audio2_options))
-			return NULL;
-		return audio2_options + index;
-
 	case 4: /* VBI */
 		return NULL; /* TODO */
 
 	default:
-		return NULL;
+		return codec->class->enum_option(codec, index);
 	}
 }
 
 #include <stdarg.h>
 
 static int
-set_option(rte_context *context, rte_codec *codec,
-	   char *keyword, va_list args)
+get_option(rte_codec *codec, char *keyword, rte_option_value *v)
 {
-	rte_option *option;
-	int mpeg, val, i;
-
+//	rte_context *context = codec->context;
 
 	/* Preliminary */
 
@@ -726,73 +670,31 @@ set_option(rte_context *context, rte_codec *codec,
 	case 1: /* MPEG-1 Video */
 		return 0; /* TODO */
 
-	case 2: /* MPEG-1 Audio */
-		option = audio1_options;
-		mpeg = MPEG_VERSION_1;
-		break;
+	case 4: /* VBI */
+		return 0; /* TODO */
 
-	case 3: /* MPEG-2 Audio */
-		option = audio2_options;
-		mpeg = MPEG_VERSION_2;
-		break;
+	default:
+		return codec->class->get_option(codec, keyword, v);
+	}
+}
+
+static int
+set_option(rte_codec *codec, char *keyword, va_list args)
+{
+//	rte_context *context = codec->context;
+
+	/* Preliminary */
+
+	switch ((int) codec) {
+	case 1: /* MPEG-1 Video */
+		return 0; /* TODO */
 
 	case 4: /* VBI */
 		return 0; /* TODO */
 
 	default:
-		return 0;
+		return codec->class->set_option(codec, keyword, args);
 	}
-
-	for (i = 0; i < elements(audio1_options); i++)
-		if (strcmp(option[i].keyword, keyword) == 0)
-			break;
-
-	if (i >= elements(audio1_options))
-		return 0;
-
-	switch (i) {
-	case 0: /* bit-rate */
-		val = va_arg(args, int);
-
-		if (val < 0)
-			return 0;
-		else if (val <= 14)
-			audio_bit_rate = bit_rate_value[mpeg][1 + val];
-		else
-			audio_bit_rate = val; /* -> audio_parameters() */
-		break;
-
-	case 1: /* sampling-rate */
-		val = va_arg(args, int);
-
-		if (val < 0)
-			return 0;
-		else if (val <= 2)
-			sampling_rate = sampling_freq_value[mpeg][2 - val];
-		else
-			sampling_rate = val; /* -> audio_parameters() */
-		break;
-
-	case 2: /* mode */
-		val = va_arg(args, int);
-		if (val < 0 || val > 2)
-			return 0;
-		/* mo, st, bi (user) -> st, jst, bi, mo (mpeg) */
-		audio_mode = "\3\0\2\1"[val];
-		break;
-
-	case 3: /* psycho */
-		val = va_arg(args, int);
-		if (val < 0 || val > 2)
-			return 0;
-		psycho_loops = val;
-		break;
-
-	default:
-		assert(!"reached");
-	}
-
-	return 1;
 }
 
 const
@@ -815,5 +717,6 @@ rte_backend_info b_mp1e_info =
 	.set_codec	= set_codec,
 
 	.enum_option	= enum_option,
+	.get_option	= get_option,
 	.set_option	= set_option,
 };
