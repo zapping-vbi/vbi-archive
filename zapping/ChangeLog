@@ -1,3 +1,9 @@
+22.06.2001	bug fixes <garetxe@users.sf.net>
+
+	* callbacks.c: fixed channel ordering, reported by n0mada@terra.es.
+	* zconf.c: Fixed double free(), used xmlFree instead of g_free
+	where appropiate.
+
 15.06.2001	alirc, plugin properties <garetxe@users.sf.net>
 
 	* src/plugin_common.h: Made plugin_add_properties a gboolean,

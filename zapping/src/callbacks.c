@@ -504,6 +504,9 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 		gtk_widget_show(GTK_WIDGET(submenu));
 		gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem),
 					  GTK_WIDGET(submenu));
+		menuitem = gtk_tearoff_menu_item_new();
+		gtk_widget_show(menuitem);
+		gtk_menu_append(submenu, menuitem);
 		for (i = tveng_tuned_channel_num(global_channel_list)-1;
 		     i >= 0; i--)
 		  {

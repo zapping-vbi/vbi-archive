@@ -1939,7 +1939,6 @@ gboolean on_color_box_key_press		(GtkWidget	*widget,
 /*
  *  Teletext text brightness/contrast (in the future possibly
  *  Caption default colors (overriding std wht on blk))
- *  XXX needs improvement: reset, prettier dialog.
  */
 static GtkWidget *
 create_color_dialog			(GtkWidget	*widget,

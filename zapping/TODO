@@ -24,7 +24,7 @@ Outstanding issues for the next release (0.6.0)
 	+ Screenshot preview.
 	+ Get thumbnails of all tuned channels.
 	+ --roottv switch (use Z as screensaver)
-	+ Save control values and restore on startup (per input?).
+	+ Save control values and restore on startup (per channel).
 	+ Save screenshots at arbitrary sizes.
 	+ Standalone Zapzilla
 

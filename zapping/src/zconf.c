@@ -1082,7 +1082,7 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
   xmlChar * name; /* The name of this node */
   xmlChar * type; /* The type of the key */
   xmlChar * description; /* The description for the key */
-  gchar * node_string; /* The string content of this node */
+  xmlChar * node_string; /* The string content of this node */
   gchar * full_name;
   enum zconf_type key_type;
 
@@ -1095,7 +1095,7 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
   name = xmlGetProp(node, "label");
   if (!name)
     {
-      g_free(node_string);
+      xmlFree(node_string);
       return; /* Doesn't have a name, it is not valid */
     }
 
@@ -1110,9 +1110,9 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
   type = xmlGetProp(node, "type");
   if (!type)
     {
-      g_free(name);
-      g_free(node_string);
-      g_free(description);
+      xmlFree(name);
+      xmlFree(node_string);
+      xmlFree(description);
       g_free(full_name);
       return;
     }
@@ -1131,17 +1131,17 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
     key_type = ZCONF_TYPE_STRING;
   else /* Error */
     {
-      g_free(type);
+      xmlFree(type);
       g_free(full_name);
-      g_free(name);
-      g_free(node_string);
-      g_free(description);
+      xmlFree(name);
+      xmlFree(node_string);
+      xmlFree(description);
       g_warning("The specified type \"%s\" is unknown",
 		type);
       return;
     }
 
-  g_free(type);
+  xmlFree(type);
 
   /* Check if that node already exists */
   if (p_zconf_resolve(full_name, zconf_root))
@@ -1149,10 +1149,10 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
       /* It already exists, warn */
       g_warning("Duplicated node in the config tree: %s",
 		full_name);
-      g_free(name);
+      xmlFree(name);
       g_free(full_name);
-      g_free(node_string);
-      g_free(description);
+      xmlFree(node_string);
+      xmlFree(description);
       return;
     }
 
@@ -1161,8 +1161,8 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
   memset(new_key, 0, sizeof(struct zconf_key));
   new_key -> parent = parent;
   new_key -> full_path = full_name;
-  new_key -> type = ZCONF_TYPE_DIR;
-  new_key -> name = name;
+  new_key -> name = g_strdup(name);
+  xmlFree(name);
   new_key -> type = key_type;
   if (description)
     {
@@ -1172,11 +1172,10 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
 
   if ((!node_string) && (key_type != ZCONF_TYPE_DIR))
     {
+      g_free(new_key->description);
+      g_free(new_key->full_path);
+      g_free(new_key->name);
       g_free(new_key);
-      g_free(name);
-      g_free(full_name);
-      g_free(node_string);
-      g_free(description);      
       return;
     }
 
@@ -1222,7 +1221,7 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
     *skey = new_key;
 
   /* Free the used mem */
-  g_free(node_string);
+  xmlFree(node_string);
 }
 
 /*
