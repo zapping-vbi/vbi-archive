@@ -403,12 +403,13 @@ clear_row			(int		row,
 void
 osd_clear			(void)
 {
-  int i;
+  guint i;
 
-  for (i=0; i<(MAX_ROWS-1); i++)
-    clear_row(i, FALSE);
+  for (i = 0; i < (MAX_ROWS - 1); ++i)
+    if (NULL != matrix[i])
+      clear_row (i, FALSE);
 
-  zmodel_changed(osd_model);
+  zmodel_changed (osd_model);
 }
 
 static void roll_up(int first_row, int last_row) __attribute__ ((unused));
@@ -809,13 +810,11 @@ osd_render_osd		(void (*timeout_cb)(gboolean),
       !(pfd = pango_font_description_from_string (fname)))
     {
       if (!fname || !*fname)
-	ShowBox(_("Please configure a font for OSD in\n"
-		  "Properties/General/OSD"),
+	ShowBox(_("Please choose a font for OSD in preferences."),
 		GTK_MESSAGE_ERROR);
       else
-	ShowBox(_("The configured font <%s> cannot be loaded, please"
-		  " select another one in\n"
-		  "Properties/General/OSD"),
+	ShowBox(_("The configured font \"%s\" cannot be loaded, please"
+		  " select another one in preferences\n"),
 		GTK_MESSAGE_ERROR, fname);
 
       /* Some common fonts */
@@ -824,7 +823,7 @@ osd_render_osd		(void (*timeout_cb)(gboolean),
 	pfd = pango_font_description_from_string ("Sans 36");
       if (!pfd)
 	{
-	  ShowBox(_("No fallback font could be loaded, make sure\n"
+	  ShowBox(_("No font could be loaded, please make sure\n"
 		    "your system is properly configured."),
 		  GTK_MESSAGE_ERROR);
 	  unget_window (patch);
