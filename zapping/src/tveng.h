@@ -140,7 +140,6 @@ struct tveng_clip{
 struct tveng_window{
   int x,y; /* Origin in X coordinates */
   int width, height; /* Dimensions */
-  unsigned int chromakey; /* The chromakey (RGB32) */
   int clipcount; /* Number of clipping rectangles */
   struct tveng_clip * clips; /* pointer to the clip rectangle array */
   Window win; /* window we are previewing to (only needed in XV mode) */
@@ -637,6 +636,13 @@ tveng_set_preview (int on, tveng_device_info * info);
  */
 void
 tveng_set_zapping_setup_fb_verbosity(int level, tveng_device_info * info);
+
+/*
+ * Sets the chroma value to the given one, has only effect if the
+ * driver supports it. r, g, b are in the 0..255 range
+ */
+void tveng_set_chromakey(int r, int g, int b,
+			 tveng_device_info *info);
 
 /* Returns the current verbosity value passed to zapping_setup_fb */
 int

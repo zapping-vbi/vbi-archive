@@ -90,6 +90,7 @@ struct tveng_private {
   int		zapping_setup_fb_verbosity;
   int		change_mode;
   int		disable_xv; /* 1 if XVideo should be disabled */
+  int		chromakey; /* RGB32 */
 
   /* Controls managed directly by tveng.c */
 #ifdef USE_XV

@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.2 2001-03-10 00:09:21 garetxe Exp $
+ * $Id: fullscreen.c,v 1.3 2001-03-18 16:04:08 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -132,6 +132,7 @@ fullscreen_start(tveng_device_info * info)
   GdkPixmap *source, *mask;
   GdkColor fg = {0, 0, 0, 0};
   GdkColor bg = {0, 0, 0, 0};
+  GdkColor chroma;
 
 #define empty_cursor_width 16
 #define empty_cursor_height 16
@@ -184,7 +185,30 @@ fullscreen_start(tveng_device_info * info)
   		     da -> style -> black_gc,
 		     TRUE,
 		     0, 0, gdk_screen_width(), gdk_screen_height());
-  gdk_window_set_back_pixmap(da->window, NULL, FALSE);
+
+  if (info->current_controller != TVENG_CONTROLLER_XV)
+    {
+      if (info->caps.flags & TVENG_CAPS_CHROMAKEY)
+	{
+	  chroma.red = chroma.green = 0;
+	  chroma.blue = 65535;
+
+	  if (gdk_colormap_alloc_color(gdk_colormap_get_system(), &chroma,
+				       FALSE, TRUE))
+	    {
+	      tveng_set_chromakey(chroma.red >> 8, chroma.green >> 8,
+				  chroma.blue >> 8, info);
+	      gdk_window_set_background(da->window, &chroma);
+	      gdk_colormap_free_colors(gdk_colormap_get_system(), &chroma,
+				       1);
+	    }
+	  else
+	    ShowBox("Couldn't allocate chromakey, chroma won't work",
+		    GNOME_MESSAGE_BOX_WARNING);
+	}
+      else
+	gdk_window_set_back_pixmap(da->window, NULL, FALSE);
+    }
 
   /* Needed for XV fullscreen */
   info->window.win = GDK_WINDOW_XWINDOW(da->window);

@@ -150,8 +150,8 @@ gboolean plugin_init (PluginBridge bridge, tveng_device_info * info)
 {
   num_channels = (int)remote_command("get_num_channels", NULL);
 
-  printf("lirc plugin: init\n");
-  printf("lirc plugin: number of channels: %d\n", num_channels);
+  printv("lirc plugin: init\n");
+  printv("lirc plugin: number of channels: %d\n", num_channels);
 
   /* If this is set, autostarting is on (we should start now) */
   if (active)
@@ -207,11 +207,10 @@ void plugin_load_config (gchar * root_key)
 {
   gchar *buffer;
   gchar *button, *action;
-  gchar number[15];
   int i=0;
   action_list_item *item;
 
-  printf("lirc plugin: loading configuration\n");
+  printv("lirc plugin: loading configuration\n");
 
   /* The autostart config value is compulsory, you shouldn't need to
      change the following */
@@ -223,8 +222,7 @@ void plugin_load_config (gchar * root_key)
   g_free(buffer);
 
   while(1) {
-    sprintf(number, "action_%d", ++i);
-    buffer = g_strconcat(root_key, "actions/", number, NULL);
+    buffer = g_strdup_printf("%sactions/action_%d", root_key, ++i);
     button = zconf_get_string(NULL, buffer);
     action = zconf_get_description(NULL, buffer);
     g_free(buffer);
@@ -238,7 +236,7 @@ void plugin_load_config (gchar * root_key)
       return;
   }
 
-  printf("\n");
+  printv("\n");
 
   /* Load here any other config key */
 }
@@ -248,25 +246,22 @@ void plugin_save_config (gchar * root_key)
 {
   gchar *buffer;
   action_list_item *item;
-  gchar number[15];
   int i=0;
 
-  printf("lirc plugin: saving configuration\n");
+  printv("lirc plugin: saving configuration\n");
 
   /* This one is compulsory, you won't need to change it */
   buffer = g_strconcat(root_key, "autostart", NULL);
   zconf_set_boolean(active, buffer);
 
-  buffer = g_strconcat(root_key, "actions");
+  buffer = g_strconcat(root_key, "actions", NULL);
   zconf_delete(buffer);
   g_free(buffer);
 
   item = first_item;
   while (item != NULL) {
-    sprintf(number, "action_%d", ++i);
-    buffer = g_strconcat(root_key, "actions/", number, NULL);
+    buffer = g_strdup_printf("%sactions/action_%d", root_key, ++i);
     zconf_create_string(item->button, item->action, buffer);
-    zconf_set_string(item->button, buffer);
     item = item->next;
     g_free(buffer);
   }
@@ -289,7 +284,7 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
   GtkBox * vbox; /* the page added to the notebook */
   gint page;
 
-  printf("lirc plugin: adding properties\n");
+  printv("lirc plugin: adding properties\n");
 
   vbox = GTK_BOX(gtk_vbox_new(FALSE, 15));
 
@@ -402,25 +397,25 @@ void *lirc_thread(void *dummy)
     strncpy(new_button, buf2, 20);
     strncpy(check_button, buf2, 20);
 
-    printf("lirc plugin: button %s pressed\n", buf2);
-    printf("lirc plugin: time: %ld\n", new_msec);
-    printf("lirc plugin: diff: %ld\n", diff);
+    printv("lirc plugin: button %s pressed\n", buf2);
+    printv("lirc plugin: time: %ld\n", new_msec);
+    printv("lirc plugin: diff: %ld\n", diff);
 
-    printf("lirc plugin: old button: %s\n", old_button);
+    printv("lirc plugin: old button: %s\n", old_button);
 
     if (diff <= 1500) {
       strncpy(check_button, old_button, 20);
       strcat(check_button, ":");
       strcat(check_button, new_button);
       action = get_action(check_button);
-      printf("lirc plugin: action for button %s: %s\n", check_button, action);
+      printv("lirc plugin: action for button %s: %s\n", check_button, action);
       if (action == NULL) {
 	strncpy(check_button, new_button, 20);
       }
     }
 
     action = get_action(check_button);
-    printf("lirc plugin: action for button %s: %s\n", check_button, action);
+    printv("lirc plugin: action for button %s: %s\n", check_button, action);
 
     strncpy(old_button, new_button, 20);
     
@@ -815,7 +810,7 @@ void dump_list()
 {
   action_list_item *item = first_item;
   while (item != NULL) {
-    printf("%s: %s\n", item->button, item->action);
+    printv("%s: %s\n", item->button, item->action);
     item = item->next;
   }
 }

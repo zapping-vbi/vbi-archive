@@ -166,7 +166,7 @@ static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
     {
       info->caps.flags |= TVENG_CAPS_OVERLAY;
       /* Collect more info about the overlay mode */
-      if (ioctl(info->fd, VIDIOC_G_FBUF, &fb))
+      if (!ioctl(info->fd, VIDIOC_G_FBUF, &fb))
 	{
 	  if (fb.flags & V4L2_FBUF_CAP_CHROMAKEY)
 	    info->caps.flags |= TVENG_CAPS_CHROMAKEY;
@@ -751,7 +751,6 @@ tveng2_update_capture_format(tveng_device_info * info)
   info->window.y = window.y;
   info->window.width = window.width;
   info->window.height = window.height;
-  info->window.chromakey = window.chromakey;
   /* These two are defined as read-only */
   info->window.clipcount = 0;
   info->window.clips = NULL;
@@ -1674,8 +1673,6 @@ tveng2_detect_preview (tveng_device_info * info)
   Success doesn't mean that the requested dimensions are used, maybe
   they are different, check the returned fields to see if they are suitable
   info   : Device we are controlling
-  The current chromakey value is used, the caller doesn't need to fill
-  it in.
 */
 static int
 tveng2_set_preview_window(tveng_device_info * info)
@@ -1689,12 +1686,12 @@ tveng2_set_preview_window(tveng_device_info * info)
 
   memset(&window, 0, sizeof(struct v4l2_window));
 
-  /* We do not set the chromakey value */
   window.x = (info->window.x+3) & ~3;
   window.y = info->window.y;
   window.width = info->window.width & ~3;
   window.height = info->window.height;
   window.clipcount = info->window.clipcount;
+  window.chromakey = info->private->chromakey;
   if (window.clipcount == 0)
     window.clips = NULL;
   else

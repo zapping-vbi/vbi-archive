@@ -2958,6 +2958,8 @@ ttxview_attach			(GtkWidget	*parent,
 
   gtk_toolbar_set_style(GTK_TOOLBAR(data->toolbar), GTK_TOOLBAR_ICONS);
 
+  gdk_window_set_back_pixmap(data->da->window, NULL, FALSE);
+
   gtk_widget_show(data->toolbar);
 
   gtk_toolbar_set_style(GTK_TOOLBAR(data->parent_toolbar), GTK_TOOLBAR_ICONS);

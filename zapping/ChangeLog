@@ -1,3 +1,8 @@
+18.3.2001	Chroma <garetxe@users.sourceforge.net>
+
+	* Added chroma support for overlay, dunno if it works.
+	* plugins/lirc/lirc.c: Cleanup, fixed a bug.
+
 18.3.2001	TTX <mschimek@users.sourceforge.net>
 
 	* Fixed spurious blinking bug in level 2.5 decoder.

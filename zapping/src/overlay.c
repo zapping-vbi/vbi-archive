@@ -380,6 +380,7 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 		tveng_device_info * info)
 {
   GdkEventMask mask; /* The GDK events we want to see */
+  GdkColor chroma;
 
   gtk_signal_connect(GTK_OBJECT(main_window), "event",
 		     GTK_SIGNAL_FUNC(on_main_overlay_event),
@@ -426,6 +427,30 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
   
   gdk_window_get_size(window->window, &tv_info.w, &tv_info.h);
   gdk_window_get_origin(window->window, &tv_info.x, &tv_info.y);
+
+  if (info->current_controller != TVENG_CONTROLLER_XV)
+    {
+      if (info->caps.flags & TVENG_CAPS_CHROMAKEY)
+	{
+	  chroma.red = chroma.green = 0;
+	  chroma.blue = 65535;
+
+	  if (gdk_colormap_alloc_color(gdk_colormap_get_system(), &chroma,
+				       FALSE, TRUE))
+	    {
+	      tveng_set_chromakey(chroma.red >> 8, chroma.green >> 8,
+				  chroma.blue >> 8, info);
+	      gdk_window_set_background(window->window, &chroma);
+	      gdk_colormap_free_colors(gdk_colormap_get_system(), &chroma,
+				       1);
+	    }
+	  else
+	    ShowBox("Couldn't allocate chromakey, chroma won't work",
+		    GNOME_MESSAGE_BOX_WARNING);
+	}
+      else
+	gdk_window_set_back_pixmap(window->window, NULL, FALSE);
+    }
 }
 
 /*

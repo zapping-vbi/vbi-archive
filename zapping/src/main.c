@@ -288,7 +288,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.95 2001-03-15 21:59:32 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.96 2001-03-18 16:04:08 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -576,8 +576,6 @@ int main(int argc, char * argv[])
   /* Sets the coords to the previous values, if the users wants to */
   if (zcg_bool(NULL, "keep_geometry"))
     gtk_timeout_add(500, resize_timeout, NULL);
-  D();
-  gdk_window_set_back_pixmap(tv_screen->window, NULL, FALSE);
   D();
   if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"), main_info))
     printv("%s\n", main_info->error);

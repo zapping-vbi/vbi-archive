@@ -63,7 +63,7 @@ static GtkWidget *create_console	(void)
 		    ctime(&t));
 
   gdk_color_parse("red", &red);
-  if (!gdk_colormap_alloc_color(gdk_colormap_get_system(), &red, TRUE,
+  if (!gdk_colormap_alloc_color(gdk_colormap_get_system(), &red, FALSE,
 				TRUE))
     ec_add_message(buffer, FALSE, NULL);
   else

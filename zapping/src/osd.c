@@ -36,8 +36,6 @@
 #define MAX_COLUMNS 40
 #define MAX_ROWS 25
 
-static pthread_mutex_t osd_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 #include "../libvbi/libvbi.h"
 extern struct vbi *zvbi_get_object(void);
 
@@ -80,8 +78,6 @@ startup_osd(void)
   if (osd_started)
     return;
 
-  pthread_mutex_lock(&osd_mutex);
-
   for (i = 0; i<MAX_ROWS; i++)
     {
       osd_matrix[i] = g_malloc(sizeof(struct osd_row));
@@ -93,8 +89,6 @@ startup_osd(void)
   input_id = gdk_input_add(test_pipe[0], GDK_INPUT_READ,
 			   osd_event, NULL);
 
-  pthread_mutex_unlock(&osd_mutex);
-
   osd_model = ZMODEL(zmodel_new());
 }
 
@@ -105,8 +99,6 @@ shutdown_osd(void)
 
   g_assert(osd_started == TRUE);
 
-  pthread_mutex_lock(&osd_mutex);
-
   osd_clear();
 
   for (i = 0; i<MAX_ROWS; i++)
@@ -115,8 +107,6 @@ shutdown_osd(void)
   gdk_input_remove(input_id);
 
   osd_started = FALSE;
-
-  pthread_mutex_unlock(&osd_mutex);
 
   gtk_object_destroy(GTK_OBJECT(osd_model));
   osd_model = NULL;
@@ -460,12 +450,12 @@ remove_piece(int row, int p_index, int just_push)
     gdk_pixbuf_unref(p->scaled);
   gdk_pixbuf_unref(p->unscaled);
 
-  da = GTK_BIN(p->window)->child;
-  gtk_signal_disconnect_by_func(GTK_OBJECT(da),
-				GTK_SIGNAL_FUNC(on_osd_expose_event), p);
-
   if (p->window)
     {
+      da = GTK_BIN(p->window)->child;
+      gtk_signal_disconnect_by_func(GTK_OBJECT(da),
+				    GTK_SIGNAL_FUNC(on_osd_expose_event), p);
+
       if (!just_push)
 	unget_window(p->window);
       else
@@ -499,7 +489,6 @@ add_piece(int col, int row, int width, attr_char *c)
   p.start = col;
   p.window = pop_window();
   da = GTK_BIN(p.window)->child;
-
 
   if (osd_page.columns < 40) /* naive cc test */
     {
@@ -627,6 +616,9 @@ osd_event			(gpointer	   data,
   struct vbi *vbi = zvbi_get_object();
   char dummy[16];
   extern int zvbi_page, zvbi_subpage;
+
+  if (!vbi)
+    return;
 
   if (read(test_pipe[0], dummy, 16 /* flush */) <= 0
       || !osd_status)

@@ -220,10 +220,9 @@ int tveng_attach_device(const char* device_file,
 	      info->format.height, info->format.bytesperline,
 	      info->format.depth, info->format.sizeimage/1024);
       fprintf(stderr, "Current overlay window struct:\n");
-      fprintf(stderr, "  Coords: %dx%d-%dx%d   Chroma: 0x%x  Clips: %d\n",
+      fprintf(stderr, "  Coords: %dx%d-%dx%d\n",
 	      info->window.x, info->window.y, info->window.width,
-	      info->window.height, info->window.chromakey,
-	      info->window.clipcount);
+	      info->window.height);
       fprintf(stderr, "Detected standards:\n");
       for (i=0;i<info->num_standards;i++)
 	fprintf(stderr, "  %d) [%s] ID: %d\n", i,
@@ -1536,6 +1535,12 @@ tveng_set_zapping_setup_fb_verbosity(int level, tveng_device_info *
   else if (level < 0)
     level = 0;
   info->private->zapping_setup_fb_verbosity = level;
+}
+
+/* Sets the chromakey */
+void tveng_set_chromakey(int r, int g, int b, tveng_device_info *info)
+{
+  info->private->chromakey = ((r&0xff)<<16) + ((g&0xff)<<8) + (b&0xff);
 }
 
 /* Returns the current verbosity value passed to zapping_setup_fb */

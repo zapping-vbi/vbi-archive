@@ -817,7 +817,6 @@ tveng1_update_capture_format(tveng_device_info * info)
   info->window.y = window.y;
   info->window.width = window.width;
   info->window.height = window.height;
-  info->window.chromakey = window.chromakey;
   /* These two are write-only */
   info->window.clipcount = 0;
   info->window.clips = NULL;
@@ -2061,8 +2060,6 @@ tveng1_detect_preview (tveng_device_info * info)
   Success doesn't mean that the requested dimensions are used, maybe
   they are different, check the returned fields to see if they are suitable
   info   : Device we are controlling
-  The current chromakey value is used, the caller doesn't need to fill
-  it in.
 */
 static int
 tveng1_set_preview_window(tveng_device_info * info)
@@ -2077,7 +2074,6 @@ tveng1_set_preview_window(tveng_device_info * info)
 
   memset(&v4l_window, 0, sizeof(struct video_window));
 
-  /* We do not set the chromakey value */
   v4l_window.x = (info->window.x+3) & ~3; /* dword align */
   dx = v4l_window.x - info->window.x;
   v4l_window.y = info->window.y;
@@ -2085,6 +2081,7 @@ tveng1_set_preview_window(tveng_device_info * info)
   v4l_window.height = info->window.height;
   v4l_window.clipcount = info->window.clipcount;
   v4l_window.clips = NULL;
+  v4l_window.chromakey = info->private->chromakey;
   if (v4l_window.clipcount)
     {
       clips = (struct video_clip*)malloc(v4l_window.clipcount* 
