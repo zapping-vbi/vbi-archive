@@ -94,58 +94,53 @@ struct tveng_module_info {
 	 */
 	int		(* ioctl)		(tveng_device_info *,
 						 int,
+
 						 char *);
-	/*
-	 *  Sets the current video input to one in the video
-	 *  input list. This implies update_video_input with all
-	 *  side effects mentioned.
-	 */
+
+
+	/* Sets the current video input from info->video_inputs,
+	   with all effects of get_video_input(). */
 	tv_bool		(* set_video_input)	(tveng_device_info *,
 						 const tv_video_line *);
-	/*
-	 *  Updates info.cur_video_input to notice asynchronous changes
-	 *  by other applications, may call the video_input_callback.
-	 *  May update the video standard list and the current video
-	 *  standard.
-	 */
-	tv_bool		(* update_video_input)	(tveng_device_info *);
-
+	/* Reads the current video input from the device and stores
+	   it in info->cur_video_input. May update info->video_standards
+	   and info->cur_video_standards. */
+	tv_bool		(* get_video_input)	(tveng_device_info *);
+	/* Sets the frequency of a video input if a tuner, with all
+	   effects of get_tuner_frequency(). */
 	tv_bool		(* set_tuner_frequency)	(tveng_device_info *,
 						 tv_video_line *,
 						 unsigned int);
-	tv_bool		(* update_tuner_frequency)
-						(tveng_device_info *,
+	/* Reads the current frequency of a video input and stores it
+	   in the tv_video_line struct. */
+	tv_bool		(* get_tuner_frequency)	(tveng_device_info *,
 						 tv_video_line *);
-	/*
-	 *  Sets the current video standard to one in the video
-	 *  standard list. This implies update_standard with all
-	 *  side effects mentioned.
-	 */
-	tv_bool		(* set_standard)	(tveng_device_info *,
+	/* Sets the current video standard, with all effects of
+	   get_standard(). */
+	tv_bool		(* set_video_standard)	(tveng_device_info *,
 						 const tv_video_standard *);
-	/*
-	 *  Updates info.current_videostd to notice asynchronous changes
-	 *  by other applications, may call the videostd_callback.
-	 *  To update the list of supported standards update the
-	 *  current input property instead.
-	 */
-	tv_bool		(* update_standard)	(tveng_device_info *);
-	/*
-	 *  Sets the value of a control, this implies update_control
-	 *  with all side effects mentioned.
-	 */
+	/* Reads the current video standard from the device and updates
+	   info->cur_video_standard. To update info->video_standards
+	   call update_video_input. */
+	tv_bool		(* get_video_standard)	(tveng_device_info *);
+	/* Sets the current audio input from info->audio_inputs,
+	   with all effects of get_audio_input(). */
+	tv_bool		(* set_audio_input)	(tveng_device_info *,
+						 const tv_audio_line *);
+	/* Reads the current audio input from the device and stores
+	   it in info->cur_audio_input. */
+	tv_bool		(* get_audio_input)	(tveng_device_info *);
+	/* Sets the value of a control, with all effects of get_control(). */
   	tv_bool		(* set_control)		(tveng_device_info *,
 						 tv_control *,
 						 int);
-	/*
-	 *  Updates tv_control.value to notice asynchronous changes
-	 *  by other applications, may call tv_control.callback.
-	 *  May also update other properties if we get that
-	 *  information in the course. If the control is NULL update
-	 *  all controls, this may be faster than individual updates.
-	 */
-	tv_bool		(* update_control)	(tveng_device_info *,
+	/* Reads the current control value and stores it in tv_control.
+	   If the control is NULL updates all controls. */
+	tv_bool		(* get_control)		(tveng_device_info *,
 						 tv_control *);
+
+	tv_bool		(* set_audio_mode)	(tveng_device_info *,
+						 tv_audio_mode);
 
   int	(*update_capture_format)(tveng_device_info *info);
   int	(*set_capture_format)(tveng_device_info *info);
@@ -158,22 +153,19 @@ struct tveng_module_info {
   int	(*read_frame)(tveng_image_data *where,
 		      unsigned int time, tveng_device_info *info);
   double (*get_timestamp)(tveng_device_info *info);
-  int	(*set_capture_size)(int width, int height,
-			    tveng_device_info *info);
-  int	(*get_capture_size)(int *width, int *height,
-			    tveng_device_info *info);
 
 
-	tv_bool		(* get_overlay_buffer)	(tveng_device_info *,
-						 tv_overlay_buffer *);
 	tv_bool		(* set_overlay_buffer)	(tveng_device_info *,
+						 const tv_overlay_buffer *);
+	tv_bool		(* get_overlay_buffer)	(tveng_device_info *,
 						 tv_overlay_buffer *);
 	tv_bool		(* set_overlay_xwindow)	(tveng_device_info *,
 						 Window,
 						 GC);
-  int	(*set_preview_window)(tveng_device_info *info);
-  int	(*get_preview_window)(tveng_device_info *info);
-	tv_bool		(* set_overlay)		(tveng_device_info *,
+	tv_bool		(* set_overlay_window)	(tveng_device_info *,
+						 const tv_window *);
+	tv_bool		(* get_overlay_window)	(tveng_device_info *);
+	tv_bool		(* enable_overlay)	(tveng_device_info *,
 						 tv_bool);
 
   void	(*set_chromakey)(uint32_t pixel, tveng_device_info *info);
@@ -245,6 +237,16 @@ extern tv_control *
 append_control			(tveng_device_info *	info,
 				 tv_control *		tc,
 				 unsigned int		size);
+extern tv_control *
+append_audio_mode_control	(tveng_device_info *	info,
+				 tv_audio_capability	cap);
+extern tv_bool
+set_audio_mode_control		(tveng_device_info *	info,
+				 tv_control *		control,
+				 int			value);
+extern tv_audio_capability
+select_audio_capability		(tv_audio_capability		cap,
+				 const tv_video_standard *	std);
 NODE_HELPER_FUNCTIONS		(video_standard, video_standard);
 extern void
 free_video_standards		(tveng_device_info *	info);
@@ -289,17 +291,32 @@ ioctl_failure			(tveng_device_info *	info,
 				 const char *		function_name,
 				 unsigned int		source_file_line,
 				 const char *		ioctl_name);
-#ifdef HAVE_STRNDUP
-#define tv_strndup strndup
+
+#ifdef HAVE_STRLCPY
+#define _tv_strlcpy strlcpy
 #else
-extern char *
-tv_strndup			(const char *		s,
-				 size_t			size);
+extern size_t
+_tv_strlcpy			(char *			dst,
+				 const char *		src,
+				 size_t			len);
 #endif
 
+#ifdef HAVE_STRNDUP
+#define _tv_strndup strndup
+#else
 extern char *
-tv_strdup_printf		(const char *		templ,
+_tv_strndup			(const char *		s,
+				 size_t			len);
+#endif
+
+#ifdef HAVE_ASPRINTF
+#define _tv_asprintf asprintf
+#else
+int
+_tv_asprintf			(char **		dstp,
+				 const char *		templ,
 				 ...);
+#endif
 
 extern tv_pixfmt
 pig_depth_to_pixfmt		(unsigned int		depth);
