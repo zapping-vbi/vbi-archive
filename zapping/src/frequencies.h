@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: frequencies.h,v 1.10.2.7 2003-09-29 07:08:28 mschimek Exp $ */
+/* $Id: frequencies.h,v 1.10.2.8 2003-10-07 18:38:14 mschimek Exp $ */
 
 #ifndef FREQUENCIES_H
 #define FREQUENCIES_H
@@ -75,6 +75,12 @@ struct _tv_rf_channel {
 	unsigned int	frequency;		/* Hz */
 	unsigned int	bandwidth;		/* Hz */
 	unsigned int	video_standards;	/* future stuff */
+
+	/* private */
+
+	const void *	_table;
+	const void *	_range;
+	unsigned int	_channel;
 };
 
 #define tv_rf_channel_first_table(ch) tv_rf_channel_nth_table (ch, 0)

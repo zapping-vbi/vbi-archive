@@ -1,6 +1,11 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
+* TTX mode, channel switch in ch editor,
+  SEGV in vbi_draw_vt_page_region
+* V4L2 (0.20 and 2.5) RGB pixel formats are incorrectly defined.
+  Gerd Knorr notified, solution pending. Workaround is in place.
+* tvengxv (pm2, not v4l) lists no standards and inputs.
 * Pointer does not properly reappear in windowed mode.
 * Xawtv import skips channel when name contains non-ascii.
 * zvbi error messages need locale to UTF-8 conversion.
@@ -26,6 +31,7 @@ Known bugs in Zapping, don't report them
 ! bttv 0.9.5 seems to crash the X server whenever
   XvPutImage is called (field ANY not handled?).
   Gerd notified, promised fix in 0.9.6.
+* fprintf_ioctl dereferences uninitialized strings.
 * Need to handle BadAtom errors resulting from Xv out
   of video memory (or no v4l device?). Currently gdk
   just aborts the app.
@@ -82,8 +88,18 @@ Known bugs in Zapping, don't report them
   TVLOCK   in tveng_read_frame 625197
    :
 
-XFree86 V4L XVideo driver (xc/programs/Xserver/hw/xfree86/drivers/v4l/v4l.c)
-----------------------------------------------------------------------------
+XFree86 stuff
+-------------
+
+* XvQueryAdaptors seems to report wrong num_formats value, maybe a
+  DIX or DDX bug.
+* XvListImageFormats, XvQueryPortAttributes not documented. Result
+  must be XFree()ed.
+* XvImageFormat: Some drivers define incorrect component_order.
+  There are no Window FOURCCs for RGB formats, consequently drivers
+  disagree about id and guid.
+
+V4L XVideo driver (xc/programs/Xserver/hw/xfree86/drivers/v4l/v4l.c)
 * Success of ioctls is not checked.
 * Does not consider audio.mode changes semantics on read/write.
   V4lSetPortAttribute():
@@ -110,7 +126,9 @@ XFree86 V4L XVideo driver (xc/programs/Xserver/hw/xfree86/drivers/v4l/v4l.c)
 * Reports wrong tuner frequency range:
   static const XF86AttributeRec FreqAttr =
     {XvSettable | XvGettable,     0, 16*1000, XV_FREQ};
-* Ignores tuner frequency scale factor (62.5 Hz, 62.5 kHz).
+* Ignores tuner frequency scale factor (62.5 Hz, 62.5 kHz). Supposedly
+  the Hz scale was added for SW radio, but the V4L/2 spec nowhere says
+  tv receivers must support kHz only.
   V4lSetPortAttribute():
   } else if (attribute == xvFreq) {
       if (-1 == ioctl(V4L_FD,VIDIOCSFREQ,&value))
@@ -120,4 +138,19 @@ XFree86 V4L XVideo driver (xc/programs/Xserver/hw/xfree86/drivers/v4l/v4l.c)
      ioctl(V4L_FD,VIDIOCGFREQ,value);
 * XV_FREQ semantics not documented, e.g. scale 62.5 kHz.
 * XvEncodingInfo does not report if the input is a tuner and
-  XV_FREQ access succeeds on all inputs.
+  XV_FREQ access appears to succeed on all inputs.
+
+NVidia driver (binary, not xf86)
+* Reports tv output port with type XvInputMask | XvVideoMask.
+  Should be XvOutputMask.
+
+NeoMagic driver (xc/programs/Xserver/hw/xfree86/drivers/neomagic)
+* The only port is of type XvInputMask | XvImageMask | XvWindowMask |
+  XvOutputMask | XvVideoMask. It supports PutVideo (video in) and
+  PutImage (image out), probably not both at once. XvQueryAdaptors man
+  page does not state if such a combination of flags has to be
+  expected. Actually it doesn't even mention the XvImage extension.
+
+Savage driver (xc/programs/Xserver/hw/xfree86/drivers/savage/savage_video.c)
+* Minor nit: comment says YV12, I420 == 4:1:1, actually 4:2:0. The
+  alleged 2:1:1 is really a half width 4:2:2, there no such thing as 2:1:1.

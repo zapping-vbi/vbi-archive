@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.37.2.13 2003-09-24 18:34:13 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.37.2.14 2003-10-07 18:38:14 mschimek Exp $ */
 
 /*
   TODO:
@@ -641,7 +641,7 @@ station_search_timeout		(gpointer		p)
   station_name = g_strdup (cs->ch.channel_name);
 
  add_station:
-  memset (&tc, 0, sizeof (tc));
+  CLEAR (tc);
   tc.name	= station_name;
   tc.rf_name	= (gchar *) cs->ch.channel_name;
   tc.rf_table	= (gchar *) cs->ch.table_name;
@@ -748,7 +748,7 @@ on_add_all_channels_clicked	(GtkButton *		add_all_channels,
   tveng_tuned_channel tc;
   gboolean align;
 
-  memset (&tc, 0, sizeof (tc));
+  CLEAR (tc);
 
   current_rf_channel_table (ce, &ch, NULL);
 

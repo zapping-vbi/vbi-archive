@@ -1,6 +1,8 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Fullscreen: When the user preselected a vidmode Z should not try
+  to overlay the whole screen.
 * Keyboard preferences: Python commands should not be visible,
   by default. Use GtkAction?
 * Recording: like mixer volume, substitute tv card brightness and

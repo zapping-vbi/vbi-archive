@@ -1193,8 +1193,8 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
     }
 
   /* Create and clear the struct */
-  new_key = g_malloc(sizeof(struct zconf_key));
-  memset(new_key, 0, sizeof(struct zconf_key));
+  new_key = g_malloc0(sizeof(*new_key));
+
   new_key -> parent = parent;
   new_key -> full_path = full_name;
   new_key -> name = g_strdup(name);
@@ -1554,8 +1554,8 @@ p_zconf_create(const gchar * key, struct zconf_key * starting_dir)
     }
 
   /* The child didn't exist, create it */
-  sub_key = (struct zconf_key*) g_malloc(sizeof(struct zconf_key));
-  memset(sub_key, 0, sizeof(struct zconf_key));
+  sub_key = g_malloc0(sizeof(*sub_key));
+
   sub_key -> name = g_strdup(key_name_2);
   ptr = starting_dir -> full_path;
   g_assert(ptr != NULL);

@@ -508,7 +508,7 @@ add_controls			(struct control_window *cb,
     {
       if (ctrl->id == TV_CONTROL_ID_HUE)
 	if (info->cur_video_standard)
-	  if (!(info->cur_video_standard->id & TV_VIDEOSTD_NTSC))
+	  if (!(info->cur_video_standard->videostd_set & TV_VIDEOSTD_SET_NTSC))
 	    {
 	      /* Useless. XXX connect to standard change callback. */
 	      tveng_set_control (ctrl, ctrl->reset, info);
@@ -1134,7 +1134,7 @@ z_set_main_title	(tveng_tuned_channel	*channel,
   tveng_tuned_channel ch;
   gchar *buffer = NULL;
 
-  memset(&ch, 0, sizeof(ch));
+  CLEAR (ch);
 
   if (!channel)
     channel = &ch;

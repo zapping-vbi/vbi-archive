@@ -999,8 +999,8 @@ register_ttx_client(void)
   int w, h; /* of the unscaled image */
   GdkPixbuf *simple;
 
-  client = g_malloc(sizeof(struct ttx_client));
-  memset(client, 0, sizeof(struct ttx_client));
+  client = g_malloc0(sizeof(*client));
+
   client->id = id++;
   client->reveal = 0;
   client->waiting = TRUE;
@@ -1214,7 +1214,7 @@ add_patch(struct ttx_client *client, int col, int row,
 	break;
       }
       
-  memset(&patch, 0, sizeof(struct ttx_patch));
+  CLEAR (patch);
   patch.width = patch.height = 1;
   patch.col = col;
   patch.row = row;
@@ -1443,7 +1443,7 @@ build_client_page(struct ttx_client *client, vbi_page *pg)
     }
   else if (!pg)
     {
-      memset(&client->fp, 0, sizeof(client->fp));
+      CLEAR (client->fp);
 
       if ((simple = vt_loading ()))
 	{
@@ -2105,7 +2105,7 @@ startup_zvbi(void)
   pthread_mutex_init(&network_mutex, NULL);
   pthread_mutex_init(&prog_info_mutex, NULL);
 
-  memset(&current_network, 0, sizeof(current_network));
+  CLEAR (current_network);
 
   if (pipe(osd_pipe)) {
     g_warning("Cannot create osd pipe");

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dga.c,v 1.1.2.3 2003-06-16 06:09:17 mschimek Exp $ */
+/* $Id: dga.c,v 1.1.2.4 2003-10-07 18:38:15 mschimek Exp $ */
 
 /* XXX Verbatim copy from ../src/x11_stuff, keep in sync.
    One day this will be part of libtveng and we can just link. */
@@ -165,7 +165,7 @@ x11_dga_query			(x11_dga_parameters *	par,
     info = XGetVisualInfo (display, VisualScreenMask, &templ, &nitems);
 
     for (i = 0; i < nitems; i++)
-      if (info[i].class == TrueColor && info[i].depth >= 15)
+      if (info[i].class == TrueColor && info[i].depth > 8)
 	{
 	  if (X11STUFF_DGA_DEBUG)
 	    printv ("DGA vi[%u] depth=%u\n", i, info[i].depth);

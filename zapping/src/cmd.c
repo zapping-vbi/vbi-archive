@@ -216,7 +216,6 @@ static PyObject* py_resize_screen (PyObject *self, PyObject *args)
   if (!ok)
     g_error ("zapping.resize_screen(ii)");
 
-#warning
   gdk_window_get_geometry (mw, NULL, NULL, &mw_w, &mw_h, NULL);
   gdk_window_get_geometry (subwindow, NULL, NULL, &sw_w, &sw_h, NULL);
 

@@ -331,7 +331,7 @@ add_piece			(GdkPixbuf	*unscaled,
   p = matrix[row]->pieces + matrix[row]->n_pieces;
   matrix[row]->n_pieces++;
 
-  memset(p, 0, sizeof(*p));
+  CLEAR (*p);
 
   p->da = da;
 
@@ -753,7 +753,7 @@ osd_render_markup_text	(gchar *buf)
   gchar *buf2;
   xmlSAXHandler handler;
 
-  memset(&handler, 0, sizeof(handler));
+  CLEAR (handler);
 
   handler.startElement = NULL;
   handler.endElement = NULL;
@@ -1279,7 +1279,7 @@ startup_osd(void)
 #ifdef HAVE_LIBZVBI
   input_id = gdk_input_add(osd_pipe[0], GDK_INPUT_READ,
 			   osd_event, NULL);
-  memset(&osd_page, 0, sizeof(osd_page));
+  CLEAR (osd_page);
 #endif
 
   osd_model = ZMODEL(zmodel_new());

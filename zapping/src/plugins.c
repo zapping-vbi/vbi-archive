@@ -53,7 +53,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
   g_assert(info != NULL);
   g_assert(file_name != NULL);
 
-  memset (info, 0, sizeof(struct plugin_info));
+  CLEAR (*info);
 
   info -> handle = g_module_open (file_name, 0);
 
@@ -164,7 +164,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 	    (gpointer*)&(info->plugin_get_misc_info)))
     info->plugin_get_misc_info = NULL;
 
-  memset(&(info->misc_info), 0, sizeof(struct plugin_misc_info));
+  CLEAR (info->misc_info);
 
   if (info -> plugin_get_misc_info)
     memcpy(&(info->misc_info), (*info->plugin_get_misc_info)(),

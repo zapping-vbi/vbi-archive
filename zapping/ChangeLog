@@ -1,5 +1,16 @@
-2003-09-29    <mschimek@users.sf.net>
+2003-10-07    <mschimek@users.sf.net>
 
+	* src/frequencies.c (tv_rf_channel_next): Still didn't work
+	  right. Fixed again, hopefully for the last time.
+	* src/tvengxv.c: Cleaned up a bit.
+	  (grab_port): NVidia tv out bug workaround.
+	  (set_overlay): Fixed return values.
+	* src/video_xv.c (add_backend_xv): Cleaned and split up
+	  for better readability. Listing XVideo resources moved
+	  into helper function in src/x11_stuff.c.
+	  (tveng2xv): Removed, the module now remembers the
+	  image format id reported by xvlib.
+	  (tveng2bpp): Replaced by tv_pixfmt_to_pixel_format().
 	* src/zmisc.c (zmisc_switch_mode): Proper overlay and fullscreen
 	  error messages.
 	* src/tveng2.c (tveng2_set_capture_format): Capture didn't work,
@@ -10,11 +21,53 @@
 	  Moved preview functions into fullscreen.c.
 	* src/main.c: Moved zapping_setup_fb call into overlay.c
 	  and fullscreen.c, where it is called only before DMA
-	  overlay is actually activated. (Mostly for error
-	  reporting reasons.) Fixed start-muted.
-	* src/overlay.c: Proper overlay target initialization.
+	  overlay is actually activated (mostly for error
+	  reporting reasons). Removed Xv detection which existed
+	  here only to bypass zapping_setup_fb when we (apparently)
+	  have Xv overlay capability. Fixed start-muted.
+        * src/video_x11.c: Replaced zmisc_resolve_pixformat()
+	  call by global dga_param access, which already contains
+	  the required information.
+ 	* src/overlay.c: Proper overlay target initialization.
 	* src/fullscreen.c: Moved tveng preview functions here.
-	
+	  Removed superfluous (when we're using XVideo)
+	  tv_set_overlay_buffer() call.
+	* plugins/mpeg/mpeg.c, plugins/screenshot/screenshot.c,
+	  src/capture.c, src/capture.h, src/csconvert.c,
+	  src/csconvert.h, src/main.c, src/tveng.c, src/tveng.h,
+	  src/tveng1.c, src/tveng2.c, src/tveng25.c, src/tvengemu.c,
+	  src/tvengxv.c, src/video_gdkrgb.c, src/video_mem.c,
+	  src/video_x11.c, src/video_xv.c, src/x11_stuff.c,
+	  src/x11_stuff.h, src/yuv2rgb.c, src/zimage.c,
+	  src/zimage.h, src/zmisc.c, src/zmisc.h:
+	  Replaced tveng_frame_pixformat by tv_pixfmt and tv_pixfmt_set,
+	  which covers more formats and is more accurate WRT color
+	  component order and endianess. (So accurate in fact, it
+	  revealed a V4L2 API bug.)
+	* src/zmisc.h (zmisc_resolve_pixformat): No longer needed.
+	* src/tveng.c, src/tveng.h, src/tveng_private.h: Replaced
+	  tv_video_standard_id by tv_videostd and tv_videostd_set
+	  a la tv_pixfmt, under the "no surprise today will keep
+	  the bug away" rule.
+	  (pig_depth_to_pixfmt): New helper function for backends.
+	* src/tveng.c, src/tveng.h:
+	  (tveng_set_xv_port): Missing XFree().
+	  (tveng_detect_xv_overlay): No longer needed, see main.c.
+	  (tveng_is_planar): No longer needed, replaced by
+	    TV_PIXFMT_IS_PLANAR() and tv_pixfmt_to_pixel_format().
+	  (tv_pixfmt_name): Added, for debugging.
+	  (tv_pixfmt_to_pixel_format): Extended. Replaces
+	  tveng_frame_pixformat to tv_pixel_format function of
+	  same name.
+	  (tv_videostd_name): Added, for debugging.
+	* src/main.c, src/globals.c, src/globals.h: Obsoleted --no-zsfb
+	  switch. zapping_setup_fb is no longer called at startup but only
+	  when we actually switch to dma overlay.
+	* zapping_setup_fb/v4l.c, zapping_setup_fb/v4l2.c,
+	  zapping_setup_fb/v4l25.c: Did not properly distinguish between
+	  24 and 32 bpp.
+	* src/x11stuff.c, src/x11stuff.h: Added XVideo helper functions.
+
 2003-09-27	<mschimek@users.sf.net>
 
 	* src/tveng1.c (p_tveng1_open_device_file): ioctl

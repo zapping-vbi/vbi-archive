@@ -31,7 +31,7 @@
 
 static struct {
   video_backend		backend;
-  enum tveng_frame_pixformat fmt;
+  tv_pixfmt pixfmt;
 } *backends = NULL;
 static int num_backends = 0;
 
@@ -45,13 +45,13 @@ typedef struct {
 
 static GtkWidget *dest_window = NULL;
 
-gboolean register_video_backend (enum tveng_frame_pixformat fmt,
+gboolean register_video_backend (tv_pixfmt pixfmt,
 				 video_backend *backend)
 {
   /* We always let backends be registered, so zimage_new always
      succeeds for all pixformats (video_mem doesn't fail). */
   backends = g_realloc (backends, (num_backends+1)*sizeof(*backends));
-  backends[num_backends].fmt = fmt;
+  backends[num_backends].pixfmt = pixfmt;
   memcpy (&backends[num_backends].backend, backend, sizeof(*backend));
   num_backends ++;
   
@@ -63,14 +63,14 @@ zimage *zimage_create_object (void)
   return (g_malloc0 (sizeof (private_zimage)));
 }
 
-zimage *zimage_new (enum tveng_frame_pixformat fmt,
+zimage *zimage_new (tv_pixfmt pixfmt,
 		    gint w, gint h)
 {
   gint i;
   for (i=0; i<num_backends; i++)
-    if (backends[i].fmt == fmt)
+    if (backends[i].pixfmt == pixfmt)
       {
-	zimage *zimage = backends[i].backend.image_new (fmt, w, h);
+	zimage *zimage = backends[i].backend.image_new (pixfmt, w, h);
 	if (zimage)
 	  {
 	    private_zimage *pz = (private_zimage*)zimage;
@@ -151,7 +151,7 @@ void video_blit_frame (capture_frame *frame)
   zimage *img;
 
   for (i=0; i<num_backends; i++)
-    if ((img = retrieve_frame (frame, backends[i].fmt)))
+    if ((img = retrieve_frame (frame, backends[i].pixfmt)))
       {
 	zimage_blit (img);
 	return;

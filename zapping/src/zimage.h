@@ -44,7 +44,7 @@ typedef struct {
   void		(*unset_destination)(tveng_device_info *info);
   /* Create a suitable image, will always be called with the port
      grabbed */
-  zimage*	(*image_new)(enum tveng_frame_pixformat pixformat,
+  zimage*	(*image_new)(tv_pixfmt pixfmt,
 			     gint width, gint height);
   /* Destroy any data associated with the image, do _not_ call
      g_free (image) */
@@ -58,14 +58,14 @@ typedef struct {
 } video_backend;
 
 /* Registers a zimage backend. Returns FALSE if already registered. */
-gboolean register_video_backend (enum tveng_frame_pixformat fmt,
+gboolean register_video_backend (tv_pixfmt pixfmt,
 				 video_backend *backend);
 
 /* Creates a zimage with the given pixformat. The resulting image
    might not be blittable. NULL will be returned if the requested
    image cannot be allocated. The refcount of the resulting image will
    be 1. */
-zimage *zimage_new (enum tveng_frame_pixformat fmt,
+zimage *zimage_new (tv_pixfmt pixfmt,
 		    gint w, gint h);
 
 /* Increments the refcount of the image. */
