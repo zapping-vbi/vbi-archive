@@ -24,7 +24,7 @@
 */
 
 #include <stdio.h>
-#include "../tveng.h" /* V4L2 header file */
+#include "../src/tveng.h" /* V4L2 header file */
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
