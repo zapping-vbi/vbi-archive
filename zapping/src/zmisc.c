@@ -48,6 +48,7 @@
 #include "keyboard.h"
 #include "globals.h"
 #include "audio.h"
+#include "mixer.h"
 
 extern tveng_device_info * main_info;
 extern volatile gboolean flag_exit_program;
@@ -295,7 +296,18 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   gdk_window_get_geometry(tv_screen->window, NULL, NULL, &w, &h, NULL);
   gdk_window_get_origin(tv_screen->window, &x, &y);
 
-  muted = tveng_get_mute(info);
+  // FIXME
+  {
+    gint cur_line = zconf_get_integer (NULL, "/zapping/options/audio/record_source");
+
+    if (info->audio_mutable)
+      muted = tveng_get_mute(info);
+    else if (cur_line > 0)
+      muted = mixer_get_mute (cur_line - 1);
+    else
+      muted = -1;
+  } 
+
   mode = info->current_mode;
 
   zmisc_stop (info);
@@ -511,8 +523,10 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   /* Updating the properties is not so useful, and it isn't so easy,
      since there might be multiple properties dialogs open */
 
-  if (muted != -1)
-    set_mute1(!!muted, FALSE, FALSE);
+  /* Restore mute state */
+  if (muted >= 0)
+    set_mute (!!muted, FALSE, FALSE);
+
   /* Update the controls window if it's open */
   update_control_box(info);
 
