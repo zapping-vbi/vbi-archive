@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.33 2005-01-27 04:16:38 mschimek Exp $ */
+/* $Id: teletext.c,v 1.34 2005-01-31 07:03:11 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -2698,7 +2698,6 @@ keyword				(vbi3_link *		ld,
 		for (;;) {
 			/* RFC 1738 */
 			static const char *valid = "%&/=?+-~:;@_";
-
 			const char *s1;
 			
 			s1 = s;
@@ -3104,7 +3103,7 @@ write_link			(vbi3_page_priv *	pgp,
 				 vbi3_char *		acp,
 				 const char *		s,
 				 unsigned int		n,
-				 unsigned int		index,
+				 unsigned int		indx,
 				 unsigned int		column,
 				 vbi3_color		foreground)
 {
@@ -3113,7 +3112,7 @@ write_link			(vbi3_page_priv *	pgp,
 		acp[column].foreground = foreground;
 		acp[column].attr |= VBI3_LINK;
 
-		pgp->link_ref[column] = index;
+		pgp->link_ref[column] = indx;
 
 		++column;
 	}
@@ -3121,7 +3120,7 @@ write_link			(vbi3_page_priv *	pgp,
 
 /**
  * @internal
- * @param index Create pgp->nav_link 0 ... 3.
+ * @param indx Create pgp->nav_link 0 ... 3.
  * @param column Store text in a 12 character wide slot starting at
  *   this column (0 ... 40 - 12).
  * @param pgno Store name of this page.
@@ -3133,7 +3132,7 @@ write_link			(vbi3_page_priv *	pgp,
 static vbi3_bool
 top_label			(vbi3_page_priv *	pgp,
 				 const vbi3_character_set *cs,
-				 unsigned int		index,
+				 unsigned int		indx,
 				 unsigned int		column,
 				 vbi3_pgno		pgno,
 				 vbi3_color		foreground,
@@ -3151,8 +3150,8 @@ top_label			(vbi3_page_priv *	pgp,
 
 	acp = navigation_row (pgp);
 
-	pgp->link[index].pgno = pgno;
-	pgp->link[index].subno = VBI3_ANY_SUBNO;
+	pgp->link[indx].pgno = pgno;
+	pgp->link[indx].subno = VBI3_ANY_SUBNO;
 
 	for (i = 11; i >= 0; --i)
 		if (ait->text[i] > 0x20)
@@ -3162,10 +3161,10 @@ top_label			(vbi3_page_priv *	pgp,
 		sh = (11 - ff - i) >> 1;
 
 		acp[sh + i + 1].attr |= VBI3_LINK;
-		pgp->link_ref[column + sh + i + 1] = index;
+		pgp->link_ref[column + sh + i + 1] = indx;
 
 		write_link (pgp, acp, ">>", ff,
-			    index, column + i + sh + 1,
+			    indx, column + i + sh + 1,
 			    foreground);
 	} else {
 		sh = (11 - i) >> 1; /* center */
@@ -3182,7 +3181,7 @@ top_label			(vbi3_page_priv *	pgp,
 		acp[i].foreground = foreground;
 		acp[i].attr |= VBI3_LINK;
 
-		pgp->link_ref[column + i] = index;
+		pgp->link_ref[column + i] = indx;
 
 		--i;
 	}
@@ -3215,6 +3214,8 @@ top_navigation_bar_style_1	(vbi3_page_priv *	pgp)
 
 	if (VBI3_OPAQUE != pgp->page_opacity[1])
 		return;
+
+	pgno = pgp->pg.pgno;
 
 	acp = navigation_row (pgp);
 
@@ -3378,7 +3379,7 @@ navigation			(vbi3_page_priv *	pgp,
  * @param pg With vbi3_fetch_vt_page() obtained vbi3_page.
  * @param ld Place to store information about the link.
  * DONT vbi3_link_destroy().
- * @param index Number 0 ... 5 of the link.
+ * @param indx Number 0 ... 5 of the link.
  * 
  * When a vbi3_page has been formatted with TOP or FLOF
  * navigation enabled the last row may contain four links
@@ -3400,19 +3401,19 @@ navigation			(vbi3_page_priv *	pgp,
  */
 const vbi3_link *
 vbi3_page_get_teletext_link	(const vbi3_page *	pg,
-				 unsigned int		index)
+				 unsigned int		indx)
 {
 	const vbi3_page_priv *pgp;
 
 	PGP_CHECK (NULL);
 
 	if (pg->pgno < 0x100
-	    || index >= N_ELEMENTS (pgp->link)
-	    || pgp->link[index].pgno < 0x100) {
+	    || indx >= N_ELEMENTS (pgp->link)
+	    || pgp->link[indx].pgno < 0x100) {
 		return NULL;
 	}
 
-	return &pgp->link[index];
+	return &pgp->link[indx];
 }
 
 /* ------------------------------------------------------------------------ */

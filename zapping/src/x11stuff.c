@@ -1850,6 +1850,7 @@ xv_adaptor_dump			(Display *		display,
 		return;
 	}
 
+	CLEAR (pImageFormats);
 	CLEAR (nImageFormats);
 
 	for (i = 0; i < adaptor->num_ports; ++i) {
@@ -1905,8 +1906,8 @@ x11_xvideo_dump			(void)
   unsigned int error_base;
   Window root;
   XvAdaptorInfo *pAdaptors;
-  int nAdaptors;
-  int i;
+  unsigned int nAdaptors;
+  unsigned int i;
 
   display = GDK_DISPLAY ();
 
