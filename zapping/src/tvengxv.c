@@ -37,7 +37,7 @@
 #define TVENGXV_PROTOTYPES 1
 #include "tvengxv.h"
 
-#include "globals.h" /* xv_overlay_port */
+#include "globals.h" /* xv_video_port */
 #include "zmisc.h"
 
 struct video_input {
@@ -205,6 +205,8 @@ p_tvengxv_open_device(tveng_device_info *info)
   XvAttribute *pAttributes;
   int nAttributes;
 
+  printv ("xv_video_port 0x%x\n", xv_video_port);
+
   display = info->priv->display;
 
   nAdaptors = 0;
@@ -244,12 +246,12 @@ p_tvengxv_open_device(tveng_device_info *info)
   if (nAdaptors <= 0)
     goto failure;
 
-  p_info->port = grab_port (display, pAdaptors, nAdaptors, xv_overlay_port);
+  p_info->port = grab_port (display, pAdaptors, nAdaptors, xv_video_port);
 
-  if (NO_PORT == p_info->port && ANY_PORT != xv_overlay_port)
+  if (NO_PORT == p_info->port && ANY_PORT != xv_video_port)
     {
       printv ("XVideo video input port 0x%x not found\n",
-	      (unsigned int) xv_overlay_port);
+	      (unsigned int) xv_video_port);
 
       p_info->port = grab_port (display, pAdaptors, nAdaptors, ANY_PORT);
     }
@@ -1040,7 +1042,7 @@ int tvengxv_attach_device(const char* device_file,
 
   t_assert(info != NULL);
 
-  if (info->priv->disable_xv || disable_overlay)
+  if (info->priv->disable_xv_video || disable_overlay)
     {
       info->tveng_errno = -1;
       t_error_msg("disable_xv",
@@ -1172,6 +1174,20 @@ int tvengxv_attach_device(const char* device_file,
 		  }
 	  }
   }
+
+  /* Glint bug - XV_ENCODING not listed */
+  if (p_info->encodings > 0
+      && None == p_info->xa_encoding)
+    {
+      if (info->debug_level > 0)
+	fprintf(stderr, "  TVeng Xv atom: XV_ENCODING (hidden) (%i -> %i)\n",
+		0, p_info->encodings - 1);
+
+      p_info->xa_encoding = XInternAtom (dpy, "XV_ENCODING", False);
+      p_info->encoding_max = p_info->encodings - 1;
+      p_info->encoding_min = 0;
+      p_info->encoding_gettable = TRUE;
+    }
 
       /* Set the mute control to OFF (workaround for BTTV bug) */
 //      tveng_set_control(&control, 0, info);
