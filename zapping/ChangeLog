@@ -1,7 +1,7 @@
 22.3.2001	libxml2 <garetxe@users.sourceforge.net>
 
 	* configure.in: Better libxml detection, libxml2 support.
-	* ttxview.c: Fixed segv in expose.
+	* ttxview.c: Fixed segv in expose. Added www.* addresses to #url# mask.
 	* Started channel => channel+input+standard work.
 
 21.3.2001	ttxview.c <mschimek@users.sourceforge.net>

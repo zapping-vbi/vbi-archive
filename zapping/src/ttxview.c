@@ -1021,7 +1021,8 @@ void show_search_help			(GtkButton	*button,
   Substitute the special search keywords by the appropiate regex,
   returns a newly allocated string, and g_free's the given string.
   Valid search keywords:
-  #url#  -> Expands to "https?://([:alnum:]|[-~./?%_=+])+"
+  #url# -> Expands to "https?://([:alnum:]|[-~./?%_=+])+" or
+			www.*
   #email# -> Expands to "([:alnum:]|[-~.])+@([:alnum:]|[-~.])+"
 */
 static
@@ -1031,7 +1032,8 @@ gchar *subtitute_search_keywords	(gchar		*string)
   gchar *found;
   gchar *search_keys[][2] = {
     {"#email#", "([:alnum:]|[-~.])+@([:alnum:]|[-~.])+"},
-    {"#url#", "https?://([:alnum:]|[-~./?%_=+])+"}
+    {"#url#",
+     "(https?://([:alnum:]|[-~./?%_=+])+)|(www.([:alnum:]|[-~./?%_=+])+)"}
   };
 
   if ((!string) || (!*string))
