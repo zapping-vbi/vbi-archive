@@ -201,6 +201,7 @@ void tveng_device_info_destroy(tveng_device_info * info)
   tv_callback_destroy (info, &info->priv->video_input_callback);
   tv_callback_destroy (info, &info->priv->audio_input_callback);
   tv_callback_destroy (info, &info->priv->video_standard_callback);
+  tv_callback_destroy (info, &info->priv->audio_callback);
 
   free(info->priv);
   free(info);
@@ -303,6 +304,22 @@ int tveng_attach_device(const char* device_file,
   return -1;
 
  success:
+  /* See p_tveng_set_capture_format() */
+#ifdef ENABLE_BKTR
+  /* FIXME bktr VBI capturing does not work if
+     video capture format is YUV. */
+#define YUVHACK TV_PIXFMT_SET_RGB
+#else
+#define YUVHACK (TV_PIXFMT_SET (TV_PIXFMT_YUV420) | \
+       		 TV_PIXFMT_SET (TV_PIXFMT_YVU420) | \
+		 TV_PIXFMT_SET (TV_PIXFMT_YUYV) | \
+		 TV_PIXFMT_SET (TV_PIXFMT_UYVY))
+#endif
+
+#ifdef YUVHACK
+  info->supported_pixfmt_set &= YUVHACK;
+#endif
+
   {
     info->priv->control_mute = NULL;
     info->audio_mutable = 0;
@@ -336,17 +353,19 @@ int tveng_attach_device(const char* device_file,
       num_inputs++;
   }
 
-  if (asprintf (&sign, "%s - %d %d - %d %d %d", info->caps.name,
-		num_inputs, num_controls,
-		info->caps.flags, info->caps.maxwidth,
-		info->caps.maxheight) == -1)
-    {
-      t_error ("asprintf", info);
-      p_tveng_close_device (info);
-      CLEAR (info->priv->module);
-      UNTVLOCK;
-      return -1;
-    }
+  if (_tv_asprintf (&sign, "%s - %d %d - %d %d %d",
+		    info->caps.name,
+		    num_inputs,
+		    num_controls,
+		    info->caps.flags,
+		    info->caps.maxwidth,
+		    info->caps.maxheight) < 0) {
+	  t_error ("asprintf", info);
+	  p_tveng_close_device (info);
+	  CLEAR (info->priv->module);
+	  UNTVLOCK;
+	  return -1;
+  }
   info->signature = tveng_build_hash (sign);
   free (sign);
 
@@ -649,7 +668,8 @@ panel_failure			(tveng_device_info *	info,
 
 #define REQUIRE_IO_MODE(_result)					\
 do {									\
-  if (TVENG_ATTACH_CONTROL == info->attach_mode) {			\
+  if (TVENG_ATTACH_CONTROL == info->attach_mode				\
+      || TVENG_ATTACH_VBI == info->attach_mode) {			\
     panel_failure (info, __PRETTY_FUNCTION__);				\
     return _result;							\
   }									\
@@ -773,8 +793,8 @@ tv_get_tuner_frequency		(tveng_device_info *	info,
 	if (!IS_TUNER_LINE (line))
 		RETURN_UNTVLOCK (FALSE);
 
-	if (info->priv->module.update_tuner_frequency) {
-		if (!info->priv->module.update_tuner_frequency (info, line))
+	if (info->priv->module.get_tuner_frequency) {
+		if (!info->priv->module.get_tuner_frequency (info, line))
 			RETURN_UNTVLOCK (FALSE);
 
 		t_assert (line->u.tuner.frequency >= line->u.tuner.minimum);
@@ -824,9 +844,9 @@ tv_get_video_input		(tveng_device_info *	info)
 
 	TVLOCK;
 
-	if (!info->priv->module.update_video_input)
+	if (!info->priv->module.get_video_input)
 		tl = info->cur_video_input;
-	else if (info->priv->module.update_video_input (info))
+	else if (info->priv->module.get_video_input (info))
 		tl = info->cur_video_input;
 	else
 		tl = NULL;
@@ -901,14 +921,45 @@ NODE_BY_HASH_FUNC		(audio_input, audio_line);
 const tv_audio_line *
 tv_get_audio_input		(tveng_device_info *	info)
 {
-	return NULL; /* to do */
+	const tv_audio_line *tl;
+
+	t_assert (info != NULL);
+
+	TVLOCK;
+
+	if (!info->priv->module.get_audio_input)
+		tl = info->cur_audio_input;
+	else if (info->priv->module.get_audio_input (info))
+		tl = info->cur_audio_input;
+	else
+		tl = NULL;
+
+	RETURN_UNTVLOCK (tl);
 }
 
 tv_bool
 tv_set_audio_input		(tveng_device_info *	info,
 				 const tv_audio_line *	line)
 {
-	return FALSE; /* to do */
+	tv_audio_line *list;
+
+	t_assert (info != NULL);
+	t_assert (line != NULL);
+
+	REQUIRE_SUPPORT (info->priv->module.set_audio_input, FALSE);
+
+	TVLOCK;
+
+	for_all (list, info->audio_inputs)
+		if (list == line)
+			break;
+
+	if (list == NULL) {
+		UNTVLOCK;
+		return FALSE;
+	}
+
+	RETURN_UNTVLOCK (info->priv->module.set_audio_input (info, line));
 }
 
 /*
@@ -929,9 +980,9 @@ tv_get_video_standard		(tveng_device_info *	info)
 
 	TVLOCK;
 
-	if (!info->priv->module.update_standard)
+	if (!info->priv->module.get_video_standard)
 		ts = info->cur_video_standard;
-	else if (info->priv->module.update_standard (info))
+	else if (info->priv->module.get_video_standard (info))
 		ts = info->cur_video_standard;
 	else
 		ts = NULL;
@@ -948,7 +999,7 @@ tv_set_video_standard		(tveng_device_info *	info,
 	t_assert (info != NULL);
 	t_assert (standard != NULL);
 
-	REQUIRE_SUPPORT (info->priv->module.set_standard, FALSE);
+	REQUIRE_SUPPORT (info->priv->module.set_video_standard, FALSE);
 
 	TVLOCK;
 
@@ -961,7 +1012,7 @@ tv_set_video_standard		(tveng_device_info *	info,
 		return FALSE;
 	}
 
-	RETURN_UNTVLOCK (info->priv->module.set_standard (info, standard));
+	RETURN_UNTVLOCK (info->priv->module.set_video_standard (info, standard));
 }
 
 tv_bool
@@ -972,7 +1023,7 @@ tv_set_video_standard_by_id	(tveng_device_info *	info,
 
 	t_assert (info != NULL);
 
-	REQUIRE_SUPPORT (info->priv->module.set_standard, FALSE);
+	REQUIRE_SUPPORT (info->priv->module.set_video_standard, FALSE);
 
 	TVLOCK;
 
@@ -991,7 +1042,7 @@ tv_set_video_standard_by_id	(tveng_device_info *	info,
 			ts = list;
 		}
 
-	RETURN_UNTVLOCK (info->priv->module.set_standard (info, ts));
+	RETURN_UNTVLOCK (info->priv->module.set_video_standard (info, ts));
 }
 
 /*
@@ -1009,8 +1060,8 @@ tveng_set_standard_by_name(const char * name, tveng_device_info * info)
   for_all (ts, info->video_standards)
     if (tveng_normstrcmp(name, ts->label))
       {
-	if (info->priv->module.set_standard)
-	  RETURN_UNTVLOCK(info->priv->module.set_standard(info, ts));
+	if (info->priv->module.set_video_standard)
+	  RETURN_UNTVLOCK(info->priv->module.set_video_standard(info, ts) ? 0 : -1);
 
 	TVUNSUPPORTED;
 	UNTVLOCK;
@@ -1218,7 +1269,9 @@ int
 tveng_update_capture_format(tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   REQUIRE_IO_MODE (-1);
 
@@ -1235,7 +1288,8 @@ tveng_update_capture_format(tveng_device_info * info)
 int
 p_tveng_set_capture_format(tveng_device_info * info)
 {
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   if (TVENG_CAPTURE_READ == info->current_mode)
     {
@@ -1246,15 +1300,14 @@ p_tveng_set_capture_format(tveng_device_info * info)
           return -1;
         }
 #else
-      /* FIXME */
-      if (0 == (TV_PIXFMT_SET (info->format.pixfmt) &
-	        (TV_PIXFMT_SET (TV_PIXFMT_YUV420) |
-	         TV_PIXFMT_SET (TV_PIXFMT_YVU420) |
-	         TV_PIXFMT_SET (TV_PIXFMT_YUYV) |
-	         TV_PIXFMT_SET (TV_PIXFMT_UYVY))))
-        {
-          return -1;
+      /* FIXME the format selection (capture.c) has problems
+         with RGB & YUV, so for now we permit only YUV. */
+#ifdef YUVHACK
+      if (0 == (TV_PIXFMT_SET (info->format.pixfmt) & YUVHACK))
+	{
+	  return -1;
         }
+#endif
 #endif
     }
 
@@ -1270,7 +1323,13 @@ p_tveng_set_capture_format(tveng_device_info * info)
 		      info->format.pixfmt, info->caps.maxwidth);
 
   if (info->priv->module.set_capture_format)
-    return (info->priv->module.set_capture_format(info));
+    {
+      if (0 == info->priv->module.set_capture_format(info)) {
+	return 0;
+      } else {
+	return -1;
+      }
+    }
 
   TVUNSUPPORTED;
 
@@ -1406,7 +1465,10 @@ tveng_update_control(tv_control *control,
 		     tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
+
   t_assert(control != NULL);
 
   TVLOCK;
@@ -1414,10 +1476,10 @@ tveng_update_control(tv_control *control,
   if (control->_parent == NULL /* TVENG_CONTROLLER_MOTHER */)
     RETURN_UNTVLOCK (update_xv_control (info, C(control)));
 
-  if (!info->priv->module.update_control)
+  if (!info->priv->module.get_control)
     RETURN_UNTVLOCK(0);
 
-  RETURN_UNTVLOCK(info->priv->module.update_control (info, control) ? 0 : -1);
+  RETURN_UNTVLOCK(info->priv->module.get_control (info, control) ? 0 : -1);
 }
 
 int
@@ -1425,17 +1487,18 @@ p_tveng_update_controls(tveng_device_info * info)
 {
   tv_control *tc;
 
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   /* Update the controls we maintain */
   for (tc = info->controls; tc; tc = tc->_next)
     if (tc->_parent == NULL /* TVENG_CONTROLLER_MOTHER */)
       update_xv_control (info, C(tc));
 
-  if (!info->priv->module.update_control)
+  if (!info->priv->module.get_control)
     return 0;
 
-  return (info->priv->module.update_control (info, NULL) ? 0 : -1);
+  return (info->priv->module.get_control (info, NULL) ? 0 : -1);
 }
 
 int
@@ -1682,8 +1745,11 @@ tveng_set_control(tv_control * control, int value,
 		  tveng_device_info * info)
 {
   t_assert(info != NULL);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
+
   t_assert(control != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
   TVLOCK;
   RETURN_UNTVLOCK (set_control (C(control), value, TRUE, info));
@@ -2143,7 +2209,9 @@ tv_mute_get			(tveng_device_info *	info,
   tv_control *tc;
 
   t_assert (info != NULL);
-  t_assert (info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   /* XXX TVLOCK;*/
 
@@ -2174,7 +2242,9 @@ tv_mute_set			(tveng_device_info *	info,
   int r = -1;
 
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   TVLOCK;
 
@@ -2216,7 +2286,17 @@ tv_bool
 tv_set_audio_mode		(tveng_device_info *	info,
 				 tv_audio_mode		mode)
 {
-	return FALSE; /* XXX todo*/
+	t_assert (info != NULL);
+
+	REQUIRE_SUPPORT (info->priv->module.set_audio_mode, FALSE);
+
+	/* XXX check mode within capabilities. */
+
+/* XXX audio mode control
+	TVLOCK;
+	RETURN_UNTVLOCK (info->priv->module.set_audio_mode (info, mode));
+*/
+	return info->priv->module.set_audio_mode (info, mode);
 }
 
 tv_bool
@@ -2254,7 +2334,9 @@ tveng_get_signal_strength (int *strength, int * afc,
 			   tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   TVLOCK;
 
@@ -2276,7 +2358,9 @@ int
 tveng_start_capturing(tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   REQUIRE_IO_MODE (-1);
 
@@ -2295,7 +2379,9 @@ int
 tveng_stop_capturing(tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   REQUIRE_IO_MODE (-1);
 
@@ -2320,7 +2406,9 @@ int tveng_read_frame(tveng_image_data * dest,
 		     unsigned int time, tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   REQUIRE_IO_MODE (-1);
 
@@ -2341,7 +2429,9 @@ int tveng_read_frame(tveng_image_data * dest,
 double tveng_get_timestamp(tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   REQUIRE_IO_MODE (-1);
 
@@ -2362,8 +2452,14 @@ double tveng_get_timestamp(tveng_device_info * info)
 */
 int tveng_set_capture_size(int width, int height, tveng_device_info * info)
 {
+  enum tveng_capture_mode current_mode;
+  gboolean overlay_was_active;
+  int retcode;
+
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   REQUIRE_IO_MODE (-1);
 
@@ -2376,14 +2472,43 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
   height = SATURATE (height, info->caps.minheight, info->caps.maxheight);
   width  = SATURATE (width, info->caps.minwidth, info->caps.maxwidth);
 
-  if (info->priv->module.set_capture_size)
-    RETURN_UNTVLOCK(info->priv->module.set_capture_size(width,
-							 height,
-							 info));
+  if (!info->priv->module.update_capture_format
+      || !info->priv->module.set_capture_format)
+    {
+      TVUNSUPPORTED;
+      UNTVLOCK;
+      return -1;
+    }
 
-  TVUNSUPPORTED;
+  if (-1 == info->priv->module.update_capture_format(info))
+    {
+      UNTVLOCK;
+      return -1;
+    }
+
+  current_mode = p_tveng_stop_everything(info, &overlay_was_active);
+
+  if (width < info->caps.minwidth)
+    width = info->caps.minwidth;
+  else if (width > info->caps.maxwidth)
+    width = info->caps.maxwidth;
+  if (height < info->caps.minheight)
+    height = info->caps.minheight;
+  else if (height > info->caps.maxheight)
+    height = info->caps.maxheight;
+  
+  info -> format.width = width;
+  info -> format.height = height;
+
+  retcode = info->priv->module.set_capture_format(info);
+
+  /* Restart capture again */
+  if (-1 == p_tveng_restart_everything(current_mode, overlay_was_active, info))
+    retcode = -1;
+
   UNTVLOCK;
-  return -1;
+
+  return retcode;
 }
 
 /* 
@@ -2393,22 +2518,37 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
 int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
 {
   t_assert(info != NULL);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
+
   t_assert(width != NULL);
   t_assert(height != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
   REQUIRE_IO_MODE (-1);
 
   TVLOCK;
 
-  if (info->priv->module.get_capture_size)
-    RETURN_UNTVLOCK(info->priv->module.get_capture_size(width,
-							 height,
-							 info));
+  if (!info->priv->module.update_capture_format)
+    {
+      TVUNSUPPORTED;
+      UNTVLOCK;
+      return -1;
+    }
 
-  TVUNSUPPORTED;
+  if (-1 == info->priv->module.update_capture_format(info))
+    {
+      UNTVLOCK;
+      return -1;
+    }
+
+  if (width)
+    *width = info->format.width;
+  if (height)
+    *height = info->format.height;
+
   UNTVLOCK;
-  return -1;
+  return 0;
 }
 
 /*
@@ -2465,7 +2605,10 @@ tv_get_overlay_buffer		(tveng_device_info *	info,
 				 tv_overlay_buffer *	target)
 {
 	t_assert (info != NULL);
-	t_assert (info->current_controller != TVENG_CONTROLLER_NONE);
+
+	if (TVENG_CONTROLLER_NONE == info->current_controller)
+		return FALSE;
+
 	t_assert (target != NULL);
 
 	CLEAR (*target); /* unusable */
@@ -2490,7 +2633,10 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 	int r;
 
 	t_assert (info != NULL);
-	t_assert (info->current_controller != TVENG_CONTROLLER_NONE);
+
+	if (TVENG_CONTROLLER_NONE == info->current_controller)
+		return FALSE;
+
 	t_assert (target != NULL);
 
 	tv_clear_error (info);
@@ -2738,7 +2884,8 @@ tveng_get_display_depth(tveng_device_info * info)
 int
 p_tveng_set_preview_window(tveng_device_info * info)
 {
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   REQUIRE_IO_MODE (-1);
 
@@ -2757,8 +2904,17 @@ p_tveng_set_preview_window(tveng_device_info * info)
   if (info->overlay_window.width > info->caps.maxwidth)
     info->overlay_window.width = info->caps.maxwidth;
 
-  if (info->priv->module.set_preview_window)
-    return (info->priv->module.set_preview_window(info));
+  if (info->priv->module.set_overlay_window)
+    {
+      if (info->priv->module.set_overlay_window(info, &info->overlay_window))
+	{
+	  return 0;
+	}
+      else
+	{
+	  return -1;
+	}
+    }
 
   TVUNSUPPORTED;
 
@@ -2778,7 +2934,9 @@ int
 tveng_set_preview_window(tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   REQUIRE_IO_MODE (-1);
 
@@ -2795,14 +2953,16 @@ int
 tveng_get_preview_window(tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   REQUIRE_IO_MODE (-1);
 
   TVLOCK;
 
-  if (info->priv->module.get_preview_window)
-    RETURN_UNTVLOCK(info->priv->module.get_preview_window(info));
+  if (info->priv->module.get_overlay_window)
+    RETURN_UNTVLOCK(info->priv->module.get_overlay_window(info) ? 0 : -1);
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -2815,10 +2975,12 @@ p_tveng_set_preview (int on, tveng_device_info * info)
 	tv_overlay_buffer dma;
 
 	t_assert (info != NULL);
-	t_assert (info->current_controller != TVENG_CONTROLLER_NONE);
+
+	if (TVENG_CONTROLLER_NONE == info->current_controller)
+		return -1;
 
 	REQUIRE_IO_MODE (-1);
-	REQUIRE_SUPPORT (info->priv->module.set_overlay, -1);
+	REQUIRE_SUPPORT (info->priv->module.enable_overlay, -1);
 
 	on = !!on;
 
@@ -2842,7 +3004,7 @@ p_tveng_set_preview (int on, tveng_device_info * info)
 		   tveng_set_preview_window () failed. */
 	}
 
-	if (!info->priv->module.set_overlay (info, on))
+	if (!info->priv->module.enable_overlay (info, on))
 	  return (-1);
 
 	info->overlay_active = on;
@@ -2884,9 +3046,12 @@ tveng_set_zapping_setup_fb_verbosity(int level, tveng_device_info *
 void tveng_set_chromakey(uint32_t chroma, tveng_device_info *info)
 {
   t_assert (info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (TVENG_ATTACH_CONTROL == info->attach_mode) {
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return;
+
+  if (TVENG_ATTACH_CONTROL == info->attach_mode
+      || TVENG_ATTACH_VBI == info->attach_mode) {
     panel_failure (info, __PRETTY_FUNCTION__);
     return;
   }
@@ -2903,7 +3068,9 @@ void tveng_set_chromakey(uint32_t chroma, tveng_device_info *info)
 int tveng_get_chromakey (uint32_t *chroma, tveng_device_info *info)
 {
   t_assert (info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return -1;
 
   REQUIRE_IO_MODE (-1);
 
@@ -2937,6 +3104,7 @@ p_tveng_stop_everything (tveng_device_info *       info,
   enum tveng_capture_mode returned_mode;
 
   returned_mode = info->current_mode;
+
   switch (info->current_mode)
     {
     case TVENG_CAPTURE_READ:
@@ -3247,52 +3415,129 @@ void tveng_mutex_unlock(tveng_device_info * info)
   UNTVLOCK;
 }
 
+
+#ifndef HAVE_STRLCPY
+
+/**
+ * @internal
+ * strlcpy() is a BSD/GNU extension.
+ */
+size_t
+_tv_strlcpy			(char *			dst,
+				 const char *		src,
+				 size_t			len)
+{
+	char *dst1;
+	char *end;
+	char c;
+
+	assert (NULL != dst);
+	assert (NULL != src);
+	assert (len > 0);
+
+	dst1 = dst;
+
+	end = dst + len - 1;
+
+	while (dst < end && (c = *src++))
+		*dst++ = c;
+
+	*dst = 0;
+
+	return dst - dst1;
+}
+
+#endif /* !HAVE_STRLCPY */
+
 #ifndef HAVE_STRNDUP
 
+/**
+ * @internal
+ * strndup() is a BSD/GNU extension.
+ */
 char *
-tv_strndup			(const char *		s,
-				 size_t			size)
+_tv_strndup			(const char *		s,
+				 size_t			len)
 {
-	char *d;
-	size_t len;
+	size_t n;
+	char *r;
 
-	if (NULL == s || size <= 0)
+	if (NULL == s)
 		return NULL;
 
-	len = strlen (s);
-	len = MIN (len, size);
+	n = strlen (s);
+	len = MIN (len, n);
 
-	if (!(d = malloc (len + 1)))
-		return NULL;
+	r = malloc (len + 1);
 
-	memcpy (d, s, len);
-	d[len] = 0;
+	if (r) {
+		memcpy (r, s, len);
+		r[len] = 0;
+	}
 
-	return d;
+	return r;
 }
 
-#endif /* HAVE_STRNDUP */
+#endif /* !HAVE_STRNDUP */
 
-/* XXX use asprintf when available */
-char *
-tv_strdup_printf (const char *templ, ...)
+#ifndef HAVE_ASPRINTF
+
+/**
+ * @internal
+ * asprintf() is a GNU extension.
+ */
+int
+_tv_asprintf			(char **		dstp,
+				 const char *		templ,
+				 ...)
 {
-  char *s, buf[512];
-  va_list ap;
-  int temp;
+	char *buf;
+	int size;
+	int temp;
 
-  temp = errno;
+	assert (NULL != dstp);
+	assert (NULL != templ);
 
-  va_start(ap, templ);
-  vsnprintf(buf, sizeof(buf) - 1, templ, ap);
-  va_end(ap);
+	temp = errno;
 
-  s = strdup(buf);
+	buf = NULL;
+	size = 64;
 
-  errno = temp;
+	for (;;) {
+		va_list ap;
+		char *buf2;
+		int len;
 
-  return s;
+		if (!(buf2 = realloc (buf, size)))
+			break;
+
+		buf = buf2;
+
+		va_start (ap, templ);
+		len = vsnprintf (buf, size, templ, ap);
+		va_end (ap);
+
+		if (len < 0) {
+			/* Not enough. */
+			size *= 2;
+		} else if (len < size) {
+			*dstp = buf;
+			errno = temp;
+			return len;
+		} else {
+			/* Size needed. */
+			size = len + 1;
+		}
+	}
+
+	free (buf);
+	*dstp = NULL;
+	errno = temp;
+
+	return -1;
 }
+
+#endif /* !HAVE_ASPRINTF */
 
 /*
  *  Simple callback mechanism 
@@ -4153,6 +4398,17 @@ tv_pixfmt_to_pixel_format	(tv_pixel_format *	format,
 	return TRUE;
 }
 
+/* Number of set bits. */
+static unsigned int
+popcnt				(unsigned int		x)
+{
+	x -= ((x >> 1) & 0x55555555);
+	x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+	x = (x + (x >> 4)) & 0x0F0F0F0F;
+
+	return (x * 0x01010101) >> 24;
+}
+
 /* Note this works only for RGB formats. */
 tv_bool
 tv_pixel_format_to_pixfmt	(tv_pixel_format *	format)
@@ -4161,36 +4417,41 @@ tv_pixel_format_to_pixfmt	(tv_pixel_format *	format)
 	unsigned int r_msb;
 	unsigned int a_lsb;
 
+	if (format->bits_per_pixel < 7
+	    || 0 == format->mask.rgb.r
+	    || 0 == format->mask.rgb.g
+	    || 0 == format->mask.rgb.b)
+		return FALSE;
+
 	mask = format->mask.rgb.r | format->mask.rgb.g | format->mask.rgb.b;
 
-	if (0 == mask)
-		return FALSE;
+	if (format->mask.rgb.g > format->mask.rgb.r) {
+		if (format->mask.rgb.g > format->mask.rgb.b)
+			return FALSE; /* GRB, GBR */
+	} else {
+		if (format->mask.rgb.b > format->mask.rgb.g)
+			return FALSE; /* RBG, BRG */
+	}
+
+	if (0 == format->color_depth)
+		format->color_depth = popcnt (mask);
 
 	if (0 == format->mask.rgb.a)
 		format->mask.rgb.a = mask
 			^ (0xFFFFFFFFUL >> (32 - format->bits_per_pixel));
 
-	a_lsb = (format->mask.rgb.a <= mask);
-	r_msb = (format->mask.rgb.r >= format->mask.rgb.b);
-
-	if (0 == format->color_depth) {
-		if (0 == format->bits_per_pixel)
-			return FALSE;
-		else
-			format->color_depth = format->bits_per_pixel;
+	if (mask > format->mask.rgb.a) {
+		if (format->mask.rgb.a > format->mask.rgb.r
+		    || format->mask.rgb.a > format->mask.rgb.b)
+			return FALSE; /* XGAX, XAGX */
 	}
 
-	switch (format->color_depth) {
-	case 32:
-	case 24:
-		if (24 == format->bits_per_pixel) {
-			static tv_pixfmt mapping [] = {
-				TV_PIXFMT_RGB24_LE, TV_PIXFMT_BGR24_LE
-			};
+	a_lsb = (mask >= format->mask.rgb.a);
+	r_msb = (format->mask.rgb.r >= format->mask.rgb.b);
 
-			format->pixfmt = mapping [r_msb];
-			break;
-		} else {
+	switch (format->color_depth) {
+	case 24:
+		if (32 == format->bits_per_pixel) {
 			static tv_pixfmt mapping [] = {
 				TV_PIXFMT_RGBA24_LE, TV_PIXFMT_RGBA24_BE,
 				TV_PIXFMT_BGRA24_LE, TV_PIXFMT_BGRA24_BE,
@@ -4200,12 +4461,19 @@ tv_pixel_format_to_pixfmt	(tv_pixel_format *	format)
 
 			format->pixfmt = mapping [a_lsb * 4 + r_msb * 2
 						  + format->big_endian];
-			break;
+		} else {
+			static tv_pixfmt mapping [] = {
+				TV_PIXFMT_RGB24_LE, TV_PIXFMT_BGR24_LE
+			};
+
+			format->pixfmt = mapping [r_msb];
 		}
+
+		break;
 
 	case 16:
 	{
-		static tv_pixfmt mapping [] = {
+		 static tv_pixfmt mapping [] = {
 			TV_PIXFMT_RGB16_LE, TV_PIXFMT_RGB16_BE,
 			TV_PIXFMT_BGR16_LE, TV_PIXFMT_BGR16_BE,
 		};
@@ -4500,6 +4768,135 @@ append_control			(tveng_device_info *	info,
 	return tc;
 }
 
+static tv_bool
+add_menu_item			(tv_control *		tc,
+				 const char *		item)
+{
+	char **new_menu;
+	char *s;
+
+	if (!(s = strdup (item)))
+		return FALSE;
+
+	new_menu = realloc (tc->menu, sizeof (*tc->menu) * (tc->maximum + 3));
+
+	if (!new_menu) {
+		free (s);
+		return FALSE;
+	}
+
+	tc->menu = new_menu;
+
+	new_menu[tc->maximum + 1] = s;
+	new_menu[tc->maximum + 2] = NULL;
+
+	++tc->maximum;
+
+	return TRUE;
+}
+
+struct amtc {
+	tv_control		pub;
+	tv_audio_capability	cap;
+};
+
+/* Preliminary. */
+tv_control *
+append_audio_mode_control	(tveng_device_info *	info,
+				 tv_audio_capability	cap)
+{
+	struct amtc *amtc;
+
+	if (!(amtc = calloc (1, sizeof (*amtc))))
+		return NULL;
+
+	amtc->pub.type = TV_CONTROL_TYPE_CHOICE;
+	amtc->pub.id = TV_CONTROL_ID_AUDIO_MODE;
+
+	if (!(amtc->pub.label = strdup (_("Audio")))) {
+		free_control (&amtc->pub);
+		return NULL;
+	}
+
+	amtc->cap = cap;
+
+	amtc->pub.maximum = -1;
+	amtc->pub.step = 1;
+
+	if (cap & TV_AUDIO_CAPABILITY_AUTO) {
+		if (!add_menu_item (&amtc->pub, N_("Automatic"))) {
+			free_control (&amtc->pub);
+			return NULL;
+		}
+	}
+
+	if (cap & TV_AUDIO_CAPABILITY_MONO) {
+		if (!add_menu_item (&amtc->pub, N_("Mono"))) {
+			free_control (&amtc->pub);
+			return NULL;
+		}
+	}
+
+	if (cap & TV_AUDIO_CAPABILITY_STEREO) {
+		if (!add_menu_item (&amtc->pub, N_("Stereo"))) {
+			free_control (&amtc->pub);
+			return NULL;
+		}
+	}
+
+	if (cap & (TV_AUDIO_CAPABILITY_SAP |
+		   TV_AUDIO_CAPABILITY_BILINGUAL)) {
+		if (!add_menu_item (&amtc->pub, N_("Language 2"))) {
+			free_control (&amtc->pub);
+			return NULL;
+		}
+	}
+
+	append_control (info, &amtc->pub, 0);
+
+	return &amtc->pub;
+}
+
+tv_bool
+set_audio_mode_control		(tveng_device_info *	info,
+				 tv_control *		control,
+				 int			value)
+{
+	struct amtc *amtc = PARENT (control, struct amtc, pub);
+
+	assert (TV_CONTROL_TYPE_CHOICE == control->type
+		&& TV_CONTROL_ID_AUDIO_MODE == control->id);
+
+	control->value = value;
+
+	if (amtc->cap & TV_AUDIO_CAPABILITY_AUTO) {
+		if (value-- <= 0)
+			return tv_set_audio_mode (info, TV_AUDIO_MODE_AUTO);
+	}
+
+	if (amtc->cap & TV_AUDIO_CAPABILITY_MONO) {
+		if (value-- <= 0)
+			return tv_set_audio_mode (info,
+						  TV_AUDIO_MODE_LANG1_MONO);
+	}
+
+	if (amtc->cap & TV_AUDIO_CAPABILITY_STEREO) {
+		if (value-- <= 0)
+			return tv_set_audio_mode (info,
+						  TV_AUDIO_MODE_LANG1_STEREO);
+	}
+
+	if (amtc->cap & (TV_AUDIO_CAPABILITY_SAP |
+			 TV_AUDIO_CAPABILITY_BILINGUAL)) {
+		if (value-- <= 0)
+			return tv_set_audio_mode (info,
+						  TV_AUDIO_MODE_LANG2_MONO);
+	}
+
+	return FALSE;
+}
+
+
 FREE_NODE_FUNC (video_standard);
 FREE_LIST_FUNC (video_standard);
 
@@ -4569,7 +4966,9 @@ append_audio_line		(tv_audio_line **	list,
 {
 	tv_audio_line *tl;
 
+/* err, there is no other type...
 	assert (type != TV_AUDIO_LINE_TYPE_NONE);
+*/
 	assert (hlabel != NULL);
 	assert (maximum >= minimum);
 	assert (step >= 0);
@@ -4649,19 +5048,22 @@ tveng_copy_frame		(unsigned char *	src,
 				 tveng_device_info *	info)
 {
 	if (TV_PIXFMT_IS_PLANAR (info->format.pixfmt)) {
+		tv_pixel_format pf;
 		unsigned int size_y;
+		unsigned int size_uv;
 		uint8_t *src_y;
 		uint8_t *src_u;
 		uint8_t *src_v;
 
-		t_assert (TV_PIXFMT_YUV420 == info->format.pixfmt
-			  || TV_PIXFMT_YVU420 == info->format.pixfmt);
+		if (!tv_pixfmt_to_pixel_format (&pf, info->format.pixfmt, 0))
+			return;
 
 		size_y = info->format.height * info->format.width;
+		size_uv = size_y / (pf.uv_hscale * pf.uv_vscale);
 
 		src_y = src;
-		src_u = src_y + size_y;
-		src_v = src_u + (size_y >> 2);
+		src_u = src_y + size_y + pf.vu_order * size_uv;
+		src_v = src_y + size_y + (pf.vu_order ^ 1) * size_uv;
 
 		/* XXX shortcut if no padding between planes. */
 
@@ -4671,14 +5073,14 @@ tveng_copy_frame		(unsigned char *	src,
 				  info->format.height);
 
 		tveng_copy_block (src_u, where->planar.u,
-				  info->format.width >> 1,
+				  info->format.width / pf.uv_hscale,
 				  where->planar.uv_stride,
-				  info->format.height >> 1);
+				  info->format.height / pf.uv_vscale);
 
 		tveng_copy_block (src_v, where->planar.v,
-				  info->format.width >> 1,
+				  info->format.width / pf.uv_hscale,
 				  where->planar.uv_stride,
-				  info->format.height >> 1);
+				  info->format.height / pf.uv_vscale);
 	} else {
 		tveng_copy_block (src, where->linear.data,
 				  info->format.bytes_per_line,
@@ -4697,6 +5099,9 @@ tv_clip_vector_equal		(const tv_clip_vector *	vector1,
 {
 	unsigned int i;
 
+	if (vector1 == vector2)
+		return TRUE;
+
 	if (vector1->size != vector2->size)
 		return FALSE;
 
@@ -4714,7 +5119,12 @@ tv_clip_vector_copy		(tv_clip_vector *	dst,
 {
 	tv_clip *clip_vector;
 
+	if (dst == src)
+		return TRUE;
+
 	if (src->size > dst->capacity) {
+		assert (src->capacity >= src->size);
+
 		if (!(clip_vector = realloc (dst->vector, src->capacity)))
 			return FALSE;
 
@@ -4738,167 +5148,183 @@ tv_clip_vector_add_clip_xy	(tv_clip_vector *	vector,
 {
 	tv_clip *clip;
 	tv_clip *end;
-	unsigned int height;
 
 	if (x1 >= x2 || y1 >= y2)
 		return TRUE;
 
+ restart:
 	clip = vector->vector;
 	end = vector->vector + vector->size;
 
-	/* Clips are sorted in ascending order, first by y1, second x1.
+	/* Clips are sorted in ascending order, first by x1, second y1.
 	   We split into horizontal bands, merging clips where possible.
-	   Vertically adjacent clips or bands are not merged. */
+	   Vertically adjacent clips or bands are not merged.
+
+	   a #
+	   b ##
+	   c #####
+           d ######
+	   e  ##
+           f  clip
+           g  #####
+	   h   ##
+	   i    ##
+	   j     ##
+	   k      #
+	*/
 
 	for (;;) {
-		if (clip >= end)
+		if (clip >= end /* k */ || y2 <= clip->y1 /* a */)
 			goto insert;
 
-		if (y1 < clip->y) {
-			if (y2 > clip->y) {
-				unsigned int n = clip - vector->vector;
+		if (y1 < clip->y1 /* bcd */) {
+			/* Insert bottom half (efg). */
+			if (!tv_clip_vector_add_clip_xy
+			    (vector, x1, clip->y1, x2, y2))
+				return FALSE;
 
-				/* Insert bottom half. */
-				if (!tv_clip_vector_add_clip_xy
-				    (vector, x1, clip->y, x2, y2))
-					return FALSE;
-
-				clip = vector->vector + n;
-				end = vector->vector + vector->size;
-
-				/* Top half. */
-				y2 = clip->y;
-			}
-
-			goto insert;
+			/* Top half (a). */
+			y2 = clip->y1;
+			goto restart;
 		}
 
-		if (y1 == clip->y)
+		if (y1 < clip->y2 /* efghij */) {
+			if (y2 > clip->y2 /* gj */) {
+				/* Insert bottom half (k). */
+				if (!tv_clip_vector_add_clip_xy
+				    (vector, x1, clip->y2, x2, y2))
+					return FALSE;
+
+				/* Top half (fi). */
+				y2 = clip->y2;
+				goto restart;
+			}
+
 			break;
+		}
 
 		++clip;
 	}
 
-	height = y2 - y1;
+	/* efhi */
 
-	if (height < clip->height) {
-		unsigned int n, i, h;
+	if (y1 != clip->y1 || y2 != clip->y2) {
+		unsigned int ys;
+		unsigned int n;
+		unsigned int i;
 
-		/* Split band at y2. */
+		/* Split band at ys. */
 
-		h = clip->height - height;
+		if (y1 > clip->y1 /* hi */) {
+			ys = y1;
+		} else { /* e */
+			ys = y2; 
+		}
 
+		/* n = band size. */
 		for (n = 1; clip + n < end; ++n)
-			if (y1 != clip[n].y)
+			if (clip[0].y1 != clip[n].y1)
 				break;
 
 		if (vector->size + n >= vector->capacity) {
-			tv_clip *clip_vector;
+			tv_clip *new_vector;
+			unsigned int new_capacity;
 
-			/* n <= size <= capacity */
-			i = vector->capacity * 2;
+			/* 0 < n <= size <= capacity */
+			new_capacity = vector->capacity * 2;
 
-			if (!(clip_vector = realloc (vector->vector, i)))
+			new_vector = realloc (vector->vector,
+					      sizeof (tv_clip) * new_capacity);
+			if (!new_vector)
 				return FALSE;
 
-			clip = clip_vector + (clip - vector->vector);
-			end = clip_vector + vector->size;
+			clip = new_vector + (clip - vector->vector);
+			end = new_vector + vector->size;
 
-			vector->vector = clip_vector;
-			vector->capacity = i;
+			vector->vector = new_vector;
+			vector->capacity = new_capacity;
 		}
 
-		memmove (clip + n, clip, sizeof (*clip) * (end - clip));
+		memmove (clip + n, clip, sizeof (tv_clip) * (end - clip));
 
 		vector->size += n;
 		end += n;
 
 		for (i = 0; i < n; ++i) {
-			clip[i].height = height;
-			clip[i + n].y = y2;
-			clip[i + n].height = h;
+			clip[i + 0].y2 = ys;
+			clip[i + n].y1 = ys;
 		}
-	} else if (height > clip->height) {
-		unsigned int n = clip - vector->vector;
 
-		/* Insert bottom half. */
-		if (!tv_clip_vector_add_clip_xy
-		    (vector, x1, y1 + clip->height, x2, y2))
-			return FALSE;
-
-		clip = vector->vector + n;
-		end = vector->vector + vector->size;
-
-		/* Top half. */
-		y2 = y1 + clip->height;
+		goto restart; /* ef */
 	}
 
-	do {
-		unsigned int cx2;
+	/* f */
 
-		if (x2 < clip->x)
+	do {
+		if (x2 < clip->x1)
 			break; /* insert before */
 
-		cx2 = clip->x + clip->width;
-
-		if (x1 <= cx2) {
-			tv_clip *c = clip;
+		if (x1 < clip->x2) {
+			unsigned int n;
 
 			/* Merge clips. */
 
-			for (;;) {
-				x1 = MIN (x1, (unsigned int) clip->x);
-				x2 = MAX (x2, cx2);
+			x1 = MIN (x1, (unsigned int) clip->x1);
 
-				if (clip + 1 >= end ||
-				    y1 != clip[1].y ||
-				    x2 < clip[1].x)
+			for (n = 1; clip + n < end; ++n)
+				if (x2 < clip[n].x1 || y1 != clip[n].y1)
 					break;
+			--n;
 
-				++clip;
+			x2 = MAX (x2, (unsigned int) clip[n].x2);
 
-				cx2 = clip->x + clip->width;
-			}
-
-			if (clip > c) {
-				memmove (c, clip, sizeof (*clip)
-					 * (end - clip));
-				vector->size -= (clip - c);
-				clip = c;
+			if (n > 0) {
+				memmove (clip, clip + n,
+					 sizeof (tv_clip)
+					 * (end - (clip + n)));
+				vector->size -= n;
 			}
 
 			goto store;
 		}
 
-	} while (++clip < end && y1 == clip->y);
+		++clip;
+	} while (clip < end && y1 == clip->y1);
 
  insert:
-	if (vector->size >= vector->capacity) {
-		tv_clip *clip_vector;
-		unsigned int c;
+	if (vector->size == vector->capacity) {
+		tv_clip *new_vector;
+		unsigned int new_capacity;
 
-		c = (vector->capacity < 16) ? 16 : vector->capacity * 2;
+		new_capacity = (vector->capacity < 16) ? 16
+			: vector->capacity * 2;
 
-		if (!(clip_vector = realloc (vector->vector, c)))
+		new_vector = realloc (vector->vector,
+				      sizeof (tv_clip) * new_capacity);
+		if (!new_vector)
 			return FALSE;
 
-		clip = clip_vector + (clip - vector->vector);
-		end = clip_vector + vector->size;
+		clip = new_vector + (clip - vector->vector);
+		end = new_vector + vector->size;
 
-		vector->vector = clip_vector;
-		vector->capacity = c;
+		vector->vector = new_vector;
+		vector->capacity = new_capacity;
 	}
 
-	if (clip < end)
-		memmove (clip + 1, clip, sizeof (*clip) * vector->size);
+	if (clip < end) {
+		memmove (clip + 1, clip, sizeof (tv_clip) * (end - clip));
+	}
 
 	++vector->size;
 
  store:
-	clip->x = x1;
-	clip->y = y1;
-	clip->width = x2 - x1;
-	clip->height = y2 - y1;
+	assert (clip >= vector->vector
+		&& clip < vector->vector + vector->size);
+
+	clip->x1 = x1;
+	clip->y1 = y1;
+	clip->x2 = x2;
+	clip->y2 = y2;
 
 	if (0) {
 		unsigned int i;
@@ -4906,10 +5332,8 @@ tv_clip_vector_add_clip_xy	(tv_clip_vector *	vector,
 		clip = vector->vector;
 
 		for (i = 0; i < vector->size; ++i, ++clip)
-			fprintf (stderr, "%3u: %3u, %3u - %3u, %3u\n",
-				 i, clip->x, clip->y,
-				 clip->x + clip->width,
-				 clip->y + clip->height);
+			fprintf (stderr, "%3u: %3u,%3u - %3u,%3u\n",
+				 i, clip->x1, clip->y1, clip->x2, clip->y2);
 	}
 
 	return TRUE;
@@ -4943,16 +5367,16 @@ tv_clip_vector_to_clip_mask	(tv_clip_vector *	vector,
 		unsigned int length;
 		unsigned int count;
 
-		if (clip->x + clip->width > width)
+		if (clip->x2 > width)
 			goto failure;
 
-		if (clip->y + clip->height > height)
+		if (clip->y2 > height)
 			goto failure;
 
-		start = mask + clip->y * bpl + (clip->x >> 3);
+		start = mask + clip->y1 * bpl + (clip->x1 >> 3);
 
-		x7 = clip->x & 7;
-		xw = x7 + clip->width;
+		x7 = clip->x1 & 7;
+		xw = x7 + clip->x2 - clip->x1;
 
 		lmask = ~0 << x7;
 		rmask = ~(~0 << (xw & 7));
@@ -4962,12 +5386,12 @@ tv_clip_vector_to_clip_mask	(tv_clip_vector *	vector,
 		if (0 == length) {
 			lmask &= rmask;
 
-			for (count = clip->height; count > 0; --count) {
+			for (count = clip->y2 - clip->y1; count > 0; --count) {
 				*start |= lmask;
 				start += bpl;
 			}
 		} else {
-			for (count = clip->height; count > 0; --count) {
+			for (count = clip->y2 - clip->y1; count > 0; --count) {
 				unsigned int i;
 
 				start[0] |= lmask;
@@ -5142,6 +5566,19 @@ tv_image_format_is_valid	(const tv_image_format *format)
 	}
 
 	return TRUE;
+}
+
+void
+_tv_image_format_dump		(const tv_image_format *format,
+				 FILE *			fp)
+{
+	fprintf (fp, "width=%u height=%u "
+		 "bpl=%u,%u offset=%u,%u,%u "
+		 "size=%u pixfmt=%s",
+		 format->width, format->height,
+		 format->bytes_per_line, format->uv_bytes_per_line,
+		 format->offset, format->u_offset, format->v_offset,
+		 format->size, tv_pixfmt_name (format->pixfmt));
 }
 
 static void
