@@ -40,6 +40,7 @@
 #include "capture.h"
 #include "x11stuff.h"
 #include "ttxview.h"
+#include "yuv2rgb.h"
 
 /* This comes from callbacks.c */
 extern enum tveng_capture_mode restore_mode; /* the mode set when we went
@@ -65,8 +66,6 @@ tveng_tuned_channel	*global_channel_list=NULL;
 
 static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
 						support */
-static gint		newbttv = -1; /* Compatibility with old bttv
-					 drivers */
 
 static void shutdown_zapping(void);
 static gboolean startup_zapping(void);
@@ -175,7 +174,7 @@ startup_teletext(void)
 #ifdef HAVE_GDKPIXBUF
   if (disable_vbi)
     zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
-  if ((!zvbi_open_device(newbttv)) &&
+  if ((!zvbi_open_device()) &&
       (zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi")))
     ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
 	    GNOME_MESSAGE_BOX_ERROR, "/dev/vbi", strerror(errno), errno);
@@ -196,7 +195,7 @@ int main(int argc, char * argv[])
   gint x, y, w, h; /* Saved geometry */
   gint x_bpp = -1;
   char *default_norm = NULL;
-  gboolean oldbttv = FALSE;
+  char *video_device = NULL;
 
   const struct poptOption options[] = {
     {
@@ -227,15 +226,6 @@ int main(int argc, char * argv[])
       NULL
     },
     {
-      "old-bttv",
-      0,
-      POPT_ARG_NONE,
-      &oldbttv,
-      0,
-      N_("VBI support for old (<0.5.2) bttv drivers"),
-      NULL
-    },
-    {
       "tunerless-norm",
       'n',
       POPT_ARG_STRING,
@@ -243,6 +233,15 @@ int main(int argc, char * argv[])
       0,
       N_("Set the default standard/norm for tunerless inputs"),
       N_("NORM")
+    },
+    {
+      "device",
+      0,
+      POPT_ARG_STRING,
+      &video_device,
+      0,
+      N_("Video device to use"),
+      N_("DEVICE")
     },
     {
       "no-xv",
@@ -266,13 +265,8 @@ int main(int argc, char * argv[])
   gnome_init_with_popt_table ("zapping", VERSION, argc, argv, options,
 			      0, NULL);
 
-  printv("oldbttv : %s\n", oldbttv ? "ON" : "OFF");
-
-  if (oldbttv)
-    newbttv = 0;
-
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.86 2001-01-31 23:43:23 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.87 2001-02-02 21:22:43 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -289,11 +283,16 @@ int main(int argc, char * argv[])
       printv("MMX not detected. Using plain C.\n");
       break;
     }
+  D();
+  /* init the conversion routines */
+  yuv2rgb_init(x11_get_bpp(),
+	       (x11_get_byte_order()==GDK_MSB_FIRST)?MODE_RGB:MODE_BGR);
+  D();
   glade_gnome_init();
   D();
   if (!g_module_supported ())
     {
-      RunBox(_("Sorry, but there is no module support"),
+      RunBox(_("Sorry, but there is no module support in GLib"),
 	     GNOME_MESSAGE_BOX_ERROR);
       return 0;
     }
@@ -320,6 +319,9 @@ int main(int argc, char * argv[])
   */
  open_device:
 
+  if (video_device)
+    zcs_char(video_device, "video_device");
+
   main_info -> file_name = strdup(zcg_char(NULL, "video_device"));
 
   if (!main_info -> file_name)
@@ -343,12 +345,12 @@ int main(int argc, char * argv[])
 			  TVENG_ATTACH_XV,
 			  main_info) == -1)
     {
-      /* Check that the given device is /dev/video, if it isn't, try
+      /* Check that the given device is /dev/video0, if it isn't, try
 	 it */
-      if (strcmp(zcg_char(NULL, "video_device"), "/dev/video"))
+      if (strcmp(zcg_char(NULL, "video_device"), "/dev/video0"))
 	{
 	  GtkWidget * question_box = gnome_message_box_new(
-               _("The specified device isn't \"/dev/video\".\n"
+               _("The specified device isn't \"/dev/video0\".\n"
 		 "Should I try it?"),
 	       GNOME_MESSAGE_BOX_QUESTION,
 	       GNOME_STOCK_BUTTON_YES,
@@ -361,7 +363,7 @@ int main(int argc, char * argv[])
 	  switch (gnome_dialog_run(GNOME_DIALOG(question_box)))
 	    {
 	    case 0: /* Retry */
-	      zcs_char("/dev/video", "video_device");
+	      zcs_char("/dev/video0", "video_device");
 	      goto open_device;
 	    default:
 	      break; /* Don't do anything */
@@ -665,7 +667,7 @@ static gboolean startup_zapping()
 	     "The country you are currently in", "current_country");
   current_country = 
     tveng_get_country_tune_by_name(zcg_char(NULL, "current_country"));
-  zcc_char("/dev/video", "The device file to open on startup",
+  zcc_char("/dev/video0", "The device file to open on startup",
 	   "video_device");
   zcc_bool(FALSE, "TRUE if Zapping should be started without sound",
 	   "start_muted");

@@ -36,6 +36,7 @@
 
 #include "yuv2rgb.h"
 #include "mmx.h"
+#include "zmisc.h"
 
 uint32_t matrix_coefficients = 6;
 
@@ -79,15 +80,15 @@ static void yuv2rgb_c (void * dst, uint8_t * py,
 void yuv2rgb_init (int bpp, int mode) 
 {
     yuv2rgb = NULL;
-#ifdef __i386__
+#ifdef USE_MMX
     if (mmx_ok()) {
 	yuv2rgb = yuv2rgb_init_mmx (bpp, mode);
 	if (yuv2rgb != NULL)
-	    fprintf (stderr, "Using MMX for colorspace transform\n");
+	    printv ("Using MMX for colorspace transform\n");
     }
 #endif
     if (yuv2rgb == NULL) {
-	fprintf (stderr, "No accelerated colorspace conversion found\n");
+        printv ("No accelerated colorspace conversion found\n");
 	yuv2rgb_c_init (bpp, mode);
 	yuv2rgb = (yuv2rgb_fun)yuv2rgb_c;
     }
@@ -394,7 +395,7 @@ static void yuv2rgb_c_init (int bpp, int mode)
 	break;
 
     default:
-	fprintf (stderr, "%ibpp not supported by yuv2rgb\n", bpp);
+	printv ("%ibpp not supported by yuv2rgb\n", bpp);
 	exit (1);
     }
 

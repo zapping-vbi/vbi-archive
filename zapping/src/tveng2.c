@@ -329,7 +329,7 @@ int tveng2_attach_device(const char* device_file,
     default:
       info -> tveng_errno = -1;
       t_error_msg("switch()", 
-		  _("Cannot find appropiate palette for current display"),
+		  "Cannot find appropiate palette for current display",
 		  info);
       tveng2_close_device(info);
       return -1;
@@ -810,7 +810,7 @@ tveng2_set_capture_format(tveng_device_info * info)
       break;
     default:
       info->tveng_errno = -1; /* unknown */
-      t_error_msg("switch()", _("Cannot understand the given palette"),
+      t_error_msg("switch()", "Cannot understand the given palette",
 		  info);
       return -1;
     }
@@ -1346,10 +1346,10 @@ tveng2_start_capturing(tveng_device_info * info)
       return -1;
     }
 
-  if (rb.count <= 0)
+  if (rb.count <= 2)
     {
       info->tveng_errno = -1;
-      t_error_msg("check()", _("Not enough buffers"), info);
+      t_error_msg("check()", "Not enough buffers", info);
       return -1;
     }
 
@@ -1475,8 +1475,8 @@ int tveng2_read_frame(void * where, unsigned int size,
   if (info -> current_mode != TVENG_CAPTURE_READ)
     {
       info -> tveng_errno = -1;
-      t_error_msg("check", _("Current capture mode is not READ"),
-		  info);
+      t_error_msg("check", "Current capture mode is not READ (%d)",
+		  info, info->current_mode);
       return -1;
     }
 
@@ -1484,7 +1484,7 @@ int tveng2_read_frame(void * where, unsigned int size,
     {
       info -> tveng_errno = ENOMEM;
       t_error_msg("check()", 
-	      _("Size check failed, quitting to avoid segfault"), info);
+	      "Size check failed, quitting to avoid segfault", info);
       return -1;
     }
 
@@ -1562,9 +1562,13 @@ static
 int tveng2_set_capture_size(int width, int height, tveng_device_info * info)
 {
   enum tveng_capture_mode current_mode;
+  int retcode;
+
   t_assert(info != NULL);
   t_assert(width > 0);
   t_assert(height > 0);
+
+  tveng2_update_capture_format(info);
 
   current_mode = tveng_stop_everything(info);
 
@@ -1579,11 +1583,13 @@ int tveng2_set_capture_size(int width, int height, tveng_device_info * info)
   
   info -> format.width = width;
   info -> format.height = height;
-  if (tveng2_set_capture_format(info) == -1)
-    return -1;
+  retcode = tveng2_set_capture_format(info);
 
   /* Restart capture again */
-  return tveng_restart_everything(current_mode, info);
+  if (tveng_restart_everything(current_mode, info) == -1)
+    retcode = -1;
+
+  return retcode;
 }
 
 /* 

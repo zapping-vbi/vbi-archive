@@ -371,7 +371,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       if (tveng_attach_device(zcg_char(NULL, "video_device"),
 			      TVENG_ATTACH_READ, info)==-1)
 	{
-	  RunBox("%s couldn't be opened\n:%s, aborting",
+	  RunBox("%s couldn't be opened\n:%s,\naborting",
 		 GNOME_MESSAGE_BOX_ERROR,
 		 zcg_char(NULL, "video_device"), info->error);
 	  exit(1);

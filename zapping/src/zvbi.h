@@ -104,7 +104,7 @@ void render_ttx_mask(int id, GdkBitmap *bitmap);
 
 /* Open the configured VBI device, FALSE on error */
 gboolean
-zvbi_open_device(gint newbttv);
+zvbi_open_device(void);
 
 /* Closes the VBI device */
 void

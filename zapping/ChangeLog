@@ -1,3 +1,10 @@
+2.2.2001	/dev/video0 <garetxe@users.sourceforge.net>
+
+	* s/dev\/video/dev\/video0/g: rationale: In RH 7.1 beta (Fisher),
+	/dev/video is a dir. Patch sent by Tim Powers, thanks :-)
+	* Trying to get Z running under 2.4.1, BTTV. The driver appears to
+	be broken (mmap fails), haven't tested with xawtv yet.
+
 31.1.2001	Accel keys <garetxe@users.sourceforge.net>
 
 	* src/main.c, channel_editor.c: Finished accel keys. The key

@@ -106,7 +106,7 @@ static struct {
 
 /* Open the configured VBI device, FALSE on error */
 gboolean
-zvbi_open_device(gint newbttv)
+zvbi_open_device(void)
 {
   gint finetune;
   gboolean erc;
@@ -138,7 +138,7 @@ zvbi_open_device(gint newbttv)
   finetune = zcg_int(NULL, "finetune");
   erc = zcg_bool(NULL, "erc");
 
-  if (!(vbi = vbi_open(device, cache_open(), finetune, newbttv)))
+  if (!(vbi = vbi_open(device, cache_open(), finetune)))
     {
       g_warning("cannot open %s, vbi services will be disabled",
 		device);

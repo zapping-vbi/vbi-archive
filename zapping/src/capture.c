@@ -75,6 +75,8 @@ static XShmSegmentInfo	shminfo; /* shared mem info for the xvimage */
 static guint		idle_id=0;
 static gboolean		print_info_inited = FALSE;
 
+static gint		count=0; /* # of printed errors */
+
 extern tveng_device_info	*main_info;
 extern GtkWidget		*main_window;
 
@@ -405,7 +407,8 @@ capture_process_frame(GtkWidget * widget, tveng_device_info * info)
       if (-1 == tveng_read_frame(xvimage->data, xvimage->data_size,
 				 50, info))
 	{
-	  g_warning("cap: read(): %s\n", info->error);
+	  if (!count++) /* print just once, gets annoying */
+	    g_warning("cap: read(): %s\n", info->error);
 	  usleep(5000);
 	  return;
 	}
@@ -496,21 +499,27 @@ capture_start(GtkWidget * window, tveng_device_info *info)
   info->format.pixformat = pixformat;
   if (tveng_set_capture_format(info) == -1)
     {
-      g_warning("setting cap: %s", info->error);
+      ShowBox("Error starting capture: %s", GNOME_MESSAGE_BOX_ERROR,
+	      info->error);
       return -1;
     }
   if (info->format.pixformat != pixformat)
     {
-      g_warning("Failed to set valid pixformat: got %d",
-		info->format.pixformat);
+      ShowBox("Failed to set valid pixformat: got %d, requested %d",
+	      GNOME_MESSAGE_BOX_ERROR,
+	      info->format.pixformat, pixformat);
       return -1;
     }
   /* OK, startup done, try to start capturing */
   if (-1 == tveng_start_capturing(info))
     {
-      g_warning("Couldn't start capturing: %s", info->error);
+      ShowBox("Couldn't start capturing: %s",
+	      GNOME_MESSAGE_BOX_ERROR,
+	      info->error);
       return -1;
     }
+
+  g_assert(info->current_mode == TVENG_CAPTURE_READ);
 
 #ifdef USE_XV
   /* Add the necessary Xvport controls to the TVeng device */
@@ -522,6 +531,8 @@ capture_start(GtkWidget * window, tveng_device_info *info)
   gtk_signal_connect(GTK_OBJECT(window), "size-allocate",
 		     GTK_SIGNAL_FUNC(on_tv_screen_size_allocate), info);
 
+  count = 0;
+
   /* Capture started correctly */
   return 0;
 }
@@ -531,11 +542,12 @@ capture_stop(tveng_device_info *info)
 {
   GtkWidget *tv_screen;
 
+  gtk_idle_remove(idle_id);
+
   if (!flag_exit_program)
     {
       tv_screen = lookup_widget(main_window, "tv_screen");
 
-      gtk_idle_remove(idle_id);
       gtk_signal_disconnect_by_func(GTK_OBJECT(tv_screen),
 		    GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
 				    main_info);

@@ -87,7 +87,7 @@ void PrintUsage(void)
 {
   printf("Usage:\n"
 	 " zapping_setup_fb [OPTIONS], where OPTIONS stands for\n"
-	 " --device dev - The video device to open, /dev/video by default\n"
+	 " --device dev - The video device to open, /dev/video0 by default\n"
 	 " --display d  - The X display to use\n"
 	 " --bpp x      - Current X bpp\n"
 	 " --verbose    - Increments verbosity level\n"
@@ -227,7 +227,7 @@ int check_dga(Display * display, int screen)
 
 int main(int argc, char * argv[])
 {
-  char * video_device = "/dev/video";
+  char * video_device = "/dev/video0";
   char * display_name = getenv("DISPLAY");
   Display * display; /* X Display */
   int fd;

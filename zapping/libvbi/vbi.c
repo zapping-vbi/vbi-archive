@@ -1923,7 +1923,7 @@ vbi_del_handler(struct vbi *vbi, void *handler, void *data)
 
 
 struct vbi *
-vbi_open(char *vbi_name, struct cache *ca, int fine_tune, int big_buf)
+vbi_open(char *vbi_name, struct cache *ca, int fine_tune)
 {
     struct vbi *vbi;
     extern void open_vbi(void);
