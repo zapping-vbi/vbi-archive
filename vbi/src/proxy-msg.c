@@ -29,9 +29,13 @@
  *    Both UNIX domain and IPv4 and IPv6 sockets are implemented, but
  *    the latter ones are currently not officially supported.
  *
- *  $Id: proxy-msg.c,v 1.10 2004-10-24 18:33:47 tomzo Exp $
+ *  $Id: proxy-msg.c,v 1.11 2004-10-25 16:56:29 mschimek Exp $
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.10  2004/10/24 18:33:47  tomzo
+ *  - cleaned up socket I/O interface functions
+ *  - added defines for norm change events
+ *
  *  Revision 1.7  2003/06/07 09:42:53  tomzo
  *  Optimized message writing to socket in vbi_proxy_msg_handle_io():
  *  - keep message header and body in one struct VBIPROXY_MSG (for both read and
@@ -94,6 +98,7 @@
 #include "bcd.h"
 #include "vbi.h"
 #include "io.h"
+#include "misc.h"
 #include "proxy-msg.h"
 
 #ifdef ENABLE_V4L
@@ -1173,14 +1178,17 @@ int vbi_proxy_msg_connect_to_server( vbi_bool use_tcp_ip, const char * pSrvHost,
          sock_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
          if (sock_fd == -1)
          {
-            dprintf1("socket (ipv4): %s\n", strerror(errno));
-            vbi_asprintf(ppErrorText, "%s: %s (%d)", _("Cannot create network socket"), strerror(errno), errno);
+            dprintf1("socket (ipv4): error %d, %s\n", errno, strerror(errno));
+            vbi_asprintf(ppErrorText, _("Cannot create socket: %s."),
+			 strerror(errno));
          }
       }
       else
       {
          dprintf1("getaddrinfo (ipv4): %s\n", gai_strerror(rc));
-         vbi_asprintf(ppErrorText, "%s: %s", _("Invalid hostname or service/port"), gai_strerror(rc));
+         vbi_asprintf(ppErrorText,
+		      _("Invalid hostname or port: %s."),
+		      gai_strerror(rc));
       }
    }
 
@@ -1197,19 +1205,21 @@ int vbi_proxy_msg_connect_to_server( vbi_bool use_tcp_ip, const char * pSrvHost,
          }
          else
          {
-            dprintf1("connect: %s\n", strerror(errno));
+            dprintf1("connect: error %d, %s\n", errno, strerror(errno));
             if (use_tcp_ip)
-               vbi_asprintf(ppErrorText, "%s: %s (%d)", _("Server not running or not reachable: connect via TCP/IP failed"), strerror(errno), errno);
+               vbi_asprintf(ppErrorText, _("Connection via TCP/IP failed, server not running or unreachable."));
             else
-               vbi_asprintf(ppErrorText, "%s %s: %s (%d)", _("Server not running: connect via socket failed"), pSrvPort, strerror(errno), errno);
+               vbi_asprintf(ppErrorText, _("Connection via socket failed, server not running."));
             close(sock_fd);
             sock_fd = -1;
          }
       }
       else
       {
-         dprintf1("fcntl (F_SETFL=O_NONBLOCK): %s\n", strerror(errno));
-         vbi_asprintf(ppErrorText, "%s: %s (%d)", _("Failed to set socket non-blocking"), strerror(errno), errno);
+         dprintf1("fcntl (F_SETFL=O_NONBLOCK): error %d, %s\n",
+		  errno, strerror(errno));
+         vbi_asprintf(ppErrorText, _("Socket I/O error: %s."),
+		      strerror(errno));
          close(sock_fd);
          sock_fd = -1;
       }
@@ -1243,13 +1253,15 @@ vbi_bool vbi_proxy_msg_finish_connect( int sock_fd, char ** ppErrorText )
       else
       {  /* failed to establish a connection to the server */
          dprintf1("finish_connect: socket connect failed: %s\n", strerror(sockerr));
-         vbi_asprintf(ppErrorText, "%s: %s (%d)", _("Connect failed"), strerror(sockerr), sockerr);
+         vbi_asprintf(ppErrorText, _("Cannot connect to server: %s."),
+		      strerror(sockerr));
       }
    }
    else
    {
       dprintf1("finish_connect: getsockopt: %s\n", strerror(errno));
-      vbi_asprintf(ppErrorText, "%s: %s (%d)", _("Failed to query socket connect result"), strerror(errno), errno);
+      vbi_asprintf(ppErrorText, _("Socket I/O error: %s."),
+		   strerror(errno));
    }
 
    return result;
