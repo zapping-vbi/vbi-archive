@@ -25,3 +25,5 @@ Known bugs with zapping, don't report them
 	* sometimes crash at termination.
 	* check on_trigger_clicked
 	* check html export blink attr
+	* Overlay (no XVideo) under E is broken, shading the window
+	isn't correctly detected.
