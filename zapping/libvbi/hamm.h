@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.h,v 1.8 2001-08-14 16:36:48 mschimek Exp $ */
+/* $Id: hamm.h,v 1.9 2001-08-15 23:15:37 mschimek Exp $ */
 
 #ifndef HAMM_H
 #define HAMM_H
@@ -107,27 +107,3 @@ hamm16(unsigned char *p)
 extern int hamm24(unsigned char *p);
 
 #endif /* HAMM_H */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -83,7 +83,7 @@ vbi_cache_get(struct vbi *vbi, int pgno, int subno, int subno_mask)
 		if (cp->page.pgno == pgno
 		    && (cp->page.subno & subno_mask) == subno) {
 			/* found, move to front (make it 'new') */
-			add_head(ca->hash + h, rem_node(ca->hash + h, &cp->node));
+			add_head(ca->hash + h, unlink_node(ca->hash + h, &cp->node));
 			return &cp->page;
 		}
 
@@ -119,13 +119,13 @@ vbi_cache_put(struct vbi *vbi, struct vt_page *vtp)
 
 		if (vtp_size(&cp->page) == size) {
 			// move to front.
-			add_head(ca->hash + h, rem_node(ca->hash + h, &cp->node));
+			add_head(ca->hash + h, unlink_node(ca->hash + h, &cp->node));
 		} else {
 			cache_page *new_cp;
 
 			if (!(new_cp = malloc(sizeof(*cp) - sizeof(cp->page) + size)))
 				return 0;
-			rem_node(ca->hash + h, &cp->node);
+			unlink_node(ca->hash + h, &cp->node);
 			free(cp);
 			cp = new_cp;
 			add_head(ca->hash + h, &cp->node);
@@ -167,50 +167,11 @@ cache_lookup(struct cache *ca, int pgno, int subno)
 	return NULL;
 }
 
-
-
-static struct vt_page *
-cache_foreach_pg(struct cache *ca, int pgno, int subno, int dir,
-						    int (*func)(), void *data)
+int
+vbi_cache_foreach(struct vbi *vbi, int pgno, int subno,
+		      int dir, foreach_callback *func, void *data)
 {
-    struct vt_page *vtp, *s_vtp = 0;
-
-    if (ca->npages == 0)
-	return 0;
-
-    if ((vtp = cache_lookup(ca, pgno, subno)))
-	subno = vtp->subno;
-    else if (subno == ANY_SUB)
-	subno = dir < 0 ? 0 : 0xffff;
-
-    for (;;)
-    {
-	subno += dir;
-	while (subno < 0 || subno >= ca->hi_subno[pgno])
-	{
-	    pgno += dir;
-	    if (pgno < 0x100)
-		pgno = 0x9ff;
-	    if (pgno > 0x9ff)
-		pgno = 0x100;
-	    subno = dir < 0 ? ca->hi_subno[pgno] - 1 : 0;
-	}
-	if ((vtp = cache_lookup(ca, pgno, subno)))
-	{
-	    if (s_vtp == vtp)
-		return 0;
-	    if (s_vtp == 0)
-		s_vtp = vtp;
-	    if (func(data, vtp))
-		return vtp;
-	}
-    }
-}
-
-static int
-cache_foreach_pg2(struct cache *ca, int pgno, int subno,
-		  int dir, int (*func)(), void *data)
-{
+	struct cache *ca = vbi->cache;
     struct vt_page *vtp;
     int wrapped = 0;
     int r;
@@ -223,24 +184,20 @@ cache_foreach_pg2(struct cache *ca, int pgno, int subno,
     else if (subno == ANY_SUB)
 	subno = 0;
 
-    for (;;)
-    {
+    for (;;) {
 	if ((vtp = cache_lookup(ca, pgno, subno)))
-	{
 	    if ((r = func(data, vtp, wrapped)))
 		return r;
-	}
 
 	subno += dir;
 
-	while (subno < 0 || subno >= ca->hi_subno[pgno])
-	{
+	while (subno < 0 || subno >= ca->hi_subno[pgno]) {
 	    pgno += dir;
 	    if (pgno < 0x100) {
-		pgno = 0x9ff;
+		pgno = 0x8FF;
 		wrapped = 1;
 	    }
-	    if (pgno > 0x9ff) {
+	    if (pgno > 0x8FF) {
 		pgno = 0x100;
 		wrapped = 1;
 	    }
@@ -258,9 +215,6 @@ vbi_cache_hi_subno(struct vbi *vbi, int pgno)
 
 static struct cache_ops cops =
 {
-	//    cache_reset,
-    cache_foreach_pg,
-    cache_foreach_pg2,
 };
 
 
@@ -289,6 +243,9 @@ vbi_cache_init(struct vbi *vbi)
 fail1:
     return 0;
 }
+
+
+
 
 
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.12 2001-07-24 20:47:04 garetxe Exp $ */
+/* $Id: format.h,v 1.13 2001-08-15 23:15:37 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -84,7 +84,8 @@ typedef enum {
  *  (ie. DH2 only) will not appear, so DH2, DB2, OT, OB can
  *  be safely ignored.
  *
- *  Code depends on N == 0, DS == DW + DH, don't change.
+ *  Code depends on N == 0, DS == DW + DH,
+ *  (OT, OB, DH2, DS2) > DS, don't change.
  */
 typedef enum {
 	NORMAL,	DOUBLE_WIDTH, DOUBLE_HEIGHT, DOUBLE_SIZE,

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.17 2001-08-05 09:57:55 mschimek Exp $ */
+/* $Id: search.c,v 1.18 2001-08-15 23:15:37 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -152,8 +152,9 @@ highlight(struct search *s, struct vt_page *vtp,
 }
 
 static int
-search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
+search_page_fwd(void *p, struct vt_page *vtp, int wrapped)
 {
+	struct search *s = p;
 	attr_char *acp;
 	int row, this, start, stop;
 	ucs2_t *hp, *first;
@@ -250,8 +251,9 @@ fprintf(stderr, "exec: %x/%x; start %d,%d; %c%c%c...\n",
 }
 
 static int
-search_page_rev(struct search *s, struct vt_page *vtp, int wrapped)
+search_page_rev(void *p, struct vt_page *vtp, int wrapped)
 {
+	struct search *s = p;
 	attr_char *acp;
 	int row, this, start, stop;
 	unsigned long ms, me;
@@ -489,9 +491,8 @@ vbi_next_search(void *p, struct fmt_page **pg, int dir)
 		s->stop_subno[1] = s->start_subno;
 	}
 #endif
-	switch (s->vbi->cache->op->foreach_pg2(s->vbi->cache,
-		s->start_pgno, s->start_subno, dir,
-		(dir > 0) ? search_page_fwd : search_page_rev, s)) {
+	switch (vbi_cache_foreach(s->vbi, s->start_pgno, s->start_subno, dir,
+		 (dir > 0) ? search_page_fwd : search_page_rev, s)) {
 	case 1:
 		*pg = &s->pg;
 		return 1;

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.27 2001-08-08 05:23:27 mschimek Exp $ */
+/* $Id: fifo.c,v 1.28 2001-08-15 23:15:36 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -381,7 +381,7 @@ unlink_full_buffer(fifo *f)
 			b->consumers = 0;
 			b->dequeued = 0;
 
-			b = PARENT(rem_node(&f->full, &b->node), buffer, node);
+			b = PARENT(unlink_node(&f->full, &b->node), buffer, node);
 
 			return b;
 		}
@@ -495,7 +495,7 @@ send_empty_buffered(consumer *c, buffer *b)
 	pthread_mutex_lock(&f->consumer->mutex);
 
 	if (++b->enqueued >= b->consumers)
-		rem_node(&f->full, &b->node);
+		unlink_node(&f->full, &b->node);
 	else
 		b = NULL;
 
@@ -505,7 +505,7 @@ send_empty_buffered(consumer *c, buffer *b)
 		return;
 
 	if (b->remove) {
-		rem_node(&f->buffers, &b->added);
+		unlink_node(&f->buffers, &b->added);
 		destroy_buffer(b);
 		return;
 	}
@@ -675,9 +675,9 @@ rem_buffer(buffer *b)
 	 */
 	if (b->consumers == 0) {
 		if (b->dequeued == 0)
-			rem_node(&f->empty, &b->node);
+			unlink_node(&f->empty, &b->node);
 
-		rem_node(&f->buffers, &b->added);
+		unlink_node(&f->buffers, &b->added);
 		destroy_buffer(b);
 	} else
 		b->remove = TRUE;
@@ -941,27 +941,31 @@ init_callback_fifo(fifo *f, char *name,
  * All previously dequeued buffers must be returned with
  * send_full_buffer() before calling this function or they
  * remain unavailable until the fifo is destroyed.
+ *
+ * Safe to call after add_producer failed.
  **/
 void
 rem_producer(producer *p)
 {
-	fifo *f = p->fifo;
+	fifo *f;
 
-	asserts(p->dequeued == 0);
+	if ((f = p->fifo)) {
+		pthread_mutex_lock(&f->producer->mutex);
 
-	pthread_mutex_lock(&f->producer->mutex);
+		if (rem_node(&f->producers, &p->node)) {
+			asserts(p->dequeued == 0);
 
-	/*
-	 *  Pretend we didn't attempt an eof, and when
-	 *  we really sent eofs remember it.
-	 */
-	if (f->eof_count > 1)
-		if (p->eof_sent)
-			f->eof_count--;
+			/*
+			 *  Pretend we didn't attempt an eof, and when
+			 *  we really sent eofs remember it.
+			 */
+			if (f->eof_count > 1)
+				if (p->eof_sent)
+					f->eof_count--;
+		}
 
-	rem_node(&f->producers, &p->node);
-
-	pthread_mutex_unlock(&f->producer->mutex);
+		pthread_mutex_unlock(&f->producer->mutex);
+	}
 
 	memset(p, 0, sizeof(*p));
 }
@@ -1016,19 +1020,23 @@ add_producer(fifo *f, producer *p)
  * All previously dequeued buffers must be returned with
  * send_empty_buffer() before calling this function or they
  * remain unavailable until the fifo is destroyed.
+ *
+ * Safe to call after add_consumer failed.
  **/
 void
 rem_consumer(consumer *c)
 {
-	fifo *f = c->fifo;
+	fifo *f;
 
-	asserts(c->dequeued == 0);
+	if ((f = c->fifo)) {
+		pthread_mutex_lock(&f->consumer->mutex);
 
-	pthread_mutex_lock(&f->consumer->mutex);
+		if (rem_node(&f->consumers, &c->node)) {
+			asserts(c->dequeued == 0);
+		}
 
-	rem_node(&f->consumers, &c->node);
-
-	pthread_mutex_unlock(&f->consumer->mutex);
+		pthread_mutex_unlock(&f->consumer->mutex);
+	}
 
 	memset(c, 0, sizeof(*c));
 }
@@ -1082,17 +1090,5 @@ add_consumer(fifo *f, consumer *c)
     * add_p/c shall make a fifo callback
     * error ignores mp-fifo, in data direction only
  */
-
-
-
-
-
-
-
-
-
-
-
-
 
 

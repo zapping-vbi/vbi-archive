@@ -481,7 +481,7 @@ gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page )
 				      "parrot_page");
   /* FIXME: write this */
   gchar *help =
-N_("");
+N_("parrot help todo");
 
   if (GPOINTER_TO_INT(data) == page)
     {

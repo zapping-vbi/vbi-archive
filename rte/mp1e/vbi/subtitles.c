@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: subtitles.c,v 1.1.1.1 2001-08-07 22:09:26 garetxe Exp $ */
+/* $Id: subtitles.c,v 1.2 2001-08-15 23:16:16 mschimek Exp $ */
 
 #include <ctype.h>
 #include "../common/log.h"
@@ -153,7 +153,7 @@ dvb_teletext_packet_filter(unsigned char *p, unsigned char *buf,
 		goto encode_packet;
 
 	if (packet == 0) {
-		if ((page = hamm16a(buf + 2)) < 0)
+		if ((page = hamm16(buf + 2)) < 0)
 			return 0;
 
 		next_packet[magazine] = 0;

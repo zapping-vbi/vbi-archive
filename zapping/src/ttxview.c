@@ -1657,12 +1657,14 @@ create_export_entry (GtkWidget *table, vbi_export_option *xo,
   zconf_create_string(xo->def.str, xo->tooltip, zcname);
   gtk_entry_set_text (GTK_ENTRY (entry),
 		      _(zconf_get_string(NULL, zcname)));
+                       /* XXX gettext? */
   g_free(zcname);
 
   gtk_object_set_data (GTK_OBJECT (entry), "exp", (gpointer) exp);
   gtk_signal_connect (GTK_OBJECT (entry), "changed", 
 		     GTK_SIGNAL_FUNC (on_export_control),
 		     GINT_TO_POINTER (index));
+  on_export_control(entry, GINT_TO_POINTER (index));
 
   gtk_table_resize (GTK_TABLE (table), index + 1, 2);
   gtk_table_attach (GTK_TABLE (table), label, 0, 1, index, index + 1,
@@ -1682,13 +1684,15 @@ create_export_menu (GtkWidget *table, vbi_export_option *xo,
   GtkWidget *menu; /* The menu displayed */
   GtkWidget *menu_item; /* Each of the menu items */
   gchar *zcname = xo_zconf_name(xo, exp); /* Path to the config key */
-  int i;
+  gint i, saved;
 
   label = gtk_label_new (_(xo->label));
   gtk_widget_show (label);
 
   option_menu = gtk_option_menu_new();
   menu = gtk_menu_new ();
+
+  saved = zconf_get_integer(NULL, zcname);
 
   for (i = xo->min; i <= xo->max; i++)
     {
@@ -1703,12 +1707,14 @@ create_export_menu (GtkWidget *table, vbi_export_option *xo,
 
       gtk_widget_show (menu_item);
       gtk_menu_append (GTK_MENU (menu), menu_item);
+
+      if (i == saved)
+	on_export_control(menu_item, GINT_TO_POINTER (index));
     }
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
   zconf_create_integer(xo->def.num, xo->tooltip, zcname);
-  gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu),
-			       zconf_get_integer(NULL, zcname));
+  gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu), saved);
   g_free(zcname);
   gtk_widget_show (menu);
   set_tooltip (option_menu, _(xo->tooltip));
@@ -1746,6 +1752,7 @@ create_export_slider (GtkWidget *table, vbi_export_option *xo,
   gtk_signal_connect (adj, "value-changed", 
 		     GTK_SIGNAL_FUNC (on_export_control),
 		     GINT_TO_POINTER (index));
+  on_export_control(GTK_WIDGET(adj), GINT_TO_POINTER (index));
 
   hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
   gtk_scale_set_value_pos (GTK_SCALE (hscale), GTK_POS_LEFT);
@@ -1772,9 +1779,7 @@ create_export_checkbutton (GtkWidget *table, vbi_export_option *xo,
 
   cb = gtk_check_button_new_with_label (_(xo->label));
   zconf_create_boolean(xo->def.num, xo->tooltip, zcname);
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cb),
-				zconf_get_boolean(NULL, zcname));
-  g_free(zcname);
+
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (cb), FALSE);
   set_tooltip (cb, _(xo->tooltip));
   gtk_widget_show (cb);
@@ -1783,6 +1788,11 @@ create_export_checkbutton (GtkWidget *table, vbi_export_option *xo,
   gtk_signal_connect (GTK_OBJECT (cb), "toggled",
 		     GTK_SIGNAL_FUNC (on_export_control),
 		     GINT_TO_POINTER (index));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cb),
+				zconf_get_boolean(NULL, zcname));
+  g_free(zcname);
+  /* mhs: gtk_tbsa not enough? */
+  on_export_control(cb, GINT_TO_POINTER (index));
 
   gtk_table_resize (GTK_TABLE (table), index + 1, 2);
   gtk_table_attach (GTK_TABLE (table), cb, 1, 2, index, index + 1,

@@ -26,18 +26,16 @@ Outstanding issues for the next release (0.6.0)
 	  and a Cancel (the dialog).
 	+ In tty gui: The "R" (Reveal) button is unsuitable for i18n,
 	  should be "?" (preferably a nice pixmap), and "?" as kbd
-	  shortcut. Verify no other language dependent accels exist.
+	  shortcut. Verify no other unNLSed accels exist.
 	+ Improve documentation.
-	+ The V4L unsync warning is useless btw when we get no proper
-        	ESD timestamps either. :-(
 	+ Make controls move faster with the keyb, and avoid rounding
 	issues (maxvalue never reached because of integer rounding)
 	+ In ttx export: instead of "export dir", chop off and remember
-	  the last path entered. Add HTML option "Save Color". Make
-	  blockgfx replacement smarter.
+	  the last path entered. Make blockgfx replacement smarter.
 	+ Think about ttx header samples (p100) for stations not transmitting
 	  a CNI (instead of guessing the name from ttx). Needs some sort of
-	  raw dump, so users can send updates.
+	  raw dump, so users can send updates. Upd: Oops, we do have a raw
+	  dump: VTX.
 	+ zapzilla: channel selector, properties.
 
 > Somewhen...
@@ -48,3 +46,12 @@ Outstanding issues for the next release (0.6.0)
 
 please tell me about anything you think it's worth adding. 
 garetxe@users.sourceforge.net
+
+
+
+
+
+
+
+
+

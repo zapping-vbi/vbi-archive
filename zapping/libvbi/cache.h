@@ -17,21 +17,19 @@ struct cache
 
 struct cache_ops
 {
-    struct vt_page *(*foreach_pg)(struct cache *ca, int pgno, int subno,
-					    int dir, int (*func)(), void *data);
-    int (*foreach_pg2)(struct cache *ca, int pgno, int subno,
-		       int dir, int (*func)(), void *data);
-
 };
+
+typedef int foreach_callback(void *, struct vt_page *, int); 
 
 extern struct cache *   vbi_cache_init(struct vbi *);
 extern void		vbi_cache_destroy(struct vbi *);
 extern struct vt_page * vbi_cache_put(struct vbi *, struct vt_page *vtp);
 extern struct vt_page * vbi_cache_get(struct vbi *, int pgno, int subno, int subno_mask);
-extern void             vbi_cache_flush(struct vbi *vbi);
+extern int              vbi_cache_foreach(struct vbi *, int pgno, int subno,
+					  int dir, foreach_callback *func, void *data);
+extern void             vbi_cache_flush(struct vbi *);
 
 #endif
-
 
 
 

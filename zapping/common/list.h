@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: list.h,v 1.9 2001-08-08 05:23:27 mschimek Exp $ */
+/* $Id: list.h,v 1.10 2001-08-15 23:15:36 mschimek Exp $ */
 
 #ifndef LIST_H
 #define LIST_H
@@ -321,7 +321,7 @@ rem_xtail(xlist *l)
 }
 
 /**
- * rem_node:
+ * unlink_node:
  * @l: list *
  * @n: node *
  * 
@@ -332,13 +332,48 @@ rem_xtail(xlist *l)
  * The node pointer.
  **/
 static inline node *
-rem_node(list *l, node *n)
+unlink_node(list *l, node *n)
 {
 	n->pred->succ = n->succ;
 	n->succ->pred = n->pred;
 	l->members--;
 
 	return n;
+}
+
+static inline node *
+unlink_xnode(xlist *l, node *n)
+{
+	pthread_rwlock_wrlock(&l->rwlock);
+	n = unlink_node((list *) l, n);
+	pthread_rwlock_unlock(&l->rwlock);
+
+	return n;
+}
+
+/**
+ * rem_node:
+ * @l: list *
+ * @n: node *
+ * 
+ * Remove the node if member of the list.
+ * 
+ * Return value: 
+ * The node pointer or NULL if the node is not
+ * member of the list.
+ **/
+static inline node *
+rem_node(list *l, node *n)
+{
+	node *q;
+
+	for (q = l->head; q->succ; q = q->succ)
+		if (n == q) {
+			unlink_node(l, n);
+			return n;
+		}
+
+	return NULL;
 }
 
 static inline node *

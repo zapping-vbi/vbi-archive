@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: vbi.c,v 1.3 2001-08-15 23:16:16 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -54,7 +54,7 @@ teletext_packet(unsigned char *p, unsigned char *buf, int line)
 	int mag0, packet;
 	int designation;
 
-	if ((packet = hamm16a(buf)) < 0)
+	if ((packet = hamm16(buf)) < 0)
 		return 0; /* hamming error */
 
 	mag0 = packet & 7;
@@ -67,7 +67,7 @@ teletext_packet(unsigned char *p, unsigned char *buf, int line)
 		if (mag0 != 0 /* 8 */ || packet != 30)
 			return r;
 
-		designation = hamm8a[buf[2]];
+		designation = hamm8(buf[2]);
 
 		if (designation <= 1)
 			return r; /* hamming error or packet 8/30/1 */

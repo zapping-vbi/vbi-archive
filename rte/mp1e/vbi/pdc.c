@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.1.1 2001-08-07 22:09:25 garetxe Exp $ */
+/* $Id: pdc.c,v 1.2 2001-08-15 23:16:16 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "vbi.h"
@@ -68,7 +68,7 @@ decode_pdc(unsigned char *buf)
 	/* ttx packet 8/30/2 */
 
 	for (err = i = 0; i < 5; i++) {
-		err |= t = hamm16a(buf + i * 2 + 8);
+		err |= t = hamm16(buf + i * 2 + 8);
 		buf[i] = bit_reverse[t];
 	}
 

@@ -630,7 +630,7 @@
 	  <widget>
 	    <class>GtkLabel</class>
 	    <name>label30</name>
-	    <label>label30</label>
+	    <label></label>
 	    <justify>GTK_JUSTIFY_LEFT</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -684,7 +684,7 @@
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label27</name>
-	  <label>label27</label>
+	  <label></label>
 	  <justify>GTK_JUSTIFY_LEFT</justify>
 	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>
@@ -745,7 +745,7 @@
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label31</name>
-	  <label>label31</label>
+	  <label></label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>
@@ -875,7 +875,7 @@
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label28</name>
-	  <label>label28</label>
+	  <label></label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>
@@ -901,7 +901,7 @@
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label29</name>
-	  <label>label29</label>
+	  <label></label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>
@@ -3032,7 +3032,7 @@ in the next release of this program.</label>
 	  <widget>
 	    <class>GtkLabel</class>
 	    <name>label67</name>
-	    <label>label67 (Plugin name)</label>
+	    <label></label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -3049,7 +3049,7 @@ in the next release of this program.</label>
 	  <widget>
 	    <class>GtkLabel</class>
 	    <name>label68</name>
-	    <label>label68 (Plugin short description)</label>
+	    <label></label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -3094,7 +3094,7 @@ in the next release of this program.</label>
 	    <widget>
 	      <class>GtkLabel</class>
 	      <name>label69</name>
-	      <label>label69</label>
+	      <label></label>
 	      <justify>GTK_JUSTIFY_CENTER</justify>
 	      <wrap>False</wrap>
 	      <xalign>0</xalign>
@@ -3140,7 +3140,7 @@ in the next release of this program.</label>
 	    <widget>
 	      <class>GtkLabel</class>
 	      <name>label71</name>
-	      <label>label71</label>
+	      <label></label>
 	      <justify>GTK_JUSTIFY_CENTER</justify>
 	      <wrap>False</wrap>
 	      <xalign>0</xalign>
@@ -3186,7 +3186,7 @@ in the next release of this program.</label>
 	    <widget>
 	      <class>GtkLabel</class>
 	      <name>label72</name>
-	      <label>label72</label>
+	      <label></label>
 	      <justify>GTK_JUSTIFY_CENTER</justify>
 	      <wrap>False</wrap>
 	      <xalign>0</xalign>
@@ -3232,7 +3232,7 @@ in the next release of this program.</label>
 	    <widget>
 	      <class>GtkLabel</class>
 	      <name>label73</name>
-	      <label>label73</label>
+	      <label></label>
 	      <justify>GTK_JUSTIFY_CENTER</justify>
 	      <wrap>False</wrap>
 	      <xalign>0</xalign>
@@ -3266,7 +3266,7 @@ in the next release of this program.</label>
 	      <tooltip>Plugin description</tooltip>
 	      <can_focus>True</can_focus>
 	      <editable>False</editable>
-	      <text>text1</text>
+	      <text></text>
 	    </widget>
 	  </widget>
 	</widget>
@@ -3314,7 +3314,7 @@ in the next release of this program.</label>
 	    <tooltip>This is the file where the plugin is located</tooltip>
 	    <can_focus>True</can_focus>
 	    <editable>False</editable>
-	    <text>text2</text>
+	    <text></text>
 	    <child>
 	      <padding>0</padding>
 	      <expand>True</expand>
@@ -3336,7 +3336,7 @@ in the next release of this program.</label>
 	    <widget>
 	      <class>GtkLabel</class>
 	      <name>label76</name>
-	      <label>label76</label>
+	      <label></label>
 	      <justify>GTK_JUSTIFY_CENTER</justify>
 	      <wrap>False</wrap>
 	      <xalign>0.5</xalign>
@@ -3425,7 +3425,7 @@ in the next release of this program.</label>
 		<tooltip>Description of the symbol</tooltip>
 		<can_focus>True</can_focus>
 		<editable>False</editable>
-		<text>text3</text>
+		<text></text>
 	      </widget>
 	    </widget>
 	  </widget>
@@ -3851,7 +3851,7 @@ in the next release of this program.</label>
 	  <child_name>Toolbar:button</child_name>
 	  <name>ttxview_clone</name>
 	  <tooltip>Clone the current Teletext window</tooltip>
-	  <label>button13</label>
+	  <label></label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_COPY</stock_pixmap>
 	</widget>
 
@@ -4028,7 +4028,7 @@ in the next release of this program.</label>
 	  <child_name>Toolbar:button</child_name>
 	  <name>ttxview_exit</name>
 	  <tooltip>Exit TTX mode [Esc]</tooltip>
-	  <label>button35</label>
+	  <label></label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_STOP</stock_pixmap>
 	</widget>
       </widget>
@@ -4813,7 +4813,7 @@ in the next release of this program.</label>
 	  <widget>
 	    <class>GtkLabel</class>
 	    <name>label204</name>
-	    <label>label204</label>
+	    <label></label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0</xalign>
@@ -4839,7 +4839,7 @@ in the next release of this program.</label>
 	  <widget>
 	    <class>GtkLabel</class>
 	    <name>label205</name>
-	    <label>label205</label>
+	    <label></label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0</xalign>
@@ -4865,7 +4865,7 @@ in the next release of this program.</label>
 	  <widget>
 	    <class>GtkLabel</class>
 	    <name>label206</name>
-	    <label>label206</label>
+	    <label></label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0</xalign>
@@ -4905,7 +4905,7 @@ in the next release of this program.</label>
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label207</name>
-	  <label>label207</label>
+	  <label></label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>

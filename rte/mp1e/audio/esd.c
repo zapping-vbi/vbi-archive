@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.3 2001-08-10 16:32:16 mschimek Exp $ */
+/* $Id: esd.c,v 1.4 2001-08-15 23:16:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -142,7 +142,7 @@ static void
 send_empty(consumer *c, buffer *b)
 {
 	// XXX
-	rem_node(&c->fifo->full, &b->node);
+	unlink_node(&c->fifo->full, &b->node);
 	b->data = NULL;
 }
 

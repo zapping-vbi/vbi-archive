@@ -22,6 +22,8 @@
  * The code uses libvbi, written by Michael Schimek.
  */
 
+#include <site_def.h>
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -1188,17 +1190,29 @@ rolling_headers(struct ttx_client *client, struct fmt_page *pg)
   gint col;
   attr_char *ac;
 
+/* To debug page formatting (site_def.h) */
+#if ZVBI_DISABLE_ROLLING
+  return;
+#endif
+
   if (client->waiting)
     return;
 
   pthread_mutex_lock(&client->mutex);
 
   /* Just the time field for the moment */
-  for (col = pg->columns-8; col < pg->columns; col++)
+
+  /* Hmm. for (col = pg->columns-8; col < pg->columns; col++) */
+
+  if (pg->columns < 40)
+    goto abort;
+
+  for (col = 32; col < 40; col++)
     {
       ac = client->fp.text + col;
-      if ((client->fp.text[col].glyph != pg->text[col].glyph) &&
-	  ac->size <= DOUBLE_SIZE)
+ 
+      if (ac->glyph != pg->text[col].glyph
+	  && ac->size <= DOUBLE_SIZE /*?*/)
 	{
 	  ac->glyph = pg->text[col].glyph;
 	  vbi_draw_vt_page_region(&client->fp,
@@ -1206,7 +1220,7 @@ rolling_headers(struct ttx_client *client, struct fmt_page *pg)
 				  gdk_pixbuf_get_pixels(client->unscaled_off)+col*CW,
 				  col, 0, 1, 1,
 				  gdk_pixbuf_get_rowstride(client->unscaled_off) /* rowstride */,
-				  client->reveal, 0 /* flash_on */);
+				  client->reveal, 0 /* flash_off */);
 	  vbi_draw_vt_page_region(&client->fp,
 				  (uint32_t *)
 				  gdk_pixbuf_get_pixels(client->unscaled_on)+col*CW,
@@ -1217,6 +1231,7 @@ rolling_headers(struct ttx_client *client, struct fmt_page *pg)
 	}
     }
 
+ abort:
   pthread_mutex_unlock(&client->mutex);
 }
 
@@ -1235,6 +1250,7 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
       client->freezed = FALSE;
       client->page = page;
       client->subpage = subpage;
+      /* 0x900 is our TOP index page */
       if ((page >= 0x100) && (page <= 0x900)) {
         if (build_client_page(client, page, subpage))
 	  {
@@ -1312,17 +1328,17 @@ ttx_unfreeze (int id)
 }
 
 static void
-notify_clients(int page, int subpage)
+notify_clients(int page, int subpage, gboolean rolling)
 {
   GList *p;
   struct ttx_client *client;
   struct fmt_page pg;
-  gboolean rolling;
 
   if (!vbi)
     return;
 
-  rolling = vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0);
+  if (rolling)
+    rolling = vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0);
 
   pthread_mutex_lock(&clients_mutex);
   p = g_list_first(ttx_clients);
@@ -1582,7 +1598,8 @@ event(vbi_event *ev, void *unused)
       }
 
       /* Set the dirty flag on the page */
-      notify_clients(ev->pgno, ev->subno);
+      notify_clients(ev->pgno, ev->subno,
+		     ev->p != NULL /* rolling suitable */);
 
 #ifdef BLACK_MOON_IS_ON
       if (ev->pgno == 0x300)

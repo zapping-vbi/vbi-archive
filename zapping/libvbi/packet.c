@@ -2411,8 +2411,8 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 			break;
 
 		default:
-#if TELEWEB_ALERT /* no 6.8 ??? */
-			fprintf(stderr, "TWA: %d\n", pmag & 0x0F);
+#if LIBVBI_IDL_ALERT /* no 6.8 ??? */
+			fprintf(stderr, "IDL: %d\n", pmag & 0x0F);
 #endif
 			break;
 		}

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.70 2001-08-14 16:36:48 mschimek Exp $ */
+/* $Id: vbi.c,v 1.71 2001-08-15 23:15:38 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -532,6 +532,8 @@ wait_full_filter(fifo *f)
 
 	b = wait_full_buffer(&filter.old_consumer);
 
+	wait_empty_buffer(&filter.producer);
+
 	if (b->used <= 0) {
 		filter.buf.time = b->time;
 		filter.buf.used = b->used;
@@ -539,7 +541,7 @@ wait_full_filter(fifo *f)
 		filter.buf.errstr = NULL;
 
 		send_empty_buffer(&filter.old_consumer, b);
-		send_full_buffer(&filter.producer, b);
+		send_full_buffer(&filter.producer, &filter.buf);
 
 		return;
 	}
@@ -594,7 +596,7 @@ wait_full_filter(fifo *f)
 	filter.buf.time = b->time;
 
 	send_empty_buffer(&filter.old_consumer, b);
-	send_full_buffer(&filter.producer, b);
+	send_full_buffer(&filter.producer, &filter.buf);
 }
 
 static void
@@ -617,6 +619,8 @@ add_filter(struct vbi *vbi)
 
 	init_callback_fifo(&filter.fifo, "vbi-filter",
 		NULL, NULL, wait_full_filter, NULL, 0, 0);
+
+	add_buffer(&filter.fifo, &filter.buf);
 
 	assert(add_producer(&filter.fifo, &filter.producer));
 
@@ -857,9 +861,11 @@ vbi_open(fifo *source)
 	add_filter(vbi);
 
 
-	/* Second (internal) source, the RGB WSS decoder */	
-
-	assert(add_producer(vbi->source, &vbi->wss_producer));
+	/*
+	 *  Second (internal) source, the RGB WSS decoder.
+	 *  NB this won't succeed when the filter is active.
+	 */	
+	add_producer(vbi->source, &vbi->wss_producer);
 
 	vbi->video_fmt = -1;
 	vbi->video_width = -1;		
@@ -897,8 +903,8 @@ vbi_open(fifo *source)
 		return NULL;
 	}
 
-#if TELEWEB_ALERT
-	fprintf(stderr, "TWA on\n");
+#if LIBVBI_IDL_ALERT
+	fprintf(stderr, "IDL sniffer on\n");
 #endif
 	return vbi;
 }

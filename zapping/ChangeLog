@@ -1,3 +1,22 @@
+16.08.2001	libvbi et al <mschimek@users.sf.net>
+
+	* exp-html.c: Added color option, fixed anchor insertion.
+	* ttxview.c: Didn't set vbi export from zconf, fixed.
+
+15.08.2001	libvbi et al <mschimek@users.sf.net>
+
+	* glade: Removed the gettextized "labelxx" and the like.
+	* list.h: rem_node() returns NULL if node is not member of
+	  the list. Fast removing w/o check under unlink_node().
+	* fifo.c: rem_producer/consumer() safe to call after
+	  adding failed. (More changes ahead.)
+	* vbi.c: Restored test filter.
+	* teletext.c: Fixed SWR p570 DRCS bug. Added enhancement
+	  header-only shortcut as suggested by spec.
+	* zvbi.c: Fixed off-by-one error (column 41) updating RTC
+	  in rolling_header(), and no RTC from a page not marked
+	  for rolling (was a problem on MTV ger; arguable, let's see).
+
 14.08.2001	mpeg plugin <garetxe@users.sf.net>
 
 	* plugins/mpeg: Avoided memcpy using mc fifos.
