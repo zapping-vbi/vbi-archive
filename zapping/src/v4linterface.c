@@ -34,7 +34,6 @@
    (such as the number of inputs and so on) */
 #include "tveng.h"
 #include "v4linterface.h"
-#include "callbacks.h"
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zconf.h"
 #include "zmisc.h"
