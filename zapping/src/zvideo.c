@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zvideo.c,v 1.1.2.1 2003-03-24 17:18:08 mschimek Exp $ */
+/* $Id: zvideo.c,v 1.1.2.2 2003-06-16 06:06:49 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -27,12 +27,26 @@
 
 #include "zmisc.h"
 #include "zvideo.h"
+#include "zmarshalers.h"
 
 #define MAX_SIZE 16384
 
+enum {
+  CURSOR_BLANKED,
+  NUM_SIGNALS
+};
+
 static GtkDrawingAreaClass *	parent_class = NULL;
+static guint			signals[NUM_SIGNALS];
 
 /* Cursor blanking routines */
+
+static void
+cursor_blanked			(ZVideo *		video)
+{
+  gdk_window_set_cursor (GTK_WIDGET (video)->window,
+			 Z_VIDEO_GET_CLASS (video)->blank_cursor);
+}
 
 static gboolean
 blank_cursor_timeout		(gpointer		p)
@@ -41,8 +55,7 @@ blank_cursor_timeout		(gpointer		p)
 
   g_assert (video->blank_cursor_timeout > 0);
 
-  gdk_window_set_cursor (GTK_WIDGET (video)->window,
-			 Z_VIDEO_GET_CLASS (video)->blank_cursor);
+  g_signal_emit (video, signals[CURSOR_BLANKED], 0);
 
   video->blank_cursor_timeout_handle = 0;
 
@@ -516,7 +529,6 @@ events				(GtkWidget *		widget,
       if (ZVIDEO_EXPOSE_TEST)
 	{
 	  fprintf (stderr, "z_video expose\n");
-
 	  gdk_draw_arc (widget->window,
 			widget->style->fg_gc[GTK_WIDGET_STATE (widget)],
 			TRUE, 0, 0,
@@ -593,7 +605,6 @@ instance_init			(GTypeInstance *	instance,
 				 gpointer		g_class)
 {
   ZVideo *video = (ZVideo *) instance;
-  guint old_mask;
 
   video->mod_x = 1;
   video->mod_y = 1;
@@ -609,8 +620,7 @@ instance_init			(GTypeInstance *	instance,
   video->blank_cursor_timeout = 0;
   video->blanked_cursor_type = GDK_LEFT_PTR;
 
-  old_mask = gtk_widget_get_events (GTK_WIDGET (video));
-  gtk_widget_set_events (GTK_WIDGET (video), old_mask
+  gtk_widget_add_events (GTK_WIDGET (video), 0
 			 | GDK_POINTER_MOTION_MASK
 			 | GDK_BUTTON_PRESS_MASK
 			 | GDK_LEAVE_NOTIFY_MASK);
@@ -672,6 +682,17 @@ class_init			(gpointer		g_class,
 
     g_object_unref (G_OBJECT (pixmap));
   }
+
+  class->cursor_blanked = cursor_blanked;
+
+  signals[CURSOR_BLANKED] =
+    g_signal_new ("cursor-blanked",
+                  G_OBJECT_CLASS_TYPE (object_class),
+                  G_SIGNAL_RUN_FIRST,
+                  G_STRUCT_OFFSET (ZVideoClass, cursor_blanked),
+                  NULL, NULL,
+                  z_marshal_VOID__VOID,
+                  G_TYPE_NONE, 0);
 }
 
 GType

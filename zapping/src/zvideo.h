@@ -65,6 +65,8 @@ struct _ZVideoClass
 {
   GtkDrawingAreaClass	parent_class;
 
+  void			(* cursor_blanked)		(ZVideo *);
+
   GdkCursor *		blank_cursor;
 };
 
