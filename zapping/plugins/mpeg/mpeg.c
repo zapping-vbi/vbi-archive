@@ -353,7 +353,7 @@ void plugin_process_bundle ( capture_bundle * bundle )
     }
   else
     {
-      g_assert_not_reached(); /* capture_fifo2 not mc-able */
+      g_assert_not_reached(); /* capture_fifo not mc-able */
 #if 0
       inc_buffer_refcount(bundle->b);
       
@@ -383,7 +383,7 @@ void plugin_process_bundle ( capture_bundle * bundle )
 static void
 video_unref_buffer(rte_context *context, rte_buffer *buf)
 {
-  g_assert_not_reached(); /* capture_fifo2 not mc-able */
+  g_assert_not_reached(); /* capture_fifo not mc-able */
 
 #if 0
   fifo *capture_fifo = rte_get_user_data(context);

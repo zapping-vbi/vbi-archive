@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.3 2001-08-10 16:32:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1555,7 +1555,7 @@ mpeg1_video_ipb(void *capture_fifo)
 					printv(3, "Forced drop #%d\n", video_frame_count + sp);
 
 					if (this->buffer)
-						send_empty_buffer2(&cons, this->buffer);
+						send_empty_buffer(&cons, this->buffer);
 
 					continue;
 				}

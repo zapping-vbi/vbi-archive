@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.31 2001-08-10 04:43:28 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.32 2001-08-10 16:31:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1010,7 +1010,7 @@ wait_full_stream(fifo *f)
 			vbi_sliced *s;
 
 			if (v4l->wss_slicer_fn(&v4l->wss_slicer, wss_test_data, temp)) {
-				b = wait_empty_buffer2(&v4l->producer);
+				b = wait_empty_buffer(&v4l->producer);
 
 				s = (void *) b->data = b->allocated;
 				s->id = SLICED_WSS_625;
@@ -1021,7 +1021,7 @@ wait_full_stream(fifo *f)
 				b->time = time;
 				b->used = sizeof(vbi_sliced);
 
-				send_full_buffer2(&v4l->producer, b);
+				send_full_buffer(&v4l->producer, b);
 			}
 		}
 #endif
@@ -1654,7 +1654,7 @@ failure:
 
 /* Stubs for systems without V4L/V4L2 */
 
-fifo2 *
+fifo *
 vbi_open_v4lx(char *dev_name, int given_fd, int buffered,
 	int fifo_depth, char **err_str)
 {
@@ -1663,7 +1663,7 @@ vbi_open_v4lx(char *dev_name, int given_fd, int buffered,
 }
 
 void
-vbi_close_v4lx(fifo2 *f)
+vbi_close_v4lx(fifo *f)
 {
 	return;
 }

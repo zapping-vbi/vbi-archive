@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: rte.c,v 1.3 2001-08-10 16:32:16 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -155,7 +155,7 @@ wait_data(rte_context * context, int video)
 
 		pthread_mutex_unlock(&f->consumer->mutex);
 
-		/* -> wait_full_buffer2() (our caller) */
+		/* -> wait_full_buffer() (our caller) */
 	}
 }
 

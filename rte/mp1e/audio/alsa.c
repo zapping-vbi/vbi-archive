@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: alsa.c,v 1.3 2001-08-10 16:32:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -257,7 +257,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 
 #else // !HAVE_LIBASOUND
 
-fifo2 *
+fifo *
 open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 {
 	FAIL("Not compiled with ALSA interface.\n"

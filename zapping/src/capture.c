@@ -734,7 +734,7 @@ capture_stop(tveng_device_info *info)
   rem_producer(&cf_producer);
 
   /* Free the memory used by the bundles */
-  /* XXX should use the buffer2.destroy hook */
+  /* XXX should use the buffer.destroy hook */
   for_all_nodes (b, &capture_fifo.buffers, added)
     if (b->data)
       clear_bundle((capture_bundle * ) b->data);
@@ -814,7 +814,7 @@ print_info(GtkWidget *main_window)
 /* mhs: capture_fifo is not mc-able due to
   capture_bundle write permission */
 #if 0
-fifo2 *
+fifo *
 get_capture_fifo (void)
 {
   return &capture_fifo;
