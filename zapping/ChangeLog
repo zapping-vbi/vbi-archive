@@ -1,3 +1,20 @@
+26.12.2002	<mschimek@users.sf.net>
+
+	* src/properties-handler.c, src/properties-handler.h: Popup menu
+	  appearance sizes now configurable with kbd shortcuts re
+	  http://bugs.debian.org/168263. Added py_picture_size_cycle
+	  function.
+	* src/keyboard.c: Changed KP_Add and _Sub default key bindings to
+	  cycle through the favorite picture sizes. The ttx_subpage_incr
+	  functions are still available on cursor l/r.
+	* src/v4linterface.c (on_channel_key_press, kp_timeout): Keypad
+	  channel number entering broken, fixed zapping.set_channel
+	  argument. Splitted for reuse by alirc.
+	* plugins/alirc/alirc.c: Added MUTE, VOL_UP, VOL_DOWN re
+	  zapping-misc@lists.sourceforge.net 23 Dec 2002. Connected
+	  SETCHANNEL to the keypad channel number entering routines.
+	  Alirc now accepts the new Python commands.
+
 24.12.2002	<mschimek@users.sf.net>
 
 	* src/channel_editor.c, src/channel_editor.h: Rewrote from scratch.
