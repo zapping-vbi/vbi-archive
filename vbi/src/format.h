@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.4.2.1 2003-02-16 21:03:34 mschimek Exp $ */
+/* $Id: format.h,v 1.4.2.2 2003-04-29 05:50:18 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -185,9 +185,9 @@ typedef struct vbi_char {
 	 */
 	unsigned	link		: 1;
 	/**
-	 * Reserved for VPT link flag.
+	 * PDC link.
 	 */
-	unsigned	reserved	: 1;
+	unsigned	pdc		: 1;
 	/**
 	 * Character size, see vbi_size.
 	 */
@@ -273,21 +273,20 @@ typedef struct vbi_page {
 	/**
 	 * Page number, see vbi_pgno.
 	 */
-	/* FIXME this shouldn't be int */
- 	int			pgno;
+ 	vbi_pgno		pgno;
 	/**
-	 * Subpage number, see vbi_subno.
+	 * Subpage number, see vbi_subno. Only applicable
+	 * if this is a Teletext page.
 	 */
-	/* FIXME this shouldn't be int */
-	int			subno;
+	vbi_subno		subno;
 	/**
 	 * Number of character rows in the page.
 	 */
-	int			rows;
+	unsigned int		rows;
 	/**
 	 * Number of character columns in the page.
 	 */
-	int			columns;
+	unsigned int		columns;
 	/**
 	 * The page contents, these are @a rows x @a columns without
 	 * padding between the rows. See vbi_char for details.
@@ -344,6 +343,8 @@ typedef struct vbi_page {
 	 */
 	vbi_rgba 		color_map[40];
 
+  /* XXX hide stuff below */
+
 	/**
 	 * DRCS (dynamically redefinable characters) can have
 	 * two, four or sixteen different colors. Without further details,
@@ -394,6 +395,116 @@ typedef struct vbi_page {
 	vbi_opacity		boxed_opacity[2];
 } vbi_page;
 
+#if 0
+
+typedef enum {
+	VBI_EXP_TABLE =		(1 << 0),
+	VBI_EXP_RTL =		(1 << 1),
+	VBI_EXP_REVEAL =	(1 << 2),
+	VBI_EXP_FLASH_ON =	(1 << 3),
+} vbi_export_flags;
+
+#endif
+
 /* Private */
+
+#if 0
+
+namespace vbi {
+  class Char {
+    vbi_char			ch;
+  };
+  class Page {
+    vbi_page *			pg;
+  public:
+    typedef const Char*		const_iterator;
+    typedef const Char&		const_reference;
+    Pgno pgno (void) const
+      { return pg->pgno; }
+    Subno subno (void) const
+      { return pg->subno; }
+    unsigned int rows (void) const
+      { return pg->rows; }
+    unsigned int columns (void) const
+      { return pg->columns; }
+    const_iterator begin (void) const
+      { return pg->text; }
+    const_iterator end (void) const
+      { return pg->text + pg->rows * pg->columns; }
+    const_reference operator[] (size_t n) const
+      { return pg->text + n; }
+    /* exp-txt */
+    unsigned int print	(char *			buf,
+			 unsigned int		buf_size,
+			 const char *		format,
+			 const char *		separator,
+			 unsigned int		sep_size,
+			 vbi_export_flags	flags,
+			 unsigned int		column,
+			 unsigned int		row,
+			 unsigned int		width,
+			 unsigned int		height)
+      {
+	return vbi_print_page_region (pg, buf, buf_size,
+				      format, separator, sep_size,
+				      flags & VBI_EXP_TABLE,
+				      flags & VBI_EXP_RTL,
+				      column, row, width, height);
+      }
+    unsigned int print	(char *			buf,
+			 unsigned int		buf_size,
+			 const char *		format,
+			 vbi_export_flags	flags,
+			 unsigned int		column,
+			 unsigned int		row,
+			 unsigned int		width,
+			 unsigned int		height)
+      {
+	return vbi_print_page_region (pg, buf, buf_size,
+				      format, NULL, 0,
+				      flags & VBI_EXP_TABLE,
+				      flags & VBI_EXP_RTL,
+				      column, row, width, height);
+      }
+    unsigned int print	(char *			buf,
+			 unsigned int		buf_size,
+			 const char *		format = 0,
+			 vbi_export_flags	flags = 0)
+      {
+	return vbi_print_page_region (pg, buf, buf_size,
+				      format, NULL, 0,
+				      flags & VBI_EXP_TABLE,
+				      flags & VBI_EXP_RTL,
+				      0, 0, pg.columns, pg.rows);
+      }
+    /* exp-gfx */
+    void draw_vt_page	(vbi_pixfmt		fmt,
+			 char *			canvas,
+			 unsigned int		stride,
+			 vbi_export_flags	flags,
+			 unsigned int		column,
+			 unsigned int		row,
+			 unsigned int		width,
+			 unsigned int		height)
+      {
+	vbi_draw_vt_page_region (pg, fmt, canvas, stride,
+				 column, row, width, height,
+				 flags & VBI_EXP_REVEAL,
+				 flags & VBI_EXP_FLASH_ON);
+      }
+    void draw_vt_page	(vbi_pixfmt		fmt,
+			 char *			canvas,
+			 unsigned int		stride = 0,
+			 vbi_export_flags	flags = 0)
+      {
+	vbi_draw_vt_page_region (pg, fmt, canvas, stride,
+				 0, 0, pg.columns, pg.rows,
+				 flags & VBI_EXP_REVEAL,
+				 flags & VBI_EXP_FLASH_ON);
+      }
+  };
+}; /* namespace vbi */
+
+#endif
 
 #endif /* FORMAT_H */
