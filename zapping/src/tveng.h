@@ -560,28 +560,14 @@ typedef struct {
 	void *			data;
 	unsigned int		size;
 
-	double			sample_time;
-	uint64_t		stream_time;
+	struct timeval		sample_time;
+	int64_t			stream_time;
 
 	const tv_image_format *	format;
 } tv_capture_buffer;
 
 extern tv_bool
 tv_capture_buffer_clear		(tv_capture_buffer *	cb);
-
-/* Convenience construction for managing image data */
-typedef union {
-  struct {
-    void*	data; /* Data, usually in rgb or yuyv formats */
-    unsigned int	stride; /* bytes per line */
-  } linear;
-  struct {
-    void	*y, *u, *v; /* Pointers to the different fields */
-    unsigned int	y_stride; /* bytes per line of the Y field */
-    unsigned int	uv_stride; /* bytes per line of U or V fields */
-  } planar;
-} tveng_image_data;
-
 
 /*
  *  Video overlay, see ROADMAP
@@ -646,7 +632,7 @@ extern const tv_video_line *
 tv_get_video_input		(tveng_device_info *	info);
 extern tv_bool
 tv_set_video_input		(tveng_device_info *	info,
-				 const tv_video_line *	line);
+				 tv_video_line *	line);
 /* Current video input, frequencies in Hz */
 extern tv_bool
 tv_get_tuner_frequency		(tveng_device_info *	info,
@@ -686,7 +672,7 @@ extern const tv_audio_line *
 tv_get_audio_input		(tveng_device_info *	info);
 extern tv_bool
 tv_set_audio_input		(tveng_device_info *	info,
-				 const tv_audio_line *	line);
+				 tv_audio_line *	line);
 extern tv_callback *
 tv_add_audio_input_callback	(tveng_device_info *	info,
 				 void			(* notify)(tveng_device_info *, void *),
@@ -715,7 +701,7 @@ extern const tv_video_standard *
 tv_get_video_standard		(tveng_device_info *	info);
 extern tv_bool
 tv_set_video_standard		(tveng_device_info *	info,
-				 const tv_video_standard *standard);
+				 tv_video_standard *standard);
 extern tv_bool
 tv_set_video_standard_by_id	(tveng_device_info *	info,
 				 tv_videostd_set	videostd_set);
@@ -895,9 +881,10 @@ tveng_set_standard_by_name(const char * name, tveng_device_info * info);
   controller (i.e. V4L1). Strength and/or afc can be NULL pointers,
   that would mean ignore that parameter.
 */
-int
-tveng_get_signal_strength (int *strength, int * afc,
-			   tveng_device_info * info);
+extern tv_bool
+tv_get_signal_strength		(tveng_device_info *	info,
+				 int *			strength,
+				 int *			afc);
 
 /*
   Sets up the capture device so any read() call after this one
@@ -910,26 +897,22 @@ tveng_start_capturing(tveng_device_info * info);
 int
 tveng_stop_capturing(tveng_device_info * info);
 
-/* 
-   Reads a frame from the video device, storing the read data in dest.
-   time: time to wait using select() in miliseconds
-   info: pointer to the video device info structure
-   Returns -1 on error, 1 on timeout, 0 on success.
-   Note: if you want this call to be non-blocking, call it with time=0
-*/
-int tveng_read_frame(tveng_image_data * dest,
-		     unsigned int wait_time, tveng_device_info * info);
-tv_bool
+extern int
+tv_read_frame			(tveng_device_info *	info,
+				 tv_capture_buffer *	buffer,
+				 const struct timeval *	timeout);
+extern tv_bool
 tv_queue_capture_buffer		(tveng_device_info *	info,
 				 const tv_capture_buffer *buffer);
-const tv_capture_buffer *
-tv_dequeue_capture_buffer	(tveng_device_info *	info,
-				 unsigned int		time);
-
-/*
-  Gets the timestamp of the last read frame in seconds.
-*/
-double tveng_get_timestamp(tveng_device_info * info);
+extern const tv_capture_buffer *
+tv_dequeue_capture_buffer	(tveng_device_info *	info);
+extern int
+tv_dequeue_capture_buffer_with_timeout
+				(tveng_device_info *	info,
+				 const tv_capture_buffer **buffer,
+				 struct timeval *	timeout);
+extern tv_bool
+tv_flush_capture_buffers	(tveng_device_info *	info);
 
 /* 
    Sets the capture buffer to an specific size. returns -1 on
@@ -983,10 +966,7 @@ extern tv_bool
 tv_enable_overlay		(tveng_device_info *	info,
 				 tv_bool		enable);
 
-extern void
-tveng_copy_frame		(unsigned char *	src,
-				 tveng_image_data *	where,
-				 tveng_device_info *	info);
+
 
 /* 
    This is a convenience function, it returns the real screen depth in
