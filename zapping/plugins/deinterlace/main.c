@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.2 2005-01-31 07:21:34 mschimek Exp $ */
+/* $Id: main.c,v 1.3 2005-02-05 22:21:54 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -291,8 +291,8 @@ start_thread1			(void)
     }
 
   if (0)
-    fprintf (stderr, "Method %s, resolution %u\n",
-	     method->szName, resolution);
+    fprintf (stderr, "Method %s (%s), resolution %u\n",
+	     _(method->szName), method->szName, resolution);
 
   old_mode = tv_get_capture_mode (zapping->info);
   if (CAPTURE_MODE_READ != old_mode)
@@ -363,9 +363,9 @@ start_thread1			(void)
   info.InputPitch = capture_width * 2 * 2;
   info.pMemcpy = (void *) tv_memcpy;
 
-#warning TODO
-  //  assert (!method->bNeedFieldDiff);
-  //  assert (!method->bNeedCombFactor);
+  /* XXX Not implemented yet. */
+  assert (!method->bNeedFieldDiff);
+  assert (!method->bNeedCombFactor);
 
   queue_len2 = (method->nFieldsRequired + 1) & -2;
   g_assert (queue_len2 <= MAX_PICTURE_HISTORY);
@@ -435,8 +435,7 @@ properties_add			(GtkDialog *		dialog)
     .icon_name		= "interlace48.png",
     .create		= deinterlace_prefs_new,
     .cancel		= (void (*)(GtkWidget *)) deinterlace_prefs_cancel,
-#warning TODO
-    // .help_link_id	= "zapping-settings-dilace",
+    .help_link_id	= "zapping-settings-deinterlace",
   };
   static const SidebarGroup sg = {
     N_("Plugins"), &se, 1
@@ -495,7 +494,8 @@ plugin_init			(PluginBridge		bridge _unused_,
   GET (VIDEO_GREEDY, Greedy);
   GET (VIDEO_GREEDY2FRAME, Greedy2Frame);
   GET (VIDEO_GREEDYH, GreedyH);
-  GET (OLD_GAME, OldGame);
+  /* To do - bNeedCombFactor
+     GET (OLD_GAME, OldGame); */
   GET (VIDEO_TOMSMOCOMP, TomsMoComp);
   GET (VIDEO_MOCOMP2, MoComp2);
 
