@@ -454,7 +454,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.15 2003-02-18 10:12:06 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.16 2003-03-06 21:55:22 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -664,9 +664,7 @@ int main(int argc, char * argv[])
   D();
   /* mute the device while we are starting up */
   /* FIXME */
-  /* if (tveng_set_mute(1, main_info) < 0)
-     unmutable = TRUE; */
-  if (!audio_set_mute (1))
+  if (-1 == tv_mute_set (main_info, TRUE))
     unmutable = TRUE;
   D();
   z_tooltips_active (zconf_get_boolean
@@ -703,6 +701,8 @@ int main(int argc, char * argv[])
   D();
   if (unmutable)
     {
+      /* FIXME this can change at runtime, the mute button
+         should update just like the controls box. */
       /* has no mute function */
       gtk_widget_hide(lookup_widget(main_window, "tb-mute"));
       D();
@@ -796,7 +796,21 @@ int main(int argc, char * argv[])
   //    printv("%s\n", main_info->error);
   //  else
   mixer_setup ();
-  set_mute (!!zcg_bool (NULL, "start_muted"), /* controls */ TRUE, /* osd */ FALSE);
+
+  D();
+  {
+    tveng_tc_control *controls;
+    guint num_controls;
+
+    /* Restore global controls (preliminary) */
+
+    zconf_get_integer (&num_controls, ZCONF_DOMAIN "num_controls");
+    controls = zconf_get_controls (num_controls, "/zapping/options/main");
+    load_control_values (main_info, controls, num_controls,
+			 !!zcg_bool (NULL, "start_muted"));
+  }
+
+  set_mute (3 /* update */, /* controls */ TRUE, /* osd */ FALSE);
 
   D();
   /* Restore the input and the standard */
@@ -844,7 +858,7 @@ int main(int argc, char * argv[])
 
 static void shutdown_zapping(void)
 {
-  int i = 0, j = 0;
+  int i = 0;
   gchar * buffer = NULL;
   tveng_tuned_channel * channel;
 
@@ -870,18 +884,34 @@ static void shutdown_zapping(void)
   shutdown_zvbi();
 #endif
 
+  {
+    tveng_tc_control *controls;
+    guint num_controls;
+
+    /* Global controls (preliminary) */
+
+    printv(" controls");
+
+    store_control_values (main_info, &controls, &num_controls);
+    zconf_create_integer (num_controls, "Saved controls", ZCONF_DOMAIN "num_controls");
+    zconf_create_controls (controls, num_controls, "/zapping/options/main");
+  }
+
   /* Write the currently tuned channels */
   printv(" channels");
-  zconf_delete(ZCONF_DOMAIN "tuned_channels");
+
+  zconf_delete (ZCONF_DOMAIN "tuned_channels");
+
   while ((channel = tveng_tuned_channel_nth (global_channel_list, i)) != NULL)
     {
       if ((i == cur_tuned_channel) &&
 	  !ChannelWindow) /* Having the channel editor open screws this
 			   logic up, do not save controls in this case */
 	{
-	  g_free(channel->controls);
-	  store_control_values(&channel->num_controls,
-			       &channel->controls, main_info);
+	  g_free (channel->controls);
+	  store_control_values (main_info,
+				&channel->controls,
+				&channel->num_controls);
 	}
 
 #define SAVE_CONFIG(_type, _name, _cname, _descr)			\
@@ -899,18 +929,11 @@ static void shutdown_zapping(void)
       SAVE_CONFIG (integer, standard,     standard,     "Attached standard");
       SAVE_CONFIG (integer, num_controls, num_controls, "Saved controls");
 
-      for (j = 0; j<channel->num_controls; j++)
+      if (channel->num_controls > 0)
 	{
-	  buffer = g_strdup_printf(ZCONF_DOMAIN
-				   "tuned_channels/%d/controls/%d/name",
-				   i, j);
-	  zconf_create_string (channel->controls[j].name, "Control name", buffer);
-	  g_free(buffer);
-	  buffer = g_strdup_printf(ZCONF_DOMAIN
-				   "tuned_channels/%d/controls/%d/value",
-				   i, j);
-	  zconf_create_float(channel->controls[j].value, "Control value", buffer);
-	  g_free(buffer);
+	  buffer = g_strdup_printf (ZCONF_DOMAIN "tuned_channels/%d", i);
+	  zconf_create_controls (channel->controls, channel->num_controls, buffer);
+	  g_free (buffer);
 	}
 
       i++;
@@ -1027,10 +1050,9 @@ static void shutdown_zapping(void)
 
 static gboolean startup_zapping(gboolean load_plugins)
 {
-  int i = 0, j;
+  int i = 0;
   gchar * buffer = NULL;
   gchar * buffer2 = NULL;
-  gchar * buffer3 = NULL;
   tveng_tuned_channel new_channel;
   GList * p;
   D();
@@ -1092,18 +1114,19 @@ static gboolean startup_zapping(gboolean load_plugins)
   D();
 
   /* Loads all the tuned channels */
+
   global_channel_list = NULL;
-  while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "tuned_channels") !=
-	 NULL)
+
+  while (zconf_get_nth (i, &buffer, ZCONF_DOMAIN "tuned_channels") != NULL)
     {
-      g_assert(strlen(buffer) > 0);
+      CLEAR (new_channel);
 
-      memset(&new_channel, 0, sizeof(new_channel));
+      g_assert (strlen (buffer) > 0);
 
-      if (buffer[strlen(buffer)-1] == '/')
-	buffer[strlen(buffer)-1] = 0;
+      if (buffer[strlen (buffer) - 1] == '/')
+	buffer[strlen (buffer) - 1] = 0;
 
-      /* Get all the items from here  */
+      /* Get all the items from here */
 
 #define LOAD_CONFIG(_type, _name, _cname)				\
   buffer2 = g_strconcat (buffer, "/" #_cname, NULL);			\
@@ -1119,59 +1142,22 @@ static gboolean startup_zapping(gboolean load_plugins)
       LOAD_CONFIG (integer, standard,     standard);
       LOAD_CONFIG (integer, num_controls, num_controls);
 
-      buffer2 = g_strconcat(buffer, "/controls", NULL);
-      if (new_channel.num_controls)
-	new_channel.controls = (tveng_tc_control *)
-	  g_malloc0(sizeof(tveng_tc_control)
-		    * new_channel.num_controls);
-      for (j = 0; j<new_channel.num_controls; j++)
-	{
-	  if (!zconf_get_nth(j, &buffer3, buffer2))
-	    {
-	      g_warning("Control %d of channel %d [%s] is malformed, skipping",
-			j, i, new_channel.name);
-	      continue;
-	    }
-	  {
-	    gchar *buf;
-	    const gchar *s;
-	    
-	    buf = g_strconcat(buffer3, "/name", NULL);
-	    if ((s = zconf_get_string (NULL, buf)))
-	      {
-	        strncpy(new_channel.controls[j].name, s, 32);
-	        g_free (buf);
-	      }
-	    else
-	      {
-	        g_free (buf);
-		continue;
-	      }
-          }
-	  {
-	    gchar *buf;
-	    
-	    buf = g_strconcat(buffer3, "/value", NULL);
-	    zconf_get_float(&new_channel.controls[j].value, buf);
-	    g_free (buf);
-          }
-	  g_free(buffer3);
-	}
-      g_free(buffer2);
+      new_channel.controls = zconf_get_controls (new_channel.num_controls, buffer);
 
       tveng_tuned_channel_insert (&global_channel_list,
 				  tveng_tuned_channel_new (&new_channel),
 				  G_MAXINT);
 
       /* Free the previously allocated mem */
-      g_free(new_channel.name);
-      g_free(new_channel.rf_name);
-      g_free(new_channel.rf_table);
-      g_free(new_channel.controls);
+      g_free (new_channel.name);
+      g_free (new_channel.rf_name);
+      g_free (new_channel.rf_table);
+      g_free (new_channel.controls);
 
-      g_free(buffer);
+      g_free (buffer);
       i++;
     }
+
   D();
   /* Starts all modules */
   startup_v4linterface(main_info);
@@ -1180,6 +1166,7 @@ static gboolean startup_zapping(gboolean load_plugins)
   D();
   startup_zimage();
   D();
+
   /* Loads the plugins */
   if (load_plugins)
     plugin_list = plugin_load_plugins();
