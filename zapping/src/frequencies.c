@@ -878,12 +878,32 @@ tveng_tuned_channel_nth		(const tveng_tuned_channel *list,
   return (tveng_tuned_channel *) list;
 }
 
+static int
+loose_strcmp			(const char *		s1,
+				 const char *		s2)
+{
+  while (*s1 && *s2)
+    {
+      while (*s1 >= 32 && !isalnum (*s1))
+	++s1;
+
+      while (*s2 >= 32 && !isalnum (*s2))
+	++s2;
+
+      if (*s1 != *s2)
+	return *s1 - *s2;
+    }
+
+  return 0;
+}
+
 static tveng_tuned_channel *
 tveng_tuned_channel_by_string	(tveng_tuned_channel *	list,
 				 const gchar *		name,
 				 guint			offset)
 {
   tveng_tuned_channel *tc;
+  tveng_tuned_channel *tc_loose;
   gchar *s, *t;
 
   if (!name || !list)
@@ -894,6 +914,8 @@ tveng_tuned_channel_by_string	(tveng_tuned_channel *	list,
   t = g_utf8_casefold (name, -1);
   s = g_utf8_normalize (t, -1, G_NORMALIZE_DEFAULT);
   g_free (t);
+
+  tc_loose = NULL;
 
   for (tc = list; tc; tc = tc->next)
     {
@@ -906,12 +928,16 @@ tveng_tuned_channel_by_string	(tveng_tuned_channel *	list,
 	  return tc;
 	}
 
+      if (!tc_loose)
+	if (0 == loose_strcmp (s, t))
+	  tc_loose = tc;
+
       g_free (t);
     }
 
   g_free (s);
 
-  return NULL;
+  return tc_loose;
 }
 
 tveng_tuned_channel *
