@@ -1,7 +1,11 @@
+2001-06-22	<mschimek@users.sourceforge.net>
+
+	- MC + 704x576 -> segv
+
 2001-06-07	<mschimek@users.sourceforge.net>
 
 	* Restored subtitle recording
-	* MC P/B bug still with us :-P
+	- MC P/B bug still with us :-P
 
 2001-06-05	<mschimek@users.sourceforge.net>
 

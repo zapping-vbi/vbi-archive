@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.9 2001-06-05 17:52:08 mschimek Exp $ */
+/* $Id: global_data.c,v 1.10 2001-06-22 21:49:36 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,7 +87,12 @@ int			mute			= 0;			// bttv specific, boolean
 
 char *			subtitle_pages		= NULL;
 
+#if LARGE_MEM // XXX make this an option
+int			cap_buffers		= 4*12;			// capture -> video compression
+int			vid_buffers		= 4*8;			// video compression -> mux
+int			aud_buffers		= 4*32;			// audio compression -> mux
+#else
 int			cap_buffers		= 12;			// capture -> video compression
 int			vid_buffers		= 8;			// video compression -> mux
 int			aud_buffers		= 32;			// audio compression -> mux
-
+#endif
