@@ -8,9 +8,8 @@
  *  Copyright (C) 1999-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -22,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.c,v 1.7 2001-08-14 16:36:48 mschimek Exp $ */
+/* $Id: tables.c,v 1.8 2001-08-22 01:26:53 mschimek Exp $ */
 
 /*
     Packet 8/30 f1	Byte 13			Byte 14

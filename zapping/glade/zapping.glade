@@ -460,7 +460,7 @@
 	    <class>GtkButton</class>
 	    <child_name>Toolbar:button</child_name>
 	    <name>channel_down</name>
-	    <tooltip>Select the next station in the chanel list [Page Down]</tooltip>
+	    <tooltip>Select the next station in the channel list [Page Down]</tooltip>
 	    <accelerator>
 	      <modifiers>0</modifiers>
 	      <key>GDK_Page_Down</key>
@@ -2109,10 +2109,10 @@ Open automatically
     <widget>
       <class>GtkLabel</class>
       <name>label1</name>
-      <label>Choose here the channels you want to use.
-If your country is not listed, please find out the frequencies used for
-the channels, and mail them to the author so they can get included
-in the next release of this program.</label>
+      <label>With this dialog you can edit the channel list.
+To begin, please choose the frequency table used in your country.
+When your country or the required table is not present please notify the author,
+adding the table if possible, for inclusion in the next release of this program.</label>
       <justify>GTK_JUSTIFY_CENTER</justify>
       <wrap>False</wrap>
       <xalign>0.5</xalign>
@@ -2151,9 +2151,9 @@ in the next release of this program.</label>
 	<widget>
 	  <class>GtkOptionMenu</class>
 	  <name>country_options_menu</name>
-	  <tooltip>Select here the country you are in</tooltip>
+	  <tooltip>Select here the frequency table used in your country</tooltip>
 	  <can_focus>True</can_focus>
-	  <items>Dummy country
+	  <items>No tables
 </items>
 	  <initial_choice>0</initial_choice>
 	  <child>
@@ -2224,7 +2224,7 @@ in the next release of this program.</label>
 	<widget>
 	  <class>GtkButton</class>
 	  <name>button35</name>
-	  <tooltip>Add all the channels in the current country to the channel list.</tooltip>
+	  <tooltip>Add all channels in the frequency table to the channel list.</tooltip>
 	  <can_focus>True</can_focus>
 	  <signal>
 	    <name>clicked</name>
@@ -2270,7 +2270,7 @@ in the next release of this program.</label>
 	    <last_modification_time>Fri, 21 Apr 2000 22:00:53 GMT</last_modification_time>
 	  </signal>
 	  <columns>5</columns>
-	  <column_widths>89,36,77,54,65</column_widths>
+	  <column_widths>90,50,60,70,65</column_widths>
 	  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 	  <show_titles>True</show_titles>
 	  <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -2279,7 +2279,7 @@ in the next release of this program.</label>
 	    <class>GtkLabel</class>
 	    <child_name>CList:title</child_name>
 	    <name>label37</name>
-	    <label>Alias</label>
+	    <label>Station name</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -2292,7 +2292,7 @@ in the next release of this program.</label>
 	    <class>GtkLabel</class>
 	    <child_name>CList:title</child_name>
 	    <name>label38</name>
-	    <label>ID</label>
+	    <label>Channel</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -2318,7 +2318,7 @@ in the next release of this program.</label>
 	    <class>GtkLabel</class>
 	    <child_name>CList:title</child_name>
 	    <name>label40</name>
-	    <label>kHz</label>
+	    <label>Freq (kHz)</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -2450,7 +2450,7 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkOptionMenu</class>
 	<name>attached_standard</name>
-	<tooltip>Select here the Standard this channel uses</tooltip>
+	<tooltip>Select here the video standard used on this channel</tooltip>
 	<can_focus>True</can_focus>
 	<items>Magical Standard
 </items>
@@ -2478,14 +2478,14 @@ in the next release of this program.</label>
 	<class>GtkButton</class>
 	<name>channel_search</name>
 	<border_width>7</border_width>
-	<tooltip>Select your country and click here to search for the available channels</tooltip>
+	<tooltip>Select a suitable frequency table, then click here to search through all channels in the table and add the received stations to the channel list.</tooltip>
 	<can_focus>True</can_focus>
 	<signal>
 	  <name>clicked</name>
 	  <handler>on_channel_search_clicked</handler>
 	  <last_modification_time>Tue, 20 Jun 2000 13:54:19 GMT</last_modification_time>
 	</signal>
-	<label>_Search for the available channels in the current country</label>
+	<label>Automatic station _search</label>
 	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
@@ -2558,7 +2558,7 @@ in the next release of this program.</label>
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label42</name>
-	  <label>Enter here the alias you want to give to this channel:</label>
+	  <label>Station name:</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>
@@ -2575,7 +2575,6 @@ in the next release of this program.</label>
 	<widget>
 	  <class>GtkEntry</class>
 	  <name>channel_name</name>
-	  <tooltip>Enter here the name you want to give to this channel</tooltip>
 	  <can_focus>True</can_focus>
 	  <signal>
 	    <name>activate</name>
@@ -2717,7 +2716,7 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkButton</class>
 	<name>channels_done</name>
-	<tooltip>Click here when you are done</tooltip>
+	<tooltip>Leave the dialog</tooltip>
 	<can_focus>True</can_focus>
 	<signal>
 	  <name>clicked</name>
@@ -5058,7 +5057,6 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkCheckButton</class>
 	<name>bookmark_switch</name>
-	<tooltip>If checked, the current channel will be automatically selected when the bookmark is selected</tooltip>
 	<can_focus>True</can_focus>
 	<label>Switch to the current channel when the bookmark is selected</label>
 	<active>False</active>
