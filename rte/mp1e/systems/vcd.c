@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.9 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: vcd.c,v 1.10 2002-03-16 16:31:34 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,7 +41,7 @@
 #define TEST(x) x
 #define PVER 4
 
-const int packet_size		= 2324;			/* bytes */
+const int sector_size		= 2324;			/* bytes */
 const int system_rate		= 75 * 2324;		/* bytes */
 const int ticks_per_packet	= SYSTEM_TICKS / 75;	/* SYSTEM_TICKS */
 const int BS_audio		= 4096;			/* bytes */
@@ -362,6 +362,7 @@ vcd_system_mux(void *muxp)
 	int nstreams, fspace;
 	stream *str, *video_stream = NULL;
 	stream *audio_stream = NULL;
+	rte_bool terminated = FALSE;
 	buffer *buf;
 	uint8_t *p;
 
@@ -395,7 +396,7 @@ vcd_system_mux(void *muxp)
 				video_frame_rate = str->frame_rate;
 
 				str->inbuf_free = BS_video;
-				str->packet_payload = packet_size
+				str->packet_payload = sector_size
 					- PACK_HEADER_SIZE - PACKET_HEADER_SIZE(VIDEO_STREAM);
 
 				packets += (buf->used + str->packet_payload - 1) / str->packet_payload;
@@ -403,7 +404,7 @@ vcd_system_mux(void *muxp)
 				audio_stream = str;
 
 				str->inbuf_free = BS_audio;
-				str->packet_payload = packet_size
+				str->packet_payload = sector_size
 					- PACK_HEADER_SIZE - PACKET_HEADER_SIZE(AUDIO_STREAM);
 
 				packets += (buf->used + str->packet_payload - 1) / str->packet_payload;
@@ -448,7 +449,7 @@ vcd_system_mux(void *muxp)
 	/* System header */
 
 	buf = mux_output(mux, NULL);
-	assert(buf && buf->size >= packet_size);
+	assert(buf && buf->size >= sector_size);
 
 	p = buf->data;
 	p = pack_header(p, scr, system_rate);
@@ -458,7 +459,7 @@ vcd_system_mux(void *muxp)
 
 	bytes_out += buf->used = p - buf->data;
 	buf = mux_output(mux, buf);
-	assert(buf && buf->size >= packet_size);
+	assert(buf && buf->size >= sector_size);
 
 	scr += ticks_per_packet;
 
@@ -470,7 +471,7 @@ vcd_system_mux(void *muxp)
 
 	bytes_out += buf->used = p - buf->data;
 	buf = mux_output(mux, buf);
-	assert(buf && buf->size >= packet_size);
+	assert(buf && buf->size >= sector_size);
 
 	packet_count = 2;
 
@@ -556,27 +557,41 @@ reschedule:
 					}
 
 					if ((px - p) < PADDING_MIN) {
-						memset(p, 0, px - p);
-						p = px;
+						n = px - p;
+						if (nstreams == 1 && n > 4)
+							n -= 4;
+						memset(p, 0, n);
+						p += n;
 					}
 				}
 
 				printv(PVER, "Packet #%d %s, pts=%lld\n",
 				       packet_count, mpeg_header_name(str->stream_id), pts);
 
-				put(ph + 4, p - ph - 6, 2);
+				put(ph + 4, p - ph - 6, 2); /* packet size */
+
 
 				if (p < px) {
-					assert((px - p) >= PADDING_MIN);
-					p = padding_packet(p, px - p);
+					/* Pad to sector size (stream end only) */
+
+					n = px - p;
+
+					if (nstreams == 0 && n >= (PADDING_MIN + 4)) {
+						p = padding_packet(p, n - 4);
+						put(p, MPEG_PROGRAM_END_CODE, 4);
+						terminated = TRUE;
+					} else {
+						assert(n >= PADDING_MIN);
+						p = padding_packet(p, n);
+					}
 				}
 			}
 		}
 
-		bytes_out += buf->used = packet_size;
+		bytes_out += buf->used = sector_size;
 
 		buf = mux_output(mux, buf);
-		assert(buf && buf->size >= packet_size);
+		assert(buf && buf->size >= sector_size);
 
 		if (verbose > 0) {
 			if (pts > front_pts)
@@ -606,10 +621,12 @@ reschedule:
 		}
 	}
 
-	put(buf->data, ISO_END_CODE, 4);
-	buf->used = 4;
-
-	mux_output(mux, buf);
+	if (!terminated) {
+		p = padding_packet(buf->data, sector_size - 4);
+		put(p, MPEG_PROGRAM_END_CODE, 4);
+		buf->used = sector_size;
+		mux_output(mux, buf);
+	}
 
 	pthread_cleanup_pop(1);
 
