@@ -90,6 +90,10 @@ p_tvengxv_open_device(tveng_device_info *info)
 				  &error_base))
     goto error1;
 
+  if (info->debug_level > 0)
+    fprintf(stderr, "tvengxv.c: XVideo major_opcode: %d\n",
+	    major_opcode);
+
   if (version < 2 || (version == 2 && revision < 2))
     goto error1;
 
