@@ -1,7 +1,7 @@
 /*
  *  libzvbi - BCD arithmetic for Teletext page numbers
  *
- *  Copyright (C) 2001, 2002 Michael H. Schimek
+ *  Copyright (C) 2001-2003 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.6.2.1 2003-02-16 21:03:29 mschimek Exp $ */
+/* $Id: bcd.h,v 1.6.2.2 2003-05-02 10:44:19 mschimek Exp $ */
 
 #ifndef BCD_H
 #define BCD_H
@@ -37,6 +37,140 @@
  */
 
 /* Public */
+
+/**
+ * @ingroup BCD
+ * @param dec Decimal number.
+ * 
+ * Converts a two's complement binary to a packed bcd value.
+ * Currently the argument @a dec must be in range 0 ... 9999.
+ * Other values yield an undefined result.
+ *
+ * @return
+ * Packed bcd number.
+ */
+static_inline int
+vbi_dec2bcd			(int			dec)
+{
+	int t;
+
+	/* Should try x87 bcd, hence the undefined clause above.
+	   Don't forget to add limit constants. */
+
+	t =  (dec % 10) << 0; dec /= 10;
+	t += (dec % 10) << 4; dec /= 10;
+	t += (dec % 10) << 8; dec /= 10;
+	t += (dec % 10) << 12;
+
+	return t;
+}
+
+/**
+ * @ingroup BCD
+ * @param bcd BCD number.
+ * 
+ * Converts a packed bcd in to a two's complement binary value.
+ * Currently the argument @a bcd must be in range 0x0 ... 0x9999.
+ * Other values yield an undefined result.
+ * 
+ * @return
+ * Binary number. The result is undefined when the bcd number
+ * contains hex digits 0xA ... 0xF.
+ */
+static_inline int
+vbi_bcd2dec			(int			bcd)
+{
+	int t;
+
+	t  = (bcd & 15); bcd >>= 4;
+	t += (bcd & 15) * 10; bcd >>= 4;
+	t += (bcd & 15) * 100; bcd >>= 4;
+	t += (bcd & 15) * 1000;
+
+	return t;
+}
+
+/* Consider 64 bit ints. */
+
+static const int vbi_bcd10 = ((int) 0x1111111111111111LL) << 4;
+static const int vbi_bcd06 = ((int) 0x6666666666666666LL) >> 4; 
+
+/**
+ * @ingroup BCD
+ * @param a BCD number.
+ * @param b BCD number.
+ * 
+ * Adds two packed bcd numbers, returning a packed bcd sum.
+ * 
+ * @return
+ * BCD number. The result is undefined when the bcd number
+ * contains hex digits 0xA ... 0xF.
+ */
+static_inline int
+vbi_add_bcd			(int			a,
+				 int			b)
+{
+	int t = a + (b += vbi_bcd06);
+
+	a  = ((~(b ^ a ^ t) & vbi_bcd10) >> 3) * 3;
+
+	return t - a;
+}
+
+/**
+ * @ingroup BCD
+ * @param bcd BCD number.
+ * 
+ * Calculates the 10's complement of a packed bcd. The most significant
+ * nibble is the sign, e.g. 0xF999&nbsp;9999 = vbi_neg_bcd (0x0000&nbsp;00001).
+ * 
+ * @return
+ * BCD number. The result is undefined when the bcd number contains
+ * hex digits 0xA ... 0xF.
+ */
+static_inline int
+vbi_neg_bcd			(int			bcd)
+{
+	int t = -bcd;
+
+	return t - (((bcd ^ t) & vbi_bcd10) >> 3) * 3;
+}
+
+/**
+ * @ingroup BCD
+ * @param a BCD number.
+ * @param b BCD number.
+ * 
+ * Subtracts two packed bcd numbers, returning a - b. The result
+ * may be negative (10's complement), see vbi_neg_bcd().
+ * 
+ * @return
+ * BCD number. The result is undefined when the bcd number contains
+ * hex digits 0xA ... 0xF.
+ */
+static_inline int
+vbi_sub_bcd			(int			a,
+				 int			b)
+{
+	return vbi_add_bcd (a, vbi_neg_bcd (b));
+}
+
+/**
+ * @ingroup BCD
+ * @param bcd BCD number.
+ * 
+ * Tests if @a bcd forms a valid packed bcd number.
+ * 
+ * @return
+ * @c FALSE if @a bcd contains hex digits 0xA ... 0xF.
+ */
+static_inline vbi_bool
+vbi_is_bcd			(int			bcd)
+{
+	if (bcd < 0) bcd ^= 0xF << (8 * sizeof (int) - 4);
+
+	return (((bcd + vbi_bcd06) ^ (bcd ^ vbi_bcd06)) & vbi_bcd10) == 0;
+}
 
 /**
  * @ingroup Service
@@ -70,7 +204,7 @@
  *   "Additional text channel"</td></tr>
  * </table>
  */
-typedef unsigned int vbi_pgno;
+typedef int vbi_pgno;
 
 /**
  * @ingroup Service
@@ -81,94 +215,19 @@ typedef unsigned int vbi_pgno;
  * it can assume values between 0x0000 ... 0x2359 expressing
  * local time. These are not actually subpages.
  */
-typedef unsigned int vbi_subno;
+typedef int vbi_subno;
+
+/* Magic constants from ETS 300 706. */
 
 /**
  * @ingroup Service
  */
-#define VBI_ANY_SUBNO 0x3F7F
+#define VBI_ANY_SUBNO ((vbi_subno) 0x3F7F)
+
 /**
  * @ingroup Service
  */
-#define VBI_NO_SUBNO 0x3F7F
-
-/**
- * @ingroup BCD
- * @param dec Decimal number.
- * 
- * Converts a decimal number between 0 ... 999 to a bcd number in range
- * 0x000 ... 0x999. Extra digits in the input will be discarded.
- * 
- * @return
- * BCD number.
- */
-static_inline unsigned int
-vbi_dec2bcd(unsigned int dec)
-{
-	return (dec % 10) + ((dec / 10) % 10) * 16 + ((dec / 100) % 10) * 256;
-}
-
-/**
- * @ingroup BCD
- * @param bcd BCD number.
- * 
- * Converts a bcd number between 0x000 ... 0xFFF to a decimal number
- * in range 0 ... 999. Extra digits in the input will be discarded.
- * 
- * @return
- * Decimal number. The result is undefined when the bcd number contains
- * hex digits 0xA ... 0xF.
- **/
-static_inline unsigned int
-vbi_bcd2dec(unsigned int bcd)
-{
-	return (bcd & 15) + ((bcd >> 4) & 15) * 10 + ((bcd >> 8) & 15) * 100;
-}
-
-/**
- * @ingroup BCD
- * @param a BCD number.
- * @param b BCD number.
- * 
- * Adds two bcd numbers, returning a bcd sum. The result will be in
- * range 0x0000&nbsp;0000 ... 0x9999&nbsp;9999, discarding carry and extra digits
- * in the inputs. To subtract you can add the complement,
- * e. g. -0x1 = +0x9999&nbsp;9999.
- * 
- * @return
- * BCD number. The result is undefined when the bcd number contains
- * hex digits 0xA ... 0xF.
- */
-static_inline unsigned int
-vbi_add_bcd(unsigned int a, unsigned int b)
-{
-	unsigned int t;
-
-	a += 0x06666666;
-	t  = a + b;
-	b ^= a ^ t;
-	b  = (~b & 0x11111110) >> 3;
-	b |= b * 2;
-
-	return t - b;
-}
-
-/**
- * @ingroup BCD
- * @param bcd BCD number.
- * 
- * Tests if @a bcd forms a valid BCD number.
- * 
- * @return
- * @c FALSE if @a bcd contains hex digits 0xA ... 0xF.
- */
-static_inline vbi_bool
-vbi_is_bcd(unsigned int bcd)
-{
-	static const unsigned int x = 0x06666666;
-
-	return (((bcd + x) ^ (bcd ^ x)) & 0x11111110) == 0;
-}
+#define VBI_NO_SUBNO ((vbi_subno) 0x3F7F)
 
 /* Private */
 
