@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6.1\n"
-"POT-Creation-Date: 2002-09-30 04:47+0200\n"
+"POT-Creation-Date: 2002-10-01 22:40+0200\n"
 "PO-Revision-Date: 2002-09-30 21:03+0200\n"
 "Last-Translator: Guus Bonnema <abonnema@xs4all.nl>\n"
 "Language-Team: Dutch\n"
@@ -340,7 +340,7 @@ msgstr "%s bijregelen"
 msgid "Available controls"
 msgstr "Regelpanelen"
 
-#: src/v4linterface.c:663 src/zvbi.c:2106
+#: src/v4linterface.c:663 src/zvbi.c:2105
 msgid "Unknown"
 msgstr "Unbekend"
 
@@ -376,55 +376,55 @@ msgstr "Inputs"
 msgid "No tuned channels"
 msgstr "Geen voorkeuzen"
 
-#: src/zvbi.c:136
+#: src/zvbi.c:135
 msgid "No Audio"
 msgstr "Geen geluid"
 
-#: src/zvbi.c:137 src/tveng1.c:1018
+#: src/zvbi.c:136 src/tveng1.c:1018
 msgid "Mono"
 msgstr "Mono"
 
-#: src/zvbi.c:138 src/tveng1.c:1019
+#: src/zvbi.c:137 src/tveng1.c:1019
 msgid "Stereo"
 msgstr "Stereo"
 
-#: src/zvbi.c:139
+#: src/zvbi.c:138
 msgid "Stereo Surround"
 msgstr "Stereo surround"
 
-#: src/zvbi.c:140
+#: src/zvbi.c:139
 msgid "Simulated Stereo"
 msgstr "Gesimuleerde stereo"
 
-#: src/zvbi.c:141
+#: src/zvbi.c:140
 msgid "Video Descriptions"
 msgstr "Videobeschrijvingen"
 
-#: src/zvbi.c:142
+#: src/zvbi.c:141
 msgid "Non-program Audio"
 msgstr "Geluid van buiten het programma"
 
-#: src/zvbi.c:143
+#: src/zvbi.c:142
 msgid "Special Effects"
 msgstr "Speciale effecten"
 
-#: src/zvbi.c:144
+#: src/zvbi.c:143
 msgid "Data Service"
 msgstr "Data service"
 
-#: src/zvbi.c:145
+#: src/zvbi.c:144
 msgid "Unknown Audio"
 msgstr "Onbekende audio"
 
-#: src/zvbi.c:253
+#: src/zvbi.c:252
 msgid "V4L/V4L2 VBI interface timeout"
 msgstr "V4L/V4L2 VBI-interface timeout"
 
-#: src/zvbi.c:266
+#: src/zvbi.c:265
 msgid "V4L/V4L2 VBI interface: Failed to read from the device"
 msgstr "V4L/V4L2 VBI-interface: Leesfout"
 
-#: src/zvbi.c:361
+#: src/zvbi.c:360
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
@@ -433,15 +433,15 @@ msgstr ""
 "initialisatie van VBI mislukt\n"
 "%s"
 
-#: src/zvbi.c:362
+#: src/zvbi.c:361
 msgid "Ran out of memory."
 msgstr "Geheugentekort."
 
-#: src/zvbi.c:363
+#: src/zvbi.c:362
 msgid "Out of resources to start a new thread."
 msgstr "Onvoldoende systeembronnen voor het starten van een nieuwe taak"
 
-#: src/zvbi.c:365
+#: src/zvbi.c:364
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -457,11 +457,11 @@ msgstr ""
 "niet functioneert, schakel dan VBI ondersteuning uit onder Voorkeuzen/"
 "Instellingen/VBI ondersteuning inschakelen"
 
-#: src/zvbi.c:717
+#: src/zvbi.c:716
 msgid "Click me"
 msgstr "Klik hier"
 
-#: src/zvbi.c:752
+#: src/zvbi.c:751
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
@@ -470,70 +470,72 @@ msgstr ""
 "Open deze link met met de standaardbrowser.\n"
 "Deze kan ingesteld worden in het GNOME Configuratie Centrum"
 
-#: src/zvbi.c:759
+#: src/zvbi.c:758
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s: Teletekst pagina %x"
 
-#: src/zvbi.c:762
+#: src/zvbi.c:761
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Teletekst pagina %x"
 
-#: src/zvbi.c:763
+#: src/zvbi.c:762
 msgid "Open this page with Zapzilla"
 msgstr "Open deze pagina met Zapzilla"
 
-#: src/zvbi.c:2111
+#: src/zvbi.c:2110
 msgid "n/a"
 msgstr "nvt"
 
-#: src/zvbi.c:2115
+#: src/zvbi.c:2114
 msgid "none"
 msgstr "geen"
 
-#: src/zvbi.c:2118
+#: src/zvbi.c:2117
 #, c-format
 msgid "%d minute"
 msgid_plural "%d minutes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/zvbi.c:2120
+#: src/zvbi.c:2119
 #, c-format
 msgid "%d h %d m"
 msgstr "%d h %d m"
 
-#: src/zvbi.c:2152 src/ttxview.c:2546
+#: src/zvbi.c:2151 src/ttxview.c:2545
 msgid "Current program"
 msgstr "Huidige programma"
 
-#: src/zvbi.c:2173
+#: src/zvbi.c:2172
 msgid "%d %b  %I:%M %p    "
 msgstr "%d %b  %I:%M %p    "
 
-#: src/zvbi.c:2195
+#: src/zvbi.c:2194
 #, c-format
 msgid ""
 "\n"
 "Length: %uh%02u (%uh%02u remaining)"
-msgstr "\nLengte: %uh%02u (%uh%02u resterend)"
+msgstr ""
+"\n"
+"Lengte: %uh%02u (%uh%02u resterend)"
 
-#: src/zvbi.c:2203
+#: src/zvbi.c:2202
 #, c-format
 msgid "Length: %uh%02u"
 msgstr "Lengte: %uh%02u"
 
-#: src/zvbi.c:2210
+#: src/zvbi.c:2209
 #, c-format
 msgid "Elapsed: %uh%02u"
 msgstr "Verstreken tijd: %uh%02u"
 
-#: src/zvbi.c:2233 src/zvbi.c:2235
+#: src/zvbi.c:2232 src/zvbi.c:2234
 msgid "unknown language"
 msgstr "onbekende taal"
 
-#: src/zvbi.c:2238
+#: src/zvbi.c:2237
 #, c-format
 msgid ""
 "Channel 1: %s (%s)\n"
@@ -542,7 +544,7 @@ msgstr ""
 "Kanaal 1: %s (%s)\n"
 "Kanaal 2: %s (%s)"
 
-#: src/zvbi.c:2246
+#: src/zvbi.c:2245
 #, c-format
 msgid ""
 "Channel 1: %s\n"
@@ -551,26 +553,26 @@ msgstr ""
 "Kanaal 1: %s\n"
 "Kanaal 2: %s"
 
-#: src/zvbi.c:2259
+#: src/zvbi.c:2258
 #, c-format
 msgid "Audio: %s (%s)"
 msgstr "Geluid: %s (%s)"
 
-#: src/zvbi.c:2264
+#: src/zvbi.c:2263
 #, c-format
 msgid "Audio: %s"
 msgstr "Audio: %s"
 
-#: src/zvbi.c:2283
+#: src/zvbi.c:2282
 #, c-format
 msgid "Captioned %s"
 msgstr "Betiteld %s"
 
-#: src/zvbi.c:2283
+#: src/zvbi.c:2282
 msgid "Captioned"
 msgstr "Betiteld %x"
 
-#: src/zvbi.c:2367 src/zvbi.c:2628
+#: src/zvbi.c:2366 src/zvbi.c:2627
 msgid "Not rated"
 msgstr "Niet gewaardeerd"
 
@@ -974,95 +976,95 @@ msgstr "Lijst met door de plugin geëxporteerde symbolen"
 msgid "Sorry, but the plugin couldn't be started"
 msgstr "De plugin kon niet worden gestart"
 
-#: src/ttxview.c:187 src/ttxview.c:763 src/ttxview.c:1359
+#: src/ttxview.c:186 src/ttxview.c:762 src/ttxview.c:1358
 msgid "VBI has been disabled"
 msgstr "VBI is uitgeschakeld"
 
-#: src/ttxview.c:403
+#: src/ttxview.c:402
 #, c-format
 msgid "Loading page %x..."
 msgstr "Laden van pagina %x..."
 
-#: src/ttxview.c:405
+#: src/ttxview.c:404
 #, c-format
 msgid "Loading subpage %x..."
 msgstr "Laden van subpagina %x..."
 
-#: src/ttxview.c:409 src/ttxview.c:701
+#: src/ttxview.c:408 src/ttxview.c:700
 msgid "Warning: Page not valid"
 msgstr "Let op: pagina ongeldig"
 
-#: src/ttxview.c:530
+#: src/ttxview.c:529
 msgid "Text export failed"
 msgstr "Tekst-export mislukt: %s"
 
-#: src/ttxview.c:604
+#: src/ttxview.c:603
 #, c-format
 msgid " Page %d"
 msgstr " Pagina %d"
 
-#: src/ttxview.c:608
+#: src/ttxview.c:607
 #, c-format
 msgid " Subpage %d"
 msgstr " Subpagina %d"
 
-#: src/ttxview.c:712
+#: src/ttxview.c:711
 msgid "The cache has been cleared"
 msgstr "De cache is geleegd"
 
-#: src/ttxview.c:1069 src/ttxview.c:1090
+#: src/ttxview.c:1068 src/ttxview.c:1089
 msgid "No other subpage in the cache"
 msgstr "Geen subpaginas in de cache"
 
-#: src/ttxview.c:1153
+#: src/ttxview.c:1152
 msgid "Found"
 msgstr "Gevonden"
 
-#: src/ttxview.c:1171
+#: src/ttxview.c:1170
 msgid "Not found"
 msgstr "Niet gevonden"
 
-#: src/ttxview.c:1191
+#: src/ttxview.c:1190
 msgid "Empty cache"
 msgstr "Cache legen"
 
-#: src/ttxview.c:1314
+#: src/ttxview.c:1313
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Scannen van %x.%02x"
 
-#: src/ttxview.c:1568
+#: src/ttxview.c:1567
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> aan de bookmarks toegevoegd"
 
-#: src/ttxview.c:1631
+#: src/ttxview.c:1630
 msgid "Any subpage"
 msgstr "Willekeurige subpagina"
 
-#: src/ttxview.c:1980
+#: src/ttxview.c:1979
 #, c-format
 msgid "Export %s"
 msgstr "Export %s"
 
-#: src/ttxview.c:1994 plugins/screenshot/screenshot_strings.c:19
+#: src/ttxview.c:1993 plugins/screenshot/screenshot_strings.c:19
 #: plugins/mpeg/mpeg_strings.c:36
 msgid "Save as:"
 msgstr "Opslaan als:"
 
-#: src/ttxview.c:1999
+#: src/ttxview.c:1998
 msgid "Select file you'll be exporting to"
 msgstr "Selecteer het doelbestand voor exporteren"
 
-#: src/ttxview.c:2014
+#: src/ttxview.c:2013
 msgid "Options"
 msgstr "Opties"
 
-#: src/ttxview.c:2044 src/ttxview.c:3004
+#: src/ttxview.c:2043 src/ttxview.c:3003
 msgid "No page loaded"
 msgstr "Geen pagina geladen"
 
-#: src/ttxview.c:2104
+#: src/ttxview.c:2103
 #, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
@@ -1073,90 +1075,90 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: src/ttxview.c:2123
+#: src/ttxview.c:2122
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "Exporteren naar %s mislukt: %s"
 
-#: src/ttxview.c:2132
+#: src/ttxview.c:2131
 #, c-format
 msgid "%s saved"
 msgstr "%s opgeslagen"
 
-#: src/ttxview.c:2144
+#: src/ttxview.c:2143
 #, c-format
 msgid "Export failed: %s"
 msgstr "Exporteren mislukt: %s"
 
-#: src/ttxview.c:2452
+#: src/ttxview.c:2451
 #, c-format
 msgid "Caption %x - %s"
 msgstr "Titel %x - %s"
 
-#: src/ttxview.c:2454
+#: src/ttxview.c:2453
 #, c-format
 msgid "Text %x - %s"
 msgstr "Tekst %x - %s"
 
-#: src/ttxview.c:2458
+#: src/ttxview.c:2457
 #, c-format
 msgid "Caption %x"
 msgstr "Titel %x"
 
-#: src/ttxview.c:2460
+#: src/ttxview.c:2459
 #, c-format
 msgid "Text %x"
 msgstr "Tekst %x"
 
-#: src/ttxview.c:2485
+#: src/ttxview.c:2484
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: onbekende taal"
 
-#: src/ttxview.c:2497 src/ttxview.c:2512 src/ttxview.c:2536 src/ttxview.c:2552
-#: src/ttxview.c:2568 src/ttxview.c:2584 src/ttxview.c:2600
+#: src/ttxview.c:2496 src/ttxview.c:2511 src/ttxview.c:2535 src/ttxview.c:2551
+#: src/ttxview.c:2567 src/ttxview.c:2583 src/ttxview.c:2599
 #, c-format
 msgid "Page %x"
 msgstr "Pagina %x"
 
-#: src/ttxview.c:2506
+#: src/ttxview.c:2505
 msgid "Index"
 msgstr "Inhoud"
 
-#: src/ttxview.c:2530
+#: src/ttxview.c:2529
 msgid "Now and Next"
 msgstr "Nu en straks"
 
-#: src/ttxview.c:2562
+#: src/ttxview.c:2561
 msgid "Program Index"
 msgstr "Programma-index"
 
-#: src/ttxview.c:2578
+#: src/ttxview.c:2577
 msgid "Program Schedule"
 msgstr "Programma-overzicht"
 
-#: src/ttxview.c:2594
+#: src/ttxview.c:2593
 msgid "Program Warning"
 msgstr "Waarschuwing"
 
-#: src/ttxview.c:2614
+#: src/ttxview.c:2613
 msgid "Subtitles"
 msgstr "Ondertiteling"
 
-#: src/ttxview.c:2616
+#: src/ttxview.c:2615
 msgid "Select subtitles page"
 msgstr "Ondertitelingspagina"
 
-#: src/ttxview.c:2689
+#: src/ttxview.c:2688
 #, c-format
 msgid "%s in %s"
 msgstr "%s in %s"
 
-#: src/ttxview.c:3013
+#: src/ttxview.c:3012
 msgid "Selecting - hold Shift for table mode"
 msgstr "Selecteren - voor blokmodus shift ingedrukt houden"
 
-#: src/ttxview.c:3133
+#: src/ttxview.c:3132
 msgid "Selection copied to clipboard"
 msgstr "Selectie gekopiëerd naar klembord"
 
@@ -1231,7 +1233,9 @@ msgstr "_TV kanalen"
 
 #: glade/glade_strings.c:12
 msgid "Switch to fullscreen mode. Press ESC to return to windowed mode"
-msgstr "Ga naar beeldvullend (fullscreen). Kies ESC om terug te keren naar venstermodus"
+msgstr ""
+"Ga naar beeldvullend (fullscreen). Kies ESC om terug te keren naar "
+"venstermodus"
 
 #: glade/glade_strings.c:13 glade/glade_strings.c:201
 msgid "_Fullscreen"
@@ -1469,7 +1473,9 @@ msgstr ""
 msgid ""
 "If this option is on, the brightness, contrast, etc. info is saved with the "
 "channel, and restored when you select it again"
-msgstr "Als deze optie ingeschakeld is worden helderheid, contrast enz. voor iedere voorkeuze appart opgeslagen"
+msgstr ""
+"Als deze optie ingeschakeld is worden helderheid, contrast enz. voor iedere "
+"voorkeuze appart opgeslagen"
 
 #: glade/glade_strings.c:69
 msgid "Save control values with the channel info"
@@ -1492,7 +1498,9 @@ msgid ""
 "Thanks to the XVideo extension, if present, the capture buffer can be scaled "
 "to arbitrary sizes using HW acceleration. Select here the capture size to "
 "use in this case."
-msgstr "Indien de XVideo uitbreiding beschikbaar is, kan de opnamebuffer hardwarematig geschaald worden. Selecteer in dat geval hier de grootte "
+msgstr ""
+"Indien de XVideo uitbreiding beschikbaar is, kan de opnamebuffer "
+"hardwarematig geschaald worden. Selecteer in dat geval hier de grootte "
 
 #: glade/glade_strings.c:75
 msgid "Biggest noninterlaced (autodetect)"
@@ -2368,7 +2376,9 @@ msgstr "Opslaan van screenshots"
 msgid ""
 "With this plugin you can take screen shots of the program you are watching "
 "and save them in various formats."
-msgstr "Met deze plugin kunt u screenshots maken van het huidige beeld in deverse formaten."
+msgstr ""
+"Met deze plugin kunt u screenshots maken van het huidige beeld in deverse "
+"formaten."
 
 #: plugins/screenshot/screenshot.c:45
 msgid "This plugin takes screenshots of the video capture."
@@ -2406,7 +2416,8 @@ msgid ""
 "correct value.\n"
 "\n"
 msgstr ""
-"De eerste optie geeft aan waar de bestanden worden opgeslagen. De bestandsnamen worden als volgt genummerd:\n"
+"De eerste optie geeft aan waar de bestanden worden opgeslagen. De "
+"bestandsnamen worden als volgt genummerd:\n"
 "opslag_map/shot[1,2,3,...].ext\n"
 "\n"
 "Het commando zal worden uitgevoerd nadat het bestand is opgeslagen\n"
@@ -2477,7 +2488,9 @@ msgstr "Dit formaat kent geen kwaliteitsoptie"
 
 #: plugins/screenshot/screenshot.c:1329
 msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
-msgstr "Alleen bruikbaar in volledig formaat, \\\"unscaled\\\" beeld (480 of 576 lijnen)"
+msgstr ""
+"Alleen bruikbaar in volledig formaat, \\\"unscaled\\\" beeld (480 of 576 "
+"lijnen)"
 
 #: plugins/screenshot/screenshot_strings.c:7
 msgid "Select here the directory where screenshots will be saved"
