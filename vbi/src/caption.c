@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.9.2.1 2003-02-16 21:03:31 mschimek Exp $ */
+/* $Id: caption.c,v 1.9.2.2 2003-06-16 06:04:08 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,16 +69,16 @@ caption_send_event(vbi_decoder *vbi, vbi_event *ev)
 #define XDS_END			15
 
 /* vbi_classify_page, program_info language */
-static const unsigned char *
+static const char *
 language[8] = {
-	"Unknown",
-	"English",
-	"Español",
-	"Français",
-	"Deutsch",
-	"Italiano",
-	"Other",
-	"None"
+	NULL,
+	"en",	/* English */
+	"es",	/* Español */
+	"fr",	/* Français */
+	"de",	/* Deutsch */
+	"it",	/* Italiano */
+	NULL,	/* "Other" */
+	NULL	/* "None" */
 };
 
 #ifdef __GNUC__
@@ -464,13 +464,13 @@ xds_decoder(vbi_decoder *vbi, int _class, int type,
 			for (i = 0; i < 2; i++) {
 				int l = (buffer[i] >> 3) & 7;
 				vbi_audio_mode m = mode[i][buffer[i] & 7];
-				const unsigned char *s = ((1 << l) & 0xC1) ? NULL : language[l];
+				const char *s = ((1 << l) & 0xC1) ? NULL : language[l];
 
 				if (pi->audio[i].mode != m) {
 					neq = 1; pi->audio[i].mode = m;
 				}
-				if (pi->audio[i].language != s) {
-					neq = 1; pi->audio[i].language = s;
+				if (pi->audio[i].lang_code != s) {
+					neq = 1; pi->audio[i].lang_code = s;
 				}
 			}
 
@@ -485,25 +485,25 @@ xds_decoder(vbi_decoder *vbi, int _class, int type,
 				return;
 
 			for (i = 0; i < 8; i++)
-				pi->caption_language[i] = NULL;
+				pi->caption_lang_code[i] = NULL;
 
 			for (i = 0; i < length; i++) {
 				int ch = buffer[i] & 7;
 				int l = (buffer[i] >> 3) & 7;
-				const unsigned char *s;
+				const char *s;
 
 				ch = (ch & 1) * 4 + (ch >> 1);
 
 				services |= 1 << ch;
 				s = ((1 << l) & 0xC1) ? NULL : language[l];
 
-				if (pi->caption_language[ch] != s) {
-					neq = 1; pi->caption_language[ch] = s;
+				if (pi->caption_lang_code[ch] != s) {
+					neq = 1; pi->caption_lang_code[ch] = s;
 				}
 
 				if (_class == XDS_CURRENT)
-					vbi->cc.channel[ch].language =
-						pi->caption_language[ch];
+					vbi->cc.channel[ch].lang_code[0] =
+						pi->caption_lang_code[ch];
 			}
 
 			xds_intfu(pi->caption_services, services);
@@ -771,8 +771,8 @@ xds_separator(vbi_decoder *vbi, uint8_t *buf)
 {
 	struct caption *cc = &vbi->cc;
 	xds_sub_packet *sp = cc->curr_sp;
-	int c1 = vbi_parity(buf[0]);
-	int c2 = vbi_parity(buf[1]);
+	int c1 = vbi_ipar8 (buf[0]);
+	int c2 = vbi_ipar8 (buf[1]);
 	unsigned int class, type;
 
 	XDS_SEP_DEBUG(printf("XDS %02x %02x\n", buf[0], buf[1]));
@@ -1423,7 +1423,12 @@ vbi_decode_caption(vbi_decoder *vbi, int line, uint8_t *buf)
 	char c1 = buf[0] & 0x7F;
 	int field2 = 1, i;
 
-	pthread_mutex_unlock(&cc->mutex);
+/*
+	vbi_hook_call (vbi, VBI_HOOK_CLOSED_CAPTION,
+		       buf, 2, 0);
+ */
+
+	pthread_mutex_lock(&cc->mutex);
 
 	switch (line) {
 	case 21:	/* NTSC */
@@ -1441,7 +1446,7 @@ vbi_decode_caption(vbi_decoder *vbi, int line, uint8_t *buf)
 			fflush(stdout);
 		)
 
-		if (vbi_parity(buf[0]) >= 0) {
+		if (vbi_ipar8 (buf[0]) >= 0) {
 			if (c1 == 0) {
 				goto finish;
 			} else if (c1 <= 0x0F) {
@@ -1465,7 +1470,7 @@ vbi_decode_caption(vbi_decoder *vbi, int line, uint8_t *buf)
 		goto finish;
 	}
 
-	if (vbi_parity(buf[0]) < 0) {
+	if (vbi_ipar8 (buf[0]) < 0) {
 		c1 = 127;
 		buf[0] = c1; /* traditional 'bad' glyph, ccfont has */
 		buf[1] = c1; /*  room, design a special glyph? */
@@ -1487,7 +1492,7 @@ vbi_decode_caption(vbi_decoder *vbi, int line, uint8_t *buf)
 		break; /* XDS field 1?? */
 
 	case 0x10 ... 0x1F:
-		if (vbi_parity(buf[1]) >= 0) {
+		if (vbi_ipar8 (buf[1]) >= 0) {
 			if (!field2
 			    && buf[0] == cc->last[0]
 			    && buf[1] == cc->last[1]) {
@@ -1539,7 +1544,7 @@ vbi_decode_caption(vbi_decoder *vbi, int line, uint8_t *buf)
 		c = ch->attr;
 
 		for (i = 0; i < 2; i++) {
-			char ci = vbi_parity(buf[i]) & 0x7F; /* 127 if bad */
+			char ci = vbi_ipar8 (buf[i]) & 0x7F; /* 127 if bad */
 
 			if (ci <= 0x1F) /* 0x00 no char, 0x01 ... 0x1F invalid */
 				continue;
