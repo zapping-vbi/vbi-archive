@@ -49,7 +49,7 @@ common.c common.h dsputil.c dsputil.h fastmemcpy.h \
 fdctref.c h263.c h263data.h imgconvert.c imgresample.c \
 jfdctfst.c jrevdct.c mangle.h mjpeg.c motion_est.c \
 mpeg12.c mpeg12data.h mpeg4data.h mpegaudio.c \
-mpegaudio.h mpegaudiodec.c mpegaudiodectab.h mpegaudiotab.h \
+mpegaudio.h mpegaudiotab.h \
 mpegvideo.c mpegvideo.h msmpeg4.c msmpeg4data.h pcm.c ratecontrol.c \
 resample.c rv10.c simple_idct.c simple_idct.h utils.c
 
