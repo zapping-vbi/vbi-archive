@@ -4,7 +4,9 @@
   Installation
   ============
 
-  Type "./configure", "make", "./mp1e -h"
+  Type "./configure" and "make install"
+
+  For usage instructions see the mp1e manual page.
 
   License
   =======

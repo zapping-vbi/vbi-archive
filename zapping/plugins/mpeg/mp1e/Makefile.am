@@ -9,7 +9,10 @@ noinst_PROGRAMS = rte_test
 
 INCLUDES = -D_GNU_SOURCE -D_REENTRANT
 
-EXTRA_DIST = videodev1.h videodev2.h mp1e.lsm.in mp1e.spec.in mp1e.spec
+man_MANS = mp1e.1
+
+EXTRA_DIST = videodev1.h videodev2.h mp1e.lsm.in mp1e.spec.in mp1e.spec \
+	$(man_MANS)
 
 librteincludedir = $(includedir)
 librteinclude_HEADERS = rte.h
