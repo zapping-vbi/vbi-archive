@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.22 2001-05-09 22:33:21 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.23 2001-05-26 22:39:30 garetxe Exp $
  * This is a simple RTE test.
  */
 
@@ -504,7 +504,8 @@ int main(int argc, char *argv[])
 	char dest_file[] = "tempx.mpeg";
 	pthread_t audio_thread_id;
 	enum rte_mux_mode mux_mode = RTE_AUDIO | RTE_VIDEO;
-	enum rte_interface video_interface = RTE_CALLBACKS;
+	enum rte_interface video_interface = RTE_PUSH;
+	int video_buffered = 1; /* just for push */
 	enum rte_interface audio_interface = RTE_CALLBACKS;
 	int num_encoded_frames;
 	void * dest_ptr = NULL;
@@ -565,9 +566,15 @@ int main(int argc, char *argv[])
 	if (video_interface == RTE_CALLBACKS)
 		rte_set_input(context, RTE_VIDEO, RTE_CALLBACKS, TRUE,
 			      NULL, buffer_callback, unref_callback);
-	else
-		rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE,
-			      NULL, NULL, NULL);
+	else {
+		if (!video_buffered)
+			rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE,
+				      NULL, NULL, NULL);
+		else
+			rte_set_input(context, RTE_VIDEO, RTE_PUSH,
+				      TRUE, NULL, NULL,
+				      unref_callback);
+	}
 
 	/* do a multi-capture test */
 	for (i=0; i<4; i++) {
@@ -615,20 +622,26 @@ int main(int argc, char *argv[])
 				  num_encoded_frames < (sleep_time*25);
 				  num_encoded_frames++) {
 				rte_buffer buf;
-				if (!dest_ptr) {
+				if (!video_buffered) {
+					if (!dest_ptr) {
+						dest_ptr =
+							rte_push_video_data(context,
+									    NULL,
+									    0);
+						continue;
+					}
+					read_video(&buf);
+					memcpy(dest_ptr, buf.data,
+					       context->video_bytes); 
 					dest_ptr =
-						rte_push_video_data(context,
-								    NULL,
-								    0);
-					continue;
+						rte_push_video_data(context, dest_ptr,
+								    buf.time);
+					unref_callback(context, &buf);
+				} else {
+					read_video(&buf);
+					rte_push_video_buffer(context,
+							      &buf);
 				}
-				read_video(&buf);
-				memcpy(dest_ptr, buf.data,
-				       context->video_bytes); 
-				dest_ptr =
-					rte_push_video_data(context, dest_ptr,
-							    buf.time);
-				unref_callback(context, &buf);
 			}
 		} else /* audio only */
 			sleep(sleep_time);

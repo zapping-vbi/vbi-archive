@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder lib wrapper api
  *
- *  Copyright (C) 2000 Iñaki García Etxebarria
+ *  Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.19 2001-04-07 14:48:36 garetxe Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.20 2001-05-26 22:39:30 garetxe Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both

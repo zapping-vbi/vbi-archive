@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.51 2001-05-09 22:33:21 garetxe Exp $ */
+/* $Id: rte.c,v 1.52 2001-05-26 22:39:30 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -58,6 +58,9 @@
 */
 
 #define NUM_AUDIO_BUFFERS 8 /* audio buffers in the audio fifo */
+
+#define BLANK_BUFFER	1 /* the buffer was created by blank_callback,
+			     do not unref_callback it */
 
 rte_context * rte_global_context = NULL;
 
@@ -107,6 +110,22 @@ rte_recv_full_buffer(fifo *f)
 	return b;
 }
 
+/* Just produces a blank buffer */
+static void
+blank_callback(rte_context * context, void *data, double *time,
+	       enum rte_mux_mode stream, void * user_data)
+{
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+
+	*time = tv.tv_sec + tv.tv_usec/1e6;
+
+	/* set to 0's (avoid ugly noise on stop) */
+	memset(data, 0, (stream == RTE_VIDEO) ?
+	       context->video_bytes : context->audio_bytes);
+}
+
 /*
  * Waits for video or audio data. Returns a buffer valid for
  * encoding. NULL on error.
@@ -143,6 +162,10 @@ wait_data(rte_context * context, int video)
 			b = wait_empty_buffer(f);
 			(*data_callback)(context, b->data, &(b->time),
 					 stream, context->private->user_data);
+			if (*data_callback == blank_callback)
+				b->rte_flags |= BLANK_BUFFER;
+			else
+				b->rte_flags &= ~BLANK_BUFFER;
 			send_full_buffer(f, b);
 			continue;
 		} else if (*buffer_callback) {
@@ -153,6 +176,7 @@ wait_data(rte_context * context, int video)
 				b->data = rbuf.data;
 				b->time = rbuf.time;
 				b->user_data = rbuf.user_data;
+				b->rte_flags &= ~BLANK_BUFFER;
 
 				send_full_buffer(f, b);
 			}
@@ -187,7 +211,7 @@ video_send_empty(fifo *f, buffer *b)
 	rteUnrefCallback unref_callback =
 		((rte_context*)f->user_data)->private->video_unref_callback;
 
-	if (unref_callback) {
+	if (unref_callback && !(b->rte_flags & BLANK_BUFFER)) {
 		rbuf.data = b->data;
 		rbuf.time = b->time;
 		rbuf.user_data = b->user_data;
@@ -212,7 +236,7 @@ audio_send_empty(fifo *f, buffer *b)
 	rteUnrefCallback unref_callback =
 		((rte_context*)f->user_data)->private->audio_unref_callback;
 
-	if (unref_callback) {
+	if (unref_callback && !(b->rte_flags & BLANK_BUFFER)) {
 		rbuf.data = b->data;
 		rbuf.time = b->time;
 		rbuf.user_data = b->user_data;
@@ -228,22 +252,6 @@ audio_send_empty(fifo *f, buffer *b)
 		
 	pthread_mutex_unlock(&f->producer.mutex);
 	pthread_cond_broadcast(&f->producer.cond);
-}
-
-/* Just produces a blank buffer */
-static void
-blank_callback(rte_context * context, void *data, double *time,
-	       enum rte_mux_mode stream, void * user_data)
-{
-	struct timeval tv;
-
-	gettimeofday(&tv, NULL);
-
-	*time = tv.tv_sec + tv.tv_usec/1e6;
-
-	/* set to 0's (avoid ugly noise on stop) */
-	memset(data, 0, (stream == RTE_VIDEO) ?
-	       context->video_bytes : context->audio_bytes);
 }
 
 /* The default write data callback */
@@ -923,15 +931,13 @@ void rte_push_video_buffer ( rte_context * context,
 		return;
 	}
 
-	b = context->private->last_video_buffer =
-		wait_empty_buffer(&(context->private->vid));
+	b = wait_empty_buffer(&(context->private->vid));
 
 	b->time = rbuf->time;
 	b->data = rbuf->data;
 	b->user_data = rbuf->user_data;
 
-	send_full_buffer(&(context->private->vid),
-			 context->private->last_video_buffer);
+	send_full_buffer(&(context->private->vid), b);
 
 	pthread_cond_broadcast(&(context->private->vid_consumer.cond));
 }
@@ -1008,15 +1014,13 @@ void rte_push_audio_buffer ( rte_context * context,
 		return;
 	}
 
-	b = context->private->last_audio_buffer =
-		wait_empty_buffer(&(context->private->aud));
+	b = wait_empty_buffer(&(context->private->aud));
 
 	b->time = rbuf->time;
 	b->data = rbuf->data;
 	b->user_data = rbuf->user_data;
 
-	send_full_buffer(&(context->private->aud),
-			 context->private->last_audio_buffer);
+	send_full_buffer(&(context->private->aud), b);
 
 	pthread_cond_broadcast(&(context->private->aud_consumer.cond));
 }

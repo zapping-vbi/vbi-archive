@@ -1,3 +1,9 @@
+2001-05-27	<garetxe@users.sf.net>
+
+	* Fixed rte buffered push capture, removed the possibility of
+	deadlock in kill_zombies (the solution isn't optimal,
+	though). rte_test works now with all possible combinations for me.
+
 2001-05-10	<garetxe@users.sourceforge.net>
 
 	* Added .spec.in file, mux_thread_done flag for cleaner exit, some
