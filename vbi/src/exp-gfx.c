@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.7.2.5 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.7.2.6 2004-04-17 05:52:24 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -482,7 +482,7 @@ vbi_rgba_conv			(void *			buffer,
 		break;
 
 	default:
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Invalid pixfmt %u (%s)",
 				(unsigned int) pixfmt,
 				vbi_pixfmt_name (pixfmt));
@@ -819,7 +819,7 @@ vbi_draw_cc_page_region_va_list	(const vbi_page *	pg,
 
 	if (width * 16 > format->width
 	    || height * scaled_height > format->height) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Image size %u x %u too small for "
 				"%u x %u characters",
 				format->width, format->height,
@@ -840,7 +840,7 @@ vbi_draw_cc_page_region_va_list	(const vbi_page *	pg,
 	if (bytes_per_line <= 0) {
 		bytes_per_line = pg->columns * CCW * bytes_per_pixel;
 	} else if ((format->width * bytes_per_pixel) > bytes_per_line) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Image width %u (%s) > bytes_per_line %u",
 				format->width,
 				vbi_pixfmt_name (format->pixfmt),
@@ -851,7 +851,7 @@ vbi_draw_cc_page_region_va_list	(const vbi_page *	pg,
 	size = format->offset + bytes_per_line * format->height;
 
 	if (size > format->size) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Image %u x %u, offset %u, bytes_per_line %u " 
 				"> buffer size %u = 0x%08x",
 				format->width, format->height,
@@ -1179,7 +1179,7 @@ vbi_draw_vt_page_region_va_list	(const vbi_page *	pg,
 
 	if (width * 12 > format->width
 	    || height * scaled_height > format->height) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Image size %u x %u too small for "
 				"%u x %u characters",
 				format->width, format->height,
@@ -1200,7 +1200,7 @@ vbi_draw_vt_page_region_va_list	(const vbi_page *	pg,
 	if (bytes_per_line <= 0) {
 		bytes_per_line = pg->columns * TCW * bytes_per_pixel;
 	} else if ((format->width * bytes_per_pixel) > bytes_per_line) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Image width %u (%s) > bytes_per_line %u",
 				format->width,
 				vbi_pixfmt_name (format->pixfmt),
@@ -1211,7 +1211,7 @@ vbi_draw_vt_page_region_va_list	(const vbi_page *	pg,
 	size = format->offset + bytes_per_line * format->height;
 
 	if (size > format->size) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Image %u x %u, offset %u, bytes_per_line %u "
 				"> buffer size %u = 0x%08x",
 				format->width, format->height,

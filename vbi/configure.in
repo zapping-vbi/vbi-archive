@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.18.2.4 2004-02-25 17:35:27 mschimek Exp $
+dnl $Id: configure.in,v 1.18.2.5 2004-04-17 05:52:05 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(zvbi, 0.3.0cvs)
@@ -174,4 +174,5 @@ AC_OUTPUT([
   contrib/Makefile
   m4/Makefile
   zvbi.spec
+  zvbi-0.3.pc
 ])

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.9.2.6 2004-04-05 04:42:26 mschimek Exp $ */
+/* $Id: caption.c,v 1.9.2.7 2004-04-17 05:52:24 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,7 +61,8 @@ caption_send_event(vbi_decoder *vbi, vbi_event *ev)
 static void
 itv_separator(vbi_decoder *vbi, struct caption *cc, char c)
 {
-	if (ITV_DEBUG(0 &&) !(vbi->event_mask & VBI_EVENT_TRIGGER))
+	if (ITV_DEBUG(0 &&) !(vbi->event_handlers.event_mask
+			      & VBI_EVENT_TRIGGER))
 		return;
 
 	if (c >= 0x20) {

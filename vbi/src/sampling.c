@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling.c,v 1.1.2.3 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: sampling.c,v 1.1.2.4 2004-04-17 05:52:25 mschimek Exp $ */
 
 #include <assert.h>
 #include "misc.h"
@@ -98,7 +98,7 @@ _vbi_sampling_par_verify	(const vbi_sampling_par *sp)
 				goto range;
 	} else {
 	ambiguous:
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Ambiguous videostd_set 0x%08llx",
 				sp->videostd_set);
 		return FALSE;
@@ -106,7 +106,7 @@ _vbi_sampling_par_verify	(const vbi_sampling_par *sp)
 
 	if (sp->interlaced
 	    && sp->count[0] != sp->count[1]) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Line count %u, %u must be equal and non-zero "
 				"when interlaced",
 				sp->count[0], sp->count[1]);
@@ -117,7 +117,7 @@ _vbi_sampling_par_verify	(const vbi_sampling_par *sp)
 		* vbi_pixfmt_bytes_per_pixel (sp->sampling_format);
 
 	if (sp->bytes_per_line < min_bpl) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Invalid samples or bytes per line: %u, %u",
 				sp->samples_per_line,
 				sp->bytes_per_line);
@@ -127,13 +127,13 @@ _vbi_sampling_par_verify	(const vbi_sampling_par *sp)
 	return TRUE;
 
  samples:
-	vbi_log_printf (__FUNCTION__,
+	vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 			"Misaligned samples_per_line %u",
 			sp->samples_per_line);
 	return FALSE;
 
  range:
-	vbi_log_printf (__FUNCTION__,
+	vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 			"Invalid scan range %u-%u (%u lines), %u-%u (%u lines)",
 			sp->start[0], sp->start[0] + sp->count[0] - 1, sp->count[0],
 			sp->start[1], sp->start[1] + sp->count[1] - 1, sp->count[1]);
@@ -161,7 +161,7 @@ _vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
 	unsigned int field;
 
 	if (0 == (par->videostd_set & sp->videostd_set)) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Service 0x%08x (%s) requires "
 				"videostd_set 0x%08llx, have 0x%08llx",
 				par->id, par->label,
@@ -175,7 +175,7 @@ _vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
 	if ((VBI_SLICED_CAPTION_525 & par->id)
 	    && (0 == sp->start[0] /* unknown */
 		|| 0 == sp->start[1])) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Service 0x%08x (%s) requires exact line numbers",
 				par->id, par->label);
 		return FALSE;
@@ -198,7 +198,7 @@ _vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
 		}
 
 		if (rate > sp->sampling_rate) {
-			vbi_log_printf (__FUNCTION__,
+			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 					"Sampling rate %f MHz too low "
 					"for service 0x%08x (%s)",
 					sp->sampling_rate / 1e6,
@@ -221,7 +221,7 @@ _vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
 		end = (sp->offset + sp->samples_per_line) / sampling_rate;
 
 		if (offset > (par->offset / 1e3 - 0.5e-6)) {
-			vbi_log_printf (__FUNCTION__,
+			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 					"Sampling offset %f us too late "
 					"for service 0x%08x (%s) at %f us",
 					offset * 1e6,
@@ -231,7 +231,7 @@ _vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
 		}
 
 		if (end < (par->offset / 1e9 + signal + 0.5e-6)) {
-			vbi_log_printf (__FUNCTION__,
+			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 					"Sampling ends too early at %f us "
 					"for service 0x%08x (%s) up to %f us",
 					end * 1e6,
@@ -246,7 +246,7 @@ _vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
 		samples = sp->samples_per_line / (double) sp->sampling_rate;
 
 		if (samples < (signal + 1.0e-6)) {
-			vbi_log_printf (__FUNCTION__,
+			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 					"Service 0x%08x (%s) signal %f us "
 					"exceeds %f us sampling period",
 					par->id, par->label,
@@ -257,7 +257,7 @@ _vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
 
 	if (!sp->synchronous) {
 		/* Not always, but it's too difficult now to bother. */
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Service 0x%08x (%s) requires "
 				"synchronous field order",
 				par->id, par->label);
@@ -278,7 +278,7 @@ _vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
 		}
 
 		if (0 == sp->count[field]) {
-			vbi_log_printf (__FUNCTION__,
+			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 					"Service 0x%08x (%s) requires "
 					"data from field %u",
 					par->id, par->label, field);
@@ -292,7 +292,7 @@ _vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
 			    || (par->first[field] == par->last[field]))
 				if (start > par->first[field]
 				    || end < par->last[field]) {
-					vbi_log_printf (__FUNCTION__,
+					vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 							"Service 0x%08x (%s) requires "
 							"lines %u-%u, have %u-%u",
 							par->id, par->label,
@@ -379,7 +379,7 @@ vbi_sampling_par_from_services	(vbi_sampling_par *	sp,
 		if (0 == (VBI_VIDEOSTD_SET_ALL & videostd_set)
 		    || ((VBI_VIDEOSTD_SET_525_60 & videostd_set)
 			&& (VBI_VIDEOSTD_SET_625_50 & videostd_set))) {
-			vbi_log_printf (__FUNCTION__,
+			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 					"Ambiguous videostd_set 0x%08llx",
 					videostd_set);
 			CLEAR (*sp);
@@ -428,7 +428,7 @@ vbi_sampling_par_from_services	(vbi_sampling_par *	sp,
 			margin = 2.0e-6;
 
 		if (0 == (par->videostd_set & sp->videostd_set)) {
-			vbi_log_printf (__FUNCTION__,
+			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 					"Service 0x%08x (%s) requires "
 					"videostd_set 0x%08llx, have 0x%08llx",
 					par->id, par->label,

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-sim.c,v 1.1.2.3 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: io-sim.c,v 1.1.2.4 2004-04-17 05:52:24 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -251,7 +251,7 @@ signal_u8			(const vbi_sampling_par *sp,
 	unsigned int scan_lines;
 
 	if (!sp->synchronous) {
-		vbi_log_printf (caller,
+		vbi_log_printf (VBI_DEBUG, caller,
 				"Requires synchronous sampling");
 		return FALSE;
 	}
@@ -288,7 +288,7 @@ signal_u8			(const vbi_sampling_par *sp,
 				row *= 2;
 		} else {
 		bounds:
-			vbi_log_printf (caller,
+			vbi_log_printf (VBI_DEBUG, caller,
 					"Sliced line %u out of bounds",
 					sliced->line);
 			return FALSE;
@@ -368,7 +368,7 @@ signal_u8			(const vbi_sampling_par *sp,
 			break;
 
 		default:
-			vbi_log_printf (caller,
+			vbi_log_printf (VBI_DEBUG, caller,
 					"Service 0x%08x (%s) not supported",
 					sliced->id, vbi_sliced_name (sliced->id));
 			return FALSE;
@@ -381,7 +381,7 @@ signal_u8			(const vbi_sampling_par *sp,
 /**
  * @internal
  * @param raw A raw VBI image will be stored here. The buffer
- *   must be large for @a sp->count[0] + count[1] lines
+ *   must be large enough for @a sp->count[0] + count[1] lines
  *   of bytes_per_line each, with samples_per_line bytes
  *   actually written.
  * @param sp Describes the raw VBI data generated. sampling_format
@@ -527,7 +527,7 @@ do {									\
  * @param pixel_mask This mask selects which color or alpha channel
  *   shall contain VBI data. Depending on @a sp->sampling_format it is
  *   interpreted as 0xAABBGGRR or 0xAAVVUUYY. A value of 0x000000FF
- *   for example writes data in "red" bits, not changing other
+ *   for example writes data in "red bits", not changing other
  *   bits in the @a raw buffer.
  * @param sliced Pointer to an array of vbi_sliced containing the
  *   VBI data to be encoded.
@@ -699,7 +699,7 @@ _vbi_test_image_video		(uint8_t *		raw,
 	scan_lines = sp->count[0] + sp->count[1];
 
 	if (!(buf = malloc (scan_lines * sp->samples_per_line))) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Out of memory\n");
 		errno = ENOMEM;
 		return FALSE;

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.10 2004-04-08 23:36:26 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.11 2004-04-17 05:52:25 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -38,12 +38,6 @@
 #include "trigger.h"
 #include "lang.h"
 
-struct event_handler {
-	struct event_handler *	next;
-	int			event_mask;
-	vbi_event_handler	handler;
-	void *			user_data;
-};
 
 
 struct vbi_decoder {
@@ -76,10 +70,7 @@ struct vbi_decoder {
 	/* preliminary */
 	int			pageref;
 
-	pthread_mutex_t		event_mutex;
-	int			event_mask;
-	struct event_handler *	handlers;
-	struct event_handler *	next_handler;
+	_vbi_event_handler_list event_handlers;
 
 	unsigned char		wss_last[2];
 	int			wss_rep_ct;

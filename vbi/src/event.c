@@ -1,8 +1,30 @@
-#if 0
+/*
+ *  libzvbi - Events
+ *
+ *  Copyright (C) 2000-2004 Michael H. Schimek
+ *
+ *  Based on code from AleVT 1.5.1
+ *  Copyright (C) 1998,1999 Edgar Toernig (froese@gmx.de)
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+/* $Id: event.c,v 1.1.2.2 2004-04-17 05:52:24 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
-
 #include "misc.h"		/* CLEAR() */
 #include "event.h"
 
@@ -15,7 +37,7 @@
  * for this @a ev->type of event, passing @a ev as parameter.
  */
 void
-_vbi_event_handlers_send	(_vbi_event_handlers *	es,
+_vbi_event_handler_list_send	(_vbi_event_handler_list *es,
 				 const vbi_event *	ev)
 {
 	_vbi_event_handler *eh;
@@ -24,8 +46,9 @@ _vbi_event_handlers_send	(_vbi_event_handlers *	es,
 	assert (NULL != es);
 	assert (NULL != ev);
 
-	eh = es->first;
 	current = es->current;
+
+	eh = es->first;
 
 	while (eh) {
 		if (eh->callback && 0 == eh->blocked) {
@@ -39,7 +62,7 @@ _vbi_event_handlers_send	(_vbi_event_handlers *	es,
 				--eh->blocked;
 				eh = eh->next;
 			} else {
-				/* eh unexists. */
+				/* eh removed itself in callback. */
 				eh = es->current;
 			}
 		} else {
@@ -50,9 +73,17 @@ _vbi_event_handlers_send	(_vbi_event_handlers *	es,
 	es->current = current;
 }
 
+/**
+ * @internal
+ * @param es Event handler list.
+ * @param event_mask Event mask.
+ *
+ * Removes all handlers from the list which handle
+ * only events given in the @a event_mask.
+ */
 void
-_vbi_event_handlers_remove_by_event
-			    	(_vbi_event_handlers *	es,
+_vbi_event_handler_list_remove_by_event
+			    	(_vbi_event_handler_list *es,
 				 unsigned int		event_mask)
 {
 	_vbi_event_handler *eh, **ehp;
@@ -87,23 +118,16 @@ _vbi_event_handlers_remove_by_event
  * @param callback Event handler function.
  * @param user_data Pointer passed to the handler.
  * 
- * Removes an event handler from the list.
- *
- * Apart of removing a handler this function also disables decoding
- * of data services when no handler is registered to consume the
- * respective data. Removing the last @c VBI_EVENT_TTX_PAGE handler for
- * example disables Teletext decoding.
- * 
- * This function can be safely called at any time, even from a handler
- * removing itself or another handler, and regardless if the @a handler
- * has been successfully registered.
+ * Removes an event handler from the list. Safe to call from a handler
+ * removing itself or another handler. Does nothing if @a callback
+ * is not in the list.
  */
 void
-_vbi_event_handlers_remove	(_vbi_event_handlers *	es,
+_vbi_event_handler_list_remove	(_vbi_event_handler_list *es,
 				 vbi_event_cb *		callback,
 				 void *			user_data)
 {
-	_vbi_event_handlers_add (es, 0, callback, user_data);
+	_vbi_event_handler_list_add (es, 0, callback, user_data);
 }
 
 /**
@@ -118,31 +142,26 @@ _vbi_event_handlers_remove	(_vbi_event_handlers *	es,
  * number of handlers can be added, also different handlers for the same
  * event which will be called in registration order.
  * 
- * Apart of adding handlers this function also enables and disables decoding
- * of data services depending on the presence of at least one handler for the
- * respective data. A @c VBI_EVENT_TTX_PAGE handler for example enables
- * Teletext decoding.
- * 
  * This function can be safely called at any time, even from a handler.
  * 
  * @return
  * @c FALSE on failure.
  */
 extern vbi_bool
-_vbi_event_handlers_add		(_vbi_event_handlers *	es,
+_vbi_event_handler_list_add	(_vbi_event_handler_list *es,
 				 unsigned int		event_mask,
 				 vbi_event_cb *		callback,
 				 void *			user_data)
 {
 	_vbi_event_handler *eh, **ehp;
-	unsigned int union_mask;
+	unsigned int event_union;
 	vbi_bool found;
 
 	assert (NULL != es);
 
 	ehp = &es->first;
 
-	union_mask = 0;
+	event_union = 0;
 
 	found = FALSE;
 
@@ -167,7 +186,7 @@ _vbi_event_handlers_add		(_vbi_event_handlers *	es,
 			}
 		}
 
-		union_mask |= eh->event_mask;
+		event_union |= eh->event_mask;
 		ehp = &eh->next;
 	}
 
@@ -185,28 +204,28 @@ _vbi_event_handlers_add		(_vbi_event_handlers *	es,
 
 		eh->blocked	= 0;
 
-		union_mask |= event_mask;
+		event_union |= event_mask;
 
 		*ehp = eh;
 	}
 
-	es->event_mask = union_mask;
+	es->event_mask = event_union;
 
 	return TRUE;
 }
 
 void
-_vbi_event_handlers_destroy	(_vbi_event_handlers *	es)
+_vbi_event_handler_list_destroy	(_vbi_event_handler_list *es)
 {
 	assert (NULL != es);
 
-	_vbi_event_handlers_remove_by_event (es, (unsigned int) -1);
+	_vbi_event_handler_list_remove_by_event (es, (unsigned int) -1);
 
 	CLEAR (*es);
 }
 
 vbi_bool
-_vbi_event_handlers_init	(_vbi_event_handlers *	es)
+_vbi_event_handler_list_init	(_vbi_event_handler_list *es)
 {
 	assert (NULL != es);
 
@@ -214,5 +233,3 @@ _vbi_event_handlers_init	(_vbi_event_handlers *	es)
 
 	return TRUE;
 }
-
-#endif

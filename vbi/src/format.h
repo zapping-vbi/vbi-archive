@@ -17,12 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.4.2.8 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: format.h,v 1.4.2.9 2004-04-17 05:52:24 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
 
-#include "event.h" /* vbi_nuid */
+#include "bcd.h"
+#include "network.h" /* vbi_nuid */
 
 #ifndef VBI_DECODER
 #define VBI_DECODER

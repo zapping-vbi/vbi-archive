@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.c,v 1.1.2.2 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: raw_decoder.c,v 1.1.2.3 2004-04-17 05:52:25 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -755,14 +755,14 @@ vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
 	services &= ~(VBI_SLICED_VBI_525 | VBI_SLICED_VBI_625);
 
 	if (rd->services & services) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Already decoding services 0x%08x",
 				rd->services & services);
 		services &= ~rd->services;
 	}
 
 	if (0 == services) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"No services to add");
 		return rd->services;
 	}
@@ -774,7 +774,8 @@ vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
 		rd->pattern = (int8_t *) calloc (scan_lines * MAX_WAYS,
 						 sizeof (rd->pattern[0]));
 		if (!rd->pattern) {
-			vbi_log_printf (__FUNCTION__, "Out of memory");
+			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
+					"Out of memory");
 			return rd->services;
 		}
 	}
@@ -815,7 +816,7 @@ vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
 		}
 
 		if (j >= MAX_JOBS) {
-			vbi_log_printf (__FUNCTION__,
+			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 					"Set 0x%08x exceeds %u service limit",
 					services, MAX_WAYS);
 			break;
@@ -898,7 +899,7 @@ vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
 		start[1] += sp->count[0]; /* rel. raw image, not scan lines */
 
 		if (!add_job_to_pattern (rd, job - rd->jobs, start, count)) {
-			vbi_log_printf (__FUNCTION__,
+			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 					"Out of pattern space for service 0x%08x (%s)",
 					par->id, par->label);
 			continue;
@@ -1047,7 +1048,7 @@ vbi_raw_decoder_new		(const vbi_sampling_par *sp)
 	vbi_raw_decoder *rd;
 
 	if (!(rd = malloc (sizeof (*rd)))) {
-		vbi_log_printf (__FUNCTION__, "Out of memory");
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__, "Out of memory");
 		return NULL;
 	}
 

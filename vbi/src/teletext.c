@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.12 2004-04-08 23:36:26 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.13 2004-04-17 05:52:25 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -3768,7 +3768,7 @@ vbi_page_copy			(const vbi_page *	pg)
 	old_pgp = CONST_PARENT (pg, vbi_page_private, pg);
 
 	if (!(new_pgp = malloc (sizeof (*new_pgp)))) {
-		vbi_log_printf (__FUNCTION__, "Out of memory");
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__, "Out of memory");
 		return NULL;
 	}
 
@@ -3812,7 +3812,7 @@ vbi_page_delete			(vbi_page *		pg)
 	pgp = PARENT (pg, vbi_page_private, pg);
 
 	if (VBI_PAGE_PRIVATE_MAGIC != pgp->magic) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"vbi_page %p not allocated by libzvbi", pg);
 		return;
 	}
@@ -3847,7 +3847,7 @@ vbi_page_new			(void)
 	vbi_page_private *pgp;
 
 	if (!(pgp = calloc (1, sizeof (*pgp)))) {
-		vbi_log_printf (__FUNCTION__, "Out of memory");
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__, "Out of memory");
 		return NULL;
 	}
 

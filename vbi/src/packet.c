@@ -17,7 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet.c,v 1.9.2.13 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: packet.c,v 1.9.2.14 2004-04-17 05:52:24 mschimek Exp $ */
+
+/* NOTE this file should be vbi_teletext_decoder.c */
 
 #include "../site_def.h"
 
@@ -37,7 +39,7 @@
 #include "export.h"
 #include "tables.h"
 #include "vbi.h"
-
+#include "packet-830.h"
 
 
 
@@ -928,18 +930,16 @@ decode_btt_page			(vbi_teletext_decoder *	td,
 
 	/* What's in packet 23? */
 
-#if 0
 	if (changed && (td->handlers.event_mask & VBI_EVENT_PAGE_TYPE)) {
 		vbi_event e;
 
 		e.type		= VBI_EVENT_PAGE_TYPE;
 
-		e.nuid		= td->network->client_nuid;
-		e.timestamp	= td->timestamp;
+//		e.nuid		= td->network->client_nuid;
+//		e.timestamp	= td->timestamp;
 
-		_vbi_event_handlers_send (&td->handlers, &e);
+		_vbi_event_handler_list_send (&td->handlers, &e);
 	}
-#endif
 }
 
 /* 11.2 Additional Information Table */
@@ -1405,18 +1405,16 @@ decode_mip_page			(vbi_teletext_decoder *	td,
 		pgno += 0x30;
 	}
 
-#if 0
 	if (changed && (td->handlers.event_mask & VBI_EVENT_PAGE_TYPE)) {
 		vbi_event e;
 
 		e.type		= VBI_EVENT_PAGE_TYPE;
 
-		e.nuid		= td->network->client_nuid;
-		e.timestamp	= td->timestamp;
+//		e.nuid		= td->network->client_nuid;
+//		e.timestamp	= td->timestamp;
 
-		_vbi_event_handlers_send (&td->handlers, &e);
+		_vbi_event_handler_list_send (&td->handlers, &e);
 	}
-#endif
 }
 
 /*
@@ -1706,6 +1704,7 @@ eacem_trigger(vbi_decoder *vbi, const vt_page *vtp)
 	if (0)
 		dump_raw(vtp, FALSE);
 
+#warning
 	if (!(vbi->event_mask & VBI_EVENT_TRIGGER))
 		return;
 
@@ -2040,14 +2039,24 @@ store_page			(vbi_decoder * vbi,
 			break;
 		}
 
-#if 0
 		if (td->handlers.event_mask & VBI_EVENT_TTX_PAGE) {
-			_vbi_cache_put_page (td->cache, td->network, vtp,
-					     /* new ref */ FALSE);
+			vbi_event e;
+
+			log ("... store %03x.%04x, "
+			     "packets=%x x26=%x x27=%x x28=%x\n",
+			     vtp->pgno, vtp->subno,
+			     vtp->lop_packets,
+			     vtp->x26_designations,
+			     vtp->x27_designations,
+			     vtp->x28_designations);
+
+//			_vbi_cache_put_page (td->cache, td->network, vtp,
+//					     /* new ref */ FALSE);
+			vbi_cache_put (vbi, NUID0, vtp, /* new ref */ FALSE);
 
 			e.type		= VBI_EVENT_TTX_PAGE;
-			e.nuid		= td->network->client_nuid;
-			e.timestamp	= td->timestamp;
+//			e.nuid		= td->network->client_nuid;
+//			e.timestamp	= td->timestamp;
 
 			e.ev.ttx_page.pgno = vtp->pgno;
 			e.ev.ttx_page.subno = vtp->subno;
@@ -2059,45 +2068,9 @@ store_page			(vbi_decoder * vbi,
 						 C8_UPDATE |
 						 C11_MAGAZINE_SERIAL));
 
-			_vbi_event_handlers_send (&td->handlers, &e);
+			_vbi_event_handler_list_send (&td->handlers, &e);
 		}
-#else
- {
-	 vbi_event event;
 
-	 log ("... store %03x.%04x, packets=%x x26=%x x27=%x x28=%x\n",
-	      vtp->pgno, vtp->subno,
-	      vtp->lop_packets,
-	      vtp->x26_designations,
-	      vtp->x27_designations,
-	      vtp->x28_designations);
-
-	 vbi_cache_put (vbi, NUID0, vtp, /* new ref */ FALSE);
-
-		CLEAR (event);
-
-	event.type = VBI_EVENT_TTX_PAGE;
-
-	event.ev.ttx_page.pgno = vtp->pgno;
-	event.ev.ttx_page.subno = vtp->subno;
-
-	event.ev.ttx_page.roll_header =
-		(((vtp->flags & (  C5_NEWSFLASH
-				 | C6_SUBTITLE 
-				 | C7_SUPPRESS_HEADER
-				 | C9_INTERRUPTED
-			         | C10_INHIBIT_DISPLAY)) == 0)
-		 && (vtp->pgno <= 0x199
-		     || (vtp->flags & C11_MAGAZINE_SERIAL))
-		 && vbi_is_bcd(vtp->pgno) /* no hex numbers */);
-
-	event.ev.ttx_page.header_update = FALSE;
-	event.ev.ttx_page.raw_header = NULL;
-	event.ev.ttx_page.pn_offset = -1;
-
-	vbi_send_event (vbi, &event);
- }
-#endif
 		break;
 	}
 
@@ -2155,21 +2128,21 @@ store_page			(vbi_decoder * vbi,
 
 		for (i = 0; i < sizeof (vtp->data.ait.title); ++i)
 			sum += ((uint8_t *) &vtp->data.ait.title)[i];
-#if 0
+
 		if (vtp->data.ait.checksum != sum
 		    && (td->handlers.event_mask & VBI_EVENT_TOP_CHANGE)) {
 			vbi_event e;
 
 			e.type		= VBI_EVENT_TOP_CHANGE;
 
-			e.nuid		= td->network->client_nuid;
-			e.timestamp	= td->timestamp;
+//			e.nuid		= td->network->client_nuid;
+//			e.timestamp	= td->timestamp;
 
-			_vbi_event_handlers_send (&td->handlers, &e);
+			_vbi_event_handler_list_send (&td->handlers, &e);
 		}
 
 		vtp->data.ait.checksum = sum;
-#endif
+
 		break;
 	}
 
@@ -3321,21 +3294,19 @@ static void
 network_event			(vbi_teletext_decoder *	td,
 				 vbi_nuid		nuid)
 {
-#if 0
 	vbi_event e;
 
-	if (VBI_NUID_UNKNOWN != td->network->received_nuid) {
-		/* Channel switch detected. Note this changes td->network. */
-		td->virtual_reset (td, nuid, 0 /* now */);
-	}
+//	if (VBI_NUID_UNKNOWN != td->network->received_nuid) {
+//		/* Channel switch detected. Note this changes td->network. */
+//		td->virtual_reset (td, nuid, 0 /* now */);
+//	}
 
 	e.type		= VBI_EVENT_NETWORK;
 
-	e.nuid		= td->network->client_nuid;
-	e.timestamp	= td->timestamp;
+//	e.nuid		= td->network->client_nuid;
+//	e.timestamp	= td->timestamp;
 
-	_vbi_event_handlers_send (&td->handlers, &e);
-#endif
+	_vbi_event_handler_list_send (&td->handlers, &e);
 }
 
 static vbi_bool
@@ -3352,10 +3323,10 @@ decode_packet_8_30		(vbi_teletext_decoder *	td,
 	if (designation > 4)
 		return TRUE; /* undefined, ignored */
 
-#if 0
-	if (0 == td->reset_delay) {
+//	if (0 == td->reset_delay) {
+	if (1) {
 		if (td->handlers.event_mask & VBI_EVENT_TTX_PAGE) {
-			vt_pagenum pn;
+			pagenum pn;
 
 			if (!hamm8_page_number (&pn, buffer + 3, 0))
 				return FALSE;
@@ -3403,8 +3374,8 @@ decode_packet_8_30		(vbi_teletext_decoder *	td,
 
 		nuid = vbi_nuid_from_cni (VBI_CNI_TYPE_8301, cni);
 
-		if (nuid != td->network->received_nuid)
-			network_event (td, nuid);
+//		if (nuid != td->network->received_nuid)
+//			network_event (td, nuid);
 
 		if (td->handlers.event_mask & VBI_EVENT_LOCAL_TIME) {
 			vbi_event e;
@@ -3417,10 +3388,10 @@ decode_packet_8_30		(vbi_teletext_decoder *	td,
 
 			e.type		= VBI_EVENT_LOCAL_TIME;
 
-			e.nuid		= td->network->client_nuid;
-			e.timestamp	= td->timestamp;
+//			e.nuid		= td->network->client_nuid;
+//			e.timestamp	= td->timestamp;
 
-			_vbi_event_handlers_send (&td->handlers, &e);
+			_vbi_event_handler_list_send (&td->handlers, &e);
 		}
 	} else {
 		/* 8/30 format 2 */
@@ -3432,10 +3403,10 @@ decode_packet_8_30		(vbi_teletext_decoder *	td,
 			if (!vbi_decode_teletext_8302_pdc (&pid, buffer))
 				return FALSE;
 
-			if (pid.nuid != td->network->received_nuid)
-				network_event (td, pid.nuid);
+//			if (pid.nuid != td->network->received_nuid)
+//				network_event (td, pid.nuid);
 
-			p = td->network->program_id + pid.channel;
+			p = &td->network->program_id[pid.channel];
 
 			if (p->pil != pid.pil
 			    || ((p->luf ^ pid.luf) |
@@ -3448,11 +3419,12 @@ decode_packet_8_30		(vbi_teletext_decoder *	td,
 				*p = pid;
 
 				e.type		= VBI_EVENT_PROG_ID;
-				e.nuid		= td->network->client_nuid;
-				e.timestamp	= td->timestamp;
+//				e.nuid		= td->network->client_nuid;
+//				e.timestamp	= td->timestamp;
 				e.ev.prog_id	= p;
 
-				_vbi_event_handlers_send (&td->handlers, &e);
+				_vbi_event_handler_list_send
+					(&td->handlers, &e);
 			}
 		} else {
 			unsigned int cni;
@@ -3463,11 +3435,10 @@ decode_packet_8_30		(vbi_teletext_decoder *	td,
 
 			nuid = vbi_nuid_from_cni (VBI_CNI_TYPE_8302, cni);
 
-			if (nuid != td->network->received_nuid)
-				network_event (td, nuid);
+//			if (nuid != td->network->received_nuid)
+//				network_event (td, nuid);
 		}
 	}
-#endif
 
 	return TRUE;
 }
@@ -3857,6 +3828,36 @@ reset				(vbi_teletext_decoder *	td,
 }
 
 void
+vbi_teletext_decoder_remove_event_handler
+				(vbi_teletext_decoder *	td,
+				 vbi_event_cb *		callback,
+				 void *			user_data)
+{
+	_vbi_event_handler_list_remove (&td->handlers, callback, user_data);
+}
+
+vbi_bool
+vbi_teletext_decoder_add_event_handler
+				(vbi_teletext_decoder *	td,
+				 unsigned int		event_mask,
+				 vbi_event_cb *		callback,
+				 void *			user_data)
+{
+	event_mask &= (VBI_EVENT_CLOSE |
+		       VBI_EVENT_TTX_PAGE |
+		       VBI_EVENT_NETWORK |
+		       VBI_EVENT_TRIGGER |
+		       VBI_EVENT_PROG_INFO |
+		       VBI_EVENT_PAGE_TYPE |
+		       VBI_EVENT_TOP_CHANGE |
+		       VBI_EVENT_LOCAL_TIME |
+		       VBI_EVENT_PROG_ID);
+
+	return _vbi_event_handler_list_add
+		(&td->handlers, event_mask, callback, user_data);
+}
+
+void
 vbi_teletext_decoder_reset	(vbi_teletext_decoder *	td,
 				 vbi_nuid		nuid)
 {
@@ -3867,9 +3868,18 @@ vbi_teletext_decoder_reset	(vbi_teletext_decoder *	td,
 void
 _vbi_teletext_decoder_destroy	(vbi_teletext_decoder *	td)
 {
+	vbi_event e;
+
 	assert (NULL != td);
 
-//	_vbi_event_handlers_destroy (&td->handlers);
+	e.type		= VBI_EVENT_CLOSE;
+
+//	e.nuid		= td->network->client_nuid;
+//	e.timestamp	= td->timestamp;
+
+	_vbi_event_handler_list_send (&td->handlers, &e);
+
+	_vbi_event_handler_list_destroy (&td->handlers);
 
 //	_vbi_cache_release_network (td->cache, td->network);
 
@@ -3898,7 +3908,7 @@ _vbi_teletext_decoder_init	(vbi_teletext_decoder *	td,
 
 //	td->virtual_reset = reset;
 
-//	_vbi_event_handlers_init (&td->handlers);
+	_vbi_event_handler_list_init (&td->handlers);
 
 	reset (td, nuid, 0 /* now */);
 
@@ -3922,7 +3932,8 @@ vbi_teletext_decoder_new	(vbi_cache *		ca)
 	vbi_teletext_decoder *td;
 
 	if (!(td = malloc (sizeof (*td)))) {
-		vbi_log_printf (__FUNCTION__, "Out of memory");
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
+				"Out of memory (%u)", sizeof (*td));
 		return NULL;
 	}
 

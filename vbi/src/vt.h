@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.14 2004-04-08 23:36:26 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.15 2004-04-17 05:52:25 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
@@ -37,6 +37,7 @@
 #include "pdc.h"
 #include "pfc_demux.h"
 #include "teletext_decoder.h"
+#include "event.h"
 
 #ifndef VBI_DECODER
 #define VBI_DECODER
@@ -649,7 +650,7 @@ struct _vbi_teletext_decoder {
 
 	double			timestamp;
 
-  //	_vbi_event_handlers	handlers;
+	_vbi_event_handler_list handlers;
 
   //	void (* virtual_reset)	(vbi_teletext_decoder *	td,
   //				 vbi_nuid		nuid,

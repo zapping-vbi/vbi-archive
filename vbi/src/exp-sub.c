@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-sub.c,v 1.1.2.1 2004-04-15 00:11:16 mschimek Exp $ */
+/* $Id: exp-sub.c,v 1.1.2.2 2004-04-17 05:52:24 mschimek Exp $ */
 
 #include "../config.h"
 

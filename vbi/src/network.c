@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.1.2.4 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: network.c,v 1.1.2.5 2004-04-17 05:52:24 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -685,7 +685,8 @@ cni_lookup			(vbi_cni_type		type,
 		break;
 
 	default:
-		vbi_log_printf (__FUNCTION__, "Unknown CNI type %u\n", type);
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
+				"Unknown CNI type %u\n", type);
 		break;
 	}
 
@@ -762,7 +763,7 @@ vbi_convert_cni			(vbi_cni_type		to_type,
 		break;
 
 	default:
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Unknown CNI type %u\n", to_type);
 		return 0;
 	}
@@ -788,7 +789,8 @@ vbi_network_new			(vbi_nuid		nuid)
 	vbi_network *n;
 
 	if (!(n = calloc (1, sizeof (*n)))) {
-		vbi_log_printf (__FUNCTION__, "Out of memory");
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
+				"Out of memory");
 		return NULL;
 	}
 
@@ -908,7 +910,7 @@ vbi_network_new			(vbi_nuid		nuid)
 			break;
 
 		default:
-			vbi_log_printf (__FUNCTION__,
+			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 					"Unknown CNI type %u\n", type);
 		}
 	}

@@ -21,15 +21,18 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.h,v 1.5.2.7 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: event.h,v 1.5.2.8 2004-04-17 05:52:24 mschimek Exp $ */
 
 #ifndef EVENT_H
 #define EVENT_H
 
+#include <time.h>		/* time_t */
 #include "bcd.h"
 #include "network.h"
-#include "link.h"
-#include "aspect_ratio.h"
+#include "link.h"		/* vbi_link */
+#include "aspect_ratio.h"	/* vbi_aspect_ratio */
+#include "pdc.h"		/* vbi_program_id */
+
 
 #ifndef VBI_DECODER
 #define VBI_DECODER
@@ -37,7 +40,6 @@ typedef struct vbi_decoder vbi_decoder;
 #endif
 
 /* Public */
-
 
 
 
@@ -399,6 +401,42 @@ extern void		vbi_reset_prog_info(vbi_program_info *pi);
 #include <inttypes.h>
 
 /**
+ * @brief Teletext page flags.
+ */
+typedef enum {
+	/**
+	 * The page header is suitable for a rolling display
+	 * and clock updates.
+	 */
+	VBI_ROLL_HEADER		= 0x000001,
+
+	/**
+	 * Newsflash page.
+	 */
+	VBI_NEWSFLASH		= 0x004000,
+
+	/**
+	 * Subtitle page.
+	 */
+	VBI_SUBTITLE		= 0x008000,
+
+	/**
+	 * The page has changed since the last transmission. This
+	 * flag is under editorial control, not set by the
+	 * vbi_teletext_decoder. See EN 300 706, Section A.2 for details.
+	 */
+	VBI_UPDATE		= 0x020000,
+
+	/**
+	 * When this flag is set, pages are in serial transmission. When
+	 * cleared, pages are in series only within their magazine (pgno &
+	 * 0x0FF). In the latter case a rolling header should display only
+	 * pages from the same magazine.
+	 */
+	VBI_SERIAL		= 0x100000,
+} vbi_ttx_page_flags; 
+
+/**
  * @ingroup Event
  * @brief Event union.
  */
@@ -409,13 +447,9 @@ typedef struct vbi_event {
 	int			type;
 	union {
 		struct {
-		        int			pgno;
-		        int			subno;
-			uint8_t *		raw_header;
-			int			pn_offset;
-			unsigned int		roll_header : 1;
-		        unsigned int		header_update : 1;
-			unsigned int		clock_update : 1;
+			vbi_pgno		pgno;
+			vbi_subno		subno;
+			vbi_ttx_page_flags	flags;
 	        }			ttx_page;
 		struct {
 			int			pgno;
@@ -424,6 +458,17 @@ typedef struct vbi_event {
                 vbi_link *		trigger;
                 vbi_aspect_ratio	aspect;
 		vbi_program_info *	prog_info;
+#define VBI_EVENT_PAGE_TYPE 0x0800
+		struct { }		page_type;
+#define VBI_EVENT_TOP_CHANGE 0x4000
+		struct { }		top_change;
+#define VBI_EVENT_LOCAL_TIME 0x1000
+		struct {
+			time_t			time;
+			int			gmtoff;
+		}			local_time;
+#define VBI_EVENT_PROG_ID 0x2000
+		vbi_program_id *	prog_id;
 	}			ev;
 } vbi_event;
 
@@ -449,5 +494,66 @@ extern void		vbi_event_handler_unregister(vbi_decoder *vbi,
 /* Private */
 
 extern void		vbi_send_event(vbi_decoder *vbi, vbi_event *ev);
+
+
+
+
+
+
+
+
+
+
+
+
+typedef vbi_bool
+vbi_event_cb			(const vbi_event *	event,
+				 void *			user_data);
+
+/* Private */
+
+typedef struct _vbi_event_handler _vbi_event_handler;
+
+struct _vbi_event_handler {
+	_vbi_event_handler *	next;
+	unsigned int		event_mask;
+	unsigned int		blocked;
+	vbi_event_cb *		callback;
+	void *			user_data;
+};
+
+typedef struct {
+	unsigned int		event_mask;
+	_vbi_event_handler *	first;
+	_vbi_event_handler *	current;
+} _vbi_event_handler_list;
+
+extern void
+_vbi_event_handler_list_send	(_vbi_event_handler_list *es,
+				 const vbi_event *	ev);
+extern void
+_vbi_event_handler_list_remove_by_event
+			    	(_vbi_event_handler_list *es,
+				 unsigned int		event_mask);
+extern void
+_vbi_event_handler_list_remove	(_vbi_event_handler_list *es,
+				 vbi_event_cb *		callback,
+				 void *			user_data);
+extern vbi_bool
+_vbi_event_handler_list_add	(_vbi_event_handler_list *es,
+				 unsigned int		event_mask,
+				 vbi_event_cb *		callback,
+				 void *			user_data);
+extern void
+_vbi_event_handler_list_destroy	(_vbi_event_handler_list *es);
+extern vbi_bool
+_vbi_event_handler_list_init	(_vbi_event_handler_list *es);
+
+
+
+
+
+
+
 
 #endif /* EVENT_H */

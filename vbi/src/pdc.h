@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.1.2.6 2004-04-08 23:36:26 mschimek Exp $ */
+/* $Id: pdc.h,v 1.1.2.7 2004-04-17 05:52:25 mschimek Exp $ */
 
 #ifndef __ZVBI_PDC_H__
 #define __ZVBI_PDC_H__
@@ -216,6 +216,8 @@ vbi_preselection_dump		(const vbi_preselection *pl,
 extern time_t
 vbi_preselection_time		(const vbi_preselection *pl);
 
+#ifndef EVENT_H
+// FIXME doesn't belong here
 extern vbi_bool
 vbi_page_pdc_link		(const vbi_page *	pg,
 				 vbi_preselection *	pl,
@@ -225,6 +227,7 @@ extern vbi_bool
 vbi_page_pdc_enum		(const vbi_page *	pg,
 				 vbi_preselection *	pl,
 				 unsigned int		index);
+#endif
 
 /* Private */
 
@@ -331,10 +334,13 @@ extern unsigned int
 pdc_method_a			(pdc_program *		table,
 				 unsigned int		table_size,
 				 const uint8_t		lop_raw[26][40]);
+#ifndef EVENT_H
+// FIXME doesn't belong here
 extern void
 vbi_page_mark_pdc		(vbi_page *		pg,
 				 const pdc_program *	pbegin,
 				 const pdc_program *	pend);
+#endif
 
 VBI_END_DECLS
 

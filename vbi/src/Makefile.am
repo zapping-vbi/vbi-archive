@@ -73,7 +73,7 @@ libzvbi_la_SOURCES = $(INSTALLHDRS) \
 	intl-priv.h \
 	io.c io-priv.h \
 	io-bktr.c \
-	io-dvb.h \
+	io-dvb.c \
 	io-sim.c \
 	io-v4l2k.c videodev2k.h \
 	io-v4l2.c videodev2.h \

@@ -25,7 +25,7 @@
 #  Perl and C gurus cover your eyes. This is one of my first
 #  attempts in this funny tongue and far from a proper C parser.
 
-# $Id: structpr.pl,v 1.1.2.1 2004-04-15 00:11:16 mschimek Exp $
+# $Id: structpr.pl,v 1.1.2.2 2004-04-17 05:52:25 mschimek Exp $
 
 $number		= '[0-9]+';
 $ident		= '\~?_*[a-zA-Z][a-zA-Z0-9_]*';

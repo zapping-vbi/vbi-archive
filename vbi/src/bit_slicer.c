@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.c,v 1.1.2.4 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: bit_slicer.c,v 1.1.2.5 2004-04-17 05:52:24 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -305,14 +305,14 @@ _vbi_bit_slicer_init		(vbi_bit_slicer *	bs,
 	assert (samples_per_line <= 32767);
 
 	if (cri_rate > sampling_rate) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"cri_rate %u > sampling_rate %u\n",
 				cri_rate, sampling_rate);
 		goto failure;
 	}
 
 	if (payload_rate > sampling_rate) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"payload_rate %u > sampling_rate %u\n",
 				payload_rate, sampling_rate);
 		goto failure;
@@ -539,7 +539,7 @@ _vbi_bit_slicer_init		(vbi_bit_slicer *	bs,
 	if ((sample_offset > samples_per_line)
 	    || ((cri_samples + data_samples)
 		> (samples_per_line - sample_offset))) {
-		vbi_log_printf (__FUNCTION__,
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"%u samples_per_line too small for "
 				"sample_offset %u + cri_bits %u (%u samples) "
 				"+ frc_bits %u and payload_bits %u "
@@ -690,7 +690,7 @@ vbi_bit_slicer_new		(vbi_pixfmt		sample_format,
 	vbi_bit_slicer *bs;
 
 	if (!(bs = malloc (sizeof (*bs)))) {
-		vbi_log_printf (__FUNCTION__, "Out of memory");
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__, "Out of memory");
 		return NULL;
 	}
 

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.h,v 1.1.2.1 2004-04-09 05:17:21 mschimek Exp $ */
+/* $Id: teletext_decoder.h,v 1.1.2.2 2004-04-17 05:52:25 mschimek Exp $ */
 
 #ifndef __ZVBI_TELETEXT_DECODER_H__
 #define __ZVBI_TELETEXT_DECODER_H__
@@ -31,6 +31,7 @@
 #include "pdc.h"		/* vbi_program_id, vbi_pid_channel */
 #include "network.h"		/* vbi_nuid */
 //#include "cache.h"		/* vbi_cache */
+#include "event.h"		/* vbi_event_cb */
 
 VBI_BEGIN_DECLS
 
@@ -76,7 +77,7 @@ struct _vbi_top_title {
 	vbi_pgno		pgno;
 	vbi_subno		subno;
 	char *			title;
-	vbi_top_title *		sub;
+	vbi_top_title *		submenu;
 };
 
 void
@@ -88,6 +89,17 @@ extern const vbi_program_id *
 vbi_teletext_decoder_program_id	(vbi_teletext_decoder *	td,
 				 vbi_pid_channel	channel);
 extern void
+vbi_teletext_decoder_remove_event_handler
+				(vbi_teletext_decoder *	td,
+				 vbi_event_cb *		callback,
+				 void *			user_data);
+extern vbi_bool
+vbi_teletext_decoder_add_event_handler
+				(vbi_teletext_decoder *	td,
+				 unsigned int		event_mask,
+				 vbi_event_cb *		callback,
+				 void *			user_data);
+extern void
 vbi_teletext_decoder_reset	(vbi_teletext_decoder *	td,
 				 vbi_nuid		nuid);
 extern vbi_bool
@@ -97,7 +109,7 @@ vbi_teletext_decoder_decode	(vbi_teletext_decoder *	td,
 extern void
 vbi_teletext_decoder_delete	(vbi_teletext_decoder *	td);
 
-
+// TODO
 #define vbi_cache void
 
 extern vbi_teletext_decoder *

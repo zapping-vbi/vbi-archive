@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5.2.6 2004-04-08 23:36:49 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.7 2004-04-17 05:52:25 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -351,7 +351,7 @@ main(int argc, char **argv)
 
 	assert ((vbi = vbi_decoder_new ()));
 
-	assert (vbi_event_handler_add
+	assert (vbi_event_handler_register
 		(vbi, VBI_EVENT_TTX_PAGE, handler, NULL)); 
 
 	stream ();

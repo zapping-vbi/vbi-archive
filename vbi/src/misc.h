@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.10 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.11 2004-04-17 05:52:24 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -28,6 +28,10 @@
 #include <assert.h>
 
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
+
+typedef enum {
+	VBI_DEBUG = 7,
+} vbi_log_level;
 
 #ifdef __GNUC__
 
@@ -126,10 +130,11 @@ do {									\
 #endif
 
 extern void
-vbi_log_printf			(const char *		function,
+vbi_log_printf			(vbi_log_level		level,
+				 const char *		function,
 				 const char *		template,
 				 ...)
-     __attribute__ ((format (__printf__, 2, 3)));
+     __attribute__ ((format (__printf__, 3, 4)));
 
 #else /* !__GNUC__ */
 

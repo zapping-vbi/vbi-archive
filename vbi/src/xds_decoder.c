@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_decoder.c,v 1.1.2.1 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: xds_decoder.c,v 1.1.2.2 2004-04-17 05:52:25 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -216,7 +216,8 @@ decode_program			(vbi_decoder *		vbi,
 	vbi_event e;
 	int neq, i;
 
-	if (!(vbi->event_mask & (VBI_EVENT_ASPECT | VBI_EVENT_PROG_INFO)))
+	if (!(vbi->event_handlers.event_mask
+	      & (VBI_EVENT_ASPECT | VBI_EVENT_PROG_INFO)))
 		return;
 
 	pi = &vbi->prog_info[xp->xds_class];

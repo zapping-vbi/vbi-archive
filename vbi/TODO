@@ -1,11 +1,9 @@
-$Id: TODO,v 1.11.2.6 2004-02-25 17:35:27 mschimek Exp $
+$Id: TODO,v 1.11.2.7 2004-04-17 05:52:05 mschimek Exp $
 
 Version 0.3
 
 * Improve & integrate fake VBI generator. Demonstrate every
   supported feature for tests & localization.
-* Events suck badly. Change to query functions (fetch page, station
-  name, aspect ratio, ...) and just notify apps of changes.
 * Add io-dvb. Generally speaking the i/o api is poor, should be
   improved. Take a look at  http://www.baycom.org/~tom/alevt-dvb.patch
 * VR triggers from VPS/PDC/XDS.
@@ -17,27 +15,14 @@ Version 0.3
   - vbi_network done
 * Improve TTX roll header + serial (Mxx increment).
 * Improve TTX page cache.
-* Streaming subtitles (as opposed to exporting single pages).
-* Not relocatable (bindtextdomain)
 * Think about ttx header samples (p100) for stations not transmitting
   a CNI (instead of guessing the name from ttx). May use VTX to create
   samples.
-* SGML error reporting. (Not sure anymore if this is
-  really worth the trouble.)
-
-+ io.c
- + tv_video_device (v4l/v4l2/v4l25/bktr)
-   - device enum
-   - video input, tuner, frequency table
-   - video standard
-   - control
-   - pixfmt
-   + basic open, close, read, mmap, ioctl
 
 Version 0.4
 
 * Better support for custom fonts. For once, a TT font containing the
-  special characters (block graphics etc) would be useful.
+  Teletext special characters (block graphics etc) would be useful.
 
 -------------------------------------------------------------------------------
 Ideas? Drop us a note at http://zapping.sourceforge.net.
