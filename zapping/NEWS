@@ -1,0 +1,150 @@
+New stuff, refer to the ChangeLog for a more detailed description of
+the changes.
+
+0.7
+---
+
+
+0.6.5
+-----
+It's been a long time since 0.6.4, much too long, but finally
+the beast arrived. Main change this time is the switch from rte 0.4 to
+0.5, our high speed audio/video recording library. The recording plugin
+will not work with rte 0.4 unless you compile Zapping yourself.
+
+rte 0.5 adds a lot more formats besides MPEG-1 using ffmpeg and divx4linux,
+possibly even more in the future. Along with the new codecs comes a new
+recording dialog which allows users to save recording configurations
+under different names.
+
+RPM changes:
+- Some earlier Zapping binaries installed in /usr/local, the default
+  when building the application from source. The current binary
+  zapping-0.6.5-1.i386.rpm installs in /usr which should integrate better
+  in most Linux distributions, including RedHat and Mandrake. The rte
+  and zvbi packages always installed in /usr.
+- Another binary zapping-0.6.5-1.suse.i386.rpm is provided which
+  installs in /opt/gnome, otherwise identical.
+
+Other changes:
+- We have new GUI options to change the toolbar style and keep the video
+  window on top (when supported by the window manager).
+- Zapping temporarily disables XScreensaver, the software screen blanker
+  by J. Zawinski. Of course the X11 built-in savers are also disabled.
+- Teletext export options and the record plugin codec menus where not
+  or not correctly localized in the past (i.e. remaining in English).
+  For full satisfaction you may have to update zvbi as well.
+- Thanks to Guus Bonnema for taking over maintenance of the orphaned
+  Dutch translation.
+- Matt without last name contributed a frequency table for Canadian cable.
+- Well, and the usual set of fixes, non-fixes and micro improvements.
+
+This is the last release of Zapping (gasp!) using Gnome 1 (phew!). The
+next version 0.7 will require Gnome 2, so please stop asking now. If you
+like to live on the bleeding edge, the tree is in CVS, branch
+zapping-gnome2. It will move to the HEAD trunk at the appropriate time.
+
+0.6.4
+-----
+This is mostly a bugfix release, no new features. When you
+use this version you should also install zvbi 0.1.1 which
+adds more fixes.
+
+0.6.3
+-----
+A new year, a new release, a new maintainer. Sadly this
+release does not include all improvements planned for 0.6.3,
+but it's over three months since the last release, without an
+end in sight. Future versions will be released at shorter
+intervals.
+
+The main difference to 0.6.2 is the extraction of the Zapping vbi
+decoder into a separate package "zvbi". Motivation was to clean
+up and re-use the component in other applications, encourage more
+frequent updates and to reduce the size of binaries. Zapping can
+be compiled without, but a lot of functionality depends on the
+zvbi library, so you should really get it. Using the binary
+packages makes it a requirement.
+
+Other changes:
+- Recording source and volume can be selected in preferences.
+  Currently only the OSS /dev/mixer is supported.
+- For our US and Canadian users Zapping now looks for XDS
+  program title, start and end times, rating etc. and can
+  display this information in the title bar or a program
+  info window.
+- Complete rewrite of the screenshot plugin. Better dialog,
+  supports JPEG and PPM (possibly more, inquire within), has
+  quality preview and on-the-fly deinterlacing.
+- Some channel editor improvements.
+- The "snapshot button" present on ov511 web cams is scanned
+  and does what it's supposed to.
+- Pointer disappears and reappears screen-saver style.
+- Some Teletext export improvements.
+- New mute audio toolbar button.
+- Channel numbers can be entered on the numeric keypad, either
+  by channel memory number (European style) or RF channel
+  number (US style).
+- Preliminary volume up/down function.
+- Most of the keybord shortcuts are configurable now.
+- And the usual set of bug fixes and new bugs.
+
+0.6.2
+-----
+- Dutch translation.
+- Redesigned channel editor and properties dialog.
+- SGML renderer for OSD.
+- In-window OSD, no more floating subtitle windows.
+- Support for the Logitech Quickcam Express (possibly
+  other quickcams too, but this is untested).
+- Improved timestamping.
+- ARTS recording support.
+- Sync with rte 0.4
+- Bugfixes and polishment, as usual.
+
+0.6.1 
+-----
+- Added Swedish translation.
+- Reported to build and work (using XVideo) under FreeBSD and Solaris.
+- Automatic overlaying of subtitle TTX pages.
+- Reverted to the old fb depth detection routine.
+- Some bugfixes in the mpeg plugin, adapted to use rte 0.3.1's new controls api.
+- Fixed some bugs with Arabic and Hebrew TTX glyph mapping.
+- Usability improvements, especially in the channel editor.
+- Updated de, es, fr and pl translations.
+											      
+0.6.0
+-----
+- Rewrote inner capture code, should be more versatile now (me).
+- Better support for SuSE (me)
+- Aspect ratio autodetecting (Michael)
+- MPEG plugin faster, updated to latest rte (me)
+- RTE: motion estimation (Michael)
+- GUI improvements (Michael, me)
+- Verboser error reporting in libvbi (Michael)
+- Standalone Zapzilla executable (me)
+- Zapzilla autodetects channel switches, for tunerless devices and
+  standalone Zapzilla (Michael)
+- Zapping works without V4L/V4L2 now [XVideo only], Solaris port (Roger
+	Fujii, me)
+- 41st column in TTX (Michael)
+- Use afc, channel name autodetection in channel editor (me)
+- Aspect ratio fixes, now it's applied to the tvscreen, not the whole
+	window (me)
+- Color conversion MMX autogenerator (Michael)
+- Man pages (Christian Marillat, me)
+- Fifo rewrite (Michael)
+- New alirc plugin (Sjoerd Simmons)
+- Added Polish translation (Pawe≈, Sakowski)
+- Updated de.po (Michael), es.po (me), fr.po (Christian)
+- Added Swedish translation (Henrik Isacsson)
+
+0.5.9
+-----
+- Greatly improved VBI engine (Michael, me)
+- CC/TTX Subtitles support (Michael, me)
+- South African frequency table (Jeremy Maccelary)
+- LIRC support (Marco Pfattner)
+- Better XVideo support, XV Fullscreen (me)
+- PAMification of zapping_setup_fb (Tim Powers, me)
+- Some more GUI bloat for your exasperation (i'm the one to blame :-))

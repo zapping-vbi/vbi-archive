@@ -9,6 +9,9 @@
 #
 # Modified 2001-06-01 Michael H. Schimek <mschimek@users.sf.net>
 # - bzip2 (0.9.0c) -c didn't, changed to -f, added --repetitive-best
+# Modified 2002-09-01 Michael H. Schimek <mschimek@users.sf.net>
+# - added RPM_OPTIONS
+# - added cvs tag hint
 ##############################################################################
 ## Get the package name and version from configure.in
 PACKAGE_VER=`grep 'AM_INIT_AUTOMAKE(' configure.in`
@@ -24,13 +27,15 @@ if [ $VER = "" ]; then
 echo "Cannot get version from configure.in, please enter manually:"
 read VER
 fi
+CVS_TAG=$PACKAGE-`echo $VER | sed s/\\\\./-/g`
+
 clear
-echo "Generating new $PACKAGE release (version $VER)"
+echo "Generating new $PACKAGE release (version $VER, $CVS_TAG)"
 echo
 echo "Generating the Makefiles"
 echo "------------------------" && echo
 if test -e ./autogen.sh; then
-  (NOCONFIGURE="yes" && ./autogen.sh) || exit 1
+  NOCONFIGURE="yes" ./autogen.sh || exit 1
 fi
 if test ! x$1 = x; then
     ./configure --with-gnome-prefix=$1 || exit 1
@@ -68,7 +73,7 @@ if ! test "x$RPM_DIR" = "x"; then
     clear && echo "Building the RPM"
 	     echo "----------------" && echo
     cp $PACKAGE-$VER.tar.bz2 $RPM_DIR/SOURCES
-    rpm -ba --clean $PACKAGE.spec || exit 1
+    rpm $RPM_OPTIONS -ba --clean $PACKAGE.spec || exit 1
     rm $RPM_DIR/SOURCES/$PACKAGE-$VER.tar.bz2
 fi
 
@@ -92,7 +97,8 @@ fi
 mv $PACKAGE-$VER.tar.gz $VER-release
 mv $PACKAGE-$VER.tar.bz2 $VER-release
 
-echo "Done. Remember to commit the project to CVS if neccesary."
+echo "Done. Remember to commit the project to CVS if necessary."
+echo "Release tag: cvs tag -c $CVS_TAG"
 if test -e people_to_contact; then
     echo "Remember to notify the following people:"
     cat people_to_contact

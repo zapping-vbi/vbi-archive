@@ -37,7 +37,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <math.h>
-#include "common/ucs-2.h"
+#include "../common/ucs-2.h"
 
 #include "tveng.h"
 /* Manages config values for zconf (it saves me some typing) */
@@ -55,7 +55,7 @@
 
 #undef TRUE
 #undef FALSE
-#include "common/fifo.h"
+#include "../common/fifo.h"
 
 /*
   Quality-speed tradeoff when scaling+antialiasing the page:
