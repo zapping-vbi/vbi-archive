@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2k.c,v 1.14.2.1 2004-01-27 21:06:40 tomzo Exp $";
+static char rcsid[] = "$Id: io-v4l2k.c,v 1.14.2.2 2004-01-27 22:22:13 tomzo Exp $";
 
 /*
  *  Around Oct-Nov 2002 the V4L2 API was revised for inclusion into
@@ -143,8 +143,10 @@ v4l2_stream_alloc(vbi_capture_v4l2 *v, char ** errorstr)
 	assert(v->raw_buffer == NULL);
 	printv("Requesting streaming i/o buffers\n");
 
+	memset(&vrbuf, 0, sizeof(vrbuf));
 	vrbuf.type = v->btype;
 	vrbuf.count = v->buf_req_count;
+	vrbuf.memory = V4L2_MEMORY_MMAP;
 
 	if (IOCTL(v->fd, VIDIOC_REQBUFS, &vrbuf) == -1) {
 		vbi_asprintf(errorstr, _("Cannot request streaming i/o buffers "
