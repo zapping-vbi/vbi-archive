@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.1 2004-11-03 06:49:30 mschimek Exp $ */
+/* $Id: pdc.h,v 1.2 2005-01-08 14:54:21 mschimek Exp $ */
 
 #ifndef __ZVBI3_PDC_H__
 #define __ZVBI3_PDC_H__
@@ -87,9 +87,13 @@ typedef enum {
  * @brief PDC Programme Control Status, Audio.
  */
 typedef enum {
+	/** Nothing known about audio channels. */
 	VBI3_PCS_AUDIO_UNKNOWN = 0,
+	/** Mono audio. */
 	VBI3_PCS_AUDIO_MONO,
+	/** Stereo audio. */
 	VBI3_PCS_AUDIO_STEREO,
+	/** Primary language on left channel, secondary on right. */ 
 	VBI3_PCS_AUDIO_BILINGUAL
 } vbi3_pcs_audio;
 

@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: schedule.c,v 1.3 2003-11-29 19:43:22 mschimek Exp $ */
+/* $Id: schedule.c,v 1.4 2005-01-08 14:54:24 mschimek Exp $ */
 
 #include "plugin_common.h"
 

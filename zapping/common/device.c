@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.c,v 1.9 2005-01-08 14:43:03 mschimek Exp $ */
+/* $Id: device.c,v 1.10 2005-01-08 14:54:19 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdarg.h>

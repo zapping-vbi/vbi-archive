@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: windows.h,v 1.1 2005-01-08 14:35:43 mschimek Exp $ */
+/* $Id: windows.h,v 1.2 2005-01-08 14:54:22 mschimek Exp $ */
 
 #ifndef WINDOWS_H
 #define WINDOWS_H

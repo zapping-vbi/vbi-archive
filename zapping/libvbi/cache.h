@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.14 2004-11-03 06:49:29 mschimek Exp $ */
+/* $Id: cache.h,v 1.15 2005-01-08 14:54:20 mschimek Exp $ */
 
 #ifndef __ZVBI3_CACHE_H__
 #define __ZVBI3_CACHE_H__
@@ -79,17 +79,25 @@ typedef enum {
 extern const char *
 vbi3_ttx_page_type_name		(vbi3_ttx_page_type	type);
 
-/** DOCUMENT ME */
+/**
+ * @brief Meta data and statistical info about a cached Teletext page.
+ *
+ * Note the page this information refers to may not be cached yet
+ * (e.g. data from Teletext page inventory tables) or not anymore.
+ */
 typedef struct {
-	/** */
+	/** Teletext page type. */
 	vbi3_ttx_page_type	page_type;
-	/** */
+	/**
+	 * Primary character set used on the page. You might use
+	 * this as a subtitle language hint.
+	 */
 	vbi3_charset_code	charset_code;
 	/** Expected number of subpages: 0 or 2 ... 79. */
 	unsigned int		subpages;
-	/** Lowest subno received. */
+	/** Lowest subno received yet. */
 	vbi3_subno		subno_min;
-	/** Highest subno received. */
+	/** Highest subno received yet. */
 	vbi3_subno		subno_max;
 	void *			reserved1[2];
 	unsigned int		reserved2[2];
@@ -117,7 +125,7 @@ vbi3_cache_get_top_titles	(vbi3_cache *		ca,
 				 unsigned int *		n_elements);
 
 /**
- * Values for the vbi3_format_option @c VBI3_WST_LEVEL.
+ * @brief Values for the vbi3_format_option @c VBI3_WST_LEVEL.
  */
 typedef enum {
 	/**
@@ -142,13 +150,27 @@ typedef enum {
 	VBI3_WST_LEVEL_3p5
 } vbi3_wst_level;
 
+/**
+ * @brief Page formatting options.
+ *
+ * Pass formatting options as a vector of option pairs, consisting
+ * of an option number and value. The last option number must be @c 0.
+ *
+ * function (foo, bar,
+ *           VBI3_41_COLUMNS, TRUE,
+ *           VBI3_DEFAULT_CHARSET_0, 15,
+ *           VBI3_HEADER_ONLY, FALSE,
+ *           0);
+ */
+/* Note we use random numbering for safety because these
+   values are used in variable function arguments. Parameters shall
+   be only int or pointer (vbi3_bool is an int, enum is an int) for
+   proper automatic conversion. */
 typedef enum {
 	/**
 	 * Format only the first row.
 	 * Parameter: vbi3_bool, default FALSE.
 	 */
-	/* We use random numbering for safety because these
-	   values are used in variable function arguments. */
 	VBI3_HEADER_ONLY = 0x37138F00,
 	/**
 	 * Often column 0 of a page contains all black spaces,

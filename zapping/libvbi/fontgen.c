@@ -18,13 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fontgen.c,v 1.2 2004-11-11 14:35:41 mschimek Exp $ */
+/* $Id: fontgen.c,v 1.3 2005-01-08 14:54:20 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
 #include <ctype.h>
-#include <unistd.h>
 
 #include "misc.h"
 

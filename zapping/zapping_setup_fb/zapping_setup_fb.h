@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping_setup_fb.h,v 1.5 2004-09-10 04:46:26 mschimek Exp $ */
+/* $Id: zapping_setup_fb.h,v 1.6 2005-01-08 14:54:29 mschimek Exp $ */
 
 #include <stdio.h>
 #include <string.h>

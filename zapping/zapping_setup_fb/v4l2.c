@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.7 2004-11-03 06:37:31 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.8 2005-01-08 14:54:29 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -38,7 +38,7 @@
 
 #define v4l2_ioctl(fd, cmd, arg)					\
   (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
-   device_ioctl (log_fp, fprint_ioctl_arg, fd, cmd, arg))
+   device_ioctl (log_fp, fprint_v4l2_ioctl_arg, fd, cmd, arg))
 
 int
 setup_v4l2			(const char *		device_name,

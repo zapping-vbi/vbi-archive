@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.3 2004-12-07 17:30:43 mschimek Exp $ */
+/* $Id: export.c,v 1.4 2005-01-08 14:54:24 mschimek Exp $ */
 
 #include "config.h"
 
@@ -82,7 +82,7 @@ on_control_changed		(GtkWidget *		widget,
 
   if (oi->menu.str)
     {
-      val.num = (gint) g_object_get_data (G_OBJECT (widget), "index");
+      val.num = z_object_get_int_data (G_OBJECT (widget), "index");
       vbi3_export_option_menu_set (e, keyword, val.num);
     }
   else

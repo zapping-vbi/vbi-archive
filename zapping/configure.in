@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.164 2005-01-08 14:32:51 mschimek Exp $
+dnl $Id: configure.in,v 1.165 2005-01-08 14:54:10 mschimek Exp $
 
 AC_INIT(zapping, 0.9cvs,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])

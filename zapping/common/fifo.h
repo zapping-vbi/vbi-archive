@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.33 2005-01-08 14:42:31 mschimek Exp $ */
+/* $Id: fifo.h,v 1.34 2005-01-08 14:54:19 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H

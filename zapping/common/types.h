@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: types.h,v 1.7 2003-11-29 19:43:21 mschimek Exp $ */
+/* $Id: types.h,v 1.8 2005-01-08 14:54:19 mschimek Exp $ */
 
 #ifndef TYPES_H
 #define TYPES_H

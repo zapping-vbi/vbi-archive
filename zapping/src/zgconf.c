@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zgconf.c,v 1.3 2005-01-08 14:29:20 mschimek Exp $ */
+/* $Id: zgconf.c,v 1.4 2005-01-08 14:54:29 mschimek Exp $ */
 
 #include <math.h>		/* fabs() */
 #include "common/intl-priv.h"	/* _() */

@@ -415,8 +415,9 @@ ensure_width			(GtkWidget	*widget,
 				 GtkWidget	*parent)
 {
   GtkRequisition request;
-  gint req_max_width = GPOINTER_TO_INT
-    (g_object_get_data(G_OBJECT(parent), "req_max_width"));
+  gint req_max_width;
+
+  req_max_width = z_object_get_int_data (G_OBJECT (parent), "req_max_width");
 
   gtk_widget_size_request(widget, &request);
   if (request.width > req_max_width)
@@ -441,12 +442,15 @@ on_container_add		(GtkWidget	*container,
 				 GtkWidget	*sidebar)
 {
   GtkRequisition request;
+  gint req_button_height;
+  gint req_max_height;
+
   /* Sum of all the buttons height up to now */
-  gint req_button_height = GPOINTER_TO_INT
-    (g_object_get_data(G_OBJECT(sidebar), "req_button_height"));
+  req_button_height = z_object_get_int_data (G_OBJECT (sidebar),
+					     "req_button_height");
   /* Biggest subgroup allocated */
-  gint req_max_height = GPOINTER_TO_INT
-    (g_object_get_data(G_OBJECT(sidebar), "req_max_height"));
+  req_max_height = z_object_get_int_data (G_OBJECT (sidebar),
+					  "req_max_height");
 
   /* Adding a new group */
   if (container == sidebar && GTK_IS_BUTTON(widget))
@@ -651,9 +655,9 @@ append_properties_group		(GtkDialog	*dialog,
   on_container_add(vbox, button, vbox);
   gtk_widget_show(button);
   register_widget(NULL, button, buf);
-  g_signal_connect(G_OBJECT(button), "clicked",
-		   G_CALLBACK(open_properties_group),
-		   (gpointer)group);
+  z_signal_connect_const (G_OBJECT(button), "clicked",
+			  G_CALLBACK(open_properties_group),
+			  group);
   g_free(buf);
 
   buf = g_strdup_printf("group-contents-%s", group);

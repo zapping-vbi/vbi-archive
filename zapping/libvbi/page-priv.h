@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: page-priv.h,v 1.1 2004-11-03 06:49:30 mschimek Exp $ */
+/* $Id: page-priv.h,v 1.2 2005-01-08 14:54:21 mschimek Exp $ */
 
 #ifndef PAGE_PRIV_H
 #define PAGE_PRIV_H

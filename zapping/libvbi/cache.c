@@ -976,7 +976,6 @@ delete_surplus_pages		(vbi3_cache *		ca)
 }
 
 /**
- * @internal
  * @param ca Cache allocated with vbi3_cache_new().
  * @param limit Amount of memory in bytes.
  *
@@ -1175,7 +1174,7 @@ cache_page_ref			(cache_page *		cp)
 /**
  * @internal
  *
- * Gets a page from the cache. When @a subno is VBI3_SUB_ANY, the most
+ * Gets a page from the cache. When @a subno is @c VBI3_ANY_SUBNO, the most
  * recently received subpage of that page is returned.
  * 
  * The reference counter of the page is incremented, you must call
@@ -1562,7 +1561,7 @@ _vbi3_cache_put_page		(vbi3_cache *		ca,
 	return NULL;
 }
 
-/** internal */
+/** @internal */
 void
 _vbi3_cache_dump		(const vbi3_cache *	ca,
 				 FILE *			fp)
@@ -1610,6 +1609,9 @@ vbi3_cache_remove_event_handler	(vbi3_cache *		ca,
  *
  * Any number of handlers can be added, also different handlers for the
  * same event which will be called in registration order.
+ *
+ * Currently the following events are supported:
+ * @c VBI3_EVENT_REMOVE_NETWORK.
  *
  * @returns
  * @c FALSE of failure (out of memory).

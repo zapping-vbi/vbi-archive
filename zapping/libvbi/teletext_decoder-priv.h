@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder-priv.h,v 1.1 2004-11-03 06:49:31 mschimek Exp $ */
+/* $Id: teletext_decoder-priv.h,v 1.2 2005-01-08 14:54:21 mschimek Exp $ */
 
 #ifndef TELETEXT_DECODER_PRIV_H
 #define TELETEXT_DECODER_PRIV_H

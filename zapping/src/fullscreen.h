@@ -22,7 +22,7 @@
 extern gboolean
 start_fullscreen		(display_mode		dmode,
 				 capture_mode		cmode);
-extern void
+extern gboolean
 stop_fullscreen			(void);
 
 #endif /* FULLSCREEN_H */

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alloc.c,v 1.4 2002-06-25 04:35:40 mschimek Exp $ */
+/* $Id: alloc.c,v 1.5 2005-01-08 14:54:19 mschimek Exp $ */
 
 #include <string.h>
 #include "alloc.h"

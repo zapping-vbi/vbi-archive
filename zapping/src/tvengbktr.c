@@ -650,6 +650,34 @@ set_tuner_frequency		(tveng_device_info *	info,
 	return TRUE;
 }
 
+static int
+get_signal_strength		(tveng_device_info *	info,
+				 int *			strength,
+				 int *			afc)
+{
+/*  unsigned int status; */
+/*  unsigned short status2; */
+	unsigned int status3;
+
+	if (!strength)
+		return TRUE;
+
+/*
+  if (-1 == tuner_ioctl (info, TVTUNER_GETSTATUS, &status))
+    return -1;
+  if (-1 == bktr_ioctl (info, METEORSTATUS, &status2))
+    return -1;
+*/
+	if (-1 == bktr_ioctl (info, BT848_GSTATUS, &status3))
+		return FALSE;
+
+	/* Presumably we should query the tuner, but
+	   what do we know about the tuner? */
+	*strength = (status3 & 0x00005000) ? 0 : 65535;
+
+	return TRUE; /* Success */
+}
+
 static tv_bool
 get_video_input			(tveng_device_info *	info)
 {
@@ -810,42 +838,6 @@ get_video_input_list		(tveng_device_info *	info)
  failure:
 	free_video_line_list (&info->video_inputs);
 	return FALSE;
-}
-
-static int
-get_signal_strength		(int *			strength,
-				 int *			afc,
-				 tveng_device_info *	info)
-{
-/*  unsigned int status; */
-/*  unsigned short status2; */
-  unsigned int status3;
-
-  t_assert(info != NULL);
-  t_assert(info->cur_video_input != NULL);
-
-  /* Check that there are tuners in the current input */
-  if (!IS_TUNER_LINE (info->cur_video_input))
-    return -1;
-/*
-  if (-1 == tuner_ioctl (info, TVTUNER_GETSTATUS, &status))
-    return -1;
-  if (-1 == bktr_ioctl (info, METEORSTATUS, &status2))
-    return -1;
-*/
-  if (-1 == bktr_ioctl (info, BT848_GSTATUS, &status3))
-    return -1;
-
-	if (strength) {
-		/* Presumably we should query the tuner, but
-		   what do we know about the tuner? */
-		*strength = (status3 & 0x00005000) ? 0 : 65535;
-	}
-
-  if (afc)
-    *afc = 0; /* No such thing. */
-
-  return 0; /* Success */
 }
 
 /*
@@ -1805,12 +1797,9 @@ read_frame(tveng_image_data *where,
 		tveng_copy_frame (p_info->mmapped_data, where, info);
 	}
 
-	return 0;
+	return 1; /* success */
 }
 
-static double
-get_timestamp(tveng_device_info * info)
-{
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
 
   t_assert(info != NULL);
@@ -2074,24 +2063,8 @@ tvengbktr_attach_device (const char* device_file,
   return -1;
 }
 
-
-static void
-tvengbktr_describe_controller(const char ** short_str,
-			      const char ** long_str,
-			      tveng_device_info * info)
-{
-  t_assert(info != NULL);
-
-  if (short_str)
-    *short_str = "BKTR";
-
-  if (long_str)
-    *long_str = "BKTR/Meteor";
-}
-
 static struct tveng_module_info tvengbktr_module_info = {
   .attach_device =		tvengbktr_attach_device,
-  .describe_controller =	tvengbktr_describe_controller,
   .close_device =		tvengbktr_close_device,
 
   .set_video_input		= set_video_input,
@@ -2105,6 +2078,8 @@ static struct tveng_module_info tvengbktr_module_info = {
   .get_video_standard		= get_video_standard,
   .set_control			= set_control,
   .get_control			= get_control,
+
+  .interface_label		= "BKTR/Meteor";
 
   .private_size			= sizeof (struct private_tvengbktr_device_info)
 };

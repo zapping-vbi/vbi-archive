@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.h,v 1.3 2004-05-16 11:41:11 mschimek Exp $ */
+/* $Id: xawtv.h,v 1.4 2005-01-08 14:54:29 mschimek Exp $ */
 
 #ifndef XAWTV_H
 #define XAWTV_H

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: toolbar.c,v 1.2 2004-11-03 06:47:07 mschimek Exp $ */
+/* $Id: toolbar.c,v 1.3 2005-01-08 14:54:24 mschimek Exp $ */
 
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gdk-pixbuf/gdk-pixdata.h>
@@ -87,8 +87,7 @@ button_new_from_pixdata		(const GdkPixdata *	pixdata,
   gtk_button_set_relief (GTK_BUTTON (button), relief_style);
   z_tooltip_set (button, tooltip);
 
-  g_signal_connect (G_OBJECT (button), "clicked",
-		    G_CALLBACK (on_python_command1), (gpointer) py_cmd);
+  z_signal_connect_python (G_OBJECT (button), "clicked", py_cmd);
 
   return button;
 }
@@ -187,9 +186,8 @@ teletext_toolbar_new		(GtkActionGroup *action_group)
   /* XXX should use NewTeletextView action. */
   tool_item = gtk_tool_button_new_from_stock (GTK_STOCK_NEW);
   z_tooltip_set (GTK_WIDGET (tool_item), _("Open new Teletext window"));
-  g_signal_connect (tool_item, "clicked",
-		    G_CALLBACK (on_python_command1),
-		    (gpointer) "zapping.ttx_open_new()");
+  z_signal_connect_python (tool_item, "clicked",
+			   "zapping.ttx_open_new()");
   gtk_toolbar_insert (&toolbar->toolbar, tool_item, APPEND);
 
   widget = gtk_action_create_tool_item

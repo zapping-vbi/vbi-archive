@@ -5,7 +5,7 @@
  *
  */
 
-/* $Id: fifotest.c,v 1.5 2001-08-10 16:31:48 mschimek Exp $ */
+/* $Id: fifotest.c,v 1.6 2005-01-08 14:54:19 mschimek Exp $ */
 
 #define _GNU_SOURCE 1
 #define _REENTRANT 1

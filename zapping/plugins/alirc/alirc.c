@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alirc.c,v 1.11 2004-11-03 06:52:25 mschimek Exp $ */
+/* $Id: alirc.c,v 1.12 2005-01-08 14:54:22 mschimek Exp $ */
 
 /* XXX gtk_input */
 #undef GTK_DISABLE_DEPRECATED

@@ -54,30 +54,5 @@ int tvengxv_attach_device(const char* device_file,
 */
 static void tvengxv_close_device(tveng_device_info* info);
 
-/*
-  Functions for controlling the video capture. All of them return -1
-  in case of error, so any value != -1 should be considered valid
-  (unless explicitly stated in the description of the function) 
-*/
-
-
-
-
-/*
-  Gets the signal strength and the afc code. The afc code indicates
-  how to get a better signal, if negative, tune higher, if negative,
-  tune lower. 0 means no idea of feature not present in the current
-  controller (i.e. V4L1). Strength and/or afc can be NULL pointers,
-  that would mean ignore that parameter.
-*/
-static int
-tvengxv_get_signal_strength (int *strength, int * afc,
-			    tveng_device_info * info);
-
-
-/* XF86 Frame Buffer routines */
-
-
-
 #endif /* TVENGXV_PROTOTYPES */
 #endif /* TVENGXV.H */

@@ -119,7 +119,7 @@ on_plugin_treeview_cursor_changed	(GtkTreeView	*v,
   else if (priority < -4)
     buffer = _("Low");
   else if (priority < 0)
-    buffer = _("Below normal");
+    buffer = _("Lower");
   else if (priority == 0)
     buffer = _("Normal");
   else if (priority > 9)
@@ -127,7 +127,7 @@ on_plugin_treeview_cursor_changed	(GtkTreeView	*v,
   else if (priority > 4)
     buffer = _("High");
   else
-    buffer = _("Above normal");
+    buffer = _("Higher");
 
   z_label_set_text_printf (label73, "%d (%s)", priority, buffer);
 

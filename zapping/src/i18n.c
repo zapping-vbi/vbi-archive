@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: i18n.c,v 1.3 2004-11-03 06:43:06 mschimek Exp $ */
+/* $Id: i18n.c,v 1.4 2005-01-08 14:54:28 mschimek Exp $ */
 
 /* Shouldn't we have a library for these kinds of functions? */
 

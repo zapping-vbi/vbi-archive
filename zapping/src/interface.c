@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: interface.c,v 1.31 2004-11-03 06:52:26 mschimek Exp $ */
+/* $Id: interface.c,v 1.32 2005-01-08 14:54:28 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 toolbar changes */
 #undef GTK_DISABLE_DEPRECATED

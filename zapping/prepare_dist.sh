@@ -5,7 +5,7 @@
 # and the files to release are placed under the ver-release dir.
 # (C) Iñaki García Etxebarria 2000-2001, under the GPL and stuff
 #
-# $Id: prepare_dist.sh,v 1.14 2003-11-29 19:43:17 mschimek Exp $
+# $Id: prepare_dist.sh,v 1.15 2005-01-08 14:54:11 mschimek Exp $
 #
 # Usage is ./prepare_dist.sh gnome-prefix
 #

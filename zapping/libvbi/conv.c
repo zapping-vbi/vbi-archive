@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.c,v 1.2 2004-11-11 14:31:17 mschimek Exp $ */
+/* $Id: conv.c,v 1.3 2005-01-08 14:54:20 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -64,16 +64,13 @@ xiconv_open			(const char *		dst_format,
 	if ((iconv_t) -1 == cd)
 		return cd;
 
-	if (dst_size > 0) {
-		/* Write out the byte sequence to get into the
-		   initial state if this is necessary. */
+	/* Write out the byte sequence to get into the
+	   initial state if this is necessary. */
+	n = iconv (cd, NULL, NULL, dst, &dst_size);
 
-		n = iconv (cd, NULL, NULL, dst, &dst_size);
-
-		if ((size_t) -1 == n) {
-			iconv_close (cd);
-			cd = (iconv_t) -1;
-		}
+	if ((size_t) -1 == n) {
+		iconv_close (cd);
+		cd = (iconv_t) -1;
 	}
 
 	return cd;
@@ -101,50 +98,6 @@ vbi3_iconv_ucs2_open		(const char *		dst_format,
 	return xiconv_open (dst_format, NULL, dst, dst_size);
 }
 
-vbi3_inline uint16_t
-bswap				(uint16_t		c)
-{
-	return (c & 0xFF) * 256 + (c >> 8);
-}
-
-static uint16_t ucs2_space[1] = { 0x0020 };
-static uint8_t utf8_space[1] = { 0x20 };
-
-static vbi3_bool
-native_ucs2			(void)
-{
-	static int native = -1;
-
-	if (native < 0) {
-		iconv_t cd;
-		char c = 'b';
-		char *cp = &c;
-		uint16_t uc[1] = { -1 };
-		uint16_t nuc[1] = { 'b' };
-		char *up = (char *) uc;
-		size_t in = sizeof(c);
-		size_t out = sizeof(uc);
-
-		native = 1;
-
-		cd = xiconv_open ("UCS-2", /* from */ "ISO-8859-1", NULL, 0);
-
-		if ((iconv_t) -1 != cd) {
-			iconv (cd, (void *) &cp, &in, (void *) &up, &out);
-
-			native = (uc[0] == nuc[0]);
-
-			iconv_close (cd);
-
-			if (!native)
-				ucs2_space[1] = 0x2000;
-		}
-	}
-
-	return native;
-}
-
-
 /* Like iconv, but converts unrepresentable characters to space
    0x0020. Source is assumed to be UTF-8 (csize 1) or UCS-2
    (csize 2) with native endianess. */
@@ -159,6 +112,8 @@ xiconv				(iconv_t		cd,
 	size_t r;
 
 	for (;;) {
+		const uint16_t ucs2_space[1] = { 0x0020 };
+		const uint8_t utf8_space[1] = { 0x20 };
 		const char *s1;
 		size_t sleft1;
 
@@ -225,34 +180,17 @@ vbi3_iconv_ucs2			(iconv_t		cd,
 				 const uint16_t *	src,
 				 unsigned int		src_size)
 {
-	uint16_t *src1;
 	const char *s;
 	size_t sleft;
 	size_t dleft;
 	size_t r;
 
-	src1 = NULL;
-
 	s = (const char *) src;
-
-	if (!native_ucs2 ()) {
-		unsigned int i;
-
-		if (!(src1 = vbi3_malloc (src_size * 2)))
-			return FALSE;
-
-		for (i = 0; i < src_size; ++i)
-			src1[i] = bswap (src[i]);
-
-		s = (const char *) src1;
-	}
 
 	sleft = src_size * 2;
 	dleft = dst_size;
 
 	r = xiconv (cd, &s, &sleft, dst, &dleft, 2);
-
-	free (src1);
 
 	if ((size_t) -1 == r)
 		return FALSE;
@@ -286,10 +224,7 @@ vbi3_iconv_unicode		(iconv_t		cd,
 {
 	uint16_t t[1];
 
-	if (native_ucs2 ())
-		t[0] = unicode;
-	else
-		t[0] = bswap (unicode);
+	t[0] = unicode;
 
 	return vbi3_iconv_ucs2 (cd, dst, dst_size, t, 1);
 }
@@ -404,28 +339,8 @@ vbi3_strdup_iconv_ucs2		(const char *		dst_format,
 				 const uint16_t *	src,
 				 unsigned int		src_size)
 {
-	uint16_t *src1;
-	char *r;
-
-	src1 = NULL;
-
-	if (!native_ucs2 ()) {
-		unsigned int i;
-
-		if (!(src1 = vbi3_malloc (src_size * 2)))
-			return NULL;
-
-		for (i = 0; i < src_size; ++i)
-			src1[i] = bswap (src[i]);
-	}
-
-	r = strdup_iconv (dst_format, NULL,
-			  (const char *)(src1 ? src1 : src),
-			  src_size * 2, 2);
-
-	free (src1);
-
-	return r;
+	return strdup_iconv (dst_format, NULL,
+			     (const char *) src, src_size * 2, 2);
 }
 
 /**
@@ -445,12 +360,10 @@ vbi3_strdup_iconv_ucs2		(const char *		dst_format,
  * a @c NULL pointer on failure.
  */
 char *
-_vbi3_strdup_locale_ucs2	(const uint16_t *	src,
+_vbi3_strdup_locale_ucs2		(const uint16_t *	src,
 				 unsigned int		src_size)
 {
-	uint16_t *src1;
 	const char *dst_format;
-	char *r;
 
 	dst_format = bind_textdomain_codeset (vbi3_intl_domainname, NULL);
 
@@ -460,25 +373,8 @@ _vbi3_strdup_locale_ucs2	(const uint16_t *	src,
 	if (NULL == dst_format)
 		return NULL;
 
-	src1 = NULL;
-
-	if (!native_ucs2 ()) {
-		unsigned int i;
-
-		if (!(src1 = vbi3_malloc (src_size * 2)))
-			return NULL;
-
-		for (i = 0; i < src_size; ++i)
-			src1[i] = bswap (src[i]);
-	}
-
-	r = strdup_iconv (dst_format, NULL,
-			  (const char *)(src1 ? src1 : src),
-			  src_size * 2, 2);
-
-	free (src1);
-
-	return r;
+	return strdup_iconv (dst_format, NULL,
+			     (const char *) src, src_size * 2, 2);
 }
 
 /**
@@ -568,7 +464,6 @@ _vbi3_strdup_locale_teletext	(const uint8_t *	src,
 uint16_t *
 _vbi3_strdup_ucs2_utf8		(const char *		src)
 {
-	uint16_t *dst;
 	unsigned int src_size;
 
 	if (!src)
@@ -576,16 +471,7 @@ _vbi3_strdup_ucs2_utf8		(const char *		src)
 
 	src_size = strlen (src);
 
-	dst = (uint16_t *) strdup_iconv ("UCS-2", "UTF-8", src, src_size, 1);
-
-	if (!native_ucs2 ()) {
-		unsigned int i;
-
-		for (i = 0; 0 != dst[i]; ++i)
-			dst[i] = bswap (dst[i]);
-	}
-
-	return dst;
+	return (uint16_t *) strdup_iconv ("UCS-2", "UTF-8", src, src_size, 1);
 }
 
 /**
@@ -609,26 +495,11 @@ vbi3_stdio_cd_ucs2		(FILE *			fp,
 				 unsigned int		src_size)
 {
 	char buffer[4096];
-	uint16_t *src1;
 	const char *s;
 	size_t sleft;
 
-	src1 = NULL;
-
 	s = (const char *) src;
 	sleft = src_size * 2;
-
-	if (!native_ucs2 ()) {
-		unsigned int i;
-
-		if (!(src1 = vbi3_malloc (src_size * 2)))
-			return FALSE;
-
-		for (i = 0; i < src_size; ++i)
-			src1[i] = bswap (src[i]);
-
-		s = (const char *) src1;
-	}
 
 	while (sleft > 0) {
 		char *d;
@@ -642,22 +513,16 @@ vbi3_stdio_cd_ucs2		(FILE *			fp,
 		r = xiconv (cd, &s, &sleft, &d, &dleft, 2);
 
 		if ((size_t) -1 == r)
-			if (E2BIG != errno) {
-				free (src1);
+			if (E2BIG != errno)
 				return FALSE;
-			}
 
 		n = d - buffer;
 
 		r = fwrite (buffer, 1, n, fp);
 
-		if (n != r) {
-			free (src1);
+		if (n != r)
 			return FALSE;
-		}
 	}
-
-	free (src1);
 
 	return TRUE;
 }
@@ -685,36 +550,18 @@ vbi3_stdio_iconv_ucs2		(FILE *			fp,
 {
 	char buffer[4096];
 	iconv_t cd;
-	uint16_t *src1;
 	const char *s;
 	char *d;
 	size_t sleft;
 	size_t dleft;
 
-	src1 = NULL;
-
 	s = (const char *) src;
-
-	if (!native_ucs2 ()) {
-		unsigned int i;
-
-		if (!(src1 = vbi3_malloc (src_size * 2)))
-			return FALSE;
-
-		for (i = 0; i < src_size; ++i)
-			src1[i] = bswap (src[i]);
-
-		s = (const char *) src1;
-	}
-
 	d = buffer;
 
 	cd = xiconv_open (dst_format, NULL, &d, sizeof (buffer));
 
-	if ((iconv_t) -1 == cd) {
-		free (src1);
+	if ((iconv_t) -1 == cd)
 		return FALSE;
-	}
 
 	sleft = src_size * 2;
 	dleft = sizeof (buffer) - (buffer - d);
@@ -742,14 +589,10 @@ vbi3_stdio_iconv_ucs2		(FILE *			fp,
 
 	iconv_close (cd);
 
-	free (src1);
-
 	return TRUE;
 
  failure:
 	iconv_close (cd);
-
-	free (src1);
 
 	return FALSE;
 }

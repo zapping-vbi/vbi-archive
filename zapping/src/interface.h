@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: interface.h,v 1.18 2004-09-20 04:37:36 mschimek Exp $ */
+/* $Id: interface.h,v 1.19 2005-01-08 14:54:28 mschimek Exp $ */
 
 #ifndef INTERFACE_H
 #define INTERFACE_H

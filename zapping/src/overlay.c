@@ -556,10 +556,10 @@ root_filter			(GdkXEvent *		gdkxevent,
 	    XConfigureEvent *ev = &event->xconfigure;
 	    const tv_window *win = tv_cur_overlay_window (tv_info.info);
 
-	    if ((ev->x - ev->border_width) >= (win->x + win->width)
-		|| (int)(ev->x + ev->width + ev->border_width) <= win->x
-		|| (ev->y - ev->border_width) >= (win->y + win->height)
-		|| (int)(ev->y + ev->height + ev->border_width) <= win->y)
+	    if ((int)(ev->x - ev->border_width) >= (int)(win->x + win->width)
+		|| (int)(ev->x + ev->width + ev->border_width) <= (int) win->x
+		|| (int)(ev->y - ev->border_width) >= (int)(win->y + win->height)
+		|| (int)(ev->y + ev->height + ev->border_width) <= (int) win->y)
 	      /* Windows do not overlap. */
 	      return GDK_FILTER_CONTINUE;
 	  }

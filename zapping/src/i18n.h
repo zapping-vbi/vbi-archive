@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: i18n.h,v 1.3 2004-11-03 06:43:24 mschimek Exp $ */
+/* $Id: i18n.h,v 1.4 2005-01-08 14:54:28 mschimek Exp $ */
 
 #ifndef I18N_H
 #define I18N_H

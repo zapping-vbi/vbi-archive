@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.19 2004-11-03 06:49:30 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.20 2005-01-08 14:54:20 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -103,7 +103,7 @@ iconv_encodings [] = {
 static const char *
 terminal [] = {
 	/* TRANSLATORS: Terminal control codes menu */
-	N_("No control codes"),
+	N_("None"),
 	N_("ANSI X3.64 / VT 100"),
 	N_("VT 200")
 };

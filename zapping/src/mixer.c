@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mixer.c,v 1.9 2004-10-04 02:48:19 mschimek Exp $ */
+/* $Id: mixer.c,v 1.10 2005-01-08 14:54:28 mschimek Exp $ */
 
 /*
  *  These functions encapsulate the OS and driver specific

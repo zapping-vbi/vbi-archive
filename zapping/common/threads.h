@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: threads.h,v 1.8 2002-06-25 04:35:40 mschimek Exp $ */
+/* $Id: threads.h,v 1.9 2005-01-08 14:54:19 mschimek Exp $ */
 
 #ifndef THREADS_H
 #define THREADS_H

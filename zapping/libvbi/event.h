@@ -21,12 +21,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.h,v 1.2 2004-12-02 02:46:53 mschimek Exp $ */
+/* $Id: event.h,v 1.3 2005-01-08 14:54:20 mschimek Exp $ */
 
 #ifndef EVENT_H
 #define EVENT_H
 
 /* TO DO */
+
+#undef ZAPPING8
+#define ZAPPING8 1
 
 #include <time.h>		/* time_t */
 #include "bcd.h"		/* vbi3_pgno, vbi3_subno */

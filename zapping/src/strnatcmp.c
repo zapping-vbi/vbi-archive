@@ -34,7 +34,7 @@
 #endif
 
 static char const *version UNUSED =
-    "$Id: strnatcmp.c,v 1.1 2000-09-13 23:42:53 garetxe Exp $";
+    "$Id: strnatcmp.c,v 1.2 2005-01-08 14:54:28 mschimek Exp $";
 
 static int
 compare_right(char const *a, char const *b)

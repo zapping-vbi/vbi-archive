@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: math.h,v 1.4 2003-11-29 19:43:21 mschimek Exp $ */
+/* $Id: math.h,v 1.5 2005-01-08 14:54:19 mschimek Exp $ */
 
 #ifndef MATH_H
 #define MATH_H

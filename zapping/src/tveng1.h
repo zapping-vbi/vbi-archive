@@ -47,19 +47,6 @@ int tveng1_attach_device(const char* device_file,
 			 enum tveng_attach_mode attach_mode,
 			 tveng_device_info * info);
 
-/*
-  Stores in short_str and long_str (if they are non-null) the
-  description of the current controller. The enum value can be found in
-  info->current_controller.
-  For example, V4L2 controller would say:
-  short_str: 'V4L2'
-  long_str: 'Video4Linux 2'
-  info->current_controller: TVENG_CONTROLLER_V4L2
-  This function always succeeds.
-*/
-static void
-tveng1_describe_controller(const char ** short_str, const char ** long_str,
-			   tveng_device_info * info);
 
 /*
   Closes the video device asocciated to the device info object. Should
@@ -73,48 +60,6 @@ static void tveng1_close_device(tveng_device_info* info);
   in case of error, so any value != -1 should be considered valid
   (unless explicitly stated in the description of the function) 
 */
-
-
-/*
-  Gets the signal strength and the afc code. The afc code indicates
-  how to get a better signal, if negative, tune higher, if negative,
-  tune lower. 0 means no idea of feature not present in the current
-  controller (i.e. V4L1). Strength and/or afc can be NULL pointers,
-  that would mean ignore that parameter.
-*/
-static int
-tveng1_get_signal_strength (int *strength, int * afc,
-			    tveng_device_info * info);
-
-
-/*
-  Sets up the capture device so any read() call after this one
-  succeeds. Returns -1 on error.
-*/
-static int
-tveng1_start_capturing(tveng_device_info * info);
-
-/* Tries to stop capturing. -1 on error. */
-static int
-tveng1_stop_capturing(tveng_device_info * info);
-
-/* 
-   Reads a frame from the video device, storing the read data in
-   info->format.data
-   time: time to wait using select() in miliseconds
-   info: pointer to the video device info structure
-   Returns -1 on error, 1 on timeout, 0 on success.
-   Note: if you want this call to be non-blocking, call it with time=0
-*/
-static int tveng1_read_frame(tveng_image_data *where,
-			     unsigned int time, tveng_device_info * info);
-
-/*
-  Gets the timestamp of the last read frame in seconds.
-*/
-static double tveng1_get_timestamp(tveng_device_info * info);
-
-/* XF86 Frame Buffer routines */
 
 
 #endif /* TVENG1_PROTOTYPES */

@@ -1,6 +1,10 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
+Zapping 0.9:
+* bktr interface needs update, won't compile.
+* v4l video standard change broken.
+
 Zapping 0.8:
 * Doesn't run w/o DGA lib but configure doesn't fail either?
 

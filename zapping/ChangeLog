@@ -1,3 +1,175 @@
+2005-01-08    <mschimek@users.sf.net>
+
+	* src/capture.h, src/capture.c: Rewrote the capture format
+	  negotiation routines. Now clients can pass a set of suitable pixel
+	  formats. That makes on the fly changes a lot easier, badly needed
+	  by the deinterlace plugin, and allows more efficient buffer
+	  management.
+	(rebuild_buffer): Optimized to avoid reallocation of buffers with
+	  usable size and pixfmt after release_capture_format().
+	(capture_source_dispatch): Replaced hardcoded field balance by
+	  gconf value, auto applies. Made the function video standard
+	  agnostic.
+	* src/video_gdkrgb.c, src/video_mem.c, src/video_x11.c,
+	  src/video_xv.c, src/zimage.c, src/zimage.h: Replaced
+	  suggest_format interface by supported pixel formats report.
+	* src/zgconf.c, src/zgconf.h: Added z_gconf_float_spinslider_new()
+	  for deinterlace/field_balance.
+	* src/zimage.c:
+	(video_uninit): release_capture_format().
+	(video_init): request_capture_format() for display moved here from
+	  video_suggest_format() which is gone now.
+	* src/fullscreen.c, src/zmisc.c: video_init(), video_uninit(),
+	  video_suggest_format() moved into capture_start(). 
+	* plugins/screenshot/screenshot.c (screenshot_grab):
+	  request_capture_format() changed, rewrote image format negotiation. 
+	* plugins/mpeg/mpeg.c (do_start): request_capture_format() changed,
+	  rewrote image format negotiation.
+	* plugins/deinterlace/preferences.c: Added field balance slider,
+	  but not used now. Fixed table padding.
+	* plugins/deinterlace/main.c: Moved HEIGHT_DIV into site_def.h.
+	  Added reverse_fields gconf option, auto applies. Removed
+	  deinterlace_test(), no longer needed.
+	(deinterlace): Video standard agnostic.
+	(start_thread1): Video standard agnostic, enable capture mode if
+	  necessary, request_capture_format() and add_display_filter() changed.
+	* src/tveng1.c: Added support for PWC driver custom ioctls. For now
+	  two extra controls 'fps' and 'snapshot'.
+	(fprint_bttv_ioctl_arg): Was missing to print custom BTTV_VERSION.
+	* common/Makefile.am: Added pwc-ioctl.h (PWC driver custom ioctls). 
+	* common/pwc-ioctl.h: PWC driver custom ioctls, added from Linux
+	  2.6.8.
+	* zapping.schemas: Added deinterlace/reverse_fields and field_balance.
+	* configure.in: site_def.h change.
+
+2005-01-03    <mschimek@users.sf.net>
+
+	* src/fullscreen.c (stop_fullscreen), src/zmisc.c (zmisc_stop),
+	  src/capture.c (capture_stop): Don't stop when recording.
+	* src/tveng.c:
+	(tv_read_frame): Replaces tveng_read_frame().
+	(tveng_get_timestamp): No longer needed, removed.
+	* src/capture.c (buffer_done): Requeue capture buffers all fifo
+	  consumers consumed.
+	(fill_bundle_tveng): tveng_read_frame() changed.
+	(capture_source_dispatch): Throttle display if the CPU is too slow
+	  for the selected deinterlace method and would block the GUI from
+	  displaying a "your cpu is too SLOW to play this" message.
+	* plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c
+	(TomsMoCompMethod), 
+	  plugins/deinterlace/DI_MoComp2/DI_MoComp2.c (MoComp2Method),
+	  plugins/deinterlace/DI_Misc/DI_VideoWeave.c (VideoWeaveMethod),
+	  plugins/deinterlace/DI_Misc/DI_VideoBob.c (VideoBobMethod),
+	  plugins/deinterlace/DI_Misc/DI_TwoFrame.c (TwoFrameMethod),
+	  plugins/deinterlace/DI_Misc/DI_OldGame.c (OldGameMethod),
+	  plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c (Greedy2FrameMethod),
+	  plugins/deinterlace/DI_Misc/DI_Greedy.c (GreedyMethod),
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyH.c (DI_GreedyHSettings),
+	  plugins/deinterlace/windows.h: Localized.
+	* zapping.schemas: Added deinterlace options.
+	* src/zvbi.c (destroy_threads): Disabling vbi crashed b/c
+	  g_io_add_watch() wasn't undone.
+	* src/tveng25.c (tveng25_close_device): Destroy info->node.
+	* common/structpr_gen.pl: fourcc fix. 
+	* src/zmisc.h (SINGLE_BIT): Macro from src/tveng1.c and tveng25.c.
+	* src/yuv2rgb.c: s/HAVE_GAS/HAVE_SSE fix.
+	* src/v4linterface.c:
+	(z_switch_video_input): Stop and restart capturing on a video input
+	  change.
+	(z_switch_standard): Stop and restart capturing on a video standard
+	  change.
+	* src/tvengxv.c (tvengxv_attach_device): Clear private data fix.
+	* src/tveng_private.h (capture_device): Added streaming interface.
+	* src/tveng25.c: Cleaned up a bit.
+	(set_audio_mode): Proper V4L ioctl checks.
+	(set_control): Try VIDIOC_S_CTRL_OLD and remember to reduce ioctl
+	  calls.
+	(set_video_standard, set_video_input): Does not automatically stop
+	  and restart capturing anymore. Added check for capturing active.
+	(set_tuner_frequency): Made capture restart on
+	  frequency change optional.
+	(queue_xbuffer, queue_xbuffers, p_tveng25_open_device_file,
+	  restart, dequeue_buffer, flush_buffers): New streaming
+	  capture routines to eliminate unnecessary copying when
+	  deinterlacing, also replaces p_tveng25_qbuf/_dqbuf.
+	(tveng25_start_capturing): Can no longer accept less buffers
+	  granted than requested, would conflict with
+	  src/capture.c/producer_buffer fifo when streaming. Needs better
+	  fix one day. Munmap already mapped buffers on mmap failure.
+	(tveng25_read_frame): Timeout code moved to dequeue_buffer().
+	(get_capabilities): Extracted from p_tveng25_open_device_file().
+	* src/tveng1.c: Cleaned up a bit.
+	(set_video_standard, set_video_input): Does not automatically stop
+	  and restart capturing anymore. Added check for capturing active.
+	(get_supported_pixfmt_set): Added to get rid of slow and
+	  error prone src/capture.c/scan_device().
+	* src/tveng.c (tveng_attach_device): Made capture restart on
+	  frequency change optional.
+	(tv_set_capture_format): Does not automatically stop and restart
+	  capturing anymore. Was always a bad idea, fatal when streaming.
+	* src/tveng.h, src/tveng.c:
+	(tv_dequeue_capture_buffer, tv_dequeue_capture_buffer_with_timeout, 
+	 tv_flush_capture_buffers, tv_queue_capture_buffer): New streaming
+	  capture interface to eliminate unnecessary copying when
+	  deinterlacing.
+	(tveng_copy_frame): Replaced by libtv/image_format.c/tv_copy_image().
+	* src/cpu.c: Added runtime AltiVec detection. 
+	* src/capture.c: Cleaned up struct producer_buffer. Added support
+	  for streaming capture to avoid copying twice in the driver read
+	  function and deinterlace plugin. Added GSource replacing
+	  idle_handler() when the driver supports streaming, with a
+	  deinterlace hook.   
+	(capture_start, capture_stop): Use GSource if possible.
+	(fill_bundle_tveng, rebuild_buffer, plugin_read): Moved duplicate
+	  code here.
+	(scan_device): No longer needed, now all interfaces have
+	  supported_pixfmt_set.
+	(add_display_filter, remove_display_filter): New deinterlace hook.
+	(retrieve_frame): Copy buffers only if necessary.
+	* po/POTFILES.in: Added deinterlace plugin files.
+	* src/zimage.h, src/yuv2rgb.c, src/tveng.h, src/tveng.c, src/main.c,
+	  src/csconvert.h, src/csconvert.c, src/capture.c,
+	  plugins/screenshot/screenshot.h, plugins/screenshot/screenshot.c,
+	  plugins/screenshot/deint.c, plugins/screenshot/b_ppm.c,
+	  plugins/screenshot/b_jpeg.c, plugins/mpeg/mpeg.c: zimage changed,
+	  tveng_image_data finally gone.
+	* plugins/Makefile.am (deinterlace_plugin): Enabled deinterlace dir.
+	* pixmaps/Makefile.am (PIXMAPS): Added interlace48.png. 
+	* libtv/avec/Makefile.am (AM_CFLAGS): Add -maltivec since we have
+	  runtime detection now.
+	* libtv/sse/copy_block.c, libtv/mmx/copy_block.c,
+	  libtv/image_format.h, libtv/image_format.c:
+	  tv_copy_image takes source and dest format which is more logical
+	  and permits cropping and padding.
+	* zapping_setup_fb/zapping_setup_fb.c, zapping_setup_fb/v4l.c,
+	  zapping_setup_fb/v4l25.c, src/video_xv.c, src/video_x11.c,
+	  src/video_mem.c, src/video_gdkrgb.c, src/tvengemu.c,
+	  src/tveng25.c, src/tveng1.c, src/capture.c, libtv/screen.c,
+	  libtv/pixel_format.c, libtv/image_format.h, libtv/image_format.c:
+	  More generic tv_image_format (u_|v_)offset -> offset[4],
+	  (uv_)bytes_per_line -> bytes_per_line[4], pixfmt ->
+	  tv_pixel_format*, added name field.
+	* libtv/image_format.h, libtv/image_format.c:
+	(tv_new_image): Added for screenshot plugin to create temp images.
+	* common/fifo.h, common/fifo.c (zf_wait_empty_buffer_timeout):
+	  Added to prevent blocking in src/capture.c/capture_source_dispatch().
+	(zf_wait_full_buffer_timeout): Handle NULL timeout.
+	(zf_wait_full_buffer): Replaced duplicate code by
+	  zf_wait_full_buffer_timeout() call.
+	* common/device.h (timeval_add): Added.
+	(timeval_cmp): Added.
+	* common/device.c (timeout_subtract_elapsed): Handle NULL timeout as
+	  select(2) does.
+	* common/structpr_gen.pl: Made ioctl arg function name variable.
+	* common/Makefile.am (_videodev.h): Renamed fprint_ioctl_arg to
+	  fprint_v4l_ioctl_arg to permit inclusion in tveng25.c.
+	* configure.in (CHECK_SIMD): Result string fix. Enable -maltivec
+	  since we have runtime detection now.
+	  (AC_OUTPUT): Added deinterlace plugin. 
+	* test/Makefile.am (TESTS): Added memcpy.
+	* test/memcpy.c (test1): tv_memcpy unit test.
+	* libtv/avec: New AltiVec routines using gcc vector extensions.
+
 2004-12-09    <mschimek@users.sf.net>
 
 	* src/bayer.c (LOOP): Off-by-one read fix.

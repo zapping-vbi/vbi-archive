@@ -227,7 +227,7 @@ cmd_txl_table [] = {
 gchar *
 cmd_compatibility		(const gchar *		cmd)
 {
-  const gchar *s = cmd;
+  gchar *s = /* const_cast */ cmd;
   gchar *d = NULL, *d1;
   guint i, j, args = 0;
 
@@ -235,7 +235,7 @@ cmd_compatibility		(const gchar *		cmd)
     return g_strdup ("");
 
   while (g_unichar_isspace (g_utf8_get_char_validated (s, -1)))
-    s = g_utf8_next_char ((gchar *) s);
+    s = g_utf8_next_char (s);
 
   if (0 == strncmp (s, "zapping.", 8))
     return g_strdup (cmd);
@@ -275,7 +275,7 @@ cmd_compatibility		(const gchar *		cmd)
       if (!g_unichar_isspace (g_utf8_get_char_validated (s, -1)))
 	goto bad_cmd;
 
-      s = g_utf8_next_char ((gchar *) s);
+      s = g_utf8_next_char (s);
     }
 
   for (j = 0; j < cmd_txl_table[i].num_args; j++)
@@ -292,7 +292,7 @@ cmd_compatibility		(const gchar *		cmd)
 	}
 
       while (*s != 0 && !g_unichar_isspace (g_utf8_get_char_validated (s, -1)))
-	s = g_utf8_next_char ((gchar *) s);
+	s = g_utf8_next_char (s);
 
       arg = g_strndup (s1, (guint)(s - s1));
 
@@ -309,7 +309,7 @@ cmd_compatibility		(const gchar *		cmd)
       g_free (arg);
 
       while (*s && g_unichar_isspace (g_utf8_get_char_validated (s, -1)))
-	s = g_utf8_next_char ((gchar *) s);
+	s = g_utf8_next_char (s);
     }
 
   if (*s)

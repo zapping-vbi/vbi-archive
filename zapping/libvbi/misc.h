@@ -18,10 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.5 2004-12-02 02:48:08 mschimek Exp $ */
+/* $Id: misc.h,v 1.6 2005-01-08 14:54:20 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
+
+#undef ZAPPING8
+#define ZAPPING8 1
 
 #include <stddef.h>
 #include <string.h>

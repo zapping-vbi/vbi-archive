@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.20 2004-05-17 20:46:53 mschimek Exp $ */
+/* $Id: osd.h,v 1.21 2005-01-08 14:54:28 mschimek Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__

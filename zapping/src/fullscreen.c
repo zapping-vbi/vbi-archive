@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.38 2005-01-08 14:29:56 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.39 2005-01-08 14:54:27 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling

@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zvideo.c,v 1.5 2004-09-26 13:28:26 mschimek Exp $ */
+/* $Id: zvideo.c,v 1.6 2005-01-08 14:54:29 mschimek Exp $ */
 
 #include "site_def.h"
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top_title.c,v 1.1 2004-11-03 06:49:31 mschimek Exp $ */
+/* $Id: top_title.c,v 1.2 2005-01-08 14:54:21 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc(), qsort() */
 #include "conv.h"		/* _vbi3_strdup_locale_teletext() */
@@ -36,6 +36,8 @@ do {									\
 } while (0)
 
 /**
+ * Frees all resources associate with this vbi3_top_title
+ * except the structure itself.
  */
 void
 vbi3_top_title_destroy		(vbi3_top_title *	tt)
@@ -48,6 +50,15 @@ vbi3_top_title_destroy		(vbi3_top_title *	tt)
 }
 
 /**
+ * @param dst A copy of @a src will be stored here.
+ * @param src vbi3_top_title to be copied. If @c NULL this function
+ *   has the same effect as vbi3_top_title_init().
+ *
+ * Creates a deep copy of @a src in @a dst, overwriting the data
+ * previously stored at @a dst.
+ *
+ * @returns
+ * @c FALSE on failure (out of memory).
  */
 vbi3_bool
 vbi3_top_title_copy		(vbi3_top_title *	dst,
@@ -74,6 +85,9 @@ vbi3_top_title_copy		(vbi3_top_title *	dst,
 }
 
 /**
+ * @param tt vbi3_top_title to be initialized.
+ *
+ * Initializes (clears) a vbi3_top_title structure.
  */
 void
 vbi3_top_title_init		(vbi3_top_title *	tt)
@@ -84,17 +98,22 @@ vbi3_top_title_init		(vbi3_top_title *	tt)
 }
 
 /**
+ * @param tt Array of vbi3_top_title structures, can be @c NULL.
+ * @param n_elements Number of structures in the array.
+ *
+ * Deletes an array of vbi3_top_title structures and all resources
+ * associated with it.
  */
 void
 vbi3_top_title_array_delete	(vbi3_top_title *	tt,
-				 unsigned int		tt_size)
+				 unsigned int		n_elements)
 {
 	unsigned int i;
 
-	if (NULL == tt || 0 == tt_size)
+	if (NULL == tt || 0 == n_elements)
 		return;
 
-	for (i = 0; i < tt_size; ++i)
+	for (i = 0; i < n_elements; ++i)
 		vbi3_top_title_destroy (tt + i);
 
 	vbi3_free (tt);

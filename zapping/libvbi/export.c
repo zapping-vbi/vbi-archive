@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.45 2004-11-03 06:49:30 mschimek Exp $ */
+/* $Id: export.c,v 1.46 2005-01-08 14:54:20 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -1466,7 +1466,7 @@ vbi3_export_new			(const char *		keyword,
 	if (!e->local_option_info) {
 		vbi3_free (e);
 		_vbi3_asprintf (errstr, _("Cannot initialize export module "
-					 "%s, out of memory."),
+					 "'%s', out of memory."),
 			      xc->export_info->label ?
 			      xc->export_info->label : keyword);
 		return NULL;

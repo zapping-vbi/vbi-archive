@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.h,v 1.2 2004-12-07 17:25:48 mschimek Exp $ */
+/* $Id: pixel_format.h,v 1.3 2005-01-08 14:54:19 mschimek Exp $ */
 
 #ifndef __ZTV_PIXEL_FORMAT_H__
 #define __ZTV_PIXEL_FORMAT_H__
@@ -256,6 +256,8 @@ tv_pixfmt_bytes_per_pixel	(tv_pixfmt		pixfmt);
 /* Broken-down pixel format */
 
 typedef struct {
+	const char *		name;
+
 	tv_pixfmt		pixfmt;
         tv_colspc		colspc;
 
@@ -290,7 +292,7 @@ typedef struct {
 	tv_bool			_reserved2[5];
 
 	/* Bit masks describing size and position of color components
-	   in a in 8, 16, 24 or 32 bit (bits_per_pixel) quantity, as
+	   in a 8, 16, 24 or 32 bit (bits_per_pixel) quantity, as
 	   seen when reading a word from memory with proper endianess.
 	   For packed YUV 4:2:2 and planar formats y, u and v will be
 	   0xFF. The a (alpha) component can be zero. */

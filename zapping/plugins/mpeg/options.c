@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.25 2004-12-07 17:30:42 mschimek Exp $ */
+/* $Id: options.c,v 1.26 2005-01-08 14:54:24 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -87,7 +87,7 @@ do_option_control (GtkWidget *w, gpointer user_data)
 
   if (ro->menu.num)
     {
-      val.num = (gint) g_object_get_data (G_OBJECT (w), "idx");
+      val.num = z_object_get_int_data (G_OBJECT (w), "idx");
       rte_codec_option_menu_set (opts->codec, ro->keyword, val.num);
     }
   else

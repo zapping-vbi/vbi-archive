@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.37 2004-11-03 06:49:31 mschimek Exp $ */
+/* $Id: vt.h,v 1.38 2005-01-08 14:54:21 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H

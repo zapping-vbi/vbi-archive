@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.45 2004-12-07 17:30:45 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.46 2005-01-08 14:54:27 mschimek Exp $ */
 
 /*
   TODO:
@@ -600,7 +600,7 @@ station_search_timeout		(gpointer		p)
 
       /* Probe */
 
-      if (-1 == tveng_get_signal_strength (&strength, &afc, zapping->info))
+      if (!tv_get_signal_strength (zapping->info, &strength, &afc))
 	goto next_channel;
 
       if (strength > 0)
@@ -687,7 +687,7 @@ on_channel_search_clicked	(GtkButton *		search _unused_,
   GtkWidget *vbox;
   GtkWidget *dialog_action_area;
   GtkWidget *cancel;
-  const tv_video_line *l;
+  tv_video_line *l;
 
   if (ce->search)
     return;
@@ -1061,7 +1061,7 @@ on_entry_input_changed		(GtkOptionMenu *	entry_input,
     }
   else
     {
-      const tv_video_line *l;
+      tv_video_line *l;
 
       l = tv_nth_video_input (zapping->info, id - 1);
       tc->input = l->hash;
@@ -1121,7 +1121,7 @@ on_entry_standard_changed	(GtkOptionMenu *	entry_standard,
     }
   else
     {
-      const tv_video_standard *s;
+      tv_video_standard *s;
 
       s = tv_nth_video_standard (zapping->info, id - 1);
       tc->standard = s->hash;

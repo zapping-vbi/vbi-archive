@@ -551,7 +551,7 @@ picture_sizes_on_cell_edited	(GtkCellRendererText *	cell,
   guint value;
 
   picture_sizes_model_iter (tree_view, path_string, &model, &iter);
-  column = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (cell), "column"));
+  column = z_object_get_int_data (G_OBJECT (cell), "column");
   value = strtoul (new_text, NULL, 0);
 
   if (value > 0)

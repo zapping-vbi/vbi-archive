@@ -17,12 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.4 2004-12-11 11:46:21 mschimek Exp $ */
+/* $Id: misc.h,v 1.5 2005-01-08 14:54:19 mschimek Exp $ */
 
-#ifndef MISC_H
-#define MISC_H
+#ifndef __ZTV_MISC_H__
+#define __ZTV_MISC_H__
 
-#include "../config.h"
+#include "config.h"
 
 #include <stddef.h>
 #include <string.h>
@@ -242,6 +242,7 @@ copy_block_fn                   (void *                 dst,
                                  const void *           src,
                                  unsigned int           width,
                                  unsigned int           height,
-                                 unsigned int           bytes_per_line);
+                                 unsigned int           dst_bytes_per_line,
+                                 unsigned int           src_bytes_per_line);
 
 #endif /* MISC_H */
