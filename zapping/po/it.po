@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: zapping\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-11-03 16:40+0100\n"
-"PO-Revision-Date: 2004-11-05 18:35+0100\n"
+"PO-Revision-Date: 2004-11-07 17:34+0100\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <kde-i18n-it@kde.org>\n"
 "MIME-Version: 1.0\n"
@@ -410,12 +410,11 @@ msgstr ""
 
 #: libvbi/exp-html.c:108 libvbi/exp-txt.c:131
 msgid "ASCII art"
-msgstr ""
+msgstr "Grafica ASCII"
 
 #: libvbi/exp-html.c:109 libvbi/exp-txt.c:132
-#, fuzzy
 msgid "Replace graphic characters by ASCII art"
-msgstr "sostituisci i caratteri grafici da [ASCII art]"
+msgstr "Sostituisci i caratteri grafici con grafica ASCII"
 
 #: libvbi/exp-html.c:111
 msgid "Color (CSS)"
