@@ -1,12 +1,12 @@
 # Zapping (a Gnome TV viewer) / Zapping (Visualizzatore TV per Gnome)
 # Zapping italian translation
-# Pino Toscano <toscano.pino@tiscali.it>, 2002
+# Pino Toscano <toscano.pino@tiscali.it>, 2002-2003
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Zapping 0.6.5\n"
+"Project-Id-Version: zapping\n"
 "POT-Creation-Date: 2003-01-21 06:44+0100\n"
-"PO-Revision-Date: 2003-01-04 11:55+0100\n"
+"PO-Revision-Date: 2003-02-10 22:00+0100\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <it@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -577,9 +577,8 @@ msgid "Colorkey"
 msgstr "Chiave di colore"
 
 #: src/tveng1.c:1029
-#, fuzzy
 msgid "Automatic"
-msgstr "Guadagno automatico"
+msgstr "Automatica"
 
 #: src/tveng1.c:1032
 msgid "Alternate 1"
@@ -1494,7 +1493,7 @@ msgstr "Evita rumore nel cambiare canale"
 
 #: glade/glade_strings.c:83
 msgid "Control volume with mixer instead of video device"
-msgstr ""
+msgstr "Controlla il volume con il mixer invece che con il dispositivo video"
 
 #: glade/glade_strings.c:84
 msgid "Mixer settings for recording"
@@ -2496,7 +2495,7 @@ msgstr "Anteprima"
 
 #: plugins/screenshot/screenshot_strings.c:12
 msgid "Grab on clicking OK"
-msgstr "Cattura al click su OK"
+msgstr "Cattura al clic su OK"
 
 #: plugins/screenshot/screenshot_strings.c:13
 msgid "Skip one picture before grabbing"
@@ -2620,7 +2619,6 @@ msgid "Another lirc plugin"
 msgstr "Altro plugin di lirc"
 
 #: plugins/alirc/alirc.c:34
-#, fuzzy
 msgid ""
 "Another plugin to control zapping through lirc\n"
 "\n"
@@ -2647,10 +2645,13 @@ msgstr ""
 "Consulta la documentazione di lirc per informazioni sul file .lircrc. Il "
 "plugin si registrerà sotto il nome 'zapping_lirc' e puoi usare i seguenti "
 "comandi:\n"
-"  CHANUP: Un Canale su\n"
-"  CHANDOWN: Un Canale giù\n"
+"  CHANUP:  Un Canale su\n"
+"  CHANDOWN:  Un Canale giù\n"
 "  ZOOM: cambia tra il modo a tutto schermo e il modo a finestra\n"
-"  SETCHANNEL <int>: imposta il canale <int> (il primo canale è 0!!)\n"
+"  SETCHANNEL <int>: imposta il canale da 0 a 9\n"
+"  MUTE: Attiva|disattiva il suono\n"
+"  VOL_UP: Aumenta il volume\n"
+"  VOL_DOWN: Diminuisce il volume\n"
 "  QUIT: Esce da Zapping\n"
 "  \n"
 "Nota: usando SETCHANNEL due volte in 1500 ms, reagirà allo stesso modo di "
@@ -2750,15 +2751,15 @@ msgstr "Solo video"
 
 #: plugins/mpeg/mpeg.c:636
 msgid "Audio and Video"
-msgstr "Audio e Video"
+msgstr "Audio e video"
 
 #: plugins/mpeg/mpeg.c:653 plugins/mpeg/mpeg.c:661
 msgid "Output audio kbits per second:"
-msgstr "Kbits al secondo dell'audio generati:"
+msgstr "Kbit al secondo dell'audio generati:"
 
 #: plugins/mpeg/mpeg.c:657 plugins/mpeg/mpeg.c:663
 msgid "Output video Mbits per second:"
-msgstr "Mbits al secondo generati del video:"
+msgstr "Mbit al secondo del video generati:"
 
 #: plugins/mpeg/mpeg.c:670
 msgid "Waiting for frames..."
@@ -2893,7 +2894,7 @@ msgstr "Premi questo quando hai fatto"
 
 #: plugins/mpeg/mpeg_strings.c:24
 msgid "RTE id (for debugging)"
-msgstr "Id RTE (per il debug)"
+msgstr "Id di RTE (per il debug)"
 
 #: plugins/mpeg/mpeg_strings.c:25
 msgid "Destination"
@@ -2905,11 +2906,11 @@ msgstr "Modo multiplex"
 
 #: plugins/mpeg/mpeg_strings.c:27
 msgid "Some more info: bit rates"
-msgstr "Altre informazioni: tasso di bit"
+msgstr "Altre informazioni: bit rate"
 
 #: plugins/mpeg/mpeg_strings.c:28
 msgid "Dynamic stats (dropped, output M's, etc)"
-msgstr "Statistiche dinamiche ([persi], [Mb in uscita], ecc)"
+msgstr "Statistiche dinamiche (persi, Mbyte in uscita, ecc)"
 
 #: plugins/mpeg/mpeg_strings.c:29
 msgid "Save mpeg"
