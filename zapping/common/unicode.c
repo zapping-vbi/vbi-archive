@@ -1,5 +1,9 @@
 /* gcc -ounicode unicode.c ure.c -DTEST -lunicode */
 /* libunicode: ftp://ftp.gnome.org/pub/GNOME/unstable/sources */
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <iconv.h>
 #include <stdio.h>
 #include <string.h>
@@ -50,8 +54,11 @@ convert (const void *string, int bytes,
   ibl = bytes;
   new = ob = (char*) calloc (1, sizeof(char) * (ibl * 6 + 2));
   obl = ibl * 6 + 2;
-  
-  iconv (ic, (char**) &ib, &ibl, &(ob), &obl);
+
+#ifndef ICONV_CONST
+#define ICONV_CONST
+#endif  
+  iconv (ic, (ICONV_CONST char**)&ib, &ibl, &(ob), &obl);
   
   *((unsigned short*)ob) = 0;
   

@@ -43,6 +43,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <string.h>
+#include <locale.h>
 #include "zconf.h"
 #include "zmisc.h" /* Misc common stuff */
 #include "zmodel.h"

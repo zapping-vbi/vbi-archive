@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.12 2001-08-06 22:14:57 garetxe Exp $ */
+/* $Id: lang.c,v 1.13 2001-08-08 23:07:21 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -658,8 +658,9 @@ int
 glyph_iconv(iconv_t cd, int glyph, int gfx_substitute)
 {
 	int i, u;
-	unsigned char uc[2], *up = uc;
 	unsigned char c, *cp = &c;
+	unsigned char uc[2], *up = uc;
+
 	size_t in = 4, out = 1;
 
 	glyph &= 0xF3FFFF;
@@ -704,7 +705,10 @@ conv:
 	uc[0] = u >> 8; /* network order */
 	uc[1] = u;
 
-	if (iconv(cd, (char **) &up, &in, (char **) &cp, &out) < 1 || c == '@')
+#ifndef ICONV_CONST
+#define ICONV_CONST
+#endif  
+	if (iconv(cd, (ICONV_CONST char**)&up, &in, (char**)&cp, &out) < 1 || c == '@')
 		return -u;
 	else
 		return c;

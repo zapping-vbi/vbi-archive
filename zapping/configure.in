@@ -4,6 +4,8 @@ AC_INIT(src/callbacks.c)
 AM_INIT_AUTOMAKE(zapping, 0.6.0cvs2)
 AM_CONFIG_HEADER(config.h)
 
+CFLAGS="-D_GNU_SOURCE -g -O2 -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations"
+
 dnl Pick up the Gnome macros.
 AM_ACLOCAL_INCLUDE(macros)
 
@@ -360,8 +362,6 @@ AC_SUBST(PLUGIN_DEFAULT_DIR)
 PLUGIN_DEFAULT_FLAGS="-Wall -Wno-unused -g -D_GNU_SOURCE"
 AC_SUBST(PLUGIN_DEFAULT_FLAGS)
 
-CFLAGS="-D_GNU_SOURCE $CFLAGS"
-
 AC_OUTPUT([
 zapping.spec
 Makefile
@@ -386,6 +386,11 @@ plugins/parrot/Makefile
 plugins/screenshot/Makefile
 plugins/template/Makefile
 ])
+
+dnl fscking broken world
+if ! test -r po/Makefile; then
+        sed -e "/POTFILES =/r po/POTFILES" po/Makefile.in > po/Makefile
+fi
 
 echo "
 	Optional package		Found

@@ -1,14 +1,23 @@
 #!/bin/sh
 ##############################################################################
 # This script is used to automate the process of generating new
-# zapping releases. The release number is taken from configure.in, and
-# all the new files to release are placed under the ver-release dir.
+# releases. The program and release number are taken from configure.in,
+# and the files to release are placed under the ver-release dir.
 # (C) Iñaki García Etxebarria 2000-2001, under the GPL and stuff
+#
+# Modified 2001-06-01 Michael H. Schimek <mschimek@users.sf.net>
+# - bzip2 (0.9.0c) -c didn't, changed to -f, added --repetitive-best
 ##############################################################################
-## Get the version from configure.in
-PACKAGE=zapping
-GREP_S="AM_INIT_AUTOMAKE($PACKAGE, "
-VER=`grep $GREP_S configure.in | sed -e "s/$GREP_S//;s/)//"`
+## Get the package name and version from configure.in
+PACKAGE_VER=`grep 'AM_INIT_AUTOMAKE(' configure.in`
+PACKAGE_VER=`echo $PACKAGE_VER | sed s/AM_INIT_AUTOMAKE\(\ *//`
+PACKAGE_VER=`echo $PACKAGE_VER | sed s/\ *\)//`
+PACKAGE=`echo $PACKAGE_VER | sed s/\ *,.*//`
+VER=`echo $PACKAGE_VER | sed s/$PACKAGE\ *,\ *//`
+if [ $PACKAGE = "" ]; then
+echo "Cannot get package name from configure.in, please enter manually:"
+read PACKAGE
+fi
 if [ $VER = "" ]; then
 echo "Cannot get version from configure.in, please enter manually:"
 read VER
@@ -18,7 +27,8 @@ echo "Generating new $PACKAGE release (version $VER)"
 echo
 echo "Generating the Makefiles"
 echo "------------------------" && echo
-./autogen.sh || exit 1
+(NOCONFIGURE="yes" && ./autogen.sh) || exit 1
+./configure || exit 1
 
 clear
 echo "Rebuilding the project to check whether it compiles"
@@ -29,26 +39,46 @@ make || exit 1
 clear && echo "Creating the .tar.gz and .tar.bz2 distros"
 	 echo "-----------------------------------------" && echo
 make dist || exit 1
-gunzip -c $PACKAGE-$VER.tar.gz | bzip2 -c > $PACKAGE-$VER.tar.bz2
+gunzip -c $PACKAGE-$VER.tar.gz >$PACKAGE-$VER.tar
+bzip2 -f --repetitive-best $PACKAGE-$VER.tar
 
-clear && echo "Building the RPM"
-	 echo "----------------" && echo
-rpm -ta --clean $PACKAGE-$VER.tar.gz || exit 1
+RPM_DIR=""
+## redhat
+if [ -d /usr/src/redhat ]; then
+    RPM_DIR="/usr/src/redhat"
+## SuSE, normal user
+elif [ -d ~/LnxZip/RPM ]; then
+    RPM_DIR=~/LnxZip/RPM
+## SuSE, root
+elif [ -d /usr/src/packages ]; then
+    RPM_DIR=/usr/src/packages
+fi
+if ! test "x$RPM_DIR" = "x"; then
+    clear && echo "Building the RPM"
+	     echo "----------------" && echo
+    cp $PACKAGE-$VER.tar.bz2 $RPM_DIR/SOURCES
+    rpm -ba --clean $PACKAGE.spec || exit 1
+    rm $RPM_DIR/SOURCES/$PACKAGE-$VER.tar.bz2
+fi
 
 clear
-echo "Putting everything under releases/$VER"
-echo "----------------------------------------" && echo
-if ! [ -d releases ]; then
-echo "releases/ doesn't exist, creating it" && echo
-mkdir releases
+echo "Putting everything under $VER-release"
+echo "-------------------------------------" && echo
+if ! [ -d $VER-release ]; then
+    echo "$VER-release doesn't exist, creating it" && echo
+    mkdir $VER-release
 fi
-if ! [ -d releases/$VER ]; then
-echo "releases/$VER doesn't exist, creating it" && echo
-mkdir releases/$VER
+if ! test "x$RPM_DIR" = "x"; then
+    for i in $RPM_DIR/RPMS/*/$PACKAGE-$VER*; do
+	if [ -f $i ]; then
+	    mv $i $VER-release
+	fi
+    done
+    mv $RPM_DIR/SRPMS/$PACKAGE-$VER-1.* $VER-release
+else
+    echo "The RPM dir couldn't be found, packages not built"
 fi
-mv /usr/src/redhat/RPMS/i386/$PACKAGE-$VER-1.* releases/$VER
-mv /usr/src/redhat/SRPMS/$PACKAGE-$VER-1.* releases/$VER
-mv $PACKAGE-$VER.tar.gz releases/$VER
-mv $PACKAGE-$VER.tar.bz2 releases/$VER
+mv $PACKAGE-$VER.tar.gz $VER-release
+mv $PACKAGE-$VER.tar.bz2 $VER-release
 
 echo "Done. Remember to commit the project to CVS if neccesary."

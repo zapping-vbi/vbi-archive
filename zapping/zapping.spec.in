@@ -6,12 +6,11 @@ Copyright: GPL
 Group: Applications/Multimedia
 URL: http://zapping.sourceforge.net
 Packager: Iñaki García Etxebarria <garetxe@users.sourceforge.net>
-Source: ftp://zapping.sourceforge.net/pub/zapping/%{version}/zapping-%{version}.tar.bz2
+Source: ftp://zapping.sourceforge.net/pub/zapping/@VERSION@/zapping-@VERSION@.tar.bz2
 Buildroot: %{_tmppath}/%{name}-root
 BuildPrereq: libglade-devel libxml-devel
 PreReq: /sbin/install-info
 
-Requires: gtk+ >= 1.2.6
 Requires: gnome-libs >= 1.0.40
 Requires: libxml >= 1.4.0
 Requires: libglade >= 0.9
@@ -37,7 +36,7 @@ make
 
 %install
 rm -rf %{buildroot}
-%makeinstall plugindir=%{buildroot}%{_libdir}/zapping/plugins
+%makeinstall
 
 %post
 pushd %{_bindir} > /dev/null 2>&1
