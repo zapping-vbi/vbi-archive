@@ -15,6 +15,8 @@ struct _tveng_tuned_channel{
   gchar *name; /* Name given to the channel (RTL, Eurosport, whatever) */
   gchar *real_name; /* Channel we chose this one from ("35", for
 		       example) */
+  gint accel_key; /* associated accelerator, or 0 for none (GDK) */
+  gint accel_mask; /* mask for the accelerator (GDK) */
   gchar * country; /* The country this channel is in */
   int index; /* Index in the tuned_channel list */
   __u32 freq; /* Frequence this channel is in (may be slightly
@@ -89,36 +91,50 @@ tveng_get_channel_by_id (int id, tveng_channels * country);
 int
 tveng_get_id_of_channel (tveng_channel * channel, tveng_channels * country);
 
-/*
-  This function inserts a channel in the list (the list will keep
-  alphabetically ordered).
-  It returns the index where the channel is inserted.
+/**
+ * This function inserts a channel in the list (the list will keep
+ * alphabetically ordered).
+ * new_channel: The channel to be inserted, all fields must be filled
+ * in, except prev and next.
+ * list: List where we should insert the channel, or NULL for starting
+ * a new list.
+ * Returns the new pointer to the list (it might be different from list)
 */
-int
-tveng_insert_tuned_channel (tveng_tuned_channel * new_channel);
+tveng_tuned_channel *
+tveng_insert_tuned_channel (tveng_tuned_channel * new_channel,
+			    tveng_tuned_channel * list);
 
-/*
-  Returns the number of items in the tuned_channel list
-*/
+/**
+ *  Returns the number of items in the tuned_channel list
+ */
 int
-tveng_tuned_channel_num (void);
+tveng_tuned_channel_num (tveng_tuned_channel * list);
 
-/*
-  Removes an specific channel form the list. You must provide its
-  "real" name, i.e. "64" instead of "Tele5", for example. Returns -1
-  if the channel could not be found. If real_name is NULL, then id is
-  interpreted as the index in the tuned_channel list. Then -1 means
-  out of bounds. if real_name is not NULL, then the first matching
-  item from id is deleted.
+/**
+ * Removes an specific channel form the list. You must provide its
+ * "real" name, i.e. "64" instead of "Tele5", for example. Returns -1
+ * if the channel could not be found. If real_name is NULL, then id is
+ * interpreted as the index in the tuned_channel list. Then -1 means
+ * out of bounds. if real_name is not NULL, then the first matching
+ * item from id is deleted.
+ * Returns a pointer to the list (can return NULL, that's OK)
 */
-int
-tveng_remove_tuned_channel (gchar * real_name, int id);
+tveng_tuned_channel *
+tveng_remove_tuned_channel (gchar * real_name, int id,
+			    tveng_tuned_channel * list);
 
-/*
-  Removes all the items in the channel list
-*/
-int
-tveng_clear_tuned_channel (void);
+/**
+ * replaces the contents of dest with the contents of src
+ */
+void
+tveng_copy_tuned_channel (tveng_tuned_channel * dest,
+			  tveng_tuned_channel * src);
+
+/**
+ *  Removes all the items in the channel list, returns NULL.
+ */
+tveng_tuned_channel *
+tveng_clear_tuned_channel (tveng_tuned_channel * list);
 
 /*
   Retrieves the specified channel form the list, searching by name
@@ -126,7 +142,8 @@ tveng_clear_tuned_channel (void);
   strcasecomp(), so "VoX" matches "vOx", "Vox", "voX", ...
 */
 tveng_tuned_channel*
-tveng_retrieve_tuned_channel_by_name (gchar * name, int index);
+tveng_retrieve_tuned_channel_by_name (gchar * name, int index,
+				      tveng_tuned_channel * list);
 
 /*
   Retrieves the specified channel by real name ("S23"), and starting
@@ -134,12 +151,14 @@ tveng_retrieve_tuned_channel_by_name (gchar * name, int index);
 */
 tveng_tuned_channel*
 tveng_retrieve_tuned_channel_by_real_name (gchar * real_name, int
-					   index);
+					   index,
+					   tveng_tuned_channel * list);
 
 /*
   Retrieves the channel in position "index". NULL on error
 */
 tveng_tuned_channel*
-tveng_retrieve_tuned_channel_by_index (int index);
+tveng_retrieve_tuned_channel_by_index (int index,
+				       tveng_tuned_channel * list);
 
 #endif

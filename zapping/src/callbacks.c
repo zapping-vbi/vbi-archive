@@ -41,6 +41,7 @@ extern GtkWidget * ToolBox; /* Here is stored the Toolbox (if any) */
 /* the mode set when we went fullscreen (used by main.c too) */
 enum tveng_capture_mode restore_mode;
 
+extern tveng_tuned_channel * global_channel_list;
 extern tveng_device_info * main_info; /* About the device we are using */
 extern gboolean disable_preview; /* TRUE if preview (fullscreen)
 				    doesn't work */
@@ -259,7 +260,7 @@ void on_channel_activate              (GtkMenuItem     *menuitem,
   int mute = 0;
 
   tveng_tuned_channel * channel =
-    tveng_retrieve_tuned_channel_by_index(num_channel); 
+    tveng_retrieve_tuned_channel_by_index(num_channel, global_channel_list);
 
   if (!channel)
     {
@@ -394,7 +395,7 @@ void
 on_channel_up1_activate                (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  int num_channels = tveng_tuned_channel_num();
+  int num_channels = tveng_tuned_channel_num(global_channel_list);
   GtkWidget * Channels = lookup_widget(GTK_WIDGET(menuitem),
 					     "Channels");
 
@@ -420,7 +421,7 @@ void
 on_channel_down1_activate              (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  int num_channels = tveng_tuned_channel_num();
+  int num_channels = tveng_tuned_channel_num(global_channel_list);
   GtkWidget * Channels = lookup_widget(GTK_WIDGET(menuitem),
 					     "Channels");
 
@@ -528,7 +529,7 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	    gtk_widget_show(menuitem);
 	    gtk_menu_insert(menu, menuitem, 1);
 	  }
-	else if (tveng_tuned_channel_num() == 0)
+	else if (tveng_tuned_channel_num(global_channel_list) == 0)
 	  {
 	    menuitem = z_gtk_pixmap_menu_item_new(_("No tuned channels"),
 						  GNOME_STOCK_PIXMAP_CLOSE);
@@ -537,9 +538,10 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	    gtk_menu_insert(menu, menuitem, 1);
 	  }
 	else
-	  for (i = tveng_tuned_channel_num()-1; i >= 0; i--)
+	  for (i = tveng_tuned_channel_num(global_channel_list)-1; i >= 0; i--)
 	    {
-	      tuned = tveng_retrieve_tuned_channel_by_index(i);
+	      tuned =
+		tveng_retrieve_tuned_channel_by_index(i, global_channel_list);
 	      g_assert(tuned != NULL);
 	      menuitem =
 		z_gtk_pixmap_menu_item_new(tuned->name,

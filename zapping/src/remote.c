@@ -38,6 +38,7 @@
 /* Pointers to important structs */
 extern GtkWidget * main_window;
 extern tveng_device_info * main_info;
+extern tveng_tuned_channel * global_channel_list;
 
 /* The meaning of arg and the returned gpointer value depend on the
    function you call. The command checking isn't case sensitive */
@@ -61,7 +62,7 @@ gpointer remote_command(gchar *command, gpointer arg)
     }
   else if (!strcasecmp(command, "get_num_channels"))
     {
-      return (GINT_TO_POINTER(tveng_tuned_channel_num()));
+      return (GINT_TO_POINTER(tveng_tuned_channel_num(global_channel_list)));
     }
   else if (!strcasecmp(command, "set_channel"))
     {
@@ -69,8 +70,8 @@ gpointer remote_command(gchar *command, gpointer arg)
       GtkWidget * Channels = lookup_widget(main_window, "Channels");
       if (channel_num < 0)
 	channel_num = 0;
-      if (channel_num >= tveng_tuned_channel_num())
-	channel_num = tveng_tuned_channel_num()-1;
+      if (channel_num >= tveng_tuned_channel_num(global_channel_list))
+	channel_num = tveng_tuned_channel_num(global_channel_list)-1;
       on_channel_activate(NULL,
 			  GINT_TO_POINTER(channel_num));
       /* Update the option menu */

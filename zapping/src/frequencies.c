@@ -1128,26 +1128,40 @@ tveng_get_id_of_channel (tveng_channel * channel, tveng_channels *
   simplify the rest of the code and it is easier to change
 */
 
-/* 
-   This is actually a pointer to the first item in the linked list
-*/
-tveng_tuned_channel * tuned_channel = NULL;
+/**
+ * Returns the first item in the channel list, or NULL
+ */
+static tveng_tuned_channel *
+first_channel(tveng_tuned_channel * list)
+{
+  if (!list)
+    return NULL;
+
+  while (list->prev)
+    list = list->prev;
+
+  return list;    
+}
+
 
 /*
   This function inserts a channel in the list (the list will keep
   alphabetically ordered).
   It returns the index where the channel is inserted.
 */
-int
-tveng_insert_tuned_channel (tveng_tuned_channel * new_channel)
+tveng_tuned_channel *
+tveng_insert_tuned_channel (tveng_tuned_channel * new_channel,
+			    tveng_tuned_channel * list)
 {
   tveng_tuned_channel * channel_added = (tveng_tuned_channel*)
     malloc(sizeof(tveng_tuned_channel));
-  tveng_tuned_channel * tc_ptr = tuned_channel;
+  tveng_tuned_channel * tc_ptr = first_channel(list);
   int index = 0; /* Where are we storing it */
 
   if (!new_channel)
-    return -1;
+    return list;
+
+  list = first_channel(list);
 
   if (new_channel->name)
     channel_added->name = g_strdup(new_channel->name);
@@ -1162,6 +1176,8 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel)
   else
     channel_added->country = g_strdup(_("(Unknown country)"));
 
+  channel_added->accel_key = new_channel->accel_key;
+  channel_added->accel_mask = new_channel->accel_mask;
   channel_added->freq = new_channel->freq;
 
   /* OK, we are starting the list */
@@ -1169,8 +1185,7 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel)
     {
       channel_added->index = 0;
       channel_added->next = channel_added->prev = NULL;
-      tuned_channel = channel_added;
-      return 0;
+      return channel_added;
     }
 
   /* The list is already started, proceed until we reach the desired
@@ -1198,9 +1213,9 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel)
 	  /* replace tc_ptr with the current one */
 	  channel_added -> prev = tc_ptr -> prev;
 
-	  if (tc_ptr == tuned_channel)
-	    tuned_channel = channel_added; /* We are adding the first
-					      item */
+	  if (tc_ptr == list)
+	    list = channel_added; /* We are adding the first
+				     item */
       
 	  if (tc_ptr -> prev)
 	    tc_ptr -> prev -> next = channel_added;
@@ -1215,8 +1230,7 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel)
 	      tc_ptr = tc_ptr->next;
 	    }
 
-	  return channel_added->index; /* Return the pos we were
-					  inserted in */
+	  return first_channel(list);
 	}
 
       index++;
@@ -1241,17 +1255,17 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel)
   channel_added -> index = index;
   channel_added -> next = NULL;
 
-  return (index);
+  return first_channel(list);
 }
 
 /*
-  Returns the number of items in the tuned_channel list
+  Returns the number of items in the list
 */
 int
-tveng_tuned_channel_num (void)
+tveng_tuned_channel_num (tveng_tuned_channel * list)
 {
   int num_channels = 0;
-  tveng_tuned_channel * tc_ptr = tuned_channel;
+  tveng_tuned_channel * tc_ptr = first_channel(list);
 
   while (tc_ptr)
     {
@@ -1270,28 +1284,31 @@ tveng_tuned_channel_num (void)
   out of bounds. if real_name is not NULL, then the first matching
   item from id is deleted.
 */
-int
-tveng_remove_tuned_channel (gchar * real_name, int id)
+tveng_tuned_channel *
+tveng_remove_tuned_channel (gchar * real_name, int id,
+			    tveng_tuned_channel * list)
 {
   tveng_tuned_channel * tc_ptr;
   tveng_tuned_channel * tc_ptr_traverse;
 
-  if (!tuned_channel)
-    return -1;
+  list = first_channel(list);
+
+  if (!list)
+    return NULL;
   
   /* We don't have a real name, use the id as the offset */
   if (!real_name)
     {
-      tc_ptr = tveng_retrieve_tuned_channel_by_index(id);
+      tc_ptr = tveng_retrieve_tuned_channel_by_index(id, list);
       if (!tc_ptr)
-	return -1;
+	return list;
     }
   else /* We have a real name, go find it */
     {
       tc_ptr = tveng_retrieve_tuned_channel_by_real_name(real_name,
-							id);
+							id, list);
       if (!tc_ptr)
-	return -1;
+	return list;
     }
 
   /* We have the desired channel, delete it */
@@ -1304,8 +1321,8 @@ tveng_remove_tuned_channel (gchar * real_name, int id)
   g_free(tc_ptr -> real_name);
   g_free(tc_ptr -> country);
 
-  if (tuned_channel == tc_ptr) /* We are deleting the first item */
-    tuned_channel = tc_ptr -> next;
+  if (list == tc_ptr) /* We are deleting the first item */
+    list = tc_ptr -> next;
 
   /* Update indexes */
   tc_ptr_traverse = tc_ptr -> next;
@@ -1318,20 +1335,47 @@ tveng_remove_tuned_channel (gchar * real_name, int id)
   /* We are done, kill this channel */
   g_free(tc_ptr);
 
-  return 0; /* Success */
+  return list;
+}
+
+/*
+  Copies src into dest
+*/
+void
+tveng_copy_tuned_channel(tveng_tuned_channel * dest,
+			 tveng_tuned_channel * src)
+{
+  g_free(dest->name);
+  g_free(dest->real_name);
+  g_free(dest->country);
+
+  if (src->name)
+    dest->name = g_strdup(src->name);
+  else
+    dest->name = g_strdup(_("(Unnamed channel)"));
+  if (src->real_name)
+    dest->real_name = g_strdup(src->real_name);
+  else
+    dest->real_name = g_strdup(_("(Unknown real channel)"));
+  if (src->country)
+    dest->country = g_strdup(src->country);
+  else
+    dest->country = g_strdup(_("(Unknown country)"));
+
+  dest->accel_key = src->accel_key;
+  dest->accel_mask = src->accel_mask;
+  dest->freq = src->freq;
 }
 
 /*
   Removes all the items in the channel list
 */
-int
-tveng_clear_tuned_channel (void)
+tveng_tuned_channel *
+tveng_clear_tuned_channel (tveng_tuned_channel * list)
 {
-  while (tuned_channel)
-    if (tveng_remove_tuned_channel(NULL, 0) < 0)
-      return -1;
+  while ((list = tveng_remove_tuned_channel(NULL, 0, list)));
 
-  return 0;
+  return list;
 }
 
 /*
@@ -1340,9 +1384,11 @@ tveng_clear_tuned_channel (void)
   strcasecomp(), so "VoX" matches "vOx", "Vox", "voX", ...
 */
 tveng_tuned_channel*
-tveng_retrieve_tuned_channel_by_name (gchar * name, int index)
+tveng_retrieve_tuned_channel_by_name (gchar * name, int index,
+				      tveng_tuned_channel * list)
 {
-  tveng_tuned_channel * tc_ptr = tveng_retrieve_tuned_channel_by_index (index);
+  tveng_tuned_channel * tc_ptr =
+    tveng_retrieve_tuned_channel_by_index (index, list);
 
   if (!tc_ptr)
     return NULL;
@@ -1366,9 +1412,11 @@ tveng_retrieve_tuned_channel_by_name (gchar * name, int index)
   from index. Returns NULL on error. Again a strcasecmp
 */
 tveng_tuned_channel*
-tveng_retrieve_tuned_channel_by_real_name (gchar * real_name, int index)
+tveng_retrieve_tuned_channel_by_real_name (gchar * real_name, int index,
+					   tveng_tuned_channel * list)
 {
-  tveng_tuned_channel * tc_ptr = tveng_retrieve_tuned_channel_by_index (index);
+  tveng_tuned_channel * tc_ptr =
+    tveng_retrieve_tuned_channel_by_index (index, list);
 
   if (!tc_ptr)
     return NULL;
@@ -1391,11 +1439,12 @@ tveng_retrieve_tuned_channel_by_real_name (gchar * real_name, int index)
   Retrieves the channel in position "index". NULL on error
 */
 tveng_tuned_channel*
-tveng_retrieve_tuned_channel_by_index (int index)
+tveng_retrieve_tuned_channel_by_index (int index,
+				       tveng_tuned_channel * list)
 {
-  tveng_tuned_channel * tc_ptr = tuned_channel;
+  tveng_tuned_channel * tc_ptr = first_channel(list);
 
-  if ((index < 0) || (index >= tveng_tuned_channel_num()))
+  if ((index < 0) || (index >= tveng_tuned_channel_num(tc_ptr)))
     return NULL; /* Bounds error */
   
   while (tc_ptr)

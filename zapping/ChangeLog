@@ -1,3 +1,8 @@
+27.1.2001	Channel accels <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade, src/channel_editor.c: Added support for
+	attaching accelerators to channels, unfinished.
+
 25.1.2001	Old cruft removed <garetxe@users.sourceforge.net>
 
 	* libvbi/: Moved vbi_v4l[2].c to the attic, not longer needed,

@@ -60,6 +60,7 @@ GtkWidget		*main_window;
 gboolean		was_fullscreen=FALSE; /* will be TRUE if when
 						 quitting we were
 						 fullscreen */
+tveng_tuned_channel	*global_channel_list=NULL;
 /*** END OF GLOBAL STUFF ***/
 
 static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
@@ -246,7 +247,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.83 2001-01-25 19:51:17 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.84 2001-01-27 22:46:11 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -535,7 +536,9 @@ static void shutdown_zapping(void)
 
   /* Write the currently tuned channels */
   zconf_delete(ZCONF_DOMAIN "tuned_channels");
-  while ((channel = tveng_retrieve_tuned_channel_by_index(i)) != NULL)
+  while ((channel = tveng_retrieve_tuned_channel_by_index(i,
+							  global_channel_list))
+	 != NULL)
     {
       buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/name",
 			       i);
@@ -544,6 +547,16 @@ static void shutdown_zapping(void)
       buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/freq",
 			       i);
       zconf_create_integer((int)channel->freq, "Tuning frequence", buffer);
+      g_free(buffer);
+      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/accel_key",
+			       i);
+      zconf_create_integer((int)channel->accel_key, "Accelator key",
+			   buffer);
+      g_free(buffer);
+      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/accel_mask",
+			       i);
+      zconf_create_integer((int)channel->accel_mask, "Accelerator mask",
+			   buffer);
       g_free(buffer);
       buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/real_name",
 			       i);
@@ -556,6 +569,7 @@ static void shutdown_zapping(void)
       g_free(buffer);
       i++;
     }
+  global_channel_list = tveng_clear_tuned_channel(global_channel_list);
 
   zcs_char(current_country -> name, "current_country");
   if (main_info->num_standards)
@@ -658,12 +672,19 @@ static gboolean startup_zapping()
       buffer2 = g_strconcat(buffer, "/freq", NULL);
       zconf_get_integer(&new_channel.freq, buffer2);
       g_free(buffer2);
+      buffer2 = g_strconcat(buffer, "/accel_key", NULL);
+      zconf_get_integer(&new_channel.accel_key, buffer2);
+      g_free(buffer2);
+      buffer2 = g_strconcat(buffer, "/accel_mask", NULL);
+      zconf_get_integer(&new_channel.accel_mask, buffer2);
+      g_free(buffer2);
       buffer2 = g_strconcat(buffer, "/country", NULL);
       zconf_get_string(&new_channel.country, buffer2);
       g_free(buffer2);
 
       new_channel.index = 0;
-      tveng_insert_tuned_channel(&new_channel);
+      global_channel_list =
+	tveng_insert_tuned_channel(&new_channel, global_channel_list);
 
       /* Free the previously allocated mem */
       g_free(new_channel.name);

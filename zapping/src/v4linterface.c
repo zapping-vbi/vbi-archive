@@ -24,6 +24,7 @@
 #include "zmisc.h"
 #include "interface.h"
 
+extern tveng_tuned_channel * global_channel_list;
 extern int cur_tuned_channel; /* currently tuned channel (in callbacks.c) */
 GtkWidget * ToolBox = NULL; /* Pointer to the last control box */
 
@@ -141,14 +142,17 @@ void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
     tunes = info->inputs[info->cur_input].flags & TVENG_INPUT_TUNER;
 
   /* If no tuned channels show error not sensitive */
-  if (tveng_tuned_channel_num() == 0)
+  if (tveng_tuned_channel_num(global_channel_list) == 0)
     tunes = FALSE;
 
   gtk_widget_set_sensitive(Channels, tunes);
 
   /* Different menus depending on the input */
   if (tunes)
-    for (i = 0; (tuned = tveng_retrieve_tuned_channel_by_index(i)); i++)
+    for (i = 0;
+	 (tuned = tveng_retrieve_tuned_channel_by_index(i,
+							global_channel_list));
+	 i++)
       {
 	menu_item =
 	  gtk_menu_item_new_with_label(tuned -> name);
@@ -176,11 +180,12 @@ void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
 
   if (tunes)
     {
-      if (cur_tuned_channel >= tveng_tuned_channel_num())
-	cur_tuned_channel = tveng_tuned_channel_num() - 1;
+      if (cur_tuned_channel >= tveng_tuned_channel_num(global_channel_list))
+	cur_tuned_channel = tveng_tuned_channel_num(global_channel_list) - 1;
 
       tuned =
-	tveng_retrieve_tuned_channel_by_index(cur_tuned_channel);
+	tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
+					      global_channel_list);
 
       g_assert (tuned != NULL); /* This cannot happen, just for
 				   checking */

@@ -1488,8 +1488,8 @@ in the next release of this program.</label>
 	    <handler>on_channel_list_key_press_event</handler>
 	    <last_modification_time>Fri, 21 Apr 2000 22:00:53 GMT</last_modification_time>
 	  </signal>
-	  <columns>4</columns>
-	  <column_widths>78,65,73,80</column_widths>
+	  <columns>5</columns>
+	  <column_widths>78,36,59,54,65</column_widths>
 	  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 	  <show_titles>True</show_titles>
 	  <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -1511,7 +1511,7 @@ in the next release of this program.</label>
 	    <class>GtkLabel</class>
 	    <child_name>CList:title</child_name>
 	    <name>label38</name>
-	    <label>Channel</label>
+	    <label>ID</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -1545,6 +1545,19 @@ in the next release of this program.</label>
 	    <xpad>0</xpad>
 	    <ypad>0</ypad>
 	  </widget>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <child_name>CList:title</child_name>
+	    <name>label200</name>
+	    <label>Accelerator</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	  </widget>
 	</widget>
       </widget>
     </widget>
@@ -1552,13 +1565,32 @@ in the next release of this program.</label>
     <widget>
       <class>GtkHBox</class>
       <name>hbox17</name>
-      <homogeneous>True</homogeneous>
+      <homogeneous>False</homogeneous>
       <spacing>0</spacing>
       <child>
 	<padding>0</padding>
 	<expand>False</expand>
 	<fill>False</fill>
       </child>
+
+      <widget>
+	<class>GtkButton</class>
+	<name>channel_search</name>
+	<border_width>7</border_width>
+	<tooltip>Select your country and click here to search for the available channels</tooltip>
+	<can_focus>True</can_focus>
+	<signal>
+	  <name>clicked</name>
+	  <handler>on_channel_search_clicked</handler>
+	  <last_modification_time>Tue, 20 Jun 2000 13:54:19 GMT</last_modification_time>
+	</signal>
+	<label>_Search for the available channels in the current country</label>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
 
       <widget>
 	<class>GtkLabel</class>
@@ -1600,60 +1632,147 @@ in the next release of this program.</label>
     </widget>
 
     <widget>
-      <class>GtkButton</class>
-      <name>channel_search</name>
-      <border_width>7</border_width>
-      <tooltip>Select your country and click here to search for the available channels</tooltip>
-      <can_focus>True</can_focus>
-      <signal>
-	<name>clicked</name>
-	<handler>on_channel_search_clicked</handler>
-	<last_modification_time>Tue, 20 Jun 2000 13:54:19 GMT</last_modification_time>
-      </signal>
-      <label>_Search for the available channels in the current country</label>
+      <class>GtkHBox</class>
+      <name>hbox28</name>
+      <homogeneous>False</homogeneous>
+      <spacing>0</spacing>
       <child>
 	<padding>0</padding>
 	<expand>False</expand>
 	<fill>False</fill>
       </child>
-    </widget>
 
-    <widget>
-      <class>GtkLabel</class>
-      <name>label42</name>
-      <label>Enter here the alias you want to give to this channel:</label>
-      <justify>GTK_JUSTIFY_CENTER</justify>
-      <wrap>False</wrap>
-      <xalign>0.5</xalign>
-      <yalign>0.5</yalign>
-      <xpad>0</xpad>
-      <ypad>0</ypad>
-      <child>
-	<padding>0</padding>
-	<expand>False</expand>
-	<fill>False</fill>
-      </child>
-    </widget>
+      <widget>
+	<class>GtkVBox</class>
+	<name>vbox27</name>
+	<homogeneous>True</homogeneous>
+	<spacing>0</spacing>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
 
-    <widget>
-      <class>GtkEntry</class>
-      <name>channel_name</name>
-      <tooltip>Enter here the name you want to give to this channel</tooltip>
-      <can_focus>True</can_focus>
-      <signal>
-	<name>activate</name>
-	<handler>on_channel_name_activate</handler>
-	<last_modification_time>Wed, 19 Apr 2000 21:37:37 GMT</last_modification_time>
-      </signal>
-      <editable>True</editable>
-      <text_visible>True</text_visible>
-      <text_max_length>0</text_max_length>
-      <text></text>
-      <child>
-	<padding>0</padding>
-	<expand>False</expand>
-	<fill>False</fill>
-      </child>
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label42</name>
+	  <label>Enter here the alias you want to give to this channel:</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkEntry</class>
+	  <name>channel_name</name>
+	  <tooltip>Enter here the name you want to give to this channel</tooltip>
+	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>activate</name>
+	    <handler>on_channel_name_activate</handler>
+	    <last_modification_time>Wed, 19 Apr 2000 21:37:37 GMT</last_modification_time>
+	  </signal>
+	  <editable>True</editable>
+	  <text_visible>True</text_visible>
+	  <text_max_length>0</text_max_length>
+	  <text></text>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkVBox</class>
+	<name>vbox28</name>
+	<homogeneous>True</homogeneous>
+	<spacing>0</spacing>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
+
+	<widget>
+	  <class>GtkHBox</class>
+	  <name>hbox29</name>
+	  <homogeneous>False</homogeneous>
+	  <spacing>0</spacing>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+
+	  <widget>
+	    <class>GtkCheckButton</class>
+	    <name>channel_accel_ctrl</name>
+	    <can_focus>True</can_focus>
+	    <label>Ctrl</label>
+	    <active>False</active>
+	    <draw_indicator>True</draw_indicator>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GtkCheckButton</class>
+	    <name>channel_accel_shift</name>
+	    <can_focus>True</can_focus>
+	    <label>Shift</label>
+	    <active>False</active>
+	    <draw_indicator>True</draw_indicator>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GtkCheckButton</class>
+	    <name>channel_accel_alt</name>
+	    <can_focus>True</can_focus>
+	    <label>Alt</label>
+	    <active>False</active>
+	    <draw_indicator>True</draw_indicator>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+	  </widget>
+	</widget>
+
+	<widget>
+	  <class>GtkEntry</class>
+	  <name>channel_accel</name>
+	  <tooltip>Enter here the accelerator for this channel</tooltip>
+	  <can_focus>True</can_focus>
+	  <editable>True</editable>
+	  <text_visible>True</text_visible>
+	  <text_max_length>1</text_max_length>
+	  <text></text>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+      </widget>
     </widget>
 
     <widget>

@@ -1694,7 +1694,8 @@ tveng2_set_preview_window(tveng_device_info * info)
       return -1;
     }
 
-  free(clip);
+  if (clip)
+    free(clip);
 
   /* Update the info struct */
   return (tveng2_get_preview_window(info));
