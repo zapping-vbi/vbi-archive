@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.46 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.47 2005-01-15 09:25:58 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -1875,7 +1875,8 @@ export_png			(vbi3_export *		e,
 	}
 
 	/* Avoid possible longjmp breakage due to libpng ugliness */
-	{ static int do_write() {
+	/* XXX nested functions not portable. */
+	{ int do_write() {
 
 	if (setjmp (png_ptr->jmpbuf))
 		return 1;
