@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.1 2001-12-09 22:10:52 garetxe Exp $ */
+/* $Id: rte.c,v 1.2 2001-12-12 23:24:40 garetxe Exp $ */
 #if 0
 #include <unistd.h>
 #include <string.h>
@@ -1157,7 +1157,7 @@ rte_codec_info_enum(rte_context *context, int index)
  * or the named codec has not been found.
  **/
 rte_codec_info *
-rte_codec_info_by_keyword(rte_context *context, char *keyword)
+rte_codec_info_keyword(rte_context *context, char *keyword)
 {
 	rte_codec_info *rci;
 	int i;

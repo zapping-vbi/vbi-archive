@@ -14,7 +14,7 @@ DOC_SOURCE_DIR=../src
 SCAN_OPTIONS=
 
 # Extra options to supply to gtkdoc-mkdb.
-MKDB_OPTIONS=
+MKDB_OPTIONS=--sgml-mode
 
 # Extra options to supply to gtkdoc-fixref.
 FIXXREF_OPTIONS=

@@ -1,3 +1,8 @@
+2001-12-13	Started new rte.h <garetxe@users.sf.net>
+
+	* rte.h: Started writing and documenting the new api. The rest
+	will come tomorrow.
+
 2001-12-09	Havoc <garetxe@users.sf.net>
 
 	* Started reorganisation, so CVS is pretty screwed up at the
