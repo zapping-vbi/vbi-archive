@@ -1,14 +1,6 @@
 LIRC plugin for zapping by marco.p@bigfoot.com
 ----------------------------------------------
 
-The plugin liblirc.zapping.so is included, so you don't have to make it.
-Copy this file to the zapping plugins directory (~/.zapping/plugins or
-/usr/local/lib/zapping/plugins) and start zapping.
-
-If you want to build the plugin you have to copy this directory to
-/zapping_source_directory/plugins. Change to this directory an do a
-make. The file liblirc.zapping.so will be created in the .libs dir.
-
 In order to use the LIRC plugin the LIRC daemon must be running and the
 user must have read/write-access to /dev/lircd.
 

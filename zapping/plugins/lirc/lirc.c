@@ -1,5 +1,5 @@
-/* Screenshot saving plugin for Zapping
- * Copyright (C) 2000 Iñaki García Etxebarria
+/* LIRC plugin for Zapping
+ * Copyright (C) 2001 Marco Pfattner
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
