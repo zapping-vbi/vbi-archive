@@ -25,6 +25,12 @@
  *    for a list of possible options.
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.4  2004/11/07 08:18:53  michael
+ *  *** empty log message ***
+ *
+ *  Revision 1.14  2004/11/03 17:07:40  mschimek
+ *  *** empty log message ***
+ *
  *  Revision 1.3  2004/10/29 01:49:04  michael
  *  *** empty log message ***
  *
@@ -59,7 +65,7 @@
  *
  */
 
-static const char rcsid[] = "$Id: proxy-test.c,v 1.14 2004-11-03 17:07:40 mschimek Exp $";
+static const char rcsid[] = "$Id: proxy-test.c,v 1.15 2004-11-07 10:52:47 mschimek Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
