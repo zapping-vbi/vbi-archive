@@ -41,11 +41,11 @@ test -n "`autoconf --version </dev/null | grep 2.53`" || {
 grep "^AM_GNU_GETTEXT" $srcdir/configure.in >/dev/null && {
   grep "sed.*POTFILES" $srcdir/configure.in >/dev/null || \
   test -n "`gettext --version </dev/null | grep 0.11`" || {
+    # Since 0.11.2 most of the gettext stuff is included,
+    # no need to insist anymore.
     echo
-    echo "**Error**: You must have 'gettext 0.11.2' installed to compile $PACKAGE."
+    echo "**Warning**: You should have 'gettext 0.11.2' installed to compile $PACKAGE."
     echo "Get ftp://ftp.gnu.org/pub/gnu/gettext/gettext-0.11.2.tar.gz"
-    echo "(a newer version may work, but is not tested)"
-    DIE=1
   }
 }
 
@@ -84,6 +84,8 @@ if test "$DIE" -eq 1; then
   test "$yesno" == "y" || exit 1
 fi
 
+echo
+
 if test x$NOCONFIGURE = x; then
   if test -z "$*"; then
     echo "**Warning**: I am going to run 'configure' with no arguments."
@@ -110,8 +112,7 @@ do
   if test -f $dr/NO-AUTO-GEN; then
     echo skipping $dr -- flagged as no auto-gen
   else
-    echo
-    echo Processing `cd $dr; pwd; cd -`
+    echo processing $dr
     macrodirs=`sed -n -e 's,AM_ACLOCAL_INCLUDE(\(.*\)),\1,gp' < $coin`
     ( cd $dr
       macrosdir="`find . -name macros -print` `find . -name macros -print`"
@@ -169,8 +170,11 @@ do
 	fi
       fi
       echo "Running aclocal $aclocalinclude ..."
-      aclocalmsg=`aclocal $aclocalinclude 2>&1 || echo .`
+      # aclocal may fail without message, hence echo
+      aclocalmsg=`aclocal $aclocalinclude 2>&1`
+      test $? != 0 -a -z "$aclocalmsg" && aclocalmsg="Unknown error."
       if test ! -z "$aclocalmsg" ; then
+        echo "$aclocalmsg"
 	echo
 	echo "**Error**: aclocal failed. This may mean that you have not"
 	echo "installed all of the packages you need, or you may need to"
@@ -196,7 +200,6 @@ done
 conf_flags="--enable-maintainer-mode --enable-compile-warnings" #--enable-iso-c
 
 if test x$NOCONFIGURE = x; then
-  echo
   echo Running $srcdir/configure $conf_flags "$@" ...
   $srcdir/configure $conf_flags "$@" || exit 1
 else

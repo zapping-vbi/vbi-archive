@@ -30,8 +30,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: rte 0.5cvs\n"
-"POT-Creation-Date: 2002-06-25 05:50+0200\n"
-"PO-Revision-Date: 2002-06-25 05:50+0200\n"
+"POT-Creation-Date: 2002-07-08 11:01+0200\n"
+"PO-Revision-Date: 2002-07-08 11:01+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "MIME-Version: 1.0\n"
@@ -73,8 +73,8 @@ msgid "Out of memory for video buffer."
 msgstr "Out of memory for video buffer."
 
 #: mp1e/video/mpeg1.c:2501 mp1e/video/mpeg1.c:2858 mp1e/audio/mp2.c:1172
-#: mp1e/b_mp1e.c:440 mp1e/b_mp1e.c:490 mp1e/b_mp1e.c:500 mp1e/b_mp1e.c:1088
-#: ffmpeg/b_ffmpeg.c:889 ffmpeg/b_ffmpeg.c:1140
+#: mp1e/b_mp1e.c:440 mp1e/b_mp1e.c:490 mp1e/b_mp1e.c:500 mp1e/b_mp1e.c:1090
+#: ffmpeg/b_ffmpeg.c:890 ffmpeg/b_ffmpeg.c:1142
 msgid "Out of memory."
 msgstr "Out of memory."
 
@@ -90,8 +90,8 @@ msgstr "Multiplexer"
 msgid "Fake picture"
 msgstr "Fake picture"
 
-#: mp1e/video/mpeg1.c:2612 mp1e/audio/mp2.c:973 ffmpeg/b_ffmpeg.c:608
-#: ffmpeg/b_ffmpeg.c:612
+#: mp1e/video/mpeg1.c:2612 mp1e/audio/mp2.c:973 ffmpeg/b_ffmpeg.c:609
+#: ffmpeg/b_ffmpeg.c:613
 msgid "Bit rate"
 msgstr "Bit rate"
 
@@ -179,15 +179,15 @@ msgstr "off"
 msgid "%f frames"
 msgstr "%f frames"
 
-#: mp1e/audio/mp2.c:954 ffmpeg/b_ffmpeg.c:576
+#: mp1e/audio/mp2.c:954 ffmpeg/b_ffmpeg.c:577
 msgid "Mono"
 msgstr "Mono"
 
-#: mp1e/audio/mp2.c:955 ffmpeg/b_ffmpeg.c:577
+#: mp1e/audio/mp2.c:955 ffmpeg/b_ffmpeg.c:578
 msgid "Stereo"
 msgstr "Stereo"
 
-#: mp1e/audio/mp2.c:957 ffmpeg/b_ffmpeg.c:579
+#: mp1e/audio/mp2.c:957 ffmpeg/b_ffmpeg.c:580
 msgid "Bilingual"
 msgstr "Bilingual"
 
@@ -203,16 +203,16 @@ msgstr "Fast"
 msgid "Accurate"
 msgstr "Accurate"
 
-#: mp1e/audio/mp2.c:975 ffmpeg/b_ffmpeg.c:610 ffmpeg/b_ffmpeg.c:614
+#: mp1e/audio/mp2.c:975 ffmpeg/b_ffmpeg.c:611 ffmpeg/b_ffmpeg.c:615
 msgid "Output bit rate, all channels together"
 msgstr "Output bit rate, all channels together"
 
-#: mp1e/audio/mp2.c:977 ffmpeg/b_ffmpeg.c:602 ffmpeg/b_ffmpeg.c:616
-#: ffmpeg/b_ffmpeg.c:619
+#: mp1e/audio/mp2.c:977 ffmpeg/b_ffmpeg.c:603 ffmpeg/b_ffmpeg.c:617
+#: ffmpeg/b_ffmpeg.c:620
 msgid "Sampling frequency"
 msgstr "Sampling frequency"
 
-#: mp1e/audio/mp2.c:980 ffmpeg/b_ffmpeg.c:605
+#: mp1e/audio/mp2.c:980 ffmpeg/b_ffmpeg.c:606
 msgid "Mode"
 msgstr "Mode"
 
@@ -229,18 +229,18 @@ msgstr ""
 "kbit/s per channel, when you have bat ears or a little more CPU load doesn't "
 "matter."
 
-#: mp1e/audio/mp2.c:1025 ffmpeg/b_ffmpeg.c:662 ffmpeg/b_ffmpeg.c:666
+#: mp1e/audio/mp2.c:1025 ffmpeg/b_ffmpeg.c:663 ffmpeg/b_ffmpeg.c:667
 #, c-format
 msgid "%u kbit/s"
 msgstr "%u kbit/s"
 
-#: mp1e/audio/mp2.c:1030 ffmpeg/b_ffmpeg.c:657 ffmpeg/b_ffmpeg.c:670
-#: ffmpeg/b_ffmpeg.c:674
+#: mp1e/audio/mp2.c:1030 ffmpeg/b_ffmpeg.c:658 ffmpeg/b_ffmpeg.c:671
+#: ffmpeg/b_ffmpeg.c:675
 #, c-format
 msgid "%u Hz"
 msgstr "%u Hz"
 
-#: mp1e/audio/mp2.c:1195 ffmpeg/b_ffmpeg.c:834
+#: mp1e/audio/mp2.c:1195 ffmpeg/b_ffmpeg.c:835
 msgid "MPEG-1 Audio Layer II"
 msgstr "MPEG-1 Audio Layer II"
 
@@ -272,59 +272,59 @@ msgstr "Insufficient resources to start codec thread.\n"
 msgid "Insufficient resources to start context thread.\n"
 msgstr "Insufficient resources to start context thread.\n"
 
-#: mp1e/b_mp1e.c:924 ffmpeg/b_ffmpeg.c:974
+#: mp1e/b_mp1e.c:926 ffmpeg/b_ffmpeg.c:976
 #, c-format
 msgid "Cannot create new codec instance '%s': %s"
 msgstr "Cannot create new codec instance '%s': %s"
 
-#: mp1e/b_mp1e.c:928 ffmpeg/b_ffmpeg.c:979
+#: mp1e/b_mp1e.c:930 ffmpeg/b_ffmpeg.c:981
 #, c-format
 msgid "Cannot create new codec instance '%s'."
 msgstr "Cannot create new codec instance '%s'."
 
-#: mp1e/b_mp1e.c:994
+#: mp1e/b_mp1e.c:996
 msgid "MPEG-1 Program Stream"
 msgstr "MPEG-1 Program Stream"
 
-#: mp1e/b_mp1e.c:1006
+#: mp1e/b_mp1e.c:1008
 msgid "MPEG-1 VCD Program Stream"
 msgstr "MPEG-1 VCD Program Stream"
 
-#: mp1e/b_mp1e.c:1018
+#: mp1e/b_mp1e.c:1020
 msgid "MPEG Video Elementary Stream"
 msgstr "MPEG Video Elementary Stream"
 
-#: mp1e/b_mp1e.c:1030 ffmpeg/b_ffmpeg.c:1064
+#: mp1e/b_mp1e.c:1032 ffmpeg/b_ffmpeg.c:1066
 msgid "MPEG Audio Elementary Stream"
 msgstr "MPEG Audio Elementary Stream"
 
-#: mp1e/b_mp1e.c:1208
+#: mp1e/b_mp1e.c:1210
 msgid ""
 "MP1E backend requires MMX but the CPU type is unknown, backend disabled."
 msgstr ""
 "MP1E backend requires MMX but the CPU type is unknown, backend disabled."
 
-#: ffmpeg/b_ffmpeg.c:785
+#: ffmpeg/b_ffmpeg.c:786
 msgid "PCM 16 Bit Signed Little Endian"
 msgstr "PCM 16 Bit Signed Little Endian"
 
-#: ffmpeg/b_ffmpeg.c:797
+#: ffmpeg/b_ffmpeg.c:798
 msgid "PCM 8 Bit Unsigned"
 msgstr "PCM 8 Bit Unsigned"
 
-#: ffmpeg/b_ffmpeg.c:809
+#: ffmpeg/b_ffmpeg.c:810
 msgid "PCM a-Law"
 msgstr "PCM a-Law"
 
-#: ffmpeg/b_ffmpeg.c:821
+#: ffmpeg/b_ffmpeg.c:822
 msgid "PCM mu-Law"
 msgstr "PCM mu-Law"
 
-#: ffmpeg/b_ffmpeg.c:847
+#: ffmpeg/b_ffmpeg.c:848
 msgid "MPEG-2 Audio Layer II LSF"
 msgstr "MPEG-2 Audio Layer II LSF"
 
-#: ffmpeg/b_ffmpeg.c:848
+#: ffmpeg/b_ffmpeg.c:849
 msgid ""
 "MPEG-2 Low Sampling Frequency extension to MPEG-1 Audio Layer II. Be warned "
 "not all MPEG video and audio players support MPEG-2 audio."
@@ -332,10 +332,10 @@ msgstr ""
 "MPEG-2 Low Sampling Frequency extension to MPEG-1 Audio Layer II. Be warned "
 "not all MPEG video and audio players support MPEG-2 audio."
 
-#: ffmpeg/b_ffmpeg.c:1041
+#: ffmpeg/b_ffmpeg.c:1043
 msgid "RIFF-WAVE Audio"
 msgstr "RIFF-WAVE Audio"
 
-#: ffmpeg/b_ffmpeg.c:1081
+#: ffmpeg/b_ffmpeg.c:1083
 msgid "AC3 Audio Elementary Stream"
 msgstr "AC3 Audio Elementary Stream"
