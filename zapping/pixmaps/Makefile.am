@@ -1,11 +1,15 @@
+## for zapping.desktop
+pixmapdir = $(datadir)/pixmaps/zapping
+pixmap_DATA = gnome-television.png
+
 pkgdata_DATA = gtk-prop logo.png vt_loading1.jpeg vt_loading2.jpeg \
 atvef_icon.png eacem_icon.png brightness.png contrast.png hue.png \
-saturation.png teletext.png \
-gnome-television.png left.png right.png reveal.png up.png down.png \
+saturation.png teletext.png gnome-television.png \
+left.png right.png reveal.png up.png down.png \
 gnome-digital-camera.png gnome-grecord.png gnome-info.png \
 gnome-media-player.png gnome-monitor.png gnome-oscilloscope.png \
 gnome-session.png gnome-shutdown.png gnome-keyboard.png \
-mute.png reset.png \
+mute.png reset.png recordtb.png screenshot.png \
 rating_tv_ca_en_1.png rating_tv_ca_en_2.png \
 rating_tv_ca_en_3.png rating_tv_ca_en_4.png \
 rating_tv_ca_en_5.png rating_tv_ca_en_6.png \
@@ -32,4 +36,4 @@ rating_tv_us_62.png rating_tv_us_63.png \
 rating_tv_us_64.png rating_tv_us_65.png \
 rating_tv_us_66.png rating_tv_us_67.png
 
-EXTRA_DIST = $(pkgdata_DATA)
+EXTRA_DIST = $(pkgdata_DATA) $(pixmap_DATA)
