@@ -3,12 +3,22 @@
 ## a variety of situations. Running this script will get rid of the
 ## consolehelper mediation and make zapping_setup_fb a suid program.
 #
-ZSFB_DIR=`dirname $(which zapping_setup_fb)`
-ZSFB_PREFIX=`echo $ZSFB_DIR | sed s/\\\\/sbin//g`
-if test x`echo $ZSFB_DIR | grep sbin` = x; then
-    echo "Couldn't find zapping_setup_fb in */sbin, quit."
-    exit
+if test x$1 != x; then
+    if test ! -f $1; then
+	echo "Cannot find $1"
+	exit
+    fi
+    ZSFB_DIR=`dirname $1`
+    ZSFB=$1
+else
+    ZSFB_DIR=`dirname $(which zapping_setup_fb)`
+    if test x`echo $ZSFB_DIR | grep sbin` = x; then
+	echo "Couldn't find zapping_setup_fb in */sbin, quit."
+	exit
+    fi
+    ZSFB=`which zapping_setup_fb`
 fi
+ZSFB_PREFIX=`echo $ZSFB_DIR | sed s/\\\\/sbin//g`
 
 echo "This script will create the SUID ROOT program"
 echo "$ZSFB_PREFIX/bin/zapping_setup_fb, which is needed by Zapping."
@@ -21,8 +31,8 @@ if test ! x$are_u_sure = "xyes"; then
     exit
 fi
 
-echo mv $ZSFB_PREFIX/sbin/zapping_setup_fb $ZSFB_PREFIX/bin/zapping_setup_fb
-mv $ZSFB_PREFIX/sbin/zapping_setup_fb $ZSFB_PREFIX/bin/zapping_setup_fb
+echo mv $ZSFB $ZSFB_PREFIX/bin/zapping_setup_fb
+mv $ZSFB $ZSFB_PREFIX/bin/zapping_setup_fb
 
 echo chown root.root $ZSFB_PREFIX/bin/zapping_setup_fb
 chown root.root $ZSFB_PREFIX/bin/zapping_setup_fb
