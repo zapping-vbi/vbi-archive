@@ -92,7 +92,8 @@ static void convert_init_tables( void )
 */
 void convert_rgb_ycbcr(const unsigned char *_r, const unsigned char *_g,
 		       const unsigned char *_b, int jump, int width,
-		       int height, unsigned char *_y, unsigned char *_cb, unsigned char *_cr)
+		       int height, unsigned char *_y, unsigned char *_cb,
+		       unsigned char *_cr)
 {
 	int x, j;
 	const unsigned char *r = _r, *g = _g, *b = _b;
@@ -190,13 +191,13 @@ void convert_rgb_ycbcr(const unsigned char *_r, const unsigned char *_g,
 /*
   Generic converter from RGB555 to YCbCr420, YCrCb420
 */
-void convert_rgb555_ycbcr(const char *_src, int width, int
-			  height, char *_y, char *_cb,
-			  char *_cr)
+void convert_rgb555_ycbcr(const unsigned char *_src, int width, int
+			  height, unsigned char *_y, unsigned char *_cb,
+			  unsigned char *_cr)
 {
 	int x, j;
 	const short *src = (short*) _src;
-	char *y = _y, *cb = _cb, *cr = _cr;
+	unsigned char *y = _y, *cb = _cb, *cr = _cr;
  
 	CHECK("validate args", src != NULL);
 	CHECK("validate args", y != NULL);
@@ -213,19 +214,19 @@ void convert_rgb555_ycbcr(const char *_src, int width, int
 		for (x=0;x<width; x+= 2)
 		{
 			register int R, G, B;
-			R = ((*src)&31)<<3;
+			B = ((*src)&31)<<3;
 			G = (((*src)&(31<<5)))>>2;
-			B = ((*(src++))&(31<<10))>>7;
+			R = ((*(src++))&(31<<10))>>7;
 			*(y++) = ((conv_ry[R] + conv_gy[G] +
 				   conv_by[B])>>16) + 16;
-			*(cb) = conv_rcb[R] + conv_gcb[G] + conv_gcr[B];
+			*(cb) = conv_rcb[R] + conv_gcb[G] + conv_bcb[B];
 			*(cr) = conv_rcr[R] + conv_gcr[G] + conv_bcr[B];
-			R = ((*src)&31)<<3;
+			B = ((*src)&31)<<3;
 			G = (((*src)&(31<<5)))>>2;
-			B = ((*(src++))&(31<<10))>>7;
+			R = ((*(src++))&(31<<10))>>7;
 			*(y++) = ((conv_ry[R] + conv_gy[G] +
 				   conv_by[B])>>16) + 16;
-			*(cb++) += conv_rcb[R] + conv_gcb[G] + conv_gcr[B];
+			*(cb++) += conv_rcb[R] + conv_gcb[G] + conv_bcb[B];
 			*(cr++) += conv_rcr[R] + conv_gcr[G] + conv_bcr[B];
 		}
 		/* Skip the even line */
@@ -244,20 +245,20 @@ void convert_rgb555_ycbcr(const char *_src, int width, int
 		for (x=0;x<width; x+= 2)
 		{
 			register int R, G, B;
-			R = ((*src)&31)<<3;
+			B = ((*src)&31)<<3;
 			G = (((*src)&(31<<5)))>>2;
-			B = ((*(src++))&(31<<10))>>7;
+			R = ((*(src++))&(31<<10))>>7;
 			*(y++) = ((conv_ry[R] + conv_gy[G] +
 				   conv_by[B])>>16) + 16;
-			*(cb) += conv_rcb[R] + conv_gcb[G] + conv_gcr[B];
+			*(cb) += conv_rcb[R] + conv_gcb[G] + conv_bcb[B];
 			*(cr) += conv_rcr[R] + conv_gcr[G] + conv_bcr[B];
-			R = ((*src)&31)<<3;
+			B = ((*src)&31)<<3;
 			G = (((*src)&(31<<5)))>>2;
-			B = ((*(src++))&(31<<10))>>7;
+			R = ((*(src++))&(31<<10))>>7;
 			*(y++) = ((conv_ry[R] + conv_gy[G] +
 				   conv_by[B])>>16) + 16;
 			*(cb++) = ((*cb + conv_rcb[R] + conv_gcb[G] +
-				    conv_gcr[B]) >> 16) + 128;
+				    conv_bcb[B]) >> 16) + 128;
 			*(cr++) = ((*cb + conv_rcr[R] + conv_gcr[G] +
 				    conv_bcr[B]) >> 16) + 128;
 		}
@@ -270,13 +271,13 @@ void convert_rgb555_ycbcr(const char *_src, int width, int
 /*
   Generic converter from RGB565 to YCbCr420, YCrCb420
 */
-void convert_rgb565_ycbcr(const char *_src, int width, int
-			  height, char *_y, char *_cb,
-			  char *_cr)
+void convert_rgb565_ycbcr(const unsigned char *_src, int width, int
+			  height, unsigned char *_y, unsigned char *_cb,
+			  unsigned char *_cr)
 {
 	int x, j;
 	const short *src = (short*) _src;
-	char *y = _y, *cb = _cb, *cr = _cr;
+	unsigned char *y = _y, *cb = _cb, *cr = _cr;
  
 	CHECK("validate args", src != NULL);
 	CHECK("validate args", y != NULL);
@@ -293,19 +294,19 @@ void convert_rgb565_ycbcr(const char *_src, int width, int
 		for (x=0;x<width; x+= 2)
 		{
 			int R, G, B;
-			R = ((*src)&31)<<3;
+			B = ((*src)&31)<<3;
 			G = (((*src)&(63<<5)))>>3;
-			B = ((*(src++))&(31<<11))>>8;
+			R = ((*(src++))&(31<<11))>>8;
 			*(y++) = ((conv_ry[R] + conv_gy[G] +
 				   conv_by[B])>>16) + 16;
-			*(cb) = conv_rcb[R] + conv_gcb[G] + conv_gcr[B];
+			*(cb) = conv_rcb[R] + conv_gcb[G] + conv_bcb[B];
 			*(cr) = conv_rcr[R] + conv_gcr[G] + conv_bcr[B];
-			R = ((*src)&31)<<3;
+			B = ((*src)&31)<<3;
 			G = (((*src)&(63<<5)))>>3;
-			B = ((*(src++))&(31<<11))>>8;
+			R = ((*(src++))&(31<<11))>>8;
 			*(y++) = ((conv_ry[R] + conv_gy[G] +
 				   conv_by[B])>>16) + 16;
-			*(cb++) += conv_rcb[R] + conv_gcb[G] + conv_gcr[B];
+			*(cb++) += conv_rcb[R] + conv_gcb[G] + conv_bcb[B];
 			*(cr++) += conv_rcr[R] + conv_gcr[G] + conv_bcr[B];
 		}
 		/* Skip the odd line */
@@ -325,20 +326,20 @@ void convert_rgb565_ycbcr(const char *_src, int width, int
 		for (x=0;x<width; x+= 2)
 		{
 			int R, G, B;
-			R = ((*src)&31)<<3;
+			B = ((*src)&31)<<3;
 			G = (((*src)&(63<<5)))>>3;
-			B = ((*(src++))&(31<<11))>>8;
+			R = ((*(src++))&(31<<11))>>8;
 			*(y++) = ((conv_ry[R] + conv_gy[G] +
 				   conv_by[B])>>16) + 16;
-			*(cb) += conv_rcb[R] + conv_gcb[G] + conv_gcr[B];
+			*(cb) += conv_rcb[R] + conv_gcb[G] + conv_bcb[B];
 			*(cr) += conv_rcr[R] + conv_gcr[G] + conv_bcr[B];
-			R = ((*src)&31)<<3;
+			B = ((*src)&31)<<3;
 			G = (((*src)&(63<<5)))>>3;
-			B = ((*(src++))&(31<<11))>>8;
+			R = ((*(src++))&(31<<11))>>8;
 			*(y++) = ((conv_ry[R] + conv_gy[G] +
 				  conv_by[B])>>16) + 16;
 			*(cb++) = ((*cb + conv_rcb[R] + conv_gcb[G] +
-				    conv_gcr[B]) >> 16) + 128;
+				    conv_bcb[B]) >> 16) + 128;
 			*(cr++) = ((*cb + conv_rcr[R] + conv_gcr[G] +
 				    conv_bcr[B]) >> 16) + 128;
 		}

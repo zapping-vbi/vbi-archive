@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.15 2000-08-27 19:53:01 garetxe Exp $ */
+/* $Id: main.c,v 1.16 2000-08-27 21:40:08 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,41 +134,19 @@ void * video_emulation_thread (void * ptr)
 	double timestamp;
 	unsigned char * data;
 	void * video_data;
-#ifdef TESTING_RGBMODE
-	int * factory_data;
-	int colors[3] = {0x00ff0000, 0x0000ff00, 0x000000ff};
-	int bytes;
-	int i, j;
-#endif
 	rte_context * context = (rte_context *)ptr;
-
-#ifdef TESTING_RGBMODE
-	factory_data = malloc(context->width*context->height*4);
-	bytes = context->width*context->height/4;
-	/* Create three strips of pure colour */
-	for (i=0;i<3;i++)
-		for (j=0;j<bytes;j++)
-			factory_data[j+(i*bytes)] = colors[i];
-//	factory_data[0] = 0;
-#endif
 
 	data = rte_push_video_data(context, NULL, 0);
 	for (;data;) {
 		pthread_mutex_lock(&video_device_mutex);
 		video_data = ye_olde_wait_frame(&timestamp, &frame);
 		pthread_mutex_unlock(&video_device_mutex);
-#ifdef TESTING_RGBMODE
-//		video_data = (void*)factory_data;
-#endif
 		memcpy(data, video_data, context->video_bytes);
 		data = rte_push_video_data(context, data, timestamp);
 		ye_olde_frame_done(frame);
 	}
 	fprintf(stderr, "video emulation: %s\n", context->error);
 
-#ifdef TESTING_RGBMODE
-	free(factory_data);
-#endif
 	return NULL;
 }
 
@@ -256,10 +234,6 @@ int emulation_thread_init ( void )
 		format = RTE_YUYV;
 		break;
 	}
-
-#ifdef TESTING_RGBMODE
-	format = TESTING_RGBMODE;
-#endif
 
 	rte_set_video_parameters(context, format, context->width,
 				 context->height, context->video_rate,

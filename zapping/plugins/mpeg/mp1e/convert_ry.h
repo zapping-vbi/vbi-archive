@@ -86,14 +86,14 @@ void convert_rgb_ycbcr(const unsigned char *_r, const unsigned char *_g,
 /*
   Generic converter from RGB555 to YCbCr420, YCrCb420
 */
-void convert_rgb555_ycbcr(const char *_src, int width, int
-			  height, char *_y, char *_cb,
-			  char *_cr);
+void convert_rgb555_ycbcr(const unsigned char *_src, int width, int
+			  height, unsigned char *_y, unsigned char *_cb,
+			  unsigned char *_cr);
 
 /*
   Generic converter from RGB565 to YCbCr420, YCrCb420
 */
-void convert_rgb565_ycbcr(const char *_src, int width, int
-			  height, char *_y, char *_cb,
-			  char *_cr);
+void convert_rgb565_ycbcr(const unsigned char *_src, int width, int
+			  height, unsigned char *_y, unsigned char *_cb,
+			  unsigned char *_cr);
 #endif /* convert_ry.h */
