@@ -426,7 +426,12 @@ on_color_set			(GnomeColorPicker *	colorpicker,
 				 gpointer		user_data)
 {
   struct control *c = user_data;
-  guint color = ((arg1 >> 8) << 16) + ((arg2 >> 8) << 8) + (arg3 >> 8);
+  guint color;
+
+  color  = (arg1 >> 8) << 16;	/* red */
+  color += (arg2 >> 8) << 8;	/* green */
+  color += (arg3 >> 8);		/* blue */
+  /* arg4 alpha ignored */
 
   tveng_set_control (c->ctrl, color, c->info);
 }
@@ -451,7 +456,8 @@ create_color_picker		(struct control_window *cb,
 			     (ctrl->value & 0xff),
 			     0);
 
-  /* TRANSLATORS: In controls box, color picker, name of the property */
+  /* TRANSLATORS: In controls box, color picker control,
+     something like "Adjust Chroma-Key" for overlay. */
   buffer = g_strdup_printf (_("Adjust %s"), ctrl->label);
   gnome_color_picker_set_title (color_picker, buffer);
   g_free (buffer);
@@ -481,6 +487,7 @@ add_controls			(struct control_window *cb,
     }
 
   cb->hbox = gtk_hbox_new (FALSE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (cb->hbox), 6);
   gtk_container_add (GTK_CONTAINER (cb->window), cb->hbox);
 
   /* Update the values of all the controls */
@@ -567,14 +574,14 @@ on_control_window_key_press	(GtkWidget *		widget,
     {
     case GDK_Escape:
       gtk_widget_destroy (widget);
-      return TRUE;
+      return TRUE; /* handled */
 
     case GDK_c:
     case GDK_C:
       if (event->state & GDK_CONTROL_MASK)
 	{
 	  gtk_widget_destroy (widget);
-	  return TRUE;
+	  return TRUE; /* handled */
 	}
 
     default:
@@ -603,7 +610,7 @@ on_control_window_destroy	(GtkWidget *		widget,
   g_free (cb);
 
   /* See below.
-     gtk_widget_set_sensitive (lookup_widget (main_window, "controls"), TRUE);
+     gtk_widget_set_sensitive (lookup_widget (main_window, "toolbar-controls"), TRUE);
   */
 }
 
@@ -626,7 +633,7 @@ create_control_window		(void)
   gtk_widget_show (cb->window);
 
   /* Not good because it may just raise a hidden control window.
-     gtk_widget_set_sensitive (lookup_widget (main_window, "controls"), FALSE);
+     gtk_widget_set_sensitive (lookup_widget (main_window, "toolbar-controls"), FALSE);
    */
 
   ToolBox = cb;
@@ -1063,7 +1070,7 @@ gchar *substitute_keywords	(gchar		*string,
 	 case 5:
 	   buffer = g_strdup_printf("%d", tc->freq);
 	   break;
-#ifdef HAVE_LIBZVBI
+#if 0 /* Temporarily removed. ifdef HAVE_LIBZVBI */
 	 case 6: /* title */
 	   buffer = zvbi_current_title();
 	   break;
@@ -1175,7 +1182,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
 
   if (info->cur_video_input
       && info->cur_video_input->type == TV_VIDEO_LINE_TYPE_TUNER)
-    if (-1 == tveng_tune_input (channel->freq, info))
+    if (!tv_set_tuner_frequency (info, channel->freq * 1000))
       ShowBox(info -> error, GTK_MESSAGE_ERROR);
 
   if (in_global_list)
@@ -1482,7 +1489,7 @@ kp_key_press			(GdkEventKey *		event,
       break;
     }
 
-  return FALSE; /* not for us, pass it on */
+  return FALSE; /* don't know, pass it on */
 }
 
 /*
@@ -1524,7 +1531,7 @@ on_channel_key_press			(GtkWidget *	widget,
 	return TRUE;
       }
 
-  return FALSE; /* not for us, pass it on */
+  return FALSE; /* don't know, pass it on */
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1697,6 +1704,8 @@ video_standard_menu		(source_menu *		sm)
 static void
 on_video_input_activate		(GtkMenuItem *		menu_item,
 				 gpointer		user_data);
+static GtkWidget *
+video_input_menu		(source_menu *		sm);
 
 static void
 select_cur_video_input_item	(GtkMenuShell *		menu_shell,
