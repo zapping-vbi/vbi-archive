@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.22 2001-06-05 17:52:08 mschimek Exp $
+dnl $Id: configure.in,v 1.23 2001-06-29 02:51:00 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(mp1e, 1.9pre2)
@@ -8,6 +8,21 @@ AM_CONFIG_HEADER(config.h)
 AM_PROG_LIBTOOL
 
 test -e site_def.h || echo "/* Site specific definitions */" >site_def.h
+
+dnl No more duplicates in the CVS, make dist will follow these links
+COMMON=../../../../common
+for i in list.h fifo.h fifo.c; do
+	test -e common/$i || {
+		test -d common/$COMMON || {
+			echo "Mp1e needs files from the Zapping CVS tree"
+			echo "<http://zapping.sourceforge.net>,"
+			echo "sorry for the inconvenience."
+			exit 1
+		}
+		echo "creating link for" common/$i
+		ln -s $COMMON/$i common/$i
+	}
+done
 
 dnl Use this in the final release, debugging info until then
 dnl CFLAGS="-Wall -O2 -fomit-frame-pointer"
