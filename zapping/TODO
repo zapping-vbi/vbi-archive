@@ -2,7 +2,6 @@ Outstanding issues for the next release (0.6.0)
 -----------------------------------------------
 	+ Finish parrot buffer for observing parrots.
 	+ Find/draw some icons for the parrot buffer plugin.
-	+ Fix country size field width.
 	+ Reorganize toolbar, etc.
 
 > 0.6.1
@@ -20,7 +19,6 @@ Outstanding issues for the next release (0.6.0)
 	+ --roottv switch (use Z as screensaver)
 	+ Save control values and restore on startup (per channel).
 	+ Save screenshots at arbitrary sizes.
-	+ Create screenshots/mpeg/ttx dirs if not existent at write time.
 	+ In ttx search it will be more newbie friendly to make
 	  regexp optional. In progress window emphasis jumps between
 	  Cancel and Prev, should be Cancel and Next. Is Cancel correct

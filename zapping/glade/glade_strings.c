@@ -279,7 +279,6 @@ gchar *s = N_("Add the current page to the bookmarks");
 gchar *s = N_("_Add current page...");
 gchar *s = N_("Use this dialog to delete any bookmarks you wish to remove");
 gchar *s = N_("_Edit Bookmarks...");
-gchar *s = N_("Foo");
 gchar *s = N_("_Colors");
 gchar *s = N_("Edit Bookmarks");
 gchar *s = N_("Page");

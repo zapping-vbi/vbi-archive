@@ -585,48 +585,34 @@ start_saving_screenshot (gpointer data_to_save,
 			 struct tveng_frame_format * format)
 {
   struct screenshot_data * data = (struct screenshot_data*)
-    malloc(sizeof(struct screenshot_data));
+    g_malloc0(sizeof(struct screenshot_data));
 
   GtkWidget * vbox;
   GtkWidget * label;
   GtkWidget * progressbar;
   uint8_t *y, *u, *v, *t;
+  gchar *b;
 
   gchar * window_title;
   gchar * buffer = NULL;
   gint image_index = 1; /* Start by save_dir/shot1.jpeg */
 
-  if (!data)
+  if (!z_build_path(save_dir, &b))
     {
-      /* Probably there is no mem even for this, but try anyway */
-      g_warning(_("Sorry, not enough mem"));
+      ShowBox(_("Cannot create destination dir for screenshots:\n%s\n%s"),
+	      GNOME_MESSAGE_BOX_WARNING, save_dir, b);
+      g_free(b);
       return;
     }
-
-  memset(data, 0, sizeof(struct screenshot_data));
 
   if (format->pixformat == TVENG_PIX_YVU420 ||
       format->pixformat == TVENG_PIX_YUV420)
-    data -> data = malloc(format->width * format->height *
-			  ((x11_get_bpp()+7)>>3));
+    data -> data = g_malloc(format->width * format->height *
+			    ((x11_get_bpp()+7)>>3));
   else
-    data -> data = malloc(format->bytesperline * format->height);
+    data -> data = g_malloc(format->bytesperline * format->height);
 
-  if (!data->data)
-    {
-      g_free(data);
-      g_warning(_("Sorry, not enough mem"));
-      return;
-    }
-
-  data->line_data = malloc(format->width*3);
-  if (!data->line_data)
-    {
-      g_free(data->data);
-      g_free(data);
-      g_warning(_("Sorry, not enough mem"));
-      return;
-    }
+  data->line_data = g_malloc(format->width*3);
 
   if (format->pixformat == TVENG_PIX_YVU420 ||
       format->pixformat == TVENG_PIX_YUV420)
@@ -690,9 +676,9 @@ start_saving_screenshot (gpointer data_to_save,
 
       g_free(buffer);
       g_free(window_title);
-      free(data->line_data);
-      free(data->data);
-      free(data);
+      g_free(data->line_data);
+      g_free(data->data);
+      g_free(data);
 
       return;
     }  
@@ -729,9 +715,9 @@ start_saving_screenshot (gpointer data_to_save,
 
       g_free(buffer);
       fclose(data->handle);
-      free(data->line_data);
-      free(data->data);
-      free(data);
+      g_free(data->line_data);
+      g_free(data->data);
+      g_free(data);
       
       return;
     }
@@ -901,9 +887,9 @@ static gboolean thread_manager (struct screenshot_data * data)
       if (data->window)
 	gtk_widget_destroy(data->window);
       pthread_join(data->thread, &result);
-      free(data -> data);
-      free(data -> line_data);
-      free(data);
+      g_free(data -> data);
+      g_free(data -> line_data);
+      g_free(data);
       num_threads--;
       return FALSE; /* Remove the timeout */
     }

@@ -22,6 +22,10 @@
 
 #include <gdk/gdkx.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zmisc.h"
 #include "zconf.h"
@@ -629,4 +633,54 @@ void z_status_set_widget(GtkWidget * widget)
   gtk_object_set_data(GTK_OBJECT(appbar2), "old_widget", widget);
 
   gtk_widget_show(appbar2);
+}
+
+gboolean
+z_build_path(const gchar *path, gchar **error_description)
+{
+  struct stat sb;
+  gchar *b;
+  gint i;
+
+  if (!path || *path != '/')
+    {
+      if (error_description)
+	*error_description =
+	  g_strdup(_("The path must start with /"));
+      return FALSE;
+    }
+    
+  for (i=1; path[i]; i++)
+    if (path[i] == '/' || !path[i+1])
+      {
+	b = g_strndup(path, i+1);
+
+	if (stat(b, &sb) < 0)
+	  {
+	    if (mkdir(b, S_IRUSR | S_IWUSR | S_IXUSR) < 0)
+	      {
+		if (error_description)
+		  *error_description =
+		    g_strdup_printf(_("Cannot create %s: %s"), b,
+				    strerror(errno));
+		g_free(b);
+		return FALSE;
+	      }
+	    else
+	      g_assert(stat(b, &sb) >= 0);
+	  }
+
+	if (!S_ISDIR(sb.st_mode))
+	  {
+	    if (error_description)
+	      *error_description =
+		g_strdup_printf(_("%s is not a directory"), b);
+	    g_free(b);
+	    return FALSE;
+	  }
+
+	g_free(b);
+      }
+
+  return TRUE;
 }

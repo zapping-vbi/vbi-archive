@@ -1,3 +1,9 @@
+9.08.2001	z_build_path <garetxe@users.sf.net>
+
+	* zmisc.c: Added z_build_path.
+	* screenshot, mpeg, ttxview: Use it.
+	* mpeg: mv plugin.c mpeg.c
+
 9.08.2001	<mschimek@users.sf.net>
 
 	* zvbi.c: Displays the received station name in the titlebar if

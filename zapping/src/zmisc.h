@@ -293,4 +293,14 @@ z_pixbuf_scale_simple		(GdkPixbuf	*source,
   return gdk_pixbuf_scale_simple(source, destw, desth, interp);
 }
 
+/**
+ * Builds the given path if it doesn't exist and checks that it's a
+ * valid dir.
+ * On error returns FALSE and fills in error_description with a newly
+ * allocated string if it isn't NULL.
+ * Upon success, TRUE is returned and error_description is untouched.
+ */
+gboolean
+z_build_path(const gchar *path, gchar **error_description);
+
 #endif /* ZMISC.H */

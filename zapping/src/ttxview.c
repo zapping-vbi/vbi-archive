@@ -2059,6 +2059,7 @@ void export_ttx_page			(GtkWidget	*widget,
   gchar *buffer, *buffer2;
   char *filename;
   char *errstr;
+  gchar *b;
   GtkWidget * dialog;
 
   buffer = zcg_char(NULL, "exportdir");
@@ -2102,6 +2103,15 @@ void export_ttx_page			(GtkWidget	*widget,
 	buffer2 = g_strdup(buffer);
       g_free(buffer);
       zcs_char(buffer2, "exportdir");
+      if (!z_build_path(buffer2, &b))
+	{
+	  ShowBox(_("Cannot create destination dir for Zapzilla "
+		    "exports:\n%s\n%s"),
+		  GNOME_MESSAGE_BOX_WARNING, buffer2, b);
+	  g_free(b);
+	  g_free(buffer2);
+	  return;
+	}
       buffer = g_strconcat(buffer2, filename, NULL);
       g_free(buffer2);
 

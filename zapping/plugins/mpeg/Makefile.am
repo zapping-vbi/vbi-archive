@@ -6,7 +6,7 @@ plugin_LTLIBRARIES = libmpeg.zapping.la
 
 EXTRA_DIST = mpeg_properties.glade mpeg_strings.c
 
-libmpeg_zapping_la_SOURCES = plugin.c
+libmpeg_zapping_la_SOURCES = mpeg.c
 libmpeg_zapping_la_LIBADD = $(RTE_LIB)
 
 pkgdata_DATA = mpeg_properties.glade
