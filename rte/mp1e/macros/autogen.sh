@@ -84,9 +84,6 @@ esac
 coin="./configure.in"
 
   dr=`dirname $coin`
-  if test -f $dr/NO-AUTO-GEN; then
-    echo skipping $dr -- flagged as no auto-gen
-  else
     echo processing $dr
     macrodirs=`sed -n -e 's,AM_ACLOCAL_INCLUDE(\(.*\)),\1,gp' < $coin`
     ( cd $dr
@@ -133,7 +130,6 @@ coin="./configure.in"
       echo "Running autoconf ..."
       autoconf
     )
-  fi
 
 conf_flags="--enable-maintainer-mode --enable-compile-warnings" #--enable-iso-c
 

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.3 2001-12-15 20:56:43 garetxe Exp $
+ * $Id: rtepriv.h,v 1.4 2001-12-16 10:35:48 garetxe Exp $
  * Private stuff in the context.
  */
 
@@ -29,6 +29,7 @@
 #include <pthread.h>
 #include <stdarg.h>
 #include <assert.h>
+#include "../common/fifo.h"
 
 /*
   Private things we don't want people to see, we can play with this
@@ -72,7 +73,11 @@ struct _rte_codec_class {
 	int			(* option_set)(rte_codec *, const char *, va_list);
 	char *			(* option_print)(rte_codec *, const char *, va_list);
 
-	rte_bool		(* parameters)(rte_codec *, rte_stream_parameters *);
+	rte_bool		(* set_parameters)(rte_codec *, rte_stream_parameters *);
+	rte_bool		(* get_parameters)(rte_codec *, rte_stream_parameters *);
+
+	rte_bool		(* init)(rte_codec *);
+	rte_bool		(* uninit)(rte_codec *);
 
 	rte_status_info *	(* status_enum)(rte_codec *, int);
 
@@ -110,6 +115,9 @@ struct _rte_codec {
 		} cd;
 	} input;
 
+	/* class->init must build this, class->uninit destroys */
+	fifo			f;
+
 	/* FIXME: this ought to be codec private */
 	int			stream;		/* multiplexer substream */
 
@@ -142,6 +150,11 @@ struct _rte_context_class {
 	char *			(* option_print)(rte_context *, const char *, va_list);
 
 	rte_status_info *	(* status_enum)(rte_context *, int);
+
+	rte_bool		(* start)(rte_context *);
+	void			(* stop)(rte_context *);
+	void			(* pause)(rte_context *);
+	rte_bool		(* resume)(rte_context *);
 };
 
 struct _rte_context {
@@ -197,7 +210,7 @@ typedef struct {
 #define RC(X) ((rte_context*)X)
 
 #define rte_error(context, format, args...) \
-{ \
+do { \
 	if (context) { \
 		if (!RC(context)->error) \
 			RC(context)->error = malloc(256); \
@@ -209,7 +222,7 @@ typedef struct {
 	else \
 		fprintf(stderr, "rte:%s:%s(%d): " format ".\n", \
 			__FILE__, __PRETTY_FUNCTION__, __LINE__ ,##args); \
-}
+} while(0)
 
 #define nullcheck(X, whattodo)						\
 do {									\

@@ -118,10 +118,10 @@ rte_context_delete(rte_context *context)
 {
 	nullcheck(context, return);
 
-/* FIXME:
 	if (context->status == RTE_STATUS_RUNNING)
 		rte_stop(context);
-*/
+	else if (context->status == RTE_STATUS_PAUSED)
+		/* FIXME */;
 
 	if (context->error) {
 		free(context->error);
@@ -221,11 +221,21 @@ rte_bool
 rte_codec_set_parameters(rte_codec *codec, rte_stream_parameters *rsp)
 {
 	nullcheck(codec, return FALSE);
+	nullcheck(rsp, return FALSE);
+	nullcheck(dc->set_parameters, return FALSE);
 
-	if (!dc->parameters)
-		return 0;
+	return dc->set_parameters(codec, rsp);
+}
 
-	return dc->parameters(codec, rsp);
+void
+rte_codec_get_parameters(rte_codec *codec, rte_stream_parameters *rsp)
+{
+	nullcheck(codec, return);
+	nullcheck(rsp, return);
+	nullcheck(dc->get_parameters, return);
+
+	dc->get_parameters(codec, rsp);
+
 }
 
 void
@@ -580,7 +590,7 @@ rte_start(rte_context *context)
 
 	/* FIXME: to do */
 
-	result = xc->start();
+	result = xc->start(context);
 
 	if (result)
 		context->status = RTE_STATUS_RUNNING;
@@ -631,4 +641,6 @@ rte_resume(rte_context *context)
 	/* FIXME: to do */
 
 	context->status = RTE_STATUS_RUNNING;
+
+	return TRUE;
 }

@@ -267,6 +267,9 @@ rte_codec_get_user_data(rte_codec *codec);
  * Upon return, the fields might be overwritten to reflect the nearest
  * possible match. For example, the width and height might be rounded
  * to 16-multiplus.
+ * The idea is that the app should negotiate the data format with rte,
+ * so calling rte_codec_set_parameters() a couple of times might be
+ * necessary.
  *
  * Typical usage would be:
  * <programlisting>
@@ -283,6 +286,17 @@ rte_codec_get_user_data(rte_codec *codec);
  **/
 rte_bool
 rte_codec_set_parameters(rte_codec *codec, rte_stream_parameters *params);
+
+/**
+ * rte_codec_get_parameters:
+ * @codec: Pointer to a rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set()
+ * @params: Parameters needed for describing the data source.
+ *
+ * Query the current codec parameters.
+ **/
+void
+rte_codec_get_parameters(rte_codec *codec, rte_stream_parameters *params);
 
 /**
  * rte_set_input_callback_buffered:

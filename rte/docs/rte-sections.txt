@@ -21,6 +21,7 @@ rte_codec_get
 rte_codec_set_user_data
 rte_codec_get_user_data
 rte_codec_set_parameters
+rte_codec_get_parameters
 </SECTION>
 
 <SECTION>

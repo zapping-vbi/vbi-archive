@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.9 2001-12-09 22:10:51 garetxe Exp $
+dnl $Id: configure.in,v 1.10 2001-12-16 10:35:48 garetxe Exp $
 
 AC_INIT(configure.in)
 RTE_VERSION_MAJOR=0
@@ -35,6 +35,26 @@ test -e site_def.h || cat <<EOF >site_def.h
 #endif /* SITE_DEF_H */
 EOF
 
+create_links () {
+	for i in $3; do
+		test -e $2/$i || {
+			test -f $1/$i || {
+				echo "RTE needs files from the Zapping CVS tree at" $1
+				echo "which is available from http://zapping.sf.net."
+				echo "Sorry for the inconvenience."
+				echo "$1/$i"
+				exit 1
+			}
+			echo "creating link for" $2/$i
+			dnl absolute path because make dist moves the tree
+			ln -s `cd $1; pwd; cd - >/dev/null`/$i $2/$i || exit 1
+		}
+	done
+}
+
+create_links ../zapping/common common \
+"alloc.c alloc.h fifo.c fifo.h list.h math.h threads.h types.h errstr.c errstr.h"
+
 AC_CHECK_HEADER(linux/soundcard.h,AC_DEFINE(OSS, 1,
 					    [Define if you have linux/soundcard.h]))
 
@@ -68,6 +88,7 @@ AC_CHECK_FUNCS(program_invocation_name)
 
 AC_OUTPUT([
 Makefile
+common/Makefile
 docs/Makefile
 src/Makefile
 src/rte-version.h
