@@ -2,7 +2,8 @@
  *  Real Time Encoder lib
  *  ffmpeg backend
  *
- *  Copyright (C) 2001 Iñaki García Etxebarria
+ *  Copyright (C) 2000, 2001 Iñaki García Etxebarria
+ *  Copyright (C) 2000, 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,483 +20,947 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.4 2002-02-25 06:22:19 mschimek Exp $ */
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <errno.h>
+/* $Id: b_ffmpeg.c,v 1.5 2002-06-12 04:08:47 mschimek Exp $ */
 
-#if 0
+#include "b_ffmpeg.h"
 
-#include "../mp1e/common/fifo.h"
-#include "libav/avformat.h"
+/*
+ *  This is just an early prototype, lots of things to do.
+ *
+ *  + options
+ *  + video codecs
+ *  + a+v formats
+ *  + status
+ *  + errors
+ *  + sync
+ *  + need a solution to external libs ffmpeg can use (lame, ogg)
+ */
 
-#include "rtepriv.h"
+/* Dummies */
 
-typedef struct {
-	rte_context_private	priv;
+/* libav/util.c */
+URLProtocol udp_protocol;
+URLProtocol http_protocol;
 
-	AVFormatContext		oc;
 
-	pthread_t		enc;
+static void
+status(rte_context *context, rte_codec *codec,
+       rte_status *status, int size)
+{
+	status->valid = 0;
+}
 
-	unsigned char		output_buffer[32768];
-} backend_private;
+/* Start / Stop */
+
+/* forward */ static void reset_input(ffmpeg_codec *);
+/* forward */ static void reset_output(ffmpeg_context *);
+
+static void
+do_write(void *opaque, UINT8 *buf, int buf_size)
+{
+	ffmpeg_context *fx = opaque;
+	rte_buffer wb;
+
+	wb.data = buf;
+	wb.size = buf_size;
+
+	if (!fx->write_cb(&fx->context, NULL, &wb)) {
+		/* XXX what now? */
+	}
+}
 
 static int
-init_backend			(void)
+do_seek(void *opaque, offset_t offset, int whence)
 {
-	register_all();
+	ffmpeg_context *fx = opaque;
 
-	return 1;
+	/* XXX error */
+	fx->seek_cb(&fx->context, offset, whence);
+
+	return 0; // XXX
 }
+
+#define MAX_AUDIO_PACKET_SIZE 16384
 
 static void
-context_new			(rte_context	*context)
+do_audio_out(ffmpeg_context *fx, ffmpeg_codec *fd,
+	     unsigned char *buf, int size)
 {
-	/* default format */
-	context->format = strdup("mpeg1");
+    UINT8 *buftmp;
+    UINT8 audio_buf[2*MAX_AUDIO_PACKET_SIZE]; /* XXX: allocate it */
+    UINT8 audio_out[MAX_AUDIO_PACKET_SIZE]; /* XXX: allocate it */
+    int size_out, frame_bytes, ret;
+    AVCodecContext *enc;
+
+    enc = &fd->str.codec;
+
+    buftmp = buf;
+    size_out = size;
+
+    /* now encode as many frames as possible */
+    if (enc->frame_size > 1) {
+	assert(0);
+    } else {
+        /* output a pcm frame */
+        /* XXX: change encoding codec API to avoid this ? */
+        switch(enc->codec->id) {
+        case CODEC_ID_PCM_S16LE:
+        case CODEC_ID_PCM_S16BE:
+        case CODEC_ID_PCM_U16LE:
+        case CODEC_ID_PCM_U16BE:
+            break;
+        default:
+            size_out = size_out >> 1;
+            break;
+        }
+        ret = avcodec_encode_audio(enc, audio_out, size_out, (short *)buftmp);
+	fx->av.format->write_packet(&fx->av, /* index */ 0, audio_out, ret, 0);
+    }
 }
 
-static void
-context_destroy			(rte_context	*context)
+static void *
+mainloop(void *p)
 {
-	free(context->format);
-}
+	ffmpeg_context *fx = p;
+	ffmpeg_context_class *fxc = FXC(fx->context.class);
+	ffmpeg_codec *fd;
+	ffmpeg_codec_class *fdc;
+	rte_codec *codec;
+	int i;
 
-static void*
-enc_thread			(void		*opaque)
-{
-	rte_context *context = opaque;
-	backend_private *priv = (backend_private*)context->private;
-	buffer *b;
-	AVFormatContext *s = &priv->oc;
-	int ret, pixels, i;
-	UINT8 audio_buffer[4096];
-	UINT8 video_buffer[100000];
-	AVPicture picture;
-	AVPacket pkt;
-	consumer aud, vid;
+	memset(&fx->av, 0, sizeof(fx->av));
 
-	if (context->mode & RTE_AUDIO)
-		assert(add_consumer(&context->private->aud, &aud));
-	if (context->mode & RTE_VIDEO)
-		assert(add_consumer(&context->private->vid, &vid));
+	init_put_byte(&fx->av.pb, fx->buf,
+		      sizeof(fx->buf), /* write_flag */ TRUE,
+		      fx, NULL, do_write, do_seek);
 
-	s->format->write_header(s);
+	fx->av.format = fxc->av;
 
-	while (1)
-		for (i=0; i<s->nb_streams; i++)
-		{
-			AVCodecContext *enc = &s->streams[i]->codec;
-			if (enc->codec_type == CODEC_TYPE_AUDIO)
-			{
-				assert(context->mode & RTE_AUDIO);
-				b = wait_full_buffer(&aud);
-				if (b->rte_flags & BLANK_BUFFER)
-				{
-					send_empty_buffer(&aud, b);
-					goto done;
-				}
-				ret = avcodec_encode_audio(enc,
-						   audio_buffer,
-						   sizeof(audio_buffer),
-						   (short*)b->data);
-				pkt.stream_index = i;
-				pkt.data = audio_buffer;
-				pkt.size = ret;
-				av_write_packet(s, &pkt);
-				send_empty_buffer(&aud, b);
-			}
-			else if (enc->codec_type == CODEC_TYPE_VIDEO)
-			{
-				assert(context->mode & RTE_VIDEO);
-				b = wait_full_buffer(&vid);
-				if (b->rte_flags & BLANK_BUFFER)
-				{
-					send_empty_buffer(&vid, b);
-					goto done;
-				}
-				picture.data[0] = b->data;
-				picture.linesize[0] = context->width;
-				picture.linesize[1] =
-					picture.linesize[2] = context->width/2;
-				pixels = context->width * context->height;
-				switch (context->video_format)
-				{
-				case RTE_YUV420:
-					picture.data[1] =
-						picture.data[0] +
-						pixels;
-					picture.data[2] =
-						picture.data[1] +
-						pixels/4;
-					break;
-				case RTE_YVU420:
-					picture.data[2] =
-						picture.data[0] +
-						pixels;
-					picture.data[1] =
-						picture.data[2] +
-						pixels/4;
-					break;
-				default:
-					assert(0);
-					break;
-				}
-				
-				ret = avcodec_encode_video(enc,
-						     video_buffer,
-						     sizeof(video_buffer),
-						     &picture);
-				pkt.stream_index = i;
-				pkt.data = video_buffer;
-				pkt.size = ret;
-				av_write_packet(s, &pkt);
-				send_empty_buffer(&vid, b);
+	for (codec = fx->codecs, i = 0; codec; codec = codec->next, i++) {
+		fd = FD(codec);
+		fdc = FDC(fd->codec.class);
+
+		fx->av.streams[i] = &fd->str;
+
+		fd->pts = 0;
+		fd->eof = 0;
+		fd->pts_increment = 0;
+		fd->frame_number = 0;
+		fd->sample_index = 0;
+
+		fd->str.codec.codec_id = fdc->av->id;
+
+		switch (fdc->rte.public.stream_type) {
+		case RTE_STREAM_AUDIO:
+			fd->str.codec.codec_type = CODEC_TYPE_AUDIO;
+			ticker_init(&fd->pts_ticker,
+				    (INT64) fd->str.codec.sample_rate,
+				    (INT64) (1000000));
+			break;
+
+		case RTE_STREAM_VIDEO:
+			fd->str.codec.codec_type = CODEC_TYPE_VIDEO;
+			ticker_init(&fd->pts_ticker,
+				    (INT64) fd->str.codec.frame_rate,
+				    ((INT64) 1000000 * FRAME_RATE_BASE));
+			break;
+
+		default:
+			assert(!"reached");
+		}
+	}
+
+	/* Header */
+
+        if (fxc->av->write_header(&fx->av) < 0) {
+#warning TODO
+		/* "Could not write header for output file "
+		   "#%d (incorrect codec paramters ?)\n" */
+		exit(0);
+        }
+
+	/* Body */
+
+	for (;;) {
+		rte_buffer rb;
+		ffmpeg_codec *min_fd = NULL;
+		int64_t min_pts = INT64_MAX;
+
+		pthread_mutex_lock(&fx->context.mutex);
+
+		/* find input stream with lowest PTS */
+
+		for (codec = fx->codecs; codec; codec = codec->next) {
+			fd = FD(codec);
+
+			if (fd->pts < min_pts && !fd->eof) {
+				min_pts = fd->pts;
+				min_fd = fd;
 			}
 		}
 
- done:
-	for (i=0; i<s->nb_streams; i++)
-		avcodec_close(&s->streams[i]->codec);
+		if (!(fd = min_fd))
+			break; /* all elementary streams done */
 
-	s->format->write_trailer(s);
+		if (min_pts >= fx->stop_pts) {
+			fd->eof = TRUE;
+			pthread_mutex_unlock(&fx->context.mutex);
+			continue;
+		}
 
-	if (context->mode & RTE_AUDIO)
-		rem_consumer(&aud);
-	if (context->mode & RTE_VIDEO)
-		rem_consumer(&vid);
+		fdc = FDC(fd->codec.class);
 
-	/* FIXME: look for possible mem leaks in allocated structs */
+		/* fetch data */
+
+		rb.data = NULL;
+		rb.size = 0;
+
+		if (fd->read_cb(fd->codec.context, &fd->codec, &rb)) {
+			assert(rb.data != NULL && rb.size > 0);
+		} else {
+			fd->eof = TRUE;
+			pthread_mutex_unlock(&fx->context.mutex);
+			continue;
+		}
+
+		/* increment PTS */
+
+		switch (fdc->rte.public.stream_type) {
+		case RTE_STREAM_AUDIO:
+			fd->pts = ticker_tick(&fd->pts_ticker, fd->sample_index);
+			fd->sample_index += rb.size / (2 * fd->str.codec.channels);
+			fd->pts_increment = (INT64) (rb.size / (2 * fd->str.codec.channels))
+				* 1000000 / fd->str.codec.sample_rate;
+			break;
+
+		case RTE_STREAM_VIDEO:
+			fd->frame_number++;
+			fd->pts = ticker_tick(&fd->pts_ticker, fd->frame_number);
+			fd->pts_increment = ((INT64) 1000000 * FRAME_RATE_BASE)
+				/ fd->str.codec.frame_rate;
+			break;
+
+		default:
+			assert(!"reached");
+		}
+
+		pthread_mutex_unlock(&fx->context.mutex);
+
+		/* encode packet */
+
+		switch (fdc->rte.public.stream_type) {
+		case RTE_STREAM_AUDIO:
+			do_audio_out(fx, fd, rb.data, rb.size);
+			break;
+
+		case RTE_STREAM_VIDEO:
+			/* do_video_out(os, ost, ist, &picture, &frame_size); */
+			break;
+
+		default:
+			assert(!"reached");
+		}
+	}
+
+	pthread_mutex_unlock(&fx->context.mutex);
+
+	/* Trailer */
+
+        fxc->av->write_trailer(&fx->av);
+
+	/* EOF */
+
+	fx->write_cb(&fx->context, NULL, NULL);
 
 	return NULL;
 }
 
-static int
-init_context			(rte_context	*context)
+static rte_bool
+stop(rte_context *context, double timestamp)
 {
-	AVStream *st;
-	backend_private *priv = (backend_private*)context->private;
-	AVFormatContext *oc = &priv->oc;
-	AVCodec *codec;
-	int use_video, use_audio, nb_streams, i;
-	char *file_format, buffer[256];
+	ffmpeg_context *fx = FX(context);
+	ffmpeg_context_class *fxc = FXC(fx->context.class);
+	ffmpeg_codec *fd, *max_fd = NULL;
+	int64_t max_pts = 0;
+	rte_codec *codec;
 
-	if (!context->format)
-	{
-		rte_error(context, "format == NULL !!!");
-		return 0;
+	if (context->state != RTE_STATE_RUNNING) {
+		rte_error_printf(&fx->context, "Context %s not running.",
+				 fxc->rte.public.keyword);
+		return FALSE;
 	}
 
-	memset(oc, 0, sizeof(*oc));
+	pthread_mutex_lock(&fx->context.mutex);
 
-	file_format = context->format;
+	/* find input stream with highest PTS */
 
-#if 0 /* fixme: test with 0.4.5cvs */
-	/* ffmpeg segfaults when the format mux mode doesn't match
-	   exactly the requested mux mode, adapt when it's possible */
-	if (!strcmp(file_format, "mpeg1"))
-	{
-		if (!(context->mode & RTE_AUDIO))
-			file_format = "mpeg1video";
-		if (!(context->mode & RTE_VIDEO))
-			file_format = "mp2";
-	}
-	if (!strcmp(file_format, "rm"))
-	{
-		/* Video only unsupported by rm */
-		if (!(context->mode & RTE_AUDIO))
-		{
-			rte_error(context, "rm format doesn't support "
-				  "video only.");
-			return 0;
+	for (codec = fx->codecs; codec; codec = codec->next) {
+		fd = FD(codec);
+
+		if (fd->pts > max_pts && !fd->eof) {
+			max_pts = fd->pts;
+			max_fd = fd;
 		}
-		if (!(context->mode & RTE_VIDEO))
-			file_format = "ra";
 	}
-	if (!strcmp(file_format, "asf"))
-	{
-		/* Video only unsupported by asf (would be divx) */
-		if (!(context->mode & RTE_AUDIO))
-		{
-			rte_error(context, "asf format doesn't support "
-				  "video only.");
-			return 0;
+
+	if (max_fd) {
+		fx->stop_pts = max_pts;
+	} /* else done already */
+
+	pthread_mutex_unlock(&fx->context.mutex);
+
+	// XXX timeout && force
+	pthread_join(fx->thread_id, NULL);
+
+	for (codec = fx->codecs; codec; codec = codec->next) {
+		static rte_bool parameters_set(rte_codec *, rte_stream_parameters *);
+		ffmpeg_codec *fd = FD(codec);
+
+		fd->codec.state = RTE_STATE_READY;
+
+		/* Destroy input, reset codec, -> RTE_STATE_PARAM */
+
+		reset_input(fd);
+
+		parameters_set(&fd->codec, &fd->codec.params);
+	}
+
+	reset_output(fx);
+
+	fx->context.state = RTE_STATE_NEW;
+
+	return TRUE;
+}
+
+static rte_bool
+start(rte_context *context, double timestamp,
+      rte_codec *time_ref, rte_bool async)
+{
+	ffmpeg_context *fx = FX(context);
+	ffmpeg_context_class *fxc = FXC(fx->context.class);
+	rte_codec *codec;
+	int error;
+
+	switch (fx->context.state) {
+	case RTE_STATE_READY:
+		break;
+
+	case RTE_STATE_RUNNING:
+		rte_error_printf(&fx->context, "Context %s already running.",
+				 fxc->rte.public.keyword);
+		return FALSE;
+
+	default:
+		rte_error_printf(&fx->context, "Cannot start context %s, initialization unfinished.",
+				 fxc->rte.public.keyword);
+		return FALSE;
+	}
+
+	for (codec = fx->codecs; codec; codec = codec->next)
+		if (codec->state != RTE_STATE_READY) {
+			rte_error_printf(&fx->context, "Cannot start context %s, initialization "
+					 "of codec %s unfinished.",
+					 fxc->rte.public.keyword, codec->class->public.keyword);
+			return FALSE;
 		}
-		if (!(context->mode & RTE_VIDEO))
-			file_format = "mp2";
+
+	fx->context.state = RTE_STATE_RUNNING;
+
+	for (codec = fx->codecs; codec; codec = codec->next)
+		codec->state = RTE_STATE_RUNNING;
+
+	fx->stop_pts = INT64_MAX;
+
+	error = pthread_create(&fx->thread_id, NULL, mainloop, fx);
+
+	if (error != 0) {
+		for (codec = fx->codecs; codec; codec = codec->next)
+			codec->state = RTE_STATE_READY;
+
+		fx->context.state = RTE_STATE_READY;
+
+		rte_error_printf(&fx->context, _("Insufficient resources to start "
+						 "video encoding thread.\n"));
+		return FALSE;
 	}
-	if (!strcmp(file_format, "avi"))
-	{
-		/* Video only unsupported by avi (would be divx) */
-		if (!(context->mode & RTE_AUDIO))
-		{
-			rte_error(context, "avi format doesn't support "
-				  "video only.");
-			return 0;
+
+        return TRUE;
+}
+
+/* Input / Output */
+
+static void
+reset_output(ffmpeg_context *fx)
+{
+	fx->context.state = RTE_STATE_NEW;
+}
+
+static rte_bool
+set_output(rte_context *context,
+           rte_buffer_callback write_cb, rte_seek_callback seek_cb)
+{
+	ffmpeg_context *fx = FX(context);
+	ffmpeg_context_class *fxc = FXC(fx->context.class);
+	int i;
+
+	switch (fx->context.state) {
+	case RTE_STATE_NEW:
+		break;
+
+	case RTE_STATE_READY:
+		reset_output(fx);
+		break;
+
+	default:
+		rte_error_printf(&fx->context, "Cannot change %s output, context is busy.",
+				 fxc->rte.public.keyword);
+		break;
+	}
+
+	if (!fx->codecs) {
+		rte_error_printf(context, "No codec allocated for context %s.",
+				 fxc->rte.public.keyword);
+		return FALSE;
+	}
+
+	for (i = 0; i <= RTE_STREAM_MAX; i++) {
+		rte_codec *codec;
+		int count = 0;
+
+		for (codec = fx->codecs; codec; codec = codec->next) {
+			rte_codec_class *dc = codec->class;
+
+			if (dc->public.stream_type != i)
+				continue;
+
+			if (codec->state != RTE_STATE_READY) {
+				rte_error_printf(&fx->context, "Codec %s, elementary stream #%d, "
+						 "initialization unfinished.",
+						 dc->public.keyword, codec->stream_index);
+				return FALSE;
+			}
+
+			count++;
 		}
-		if (!(context->mode & RTE_VIDEO))
-			file_format = "mp2";
-	}
-	if (!strcmp(file_format, "swf"))
-	{
-		/* Video only unsupported by swf (would be mjpeg) */
-		if (!(context->mode & RTE_AUDIO))
-		{
-			rte_error(context, "swf format doesn't support "
-				  "video only.");
-			return 0;
+
+		if (count < fxc->rte.public.min_elementary[i]) {
+			rte_error_printf(&fx->context, "Not enough elementary streams of rte stream type %d "
+					 "for context %s. %d required, %d allocated.",
+					 fxc->rte.public.keyword,
+					 fxc->rte.public.min_elementary[i], count);
+			return FALSE;
 		}
-		if (!(context->mode & RTE_VIDEO))
-			file_format = "mp2";
-	}
-#endif
-
-	/* FIXME: Can also match based on mime type, we should add
-	   this to rte */
-	oc->format = guess_format(file_format, context->file_name, NULL);
-
-	if (!oc->format)
-	{
-		rte_error(context, "format \"%s\" not found",
-			  file_format);
-		return 0;
 	}
 
-	if (context->video_format != RTE_YUV420 &&
-	    context->video_format != RTE_YVU420)
-	{
-		rte_error(context, "ffmpeg backend only supports"
-			  " YUV420 and YVU420 pixformats");
-		return 0;
+	fx->write_cb = write_cb;
+	fx->seek_cb = seek_cb;
+
+	fx->context.state = RTE_STATE_READY;
+
+	return TRUE;
+}
+
+static void
+reset_input(ffmpeg_codec *fd)
+{
+	fd->codec.state = RTE_STATE_PARAM;
+}
+
+static rte_bool
+set_input(rte_codec *codec, rte_io_method input_method,
+          rte_buffer_callback read_cb, rte_buffer_callback unref_cb, int *queue_length)
+{
+	ffmpeg_codec *fd = FD(codec);
+	ffmpeg_codec_class *fdc = FDC(fd->codec.class);
+	rte_context *context = fd->codec.context;
+
+	switch (fd->codec.state) {
+	case RTE_STATE_NEW:
+		rte_error_printf(context, "Attempt to select input method with "
+					  "uninitialized sample parameters.");
+		return FALSE;
+
+	case RTE_STATE_PARAM:
+		break;
+
+	case RTE_STATE_READY:
+		reset_input(fd);
+		break;
+
+	default:
+		rte_error_printf(context, "Cannot change %s input, codec is busy.",
+				 fdc->rte.public.keyword);
+		break;
 	}
 
-	use_video = oc->format->video_codec != CODEC_ID_NONE;
-	use_audio = oc->format->audio_codec != CODEC_ID_NONE;
+	switch (input_method) {
+	case RTE_CALLBACK_ACTIVE:
+	  *queue_length = 1;
+	  break;
 
-	if ((!use_video) && (context->mode & RTE_VIDEO))
-	{
-		rte_error(context, "The given encoding format doesn't"
-			" support video encoding");
-		return 0;
+	case RTE_CALLBACK_PASSIVE:
+	case RTE_PUSH_PULL_ACTIVE:
+	case RTE_PUSH_PULL_PASSIVE:
+		rte_error_printf(context, "Selected input method not supported yet.");
+		return FALSE;
+
+	default:
+		assert(!"rte bug");
 	}
-	if ((!use_audio) && (context->mode & RTE_AUDIO))
-	{
-		rte_error(context, "The given encoding format doesn't"
-			" support audio encoding");
-		return 0;
-	}
 
-	if (!(context->mode & RTE_VIDEO))
-		use_video = 0;
-	if (!(context->mode & RTE_AUDIO))
-		use_audio = 0;
+	fd->input_method = input_method;
+	fd->read_cb = read_cb;
+	fd->unref_cb = unref_cb;
 
-	nb_streams = 0;
+	fd->codec.state = RTE_STATE_READY;
 
-	if (use_video)
-	{
-		AVCodecContext *video_enc;
+	return TRUE;
+}
 
-		st = av_mallocz(sizeof(*st));
-		video_enc = &st->codec;
-		video_enc->codec_id = oc->format->video_codec;
-		video_enc->codec_type = CODEC_TYPE_VIDEO;
-		
-		video_enc->bit_rate = context->output_video_bits;
-		switch (context->video_rate)
-		{
-		case RTE_RATE_1:
-			video_enc->frame_rate = 23.976 * FRAME_RATE_BASE;
-			break;
-		case RTE_RATE_2:
-			video_enc->frame_rate = 24 * FRAME_RATE_BASE;
-			break;
-		case RTE_RATE_4:
-			video_enc->frame_rate = 29.97 *	FRAME_RATE_BASE;
-			break;
-		case RTE_RATE_5:
-			video_enc->frame_rate = 30 * FRAME_RATE_BASE;
-			break;
-		case RTE_RATE_6:
-			video_enc->frame_rate = 50 * FRAME_RATE_BASE;
-			break;
-		case RTE_RATE_7:
-			video_enc->frame_rate = 59.97 *	FRAME_RATE_BASE;
-			break;
-		case RTE_RATE_8:
-			video_enc->frame_rate = 60 * FRAME_RATE_BASE;
-			break;
-		default:
-			video_enc->frame_rate = 25 * FRAME_RATE_BASE;
-			break;
+/* Sampling parameters */
+
+static rte_bool
+parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
+{
+	ffmpeg_codec *fd = FD(codec);
+	ffmpeg_codec_class *fdc = FDC(fd->codec.class);
+
+	switch (fdc->rte.public.stream_type) {
+		struct AVCodecContext *avcc;
+
+	case RTE_STREAM_AUDIO:
+		rsp->audio.sndfmt = RTE_SNDFMT_S16_LE; /* XXX machine endian */
+
+		rsp->audio.sampling_freq = 44100; /* XXX */
+
+		if (rsp->audio.channels < 1) /* XXX */
+			rsp->audio.channels = 1;
+		else if (rsp->audio.channels > 2)
+			rsp->audio.channels = 2;
+
+		rsp->audio.channels = 1; // XXX
+
+		/* FIXME */
+
+       		avcc = &fd->str.codec;
+
+		memset(avcc, 0, sizeof(*avcc));
+
+		avcc->sample_rate = 44100;
+		avcc->channels = 1;
+
+		if (avcodec_open(avcc, fdc->av) < 0) {
+			// XXX
+			fprintf(stderr, "could not open codec\n");
+			exit(1);
 		}
-		video_enc->width = context->width;
-		video_enc->height = context->height;
-		if (!strspn(context->gop_sequence, "PB"))
-			video_enc->gop_size = 0;
+
+		if (avcc->frame_size == 1)
+			rsp->audio.fragment_size = 4096 * 2 * avcc->channels;
 		else
-			/* FIXME: improve this, gop_size is number of
-			   no-I frames */
-			video_enc->gop_size =
-				strlen(context->gop_sequence)-1;
-		oc->streams[nb_streams] = st;
-		nb_streams++;
+			rsp->audio.fragment_size = avcc->frame_size * 2 * avcc->channels;
+
+		break;
+
+	default:
+		assert (!"reached");
 	}
 
-	if (use_audio)
-	{
-		AVCodecContext *audio_enc;
+	fd->status.valid = 0;
 
-		st = av_mallocz(sizeof(*st));
+	fd->codec.state = RTE_STATE_PARAM;
 
-		audio_enc = &st->codec;
-		audio_enc->codec_id = oc->format->audio_codec;
-		audio_enc->codec_type = CODEC_TYPE_AUDIO;
+	return TRUE;
+}
 
-		audio_enc->bit_rate = context->output_audio_bits;
-		audio_enc->sample_rate = context->audio_rate;
-		switch (context->audio_mode)
-		{
-		case RTE_AUDIO_MODE_MONO:
-			audio_enc->channels = 1;
-			break;
-		default:
-			audio_enc->channels = 2;
-			break;
-		}
-		oc->streams[nb_streams++] = st;
+/* Codec options */
+
+static rte_bool
+option_set(rte_codec *codec, const char *keyword, va_list args)
+{
+        ffmpeg_codec *fd = FD(codec);
+
+        if (fd->codec.state == RTE_STATE_READY)
+                reset_input(fd);
+
+	if (fd->codec.state == RTE_STATE_PARAM) {
+		avcodec_close(&fd->str.codec);
+		fd->codec.state = RTE_STATE_NEW;
 	}
 
-	oc->nb_streams = nb_streams;
-	/* FIXME: oc->[title, author, copyright, comment] are allowed */
-
-	oc->filename[sizeof(oc->filename)-1] = 0;
-	if (context->file_name)
-		strncpy(oc->filename, context->file_name,
-			sizeof(oc->filename)-1);
-	else
-		strcpy(oc->filename, "rte stream");
-
-	/* a bit hackish, but lets us avoid rte_global_context in
-	   ffmpeg/libav/rte.c */
-	sprintf(buffer, "rte:%p", context);
-	assert (url_fopen(&oc->pb, buffer, URL_WRONLY) >= 0);
-
-	for (i=0; i<oc->nb_streams; i++)
-	{
-		AVCodecContext *enc = &oc->streams[i]->codec;
-		codec =	avcodec_find_encoder(enc->codec_id);
-		/* Unknown codec can only mean internal error */
-		assert(codec);
-		if (avcodec_open(enc, codec) < 0)
-		{
-			/* FIXME: something better here is needed */
-			rte_error(context,
-				  "Cannot open avencoder (bad format)");
-			return 0;
-		}
-		if (enc->codec_type == CODEC_TYPE_AUDIO)
-			context->audio_bytes = enc->frame_size * 2 *
-				enc->channels;
-		/* FIXME: The encoder can use a different av format
-		   than us,  we should fail if the parameters aren't
-		   compatible */
-	}
-
-	/* we are prepared to start encoding */
-
-	return 1;
+        return FALSE;
 }
 
-static void
-uninit_context			(rte_context	*context)
+static rte_option_info *
+option_enum(rte_codec *codec, int index)
 {
+        return NULL;
 }
 
-static int
-start				(rte_context	*context)
-{
-	backend_private *priv = (backend_private*)context->private;
+/* Codec allocation */
 
-	if (pthread_create(&priv->enc, NULL, enc_thread, context))
-	{
-		rte_error(context, "pthread_create [%d]: %s", errno,
-			  strerror(errno));
-		return 0;
-	}
+extern AVCodec pcm_s16le_encoder;
+extern AVCodec pcm_u8_encoder;
+extern AVCodec pcm_alaw_encoder;
+extern AVCodec pcm_mulaw_encoder;
 
-	return 1;
-}
-
-static void
-stop			(rte_context	*context)
-{
-	backend_private *priv = (backend_private*)context->private;
-
-	pthread_join(priv->enc, NULL);
-}
-
-static char*
-query_format		(rte_context	*context,
-			 int		n,
-			 enum rte_mux_mode	*mux_mode)
-{
-	AVFormat *f = first_format;
-	int k=0;
-
-	if (n < 0 || !context)
-		return NULL;
-
-	while (f)
-	{
-		if (n == k++)
-			break;
-		f = f->next;
-	}
-
-	if (!f)
-		return NULL; /* not found */
-
-	if (*mux_mode)
-	{
-		*mux_mode = 0;
-
-		if (f->audio_codec != CODEC_ID_NONE)
-			*mux_mode |= RTE_AUDIO;
-
-		if (f->video_codec != CODEC_ID_NONE)
-			*mux_mode |= RTE_VIDEO;
-	}
-
-	return (char*)f->name;
-}
-
-static void
-status			(rte_context	*context,
-			 struct rte_status_info	*status)
-{
-	memset(status, 0, sizeof(*status));
-
-	status->bytes_out = context->private->bytes_out;
-}
-
-const
-rte_backend_info b_ffmpeg_info =
-{
-	"ffmpeg",
-	sizeof(backend_private),
-	init_backend,
-	context_new,
-	context_destroy,
-	init_context,
-	NULL, /* no post_init_context */
-	uninit_context,
-	start,
-	stop,
-	query_format,
-	status
+ffmpeg_codec_class
+pcm_s16le_codec = {
+	.av = &pcm_s16le_encoder,
+        .rte.public = {
+                .stream_type    = RTE_STREAM_AUDIO,
+                .keyword        = "pcm_s16le",
+                .label          = N_("PCM 16 Bit Signed Little Endian"),
+                .tooltip        = NULL,
+        },
 };
 
-#endif /* 0 */
+ffmpeg_codec_class
+pcm_u8_codec = {
+	.av = &pcm_u8_encoder,
+        .rte.public = {
+                .stream_type    = RTE_STREAM_AUDIO,
+                .keyword        = "pcm_u8",
+                .label          = N_("PCM 8 Bit Unsigned"),
+                .tooltip        = NULL,
+        },
+};
+
+ffmpeg_codec_class
+pcm_alaw_codec = {
+	.av = &pcm_u8_encoder,
+        .rte.public = {
+                .stream_type    = RTE_STREAM_AUDIO,
+                .keyword        = "pcm_alaw",
+                .label          = N_("PCM a-Law"),
+                .tooltip        = NULL,
+        },
+};
+
+ffmpeg_codec_class
+pcm_mulaw_codec = {
+	.av = &pcm_u8_encoder,
+        .rte.public = {
+                .stream_type    = RTE_STREAM_AUDIO,
+                .keyword        = "pcm_mulaw",
+                .label          = N_("PCM mu-Law"),
+                .tooltip        = NULL,
+        },
+};
+
+static void
+codec_delete(rte_codec *codec)
+{
+        ffmpeg_codec *fd = FD(codec);
+
+        switch (fd->codec.state) {
+        case RTE_STATE_READY:
+                assert(!"reached");
+                break;
+
+        case RTE_STATE_RUNNING:
+        case RTE_STATE_PAUSED:
+                fprintf(stderr, "ffmpeg bug warning: attempt to delete "
+                        "running codec ignored\n");
+                return;
+
+	case RTE_STATE_PARAM:
+		avcodec_close(&fd->str.codec);
+		break;
+
+        default:
+                break;
+        }
+
+        pthread_mutex_destroy(&fd->codec.mutex);
+
+        free(fd);
+}
+
+static rte_codec *
+codec_new(rte_codec_class *cc, char **errstr)
+{
+        ffmpeg_codec *fd;
+
+	if (!(fd = calloc(sizeof(*fd), 1))) {
+		rte_asprintf(errstr, _("Out of memory."));
+		return NULL;
+	}
+
+        fd->codec.class = cc;
+
+        pthread_mutex_init(&fd->codec.mutex, NULL);
+
+        fd->codec.state = RTE_STATE_NEW;
+
+        return &fd->codec;
+}
+
+static rte_codec *
+codec_get(rte_context *context, rte_stream_type stream_type, int stream_index)
+{
+	ffmpeg_context *fx = FX(context);
+	rte_codec *codec;
+
+	for (codec = fx->codecs; codec; codec = codec->next)
+		if (codec->class->public.stream_type == stream_type
+		    && codec->stream_index == stream_index)
+			return codec;
+
+	return NULL;
+}
+
+static rte_codec *
+codec_set(rte_context *context, const char *keyword,
+          rte_stream_type stream_type, int stream_index)
+{
+	ffmpeg_context *fx = FX(context);
+	ffmpeg_context_class *fxc = FXC(fx->context.class);
+	ffmpeg_codec *fd = NULL;
+	ffmpeg_codec_class *fdc;
+	rte_codec *old, **oldpp;
+	int i;
+
+	for (oldpp = &fx->codecs; (old = *oldpp); oldpp = &old->next) {
+		fdc = FDC(old->class);
+
+		if (keyword) {
+			if (strcmp(fdc->rte.public.keyword, keyword) == 0)
+				break;
+		} else {
+			if (fdc->rte.public.stream_type == stream_type
+			    && old->stream_index == stream_index)
+				break;
+		}
+	}
+
+	if (keyword) {
+		rte_codec *codec;
+		char *error = NULL;
+		int max_elem;
+
+		for (i = 0; (fdc = fxc->codecs[i]); i++)
+			if (strcmp(fdc->rte.public.keyword, keyword) == 0)
+				break;
+
+		if (!fdc) {
+			rte_error_printf(&fx->context, "'%s' is no codec of the %s encoder.",
+					 keyword, fxc->rte.public.keyword);
+			return NULL;
+		}
+
+		stream_type = fdc->rte.public.stream_type;
+		max_elem = fxc->rte.public.max_elementary[stream_type];
+
+		assert(max_elem > 0);
+
+		if (stream_index >= max_elem) {
+			rte_error_printf(&fx->context, "'%s' selected for "
+					 "elementary stream %d of %s encoder, "
+					 "but only %d available.",
+					 fdc->rte.public.keyword, stream_index,
+					 fxc->rte.public.keyword, max_elem);
+			return NULL;
+		}
+
+		if (!(codec = codec_new(&fdc->rte, &error))) {
+			if (error) {
+				rte_error_printf(&fx->context,
+						 _("Cannot create new codec instance '%s': %s"),
+						 fdc->rte.public.keyword, error);
+				free(error);
+			} else {
+				rte_error_printf(&fx->context,
+						 _("Cannot create new codec instance '%s'."),
+						 fdc->rte.public.keyword);
+			}
+
+			return NULL;
+		}
+
+		fd = FD(codec);
+		fd->codec.context = &fx->context;
+
+		if (!rte_codec_options_reset(&fd->codec)) {
+			codec_delete(&fd->codec);
+			return NULL;
+		}
+	}
+
+	if (old) {
+		*oldpp = old->next;
+
+		if (old->state == RTE_STATE_READY)
+			reset_input(FD(old));
+
+		codec_delete(old);
+    
+		fx->num_codecs--;
+	}
+
+	if (fd) {
+		fd->codec.next = fx->codecs;
+		fx->codecs = &fd->codec;
+		fx->num_codecs++;
+	}
+
+	return &fd->codec;
+}
+
+static rte_codec_info *
+codec_enum(rte_context *context, int index)
+{
+	ffmpeg_context_class *fxc = FXC(context->class);
+	int i;
+
+	if (index < 0)
+		return NULL;
+
+	for (i = 0;; i++)
+		if (fxc->codecs[i] == NULL)
+			return NULL;
+		else if (i >= index)
+			break;
+
+	return &fxc->codecs[i]->rte.public;
+}
+
+extern AVFormat wav_format;
+
+static ffmpeg_context_class
+ffmpeg_riff_wave_context = {
+	.rte.public = {
+		.keyword	= "ffmpeg_riff_wave",
+		.label		= N_("RIFF-WAVE Audio"),
+		.min_elementary	= { 0, 0, 1 },
+		.max_elementary	= { 0, 0, 1 },
+	},
+	.av = &wav_format,
+	.codecs = {
+//		&mp2_codec,
+//		&mp3lame_codec,
+//		&ac3_codec,
+//		&pcm_alaw_codec,
+		&pcm_s16le_codec,
+		&pcm_u8_codec,
+		&pcm_alaw_codec,
+		&pcm_mulaw_codec,
+		NULL
+	}
+};
+
+static ffmpeg_context_class *
+context_table[] = {
+	&ffmpeg_riff_wave_context,
+};
+
+static const int num_contexts =
+        sizeof(context_table) / sizeof(context_table[0]);
+
+static void
+context_delete(rte_context *context)
+{
+	ffmpeg_context *fx = FX(context);
+
+	switch (fx->context.state) {
+	case RTE_STATE_RUNNING:
+	case RTE_STATE_PAUSED:
+		assert(!"reached");
+
+	case RTE_STATE_READY:
+		reset_output(fx);
+		break;
+
+	default:
+		break;
+	}
+
+	/* Delete codecs */
+
+	while (fx->codecs) {
+		rte_codec *codec = fx->codecs;
+
+		codec_set(&fx->context, NULL,
+			  codec->class->public.stream_type,
+			  codec->stream_index);
+	}
+
+	pthread_mutex_destroy(&fx->context.mutex);
+
+	free(fx);
+}
+
+static rte_context *
+context_new(rte_context_class *xc, char **errstr)
+{
+	ffmpeg_context *fx;
+	rte_context *context;
+
+	if (!(fx = calloc(1, sizeof(*fx)))) {
+		rte_asprintf(errstr, _("Out of memory."));
+		return NULL;
+	}
+
+	context = &fx->context;
+
+	context->class = xc;
+
+	pthread_mutex_init(&context->mutex, NULL);
+
+	context->state = RTE_STATE_NEW;
+
+	return context;
+}
+
+/* Backend initialization */
+
+static void
+backend_init(void)
+{
+	int i;
+
+	for (i = 0; i < num_contexts; i++) {
+		ffmpeg_context_class *fxc = context_table[i];
+		rte_context_class *xc = &fxc->rte;
+
+		xc->public.backend = "ffmpeg 0.4.6";
+
+		xc->public.mime_type = fxc->av->mime_type;
+		xc->public.extension = fxc->av->extensions;
+		
+		xc->new = context_new;
+		xc->delete = context_delete;
+
+		xc->codec_enum = codec_enum;
+		xc->codec_get = codec_get;
+		xc->codec_set = codec_set;
+
+		xc->codec_option_set = option_set;
+		xc->codec_option_enum = option_enum;
+		xc->parameters_set = parameters_set;
+
+		xc->set_input = set_input;
+		xc->set_output = set_output;
+
+		xc->start = start;
+		xc->stop = stop;
+
+		xc->status = status;
+	}
+}
+
+static rte_context_class *
+context_enum(int index, char **errstr)
+{
+	if (index < 0 || index >= num_contexts)
+		return NULL;
+
+	return &context_table[index]->rte;
+}
+
+const rte_backend_class
+rte_backend_ffmpeg = {
+	.name		= "ffmpeg (prototype)",
+	.backend_init	= backend_init,
+	.context_enum	= context_enum,
+};
