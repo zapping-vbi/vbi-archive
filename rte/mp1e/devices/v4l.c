@@ -6,6 +6,7 @@
  *  Based on code by Justin Schoeman,
  *  modified by Iñaki G. Etxebarria,
  *  and more code from ffmpeg by Gerard Lantau.
+ *  Read fixes and AIW hack by Nikolai Zhubr.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.1 2002-06-12 04:00:40 mschimek Exp $ */
+/* $Id: v4l.c,v 1.2 2002-08-22 22:01:58 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -149,6 +150,8 @@ v4l_cap_thread(void *unused)
 						continue;
 
 					if (errno == EAGAIN) {
+						/* We're non-blocking and no data is available,
+						   let's take a nap before we try again. */
 						usleep(5000);
 						continue;
 					}
@@ -156,8 +159,31 @@ v4l_cap_thread(void *unused)
 					ASSERT("read video data", 0);
 				}
 
-				p += r;
-				n -= r;
+ 				p += r;
+ 				n -= r;
+ 			}
+			
+			if (fix_interlaced) {
+				n = b->size;
+				p = b->data;
+				while (n > 0) {
+					r = read(fd, p, n);
+
+					if (r < 0) {
+						if (errno == EINTR)
+							continue;
+
+						if (errno == EAGAIN) {
+							usleep(5000);
+							continue;
+						}
+
+						ASSERT("read video data", 0);
+					}
+
+					p += r;
+					n -= r;
+				}
 			}
 
 			b->time = timestamp2(b);
@@ -175,16 +201,21 @@ static void
 restore_audio(void)
 {
 	pthread_cancel(thread_id);
-	pthread_join(thread_id, NULL);
+// FIXME ARRR does not join
+//	pthread_join(thread_id, NULL);
 
 	IOCTL(fd, VIDIOCSAUDIO, &old_vaud);
 }
 
 #define YUV420(mode) (mode == CM_YUV || mode == CM_YVU || \
 		      mode == CM_YUV_VERTICAL_DECIMATION)
-#define DECIMATING(mode) (mode == CM_YUYV_VERTICAL_DECIMATION || \
-			  mode == CM_YUV_VERTICAL_DECIMATION || \
-			  mode == CM_YUYV_EXP_VERTICAL_DECIMATION)
+#define DECIMATING_HOR(mode) (mode == CM_YUYV_HORIZONTAL_DECIMATION || \
+			      mode == CM_YUYV_QUAD_DECIMATION)
+#define DECIMATING_VERT(mode) (mode == CM_YUYV_VERTICAL_DECIMATION || \
+			       mode == CM_YUV_VERTICAL_DECIMATION || \
+			       mode == CM_YUYV_QUAD_DECIMATION \
+			  /* removed mode == CM_YUYV_EXP_VERTICAL_DECIMATION */)
+#define DECIMATING(mode) (DECIMATING_HOR(mode) || DECIMATING_VERT(mode))
 
 fifo *
 v4l_init(rte_video_stream_params *par, struct filter_param *fp)
@@ -192,11 +223,11 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 	struct video_capability vcap;
 	struct video_tuner vtuner;
 	struct video_channel vchan;
-	/* struct video_window vwin; */
-	/* struct video_picture vpict; */
+	struct video_window vwin;
+	struct video_picture vpict;
 	int min_cap_buffers = video_look_ahead(gop_sequence);
 	unsigned long buf_size;
-	int max_height, height1;
+	int max_height, width1, height1;
 	int buf_count;
 	int retry;
 
@@ -244,12 +275,21 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 		CLEAR(&vchan);
 		vchan.channel = 0; /* first channel */
 
-		ASSERT("query current video input of %s (VIDIOCGCHAN), "
-		       "cannot determine video standard (VIDIOCGTUNER didn't work either)\n",
-		       IOCTL(fd, VIDIOCGCHAN, &vchan) == 0,
-		       cap_dev);
+		if (IOCTL(fd, VIDIOCGCHAN, &vchan) == 0) {
+			vtuner.mode = vchan.norm;
+		} else {
+			printv(2, "Failed to query current video input of %s (VIDIOCGCHAN),\n"
+			       "VIDIOCGTUNER didn't work either to determine the current\n"
+			       "video standard. ", cap_dev);
+			if (source_fps > 0.0) {
+				printv(2, "Will try user specified frame rate %f Hz.\n", source_fps);
+			} else {
+				printv(2, "Please add -J frame rate on the command line.\n");
+				exit(EXIT_FAILURE);
+			}
 
-		vtuner.mode = vchan.norm;
+			vtuner.mode = VIDEO_MODE_AUTO;
+		}
 	}
 
 	switch (vtuner.mode) {
@@ -257,37 +297,57 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 	case VIDEO_MODE_SECAM:
 		printv(2, "Video standard is PAL/SECAM\n");
 		par->frame_rate = 25.0;
-		mp1e_timestamp_init(&tfmem, 1 / 25.0);
 		max_height = 576;
 		break;
 
 	case VIDEO_MODE_NTSC:
 		printv(2, "Video standard is NTSC\n");
 		par->frame_rate = 30000 / 1001.0;
-		mp1e_timestamp_init(&tfmem, 1001 / 30000.0);
 		max_height = 480;
-		if (par->height == 288) /* that's the default, assuming PAL */
+		/* The default size without -swxh assumes PAL/SECAM */
+		if (par->height == 288)
 			par->height = 240;
 		if (par->height == 576)
 			par->height = 480;
 		break;
 
 	default:
-		FAIL("Current video standard #%d unknown.\n", vtuner.mode);
-		break;
+		printv(2, "Current video standard #%d unknown, "
+		       "will assume PAL/SECAM.\n", vtuner.mode);
+		par->frame_rate = 25.0;
+		max_height = 576;
+ 		break;
+ 	}
+	
+	if (source_fps > 0.0) 
+		par->frame_rate = source_fps;
+	printv(2, "Source frame rate is %f Hz.\n", par->frame_rate);
+	mp1e_timestamp_init(&tfmem, 1.0 / par->frame_rate);
+
+	if (fix_interlaced) {
+		/* AIW hack. Top half of the image is discarded,
+		 * bottom half is scaled horizontally 2:1.
+		 */
+		filter_mode = CM_YUYV_HORIZONTAL_DECIMATION;
+		par->width = 384; /* target size */
+		par->height = 288;
 	}
 
 	par->width = saturate(par->width, 1, MAX_WIDTH);
 	par->height = saturate(par->height, 1, MAX_HEIGHT);
 
+	width1 = par->width;
 	height1 = par->height;
 
-	par->width  = (par->width + 15) & -16;
-
-	if (DECIMATING(filter_mode))
-		par->height = (par->height * 2 + 15) & -16;
+	if (DECIMATING_HOR(filter_mode))
+		par->width = (width1 * 2 + 31) & -32;
 	else
-		par->height = (par->height + 15) & -16;
+		par->width  = (width1 + 15) & -16;
+
+	if (DECIMATING_VERT(filter_mode) || fix_interlaced)
+		par->height = (height1 * 2 + 31) & -32;
+	else
+		par->height = (height1 + 15) & -16;
 
 	buf_count = MAX(cap_buffers, min_cap_buffers);
 
@@ -298,82 +358,97 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 		} else if (filter_mode == CM_YUYV_VERTICAL_DECIMATION) {
 			filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
 			par->height = (height1 + 15) & -16;
+		} else if (filter_mode == CM_YUYV_QUAD_DECIMATION) {
+			filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
+			par->width = (width1 + 15) & -16;
+			par->height = (height1 + 15) & -16;
 		} else {
 			par->height = max_height;
 		}
 	}
 
-#if 0 /* works? */
-
-	/* Set capture format and dimensions */
-
-	CLEAR(&pict);
-
-	ASSERT("determine the current image format of %s (VIDIOCGPICT)",
-	       IOCTL(fd, VIDIOCGPICT, &pict) == 0, cap_dev);
-
-	if (YUV420(filter_mode))
-		pict.palette = VIDEO_PALETTE_YUV420P;
-	else
-		pict.palette = VIDEO_PALETTE_YUYV;
-
-	retry = 0;
-
-	while (IOCTL(fd, VIDIOCSPICT, &pict) != 0) {
-		printv(2, "Image format %d not accepted.\n", pict.palette);
-
-		if (pict.palette == VIDEO_PALETTE_YUYV) {
-			pict.palette = VIDEO_PALETTE_YUV422;
-			continue;
-		}
-
-		if (retry++)
-			FAIL("Cannot set image format of %s, "
-			     "probably none of YUV 4:2:0 or 4:2:2 (YUYV) are supported",
-	    		     cap_dev);
-
-		if (filter_mode == CM_YUV) {
-			filter_mode = CM_YUYV;
-			pict.palette = VIDEO_PALETTE_YUYV;
-		} else {
-			filter_mode = CM_YUV;
-			pict.palette = VIDEO_PALETTE_YUV420P;
-			par->height = (height1 + 15) & -16;
-		}
-	}
-
-	for (;;) {
-		CLEAR(&win);
-		vwin.width = par->width;
-		vwin.height = par->height;
-		vwin.chromakey = -1;
-
-		if (IOCTL(fd, VIDIOCSWIN, &vwin) == 0)
-			break;
-
-		ASSERT("set the grab size of %s to %dx%d, "
-		       "suggest other -s, -G, -F values",
-		       DECIMATING(filter_mode),
-		       cap_dev, vwin.width, vwin.height);
-
-		filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
-		par->height = (height1 + 15) & -16;
-	}
-
-	par->width = vwin.width;
-	par->height = vwin.height;
-
-#endif
-
 	/* Capture setup */
 
 	if (IOCTL(fd, VIDIOCGMBUF, &gb_buffers) == -1) {
-		FAIL("V4L read interface does not work, sorry.\n"
-		     "Please send patches to zapping-misc@lists.sf.net.\n");
+//		FAIL("V4L read interface does not work, sorry.\n"
+//		     "Please send patches to zapping-misc@lists.sf.net.\n");
 
 		printv(2, "VIDICGMBUF failed, using read interface\n");
 
 		use_mmap = 0;
+#if 1 /* works? */
+		/* Set capture format and dimensions */
+
+		CLEAR(&vpict);
+
+		ASSERT("determine the current image format of %s (VIDIOCGPICT)",
+		       IOCTL(fd, VIDIOCGPICT, &vpict) == 0, cap_dev);
+
+		if (YUV420(filter_mode))
+			vpict.palette = VIDEO_PALETTE_YUV420P;
+		else
+			vpict.palette = VIDEO_PALETTE_YUYV;
+
+		retry = 0;
+
+		while (IOCTL(fd, VIDIOCSPICT, &vpict) != 0) {
+			printv(2, "Image format %d not accepted.\n", vpict.palette);
+
+			if (fix_interlaced)
+				FAIL("-K mode requires YUYV, sorry.\n");
+
+			if (vpict.palette == VIDEO_PALETTE_YUYV) {
+				vpict.palette = VIDEO_PALETTE_YUV422;
+				continue;
+			}
+
+			if (retry++)
+				FAIL("Cannot set image format of %s, "
+				     "probably none of YUV 4:2:0 or 4:2:2 (YUYV) are supported",
+				     cap_dev);
+
+			if (filter_mode == CM_YUV) {
+				filter_mode = CM_YUYV;
+				vpict.palette = VIDEO_PALETTE_YUYV;
+			} else {
+				filter_mode = CM_YUV;
+				vpict.palette = VIDEO_PALETTE_YUV420P;
+				par->width = (width1 + 15) & -16;
+				par->height = (height1 + 15) & -16;
+			}
+		}
+
+		for (;;) {
+			CLEAR(&vwin);
+			vwin.width = par->width;
+			vwin.height = par->height;
+			vwin.chromakey = -1;
+
+			if (IOCTL(fd, VIDIOCSWIN, &vwin) == 0)
+				break;
+
+			if (fix_interlaced)
+				FAIL("VIDIOCSWIN %d x %d failed. "
+				     "Sorry, cannot help you here.\n",
+				     par->width, par->height);
+
+			/*
+			 *  When we're decimating a smaller image
+			 *  size without decimation may work. 
+			 */
+			ASSERT("set the grab size of %s to %dx%d, "
+			       "suggest other -s, -G, -F values",
+			       DECIMATING(filter_mode),
+			       cap_dev, vwin.width, vwin.height);
+
+			filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
+			par->width = (height1 + 15) & -16;
+			par->height = (height1 + 15) & -16;
+		}
+
+		par->width = vwin.width;
+		par->height = vwin.height;
+#endif
 	} else {
 		int r;
 
@@ -416,6 +491,9 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 			printv(2, "Image filter %d, palette %d not accepted.\n",
 				filter_mode, gb_buf.format);
 
+			if (fix_interlaced)
+				FAIL("-K mode requires YUYV, sorry.\n");
+
 			if (gb_buf.format == VIDEO_PALETTE_YUYV) {
 				gb_buf.format = VIDEO_PALETTE_YUV422;
 				continue;
@@ -449,22 +527,30 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 
 		par->width = gb_buf.width;
 		par->height = gb_buf.height;
+	}
 
-		if (width > par->width)
-			width = par->width;
-		if (height > par->height)
-			height = par->height;
+	if (width > par->width)
+		width = par->width;
+	if (height > par->height)
+		height = par->height;
 
-		if (YUV420(filter_mode)) {
-			par->stride = par->width;
-	    		filter_init(par, fp); /* line stride in bytes */
-			buf_size = gb_buf.width * gb_buf.height * 3 / 2;
-		} else {
-			par->stride = par->width * 2;
-	    		filter_init(par, fp);
-			buf_size = gb_buf.width * gb_buf.height * 2;
-		}
-        }
+	if (fix_interlaced)
+		par->sample_aspect = video_sampling_aspect (par->frame_rate,
+			par->width >> 1, par->height >> 1);
+	else
+		par->sample_aspect = video_sampling_aspect (par->frame_rate,
+			par->width >> !!DECIMATING_HOR (filter_mode),
+			par->height >> !!DECIMATING_VERT (filter_mode));
+
+	if (YUV420(filter_mode)) {
+		par->stride = par->width;
+    		filter_init(par, fp);
+		buf_size = par->width * par->height * 3 / 2;
+	} else {
+		par->stride = par->width * 2;
+    		filter_init(par, fp);
+		buf_size = par->width * par->height * 2;
+	}
 
 	ASSERT("initialize v4l fifo", init_buffered_fifo(
 		&cap_fifo, "video-v4l",
