@@ -8,6 +8,8 @@ EXTRA_DIST = parrot.glade parrot_strings.h
 
 libparrot_zapping_la_SOURCES = parrot.c
 
+pkgdata_DATA = parrot.glade
+
 CFLAGS = @CFLAGS@ $(PLUGIN_DEFAULT_FLAGS)
 
 INCLUDES = \

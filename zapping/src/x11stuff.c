@@ -329,6 +329,8 @@ x11_set_screensaver(gboolean on)
  * XvImage handling.
  */
 
+static gboolean have_mitshm;
+
 /*
   Comment out if you have problems with the Shm extension
   (you keep getting a Gdk-error request_code:14x, minor_code:19)
@@ -376,24 +378,64 @@ xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
     g_malloc0(sizeof(struct _xvzImagePrivate));
   void * image_data = NULL;
   unsigned int xvmode = (pixformat == TVENG_PIX_YUYV) ? YUY2 : YV12;
+  int old_sync;
+
+  old_sync = XSynchronize(GDK_DISPLAY(), True);
 
   if (!port_grabbed)
     {
       g_warning("XVPort not grabbed!");
-      g_free(new_image->private);
-      g_free(new_image);
-      return NULL;
+      goto error1;
     }
 
   pimage -> uses_shm = FALSE;
 
 #ifdef USE_XV_SHM
-  memset(&pimage->shminfo, 0, sizeof(XShmSegmentInfo));
-  pimage->image = XvShmCreateImage(GDK_DISPLAY(), xvport, xvmode, NULL,
-				   w, h, &pimage->shminfo);
-  if (pimage->image)
-    pimage->uses_shm = TRUE;
-#endif
+
+  if (have_mitshm) /* just in case */
+    {
+      memset(&pimage->shminfo, 0, sizeof(XShmSegmentInfo));
+      pimage->image = XvShmCreateImage(GDK_DISPLAY(), xvport,
+	xvmode, NULL, w, h, &pimage->shminfo);
+
+      if (pimage->image)
+	{
+	  pimage->uses_shm = TRUE;
+
+	  pimage->shminfo.shmid =
+	    shmget(IPC_PRIVATE, pimage->image->data_size,
+		   IPC_CREAT | 0777);
+
+	  if (pimage->shminfo.shmid == -1)
+            {
+	      goto shm_error;
+	    }
+	  else
+	    {
+	      pimage->shminfo.shmaddr =
+		pimage->image->data = shmat(pimage->shminfo.shmid, 0, 0);
+
+	      shmctl(pimage->shminfo.shmid, IPC_RMID, 0);
+	      /* destroy when we terminate, now if shmat failed */
+
+	      if (pimage->shminfo.shmaddr == (void *) -1)
+	        goto shm_error;
+
+	      pimage->shminfo.readOnly = False;
+
+	      if (!XShmAttach(GDK_DISPLAY(), &pimage->shminfo))
+	        {
+		  g_assert(shmdt(pimage->shminfo.shmaddr) != -1);
+ shm_error:
+		  XFree(pimage->image);
+		  pimage->image = NULL;
+	          pimage->uses_shm = FALSE;
+		}
+	    }
+	}
+    }
+
+#endif /* USE_XV_SHM */
 
   if (!pimage->image)
     {
@@ -401,40 +443,16 @@ xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
       if (!image_data)
 	{
 	  g_warning("XV image data allocation failed");
-	  g_free(new_image->private);
-	  g_free(new_image);
-	  return NULL;
+	  goto error1;
 	}
       pimage->image =
 	XvCreateImage(GDK_DISPLAY(), xvport, xvmode,
 		      image_data, w, h);
+      if (!pimage->image)
+        goto error2;
     }
 
-  if (!pimage->image)
-    {
-      g_free(new_image->private);
-      g_free(new_image);
-      return NULL;
-    }
-
-#ifdef USE_XV_SHM
-  if (pimage->uses_shm)
-    {
-      pimage->shminfo.shmid =
-	shmget(IPC_PRIVATE, pimage->image->data_size,
-	       IPC_CREAT | 0777);
-      pimage->shminfo.shmaddr =
-	pimage->image->data = shmat(pimage->shminfo.shmid, 0, 0);
-      shmctl(pimage->shminfo.shmid, IPC_RMID, 0); /* remove when we
-							terminate */
-
-      pimage->shminfo.readOnly = False;
-
-      XShmAttach(GDK_DISPLAY(), &pimage->shminfo);
-    }
-#endif
-
-  XSync(GDK_DISPLAY(), False);
+  XSynchronize(GDK_DISPLAY(), old_sync);
 
   new_image->w = new_image->private->image->width;
   new_image->h = new_image->private->image->height;
@@ -442,6 +460,18 @@ xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
   new_image->data_size = new_image->private->image->data_size;
 
   return new_image;
+
+ error2:
+  if (image_data)
+    free(image_data);
+
+ error1:
+  g_free(new_image->private);
+  g_free(new_image);
+
+  XSynchronize(GDK_DISPLAY(), old_sync);
+
+  return NULL;
 }
 
 /**
@@ -499,6 +529,7 @@ void xvzImage_destroy(xvzImage *image)
   if (pimage->uses_shm)
     XShmDetach(GDK_DISPLAY(), &pimage->shminfo);
 #endif
+
   if (!pimage->uses_shm)
     free(pimage->image->data);
 
@@ -506,7 +537,7 @@ void xvzImage_destroy(xvzImage *image)
 
 #ifdef USE_XV_SHM
   if (pimage->uses_shm)
-    shmdt(pimage->shminfo.shmaddr);
+    g_assert(shmdt(pimage->shminfo.shmaddr) != -1);
 #endif
 
   g_free(image->private);
@@ -621,6 +652,11 @@ gboolean xvz_grab_port(tveng_device_info *info)
 
   tveng_set_xv_port(xvport, info);
   port_grabbed = TRUE;
+
+#ifdef USE_XV_SHM
+  have_mitshm = !!XShmQueryExtension(dpy);
+#endif
+
   return TRUE;
 
  error2:

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preview.c,v 1.8 2001-05-31 19:40:50 mschimek Exp $ */
+/* $Id: preview.c,v 1.9 2001-07-30 02:38:42 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -361,7 +361,7 @@ create:
 	assert(ximage->pitches[1] == ximage->pitches[2]);
 
 	// Now we need a shared memory segment to bypass the X11 socket
-
+/* XXX check errors */
 	shminfo.shmid = shmget(IPC_PRIVATE, ximage->data_size, IPC_CREAT | 0777);
 	shminfo.shmaddr = ximage->data = shmat(shminfo.shmid, 0, 0);
 	shmctl(shminfo.shmid, IPC_RMID, 0); // remove when we terminate
