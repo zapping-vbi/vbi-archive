@@ -1847,6 +1847,7 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
 	  temp *= temp;
 	  temp += (((int)modesinfo[i]->vdisplay) - info->caps.maxheight) *
 	    (((int)modesinfo[i]->vdisplay) - info->caps.maxheight);
+
 	  if  (((modesinfo[i]->hdisplay < info->caps.maxwidth) &&
 		(modesinfo[i]->vdisplay < info->caps.maxheight))
 	       || (bigger))
@@ -1871,7 +1872,8 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
       if ((info->debug_level > 0) && (!info_printed))
 	{
 	  info_printed = 1;
-	  fprintf(stderr, "      Mode # %d chosen\n", chosen_mode);
+	  fprintf(stderr, "      Mode # %d chosen, change=%d\n",
+	       chosen_mode, change_mode);
 	}
       
       /* If the chosen mode isn't the actual one, choose it, but

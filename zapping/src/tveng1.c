@@ -23,6 +23,8 @@
   the name is TV Engine, since it is intended mainly for TV viewing.
   This file is separated so zapping doesn't need to know about V4L[2]
 */
+#include "../site_def.h"
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -166,12 +168,14 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
     info ->caps.flags |= TVENG_CAPS_TUNER;
   if (caps.type & VID_TYPE_TELETEXT)
     info ->caps.flags |= TVENG_CAPS_TELETEXT;
+#ifndef TVENG1_DISABLE_OVERLAY
   if (caps.type & VID_TYPE_OVERLAY)
     info ->caps.flags |= TVENG_CAPS_OVERLAY;
   if (caps.type & VID_TYPE_CHROMAKEY)
     info ->caps.flags |= TVENG_CAPS_CHROMAKEY;
   if (caps.type & VID_TYPE_CLIPPING)
     info ->caps.flags |= TVENG_CAPS_CLIPPING;
+#endif
   if (caps.type & VID_TYPE_FRAMERAM)
     info ->caps.flags |= TVENG_CAPS_FRAMERAM;
   if (caps.type & VID_TYPE_SCALES)

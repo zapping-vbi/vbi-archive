@@ -466,7 +466,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.168 2003-01-04 07:51:15 mschimek Exp $",
+	 "$Id: main.c,v 1.169 2003-01-21 05:18:39 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -1146,13 +1146,28 @@ static gboolean startup_zapping(gboolean load_plugins)
 			j, i, new_channel.name);
 	      continue;
 	    }
-	  buffer4 = g_strconcat(buffer3, "/name", NULL);
-	  strncpy(new_channel.controls[j].name,
-		  zconf_get_string(NULL, buffer4), 32);
-	  g_free(buffer4);
-	  buffer4 = g_strconcat(buffer3, "/value", NULL);
-	  zconf_get_float(&new_channel.controls[j].value, buffer4);
-	  g_free(buffer4);
+	  {
+	    gchar *buf, *s;
+	    
+	    buf = g_strconcat(buffer3, "/name", NULL);
+	    if ((s = zconf_get_string (NULL, buf)))
+	      {
+	        strncpy(new_channel.controls[j].name, s, 32);
+	        g_free (buf);
+	      }
+	    else
+	      {
+	        g_free (buf);
+		continue;
+	      }
+          }
+	  {
+	    gchar *buf, *s;
+	    
+	    buf = g_strconcat(buffer3, "/value", NULL);
+	    zconf_get_float(&new_channel.controls[j].value, buf);
+	    g_free (buf);
+          }
 	  g_free(buffer3);
 	}
       g_free(buffer2);

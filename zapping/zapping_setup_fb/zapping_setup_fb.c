@@ -1,5 +1,8 @@
-/* Zapping (TV viewer for the Gnome Desktop)
+/*
+ * Zapping (TV viewer for the Gnome Desktop)
+ *
  * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2003 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,225 +20,209 @@
  */
 
 /*
-  This is intended to be an auxiliary suid program for setting up the
-  frame buffer and making V4L go into Overlay mode. If you find some
-  security flaws here, please report at zapping-misc@lists.sourceforge.net.
-  This program returns 1 in case of error
+  This is an auxiliary suid program to prepare a kernel video capture
+  device for DMA overlay onto video memory. When you find any security
+  flaws here, please report at zapping-misc@lists.sourceforge.net.
 */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#ifdef ENABLE_V4L
-
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
 #include <getopt.h>
-#include <sys/ioctl.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
+
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <errno.h>
-#include <linux/kernel.h>
-#include <errno.h>
+#include <sys/ioctl.h>
+#include <assert.h>
 
-/* We need video extensions (DGA) */
+#include "zapping_setup_fb.h"
 
-#include <X11/X.h>
-#include <X11/Xlib.h>
-#include <X11/Xfuncs.h>
-#ifndef DISABLE_X_EXTENSIONS
-#  include <X11/extensions/xf86dga.h>
+#define ZSFB_VERSION "zapping_setup_fb 0.10"
+#define MAX_VERBOSITY 3
+
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+char *			program_invocation_name;
+char *			program_invocation_short_name;
 #endif
-#include <X11/Xutil.h>
 
-#include "../common/videodev.h" /* V4L header file */
+int			verbosity = 1;
 
-#define FALSE 0
-#define TRUE 1
+int			uid, euid;
 
-#define ROOT_UID 0
+/* Frame buffer parameters */
 
-#define MAX_VERBOSE 2				/* Greatest verbosity allowed */
-#define ZSFB_VERSION "zapping_setup_fb 0.9"	/* Current program version */
+unsigned long		addr;
+unsigned int		bpl;
+unsigned int		width;
+unsigned int		height;
+unsigned int		depth;
+unsigned int		bpp;
 
-static char *		my_name;
-static int		verbosity = 1;
-
-/* Current DGA values */
-
-static int		vp_width;
-static int		vp_height;
-static int		width;
-static int		height;
-static int		addr;
-static int		bpp;
-
-
-#define STF2(x) #x
-#define STF1(x) STF2(x)
-
-#define errmsg(template, args...)					\
-do {									\
-  if (verbosity > 0)							\
-    fprintf (stderr, "%s:" __FILE__ ":" STF1(__LINE__) ": "		\
-	     template ": %d, %s\n", my_name , ##args,			\
-	     errno, strerror (errno));					\
-} while (0)
-
-#define message(level, template, args...)				\
-do {									\
-  if ((int) level <= verbosity)						\
-    fprintf (stderr, template , ##args);				\
-} while (0)
-
-
-#ifdef DISABLE_X_EXTENSIONS
-
-static int
-check_dga			(Display *		display,
-				 int			screen,
-				 int			bpp_arg)
+void
+fprintf_symbolic		(FILE *			fp,
+				 int			mode,
+				 unsigned long		value,
+				 ...)
 {
-  message (1, "X extensions have been disabled, %s won't work\n", my_name);
-  return FALSE;
+	unsigned int i, j = 0;
+	unsigned long v;
+	const char *s;
+	va_list ap;
+
+	if (0 == mode) {
+		unsigned int n[2] = { 0, 0 };
+
+		va_start (ap, value);
+
+		for (i = 0; (s = va_arg (ap, const char *)); i++) {
+			v = va_arg (ap, unsigned long);
+			n[((v & (v - 1)) == 0)]++; /* single bit */
+		}
+
+		mode = 1 + (n[1] > n[0]); /* 1-enum, 2-flags */
+
+		va_end (ap); 
+	}
+
+	va_start (ap, value);
+
+	for (i = 0; (s = va_arg (ap, const char *)); i++) {
+		v = va_arg (ap, unsigned long);
+		if (2 == mode || v == value) {
+			fprintf (fp, "%s%s%s", j++ ? "|" : "",
+				 (2 == mode && 0 == (v & value)) ? "!" : "", s);
+			value &= ~v;
+		}
+	}
+
+	if (value)
+		fprintf (fp, "%s0x%lx", j ? "|" : "", value);
+
+	va_end (ap); 
 }
 
-#else /* !DISABLE_X_EXTENSIONS */
-
-static int
-check_dga			(Display *		display,
-				 int			screen,
-				 int			bpp_arg)
+int
+dev_ioctl			(int			fd,
+				 unsigned int		cmd,
+				 void *			arg,
+				 ioctl_log_fn *		fn)
 {
-  int event_base, error_base;
-  int major_version, minor_version;
-  int flags;
-  int banksize, memsize;
-  char buffer[256];
-  Window root;
-  XVisualInfo *info, templ;
-  XPixmapFormatValues *pf;
-  XWindowAttributes wts;
-  int found, v, i, n;
+  int buf[256];
+  int err;
 
-  buffer[255] = 0;
-  bpp = 0;
-
-  if (!XF86DGAQueryExtension (display, &event_base, &error_base))
+  if (3 <= verbosity && (_IOC_DIR (cmd) & _IOC_WRITE))
     {
-      errmsg ("XF86DGAQueryExtension() failed");
-      return FALSE;
+      assert (sizeof (buf) >= _IOC_SIZE (cmd));
+      memcpy (buf, arg, _IOC_SIZE (cmd));
     }
 
-  if (!XF86DGAQueryVersion (display, &major_version, &minor_version))
+  do err = ioctl (fd, cmd, arg);
+  while (-1 == err && EINTR == errno);
+
+  if (3 <= verbosity && NULL != fn)
     {
-      errmsg ("XF86DGAQueryVersion() failed");
-      return FALSE;
+      int saved_errno;
+
+      saved_errno = errno;
+
+      fprintf (stderr, "%d = ", err);
+      fn (stderr, cmd, NULL);
+      fputc ('(', stderr);
+      
+      if (_IOC_DIR(cmd) & _IOC_WRITE)
+	fn (stderr, cmd, &buf);
+      
+      if (0 == err)
+	{
+	  if ((_IOC_READ | _IOC_WRITE) == _IOC_DIR(cmd))
+	    fputs (") -> (", stderr);
+	  
+	  if (_IOC_DIR(cmd) & _IOC_READ)
+	    fn (stderr, cmd, arg);
+	  
+	  fputs (")\n", stderr);
+	}
+      else 
+	{
+	  fprintf (stderr, "), errno = %d, %s\n",
+		   errno, strerror (errno));
+	}
+      
+      errno = saved_errno;
     }
-
-  if (!XF86DGAQueryDirectVideo (display, screen, &flags))
-    {
-      errmsg ("XF86DGAQueryDirectVideo() failed");
-      return FALSE;
-    }
-
-  if (!(flags & XF86DGADirectPresent))
-    {
-      message (1, "No DirectVideo present (according to DGA extension %d.%d)\n",
-	       major_version, minor_version);
-      return FALSE;
-    }
-
-  if (!XF86DGAGetVideoLL (display, screen, &addr, &width, &banksize, &memsize))
-    {
-      errmsg ("XF86DGAGetVideoLL() failed");
-      return FALSE;
-    }
-
-  if (!XF86DGAGetViewPortSize (display, screen, &vp_width, &vp_height))
-    {
-      errmsg ("XF86DGAGetViewPortSize() failed");
-      return FALSE;
-    }
-
-  message (2, "Heuristic bpp search\n");
-
-  /* Get the bpp value */
-
-  root = DefaultRootWindow(display);
-  XGetWindowAttributes(display, root, &wts);
-  height = wts.height;
-
-  /* The following code is 'stolen' from v4l-conf, since I hadn't the
-     slightest idea on how to get the real bpp */
-
-  if (bpp_arg == -1)
-    {
-      templ.screen = screen;
-
-      info = XGetVisualInfo (display, VisualScreenMask, &templ, &found);
-
-      for (i = 0, v = -1; v == -1 && i < found; i++)
-        if (info[i].class == TrueColor && info[i].depth >= 15)
-	  v = i;
-
-      if (-1 == v)
-        {
-          message (1, "No appropriate X visual available\n");
-          return FALSE;
-        }
-
-      /* get depth + bpp (heuristic) */
-      pf = XListPixmapFormats(display,&n);
-
-      for (i = 0; i < n; i++)
-        if (pf[i].depth == info[v].depth)
-	  {
-	    bpp = pf[i].bits_per_pixel;
-	    break;
-          }
-
-      if (0 == bpp)
-        {
-          message (1, "Cannot figure out framebuffer depth\n");
-          return FALSE;
-        }
-    }
-  else
-    {
-      bpp = bpp_arg;
-    }
-
-  /* Print some info about the DGA device in --verbose mode */
-  /* This is no security flaw since this info is user-readable anyway */
-
-  message (2, "DGA info we got:\n");
-  message (2, " - Version    : %d.%d\n", major_version, minor_version);
-  message (2, " - Viewport   : %dx%d\n", vp_width, vp_height);
-  message (2, " - DGA info   : %d width at %p\n", width, (void *) addr);
-  message (2, " - Screen bpp : %d\n", bpp);
-
-  return TRUE;
+  
+  return err;
 }
 
-#endif /* DISABLE_X_EXTENSIONS */
+#ifndef major
+#  define major(dev)  (((dev) >> 8) & 0xff)
+#endif
 
+int
+dev_open			(const char *		device_name,
+				 int			major_number,
+				 int			flags)
+{
+  struct stat st;
+  int fd;
 
-static int
+  /* Sanity checks */
+
+  if (strchr (device_name, '.'))
+    {
+      message (1, "Device name '%s' rejected, has dots.\n", device_name);
+      return -1;
+    }
+
+  if (strncmp (device_name, "/dev/", 5))
+    {
+      message (1, "Device name '%s' rejected, must start with '/dev/'.\n",
+	       device_name);
+      return -1;
+    }
+
+  if (-1 == stat (device_name, &st))
+    {
+      errmsg ("Cannot stat device '%s'", device_name);
+      return -1;
+    }
+
+  if (!S_ISCHR (st.st_mode))
+    {
+      message (1, "'%s' is not a character device file.\n", device_name);
+      return -1;
+    }
+
+  if (major_number != major (st.st_rdev))
+    {
+      message (1, "'%s' has suspect major number %d, expected %d.\n",
+	       device_name, major (st.st_rdev), major_number);
+      return -1;
+    }
+
+  message (2, "Opening device '%s'.\n", device_name);
+
+  if (-1 == (fd = open (device_name, flags)))
+    {
+      errmsg ("Cannot open device '%s'", device_name);
+    }
+
+  return fd;
+}
+
+int
 drop_root_privileges		(int			uid,
 				 int			euid)
 {
-  if (euid == ROOT_UID && uid != ROOT_UID)
+  if (ROOT_UID == euid && ROOT_UID != uid)
     {
       message (2, "Dropping root privileges\n");
 
-      if (seteuid (uid) == -1)
+      if (-1 == seteuid (uid))
         {
 	  errmsg ("Cannot drop root privileges "
 		  "despite uid=%d, euid=%d", uid, euid);
@@ -246,15 +233,15 @@ drop_root_privileges		(int			uid,
   return TRUE;
 }
 
-static int
+int
 restore_root_privileges		(int			uid,
 				 int			euid)
 {
-  if (euid == ROOT_UID && uid != ROOT_UID)
+  if (ROOT_UID == euid && ROOT_UID != uid)
     {
       message (2, "Restoring root privileges\n");
 
-      if (seteuid (euid) == -1)
+      if (-1 == seteuid (euid))
         {
 	  errmsg ("Cannot restore root privileges "
 		  "despite uid=%d, euid=%d", uid, euid);
@@ -267,9 +254,10 @@ restore_root_privileges		(int			uid,
 
 static const char *	short_options = "d:D:b:vqh?V";
 
-static struct option
+static const struct option
 long_options [] =
 {
+  { "device",		required_argument,	0, 'c' },
   { "device",		required_argument,	0, 'd' },
   { "display",		required_argument,	0, 'D' },
   { "bpp",		required_argument,	0, 'b' },
@@ -281,21 +269,19 @@ long_options [] =
 };
 
 static void
-PrintUsage			(void)
+print_usage			(void)
 {
-  printf("Usage:\n"
-	 " %s [OPTIONS], where OPTIONS stands for\n"
-	 " --device dev - The video device to open, /dev/video0 by default\n"
-	 " --display d  - The X display to use\n"
-	 " --bpp x      - Current X bpp\n"
-	 " --verbose    - Increments verbosity level\n"
-	 " --quiet      - Decrements verbosity level\n"
-	 " --help, -h   - Shows this message\n"
-	 " --usage      - The same as --help or -h\n"
-	 " --version    - Shows the program version\n"
-	 "", my_name);
+  printf ("Usage:\n"
+	  " %s [OPTIONS], where OPTIONS can be\n"
+	  " -c, -d, --device name - The video device to open, default /dev/video0\n"
+	  " -D, --display name    - The X display to use\n"
+	  " -b, --bpp x           - Color depth, bits per pixel on said display\n"
+	  " -v, --verbose         - Increment verbosity level\n"
+	  " -q, --quiet           - Decrement verbosity level\n"
+	  " -h, --help, --usage   - Show this message\n"
+	  " -V, --version         - Print the program version and exit\n"
+	  "", program_invocation_name);
 }
-
 
 int
 main				(int			argc,
@@ -303,18 +289,26 @@ main				(int			argc,
 {
   char *device_name;
   char *display_name;
-  Display *display;
-  int screen;
   int bpp_arg;
-  int fd;
-  struct video_capability caps;
-  struct video_buffer fb; /* The framebuffer device */
-  int uid, euid;
+  int err;
 
-  fd = -1;
-  display = 0;
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+  program_invocation_name =
+  program_invocation_short_name = argv[0];
+#endif
 
-  my_name = argv[0];
+  /*
+   *  Make sure fd's 0 1 2 are open, otherwise
+   *  we might end up sending error messages to
+   *  the device file.
+   */
+  {
+    int i, n;
+
+    for (i = 0; i < 3; i++)
+      if (-1 == fcntl (i, F_GETFL, &n))
+	exit (EXIT_FAILURE);
+  }
 
   /* Drop root privileges until we need them */
 
@@ -327,7 +321,8 @@ main				(int			argc,
   /* Parse arguments */
 
   device_name = "/dev/video0";
-  display_name = getenv("DISPLAY");
+  display_name = getenv ("DISPLAY");
+
   bpp_arg = -1;
 
   for (;;)
@@ -352,14 +347,14 @@ main				(int			argc,
 	    
 	  if (bpp_arg < 8 || bpp_arg > 32)
 	    {
-	      message (1, "Invalid bpp argument %d\n", bpp_arg);
+	      message (1, "Invalid bpp argument %d.\n", bpp_arg);
 	      goto failure;
 	    }
 
 	  break;
 
 	case 'v':
-	  if (verbosity < MAX_VERBOSE)
+	  if (verbosity < MAX_VERBOSITY)
 	    verbosity++;
 	  break;
 
@@ -373,154 +368,49 @@ main				(int			argc,
 	  exit (EXIT_SUCCESS);
 
 	case 'h':
-	  PrintUsage();
+	  print_usage ();
 	  exit (EXIT_SUCCESS);
 
 	default:
 	  /* getopt_long prints option name when unknown or arg missing */
-	  PrintUsage();
+	  print_usage ();
 	  goto failure;
 	}
     }
 
-  message (1, "(C) 2000-2001 Iñaki García Etxebarria.\n"
-	   "This program is under the GNU General Public License.\n");
+  message (1, "(C) 2000-2003 Iñaki G. Etxebarria, Michael H. Schimek.\n"
+	   "This program is freely redistributable under the terms\n"
+	   "of the GNU General Public License.\n\n");
 
-  message (1, "Using video device '%s', display '%s'\n",
+  message (1, "Using video device '%s', display '%s'.\n",
 	   device_name, display_name);
 
-  message (2, "Sanity checking device name...\n");
-
-  /* Do a sanity check on the given name */
-  /* This can stop some dummy attacks, like giving /dev/../desired_dir
-   */
-  if (strchr (device_name, '.'))
-    {
-      message (1, "Device name '%s' rejected, has dots\n", device_name);
-      goto failure;
-    }
-
-  /* Check that it's on the /dev/ directory */
-  if (strlen (device_name) < 7) /* Minimum size */
-    {
-      message (1, "Device name '%s' rejected, is too short\n", device_name);
-      goto failure;
-    }
-  else if (strncmp (device_name, "/dev/", 5))
-    {
-      message (1, "Device name '%s' rejected, must start "
-	       "with '/dev/'\n", device_name);
-      goto failure;
-    }
-
-  message (2, "Opening video device\n");
-
-  if ((fd = open (device_name, O_TRUNC)) == -1)
-    {
-      errmsg ("Cannot open device '%s'", device_name);
-      goto failure;
-    }
-
-  message (2, "Querying video device capabilities\n");
-
-  if (ioctl (fd, VIDIOCGCAP, &caps))
-    {
-      errmsg ("VIDIOCGCAP ioctl failed");
-      goto failure;
-    }
-
-  message (2, "Checking returned capabilities for overlay devices\n");
-
-  if (!(caps.type & VID_TYPE_OVERLAY))
-    {
-      message (1, "Device '%s' does not support video overlay\n", device_name);
-      goto failure;
-    }
-
-  message (2, "Opening X display\n");
-
-  if ((display = XOpenDisplay (display_name)) == 0)
-    {
-      message (1, "Cannot open display '%s'", display_name);
-      goto failure;
-    }
-
-  message (2, "Getting default screen for the given display\n");
-  screen = XDefaultScreen (display);
-
-  message (2, "Checking DGA for the given display and screen\n");
-  if (!check_dga (display, screen, bpp_arg))
+  if (1 != query_dga (display_name, bpp_arg))
     goto failure;
  
-  /* OK, the DGA is working and we have its info, set up the V4L2
-     overlay */
+  /* OK, the DGA is working and we have its info,
+     set up the overlay */
 
-  message (2, "Getting current FB characteristics\n");
-  if (ioctl (fd, VIDIOCGFBUF, &fb))
+  err = setup_v4l2 (device_name);
+
+  if (err == -1)
     {
-      errmsg ("VIDIOCGFBUF ioctl failed");
-      goto failure;
+      err = setup_v4l (device_name);
+
+      if (err == -1)
+	{
+	}
     }
 
-  fb.base = (void *) addr;
-  fb.width = width;
-  fb.height = vp_height;
-  fb.depth = bpp;
-  fb.bytesperline = width * ((fb.depth + 7) >> 3);
+  if (err != 1)
+    goto failure;
 
-  message (2, "Setting new FB characteristics\n");
-
-  /*
-   *  This ioctl is privileged because it sets up
-   *  DMA to a random (video memory) address. 
-   */
-  {
-    int success;
-
-    if (!restore_root_privileges (uid, euid))
-      goto failure;
-
-    success = ioctl (fd, VIDIOCSFBUF, &fb);
-
-    if (!drop_root_privileges (uid, euid))
-      ; /* ignore */
-
-    if (success == -1)
-      {
-        errmsg ("VIDIOCSFBUF ioctl failed");
-
-        if (errno == EPERM && euid != ROOT_UID)
-	  message (1, "%s must be run as root, "
-		   "or marked as SUID root\n", my_name);
-
-        goto failure;
-      }
-  }
-
-  message (2, "No errors, exiting...\n");
-
-  XCloseDisplay (display);
-  close (fd);
+  message (1, "Setup completed.\n");
 
   return EXIT_SUCCESS;
 
  failure:
-  if (display != 0)
-    XCloseDisplay (display);
-
-  if (fd != -1)
-    close (fd);
+  message (1, "Setup failed.\n");
 
   return EXIT_FAILURE;
 }
-
-#else /* !ENABLED_V4L */
-
-int
-main				(int			argc,
-				 char **		argv)
-{
-  return EXIT_FAILURE;
-}
-
-#endif /* !ENABLED_V4L */
