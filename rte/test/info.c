@@ -25,18 +25,47 @@
 #include <stdio.h>
 #include <assert.h>
 
-/* FIXME: Needed for satifying rte dependencies, get rid of it */
-int verbose;
+static void
+show_option_info (rte_option_info *oi)
+{
+	char *types[] = {"Bool", "Integer", "Real", "String", "Menu of "};
+	printf("\t\t%s [%s] -> %s%s\n", oi->label, oi->keyword,
+	       types[oi->type], (oi->type == RTE_OPTION_MENU) ?
+	       types[oi->menu_type] : "");
+}
 
 static void
-show_codec_info (rte_codec_info *ci)
+show_codec_info (rte_context *context, rte_codec_info *ci)
 {
+	rte_codec *codec;
 	char *types[] = {"Video", "Audio", "Sliced VBI"};
+	rte_option_info *oi;
+	int i;
 
 	printf("\tKeyword:\t%s\n", ci->keyword);
 	printf("\tStream type:\t%s\n", types[ci->stream_type]);
 	printf("\tLabel:\t\t%s\n", ci->label);
-	printf("\tTooltip:\t%s\n\n", ci->tooltip);
+	printf("\tTooltip:\t%s\n", ci->tooltip);
+	printf("\tAvailable options:\n");
+
+	codec = rte_codec_set(context, ci->stream_type, 0,
+			      ci->keyword);
+	if (!codec) {
+		printf("\t*** WARNING: Cannot create codec %s: %s ****\n",
+		       ci->keyword, rte_last_error(context));
+		return;
+	}
+
+	assert(codec == rte_codec_get(context, ci->stream_type, 0));
+
+	for (i=0; (oi = rte_codec_option_info_enum(codec, i)); i++)
+		show_option_info(oi);
+	printf("\n");
+
+	/* unset codec */
+	codec = rte_codec_set(context, ci->stream_type, 0, NULL);
+	assert(codec == rte_codec_get(context, ci->stream_type, 0));
+	assert(codec == NULL);
 }
 
 static void
@@ -50,17 +79,18 @@ show_context_info (rte_context_info *ci)
 	printf("Backend:\t%s\n", ci->backend);
 	printf("Tooltip:\t%s\n", ci->tooltip);
 	printf("Mime types:\t%s\n", ci->mime_type);
-	printf("Extension:\t%s\n\n", ci->extension);
+	printf("Extension:\t%s\n", ci->extension);
 	printf("Audio elementary:\t%d\n", ci->elementary[RTE_STREAM_AUDIO]);
 	printf("Video elementary:\t%d\n", ci->elementary[RTE_STREAM_VIDEO]);
 	printf("VBI elementary:\t\t%d\n",
 	       ci->elementary[RTE_STREAM_SLICED_VBI]);
+	printf("Codecs:\n");
 
 	context = rte_context_new(ci->keyword);
 	assert(context != NULL);
 
 	for (i=0; (di = rte_codec_info_enum(context, i)); i++)
-		show_codec_info(di);
+		show_codec_info(context, di);
 
 	rte_context_delete(context);
 }
@@ -69,8 +99,6 @@ int main(int argc, char *argv[])
 {
 	rte_context_info *ci;
 	int i;
-
-	verbose = 0;
 
 	for (i=0; (ci = rte_context_info_enum(i)); i++)
 		show_context_info(ci);

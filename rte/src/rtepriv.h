@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.5 2001-12-16 18:06:32 garetxe Exp $
+ * $Id: rtepriv.h,v 1.6 2001-12-17 19:00:34 garetxe Exp $
  * Private stuff in the context.
  */
 
@@ -120,6 +120,10 @@ struct _rte_codec {
 		struct {
 			rteDataCallback		get;
 		} cd;
+		/* Push buffered */
+		struct {
+			rteBufferCallback	unref;
+		} pb;
 		/* Push data */
 		struct {
 			buffer *		last_buffer;
@@ -152,7 +156,8 @@ struct _rte_context_class {
 
 	rte_codec_info *	(* codec_enum)(rte_context *, int);
 	rte_codec *		(* codec_get)(rte_context *, rte_stream_type, int);
-	rte_codec *		(* codec_set)(rte_context *, int,
+	rte_codec *		(* codec_set)(rte_context *,
+					      rte_stream_type, int,
 					      const char *);
 
 	rte_option_info *	(* option_enum)(rte_context *, int);

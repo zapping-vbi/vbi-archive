@@ -213,13 +213,16 @@ rte_codec_info_codec(rte_codec *codec)
 }
 
 rte_codec *
-rte_codec_set(rte_context *context, int stream_index,
+rte_codec_set(rte_context *context,
+	      rte_stream_type stream_type,
+	      int stream_index,
 	      const char *codec_keyword)
 {
 	nullcheck(context, return NULL);
 	nullcheck(xc->codec_set, return NULL);
 
-	return xc->codec_set(context, stream_index, codec_keyword);
+	return xc->codec_set(context, stream_type, stream_index,
+			     codec_keyword);
 }
 
 rte_codec *
@@ -326,6 +329,7 @@ rte_set_input_push_buffered(rte_codec *codec,
 	}
 
 	codec->input_mode = RTE_INPUT_PB;
+	codec->input.pb.unref = unref_cb;
 
 	codec->status = RTE_STATUS_READY;
 }
@@ -732,18 +736,107 @@ buffer_size (rte_codec *codec)
 	}
 }
 
+/* Wait a buffer in callback buffered mode */
+static inline void
+rte_wait_cb(rte_codec *codec)
+{
+	producer *p = &(codec->prod);
+	rte_buffer rbuf;
+	buffer *b;
+
+	codec->input.cb.get(codec->context, codec, &cb);
+
+	b = wait_empty_buffer(p);
+	b->data = rbuf.data;
+	b->used = codec->bsize;
+	b->time = rbuf.timestamp;
+	b->user_data = rbuf.user_data;
+	b->rte_flags |= ~BLANK_BUFFER;
+
+	send_full_buffer(p, b);
+}
+
+/* callback data mode */
+static inline void
+rte_wait_cd(rte_codec *codec)
+{
+	producer *p = &(codec->prod);
+	buffer *b;
+
+	b = wait_empy_buffer(p);
+	codec->input.cd.get(codec->context, codec, b->data, &(b->time));
+	b->rte_flags |= ~BLANK_BUFFER;
+	b->used = codec->bsize;
+
+	send_full_buffer(p, b);
+}
+
+/* push (buffer or data, it's the same at this point) */
+static inline void
+rte_wait_push(rte_codec *codec)
+{
+	/* FIXME: To do */
+	/*
+	  Callback modes can be joined (in stop()) without problems
+	  since callbacks will get the needed data for the codecs to
+	  complete.
+	  In push modes, when stop() is called, no more data might reach
+	  the codec, so we should fake a few frames for the codec to
+	  finish. We mark these as BLANK_BUFFER, indicating that
+	  they shouldn't be unref'ed.
+	 */
+}
+
 static void
 rte_wait_full (fifo *f)
 {
-  /*  rte_codec *codec = (rte_codec*)f->user_data;
-      FIXME */
+	rte_codec *codec = (rte_codec*)f->user_data;
+
+	switch (codec->input_mode) {
+	case RTE_INPUT_CB:
+		rte_wait_cb(codec);
+		break;
+	case RTE_INPUT_CD:
+		rte_wait_cd(codec);
+		break;
+	case RTE_INPUT_PB:
+	case RTE_INPUT_PD:
+		rte_wait_push(codec);
+		break;
+	default:
+		assert(!"reached");
+		break;
+	}
 }
 
 static void
 rte_send_empty (consumer *c, buffer *b)
 {
-  /* rte_codec *codec = (rte_codec*)f->user_data;
-     FIXME */
+	rte_codec *codec = (rte_codec*)f->user_data;
+	rte_buffer rbuf;
+
+	if (!b->rte_flags & BLANK_BUFFER) {
+		rbuf.data = b->data;
+		rbuf.timestamp = b->time;
+		rbuf.user_data = b->user_data;
+
+		switch (codec->input_mode) {
+		case RTE_INPUT_PB:
+			codec->input.pb.unref(codec->context, codec,
+					      &rbuf);
+			break;
+		case RTE_INPUT_CB:
+			codec->input.cb.unref(codec->context, codec,
+					      &rbuf);
+			break;
+		default:
+			/* Nothing to be done for unbuffered modes */
+			break;
+		}
+	}
+
+	/* XXX temporary hack */
+	send_empty_buffered(c, b);
 }
 
 /* init one codec */
@@ -900,4 +993,12 @@ rte_resume(rte_context *context)
 	context->status = RTE_STATUS_RUNNING;
 
 	return TRUE;
+}
+
+char *
+rte_last_error(rte_context *context)
+{
+	nullcheck(context, return NULL);
+
+	return context->error;
 }

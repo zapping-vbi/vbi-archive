@@ -10,6 +10,21 @@ typedef enum {
   RTE_STREAM_MAX = 15
 } rte_stream_type;
 
+typedef enum {
+  RTE_OPTION_BOOL,
+  RTE_OPTION_INT,
+  RTE_OPTION_REAL,
+  RTE_OPTION_STRING,
+  RTE_OPTION_MENU,
+} rte_option_type;
+
+typedef enum {
+  RTE_BOOL,
+  RTE_INT,
+  RTE_REAL,
+  RTE_STRING
+} rte_basic_type;
+
 /*
   Source parameters
   FIXME: A link to a doc explaining this modes would be nice (V4L2

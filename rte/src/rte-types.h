@@ -71,21 +71,6 @@ typedef struct {
 
 typedef struct _rte_codec rte_codec; /* opaque */
 
-typedef enum {
-  RTE_OPTION_BOOL = 1,
-  RTE_OPTION_INT,
-  RTE_OPTION_REAL,
-  RTE_OPTION_STRING,
-  RTE_OPTION_MENU,
-} rte_option_type;
-
-typedef enum {
-  RTE_BOOL = 1,
-  RTE_INT,
-  RTE_REAL,
-  RTE_STRING
-} rte_basic_type;
-
 typedef union {
   rte_int		num;
   rte_menu		idx;

@@ -178,8 +178,9 @@ rte_codec_info_codec(rte_codec *codec);
 /**
  * rte_codec_set:
  * @context: Initialized rte_context.
+ * @stream_type: RTE_STREAM_VIDEO, _AUDIO, ...
  * @stream_index: Elementary stream number.
- * @codec_keyword: Codec identifier, e.g. from rte_codec_info.
+ * @codec_keyword: Codec identifier, e.g. from rte_codec_info, or %NULL.
  * 
  * Assign this codec to encode data for the elementary stream of the
  * codec's type and @stream_index of the format this context stands for.
@@ -207,8 +208,8 @@ rte_codec_info_codec(rte_codec *codec);
  * mux / file format.
  **/
 rte_codec *
-rte_codec_set(rte_context *context, int stream_index,
-	      const char *codec_keyword);
+rte_codec_set(rte_context *context, rte_stream_type stream_type,
+	      int stream_index, const char *codec_keyword);
 
 /**
  * rte_codec_get:
@@ -695,5 +696,18 @@ rte_pause(rte_context *context);
  **/
 rte_bool
 rte_resume(rte_context *context);
+
+/**
+ * rte_last_error:
+ * @context: Initialized rte_context.
+ *
+ * When any rte call fails you can use this function to get a
+ * verbose description of the failure cause, if available.
+ *
+ * Return value: A statically allocated (do not free, valid until the
+ * next rte call) string describing the error. %NULL if it doesn't apply.
+ **/
+char *
+rte_last_error(rte_context *context);
 
 #endif /* rte.h */

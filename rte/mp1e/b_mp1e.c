@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.25 2001-12-16 18:06:31 garetxe Exp $ */
+/* $Id: b_mp1e.c,v 1.26 2001-12-17 19:00:33 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -50,10 +50,6 @@
 
 typedef struct {
 	rte_context context; /* Parent */
-
-	multiplexer *mux;
-
-	/* Experimental */
 
 	unsigned int codec_set;
 	rte_codec *video_codec;
@@ -90,22 +86,110 @@ codec_table[] = {
 
 static rte_codec_info * codec_enum (rte_context *context, int index)
 {
+	int i, j;
+
 	if (index < 0 || index >= NUM_CODECS)
 		return NULL;
 
-	return &codec_table[index]->public;
+	/* Enum just the available codecs for the context */
+	for (i=j=0; i<NUM_CODECS; i++)
+		if (context->class->public.elementary
+		    [codec_table[i]->public.stream_type]) {
+			if (j == index)
+				break;
+			else
+				j++;
+		}
+
+	if (i==NUM_CODECS)
+		return NULL; /* nothing else found */
+
+	return &codec_table[i]->public;
 }
 
 static rte_codec * codec_get (rte_context *context, rte_stream_type
 			      stream_type, int index)
 {
+	backend_private *priv = (backend_private*)context;
+	if (index)
+		return NULL; /* only one stream supported for now */
+
+	switch (stream_type) {
+	case RTE_STREAM_VIDEO:
+		return priv->video_codec;
+	case RTE_STREAM_AUDIO:
+		return priv->audio_codec;
+	default:
+		break;
+	}       
+
 	return NULL;
 }
 
-static rte_codec * codec_set (rte_context * context, int index,
+static rte_codec * codec_set (rte_context * context,
+			      rte_stream_type stream_type,
+			      int index,
 			      const char *keyword)
 {
-	return NULL;
+	backend_private *priv = (backend_private*)context;
+	rte_codec_class *cclass = NULL;
+	rte_codec *codec = NULL;
+	int i;
+
+	if (index)
+		return NULL; /* Unsupported */
+
+	for (i=0; keyword && i<NUM_CODECS; i++)
+		if (!strcmp(keyword, codec_table[i]->public.keyword)) {
+			cclass = codec_table[i];
+			if (stream_type != cclass->public.stream_type) {
+				rte_error(context, "Bad stream type "
+					  "for codec %s", keyword);
+				return NULL;
+			}
+			break;
+		}
+
+	if (!cclass && keyword) {
+		rte_error(context, "Codec %s not found", keyword);
+		return NULL;
+	}
+
+	switch (stream_type) {
+	case RTE_STREAM_VIDEO:
+		if (priv->video_codec) {
+			priv->video_codec->class->delete(priv->video_codec);
+			priv->video_codec = NULL;
+			priv->codec_set &= ~(1 << RTE_STREAM_VIDEO);
+		}
+
+		if (keyword) {
+			codec = cclass->new();
+			priv->video_codec = codec;
+			codec->context = context;
+			priv->codec_set |= (1 << RTE_STREAM_VIDEO);
+		}
+		break;
+	case RTE_STREAM_AUDIO:
+		if (priv->audio_codec) {
+			priv->audio_codec->class->delete(priv->audio_codec);
+			priv->audio_codec = NULL;
+			priv->codec_set &= ~(1 << RTE_STREAM_AUDIO);
+		}
+
+		if (keyword) {
+			codec = cclass->new();
+			priv->audio_codec = codec;
+			codec->context = context;
+			priv->codec_set |= (1 << RTE_STREAM_AUDIO);
+		}
+		break;
+	default:
+		assert(!"reached");
+		break;
+	}
+
+	return codec;
 }
 
 static rte_bool context_start (rte_context *context)
@@ -138,7 +222,7 @@ mp1e_mpeg1_ps_context = {
 		.mime_type	= "video/x-mpeg",
 		.extension	= "mpg,mpe,mpeg",
 
-		.elementary	= { 0, 1, 1 }, /* to be { 0, 16, 32 }, */
+		.elementary	= { 1, 1 }, /* to be { 16, 32 }, */
 	},
 };
 
@@ -152,7 +236,7 @@ mp1e_mpeg1_vcd_context = {
 		.mime_type	= "video/x-mpeg",
 		.extension	= "mpg,mpe,mpeg",
 
-		.elementary	= { 0, 1, 1 }, /* to be { 0, 16, 32 }, */
+		.elementary	= { 1, 1 }, /* to be { 16, 32 }, */
 	},
 };
 
@@ -166,7 +250,7 @@ mp1e_mpeg1_video_context = {
 		.mime_type	= "video/mpeg",
 		.extension	= "mpg,mpe,mpeg",
 
-		.elementary	= { 0, 1, 0 },
+		.elementary	= { 1, 0 },
 	},
 };
 
@@ -180,7 +264,7 @@ mp1e_mpeg1_audio_context = {
 		.mime_type	= "audio/mpeg",
 		.extension	= "mp2,mpga", /* note */
 
-		.elementary	= { 0, 0, 1 },
+		.elementary	= { 0, 1 },
 	},
 };
 
@@ -262,6 +346,9 @@ static rte_context *context_new(const char *keyword)
 
 	return context;
 }
+
+/* Globals required by mp1e */
+int verbose = 0;
 
 const
 rte_backend_info b_mp1e_info =
