@@ -438,6 +438,8 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 	      gdk_window_set_background(window->window, &chroma);
 	      gdk_colormap_free_colors(gdk_colormap_get_system(), &chroma,
 				       1);
+	      gdk_window_clear_area_e(window->window, 0, 0, tv_info.w,
+				      tv_info.h);
 	      tv_info.needs_cleaning = FALSE;
 	    }
 	  else

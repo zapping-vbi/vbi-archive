@@ -90,25 +90,41 @@ build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
   gtk_clist_thaw(clist);
 }
 
+static void
+on_hscale1_value_changed               (GtkAdjustment		*adj,
+                                        tveng_device_info	*info)
+{
+  if (info->inputs[info->cur_input].tuners)
+    tveng_tune_input(adj->value, main_info);
+}
+
 /* Tunes the current input and updates hscale1 */
-static int channel_editor_tune_input(__u32 freq, tveng_device_info * info)
+static void
+set_slider(__u32 freq, gpointer widget, tveng_device_info *info)
 {
   GtkAdjustment * adj;
-  GtkWidget * hscale1 = lookup_widget(ChannelWindow, "hscale1");
+  GtkWidget * hscale1 =
+    lookup_widget(GTK_WIDGET(widget), "hscale1");
 
+  if (!freq ||
+      !info->inputs[info->cur_input].tuners)
+    {
+      gtk_widget_set_sensitive(hscale1, FALSE);
+      return;
+    }
+
+  gtk_widget_set_sensitive(hscale1, TRUE);
   adj = GTK_ADJUSTMENT(gtk_adjustment_new(freq -1, freq - 1e4, freq + 1e4,
 					 2e2, 1e3, 0));
 
   gtk_range_set_adjustment(GTK_RANGE(hscale1), adj);
   gtk_adjustment_set_value(adj, freq); /* ugly evil dirty hack */
   gtk_signal_connect(GTK_OBJECT(adj), "value-changed",
-		     on_hscale1_value_changed, NULL);
-
-  return (tveng_tune_input(freq, info));
+		     GTK_SIGNAL_FUNC(on_hscale1_value_changed), info);
 }
 
 /* Called when the current country selection has been changed */
-void
+static void
 on_country_switch                      (GtkWidget       *menu_item,
 					tveng_channels  *country)
 {
@@ -173,6 +189,11 @@ static void rebuild_inputs_standards(gpointer ignored,
     gtk_menu_append(GTK_MENU (NewMenu), menu_item);
   }
 
+  if (main_info->num_standards)
+    z_option_menu_set_active(standard, main_info->cur_standard+1);
+  else
+    z_option_menu_set_active(standard, 0);
+
   gtk_option_menu_set_menu (GTK_OPTION_MENU (standard), NewMenu);
 
   NewMenu = gtk_menu_new ();
@@ -189,7 +210,63 @@ static void rebuild_inputs_standards(gpointer ignored,
     gtk_menu_append(GTK_MENU (NewMenu), menu_item);
   }
 
+  if (main_info->num_inputs)
+    z_option_menu_set_active(input, main_info->cur_input+1);
+  else
+    z_option_menu_set_active(input, 0);
+
   gtk_option_menu_set_menu (GTK_OPTION_MENU (input), NewMenu);
+}
+
+static void
+on_known_keys_clicked			(GtkWidget	*button,
+					 GtkWidget	*channel_editor)
+{
+  GtkWidget *dialog = create_widget("choose_key");
+  GtkWidget *key_clist = lookup_widget(dialog, "key_clist");
+  GtkWidget *channel_accel= lookup_widget(channel_editor, "channel_accel");
+  gint i;
+  gchar *tmp[1];
+  gchar *buffer;
+  gint selected = -1;
+  GList *ptr;
+
+  buffer = gtk_entry_get_text(GTK_ENTRY(channel_accel));
+
+  for (i=0; i<num_keysyms; i++)
+    {
+      tmp[0] = keysyms[i];
+      gtk_clist_append(GTK_CLIST(key_clist), tmp);
+      if (buffer && !strcasecmp(buffer, keysyms[i]))
+	selected = i;
+    }
+
+  if (selected >= 0)
+    {
+      gtk_clist_moveto(GTK_CLIST(key_clist), selected, 0, 0.5, 0.5);
+      gtk_clist_select_row(GTK_CLIST(key_clist), selected, 0);
+    }
+
+  if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+    {
+      ptr = GTK_CLIST(key_clist) -> row_list;
+      i = 0;
+
+      /* get first selected row */
+      while (ptr)
+	{
+	  if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
+	    break;
+
+	  ptr = ptr -> next;
+	  i++;
+	}
+
+      if (ptr)
+	gtk_entry_set_text(GTK_ENTRY(channel_accel), keysyms[i]);
+    }
+
+  gtk_widget_destroy(dialog);
 }
 
 void
@@ -204,8 +281,6 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
   GtkWidget * new_menu;
   GtkWidget * menu_item = NULL;
 
-  GtkWidget * combo1;
-
   int i = 0;
   int currently_tuned_country = 0;
 
@@ -213,19 +288,9 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
   tveng_tuned_channel * tuned_channel;
   tveng_tuned_channel * list = NULL;
 
-  GList * keylist = NULL;
-
   if (ChannelWindow)
     {
       gdk_window_raise(ChannelWindow->window);
-      return;
-    }
-
-  if ((main_info->num_inputs == 0) ||
-      (main_info->inputs[main_info->cur_input].tuners == 0))
-    {
-      ShowBox(_("Sorry, but the current input has no tuners"),
-	      GNOME_MESSAGE_BOX_ERROR);
       return;
     }
 
@@ -284,18 +349,14 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
 
   gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
 
-  combo1 = lookup_widget(channel_window, "combo1");
-
-  for (i=0; i<num_keysyms; i++)
-    keylist = g_list_append(keylist, keysyms[i]);
-
-  gtk_combo_set_popdown_strings(GTK_COMBO(combo1), keylist);
-
-  g_list_free(keylist);
-
   rebuild_inputs_standards(NULL, channel_window);
   gtk_signal_connect(GTK_OBJECT(z_input_model), "changed",
 		     GTK_SIGNAL_FUNC(rebuild_inputs_standards),
+		     channel_window);
+
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(channel_window, "known_keys")),
+		     "clicked",
+		     GTK_SIGNAL_FUNC(on_known_keys_clicked),
 		     channel_window);
 
   gtk_widget_show(channel_window);
@@ -380,7 +441,8 @@ on_add_channel_clicked                 (GtkButton       *button,
     tc.country = current_country -> name;
   else
     tc.country = NULL;
-  tveng_get_tune(&tc.freq, main_info);
+  if (main_info->inputs[main_info->cur_input].tuners)
+    tveng_get_tune(&tc.freq, main_info);
   tc.accel_key = 0;
   buffer = gtk_entry_get_text(GTK_ENTRY(channel_accel));
   if (buffer)
@@ -599,7 +661,14 @@ on_clist1_select_row                   (GtkCList        *clist,
       return;
     }
 
-  channel_editor_tune_input (selected_channel->freq, main_info);
+  if (!main_info->inputs[main_info->cur_input].tuners)
+    return;
+
+  if (-1 == tveng_tune_input(selected_channel->freq, main_info))
+    g_warning("Cannot tune input at %d: %s", selected_channel->freq,
+	      main_info->error);
+  else
+    set_slider(selected_channel->freq, clist, main_info);
 }
 
 gboolean
@@ -612,8 +681,6 @@ on_channel_window_delete_event         (GtkWidget       *widget,
   tveng_tuned_channel * list =
     gtk_object_get_data(GTK_OBJECT(widget), "list");
 
-  ChannelWindow = NULL; /* No more channel window */
-
   tveng_clear_tuned_channel(list);
 
   gtk_signal_disconnect_by_func(GTK_OBJECT(z_input_model),
@@ -624,6 +691,8 @@ on_channel_window_delete_event         (GtkWidget       *widget,
 
   /* Set the menuentry sensitive again */
   gtk_widget_set_sensitive(related_menuitem, TRUE);
+
+  ChannelWindow = NULL; /* No more channel window */
 
   return FALSE;
 }
@@ -698,7 +767,6 @@ on_channel_list_select_row             (GtkCList        *clist,
   tveng_channel * channel;
   int country_id;
   int channel_id;
-  int mute = 0; /* Whether the device was previously muted */
   GtkWidget * country_options_menu = lookup_widget(GTK_WIDGET (clist),
 						   "country_options_menu");
   GtkWidget * clist1 = lookup_widget(GTK_WIDGET(clist), "clist1");
@@ -785,6 +853,14 @@ on_channel_list_select_row             (GtkCList        *clist,
       gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), FALSE);
     }
 
+  /* Tune to this channel's freq */
+  z_switch_channel(list, main_info);
+
+  if (main_info->inputs[main_info->cur_input].tuners)
+    set_slider(list->freq, channel_accel, main_info);
+  else
+    set_slider(0, channel_accel, main_info);
+
   widget = lookup_widget(channel_accel, "attached_standard");
   if (list->standard)
     {
@@ -808,27 +884,6 @@ on_channel_list_select_row             (GtkCList        *clist,
     }
   else
     z_option_menu_set_active(widget, 0);
-
-  /* Tune to this channel's freq */
-  if (zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"))
-    {
-      mute = tveng_get_mute(main_info);
-      
-      if (!mute)
-	tveng_set_mute(1, main_info);
-    }
-
-  if (-1 == channel_editor_tune_input (list->freq, main_info))
-    ShowBox(main_info -> error, GNOME_MESSAGE_BOX_ERROR);
-
-  if (zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"))
-    {
-      /* Sleep a little so the noise dissappears */
-      usleep(100000);
-      
-      if (!mute)
-	tveng_set_mute(0, main_info);
-    }
 }
 
 /*
@@ -849,13 +904,6 @@ on_channel_list_key_press_event        (GtkWidget       *widget,
     }
 
   return FALSE;
-}
-
-void
-on_hscale1_value_changed               (GtkAdjustment   *adj,
-                                        gpointer         user_data)
-{
-  tveng_tune_input(adj->value, main_info);
 }
 
 static

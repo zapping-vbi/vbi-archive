@@ -585,7 +585,7 @@ z_switch_input			(int hash, tveng_device_info *info)
 
   if (!input)
     {
-      ShowBox("Couldn't find input with hash %d",
+      ShowBox("Couldn't find input with hash %x",
 	      GNOME_MESSAGE_BOX_ERROR, hash);
       return;
     }
@@ -609,8 +609,9 @@ z_switch_standard		(int hash, tveng_device_info *info)
 
   if (!standard)
     {
-      ShowBox("Couldn't find standard with hash %d",
-	      GNOME_MESSAGE_BOX_ERROR, hash);
+      if (info->num_standards)
+	ShowBox("Couldn't find standard with hash %x",
+		GNOME_MESSAGE_BOX_ERROR, hash);
       return;
     }
 
@@ -623,6 +624,40 @@ z_switch_standard		(int hash, tveng_device_info *info)
 	    standard->name, info->error);
   else
     zmodel_changed(z_input_model);
+}
+
+void
+z_switch_channel	(tveng_tuned_channel	*channel,
+			 tveng_device_info	*info)
+{
+  int mute=0;
+
+  if (zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"))
+    {
+      mute = tveng_get_mute(info);
+      
+      if (!mute)
+	tveng_set_mute(1, info);
+    }
+
+  if (channel->input)
+    z_switch_input(channel->input, info);
+
+  if (channel->standard)
+    z_switch_standard(channel->standard, info);
+
+  if (info->num_inputs && info->inputs[info->cur_input].tuners)
+    if (-1 == tveng_tune_input (channel->freq, info))
+      ShowBox(info -> error, GNOME_MESSAGE_BOX_ERROR);
+
+  if (zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"))
+    {
+      /* Sleep a little so the noise dissappears */
+      usleep(100000);
+      
+      if (!mute)
+	tveng_set_mute(0, info);
+    }
 }
 
 void

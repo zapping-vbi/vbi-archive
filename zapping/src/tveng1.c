@@ -531,9 +531,6 @@ int tveng1_set_input(struct tveng_enum_input * input,
   t_assert(info != NULL);
   t_assert(input != NULL);
 
-  if (info->debug_level > 0)
-    fprintf(stderr, "setting input %s\n", input->name);
-
   /* If this input has no tuner, switch to an input with a tuner and
      set the given standard. This fixes the V4L1 design flaw */
   if ((input->tuners == 0) || (!(input->flags & TVENG_INPUT_TUNER)))

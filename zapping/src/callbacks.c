@@ -222,7 +222,6 @@ void on_channel_activate              (GtkMenuItem     *menuitem,
 				       gpointer        user_data)
 {
   gint num_channel = GPOINTER_TO_INT(user_data);
-  int mute = 0;
 
   tveng_tuned_channel * channel =
     tveng_retrieve_tuned_channel_by_index(num_channel, global_channel_list);
@@ -234,32 +233,7 @@ void on_channel_activate              (GtkMenuItem     *menuitem,
       return;
     }
 
-  if (zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"))
-    {
-      mute = tveng_get_mute(main_info);
-      
-      if (!mute)
-	tveng_set_mute(1, main_info);
-    }
-
-  if (channel->standard)
-    z_switch_standard(channel->standard, main_info);
-
-  if (channel->input)
-    z_switch_input(channel->input, main_info);
-
-  if (tveng_tune_input(channel->freq, main_info) == -1) /* Set the
-						       input freq*/
-    ShowBox(_("Cannot tune input"), GNOME_MESSAGE_BOX_ERROR);
-
-  if (zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"))
-    {
-      /* Sleep a little so the noise dissappears */
-      usleep(100000);
-      
-      if (!mute)
-	tveng_set_mute(0, main_info);
-    }
+  z_switch_channel(channel, main_info);
 
   cur_tuned_channel = num_channel; /* Set the current channel to this */
 }

@@ -183,11 +183,6 @@ void
 on_channels1_activate                  (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
-
-void
-on_country_switch                      (GtkWidget       *menu_item,
-					tveng_channels  *country);
-
 void
 on_channel_name_activate               (GtkEditable     *editable,
                                         gpointer         user_data);
@@ -251,10 +246,6 @@ on_cancel_search_clicked               (GtkButton       *button,
 gboolean
 on_searching_delete_event              (GtkWidget       *widget,
                                         GdkEvent        *event,
-                                        gpointer         user_data);
-
-void
-on_hscale1_value_changed               (GtkAdjustment   *adj,
                                         gpointer         user_data);
 
 /******************************************************************************

@@ -1,3 +1,7 @@
+24.3.2001	channel editor <garetxe@users.sourceforge.net>
+
+	* src/channel_editor.c: Completed new channel code.
+
 24.3.2001	ttxview.c <mschimek@users.sourceforge.net>
 
 	* ttxview.c & exp_txt.c: Improved wrapping selection of double-h/w/s

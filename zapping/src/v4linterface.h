@@ -19,6 +19,7 @@
 #ifndef __V4LINTERFACE_H__
 #define __V4LINTERFACE_H__
 
+#include "frequencies.h"
 #include "zmodel.h"
 
 /* 
@@ -48,6 +49,13 @@ z_switch_input			(int hash, tveng_device_info *info);
  */
 void
 z_switch_standard		(int hash, tveng_device_info *info);
+
+/**
+ * Sets the given channel.
+ */
+void
+z_switch_channel		(tveng_tuned_channel	*channel,
+				 tveng_device_info	*info);
 
 /* Do the startup/shutdown */
 void startup_v4linterface	(tveng_device_info *info);

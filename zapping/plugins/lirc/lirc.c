@@ -248,8 +248,6 @@ void plugin_save_config (gchar * root_key)
   action_list_item *item;
   int i=0;
 
-  printv("lirc plugin: saving configuration\n");
-
   /* This one is compulsory, you won't need to change it */
   buffer = g_strconcat(root_key, "autostart", NULL);
   zconf_set_boolean(active, buffer);
@@ -265,8 +263,6 @@ void plugin_save_config (gchar * root_key)
     item = item->next;
     g_free(buffer);
   }
-
-  /* Save here any other config keys you need to save */
 }
 
 static

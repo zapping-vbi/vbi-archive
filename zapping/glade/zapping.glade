@@ -1970,14 +1970,10 @@ in the next release of this program.</label>
 	</widget>
 
 	<widget>
-	  <class>GtkCombo</class>
-	  <name>combo1</name>
-	  <value_in_list>False</value_in_list>
-	  <ok_if_empty>True</ok_if_empty>
-	  <case_sensitive>False</case_sensitive>
-	  <use_arrows>True</use_arrows>
-	  <use_arrows_always>False</use_arrows_always>
-	  <items></items>
+	  <class>GtkHBox</class>
+	  <name>hbox31</name>
+	  <homogeneous>False</homogeneous>
+	  <spacing>0</spacing>
 	  <child>
 	    <padding>0</padding>
 	    <expand>False</expand>
@@ -1986,13 +1982,32 @@ in the next release of this program.</label>
 
 	  <widget>
 	    <class>GtkEntry</class>
-	    <child_name>GtkCombo:entry</child_name>
 	    <name>channel_accel</name>
+	    <tooltip>Enter here the key you want to attach to this channel</tooltip>
 	    <can_focus>True</can_focus>
 	    <editable>True</editable>
 	    <text_visible>True</text_visible>
 	    <text_max_length>0</text_max_length>
 	    <text></text>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GtkButton</class>
+	    <name>known_keys</name>
+	    <tooltip>Open the list of known keys</tooltip>
+	    <can_focus>True</can_focus>
+	    <label>...</label>
+	    <relief>GTK_RELIEF_NORMAL</relief>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
 	  </widget>
 	</widget>
       </widget>
@@ -4178,6 +4193,106 @@ in the next release of this program.</label>
 	  <class>GtkLabel</class>
 	  <name>label207</name>
 	  <label>label207</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	</widget>
+      </widget>
+    </widget>
+  </widget>
+</widget>
+
+<widget>
+  <class>GnomeDialog</class>
+  <name>choose_key</name>
+  <height>378</height>
+  <title>Known key names</title>
+  <type>GTK_WINDOW_DIALOG</type>
+  <position>GTK_WIN_POS_NONE</position>
+  <modal>True</modal>
+  <allow_shrink>False</allow_shrink>
+  <allow_grow>False</allow_grow>
+  <auto_shrink>False</auto_shrink>
+  <auto_close>True</auto_close>
+  <hide_on_close>True</hide_on_close>
+
+  <widget>
+    <class>GtkVBox</class>
+    <child_name>GnomeDialog:vbox</child_name>
+    <name>dialog-vbox8</name>
+    <homogeneous>False</homogeneous>
+    <spacing>8</spacing>
+    <child>
+      <padding>4</padding>
+      <expand>True</expand>
+      <fill>True</fill>
+    </child>
+
+    <widget>
+      <class>GtkHButtonBox</class>
+      <child_name>GnomeDialog:action_area</child_name>
+      <name>dialog-action_area8</name>
+      <layout_style>GTK_BUTTONBOX_END</layout_style>
+      <spacing>8</spacing>
+      <child_min_width>85</child_min_width>
+      <child_min_height>27</child_min_height>
+      <child_ipad_x>7</child_ipad_x>
+      <child_ipad_y>0</child_ipad_y>
+      <child>
+	<padding>0</padding>
+	<expand>False</expand>
+	<fill>True</fill>
+	<pack>GTK_PACK_END</pack>
+      </child>
+
+      <widget>
+	<class>GtkButton</class>
+	<name>button29</name>
+	<can_default>True</can_default>
+	<can_focus>True</can_focus>
+	<stock_button>GNOME_STOCK_BUTTON_OK</stock_button>
+      </widget>
+
+      <widget>
+	<class>GtkButton</class>
+	<name>button31</name>
+	<can_default>True</can_default>
+	<can_focus>True</can_focus>
+	<stock_button>GNOME_STOCK_BUTTON_CANCEL</stock_button>
+      </widget>
+    </widget>
+
+    <widget>
+      <class>GtkScrolledWindow</class>
+      <name>scrolledwindow14</name>
+      <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+      <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+      <child>
+	<padding>0</padding>
+	<expand>True</expand>
+	<fill>True</fill>
+      </child>
+
+      <widget>
+	<class>GtkCList</class>
+	<name>key_clist</name>
+	<can_focus>True</can_focus>
+	<columns>1</columns>
+	<column_widths>80</column_widths>
+	<selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+	<show_titles>True</show_titles>
+	<shadow_type>GTK_SHADOW_IN</shadow_type>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <child_name>CList:title</child_name>
+	  <name>label209</name>
+	  <label>Keys</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>
