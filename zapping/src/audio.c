@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.18 2003-12-01 04:28:51 mschimek Exp $ */
+/* $Id: audio.c,v 1.19 2003-12-08 07:20:39 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -635,8 +635,8 @@ set_mute				(gint	        mode,
 			     _("<blue>Audio off</blue>") :
 			     _("<yellow>Audio on</yellow>"));
 #else /* right */
-			     _("<span foreground=\"blue\">Audio off</span>") :
-			     _("<span foreground=\"yellow\">Audio on</span>"));
+			         (	"<span foreground=\"blue\">Audio off</span>") :
+			         (	"<span foreground=\"yellow\">Audio on</span>"));
 #endif
       }
   }

@@ -2,7 +2,7 @@
 
 glade/zapping.glade2
 plugins/alirc/alirc.c
-plugins/lirc/lirc.c
+# plugins/lirc/lirc.c
 plugins/mpeg/mpeg.c
 plugins/mpeg/options.c
 plugins/mpeg/mpeg_properties.glade2

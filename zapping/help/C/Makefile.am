@@ -1,4 +1,4 @@
-figs =
+figdir = figures
 docname = zapping
 lang = C
 omffile = zapping-C.omf

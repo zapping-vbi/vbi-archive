@@ -1,21 +1,13 @@
 <?xml version="1.0"?>
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" 
 "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
-  <!ENTITY legal SYSTEM "legal.xml">
+  <!ENTITY legal SYSTEM "fdl-appendix.xml">
   <!ENTITY appversion "0.7">
-  <!ENTITY manrevision "0.0">
-  <!ENTITY date "December 9999">
+  <!ENTITY manrevision "0.1">
+  <!ENTITY date "December 2003">
   <!ENTITY app "<application>Zapping</application>">
-  <!-- Information about the entities
-       The legal.xml file contains legal information, there is no need
-       to edit the file. Use the appversion entity to specify the
-       version of the application. Use the manrevision entity to specify
-       the revision number of this manual. Use the date entity to
-       specify the release date of this manual. Use the app entity to
-       specify the name of the application. -->
 ]>
 <!-- 
-      (Do not remove this comment block.)
   Maintained by the GNOME Documentation Project
   http://developer.gnome.org/projects/gdp
   Template version: 2.0 beta
@@ -26,32 +18,28 @@
 <!-- please do not change the id; for translations, change lang to -->
 <!-- appropriate code -->
   <articleinfo> 
-    <title>&app; Manual V&manrevision;</title>       
+    <title>&app; Manual &manrevision;</title>       
 
     <copyright> 
-      <year>2002</year>
+      <year>2003</year>
       <holder>Michael H. Schimek</holder> 
     </copyright>
 <!-- translators: uncomment this:
 
   <copyright>
-   <year>2002</year>
+   <year>2003</year>
    <holder>ME-THE-TRANSLATOR (Latin translation)</holder>
   </copyright>
 
    -->
-<!-- An address can be added to the publisher information.  If a role is 
-     not specified, the publisher/author is the same for all versions of the 
-     document. -->
-<!--
-    <publisher> 
-      <publishername> GNOME Documentation Project </publishername> 
-    </publisher> 
--->
+
    &legal;
-   <!-- This file  contains link to license for the documentation (GNU FDL), and 
-        other legal stuff such as "NO WARRANTY" statement. Please do not change 
-	any of this. -->
+	<varlistentry>
+	  <term><guilabel>Enable VBI decoding</guilabel></term>
+	    <listitem>
+	      <para></para>
+	    </listitem>
+	  </varlistentry>
 
     <authorgroup> 
       <author> 
@@ -85,9 +73,8 @@
 
 <!-- According to GNU FDL, revision history is mandatory if you are -->
 <!-- modifying/reusing someone else's document.  If not, you can omit it. -->
-<!-- Remember to remove the &manrevision; entity from the revision entries other
--->
-<!-- than the current revision. -->
+<!-- Remember to remove the &manrevision; entity from the revision -->
+<!-- entries other than the current revision. -->
 <!-- The revision numbering system for GNOME manuals is as follows: -->
 <!-- * the revision number consists of two components -->
 <!-- * the first component of the revision number reflects the release version of the GNOME desktop. -->
@@ -99,7 +86,7 @@
 <!--
     <revhistory>
       <revision> 
-	<revnumber>Zapping Manual V&manrevision;</revnumber> 
+	<revnumber>&app; Manual &manrevision;</revnumber> 
 	<date>&date;</date> 
 	<revdescription> 
 	  <para role="author">Documentation Writer 2
@@ -122,7 +109,7 @@
       </revision> 
     </revhistory> 
 -->
-    <releaseinfo>This manual describes version &appversion; of Zapping.
+    <releaseinfo>This manual describes version &appversion; of &app;.
     </releaseinfo> 
     <legalnotice> 
       <title>Feedback</title> 
@@ -142,13 +129,80 @@
   </indexterm>
 
 <!-- ============= Document Body ============================= -->
-<!-- ============= Introduction ============================== -->
+
   <sect1 id="zapping-introduction"> 
     <title>Introduction</title>
-    <para></para>
+
+    <para>With the &app; application you can watch TV, take Screenshots and
+record video and audio. You can browse Teletext. Closed Caption and Teletext subtitles are supported.</para>
+
+    <para>This document describes version 0.7 of &app;.</para>
+  </sect1>
+
+  <sect1 id="zapping-getting-started"> 
+    <title>Getting Started</title> 
+
+    <sect2 id="zapping-install">
+      <title>Installation</title>
+
+      <para></para>
+
+      <variablelist>
+	<varlistentry>
+	  <term>Video4Linux or Video4Linux2 kernel device</term>
+	  <listitem>
+	    <para></para>
+	    <para>When your TV card supports video overlay the
+appearance can be improved by enabling the XFree86 V4L driver. Open
+the file <filename>/etc/X11/XF86Config</filename> and add
+<userinput>Load "v4l"</userinput> to the module section:</para>
+	    <programlisting>
+Section "Module"
+        Load  "dbe"
+        Load  "extmod"
+        &hellip;
+        Load  "v4l"
+EndSection
+</programlisting>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>XVideo device</term>
+	  <listitem>
+	    <para></para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+
+    <sect2 id="zapping-start">
+      <title>To Start Zapping</title>
+
+      <para>You can start &app; in the following ways:</para>
+      <variablelist>
+	<varlistentry>
+	  <term><guimenu>Applications</guimenu> menu</term>
+    	  <listitem>
+    	    <para>Choose <menuchoice><guisubmenu>Sound and
+Video</guisubmenu>
+		<guimenuitem>Zapping</guimenuitem></menuchoice>.</para>
+          </listitem>
+    	</varlistentry>
+    	<varlistentry>
+    	  <term>Command line</term>
+    	  <listitem>
+    	    <para>To start &app; from a command line, type the
+following command, then press <keycap>Return</keycap>:</para>
+            <para><command>zapping</command></para> 
+          </listitem>
+    	</varlistentry>
+      </variablelist>
+    </sect2>
+
   </sect1>
 
 <!-- =========== Getting Started ============================== -->
+
 <!-- Use the Getting Started section to describe the steps required
      to start the application and to describe the user interface components
      of the application. If there is other information that it is important
@@ -157,15 +211,15 @@
      If the information about how to get started is very short, you can 
      include it in the Introduction and omit this section. -->
 
-  <sect1 id="zapping-getting-started"> 
+  <sect1 id="zapp_ing-getting-started"> 
     <title>Getting Started</title> 
 
-    <sect2 id="zapping-install">
+    <sect2 id="zap_ping-install">
       <title>Installation</title>
       <para></para>
     </sect2>
 
-    <sect2 id="zapping-start">
+    <sect2 id="za_pping-start">
     <title>To Start &app;</title>
     <para>You can start <application>&app;</application> in the
     following ways:</para> 
@@ -190,7 +244,7 @@
       </variablelist>
     </sect2>
 
-    <sect2 id="zaspping-when-start">
+    <sect2 id="za_pping-when-start">
     <title>When You Start &app;</title>
     <para>When you start <application>&app;</application>, the
     following window is displayed.</para>
@@ -416,8 +470,10 @@
   </sect1>
   <!-- ============= Customization ============================= -->
   <!-- Use this section to describe how to customize the application. -->
-  <sect1 id="myapp-prefs"> 
+
+  <sect1 id="zapping-settings"> 
     <title>Settings</title> 
+
     <para>To configure &app;, choose 
       <menuchoice> 
 	<guimenu>Settings</guimenu> 
@@ -435,6 +491,447 @@
 	  <xref linkend="myapp-prefs-viewers"/></para> 
       </listitem> 
     </itemizedlist>
+
+    <sect2 id="zapping-preferences">
+      <title>Preferences</title>
+
+      <para></para>
+
+      <sect3>
+	<title>Video Device</title>
+
+	<para>In this section you can select the device file name of
+the kernel device to be used in capture mode. Common names are:</para>
+	<simplelist>
+	  <member><filename>/dev/video</filename></member>
+	  <member><filename>/dev/video0</filename></member>
+	  <member><filename>/dev/video1</filename></member>
+	  <member><filename>/dev/video2</filename></member>
+	  <member><filename>/dev/v4l/video</filename></member>
+	  <member><filename>/dev/v4l/video0</filename></member>
+	</simplelist>
+
+	<para>Changes will take place after you quit and restart
+&app;.</para>
+
+	<para>There is no dialog to select an XVideo device, &app;
+will use the first device it finds. To be corrected in a future
+version.</para>
+      </sect3>
+
+      <sect3>
+	<title>Audio Device</title>
+
+	<para>Here you can select an audio device to record sound.
+Usually a kernel device is the best choice because &app; has better
+control over what is recorded. If your TV card has audio sampling
+hardware and the driver supports this, you can also select the TV card
+as recording device. This will free the soundcard to record from other
+sources.</para>
+
+	<para>Common kernel device names are
+<filename>/dev/dsp</filename>, <filename>/dev/dsp0</filename>,
+<filename>/dev/dsp1</filename> and so on. Click on the down arrow of
+the device file entry to see a list of devices found by &app;.</para>
+
+	<para>If the audio output of your TV card connects to the
+audio input of your soundcard, or when your TV card has no audio
+capabilities you will want to select <guilabel>Control volume with
+soundcard mixer</guilabel>. This has two advantages:</para>
+
+	<itemizedlist>
+	  <listitem>
+	    <para>&app; will properly set the volume control on the
+soundcard mixer and the TV card, you do not have to start a mixer
+application.</para>
+	  </listitem>
+	  <listitem>
+	    <para>When you change the volume or mute audio, recording
+is not affected.</para>
+	  </listitem>
+	</itemizedlist>
+
+	<para>If you selected a soundcard as audio recording device,
+you <emphasis>must</emphasis> enable this option to select an audio
+input line.</para>
+
+	<para>Common mixer device names are
+<filename>/dev/mixer</filename>, <filename>/dev/mixer0</filename>,
+<filename>/dev/mixer1</filename> and so on. Click on the down arrow of
+the device file entry to see a list of devices found by &app;.</para>
+      </sect3>
+
+      <sect3>
+	<title>Main Window</title>
+
+	<para>You can set the following preferences:</para>
+
+	<variablelist>
+	  <varlistentry>
+	    <term><guilabel>Save window geometry</guilabel></term>
+	    <listitem>
+	      <para>&app; does not support session management yet.
+When this option is selected, it will save the window geometry on exit
+and restore on startup in a non-standard way.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Show tooltips</guilabel></term>
+	    <listitem>
+	      <para></para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Disable screensaver</guilabel></term>
+	    <listitem>
+	      <para>In video mode (not Teletext mode) disable the
+screensaver from blanking the screen.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Save control values per channel</guilabel></term>
+	    <listitem>
+	      <para>When this option is selected &app; will save and
+restore brightness, contrast, audio volume and other settings when you
+switch channels.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Enter channels by</guilabel></term>
+	    <listitem>
+	      <para>When you enter channel numbers on the numeric
+keypad or with your remote control, &app; can interpret the numbers
+differently. In the United States you will want to choose by RF
+channel number (1 to 125). You can also choose by the number of the
+channel in the channel list, the first channel has number 0.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Title bar contents</guilabel></term>
+	    <listitem>
+	      <para>Here you can customize the appearance of the main
+window title bar. You can enter a string which is displayed literally,
+except for the following jokers:</para>
+	      <variablelist>
+		<varlistentry>
+		  <term><userinput>$(alias)</userinput></term>
+		  <listitem>
+		    <para>Name of the current channel, e.g. BBC1</para>
+		  </listitem>
+		</varlistentry>
+		<varlistentry>
+		  <term><userinput>$(index)</userinput></term>
+		  <listitem>
+		    <para>Number in the channel list</para>
+		  </listitem>
+		</varlistentry>
+		<varlistentry>
+		  <term><userinput>$(id)</userinput></term>
+		  <listitem>
+		    <para>RF channel name, e.g. S02</para>
+		  </listitem>
+		</varlistentry>
+		<varlistentry>
+		  <term><userinput>$(freq)</userinput></term>
+		  <listitem>
+		    <para>Tuning frequency</para>
+		  </listitem>
+		</varlistentry>
+		<varlistentry>
+		  <term><userinput>$(standard)</userinput></term>
+		  <listitem>
+		    <para>Video standard (PAL, NTSC, SECAM, &hellip;)</para>
+		  </listitem>
+		</varlistentry>
+		<varlistentry>
+		  <term><userinput>$(input)</userinput></term>
+		  <listitem>
+		    <para>Current video input on the TV card</para>
+		  </listitem>
+		</varlistentry>
+	      </variablelist>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </sect3>
+
+      <sect3>
+	<title>Video Options</title>
+
+	<para>You can set the following preferences:</para>
+
+	<variablelist>
+	  <varlistentry>
+	    <term><guilabel>Fullscreen video resolution</guilabel></term>
+	    <listitem>
+	      <para>When switching to fullscreen display mode, &app;
+cannot enlarge the video to cover the whole screen, but it can change
+the display resolution to approximately the size of the video. Here
+you can select a particular resolution, automatic selection, or no
+change of display resolution.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Capture size under XVideo</guilabel></term>
+	    <listitem>
+	      <para>With the XVideo extension the image scaling
+hardware of your graphics card can be used to display captured video
+at nearly any size. You can select the size of the captured
+video:</para>
+	      <variablelist>
+		<varlistentry>
+		  <term><guilabel>320 x 240</guilabel></term>
+		  <listitem>
+		    <para>Fixed size 320 x 240 pixels</para>
+		  </listitem>
+		</varlistentry>
+		<varlistentry>
+		  <term><guilabel>Interlaced (window size)</guilabel></term>
+		  <listitem>
+		    <para>The largest size supported by the video
+capture hardware, or the window size if smaller</para>
+		  </listitem>
+		</varlistentry>
+		<varlistentry>
+		  <term><guilabel>Biggest noninterlaced</guilabel></term>
+		  <listitem>
+		    <para>Interlaced video looks funny when scaled.
+This mode is similar to <guilabel>Interlaced</guilabel>, except
+noninterlaced video will be captured.</para>
+		  </listitem>
+		</varlistentry>
+	      </variablelist>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Favorite picture sizes</guilabel></term>
+	    <listitem>
+	      <para>Here you can customize the
+<guimenu>Appearance</guimenu> submenu of the main window context menu.
+To add new line, click on the <guibutton>Add</guibutton> button. To
+remove a line, click on the line and then the
+<guibutton>Remove</guibutton> button. To change values, click on a
+line and then the desired column.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Resize using fixed increments</guilabel></term>
+	    <listitem>
+	      <para>When you select this option, the video window can only assume sizes which are a multiple of 32 pixels.</para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </sect3>
+
+      <sect3>
+	<title>Keyboard</title>
+
+	<para>In this section you can customize accelerators. Note
+that built-in accelerators such as those associated with menus or
+channel number entering on the numeric keypad take precedence.</para>
+
+	<para>To add new accelerator, click on the
+<guibutton>Add</guibutton> button. To remove an accelerator click on
+the line and then the <guibutton>Remove</guibutton> button. To change
+a command, click on the line and type a new command in the command
+entry. Click on the down arrow to see a list of commands. To change a
+keyboard shortcut, click on the line and column.</para>
+      </sect3>
+
+      <sect3>
+	<title>Audio Options</title>
+
+	<para>Here you can select whether &app; should automatically mute audio when the application starts, or before it quits.</para>
+      </sect3>
+
+      <sect3>
+	<title>OSD Options</title>
+
+	<para>Some operations such as entering a channel number or changing the audio volume by keyboard can display a status message. Here you can customize this On Screen Display.</para>
+
+	<variablelist>
+	  <varlistentry>
+	    <term><guilabel>Display mode</guilabel></term>
+	    <listitem>
+	      <para>Whether to display messages superimposed onto the video (OSD), in a status bar of the video window, in a separate console window, or not at all.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Remove after</guilabel></term>
+	    <listitem>
+	      <para>How long the message will visible in OSD mode.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Font</guilabel></term>
+	    <listitem>
+	      <para>Font to be used in OSD mode.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Foreground color</guilabel></term>
+	    <listitem>
+	      <para>Foreground (text) color to be used in OSD mode.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Background color</guilabel></term>
+	    <listitem>
+	      <para>Background color to be used in OSD mode.</para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </sect3>
+
+      <sect3>
+	<title>VBI Options</title>
+
+	<variablelist>
+	  <varlistentry>
+	    <term><guilabel>Enable VBI decoding</guilabel></term>
+	    <listitem>
+	      <para>When this option is selected, &app; will capture
+and decode VBI data transmitted by the current TV station. This
+enables Teletext browsing, Teletext subtitles, Closed Caption, and
+&app; can automatically name the station (if the information is
+transmitted, respectively).</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Device file</guilabel></term>
+	    <listitem>
+	      <para>A dedicated kernel device is necessary to capture
+VBI data. If this is supported by your TV card and its driver, you can
+select the VBI device here. Common names are:</para>
+
+	      <simplelist>
+		<member><filename>/dev/vbi</filename></member>
+		<member><filename>/dev/vbi0</filename></member>
+		<member><filename>/dev/vbi1</filename></member>
+		<member><filename>/dev/vbi2</filename></member>
+		<member><filename>/dev/v4l/vbi</filename></member>
+		<member><filename>/dev/v4l/vbi0</filename></member>
+	      </simplelist>
+
+	      <para>The device should correspond to the selected kernel
+video device. &app; will try to find it automatically, but this may
+fail. Changes will take place after you quit and restart &app;.</para>
+
+	      <para>If you have only an XVideo device, unfortunately you
+cannot use these functions because XVideo does not support VBI data
+capturing.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Default region</guilabel></term>
+	    <listitem>
+	      <para>This is a Teletext option. Some stations fail to
+transmit a complete language identifier, so the Teletext viewer may
+not display the correct font or national characters. You can select
+your geographical region here as an additional hint.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Teletext implementation</guilabel></term>
+	    <listitem>
+	      <para>The Teletext standard knows different
+implementation levels. The built-in Teletext browser supports them
+all. You can select if you want to see pages as displayed by simpler
+decoders. Note most stations still only transmit at the basic levels
+1.0 or 1.5.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Interpolation type</guilabel></term>
+	    <listitem>
+	      <para>You can freely resize Teletext windows. There are
+different ways to do this, some give better results, others are
+faster. Select here the mode you like best.</para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </sect3>
+
+      <sect3>
+	<title>Recording plugin</title>
+
+	<para></para>
+      </sect3>
+      <sect3>
+	<title>Screenshot plugin</title>
+
+	<para>In this section you can customize the screenshot
+plugin.</para>
+
+	<variablelist>
+	  <varlistentry>
+	    <term><guilabel>Completion command</guilabel></term>
+	    <listitem>
+	      <para>A shell command to execute after the image has
+been saved. The following environment variables will be set:</para>
+	      <variablelist>
+		<varlistentry>
+		  <term><varname>$SCREENSHOT_PATH</varname></term>
+		  <listitem>
+		    <para>The fully qualified filename of the saved
+image, e.g. <filename>/home/my/shots/image2.jpg</filename></para>
+		  </listitem>
+		</varlistentry>
+		<varlistentry>
+		  <term><varname>$CHANNEL_ALIAS</varname></term>
+		  <listitem>
+		    <para>Name of the current channel, e.g. BBC1</para>
+		  </listitem>
+		</varlistentry>
+		<varlistentry>
+		  <term><varname>$CHANNEL_ID</varname></term>
+		  <listitem>
+		    <para>RF channel name, e.g. S02</para>
+		  </listitem>
+		</varlistentry>
+		<varlistentry>
+		  <term><varname>$CURRENT_STANDARD</varname></term>
+		  <listitem>
+		    <para>Video standard (PAL, NTSC, SECAM, &hellip;)</para>
+		  </listitem>
+		</varlistentry>
+		<varlistentry>
+		  <term><varname>$CURRENT_INPUT</varname></term>
+		  <listitem>
+		    <para>Current video input on the TV card</para>
+		  </listitem>
+		</varlistentry>
+	      </variablelist>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Skip x pictures before grabbing</guilabel></term>
+	    <listitem>
+	      <para></para>
+	    </listitem>
+	  </varlistentry>	
+	  <varlistentry>
+	    <term><guilabel>Grab on clicking ok</guilabel></term>
+	    <listitem>
+	      <para>By default a screenshot is taken when you open the
+screenshot dialog. When this option is selected, it will be taken when
+you click the <guibutton>OK</guibutton> button of the dialog.</para>
+	    </listitem>
+	  </varlistentry>	 
+	  <varlistentry>
+	    <term><guilabel>Add toolbar button</guilabel></term>
+	    <listitem>
+	      <para>Add a button to the main window toolbar which
+opens the screenshot dialog.</para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </sect3>
+    </sect2>
+
+
+
+
 <!-- =============== Customization Subsection ================ -->
 <!-- Use a new section to describe different tabbed sections on the Settings or Preferences
 	     dialog. -->
@@ -776,6 +1273,176 @@
     </sect2> 
   </sect1>
 
+  <sect1 id="zapping-channel-editor"> 
+    <title>Channel Editor</title> 
+
+    <para>To open the channel editor, choose 
+      <menuchoice> 
+	<guimenu>Edit</guimenu> 
+	<guimenuitem>Channels</guimenuitem> 
+      </menuchoice>. In the channel editor you can edit the channel
+list. It can contain tuned channels (if your TV card has a tuner) as
+well as composite and S-Video inputs.</para>
+
+    <para>The channel editor dialog shows three sections. At the top the frequency table and related options. In the middle the channel list. At the bottom you can edit individual channel list entries.</para>
+
+    <sect2>
+      <title>Populating the Channel List</title>
+
+      <para>First you must choose the frequency table used in your
+country. To do this, select a country from the drop-down menu in the
+top left corner of the dialog. Then you can:</para>
+
+      <itemizedlist>
+	<listitem>
+	  <para>Click on <guilabel>Automatic station
+search</guilabel></para>
+	  <para>If this is supported by your TV card &app; will scan
+all RF channels in the frequency table and enter the found stations in
+the channel list. When VBI decoding has been enabled in the
+preferences it will also try to determine the station names.</para>
+	</listitem>
+	<listitem>
+	  <para>Click on <guilabel>Add all channels</guilabel></para>
+	  <para>This will add all RF channels in the frequency table
+to the channel list.</para>
+	</listitem>
+	<listitem>
+	  <para>Click on <guilabel>Import XawTV
+configuration</guilabel></para>
+	  <para>This will import the channel list from the XawTV
+configuration file, if you used the XawTV application before.</para>
+	</listitem>
+	<listitem>
+	  <para>Naturally you can also enter channels one by one
+yourself.</para>
+	</listitem>
+      </itemizedlist>
+
+      <para>Now you can edit channel names or reorder channels on the
+list. When you are satisfied click on <guibutton>OK</guibutton> to
+store your changes and leave the dialog.</para>
+    </sect2>
+
+    <sect2>
+      <title>Editing the Channel List</title>
+
+      <para>To select an entry in the channel list just click on the
+row. To select multiple rows click on the first row, then
+press-and-hold <keycap>Shift</keycap> and click on the last
+row.</para>
+
+      <sect3>
+	<title>Adding and Removing Channels</title>
+
+	<para>To add a new channel, click on the
+<guibutton>Add</guibutton> button. To insert a channel at a particular
+position, select the respective row first.</para>
+
+	<para>New channels are empty and will not show in menus. You
+can leave it this way to create a gap in the list. That is useful when you switch channels by entering the number in the list.</para>
+
+	<para>To remove one or more channels, select the rows and
+click on the <guibutton>Remove</guibutton> button.</para>
+      </sect3>
+
+      <sect3>
+	<title>Reordering Channels</title>
+
+	<para>Select one or more rows and click on the <guibutton>Up</guibutton> or <guibutton>Down</guibutton> button.</para>
+      </sect3>
+
+      <sect3>
+	<title>Editing Channels</title>
+
+	<para>It is not possible yet to edit the channel list directly. Instead select a row and edit in the box at the bottom of the dialog. Channels have the following properties:</para>
+
+	<variablelist>
+	  <varlistentry>
+	    <term><guilabel>Name</guilabel></term>
+	    <listitem>
+	      <para>The name you want to give the channel.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Video input</guilabel></term>
+	    <listitem>
+	      <para>Typically TV cards have a tuner, composite and
+S-Video inputs. Here you can select the input to be used when you
+switch to this channel. When you select <guilabel>Do not change
+input</guilabel> a switch to this channel will not change the
+input.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Radio frequency</guilabel></term>
+	    <listitem>
+	      <para>To change the radio frequency (the RF channel)
+select a different row from the frequency table, in the top right
+corner of the dialog. If necessary you can select a different
+frequency table for each channel.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Fine tuning</guilabel></term>
+	    <listitem>
+	      <para>Here you can adjust the radio frequency. As with
+the radio frequency this property is only applicable if the current
+video input is a tuner.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Video standard</guilabel></term>
+	    <listitem>
+	      <para>Typically TV cards support more than one video
+standard. Here you can select the video standard to be used when you
+switch to this channel. When you select <guilabel>Do not change
+standard</guilabel> a switch to this channel will not change
+the video standard.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guilabel>Accelerator</guilabel></term>
+	    <listitem>
+	      <para>A keyboard shortcut to switch to this channel.</para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </sect3>
+    </sect2>
+  </sect1>
+
+  <sect1 id="zapzilla">
+    <title>Zapzilla</title>
+
+    <para>Zapzilla is the built-in Teletext viewer of Zapping.</para>
+
+    <figure id="zapzilla-figure"> 
+      <title>Zapzilla</title> 
+      <screenshot>
+	<mediaobject> 
+	  <imageobject>
+	    <imagedata fileref="figures/zapzilla.png" format="PNG"/> 
+	  </imageobject>
+	  <textobject> 
+	    <phrase>Zapzilla window. Contains titlebar, menubar,
+toolbar, display area showing a Teletext page, and statusbar. The
+menubar contains File, Edit, Go and Bookmarks menus.</phrase>
+	  </textobject>
+	</mediaobject> 
+      </screenshot> 
+    </figure>
+
+    <sect2>
+      <title>Go to a Page</title>
+
+      <para>To go to a different page simply type the page number on the keyboard. You can also press the cursor keys to go to the next or previous page or subpage. Or you can click on a page number in the psge. When you click with the middle mouse button the page opens in a new window.</para>
+
+      <para>Zapzilla supports bookmarks. 
+
+  </sect1>
+
+
 <!-- ============= Bugs ================================== -->
 <!-- This section is optional and is commented out by default. 
      You can use it to describe known bugs and limitations of the 
@@ -792,7 +1459,7 @@
   <sect1 id="zapping-about"> 
     <title>About &app;</title> 
 
-    <para>&app; was written by Iñaki García Etxebarria, Michael H.
+    <para>&app; was written by IÃ±aki GarcÃ­a Etxebarria, Michael H.
     Schimek and many contributors. Visit our web page at <ulink
     url="http://zapping.sourceforge.net" type="http">
     http://zapping.sourceforge.net</ulink>.</para>

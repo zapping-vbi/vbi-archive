@@ -3,4 +3,4 @@
 SUBDIRS = man
 # C
 
-# EXTRA_DIST = omf.make xmldocs.make
+EXTRA_DIST = omf.make xmldocs.make

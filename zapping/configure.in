@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.140 2003-12-04 03:07:29 mschimek Exp $
+dnl $Id: configure.in,v 1.141 2003-12-08 07:20:39 mschimek Exp $
 
 AC_INIT(zapping, 0.7cvs6,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
@@ -623,6 +623,7 @@ help/man/Makefile
 
 dnl needs work
 dnl help/C/Makefile
+
 dnl help/de/Makefile
 dnl plugins/lirc/Makefile
 
