@@ -33,7 +33,7 @@ me</a>. Everything you need to do is to type the lines above and send me the
 resulting package.
 <p>
 If some package dependency cannot be solved, a good way to install
-the missing packages is to <a href="http://www.ximian.com/gethelix.php3">
+the missing packages is to <a href="http://www.ximian.com/download/">
 fetch</a> a <a href="http://www.ximian.com">Ximian</a> GNOME desktop.
 If you have an RPM based distro, you can alternatively look for the
 packages using <a href="http://www.rpmfind.net">RPMFIND</a>. Debian
