@@ -583,6 +583,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
   gint conversions = 999;
   tv_image_format prev_fmt;
   gint req_w, req_h;
+  gboolean fixed_size;
 
   req_mask = fmt ? TV_PIXFMT_SET (fmt->pixfmt) : TV_PIXFMT_SET_EMPTY;
 
@@ -684,7 +685,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
   /* Request the new format to TVeng (should succeed) [id] */
   memcpy (&prev_fmt, &info->format, sizeof (prev_fmt));
 
-  find_request_size (fmt, &req_w, &req_h);
+  fixed_size = find_request_size (fmt, &req_w, &req_h);
 
   if (info->format.pixfmt != id
       || info->format.width != req_w
@@ -697,9 +698,13 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
       printv ("Setting TVeng mode %s [%d x %d]\n",
 	      tv_pixfmt_name (id), req_w, req_h);
 
-      if (tveng_set_capture_format (info) == -1 ||
-	  info->format.width != req_w ||
-	  info->format.height != req_h)
+      info->error[0] = 0;
+
+      if (-1 == tveng_set_capture_format (info)
+	  || (fixed_size &&
+	      /* may change due to driver limits */
+	      (info->format.width != req_w
+	       || info->format.height != req_h)))
 	{
 	  if (info->tveng_errno)
 	    g_warning ("Cannot set new mode: %s", info->error);
