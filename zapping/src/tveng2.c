@@ -115,6 +115,62 @@ struct private_tveng2_device_info
 
 #define P_INFO(p) PARENT (p, struct private_tveng2_device_info, info)
 
+static tv_pixfmt
+pixelformat_to_pixfmt		(unsigned int		pixelformat)
+{
+	switch (pixelformat) {
+	  /* Note defines and Spec are wrong: r <-> b */
+	case V4L2_PIX_FMT_RGB332:	return TV_PIXFMT_BGR8;
+	case V4L2_PIX_FMT_RGB555:	return TV_PIXFMT_BGRA15_LE;
+	case V4L2_PIX_FMT_RGB565:	return TV_PIXFMT_BGR16_LE;
+	case V4L2_PIX_FMT_RGB555X:	return TV_PIXFMT_BGRA15_BE;
+	case V4L2_PIX_FMT_RGB565X:	return TV_PIXFMT_BGR16_BE;
+
+	  /* Note RGB32 wrong in bttv */
+	case V4L2_PIX_FMT_BGR24:	return TV_PIXFMT_BGR24_LE;
+	case V4L2_PIX_FMT_RGB24:	return TV_PIXFMT_BGR24_BE;
+	case V4L2_PIX_FMT_BGR32:	return TV_PIXFMT_BGRA24_LE;
+	case V4L2_PIX_FMT_RGB32:	return TV_PIXFMT_BGRA24_BE;
+
+	case V4L2_PIX_FMT_GREY:		return TV_PIXFMT_Y8;
+	case V4L2_PIX_FMT_YUYV:		return TV_PIXFMT_YUYV;
+	case V4L2_PIX_FMT_UYVY:		return TV_PIXFMT_UYVY;
+	case V4L2_PIX_FMT_YVU420:	return TV_PIXFMT_YVU420;
+	case V4L2_PIX_FMT_YUV420:	return TV_PIXFMT_YUV420;
+	case V4L2_PIX_FMT_YVU410:	return TV_PIXFMT_YVU410;
+	case V4L2_PIX_FMT_YUV410:	return TV_PIXFMT_YUV410;
+	default:			return TV_PIXFMT_UNKNOWN;
+	}
+}
+
+static unsigned int
+pixfmt_to_pixelformat		(tv_pixfmt		pixfmt)
+{
+	switch (pixfmt) {
+	case TV_PIXFMT_BGR8:		return V4L2_PIX_FMT_RGB332;	
+	case TV_PIXFMT_BGRA15_LE:	return V4L2_PIX_FMT_RGB555;	
+	case TV_PIXFMT_BGR16_LE:	return V4L2_PIX_FMT_RGB565;	
+	case TV_PIXFMT_BGRA15_BE:	return V4L2_PIX_FMT_RGB555X;	
+	case TV_PIXFMT_BGR16_BE:	return V4L2_PIX_FMT_RGB565X;	
+
+	case TV_PIXFMT_BGR24_LE:	return V4L2_PIX_FMT_BGR24;	
+	case TV_PIXFMT_BGR24_BE:	return V4L2_PIX_FMT_RGB24;	
+	case TV_PIXFMT_BGRA24_LE:	return V4L2_PIX_FMT_BGR32;	
+	case TV_PIXFMT_BGRA24_BE:	return V4L2_PIX_FMT_RGB32;	
+
+	case TV_PIXFMT_Y8:		return V4L2_PIX_FMT_GREY;
+	case TV_PIXFMT_YUYV:		return V4L2_PIX_FMT_YUYV;
+	case TV_PIXFMT_UYVY:		return V4L2_PIX_FMT_UYVY;
+	case TV_PIXFMT_YVU420:		return V4L2_PIX_FMT_YVU420;	
+	case TV_PIXFMT_YUV420:		return V4L2_PIX_FMT_YUV420;	
+	case TV_PIXFMT_YVU410:		return V4L2_PIX_FMT_YVU410;	
+	case TV_PIXFMT_YUV410:		return V4L2_PIX_FMT_YUV410;	
+	default:			return 0;
+	}
+}
+
+
+
 /*
   Functions for controlling the video capture. All of them return -1
   in case of error, so any value != -1 should be considered valid
@@ -124,91 +180,37 @@ struct private_tveng2_device_info
 
 
 
-
-
-
-
-
-
-
 static int
 tveng2_update_capture_format(tveng_device_info * info)
 {
   struct v4l2_format format;
   struct v4l2_window window;
+  unsigned int bpp;
 
   t_assert(info != NULL);
 
-  memset(&format, 0, sizeof(struct v4l2_format));
-  memset(&window, 0, sizeof(struct v4l2_window));
+  CLEAR (format);
+  CLEAR (window);
 
   format.type = V4L2_BUF_TYPE_CAPTURE;
   if (v4l2_ioctl(info, VIDIOC_G_FMT, &format) != 0)
       return -1;
 
-  info->format.bpp = ((double)format.fmt.pix.depth)/8;
+  bpp = ((double)format.fmt.pix.depth)/8;
   info->format.width = format.fmt.pix.width;
   info->format.height = format.fmt.pix.height;
   if (format.fmt.pix.flags & V4L2_FMT_FLAG_BYTESPERLINE)
     info->format.bytesperline = format.fmt.pix.bytesperline;
   else
-    info->format.bytesperline = info->format.bpp * info->format.width;
+    info->format.bytesperline = bpp * info->format.width;
   info->format.sizeimage = format.fmt.pix.sizeimage;
-  switch (format.fmt.pix.pixelformat)
-    {
-    case V4L2_PIX_FMT_RGB555:
-      info->format.depth = 15;
-      info->format.pixformat = TVENG_PIX_RGB555;
-      break;
-    case V4L2_PIX_FMT_RGB565:
-      info->format.depth = 16;
-      info->format.pixformat = TVENG_PIX_RGB565;
-      break;
-    case V4L2_PIX_FMT_RGB24:
-      info->format.depth = 24;
-      info->format.pixformat = TVENG_PIX_RGB24;
-      break;
-    case V4L2_PIX_FMT_BGR24:
-      info->format.depth = 24;
-      info->format.pixformat = TVENG_PIX_BGR24;
-      break;
-    case V4L2_PIX_FMT_RGB32:
-      info->format.depth = 32;
-      info->format.pixformat = TVENG_PIX_RGB32;
-      break;
-    case V4L2_PIX_FMT_BGR32:
-      info->format.depth = 32;
-      info->format.pixformat = TVENG_PIX_BGR32;
-      break;
-    case V4L2_PIX_FMT_YVU420:
-      info->format.depth = 12;
-      info->format.pixformat = TVENG_PIX_YVU420;
-      break;
-#ifdef V4L2_PIX_FMT_YUV420 /* not in the spec, but very common */
-    case V4L2_PIX_FMT_YUV420:
-      info->format.depth = 12;
-      info->format.pixformat = TVENG_PIX_YUV420;
-      break;
-#endif
-    case V4L2_PIX_FMT_UYVY:
-      info->format.depth = 16;
-      info->format.pixformat = TVENG_PIX_UYVY;
-      break;
-    case V4L2_PIX_FMT_YUYV:
-      info->format.depth = 16;
-      info->format.pixformat = TVENG_PIX_YUYV;
-      break;
-    case V4L2_PIX_FMT_GREY:
-      info->format.depth = 8;
-      info->format.pixformat = TVENG_PIX_GREY;
-      break;
-    default:
+  info->format.pixfmt = pixelformat_to_pixfmt (format.fmt.pix.pixelformat);
+  if (TV_PIXFMT_UNKNOWN == info->format.pixfmt) {
       info->tveng_errno = -1; /* unknown */
       t_error_msg("switch()",
 		  "Cannot understand the actual palette", info);
-
       return -1;    
-    };
+  }
 
   /* mhs: moved down here because tveng2_read_frame blamed
      info -> format.sizeimage != size after G_WIN failed */
@@ -234,57 +236,13 @@ set_capture_format(tveng_device_info * info)
 
   format.type = V4L2_BUF_TYPE_CAPTURE;
 
-  /* Transform the given palette value into a V4L value */
-  switch(info->format.pixformat)
-    {
-    case TVENG_PIX_RGB555:
-      format.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB555;
-      format.fmt.pix.depth = 15;
-      break;
-    case TVENG_PIX_RGB565:
-      format.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB565;
-      format.fmt.pix.depth = 16;
-      break;
-    case TVENG_PIX_RGB24:
-      format.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
-      format.fmt.pix.depth = 24;
-      break;
-    case TVENG_PIX_BGR24:
-      format.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
-      format.fmt.pix.depth = 24;
-      break;
-    case TVENG_PIX_RGB32:
-      format.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB32;
-      format.fmt.pix.depth = 32;
-      break;
-    case TVENG_PIX_BGR32:
-      format.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR32;
-      format.fmt.pix.depth = 32;
-      break;
-    case TVENG_PIX_YUV420:
-#ifdef V4L2_PIX_FMT_YUV420 /* not in the spec, but very common */
-      format.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
-      format.fmt.pix.depth = 12;
-      break;
-#endif
-    case TVENG_PIX_YVU420:
-      format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
-      format.fmt.pix.depth = 12;
-      break;
-    case TVENG_PIX_UYVY:
-      format.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
-      format.fmt.pix.depth = 16;
-      break;
-    case TVENG_PIX_YUYV:
-      format.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-      format.fmt.pix.depth = 16;
-      break;
-    default:
+  format.fmt.pix.pixelformat = pixfmt_to_pixelformat (info->format.pixfmt);
+  if (0 == format.fmt.pix.pixelformat) {
       info->tveng_errno = -1; /* unknown */
       t_error_msg("switch()", "Cannot understand the given palette",
 		  info);
       return -1;
-    }
+  }
 
   /* Adjust the given dimensions */
   if (info->format.height < info->caps.minheight)
@@ -321,18 +279,19 @@ static int
 tveng2_set_capture_format(tveng_device_info * info)
 {
   enum tveng_capture_mode current_mode;
-  enum tveng_frame_pixformat pixformat;
+  tv_pixfmt pixfmt;
+  int result;
 
-  pixformat = info->format.pixformat;
+  pixfmt = info->format.pixfmt;
   current_mode = tveng_stop_everything(info);
-  info->format.pixformat = pixformat;
+  info->format.pixfmt = pixfmt;
 
-  set_capture_format(info);
+  result = set_capture_format(info);
 
   /* Start capturing again as if nothing had happened */
   tveng_restart_everything(current_mode, info);
 
-  return 0; /* Success */
+  return result;
 }
 
 
@@ -413,7 +372,7 @@ set_control			(tveng_device_info *	info,
 			== TV_VIDEO_LINE_TYPE_TUNER)) {
 			struct v4l2_tuner tuner;
 
-			memset(&tuner, 0, sizeof(tuner));
+			CLEAR (tuner);
 			tuner.input = VI(info->cur_video_input)->index;
 
 			/* XXX */
@@ -748,10 +707,10 @@ set_standard			(tveng_device_info *	info,
 				 const tv_video_standard *s)
 {
   enum tveng_capture_mode current_mode;
-  enum tveng_frame_pixformat pixformat;
+  tv_pixfmt pixfmt;
   int r;
 
-  pixformat = info->format.pixformat;
+  pixfmt = info->format.pixfmt;
   current_mode = tveng_stop_everything(info);
 
 	r = v4l2_ioctl (info, VIDIOC_S_STD, &S(s)->enumstd.std);
@@ -760,7 +719,7 @@ set_standard			(tveng_device_info *	info,
 		store_cur_video_standard (info, s);
 
 // XXX bad idea
-  info->format.pixformat = pixformat;
+  info->format.pixfmt = pixfmt;
   tveng_set_capture_format(info);
   tveng_restart_everything(current_mode, info);
 
@@ -770,67 +729,67 @@ set_standard			(tveng_device_info *	info,
 /* The video_standard_id concept doesn't exist in v4l2 0.20, we
    have to derive the ID from other information. */
 /* FIXME doesn't properly translate all bttv standards. */
-static tv_video_standard_id
-v4l2_standard_to_video_standard_id
-				(struct v4l2_standard *	s,
-				 unsigned int *		custom)
+static tv_videostd_set
+v4l2_standard_to_videostd_set	(struct v4l2_standard *	s,
+				 tv_videostd *		custom)
 {
 	if (s->framelines == 625) {
 		switch (s->colorstandard) {
 		case V4L2_COLOR_STD_PAL:
 			switch (s->colorstandard_data.pal.colorsubcarrier) {
 			case V4L2_COLOR_SUBC_PAL:
-				return TV_VIDEOSTD_PAL; /* BGDKHI */
+				return TV_VIDEOSTD_SET_PAL; /* BGDKHI */
 			case V4L2_COLOR_SUBC_PAL_N:
-				return TV_VIDEOSTD_PAL_N;
+				return TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_N);
 			default:
 				goto assume_custom;
 			}
 		case V4L2_COLOR_STD_NTSC:
 			goto assume_custom; /* ? */
 		case V4L2_COLOR_STD_SECAM:
-			return TV_VIDEOSTD_SECAM; /* BDGHKK1L, although probably L */
+			/* BDGHKK1L, although probably L */
+			return TV_VIDEOSTD_SET_SECAM;
 		}
 	} else if (s->framelines == 525) {
 		switch (s->colorstandard) {
 		case V4L2_COLOR_STD_PAL:
 			switch (s->colorstandard_data.pal.colorsubcarrier) {
 			case V4L2_COLOR_SUBC_PAL_M:
-				return TV_VIDEOSTD_PAL_M;
+				return TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_M);
 			default:
 				goto assume_custom; /* "PAL-60" */
 			}
 
 		case V4L2_COLOR_STD_NTSC:
-			return TV_VIDEOSTD_NTSC; /* M/NTSC USA or Japan */
+			return TV_VIDEOSTD_SET_NTSC; /* M/NTSC USA or Japan */
 		}
 	}
 
  assume_custom:
-	if (*custom >= sizeof (tv_video_standard_id) * 8)
-		return TV_VIDEOSTD_UNKNOWN;
+	if (*custom > TV_VIDEOSTD_CUSTOM_END)
+		return TV_VIDEOSTD_SET_UNKNOWN;
 	else
-		return ((tv_video_standard_id) 1) << ((*custom)++);
+		return TV_VIDEOSTD_SET ((*custom)++);
 }
 
 static tv_bool
 update_standard_list		(tveng_device_info *	info)
 {
 	unsigned int i;
-	unsigned int custom;
+	tv_videostd custom;
 
 	free_video_standards (info);
 
 	if (!info->cur_video_input)
 		return TRUE;
 
-	custom = 32;
+	custom = TV_VIDEOSTD_CUSTOM_BEGIN;
 
 	for (i = 0;; ++i) {
 		struct v4l2_enumstd enumstd;
 		char buf[sizeof (enumstd.std.name) + 1];
 		struct standard *s;
-		tv_video_standard_id id;
+		tv_videostd_set videostd_set;
 
 		enumstd.index = i;
 
@@ -848,15 +807,17 @@ update_standard_list		(tveng_device_info *	info)
 		     & (1 << VI (info->cur_video_input)->index)) == 0)
 			continue; /* unsupported by the current input */
 
-		id = v4l2_standard_to_video_standard_id (&enumstd.std, &custom);
+		videostd_set =
+		  v4l2_standard_to_videostd_set (&enumstd.std, &custom);
 
-		if (id == TV_VIDEOSTD_UNKNOWN)
+		if (TV_VIDEOSTD_SET_UNKNOWN == videostd_set)
 			continue;
 
 		/* Sometimes NUL is missing. */
 		z_strlcpy (buf, enumstd.std.name, sizeof (buf));
 
-		if (!(s = S(append_video_standard (&info->video_standards, id,
+		if (!(s = S(append_video_standard (&info->video_standards,
+						   videostd_set,
 						   enumstd.std.name,
 						   enumstd.std.name,
 						   sizeof (*s)))))
@@ -991,7 +952,7 @@ set_video_input			(tveng_device_info *	info,
 				 const tv_video_line *	l)
 {
 	enum tveng_capture_mode current_mode;
-	enum tveng_frame_pixformat pixformat;
+	tv_pixfmt pixfmt;
 
 	if (info->cur_video_input) {
 		int index;
@@ -1001,7 +962,7 @@ set_video_input			(tveng_device_info *	info,
 				return TRUE;
 	}
 
-	pixformat = info->format.pixformat;
+	pixfmt = info->format.pixfmt;
 	current_mode = tveng_stop_everything(info);
 
 	if (-1 == v4l2_ioctl (info, VIDIOC_S_INPUT, &VI (l)->index))
@@ -1019,7 +980,7 @@ set_video_input			(tveng_device_info *	info,
 		set_tuner_frequency (info, info->cur_video_input,
 				     info->cur_video_input->u.tuner.frequency);
 
-	info->format.pixformat = pixformat;
+	info->format.pixfmt = pixfmt;
 	tveng_set_capture_format(info);
 
 	/* XXX Start capturing again as if nothing had happened */
@@ -1567,37 +1528,10 @@ get_overlay_buffer		(tveng_device_info *	info,
 	if (t->size == 0) /* huh? */
 		t->size = fb.fmt.bytesperline * fb.fmt.height;
 
-	switch (fb.fmt.pixelformat) {
-	case 0:
-		CLEAR (*t);
-		break;
+	t->pixfmt = pixelformat_to_pixfmt (fb.fmt.pixelformat);
 
-		// XXX inexact
-	case V4L2_PIX_FMT_RGB555:
-		t->pixfmt = TVENG_PIX_RGB555;
-		break;
-	case V4L2_PIX_FMT_RGB565:
-		t->pixfmt = TVENG_PIX_RGB565;
-		break;
-	case V4L2_PIX_FMT_RGB24:
-		t->pixfmt = TVENG_PIX_RGB24;
-		break;
-	case V4L2_PIX_FMT_BGR24:
-		t->pixfmt = TVENG_PIX_BGR24;
-		break;
-	case V4L2_PIX_FMT_RGB32:
-		t->pixfmt = TVENG_PIX_RGB32;
-		break;
-	case V4L2_PIX_FMT_BGR32:
-		t->pixfmt = TVENG_PIX_BGR32;
-		break;
-	case V4L2_PIX_FMT_RGB332:
-	case V4L2_PIX_FMT_RGB555X:
-	case V4L2_PIX_FMT_RGB565X:
-	default:
+	if (TV_PIXFMT_UNKNOWN == t->pixfmt)
 		CLEAR (*t);
-		return FALSE;
-	}
 
 	return TRUE;
 }
@@ -1752,8 +1686,8 @@ static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
     }
 
   /* We check the capabilities of this video device */
-  memset(&caps, 0, sizeof(struct v4l2_capability));
-  memset(&fb, 0, sizeof(struct v4l2_framebuffer));
+  CLEAR (caps);
+  CLEAR (fb);
 
   if (v4l2_ioctl(info, VIDIOC_QUERYCAP, &caps) != 0)
     {
@@ -1931,28 +1865,16 @@ int tveng2_attach_device(const char* device_file,
       return -1;
     }
 
-  switch(error)
-    {
-    case 15:
-      info->format.pixformat = TVENG_PIX_RGB555;
-      break;
-    case 16:
-      info->format.pixformat = TVENG_PIX_RGB565;
-      break;
-    case 24:
-      info->format.pixformat = TVENG_PIX_BGR24;
-      break;
-    case 32:
-      info->format.pixformat = TVENG_PIX_BGR32;
-      break;
-    default:
-      info -> tveng_errno = -1;
-      t_error_msg("switch()", 
-		  "Cannot find appropiate palette for current display",
-		  info);
-      tveng2_close_device(info);
-      return -1;
-    }
+  info->format.pixfmt = pig_depth_to_pixfmt (error);
+
+  if (TV_PIXFMT_UNKNOWN == info->format.pixfmt) {
+    info -> tveng_errno = -1;
+    t_error_msg("switch()", 
+		"Cannot find appropiate palette for current display",
+		info);
+    tveng2_close_device(info);
+    return -1;
+  }
 
   /* Get fb_info */
   get_overlay_buffer (info, &info->overlay_buffer);
@@ -2073,7 +1995,7 @@ void tveng2_init_module(struct tveng_module_info *module_info)
 {
   t_assert(module_info != NULL);
 
-  memset(module_info, 0, sizeof(struct tveng_module_info)); 
+  CLEAR (*module_info);
 }
 
 #endif /* ENABLE_V4L */
