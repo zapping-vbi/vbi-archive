@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.1 2002-07-19 20:53:44 garetxe Exp $ */
+/* $Id: mpeg.c,v 1.36.2.2 2002-07-22 19:04:19 garetxe Exp $ */
 
 #include "plugin_common.h"
 
@@ -444,8 +444,8 @@ real_plugin_start (const gchar *file_name)
 	  rte_context_destroy (context);
 	  context_enc = NULL;
 
-	  ShowBox ("This plugin needs to run in Capture mode, but"
-		   " couldn't switch to that mode:\n%s",
+	  ShowBox (_("This plugin needs to run in Capture mode, but"
+		     " couldn't switch to that mode:\n%s"),
 		   GTK_MESSAGE_INFO, zapping_info->error);
 	  return FALSE;
 	}
@@ -456,7 +456,7 @@ real_plugin_start (const gchar *file_name)
 	  rte_context_destroy (context);
 	  context_enc = NULL;
 
-	  ShowBox ("Cannot switch to %s capture format",
+	  ShowBox (_("Cannot switch to %s capture format"),
 		   GTK_MESSAGE_ERROR,
 		   (tveng_pixformat == TVENG_PIX_YVU420) ?
 		   "YVU420" : "YUYV");
@@ -2634,6 +2634,10 @@ on_saving_record_clicked	(GtkButton *		button,
   g_assert (saving_dialog != NULL);
 
   record = GTK_TOGGLE_BUTTON (lookup_widget (saving_dialog, "record"));
+
+  /* Do not start recording if case we are _unset_ */
+  if (!gtk_toggle_button_get_active (record))
+    return;
 
   widget = lookup_widget (saving_dialog, "optionmenu14");
   buffer = record_config_menu_active (widget);

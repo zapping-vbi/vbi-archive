@@ -10,8 +10,6 @@
   <property name="modal">False</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">False</property>
-  <signal name="apply" handler="on_zapping_properties_apply"/>
-  <signal name="help" handler="on_zapping_properties_help"/>
 
   <child internal-child="notebook">
     <widget class="GtkNotebook" id="notebook1">
@@ -6546,7 +6544,6 @@ Iñaki García Etxebarria</property>
 			<widget class="GtkImageMenuItem" id="propiedades1">
 			  <property name="visible">True</property>
 			  <property name="stock_item">GNOMEUIINFO_MENU_PREFERENCES_ITEM</property>
-			  <signal name="activate" handler="on_propiedades1_activate"/>
 			</widget>
 		      </child>
 
@@ -6558,7 +6555,7 @@ Iñaki García Etxebarria</property>
 			  <signal name="activate" handler="on_plugins1_activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image19">
+			    <widget class="GtkImage" id="image81">
 			      <property name="visible">True</property>
 			      <property name="stock">gnome-stock-attach</property>
 			      <property name="icon_size">1</property>
@@ -6585,7 +6582,7 @@ Iñaki García Etxebarria</property>
 			  <signal name="activate" handler="on_channels1_activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image20">
+			    <widget class="GtkImage" id="image82">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-index</property>
 			      <property name="icon_size">1</property>
@@ -6618,7 +6615,7 @@ Iñaki García Etxebarria</property>
 			  <accelerator key="F" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image21">
+			    <widget class="GtkImage" id="image83">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-execute</property>
 			      <property name="icon_size">1</property>
@@ -6639,7 +6636,7 @@ Iñaki García Etxebarria</property>
 			  <accelerator key="O" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image22">
+			    <widget class="GtkImage" id="image84">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-execute</property>
 			      <property name="icon_size">1</property>
@@ -6660,7 +6657,7 @@ Iñaki García Etxebarria</property>
 			  <accelerator key="C" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image23">
+			    <widget class="GtkImage" id="image85">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-execute</property>
 			      <property name="icon_size">1</property>
@@ -6687,7 +6684,7 @@ Iñaki García Etxebarria</property>
 			  <accelerator key="T" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image24">
+			    <widget class="GtkImage" id="image86">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-justify-fill</property>
 			      <property name="icon_size">1</property>
@@ -6723,7 +6720,7 @@ Iñaki García Etxebarria</property>
 			  <signal name="activate" handler="on_vbi_info1_activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image25">
+			    <widget class="GtkImage" id="image87">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-home</property>
 			      <property name="icon_size">1</property>
@@ -6744,7 +6741,7 @@ Iñaki García Etxebarria</property>
 			  <signal name="activate" handler="on_program_info1_activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image26">
+			    <widget class="GtkImage" id="image88">
 			      <property name="visible">True</property>
 			      <property name="stock">gnome-stock-book-open</property>
 			      <property name="icon_size">1</property>
@@ -6798,7 +6795,7 @@ Iñaki García Etxebarria</property>
 			  <accelerator key="H" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image27">
+			    <widget class="GtkImage" id="image89">
 			      <property name="visible">True</property>
 			      <property name="stock">gnome-stock-book-yellow</property>
 			      <property name="icon_size">1</property>
@@ -6836,12 +6833,11 @@ Iñaki García Etxebarria</property>
 			  <property name="visible">True</property>
 			  <property name="label" translatable="yes">_Main help</property>
 			  <property name="use_underline">True</property>
-			  <signal name="activate" handler="on_main_help1_activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image28">
+			    <widget class="GtkImage" id="image90">
 			      <property name="visible">True</property>
-			      <property name="stock">gnome-stock-book-open</property>
+			      <property name="stock">gtk-help</property>
 			      <property name="icon_size">1</property>
 			      <property name="xalign">0.5</property>
 			      <property name="yalign">0.5</property>
@@ -6936,7 +6932,6 @@ Iñaki García Etxebarria</property>
 		  <property name="label" translatable="yes">Controls</property>
 		  <property name="use_underline">True</property>
 		  <property name="stock_pixmap">gtk-execute</property>
-		  <signal name="clicked" handler="on_controls_clicked"/>
 		</widget>
 		<packing>
 		  <property name="new_group">True</property>

@@ -486,7 +486,6 @@ z_restart_everything(enum tveng_capture_mode mode,
   return 0;
 }
 
-/* API flaw */
 void set_stock_pixmap	(GtkWidget	*button,
 			 const gchar	*new_pix)
 {

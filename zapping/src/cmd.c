@@ -274,6 +274,14 @@ static PyObject* py_hide_controls (PyObject *self, PyObject *args)
   py_return_none;
 }
 
+PyObject *
+py_help (PyObject *self, PyObject *args)
+{
+  gnome_help_display ("index.html", NULL, NULL);
+
+  py_return_none;
+}
+
 void
 startup_cmd (void)
 {
@@ -301,6 +309,8 @@ startup_cmd (void)
   cmd_register ("hide_controls", py_hide_controls, METH_VARARGS,
 		_("Hides the menu and the toolbar"),
 		"zapping.hide_controls([1])");
+  cmd_register ("help", py_help, METH_VARARGS,
+		_("Opens the help page"), "zapping.help()"); 
 }
 
 void

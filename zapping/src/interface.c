@@ -183,6 +183,7 @@ create_zapping (void)
   MENU_CMD (propiedades1,	"zapping.properties()");
   MENU_CMD (hide_controls2,	"zapping.hide_controls()");
   MENU_CMD (plugins1,		"zapping.plugin_properties()");
+  MENU_CMD (main_help1,		"zapping.help()");
 
   /* Toolbar commands */
   w = lookup_widget (widget, "tb-mute");
