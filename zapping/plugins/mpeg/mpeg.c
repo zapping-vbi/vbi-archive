@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.6 2003-03-24 17:18:57 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36.2.7 2003-06-16 06:10:15 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -451,6 +451,7 @@ do_start			(const gchar *		file_name)
 #if 0
 	  if (!request_bundle_format (tveng_pixformat, width, height))
 #else
+	  memset (&fmt, 0, sizeof(fmt));
 	  fmt.width = width;
 	  fmt.height = height;
 	  fmt.fmt = tveng_pixformat;
