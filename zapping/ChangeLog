@@ -1,5 +1,10 @@
 2004-10-11    <mschimek@users.sf.net>
 
+	* configure.in: Make sure we check for libzvbi with -liconv
+	  if necessary, bug #1044403.
+
+2004-10-11    <mschimek@users.sf.net>
+	
 	* Release 0.7.3.
 
 2004-10-10    <mschimek@users.sf.net>
