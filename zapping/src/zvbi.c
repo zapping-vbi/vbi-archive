@@ -151,8 +151,12 @@ gchar *zvbi_audio_mode_str[] =
 static pthread_t	decoder_id;
 static pthread_t	capturer_id;
 static gboolean		vbi_quit;
+static gboolean		decoder_quit_ack;
+static gboolean		capturer_quit_ack;
 static fifo		sliced_fifo;
 static vbi_capture *	capture;
+
+/* Attn: must be pthread_cancel-safe */
 
 static void *
 decoding_thread (void *p)
@@ -184,16 +188,24 @@ decoding_thread (void *p)
       break;
     }
 
+    pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, NULL);
+
     vbi_decode (vbi, (vbi_sliced *) b->data,
 		b->used / sizeof(vbi_sliced), b->time);
+
+    pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL);
 
     send_empty_buffer(&c, b);
   }
 
   rem_consumer(&c);
 
+  decoder_quit_ack = TRUE;
+
   return NULL;
 }
+
+/* Attn: must be pthread_cancel-safe */
 
 static void *
 capturing_thread (void *x)
@@ -211,9 +223,9 @@ capturing_thread (void *x)
   stacked = 0;
 #endif
 
-  printv("vbi capturing thread\n");
+  D();
 
-  timeout.tv_sec = 2;
+  timeout.tv_sec = 1;
   timeout.tv_usec = 0;
 
   assert (add_producer (&sliced_fifo, &p));
@@ -303,12 +315,34 @@ capturing_thread (void *x)
 
   rem_producer (&p);
 
+  capturer_quit_ack = TRUE;
+
   return NULL;
 }
 
 #define SERVICES (VBI_SLICED_TELETEXT_B | VBI_SLICED_VPS | \
 		  VBI_SLICED_CAPTION_625 | VBI_SLICED_CAPTION_525 | \
 		  VBI_SLICED_WSS_625 | VBI_SLICED_WSS_CPR1204)
+
+static gint
+join (pthread_t id, gboolean *ack, gint timeout)
+{
+  vbi_quit = TRUE;
+
+  /* Dirty. Where is pthread_try_join()? */
+  for (; !*ack && timeout > 0; timeout--)
+    usleep (1000);
+
+  /* Ok, you asked for it */
+  if (timeout == 0) {
+    printv("Unfriendly termination\n");
+    pthread_cancel (id);
+  }
+
+  pthread_join (id, NULL);
+
+  return timeout;
+}
 
 // XXX vbi must be restarted on video std change. is it?
 
@@ -389,6 +423,8 @@ threads_init (gchar *dev_name, int given_fd)
   D();
 
   vbi_quit = FALSE;
+  decoder_quit_ack = FALSE;
+  capturer_quit_ack = FALSE;
 
   if (pthread_create (&decoder_id, NULL, decoding_thread, NULL))
     {
@@ -405,8 +441,7 @@ threads_init (gchar *dev_name, int given_fd)
   if (pthread_create (&capturer_id, NULL, capturing_thread, NULL))
     {
       ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, thread);
-      vbi_quit = TRUE;
-      pthread_join (decoder_id, NULL);
+      join (decoder_id, &decoder_quit_ack, 1500);
       destroy_fifo (&sliced_fifo);
       vbi_capture_delete (capture);
       vbi_decoder_delete (vbi);
@@ -422,25 +457,25 @@ threads_init (gchar *dev_name, int given_fd)
 static void
 threads_destroy (void)
 {
-  vbi_quit = TRUE;
-
   D();
 
   if (vbi)
     {
-// XXX should wait a brief period, then if no response terminate the threads.
-      pthread_join (capturer_id, NULL);
-      pthread_join (decoder_id, NULL);
+      D();
+
+      join (decoder_id, &decoder_quit_ack,
+	    join (capturer_id, &capturer_quit_ack, 1500));
+
       destroy_fifo (&sliced_fifo);
+
       vbi_capture_delete (capture);
       vbi_decoder_delete (vbi);
+
       vbi = NULL;
     }
 
   D();
 }
-
-
 
 /* handler for a vbi event */
 static void event(vbi_event *ev, void *unused);
@@ -528,11 +563,17 @@ void shutdown_zvbi(void)
   pthread_mutex_destroy(&prog_info_mutex);
   pthread_mutex_destroy(&network_mutex);
 
+  D();
+
   if (vbi)
     zvbi_close_device();
 
+  D();
+
   if (vbi_model)
     gtk_object_destroy(GTK_OBJECT(vbi_model));
+
+  D();
 
   close(osd_pipe[0]);
   close(osd_pipe[1]);
@@ -859,6 +900,8 @@ zvbi_close_device(void)
 {
   GList * destruction;
 
+  D();
+
   if (!vbi) /* disabled */
     return;
 
@@ -867,9 +910,14 @@ zvbi_close_device(void)
   if (trigger_client_id >= 0)
     unregister_ttx_client(trigger_client_id);
 
+  D();
+
   trigger_client_id = trigger_timeout_id = -1;
 
   pthread_mutex_lock(&clients_mutex);
+
+  D();
+
   destruction = g_list_first(ttx_clients);
   while (destruction)
     {
@@ -880,10 +928,16 @@ zvbi_close_device(void)
   ttx_clients = NULL;
   pthread_mutex_unlock(&clients_mutex);
   pthread_mutex_destroy(&clients_mutex);
+
+  D();
  
   threads_destroy ();
 
+  D();
+
   zmodel_changed(vbi_model);
+
+  D();
 }
 
 static void
@@ -2044,19 +2098,21 @@ update_vi_network			(struct vi_data *data)
   pthread_mutex_lock(&network_mutex);
   if (*current_network.name)
     gtk_label_set_text(GTK_LABEL(name), current_network.name);
-  else
-    gtk_label_set_text(GTK_LABEL(name), "n/a");
+  else /* NLS: Network info, network name */
+    gtk_label_set_text(GTK_LABEL(name), _("Unknown"));
 
   if (*current_network.call)
     gtk_label_set_text(GTK_LABEL(call), current_network.call);
-  else
-    gtk_label_set_text(GTK_LABEL(call), "n/a");
+  else /* NLS: Network info, call letters (USA) - not applicable */
+    gtk_label_set_text(GTK_LABEL(call), _("n/a"));
 
   td = current_network.tape_delay;
-  if (td < 60)
+  if (td == 0) /* NLS: Network info, tape delay (USA) */
+    buffer = g_strdup(_("none"));
+  else if (td < 60) /* NLS: Network info, tape delay (USA) */
     buffer = g_strdup_printf(ngettext("%d minute", "%d minutes", td), td);
-  else
-    buffer = g_strdup_printf(_("%d h %d m"), td/60, td%60);
+  else /* NLS: Network info, tape delay (USA) */
+    buffer = g_strdup_printf(_("%d h %d m"), td / 60, td % 60);
   gtk_label_set_text(GTK_LABEL(tape), buffer);
   g_free(buffer);
 
