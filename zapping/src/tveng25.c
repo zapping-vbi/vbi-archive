@@ -545,7 +545,7 @@ set_standard			(tveng_device_info *	info,
 	if (0 == r)
 		store_cur_video_standard (info, s);
 
-// XXX bad idea
+/* XXX bad idea */
   info->format.pixfmt = pixfmt;
   p_tveng_set_capture_format(info);
   p_tveng_restart_everything(current_mode, info);
@@ -646,8 +646,11 @@ set_tuner_frequency		(tveng_device_info *	info,
 				 tv_video_line *	l,
 				 unsigned int		frequency)
 {
+	struct private_tveng25_device_info * p_info = P_INFO (info);
 	struct video_input *vi = VI (l);
 	struct v4l2_frequency vfreq;
+	int buf_type;
+	tv_bool r;
 
 	CLEAR (vfreq);
 
@@ -656,12 +659,45 @@ set_tuner_frequency		(tveng_device_info *	info,
 
 	vfreq.frequency = (frequency << vi->step_shift) / vi->pub.u.tuner.step;
 
-	if (-1 == v4l25_ioctl (info, VIDIOC_S_FREQUENCY, &vfreq))
-		return FALSE;
+	buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-	store_frequency (info, vi, vfreq.frequency);
+	if (info->cur_video_input == l
+	    && TVENG_CAPTURE_READ == info->current_mode) {
+		if (-1 == v4l25_ioctl (info, VIDIOC_STREAMOFF, &buf_type))
+			return FALSE;
+	}
 
-	return TRUE;
+	r = TRUE;
+
+	if (0 == v4l25_ioctl (info, VIDIOC_S_FREQUENCY, &vfreq))
+		store_frequency (info, vi, vfreq.frequency);
+	else
+		r = FALSE;
+
+	if (info->cur_video_input == l
+	    && TVENG_CAPTURE_READ == info->current_mode) {
+		unsigned int i;
+
+		for (i = 0; i < p_info->num_buffers; ++i) {
+			struct v4l2_buffer buffer;
+
+			tv_clear_image (p_info->buffers[i].vmem, 0,
+					&info->format);
+
+			buffer.type = p_info->buffers[i].vidbuf.type;
+			buffer.index = i;
+
+			if (-1 == v4l25_ioctl (info, VIDIOC_QBUF, &buffer)) {
+				/* XXX suspended state */
+				return FALSE;
+			}
+		}
+
+		if (-1 == v4l25_ioctl (info, VIDIOC_STREAMON, &buf_type))
+			r = FALSE; /* XXX suspended state */
+	}
+
+	return r;
 }
 
 static tv_bool
@@ -723,7 +759,7 @@ set_video_input			(tveng_device_info *	info,
 
 	store_cur_video_input (info, l);
 
-	// XXX error?
+	/* XXX error? */
 	update_standard_list (info);
 
 	info->format.pixfmt = pixfmt;
@@ -853,7 +889,7 @@ get_overlay_buffer		(tveng_device_info *	info,
 	if (-1 == v4l25_ioctl (info, VIDIOC_G_FBUF, &fb))
 		return FALSE;
 
-	// XXX fb.capability, fb.flags ignored
+	/* XXX fb.capability, fb.flags ignored */
 
 	t->base			= (unsigned long) fb.base;
 
@@ -1198,7 +1234,7 @@ int tveng25_attach_device(const char* device_file,
 	info->video_standards = NULL;
 	info->cur_video_standard = NULL;
 
-	// XXX error
+	/* XXX error */
 	update_video_input_list (info);
 
   /* Query present controls */
@@ -1305,8 +1341,6 @@ static int
 tveng25_update_capture_format(tveng_device_info * info)
 {
   struct v4l2_format format;
-  tv_pixel_format pixel_format;
-  unsigned int min_bpl;
 
   t_assert(info != NULL);
 
@@ -1326,24 +1360,19 @@ tveng25_update_capture_format(tveng_device_info * info)
       return -1;    
   }
 
-  info->format.width = format.fmt.pix.width;
-  info->format.height = format.fmt.pix.height;
+  tv_image_format_init (&info->format,
+			format.fmt.pix.width,
+			format.fmt.pix.height,
+			format.fmt.pix.bytesperline,
+			info->format.pixfmt, 0);
 
-  tv_pixfmt_to_pixel_format (&pixel_format, info->format.pixfmt, 0);
-
-  /* bttv */
-  min_bpl = (format.fmt.pix.width * pixel_format.bits_per_pixel) >> 3;
-  format.fmt.pix.bytesperline = MAX (min_bpl, format.fmt.pix.bytesperline);
-
-  info->format.bytes_per_line = format.fmt.pix.bytesperline;
-  info->format.size = format.fmt.pix.sizeimage;
+  if (format.fmt.pix.sizeimage > info->format.size)
+	  info->format.size = format.fmt.pix.sizeimage;
 
   CLEAR (format);
 
   format.type = V4L2_BUF_TYPE_VIDEO_OVERLAY;
 
-  /* mhs: moved down here because tveng25_read_frame blamed
-     info -> format.sizeimage != size after G_WIN failed */
   if (-1 == v4l25_ioctl (info, VIDIOC_G_FMT, &format))
       return -1;
 
@@ -1619,6 +1648,9 @@ tveng25_start_capturing(tveng_device_info * info)
 	  return -1;
 	}
 
+      tv_clear_image (p_info->buffers[i].vmem, 0,
+		      &info->format);
+
 	/* Queue the buffer */
       if (p_tveng25_qbuf(i, info) == -1)
 	return -1;
@@ -1722,7 +1754,7 @@ int tveng25_read_frame(tveng_image_data *where,
       return -1;
     }
   else if (n == 0)
-    return 0; /* This isn't properly an error, just a timeout */
+    return 1; /* This isn't properly an error, just a timeout */
 
   t_assert(FD_ISSET(info->fd, &rdset)); /* Some sanity check */
 

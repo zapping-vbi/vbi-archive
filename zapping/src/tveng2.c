@@ -185,7 +185,8 @@ tveng2_update_capture_format(tveng_device_info * info)
 {
   struct v4l2_format format;
   struct v4l2_window window;
-  unsigned int bpp;
+  tv_pixfmt pixfmt;
+  unsigned int bpl;
 
   t_assert(info != NULL);
 
@@ -196,24 +197,23 @@ tveng2_update_capture_format(tveng_device_info * info)
   if (v4l2_ioctl(info, VIDIOC_G_FMT, &format) != 0)
       return -1;
 
-  bpp = ((double)format.fmt.pix.depth)/8;
-  info->format.width = format.fmt.pix.width;
-  info->format.height = format.fmt.pix.height;
-  if (format.fmt.pix.flags & V4L2_FMT_FLAG_BYTESPERLINE)
-    info->format.bytes_per_line = format.fmt.pix.bytesperline;
-  else
-    info->format.bytes_per_line = bpp * info->format.width;
-  info->format.size = format.fmt.pix.sizeimage;
-  info->format.pixfmt = pixelformat_to_pixfmt (format.fmt.pix.pixelformat);
-  if (TV_PIXFMT_UNKNOWN == info->format.pixfmt) {
+  pixfmt = pixelformat_to_pixfmt (format.fmt.pix.pixelformat);
+  if (TV_PIXFMT_UNKNOWN == pixfmt) {
       info->tveng_errno = -1; /* unknown */
       t_error_msg("switch()",
 		  "Cannot understand the actual palette", info);
       return -1;    
   }
 
-  /* mhs: moved down here because tveng2_read_frame blamed
-     info -> format.sizeimage != size after G_WIN failed */
+  bpl = 0;
+  if (format.fmt.pix.flags & V4L2_FMT_FLAG_BYTESPERLINE)
+    bpl = format.fmt.pix.bytesperline;
+
+  tv_image_format_init (&info->format,
+			format.fmt.pix.width,
+			format.fmt.pix.height,
+			bpl, pixfmt, 0);
+
   if (v4l2_ioctl(info, VIDIOC_G_WIN, &window) != 0)
       return -1;
 
@@ -222,7 +222,7 @@ tveng2_update_capture_format(tveng_device_info * info)
   info->overlay_window.width = window.width;
   info->overlay_window.height = window.height;
   /* These two are defined as read-only */
-// tv_clip_vector_clear (&info->overlay_window.clip_vector);
+/* tv_clip_vector_clear (&info->overlay_window.clip_vector); */
 
   return 0;
 }
@@ -719,7 +719,7 @@ set_standard			(tveng_device_info *	info,
 	if (0 == r)
 		store_cur_video_standard (info, s);
 
-// XXX bad idea
+/* XXX bad idea */
   info->format.pixfmt = pixfmt;
   p_tveng_set_capture_format(info);
   p_tveng_restart_everything(current_mode, info);
@@ -887,14 +887,20 @@ set_tuner_frequency		(tveng_device_info *	info,
 				 tv_video_line *	l,
 				 unsigned int		frequency)
 {
+	struct private_tveng2_device_info * p_info =
+		(struct private_tveng2_device_info*) info;
 	struct video_input *vi = VI (l);
 	int old_freq;
 	int new_freq;
+	int buf_type;
+	tv_bool r;
 
 	if (!update_video_input (info))
 		return FALSE;
 
 	new_freq = (frequency << vi->step_shift) / vi->pub.u.tuner.step;
+
+	r = TRUE;
 
 	if (info->cur_video_input != l)
 		goto store;
@@ -903,14 +909,46 @@ set_tuner_frequency		(tveng_device_info *	info,
 		if (old_freq == new_freq)
 			goto store;
 
+	buf_type = V4L2_BUF_TYPE_CAPTURE;
+
+	if (TVENG_CAPTURE_READ == info->current_mode) {
+		if (-1 == v4l2_ioctl (info, VIDIOC_STREAMOFF, &buf_type)) {
+			store_frequency (info, vi, old_freq);
+			return FALSE;
+		}
+	}
+
 	if (-1 == v4l2_ioctl (info, VIDIOC_S_FREQ, &new_freq)) {
-		store_frequency (info, vi, old_freq);
-		return FALSE;
+		new_freq = old_freq;
+		r = FALSE;
+	}
+
+	if (TVENG_CAPTURE_READ == info->current_mode) {
+		unsigned int i;
+
+		for (i = 0; i < p_info->num_buffers; ++i) {
+			struct v4l2_buffer buffer;
+
+			tv_clear_image (p_info->buffers[i].vmem, 0,
+					&info->format);
+
+			buffer.type = p_info->buffers[i].vidbuf.type;
+			buffer.index = i;
+
+			if (-1 == v4l2_ioctl (info, VIDIOC_QBUF, &buffer)) {
+				/* XXX suspended state */
+				r = FALSE;
+				goto store;
+			}
+		}
+
+		if (-1 == v4l2_ioctl (info, VIDIOC_STREAMON, &buf_type))
+			r = FALSE; /* XXX suspended state */
 	}
 
  store:
 	store_frequency (info, vi, new_freq);
-	return TRUE;
+	return r;
 }
 
 static tv_bool
@@ -972,7 +1010,7 @@ set_video_input			(tveng_device_info *	info,
 
 	store_cur_video_input (info, l);
 
-	// XXX error?
+	/* XXX error? */
 	update_standard_list (info);
 
 	/* V4L2 does not promise per-tuner frequency setting as we do.
@@ -1289,6 +1327,9 @@ tveng2_start_capturing(tveng_device_info * info)
 	  return -1;
 	}
 
+      tv_clear_image (p_info->buffers[i].vmem, 0,
+		      &info->format);
+
 	/* Queue the buffer */
       if (p_tveng2_qbuf(i, info) == -1)
 	return -1;
@@ -1392,7 +1433,7 @@ int tveng2_read_frame(tveng_image_data * where,
       return -1;
     }
   else if (n == 0)
-    return 0; /* This isn't properly an error, just a timeout */
+    return 1; /* This isn't properly an error, just a timeout */
 
   t_assert(FD_ISSET(info->fd, &rdset)); /* Some sanity check */
 
@@ -1517,7 +1558,7 @@ get_overlay_buffer		(tveng_device_info *	info,
 		return FALSE;
 	}
 
-	// XXX fb.capability, fb.flags ignored
+	/* XXX fb.capability, fb.flags ignored */
 
 	t->base			= (unsigned long) fb.base[0];
 
@@ -1850,7 +1891,7 @@ int tveng2_attach_device(const char* device_file,
 	info->video_standards = NULL;
 	info->cur_video_standard = NULL;
 
-	// XXX error
+	/* XXX error */
 	update_video_input_list (info);
 
   /* Query present controls */
