@@ -57,7 +57,7 @@ static gboolean freeze = FALSE, needs_refresh = FALSE;
 static gboolean rebuild_channel_menu = TRUE;
 
 static void
-update_bundle				(ZModel		*model,
+update_bundle				(ZModel		*model _unused_,
 					 tveng_device_info *info)
 {
   if (freeze)
@@ -73,7 +73,8 @@ update_bundle				(ZModel		*model,
       GtkWidget *menu_item;
       gint has_rf;
 
-      channels = GTK_MENU_ITEM (lookup_widget (main_window, "channels"));
+      channels = GTK_MENU_ITEM (lookup_widget (GTK_WIDGET (zapping),
+					       "channels"));
       menu = GTK_MENU_SHELL(gtk_menu_new());
 
       menu_item = gtk_tearoff_menu_item_new();
@@ -104,7 +105,7 @@ thaw_update (void)
   freeze = FALSE;
 
   if (needs_refresh)
-    update_bundle(z_input_model, main_info);
+    update_bundle(z_input_model, zapping->info);
 
   needs_refresh = FALSE;
 }
@@ -137,7 +138,7 @@ struct control_window
 };
 
 static void
-on_tv_control_destroy		(tv_control *		ctrl,
+on_tv_control_destroy		(tv_control *		ctrl _unused_,
 				 void *			user_data)
 {
   struct control *c = user_data;
@@ -269,7 +270,8 @@ on_tv_control_integer_changed	(tv_control *		ctrl,
 
   SIGNAL_HANDLER_BLOCK (z_spinslider_get_spin_adj (c->widget),
 			on_control_slider_changed,
-			z_spinslider_set_value (c->widget, ctrl->value));
+			z_spinslider_set_value (c->widget,
+						(gfloat) ctrl->value));
 }
 
 static void
@@ -282,14 +284,15 @@ create_slider			(struct control_window *cb,
 
   /* XXX use tv_control.step */
 
-  adj = G_OBJECT (gtk_adjustment_new (ctrl->value,
-				      ctrl->minimum, ctrl->maximum,
-				      1, 10, 10));
+  adj = G_OBJECT (gtk_adjustment_new ((gfloat) ctrl->value,
+				      (gfloat) ctrl->minimum,
+				      (gfloat) ctrl->maximum,
+				      (gfloat) 1, (gfloat) 10, (gfloat) 10));
 
   spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL,
-				 NULL, ctrl->reset, 0);
+				 NULL, (gfloat) ctrl->reset, 0);
 
-  z_spinslider_set_value (spinslider, ctrl->value);
+  z_spinslider_set_value (spinslider, (gfloat) ctrl->value);
 
   add_control (cb, info, ctrl, control_symbol (ctrl), spinslider,
 	       adj, "value-changed", on_control_slider_changed,
@@ -396,11 +399,11 @@ create_menu			(struct control_window *cb,
     }
 
   gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu),
-			       ctrl->value);
+			       (guint) ctrl->value);
 }
 
 static void
-on_control_button_clicked	(GtkButton *		button,
+on_control_button_clicked	(GtkButton *		button _unused_,
 				 gpointer		user_data)
 {
   struct control *c = user_data;
@@ -423,11 +426,11 @@ create_button			(struct control_window *cb,
 }
 
 static void
-on_color_set			(GnomeColorPicker *	colorpicker,
+on_color_set			(GnomeColorPicker *	colorpicker _unused_,
 				 guint			arg1,
 				 guint			arg2,
 				 guint			arg3,
-				 guint			arg4,
+				 guint			arg4 _unused_,
 				 gpointer		user_data)
 {
   struct control *c = user_data;
@@ -438,7 +441,7 @@ on_color_set			(GnomeColorPicker *	colorpicker,
   color += (arg3 >> 8);		/* blue */
   /* arg4 alpha ignored */
 
-  tveng_set_control (c->ctrl, color, c->info);
+  tveng_set_control (c->ctrl, (int) color, c->info);
 }
 
 static void
@@ -601,7 +604,7 @@ on_control_window_key_press	(GtkWidget *		widget,
 }
 
 static void
-on_control_window_destroy	(GtkWidget *		widget,
+on_control_window_destroy	(GtkWidget *		widget _unused_,
 				 gpointer		user_data)
 {
   struct control_window *cb = user_data;
@@ -618,7 +621,8 @@ on_control_window_destroy	(GtkWidget *		widget,
   g_free (cb);
 
   /* See below.
-     gtk_widget_set_sensitive (lookup_widget (main_window, "toolbar-controls"), TRUE);
+     gtk_widget_set_sensitive (lookup_widget (GTK_WIDGET (zapping),
+					      "toolbar-controls"), TRUE);
   */
 }
 
@@ -636,20 +640,21 @@ create_control_window		(void)
   g_signal_connect (G_OBJECT(cb->window), "key-press-event",
 		    G_CALLBACK (on_control_window_key_press), cb);
 
-  add_controls (cb, main_info);
+  add_controls (cb, zapping->info);
 
   gtk_widget_show (cb->window);
 
   /* Not good because it may just raise a hidden control window.
-     gtk_widget_set_sensitive (lookup_widget (main_window, "toolbar-controls"), FALSE);
+     gtk_widget_set_sensitive (lookup_widget (GTK_WIDGET (zapping),
+					      "toolbar-controls"), FALSE);
    */
 
   ToolBox = cb;
 }
 
 static PyObject *
-py_control_box			(PyObject *		self,
-				 PyObject *		args)
+py_control_box			(PyObject *		self _unused_,
+				 PyObject *		args _unused_)
 {
   if (ToolBox == NULL)
     create_control_window ();
@@ -690,7 +695,7 @@ update_control_box		(tveng_device_info *	info)
 
 	case TV_CONTROL_TYPE_CHOICE:
 	  gtk_option_menu_set_history
-	    (GTK_OPTION_MENU (c->widget), ctrl->value);
+	    (GTK_OPTION_MENU (c->widget), (guint) ctrl->value);
 	  break;
 
 	case TV_CONTROL_TYPE_ACTION:
@@ -731,7 +736,7 @@ update_control_box		(tveng_device_info *	info)
    new configuration. */
 
 gboolean
-z_switch_video_input		(int hash, tveng_device_info *info)
+z_switch_video_input		(guint hash, tveng_device_info *info)
 {
   const tv_video_line *l;
 
@@ -758,7 +763,7 @@ z_switch_video_input		(int hash, tveng_device_info *info)
 }
 
 gboolean
-z_switch_audio_input		(int hash, tveng_device_info *info)
+z_switch_audio_input		(guint hash, tveng_device_info *info)
 {
   const tv_audio_line *l;
 
@@ -785,7 +790,7 @@ z_switch_audio_input		(int hash, tveng_device_info *info)
 }
 
 gboolean
-z_switch_standard		(int hash, tveng_device_info *info)
+z_switch_standard		(guint hash, tveng_device_info *info)
 {
   const tv_video_standard *s;
   tv_bool r;
@@ -1091,7 +1096,7 @@ gchar *substitute_keywords	(gchar		*string,
 {
   gint i;
   gchar *found, *buffer = NULL, *p;
-  gchar *search_keys[] =
+  const gchar *search_keys[] =
   {
     "$(alias)",
     "$(index)",
@@ -1136,7 +1141,7 @@ gchar *substitute_keywords	(gchar		*string,
 	   {
 	     const tv_video_line *l;
 
-	     if ((l = tv_video_input_by_hash (main_info, tc->input)))
+	     if ((l = tv_video_input_by_hash (zapping->info, tc->input)))
 	       buffer = g_strdup (l->label);
 	     else
 	       buffer = g_strdup (_("No input"));
@@ -1147,7 +1152,7 @@ gchar *substitute_keywords	(gchar		*string,
 	   {
 	     const tv_video_standard *s;
 
-	     if ((s = tv_video_standard_by_hash (main_info, tc->standard)))
+	     if ((s = tv_video_standard_by_hash (zapping->info, tc->standard)))
 	       buffer = g_strdup (s->label);
 	     else
 	       buffer = g_strdup (_("No standard"));
@@ -1203,10 +1208,10 @@ z_set_main_title	(tveng_tuned_channel	*channel,
       || channel->name || default_name)
     buffer = substitute_keywords(g_strdup(zcg_char(NULL, "title_format")),
 				 channel, default_name);
-  if (buffer && *buffer && main_window)
-    gtk_window_set_title(GTK_WINDOW(main_window), buffer);
-  else if (main_window)
-    gtk_window_set_title(GTK_WINDOW(main_window), "Zapping");
+  if (buffer && *buffer && zapping)
+    gtk_window_set_title(GTK_WINDOW(zapping), buffer);
+  else if (zapping)
+    gtk_window_set_title(GTK_WINDOW(zapping), "Zapping");
 
   g_free(buffer);
 
@@ -1232,7 +1237,8 @@ z_switch_channel		(tveng_tuned_channel *	channel,
   in_global_list = tveng_tuned_channel_in_list (global_channel_list, channel);
 
   if (in_global_list &&
-      (tc = tveng_tuned_channel_nth (global_channel_list, cur_tuned_channel)))
+      (tc = tveng_tuned_channel_nth (global_channel_list,
+				     (guint) cur_tuned_channel)))
     {
       if (!first_switch)
 	{
@@ -1256,7 +1262,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
     }
 
   if ((avoid_noise = zcg_bool (NULL, "avoid_noise")))
-    tv_quiet_set (main_info, TRUE);
+    tv_quiet_set (zapping->info, TRUE);
 
   freeze_update();
 
@@ -1280,7 +1286,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
     z_switch_standard(channel->standard, info);
 
   if (avoid_noise)
-    reset_quiet (main_info, /* delay ms */ 500);
+    reset_quiet (zapping->info, /* delay ms */ 500);
 
   if (info->cur_video_input
       && info->cur_video_input->type == TV_VIDEO_LINE_TYPE_TUNER)
@@ -1290,7 +1296,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
   if (in_global_list)
     z_set_main_title(channel, NULL);
   else
-    gtk_window_set_title(GTK_WINDOW(main_window), "Zapping");
+    gtk_window_set_title(GTK_WINDOW(zapping), "Zapping");
 
   thaw_update();
 
@@ -1308,16 +1314,17 @@ z_switch_channel		(tveng_tuned_channel *	channel,
 
   zvbi_channel_switched();
 
-  if (info->current_mode == TVENG_CAPTURE_PREVIEW)
+  if (DISPLAY_MODE_FULLSCREEN == zapping->display_mode
+      || DISPLAY_MODE_BACKGROUND == zapping->display_mode)
     osd_render_markup_printf (NULL,
 	("<span foreground=\"yellow\">%s</span>"), channel->name);
 #endif
 
-  xawtv_ipc_set_station (main_window, channel);
+  xawtv_ipc_set_station (GTK_WIDGET (zapping), channel);
 }
 
 static void
-select_channel (gint num_channel)
+select_channel (guint num_channel)
 {
   tveng_tuned_channel * channel =
     tveng_tuned_channel_nth (global_channel_list, num_channel);
@@ -1329,14 +1336,15 @@ select_channel (gint num_channel)
       return;
     }
 
-  z_switch_channel(channel, main_info);
+  z_switch_channel(channel, zapping->info);
 }
 
 static PyObject*
-py_channel_up			(PyObject *self, PyObject *args)
+py_channel_up			(PyObject *self _unused_,
+				 PyObject *args _unused_)
 {
-  gint num_channels = tveng_tuned_channel_num(global_channel_list);
-  gint new_channel;
+  guint num_channels = tveng_tuned_channel_num(global_channel_list);
+  guint new_channel;
 
   if (num_channels == 0) /* If there are no tuned channels stop
 			    processing */
@@ -1352,7 +1360,8 @@ py_channel_up			(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-py_channel_down			(PyObject *self, PyObject *args)
+py_channel_down			(PyObject *self _unused_,
+				 PyObject *args _unused_)
 {
   gint num_channels = tveng_tuned_channel_num(global_channel_list);
   gint new_channel;
@@ -1374,11 +1383,12 @@ py_channel_down			(PyObject *self, PyObject *args)
  *  Select a channel by index into the the channel list.
  */
 static PyObject*
-py_set_channel				(PyObject *self, PyObject *args)
+py_set_channel				(PyObject *self _unused_,
+					 PyObject *args)
 {
   gint num_channels;
   gint i;
-  int ok = PyArg_ParseTuple (args, "i", &i);
+  int ok = ParseTuple (args, "i", &i);
 
   if (!ok)
     py_return_false;
@@ -1387,7 +1397,7 @@ py_set_channel				(PyObject *self, PyObject *args)
 
   if (i >= 0 && i < num_channels)
     {
-      select_channel(i);
+      select_channel((guint) i);
       py_return_true;
     }
 
@@ -1399,24 +1409,25 @@ py_set_channel				(PyObject *self, PyObject *args)
  *  when not found by channel name ("5", "S7", ...)
  */
 static PyObject*
-py_lookup_channel			(PyObject *self, PyObject *args)
+py_lookup_channel			(PyObject *self _unused_,
+					 PyObject *args)
 {
   tveng_tuned_channel *tc;
   char *name;
-  int ok = PyArg_ParseTuple (args, "s", &name);
+  int ok = ParseTuple (args, "s", &name);
 
   if (!ok)
     py_return_false;
 
   if ((tc = tveng_tuned_channel_by_name (global_channel_list, name)))
     {
-      z_switch_channel(tc, main_info);
+      z_switch_channel(tc, zapping->info);
       py_return_true;
     }
 
   if ((tc = tveng_tuned_channel_by_rf_name (global_channel_list, name)))
     {
-      z_switch_channel(tc, main_info);
+      z_switch_channel(tc, zapping->info);
       py_return_true;
     }
 
@@ -1427,7 +1438,7 @@ static gchar			kp_chsel_buf[8];
 static gint			kp_chsel_prefix;
 static gboolean			kp_clear;
 static gboolean			kp_lirc; /* XXX */
-static gint			kp_timeout_id = -1;
+static guint			kp_timeout_id = NO_SOURCE_ID;
 
 static gint
 channel_txl			(void)
@@ -1435,7 +1446,7 @@ channel_txl			(void)
   gint txl;
 
   /* 0 = channel list number, 1 = RF channel number */
-  txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
+  txl = zconf_get_int (NULL, "/zapping/options/main/channel_txl");
 
   if (txl < 0)
     txl = 0; /* historical: -1 disabled keypad channel number entering */
@@ -1451,10 +1462,11 @@ kp_enter			(gint			txl)
   if (!isdigit (kp_chsel_buf[0]) || txl >= 1)
     tc = tveng_tuned_channel_by_rf_name (global_channel_list, kp_chsel_buf);
   else
-    tc = tveng_tuned_channel_nth (global_channel_list, atoi (kp_chsel_buf));
+    tc = tveng_tuned_channel_nth (global_channel_list,
+				  strtoul (kp_chsel_buf, NULL, 0));
 
   if (tc)
-    z_switch_channel (tc, main_info);
+    z_switch_channel (tc, zapping->info);
 }
 
 static void
@@ -1477,7 +1489,7 @@ kp_timeout2			(gpointer		user_data)
 {
   kp_timeout (TRUE);
 
-  kp_timeout_id = -1;
+  kp_timeout_id = NO_SOURCE_ID;
 
   return FALSE; /* don't call again */
 }
@@ -1491,14 +1503,14 @@ kp_key_press			(GdkEventKey *		event,
   if (kp_timeout_id > 0)
     g_source_remove (kp_timeout_id);
 
-  kp_timeout_id = -1;
+  kp_timeout_id = NO_SOURCE_ID;
 
   switch (event->keyval)
     {
     case GDK_KP_0 ... GDK_KP_9:
       {
 	tveng_tuned_channel *tc;
-	gint len;
+	guint len;
 
 	len = strlen (kp_chsel_buf);
 
@@ -1558,14 +1570,15 @@ kp_key_press			(GdkEventKey *		event,
 
 	    /* Switch to channel if the number is unambiguous */
 
-	    if (num == 0 || (num * 10) >= tveng_tuned_channel_num (global_channel_list))
+	    if (num == 0
+		|| (num * 10) >= tveng_tuned_channel_num (global_channel_list))
 	      tc = tveng_tuned_channel_nth (global_channel_list, num);
 	  }
 
 	if (!tc)
 	  return TRUE; /* unknown channel */
 
-	z_switch_channel (tc, main_info);
+	z_switch_channel (tc, zapping->info);
 
 	kp_chsel_buf[0] = 0;
 	kp_chsel_prefix = 0;
@@ -1585,7 +1598,8 @@ kp_key_press			(GdkEventKey *		event,
 
 	  if (!(rf_table = zconf_get_string (NULL, "/zapping/options/main/current_country")))
 	    {
-	      tc = tveng_tuned_channel_nth (global_channel_list, cur_tuned_channel);
+	      tc = tveng_tuned_channel_nth
+		(global_channel_list, (guint) cur_tuned_channel);
 
 	      if (!tc || !(rf_table = tc->rf_table) || rf_table[0] == 0)
 		return TRUE; /* dead key */
@@ -1640,13 +1654,13 @@ channel_key_press		(GdkEventKey *		event)
 }
 
 gboolean
-on_channel_key_press			(GtkWidget *	widget,
+on_channel_key_press			(GtkWidget *	widget _unused_,
 					 GdkEventKey *	event,
-					 gpointer	user_data)
+					 gpointer	user_data _unused_)
 {
   tveng_tuned_channel *tc;
   z_key key;
-  gint i;
+  guint i;
 
   if (1) /* XXX !disabled */
     if (kp_key_press (event, channel_txl ()))
@@ -1691,7 +1705,7 @@ static void
 append_radio_menu_item		(GtkMenuShell **	menu_shell,
 				 GSList **		group,
 				 const gchar *		label,
-				 gboolean		active,
+				 gboolean		active _unused_,
 				 GCallback		handler,
 				 const source_menu *	sm)
 {
@@ -1734,7 +1748,7 @@ select_cur_video_standard_item	(GtkMenuShell *		menu_shell,
 }
 
 static void
-on_tv_video_standard_change	(tveng_device_info *	info,
+on_tv_video_standard_change	(tveng_device_info *	info _unused_,
 				 void *			user_data)
 {
   source_menu *sm = user_data;
@@ -1780,8 +1794,11 @@ on_video_standard_activate	(GtkMenuItem *		menu_item,
 
   rebuild_channel_menu = FALSE; /* old stuff */
 
-  if (index >= 1 && (s = tv_nth_video_standard (sm->info, index - 1 /* tear-off */)))
-    TV_CALLBACK_BLOCK (sm->callback, (success = z_switch_standard (s->hash, main_info)));
+  if (index >= 1
+      && (s = tv_nth_video_standard (sm->info,
+				     (guint) index - 1 /* tear-off */)))
+    TV_CALLBACK_BLOCK (sm->callback,
+		       (success = z_switch_standard (s->hash, zapping->info)));
 
   rebuild_channel_menu = TRUE;
 
@@ -1861,7 +1878,7 @@ select_cur_audio_input_item	(GtkMenuShell *		menu_shell,
 }
 
 static void
-on_tv_audio_input_change	(tveng_device_info *	info,
+on_tv_audio_input_change	(tveng_device_info *	info _unused_,
 				 void *			user_data)
 {
   source_menu *sm = user_data;
@@ -1907,8 +1924,11 @@ on_audio_input_activate		(GtkMenuItem *		menu_item,
 
   rebuild_channel_menu = FALSE; /* old stuff */
 
-  if (index >= 1 && (l = tv_nth_audio_input (sm->info, index - 1 /* tear-off */)))
-    TV_CALLBACK_BLOCK (sm->callback, (success = z_switch_audio_input (l->hash, main_info)));
+  if (index >= 1
+      && (l = tv_nth_audio_input (sm->info, (guint) index - 1 /* tear-off */)))
+    TV_CALLBACK_BLOCK (sm->callback,
+		       (success =
+			z_switch_audio_input (l->hash, zapping->info)));
 
   rebuild_channel_menu = TRUE;
 
@@ -1986,7 +2006,7 @@ select_cur_video_input_item	(GtkMenuShell *		menu_shell,
 }
 
 static void
-on_tv_video_input_change	(tveng_device_info *	info,
+on_tv_video_input_change	(tveng_device_info *	info _unused_,
 				 void *			user_data)
 {
   source_menu *sm = user_data;
@@ -2036,9 +2056,11 @@ on_video_input_activate		(GtkMenuItem *		menu_item,
 
   rebuild_channel_menu = FALSE; /* old stuff */
 
-  if (index >= 1 && (l = tv_nth_video_input (sm->info, index - 1 /* tear-off */)))
+  if (index >= 1
+      && (l = tv_nth_video_input (sm->info, (guint) index - 1 /* tear-off */)))
     TV_CALLBACK_BLOCK (sm->callback,
-		       (success = z_switch_video_input (l->hash, main_info)));
+		       (success =
+			z_switch_video_input (l->hash, zapping->info)));
 
   rebuild_channel_menu = TRUE;
 
@@ -2177,7 +2199,7 @@ nth_channel			(guint			index)
 static inline void
 insert_one_channel		(GtkMenuShell *		menu,
 				 guint			index,
-				 guint			pos)
+				 gint			pos)
 {
   tveng_tuned_channel *tc;
   GtkWidget *menu_item;
@@ -2220,7 +2242,7 @@ tuned_channel_nth_name		(guint			index)
 gboolean
 add_channel_entries			(GtkMenuShell *menu,
 					 gint pos,
-					 gint menu_max_entries,
+					 guint menu_max_entries,
 					 tveng_device_info *info)
 {
   const guint ITEMS_PER_SUBMENU = 20;
@@ -2321,7 +2343,7 @@ videostd_inquiry(void)
   GtkWidget *dialog, *option, *check;
   gint std_hint;
 
-  std_hint = zconf_get_integer (NULL, "/zapping/options/main/std_hint");
+  std_hint = zconf_get_int (NULL, "/zapping/options/main/std_hint");
 
   if (std_hint >= 1)
     goto ok;
@@ -2339,7 +2361,7 @@ videostd_inquiry(void)
   std_hint = 1 + z_option_menu_get_active (option);
 
   if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (check)))
-    zconf_set_integer (std_hint, "/zapping/options/main/std_hint");
+    zconf_set_int (std_hint, "/zapping/options/main/std_hint");
 
  ok:
   if (std_hint == 1)
@@ -2356,7 +2378,7 @@ videostd_inquiry(void)
  *  But for now I just copied py_volume_incr().
  */
 static PyObject*
-py_control_incr			(PyObject *self, PyObject *args)
+py_control_incr			(PyObject *self _unused_, PyObject *args)
 {
   static const struct {
     tv_control_id	id;
@@ -2378,7 +2400,7 @@ py_control_incr			(PyObject *self, PyObject *args)
 
   increment = +1;
 
-  ok = PyArg_ParseTuple (args, "s|i", &control_name, &increment);
+  ok = ParseTuple (args, "s|i", &control_name, &increment);
 
   if (!ok)
     g_error ("zapping.control_incr(s|i)");
@@ -2392,7 +2414,7 @@ py_control_incr			(PyObject *self, PyObject *args)
 
   tc = NULL;
 
-  while ((tc = tv_next_control (main_info, tc)))
+  while ((tc = tv_next_control (zapping->info, tc)))
     if (tc->id == controls[i].id)
       break;
 
@@ -2416,10 +2438,11 @@ py_control_incr			(PyObject *self, PyObject *args)
     }
   else
     {
-      if (-1 == tveng_update_control ((tv_control *) tc, main_info))
+      if (-1 == tveng_update_control ((tv_control *) tc, zapping->info))
 	goto done;
 
-      tveng_set_control ((tv_control *) tc, tc->value + increment * tc->step, main_info);
+      tveng_set_control ((tv_control *) tc,
+			 tc->value + increment * tc->step, zapping->info);
 
 #ifdef HAVE_LIBZVBI
       osd_render_markup_printf (NULL,

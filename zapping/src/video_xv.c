@@ -143,7 +143,7 @@ ungrab_port (XvPortID	xvport)
  * Create a new XV image with the given attributes, returns NULL on error.
  */
 static zimage *
-image_new(tv_pixfmt pixfmt, gint w, gint h)
+image_new(tv_pixfmt pixfmt, guint w, guint h)
 {
   zimage *new_image;
   struct _zimage_private *pimage;
@@ -157,7 +157,7 @@ image_new(tv_pixfmt pixfmt, gint w, gint h)
 
   pimage = g_malloc0 (sizeof (*pimage));
 
-  tv_pixfmt_to_pixel_format (&format, pixfmt, 0);
+  tv_pixel_format_from_pixfmt (&format, pixfmt, 0);
 
   pimage -> uses_shm = FALSE;
 
@@ -167,14 +167,15 @@ image_new(tv_pixfmt pixfmt, gint w, gint h)
     {
       CLEAR (pimage->shminfo);
       pimage->image = XvShmCreateImage(GDK_DISPLAY(), xvport,
-	formats[pixfmt].format_id, NULL, w, h, &pimage->shminfo);
+	formats[pixfmt].format_id, NULL, (gint) w, (gint) h, &pimage->shminfo);
 
       if (pimage->image)
 	{
 	  pimage->uses_shm = TRUE;
 
 	  pimage->shminfo.shmid =
-	    shmget (IPC_PRIVATE, pimage->image->data_size, IPC_CREAT | 0777);
+	    shmget (IPC_PRIVATE,
+		    (unsigned) pimage->image->data_size, IPC_CREAT | 0777);
 
 	  if (-1 == pimage->shminfo.shmid)
             {
@@ -227,14 +228,14 @@ image_new(tv_pixfmt pixfmt, gint w, gint h)
       pimage->image =
 	XvCreateImage(GDK_DISPLAY(), xvport,
 		      formats[pixfmt].format_id,
-		      image_data, w, h);
+		      image_data, (gint) w, (gint) h);
       if (!pimage->image)
         goto error2;
     }
 
   /* Make sure we get an object with appropiate width and height */
-  if (pimage->image->width != w ||
-      pimage->image->height != h)
+  if ((guint) pimage->image->width != w ||
+      (guint) pimage->image->height != h)
     goto error3;
 
   new_image = zimage_create_object ();
@@ -307,7 +308,7 @@ image_new(tv_pixfmt pixfmt, gint w, gint h)
  * Puts the image in the given drawable, scales to the drawable's size.
  */
 static void
-image_put(zimage *image, gint width, gint height)
+image_put(zimage *image, guint width, guint height)
 {
   zimage_private *pimage = image->priv;
 
@@ -369,14 +370,14 @@ image_destroy(zimage *image)
 
 static void
 set_destination (GdkWindow *_w, GdkGC *_gc,
-		 tveng_device_info *info)
+		 tveng_device_info *info _unused_)
 {
   window = _w;
   gc = _gc;
 }
 
 static void
-unset_destination(tveng_device_info *info)
+unset_destination(tveng_device_info *info _unused_)
 {
   window = NULL;
   gc = NULL;
@@ -530,7 +531,7 @@ traverse_ports			(Display *		display,
 				 const XvAdaptorInfo *	pAdaptor,
 				 unsigned int		index)
 {
-  int i;
+  unsigned int i;
 
   for (i = 0; i < pAdaptor->num_ports; ++i)
     {
@@ -542,8 +543,8 @@ traverse_ports			(Display *		display,
 
       xvport = pAdaptor->base_id + i;
 
-      if (xv_image_port != (XvPortID) -1
-	  && xvport != xv_image_port)
+      if ((XvPortID) xv_image_port != (XvPortID) -1
+	  && xvport != (XvPortID) xv_image_port)
 	continue;
 
       pImageFormats = XvListImageFormats (display, xvport, &nImageFormats);
@@ -576,24 +577,24 @@ traverse_ports			(Display *		display,
 			   pImageFormats[j].id, FALSE, index);
 	    break;
 
-	  case TV_PIXFMT_RGBA24_LE:
-	  case TV_PIXFMT_RGBA24_BE:
-	  case TV_PIXFMT_BGRA24_LE:
-	  case TV_PIXFMT_BGRA24_BE:
+	  case TV_PIXFMT_RGBA32_LE:
+	  case TV_PIXFMT_RGBA32_BE:
+	  case TV_PIXFMT_BGRA32_LE:
+	  case TV_PIXFMT_BGRA32_BE:
 	  case TV_PIXFMT_RGB24_LE:
 	  case TV_PIXFMT_BGR24_LE:
 	  case TV_PIXFMT_RGB16_LE:
 	  case TV_PIXFMT_RGB16_BE:
 	  case TV_PIXFMT_BGR16_LE:
 	  case TV_PIXFMT_BGR16_BE:
-	  case TV_PIXFMT_RGBA15_LE:
-	  case TV_PIXFMT_RGBA15_BE:
-	  case TV_PIXFMT_BGRA15_LE:
-	  case TV_PIXFMT_BGRA15_BE:
-	  case TV_PIXFMT_ARGB15_LE:
-	  case TV_PIXFMT_ARGB15_BE:
-	  case TV_PIXFMT_ABGR15_LE:
-	  case TV_PIXFMT_ABGR15_BE:
+	  case TV_PIXFMT_RGBA16_LE:
+	  case TV_PIXFMT_RGBA16_BE:
+	  case TV_PIXFMT_BGRA16_LE:
+	  case TV_PIXFMT_BGRA16_BE:
+	  case TV_PIXFMT_ARGB16_LE:
+	  case TV_PIXFMT_ARGB16_BE:
+	  case TV_PIXFMT_ABGR16_LE:
+	  case TV_PIXFMT_ABGR16_BE:
 	  case TV_PIXFMT_RGBA12_LE:
 	  case TV_PIXFMT_RGBA12_BE:
 	  case TV_PIXFMT_BGRA12_LE:
@@ -604,10 +605,10 @@ traverse_ports			(Display *		display,
 	  case TV_PIXFMT_ABGR12_BE:
 	  case TV_PIXFMT_RGB8:
 	  case TV_PIXFMT_BGR8:
-	  case TV_PIXFMT_RGBA7:
-	  case TV_PIXFMT_BGRA7:
-	  case TV_PIXFMT_ARGB7:
-	  case TV_PIXFMT_ABGR7:
+	  case TV_PIXFMT_RGBA8:
+	  case TV_PIXFMT_BGRA8:
+	  case TV_PIXFMT_ARGB8:
+	  case TV_PIXFMT_ABGR8:
 	    register_port (xvport, pixfmt, pImageFormats[j].id, FALSE, index);
 	    break;
 
@@ -697,7 +698,7 @@ void add_backend_xv (void)
 	continue;
 
       if ((XvInputMask | XvImageMask) == (type & (XvInputMask | XvImageMask)))
-	traverse_ports (display, pAdaptor, i);
+	traverse_ports (display, pAdaptor, (unsigned) i);
     }
 
   XvFreeAdaptorInfo (pAdaptors);

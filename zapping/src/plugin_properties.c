@@ -57,7 +57,7 @@ z_put_cursor_on_first_row (GtkTreeView *view)
 
 static void
 on_plugin_treeview_cursor_changed	(GtkTreeView	*v,
-					 gpointer	user_data)
+					 gpointer	user_data _unused_)
 {
   GtkWidget * plugin_properties = lookup_widget(GTK_WIDGET(v),
 						"plugin_properties");
@@ -174,7 +174,7 @@ on_plugin_treeview_cursor_changed	(GtkTreeView	*v,
 
 static void
 on_symbol_treeview_cursor_changed	(GtkTreeView	*v,
-					 gpointer	user_data)
+					 gpointer	user_data _unused_)
 {
   struct plugin_exported_symbol * symbol;
   GtkWidget * label947; /* Symbol description and properties */
@@ -201,7 +201,7 @@ on_symbol_treeview_cursor_changed	(GtkTreeView	*v,
 
 static void
 on_plugin_start_clicked                (GtkWidget	*button,
-                                        gpointer         user_data)
+                                        gpointer         user_data _unused_)
 {
   struct plugin_info * info =
     g_object_get_data(G_OBJECT(button), "plugin_info");
@@ -220,7 +220,7 @@ on_plugin_start_clicked                (GtkWidget	*button,
 
 static void
 on_plugin_stop_clicked                (GtkWidget	*button,
-				       gpointer         user_data)
+				       gpointer         user_data _unused_)
 {
   struct plugin_info * info =
     g_object_get_data (G_OBJECT (button), "plugin_info");
@@ -236,12 +236,12 @@ on_plugin_stop_clicked                (GtkWidget	*button,
 }
 
 static PyObject *
-py_plugin_properties (PyObject *self, PyObject *args)
+py_plugin_properties (PyObject *self _unused_, PyObject *args _unused_)
 {
   GtkWidget * plugin_properties;
   GtkTreeView * plugin_treeview, *symbol_treeview;
   GtkWidget *menuitem =
-    lookup_widget (main_window, "plugins1");
+    lookup_widget (GTK_WIDGET (zapping), "plugins1");
   GtkListStore *model;
   GtkTreeIter iter;
   GtkTreeSelection *sel;

@@ -103,24 +103,23 @@ z_key
 z_key_from_name			(const gchar *		name)
 {
   struct {
-    gchar *			str;
+    const gchar *		str;
     guint			mask;
   } modifiers[3] = {
     { N_("Ctrl+"),  GDK_CONTROL_MASK },
     { N_("Alt+"),   GDK_MOD1_MASK },
     { N_("Shift+"), GDK_SHIFT_MASK }
   };
-  const gint num_modifiers = G_N_ELEMENTS (modifiers);
   z_key key;
 
   key.mask = 0;
 
   for (;;)
     {
-      gint i, len;
+      guint i, len;
       gchar *str;
 
-      for (i = 0; i < num_modifiers; i++) {
+      for (i = 0; i < G_N_ELEMENTS (modifiers); i++) {
 	str = _(modifiers[i].str);
 	len = strlen (str);
 
@@ -129,7 +128,7 @@ z_key_from_name			(const gchar *		name)
 	  break;
       }
 
-      if (i >= num_modifiers)
+      if (i >= G_N_ELEMENTS (modifiers))
 	break;
 
       key.mask |= modifiers[i].mask;
@@ -165,14 +164,14 @@ zconf_create_z_key		(z_key			key,
   g_assert(path != NULL);
 
   s = g_strjoin (NULL, path, "key", NULL);
-  zconf_create_integer ((gint) key.key, desc, s);
+  zconf_create_uint (key.key, desc, s);
   g_free (s);
 
   if (zconf_error ())
     return;
 
   s = g_strconcat (path, "mask", NULL);
-  zconf_create_integer ((gint) key.mask, NULL, s);
+  zconf_create_uint (key.mask, NULL, s);
   g_free (s);
 }
 
@@ -190,14 +189,14 @@ zconf_set_z_key			(z_key			key,
   g_assert(path != NULL);
 
   s = g_strconcat (path, "key", NULL);
-  zconf_set_integer ((gint) key.key, s);
+  zconf_set_uint (key.key, s);
   g_free (s);
 
   if (zconf_error())
     return;
 
   s = g_strconcat (path, "mask", NULL);
-  zconf_set_integer ((gint) key.mask, s);
+  zconf_set_uint (key.mask, s);
   g_free (s);
 }
 
@@ -211,13 +210,13 @@ zconf_get_z_key			(z_key *		keyp,
   g_assert(path != NULL);
 
   s = g_strconcat (path, "key", NULL);
-  zconf_get_integer ((gint *) &key.key, s);
+  zconf_get_uint (&key.key, s);
   g_free (s);
 
   if (!zconf_error())
     {
       s = g_strconcat (path, "mask", NULL);
-      zconf_get_integer ((gint *) &key.mask, s);
+      zconf_get_uint (&key.mask, s);
       g_free (s);
     }
 
@@ -268,7 +267,7 @@ z_key_entry_entry		(GtkWidget *		hbox)
 }
 
 static void
-on_modifier_toggled		(GtkToggleButton *	togglebutton,
+on_modifier_toggled		(GtkToggleButton *	togglebutton _unused_,
 				 gpointer		user_data)
 {
   z_key_entry *ke = user_data;
@@ -397,7 +396,7 @@ on_key_press			(GtkWidget *		dialog,
 }
 
 static void
-on_key_table_clicked		(GtkWidget *		w,
+on_key_table_clicked		(GtkWidget *		w _unused_,
 				 gpointer		user_data)
 {
   z_key_entry *ke = user_data;
@@ -405,7 +404,7 @@ on_key_table_clicked		(GtkWidget *		w,
   GtkTreeView *key_view =
     GTK_TREE_VIEW(lookup_widget(dialog, "key_view"));
   const gchar *name;
-  gint i;
+  guint i;
   GtkListStore *store;
   GtkTreeIter iter;
   GtkTreeViewColumn *column;
@@ -594,7 +593,7 @@ kb_add				(z_key			key,
 gboolean
 on_user_key_press		(GtkWidget *		widget,
 				 GdkEventKey *		event,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   key_binding *kb;
   z_key key;
@@ -829,7 +828,7 @@ create_model			(void)
 }
 
 static void
-on_command_edited		(GtkCellRendererText *	cell,
+on_command_edited		(GtkCellRendererText *	cell _unused_,
 				 const gchar *		path_string,
 				 const gchar *		new_text,
 				 GtkTreeView *		tree_view)
@@ -856,7 +855,7 @@ on_command_edited		(GtkCellRendererText *	cell,
 
 static gboolean
 unique				(GtkTreeModel *		model,
-				 GtkTreePath *		path,
+				 GtkTreePath *		path _unused_,
 				 GtkTreeIter *		iter,
 				 gpointer		user_data)
 {
@@ -879,11 +878,11 @@ unique				(GtkTreeModel *		model,
 }
 
 static void
-on_accel_edited			(GtkCellRendererText *	cell,
+on_accel_edited			(GtkCellRendererText *	cell _unused_,
 				 const char *		path_string,
 				 guint			keyval,
 				 EggVirtualModifierType	mask,
-				 guint			keycode,
+				 guint			keycode _unused_,
 				 GtkTreeView *		tree_view)
 {
   GtkTreePath *path;
@@ -912,11 +911,11 @@ on_accel_edited			(GtkCellRendererText *	cell,
 }
 
 static void
-accel_set_func			(GtkTreeViewColumn *	tree_column,
+accel_set_func			(GtkTreeViewColumn *	tree_column _unused_,
 				 GtkCellRenderer *	cell,
 				 GtkTreeModel *		model,
 				 GtkTreeIter *		iter,
-				 GtkTreeView *		tree_view)
+				 GtkTreeView *		tree_view _unused_)
 {
   z_key key;
 
@@ -980,7 +979,7 @@ on_combo_entry_changed		(GtkEditable *		editable,
 }
 
 static void
-on_add_clicked			(GtkWidget *		button,
+on_add_clicked			(GtkWidget *		button _unused_,
 				 GtkTreeView *		tree_view)
 {
   GtkTreeSelection *selection;
@@ -1026,7 +1025,7 @@ on_add_clicked			(GtkWidget *		button,
 }
 
 static void
-on_remove_clicked		(GtkWidget *		button,
+on_remove_clicked		(GtkWidget *		button _unused_,
 				 GtkTreeView *		tree_view)
 {
   z_tree_view_remove_selected (tree_view,

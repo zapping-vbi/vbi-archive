@@ -9,7 +9,7 @@ on_picture_size_key_press	(GtkWidget *		widget,
 				 GdkEventKey *		event,
 				 gpointer		user_data);
 
-void startup_properties_handler(void);
-void shutdown_properties_handler(void);
+extern void startup_properties_handler(void);
+extern void shutdown_properties_handler(void);
 
 #endif

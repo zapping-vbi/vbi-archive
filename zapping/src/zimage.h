@@ -35,7 +35,7 @@ typedef struct {
  */
 typedef struct {
   /* A descriptive name for the backend */
-  char		*name;
+  const char		*name;
   /* Set blit destination. Grabbing, if necessary, should only happen
      when creating new images */
   void	(*set_destination)(GdkWindow *window, GdkGC *gc,
@@ -45,14 +45,14 @@ typedef struct {
   /* Create a suitable image, will always be called with the port
      grabbed */
   zimage*	(*image_new)(tv_pixfmt pixfmt,
-			     gint width, gint height);
+			     guint width, guint height);
   /* Destroy any data associated with the image, do _not_ call
      g_free (image) */
   void		(*image_destroy)(zimage *image);
   /* Put the image in the drawable, do scaling as necessary. Width and
      height are the current dimensions of the destination, can be
      ignored if not appropiate. */
-  void		(*image_put)(zimage *image, gint width, gint height);
+  void		(*image_put)(zimage *image, guint width, guint height);
   /* Suggest a blittable format, return TRUE if granted */
   gboolean	(*suggest_format)(void);
 } video_backend;
@@ -66,7 +66,7 @@ gboolean register_video_backend (tv_pixfmt pixfmt,
    image cannot be allocated. The refcount of the resulting image will
    be 1. */
 zimage *zimage_new (tv_pixfmt pixfmt,
-		    gint w, gint h);
+		    guint w, guint h);
 
 /* Increments the refcount of the image. */
 void zimage_ref (zimage *image);

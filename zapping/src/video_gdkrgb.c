@@ -48,14 +48,14 @@ struct _zimage_private {
 
 
 static zimage*
-image_new (tv_pixfmt pixfmt, gint w, gint h)
+image_new (tv_pixfmt pixfmt, guint w, guint h)
 {
   zimage *image = zimage_create_object ();
   zimage_private *pimage = image->priv =
     g_malloc0 (sizeof (zimage_private));
   tv_pixel_format format;
 
-  tv_pixfmt_to_pixel_format (&format, pixfmt, 0);
+  tv_pixel_format_from_pixfmt (&format, pixfmt, 0);
 
   image->fmt.width = w;
   image->fmt.height = h;
@@ -73,7 +73,7 @@ image_new (tv_pixfmt pixfmt, gint w, gint h)
 
 /* Clear canvas minus the image */
 static void
-clear_canvas (GdkWindow *canvas, gint w, gint h, gint iw, int ih)
+clear_canvas (GdkWindow *canvas, guint w, guint h, gint iw, int ih)
 {
   gint y  = (h - ih) >> 1;
   gint h2 = (h + ih) >> 1;
@@ -82,10 +82,10 @@ clear_canvas (GdkWindow *canvas, gint w, gint h, gint iw, int ih)
 
   if (y > 0)
     gdk_draw_rectangle (canvas, black_gc, TRUE,
-			0, 0, w, y);
+			0, 0, (gint) w, y);
   if (h2 > 0)
     gdk_draw_rectangle (canvas, black_gc, TRUE,
-			0, y + ih, w, h2);
+			0, y + ih, (gint) w, h2);
   if (x > 0)
     gdk_draw_rectangle (canvas, black_gc, TRUE,
 			0, y, x, ih);
@@ -95,7 +95,7 @@ clear_canvas (GdkWindow *canvas, gint w, gint h, gint iw, int ih)
 }
 
 static void
-image_put (zimage *image, gint w, gint h)
+image_put (zimage *image, guint w, guint h)
 {
   zimage_private *pimage = image->priv;
   gint iw = image->fmt.width, ih = image->fmt.height;
@@ -107,15 +107,17 @@ image_put (zimage *image, gint w, gint h)
     {
     case TV_PIXFMT_RGB24_LE:
       gdk_draw_rgb_image (window, gc,
-			  (w - iw)/2, (h - ih)/2, iw, ih,
+			  (gint) (w - iw)/2,
+			  (gint) (h - ih)/2, iw, ih,
 			  GDK_RGB_DITHER_NORMAL, pimage->data,
-			  image->data.linear.stride);
+			  (gint) image->data.linear.stride);
       break;
-    case TV_PIXFMT_RGBA24_LE:
+    case TV_PIXFMT_RGBA32_LE:
       gdk_draw_rgb_32_image (window, gc,
-			     (w - iw)/2, (h - ih)/2, iw, ih,
+			     (gint) (w - iw)/2,
+			     (gint) (h - ih)/2, iw, ih,
 			     GDK_RGB_DITHER_NORMAL, pimage->data,
-			     image->data.linear.stride);
+			     (gint) image->data.linear.stride);
       break;
     default:
       g_assert_not_reached ();
@@ -134,7 +136,7 @@ image_destroy (zimage *image)
 
 static void
 set_destination (GdkWindow *_w, GdkGC *_gc,
-		 tveng_device_info *info)
+		 tveng_device_info *info _unused_)
 {
   GdkColor black = {0, 0, 0, 0};
 
@@ -157,7 +159,7 @@ set_destination (GdkWindow *_w, GdkGC *_gc,
 }
 
 static void
-unset_destination(tveng_device_info *info)
+unset_destination(tveng_device_info *info _unused_)
 {
   /* see comment in set_destination */
   if ((!window) && (!gc))
@@ -172,14 +174,14 @@ unset_destination(tveng_device_info *info)
 
 static tv_pixfmt pixfmts[] = {
   TV_PIXFMT_RGB24_LE,
-  TV_PIXFMT_RGBA24_LE
+  TV_PIXFMT_RGBA32_LE
 };
 
 static gboolean
 suggest_format (void)
 {
   capture_fmt fmt;
-  int i;
+  unsigned int i;
 
   for (i=0; i<G_N_ELEMENTS (pixfmts); i++)
     {
@@ -205,7 +207,7 @@ static video_backend gdkrgb = {
 void add_backend_gdkrgb (void);
 void add_backend_gdkrgb (void)
 {
-  int i;
+  unsigned int i;
   for (i=0; i<G_N_ELEMENTS (pixfmts); i++)
     register_video_backend (pixfmts[i], &gdkrgb);
 }

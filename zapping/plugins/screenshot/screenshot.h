@@ -47,10 +47,10 @@ struct screenshot_data
   gpointer		deint_data;
 
   gchar *		io_buffer;
-  gint			io_buffer_size;	/* Allocated */
-  gint			io_buffer_used;
+  guint			io_buffer_size;	/* Allocated */
+  guint			io_buffer_used;
 
-  gboolean		(* io_flush)(screenshot_data *, gint);
+  gboolean		(* io_flush)(screenshot_data *, guint);
   FILE *		io_fp;
 
   gchar *		error;
@@ -60,7 +60,7 @@ struct screenshot_data
 
   GtkWidget *		status_window;	/* Progressbar */
 
-  gint			lines;		/* Lines saved by thread (progress) */
+  guint			lines;		/* Lines saved by thread (progress) */
 
   gchar *		command;	/* To be executed on completion */
   gchar *		filename;	/* The file we save */
@@ -70,11 +70,11 @@ struct screenshot_data
 
 struct screenshot_backend
 {
-  gchar *		keyword;	/* Canonical */
-  gchar *		label;		/* gettext()ized */
-  gchar *		extension;
+  const gchar *		keyword;	/* Canonical */
+  const gchar *		label;		/* gettext()ized */
+  const gchar *		extension;
 
-  gint			sizeof_private;
+  guint			sizeof_private;
 
   gboolean		quality;	/* Supports quality option? */
   gdouble		bpp_est;	/* Static output size estimation */

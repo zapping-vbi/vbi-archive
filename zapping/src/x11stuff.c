@@ -42,13 +42,12 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
+
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zconf.h"
 #include "x11stuff.h"
 #include "zmisc.h"
 #include "globals.h"
-
-
 
 #include <X11/X.h>
 #include <X11/Xlib.h>
@@ -105,7 +104,12 @@ x11_get_bpp(void)
   return depth;
 }
 
-
+/* to be replaced by 2.2 gdk_display_get_name() */
+const gchar *
+x11_display_name (void)
+{
+  return (const gchar *) DisplayString (GDK_DISPLAY());
+}
 
 
 
@@ -114,7 +118,7 @@ x11_get_bpp(void)
  * forcing an expose event in that area
  */
 void
-x11_force_expose(gint x, gint y, gint w, gint h)
+x11_force_expose(gint x, gint y, guint w, guint h)
 {
   XSetWindowAttributes xswa;
   Window win;
@@ -194,9 +198,11 @@ x11_window_viewable(GdkWindow *window)
   return ((wts.map_state & IsViewable) ? TRUE : FALSE);
 }
 
+
+
 /*
- *  Window property & event helpers
- */
+	Window property & event helpers
+*/
 
 /* FIXME not reentrant, add mutex or someth */
 static XErrorHandler	old_error_handler	= 0;
@@ -214,7 +220,7 @@ bad_window_handler		(Display *		display,
   return 0;
 }
 
-static inline int
+static int
 get_window_property		(Display *		display,
 				 Window			window,
 				 Atom			property,
@@ -304,14 +310,14 @@ gtk_window_send_x11_event	(GtkWindow *		window,
 }
 
 /*
- *  WindowManager hints for stay-on-top option
- */
+	WindowManager hints for stay-on-top option
+*/
 
 /* A function not directly supported by Gnome/Gtk+: Tell the window manager
    to keep our (video) window above all other windows. */
 
 #ifndef X11STUFF_WM_HINTS_DEBUG
-#define X11STUFF_WM_HINTS_DEBUG 0
+#define X11STUFF_WM_HINTS_DEBUG 1
 #endif
 
 /*
@@ -322,8 +328,8 @@ gtk_window_send_x11_event	(GtkWindow *		window,
 */
 
 static void
-dummy_window_on_top		(GtkWindow *		window,
-				 gboolean		on)
+dummy_window_something		(GtkWindow *		window _unused_,
+				 gboolean		on _unused_)
 { }
 
 /**
@@ -334,14 +340,27 @@ dummy_window_on_top		(GtkWindow *		window,
  * Tell the WM to keep the window on top of other windows.
  * You must call wm_hints_detect () and gtk_widget_show (window) first.
  */
-void (* window_on_top)		(GtkWindow *		window,
+void (* x11_window_on_top)	(GtkWindow *		window,
 				 gboolean		on)
-  = dummy_window_on_top;
+  = dummy_window_something;
+
+/**
+ * window_fullscreen:
+ * @window:
+ * @on:
+ *
+ * Tell the WM to display the window on top of other windows,
+ * maximized, without decoration.
+ * You must call wm_hints_detect () and gtk_widget_show (window) first.
+ */
+void (* x11_window_fullscreen)	(GtkWindow *		window,
+				 gboolean		on)
+  = dummy_window_something;
 
 static GdkFilterReturn
-wm_event_handler		(GdkXEvent *		xevent,
-				 GdkEvent *		event,
-				 gpointer		data)
+wm_event_handler		(GdkXEvent *		xevent _unused_,
+				 GdkEvent *		event _unused_,
+				 gpointer		data _unused_)
 {
   return GDK_FILTER_REMOVE; /* ignore */
 }
@@ -369,6 +388,16 @@ net_wm_window_on_top		(GtkWindow *		window,
 			     _XA_NET_WM_STATE_ABOVE);
 }
 
+static void
+net_wm_fullscreen		(GtkWindow *		window,
+				 gboolean		on)
+{
+  gtk_window_send_x11_event (window,
+			     _XA_NET_WM_STATE,
+			     on ? _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE,
+			     _XA_NET_WM_STATE_FULLSCREEN);
+}
+
 enum {
   WIN_LAYER_BELOW = 2,
   WIN_LAYER_NORMAL = 4,
@@ -387,6 +416,17 @@ gnome_window_on_top		(GtkWindow *		window,
   gtk_window_send_x11_event (window,
 			     _XA_WIN_LAYER,
 			     on ? WIN_LAYER_ONTOP : WIN_LAYER_NORMAL,
+			     0);
+}
+
+static void
+gnome_fullscreen		(GtkWindow *		window,
+				 gboolean		on)
+{
+  gtk_window_set_decorated (window, FALSE);
+  gtk_window_send_x11_event (window,
+			     _XA_WIN_LAYER,
+			     on ? WIN_LAYER_ABOVE_DOCK : WIN_LAYER_NORMAL,
 			     0);
 }
 
@@ -444,7 +484,8 @@ wm_hints_detect			(void)
 		XFree (atom_name);
 		XFree (atoms);
 
-		window_on_top = net_wm_window_on_top;
+		x11_window_on_top = net_wm_window_on_top;
+		x11_window_fullscreen = net_wm_fullscreen;
 
 		gdk_add_client_message_filter
 		  (gdk_x11_xatom_to_atom (_XA_NET_WM_STATE),
@@ -486,7 +527,8 @@ wm_hints_detect			(void)
 
 	  XFree (args);
 
-	  window_on_top = gnome_window_on_top;
+	  x11_window_on_top = gnome_window_on_top;
+	  x11_window_fullscreen = gnome_fullscreen;
 
 	  gdk_add_client_message_filter
 	    (gdk_x11_xatom_to_atom (_XA_WIN_LAYER),
@@ -501,9 +543,11 @@ wm_hints_detect			(void)
   return FALSE;
 }
 
+
+
 /*
- *  XFree86VidMode helpers
- */
+	XFree86VidMode helpers
+*/
 
 /* This is used to select a suitable screen resolution for fullscreen
    video display. I.e. instead of scaling the video we can switch to
@@ -536,10 +580,13 @@ x11_vidmode_clear_state		(x11_vidmode_state *	vs)
 
 struct vidmode {
   x11_vidmode_info	pub;
+  Display *		display;
+  int			screen_number;
   XF86VidModeModeInfo	info;
 };
 
 #define VIDMODE(p) PARENT (p, struct vidmode, pub)
+#define CVIDMODE(p) CONST_PARENT (p, struct vidmode, pub)
 
 /**
  * x11_vidmode_list_delete:
@@ -569,19 +616,37 @@ x11_vidmode_list_delete		(x11_vidmode_info *	list)
  * Result can be NULL for various reasons.
  */
 x11_vidmode_info *
-x11_vidmode_list_new		(void)
+x11_vidmode_list_new		(const char *		display_name,
+				 int			screen_number)
 {
   Display *display;
-  int event_base, error_base;
-  int major_version, minor_version;
-  int screen;
+  int event_base;
+  int error_base;
+  int major_version;
+  int minor_version;
   XF86VidModeModeInfo **mode_info;
   int mode_count;
   x11_vidmode_info *list;
   int i;
 
-  display = GDK_DISPLAY ();
-  screen = DefaultScreen (display);
+  if (display_name)
+    {
+      display = XOpenDisplay (display_name);
+
+      if (NULL == display)
+	{
+	  printv ("%s: Cannot open display '%s'\n",
+		  __FUNCTION__, display_name);
+	  return NULL;
+	}
+    }
+  else
+    {
+      display = GDK_DISPLAY ();
+    }
+
+  if (-1 == screen_number)
+    screen_number = XDefaultScreen (display);
 
   if (!XF86VidModeQueryExtension (display, &event_base, &error_base))
     {
@@ -599,7 +664,7 @@ x11_vidmode_list_new		(void)
 	  event_base, error_base,
 	  major_version, minor_version);
 
-  if (major_version != 2)
+  if (2 != major_version)
     {
       printv ("Unknown XF86VidMode version\n");
       return NULL;
@@ -607,8 +672,9 @@ x11_vidmode_list_new		(void)
 
   /* This lists all ModeLines in XF86Config and all default modes,
      except those exceeding monitor limits and the virtual screen size,
-     as logged in /var/log/XFree86*.log */
-  if (!XF86VidModeGetAllModeLines (display, screen, &mode_count, &mode_info))
+     as logged in /var/log/X[Free86]*.log */
+  if (!XF86VidModeGetAllModeLines (display, screen_number,
+				   &mode_count, &mode_info))
     {
       if (X11STUFF_VIDMODE_DEBUG)
 	printv ("No mode lines\n");
@@ -630,7 +696,7 @@ x11_vidmode_list_new		(void)
 	  m->privsize = 0;
 	}
 
-      valid = XF86VidModeValidateModeLine (display, screen, m);
+      valid = XF86VidModeValidateModeLine (display, screen_number, m);
 
 #if 0
       /* For some reason this flags modes as invalid which actually
@@ -659,13 +725,15 @@ x11_vidmode_list_new		(void)
 	      unsigned int dothz = m->dotclock * 1000;
 	      x11_vidmode_info *vv, **vvv;
 
-	      v->pub.width = m->hdisplay;
-	      v->pub.height = m->vdisplay;
-	      v->pub.hfreq = dothz / (double) m->htotal;
-	      v->pub.vfreq = dothz / (double)(m->htotal * m->vtotal);
-	      v->pub.aspect = 1.0; /* Sigh. */
+	      v->pub.width	= m->hdisplay;
+	      v->pub.height	= m->vdisplay;
+	      v->pub.hfreq	= dothz / (double) m->htotal;
+	      v->pub.vfreq	= dothz / (double)(m->htotal * m->vtotal);
+	      v->pub.aspect	= 1.0; /* Sigh. */
 
-	      v->info = *m;
+	      v->display	= display;
+	      v->screen_number	= screen_number;
+	      v->info		= *m;
 
 	      for (vvv = &list; (vv = *vvv); vvv = &vv->next)
 		if (v->pub.width == vv->width)
@@ -712,12 +780,12 @@ x11_vidmode_list_new		(void)
  * when the mode is not in the list. (This is intended to select
  * a mode from config file.)
  */
-x11_vidmode_info *
-x11_vidmode_by_name		(x11_vidmode_info *	list,
+const x11_vidmode_info *
+x11_vidmode_by_name		(const x11_vidmode_info *list,
 				 const gchar *		name)
 {
   unsigned int val[3] = { 0, 0, 0 };
-  x11_vidmode_info *info;
+  const x11_vidmode_info *info;
   double fmin;
   unsigned int i;
   
@@ -727,7 +795,7 @@ x11_vidmode_by_name		(x11_vidmode_info *	list,
   for (i = 0; i < 3; i++)
     {
       while (isspace (*name))
-        name++;
+        ++name;
 
       if (0 == *name || !isdigit (*name))
         break;
@@ -735,9 +803,9 @@ x11_vidmode_by_name		(x11_vidmode_info *	list,
       val[i] = strtoul (name, (char **) &name, 0);
 
       while (isspace (*name))
-        name++;
+        ++name;
       while (*name && !isdigit (*name))
-        name++;
+        ++name;
     }
 
   if (val[0] == 0)
@@ -777,22 +845,23 @@ x11_vidmode_by_name		(x11_vidmode_info *	list,
  * Returns a pointer to the current VidMode, NULL when the mode
  * is not in the list or some other problem occurred.
  */
-x11_vidmode_info *
-x11_vidmode_current		(x11_vidmode_info *	list)
+const x11_vidmode_info *
+x11_vidmode_current		(const x11_vidmode_info *list)
 {
-  Display *display;
-  int screen;
   XF86VidModeModeLine mode_line;
   int dot_clock;
-  struct vidmode *v;
+  const struct vidmode *vl;
+  const struct vidmode *vm;
 
   if (!list)
     return NULL;
 
-  display = GDK_DISPLAY ();
-  screen = DefaultScreen (display);
+  vl = CONST_PARENT (list, struct vidmode, pub);
 
-  if (!XF86VidModeGetModeLine (display, screen, &dot_clock, &mode_line))
+  if (!XF86VidModeGetModeLine (vl->display,
+			       vl->screen_number,
+			       &dot_clock,
+			       &mode_line))
     {
       if (X11STUFF_VIDMODE_DEBUG)
 	printv ("XF86VidModeGetModeLine() failed\n");
@@ -806,19 +875,19 @@ x11_vidmode_current		(x11_vidmode_info *	list)
       mode_line.privsize = 0;
     }
 
-  for (v = VIDMODE (list); v; v = VIDMODE (v->pub.next))
-    if (   v->info.dotclock	== dot_clock
-	&& v->info.hdisplay	== mode_line.hdisplay
-	&& v->info.hsyncstart	== mode_line.hsyncstart
-	&& v->info.hsyncend	== mode_line.hsyncend
-	&& v->info.htotal	== mode_line.htotal
-	&& v->info.vdisplay	== mode_line.vdisplay
-	&& v->info.vsyncstart	== mode_line.vsyncstart
-	&& v->info.vsyncend	== mode_line.vsyncend
-	&& v->info.vtotal	== mode_line.vtotal)
+  for (vm = vl; vm; vm = CONST_PARENT (vm->pub.next, struct vidmode, pub))
+    if (   vm->info.dotclock	== dot_clock
+	&& vm->info.hdisplay	== mode_line.hdisplay
+	&& vm->info.hsyncstart	== mode_line.hsyncstart
+	&& vm->info.hsyncend	== mode_line.hsyncend
+	&& vm->info.htotal	== mode_line.htotal
+	&& vm->info.vdisplay	== mode_line.vdisplay
+	&& vm->info.vsyncstart	== mode_line.vsyncstart
+	&& vm->info.vsyncend	== mode_line.vsyncend
+	&& vm->info.vtotal	== mode_line.vtotal)
       break;
 
-  if (!v)
+  if (!vm)
     {
       if (X11STUFF_VIDMODE_DEBUG)
 	printv ("Current VidMode dot=%u hd=%u vd=%u not in list\n",
@@ -826,12 +895,14 @@ x11_vidmode_current		(x11_vidmode_info *	list)
       return NULL;
     }
 
-  return &v->pub;
+  return &vm->pub;
 }
 
 /**
  * x11_vidmode_current:
- * @list: List of VidModes as returned by x11_vidmode_list_new().
+ * @vlist: List of VidModes as returned by x11_vidmode_list_new().
+ * @slist: List of Xinerama screens, used to determine actual screen
+ *  sizes when Xinerama is enabled.
  * @vm: VidMode to switch to, must be member of @list.
  * @vs: If given save settings for x11_vidmode_restore() here.
  *
@@ -840,42 +911,84 @@ x11_vidmode_current		(x11_vidmode_info *	list)
  * necessary moves the pointer into sight.
  */
 gboolean
-x11_vidmode_switch		(x11_vidmode_info *	list,
-				 x11_vidmode_info *	vm,
+x11_vidmode_switch		(const x11_vidmode_info *vlist,
+				 const tv_screen *	slist,
+				 const x11_vidmode_info *vm,
 				 x11_vidmode_state *	vs)
 {
-  Display *display;
+  const struct vidmode *vl;
   x11_vidmode_state state;
-  int screen;
-  Window root, dummy1;
-  int x, y, dummy2;
-  unsigned int w, h;
+  Window root;
+  Window dummy1;
+  int x;
+  int y;
+  int dummy2;
+  unsigned int w;
+  unsigned int h;
   unsigned int dummy3;
+  int px;
+  int py;
   int warp;
+
+  if (!vlist)
+    return FALSE;
+
+  vl = CONST_PARENT (vlist, struct vidmode, pub);
 
   if (!vs)
     vs = &state;
 
   x11_vidmode_clear_state (vs);
 
-  display = GDK_DISPLAY ();
-  screen = DefaultScreen (display);
-  root = DefaultRootWindow (display);
+  root = DefaultRootWindow (vl->display);
 
-  XGetGeometry (display, root, &dummy1, &x, &y, &w, &h, &dummy3, &dummy3);
+  if (slist)
+    {
+      /* Get geometry of vl->screen. */
 
-  XF86VidModeGetViewPort (display, screen, &vs->_old.vp.x, &vs->_old.vp.y);
+      for (; slist; slist = slist->next)
+	if (slist->screen_number == vl->screen_number)
+	  break;
 
-  XQueryPointer (display, root, &dummy1, &dummy1,
-		 &vs->_old.pt.x, &vs->_old.pt.y,
-		 &dummy2, &dummy2, &dummy3);
+      if (!slist)
+	return FALSE;
+
+      x	= slist->x;
+      y	= slist->y;
+      w = slist->width;
+      h = slist->height;
+    }
+  else
+    {
+      XGetGeometry (vl->display,
+		    /* drawable */ root,
+		    /* root */ &dummy1,
+		    &x, &y, &w, &h,
+		    /* border_width */ &dummy3,
+		    /* depth */ &dummy3);
+    }
+
+  XF86VidModeGetViewPort (vl->display,
+			  vl->screen_number,
+			  &vs->_old.vp.x,
+			  &vs->_old.vp.y);
+
+  XQueryPointer (vl->display,
+		 /* window */ root,
+		 /* root */ &dummy1,
+		 /* child */ &dummy1,
+		 /* root_x */ &vs->_old.pt.x,
+		 /* root_y */ &vs->_old.pt.y,
+		 /* win_x */ &dummy2,
+		 /* win_y */ &dummy2,
+		 /* mask */ &dummy3);
 
   /* Switch to requested mode, if any */
 
   {
-    x11_vidmode_info *cur_vm;
+    const x11_vidmode_info *cur_vm;
 
-    cur_vm = x11_vidmode_current (list);
+    cur_vm = x11_vidmode_current (vlist);
 
     vs->_old.vm = cur_vm;
 
@@ -883,11 +996,16 @@ x11_vidmode_switch		(x11_vidmode_info *	list,
       {
 	if (cur_vm != vm)
 	  {
-	    if (XF86VidModeSwitchToMode (display, screen, &VIDMODE (vm)->info))
+	    XF86VidModeModeInfo info;
+
+	    info = CVIDMODE (vm)->info;
+	    if (XF86VidModeSwitchToMode (vl->display,
+					 vl->screen_number,
+					 &info))
 	      {
 		/* Might not be exactly what we asked for,
 		   or even anything we know. */
-		if (!(vm = x11_vidmode_current (list)))
+		if (!(vm = x11_vidmode_current (vlist)))
 		  return FALSE;
 
 		vs->_new.vm = vm;
@@ -913,62 +1031,75 @@ x11_vidmode_switch		(x11_vidmode_info *	list,
 
   /* Center ViewPort */
 
-  x = (w - vm->width) >> 1;
-  y = (h - vm->height) >> 1;
+  px = (w - vm->width) >> 1; /* screen relative */
+  py = (h - vm->height) >> 1;
 
-  assert (x >= 0 && y >= 0);
+  assert (px >= 0 && py >= 0);
 
-  if (XF86VidModeSetViewPort (display, screen, x, y))
+  if (XF86VidModeSetViewPort (CVIDMODE (vm)->display,
+			      CVIDMODE (vm)->screen_number,
+			      px, py))
     {
-      vs->_new.vp.x = x;
-      vs->_new.vp.y = y;
+      vs->_new.vp.x = px;
+      vs->_new.vp.y = py;
     }
   else
     {
       if (X11STUFF_VIDMODE_DEBUG)
 	printv ("XF86VidModeSetViewPort() failed\n");
 
-      x = vs->_old.vp.x;
-      y = vs->_old.vp.y;
+      px = vs->_old.vp.x;
+      py = vs->_old.vp.y;
     }
 
   /* Make pointer visible */
 
   warp = 0;
 
-  if (vs->_old.pt.x < x)
-    warp = 1;
-  else if (vs->_old.pt.x > x + vm->width - 16)
+  px += x; /* root relative */
+  py += y;
+
+  if (vs->_old.pt.x < px)
     {
-      x += vm->width - 16;
+      warp = 1;
+    }
+  else if (vs->_old.pt.x > px + vm->width - 16)
+    {
+      px += vm->width - 16;
       warp = 1;
     }
   else
     {
-      x = vs->_old.pt.x;
+      px = vs->_old.pt.x;
     }
 
-  if (vs->_old.pt.y < y)
-    warp = 1;
-  else if (vs->_old.pt.y > y + vm->height - 16)
+  if (vs->_old.pt.y < py)
     {
-      y += vm->height - 16;
+      warp = 1;
+    }
+  else if (vs->_old.pt.y > py + vm->height - 16)
+    {
+      py += vm->height - 16;
       warp = 1;
     }
   else
     {
-      y = vs->_old.pt.y;
+      py = vs->_old.pt.y;
     }
 
   if (warp)
     {
-      XWarpPointer (display, None, root, 0, 0, 0, 0, x, y);
+      XWarpPointer (CVIDMODE (vm)->display,
+		    /* src_window */ None,
+		    /* dst_window */ root,
+		    /* src_x, y, width, height */ 0, 0, 0, 0,
+		    /* dst_x, y */ px, py);
 
-      vs->_new.pt.x = x;
-      vs->_new.pt.y = y;
+      vs->_new.pt.x = px;
+      vs->_new.pt.y = py;
     }
 
-  XSync (display, False);
+  XSync (CVIDMODE (vm)->display, False);
 
   return TRUE;
 }
@@ -981,62 +1112,95 @@ x11_vidmode_switch		(x11_vidmode_info *	list,
  * @vs: Settings saved with x11_vidmode_switch(), can be NULL.
  *
  * Restores from a x11_vidmode_switch(), except a third party
- * changed the settings since x11_vidmode_switch(). Calls
- * x11_vidmode_clear_state() to prevent restore twice.
+ * (i.e. the user) changed the settings since x11_vidmode_switch().
+ * Calls x11_vidmode_clear_state() to prevent restore twice.
  */
 void
-x11_vidmode_restore		(x11_vidmode_info *	list,
+x11_vidmode_restore		(const x11_vidmode_info *list,
 				 x11_vidmode_state *	vs)
 {
-  Display *display;
-  int screen;
-  Window root, dummy1;
-  int vpx, vpy, ptx, pty, dummy2;
+  Window root;
+  Window dummy1;
+  int vpx;
+  int vpy;
+  int ptx;
+  int pty;
+  int dummy2;
   unsigned int dummy3;
+
+  if (!list)
+    return;
 
   if (!vs)
     return;
 
-  display = GDK_DISPLAY ();
-  screen = DefaultScreen (display);
-  root = DefaultRootWindow (display);
+  root = DefaultRootWindow (CVIDMODE (list)->display);
 
-  XF86VidModeGetViewPort (display, screen, &vpx, &vpy);
-  XQueryPointer (display, root, &dummy1, &dummy1,
-		 &ptx, &pty, &dummy2, &dummy2, &dummy3);
+  XF86VidModeGetViewPort (CVIDMODE (list)->display,
+			  CVIDMODE (list)->screen_number,
+			  &vpx,
+			  &vpy);
+
+  XQueryPointer (CVIDMODE (list)->display,
+		 /* window */ root,
+		 /* root */ &dummy1,
+		 /* child */ &dummy1,
+		 /* root_x */ &ptx,
+		 /* root_y */ &pty,
+		 /* win_x */ &dummy2,
+		 /* win_y */ &dummy2,
+		 /* mask */ &dummy3);
 
   if (vs->_old.vm && vs->_new.vm)
     {
-      x11_vidmode_info *cur_vm;
+      const x11_vidmode_info *cur_vm;
 
       cur_vm = x11_vidmode_current (list);
 
       if (vs->_new.vm != cur_vm)
 	goto done; /* user changed vidmode, keep that */
 
-      if (vs->_old.vm != cur_vm) 
-        if (!XF86VidModeSwitchToMode (display, screen,
-				      &VIDMODE (vs->_old.vm)->info))
-	  {
-	    if (X11STUFF_VIDMODE_DEBUG)
-	      printv ("Cannot restore old mode, "
-		      "XF86VidModeSwitchToMode() failed\n");
-	    goto done;
-	  }
+      if (vs->_old.vm != cur_vm)
+	{
+	  XF86VidModeModeInfo info;
+
+	  info = CVIDMODE (vs->_old.vm)->info;
+	  if (!XF86VidModeSwitchToMode (CVIDMODE (list)->display,
+					CVIDMODE (list)->screen_number,
+					&info))
+	    {
+	      if (X11STUFF_VIDMODE_DEBUG)
+		printv ("Cannot restore old mode, "
+			"XF86VidModeSwitchToMode() failed\n");
+	      goto done;
+	    }
+	}
     }
 
-  if (vs->_new.vp.x == vpx && vs->_new.vp.y == vpy)
-    XF86VidModeSetViewPort (display, screen, vs->_old.vp.x, vs->_old.vp.y);
+  if (vs->_new.vp.x == vpx
+      && vs->_new.vp.y == vpy)
+    {
+      XF86VidModeSetViewPort (CVIDMODE (list)->display,
+			      CVIDMODE (list)->screen_number,
+			      vs->_old.vp.x,
+			      vs->_old.vp.y);
+    }
   else
-    goto done; /* user moved viewport, keep that */
+    {
+      goto done; /* user moved viewport, keep that */
+    }
 
-  if (abs (vs->_new.pt.x - ptx) < 10 && abs (vs->_new.pt.y - pty) < 10)
-    XWarpPointer (display, None, root, 0, 0, 0, 0,
-		  vs->_old.pt.x, vs->_old.pt.y);
+  if (abs (vs->_new.pt.x - ptx) < 10
+      && abs (vs->_new.pt.y - pty) < 10)
+    XWarpPointer (CVIDMODE (list)->display,
+		  /* src_window */ None,
+		  /* dst_window */ root,
+		  /* src_x, y, width, height */ 0, 0, 0, 0,
+		  /* dst_x, y */ vs->_old.pt.x, vs->_old.pt.y);
   /* else user moved pointer, keep that */
 
  done:
-  XSync (display, False);
+  XSync (CVIDMODE (list)->display, False);
 
   x11_vidmode_clear_state (vs);
 }
@@ -1049,36 +1213,38 @@ x11_vidmode_list_delete		(x11_vidmode_info *	list)
 }
 
 x11_vidmode_info *
-x11_vidmode_list_new		(void)
+x11_vidmode_list_new		(const char *		display_name,
+				 int			screen)
 {
   printv ("VidMode extension support not compiled in\n");
 
   return NULL;
 }
 
-x11_vidmode_info *
-x11_vidmode_by_name		(x11_vidmode_info *	list,
+const x11_vidmode_info *
+x11_vidmode_by_name		(const x11_vidmode_info *list,
 				 const gchar *		name)
 {
   return NULL;
 }
 
-x11_vidmode_info *
-x11_vidmode_current		(x11_vidmode_info *	list)
+const x11_vidmode_info *
+x11_vidmode_current		(const x11_vidmode_info *list)
 {
   return NULL;
 }
 
 gboolean
-x11_vidmode_switch		(x11_vidmode_info *	list,
-				 x11_vidmode_info *	vm,
+x11_vidmode_switch		(const x11_vidmode_info *vlist,
+				 const x11_xinerama_info *xlist,
+				 const x11_vidmode_info *vm,
 				 x11_vidmode_state *	vs)
 {
   return FALSE;
 }
 
 void
-x11_vidmode_restore		(x11_vidmode_info *	list,
+x11_vidmode_restore		(const x11_vidmode_info *list,
 				 x11_vidmode_state *	vs)
 {
 }
@@ -1187,7 +1353,7 @@ find_xscreensaver_window	(Display *		display,
    neccessary. When we unexpectedly bite the dust, the
    screensaver kicks in as usual, no cleanup necessary. */
 static gboolean
-screensaver_timeout		(gpointer		unused)
+screensaver_timeout		(gpointer		unused _unused_)
 {
   Display *display = GDK_DISPLAY ();
   Window window;
@@ -1265,10 +1431,10 @@ x11_screensaver_set		(unsigned int		level)
     {
       if (level == X11_SCREENSAVER_ON)
 	{
-	  if (screensaver_timeout_id > 0)
+	  if (NO_SOURCE_ID != screensaver_timeout_id)
 	    {
 	      g_source_remove (screensaver_timeout_id);
-	      screensaver_timeout_id = -1;
+	      screensaver_timeout_id = NO_SOURCE_ID;
 	    }
 	}
       else
@@ -1280,7 +1446,7 @@ x11_screensaver_set		(unsigned int		level)
 	  
 	  if (level & X11_SCREENSAVER_DISPLAY_ACTIVE)
 	    {
-	      if (screensaver_timeout_id == -1)
+	      if (NO_SOURCE_ID == screensaver_timeout_id)
 		{
 		  /* Make sure the display is on now. */
 		  screensaver_timeout (NULL);	      
@@ -1339,7 +1505,7 @@ x11_screensaver_init		(void)
   screensaver_enabled	  = FALSE;
   screensaver_level	  = X11_SCREENSAVER_ON;
   dpms_usable		  = FALSE;
-  screensaver_timeout_id  = -1;
+  screensaver_timeout_id  = NO_SOURCE_ID;
 
 #ifdef HAVE_DPMS_EXTENSION
 
@@ -1359,7 +1525,7 @@ x11_screensaver_init		(void)
 	  event_base, error_base,
 	  major_version, minor_version);
 
-  if (major_version != 1)
+  if (1 != major_version)
     {
       printv ("Unknown DPMS version\n");
       return;
@@ -1380,262 +1546,6 @@ x11_screensaver_init		(void)
 #endif /* !HAVE_DPMS_EXTENSION */
 
 }
-
-/*
- *  XF86DGA helpers
- */
-
-/* This is used to determine the parameters (physical address, size, pixel
-   format) of a display for DMA video overlay. */
-
-#ifdef HAVE_DGA_EXTENSION
-
-#ifndef X11STUFF_DGA_DEBUG
-#define X11STUFF_DGA_DEBUG 0
-#endif
-
-/* man XF86DGA */
-#include <X11/extensions/xf86dga.h>
-
-gboolean
-x11_dga_query			(tv_overlay_buffer *	target,
-				 const char *		display_name,
-				 int			bpp_hint)
-{
-  tv_overlay_buffer overlay_buffer;
-  tv_pixel_format format;
-  Display *display;
-  int event_base, error_base;
-  int major_version, minor_version;
-  int screen;
-  int flags;
-  
-  CLEAR (format);
-
-  if (target)
-    CLEAR (*target);
-  else
-    target = &overlay_buffer;
-
-  if (display_name)
-    {
-      display = XOpenDisplay (display_name);
-
-      if (NULL == display)
-	{
-	  printv ("Cannot open display '%s'\n", display_name);
-	  return FALSE;
-	}
-    }
-  else
-    {
-      display = GDK_DISPLAY ();
-    }
-
-  if (!XF86DGAQueryExtension (display, &event_base, &error_base))
-    {
-      printv ("DGA extension not available\n");
-      return FALSE;
-    }
-
-  if (!XF86DGAQueryVersion (display, &major_version, &minor_version))
-    {
-      printv ("DGA extension not usable\n");
-      return FALSE;
-    }
-
-  printv ("DGA base %d, %d, version %d.%d\n",
-	  event_base, error_base,
-	  major_version, minor_version);
-
-  if (major_version != 1
-      && major_version != 2)
-    {
-      printv ("Unknown DGA version\n");
-      return FALSE;
-    }
-
-  screen = XDefaultScreen (display);
-
-  if (!XF86DGAQueryDirectVideo (display, screen, &flags))
-    {
-      printv ("DGA DirectVideo not available\n");
-      return FALSE;
-    }
-
-  if (!(flags & XF86DGADirectPresent))
-    {
-      printv ("DGA DirectVideo not supported\n");
-      return FALSE;
-    }
-
-  {
-    int start;		/* physical address (?) */
-    int width;		/* of root window in pixels */
-    int banksize;	/* in bytes, usually video memory size */
-    int memsize;	/* ? */
-
-    if (!XF86DGAGetVideoLL (display, screen,
-			    &start, &width, &banksize, &memsize))
-      {
-	printv ("XF86DGAGetVideoLL() failed\n");
-	return FALSE;
-      }
-
-    if (X11STUFF_DGA_DEBUG)
-      printv ("DGA start=%p width=%d banksize=%d "
-	      "(0x%x) memsize=%d (0x%x)\n",
-	      (void *) start, width, banksize, banksize,
-	      memsize, memsize);
-
-    target->base = start;
-  }
-
-  {
-    Window root;
-    XWindowAttributes wts;
-
-    root = DefaultRootWindow (display);
-
-    XGetWindowAttributes (display, root, &wts);
-
-    if (X11STUFF_DGA_DEBUG)
-      printv ("DGA root width=%u height=%u\n",
-	      wts.width, wts.height);
-
-    target->format.width  = wts.width;
-    target->format.height = wts.height;
-  }
-
-  {
-    XVisualInfo templ;
-    XVisualInfo *info;
-    int i, nitems;
-
-    templ.screen = screen;
-
-    info = XGetVisualInfo (display, VisualScreenMask, &templ, &nitems);
-
-    for (i = 0; i < nitems; i++)
-      /* XXX We might support depth 7-8 after requesting a
-         TrueColor visual for the video window. */
-      if (info[i].class == TrueColor && info[i].depth > 8)
-	{
-	  if (X11STUFF_DGA_DEBUG)
-	    printv ("DGA vi[%u] depth=%u\n", i, info[i].depth);
-
-	  /* NB info[i].bits_per_rgb is not bits_per_pixel, but the
-	     number of significant bits per color component. Usually
-	     8 (as in 8 bit DAC for each of R, G, B). */
-
-	  /* info[i].depth counts R, G and B bits, not Alpha. */
-	  format.color_depth = info[i].depth;
-
-	  format.mask.rgb.r = info[i].red_mask;
-	  format.mask.rgb.g = info[i].green_mask;
-	  format.mask.rgb.b = info[i].blue_mask;
-
-	  break;
-	}
-
-    XFree (info);
-
-    if (i >= nitems)
-      {
-	printv ("DGA: No appropriate X visual available\n");
-	CLEAR (*target);
-	return FALSE;
-      }
-
-    switch (bpp_hint)
-      {
-      case 16:
-      case 24:
-      case 32:
-	format.bits_per_pixel = bpp_hint;
-	break;
-
-      default:
-	{
-	  XPixmapFormatValues *pf;
-	  int i, count;
-
-	  /* BPP heuristic */
-
-	  format.bits_per_pixel = 0;
-
-	  pf = XListPixmapFormats (display, &count);
-
-	  for (i = 0; i < count; i++)
-	    {
-	      if (X11STUFF_DGA_DEBUG)
-		printv ("DGA pf[%u]: depth=%u bpp=%u\n",
-			i, pf[i].depth, pf[i].bits_per_pixel);
-
-	      if (pf[i].depth == format.color_depth)
-		{
-		  format.bits_per_pixel = pf[i].bits_per_pixel;
-		  break;
-		}
-	    }
-
-	  XFree (pf);
-
-	  if (i >= count)
-	    {
-	      printv ("DGA: Unknown frame buffer bits per pixel\n");
-	      CLEAR (*target);
-	      return FALSE;
-	    }
-	}
-      }
-
-    format.big_endian = (MSBFirst == XImageByteOrder (display));
-  }
-
-  target->format.bytes_per_line =
-    target->format.width * format.bits_per_pixel;
-
-  if (target->format.bytes_per_line & 7)
-    {
-      printv ("DGA: Unknown frame buffer bits per pixel\n");
-      CLEAR (*target);
-      return FALSE;
-    }
-
-  target->format.bytes_per_line >>= 3;
-
-  target->format.size = target->format.height * target->format.bytes_per_line;
-
-  tv_pixel_format_to_pixfmt (&format);
-
-  if (TV_PIXFMT_UNKNOWN == format.pixfmt) {
-    printv ("DGA: Unknown frame buffer format\n");
-    CLEAR (*target);
-    return FALSE;
-  }
-
-  target->format.pixfmt = format.pixfmt;
-
-  return TRUE;
-}
-
-#else /* !HAVE_DGA_EXTENSION */
-
-gboolean
-x11_dga_query			(tv_overlay_buffer *	target,
-				 const char *		display_name,
-				 int			bpp_hint)
-{
-  printv ("DGA extension support not compiled in\n");
-
-  if (target)
-    CLEAR (*target);
-
-  return FALSE;
-}
-
-#endif /* !HAVE_DGA_EXTENSION */
 
 /*
  *  XVideo helpers
@@ -1661,7 +1571,7 @@ x11_xv_image_format_to_pixfmt	(const XvImageFormatValues *format)
 		/* These are Windows FOURCCs. Note the APM driver supports
 		   Y211 which is just a half width YUY2, hence not listed. */
 
-		{ FOURCC ('Y','U','V','A'), TV_PIXFMT_YUVA24_LE }, /* Glint */
+		{ FOURCC ('Y','U','V','A'), TV_PIXFMT_YUVA32_LE }, /* Glint */
 		{ FOURCC ('U','Y','V','Y'), TV_PIXFMT_UYVY },
 		{ FOURCC ('U','Y','N','V'), TV_PIXFMT_UYVY },
 		{ FOURCC ('Y','U','Y','2'), TV_PIXFMT_YUYV },
@@ -1730,10 +1640,10 @@ xv_image_format_dump		(const XvImageFormatValues *format,
 		 "      guid              ",
 		 index,
 		 (unsigned int) format->id,
-		 printable ((unsigned int) format->id >> 0),
-		 printable ((unsigned int) format->id >> 8),
-		 printable ((unsigned int) format->id >> 16),
-		 printable ((unsigned int) format->id >> 24));
+		 printable (((unsigned int) format->id) >> 0),
+		 printable (((unsigned int) format->id) >> 8),
+		 printable (((unsigned int) format->id) >> 16),
+		 printable (((unsigned int) format->id) >> 24));
 
 	for (i = 0; i < 16; ++i)
 		fprintf (stderr, "%02x%s",
@@ -2095,9 +2005,13 @@ x11_window_clip_vector		(tv_clip_vector *	vector,
 	int wx1, wy1;		/* window inner bounds, root relative */
 	int wx2, wy2;
 	int x2, y2;		/* x + width, y + height */
-	int wy1y, wy2y;		/* wy1, wy2 relative y */
 
 	tv_clip_vector_clear (vector);
+
+	if (0)
+	  fprintf (stderr, "%s overl: %d, %d - %d, %d (%u x %u)\n",
+		   __FUNCTION__,
+		   x, y, x+width, y+height, width, height);
   
 	{
 		unsigned int width;
@@ -2118,6 +2032,11 @@ x11_window_clip_vector		(tv_clip_vector *	vector,
 
 		wx2 = wx1 + width;
 		wy2 = wy1 + height;
+
+		if (0)
+		  fprintf (stderr, "%s window: %d, %d - %d, %d (%u x %u)\n",
+			   __FUNCTION__,
+			   wx1, wy1, wx2, wy2, width, height);
 	}
 
 	x2 = x + width;
@@ -2128,28 +2047,29 @@ x11_window_clip_vector		(tv_clip_vector *	vector,
 		return tv_clip_vector_add_clip_xy
 			(vector, 0, 0, width, height);
 
-	wy1y = wy1 - y;
-	wy2y = wy2 - y;
-
-	if (y < wy1)
+	if (x < wx1) {
 		if (!tv_clip_vector_add_clip_xy
-		    (vector, 0, 0, width, wy1y))
+		    (vector, 0, 0, wx1 - x, height))
 			return FALSE;
+	}
 
-	if (x < wx1)
+	if (y < wy1) {
 		if (!tv_clip_vector_add_clip_xy
-		    (vector, 0, wy1y, wx1 - x, wy2y))
+		    (vector, 0, 0, width, wy1 - y))
 			return FALSE;
+	}
 
-	if (x2 > wx2)
+	if (x2 > wx2) {
 		if (!tv_clip_vector_add_clip_xy
-		    (vector, wx2 - x, wy1y, width, wy2y))
+		    (vector, wx2 - x, 0, x2 - wx2, height))
 			return FALSE;
+	}
 
-	if (y2 > wy2)
+	if (y2 > wy2) {
 		if (!tv_clip_vector_add_clip_xy
-		    (vector, 0, wy2y, width, height))
+		    (vector, 0, wy2 - y, width, y2 - wy2))
 			return FALSE;
+	}
 
 	if (!children_clips (vector, display, window, None,
 			     x, y, width, height, wx1, wy1))
@@ -2176,3 +2096,4 @@ x11_window_clip_vector		(tv_clip_vector *	vector,
 	return children_clips (vector, display, root, window,
 			       x, y, width, height, 0, 0);
 }
+

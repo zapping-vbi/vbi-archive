@@ -43,6 +43,7 @@ void tveng1_init_module(struct tveng_module_info *module_info);
 */
 static
 int tveng1_attach_device(const char* device_file,
+			 Window window,
 			 enum tveng_attach_mode attach_mode,
 			 tveng_device_info * info);
 
@@ -57,7 +58,7 @@ int tveng1_attach_device(const char* device_file,
   This function always succeeds.
 */
 static void
-tveng1_describe_controller(char ** short_str, char ** long_str,
+tveng1_describe_controller(const char ** short_str, const char ** long_str,
 			   tveng_device_info * info);
 
 /*

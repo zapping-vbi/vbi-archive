@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.c,v 1.5 2004-08-13 01:13:20 mschimek Exp $ */
+/* $Id: device.c,v 1.6 2004-09-10 04:58:51 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -107,7 +107,7 @@ device_open			(FILE *			fp,
       saved_errno = errno;
 
       fprintf (fp, "%d = open (\"%s\", ", fd, pathname);
-      fprint_symbolic (fp, 2, flags,
+      fprint_symbolic (fp, 2, (unsigned long) flags,
 		       "RDONLY", O_RDONLY,
 		       "WRONLY", O_WRONLY,
 		       "RDWR", O_RDWR,
@@ -232,14 +232,14 @@ device_mmap			(FILE *			fp,
 
       fprintf (fp, "%p = mmap (start=%p length=%d prot=",
 	       r, start, (int) length);
-      fprint_symbolic (fp, 2, prot,
+      fprint_symbolic (fp, 2, (unsigned long) prot,
 		       "EXEC", PROT_EXEC,
 		       "READ", PROT_READ,
 		       "WRITE", PROT_WRITE,
 		       "NONE", PROT_NONE,
 		       0);
       fputs (" flags=", fp);
-      fprint_symbolic (fp, 2, flags,
+      fprint_symbolic (fp, 2, (unsigned long) flags,
 		       "FIXED", MAP_FIXED,
 		       "SHARED", MAP_SHARED,
 		       "PRIVATE", MAP_PRIVATE,

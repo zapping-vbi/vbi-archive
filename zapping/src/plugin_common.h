@@ -43,7 +43,7 @@
 #include "globals.h"
 
 /* The plugin protocol we are able to understand */
-#define PLUGIN_PROTOCOL 0x700
+#define PLUGIN_PROTOCOL 0x701
 
 /* The definition of a PluginBrigde */
 typedef gboolean (*PluginBridge) ( gpointer * ptr, gchar * plugin,
@@ -55,9 +55,9 @@ typedef gboolean (*PluginBridge) ( gpointer * ptr, gchar * plugin,
 struct plugin_exported_symbol
 {
   gpointer ptr; /* The resolved symbol */
-  gchar * symbol; /* The name of the symbol */
-  gchar * description; /* A brief description for the symbol */
-  gchar * type; /* Symbol type */
+  const gchar * symbol; /* The name of the symbol */
+  const gchar * description; /* A brief description for the symbol */
+  const gchar * type; /* Symbol type */
   gint hash; /* Symbol hash */
 };
 
@@ -78,7 +78,7 @@ struct plugin_exported_symbol
 */
 struct plugin_misc_info
 {
-  gint size; /* Size of this structure */
+  guint size; /* Size of this structure */
   gint plugin_priority; /* Priority the plugin requests */
   gint plugin_category; /* Categories the plugin falls under */
 };
@@ -87,12 +87,14 @@ extern void plugin_add_key				(const gchar *	canonical_name,
 							 z_key		key,
 							 void		(* func)(void));
 
-#ifndef ZAPPING /* If this is being included from a plugin, give them
+#ifndef ZAPPING_SRC /* If this is being included from a plugin, give them
 		   the correct prototypes for public symbols ( so
 		   compiling will give an error if defined differently) */
 
 gint plugin_get_protocol (void);
 gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr);
+
+#if 0
 
 #define UNUSED __attribute__ ((unused))
 
@@ -123,10 +125,11 @@ static struct plugin_misc_info * plugin_get_misc_info ( void ) UNUSED ;
 static void plugin_process_popup_menu ( GtkWidget *window,
 					GdkEventButton *button,
 					GtkMenu *popup) UNUSED;
+#endif
 
 /* This macro if for your convenience, it symplifies adding symbols */
 #define SYMBOL(symbol, hash) \
-{symbol, #symbol, NULL, NULL, hash}
+{(void *) symbol, #symbol, NULL, NULL, hash}
 #endif
 
 #endif /* PLUGINS_COMMON */

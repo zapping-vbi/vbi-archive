@@ -32,7 +32,7 @@
 
 static struct {
   CSConverter_fn *	convert;
-  gpointer		user_data;
+  const char *		user_data;
 } filters[TV_MAX_PIXFMTS][TV_MAX_PIXFMTS];
 
 int lookup_csconvert(tv_pixfmt src_pixfmt,
@@ -45,7 +45,7 @@ int lookup_csconvert(tv_pixfmt src_pixfmt,
 }
 
 void csconvert(int id, tveng_image_data *src, tveng_image_data *dest,
-	       int width, int height)
+	       unsigned int width, unsigned int height)
 {
   tv_pixfmt src_pixfmt, dst_pixfmt;
 
@@ -60,11 +60,11 @@ void csconvert(int id, tveng_image_data *src, tveng_image_data *dest,
 
 }
 
-int register_converter (const char *	name,
+int register_converter (const char *	name _unused_,
 			tv_pixfmt src_pixfmt,
 			tv_pixfmt dst_pixfmt,
 			CSConverter_fn *	converter,
-			gpointer	user_data)
+			const char *		user_data)
 {
   if (-1 != lookup_csconvert (src_pixfmt, dst_pixfmt))
     return -1; /* already registered */
@@ -111,8 +111,8 @@ static void build_csconvert_tables(unsigned int *r,
 
 static void
 rgb_rgb565	(tveng_image_data *_src, tveng_image_data *_dest,
-		 int width, int height,
-		 gpointer	user_data)
+		 unsigned int width, unsigned int height,
+		 const gchar *	user_data)
 {
   const unsigned char *src=_src->linear.data, *s = src;
   int src_stride = _src->linear.stride;
@@ -131,28 +131,28 @@ rgb_rgb565	(tveng_image_data *_src, tveng_image_data *_dest,
       tables = 1;
     }
 
-  if (!strcmp ((char*)user_data, "bgr"))
+  if (!strcmp (user_data, "bgr"))
     {
       for (y=height; y; y--, d += (dest_stride/2), dest = d,
 	     s += src_stride, src = s)
 	for (x=width; x; x--, dest++, src+=3)
 	  *dest = b[src[0]] | g[src[1]] | r[src[2]];
     }
-  else if (!strcmp ((char*)user_data, "rgb"))
+  else if (!strcmp (user_data, "rgb"))
     {
       for (y=height; y; y--, d += (dest_stride/2), dest = d,
 	     s += src_stride, src = s)
 	for (x=width; x; x--, dest++, src+=3)
 	  *dest = r[src[0]] | g[src[1]] | b[src[2]];
     }
-  else if (!strcmp ((char*)user_data, "bgra"))
+  else if (!strcmp (user_data, "bgra"))
     {
       for (y=height; y; y--, d += (dest_stride/2), dest = d,
 	     s += src_stride, src = s)
 	for (x=width; x; x--, dest++, src+=4)
 	  *dest = b[src[0]] | g[src[1]] | r[src[2]];
     }
-  else if (!strcmp ((char*)user_data, "rgba"))
+  else if (!strcmp (user_data, "rgba"))
     {
       for (y=height; y; y--, d += (dest_stride/2), dest = d,
 	     s += src_stride, src = s)
@@ -163,8 +163,8 @@ rgb_rgb565	(tveng_image_data *_src, tveng_image_data *_dest,
 
 static void
 rgb_rgb555	(tveng_image_data *_src, tveng_image_data *_dest,
-		 int width, int height,
-		 gpointer	user_data)
+		 unsigned int width, unsigned int height,
+		 const gchar *	user_data)
 {
   const unsigned char *src=_src->linear.data, *s = src;
   int src_stride = _src->linear.stride;
@@ -183,28 +183,28 @@ rgb_rgb555	(tveng_image_data *_src, tveng_image_data *_dest,
       tables = 1;
     }
 
-  if (!strcmp ((char*)user_data, "bgr"))
+  if (!strcmp (user_data, "bgr"))
     {
       for (y=height; y; y--, d += (dest_stride/2), dest = d,
 	     s += src_stride, src = s)
 	for (x=width; x; x--, dest++, src+=3)
 	  *dest = b[src[0]] | g[src[1]] | r[src[2]];
     }
-  else if (!strcmp ((char*)user_data, "rgb"))
+  else if (!strcmp (user_data, "rgb"))
     {
       for (y=height; y; y--, d += (dest_stride/2), dest = d,
 	     s += src_stride, src = s)
 	for (x=width; x; x--, dest++, src+=3)
 	  *dest = r[src[0]] | g[src[1]] | b[src[2]];
     }
-  else if (!strcmp ((char*)user_data, "bgra"))
+  else if (!strcmp (user_data, "bgra"))
     {
       for (y=height; y; y--, d += (dest_stride/2), dest = d,
 	     s += src_stride, src = s)
 	for (x=width; x; x--, dest++, src+=4)
 	  *dest = b[src[0]] | g[src[1]] | r[src[2]];
     }
-  else if (!strcmp ((char*)user_data, "rgba"))
+  else if (!strcmp (user_data, "rgba"))
     {
       for (y=height; y; y--, d += (dest_stride/2), dest = d,
 	     s += src_stride, src = s)
@@ -215,7 +215,7 @@ rgb_rgb555	(tveng_image_data *_src, tveng_image_data *_dest,
 
 static void
 rgb_bgr		(tveng_image_data	*_src, tveng_image_data *_dest,
-		 int width, int height, gpointer user_data)
+		 unsigned int width, unsigned int height, const gchar * user_data)
 {
   unsigned char *src = _src->linear.data, *s = src;
   unsigned char *dest = _dest->linear.data, *d = dest;
@@ -224,27 +224,27 @@ rgb_bgr		(tveng_image_data	*_src, tveng_image_data *_dest,
   int x, y;
   int src_size = 0, dest_size = 0;
 
-  if (!strcmp ((char*)user_data, "bgra<->rgba"))
+  if (!strcmp (user_data, "bgra<->rgba"))
     {
       src_size = 4;
       dest_size = 4;
     }
-  else if (!strcmp ((char*)user_data, "rgb->bgra"))
+  else if (!strcmp (user_data, "rgb->bgra"))
     {
       src_size = 3;
       dest_size = 4;
     }
-  else if (!strcmp ((char*)user_data, "bgra->rgb"))
+  else if (!strcmp (user_data, "bgra->rgb"))
     {
       src_size = 4;
       dest_size = 3;
     }
-  else if (!strcmp ((char*)user_data, "bgr<->rgb"))
+  else if (!strcmp (user_data, "bgr<->rgb"))
     {
       src_size = 3;
       dest_size = 3;
     }
-  else if (!strcmp ((char*)user_data, "rgb<->bgr"))
+  else if (!strcmp (user_data, "rgb<->bgr"))
     {
       src_size = 3;
       dest_size = 3;
@@ -263,8 +263,9 @@ rgb_bgr		(tveng_image_data	*_src, tveng_image_data *_dest,
 }
 
 static void
-bgra_bgr (tveng_image_data *_src, tveng_image_data *_dest, int width, int height,
-	  gpointer user_data)
+bgra_bgr (tveng_image_data *_src, tveng_image_data *_dest,
+	  unsigned int width, unsigned int height,
+	  const gchar * user_data)
 {
   unsigned char *src = _src->linear.data, *s = src;
   unsigned char *dest = _dest->linear.data, *d = dest;
@@ -273,12 +274,12 @@ bgra_bgr (tveng_image_data *_src, tveng_image_data *_dest, int width, int height
   int x, y;
   int src_size = 0, dest_size = 0;
 
-  if (!strcmp ((char*)user_data, "bgra->bgr"))
+  if (!strcmp (user_data, "bgra->bgr"))
     {
       src_size = 4;
       dest_size = 3;
     }
-  else if (!strcmp ((char*)user_data, "bgr->bgra"))
+  else if (!strcmp (user_data, "bgr->bgra"))
     {
       src_size = 3;
       dest_size = 4;
@@ -301,29 +302,29 @@ void startup_csconvert(void)
   CSFilter rgb_filters [] = {
     /* We lack rgb5.5 -> rgb.* filters, but those are easy too in case
        we need them. They are rarely used, tho. */
-    { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGRA15_LE, rgb_rgb555, "rgb" },
-    { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGRA15_LE, rgb_rgb555, "bgr" },
-    { TV_PIXFMT_BGRA24_LE, TV_PIXFMT_BGRA15_LE, rgb_rgb555, "rgba" },
-    { TV_PIXFMT_BGRA24_BE, TV_PIXFMT_BGRA15_LE, rgb_rgb555, "bgra" },
+    { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGRA16_LE, rgb_rgb555, "rgb" },
+    { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGRA16_LE, rgb_rgb555, "bgr" },
+    { TV_PIXFMT_BGRA32_LE, TV_PIXFMT_BGRA16_LE, rgb_rgb555, "rgba" },
+    { TV_PIXFMT_BGRA32_BE, TV_PIXFMT_BGRA16_LE, rgb_rgb555, "bgra" },
     
     { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGR16_LE,  rgb_rgb565, "rgb" },
     { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGR16_LE,  rgb_rgb565, "bgr" },
-    { TV_PIXFMT_BGRA24_LE, TV_PIXFMT_BGR16_LE,  rgb_rgb565, "rgba" },
-    { TV_PIXFMT_BGRA24_BE, TV_PIXFMT_BGR16_LE,  rgb_rgb565, "bgra" },
+    { TV_PIXFMT_BGRA32_LE, TV_PIXFMT_BGR16_LE,  rgb_rgb565, "rgba" },
+    { TV_PIXFMT_BGRA32_BE, TV_PIXFMT_BGR16_LE,  rgb_rgb565, "bgra" },
 
     { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGR24_BE,  rgb_bgr, "rgb<->bgr" },
-    { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGRA24_BE, rgb_bgr, "rgb->bgra" },
+    { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGRA32_BE, rgb_bgr, "rgb->bgra" },
     { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGR24_LE,  rgb_bgr, "rgb<->bgr" },
-    { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGRA24_LE, rgb_bgr, "rgb->bgra" },
-    { TV_PIXFMT_BGRA24_LE, TV_PIXFMT_BGR24_BE,  rgb_bgr, "bgra->rgb" },
-    { TV_PIXFMT_BGRA24_LE, TV_PIXFMT_BGRA24_BE, rgb_bgr, "bgra<->rgba" },
-    { TV_PIXFMT_BGRA24_BE, TV_PIXFMT_BGR24_LE,  rgb_bgr, "bgra->rgb" },
-    { TV_PIXFMT_BGRA24_BE, TV_PIXFMT_BGRA24_LE, rgb_bgr, "bgra<->rgba" },
+    { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGRA32_LE, rgb_bgr, "rgb->bgra" },
+    { TV_PIXFMT_BGRA32_LE, TV_PIXFMT_BGR24_BE,  rgb_bgr, "bgra->rgb" },
+    { TV_PIXFMT_BGRA32_LE, TV_PIXFMT_BGRA32_BE, rgb_bgr, "bgra<->rgba" },
+    { TV_PIXFMT_BGRA32_BE, TV_PIXFMT_BGR24_LE,  rgb_bgr, "bgra->rgb" },
+    { TV_PIXFMT_BGRA32_BE, TV_PIXFMT_BGRA32_LE, rgb_bgr, "bgra<->rgba" },
 
-    { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGRA24_LE, bgra_bgr, "bgr->bgra" },
-    { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGRA24_BE, bgra_bgr, "bgr->bgra" },
-    { TV_PIXFMT_BGRA24_LE, TV_PIXFMT_BGR24_LE,  bgra_bgr, "bgra->bgr" },
-    { TV_PIXFMT_BGRA24_BE, TV_PIXFMT_BGR24_BE,  bgra_bgr, "bgra->bgr" }
+    { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGRA32_LE, bgra_bgr, "bgr->bgra" },
+    { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGRA32_BE, bgra_bgr, "bgr->bgra" },
+    { TV_PIXFMT_BGRA32_LE, TV_PIXFMT_BGR24_LE,  bgra_bgr, "bgra->bgr" },
+    { TV_PIXFMT_BGRA32_BE, TV_PIXFMT_BGR24_BE,  bgra_bgr, "bgra->bgr" }
   };
 
   CLEAR (filters);

@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zvideo.c,v 1.3 2003-12-04 03:08:57 mschimek Exp $ */
+/* $Id: zvideo.c,v 1.4 2004-09-10 04:58:53 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -29,7 +29,7 @@
 #include "zvideo.h"
 #include "zmarshalers.h"
 
-#define MAX_SIZE 16384
+#define MAX_SIZE 16384U
 
 enum {
   CURSOR_BLANKED,
@@ -59,7 +59,7 @@ blank_cursor_timeout		(gpointer		p)
 
   g_signal_emit (video, signals[CURSOR_BLANKED], 0);
 
-  video->blank_cursor_timeout_id = -1;
+  video->blank_cursor_timeout_id = NO_SOURCE_ID;
 
   widget = GTK_WIDGET (video);
 
@@ -104,7 +104,7 @@ z_video_set_cursor		(ZVideo *		video,
 	  g_timeout_add (video->blank_cursor_timeout,
 			 (GSourceFunc) blank_cursor_timeout, video);
       else
-	video->blank_cursor_timeout_id = -1;
+	video->blank_cursor_timeout_id = NO_SOURCE_ID;
 
       return TRUE;
     }
@@ -253,9 +253,9 @@ size_allocate			(GtkWidget *		widget,
   darea_alloc.height = FLOOR (darea_alloc.height, video->mod_y);
 
   darea_alloc.width =
-    CLAMP (darea_alloc.width, video->min_width, video->max_width);
+    CLAMP ((guint) darea_alloc.width, video->min_width, video->max_width);
   darea_alloc.height =
-    CLAMP (darea_alloc.height, video->min_height, video->max_height);
+    CLAMP ((guint) darea_alloc.height, video->min_height, video->max_height);
 
   darea_alloc.x = allocation->x
     + ((allocation->width - darea_alloc.width) >> 1);
@@ -416,14 +416,14 @@ size_request			(GtkWidget *		widget,
 
   GTK_WIDGET_CLASS (parent_class)->size_request (widget, requisition);
 
-  requisition->width = CLAMP (requisition->width,
+  requisition->width = CLAMP ((guint) requisition->width,
 			      video->min_width, video->max_width);
-  requisition->height = CLAMP (requisition->height,
+  requisition->height = CLAMP ((guint) requisition->height,
 			       video->min_height, video->max_height);
 }
 
 static void        
-window_size_allocate		(GtkWidget *		widget,
+window_size_allocate		(GtkWidget *		widget _unused_,
                                  GtkAllocation *	allocation,
 				 gpointer		user_data)
 {
@@ -545,7 +545,7 @@ z_video_set_aspect		(ZVideo *		video,
 static gint
 events				(GtkWidget *		widget,
 				 GdkEvent *		event,
-				 gpointer		unused)
+				 gpointer		unused _unused_)
 {
   ZVideo *video = (ZVideo *) widget;
 
@@ -624,7 +624,7 @@ destroy				(GtkObject *		object)
 
 static void
 realize				(GtkWidget *		widget,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   ZVideo *video = (ZVideo *) widget;
   GtkWidget *toplevel;
@@ -639,7 +639,7 @@ realize				(GtkWidget *		widget,
 
 static void
 instance_init			(GTypeInstance *	instance,
-				 gpointer		g_class)
+				 gpointer		g_class _unused_)
 {
   ZVideo *video = (ZVideo *) instance;
 
@@ -675,20 +675,14 @@ instance_init			(GTypeInstance *	instance,
 GtkWidget *
 z_video_new			(void)
 {
-  ZVideo *video;
-
   D();
 
-  video = g_object_new (Z_TYPE_VIDEO, NULL);
-
-  instance_init ((GTypeInstance *) video, G_OBJECT_GET_CLASS (video));
-
-  return GTK_WIDGET (video);
+  return GTK_WIDGET (g_object_new (Z_TYPE_VIDEO, NULL));
 }
 
 static void
 class_init			(gpointer		g_class,
-				 gpointer		class_data)
+				 gpointer		class_data _unused_)
 {
   ZVideoClass *class = g_class;
   GtkObjectClass *object_class;

@@ -1,5 +1,5 @@
 /* Created with a sed script from gdkkeysyms.h, sorted */
-static char *keysyms[] = {
+static const char *keysyms[] = {
   "0",
   "1",
   "2",

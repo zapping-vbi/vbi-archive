@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.22 2004-08-13 01:11:23 mschimek Exp $ */
+/* $Id: options.c,v 1.23 2004-09-10 04:58:52 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -73,12 +73,8 @@ do_option_control (GtkWidget *w, gpointer user_data)
 {
   grte_options *opts = (grte_options *) user_data;
   char *keyword = (char *) g_object_get_data (G_OBJECT (w), "key");
-  GtkLabel *label;
   rte_option_info *ro;
   rte_option_value val;
-  gchar *zcname, *str;
-  gint num;
-  char *s;
 
   g_assert (opts && keyword);
 
@@ -119,7 +115,7 @@ do_option_control (GtkWidget *w, gpointer user_data)
 	    g_assert_not_reached();
 	    break;
           case RTE_OPTION_STRING:
-	    val.str = (gchar*)gtk_entry_get_text (GTK_ENTRY (w));
+	    val.str = (gchar *) gtk_entry_get_text (GTK_ENTRY (w));
 	    break;
           default:
 	    g_warning ("Type %d of RTE option %s is not supported",
@@ -133,8 +129,6 @@ do_option_control (GtkWidget *w, gpointer user_data)
 static void
 on_option_control (GtkWidget *w, gpointer user_data)
 {
-  grte_options *opts = (grte_options *) user_data;
-
   do_option_control (w, user_data);
 
   /* Make sure we call z_property_item_modified for *widgets* */
@@ -146,7 +140,7 @@ on_option_control (GtkWidget *w, gpointer user_data)
 }
 
 static void
-create_entry (grte_options *opts, rte_option_info *ro, int index)
+create_entry (grte_options *opts, rte_option_info *ro, guint index)
 { 
   GtkWidget *label;
   GtkWidget *entry;
@@ -185,7 +179,7 @@ create_entry (grte_options *opts, rte_option_info *ro, int index)
 }
 
 static void
-create_menu (grte_options *opts, rte_option_info *ro, int index)
+create_menu (grte_options *opts, rte_option_info *ro, guint index)
 {
   GtkWidget *label; /* This shows what the menu is for */
   GtkWidget *option_menu; /* The option menu */
@@ -208,7 +202,6 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
   for (i = ro->min.num; i <= ro->max.num; i++)
     {
       char *str;
-      gchar *t;
 
       switch (ro->type) 
 	{
@@ -251,7 +244,7 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
     }
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
-  gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu), current);
+  gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu), (guint) current);
   gtk_widget_show (menu);
   if (ro->tooltip)
     {
@@ -273,7 +266,7 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
 }
 
 static void
-create_slider (grte_options *opts, rte_option_info *ro, int index)
+create_slider (grte_options *opts, rte_option_info *ro, guint index)
 { 
   GtkWidget *label; /* This shows what the menu is for */
   GtkWidget *spinslider;
@@ -330,7 +323,7 @@ create_slider (grte_options *opts, rte_option_info *ro, int index)
 }
 
 static void
-create_checkbutton (grte_options *opts, rte_option_info *ro, int index)
+create_checkbutton (grte_options *opts, rte_option_info *ro, guint index)
 {
   GtkWidget *cb;
   rte_option_value val;
@@ -399,8 +392,8 @@ grte_options_create (rte_context *context, rte_codec *codec)
   GtkWidget *frame;
   grte_options *opts;
   rte_option_info *ro;
-  gint index;
-  int i;
+  guint index;
+  unsigned int i;
 
   if (!rte_codec_option_info_enum (codec, 0))
     return NULL; /* no options */
@@ -515,7 +508,7 @@ grte_options_load		(rte_codec *		codec,
 				 const gchar *		zc_domain)
 {
   rte_option_info *ro;
-  int i;
+  unsigned int i;
 
   g_assert (codec && zc_domain);
 
@@ -536,7 +529,7 @@ grte_options_load		(rte_codec *		codec,
 	    break;
 	  case RTE_OPTION_INT:
 	  case RTE_OPTION_MENU:
-	    val.num = zconf_get_integer (NULL, zcname);
+	    val.num = zconf_get_int (NULL, zcname);
 	    break;
 	  case RTE_OPTION_REAL:
 	    val.dbl = zconf_get_float (NULL, zcname);
@@ -578,7 +571,7 @@ grte_options_save		(rte_codec *		codec,
 				 const gchar *		zc_domain)
 {
   rte_option_info *ro;
-  int i;
+  unsigned int i;
   gchar *t;
 
   g_assert (codec && zc_domain);
@@ -624,9 +617,9 @@ grte_options_save		(rte_codec *		codec,
 	      {
 		t = NULL;
 	      }
-	    zconf_create_integer (val.num, t, zcname);
+	    zconf_create_int (val.num, t, zcname);
 	    g_free (t);
-	    zconf_set_integer (val.num, zcname);
+	    zconf_set_int (val.num, zcname);
 	    break;
 	  case RTE_OPTION_REAL:
 	    if (ro->tooltip)
@@ -713,7 +706,8 @@ grte_codec_create_menu		(rte_context *		context,
   GtkWidget *menu, *menu_item;
   rte_context_info *cxinfo;
   rte_codec_info *cdinfo;
-  gchar *zcname, *keyword = 0;
+  gchar *zcname;
+  const gchar *keyword = 0;
   gint base = 1, items = 0;
   int i;
 
@@ -756,7 +750,7 @@ grte_codec_create_menu		(rte_context *		context,
 
   // XXX it makes no sense to display a menu when there's
   // really no choice
-  for (i = 0; (cdinfo = rte_codec_info_enum (context, i)); i++)
+  for (i = 0; (cdinfo = rte_codec_info_enum (context, (guint) i)); i++)
     {
       gchar *t;
 
@@ -813,7 +807,7 @@ grte_num_codecs			(rte_context *		context,
 
   count = 0;
 
-  for (i = 0; (*info_p = rte_codec_info_enum (context, i)); i++)
+  for (i = 0; (*info_p = rte_codec_info_enum (context, (guint) i)); i++)
     if ((*info_p)->stream_type == stream_type)
       count++;
 
@@ -943,7 +937,8 @@ grte_context_create_menu	(const gchar *		zc_root,
 {
   GtkWidget *menu, *menu_item;
   rte_context_info *info;
-  gchar *zcname, *keyword = 0;
+  gchar *zcname;
+  const gchar *keyword = 0;
   gint items = 0;
   int i;
 
@@ -962,7 +957,7 @@ grte_context_create_menu	(const gchar *		zc_root,
   menu = gtk_menu_new ();
 
   // XXX prepare for empty menu
-  for (i = 0; (info = rte_context_info_enum (i)); i++)
+  for (i = 0; (info = rte_context_info_enum ((guint) i)); i++)
     {
       gchar *label;
       gchar *t;
@@ -1045,15 +1040,15 @@ grte_context_load		(const gchar *		zc_root,
   if (capture_w)
     {
       zcname = g_strconcat (zc_root, CONFIGS, zc_conf, "/capture_width", NULL);
-      zconf_create_integer (384, "Capture width", zcname);
-      zconf_get_integer (capture_w, zcname);
+      zconf_create_int (384, "Capture width", zcname);
+      zconf_get_int (capture_w, zcname);
       g_free (zcname);
     }
   if (capture_h)
     {
       zcname = g_strconcat (zc_root, CONFIGS, zc_conf, "/capture_height", NULL);
-      zconf_create_integer (288, "Capture height", zcname);
-      zconf_get_integer (capture_h, zcname);
+      zconf_create_int (288, "Capture height", zcname);
+      zconf_get_int (capture_h, zcname);
       g_free (zcname);
     }
 
@@ -1104,11 +1099,11 @@ grte_context_save		(rte_context *		context,
     /* preliminary */
 
     zcname = g_strconcat (zc_root, CONFIGS, zc_conf, "/capture_width", NULL);
-    zconf_set_integer (capture_w, zcname);
+    zconf_set_int (capture_w, zcname);
     g_free (zcname);
 
     zcname = g_strconcat (zc_root, CONFIGS, zc_conf, "/capture_height", NULL);
-    zconf_set_integer (capture_h, zcname);
+    zconf_set_int (capture_h, zcname);
     g_free (zcname);
   }
 

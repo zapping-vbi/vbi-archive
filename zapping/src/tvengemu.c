@@ -46,7 +46,7 @@ struct private_tvengemu_device_info
 #define P_INFO(p) PARENT (p, struct private_tvengemu_device_info, info)
 
 static tv_bool
-set_control			(tveng_device_info *	info,
+set_control			(tveng_device_info *	info _unused_,
 				 tv_control *		tc,
 				 int			value)
 {
@@ -221,6 +221,7 @@ static struct tveng_caps caps = {
 */
 static
 int tvengemu_attach_device(const char* device_file,
+			   Window window _unused_,
 			   enum tveng_attach_mode attach_mode,
 			   tveng_device_info * info)
 {
@@ -238,7 +239,7 @@ int tvengemu_attach_device(const char* device_file,
   memcpy (&info->caps, &caps, sizeof (caps));
 
   info -> attach_mode = attach_mode;
-  info -> current_mode = TVENG_NO_CAPTURE;
+  info -> capture_mode = CAPTURE_MODE_NONE;
   info -> fd = 0xdeadbeef;
 
   add_video_inputs (info);
@@ -291,7 +292,7 @@ int tvengemu_attach_device(const char* device_file,
   This function always succeeds.
 */
 static void
-tvengemu_describe_controller(char ** short_str, char ** long_str,
+tvengemu_describe_controller(const char ** short_str, const char ** long_str,
 			     tveng_device_info * info)
 {
   t_assert(info != NULL);
@@ -385,7 +386,7 @@ tvengemu_start_capturing (tveng_device_info *info)
 
   p_tveng_stop_everything (info, &dummy);
 
-  info->current_mode = TVENG_CAPTURE_READ;
+  info->capture_mode = CAPTURE_MODE_READ;
 
   return 0;
 }
@@ -395,32 +396,33 @@ tvengemu_stop_capturing (tveng_device_info *info)
 {
   t_assert (info != NULL);
 
-  info->current_mode = TVENG_NO_CAPTURE;
+  info->capture_mode = CAPTURE_MODE_NONE;
 
   return 0;
 }
 
 static int
-tvengemu_read_frame (tveng_image_data *where,
-		     unsigned int time, tveng_device_info *info)
+tvengemu_read_frame (tveng_image_data *where _unused_,
+		     unsigned int time _unused_,
+		     tveng_device_info *info)
 {
   t_assert (info != NULL);
 
-  if (info -> current_mode != TVENG_CAPTURE_READ)
+  if (info -> capture_mode != CAPTURE_MODE_READ)
     {
       info -> tveng_errno = -1;
       t_error_msg("check", "Current capture mode is not READ (%d)",
-		  info, info->current_mode);
+		  info, info->capture_mode);
       return -1;
     }
 
-  usleep (1e6 / 40);
+  usleep ((unsigned int)(1e6 / 40));
  
   return 0;
 }
 
 static double
-tvengemu_get_timestamp (tveng_device_info *info)
+tvengemu_get_timestamp (tveng_device_info *info _unused_)
 {
   /* Don't kill me, Michael ;-) */
   return zf_current_time ();
@@ -444,29 +446,22 @@ set_overlay_buffer		(tveng_device_info *	info,
 }
 
 static tv_bool
-set_overlay_window		(tveng_device_info *	info,
-				 const tv_window *	w)
-{
-	info->overlay_window.x		= w->x;
-	info->overlay_window.y		= w->y;
-	info->overlay_window.width	= w->width;
-	info->overlay_window.height	= w->height;
-
-	tv_clip_vector_copy (&info->overlay_window.clip_vector,
-			     &w->clip_vector);
-
-	return TRUE;
-}
-
-static tv_bool
-get_overlay_window		(tveng_device_info *	info)
+set_overlay_window		(tveng_device_info *	info _unused_,
+				 const tv_window *	w _unused_,
+				 const tv_clip_vector *	v _unused_)
 {
 	return TRUE;
 }
 
 static tv_bool
-enable_overlay			(tveng_device_info *	info,
-				 tv_bool		on)
+get_overlay_window		(tveng_device_info *	info _unused_)
+{
+	return TRUE;
+}
+
+static tv_bool
+enable_overlay			(tveng_device_info *	info _unused_,
+				 tv_bool		on _unused_)
 {
 	return TRUE;
 }

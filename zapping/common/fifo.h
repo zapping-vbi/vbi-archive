@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.30 2003-11-29 19:43:21 mschimek Exp $ */
+/* $Id: fifo.h,v 1.31 2004-09-10 04:58:51 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -389,8 +389,8 @@ extern void			zf_send_full_buffer(zf_producer *p, zf_buffer *b);
 extern void			zf_rem_buffer(zf_buffer *b);
 extern z_bool			zf_add_buffer(zf_fifo *f, zf_buffer *b);
 
-extern int			zf_init_buffered_fifo(zf_fifo *f, char *name, int num_buffers, ssize_t buffer_size);
-extern int			zf_init_callback_fifo(zf_fifo *f, char *name, void (* custom_wait_empty)(zf_fifo *), void (* custom_send_full)(zf_producer *, zf_buffer *), void (* custom_wait_full)(zf_fifo *), void (* custom_send_empty)(zf_consumer *, zf_buffer *), int num_buffers, ssize_t buffer_size);
+extern int			zf_init_buffered_fifo(zf_fifo *f, const char *name, int num_buffers, ssize_t buffer_size);
+extern int			zf_init_callback_fifo(zf_fifo *f, const char *name, void (* custom_wait_empty)(zf_fifo *), void (* custom_send_full)(zf_producer *, zf_buffer *), void (* custom_wait_full)(zf_fifo *), void (* custom_send_empty)(zf_consumer *, zf_buffer *), int num_buffers, ssize_t buffer_size);
 
 extern void			zf_rem_producer(zf_producer *p);
 extern zf_producer *		zf_add_producer(zf_fifo *f, zf_producer *p);

@@ -2,7 +2,6 @@ Outstanding issues for future releases
 --------------------------------------
 
 * User defined Teletext home (100) page.
-* Two toolbars in Teletext mode?
 * keyboard: there are too many conflicts between the Zapping
   and Xawtv mapping, better add an option to prefs.
 * Suppress mute function of keypad enter when entering
@@ -246,6 +245,15 @@ Outstanding issues for future releases
   Elements can have attributes to distinguish context, for example the
   table name as used in various imported config files, or ranges
   identified as incorrect but listed for compatibility.
+
+* Caption
+
+  a) in picture
+  b) below picture
+
+  * Fixed width / proportional
+  * Movable
+  * Resizable
 
 ------------------------------------------------------------------------------
 

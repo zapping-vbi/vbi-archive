@@ -45,7 +45,7 @@
 #include "tveng.h"
 
 /* Some definitions common to the plugins and Zapping */
-#define ZAPPING /* Tell this header that we are Zapping */
+#define ZAPPING_SRC /* Tell this header that we are Zapping */
 #include "plugin_common.h"
 
 /* Any plugin should have its filename ending in this string */

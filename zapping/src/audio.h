@@ -16,7 +16,7 @@ enum audio_format {
  * @format: Audio format to use.
  */
 gpointer
-open_audio_device (gboolean stereo, gint rate, enum audio_format format);
+open_audio_device (gboolean stereo, guint rate, enum audio_format format);
 
 /**
  * Closes @handle.
@@ -32,7 +32,7 @@ close_audio_device (gpointer handle);
  * @timestamp: A place to store the sample timestamp, or NULL.
  */
 void
-read_audio_data (gpointer handle, gpointer dest, gint num_bytes,
+read_audio_data (gpointer handle, gpointer dest, guint num_bytes,
 		 double *timestamp);
 
 void
@@ -52,13 +52,13 @@ void startup_audio (void);
 void shutdown_audio (void);
 
 typedef struct {
-  char		*name;
+  const char *	name;
 
   /* Implementations */
-  gpointer	(*open)(gboolean stereo, gint rate, enum audio_format format);
+  gpointer	(*open)(gboolean stereo, guint rate, enum audio_format format);
   void		(*close)(gpointer handle);
   void		(*read)(gpointer handle, gpointer dest,
-			gint num_bytes, double *timestamp);
+			guint num_bytes, double *timestamp);
 
   /* startup/shutdown, called just once */
   void		(*init)(void);
@@ -72,10 +72,10 @@ typedef struct {
 
 tv_device_node *
 oss_pcm_open			(void *			unused,
-				 FILE *			log, 
+				 FILE *			log_fp, 
 				 const char *		dev_name);
 tv_device_node *
 oss_pcm_scan			(void *			unused,
-				 FILE *			log);
+				 FILE *			log_fp);
 
 #endif /* audio.h */

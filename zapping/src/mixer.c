@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mixer.c,v 1.7 2003-11-29 19:43:24 mschimek Exp $ */
+/* $Id: mixer.c,v 1.8 2004-09-10 04:58:52 mschimek Exp $ */
 
 /*
  *  These functions encapsulate the OS and driver specific
@@ -51,7 +51,7 @@ void		shutdown_mixer(void)
 }
 
 /* preliminary */
-void		startup_mixer(void)
+void		startup_mixer(tveng_device_info *info)
 {
   const gchar *dev_name;
 
@@ -73,7 +73,8 @@ void		startup_mixer(void)
 		  return;
 		}
 	      
-	      hash = zconf_get_integer (NULL, "/zapping/options/audio/mixer_input");
+	      hash = zconf_get_int (NULL,
+				    "/zapping/options/audio/mixer_input");
 
 	      mixer_line = mixer->inputs;
 
@@ -84,7 +85,7 @@ void		startup_mixer(void)
 		    break;
 		  }
 
-	      tveng_attach_mixer_line (main_info, mixer, mixer_line);
+	      tveng_attach_mixer_line (info, mixer, mixer_line);
 	    }
 	}
       else
@@ -113,8 +114,8 @@ tv_mixer_line_update		(tv_audio_line *	line)
 
 tv_bool
 tv_mixer_line_get_volume	(tv_audio_line *	line,
-				 unsigned int *		left,
-				 unsigned int *		right)
+				 int *			left,
+				 int *			right)
 {
 	t_assert (line != NULL);
 
@@ -129,15 +130,16 @@ tv_mixer_line_get_volume	(tv_audio_line *	line,
 
 tv_bool
 tv_mixer_line_set_volume	(tv_audio_line *	line,
-				 unsigned int		left,
-				 unsigned int		right)
+				 int			left,
+				 int			right)
 {
 	t_assert (line != NULL);
 
 	left = SATURATE (left, line->minimum, line->maximum);
 	right = SATURATE (right, line->minimum, line->maximum);
 
-	return ((tv_mixer *) line->_parent)->_interface->set_volume (line, left, right);
+	return ((tv_mixer *) line->_parent)
+	  ->_interface->set_volume (line, left, right);
 }
 
 tv_bool

@@ -128,7 +128,7 @@ static pthread_mutex_t clients_mutex; /* FIXME: A rwlock is better for
 				       this */
 
 /* Corresponding to enum vbi_audio_mode */
-gchar *zvbi_audio_mode_str[] =
+const gchar *zvbi_audio_mode_str[] =
 {
   /* TRANSLATORS: VBI audio mode */
   N_("No Audio"),
@@ -162,7 +162,7 @@ static vbi_capture *	capture;
 /* Attn: must be pthread_cancel-safe */
 
 static void *
-decoding_thread (void *p)
+decoding_thread (void *p _unused_)
 {
   zf_consumer c;
 
@@ -214,7 +214,7 @@ decoding_thread (void *p)
 /* Attn: must be pthread_cancel-safe */
 
 static void *
-capturing_thread (void *x)
+capturing_thread (void *x _unused_)
 {
   struct timeval timeout;  
   zf_producer p;
@@ -352,7 +352,7 @@ capturing_thread (void *x)
 		  VBI_SLICED_WSS_625 | VBI_SLICED_WSS_CPR1204)
 
 static gint
-join (char *who, pthread_t id, gboolean *ack, gint timeout)
+join (const char *who, pthread_t id, gboolean *ack, gint timeout)
 {
   vbi_quit = TRUE;
 
@@ -387,7 +387,6 @@ threads_init (const gchar *dev_name, int given_fd)
   gchar *failed = _("VBI initialization failed.\n%s");
   gchar *memory = _("Ran out of memory.");
   gchar *thread = _("Out of resources to start a new thread.");
-  /* FIXME Linux only */
   gchar *mknod_hint = _(
 	"This probably means that the required driver isn't loaded. "
 	"Add to your /etc/modules.conf the line:\n"
@@ -414,9 +413,9 @@ threads_init (const gchar *dev_name, int given_fd)
 
   /* XXX */
   scanning = 625;
-  if (main_info)
-    if (main_info->cur_video_standard)
-      if (main_info->cur_video_standard->videostd_set
+  if (zapping->info)
+    if (zapping->info->cur_video_standard)
+      if (zapping->info->cur_video_standard->videostd_set
 	  & TV_VIDEOSTD_SET_525_60)
 	scanning = 525;
 
@@ -448,7 +447,12 @@ threads_init (const gchar *dev_name, int given_fd)
 
 	      if (errno == ENOENT || errno == ENXIO || errno == ENODEV)
 		{
-		  gchar *s = g_strconcat(t, "\n", mknod_hint, NULL);
+		  gchar *s = g_strconcat(t,
+#ifdef ENABLE_V4L
+					 "\n",
+					 mknod_hint,
+#endif
+					 NULL);
 	      
 		  RunBox(failed, GTK_MESSAGE_ERROR, s);
 		  g_free (s);
@@ -545,9 +549,9 @@ threads_destroy (void)
 static void event(vbi_event *ev, void *unused);
 
 static void
-on_vbi_prefs_changed		(const gchar *key,
+on_vbi_prefs_changed		(const gchar *key _unused_,
 				 gboolean *new_value,
-				 gpointer data)
+				 gpointer data _unused_)
 {
   /* Try to open the device */
   if (!vbi && *new_value)
@@ -566,9 +570,10 @@ on_vbi_prefs_changed		(const gchar *key,
     {
       D();
       /* TTX mode */
-      if (main_info->current_mode == TVENG_TELETEXT
-	  || main_info->current_mode == TVENG_NO_CAPTURE)
-	zmisc_switch_mode(TVENG_CAPTURE_WINDOW, main_info);
+      if (CAPTURE_MODE_NONE == zapping->info->capture_mode
+	  || CAPTURE_MODE_TELETEXT == zapping->info->capture_mode)
+	zmisc_switch_mode(DISPLAY_MODE_WINDOW,
+			  CAPTURE_MODE_OVERLAY, zapping->info);
       zvbi_close_device();
       D();
     }
@@ -606,7 +611,7 @@ static void cc_event(vbi_event *ev, void *data)
 #if 0 /* temporarily disabled */
 
 /* Trigger handling */
-static gint trigger_timeout_id = -1;
+static gint trigger_timeout_id = NO_SOURCE_ID;
 static gint trigger_client_id = -1;
 static vbi_link last_trigger;
 
@@ -843,7 +848,7 @@ static gint trigger_timeout		(gint	client_id)
 	break;
       case TTX_BROKEN_PIPE:
 	g_warning("Broken TTX pipe");
-	trigger_timeout_id = -1;
+	trigger_timeout_id = NO_SOURCE_ID;
 	return FALSE;
       case TTX_TRIGGER:
 	acknowledge_trigger((vbi_link*)(&data.data));
@@ -876,8 +881,8 @@ zvbi_open_device(const char *device)
   };
 
   D();
-  if (main_info)
-    given_fd = main_info->fd;
+  if (zapping->info)
+    given_fd = zapping->info->fd;
   else
     given_fd = -1;
   D();
@@ -942,7 +947,8 @@ zvbi_close_device(void)
 
   D();
 
-  trigger_client_id = trigger_timeout_id = -1;
+  trigger_client_id = -1;
+  trigger_timeout_id = NO_SOURCE_ID;
 #endif
 
   pthread_mutex_lock(&clients_mutex);
@@ -974,7 +980,7 @@ zvbi_close_device(void)
 static void
 send_ttx_message(struct ttx_client *client,
 		 enum ttx_message message,
-		 void *data, int bytes)
+		 void *data _unused_, unsigned int bytes)
 {
   ttx_message_data *d;
   zf_buffer *b;
@@ -1064,7 +1070,7 @@ register_ttx_client(void)
     {
       gdk_pixbuf_scale(simple,
 		       client->unscaled_on, 0, 0, w, h,
-		       0, 0,
+		       0.0, 0.0,
 		       (double) w / gdk_pixbuf_get_width(simple),
 		       (double) h / gdk_pixbuf_get_height(simple),
 		       zcg_int(NULL, "qstradeoff"));
@@ -1497,7 +1503,7 @@ build_client_page(struct ttx_client *client, vbi_page *pg)
 			   client->unscaled_on, 0, 0,
 			   gdk_pixbuf_get_width(client->unscaled_on),
 			   gdk_pixbuf_get_height(client->unscaled_on),
-			   0, 0,
+			   0.0, 0.0,
 			   (double)
 			   gdk_pixbuf_get_width(client->unscaled_on) /
 			   gdk_pixbuf_get_width(simple),
@@ -1521,7 +1527,7 @@ build_client_page(struct ttx_client *client, vbi_page *pg)
   if (client->scaled)
     gdk_pixbuf_scale(client->unscaled_on,
 		     client->scaled, 0, 0, client->w, client->h,
-		     0, 0,
+		     0.0, 0.0,
 		     (double) client->w /
 		     gdk_pixbuf_get_width(client->unscaled_on),
 		     (double) client->h /
@@ -1545,7 +1551,7 @@ rolling_headers(struct ttx_client *client, vbi_page *pg)
   uint8_t *drcs[32];
 
 /* To debug page formatting (site_def.h) */
-#if ZVBI_DISABLE_ROLLING
+#ifdef ZVBI_DISABLE_ROLLING
   return;
 #endif
 
@@ -1698,7 +1704,7 @@ ttx_unfreeze (int id)
 }
 
 static void
-scan_header(vbi_page *pg)
+scan_header(vbi_page *pg _unused_)
 {
 #if 0
   gint col, i=0;
@@ -1892,7 +1898,7 @@ void resize_ttx_page(int id, int w, int h)
 	  if (client->scaled)
 	    gdk_pixbuf_scale(client->unscaled_on,
 			     client->scaled, 0, 0, w, h,
-			     0, 0,
+			     0.0, 0.0,
 			     (double) w /
 			     gdk_pixbuf_get_width(client->unscaled_on),
 			     (double) h /
@@ -1990,7 +1996,7 @@ zvbi_get_model(void)
 
 /* this is called when we receive a page, header, etc. */
 static void
-event(vbi_event *ev, void *unused)
+event(vbi_event *ev, void *unused _unused_)
 {
     switch (ev->type) {
     case VBI_EVENT_TTX_PAGE:
@@ -2054,7 +2060,7 @@ event(vbi_event *ev, void *unused)
 #endif
 
     case VBI_EVENT_ASPECT:
-      if (zconf_get_integer(NULL, "/zapping/options/main/ratio") == 3)
+      if (zconf_get_int(NULL, "/zapping/options/main/ratio") == 3)
 	zvbi_ratio = ev->ev.aspect.ratio;
       break;
 
@@ -2087,7 +2093,7 @@ vbi_gui_sensitive (gboolean on)
     {
       GtkWidget *widget;
 
-      widget = lookup_widget (main_window, *sp);
+      widget = lookup_widget (GTK_WIDGET (zapping), *sp);
 
       if (on)
 	gtk_widget_show (widget);
@@ -2106,8 +2112,8 @@ vbi_gui_sensitive (gboolean on)
       printv("VBI disabled, removing GUI items\n");
 
       /* Set the capture mode to a default value and disable VBI */
-      if (zcg_int(NULL, "capture_mode") == TVENG_TELETEXT)
-	zcs_int(TVENG_CAPTURE_READ, "capture_mode");
+      if (zcg_int(NULL, "capture_mode") == OLD_TVENG_TELETEXT)
+	zcs_int(OLD_TVENG_CAPTURE_READ, "capture_mode");
     }
 }
 
@@ -2127,7 +2133,7 @@ find_subtitle_page		(void)
     return 0;
 
   for (pgno = 1; pgno <= 0x899;
-       pgno = (pgno == 4) ? 0x100 : vbi_add_bcd (pgno, 0x001))
+       pgno = (pgno == 4) ? 0x100 : vbi_add_bcd ((guint) pgno, 0x001))
     {
       vbi_page_type classf;
 
@@ -2143,7 +2149,7 @@ find_subtitle_page		(void)
 #endif /* HAVE_LIBZVBI */
 
 static PyObject *
-py_closed_caption		(PyObject *		self,
+py_closed_caption		(PyObject *		self _unused_,
 				 PyObject *		args)
 {
 #ifdef HAVE_LIBZVBI
@@ -2153,7 +2159,7 @@ py_closed_caption		(PyObject *		self,
 
   active = -1; /* toggle */
 
-  if (!PyArg_ParseTuple (args, "|i", &active))
+  if (!ParseTuple (args, "|i", &active))
     g_error ("zapping.closed_caption(|i)");
 
 #ifdef HAVE_LIBZVBI
@@ -2171,12 +2177,13 @@ py_closed_caption		(PyObject *		self,
       vbi_subno dummy;
 
       /* In Teletext mode, overlay currently displayed page. */
-      if (get_ttxview_page (main_window, &zvbi_caption_pgno, &dummy))
+      if (1 && get_ttxview_page (GTK_WIDGET (zapping),
+				 &zvbi_caption_pgno, &dummy))
 	{
 	  if (ZVBI_CAPTION_DEBUG)
 	    fprintf (stderr, "CC Teletext pgno %x\n", zvbi_caption_pgno);
 
-	  zmisc_restore_previous_mode (main_info);
+	  zmisc_restore_previous_mode (zapping->info);
 	}
       /* In video mode, use previous page or find subtitles. */
       else if (zvbi_caption_pgno <= 0)
@@ -2293,8 +2300,7 @@ zvbi_get_name(void)
   if (!station_name_known || !vbi)
     return NULL;
 
-  return g_convert (station_name, strlen (station_name),
-		    "ISO-8859-1","UTF-8",
+  return g_convert (station_name, NUL_TERMINATED, "ISO-8859-1","UTF-8",
 		    NULL, NULL, NULL);
 }
 

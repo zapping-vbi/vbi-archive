@@ -42,7 +42,7 @@ struct backend_private {
 };
 
 static void
-jpeg_mydest_init_destination (j_compress_ptr cinfo)
+jpeg_mydest_init_destination (j_compress_ptr cinfo _unused_)
 {
 }
 
@@ -65,18 +65,18 @@ jpeg_mydest_term_destination (j_compress_ptr cinfo)
 {
   backend_private *priv = PARENT(cinfo, backend_private, cinfo);
   screenshot_data *data = PARENT(priv, screenshot_data, private);
-  gint size = data->io_buffer_size - priv->dest.free_in_buffer;
+  guint size = data->io_buffer_size - priv->dest.free_in_buffer;
 
   data->io_flush (data, size);
 }
 
 static void
-jpeg_mysrc_init_source (j_decompress_ptr cinfo)
+jpeg_mysrc_init_source (j_decompress_ptr cinfo _unused_)
 {
 }
 
 static boolean
-jpeg_mysrc_fill_input_buffer (j_decompress_ptr cinfo)
+jpeg_mysrc_fill_input_buffer (j_decompress_ptr cinfo _unused_)
 {
   g_assert_not_reached ();
   return TRUE;
@@ -86,16 +86,15 @@ static void
 jpeg_mysrc_skip_input_data (j_decompress_ptr cinfo, long num_bytes)
 {
   backend_private *priv = PARENT(cinfo, backend_private, cinfo);
-  screenshot_data *data = PARENT(priv, screenshot_data, private);
 
-  g_assert (num_bytes < priv->src.bytes_in_buffer);
+  g_assert (num_bytes < (long) priv->src.bytes_in_buffer);
 
   priv->src.next_input_byte += num_bytes;
   priv->src.bytes_in_buffer -= num_bytes;
 }
 
 static void
-jpeg_mysrc_term_source (j_decompress_ptr cinfo)
+jpeg_mysrc_term_source (j_decompress_ptr cinfo _unused_)
 {
 }
 

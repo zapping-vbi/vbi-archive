@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.39 2003-11-29 19:43:21 mschimek Exp $ */
+/* $Id: fifo.c,v 1.40 2004-09-10 04:58:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -134,8 +134,9 @@ zf_init_buffer(zf_buffer *b, ssize_t size)
 	if (size > 0) {
 		b->data =
 		b->allocated = (unsigned char *)
-			calloc_aligned(size, (size < page_size) ?
-				CACHE_LINE : page_size);
+			calloc_aligned((size_t) size,
+				       (unsigned int)((size < page_size) ?
+						      CACHE_LINE : page_size));
 
 		if (!b->allocated)
 			return NULL;
@@ -296,15 +297,16 @@ uninit_fifo(zf_fifo *f)
 	while ((n = rem_tail(&f->buffers)))
 		zf_destroy_buffer(PARENT(n, zf_buffer, added));
 
-	destroy_list(&f->buffers);
+	/* destroy_list(&f->buffers); */
 
 	mucon_destroy(&f->pro);
 	mucon_destroy(&f->con);
-
+	/*
 	destroy_list(&f->full);
 	destroy_list(&f->empty);
 	destroy_list(&f->producers);
 	destroy_list(&f->consumers);
+	*/
 }
 
 /**
@@ -808,7 +810,7 @@ zf_add_buffer(zf_fifo *f, zf_buffer *b)
 }
 
 static int
-init_fifo(zf_fifo *f, char *name,
+init_fifo(zf_fifo *f, const char *name,
 	void (* custom_wait_empty)(zf_fifo *),
 	void (* custom_send_full)(zf_producer *, zf_buffer *),
 	void (* custom_wait_full)(zf_fifo *),
@@ -877,7 +879,7 @@ init_fifo(zf_fifo *f, char *name,
  * The number of buffers actually allocated.
  **/
 int
-zf_init_buffered_fifo(zf_fifo *f, char *name, int num_buffers, ssize_t buffer_size)
+zf_init_buffered_fifo(zf_fifo *f, const char *name, int num_buffers, ssize_t buffer_size)
 {
 	return init_fifo(f, name,
 		NULL, send_full, NULL, zf_send_empty_buffered,
@@ -981,7 +983,7 @@ zf_init_buffered_fifo(zf_fifo *f, char *name, int num_buffers, ssize_t buffer_si
  * The number of buffers actually allocated.
  **/
 int
-zf_init_callback_fifo(zf_fifo *f, char *name,
+zf_init_callback_fifo(zf_fifo *f, const char *name,
 	void (* custom_wait_empty)(zf_fifo *),
 	void (* custom_send_full)(zf_producer *, zf_buffer *),
 	void (* custom_wait_full)(zf_fifo *),

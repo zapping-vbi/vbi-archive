@@ -44,7 +44,7 @@ struct _zimage_private {
 };
 
 static zimage*
-planar_image_new (tv_pixel_format *pf, gint w, gint h)
+planar_image_new (tv_pixel_format *pf, guint w, guint h)
 {
   guchar *data;
   zimage *image;
@@ -82,7 +82,7 @@ planar_image_new (tv_pixel_format *pf, gint w, gint h)
 }
 
 static zimage*
-image_new (tv_pixfmt pixfmt, gint w, gint h)
+image_new (tv_pixfmt pixfmt, guint w, guint h)
 {
   guchar *data;
   zimage *image;
@@ -90,7 +90,7 @@ image_new (tv_pixfmt pixfmt, gint w, gint h)
   tv_pixel_format format;
   guint bpl, size;
 
-  tv_pixfmt_to_pixel_format (&format, pixfmt, 0);
+  tv_pixel_format_from_pixfmt (&format, pixfmt, 0);
 
   if (format.planar)
     return planar_image_new (&format, w, h);

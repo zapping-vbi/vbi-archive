@@ -43,22 +43,10 @@ void tvengemu_init_module(struct tveng_module_info *module_info);
 */
 static
 int tvengemu_attach_device(const char* device_file,
+			   Window window,
 			 enum tveng_attach_mode attach_mode,
 			 tveng_device_info * info);
 
-/*
-  Stores in short_str and long_str (if they are non-null) the
-  description of the current controller. The enum value can be found in
-  info->current_controller.
-  For example, V4L2 controller would say:
-  short_str: 'V4L2'
-  long_str: 'Video4Linux 2'
-  info->current_controller: TVENG_CONTROLLER_V4L2
-  This function always succeeds.
-*/
-static void
-tvengemu_describe_controller(char ** short_str, char ** long_str,
-			   tveng_device_info * info);
 
 /*
   Closes the video device asocciated to the device info object. Should

@@ -98,7 +98,7 @@ vdr_open			(void)
 }
 
 static void
-vdr_close			(int			signum)
+vdr_close			(int			signum _unused_)
 {
   if (vdr_sock != -1) {
     write(vdr_sock, "QUIT\r\n", 6);
@@ -108,7 +108,7 @@ vdr_close			(int			signum)
 }
 
 static PyObject *
-py_vdr				(PyObject *		self,
+py_vdr				(PyObject *		self _unused_,
 				 PyObject *		args)
 {
   char *s;
@@ -116,7 +116,7 @@ py_vdr				(PyObject *		self,
 
   t = NULL;
 
-  if (!PyArg_ParseTuple (args, "s", &s))
+  if (!ParseTuple (args, "s", &s))
     g_error ("zapping.vdr(s)");
 
   if (strlen (s) > 0)
@@ -136,7 +136,7 @@ py_vdr				(PyObject *		self,
       do r = write (vdr_sock, t, l);
       while (-1 == r && EINTR == errno);
 
-      if (r != l)
+      if (r != (ssize_t) l)
 	{
 	  printv ("vdr write failed: %u %s (%d/%u)",
 		  errno, strerror (errno), r, l);

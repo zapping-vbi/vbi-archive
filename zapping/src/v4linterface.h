@@ -38,16 +38,16 @@ extern ZModel *z_input_model;
  * Sets the given input, based on its hash.
  */
 gboolean
-z_switch_video_input		(int hash, tveng_device_info *info);
+z_switch_video_input		(guint hash, tveng_device_info *info);
 
 gboolean
-z_switch_audio_input		(int hash, tveng_device_info *info);
+z_switch_audio_input		(guint hash, tveng_device_info *info);
 
 /**
  * Sets the given standard, based on its hash.
  */
 gboolean
-z_switch_standard		(int hash, tveng_device_info *info);
+z_switch_standard		(guint hash, tveng_device_info *info);
 
 /**
  * Sets the given channel.
@@ -97,7 +97,7 @@ store_control_values		(tveng_device_info *	info,
 gboolean
 add_channel_entries		(GtkMenuShell *menu,
 				 gint pos,
-				 gint menu_max_entries,
+				 guint menu_max_entries,
 				 tveng_device_info *info);
 
 /* Do the startup/shutdown */

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.125 2004-04-19 16:51:27 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.126 2004-09-10 04:58:52 mschimek Exp $ */
 
 /*
  *  Teletext View
@@ -62,12 +62,11 @@
 #include "osd.h"
 #include "remote.h"
 #include "properties-handler.h"
+#include "globals.h"
 
-extern gboolean			flag_exit_program;
+
 extern tveng_tuned_channel *	global_channel_list;
 extern gint			cur_tuned_channel;
-extern tveng_device_info *	main_info;
-extern GtkWidget *		main_window;
 
 #define BLINK_CYCLE 300 /* ms */
 
@@ -132,7 +131,6 @@ struct ttxview_data {
 
   GtkMenuItem *		bookmarks_menu;
 
-  GtkToolbar *		toolbar;
   struct {
     GtkButton *		  prev;
     GtkButton *		  next;
@@ -246,7 +244,7 @@ inc_ttxview_count		(void)
     return;
 
   g_object_set_data (G_OBJECT (ttxview_zmodel), "count",
-		     GINT_TO_POINTER (NUM_TTXVIEWS (ttxview_zmodel)) + 1);
+		     GINT_TO_POINTER (NUM_TTXVIEWS (ttxview_zmodel) + 1));
 
   zmodel_changed (ttxview_zmodel);
 }
@@ -258,7 +256,7 @@ dec_ttxview_count		(void)
     return;
 
   g_object_set_data (G_OBJECT (ttxview_zmodel), "count",
-		     GINT_TO_POINTER (NUM_TTXVIEWS (ttxview_zmodel)) - 1);
+		     GINT_TO_POINTER (NUM_TTXVIEWS (ttxview_zmodel) - 1));
 
   zmodel_changed (ttxview_zmodel);
 }
@@ -290,13 +288,32 @@ load_page			(ttxview_data *		data,
 static void
 ttxview_delete			(ttxview_data *		data);
 
+static __inline__ int
+vbi_bcd2dec2			(int			n)
+{
+  return vbi_bcd2dec ((unsigned int) n);
+}
+
+static __inline__ int
+vbi_dec2bcd2			(int			n)
+{
+  return vbi_dec2bcd ((unsigned int) n);
+}
+
+static __inline__ int
+vbi_add_bcd2			(int			a,
+				 int			b)
+{
+  return vbi_add_bcd ((unsigned int) a, (unsigned int) b);
+}
+
 static gint
 decimal_subno			(vbi_subno		subno)
 {
   if (subno == 0 || (guint) subno > 0x99)
     return -1; /* any */
   else
-    return vbi_bcd2dec (subno);
+    return vbi_bcd2dec2 (subno);
 }
 
 static void
@@ -335,7 +352,7 @@ set_hold			(ttxview_data *		data,
 }
 
 static PyObject *
-py_ttx_hold			(PyObject *		self,
+py_ttx_hold			(PyObject *		self _unused_,
 				 PyObject *		args)
 {
   ttxview_data *data;
@@ -346,7 +363,7 @@ py_ttx_hold			(PyObject *		self,
 
   hold = -1;
 
-  if (!PyArg_ParseTuple (args, "|i", &hold))
+  if (!ParseTuple (args, "|i", &hold))
     g_error ("zapping.ttx_hold(|i)");
 
   if (hold < 0)
@@ -360,7 +377,7 @@ py_ttx_hold			(PyObject *		self,
 }
 
 static PyObject *
-py_ttx_reveal			(PyObject *		self,
+py_ttx_reveal			(PyObject *		self _unused_,
 				 PyObject *		args)
 {
   ttxview_data *data;
@@ -371,7 +388,7 @@ py_ttx_reveal			(PyObject *		self,
 
   reveal = -1;
 
-  if (!PyArg_ParseTuple (args, "|i", &reveal))
+  if (!ParseTuple (args, "|i", &reveal))
     g_error ("zapping.ttx_reveal(|i)");
 
   if (reveal < 0)
@@ -395,7 +412,7 @@ deferred_load_timeout		(gpointer		user_data)
 {
   ttxview_data *data = user_data;
 
-  data->deferred.timeout_id = -1;
+  data->deferred.timeout_id = NO_SOURCE_ID;
 
   if (data->deferred.pgno)
     monitor_ttx_page (data->zvbi_client_id,
@@ -467,7 +484,7 @@ load_page			(ttxview_data *		data,
     }
   else
     {
-      data->deferred.timeout_id = -1;
+      data->deferred.timeout_id = NO_SOURCE_ID;
 
       if (pg)
 	monitor_ttx_this (data->zvbi_client_id,
@@ -582,7 +599,7 @@ update_pointer			(ttxview_data *		data)
 }
 
 static
-void scale_image			(GtkWidget	*wid,
+void scale_image			(GtkWidget	*wid _unused_,
 					 gint		w,
 					 gint		h,
 					 ttxview_data	*data)
@@ -627,10 +644,10 @@ get_ttxview_page		(GtkWidget *		view,
 }
 
 GdkPixbuf *
-ttxview_get_scaled_ttx_page	(GtkWidget *		parent)
+ttxview_get_scaled_ttx_page	(GtkWidget *		parent _unused_)
 {
   ttxview_data *data = g_object_get_data
-    (G_OBJECT (main_window), "ttxview_data");
+    (G_OBJECT (zapping), "ttxview_data");
 
   if (!data)
     return NULL;
@@ -643,7 +660,7 @@ ttxview_get_scaled_ttx_page	(GtkWidget *		parent)
  */
 
 static PyObject *
-open_page			(PyObject *		self,
+open_page			(PyObject *		self _unused_,
 				 PyObject *		args,
 				 gboolean		new_window)
 {
@@ -660,8 +677,8 @@ open_page			(PyObject *		self,
       && data->fmt_page
       && data->fmt_page->pgno)
     {
-      page = vbi_bcd2dec (data->fmt_page->pgno);
-      subpage = vbi_bcd2dec (data->monitored_subpage & 0xFF);
+      page = vbi_bcd2dec2 (data->fmt_page->pgno);
+      subpage = vbi_bcd2dec2 (data->monitored_subpage & 0xFF);
     }
   else
     {
@@ -669,18 +686,18 @@ open_page			(PyObject *		self,
       subpage = -1;
     }
 
-  if (!PyArg_ParseTuple (args, "|ii", &page, &subpage))
+  if (!ParseTuple (args, "|ii", &page, &subpage))
     g_error ("zapping.ttx_open_new(|ii)");
 
   if (page >= 100 && page <= 899)
-    pgno = vbi_dec2bcd (page);
+    pgno = vbi_dec2bcd2 (page);
   else
     py_return_false;
 
   if (subpage < 0)
     subno = VBI_ANY_SUBNO;
   else if ((guint) subpage <= 99)
-    subno = vbi_dec2bcd (subpage);
+    subno = vbi_dec2bcd2 (subpage);
   else
     py_return_false;
 
@@ -712,7 +729,7 @@ open_page			(PyObject *		self,
 
       z_update_gui ();
 
-      gdk_window_resize (dolly->window, width, height);
+      gdk_window_resize (dolly->window, (gint) width, (gint) height);
 
       gtk_widget_show (dolly);
     }
@@ -739,7 +756,7 @@ py_ttx_open_new			(PyObject *		self,
 }
 
 static PyObject *
-py_ttx_page_incr		(PyObject *		self,
+py_ttx_page_incr		(PyObject *		self _unused_,
 				 PyObject *		args)
 {
   ttxview_data *data;
@@ -751,7 +768,7 @@ py_ttx_page_incr		(PyObject *		self,
 
   value = +1;
 
-  if (!PyArg_ParseTuple (args, "|i", &value))
+  if (!ParseTuple (args, "|i", &value))
     g_error ("zapping.ttx_page_incr(|i)");
 
   if (abs (value) > 999)
@@ -760,7 +777,7 @@ py_ttx_page_incr		(PyObject *		self,
   if (value < 0)
     value += 1000;
 
-  pgno = vbi_add_bcd (data->page, vbi_dec2bcd (value)) & 0xFFF;
+  pgno = vbi_add_bcd2 (data->page, vbi_dec2bcd2 (value)) & 0xFFF;
 
   if (pgno < 0x100)
     pgno = 0x800 + (pgno & 0xFF);
@@ -773,7 +790,7 @@ py_ttx_page_incr		(PyObject *		self,
 }
 
 static PyObject *
-py_ttx_subpage_incr		(PyObject *		self,
+py_ttx_subpage_incr		(PyObject *		self _unused_,
 				 PyObject *		args)
 {
   ttxview_data *data;
@@ -785,7 +802,7 @@ py_ttx_subpage_incr		(PyObject *		self,
 
   value = +1;
 
-  if (!PyArg_ParseTuple (args, "|i", &value))
+  if (!ParseTuple (args, "|i", &value))
     g_error ("zapping.ttx_subpage_incr(|i)");
 
   if (abs (value) > 99)
@@ -794,7 +811,7 @@ py_ttx_subpage_incr		(PyObject *		self,
   if (value < 0)
     value += 100; /* XXX should use actual or anounced number of subp */
 
-  subno = vbi_add_bcd (data->subpage, vbi_dec2bcd (value)) & 0xFF;
+  subno = vbi_add_bcd2 (data->subpage, vbi_dec2bcd2 (value)) & 0xFF;
 
   load_page (data, data->fmt_page->pgno, subno, NULL);
 
@@ -802,8 +819,8 @@ py_ttx_subpage_incr		(PyObject *		self,
 }
 
 static PyObject *
-py_ttx_home			(PyObject *		self,
-				 PyObject *		args)
+py_ttx_home			(PyObject *		self _unused_,
+				 PyObject *		args _unused_)
 {
   ttxview_data *data;
   vbi_link ld;
@@ -832,7 +849,7 @@ py_ttx_home			(PyObject *		self,
 /* Called when another application claims the selection
    (i.e. sends new data to the clipboard). */
 static gint
-on_ttxview_selection_clear	(GtkWidget *		widget,
+on_ttxview_selection_clear	(GtkWidget *		widget _unused_,
 				 GdkEventSelection *	event,
 				 ttxview_data *		data)
 {
@@ -846,10 +863,10 @@ on_ttxview_selection_clear	(GtkWidget *		widget,
 
 /* Called when another application requests our selected data. */
 static void
-on_ttxview_selection_get	(GtkWidget *		widget,
+on_ttxview_selection_get	(GtkWidget *		widget _unused_,
 				 GtkSelectionData *	selection_data,
 				 guint			info,
-				 guint			time_stamp,
+				 guint			time_stamp _unused_,
 				 ttxview_data *		data)
 {
   if ((selection_data->selection == GDK_SELECTION_PRIMARY
@@ -864,7 +881,7 @@ on_ttxview_selection_get	(GtkWidget *		widget,
 	    int width;
 	    int height;
 	    int actual;
-	    int size;
+	    guint size;
 	    char *buf;
 
 	    width = data->select.column2 - data->select.column1 + 1;
@@ -890,7 +907,8 @@ on_ttxview_selection_get	(GtkWidget *		widget,
 						height);
 #else
 		actual = vbi_print_page_region (&data->select.page,
-						buf, size, "ISO-8859-1",
+						buf, (int) size,
+						"ISO-8859-1",
 						data->select.table_mode,
 						/* ltr */ TRUE,
 						data->select.column1,
@@ -1421,7 +1439,8 @@ export_dialog_set_tooltip	(GtkWidget *		widget,
 
   if ((buffer = V_(oi->tooltip)))
     {
-      buffer = g_locale_to_utf8 (buffer, strlen (buffer), NULL, NULL, NULL);
+      buffer = g_locale_to_utf8 (buffer, (gint) strlen (buffer),
+				 NULL, NULL, NULL);
       z_tooltip_set (widget, buffer);
       g_free (buffer);
     }
@@ -1437,14 +1456,15 @@ export_dialog_label_new		(vbi_option_info *	oi)
 
   /* XXX */
   buffer1 = V_(oi->label);
-  buffer1 = g_locale_to_utf8 (buffer1, strlen (buffer1), NULL, NULL, NULL);
+  buffer1 = g_locale_to_utf8 (buffer1, (gint) strlen (buffer1),
+			      NULL, NULL, NULL);
   buffer2 = g_strconcat (buffer1, ":", NULL);
   g_free (buffer1);
   label = gtk_label_new (buffer2);
   g_free (buffer2);
 
   misc = GTK_MISC (label);
-  gtk_misc_set_alignment (misc, 1, 0.5);
+  gtk_misc_set_alignment (misc, 1.0, 0.5);
   gtk_misc_set_padding (misc, 3, 0);
 
   return label;
@@ -1487,7 +1507,7 @@ on_export_dialog_control_changed
 	case VBI_OPTION_INT:
 	  val.num = (int) GTK_ADJUSTMENT (widget)->value;
 	  if (vbi_export_option_set (e, keyword, val))
-	    zconf_set_integer (val.num, zcname);
+	    zconf_set_int (val.num, zcname);
 	  break;
 
 	case VBI_OPTION_REAL:
@@ -1528,9 +1548,9 @@ export_create_menu		(GtkWidget *		table,
   menu = gtk_menu_new ();
 
   zcname = xo_zconf_name (e, oi);
-  saved = zconf_get_integer (NULL, zcname);
+  saved = zconf_get_int (NULL, zcname);
 
-  for (i = 0; i <= oi->max.num; ++i)
+  for (i = 0; i <= (unsigned) oi->max.num; ++i)
     {
       gchar buf[32];
       gchar *buffer;
@@ -1557,7 +1577,8 @@ export_create_menu		(GtkWidget *		table,
 	case VBI_OPTION_MENU:
 	  /* XXX */
 	  buffer = V_(oi->menu.str[i]);
-	  buffer = g_locale_to_utf8 (buffer, strlen (buffer), NULL, NULL, NULL);
+	  buffer = g_locale_to_utf8 (buffer, (gint) strlen (buffer),
+				     NULL, NULL, NULL);
 	  menu_item = gtk_menu_item_new_with_label (buffer);
 	  g_free (buffer);
 	  break;
@@ -1581,7 +1602,7 @@ export_create_menu		(GtkWidget *		table,
     }
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
-  zconf_create_integer (oi->def.num, oi->tooltip, zcname);
+  zconf_create_int (oi->def.num, oi->tooltip, zcname);
   gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu), saved);
   export_dialog_set_tooltip (option_menu, oi);
 
@@ -1610,7 +1631,7 @@ export_create_checkbutton	(GtkWidget *		table,
 
   /* XXX */
   buffer = V_(oi->label);
-  buffer = g_locale_to_utf8 (buffer, strlen (buffer), NULL, NULL, NULL);
+  buffer = g_locale_to_utf8 (buffer, (gint) strlen (buffer), NULL, NULL, NULL);
   check_button = gtk_check_button_new_with_label (buffer);
   g_free (buffer);
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (check_button),
@@ -1649,16 +1670,21 @@ export_create_slider		(GtkWidget *		table,
 
   if (oi->type == VBI_OPTION_INT)
     {
-      adj = gtk_adjustment_new (oi->def.num, oi->min.num,
-				oi->max.num, 1, 10, 10);
-      zconf_create_integer (oi->def.num, oi->tooltip, zcname);
+      adj = gtk_adjustment_new ((gfloat) oi->def.num,
+				(gfloat) oi->min.num,
+				(gfloat) oi->max.num,
+				(gfloat) 1,
+				(gfloat) 10,
+				(gfloat) 10);
+      zconf_create_int (oi->def.num, oi->tooltip, zcname);
       gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
-				zconf_get_integer (NULL, zcname));
+				(gfloat) zconf_get_int (NULL, zcname));
     }
   else
     {
       adj = gtk_adjustment_new (oi->def.dbl, oi->min.dbl,
-				oi->max.dbl, 1, 10, 10);
+				oi->max.dbl, (gfloat) 1,
+				(gfloat) 10, (gfloat) 10);
       zconf_create_float (oi->def.dbl, oi->tooltip, zcname);
       gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
 				zconf_get_float (NULL, zcname));
@@ -1732,7 +1758,7 @@ export_dialog_options_table_new	(vbi_export *		e)
 
   table = gtk_table_new (1, 2, FALSE);
 
-  for (i = 0; (oi = vbi_export_option_info_enum (e, i)); ++i)
+  for (i = 0; (oi = vbi_export_option_info_enum (e, (int) i)); ++i)
     {
       if (!oi->label)
 	continue; /* not intended for user */
@@ -1846,7 +1872,7 @@ on_export_dialog_menu_activate	(GtkWidget *		menu_item,
 }
 
 static void
-on_export_dialog_destroy	(GObject *		object,
+on_export_dialog_destroy	(GObject *		object _unused_,
 				 export_dialog *	sp)
 {
   if (sp->context)
@@ -1861,7 +1887,7 @@ on_export_dialog_destroy	(GObject *		object,
 static void
 on_export_dialog_cancel_clicked
 				(GtkWidget *		widget,
-				 gpointer 		user_data)
+				 gpointer 		user_data _unused_)
 {
   while (widget->parent)
     widget = widget->parent;
@@ -2021,7 +2047,7 @@ export_dialog_new		(ttxview_data *		data,
 
     zconf_get_string (&format, "/zapping/options/export_format");
 
-    for (i = 0; (xm = vbi_export_info_enum (i)); ++i)
+    for (i = 0; (xm = vbi_export_info_enum ((int) i)); ++i)
       if (xm->label) /* user module */
 	{
 	  GtkWidget *menu_item;
@@ -2091,7 +2117,7 @@ export_dialog_new		(ttxview_data *		data,
 }
 
 static void
-on_export_dialog_activate	(GtkWidget *		widget,
+on_export_dialog_activate	(GtkWidget *		widget _unused_,
 				 ttxview_data *		data)
 {
   GtkWidget *dialog;
@@ -2142,14 +2168,14 @@ on_color_dialog_control_changed	(GtkWidget *		adj,
     case 0:
       value = GTK_ADJUSTMENT (adj)->value;
       value = SATURATE (value, 0, 255);
-      zconf_set_integer (value, "/zapping/options/text/brightness");
+      zconf_set_int (value, "/zapping/options/text/brightness");
       vbi_set_brightness (vbi, value);
       break;
 
     case 1:
       value = GTK_ADJUSTMENT (adj)->value;
       value = SATURATE (value, -128, +127);
-      zconf_set_integer (value, "/zapping/options/text/contrast");
+      zconf_set_int (value, "/zapping/options/text/contrast");
       vbi_set_contrast (vbi, value);
       break;
     }
@@ -2160,7 +2186,7 @@ on_color_dialog_control_changed	(GtkWidget *		adj,
 static gboolean
 on_color_dialog_key_press	(GtkWidget *		widget,
 				 GdkEventKey *		event,
-				 gpointer		data)
+				 gpointer		data _unused_)
 {
   switch (event->keyval)
     {
@@ -2184,7 +2210,7 @@ on_color_dialog_key_press	(GtkWidget *		widget,
 }
 
 static GtkWidget *
-color_dialog_new		(ttxview_data *		data)
+color_dialog_new		(ttxview_data *		data _unused_)
 {
   GtkWidget *window;
   GtkWidget *table;
@@ -2213,10 +2239,12 @@ color_dialog_new		(ttxview_data *		data)
 
     gtk_table_attach_defaults (GTK_TABLE (table), widget, 0, 1, 0, 1);
 
-    zconf_get_integer (&value, "/zapping/options/text/brightness");
-    adj = gtk_adjustment_new (value, 0, 255, 1, 16, 16);
-    widget = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL, NULL, 128, 0);
-    z_spinslider_set_value (widget, value);
+    zconf_get_int (&value, "/zapping/options/text/brightness");
+    adj = gtk_adjustment_new ((gfloat) value, (gfloat) 0, (gfloat) 255,
+			      (gfloat) 1, (gfloat) 16, (gfloat) 16);
+    widget = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL, NULL,
+			       (gfloat) 128, 0);
+    z_spinslider_set_value (widget, (gfloat) value);
 
     gtk_table_attach (GTK_TABLE (table), widget, 1, 2, 0, 1,
 		      (GtkAttachOptions)(GTK_FILL | GTK_EXPAND),
@@ -2235,10 +2263,12 @@ color_dialog_new		(ttxview_data *		data)
 
     gtk_table_attach_defaults (GTK_TABLE (table), widget, 0, 1, 1, 2);
 
-    zconf_get_integer (&value, "/zapping/options/text/contrast");
-    adj = gtk_adjustment_new (value, -128, +127, 1, 16, 16);
-    widget = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL, NULL, 64, 0);
-    z_spinslider_set_value (widget, value);
+    zconf_get_int (&value, "/zapping/options/text/contrast");
+    adj = gtk_adjustment_new ((gfloat) value, (gfloat) -128, (gfloat) +127,
+			      (gfloat) 1, (gfloat) 16, (gfloat) 16);
+    widget = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL, NULL,
+			       (gfloat) 64, 0);
+    z_spinslider_set_value (widget, (gfloat) value);
 
     gtk_table_attach (GTK_TABLE (table), widget, 1, 2, 1, 2,
 		      (GtkAttachOptions)(GTK_FILL | GTK_EXPAND),
@@ -2253,7 +2283,7 @@ color_dialog_new		(ttxview_data *		data)
 }
 
 static void
-on_color_dialog_activate	(GtkWidget *		menu_item,
+on_color_dialog_activate	(GtkWidget *		menu_item _unused_,
 				 ttxview_data *		data)
 {
   if (color_dialog)
@@ -2325,7 +2355,7 @@ bookmark_save			(void)
     {
       struct bookmark *bookmark;
       gchar buf[200];
-      int n;
+      unsigned int n;
 
       bookmark = (struct bookmark *) glist->data;
 
@@ -2339,9 +2369,9 @@ bookmark_save			(void)
 	}
 
       strcpy (buf + n, "page");
-      zconf_create_integer (bookmark->pgno, "Page", buf);
+      zconf_create_int (bookmark->pgno, "Page", buf);
       strcpy (buf + n, "subpage");
-      zconf_create_integer (bookmark->subno, "Subpage", buf);
+      zconf_create_int (bookmark->subno, "Subpage", buf);
 
       if (bookmark->description)
 	{
@@ -2373,11 +2403,11 @@ bookmark_load			(void)
       g_free (buffer2);
 
       buffer2 = g_strconcat (buffer, "/page", NULL);
-      zconf_get_integer (&pgno, buffer2);
+      zconf_get_int (&pgno, buffer2);
       g_free (buffer2);
 
       buffer2 = g_strconcat (buffer, "/subpage", NULL);
-      zconf_get_integer (&subno, buffer2);
+      zconf_get_int (&subno, buffer2);
       g_free (buffer2);
 
       buffer2 = g_strconcat (buffer, "/description", NULL);
@@ -2403,11 +2433,11 @@ enum {
 
 static void
 bookmark_dialog_page_cell_data_func
-				(GtkTreeViewColumn *	column,
+				(GtkTreeViewColumn *	column _unused_,
 				 GtkCellRenderer *	cell,
 				 GtkTreeModel *		model,
 				 GtkTreeIter *		iter,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   gchar buf[32];
   guint pgno;
@@ -2428,7 +2458,7 @@ bookmark_dialog_page_cell_data_func
 
 static void
 on_bookmark_dialog_descr_cell_edited
-				(GtkCellRendererText *	cell,
+				(GtkCellRendererText *	cell _unused_,
 				 const gchar *		path_string,
 				 const gchar *		new_text,
 				 bookmark_dialog *	sp)
@@ -2452,8 +2482,8 @@ bookmark_dialog_append		(bookmark_dialog *	sp,
 				 struct bookmark *	bookmark)
 {
   GtkTreeIter iter;
-  gchar *channel;
-  gchar *description;
+  const gchar *channel;
+  const gchar *description;
 
   channel = bookmark->channel ? bookmark->channel : "";
   description = bookmark->description ? bookmark->description : "";
@@ -2470,7 +2500,7 @@ bookmark_dialog_append		(bookmark_dialog *	sp,
 
 static void
 on_bookmark_dialog_remove_clicked
-				(GtkWidget *		widget,
+				(GtkWidget *		widget _unused_,
 				 bookmark_dialog *	sp)
 {
   z_tree_view_remove_selected (sp->tree_view, sp->selection,
@@ -2493,7 +2523,7 @@ on_bookmark_dialog_selection_changed
 }
 
 static void
-on_bookmark_dialog_destroy	(GObject *		object,
+on_bookmark_dialog_destroy	(GObject *		object _unused_,
 				 bookmark_dialog *	sp)
 {
   g_assert (sp == &bookmarks_dialog);
@@ -2506,7 +2536,7 @@ on_bookmark_dialog_destroy	(GObject *		object,
 static void
 on_bookmark_dialog_cancel_clicked
 				(GtkWidget *		widget,
-				 gpointer 		user_data)
+				 gpointer 		user_data _unused_)
 {
   while (widget->parent)
     widget = widget->parent;
@@ -2516,9 +2546,9 @@ on_bookmark_dialog_cancel_clicked
 
 static gboolean
 bookmark_dialog_foreach_add	(GtkTreeModel *		model,
-				 GtkTreePath *		path,
+				 GtkTreePath *		path _unused_,
 				 GtkTreeIter *		iter,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   guint pgno;
   guint subno;
@@ -2532,7 +2562,7 @@ bookmark_dialog_foreach_add	(GtkTreeModel *		model,
 		      BOOKMARK_COLUMN_DESCRIPTION,	&descr,
 		      -1);
 
-  bookmark_add (channel, pgno, subno, descr);
+  bookmark_add (channel, (vbi_pgno) pgno, (vbi_subno) subno, descr);
 
   return FALSE; /* continue */
 }
@@ -2661,7 +2691,7 @@ bookmark_dialog_new		(ttxview_data *		data)
 }
 
 static void
-on_add_bookmark_activate	(GtkWidget *		menu_item,
+on_add_bookmark_activate	(GtkWidget *		menu_item _unused_,
 				 ttxview_data *		data)
 {
   struct bookmark *bookmark;
@@ -2672,7 +2702,8 @@ on_add_bookmark_activate	(GtkWidget *		menu_item,
   vbi_decoder *vbi;
   gchar title[48];
 
-  channel = tveng_tuned_channel_nth (global_channel_list, cur_tuned_channel);
+  channel = tveng_tuned_channel_nth (global_channel_list,
+				     (guint) cur_tuned_channel);
 
   if (data->page >= 0x100)
     pgno = data->page;
@@ -2689,7 +2720,7 @@ on_add_bookmark_activate	(GtkWidget *		menu_item,
     {
       /* FIXME the title encoding should be UTF-8, but isn't
 	 really defined. g_convert returns NULL on failure. */
-      description = g_convert (title, strlen (title),
+      description = g_convert (title, (gint) strlen (title),
 			       "UTF-8", "ISO-8859-1",
 			       NULL, NULL, NULL);
     }
@@ -2721,7 +2752,7 @@ on_add_bookmark_activate	(GtkWidget *		menu_item,
 }
 
 static void
-on_edit_bookmarks_activate	(GtkWidget *		menu_item,
+on_edit_bookmarks_activate	(GtkWidget *		menu_item _unused_,
 				 ttxview_data *		data)
 {
   GtkWidget *widget;
@@ -2748,7 +2779,7 @@ on_bookmark_menu_item_activate	(GtkWidget *		menu_item,
   if (!glist)
     return;
 
-  if (main_info
+  if (zapping->info
       && global_channel_list
       && bookmark->channel)
     {
@@ -2757,7 +2788,7 @@ on_bookmark_menu_item_activate	(GtkWidget *		menu_item,
       channel = tveng_tuned_channel_by_name (global_channel_list,
 					     bookmark->channel);
       if (channel)
-	z_switch_channel (channel, main_info);
+	z_switch_channel (channel, zapping->info);
     }
 
   load_page (data, bookmark->pgno, bookmark->subno, NULL);
@@ -2808,22 +2839,23 @@ bookmarks_menu_new		(ttxview_data *		data)
     {
       struct bookmark *bookmark;
       GtkWidget *menu_item;
+      const gchar *tmpl;
       gchar *buffer;
-      gchar *channel;
+      const gchar *channel;
 
       bookmark = (struct bookmark * ) glist->data;
 
       if (bookmark->subno != VBI_ANY_SUBNO)
-	buffer = "%s%s%x.%x";
+	tmpl = "%s%s%x.%x";
       else
-	buffer = "%s%s%x";
+	tmpl = "%s%s%x";
 
       channel = bookmark->channel;
 
       if (channel && !*channel)
 	channel = NULL;
 
-      buffer = g_strdup_printf (buffer,
+      buffer = g_strdup_printf (tmpl,
 				channel ? channel : "",
 				channel ? " " : "",
 				bookmark->pgno,
@@ -3013,7 +3045,7 @@ search_dialog_idle		(gpointer		user_data)
 }
 
 static void
-on_search_dialog_destroy	(GObject *		object,
+on_search_dialog_destroy	(GObject *		object _unused_,
 				 search_dialog *	sp)
 {
   if (sp->searching)
@@ -3057,8 +3089,8 @@ search_restart			(search_dialog *	sp,
 
   i = 0;
 
-  for (s = s1; *s; s = g_utf8_next_char (s))
-    pattern[i++] = g_utf8_get_char (s);
+  for (s = s1; *s; s = g_utf8_next_char ((gchar *) s))
+    pattern[i++] = g_utf8_get_char ((gchar *) s);
 
   pattern[i] = 0;
 
@@ -3130,21 +3162,21 @@ search_dialog_continue		(search_dialog *	sp,
 }
 
 static void
-on_search_dialog_next_clicked	(GtkButton *		button,
+on_search_dialog_next_clicked	(GtkButton *		button _unused_,
 				 search_dialog *	sp)
 {
   search_dialog_continue (sp, +1);
 }
 
 static void
-on_search_dialog_prev_clicked	(GtkButton *		button,
+on_search_dialog_prev_clicked	(GtkButton *		button _unused_,
 				 search_dialog *	sp)
 {
   search_dialog_continue (sp, -1);
 }
 
 static void
-on_search_dialog_cancel_clicked	(GtkWidget *		button,
+on_search_dialog_cancel_clicked	(GtkWidget *		button _unused_,
 				 search_dialog *	sp)
 {
   if (sp->dialog)
@@ -3154,8 +3186,8 @@ on_search_dialog_cancel_clicked	(GtkWidget *		button,
 }
 
 static void
-on_search_dialog_help_clicked	(GtkWidget *		button,
-				 search_dialog *	sp)
+on_search_dialog_help_clicked	(GtkWidget *		button _unused_,
+				 search_dialog *	sp _unused_)
 {
   /* XXX handle error */
   gnome_help_display ("zapping", "zapzilla-search", NULL); 
@@ -3256,8 +3288,8 @@ search_dialog_new		(ttxview_data *		data)
 }
 
 static PyObject *
-py_ttx_search			(PyObject *		self,
-				 PyObject *		args)
+py_ttx_search			(PyObject *		self _unused_,
+				 PyObject *		args _unused_)
 {
   ttxview_data *data;
   GtkWidget *widget;
@@ -3375,8 +3407,8 @@ history_push			(ttxview_data *		data,
 }
 
 static PyObject *
-py_ttx_history_prev		(PyObject *		self,
-				 PyObject *		args)
+py_ttx_history_prev		(PyObject *		self _unused_,
+				 PyObject *		args _unused_)
 {
   ttxview_data *data;
   guint top;
@@ -3401,8 +3433,8 @@ py_ttx_history_prev		(PyObject *		self,
 }
 
 static PyObject *
-py_ttx_history_next		(PyObject *		self,
-				 PyObject *		args)
+py_ttx_history_next		(PyObject *		self _unused_,
+				 PyObject *		args _unused_)
 {
   ttxview_data *data;
   guint top;
@@ -3484,7 +3516,7 @@ ttxview_subtitles_menu_new	(void)
   count = 0;
 
   for (pgno = 1; pgno <= 0x899;
-       pgno = (pgno == 8) ? 0x100 : vbi_add_bcd (pgno, 0x001))
+       pgno = (pgno == 8) ? 0x100 : vbi_add_bcd2 (pgno, 0x001))
     {
       vbi_page_type classf;
       gchar *language;
@@ -3498,7 +3530,7 @@ ttxview_subtitles_menu_new	(void)
 	  continue;
 
       if (language)
-	language = g_convert (language, strlen (language),
+	language = g_convert (language, (gint) strlen (language),
 			      "UTF-8", "ISO-8859-1",
 			      NULL, NULL, NULL);
 
@@ -3575,7 +3607,8 @@ ttxview_hotlist_menu_append	(GtkMenuShell *		menu,
 
   count = 0;
 
-  for (pgno = 0x100; pgno <= 0x899; pgno = vbi_add_bcd (pgno, 0x001))
+  for (pgno = 0x100; pgno <= 0x899;
+       pgno = vbi_add_bcd2 (pgno, 0x001))
     {
       vbi_page_type classf;
       gchar *buffer;
@@ -3785,7 +3818,7 @@ ttxview_popup_menu_new		(ttxview_data *		data,
 {
   GtkWidget *menu;
   GtkWidget *widget;
-  guint pos;
+  gint pos;
 
   menu = gtk_menu_new ();
   g_object_set_data (G_OBJECT (menu), "ttxview_data", data);
@@ -3890,7 +3923,9 @@ ttxview_popup			(GtkWidget *		widget,
     {
       vbi_link ld;
 
-      vbi_link_from_pointer_position (&ld, data, event->x, event->y);
+      vbi_link_from_pointer_position (&ld, data,
+				      (gint) event->x,
+				      (gint) event->y);
 
       return ttxview_popup_menu_new (data, &ld, FALSE);
     }
@@ -3906,21 +3941,21 @@ ttxview_popup			(GtkWidget *		widget,
 
 static void
 on_view_toolbar_toggled		(GtkCheckMenuItem *	check_menu_item,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   zcs_bool (check_menu_item->active, "view/toolbar");
 }
 
 static void
 on_view_statusbar_toggled	(GtkCheckMenuItem *	check_menu_item,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   zcs_bool (check_menu_item->active, "view/statusbar");
 }
 
 static void
 on_edit_preferences_activate	(GtkMenuItem *		menu_item,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   python_command_printf (GTK_WIDGET (menu_item),
 			 "zapping.properties('%s', '%s')",
@@ -3928,18 +3963,18 @@ on_edit_preferences_activate	(GtkMenuItem *		menu_item,
 }
 
 static void
-on_ttxview_close		(GtkWidget *		widget,
+on_ttxview_close		(GtkWidget *		widget _unused_,
 				 ttxview_data *		data)
 {
   if (data->app)
     ttxview_delete (data);
   else
-    zmisc_restore_previous_mode (main_info);
+    zmisc_restore_previous_mode (zapping->info);
 }
 
 static void
-on_ttxview_quit			(GtkWidget *		widget,
-				 ttxview_data *		data)
+on_ttxview_quit			(GtkWidget *		widget _unused_,
+				 ttxview_data *		data _unused_)
 {
   python_command (widget, "zapping.quit()");
 }
@@ -4028,7 +4063,7 @@ main_uiinfo [] = {
 };
 
 static void
-on_main_menu_bookmarks_changed	(ZModel *		zmodel,
+on_main_menu_bookmarks_changed	(ZModel *		zmodel _unused_,
 				 ttxview_data *		data)
 {
   gtk_menu_item_set_submenu (data->bookmarks_menu,
@@ -4036,7 +4071,7 @@ on_main_menu_bookmarks_changed	(ZModel *		zmodel,
 }
 
 static void
-on_main_menu_bookmarks_destroy	(GObject *		object,
+on_main_menu_bookmarks_destroy	(GObject *		object _unused_,
 				 ttxview_data *		data)
 {
   if (bookmarks_zmodel)
@@ -4096,7 +4131,7 @@ ttxview_create_main_menu	(ttxview_data *		data)
 /*****************************************************************************/
 
 static void
-on_vbi_model_changed		(ZModel *		zmodel,
+on_vbi_model_changed		(ZModel *		zmodel _unused_,
 				 ttxview_data *		data)
 {
   if (data->app)
@@ -4104,15 +4139,15 @@ on_vbi_model_changed		(ZModel *		zmodel,
 }
 
 static void
-on_color_zmodel_changed		(ZModel	*		zmodel,
+on_color_zmodel_changed		(ZModel	*		zmodel _unused_,
 				 ttxview_data *		data)
 {
   load_page (data, data->page, data->subpage, NULL);
 }
 
 static gboolean
-on_ttxview_delete_event		(GtkWidget *		widget,
-				 GdkEvent *		event,
+on_ttxview_delete_event		(GtkWidget *		widget _unused_,
+				 GdkEvent *		event _unused_,
 				 ttxview_data *		data)
 {
   ttxview_delete (data);
@@ -4251,12 +4286,12 @@ on_ttxview_expose_event		(GtkWidget *		widget,
 }
 
 static gboolean
-on_ttxview_motion_notify	(GtkWidget *		widget,
+on_ttxview_motion_notify	(GtkWidget *		widget _unused_,
 				 GdkEventMotion *	event,
 				 ttxview_data *		data)
 {
   if (data->selecting)
-    select_update (data, event->x, event->y, event->state);
+    select_update (data, (int) event->x, (int) event->y, event->state);
   else
     update_pointer (data);
 
@@ -4292,11 +4327,12 @@ on_ttxview_button_press		(GtkWidget *		widget,
     case 1: /* left button */
       if (event->state & (GDK_SHIFT_MASK | GDK_CONTROL_MASK | GDK_MOD1_MASK))
 	{
-	  select_start (data, event->x, event->y, event->state);
+	  select_start (data, (int) event->x, (int) event->y, event->state);
 	}
       else
 	{
-	  vbi_link_from_pointer_position (&ld, data, event->x, event->y);
+	  vbi_link_from_pointer_position (&ld, data,
+					  (int) event->x, (int) event->y);
 
 	  switch (ld.type)
 	    {
@@ -4312,7 +4348,8 @@ on_ttxview_button_press		(GtkWidget *		widget,
 	      break;
 	      
 	    default:
-	      select_start (data, event->x, event->y, event->state);
+	      select_start (data,
+			    (int) event->x, (int) event->y, event->state);
 	      break;
 	    }
 	}
@@ -4320,7 +4357,8 @@ on_ttxview_button_press		(GtkWidget *		widget,
       return TRUE; /* handled */
 
     case 2: /* middle button, open link in new window */
-      vbi_link_from_pointer_position (&ld, data, event->x, event->y);
+      vbi_link_from_pointer_position (&ld, data,
+				      (int) event->x, (int) event->y);
 
       switch (ld.type)
         {
@@ -4348,7 +4386,8 @@ on_ttxview_button_press		(GtkWidget *		widget,
 	{
 	  GtkWidget *menu;
 
-	  vbi_link_from_pointer_position (&ld, data, event->x, event->y);
+	  vbi_link_from_pointer_position (&ld, data,
+					  (int) event->x, (int) event->y);
 
 	  if ((menu = ttxview_popup_menu_new (data, &ld, TRUE)))
 	    gtk_menu_popup (GTK_MENU (menu),
@@ -4365,8 +4404,8 @@ on_ttxview_button_press		(GtkWidget *		widget,
 }
 
 static gboolean
-on_ttxview_button_release	(GtkWidget *		widget,
-				 GdkEventButton *	event,
+on_ttxview_button_release	(GtkWidget *		widget _unused_,
+				 GdkEventButton *	event _unused_,
 				 ttxview_data *		data)
 {
   if (data->selecting)
@@ -4386,7 +4425,7 @@ on_ttxview_key_press		(GtkWidget *		widget,
      repeat period, and repeated keys will stack up. This kludge
      effectively defers all loads until the key is released,
      and discards all but the last load request. */
-  if (abs (data->last_key_press_event_time - event->time) < 100
+  if (abs ((int)(data->last_key_press_event_time - event->time)) < 100
       || event->length > 1)
     data->deferred_load = TRUE;
 
@@ -4404,7 +4443,7 @@ on_ttxview_key_press		(GtkWidget *		widget,
     case GDK_0 ... GDK_9:
       if (event->state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_MOD1_MASK))
 	{
-	  load_page (data, digit * 0x100, VBI_ANY_SUBNO, NULL);
+	  load_page (data, (vbi_pgno)(digit * 0x100), VBI_ANY_SUBNO, NULL);
 	  return TRUE; /* handled, don't pass on */
 	}
 
@@ -4469,7 +4508,7 @@ on_ttxview_key_press		(GtkWidget *		widget,
 
 static void
 on_toolbar_hold_toggled		(GtkToggleButton *	button,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   python_command_printf (GTK_WIDGET (button),
 			 "zapping.ttx_hold(%u)",
@@ -4478,7 +4517,7 @@ on_toolbar_hold_toggled		(GtkToggleButton *	button,
 
 static void
 on_toolbar_reveal_toggled	(GtkToggleButton *	button,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   python_command_printf (GTK_WIDGET (button),
 			 "zapping.ttx_reveal(%u)",
@@ -4562,35 +4601,6 @@ on_toolbar_orientation_changed	(GtkToolbar *		toolbar,
       gtk_box_pack_start (data->tool.box2, right, FALSE, FALSE, 0);
 
       break;
-    }
-}
-
-static void
-ttxview_toolbar_detach		(ttxview_data *		data)
-{
-  guint i;
-
-  for (i = 0; i < 8; ++i)
-    {
-      GList *glist;
-
-      if ((glist = g_list_last (data->toolbar->children)))
-	{
-	  GtkToolbarChild *child = glist->data;
-
-	  if (GTK_TOOLBAR_CHILD_SPACE == child->type)
-	    {
-	      gint position;
-
-	      position = g_list_position (data->toolbar->children, glist);
-	      gtk_toolbar_remove_space (data->toolbar, position);
-	    }
-	  else
-	    {
-	      gtk_container_remove (GTK_CONTAINER (data->toolbar),
-				    child->widget);
-	    }
-	}
     }
 }
 
@@ -4895,9 +4905,7 @@ ttxview_new			(void)
     widget = ttxview_toolbar_new (data);
     gtk_widget_show (widget);
 
-    data->toolbar = GTK_TOOLBAR (widget);
-
-    gnome_app_set_toolbar (data->app, data->toolbar);
+    gnome_app_set_toolbar (data->app, GTK_TOOLBAR (widget));
 
 #if 0
     /* XXX Must hide the dock, not just the toolbar, hence widget->parent.
@@ -4954,7 +4962,7 @@ ttxview_new			(void)
   data->vbi_model = zvbi_get_model();
 
   data->deferred_load = FALSE;
-  data->deferred.timeout_id = -1;
+  data->deferred.timeout_id = NO_SOURCE_ID;
 
   /* Callbacks */
 
@@ -4996,6 +5004,7 @@ void
 ttxview_detach			(GtkWidget *		parent)
 {
   ttxview_data *data;
+  BonoboDockItem *dock_item;
 
   if (!(data = ttxview_data_from_widget (parent)))
     return;
@@ -5015,7 +5024,10 @@ ttxview_detach			(GtkWidget *		parent)
     (G_OBJECT (data->parent), G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
      0, 0, NULL, G_CALLBACK (on_ttxview_delete_event), data);
 
-  ttxview_toolbar_detach (data);
+  dock_item = gnome_app_get_dock_item_by_name (GNOME_APP (parent),
+					       "teletext-toolbar");
+  if (NULL != dock_item)
+    gtk_widget_destroy (GTK_WIDGET (dock_item));
 
   ttxview_drawing_area_detach (data, data->darea);
 
@@ -5034,10 +5046,11 @@ ttxview_detach			(GtkWidget *		parent)
 void
 ttxview_attach			(GtkWidget *		parent,
 				 GtkWidget *		darea,
-				 GtkWidget *		toolbar,
+				 GtkWidget *		toolbar _unused_,
 				 GtkWidget *		appbar)
 {
   ttxview_data *data;
+  GtkWidget *widget;
 
   if (!zvbi_get_object())
     {
@@ -5075,9 +5088,20 @@ ttxview_attach			(GtkWidget *		parent,
   g_signal_connect (G_OBJECT (color_zmodel), "changed",
 		    G_CALLBACK (on_color_zmodel_changed), data);
 
-  data->toolbar = GTK_TOOLBAR (toolbar);
-  gtk_toolbar_append_space (data->toolbar);
-  ttxview_toolbar_attach (data, toolbar, TRUE);
+  widget = ttxview_toolbar_new (data);
+  gtk_widget_show (widget);
+
+  /* if ( ! gnome_gconf_get_bool
+     ("/desktop/gnome/interface/toolbar_detachable"))
+     behavior |= BONOBO_DOCK_ITEM_BEH_LOCKED; */
+  gnome_app_add_toolbar (GNOME_APP (parent),
+			 GTK_TOOLBAR (widget),
+			 "teletext-toolbar",
+			 BONOBO_DOCK_ITEM_BEH_EXCLUSIVE,
+			 BONOBO_DOCK_TOP,
+			 /* band_num */ 2,
+			 /* band_position */ 0,
+			 /* offset */ 0);
 
   data->darea = ttxview_drawing_area_attach (data, darea);
   gdk_window_set_back_pixmap (data->darea->window, NULL, FALSE);
@@ -5095,7 +5119,7 @@ ttxview_attach			(GtkWidget *		parent,
   data->vbi_model = zvbi_get_model();
 
   data->deferred_load = FALSE;
-  data->deferred.timeout_id = -1;
+  data->deferred.timeout_id = NO_SOURCE_ID;
 
   /* Callbacks */
 
@@ -5191,8 +5215,8 @@ startup_ttxview			(void)
 
   zcc_bool (FALSE, "Switch channel on bookmark selection", "bookmark_switch");
 
-  zconf_create_integer (128, "Brightness", "/zapping/options/text/brightness");
-  zconf_create_integer (64, "Contrast", "/zapping/options/text/contrast");
+  zconf_create_int (128, "Brightness", "/zapping/options/text/brightness");
+  zconf_create_int (64, "Contrast", "/zapping/options/text/contrast");
 
   bookmarks_zmodel = ZMODEL (zmodel_new ());
 

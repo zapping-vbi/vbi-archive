@@ -1,3 +1,141 @@
+2004-09-09    <mschimek@users.sf.net>
+
+	* src/interface.c (create_zapping): Create a Zapping instance
+	  instead of GnomeApp for modularity.
+	* zapping_setup_fb/zapping_setup_fb.h: Rewrote using Xinerama
+	  aware libtv routines.
+	* zapping_setup_fb/zapping_setup_fb.c: Rewrote using Xinerama
+	  aware libtv routines. Added new --screen option to select the
+	  exact physical screen in Xinerama configuration.
+	* zapping_setup_fb/v4l25.c, zapping_setup_fb/v4l2.c,
+	  zapping_setup_fb/v4l.c: Switched from old x11_dga_parameters
+	  to tv_overlay_buffer.
+	* zapping_setup_fb/dga.c: Replaced by Xinerama aware libtv routines.
+	* zapping_setup_fb/Makefile.am: Removed dga.c, added internal
+	  libtv dependency.
+	* src/zmisc.h: Added CONST_PARENT and _unused_ attribute.
+	  Added some useful constants to improve code documentation.
+	(z_set_overlay_buffer): New helper to set overlay buffer from
+	  display and screen number (Xinerama).
+	* src/zmisc.c: Added functions to translate obsolete
+	  tveng_capture_mode which is still used in zapping conf.
+	(zmisc_switch_mode): Cleaned up overlay and fullscreen code.
+	(z_set_overlay_buffer): New helper to set overlay buffer from
+	  display and screen number (Xinerama).
+	* src/zconf.h, src/zconf.c: Replaced zc/zconf _integer functions by
+	  _int and _uint for proper type checks.
+	* src/x11_stuff.h, src/x11_stuff.c: Added functions to ask WM for
+	  fullscreen display of window. Rewrote x11_vidmode routines to
+	  consider display and physical screen number, size and position
+	  for proper Xinerama support. DGA routines merged with new
+	  Xinerama routines and moved to libtv for zapping_setup_fb.
+	(x11_window_clip_vector): Used to create clips outside overlay
+	  rectangle when it did not align with containing window, fixed.
+	* src/tvengxv.c	(p_tvengxv_open_device): Use given window, i.e.
+	  physical screen, to query adaptors. Removed unused overlay_window
+	  functions.
+	* src/tveng1.c, src/tveng2.c, src/tveng25.c (set_overlay_window):
+	  Function now takes a clip_vector parameter, puts window relative
+	  to overlay_buffer origin (Xinerama), cleaned up.
+	* src/tvengbktr.c (set_clips): Function now takes a clip_vector
+	  parameter, puts window relative to overlay_buffer
+	  origin (Xinerama). Cleaned up and simplified things after
+	  moving clip checks to tveng.c.
+	* src/tveng.h: Moved tv_bool, tv_pixfmt, tv_image_format,
+	  tv_overlay_buffer to libtv for zapping_setup_fb. Moved
+	  tv_clip_vector to libtv. X window pointers in tv_window
+	  no longer used, removed.
+	* src/tveng.c: Public functions clear the error string on entry.
+	  In overlay mode, do not expect the driver can handle an
+	  invisible overlay window. Moved tv_pixfmt routines to libtv
+	  for zapping_setup_fb.
+	(p_tveng_set_preview): dga_param is gone, now the overlay buffer
+	 must be any one of the physical screens (Xinerama).
+	(p_tveng_set_preview_window): Check that clips stay within
+	  overlay buffer and window bounds. Check that clips are valid
+	  and in proper order.
+	(tv_set_overlay_buffer): Added display_name and screen_number
+	  parameters so we can tell zapping_setup_fb the exact physical
+	  screen (Xinerama).
+	(tveng_device_attach): Added window parameter to
+	  open only Xv drivers which can put video onto that physical
+	  screen. 
+	* src/remote.h, src/remote.c: Added PyArg_ParseTuple wrapper
+	  with proper const args.
+	* src/main.c (main): Query and report physical X screens (Xinerama).
+	* src/globals.h, src/globals.c: Added list of physical X
+	  screens (Xinerama).
+	* src/overlay.c: Rewrote for Xinerama (choose the right
+	  physical screen initially and on window motion, clean only
+	  the ps we DMA'ed, open right Xv driver).
+	* src/fullscreen.c: Rewrote for Xinerama (choose the right
+	  physical screen, use ps vidmodes instead of virtual screen,
+	  limit black window size to ps size, open right Xv driver).
+	  Use NET_WM_STATE_FULLSCREEN, since the old hack does not work
+	  with Gtk 2.6 anymore and most WMs should support this now.
+	* src/Makefile.am: Added internal libtv dependency. Added
+	  Xinerama to LDADD.
+	  (zapping_SOURCES): Added zapping.c, zapping.h.
+	* src/zmisc.h, src/zmisc.c, src/properties.c, src/main.c, 
+	  src/interface.c, src/globals.h, src/globals.c, src/cmd.c,
+	  src/capture.c, src/audio.c, plugins/screenshot/screenshot.c:
+	  Replaced GtkWiget* main_window by Zapping GObject.
+	* plugins/mpeg/mpeg.c: Removed lots of unused local vars.
+	* src/zmisc.c, src/tveng_private.h, src/tveng.h, src/tveng.c,
+	  src/overlay.c, src/main.c, src/globals.h, src/globals.c,
+	  src/fullscreen.c, src/cmd.c, src/channel_editor.c,
+	  src/capture.c, src/audio.c, plugins/mpeg/mpeg.c,
+	  plugins/alirc/alirc.c: Split tveng_capture_mode into display
+	  and capture mode for future fullscreen capture and Teletext.
+	* pixmaps/Makefile.am: Depend on self, fix type of
+	  gdk_pixbuf_csource output.
+	* common/videodev2.h: Removed LINUX_VERSION_CODE warning, this
+	  symbol may be undefined.
+	* configure.in: Changed to use automake 1.7. Removed compile
+	  warning flags, users must set CFLAGS themselves now. Added
+	  libtv/Makefile output. Added endian check for libtv/pixel_format.c.
+	* autogen.sh: Require automake 1.7 or compatible, updated Plan B.
+	* Makefile.am (SUBDIRS): Added libtv.
+	* src/zvideo.c, src/zvbi.c, src/zmisc.c, src/zimage.h, src/zimage.c,
+	  src/zconf.h, src/zconf.c, src/yuv2rgb.c, src/xawtv.c,
+	  src/x11stuff.h, src/x11stuff.c, src/video_xv.c, src/video_x11.c,
+	  src/video_mem.c, src/video_gdkrgb.c, src/vdr.c,
+	  src/v4linterface.h, src/v4linterface.c, src/tvengxv.c,
+	  src/tvengemu.c, src/tveng_private.h, src/tveng25.c, src/tveng2.c,
+	  src/tveng1.h, src/tveng1.c, src/tveng.h, src/tveng.c,
+	  src/ttxview.c, src/remote.c, src/properties.c,
+	  src/properties-handler.h, src/properties-handler.c,
+	  src/plugin_properties.c, src/plugin_common.h, src/overlay.c,
+	  src/oss.c, src/osd.c, src/mixer.c, src/main.c, src/keysyms.h,
+	  src/keyboard.c, src/interface.c, src/fullscreen.c,
+	  src/frequencies.h, src/frequencies.c, src/esd.c, src/csconvert.h
+	  src/csconvert.c, src/cmd.c, src/channel_editor.c, src/capture.c,
+	  src/audio.h, src/audio.c, src/arts.c,
+	  plugins/screenshot/screenshot.h, plugins/screenshot/screenshot.c,
+	  plugins/screenshot/deint.c, plugins/screenshot/b_ppm.c,
+	  plugins/screenshot/b_jpeg.c, plugins/mpeg/options.c,
+	  plugins/mpeg/mpeg.c, plugins/alirc/alirc.c, common/fifo.h,
+	  common/fifo.c, common/device.c, common/alloc.h:
+	  Const, signedness, unused function parameters, void
+	  pointer arithmetic fixes.
+	* src/zapping.c, src/zapping.h: Added to modularize things more
+	  in the future.
+	* libtv: Added for zapping_setup_fb.
+	* libtv/clip_vector.c, libtv/clip_vector.h, libtv/image_format.c,
+	  libtv/image_format.h, libtv/overlay_buffer.h,
+	  libtv/pixel_format.c, libtv/pixel_format.h: Moved here from
+	  src/tveng.c, src/tveng.h.
+	* libtv/clip_vector.c (tv_clip_vector_copy): Fixed too small realloc.
+	* libtv/screen.c, libtv/screen.h: Merged DGA and Xinerama routines,
+	  moved here from src/x11_stuff.c, src/x11_stuff.h.
+	* libtv/macros.h, libtv/misc.h: Cloned from zvbi-0.3.
+	
+2004-08-13  <mschimek@users.sf.net>
+
+	* src/ttxview.c (ttxview_detach, ttxview_attach): Create second
+	  toolbar in Teletext mode.
+	* src/zvideo.c (z_video_new): Fixed double instantiation.
+
 2004-08-11  <mschimek@users.sf.net>
 
 	* plugins/alirc/alirc.c (legacy_command_txl_table): Fixed

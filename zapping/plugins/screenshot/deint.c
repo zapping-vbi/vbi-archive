@@ -26,7 +26,8 @@ gchar *
 screenshot_deinterlace (screenshot_data *data, gint parity)
 {
   guchar *deint_data, *src, *src2, *dest;
-  gint src_bpl, dest_bpl, x, y, pair;
+  guint src_bpl, dest_bpl, x, y;
+  gint pair;
 
   if (data->format.height & 1)
     return NULL;

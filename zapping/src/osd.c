@@ -99,7 +99,7 @@ paint_piece			(piece		*p,
 }
 
 static gboolean
-expose				(GtkWidget	*da,
+expose				(GtkWidget	*da _unused_,
 				 GdkEventExpose	*event,
 				 piece		*p)
 {
@@ -325,9 +325,11 @@ pop_window(void)
 static void
 add_piece			(GdkPixbuf	*unscaled,
 				 GtkWidget	*da,
-				 int col,	int row,
-				 int width,	int max_rows,
-				 int max_columns,
+				 unsigned int col,
+				 unsigned int row,
+				 unsigned int width,
+				 unsigned int max_rows,
+				 unsigned int max_columns,
 				 float x,	float y,
 				 float w,	float h,
 				 void		(*position)(piece *p))
@@ -365,7 +367,7 @@ add_piece			(GdkPixbuf	*unscaled,
 }
 
 static void
-remove_piece			(int		row,
+remove_piece			(guint		row,
 				 int		p_index,
 				 gboolean	just_push)
 {
@@ -397,7 +399,7 @@ remove_piece			(int		row,
 }
 
 static void
-clear_row			(int		row,
+clear_row			(guint		row,
 				 gboolean	just_push)
 {
   while (matrix[row]->n_pieces)
@@ -416,9 +418,8 @@ osd_clear			(void)
   zmodel_changed (osd_model);
 }
 
-static void roll_up(int first_row, int last_row) __attribute__ ((unused));
 static void
-roll_up(int first_row, int last_row)
+roll_up(guint first_row, guint last_row)
 {
   gint i;
   float y = 0, h = 0;
@@ -435,7 +436,7 @@ roll_up(int first_row, int last_row)
       y_set = TRUE;
     }
 
-  clear_row(first_row, FALSE);
+  clear_row (first_row, FALSE);
   
   for (; first_row < last_row; first_row++)
     {
@@ -563,7 +564,7 @@ cc_position		(piece		*p)
 }
 
 static void
-add_piece_vbi		(int col, int row, int width)
+add_piece_vbi		(guint col, guint row, guint width)
 {
   GdkPixbuf *buf;
   GtkWidget *da;
@@ -573,27 +574,30 @@ add_piece_vbi		(int col, int row, int width)
   if (osd_page.columns < 40) /* naive cc test */
     {
       buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
-			   16 * width, 26);
+			   (int)(16 * width), 26);
       vbi_draw_cc_page_region(&osd_page,
 			      VBI_PIXFMT_RGBA32_LE,
 			      (uint32_t *) gdk_pixbuf_get_pixels(buf),
 			      gdk_pixbuf_get_rowstride(buf),
-			      col, row, width, 1 /* height */);
+			      (int) col, (int) row, (int) width,
+			      1 /* height */);
     }
   else
     {
       buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
-			   12 * width, 10);
+			   (gint)(12 * width), 10);
       vbi_draw_vt_page_region(&osd_page,
 			      VBI_PIXFMT_RGBA32_LE,
 			      (uint32_t *) gdk_pixbuf_get_pixels(buf),
 			      gdk_pixbuf_get_rowstride(buf),
-			      col, row, width, 1 /* height */,
+			      (int) col, (int) row, (int) width,
+			      1 /* height */,
 			      1 /* reveal */, 1 /* flash_on */);
     }
 
-  add_piece(buf, da, col, row, width, osd_page.rows,
-	    osd_page.columns, 0, 0, 0, 0,
+  add_piece(buf, da, col, row, width,
+	    (guint) osd_page.rows,
+	    (guint) osd_page.columns, 0.0, 0.0, 0.0, 0.0,
 	    (osd_page.columns < 40) ? cc_position : ttx_position);
 }
 
@@ -601,16 +605,17 @@ static void
 render_page		(void)
 {
   vbi_char *ac_row;
-  int row, i, j;
+  guint row;
+  guint i, j;
   gboolean dirty = FALSE;
 
   row = osd_page.dirty.y0;
   ac_row = osd_page.text + row * osd_page.columns;
 
-  for (; row <= osd_page.dirty.y1; ac_row += osd_page.columns, row++)
+  for (; row <= (guint) osd_page.dirty.y1; ac_row += osd_page.columns, row++)
     {
       clear_row(row, TRUE);
-      for (i = j = 0; i < osd_page.columns; i++)
+      for (i = j = 0; i < (guint) osd_page.columns; i++)
         {
 	  if (ac_row[i].opacity != VBI_TRANSPARENT_SPACE)
 	    j++;
@@ -636,9 +641,9 @@ render_page		(void)
 }
 
 static void
-osd_event		(gpointer	   data,
-			 gint              source, 
-			 GdkInputCondition condition)
+osd_event		(gpointer	   data _unused_,
+			 gint              source _unused_, 
+			 GdkInputCondition condition _unused_)
 {
   vbi_decoder *vbi = zvbi_get_object();
   char dummy[16];
@@ -681,7 +686,8 @@ osd_event		(gpointer	   data,
 
   if (osd_page.dirty.roll == -1)
     {
-      roll_up(osd_page.dirty.y0, osd_page.dirty.y1);
+      roll_up ((guint) osd_page.dirty.y0,
+	       (guint) osd_page.dirty.y1);
       return;
     }
 
@@ -694,17 +700,17 @@ osd_event		(gpointer	   data,
 
 #include <libxml/parser.h>
 
-static guint osd_clear_timeout_id = -1;
+static guint osd_clear_timeout_id = NO_SOURCE_ID;
 static void (* osd_clear_timeout_cb)(gboolean);
 
 #define OSD_ROW (MAX_ROWS - 1)
 
 static gint
-osd_clear_timeout	(void		*ignored)
+osd_clear_timeout	(void		*ignored _unused_)
 {
   clear_row(OSD_ROW, FALSE);
 
-  osd_clear_timeout_id = -1;
+  osd_clear_timeout_id = NO_SOURCE_ID;
 
   zmodel_changed(osd_model);
 
@@ -793,7 +799,7 @@ render_console			(const gchar *		s,
 	'\r' == plain_buf[i])
       plain_buf[i] = ' ';
 
-  locale_buf = g_locale_from_utf8 (plain_buf, i, NULL, &length, &error);
+  locale_buf = g_locale_from_utf8 (plain_buf, (gint) i, NULL, &length, &error);
 
   if (error)
     {
@@ -887,7 +893,8 @@ osd_render_osd		(void (*timeout_cb)(gboolean),
   canvas = gdk_pixmap_new (patch->window, w, h, -1);
 
   /* Draw the canvas contents */
-  bg = create_color(zcg_float(NULL, "bg_r"), zcg_float(NULL, "bg_g"),
+  bg = create_color(zcg_float(NULL, "bg_r"),
+		    zcg_float(NULL, "bg_g"),
 		    zcg_float(NULL, "bg_b"), cmap);
 
   gdk_gc_set_foreground(gc, bg);
@@ -926,7 +933,7 @@ osd_render_osd		(void (*timeout_cb)(gboolean),
     }
 
   osd_clear_timeout_id =
-    g_timeout_add (zcg_float (NULL, "timeout") * 1000,
+    g_timeout_add ((guint)(zcg_float (NULL, "timeout") * 1000),
 		   (GSourceFunc) osd_clear_timeout, NULL);
 
   osd_clear_timeout_cb = timeout_cb;
@@ -970,7 +977,7 @@ osd_render_markup		(osd_timeout_fn *	timeout_cb,
 	  break;
 
 	z_status_print (plain_buf, /* markup */ FALSE,
-			zcg_float (NULL, "timeout") * 1000,
+			(guint)(zcg_float (NULL, "timeout") * 1000),
 			/* hide */ FALSE);
 
 	g_free (plain_buf);
@@ -1056,7 +1063,8 @@ osd_render			(osd_timeout_fn *	timeout_cb,
 
     case 1: /* Statusbar */
       z_status_print (buf, /* markup */ FALSE,
-		      zcg_float (NULL, "timeout") * 1000, /* hide */ FALSE);
+		      (guint)(zcg_float (NULL, "timeout") * 1000),
+		      /* hide */ FALSE);
       break;
 
     case 2: /* Console */
@@ -1088,9 +1096,9 @@ osd_render			(osd_timeout_fn *	timeout_cb,
 gboolean coords_mode = FALSE;
 
 static
-void on_osd_screen_size_allocate	(GtkWidget	*widget,
+void on_osd_screen_size_allocate	(GtkWidget	*widget _unused_,
 					 GtkAllocation	*allocation,
-					 gpointer	ignored)
+					 gpointer	ignored _unused_)
 {
   if (cw == allocation->width &&
       ch == allocation->height)
@@ -1168,10 +1176,10 @@ osd_unset_window(void)
 }
 
 /* Python wrappers for the OSD renderer */
-static PyObject* py_osd_render (PyObject *self, PyObject *args)
+static PyObject* py_osd_render (PyObject *self _unused_, PyObject *args)
 {
   char *string;
-  int ok = PyArg_ParseTuple (args, "s", &string);
+  int ok = ParseTuple (args, "s", &string);
 
   if (!ok)
     g_error ("zapping.osd_render(s)");
@@ -1182,10 +1190,10 @@ static PyObject* py_osd_render (PyObject *self, PyObject *args)
   return Py_None;
 }
 
-static PyObject* py_osd_render_markup (PyObject *self, PyObject *args)
+static PyObject* py_osd_render_markup (PyObject *self _unused_, PyObject *args)
 {
   char *string;
-  int ok = PyArg_ParseTuple (args, "s", &string);
+  int ok = ParseTuple (args, "s", &string);
 
   if (!ok)
     g_error ("zapping.osd_render_markup(s)");
@@ -1198,7 +1206,7 @@ static PyObject* py_osd_render_markup (PyObject *self, PyObject *args)
 
 static void
 on_osd_type_changed	(GtkWidget	*widget,
-			 GtkWidget	*page)
+			 GtkWidget	*page _unused_)
 {
   GtkWidget *w;
 
@@ -1248,7 +1256,7 @@ osd_setup		(GtkWidget	*page)
   /* OSD type */
   widget = lookup_widget(page, "optionmenu22");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-			      zcg_int(NULL, "osd_type"));
+			      (guint) zcg_int(NULL, "osd_type"));
   on_osd_type_changed (page, page);
 
   g_signal_connect(G_OBJECT (widget), "changed",
@@ -1267,7 +1275,7 @@ osd_setup		(GtkWidget	*page)
 		   zcg_float(NULL, "fg_r"),
 		   zcg_float(NULL, "fg_g"),
 		   zcg_float(NULL, "fg_b"),
-		   0);
+		   0.0);
 
   /* OSD background color */
   widget = lookup_widget(page, "general-osd-background-selector");
@@ -1275,7 +1283,7 @@ osd_setup		(GtkWidget	*page)
 		   zcg_float(NULL, "bg_r"),
 		   zcg_float(NULL, "bg_g"),
 		   zcg_float(NULL, "bg_b"),
-		   0);
+		   0.0);
 
   /* OSD timeout in seconds */
   widget = lookup_widget(page, "spinbutton2");
@@ -1290,8 +1298,7 @@ osd_apply		(GtkWidget	*page)
   gdouble r, g, b, a;
 
   widget = lookup_widget(page, "optionmenu22"); /* osd type */
-  zcs_int(z_option_menu_get_active(widget),
-	  "osd_type");
+  zcs_int(z_option_menu_get_active(widget), "osd_type");
 
   widget = lookup_widget(page, "general-osd-font-selector");
   zcs_char(gnome_font_picker_get_font_name(GNOME_FONT_PICKER(widget)),
@@ -1312,8 +1319,7 @@ osd_apply		(GtkWidget	*page)
   zcs_float(b, "bg_b");
 
   widget = lookup_widget(page, "spinbutton2"); /* osd timeout */
-  zcs_float(gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget)),
-	    "timeout");
+  zcs_float(gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget)), "timeout");
 
 }
 

@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.9 2004-08-13 01:01:44 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.10 2004-09-10 04:58:53 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
@@ -571,7 +571,7 @@ static gboolean
 xawtv_command_setstation	(int			argc,
 				 char **		argv)
 {
-  long int nr;
+  unsigned int nr;
   char *end;
   tveng_tuned_channel *ch;
 
@@ -598,7 +598,7 @@ xawtv_command_setstation	(int			argc,
       return FALSE;
     }
 
-  nr = strtol (argv[1], &end, 0);
+  nr = strtoul (argv[1], &end, 0);
 
   if (0 == *end)
     {
@@ -606,7 +606,7 @@ xawtv_command_setstation	(int			argc,
 
       if (!(ch = tveng_tuned_channel_nth (global_channel_list, nr)))
 	{
-	  fprintf (stderr, "Invalid channel number %ld\n", nr);
+	  fprintf (stderr, "Invalid channel number %u\n", nr);
 	  return FALSE;
 	}
     }
@@ -627,7 +627,7 @@ xawtv_command_setstation	(int			argc,
       g_free (t);
     }
 
-  z_switch_channel (ch, main_info);
+  z_switch_channel (ch, zapping->info);
 
   return TRUE;
 }
@@ -670,7 +670,7 @@ xawtv_command_vtx		(int			argc,
 	    {
 	      gint col[2];
 
-	      g_string_append_len (s, t + j0, j - j0);
+	      g_string_append_len (s, t + j0, (gint)(j - j0));
 
 	      col[0] = -1;
 	      col[1] = -1;
@@ -745,7 +745,7 @@ xawtv_command_vtx		(int			argc,
 	    }
 	}
 
-      g_string_append_len (s, t + j0, j - j0);
+      g_string_append_len (s, t + j0, (gint)(j - j0));
 
       if (in_span)
 	g_string_append (s, "</span>");
@@ -898,7 +898,7 @@ xawtv_command			(int			argc,
       if (!(t = g_locale_to_utf8 (argv[1], -1, NULL, NULL, NULL)))
 	return FALSE;
 
-      gtk_window_set_title (GTK_WINDOW (main_window), t);
+      gtk_window_set_title (GTK_WINDOW (zapping), t);
 
       g_free (t);
 
@@ -961,7 +961,7 @@ property_get_string		(GdkWindow *		window,
     return NULL;
 
   s = g_string_new (NULL);
-  g_string_append_len (s, prop, nitems);
+  g_string_append_len (s, prop, (gint) nitems);
 
   /* Make sure we have a cstring. */
   g_string_append_len (s, "", 1);
@@ -974,7 +974,7 @@ property_get_string		(GdkWindow *		window,
 static gboolean
 on_event			(GtkWidget *		widget,
 				 GdkEvent *		event,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   if (GDK_PROPERTY_NOTIFY == event->type)
     {
@@ -995,7 +995,7 @@ on_event			(GtkWidget *		widget,
 
 	  for (i = 0; i <= s->len; i += strlen (&s->str[i]) + 1)
 	    {
-	      if (argc >= G_N_ELEMENTS (argv) - 1)
+	      if (argc >= (gint) G_N_ELEMENTS (argv) - 1)
 		break; /* die graceful */
 
 	      if (i == s->len || 0 == s->str[i])
@@ -1067,7 +1067,7 @@ xawtv_ipc_set_station		(GtkWidget *		window,
 			   _GA_XAWTV_STATION,
 			   _GA_STRING, /* bits */ 8,
 			   GDK_PROP_MODE_REPLACE,
-			   s->str, s->len + 1);
+			   s->str, (gint) s->len + 1);
 
       g_string_free (s, /* cstring too */ TRUE);
 

@@ -21,7 +21,8 @@
 #include "screenshot.h"
 
 static gboolean
-backend_init (screenshot_data *data, gboolean write, gint quality)
+backend_init (screenshot_data *data _unused_,
+	      gboolean write _unused_, gint quality _unused_)
 {
   return TRUE;
 }
@@ -30,7 +31,7 @@ static void
 backend_save (screenshot_data *data)
 {
   gchar *src, *dest;
-  gint src_bpl, dest_bpl, free, n;
+  guint src_bpl, dest_bpl, free, n;
 
   src = (gchar *) data->data.linear.data;
   src_bpl = data->data.linear.stride;

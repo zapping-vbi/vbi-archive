@@ -20,7 +20,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping_remote.c,v 1.1 2004-05-16 11:43:17 mschimek Exp $ */
+/* $Id: zapping_remote.c,v 1.2 2004-09-10 04:58:53 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,10 +31,12 @@
 #include <X11/Xatom.h>
 #include <X11/Xmu/WinUtil.h>    /* for XmuClientWindow() */
 
+#include "zmisc.h"
+
 static unsigned int debug = 0;
 
 static int
-x11_error_dev_null(Display * dpy, XErrorEvent * event)
+x11_error_dev_null(Display * dpy _unused_, XErrorEvent * event _unused_)
 {
     fprintf(stderr,"x11-error\n");
     return 0;
@@ -112,7 +114,7 @@ pass_cmd			(Display *		dpy,
     }
     if (debug)
 	printf("\n");
-    pass = malloc(len);
+    pass = malloc((unsigned int) len);
     pass[0] = 0;
     for (len = 0, i = 0; i < argc; i++)
         strcpy(pass + len, argv[i]),

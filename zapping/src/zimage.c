@@ -65,7 +65,7 @@ zimage *zimage_create_object (void)
 }
 
 zimage *zimage_new (tv_pixfmt pixfmt,
-		    gint w, gint h)
+		    guint w, guint h)
 {
   gint i;
   for (i=0; i<num_backends; i++)
@@ -116,8 +116,9 @@ void zimage_blit (zimage *image)
 
   if (backends[pz->backend].backend.image_put)
     backends[pz->backend].backend.image_put
-      (image, dest_window->allocation.width,
-       dest_window->allocation.height);
+      (image,
+       (guint) dest_window->allocation.width,
+       (guint) dest_window->allocation.height);
 }
 
 void video_init (GtkWidget *window, GdkGC *gc)
@@ -129,7 +130,7 @@ void video_init (GtkWidget *window, GdkGC *gc)
 
   for (i=0; i<num_backends; i++)
     if (backends[i].backend.set_destination)
-      backends[i].backend.set_destination (window->window, gc, main_info);
+      backends[i].backend.set_destination (window->window, gc, zapping->info);
 }
 
 void video_uninit (void)
@@ -137,7 +138,7 @@ void video_uninit (void)
   int i;
   for (i=0; i<num_backends; i++)
     if (backends[i].backend.unset_destination)
-      backends[i].backend.unset_destination (main_info);
+      backends[i].backend.unset_destination (zapping->info);
 
   dest_window = NULL;
 }

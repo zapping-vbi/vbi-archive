@@ -62,14 +62,14 @@ yuv2rgb_init_swar (cpu_type cpu, tv_pixfmt pixfmt)
     case CPU_CYRIX_III:
       switch (pixfmt)
 	{
-	case TV_PIXFMT_RGBA15_LE:	return mmx_yuv420_rgb5551;
-	case TV_PIXFMT_BGRA15_LE:	return mmx_yuv420_bgr5551;
+	case TV_PIXFMT_RGBA16_LE:	return mmx_yuv420_rgb5551;
+	case TV_PIXFMT_BGRA16_LE:	return mmx_yuv420_bgr5551;
         case TV_PIXFMT_RGB16_LE:	return mmx_yuv420_rgb565;
 	case TV_PIXFMT_BGR16_LE:	return mmx_yuv420_bgr565;
         case TV_PIXFMT_RGB24_LE:	return mmx_yuv420_rgb24;
 	case TV_PIXFMT_BGR24_LE:	return mmx_yuv420_bgr24;
-        case TV_PIXFMT_RGBA24_LE:	return mmx_yuv420_rgb32;
-	case TV_PIXFMT_BGRA24_LE:	return mmx_yuv420_bgr32;
+        case TV_PIXFMT_RGBA32_LE:	return mmx_yuv420_rgb32;
+	case TV_PIXFMT_BGRA32_LE:	return mmx_yuv420_bgr32;
         default:			break;
         }
       break;
@@ -78,14 +78,14 @@ yuv2rgb_init_swar (cpu_type cpu, tv_pixfmt pixfmt)
     case CPU_PENTIUM_4:
       switch (pixfmt)
 	{
-	case TV_PIXFMT_RGBA15_LE:	return sse_yuv420_rgb5551;
-	case TV_PIXFMT_BGRA15_LE:	return sse_yuv420_bgr5551;
+	case TV_PIXFMT_RGBA16_LE:	return sse_yuv420_rgb5551;
+	case TV_PIXFMT_BGRA16_LE:	return sse_yuv420_bgr5551;
         case TV_PIXFMT_RGB16_LE:	return sse_yuv420_rgb565;
 	case TV_PIXFMT_BGR16_LE:	return sse_yuv420_bgr565;
         case TV_PIXFMT_RGB24_LE:	return sse_yuv420_rgb24;
 	case TV_PIXFMT_BGR24_LE:	return sse_yuv420_bgr24;
-        case TV_PIXFMT_RGBA24_LE:	return sse_yuv420_rgb32;
-	case TV_PIXFMT_BGRA24_LE:	return sse_yuv420_bgr32;
+        case TV_PIXFMT_RGBA32_LE:	return sse_yuv420_rgb32;
+	case TV_PIXFMT_BGRA32_LE:	return sse_yuv420_bgr32;
         default:			break;
         }
       break;
@@ -93,14 +93,14 @@ yuv2rgb_init_swar (cpu_type cpu, tv_pixfmt pixfmt)
     case CPU_K6_2:
       switch (pixfmt)
 	{
-	case TV_PIXFMT_RGBA15_LE:	return _3dn_yuv420_rgb5551;
-	case TV_PIXFMT_BGRA15_LE:	return _3dn_yuv420_bgr5551;
+	case TV_PIXFMT_RGBA16_LE:	return _3dn_yuv420_rgb5551;
+	case TV_PIXFMT_BGRA16_LE:	return _3dn_yuv420_bgr5551;
         case TV_PIXFMT_RGB16_LE:	return _3dn_yuv420_rgb565;
 	case TV_PIXFMT_BGR16_LE:	return _3dn_yuv420_bgr565;
         case TV_PIXFMT_RGB24_LE:	return _3dn_yuv420_rgb24;
 	case TV_PIXFMT_BGR24_LE:	return _3dn_yuv420_bgr24;
-        case TV_PIXFMT_RGBA24_LE:	return _3dn_yuv420_rgb32;
-	case TV_PIXFMT_BGRA24_LE:	return _3dn_yuv420_bgr32;
+        case TV_PIXFMT_RGBA32_LE:	return _3dn_yuv420_rgb32;
+	case TV_PIXFMT_BGRA32_LE:	return _3dn_yuv420_bgr32;
         default:			break;
         }
       break;
@@ -108,14 +108,14 @@ yuv2rgb_init_swar (cpu_type cpu, tv_pixfmt pixfmt)
     case CPU_ATHLON:
       switch (pixfmt)
 	{
-	case TV_PIXFMT_RGBA15_LE:	return amd_yuv420_rgb5551;
-	case TV_PIXFMT_BGRA15_LE:	return amd_yuv420_bgr5551;
+	case TV_PIXFMT_RGBA16_LE:	return amd_yuv420_rgb5551;
+	case TV_PIXFMT_BGRA16_LE:	return amd_yuv420_bgr5551;
         case TV_PIXFMT_RGB16_LE:	return amd_yuv420_rgb565;
 	case TV_PIXFMT_BGR16_LE:	return amd_yuv420_bgr565;
         case TV_PIXFMT_RGB24_LE:	return amd_yuv420_rgb24;
 	case TV_PIXFMT_BGR24_LE:	return amd_yuv420_bgr24;
-        case TV_PIXFMT_RGBA24_LE:	return amd_yuv420_rgb32;
-	case TV_PIXFMT_BGRA24_LE:	return amd_yuv420_bgr32;
+        case TV_PIXFMT_RGBA32_LE:	return amd_yuv420_rgb32;
+	case TV_PIXFMT_BGRA32_LE:	return amd_yuv420_bgr32;
         default:			break;
         }
       break;
@@ -142,14 +142,14 @@ rgb2yuv_init_swar (cpu_type cpu, tv_pixfmt pixfmt)
     case CPU_ATHLON:
       switch (pixfmt)
         {
-	case TV_PIXFMT_RGBA15_LE:	return mmx_rgb5551_yuv420;
-	case TV_PIXFMT_BGRA15_LE:	return mmx_bgr5551_yuv420;
+	case TV_PIXFMT_RGBA16_LE:	return mmx_rgb5551_yuv420;
+	case TV_PIXFMT_BGRA16_LE:	return mmx_bgr5551_yuv420;
         case TV_PIXFMT_RGB16_LE:	return mmx_rgb565_yuv420;
         case TV_PIXFMT_BGR16_LE:	return mmx_bgr565_yuv420;
 	case TV_PIXFMT_RGB24_LE:	return mmx_rgb24_yuv420;
 	case TV_PIXFMT_BGR24_LE:	return mmx_bgr24_yuv420;
-	case TV_PIXFMT_RGBA24_LE:	return mmx_rgb32_yuv420;
-	case TV_PIXFMT_BGRA24_LE:	return mmx_bgr32_yuv420;
+	case TV_PIXFMT_RGBA32_LE:	return mmx_rgb32_yuv420;
+	case TV_PIXFMT_BGRA32_LE:	return mmx_bgr32_yuv420;
         default:			break;
         }
       break;
@@ -172,14 +172,14 @@ yuyv2rgb_init_swar (cpu_type cpu, tv_pixfmt pixfmt)
     case CPU_CYRIX_III:
       switch (pixfmt)
 	{
-	case TV_PIXFMT_RGBA15_LE:	return mmx_yuyv_rgb5551;
-	case TV_PIXFMT_BGRA15_LE:	return mmx_yuyv_bgr5551;
+	case TV_PIXFMT_RGBA16_LE:	return mmx_yuyv_rgb5551;
+	case TV_PIXFMT_BGRA16_LE:	return mmx_yuyv_bgr5551;
         case TV_PIXFMT_RGB16_LE:	return mmx_yuyv_rgb565;
 	case TV_PIXFMT_BGR16_LE:	return mmx_yuyv_bgr565;
         case TV_PIXFMT_RGB24_LE:	return mmx_yuyv_rgb24;
 	case TV_PIXFMT_BGR24_LE:	return mmx_yuyv_bgr24;
-        case TV_PIXFMT_RGBA24_LE:	return mmx_yuyv_rgb32;
-	case TV_PIXFMT_BGRA24_LE:	return mmx_yuyv_bgr32;
+        case TV_PIXFMT_RGBA32_LE:	return mmx_yuyv_rgb32;
+	case TV_PIXFMT_BGRA32_LE:	return mmx_yuyv_bgr32;
         default:			break;
         }
       break;
@@ -188,14 +188,14 @@ yuyv2rgb_init_swar (cpu_type cpu, tv_pixfmt pixfmt)
     case CPU_PENTIUM_4:
       switch (pixfmt)
 	{
-	case TV_PIXFMT_RGBA15_LE:	return sse_yuyv_rgb5551;
-	case TV_PIXFMT_BGRA15_LE:	return sse_yuyv_bgr5551;
+	case TV_PIXFMT_RGBA16_LE:	return sse_yuyv_rgb5551;
+	case TV_PIXFMT_BGRA16_LE:	return sse_yuyv_bgr5551;
         case TV_PIXFMT_RGB16_LE:	return sse_yuyv_rgb565;
 	case TV_PIXFMT_BGR16_LE:	return sse_yuyv_bgr565;
         case TV_PIXFMT_RGB24_LE:	return sse_yuyv_rgb24;
 	case TV_PIXFMT_BGR24_LE:	return sse_yuyv_bgr24;
-        case TV_PIXFMT_RGBA24_LE:	return sse_yuyv_rgb32;
-	case TV_PIXFMT_BGRA24_LE:	return sse_yuyv_bgr32;
+        case TV_PIXFMT_RGBA32_LE:	return sse_yuyv_rgb32;
+	case TV_PIXFMT_BGRA32_LE:	return sse_yuyv_bgr32;
         default:			break;
         }
       break;
@@ -203,14 +203,14 @@ yuyv2rgb_init_swar (cpu_type cpu, tv_pixfmt pixfmt)
     case CPU_K6_2:
       switch (pixfmt)
 	{
-	case TV_PIXFMT_RGBA15_LE:	return _3dn_yuyv_rgb5551;
-	case TV_PIXFMT_BGRA15_LE:	return _3dn_yuyv_bgr5551;
+	case TV_PIXFMT_RGBA16_LE:	return _3dn_yuyv_rgb5551;
+	case TV_PIXFMT_BGRA16_LE:	return _3dn_yuyv_bgr5551;
         case TV_PIXFMT_RGB16_LE:	return _3dn_yuyv_rgb565;
 	case TV_PIXFMT_BGR16_LE:	return _3dn_yuyv_bgr565;
         case TV_PIXFMT_RGB24_LE:	return _3dn_yuyv_rgb24;
 	case TV_PIXFMT_BGR24_LE:	return _3dn_yuyv_bgr24;
-        case TV_PIXFMT_RGBA24_LE:	return _3dn_yuyv_rgb32;
-	case TV_PIXFMT_BGRA24_LE:	return _3dn_yuyv_bgr32;
+        case TV_PIXFMT_RGBA32_LE:	return _3dn_yuyv_rgb32;
+	case TV_PIXFMT_BGRA32_LE:	return _3dn_yuyv_bgr32;
         default:			break;
         }
       break;
@@ -218,14 +218,14 @@ yuyv2rgb_init_swar (cpu_type cpu, tv_pixfmt pixfmt)
     case CPU_ATHLON:
       switch (pixfmt)
 	{
-	case TV_PIXFMT_RGBA15_LE:	return amd_yuyv_rgb5551;
-	case TV_PIXFMT_BGRA15_LE:	return amd_yuyv_bgr5551;
+	case TV_PIXFMT_RGBA16_LE:	return amd_yuyv_rgb5551;
+	case TV_PIXFMT_BGRA16_LE:	return amd_yuyv_bgr5551;
         case TV_PIXFMT_RGB16_LE:	return amd_yuyv_rgb565;
 	case TV_PIXFMT_BGR16_LE:	return amd_yuyv_bgr565;
         case TV_PIXFMT_RGB24_LE:	return amd_yuyv_rgb24;
 	case TV_PIXFMT_BGR24_LE:	return amd_yuyv_bgr24;
-        case TV_PIXFMT_RGBA24_LE:	return amd_yuyv_rgb32;
-	case TV_PIXFMT_BGRA24_LE:	return amd_yuyv_bgr32;
+        case TV_PIXFMT_RGBA32_LE:	return amd_yuyv_rgb32;
+	case TV_PIXFMT_BGRA32_LE:	return amd_yuyv_bgr32;
         default:			break;
         }
       break;
@@ -252,14 +252,14 @@ rgb2yuyv_init_swar (cpu_type cpu, tv_pixfmt pixfmt)
     case CPU_ATHLON:
       switch (pixfmt)
         {
-        case TV_PIXFMT_RGBA15_LE:	return mmx_rgb5551_yuyv;
-	case TV_PIXFMT_BGRA15_LE:	return mmx_bgr5551_yuyv;
+        case TV_PIXFMT_RGBA16_LE:	return mmx_rgb5551_yuyv;
+	case TV_PIXFMT_BGRA16_LE:	return mmx_bgr5551_yuyv;
         case TV_PIXFMT_RGB16_LE:	return mmx_rgb565_yuyv;
 	case TV_PIXFMT_BGR16_LE:	return mmx_bgr565_yuyv;
         case TV_PIXFMT_RGB24_LE:	return mmx_rgb24_yuyv;
 	case TV_PIXFMT_BGR24_LE:	return mmx_bgr24_yuyv;
-        case TV_PIXFMT_RGBA24_LE:	return mmx_rgb32_yuyv;
-	case TV_PIXFMT_BGRA24_LE:	return mmx_bgr32_yuyv;
+        case TV_PIXFMT_RGBA32_LE:	return mmx_rgb32_yuyv;
+	case TV_PIXFMT_BGRA32_LE:	return mmx_bgr32_yuyv;
         default:			break;
         }
       break;
@@ -274,80 +274,89 @@ rgb2yuyv_init_swar (cpu_type cpu, tv_pixfmt pixfmt)
 typedef void (* yuv2rgb_fun) (uint8_t * image, uint8_t * py,
 			      uint8_t * pu, uint8_t * pv,
 			      int h_size, int v_size,
-			      int rgb_stride, int y_stride, int uv_stride);
+			      unsigned int rgb_stride,
+			      unsigned int y_stride,
+			      unsigned int uv_stride);
 
 static void
 yuv420_rgb_proxy (tveng_image_data *src, tveng_image_data *dest,
-		  int width, int height, void *user_data)
+		  unsigned int width, unsigned int height,
+		  const gchar * user_data)
 {
   yuv2rgb_fun f = (yuv2rgb_fun)user_data;
 
   f (dest->linear.data, src->planar.y, src->planar.u,
-     src->planar.v, width, height, dest->linear.stride,
+     src->planar.v, (int) width, (int) height, dest->linear.stride,
      src->planar.y_stride, src->planar.uv_stride);
 }
 
 static void
 yvu420_rgb_proxy (tveng_image_data *src, tveng_image_data *dest,
-		  int width, int height, void *user_data)
+		  unsigned int width, unsigned int height,
+		  const gchar * user_data)
 {
   yuv2rgb_fun f = (yuv2rgb_fun)user_data;
 
   f (dest->linear.data, src->planar.y, src->planar.v,
-     src->planar.u, width, height, dest->linear.stride,
+     src->planar.u, (int) width, (int) height, dest->linear.stride,
      src->planar.y_stride, src->planar.uv_stride);
 }
 
 typedef void (* rgb2yuv_fun) (uint8_t *py, uint8_t *pu, uint8_t *pv,
 			      uint8_t *image, int h_size, int v_size,
-			      int y_stride, int uv_stride, int rgb_stride);
+			      unsigned int y_stride,
+			      unsigned int uv_stride,
+			      unsigned int rgb_stride);
 
 static void rgb_yuv420_proxy (tveng_image_data *src, tveng_image_data *dest,
-			      int width, int height, void *user_data)
+			      unsigned int width, unsigned int height,
+			      const gchar * user_data)
 {
   rgb2yuv_fun f = (rgb2yuv_fun)user_data;
 
   f (dest->planar.y, dest->planar.u, dest->planar.v, src->linear.data,
-     width, height, dest->planar.y_stride, dest->planar.uv_stride,
+     (int) width, (int) height, dest->planar.y_stride, dest->planar.uv_stride,
      src->linear.stride);
 }
 
 static void rgb_yvu420_proxy (tveng_image_data *src, tveng_image_data *dest,
-			      int width, int height, void *user_data)
+			      unsigned int width, unsigned int height,
+			      const gchar * user_data)
 {
   rgb2yuv_fun f = (rgb2yuv_fun)user_data;
 
   f (dest->planar.y, dest->planar.v, dest->planar.u, src->linear.data,
-     width, height, dest->planar.y_stride, dest->planar.uv_stride,
+     (int) width, (int) height, dest->planar.y_stride, dest->planar.uv_stride,
      src->linear.stride);
 }
 
 typedef void (* yuyv2rgb_fun) (uint8_t *dest, uint8_t *src,
 			       int h_size, int v_size,
-			       int dest_stride, int src_stride);
+			       unsigned int dest_stride,
+			       unsigned int src_stride);
 
 static void
 yuyv_rgb_proxy (tveng_image_data *src, tveng_image_data *dest,
-		int width, int height, void *user_data)
+		unsigned int width, unsigned int height, const gchar * user_data)
 
 {
   yuyv2rgb_fun f = (yuyv2rgb_fun)user_data;
 
-  f (dest->linear.data, src->linear.data, width, height,
+  f (dest->linear.data, src->linear.data, (int) width, (int) height,
      dest->linear.stride, src->linear.stride);
 }
 
 static void mmx_register_converters (void)
 {
   static tv_pixfmt pixfmts [] = {
-    TV_PIXFMT_RGBA15_LE,
-    TV_PIXFMT_BGRA15_LE,
+    TV_PIXFMT_RGBA16_LE,
+    TV_PIXFMT_BGRA16_LE,
     TV_PIXFMT_RGB16_LE,
     TV_PIXFMT_BGR16_LE,
     TV_PIXFMT_RGB24_LE,
     TV_PIXFMT_BGR24_LE,
-    TV_PIXFMT_RGBA24_LE,
-    TV_PIXFMT_BGRA24_LE,
+    TV_PIXFMT_RGBA32_LE,
+    TV_PIXFMT_BGRA32_LE,
   };
   cpu_type cpu;
   unsigned int i;
@@ -359,21 +368,27 @@ static void mmx_register_converters (void)
     {
       if ((p = yuv2rgb_init_swar (cpu, pixfmts[i])))
 	{
-	  register_converter ("mmx", TV_PIXFMT_YUV420, pixfmts[i], yuv420_rgb_proxy, p);
-	  register_converter ("mmx", TV_PIXFMT_YVU420, pixfmts[i], yvu420_rgb_proxy, p);
+	  register_converter ("yuv420", TV_PIXFMT_YUV420, pixfmts[i],
+			      yuv420_rgb_proxy, p);
+	  register_converter ("yvu420", TV_PIXFMT_YVU420, pixfmts[i],
+			      yvu420_rgb_proxy, p);
 	}
 
       if ((p = rgb2yuv_init_swar (cpu, pixfmts[i])))
 	{
-	  register_converter ("mmx", pixfmts[i], TV_PIXFMT_YUV420, rgb_yuv420_proxy, p);
-	  register_converter ("mmx", pixfmts[i], TV_PIXFMT_YVU420, rgb_yvu420_proxy, p);
+	  register_converter ("", pixfmts[i], TV_PIXFMT_YUV420,
+			      rgb_yuv420_proxy, p);
+	  register_converter ("", pixfmts[i], TV_PIXFMT_YVU420,
+			      rgb_yvu420_proxy, p);
 	}
 
       if ((p = yuyv2rgb_init_swar (cpu, pixfmts[i])))
-	register_converter ("mmx", TV_PIXFMT_YUYV, pixfmts[i], yuyv_rgb_proxy, p);
+	register_converter ("yuyv", TV_PIXFMT_YUYV,
+			    pixfmts[i], yuyv_rgb_proxy, p);
 
       if ((p = rgb2yuyv_init_swar (cpu, pixfmts[i])))
-	register_converter ("mmx", pixfmts[i], TV_PIXFMT_YUYV, yuyv_rgb_proxy, p);
+	register_converter ("", pixfmts[i], TV_PIXFMT_YUYV,
+			    yuyv_rgb_proxy, p);
     }
 }
 
@@ -389,9 +404,9 @@ mmx_register_converters (void)
 #define RGB(i)					\
 	U = pu[i];				\
 	V = pv[i];				\
-	r = table_rV[V];			\
-	g = table_gU[U] + table_gV[V];		\
-	b = table_bU[U];
+	r = (void *) table_rV[V];		\
+	g = (void *)(table_gU[U] + table_gV[V]);\
+	b = (void *)table_bU[U];
 
 #define DST1(i)					\
 	Y = py_1[2*i];				\
@@ -451,10 +466,10 @@ static const int32_t Inverse_Table_6_9[8][4] = {
 };
 
 static void yuv2rgb_c_init (int bpp, int mode,
-			    void * table_rV[256],
-			    void * table_gU[256],
+			    char * table_rV[256],
+			    char * table_gU[256],
 			    int table_gV[256],
-			    void * table_bU[256])
+			    char * table_bU[256])
 {  
     int i;
     uint8_t table_Y[1024];
@@ -462,7 +477,7 @@ static void yuv2rgb_c_init (int bpp, int mode,
     uint16_t *table_16 = 0;
     uint8_t *table_8 = 0;
     uint32_t entry_size = 0;
-    void *table_r = 0, *table_g = 0, *table_b = 0;
+    char *table_r = 0, *table_g = 0, *table_b = 0;
 
     int crv = Inverse_Table_6_9[matrix_coefficients][0];
     int cbu = Inverse_Table_6_9[matrix_coefficients][1];
@@ -482,16 +497,18 @@ static void yuv2rgb_c_init (int bpp, int mode,
 	table_32 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint32_t));
 
 	entry_size = sizeof (uint32_t);
-	table_r = table_32 + 197;
-	table_b = table_32 + 197 + 685;
-	table_g = table_32 + 197 + 2*682;
+	table_r = (char *)(table_32 + 197);
+	table_b = (char *)(table_32 + 197 + 685);
+	table_g = (char *)(table_32 + 197 + 2*682);
 
 	for (i = -197; i < 256+197; i++)
-	    ((uint32_t *)table_r)[i] = table_Y[i+384] << ((mode==MODE_RGB) ? 16 : 0);
+	    ((uint32_t *)table_r)[i] =
+	      table_Y[i+384] << ((mode==MODE_RGB) ? 16 : 0);
 	for (i = -132; i < 256+132; i++)
 	    ((uint32_t *)table_g)[i] = table_Y[i+384] << 8;
 	for (i = -232; i < 256+232; i++)
-	    ((uint32_t *)table_b)[i] = table_Y[i+384] << ((mode==MODE_RGB) ? 0 : 16);
+	    ((uint32_t *)table_b)[i] =
+	      table_Y[i+384] << ((mode==MODE_RGB) ? 0 : 16);
 	break;
 
     case 24:
@@ -509,9 +526,9 @@ static void yuv2rgb_c_init (int bpp, int mode,
 	table_16 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint16_t));
 
 	entry_size = sizeof (uint16_t);
-	table_r = table_16 + 197;
-	table_b = table_16 + 197 + 685;
-	table_g = table_16 + 197 + 2*682;
+	table_r = (char *)(table_16 + 197);
+	table_b = (char *)(table_16 + 197 + 685);
+	table_g = (char *)(table_16 + 197 + 2*682);
 
 	for (i = -197; i < 256+197; i++) {
 	    int j = table_Y[i+384] >> 3;
@@ -551,15 +568,15 @@ static void yuv2rgb_c_init (int bpp, int mode,
 
 static void yuv2rgb_c_32 (uint8_t * py_1, uint8_t * py_2,
 			  uint8_t * pu, uint8_t * pv,
-			  void * _dst_1, void * _dst_2, int h_size)
+			  char * _dst_1, char * _dst_2, int h_size)
 {
     int U, V, Y;
     uint32_t * r, * g, * b;
     uint32_t * dst_1, * dst_2;
-    static void * table_rV[256];
-    static void * table_gU[256];
+    static char * table_rV[256];
+    static char * table_gU[256];
     static int table_gV[256];
-    static void * table_bU[256];
+    static char * table_bU[256];
     static int inited = 0;
 
     if (!inited)
@@ -570,8 +587,8 @@ static void yuv2rgb_c_32 (uint8_t * py_1, uint8_t * py_2,
       }
 
     h_size >>= 3;
-    dst_1 = _dst_1;
-    dst_2 = _dst_2;
+    dst_1 = (void *)_dst_1;
+    dst_2 = (void *)_dst_2;
 
     while (h_size--) {
 	RGB(0);
@@ -602,15 +619,15 @@ static void yuv2rgb_c_32 (uint8_t * py_1, uint8_t * py_2,
 /* This is very near from the yuv2rgb_c_32 code*/
 static void yuv2rgb_c_24_rgb (uint8_t * py_1, uint8_t * py_2,
 			      uint8_t * pu, uint8_t * pv,
-			      void * _dst_1, void * _dst_2, int h_size)
+			      char * _dst_1, char * _dst_2, int h_size)
 {
     int U, V, Y;
     uint8_t * r, * g, * b;
     uint8_t * dst_1, * dst_2;
-    static void * table_rV[256];
-    static void * table_gU[256];
+    static char * table_rV[256];
+    static char * table_gU[256];
     static int table_gV[256];
-    static void * table_bU[256];
+    static char * table_bU[256];
     static int inited = 0;
 
     if (!inited)
@@ -653,15 +670,15 @@ static void yuv2rgb_c_24_rgb (uint8_t * py_1, uint8_t * py_2,
 /* only trivial mods from yuv2rgb_c_24_rgb*/
 static void yuv2rgb_c_24_bgr (uint8_t * py_1, uint8_t * py_2,
 			      uint8_t * pu, uint8_t * pv,
-			      void * _dst_1, void * _dst_2, int h_size)
+			      char * _dst_1, char * _dst_2, int h_size)
 {
     int U, V, Y;
     uint8_t * r, * g, * b;
     uint8_t * dst_1, * dst_2;
-    static void * table_rV[256];
-    static void * table_gU[256];
+    static char * table_rV[256];
+    static char * table_gU[256];
     static int table_gV[256];
-    static void * table_bU[256];
+    static char * table_bU[256];
     static int inited = 0;
 
     if (!inited)
@@ -705,15 +722,15 @@ static void yuv2rgb_c_24_bgr (uint8_t * py_1, uint8_t * py_2,
    r, g, b, dst_1, dst_2 */
 static void yuv2rgb_c_16 (uint8_t * py_1, uint8_t * py_2,
 			  uint8_t * pu, uint8_t * pv,
-			  void * _dst_1, void * _dst_2, int h_size)
+			  char * _dst_1, char * _dst_2, int h_size)
 {
     int U, V, Y;
     uint16_t * r, * g, * b;
     uint16_t * dst_1, * dst_2;
-    static void * table_rV[256];
-    static void * table_gU[256];
+    static char * table_rV[256];
+    static char * table_gU[256];
     static int table_gV[256];
-    static void * table_bU[256];
+    static char * table_bU[256];
     static int inited = 0;
 
     if (!inited)
@@ -724,8 +741,8 @@ static void yuv2rgb_c_16 (uint8_t * py_1, uint8_t * py_2,
       }
 
     h_size >>= 3;
-    dst_1 = _dst_1;
-    dst_2 = _dst_2;
+    dst_1 = (void *)_dst_1;
+    dst_2 = (void *)_dst_2;
 
     while (h_size--) {
 	RGB(0);
@@ -755,15 +772,15 @@ static void yuv2rgb_c_16 (uint8_t * py_1, uint8_t * py_2,
 
 static void yuv2rgb_c_15 (uint8_t * py_1, uint8_t * py_2,
 			  uint8_t * pu, uint8_t * pv,
-			  void * _dst_1, void * _dst_2, int h_size)
+			  char * _dst_1, char * _dst_2, int h_size)
 {
     int U, V, Y;
     uint16_t * r, * g, * b;
     uint16_t * dst_1, * dst_2;
-    static void * table_rV[256];
-    static void * table_gU[256];
+    static char * table_rV[256];
+    static char * table_gU[256];
     static int table_gV[256];
-    static void * table_bU[256];
+    static char * table_bU[256];
     static int inited = 0;
 
     if (!inited)
@@ -774,8 +791,8 @@ static void yuv2rgb_c_15 (uint8_t * py_1, uint8_t * py_2,
       }
 
     h_size >>= 3;
-    dst_1 = _dst_1;
-    dst_2 = _dst_2;
+    dst_1 = (void *)_dst_1;
+    dst_2 = (void *)_dst_2;
 
     while (h_size--) {
 	RGB(0);
@@ -805,7 +822,7 @@ static void yuv2rgb_c_15 (uint8_t * py_1, uint8_t * py_2,
 
 typedef void (* yuv2rgb_c_internal_fun) (uint8_t *, uint8_t *,
 					 uint8_t *, uint8_t *,
-					 void *, void *, int);
+					 char *, char *, int);
 enum {
   YUV420_RGB555,
   YVU420_RGB555,
@@ -820,11 +837,11 @@ enum {
 };
 
 static void
-yuv2rgb_c_proxy (tveng_image_data *_src, tveng_image_data *_dest, int
-		 h_size, int v_size, gpointer user_data)
+yuv2rgb_c_proxy (tveng_image_data *_src, tveng_image_data *_dest,
+		 unsigned int h_size, unsigned int v_size, const gchar * user_data)
 {
   yuv2rgb_c_internal_fun yuv2rgb_c_internal = NULL;
-  void *dst = _dest->linear.data;
+  char *dst = _dest->linear.data;
   int rgb_stride = _dest->linear.stride;
   uint8_t *py = _src->planar.y, *pu = _src->planar.u,
     *pv = _src->planar.v;
@@ -876,7 +893,7 @@ yuv2rgb_c_proxy (tveng_image_data *_src, tveng_image_data *_dest, int
   
   while (v_size--) {
     yuv2rgb_c_internal (py, py + y_stride, pu, pv, dst, dst + rgb_stride,
-			h_size);
+			(int) h_size);
     
     py += 2 * y_stride;
     pu += uv_stride;
@@ -889,16 +906,19 @@ void startup_yuv2rgb (void)
 {
   CSFilter cfuncs[] =
     {
-      {TV_PIXFMT_YUV420, TV_PIXFMT_BGRA15_LE, yuv2rgb_c_proxy, (void*)YUV420_RGB555},
-      {TV_PIXFMT_YVU420, TV_PIXFMT_BGRA15_LE, yuv2rgb_c_proxy, (void*)YVU420_RGB555},
+      {TV_PIXFMT_YUV420,
+       TV_PIXFMT_BGRA16_LE,
+       yuv2rgb_c_proxy,
+       (void*)YUV420_RGB555},
+      {TV_PIXFMT_YVU420, TV_PIXFMT_BGRA16_LE, yuv2rgb_c_proxy, (void*)YVU420_RGB555},
       {TV_PIXFMT_YUV420, TV_PIXFMT_BGR16_LE, yuv2rgb_c_proxy, (void*)YUV420_RGB565},
       {TV_PIXFMT_YVU420, TV_PIXFMT_BGR16_LE, yuv2rgb_c_proxy, (void*)YVU420_RGB565},
       {TV_PIXFMT_YUV420, TV_PIXFMT_RGB24_LE, yuv2rgb_c_proxy, (void*)YUV420_RGB24},
       {TV_PIXFMT_YVU420, TV_PIXFMT_RGB24_LE, yuv2rgb_c_proxy, (void*)YVU420_RGB24},
       {TV_PIXFMT_YUV420, TV_PIXFMT_BGR24_LE, yuv2rgb_c_proxy, (void*)YUV420_BGR24},
       {TV_PIXFMT_YVU420, TV_PIXFMT_BGR24_LE, yuv2rgb_c_proxy, (void*)YVU420_BGR24},
-      {TV_PIXFMT_YUV420, TV_PIXFMT_BGRA24_LE, yuv2rgb_c_proxy, (void*)YUV420_RGB32},
-      {TV_PIXFMT_YVU420, TV_PIXFMT_BGRA24_LE, yuv2rgb_c_proxy, (void*)YVU420_RGB32}
+      {TV_PIXFMT_YUV420, TV_PIXFMT_BGRA32_LE, yuv2rgb_c_proxy, (void*)YUV420_RGB32},
+      {TV_PIXFMT_YVU420, TV_PIXFMT_BGRA32_LE, yuv2rgb_c_proxy, (void*)YVU420_RGB32}
     };
 
   /* Try first the MMX versions of the functions */
@@ -906,7 +926,7 @@ void startup_yuv2rgb (void)
 
   /* Register the C version of the converters when we don't have
      MMX versions registered */
-  register_converters ("c", cfuncs, N_ELEMENTS (cfuncs));
+  register_converters ("", cfuncs, N_ELEMENTS (cfuncs));
 }
 
 void shutdown_yuv2rgb (void)

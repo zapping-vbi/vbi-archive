@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: frequencies.h,v 1.11 2003-11-29 19:43:24 mschimek Exp $ */
+/* $Id: frequencies.h,v 1.12 2004-09-10 04:58:52 mschimek Exp $ */
 
 #ifndef FREQUENCIES_H
 #define FREQUENCIES_H
@@ -43,14 +43,14 @@ struct _tveng_tuned_channel {
   gchar *			rf_table;
   gchar *			rf_name;	/* RF channel ("35", for example) */
 
-  int input, standard; /* Attached input, standard or 0 */
+  unsigned int input, standard; /* Attached input, standard or 0 */
 
   z_key				accel;		/* key to select this channel */
 
-  int index; /* Index in the tuned_channel list */
+  unsigned int index; /* Index in the tuned_channel list */
   uint32_t			frequ;		/* Frequency of this RF channel in Hz
 						   (may differ from RF table due to fine tuning) */
-  gint				num_controls;	/* number of saved controls for this channel */
+  guint				num_controls;	/* number of saved controls for this channel */
   tveng_tc_control *		controls;	/* saved controls for this channel */
 
   vbi_pgno			caption_pgno;	/* last used subtitle page on this channel */
@@ -91,7 +91,7 @@ extern tv_bool
 tv_rf_channel_next_table	(tv_rf_channel *	ch);
 extern tv_bool
 tv_rf_channel_nth_table		(tv_rf_channel *	ch,
-				 unsigned int		index);
+				 unsigned int		nth);
 extern unsigned int
 tv_rf_channel_table_size	(tv_rf_channel *	ch);
 extern tv_bool
@@ -105,7 +105,7 @@ tv_rf_channel_next_table_by_country
 				 const char *		country_code);
 extern const char *
 tv_rf_channel_table_prefix	(tv_rf_channel *	ch,
-				 unsigned int		index);
+				 unsigned int		nth);
 extern tv_bool
 tv_rf_channel_align		(tv_rf_channel *	ch);
 extern tv_bool
@@ -114,7 +114,7 @@ extern tv_bool
 tv_rf_channel_next		(tv_rf_channel *	ch);
 extern tv_bool
 tv_rf_channel_nth		(tv_rf_channel *	ch,
-				 unsigned int		index);
+				 unsigned int		nth);
 extern tv_bool
 tv_rf_channel_by_name		(tv_rf_channel *	ch,
 				 const char *		name);
@@ -132,10 +132,10 @@ tveng_tuned_channel_set_control	(tveng_tuned_channel *	tc,
 				 gfloat			value);
 
 tveng_tuned_channel *
-tveng_tuned_channel_first	(const tveng_tuned_channel *list);
+tveng_tuned_channel_first	(tveng_tuned_channel *list);
 tveng_tuned_channel *
-tveng_tuned_channel_nth		(const tveng_tuned_channel *list,
-				 guint			index);
+tveng_tuned_channel_nth		(tveng_tuned_channel *list,
+				 guint			nth);
 tveng_tuned_channel *
 tveng_tuned_channel_by_name	(tveng_tuned_channel *	list,
 				 const gchar *		name);
@@ -146,7 +146,7 @@ void
 tveng_tuned_channel_insert_replace
 				(tveng_tuned_channel **	list,
 				 tveng_tuned_channel *	tc,
-				 guint			index,
+				 guint			nth,
 				 gboolean		replace);
 #define tveng_tuned_channel_insert(list, tc, index)			\
   tveng_tuned_channel_insert_replace (list, tc, index, FALSE)
@@ -176,7 +176,7 @@ tveng_tuned_channel_in_list	(tveng_tuned_channel *	list,
 				 tveng_tuned_channel *	tc);
 
 /* old stuff */
-int
+unsigned int
 tveng_tuned_channel_num (const tveng_tuned_channel * list);
 tveng_tuned_channel *
 tveng_remove_tuned_channel (gchar * rf_name, int id,

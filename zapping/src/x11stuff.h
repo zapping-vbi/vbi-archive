@@ -27,6 +27,7 @@
 #include <gtk/gtk.h>
 
 #include "tveng.h" /* tv_overlay_target, tv_pixfmt */
+#include "libtv/screen.h"
 
 /*
  * Returns a pointer to the data contained in the given GdkImage
@@ -46,12 +47,15 @@ x11_get_byte_order(void);
 gint
 x11_get_bpp(void);
 
+const gchar *
+x11_display_name (void);
+
 /*
  * Maps and unmaps a window of the given (screen) geometry, thus
  * forcing an expose event in that area
  */
 void
-x11_force_expose(gint x, gint y, gint w, gint h);
+x11_force_expose(gint x, gint y, guint w, guint h);
 
 /*
  * Returns TRUE if the window is viewable
@@ -62,11 +66,13 @@ x11_window_viewable(GdkWindow *window);
 /* Keep-window-on-top routines */
 
 extern void
-(* window_on_top)		(GtkWindow *window, gboolean on);
+(* x11_window_on_top)		(GtkWindow *window, gboolean on);
+extern void
+(* x11_window_fullscreen)	(GtkWindow *window, gboolean on);
 extern gboolean
 wm_hints_detect			(void);
 
-/* VidMode routines for fullscreen mode */
+/* VidMode routines */
 
 typedef struct _x11_vidmode_info x11_vidmode_info;
 
@@ -85,7 +91,7 @@ typedef struct _x11_vidmode_state x11_vidmode_state;
 struct _x11_vidmode_state {
   /* <Private> */
   struct {
-    x11_vidmode_info *	  vm;
+    const x11_vidmode_info *vm;
     struct {
       int		    x;
       int		    y;
@@ -96,20 +102,22 @@ struct _x11_vidmode_state {
 extern void
 x11_vidmode_list_delete		(x11_vidmode_info *	list);
 extern x11_vidmode_info *
-x11_vidmode_list_new		(void);
-extern x11_vidmode_info *
-x11_vidmode_by_name		(x11_vidmode_info *	list,
+x11_vidmode_list_new		(const char *		display_name,
+				 int			screen_number);
+extern const x11_vidmode_info *
+x11_vidmode_by_name		(const x11_vidmode_info *list,
 				 const gchar *		name);
-extern x11_vidmode_info *
-x11_vidmode_current		(x11_vidmode_info *	list);
+extern const x11_vidmode_info *
+x11_vidmode_current		(const x11_vidmode_info *list);
 extern void
 x11_vidmode_clear_state		(x11_vidmode_state *	vs);
 extern gboolean
-x11_vidmode_switch		(x11_vidmode_info *	list,
-				 x11_vidmode_info *	vm,
+x11_vidmode_switch		(const x11_vidmode_info *vlist,
+				 const tv_screen *	slist,
+				 const x11_vidmode_info *vm,
 				 x11_vidmode_state *	vs);
 extern void
-x11_vidmode_restore		(x11_vidmode_info *	list,
+x11_vidmode_restore		(const x11_vidmode_info *list,
 				 x11_vidmode_state *	vs);
 
 /* Screensaver routines */
@@ -124,18 +132,6 @@ extern void
 x11_screensaver_control		(gboolean		enable);
 extern void
 x11_screensaver_init		(void);
-
-/* DGA routines */
-
-gboolean
-x11_dga_query			(tv_overlay_buffer *	target,
-				 const char *		display_name,
-				 int			bpp_hint);
-static __inline__ gboolean
-x11_dga_present			(tv_overlay_buffer *	target)
-{
-  return 0 != target->base;
-}
 
 /* XVideo routines */
 

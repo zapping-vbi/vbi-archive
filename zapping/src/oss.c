@@ -55,7 +55,7 @@ typedef struct {
    while (__result == -1L && errno == EINTR); __result; })
 
 static gpointer
-oss_open (gboolean stereo, gint rate, enum audio_format format)
+oss_open (gboolean stereo, guint rate, enum audio_format format)
 {
   int Format = AFMT_S16_LE;
   int Stereo = !!stereo;
@@ -103,7 +103,7 @@ oss_close (gpointer handle)
 }
 
 static void
-oss_read (gpointer handle, gpointer dest, gint num_bytes,
+oss_read (gpointer handle, gpointer dest, guint num_bytes,
 	  double *timestamp)
 {
   oss_handle *h = (oss_handle *) handle;
@@ -115,7 +115,7 @@ oss_read (gpointer handle, gpointer dest, gint num_bytes,
 
   while (n > 0)
     {
-      r = read(h->fd, data, n);
+      r = read(h->fd, data, (size_t) n);
 		
       if (r == 0 || (r < 0 && errno == EINTR))
 	continue;
@@ -261,10 +261,10 @@ destroy_pcm			(tv_device_node *	n,
 		/* Blah. */
 	}
 
-	free (p->node.device);
-	free (p->node.version);
-	free (p->node.driver);
-	free (p->node.label);
+	free ((char *) p->node.device);
+	free ((char *) p->node.version);
+	free ((char *) p->node.driver);
+	free ((char *) p->node.label);
 
 	if (p->fd >= 0)
 		device_close (p->_log, p->fd);
@@ -277,7 +277,7 @@ destroy_pcm			(tv_device_node *	n,
 }
 
 static struct pcm *
-open_pcm			(void *			unused,
+open_pcm			(void *			unused _unused_,
 				 FILE *			log,
 				 const char *		device)
 {
@@ -321,7 +321,8 @@ open_pcm			(void *			unused,
 		ioctl (p->fd, OSS_GETVERSION, &version);
 
 		if (version > 0) {
-			if (_tv_asprintf (&p->node.version, "OSS %u.%u.%u",
+			if (_tv_asprintf (&p->node.version,
+					  "OSS %u.%u.%u",
 					  (version >> 16) & 0xFF,
 					  (version >> 8) & 0xFF,
 					  (version >> 0) & 0xFF) < 0)
@@ -341,7 +342,7 @@ open_pcm			(void *			unused,
 }
 	
 tv_device_node *
-oss_pcm_open			(void *			unused,
+oss_pcm_open			(void *			unused _unused_,
 				 FILE *			log, 
 				 const char *		dev_name)
 {
@@ -354,7 +355,7 @@ oss_pcm_open			(void *			unused,
 }
 
 tv_device_node *
-oss_pcm_scan			(void *			unused,
+oss_pcm_scan			(void *			unused _unused_,
 				 FILE *			log)
 {
 	static const char *pcm_devices [] = {
@@ -436,7 +437,7 @@ static const unsigned int INPUTS =
 static void
 fprintf_ioctl_arg		(FILE *			fp,
 				 unsigned int		cmd,
-				 int			rw,
+				 int			rw _unused_,
 				 void *			arg)
 {
 	switch (cmd) {
@@ -559,7 +560,7 @@ update_line			(struct mixer *		m,
 				 struct line *		l,
 				 int *			volume)
 {
-	unsigned int left, right;
+	int left, right;
 	tv_bool muted;
 
 	*volume = 0;
@@ -622,8 +623,8 @@ oss_mixer_update_line		(tv_audio_line *	line)
 
 static tv_bool
 oss_mixer_set_volume		(tv_audio_line *	line,
-				 unsigned int		left,
-				 unsigned int		right)
+				 int			left,
+				 int			right)
 {
 	struct mixer *m = M ((tv_mixer *) line->_parent);
 	struct line *l = L (line);
@@ -717,9 +718,9 @@ oss_mixer_set_mute		(tv_audio_line *	line,
 
 static tv_audio_line *
 find_rec_line			(tv_mixer *		m,
-				 unsigned int		set)
+				 int			set)
 {
-	struct line *l;
+	struct line * l;
 
 	for (l = L (m->inputs); l; l = L (l->pub._next)) {
 		if (set & (1 << l->id))
@@ -734,10 +735,10 @@ find_rec_line			(tv_mixer *		m,
 
 static tv_bool
 rec_source_changed		(struct mixer *		m,
-				 unsigned int		set)
+				 int			set)
 {
 	if (NULL != m->pub.rec_line) {
-		unsigned int mask = 1 << L (m->pub.rec_line)->id;
+		int mask = 1 << L (m->pub.rec_line)->id;
 
 		if (0 == set) {
 			m->pub.rec_line = NULL;
@@ -860,10 +861,10 @@ destroy_mixer			(tv_device_node *	n,
 #endif
 	}
 
-	free (m->pub.node.device);
-	free (m->pub.node.version);
-	free (m->pub.node.driver);
-	free (m->pub.node.label);
+	free ((char *) m->pub.node.device);
+	free ((char *) m->pub.node.version);
+	free ((char *) m->pub.node.driver);
+	free ((char *) m->pub.node.label);
 
 	free_mixer_lines (m, m->pub.inputs, restore);
 	free_mixer_lines (m, m->pub.rec_gain, restore);
@@ -1009,7 +1010,8 @@ open_mixer			(const tv_mixer_interface *mi,
 	mixer_ioctl (m->fd, OSS_GETVERSION, &m->version);
 
 	if (m->version > 0) {
-		if (_tv_asprintf (&m->pub.node.version, "OSS %u.%u.%u",
+		if (_tv_asprintf (&m->pub.node.version,
+				  "OSS %u.%u.%u",
 				  (m->version >> 16) & 0xFF,
 				  (m->version >> 8) & 0xFF,
 				  (m->version >> 0) & 0xFF) < 0)

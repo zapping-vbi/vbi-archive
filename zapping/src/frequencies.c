@@ -705,7 +705,7 @@ tv_rf_channel_by_name		(tv_rf_channel *	ch,
 			}
 		}
 
-		ch->_range++;
+		ch->_range = 1 + (const struct range *) ch->_range;
 	}
 
 	return FALSE;
@@ -739,7 +739,7 @@ tv_rf_channel_next		(tv_rf_channel *	ch)
 		if (IS_RANGE_END (r))
 			return FALSE;
 
-		ch->_range += 1;
+		ch->_range = 1 + (const struct range *) ch->_range;
 		ch->_channel = 0;
 	} else {
 		ch->_channel += 1;
@@ -852,7 +852,7 @@ tveng_tuned_channel_set_control	(tveng_tuned_channel *	tc,
 }
 
 tveng_tuned_channel *
-tveng_tuned_channel_first	(const tveng_tuned_channel *list)
+tveng_tuned_channel_first	(tveng_tuned_channel *list)
 {
   if (!list)
     return NULL;
@@ -860,11 +860,11 @@ tveng_tuned_channel_first	(const tveng_tuned_channel *list)
   while (list->prev)
     list = list->prev;
 
-  return (tveng_tuned_channel *) list;
+  return list;
 }
 
 tveng_tuned_channel *
-tveng_tuned_channel_nth		(const tveng_tuned_channel *list,
+tveng_tuned_channel_nth		(tveng_tuned_channel *list,
 				 guint			index)
 {
   if (!list)
@@ -876,7 +876,7 @@ tveng_tuned_channel_nth		(const tveng_tuned_channel *list,
   while (list && list->index != index)
     list = list->next;
 
-  return (tveng_tuned_channel *) list;
+  return list;
 }
 
 static int
@@ -1140,21 +1140,15 @@ tveng_tuned_channel_copy	(tveng_tuned_channel *	d,
 tveng_tuned_channel *
 tveng_tuned_channel_new		(const tveng_tuned_channel *tc)
 {
+  static const tveng_tuned_channel empty_tc = {
+    "", "", "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+  };
   tveng_tuned_channel *new_tc;
-  tveng_tuned_channel empty_tc;
 
   new_tc = g_malloc0 (sizeof (*new_tc));
 
   if (!tc)
-    {
-      CLEAR (empty_tc);
-
-      empty_tc.name = "";
-      empty_tc.rf_name = "";
-      empty_tc.rf_table = "";
-
-      tc = &empty_tc;
-    }
+    tc = &empty_tc;
 
   tveng_tuned_channel_copy (new_tc, tc);
 
@@ -1242,11 +1236,13 @@ tveng_tuned_channel_in_list	(tveng_tuned_channel *	list,
 /*
   Returns the number of items in the list
 */
-int
+unsigned int
 tveng_tuned_channel_num (const tveng_tuned_channel * list)
 {
-  int num_channels = 0;
-  tveng_tuned_channel * tc_ptr = tveng_tuned_channel_first (list);
+  unsigned int num_channels = 0;
+  const tveng_tuned_channel *tc_ptr;
+
+  tc_ptr = tveng_tuned_channel_first ((tveng_tuned_channel *) list);
 
   while (tc_ptr)
     {
@@ -1274,7 +1270,7 @@ tveng_remove_tuned_channel (gchar * rf_name, int id,
   if (!list)
     return NULL;
 
-  tc = tveng_tuned_channel_nth (list, id);
+  tc = tveng_tuned_channel_nth (list, (unsigned int) id);
 
   if (rf_name)
     tc = tveng_tuned_channel_by_rf_name (tc, rf_name); /* sic, >= id */

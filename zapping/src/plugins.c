@@ -47,7 +47,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
   gchar * canonical_name;
   gchar * version;
   gint (*plugin_get_protocol)(void) = NULL;
-  gboolean (*plugin_get_symbol)(gchar * name, gint hash,
+  gboolean (*plugin_get_symbol)(const gchar * name, gint hash,
 				gpointer * ptr);
 
   g_assert(info != NULL);
@@ -179,6 +179,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 		"provide a canonical name.", file_name);
       return FALSE;
     }
+
   /* Get the version of the plugin */
   version = plugin_get_version(info);
   if (!version)
@@ -242,8 +243,6 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 
 void plugin_unload(struct plugin_info * info)
 {
-  gint i;
-
   g_assert(info != NULL);
 
   /* Tell the plugin to close itself */
@@ -252,13 +251,6 @@ void plugin_unload(struct plugin_info * info)
   /* Free the memory of the exported symbols */
   if (info -> num_exported_symbols > 0)
     {
-      g_assert(info -> exported_symbols != NULL);
-      for (i=0; i < info->num_exported_symbols; i++)
-	{
-	  g_free(info->exported_symbols[i].symbol);
-	  g_free(info->exported_symbols[i].type);
-	  g_free(info->exported_symbols[i].description);
-	}
       g_free(info -> exported_symbols);
       info -> exported_symbols = NULL;
     }
@@ -546,7 +538,7 @@ void plugin_process_popup_menu (GtkWidget	*widget,
    the given GList. It returns the new GList. The plugins should
    contain exp in their filename (usually called with exp = .zapping.so) */
 static GList * plugin_load_plugins_in_dir( const gchar * directory,
-					   gchar * exp,
+					   const gchar * exp,
 					   GList * old )
 {
   struct plugin_info plug;
@@ -578,10 +570,12 @@ static GList * plugin_load_plugins_in_dir( const gchar * directory,
 
       filename = g_build_filename (directory, name, NULL);
 
-      if (!plugin_load (filename, &plug))
+      printv("loading plugin %s\n", filename);
+
+      if (!plugin_load(filename, &plug))
 	{
 	plugin_load_error:
-	  g_free (filename);
+	  g_free(filename);
 	  continue;
 	}
 
@@ -698,7 +692,8 @@ GList * plugin_load_plugins ( void )
 }
 
 /* This function is called from g_list_foreach */
-static void plugin_foreach_free(struct plugin_info * info, void * user_data)
+static void plugin_foreach_free(struct plugin_info * info,
+				void * user_data _unused_)
 {
   plugin_save_config(info);
   plugin_unload(info);

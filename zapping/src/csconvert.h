@@ -9,15 +9,15 @@
 
 typedef void (CSConverter_fn)	(tveng_image_data *	src,
 				 tveng_image_data *	dest,
-				 int			width,
-				 int			height,
-				 gpointer		user_data);
+				 unsigned int		width,
+				 unsigned int		height,
+				 const char *		user_data);
 
 typedef struct {
   tv_pixfmt		src_pixfmt;
   tv_pixfmt		dst_pixfmt;
   CSConverter_fn *	convert;
-  gpointer		user_data;
+  const gchar *		user_data;
 } CSFilter;
 
 /**
@@ -32,7 +32,7 @@ int lookup_csconvert(tv_pixfmt src_pixfmt,
  */
 void csconvert(int id, tveng_image_data *src,
 	       tveng_image_data *dest,
-	       int width, int height);
+	       unsigned int width, unsigned int height);
 
 /**
  * Registers a converter. Returns -1 and does nothing when there
@@ -43,7 +43,7 @@ int register_converter (const char *name,
 			tv_pixfmt src_pixfmt,
 			tv_pixfmt dst_pixfmt,
 			CSConverter_fn *converter,
-			gpointer	user_data);
+			const char *user_data);
 
 /*
  * Registers a bunch of converters at once. Does the same thing as

@@ -46,7 +46,7 @@ typedef struct {
 } arts_handle;
 
 static gpointer
-arts_open (gboolean stereo, gint rate, enum audio_format format)
+arts_open (gboolean stereo, guint rate, enum audio_format format)
 {
   arts_handle *h;
   arts_stream_t stream;
@@ -67,7 +67,7 @@ arts_open (gboolean stereo, gint rate, enum audio_format format)
       return NULL;
     }
 
-  stream = arts_record_stream(rate, 16, (!!stereo)+1, "Zapping");
+  stream = arts_record_stream ((int) rate, 16, (!!stereo)+1, "Zapping");
 
   /* FIXME: can this really fail? */
   if (!stream)
@@ -103,7 +103,7 @@ arts_close (gpointer handle)
 }
 
 static void
-_arts_read (gpointer handle, gpointer dest, gint num_bytes,
+_arts_read (gpointer handle, gpointer dest, guint num_bytes,
 	    double *timestamp)
 {
   arts_handle *h = handle;
@@ -120,7 +120,7 @@ _arts_read (gpointer handle, gpointer dest, gint num_bytes,
 	{
 	  g_warning("ARTS: READ ERROR, quitting: %s",
 		    arts_error_text(r));
-	  memset(p, 0, n);
+	  memset(p, 0, (unsigned int) n);
 	  break;
 	}
 

@@ -43,7 +43,7 @@ typedef struct {
 
 /** ESD backend ***/
 static gpointer
-esd_open (gboolean stereo, gint rate, enum audio_format format)
+esd_open (gboolean stereo, guint rate, enum audio_format format)
 {
   esd_format_t fmt;
   esd_handle *h;
@@ -61,7 +61,7 @@ esd_open (gboolean stereo, gint rate, enum audio_format format)
   fmt = ESD_STREAM | ESD_RECORD | ESD_BITS16
     | (stereo ? ESD_STEREO : ESD_MONO);
 
-  h->socket = esd_record_stream_fallback(fmt, rate, NULL, NULL);
+  h->socket = esd_record_stream_fallback(fmt, (int) rate, NULL, NULL);
   h->sampling_rate = rate;
   h->stereo = stereo;
 
@@ -88,7 +88,7 @@ _esd_close (gpointer handle)
 }
 
 static void
-esd_read (gpointer handle, gpointer dest, gint num_bytes,
+esd_read (gpointer handle, gpointer dest, guint num_bytes,
 	  double *timestamp)
 {
   esd_handle *h = (esd_handle *) handle;
@@ -115,7 +115,7 @@ esd_read (gpointer handle, gpointer dest, gint num_bytes,
 	g_error("ESD select error (%d, %s)",
 		errno, strerror(errno));
 
-      r = read(h->socket, p, n);
+      r = read(h->socket, p, (size_t) n);
       
       if (r < 0)
 	{

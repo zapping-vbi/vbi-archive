@@ -51,7 +51,6 @@
 static void
 di_setup		(GtkWidget	*page)
 {
-  extern tveng_device_info *main_info;
   GtkWidget *widget;
   gchar *buffer;
   GtkNotebook *nb;
@@ -61,44 +60,44 @@ di_setup		(GtkWidget	*page)
 
   /* The device name */
   widget = lookup_widget(page, "label27");
-  gtk_label_set_text(GTK_LABEL(widget), main_info->caps.name);
+  gtk_label_set_text(GTK_LABEL(widget), zapping->info->caps.name);
 
   /* Minimum capture dimensions */
   widget = lookup_widget(page, "label28");
   z_label_set_text_printf (GTK_LABEL(widget),
 			   "%d x %d",
-			   main_info->caps.minwidth,
-			   main_info->caps.minheight);
+			   zapping->info->caps.minwidth,
+			   zapping->info->caps.minheight);
 
   /* Maximum capture dimensions */
   widget = lookup_widget(page, "label29");
   z_label_set_text_printf (GTK_LABEL(widget),
 			   "%d x %d",
-			   main_info->caps.maxwidth,
-			   main_info->caps.maxheight);
+			   zapping->info->caps.maxwidth,
+			   zapping->info->caps.maxheight);
 
   /* Reported device capabilities */
   widget = lookup_widget(page, "label30");
   buffer = g_strdup_printf("%s%s%s%s%s%s%s%s%s%s",
-			   main_info->caps.flags & TVENG_CAPS_CAPTURE
+			   zapping->info->caps.flags & TVENG_CAPS_CAPTURE
 			   ? _("Can capture to memory.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_TUNER
+			   zapping->info->caps.flags & TVENG_CAPS_TUNER
 			   ? _("Has some tuner.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_TELETEXT
+			   zapping->info->caps.flags & TVENG_CAPS_TELETEXT
 			   ? _("Supports the teletext service.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_OVERLAY
+			   zapping->info->caps.flags & TVENG_CAPS_OVERLAY
 			   ? _("Can overlay the image.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_CHROMAKEY
+			   zapping->info->caps.flags & TVENG_CAPS_CHROMAKEY
 			   ? _("Can chromakey the image.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_CLIPPING
+			   zapping->info->caps.flags & TVENG_CAPS_CLIPPING
 			   ? _("Clipping rectangles are supported.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_FRAMERAM
+			   zapping->info->caps.flags & TVENG_CAPS_FRAMERAM
 			   ? _("Framebuffer memory is overwritten.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_SCALES
+			   zapping->info->caps.flags & TVENG_CAPS_SCALES
 			   ? _("The capture can be scaled.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_MONOCHROME
+			   zapping->info->caps.flags & TVENG_CAPS_MONOCHROME
 			   ? _("Only monochrome is available\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_SUBCAPTURE
+			   zapping->info->caps.flags & TVENG_CAPS_SUBCAPTURE
 			   ? _("The capture can be zoomed\n") : "");
   /* Delete the last '\n' to save some space */
   if ((strlen(buffer) > 0) && (buffer[strlen(buffer)-1] == '\n'))
@@ -108,7 +107,7 @@ di_setup		(GtkWidget	*page)
   g_free(buffer);
 
   nb = GTK_NOTEBOOK (lookup_widget(page, "notebook2"));
-  if (!main_info->video_inputs)
+  if (!zapping->info->video_inputs)
     {
       nb_label = gtk_label_new(_("No available inputs"));
       gtk_widget_show (nb_label);
@@ -118,8 +117,8 @@ di_setup		(GtkWidget	*page)
       gtk_widget_set_sensitive(GTK_WIDGET(nb), FALSE);
    }
   else
-    for (l = tv_next_video_input (main_info, NULL);
-	 l; l = tv_next_video_input (main_info, l))
+    for (l = tv_next_video_input (zapping->info, NULL);
+	 l; l = tv_next_video_input (zapping->info, l))
       {
 	char *type_str;
 
@@ -146,9 +145,13 @@ di_setup		(GtkWidget	*page)
 		     zconf_get_string(NULL,
 				      "/zapping/options/main/video_device"));
   /* Current controller */
-  widget = lookup_widget(page, "label31");
-  tveng_describe_controller(NULL, &buffer, main_info);
-  gtk_label_set_text(GTK_LABEL(widget), buffer);
+  {
+    const char *buffer;
+
+    widget = lookup_widget(page, "label31");
+    tveng_describe_controller(NULL, &buffer, zapping->info);
+    gtk_label_set_text(GTK_LABEL(widget), buffer);
+  }
 }
 
 static void
@@ -219,7 +222,7 @@ picture_sizes_delete		(void)
 gboolean
 on_picture_size_key_press	(GtkWidget *		widget,
 				 GdkEventKey *		event,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   picture_size *ps;
   z_key key;
@@ -273,7 +276,7 @@ picture_sizes_load_default	(void)
 static inline void
 picture_sizes_reset_index	(void)
 {
-  zconf_create_integer (0, "", ZCONF_PICTURE_SIZES "/index");
+  zconf_create_int (0, "", ZCONF_PICTURE_SIZES "/index");
 }
 
 static gboolean
@@ -295,7 +298,7 @@ picture_sizes_load		(void)
 			     ZCONF_PICTURE_SIZES "/%u/", i);
 
       strcpy (s, "width");
-      width = zconf_get_integer (NULL, buffer);
+      width = zconf_get_int (NULL, buffer);
 
       if (zconf_error ())
 	{
@@ -306,7 +309,7 @@ picture_sizes_load		(void)
 	}
 
       strcpy (s, "height");
-      height = zconf_get_integer (NULL, buffer);
+      height = zconf_get_int (NULL, buffer);
 
       if (zconf_error ())
 	break;
@@ -337,10 +340,10 @@ picture_sizes_save		(void)
 			     ZCONF_PICTURE_SIZES "/%u/", i);
 
       strcpy (s, "width");
-      zconf_create_integer (ps->width, "", buffer);
+      zconf_create_uint (ps->width, "", buffer);
 
       strcpy (s, "height");
-      zconf_create_integer (ps->height, "", buffer);
+      zconf_create_uint (ps->height, "", buffer);
 
       *s = 0;
       zconf_create_z_key (ps->key, "", buffer);
@@ -366,8 +369,8 @@ picture_sizes_on_menu_activate	(GtkMenuItem *		menu_item,
   for (ps = favorite_picture_sizes; ps; ps = ps->next)
     if (0 == count--)
       {
-	zconf_create_integer (GPOINTER_TO_INT (user_data),
-			      "", ZCONF_PICTURE_SIZES "/index");
+	zconf_create_int (GPOINTER_TO_INT (user_data),
+			  "", ZCONF_PICTURE_SIZES "/index");
 	python_command_printf (GTK_WIDGET (menu_item),
 			       "zapping.resize_screen(%u, %u)",
 			       ps->width, ps->height);
@@ -428,7 +431,7 @@ picture_sizes_append_menu	(GtkMenuShell *		menu)
 }
 
 static PyObject *
-py_picture_size_cycle		(PyObject *		self,
+py_picture_size_cycle		(PyObject *		self _unused_,
 				 PyObject *		args)
 {
   picture_size *ps;
@@ -442,10 +445,10 @@ py_picture_size_cycle		(PyObject *		self,
   for (ps = favorite_picture_sizes; ps; ps = ps->next)
     ++count;
 
-  if (!PyArg_ParseTuple (args, "|i", &value))
+  if (!ParseTuple (args, "|i", &value))
     g_error ("zapping.picture_size_cycle(|i)");
 
-  zconf_get_integer (&index, ZCONF_PICTURE_SIZES "/index");
+  zconf_get_int (&index, ZCONF_PICTURE_SIZES "/index");
 
   index += value;
 
@@ -454,7 +457,7 @@ py_picture_size_cycle		(PyObject *		self,
   else if (index >= count)
     index = 0;
 
-  zconf_set_integer (index, ZCONF_PICTURE_SIZES "/index");
+  zconf_set_int (index, ZCONF_PICTURE_SIZES "/index");
 
   for (ps = favorite_picture_sizes; ps; ps = ps->next)
     if (--index == 0)
@@ -560,7 +563,7 @@ picture_sizes_on_cell_edited	(GtkCellRendererText *	cell,
 
 static gboolean
 unique				(GtkTreeModel *		model,
-				 GtkTreePath *		path,
+				 GtkTreePath *		path _unused_,
 				 GtkTreeIter *		iter,
 				 gpointer		user_data)
 {
@@ -583,11 +586,11 @@ unique				(GtkTreeModel *		model,
 }
 
 static void
-picture_sizes_on_accel_edited	(GtkCellRendererText *	cell,
+picture_sizes_on_accel_edited	(GtkCellRendererText *	cell _unused_,
 				 const char *		path_string,
 				 guint			keyval,
 				 EggVirtualModifierType	mask,
-				 guint			keycode,
+				 guint			keycode _unused_,
 				 GtkTreeView *		tree_view)
 {
   GtkTreeModel *model;
@@ -611,11 +614,11 @@ picture_sizes_on_accel_edited	(GtkCellRendererText *	cell,
 }
 
 static void
-picture_sizes_accel_set_func	(GtkTreeViewColumn *	tree_column,
+picture_sizes_accel_set_func	(GtkTreeViewColumn *	tree_column _unused_,
 				 GtkCellRenderer *	cell,
 				 GtkTreeModel *		model,
 				 GtkTreeIter *		iter,
-				 GtkTreeView *		tree_view)
+				 GtkTreeView *		tree_view _unused_)
 {
   z_key key;
 
@@ -653,7 +656,7 @@ picture_sizes_on_selection_changed
 }
 
 static void
-picture_sizes_on_add_clicked	(GtkButton *		add,
+picture_sizes_on_add_clicked	(GtkButton *		add _unused_,
 				 GtkTreeView *		tree_view)
 {
   GtkTreeSelection *selection;
@@ -693,7 +696,7 @@ picture_sizes_on_add_clicked	(GtkButton *		add,
 }
 
 static void
-picture_sizes_on_remove_clicked	(GtkButton *		remove,
+picture_sizes_on_remove_clicked	(GtkButton *		remove _unused_,
 				 GtkTreeView *		tree_view)
 {
   z_tree_view_remove_selected (tree_view,
@@ -830,12 +833,12 @@ static GConfEnumStringPair toolbar_styles [] = {
 };
    
 static void
-style_menu_item_activated	(GtkWidget *		item,
+style_menu_item_activated	(GtkWidget *		item _unused_,
 				 GtkToolbarStyle	style)
 {
   GConfClient *conf;
   char *key;
-  int i;
+  guint i;
 
   key = gnome_gconf_get_gnome_libs_settings_relative ("toolbar_style");
   conf = gconf_client_get_default ();
@@ -843,7 +846,7 @@ style_menu_item_activated	(GtkWidget *		item,
   /* Set our per-app toolbar setting */
   for (i = 0; i < G_N_ELEMENTS (toolbar_styles); i++)
     {
-      if (toolbar_styles[i].enum_value == style)
+      if (toolbar_styles[i].enum_value == (int) style)
 	{
 	  gconf_client_set_string (conf, key, toolbar_styles[i].str, NULL);
 	  break;
@@ -854,7 +857,7 @@ style_menu_item_activated	(GtkWidget *		item,
 }
 
 static void
-global_menu_item_activated	(GtkWidget *		item)
+global_menu_item_activated	(GtkWidget *		item _unused_)
 {
   GConfClient *conf;
   char *key;
@@ -1053,7 +1056,7 @@ mw_setup		(GtkWidget	*page)
   /* ratio mode to use */
   w = lookup_widget(page, "optionmenu1");
   gtk_option_menu_set_history(GTK_OPTION_MENU(w),
-    zconf_get_integer(NULL,
+    zconf_get_int(NULL,
 		      "/zapping/options/main/ratio"));
 #endif
 
@@ -1068,12 +1071,12 @@ mw_setup		(GtkWidget	*page)
 
     /* entered channel numbers refer to */
     w = lookup_widget (page, "channel_number_translation");
-    n = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
+    n = zconf_get_int (NULL, "/zapping/options/main/channel_txl");
 
     if (n < 0)
       n = 0; /* historical: -1 disabled keypad channel number entering */
 
-    gtk_option_menu_set_history (GTK_OPTION_MENU (w), n);
+    gtk_option_menu_set_history (GTK_OPTION_MENU (w), (guint) n);
   }
 
 }
@@ -1108,7 +1111,7 @@ mw_apply		(GtkWidget	*page)
 
 #if 0 /* FIXME */
   widget = lookup_widget(page, "optionmenu1"); /* ratio mode */
-  zconf_set_integer(z_option_menu_get_active(widget),
+  zconf_set_int(z_option_menu_get_active(widget),
 		    "/zapping/options/main/ratio");
 #endif
 
@@ -1118,7 +1121,7 @@ mw_apply		(GtkWidget	*page)
 
   /* entered channel numbers refer to */
   widget = lookup_widget (page, "channel_number_translation");
-  zconf_set_integer (z_option_menu_get_active (widget),
+  zconf_set_int (z_option_menu_get_active (widget),
 		     "/zapping/options/main/channel_txl");
 }
 
@@ -1140,7 +1143,7 @@ video_setup		(GtkWidget	*page)
   /* Verbosity value passed to zapping_setup_fb */
   widget = lookup_widget(page, "spinbutton1");
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
-     zconf_get_integer(NULL,
+     zconf_get_int(NULL,
 		       "/zapping/options/main/zapping_setup_fb_verbosity"));
 #endif
 
@@ -1149,7 +1152,8 @@ video_setup		(GtkWidget	*page)
   {
     GtkWidget *menu;
     GtkWidget *menuitem;
-    x11_vidmode_info *info, *hist;
+    const x11_vidmode_info *info;
+    const x11_vidmode_info *hist;
     const gchar *mode;
     guint i, h;
 
@@ -1206,11 +1210,14 @@ video_setup		(GtkWidget	*page)
 
 #ifdef HAVE_XV_EXTENSION
 
-  /* capture size under XVideo */
-  widget = lookup_widget(page, "optionmenu20");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/capture/xvsize"));
+ {
+   guint hist;
+
+   /* capture size under XVideo */
+   widget = lookup_widget(page, "optionmenu20");
+   hist = zconf_get_uint (NULL, "/zapping/options/capture/xvsize");
+   gtk_option_menu_set_history (GTK_OPTION_MENU (widget), hist);
+ }
 
 #else
 
@@ -1238,7 +1245,7 @@ video_apply		(GtkWidget	*page)
 #if 0
   widget = lookup_widget(page, "spinbutton1"); /* zapping_setup_fb
 						  verbosity */
-  zconf_set_integer(
+  zconf_set_int(
 	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)),
 		"/zapping/options/main/zapping_setup_fb_verbosity");
 #endif
@@ -1246,8 +1253,8 @@ video_apply		(GtkWidget	*page)
 #ifdef HAVE_VIDMODE_EXTENSION
 
   {
-    const gchar *opt = "/zapping/options/main/fullscreen/vidmode";
     guint i;
+    const gchar *opt = "/zapping/options/main/fullscreen/vidmode";
 
     widget = lookup_widget(page, "optionmenu2"); /* change mode */
     i = z_option_menu_get_active (widget);
@@ -1287,8 +1294,8 @@ video_apply		(GtkWidget	*page)
 #ifdef HAVE_XV_EXTENSION
 
   widget = lookup_widget(page, "optionmenu20"); /* xv capture size */
-  zconf_set_integer(z_option_menu_get_active(widget),
-		    "/zapping/options/capture/xvsize");
+  zconf_set_int (z_option_menu_get_active(widget),
+		 "/zapping/options/capture/xvsize");
 
 #endif
 
@@ -1296,7 +1303,7 @@ video_apply		(GtkWidget	*page)
   active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
   zconf_set_boolean (active, "/zapping/options/main/fixed_increments");
 
-  tv_screen = lookup_widget (main_window, "tv-screen");
+  tv_screen = lookup_widget (GTK_WIDGET (zapping), "tv-screen");
 
   if (active) /* XXX free, 4:3, 16:9 */
     z_video_set_size_inc (Z_VIDEO (tv_screen), 64, 64 * 3 / 4);
@@ -1311,7 +1318,7 @@ video_apply		(GtkWidget	*page)
 
 static void
 on_enable_vbi_toggled	(GtkWidget	*widget,
-			 GtkWidget	*page)
+			 GtkWidget	*page _unused_)
 {
   gboolean active =
     gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
@@ -1331,48 +1338,49 @@ vbi_general_setup	(GtkWidget	*page)
 
 #ifdef HAVE_LIBZVBI
 
-  GtkWidget *widget;
+  if (1)
+    {
+      GtkWidget *widget;
+      guint hist;
 
-  /* Enable VBI decoding */
-  widget = lookup_widget(page, "checkbutton6");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"));
-  on_enable_vbi_toggled(widget, page);
-  g_signal_connect(G_OBJECT(widget), "toggled",
-		   G_CALLBACK(on_enable_vbi_toggled),
-		   page);
+      /* Enable VBI decoding */
+      widget = lookup_widget(page, "checkbutton6");
+      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+				   zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"));
+      on_enable_vbi_toggled(widget, page);
+      g_signal_connect(G_OBJECT(widget), "toggled",
+		       G_CALLBACK(on_enable_vbi_toggled),
+		       page);
 
-  /* VBI device */
-  widget = lookup_widget(page, "fileentry2");
-  widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
-  gtk_entry_set_text(GTK_ENTRY(widget),
-		     zconf_get_string(NULL,
-				      "/zapping/options/vbi/vbi_device"));
+      /* VBI device */
+      widget = lookup_widget(page, "fileentry2");
+      widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
+      gtk_entry_set_text(GTK_ENTRY(widget),
+			 zconf_get_string(NULL,
+					  "/zapping/options/vbi/vbi_device"));
 
-  /* Default region */
-  widget = lookup_widget(page, "optionmenu3");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/default_region"));
+      /* Default region */
+      widget = lookup_widget(page, "optionmenu3");
+      hist = zconf_get_uint (NULL, "/zapping/options/vbi/default_region");
+      gtk_option_menu_set_history (GTK_OPTION_MENU (widget), hist);
 
-  /* Teletext level */
-  widget = lookup_widget(page, "optionmenu4");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/teletext_level"));
+      /* Teletext level */
+      widget = lookup_widget(page, "optionmenu4");
+      hist = zconf_get_uint (NULL, "/zapping/options/vbi/teletext_level");
+      gtk_option_menu_set_history (GTK_OPTION_MENU (widget), hist);
 
-  /* Quality/speed tradeoff */
-  widget = lookup_widget(page, "optionmenu21");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/qstradeoff"));
+      /* Quality/speed tradeoff */
+      widget = lookup_widget(page, "optionmenu21");
+      hist = zconf_get_uint (NULL, "/zapping/options/vbi/qstradeoff");
+      gtk_option_menu_set_history (GTK_OPTION_MENU (widget), hist);
+    }
+  else
 
-#else /* !HAVE_LIBZVBI */
+#endif /* !HAVE_LIBZVBI */
 
-  gtk_widget_set_sensitive (page, FALSE);
-
-#endif
-
+    {
+      gtk_widget_set_sensitive (page, FALSE);
+    }
 }
 
 typedef enum {
@@ -1387,8 +1395,8 @@ typedef enum {
 
 static togglean
 set_toggle		(GtkWidget *page,
-			 gchar *widget_name,
-			 gchar *zconf_name)
+			 const gchar *widget_name,
+			 const gchar *zconf_name)
 {
   gboolean new_state, old_state;
   GtkWidget *widget;
@@ -1459,7 +1467,7 @@ vbi_general_apply	(GtkWidget	*page)
   if (index > 7)
     index = 7;
 
-  zconf_set_integer(index, "/zapping/options/vbi/default_region");
+  zconf_set_int(index, "/zapping/options/vbi/default_region");
   if (zvbi_get_object())
     vbi_teletext_set_default_region(zvbi_get_object(), region_mapping[index]);
 
@@ -1470,7 +1478,7 @@ vbi_general_apply	(GtkWidget	*page)
     index = 0;
   if (index > 3)
     index = 3;
-  zconf_set_integer(index, "/zapping/options/vbi/teletext_level");
+  zconf_set_int(index, "/zapping/options/vbi/teletext_level");
   if (zvbi_get_object())
     vbi_teletext_set_level(zvbi_get_object(), index);
 
@@ -1481,7 +1489,7 @@ vbi_general_apply	(GtkWidget	*page)
     index = 0;
   if (index > 3)
     index = 3;
-  zconf_set_integer(index, "/zapping/options/vbi/qstradeoff");
+  zconf_set_int(index, "/zapping/options/vbi/qstradeoff");
 
 #endif /* HAVE_LIBZVBI */
 
@@ -1498,39 +1506,32 @@ itv_setup		(GtkWidget	*page)
   /* The various itv filters */
   widget = lookup_widget(page, "optionmenu12");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/pr_trigger"));
+    zconf_get_int(NULL, "/zapping/options/vbi/pr_trigger"));
 
   widget = lookup_widget(page, "optionmenu16");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/nw_trigger"));
+    zconf_get_int(NULL, "/zapping/options/vbi/nw_trigger"));
 
   widget = lookup_widget(page, "optionmenu17");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/st_trigger"));
+    zconf_get_int(NULL, "/zapping/options/vbi/st_trigger"));
 
   widget = lookup_widget(page, "optionmenu18");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/sp_trigger"));
+    zconf_get_int(NULL, "/zapping/options/vbi/sp_trigger"));
 
   widget = lookup_widget(page, "optionmenu19");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/op_trigger"));
+    zconf_get_int(NULL, "/zapping/options/vbi/op_trigger"));
 
   widget = lookup_widget(page, "optionmenu6");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/trigger_default"));
+    zconf_get_int(NULL, "/zapping/options/vbi/trigger_default"));
 
   /* Filter level */
   widget = lookup_widget(page, "optionmenu5");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/filter_level"));
+    zconf_get_int(NULL, "/zapping/options/vbi/filter_level"));
 
   /* Set sensitive/unsensitive according to enable_vbi state */
   gtk_widget_set_sensitive(page, zconf_get_boolean(NULL,
@@ -1546,32 +1547,32 @@ itv_apply		(GtkWidget	*page)
   /* The many itv filters */
   widget = lookup_widget(page, "optionmenu12");
   index = z_option_menu_get_active(widget);
-  zconf_set_integer(index, "/zapping/options/vbi/pr_trigger");
+  zconf_set_int(index, "/zapping/options/vbi/pr_trigger");
   
   widget = lookup_widget(page, "optionmenu16");
   index = z_option_menu_get_active(widget);
-  zconf_set_integer(index, "/zapping/options/vbi/nw_trigger");
+  zconf_set_int(index, "/zapping/options/vbi/nw_trigger");
   
   widget = lookup_widget(page, "optionmenu17");
   index = z_option_menu_get_active(widget);
-  zconf_set_integer(index, "/zapping/options/vbi/st_trigger");
+  zconf_set_int(index, "/zapping/options/vbi/st_trigger");
   
   widget = lookup_widget(page, "optionmenu18");
   index = z_option_menu_get_active(widget);
-  zconf_set_integer(index, "/zapping/options/vbi/sp_trigger");
+  zconf_set_int(index, "/zapping/options/vbi/sp_trigger");
   
   widget = lookup_widget(page, "optionmenu19");
   index = z_option_menu_get_active(widget);
-  zconf_set_integer(index, "/zapping/options/vbi/op_trigger");
+  zconf_set_int(index, "/zapping/options/vbi/op_trigger");
   
   widget = lookup_widget(page, "optionmenu6");
   index = z_option_menu_get_active(widget);
-  zconf_set_integer(index, "/zapping/options/vbi/trigger_default");
+  zconf_set_int(index, "/zapping/options/vbi/trigger_default");
   
   /* Filter level */
   widget = lookup_widget(page, "optionmenu5");
   index = z_option_menu_get_active(widget);
-  zconf_set_integer(index, "/zapping/options/vbi/filter_level");
+  zconf_set_int(index, "/zapping/options/vbi/filter_level");
 }
 
 #endif

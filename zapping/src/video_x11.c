@@ -47,7 +47,7 @@ struct _zimage_private {
 };
 
 static zimage*
-image_new (tv_pixfmt pixfmt, gint w, gint h)
+image_new (tv_pixfmt pixfmt, guint w, guint h)
 {
   zimage *new_image;
   zimage_private *pimage;
@@ -107,7 +107,7 @@ clear_canvas (GdkWindow *canvas, gint w, gint h, gint iw, int ih)
 }
 
 static void
-image_put (zimage *image, gint w, gint h)
+image_put (zimage *image, guint w, guint h)
 {
   zimage_private *pimage = image->priv;
   gint iw = pimage->image->width, ih = pimage->image->height;
@@ -131,7 +131,7 @@ image_destroy (zimage *image)
 
 static void
 set_destination (GdkWindow *_w, GdkGC *_gc,
-		 tveng_device_info *info)
+		 tveng_device_info *info _unused_)
 {
   GdkColor black = {0, 0, 0, 0};
 
@@ -154,7 +154,7 @@ set_destination (GdkWindow *_w, GdkGC *_gc,
 }
 
 static void
-unset_destination(tveng_device_info *info)
+unset_destination(tveng_device_info *info _unused_)
 {
   /* see comment in set_destination */
   if ((!window) && (!gc))
@@ -191,10 +191,8 @@ static video_backend x11 = {
 void add_backend_x11 (void);
 void add_backend_x11 (void)
 {
-  if (!x11_dga_present (&dga_param))
-    return;
-
-  x11_pixfmt = dga_param.format.pixfmt;
+  /* Same for all screens. */
+  x11_pixfmt = screens->target.format.pixfmt;
 
   g_assert (TV_PIXFMT_UNKNOWN != x11_pixfmt);
   g_assert (TV_PIXFMT_IS_PACKED (x11_pixfmt));
