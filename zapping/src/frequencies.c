@@ -24,6 +24,7 @@
 #endif
 
 #include <gnome.h>
+#include "strnatcmp.h"
 #include "frequencies.h"
 
 /* --------------------------------------------------------------------- */
@@ -1060,13 +1061,13 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel)
   while (tc_ptr)
     {
       /* If this one orders itself after us, then insert it here */
-      if (strcasecmp(tc_ptr -> name, channel_added -> name) >=
+      if (strnatcasecmp(tc_ptr -> name, channel_added -> name) >=
 	  0)
 	{
 	  /* If two are the same string, but one has capitals and the
 	     other one doesn't, insert first the capitalized one */
-	  if ((strcasecmp(tc_ptr -> name, channel_added -> name) == 0)
-	       && (strcmp(tc_ptr -> name, channel_added -> name) < 0) )
+	  if ((strnatcasecmp(tc_ptr -> name, channel_added -> name) == 0)
+	       && (strnatcmp(tc_ptr -> name, channel_added -> name) < 0) )
 	      { /* Insert better in the next position */
 		index++;
 		if (!tc_ptr -> next) /* Insert it as the last item */

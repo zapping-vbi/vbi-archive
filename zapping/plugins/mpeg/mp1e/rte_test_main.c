@@ -236,7 +236,6 @@ main(int ac, char **av)
 	pthread_t mux_thread; /* Multiplexer thread */
 
 	my_name = av[0];
-	verbose = 8;
 	options(ac, av);
 
 	mix_init();

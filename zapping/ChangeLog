@@ -5,7 +5,12 @@
 	* src/plugins.c: The plugin_sample struct no longer contains a
 	GdkImage.
 	* plugins/screenshot: Now it saves the current teletext page too.
-
+	* src/strnatcmp: Like strcmp and strcasecmp, but perform natural
+	ordering of strings with numbers (1, 2, 3, .., 8, 9, 10, 11)
+	* src/strnatcmp.c: fall back to str[case]cmp if they compare the
+	same in natural order.
+	* src/frequencies.c: Now it uses strnatcmp for station aliases.
+	
 12.9.2000	JPEG screenshots <garetxe@users.sourceforge.net>
 
 	* plugins/screenshot.c: Now it uses JPEG format instead of PNG.

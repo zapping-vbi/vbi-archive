@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-09-13 11:58+0200\n"
+"POT-Creation-Date: 2000-09-14 01:33+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -170,63 +170,63 @@ msgstr ""
 msgid "No tuned channels"
 msgstr ""
 
-#: src/frequencies.c:842
+#: src/frequencies.c:843
 msgid "us-bcast"
 msgstr ""
 
-#: src/frequencies.c:843
+#: src/frequencies.c:844
 msgid "us-cable"
 msgstr ""
 
-#: src/frequencies.c:844
+#: src/frequencies.c:845
 msgid "us-cable-hrc"
 msgstr ""
 
-#: src/frequencies.c:845
+#: src/frequencies.c:846
 msgid "japan-bcast"
 msgstr ""
 
-#: src/frequencies.c:846
+#: src/frequencies.c:847
 msgid "japan-cable"
 msgstr ""
 
-#: src/frequencies.c:847
+#: src/frequencies.c:848
 msgid "europe"
 msgstr ""
 
-#: src/frequencies.c:848
+#: src/frequencies.c:849
 msgid "europe-east"
 msgstr ""
 
-#: src/frequencies.c:849
+#: src/frequencies.c:850
 msgid "italy"
 msgstr ""
 
-#: src/frequencies.c:850
+#: src/frequencies.c:851
 msgid "newzealand"
 msgstr ""
 
-#: src/frequencies.c:851
+#: src/frequencies.c:852
 msgid "australia"
 msgstr ""
 
-#: src/frequencies.c:852
+#: src/frequencies.c:853
 msgid "ireland"
 msgstr ""
 
-#: src/frequencies.c:853
+#: src/frequencies.c:854
 msgid "france"
 msgstr ""
 
-#: src/frequencies.c:1037
+#: src/frequencies.c:1038
 msgid "(Unnamed channel)"
 msgstr ""
 
-#: src/frequencies.c:1041
+#: src/frequencies.c:1042
 msgid "(Unknown real channel)"
 msgstr ""
 
-#: src/channel_editor.c:300 src/channel_editor.c:345 src/frequencies.c:1045
+#: src/channel_editor.c:300 src/channel_editor.c:345 src/frequencies.c:1046
 msgid "(Unknown country)"
 msgstr ""
 
@@ -1471,7 +1471,7 @@ msgid "Select directory to save screenshots"
 msgstr ""
 
 #: plugins/screenshot/screenshot.c:398
-msgid "Quality of the compressed image"
+msgid "Quality of the compressed image:"
 msgstr ""
 
 #: plugins/screenshot/screenshot.c:419 plugins/screenshot/screenshot.c:493
@@ -1482,7 +1482,7 @@ msgstr ""
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
-"save_dir/shot[1,2,3,...].png\n"
+"save_dir/shot[1,2,3,...].jpeg\n"
 "\n"
 "The quality option lets you choose how much info will be\n"
 "discarded when compressing the JPEG."
