@@ -21,11 +21,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.h,v 1.3 2005-01-31 07:13:51 mschimek Exp $ */
+/* $Id: search.h,v 1.4 2005-02-12 13:32:38 mschimek Exp $ */
 
 #ifndef __ZVBI3_SEARCH_H__
 #define __ZVBI3_SEARCH_H__
 
+#include <stdarg.h>		/* va_list */
 #include "page.h"
 
 VBI3_BEGIN_DECLS
