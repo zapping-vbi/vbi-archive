@@ -77,6 +77,7 @@ CC = @CC@
 CCAS = @CCAS@
 CCASFLAGS = @CCASFLAGS@
 @BACKEND_MP1E_TRUE@CCMALLOC = @CCMALLOC@
+@BACKEND_MP1E_TRUE@CXX = @CXX@
 @BACKEND_MP1E_TRUE@DATADIRNAME = @DATADIRNAME@
 DEPDIR = @DEPDIR@
 DLLTOOL = @DLLTOOL@
@@ -123,7 +124,7 @@ install_sh = @install_sh@
 
 noinst_LTLIBRARIES = libvideo.la
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT -include $(top_srcdir)/config.h 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 
 @USE_SSE2_TRUE@SSE2_FILES = motion_sse2.s

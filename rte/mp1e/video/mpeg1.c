@@ -17,10 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.38 2002-09-26 20:38:23 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.39 2002-10-02 02:13:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
+//#  include "config.h"
 #endif
 
 #include "site_def.h"
@@ -80,6 +80,8 @@ int x_bias = 65536 * 31,
 #define NO_VBV 0xFFFF
 
 static mpeg1_context *static_context;
+
+mpeg1_context *mp1e_static_context(void);
 
 mpeg1_context *
 mp1e_static_context(void)
@@ -2385,6 +2387,9 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 		mpeg1->motion_max = 24;
 	}
 
+/* No MC without decent compiler */
+#if __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
+
 	if (mpeg1->motion_min && mpeg1->motion_max
 	    && mpeg1->rc.np > 0 && mpeg1->rc.nb > 0) {
 		switch (cpu_detection()) {
@@ -2428,7 +2433,9 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 			rte_error_printf(codec->context, _("Out of memory."));
 			goto reject;
 		}
-	} else {
+	} else
+#endif /* GCC < 2.95 */
+	{
 		motion = 0;
 
 		mpeg1->picture_i = picture_i_nomc;

@@ -5,7 +5,8 @@
  * Dedicated to Marija Kulikova.
  */
 
-#include "avcodec.h"
+/* MHS: Changed from "avcodec.h" */
+#include "../libavcodec/avcodec.h"
 
 typedef struct Ticker {
     int value;

@@ -17,12 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.19 2002-09-07 01:47:33 mschimek Exp $ */
+/* $Id: options.c,v 1.20 2002-10-02 02:13:22 mschimek Exp $ */
 
 #include "site_def.h"
 
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
+//#  include "config.h"
 #endif
 
 #include <stdio.h>
@@ -55,6 +55,8 @@ static const char *audio_options[] = { "stereo", "", "dual_channel", "mono" };
 static const char *mute_options[] = { "unmute", "mute", "ignore" };
 static const char *cpu_options[] = { "", "pmmx", "p2", "p3", "p4", "k6-2", "k7", "m2", "c3" };
 static const char *skip_options[] = { "compatible", "mux", "fake_picture" };
+
+void usage(FILE *fi);
 
 void
 usage(FILE *fi)

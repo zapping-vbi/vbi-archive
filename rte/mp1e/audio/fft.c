@@ -17,7 +17,7 @@
  *
  */
 
-/* $Id: fft.c,v 1.2 2001-09-23 19:45:44 mschimek Exp $ */
+/* $Id: fft.c,v 1.3 2002-10-02 02:13:47 mschimek Exp $ */
 
 /* http://www.fftw.org */
 
@@ -25,6 +25,7 @@
 #include "../common/mmx.h"
 #include "../common/math.h"
 #include "../common/alloc.h"
+#include "audio.h"
 
 typedef struct {
 	FLOAT			re, im;

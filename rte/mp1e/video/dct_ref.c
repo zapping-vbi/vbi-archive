@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct_ref.c,v 1.3 2002-05-07 06:40:35 mschimek Exp $ */
+/* $Id: dct_ref.c,v 1.4 2002-10-02 02:13:48 mschimek Exp $ */
 
 #include "dct.h"
 #include "mpeg.h"
@@ -26,6 +26,13 @@
 #include "../common/math.h"
 
 #define FLOAT float
+
+void fdct_intra (int);
+unsigned int fdct_inter(short [6][8][8], int);
+void mpeg1_idct_intra(int);
+void mpeg1_idct_inter(int, unsigned int);
+void mpeg2_idct_intra(int);
+void mpeg2_idct_inter(int, unsigned int);
 
 static FLOAT		aan_fwd_lut[8][8];
 static FLOAT		aan_inv_lut[8][8];

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.8 2002-09-26 20:47:36 mschimek Exp $ */
+/* $Id: io.c,v 1.9 2002-10-02 02:18:03 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -422,6 +422,8 @@ long_options[] = {
 	{ 0, 0, 0, 0 }
 };
 
+/* XXX remove */
+void ccmalloc_atexit(void);
 void ccmalloc_atexit(void) {}
 
 int
@@ -521,7 +523,7 @@ main(int argc, char **argv)
 		case 1:
 			r = rte_set_input_callback_master(codec, read_cm_cb, unref_cb, &queue_length);
 			/* That's the number of buffers we'd normally allocate here. */
-			r && fprintf(stderr, "Callback-master queue: %d buffers\n", queue_length);
+			if (r) fprintf(stderr, "Callback-master queue: %d buffers\n", queue_length);
 			break;
 
 		case 2:
@@ -530,7 +532,7 @@ main(int argc, char **argv)
 
 		case 3:
 			r = rte_set_input_push_master(codec, unref_cb, queue, &queue_length);
-			r && fprintf(stderr, "Push-master queue: %d buffers requested, %d needed\n",
+			if (r) fprintf(stderr, "Push-master queue: %d buffers requested, %d needed\n",
 				     queue, queue_length);
 			break;
 

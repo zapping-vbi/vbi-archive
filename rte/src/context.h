@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.h,v 1.7 2002-09-26 20:43:30 mschimek Exp $ */
+/* $Id: context.h,v 1.8 2002-10-02 02:18:02 mschimek Exp $ */
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
@@ -145,6 +145,11 @@ extern rte_bool			rte_context_option_menu_set(rte_context *context, const char *
 extern rte_bool			rte_context_options_reset(rte_context *context);
 /** @} */
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+struct rte_codec; /* forward */
+extern void			rte_status_query(rte_context *context, struct rte_codec *codec, rte_status *status, unsigned int size);
+#endif
+
 /**
  * @addtogroup Status
  * @{
@@ -152,10 +157,6 @@ extern rte_bool			rte_context_options_reset(rte_context *context);
 static_inline void
 rte_context_status(rte_context *context, rte_status *status)
 {
-	struct rte_codec; /* forward */
-	extern void rte_status_query(rte_context *context, struct rte_codec *codec,
-				     rte_status *status, unsigned int size);
-
 	rte_status_query(context, 0, status, sizeof(rte_status));
 }
 /** @} */

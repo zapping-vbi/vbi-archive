@@ -17,10 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.5 2002-09-26 20:38:43 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.6 2002-10-02 02:13:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
+//#  include "config.h"
 #endif
 
 #include "site_def.h"
@@ -432,12 +432,16 @@ template_tail_i			(mpeg1_context *	mpeg1,
 	return S >> 3;
 }
 
+#if 0 /* unfinished */
+
 static void
 slice_i_nomc			(mpeg1_context *	mpeg1,
 				 field *		f)
 {
 	template_slice_i (mpeg1, f, FALSE);
 }
+
+#endif
 
 static int
 picture_zero (mpeg1_context *mpeg1)

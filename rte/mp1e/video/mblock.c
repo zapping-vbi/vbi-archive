@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mblock.c,v 1.5 2002-08-22 22:02:28 mschimek Exp $ */
+/* $Id: mblock.c,v 1.6 2002-10-02 02:13:48 mschimek Exp $ */
 
 #include "video.h"
 #include "../common/math.h"
@@ -39,7 +39,7 @@ uint8_t * newref;			/* future reference frame buffer */
 
 struct mb_addr		mb_address __attribute__ ((aligned (MIN(CACHE_LINE, 64))));
 
-short			mblock[7][6][8][8] __attribute__ ((aligned (4096)));
+int16_t			mblock[7][6][8][8] __attribute__ ((aligned (4096)));
 /*
  *  Buffer for current macroblock
  *  [7]    - intra, forward, backward, interpolated

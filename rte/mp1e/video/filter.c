@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.10 2002-09-08 02:20:53 mschimek Exp $ */
+/* $Id: filter.c,v 1.11 2002-10-02 02:13:48 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -55,6 +55,8 @@ extern filter_fn	sse_YUYV_0;
 extern filter_fn	sse_YUYV_2;
 extern filter_fn	sse_YUYV_6;
 
+#if 0 /* rewrite */
+
 static int (* color_pred)(unsigned char *, unsigned char *);
 
 static int
@@ -84,6 +86,8 @@ color_trap(unsigned char *buffer1, unsigned char *buffer2)
 
 	return r;
 }
+
+#endif
 
 #ifndef BACKEND_MP1E
 

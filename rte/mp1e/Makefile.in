@@ -77,6 +77,7 @@ CC = @CC@
 CCAS = @CCAS@
 CCASFLAGS = @CCASFLAGS@
 @BACKEND_MP1E_TRUE@CCMALLOC = @CCMALLOC@
+@BACKEND_MP1E_TRUE@CXX = @CXX@
 @BACKEND_MP1E_TRUE@DATADIRNAME = @DATADIRNAME@
 DEPDIR = @DEPDIR@
 DLLTOOL = @DLLTOOL@
@@ -125,9 +126,9 @@ INCLUDES = -D_GNU_SOURCE -D_REENTRANT 	-Wall -Wunused -Wmissing-prototypes -Wmis
 
 
 @BACKEND_MP1E_TRUE@SUBDIRS = video audio systems common
-@BACKEND_MP1E_FALSE@SUBDIRS = video audio vbi systems common devices test
+@BACKEND_MP1E_FALSE@SUBDIRS = macros video audio vbi systems common devices test
 @BACKEND_MP1E_TRUE@DIST_SUBDIRS = video audio systems common
-@BACKEND_MP1E_FALSE@DIST_SUBDIRS = video audio vbi systems common devices test macros
+@BACKEND_MP1E_FALSE@DIST_SUBDIRS = macros video audio vbi systems common devices test
 @BACKEND_MP1E_TRUE@EXTRA_DIST = 
 @BACKEND_MP1E_FALSE@EXTRA_DIST = mp1e.lsm.in mp1e.spec.in $(man_MANS) BUGS b_mp1e.h rte
 

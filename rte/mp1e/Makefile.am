@@ -1,5 +1,5 @@
 ## Process this file with automake to produce Makefile.in
-## $Id: Makefile.am,v 1.12 2002-08-22 22:06:01 mschimek Exp $
+## $Id: Makefile.am,v 1.13 2002-10-02 02:13:22 mschimek Exp $
 
 INCLUDES = -D_GNU_SOURCE -D_REENTRANT \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
@@ -22,8 +22,8 @@ libmp1e_la_SOURCES = b_mp1e.c b_mp1e.h options.h
 
 else
 
-SUBDIRS = video audio vbi systems common devices test
-DIST_SUBDIRS = video audio vbi systems common devices test macros
+SUBDIRS = macros video audio vbi systems common devices test
+DIST_SUBDIRS = macros video audio vbi systems common devices test
 EXTRA_DIST = mp1e.lsm.in mp1e.spec.in $(man_MANS) BUGS b_mp1e.h rte
 
 dist-hook:

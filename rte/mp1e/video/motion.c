@@ -18,10 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.13 2002-08-22 22:04:22 mschimek Exp $ */
+/* $Id: motion.c,v 1.14 2002-10-02 02:13:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
+//#  include "config.h"
 #endif
 
 #include "site_def.h"
@@ -33,6 +33,12 @@
 #include "../common/profile.h"
 #include "video.h"
 #include "motion.h"
+
+/*
+ * Does not compile w/older gcc's (asm() constraints)
+ *  and I'm too lazy too fix that. Zero motion will work.
+ */
+#if __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
 
 #define AUTOR 1		/* search range estimation (P frames only) */
 
@@ -3861,6 +3867,33 @@ predict_bidirectional_motion(mpeg1_context *mpeg1, struct motion *M,
 	return si;
 }
 
+#else /* GCC < 2.95 */
+
+void
+t7(int range, int dist)
+{
+}
+
+void
+zero_forward_motion(void)
+{
+}
+
+unsigned int
+predict_forward_motion(struct motion *M, unsigned char *from, int dist)
+{
+	return 0;
+}
+
+unsigned int
+predict_bidirectional_motion(mpeg1_context *mpeg1, struct motion *M,
+	unsigned int *vmc1, unsigned int *vmc2, int bdist /* forward */)
+{
+	return 0;
+}
+
+#endif /* GCC < 2.95 */
+
 /*
  *  Zero motion reference
  */
@@ -4034,4 +4067,3 @@ predict_bidirectional_planar(unsigned char *from1, unsigned char *from2,
 
 	return si * 256;
 }
-

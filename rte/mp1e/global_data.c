@@ -17,10 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.16 2002-09-07 01:48:52 mschimek Exp $ */
+/* $Id: global_data.c,v 1.17 2002-10-02 02:13:22 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
+//#  include "config.h"
 #endif
 
 #include <stdio.h>

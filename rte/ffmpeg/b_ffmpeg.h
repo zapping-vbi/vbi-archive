@@ -20,13 +20,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.h,v 1.6 2002-09-27 23:56:54 mschimek Exp $ */
+/* $Id: b_ffmpeg.h,v 1.7 2002-10-02 02:18:02 mschimek Exp $ */
 
 #ifndef B_FFMPEG_H
 #define B_FFMPEG_H
 
-#include "site_def.h"
-#include "config.h"
+#include "../site_def.h"
+#include "../config.h"
 #include "../src/rtepriv.h"
 
 #include <stddef.h>
@@ -65,22 +65,22 @@ typedef struct {
 
 /* I/O parameters reported by codec */
 
-int			io_stack_size;
-int			input_buffer_size;
-int			output_buffer_size;	/* maximum */
-int			output_bit_rate;	/* maximum */
-double			output_frame_rate;	/* exact */
+//int			io_stack_size;
+//int			input_buffer_size;
+//int			output_buffer_size;	/* maximum */
+//int			output_bit_rate;	/* maximum */
+//double			output_frame_rate;	/* exact */
 
-/* Backend side I/O stuff */
+	/* Backend side I/O stuff */
 
-pthread_t		thread_id;
+	pthread_t		thread_id;
 
 	rte_io_method		input_method;
 
 	rte_buffer_callback	read_cb;
 	rte_buffer_callback	unref_cb;
 
-rte_status		status;
+	rte_status		status;
 } ffmpeg_codec;
 
 PCAST(FD, ffmpeg_codec, rte_codec, codec);
@@ -100,6 +100,8 @@ typedef struct {
 
 	rte_buffer_callback	write_cb;
 	rte_seek_callback	seek_cb;
+
+	rte_status		status;
 } ffmpeg_context;
 
 PCAST(FX, ffmpeg_context, rte_context, context);

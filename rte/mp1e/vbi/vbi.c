@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.11 2002-06-24 03:21:11 mschimek Exp $ */
+/* $Id: vbi.c,v 1.12 2002-10-02 02:13:48 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -29,6 +29,10 @@
 #include "../common/sync.h"
 #include "../options.h"
 #include "vbi.h"
+
+/* TODO. Dummies. */
+void * vbi_thread(void *F);
+void vbi_init(fifo *f, multiplexer *mux);
 
 void *
 vbi_thread(void *F)

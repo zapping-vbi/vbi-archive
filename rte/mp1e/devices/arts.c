@@ -23,10 +23,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: arts.c,v 1.3 2002-06-24 03:20:44 mschimek Exp $ */
+/* $Id: arts.c,v 1.4 2002-10-02 02:13:47 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
+//#  include "config.h"
 #endif
 
 #include "../common/log.h"

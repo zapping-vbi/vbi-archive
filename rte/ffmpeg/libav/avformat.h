@@ -3,7 +3,8 @@
 #define LIBAV_VERSION     "0.4.6"
 #define LIBAV_BUILD       4601
 
-#include "avcodec.h"
+/* MHS: Changed from "avcodec.h" */
+#include "../libavcodec/avcodec.h"
 
 #include "avio.h"
 

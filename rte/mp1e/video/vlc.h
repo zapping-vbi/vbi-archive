@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.h,v 1.7 2002-09-12 12:24:49 mschimek Exp $ */
+/* $Id: vlc.h,v 1.8 2002-10-02 02:13:48 mschimek Exp $ */
 
 #ifndef VLC_H
 #define VLC_H
@@ -71,11 +71,11 @@ extern const VLC2	mp1e_macroblock_type_b_nomc_notc[4];
 extern const VLC2	mp1e_macroblock_type_b_quant[4];
 
 typedef int mp1e_encode_intra_fn (vlc_rec *		vr,
-				  const int16_t		mblock[6][8][8],
+				  int16_t		mblock[6][8][8],
 				  const uint8_t		iscan[8][8],
 				  unsigned int		count);
 
-typedef int mp1e_encode_inter_fn (const int16_t		mblock[6][8][8],
+typedef int mp1e_encode_inter_fn (int16_t		mblock[6][8][8],
 				  unsigned int		cbp);
 
 /* Reference */

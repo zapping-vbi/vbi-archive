@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.22 2002-09-14 04:20:50 mschimek Exp $ */
+/* $Id: video.h,v 1.23 2002-10-02 02:13:48 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -292,7 +292,7 @@ extern int		mb_col, mb_row,
 			mb_last_col, mb_last_row,
 			mb_num;
 
-extern short		mblock[7][6][8][8];
+extern int16_t		mblock[7][6][8][8];
 
 extern struct mb_addr {
 	struct {

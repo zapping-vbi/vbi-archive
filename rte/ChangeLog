@@ -1,3 +1,12 @@
+2002-09-01	<mschimek@users.sf.net>
+
+	* ffmpeg/ffmpeg.h, ffmpeg/ffmpeg.c: Added missing status
+	  functions.
+	* ffmpeg: Removed -I options which seem to cause problems
+	  with some compilers.
+	* m4: Removed gtkdoc.m4, no longer needed.
+	* configure.in: Check gcc will compile ffmpeg.
+
 2002-09-28	<mschimek@users.sf.net>
 
 	* ffmpeg/ffmpeg.h, ffmpeg/ffmpeg.c: Corrections for gcc 2.9x

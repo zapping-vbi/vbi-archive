@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.12 2002-09-27 23:56:44 mschimek Exp $ */
+/* $Id: b_ffmpeg.c,v 1.13 2002-10-02 02:18:02 mschimek Exp $ */
 
 #include <limits.h>
 #include "b_ffmpeg.h"
@@ -37,7 +37,15 @@ status				(rte_context *		context,
 				 rte_status *		status,
 				 unsigned int		size)
 {
-	status->valid = 0;
+	if (codec) {
+		pthread_mutex_lock (&codec->mutex);
+		memcpy (status, &FD (codec)->status, size);
+		pthread_mutex_unlock (&codec->mutex);
+	} else {
+		pthread_mutex_lock (&context->mutex);
+		memcpy (status, &FX (context)->status, size);
+		pthread_mutex_unlock (&context->mutex);
+	}
 }
 
 /* Start / Stop */
@@ -60,6 +68,13 @@ do_write			(void *			opaque,
 		/* XXX what now? */
 		exit(0);
 	}
+
+	pthread_mutex_lock (&fx->context.mutex);
+
+	fx->status.bytes_out += wb.size;
+	fx->status.frames_out++;
+
+	pthread_mutex_unlock (&fx->context.mutex);
 }
 
 static int
@@ -111,6 +126,13 @@ do_audio_out			(ffmpeg_context *	fx,
 		fx->av.format->write_packet (&fx->av, fd->stream_index, fd->packet_buffer,
 					     coded_size, force_pts);
 	}
+
+	pthread_mutex_lock (&fd->codec.mutex);
+
+	fd->status.bytes_out += coded_size;
+	fd->status.frames_out++;
+
+	pthread_mutex_unlock (&fd->codec.mutex);
 }
 
 static void
@@ -145,6 +167,13 @@ do_video_out			(ffmpeg_context *	fx,
 		fx->av.format->write_packet (&fx->av, fd->stream_index, fd->packet_buffer,
 					     coded_size, force_pts);
 	}
+
+	pthread_mutex_lock (&fd->codec.mutex);
+
+	fd->status.bytes_out += coded_size;
+	fd->status.frames_out++;
+
+	pthread_mutex_unlock (&fd->codec.mutex);
 }
 
 static void *
@@ -251,6 +280,18 @@ mainloop			(void *			p)
 			pthread_mutex_unlock (&fx->context.mutex);
 			continue;
 		}
+
+		pthread_mutex_lock (&fd->codec.mutex);
+
+		fd->status.bytes_in += rb.size;
+		fd->status.frames_in++;
+		fd->status.captured_time = rb.timestamp;
+		/* FIXME */
+		fd->status.coded_time += fd->status.time_per_frame_out;
+		if (fd->status.coded_time >= fx->status.coded_time)
+			fx->status.coded_time = fd->status.coded_time;
+
+		pthread_mutex_unlock (&fd->codec.mutex);
 
 		/* increment PTS */
 
@@ -648,10 +689,17 @@ parameters_set			(rte_codec *		codec,
 		if (avcodec_open (avcc, fdc->av) < 0)
 			goto failed1;
 
-		if (avcc->frame_size == 1)
+		if (avcc->frame_size == 1) {
 			rsp->audio.fragment_size = 4096 * 2 * avcc->channels;
-		else
+			/* FIXME */
+			fd->status.time_per_frame_out = 4096
+				/ (double) rsp->audio.sampling_freq;
+		} else {
 			rsp->audio.fragment_size = avcc->frame_size * 2 * avcc->channels;
+			/* FIXME */
+			fd->status.time_per_frame_out = avcc->frame_size
+				/ (double) rsp->audio.sampling_freq;
+		}
 
 		if (!realloc_buffer (fd->codec.context, &fd->packet_buffer,
 				     MAX_AUDIO_PACKET_SIZE))
@@ -665,6 +713,8 @@ parameters_set			(rte_codec *		codec,
 		rsp->video.temporal_order = 0;
 
 		avcc->frame_rate = (int)(rsp->video.frame_rate * FRAME_RATE_BASE);
+
+		fd->status.time_per_frame_out = 1.0 / rsp->video.frame_rate;
 
 		avcc->aspect_ratio_info = aspect_type[rte_closest_double
 			(aspects, 5, rsp->video.sample_aspect)];
@@ -738,7 +788,18 @@ parameters_set			(rte_codec *		codec,
 		assert (!"reached");
 	}
 
-	fd->status.valid = 0;
+	fd->status.valid = 0
+		+ RTE_STATUS_FRAMES_IN
+		+ RTE_STATUS_FRAMES_OUT
+		+ RTE_STATUS_BYTES_IN
+		+ RTE_STATUS_BYTES_OUT
+		+ RTE_STATUS_CAPTURED_TIME
+		+ RTE_STATUS_CODED_TIME;
+
+	FX (fd->codec.context)->status.valid = 0
+		+ RTE_STATUS_FRAMES_OUT
+		+ RTE_STATUS_BYTES_OUT
+		+ RTE_STATUS_CODED_TIME;
 
 	/* Parameters accepted */
 	memcpy (&fd->codec.params, rsp, sizeof (fd->codec.params));

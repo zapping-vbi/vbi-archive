@@ -17,10 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preview.c,v 1.9 2002-06-24 03:21:11 mschimek Exp $ */
+/* $Id: preview.c,v 1.10 2002-10-02 02:13:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
+//#  include "config.h"
 #endif
 
 #if TEST_PREVIEW && HAVE_LIBXV
@@ -427,6 +427,9 @@ gtk_main_thread(void * unused)
 }
 
 #else
+
+void packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
+void preview_init(int *argc, char ***argv);
 
 void
 packed_preview(unsigned char *buffer, int mb_cols, int mb_rows)

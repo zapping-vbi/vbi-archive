@@ -3,27 +3,33 @@ the changes.
 
 0.6.5
 -----
-It's been a long time since 0.6.4, much too long, but finally the
-beast arrived. Main change this time is the switch from rte 0.4
-to 0.5, our real time audio/video recording library. It adds
-a lot more formats besides MPEG-1 using ffmpeg and divx4linux.
-Quite likely the number will increase with future releases. Along
-with it comes a new recording dialog. New chrome aside users can
-now define recording configurations with different names.
+It's been a long time since 0.6.4, much too long by far, but finally
+the beast arrived. Main change this time is the switch from rte 0.4 to
+0.5, our high speed audio/video recording library. The recording plugin
+will not work with rte 0.4 unless you compile Zapping yourself.
 
+rte 0.5 adds a lot more formats besides MPEG-1 using ffmpeg and divx4linux,
+possibly even more in the future. Along with the new codecs comes a new
+recording dialog which allows users to save recording configurations
+under different names.
 
+Other changes:
+- We have new GUI options to change the toolbar style and keep the video
+  window on top (when supported by the window manager).
+- Zapping temporarily disables XScreensaver, the software screen blanker
+  by J. Zawinsky. Of course the X11 built-in savers are also disabled.
+- Teletext export options and the record plugin codec menus where not
+  or not correctly localized in the past (i.e. remaining in English).
+  For full satisfaction you may have to update zvbi as well.
+- Thanks to Guus Bonnema for taking over maintenance of the orphaned
+  Dutch translation.
+- Matt Withoutlastname contributed a frequency table for Canadian cable.
+- Well, and the usual set of fixes, non-fixes and micro improvements.
 
-
-* build fixes
-* lang updates
-* improved recording dialog
-* vbi/rte i18n
-* Canada cable
-* fixes
-* New GUI options toolbar style, keep window on top (when
-  supporte by window manager), and a few minor improvements.
-* Disables XScreensaver
-* 
+This is the last release of Zapping (gasp!) using Gnome 1 (phew!). The
+next version 0.7 will require Gnome 2, so please stop asking now. If you
+like to live on the bleeding edge, the tree is in CVS, branch
+zapping-gnome2. It will become HEAD branch at the appropriate time.
 
 0.6.4
 -----

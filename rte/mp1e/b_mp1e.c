@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.42 2002-09-26 20:39:22 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.43 2002-10-02 02:13:22 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -74,6 +74,10 @@ int				outFileFD;
 int				mux_syn;
 int				split_sequence = 0;
 long long			part_length = 0;
+
+void packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
+void preview_init(int *argc, char ***argv);
+void break_sequence(void);
 
 void packed_preview(unsigned char *buffer, int mb_cols, int mb_rows) { }
 void preview_init(int *argc, char ***argv) { }

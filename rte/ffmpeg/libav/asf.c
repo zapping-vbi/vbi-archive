@@ -19,7 +19,8 @@
 #include "avformat.h"
 #include "avi.h"
 #include "tick.h"
-#include "mpegaudio.h"
+/* MHS: Changed from "mpegaudio.h" */
+#include "../libavcodec/mpegaudio.h"
 
 #define PACKET_SIZE 3200
 #define PACKET_HEADER_SIZE 12

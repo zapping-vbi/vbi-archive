@@ -1,6 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 
-noinst_PROGRAMS = info io
+TESTS = optest cpptest
+noinst_PROGRAMS = info io cpptest
+cpptest_SOURCES = cpptest.cc
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_builddir)/src $(COMMON_INCLUDES) \
 	-D_GNU_SOURCE -D_REENTRANT -D_LARGEFILE64_SOURCE \

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.18 2002-09-26 20:47:35 mschimek Exp $ */
+/* $Id: rte.c,v 1.19 2002-10-02 02:18:02 mschimek Exp $ */
 
 #include "config.h"
 
@@ -244,10 +244,6 @@ const char _rte_intl_domainname[] = PACKAGE;
  * not RTE clients.
  */
 
-/* no public prototype */
-void rte_status_query(rte_context *context, rte_codec *codec,
-		      rte_status *status, unsigned int size);
-
 /**
  * @internal
  *
@@ -265,12 +261,12 @@ void rte_status_query(rte_context *context, rte_codec *codec,
  *
  * Implementation:
  * No keywords because the app must look up values anyway, we're
- * in critical path and a struct is much faster than enum & strcmp.
+ * in time critical section and a struct is much faster than enum & strcmp.
  * A copy of rte_status is returned because the values are calculated
  * on the fly and must be r/w locked.
  */
 void
-rte_status_query(rte_context *context, rte_codec *codec,
+rte_status_query(rte_context *context, struct rte_codec *codec,
 		 rte_status *status, unsigned int size)
 {
 	assert(status != NULL);
