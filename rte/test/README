@@ -2,8 +2,8 @@ Test programs
 
 info
 	Lists all backends, context, codecs and their respective options.
-	If option -c/--check given, tests the option api. Use this to test
-	new backends, contexts and codecs.
+	If option -c/--check given, tests the option api. Use this to
+	verify the API of new backends, contexts and codecs.
 
 io
 	Test the i/o modes supported by librte. The video and audio data
@@ -23,10 +23,10 @@ io
 	-q | --queue n	Set buffer queue length for push methods,
 			default minimum required by codec.
 	--block		Push call shall block.
-	--ca		Use callback-active i/o method.
-	--cp		Use callback-passive i/o method.
-	--pa		Use push-active i/o method.
-	--pp		Use push-passive i/o method.
+	--cm		Use callback-master i/o method.
+	--cs		Use callback-slave i/o method.
+	--pm		Use push-master i/o method.
+	--ps		Use push-slave i/o method.
 
 The ultimate test is http://zapping.sourceforge.net, the TV viewer this
 library was written for.
