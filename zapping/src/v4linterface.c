@@ -160,6 +160,8 @@ on_control_checkbutton_toggled         (GtkToggleButton *tb,
   tveng_set_control(&(info-> controls[cid]),
 		    gtk_toggle_button_get_active(tb),
 		    info);
+
+  set_mute1(3, FALSE, FALSE); /* update */
 }
 
 /* helper function for create_control_box */
@@ -779,9 +781,7 @@ z_switch_channel	(tveng_tuned_channel	*channel,
   if (zcg_bool(NULL, "avoid_noise"))
     {
       mute = tveng_get_mute(info);
-      
-      if (!mute)
-	tveng_set_mute(1, info);
+      set_mute1(TRUE, TRUE, FALSE);
     }
 
   freeze_update();
@@ -806,7 +806,7 @@ z_switch_channel	(tveng_tuned_channel	*channel,
       usleep(100000);
       
       if (!mute)
-	tveng_set_mute(0, info);
+	set_mute1(FALSE, TRUE, FALSE);
     }
 
   if (in_global_list)
@@ -827,7 +827,7 @@ z_switch_channel	(tveng_tuned_channel	*channel,
   zvbi_channel_switched();
 
   if (info->current_mode == TVENG_CAPTURE_PREVIEW)
-    osd_render_sgml(_("Channel: <yellow>%s</yellow>"), channel->name);
+    osd_render_sgml(NULL, _("Channel: <yellow>%s</yellow>"), channel->name);
 #endif
 }
 
@@ -847,41 +847,103 @@ z_select_channel			(gint num_channel)
   z_switch_channel(channel, main_info);
 }
 
+void
+z_select_rf_channel			(gchar *name)
+{
+  tveng_tuned_channel *tc;
+  gint num_channels;
+  gint i;
+
+  if (!name || !name[0])
+    return;
+
+  if (0)
+    fprintf(stderr, "z_select_rf_channel(\"%s\")\n", name);
+
+  switch (zconf_get_integer(NULL, "/zapping/options/main/channel_txl"))
+    {
+    case 0: /* channel list */
+      i = strtol(name, NULL, 0);
+
+      num_channels = tveng_tuned_channel_num(global_channel_list);
+
+      /* IMHO it's wrong to start at 0, but compatibility rules. */
+      if (i >= 0 || i < num_channels)
+	z_select_channel(i);
+
+      break;
+
+    case 1: /* RF channel name */
+      for (i = 0; (tc = tveng_retrieve_tuned_channel_by_index
+		   (i, global_channel_list)); i++)
+	if (strcasecmp(name, tc->real_name) == 0)
+	  {
+	    z_switch_channel(tc, main_info);
+	    return;
+	  }
+
+      break;
+    }
+}
+
+static gchar kp_chsel_buf[4];
+
+static void
+kp_timeout				(gboolean timer)
+{
+  if (timer)
+    z_select_rf_channel(kp_chsel_buf);
+
+  kp_chsel_buf[0] = 0;
+}
+
 gboolean
 z_select_channel_by_key			(GdkEventKey	*event)
 {
-  static gint channel_num = 0;
-  static guint32 last_time = 0;
   tveng_tuned_channel * tc;
-  gint num_channels = tveng_tuned_channel_num(global_channel_list);
+  gchar c;
   int i;
 
   switch (event->keyval)
     {
-      /* XXX should OSD current value, could "enter" automagically
-         after timeout &| if < number of channels */
+#ifdef HAVE_LIBZVBI
 
     case GDK_KP_0 ... GDK_KP_9:
-      if (abs(event->time - last_time) > 2000 || channel_num < 1)
-	channel_num = event->keyval - GDK_KP_0;
-      else
-	channel_num = (channel_num * 10 + (event->keyval - GDK_KP_0)) % 1000;
+      i = strlen(kp_chsel_buf);
 
-      last_time = event->time;
+      if (i >= sizeof(kp_chsel_buf) - 1)
+	memcpy(kp_chsel_buf, kp_chsel_buf + 1, i--);
 
+      kp_chsel_buf[i] = event->keyval - GDK_KP_0 + '0';
+      kp_chsel_buf[i + 1] = 0;
+
+    show:
+      c = kp_chsel_buf[0];
+
+      /* NLS: Channel name being entered on numeric keypad */
+      osd_render_sgml(kp_timeout, _("<green>%s</green>"), kp_chsel_buf);
+
+      kp_chsel_buf[0] = c;
+
+      break;
+
+    case GDK_KP_Add:
+      strncpy(kp_chsel_buf, "T", sizeof(kp_chsel_buf) - 1);
+      goto show;
+
+    case GDK_KP_Delete:
+    case GDK_KP_Decimal:
+    case GDK_KP_Subtract:
+      osd_render_sgml(kp_timeout, "<black>/</black>");
+      kp_chsel_buf[0] = 0;
       break;
 
     case GDK_KP_Enter:
-      if (abs(event->time - last_time) < 2000 /* ms */ && channel_num >= 1)
-	{
-	  num_channels = tveng_tuned_channel_num(global_channel_list);
-	  if (--channel_num < num_channels)
-	    z_select_channel(channel_num);
-	}
-
-      channel_num = 0;
-
+      z_select_rf_channel(kp_chsel_buf);
+      kp_chsel_buf[0] = 0;
       break;
+
+#endif /* HAVE_LIBZVBI */
 
     default:
         for (i = 0; (tc = tveng_retrieve_tuned_channel_by_index(i, global_channel_list)); i++)
@@ -889,7 +951,6 @@ z_select_channel_by_key			(GdkEventKey	*event)
 	      && (event->state & tc->accel_mask) == tc->accel_mask)
 	    {
 	      z_select_channel(tc->index);
-	      channel_num = 0;
 	      return TRUE;
 	    }
 
@@ -898,11 +959,6 @@ z_select_channel_by_key			(GdkEventKey	*event)
 
   return TRUE;
 }
-
-
-
-
-
 
 static void
 real_channel_up				(void)

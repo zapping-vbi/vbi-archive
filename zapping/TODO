@@ -23,6 +23,8 @@ Outstanding issues for the next release (0.6.3)
 	+ Remove default overlay page?
 	+ ttxview.c/selection_handle: What's the correct char set?
 	+ We need a map of all built-in kbd shortcuts.
+	+ Settings: Toolbar >> hide/show, icons, text, both
+	+ Is zvbi really needed for osd?
 
 > 0.7.0
 	+ Support for Python scripting, write all new gui handling as

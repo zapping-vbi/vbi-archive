@@ -456,7 +456,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.153 2002-02-03 13:19:20 mschimek Exp $",
+	 "$Id: main.c,v 1.154 2002-02-05 05:28:31 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -636,7 +636,12 @@ int main(int argc, char * argv[])
 
   D();
   /* mute the device while we are starting up */
-  tveng_set_mute(1, main_info);
+  if (tveng_set_mute(1, main_info) < 0)
+    {
+      /* has no mute function */
+      gtk_widget_hide(lookup_widget(main_window, "mute1"));
+      D();
+    }
   D();
   main_window = create_zapping();
   /* Change the pixmaps, work around glade bug */
@@ -645,8 +650,6 @@ int main(int argc, char * argv[])
   set_stock_pixmap(lookup_widget(main_window, "channel_down"),
 		   GNOME_STOCK_PIXMAP_DOWN);
   propagate_toolbar_changes(lookup_widget(main_window, "toolbar1"));
-  /* hidden menuitem trick for getting cheap accels */
-  gtk_widget_hide(lookup_widget(main_window, "toggle_muted1"));
   D();
   tv_screen = lookup_widget(main_window, "tv_screen");
   /* Avoid dumb resizes to 1 pixel height */
@@ -753,6 +756,8 @@ int main(int argc, char * argv[])
   D();
   if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"), main_info))
     printv("%s\n", main_info->error);
+  else
+    set_mute1(3, TRUE, FALSE);
   D();
   /* Restore the input and the standard */
   if (zcg_int(NULL, "current_input"))

@@ -115,21 +115,93 @@ on_exit2_activate                      (GtkMenuItem     *menuitem,
   gtk_main_quit();
 }
 
+static gboolean mute_controls = TRUE;
+static gboolean mute_osd = TRUE;
+
 void
-on_toggle_muted1_activate		(GtkMenuItem	*menuitem,
+on_mute1_toggled			(GtkWidget	*w,
 					 gpointer	user_data)
 {
-  gint value = tveng_get_mute(main_info);  
+  GtkWidget *widget;
+  gboolean state;
 
-  if (value != -1 && tveng_set_mute(!value, main_info) != -1)
+  widget = lookup_widget (main_window, "mute1");
+  state = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+
+  if (tveng_set_mute(!!state, main_info) < 0)
+    printv("tveng_set_mute failed\n");
+  else
     {
-      update_control_box(main_info);
+      if (mute_controls)
+	update_control_box(main_info);
+
 #ifdef HAVE_LIBZVBI
-      osd_render_sgml(tveng_get_mute(main_info) ?
-		      _("<blue>audio off</blue>") :
-		      _("<yellow>AUDIO ON</yellow>"));
+      if (mute_osd && main_info->current_mode == TVENG_CAPTURE_PREVIEW)
+	osd_render_sgml(NULL, tveng_get_mute(main_info) ?
+			_("<blue>audio off</blue>") :
+			_("<yellow>AUDIO ON</yellow>"));
 #endif
     }
+}
+
+/* mode - 0: off, 1: on, 2: toggle, 3: follow */
+gboolean
+set_mute1				(int	        mode,
+					 gboolean	controls,
+					 gboolean	osd)
+{
+  GtkWidget *widget;
+  int mute;
+
+  if (mode >= 2)
+    {
+      if ((mute = tveng_get_mute(main_info)) < 0)
+	{
+	  printv("tveng_get_mute failed\n");
+	  return FALSE;
+	}
+
+      if (mode == 2)
+	mute = !mute;
+    }
+  else
+    mute = !!mode;
+
+  if (mode <= 2)
+    {
+      if (tveng_set_mute(mute, main_info) < 0)
+	{
+	  printv("tveng_set_mute failed\n");
+	  return FALSE;
+	}
+    }
+
+  mute_controls = controls;
+  mute_osd = osd;
+
+  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
+    {
+      if ((widget = lookup_widget (main_window, "mute1")))
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(widget), mute);
+    }
+  else
+    {
+      if (mute_controls)
+	update_control_box(main_info);
+
+#ifdef HAVE_LIBZVBI
+      // XXX or toolbar hidden
+      if (mute_osd && main_info->current_mode == TVENG_CAPTURE_PREVIEW)
+	osd_render_sgml(NULL, mute ?
+			_("<blue>audio off</blue>") :
+			_("<yellow>AUDIO ON</yellow>"));
+#endif
+    }
+
+  mute_controls = TRUE;
+  mute_osd = TRUE;
+
+  return TRUE;
 }
 
 void

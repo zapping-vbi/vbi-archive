@@ -119,7 +119,8 @@ build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
 	       tveng_retrieve_tuned_channel_by_index(i, list)); i++)
     {
       /* clist has no optional built-in row number? */
-      g_snprintf(entry[0], 255, "%3u", i + 1);
+      /* IMHO should start at 1, but compatibility rules */
+      g_snprintf(entry[0], 255, "%3u", i + 0);
       strncpy(entry[1], tuned_channel->name, 255);
 
       entry[2][0] = 0;

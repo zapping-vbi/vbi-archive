@@ -35,6 +35,14 @@ on_exit2_activate                      (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 void
+on_mute1_toggled			(GtkWidget	*widget,
+					 gpointer	user_data);
+gboolean
+set_mute1				(int		mode,
+					 gboolean	update_controls,
+					 gboolean	osd);
+
+void
 on_toggle_muted1_activate                     (GtkMenuItem     *menuitem,
 				       gpointer         user_data);
 

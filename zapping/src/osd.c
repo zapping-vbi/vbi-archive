@@ -1049,6 +1049,8 @@ prepare_context		(sax_context	*ctx,
 }
 
 static gint osd_clear_timeout_id = -1;
+static void (* osd_clear_timeout_cb)(gboolean);
+
 #define OSD_ROW (MAX_ROWS - 1)
 
 static gint
@@ -1060,12 +1062,16 @@ osd_clear_timeout	(void		*ignored)
 
   zmodel_changed(osd_model);
 
+  if (osd_clear_timeout_cb)
+    osd_clear_timeout_cb(TRUE);
+
   return FALSE;
 }
 
 /* Finish the patch by creating the gdk pixbuf, etc */
 static void
-process_context		(sax_context	*ctx)
+process_context		(sax_context	*ctx,
+			 void (* timeout_cb)(gboolean))
 {
   gint w, h, x, y, hmargin, vmargin;
   float rx, ry, rw, rh;
@@ -1115,37 +1121,49 @@ process_context		(sax_context	*ctx)
   zmodel_changed(osd_model);
 
   if (osd_clear_timeout_id > -1)
-    gtk_timeout_remove(osd_clear_timeout_id);
+    {
+      if (osd_clear_timeout_cb)
+	osd_clear_timeout_cb(FALSE);
+
+      gtk_timeout_remove(osd_clear_timeout_id);
+    }
 
   gdk_pixmap_unref(ctx->canvas);
 
   osd_clear_timeout_id =
     gtk_timeout_add(zcg_float(NULL, "timeout")*1000,
 		    osd_clear_timeout, NULL);
+
+  osd_clear_timeout_cb = timeout_cb;
 }
 
+/* If given, timeout_cb(TRUE) is called when osd timed out,
+   timeout_cb(FALSE) when error, replaced.
+*/
 void
-osd_render_sgml		(const char *string, ...)
+osd_render_sgml		(void (*timeout_cb)(gboolean),
+			 const char *string, ...)
 {
   va_list args;
   sax_context ctx;
   xmlSAXHandler handler;
   gchar *buf, *buf2;
+  int error;
   
-  if (!string || !strlen(string))
-    return;
+  if (!string || !string[0])
+    goto failed;
 
   va_start(args, string);
   buf = g_strdup_vprintf(string, args);
   va_end(args);
 
   if (!buf)
-    return;
+    goto failed;
 
-  if (!*buf)
+  if (!buf[0])
     {
       g_free(buf);
-      return;
+      goto failed;
     }
 
   memset(&ctx, 0, sizeof(ctx));
@@ -1156,10 +1174,9 @@ osd_render_sgml		(const char *string, ...)
   handler.endElement = my_endElement;
   handler.characters = my_characters;
 
-  buf2 = g_strdup_printf("<?xml version=\"1.0\" encoding=\"%s\"?>\n"
-			 "<doc>\n"
-			 "<text>%s</text>\n"
-			 "</doc>", get_locale_charset(), buf);
+  buf2 = g_strdup_printf("<?xml version=\"1.0\" encoding=\"%s\"?>"
+			 "<doc><text>%s</text></doc>    ",
+			 get_locale_charset(), buf);
 
   /* Prepare for drawing */
   switch (zcg_int(NULL, "osd_type"))
@@ -1169,7 +1186,7 @@ osd_render_sgml		(const char *string, ...)
 	{
 	  g_free(buf2);
 	  g_free(buf);
-	  return;
+	  goto failed;
 	}
       break;
     case 1:
@@ -1183,20 +1200,22 @@ osd_render_sgml		(const char *string, ...)
       break;
     }
 
-  if (xmlSAXUserParseMemory(&handler, &ctx, buf2,
-			    strlen(buf2)))
+  error = xmlSAXUserParseMemory(&handler, &ctx, buf2, strlen(buf2));
+
+  if (error != 0)
     {
-      g_warning("Couldn't parse XML string: %s [%s]", buf, buf2);
+      g_warning("Couldn't parse XML string '%s' in '%s', error code %d",
+		buf, buf2, error);
       g_free(buf2);
       g_free(buf);
-      return;
+      goto failed;
     }
 
   /* Create the patch with the pixbuf contents */
   switch (zcg_int(NULL, "osd_type"))
     {
     case 0:
-      process_context(&ctx);
+      process_context(&ctx, timeout_cb);
       break;
     case 1:
       z_status_print(ctx.dest_buf);
@@ -1212,29 +1231,39 @@ osd_render_sgml		(const char *string, ...)
 
   g_free(buf2);
   g_free(buf);
+
+  return;
+
+ failed:
+
+  if (timeout_cb)
+    timeout_cb(FALSE);
+
+  return;
 }
 
 void
-osd_render		(const char *string, ...)
+osd_render		(void (*timeout_cb)(gboolean),
+			 const char *string, ...)
 {
   va_list args;
   sax_context ctx;
   gchar *buf;
 
-  if (!string || !strlen(string))
-    return;
+  if (!string || !string[0])
+    goto failed;
 
   va_start(args, string);
   buf = g_strdup_vprintf(string, args);
   va_end(args);
 
   if (!buf)
-    return;
+    goto failed;
 
   if (!*buf)
     {
       g_free(buf);
-      return;
+      goto failed;
     }
 
   memset(&ctx, 0, sizeof(ctx));
@@ -1246,7 +1275,7 @@ osd_render		(const char *string, ...)
       if (!prepare_context(&ctx, buf))
 	{
 	  g_free(buf);
-	  return;
+	  goto failed;
 	}
       break;
     case 1:
@@ -1266,7 +1295,7 @@ osd_render		(const char *string, ...)
   switch (zcg_int(NULL, "osd_type"))
     {
     case 0:
-      process_context(&ctx);
+      process_context(&ctx, timeout_cb);
       break;
     case 1:
       z_status_print(ctx.dest_buf);
@@ -1281,6 +1310,15 @@ osd_render		(const char *string, ...)
     }
 
   g_free(buf);
+
+  return;
+
+ failed:
+
+  if (timeout_cb)
+    timeout_cb(FALSE);
+
+  return;
 }
 
 /**

@@ -204,6 +204,11 @@ mw_setup		(GtkWidget	*page)
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
     zconf_get_integer(NULL,
 		      "/zapping/options/main/ratio"));  
+
+  /* entered channel numbers refer to */
+  widget = lookup_widget(page, "optionmenu23");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL, "/zapping/options/main/channel_txl"));
 }
 
 static void
@@ -233,6 +238,10 @@ mw_apply		(GtkWidget	*page)
   widget = lookup_widget(page, "optionmenu1"); /* ratio mode */
   zconf_set_integer(z_option_menu_get_active(widget),
 		    "/zapping/options/main/ratio");
+
+  widget = lookup_widget(page, "optionmenu23"); /* channels refer to */
+  zconf_set_integer(z_option_menu_get_active(widget),
+		    "/zapping/options/main/channel_txl");
 }
 
 /* Video */

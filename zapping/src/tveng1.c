@@ -1520,10 +1520,11 @@ static int
 tveng1_get_mute(tveng_device_info * info)
 {
   int returned_value;
+
   if (tveng_get_control_by_name(_("Mute"), &returned_value, info) ==
       -1)
     return -1;
-  return returned_value;
+  return !!returned_value;
 }
 
 /*
@@ -1533,7 +1534,7 @@ tveng1_get_mute(tveng_device_info * info)
 static int
 tveng1_set_mute(int value, tveng_device_info * info)
 {
-  return (tveng_set_control_by_name(_("Mute"), value, info));
+  return (tveng_set_control_by_name(_("Mute"), !!value, info));
 }
 
 /*

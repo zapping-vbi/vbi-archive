@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.16 2001-09-28 20:19:27 garetxe Exp $ */
+/* $Id: osd.h,v 1.17 2002-02-05 05:28:31 mschimek Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
@@ -44,16 +44,20 @@ void osd_clear(void);
  * Formats and renders the given string, that should be in the current
  * locale. The behaviour of this function is controlled by the OSD
  * properties.
+ * @timeout_cb: When given and osd timed out, called with TRUE, when
+ *   when given and error or replaced, called with FALSE. 
  * @string: Chars to draw.
  */
 void
-osd_render_sgml		(const char *string, ...);
+osd_render_sgml		(void (* timeout_cb)(gboolean),
+			 const char *string, ...);
 
 /**
  * Like osd_render_sgml but no sgml parsing is done
  */
 void
-osd_render		(const char *string, ...);
+osd_render		(void (* timeout_cb)(gboolean),
+			 const char *string, ...);
 
 extern ZModel *osd_model; /* used for notification of changes */
 

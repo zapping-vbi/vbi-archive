@@ -910,20 +910,22 @@ tvengxv_set_control(struct tveng_control * control, int value,
 static int
 tvengxv_get_mute(tveng_device_info * info)
 {
-  int val;
+  /*  int val; */
   struct private_tvengxv_device_info * p_info =
     (struct private_tvengxv_device_info*)info;
 
   t_assert(info != NULL);
 
-  val = -1;
+#if 1 /* BTTV workaround */
+  return !!p_info->muted;
+#else
   if (p_info->mute != None)
-    XvGetPortAttribute(info->private->display,
-		       p_info->port,
-		       p_info->mute,
-		       &val);
+    if (Success != XvGetPortAttribute(info->private->display,
+	p_info->port, p_info->mute, &val))
+      return -1;
 
-  return val;
+  return !!val;
+#endif
 }
 
 static int
@@ -933,12 +935,14 @@ tvengxv_set_mute(int value, tveng_device_info * info)
     (struct private_tvengxv_device_info*)info;
 
   t_assert(info != NULL);
+  value = !!value;
 
   if (p_info->mute != None)
-    XvSetPortAttribute(info->private->display,
-		       p_info->port,
-		       p_info->mute,
-		       value);
+    if (Success != XvSetPortAttribute(info->private->display,
+	p_info->port, p_info->mute, value))
+      return -1;
+
+  p_info->muted = value;
 
   return 0;
 }

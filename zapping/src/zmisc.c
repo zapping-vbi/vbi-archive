@@ -459,8 +459,9 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   zmodel_changed(z_input_model);
   /* Updating the properties is not so useful, and it isn't so easy,
      since there might be multiple properties dialogs open */
+
   if (muted != -1)
-    tveng_set_mute(muted, info);
+    set_mute1(!!muted, FALSE, FALSE);
   /* Update the controls window if it's open */
   update_control_box(info);
 

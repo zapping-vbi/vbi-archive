@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.17 2002-02-03 13:19:20 mschimek Exp $
+ * $Id: fullscreen.c,v 1.18 2002-02-05 05:28:31 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -91,7 +91,7 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
 	  /* mute/unmute */
 	case GDK_a:
 	  if (kevent->state & GDK_CONTROL_MASK)
-	    on_toggle_muted1_activate(NULL, NULL);
+	    set_mute1(2, TRUE, TRUE);
 	  break;
 	default:
 	  return z_select_channel_by_key(kevent);

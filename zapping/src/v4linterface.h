@@ -63,6 +63,9 @@ z_switch_channel		(tveng_tuned_channel	*channel,
 void
 z_select_channel		(gint num_channel);
 
+void
+z_select_rf_channel		(gchar *name);
+
 gboolean
 z_select_channel_by_key		(GdkEventKey *event);
 

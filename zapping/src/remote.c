@@ -159,12 +159,10 @@ gpointer remote_command(gchar *command, gpointer arg)
     }
   else if (!strcasecmp(command, "set_channel"))
     {
-      int channel_num = GPOINTER_TO_INT(arg);
-      if (channel_num < 0)
-	channel_num = 0;
-      if (channel_num >= tveng_tuned_channel_num(global_channel_list))
-	channel_num = tveng_tuned_channel_num(global_channel_list)-1;
-      z_select_channel(channel_num);
+      gchar *buf = g_strdup_printf("%u", GPOINTER_TO_INT(arg));
+
+      z_select_rf_channel(buf);
+      g_free(buf);
     }
   else if (!strcasecmp(command, "channel_up"))
     {

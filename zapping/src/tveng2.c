@@ -1169,7 +1169,7 @@ tveng2_get_mute(tveng_device_info * info)
   if (tveng_get_control_by_id(V4L2_CID_AUDIO_MUTE, &returned_value, info) ==
       -1)
     return -1;
-  return returned_value;
+  return !!returned_value;
 }
 
 /*
@@ -1179,7 +1179,7 @@ tveng2_get_mute(tveng_device_info * info)
 static int
 tveng2_set_mute(int value, tveng_device_info * info)
 {
-  return (tveng_set_control_by_id(V4L2_CID_AUDIO_MUTE, value, info));
+  return (tveng_set_control_by_id(V4L2_CID_AUDIO_MUTE, !!value, info));
 }
 
 #endif /* !defined(TVENG2_FAKE_MUTE) */

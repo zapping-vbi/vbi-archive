@@ -173,20 +173,20 @@ decoding_thread (void *p)
     gettimeofday (&now, NULL);
     timeout.tv_sec = now.tv_sec + 1;
     timeout.tv_nsec = now.tv_usec * 1000;
-  D();
+
     if (!(b = wait_full_buffer_timeout (&c, &timeout)))
       continue;
-  D();
+
     if (b->used <= 0) {
       send_empty_buffer (&c, b);
       if (b->used < 0)
 	fprintf (stderr, "I/O error in decoding thread, aborting.\n");
       break;
     }
-  D();
+
     vbi_decode (vbi, (vbi_sliced *) b->data,
 		b->used / sizeof(vbi_sliced), b->time);
-  D();
+
     send_empty_buffer(&c, b);
   }
 
@@ -221,18 +221,16 @@ capturing_thread (void *x)
   while (!vbi_quit) {
     buffer *b;
     int lines;
-  D();
+
     b = wait_empty_buffer (&p);
-  D();
+
     switch (vbi_capture_read_sliced (capture, (vbi_sliced *) b->data,
 				     &lines, &b->time, &timeout))
       {
       case 1:
-  D();
 	break;
 
       case 0:
-  D();
 #if 0
 	for (; stacked > 0; stacked--)
 	  send_full_buffer (&p, PARENT (rem_head(&stack), buffer, node));
@@ -246,7 +244,6 @@ capturing_thread (void *x)
 	goto abort;
 
       default:
-  D();
 #if 0
 	for (; stacked > 0; stacked--)
 	  send_full_buffer (&p, PARENT (rem_head(&stack), buffer, node));
@@ -259,14 +256,14 @@ capturing_thread (void *x)
 
 	goto abort;
       }
-  D();
+
     if (lines == 0) {
       ((vbi_sliced *) b->data)->id = VBI_SLICED_NONE;
       b->used = sizeof(vbi_sliced); /* zero means EOF */
     } else {
       b->used = lines * sizeof(vbi_sliced);
     }
-  D();
+
 #if 0 /* L8R */
     /*
      *  This curious construct compensates temporary shifts
@@ -298,7 +295,7 @@ capturing_thread (void *x)
 
     last_time = b->time;
 #endif
-  D();
+
     send_full_buffer(&p, b);
   }
 
@@ -427,6 +424,8 @@ threads_destroy (void)
 {
   vbi_quit = TRUE;
 
+  D();
+
   if (vbi)
     {
 // XXX should wait a brief period, then if no response terminate the threads.
@@ -437,6 +436,8 @@ threads_destroy (void)
       vbi_decoder_delete (vbi);
       vbi = NULL;
     }
+
+  D();
 }
 
 

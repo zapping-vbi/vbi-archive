@@ -1,3 +1,11 @@
+05.02.2002	Another mute fix and better KP entering <mschimek@users.sf.net>
+
+	* src/tvengxv.c: tveng_get|set_mute ignored controls bttv
+	  mute bug workaround.	   
+	* src/osd.c: Added remove timeout callback.
+	* src/v4linterface.c: Uses OSD for KP channel number entering.
+	* Added "channel number refers to" option.
+
 03.02.2002	Mute fixes <mschimek@users.sf.net>
 
 	* src/zmisc.c: zmisc_switch_mode() didn't expect failure of
