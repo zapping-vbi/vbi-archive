@@ -38,8 +38,8 @@
 #include <netdb.h>
 
 #include "vdr.h"
-#include "remote.h"
 #include "zmisc.h"
+#include "remote.h"
 
 static int vdr_sock = -1;
 static struct sockaddr_in vdr_sockaddr;
@@ -70,8 +70,12 @@ vdr_open			(void)
     /* FIXME handle both loopback and normal ip */
     vdr_sockaddr.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
     setsockopt(vdr_sock,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(opt));
-    if (connect(vdr_sock, (struct sockaddr *)&vdr_sockaddr, sizeof(vdr_sockaddr))) {
-         printv("vdr: connect failed\n");        
+    if (connect (vdr_sock,
+		 (struct sockaddr *) &vdr_sockaddr,
+		 sizeof(vdr_sockaddr))) {
+         printv("vdr: connect failed\n");
+	 close(vdr_sock);
+         vdr_sock = -1;
          return FALSE;
     }
     fcntl(vdr_sock,F_SETFL,O_NONBLOCK);
