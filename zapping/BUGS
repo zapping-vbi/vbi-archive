@@ -1,31 +1,31 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
-* Overlay broken?
-* Won't compile without libzvbi, some #ifdefs missing.
+* OSD doesn't work
+  (zapping:27973): WARNING **: pango-layout.c:830: Unknown tag
+  'blue' on line 1 char 42
+* Overlay needs a review.
+* Chance hang in request_capture_format_real at some rwlock,
+  in libzvbi-less Zapping, when switching display mode
+  (btw overlay and fullscreen IIRC).
+* Fullscreen doesn't work in libzvbi-less Zapping, does
+  in other versions (with --no-xv, using DMA).
+* ./configure --enable-pam is untested.
 * Must check if "no audio recording" works.
-* Context menu subtitles not disabled when vbi is.
-* Context menu toggle items don't show current state.
-* Heisencrash in capture mode after enabling vbi decoding in prefs.
 * Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
 * Pointer does not properly reappear in windowed mode.
-* Go Fullscreen w/automatic vidmode hangs on RH
 * ** (zapping:14562): WARNING **: Group Allgemeine Optionen not found
-  in the properties
+  in the properties; Also seen with "VBI Optionen"
 * Video size isn't always right on startup.
 * TTX search: on the fly case and regex change doesnt work.
 * Wrong window stacking layer of overlay window when
   Zapping restores no-xv fullscreen at startup.
-* (Zapping 0.6.7) Saving QVC-600 TTX page in HTML segfaults.
 * Station search doesn't work in overlay mode
   (Xv/v4l no signal strength), need check/switch.
 - In capture mode window resizing flickers.
-* fprintf_ioctl dereferences uninitialized strings.
 * Need better no-overlay-present handling.
 * Capture won't work under PPC (endianess)
 * Look for endianness problems.
-* In capture mode at high res w/xv the video stumbles,
-  maybe only on slow CPUs. No such thing in 0.6. What changed?
 * vbi eats too much CPU, investigate.
 ~ Zapzilla: Calls fetch_page more often than necessary,
   investigate.
@@ -35,10 +35,7 @@ Known bugs in Zapping, don't report them
   isn't correctly detected.
 * Do not assert on ESD timeout
 * Bug in save window geometry, reported by Pawel.
-* Subtitles: auto-overlays search result pages.
-* config.h is also full of hardcoded paths.
 * Spinslider minimum sizes.
-* Bad reception breaks vbi decoding: i/o error.
 * "drose": Under mdk 9.1 the video capture stops for no reason.
   Start recording to a file -- come back in ten minutes, 1 - 3 minutes
   of video are stored and zapping wasn't running.
@@ -56,6 +53,21 @@ Needs more work later:
   handle that for us, see gnome-app-helper.c. Or right click
   on the toolbar dock bevel. Note also Ctrl-Cursor to move
   the toolbar around.
+* 2003-11-27 From windowed overlay to fullscreen w/automatic vidmode hang
+  on RH at switch_mode (PREVIEW) -> z_set_window_bg -> calloc segv.
+  Circumstances might be coincidental, it doesn't happen predictable.
+  valgrind --skin=addrcheck was inconclusive:
+   ==17270== Invalid memory access of size 4
+   at 0x40424ABB: gconf_engine_all_dirs (in /usr/lib/libgconf-2.so.4.1.0)
+   by 0x4042A0E9: gconf_client_preload (in /usr/lib/libgconf-2.so.4.1.0)
+   by 0x404292A3: gconf_client_add_dir (in /usr/lib/libgconf-2.so.4.1.0)
+   by 0x40279941: (within /usr/lib/libgnomeui-2.so.0.200.0)
+   Address 0x0 is not stack'd, malloc'd or free'd
+   No recipient addresses found in header
+  Program segv'ed before window opened.
+* fprintf_ioctl dereferences uninitialized strings. This is only
+  used for debugging, but I'll sure regret it.
+* 0.7 seems to run slower than 0.6, must profile.
 
 tvengxv.c
 * Need to handle BadAtom errors resulting from Xv out

@@ -1,3 +1,48 @@
+2003-11-28    <mschimek@users.sf.net>
+
+	* src/properties-handler.c (video_setup, video_apply): Fullscreen
+	  vidmode option only when xf86vmode available.
+	  (vbi_general_setup): VBI options only when libzvbi available.
+	* src/zmisc.c (zmisc_stop), src/v4linterface.c (z_switch_channel):
+	  Compile only if libzvbi present.
+	  (z_on_electric_filename): Uninitialized pointer deref.
+	* src/x11stuff.c: Compile warning fixes.
+	* src/tvengxv.c (p_tvengxv_open_device): Uninitialized value.
+	* src/tveng.c (set_control_audio): Compile warning fix.
+	  (tveng_attach_device): Use emulator backend if device name
+	  is 'emulator'.
+	* src/tvengemu.c: Removed TVENGEMU_ENABLE.
+	* src/ttxview.c (get_ttxview_page), src/osd.c (osd_clear):
+	  Uninitialized pointer deref (might be called from
+	  py_closed_caption() before main_window was created).
+
+2003-11-27    <mschimek@users.sf.net>
+
+	* src/zvbi.h: Define vbi_pgno, vbi_gui_sensitive() when
+	  libzvbi not present.
+	* src/tveng2.c (update_video_input_list): Uninitialized value.
+	* src/tveng.c (tveng_get_control_by_name): Uninitialized pointer
+	  deref.
+	* src/properties-handler.c (video_setup, video_apply),
+	  src/main.c (main): Xv options only when XVideo available.
+
+	* src/tveng.c (tv_set_overlay_buffer): Try zapping_setup_fb in PATH
+	  first, installed exe might lack suid root.
+	* src/zvbi.c (vbi_gui_sensitive): Remove menu item subtitles
+	  when vbi is disabled.
+	  (decoding_thread): Didn't properly handle i/o errors, causing
+	  chance segv's in vbi_decode().
+	* src/interface.c (zapping_popup_menu_new): Show toolbar
+	  checkmark was reversed.
+
+	* plugins/mpeg/Makefile.am: Removed mpeg_strings.c,
+	  intltool takes care.
+	* po/POTFILE.in: s/mpeg_strings.c/mpeg_properties.glade2, added
+	  missing files.
+	* plugins/Makefile.am: Don't build plugins/lirc.
+	* configure.in: Don't configure plugins/lirc.
+	* src, plugins: Some i18n related improvements and corrections.
+
 2003-11-26    <mschimek@users.sf.net>
 
 	* src/zvbi.c: Removed unused zvbi_(caption_)subpage.
