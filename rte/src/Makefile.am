@@ -65,4 +65,5 @@ librteinclude_HEADERS = librte.h
 librte_la_LIBADD = -lpthread -lm \
 	$(ffmpeg_libs) $(mp1e_libs) $(divx4linux_libs)
 
-librte_la_LDFLAGS = -export-dynamic -export-symbols rte.sym -version-info 1:0:0
+# XXX srcdir?
+librte_la_LDFLAGS = -export-dynamic -export-symbols $(srcdir)/rte.sym -version-info 1:0:0

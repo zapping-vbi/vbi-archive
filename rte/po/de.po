@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: RTE 0.5\n"
-"POT-Creation-Date: 2002-07-08 11:01+0200\n"
+"POT-Creation-Date: 2002-09-01 19:19+0200\n"
 "PO-Revision-Date: 2002-06-13 05:06+0200\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -12,12 +12,12 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: mp1e/video/mpeg1.c:2145
+#: mp1e/video/mpeg1.c:2127
 #, c-format
 msgid "Invalid group of pictures sequence: \"%s\".\n"
 msgstr "Unzulässige Gruppe von Bildern: \"%s\".\n"
 
-#: mp1e/video/mpeg1.c:2152
+#: mp1e/video/mpeg1.c:2134
 #, c-format
 msgid ""
 "Invalid group of pictures sequence: \"%s\", length %d.\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Unzulässige Gruppe von Bildern: \"%s\", länge %d.\n"
 "Die Anzahl der Bilder in einer Gruppe ist begrenzt auf 1024."
 
-#: mp1e/video/mpeg1.c:2205
+#: mp1e/video/mpeg1.c:2187
 #, c-format
 msgid ""
 "Invalid group of pictures sequence: \"%s\".\n"
@@ -37,46 +37,46 @@ msgstr ""
 "Die Anzahl aufeinanderfolgender 'B' bidirektional kodierter\n"
 "Bilder ist begrenzt auf %u."
 
-#: mp1e/video/mpeg1.c:2466
+#: mp1e/video/mpeg1.c:2428
 msgid "Out of memory for mc buffer."
 msgstr "Nicht genug Speicher für MC-Puffer."
 
-#: mp1e/video/mpeg1.c:2486 mp1e/video/mpeg1.c:2491
+#: mp1e/video/mpeg1.c:2448 mp1e/video/mpeg1.c:2453
 msgid "Out of memory for video buffer."
 msgstr "Nicht genug Speicher für Bildpuffer."
 
-#: mp1e/video/mpeg1.c:2501 mp1e/video/mpeg1.c:2858 mp1e/audio/mp2.c:1172
+#: mp1e/video/mpeg1.c:2463 mp1e/video/mpeg1.c:2820 mp1e/audio/mp2.c:1152
 #: mp1e/b_mp1e.c:440 mp1e/b_mp1e.c:490 mp1e/b_mp1e.c:500 mp1e/b_mp1e.c:1090
 #: ffmpeg/b_ffmpeg.c:890 ffmpeg/b_ffmpeg.c:1142
 msgid "Out of memory."
 msgstr "Nicht genug Speicher."
 
-#: mp1e/video/mpeg1.c:2601
+#: mp1e/video/mpeg1.c:2563
 msgid "Standard compliant"
 msgstr "Standardkonform"
 
-#: mp1e/video/mpeg1.c:2602
+#: mp1e/video/mpeg1.c:2564
 msgid "Multiplexer"
 msgstr "Multiplexer"
 
-#: mp1e/video/mpeg1.c:2603
+#: mp1e/video/mpeg1.c:2565
 msgid "Fake picture"
 msgstr "Unechte Bilder einfügen"
 
-#: mp1e/video/mpeg1.c:2612 mp1e/audio/mp2.c:973 ffmpeg/b_ffmpeg.c:609
+#: mp1e/video/mpeg1.c:2574 mp1e/audio/mp2.c:973 ffmpeg/b_ffmpeg.c:609
 #: ffmpeg/b_ffmpeg.c:613
 msgid "Bit rate"
 msgstr "Bitrate"
 
-#: mp1e/video/mpeg1.c:2614
+#: mp1e/video/mpeg1.c:2576
 msgid "Output bit rate"
 msgstr "Bitrate"
 
-#: mp1e/video/mpeg1.c:2619
+#: mp1e/video/mpeg1.c:2581
 msgid "Virtual frame rate"
 msgstr "Virtuelle Bildrate"
 
-#: mp1e/video/mpeg1.c:2621
+#: mp1e/video/mpeg1.c:2583
 msgid ""
 "MPEG-1 allows only a few discrete values for frames/s, but this codec can "
 "skip frames if you wish. Choose the output bit rate accordingly."
@@ -85,11 +85,11 @@ msgstr ""
 "Encoder kann Bilder überspringen wenn Sie möchten. Wählen Sie\n"
 "die Bitrate entsprechend."
 
-#: mp1e/video/mpeg1.c:2625
+#: mp1e/video/mpeg1.c:2587
 msgid "Virtual frame rate method"
 msgstr "Methode für virtuelle Bildrate"
 
-#: mp1e/video/mpeg1.c:2627
+#: mp1e/video/mpeg1.c:2589
 msgid ""
 "The standard compliant method has one major drawback: it may have to promote "
 "some or even all B to P pictures, reducing the image quality."
@@ -98,15 +98,15 @@ msgstr ""
 "einige oder sogar alle B- als P-Bilder kodiert werden, was die Bildqualität "
 "reduziert."
 
-#: mp1e/video/mpeg1.c:2631
+#: mp1e/video/mpeg1.c:2593
 msgid "GOP sequence"
 msgstr "Bildsequenz"
 
-#: mp1e/video/mpeg1.c:2634
+#: mp1e/video/mpeg1.c:2596
 msgid "Motion compensation"
 msgstr "Bewegungskompensation"
 
-#: mp1e/video/mpeg1.c:2635
+#: mp1e/video/mpeg1.c:2597
 msgid ""
 "Enable motion compensation to improve the image quality. The motion search "
 "range is automatically adjusted."
@@ -114,11 +114,11 @@ msgstr ""
 "Aktivieren Sie Bewegungskompensation um die Bildqualität zu verbessern. Die "
 "Suchweite stellt sich automatisch ein."
 
-#: mp1e/video/mpeg1.c:2642
+#: mp1e/video/mpeg1.c:2604
 msgid "Annotation"
 msgstr "Anmerkung"
 
-#: mp1e/video/mpeg1.c:2643
+#: mp1e/video/mpeg1.c:2605
 msgid ""
 "Add an annotation in the user data field shortly after the video stream "
 "start. This is an mp1e extension, players will ignore it."
@@ -126,30 +126,30 @@ msgstr ""
 "Fügt eine Anmerkung im User-Data Feld kurz nach Beginn der Datei ein. Das "
 "ist eine mp1e spezifische Erweiterung, wird von Playern ignoriert."
 
-#: mp1e/video/mpeg1.c:2659
+#: mp1e/video/mpeg1.c:2621
 #, c-format
 msgid "%5.3f Mbit/s"
 msgstr "%5.3f Mbit/s"
 
-#: mp1e/video/mpeg1.c:2661
+#: mp1e/video/mpeg1.c:2623
 #, c-format
 msgid "%4.2f frames/s"
 msgstr "%4.2f Bilder/s"
 
-#: mp1e/video/mpeg1.c:2666
+#: mp1e/video/mpeg1.c:2628
 #, c-format
 msgid "%5.3f frames/s"
 msgstr "%5.3f Bilder/s"
 
-#: mp1e/video/mpeg1.c:2674
+#: mp1e/video/mpeg1.c:2636
 msgid "on"
 msgstr "an"
 
-#: mp1e/video/mpeg1.c:2674
+#: mp1e/video/mpeg1.c:2636
 msgid "off"
 msgstr "aus"
 
-#: mp1e/video/mpeg1.c:2676 mp1e/audio/mp2.c:1041
+#: mp1e/video/mpeg1.c:2638 mp1e/audio/mp2.c:1021
 #, c-format
 msgid "%f frames"
 msgstr "%f Bilder"
@@ -204,26 +204,26 @@ msgstr ""
 "80 kbit/s je Kanal, wenn Sie Fledermausohren haben oder der zusätzliche "
 "Aufwand nicht weiter ins Gewicht fällt."
 
-#: mp1e/audio/mp2.c:1025 ffmpeg/b_ffmpeg.c:663 ffmpeg/b_ffmpeg.c:667
+#: mp1e/audio/mp2.c:1005 ffmpeg/b_ffmpeg.c:663 ffmpeg/b_ffmpeg.c:667
 #, c-format
 msgid "%u kbit/s"
 msgstr "%u kbit/s"
 
-#: mp1e/audio/mp2.c:1030 ffmpeg/b_ffmpeg.c:658 ffmpeg/b_ffmpeg.c:671
+#: mp1e/audio/mp2.c:1010 ffmpeg/b_ffmpeg.c:658 ffmpeg/b_ffmpeg.c:671
 #: ffmpeg/b_ffmpeg.c:675
 #, c-format
 msgid "%u Hz"
 msgstr "%u Hz"
 
-#: mp1e/audio/mp2.c:1195 ffmpeg/b_ffmpeg.c:835
+#: mp1e/audio/mp2.c:1175 ffmpeg/b_ffmpeg.c:835
 msgid "MPEG-1 Audio Layer II"
 msgstr "MPEG-1 Audio Layer II"
 
-#: mp1e/audio/mp2.c:1214
+#: mp1e/audio/mp2.c:1194
 msgid "MPEG-2 Audio Layer II LFE"
 msgstr "MPEG-2 Audio Layer II LFE"
 
-#: mp1e/audio/mp2.c:1215
+#: mp1e/audio/mp2.c:1195
 msgid ""
 "MPEG-2 Low (Sampling) Frequency Extension to MPEG-1 Audio Layer II. Be "
 "warned not all MPEG video and audio players support MPEG-2 audio."
