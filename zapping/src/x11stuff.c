@@ -1236,7 +1236,7 @@ x11_vidmode_current		(const x11_vidmode_info *list)
 
 gboolean
 x11_vidmode_switch		(const x11_vidmode_info *vlist,
-				 const x11_xinerama_info *xlist,
+				 const tv_screen *	slist,
 				 const x11_vidmode_info *vm,
 				 x11_vidmode_state *	vs)
 {
