@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.3 2001-04-24 04:08:11 mschimek Exp $ */
+/* $Id: trigger.c,v 1.4 2001-04-24 07:14:10 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,20 +48,34 @@ struct _vbi_trigger {
 static bool
 verify_checksum(unsigned char *s, int count, int checksum)
 {
-	register unsigned long sum = checksum;
+	register unsigned long sum2, sum1 = checksum;
 
 	for (; count > 1; count -= 2) {
-		sum += *s++ << 8;
-		sum += *s++;
+		sum1 += *s++ << 8;
+		sum1 += *s++;
 	}
 
-	if (count > 0)
-		sum += *s << 8;
+	sum2 = sum1;
 
-	while (sum >= (1 << 16))
-		sum = (sum & 0xFFFFUL) + (sum >> 16);
+	/*
+	 *  There seems to be confusion about how left-over
+	 *  bytes shall be added, the example C code in
+	 *  RFC 1071 subclause 4.1 contradicts the definition
+	 *  in subclause 1 (zero pad to 16 bit). Or maybe
+	 *  an endianess expert SNAFU-ed.
+	 */
+	if (count > 0) {
+		sum1 += *s << 8; /* correct */
+		sum2 += *s << 0; /* wrong */
+	}
 
-	return sum == 0xFFFFUL;
+	while (sum1 >= (1 << 16))
+		sum1 = (sum1 & 0xFFFFUL) + (sum1 >> 16);
+
+	while (sum2 >= (1 << 16))
+		sum2 = (sum2 & 0xFFFFUL) + (sum2 >> 16);
+
+	return sum1 == 0xFFFFUL || sum2 == 0xFFFFUL;
 }
 
 static int
