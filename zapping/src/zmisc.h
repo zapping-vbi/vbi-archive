@@ -137,17 +137,17 @@ Prompt (GtkWidget *main_window, const gchar *title,
 GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
 				       const gchar * icon);
 
-/**
- * Sets the tooltip of the given widget.
- */
-void set_tooltip	(GtkWidget	*widget,
-			 const gchar	*new_tip);
-
-/**
- * Changes sensitivity and sets the appropriate tooltip if given.
- */
-void
-set_sensitive_with_tooltip	(GtkWidget *		widget,
+GtkTooltips *
+z_tooltips_add			(GtkTooltips *		tips);
+extern void
+z_tooltips_active		(gboolean		enable);
+#define z_tooltips_enable() z_tooltips_active (TRUE)
+#define z_tooltips_disable() z_tooltips_active (FALSE)
+extern void
+z_tooltip_set			(GtkWidget *		widget,
+				 const gchar *		tip_text);
+extern void
+z_set_sensitive_with_tooltip	(GtkWidget *		widget,
 				 gboolean		sensitive,
 				 const gchar *		on_tip,
 				 const gchar *		off_tip);

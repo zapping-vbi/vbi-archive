@@ -186,45 +186,85 @@ GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
   return (pixmap_menu_item);
 }
 
-void set_tooltip	(GtkWidget	*widget,
-			 const gchar	*new_tip)
+/*
+ *  Zapping Global Tooltips
+ */
+
+static GList *			tooltips_list = NULL;
+static GtkTooltips *		tooltips_default = NULL;
+static gboolean			tooltips_enabled = TRUE;
+
+static void
+tooltips_destroy_notify		(gpointer		data)
 {
-  GtkTooltipsData *td = gtk_tooltips_data_get(widget);
-  GtkTooltips *tips;
+  g_list_remove (tooltips_list, data);
+}
 
-  if ((!td) || (!td->tooltips))
-    tips = gtk_tooltips_new();
+GtkTooltips *
+z_tooltips_add			(GtkTooltips *		tips)
+{
+  if (!tips)
+    tips = gtk_tooltips_new (); /* XXX destroy at exit */
+
+  tooltips_list = g_list_append (tooltips_list, (gpointer) tips);
+
+  gtk_object_weakref (GTK_OBJECT (tips),
+		      tooltips_destroy_notify,
+		      (gpointer) tips);
+
+  if (tooltips_enabled)
+    gtk_tooltips_enable (tips);
   else
-    tips = td->tooltips;
+    gtk_tooltips_disable (tips);
 
-  gtk_tooltips_set_tip(tips, widget, new_tip,
-		       "private tip, or, er, just babbling, you know");
+  return tips;
 }
 
 void
-set_sensitive_with_tooltip	(GtkWidget *		widget,
+z_tooltips_active		(gboolean		enable)
+{
+  GList *list;
+
+  tooltips_enabled = enable;
+
+  for (list = tooltips_list; list; list = list->next)
+    {
+      if (enable)
+	gtk_tooltips_enable (GTK_TOOLTIPS (list->data));
+      else
+	gtk_tooltips_disable (GTK_TOOLTIPS (list->data));
+    }
+}
+
+void
+z_tooltip_set			(GtkWidget *		widget,
+				 const gchar *		tip_text)
+{
+  if (!tooltips_default)
+    tooltips_default = z_tooltips_add (NULL);
+
+  gtk_tooltips_set_tip (tooltips_default, widget, tip_text, "private tip");
+}
+
+void
+z_set_sensitive_with_tooltip	(GtkWidget *		widget,
 				 gboolean		sensitive,
 				 const gchar *		on_tip,
 				 const gchar *		off_tip)
 {
-  GtkTooltipsData *td = gtk_tooltips_data_get (widget);
-  GtkTooltips *tips;
   const gchar *new_tip;
 
-  if (!td || !td->tooltips)
-    tips = gtk_tooltips_new ();
-  else
-    tips = td->tooltips;
+  if (!tooltips_default)
+    tooltips_default = z_tooltips_add (NULL);
 
   gtk_widget_set_sensitive (widget, sensitive);
 
-  new_tip = sensitive ? on_tip : off_tip;
+  new_tip = sensitive ? on_tip : off_tip; /* can be NULL */
 
-  if (new_tip)
-    gtk_tooltips_set_tip (tips, widget, new_tip, NULL);
-  else
-    gtk_tooltips_disable (tips);
+  gtk_tooltips_set_tip (tooltips_default, widget, new_tip, NULL);
 }
+
+/*****************************************************************************/
 
 int
 zmisc_restore_previous_mode(tveng_device_info * info)
@@ -301,12 +341,12 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	  ttxview_detach(main_window);
 
 	  set_stock_pixmap(w, GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
-	  set_tooltip(w, _("Use Zapping as a Teletext navigator"));
+	  z_tooltip_set(w, _("Use Zapping as a Teletext navigator"));
 	}
       else
 	{
 	  set_stock_pixmap(w, GNOME_STOCK_PIXMAP_TABLE_FILL);
-	  set_tooltip(w, _("Return to windowed mode and use the current "
+	  z_tooltip_set(w, _("Return to windowed mode and use the current "
 			   "page as subtitles"));
 	}
     }
@@ -674,7 +714,7 @@ z_change_menuitem			 (GtkWidget	*widget,
   if (new_label)
     change_pixmenuitem_label(widget, new_label);
   if (new_tooltip)
-    set_tooltip(widget, new_tooltip);
+    z_tooltip_set(widget, new_tooltip);
   if (new_pixmap)
     {
       spixmap = gnome_stock_pixmap_widget_at_size(widget, new_pixmap, 16, 16);
@@ -708,7 +748,7 @@ add_hide(GtkWidget *appbar)
     return;
 
   widget = gnome_stock_button(GNOME_STOCK_BUTTON_CLOSE);
-  set_tooltip(widget, _("Hide the status bar"));
+  z_tooltip_set(widget, _("Hide the status bar"));
 
   if (widget)
     gtk_box_pack_end(GTK_BOX(appbar), widget, FALSE, FALSE, 0);
