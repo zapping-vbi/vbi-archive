@@ -2268,7 +2268,7 @@ startup_v4linterface(tveng_device_info *info)
 		("Increase volume"), "zapping.control_incr('volume',+1)",
 		("Decrease volume"), "zapping.control_incr('volume',-1)");
 
-  zcc_char("Zapping: $(alias)", "Title format Z will use", "title_format");
+  zcc_char("$(alias) - Zapping", "Title format Z will use", "title_format");
   zcc_bool(FALSE, "Swap the page Up/Down bindings", "swap_up_down");
 /*
   zcc_zkey (zkey_from_name ("Page_Up"), "Channel up key", "acc_channel_up");
