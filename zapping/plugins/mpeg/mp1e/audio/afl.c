@@ -19,11 +19,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: afl.c,v 1.1 2000-11-03 06:18:26 mschimek Exp $ */
+/* $Id: afl.c,v 1.2 2000-11-04 00:22:58 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "../common/log.h"
+#include "../common/fifo.h"
 
 #if HAVE_LIBAUDIOFILE
 

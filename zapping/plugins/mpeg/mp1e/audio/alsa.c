@@ -19,11 +19,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.5 2000-11-03 06:18:26 mschimek Exp $ */
+/* $Id: alsa.c,v 1.6 2000-11-04 00:22:58 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "../common/log.h" 
+#include "../common/fifo.h"
 
 #ifdef HAVE_LIBASOUND
 

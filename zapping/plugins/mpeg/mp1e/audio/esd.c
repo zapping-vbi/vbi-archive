@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.4 2000-11-03 06:18:26 mschimek Exp $ */
+/* $Id: esd.c,v 1.5 2000-11-04 00:22:58 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,7 +45,7 @@
 
 #include <esd.h>
 
-#define BUFFER_SIZE (ESD_BUF_SIZE*4) // bytes per read(), appx.
+#define BUFFER_SIZE (ESD_BUF_SIZE) // bytes per read(), appx.
 
 struct esd_context {
 	struct pcm_context	pcm;
@@ -181,10 +181,6 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 	esd->pcm.fifo.buffers[0].used =
 		(esd->samples_per_frame + esd->look_ahead) * sizeof(short);
 	esd->pcm.fifo.user_data = esd;
-
-	/* fixme: [hack time] fills in the audio buffer, so we don't
-	   lose some frames in the beginning */
-	wait_full(&esd->pcm.fifo);
 
 	return &esd->pcm.fifo;
 }
