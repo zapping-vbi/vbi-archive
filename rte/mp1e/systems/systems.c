@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.c,v 1.11 2002-05-09 21:04:46 mschimek Exp $ */
+/* $Id: systems.c,v 1.12 2002-06-24 03:19:47 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -192,14 +192,16 @@ void *
 stream_sink(void *muxp)
 {
 	multiplexer *mux = muxp;
-	unsigned long long bytes_out = 0;
 	int num_streams;
 	buffer *buf = NULL;
 	stream *str;
 
 	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock,
 			     (void *) &mux->streams.rwlock);
+
 	assert(pthread_rwlock_rdlock(&mux->streams.rwlock) == 0);
+
+	mux->status.bytes_out = 0;
 
 	for_all_nodes (str, &mux->streams, fifo.node)
 		str->left = 1;
@@ -225,7 +227,7 @@ stream_sink(void *muxp)
 				continue;
 			}
 
-			bytes_out += buf->used;
+			mux->status.bytes_out += buf->used;
 
 			send_empty_buffer(&str->cons, buf);
 
@@ -233,7 +235,7 @@ stream_sink(void *muxp)
 				double system_load = 1.0 - get_idle();
 
 				printv(1, "%.3f MB >0, %.2f %% dropped, system load %.1f %%  %c",
-					bytes_out / (double)(1 << 20),
+					mux->status.bytes_out / (double)(1 << 20),
 					video_frame_count ? 100.0
 						* video_frames_dropped / video_frame_count : 0.0,
 					100.0 * system_load, (verbose > 3) ? '\n' : '\r');
@@ -256,8 +258,6 @@ void *
 elementary_stream_bypass(void *muxp)
 {
 	multiplexer *mux = muxp;
-	unsigned long long bytes_out = 0;
-	unsigned long long frame_count = 0;
 	double system_load;
 	stream *str;
 
@@ -265,6 +265,9 @@ elementary_stream_bypass(void *muxp)
 			     (void *) &mux->streams.rwlock);
 
 	assert(pthread_rwlock_rdlock(&mux->streams.rwlock) == 0);
+
+	mux->status.bytes_out = 0;
+	mux->status.frames_out = 0;
 
 	assert(list_members((list *) &mux->streams) == 1);
 
@@ -289,8 +292,8 @@ elementary_stream_bypass(void *muxp)
 			continue;
 		}
 
-		frame_count++;
-		bytes_out += buf->used;
+		mux->status.frames_out++;
+		mux->status.bytes_out += buf->used;
 
 		buf = mux->mux_output(mux, buf);
 
@@ -303,7 +306,8 @@ elementary_stream_bypass(void *muxp)
 			system_load = 1.0 - get_idle();
 
 			if (IS_VIDEO_STREAM(str->stream_id)) {
-				frame = lroundn(frame_count * frame_rate / str->frame_rate);
+				frame = lroundn(mux->status.frames_out
+						* frame_rate / str->frame_rate);
 				// exclude padding frames
 
 				sec = frame / str->frame_rate;
@@ -313,21 +317,27 @@ elementary_stream_bypass(void *muxp)
 
 				if (video_frames_dropped > 0)
 					printv(1, "%d:%02d.%02d (%.1f MB), %.2f %% dropped, system load %.1f %%  %c",
-						min, sec, (int) frame, bytes_out / (double)(1 << 20),
+						min, sec, (int) frame,
+						mux->status.bytes_out / (double)(1 << 20),
 						100.0 * video_frames_dropped / video_frame_count,
-						100.0 * system_load, (verbose > 3) ? '\n' : '\r');
+						100.0 * system_load,
+						(verbose > 3) ? '\n' : '\r');
 				else
 					printv(1, "%d:%02d.%02d (%.1f MB), system load %.1f %%    %c",
-						min, sec, (int) frame, bytes_out / (double)(1 << 20),
-						100.0 * system_load, (verbose > 3) ? '\n' : '\r');
+						min, sec, (int) frame,
+						mux->status.bytes_out / (double)(1 << 20),
+						100.0 * system_load,
+						(verbose > 3) ? '\n' : '\r');
 			} else {
-				sec = lroundn(frame_count / str->frame_rate);
+				sec = lroundn(mux->status.frames_out / str->frame_rate);
 				min = sec / 60;
 				sec -= min * 60;
 
 				printv(1, "%d:%02d (%.3f MB), system load %.1f %%    %c",
-					min, sec, bytes_out / (double)(1 << 20),
-					100.0 * system_load, (verbose > 3) ? '\n' : '\r');
+					min, sec,
+					mux->status.bytes_out / (double)(1 << 20),
+					100.0 * system_load,
+					(verbose > 3) ? '\n' : '\r');
 			}
 
 			fflush(stderr);

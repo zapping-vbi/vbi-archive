@@ -17,9 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.11 2002-05-09 21:04:53 mschimek Exp $ */
+/* $Id: systems.h,v 1.12 2002-06-24 03:19:57 mschimek Exp $ */
 
-#include "../site_def.h"
+#include "site_def.h"
 
 #include "libsystems.h"
 
@@ -30,24 +30,21 @@
 #ifndef PACKET_SIZE
 #define PACKET_SIZE		2048
 #endif
+
 #define PACKETS_PER_PACK	16
 #define PAD_PACKETS		FALSE
-#define CONST_BIT_RATE		FALSE
-#define PAYLOAD_ALIGNMENT	1
-
-typedef struct stream stream;
 
 typedef int64_t			tstamp; /* 90000/s */
 
 #define TSTAMP_MIN ((tstamp)(((uint64_t) 1) << 63))
 #define TSTAMP_MAX ((tstamp)((((uint64_t) 1) << 63) - 1))
 
-struct au {
+typedef struct access_unit {
 	tstamp			dts;
 	int			size;
-};
+} access_unit;
 
-struct stream {
+typedef struct stream {
 	fifo			fifo;
 	consumer		cons;
 
@@ -72,7 +69,7 @@ struct stream {
 	double			ticks_per_byte;
 
 	double			cap_t0;
-	long long		frame_count;
+//	long long		frame_count;
 
 
 
@@ -81,17 +78,9 @@ struct stream {
 	int			inbuf_free;
 	int			packet_payload;
 
-	struct au *		au_r;
-	struct au *		au_w;
-	struct au		au_ring[64];
-
-	int killme;
-};
+	access_unit *		au_r;
+	access_unit *		au_w;
+	access_unit		au_ring[64];
+} stream;
 
 #define elements(array) (sizeof(array) / sizeof(array[0]))
-
-
-
-
-
-
