@@ -1,3 +1,20 @@
+2004-09-16    <mschimek@users.sf.net>
+
+	* src/tveng25.c: Cleaned up overlay and capture format code. Added
+	  function to quickly determine supported pixfmts.   
+	(p_tveng25_dqbuf, tveng25_read_frame): Did not handle EAGAIN.
+	(tveng25_attach_device): Cleaned up, no more set default capture
+	  format, just get current overlay and capture format which has no
+	  side effects. Skip ioctls if unsupported.
+	* src/tveng.c (tv_get_overlay_buffer), src/tveng.h, src/tveng1.c,
+	  src/tveng2.c, src/tveng25.c, src/tveng_private.h, src/tvengbktr.c:
+	  Removed unnecessary target parameter.
+	* src/tveng.c, src/capture.c, src/tveng.h, src/tveng1.c,
+	  src/tveng2.c, src/tveng25.c, src/tvengbktr.c, src/tvengemu.c,
+	  plugins/mpeg/mpeg.c:
+	  s/info->format/info->capture_format for clarity. 
+	* src/x11stuff.c: Disable/enable KScreensaver (untested).
+
 2004-09-13    <mschimek@users.sf.net>
 
 	* Release 0.7.1.

@@ -28,6 +28,7 @@
 #  include <config.h>
 #endif
 
+#include "zmisc.h"
 #include "zmodel.h"
 #include "zmarshalers.h"
 
@@ -72,7 +73,7 @@ zmodel_get_type (void)
 }
 
 static void
-zmodel_init (ZModel *zmodel)
+zmodel_init (ZModel *zmodel _unused_)
 {
 
 }

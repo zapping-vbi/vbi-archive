@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-09-14 06:54+0200\n"
+"POT-Creation-Date: 2004-09-16 06:06+0200\n"
 "PO-Revision-Date: 2004-07-12 20:23+0200\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <kde-i18n-it@kde.org>\n"
@@ -44,7 +44,7 @@ msgstr "Avanzato"
 msgid "Arabic"
 msgstr "Araba"
 
-#: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng.c:4400
+#: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng.c:4404
 #: src/tveng2.c:615
 msgid "Audio"
 msgstr "Audio"
@@ -1451,7 +1451,7 @@ msgstr "Impostazioni predefinite del desktop (%s)"
 msgid "Do not change"
 msgstr "Non cambiare modalità"
 
-#: src/properties-handler.c:1171 src/tveng.c:4411 src/tveng2.c:463
+#: src/properties-handler.c:1171 src/tveng.c:4415 src/tveng2.c:463
 msgid "Automatic"
 msgstr "Automatica"
 
@@ -1775,43 +1775,43 @@ msgstr "Rivela il testo nascosto"
 msgid "Volume"
 msgstr "Volume"
 
-#: src/tveng.c:2857
+#: src/tveng.c:2856
 msgid "Cannot execute zapping_setup_fb."
 msgstr "Impossibile eseguire zapping_setup_fb."
 
-#: src/tveng.c:2867 src/tveng.c:2875
+#: src/tveng.c:2866 src/tveng.c:2874
 msgid "zapping_setup_fb failed."
 msgstr "zapping_setup_fb fallito."
 
-#: src/tveng.c:2880
+#: src/tveng.c:2879
 #, c-format
 msgid "zapping_setup_fb not found in \"%s\" or executable search path."
 msgstr ""
 "zapping_setup_fb non trovato in \"%s\" o nel percorso di ricerca degli "
 "eseguibili."
 
-#: src/tveng.c:2887
+#: src/tveng.c:2886
 msgid "Unknown error in zapping_setup_fb."
 msgstr "Errore sconosciuto in zapping_setup_fb."
 
-#: src/tveng.c:3566 src/tveng.c:3587
+#: src/tveng.c:3570 src/tveng.c:3591
 msgid "Filter"
 msgstr "Filtro"
 
 #. TRANSLATORS: Color replaced by video in overlay mode.
-#: src/tveng.c:3609
+#: src/tveng.c:3613
 msgid "Colorkey"
 msgstr "Chiave di colore"
 
-#: src/tveng.c:4418 src/tveng2.c:464 src/zvbi.c:135
+#: src/tveng.c:4422 src/tveng2.c:464 src/zvbi.c:135
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng.c:4425 src/tveng2.c:465 src/zvbi.c:136
+#: src/tveng.c:4429 src/tveng2.c:465 src/zvbi.c:136
 msgid "Stereo"
 msgstr "Stereo"
 
-#: src/tveng.c:4433
+#: src/tveng.c:4437
 msgid "Language 2"
 msgstr ""
 
@@ -1912,17 +1912,17 @@ msgstr "Alternativo 1"
 msgid "Alternate 2"
 msgstr "Alternativo 2"
 
-#: src/tveng2.c:1715 src/tveng25.c:1269
+#: src/tveng2.c:1714 src/tveng25.c:1431
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s non sembra un dispositivo di cattura valido"
 
-#: src/tveng2.c:1726 src/tveng25.c:1281
+#: src/tveng2.c:1725 src/tveng25.c:1443
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "Spiacente, ma \"%s\" non può fare streaming"
 
-#: src/tveng2.c:1736
+#: src/tveng2.c:1735
 #, c-format
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr "Spiacente, ma \"%s\" non può fare select() sui descrittori dei file"

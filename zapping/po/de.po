@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-09-14 06:54+0200\n"
+"POT-Creation-Date: 2004-09-16 06:06+0200\n"
 "PO-Revision-Date: 2003-11-27 01:18+0100\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -46,7 +46,7 @@ msgstr "Komplex"
 msgid "Arabic"
 msgstr "Arabisch"
 
-#: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng.c:4400
+#: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng.c:4404
 #: src/tveng2.c:615
 msgid "Audio"
 msgstr "Audio"
@@ -1481,7 +1481,7 @@ msgstr "Desktopvorgaben verwenden (%s)"
 msgid "Do not change"
 msgstr "Nicht verändern"
 
-#: src/properties-handler.c:1171 src/tveng.c:4411 src/tveng2.c:463
+#: src/properties-handler.c:1171 src/tveng.c:4415 src/tveng2.c:463
 msgid "Automatic"
 msgstr "Automatisch"
 
@@ -1807,41 +1807,41 @@ msgstr "Verborgenen Text aufdecken"
 msgid "Volume"
 msgstr "Lautstärke"
 
-#: src/tveng.c:2857
+#: src/tveng.c:2856
 msgid "Cannot execute zapping_setup_fb."
 msgstr "Unbekannter Fehler in zapping_setup_fb."
 
-#: src/tveng.c:2867 src/tveng.c:2875
+#: src/tveng.c:2866 src/tveng.c:2874
 msgid "zapping_setup_fb failed."
 msgstr "Ausführung von zapping_setup_fb fehlgeschlagen."
 
-#: src/tveng.c:2880
+#: src/tveng.c:2879
 #, c-format
 msgid "zapping_setup_fb not found in \"%s\" or executable search path."
 msgstr "zapping_setup_fb weder in »%s« noch Programmsuchpfad gefunden."
 
-#: src/tveng.c:2887
+#: src/tveng.c:2886
 msgid "Unknown error in zapping_setup_fb."
 msgstr "Unbekannter Fehler in zapping_setup_fb."
 
-#: src/tveng.c:3566 src/tveng.c:3587
+#: src/tveng.c:3570 src/tveng.c:3591
 msgid "Filter"
 msgstr "Filter"
 
 #. TRANSLATORS: Color replaced by video in overlay mode.
-#: src/tveng.c:3609
+#: src/tveng.c:3613
 msgid "Colorkey"
 msgstr "Überblendfarbe"
 
-#: src/tveng.c:4418 src/tveng2.c:464 src/zvbi.c:135
+#: src/tveng.c:4422 src/tveng2.c:464 src/zvbi.c:135
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng.c:4425 src/tveng2.c:465 src/zvbi.c:136
+#: src/tveng.c:4429 src/tveng2.c:465 src/zvbi.c:136
 msgid "Stereo"
 msgstr "Stereo"
 
-#: src/tveng.c:4433
+#: src/tveng.c:4437
 msgid "Language 2"
 msgstr ""
 
@@ -1947,18 +1947,18 @@ msgstr "Sprache 1"
 msgid "Alternate 2"
 msgstr "Sprache 2"
 
-#: src/tveng2.c:1715 src/tveng25.c:1269
+#: src/tveng2.c:1714 src/tveng25.c:1431
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s scheint kein Videogerät zu sein"
 
 # src/tveng.c:70
-#: src/tveng2.c:1726 src/tveng25.c:1281
+#: src/tveng2.c:1725 src/tveng25.c:1443
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "»%s« unterstützt leider kein Streaming"
 
-#: src/tveng2.c:1736
+#: src/tveng2.c:1735
 #, c-format
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr "\"%s\" unterstützt leider den select() Befehl nicht"

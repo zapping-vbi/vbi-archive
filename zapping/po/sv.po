@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-09-14 06:54+0200\n"
+"POT-Creation-Date: 2004-09-16 06:06+0200\n"
 "PO-Revision-Date: 2003-12-08 07:48+0100\n"
 "Last-Translator: <snout@ctrl-c.liu.se>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -45,7 +45,7 @@ msgstr "Avancerat"
 msgid "Arabic"
 msgstr "Arabisk"
 
-#: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng.c:4400
+#: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng.c:4404
 #: src/tveng2.c:615
 msgid "Audio"
 msgstr "Ljud"
@@ -1477,7 +1477,7 @@ msgstr "Använd skrivbordsstandard (%s)"
 msgid "Do not change"
 msgstr "Ändra inte läge"
 
-#: src/properties-handler.c:1171 src/tveng.c:4411 src/tveng2.c:463
+#: src/properties-handler.c:1171 src/tveng.c:4415 src/tveng2.c:463
 msgid "Automatic"
 msgstr "Automatisk"
 
@@ -1807,41 +1807,41 @@ msgstr "Visa dold text"
 msgid "Volume"
 msgstr "Volym"
 
-#: src/tveng.c:2857
+#: src/tveng.c:2856
 msgid "Cannot execute zapping_setup_fb."
 msgstr "Kunde inte anropa zapping_setup_fb."
 
-#: src/tveng.c:2867 src/tveng.c:2875
+#: src/tveng.c:2866 src/tveng.c:2874
 msgid "zapping_setup_fb failed."
 msgstr "zapping_setup_fb misslyckades."
 
-#: src/tveng.c:2880
+#: src/tveng.c:2879
 #, c-format
 msgid "zapping_setup_fb not found in \"%s\" or executable search path."
 msgstr "zapping_setup_fb hittades inte i \"%s\" eller i sökvägen."
 
-#: src/tveng.c:2887
+#: src/tveng.c:2886
 msgid "Unknown error in zapping_setup_fb."
 msgstr "Okänt fel i zapping_setup_fb."
 
-#: src/tveng.c:3566 src/tveng.c:3587
+#: src/tveng.c:3570 src/tveng.c:3591
 msgid "Filter"
 msgstr "Filter"
 
 #. TRANSLATORS: Color replaced by video in overlay mode.
-#: src/tveng.c:3609
+#: src/tveng.c:3613
 msgid "Colorkey"
 msgstr "Färgnyckel"
 
-#: src/tveng.c:4418 src/tveng2.c:464 src/zvbi.c:135
+#: src/tveng.c:4422 src/tveng2.c:464 src/zvbi.c:135
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng.c:4425 src/tveng2.c:465 src/zvbi.c:136
+#: src/tveng.c:4429 src/tveng2.c:465 src/zvbi.c:136
 msgid "Stereo"
 msgstr "Stereo"
 
-#: src/tveng.c:4433
+#: src/tveng.c:4437
 msgid "Language 2"
 msgstr ""
 
@@ -1947,18 +1947,18 @@ msgstr "Språk 1"
 msgid "Alternate 2"
 msgstr "Språk 2"
 
-#: src/tveng2.c:1715 src/tveng25.c:1269
+#: src/tveng2.c:1714 src/tveng25.c:1431
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s verkar inte vara en giltig inspelningsenhet"
 
 # src/tveng.c:70
-#: src/tveng2.c:1726 src/tveng25.c:1281
+#: src/tveng2.c:1725 src/tveng25.c:1443
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "Tyvärr, \"%s\" stöder inte strömning"
 
-#: src/tveng2.c:1736
+#: src/tveng2.c:1735
 #, c-format
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr "Tyvärr, \"%s\" stöder inte select() på fildeskriptorer"
