@@ -110,34 +110,53 @@ register_widget(GtkWidget * widget, const char * name)
     }
 }
 
-/*
- * Loads a GtkWidget from zapping.glade. All the memory is freed when
- * the object (widget) is destroyed. If name is NULL, all widgets are
- * loaded, but this is not recommended.
- */
-GtkWidget*
-build_widget(const char* name, const char* glade_file)
+/**
+ * build_widget:
+ * @name: Name of the widget.
+ * @file: Name of the Glade file. 
+ * 
+ * Loads a GtkWidget from a Glade file, when @file is %NULL from
+ * zapping.glade. All the memory is freed when the object (widget)
+ * is destroyed. If name is %NULL, all widgets are loaded, but this
+ * is not recommended.
+ * 
+ * Return value: 
+ * Widget pointer, cannot fail.
+ **/
+GtkWidget *
+build_widget			(const gchar *		name,
+				 const gchar *		file)
 {
-  GladeXML* xml = glade_xml_new(glade_file, name);
-  GtkWidget * widget;
+  GladeXML *xml;
+  GtkWidget *widget;
+  gchar *path;
 
-  if ( !xml )
+  if (!file)
+    file = "zapping.glade";
+
+  path = g_strconcat (PACKAGE_DATA_DIR, "/", file, NULL);
+
+  xml = glade_xml_new (path, name);
+
+  if (!xml)
     {
-      RunBox("%s [%s] couldn't be found, please contact the maintainer",
-	     GNOME_MESSAGE_BOX_ERROR, glade_file, name);
-      exit(1);
+      RunBox ("%s [%s] couldn't be found, please contact the maintainer",
+	      GNOME_MESSAGE_BOX_ERROR, path, name);
+      exit (1);
     }
 
-  widget = glade_xml_get_widget(xml, name);
+  widget = glade_xml_get_widget (xml, name);
 
-  if ( !widget )
+  if (!widget)
     {
-      RunBox("%s [%s] couldn't be loaded, please contact the maintainer",
-	     GNOME_MESSAGE_BOX_ERROR, glade_file, name);
-      exit(1);
+      RunBox ("%s [%s] couldn't be loaded, please contact the maintainer",
+	      GNOME_MESSAGE_BOX_ERROR, path, name);
+      exit (1);
     }
 
-  glade_xml_signal_autoconnect(xml);
+  glade_xml_signal_autoconnect (xml);
+
+  g_free (path);
 
   return widget;
 }
@@ -177,11 +196,9 @@ GtkWidget*
 create_zapping (void)
 {
   GtkWidget *widget;
-  GtkWidget *pixmap;
   GtkWidget *w;
-  gchar *name;
 
-  widget = build_widget("zapping", PACKAGE_DATA_DIR "/zapping.glade");
+  widget = build_widget("zapping", NULL);
 
   /* Change the pixmaps, work around glade bug */
   set_stock_pixmap (w = lookup_widget (widget, "channel_up"),
@@ -198,20 +215,17 @@ create_zapping (void)
   MENU_CMD (new_ttxview,	"ttx_open_new");
   MENU_CMD (mute2,		"mute");
 
-  /* Custom toolbar button pixmap, ditto */
-  name = g_strdup_printf ("%s/%s", PACKAGE_PIXMAPS_DIR, "mute.png");
-  pixmap = z_pixmap_new_from_file (name);
-  g_free (name);
-  gtk_widget_show (pixmap);
   w = gtk_toolbar_insert_element (GTK_TOOLBAR (lookup_widget (widget, "toolbar1")),
                                   GTK_TOOLBAR_CHILD_TOGGLEBUTTON,
                                   NULL,
                                   _("Mute"),
                                   _("Switch audio on and off"),
 				  NULL,
-                                  pixmap, NULL, NULL, 3);
+                                  z_load_pixmap ("mute.png"),
+				  NULL, NULL, 3);
   gtk_object_set_data (GTK_OBJECT (widget), "registered-widget-tb-mute", w);
   gtk_widget_show (w);
+
   gtk_signal_connect (GTK_OBJECT (w), "toggled",
 		      (GtkSignalFunc) on_remote_command1,
 		      (gpointer)((const gchar *) "mute"));
@@ -224,12 +238,6 @@ create_zapping (void)
 		        "/zapping/options/main/toolbar_style"));
 
   return widget;
-}
-
-GtkWidget*
-create_zapping_properties (void)
-{
-  return build_widget ("zapping_properties", PACKAGE_DATA_DIR "/zapping.glade");
 }
 
 /*
@@ -256,18 +264,12 @@ create_about2 (void)
 }
 
 GtkWidget*
-create_plugin_properties (void)
-{
-  return build_widget("plugin_properties", PACKAGE_DATA_DIR "/zapping.glade");
-}
-
-GtkWidget*
 create_popup_menu1 (void)
 {
   GtkWidget *widget;
   GtkWidget *w;
 
-  widget = build_widget ("popup_menu1", PACKAGE_DATA_DIR "/zapping.glade");
+  widget = build_widget ("popup_menu1", NULL);
 
   /* Menu remote commands, not possible with glade */
   MENU_CMD (go_fullscreen2,	"switch_mode fullscreen");
@@ -277,40 +279,4 @@ create_popup_menu1 (void)
   MENU_CMD (new_ttxview2,	"ttx_open_new");
 
   return widget;
-}
-
-GtkWidget*
-create_searching (void)
-{
-  return build_widget("searching", PACKAGE_DATA_DIR "/zapping.glade");
-}
-
-GtkWidget*
-create_txtcontrols (void)
-{
-  return build_widget("txtcontrols", PACKAGE_DATA_DIR "/zapping.glade");
-}
-
-GtkWidget*
-create_ttxview (void)
-{
-  return build_widget("ttxview", PACKAGE_DATA_DIR "/zapping.glade");
-}
-
-GtkWidget*
-create_ttxview_popup (void)
-{
-  return build_widget("ttxview_popup", PACKAGE_DATA_DIR "/zapping.glade");
-}
-
-GtkWidget*
-create_prompt (void)
-{
-  return build_widget("prompt", PACKAGE_DATA_DIR "/zapping.glade");
-}
-
-GtkWidget*
-create_widget (const gchar *name)
-{
-  return build_widget(name, PACKAGE_DATA_DIR "/zapping.glade");
 }
