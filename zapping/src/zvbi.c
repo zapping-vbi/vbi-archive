@@ -41,10 +41,10 @@
 #include "zmisc.h"
 #include "interface.h"
 #include "v4linterface.h"
-#include "ttxview.h"
 #include "osd.h"
 #include "remote.h"
 #include "globals.h"
+#include "subtitle.h"
 
 #undef TRUE
 #undef FALSE
@@ -73,6 +73,7 @@ static ZModel * vbi_model=NULL; /* notify to clients the open/closure
 				   of the device */
 
 static vbi_wst_level teletext_level = VBI_WST_LEVEL_1p5;
+static GdkInterpType interp_type = GDK_INTERP_HYPER;
 static pthread_mutex_t network_mutex;
 static pthread_mutex_t prog_info_mutex;
 static gboolean station_name_known = FALSE;
@@ -114,7 +115,7 @@ struct ttx_client {
   GdkPixbuf	*scaled; /* scaled version of the page */
   int		w, h;
   int		freezed; /* do not refresh the current page */
-  int		num_patches;
+  guint		num_patches;
   int		reveal; /* whether to show hidden chars */
   struct ttx_patch *patches; /* patches to be applied */
   gboolean	waiting; /* waiting for the index page */
@@ -194,7 +195,7 @@ decoding_thread (void *p _unused_)
     pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, NULL);
 
     vbi_decode (vbi, (vbi_sliced *) b->data,
-		b->used / sizeof(vbi_sliced), b->time);
+		(int)(b->used / sizeof (vbi_sliced)), b->time);
 
     pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL);
 
@@ -860,22 +861,34 @@ static gint trigger_timeout		(gint	client_id)
 
 #endif /* 0 */
 
+static const GConfEnumStringPair
+charset_enum [] = {
+  { 0, "western_and_central_europe" },
+  { 8, "eastern_europe" },
+  { 16, "western_europe_and_turkey" },
+  { 24, "central_and_southeast_europe" },
+  { 32, "cyrillic" },
+  { 48, "greek_and_turkish" },
+  { 64, "arabic" },
+  { 80, "hebrew_and_arabic" },
+  { 0, NULL }
+};
+
+static const GConfEnumStringPair
+level_enum [] = {
+  { VBI_WST_LEVEL_1, "1.0" },
+  { VBI_WST_LEVEL_1p5, "1.5" },
+  { VBI_WST_LEVEL_2p5, "2.5" },
+  { VBI_WST_LEVEL_3p5, "3.5" },
+  { 0, NULL }
+};
+
 /* Open the configured VBI device, FALSE on error */
 gboolean
 zvbi_open_device(const char *device)
 {
-  gint index;
   int given_fd;
-  static int region_mapping[8] = {
-    0, /* WCE */
-    8, /* EE */
-    16, /* WET */
-    24, /* CSE */
-    32, /* C */
-    48, /* GC */
-    64, /* A */
-    80 /* I */
-  };
+  gint enum_value;
 
   D();
   if (zapping->info)
@@ -886,16 +899,19 @@ zvbi_open_device(const char *device)
   if (!threads_init (device, given_fd))
     return FALSE;
   D();
-  /* Enter something valid or accept the default */
-  index = zcg_int(NULL, "default_region");
-  if (index >= 0 && index <= 7)
-    vbi_teletext_set_default_region(vbi, region_mapping[index]);
-  index = zcg_int(NULL, "teletext_level");
-  if (index >= 0 && index <= 3)
+
+  if (z_gconf_get_string_enum
+      (&enum_value, "/apps/zapping/plugins/teletext/default_charset",
+       charset_enum))
+    vbi_teletext_set_default_region (vbi, enum_value);
+
+  if (z_gconf_get_string_enum
+      (&enum_value, "/apps/zapping/plugins/teletext/level", level_enum))
     {
-      vbi_teletext_set_level(vbi, index);
-      teletext_level = index;
+      vbi_teletext_set_level (vbi, enum_value);
+      teletext_level = (vbi_wst_level) enum_value;
     }
+
   D();
   /* Send all events to our main event handler */
   g_assert(vbi_event_handler_add(vbi, ~0, event, NULL) != 0);
@@ -997,27 +1013,46 @@ send_ttx_message(struct ttx_client *client,
 }
 
 static void
+uninit_patch			(struct ttx_patch *	patch)
+{
+  if (patch->scaled_on)
+    g_object_unref (G_OBJECT (patch->scaled_on));
+
+  if (patch->scaled_off)
+    g_object_unref (G_OBJECT (patch->scaled_off));
+
+  g_object_unref (G_OBJECT (patch->unscaled_on));
+  g_object_unref (G_OBJECT (patch->unscaled_off));
+
+  CLEAR (*patch);
+}
+
+static void
+delete_patches			(struct ttx_client *	client)
+{
+  guint i;
+
+  for (i = 0; i < client->num_patches; ++i)
+    uninit_patch (&client->patches[i]);
+
+  g_free (client->patches);
+
+  client->patches = NULL;
+  client->num_patches = 0;
+}
+
+static void
 remove_client(struct ttx_client *client)
 {
-  gint i;
-
   zf_destroy_fifo(&client->mqueue);
   pthread_mutex_destroy(&client->mutex);
   g_object_unref(client->unscaled_on);
   g_object_unref(client->unscaled_off);
   if (client->scaled)
     g_object_unref(client->scaled);
-  for (i = 0; i<client->num_patches; i++)
-    {
-      g_object_unref(client->patches[i].unscaled_on);
-      g_object_unref(client->patches[i].unscaled_off);
-      if (client->patches[i].scaled_on)
-	g_object_unref(client->patches[i].scaled_on);
-      if (client->patches[i].scaled_off)
-	g_object_unref(client->patches[i].scaled_off);
-    }
-  if (client->num_patches)
-    g_free(client->patches);
+
+  delete_patches (client);
+
   g_free(client);
 }
 
@@ -1039,14 +1074,45 @@ vt_loading			(void)
   return pixbuf;
 }
 
+static void
+render_loading			(struct ttx_client *	client)
+{
+  GdkPixbuf *simple;
+
+  if ((simple = vt_loading ()))
+    {
+      int width;
+      int height;
+      double sx;
+      double sy;
+
+      width = gdk_pixbuf_get_width (client->unscaled_on);
+      height = gdk_pixbuf_get_height (client->unscaled_on);
+
+      sx = (double) width / gdk_pixbuf_get_width (simple);
+      sy = (double) height / gdk_pixbuf_get_height (simple);
+
+      gdk_pixbuf_scale (/* src */ simple,
+			/* dst */ client->unscaled_on, 0, 0, width, height,
+			/* offset */ 0.0, 0.0,
+			/* scale */ sx, sy,
+			interp_type);
+
+      if (0)
+	z_pixbuf_copy_area (/* src */ client->unscaled_on, 0, 0, width, height,
+			    /* dst */ client->unscaled_off, 0, 0);
+
+      g_object_unref (G_OBJECT (simple));
+    }
+}
+
 /* returns the id */
 int
 register_ttx_client(void)
 {
-  static int id;
+  static int id = 1;
   struct ttx_client *client;
   int w, h; /* of the unscaled image */
-  GdkPixbuf *simple;
 
   client = g_malloc0(sizeof(*client));
 
@@ -1055,26 +1121,13 @@ register_ttx_client(void)
   client->waiting = TRUE;
   pthread_mutex_init(&client->mutex, NULL);
   vbi_get_max_rendered_size(&w, &h);
-  client->unscaled_on = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w,
-				    h);
-  client->unscaled_off = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w,
-				    h);
+  client->unscaled_on = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w, h);
+  client->unscaled_off = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w, h);
   
   g_assert(client->unscaled_on != NULL);
   g_assert(client->unscaled_off != NULL);
-  
-  if ((simple = vt_loading ()))
-    {
-      gdk_pixbuf_scale(simple,
-		       client->unscaled_on, 0, 0, w, h,
-		       0.0, 0.0,
-		       (double) w / gdk_pixbuf_get_width(simple),
-		       (double) h / gdk_pixbuf_get_height(simple),
-		       zcg_int(NULL, "qstradeoff"));
-      z_pixbuf_copy_area(client->unscaled_on, 0, 0, w, h,
-			   client->unscaled_off, 0, 0);
-      g_object_unref(simple);
-    }
+
+  render_loading (client);
 
   g_assert(zf_init_buffered_fifo(
            &client->mqueue, "zvbi-mqueue",
@@ -1246,7 +1299,7 @@ add_patch(struct ttx_client *client, int col, int row,
 {
   struct ttx_patch patch, *destiny = NULL;
   gint sw, sh; /* scaled dimensions */
-  gint i;
+  guint i;
 
   /* avoid duplicate patches */
   for (i = 0; i < client->num_patches; i++)
@@ -1254,12 +1307,7 @@ add_patch(struct ttx_client *client, int col, int row,
 	client->patches[i].row == row)
       {
 	destiny = &client->patches[i];
-	if (destiny->scaled_on)
-	  g_object_unref(G_OBJECT (destiny->scaled_on));
-	if (destiny->scaled_off)
-	  g_object_unref(G_OBJECT (destiny->scaled_off));
-	g_object_unref(G_OBJECT (destiny->unscaled_on));
-	g_object_unref(G_OBJECT (destiny->unscaled_off));
+	uninit_patch (destiny);
 	break;
       }
       
@@ -1308,11 +1356,9 @@ add_patch(struct ttx_client *client, int col, int row,
   if (client->w > 0  &&  client->h > 0  && sh > 0)
     {
       patch.scaled_on =
-	z_pixbuf_scale_simple(patch.unscaled_on,
-			      sw, sh, zcg_int(NULL, "qstradeoff"));
+	z_pixbuf_scale_simple(patch.unscaled_on, sw, sh, interp_type);
       patch.scaled_off =
-	z_pixbuf_scale_simple(patch.unscaled_off, sw, sh,
-			      zcg_int(NULL, "qstradeoff"));
+	z_pixbuf_scale_simple(patch.unscaled_off, sw, sh, interp_type);
     }
 
   if (!destiny)
@@ -1333,7 +1379,7 @@ add_patch(struct ttx_client *client, int col, int row,
 static void
 resize_patches(struct ttx_client *client)
 {
-  gint i;
+  guint i;
   gint sw, sh;
 
   for (i=0; i<client->num_patches; i++)
@@ -1347,15 +1393,16 @@ resize_patches(struct ttx_client *client)
 	g_object_unref(G_OBJECT (client->patches[i].scaled_on));
       client->patches[i].scaled_on =
 	z_pixbuf_scale_simple(client->patches[i].unscaled_on,
-				sw, sh, zcg_int(NULL, "qstradeoff"));
+			      sw, sh, interp_type);
       if (client->patches[i].scaled_off)
 	g_object_unref(G_OBJECT (client->patches[i].scaled_off));
       client->patches[i].scaled_off =
 	z_pixbuf_scale_simple(client->patches[i].unscaled_off,
-				sw, sh, zcg_int(NULL, "qstradeoff"));
+				sw, sh, interp_type);
       client->patches[i].dirty = TRUE;
     }
 }
+
 
 /**
  * Scans the current page of the client and builds the appropiate set
@@ -1364,28 +1411,17 @@ resize_patches(struct ttx_client *client)
 static void
 build_patches(struct ttx_client *client)
 {
-  gint i;
   gint col, row;
   vbi_char *ac;
 
-  for (i = 0; i<client->num_patches; i++)
-    {
-      if (client->patches[i].scaled_on)
-	g_object_unref(G_OBJECT (client->patches[i].scaled_on));
-      if (client->patches[i].scaled_off)
-	g_object_unref(G_OBJECT (client->patches[i].scaled_off));
-      g_object_unref(G_OBJECT (client->patches[i].unscaled_on));
-      g_object_unref(G_OBJECT (client->patches[i].unscaled_off));
-    }
-  g_free(client->patches);
-  client->patches = NULL;
-  client->num_patches = 0;
+  delete_patches (client);
 
-  /* FIXME: This is too cumbersome, something more smart is needed */
+  /* FIXME: This is too cumbersome, something smarter is needed */
   for (col = 0; col < client->fpg.columns; col++)
     for (row = 0; row < client->fpg.rows; row++)
       {
 	ac = &client->fpg.text[row * client->fpg.columns + col];
+
 	if ((ac->flash) && (ac->size <= VBI_DOUBLE_SIZE))
 	  add_patch(client, col, row, ac, FALSE);
       }
@@ -1397,7 +1433,7 @@ build_patches(struct ttx_client *client)
 static void
 refresh_ttx_page_intern(struct ttx_client *client, GtkWidget *drawable)
 {
-  int i;
+  guint i;
   struct ttx_patch *p;
   GdkPixbuf *scaled;
   gint x, y;
@@ -1465,74 +1501,91 @@ refresh_ttx_page(int id, GtkWidget *drawable)
   pthread_mutex_unlock(&clients_mutex);
 }
 
-static int
-build_client_page(struct ttx_client *client, vbi_page *pg)
+static gboolean
+vbi_page_has_flash		(const vbi_page *	pg)
 {
-  GdkPixbuf *simple;
-
+  const vbi_char *acp;
+  guint size;
+  gboolean flash;
+ 
+  size = pg->rows * pg->columns;
+  flash = 0;
+ 
+  for (acp = pg->text; size-- > 0; ++acp)
+    flash |= acp->flash;
+ 
+  return flash;
+}
+  
+static int
+build_client_page		(struct ttx_client *	client,
+				 vbi_page *		pg,
+				 gboolean		has_flash)
+{
   if (!vbi)
     return 0;
 
   pthread_mutex_lock(&client->mutex);
+
   if (pg && pg != (vbi_page *) -1)
     {
-      memcpy(&client->fpg, pg, sizeof(client->fpg));
-      vbi_draw_vt_page(&client->fpg,
-		       VBI_PIXFMT_RGBA32_LE,
-		       (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on),
-		       client->reveal, 1 /* flash_on */);
-      vbi_draw_vt_page_region(&client->fpg,
-			      VBI_PIXFMT_RGBA32_LE,
-			      (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off),
-			      -1 /* rowstride */,
-			      0 /* column */, 0 /* row */,
-			      client->fpg.columns, client->fpg.rows,
-			      client->reveal, 0 /* flash_on */);
+       has_flash = vbi_page_has_flash (pg);
+ 
+       memcpy (&client->fpg, pg, sizeof (client->fpg));
+ 
+       vbi_draw_vt_page
+ 	(&client->fpg,
+ 	 VBI_PIXFMT_RGBA32_LE,
+ 	 (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on),
+ 	 client->reveal, 1 /* flash_on */);
+ 
+       if (has_flash)
+ 	vbi_draw_vt_page_region
+ 	  (&client->fpg,
+ 	   VBI_PIXFMT_RGBA32_LE,
+ 	   (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off),
+ 	   -1 /* rowstride */,
+ 	   0 /* column */, 0 /* row */,
+ 	   client->fpg.columns, client->fpg.rows,
+ 	   client->reveal, 0 /* flash_on */);
+
       client->waiting = FALSE;
     }
   else if (!pg)
     {
+      has_flash = FALSE;
+
       CLEAR (client->fpg);
 
-      if ((simple = vt_loading ()))
-	{
-	  gdk_pixbuf_scale(simple,
-			   client->unscaled_on, 0, 0,
-			   gdk_pixbuf_get_width(client->unscaled_on),
-			   gdk_pixbuf_get_height(client->unscaled_on),
-			   0.0, 0.0,
-			   (double)
-			   gdk_pixbuf_get_width(client->unscaled_on) /
-			   gdk_pixbuf_get_width(simple),
-			   (double)
-			   gdk_pixbuf_get_height(client->unscaled_on) /
-			   gdk_pixbuf_get_height(simple),
-			   zcg_int(NULL, "qstradeoff"));
-	  z_pixbuf_copy_area(client->unscaled_on, 0, 0,
-			       gdk_pixbuf_get_width(client->unscaled_on),
-			       gdk_pixbuf_get_height(client->unscaled_off),
-			       client->unscaled_off, 0, 0);
-	  g_object_unref(G_OBJECT (simple));
-	}
+      render_loading (client);
     }
 
   if ((!client->scaled) &&
       (client->w > 0) &&
       (client->h > 0))
-    client->scaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
-				    client->w, client->h);
+    client->scaled = gdk_pixbuf_new (GDK_COLORSPACE_RGB, TRUE, 8,
+				     client->w, client->h);
   if (client->scaled)
-    gdk_pixbuf_scale(client->unscaled_on,
-		     client->scaled, 0, 0, client->w, client->h,
-		     0.0, 0.0,
-		     (double) client->w /
-		     gdk_pixbuf_get_width(client->unscaled_on),
-		     (double) client->h /
-		      gdk_pixbuf_get_height(client->unscaled_on),
-		     zcg_int(NULL, "qstradeoff"));
+    {
+       double sx;
+       double sy;
+  
+       sx = (double) client->w / gdk_pixbuf_get_width (client->unscaled_on);
+       sy = (double) client->h / gdk_pixbuf_get_height (client->unscaled_on);
+ 
+       gdk_pixbuf_scale (/* src */ client->unscaled_on,
+ 			/* dst */ client->scaled, 0, 0, client->w, client->h,
+ 			/* offset */ 0.0, 0.0,
+ 			/* scale */ sx, sy,	
+ 			interp_type);
+     }
 
-  build_patches(client);
-  refresh_ttx_page_intern(client, NULL);
+  if (has_flash)
+    build_patches (client);
+  else
+    delete_patches (client);
+
+  refresh_ttx_page_intern (client, NULL);
 
   pthread_mutex_unlock(&client->mutex);
   return 1; /* success */
@@ -1575,21 +1628,30 @@ rolling_headers(struct ttx_client *client, vbi_page *pg)
     {
       ac = client->fpg.text + col;
       
+      /* XXX possible shortcut: no headers I've seen contain
+	 large characters */
       if (ac->unicode != pg->text[col].unicode
 	  && ac->size <= VBI_DOUBLE_SIZE)
 	{
 	  ac->unicode = pg->text[col].unicode;
 
-	  vbi_draw_vt_page_region(&client->fpg,
-		VBI_PIXFMT_RGBA32_LE,
-	  	(uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off) + col * CW,
-		gdk_pixbuf_get_rowstride(client->unscaled_off),
-		col, 0, 1, 1, client->reveal, 0 /* flash_off */);
-	  vbi_draw_vt_page_region(&client->fpg,
-		VBI_PIXFMT_RGBA32_LE,
-		(uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on) + col * CW,
-		gdk_pixbuf_get_rowstride(client->unscaled_on),
-		col, 0, 1, 1, client->reveal, 1 /* flash_on */);
+	  vbi_draw_vt_page_region
+	    (&client->fpg,
+	     VBI_PIXFMT_RGBA32_LE,
+	     (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on)
+	     + col * CW,
+	     gdk_pixbuf_get_rowstride(client->unscaled_on),
+	     col, 0, 1, 1, client->reveal, 1 /* flash_on */);
+
+	  /* XXX possible shortcut: no headers I've seen contain flash */
+	  vbi_draw_vt_page_region
+	    (&client->fpg,
+	     VBI_PIXFMT_RGBA32_LE,
+	     (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off)
+	     + col * CW,
+	     gdk_pixbuf_get_rowstride(client->unscaled_off),
+	     col, 0, 1, 1, client->reveal, 0 /* flash_off */);
+
 	  add_patch(client, col, 0, ac, !ac->flash);
 	}
     }
@@ -1624,14 +1686,14 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
 	  if (vbi_fetch_vt_page(vbi, &pg, page, subpage,
 				teletext_level, 25, 1))
 	    {
-	      build_client_page(client, &pg);
+	      build_client_page(client, &pg, FALSE);
 	      clear_message_queue(client);
 	      send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
 	    }
 	} 
       else 
 	{
-	  build_client_page(client, NULL);
+	  build_client_page(client, NULL, FALSE);
 	  clear_message_queue(client);
 	  send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
 	}
@@ -1652,21 +1714,37 @@ void monitor_ttx_this(int id, vbi_page *pg)
   pthread_mutex_lock(&clients_mutex);
   if ((client = find_client(id)))
     {
+      gboolean has_flash;
+
       client->page = pg->pgno;
       client->subpage = pg->subno;
       client->freezed = TRUE;
+
+      has_flash = vbi_page_has_flash (pg);
+
       memcpy(&client->fpg, pg, sizeof(client->fpg));
-      vbi_draw_vt_page(&client->fpg,
-		VBI_PIXFMT_RGBA32_LE,
-		(uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on),
-		client->reveal, 1 /* flash_on */);
-      vbi_draw_vt_page_region(&client->fpg,
-		VBI_PIXFMT_RGBA32_LE,
-      		(uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off),
-		-1 /* rowstride */, 0 /* column */, 0 /* row */,
-		pg->columns, pg->rows, client->reveal, 0 /* flash_on */);
-      build_client_page(client, (vbi_page *) -1);
+
+      vbi_draw_vt_page
+	(&client->fpg,
+	 VBI_PIXFMT_RGBA32_LE,
+	 (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on),
+	 client->reveal, 1 /* flash_on */);
+
+      if (has_flash)
+	vbi_draw_vt_page_region
+	  (&client->fpg,
+	   VBI_PIXFMT_RGBA32_LE,
+	   (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off),
+	   -1 /* rowstride */,
+	   0 /* column */, 0 /* row */,
+	   pg->columns, pg->rows,
+	   client->reveal,
+	   0 /* flash_on */);
+
+      build_client_page(client, (vbi_page *) -1, has_flash);
+
       clear_message_queue(client);
+
       send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
     }
   pthread_mutex_unlock(&clients_mutex);
@@ -1796,7 +1874,7 @@ notify_clients(int page, int subpage,
 	      pthread_mutex_unlock(&clients_mutex);
 	      return;
 	    }
-	  build_client_page(client, &pg);
+	  build_client_page(client, &pg, FALSE);
 	  send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
 	}
       else if (roll_header)
@@ -1900,7 +1978,7 @@ void resize_ttx_page(int id, int w, int h)
 			     gdk_pixbuf_get_width(client->unscaled_on),
 			     (double) h /
 			     gdk_pixbuf_get_height(client->unscaled_on),
-			     zcg_int(NULL, "qstradeoff"));
+			     interp_type);
 	  client->w = w;
 	  client->h = h;
 
@@ -1938,13 +2016,13 @@ void render_ttx_page(int id, GdkDrawable *drawable,
 	  pw = gdk_pixbuf_get_width (client->scaled);
 	  ph = gdk_pixbuf_get_height (client->scaled);
 
-	  gdk_draw_pixbuf (drawable, gc,
-			   client->scaled,
-			   src_x, src_y,
-			   dest_x, dest_y,
-			   /* width */ MIN (w, pw), /* height */ MIN (h, ph),
-			   GDK_RGB_DITHER_NORMAL,
-			   src_x, src_y);
+	  gdk_pixbuf_render_to_drawable (client->scaled,
+					 drawable, gc,
+					 src_x, src_y,
+					 dest_x, dest_y,
+					 MIN (w, pw), MIN (h, ph),
+					 GDK_RGB_DITHER_NORMAL,
+					 src_x, src_y);
 	}
 
       pthread_mutex_unlock(&client->mutex);
@@ -2091,33 +2169,6 @@ vbi_gui_sensitive (gboolean on)
 #define ZVBI_CAPTION_DEBUG 0
 #endif
 
-#ifdef HAVE_LIBZVBI
-
-static vbi_pgno
-find_subtitle_page		(void)
-{
-  vbi_decoder *vbi;
-  vbi_pgno pgno;
-
-  if (!(vbi = zvbi_get_object ()))
-    return 0;
-
-  for (pgno = 1; pgno <= 0x899;
-       pgno = (pgno == 4) ? 0x100 : vbi_add_bcd ((guint) pgno, 0x001))
-    {
-      vbi_page_type classf;
-
-      classf = vbi_classify_page (vbi, pgno, NULL, NULL);
-
-      if (VBI_SUBTITLE_PAGE == classf)
-	return pgno;
-    }
-
-  return 0;
-}
-
-#endif /* HAVE_LIBZVBI */
-
 static PyObject *
 py_closed_caption		(PyObject *		self _unused_,
 				 PyObject *		args)
@@ -2149,12 +2200,15 @@ py_closed_caption		(PyObject *		self _unused_,
 
   if (active)
     {
-      vbi_subno dummy;
-
+      TeletextView *view;
+  
       /* In Teletext mode, overlay currently displayed page. */
-      if (1 && get_ttxview_page (GTK_WIDGET (zapping),
-				 &zvbi_caption_pgno, &dummy))
-	{
+      if (/* have */ _teletext_view_from_widget
+ 	  && (view = _teletext_view_from_widget (GTK_WIDGET (zapping)))
+ 	  && view->fmt_page)
+  	{
+ 	  zvbi_caption_pgno = view->fmt_page->pgno;
+ 
 	  if (ZVBI_CAPTION_DEBUG)
 	    fprintf (stderr, "CC Teletext pgno %x\n", zvbi_caption_pgno);
 
@@ -2192,6 +2246,54 @@ py_closed_caption		(PyObject *		self _unused_,
   py_return_true;
 }
 
+static const GConfEnumStringPair
+interp_enum [] = {
+  { GDK_INTERP_NEAREST,  "nearest" },
+  { GDK_INTERP_TILES,	 "tiles" },
+  { GDK_INTERP_BILINEAR, "bilinear" },	
+  { GDK_INTERP_HYPER,	 "hyper" },
+  { 0, NULL }
+};
+
+static void
+level_notify			(GConfClient *		client _unused_,
+				 guint			cnxn_id _unused_,
+				 GConfEntry *		entry _unused_,
+				 gpointer		unused _unused_)
+{
+  if (entry->value && zvbi_get_object ())
+    {
+      const gchar *s;
+      gint enum_value;
+
+      s = gconf_value_get_string (entry->value);
+
+      if (s && gconf_string_to_enum (level_enum, s, &enum_value))
+	{
+	  vbi_teletext_set_level (zvbi_get_object(), enum_value);
+	  teletext_level = (vbi_wst_level) enum_value;
+	}
+    }
+}
+
+static void
+interp_notify			(GConfClient *		client _unused_,
+				 guint			cnxn_id _unused_,
+				 GConfEntry *		entry _unused_,
+				 gpointer		unused _unused_)
+{
+  if (entry->value)
+    {
+      const gchar *s;
+      gint enum_value;
+
+      s = gconf_value_get_string (entry->value);
+
+      if (s && gconf_string_to_enum (interp_enum, s, &enum_value))
+	interp_type = (GdkInterpType) enum_value;
+    }
+}
+
 void
 startup_zvbi(void)
 {
@@ -2205,8 +2307,6 @@ startup_zvbi(void)
   zcc_bool(FALSE, "Overlay subtitle pages automagically", "auto_overlay");
 
   zcc_char("/dev/vbi0", "VBI device", "vbi_device");
-  zcc_int(0, "Default TTX region", "default_region");
-  zcc_int(3, "Teletext implementation level", "teletext_level");
   zcc_int(2, "ITV filter level", "filter_level");
   zcc_int(1, "Default action for triggers", "trigger_default");
   zcc_int(1, "Program related links", "pr_trigger");
@@ -2214,7 +2314,6 @@ startup_zvbi(void)
   zcc_int(1, "Station related links", "st_trigger");
   zcc_int(1, "Sponsor messages", "sp_trigger");
   zcc_int(1, "Operator messages", "op_trigger");
-  zcc_int(INTERP_MODE, "Quality speed tradeoff", "qstradeoff");
 
   zconf_create_boolean (FALSE, "Display subtitles",
 			"/zapping/internal/callbacks/closed_caption");
@@ -2223,6 +2322,18 @@ startup_zvbi(void)
 		("Closed Caption on/off"), "zapping.closed_caption()");
 
 #ifdef HAVE_LIBZVBI
+
+  /* Error ignored */
+  gconf_client_notify_add (gconf_client,
+			   "/apps/zapping/plugins/teletext/level",
+			   level_notify, NULL,
+			   /* destroy */ NULL, /* err */ NULL);
+  /* Error ignored */
+  gconf_client_notify_add (gconf_client,
+			   "/apps/zapping/plugins/teletext/view/interp_type",
+			   interp_notify, NULL,
+			   /* destroy */ NULL, /* err */ NULL);
+
   zconf_add_hook("/zapping/options/vbi/enable_vbi",
 		 (ZConfHook)on_vbi_prefs_changed,
 		 (gpointer)0xdeadbeef);
@@ -2319,10 +2430,5 @@ zvbi_channel_switched(void)
 #endif
 }
 
-vbi_wst_level
-zvbi_teletext_level (void)
-{
-  return teletext_level;
-}
 
 #endif /* HAVE_LIBZVBI */
