@@ -62,10 +62,8 @@ fifo *			audio_cap_fifo;
 int			stereo;
 
 pthread_t		video_thread_id;
+fifo *			video_cap_fifo;
 void			(* video_start)(void);
-unsigned char *		(* video_wait_frame)(double *, int *);
-void			(* video_frame_done)(int);
-void			(* video_unget_frame)(int);
 int			min_cap_buffers;
 
 pthread_t               output_thread_id;
@@ -93,9 +91,7 @@ pthread_mutex_t video_device_mutex=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t audio_device_mutex=PTHREAD_MUTEX_INITIALIZER;
 
 fifo *			ye_olde_audio_cap_fifo;
-
-unsigned char *		(* ye_olde_wait_frame)(double *, int *);
-void			(* ye_olde_frame_done)(int);
+fifo *			ye_olde_video_cap_fifo;
 
 void emulation_data_callback(void * data, double * time, int video,
 			     rte_context * context, void * user_data)
@@ -106,10 +102,12 @@ void emulation_data_callback(void * data, double * time, int video,
 
 	if (video) {
 		pthread_mutex_lock(&video_device_mutex);
-		misc_data = ye_olde_wait_frame(time, &frame);
+		b = wait_full_buffer(ye_olde_video_cap_fifo);
+		misc_data = b->data;
+		*time = b->time;
 		pthread_mutex_unlock(&video_device_mutex);
 		memcpy(data, misc_data, context->video_bytes);
-		ye_olde_frame_done(frame);
+		send_empty_buffer(ye_olde_video_cap_fifo, b);
 	}
 	else {
 		pthread_mutex_lock(&audio_device_mutex);
@@ -129,15 +127,18 @@ void * video_emulation_thread (void * ptr)
 	unsigned char * data;
 	void * video_data;
 	rte_context * context = (rte_context *)ptr;
+	buffer *b;
 
 	data = rte_push_video_data(context, NULL, 0);
 	for (;data;) {
 		pthread_mutex_lock(&video_device_mutex);
-		video_data = ye_olde_wait_frame(&timestamp, &frame);
+		b = wait_full_buffer(ye_olde_video_cap_fifo);
+		video_data = b->data;
+		timestamp = b->time;
 		pthread_mutex_unlock(&video_device_mutex);
 		memcpy(data, video_data, context->video_bytes);
 		data = rte_push_video_data(context, data, timestamp);
-		ye_olde_frame_done(frame);
+		send_empty_buffer(ye_olde_video_cap_fifo, b);
 	}
 	fprintf(stderr, "video emulation: %s\n", context->error);
 
@@ -184,10 +185,8 @@ int emulation_thread_init ( void )
 	rteDataCallback callback;
 	enum rte_pixformat format;
 
-	ye_olde_wait_frame = video_wait_frame;
-	ye_olde_frame_done = video_frame_done;
-
 	ye_olde_audio_cap_fifo = audio_cap_fifo;
+	ye_olde_video_cap_fifo = video_cap_fifo;
 
 	if (!rte_init())
 		return 0;

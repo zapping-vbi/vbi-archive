@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.c,v 1.2 2000-08-12 02:14:37 mschimek Exp $ */
+/* $Id: stream.c,v 1.3 2000-09-23 03:56:14 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -316,36 +316,35 @@ mpeg_header_name(unsigned int code)
 void
 synchronize_capture_modules(void)
 {
-	int vindex;
-	void *vp = NULL;
+	buffer *vb = NULL;
 	buffer *ab = NULL;
-	double vtime, d, max_d = 0.75 / frame_rate_value[frame_rate_code];
+	double d, max_d = 0.75 / frame_rate_value[frame_rate_code];
 
 	for (;;) {
 		if (!ab)
 			ab = wait_full_buffer(audio_cap_fifo);
-		if (!vp)
-			vp = video_wait_frame(&vtime, &vindex);
-		if (!ab || !vp)
+		if (!vb)
+			vb = wait_full_buffer(video_cap_fifo);
+		if (!ab || !vb)
 			FAIL("Premature end of file");
 
-		printv(3, "Sync vtime=%f, atime=%f\n", vtime, ab->time);
+		printv(3, "Sync vtime=%f, atime=%f\n", vb->time, ab->time);
 
-		d = vtime - ab->time;
+		d = vb->time - ab->time;
 
 		if (fabs(d) <= max_d) {
 			break;
 		}
 
 		if (d < 0) {
-			video_frame_done(vindex);
-			vp = NULL;
+			send_empty_buffer(video_cap_fifo, vb);
+			vb = NULL;
 		} else {
 			send_empty_buffer(audio_cap_fifo, ab);
 			ab = NULL;
 		}
 	}
 
-	video_unget_frame(vindex);
+	unget_full_buffer(video_cap_fifo, vb);
 	unget_full_buffer(audio_cap_fifo, ab);
 }

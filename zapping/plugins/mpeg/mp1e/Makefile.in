@@ -62,13 +62,10 @@ host_triplet = @host@
 AS = @AS@
 CC = @CC@
 DLLTOOL = @DLLTOOL@
-LD = @LD@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 MAKEINFO = @MAKEINFO@
-NM = @NM@
 OBJDUMP = @OBJDUMP@
-OPT = @OPT@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 TEST_MODULES = @TEST_MODULES@
@@ -128,7 +125,7 @@ mp1e.lsm.in
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = gtar
+TAR = tar
 GZIP_ENV = --best
 DEP_FILES =  .deps/convert_ry.P .deps/main.P .deps/options.P .deps/rte.P \
 .deps/rte_test_main.P

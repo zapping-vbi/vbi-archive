@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.18 2000-09-13 16:28:02 garetxe Exp $ */
+/* $Id: main.c,v 1.19 2000-09-23 03:56:13 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,10 +78,8 @@ fifo *			audio_cap_fifo;
 int			stereo;
 
 pthread_t		video_thread_id;
+fifo *			video_cap_fifo;
 void			(* video_start)(void);
-unsigned char *		(* video_wait_frame)(double *, int *);
-void			(* video_frame_done)(int);
-void			(* video_unget_frame)(int);
 int			min_cap_buffers;
 
 pthread_t               output_thread_id;
@@ -112,6 +110,7 @@ pthread_mutex_t audio_device_mutex=PTHREAD_MUTEX_INITIALIZER;
 
 fifo *			ye_olde_audio_cap_fifo;
 
+// obsolete
 unsigned char *		(* ye_olde_wait_frame)(double *, int *);
 void			(* ye_olde_frame_done)(int);
 

@@ -1002,23 +1002,26 @@ video_input_start ( void )
 }
 
 /* video_wait_frame = video_input_wait_frame */
-static unsigned char *
-video_input_wait_frame (double *ftime, int *buf_index)
+static buffer *
+video_input_wait_frame (fifo *f1)
 {
 	rte_context * context = rte_global_context; /* FIXME: this shoudn't be global */
 	_buffer * b;
 	_fifo * f;
+	buffer *b1 = calloc(sizeof(buffer), 1); // XXX forward b iff buffer *
 
+	// XXX obsolete, new fifo handles ungetting
 	if (context->private->v_ubuffer > -1) {
-		*buf_index = context->private->v_ubuffer;
+		b1->index = context->private->v_ubuffer;
 		ASSERT("Checking that i'm sane\n",
-		       context->private->vid.num_buffers > *buf_index);
+		       context->private->vid.num_buffers > b1->index);
 
-		b = &(context->private->vid.buffer[*buf_index]);
-		*ftime = b->time;
+		b = &(context->private->vid.buffer[b1->index]);
+		b1->time = b->time;
 		context->private->v_ubuffer = -1;
+		b1->data = b->data;
 
-		return (b->data);
+		return b1;
 	}
 
 	f = &(context->private->vid);
@@ -1040,17 +1043,21 @@ video_input_wait_frame (double *ftime, int *buf_index)
 		pthread_mutex_unlock(&(f->mutex));
 	}
 
-	*buf_index = b->index;
-	*ftime = b->time;
+	b1->index = b->index;
+	b1->time = b->time;
+	b1->data = b->data;
 
-	return b->data;
+	return b1;
 }
 
 /* video_frame_done = video_input_frame_done */
 static void
-video_input_frame_done(int buf_index)
+video_input_frame_done(fifo *f1, buffer *b1)
 {
 	rte_context * context = rte_global_context; /* fixme: avoid global */
+	int buf_index = b1->index;
+
+	free(b1);
 
 	ASSERT("Checking that i'm sane\n",
 	       context->private->vid.num_buffers > buf_index);
@@ -1059,6 +1066,7 @@ video_input_frame_done(int buf_index)
 		     &(context->private->vid.buffer[buf_index]));
 }
 
+// XXX obsolete
 /* video_unget_frame = video_input_unget_frame */
 static void
 video_input_unget_frame(int buf_index)
@@ -1078,10 +1086,11 @@ audio_input_read(fifo *f1)
 	rte_context * context = rte_global_context; /* FIXME: this shoudn't be global */
 	_buffer * b;
 	_fifo * f;
-	buffer *b1 = calloc(sizeof(buffer), 1);
+	buffer *b1 = calloc(sizeof(buffer), 1); // XXX use b iff buffer *
 
 	b = context->private->a_ubuffer;
 
+	// XXX obsolete, new fifo handles ungetting
 	if (context->private->a_again) {
 		ASSERT("re-using audio before using it\n", b != NULL);
 		context->private->a_again = 0;
@@ -1126,6 +1135,7 @@ audio_input_done(fifo *f, buffer *b)
 }
 
 static fifo		rte_audio_cap_fifo;
+static fifo		rte_video_cap_fifo;
 
 int rte_init ( void )
 {
@@ -1135,9 +1145,10 @@ int rte_init ( void )
 	rte_global_context = NULL;
 
 	video_start = video_input_start;
-	video_wait_frame = video_input_wait_frame;
-	video_frame_done = video_input_frame_done;
-	video_unget_frame = video_input_unget_frame;
+
+	init_callback_fifo(video_cap_fifo = &rte_video_cap_fifo,
+		video_input_wait_frame, video_input_frame_done,
+		NULL, NULL, 0, 0);
 
 	init_callback_fifo(audio_cap_fifo = &rte_audio_cap_fifo,
 		audio_input_read, audio_input_done,

@@ -30,10 +30,8 @@ extern fifo *		audio_cap_fifo;
 extern int		stereo;
 
 extern pthread_t	video_thread_id;
+extern fifo *		video_cap_fifo;
 extern void		(* video_start)(void);
-extern unsigned char *	(* video_wait_frame)(double *, int *);
-extern void		(* video_frame_done)(int);
-extern void		(* video_unget_frame)(int);
 extern int		min_cap_buffers;
 
 extern pthread_t        output_thread_id;
