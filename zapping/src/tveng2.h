@@ -19,34 +19,17 @@
 #ifndef __TVENG2_H__
 #define __TVENG2_H__
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "tveng_private.h"
 
-#include <stdio.h>
-#include <sys/ioctl.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/mman.h>
-#include <errno.h>
-#include <linux/kernel.h>
+/*
+  Inits the V4L2 module, and fills in the given table.
+*/
+void tveng2_init_module(struct tveng_module_info *module_info);
 
-#include "tveng.h"
-
-/* We need video extensions (DGA) */
-#include <X11/X.h>
-#include <X11/Xlib.h>
-#include <X11/Xfuncs.h>
-#ifndef DISABLE_X_EXTENSIONS
-#include <X11/extensions/xf86dga.h>
-#endif
-
+/*
+  Prototypes for forward declaration, used only in tveng2.c
+*/
+#ifdef TVENG2_PROTOTYPES
 /*
   Associates the given tveng_device_info with the given video
   device. On error it returns -1 and sets info->errno, info->error to
@@ -58,6 +41,7 @@
   decide based on the current display depth.
   info: The structure to be associated with the device
 */
+static
 int tveng2_attach_device(const char* device_file,
 			 enum tveng_attach_mode attach_mode,
 			 tveng_device_info * info);
@@ -72,7 +56,7 @@ int tveng2_attach_device(const char* device_file,
   info->current_controller: TVENG_CONTROLLER_V4L2
   This function always succeeds.
 */
-void
+static void
 tveng2_describe_controller(char ** short_str, char ** long_str,
 			   tveng_device_info * info);
 
@@ -81,7 +65,7 @@ tveng2_describe_controller(char ** short_str, char ** long_str,
   be called before reattaching a video device to the same object, but
   there is no need to call this before calling tveng_device_info_destroy.
 */
-void tveng2_close_device(tveng_device_info* info);
+static void tveng2_close_device(tveng_device_info* info);
 
 /*
   Functions for controlling the video capture. All of them return -1
@@ -92,70 +76,34 @@ void tveng2_close_device(tveng_device_info* info);
   Returns the number of inputs in the given device and fills in info,
   allocating memory as needed
 */
-int tveng2_get_inputs(tveng_device_info * info);
+static int tveng2_get_inputs(tveng_device_info * info);
 
 /*
   Sets the current input for the capture
 */
+static
 int tveng2_set_input(struct tveng_enum_input * input, tveng_device_info
 		     * info);
-
-/*
-  Sets the input named name as the active input. -1 on error
-  (info->error states the exact error)
-*/
-int
-tveng2_set_input_by_name(const char * name, tveng_device_info * info);
-
-/*
-  Sets the active input by its id. -1 on error
-*/
-int
-tveng2_set_input_by_id(int id, tveng_device_info * info);
-
-/*
-  Sets the active input by its index in inputs. -1 on error
-*/
-int
-tveng2_set_input_by_index(int index, tveng_device_info * info);
 
 /*
   Queries the device about its standards. Fills in info as appropiate
   and returns the number of standards in the device.
 */
-int tveng2_get_standards(tveng_device_info * info);
+static int tveng2_get_standards(tveng_device_info * info);
 
 /*
   Sets the given standard as the current standard
 */
-int 
+static int 
 tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info);
 
-/*
-  Sets the standard by name. -1 on error
-*/
-int
-tveng2_set_standard_by_name(char * name, tveng_device_info * info);
-
-/*
-  Sets the standard by id. -1 on error
-*/
-int
-tveng2_set_standard_by_id(int id, tveng_device_info * info);
-
-/*
-  Sets the standard by index. -1 on error
-*/
-int
-tveng2_set_standard_by_index(int index, tveng_device_info * info);
-
 /* Updates the current capture format info. -1 if failed */
-int
+static int
 tveng2_update_capture_format(tveng_device_info * info);
 
 /* -1 if failed. Sets the format and fills in info -> format
    with the correct values  */
-int
+static int
 tveng2_set_capture_format(tveng_device_info * info);
 
 /*
@@ -163,70 +111,35 @@ tveng2_set_capture_format(tveng_device_info * info);
   appropiately. After this (and if it succeeds) you can look in
   info->controls to get the values for each control. -1 on error
 */
-int
+static int
 tveng2_update_controls(tveng_device_info * info);
 
 /*
   Sets the value for an specific control. The given value will be
   clipped between min and max values. Returns -1 on error
 */
-int
+static int
 tveng2_set_control(struct tveng_control * control, int value,
 		   tveng_device_info * info);
-
-/*
-  Gets the value of a control, given its name. Returns -1 on
-  error. The comparison is performed disregarding the case. The value
-  read is stored in cur_value.
-*/
-int
-tveng2_get_control_by_name(const char * control_name,
-			   int * cur_value,
-			   tveng_device_info * info);
-
-/*
-  Sets the value of a control, given its name. Returns -1 on
-  error. The comparison is performed disregarding the case.
-  new_value holds the new value given to the control, and it is
-  clipped as neccessary.
-*/
-int
-tveng2_set_control_by_name(const char * control_name,
-			   int new_value,
-			   tveng_device_info * info);
-
-/*
-  Gets the value of a control, given its control id. -1 on error (or
-  cid not found). The result is stored in cur_value.
-*/
-int
-tveng2_get_control_by_id(int cid, int * cur_value,
-			 tveng_device_info * info);
-
-/*
-  Sets a control by its id. Returns -1 on error
-*/
-int tveng2_set_control_by_id(int cid, int new_value,
-			     tveng_device_info * info);
 
 /*
   Gets the value of the mute property. 1 means mute (no sound) and 0
   unmute (sound). -1 on error
 */
-int
+static int
 tveng2_get_mute(tveng_device_info * info);
 
 /*
   Sets the value of the mute property. 0 means unmute (sound) and 1
   mute (no sound). -1 on error
 */
-int
+static int
 tveng2_set_mute(int value, tveng_device_info * info);
 
 /*
   Tunes the current input to the given freq. Returns -1 on error.
 */
-int
+static int
 tveng2_tune_input(__u32 freq, tveng_device_info * info);
 
 /*
@@ -236,14 +149,14 @@ tveng2_tune_input(__u32 freq, tveng_device_info * info);
   controller (i.e. V4L1). Strength and/or afc can be NULL pointers,
   that would mean ignore that parameter.
 */
-int
+static int
 tveng2_get_signal_strength (int *strength, int * afc,
 			    tveng_device_info * info);
 
 /*
   Stores in freq the currently tuned freq. Returns -1 on error.
 */
-int
+static int
 tveng2_get_tune(__u32 * freq, tveng_device_info * info);
 
 /*
@@ -251,7 +164,7 @@ tveng2_get_tune(__u32 * freq, tveng_device_info * info);
   tune. If there is no tuner in this input, -1 will be returned.
   If any of the pointers is NULL, its value will not be filled.
 */
-int
+static int
 tveng2_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
 			info);
 
@@ -259,11 +172,11 @@ tveng2_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
   Sets up the capture device so any read() call after this one
   succeeds. Returns -1 on error.
 */
-int
+static int
 tveng2_start_capturing(tveng_device_info * info);
 
 /* Tries to stop capturing. -1 on error. */
-int
+static int
 tveng2_stop_capturing(tveng_device_info * info);
 
 /* 
@@ -274,12 +187,14 @@ tveng2_stop_capturing(tveng_device_info * info);
    Returns -1 on error, anything else on success.
    Note: if you want this call to be non-blocking, call it with time=0
 */
+static
 int tveng2_read_frame(void * where, unsigned int size,
 		      unsigned int time, tveng_device_info * info);
 
 /*
   Gets the timestamp of the last read frame in seconds.
 */
+static
 double tveng2_get_timestamp(tveng_device_info * info);
 
 /* 
@@ -287,6 +202,7 @@ double tveng2_get_timestamp(tveng_device_info * info);
    error. Remember to check the value of width and height in the
    format struct since it can be different to the one requested. 
 */
+static
 int tveng2_set_capture_size(int width, int height, tveng_device_info *
 			    info);
 
@@ -294,13 +210,14 @@ int tveng2_set_capture_size(int width, int height, tveng_device_info *
    Gets the actual size of the capture buffer in width and height.
    -1 on error
 */
+static
 int tveng2_get_capture_size(int *width, int *height, tveng_device_info * info);
 
 /* XF86 Frame Buffer routines */
 /*
   Returns 1 if the device attached to info suports previewing, 0 otherwise
 */
-int
+static int
 tveng2_detect_preview (tveng_device_info * info);
 
 /*
@@ -312,7 +229,7 @@ tveng2_detect_preview (tveng_device_info * info);
   The current chromakey value is used, the caller doesn't need to fill
   it in.
 */
-int
+static int
 tveng2_set_preview_window(tveng_device_info * info);
 
 /*
@@ -320,7 +237,7 @@ tveng2_set_preview_window(tveng_device_info * info);
   Returns -1 on error, and any other value on success.
   info   : The device to use
 */
-int
+static int
 tveng2_get_preview_window(tveng_device_info * info);
 
 /*
@@ -329,7 +246,7 @@ tveng2_get_preview_window(tveng_device_info * info);
    info  : device to use for previewing
    Returns -1 on error, anything else on success
 */
-int
+static int
 tveng2_set_preview (int on, tveng_device_info * info);
 
 /* 
@@ -338,18 +255,14 @@ tveng2_set_preview (int on, tveng_device_info * info);
    (mostly) everything.
    Returns -1 on error.
 */
-int
+static int
 tveng2_start_previewing (tveng_device_info * info);
 
 /*
   Stops the fullscreen mode. Returns -1 on error
 */
-int
+static int
 tveng2_stop_previewing(tveng_device_info * info);
 
-/*
-  Returns the necessary size of a private struct
-*/
-int tveng2_get_private_size(void);
-
+#endif /* TVENG2_PROTOTYPES */
 #endif /* TVENG2.H */

@@ -38,14 +38,32 @@
 #include "tveng2.h" /* V4L2 specific headers */
 #include "tveng_private.h" /* private definitions */
 
+typedef void (*tveng_controller)(struct tveng_module_info *info);
+static tveng_controller tveng_controllers[] = {
+  tveng2_init_module,
+  tveng1_init_module
+};
+
 /* Initializes a tveng_device_info object */
 tveng_device_info * tveng_device_info_new(Display * display, int bpp,
 					  const char *default_standard)
 {
-  size_t needed_mem = MAX(tveng1_get_private_size(),
-			  tveng2_get_private_size());
-  tveng_device_info * new_object = (tveng_device_info*)
-    malloc(needed_mem);
+  size_t needed_mem = 0;
+  tveng_device_info * new_object;
+  struct tveng_module_info module_info;
+  int i;
+
+  /* Get the needed mem for the controllers */
+  for (i=0; i<(sizeof(tveng_controllers)/sizeof(tveng_controller));
+       i++)
+    {
+      tveng_controllers[i](&module_info);
+      needed_mem = MAX(needed_mem, module_info.private_size);
+    }
+
+  t_assert(needed_mem > 0);
+
+  new_object = (tveng_device_info*) malloc(needed_mem);
 
   if (!new_object)
     return NULL;
@@ -147,26 +165,29 @@ int tveng_attach_device(const char* device_file,
     default:
       info -> tveng_errno = -1;
       t_error_msg("switch()",
-		  _("The current display depth isn't supported by TVeng"),
+		  "The current display depth isn't supported by TVeng",
 		  info);
       return -1;
     }
 
-  info -> fd = 0;
-  /* Try first to attach it as a V4L2 device */
-  if (-1 != tveng2_attach_device(device_file, attach_mode, info))
-    goto success;
-
-  info -> fd = 0;
-  /* Now try it as a V4L device */
-  if (-1 != tveng1_attach_device(device_file, attach_mode, info))
-    goto success;
+  for (i=0; i<(sizeof(tveng_controllers)/sizeof(tveng_controller));
+       i++)
+    {
+      info -> fd = 0;
+      tveng_controllers[i](&(info->private->module));
+      if (!info->private->module.attach_device)
+	continue;
+      if (-1 != info->private->module.attach_device(device_file, attach_mode,
+						    info))
+	goto success;
+    }
 
   /* Error */
   info->tveng_errno = -1;
   t_error_msg("check()",
-	      _("The device cannot be attached to any controller"),
+	      "The device cannot be attached to any controller",
 	      info);
+  memset(&(info->private->module), 0, sizeof(info->private->module));
   return -1;
 
  success:
@@ -254,50 +275,30 @@ tveng_describe_controller(char ** short_str, char ** long_str,
 			  tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
+  if (info->private->module.describe_controller)
+    info->private->module.describe_controller(short_str, long_str,
+					      info);
+  else /* function not supported by the module */
     {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      tveng1_describe_controller(short_str, long_str, info);
-      break;
-    case TVENG_CONTROLLER_V4L2:
-      tveng2_describe_controller(short_str, long_str, info);
-      break;
-    default:
-      t_assert_not_reached();
+      if (short_str)
+	*short_str = "UNKNOWN";
+      if (long_str)
+	*long_str = "No description provided";
     }
-
-  return;
 }
 
 /* Closes a device opened with tveng_init_device */
 void tveng_close_device(tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
   tveng_stop_everything(info);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      tveng1_close_device(info);
-      break; 
-    case TVENG_CONTROLLER_V4L2:
-      tveng2_close_device(info);
-      break;
-    default:
-      t_assert_not_reached();
-    }
-
-  return;
+  if (info->private->module.close_device)
+    info->private->module.close_device(info);
 }
 
 /*
@@ -312,21 +313,15 @@ void tveng_close_device(tveng_device_info * info)
 int tveng_get_inputs(tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_get_inputs(info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_get_inputs(info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.get_inputs)
+    return info->private->module.get_inputs(info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -338,21 +333,15 @@ int tveng_set_input(struct tveng_enum_input * input,
 {
   t_assert(info != NULL);
   t_assert(input != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_input(input, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_input(input, info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.set_input)
+    return info->private->module.set_input(input, info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -360,26 +349,23 @@ int tveng_set_input(struct tveng_enum_input * input,
   Sets the input named name as the active input. -1 on error.
 */
 int
-tveng_set_input_by_name(const char * input_name, tveng_device_info * info)
+tveng_set_input_by_name(const char * input_name,
+			tveng_device_info * info)
 {
-  t_assert(info != NULL);
+  int i;
+
   t_assert(input_name != NULL);
+  t_assert(info != NULL);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_input_by_name(input_name, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_input_by_name(input_name, info);
-    default:
-      t_assert_not_reached();
-    }
+  for (i = 0; i < info->num_inputs; i++)
+    if (!strcasecmp(info->inputs[i].name, input_name))
+      return tveng_set_input(&(info->inputs[i]), info);
 
-  return -1;
+  info->tveng_errno = -1;
+  t_error_msg("finding",
+	      "Input %s doesn't appear to exist", info, input_name);
+
+  return -1; /* String not found */
 }
 
 /*
@@ -389,23 +375,19 @@ tveng_set_input_by_name(const char * input_name, tveng_device_info * info)
 int
 tveng_set_input_by_id(int id, tveng_device_info * info)
 {
+  int i;
+
   t_assert(info != NULL);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_input_by_id(id, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_input_by_id(id, info);
-    default:
-      t_assert_not_reached();
-    }
+  for (i = 0; i < info->num_inputs; i++)
+    if (info->inputs[i].id == id)
+      return tveng_set_input(&(info->inputs[i]), info);
 
-  return -1;
+  info->tveng_errno = -1;
+  t_error_msg("finding",
+	      "Input number %d doesn't appear to exist", info, id);
+
+  return -1; /* String not found */
 }
 
 /*
@@ -415,22 +397,14 @@ int
 tveng_set_input_by_index(int index, tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(index > -1);
 
-  switch (info -> current_controller)
+  if (info->num_inputs)
     {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_input_by_index(index, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_input_by_index(index, info);
-    default:
-      t_assert_not_reached();
+      t_assert(index < info -> num_inputs);
+      return (tveng_set_input(&(info -> inputs[index]), info));
     }
-
-  return -1;
+  return 0;
 }
 
 /*
@@ -442,21 +416,15 @@ tveng_set_input_by_index(int index, tveng_device_info * info)
 int tveng_get_standards(tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_get_standards(info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_get_standards(info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.get_standards)
+    return info->private->module.get_standards(info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -468,21 +436,15 @@ int tveng_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
 {
   t_assert(info != NULL);
   t_assert(std != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_standard(std, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_standard(std, info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.set_standard)
+    return info->private->module.set_standard(std, info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -490,26 +452,18 @@ int tveng_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
   Sets the standard by name. -1 on error
 */
 int
-tveng_set_standard_by_name(char * name, tveng_device_info * info)
+tveng_set_standard_by_name(const char * name, tveng_device_info * info)
 {
-  t_assert(info != NULL);
-  t_assert(name != NULL);
+  int i;
+  for (i = 0; i < info->num_standards; i++)
+    if (!strcmp(name, info->standards[i].name))
+      return tveng_set_standard(&(info->standards[i]), info);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_standard_by_name(name, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_standard_by_name(name, info);
-    default:
-      t_assert_not_reached();
-    }
+  info->tveng_errno = -1;
+  t_error_msg("finding",
+	      "Standard %s doesn't appear to exist", info, name);
 
-  return -1;
+  return -1; /* String not found */  
 }
 
 /*
@@ -518,23 +472,16 @@ tveng_set_standard_by_name(char * name, tveng_device_info * info)
 int
 tveng_set_standard_by_id(int id, tveng_device_info * info)
 {
-  t_assert(info != NULL);
+  int i;
+  for (i = 0; i < info->num_standards; i++)
+    if (info->standards[i].id == id)
+      return tveng_set_standard(&(info->standards[i]), info);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_standard_by_id(id, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_standard_by_id(id, info);
-    default:
-      t_assert_not_reached();
-    }
+  info->tveng_errno = -1;
+  t_error_msg("finding",
+	      "Standard number %d doesn't appear to exist", info, id);
 
-  return -1;
+  return -1; /* id not found */
 }
 
 /*
@@ -544,22 +491,14 @@ int
 tveng_set_standard_by_index(int index, tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(index > -1);
 
-  switch (info -> current_controller)
+  if (info->num_standards)
     {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_standard_by_index(index, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_standard_by_index(index, info);
-    default:
-      t_assert_not_reached();
+      t_assert(index < info->num_standards);
+      return (tveng_set_standard(&(info->standards[index]), info));
     }
-
-  return -1;
+  return 0;
 }
 
 /* Updates the current capture format info. -1 if failed */
@@ -567,21 +506,15 @@ int
 tveng_update_capture_format(tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_update_capture_format(info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_update_capture_format(info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.update_capture_format)
+    return info->private->module.update_capture_format(info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -591,6 +524,7 @@ int
 tveng_set_capture_format(tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
   info->format.width = (info->format.width+3) & ~3;
   info->format.height = (info->format.height+3) & ~3;
@@ -603,21 +537,15 @@ tveng_set_capture_format(tveng_device_info * info)
   if (info->format.width > info->caps.maxwidth)
     info->format.width = info->caps.maxwidth;
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_capture_format(info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_capture_format(info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.set_capture_format)
+    return info->private->module.set_capture_format(info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
+
 }
 
 /*
@@ -629,21 +557,15 @@ int
 tveng_update_controls(tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_update_controls(info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_update_controls(info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.update_controls)
+    return info->private->module.update_controls(info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -657,21 +579,15 @@ tveng_set_control(struct tveng_control * control, int value,
 {
   t_assert(info != NULL);
   t_assert(control != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_control(control, value, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_control(control, value, info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.set_control)
+    return info->private->module.set_control(control, value, info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -685,25 +601,35 @@ tveng_get_control_by_name(const char * control_name,
 			  int * cur_value,
 			  tveng_device_info * info)
 {
+  int i;
+  int value;
+
   t_assert(info != NULL);
+  t_assert(info -> num_controls > 0);
   t_assert(control_name != NULL);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_get_control_by_name(control_name,
-					cur_value, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_get_control_by_name(control_name,
-					cur_value, info);
-    default:
-      t_assert_not_reached();
-    }
+  /* Update the controls (their values) */
+  if (tveng_update_controls(info) == -1)
+    return -1;
 
+  /* iterate through the info struct to find the control */
+  for (i = 0; i < info->num_controls; i++)
+    if (!strcasecmp(info->controls[i].name,control_name))
+      /* we found it */
+      {
+	value = info->controls[i].cur_value;
+	t_assert(value <= info->controls[i].max);
+	t_assert(value >= info->controls[i].min);
+	if (cur_value)
+	  *cur_value = value;
+	return 0; /* Success */
+      }
+
+  /* if we reach this, we haven't found the control */
+  info->tveng_errno = -1;
+  t_error_msg("finding",
+	      "Cannot find control \"%s\" in the list of controls",
+	      info, control_name);
   return -1;
 }
 
@@ -718,25 +644,22 @@ tveng_set_control_by_name(const char * control_name,
 			  int new_value,
 			  tveng_device_info * info)
 {
+  int i;
+
   t_assert(info != NULL);
-  t_assert(control_name != NULL);
+  t_assert(info -> num_controls > 0);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_control_by_name(control_name,
-					new_value, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_control_by_name(control_name,
-					new_value, info);
-    default:
-      t_assert_not_reached();
-    }
+  /* iterate through the info struct to find the mute control */
+  for (i = 0; i < info->num_controls; i++)
+    if (!strcasecmp(info->controls[i].name,control_name))
+      /* we found it */
+      return (tveng_set_control(&(info->controls[i]), new_value, info));
 
+  /* if we reach this, we haven't found the control */
+  info->tveng_errno = -1;
+  t_error_msg("finding",
+	   "Cannot find control \"%s\" in the list of controls",
+	   info, control_name);
   return -1;
 }
 
@@ -748,22 +671,34 @@ int
 tveng_get_control_by_id(int cid, int * cur_value,
 			tveng_device_info * info)
 {
+  int i;
+  int value;
+
   t_assert(info != NULL);
+  t_assert(info -> num_controls > 0);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_get_control_by_id(cid, cur_value, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_get_control_by_id(cid, cur_value, info);
-    default:
-      t_assert_not_reached();
-    }
+  /* Update the controls (their values) */
+  if (tveng_update_controls(info) == -1)
+    return -1;
 
+  /* iterate through the info struct to find the mute control */
+  for (i = 0; i < info->num_controls; i++)
+    if (info->controls[i].id == cid)
+      /* we found it */
+      {
+	value = info->controls[i].cur_value;
+	t_assert(value <= info->controls[i].max);
+	t_assert(value >= info->controls[i].min);
+	if (cur_value)
+	  *cur_value = value;
+	return 0; /* Success */
+      }
+
+  /* if we reach this, we haven't found the control */
+  info->tveng_errno = -1;
+  t_error_msg("finding",
+	      "Cannot find control %d in the list of controls",
+	      info, cid);
   return -1;
 }
 
@@ -773,22 +708,23 @@ tveng_get_control_by_id(int cid, int * cur_value,
 int tveng_set_control_by_id(int cid, int new_value,
 			    tveng_device_info * info)
 {
+  int i;
+
   t_assert(info != NULL);
+  t_assert(info -> num_controls > 0);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_control_by_id(cid, new_value, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_control_by_id(cid, new_value, info);
-    default:
-      t_assert_not_reached();
-    }
+  /* iterate through the info struct to find the mute control */
+  for (i = 0; i < info->num_controls; i++)
+    if (info->controls[i].id == cid)
+      /* we found it */
+      return (tveng_set_control(&(info->controls[i]), new_value,
+				info));
 
+  /* if we reach this, we haven't found the control */
+  info->tveng_errno = -1;
+  t_error_msg("finding",
+	      "Cannot find control %d in the list of controls",
+	      info, cid);
   return -1;
 }
 
@@ -800,21 +736,15 @@ int
 tveng_get_mute(tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_get_mute(info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_get_mute(info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.get_mute)
+    return info->private->module.get_mute(info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -826,21 +756,15 @@ int
 tveng_set_mute(int value, tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_mute(value, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_mute(value, info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.set_mute)
+    return info->private->module.set_mute(value, info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -851,28 +775,22 @@ int
 tveng_tune_input(__u32 freq, tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_tune_input(freq, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_tune_input(freq, info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.tune_input)
+    return info->private->module.tune_input(freq, info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
 /*
   Gets the signal strength and the afc code. The afc code indicates
   how to get a better signal, if negative, tune higher, if negative,
-  tune lower. 0 means no idea of feature not present in the current
+  tune lower. 0 means no idea or feature not present in the current
   controller (i.e. V4L1). Strength and/or afc can be NULL pointers,
   that would mean ignore that parameter.
 */
@@ -881,21 +799,15 @@ tveng_get_signal_strength (int *strength, int * afc,
 			   tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_get_signal_strength(strength, afc, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_get_signal_strength(strength, afc, info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.get_signal_strength)
+    return info->private->module.get_signal_strength(strength, afc, info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -906,21 +818,16 @@ int
 tveng_get_tune(__u32 * freq, tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(freq != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_get_tune(freq, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_get_tune(freq, info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.get_tune)
+    return info->private->module.get_tune(freq, info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -934,21 +841,15 @@ tveng_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
 		       info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_get_tuner_bounds(min, max, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_get_tuner_bounds(min, max, info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.get_tuner_bounds)
+    return info->private->module.get_tuner_bounds(min, max, info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -960,21 +861,15 @@ int
 tveng_start_capturing(tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_start_capturing(info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_start_capturing(info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.start_capturing)
+    return info->private->module.start_capturing(info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -983,21 +878,15 @@ int
 tveng_stop_capturing(tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_stop_capturing(info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_stop_capturing(info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.stop_capturing)
+    return info->private->module.stop_capturing(info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -1016,22 +905,15 @@ int tveng_read_frame(void * where, unsigned int size,
 		     unsigned int time, tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(size >= 0);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_read_frame(where, size, time, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_read_frame(where, size, time, info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.read_frame)
+    return info->private->module.read_frame(where, size, time, info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -1041,21 +923,15 @@ int tveng_read_frame(void * where, unsigned int size,
 double tveng_get_timestamp(tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_get_timestamp(info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_get_timestamp(info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.get_timestamp)
+    return info->private->module.get_timestamp(info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -1067,23 +943,25 @@ double tveng_get_timestamp(tveng_device_info * info)
 int tveng_set_capture_size(int width, int height, tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(width > 0);
-  t_assert(height > 0);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_capture_size(width, height, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_capture_size(width, height, info);
-    default:
-      t_assert_not_reached();
-    }
+  width = (width & ~3);
+  if (width < info->caps.minwidth)
+    width = info->caps.minwidth;
+  if (width > info->caps.maxwidth)
+    width = info->caps.maxwidth;
+  if (height < info->caps.minheight)
+    height = info->caps.minheight;
+  if (height > info->caps.maxheight)
+    height = info->caps.maxheight;
 
+  if (info->private->module.set_capture_size)
+    return info->private->module.set_capture_size(width, height, info);
+
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -1094,21 +972,17 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
 int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(width != NULL);
+  t_assert(height != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_get_capture_size(width, height, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_get_capture_size(width, height, info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.get_capture_size)
+    return info->private->module.get_capture_size(width, height, info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return -1;
 }
 
@@ -1184,21 +1058,15 @@ int
 tveng_detect_preview (tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_detect_preview(info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_detect_preview(info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.detect_preview)
+    return info->private->module.detect_preview(info);
 
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
   return 0;
 }
 
@@ -1373,6 +1241,7 @@ int
 tveng_set_preview_window(tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
   info->window.x = (info->window.x+3) & ~3;
   info->window.width = (info->window.width+3) & ~3;
@@ -1385,21 +1254,14 @@ tveng_set_preview_window(tveng_device_info * info)
   if (info->window.width > info->caps.maxwidth)
     info->window.width = info->caps.maxwidth;
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_preview_window(info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_preview_window(info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.set_preview_window)
+    return info->private->module.set_preview_window(info);
 
-  return 0;
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
+  return -1;
 }
 
 /*
@@ -1411,22 +1273,16 @@ int
 tveng_get_preview_window(tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_get_preview_window(info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_get_preview_window(info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.get_preview_window)
+    return info->private->module.get_preview_window(info);
 
-  return 0;
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
+  return -1;
 }
 
 /* 
@@ -1439,22 +1295,16 @@ int
 tveng_set_preview (int on, tveng_device_info * info)
 {
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_set_preview(on, info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_set_preview(on, info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.set_preview)
+    return info->private->module.set_preview(on, info);
 
-  return 0;
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
+  return -1;
 }
 
 /* Adjusts the verbosity value passed to zapping_setup_fb, cannot fail
@@ -1500,6 +1350,7 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
 #endif
 
   t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
   /* special code, used only inside tveng, means remember from last
      time */
@@ -1646,21 +1497,14 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
     }
 #endif /* DISABLE_X_EXTENSIONS */
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
-    case TVENG_CONTROLLER_V4L1:
-      return tveng1_start_previewing(info);
-    case TVENG_CONTROLLER_V4L2:
-      return tveng2_start_previewing(info);
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.start_previewing)
+    return info->private->module.start_previewing(info);
 
-  return 0;
+  /* function not supported by the module */
+  info->tveng_errno = -1;
+  t_error_msg("module",
+	      "function not supported by the module", info);
+  return -1;
 }
 
 /*
@@ -1673,21 +1517,8 @@ tveng_stop_previewing(tveng_device_info * info)
 
   t_assert(info != NULL);
 
-  switch (info -> current_controller)
-    {
-    case TVENG_CONTROLLER_NONE:
-      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
-	      __PRETTY_FUNCTION__, info -> file_name);
-      return 0;
-    case TVENG_CONTROLLER_V4L1:
-      return_code = tveng1_stop_previewing(info);
-      break;
-    case TVENG_CONTROLLER_V4L2:
-      return_code = tveng2_stop_previewing(info);
-      break;
-    default:
-      t_assert_not_reached();
-    }
+  if (info->private->module.stop_previewing)
+    return_code = info->private->module.stop_previewing(info);
 
 #ifndef DISABLE_X_EXTENSIONS
   if (info->private->xf86vm_enabled)

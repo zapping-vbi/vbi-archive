@@ -24,7 +24,23 @@
 #endif
 
 #include <gtk/gtk.h>
+#include <gdk/gdkx.h>
 #include <tveng.h>
+
+#ifndef DISABLE_X_EXTENSIONS
+#ifdef HAVE_LIBXV
+#define USE_XV 1
+#endif
+#endif
+
+#ifdef USE_XV
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <X11/extensions/XShm.h>
+#include <X11/extensions/Xv.h>
+#include <X11/extensions/Xvlib.h>
+#endif /* USE_XV */
+
 #include "x11stuff.h"
 #include "zmisc.h"
 #include "zvbi.h"

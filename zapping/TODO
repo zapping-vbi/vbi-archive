@@ -6,10 +6,12 @@ Outstanding issues for the next release
 	+ Update es.po
 	+ Update THANKS, README and NEWS, mark the rest of the docs as 'OLD'
 	+ Bug fixes
+	+ Make the Web page pass the W3C tests.
 	+ Add to the configure script and to the .spec deps the
 		dependency on mp1e (actually RTE).
 	> Release 0.5.9
 	+ Michael's VBI decoder (TTX, CC, CNI, ...)
+	+ TTX Charset autodetection.
 	+ Subtitles support.
 	+ Better teletext navigation
 	+ VBI can be opened/closed while running, try.

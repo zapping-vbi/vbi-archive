@@ -1,3 +1,22 @@
+23.11.2000	More XVideo, tveng1 fixes <garetxe@users.sourceforge.net>
+
+	* tvengxv.c: Some more work into this, emulating TVeng api using
+	XVideo is a bit tricky. get_inputs, find_input.
+	* tveng1.c: Fixed a bug that could cause memleaks and broken
+	inputs.
+
+22.11.2000	XVideo work <garetxe@users.sourceforge.net>
+
+	* tvengxv.c: Created, handles the XV module. Just does some
+	minimal work by now: attach, describe, close, init.
+	* /me: I wish i had time to sleep... a day with 48 hours would
+	be fine too... All day in the Uni, then code :-(
+
+21.11.2000	tveng modularized <garetxe@users.sourceforge.net>
+
+	* tveng: Changed the structure into a more modular design, this
+	will let me add the XVideo handling module easier.
+
 19.11.2000	ru.po <sergey-nikulin@mail.ru>
 
 	* po/ru.po: Added Russian translation

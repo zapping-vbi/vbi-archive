@@ -180,9 +180,9 @@ startup_xv(void)
       if ((pAdaptor->type & XvInputMask) &&
 	  (pAdaptor->type & XvImageMask))
 	{ /* Image adaptor, check if some port fits our needs */
-	  xvport = pAdaptor->base_id;
 	  for (j=0; j<pAdaptor->num_ports;j++)
 	    {
+	      xvport = pAdaptor->base_id + j;
 	      pImgFormats = XvListImageFormats(dpy, xvport,
 					       &nImgFormats);
 	      if (!pImgFormats)
@@ -196,7 +196,6 @@ startup_xv(void)
 		  goto adaptor_found;
 
 	      XvUngrabPort(dpy, xvport, CurrentTime);
-	      xvport ++;
 	    }
 	}
 	

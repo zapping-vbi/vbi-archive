@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <errno.h>
 #include <linux/kernel.h>
@@ -89,7 +90,14 @@ enum tveng_attach_mode
     it. You cannot attach the same device twice with this type of
     attachment.
   */
-  TVENG_ATTACH_READ
+  TVENG_ATTACH_READ,
+  /*
+    Attachs the device to a XVideo virtual device, use this mode if
+    you would prefer the X server to take care of the video. This mode
+    only supports preview mode, and falls back to the previous attach
+    modes if XVideo isn't present or it isn't functional.
+  */
+  TVENG_ATTACH_XV
 };
 
 /* The capture structure */
@@ -372,7 +380,7 @@ tveng_set_standard(struct tveng_enumstd * std, tveng_device_info * info);
   Sets the standard by name. -1 on error
 */
 int
-tveng_set_standard_by_name(char * name, tveng_device_info * info);
+tveng_set_standard_by_name(const char * name, tveng_device_info * info);
 
 /*
   Sets the standard by id. -1 on error
@@ -469,7 +477,7 @@ tveng_tune_input(__u32 freq, tveng_device_info * info);
 /*
   Gets the signal strength and the afc code. The afc code indicates
   how to get a better signal, if negative, tune higher, if negative,
-  tune lower. 0 means no idea of feature not present in the current
+  tune lower. 0 means no idea or feature not present in the current
   controller (i.e. V4L1). Strength and/or afc can be NULL pointers,
   that would mean ignore that parameter.
 */
@@ -679,22 +687,27 @@ fprintf(stderr, _("%s (%d): %s: assertion (%s) failed\n"), __FILE__, \
 __LINE__, __PRETTY_FUNCTION__, #condition); \
 exit(1);}
 
+/* Builds a custom error message, doesn't use errno */
+#define t_error_msg(str_error, msg_error, info, args...) \
+do { \
+  char temp_error_buffer[256]; \
+  temp_error_buffer[255] = 0; \
+  snprintf(temp_error_buffer, 255, "[%s] %s (line %d)\n%s failed: %s", \
+	   __FILE__, __PRETTY_FUNCTION__, __LINE__, str_error, msg_error); \
+  info->error[255] = 0; \
+  snprintf(info->error, 255, temp_error_buffer ,##args); \
+} while (0)
+
 /* Builds an error message that lets me debug much better */
 #define t_error(str_error, info) \
 t_error_msg(str_error, strerror(info->tveng_errno), info);
 
-/* Builds a custom error message, doesn't use errno */
-#define t_error_msg(str_error, msg_error, info) do { \
-snprintf(info->error, 256, _("[%s] %s (line %d)\n%s failed: %s"), \
-__FILE__, __PRETTY_FUNCTION__, __LINE__, str_error, msg_error); \
-if (info->debug_level>0) \
-fprintf(stderr, "[TVeng] %s\n", info->error); \
-} while (0)
-
 /* Defines a point that should never be reached */
-#define t_assert_not_reached() \
+#define t_assert_not_reached() do {\
 fprintf(stderr, \
 _("[%s: %d: %s] This should have never been reached\n" ), __FILE__, \
-__LINE__, __PRETTY_FUNCTION__)
+__LINE__, __PRETTY_FUNCTION__); \
+exit(1); \
+} while (0)
 
 #endif /* TVENG.H */

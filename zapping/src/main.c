@@ -248,6 +248,8 @@ int main(int argc, char * argv[])
   printv("%s %s, build date: %s\n", "Zapping", VERSION, __DATE__);
   switch (mm_support())
     {
+    case 1:
+      printv("MMX enabled.\n");
     case 3:
       printv("Cyrix MMX / Extended MMX. MMX enabled.\n");
       break;
@@ -255,10 +257,7 @@ int main(int argc, char * argv[])
       printv("AMD MMX / 3DNow!. MMX enabled.\n");
       break;
     default:
-      if (mmx_ok())
-	printv("MMX enabled.\n");
-      else
-	printv("MMX not detected. Using plain C.\n");
+      printv("MMX not detected. Using plain C.\n");
       break;
     }
   glade_gnome_init();
@@ -394,7 +393,7 @@ int main(int argc, char * argv[])
     {
       g_warning("The overlay handler couldn't be loaded, overlay will"
 		" be disabled");
-      disable_preview = FALSE;
+      disable_preview = TRUE;
     }
   D();
   /* Add the plugins to the GUI */
