@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.h,v 1.3 2002-06-12 04:01:14 mschimek Exp $ */
+/* $Id: codec.h,v 1.4 2002-06-18 02:25:34 mschimek Exp $ */
 
 #ifndef CODEC_H
 #define CODEC_H
@@ -153,29 +153,29 @@ typedef struct {
  **/
 /* Attn: keep this in sync with zvbi, don't change order */
 typedef enum {
-  RTE_PIXFMT_YUV420 = 1,
-  RTE_PIXFMT_YUYV,
-  RTE_PIXFMT_YVYU,
-  RTE_PIXFMT_UYVY,
-  RTE_PIXFMT_VYUY,
-  RTE_PIXFMT_RGBA32_LE = 32,
-  RTE_PIXFMT_RGBA32_BE,
-  RTE_PIXFMT_BGRA32_LE,
-  RTE_PIXFMT_BGRA32_BE,
-  RTE_PIXFMT_RGB24,
-  RTE_PIXFMT_BGR24,
-  RTE_PIXFMT_RGB16_LE,
-  RTE_PIXFMT_RGB16_BE,
-  RTE_PIXFMT_BGR16_LE,
-  RTE_PIXFMT_BGR16_BE,
-  RTE_PIXFMT_RGBA15_LE,
-  RTE_PIXFMT_RGBA15_BE,
-  RTE_PIXFMT_BGRA15_LE,
-  RTE_PIXFMT_BGRA15_BE,
-  RTE_PIXFMT_ARGB15_LE,
-  RTE_PIXFMT_ARGB15_BE,
-  RTE_PIXFMT_ABGR15_LE,
-  RTE_PIXFMT_ABGR15_BE
+	RTE_PIXFMT_YUV420 = 1,
+	RTE_PIXFMT_YUYV,
+	RTE_PIXFMT_YVYU,
+	RTE_PIXFMT_UYVY,
+	RTE_PIXFMT_VYUY,
+	RTE_PIXFMT_RGBA32_LE = 32,
+	RTE_PIXFMT_RGBA32_BE,
+	RTE_PIXFMT_BGRA32_LE,
+	RTE_PIXFMT_BGRA32_BE,
+	RTE_PIXFMT_RGB24,
+	RTE_PIXFMT_BGR24,
+	RTE_PIXFMT_RGB16_LE,
+	RTE_PIXFMT_RGB16_BE,
+	RTE_PIXFMT_BGR16_LE,
+	RTE_PIXFMT_BGR16_BE,
+	RTE_PIXFMT_RGBA15_LE,
+	RTE_PIXFMT_RGBA15_BE,
+	RTE_PIXFMT_BGRA15_LE,
+	RTE_PIXFMT_BGRA15_BE,
+	RTE_PIXFMT_ARGB15_LE,
+	RTE_PIXFMT_ARGB15_BE,
+	RTE_PIXFMT_ABGR15_LE,
+	RTE_PIXFMT_ABGR15_BE
 } rte_pixfmt;
 
 #define RTE_PIXFMT_ABGR32_BE RTE_PIXFMT_RGBA32_LE
@@ -255,12 +255,12 @@ typedef struct {
  * RTE PCM audio formats.
  **/
 typedef enum {
-  RTE_SNDFMT_S8 = 1,
-  RTE_SNDFMT_U8,
-  RTE_SNDFMT_S16_LE,
-  RTE_SNDFMT_S16_BE,
-  RTE_SNDFMT_U16_LE,
-  RTE_SNDFMT_U16_BE
+	RTE_SNDFMT_S8 = 1,
+	RTE_SNDFMT_U8,
+	RTE_SNDFMT_S16_LE,
+	RTE_SNDFMT_S16_BE,
+	RTE_SNDFMT_U16_LE,
+	RTE_SNDFMT_U16_BE
 } rte_sndfmt;
 
 /**
@@ -298,6 +298,7 @@ extern rte_codec_info *		rte_codec_info_codec(rte_codec *codec);
 
 extern rte_codec *		rte_codec_set(rte_context *context, const char *keyword, int stream_index, void *user_data);
 extern void			rte_codec_remove(rte_context *context, rte_stream_type stream_type, int stream_index);
+extern void			rte_codec_remove_codec(rte_codec *codec);
 extern rte_codec *		rte_codec_get(rte_context *context, rte_stream_type stream_type, int stream_index);
 
 extern void *			rte_codec_user_data(rte_codec *codec);
