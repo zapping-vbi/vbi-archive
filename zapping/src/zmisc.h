@@ -425,9 +425,6 @@ z_replace_filename_extension	(const gchar *		filename,
 				 const gchar *		new_ext);
 
 
-/* Switchs OSD on and sets the given OSD page as the subtitles source */
-void
-zmisc_overlay_subtitles		(gint page);
 
 /* Same as z_pixmap_new_from_file(), but prepends PACKAGE_PIXMAP_DIR
    to name and gtk_shows the pixmap on success */
@@ -503,11 +500,22 @@ z_entry_emits_response		(GtkWidget	*entry,
 				 GtkDialog	*dialog,
 				 GtkResponseType response);
 
+#define SIGNAL_BLOCK(object, signal, statement)				\
+do { guint id_;								\
+  id_ = g_signal_lookup (signal, G_OBJECT_TYPE (button));		\
+  g_assert (0 != id_);							\
+  g_signal_handlers_block_matched (object, G_SIGNAL_MATCH_ID,		\
+				   id_, 0, 0, 0, 0);			\
+  statement;								\
+  g_signal_handlers_unblock_matched (object, G_SIGNAL_MATCH_ID,		\
+				     id_, 0, 0, 0, 0);			\
+} while (0)
+
 #define SIGNAL_HANDLER_BLOCK(object, func, statement)			\
 do { gulong handler_id_;						\
   handler_id_ = g_signal_handler_find (G_OBJECT (object),		\
     G_SIGNAL_MATCH_FUNC, 0, 0, 0, (gpointer) func, 0);			\
-  g_assert (handler_id_ != 0);						\
+  g_assert (0 != handler_id_);						\
   g_signal_handler_block (G_OBJECT (object), handler_id_);		\
   statement;								\
   g_signal_handler_unblock (G_OBJECT (object), handler_id_);		\
