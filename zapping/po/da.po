@@ -1364,7 +1364,7 @@ msgstr "16:9"
 
 #: glade/glade_strings.c:60 glade/glade_strings.c:71
 msgid "Autodetect"
-msgstr ""
+msgstr "Autodetekter"
 
 #: glade/glade_strings.c:61
 msgid ""
@@ -1445,7 +1445,7 @@ msgstr ""
 
 #: glade/glade_strings.c:81
 msgid "Start Zapping muted"
-msgstr ""
+msgstr "Start Zapping uden lyd"
 
 #: glade/glade_strings.c:82
 msgid "Avoid noise while changing channels"
@@ -1461,11 +1461,11 @@ msgstr ""
 
 #: glade/glade_strings.c:85
 msgid "Recording source:"
-msgstr ""
+msgstr "Kilde til optagning"
 
 #: glade/glade_strings.c:86
 msgid "Recording volume:"
-msgstr ""
+msgstr "Lydstyrke for optagning"
 
 #: glade/glade_strings.c:87
 msgid "Use system settings"
@@ -1482,7 +1482,7 @@ msgstr "Lyd"
 
 #: glade/glade_strings.c:90
 msgid "How to show extra info:"
-msgstr ""
+msgstr "Hvordan der skal vises ekstra info:"
 
 #: glade/glade_strings.c:91
 msgid ""
@@ -2013,7 +2013,7 @@ msgstr "Søge mønster:"
 
 #: glade/glade_strings.c:251
 msgid "Regular expression"
-msgstr ""
+msgstr "Regulært udtryk"
 
 #: glade/glade_strings.c:252
 msgid "Search case insensitive"
@@ -2029,15 +2029,15 @@ msgstr "Søgning i gang..."
 
 #: glade/glade_strings.c:255
 msgid "Cancel the current search"
-msgstr ""
+msgstr "Annuller den nuværende søgning"
 
 #: glade/glade_strings.c:256
 msgid "Search backwards for the previous match"
-msgstr ""
+msgstr "Søg baglæns til forrige resultat"
 
 #: glade/glade_strings.c:257
 msgid "Search forwards for the next match"
-msgstr ""
+msgstr "Søg forlæns til næste resultat"
 
 #: glade/glade_strings.c:258
 msgid "Start a new search"
@@ -2057,11 +2057,11 @@ msgstr ""
 
 #: glade/glade_strings.c:263
 msgid "Remove all this mess"
-msgstr ""
+msgstr "Fjern alt dette rod"
 
 #: glade/glade_strings.c:264
 msgid "Clean console"
-msgstr ""
+msgstr "Ryd konsol"
 
 #: glade/glade_strings.c:265
 msgid "Known key names"
@@ -2681,7 +2681,7 @@ msgstr "Start optagning"
 
 #: plugins/mpeg/mpeg.c:1264
 msgid "Record as MPEG"
-msgstr ""
+msgstr "Optag som MPEG"
 
 #: plugins/mpeg/mpeg.c:1697
 #, c-format
