@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.12 2001-08-06 23:28:40 garetxe Exp $
+ * $Id: fullscreen.c,v 1.13 2001-09-25 18:38:00 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -95,6 +95,7 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
 	case GDK_a:
 	  if (kevent->state & GDK_CONTROL_MASK)
 	    on_toggle_muted1_activate(NULL, NULL);
+	  break;
 	default:
 	  while ((tc =
 		  tveng_retrieve_tuned_channel_by_index(i++,
@@ -112,7 +113,10 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
       return TRUE; /* Event processing done */
     }
   else if (event->type == GDK_BUTTON_PRESS)
-    zmisc_switch_mode(restore_mode, main_info);
+    {
+      zmisc_switch_mode(restore_mode, main_info);
+      return TRUE;
+    }
 
   return FALSE; /* We aren't interested in this event, pass it on */
 }
@@ -135,7 +139,7 @@ osd_model_changed			(ZModel		*ignored1,
   tveng_set_preview_off(info);
   memcpy(&info->window, &window, sizeof(struct tveng_window));
   clips = info->window.clips =
-    x11_get_clips(black_window->window,
+    x11_get_clips(GTK_BIN(black_window)->child->window,
 		  window.x, window.y,
 		  window.width,
 		  window.height,
@@ -177,7 +181,7 @@ fullscreen_start(tveng_device_info * info)
 
   /* Add a black background */
   black_window = gtk_window_new( GTK_WINDOW_POPUP );
-  da = gtk_drawing_area_new();
+  da = gtk_fixed_new();
 
   gtk_widget_show(da);
 
@@ -264,10 +268,12 @@ fullscreen_start(tveng_device_info * info)
   		     main_window);
 
   if (info->current_controller != TVENG_CONTROLLER_XV)
-    osd_set_coords(info->window.x, info->window.y, info->window.width,
+    osd_set_coords(da,
+		   info->window.x, info->window.y, info->window.width,
 		   info->window.height);
   else
-    osd_set_coords(0, 0, info->window.width, info->window.height);
+    osd_set_coords(da, 0, 0, info->window.width,
+		   info->window.height);
 
   gtk_signal_connect(GTK_OBJECT(osd_model), "changed",
 		     GTK_SIGNAL_FUNC(osd_model_changed), info);
@@ -282,6 +288,8 @@ fullscreen_stop(tveng_device_info * info)
   /* Restore the normal screensaver */
   x11_set_screensaver(ON);
 #endif
+
+  osd_unset_window();
 
   /* Remove the black window */
   gtk_widget_destroy(black_window);

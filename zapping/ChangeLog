@@ -1,3 +1,11 @@
+25.09.2001	OSD rewrite <garetxe@users.sf.net>
+
+	* osd.c: Rewritten, now osd windows are subwindows of the TV
+	screen, still some bugs (flicker in FS, missing words ???,
+	off-by-one error in y coords when doing roll_up, extra
+	size_allocates, prolly more).
+	You can get a feeling of the sgml renderer pressing 'o'.
+
 21.09.2001	mpeg properties fixes <garetxe@users.sf.net>
 
 	* mpeg.c: Fixed options frame deletion (objects are created with a

@@ -207,6 +207,11 @@ gboolean on_zapping_key_press		(GtkWidget	*widget,
 	}
     }
 
+  if (event->keyval == GDK_o ||
+      event->keyval == GDK_O)
+    osd_render_sgml("<i>Eg</i><b>ub</b><red>er</red><blue><u>rri"
+		    " </u></blue><green>on</green>");
+
   return FALSE;
 }
 
@@ -414,7 +419,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.134 2001-09-19 19:21:06 garetxe Exp $",
+	 "$Id: main.c,v 1.135 2001-09-25 18:38:00 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
@@ -659,7 +664,7 @@ int main(int argc, char * argv[])
     {
       GtkWidget *closed_caption1 = lookup_widget(main_window,
 						 "closed_caption1");
-      osd_on(tv_screen, main_window);
+      osd_set_window(tv_screen);
       gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
 				     TRUE);
     }

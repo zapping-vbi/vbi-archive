@@ -115,6 +115,34 @@ int xerror(Display * dpy, XErrorEvent *event)
   return 0;
 }
 
+/**
+ * Stores in X, Y the absolute position (relative to the root window)
+ * of the given window
+ */
+static void
+get_absolute_pos(Window w, Window root, gint *x, gint *y)
+{
+  Display *dpy = GDK_DISPLAY();
+  Window *children;
+  XWindowAttributes wts;
+  int nchildren;
+
+  *x = *y = 0;
+
+  while (w != root)
+    {
+      XGetWindowAttributes(dpy, w, &wts);
+
+      *x += wts.x;
+      *y += wts.y;
+
+      XQueryTree(GDK_DISPLAY(), w, &root, &w, &children, &nchildren);
+      if (children)
+	XFree(children);
+    }
+}
+
+
 /*
  * Returns a pointer to a clips struct (that you need to g_free()
  * afterwards if not NULL).
@@ -135,6 +163,50 @@ x11_get_clips(GdkWindow *win, gint x, gint y, gint w, gint h,
   int wx, wy, wwidth, wheight, swidth, sheight;
   XErrorHandler olderror;
 
+  static void get_children_clips(Window id, Window stack_level)
+    {
+      gint paren_x, paren_y;
+
+      get_absolute_pos(id, root, &paren_x, &paren_y);
+
+      XQueryTree(dpy, id, &rroot, &parent, &children, &nchildren);
+
+      for (i = 0; i < nchildren; i++)
+	if (children[i]==stack_level)
+	  break;
+
+      if (i == nchildren)
+	i = 0;
+      else
+	i++;
+
+      /* enter error-ignore mode */
+      olderror = XSetErrorHandler(xerror);
+      for (; i<nchildren; i++) {
+	XGetWindowAttributes(dpy, children[i], &wts);
+	if (!(wts.map_state & IsViewable))
+	  continue;
+    
+	x1=(wts.x+paren_x)-wx;
+	y1=(wts.y+paren_y)-wy;
+	x2=x1+wts.width+2*wts.border_width;
+	y2=y1+wts.height+2*wts.border_width;
+	if ((x2 < 0) || (x1 > (int)wwidth) || (y2 < 0) || (y1 > (int)wheight))
+	  continue;
+    
+	if (x1<0)            x1=0;
+	if (y1<0)            y1=0;
+	if (x2>(int)wwidth)  x2=wwidth;
+	if (y2>(int)wheight) y2=wheight;
+	x11_add_clip(x1, y1, x2, y2, &clips, &num_clips);
+      }
+      XSetErrorHandler(olderror);
+      /* leave error-ignore mode */
+      
+      if (children)
+	XFree((char *) children);
+    }
+
   if ((win == NULL) || (return_num_clips == NULL))
     return NULL;
 
@@ -154,6 +226,11 @@ x11_get_clips(GdkWindow *win, gint x, gint y, gint w, gint h,
   
   root=GDK_ROOT_WINDOW();
   me=GDK_WINDOW_XWINDOW(win);
+
+  /* Get the cliplist of the childs of a given window */
+  get_children_clips(me, None);
+
+  /* Walk up to the root window and get clips */
   for (;;) {
     XQueryTree(dpy, me, &rroot, &parent, &children, &nchildren);
     if (children)
@@ -162,37 +239,8 @@ x11_get_clips(GdkWindow *win, gint x, gint y, gint w, gint h,
       break;
     me = parent;
   }
-  XQueryTree(dpy, root, &rroot, &parent, &children, &nchildren);
-    
-  for (i = 0; i < nchildren; i++)
-    if (children[i]==me)
-      break;
-  
-  /* enter error-ignore mode */
-  olderror = XSetErrorHandler(xerror);
-  for (i++; i<nchildren; i++) {
-    XGetWindowAttributes(dpy, children[i], &wts);
-    if (!(wts.map_state & IsViewable))
-      continue;
-    
-    x1=wts.x-wx;
-    y1=wts.y-wy;
-    x2=x1+wts.width+2*wts.border_width;
-    y2=y1+wts.height+2*wts.border_width;
-    if ((x2 < 0) || (x1 > (int)wwidth) || (y2 < 0) || (y1 > (int)wheight))
-      continue;
-    
-    if (x1<0)            x1=0;
-    if (y1<0)            y1=0;
-    if (x2>(int)wwidth)  x2=wwidth;
-    if (y2>(int)wheight) y2=wheight;
-    x11_add_clip(x1, y1, x2, y2, &clips, &num_clips);
-  }
-  XSetErrorHandler(olderror);
-  /* leave error-ignore mode */
 
-  if (children)
-    XFree((char *) children);
+  get_children_clips(root, me);
 
   *return_num_clips = num_clips;
   return clips;

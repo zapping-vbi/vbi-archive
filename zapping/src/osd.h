@@ -16,34 +16,29 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.14 2001-09-18 23:07:00 garetxe Exp $ */
+/* $Id: osd.h,v 1.15 2001-09-25 18:38:00 garetxe Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
 
-#include "../libvbi/format.h"
-#include "../libvbi/libvbi.h"
 #include "zmodel.h"
 
 void startup_osd(void);
 void shutdown_osd(void);
 
-/* Starts showing the OSD window attached to the dest window */
-void osd_on(GtkWidget *dest_window, GtkWidget *parent);
-/* Hides the OSD window */
-void osd_off(void);
-/* Sets the given window as the destination, overrides the coords */
-void osd_set_window(GtkWidget *dest_window, GtkWidget *parent);
-/* Set no destination window for OSD */
+/* Sets the given window as the destination */
+void osd_set_window(GtkWidget *dest_window);
+/**
+ * Like set_window, but lets you specify a subrectangle to use
+ */
+void osd_set_coords(GtkWidget *dest_window, gint x, gint y, gint w, gint h);
+/**
+ * Call this when the osd window you've set is going to be destroyed.
+ */
 void osd_unset_window(void);
 
-/* Forces the given coordinates, overrides the dest window */
-void osd_set_coords(gint x, gint y, gint w, gint h);
-
-/* See libvbi/caption.c */
-void osd_render(void);
+/* Clears any OSD text in the window */
 void osd_clear(void);
-void osd_roll_up(attr_char *buffer, int first_row, int last_row);
 
 /**
  * Formats and renders the given string, that should be in the current

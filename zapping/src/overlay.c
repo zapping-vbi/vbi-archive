@@ -311,6 +311,19 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
                                         GtkAllocation   *allocation,
 					gpointer	ignored)
 {
+  static gint old_w=-1, old_h;
+
+  /**
+   * GtkFixed sends allocation events when removing
+   * children from it, even when no resize is involved. Ignore these.
+   */
+  if (old_w == allocation->width &&
+      old_h == allocation->height)
+    return;
+
+  old_w = allocation->width;
+  old_h = allocation->height;
+
   overlay_status_changed(FALSE);
 }
 

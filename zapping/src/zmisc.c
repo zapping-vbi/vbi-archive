@@ -282,7 +282,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     }
   if (new_mode != TVENG_CAPTURE_PREVIEW &&
       new_mode != TVENG_NO_CAPTURE)
-    osd_set_window(tv_screen, main_window);
+    osd_set_window(tv_screen);
   else if (new_mode == TVENG_NO_CAPTURE)
     {
       osd_clear();

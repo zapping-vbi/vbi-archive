@@ -256,11 +256,6 @@ on_closed_caption1_activate            (GtkMenuItem     *menuitem,
   gboolean status = button->active;
 
   zcs_bool(status, "closed_caption");
-
-  if (status)
-    osd_on(lookup_widget(main_window, "tv_screen"), main_window);
-  else
-    osd_off();
 }
 
 void
