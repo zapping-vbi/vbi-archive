@@ -20,7 +20,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.35 2002-05-09 21:04:29 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.36 2002-06-12 03:59:49 mschimek Exp $ */
+
+#warning context status NI
 
 #include <unistd.h>
 #include <string.h>
@@ -43,7 +45,7 @@
 #include "common/mmx.h"
 #include "common/bstream.h"
 
-static int			cpu_type;
+int				cpu_type;
 
 static rte_option_info *	vcd_mpeg1_options;
 static rte_option_info *	vcd_layer2_options;
@@ -983,8 +985,8 @@ mp1e_mpeg1_ps_context = {
 		.label		= N_("MPEG-1 Program Stream"),
 		.mime_type	= "video/x-mpeg",
 		.extension	= "mpg,mpe,mpeg",
-		.min_elementary	= { 0, 0 },
-		.max_elementary	= { 1, 1 }, /* to be { 16, 32, 1 }, */
+		.min_elementary	= { 0, 0, 0 },
+		.max_elementary	= { 0, 1, 1 }, /* to be { 0, 16, 32, 1 }, */
 	}
 };
 
@@ -995,8 +997,8 @@ mp1e_mpeg1_vcd_context = {
 		.label		= N_("MPEG-1 VCD Program Stream"),
 		.mime_type	= "video/x-mpeg",
 		.extension	= "mpg,mpe,mpeg",
-		.min_elementary	= { 1, 1 },
-		.max_elementary	= { 1, 1 },
+		.min_elementary	= { 0, 1, 1 },
+		.max_elementary	= { 0, 1, 1 },
 	}
 };
 
@@ -1007,8 +1009,8 @@ mp1e_mpeg1_video_context = {
 		.label		= N_("MPEG Video Elementary Stream"),
 		.mime_type	= "video/mpeg",
 		.extension	= "mpg,mpe,mpeg",
-		.min_elementary	= { 1, 0 },
-		.max_elementary	= { 1, 0 },
+		.min_elementary	= { 0, 1, 0 },
+		.max_elementary	= { 0, 1, 0 },
 	}
 };
 
@@ -1019,8 +1021,8 @@ mp1e_mpeg1_audio_context = {
 		.label		= N_("MPEG Audio Elementary Stream"),
 		.mime_type	= "audio/mpeg",
 		.extension	= "mp2,mpga", /* note */
-		.min_elementary	= { 0, 1 },
-		.max_elementary	= { 0, 1 },
+		.min_elementary	= { 0, 0, 1 },
+		.max_elementary	= { 0, 0, 1 },
 	}
 };
 
