@@ -2,7 +2,7 @@
  * Zapping (TV viewer for the Gnome Desktop)
  *
  * Copyright (C) 2000-2001 Iñaki García Etxebarria
- * Copyright (C) 2002 Michael H. Schimek
+ * Copyright (C) 2002-2003 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,8 @@
 #include "properties.h"
 #include "interface.h"
 #include "zconf.h"
+#include "eggcellrendererkeys.h"
+#include "zmisc.h"
 
 static const gchar *
 z_keyval_name			(guint			keyval)
@@ -606,6 +608,9 @@ on_user_key_press		(GtkWidget *		widget,
   return FALSE; /* not for us, pass on */
 }
 
+#undef SHIFT
+#undef ALT
+#undef CTRL
 #define SHIFT GDK_SHIFT_MASK
 #define ALT GDK_MOD1_MASK
 #define CTRL GDK_CONTROL_MASK
@@ -613,18 +618,19 @@ on_user_key_press		(GtkWidget *		widget,
 static struct {
   guint				mask;
   guint				key;
+  const gchar *			descr;
   const gchar *			command;
 } default_key_bindings[] = {
   /*
    *  Zapping default key bindings.
    *
-   *  'Historic' entries where used in older versions. Eventually we
+   *  'Historic' entries were used in older versions. Eventually we
    *  found Ctrl+Alt+ annoying, so new versions without qualifiers were
    *  added. 'XawTV' entries are used by the ubiquitious XawTV viewer,
    *  added for people switching to Zapping.
    *
-   *  Note Ctrl+ is reserved for Gnome shortcuts (exception Ctrl+S and +R),
-   *  which are all defined in zapping.glade.
+   *  Note Ctrl+, Alt+ are reserved for Gnome shortcuts (exception
+   *  Ctrl+S and +R), which are all defined in zapping.glade.
    */
   { 0,			GDK_a,		"zapping.mute()" },				/* XawTV */
   { CTRL + ALT,		GDK_c,		"zapping.toggle_mode('capture')" },		/* historic */
@@ -778,176 +784,260 @@ save_key_bindings			(void)
 /*
  *  Preferences
  */
-enum {
-  KEY_NAME_COLUMN,
-  KEY_ACTION_COLUMN,
-  NUM_COLUMNS
+
+enum
+{
+  C_COMMAND,
+  C_KEY,
+  C_KEY_MASK,
+  C_EDITABLE,
+  C_NUM
 };
 
-static void
-on_add_clicked				(GtkWidget *	button,
-					 gpointer      	user_data)
+static GtkListStore *
+create_model			(void)
 {
-  GtkWidget *key_entry = lookup_widget (button, "custom2");
-  GtkWidget *combo = lookup_widget (button, "combo1");
-  GtkTreeView *keyboard_commands = GTK_TREE_VIEW
-    (lookup_widget (button, "keyboard_commands"));
-  gchar *key_name;
-  const gchar *cmd;
-  GtkTreeIter iter;
-  GtkTreeSelection *sel = gtk_tree_view_get_selection (keyboard_commands);
-  GtkTreeModel *model;
-
-  key_name = z_key_name (z_key_entry_get_key (key_entry));
-  cmd = gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (combo)->entry));
-
-  if (!key_name || !cmd || *cmd == 0)
-    goto finish;
-
-  /* Only works in single or browse mode */
-  if (gtk_tree_selection_get_selected (sel, &model, &iter))
-    {
-      gchar *buf;
-
-      gtk_tree_model_get (model, &iter, KEY_NAME_COLUMN, &buf, -1);
-      if (!strcmp (buf, key_name))
-	{
-	  /* assume we want to modify instead of add */
-	  gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-			      KEY_ACTION_COLUMN, cmd, -1);
-	  g_free(buf);
-	  goto finish;
-	}
-      g_free (buf);
-    }
-
-  /* Assume we want to add things */
-  gtk_list_store_append (GTK_LIST_STORE (model), &iter);
-  gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-		      KEY_NAME_COLUMN, key_name,
-		      KEY_ACTION_COLUMN, cmd,
-		      -1);
-
- finish:
-  g_free (key_name);
-}
-
-static void
-on_delete_clicked			(GtkWidget *	button,
-					 gpointer	user_data)
-{
-  GtkTreeView *keyboard_commands = GTK_TREE_VIEW
-    (lookup_widget (button, "keyboard_commands"));
-  GtkTreeModel *model;
-  GtkTreeSelection *sel = gtk_tree_view_get_selection (keyboard_commands);
-  GtkTreeIter iter;
-
-  /* We are in single or browse mode, only one item selected at a time
-   */
-  if (gtk_tree_selection_get_selected (sel, &model, &iter))
-    gtk_list_store_remove (GTK_LIST_STORE (model), &iter);
-}
-
-static void
-on_keyboard_commands_cursor_changed	(GtkTreeView	*v,
-					 gpointer	user_data)
-{
-  GtkWidget *key_entry = lookup_widget (GTK_WIDGET (v), "custom2");
-  GtkWidget *combo = lookup_widget (GTK_WIDGET (v), "combo1");
-  gchar *text;
-  GtkTreeIter iter;
-  GtkTreeModel *model = gtk_tree_view_get_model (v);
-  GtkTreePath *path;
-
-  gtk_tree_view_get_cursor (v, &path, NULL);
-  gtk_tree_model_get_iter (model, &iter, path);
-  gtk_tree_path_free (path);
-
-  gtk_tree_model_get (model, &iter, KEY_NAME_COLUMN, &text, -1);
-  z_key_entry_set_key (key_entry, z_key_from_name (text));
-  g_free (text);
-
-  gtk_tree_model_get (model, &iter, KEY_ACTION_COLUMN, &text, -1);
-  gtk_entry_set_text (GTK_ENTRY (GTK_COMBO (combo)->entry), text);
-  g_free (text);
-}
-
-static void
-setup					(GtkWidget *	page)
-{
-  GtkTreeView *keyboard_commands = GTK_TREE_VIEW
-    (lookup_widget (page, "keyboard_commands"));
-  GtkWidget *combo = lookup_widget (page, "combo1");
-  GtkWidget *add = lookup_widget (page, "button41");
-  GtkWidget *delete = lookup_widget (page, "button43");
-  key_binding *kb;
   GtkListStore *model;
-  GtkCellRenderer *renderer;
-  GtkTreeViewColumn *column;
-  GtkTreeSelection *sel = gtk_tree_view_get_selection (keyboard_commands);
+  key_binding *kb;
 
-  /* Create our model */
-  model = gtk_list_store_new (NUM_COLUMNS, G_TYPE_STRING, G_TYPE_STRING);
+  model = gtk_list_store_new (C_NUM,
+			      G_TYPE_STRING,
+			      G_TYPE_UINT,
+			      G_TYPE_UINT,
+			      G_TYPE_BOOLEAN);
 
   for (kb = kb_list; kb; kb = kb->next)
     {
       GtkTreeIter iter;
-      gchar *buffer = z_key_name (kb->key);
-
-      if (!buffer)
-	continue;
 
       gtk_list_store_append (model, &iter);
       gtk_list_store_set (model, &iter,
-			  KEY_NAME_COLUMN, buffer,
-			  KEY_ACTION_COLUMN, kb->command,
+			  C_COMMAND, kb->command,
+			  C_KEY, kb->key.key,
+			  C_KEY_MASK, kb->key.mask,
+			  C_EDITABLE, TRUE,
 			  -1);
-
-      g_free (buffer);
     }
 
-  /* Set our model for the treeview and drop our reference */
-  gtk_tree_view_set_model (keyboard_commands, GTK_TREE_MODEL (model));
-
-  /* Set browse mode for the keys list */
-  gtk_tree_selection_set_mode (sel, GTK_SELECTION_BROWSE);
-
-  /* Define the view for the model. Two columns, first the key and
-     then the action */
-  renderer = gtk_cell_renderer_text_new ();
-  column = gtk_tree_view_column_new_with_attributes
-    (_("Key"), renderer, "text", KEY_NAME_COLUMN, NULL);
-  gtk_tree_view_append_column (keyboard_commands, column);  
-
-  renderer = gtk_cell_renderer_text_new ();
-  column = gtk_tree_view_column_new_with_attributes
-    (_("Action"), renderer, "text", KEY_ACTION_COLUMN, NULL);
-  gtk_tree_view_append_column (keyboard_commands, column);
-
-  gtk_combo_set_popdown_strings (GTK_COMBO (combo), cmd_list());
-
-  g_signal_connect (G_OBJECT (add), "clicked",
-		    G_CALLBACK (on_add_clicked),
-		    NULL);
-
-  g_signal_connect (G_OBJECT (delete), "clicked",
-		    G_CALLBACK (on_delete_clicked),
-		    NULL);
-
-  g_signal_connect (G_OBJECT (keyboard_commands), "cursor-changed",
-		    G_CALLBACK (on_keyboard_commands_cursor_changed),
-		    NULL);
+  return model;
 }
 
 static void
-apply					(GtkWidget *	page)
+on_command_edited		(GtkCellRendererText *	cell,
+				 const gchar *		path_string,
+				 const gchar *		new_text,
+				 GtkTreeView *		tree_view)
 {
-  GtkTreeView *keyboard_commands = GTK_TREE_VIEW
-    (lookup_widget (page, "keyboard_commands"));
-  GtkTreeModel *model = gtk_tree_view_get_model (keyboard_commands);
+  GtkTreeModel *model;
+  GtkTreePath *path;
+  GtkTreeIter iter;
+  GtkWidget *combo;
+
+  model = gtk_tree_view_get_model (tree_view);
+
+  path = gtk_tree_path_new_from_string (path_string);
+  gtk_tree_model_get_iter (model, &iter, path);
+  gtk_tree_path_free (path);
+
+  gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+		      C_COMMAND, new_text, -1);
+
+  combo = lookup_widget (GTK_WIDGET (tree_view), "combo1");
+  gtk_entry_set_text (GTK_ENTRY (GTK_COMBO (combo)->entry), new_text);
+
+  z_property_item_modified (GTK_WIDGET (tree_view));
+}
+
+static gboolean
+unique				(GtkTreeModel *		model,
+				 GtkTreePath *		path,
+				 GtkTreeIter *		iter,
+				 gpointer		user_data)
+{
+  z_key *new_key = user_data;
+  z_key key;
+
+  gtk_tree_model_get (model, iter,
+		      C_KEY, &key.key,
+		      C_KEY_MASK, &key.mask,
+		      -1);
+
+  if (key.key == new_key->key
+      && key.mask == new_key->mask)
+    gtk_list_store_set (GTK_LIST_STORE (model), iter,
+			C_KEY, 0,
+			C_KEY_MASK, 0,
+			-1);
+
+  return FALSE; /* continue */
+}
+
+static void
+on_accel_edited			(GtkCellRendererText *	cell,
+				 const char *		path_string,
+				 guint			keyval,
+				 EggVirtualModifierType	mask,
+				 guint			keycode,
+				 GtkTreeView *		tree_view)
+{
+  GtkTreePath *path;
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+  z_key key;
+
+  key.key = keyval;
+  key.mask = mask;
+
+  model = gtk_tree_view_get_model (tree_view);
+
+  path = gtk_tree_path_new_from_string (path_string);
+  gtk_tree_model_get_iter (model, &iter, path);
+  gtk_tree_path_free (path);
+
+  if (keyval != 0)
+    gtk_tree_model_foreach (model, unique, &key);
+
+  gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+		      C_KEY, key.key,
+		      C_KEY_MASK, key.mask,
+		      -1);
+
+  z_property_item_modified (GTK_WIDGET (tree_view));
+}
+
+static void
+accel_set_func			(GtkTreeViewColumn *	tree_column,
+				 GtkCellRenderer *	cell,
+				 GtkTreeModel *		model,
+				 GtkTreeIter *		iter,
+				 GtkTreeView *		tree_view)
+{
+  z_key key;
+
+  gtk_tree_model_get (model, iter,
+		      C_KEY, &key.key,
+		      C_KEY_MASK, &key.mask,
+		      -1);
+
+  g_object_set (G_OBJECT (cell),
+		"visible", TRUE,
+		"editable", TRUE,
+		"accel_key", key.key,
+		"accel_mask", key.mask,
+		"style", PANGO_STYLE_NORMAL,
+		NULL);
+}
+
+static void
+on_selection_changed		(GtkTreeSelection *	selection,
+				 GtkTreeView *		tree_view)
+{
+  GtkTreeModel *model;
+  GtkWidget *remove;
+  GtkWidget *combo;
+  GtkTreeIter iter;
+  gboolean selected;
+  gchar *action;
+
+  model = gtk_tree_view_get_model (tree_view);
+  selected = z_tree_selection_iter_first (selection, model, &iter);
+
+  remove = lookup_widget (GTK_WIDGET (tree_view), "general-keyboard-remove");
+  gtk_widget_set_sensitive (remove, selected);
+
+  combo = lookup_widget (GTK_WIDGET (tree_view), "combo1");
+  gtk_tree_model_get (model, &iter, C_COMMAND, &action, -1);
+  gtk_entry_set_text (GTK_ENTRY (GTK_COMBO (combo)->entry), action);
+  g_free (action);
+}
+
+static void
+on_combo_entry_changed		(GtkEditable *		editable,
+				 GtkTreeView *		tree_view)
+{
+  GtkTreeSelection *selection;
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+  gchar *text;
+
+  selection = gtk_tree_view_get_selection (tree_view);
+  model = gtk_tree_view_get_model (tree_view);
+
+  if (!z_tree_selection_iter_first (selection, model, &iter))
+    return;
+
+  text = gtk_editable_get_chars (editable, 0, -1);
+
+  gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+		      C_COMMAND, text, -1);
+  g_free (text);
+}
+
+static void
+on_add_clicked			(GtkWidget *		button,
+				 GtkTreeView *		tree_view)
+{
+  GtkTreeSelection *selection;
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+  GtkTreePath *path;
+  GtkWidget *combo;
+  const gchar *cmd;
+
+  selection = gtk_tree_view_get_selection (tree_view);
+  model = gtk_tree_view_get_model (tree_view);
+
+  if (z_tree_selection_iter_first (selection, model, &iter))
+    gtk_list_store_insert_before (GTK_LIST_STORE (model), &iter, &iter);
+  else
+    gtk_list_store_append (GTK_LIST_STORE (model), &iter);
+
+  combo = lookup_widget (GTK_WIDGET (tree_view), "combo1");
+  cmd = gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (combo)->entry));
+  if (NULL == cmd)
+    cmd = "";
+
+  gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+		      C_COMMAND, cmd,
+		      C_KEY, 0,
+		      C_KEY_MASK, 0,
+		      C_EDITABLE, TRUE,
+		      -1);
+
+  gtk_tree_selection_unselect_all (selection);
+  gtk_tree_selection_select_iter (selection, &iter);
+
+  if ((path = gtk_tree_model_get_path (model, &iter)))
+    {
+      gtk_tree_view_set_cursor (tree_view, path,
+				gtk_tree_view_get_column (tree_view, 0),
+				/* start_editing */ TRUE);
+
+      gtk_widget_grab_focus (GTK_WIDGET (tree_view));
+
+      gtk_tree_path_free (path);
+    }
+}
+
+static void
+on_remove_clicked		(GtkWidget *		button,
+				 GtkTreeView *		tree_view)
+{
+  z_tree_view_remove_selected (tree_view,
+			       gtk_tree_view_get_selection (tree_view),
+			       gtk_tree_view_get_model (tree_view));
+}
+
+static void
+apply				(GtkWidget *		page)
+{
+  GtkTreeView *tree_view;
+  GtkTreeModel *model;
   GtkTreeIter iter;
   gboolean valid;
-  gchar *key, *cmd;
+
+  tree_view = GTK_TREE_VIEW (lookup_widget (page, "general-keyboard-treeview"));
+  model = gtk_tree_view_get_model (tree_view);
 
   kb_flush ();
 
@@ -955,12 +1045,17 @@ apply					(GtkWidget *	page)
 
   while (valid)
     {
+      gchar *cmd;
+      z_key key;
+
       gtk_tree_model_get (model, &iter,
-			  KEY_NAME_COLUMN, &key,
-			  KEY_ACTION_COLUMN, &cmd,
+			  C_COMMAND, &cmd,
+			  C_KEY, &key.key,
+			  C_KEY_MASK, &key.mask,
 			  -1);
-      kb_add (z_key_from_name (key), cmd, NULL);
-      g_free (key);
+
+      kb_add (key, cmd, NULL);
+
       g_free (cmd);
 
       valid = gtk_tree_model_iter_next (model, &iter);
@@ -968,11 +1063,78 @@ apply					(GtkWidget *	page)
 }
 
 static void
+setup				(GtkWidget *		page)
+{
+  GtkTreeView *tree_view;
+  GtkCellRenderer *renderer;
+  GtkTreeViewColumn *column;
+  GtkWidget *widget;
+
+  widget = lookup_widget (page, "general-keyboard-treeview");
+  tree_view = GTK_TREE_VIEW (widget);
+  gtk_tree_view_set_rules_hint (tree_view, TRUE);
+  gtk_tree_view_set_reorderable (tree_view, TRUE);
+
+  {
+    GtkTreeSelection *selection;
+
+    selection = gtk_tree_view_get_selection (tree_view);
+    gtk_tree_selection_set_mode (selection, GTK_SELECTION_BROWSE);
+
+    g_signal_connect (G_OBJECT (selection), "changed",
+		      G_CALLBACK (on_selection_changed), tree_view);
+  }
+
+  {
+    GtkListStore *model;
+
+    model = create_model ();
+    gtk_tree_view_set_model (tree_view, GTK_TREE_MODEL (model));
+  }
+
+  renderer = gtk_cell_renderer_text_new ();
+  column = gtk_tree_view_column_new_with_attributes
+    (_("Command"), renderer,
+     "text", C_COMMAND,
+     "editable", C_EDITABLE,
+     NULL);
+  gtk_tree_view_append_column (tree_view, column);
+  g_signal_connect (G_OBJECT (renderer), "edited",
+		    G_CALLBACK (on_command_edited), tree_view);
+
+  renderer = (GtkCellRenderer *) g_object_new
+    (EGG_TYPE_CELL_RENDERER_KEYS,
+     "editable", TRUE,
+     "accel_mode", EGG_CELL_RENDERER_KEYS_MODE_X,
+     NULL);
+  column = gtk_tree_view_column_new_with_attributes
+    (_("Shortcut"), renderer, NULL);
+  gtk_tree_view_column_set_cell_data_func
+    (column, renderer, (GtkTreeCellDataFunc) accel_set_func, NULL, NULL);
+  gtk_tree_view_append_column (tree_view, column);
+  g_signal_connect (G_OBJECT (renderer), "keys_edited",
+		    G_CALLBACK (on_accel_edited), tree_view);
+
+  widget = lookup_widget (GTK_WIDGET (tree_view), "combo1");
+  gtk_combo_set_popdown_strings (GTK_COMBO (widget), cmd_list ());
+  g_signal_connect (G_OBJECT (GTK_COMBO (widget)->entry), "changed",
+		    G_CALLBACK (on_combo_entry_changed), tree_view);
+
+  widget = lookup_widget (page, "general-keyboard-add");
+  g_signal_connect (G_OBJECT (widget), "clicked",
+		    G_CALLBACK (on_add_clicked), tree_view);
+
+  widget = lookup_widget (page, "general-keyboard-remove");
+  g_signal_connect (G_OBJECT (widget), "clicked",
+		    G_CALLBACK (on_remove_clicked), tree_view);
+}
+
+static void
 add				(GtkDialog *		dialog)
 {
   SidebarEntry general_options[] = {
-    { N_("Keyboard"), "gnome-keyboard.png", "table75",
-      setup, apply }
+    { N_("Keyboard"), "gnome-keyboard.png",
+      "general-keyboard-table", setup, apply }
   };
   SidebarGroup groups[] = {
     { N_("General Options"), general_options, acount (general_options) }
