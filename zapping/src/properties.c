@@ -353,7 +353,8 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 						    */
       text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
 					     TRUE);
-      zconf_set_string(text, "/zapping/options/main/video_device");
+      if (text)
+	zconf_set_string(text, "/zapping/options/main/video_device");
 
       g_free(text); /* In the docs it says this should be freed */
       break;
@@ -416,7 +417,8 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       widget = lookup_widget(pbox, "fileentry2"); /* VBI device entry */
       text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
 					     TRUE);
-      zconf_set_string(text, "/zapping/options/vbi/vbi_device");
+      if (text)
+	zconf_set_string(text, "/zapping/options/vbi/vbi_device");
 
       g_free(text); /* In the docs it says this should be freed */
 
@@ -454,7 +456,8 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       widget = lookup_widget(pbox, "fileentry3");
       text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
 					     TRUE);
-      zconf_set_string(text, "/zapping/ttxview/exportdir");
+      if (text)
+	zconf_set_string(text, "/zapping/ttxview/exportdir");
       g_free(text);
 
       break;

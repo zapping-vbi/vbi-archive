@@ -120,7 +120,8 @@ on_vbi_prefs_changed		(const gchar *key,
       if (!zvbi_open_device())
 	{
 	  ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
-		  GNOME_MESSAGE_BOX_ERROR, "/dev/vbi",
+		  GNOME_MESSAGE_BOX_ERROR,
+		  zcg_char(NULL, "vbi_device"),
 		  strerror(errno), errno);
 	}
       D();
@@ -196,7 +197,7 @@ startup_zvbi(void)
 {
   zcc_bool(FALSE, "Enable VBI decoding", "enable_vbi");
   zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
-  zcc_char("/dev/vbi", "VBI device", "vbi_device");
+  zcc_char("/dev/vbi0", "VBI device", "vbi_device");
   zcc_int(0, "Default TTX region", "default_region");
   zcc_int(3, "Teletext implementation level", "teletext_level");
 
