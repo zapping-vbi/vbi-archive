@@ -99,7 +99,13 @@ typedef struct {
 					   selection */
   gint			sel_col, sel_row, sel_width, sel_height;
   gint			blink_timeout; /* timeout for refreshing the page */
-  ZModel		*vbi_model;
+  ZModel		*vbi_model; /* notifies when the vbi object is
+				     destroyed */
+  guint32		last_time; /* time of the last key event */
+  gint			wait_timeout_id; /* GUI too fast, slowing down */
+  guint			wait_page; /* last page requested */
+  struct fmt_page	wait_pg; /* page we wait for */
+  gboolean		wait_mode; /* waiting */
 } ttxview_data;
 
 struct bookmark {
@@ -377,6 +383,8 @@ remove_ttxview_instance			(ttxview_data	*data)
 
   gtk_timeout_remove(data->blink_timeout);
   gtk_timeout_remove(data->timeout);
+  if (data->wait_timeout_id > -1)
+    gtk_timeout_remove(data->wait_timeout_id);
 
   unregister_ttx_client(data->id);
 
@@ -620,6 +628,58 @@ event_timeout				(ttxview_data	*data)
   return TRUE;
 }
 
+static gint wait_timeout (ttxview_data *data)
+{
+  int page, subpage;
+
+  page = data->wait_page >> 8;
+  subpage = data->wait_page & 0xff;
+  if (subpage == (ANY_SUB & 0xff))
+    subpage = ANY_SUB;
+
+  data->wait_timeout_id = -1;
+
+  if (data->wait_pg.pgno<=0)
+    monitor_ttx_page(data->id, page, subpage);
+  else
+    monitor_ttx_this(data->id, &data->wait_pg);
+
+  data->wait_mode = FALSE;
+
+  return 0; /* don't call me again */
+}
+
+static void retarded_load(gint page, gint subpage,
+			  ttxview_data *data, struct fmt_page *pg)
+{
+
+  data->wait_page = (page << 8) + (subpage & 0xff);
+  if (pg)
+    memcpy(&data->wait_pg, pg, sizeof(struct fmt_page));
+  else
+    data->wait_pg.pgno = -1;
+
+  if (data->wait_timeout_id >= 0)
+    {
+      gtk_timeout_remove(data->wait_timeout_id);
+      data->wait_timeout_id =
+	gtk_timeout_add(300, (GtkFunction)wait_timeout, data);
+      return;
+    }
+
+  if (data->wait_mode)
+    {
+      data->wait_timeout_id =
+	gtk_timeout_add(300, (GtkFunction)wait_timeout, data); 
+      return;
+    }
+
+  if (data->wait_pg.pgno<=0)
+    monitor_ttx_page(data->id, page, subpage);
+  else
+    monitor_ttx_this(data->id, &data->wait_pg);
+}
+
 static void
 load_page (int page, int subpage, ttxview_data *data,
 	   struct fmt_page *pg)
@@ -664,13 +724,10 @@ load_page (int page, int subpage, ttxview_data *data,
   g_free(buffer);
 
   gtk_widget_grab_focus(data->da);
-  
-  z_update_gui();
 
-  if (!pg)
-    monitor_ttx_page(data->id, page, subpage);
-  else
-    monitor_ttx_this(data->id, pg);
+  retarded_load(page, subpage, data, pg);
+
+  z_update_gui();
 }
 
 static
@@ -2496,6 +2553,12 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
   GtkWidget * ttxview;
   gboolean active;
 
+  if ((abs(data->last_time - event->time) < 100) ||
+      (event->length > 1))
+    data->wait_mode = TRUE; /* load_page will take care */
+
+  data->last_time = event->time;
+
   switch (event->keyval)
     {
     case GDK_0 ... GDK_9:
@@ -2608,6 +2671,15 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	  gtk_widget_destroy(ttxview);
 	}
       break;
+    case GDK_C:
+    case GDK_c:
+      if (!(event->state & (GDK_MOD1_MASK | GDK_SHIFT_MASK |
+			    GDK_CONTROL_MASK)))
+	{
+	  on_ttxview_clone_clicked(GTK_BUTTON(lookup_widget(data->toolbar,
+					      "ttxview_clone")), data);
+	  break;
+	}
     default:
       return FALSE;
     }
@@ -2654,6 +2726,7 @@ build_ttxview(void)
   gtk_object_set_data(GTK_OBJECT(ttxview), "ttxview_data", data);
   data->xor_gc = gdk_gc_new(data->da->window);
   data->vbi_model = zvbi_get_model();
+  data->wait_timeout_id = -1;
   gdk_gc_set_function(data->xor_gc, GDK_INVERT);
 
   ttxview_reveal = lookup_widget(data->toolbar, "ttxview_reveal");
@@ -2789,6 +2862,7 @@ ttxview_attach			(GtkWidget	*parent,
   data->popup_menu = FALSE;
   data->xor_gc = gdk_gc_new(data->da->window);
   data->vbi_model = zvbi_get_model();
+  data->wait_timeout_id = -1;
   gdk_gc_set_function(data->xor_gc, GDK_INVERT);
 
   ttxview_reveal = lookup_widget(data->toolbar, "ttxview_reveal");

@@ -327,7 +327,7 @@ msgstr "Cámara"
 
 #: src/tveng.c:1373
 msgid "Couldn't locate zapping_setup_fb, check your install"
-msgstr "No se pudo localizar zapping_setup_fb, checkee su instalación"
+msgstr "No se pudo localizar zapping_setup_fb, compruebe su instalación"
 
 #: src/tveng.c:1927 src/tveng.c:1942
 msgid "Filter"

@@ -9,3 +9,4 @@ Known bugs with zapping, don't report them
 	* Need better no-overlay-present handling.
 	* The standard is changed when changing modes.
 	* Sometimes spurious blinking in row #0 (fixed?)
+	* Lirc plugin doesn't remove elements from the config.
