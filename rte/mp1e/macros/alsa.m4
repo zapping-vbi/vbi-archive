@@ -2,8 +2,8 @@ dnl Configure Paths for Alsa
 dnl Some modifications by Richard Boulton <richard-alsa@tartarus.org>
 dnl Christopher Lansdown <lansdoct@cs.alfred.edu>
 dnl Jaroslav Kysela <perex@suse.cz>
-dnl Last modification: 07/01/2001
-dnl AM_PATH_ALSA_([MINIMUM-VERSION [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
+dnl Last modification: alsa.m4,v 1.22 2002/05/27 11:14:20 tiwai Exp
+dnl AM_PATH_ALSA([MINIMUM-VERSION [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl Test for libasound, and define ALSA_CFLAGS and ALSA_LIBS as appropriate.
 dnl enables arguments --with-alsa-prefix=
 dnl                   --with-alsa-enc-prefix=
@@ -12,7 +12,7 @@ dnl
 dnl For backwards compatibility, if ACTION_IF_NOT_FOUND is not specified,
 dnl and the alsa libraries are not found, a fatal AC_MSG_ERROR() will result.
 dnl
-AC_DEFUN(AM_PATH_ALSA_,
+AC_DEFUN(AM_PATH_ALSA,
 [dnl Save the original CFLAGS, LDFLAGS, and LIBS
 alsa_save_CFLAGS="$CFLAGS"
 alsa_save_LDFLAGS="$LDFLAGS"
@@ -52,9 +52,10 @@ if test "$alsa_prefix" != "" ; then
 fi
 
 dnl add the alsa library
-ALSA_LIBS="$ALSA_LIBS -lasound -lm -ldl"
+ALSA_LIBS="$ALSA_LIBS -lasound -lm -ldl -lpthread"
 LIBS=`echo $LIBS | sed 's/-lm//'`
 LIBS=`echo $LIBS | sed 's/-ldl//'`
+LIBS=`echo $LIBS | sed 's/-lpthread//'`
 LIBS=`echo $LIBS | sed 's/  //'`
 LIBS="$ALSA_LIBS $LIBS"
 AC_MSG_RESULT($ALSA_LIBS)
@@ -73,10 +74,8 @@ no_alsa=""
 AC_LANG_SAVE
 AC_LANG_C
 AC_TRY_COMPILE([
-#include <sys/asoundlib.h>
+#include <alsa/asoundlib.h>
 ], [
-void main(void)
-{
 /* ensure backward compatibility */
 #if !defined(SND_LIB_MAJOR) && defined(SOUNDLIB_VERSION_MAJOR)
 #define SND_LIB_MAJOR SOUNDLIB_VERSION_MAJOR
@@ -108,7 +107,6 @@ void main(void)
 #    endif
 #  endif
 exit(0);
-}
 ],
   [AC_MSG_RESULT(found.)],
   [AC_MSG_RESULT(not present.)
@@ -118,7 +116,7 @@ exit(0);
 AC_LANG_RESTORE
 
 dnl Now that we know that we have the right version, let's see if we have the library and not just the headers.
-AC_CHECK_LIB([asound], [snd_seq_create_event],,
+AC_CHECK_LIB([asound], [snd_ctl_open],,
 	[ifelse([$3], , [AC_MSG_ERROR(No linkable libasound was found.)])
 	 alsa_found=no]
 )
