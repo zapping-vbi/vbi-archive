@@ -50,10 +50,18 @@ endif
 
 zapping_setup_fb_SOURCES = \
 	zapping_setup_fb.c zapping_setup_fb.h \
-	dga.c v4l.c v4l2.c v4l25.c
+	v4l.c \
+	v4l2.c \
+	v4l25.c
 
-zapping_setup_fb_LDADD = $(X_LIBS) \
-	-lX11 -lXext $(X_XF86DGA_LIBS) $(X_EXTRA_LIBS)
+zapping_setup_fb_LDADD = \
+	$(top_builddir)/libtv/libtv.a \
+	$(X_LIBS) \
+	-lX11 \
+	-lXext \
+	$(X_XINERAMA_LIBS) \
+	$(X_XF86DGA_LIBS) \
+	$(X_EXTRA_LIBS)
 
 zsfb.capps:
 	echo USER=root >$@
