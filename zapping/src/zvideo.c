@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zvideo.c,v 1.2 2003-11-29 19:43:24 mschimek Exp $ */
+/* $Id: zvideo.c,v 1.3 2003-12-04 03:08:57 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -52,12 +52,23 @@ static gboolean
 blank_cursor_timeout		(gpointer		p)
 {
   ZVideo *video = (ZVideo *) p;
+  GtkWidget *widget;
+  GdkEventMask mask;
 
   g_assert (video->blank_cursor_timeout > 0);
 
   g_signal_emit (video, signals[CURSOR_BLANKED], 0);
 
   video->blank_cursor_timeout_id = -1;
+
+  widget = GTK_WIDGET (video);
+
+  mask = gdk_window_get_events (widget->window);
+  mask |= GDK_POINTER_MOTION_MASK;
+  /* Something outside Zapping seems to request motion hint, 
+     suppressing motion events. */
+  mask &= ~GDK_POINTER_MOTION_HINT_MASK;
+  gdk_window_set_events (widget->window, mask);
 
   return FALSE; /* don't call again */
 }
@@ -121,11 +132,24 @@ z_video_blank_cursor		(ZVideo *		video,
   video->blank_cursor_timeout = timeout;
 
   if (timeout > 0)
-    video->blank_cursor_timeout_id =
-      g_timeout_add (video->blank_cursor_timeout,
-		     (GSourceFunc) blank_cursor_timeout, video);
+    {
+      video->blank_cursor_timeout_id =
+	g_timeout_add (video->blank_cursor_timeout,
+		       (GSourceFunc) blank_cursor_timeout, video);
+    }
   else
-    z_video_set_cursor (video, video->blanked_cursor_type);
+    {
+      GtkWidget *widget;
+      GdkEventMask mask;
+
+      z_video_set_cursor (video, video->blanked_cursor_type);
+
+      widget = GTK_WIDGET (video);
+
+      mask = gdk_window_get_events (widget->window);
+      mask &= ~GDK_POINTER_MOTION_MASK;
+      gdk_window_set_events (widget->window, mask);
+    }
 }
 
 #undef FLOOR
