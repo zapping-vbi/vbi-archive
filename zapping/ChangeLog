@@ -1,3 +1,66 @@
+28.5.2003	<mschimek@users.sf.net>
+
+	* plugins/screenshot/screenshot.c: Fix incompatibility
+	  with RH9 nptl library, wrong assumption about pthread_t.
+	* zapping_setup_fb/Makefile.am,
+	  zapping_setup_fb/zapping_setup_fb.pam: Consolehelper
+	  mediation didn't work on RH9. Fix borrowed from v4l-conf.
+26.4.2003	<mschimek@users.sf.net>
+
+	* src/zmisc.c, src/zmisc.h: Cleaned up & improved filename
+	  helpers. In particular z_on_electric_filename() didn't work
+	  right. Added z_electric_replace_extension(), better than
+	  tinkering with text entry directly.
+	* src/ttxview.c, src/zmisc.c, src/zmisc.h: z_build_filename()
+	  no longer needed, use glib 2.0 g_build_filename().
+	* plugins/screenshot/screenshot.c: Use
+	  z_electric_replace_extension().
+	* plugins/screenshot/Makefile.am,
+	  plugins/screenshot/screenshot_strings.c: Switched to
+	  intltool. screenshot_strings.c obsolete, removed.
+	* po/POTFILES.in: Intltoolized screenshot plugin.
+
+	* src/capture.c: Race in capture resize logic, added
+	  added rwlock.
+	* src/capture.c: Restored on_capture_canvas_allocate()
+	  to (if possible) resize captured image to window
+	  size. Provisional.
+	* src/capture.c (find_request_size): Default capture size
+	  determined by window size. Provisional.
+
+	* src/zvideo.c, src/zvideo.h: Added cursor blanked signal.
+	* src/fullscreen.c (on_cursor_blanked): Automagically
+	  recenter view.
+	* src/fullscreen.c (fullscreen_start): Fixed black background.
+	* src/interface.c (create_zapping): Fixed black background.
+
+	* src/tveng.c, src/tveng.h, src/tveng1.c, src/tveng2.c,
+	  src/tveng25.c, src/tvengxv.c, src/tvengemu.c,
+	  src/v4linterface.c: Made tv_control.next and .ignore
+	  private as planned. Added tv_control_next() function.
+	* src/tveng_private.h, src/tveng.c: Moved control and image
+	  copy helper functions, pointless to inline.
+	* src/tveng.h: New tveng_pixformat_bits_per_pixel() helper.
+	* src/tvengbktr.c: Some progress, but still unfinished.
+
+	Remove some duplicate code. Won't help security but it 
+	helps maintenance.
+	* zapping_setup_fb/Makefile.am: Include src/ headers. Um.
+	* src/x11stuff.c (x11_dga_query), src/x11stuff.h: Added
+	  optional display_name parameter.
+	* zapping_setup_fb/dga.c: Replaced by x11stuff.c code.
+	  Later zapping_setup_fb should link tveng.
+	* zapping_setup_fb/zapping_setup_fb.c, zapping_setup_fb/v4l.c,
+	  zapping_setup_fb/v4l2.c, zapping_setup_fb/v4l25.c,
+	  zapping_setup_fb/zapping_setup_fb.h: Use
+	  common/device interface instead of local copy. Use
+	  x11_dga_parameters (x11stuff.h) parameter instead of globals.
+
+	* glade/zapping.glade2: Eliminated nested toolbar widgets
+	  creating unwanted border around channel up/down buttons.
+	* plugins/mpeg/mpeg.c: Format request fix. Hint to self,
+	  never forget to clear unused fields.
+
 25.3.2003	<mschimek@users.sf.net>
 
 	* src/channel_editor.c: "Add all" aligns channel name with

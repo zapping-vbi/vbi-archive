@@ -2,12 +2,17 @@ Known bugs with zapping, don't report them
 ------------------------------------------
 - == Annoying
 * == Bug
-! == Killer bug
+! == Killer
 ------------------------------------------
- 
+
+	* (Zapping 0.6.7) Saving QVC-600 TTX page in HTML
+	  segfaults.
+	* Station search doesn't work in overlay mode
+	  (Xv/v4l no signal strength), need check/switch.
 	- In capture mode window resizing flickers.
 	* Wrong aspect when video window opens:
-	  bugzilla.gnome.org #108237.
+	  bugzilla.gnome.org #108237. Fixed. Need to
+	  add version check to disable work-around.
 	! bttv 0.9.5 seems to crash the X server whenever
 	  XvPutImage is called (field ANY not handled?).
 	  Gerd notified, promised fix in 0.9.6.
@@ -20,6 +25,7 @@ Known bugs with zapping, don't report them
 	  of video memory (or no v4l device?). Currently gdk
 	  just aborts the app.
 	* Need better no-overlay-present handling.
+	* Capture with --no-xv doesn't work?
 	* Some routine starting --no-xv overlay clamps against
 	  info->caps.min when the window is smaller, and
 	  seems to forget to clip the overhang.
@@ -68,7 +74,7 @@ Known bugs with zapping, don't report them
           Another possible bug, the encoding is not reset
 	  on open? Though apparently not catched when Zapping
 	  opens the v4l/2/5 interface too (try remove the modules
-	  in tveng.c).
+	  in tveng.c, or start xv overlay while a radio app runs).
 	* Closing the main window while recording blocks.
 	  Backtrace:
 	  on_exit2_activate() [now quit_cmd()]

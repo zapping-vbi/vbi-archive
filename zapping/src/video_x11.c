@@ -53,7 +53,7 @@ image_new (enum tveng_frame_pixformat fmt, gint w, gint h)
   zimage_private *pimage;
   GdkImage *image = gdk_image_new (GDK_IMAGE_FASTEST,
 				   gdk_visual_get_system (), w, h);
-
+fprintf(stderr, "#1\n");
   g_assert (fmt == x11_fmt);
   g_assert (! tveng_is_planar(fmt));
 
@@ -81,6 +81,8 @@ image_new (enum tveng_frame_pixformat fmt, gint w, gint h)
   new_image->fmt.bpp = image->bpp;
   new_image->data.linear.data = image->mem;
   new_image->data.linear.stride = image->bpl;
+
+fprintf(stderr, "#1 %p\n", new_image);
 
   return new_image;
 }
@@ -125,6 +127,7 @@ static void
 image_destroy (zimage *image)
 {
   zimage_private *pimage = image->priv;
+fprintf(stderr, "#2 %p\n", image);
 
   g_object_unref (G_OBJECT (pimage->image));
 

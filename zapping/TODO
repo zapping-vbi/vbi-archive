@@ -1,6 +1,10 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Examine possibility of fullscreen window at the
+  root window layer.
+* Support libzvbi proxyd
+* Most of the Zapzilla code belongs in a plugin.
 * After "add all channels" in the channel editor Zapping
   should scan for station names.
 * UYVY in mpeg plugin.

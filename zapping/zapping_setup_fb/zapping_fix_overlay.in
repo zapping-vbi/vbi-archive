@@ -99,12 +99,13 @@ if test x$revert = "xyes"; then
 
   zsfb_dir=`which zapping_setup_fb`
 
-  if test x$zsfb_dir != x$zsfb_link; then
-    echo
-    echo "Warning: $zsfb_link is not in"
-    echo "your current command search path, Zapping may not work"
-    echo "as expected."
-  fi
+# FIXME see below
+#  if test x$zsfb_dir != x$zsfb_link; then
+#    echo
+#    echo "Warning: $zsfb_link is not in"
+#    echo "your current command search path, Zapping may not work"
+#    echo "as expected."
+# fi
 else
   echo "This script will make $zsfb a SUID ROOT program"
   echo "and create a symbolic link $zsfb_link to it."
@@ -135,12 +136,13 @@ else
 
   zsfb_dir=`which zapping_setup_fb`
 
-  if test x$zsfb_dir != x$zsfb -a x$zsfb_dir != x$zsfb_link; then
-    echo
-    echo "Warning: neither $zsfb nor $zsfb_link"
-    echo "are not in your current command search path, Zapping"
-    echo "may not work as expected."
-  fi
+# FIXME this script must be executed by root, but not zapping 
+#  if test x$zsfb_dir != x$zsfb -a x$zsfb_dir != x$zsfb_link; then
+#    echo
+#    echo "Warning: neither $zsfb nor $zsfb_link"
+#    echo "are in your current command search path, Zapping"
+#    echo "may not work as expected."
+#  fi
 fi
 
 echo

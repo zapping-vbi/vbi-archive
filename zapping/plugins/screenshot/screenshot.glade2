@@ -63,7 +63,7 @@
 	  <property name="max_saved">10</property>
 	  <property name="browse_dialog_title" translatable="yes">Select directory to save screenshots</property>
 	  <property name="directory_entry">True</property>
-	  <property name="modal">True</property>
+	  <property name="modal">False</property>
 
 	  <child internal-child="entry">
 	    <widget class="GtkEntry" id="combo-entry1">

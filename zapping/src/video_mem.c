@@ -49,17 +49,17 @@ planar_image_new (enum tveng_frame_pixformat fmt, gint w, gint h)
   guchar *data;
   zimage *image;
   zimage_private *pimage;
-  
+
   g_assert (fmt == TVENG_PIX_YUV420 ||
 	    fmt == TVENG_PIX_YVU420);
 
-  if ((w%2 != 0) || (h%2 != 0))
+  if ((w | h) & 1)
     {
       g_warning ("YUV420 formats require even dimensions");
       return NULL;
     }
 
-  data = g_malloc (w * h * 1.5);
+  data = g_malloc (w * h * 3 / 2);
 
   image = zimage_create_object ();
   pimage = image->priv = g_malloc0 (sizeof (*pimage));
@@ -86,30 +86,30 @@ image_new (enum tveng_frame_pixformat fmt, gint w, gint h)
   guchar *data;
   zimage *image;
   zimage_private *pimage;
-  /* bpp's for the different modes */
-  gint bpps[TVENG_PIX_LAST] =
-    {
-      2, 2, 3, 3, 4, 4, 0, 0, 2, 2
-    };
-  gint bpp = bpps[fmt];
+  guint bpp, bpl, size;
 
-  if (!bpp)
+  bpp = tveng_pixformat_bits_per_pixel (fmt);
+
+  if (bpp == 12)
     return planar_image_new (fmt, w, h);
 
-  data = g_malloc (w * h * bpp);
+  bpl = (w * bpp) >> 3;
+  size = h * bpl;
+
+  data = g_malloc (size);
   image = zimage_create_object ();
   pimage = image->priv = g_malloc0 (sizeof (*pimage));
   pimage->data = data;
   image->fmt.width = w;
   image->fmt.height = h;
   image->fmt.pixformat = fmt;
-  image->fmt.bpp = bpp;
-  image->fmt.depth = 8*bpp;
-  image->fmt.bytesperline = image->fmt.bpp * w;
-  image->fmt.sizeimage = w * h * bpp;
+  image->fmt.bpp = bpp >> 3;
+  image->fmt.depth = bpp;
+  image->fmt.bytesperline = bpl;
+  image->fmt.sizeimage = size;
 
   image->data.linear.data = data;
-  image->data.linear.stride = w * bpp;
+  image->data.linear.stride = bpl;
 
   return image;
 }
