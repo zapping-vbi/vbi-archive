@@ -1,8 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 ## Note $(DESTDIR)$(sbindir) also encoded in src/Makefile.am
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/common \
-	$(COMMON_INCLUDES) @PG_CFLAGS@
+INCLUDES = \
+	-I$(top_srcdir) \
+	$(COMMON_INCLUDES) \
+	@PG_CFLAGS@
 
 bin_PROGRAMS = zapping_setup_fb
 bin_SCRIPTS = zapping_fix_overlay
@@ -52,7 +54,7 @@ zapping_setup_fb_SOURCES = \
 	v4l25.c
 
 zapping_setup_fb_LDADD = \
-	$(top_builddir)/libtv/libtv.a \
+	$(top_builddir)/libtv/libtv.la \
 	$(X_LIBS) \
 	-lX11 \
 	-lXext \
