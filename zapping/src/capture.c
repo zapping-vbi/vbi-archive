@@ -43,6 +43,9 @@
 #include "csconvert.h"
 #include "globals.h"
 
+#define _pthread_rwlock_rdlock pthread_rwlock_rdlock 
+#define _pthread_rwlock_wrlock pthread_rwlock_wrlock 
+
 /* The capture fifo */
 #define NUM_BUNDLES 6 /* in capture_fifo */
 static fifo				_capture_fifo;
@@ -143,7 +146,7 @@ compatible (producer_buffer *p, tveng_device_info *info)
   if (!p->num_images)
     return FALSE;
 
-  pthread_rwlock_rdlock (&fmt_rwlock);
+  _pthread_rwlock_rdlock (&fmt_rwlock);
   /* first check whether the size is right */
   if (info->format.width != p->images[0]->fmt.width ||
       info->format.height != p->images[0]->fmt.height)
@@ -183,7 +186,7 @@ capture_thread (void *data)
 	unusable, if compatible is TRUE then we fill it normally.
       */
 
-      pthread_rwlock_rdlock (&size_rwlock);
+      _pthread_rwlock_rdlock (&size_rwlock);
 
       if (p->tag != request_id && !compatible (p, info))
 	{
@@ -528,9 +531,9 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
   gint req_w, req_h;
 
   if (fmt)
-    pthread_rwlock_wrlock (&fmt_rwlock);
+    _pthread_rwlock_wrlock (&fmt_rwlock);
   else
-    pthread_rwlock_rdlock (&fmt_rwlock);
+    _pthread_rwlock_rdlock (&fmt_rwlock);
 
   mask = build_mask (allow_suggested);
 
@@ -606,7 +609,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
 
  req_ok:
   /* We cannot change w/h while the thread runs: race. */
-  pthread_rwlock_wrlock (&size_rwlock);
+  _pthread_rwlock_wrlock (&size_rwlock);
 
   /* Request the new format to TVeng (should succeed) [id] */
   memcpy (&prev_fmt, &info->format, sizeof (prev_fmt));
@@ -683,7 +686,7 @@ void release_capture_format (gint id)
 {
   gint index;
 
-  pthread_rwlock_wrlock (&fmt_rwlock);
+  _pthread_rwlock_wrlock (&fmt_rwlock);
 
   for (index=0; index<num_formats; index++)
     if (formats[index].id == id)
@@ -708,7 +711,7 @@ get_request_formats (capture_fmt **fmt, gint *num_fmts)
 {
   gint i;
 
-  pthread_rwlock_rdlock (&fmt_rwlock);
+  _pthread_rwlock_rdlock (&fmt_rwlock);
   *fmt = g_malloc0 (num_formats * sizeof (capture_fmt));
 
   for (i=0; i<num_formats; i++)

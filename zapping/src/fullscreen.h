@@ -16,22 +16,12 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __FULLSCREEN_H__
-#define __FULLSCREEN_H__
+#ifndef FULLSCREEN_H
+#define FULLSCREEN_H
 
-/*
- * These routines handle the Fullscreen mode.
- */
+gboolean
+start_fullscreen		(tveng_device_info *	info);
+extern void
+stop_fullscreen			(tveng_device_info *	info);
 
-
-/*
- * Starts fullscreen mode, returns -1 on error.
- */
-gint fullscreen_start(tveng_device_info *info);
-
-/*
- * Stops fullscreen mode.
- */
-void fullscreen_stop(tveng_device_info *info);
-
-#endif /* fullscreen.h */
+#endif /* FULLSCREEN_H */

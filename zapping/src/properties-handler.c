@@ -368,11 +368,10 @@ picture_sizes_on_menu_activate	(GtkMenuItem *		menu_item,
   accel_group = NULL;
 
   for (ps = favorite_picture_sizes; ps; ps = ps->next)
-    if (--count == 0)
+    if (0 == count--)
       {
 	zconf_create_integer (GPOINTER_TO_INT (user_data),
 			      "", ZCONF_PICTURE_SIZES "/index");
-
 	python_command_printf (GTK_WIDGET (menu_item),
 			       "zapping.resize_screen(%u, %u)",
 			       ps->width, ps->height);

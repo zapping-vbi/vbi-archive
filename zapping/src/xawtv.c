@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.1.2.2 2003-09-24 19:13:45 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.1.2.3 2003-09-29 07:09:04 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
@@ -316,28 +316,7 @@ set_control			(const tveng_device_info *info,
   if (NULL == c)
     return TRUE; /* not supported by device */
 
-  for (i = 0; i < ch->num_controls; ++i)
-    if (0 == strncmp (ch->controls[i].name, c->label,
-		      sizeof (ch->controls[i].name) - 1))
-      break;
-
-  if (i >= ch->num_controls)
-    {
-      tveng_tc_control *tc;
-
-      if (!(tc = g_realloc (ch->controls, (i + 1) * sizeof (ch->controls[0]))))
-	return FALSE;
-
-      ch->controls = tc;
-      ch->num_controls = i + 1;
-
-      g_strlcpy (tc[i].name, c->label, 32);
-      tc[i].name[31] = 0;
-    }
-
-  ch->controls[i].value = value;
-
-  return TRUE;
+  return tveng_tuned_channel_set_control (ch, c->label, value);
 }
 
 static gboolean

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.12.2.11 2003-09-24 18:37:51 mschimek Exp $ */
+/* $Id: audio.c,v 1.12.2.12 2003-09-29 07:09:04 mschimek Exp $ */
 
 #include "site_def.h"
 #include "config.h"
@@ -262,7 +262,7 @@ devices_audio_apply		(GtkWidget *		page)
   store_control_values (main_info, &tcc, &num_controls);
   startup_mixer ();
   update_control_box (main_info);
-  load_control_values (main_info, tcc, num_controls, FALSE);
+  load_control_values (main_info, tcc, num_controls);
 }
 
 static void

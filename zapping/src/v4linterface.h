@@ -22,6 +22,7 @@
 #include "frequencies.h"
 #include "zmodel.h"
 #include "zmisc.h"
+#include "tveng.h"
 
 /*
   Rebuilds the control box if it's open. Call whenever the device
@@ -75,11 +76,15 @@ extern void
 zconf_create_controls		(tveng_tc_control *	tcc,
 				 guint			num_controls,
 				 const gchar *		path);
+tveng_tc_control *
+tveng_tc_control_by_id		(const tveng_device_info *info,
+				 tveng_tc_control *tcc,
+				 guint			num_controls,
+				 tv_control_id		id);
 extern gint
 load_control_values		(tveng_device_info *	info,
 				 tveng_tc_control *	tcc,
-				 guint			num_controls,
-				 gboolean		skip_mute);
+				 guint			num_controls);
 void
 store_control_values		(tveng_device_info *	info,
 				 tveng_tc_control **	tcc,
