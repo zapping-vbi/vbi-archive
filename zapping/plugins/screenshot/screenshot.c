@@ -131,6 +131,10 @@ Convert_RGB555_RGB24 (gint width, gchar* src, gchar* dest);
 static gchar *
 Convert_RGBA_RGB24 (gint width, gchar* src, gchar* dest);
 
+/* Converts the given YUYV line to RGB */
+static gchar *
+Convert_YUYV_RGB24 (gint width, guchar* src, guchar* dest);
+
 /* The definition of a line converter function */
 /* The purpose of this kind of functions is to convert one line of src
  into one line of dest */
@@ -560,7 +564,6 @@ start_saving_screenshot (gpointer data_to_save,
 {
   struct screenshot_data * data = (struct screenshot_data*)
     malloc(sizeof(struct screenshot_data));
-  J_COLOR_SPACE jpeg_color_space = JCS_RGB;
 
   GtkWidget * vbox;
   GtkWidget * label;
@@ -662,7 +665,7 @@ start_saving_screenshot (gpointer data_to_save,
       data->set_bgr = TRUE;
       break;
     case TVENG_PIX_YUYV:
-      jpeg_color_space = JCS_YCbCr;
+      data->set_bgr = FALSE;
       break;
     default:
       ShowBox("The current pixformat isn't supported",
@@ -683,20 +686,10 @@ start_saving_screenshot (gpointer data_to_save,
   data->cinfo.image_width = data->format.width;
   data->cinfo.image_height = data->format.height;
   data->cinfo.input_components = 3;
-  data->cinfo.in_color_space = jpeg_color_space;
+  data->cinfo.in_color_space = JCS_RGB;
   jpeg_set_defaults(&(data->cinfo));
   jpeg_set_quality(&(data->cinfo), quality, TRUE);
-#if 0
-  if (jpeg_color_space == JCS_YCbCr)
-    {
-      data->cinfo.comp_info[0].h_samp_factor = 2;//		for Y
-      data->cinfo.comp_info[0].v_samp_factor = 2;
-      data->cinfo.comp_info[1].h_samp_factor = 1;//		for Cb
-      data->cinfo.comp_info[1].v_samp_factor = 1;
-      data->cinfo.comp_info[2].h_samp_factor = 1;//		for Cr
-      data->cinfo.comp_info[2].v_samp_factor = 1;
-    }
-#endif
+
   jpeg_start_compress(&(data->cinfo), TRUE);
 
   data -> window = gtk_window_new(GTK_WINDOW_DIALOG);
@@ -790,7 +783,7 @@ static void * saver_thread(void * _data)
       Converter = (LineConverter) Convert_RGB555_RGB24;
       break;
     case TVENG_PIX_YUYV:
-      Converter = NULL;
+      Converter = (LineConverter) Convert_YUYV_RGB24;
       break;
     default:
       g_warning("pixformat not supported");
@@ -933,5 +926,85 @@ Convert_RGBA_RGB24 (gint width, gchar* src, gchar* dest)
       *(dest++) = *(src++);
       src++;
     }
+  return where_have_we_written;
+}
+
+/* Converts a YUYV line into a RGB24 one */
+static gchar *
+Convert_YUYV_RGB24 (gint w, guchar *src, guchar *dest )
+{
+  gchar *where_have_we_written = dest;
+  gint i;
+  double y,u,v;
+  double r, g, b;
+
+  for (i=0; i<w; i+=2)
+    {
+      y = src[0];
+      u = src[1];
+      v = src[3];
+
+      y = ((y-16)*255)/219;
+      u = ((u-128)*127)/112;
+      v = ((v-128)*127)/112;
+
+      r = y + 1.402*v;
+      g = y - 0.344*u - 0.714*v;
+      b = y + 1.772*u;
+
+      /* clamping is needed */
+      if (r > 255)
+	r = 255;
+      else if (r < 0)
+	r = 0;
+      if (g > 255)
+	g = 255;
+      else if (g < 0)
+	g = 0;
+      if (b > 255)
+	b = 255;
+      else if (b < 0)
+	b = 0;
+
+      dest[0] = r;
+      dest[1] = g;
+      dest[2] = b;
+
+      dest += 3;
+
+      y = src[2];
+      u = src[1];
+      v = src[3];
+
+      y = ((y-16)*255)/219;
+      u = ((u-128)*127)/112;
+      v = ((v-128)*127)/112;
+
+      r = y + 1.402*v;
+      g = y - 0.344*u - 0.714*v;
+      b = y + 1.772*u;
+
+      /* clamping is needed */
+      if (r > 255)
+	r = 255;
+      else if (r < 0)
+	r = 0;
+      if (g > 255)
+	g = 255;
+      else if (g < 0)
+	g = 0;
+      if (b > 255)
+	b = 255;
+      else if (b < 0)
+	b = 0;
+
+      dest[0] = r;
+      dest[1] = g;
+      dest[2] = b;
+
+      src += 4;
+      dest += 3;
+    }
+
   return where_have_we_written;
 }

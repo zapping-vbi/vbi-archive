@@ -1,3 +1,7 @@
+05.11.2000	YUYV->RGB converter <garetxe@users.sourceforge.net>
+
+	* plugins/screenshot: Added this needed converter.
+
 04.11.2000	MPEG starts to work <garetxe@users.sourceforge.net>
 
 	* plugins/mpeg: It starts to work fine after many bugfixes in rte.
