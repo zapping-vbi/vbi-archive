@@ -19,11 +19,9 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.1.2.1 2003-01-21 05:23:30 mschimek Exp $ */
+/* $Id: v4l.c,v 1.1.2.2 2003-06-16 06:09:31 mschimek Exp $ */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "../config.h"
 
 #ifdef ENABLE_V4L
 
@@ -33,71 +31,16 @@
 
 #include "zapping_setup_fb.h"
 
-#include "../common/videodev.h" /* V4L header file */
+#include "../common/videodev.h"
+#include "../common/fprintf_videodev.h"
 
-#define v4l_ioctl(fd, cmd, arg) dev_ioctl (fd, cmd, arg, fprintf_v4l_ioctl)
-
-static void
-fprintf_v4l_ioctl		(FILE *			fp,
-				 int			cmd,
-				 void *			arg)
-{
-  switch (cmd)
-    {
-      CASE (VIDIOCGCAP)
-	{
-	  struct video_capability *t = arg;
-	
-	  fprintf (fp, "name=\"%.*s\" type=",
-		   32, t->name);
-	
-	  fprintf_symbolic (fp, 0, (unsigned long) t->type,
-			    "CAPTURE", VID_TYPE_CAPTURE,
-			    "TUNER", VID_TYPE_TUNER,
-			    "TELETEXT", VID_TYPE_TELETEXT,
-			    "OVERLAY", VID_TYPE_OVERLAY,
-			    "CHROMAKEY", VID_TYPE_CHROMAKEY,
-			    "CLIPPING", VID_TYPE_CLIPPING,
-			    "FRAMERAM", VID_TYPE_FRAMERAM,
-			    "SCALES", VID_TYPE_SCALES,
-			    "MONOCHROME", VID_TYPE_MONOCHROME,
-			    "SUBCAPTURE", VID_TYPE_SUBCAPTURE,
-			    "MPEG_DECODER", VID_TYPE_MPEG_DECODER,
-			    "MPEG_ENCODER", VID_TYPE_MPEG_ENCODER,
-			    "MJPEG_DECODER", VID_TYPE_MJPEG_DECODER,
-			    "MJPEG_ENCODER", VID_TYPE_MJPEG_ENCODER,
-			    0);
-	
-	  fprintf (fp, " channels=%ld audios=%ld "
-		   "maxwidth=%ld maxheight=%ld "
-		   "minwidth=%ld minheight=%ld",
-		   (long) t->channels, (long) t->audios, 
-		   (long) t->maxwidth, (long) t->maxheight, 
-		   (long) t->minwidth, (long) t->minheight);
-	  break;
-	}
-
-      CASE (VIDIOCGFBUF)
-      CASE (VIDIOCSFBUF)
-	{
-	  struct video_buffer *t = arg;
-	
-	  fprintf (fp, "base=%p height=%ld "
-		   "width=%ld depth=%ld "
-		   "bytesperline=%ld",
-		   t->base, (long) t->height, 
-		   (long) t->width, (long) t->depth, 
-		   (long) t->bytesperline);
-	  break;
-	}
-
-      default:
-        fprintf (fp, "<unknown cmd 0x%x>", cmd);
-    }
-}
+#define v4l_ioctl(fd, cmd, arg)						\
+  (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
+   device_ioctl (log_fp, fprintf_ioctl_arg, fd, cmd, arg))
 
 int
-setup_v4l			(const char *		device_name)
+setup_v4l			(const char *		device_name,
+				 x11_dga_parameters *	dga)
 {
   int fd;
   struct video_capability caps;
@@ -105,7 +48,7 @@ setup_v4l			(const char *		device_name)
 
   message (2, "Opening video device.\n");
 
-  if (-1 == (fd = dev_open (device_name, 81, O_RDWR)))
+  if (-1 == (fd = device_open_safer (device_name, 81, O_RDWR)))
     return -1;
 
   message (2, "Querying device capabilities.\n");
@@ -135,11 +78,11 @@ setup_v4l			(const char *		device_name)
       goto failure;
     }
 
-  fb.base		= (void *) addr;
-  fb.width		= width;
-  fb.height		= height;
-  fb.depth		= bpp;
-  fb.bytesperline	= bpl;
+  fb.base		= dga->base;
+  fb.width		= dga->width;
+  fb.height		= dga->height;
+  fb.depth		= dga->bits_per_pixel;
+  fb.bytesperline	= dga->bytes_per_line;
 
   message (2, "Setting new FB parameters.\n");
 
@@ -151,14 +94,13 @@ setup_v4l			(const char *		device_name)
     int success;
     int saved_errno;
 
-    if (!restore_root_privileges (uid, euid))
+    if (!restore_root_privileges ())
       goto failure;
 
-    success = v4l_ioctl (fd, VIDIOCSFBUF, &fb);
+    success = ioctl (fd, VIDIOCSFBUF, &fb);
     saved_errno = errno;
 
-    if (!drop_root_privileges (uid, euid))
-      ; /* ignore */
+    drop_root_privileges ();
 
     if (-1 == success)
       {
@@ -167,8 +109,8 @@ setup_v4l			(const char *		device_name)
         errmsg ("VIDIOCSFBUF ioctl failed");
 
         if (EPERM == saved_errno && ROOT_UID != euid)
-	  message (1, "%s must be run as root, or marked as SUID root.\n",
-		   program_invocation_short_name);
+	  privilege_hint ();
+
       failure:
 	close (fd);
         return 0;
@@ -183,7 +125,8 @@ setup_v4l			(const char *		device_name)
 #else /* !ENABLE_V4L */
 
 int
-setup_v4l			(const char *		device_name)
+setup_v4l			(const char *		device_name,
+				 x11_dga_parameters *	dga)
 {
   return -1;
 }
