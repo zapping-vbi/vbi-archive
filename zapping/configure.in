@@ -84,6 +84,17 @@ fi
 AC_SUBST(PNG_LIB)
 
 dnl ----------------------------------------------------------------------
+dnl Unicode lib
+dnl ----------------------------------------------------------------------
+UNICODE_LIB=""
+HAVE_UNICODE="yes"
+AC_CHECK_LIB(unicode, main, UNICODE_LIB="-lunicode", HAVE_UNICODE="no")
+if test "x$HAVE_UNICODE" = "xyes"; then
+AC_DEFINE(HAVE_LIBUNICODE)
+fi
+AC_SUBST(UNICODE_LIB)
+
+dnl ----------------------------------------------------------------------
 dnl Check for RTE, the MPEG encoder
 dnl ----------------------------------------------------------------------
 HAVE_RTE=""

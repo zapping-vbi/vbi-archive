@@ -10,12 +10,10 @@ libvbi_a_SOURCES = \
 	cache.c cache.h \
 	exp-gfx.c exp-html.c exp-txt.c export.c export.h \
 	dllist.h \
-##	fdset.c fdset.h \
-##	font.c font.h fontsize.h \
 	hamm.c hamm.h \
 	lang.c lang.h \
 	misc.c misc.h \
 	vbi.c vbi.h libvbi.h \
 	tables.c tables.h \
-##	vbi_v4l2.c vbi_v4l.c \
-	os.h vt.h
+	os.h vt.h \
+	search.c

@@ -1,11 +1,12 @@
 #include <sys/types.h>	// for freebsd
 #include <stdlib.h>
 #include "vt.h"
+#include "vbi.h"
 #include "misc.h"
 #include "cache.h"
-#include "search.h"
-
-    UNFINISHED. All bugs are property of their author.
+#include "export.h"
+#include "../common/ucs-2.h"
+#include "../common/ure.h"
 
 struct anchor {
 	int			pgno;
@@ -16,14 +17,14 @@ struct anchor {
 
 struct search
 {
-	struct cache *		cache;
+	struct vbi *		vbi;
 
 	struct anchor		start;
 	struct anchor		stop;
 
-	int			(* progress)(struct search *, struct vt_page *vtp);
+	int			(* progress)(struct fmt_page *pg);
 
-	struct fmt_page *	pg;
+	struct fmt_page		pg;
 
 	ure_buffer_t		ub;
 	ure_dfa_t		ud;
@@ -48,11 +49,11 @@ search_page(struct search *s, struct vt_page *vtp)
 	start = (s->start.pgno << 16) + s->start.subno;
 	stop  = (s->stop.pgno << 16) + s->stop.subno;
 
-	if (start > stop) {
+	if (start >= stop) {
 		if (this < start)
 			return -1; // all done, abort
 	} else {
-		if (this > stop)
+		if (this >= stop)
 			return -1; // all done, abort
 	}
 
@@ -64,8 +65,8 @@ search_page(struct search *s, struct vt_page *vtp)
 			if (this != start) {
 				s->start.pgno = vtp->pgno;
 				s->start.subno = vtp->subno;
-				s->row = 1;
-				s->col = 0;
+				s->start.row = 1;
+				s->start.col = 0;
 			}
 
 			return -2; // canceled
@@ -81,9 +82,9 @@ search_page(struct search *s, struct vt_page *vtp)
 
 	for (i = 0; i < 23; i++) {
 		for (j = 0; j < 40; acp++, j++) {
-			if (i == row1 && j < s->start.col)
+			if (i == row1 && j <= s->start.col)
 				first = hp;
-			if (i == row2 && j < s->stop.col)
+			if (i == row2 && j <= s->stop.col)
 				last = hp + 1;
 
 			if (!gl_isalnum(acp->glyph))
@@ -109,21 +110,24 @@ search_page(struct search *s, struct vt_page *vtp)
 
 	i = 0; // return: try next page
 
-	if (pgno_subno == s->stop.pgno_subno) {
-		// -->stop
-		if (pgno_subno == s->start.pgno_subno && start < stop) {
-			// start-->stop
+	if (this == start && this == stop) {
+		if (s->start.row > s->stop.row
+		    || (s->start.row == s->stop.row
+			&& s->start.col >= s->stop.col))
+			stop = -1; // -->stop start-->
+		else // start-->stop
 			if (first >= hp || first >= last)
 				return -1; // all done
-		}
+	}
 
+	if (this == stop) {
+		// -->stop
 		if (last < hp)
 			*last = 0;
 		else
 			last = hp;
-
 		i = -1; // return: all done
-	} else if (pgno_subno == s->start.pgno_subno) {
+	} else if (this  == start) {
 		// start-->
 		if (first >= hp)
 			return 0; // try next page
@@ -132,9 +136,19 @@ search_page(struct search *s, struct vt_page *vtp)
 		// -->
 		last = hp;
 	}
-
-	if (!ure_exec(s->ud, 0, first, last - first, &ms, &me))
+/*
+#define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
+fprintf(stderr, "exec: %x/%x; %c%c%c...\n",
+	vtp->pgno, vtp->subno,
+	printable(first[0]),
+	printable(first[1]),
+	printable(first[2])
+);
+*/
+	// no REG_NOTBOL | REG_NOTEOL (libc regexp) ?
+	if (!ure_exec(s->ud, 0, first, last - first, &ms, &me)) {
 		return i;
+	}
 
 	/* Highlight */
 
@@ -147,17 +161,17 @@ search_page(struct search *s, struct vt_page *vtp)
 	for (i = 0; i < 23; i++) {
 		for (j = 0; j < 40; acp++, j++) {
 			int offset = hp - first;
-
-			if (offset >= me) {
+ 
+			if (offset >= (signed long) me) {
 				i = 50;
 				break;
 			} else if (offset == ms) {
 				if (j == 39) {
-					s->first.row = i + 2;
-					s->first.col = 0;
+					s->start.row = i + 2;
+					s->start.col = 0;
 				} else {
-					s->first.row = i + 1;
-					s->first.col = j + 1;
+					s->start.row = i + 1;
+					s->start.col = j + 1;
 				}
 			}
 
@@ -166,7 +180,7 @@ search_page(struct search *s, struct vt_page *vtp)
 
 			switch (acp->size) {
 			case DOUBLE_SIZE:
-				if (offset >= ms) {
+				if (offset >= (signed long) ms) {
 					// XXX black/yellow not good because 3.5 can
 					// redefine and it could be confused
 					// with transmitted black/yellow. Solution:
@@ -181,7 +195,7 @@ search_page(struct search *s, struct vt_page *vtp)
 				/* fall through */
 
 			case DOUBLE_WIDTH:
-				if (offset >= ms) {
+				if (offset >= (signed long) ms) {
 					acp[0].foreground = BLACK;
 					acp[0].background = YELLOW;
 					acp[1].foreground = BLACK;
@@ -195,7 +209,7 @@ search_page(struct search *s, struct vt_page *vtp)
 				break;
 
 			case DOUBLE_HEIGHT:
-				if (offset >= ms) {
+				if (offset >= (signed long) ms) {
 					acp[40].foreground = BLACK;
 					acp[40].background = YELLOW;
 				}
@@ -203,7 +217,7 @@ search_page(struct search *s, struct vt_page *vtp)
 				/* fall through */
 
 			case NORMAL:	
-				if (offset >= ms) {
+				if (offset >= (signed long) ms) {
 					acp[0].foreground = BLACK;
 					acp[0].background = YELLOW;
 				}
@@ -217,8 +231,8 @@ search_page(struct search *s, struct vt_page *vtp)
 		}
 
 		if ((hp - first) == ms) {
-			s->first.row = i + 2;
-			s->first.col = 0;
+			s->start.row = i + 2;
+			s->start.col = 0;
 		}
 
 		hp++;
@@ -239,7 +253,7 @@ vbi_delete_search(void *p)
 		return;
 
 	if (s->ud)
-		ure_dfa_free(ud);
+		ure_dfa_free(s->ud);
 
 	if (s->ub)
 		ure_buffer_free(s->ub);
@@ -256,7 +270,7 @@ vbi_delete_search(void *p)
  *  pg->vtp->pgno etc.; progress can be NULL.
  */
 void *
-vbi_new_search(struct cache *ca,
+vbi_new_search(struct vbi *vbi,
 	int pgno, int subno,
 	ucs2_t *pattern, int casefold,
 	int (* progress)(struct fmt_page *pg))
@@ -276,14 +290,19 @@ vbi_new_search(struct cache *ca,
 		return NULL;
 	}
 
+	if (subno == ANY_SUB)
+		subno = 0;
+
 	s->start.pgno = pgno;
 	s->start.subno = subno;
 	s->start.row = 1;
 	s->start.col = 0;
 
-	// Start and stop could be any page, row and col
+	// Start can be any page, row and col,
+	// stop assumed in row 1, col 0 exclusive.
 	s->stop = s->start;
 
+	s->vbi = vbi;
 	s->progress = progress;
 
 	return s;
@@ -308,9 +327,12 @@ vbi_next_search(void *p, struct fmt_page **pg)
 {
 	struct search *s = p;
 
-	switch (s->cache->op->foreach_pg2(s->cache,
+	*pg = NULL;
+
+	switch (s->vbi->cache->op->foreach_pg2(s->vbi->cache,
 		s->start.pgno, s->start.subno, 1, search_page, s)) {
 	case 1:
+		*pg = &s->pg;
 		return 1;
 
 	case -1:
@@ -325,3 +347,58 @@ vbi_next_search(void *p, struct fmt_page **pg)
 
 	return -2;
 }
+
+void
+hiccup(struct vbi *vbi)
+{
+	char *pat1 = "por";
+	ucs2_t pat2[100];
+	static void *s;
+	struct fmt_page *pg;
+	struct export *exp;
+	int i;
+ 
+	for (i = 0; i < strlen(pat1) + 1; i++)
+		pat2[i] = pat1[i]; // :-))
+
+	if (!s) {
+		s = vbi_new_search(vbi, 0x100, ANY_SUB, pat2, 1, NULL);
+
+		if (!s) {
+		    fprintf(stderr, "no search\n");
+		    return;
+		} else
+		    fprintf(stderr, "search\n");
+	}
+
+	switch(vbi_next_search(s, &pg)) {
+	case 1:
+		fprintf(stderr, "found on page %x/%x\n", pg->vtp->pgno, pg->vtp->subno);
+		if ((exp = export_open("ansi"))) {
+			exp->mod->output(exp, "foo", pg);
+			export_close(exp);
+		}
+		break;
+
+	case 0:
+		fprintf(stderr, "not found\n");
+		break;
+
+	case -1:
+		fprintf(stderr, "canceled\n");
+		break;
+
+	case -2:
+		fprintf(stderr, "error\n");
+		break;
+	}
+
+//	vbi_delete_search(s);
+}
+
+/*
+  struct vbi *vbi = zvbi_get_object();
+  extern void hiccup(struct vbi *);
+  hiccup(vbi);
+  return;
+*/

@@ -54,6 +54,8 @@ typedef	union {
 #define	CPU_PENTIUM_IV		4	/* MMX, CMOV, SSE, SSE2; any P8 */
 #define CPU_K6_2		5	/* MMX, 3DNOW; K6-2/K6-III */
 #define CPU_ATHLON		6	/* MMX, MMX-EXT, 3DNOW, 3DNOW-EXT, CMOV, SSE; Athlon/Duron */
+#define CPU_CYRIX_MII		7	/* MMX, CMOV; */
+#define CPU_CYRIX_III		8	/* MMX, MMX-EXT, 3DNOW, CMOV; */
 
 extern int cpu_detection(void);
 

@@ -217,10 +217,15 @@ cache_foreach_pg2(struct cache *ca, int pgno, int subno,
     if (vtp = cache_lookup(ca, pgno, subno))
 	subno = vtp->subno;
     else if (subno == ANY_SUB)
-	subno = dir < 0 ? 0 : 0xffff;
+	subno = 0;
 
     for (;;)
     {
+	if (vtp = cache_lookup(ca, pgno, subno))
+	{
+	    if ((r = func(data, vtp)))
+		return r;
+	}
 	subno += dir;
 	while (subno < 0 || subno >= ca->hi_subno[pgno])
 	{
@@ -230,11 +235,6 @@ cache_foreach_pg2(struct cache *ca, int pgno, int subno,
 	    if (pgno > 0x9ff)
 		pgno = 0x100;
 	    subno = dir < 0 ? ca->hi_subno[pgno] - 1 : 0;
-	}
-	if (vtp = cache_lookup(ca, pgno, subno))
-	{
-	    if ((r = func(data, vtp)))
-		return r;
 	}
     }
 }

@@ -1816,8 +1816,8 @@ if(0)
 
 /* Quick Hack(tm) to read from a sample stream */
 
-// static char *sample_file = "libvbi/samples/t2-br";
-static char *sample_file = NULL; // disabled
+static char *sample_file = "libvbi/samples/t2-br";
+// static char *sample_file = NULL; // disabled
 static FILE *sample_fd;
 
 void

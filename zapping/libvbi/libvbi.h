@@ -9,12 +9,12 @@
 #include <misc.h>
 #include <vbi.h>
 //#include <lang.h>
-#include <../common/ucs-2.h> // ucs2_t prototype
 #include <dllist.h>
 #include <export.h>
+#include "../common/ucs-2.h"
 
 extern void		vbi_delete_search(void *p);
-extern void *		vbi_new_search(struct cache *ca, int pgno, int subno,
+extern void *		vbi_new_search(struct vbi *vbi, int pgno, int subno,
 				ucs2_t *pattern, int casefold,
 				int (* progress)(struct fmt_page *pg));
 extern int		vbi_next_search(void *p, struct fmt_page **pg);

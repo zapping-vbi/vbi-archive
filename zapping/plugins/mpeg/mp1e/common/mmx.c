@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mmx.c,v 1.4 2001-01-09 06:26:13 mschimek Exp $ */
+/* $Id: mmx.c,v 1.5 2001-01-11 07:49:58 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "log.h"
@@ -119,7 +119,7 @@ cpuid(cpuid_t *buf, unsigned int level)
 #define AMD_3DNOW	(1 << 31)
 
 #define CYRIX_MMX	(1 << 23)
-#define CYRIX_MMXEXT	(1 << 24)	/* pmvnzb and friends */
+#define CYRIX_MMXEXT	(1 << 24)
 #define CYRIX_3DNOW	(1 << 31)
 
 #define FEATURE(bits)	((c.r.edx & (bits)) == (bits))
@@ -157,13 +157,17 @@ cpu_detection(void)
 				return CPU_K6_2;
 		}
 	} else if (!strncmp(c.s + 4, "CyrixInstead", 12)) {
+		if (cpuid(&c, 0x80000000) > 0x80000000) {
+			cpuid(&c, 0x80000001);
 
-		/* ? */
+			if (FEATURE(CYRIX_MMX | CYRIX_MMXEXT | CYRIX_3DNOW))
+				return CPU_CYRIX_III;
+		} else {
+			cpuid(&c, 1);
 
-		cpuid(&c, 1);
-
-		if (FEATURE(INTEL_MMX))
-			return CPU_PENTIUM_MMX;
+			if (FEATURE(CYRIX_MMX))
+				return CPU_CYRIX_MII;
+		}
 	}
 
 	ASSERT("identify CPU", 0);
