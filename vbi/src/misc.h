@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Miscellaneous types and macros
  *
- *  Copyright (C) 2002-2003 Michael H. Schimek
+ *  Copyright (C) 2002-2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.5 2003-10-16 18:15:08 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.6 2004-01-30 00:40:37 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -39,8 +39,13 @@
  */
 
 #ifndef DOXYGEN_SHOULD_IGNORE_THIS
-/* doxygen omits static objects */
-#define static_inline static __inline__
+#  ifdef __GNUC__
+     /* Doxygen omits static objects. */
+#    define static_inline static __inline__
+#  else
+#    define static_inline static
+#    define __inline__
+#  endif
 #endif
 
 /**
@@ -83,8 +88,12 @@ typedef unsigned int vbi_nuid;
 /* preliminary */
 #define NUID0 0
 
-#ifndef __GNUC__
-#define __inline__
+#if __GNUC__ >= 3
+#define vbi_attribute_pure __attribute__ ((pure))
+#define vbi_attribute_const __attribute__ ((const))
+#else
+#define vbi_attribute_pure
+#define vbi_attribute_const
 #endif
 
 /* Private */
@@ -94,23 +103,21 @@ typedef unsigned int vbi_nuid;
 #ifdef __GNUC__
 
 #if __GNUC__ < 3
-#define __builtin_expect(exp, c) (exp)
+/* Expect expression usually true/false, schedule accordingly. */
+#  define __builtin_expect(exp, c) (exp)
 #endif
 
 #undef __i386__
 #undef __i686__
 #if #cpu (i386)
-#define __i386__ 1
+#  define __i386__ 1
 #endif
 #if #cpu (i686)
-#define __i686__ 1
+#  define __i686__ 1
 #endif
-
-#define PACKED __attribute__ ((packed))
 
 /* &x == PARENT (&x.tm_min, struct tm, tm_min),
    safer than &x == (struct tm *) &x.tm_min */
-#undef PARENT
 #define PARENT(_ptr, _type, _member) ({					\
 	__typeof__ (&((_type *) 0)->_member) _p = (_ptr);		\
 	(_p != 0) ? (_type *)(((char *) _p) - offsetof (_type,		\
@@ -119,7 +126,7 @@ typedef unsigned int vbi_nuid;
 
 #undef ABS
 #define ABS(n) ({							\
-	register int _n = n, _t = _n;					\
+	register int _n = (n), _t = _n;					\
 	_t >>= sizeof (_t) * 8 - 1;					\
 	_n ^= _t;							\
 	_n -= _t;							\
@@ -127,16 +134,16 @@ typedef unsigned int vbi_nuid;
 
 #undef MIN
 #define MIN(x, y) ({							\
-	__typeof__ (x) _x = x;						\
-	__typeof__ (y) _y = y;						\
+	__typeof__ (x) _x = (x);					\
+	__typeof__ (y) _y = (y);					\
 	(void)(&_x == &_y); /* alert when type mismatch */		\
 	(_x < _y) ? _x : _y;						\
 })
 
 #undef MAX
 #define MAX(x, y) ({							\
-	__typeof__ (x) _x = x;						\
-	__typeof__ (y) _y = y;						\
+	__typeof__ (x) _x = (x);					\
+	__typeof__ (y) _y = (y);					\
 	(void)(&_x == &_y); /* alert when type mismatch */		\
 	(_x > _y) ? _x : _y;						\
 })
@@ -148,12 +155,13 @@ do {									\
 	y = _x;								\
 } while (0)
 
-#undef SATURATE
-#ifdef __i686__ /* conditional move */
+#ifdef __i686__ /* has conditional move */
 #define SATURATE(n, min, max) ({					\
-	__typeof__ (n) _n = n;						\
-	__typeof__ (n) _min = min;					\
-	__typeof__ (n) _max = max;					\
+	__typeof__ (n) _n = (n);					\
+	__typeof__ (n) _min = (min);					\
+	__typeof__ (n) _max = (max);					\
+	(void)(&_n == &_min); /* alert when type mismatch */		\
+	(void)(&_n == &_max);						\
 	if (_n < _min)							\
 		_n = _min;						\
 	if (_n > _max)							\
@@ -162,9 +170,11 @@ do {									\
 })
 #else
 #define SATURATE(n, min, max) ({					\
-	__typeof__ (n) _n = n;						\
-	__typeof__ (n) _min = min;					\
-	__typeof__ (n) _max = max;					\
+	__typeof__ (n) _n = (n);					\
+	__typeof__ (n) _min = (min);					\
+	__typeof__ (n) _max = (max);					\
+	(void)(&_n == &_min); /* alert when type mismatch */		\
+	(void)(&_n == &_max);						\
 	if (_n < _min)							\
 		_n = _min;						\
 	else if (_n > _max)						\
@@ -173,18 +183,23 @@ do {									\
 })
 #endif
 
+extern void
+vbi_log_printf			(const char *		function,
+				 const char *		template,
+				 ...)
+     __attribute__ ((format (__printf__, 2, 3)));
+
 #else /* !__GNUC__ */
 
 #define __builtin_expect(exp, c) (exp)
 #undef __i386__
 #undef __i686__
-#define PACKED
+#define __attribute__(x)
 
 static char *
 PARENT_HELPER (char *p, unsigned int offset)
 { return (p == 0) ? 0 : p - offset; }
 
-#undef PARENT
 #define PARENT(_ptr, _type, _member)					\
 	((offsetof (_type, _member) == 0) ? (_type *)(_ptr)		\
 	 : (_type *) PARENT_HELPER ((char *)(_ptr), offsetof (_type, _member)))
@@ -205,8 +220,12 @@ do {									\
 	y = _x;								\
 } while (0)
 
-#undef SATURATE
 #define SATURATE(n, min, max) MIN (MAX (n, min), max)
+
+extern void
+vbi_log_printf			(const char *		function,
+				 const char *		template,
+				 ...);
 
 #endif /* !__GNUC__ */
 
@@ -222,12 +241,18 @@ vbi_strlcpy			(char *			d,
 
 #define STRCOPY(d, s) (vbi_strlcpy (d, s, sizeof (d)) < sizeof (d))
 
+#ifndef __BYTE_ORDER
+/* Should be __LITTLE_ENDIAN or __BIG_ENDIAN, but I guess
+   that's a GNU/Linuxism. Alternatives? */
+#  define __BYTE_ORDER __UNKNOWN_BYTE_ORDER
+#endif
 
-extern const char _zvbi_intl_domainname[];
+extern const char _zvbi_intl_domainname [];
 
 #ifndef _
 #  ifdef ENABLE_NLS
 #    include <libintl.h>
+#    include <locale.h>
 #    define _(String) dgettext (_zvbi_intl_domainname, String)
 #    ifdef gettext_noop
 #      define N_(String) gettext_noop (String)
