@@ -1,3 +1,7 @@
+2002-09-05	<mschimek@users.sf.net>
+
+	* audio/mp2.c: Preliminary audio underrun fix by Nikolai Zhubr.
+
 2002-09-04	<mschimek@users.sf.net>
 
 	* devices/v4l.c: Fixed pthread_join bug.
