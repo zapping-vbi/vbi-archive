@@ -45,7 +45,8 @@ zapping_SOURCES = \
 	zvbi.c zvbi.h \
 	remote.c remote.h \
 	strnatcmp.c strnatcmp.h \
-	zmodel.c zmodel.h
+	zmodel.c zmodel.h \
+	gen_conv.s gen_conv.h
 
 zapping_LDADD = $(VBI_LIB) $(COMMON_LIB) $(GNOME_LIBDIR) $(GNOMEUI_LIBS) \
 $(GDK_PIXBUF_LIBS) $(INTLLIBS) $(LIBXML_LIBS) $(LIBGLADE_LIBS) \

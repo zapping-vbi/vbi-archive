@@ -54,6 +54,7 @@ const int32_t Inverse_Table_6_9[8][4] = {
 static void yuv2rgb_c_init (int bpp, int mode);
 
 yuv2rgb_fun yuv2rgb;
+yuyv2rgb_fun yuyv2rgb;
 
 static void (* yuv2rgb_c_internal) (uint8_t *, uint8_t *,
 				    uint8_t *, uint8_t *,
@@ -85,13 +86,29 @@ void yuv2rgb_init (int bpp, int mode)
     if (mmx_ok()) {
       yuv2rgb = yuv2rgb_init_mmx (bpp, mode);
       if (yuv2rgb != NULL)
-	printv ("Using MMX for colorspace transform\n");
+	printv ("Using MMX for YVU420 colorspace transform\n");
     }
 #endif
     if (yuv2rgb == NULL) {
-      printv ("No accelerated colorspace conversion found\n");
+      printv ("No accelerated YVU420 colorspace conversion found\n");
       yuv2rgb_c_init (bpp, mode);
       yuv2rgb = (yuv2rgb_fun)yuv2rgb_c;
+    }
+}
+
+void yuyv2rgb_init (int bpp, int mode) 
+{
+    yuyv2rgb = NULL;
+
+#ifdef USE_MMX
+    if (mmx_ok()) {
+      yuyv2rgb = yuyv2rgb_init_mmx (bpp, mode);
+      if (yuyv2rgb != NULL)
+	printv ("Using MMX for YUYV colorspace transform\n");
+    }
+#endif
+    if (yuyv2rgb == NULL) {
+      printv ("No accelerated YUYV colorspace conversion found\n");
     }
 }
 

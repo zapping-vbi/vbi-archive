@@ -273,8 +273,7 @@ dnl			ARCH_CFLAGS="-march=k7";;
 	esac;;
 alpha*-*) AC_DEFINE(__alpha__);;
 sparc-*) 
-	AC_DEFINE(__sparc__)
-	ARCH_CFLAGS="-mcpu=ultrasparc -mvis";;
+	AC_DEFINE(__sparc__);;
 ppc-*) AC_DEFINE(__ppc__);;
 powerpc-*) AC_DEFINE(__ppc__);;
 *) ;;

@@ -75,7 +75,11 @@ x11_get_bpp(void)
   if (!tmp_image)
     return -1;
 
-  result = tmp_image->bpp << 3;
+  result = tmp_image->depth;
+
+  if (result == 24 &&
+      tmp_image->bpp == 4)
+    result = 32;
 
   gdk_image_destroy(tmp_image);
 

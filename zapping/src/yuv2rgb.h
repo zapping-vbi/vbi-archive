@@ -41,9 +41,16 @@ typedef void (* yuv2rgb_fun) (uint8_t * image, uint8_t * py,
 			      int h_size, int v_size,
 			      int rgb_stride, int y_stride, int uv_stride);
 
+typedef void (* yuyv2rgb_fun) (uint8_t *dest, uint8_t *src,
+			       int h_size, int v_size,
+			       int dest_stride, int src_stride);
+
 extern yuv2rgb_fun yuv2rgb;
+extern yuyv2rgb_fun yuyv2rgb;
 
 void yuv2rgb_init (int bpp, int mode);
+void yuyv2rgb_init (int bpp, int mode);
 yuv2rgb_fun yuv2rgb_init_mmx (int bpp, int mode);
+yuyv2rgb_fun yuyv2rgb_init_mmx (int bpp, int mode);
 
 #endif
