@@ -31,6 +31,7 @@ src/tveng25.c
 src/tvengbktr.c
 src/tvengxv.c
 src/v4linterface.c
+src/zapping.c
 src/zapzilla.c
 src/zconf.c
 src/zmisc.c
