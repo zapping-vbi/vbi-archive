@@ -69,7 +69,6 @@ static void default_write_callback ( void * data, size_t size,
 				     void * user_data )
 {
 	int r;
-//	rte_context_private * priv = RCP(context->private);
 
 	while (size) {
 		r = write(context->private->fd, data, size);
@@ -152,7 +151,7 @@ rte_context * rte_context_new (char * file,
 	context->height = height;
 	context->private->fd = -1;
 
-	if (!callback) {
+	if (!encode_callback) {
 		if (!file) {
 			free(context->private);
 			free(context);
@@ -262,7 +261,7 @@ void rte_stop ( rte_context * context )
 void rte_push_video_data ( rte_context * context, void * data,
 			   double * time )
 {
-//	context->private->
+  //	context->private->
 }
 
 char * rte_last_error ( rte_context * context )

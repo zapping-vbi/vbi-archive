@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.1 2000-07-04 17:40:20 garetxe Exp $ */
+/* $Id: main.c,v 1.2 2000-07-04 19:46:05 garetxe Exp $ */
 
 #define MAIN_C
 
@@ -285,22 +285,28 @@ main(int ac, char **av)
 	else
 		stream_output((mux_mode == 1) ? &vid : &aud);
 
-//	printv(2, "Doing cleanup\n");
+	printv(2, "Doing cleanup\n");
+
 	program_shutdown = 1;
+
+	printv(3, "\noutput thread... ");
+
+	output_end();
+	printv(3, "done\n");
+
+	/* i cannot get this to work */
 /*	if (mux_mode & 1)
-		printv(3, "\nvideo thread... "),
-			pthread_join(video_thread_id, NULL), 
-			printv(3, "done\n");
+	printv(3, "\nvideo thread... "),
+			pthread_join(video_thread_id, NULL),
+			printv(3, "done\n");*/
+
 	if (mux_mode & 2)
 		printv(3, "\naudio thread... "),
 			pthread_join(audio_thread_id, NULL),
 			printv(3, "done\n");
-			printv(3, "\noutput thread... ");*/
-	output_end();
-/*	printv(3, "done\n");
 
 	printv(2, "\nCleanup done, bye...\n");
-*/
+	
 	pr_report();
 
 	return EXIT_SUCCESS;

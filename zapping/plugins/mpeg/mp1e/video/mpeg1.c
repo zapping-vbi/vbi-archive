@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.1 2000-07-04 17:40:20 garetxe Exp $ */
+/* $Id: mpeg1.c,v 1.2 2000-07-04 19:46:05 garetxe Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -1426,6 +1426,7 @@ d3 = 3;
 	}
 
 finish:
+
 	if (video_frame_count > 0) {
 		obuf = new_buffer(&vid);
 		((unsigned int *) obuf->data)[0] = bswap(SEQUENCE_END_CODE);
@@ -1433,7 +1434,7 @@ finish:
 		_send_buffer(&vid, obuf);
 	}
 
-	for (;;) {
+	while (!program_shutdown) {
 		obuf = new_buffer(&vid);
 		obuf->size = 0; // EOF mark
 		_send_buffer(&vid, obuf);
