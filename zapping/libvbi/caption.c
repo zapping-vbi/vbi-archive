@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.24 2001-04-05 19:56:33 mschimek Exp $ */
+/* $Id: caption.c,v 1.25 2001-05-12 21:08:33 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,6 +74,19 @@
 
 #define XDS_END			15
 
+/* -> vbi_classify_page */
+static char *
+language[8] = {
+	NULL,		/* unknown */
+	"English",
+	"Español",
+	"Français",
+	"Deutsch",
+	"Italiano",
+	NULL,		/* unknown */
+	NULL		/* none */
+};
+
 #if XDS_DEBUG
 
 static char *mpaa_rating[8]	= { "n/a", "G", "PG", "PG-13", "R", "NC-17", "X", "not rated" };
@@ -82,7 +95,6 @@ static char *cdn_en_rating[8]	= { "exempt", "C", "C8+", "G", "PG", "14+", "18+",
 static char *cdn_fr_rating[8]	= { "exempt", "G", "8 ans +", "13 ans +", "16 ans +", "18 ans +", "-", "-" };
 static char *map_type[8]	= { "unknown", "mono", "simulated stereo", "stereo", "stereo surround", "data service", "unknown", "none" };
 static char *sap_type[8]	= { "unknown", "mono", "video descriptions", "non-program audio", "special effects", "data service", "unknown", "none" };
-static char *language[8]	= { "unknown", "english", "spanish", "french", "german", "italian", "unknown", "none" };
 
 static char *
 cgmsa[4] = {
@@ -166,9 +178,11 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 			printf("Current ");
 		else
 			printf("Next ");
+#endif /* XDS_DEBUG */
 
 		switch (type) {
 		case 1:		/* program identification number */
+#if XDS_DEBUG
 			if (length != 4)
 				return;
 			printf("PIN: %d %s %02d:%02d UTC, D=%d L=%d Z=%d T(ape delayed)=%d\n",
@@ -178,9 +192,11 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 				!!(buffer[2] & 0x20),
 				!!(buffer[3] & 0x20),
 				!!(buffer[3] & 0x10));
+#endif /* XDS_DEBUG */
 			break;
 
 		case 2:		/* program length */
+#if XDS_DEBUG
 			if (length > 5)
 				return;
 			printf("length: %02d:%02d",
@@ -191,24 +207,30 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 			if (length >= 5)
 				printf(":%02d", buffer[4] & 63);
 			printf("\n");
+#endif /* XDS_DEBUG */
 			break;
 
 		case 3:		/* program name */
+#if XDS_DEBUG
 			printf("program title: '");
 			for (i = 0; i < length; i++)
 				putchar(printable(buffer[i]));
 			printf("'\n");
+#endif /* XDS_DEBUG */
 			break;
 
 		case 4:		/* program type */
+#if XDS_DEBUG
 			printf("program type: ");
 			for (i = 0; i < length; i++)
 				printf((i > 0) ? ", %s" : "%s",
 					eia608_program_type[buffer[i] - 0x20]);
 			printf("\n");
+#endif /* XDS_DEBUG */
 			break;
 
 		case 5:		/* program rating */
+#if XDS_DEBUG
 			printf("program movie rating: %s, tv rating: ",
 				mpaa_rating[buffer[0] & 7]);
 			if (buffer[0] & 0x10) {
@@ -228,19 +250,31 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 					printf("sexually suggestive dialog");
 				putchar('\n');
 			}
+#endif /* XDS_DEBUG */
 			break;
 
 		case 6:		/* program audio services */
+#if XDS_DEBUG
 			if (length != 2)
 				return;
 			printf("main audio: %s, %s; second audio program: %s, %s\n",
 				map_type[buffer[0] & 7], language[(buffer[0] >> 3) & 7],
 				sap_type[buffer[1] & 7], language[(buffer[1] >> 3) & 7]);
+#endif /* XDS_DEBUG */
 			break;
 
 		case 7:		/* program caption services */
 			if (length > 8)
 				return;
+
+			for (i = 0; i < length; i++) {
+				int ch = buffer[i] & 7;
+
+				ch = (ch & 1) * 4 + (ch >> 1);
+				vbi->cc.channel[ch].language =
+					language[(buffer[i] >> 3) & 7];			
+			}
+#if XDS_DEBUG
 			printf("program caption services:\n");
 			for (i = 0; i < length; i++)
 				printf("Line %3d, channel %d, %s: %s\n",
@@ -248,38 +282,45 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 					(buffer[i] & 2) ? 2 : 1,
 					(buffer[i] & 1) ? "text      " : "captioning",
 					language[(buffer[i] >> 3) & 7]);
+#endif /* XDS_DEBUG */
 			break;
 
 		case 8:		/* copy generation management system */
+#if XDS_DEBUG
 			if (length != 1)
 				return;
 			printf("CGMS: %s", cgmsa[(buffer[0] >> 3) & 3]);
 			if (buffer[0] & 0x18)
 				printf("; %s", scrambling[(buffer[0] >> 1) & 3]);
 			printf("; analog source: %d", buffer[0] & 1);
+#endif /* XDS_DEBUG */
 			break;
 
 		case 9:		/* program aspect ratio */
+#if XDS_DEBUG
 			if (length > 3)
 				return;
 			printf("program aspect ratio info: active start %d, end %d%s\n",
 				(buffer[0] & 63) + 22, 262 - (buffer[1] & 63),
 				(length >= 3 && (buffer[2] & 1)) ? " (anamorphic)" : "");
+#endif /* XDS_DEBUG */
 			break;
 
 		case 0x10 ... 0x17: /* program description */
+#if XDS_DEBUG
 			printf("program descr. line %d: >", type - 0x10 + 1);
 			for (i = 0; i < length; i++)
 				putchar(printable(buffer[i]));
 			printf("<\n");
+#endif /* XDS_DEBUG */
 			break;
 
 		default:
+#if XDS_DEBUG
 			printf("<unknown %d/%02x length %d>\n", class, type, length);
+#endif /* XDS_DEBUG */
 			break;
 		}
-
-#endif /* XDS_DEBUG */
 
 		break;
 
@@ -1162,6 +1203,8 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 		if (!ch->mode)
 			break;
 
+		ch->time = vbi->time; /* activity measure */
+
 		c = ch->attr;
 
 		for (i = 0; i < 2; i++) {
@@ -1244,6 +1287,8 @@ vbi_init_caption(struct vbi *vbi)
 		ch->attr.background = BLACK;
 
 		set_cursor(ch, 1, ch->row);
+
+		ch->time = 0.0;
 
 		ch->hidden = 0;
 

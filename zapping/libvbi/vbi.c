@@ -6,6 +6,7 @@
 #include <time.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 #include "os.h"
 #include "vt.h"
 #include "vbi.h"
@@ -340,6 +341,7 @@ int
 vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **language)
 {
 	struct page_info *pi;
+	struct timeval tv;
 	int code, subc;
 	char *lang;
 
@@ -351,7 +353,21 @@ vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **language)
 	*subpage = 0;
 	*language = NULL;
 
-	if (pgno < 0x100 || pgno > 0x8FF) {
+	if (pgno < 1) {
+		return VBI_UNKNOWN_PAGE;
+	} else if (pgno <= 8) {
+		double time;
+
+		gettimeofday(&tv, NULL);
+		time = tv.tv_sec + tv.tv_usec / 1e6;
+
+		if ((time - vbi->cc.channel[pgno - 1].time) > 20)
+			return VBI_NO_PAGE;
+
+		*language = vbi->cc.channel[pgno - 1].language;
+
+		return (pgno <= 4) ? VBI_SUBTITLE_PAGE : VBI_NORMAL_PAGE;
+	} else if (pgno < 0x100 || pgno > 0x8FF) {
 		return VBI_UNKNOWN_PAGE;
 	}
 

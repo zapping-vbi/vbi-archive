@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mmx.c,v 1.5 2001-01-11 07:49:58 mschimek Exp $ */
+/* $Id: mmx.c,v 1.6 2001-05-12 21:08:33 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "log.h"
@@ -178,7 +178,7 @@ cpu_detection(void)
 #else
 
 int
-cpu_id(cpu_architecture arch)
+cpu_detection(cpu_architecture arch)
 {
 	return 0;
 }

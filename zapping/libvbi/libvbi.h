@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.35 2001-04-24 04:08:11 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.36 2001-05-12 21:08:33 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -204,7 +204,16 @@ typedef struct {
 #define VBI_UNKNOWN_PAGE	0xFF	/* libvbi internal, page not for display */
 
 /*
- *  pgno: 0x100 ... 0x8FF
+ *  pgno: 1 ... 8 (Closed Caption)
+ *  subpage: always 0
+ *  language: returns the language of a page, NULL if unknown,
+ *    using Latin-1 char set.
+ *
+ *  Return value is VBI_SUBTITLE_PAGE for 1 ... 4 (CC1 ... CC4),
+ *  VBI_NORMAL_PAGE for 5 ... 8 (T1 ... T4), or VBI_NO_PAGE if the
+ *  channel is currently silent.
+ *
+ *  pgno: 0x100 ... 0x8FF (Teletext)
  *  subpage: returns highest subpage number used,
  *    0			- single page
  *    1			- should not appear

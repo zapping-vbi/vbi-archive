@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cc.h,v 1.8 2001-04-05 19:56:33 mschimek Exp $ */
+/* $Id: cc.h,v 1.9 2001-05-12 21:08:33 mschimek Exp $ */
 
 #ifndef CC_H
 #define CC_H
@@ -54,6 +54,8 @@ typedef struct {
 
 	int			nul_ct;
 // XXX should be 'silence count'
+	double			time;
+	unsigned char *		language;		/* Latin-1 */
 
 	attr_char		attr;
 	attr_char *		line;
