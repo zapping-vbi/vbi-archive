@@ -1,5 +1,6 @@
 2004-10-09    <mschimek@users.sf.net>
 
+	* src/audio.c (set_mute): OSD related crash fix by Sjoerd Simons.
 	* Makefile.am (install-data-local): VPATH fix.
 	* src/zvbi.c, src/zmisc.c, src/subtitle.h, src/subtitle.c,
 	  src/main.c, src/globals.c, src/fullscreen.c,
