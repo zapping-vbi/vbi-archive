@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.3 2004-09-22 21:22:29 mschimek Exp $ */
+/* $Id: zapping.c,v 1.4 2004-09-23 00:59:59 mschimek Exp $ */
 
 #include "config.h"
 
@@ -35,18 +35,6 @@
 #include "remote.h"
 
 static GObjectClass *		parent_class;
-
-static void
-instance_finalize		(GObject *		object)
-{
-  extern void shutdown_zapping(void); /* main.c */
-  /* Zapping *z = ZAPPING (object); */
-
-  /* preliminary */
-  shutdown_zapping ();
-
-  parent_class->finalize (object);
-}
 
 static void
 quit_action			(GtkAction *		action _unused_,
@@ -320,7 +308,7 @@ controls_action			(GtkAction *		action _unused_,
   on_python_command1 (GTK_WIDGET (z), "zapping.control_box()");
 }
 
-static const GtkActionEntry
+static GtkActionEntry
 generic_actions [] = {
   { "FileSubmenu", NULL, N_("_File"), NULL, NULL, NULL },
   { "Quit", GTK_STOCK_QUIT, NULL, NULL, NULL, G_CALLBACK (quit_action) },
@@ -354,7 +342,7 @@ generic_actions [] = {
     N_("Change picture controls"), G_CALLBACK (controls_action) },
 };
 
-static const GtkToggleActionEntry
+static GtkToggleActionEntry
 generic_toggle_actions [] = {
   { "Mute", "zapping-mute", N_("_Mute"), "<Control>a",
     N_("Switch audio on or off"), G_CALLBACK (mute_action), FALSE },
@@ -366,7 +354,7 @@ generic_toggle_actions [] = {
     NULL, G_CALLBACK (keep_window_on_top_action), FALSE },
 };
 
-static const GtkActionEntry
+static GtkActionEntry
 vbi_actions [] = {
   { "TeletextSubmenu", NULL, N_("_Teletext"), NULL, NULL, NULL },
   { "SubtitlesSubmenu", NULL, N_("_Subtitles"), NULL, NULL, NULL },
@@ -379,7 +367,7 @@ vbi_actions [] = {
     NULL, G_CALLBACK (new_teletext_action) },
 };
 
-static const GtkToggleActionEntry
+static GtkToggleActionEntry
 vbi_toggle_actions [] = {
   { "Subtitles", "zapping-subtitle", N_("_Subtitles"), "<Control>u",
     N_("Switch subtitles on or off"), G_CALLBACK (subtitles_action), FALSE },
@@ -660,18 +648,35 @@ zapping_enable_appbar		(Zapping *		z,
   gtk_widget_queue_resize (GTK_WIDGET (z));
 }
 
-static void
-on_zapping_delete_event		(GtkWidget *		widget,
-				 gpointer		user_data _unused_)
-{
-  python_command (widget, "zapping.quit()");
-}
-
 static gboolean
-on_video_button_press_event	(GtkWidget *		widget,
-				 GdkEventButton *	event,
-				 Zapping *		z)
+scroll_event			(GtkWidget *		widget,
+				 GdkEventScroll *	event)
 {
+  switch (event->direction)
+    {
+    case GDK_SCROLL_UP:
+    case GDK_SCROLL_LEFT:
+      python_command (widget, "zapping.channel_up()");
+      return TRUE; /* handled */
+
+    case GDK_SCROLL_DOWN:
+    case GDK_SCROLL_RIGHT:
+      python_command (widget, "zapping.channel_down()");
+      return TRUE; /* handled */
+
+    default:
+      break;
+    }
+
+  return FALSE; /* pass on */
+}
+    
+static gboolean
+button_press_event		(GtkWidget *		widget,
+				 GdkEventButton *	event)
+{
+  Zapping *z = ZAPPING (widget);
+
   switch (event->button)
     {
     case 2: /* Middle button */
@@ -686,14 +691,6 @@ on_video_button_press_event	(GtkWidget *		widget,
       zapping_create_popup (z, event);
       return TRUE; /* handled */
 
-    case 4: /* Another button (XXX wheel?) */
-      python_command (widget, "zapping.channel_up()");
-      return TRUE; /* handled */
-
-    case 5: /* Yet another button */
-      python_command (widget, "zapping.channel_down()");
-      return TRUE; /* handled */
-
     default:
       break;
     }
@@ -701,15 +698,24 @@ on_video_button_press_event	(GtkWidget *		widget,
   return FALSE; /* pass on */
 }
 
-static void
-realize				(GtkWidget *		widget _unused_,
-				 Zapping *		z)
+static gboolean
+delete_event			(GtkWidget *		widget,
+				 GdkEventAny *		event _unused_)
 {
+  python_command (widget, "zapping.quit()");
+  return TRUE; /* handled */
+}
+
+static void
+realize				(GtkWidget *		widget)
+{
+  Zapping *z = ZAPPING (widget);
   GtkAction *action;
+
+  GTK_WIDGET_CLASS (parent_class)->realize (widget);
 
   action = gtk_action_group_get_action (z->generic_action_group,
 					"KeepWindowOnTop");
-
   if (have_wm_hints)
     {
       GtkToggleAction *toggle_action;
@@ -727,7 +733,19 @@ realize				(GtkWidget *		widget _unused_,
 }
 
 static void
-instance_init			(GTypeInstance *	instance _unused_,
+instance_finalize		(GObject *		object)
+{
+  extern void shutdown_zapping(void); /* main.c */
+  /* Zapping *z = ZAPPING (object); */
+
+  /* preliminary */
+  shutdown_zapping ();
+
+  parent_class->finalize (object);
+}
+
+static void
+instance_init			(GTypeInstance *	instance,
 				 gpointer		g_class _unused_)
 {
   Zapping *z = (Zapping *) instance;
@@ -860,19 +878,11 @@ instance_init			(GTypeInstance *	instance _unused_,
   gtk_widget_add_events (widget,
 			 GDK_BUTTON_PRESS_MASK |
 			 GDK_BUTTON_RELEASE_MASK |
+			 GDK_SCROLL_MASK |
 			 GDK_EXPOSURE_MASK |
 			 GDK_POINTER_MOTION_MASK |
 			 GDK_VISIBILITY_NOTIFY_MASK |
 			 GDK_KEY_PRESS_MASK);
-
-  g_signal_connect (G_OBJECT (widget), "button_press_event",
-		    G_CALLBACK (on_video_button_press_event), z);
-
-  g_signal_connect (G_OBJECT (z), "delete_event",
-                    G_CALLBACK (on_zapping_delete_event), z);
-
-  g_signal_connect_after (G_OBJECT (z), "realize",
-			  G_CALLBACK (realize), z);
 }
 
 GtkWidget *
@@ -886,11 +896,18 @@ class_init			(gpointer		g_class,
 				 gpointer		class_data _unused_)
 {
   GObjectClass *object_class;
+  GtkWidgetClass *widget_class;
 
   object_class = G_OBJECT_CLASS (g_class);
-  parent_class = g_type_class_peek_parent (object_class);
+  widget_class = GTK_WIDGET_CLASS (g_class);
+  parent_class = g_type_class_peek_parent (g_class);
 
   object_class->finalize = instance_finalize;
+
+  widget_class->realize	= realize;
+  widget_class->delete_event = delete_event;
+  widget_class->button_press_event = button_press_event;
+  widget_class->scroll_event = scroll_event;
 
   cmd_register ("hide_controls", py_hide_controls, METH_VARARGS,
 		N_("Show menu and toolbar"), "zapping.hide_controls()");
