@@ -760,7 +760,7 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       /* This shouldn't ideally be reached, but a g_assert is too
 	 strong */
       if ((p == NULL) && (arg1 != -1))
-	printf(_("%s (%d): This shouldn't have been reached\n"), 
+	fprintf(stderr, _("%s (%d): This shouldn't have been reached\n"), 
 	       __FILE__, __LINE__);
       break;
     }
@@ -776,18 +776,36 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
      errors */
   /* FIXME: Add the help */
 
-  /*  gboolean flag = info.current_mode == TVENG_CAPTURE_MMAPED_BUFFERS;
-  static GnomeHelpMenuEntry help_ref = { "gnumeric",
-					 "formatting.html" };
-
+  gboolean flag = info.current_mode == TVENG_CAPTURE_MMAPED_BUFFERS;
+  GList * p = g_list_first(plugin_list); /* Traverse all the plugins */
+  /*  static GnomeHelpMenuEntry help_ref = { "zapping",
+					 "properties.html" };
+  */
   if (flag)
     tveng_stop_capturing(&info);
-
-  gnome_help_display(NULL, & help_ref);
+  switch (arg1)
+    {
+    case 0:
+    case 1:
+    case 2:
+      break; /* FIXME: Write the help (it's above, i know) */
+    default:
+      while (p)
+	{
+	  if (plugin_help_properties(gnomepropertybox, arg1,
+				     (struct plugin_info*) p->data))
+	    break;
+	  p = p->next;
+	}
+      if (p == NULL)
+	fprintf(stderr, _("%s (%d): This shouldn't have been reached\n"),
+		__FILE__, __LINE__);
+    }
+  
+  /* gnome_help_display(NULL, & help_ref); */
 
   if (flag)
     tveng_start_capturing(&info);
-  */
 }
 
 /* This function is called when some item in the property box changes */

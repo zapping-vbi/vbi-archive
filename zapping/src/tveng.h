@@ -71,6 +71,28 @@ typedef struct
 }
 tveng_vbuf;
 
+/* The format of a pixel, similar to the V4L2 ones, but they aren't
+   fourcc'ed */
+enum tveng_frame_pixformat{
+  TVENG_PIX_RGB555,
+  TVENG_PIX_RGB565,
+  TVENG_PIX_RGB24,
+  TVENG_PIX_BGR24,
+  TVENG_PIX_RGB32,
+  TVENG_PIX_BGR32
+};
+
+/* This struct holds the structure of the captured frame */
+struct tveng_frame_format
+{
+  gpointer data; /* A pointer to the captured data */
+  int width, height; /* Dimensions of the capture */
+  int bytesperline; /* Bytes per scan line */
+  int depth; /* Bits per pixel */
+  enum tveng_frame_pixformat pixformat; /* The pixformat entry */
+  int bpp; /* Bytes per pixel */
+};
+
 /* We need this for the callbacks */
 typedef struct
 {
@@ -117,6 +139,7 @@ typedef struct
   int num_buffers; /* Capture buffers allocated for this device */
   tveng_vbuf * buffers; /* Array of mmap'ed capture buffers */
   struct v4l2_format pix_format; /* pixel format of this device */
+  struct tveng_frame_format format; /* pixel format of this device */
   int bpl; /* Bytes per line */
   int ppl; /* Pixels per line */
 

@@ -1,6 +1,7 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Add plugin support and convert PNG saving into a plugin
+	+ Isolate zapping from V4L2 through tveng_ calls
+	+ Convert PNG saving into a plugin
 	+ Add some sort of AVI capture
 	+ Report "Control always 0 first time it's read" bug
 	+ Add perfomance test (full v4l2 /dev/video use implemented?)

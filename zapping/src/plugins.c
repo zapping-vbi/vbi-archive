@@ -151,6 +151,14 @@ gboolean plugin_load(gchar * file_name, struct plugin_info * info)
       return FALSE;
     }
 
+  info -> plugin_help_properties = dlsym(info -> handle, 
+					  "plugin_help_properties");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
   info -> plugin_add_gui = dlsym(info -> handle, "plugin_add_gui");
   if ((info -> error = dlerror()) != NULL)
     {
@@ -173,6 +181,13 @@ gboolean plugin_load(gchar * file_name, struct plugin_info * info)
     }
 
   info -> plugin_remove_gui = dlsym(info -> handle, "plugin_remove_gui");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  info -> plugin_eat_frame = dlsym(info -> handle, "plugin_eat_frame");
   if ((info -> error = dlerror()) != NULL)
     {
       dlclose(info -> handle);
@@ -271,6 +286,13 @@ gboolean plugin_running(struct plugin_info * info)
   return ((*info->plugin_running)());
 }
 
+/* Give a frame to the plugin so it can process it */
+void plugin_eat_frame(struct tveng_frame_format * frame, struct
+		      plugin_info * info)
+{
+  (*info -> plugin_eat_frame)(frame);
+}
+
 /* Add the plugin to the GUI */
 void plugin_add_gui(GtkWidget * main_window, struct plugin_info * info)
 {
@@ -295,6 +317,14 @@ void plugin_add_properties(GnomePropertyBox * gpb, struct plugin_info
    call if n is not the property page it has created for itself */
 gboolean plugin_apply_properties(GnomePropertyBox * gpb, int n, struct
 				 plugin_info * info)
+{
+  return ((*info->plugin_apply_properties)(gpb, n));
+}
+
+/* This one is similar to the above, but it is called when pressing
+   help on the Property Box */
+gboolean plugin_help_properties(GnomePropertyBox * gpb, int n,
+				struct plugin_info * info)
 {
   return ((*info->plugin_apply_properties)(gpb, n));
 }
@@ -346,7 +376,7 @@ GList * plugin_load_plugins(gchar * directory, gchar * exp, GList * old)
     {
       if (!strstr(namelist[i] -> d_name, exp))
 	continue;
-      
+
       filename = g_strconcat(directory, directory[strlen(directory)-1] ==
 			     '/' ? "" : "/", namelist[i] -> d_name, NULL);
 

@@ -57,8 +57,7 @@ struct plugin_info{
      format parameter holds the current frame characteristics, and can
      also be modified (it's just a copy of the real v4l2_format
      structure) */
-  void (*plugin_eat_frame)(gchar * frame, struct v4l2_format *
-			   format);
+  void (*plugin_eat_frame)(struct tveng_frame_format * format);
   /* Add the plugin entries to the property box, we should connect
      callbacks from the plugin appropiately */
   void (*plugin_add_properties)(GnomePropertyBox * gpb);
@@ -66,6 +65,9 @@ struct plugin_info{
      property box. The plugin should ignore (returning FALSE) this
      call if n is not the property page it has created for itself */
   gboolean (*plugin_apply_properties)(GnomePropertyBox * gpb, int n);
+  /* This one is similar to the above, but it is called when pressing
+     help on the Property Box */
+  gboolean (*plugin_help_properties)(GnomePropertyBox * gpb, int n);
   /* The structure will be written to the config file just before
      calling plugin_close and read just before calling plugin_init. */
   struct ParseStruct * parse_struct;
@@ -125,6 +127,15 @@ void plugin_add_properties(GnomePropertyBox * gpb, struct plugin_info
    call if n is not the property page it has created for itself */
 gboolean plugin_apply_properties(GnomePropertyBox * gpb, int n, struct
 				 plugin_info * info);
+
+/* Give a frame to the plugin so it can process it */
+void plugin_eat_frame(struct tveng_frame_format * frame, struct
+		      plugin_info * info);
+
+/* This one is similar to the above, but it is called when pressing
+   help on the Property Box */
+gboolean plugin_help_properties(GnomePropertyBox * gpb, int n,
+				struct plugin_info * info);
 
 /* Loads all the valid plugins in the given directory, and appends them to
    the given GList. It returns the new GList. The plugins should

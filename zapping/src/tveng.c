@@ -20,10 +20,10 @@
   This is the library in charge of simplyfying Video Access API (I
   don't want to use thirteen lines of code with ioctl's every time I
   want to change tuning freq).
-  the name is TV Engine, since it is intended mainly for TV viewing
-  with Video for Linux 2.
-  There is another reason for this file, here are linux-especific
-  issues, so portability should be easier ;-)
+  the name is TV Engine, since it is intended mainly for TV viewing.
+  There is another reason to this file, to abstract all the V4L2
+  functionality, so porting to other systems should be much easiers (i
+  was thinking of V4L)
 */
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -682,6 +682,53 @@ gpointer tveng_start_capturing(tveng_device_info * info)
       tveng_qbuf(i, info);
     }
 
+  switch (info -> pix_format.fmt.pix.pixelformat)
+    {
+    case V4L2_PIX_FMT_RGB555:
+      info -> format.pixformat = TVENG_PIX_RGB555;
+      info -> format.depth = 15;
+      info -> format.bpp = 2;
+      break;
+    case V4L2_PIX_FMT_RGB565:
+      info -> format.pixformat = TVENG_PIX_RGB565;
+      info -> format.depth = 16;
+      info -> format.bpp = 2;
+      break;
+    case V4L2_PIX_FMT_RGB24:
+      info -> format.pixformat = TVENG_PIX_RGB24;
+      info -> format.depth = 24;
+      info -> format.bpp = 3;
+      break;
+    case V4L2_PIX_FMT_BGR24:
+      info -> format.pixformat = TVENG_PIX_BGR24;
+      info -> format.depth = 24;
+      info -> format.bpp = 3;
+      break;
+    case V4L2_PIX_FMT_RGB32:
+      info -> format.pixformat = TVENG_PIX_RGB32;
+      info -> format.depth = 32;
+      info -> format.bpp = 4;
+      break;
+    case V4L2_PIX_FMT_BGR32:
+      info -> format.pixformat = TVENG_PIX_BGR32;
+      info -> format.depth = 32;
+      info -> format.bpp = 4;
+      break;
+    default:
+      fprintf(stderr, "%s (%d): Cannot init this struct correctly\n",
+	      __FILE__, __LINE__);
+      break;
+    }
+  info -> format.width = info -> pix_format.fmt.pix.width;
+  info -> format.height = info -> pix_format.fmt.pix.height;
+  info -> format.bytesperline = (info -> format.width) * (info ->
+							  format.bpp);
+  info -> format.data = (gpointer) malloc(info -> format.bytesperline
+					  * info -> format.height);
+  if (!(info -> format.data))
+    printf("(%s) %d: Cannot allocate memory for info->format.data\n",
+	   __FILE__, __LINE__);
+
   /* Turn on streaming */
   tmp_var = V4L2_BUF_TYPE_CAPTURE;
   if (ioctl(info->fd, VIDIOC_STREAMON, &tmp_var) != 0)
@@ -748,6 +795,10 @@ int tveng_stop_capturing(tveng_device_info * info)
   gdk_image_destroy(info -> image);
 
   g_free(info -> buffers);
+
+  /* Free the memory we allocated on start */
+  if (info -> format.data)
+    free(info -> format.data);
 
   /* We have switched off the mode */
   info -> current_mode = TVENG_NO_CAPTURE;

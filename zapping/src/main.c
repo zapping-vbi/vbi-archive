@@ -186,9 +186,18 @@ main (int argc, char *argv[])
   int i;
 #endif
 
-  /* Load all the plugins in the path */
-  /* FIXME: Add correct path */
+  /* Load plugins */
   plugin_list = plugin_load_plugins("/home/garetxe/cvs/plugins",
+				    ".zapping.so", plugin_list);
+
+  /* Scan some more places for plugins */
+  plugin_list = plugin_load_plugins("/usr/lib", 
+				    ".zapping.so", plugin_list);
+
+  plugin_list = plugin_load_plugins("/usr/local/lib", 
+				    ".zapping.so", plugin_list);
+
+  plugin_list = plugin_load_plugins("/lib", 
 				    ".zapping.so", plugin_list);
 
 #ifdef ENABLE_NLS
@@ -374,10 +383,27 @@ main (int argc, char *argv[])
 		    n = tveng_dqbuf(&info);
 		      } while (TRUE);
 
+		  /* Copy the data to the format struct */
+		  /* FIXME: This is utterly provisional, TVEng should
+		     contain something like tveng_read_frame(&info),
+		     but i've been so many hours without sleeping
+		     now... */
+		  memcpy(info.format.data, info.buffers[n].vmem,
+			 info.format.bytesperline * info.format.height);
+
+		  /* Feed all the plugins with this frame */
+		  p = g_list_first(plugin_list);
+		  while (p)
+		    {
+		      plugin_eat_frame(&info.format, 
+				       (struct plugin_info *) p->data);
+		      p = p->next;
+		    }
+
 		  switch (info.pix_format.fmt.pix.pixelformat)
 		    {
 		    case V4L2_PIX_FMT_BGR32:
-		      info.ximage -> data = info.buffers[n].vmem;
+		      info.ximage -> data = info.format.data;
 		      gdk_draw_image(da -> window,
 				     da -> style -> white_gc,
 				     info.image,
@@ -387,7 +413,7 @@ main (int argc, char *argv[])
 		      break;
 
 		    case V4L2_PIX_FMT_BGR24:
-		      info.ximage -> data = info.buffers[n].vmem;
+		      info.ximage -> data = info.format.data;
 		      gdk_draw_image(da -> window,
 				     da -> style -> white_gc,
 				     info.image,
@@ -403,7 +429,7 @@ main (int argc, char *argv[])
 					    info.ppl,
 					    info.pix_format.fmt.pix.height,
 					    GDK_RGB_DITHER_MAX,
-					    info.buffers[n].vmem,
+					    info.format.data,
 					    info.bpl);
 		      break;
 		    case V4L2_PIX_FMT_RGB24:
@@ -413,12 +439,12 @@ main (int argc, char *argv[])
 					 info.ppl,
 					 info.pix_format.fmt.pix.height,
 					 GDK_RGB_DITHER_MAX,
-					 info.buffers[n].vmem,
+					 info.format.data,
 					 info.bpl);
 					 break;
 		      break;
 		    case V4L2_PIX_FMT_RGB565:
-		      info.ximage -> data = info.buffers[n].vmem;
+		      info.ximage -> data = info.format.data;
 
 		      gdk_draw_image(da -> window,
 				     da -> style -> white_gc,
@@ -428,7 +454,7 @@ main (int argc, char *argv[])
 				     info.pix_format.fmt.pix.height);
 		      break;
 		    case V4L2_PIX_FMT_RGB555:
-		      info.ximage -> data = info.buffers[n].vmem;
+		      info.ximage -> data = info.format.data;
 		      
 		      gdk_draw_image(da -> window,
 				     da -> style -> white_gc,

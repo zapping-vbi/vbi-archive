@@ -2,7 +2,7 @@
 
 	* plugins.c:
 	* main.c: The plugin support is now completely integrated into
-	zapping.
+	zapping, i made a test plugin and works fine.
 	
 20.2.2000	Plugin config saved <garetxe@users.sourceforge.net>
 
