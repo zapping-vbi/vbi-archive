@@ -49,6 +49,7 @@
 #include "globals.h"
 #include "audio.h"
 #include "mixer.h"
+#include "zvideo.h"
 
 extern tveng_device_info * main_info;
 extern volatile gboolean flag_exit_program;
@@ -262,6 +263,8 @@ zmisc_stop (tveng_device_info *info)
     }
 }
 
+#define BLANK_CURSOR_TIMEOUT 1500 /* ms */
+
 /*
   does the mode switching. Since this requires more than just using
   tveng, a new routine is needed.
@@ -284,13 +287,16 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
   g_assert(info != NULL);
   g_assert(main_window != NULL);
-  tv_screen = lookup_widget(main_window, "tv_screen");
+  tv_screen = lookup_widget(main_window, "tv-screen");
   g_assert(tv_screen != NULL);
 
   if ((info->current_mode == new_mode) &&
       (new_mode != TVENG_NO_CAPTURE))
     {
       x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
+      z_video_blank_cursor (Z_VIDEO (tv_screen),
+			    (mode == TVENG_NO_CAPTURE) ?
+			    0 : BLANK_CURSOR_TIMEOUT);
       return 0; /* success */
     }
 
@@ -390,6 +396,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       video_suggest_format ();
       x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE
 			   | X11_SCREENSAVER_CPU_ACTIVE);
+      z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
       break;
     case TVENG_CAPTURE_WINDOW:
       if (disable_preview || disable_overlay) {
@@ -397,6 +404,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	g_free(old_input);
 	g_free(old_standard);
 	x11_screensaver_set (X11_SCREENSAVER_ON);
+        z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 	return -1;
       }
 
@@ -419,6 +427,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	  ShowBox(_("Preview will not work: %s"),
 		  GTK_MESSAGE_ERROR, info->error);
 	  x11_screensaver_set (X11_SCREENSAVER_ON);
+          z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 	  return -1;
 	}
 
@@ -452,11 +461,13 @@ XX();
 	  startup_overlay(tv_screen, main_window, info);
 	  overlay_sync(TRUE);
 	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
+          z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
 	}
       else
 	{
 	  g_warning(info->error);
 	  x11_screensaver_set (X11_SCREENSAVER_ON);
+          z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 	}
       break;
     case TVENG_CAPTURE_PREVIEW:
@@ -465,6 +476,7 @@ XX();
 	g_free(old_input);
 	g_free(old_standard);
 	x11_screensaver_set (X11_SCREENSAVER_ON);
+	z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 	return -1;
       }
 
@@ -503,14 +515,17 @@ XX();
 	{
 	  g_warning("couldn't start fullscreen mode");
 	  x11_screensaver_set (X11_SCREENSAVER_ON);
+          z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 	}
       else
 	{
 	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
+          z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
 	}
       break;
     default:
       x11_screensaver_set (X11_SCREENSAVER_ON);
+      z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 
       if (!flag_exit_program) /* Just closing */
 	{
@@ -519,7 +534,7 @@ XX();
 	    {
 	      /* start vbi code */
 	      gtk_widget_show(lookup_widget(main_window, "appbar2"));
-	      ttxview_attach(main_window, lookup_widget(main_window, "tv_screen"),
+	      ttxview_attach(main_window, lookup_widget(main_window, "tv-screen"),
 			     lookup_widget(main_window, "toolbar1"),
 			     lookup_widget(main_window, "appbar2"));
 	    }
@@ -554,7 +569,8 @@ XX();
      since there might be multiple properties dialogs open */
 
 #if 0
-  if (avoid_noise)
+  /* XXX don't reset when we're in shutdown, see cmd.c/py_quit(). */
+  if (avoid_noise && !flag_exit_program)
     reset_quiet (main_info, /* delay ms */ 300);
 #else
   if (muted != -1)
@@ -1181,56 +1197,6 @@ void zmisc_overlay_subtitles	(gint page)
 #endif /* HAVE_LIBZVBI */
 }
 
-void
-z_set_cursor	(GdkWindow	*window,
-		 guint		cid)
-{
-  GdkCursor *cursor;
-
-  /* blank cursor */
-  if (cid == 0)
-    {
-#define empty_cursor_width 16
-#define empty_cursor_height 16
-      unsigned char empty_cursor_bits[] = {
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-      unsigned char empty_cursor_mask[] = {
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-      GdkColor fg = {0, 0, 0, 0};
-      GdkColor bg = {0, 0, 0, 0};
-      GdkPixmap *source, *mask;
-
-      source = gdk_bitmap_create_from_data(NULL, empty_cursor_bits,
-					   empty_cursor_width,
-					   empty_cursor_height);
-
-      mask = gdk_bitmap_create_from_data(NULL, empty_cursor_mask,
-					 empty_cursor_width,
-					 empty_cursor_height);
-
-      cursor = gdk_cursor_new_from_pixmap(source, mask, &fg, &bg, 8, 8);
-      
-      g_object_unref (G_OBJECT (source));
-      g_object_unref (G_OBJECT (mask));
-    }
-  else
-    {
-      if (cid >= GDK_LAST_CURSOR)
-	cid = GDK_LAST_CURSOR-2;
-      cid &= ~1;
-      cursor = gdk_cursor_new(cid);
-    }
-
-  if (!cursor)
-    return;
-
-  gdk_window_set_cursor(window, cursor);
-  gdk_cursor_unref(cursor);
-}
 
 GtkWidget *
 z_load_pixmap			(const gchar *		name)
