@@ -16,20 +16,20 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __TVENG25_H__
-#define __TVENG25_H__
+#ifndef __TVENGBKTR_H__
+#define __TVENGBKTR_H__
 
 #include "tveng_private.h"
 
 /*
   Inits the V4L2 module, and fills in the given table.
 */
-void tveng25_init_module(struct tveng_module_info *module_info);
+void tvengbktr_init_module(struct tveng_module_info *module_info);
 
 /*
-  Prototypes for forward declaration, used only in tveng25.c
+  Prototypes for forward declaration, used only in tvengbktr.c
 */
-#ifdef TVENG25_PROTOTYPES
+#ifdef TVENGBKTR_PROTOTYPES
 /*
   Associates the given tveng_device_info with the given video
   device. On error it returns -1 and sets info->errno, info->error to
@@ -42,7 +42,7 @@ void tveng25_init_module(struct tveng_module_info *module_info);
   info: The structure to be associated with the device
 */
 static
-int tveng25_attach_device(const char* device_file,
+int tvengbktr_attach_device(const char* device_file,
 			 enum tveng_attach_mode attach_mode,
 			 tveng_device_info * info);
 
@@ -57,7 +57,7 @@ int tveng25_attach_device(const char* device_file,
   This function always succeeds.
 */
 static void
-tveng25_describe_controller(char ** short_str, char ** long_str,
+tvengbktr_describe_controller(char ** short_str, char ** long_str,
 			   tveng_device_info * info);
 
 /*
@@ -65,7 +65,7 @@ tveng25_describe_controller(char ** short_str, char ** long_str,
   be called before reattaching a video device to the same object, but
   there is no need to call this before calling tveng_device_info_destroy.
 */
-static void tveng25_close_device(tveng_device_info* info);
+static void tvengbktr_close_device(tveng_device_info* info);
 
 /*
   Functions for controlling the video capture. All of them return -1
@@ -76,35 +76,35 @@ static void tveng25_close_device(tveng_device_info* info);
   Returns the number of inputs in the given device and fills in info,
   allocating memory as needed
 */
-static int tveng25_get_inputs(tveng_device_info * info);
+static int tvengbktr_get_inputs(tveng_device_info * info);
 
 /*
   Sets the current input for the capture
 */
 static
-int tveng25_set_input(struct tveng_enum_input * input, tveng_device_info
+int tvengbktr_set_input(struct tveng_enum_input * input, tveng_device_info
 		     * info);
 
 /*
   Queries the device about its standards. Fills in info as appropiate
   and returns the number of standards in the device.
 */
-static int tveng25_get_standards(tveng_device_info * info);
+static int tvengbktr_get_standards(tveng_device_info * info);
 
 /*
   Sets the given standard as the current standard
 */
 static int 
-tveng25_set_standard(struct tveng_enumstd * std, tveng_device_info * info);
+tvengbktr_set_standard(struct tveng_enumstd * std, tveng_device_info * info);
 
 /* Updates the current capture format info. -1 if failed */
 static int
-tveng25_update_capture_format(tveng_device_info * info);
+tvengbktr_update_capture_format(tveng_device_info * info);
 
 /* -1 if failed. Sets the format and fills in info -> format
    with the correct values  */
 static int
-tveng25_set_capture_format(tveng_device_info * info);
+tvengbktr_set_capture_format(tveng_device_info * info);
 
 
 /*
@@ -112,7 +112,7 @@ tveng25_set_capture_format(tveng_device_info * info);
   clipped between min and max values. Returns -1 on error
 */
 static int
-tveng25_set_control(tveng_device_info * info,
+tvengbktr_set_control(tveng_device_info * info,
 		   tv_dev_control *tdc, int value);
 		   
 
@@ -121,7 +121,7 @@ tveng25_set_control(tveng_device_info * info,
   Tunes the current input to the given freq. Returns -1 on error.
 */
 static int
-tveng25_tune_input(uint32_t freq, tveng_device_info * info);
+tvengbktr_tune_input(uint32_t freq, tveng_device_info * info);
 
 /*
   Gets the signal strength and the afc code. The afc code indicates
@@ -131,14 +131,14 @@ tveng25_tune_input(uint32_t freq, tveng_device_info * info);
   that would mean ignore that parameter.
 */
 static int
-tveng25_get_signal_strength (int *strength, int * afc,
+tvengbktr_get_signal_strength (int *strength, int * afc,
 			    tveng_device_info * info);
 
 /*
   Stores in freq the currently tuned freq. Returns -1 on error.
 */
 static int
-tveng25_get_tune(uint32_t * freq, tveng_device_info * info);
+tvengbktr_get_tune(uint32_t * freq, tveng_device_info * info);
 
 /*
   Gets the minimum and maximum freq that the current input can
@@ -146,7 +146,7 @@ tveng25_get_tune(uint32_t * freq, tveng_device_info * info);
   If any of the pointers is NULL, its value will not be filled.
 */
 static int
-tveng25_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
+tvengbktr_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
 			info);
 
 /*
@@ -154,11 +154,11 @@ tveng25_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
   succeeds. Returns -1 on error.
 */
 static int
-tveng25_start_capturing(tveng_device_info * info);
+tvengbktr_start_capturing(tveng_device_info * info);
 
 /* Tries to stop capturing. -1 on error. */
 static int
-tveng25_stop_capturing(tveng_device_info * info);
+tvengbktr_stop_capturing(tveng_device_info * info);
 
 /* 
    Reads a frame from the video device, storing the read data in
@@ -169,14 +169,14 @@ tveng25_stop_capturing(tveng_device_info * info);
    Note: if you want this call to be non-blocking, call it with time=0
 */
 static
-int tveng25_read_frame(tveng_image_data * where,
+int tvengbktr_read_frame(tveng_image_data * where,
 		      unsigned int time, tveng_device_info * info);
 
 /*
   Gets the timestamp of the last read frame in seconds.
 */
 static
-double tveng25_get_timestamp(tveng_device_info * info);
+double tvengbktr_get_timestamp(tveng_device_info * info);
 
 /* 
    Sets the capture buffer to an specific size. returns -1 on
@@ -184,7 +184,7 @@ double tveng25_get_timestamp(tveng_device_info * info);
    format struct since it can be different to the one requested. 
 */
 static
-int tveng25_set_capture_size(int width, int height, tveng_device_info *
+int tvengbktr_set_capture_size(int width, int height, tveng_device_info *
 			    info);
 
 /* 
@@ -192,14 +192,14 @@ int tveng25_set_capture_size(int width, int height, tveng_device_info *
    -1 on error
 */
 static
-int tveng25_get_capture_size(int *width, int *height, tveng_device_info * info);
+int tvengbktr_get_capture_size(int *width, int *height, tveng_device_info * info);
 
 /* XF86 Frame Buffer routines */
 /*
   Returns 1 if the device attached to info suports previewing, 0 otherwise
 */
 static int
-tveng25_detect_preview (tveng_device_info * info);
+tvengbktr_detect_preview (tveng_device_info * info);
 
 /*
   Sets the preview window dimensions to the given window.
@@ -211,7 +211,7 @@ tveng25_detect_preview (tveng_device_info * info);
   it in.
 */
 static int
-tveng25_set_preview_window(tveng_device_info * info);
+tvengbktr_set_preview_window(tveng_device_info * info);
 
 /*
   Gets the current overlay window parameters.
@@ -219,7 +219,7 @@ tveng25_set_preview_window(tveng_device_info * info);
   info   : The device to use
 */
 static int
-tveng25_get_preview_window(tveng_device_info * info);
+tvengbktr_get_preview_window(tveng_device_info * info);
 
 /*
    Sets the previewing on/off.
@@ -228,7 +228,7 @@ tveng25_get_preview_window(tveng_device_info * info);
    Returns -1 on error, anything else on success
 */
 static int
-tveng25_set_preview (int on, tveng_device_info * info);
+tvengbktr_set_preview (int on, tveng_device_info * info);
 
 /* 
    Sets up everything and starts previewing.
@@ -237,13 +237,13 @@ tveng25_set_preview (int on, tveng_device_info * info);
    Returns -1 on error.
 */
 static int
-tveng25_start_previewing (tveng_device_info * info);
+tvengbktr_start_previewing (tveng_device_info * info);
 
 /*
   Stops the fullscreen mode. Returns -1 on error
 */
 static int
-tveng25_stop_previewing(tveng_device_info * info);
+tvengbktr_stop_previewing(tveng_device_info * info);
 
-#endif /* TVENG25_PROTOTYPES */
-#endif /* TVENG25.H */
+#endif /* TVENGBKTR_PROTOTYPES */
+#endif /* TVENGBKTR.H */

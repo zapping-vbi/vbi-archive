@@ -250,11 +250,39 @@ const audio_backend_info oss_backend =
 
 /* Future */
 
+/* XXX check for freebsd quirks */
+
 /* stubs */
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
 #define SET(var) memset (&(var), ~0, sizeof (var))
 #define CLEAR(var) memset (&(var), 0, sizeof (var))
 #define MOVE(d, s) memmove (d, s, sizeof (d))
+
+#if defined (_IOC_SIZE) /* Linux */
+
+#define IOCTL_ARG_SIZE(cmd)	_IOC_SIZE (cmd)
+#define IOCTL_READ(cmd)		((cmd) & _IOC_READ)
+#define IOCTL_WRITE(cmd)	((cmd) & _IOC_WRITE)
+#define IOCTL_READ_WRITE(cmd)	(_IOC_DIR (cmd) == (_IOC_READ | _IOC_WRITE))
+#define IOCTL_NUMBER(cmd)	_IOC_NR (cmd)
+
+#elif defined (IOCPARM_LEN) /* FreeBSD */
+
+#define IOCTL_ARG_SIZE(cmd)	IOCPARM_LEN (cmd)
+#define IOCTL_READ(cmd)		((cmd) & IOC_OUT)
+#define IOCTL_WRITE(cmd)	((cmd) & IOC_IN)
+#define IOCTL_READ_WRITE(cmd)	(((cmd) & IOC_DIRMASK) == (IOC_IN | IOC_OUT))
+#define IOCTL_NUMBER(cmd)	((cmd) & 0xFF)
+
+#else
+
+#define IOCTL_ARG_SIZE(cmd)	0
+#define IOCTL_READ(cmd)		0
+#define IOCTL_WRITE(cmd)	0
+#define IOCTL_READ_WRITE(cmd)	0
+#define IOCTL_NUMBER(cmd)	0
+
+#endif
 
 /* ------- */
 
@@ -267,9 +295,11 @@ const audio_backend_info oss_backend =
 #ifndef SOUND_MIXER_READ_OUTMASK
 #define SOUND_MIXER_READ_OUTMASK MIXER_READ (SOUND_MIXER_OUTMASK)
 #endif
+
 #ifndef SOUND_MIXER_READ_OUTSRC
 #define SOUND_MIXER_READ_OUTSRC MIXER_READ (SOUND_MIXER_OUTSRC)
 #endif
+
 #ifndef SOUND_MIXER_WRITE_OUTSRC
 #define SOUND_MIXER_WRITE_OUTSRC MIXER_WRITE (SOUND_MIXER_OUTSRC)
 #endif
@@ -299,7 +329,9 @@ struct mixer {
 	 *  version = driver of OSS version 3.6.0 (0x030600)
 	 *  or higher, 0 older version.
 	 */
+#ifdef SOUND_MIXER_INFO
 	struct mixer_info	mixer_info;
+#endif
 	int			version;
 
 	int			dev_mask;
@@ -329,8 +361,11 @@ mixer_ioctl			(struct mixer *		m,
 				 unsigned int		cmd,
 				 void *			data)
 {
-	int old_data = * (int *) data;
+	int old_data;
 	int err;
+
+	/* if (IOCTL_WRITE (cmd)) */
+		old_data = * (int *) data;
 
 	do err = ioctl (m->fd, cmd, data);
 	while (err == -1 && errno == EINTR);
@@ -342,6 +377,9 @@ mixer_ioctl			(struct mixer *		m,
 		saved_errno = errno;
 
 		switch (cmd) {
+
+#ifdef SOUND_MIXER_INFO
+
 		case SOUND_MIXER_INFO:
 		{
 			struct mixer_info *info = data;
@@ -355,31 +393,43 @@ mixer_ioctl			(struct mixer *		m,
 					 info->modify_counter);
 			break;
 		}
+#endif
+
+#ifdef OSS_GETVERSION
 
 		case OSS_GETVERSION:
 			fprintf (m->dev.log, "%s: %d = OSS_GETVERSION()", __FILE__, err);
 			goto intres;
-
+#endif
 		case SOUND_MIXER_WRITE_RECSRC:
 			fprintf (m->dev.log, "%s: %d = SOUND_MIXER_WRITE_RECSRC() 0x%08x",
 				 __FILE__, err, old_data);
 			goto intres;
+
+#ifdef SOUND_MIXER_OUTSRC
 
 		case SOUND_MIXER_WRITE_OUTSRC:
 			fprintf (m->dev.log, "%s: %d = SOUND_MIXER_WRITE_OUTSRC() 0x%08x",
 				 __FILE__, err, old_data);
 			goto intres;
 
-		case SOUND_MIXER_READ_RECSRC:
-			if (!s) s = "RECSRC";
 		case SOUND_MIXER_READ_OUTSRC:
 			if (!s) s = "OUTSRC";
+			/* fall through */
+#endif
+
+#ifdef SOUND_MIXER_OUTMASK
+
+		case SOUND_MIXER_READ_OUTMASK:
+			if (!s) s = "OUTMASK";
+			/* fall through */
+#endif
+		case SOUND_MIXER_READ_RECSRC:
+			if (!s) s = "RECSRC";
 		case SOUND_MIXER_READ_DEVMASK:
 			if (!s) s = "DEVMASK";
 		case SOUND_MIXER_READ_RECMASK:
 			if (!s) s = "RECMASK";
-		case SOUND_MIXER_READ_OUTMASK:
-			if (!s) s = "OUTMASK";
 		case SOUND_MIXER_READ_CAPS:
 			if (!s) s = "CAPS";
 		case SOUND_MIXER_READ_STEREODEVS:
@@ -396,12 +446,12 @@ mixer_ioctl			(struct mixer *		m,
 			const char *rw = "?";
 			unsigned int line;
 			
-			if (_IOC_DIR (cmd) == _IOC_READ)
+			if (IOCTL_READ (cmd))
 				rw = "READ";
-			else if (_IOC_DIR (cmd) == (_IOC_READ | _IOC_WRITE))
+			else if (IOCTL_READ_WRITE (cmd))
 				rw = "WRITE";
 			
-			line = _IOC_NR (cmd);
+			line = IOCTL_NUMBER (cmd);
 			
 			if (line >= SOUND_MIXER_NRDEVICES) {
 				fprintf (stderr, "Unknown mixer ioctl line %u\n", line);
@@ -411,7 +461,7 @@ mixer_ioctl			(struct mixer *		m,
 			fprintf (m->dev.log, "%s: %d = SOUND_MIXER_%s(%u '%s') ",
 				 __FILE__, err, rw, line, dev_names[line]);
 
-			if (_IOC_DIR (cmd) != _IOC_READ)
+			if (IOCTL_WRITE (cmd))
 				fprintf (m->dev.log, "L%03u R%03u ",
 					 old_data & 0xFF, (old_data >> 8) & 0xFF);
 
@@ -424,7 +474,8 @@ mixer_ioctl			(struct mixer *		m,
 		}
 
 		if (err == -1)
-			fprintf (m->dev.log, " errno=%d, %s", saved_errno, strerror (saved_errno));
+			fprintf (m->dev.log, " errno=%d, %s",
+				 saved_errno, strerror (saved_errno));
 
 		fputc ('\n', m->dev.log);
 
@@ -483,6 +534,8 @@ update_line			(struct mixer *		m,
 	} else {
 		tv_bool muted = FALSE;
 
+#ifdef SOUND_MIXER_OUTSRC
+
 		if (m->has_outsrc && (m->out_mask & (1 << l->id))) {
 			int outsrc; /* sic */
 
@@ -492,7 +545,7 @@ update_line			(struct mixer *		m,
 			if (0 == (outsrc & (1 << l->id)))
 				muted = TRUE;
 		}
-
+#endif
 		if (volume_changed (l, *volume)
 		    || l->dev.pub.muted != muted) {
 			l->dev.pub.muted = muted;
@@ -552,6 +605,8 @@ oss_mixer_set_mute		(tv_dev_mixer_line *	line,
 	 *  may be just very low.
 	 */
 
+#ifdef SOUND_MIXER_OUTSRC
+
 	if (0 && m->has_outsrc && (m->out_mask & (1 << l->id))) {
 		int outsrc; /* sic */
 
@@ -574,7 +629,9 @@ oss_mixer_set_mute		(tv_dev_mixer_line *	line,
 			l->dev.pub.muted = mute;
 			NOTIFY(l);
 		}
-	} else {
+	} else
+#endif
+	{
 		int volume; /* sic */
 
 		if (mute)
@@ -734,7 +791,11 @@ oss_mixer_destroy		(tv_dev_mixer *		mixer,
 	if (restore) {
 		/* Error ignored */
 		mixer_ioctl (m, SOUND_MIXER_WRITE_RECSRC, &m->old_recsrc);
+
+#ifdef SOUND_MIXER_OUTSRC
+		/* Error ignored */
 		mixer_ioctl (m, SOUND_MIXER_WRITE_OUTSRC, &m->old_outsrc);
+#endif
 	}
 
 	free ((char *) m->dev.pub.name);
@@ -838,6 +899,8 @@ oss_mixer_open			(tv_dev_mixer_interface *mi,
 	if (m->fd < 0)
 		goto failure;
 
+#ifdef SOUND_MIXER_INFO
+
 	if (!mixer_ioctl (m, SOUND_MIXER_INFO, &m->mixer_info)) {
 		if (errno == EINVAL) {
 			/* Not Open Sound System device */
@@ -848,12 +911,16 @@ oss_mixer_open			(tv_dev_mixer_interface *mi,
 		goto failure;
 	}
 
-	/* Will you please resume to C conventions. */
+	/* Will you please stick to C conventions. */
 	m->mixer_info.id [N_ELEMENTS (m->mixer_info.id) - 1] = 0;
 	m->mixer_info.name [N_ELEMENTS (m->mixer_info.name) - 1] = 0;
 
+#endif
+
+#ifdef OSS_GETVERSION
 	/* Introduced in OSS 3.6, error ignored */
 	mixer_ioctl (m, OSS_GETVERSION, &m->version);
+#endif
 
 	if (!mixer_ioctl (m, SOUND_MIXER_READ_DEVMASK, &m->dev_mask))
 		goto failure;
@@ -869,9 +936,12 @@ oss_mixer_open			(tv_dev_mixer_interface *mi,
 	    && mixer_ioctl (m, SOUND_MIXER_READ_RECSRC, &m->old_recsrc))
 		m->has_recsrc = TRUE;
 
+#if defined (SOUND_MIXER_OUTMASK) && defined (SOUND_MIXER_OUTSRC)
+
 	if (mixer_ioctl (m, SOUND_MIXER_READ_OUTMASK, &m->out_mask)
 	    && mixer_ioctl (m, SOUND_MIXER_READ_OUTSRC, &m->old_outsrc))
 		m->has_outsrc = TRUE;
+#endif
 
 	if (m->has_recsrc && m->has_outsrc) {
 		/* Our basic assumption. */
@@ -892,10 +962,14 @@ oss_mixer_open			(tv_dev_mixer_interface *mi,
 			SOUND_MASK_DIGITAL2 | SOUND_MASK_DIGITAL3;
 	}
 
-	if (m->mixer_info.name) {
+#ifdef SOUND_MIXER_INFO
+
+	if (m->mixer_info.name[0]) {
 		if (!(m->dev.pub.name = strdup (m->mixer_info.name)))
 			goto failure;
-	} else {
+	} else
+#endif
+	{
 		if (!(m->dev.pub.name = strdup (dev_name)))
 			goto failure;
 	}

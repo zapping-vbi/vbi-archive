@@ -20,10 +20,11 @@ src/plugin_properties.c
 src/ttxview.c
 src/oss.c
 src/keyboard.c
-glade/glade_strings.c
+glade/zapping.glade2
 plugins/screenshot/screenshot.c
 plugins/screenshot/screenshot_strings.c
 plugins/lirc/lirc.c
 plugins/alirc/alirc.c
 plugins/mpeg/mpeg.c
 plugins/mpeg/mpeg_strings.c
+zapping.desktop.in

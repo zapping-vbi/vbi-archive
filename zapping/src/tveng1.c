@@ -639,6 +639,7 @@ int tveng1_set_input(struct tveng_enum_input * input,
 struct dummy_standard_struct{
   int id;
   char * name;
+  tv_videostd_id stdid;
 };
 
 /*
@@ -657,23 +658,23 @@ static int tveng1_get_standards(tveng_device_info * info)
   /* The table with the possible standards as in the V4L1 spec */
   struct dummy_standard_struct spec_t[] =
   {
-    {  0, "PAL" },
-    {  1, "NTSC" },
-    {  2, "SECAM" },
-    {  3, "AUTO" },
-    { -1, NULL }
+    {  0, "PAL",	TV_VIDEOSTD_PAL	},
+    {  1, "NTSC",	TV_VIDEOSTD_NTSC_M },
+    {  2, "SECAM",	TV_VIDEOSTD_SECAM },
+    {  3, "AUTO",	TV_VIDEOSTD_UNKNOWN },
+    { -1, NULL, 0 }
   };
   /* The set of standards in the V4L bttv controller */
   struct dummy_standard_struct bttv_t[] =
   {
-    {  0, "PAL" },
-    {  1, "NTSC" },
-    {  2, "SECAM" },
-    {  3, "PAL-NC" },
-    {  4, "PAL-M" },
-    {  5, "PAL-N" },
-    {  6, "NTSC-JP" },
-    { -1, NULL}
+    {  0, "PAL",	TV_VIDEOSTD_PAL },
+    {  1, "NTSC",	TV_VIDEOSTD_NTSC_M },
+    {  2, "SECAM",	TV_VIDEOSTD_SECAM },
+    {  3, "PAL-NC",	TV_VIDEOSTD_PAL_NC },
+    {  4, "PAL-M",	TV_VIDEOSTD_PAL_M },
+    {  5, "PAL-N",	TV_VIDEOSTD_PAL_N },
+    {  6, "NTSC-JP",	TV_VIDEOSTD_NTSC_M_JP },
+    { -1, NULL, 0 }
   };
 
   /* Free any previously allocated mem */
@@ -710,6 +711,7 @@ static int tveng1_get_standards(tveng_device_info * info)
       /* Valid norm, add it to the list */
       info -> standards = realloc(info->standards,
 				  sizeof(struct tveng_enumstd)*(count+1));
+      info -> standards[count].stdid = std_t[count].stdid;
       info -> standards[count].id = std_t[count].id;
       info -> standards[count].index = count;
       snprintf(info -> standards[count].name, 32, std_t[count].name);

@@ -2,7 +2,7 @@ noinst_LIBRARIES = libcommon.a
 
 EXTRA_DIST = README
 
-INCLUDES = $(DEFAULT_CFLAGS) $(UNICODE_CFLAGS)
+INCLUDES = $(DEFAULT_CFLAGS) $(UNICODE_CFLAGS) @COMMON_INCLUDES@
 
 #BUILT_SOURCES = fprintf_videodev.h
 #
@@ -25,4 +25,5 @@ libcommon_a_SOURCES = \
 	math.h \
 	ure.c ure.h \
 	unicode.c ucs-2.h \
-	videodev.h videodev2.h
+	videodev.h videodev2.h videodev25.h \
+	ioctl_meteor.h ioctl_bt848.h

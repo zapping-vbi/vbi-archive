@@ -7,7 +7,7 @@ INCLUDES = @DEFAULT_CFLAGS@ @COMMON_INCLUDES@
 
 bin_PROGRAMS = zapping
 
-COMMON_LIB = $(top_srcdir)/common/libcommon.a
+COMMON_LIB = $(top_builddir)/common/libcommon.a
 
 if BUILD_GEN_CONV
 gen_conv_lib = libgen_conv.a
@@ -42,6 +42,8 @@ zapping_SOURCES = \
 	tveng2.c tveng2.h \
 	tvengxv.c tvengxv.h \
 	tvengemu.c tvengemu.h \
+	tveng25.c tveng25.h \
+	tvengbktr.c tvengbktr.h \
 	v4linterface.c v4linterface.h \
 	x11stuff.c x11stuff.h \
 	zimage.c zimage.h \
@@ -76,5 +78,5 @@ zapping_SOURCES = \
 zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(PACKAGE_LIBS) $(PYTHON_LIBS) \
   $(X_LIBS) $(X_DPMS_LIBS) \
   $(X_XF86DGA_LIBS) $(X_XF86VMODE_LIBS) $(X_XV_LIBS) \
-  $(UNICODE_LIBS) $(CCMALLOC) $(ZVBI_LIB) $(ARTS_LIBS) $(ESD_LIBS)
+  $(CCMALLOC) $(ZVBI_LIB) $(ARTS_LIBS) $(ESD_LIBS)
 zapping_LDFLAGS = -export-dynamic

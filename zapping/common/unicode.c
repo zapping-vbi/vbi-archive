@@ -4,11 +4,12 @@
 #  include <config.h>
 #endif
 
-#include <iconv.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <glib.h>
 
 #include "ucs-2.h"
 
@@ -37,31 +38,16 @@ size_t ucs2_strlen(const void *string)
   return i;
 }
 
+/* XXX replace this all by glib */
+
 void *
 convert (const void *string, int bytes,
 	 const char *input, const char *output)
 {
-  iconv_t ic;
-  char *new, *ib, *ob;
-  size_t ibl, obl;
-
   if (!string) return NULL;
-  
-  ic = iconv_open (output, input);
-  if (ic == (iconv_t) -1) return NULL;
-  
-  ib = (char *) string;
-  ibl = bytes;
-  new = ob = (char*) calloc (1, sizeof(char) * (ibl * 6 + 2));
-  obl = ibl * 6 + 2;
 
-  iconv (ic, (void *) &ib, &ibl, (void *) &ob, &obl);
-  
-  *((unsigned short*)ob) = 0;
-  
-  iconv_close(ic);
-  
-  return new;
+  return g_convert (string, bytes,
+		    input, output, NULL, NULL, NULL);
 }
 
 static void
@@ -91,7 +77,7 @@ ucs2_endianness_workaround(void)
 	fprintf(stderr, "Warning:: iconv UCS-2 implementation broken\n");
     }
 
-  free(converted);
+  g_free(converted);
 }
 
 static void*
@@ -256,7 +242,6 @@ int main(int argc, char *argv[])
 int
 startup_ucs2(void)
 {
-  unicode_init();
   ucs2_endianness_workaround();
 
   if (do_ucs2_swap < 0)
@@ -276,327 +261,16 @@ shutdown_ucs2(void)
   do_ucs2_swap = -1;
 }
 
-/* This comes from libiconv 1.5.1, written by Bruno Haible */
-
 static const char* locale_charset = NULL;
-#define streq(s1,s2) (!strcmp(s1,s2))
 
 const char* get_locale_charset (void)
 {
-  // When you call setlocale(LC_CTYPE,""), is examines the environment
-  // variables:
-  // 1. environment variable LC_ALL - an override for all LC_* variables,
-  // 2. environment variable LC_CTYPE,
-  // 3. environment variable LANG - a default for all LC_* variables.
-  const char * locale;
-
-  /* glib 2.0 */
-  {
-    extern int g_get_charset(const char **);
-
-    if (locale_charset)
-      return locale_charset;
-
-    g_get_charset (&locale_charset);
-
-    return locale_charset;
-  }
+  extern int g_get_charset(const char **);
 
   if (locale_charset)
     return locale_charset;
 
-  locale = getenv("LC_ALL");
-  if (!locale || !*locale) {
-    locale = getenv("LC_CTYPE");
-    if (!locale || !*locale)
-      locale = getenv("LANG");
-  }
-  if (locale && *locale) {
-    // The most general syntax of a locale (not all optional parts
-    // recognized by all systems) is
-    // language[_territory][.codeset][@modifier][+special][,[sponsor][_revision]]
-    // To retrieve the codeset, search the first dot. Stop searching when
-    // a '@' or '+' or ',' is encountered.
-    char* buf = (char*) malloc(strlen(locale)+1);
-    const char* codeset = NULL;
-    {
-      const char* cp = locale;
-      for (; *cp != '\0' && *cp != '@' && *cp != '+' && *cp != ','; cp++) {
-	if (*cp == '.') {
-	  codeset = ++cp;
-	  for (; *cp != '\0' && *cp != '@' && *cp != '+' && *cp != ','; cp++);
-	  if (*cp != '\0') {
-	    size_t n = cp - codeset;
-	    memcpy(buf,codeset,n);
-	    buf[n] = '\0';
-	    codeset = buf;
-	  }
-	  break;
-	}
-      }
-    }
-    if (codeset) {
-      // Canonicalize the charset given after the dot.
-      if (   streq(codeset,"ISO8859-1")
-	     || streq(codeset,"ISO_8859-1")
-	     || streq(codeset,"iso88591")
-	     || streq(codeset,"88591")
-	     || streq(codeset,"88591.en")
-	     || streq(codeset,"8859")
-	     || streq(codeset,"8859.in")
-	     || streq(codeset,"ascii")
-             )
-	locale_charset = "ISO-8859-1";
-      else
-	if (   streq(codeset,"ISO8859-2")
-	       || streq(codeset,"ISO_8859-2")
-	       || streq(codeset,"iso88592")
-	       )
-	  locale_charset = "ISO-8859-2";
-	else
-          if (   streq(codeset,"ISO8859-5")
-		 || streq(codeset,"ISO_8859-5")
-		 || streq(codeset,"iso88595")
-		 )
-            locale_charset = "ISO-8859-5";
-          else
-	    if (   streq(codeset,"ISO8859-6")
-		   || streq(codeset,"ISO_8859-6")
-		   || streq(codeset,"iso88596")
-		   )
-	      locale_charset = "ISO-8859-6";
-	    else
-	      if (   streq(codeset,"ISO8859-7")
-		     || streq(codeset,"ISO_8859-7")
-		     || streq(codeset,"iso88597")
-		     )
-		locale_charset = "ISO-8859-7";
-	      else
-		if (   streq(codeset,"ISO8859-8")
-		       || streq(codeset,"iso88598")
-		       )
-		  locale_charset = "ISO-8859-8";
-		else
-		  if (   streq(codeset,"ISO8859-9")
-			 || streq(codeset,"ISO_8859-9")
-			 || streq(codeset,"iso88599")
-			 )
-		    locale_charset = "ISO-8859-9";
-		  else
-		    if (streq(codeset, "ISO8859-15")
-			|| streq(codeset, "ISO_8859-15")
-			|| streq(codeset, "iso885915"))
-		      locale_charset = "ISO-8859-15";
-		    else
-		      if (streq(codeset,"KOI8-R"))
-			locale_charset = "KOI8-R";
-		      else
-			if (streq(codeset,"KOI8-U"))
-			  locale_charset = "KOI8-U";
-			else
-			  if (   streq(codeset,"eucJP")
-				 || streq(codeset,"ujis")
-				 || streq(codeset,"AJEC")
-				 )
-			    locale_charset = "eucJP";
-			  else
-			    if (   streq(codeset,"JIS7")
-				   || streq(codeset,"jis7")
-				   || streq(codeset,"JIS")
-				   || streq(codeset,"ISO-2022-JP")
-				   )
-			      locale_charset = "ISO-2022-JP"; /* was: "JIS7"; */
-			    else
-			      if (   streq(codeset,"SJIS")
-				     || streq(codeset,"mscode")
-				     || streq(codeset,"932")
-				     )
-				locale_charset = "SJIS";
-			      else
-				if (   streq(codeset,"eucKR")
-				       || streq(codeset,"949")
-				       )
-				  locale_charset = "eucKR";
-				else
-				  if (streq(codeset,"eucCN"))
-				    locale_charset = "eucCN";
-				  else
-				    if (streq(codeset,"eucTW"))
-				      locale_charset = "eucTW";
-				    else
-				      if (streq(codeset,"TACTIS"))
-					locale_charset = "TIS-620"; /* was: "TACTIS"; */
-				      else
-					if (streq(codeset,"EUC") || streq(codeset,"euc")) {
-					  if (locale[0]=='j' && locale[1]=='a')
-					    locale_charset = "eucJP";
-					  else if (locale[0]=='k' && locale[1]=='o')
-					    locale_charset = "eucKR";
-					  else if (locale[0]=='z' && locale[1]=='h' && locale[2]=='_') {
-					    if (locale[3]=='C' && locale[4]=='N')
-					      locale_charset = "eucCN";
-					    else if (locale[3]=='T' && locale[4]=='W')
-					      locale_charset = "eucTW";
-					  }
-					}
-					else
-					  // The following are CLISP extensions.
-					  if (   streq(codeset,"UTF-8")
-						 || streq(codeset,"utf8")
-						 )
-					    locale_charset = "UTF-8";
-					  else /* hope that libxml
-						  understands this */
-					    locale_charset = strdup(codeset);
-    } else {
-      // No dot found. Choose a default, based on locale.
-      if (   streq(locale,"iso_8859_1")
-	     || streq(locale,"ISO8859-1")
-	     || streq(locale,"ISO-8859-1")
-             )
-	locale_charset = "ISO-8859-1";
-      else {
-	// Choose a default, based on the language only.
-	const char* underscore = strchr(locale,'_');
-	const char* lang;
-	if (underscore) {
-	  size_t n = underscore - locale;
-	  memcpy(buf,locale,n);
-	  buf[n] = '\0';
-	  lang = buf;
-	} else {
-	  lang = locale;
-	}
-	if (   streq(lang,"af") || streq(lang,"afrikaans")
-	       || streq(lang,"ca") || streq(lang,"catalan")
-	       || streq(lang,"da") || streq(lang,"danish") || streq(lang,"dansk")
-	       || streq(lang,"de") || streq(lang,"german") || streq(lang,"deutsch")
-	       || streq(lang,"en") || streq(lang,"english")
-	       || streq(lang,"es") || streq(lang,"spanish")
-#ifndef ASCII_CHS
-	       || streq(lang,"espa\361ol") || streq(lang,"espa\303\261ol") // español
-#endif
-	       || streq(lang,"eu") || streq(lang,"basque")
-	       || streq(lang,"fi") || streq(lang,"finnish")
-	       || streq(lang,"fo") || streq(lang,"faroese") || streq(lang,"faeroese")
-	       || streq(lang,"fr") || streq(lang,"french")
-#ifndef ASCII_CHS
-	       || streq(lang,"fran\347ais") || streq(lang,"fran\303\247ais") // français
-#endif
-	       || streq(lang,"ga") || streq(lang,"irish")
-	       || streq(lang,"gd") || streq(lang,"scottish")
-	       || streq(lang,"gl") || streq(lang,"galician")
-	       || streq(lang,"is") || streq(lang,"icelandic")
-	       || streq(lang,"it") || streq(lang,"italian")
-	       || streq(lang,"nl") || streq(lang,"dutch")
-	       || streq(lang,"no") || streq(lang,"norwegian")
-	       || streq(lang,"pt") || streq(lang,"portuguese")
-	       || streq(lang,"sv") || streq(lang,"swedish")
-	       )
-	  locale_charset = "ISO-8859-1";
-	else
-	  if (   streq(lang,"cs") || streq(lang,"czech")
-		 || streq(lang,"cz")
-		 || streq(lang,"hr") || streq(lang,"croatian")
-		 || streq(lang,"hu") || streq(lang,"hungarian")
-		 || streq(lang,"pl") || streq(lang,"polish")
-		 || streq(lang,"ro") || streq(lang,"romanian") || streq(lang,"rumanian")
-		 || streq(lang,"sh") /* || streq(lang,"serbocroatian") ?? */
-		 || streq(lang,"sk") || streq(lang,"slovak")
-		 || streq(lang,"sl") || streq(lang,"slovene") || streq(lang,"slovenian")
-		 || streq(lang,"sq") || streq(lang,"albanian")
-		 )
-	    locale_charset = "ISO-8859-2";
-	  else
-	    if (   streq(lang,"eo") || streq(lang,"esperanto")
-		   || streq(lang,"mt") || streq(lang,"maltese")
-		   )
-	      locale_charset = "ISO-8859-3";
-	    else
-	      if (   streq(lang,"be") || streq(lang,"byelorussian")
-		     || streq(lang,"bg") || streq(lang,"bulgarian")
-		     || streq(lang,"mk") || streq(lang,"macedonian")
-		     || streq(lang,"sp")
-		     || streq(lang,"sr") || streq(lang,"serbian")
-		     )
-		locale_charset = "ISO-8859-5";
-	      else
-		if (streq(lang,"ar") || streq(lang,"arabic")
-		    )
-		  locale_charset = "ISO-8859-6";
-		else
-		  if (streq(lang,"el") || streq(lang,"greek")
-		      )
-		    locale_charset = "ISO-8859-7";
-		  else
-		    if (streq(lang,"iw") || streq(lang,"he") || streq(lang,"hebrew")
-			)
-		      locale_charset = "ISO-8859-8";
-		    else
-		      if (streq(lang,"tr") || streq(lang,"turkish")
-			  )
-			locale_charset = "ISO-8859-9";
-		      else
-			if (   streq(lang,"et") || streq(lang,"estonian")
-			       || streq(lang,"lt") || streq(lang,"lithuanian")
-			       || streq(lang,"lv") || streq(lang,"latvian")
-			       )
-			  locale_charset = "ISO-8859-10";
-			else
-			  if (streq(lang,"ru") || streq(lang,"russian")
-			      )
-			    locale_charset = "KOI8-R";
-			  else
-			    if (streq(lang,"uk") || streq(lang,"ukrainian")
-				)
-			      locale_charset = "KOI8-U";
-			    else
-			      if (   streq(lang,"ja")
-				     || streq(lang,"Jp")
-				     || streq(lang,"japan")
-				     || streq(lang,"Japanese-EUC")
-				     )
-				locale_charset = "eucJP";
-			      else
-				if (0)
-				  locale_charset = "ISO-2022-JP"; /* was: "JIS7"; */
-				else
-				  if (streq(lang,"japanese")
-				      )
-				    locale_charset = "SJIS";
-				  else
-				    if (streq(lang,"ko") || streq(lang,"korean")
-					)
-				      locale_charset = "eucKR";
-				    else
-				      if (streq(lang,"chinese-s")
-					  )
-					locale_charset = "eucCN";
-				      else
-					if (streq(lang,"chinese-t")
-					    )
-					  locale_charset = "eucTW";
-					else
-					  if (streq(lang,"th")
-					      )
-					    locale_charset =
-					      "TIS-620"; /* was:
-							    "TACTIS";
-							 */
-					else
-					  if (streq(lang, "zh"))
-					    locale_charset = "GB2312";
-					  else {
-					  }
-      }
-    }
-    free(buf);
-  }
-  if (!locale_charset)
-    fprintf(stderr, "Couldn't guess the charset for the current locale,\n"
-	    "please set LC_ALL, LC_CTYPE or LANG correctly.\n"
-	    "If it's correctly set, please send a bug report to the "
-	    "mailing list: zapping-misc@lists.sourceforge.net\n");
+  g_get_charset (&locale_charset);
 
-  return (locale_charset ? locale_charset : "ISO-8859-1");
+  return locale_charset;
 }

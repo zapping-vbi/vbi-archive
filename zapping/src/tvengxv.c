@@ -45,6 +45,8 @@ struct control {
 #define C(l) PARENT (l, struct control, dev)
 #define CC(l) PARENT (l, struct control, dev.pub)
 
+#define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
+
 struct private_tvengxv_device_info
 {
   tveng_device_info info; /* Info field, inherited */
@@ -174,8 +176,6 @@ static const struct {
 	{ "XV_MUTE",	   N_("Mute"),	     TV_CONTROL_ID_MUTE,       TV_CONTROL_TYPE_BOOLEAN },
 	{ "XV_VOLUME",	   N_("Volume"),     TV_CONTROL_ID_VOLUME,     TV_CONTROL_TYPE_INTEGER },
 };
-
-static const unsigned int xv_attr_meta_size = sizeof (xv_attr_meta) / sizeof (*xv_attr_meta);
 
 static tv_bool
 add_control			(struct private_tvengxv_device_info *p_info,
@@ -379,7 +379,7 @@ int tvengxv_attach_device(const char* device_file,
 		  p_info->volume = XInternAtom (dpy, "XV_VOLUME", False);
 	  }
 
-	  for (j = 0; j < xv_attr_meta_size; j++) {
+	  for (j = 0; j < N_ELEMENTS (xv_attr_meta); j++) {
 		  if (0 == strcmp (xv_attr_meta[j].atom, at[i].name)) {
 			  /* Error ignored */
 			  add_control (p_info,
@@ -393,7 +393,6 @@ int tvengxv_attach_device(const char* device_file,
 	  }
   }
 
-#warning
       /* Set the mute control to OFF (workaround for BTTV bug) */
 //      tveng_set_control(&control, 0, info);
 
@@ -584,6 +583,19 @@ tvengxv_get_inputs(tveng_device_info *info)
   return (info->num_inputs);
 }
 
+static const struct {
+	const char *		encoding;
+	tv_videostd_id		id;
+} xv_encoding_meta [] = {
+	{ "pal",	TV_VIDEOSTD_PAL	},	/* somewhat broad, but who knows */
+	{ "ntsc",	TV_VIDEOSTD_NTSC_M },
+	{ "secam",	TV_VIDEOSTD_SECAM },	/* ditto */
+	{ "palnc",	TV_VIDEOSTD_PAL_NC },
+	{ "palm",	TV_VIDEOSTD_PAL_M },
+	{ "paln",	TV_VIDEOSTD_PAL_N },
+	{ "ntscjp",	TV_VIDEOSTD_NTSC_M_JP },
+};
+
 /*
   Finds the XV encoding giving this standard and this input. Returns
   -1 on error, the index in p_info->ei on success.
@@ -664,7 +676,7 @@ tvengxv_get_standards(tveng_device_info *info)
   struct private_tvengxv_device_info *p_info =
     (struct private_tvengxv_device_info*) info;
   char norm[64], input[64];
-  int i, val;
+  int i, j, val;
 
   t_assert(info != NULL);
 
@@ -692,6 +704,15 @@ tvengxv_get_standards(tveng_device_info *info)
       info->standards = realloc(info->standards,
 				(info->num_standards+1)*
 			     sizeof(struct tveng_enumstd));
+
+      info->standards[info->num_standards].stdid = TV_VIDEOSTD_UNKNOWN;
+      for (j = 0; j < N_ELEMENTS (xv_encoding_meta); j++)
+	if (0 == strcmp (xv_encoding_meta[j].encoding, norm))
+	    {
+	      info->standards[info->num_standards].stdid = xv_encoding_meta[j].id;
+	      break;
+	    }
+
       info->standards[info->num_standards].id = info->num_standards;
       snprintf(info->standards[info->num_standards].name, 32,
 	       norm);

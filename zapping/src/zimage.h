@@ -3,7 +3,7 @@
 
 #include <tveng.h>
 #include <gtk/gtk.h>
-#include <common/fifo.h>
+#include "../common/fifo.h"
 #include "csconvert.h"
 
 /* Startup/shutdown */

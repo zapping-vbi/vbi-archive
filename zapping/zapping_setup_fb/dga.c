@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dga.c,v 1.1.2.1 2003-01-21 05:23:30 mschimek Exp $ */
+/* $Id: dga.c,v 1.1.2.2 2003-02-16 18:28:02 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -27,19 +27,7 @@
 
 #include "zapping_setup_fb.h"
 
-#ifdef DISABLE_X_EXTENSIONS
-
-int
-query_dga			(Display *		display,
-				 int			screen,
-				 int			bpp_arg)
-{
-  message (1, "Not compiled with DGA support.\n");
-
-  return FALSE;
-}
-
-#else /* !DISABLE_X_EXTENSIONS */
+#ifdef HAVE_DGA_EXTENSION
 
 #include <X11/X.h>
 #include <X11/Xlib.h>
@@ -196,4 +184,15 @@ query_dga			(const char *		display_name,
   return FALSE;
 }
 
-#endif /* !DISABLE_X_EXTENSIONS */
+#else /* !HAVE_DGA_EXTENSION */
+
+int
+query_dga			(const char *		display_name,
+				 int			bpp_arg)
+{
+  message (1, "Not compiled with DGA support.\n");
+
+  return FALSE;
+}
+
+#endif /* !HAVE_DGA_EXTENSION */

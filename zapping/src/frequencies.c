@@ -25,7 +25,7 @@
 #endif
 
 #include <stddef.h>
-#include <common/math.h>
+#include "../common/math.h"
 
 #include <gnome.h>
 #include "strnatcmp.h"
@@ -71,69 +71,12 @@ struct range {
 	RANGE_END							\
 }
 
-/* Video standards. PRELIMINARY, DON'T USE. */
-
-#define VIDEOSTD_PAL_B          0x00000001
-#define VIDEOSTD_PAL_B1         0x00000002
-#define VIDEOSTD_PAL_G          0x00000004
-#define VIDEOSTD_PAL_H          0x00000008
-#define VIDEOSTD_PAL_I          0x00000010
-#define VIDEOSTD_PAL_D          0x00000020
-#define VIDEOSTD_PAL_D1         0x00000040
-#define VIDEOSTD_PAL_K          0x00000080
-
-#define VIDEOSTD_PAL_M          0x00000100
-#define VIDEOSTD_PAL_N          0x00000200
-#define VIDEOSTD_PAL_Nc         0x00000400
-
-#define VIDEOSTD_NTSC_M         0x00001000
-#define VIDEOSTD_NTSC_M_JP      0x00002000
-
-#define VIDEOSTD_SECAM_B        0x00010000
-#define VIDEOSTD_SECAM_D        0x00020000
-#define VIDEOSTD_SECAM_G        0x00040000
-#define VIDEOSTD_SECAM_H        0x00080000
-#define VIDEOSTD_SECAM_K        0x00100000
-#define VIDEOSTD_SECAM_K1       0x00200000
-#define VIDEOSTD_SECAM_L        0x00400000
-
-#define VIDEOSTD_PAL_BG		(VIDEOSTD_PAL_B		|\
-				 VIDEOSTD_PAL_B1	|\
-				 VIDEOSTD_PAL_G)
-#define VIDEOSTD_PAL_DK		(VIDEOSTD_PAL_D		|\
-				 VIDEOSTD_PAL_D1	|\
-				 VIDEOSTD_PAL_K)
-#define VIDEOSTD_PAL		(VIDEOSTD_PAL_BG	|\
-				 VIDEOSTD_PAL_DK	|\
-				 VIDEOSTD_PAL_H		|\
-				 VIDEOSTD_PAL_I)
-#define VIDEOSTD_NTSC           (VIDEOSTD_NTSC_M	|\
-				 VIDEOSTD_NTSC_M_JP)
-#define VIDEOSTD_SECAM		(VIDEOSTD_SECAM_B	|\
-				 VIDEOSTD_SECAM_D	|\
-				 VIDEOSTD_SECAM_G	|\
-				 VIDEOSTD_SECAM_H	|\
-				 VIDEOSTD_SECAM_K	|\
-				 VIDEOSTD_SECAM_K1	|\
-				 VIDEOSTD_SECAM_L)
-
-#define VIDEOSTD_525_60		(VIDEOSTD_PAL_M		|\
-				 VIDEOSTD_NTSC)
-#define VIDEOSTD_625_50		(VIDEOSTD_PAL		|\
-				 VIDEOSTD_PAL_N		|\
-				 VIDEOSTD_PAL_Nc	|\
-				 VIDEOSTD_SECAM)
-
-#define VIDEOSTD_UNKNOWN        0
-#define VIDEOSTD_ALL            (VIDEOSTD_525_60	|\
-				 VIDEOSTD_625_50)
-
 struct table {
-	const char *		name;			/* Canoncial table name for config */
+	const char *		name;			/* Canonical table name for config */
 	const char * old_name;
 	const char *		countries;		/* ISO 3166 2-char */
 	const char *		domain;
-	unsigned int		video_standards;	/* set of VIDEOSTD_XXX */
+	unsigned int		video_standards;	/* set of TV_VIDEOSTD_XXX */
 	struct range		freq_ranges [12];
 };
 
@@ -144,10 +87,10 @@ static const struct table
 frequency_tables [] =
 {
   {
-    "eia-terr", "US terrestrial",
+    "eia", "US terrestrial",
     "US" "CA",
-    N_("terrestrial"),
-    VIDEOSTD_NTSC_M,
+    N_("broadcast"),
+    TV_VIDEOSTD_NTSC_M,
     {
       RANGE_EIA_2_4,
       RANGE_EIA_5_6,
@@ -159,7 +102,7 @@ frequency_tables [] =
     "eia-irc", "US cable",
     "US",
     N_("cable IRC"), /* Incrementally Related Carriers */
-    VIDEOSTD_NTSC_M,
+    TV_VIDEOSTD_NTSC_M,
     {
       { "", 0, 1, 1, 6000, 73250 },
       RANGE_EIA_2_4,
@@ -177,7 +120,7 @@ frequency_tables [] =
     "eia-hrc", "US cable-hrc",
     "US",
     N_("cable HRC"), /* Harmonically Related Carriers */
-    VIDEOSTD_NTSC_M,
+    TV_VIDEOSTD_NTSC_M,
     {
       { "", 0,   1,   1, 6000,  72000 },
       { "", 0,   2,   4, 6000,  54000 },
@@ -194,7 +137,7 @@ frequency_tables [] =
   }, {
     "ca-cable", "Canada cable",
     "CA", N_("cable"),
-    VIDEOSTD_NTSC_M,
+    TV_VIDEOSTD_NTSC_M,
     {
       { "", 0,   2,   4, 6000,  61750 },
       { "", 0,   5,   6, 6000,  83750 },
@@ -207,9 +150,9 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "jp-terr", "Japan terrestrial",
-    "JP", N_("terrestrial"),
-    VIDEOSTD_NTSC_M_JP,
+    "jp", "Japan terrestrial",
+    "JP", N_("broadcast"),
+    TV_VIDEOSTD_NTSC_M_JP,
     {
       { "", 0,  1,  3, 6000,  91250 },
       { "", 0,  4,  7, 6000, 171250 },  /* NB #7 is 189250 */
@@ -220,7 +163,7 @@ frequency_tables [] =
   }, {
     "jp-cable", "Japan cable",
     "JP", N_("cable"),
-    VIDEOSTD_NTSC_M_JP,
+    TV_VIDEOSTD_NTSC_M_JP,
     {
       { "", 0, 13, 22, 6000, 109250 },
       { "", 0, 23, 23, 6000, 223250 },
@@ -233,12 +176,10 @@ frequency_tables [] =
     "AT" "BE" "CH" "DE" "DK" "ES" "FI" "GR"
     "NL" "NO" "PT" "SE" "UK",
     NULL,
-    VIDEOSTD_PAL_B | VIDEOSTD_PAL_G,
+    TV_VIDEOSTD_PAL_B | TV_VIDEOSTD_PAL_G, /* I in UK? */
     RANGES_CCIR
   }, {
-    "au", "Australia",
-    "AU", NULL,
-    VIDEOSTD_PAL_B, /* I? */
+    "au", "Australia", "AU", NULL, TV_VIDEOSTD_PAL_B, /* I? */
     {
       { "", 0,  0,  0, 7000,  46250 },
       { "", 0,  1,  2, 7000,  57250 },
@@ -250,9 +191,20 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "it", "Italy",
-    "IT", NULL,
-    VIDEOSTD_PAL_B,
+    "au-optus", "Australia Optus",
+    "AU", "Optus",
+    TV_VIDEOSTD_PAL_B, /* I? */
+    {
+      { "", 0,  1,  1, 7000, 138250 },
+      { "", 0,  2,  9, 7000, 147250 },
+      { "", 0, 10, 11, 7000, 209250 },
+      { "", 0, 12, 22, 7000, 224250 },
+      { "", 0, 23, 26, 7000, 303250 },
+      { "", 0, 27, 48, 7000, 338250 },
+      RANGE_END
+    }
+  }, {
+    "it", "Italy", "IT", NULL, TV_VIDEOSTD_PAL_B,
     {
       { "", 0,  2,  2, 7000,  53750 }, /* Band I (A-B) */
       { "", 0,  3,  3, 7000,  62250 },
@@ -271,7 +223,7 @@ frequency_tables [] =
     "HR" "HU" "MK" "PL"
     "RO" "SK" "YU",
     NULL,
-    0,
+    0, /* STD? */
     {
       { "R", 0,  1,  1, 7000,  49750 }, /* Band I (R1-R3) ... */
       { "R", 0,  2,  2, 7000,  59250 },
@@ -288,7 +240,7 @@ frequency_tables [] =
     "pl-atk", "Poland Autocom cable",
     /* TRANSLATORS: Leave "Autocom" untranslated. */
     "PL", N_("Autocom cable"),
-    0,
+    0, /* STD? */
     {
       { "S", 0,  1, 12, 8000, 111250 },
       { "S", 0, 13, 42, 8000, 215250 },
@@ -301,7 +253,7 @@ frequency_tables [] =
   }, {
     "ru", "Russia",
     "RU", NULL, /* OIRT Russia */
-    0,
+    0, /* STD? */
     {
       { "", 0,  1,  1, 8000,  48500 },
       { "", 0,  2,  2, 8000,  58000 },
@@ -311,9 +263,7 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "ie", "Ireland",
-    "IE", NULL,
-    VIDEOSTD_PAL_I,
+    "ie", "Ireland", "IE", NULL, TV_VIDEOSTD_PAL_I,
     {
       { "", 0,  0,  2, 8000,  45750 }, /* Band I (A-C) */
       { "", 0,  3,  8, 8000, 175750 }, /* Band III (D-J) */
@@ -321,9 +271,7 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "fr", "France",
-    "FR", NULL,
-    VIDEOSTD_SECAM_L,
+    "fr", "France", "FR", NULL, TV_VIDEOSTD_SECAM_L,
     {
       { "K", 0, 1,  1, 7000,  47750 },
       { "K", 0, 2,  2, 7000,  55750 },
@@ -336,9 +284,7 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "nz", "New Zealand",
-    "NZ", NULL,
-    0,
+    "nz", "New Zealand", "NZ", NULL, 0, /* STD? */
     {
       { "", 0, 1,  1, 7000,  45250 },
       { "", 0, 2,  3, 7000,  55250 },
@@ -350,9 +296,7 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "za", "South Africa",
-    "ZA", NULL,
-    0,
+    "za", "South Africa", "ZA", NULL, 0, /* STD? */
     {
       { "", 0,  4, 11, 8000, 175250 }, /* Band III (4-11) */
       { "", 0, 13, 13, 8000, 247430 }, /* Band III (247,43 sic) */
@@ -360,9 +304,7 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "cn-pal", "China",
-    "CN", NULL,
-    0,
+    "cn-pal", "China", "CN", NULL, 0, /* STD? */
     {
       { "", 0,  1,  3, 8000,  49750 },
       { "", 0,  4,  5, 8000,  77250 },
@@ -371,18 +313,14 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "pk-cable", "Pakistan cable",
-    "PK", N_("cable"),
-    VIDEOSTD_PAL_B | VIDEOSTD_PAL_G,
+    "ar", "Argentina", "AR", NULL, TV_VIDEOSTD_PAL_NC,
     {
-      RANGE_CCIR_BAND_I,
-      RANGE_CCIR_SUBBAND,
-      { "Z",  0, 1, 2, 7000, 90250 },
-      RANGE_CCIR_BAND_III,
-      RANGE_CCIR_USB,
-      RANGE_CCIR_OSB,
-      RANGE_CCIR_ESB,
-      RANGE_CCIR_UHF,
+      { "", 0,  1,  3, 6000,  56250 },
+      { "", 0,  4,  4, 6000,  78250 },
+      { "", 0,  5,  5, 6000,  84250 },
+      { "", 0,  6, 12, 6000, 176250 },
+      { "", 0, 13, 21, 6000, 122250 },
+      { "", 0, 22, 93, 6000, 218250 },
       RANGE_END
     }
   },

@@ -28,8 +28,6 @@
 #  include <config.h>
 #endif
 
-#ifdef HAVE_LIBZVBI
-
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <pthread.h>
@@ -56,6 +54,8 @@
 #undef TRUE
 #undef FALSE
 #include "../common/fifo.h"
+
+#ifdef HAVE_LIBZVBI
 
 /*
   Quality-speed tradeoff when scaling+antialiasing the page:
@@ -247,7 +247,7 @@ capturing_thread (void *x)
 #endif
 	b->used = -1;
 	b->error = errno;
-	b->errorstr = _("V4L/V4L2 VBI interface timeout");
+	b->errorstr = _("VBI interface timeout");
 
 	send_full_buffer (&p, b);
 
@@ -260,7 +260,7 @@ capturing_thread (void *x)
 #endif
 	b->used = -1;
 	b->error = errno;
-	b->errorstr = _("V4L/V4L2 VBI interface: Failed to read from the device");
+	b->errorstr = _("VBI interface: Failed to read from the device");
 
 	send_full_buffer (&p, b);
 
@@ -358,6 +358,7 @@ threads_init (const gchar *dev_name, int given_fd)
   gchar *failed = _("VBI initialization failed.\n%s");
   gchar *memory = _("Ran out of memory.");
   gchar *thread = _("Out of resources to start a new thread.");
+#warning Linux only
   gchar *mknod_hint = _(
 	"This probably means that the required driver isn't loaded. "
 	"Add to your /etc/modules.conf the line:\n"
@@ -381,32 +382,41 @@ threads_init (const gchar *dev_name, int given_fd)
 
   D();
 
-  if (!(capture = vbi_capture_v4l2_new (dev_name, 20 /* buffers */,
-                                        &services, /* strict */ -1,
+#warning FIXME
+  if (!(capture = vbi_capture_bktr_new (dev_name, /* XXX */ 625,
+					&services, /* strict */ -1,
 					&_errstr, !!debug_msg)))
     {
       if (_errstr)
 	free (_errstr);
 
-      if (!(capture = vbi_capture_v4l_sidecar_new (dev_name, given_fd,
-						   &services, /* strict */ -1,
-						   &_errstr, !!debug_msg)))
+      if (!(capture = vbi_capture_v4l2_new (dev_name, 20 /* buffers */,
+					    &services, /* strict */ -1,
+					    &_errstr, !!debug_msg)))
 	{
-	  if (errno == ENOENT || errno == ENXIO || errno == ENODEV)
+	  if (_errstr)
+	    free (_errstr);
+
+	  if (!(capture = vbi_capture_v4l_sidecar_new (dev_name, given_fd,
+						       &services, /* strict */ -1,
+						       &_errstr, !!debug_msg)))
 	    {
-	      gchar *s = g_strconcat(_errstr, "\n", mknod_hint, NULL);
+	      if (errno == ENOENT || errno == ENXIO || errno == ENODEV)
+		{
+		  gchar *s = g_strconcat(_errstr, "\n", mknod_hint, NULL);
 	      
-	      RunBox(failed, GTK_MESSAGE_ERROR, s);
-	      g_free (s);
+		  RunBox(failed, GTK_MESSAGE_ERROR, s);
+		  g_free (s);
+		}
+	      else
+		{
+		  RunBox(failed, GTK_MESSAGE_ERROR, _errstr);
+		}
+	      free (_errstr);
+	      vbi_decoder_delete (vbi);
+	      vbi = NULL;
+	      return FALSE;
 	    }
-	  else
-	    {
-	      RunBox(failed, GTK_MESSAGE_ERROR, _errstr);
-	    }
-	  free (_errstr);
-	  vbi_decoder_delete (vbi);
-	  vbi = NULL;
-	  return FALSE;
 	}
     }
 
@@ -780,7 +790,7 @@ zvbi_open_device(const char *device)
     80 /* I */
   };
 
-#ifdef ENABLE_V4L
+#ifdef HAVE_LIBZVBI
   D();
   if (main_info)
     given_fd = main_info->fd;
@@ -1975,6 +1985,8 @@ event(vbi_event *ev, void *unused)
     }
 }
 
+#endif /* HAVE_LIBZVBI */
+
 void
 vbi_gui_sensitive (gboolean on)
 {
@@ -2036,6 +2048,8 @@ vbi_gui_sensitive (gboolean on)
       gtk_widget_show(lookup_widget(main_window, "separator8"));
     }
 }
+
+#ifdef HAVE_LIBZVBI
 
 /* Handling of the network_info and prog_info dialog (alias vbi info vi) */
 
@@ -2573,7 +2587,7 @@ py_closed_caption (PyObject *self, PyObject *args)
 void
 startup_zvbi(void)
 {
-#ifdef ENABLE_V4L
+#ifdef HAVE_LIBZVBI
   zcc_bool(TRUE, "Enable VBI decoding", "enable_vbi");
 #else
   zcc_bool(FALSE, "Enable VBI decoding", "enable_vbi");
@@ -2602,7 +2616,7 @@ startup_zvbi(void)
 		_("Sets or toggles the display of closed caption"),
 		"zapping.closed_caption([1])");
 
-#ifdef ENABLE_V4L
+#ifdef HAVE_LIBZVBI
   zconf_add_hook("/zapping/options/vbi/enable_vbi",
 		 (ZConfHook)on_vbi_prefs_changed,
 		 (gpointer)0xdeadbeef);

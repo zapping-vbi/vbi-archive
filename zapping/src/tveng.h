@@ -176,9 +176,66 @@ struct tveng_frame_format
   int sizeimage; /* Size in bytes of the image */
 };
 
+#define TV_VIDEOSTD_PAL_B          (1 << 0)
+#define TV_VIDEOSTD_PAL_B1         (1 << 1)
+#define TV_VIDEOSTD_PAL_G          (1 << 2)
+#define TV_VIDEOSTD_PAL_H          (1 << 3)
+#define TV_VIDEOSTD_PAL_I          (1 << 4)
+#define TV_VIDEOSTD_PAL_D          (1 << 5)
+#define TV_VIDEOSTD_PAL_D1         (1 << 6)
+#define TV_VIDEOSTD_PAL_K          (1 << 7)
+
+#define TV_VIDEOSTD_PAL_M          (1 << 8)
+#define TV_VIDEOSTD_PAL_N          (1 << 9)
+#define TV_VIDEOSTD_PAL_NC         (1 << 10)
+
+#define TV_VIDEOSTD_NTSC_M         (1 << 12)
+#define TV_VIDEOSTD_NTSC_M_JP      (1 << 13)
+
+#define TV_VIDEOSTD_SECAM_B        (1 << 16)
+#define TV_VIDEOSTD_SECAM_D        (1 << 17)
+#define TV_VIDEOSTD_SECAM_G        (1 << 18)
+#define TV_VIDEOSTD_SECAM_H        (1 << 19)
+#define TV_VIDEOSTD_SECAM_K        (1 << 20)
+#define TV_VIDEOSTD_SECAM_K1       (1 << 21)
+#define TV_VIDEOSTD_SECAM_L        (1 << 22)
+
+#define TV_VIDEOSTD_PAL_BG	(TV_VIDEOSTD_PAL_B	|\
+				 TV_VIDEOSTD_PAL_B1	|\
+				 TV_VIDEOSTD_PAL_G)
+#define TV_VIDEOSTD_PAL_DK	(TV_VIDEOSTD_PAL_D	|\
+				 TV_VIDEOSTD_PAL_D1	|\
+				 TV_VIDEOSTD_PAL_K)
+#define TV_VIDEOSTD_PAL		(TV_VIDEOSTD_PAL_BG	|\
+				 TV_VIDEOSTD_PAL_DK	|\
+				 TV_VIDEOSTD_PAL_H	|\
+				 TV_VIDEOSTD_PAL_I)
+#define TV_VIDEOSTD_NTSC	(TV_VIDEOSTD_NTSC_M	|\
+				 TV_VIDEOSTD_NTSC_M_JP)
+#define TV_VIDEOSTD_SECAM	(TV_VIDEOSTD_SECAM_B	|\
+				 TV_VIDEOSTD_SECAM_D	|\
+				 TV_VIDEOSTD_SECAM_G	|\
+				 TV_VIDEOSTD_SECAM_H	|\
+				 TV_VIDEOSTD_SECAM_K	|\
+				 TV_VIDEOSTD_SECAM_K1	|\
+				 TV_VIDEOSTD_SECAM_L)
+#define TV_VIDEOSTD_525_60	(TV_VIDEOSTD_PAL_M	|\
+				 TV_VIDEOSTD_NTSC)
+#define TV_VIDEOSTD_625_50	(TV_VIDEOSTD_PAL	|\
+				 TV_VIDEOSTD_PAL_N	|\
+				 TV_VIDEOSTD_PAL_NC	|\
+				 TV_VIDEOSTD_SECAM)
+#define TV_VIDEOSTD_UNKNOWN     0
+#define TV_VIDEOSTD_ALL         (TV_VIDEOSTD_525_60	|\
+				 TV_VIDEOSTD_625_50)
+
+typedef unsigned long long tv_videostd_id;
+
 /* Info about a standard */
 struct tveng_enumstd{
   int id; /* Standard id */
+  tv_videostd_id stdid; /* attn: don't take this literally. multiple bits
+    could be set if the driver doesn't know exactly, or doesn't care. */
   int index; /* Index in info->standards */
   int hash; /* Based on the normalized name */
   char name[32]; /* Canonical name for the standard */

@@ -277,7 +277,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   gint x, y, w, h;
   enum tveng_frame_pixformat format;
   gint muted;
-  gchar * old_name = NULL;
+  gchar * old_input = NULL;
+  gchar * old_standard = NULL;
   enum tveng_capture_mode mode;
   extern int disable_overlay;
 
@@ -295,7 +296,9 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
   /* save this input name for later retrieval */
   if (info->num_inputs > 0)
-    old_name = g_strdup(info->inputs[info->cur_input].name);
+    old_input = g_strdup(info->inputs[info->cur_input].name);
+  if (info->num_standards > 0)
+    old_standard = g_strdup(info->standards[info->cur_standard].name);
 
   gdk_window_get_geometry(tv_screen->window, NULL, NULL, &w, &h, NULL);
   gdk_window_get_origin(tv_screen->window, &x, &y);
@@ -386,7 +389,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     case TVENG_CAPTURE_WINDOW:
       if (disable_preview || disable_overlay) {
 	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
-	g_free(old_name);
+	g_free(old_input);
+	g_free(old_standard);
 	x11_screensaver_set (X11_SCREENSAVER_ON);
 	return -1;
       }
@@ -452,7 +456,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     case TVENG_CAPTURE_PREVIEW:
       if (disable_preview || disable_overlay) {
 	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
-	g_free(old_name);
+	g_free(old_input);
+	g_free(old_standard);
 	x11_screensaver_set (X11_SCREENSAVER_ON);
 	return -1;
       }
@@ -523,11 +528,15 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     }
 
   /* Restore old input if we found it earlier */
-  if (old_name != NULL)
-    if (-1 == tveng_set_input_by_name(old_name, info))
+  if (old_input != NULL)
+    if (-1 == tveng_set_input_by_name(old_input, info))
       g_warning("couldn't restore old input");
+  if (old_standard != NULL)
+    if (-1 == tveng_set_standard_by_name(old_standard, info))
+      g_warning("couldn't restore old standard");
 
-  g_free (old_name);
+  g_free (old_input);
+  g_free (old_standard);
 
   if (mode != new_mode)
     zcs_int(mode, "previous_mode");

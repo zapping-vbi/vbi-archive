@@ -244,6 +244,7 @@ int tveng2_attach_device(const char* device_file,
     {
     case TVENG_ATTACH_CONTROL:
       info -> fd = p_tveng2_open_device_file(O_NOIO, info);
+      break;
     case TVENG_ATTACH_READ:
       info -> fd = p_tveng2_open_device_file(O_RDWR, info);
       break;
@@ -525,6 +526,43 @@ int tveng2_set_input(struct tveng_enum_input * input,
   return retcode;
 }
 
+// XXX compare against bttv for safety
+static tv_videostd_id
+video_standard_quiz		(struct v4l2_standard *	std)
+{
+  if (std->framelines == 625) {
+    switch (std->colorstandard) {
+    case V4L2_COLOR_STD_PAL:
+      switch (std->colorstandard_data.pal.colorsubcarrier) {
+      case V4L2_COLOR_SUBC_PAL:
+	return TV_VIDEOSTD_PAL; /* BGDKHI */
+      case V4L2_COLOR_SUBC_PAL_N:
+	return TV_VIDEOSTD_PAL_N;
+      default:
+	return TV_VIDEOSTD_UNKNOWN;
+      }
+    case V4L2_COLOR_STD_NTSC:
+      return TV_VIDEOSTD_UNKNOWN; /* ? */
+    case V4L2_COLOR_STD_SECAM:
+      return TV_VIDEOSTD_SECAM; /* BDGHKK1L, although probably L */
+    }
+  } else if (std->framelines == 525) {
+    switch (std->colorstandard) {
+    case V4L2_COLOR_STD_PAL:
+      switch (std->colorstandard_data.pal.colorsubcarrier) {
+      case V4L2_COLOR_SUBC_PAL_M:
+	return TV_VIDEOSTD_PAL_M;
+      default:
+	break; /* "PAL-60" */
+      }
+    case V4L2_COLOR_STD_NTSC:
+      return TV_VIDEOSTD_NTSC; /* M/NTSC USA or Japan */
+    }
+  }
+
+  return TV_VIDEOSTD_UNKNOWN;
+}
+
 /*
   Returns the number of standards in the given device and fills in info
   with the correct info, allocating memory as needed
@@ -560,6 +598,8 @@ int tveng2_get_standards(tveng_device_info * info)
 
       info->standards = realloc(info->standards,
 				(count+1)*sizeof(struct tveng_enumstd));
+
+      info->standards[count].stdid = video_standard_quiz (&enumstd.std);
       info->standards[count].index = count;
       info->standards[count].id = i;
       snprintf(info->standards[count].name, 32, enumstd.std.name);

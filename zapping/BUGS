@@ -4,9 +4,12 @@ Known bugs with zapping, don't report them
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
+	* bttv 0.9.5 seems to crash the X server whenever
+	  XvPutImage is called (field ANY not handled?). 
 	* v4l/v4l2 fbuf params must be validated in case
 	  setup_fb failed, but were initialized before.
-	  Try modifying XF86Config, then restart the X session. 
+	  Try modifying XF86Config, then restart the X session.
+	  (Not a safety/security matter, just wrong bpl/bpp.)
 	* resize menu key accel doesn't work?
 	* Need better no-overlay-present handling.
 	! RPM creates incorrect zsfb.capps
@@ -53,6 +56,10 @@ Known bugs with zapping, don't report them
 	if (ret != BadValue)
 	    if (-1 == ioctl(V4L_FD,VIDIOCSAUDIO,&pPPriv->audio))
 		perror("ioctl VIDIOCSAUDIO");
+          Another possible bug, the encoding is not reset
+	  on open? Though apparently not catched when Zapping
+	  opens the v4l/2/5 interface too (try remove the modules
+	  in tveng.c).
 	* Closing the main window while recording blocks.
 	  Backtrace:
 	  on_exit2_activate() [now quit_cmd()]

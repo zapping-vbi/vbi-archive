@@ -27,11 +27,11 @@
 #define _h_ure
 
 /*
- * $Id: ure.h,v 1.5 2001-08-16 18:09:36 mschimek Exp $
+ * $Id: ure.h,v 1.5.2.1 2003-02-16 18:27:58 mschimek Exp $
  */
 
 #include <stdio.h>
-#include <unicode.h>
+//#include <unicode.h>
 
 #ifdef __cplusplus
 extern "C" {

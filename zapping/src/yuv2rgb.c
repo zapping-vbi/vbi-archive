@@ -35,7 +35,7 @@
 #endif
 
 #include <glib.h>
-#include <common/math.h>
+#include "../common/math.h"
 #include "csconvert.h"
 #include "yuv2rgb.h"
 #include "gen_conv.h"

@@ -32,7 +32,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
+#endif
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -106,6 +108,32 @@ fprintf_symbolic		(FILE *			fp,
 	va_end (ap); 
 }
 
+#if defined (_IOC_SIZE) /* Linux */
+
+#define IOCTL_ARG_SIZE(cmd)	_IOC_SIZE (cmd)
+#define IOCTL_READ(cmd)		((cmd) & _IOC_READ)
+#define IOCTL_WRITE(cmd)	((cmd) & _IOC_WRITE)
+#define IOCTL_READ_WRITE(cmd)	(_IOC_DIR (cmd) == (_IOC_READ | _IOC_WRITE))
+#define IOCTL_NUMBER(cmd)	_IOC_NR (cmd)
+
+#elif defined (IOCPARM_LEN) /* FreeBSD */
+
+#define IOCTL_ARG_SIZE(cmd)	IOCPARM_LEN (cmd)
+#define IOCTL_READ(cmd)		((cmd) & IOC_OUT)
+#define IOCTL_WRITE(cmd)	((cmd) & IOC_IN)
+#define IOCTL_READ_WRITE(cmd)	(((cmd) & IOC_DIRMASK) == (IOC_IN | IOC_OUT))
+#define IOCTL_NUMBER(cmd)	((cmd) & 0xFF)
+
+#else
+
+#define IOCTL_ARG_SIZE(cmd)	0
+#define IOCTL_READ(cmd)		0
+#define IOCTL_WRITE(cmd)	0
+#define IOCTL_READ_WRITE(cmd)	0
+#define IOCTL_NUMBER(cmd)	0
+
+#endif
+
 int
 dev_ioctl			(int			fd,
 				 unsigned int		cmd,
@@ -115,10 +143,10 @@ dev_ioctl			(int			fd,
   int buf[256];
   int err;
 
-  if (3 <= verbosity && (_IOC_DIR (cmd) & _IOC_WRITE))
+  if (verbosity >= 3 && IOCTL_WRITE (cmd))
     {
-      assert (sizeof (buf) >= _IOC_SIZE (cmd));
-      memcpy (buf, arg, _IOC_SIZE (cmd));
+      assert (sizeof (buf) >= IOCTL_ARG_SIZE (cmd));
+      memcpy (buf, arg, IOCTL_ARG_SIZE (cmd));
     }
 
   do err = ioctl (fd, cmd, arg);
@@ -134,15 +162,15 @@ dev_ioctl			(int			fd,
       fn (stderr, cmd, NULL);
       fputc ('(', stderr);
       
-      if (_IOC_DIR(cmd) & _IOC_WRITE)
+      if (IOCTL_WRITE (cmd))
 	fn (stderr, cmd, &buf);
-      
+
       if (0 == err)
 	{
-	  if ((_IOC_READ | _IOC_WRITE) == _IOC_DIR(cmd))
+	  if (IOCTL_READ_WRITE (cmd))
 	    fputs (") -> (", stderr);
 	  
-	  if (_IOC_DIR(cmd) & _IOC_READ)
+	  if (IOCTL_READ (cmd))
 	    fn (stderr, cmd, arg);
 	  
 	  fputs (")\n", stderr);
@@ -253,8 +281,9 @@ restore_root_privileges		(int			uid,
   return TRUE;
 }
 
-static const char *	short_options = "d:D:b:vqh?V";
+static const char short_options[] = "d:D:b:vqh?V";
 
+#ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options [] =
 {
@@ -267,6 +296,9 @@ long_options [] =
   { "usage",		no_argument,		0, 'h' },
   { "version",		no_argument,		0, 'V' },
 };
+#else
+#define getopt_long(ac, av, s, l, i) getopt (ac, av, s)
+#endif
 
 static void
 print_usage			(void)
@@ -344,13 +376,22 @@ main				(int			argc,
 
 	case 'b':
 	  bpp_arg = strtol (optarg, NULL, 0);
-	    
-	  if (bpp_arg < 8 || bpp_arg > 32)
+
+	  switch (bpp_arg)
 	    {
-	      message (1, "Invalid bpp argument %d.\n", bpp_arg);
+	    case 8:
+	    case 15:
+	    case 16:
+	    case 24:
+	    case 32:
+	      break;
+
+	    default:
+	      message (1, "Invalid bpp argument %d. Expected "
+		       "color depth 8, 15, 16, 24 or 32.\n", bpp_arg);
 	      goto failure;
 	    }
-
+	  
 	  break;
 
 	case 'v':
@@ -391,14 +432,15 @@ main				(int			argc,
   /* OK, the DGA is working and we have its info,
      set up the overlay */
 
-  err = setup_v4l2 (device_name);
+  err = setup_v4l25 (device_name);
 
   if (err == -1)
     {
-      err = setup_v4l (device_name);
+      err = setup_v4l2 (device_name);
 
       if (err == -1)
 	{
+	  err = setup_v4l (device_name);
 	}
     }
 

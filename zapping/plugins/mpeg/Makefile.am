@@ -11,7 +11,6 @@ record.png pause.png stop.png
 EXTRA_DIST = mpeg_properties.glade2 mpeg_strings.c $(pixmaps_DATA)
 
 libmpeg_zapping_la_SOURCES = mpeg.c options.c mpeg.h
-
 libmpeg_zapping_la_LIBADD = $(RTE_LIB)
 
 pkgdata_DATA = mpeg_properties.glade2

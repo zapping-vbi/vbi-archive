@@ -6426,16 +6426,16 @@ adding the table if possible, for inclusion in the next release of this program.
   <property name="comments" translatable="yes">TV viewer for the Gnome environment</property>
   <property name="authors">Michael H. Schimek
 Iñaki García Etxebarria</property>
-  <property name="translator_credits" translatable="yes">Christian Marillat
-Guus Bonnema
-Henrik Isacsson
-Ime Smits
+  <property name="translator_credits" translatable="yes">Guus Bonnema
 Iñaki García Etxebarria
 Joseba García Etxebarria
-Michael H. Schimek
+Henrik Isacsson
+Christian Marillat
 Paweł Sakowski
-Pino Toscano
-Reinout van Schouwen</property>
+Michael H. Schimek
+Reinout van Schouwen
+Ime Smits
+Pino Toscano</property>
 </widget>
 
 <widget class="GnomeApp" id="zapping">

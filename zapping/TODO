@@ -1,5 +1,6 @@
 Outstanding issues for the next release (0.7)
 -----------------------------------------------
+	* http://developer.gnome.org/dotplan/porting/ checklist.
         + Are we using window fully visible, partially visible and
 	  fully obscured X11 events to optimize capture mode?
 	+ preferences from context menu (zapping-misc 2003-01-05)
@@ -7,6 +8,7 @@ Outstanding issues for the next release (0.7)
 	+ channel menu: don't add blank channels
 	+ Video standard question.
 	+ Improve documentation.
+	+ Check compilation works without optional libs
 	+ Switching subtitles on/off needs improvement.
 	+ Fullscreen integrates badly into desktop, eg. context menu.
 	+ vbi: add toggle button to disable CC/TTX decoding
