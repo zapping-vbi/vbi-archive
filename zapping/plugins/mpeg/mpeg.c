@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.12 2003-10-20 21:34:40 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36.2.13 2003-10-31 19:07:05 mschimek Exp $ */
 
 #include "src/plugin_common.h"
 
@@ -104,7 +104,10 @@ static void *			audio_buf;	/* preliminary */
 static int			audio_size;
 
 static tveng_device_info *	zapping_info;
-static zf_consumer			mpeg_consumer;
+static zf_consumer		mpeg_consumer;
+
+void
+saving_dialog_attach_formats	(void);
 
 /*
  *  Input/output
@@ -136,13 +139,12 @@ video_callback			(rte_context *		context,
     b = zf_wait_full_buffer (&mpeg_consumer);
     if (b->data)
       break;
-fprintf(stderr, "bad buffer\n");
     zf_send_empty_buffer (&mpeg_consumer, b);
   }
 #else
   for (;;) {
     capture_buffer *cb = (capture_buffer *)
-      (b = wait_full_buffer (&mpeg_consumer));
+      (b = zf_wait_full_buffer (&mpeg_consumer));
 
     fmt = &cb->d.format;
 
@@ -153,7 +155,7 @@ fprintf(stderr, "bad buffer\n");
 	b->time)
       break;
 
-    send_empty_buffer (&mpeg_consumer, b);
+    zf_send_empty_buffer (&mpeg_consumer, b);
   }
 #endif
 
@@ -1194,14 +1196,20 @@ pref_apply			(GtkWidget *		page)
   record_config_zconf_copy (zconf_root_temp, zconf_root);
 
   zconf_delete (zconf_root_temp);
+
+  saving_dialog_attach_formats ();
 }
 
 static void
 on_config_new_clicked			(GtkButton *		button,
 					 GtkWidget *		page)
 {
-  gchar *name = Prompt (main_window, _("New format"),
-			_("Format name:"), NULL);
+  gchar *name;
+
+  name = Prompt (main_window,
+		 _("New format"),
+		 _("Format name:"),
+		 NULL);
 
   if (!name || !*name)
     {
@@ -1368,8 +1376,6 @@ static void
 on_saving_configure_clicked	(GtkButton *		button,
 				 gpointer		user_data)
 {
-  static void saving_dialog_attach_formats (void);
-
   g_assert (saving_dialog != NULL);
 
   gtk_widget_set_sensitive (saving_dialog, FALSE);
@@ -1381,13 +1387,6 @@ on_saving_configure_clicked	(GtkButton *		button,
   gtk_widget_set_sensitive (saving_dialog, TRUE);
 
   saving_dialog_attach_formats ();
-
-  /* The former disconnects */
-  g_signal_connect (G_OBJECT (GTK_OPTION_MENU
-				  (lookup_widget (saving_dialog,
-						  "optionmenu14"))->menu),
-		      "selection-done",
-		      G_CALLBACK (on_saving_format_changed), NULL);
 }
 
 static void
@@ -1486,11 +1485,18 @@ on_saving_record_clicked	(GtkButton *		button,
 static void
 saving_dialog_attach_formats	(void)
 {
-  GtkWidget *configs = lookup_widget (saving_dialog, "optionmenu14");
-  GtkWidget *entry = lookup_widget (saving_dialog, "entry1");
+  GtkWidget *configs;
+  GtkWidget *entry;
   gint nformats;
   gchar *ext;
   gchar *name;
+  gchar *basename;
+
+  if (!saving_dialog)
+    return;
+
+  configs = lookup_widget (saving_dialog, "optionmenu14");
+  entry = lookup_widget (saving_dialog, "entry1");
 
   nformats = record_config_menu_attach (zconf_root, configs, NULL);
   z_set_sensitive_with_tooltip (configs, nformats > 0, NULL, NULL);
@@ -1504,9 +1510,10 @@ saving_dialog_attach_formats	(void)
   name = find_unused_name (NULL, record_option_filename, ext);
 
   gtk_entry_set_text (GTK_ENTRY (entry), name);
-  g_object_set_data_full (G_OBJECT (entry), "basename",
-			  g_path_get_basename (name),
-			  (GtkDestroyNotify) g_free);
+  basename = g_path_get_basename (name);
+  z_electric_set_basename (entry, basename);
+
+  g_free (basename);
   g_free (name);
   g_free (ext);
 
@@ -1518,8 +1525,16 @@ saving_dialog_attach_formats	(void)
 
   if (nformats > 0)
     {
+      GtkWidget *optionmenu;
+
       if (!active)
 	gtk_widget_set_sensitive (lookup_widget (saving_dialog, "record"), TRUE);
+
+      optionmenu = lookup_widget (saving_dialog, "optionmenu14");
+
+      g_signal_connect (G_OBJECT (GTK_OPTION_MENU (optionmenu)->menu),
+			"selection-done",
+			G_CALLBACK (on_saving_format_changed), NULL);
     }
   else
     {
@@ -1609,11 +1624,7 @@ saving_dialog_new		(gboolean		recording)
   g_signal_connect (G_OBJECT (saving_dialog),
 		    "delete-event",
 		    G_CALLBACK (on_saving_delete_event), NULL);
-  g_signal_connect (G_OBJECT (GTK_OPTION_MENU
-				  (lookup_widget (saving_dialog,
-						  "optionmenu14"))->menu),
-		    "selection-done",
-		    G_CALLBACK (on_saving_format_changed), NULL);
+
   g_signal_connect (G_OBJECT (lookup_widget (saving_dialog, "configure_format")),
 		    "clicked",
 		    G_CALLBACK (on_saving_configure_clicked), NULL);

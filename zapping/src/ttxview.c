@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.116.2.13 2003-09-24 18:36:37 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.116.2.14 2003-10-31 19:07:34 mschimek Exp $ */
 
 /*
  *  Teletext View
@@ -1904,6 +1904,10 @@ on_export_dialog_ok_clicked	(GtkWidget *		button,
   if (!vbi_export_file (sp->context, name, &sp->page))
     {
       char *msg = vbi_export_errstr (sp->context);
+      gchar *t;
+
+      t = g_locale_to_utf8 (msg, -1, NULL, NULL, NULL);
+      g_assert (t != NULL);
 
       g_warning (msg);
 
@@ -1911,6 +1915,8 @@ on_export_dialog_ok_clicked	(GtkWidget *		button,
 	if (data->appbar)
       	  gnome_appbar_set_status (data->appbar, msg);
       */
+
+      g_free (t);
 
       free (msg);
     }
@@ -2026,7 +2032,7 @@ export_dialog_new		(ttxview_data *		data,
     gchar *path;
 
     base = export_dialog_default_filename (sp);
-    g_object_set_data (G_OBJECT (sp->entry), "basename", (gpointer) base);
+    z_electric_set_basename (sp->entry, base);
 
     path = g_build_filename (zcg_char (NULL, "exportdir"), base, NULL);
     gtk_entry_set_text (GTK_ENTRY (sp->entry), path);
@@ -2038,6 +2044,8 @@ export_dialog_new		(ttxview_data *		data,
 		      G_CALLBACK (z_on_electric_filename),
 		      (gpointer) &sp->filename);
     */
+
+    g_free (base);
   }
 
   widget = gtk_button_new_from_stock (GTK_STOCK_CANCEL);
