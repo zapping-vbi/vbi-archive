@@ -4433,20 +4433,20 @@ in the next release of this program.</label>
 
       <widget>
 	<class>GtkButton</class>
-	<name>button21</name>
-	<tooltip>Search forwards for the next match</tooltip>
-	<can_default>True</can_default>
-	<can_focus>True</can_focus>
-	<stock_button>GNOME_STOCK_BUTTON_NEXT</stock_button>
-      </widget>
-
-      <widget>
-	<class>GtkButton</class>
 	<name>button22</name>
 	<tooltip>Search backwards for the previous match</tooltip>
 	<can_default>True</can_default>
 	<can_focus>True</can_focus>
 	<stock_button>GNOME_STOCK_BUTTON_PREV</stock_button>
+      </widget>
+
+      <widget>
+	<class>GtkButton</class>
+	<name>button21</name>
+	<tooltip>Search forwards for the next match</tooltip>
+	<can_default>True</can_default>
+	<can_focus>True</can_focus>
+	<stock_button>GNOME_STOCK_BUTTON_NEXT</stock_button>
       </widget>
 
       <widget>

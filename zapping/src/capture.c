@@ -466,7 +466,7 @@ give_data_to_plugins(capture_bundle *d)
   struct vbi *vbi;
   GList *p;
 
-#if 1
+#if 0
   if ((vbi = zvbi_get_object()))
     {
       /* XXX redundant if we're not in PAL/SECAM mode

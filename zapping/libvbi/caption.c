@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.26 2001-07-02 16:17:13 garetxe Exp $ */
+/* $Id: caption.c,v 1.27 2001-07-21 06:09:09 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -295,6 +295,32 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 			break;
 
 		case 9:		/* program aspect ratio */
+		{
+			vbi_ratio r;
+
+			if (length > 3)
+				return;
+
+			r.first_line = (buffer[0] & 63) + 22;
+			r.last_line = 262 - (buffer[1] & 63);
+			r.film_mode = 0;
+			r.open_subtitles = VBI_SUBT_UNKNOWN;
+
+			if (length >= 3 && (buffer[2] & 1))
+				r.ratio = 16.0 / 9.0;
+			else
+				r.ratio = 1.0;
+
+			if (strcmp(r, &vbi->ratio) != 0) {
+				vbi_event ev;
+
+				vbi->ratio = r;
+
+				ev.type = VBI_EVENT_RATIO;
+				ev.p = &vbi->ratio;
+
+				vbi_send_event(vbi, &ev);
+			}
 #if XDS_DEBUG
 			if (length > 3)
 				return;
@@ -303,6 +329,7 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 				(length >= 3 && (buffer[2] & 1)) ? " (anamorphic)" : "");
 #endif /* XDS_DEBUG */
 			break;
+		}
 
 		case 0x10 ... 0x17: /* program description */
 #if XDS_DEBUG

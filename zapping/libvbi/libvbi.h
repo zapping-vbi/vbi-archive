@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.38 2001-07-17 02:09:59 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.39 2001-07-21 06:09:09 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -214,7 +214,7 @@ typedef struct {
  *  channel is currently silent.
  *
  *  pgno: 0x100 ... 0x8FF (Teletext)
- *  subpage: returns highest subpage number used,
+ *  subpage: returns highest subpage number used (1 ... n),
  *    0			- single page
  *    1			- should not appear
  *    2 ... 0x3F7F	- subpages 1 ... 0x3F7F
@@ -235,9 +235,31 @@ typedef struct {
  *
  *  The subpage number can be larger (but not smaller) than the number of
  *  subpages actually received and cached. One cannot exclude the possibility
- *  an advertised subpages will never appear.
+ *  an advertised subpage will never appear.
  */
 extern int		vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **language);
+
+/*
+ *  Aspect ratio
+ *
+ *  first/last_line: Active video, ITU-R *field* line numbering (first field)
+ *    eg. 4:3: PAL 23-310 (288 lines), NTSC 22-262 (240 lines)
+ *  ratio: eg. 14/9, 16/9 (ie. anamorphic; letterbox is 1/1).
+ */
+typedef enum {
+	VBI_SUBT_NONE,
+	VBI_SUBT_ACTIVE,	/* in active area */
+	VBI_SUBT_MATTE,		/* letterbox, below active video */
+	VBI_SUBT_UNKNOWN,
+} vbi_subt;
+
+typedef struct {
+	int			first_line;
+	int			last_line;
+	double			ratio;
+	int			film_mode;		/* bool, if known */
+	vbi_subt		open_subtitles;
+} vbi_ratio;
 
 /*
  *  Event (vbi.c)
@@ -251,7 +273,8 @@ extern int		vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **la
  *  If the header is suitable for rolling, and actually changed
  *  including any clear text page number, vbi_event.p1 points
  *  to a volatile copy of the raw header. Resist the temptation
- *  to dereference the pointer without good reason.
+ *  to dereference the pointer without good reason (since only
+ *  fetch_page should access raw data).
  */
 
 #define VBI_EVENT_CAPTION	(1 << 2)
@@ -285,6 +308,12 @@ extern int		vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **la
  *  and must be restarted after the problem has been solved.
  *
  *  (XXX this should include an error code and message) 
+ */
+
+#define	VBI_EVENT_RATIO		(1 << 7)
+/*
+ *  Aspect ratio change, vbi_event.p is a vbi_ratio pointer.
+ *  (From PAL WSS, NTSC XDS or EIA-J CPR-1204)
  */
 
 typedef struct {

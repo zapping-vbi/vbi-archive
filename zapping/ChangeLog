@@ -1,3 +1,7 @@
+21.07.2001	libvbi <mschimek@users.sf.net>
+
+	* Added aspect ratio event.
+
 17.07.2001	libvbi/wss <mschimek@users.sf.net>
 
 	* Added vbi_push_video function, works ok. Some more

@@ -32,6 +32,7 @@ struct vbi
 
 	vbi_network		network;
 	vbi_trigger *		triggers;
+	vbi_ratio		ratio;
 
 	int			brightness;
 	int			contrast;
@@ -46,6 +47,10 @@ struct vbi
 	struct event_handler *	handlers;
 	struct event_handler *	next_handler;
 
+	unsigned char		wss_last[2];
+	int			wss_rep_ct;
+	double			wss_time;
+
     // sliced data source
     fifo2			*fifo;
 
@@ -57,7 +62,6 @@ struct vbi
 	double			video_time;
 	bit_slicer_fn *		wss_slicer_fn;
 	struct bit_slicer	wss_slicer;
-	unsigned char		wss_last[2];
 	producer		wss_producer;
 };
 

@@ -100,18 +100,94 @@ vbi_event_handler(struct vbi *vbi, int event_mask,
 }
 
 static void
-decode_wss_625(struct vbi *vbi, unsigned char *buf)
+decode_wss_625(struct vbi *vbi, unsigned char *buf, double time)
 {
-	int g1 = buf[0] & 15;
+	vbi_ratio r;
 	int parity;
 
-	parity = g1;
+	/* Two producers... */
+	if (time < vbi->wss_time)
+		return;
+
+	vbi->wss_time = time;
+
+	if (buf[0] != vbi->wss_last[0]
+	    || buf[1] != vbi->wss_last[1]) {
+		vbi->wss_last[0] = buf[0];
+		vbi->wss_last[1] = buf[1];
+		vbi->wss_rep_ct = 0;
+		return;
+	}
+
+	if (++vbi->wss_rep_ct < 3)
+		return;
+
+	parity = buf[0] & 15;
 	parity ^= parity >> 2;
 	parity ^= parity >> 1;
-	g1 &= 7;
 
 	if (!(parity & 1))
 		return;
+
+	r.ratio = 1.0;
+
+	switch (buf[0] & 7) {
+	case 0: /* 4:3 */
+	case 6: /* 14:9 soft matte */
+		r.first_line = 23;
+		r.last_line = 310;
+		break;
+	case 1: /* 14:9 */
+		r.first_line = 41;
+		r.last_line = 292;
+		break;
+	case 2: /* 14:9 top */
+		r.first_line = 23;
+		r.last_line = 274;
+		break;
+	case 3: /* 16:9 */
+	case 5: /* "Letterbox > 16:9" */
+		r.first_line = 59; // 59.5 ?
+		r.last_line = 273;
+		break;
+	case 4: /* 16:9 top */
+		r.first_line = 23;
+		r.last_line = 237;
+		break;
+	case 7: /* 16:9 anamorphic */
+		r.first_line = 23;
+		r.last_line = 310;
+		r.ratio = 16.0 / 9.0;
+		break;
+	}
+
+	r.film_mode = !!(buf[0] & 0x10);
+
+	switch ((buf[1] >> 1) & 3) {
+	case 0:
+		r.open_subtitles = VBI_SUBT_NONE;
+		break;
+	case 1:
+		r.open_subtitles = VBI_SUBT_ACTIVE;
+		break;
+	case 2:
+		r.open_subtitles = VBI_SUBT_MATTE;
+		break;
+	case 3:
+		r.open_subtitles = VBI_SUBT_UNKNOWN;
+		break;
+	}
+
+	if (strcmp(r, &vbi->ratio) != 0) {
+		vbi_event ev;
+
+		vbi->ratio = r;
+
+		ev.type = VBI_EVENT_RATIO;
+		ev.p = &vbi->ratio;
+
+		vbi_send_event(vbi, &ev);
+	}
 
 	if (1) {
 		static const char *formats[] = {
@@ -134,7 +210,7 @@ decode_wss_625(struct vbi *vbi, unsigned char *buf)
 		printf("WSS: %s; %s mode; %s colour coding;\n"
 		       "      %s helper; reserved b7=%d; %s\n"
 		       "      open subtitles: %s; %scopyright %s; copying %s\n",
-			formats[g1],
+			formats[buf[0] & 7],
 			(buf[0] & 0x10) ? "film" : "camera",
 			(buf[0] & 0x20) ? "MA/CP" : "standard",
 			(buf[0] & 0x40) ? "modulated" : "no",
@@ -152,6 +228,30 @@ decode_wss_cpr1204(struct vbi *vbi, unsigned char *buf)
 {
 	int b0 = buf[0] & 0x80;
 	int b1 = buf[0] & 0x40;
+	vbi_ratio r;
+
+	if (b1) {
+		r.first_line = 72; // wild guess
+		r.last_line = 212;
+	} else {
+		r.first_line = 22;
+		r.last_line = 262;
+	}
+
+	r.ratio = b0 ? 16.0 / 9.0 : 1.0;
+	r.film_mode = 0;
+	r.open_subtitles = VBI_SUBT_UNKNOWN;
+
+	if (strcmp(r, &vbi->ratio) != 0) {
+		vbi_event ev;
+
+		vbi->ratio = r;
+
+		ev.type = VBI_EVENT_RATIO;
+		ev.p = &vbi->ratio;
+
+		vbi_send_event(vbi, &ev);
+	}
 
 	if (0)
 		printf("CPR: %d %d\n", !!b0, !!b1);
@@ -197,7 +297,8 @@ vbi_mainloop(void *p)
 				vbi_caption_desync(vbi);
 		}
 
-		vbi->time = b->time;
+		if (b->time > vbi->time)
+			vbi->time = b->time;
 
 		s = (vbi_sliced *) b->data;
 		items = b->used / sizeof(vbi_sliced);
@@ -210,7 +311,7 @@ vbi_mainloop(void *p)
 			else if (s->id & SLICED_VPS)
 				vbi_vps(vbi, s->data);
 			else if (s->id & SLICED_WSS_625)
-				decode_wss_625(vbi, s->data);
+				decode_wss_625(vbi, s->data, b->time);
 			else if (s->id & SLICED_WSS_CPR1204)
 				decode_wss_cpr1204(vbi, s->data);
 
