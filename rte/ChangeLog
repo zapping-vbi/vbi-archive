@@ -5,6 +5,7 @@
 	  private (for now, anyway) rte_*_reset_options(). Fixed
 	  return value of rte_*_option_set().
 	* test/info.c: Added option dump & check, incl. context options.
+	* Fixes in mp1e.
 
 2001-12-17	Added po <mschimek@users.sf.net>
 
