@@ -9,11 +9,7 @@ EXTRA_DIST = README.alirc
 libalirc_zapping_la_SOURCES = alirc.c
 libalirc_zapping_la_LIBADD = $(LIRC_LIB)
 
-CFLAGS = @CFLAGS@ $(PLUGIN_DEFAULT_FLAGS)
+CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
 
-INCLUDES = \
-$(X_CFLAGS) \
--I$(top_srcdir)/intl \
--I$(includedir)	\
-$(GNOME_INCLUDEDIR) \
+INCLUDES = $(COMMON_INCLUDES) -I$(top_srcdir)/intl \
 -I$(top_srcdir)/src ## Let the plugin access Zapping headers

@@ -1,7 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = \
-$(ARCH_CFLAGS)
+INCLUDES = $(ARCH_CFLAGS)
 
 bin_PROGRAMS = zapping_setup_fb
 

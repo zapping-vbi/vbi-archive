@@ -191,11 +191,7 @@ GDK_PIXBUF_VERSION=`gdk-pixbuf-config --version`
 if test $? -eq 0; then
 	AC_MSG_RESULT($GDK_PIXBUF_VERSION)
 	GDK_PIXBUF_CFLAGS=`gdk-pixbuf-config --cflags`
-	dnl Avoid including twice the result of "gtk-config --libs"
-	dnl (gdk-pixbuf includes it too)
-	TMP_VAR=`gtk-config --libs | sed "s/\//\\\\\\\\\//g"`
 	GDK_PIXBUF_LIBS=`gdk-pixbuf-config --libs`
-	GDK_PIXBUF_LIBS=`echo $GDK_PIXBUF_LIBS | sed "s/$TMP_VAR//g"`
 	AC_SUBST(GDK_PIXBUF_CFLAGS)
 	AC_SUBST(GDK_PIXBUF_LIBS)
 else
@@ -311,20 +307,15 @@ dnl Add the languages which your application supports here.
 ALL_LINGUAS="de es fr pl ru"
 AM_GNU_GETTEXT
 
-dnl Set PACKAGE_*_DIR in config.h.
 if test "x${prefix}" = "xNONE"; then
-  AC_DEFINE_UNQUOTED(PACKAGE_LOCALE_DIR,
-	"${ac_default_prefix}/${DATADIRNAME}/locale")
-  AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR,
-	"${ac_default_prefix}/${DATADIRNAME}/${PACKAGE}")
-  PACKAGE_LIB_DIR="${ac_default_prefix}/lib/${PACKAGE}"
-  PACKAGE_PIXMAPS_DIR="${ac_default_prefix}/${DATADIRNAME}/pixmaps/${PACKAGE}"
-else
-  AC_DEFINE_UNQUOTED(PACKAGE_LOCALE_DIR, "${prefix}/${DATADIRNAME}/locale")
-  AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR, "${prefix}/${DATADIRNAME}/${PACKAGE}")
-  PACKAGE_LIB_DIR="${prefix}/lib/${PACKAGE}"
-  PACKAGE_PIXMAPS_DIR="${prefix}/${DATADIRNAME}/pixmaps/${PACKAGE}"
+	prefix=`$GNOME_CONFIG --prefix`
 fi
+
+dnl Set PACKAGE_*_DIR in config.h.
+AC_DEFINE_UNQUOTED(PACKAGE_LOCALE_DIR, "${prefix}/${DATADIRNAME}/locale")
+AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR, "${prefix}/${DATADIRNAME}/${PACKAGE}")
+PACKAGE_LIB_DIR="${prefix}/lib/${PACKAGE}"
+PACKAGE_PIXMAPS_DIR="${prefix}/${DATADIRNAME}/pixmaps/${PACKAGE}"
 
 AC_DEFINE_UNQUOTED(PACKAGE_LIB_DIR, "${PACKAGE_LIB_DIR}")
 AC_SUBST(PACKAGE_LIB_DIR)
@@ -361,10 +352,37 @@ AC_SUBST(X_XDPMS_LIBS)
 fi
 fi
 
+dnl Avoid passing a zillion times the same flags to gcc
+if test -f /usr/bin/perl; then
+    cat > clean.pl << EOF
+#!/usr/bin/perl
+my %tokens = ();
+
+foreach \$i (@ARGV) {
+    ++\$tokens{\$i};
+}
+
+foreach \$token (keys %tokens) {
+    print "\$token ";
+}
+EOF
+else
+    cat > clean.pl << EOF
+#!/bin/sh
+echo \$*
+EOF
+fi
+chmod 0744 clean.pl
+
+CFLAGS=`./clean.pl $CFLAGS`
+COMMON_INCLUDES=`./clean.pl $X_CFLAGS $ARCH_CFLAGS $GNOME_INCLUDEDIR $GDK_PIXBUF_CFLAGS $UNICODE_CFLAGS $LIBXML_CFLAGS $CPPFLAGS`
+CPPFLAGS=""
+AC_SUBST(COMMON_INCLUDES)
+
 dnl Default dir for installing plugins
 PLUGIN_DEFAULT_DIR="${PACKAGE_LIB_DIR}/plugins"
 AC_SUBST(PLUGIN_DEFAULT_DIR)
-PLUGIN_DEFAULT_FLAGS="-Wall -Wno-unused -g -D_GNU_SOURCE"
+PLUGIN_DEFAULT_FLAGS="$CFLAGS -Wno-unused"
 AC_SUBST(PLUGIN_DEFAULT_FLAGS)
 
 AC_OUTPUT([

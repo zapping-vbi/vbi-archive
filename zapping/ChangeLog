@@ -1,3 +1,12 @@
+21.08.2001	es updated <garetxe@users.sf.net>
+
+	* es.po: Up to date, preparation for 0.6.0 release.
+	* configure.in: Cleaned up the gcc options a bit, avoid passing
+	many times the same flag. Use gnome-config --prefix instead of
+	ac_default_prefix.
+	* src/ttxview.c: Use Michael's left, rigth arrows instead of
+	<>. The rest will come later.
+
 21.08.2001	<mschimek@users.sf.net>
 
 	* Committed pixmaps: left, right, up, down, reveal, parrot.

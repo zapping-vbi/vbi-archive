@@ -11,11 +11,9 @@ libmpeg_zapping_la_LIBADD = $(RTE_LIB)
 
 pkgdata_DATA = mpeg_properties.glade
 
-CFLAGS = @CFLAGS@ $(PLUGIN_DEFAULT_FLAGS)
+CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
 
 INCLUDES = \
-$(X_CFLAGS) \
+$(COMMON_INCLUDES) \
 -I$(top_srcdir)/intl \
--I$(includedir)	\
-$(GNOME_INCLUDEDIR) \
 -I$(top_srcdir)/src ## Let the plugin access Zapping headers

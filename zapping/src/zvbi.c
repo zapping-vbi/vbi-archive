@@ -324,7 +324,6 @@ acknowledge_trigger			(vbi_link	*link)
   GdkPixmap *pixmap;
   GdkPixbuf *pb;
   GtkWidget *pix;
-  gchar *filename;
   gint filter_level = 9;
   gint action = zcg_int(NULL, "trigger_default");
 
@@ -377,14 +376,9 @@ acknowledge_trigger			(vbi_link	*link)
     }
 
   if (link->eacem)
-    filename = g_strdup_printf("%s/%s.png", PACKAGE_DATA_DIR,
-			       "../pixmaps/zapping/eacem_icon");
+    pb = gdk_pixbuf_new_from_file(PACKAGE_PIXMAPS_DIR "/eacem_icon.png");
   else
-    filename = g_strdup_printf("%s/%s.png", PACKAGE_DATA_DIR,
-			       "../pixmaps/zapping/atvef_icon");
-
-  pb = gdk_pixbuf_new_from_file(filename);
-  g_free(filename);
+    pb = gdk_pixbuf_new_from_file(PACKAGE_PIXMAPS_DIR "/atvef_icon.png");
 
   if (pb)
     {

@@ -3398,6 +3398,10 @@ build_ttxview(void)
 {
   GtkWidget *ttxview = create_ttxview();
   GtkWidget *ttxview_reveal;
+  GdkBitmap *mask;
+  GdkPixmap *pixmap;
+  GdkPixbuf *pb;
+  GtkWidget *pix;
   ttxview_data *data;
 
   if (!zvbi_get_object())
@@ -3523,6 +3527,42 @@ build_ttxview(void)
 
   inc_model_count();
 
+  pb = gdk_pixbuf_new_from_file(PACKAGE_PIXMAPS_DIR "/left.png");
+  if (pb)
+    {
+      gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
+      pix = gtk_pixmap_new(pixmap, mask);
+      gtk_widget_show(pix);
+      gdk_bitmap_unref(mask);
+      gdk_bitmap_unref(pixmap);
+      gdk_pixbuf_unref(pb);
+    }
+  else
+    {
+      pix = gtk_label_new("<");;
+      gtk_widget_show(pix);
+    }
+  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
+				  "ttxview_prev_subpage")), pix);
+
+  pb = gdk_pixbuf_new_from_file(PACKAGE_PIXMAPS_DIR "/right.png");
+  if (pb)
+    {
+      gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
+      pix = gtk_pixmap_new(pixmap, mask);
+      gtk_widget_show(pix);
+      gdk_bitmap_unref(mask);
+      gdk_bitmap_unref(pixmap);
+      gdk_pixbuf_unref(pb);
+    }
+  else
+    {
+      pix = gtk_label_new(">");;
+      gtk_widget_show(pix);
+    }
+  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
+				  "ttxview_next_subpage")), pix);
+
   return (ttxview);
 }
 
@@ -3535,6 +3575,10 @@ ttxview_attach			(GtkWidget	*parent,
   ttxview_data *data =
     gtk_object_get_data(GTK_OBJECT(parent), "ttxview_data");
   GtkWidget *ttxview_reveal;
+  GdkBitmap *mask;
+  GdkPixmap *pixmap;
+  GdkPixbuf *pb;
+  GtkWidget *pix;
   gint w, h;
 
   if (!zvbi_get_object())
@@ -3678,6 +3722,42 @@ ttxview_attach			(GtkWidget	*parent,
   load_page(0x100, ANY_SUB, data, NULL);
 
   setup_history_gui(data);
+
+  pb = gdk_pixbuf_new_from_file(PACKAGE_PIXMAPS_DIR "/left.png");
+  if (pb)
+    {
+      gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
+      pix = gtk_pixmap_new(pixmap, mask);
+      gtk_widget_show(pix);
+      gdk_bitmap_unref(mask);
+      gdk_bitmap_unref(pixmap);
+      gdk_pixbuf_unref(pb);
+    }
+  else
+    {
+      pix = gtk_label_new("<");;
+      gtk_widget_show(pix);
+    }
+  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
+				  "ttxview_prev_subpage")), pix);
+
+  pb = gdk_pixbuf_new_from_file(PACKAGE_PIXMAPS_DIR "/right.png");
+  if (pb)
+    {
+      gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
+      pix = gtk_pixmap_new(pixmap, mask);
+      gtk_widget_show(pix);
+      gdk_bitmap_unref(mask);
+      gdk_bitmap_unref(pixmap);
+      gdk_pixbuf_unref(pb);
+    }
+  else
+    {
+      pix = gtk_label_new(">");;
+      gtk_widget_show(pix);
+    }
+  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
+				  "ttxview_next_subpage")), pix);
 
   inc_model_count();
 }

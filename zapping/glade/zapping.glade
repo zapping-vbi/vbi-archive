@@ -3856,13 +3856,16 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <key>GDK_minus</key>
 	      <signal>clicked</signal>
 	    </accelerator>
-	    <label>&lt;</label>
 	    <relief>GTK_RELIEF_NORMAL</relief>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
 	      <fill>False</fill>
 	    </child>
+
+	    <widget>
+	      <class>Placeholder</class>
+	    </widget>
 	  </widget>
 
 	  <widget>
@@ -3911,13 +3914,16 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <key>GDK_plus</key>
 	      <signal>clicked</signal>
 	    </accelerator>
-	    <label>&gt;</label>
 	    <relief>GTK_RELIEF_NORMAL</relief>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
 	      <fill>False</fill>
 	    </child>
+
+	    <widget>
+	      <class>Placeholder</class>
+	    </widget>
 	  </widget>
 	</widget>
 
