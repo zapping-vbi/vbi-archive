@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.6 2001-01-05 03:51:52 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.7 2001-02-07 04:39:30 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -92,8 +92,9 @@ static const char *	html_flash[]		= { "</blink>", "<blink>" };
  *  WARNING this destroys pg->data
  */
 static int
-html_output(struct export *e, char *name, struct fmt_page *pg)
+html_output(struct export *e, char *name, struct fmt_page *pgp)
 {
+	struct fmt_page pg;
 	char *charset;
 	iconv_t cd;
 	attr_char *acp;
@@ -104,7 +105,9 @@ html_output(struct export *e, char *name, struct fmt_page *pg)
 	FILE *fp;
 	int i, j;
 
-	switch (pg->font[0] - font_descriptors) {
+	pg = *pgp;
+
+	switch (pg.font[0] - font_descriptors) {
 	case 0:	 /* English */
 	case 1:	 /* German */
 	case 2:	 /* Swedish/Finnish/Hungarian */
@@ -179,11 +182,11 @@ html_output(struct export *e, char *name, struct fmt_page *pg)
 	flash      = FALSE;
 #endif
 
-	for (acp = pg->data[0], i = 0; i < 25; acp += 40, i++) {
+	for (acp = pg.data[0], i = 0; i < 25; acp += 40, i++) {
 		int blank = 0;
 
 		for (j = 0; j < 40; j++) {
-			int glyph = acp[j].glyph;
+			int glyph = (acp[j].conceal && !e->reveal) ? GL_SPACE : acp[j].glyph;
 #if TEST
 			acp[j].underline = underline;
 			acp[j].bold	 = bold;
@@ -262,16 +265,16 @@ html_output(struct export *e, char *name, struct fmt_page *pg)
 				mind reserved chars (quote) and character set */
 			"</head>" LF,
 			charset,
-			pg->vtp->pgno, pg->vtp->subno);
+			pg.vtp->pgno, pg.vtp->subno);
 
 		fputs("<body text=\"#FFFFFF\" bgcolor=\"", fp);
-		hash_colour(fp, pg->colour_map[pg->screen_colour]);
+		hash_colour(fp, pg.colour_map[pg.screen_colour]);
 		fputs("\">" LF "<pre>", fp);
 	} else
 		fputs("<pre>", fp);
 
 	foreground = 7;
-	background = pg->screen_colour;
+	background = pg.screen_colour;
 	underline  = FALSE;
 	bold	   = FALSE;
 	italic	   = FALSE;
@@ -279,7 +282,7 @@ html_output(struct export *e, char *name, struct fmt_page *pg)
 	span	   = FALSE;
 
 	/* XXX this can get extremely large and ugly, should be improved. */
-	for (acp = pg->data[0], i = 0; i < 25; acp += 40, i++) {
+	for (acp = pg.data[0], i = 0; i < 25; acp += 40, i++) {
 		for (j = 0; j < 40; j++) {
 			int code;
 
@@ -304,9 +307,9 @@ html_output(struct export *e, char *name, struct fmt_page *pg)
 				flash      = FALSE;
 
 				fputs("<span style=\"color:", fp);
-				hash_colour(fp, pg->colour_map[foreground]);
+				hash_colour(fp, pg.colour_map[foreground]);
 				fputs(";background-color:", fp);
-				hash_colour(fp, pg->colour_map[background]);
+				hash_colour(fp, pg.colour_map[background]);
 				fputs("\">", fp);
 
 				span = TRUE;
@@ -350,6 +353,7 @@ html_output(struct export *e, char *name, struct fmt_page *pg)
 				flash = acp[j].flash;
 				fputs(html_flash[flash], fp);
 			}
+
 #if TEST
 			if (!(rand() & 15))
 				code = glyph_iconv(cd, 0x100 + (rand() & 0xFF), D->gfx_chr);

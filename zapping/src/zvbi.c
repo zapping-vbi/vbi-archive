@@ -361,11 +361,11 @@ build_client_page(struct ttx_client *client, struct vt_page *vtp)
   if ((vtp) && (vtp != (struct vt_page*)-1))
     {
       memcpy(&client->vtp, vtp, vtp_size(vtp));
-      if (!fmt_page(FALSE, &client->fp, vtp, 25))
+      if (!vbi_format_page(&client->fp, vtp, 25))
         goto unlock;
       client->fp.vtp = &client->vtp;
       vbi_draw_page(&client->fp,
-		    gdk_pixbuf_get_pixels(client->unscaled));
+		    gdk_pixbuf_get_pixels(client->unscaled), 0);
     }
   else if (vtp != (struct vt_page*)-1)
     {
@@ -462,7 +462,7 @@ void monitor_ttx_this(int id, struct fmt_page *pg)
       memcpy(&client->vtp, pg->vtp, vtp_size(pg->vtp));
       memcpy(&client->fp, pg, sizeof(struct fmt_page));
       vbi_draw_page(&client->fp,
-		    gdk_pixbuf_get_pixels(client->unscaled));
+		    gdk_pixbuf_get_pixels(client->unscaled), 0);
       build_client_page(client, (struct vt_page*)-1);
       clear_message_queue(client);
       send_ttx_message(client, TTX_PAGE_RECEIVED);
@@ -474,6 +474,9 @@ void
 get_ttx_index(int id, int *pgno, int *subno)
 {
   struct ttx_client *client;
+
+  /* {mhs} discouraged, use vbi_resolve_home() instead */
+  g_assert(0);
 
   if ((!pgno) || (!subno))
     return;

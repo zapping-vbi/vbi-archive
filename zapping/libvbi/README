@@ -11,7 +11,7 @@ Changes:
   * Made fmt_page(..) public and removed the need for passing an
 	export struct
   {mhs}
-  * fmt_char -> common renderer attr_char (unfinished)
+  * fmt_char -> common renderer attr_char
   * added level 2.5/3.5 character size attributes
   * modified fmt_page for level 2.5/3.5 enhanced triplets
     (mainly set-at, set-after and double height lower row correction)

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.9 2001-01-24 22:48:51 mschimek Exp $ */
+/* $Id: caption.c,v 1.10 2001-02-07 04:39:30 mschimek Exp $ */
 
 #define TEST 1
 
@@ -605,42 +605,7 @@ itv_separator(char c)
 /* Caption */
 
 #include "ccfont.xbm"
-
-/*
- *  WST/CC BGR palette, prepare for 32 random entries in the
- *  future: Store palette in render context, depth and endianess
- *  hardware specific (e.g. 8:8:8 or CI8), remember palette
- *  until we switch stations (decoder will fetch station palette
- *  from cache and reload all entries), export a load function
- *  (int index, uchar r, g, b).
- */
-typedef enum {
-	BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
-} colours;
-
-/*
- *  TRANSPARENT_SPACE:
- *    Display video if possible, otherwise override opacity
- *    as desired and display as normal glyph (all attributes
- *    and colours valid, character is 0x20 space on given
- *    code page)
- *  other: overlay glyph as requested, otherwise override
- *    opacity as desired by user or mandated by hardware
- *    limitations.
- */
-typedef enum {
-	TRANSPARENT_SPACE, TRANSPARENT, SEMI_TRANSPARENT, OPAQUE
-} opacity;
-
-typedef struct {
-	unsigned	underline	: 1;
-	unsigned	flash		: 1;  /* how, if? */
-	unsigned	pad		: 6;
-	unsigned	opacity		: 2;
-	unsigned	foreground	: 3;
-	unsigned	background	: 3;
-	unsigned	glyph		: 16;
-} attr_char;
+#include "format.h"
 
 /*
  *  Render <row> 0 ... 14 or -1 all rows, from <buffer> if you're

@@ -207,7 +207,7 @@ find_prev_subpage (ttxview_data	*data, int subpage)
     return -1;
 
   do {
-    subpage = dec2hex(hex2dec(subpage) - 1);
+    subpage = add_bcd(subpage, 0x999);
 
     if (subpage == start_subpage)
       return -1;
@@ -230,8 +230,8 @@ find_next_subpage (ttxview_data	*data, int subpage)
     return -1;
 
   do {
-    subpage = dec2hex(hex2dec(subpage) + 1);
-    
+    subpage = add_bcd(subpage, 0x001);
+
     if (subpage == start_subpage)
       return -1;
     
@@ -327,10 +327,9 @@ update_pointer (ttxview_data *data)
   gint x, y;
   GdkModifierType mask;
   gint w, h, col, row;
-  gint page, subpage;
   gchar *buffer;
   GtkWidget *widget = data->da;
-  
+
   gdk_window_get_pointer(widget->window, &x, &y, &mask);
 
   gdk_window_get_size(widget->window, &w, &h);
@@ -345,15 +344,31 @@ update_pointer (ttxview_data *data)
   if ((col < 0) || (col >= 40) || (row < 0) || (row >= 25))
     return;
 
-  page = data->fmt_page->data[row][col].link_page;
-  subpage = data->fmt_page->data[row][col].link_subpage;
-
-  if (page)
+  if (data->fmt_page->data[row][col].link)
     {
-      if (subpage == (guchar)ANY_SUB)
-	buffer = g_strdup_printf(_(" Page %d"), hex2dec(page));
-      else
-	buffer = g_strdup_printf(_(" Subpage %d"), hex2dec(subpage));
+      vbi_link_descr ld;
+
+      vbi_resolve_link(data->fmt_page, col, row, &ld);
+
+      switch (ld.type)
+        {
+	case VBI_LINK_PAGE:
+	  buffer = g_strdup_printf(_(" Page %d"), bcd2dec(ld.pgno));
+	  break;
+
+	case VBI_LINK_SUBPAGE:
+	  buffer = g_strdup_printf(_(" Subpage %d"), bcd2dec(ld.subno & 0xFF));
+	  break;
+
+	case VBI_LINK_HTTP:
+	case VBI_LINK_FTP:
+	case VBI_LINK_EMAIL:
+	  buffer = g_strdup_printf(" %s", ld.text);
+	  break;
+
+        default:
+	  goto no_link;
+	}
       if (!data->in_link)
 	{
 	  if (data->appbar)
@@ -367,6 +382,7 @@ update_pointer (ttxview_data *data)
     }
   else
     {
+no_link:
       if (data->in_link)
 	{
 	  if (data->appbar)
@@ -436,7 +452,7 @@ load_page (int page, int subpage, ttxview_data *data,
   GtkWidget *widget;
   gchar *buffer;
 
-  buffer = g_strdup_printf("%d", hex2dec(page));
+  buffer = g_strdup_printf("%d", bcd2dec(page));
   gtk_label_set_text(GTK_LABEL(ttxview_url), buffer);
   g_free(buffer);
 
@@ -483,10 +499,13 @@ static
 void on_ttxview_home_clicked		(GtkButton	*button,
 					 ttxview_data	*data)
 {
-  int page, subpage;
+  vbi_link_descr ld;
 
-  get_ttx_index(data->id, &page, &subpage);
-  load_page(page, subpage, data, NULL);
+  vbi_resolve_home(data->fmt_page, &ld);
+
+  if (ld.type == VBI_LINK_PAGE || ld.type == VBI_LINK_SUBPAGE)
+    load_page(ld.pgno, ld.subno, data, NULL);
+  /* else VBI_LINK_HTTP, "http://zapping.sourceforge.net" :-) */
 }
 
 static
@@ -535,9 +554,11 @@ static
 void on_ttxview_prev_subpage_clicked	(GtkButton	*button,
 					 ttxview_data	*data)
 {
-  gint new_subpage = dec2hex(hex2dec(data->subpage) - 1);
-  if (new_subpage < 0)
+  gint new_subpage;
+  if (data->subpage == 0)
     new_subpage = 0x99;
+  else
+    new_subpage = add_bcd(data->subpage, 0x99) & 0xFF;
   load_page(data->fmt_page->vtp->pgno, new_subpage, data, NULL);
 }
 
@@ -569,9 +590,11 @@ static
 void on_ttxview_next_subpage_clicked	(GtkButton	*button,
 					 ttxview_data	*data)
 {
-  gint new_subpage = dec2hex(hex2dec(data->subpage) + 1);
-  if (new_subpage > 0x99)
-    new_subpage = 0;
+  gint new_subpage;
+  if (data->subpage >= 0x99)
+    new_subpage = 0x00;
+  else
+    new_subpage = add_bcd(data->subpage, 0x01);
   load_page(data->fmt_page->vtp->pgno, new_subpage, data, NULL);
 }
 
@@ -1016,7 +1039,7 @@ void new_bookmark			(GtkWidget	*widget,
     page = data->fmt_page->vtp->pgno;
   subpage = data->monitored_subpage;
 
-  if (vbi_page_title(vbi, page, title))
+  if (vbi_page_title(vbi, page, subpage, title))
     {
       if (subpage != ANY_SUB)
         default_description =
@@ -1381,7 +1404,8 @@ process_ttxview_menu_popup		(GtkWidget	*widget,
 					 GdkEventButton	*event,
 					 GtkMenu	*popup)
 {
-  gint w, h, col, row, page, subpage;
+  gint w, h, col, row;
+  vbi_link_descr ld;
   GtkMenu *menu;
   ttxview_data *data = gtk_object_get_data(GTK_OBJECT(widget),
 					   "ttxview_data");
@@ -1395,12 +1419,18 @@ process_ttxview_menu_popup		(GtkWidget	*widget,
   /* convert to fmt_page space */
   col = (event->x*40)/w;
   row = (event->y*25)/h;
-  page = data->fmt_page->data[row][col].link_page;
-  subpage = data->fmt_page->data[row][col].link_subpage;
-  if (subpage == (guchar)ANY_SUB)
-    subpage = ANY_SUB;  
 
-  menu = GTK_MENU(build_ttxview_popup(data, page, subpage));
+  ld.pgno = ld.subno = 0;
+  if (data->fmt_page->data[row][col].link)
+    {
+      vbi_resolve_link(data->fmt_page, col, row, &ld);
+
+      if (ld.type != VBI_LINK_PAGE &&
+          ld.type != VBI_LINK_SUBPAGE)
+        ld.pgno = ld.subno = 0;
+    }
+
+  menu = GTK_MENU(build_ttxview_popup(data, ld.pgno, ld.subno));
 
   menu_item =
     z_gtk_pixmap_menu_item_new("Zapzilla", GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
@@ -1418,7 +1448,8 @@ on_ttxview_button_press			(GtkWidget	*widget,
 					 GdkEventButton	*event,
 					 ttxview_data	*data)
 {
-  gint w, h, col, row, page, subpage;
+  gint w, h, col, row;
+  vbi_link_descr ld;
   GtkWidget *dolly;
   GtkMenu *menu;
 
@@ -1426,32 +1457,62 @@ on_ttxview_button_press			(GtkWidget	*widget,
   /* convert to fmt_page space */
   col = (event->x*40)/w;
   row = (event->y*25)/h;
-  page = data->fmt_page->data[row][col].link_page;
-  subpage = data->fmt_page->data[row][col].link_subpage;
-  if (subpage == (guchar)ANY_SUB)
-    subpage = ANY_SUB;
+
+  ld.type = VBI_LINK_NONE;
+  ld.pgno = ld.subno = 0;
+
+  if (data->fmt_page->data[row][col].link)
+    vbi_resolve_link(data->fmt_page, col, row, &ld);
 
   switch (event->button)
     {
     case 1:
-      if (page)
-	load_page(page, subpage, data, NULL);
+      switch (ld.type)
+        {
+	case VBI_LINK_PAGE:
+	case VBI_LINK_SUBPAGE:
+	  load_page(ld.pgno, ld.subno, data, NULL);
+	  break;
+
+	case VBI_LINK_HTTP:
+	case VBI_LINK_FTP:
+	case VBI_LINK_EMAIL:
+	  /* Action TBD */
+	  break;
+
+	default:
+	}
       break;
     case 2: /* middle button, open link in new window */
-      if (page)
-	{
+      switch (ld.type)
+        {
+	case VBI_LINK_PAGE:
+	case VBI_LINK_SUBPAGE:
 	  dolly = build_ttxview();
-	  load_page(page, subpage,
+	  load_page(ld.pgno, ld.subno,
 	    (ttxview_data*)gtk_object_get_data(GTK_OBJECT(dolly),
 					       "ttxview_data"), NULL);
 	  gtk_widget_show(dolly);
+	  break;
+
+	case VBI_LINK_HTTP:
+	case VBI_LINK_FTP:
+	case VBI_LINK_EMAIL:
+	  /* Action TBD */
+	  break;
+
+	default:
 	}
       break;
     default: /* context menu */
       if (data->popup_menu)
 	{
-	  menu = GTK_MENU(build_ttxview_popup(data, page,
-					      subpage));
+	  if (ld.type != VBI_LINK_PAGE &&
+	      ld.type != VBI_LINK_SUBPAGE)
+	    ld.pgno = ld.subno = 0;
+
+	  menu = GTK_MENU(build_ttxview_popup(data, ld.pgno,
+					      ld.subno));
 	  gtk_menu_popup(menu, NULL, NULL, NULL,
 			 NULL, event->button, event->time);
 	}
@@ -1482,7 +1543,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	load_page(data->page, ANY_SUB, data, NULL);
       else
 	{
-	  buffer = g_strdup_printf("%d", hex2dec(data->page));
+	  buffer = g_strdup_printf("%d", bcd2dec(data->page));
 	  gtk_label_set_text(GTK_LABEL(lookup_widget(data->toolbar,
 			     "ttxview_url")), buffer);
 	  g_free(buffer);
@@ -1498,7 +1559,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	load_page(data->page, ANY_SUB, data, NULL);
       else
 	{
-	  buffer = g_strdup_printf("%d", hex2dec(data->page));
+	  buffer = g_strdup_printf("%d", bcd2dec(data->page));
 	  gtk_label_set_text(GTK_LABEL(lookup_widget(data->toolbar,
 			     "ttxview_url")), buffer);
 	  g_free(buffer);
@@ -1507,9 +1568,9 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
     case GDK_Page_Down:
     case GDK_KP_Page_Down:
       if (data->page < 0x100)
-	data->page = data->fmt_page->vtp->pgno + 0x10;
+	data->page = add_bcd(data->fmt_page->vtp->pgno, 0x010);
       else
-	data->page += 0x10;
+	data->page = add_bcd(data->page, 0x010);
       if (data->page > 0x899)
 	data->page = 0x100;
       load_page(data->page, ANY_SUB, data, NULL);
@@ -1517,9 +1578,9 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
     case GDK_Page_Up:
     case GDK_KP_Page_Up:
       if (data->page < 0x100)
-	data->page = data->fmt_page->vtp->pgno - 0x10;
+	data->page = add_bcd(data->fmt_page->vtp->pgno, 0x990);
       else
-	data->page = data->page - 0x10;
+	data->page = add_bcd(data->page, 0x990);
       if (data->page < 0x100)
 	data->page = 0x899;
       load_page(data->page, ANY_SUB, data, NULL);
@@ -1527,9 +1588,9 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
     case GDK_KP_Up:
     case GDK_Up:
       if (data->page < 0x100)
-	data->page = dec2hex(hex2dec(data->fmt_page->vtp->pgno) - 1);
+	data->page = add_bcd(data->fmt_page->vtp->pgno, 0x999);
       else
-	data->page = dec2hex(hex2dec(data->page) - 1);
+	data->page = add_bcd(data->page, 0x999);
       if (data->page < 0x100)
 	data->page = 0x899;
       load_page(data->page, ANY_SUB, data, NULL);
@@ -1537,9 +1598,9 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
     case GDK_KP_Down:
     case GDK_Down:
       if (data->page < 0x100)
-	data->page = dec2hex(hex2dec(data->fmt_page->vtp->pgno) + 1);
+	data->page = add_bcd(data->fmt_page->vtp->pgno, 0x001);
       else
-	data->page = dec2hex(hex2dec(data->page) + 1);
+	data->page = add_bcd(data->page, 0x001);
       if (data->page > 0x899)
 	data->page = 0x100;
       load_page(data->page, ANY_SUB, data, NULL);

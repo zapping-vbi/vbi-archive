@@ -8,7 +8,7 @@ CFLAGS = -D_GNU_SOURCE -g -O0 -Wall $(ARCH_CFLAGS)
 libvbi_a_SOURCES = \
 	decoder.c sliced.h decoder.h v4lx.c v4lx.h \
 	cache.c cache.h \
-	exp-gfx.c exp-html.c exp-txt.c export.c export.h \
+	exp-gfx.c exp-html.c exp-txt.c export.c export.h format.h \
 	dllist.h \
 	hamm.c hamm.h \
 	lang.c lang.h \

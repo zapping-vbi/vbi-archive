@@ -1,3 +1,11 @@
+7.2.2001	Zapzilla navigation <mschimek@users.sourceforge.net>
+
+	* new add_bcd and carry fix in on_ttxview_key_press()
+	* modified links, double width/size safe and http/ftp/email,
+	  action tbd.
+	* unified CC/WST attr_char, added format.h.
+	* moved conceal/reveal into render functions; Need a reveal button.
+
 5.2.2001	Set input <garetxe@users.sourceforge.net>
 
 	* src/zmisc.c: Applied patch by Magnus Sandin to keep input whilst

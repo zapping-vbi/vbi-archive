@@ -34,28 +34,6 @@ hash(int pgno)
 }
 
 static void
-do_erc(struct vt_page *ovtp, struct vt_page *nvtp)
-{
-//    int l, c;
-
-//    if (nvtp->errors == 0 && ovtp->lines == nvtp->lines)
-	return;
-
-/* obsolete
-    for (l = 0; l < H; ++l)
-    {
-	if (~nvtp->lines & (1 << l))
-	    memcpy(nvtp->data[l], ovtp->data[l], W);
-	else if (ovtp->lines & (1 << l))
-	    for (c = 0; c < W; ++c)
-		if (nvtp->data[l][c] == BAD_CHAR)
-		    nvtp->data[l][c] = ovtp->data[l][c];
-    }
-    nvtp->lines |= ovtp->lines;
-*/
-}
-
-static void
 cache_close(struct cache *ca)
 {
     struct cache_page *cp;
@@ -118,38 +96,6 @@ cache_get(struct cache *ca, int pgno, int subno, int subno_mask)
     Put a page in the cache.
     If it's already there, it is updated.
 */
-
-static struct vt_page *
-old_cache_put(struct cache *ca, struct vt_page *vtp)
-{
-    struct cache_page *cp;
-    int h = hash(vtp->pgno);
-    
-    for (cp = $ ca->hash[h].first; cp->node->next; cp = $ cp->node->next)
-	if (cp->page->pgno == vtp->pgno && cp->page->subno == vtp->subno)
-	    break;
-
-    if (cp->node->next)
-    {
-	// move to front.
-	dl_insert_first(ca->hash + h, dl_remove(cp->node));
-	if (ca->erc)
-	    do_erc(cp->page, vtp);
-    }
-    else
-    {
-	cp = malloc(sizeof(*cp));
-	if (cp == 0)
-	    return 0;
-	if (vtp->subno >= ca->hi_subno[vtp->pgno])
-	    ca->hi_subno[vtp->pgno] = vtp->subno + 1;
-	ca->npages++;
-	dl_insert_first(ca->hash + h, cp->node);
-    }
-
-    *cp->page = *vtp;
-    return cp->page;
-}
 
 static struct vt_page *
 cache_put(struct cache *ca, struct vt_page *vtp)

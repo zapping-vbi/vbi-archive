@@ -15,6 +15,7 @@
 #include "export.h"
 #include "tables.h"
 
+
 static void reset_magazines(struct vbi *vbi);
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 static bool convert_drcs(struct vt_page *vtp, unsigned char *raw);
@@ -156,7 +157,7 @@ dump_page_info(struct vbi *vbi)
 /*
  *  ETS 300 706 Table 30: Colour Map
  */
-static const rgba
+static const attr_rgba
 default_colour_map[40] = {
 	0xFF000000, 0xFF0000FF, 0xFF00FF00, 0xFF00FFFF,	0xFFFF0000, 0xFFFF00FF, 0xFFFFFF00, 0xFFFFFFFF,
 	0xFF000000, 0xFF000077, 0xFF007700, 0xFF007777, 0xFF770000, 0xFF770077, 0xFF777700, 0xFF777777,
@@ -595,7 +596,7 @@ parse_mip(struct vbi *vbi, int mag8, u8 *raw, int packet)
  *  Table Of Pages navigation
  */
 
-static const int dec2bcd[20] = {
+static const int dec2bcdp[20] = {
 	0x000, 0x040, 0x080, 0x120, 0x160, 0x200, 0x240, 0x280, 0x320, 0x360,
 	0x400, 0x440, 0x480, 0x520, 0x560, 0x600, 0x640, 0x680, 0x720, 0x760
 };
@@ -627,7 +628,7 @@ parse_btt(struct vbi *vbi, u8 *raw, int packet)
 	switch (packet) {
 	case 1 ... 20:
 	{
-		int i, j, index = dec2bcd[packet - 1];
+		int i, j, index = dec2bcdp[packet - 1];
 		char n;
 
 		for (i = 0; i < 4; i++) {
@@ -709,7 +710,7 @@ parse_mpt(struct vbi *vbi, u8 *raw, int packet)
 
 	switch (packet) {
 	case 1 ... 20:
-		index = dec2bcd[packet - 1];
+		index = dec2bcdp[packet - 1];
 
 		for (i = 0; i < 4; i++) {
 			for (j = 0; j < 10; index++, j++)
@@ -1193,47 +1194,58 @@ vt_packet(struct vbi *vbi, u8 *p)
 	switch (packet) {
 	case 0:
 	{
-		int page, subpage, flags;
+		int pgno, page, subpage, flags;
 		struct raw_page *curr;
 		struct vt_page *vtp;
 
 		if ((page = hamm16a(p)) < 0) {
 			out_of_sync(vbi);
+//			printf("Hamming error in packet 0 page number\n");
 			return FALSE;
 		}
 
-		if ((curr = vbi->current)) {
+		pgno = mag8 * 256 + page;
+
+		while ((curr = vbi->current)) {
 			vtp = curr->page;
 
-			if (!(vtp->flags & C11_MAGAZINE_SERIAL)) {
+			if (vtp->flags & C11_MAGAZINE_SERIAL) {
+				if (vtp->pgno == pgno)
+					break;
+			} else {
 				curr = rvtp;
 				vtp = curr->page;
+
+				if ((vtp->pgno & 0xFF) == page)
+					break;
 			}
 
-			if (((vtp->pgno ^ page) & 0xFF)
-			    && vtp->function != PAGE_FUNCTION_DISCARD) {
-				vbi_send_page(vbi, curr);
+			if (vtp->function == PAGE_FUNCTION_DISCARD)
+				break;
 
-				/* objective: format the page only once */
-				if (0 /* rolling header requested */
-				    && vtp->function == PAGE_FUNCTION_LOP
-				    && !(vtp->flags & C9_INTERRUPTED)
-				    && (vtp->pgno <= 0x199 || (vtp->flags & C11_MAGAZINE_SERIAL)))
-				{
-					if (0) {
-						for (i = 0; i < 40; i++)
-							putchar(printable(vtp->data.unknown.raw[0][i]));
-						putchar('\r');
-						fflush(stdout);
-					}
+			vbi_send_page(vbi, curr);
+
+			/* objective: format the page only once */
+			if (0 /* rolling header requested */
+			    && vtp->function == PAGE_FUNCTION_LOP
+			    && !(vtp->flags & C9_INTERRUPTED)
+			    && (vtp->pgno <= 0x199 || (vtp->flags & C11_MAGAZINE_SERIAL)))
+			{
+				if (0) {
+					for (i = 0; i < 40; i++)
+						putchar(printable(vtp->data.unknown.raw[0][i]));
+					putchar('\r');
+					fflush(stdout);
 				}
-
-				vtp->function = PAGE_FUNCTION_DISCARD;
 			}
+
+			vtp->function = PAGE_FUNCTION_DISCARD;
+
+			break;
 		}
 
+		cvtp->pgno = pgno;
 		vbi->current = rvtp;
-		cvtp->pgno = mag8 * 256 + page;
 
 		subpage = hamm16a(p + 2) + hamm16a(p + 4) * 256;
 		flags = hamm16a(p + 6);
@@ -1665,7 +1677,7 @@ if(0)
 			j = (designation == 4) ? 16 : 32;
 
 			for (i = j - 16; i < j; i++) {
-				rgba col = bits(12);
+				attr_rgba col = bits(12);
 
 				if (i == 8) /* transparent */
 					continue;
@@ -1805,7 +1817,7 @@ if(0)
 
 /* Quick Hack(tm) to read from a sample stream */
 
-//static char *sample_file = "libvbi/samples/t4-arte";
+//static char *sample_file = "libvbi/samples/t2-br";
 static char *sample_file = NULL; // disabled
 static FILE *sample_fd;
 

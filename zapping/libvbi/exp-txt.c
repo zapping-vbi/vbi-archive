@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.6 2001-01-05 03:51:52 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.7 2001-02-07 04:39:30 mschimek Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -48,7 +48,7 @@ struct txt_data			// private data in struct export
     u8 gfx_chr;
     u8 def_fg;
     u8 def_bg;
-    struct fmt_char curr[1];
+    attr_char curr[1];
     FILE *fp;
 };
 

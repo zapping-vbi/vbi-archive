@@ -2,6 +2,7 @@
 #define VT_H
 
 #include "misc.h"
+#include "format.h"
 
 #define W		40
 #define H		25
@@ -88,8 +89,6 @@ typedef struct {
 	char		left_panel_columns;
 } ext_fallback;
 
-typedef unsigned int	rgba;			/* 0xAABBGGRR */
-
 #define TRANSPARENT_BLACK 8
 
 typedef struct {
@@ -107,7 +106,7 @@ typedef struct {
 
 	u8		drcs_clut[2 + 2 * 4 + 2 * 16];
 						/* f/b, dclut4, dclut16 */
-	rgba		colour_map[40];
+	attr_rgba	colour_map[40];
 } vt_extension;
 
 typedef struct vt_triplet {

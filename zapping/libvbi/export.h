@@ -6,50 +6,21 @@
 #include "lang.h"
 #include "../common/types.h"
 
-typedef enum {
-	BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE,
-} colours;
-
-typedef enum {
-	TRANSPARENT_SPACE, TRANSPARENT, SEMI_TRANSPARENT, OPAQUE
-} opacity;
-
-/*
-	N	DW  OT	    DH	    DS  OT
-			    DH2	    DS2 OB
- */
-typedef enum {
-	NORMAL,	DOUBLE_WIDTH, DOUBLE_HEIGHT, DOUBLE_SIZE,
-	OVER_TOP, OVER_BOTTOM, DOUBLE_HEIGHT2, DOUBLE_SIZE2
-} glyph_size;
-
-typedef struct fmt_char {
-	unsigned	underline	: 1;
-	unsigned	bold		: 1;
-	unsigned	italic		: 1;
-	unsigned	flash		: 1;
-	unsigned	conceal		: 1;	/* XXX */
-	unsigned	proportional	: 1;
-	unsigned	size		: 8;
-	unsigned	opacity		: 8;
-	unsigned	foreground	: 8;	// 5
-	unsigned	background	: 8;	// 5
-	unsigned	glyph		: 32;
-	unsigned	link_page	: 16;
-	unsigned	link_subpage	: 8;
-} attr_char;
+#include "format.h"
 
 struct fmt_page
 {
 	struct vt_page *vtp;
-	struct fmt_char data[H][W];
+	/* XXX volatile */
+
+	attr_char		data[H][W];
 
 	int			reveal;
 
-	rgba			screen_colour;
-	opacity			screen_opacity;
+	attr_rgba		screen_colour;
+	attr_opacity		screen_opacity;
 
-	rgba *			colour_map;
+	attr_rgba *		colour_map;
 
 	unsigned char *		drcs_clut;		/* 64 entries */
 	unsigned char *		drcs[32];		/* 16 * 48 * 12 * 10 nibbles, LSN first */
@@ -58,15 +29,18 @@ struct fmt_page
 
 	/* private */
 
+	vt_pagenum		nav_link[6];
+	char			nav_index[W];
+
+	/* private temporary */
+
 	magazine *		magazine;
 	vt_extension *		ext;
 
-	opacity			page_opacity[2];
-	opacity			boxed_opacity[2];
+	attr_opacity		page_opacity[2];
+	attr_opacity		boxed_opacity[2];
 
 	unsigned int		double_height_lower;
-//XXX not
-	unsigned char		row_colour[25];
 
 	/* XXX need a page update flag,
 	 * a) drcs or objects unresolved, redraw when available (consider long
@@ -77,6 +51,10 @@ struct fmt_page
 	 * NB source can be any page and subpage.
 	 */
 };
+
+extern int		vbi_format_page(struct fmt_page *pg, struct vt_page *vtp, int display_rows);
+
+
 
 struct export
 {
@@ -109,18 +87,36 @@ char *export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
 struct export *export_open(char *fmt);
 void export_close(struct export *e);
 int export(struct export *e, struct vt_page *vtp, char *user_str);
-void vbi_draw_page(struct fmt_page *pg, void *data);
+
+void vbi_draw_page(struct fmt_page *pg, void *data, int conceal);
 void vbi_get_rendered_size(int *w, int *h);
 
-/* formats the vtp page into a more easily usable format */
-int
-fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp, int
-	 display_rows);
 
-#define dec2hex(dec) \
-  (((int)(dec)%10) + ((((int)(dec)/10)%10)<<4) + ((((int)(dec)/100)%10)*256))
-#define hex2dec(hex) \
-  (((int)(hex)&0xf) + (((int)(hex)>>4)&0xf)*10 + (((int)(hex)>>8)&0xf)*100)
-#endif
 
-extern int		vbi_page_title(struct vbi *vbi, int pgno, char *buf);
+static inline unsigned int
+dec2bcd(unsigned int dec)
+{
+	return (dec % 10) + ((dec / 10) % 10) * 16 + (dec / 100) * 256;
+}
+
+static inline unsigned int
+bcd2dec(unsigned int bcd)
+{
+	return (bcd & 15) + ((bcd >> 4) & 15) * 10 + (bcd >> 8) * 100;
+}
+
+static inline unsigned int
+add_bcd(unsigned int a, unsigned int b)
+{
+	unsigned int t;
+
+	a += 0x06666666;
+	t  = a + b;
+	b ^= a ^ t;
+	b  = (~b & 0x11111110) >> 3;
+	b |= b * 2;
+
+	return (t - b) & 0xFFF;
+}		     
+
+#endif /* EXPORT_H */

@@ -74,6 +74,7 @@ void monitor_ttx_this(int id, struct fmt_page *pg);
 
 /*
  * Gets the page number of the index page
+ * {mhs} discouraged, use vbi_resolve_home() instead
  */
 void get_ttx_index(int id, int *pgno, int *subno);
 

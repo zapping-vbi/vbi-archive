@@ -7,16 +7,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <assert.h>
+#include "libvbi.h"
 #include "vt.h"
 #include "misc.h"
 #include "export.h"
 #include "vbi.h"
 #include "hamm.h"
-
 #include "lang.h"
 
 /*
-    XXX t2-br p. 490 error?
+    XXX t2-br p. 490 
     XXX 3sat p. 888
  */
 
@@ -271,6 +272,20 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
     return p;
 }
 
+int
+export(struct export *e, struct vt_page *vtp, char *name)
+{
+    struct fmt_page pg[1];
+
+    vbi_format_page(pg, vtp, 25);
+    return e->mod->output(e, name, pg);
+}
+
+
+
+
+
+
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
@@ -278,124 +293,18 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
  #define printv(templ, args...)
 // #define printv printf
 
-
-
-
-
-#define notdigit(x) (!isdigit(x))
-
-static int
-vbi_check_subpage(const char *p, int x, int *n1, int *n2)
-{
-    p += x;
-
-    if (x >= 0 && x < 42-5)
-	if (notdigit(p[1]) || notdigit(p[0]))
-	    if (isdigit(p[2]))
-		if (p[3] == '/' || p[3] == ':')
-		    if (isdigit(p[4]))
-			if (notdigit(p[5]) || notdigit(p[6]))
-			{
-			    *n1 = p[2] % 16;
-			    if (isdigit(p[1]))
-				*n1 += p[1] % 16 * 16;
-			    *n2 = p[4] % 16;
-			    if (isdigit(p[5]))
-				*n2 = *n2 * 16 + p[5] % 16;
-			    if ((*n2 > 0x99) || (*n1 > 0x99) ||
-				(*n1 > *n2))
-			      return FALSE;
-			    return TRUE;
-			}
-    return FALSE;
-}
-
-static int
-vbi_check_page(const char *p, int x, int *pgno, int *subno)
-{
-    p += x;
-
-    if (x >= 0 && x < 42-4)
-      if (notdigit(p[0]) && notdigit(p[4]))
-	if (isdigit(p[1]))
-	  if (isdigit(p[2]))
-	    if (isdigit(p[3]))
-	      {
-		*pgno = p[1] % 16 * 256 + p[2] % 16 * 16 + p[3] % 16;
-		*subno = ANY_SUB;
-		if (*pgno >= 0x100 && *pgno <= 0x899)
-		  return TRUE;
-	      }
-    return FALSE;
-}
-
-/*
-  Text navigation.
-  Given the page, the x and y, tries to find a page number in that
-  position. If succeeds, returns TRUE
-*/
-static int
-vbi_resolve_page(int x, int y, struct vt_page *vtp, int *page,
-		 int *subpage, struct fmt_page *pg)
-{
-	int i, n1, n2;
-	char buffer[42]; /* The line and two spaces on the sides */
-
-	if ((y > 24) || (y <= 0) || (x < 0) || (x > 39) || (!vtp)
-	    || (!page) || (!subpage) || (!pg))
-		return FALSE;
-
-// {mhs}
-// XXX new .ch:  123  123  112233  112233
-//                    123          112233
-/*
-	if (y == 24) {
-		if (vtp->data.lop.flof)
-			return vbi_resolve_flof(x, vtp, page, subpage);
-	}
-*/
-	buffer[0] = buffer[41] = ' ';
-
-	for (i=1; i<41; i++)
-		buffer[i] = pg->data[y][i-1].glyph & 0x3FF; // XXX not pure ASCII
-
-	for (i = -2; i < 1; i++)
-		if (vbi_check_page(buffer, x+i, page, subpage))
-			return TRUE;
-
-	/* try to resolve subpage */
-	for (i = -4; i < 1; i++)
-		if (vbi_check_subpage(buffer, x+i, &n1, &n2))
-		{
-			if (vtp->subno != n1)
-				return FALSE; /* mismatch */
-			n1 = dec2hex(hex2dec(n1)+1);
-			if (n1 > n2)
-				n1 = 1;
-			*page = vtp->pgno;
-			*subpage = n1;
-			return TRUE;
-		}
-	
-	return FALSE;
-}
-
-
-
-
-
 /*
  *  FLOF navigation
  */
 
-static const colours
+static const attr_colours
 flof_link_col[4] = { RED, GREEN, YELLOW, CYAN };
 
-static void
+static inline void
 flof_navigation_bar(struct fmt_page *pg, struct vt_page *vtp)
 {
 	attr_char ac;
-	int n, i, k;
+	int n, i, k, ii;
 
 	memset(&ac, 0, sizeof(ac));
 
@@ -407,7 +316,11 @@ flof_navigation_bar(struct fmt_page *pg, struct vt_page *vtp)
 	for (i = 0; i < 40; i++)
 		pg->data[24][i] = ac;
 
-	for (i = 0; i < 4; i++)
+	ac.link = TRUE;
+
+	for (i = 0; i < 4; i++) {
+		ii = i * 10 + 3;
+
 		for (k = 0; k < 3; k++) {
 			n = ((vtp->data.lop.link[i].pgno >> ((2 - k) * 4)) & 15) + '0';
 
@@ -416,14 +329,15 @@ flof_navigation_bar(struct fmt_page *pg, struct vt_page *vtp)
 
 			ac.glyph = n;
 			ac.foreground = flof_link_col[i];
-			ac.link_page = vtp->data.lop.link[i].pgno;
-			ac.link_subpage = vtp->data.lop.link[i].subno;
-
-			pg->data[24][i * 10 + 3 + k] = ac;
+			pg->data[24][ii + k] = ac;
+			pg->nav_index[ii + k] = i;
 		}
+
+		pg->nav_link[i] = vtp->data.lop.link[i];
+	}
 }
 
-static void
+static inline void
 flof_links(struct fmt_page *pg, struct vt_page *vtp)
 {
 	attr_char *acp = pg->data[24];
@@ -441,9 +355,11 @@ flof_links(struct fmt_page *pg, struct vt_page *vtp)
 				for (j = i - 1; j >= start && acp[j].glyph == GL_SPACE; j--);
 
 				for (; j >= start; j--) {
-					pg->data[24][j].link_page = vtp->data.lop.link[k].pgno;
-					pg->data[24][j].link_subpage = vtp->data.lop.link[k].subno;
+					pg->data[24][j].link = TRUE;
+					pg->nav_index[j] = k;
 				}
+
+		    		pg->nav_link[k] = vtp->data.lop.link[k];
 			}
 
 			if (i >= 40)
@@ -463,12 +379,16 @@ flof_links(struct fmt_page *pg, struct vt_page *vtp)
  */
 
 static bool
-top_label(struct vbi *vbi, font_descriptor *font,
-	  attr_char *acp, int pgno, int foreground, int ff)
+top_label(struct vbi *vbi, struct fmt_page *pg, font_descriptor *font,
+	  int index, int pgno, int foreground, int ff)
 {
+	int column = index * 13 + 1;
 	struct vt_page *vtp;
+	attr_char *acp;
 	ait_entry *ait;
 	int i, j;
+
+	acp = &pg->data[24][column];
 
 	for (i = 0; i < 8; i++)
 		if (vbi->btt_link[i].type == 2) {
@@ -485,36 +405,42 @@ top_label(struct vbi *vbi, font_descriptor *font,
 
 			for (ait = vtp->data.ait, j = 0; j < 46; ait++, j++)
 				if (ait->page.pgno == pgno) {
+					pg->nav_link[index].pgno = pgno;
+					pg->nav_link[index].subno = ANY_SUB;
+
 					for (i = 11; i >= 0; i--)
 						if (ait->text[i] > 0x20)
 							break;
 
 					if (ff && (i <= (11 - ff))) {
 						acp += (11 - ff - i) >> 1;
+						column += (11 - ff - i) >> 1;
 
-						acp[i + 1].link_page = pgno;
-						acp[i + 1].link_subpage = 0xFF & ANY_SUB;
+						acp[i + 1].link = TRUE;
+						pg->nav_index[column + i + 1] = index;
 
 						acp[i + 2].glyph = 0x003E;
 						acp[i + 2].foreground = foreground;
-						acp[i + 2].link_page = pgno;
-						acp[i + 2].link_subpage = 0xFF & ANY_SUB;
+						acp[i + 2].link = TRUE;
+						pg->nav_index[column + i + 2] = index;
 
 						if (ff > 1) {
 							acp[i + 3].glyph = 0x003E;
 							acp[i + 3].foreground = foreground;
-							acp[i + 3].link_page = pgno;
-							acp[i + 3].link_subpage = 0xFF & ANY_SUB;
+							acp[i + 3].link = TRUE;
+							pg->nav_index[column + i + 3] = index;
 						}
-					} else
+					} else {
 						acp += (11 - i) >> 1;
+						column += (11 - i) >> 1;
+					}
 
 					for (; i >= 0; i--) {
 						acp[i].glyph = glyph_lookup(font->G0, font->subset,
 							(ait->text[i] < 0x20) ? 0x20 : ait->text[i]);
 						acp[i].foreground = foreground;
-						acp[i].link_page = pgno;
-						acp[i].link_subpage = 0xFF & ANY_SUB;
+						acp[i].link = TRUE;
+						pg->nav_index[column + i] = index;
 					}
 
 					return TRUE;
@@ -524,11 +450,10 @@ top_label(struct vbi *vbi, font_descriptor *font,
 	return FALSE;
 }
 
-static void
+static inline void
 top_navigation_bar(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp)
 {
 	attr_char ac;
-	ait_entry *ait;
 	int i, got;
 
 	printv("PAGE BTT: %d\n", vtp->vbi->page_info[vtp->pgno - 0x100].btt);
@@ -549,7 +474,7 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp)
 			if ((i & 0x3F) == 0x3F) putchar('\n');
 		}
 
-//	top_label(vbi, pg->font[0], &pg->data[24][1], vtp->pgno, RED, FALSE);
+//	top_label(vbi, pg, pg->font[0], 0, vtp->pgno, RED, FALSE);
 
 	switch (vbi->page_info[vtp->pgno - 0x100].btt) {
 	case 1: // subtitles?
@@ -562,19 +487,19 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp)
 	case 10:
 		for (i = vtp->pgno; i != vtp->pgno + 1; i = (i == 0) ? 0x89a : i - 1)
 			if (vbi->page_info[i - 0x100].btt >= 4 && vbi->page_info[i - 0x100].btt <= 7) {
-				top_label(vbi, pg->font[0], &pg->data[24][1], i, 32 + WHITE, 0);
+				top_label(vbi, pg, pg->font[0], 0, i, 32 + WHITE, 0);
 				break;
 			}
 
 		for (i = vtp->pgno + 1, got = FALSE; i != vtp->pgno; i = (i == 0x899) ? 0x100 : i + 1)
 			switch (vbi->page_info[i - 0x100].btt) {
 			case 4 ... 5:
-				top_label(vbi, pg->font[0], &pg->data[24][27], i, 32 + YELLOW, 2);
+				top_label(vbi, pg, pg->font[0], 2, i, 32 + YELLOW, 2);
 				return;
 
 			case 6 ... 7:
 				if (!got) {
-					top_label(vbi, pg->font[0], &pg->data[24][14], i, 32 + GREEN, 1);
+					top_label(vbi, pg, pg->font[0], 1, i, 32 + GREEN, 1);
 					got = TRUE;
 				}
 
@@ -583,96 +508,133 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp)
 	}
 }
 
+static ait_entry *
+next_ait(struct vbi *vbi, int pgno, int subno)
+{
+	struct vt_page *vtp;
+	ait_entry *ait, *mait = NULL;
+	int mpgno = 0xFFF, msubno = 0xFFFF;
+	int i, j;
+
+	for (i = 0; i < 8; i++) {
+		if (vbi->btt_link[i].type == 2) {
+			vtp = vbi->cache->op->get(vbi->cache,
+				vbi->btt_link[i].pgno, vbi->btt_link[i].subno, 0x3f7f);
+
+			if (!vtp) {
+				printv("top ait page %x not cached\n", vbi->btt_link[i].pgno);
+				continue;
+			} else if (vtp->function != PAGE_FUNCTION_AIT) {
+				printv("no ait page %x\n", vtp->pgno);
+				continue;
+			}
+
+			for (ait = vtp->data.ait, j = 0; j < 46; ait++, j++) {
+				if (!ait->page.pgno)
+					break;
+
+				if (ait->page.pgno < pgno
+				    || (ait->page.pgno == pgno && ait->page.subno <= subno))
+					continue;
+
+				if (ait->page.pgno > mpgno
+				    || (ait->page.pgno == mpgno && ait->page.subno > msubno))
+					continue;
+
+				mait = ait;
+				mpgno = ait->page.pgno;
+				msubno = ait->page.subno;
+			}
+		}
+	}
+
+	return mait;
+}
+
 static void
 top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 {
 	attr_char ac, *acp;
-	struct vt_page *vtp;
 	ait_entry *ait;
 	int i, j, k, n, lines;
-	int pgno;
+	int xpgno, xsubno;
 
 	memset(&ac, 0, sizeof(ac));
 
-	ac.foreground	= 32 + WHITE;
-	ac.background	= 32 + BLACK;
+	ac.foreground	= 32 + BLACK;
+	ac.background	= 32 + BLUE;
 	ac.opacity	= pg->page_opacity[1];
 	ac.glyph	= GL_SPACE;
 
 	for (i = 0; i < 25 * 40; i++)
 		pg->data[0][i] = ac;
 
+	ac.size = DOUBLE_SIZE;
+
+	for (i = 0; i < 5; i++) {
+		// this asks for i18n and some2glyph :-P
+		ac.glyph = "INDEX"[i];
+		pg->data[1][2 + i * 2] = ac;
+	}
+
+	ac.size = NORMAL;
+
 	acp = pg->data[4];
 	lines = 17;
-	pgno = 0;
+	xpgno = 0;
+	xsubno = 0;
 
-	{
-		for (i = 0; i < 8; i++) {
-			if (vbi->btt_link[i].type == 2) {
-				vtp = vbi->cache->op->get(vbi->cache,
-					vbi->btt_link[i].pgno, vbi->btt_link[i].subno, 0x3f7f);
+	while ((ait = next_ait(vbi, xpgno, xsubno))) {
+		xpgno = ait->page.pgno;
+		xsubno = ait->page.subno;
 
-				if (!vtp) {
-					printv("top ait page %x not cached\n", vbi->btt_link[i].pgno);
-					continue;
-				} else if (vtp->function != PAGE_FUNCTION_AIT) {
-					printv("no ait page %x\n", vtp->pgno);
-					continue;
-				}
-
-				for (ait = vtp->data.ait, j = 0; j < 46; ait++, j++) {
-					// XXX
-
-					if (subno > 0) {
-						if (lines-- == 0) {
-							subno--;
-							lines = 17;
-						}
-
-						continue;
-					} else if (lines-- <= 0)
-						continue;
-
-					for (i = 11; i >= 0; i--)
-						if (ait->text[i] > 0x20)
-							break;
-
-					switch (vbi->page_info[ait->page.pgno - 0x100].btt) {
-					case 6 ... 7:
-						k = 3;
-						break;
-
-					default:
-			    			k = 1;
-					}
-
-					for (j = 0; j <= i; j++) { // XXX font
-						acp[k + j].glyph = glyph_lookup(pg->font[0]->G0,
-							pg->font[0]->subset,
-							(ait->text[j] < 0x20) ? 0x20 : ait->text[j]);
-					}
-
-					for (k += i + 2; k <= 34; k++)
-						acp[k].glyph = '.';
-
-					for (j = 0; j < 3; j++) {
-						n = ((ait->page.pgno >> ((2 - j) * 4)) & 15) + '0';
-
-						if (n > '9')
-							n += 'A' - '9';
-
-						acp[j + 35].glyph = n;
- 					}
-
-					for (k = 1; k <= 38; k++) {
-						acp[k].link_page = ait->page.pgno;
-						acp[k].link_subpage = 0xFF & ANY_SUB;
-					}
-
-					acp += 40;
-				}
+		if (subno > 0) {
+			if (lines-- == 0) {
+				subno--;
+				lines = 17;
 			}
+
+			continue;
+		} else if (lines-- <= 0)
+			continue;
+
+		for (i = 11; i >= 0; i--)
+			if (ait->text[i] > 0x20)
+				break;
+
+		switch (vbi->page_info[ait->page.pgno - 0x100].btt) {
+		case 6 ... 7:
+			k = 3;
+			break;
+
+		default:
+    			k = 1;
 		}
+
+		for (j = 0; j <= i; j++) { // XXX font
+			acp[k + j].glyph = glyph_lookup(pg->font[0]->G0,
+				pg->font[0]->subset,
+				(ait->text[j] < 0x20) ? 0x20 : ait->text[j]);
+		}
+
+		for (k += i + 2; k <= 34; k++)
+			acp[k].glyph = '.';
+
+		for (j = 0; j < 3; j++) {
+			n = ((ait->page.pgno >> ((2 - j) * 4)) & 15) + '0';
+
+			if (n > '9')
+				n += 'A' - '9';
+
+			acp[j + 35].glyph = n;
+ 		}
+
+		for (k = 1; k <= 38; k++) {
+		// XXX			    //	acp[k].link_page = ait->page.pgno;
+					    //	acp[k].link_subpage = 0xFF & ANY_SUB;
+		}
+
+		acp += 40;
 	}
 }
 
@@ -680,7 +642,201 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
  *  Zapzilla navigation
  */
 
-/* ... */
+static int
+keyword(vbi_link_descr *ld, unsigned char *p, int column,
+	int pgno, int subno, int *back)
+{
+	unsigned char *s = p + column;
+	int i, j, k, l;
+
+	ld->type = VBI_LINK_NONE;
+	ld->pgno = 0;
+	ld->subno = ANY_SUB;
+	ld->text[0] = 0;
+	*back = 0;
+
+	if (isdigit(*s)) {
+		for (i = 0; isdigit(s[i]); i++)
+			ld->pgno = ld->pgno * 16 + (s[i] & 15);
+
+		if (isdigit(s[-1]) || i > 3)
+			return i;
+
+		if (i == 3) {
+			if (ld->pgno >= 0x100 && ld->pgno <= 0x899)
+				ld->type = VBI_LINK_PAGE;
+
+			return i;
+		}
+
+		if (s[i] != '/' && s[i] != ':')
+			return i;
+
+		s += i += 1;
+
+		for (ld->subno = j = 0; isdigit(s[j]); j++)
+			ld->subno = ld->subno * 16 + (s[j] & 15);
+
+		if (j > 1 || subno != ld->pgno || ld->subno > 0x99)
+			return i + j;
+
+		if (ld->pgno == ld->subno)
+			ld->subno = 0x01;
+		else
+			ld->subno = add_bcd(ld->pgno, 0x01);
+
+		ld->type = VBI_LINK_SUBPAGE;
+		ld->pgno = pgno;
+
+		return i + j;
+	} else if (!strncasecmp(s, "https://", i = 8)) {
+		ld->type = VBI_LINK_HTTP;
+	} else if (!strncasecmp(s, "http://", i = 7)) {
+		ld->type = VBI_LINK_HTTP;
+	} else if (!strncasecmp(s, "www.", i = 4)) {
+		ld->type = VBI_LINK_HTTP;
+		strcpy(ld->text, "http://");
+	} else if (!strncasecmp(s, "ftp://", i = 6)) {
+		ld->type = VBI_LINK_FTP;
+	} else if (*s == '@') {
+		ld->type = VBI_LINK_EMAIL;
+		i = 1;
+	} else
+		return 1;
+
+	for (j = k = l = 0;;) {
+		// RFC 1738
+		while (isalnum(s[i + j]) || strchr("%&/=?+-:;@", s[i + j])) {
+			j++;
+			l++;
+		}
+
+		if (s[i + j] == '.') {
+			if (l < 1)
+				return i;
+			l = 0;
+			j++;
+			k++;
+		} else
+			break;
+	}
+
+	if (k < 1 || l < 1) {
+		ld->type = VBI_LINK_NONE;
+		return i;
+	}
+
+	k = 0;
+
+	if (ld->type == VBI_LINK_EMAIL) {
+		for (; isalnum(s[k - 1]) || strchr("-._", s[k - 1]); k--);
+
+		if (k == 0) {
+			ld->type = VBI_LINK_NONE;
+			return i;
+		}
+
+		*back = k;
+	}
+
+	strncat(ld->text, s + k, i + j - k);
+
+	return i + j;
+}
+
+static inline void
+zap_links(struct fmt_page *pg, int row)
+{
+	unsigned char buffer[43]; /* One row, two spaces on the sides and NUL */
+	vbi_link_descr ld;
+	attr_char *acp;
+	bool link[43];
+	int i, j, n, b;
+
+	acp = pg->data[row];
+
+	for (i = j = 0; i < 40; i++) {
+		if (acp[i].size == OVER_TOP || acp[i].size == OVER_BOTTOM)
+			continue;
+		buffer[j + 1] = glyph2latin(acp[i].glyph);
+		j++;
+	}
+
+	buffer[0] = ' '; 
+	buffer[j + 1] = ' ';
+	buffer[j + 2] = 0;
+
+	for (i = 0; i < 40; i += n) { 
+		n = keyword(&ld, buffer, i + 1,
+			pg->vtp->pgno, pg->vtp->subno, &b);
+
+		for (j = b; j < n; j++)
+			link[i + j] = (ld.type != VBI_LINK_NONE);
+	}
+
+	for (i = j = 0; i < 40; i++) {
+		acp[i].link = link[j];
+
+		if (acp[i].size == OVER_TOP || acp[i].size == OVER_BOTTOM)
+			continue;
+		j++;
+	}
+}
+
+void
+vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link_descr *ld)
+{
+	unsigned char buffer[43];
+	attr_char *acp;
+	int i, j, b;
+
+	assert(column >= 0 && column < 40);
+
+	acp = pg->data[row];
+
+	if (row == 24 && acp[column].link) {
+		i = pg->nav_index[column];
+
+		ld->type = VBI_LINK_PAGE;
+		ld->pgno = pg->nav_link[i].pgno;
+		ld->subno = pg->nav_link[i].subno;
+
+		return;
+	}
+
+	if (row < 1 || row > 23) {
+		ld->type = VBI_LINK_NONE;
+		return;
+	}
+
+	for (i = j = b = 0; i < 40; i++) {
+		if (acp[i].size == OVER_TOP || acp[i].size == OVER_BOTTOM)
+			continue;
+		if (i < column && !acp[i].link)
+			j = b = -1;
+		if ((buffer[j + 1] = glyph2latin(acp[i].glyph)) == '@' && b <= 0)
+			b = j;
+		j++;
+	}
+
+	buffer[0] = ' ';
+	buffer[j + 1] = ' ';
+	buffer[j + 2] = 0;
+
+	keyword(ld, buffer, 1, pg->vtp->pgno, pg->vtp->subno, &i);
+
+	if (ld->type == VBI_LINK_NONE)
+		keyword(ld, buffer, b + 1,
+			pg->vtp->pgno, pg->vtp->subno, &i);
+}
+
+void
+vbi_resolve_home(struct fmt_page *pg, vbi_link_descr *ld)
+{
+	ld->type = VBI_LINK_PAGE;
+	ld->pgno = pg->nav_link[5].pgno;
+	ld->subno = pg->nav_link[5].subno;
+}
 
 /*
  *  Try find a page title for the bookmarks.
@@ -689,7 +845,7 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
  *  TODO: FLOF, TTX character set, buf character set (currently Latin-1 assumed).
  */
 int
-vbi_page_title(struct vbi *vbi, int pgno, char *buf)
+vbi_page_title(struct vbi *vbi, int pgno, int subno, char *buf)
 {
 	font_descriptor *font;
 	struct vt_page *vtp;
@@ -735,7 +891,7 @@ vbi_page_title(struct vbi *vbi, int pgno, char *buf)
 	return FALSE;
 }
 
-
+/* ------------------------------------------------------------------ */
 
 
 
@@ -845,6 +1001,11 @@ enhance(struct fmt_page *pg, object_type type,
 		if (row > 24)
 			return;
 
+		if (type == OBJ_TYPE_PASSIVE && !mac.glyph) {
+			active_column = column;
+			return;
+		}
+
 		printv("flush [%08x%c,%d%c,%d%c,%d%c,%d%c] %d ... %d\n",
 			ac.glyph, mac.glyph ? '*' : ' ',
 			ac.foreground, mac.foreground ? '*' : ' ',
@@ -859,7 +1020,7 @@ enhance(struct fmt_page *pg, object_type type,
 			if (i > 39)
 				break;
 
-			c = pg->data[row][i];
+			c = acp[i];
 
 			if (mac.underline) {
 				int u = ac.underline;
@@ -900,11 +1061,10 @@ enhance(struct fmt_page *pg, object_type type,
 				c.glyph = ac.glyph;
 				mac.glyph = 0;
 
-				if (mac.size)
-					c.size = ac.size;
+				c.size = ac.size;
 			}
 
-			pg->data[row][i] = c;
+			acp[i] = c;
 
 			if (type == OBJ_TYPE_PASSIVE)
 				break;
@@ -1003,10 +1163,11 @@ enhance(struct fmt_page *pg, object_type type,
 	active_column = 0;
 	active_row = 0;
 
+	acp = pg->data[inv_row + 0];
+
 	offset_column = 0;
 	offset_row = 0;
 
-	// XXX todo
 	row_colour =
 	next_row_colour = pg->ext->def_row_colour;
 
@@ -1025,11 +1186,11 @@ enhance(struct fmt_page *pg, object_type type,
 
 		mac.foreground = ~0;
 		mac.background = ~0;
+		mac.opacity = ~0;
+		mac.size = ~0;
 		mac.underline = ~0;
 		mac.conceal = ~0;
 		mac.flash = ~0;
-		mac.size = ~0;
-		mac.opacity = ~0;
 	}
 
 	font = pg->font[0];
@@ -1095,6 +1256,8 @@ enhance(struct fmt_page *pg, object_type type,
 
 				active_row = row;
 				active_column = column;
+
+				acp = pg->data[inv_row + active_row];
 
 				break;
 
@@ -1221,7 +1384,7 @@ enhance(struct fmt_page *pg, object_type type,
 				flush_row();
 				printv("enh obj definition 0x%02x 0x%02x\n", p->mode, p->data);
 				printv("enh terminated\n");
-				goto finish;
+				goto swedish;
 
 			case 0x18:		/* drcs mode */
 				printv("enh DRCS mode 0x%02x\n", p->data);
@@ -1234,7 +1397,7 @@ enhance(struct fmt_page *pg, object_type type,
 			default:
 				flush_row();
 				printv("enh terminated %02x\n", p->mode);
-				goto finish;
+				goto swedish;
 			}
 		} else {
 			/*
@@ -1485,23 +1648,27 @@ enhance(struct fmt_page *pg, object_type type,
 			{
 				int italic, bold, proportional;
 				int col, row, count;
+				attr_char *acp;
 
 				if (max_level < LEVEL_3p5)
 					break;
 
 				row = inv_row + active_row;
 				count = (p->data >> 4) + 1;
+				acp = pg->data[row];
+
 				proportional = (p->data >> 0) & 1;
 				bold = (p->data >> 1) & 1;
 				italic = (p->data >> 2) & 1;
 
 				while (row <= 24 && count > 0) {
 					for (col = inv_column + column; col < 40; col++) {
-						pg->data[row][col].italic = italic;
-		    				pg->data[row][col].bold = bold;
-						pg->data[row][col].proportional = proportional;
+						acp[col].italic = italic;
+		    				acp[col].bold = bold;
+						acp[col].proportional = proportional;
 					}
 
+					acp += 40;
 					row++;
 					count--;
 				}
@@ -1544,15 +1711,39 @@ enhance(struct fmt_page *pg, object_type type,
 		}
 	}
 
-finish:
+swedish:
+
+#if 0
 	acp = pg->data[0];
 
-	for (active_row = 0; active_row < 24; active_row++) {
+	for (active_row = 0; active_row < 25; active_row++) {
+		printv("%2d: ", active_row);
+
 		for (active_column = 0; active_column < 40; acp++, active_column++) {
+			printv("%04x ", acp->glyph);
+		}
+
+		printv("\n");
+	}
+#endif
+
+	return TRUE;
+}
+
+static void
+post_enhance(struct fmt_page *pg)
+{
+	attr_char ac, *acp;
+	int column, row;
+
+	acp = pg->data[0];
+
+	for (row = 0; row < 24; row++) {
+		for (column = 0; column < 40; acp++, column++) {
 //			printv("%d ", acp->size);
 
-			if (acp->conceal && !pg->reveal)
-				acp->glyph = GL_SPACE;
+			/* if (acp->conceal && !reveal)
+				acp->glyph = GL_SPACE; */
 
 			if (acp->opacity == TRANSPARENT_SPACE
 			    || (acp->foreground == TRANSPARENT_BLACK
@@ -1565,13 +1756,13 @@ finish:
 
 			switch (acp->size) {
 			case NORMAL:
-				if (active_row < 23
+				if (row < 23
 				    && (acp[40].size == DOUBLE_HEIGHT2 || acp[40].size == DOUBLE_SIZE2)) {
 					acp[40].glyph = GL_SPACE;
 					acp[40].size = NORMAL;
 				}
 
-				if (active_column < 39
+				if (column < 39
 				    && (acp[1].size == OVER_TOP || acp[1].size == OVER_BOTTOM)) {
 					acp[1].glyph = GL_SPACE;
 					acp[1].size = NORMAL;
@@ -1606,13 +1797,7 @@ finish:
 
 //		printv("\n");
 	}
-
-	return TRUE;
 }
-
-
-
-
 
 static inline bool
 default_object_invocation(struct fmt_page *pg)
@@ -1659,8 +1844,7 @@ default_object_invocation(struct fmt_page *pg)
 }
 
 int
-fmt_page(int reveal,
-	struct fmt_page *pg, struct vt_page *vtp,
+vbi_format_page(struct fmt_page *pg, struct vt_page *vtp,
 	int display_rows)
 {
 	char buf[16];
@@ -1684,8 +1868,6 @@ fmt_page(int reveal,
 	else
 		pg->ext = ext = &mag->extension;
 
-	pg->reveal = reveal;
-
 	/* Character set designation */
 
 	pg->font[0] = font_descriptors + 0;
@@ -1705,6 +1887,9 @@ fmt_page(int reveal,
 /*
 if (vtp->pgno >= 0x101 && vtp->pgno <= 0x108) {
 top_index(vtp->vbi, pg, vtp->pgno - 0x101);
+post_enhance(pg);
+for (row = 1; row < MIN(24, display_rows); row++)
+	zap_links(pg, row);
 return 1;
 }
 */
@@ -1746,7 +1931,6 @@ return 1;
 		display_rows = 1;
 
 	i = 0;
-	reveal = !!reveal;
 	pg->double_height_lower = 0;
 
 	for (row = 0; row < display_rows; row++) {
@@ -1766,7 +1950,6 @@ return 1;
 		mosaic_glyphs	= GL_CONTIGUOUS_BLOCK_MOSAIC_G1;
 		ac.opacity	= pg->page_opacity[row > 0];
 		font		= pg->font[0];
-		reveal	       |= 2;
 		hold		= FALSE;
 		mosaic		= FALSE;
 
@@ -1794,7 +1977,7 @@ return 1;
 				break;
 
 			case 0x18:		/* conceal */
-				reveal &= 1;
+				ac.conceal = TRUE;
 				break;
 
 			case 0x19:		/* contiguous mosaics */
@@ -1823,9 +2006,9 @@ return 1;
 			else
 				if (mosaic && (raw & 0x20)) {
 					held_mosaic_glyph = mosaic_glyphs + raw;
-					ac.glyph = reveal ? held_mosaic_glyph : GL_SPACE;
+					ac.glyph = held_mosaic_glyph;
 				} else
-					ac.glyph = reveal ? glyph_lookup(font->G0, font->subset, raw) : GL_SPACE;
+					ac.glyph = glyph_lookup(font->G0, font->subset, raw);
 
 			if (!wide_char) {
 				pg->data[row][column] = ac;
@@ -1846,7 +2029,7 @@ return 1;
 			switch (raw) {
 			case 0x00 ... 0x07:	/* alpha + foreground colour */
 				ac.foreground = ext->foreground_clut + (raw & 7);
-				reveal |= 2;
+				ac.conceal = FALSE;
 				mosaic = FALSE;
 				break;
 
@@ -1888,7 +2071,7 @@ return 1;
 
 			case 0x10 ... 0x17:	/* mosaic + foreground colour */
 				ac.foreground = ext->foreground_clut + (raw & 7);
-				reveal |= 2;
+				ac.conceal = FALSE;
 				mosaic = TRUE;
 				break;
 
@@ -1955,9 +2138,6 @@ return 1;
 		bool success;
 
 		memcpy(&page, pg, sizeof(struct fmt_page));
-//XXX not
-		for (i = 0; i < 25; i++)
-			pg->row_colour[i] = ext->def_row_colour;
 
 		if (!(vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE))) {
 			pg->boxed_opacity[0] = TRANSPARENT_SPACE;
@@ -1970,48 +2150,35 @@ return 1;
 		} else
 			success = default_object_invocation(pg);
 
-		if (success) {
-			// XXX row colour, TRANSPARENT_BLACK
-		} else
+		if (success)
+			post_enhance(pg);
+		else
 			memcpy(pg, &page, sizeof(struct fmt_page));
 	}
 
 	/* Navigation */
 
 	if (1) {
-		if (vtp->data.lop.flof) {
-			if (vtp->lop_lines & (1 << 24))
-				flof_links(pg, vtp);
-			else
-				flof_navigation_bar(pg, vtp);
-		} else if (vtp->vbi->top)
-			top_navigation_bar(vtp->vbi, pg, vtp);
+		pg->nav_link[5] = vtp->vbi->initial_page;
+
+		for (row = 1; row < MIN(24, display_rows); row++)
+			zap_links(pg, row);
+
+		if (display_rows >= 25) {
+			if (vtp->data.lop.flof) {
+				if (vtp->data.lop.link[5].pgno >= 0x100
+				    && vtp->data.lop.link[5].pgno <= 0x899
+				    && (vtp->data.lop.link[5].pgno & 0xFF) != 0xFF)
+					pg->nav_link[5] = vtp->data.lop.link[5];
+
+				if (vtp->lop_lines & (1 << 24))
+					flof_links(pg, vtp);
+				else
+					flof_navigation_bar(pg, vtp);
+			} else if (vtp->vbi->top)
+				top_navigation_bar(vtp->vbi, pg, vtp);
+		}
 	}
 
-	for (row = 0; row < MIN(24, display_rows); row++)
-		for (column = 0; column < W; column++) {
-			int page, subpage;
-
-			if (!vbi_resolve_page(column, row, vtp, &page,
-					      &subpage, pg))
-				page = subpage = 0;
-			pg->data[row][column].link_page = page;
-			pg->data[row][column].link_subpage = subpage;
-		}
-
 	return 1;
-}
-
-
-
-
-
-
-int
-export(struct export *e, struct vt_page *vtp, char *name)
-{
-    struct fmt_page pg[1];
-
-    fmt_page(e->reveal, pg, vtp, 24);
-    return e->mod->output(e, name, pg);
 }
