@@ -10,8 +10,8 @@ Source: ftp://zapping.sourceforge.net/pub/zapping/@VERSION@/zapping-@VERSION@.ta
 Buildroot: %{_tmppath}/%{name}-root
 BuildPrereq: libglade-devel libxml-devel
 PreReq: /sbin/install-info
-# Not relocatable Prefix: @GNOME_PREFIX@
-%define prefx @GNOME_PREFIX@
+# Not relocatable Prefix: @GNOME_PREFIX@ (now @prefix@)
+%define prefx @prefix@
 
 Requires: gnome-libs >= 1.0.40
 Requires: libxml >= 1.4.0
@@ -69,6 +69,9 @@ rm -rf %{buildroot}
 %{prefx}/man/man1/*
 
 %changelog
+* Thu Nov 20 2003 Michael H. Schimek <mschimek@users.sourceforge.net>
+- s/GNOME_PREFIX/prefix.
+
 * Fri Oct 4 2002 Michael H. Schimek <mschimek@users.sourceforge.net>
 - Changed prefx to @GNOME_PREFIX@
 - Added rte, zvbi dependencies.
