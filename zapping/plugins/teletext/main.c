@@ -575,7 +575,7 @@ attach_combo_box		(GtkTable *		table,
                     (GtkAttachOptions)(0), 0, 0);
 }
 
-static const GConfEnumStringPair
+static GConfEnumStringPair
 charset_enum [] = {
   { 0, "western_and_central_europe" },
   { 8, "eastern_europe" },
@@ -588,7 +588,7 @@ charset_enum [] = {
   { 0, NULL }
 };
 
-static const GConfEnumStringPair
+static GConfEnumStringPair
 level_enum [] = {
   { VBI_WST_LEVEL_1, "1.0" },
   { VBI_WST_LEVEL_1p5, "1.5" },
@@ -597,7 +597,7 @@ level_enum [] = {
   { 0, NULL }
 };
 
-static const GConfEnumStringPair
+static GConfEnumStringPair
 interp_enum [] = {
   { GDK_INTERP_NEAREST, "nearest" },
   { GDK_INTERP_TILES,	"tiles" },
@@ -674,14 +674,13 @@ create_preferences		(void)
 
   g_object_set_data_full (G_OBJECT (widget),
 			  "teletext-change-set", cs,
-			  gconf_change_set_unref);
+			  (GCallback) gconf_change_set_unref);
 
   return widget;
 }
 
 static void
-cancel_preferences		(GtkDialog *		dialog _unused_,
-				 GtkWidget *		page)
+cancel_preferences		(GtkWidget *		page)
 {
   GConfChangeSet *cs;
 
@@ -697,7 +696,7 @@ cancel_preferences		(GtkDialog *		dialog _unused_,
 static void
 properties_add			(GtkDialog *		dialog)
 {
-  static const SidebarEntry se = {
+  static SidebarEntry se = {
     .label		= N_("Teletext"),
     .icon_name		= "teletext48.png",
     .create		= create_preferences,
