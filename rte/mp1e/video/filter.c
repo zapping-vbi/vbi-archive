@@ -17,12 +17,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.7 2002-05-13 05:37:10 mschimek Exp $ */
+/* $Id: filter.c,v 1.8 2002-06-24 03:18:56 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
 #include "../common/math.h"
-#include "../options.h"
 #include "video.h"
 
 const char		cbp_order[6] = { 5, 4, 3, 1, 2, 0 };
@@ -83,6 +82,10 @@ color_trap(unsigned char *buffer1, unsigned char *buffer2)
 
 	return r;
 }
+
+#ifndef BACKEND_MP1E
+
+#include "../options.h"
 
 /*
  *  Legacy mp1e code, not used with rte
@@ -207,3 +210,5 @@ filter_init(rte_video_stream_params *par, struct filter_param *fp)
 	}
  */
 }
+
+#endif /* !BACKEND_MP1E */
