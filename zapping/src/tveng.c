@@ -40,6 +40,19 @@
 #include "tvengxv.h" /* XVideo specific headers */
 #include "tveng_private.h" /* private definitions */
 
+#define LOCK	pthread_mutex_lock(&(info->private->mutex))
+#define UNLOCK	pthread_mutex_unlock(&(info->private->mutex))
+#define RETURN_UNLOCK(X) do { int unlocked_result = X; UNLOCK; \
+				return unlocked_result; } while (0)
+
+#define UNSUPPORTED do { \
+  /* function not supported by the module */ \
+ info->tveng_errno = -1; \
+ t_error_msg("module", \
+	     "function not supported by the module", info); \
+} while (0)
+
+
 typedef void (*tveng_controller)(struct tveng_module_info *info);
 static tveng_controller tveng_controllers[] = {
   tvengxv_init_module,
@@ -54,6 +67,7 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp,
   size_t needed_mem = 0;
   tveng_device_info * new_object;
   struct tveng_module_info module_info;
+  pthread_mutexattr_t attr;
   int i;
 
   /* Get the needed mem for the controllers */
@@ -111,6 +125,11 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp,
   new_object->private->double_buffer = None;
 #endif
 
+  pthread_mutexattr_init(&attr);
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
+  pthread_mutex_init(&(new_object->private->mutex), &attr);
+  pthread_mutexattr_destroy(&attr);
+
   new_object->current_controller = TVENG_CONTROLLER_NONE;
 
   /* return the allocated memory */
@@ -130,6 +149,8 @@ void tveng_device_info_destroy(tveng_device_info * info)
 
   if (info -> private->default_standard)
     free(info -> private->default_standard);
+
+  pthread_mutex_destroy(&(info->private->mutex));
 
   free(info->private);
   free(info);
@@ -156,6 +177,8 @@ int tveng_attach_device(const char* device_file,
   t_assert(device_file != NULL);
   t_assert(info != NULL);
 
+  LOCK;
+
   if (info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
 
@@ -177,6 +200,7 @@ int tveng_attach_device(const char* device_file,
       t_error_msg("switch()",
 		  "The current display depth isn't supported by TVeng",
 		  info);
+      UNLOCK;
       return -1;
     }
 
@@ -198,6 +222,7 @@ int tveng_attach_device(const char* device_file,
 	      "The device cannot be attached to any controller",
 	      info);
   memset(&(info->private->module), 0, sizeof(info->private->module));
+  UNLOCK;
   return -1;
 
  success:
@@ -270,6 +295,7 @@ int tveng_attach_device(const char* device_file,
 	}
     }
 
+  UNLOCK;
   return info->fd;
 }
 
@@ -290,6 +316,8 @@ tveng_describe_controller(char ** short_str, char ** long_str,
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
+  LOCK;
+
   if (info->private->module.describe_controller)
     info->private->module.describe_controller(short_str, long_str,
 					      info);
@@ -300,6 +328,8 @@ tveng_describe_controller(char ** short_str, char ** long_str,
       if (long_str)
 	*long_str = "No description provided";
     }
+
+  UNLOCK;
 }
 
 /* Closes a device opened with tveng_init_device */
@@ -310,10 +340,14 @@ void tveng_close_device(tveng_device_info * info)
   if (info->current_controller == TVENG_CONTROLLER_NONE)
     return; /* nothing to be done */
 
+  LOCK;
+
   tveng_stop_everything(info);
 
   if (info->private->module.close_device)
     info->private->module.close_device(info);
+
+  UNLOCK;
 }
 
 /*
@@ -330,13 +364,13 @@ int tveng_get_inputs(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.get_inputs)
-    return info->private->module.get_inputs(info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.get_inputs)
+    RETURN_UNLOCK(info->private->module.get_inputs(info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -415,13 +449,13 @@ int tveng_set_input(struct tveng_enum_input * input,
   t_assert(input != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.set_input)
-    return info->private->module.set_input(input, info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.set_input)
+    RETURN_UNLOCK(info->private->module.set_input(input, info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -437,14 +471,17 @@ tveng_set_input_by_name(const char * input_name,
   t_assert(input_name != NULL);
   t_assert(info != NULL);
 
+  LOCK;
+
   for (i = 0; i < info->num_inputs; i++)
     if (tveng_normstrcmp(info->inputs[i].name, input_name))
-      return tveng_set_input(&(info->inputs[i]), info);
+      RETURN_UNLOCK(tveng_set_input(&(info->inputs[i]), info));
 
   info->tveng_errno = -1;
   t_error_msg("finding",
 	      "Input %s doesn't appear to exist", info, input_name);
 
+  UNLOCK;
   return -1; /* String not found */
 }
 
@@ -459,14 +496,17 @@ tveng_set_input_by_id(int id, tveng_device_info * info)
 
   t_assert(info != NULL);
 
+  LOCK;
+
   for (i = 0; i < info->num_inputs; i++)
     if (info->inputs[i].id == id)
-      return tveng_set_input(&(info->inputs[i]), info);
+      RETURN_UNLOCK(tveng_set_input(&(info->inputs[i]), info));
 
   info->tveng_errno = -1;
   t_error_msg("finding",
 	      "Input number %d doesn't appear to exist", info, id);
 
+  UNLOCK;
   return -1; /* String not found */
 }
 
@@ -479,11 +519,15 @@ tveng_set_input_by_index(int index, tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(index > -1);
 
+  LOCK;
+
   if (info->num_inputs)
     {
       t_assert(index < info -> num_inputs);
-      return (tveng_set_input(&(info -> inputs[index]), info));
+      RETURN_UNLOCK((tveng_set_input(&(info -> inputs[index]), info)));
     }
+
+  UNLOCK;
   return 0;
 }
 
@@ -516,13 +560,13 @@ int tveng_get_standards(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.get_standards)
-    return info->private->module.get_standards(info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.get_standards)
+    RETURN_UNLOCK(info->private->module.get_standards(info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -536,13 +580,13 @@ int tveng_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
   t_assert(std != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.set_standard)
-    return info->private->module.set_standard(std, info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.set_standard)
+    RETURN_UNLOCK(info->private->module.set_standard(std, info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -553,14 +597,20 @@ int
 tveng_set_standard_by_name(const char * name, tveng_device_info * info)
 {
   int i;
+
+  t_assert(info != NULL);
+
+  LOCK;
+
   for (i = 0; i < info->num_standards; i++)
     if (tveng_normstrcmp(name, info->standards[i].name))
-      return tveng_set_standard(&(info->standards[i]), info);
+      RETURN_UNLOCK(tveng_set_standard(&(info->standards[i]), info));
 
   info->tveng_errno = -1;
   t_error_msg("finding",
 	      "Standard %s doesn't appear to exist", info, name);
 
+  UNLOCK;
   return -1; /* String not found */  
 }
 
@@ -571,14 +621,20 @@ int
 tveng_set_standard_by_id(int id, tveng_device_info * info)
 {
   int i;
+
+  t_assert(info != NULL);
+
+  LOCK;
+
   for (i = 0; i < info->num_standards; i++)
     if (info->standards[i].id == id)
-      return tveng_set_standard(&(info->standards[i]), info);
+      RETURN_UNLOCK(tveng_set_standard(&(info->standards[i]), info));
 
   info->tveng_errno = -1;
   t_error_msg("finding",
 	      "Standard number %d doesn't appear to exist", info, id);
 
+  UNLOCK;
   return -1; /* id not found */
 }
 
@@ -591,11 +647,15 @@ tveng_set_standard_by_index(int index, tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(index > -1);
 
+  LOCK;
+
   if (info->num_standards)
     {
       t_assert(index < info->num_standards);
-      return (tveng_set_standard(&(info->standards[index]), info));
+      RETURN_UNLOCK(tveng_set_standard(&(info->standards[index]), info));
     }
+
+  UNLOCK;
   return 0;
 }
 
@@ -624,13 +684,13 @@ tveng_update_capture_format(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.update_capture_format)
-    return info->private->module.update_capture_format(info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.update_capture_format)
+    RETURN_UNLOCK(info->private->module.update_capture_format(info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -641,6 +701,8 @@ tveng_set_capture_format(tveng_device_info * info)
 {
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  LOCK;
 
   if (info->private->dword_align)
     info->format.width = (info->format.width+3) & ~3;
@@ -654,12 +716,10 @@ tveng_set_capture_format(tveng_device_info * info)
     info->format.width = info->caps.maxwidth;
 
   if (info->private->module.set_capture_format)
-    return info->private->module.set_capture_format(info);
+    RETURN_UNLOCK(info->private->module.set_capture_format(info));
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 
 }
@@ -677,6 +737,8 @@ tveng_update_controls(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
+  LOCK;
+
   /* Update the controls we maintain */
   for (i=0; i<info->num_controls; i++)
     {
@@ -691,6 +753,7 @@ tveng_update_controls(tveng_device_info * info)
 			     info->private->port,
 			     info->private->filter,
 			     &(info->controls[i].cur_value));
+	  UNLOCK;
 	  return 0;
 	}
       else if ((control->id == (int)info->private->double_buffer) &&
@@ -700,6 +763,7 @@ tveng_update_controls(tveng_device_info * info)
 			     info->private->port,
 			     info->private->double_buffer,
 			     &(info->controls[i].cur_value));
+	  UNLOCK;
 	  return 0;
 	}
       else if ((control->id == (int)info->private->colorkey) &&
@@ -741,18 +805,17 @@ tveng_update_controls(tveng_device_info * info)
 	    b = val << -bs;
 	  b &= bm;
 	  info->controls[i].cur_value = (r<<16)+(g<<8)+b;
+	  UNLOCK;
 	  return 0;
 	}
 #endif
     }
 
   if (info->private->module.update_controls)
-    return info->private->module.update_controls(info);
+    RETURN_UNLOCK(info->private->module.update_controls(info));
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  UNSUPPORTED;
+  LOCK;
   return -1;
 }
 
@@ -768,6 +831,8 @@ tveng_set_control(struct tveng_control * control, int value,
   t_assert(control != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
+  LOCK;
+
   if (control->controller == TVENG_CONTROLLER_MOTHER)
     {
 #ifdef USE_XV
@@ -778,6 +843,7 @@ tveng_set_control(struct tveng_control * control, int value,
 			     info->private->port,
 			     info->private->filter,
 			     value);
+	  UNLOCK;
 	  return 0;
 	}
       else if ((control->id == (int)info->private->double_buffer) &&
@@ -787,6 +853,7 @@ tveng_set_control(struct tveng_control * control, int value,
 			     info->private->port,
 			     info->private->double_buffer,
 			     value);
+	  UNLOCK;
 	  return 0;
 	}
       else if ((control->id == (int)info->private->colorkey) &&
@@ -828,6 +895,7 @@ tveng_set_control(struct tveng_control * control, int value,
 			     info->private->port,
 			     info->private->colorkey,
 			     value);
+	  UNLOCK;
 	  return 0;
 	}
       else
@@ -836,16 +904,15 @@ tveng_set_control(struct tveng_control * control, int value,
 	  info->tveng_errno = -1;
 	  t_error_msg("check",
 		      "Unknown control given: %d", info, control->id);
+	  UNLOCK;
 	  return -1;
 	}
     }
   else if (info->private->module.set_control)
-    return info->private->module.set_control(control, value, info);
+    RETURN_UNLOCK(info->private->module.set_control(control, value, info));
   
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -866,9 +933,11 @@ tveng_get_control_by_name(const char * control_name,
   t_assert(info -> num_controls > 0);
   t_assert(control_name != NULL);
 
+  LOCK;
+
   /* Update the controls (their values) */
   if (tveng_update_controls(info) == -1)
-    return -1;
+    RETURN_UNLOCK(-1);
 
   /* iterate through the info struct to find the control */
   for (i = 0; i < info->num_controls; i++)
@@ -880,6 +949,7 @@ tveng_get_control_by_name(const char * control_name,
 	t_assert(value >= info->controls[i].min);
 	if (cur_value)
 	  *cur_value = value;
+	UNLOCK;
 	return 0; /* Success */
       }
 
@@ -888,6 +958,7 @@ tveng_get_control_by_name(const char * control_name,
   t_error_msg("finding",
 	      "Cannot find control \"%s\" in the list of controls",
 	      info, control_name);
+  UNLOCK;
   return -1;
 }
 
@@ -907,17 +978,21 @@ tveng_set_control_by_name(const char * control_name,
   t_assert(info != NULL);
   t_assert(info -> num_controls > 0);
 
+  LOCK;
+
   /* iterate through the info struct to find the mute control */
   for (i = 0; i < info->num_controls; i++)
     if (!strcasecmp(info->controls[i].name,control_name))
       /* we found it */
-      return (tveng_set_control(&(info->controls[i]), new_value, info));
+      RETURN_UNLOCK((tveng_set_control(&(info->controls[i]),
+				       new_value, info)));
 
   /* if we reach this, we haven't found the control */
   info->tveng_errno = -1;
   t_error_msg("finding",
 	   "Cannot find control \"%s\" in the list of controls",
 	   info, control_name);
+  UNLOCK;
   return -1;
 }
 
@@ -935,9 +1010,11 @@ tveng_get_control_by_id(int cid, int * cur_value,
   t_assert(info != NULL);
   t_assert(info -> num_controls > 0);
 
+  LOCK;
+
   /* Update the controls (their values) */
   if (tveng_update_controls(info) == -1)
-    return -1;
+    RETURN_UNLOCK(-1);
 
   /* iterate through the info struct to find the mute control */
   for (i = 0; i < info->num_controls; i++)
@@ -949,6 +1026,7 @@ tveng_get_control_by_id(int cid, int * cur_value,
 	t_assert(value >= info->controls[i].min);
 	if (cur_value)
 	  *cur_value = value;
+	UNLOCK;
 	return 0; /* Success */
       }
 
@@ -957,6 +1035,7 @@ tveng_get_control_by_id(int cid, int * cur_value,
   t_error_msg("finding",
 	      "Cannot find control %d in the list of controls",
 	      info, cid);
+  UNLOCK;
   return -1;
 }
 
@@ -971,18 +1050,21 @@ int tveng_set_control_by_id(int cid, int new_value,
   t_assert(info != NULL);
   t_assert(info -> num_controls > 0);
 
+  LOCK;
+
   /* iterate through the info struct to find the mute control */
   for (i = 0; i < info->num_controls; i++)
     if (info->controls[i].id == cid)
       /* we found it */
-      return (tveng_set_control(&(info->controls[i]), new_value,
-				info));
+      RETURN_UNLOCK(tveng_set_control(&(info->controls[i]), new_value,
+				      info));
 
   /* if we reach this, we haven't found the control */
   info->tveng_errno = -1;
   t_error_msg("finding",
 	      "Cannot find control %d in the list of controls",
 	      info, cid);
+  UNLOCK;
   return -1;
 }
 
@@ -996,13 +1078,13 @@ tveng_get_mute(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.get_mute)
-    return info->private->module.get_mute(info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.get_mute)
+    RETURN_UNLOCK(info->private->module.get_mute(info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1016,13 +1098,13 @@ tveng_set_mute(int value, tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.set_mute)
-    return info->private->module.set_mute(value, info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.set_mute)
+    RETURN_UNLOCK(info->private->module.set_mute(value, info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1035,13 +1117,13 @@ tveng_tune_input(__u32 freq, tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.tune_input)
-    return info->private->module.tune_input(freq, info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.tune_input)
+    RETURN_UNLOCK(info->private->module.tune_input(freq, info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1059,13 +1141,15 @@ tveng_get_signal_strength (int *strength, int * afc,
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.get_signal_strength)
-    return info->private->module.get_signal_strength(strength, afc, info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.get_signal_strength)
+    RETURN_UNLOCK(info->private->module.get_signal_strength(strength,
+							    afc,
+							    info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1079,13 +1163,13 @@ tveng_get_tune(__u32 * freq, tveng_device_info * info)
   t_assert(freq != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.get_tune)
-    return info->private->module.get_tune(freq, info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.get_tune)
+    RETURN_UNLOCK(info->private->module.get_tune(freq, info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1101,13 +1185,14 @@ tveng_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.get_tuner_bounds)
-    return info->private->module.get_tuner_bounds(min, max, info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.get_tuner_bounds)
+    RETURN_UNLOCK(info->private->module.get_tuner_bounds(min, max,
+							 info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1121,13 +1206,13 @@ tveng_start_capturing(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.start_capturing)
-    return info->private->module.start_capturing(info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.start_capturing)
+    RETURN_UNLOCK(info->private->module.start_capturing(info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1138,13 +1223,13 @@ tveng_stop_capturing(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.stop_capturing)
-    return info->private->module.stop_capturing(info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.stop_capturing)
+    RETURN_UNLOCK(info->private->module.stop_capturing(info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1165,13 +1250,14 @@ int tveng_read_frame(void * where, unsigned int size,
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.read_frame)
-    return info->private->module.read_frame(where, size, time, info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.read_frame)
+    RETURN_UNLOCK(info->private->module.read_frame(where, size, time,
+						   info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1183,13 +1269,13 @@ double tveng_get_timestamp(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.get_timestamp)
-    return info->private->module.get_timestamp(info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.get_timestamp)
+    RETURN_UNLOCK(info->private->module.get_timestamp(info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1203,6 +1289,8 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
+  LOCK;
+
   if (info->private->dword_align)
     width = (width & ~3);
   if (width < info->caps.minwidth)
@@ -1215,12 +1303,12 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
     height = info->caps.maxheight;
 
   if (info->private->module.set_capture_size)
-    return info->private->module.set_capture_size(width, height, info);
+    RETURN_UNLOCK(info->private->module.set_capture_size(width,
+							 height,
+							 info));
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1235,13 +1323,15 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
   t_assert(height != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.get_capture_size)
-    return info->private->module.get_capture_size(width, height, info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.get_capture_size)
+    RETURN_UNLOCK(info->private->module.get_capture_size(width,
+							 height,
+							 info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1265,21 +1355,26 @@ tveng_detect_XF86DGA(tveng_device_info * info)
 
   Display * dpy = info->private->display;
 
+  LOCK;
+
   if (!XF86DGAQueryExtension(dpy, &event_base, &error_base))
     {
       perror("XF86DGAQueryExtension");
+      UNLOCK;
       return 0;
     }
 
   if (!XF86DGAQueryVersion(dpy, &major_version, &minor_version))
     {
       perror("XF86DGAQueryVersion");
+      UNLOCK;
       return 0;
     }
 
   if (!XF86DGAQueryDirectVideo(dpy, 0, &flags))
     {
       perror("XF86DGAQueryDirectVideo");
+      UNLOCK;
       return 0;
     }
 
@@ -1288,6 +1383,7 @@ tveng_detect_XF86DGA(tveng_device_info * info)
   if (!(flags & XF86DGADirectPresent))
     {
       printf("flags & XF86DGADirectPresent\n");
+      UNLOCK;
       return 0;
     }
 
@@ -1304,8 +1400,10 @@ tveng_detect_XF86DGA(tveng_device_info * info)
 	      (flags & XF86DGADirectPresent) ? " DirectVideo" : "");
     }
 
+  UNLOCK;
   return 1; /* Everything correct */
 #else
+
   return 0; /* disabled by configure */
 #endif
 }
@@ -1319,13 +1417,13 @@ tveng_detect_preview (tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.detect_preview)
-    return info->private->module.detect_preview(info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.detect_preview)
+    RETURN_UNLOCK(info->private->module.detect_preview(info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return 0;
 }
 
@@ -1344,6 +1442,8 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
   int i=0;
   int verbosity = info->private->zapping_setup_fb_verbosity;
   char buffer[256]; /* A temporary buffer */
+
+  LOCK;
 
   /* Executes zapping_setup_fb with the given arguments */
   argv[i++] = "zapping_setup_fb";
@@ -1372,6 +1472,7 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
     {
       info->tveng_errno = errno;
       t_error("fork()", info);
+      UNLOCK;
       return -1;
     }
 
@@ -1390,6 +1491,7 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
     {
       info->tveng_errno = errno;
       t_error("waitpid", info);
+      UNLOCK;
       return -1;
     }
 
@@ -1399,6 +1501,7 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
       t_error_msg("WIFEXITED(status)", 
 		  "zapping_setup_fb exited abnormally, check stderr",
 		  info);
+      UNLOCK;
       return -1;
     }
 
@@ -1407,17 +1510,21 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
     case 1:
       info -> tveng_errno = -1;
       t_error_msg("case 1",
-		  "zapping_setup_fb failed to set up the video", info);
+		  "zapping_setup_fb failed to set up the video",
+		  info);
+      UNLOCK;
       return -1;
     case 2:
       info -> tveng_errno = -1;
       t_error_msg("case 2",
 		  _("Couldn't locate zapping_setup_fb, check your install"),
 		  info);
+      UNLOCK;
       return -1;
     default:
       break; /* Exit code == 0, success setting up the framebuffer */
     }
+  UNLOCK;
   return 0; /* Success */
 }
 
@@ -1441,8 +1548,10 @@ tveng_get_display_depth(tveng_device_info * info)
   int found, v, i, n;
   int bpp = 0;
 
+  LOCK;
+
   if (info->private->bpp != -1)
-    return info->private->bpp;
+    RETURN_UNLOCK(info->private->bpp);
 
   /* Use the first screen, should give no problems assuming this */
   template.screen = 0;
@@ -1458,6 +1567,7 @@ tveng_get_display_depth(tveng_device_info * info)
     t_error_msg("XGetVisualInfo",
 		"Cannot find an appropiate visual", info);
     XFree(visual_info);
+    UNLOCK;
     return 0;
   }
   
@@ -1479,11 +1589,14 @@ tveng_get_display_depth(tveng_device_info * info)
 		"Cannot figure out X depth", info);
     XFree(visual_info);
     XFree(pf);
+    UNLOCK;
     return 0;
   }
 
   XFree(visual_info);
   XFree(pf);
+
+  UNLOCK;
   return bpp;
 }
 
@@ -1502,6 +1615,8 @@ tveng_set_preview_window(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
+  LOCK;
+
   if (info->private->dword_align)
     {
       info->window.x = (info->window.x+3) & ~3;
@@ -1517,12 +1632,10 @@ tveng_set_preview_window(tveng_device_info * info)
     info->window.width = info->caps.maxwidth;
 
   if (info->private->module.set_preview_window)
-    return info->private->module.set_preview_window(info);
+    RETURN_UNLOCK(info->private->module.set_preview_window(info));
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1537,13 +1650,13 @@ tveng_get_preview_window(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.get_preview_window)
-    return info->private->module.get_preview_window(info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.get_preview_window)
+    RETURN_UNLOCK(info->private->module.get_preview_window(info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1559,13 +1672,13 @@ tveng_set_preview (int on, tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.set_preview)
-    return info->private->module.set_preview(on, info);
+  LOCK;
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  if (info->private->module.set_preview)
+    RETURN_UNLOCK(info->private->module.set_preview(on, info));
+
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1576,6 +1689,7 @@ tveng_set_zapping_setup_fb_verbosity(int level, tveng_device_info *
 				     info)
 {
   t_assert(info != NULL);
+
   if (level > 2)
     level = 2;
   else if (level < 0)
@@ -1626,6 +1740,8 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
+  LOCK;
+
   if (info->current_controller == TVENG_CONTROLLER_XV)
     change_mode = 0; /* not needed */
   else
@@ -1636,6 +1752,7 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
 		    "No DGA present, make sure you enable it in"
 		    " /etc/X11/XF86Config.",
 		    info);
+	UNLOCK;
 	return -1;
       }
 
@@ -1785,12 +1902,10 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
 #endif /* DISABLE_X_EXTENSIONS */
 
   if (info->private->module.start_previewing)
-    return info->private->module.start_previewing(info);
+    RETURN_UNLOCK(info->private->module.start_previewing(info));
 
-  /* function not supported by the module */
-  info->tveng_errno = -1;
-  t_error_msg("module",
-	      "function not supported by the module", info);
+  UNSUPPORTED;
+  UNLOCK;
   return -1;
 }
 
@@ -1803,6 +1918,8 @@ tveng_stop_previewing(tveng_device_info * info)
   int return_code = 0;
 
   t_assert(info != NULL);
+
+  LOCK;
 
   if (info->private->module.stop_previewing)
     return_code = info->private->module.stop_previewing(info);
@@ -1824,6 +1941,8 @@ tveng_stop_previewing(tveng_device_info * info)
     }
 #endif
 
+  UNLOCK;
+
   return return_code;
 }
 
@@ -1837,6 +1956,10 @@ tveng_stop_previewing(tveng_device_info * info)
 int
 tveng_start_window (tveng_device_info * info)
 {
+  t_assert(info != NULL);
+
+  LOCK;
+
   tveng_stop_everything(info);
 
   t_assert(info -> current_mode == TVENG_NO_CAPTURE);
@@ -1848,9 +1971,11 @@ tveng_start_window (tveng_device_info * info)
   tveng_set_preview_window(info);
 
   if (tveng_set_preview_on(info) == -1)
-    return -1;
+    RETURN_UNLOCK(-1);
 
   info->current_mode = TVENG_CAPTURE_WINDOW;
+
+  UNLOCK;
   return 0;
 }
 
@@ -1860,10 +1985,15 @@ tveng_start_window (tveng_device_info * info)
 int
 tveng_stop_window (tveng_device_info * info)
 {
+  t_assert(info != NULL);
+
+  LOCK;
+
   if (info -> current_mode == TVENG_NO_CAPTURE)
     {
       fprintf(stderr, 
 	      "Warning: trying to stop window with no capture active\n");
+      UNLOCK;
       return 0; /* Nothing to be done */
     }
 
@@ -1873,6 +2003,8 @@ tveng_stop_window (tveng_device_info * info)
   tveng_set_preview_off(info);
 
   info -> current_mode = TVENG_NO_CAPTURE;
+
+  UNLOCK;
   return 0; /* Success */
 }
 
@@ -1890,6 +2022,10 @@ enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
 					       info)
 {
   enum tveng_capture_mode returned_mode;
+
+  t_assert(info != NULL);
+
+  LOCK;
 
   returned_mode = info->current_mode;
   switch (info->current_mode)
@@ -1909,6 +2045,8 @@ enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
 
   t_assert(info->current_mode == TVENG_NO_CAPTURE);
 
+  UNLOCK;
+
   return returned_mode;
 }
 
@@ -1919,23 +2057,29 @@ enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
 int tveng_restart_everything (enum tveng_capture_mode mode,
 			      tveng_device_info * info)
 {
+  t_assert(info != NULL);
+
+  LOCK;
+
   switch (mode)
     {
     case TVENG_CAPTURE_READ:
       if (tveng_start_capturing(info) == -1)
-	return -1;
+	RETURN_UNLOCK(-1);
       break;
     case TVENG_CAPTURE_PREVIEW:
       if (tveng_start_previewing(info, -1) == -1)
-	return -1;
+	RETURN_UNLOCK(-1);
       break;
     case TVENG_CAPTURE_WINDOW:
       if (tveng_start_window(info) == -1)
-	return -1;
+	RETURN_UNLOCK(-1);
       break;
     default:
       break;
     }
+
+  UNLOCK;
   return 0; /* Success */
 }
 
@@ -1967,6 +2111,8 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
   int attributes, i;
   Display *dpy;
   struct tveng_control control;
+
+  LOCK;
 
   info->private->port = port;
   dpy = info->private->display;
@@ -2001,7 +2147,10 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	    control.data = NULL;
 	    control.controller = TVENG_CONTROLLER_MOTHER;
 	    if (p_tveng_append_control(&control, info) == -1)
-	      return;
+	      {
+		UNLOCK;
+		return;
+	      }
 	  }
 
       if (!strcmp("XV_DOUBLE_BUFFER", at[i].name))
@@ -2016,7 +2165,10 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	    control.data = NULL;
 	    control.controller = TVENG_CONTROLLER_MOTHER;
 	    if (p_tveng_append_control(&control, info) == -1)
-	      return;
+	      {
+		UNLOCK;
+		return;
+	      }
 	  }
 
       if (!strcmp("XV_COLORKEY", at[i].name))
@@ -2031,11 +2183,16 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	    control.data = NULL;
 	    control.controller = TVENG_CONTROLLER_MOTHER;
 	    if (p_tveng_append_control(&control, info) == -1)
-	      return;
+	      {
+		UNLOCK;
+		return;
+	      }
 	  }
     }
 
   tveng_update_controls(info);
+
+  UNLOCK;
 }
 
 void tveng_unset_xv_port(tveng_device_info * info)

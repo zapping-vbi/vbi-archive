@@ -1,3 +1,8 @@
+27.4.2001	TVeng thread-safe <garetxe@users.sourceforge.net>
+
+	* src/tveng.c: Added a per-device mutex, made tveng.c lock,
+	unlock it as necessary. Rewrote some common code as #macros.
+
 25.4.2001	--command switch <garetxe@users.sourceforge.net>
 
 	* src/remote.c, src/main.c: Added --command line switch, currently

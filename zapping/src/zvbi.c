@@ -845,7 +845,7 @@ add_patch(struct ttx_client *client, int col, int row, attr_char *ac)
 		     patch.row*CH-5, patch.width*CW+10,
 		     patch.height*CH+10, patch.unscaled_off, 0, 0);
 
-  if (client->w > 0  &&  client->h > 0)
+  if (client->w > 0  &&  client->h > 0  && sh > 0)
     {
       patch.scaled_on =
 	gdk_pixbuf_scale_simple(patch.unscaled_on, sw, sh, INTERP_MODE);

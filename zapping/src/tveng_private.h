@@ -22,6 +22,7 @@
 #ifndef __TVENG_PRIVATE_H__
 #define __TVENG_PRIVATE_H__
 #include <tveng.h>
+#include <pthread.h>
 
 /*
   Function prototypes for modules, NULL means not implemented or not
@@ -92,6 +93,8 @@ struct tveng_private {
   int		disable_xv; /* 1 if XVideo should be disabled */
   int		chromakey; /* RGB32 */
   int		dword_align; /* 1 if x and w should be dword aligned */
+
+  pthread_mutex_t mutex; /* Thread safety */
 
   /* Controls managed directly by tveng.c */
 #ifdef USE_XV

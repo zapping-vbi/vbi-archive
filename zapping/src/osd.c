@@ -203,9 +203,12 @@ set_piece_geometry(int row, int piece)
     {
       if (p->scaled)
 	gdk_pixbuf_unref(p->scaled);
-      p->scaled = gdk_pixbuf_scale_simple(p->unscaled, dest_w,
-					  dest_h,
-					  GDK_INTERP_BILINEAR);
+      if (dest_h > 0)
+	p->scaled = gdk_pixbuf_scale_simple(p->unscaled, dest_w,
+					    dest_h,
+					    GDK_INTERP_BILINEAR);
+      else
+	p->scaled = NULL;
     }
 
   paint_piece(GTK_BIN(p->window)->child, p, 0, 0, dest_w, dest_h);
