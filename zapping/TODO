@@ -1,10 +1,15 @@
-Outstanding issues for the next release
----------------------------------------
-	+ GUI for closed caption, program info, etc.
+Outstanding issues for the next release (0.6.0)
+-----------------------------------------------
+	+ Revamp GUI for closed caption, program info, etc.
+	+ Redesign the internal capture structure (fifos and stuff).
+	+ Generalize the channel concept (input, bookmarks, ...)
 	+ Parrot buffer for observing parrots.
 	+ Add to the configure script and to the .spec deps the
-		dependency on mp1e (actually RTE) and the mpeg plugin.
-	> Release 0.6.0
+		dependency on mp1e (actually RTE).
+	+ Make the mpeg plugin work.
+	+ First run wizard.
+
+> 0.6.1
 	+ Add some remote control applet (or sth like that).
 	+ Have a copy of the stuff in the "quick bar" in the main menu
 	(for keyb navigation)
@@ -15,6 +20,11 @@ Outstanding issues for the next release
 	+ Get thumbnails of all tuned channels.
 	+ --roottv switch (use Z as screensaver)
 	+ Save control values and restore on startup (per input?).
-	> Further...
+
+> Somewhen...
 	+ Do realtime effects to the image, plainly wonderful, see
 	http://matsu-www.is.titech.ac.jp/~fukuchi/rooms/EffecTV/index.html
+
+Note:
+please tell me about anything you think it's worth adding. 
+garetxe@users.sourceforge.net
