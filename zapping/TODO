@@ -20,7 +20,6 @@ Outstanding issues for the next release (0.6.0)
 	+ --roottv switch (use Z as screensaver)
 	+ Save control values and restore on startup (per channel).
 	+ Save screenshots at arbitrary sizes.
-	+ Standalone Zapzilla
 	+ Create screenshots/mpeg/ttx dirs if not existant at write time.
 	+ In ttx search it will be more newbie friendly to make
 	  regexp optional.

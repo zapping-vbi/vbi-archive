@@ -150,7 +150,7 @@ void shutdown_zvbi(void);
 
 /* Open the configured VBI device, FALSE on error */
 gboolean
-zvbi_open_device(void);
+zvbi_open_device(char *device);
 
 /* Closes the VBI device */
 void

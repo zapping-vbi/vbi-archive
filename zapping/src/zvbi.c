@@ -127,7 +127,7 @@ on_vbi_prefs_changed		(const gchar *key,
   if (!vbi && zcg_bool(NULL, "enable_vbi"))
     {
       D();
-      if (!zvbi_open_device())
+      if (!zvbi_open_device(zcg_char(NULL, "vbi_device")))
 	{
 	  ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
 		  GNOME_MESSAGE_BOX_ERROR,
@@ -472,9 +472,8 @@ static gint trigger_timeout		(gint	client_id)
 
 /* Open the configured VBI device, FALSE on error */
 gboolean
-zvbi_open_device(void)
+zvbi_open_device(char *device)
 {
-  gchar *device;
   gint index;
   int given_fd;
 
@@ -490,11 +489,6 @@ zvbi_open_device(void)
   };
 
 #ifdef ENABLE_V4L
-  D();
-  if ((vbi) || (!zcg_bool(NULL, "enable_vbi")))
-    return FALSE; /* this code isn't reentrant */
-  D();
-  device = zcg_char(NULL, "vbi_device");
   D();
   if (main_info)
     given_fd = main_info->fd;

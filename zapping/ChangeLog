@@ -4,6 +4,8 @@
 	* main.c: Worked around a bug in glade (automagically changes
 	GNOME_STOCK_PIXMAP_(UP|DOWN) into _(TOP|BOTTOM)).
 	* v4linterface.c, properties.c: Added configurable title bar.
+	* src/zapzilla: Because of popular demand, added standalone Zapzilla.
+	* src/ttxview.c: Added view creation/destruction notification.
 
 28.07.2001	<mschimek@users.sf.net>
 

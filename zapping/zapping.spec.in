@@ -57,6 +57,7 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/pam.d/zapping_setup_fb
 %config(noreplace) %{_sysconfdir}/security/console.apps/zapping_setup_fb
 %{_bindir}/zapping
+%{_bindir}/zapzilla
 %{_sbindir}/zapping_setup_fb
 %{_libdir}/zapping
 %{_datadir}/zapping
@@ -67,6 +68,9 @@ rm -rf %{buildroot}
 %{_mandir}/*
 
 %changelog
+* Sat Jul 28 2001 Iñaki García Etxebarria <garetxe@users.sf.net>
+- Added zapzilla
+
 * Fri Feb  2 2001 Tim Powers <timp@redhat.com>
 - pamified zapping_setup_fb, now no need for suid root bits, and no
 crippling of the app :)

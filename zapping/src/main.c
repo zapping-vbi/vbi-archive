@@ -369,7 +369,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.119 2001-07-28 13:19:40 garetxe Exp $",
+	 "$Id: main.c,v 1.120 2001-07-28 23:08:03 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
@@ -551,7 +551,7 @@ int main(int argc, char * argv[])
   tveng_set_mute(1, main_info);
   D();
   main_window = create_zapping();
-  /* Change the pixmaps, workm around glade bug */
+  /* Change the pixmaps, work around glade bug */
   set_stock_pixmap(lookup_widget(main_window, "channel_up"),
 		   GNOME_STOCK_PIXMAP_UP);
   set_stock_pixmap(lookup_widget(main_window, "channel_down"),

@@ -22,9 +22,18 @@
 #  include <config.h>
 #endif
 
+#include <zmodel.h>
+
 GtkWidget *build_ttxview(void);
 gboolean startup_ttxview(void);
 void shutdown_ttxview(void);
+
+/**
+ * Signals creation/destruction of a view, number of views after
+ * creation/destruction is stored in
+ * GPOINTER_TO_INT(gtk_object_get_user_data(GTK_OBJECT(ttxview_model)))
+ */
+extern ZModel *ttxview_model;
 
 /**
  * Attach the necessary things to the given window to make it a

@@ -53,6 +53,35 @@ extern tveng_device_info *main_info;
 extern GtkWidget *main_window;
 extern int zvbi_page;
 
+/* Exported, notification of when do we create/destroy a view */
+ZModel *ttxview_model = NULL;
+
+static void inc_model_count(void)
+{
+  gint num_views =
+    GPOINTER_TO_INT(gtk_object_get_user_data(GTK_OBJECT(ttxview_model)));
+
+  num_views++;
+
+  gtk_object_set_user_data(GTK_OBJECT(ttxview_model),
+			   GINT_TO_POINTER(num_views));
+
+  zmodel_changed(ttxview_model);
+}
+
+static void dec_model_count(void)
+{
+  gint num_views =
+    GPOINTER_TO_INT(gtk_object_get_user_data(GTK_OBJECT(ttxview_model)));
+
+  num_views--;
+
+  gtk_object_set_user_data(GTK_OBJECT(ttxview_model),
+			   GINT_TO_POINTER(num_views));
+
+  zmodel_changed(ttxview_model);
+}
+
 #define BLINK_CYCLE 300 /* ms */
 
 #define TXCOLOR_DOMAIN "/zapping/options/text/"
@@ -195,6 +224,10 @@ startup_ttxview (void)
   gchar *buffer, *buffer2, *buffer3;
   gint page, subpage;
 
+  ttxview_model = ZMODEL(zmodel_new());
+  gtk_object_set_user_data(GTK_OBJECT(ttxview_model),
+			   GINT_TO_POINTER(0));
+
   hand = gdk_cursor_new (GDK_HAND2);
   arrow = gdk_cursor_new (GDK_LEFT_PTR);
   xterm = gdk_cursor_new (GDK_XTERM);
@@ -274,6 +307,7 @@ shutdown_ttxview (void)
   while (bookmarks)
     remove_bookmark(0);
 
+  gtk_object_destroy(GTK_OBJECT(ttxview_model));
   gtk_object_destroy(GTK_OBJECT(model));
   gtk_object_destroy(GTK_OBJECT(refresh));
   refresh = NULL;
@@ -553,6 +587,8 @@ remove_ttxview_instance			(ttxview_data	*data)
 				  GTK_SIGNAL_FUNC(on_ttxview_refresh),
 				  data);
   g_free(data);
+
+  dec_model_count();
 }
 
 static gboolean
@@ -2130,11 +2166,12 @@ void on_bookmark_activated		(GtkWidget	*widget,
     gtk_object_get_user_data(GTK_OBJECT(widget));
   tveng_tuned_channel *channel;
 
-  if (bookmark->channel &&
-      (channel =
-       tveng_retrieve_tuned_channel_by_name(bookmark->channel, 0,
-						      global_channel_list)))
-    z_switch_channel(channel, main_info);
+  if (main_info)
+    if (bookmark->channel &&
+	(channel =
+	 tveng_retrieve_tuned_channel_by_name(bookmark->channel, 0,
+					      global_channel_list)))
+      z_switch_channel(channel, main_info);
 
   load_page(bookmark->page, bookmark->subpage, data, NULL);
 }
@@ -3431,6 +3468,8 @@ build_ttxview(void)
 
   load_page(0x100, ANY_SUB, data, NULL);
 
+  inc_model_count();
+
   return (ttxview);
 }
 
@@ -3589,6 +3628,8 @@ ttxview_attach			(GtkWidget	*parent,
   set_ttx_parameters(data->id, zcg_bool(NULL, "reveal"));
 
   load_page(0x100, ANY_SUB, data, NULL);
+
+  inc_model_count();
 }
 
 void
