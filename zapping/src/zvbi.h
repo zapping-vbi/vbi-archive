@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@
 enum ttx_message {
   TTX_NONE=0, /* No messages */
   TTX_PAGE_RECEIVED, /* The monitored page has been received */
+  TTX_NETWORK_CHANGE, /* New network info feeded into the decoder */
   TTX_BROKEN_PIPE /* No longer connected to the TTX decoder */
 };
 
@@ -148,18 +149,10 @@ ZModel *
 zvbi_get_model(void);
 
 /*
-  Returns a pointer to the name of the Teletext provider, or NULL if
-  this name is unknown. You must g_free the returned value.
+  Builds a dialog showing the info we get from the VBI device
+  (network, tape delay, etc)
 */
-gchar*
-zvbi_get_name(void);
-
-/*
-  Fills in the given pointers with the time as it appears in the
-  header. The pointers can be NULL.
-  If the time isn't known, -1 will be returned in all the fields
-*/
-void
-zvbi_get_time(gint * hour, gint * min, gint * sec);
+GtkWidget *
+build_vbi_info(void);
 
 #endif /* zvbi.h */

@@ -62,8 +62,11 @@ extern tveng_device_info *main_info;
 #define INTERP_MODE GDK_INTERP_BILINEAR
 
 static struct vbi *vbi=NULL; /* holds the vbi object */
-static ZModel * vbi_model=NULL;
+static ZModel * vbi_model=NULL; /* notify to clients the open/closure
+				   of the device */
 static pthread_t zvbi_thread_id; /* VBI thread in libvbi */
+static pthread_mutex_t network_mutex;
+static vbi_network current_network; /* current network info */
 
 /**
  * The blink of items in the page is done by applying the patch once
@@ -103,6 +106,7 @@ static pthread_mutex_t clients_mutex; /* FIXME: A rwlock is better for
 static void event(vbi_event *ev, void *unused);
 
 /* Some info about the last processed header, protected by a mutex */
+#if 0 /* FIXME: Obsolete */
 static struct {
   pthread_mutex_t mutex;
 
@@ -116,6 +120,7 @@ static struct {
   /* Pre-processed info from the header, for convenience */
   int hour, min, sec;
 } last_info;
+#endif
 
 static void
 on_vbi_prefs_changed		(const gchar *key,
@@ -153,6 +158,9 @@ on_vbi_prefs_changed		(const gchar *key,
       gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "videotext1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "vbi_info1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "vbi_info1"));
       gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "videotext3"));
@@ -177,6 +185,9 @@ on_vbi_prefs_changed		(const gchar *key,
       gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
 			       TRUE);
       gtk_widget_show(lookup_widget(main_window, "videotext1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "vbi_info1"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "vbi_info1"));
       gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
 			       TRUE);
       gtk_widget_show(lookup_widget(main_window, "videotext3"));
@@ -204,10 +215,14 @@ startup_zvbi(void)
 		 (ZConfHook)on_vbi_prefs_changed,
 		 (gpointer)0xdeadbeef);
   vbi_model = ZMODEL(zmodel_new());
+  pthread_mutex_init(&network_mutex, NULL);
+  memset(&current_network, 0, sizeof(current_network));
 }
 
 void shutdown_zvbi(void)
 {
+  pthread_mutex_destroy(&network_mutex);
+
   if (vbi)
     zvbi_close_device();
 }
@@ -260,12 +275,6 @@ zvbi_open_device(void)
 
   vbi_event_handler(vbi, ~0, event, NULL);
 
-  last_info.name = NULL;
-  last_info.hour = last_info.min = last_info.sec = -1;
-
-  pthread_mutex_init(&(last_info.mutex), NULL);
-  pthread_cond_init(&(last_info.xpacket_cond), NULL);
-
   if (pthread_create(&zvbi_thread_id, NULL, vbi_mainloop, vbi))
     {
       vbi_event_handler(vbi, 0, event, NULL);
@@ -315,9 +324,6 @@ zvbi_close_device(void)
 
   vbi->quit = 1;
   pthread_join(zvbi_thread_id, NULL);
-
-  pthread_mutex_destroy(&(last_info.mutex));
-  pthread_cond_destroy(&(last_info.xpacket_cond));
 
   vbi_event_handler(vbi, 0, event, NULL);
   pthread_mutex_lock(&clients_mutex);
@@ -934,6 +940,26 @@ notify_clients(int page, int subpage)
   pthread_mutex_unlock(&clients_mutex);
 }
 
+static void
+notify_network(void)
+{
+  GList *p;
+  struct ttx_client *client;
+
+  if (!vbi)
+    return;
+
+  pthread_mutex_lock(&clients_mutex);
+  p = g_list_first(ttx_clients);
+  while (p)
+    {
+      client = (struct ttx_client*)p->data;
+      send_ttx_message(client, TTX_NETWORK_CHANGE);
+      p = p->next;
+    }
+  pthread_mutex_unlock(&clients_mutex);
+}
+
 void resize_ttx_page(int id, int w, int h)
 {
   struct ttx_client *client;
@@ -1049,12 +1075,9 @@ zvbi_get_model(void)
 static void
 event(vbi_event *ev, void *unused)
 {
-    unsigned char *p;
-    int hour=0, min=0, sec=0;
-    char *name, *h;
-    
     switch (ev->type) {
     case VBI_EVENT_HEADER:
+#if 0 /* FIXME: Obsolete */
 	p = ev->p1;
 	// printv("header %.32s\n", p+8);
 	pthread_mutex_lock(&(last_info.mutex));
@@ -1088,6 +1111,7 @@ event(vbi_event *ev, void *unused)
 	last_info.min = min;
 	last_info.sec = sec;
 	pthread_mutex_unlock(&(last_info.mutex));
+#endif
 	break;
     case VBI_EVENT_PAGE:
       {
@@ -1103,6 +1127,7 @@ event(vbi_event *ev, void *unused)
 	notify_clients(ev->pgno, ev->subno);
 	break;
     case VBI_EVENT_XPACKET:
+#if 0 /* FIXME: OBSOLETE */
 	p = ev->p1;
 	//printv("xpacket %x %x %x %x - %.20s\n",
 	// 			p[0],p[1],p[3],p[5],p+20);
@@ -1128,73 +1153,155 @@ event(vbi_event *ev, void *unused)
 	    }
 	}
 	pthread_mutex_unlock(&(last_info.mutex));
+#endif
 	break;
 
     case VBI_EVENT_NETWORK:
-	printf("Station name: '%s'\n",
-		((vbi_network *) ev->p1)->name);
-	break;
+      pthread_mutex_lock(&network_mutex);
+      memcpy(&current_network, ev->p1, sizeof(vbi_network));
+      notify_network();
+      pthread_mutex_unlock(&network_mutex);
+      break;
 
     default:
     }
 }
 
-/*
-  Returns a pointer to the name of the Teletext provider, or NULL if
-  this name is unknown. You must g_free the returned value.
-*/
-gchar*
-zvbi_get_name(void)
+/* Handling of the vbi_info dialog (alias vi) */
+
+struct vi_data
 {
-  gchar * p = NULL;
-  struct timeval now;
-  struct timespec timeout;
-  int retcode;
+  int		id; /* ttx_client id */
+  ZModel	*vbi_model; /* monitor changes in the VBI device */
+  GtkWidget	*vi;
+  gint		timeout;
+};
 
-  if (!vbi)
-    return NULL;
+static void destroy_vi(gpointer ignored, struct vi_data *data);
 
-  pthread_mutex_lock(&(last_info.mutex));
-  gettimeofday(&now, NULL);
-  timeout.tv_sec = now.tv_sec+1; /* Wait one second, then fail */
-  timeout.tv_nsec = now.tv_usec * 1000;
-  retcode = pthread_cond_timedwait(&(last_info.xpacket_cond),
-				   &(last_info.mutex), &timeout);
-  if ((retcode != ETIMEDOUT) && (last_info.name))
-    p = g_strdup(last_info.name);
-  pthread_mutex_unlock(&(last_info.mutex));
-
-  return p;
+static void
+remove_vi_instance			(struct vi_data	*data)
+{
+  unregister_ttx_client(data->id);
+  gtk_signal_disconnect_by_func(GTK_OBJECT(data->vbi_model),
+				GTK_SIGNAL_FUNC(destroy_vi),
+				data);
+  gtk_timeout_remove(data->timeout);
+  g_free(data);
 }
 
-/*
-  Fills in the given pointers with the time as it appears in the
-  header. The pointers can be NULL.
-  If the time isn't known, -1 will be returned in all the fields
-*/
-void
-zvbi_get_time(gint * hour, gint * min, gint * sec)
+static void
+destroy_vi				(gpointer	ignored,
+					 struct vi_data	*data)
 {
-  if (!vbi)
-    {
-      if (hour)
-	*hour = -1;
-      if (min)
-	*min = -1;
-      if (sec)
-	*sec = -1;
+  gtk_widget_destroy(data->vi);
+  remove_vi_instance(data);
+}
 
-      return;
+static gboolean
+on_vi_delete_event			(GtkWidget	*widget,
+					 GdkEvent	*event,
+					 struct vi_data	*data)
+{
+  remove_vi_instance(data);
+
+  return FALSE;
+}
+
+static void
+update_vi				(GtkWidget	*vi)
+{
+  GtkWidget *name = lookup_widget(vi, "label204");
+  GtkWidget *label = lookup_widget(vi, "label205");
+  GtkWidget *call = lookup_widget(vi, "label206");
+  GtkWidget *tape = lookup_widget(vi, "label207");
+  gchar *buffer;
+  gint td;
+
+  pthread_mutex_lock(&network_mutex);
+  if (*current_network.name)
+    gtk_label_set_text(GTK_LABEL(name), current_network.name);
+  else
+    gtk_label_set_text(GTK_LABEL(name), "n/a");
+
+  if (*current_network.label)
+    gtk_label_set_text(GTK_LABEL(label), current_network.label);
+  else
+    gtk_label_set_text(GTK_LABEL(label), "n/a");
+
+  if (*current_network.call)
+    gtk_label_set_text(GTK_LABEL(call), current_network.call);
+  else
+    gtk_label_set_text(GTK_LABEL(call), "n/a");
+
+  td = current_network.tape_delay;
+  if (td < 60)
+    buffer = g_strdup_printf(_("%d %s"), td,
+			     td==1?_("minute"):_("minutes"));
+  else
+    buffer = g_strdup_printf(_("%d h %d m"), td/60, td%60);
+  gtk_label_set_text(GTK_LABEL(tape), buffer);
+  g_free(buffer);
+
+  pthread_mutex_unlock(&network_mutex);
+}
+
+static gint
+event_timeout				(struct vi_data	*data)
+{
+  enum ttx_message msg;
+
+  while ((msg = peek_ttx_message(data->id)))
+    {
+      switch (msg)
+	{
+	case TTX_PAGE_RECEIVED:
+	  break;
+	case TTX_NETWORK_CHANGE:
+	  update_vi(data->vi);
+	  break;
+	case TTX_BROKEN_PIPE:
+	  g_warning("Broken TTX pipe");
+	  return FALSE;
+	default:
+	  g_warning("Unknown message: %d", msg);
+	  break;
+	}
     }
 
-  pthread_mutex_lock(&(last_info.mutex));
+  return TRUE;
+}
 
-  if (hour)
-    *hour = last_info.hour;
-  if (min)
-    *min = last_info.min;
-  if (sec)
-    *sec = last_info.sec;
+GtkWidget *
+build_vbi_info(void)
+{
+  GtkWidget * vbi_info = create_widget("vbi_info");
+  struct vi_data *data;
 
-  pthread_mutex_unlock(&(last_info.mutex));
+  if (!zvbi_get_object())
+    {
+      ShowBox("VBI couldn't be opened, Teletext won't work",
+	      GNOME_MESSAGE_BOX_ERROR);
+      return vbi_info;
+    }
+
+  data = g_malloc(sizeof(struct vi_data));
+
+  data->id = register_ttx_client();
+  data->vbi_model = zvbi_get_model();
+  data->vi = vbi_info;
+  data->timeout = gtk_timeout_add(5000, (GtkFunction)event_timeout, data);
+
+  gtk_signal_connect(GTK_OBJECT(data->vbi_model), "changed",
+		     GTK_SIGNAL_FUNC(destroy_vi), data);
+  gtk_signal_connect(GTK_OBJECT(data->vi), "delete-event",
+		     GTK_SIGNAL_FUNC(on_vi_delete_event),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->vi, "button27")),
+		     "clicked",
+		     GTK_SIGNAL_FUNC(destroy_vi), data);
+
+  update_vi(vbi_info);
+
+  return vbi_info;
 }

@@ -770,8 +770,9 @@ gint do_search (GtkWidget * searching)
 	  GtkWidget * channel_name =
 	    lookup_widget(channel_list, "channel_name");
 
-	  if (zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi"))
-	    tuned_name = zvbi_get_name();
+	  //	  if (zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi"))
+	  //	    tuned_name = zvbi_get_name();
+	  // FIXME: Obsolete
 	  if ((!zconf_get_boolean(NULL,
 				  "/zapping/options/vbi/use_vbi")) ||
 	      (!tuned_name))

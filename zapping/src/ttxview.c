@@ -342,10 +342,11 @@ static void
 on_vbi_model_changed			(ZModel		*model,
 					 ttxview_data	*data)
 {
-  GtkWidget * ttxview = lookup_widget(data->toolbar, "ttxview");
+  GtkWidget *ttxview;
 
-  if (ttxview)
+  if (!data->parent_toolbar) /* not attached, standalone window */
     {
+      ttxview = lookup_widget(data->toolbar, "ttxview");
       remove_ttxview_instance(data);
       gtk_widget_destroy(ttxview);
     }
@@ -604,6 +605,8 @@ event_timeout				(ttxview_data	*data)
 	      g_warning("BAD PAGE: 0x%x", data->fmt_page->pgno);
 	    }
 	  update_pointer(data);
+	  break;
+	case TTX_NETWORK_CHANGE:
 	  break;
 	case TTX_BROKEN_PIPE:
 	  g_warning("Broken TTX pipe");
@@ -2348,7 +2351,7 @@ build_ttxview(void)
   data->id = register_ttx_client();
   data->parent = ttxview;
   data->timeout =
-    gtk_timeout_add(50, (GtkFunction)event_timeout, data);
+    gtk_timeout_add(100, (GtkFunction)event_timeout, data);
   data->fmt_page = get_ttx_fmt_page(data->id);
   data->popup_menu = TRUE;
   gtk_object_set_data(GTK_OBJECT(ttxview), "ttxview_data", data);
@@ -2488,6 +2491,7 @@ ttxview_attach			(GtkWidget	*parent,
   data->fmt_page = get_ttx_fmt_page(data->id);
   data->popup_menu = FALSE;
   data->xor_gc = gdk_gc_new(data->da->window);
+  data->vbi_model = zvbi_get_model();
   gdk_gc_set_function(data->xor_gc, GDK_INVERT);
 
   ttxview_reveal = lookup_widget(data->toolbar, "ttxview_reveal");
@@ -2563,6 +2567,10 @@ ttxview_attach			(GtkWidget	*parent,
 			    clip_targets, n_clip_targets);
   gtk_signal_connect (GTK_OBJECT(data->da), "selection_get",
 		      GTK_SIGNAL_FUNC (selection_handle), data);
+  /* handle the destruction of the vbi object */
+  gtk_signal_connect (GTK_OBJECT(data->vbi_model), "changed",
+		      GTK_SIGNAL_FUNC(on_vbi_model_changed),
+		      data);
 
   if (data->da->window)
     {

@@ -279,6 +279,10 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
     zconf_get_integer(NULL,
 		      "/zapping/options/vbi/default_region"));
 
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
   /* Teletext level */
   widget = lookup_widget(zapping_properties, "optionmenu4");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),

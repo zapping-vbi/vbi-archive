@@ -1,4 +1,11 @@
-2.3.2001	VBI open/close <garetxe@euskalnet.net>
+3.3.2001	Network info <garetxe@users.sourceforge.net>
+
+	* src/zvbi.c: Added network info dialog.
+	* src/ttxview.c: Fixed a bug with with TTX restart.
+	* glade/zapping.glade: Reorganized a bit the VBI properties to
+	make the dialog take less space.
+
+2.3.2001	VBI open/close <garetxe@users.sourceforge.net>
 
 	* Made the vbi object notify clients (TTXView) about being closed,
 	this allows for clean start/restart of TTX.

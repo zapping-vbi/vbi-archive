@@ -112,6 +112,10 @@ on_videotext1_activate                 (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 void
+on_vbi_info1_activate                  (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
 on_new_ttxview_activate                (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
