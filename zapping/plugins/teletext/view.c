@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.2 2004-09-26 13:30:37 mschimek Exp $ */
+/* $Id: view.c,v 1.3 2004-10-03 21:20:25 mschimek Exp $ */
 
 #include "config.h"
 
@@ -1682,8 +1682,10 @@ teletext_view_popup_menu_new	(TeletextView *		view,
 	}
     }
 
+#if 0 /* ??? */
   popup_page_uiinfo[1].user_data = view; /* save as */
   popup_page_uiinfo[3].user_data = view; /* color */
+#endif
 
   gnome_app_fill_menu (GTK_MENU_SHELL (menu), popup_page_uiinfo,
 		       NULL, TRUE, pos);
