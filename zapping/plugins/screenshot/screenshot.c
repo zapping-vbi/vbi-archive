@@ -1509,7 +1509,9 @@ plugin_read_frame (capture_frame *frame)
 	    grab_data->status += 2; /* data ready */
 	  }
 	else
-	  grab_data->status = -1; /* timeout abort yourself */
+	  {
+	    grab_data->status = -1; /* timeout abort yourself */
+	  }
       }
 }
 
@@ -1561,7 +1563,8 @@ screenshot_grab (gint dialog)
    *  Otherwise request TTX image 
    *  XXX Option: include subtitles
    */
-  else if ((pixbuf =
+  else if (teletext mode &&
+	   (pixbuf =
 	    ttxview_get_scaled_ttx_page (GTK_WIDGET (z_main_window ()))))
     {
       struct tveng_frame_format format;
