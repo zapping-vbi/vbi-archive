@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.14 2001-10-16 11:18:12 mschimek Exp $ */
+/* $Id: main.c,v 1.15 2001-10-21 05:08:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -314,8 +314,8 @@ main(int ac, char **av)
 					 frame_rate);
 		rte_helper_set_option_va(video_codec, "skip_method", !!hack2);
 		rte_helper_set_option_va(video_codec, "gop_sequence", gop_sequence);
-	        rte_helper_set_option_va(video_codec, "motion_compensation",
-					 motion_min > 0 && motion_max > 0);
+//	        rte_helper_set_option_va(video_codec, "motion_compensation",
+//					 motion_min > 0 && motion_max > 0);
 		rte_helper_set_option_va(video_codec, "monochrome", !!luma_only);
 		rte_helper_set_option_va(video_codec, "anno", anno);
 
@@ -362,7 +362,7 @@ main(int ac, char **av)
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
 			!pthread_create(&audio_thread_id, NULL,
-			mp1e_mp2_thread, audio_codec));
+			audio_codec->class->mainloop, audio_codec));
 
 		printv(2, "Audio compression thread launched\n");
 	}

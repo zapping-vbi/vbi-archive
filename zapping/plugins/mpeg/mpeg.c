@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.18 2001-10-19 17:11:06 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.19 2001-10-21 05:08:13 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -32,6 +32,10 @@
 /*
   TODO:
     . support for SECAM/NTSC/etc standards
+    . options aren't checked at input time. problem eg.
+      gop_seq, why bother the user while he's still typing.
+      otoh we use the codec as temp storage and it wont
+      accept any invalid options.
 */
 
 /* This is the description of the plugin, change as appropiate */
@@ -327,6 +331,9 @@ gint update_timeout ( rte_context *context )
   struct rte_status_info status;
   GtkWidget *widget;
   gchar *buffer,*dropbuf,*procbuf;
+  static gchar buf[64];
+  gint h, m, s;
+  gdouble t, rate;
 
   if (!active || !saving_dialog)
     {
@@ -335,6 +342,28 @@ gint update_timeout ( rte_context *context )
     }
 
   rte_get_status (context, &status);
+
+
+
+  widget = lookup_widget (saving_dialog, "label31");
+
+  s  = t = status.processed_frames / 25.0; /* FIXME */
+  m  = s / 60;
+  s -= m * 60;
+  h  = m / 60;
+  m -= h * 60;
+
+  /* XXX not really what i want */
+  rate = status.bytes_out * (8 / 1e6) / t;
+
+  snprintf(buf, sizeof(buf) - 1,
+	   "(+) %3u:%02u:%02u  %7.3f MB  %6.3f Mbit/s",
+	   h, m, s, status.bytes_out / (double)(1 << 20),
+	   rate);
+
+  gtk_label_set_text (GTK_LABEL (widget), buf);
+
+
 
   widget = lookup_widget (saving_dialog, "label12");
   /* NB *_frames display will wrap after two years. */
@@ -346,9 +375,8 @@ gint update_timeout ( rte_context *context )
 				     "%d frames processed",
 				     status.processed_frames),
 			    status.processed_frames);
-  buffer = g_strdup_printf (_("%.1f MB : %s : %s"),
-		    status.bytes_out / (double) (1 << 20), dropbuf,
-		    procbuf);
+  buffer = g_strdup_printf (_("%s : %s"),
+		    dropbuf, procbuf);
   gtk_label_set_text (GTK_LABEL (widget), buffer);
   g_free (buffer);
   g_free (dropbuf);

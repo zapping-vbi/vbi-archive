@@ -1,4 +1,11 @@
+2001-10-21	<mschimek@users.sf.net>
 
+	* video/mpeg1.c: Fixed incorrect type of bit_rate, strdup(0)
+	  in option_print, virtual > coded_frame_rate bug.
+	* audio/mp2.c: mpeg1_mp2_thread -> class.mainloop. 
+
+2001-10-18	<mschimek@users.sf.net>
+	
 	* esd.c: Replaced timestamping code by the v4l type, should
 	  better handle audio dropping.
 	* oss.c: Accept other formats than S16LE.

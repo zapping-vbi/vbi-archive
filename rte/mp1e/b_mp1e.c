@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.18 2001-10-19 06:57:56 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.19 2001-10-21 05:08:48 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -224,8 +224,9 @@ start			(rte_context	*context)
 
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
-			!pthread_create(&priv->audio_thread_id,
-					NULL, mp1e_mp2_thread, priv->audio_codec));
+			!pthread_create(&priv->audio_thread_id,	NULL,
+					priv->audio_codec->class->mainloop,
+					priv->audio_codec));
 
 		printv(2, "Audio compression thread launched\n");
 	}
@@ -301,14 +302,26 @@ query_format		(rte_context	*context,
 	return "mpeg1";
 }
 
+/*
+ *  XXX this should be context / codec
+ *  (ie. stream status and mux status)
+ */
 static void
 status			(rte_context	*context,
 			 struct rte_status_info	*status)
 {
-	status->bytes_out = context->private->bytes_out;
+	backend_private *priv = (backend_private *) context->private;
+
+	status->bytes_out = priv->priv.bytes_out;
+
 	if (context->mode == RTE_AUDIO) {
-		status->processed_frames = audio_frame_count;
-		status->dropped_frames = audio_frames_dropped;
+		rte_codec *codec = priv->audio_codec;
+
+		pthread_mutex_lock(&codec->mutex);
+		status->processed_frames = codec->frame_output_count;
+		pthread_mutex_unlock(&codec->mutex);
+
+		status->dropped_frames = 0;
 	} else {
 		status->processed_frames = video_frame_count;
 		status->dropped_frames = video_frames_dropped;
@@ -486,8 +499,8 @@ static void rte_video_init(rte_context *context, backend_private *priv)
 						 frame_rate);
 			rte_helper_set_option_va(priv->video_codec, "skip_method", 0);
 			rte_helper_set_option_va(priv->video_codec, "gop_sequence", gop_sequence);
-			rte_helper_set_option_va(priv->video_codec, "motion_compensation",
-						 motion_min > 0 && motion_max > 0);
+//			rte_helper_set_option_va(priv->video_codec, "motion_compensation",
+//						 motion_min > 0 && motion_max > 0);
 			rte_helper_set_option_va(priv->video_codec, "monochrome", !!luma_only);
 			rte_helper_set_option_va(priv->video_codec, "anno", anno);
 		}

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.14 2001-10-19 06:57:56 mschimek Exp $ */
+/* $Id: mp2.c,v 1.15 2001-10-21 05:08:48 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -67,15 +67,8 @@ sfsPerScfsi[4] __attribute__ ((aligned (4))) = {
 };
 
 /* XXX remove */
-// mp2_context aseg __attribute__ ((aligned (4096)));
-
-/* XXX remove */
 extern long long	audio_num_frames;
 extern int		aud_buffers;
-
-/* XXX read by rte, remove */
-long long		audio_frame_count;
-long long		audio_frames_dropped;
 
 /*
  *  Audio compression thread
@@ -109,6 +102,10 @@ next_buffer(mp2_context *mp2, buffer *buf, int channels, double elapsed)
 		send_empty_buffer(&mp2->cons, buf);
 		terminate(mp2);
 	} else {
+		pthread_mutex_lock(&mp2->codec.mutex);
+		mp2->codec.frame_input_count++;
+		pthread_mutex_unlock(&mp2->codec.mutex);
+
 		assert(buf->used < (1 << 14));
 
 		mp2->i16 -= mp2->e16; /* (samples / channel) << 16 */
@@ -139,9 +136,9 @@ fetch_samples(mp2_context *mp2, int channels)
 	unsigned char *o;
 	int todo;
 
-	if (audio_frame_count++ > audio_num_frames
+	if (mp2->codec.frame_output_count > audio_num_frames
 	    || mp1e_sync_break(&mp2->sstr, buf->time
-			       + (mp2->i16 >> 16) * mp2->coded_sample_period)) {
+			       + (mp2->i16 >> 16) * mp2->nominal_sample_period)) {
 		send_empty_buffer(&mp2->cons, buf);
 		terminate(mp2);
 	}
@@ -154,8 +151,8 @@ fetch_samples(mp2_context *mp2, int channels)
 		for (todo = 0; todo < SAMPLES_PER_FRAME; todo++) {
 			if (mp2->i16 >= mp2->e16)
 				buf = next_buffer(mp2, buf, channels,
-						  mp2->coded_elapsed + todo
-						  * mp2->coded_sample_period);
+						  mp2->nominal_time_elapsed + todo
+						  * mp2->nominal_sample_period);
 
 			/* 8 -> 16 bit machine endian */
 
@@ -176,8 +173,8 @@ fetch_samples(mp2_context *mp2, int channels)
 		for (todo = 0; todo < SAMPLES_PER_FRAME; todo++) {
 			if (mp2->i16 >= mp2->e16)
 				buf = next_buffer(mp2, buf, channels,
-						  mp2->coded_elapsed + todo
-						  * mp2->coded_sample_period);
+						  mp2->nominal_time_elapsed + todo
+						  * mp2->nominal_sample_period);
 
 			/* 16 -> 16 bit, same endian */
 
@@ -191,7 +188,7 @@ fetch_samples(mp2_context *mp2, int channels)
 			mp2->i16 += mp2->incr;
 		}
 
-	mp2->coded_elapsed += mp2->coded_frame_period;
+	mp2->nominal_time_elapsed += mp2->coded_frame_period;
 
 	return (short *) mp2->wrap;
 }
@@ -553,18 +550,26 @@ audio_frame(mp2_context *mp2, int channels)
 
 	// DUMP(((unsigned char *) obuf->data), 0, obuf->used);
 
-	obuf->time = mp2->coded_time;
-	mp2->coded_time += mp2->coded_frame_period;
+	pthread_mutex_lock(&mp2->codec.mutex);
+
+	obuf->time = mp2->codec.coded_time_elapsed;
+	mp2->codec.coded_time_elapsed += mp2->coded_frame_period;
+
+	mp2->codec.frame_output_count++;
+	mp2->codec.byte_output_count += obuf->used;
+
+	pthread_mutex_unlock(&mp2->codec.mutex);
 
 	send_full_buffer(&mp2->prod, obuf);
 }
 
-void *
-mp1e_mp2_thread(void *p)
+static void *
+mainloop(void *p)
 {
-//	mp2_context *mp2 = p ? PARENT(p, mp2_context, codec) : &aseg;
 	mp2_context *mp2 = PARENT(p, mp2_context, codec);
 	int frame_frac = 0, channels;
+
+// XXX status check
 
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
@@ -575,7 +580,7 @@ mp1e_mp2_thread(void *p)
 	next_buffer(mp2, NULL, channels, 0);
 
 	mp2->i16 = frame_frac << (16 - channels + mp2->format_scale);
-	mp2->coded_elapsed = frame_frac * mp2->sstr.byte_period;
+	mp2->nominal_time_elapsed = frame_frac * mp2->sstr.byte_period;
 
 	if (mp2->audio_mode == AUDIO_MODE_MONO)
 		for (;;)
@@ -654,7 +659,7 @@ mp1e_mp2_init(rte_codec *codec, unsigned int module,
 	int channels, table, sampling_freq, temp;
 
 
-// XXX status test
+// XXX status test & locking
 
 
 	channels = 1 + (mp2->audio_mode != AUDIO_MODE_MONO);
@@ -789,7 +794,7 @@ mp1e_mp2_init(rte_codec *codec, unsigned int module,
 	mp2->sampling_freq = sampling_freq;
 
 	mp2->coded_frame_period = SAMPLES_PER_FRAME / (double) sampling_freq;
-	mp2->coded_sample_period = 1 / (double) sampling_freq;
+	mp2->nominal_sample_period = 1 / (double) sampling_freq;
 
 	mp2->header_template =
 		(0x7FF << 21) | (mp2->mpeg_version << 19) | (LAYER_II << 17) | (1 << 16) |
@@ -841,7 +846,9 @@ mp1e_mp2_init(rte_codec *codec, unsigned int module,
 		break;
 	}
 
+	/*>*/
 	mp2->sstr.this_module = module;
+	/*<*/
 	mp2->sstr.byte_period = 1.0 / (sampling_freq * mp2->sstr.bytes_per_sample);
 
 	printv(3, "Using sample format %d, bps %d, bp %.20f\n",
@@ -852,10 +859,12 @@ mp1e_mp2_init(rte_codec *codec, unsigned int module,
 	ASSERT("add audio consumer",
 		add_consumer(cap_fifo, &mp2->cons));
 
-	/* XXX rte */
-
-	audio_frame_count = 0;
-	audio_frames_dropped = 0;
+	mp2->codec.frame_input_count = 0;
+	mp2->codec.frame_input_missed = 0; /* n/a */
+	mp2->codec.frame_output_count = 0;
+	mp2->codec.byte_output_count = 0;
+	mp2->codec.coded_time_elapsed = 0.0;
+	mp2->codec.frame_output_rate = 1 / (double) mp2->coded_frame_period; 
 }
 
 /*
@@ -958,6 +967,8 @@ option_get(rte_codec *codec, char *keyword, rte_option_value *v)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
 
+	pthread_mutex_lock(&mp2->codec.mutex);
+
 	if (strcmp(keyword, "bit_rate") == 0) {
 		v->num = bit_rate_value[mp2->mpeg_version][mp2->bit_rate_code];
 	} else if (strcmp(keyword, "sampling_rate") == 0) {
@@ -967,8 +978,12 @@ option_get(rte_codec *codec, char *keyword, rte_option_value *v)
 		v->num = "\1\3\2\0"[mp2->audio_mode];
 	} else if (strcmp(keyword, "psycho") == 0) {
 		v->num = mp2->psycho_loops;
-	} else
+	} else {
+		pthread_mutex_unlock(&mp2->codec.mutex);
 		return 0;
+	}
+
+	pthread_mutex_unlock(&mp2->codec.mutex);
 
 	return 1;
 }
@@ -998,9 +1013,13 @@ option_set(rte_codec *codec, char *keyword, va_list args)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
 
+	pthread_mutex_lock(&mp2->codec.mutex);
+
 	if (mp2->codec.status != RTE_STATUS_NEW
-	    && mp2->codec.status != RTE_STATUS_READY)
+	    && mp2->codec.status != RTE_STATUS_READY) {
+		pthread_mutex_unlock(&mp2->codec.mutex);
 		return 0;
+	}
 
 	if (strcmp(keyword, "bit_rate") == 0) {
 		mp2->bit_rate_code =
@@ -1023,10 +1042,14 @@ option_set(rte_codec *codec, char *keyword, va_list args)
 		if (val < 0 || val > 2)
 			return 0;
 		mp2->psycho_loops = val;
-	} else
+	} else {
+		pthread_mutex_unlock(&mp2->codec.mutex);
 		return 0;
+	}
 
 	mp2->codec.status = RTE_STATUS_NEW; /* not ready */
+
+	pthread_mutex_unlock(&mp2->codec.mutex);
 
 	return 1;
 }
@@ -1074,9 +1097,12 @@ codec_parameters(rte_codec *codec, rte_stream_parameters *rsp)
 		RTE_SNDFMT_U8,
 	};
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
-	int fragment_size;
+	int fragment_size, sampling_freq;
 	int i;
 
+	/*
+	 *  Accept sample format in decreasing order of quality
+	 */
 	for (i = 0; i < elements(valid_format); i++)
 		if (rsp->str.audio.sndfmt == valid_format[i])
 			break;
@@ -1084,17 +1110,71 @@ codec_parameters(rte_codec *codec, rte_stream_parameters *rsp)
 	if (i >= elements(valid_format))
 		rsp->str.audio.sndfmt = valid_format[0];
 
-	rsp->str.audio.sampling_freq =
-		sampling_freq_value[mp2->mpeg_version][mp2->sampling_freq_code];
+	/*
+	 *  Accept sampling freq within 10% coded sampling freq (preliminary)
+	 */
+	sampling_freq =	sampling_freq_value[mp2->mpeg_version][mp2->sampling_freq_code];
 
+	if (nbabs(rsp->str.audio.sampling_freq - sampling_freq)
+	    > (sampling_freq / 10))
+		rsp->str.audio.sampling_freq = sampling_freq;
+
+	/*
+	 *  No splitting/merging of channels
+	 */
 	rsp->str.audio.channels =
 		(mp2->audio_mode == AUDIO_MODE_MONO) ? 1 : 2;
 
+	memset(&mp2->sstr, 0, sizeof(mp2->sstr));
+
+	switch (rsp->str.audio.sndfmt) {
+	case RTE_SNDFMT_S8:
+	case RTE_SNDFMT_U8:
+		mp2->sstr.bytes_per_sample =
+			rsp->str.audio.channels * 1;
+		mp2->format_scale = TRUE;
+		break;
+
+	case RTE_SNDFMT_S16LE:
+	case RTE_SNDFMT_U16LE:
+		mp2->sstr.bytes_per_sample =
+			rsp->str.audio.channels * 2;
+		mp2->format_scale = FALSE;
+		break;
+
+	default:
+		FAIL("unsupported rte sample format %d",
+		     rsp->str.audio.sndfmt);
+	}
+
+	switch (rsp->str.audio.sndfmt) {
+	case RTE_SNDFMT_U8:
+	case RTE_SNDFMT_U16LE:
+		mp2->format_sign = 0x80008000;
+		break;
+
+	default:
+		mp2->format_sign = 0;
+		break;
+	}
+
+	mp2->sstr.byte_period = 1.0
+		/ (rsp->str.audio.sampling_freq * mp2->sstr.bytes_per_sample);
+
+	printv(3, "Using rte sample format %d, bps %d, bp %.20f\n",
+	       rsp->str.audio.sndfmt,
+	       mp2->sstr.bytes_per_sample,
+	       mp2->sstr.byte_period);
+
+	/*
+	 *  Suggest a minimum buffer size to keep overhead reasonable.
+	 */
 	fragment_size = 2048 * sizeof(short) * rsp->str.audio.channels;
 
 	rsp->str.audio.fragment_size =
 		MAX(rsp->str.audio.fragment_size, fragment_size);
 
+/* FIXME */
 	mp2->codec.status = RTE_STATUS_READY; /* not ready */
 
 	return 1;
@@ -1105,10 +1185,15 @@ codec_delete(rte_codec *codec)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
 
-	if (codec->status == RTE_STATUS_RUNNING)
+	pthread_mutex_lock(&mp2->codec.mutex);
+
+	if (codec->status == RTE_STATUS_RUNNING) {
 		fprintf(stderr, "mp1e bug warning: attempt to delete running mp2 codec\n");
-	else
+		pthread_mutex_unlock(&mp2->codec.mutex);
+	} else {
+		pthread_mutex_destroy(&mp2->codec.mutex);
 		free_aligned(mp2);
+	}
 }
 
 static rte_codec *
@@ -1138,9 +1223,12 @@ codec_new(int mpeg_version)
 		assert(!"reached");
 	}
 
+	pthread_mutex_init(&mp2->codec.mutex, NULL);
+
 	mp2->codec.status = RTE_STATUS_NEW;
 
 	rte_helper_reset_options(&mp2->codec);
+// XXX reset sample params?
 
 	return &mp2->codec;
 }
@@ -1166,6 +1254,8 @@ mp1e_mpeg1_layer2_codec = {
 	.option_get	= option_get,
 	.option_set	= option_set,
 	.option_print	= option_print,
+
+	.mainloop	= mainloop,
 };
 
 static rte_codec *
@@ -1192,6 +1282,8 @@ mp1e_mpeg2_layer2_codec = {
 	.option_get		= option_get,
 	.option_set		= option_set,
 	.option_print		= option_print,
+
+	.mainloop		= mainloop,
 };
 
 static void mp1e_mp2(void) __attribute__ ((constructor));

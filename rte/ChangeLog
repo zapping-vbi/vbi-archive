@@ -1,3 +1,8 @@
+2001-10-21	<mschimek@users.sf.net>
+
+	* rtepriv.h: Added codec.class.mainloop, codec.mutex and
+	  misc status variables (not fully implemented yet).
+
 2001-10-19	<mschimek@users.sf.net>
 
 	* Added rte_codec(_info)_by_keyword.

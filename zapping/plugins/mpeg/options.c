@@ -19,11 +19,13 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.7 2001-10-19 17:11:06 mschimek Exp $ */
+/* $Id: options.c,v 1.8 2001-10-21 05:08:13 mschimek Exp $ */
 
 #include "plugin_common.h"
 
 #ifdef HAVE_LIBRTE
+
+#include <math.h>
 
 #include <glade/glade.h>
 #include <rte.h>
@@ -97,9 +99,18 @@ do_option_control (GtkWidget *w, gpointer user_data)
 	    g_assert ((label = (GtkLabel *)
 		       gtk_object_get_data (GTK_OBJECT (w), "label")));
 	    if (ro->type == RTE_OPTION_INT)
-	      val.num = GTK_ADJUSTMENT (w)->value;
+	      {
+	        val.num = GTK_ADJUSTMENT (w)->value;
+		if (val.num < 0)
+		  val.num += val.num % ro->step.num;
+		else
+		  val.num -= val.num % ro->step.num;
+	      }
 	    else
-	      val.dbl = GTK_ADJUSTMENT (w)->value;
+	      {
+	        val.dbl = GTK_ADJUSTMENT (w)->value;
+		val.dbl = rint(val.dbl / ro->step.dbl) * ro->step.dbl;
+	      }
 	    s = rte_option_print(opts->codec, ro->keyword, val);
 	    gtk_label_set_text (label, s);
 	    free (s);

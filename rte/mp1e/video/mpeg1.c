@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.15 2001-10-19 06:57:56 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.16 2001-10-21 05:08:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -46,8 +46,6 @@
 #include "motion.h"
 #include "video.h"
 
-// mpeg1_context vseg __attribute__ ((aligned (32)));
-
 /* XXX vlc_mmx.s */
 struct bs_rec		video_out;
 
@@ -74,9 +72,7 @@ int x_bias = 65536 * 31,
 static mpeg1_context *static_context;
 
 /* main.c */
-// extern int		frames_per_seqhdr;
 extern long long	video_num_frames;
-//extern double		video_stop_time;
 
 #define fdct_intra mp1e_mmx_fdct_intra
 #define fdct_inter mp1e_mmx_fdct_inter
@@ -1208,7 +1204,7 @@ _send_full_buffer(mpeg1_context *mpeg1, buffer *b)
 {
         if (b->used > 0)
 	        video_eff_bit_rate +=
-			((b->used * 8) * mpeg1->frames_per_sec
+			((b->used * 8) * mpeg1->coded_frame_rate
 			 - video_eff_bit_rate) * Rvbr;
 
 	send_full_buffer(&mpeg1->prod, b);
@@ -1512,8 +1508,8 @@ mpeg1_video_ipb(void *p)
 			}
 
 			/* XXX */
-			this->time = mpeg1->coded_time;
-			mpeg1->coded_time += mpeg1->coded_frame_period;
+			this->time = mpeg1->coded_time_elapsed;
+			mpeg1->coded_time_elapsed += mpeg1->coded_frame_period;
 
 			if (mpeg1->skip_rate_acc < mpeg1->frames_per_sec) {
 				int valid;
@@ -1822,16 +1818,21 @@ video_reset(mpeg1_context *mpeg1)
 {
 	double x;
 
+	mpeg1->coded_frame_rate = frame_rate_value[mpeg1->frame_rate_code];
+	mpeg1->coded_frame_period = 1.0 / mpeg1->coded_frame_rate;
+
+	if (mpeg1->virtual_frame_rate > mpeg1->coded_frame_rate)
+		mpeg1->virtual_frame_rate = mpeg1->coded_frame_rate;
+
 	mpeg1->seq_frame_count = mpeg1->frames_per_seqhdr;
 	mpeg1->gop_frame_count = 0;
 
 	mpeg1->frames_per_sec = frame_rate_value[mpeg1->frame_rate_code];
-	mpeg1->coded_frame_period = 1.0 / mpeg1->frames_per_sec;
 	mpeg1->skip_rate_acc = mpeg1->frames_per_sec
 		- mpeg1->virtual_frame_rate + mpeg1->frames_per_sec / 2.0;
 	mpeg1->time_per_frame = 1.0 / mpeg1->frames_per_sec;
 	mpeg1->drop_timeout = mpeg1->time_per_frame * 1.5;
-	mpeg1->coded_time = 0.0;
+	mpeg1->coded_time_elapsed = 0.0;
 
 	mpeg1->rc.R	= 0;
 	mpeg1->rc.r31	= (double) quant_max
@@ -2002,6 +2003,12 @@ video_init(rte_codec *codec, int cpu_type,
 	mpeg1->motion_min = motion_min;
 	mpeg1->motion_max = motion_max;
 	mpeg1->frames_per_seqhdr = 12;
+
+	/* XXX */
+	if (mpeg1->motion_compensation) {
+		mpeg1->motion_min = 4;
+		mpeg1->motion_max = 24;
+	}
 
 	switch (cpu_type) {
 	case CPU_K6_2:
@@ -2192,9 +2199,9 @@ mpeg1_options[] = {
 	   FALSE, N_("Enable motion compensation to improve the image "
 		     "quality. The motion search range is automatically "
 		     "adjusted.")),
-	RTE_OPTION_BOOL_INITIALIZER
+/*	RTE_OPTION_BOOL_INITIALIZER
 	  ("monochrome", N_("Disable color"), FALSE, (NULL)),
-	RTE_OPTION_STRING_INITIALIZER
+*/	RTE_OPTION_STRING_INITIALIZER
 	  ("anno", N_("Annotation"), "", NULL, 0,
 	   N_("Add an annotation in the user data field shortly after "
 	      "the video stream start. This is an mp1e extension, "
@@ -2255,6 +2262,14 @@ option_set(rte_codec *codec, char *keyword, va_list args)
 {
 	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
 
+	if (0) {
+		static char *option_print(rte_codec *, char *, va_list);
+		char *str = option_print(codec, keyword, args);
+
+		printv(0, "mpeg1/option_set(%p, %s, %s)\n", mpeg1, keyword, str);
+		free(str);
+	}
+
 	/* Preview runtime changes here */
 
 	if (0)
@@ -2262,7 +2277,6 @@ option_set(rte_codec *codec, char *keyword, va_list args)
 
 	if (strcmp(keyword, "bit_rate") == 0) { 
 		int val = va_arg(args, int);
-
 		if (val < 8000 || val > 12000000)
 			return 0;
 		mpeg1->bit_rate = val;
@@ -2306,7 +2320,9 @@ option_set(rte_codec *codec, char *keyword, va_list args)
 	} else if (strcmp(keyword, "anno") == 0) {
 		char *str = va_arg(args, char *);
 
-		if (!str || !(str = strdup(str)))
+		if (!str)
+			str = "";
+		if (!(str = strdup(str)))
 			return 0;
 		if (mpeg1->anno)
 			free(mpeg1->anno);
@@ -2344,14 +2360,13 @@ option_print(rte_codec *codec, char *keyword, va_list args)
 		if (val < 0 || val > elements(menu_skip_method) - 1)
 			return 0;
 		return strdup(menu_skip_method[val]);
-	} else if (strcmp(keyword, "gop_sequence") == 0) {
-		return strdup(va_arg(args, char *));
-	} else if (strcmp(keyword, "motion_compensation") == 0) {
+	} else if (strcmp(keyword, "gop_sequence") == 0
+		   || strcmp(keyword, "anno") == 0) {
+		char *str = va_arg(args, char *);
+		return strdup(str ? str : "");
+	} else if (strcmp(keyword, "motion_compensation") == 0
+		   || strcmp(keyword, "monochrome") == 0) {
 		return onoff(va_arg(args, int));
-	} else if (strcmp(keyword, "monochrome") == 0) {
-		return onoff(va_arg(args, int));
-	} else if (strcmp(keyword, "anno") == 0) {
-		return strdup(va_arg(args, char *));
 	} else
 		return NULL;
 
@@ -2384,6 +2399,8 @@ codec_delete(rte_codec *codec)
 	if (static_context == mpeg1)
 		static_context = NULL;
 
+	pthread_mutex_destroy(&mpeg1->codec.mutex);
+
 	free_aligned(mpeg1);
 }
 
@@ -2397,10 +2414,12 @@ codec_new(void)
 
 	mpeg1->codec.class = &mp1e_mpeg1_video_codec;
 
-	rte_helper_reset_options(&mpeg1->codec);
+	pthread_mutex_init(&mpeg1->codec.mutex, NULL);
 
 //XXX incompl
 	mpeg1->codec.status = RTE_STATUS_NEW;
+
+	rte_helper_reset_options(&mpeg1->codec);
 
 	return &mpeg1->codec;
 }

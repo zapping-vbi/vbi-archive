@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.5 2001-10-16 11:18:17 mschimek Exp $ */
+/* $Id: motion.c,v 1.6 2001-10-21 05:08:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -3925,3 +3925,4 @@ predict_bidirectional_planar(unsigned char *from1, unsigned char *from2,
 
 	return si * 256;
 }
+

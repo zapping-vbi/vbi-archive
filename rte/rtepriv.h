@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.10 2001-10-16 11:18:11 mschimek Exp $
+ * $Id: rtepriv.h,v 1.11 2001-10-21 05:08:48 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -42,6 +42,11 @@ typedef void (*_wait_data)(rte_context *context, int video);
 typedef struct rte_codec_class {
 	rte_codec_info	public;
 
+	/*
+	 *  Allocate new codec instance. All fields zero except
+	 *  rte_codec.class, .status (RTE_STATUS_NEW), .mutex (initialized),
+	 *  and all codec properties reset to defaults.
+	 */
 	rte_codec *	(* new)(void);
 	void		(* delete)(rte_codec *);
 
@@ -49,6 +54,13 @@ typedef struct rte_codec_class {
 	int		(* option_get)(rte_codec *, char *, rte_option_value *);
 	int		(* option_set)(rte_codec *, char *, va_list);
 	char *		(* option_print)(rte_codec *, char *, va_list);
+
+	/* get/set sample parameters */
+	/* prepare */
+
+	/* result unused (yet) */
+	void *		(* mainloop)(void *rte_codec);
+
 } rte_codec_class;
 
 typedef enum {
@@ -56,6 +68,7 @@ typedef enum {
 	RTE_STATUS_NEW = 1,
 	/* accept options, parameters -> */
 	RTE_STATUS_READY,
+/* XXX a) options, b) parameters, c) fifo connections -- ? */
 	/* option change -> RTE_STATUS_NEW, start -> */
 	RTE_STATUS_RUNNING,
 	/* pause? */
@@ -63,18 +76,26 @@ typedef enum {
 	RTE_STATUS_STOPPED,
 } rte_codec_status;
 
-/* mutex for thread safe access
- and status report (bytes out etc) ? */
-
 struct rte_codec {
 	rte_codec *		next;
 
-	rte_codec_status	status;
+	rte_context *		context;	/* parent context */
+	rte_codec_class *	class;		/* read only */
 
-	rte_context *		context;
-	rte_codec_class *	class;
+	int			stream;		/* multiplexer substream */
 
-	int			stream;
+	pthread_mutex_t		mutex;		/* locked by class funcs */
+
+	rte_codec_status	status;		/* mutex protected, read only */
+
+	/* Valid when RTE_STATUS_RUNNING; mutex protected, read only. */
+	int64_t			frame_input_count;
+	int64_t			frame_input_missed;	/* excl. intent. skipped */
+	int64_t			frame_output_count;
+	int64_t			byte_output_count;
+	double			coded_time_elapsed;
+	// XXX?
+	double			frame_output_rate;	/* invariable, 1/s */
 
 	/* append codec private stuff */
 };

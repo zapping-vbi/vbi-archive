@@ -12,3 +12,8 @@ Known bugs with zapping, don't report them
 	  investigate.
 	~ Zapzilla: what's v4lx doing on standard change?
 	* Look for endianness problems.
+	* CC to be checked.
+	* Prefs can be opened multiple times and the mpeg
+          plugin doesn't like it. Is there some idea behind
+          multiple preferences or is the plugin right?
+	* Mpeg plugin/mp1e rc when promoting frames broke.

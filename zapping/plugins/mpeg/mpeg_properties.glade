@@ -559,6 +559,23 @@
 
       <widget>
 	<class>GtkLabel</class>
+	<name>label31</name>
+	<label></label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>3</xpad>
+	<ypad>0</ypad>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkLabel</class>
 	<name>label12</name>
 	<label>Dynamic stats (dropped, output M's, etc)</label>
 	<justify>GTK_JUSTIFY_CENTER</justify>

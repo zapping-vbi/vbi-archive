@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.8 2001-10-16 11:18:18 mschimek Exp $ */
+/* $Id: video.h,v 1.9 2001-10-21 05:08:48 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -267,14 +267,15 @@ struct mpeg1_context {
 
 	fifo *		fifo;
 	producer	prod;
-	double		coded_time;
+	double		coded_time_elapsed;
+	double		coded_frame_rate;
 	double		coded_frame_period;
 
 	/* Options */
 
 	rte_codec	codec;
 
-	double		bit_rate;
+	int		bit_rate;
 	int		frame_rate_code;
 	double		virtual_frame_rate;
 	char *		gop_sequence;
