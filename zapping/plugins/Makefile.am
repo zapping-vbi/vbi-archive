@@ -1,1 +1,3 @@
-SUBDIRS = alirc lirc template screenshot mpeg
+SUBDIRS = alirc screenshot mpeg
+## lirc parrot template
+
