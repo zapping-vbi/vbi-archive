@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rtepriv.h,v 1.16 2002-08-22 22:10:47 mschimek Exp $ */
+/* $Id: rtepriv.h,v 1.17 2002-09-12 12:26:15 mschimek Exp $ */
 
 #ifndef __RTEPRIV_H__
 #define __RTEPRIV_H__
@@ -347,6 +347,18 @@ extern char *			rte_strdup(rte_context *context, char **d, const char *s);
 extern unsigned int		rte_closest_int(const int *vec, unsigned int len, int val);
 extern unsigned int		rte_closest_double(const double *vec, unsigned int len, double val);
 extern rte_bool			rte_option_string(rte_context *context, rte_codec *codec, const char *optstr);
+
+static_inline int
+rte_closest_int_val(const int *vec, unsigned int len, int val)
+{
+	return (vec[rte_closest_int(vec, len, val)]);
+}
+
+static_inline double
+rte_closest_double_val(const double *vec, unsigned int len, double val)
+{
+	return (vec[rte_closest_double(vec, len, val)]);
+}
 
 /* Error functions */
 

@@ -1,9 +1,11 @@
-$Id: BUGS,v 1.5 2002-09-07 01:50:10 mschimek Exp $
+$Id: BUGS,v 1.6 2002-09-12 12:25:21 mschimek Exp $
 
 * -k -J -K -L -F9 -F10 undocumented
 * desaturation out of order
 * verify esd error checking
 * b_mp1e: start() checks codecs readiness?
+* bug in mpeg2_encode_intra?
+* mplayer and/or xv 420 field color upsampling seems broken
 * Audio test failure ./mp1e -v -m2 -n30 -a0 -B32
 
 	 Bad grouping code for samples [ch][sb][s(+0,1,2)]

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: info.c,v 1.11 2002-08-22 22:10:48 mschimek Exp $ */
+/* $Id: info.c,v 1.12 2002-09-12 12:26:15 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -54,6 +54,7 @@
 #endif
 
 rte_bool check = FALSE;
+rte_bool brief = FALSE;
 
 #define TYPE_STR(type) case type : type_str = #type ; break
 
@@ -522,26 +523,28 @@ show_codec_info (rte_context *context, rte_codec_info *ci)
 		exit(EXIT_FAILURE);
 	}
 
-	printf("\tKeyword:\t%s\n", ci->keyword);
-	printf("\tStream type:\t%s\n", type_str);
-	printf("\tLabel:\t\t\"%s\"\n", _(ci->label));
-	printf("\tTooltip:\t\"%s\"\n", _(ci->tooltip));
-	printf("\tAvailable options:\n");
+	printf("\tKeyword:\t%s\tLabel:\t\"%s\"\n", ci->keyword, _(ci->label));
 
-	keyword_check(ci->keyword);
+	if (!brief) {
+		printf("\tStream type:\t%s\n", type_str);
+		printf("\tTooltip:\t\"%s\"\n", _(ci->tooltip));
+		printf("\tAvailable options:\n");
 
-	codec = rte_set_codec(context, ci->keyword, 0, NULL);
+		keyword_check(ci->keyword);
 
-	if (!codec) {
-		fprintf(stderr, "\tCannot create/set codec %s: %s\n",
-		       ci->keyword, rte_errstr(context));
-		exit(EXIT_FAILURE);
+		codec = rte_set_codec(context, ci->keyword, 0, NULL);
+
+		if (!codec) {
+			fprintf(stderr, "\tCannot create/set codec %s: %s\n",
+				ci->keyword, rte_errstr(context));
+			exit(EXIT_FAILURE);
+		}
+
+		for (i = 0; (oi = rte_codec_option_info_enum(codec, i)); i++)
+			show_option_info(context, codec, oi);
+
+		printf("\n");
 	}
-
-	for (i = 0; (oi = rte_codec_option_info_enum(codec, i)); i++)
-		show_option_info(context, codec, oi);
-
-	printf("\n");
 
 	rte_remove_codec(context, ci->stream_type, 0);
 }
@@ -556,31 +559,36 @@ show_context_info (rte_context_info *ci)
 	int i;
 
 	printf("* keyword %s label \"%s\"\n", ci->keyword, _(ci->label));
-	printf("Backend:\t%s\n", ci->backend);
-	printf("Tooltip:\t\"%s\"\n", _(ci->tooltip));
-	printf("Mime types:\t%s\n", ci->mime_type);
-	printf("Extension:\t%s\n", ci->extension);
-	printf("Audio elementary:\t%d ... %d\n",
-	       ci->min_elementary[RTE_STREAM_AUDIO],
-	       ci->max_elementary[RTE_STREAM_AUDIO]);
-	printf("Video elementary:\t%d ... %d\n",
-	       ci->min_elementary[RTE_STREAM_VIDEO],
-	       ci->max_elementary[RTE_STREAM_VIDEO]);
-	printf("VBI elementary:\t\t%d ... %d\n",
-	       ci->min_elementary[RTE_STREAM_SLICED_VBI],
-	       ci->max_elementary[RTE_STREAM_SLICED_VBI]);
 
-	keyword_check(ci->keyword);
+	if (!brief) {
+		printf("Backend:\t%s\n", ci->backend);
+		printf("Tooltip:\t\"%s\"\n", _(ci->tooltip));
+		printf("Mime types:\t%s\n", ci->mime_type);
+		printf("Extension:\t%s\n", ci->extension);
+		printf("Audio elementary:\t%d ... %d\n",
+		       ci->min_elementary[RTE_STREAM_AUDIO],
+		       ci->max_elementary[RTE_STREAM_AUDIO]);
+		printf("Video elementary:\t%d ... %d\n",
+		       ci->min_elementary[RTE_STREAM_VIDEO],
+		       ci->max_elementary[RTE_STREAM_VIDEO]);
+		printf("VBI elementary:\t\t%d ... %d\n",
+		       ci->min_elementary[RTE_STREAM_SLICED_VBI],
+		       ci->max_elementary[RTE_STREAM_SLICED_VBI]);
 
-	printf("Available options:\n");
+		keyword_check(ci->keyword);
+
+		printf("Available options:\n");
+	}
 
 	if (!(context = rte_context_new(ci->keyword, &errstr, NULL))) {
 		fprintf(stderr, "Unable to create context:\n%s", errstr);
 		exit(EXIT_FAILURE);
 	}
 
-	for (i = 0; (oi = rte_context_option_info_enum(context, i)); i++)
-		show_option_info(context, NULL, oi);
+	if (!brief) {
+		for (i = 0; (oi = rte_context_option_info_enum(context, i)); i++)
+			show_option_info(context, NULL, oi);
+	}
 
 	printf("Codecs:\n");
 
@@ -602,11 +610,12 @@ show_contexts (void)
 	puts("-- end of list --");
 }
 
-static const char *short_options = "c";
+static const char *short_options = "cb";
 
 static const struct option
 long_options[] = {
 	{ "check", no_argument, NULL, 'c' },
+	{ "brief", no_argument, NULL, 'b' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -621,6 +630,10 @@ main (int argc, char **argv)
 		switch (c) {
 		case 'c':
 			check = TRUE;
+			break;
+
+		case 'b':
+			brief = TRUE;
 			break;
 
 		default:

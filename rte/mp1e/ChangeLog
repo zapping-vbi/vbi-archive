@@ -1,3 +1,8 @@
+2002-09-12	<mschimek@users.sf.net>
+
+	* video: encode_intra now reentrant. Let's hope speed
+	  didn't suffer too much.
+
 2002-09-08	<mschimek@users.sf.net>
 
 	* video/filter.c: 4:2:0 cropping fix by Nikolai Zhubr.

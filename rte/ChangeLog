@@ -1,3 +1,8 @@
+2002-09-10	<mschimek@users.sf.net>
+
+	* ffmpeg/ffmpeg.c, ffmpeg/ffmpeg.h: Added ac3, untested (player?);
+	  Some work towards video.
+
 2002-06-29	<mschimek@users.sf.net>
 
 	* Switched from gtk-doc to doxygen (sigh of relief...). Cleanup.
