@@ -3,7 +3,7 @@
  *
  *  gcc -g -ocaption caption.c -L/usr/X11R6/lib -lX11
  *
- *  Copyright (C) 2000 Michael H. Schimek
+ *  Copyright (C) 2000-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.5 2000-12-10 01:33:38 mschimek Exp $ */
+/* $Id: caption.c,v 1.6 2001-01-09 06:27:41 mschimek Exp $ */
 
 #define TEST 1
 
@@ -34,11 +34,13 @@
     - traced pop-on mode (s1), seems to work fine now
       ** added render function clear()
     - traced text mode (s1), need automatic line breaking?
+    - traced roll-up mode (s2), outlook good, but too short
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "ccfont.xbm"
 
@@ -180,6 +182,7 @@ struct caption {
 
 	int		chan;
 	attr_char	transp_space[2];	/* caption, text mode */
+	int		nul_ct;
 
 	struct ch_rec {
 		mode		mode;
@@ -313,7 +316,27 @@ caption_command(struct caption *cc,
 		ch->attr.flash = FALSE;
 
 		word_break(cc, ch);
-		set_cursor(ch, 1, row);
+
+		if (ch->mode == ROLL_UP) {
+			int bottom = row + ch->roll - 1;
+
+			if (bottom > 14) {
+				if (row >= 14) /* huh? */
+					row = 13;
+				ch->roll = 14 - row + 1;
+				ch->row1 = 0;
+				bottom = row + ch->roll - 1;
+			}
+
+			if (row != ch->row1) { /* who knows */
+				erase_memory(cc, ch);
+	    			ch->redraw_all = TRUE; /* override render row */
+			}
+
+			set_cursor(ch, 1, row + ch->roll - 1);
+		} else
+			set_cursor(ch, 1, row);
+
 		ch->row1 = row;
 
 		if (c2 & 0x10) {
@@ -410,7 +433,6 @@ caption_command(struct caption *cc,
 		case 5:		/* Roll-Up Captions		001 c10f  010 0xxx */
 		case 6:
 		case 7:
-// not verified
 			ch = switch_channel(cc, chan & 3);
 			ch->mode = ROLL_UP;
 
@@ -501,7 +523,8 @@ caption_command(struct caption *cc,
 					ch->buffer + (ch->row1 + 1) * NUM_COLS,
 					(ch->roll - 1) * NUM_COLS);
 
-				for (i = 1; i <= NUM_COLS - 1 /* ! */; i++)
+//				for (i = 1; i <= NUM_COLS - 1 /* ! */; i++)
+				for (i = 0; i <= NUM_COLS; i++)
 					ch->line[i] = cc->transp_space[chan >> 2];
 
 				ch->col1 = ch->col = 1;
@@ -643,14 +666,20 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 
 	default:
 		cc->last[0] = 0;
-		ch = &cc->channels[cc->chan];
+		ch = &cc->channels[(cc->chan & 5) + field2 * 2];
 		c = ch->attr;
 
 		for (i = 0; i < 2; i++) {
 			char ci = odd_parity[buf[i]] ? (buf[i] & 0x7F) : 127;
 
-			if (ci == 0) /* NUL */
+			if (ci == 0) { /* NUL */
+				if (cc->nul_ct == 2)
+					word_break(cc, ch);
+				cc->nul_ct++;
 				continue;
+			}
+
+			cc->nul_ct = 0;
 
 			c.glyph = CODE_PAGE + (ch->italic * 128) + ci;
 
@@ -916,7 +945,7 @@ roll_up(int page, attr_char *buffer, int first_row, int last_row)
 		(last_row - first_row) * CELL_HEIGHT * DISP_WIDTH * 2);
 
 	draw_tspaces(ximgdata + 48 + (45 + (last_row * CELL_HEIGHT))
-		* DISP_WIDTH, 34);
+		* DISP_WIDTH, NUM_COLS);
 #endif
 	XPutImage(display, window, gc, ximage,
 		0, 0, 0, 0, DISP_WIDTH, DISP_HEIGHT);

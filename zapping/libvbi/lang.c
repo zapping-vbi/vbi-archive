@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.7 2001-01-05 03:51:52 mschimek Exp $ */
+/* $Id: lang.c,v 1.8 2001-01-09 06:27:42 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -545,7 +545,7 @@ unicode_reverse[] = {
 
 /*
  *  These characters mimic a few common block mosaic, smooth mosaic
- *  or line drawing character patterns, eg. line separators
+ *  or line drawing character patterns, eg. horizontal bars
  */
 static const unsigned char
 gfx_transcript[] = {

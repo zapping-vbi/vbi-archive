@@ -23,6 +23,11 @@ s1
     field 1: C1 pop-on, T2 itv
     field 2: xds
 
+s2
+    contributed: Brian Litzinger, thanks a lot!
+    field 1: C1 roll-up
+    field 2: xds
+
 t1-swr
 t2-br
     contributed: yours truly

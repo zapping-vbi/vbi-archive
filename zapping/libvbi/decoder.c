@@ -18,7 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.c,v 1.1 2000-12-11 04:13:38 mschimek Exp $ */
+/* $Id: decoder.c,v 1.2 2001-01-09 06:27:42 mschimek Exp $ */
+
+/*
+    XXX NTSC transmits 0-4 (AFAIS) CC packets per frame,
+    and there's no way to identify true closed caption other than
+    the line number.
+ */
 
 #include <stdlib.h>
 #include <string.h>
