@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.c,v 1.3 2002-07-16 00:11:36 mschimek Exp $ */
+/* $Id: hamm.c,v 1.3.2.1 2003-04-29 17:10:43 mschimek Exp $ */
 
 #include "hamm.h"
 
@@ -357,7 +357,7 @@ vbi_hamm24(uint8_t *p, int *err)
  * value if the triplet contained incorrectable errors. 
  */
 int
-vbi_hamm24(uint8_t *p)
+vbi_hamm24			(const uint8_t *	p)
 {
 	int e = vbi_hamm24par[0][p[0]]
 		^ vbi_hamm24par[1][p[1]]
