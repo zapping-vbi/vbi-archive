@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.10 2000-10-17 06:19:52 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.11 2000-10-17 07:45:08 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -1373,9 +1373,14 @@ resume(int n)
 
 			obuf = wait_empty_buffer(video_fifo);
 
+			printv(3, "Dupl'ing B picture #%d GOP #%d\n",
+				video_frame_count, gop_frame_count);
+
 			memcpy(obuf->data, last->data, last->used);
-			((unsigned int *) obuf->data)[1] |=
-				swab32((gop_frame_count & 1023) << 22);
+			
+			((unsigned int *) obuf->data)[1] =
+				swab32((swab32(((unsigned int *) obuf->data)[1]) & ~(1023 << 22)) |
+					((gop_frame_count & 1023) << 22));
 
 			obuf->type = B_TYPE;
 			obuf->offset = 0;
@@ -1451,7 +1456,8 @@ mpeg1_video_ipb(void *unused)
 							buddy.buffer = b;
 							buddy.org[0] = b->data;
 						}
-					}
+					} else
+						this->org[0] = NULL;
 
 					if (!this->org[1]) {
 						this->buffer = NULL;
@@ -1465,7 +1471,8 @@ mpeg1_video_ipb(void *unused)
 					if (b) {
 						this->time = b->time;
 						this->org[0] = b->data;
-					}
+					} else
+						this->org[0] = NULL;
 				}
 #if TEST_PREVIEW
 				if (this->org[0] && (rand() % 100) < force_drop_rate) {
@@ -1522,9 +1529,9 @@ mpeg1_video_ipb(void *unused)
 				if (skip_rate_acc >= frames_per_sec) {
 					video_frames_dropped++;
 					
-					if (sp >= 2 && *seq == 'B') // Have BB, duplicate last B
+					if (sp >= 2 && *seq == 'B') { // Have BB, duplicate last B
 				    		goto next_frame;
-					else // skip this
+					} else // skip this
 						skip_rate_acc = 0;
 				} // else we skip it anyway
 			} else
@@ -1540,11 +1547,16 @@ mpeg1_video_ipb(void *unused)
 
 				assert(gop_frame_count > 0);
 
+				printv(3, "Encoding 0 picture #%d GOP #%d\n",
+					video_frame_count, gop_frame_count);
+
 				obuf = wait_empty_buffer(video_fifo);
 
 				memcpy(obuf->data, zerop_template, Sz);
-				((unsigned int *) obuf->data)[1] |=
-					swab32((gop_frame_count & 1023) << 22);
+
+				((unsigned int *) obuf->data)[1] =
+					swab32((swab32(((unsigned int *) obuf->data)[1]) & ~(1023 << 22)) |
+						((gop_frame_count & 1023) << 22));
 
 				obuf->type = P_TYPE;
 				obuf->offset = 1;
