@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.7 2001-11-28 22:13:24 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.8 2002-02-08 15:03:11 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -232,16 +232,16 @@ next_access_unit(stream *str, double *ppts, unsigned char **pph)
 			switch (buf->type) {
 			case I_TYPE:
 			case P_TYPE:
-				*ppts = str->dts + str->ticks_per_frame * (buf->offset + 1); // reorder delay
+				*ppts = str->dts_old + str->ticks_per_frame * (buf->offset + 1); // reorder delay
 				time_stamp(ph +  6, MARKER_PTS, *ppts);
-				time_stamp(ph + 11, MARKER_DTS, str->dts);
+				time_stamp(ph + 11, MARKER_DTS, str->dts_old);
 				*pph = NULL;
 				break;
 
 			case B_TYPE:
-				*ppts = str->dts; // delay always 0
-				time_stamp(ph +  6, MARKER_PTS, *ppts);
-				time_stamp(ph + 11, MARKER_DTS, str->dts);
+				*ppts = str->dts_old; // delay always 0
+				time_stamp(ph +  6, MARKER_PTS_ONLY, *ppts);
+				/* time_stamp(ph + 11, MARKER_DTS, str->dts); */
 				*pph = NULL;
 				break;
 
@@ -249,19 +249,19 @@ next_access_unit(stream *str, double *ppts, unsigned char **pph)
 				; /* no time stamp */
 			}
 		} else /* audio */ {
-			*ppts = str->dts + str->pts_offset;
+			*ppts = str->dts_old + str->pts_offset;
 			time_stamp(ph + 11, MARKER_PTS_ONLY, *ppts);
 			*pph = NULL;
 		}
 
-		printv(4, "%02x %c %06x dts=%16.8f pts=%16.8f off=%+2d %s\n",
+		printv(3, "%02x %c %06x dts=%16.8f pts=%16.8f off=%+2d %s\n",
 			str->stream_id, "?IPB?"[buf->type], buf->used,
-			str->dts / TPF, *ppts / TPF, buf->offset,
+			str->dts_old / TPF, *ppts / TPF, buf->offset,
 			*pph ? "not coded" : "");
 	} else {
-		printv(4, "%02x %c %06x dts=%16.8f in same packet\n",
+		printv(3, "%02x %c %06x dts=%16.8f in same packet\n",
 			str->stream_id, "?IPB?"[buf->type], buf->used,
-			str->dts / TPF);
+			str->dts_old / TPF);
 	}
 
 	str->ticks_per_byte = str->ticks_per_frame / str->left;
@@ -280,7 +280,7 @@ schedule(multiplexer *mux)
 	str = NULL;
 
 	for_all_nodes (s, &mux->streams, fifo.node) {
-		double dtsi = s->dts;
+		double dtsi = s->dts_old;
 
 		if (s->buf)
 			dtsi += (s->ptr - s->buf->data) * s->ticks_per_byte;
@@ -370,9 +370,9 @@ mpeg1_system_mux(void *muxp)
 			if (!IS_VIDEO_STREAM(str->stream_id)) {
 				str->pts_offset = (double) SYSTEM_TICKS / (video_frame_rate * 1.0);
 				/* + 0.1 to schedule video frames first */
-				str->dts = preload_delay + 0.1;
+				str->dts_old = preload_delay + 0.1;
 			} else
-				str->dts = preload_delay;
+				str->dts_old = preload_delay;
 		}
 	}
 
@@ -385,7 +385,7 @@ mpeg1_system_mux(void *muxp)
 		/* Pack header, system header */
 
 		if (pack_packet_count >= PACKETS_PER_PACK) {
-			printv(4, "Pack #%d, scr=%f\n",	pack_count++, scr);
+			printv(3, "Pack #%d, scr=%f\n",	pack_count++, scr);
 
 			p = pack_header(p, scr, system_rate);
 			p = system_header(mux, p, system_rate_bound);
@@ -426,7 +426,7 @@ reschedule:
 
 			if (str->left == 0) {
 				if (!next_access_unit(str, &pts, &ph)) {
-					str->dts = LARGE_DTS * 2.0; // don't schedule stream
+					str->dts_old = LARGE_DTS * 2.0; // don't schedule stream
 
 					if (pl == p) {
 						/* no payload */
@@ -453,7 +453,7 @@ reschedule:
 				send_empty_buffer(&str->cons, str->buf);
 
 				str->buf = NULL;
-				str->dts += str->ticks_per_frame;
+				str->dts_old += str->ticks_per_frame;
 			}
 
 			p += n;
@@ -461,7 +461,7 @@ reschedule:
 			str->ptr += n;
 		}
 
-		printv(4, "Packet #%d %s, pts=%f\n",
+		printv(3, "Packet #%d %s, pts=%f\n",
 			packet_count, mpeg_header_name(str->stream_id), pts);
 
 		((unsigned short *) ps)[2] = swab16(p - ps - 6);

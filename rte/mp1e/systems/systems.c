@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.c,v 1.6 2001-10-26 09:14:51 mschimek Exp $ */
+/* $Id: systems.c,v 1.7 2002-02-08 15:03:11 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,6 +74,17 @@ mux_alloc(void *user_data)
 	return mux;
 }
 
+static int
+stream_pri(int stream_id)
+{
+	if (IS_VIDEO_STREAM(stream_id))
+		return 0x400 + stream_id;
+	if (IS_AUDIO_STREAM(stream_id))
+		return 0x300 + stream_id;
+	else
+		return stream_id;
+}
+
 /*
  *  stream_id	VIDEO_STREAM
  *  max_size	frame buffer
@@ -81,12 +92,11 @@ mux_alloc(void *user_data)
  *  frame_rate	24 Hz
  *  bit_rate	upper bound
  */
-
 fifo *
 mux_add_input_stream(multiplexer *mux, int stream_id, char *name,
 	int max_size, int buffers, double frame_rate, int bit_rate)
 {
-	stream *str;
+	stream *str, *s;
 	int new_buffers, r;
 
 	/*
@@ -101,9 +111,13 @@ mux_add_input_stream(multiplexer *mux, int stream_id, char *name,
 		return NULL;
 	}
 
+	str->mux = mux;
 	str->stream_id = stream_id;
 	str->frame_rate = frame_rate;
 	str->bit_rate = bit_rate;
+
+	str->au_w = &str->au_ring[0];
+	str->au_r = &str->au_ring[elements(str->au_ring) - 1];
 
 	new_buffers = init_buffered_fifo(&str->fifo, name, buffers, max_size);
 
@@ -114,11 +128,45 @@ mux_add_input_stream(multiplexer *mux, int stream_id, char *name,
 
 	add_consumer(&str->fifo, &str->cons);
 
+	/* sort video-audio-other */
+	stream_id = stream_pri(stream_id);
+	for_all_nodes (s, &mux->streams, fifo.node)
+		if (stream_pri(s->stream_id) < stream_id) {
+			str->fifo.node.succ = &s->fifo.node;
+			str->fifo.node.pred = s->fifo.node.pred;
+			s->fifo.node.pred->succ = &str->fifo.node;
+			s->fifo.node.pred = &str->fifo.node;
+			mux->streams.members++;
+			goto done;
+		}
 	add_tail((list *) &mux->streams, &str->fifo.node);
-
+ done:
 	pthread_rwlock_unlock(&mux->streams.rwlock);
 
 	return &str->fifo;
+}
+
+void
+mux_rem_input_stream(fifo *f)
+{
+	stream *str = PARENT(f, stream, fifo);
+	multiplexer *mux = str->mux;
+	int r;
+
+	/*
+	 *  Returns EBUSY while the mux runs.
+	 */
+	if ((r = pthread_rwlock_trywrlock(&mux->streams.rwlock)) != 0) {
+		assert(!"reached");
+	}
+
+	unlink_node((list *) &mux->streams, &str->fifo.node);
+
+	destroy_fifo(&str->fifo);
+
+	free(str);
+
+	pthread_rwlock_unlock(&mux->streams.rwlock);
 }
 
 void *
@@ -130,7 +178,8 @@ stream_sink(void *muxp)
 	buffer *buf = NULL;
 	stream *str;
 
-	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock, (void *) &mux->streams.rwlock);
+	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock,
+			     (void *) &mux->streams.rwlock);
 	assert(pthread_rwlock_rdlock(&mux->streams.rwlock) == 0);
 
 	for_all_nodes (str, &mux->streams, fifo.node)
@@ -139,30 +188,34 @@ stream_sink(void *muxp)
 	num_streams = list_members((list *) &mux->streams);
 
 	while (num_streams > 0) {
-		for_all_nodes (str, &mux->streams, fifo.node)
-			if (str->left && (buf = recv_full_buffer(&str->cons)))
-				break;
+		for_all_nodes (str, &mux->streams, fifo.node) {
+			if (!str->left)
+				continue;
 
-		if (buf->used <= 0) {
-			/* XXX EOF/error */
-			str->left = 0;
-			num_streams--;
-			continue;
-		}
+			buf = wait_full_buffer(&str->cons);
 
-		bytes_out += buf->used;
+			if (buf->used <= 0) {
+				/* XXX EOF/error */
+				str->left = 0;
+				num_streams--;
+				continue;
+			}
 
-		send_empty_buffer(&str->cons, buf);
+			bytes_out += buf->used;
 
-		if (verbose > 0) {
-			double system_load = 1.0 - get_idle();
+			send_empty_buffer(&str->cons, buf);
 
-			printv(1, "%.3f MB >0, %.2f %% dropped, system load %.1f %%  %c",
-				bytes_out / (double)(1 << 20),
-				video_frame_count ? 100.0 * video_frames_dropped / video_frame_count : 0.0,
-				100.0 * system_load, (verbose > 3) ? '\n' : '\r');
+			if (verbose > 0) {
+				double system_load = 1.0 - get_idle();
 
-			fflush(stderr);
+				printv(1, "%.3f MB >0, %.2f %% dropped, system load %.1f %%  %c",
+					bytes_out / (double)(1 << 20),
+					video_frame_count ? 100.0
+						* video_frames_dropped / video_frame_count : 0.0,
+					100.0 * system_load, (verbose > 3) ? '\n' : '\r');
+
+				fflush(stderr);
+			}
 		}
 	}
 

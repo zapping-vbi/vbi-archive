@@ -14,43 +14,54 @@ Selecting Input/output interface.
 
 </para>
 
-<!-- ##### FUNCTION rte_set_input_callback_buffered ##### -->
+<!-- ##### FUNCTION rte_set_input_callback_active ##### -->
 <para>
 
 </para>
 
 @codec: 
-@get_cb: 
+@read_cb: 
 @unref_cb: 
+@queue_length: 
+@Returns: 
 <!-- # Unused Parameters # -->
-@get_ab: 
-@unref_ab: 
+@get_cb: 
 
 
-<!-- ##### FUNCTION rte_set_input_callback_data ##### -->
+<!-- ##### FUNCTION rte_set_input_callback_passive ##### -->
 <para>
 
 </para>
 
 @codec: 
+@read_cb: 
+@Returns: 
+<!-- # Unused Parameters # -->
+@queue_length: 
 @data_cb: 
 
 
-<!-- ##### FUNCTION rte_set_input_push_buffered ##### -->
+<!-- ##### FUNCTION rte_set_input_push_active ##### -->
 <para>
 
 </para>
 
 @codec: 
 @unref_cb: 
+@queue_request: 
+@queue_length: 
+@Returns: 
 
 
-<!-- ##### FUNCTION rte_set_input_push_data ##### -->
+<!-- ##### FUNCTION rte_set_input_push_passive ##### -->
 <para>
 
 </para>
 
 @codec: 
+@queue_request: 
+@queue_length: 
+@Returns: 
 
 
 <!-- ##### FUNCTION rte_push_buffer ##### -->
@@ -61,27 +72,6 @@ Selecting Input/output interface.
 @codec: 
 @buffer: 
 @blocking: 
-
-
-<!-- ##### FUNCTION rte_push_data ##### -->
-<para>
-
-</para>
-
-@codec: 
-@data: 
-@timestamp: 
-@blocking: 
 @Returns: 
-
-
-<!-- ##### FUNCTION rte_set_output_callback ##### -->
-<para>
-
-</para>
-
-@context: 
-@write_cb: 
-@seek_cb: 
 
 

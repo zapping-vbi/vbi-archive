@@ -19,10 +19,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: info.c,v 1.4 2002-01-13 09:53:48 mschimek Exp $ */
+/* $Id: info.c,v 1.5 2002-02-08 15:03:11 mschimek Exp $ */
+
+#undef NDEBUG
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 #include <assert.h>
 #include <getopt.h>
 
@@ -65,7 +69,7 @@ rte_bool check = FALSE;
 do {									\
 	if (!(expr)) {							\
 		printf("Assertion '" #expr "' failed; errstr=\"%s\"\n",	\
-		        rte_last_error(cx));				\
+		        rte_errstr(cx));				\
 		exit(EXIT_FAILURE);					\
 	}								\
 } while (0)
@@ -87,19 +91,41 @@ do {									\
 } while (0)
 
 static void
+keyword_check(char *keyword)
+{
+	int i, l;
+
+	assert(keyword != NULL);
+	l = strlen(keyword);
+	assert(strlen(keyword) > 0);
+
+	for (i = 0; i < l; i++) {
+		if (isalnum(keyword[i]))
+			continue;
+		if (strchr("_", keyword[i]))
+			continue;
+		fprintf(stderr, "Bad keyword: '%s'\n", keyword);
+		exit(EXIT_FAILURE);
+	}
+}
+
+static void
 print_current(rte_option_info *oi, rte_option_value current)
 {
 	if (REAL_TYPE(oi)) {
-		printf("    current value=%f\n", current.dbl);
-		if (!oi->menu.dbl)
-			assert(current.dbl >= oi->min.dbl
-			       && current.dbl <= oi->max.dbl);
+		printf("    current value=%f ", current.dbl);
+		if (!oi->menu.dbl
+		    && (current.dbl < oi->min.dbl
+			|| current.dbl > oi->max.dbl))
+			printf("** WARNING: out of bounds");
 	} else {
-		printf("    current value=%d\n", current.num);
-		if (!oi->menu.num)
-			assert(current.num >= oi->min.num
-			       && current.num <= oi->max.num);
+		printf("    current value=%d ", current.num);
+		if (!oi->menu.num
+		    && (current.num < oi->min.num
+			|| current.num > oi->max.num))
+			printf("** WARNING: out of bounds");
 	}
+	printf("\n");
 }
 
 static void
@@ -134,7 +160,7 @@ test_set_int(rte_context *cx, rte_codec *cc, rte_option_info *oi,
 	if (r)
 		printf("success.");
 	else
-		printf("failed, errstr=\"%s\".", rte_last_error(cx));
+		printf("failed, errstr=\"%s\".", rte_errstr(cx));
 
 	new_current.num = 0x54321;
 
@@ -145,7 +171,7 @@ test_set_int(rte_context *cx, rte_codec *cc, rte_option_info *oi,
 
 	if (!r2) {
 		printf("rte_*_option_get failed, errstr==\"%s\"\n",
-		       rte_last_error(cx));
+		       rte_errstr(cx));
 		if (new_current.num != 0x54321)
 			printf("but modified destination to %d\n",
 			       new_current.num);
@@ -174,7 +200,7 @@ test_set_real(rte_context *cx, rte_codec *cc, rte_option_info *oi,
 	if (r)
 		printf("success.");
 	else
-		printf("failed, errstr=\"%s\".", rte_last_error(cx));
+		printf("failed, errstr=\"%s\".", rte_errstr(cx));
 
 	new_current.dbl = 8192.0;
 
@@ -185,7 +211,7 @@ test_set_real(rte_context *cx, rte_codec *cc, rte_option_info *oi,
 
 	if (!r2) {
 		printf("rte_*_option_get failed, errstr==\"%s\"\n",
-		       rte_last_error(cx));
+		       rte_errstr(cx));
 		if (new_current.dbl != 8192.0)
 			printf("but modified destination to %f\n",
 			       new_current.dbl);
@@ -219,13 +245,13 @@ test_set_entry(rte_context *cx, rte_codec *cc, rte_option_info *oi,
 
 	switch (r0 = r0 * 2 + valid) {
 	case 0:
-		printf("failed as expected, errstr=\"%s\".", rte_last_error(cx));
+		printf("failed as expected, errstr=\"%s\".", rte_errstr(cx));
 		break;
 	case 1:
-		printf("failed, errstr=\"%s\".", rte_last_error(cx));
+		printf("failed, errstr=\"%s\".", rte_errstr(cx));
 		break;
 	case 2:
-		printf("unexpected success.");
+		printf("** WARNING unexpected success.");
 		break;
 	default:
 		printf("success.");
@@ -249,7 +275,7 @@ test_set_entry(rte_context *cx, rte_codec *cc, rte_option_info *oi,
 	switch (r1 = r1 * 2 + valid) {
 	case 1:
 		printf("\nrte_export_option_menu_get failed, errstr==\"%s\"\n",
-		       rte_last_error(cx));
+		       rte_errstr(cx));
 		break;
 	case 2:
 		printf("\nrte_export_option_menu_get: unexpected success.\n");
@@ -266,7 +292,7 @@ test_set_entry(rte_context *cx, rte_codec *cc, rte_option_info *oi,
 		exit(EXIT_FAILURE);
 	}
 
-	if (r0 == 1 || r0 == 2 || r1 == 1 || r1 == 2)
+	if (r0 == 1 /* || r0 == 2 */ || r1 == 1 || r1 == 2)
 		exit(EXIT_FAILURE);
 
 	switch (oi->type) {
@@ -319,14 +345,16 @@ show_option_info(rte_context *cx, rte_codec *cc, rte_option_info *oi)
 	printf("    * type=%s keyword=%s label=\"%s\" tooltip=\"%s\"\n",
 	       type_str, oi->keyword, _(oi->label), _(oi->tooltip));
 
+	keyword_check(oi->keyword);
+
 	switch (oi->type) {
 	case RTE_OPTION_BOOL:
 	case RTE_OPTION_INT:
 		BOUNDS_CHECK(num);
 		if (oi->menu.num) {
 			printf("      %d menu entries, default=%d: ",
-			       oi->max.num + 1, oi->def.num);
-			for (i = 0; i <= oi->max.num; i++)
+			       oi->max.num - oi->min.num + 1, oi->def.num);
+			for (i = oi->min.num; i <= oi->max.num; i++)
 				printf("%d%s", oi->menu.num[i],
 				       (i < oi->max.num) ? ", " : "");
 			printf("\n");
@@ -365,8 +393,8 @@ show_option_info(rte_context *cx, rte_codec *cc, rte_option_info *oi)
 		BOUNDS_CHECK(dbl);
 		if (oi->menu.dbl) {
 			printf("      %d menu entries, default=%d: ",
-			       oi->max.num + 1, oi->def.num);
-			for (i = 0; i <= oi->max.num; i++)
+			       oi->max.num - oi->min.num  + 1, oi->def.num);
+			for (i = oi->min.num; i <= oi->max.num; i++)
 				printf("%f%s", oi->menu.dbl[i],
 				       (i < oi->max.num) ? ", " : "");
 		} else
@@ -403,8 +431,8 @@ show_option_info(rte_context *cx, rte_codec *cc, rte_option_info *oi)
 		if (oi->menu.str) {
 			BOUNDS_CHECK(str);
 			printf("      %d menu entries, default=%d: ",
-			       oi->max.num + 1, oi->def.num);
-			for (i = 0; i <= oi->max.num; i++)
+			       oi->max.num - oi->min.num  + 1, oi->def.num);
+			for (i = oi->min.num; i <= oi->max.num; i++)
 				printf("%s%s", oi->menu.str[i],
 				       (i < oi->max.num) ? ", " : "");
 		} else
@@ -430,7 +458,7 @@ show_option_info(rte_context *cx, rte_codec *cc, rte_option_info *oi)
 				printf("success.");
 			else
 				printf("failed, errstr=\"%s\".",
-				       rte_last_error(cx));
+				       rte_errstr(cx));
 			if (cc)
 				ASSERT_ERRSTR(rte_codec_option_get
 					      (cc, oi->keyword, &val));
@@ -445,8 +473,8 @@ show_option_info(rte_context *cx, rte_codec *cc, rte_option_info *oi)
 
 	case RTE_OPTION_MENU:
 		printf("      %d menu entries, default=%d: ",
-		       oi->max.num + 1, oi->def.num);
-		for (i = 0; i <= oi->max.num; i++) {
+		       oi->max.num - oi->min.num + 1, oi->def.num);
+		for (i = oi->min.num; i <= oi->max.num; i++) {
 			assert(oi->menu.str[i] != NULL);
 			printf("%s%s", _(oi->menu.str[i]),
 			       (i < oi->max.num) ? ", " : "");
@@ -500,11 +528,13 @@ show_codec_info (rte_context *context, rte_codec_info *ci)
 	printf("\tTooltip:\t\"%s\"\n", _(ci->tooltip));
 	printf("\tAvailable options:\n");
 
-	codec = rte_codec_set(context, ci->stream_type, 0,
-			      ci->keyword);
+	keyword_check(ci->keyword);
+
+	codec = rte_codec_set(context, ci->keyword, 0, NULL);
+
 	if (!codec) {
 		fprintf(stderr, "\tCannot create/set codec %s: %s\n",
-		       ci->keyword, rte_last_error(context));
+		       ci->keyword, rte_errstr(context));
 		exit(EXIT_FAILURE);
 	}
 
@@ -522,6 +552,7 @@ show_context_info (rte_context_info *ci)
 	rte_context *context;
 	rte_codec_info *di;
 	rte_option_info *oi;
+	char *errstr;
 	int i;
 
 	printf("* keyword %s label \"%s\"\n", ci->keyword, _(ci->label));
@@ -529,15 +560,24 @@ show_context_info (rte_context_info *ci)
 	printf("Tooltip:\t\"%s\"\n", _(ci->tooltip));
 	printf("Mime types:\t%s\n", ci->mime_type);
 	printf("Extension:\t%s\n", ci->extension);
-	printf("Audio elementary:\t%d\n",
-	       ci->elementary[RTE_STREAM_AUDIO]);
-	printf("Video elementary:\t%d\n",
-	       ci->elementary[RTE_STREAM_VIDEO]);
-	printf("VBI elementary:\t\t%d\n",
-	       ci->elementary[RTE_STREAM_SLICED_VBI]);
+	printf("Audio elementary:\t%d ... %d\n",
+	       ci->min_elementary[RTE_STREAM_AUDIO],
+	       ci->max_elementary[RTE_STREAM_AUDIO]);
+	printf("Video elementary:\t%d ... %d\n",
+	       ci->min_elementary[RTE_STREAM_VIDEO],
+	       ci->max_elementary[RTE_STREAM_VIDEO]);
+	printf("VBI elementary:\t\t%d ... %d\n",
+	       ci->min_elementary[RTE_STREAM_SLICED_VBI],
+	       ci->max_elementary[RTE_STREAM_SLICED_VBI]);
+
+	keyword_check(ci->keyword);
+
 	printf("Available options:\n");
 
-	assert((context = rte_context_new(ci->keyword)));
+	if (!(context = rte_context_new(ci->keyword, &errstr, NULL))) {
+		fprintf(stderr, "Unable to create context:\n%s", errstr);
+		exit(EXIT_FAILURE);
+	}
 
 	for (i = 0; (oi = rte_context_option_info_enum(context, i)); i++)
 		show_option_info(context, NULL, oi);
@@ -571,6 +611,8 @@ int
 main (int argc, char **argv)
 {
 	int index, c;
+
+	printf("Welcome to Unimatrix 5, tertiary subunit of Zapping 6.\n\n");
 
 	while ((c = getopt_long(argc, argv, "c", long_options, &index)) != -1)
 		switch (c) {

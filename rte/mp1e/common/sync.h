@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sync.h,v 1.7 2002-01-21 13:54:53 mschimek Exp $ */
+/* $Id: sync.h,v 1.8 2002-02-08 15:03:11 mschimek Exp $ */
 
 #ifndef SYNC_H
 #define SYNC_H
@@ -169,7 +169,7 @@ mp1e_timestamp_filter(struct tfmem *m, double dt,
 	m->ecr = acc;
 
 #if 0
-	fprintf(stderr, "dt %+f err %+f vel %+f acc %+f ref %f\n",
+	fprintf(stderr, "tf dt %+f err %+f vel %+f acc %+f ref %f\n",
 		dt, err, vel, acc, m->ref);
 #endif
 	return m->ref;

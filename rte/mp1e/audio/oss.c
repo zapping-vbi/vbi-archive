@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.16 2002-01-21 13:54:53 mschimek Exp $ */
+/* $Id: oss.c,v 1.17 2002-02-08 15:03:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -141,19 +141,25 @@ wait_full(fifo *f)
 	 *  my taste, hence the filter.
 	 */
 	if (oss->time > 0) {
+#if 1
+		oss->time += oss->tfmem.ref;
+#else
 		double dt = now - oss->time;
 
 		if (dt - oss->tfmem.err > oss->tfmem.ref * 1.98) {
 			/* data lost, out of sync; XXX 1.98 bad */
 			oss->time = now;
-			OSS_DROP_TEST(printv(0, "dropped dt=%f\n", dt));
+#if 0
+			printv(0, "audio dropped dt=%f\n", dt);
+#endif
 		} else {
 			oss->time += mp1e_timestamp_filter
 				(&oss->tfmem, dt, 0.05, 1e-7, 0.08);
 		}
 
-		OSS_TIME_LOG(printv(0, "now %f dt %+f err %+f t/b %+f\n",
+		OSS_TIME_LOG(printv(0, "oss %f dt %+f err %+f t/b %+f\n",
 				    now, dt, oss->tfmem.err, oss->tfmem.ref));
+#endif
 	} else
 		oss->time = now;
 
@@ -177,15 +183,15 @@ send_empty(consumer *c, buffer *b)
 }
 
 static const int format_preference[][2] = {
-	{ AFMT_S16_LE, RTE_SNDFMT_S16LE },
-	{ AFMT_U16_LE, RTE_SNDFMT_U16LE },
+	{ AFMT_S16_LE, RTE_SNDFMT_S16_LE },
+	{ AFMT_U16_LE, RTE_SNDFMT_U16_LE },
 	{ AFMT_U8, RTE_SNDFMT_U8 },
 	{ AFMT_S8, RTE_SNDFMT_S8 },
 	{ -1, -1 }
 };
 
-fifo *
-open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
+void
+open_pcm_oss(char *dev_name, int sampling_rate, bool stereo, fifo **f)
 {
 	struct oss_context *oss;
 	int oss_format = AFMT_S16_LE;
@@ -199,7 +205,7 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	ASSERT("allocate pcm context",
 		(oss = calloc(1, sizeof(struct oss_context))));
 
-	oss->pcm.format = RTE_SNDFMT_S16LE;
+	oss->pcm.format = RTE_SNDFMT_S16_LE;
 	oss->pcm.sampling_rate = sampling_rate;
 	oss->pcm.stereo = stereo;
 
@@ -262,23 +268,22 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 		oss->pcm.stereo ? "stereo" : "mono",
 		oss_frag_size);
 
-	ASSERT("init oss fifo",	init_callback_fifo(
-		&oss->pcm.fifo, "audio-oss",
+	*f = &oss->pcm.fifo;
+
+	ASSERT("init oss fifo",	init_callback_fifo(*f, "audio-oss",
 		NULL, NULL, wait_full, send_empty,
 		1, oss_frag_size));
 
 	ASSERT("init oss producer",
-		add_producer(&oss->pcm.fifo, &oss->pcm.producer));
+		add_producer(*f, &oss->pcm.producer));
 
-	oss->pcm.fifo.user_data = oss;
+	(*f)->user_data = oss;
 
-	b = PARENT(oss->pcm.fifo.buffers.head, buffer, added);
+	b = PARENT((*f)->buffers.head, buffer, added);
 
 	b->data = NULL;
 	b->used = b->size;
 	b->offset = 0;
-
-	return &oss->pcm.fifo;
 }
 
 /*
@@ -377,8 +382,8 @@ mix_sources(void)
 
 #else /* !HAVE_OSS */
 
-fifo *
-open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
+void
+open_pcm_oss(char *dev_name, int sampling_rate, bool stereo, fifo **f)
 {
 	FAIL("Not compiled with OSS interface.");
 }

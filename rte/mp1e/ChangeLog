@@ -1,3 +1,18 @@
+2002-02-08	<mschimek@users.sf.net>
+
+	* Added -o patch by Xye
+	* Added SIGUSR1 patch by Jon Hittner
+
+2002-02-05	<mschimek@users.sf.net>
+
+	* New option -n h:m:s record time.
+	* Rewrote VCD mux.
+	* b_mp1e.c: Changes towards rte 0.5.
+
+2002-01-23	Fixes <mschimek@users.sf.net>
+
+	* systems/systems.c: Fixed stupid bug in stream_sink().
+
 2002-01-18	Fixes <mschimek@users.sf.net>
 
 	* Improved timestamping in audio&video interfaces.

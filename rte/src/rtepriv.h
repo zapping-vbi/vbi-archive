@@ -18,8 +18,9 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+
 /*
- * $Id: rtepriv.h,v 1.8 2002-01-13 09:54:01 mschimek Exp $
+ * $Id: rtepriv.h,v 1.9 2002-02-08 15:03:11 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -37,13 +38,31 @@
   without breaking any compatibility.
 */
 
+/* public typedef struct rte_codec rte_codec; */
+/* public typedef struct rte_context rte_context; */
+
+typedef struct rte_codec_class rte_codec_class;
+typedef struct rte_context_class rte_context_class;
+typedef struct rte_backend_class rte_backend_class;
+
 typedef enum {
-	/* new ->
-	   options changed -> */
+	/*
+	 *  On success of:
+	 *  codec_class.new()
+	 *  codec_class.option_set()
+	 *  context_class.new()
+	 *  context_class.option_set()
+	 */
 	RTE_STATUS_NEW = 0,
-	/* set parameters -> */
+	/*
+	 *  codec_class.parameters_set()
+	 *  (no state of contexts)
+	 */
 	RTE_STATUS_PARAM,
-	/* i/o -> */
+	/*
+	 *  codec_class.set_input()
+	 *  context_class.set_output()
+	 */
 	RTE_STATUS_READY,
 	/* start -> */
 	RTE_STATUS_RUNNING,
@@ -53,89 +72,44 @@ typedef enum {
 	/* resume -> RTE_STATUS_RUNNING */
 } rte_status;
 
-/* maybe one should add this stuff under a #ifdef RTE_BACKEND to rte.h? */
+typedef enum {
+	RTE_INPUT_CA = 1,	/* Callback active */
+	RTE_INPUT_CP,		/* Callback passive */
+	RTE_INPUT_PA,		/* Push active */
+	RTE_INPUT_PP		/* Push passive */
+} rte_input;
 
-typedef struct _rte_codec_class rte_codec_class;
+/*
+ *  Codec instance.
+ */
+struct rte_codec {
+	rte_codec *		next;		/* backend use, list of context's codec instances */
 
-struct _rte_codec_class {
-	rte_codec_class *	next;
-	rte_codec_info		public;
+	rte_context *		context;	/* parent */
+	rte_codec_class *	class;
+
+	void *			user_data;
+	int			stream_index;	/* from rte_codec_set() */
 
 	/*
-	 *  Allocate new codec instance. All fields zero except
-	 *  rte_codec.class, .status (RTE_STATUS_NEW), .mutex (initialized),
-	 *  and all codec properties reset to defaults.
+	 *  The mutex is used by the rte_codec_class functions
+	 *  and protects all fields below. Attention: not recursive.
 	 */
-	rte_codec *		(* new)(void);
-	void			(* delete)(rte_codec *);
+	pthread_mutex_t		mutex;
 
-	rte_option_info *	(* option_enum)(rte_codec *, int);
-	int			(* option_get)(rte_codec *, const char *, rte_option_value *);
-	int			(* option_set)(rte_codec *, const char *, va_list);
-	char *			(* option_print)(rte_codec *, const char *, va_list);
+	/*
+	 *  Maintained by codec, elsewhere read only. Stream
+	 *  parameters are only valid at status RTE_STATUS_PARAM
+	 *  or higher.
+	 */
+	rte_status		status;
 
-	rte_bool		(* set_parameters)(rte_codec *, rte_stream_parameters *);
-	rte_bool		(* get_parameters)(rte_codec *, rte_stream_parameters *);
+	rte_stream_parameters	params;
 
-	/* Called by rte.c before building the fifos. Fill in
-	   num_buffers as needed. */
-	rte_bool		(* pre_init)(rte_codec *, int *num_buffers);
-	/* Called after building the fifos */
-	rte_bool		(* post_init)(rte_codec *);
-	/* After this the fifos will be destroyed by rte */
-	rte_bool		(* uninit)(rte_codec *);
 
-	rte_status_info *	(* status_enum)(rte_codec *, int);
 
-	/* result unused (yet) */
-	void *			(* mainloop)(void *rte_codec);
-};
+// <<
 
-struct _rte_codec {
-	rte_codec *		next;
-
-	rte_context *		context;	/* parent context */
-	rte_codec_class *	class;		/* read only */
-
-	pthread_mutex_t		mutex;		/* locked by class funcs */
-
-	rte_status		status;		/* ro */
-	rte_pointer		user_data;
-
-	int			bsize;		/* size of a frame */
-
-	enum {
-		RTE_INPUT_CB, /* Callback buffered */
-		RTE_INPUT_CD, /* Callback data */
-		RTE_INPUT_PB, /* Push buffered */
-		RTE_INPUT_PD /* Push data */
-	} input_mode;
-
-	union {
-		/* Callbacks buffered */
-		struct {
-			rteBufferCallback	get;
-			rteBufferCallback	unref;
-		} cb;
-		/* Callbacks data */
-		struct {
-			rteDataCallback		get;
-		} cd;
-		/* Push buffered */
-		struct {
-			rteBufferCallback	unref;
-		} pb;
-		/* Push data */
-		struct {
-			buffer *		last_buffer;
-		} pd;
-	} input;
-
-	fifo			f;
-	producer		prod;
-
-	/* FIXME: this ought to be codec private */
-	int			stream;		/* multiplexer substream */
 
 	/* Valid when RTE_STATUS_RUNNING; mutex protected, read only. */
 	int64_t			frame_input_count;
@@ -147,29 +121,159 @@ struct _rte_codec {
 	double			frame_output_rate;	/* invariable, 1/s */
 };
 
-typedef struct _rte_context_class rte_context_class;
+/*
+ *  Methods of a codec. No fields may change while a codec->class
+ *  is referencing this structure.
+ */
+struct rte_codec_class {
+	rte_codec_class *	next;		/* backend use, list of codec classes */
+	rte_codec_info		public;
 
-struct _rte_context_class {
-	rte_context_class *	next;
+	/*
+	 *  Allocate new codec instance. Returns all fields zero except
+	 *  rte_codec.class, .status (RTE_STATUS_NEW) and .mutex (initialized).
+	 *  Options to be reset by caller, ie. backend.
+	 */
+	rte_codec *		(* new)(rte_codec_class *, char **errstr);
+	void			(* delete)(rte_codec *);
+
+	/*
+	 *  Same as frontend version, collectively optional. The frontend
+	 *  locks codec->mutex while calling option_set or option_get.
+	 */
+	rte_option_info *	(* option_enum)(rte_codec *, int);
+	int			(* option_get)(rte_codec *, const char *, rte_option_value *);
+	int			(* option_set)(rte_codec *, const char *, va_list);
+	char *			(* option_print)(rte_codec *, const char *, va_list);
+
+	/*
+	 *  Same as frontend versions. parameters_set() is mandatory,
+	 *  parameters_get() is optional. Then the frontend or backend reads
+	 *  the codec.params directly.
+	 */
+	rte_bool		(* parameters_set)(rte_codec *, rte_stream_parameters *);
+	rte_bool		(* parameters_get)(rte_codec *, rte_stream_parameters *);
+
+	/*
+	 *  Select input method and put codec into RTE_STATUS_READY, mandatory
+	 *  function. Only certain parameter combinations are valid, depending
+	 *  on rte_input:
+	 *  RTE_INPUT_CA - read_cb, optional (NULL) unref_cb
+	 *  RTE_INPUT_CP - read_cb
+	 *  RTE_INPUT_PA - optional (NULL) unref_cb
+	 *  RTE_INPUT_PP - nothing
+	 *  A codec need not support all input methods. queue_length (input and
+	 *  output), the pointer always valid, applies as defined for the
+	 *  rte_set_input_*() functions. Return FALSE on error.
+	 */
+	rte_bool		(* set_input)(rte_codec *, rte_input,
+					      rte_buffer_callback read_cb,
+					      rte_buffer_callback unref_cb,
+					      int *queue_length);
+
+	/* Same as the frontend version, optional. */
+
+	rte_bool		(* push_buffer)(rte_codec *codec, rte_buffer *buffer, rte_bool blocking);
+
+//<<
+
+	rte_status_info *	(* status_enum)(rte_codec *, int);
+};
+
+struct rte_context {
+	rte_context *		next;		/* backend use, list of context instances */
+	rte_context_class *	class;
+
+	void *			user_data;
+	char *			error;
+
+	/*
+	 *  Except as noted the mutex is locked by the rte_context_class
+	 *  functions and protects all fields below. Attention: not recursive.
+	 */
+	pthread_mutex_t		mutex;
+
+	rte_status		status;
+
+
+//<<
+
+	rte_seek_callback seek; /* seek in file callback */
+};
+
+/*
+ *  Methods of a context. No fields may change while a context.class
+ *  is referencing this structure.
+ */
+struct rte_context_class {
+	rte_context_class *	next;		/* backend use, list of context classes */
 	rte_context_info	public;
 
+	/*
+	 *  Allocate new context instance. Returns all fields zero except
+	 *  rte_codec.class, .status (RTE_STATUS_NEW) and .mutex (initialized).
+	 *  Context options to be reset by the frontend.
+	 */
+	rte_context *		(* new)(rte_context_class *, char **errstr);
 	void			(* delete)(rte_context *);
 
+	/*
+	 *  Same as frontend version, collectively optional. The frontend
+	 *  locks context->mutex while calling context_option_set or
+	 *  context_option_get.
+	 */
+	rte_option_info *	(* context_option_enum)(rte_context *, int);
+	int			(* context_option_get)(rte_context *, const char *,
+						       rte_option_value *);
+	int			(* context_option_set)(rte_context *, const char *, va_list);
+	char *			(* context_option_print)(rte_context *, const char *, va_list);
+
+	/*
+	 *  Same as frontend versions, mandatory. Note codec_set:
+	 *  Either keyword & index (set/replace) or type & index (remove) are
+	 *  passed. Codec options reset by the backend, not replacing if that
+	 *  fails. The frontend locks context->mutex while calling codec_set or
+	 *  codec_get.
+	 */
 	rte_codec_info *	(* codec_enum)(rte_context *, int);
 	rte_codec *		(* codec_get)(rte_context *, rte_stream_type, int);
-	rte_codec *		(* codec_set)(rte_context *,
-					      rte_stream_type, int,
-					      const char *);
+	rte_codec *		(* codec_set)(rte_context *, const char *, rte_stream_type, int);
 
-	rte_option_info *	(* option_enum)(rte_context *, int);
-	int			(* option_get)(rte_context *, const char *, rte_option_value *);
-	int			(* option_set)(rte_context *, const char *, va_list);
-	char *			(* option_print)(rte_context *, const char *, va_list);
+	/*
+	 *  Same as frontend versions, insulates codec calls in the
+	 *  backend to permit context specific filtering. Individually
+	 *  optional, then the frontend calls the respective codec
+	 *  functions directly. The frontend locks codec->mutex while
+	 *  calling codec_option_set or codec_option_get.
+	 */
+	rte_option_info *	(* codec_option_enum)(rte_codec *, int);
+	int			(* codec_option_get)(rte_codec *, const char *,
+						     rte_option_value *);
+	int			(* codec_option_set)(rte_codec *, const char *, va_list);
+	char *			(* codec_option_print)(rte_codec *, const char *, va_list);
+
+	rte_bool		(* parameters_set)(rte_codec *, rte_stream_parameters *);
+	rte_bool		(* parameters_get)(rte_codec *, rte_stream_parameters *);
+
+	/*
+	 *  Same as the codec versions, optional. Then the frontend calls the
+	 *  respective codec functions directly.
+	 */
+	rte_bool		(* set_input)(rte_codec *, rte_input,
+					      rte_buffer_callback read_cb,
+					      rte_buffer_callback unref_cb,
+					      int *queue_length);
+
+	rte_bool		(* push_buffer)(rte_codec *codec, rte_buffer *buffer, rte_bool blocking);
+
+	rte_bool		(* set_output)(rte_context *context,
+					       rte_buffer_callback write_cb,
+					       rte_seek_callback seek_cb);
+
+//<<
 
 	rte_status_info *	(* status_enum)(rte_context *, int);
 
-	rte_bool		(* pre_init)(rte_context *);
-	void			(* uninit)(rte_context *);
 
 	rte_bool		(* start)(rte_context *);
 	void			(* stop)(rte_context *);
@@ -177,29 +281,48 @@ struct _rte_context_class {
 	rte_bool		(* resume)(rte_context *);
 };
 
-struct _rte_context {
-	void *		user_data; /* user data given to the callback */
-	char *		error; /* Last error */
-	rte_status	status; /* context status */
+struct rte_backend_class {
+	char *			name;
 
-	rteWriteCallback write; /* save-data Callback */
-	rteSeekCallback seek; /* seek in file callback */
+	/* Called once by frontend before context_enum. */
 
-	rte_context_class *	class; /* backend specific */
+	void			(* backend_init)(void);
+
+	/*
+	 *  Same as frontend version. Contexts can be inactive due lack of
+	 *  resources for example, then (at least) rte_context_class->new
+	 *  is NULL and (if non-zero) errstr should explain why.
+	 *  rte_context_class->public.keyword must always be valid when
+	 *  the class is enumerated, rest don't care if inactive.
+	 */
+	rte_context_class *	(* context_enum)(int index, char **errstr);
 };
-
-typedef struct {
-	const char *		name;
-	void			(* init)(void);
-	rte_context_info *	(* context_enum)(int n);
-	rte_context *		(* context_new)(const char *keyword);
-} rte_backend_info;
 
 /*
  *  Helper functions
- *
- *  (note the backend is bypassed, may change)
  */
+
+#ifndef _
+#ifdef ENABLE_NLS
+#    include <libintl.h>
+#    define _(String) gettext (String)
+#    ifdef gettext_noop
+#        define N_(String) gettext_noop (String)
+#    else
+#        define N_(String) (String)
+#    endif
+#else
+/* Stubs that do something close enough.  */
+#    define textdomain(String) (String)
+#    define gettext(String) (String)
+#    define dgettext(Domain,Message) (Message)
+#    define dcgettext(Domain,Message,Type) (Message)
+#    define bindtextdomain(Domain,Directory) (Domain)
+#    define _(String) (String)
+#    define N_(String) (String)
+#endif
+#endif
+
 #define RTE_OPTION_BOUNDS_INITIALIZER_(type_, def_, min_, max_, step_)	\
   { type_ = def_ }, { type_ = min_ }, { type_ = max_ }, { type_ = step_ }
 
@@ -241,6 +364,41 @@ typedef struct {
   RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
   { .str = menu_ }, tip_ }
 
+#define RTE_OPTION_ARG(type, min, max)					\
+({									\
+	type val = va_arg(args, type);					\
+									\
+	if (val < (min) || val > (max)) {				\
+		rte_invalid_option(context, codec, keyword, val);	\
+		goto failed;						\
+	}								\
+		val;							\
+})
+
+#define RTE_OPTION_ARG_MENU(menu)					\
+	RTE_OPTION_ARG(int, 0, sizeof(menu) / sizeof(menu[0]))
+
+void
+rte_unknown_option(rte_context *context, rte_codec *codec, const char *keyword);
+void
+rte_invalid_option(rte_context *context, rte_codec *codec, const char *keyword, ...);
+void
+rte_asprintf(char **errstr, const char *templ, ...);
+char *
+rte_strdup(rte_context *context, char **d, const char *s);
+
+rte_bool
+rte_option_string(rte_context *context, rte_codec *codec, const char *optstr);
+
+static inline void
+rte_error_reset(rte_context *context)
+{
+	if (context->error) {
+		free(context->error);
+		context->error = NULL;
+	}
+}
+
 #define RC(X) ((rte_context*)X)
 
 #define rte_error(context, format, args...) \
@@ -260,80 +418,10 @@ do { \
 
 #define nullcheck(X, whattodo)						\
 do {									\
-	if (!X) {							\
+	if ((X) == NULL) {						\
 		rte_error(NULL, #X " == NULL");				\
 		whattodo;						\
 	}								\
 } while (0)
-
-static inline int
-rte_helper_set_option_va(rte_codec *codec, char *keyword, ...)
-{
-	va_list args;
-	int r;
-
-	va_start(args, keyword);
-	r = codec->class->option_set(codec, keyword, args);
-	va_end(args);
-
-	return r;
-}
-
-/* to be removed */
-static inline int
-rte_helper_reset_options(rte_codec *codec)
-{
-	rte_option_info *option;
-	int r = 1, i = 0;
-
-	while (r && (option = codec->class->option_enum(codec, i++))) {
-		switch (option->type) {
-		case RTE_OPTION_BOOL:
-		case RTE_OPTION_INT:
-			if (option->menu.num)
-				r = rte_helper_set_option_va(codec, option->keyword,
-							 option->menu.num[option->def.num]);
-			else
-				r = rte_helper_set_option_va(codec, option->keyword,
-							 option->def.num);
-			break;
-
-		case RTE_OPTION_REAL:
-			if (option->menu.dbl)
-				r = rte_helper_set_option_va(codec, option->keyword,
-							 option->menu.dbl[option->def.num]);
-			else
-				r = rte_helper_set_option_va(codec, option->keyword, 
-							 option->def.dbl);
-			break;
-
-		case RTE_OPTION_STRING:
-			if (option->menu.str)
-				r = rte_helper_set_option_va(codec, option->keyword,
-							 option->menu.str[option->def.num]);
-			else
-				r = rte_helper_set_option_va(codec, option->keyword, 
-							 option->def.str);
-			break;
-
-		case RTE_OPTION_MENU:
-			r = rte_helper_set_option_va(codec, option->keyword, option->def.num);
-			break;
-
-		default:
-			fprintf(stderr, __PRETTY_FUNCTION__
-				": unknown codec option type %d\n", option->type);
-			exit(EXIT_FAILURE);
-		}
-	}
-
-	return r;
-}
-
-extern rte_bool
-rte_codec_options_reset(rte_codec *codec);
-
-extern rte_bool
-rte_context_options_reset(rte_context *context);
 
 #endif /* rtepriv.h */

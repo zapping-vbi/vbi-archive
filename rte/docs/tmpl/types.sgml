@@ -50,12 +50,6 @@ Basic types
 </para>
 
 
-<!-- ##### TYPEDEF rte_context_info ##### -->
-<para>
-
-</para>
-
-
 <!-- ##### TYPEDEF rte_codec_info ##### -->
 <para>
 
@@ -83,19 +77,99 @@ Basic types
 @RTE_REAL: 
 @RTE_STRING: 
 
+<!-- ##### ENUM rte_option_type ##### -->
+<para>
+
+</para>
+
+@RTE_OPTION_BOOL: 
+@RTE_OPTION_INT: 
+@RTE_OPTION_REAL: 
+@RTE_OPTION_STRING: 
+@RTE_OPTION_MENU: 
+
 <!-- ##### TYPEDEF rte_option_info ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### TYPEDEF rte_video_stream_parameters ##### -->
+<!-- ##### ENUM rte_pixfmt ##### -->
+<para>
+
+</para>
+
+@RTE_PIXFMT_YUV420: 
+@RTE_PIXFMT_YUYV: 
+@RTE_PIXFMT_YVYU: 
+@RTE_PIXFMT_UYVY: 
+@RTE_PIXFMT_VYUY: 
+@RTE_PIXFMT_RGBA32_LE: 
+@RTE_PIXFMT_RGBA32_BE: 
+@RTE_PIXFMT_BGRA32_LE: 
+@RTE_PIXFMT_BGRA32_BE: 
+@RTE_PIXFMT_RGB24: 
+@RTE_PIXFMT_BGR24: 
+@RTE_PIXFMT_RGB16_LE: 
+@RTE_PIXFMT_RGB16_BE: 
+@RTE_PIXFMT_BGR16_LE: 
+@RTE_PIXFMT_BGR16_BE: 
+@RTE_PIXFMT_RGBA15_LE: 
+@RTE_PIXFMT_RGBA15_BE: 
+@RTE_PIXFMT_BGRA15_LE: 
+@RTE_PIXFMT_BGRA15_BE: 
+@RTE_PIXFMT_ARGB15_LE: 
+@RTE_PIXFMT_ARGB15_BE: 
+@RTE_PIXFMT_ABGR15_LE: 
+@RTE_PIXFMT_ABGR15_BE: 
+
+<!-- ##### MACRO RTE_PIXFMT_ABGR32_LE ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### TYPEDEF rte_audio_stream_parameters ##### -->
+
+<!-- ##### MACRO RTE_PIXFMT_ARGB32_LE ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO RTE_PIXFMT_ARGB32_BE ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO RTE_PIXFMT_ABGR32_BE ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### TYPEDEF rte_video_stream_params ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### ENUM rte_sndfmt ##### -->
+<para>
+
+</para>
+
+@RTE_SNDFMT_S8: 
+@RTE_SNDFMT_U8: 
+@RTE_SNDFMT_S16_LE: 
+@RTE_SNDFMT_S16_BE: 
+@RTE_SNDFMT_U16_LE: 
+@RTE_SNDFMT_U16_BE: 
+
+<!-- ##### TYPEDEF rte_audio_stream_params ##### -->
 <para>
 
 </para>
@@ -113,7 +187,7 @@ Basic types
 </para>
 
 
-<!-- ##### USER_FUNCTION rteBufferCallback ##### -->
+<!-- ##### USER_FUNCTION rte_buffer_callback ##### -->
 <para>
 
 </para>
@@ -121,32 +195,10 @@ Basic types
 @context: 
 @codec: 
 @buffer: 
+@Returns: 
 
 
-<!-- ##### USER_FUNCTION rteDataCallback ##### -->
-<para>
-
-</para>
-
-@context: 
-@codec: 
-@data: 
-@time: 
-<!-- # Unused Parameters # -->
-@bytes: 
-
-
-<!-- ##### USER_FUNCTION rteWriteCallback ##### -->
-<para>
-
-</para>
-
-@context: 
-@data: 
-@bytes: 
-
-
-<!-- ##### USER_FUNCTION rteSeekCallback ##### -->
+<!-- ##### USER_FUNCTION rte_seek_callback ##### -->
 <para>
 
 </para>
@@ -154,5 +206,6 @@ Basic types
 @context: 
 @offset: 
 @whence: 
+@Returns: 
 
 

@@ -51,10 +51,13 @@ Selecting codecs.
 </para>
 
 @context: 
-@stream_type: 
+@keyword: 
 @stream_index: 
-@codec_keyword: 
+@user_data: 
 @Returns: 
+<!-- # Unused Parameters # -->
+@stream_type: 
+@codec_keyword: 
 
 
 <!-- ##### FUNCTION rte_codec_get ##### -->
@@ -68,40 +71,41 @@ Selecting codecs.
 @Returns: 
 
 
-<!-- ##### FUNCTION rte_codec_set_user_data ##### -->
+<!-- ##### FUNCTION rte_codec_remove ##### -->
+<para>
+
+</para>
+
+@context: 
+@stream_type: 
+@stream_index: 
+
+
+<!-- ##### FUNCTION rte_codec_user_data ##### -->
 <para>
 
 </para>
 
 @codec: 
-@data: 
 
 
-<!-- ##### FUNCTION rte_codec_get_user_data ##### -->
+<!-- ##### FUNCTION rte_codec_parameters_set ##### -->
 <para>
 
 </para>
 
 @codec: 
+@rsp: 
 @Returns: 
 
 
-<!-- ##### FUNCTION rte_codec_set_parameters ##### -->
+<!-- ##### FUNCTION rte_codec_parameters_get ##### -->
 <para>
 
 </para>
 
 @codec: 
-@params: 
+@rsp: 
 @Returns: 
-
-
-<!-- ##### FUNCTION rte_codec_get_parameters ##### -->
-<para>
-
-</para>
-
-@codec: 
-@params: 
 
 

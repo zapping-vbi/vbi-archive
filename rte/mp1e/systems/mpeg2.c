@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.7 2001-11-28 22:13:24 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.8 2002-02-08 15:03:11 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -237,18 +237,18 @@ next_access_unit(stream *str, double *ppts, unsigned char **pph)
 			switch (buf->type) {
 			case I_TYPE:
 			case P_TYPE:
-				*ppts = str->dts + str->ticks_per_frame * (buf->offset + 1);
+				*ppts = str->dts_old + str->ticks_per_frame * (buf->offset + 1);
 				ph[7] |= MARKER_PTS << 6;
 				time_stamp(ph +  9, MARKER_PTS, *ppts);
-				time_stamp(ph + 14, MARKER_DTS, str->dts);
+				time_stamp(ph + 14, MARKER_DTS, str->dts_old);
 				*pph = NULL;
 				break;
 			
 			case B_TYPE:
-				*ppts = str->dts;
+				*ppts = str->dts_old;
 				ph[7] |= MARKER_PTS << 6;
-				time_stamp(ph +  9, MARKER_PTS, *ppts);
-				time_stamp(ph + 14, MARKER_DTS, str->dts);
+				time_stamp(ph +  9, MARKER_PTS_ONLY, *ppts);
+				/* time_stamp(ph + 14, MARKER_DTS, str->dts); */
 				*pph = NULL;
 				break;
 
@@ -256,7 +256,7 @@ next_access_unit(stream *str, double *ppts, unsigned char **pph)
 				; /* no time stamp */
 			}			
 		} else {
-			*ppts = str->dts;
+			*ppts = str->dts_old;
 /* XXX ?		*ppts = str->dts + str->pts_offset;
 */
 			ph[7] |= MARKER_PTS_ONLY << 6;
@@ -281,7 +281,7 @@ schedule(multiplexer *mux)
 	str = NULL;
 
 	for_all_nodes (s, &mux->streams, fifo.node) {
-		double dtsi = s->dts;
+		double dtsi = s->dts_old;
 
 		if (s->buf)
 			dtsi += (s->ptr - s->buf->data) * s->ticks_per_byte;
@@ -363,9 +363,9 @@ mpeg2_program_stream_mux(void *muxp)
 			if (!IS_VIDEO_STREAM(str->stream_id)) {
 				str->pts_offset = (double) SYSTEM_TICKS / (video_frame_rate * 1.0);
 				/* + 0.1 to schedule video frames first */
-				str->dts = preload_delay + 0.1;
+				str->dts_old = preload_delay + 0.1;
 			} else
-				str->dts = preload_delay;
+				str->dts_old = preload_delay;
 		}
 	}
 
@@ -419,7 +419,7 @@ reschedule:
 
 			if (str->left == 0) {
 				if (!next_access_unit(str, &pts, &ph)) {
-					str->dts = LARGE_DTS * 2.0; // don't schedule stream
+					str->dts_old = LARGE_DTS * 2.0; // don't schedule stream
 
 					if (pl == p) {
 						/* no payload */
@@ -446,7 +446,7 @@ reschedule:
 				send_empty_buffer(&str->cons, str->buf);
 
 				str->buf = NULL;
-				str->dts += str->ticks_per_frame;
+				str->dts_old += str->ticks_per_frame;
 			}
 
 			p += n;

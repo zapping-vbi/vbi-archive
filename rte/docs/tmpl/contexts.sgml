@@ -1,8 +1,8 @@
 <!-- ##### SECTION Title ##### -->
-Creating encoding contexts.
+Creating encoding contexts
 
 <!-- ##### SECTION Short_Description ##### -->
-
+Enumeration and allocation of file formats and encoding instances.
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -13,6 +13,12 @@ Creating encoding contexts.
 <para>
 
 </para>
+
+<!-- ##### TYPEDEF rte_context_info ##### -->
+<para>
+
+</para>
+
 
 <!-- ##### FUNCTION rte_context_info_enum ##### -->
 <para>
@@ -47,9 +53,10 @@ Creating encoding contexts.
 </para>
 
 @keyword: 
+@errstr: 
+@user_data: 
 @Returns: 
 <!-- # Unused Parameters # -->
-@user_data: 
 @format: 
 @backend: 
 
@@ -62,16 +69,25 @@ Creating encoding contexts.
 @context: 
 
 
-<!-- ##### FUNCTION rte_context_set_user_data ##### -->
+<!-- ##### FUNCTION rte_context_user_data ##### -->
 <para>
 
 </para>
 
 @context: 
-@user_data: 
 
 
-<!-- ##### FUNCTION rte_context_get_user_data ##### -->
+<!-- ##### FUNCTION rte_error_printf ##### -->
+<para>
+
+</para>
+
+@context: 
+@templ: 
+@Varargs: 
+
+
+<!-- ##### FUNCTION rte_errstr ##### -->
 <para>
 
 </para>

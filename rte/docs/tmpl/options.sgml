@@ -34,17 +34,6 @@ Setting encoding options.
 @Returns: 
 
 
-<!-- ##### FUNCTION rte_codec_option_get ##### -->
-<para>
-
-</para>
-
-@codec: 
-@keyword: 
-@value: 
-@Returns: 
-
-
 <!-- ##### FUNCTION rte_codec_option_set ##### -->
 <para>
 
@@ -56,6 +45,41 @@ Setting encoding options.
 @Returns: 
 
 
+<!-- ##### FUNCTION rte_codec_option_get ##### -->
+<para>
+
+</para>
+
+@codec: 
+@keyword: 
+@v: 
+@Returns: 
+<!-- # Unused Parameters # -->
+@value: 
+
+
+<!-- ##### FUNCTION rte_codec_option_menu_set ##### -->
+<para>
+
+</para>
+
+@codec: 
+@keyword: 
+@entry: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_codec_option_menu_get ##### -->
+<para>
+
+</para>
+
+@codec: 
+@keyword: 
+@entry: 
+@Returns: 
+
+
 <!-- ##### FUNCTION rte_codec_option_print ##### -->
 <para>
 
@@ -64,6 +88,15 @@ Setting encoding options.
 @codec: 
 @keyword: 
 @Varargs: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_codec_options_reset ##### -->
+<para>
+
+</para>
+
+@codec: 
 @Returns: 
 
 
@@ -87,17 +120,6 @@ Setting encoding options.
 @Returns: 
 
 
-<!-- ##### FUNCTION rte_context_option_get ##### -->
-<para>
-
-</para>
-
-@context: 
-@keyword: 
-@value: 
-@Returns: 
-
-
 <!-- ##### FUNCTION rte_context_option_set ##### -->
 <para>
 
@@ -109,6 +131,39 @@ Setting encoding options.
 @Returns: 
 
 
+<!-- ##### FUNCTION rte_context_option_get ##### -->
+<para>
+
+</para>
+
+@context: 
+@keyword: 
+@value: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_context_option_menu_set ##### -->
+<para>
+
+</para>
+
+@context: 
+@keyword: 
+@entry: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_context_option_menu_get ##### -->
+<para>
+
+</para>
+
+@context: 
+@keyword: 
+@entry: 
+@Returns: 
+
+
 <!-- ##### FUNCTION rte_context_option_print ##### -->
 <para>
 
@@ -117,6 +172,15 @@ Setting encoding options.
 @context: 
 @keyword: 
 @Varargs: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_context_options_reset ##### -->
+<para>
+
+</para>
+
+@context: 
 @Returns: 
 
 

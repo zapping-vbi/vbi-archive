@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.13 2002-01-13 09:53:16 mschimek Exp $ */
+/* $Id: video.h,v 1.14 2002-02-08 15:03:11 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -85,7 +85,7 @@ rc_picture_start(struct rc *rc, picture_type type, int mb_num)
 		 */
 		rc->T = lroundn(rc->R / ((rc->ni + rc->ei)
 					 + ((rc->np + rc->ep) * rc->Xp
-					    + (rc->nb + rc->eb) * rc->Xb / B_SHARE)
+					    + (rc->nb + rc->eb) * rc->Xb * (1 / B_SHARE))
 					 / rc->Xi));
 		rc->Ti = -rc->d0i;
 		break;
@@ -93,7 +93,7 @@ rc_picture_start(struct rc *rc, picture_type type, int mb_num)
 	case P_TYPE:
 		rc->T = lroundn(rc->R / ((rc->np + rc->ep)
 					 + ((rc->ni + rc->ei) * rc->Xi
-					    + (rc->nb + rc->eb) * rc->Xb / B_SHARE)
+					    + (rc->nb + rc->eb) * rc->Xb * (1 / B_SHARE))
 					 / rc->Xp));
 		rc->Ti = -rc->d0p;
 		break;
@@ -121,6 +121,10 @@ rc_picture_start(struct rc *rc, picture_type type, int mb_num)
 
 	rc->act_sumi = 0.0;
 	rc->act_sump = 0.0;
+
+	if (0)
+	fprintf(stderr, "P%d T=%8d Ti=%f Tmin=%8d Tavg=%8d Tmb=%f X=%f,%f,%f\n",
+		type, rc->T, rc->Ti, rc->Tmin, rc->Tavg, rc->Tmb, rc->Xi, rc->Xp, rc->Xb);
 }
 
 static inline int
@@ -136,6 +140,8 @@ rc_quant(struct rc *rc, mb_type type,
 		acti = (2.0 * acti + rc->avg_acti) / (acti + 2.0 * rc->avg_acti);
 		quant = lroundn((bits_out - rc->Ti) * rc->r31 * acti);
 		quant = saturate(quant >> qs, 1, quant_max);
+		if (0)
+		fprintf(stderr, "<< %f %f %d\n", (double) bits_out, (double) rc->Ti, quant);
 		rc->Ti += rc->Tmb;
 		break;
 
@@ -165,6 +171,10 @@ rc_quant(struct rc *rc, mb_type type,
 	return quant;
 }
 
+// XXX this is no CBR/VBR anymore, but for now better than nothing.
+// zap: Wed, 30 Jan 2002 11:07:55 +0100
+#define RQ(d0) do { if (d0 < -2 * rc->T) d0 = -2 * rc->T; } while (0)
+
 static inline void
 rc_picture_end(struct rc *rc, picture_type type,
 	       int S, int quant_sum, int mb_num)
@@ -174,6 +184,7 @@ rc_picture_end(struct rc *rc, picture_type type,
 		rc->avg_acti = rc->act_sumi / mb_num;
 		rc->Xi = lroundn(S * (double) quant_sum / mb_num);
 		rc->d0i += S - rc->T; /* bits encoded - estimated bits */
+		RQ(rc->d0i);
 		break;
 
 	case P_TYPE:
@@ -181,6 +192,7 @@ rc_picture_end(struct rc *rc, picture_type type,
 		rc->avg_actp = rc->act_sump / mb_num;
 		rc->Xp = lroundn(S * (double) quant_sum / mb_num);
 		rc->d0p += S - rc->T;
+		RQ(rc->d0p);
 		break;
 
 	case B_TYPE:
@@ -188,6 +200,7 @@ rc_picture_end(struct rc *rc, picture_type type,
 		rc->avg_actp = rc->act_sump / mb_num;
 		rc->Xb = lroundn(S * (double) quant_sum / mb_num);
 		rc->d0b += S - rc->T;
+		RQ(rc->d0b);
 		break;
 
 	default:
@@ -251,8 +264,6 @@ struct mpeg1_context {
 
 	double		skip_rate_acc;
 	double		drop_timeout;
-	double		time_per_frame;
-	double		frames_per_sec;
 
 	uint8_t *	oldref;			/* past reference frame buffer */
 
@@ -280,11 +291,14 @@ struct mpeg1_context {
 	int		coded_height;
 
 	int		frames_per_seqhdr;
+	int		aspect_ratio_code;
 
 	/* input */
 
 	synchr_stream	sstr;
 	double		coded_elapsed;
+	double		nominal_frame_rate;
+	double		nominal_frame_period;
 
 	/* Output */
 

@@ -4,8 +4,8 @@ EXTRA_DIST = \
 	alloc.c alloc.h \
 	fifo.c fifo.h \
 	list.h math.h \
-	threads.h types.h \
-	errstr.c errstr.h
+	threads.h types.h
+##	errstr.c errstr.h
 
 noinst_LTLIBRARIES = libcommon.la
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.23 2002-01-21 07:41:04 mschimek Exp $ */
+/* $Id: main.c,v 1.24 2002-02-08 15:03:10 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -48,13 +48,13 @@
 #include "video/mpeg.h"
 #include "vbi/libvbi.h"
 #include "systems/systems.h"
+#include "systems/mpeg.h"
 #include "common/profile.h"
 #include "common/math.h"
 #include "common/log.h"
 #include "common/mmx.h"
 #include "common/bstream.h"
-#include "common/sync.h"
-#include "common/errstr.h"
+//#include "common/errstr.h"
 #include "options.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
@@ -66,7 +66,6 @@ int			verbose;
 int			debug_msg; /* v4lx.c */
 
 static pthread_t	audio_thread_id;
-static fifo *		audio_cap_fifo;
 static rte_codec *	audio_codec;
 static int		stereo;
 
@@ -89,6 +88,110 @@ extern int		psycho_loops;
 extern void options(int ac, char **av);
 
 extern void preview_init(int *argc, char ***argv);
+
+fifo *			afifo;
+
+/*
+ *  These are functions needed to link without the rte frontend.
+ */
+
+static void
+vfailure(const char **templ, ... /* to make the compiler happy */)
+{
+	va_list ap;
+
+	va_start(ap, *templ);
+	fprintf(stderr, "Failure: ");
+	vfprintf(stderr, *templ, ap);
+	fputc('\n', stderr);
+	exit(EXIT_FAILURE);
+}
+
+void rte_error_printf(rte_context *context, const char *templ, ...)
+{ vfailure(&templ); }
+
+void rte_asprintf(char **errstr, const char *templ, ...)
+{ vfailure(&templ); }
+
+void rte_unknown_option(rte_context *context, rte_codec *codec, const char *keyword)
+{ FAIL("Huh? Unknown option? '%s'", keyword); }
+
+void rte_invalid_option(rte_context *context, rte_codec *codec, const char *keyword, ...)
+{ FAIL("Huh? Invalid option? '%s'", keyword); }
+
+char *
+rte_strdup(rte_context *context, char **d, const char *s)
+{
+	char *new;
+
+	ASSERT("duplicate string", (new = strdup(s ? s : "")));
+
+	if (d) {
+		if (*d) free(*d);
+		*d = new;
+	}
+
+	return new;
+}
+
+static void
+set_option(rte_codec *codec, char *keyword, ...)
+{
+	va_list args;
+
+	va_start(args, keyword);
+	ASSERT("set option %s", !!codec->class->option_set(
+		codec, keyword, args), keyword);
+	va_end(args);
+}
+
+static void
+reset_options(rte_codec *codec)
+{
+	rte_option_info *option;
+	int i = 0;
+
+	while ((option = codec->class->option_enum(codec, i++))) {
+		switch (option->type) {
+		case RTE_OPTION_BOOL:
+		case RTE_OPTION_INT:
+			if (option->menu.num)
+				set_option(codec, option->keyword,
+					   option->menu.num[option->def.num]);
+			else
+				set_option(codec, option->keyword,
+					   option->def.num);
+			break;
+
+		case RTE_OPTION_REAL:
+			if (option->menu.dbl)
+				set_option(codec, option->keyword,
+					   option->menu.dbl[option->def.num]);
+			else
+				set_option(codec, option->keyword, 
+					   option->def.dbl);
+			break;
+
+		case RTE_OPTION_STRING:
+			if (option->menu.str)
+				set_option(codec, option->keyword,
+					   option->menu.str[option->def.num]);
+			else
+				set_option(codec, option->keyword, 
+					   option->def.str);
+			break;
+
+		case RTE_OPTION_MENU:
+			set_option(codec, option->keyword, option->def.num);
+			break;
+
+		default:
+			fprintf(stderr, __PRETTY_FUNCTION__
+				": unknown codec option type %d\n", option->type);
+			exit(EXIT_FAILURE);
+		}
+	}
+}
 
 
 
@@ -118,10 +221,12 @@ terminate(int signum)
 int
 main(int ac, char **av)
 {
-	sigset_t block_mask;
+	struct sigaction action;
+	sigset_t block_mask, endm;
 	/* XXX encapsulation */
 	struct pcm_context *pcm = 0;
 	double c_frame_rate;
+	char *errstr = NULL;
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 	program_invocation_short_name =
@@ -129,6 +234,12 @@ main(int ac, char **av)
 #endif
 
 	options(ac, av);
+
+#ifndef OPEN_SESAME
+	if (mux_syn != 4) {
+		FAIL("Temporarily out of order. No bug reports please.");
+	}
+#endif
 
 	if (cpu_type == CPU_UNKNOWN) {
 		cpu_type = cpu_detection();
@@ -161,6 +272,7 @@ main(int ac, char **av)
 	}
 
 	mp1e_mp2_module_init(test_mode & 1);
+	mp1e_mpeg1_module_init(test_mode & 2);
 
 	if (test_mode >= 1 && test_mode <= 3) {
 		printv(1, "Tests passed\n");
@@ -172,10 +284,16 @@ main(int ac, char **av)
 	else
 		modules &= ~MOD_SUBTITLES;
 
-
 	sigemptyset(&block_mask);
 	sigaddset(&block_mask, SIGINT);
 	sigprocmask(SIG_BLOCK, &block_mask, NULL);
+
+	sigemptyset(&endm);
+	sigaddset(&endm, SIGUSR1);
+	action.sa_mask = endm;
+	action.sa_flags = 0;
+	action.sa_handler = terminate;
+	sigaction( SIGUSR1, &action, NULL );
 
 	ASSERT("install termination handler", signal(SIGINT, terminate) != SIG_ERR);
 
@@ -197,29 +315,29 @@ main(int ac, char **av)
 		if (!strncasecmp(pcm_dev, "alsa", 4)) {
 			audio_parameters(&sampling_rate, &audio_bit_rate);
 			mix_init(); // OSS
-			audio_cap_fifo = open_pcm_alsa(pcm_dev, sampling_rate, stereo);
-			/* XXX */ pcm = (struct pcm_context *) audio_cap_fifo->user_data;
+			open_pcm_alsa(pcm_dev, sampling_rate, stereo, &afifo);
+			/* XXX */ pcm = (struct pcm_context *) afifo->user_data;
 		} else if (!strcasecmp(pcm_dev, "esd")) {
 			audio_parameters(&sampling_rate, &audio_bit_rate);
 			mix_init();
-			audio_cap_fifo = open_pcm_esd(pcm_dev, sampling_rate, stereo);
-			/* XXX */ pcm = (struct pcm_context *) audio_cap_fifo->user_data;
+			open_pcm_esd(pcm_dev, sampling_rate, stereo, &afifo);
+			/* XXX */ pcm = (struct pcm_context *) afifo->user_data;
 		} else if (!strcasecmp(pcm_dev, "arts")) {
 			audio_parameters(&sampling_rate, &audio_bit_rate);
 			mix_init();
-			audio_cap_fifo = open_pcm_arts(pcm_dev, sampling_rate, stereo);
-			/* XXX */ pcm = (struct pcm_context *) audio_cap_fifo->user_data;
+			open_pcm_arts(pcm_dev, sampling_rate, stereo, &afifo);
+			/* XXX */ pcm = (struct pcm_context *) afifo->user_data;
 		} else {
 			ASSERT("test file type of '%s'", !stat(pcm_dev, &st), pcm_dev);
 
 			if (S_ISCHR(st.st_mode)) {
 				audio_parameters(&sampling_rate, &audio_bit_rate);
 				mix_init();
-				audio_cap_fifo = open_pcm_oss(pcm_dev, sampling_rate, stereo);
-				/* XXX */ pcm = (struct pcm_context *) audio_cap_fifo->user_data;
+				open_pcm_oss(pcm_dev, sampling_rate, stereo, &afifo);
+				/* XXX */ pcm = (struct pcm_context *) afifo->user_data;
 			} else {
-				audio_cap_fifo = open_pcm_afl(pcm_dev, sampling_rate, stereo);
-				pcm = (struct pcm_context *) audio_cap_fifo->user_data;
+				open_pcm_afl(pcm_dev, sampling_rate, stereo, &afifo);
+				pcm = (struct pcm_context *) afifo->user_data;
 				stereo = pcm->stereo;
 				sampling_rate = pcm->sampling_rate;
 				/* This not to override joint/bilingual */
@@ -247,20 +365,15 @@ main(int ac, char **av)
 	if (modules & MOD_VIDEO) {
 		struct stat st;
 
-		// XXX
-		video_codec = mp1e_mpeg1_video_codec.new();
-
-		ASSERT("create video context", video_codec);
-
 		if (!stat(cap_dev, &st) && S_ISCHR(st.st_mode)) {
 			if (!(video_cap_fifo = v4l2_init(&c_frame_rate)))
 				video_cap_fifo = v4l_init(&c_frame_rate);
 		} else if (!strncmp(cap_dev, "raw:", 4)) {
 			video_cap_fifo = raw_init(&c_frame_rate);
 		} else {
- 			video_cap_fifo = file_init(&c_frame_rate);
+			video_cap_fifo = file_init(&c_frame_rate);
 		}
- 	}
+	}
  
 	if (modules & MOD_SUBTITLES) {
 		vbi_cap_fifo = vbi_open_v4lx(vbi_dev, -1, FALSE, 30);
@@ -276,6 +389,11 @@ main(int ac, char **av)
 	/* Compression init */
 
 	mux = mux_alloc(NULL);
+
+	if (audio_num_secs < (audio_num_frames * sampling_rate / 1152.0))
+		audio_num_frames = llroundn(audio_num_secs * sampling_rate / 1152.0);
+	if (video_num_secs < (video_num_frames * c_frame_rate))
+		video_num_frames = video_num_secs * c_frame_rate;
 
 	if (modules & MOD_AUDIO) {
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
@@ -293,23 +411,40 @@ main(int ac, char **av)
 		/* Initialize audio codec */
 
 		if (sampling_rate < 32000)
-			audio_codec = mp1e_mpeg2_layer2_codec.new();
+			audio_codec = mp1e_mpeg2_layer2_codec.new(&mp1e_mpeg2_layer2_codec, &errstr);
 		else
-			audio_codec = mp1e_mpeg1_layer2_codec.new();
+			audio_codec = mp1e_mpeg1_layer2_codec.new(&mp1e_mpeg1_layer2_codec, &errstr);
 
-		ASSERT("create audio context", audio_codec);
+		ASSERT("create audio context: %s", audio_codec, errstr);
 
-		rte_helper_set_option_va(audio_codec, "sampling_rate", sampling_rate);
-		rte_helper_set_option_va(audio_codec, "bit_rate", audio_bit_rate);
-		rte_helper_set_option_va(audio_codec, "audio_mode", (int) "\1\3\2\0"[audio_mode]);
-		rte_helper_set_option_va(audio_codec, "psycho", psycho_loops);
+		reset_options(audio_codec);
+
+		set_option(audio_codec, "sampling_freq", sampling_rate);
+		set_option(audio_codec, "bit_rate", audio_bit_rate);
+		set_option(audio_codec, "audio_mode", (int) "\1\3\2\0"[audio_mode]);
+		set_option(audio_codec, "psycho", psycho_loops);
 
 		memset(&rsp, 0, sizeof(rsp));
 		rsp.audio.sndfmt = pcm->format;
-		audio_codec->class->set_parameters(audio_codec, &rsp);
 
-		mp1e_mp2_init(audio_codec, MOD_AUDIO,
-			      audio_cap_fifo, mux);
+		ASSERT("set audio parameters",
+		       audio_codec->class->parameters_set(audio_codec, &rsp));
+
+		/* preliminary */
+		{
+			mp1e_codec *meta = PARENT(audio_codec, mp1e_codec, codec);
+			int buffer_size = 1 << (ffsr(meta->output_buffer_size) + 1);
+
+			meta->sstr.this_module = MOD_AUDIO;
+			meta->output =
+				mux_add_input_stream(mux, AUDIO_STREAM, "audio-mp2",
+						     buffer_size, aud_buffers,
+						     meta->output_frame_rate,
+						     meta->output_bit_rate);
+#warning
+			meta->input = afifo;
+			meta->codec.status = RTE_STATUS_READY;
+		}
 	}
 
 	if (modules & MOD_VIDEO) {
@@ -331,20 +466,26 @@ main(int ac, char **av)
 
 		/* Initialize video codec */
 
-		rte_helper_set_option_va(video_codec, "bit_rate", video_bit_rate);
-		rte_helper_set_option_va(video_codec, "coded_frame_rate", c_frame_rate);
-		rte_helper_set_option_va(video_codec, "virtual_frame_rate",
-					 frame_rate);
-		rte_helper_set_option_va(video_codec, "skip_method", skip_method);
-		rte_helper_set_option_va(video_codec, "gop_sequence", gop_sequence);
-//	        rte_helper_set_option_va(video_codec, "motion_compensation",
-//					 motion_min > 0 && motion_max > 0);
-		rte_helper_set_option_va(video_codec, "monochrome", !!luma_only);
-		rte_helper_set_option_va(video_codec, "anno", anno);
+		video_codec = mp1e_mpeg1_video_codec.new(&mp1e_mpeg1_video_codec, &errstr);
 
-		video_init(video_codec, cpu_type, width, height,
-			   motion_min, motion_max,
-			   video_cap_fifo, MOD_VIDEO, mux);
+		ASSERT("create video context: %s", video_codec, errstr);
+
+		reset_options(video_codec);
+
+		set_option(video_codec, "bit_rate", video_bit_rate);
+		set_option(video_codec, "coded_frame_rate", c_frame_rate);
+		set_option(video_codec, "virtual_frame_rate",
+					 frame_rate);
+		set_option(video_codec, "skip_method", skip_method);
+		set_option(video_codec, "gop_sequence", gop_sequence);
+//	        set_option(video_codec, "motion_compensation",
+//					 motion_min > 0 && motion_max > 0);
+//		set_option(video_codec, "desaturate", !!luma_only);
+		set_option(video_codec, "anno", anno);
+
+		mp1e_mpeg1_init(video_codec, cpu_type, width, height,
+				motion_min, motion_max,
+				video_cap_fifo, MOD_VIDEO, mux);
 
 #if TEST_PREVIEW
 		if (preview > 0) {
@@ -385,15 +526,15 @@ main(int ac, char **av)
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
 			!pthread_create(&audio_thread_id, NULL,
-			audio_codec->class->mainloop, audio_codec));
+			mp1e_mp2, audio_codec));
 
 		printv(2, "Audio compression thread launched\n");
 	}
 
 	if (modules & MOD_VIDEO) {
 		ASSERT("create video compression thread",
-			!pthread_create(&video_thread_id, NULL,
-				mpeg1_video_ipb, video_codec));
+		       !pthread_create(&video_thread_id, NULL,
+				       mp1e_mpeg1, video_codec));
 
 		printv(2, "Video compression thread launched\n");
 	}

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.7 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: systems.h,v 1.8 2002-02-08 15:03:11 mschimek Exp $ */
 
 #include "libsystems.h"
 
@@ -33,9 +33,21 @@
 
 typedef struct stream stream;
 
+typedef int64_t			tstamp; /* 90000/s */
+
+#define TSTAMP_MIN ((tstamp)(((uint64_t) 1) << 63))
+#define TSTAMP_MAX ((tstamp)((((uint64_t) 1) << 63) - 1))
+
+struct au {
+	tstamp			dts;
+	int			size;
+};
+
 struct stream {
 	fifo			fifo;
 	consumer		cons;
+
+	multiplexer *		mux;
 
 	int			stream_id;
 
@@ -46,7 +58,7 @@ struct stream {
 	unsigned char *		ptr;
 	int			left;
 
-	double			dts;
+	double			dts_old;
 	double			pts_offset;
 
 	double			eff_bit_rate;
@@ -56,6 +68,19 @@ struct stream {
 
 	double			cap_t0;
 	long long		frame_count;
+
+
+
+	tstamp			dts;
+
+	int			inbuf_free;
+	int			packet_payload;
+
+	struct au *		au_r;
+	struct au *		au_w;
+	struct au		au_ring[64];
+
+	int killme;
 };
 
 struct multiplexer {
@@ -70,3 +95,5 @@ struct multiplexer {
 };
 
 extern buffer *		(* mux_output)(struct multiplexer *mux, buffer *b);
+
+#define elements(array) (sizeof(array) / sizeof(array[0]))

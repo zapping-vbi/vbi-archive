@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.11 2002-01-21 13:54:53 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.12 2002-02-08 15:03:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -58,6 +58,8 @@ static struct v4l2_control	old_mute;
 static pthread_t		thread_id;
 static struct tfmem		tfmem;
 static const int		syncio = TRUE;
+
+extern int			test_mode;
 
 #define VIDIOC_PSB _IOW('v', 193, int)
 
@@ -152,6 +154,19 @@ timestamp2(buffer *b)
 	return cap_time;
 }
 
+static void
+randomize(char *s, int n)
+{
+	n *= 2;
+
+	for (; n; s++, n--) {
+		int x = rand();
+
+		if ((x & 63) == 0)
+			*s = x >> 8;
+	}
+}
+
 /*
  *  Synchronous I/O
  */
@@ -200,7 +215,7 @@ drop:
 		IOCTL(fd, VIDIOC_DQBUF, &vbuf) == 0);
 
 #ifdef V4L2_DROP_TEST
-	if ((rand() % 100) > 98) {
+	if ((rand() % 100) > 90) {
 		ASSERT("enqueue capture buffer",
 		       IOCTL(fd, VIDIOC_QBUF, &vbuf) == 0);
 		fprintf(stderr, "video drop\n");
@@ -208,6 +223,9 @@ drop:
 	}
 #endif
 	b = buffers + vbuf.index;
+
+	if (test_mode & 64)
+		randomize(b->data, width * height);
 
 #if defined(V4L2_TF_TEST)
 	b->time = timestamp2(b);

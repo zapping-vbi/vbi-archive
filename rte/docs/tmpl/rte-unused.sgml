@@ -142,6 +142,94 @@ Library interface
 </para>
 
 
+<!-- ##### USER_FUNCTION rteBufferCallback ##### -->
+<para>
+
+</para>
+
+@context: 
+@codec: 
+@buffer: 
+
+<!-- ##### USER_FUNCTION rteDataCallback ##### -->
+<para>
+
+</para>
+
+@context: 
+@codec: 
+@data: 
+@time: 
+@bytes: 
+
+<!-- ##### USER_FUNCTION rteSeekCallback ##### -->
+<para>
+
+</para>
+
+@context: 
+@offset: 
+@whence: 
+
+<!-- ##### USER_FUNCTION rteWriteCallback ##### -->
+<para>
+
+</para>
+
+@context: 
+@data: 
+@bytes: 
+
+<!-- ##### TYPEDEF rte_audio_stream_parameters ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### FUNCTION rte_codec_get_parameters ##### -->
+<para>
+
+</para>
+
+@codec: 
+@rsp: 
+@params: 
+
+<!-- ##### FUNCTION rte_codec_get_user_data ##### -->
+<para>
+
+</para>
+
+@codec: 
+@Returns: 
+
+<!-- ##### FUNCTION rte_codec_set_parameters ##### -->
+<para>
+
+</para>
+
+@codec: 
+@rsp: 
+@Returns: 
+@params: 
+
+<!-- ##### FUNCTION rte_codec_set_user_data ##### -->
+<para>
+
+</para>
+
+@codec: 
+@user_data: 
+@data: 
+
+<!-- ##### FUNCTION rte_context_get_user_data ##### -->
+<para>
+
+</para>
+
+@context: 
+@Returns: 
+
 <!-- ##### FUNCTION rte_context_info_by_context ##### -->
 <para>
 
@@ -149,6 +237,14 @@ Library interface
 
 @context: 
 @Returns: 
+
+<!-- ##### FUNCTION rte_context_set_user_data ##### -->
+<para>
+
+</para>
+
+@context: 
+@user_data: 
 
 <!-- ##### FUNCTION rte_init ##### -->
 <para>
@@ -205,36 +301,27 @@ Library interface
 @Varargs: 
 @Returns: 
 
-<!-- ##### ENUM rte_option_type ##### -->
+<!-- ##### FUNCTION rte_push_data ##### -->
 <para>
 
 </para>
 
-@RTE_OPTION_BOOL: 
-@RTE_OPTION_INT: 
-@RTE_OPTION_REAL: 
-@RTE_OPTION_STRING: 
-@RTE_OPTION_MENU: 
+@codec: 
+@data: 
+@timestamp: 
+@blocking: 
+@Returns: 
 
-<!-- ##### ENUM rte_pixfmt ##### -->
+<!-- ##### FUNCTION rte_set_input_callback_buffered ##### -->
 <para>
 
 </para>
 
-@RTE_PIXFMT_YUV420: 
-@RTE_PIXFMT_YUYV: 
-@RTE_PIXFMT_YVYU: 
-@RTE_PIXFMT_UYVY: 
-@RTE_PIXFMT_VYUY: 
-@RTE_PIXFMT_RGB32: 
-@RTE_PIXFMT_BGR32: 
-@RTE_PIXFMT_RGB24: 
-@RTE_PIXFMT_BGR24: 
-@RTE_PIXFMT_RGB16: 
-@RTE_PIXFMT_BGR16: 
-@RTE_PIXFMT_RGB15: 
-@RTE_PIXFMT_BGR15: 
-@RTE_PIXFMT_MAX: 
+@codec: 
+@get_cb: 
+@unref_cb: 
+@get_ab: 
+@unref_ab: 
 
 <!-- ##### FUNCTION rte_set_input_callback_copy ##### -->
 <para>
@@ -244,12 +331,45 @@ Library interface
 @codec: 
 @copy_cb: 
 
+<!-- ##### FUNCTION rte_set_input_callback_data ##### -->
+<para>
+
+</para>
+
+@codec: 
+@data_cb: 
+
+<!-- ##### FUNCTION rte_set_input_push_buffered ##### -->
+<para>
+
+</para>
+
+@codec: 
+@unref_cb: 
+
 <!-- ##### FUNCTION rte_set_input_push_copy ##### -->
 <para>
 
 </para>
 
 @codec: 
+
+<!-- ##### FUNCTION rte_set_input_push_data ##### -->
+<para>
+
+</para>
+
+@codec: 
+
+<!-- ##### FUNCTION rte_set_output_callback ##### -->
+<para>
+
+</para>
+
+@context: 
+@write_cb: 
+@seek_cb: 
+@Returns: 
 
 <!-- ##### FUNCTION rte_set_parameters ##### -->
 <para>
@@ -259,19 +379,6 @@ Library interface
 @codec: 
 @params: 
 @Returns: 
-
-<!-- ##### ENUM rte_sndfmt ##### -->
-<para>
-
-</para>
-
-@RTE_SNDFMT_S8: 
-@RTE_SNDFMT_U8: 
-@RTE_SNDFMT_S16LE: 
-@RTE_SNDFMT_S16BE: 
-@RTE_SNDFMT_U16LE: 
-@RTE_SNDFMT_U16BE: 
-@RTE_SNDFMT_MAX: 
 
 <!-- ##### TYPEDEF rte_status ##### -->
 <para>
@@ -304,4 +411,10 @@ Library interface
 @RTE_VBIFMT_WSS_CPR1204: 
 @RTE_VBIFMT_RESERVED1: 
 @RTE_VBIFMT_RESERVED2: 
+
+<!-- ##### TYPEDEF rte_video_stream_parameters ##### -->
+<para>
+
+</para>
+
 

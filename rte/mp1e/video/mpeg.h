@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.4 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.5 2002-02-08 15:03:11 mschimek Exp $ */
 
 #ifndef MPEG_H
 #define MPEG_H
@@ -60,6 +60,7 @@ typedef enum {
 /* tables.c */
 
 extern const double frame_rate_value[16];
+extern const double aspect_ratio_value[16];
 extern const unsigned char default_intra_quant_matrix[8][8];
 extern const unsigned char default_inter_quant_matrix[8][8];
 extern const unsigned char scan[2][8][8];

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.10 2001-12-07 06:50:24 mschimek Exp $ */
+/* $Id: options.c,v 1.11 2002-02-08 15:03:10 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -42,6 +42,10 @@
 #include "audio/libaudio.h"
 #include "audio/mpeg.h"
 #include "options.h"
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 static const char *mux_options[] = { "", "video", "audio", "video_and_audio", "subtitles" };
 static const char *mux_syn_options[] = { "nirvana", "bypass", "mpeg1", "mpeg2-ps", "vcd" };
@@ -73,7 +77,7 @@ usage(FILE *fi)
 		" -l             Letterbox mode                              off\n"
 		" -w             Grey mode                                   off\n"
 		" -n frames      Number of video (audio) frames to encode\n"
-		"                or until termination (Ctrl-C). To break\n"
+		"    h:m[:s]     or until termination (Ctrl-C). To break\n"
 		"                immediately hit Ctrl-\\                      years\n"
 		" -s wxh         Image size (centred)                        %d x %d pixels\n"
 		" -G wxh         Grab size, multiple of 16 x 16              %d x %d pixels\n"
@@ -102,8 +106,9 @@ usage(FILE *fi)
 		" -v             Increase verbosity level, try -v, -vv\n"
 		" -C type        CPU type (p2, p3, k6-2, k7, ...)            auto\n"
 		"\n"
-		"A configuration file can be piped in from standard input,\n"
-		"the compressed stream will be sent to standard output. See the\n"
+                " -o name        Output file name                            stdout\n"
+		"\n"
+		"A configuration file can be piped in from standard input. See the\n"
 		"mp1e manual page for details.\n",
 
 		program_invocation_name, mux_options[modules], (double) video_bit_rate / 1e6,
@@ -120,7 +125,7 @@ usage(FILE *fi)
 	exit((fi == stderr) ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
-#define OPT_STR "2a:b:c:e:f:g:hi:lm:n:p:r:s:t:vwx:A:C:B:F:G:H:I:M:PR:S:T:VX:"
+#define OPT_STR "2a:b:c:e:f:g:hi:lm:n:o:p:r:s:t:vwx:A:C:B:F:G:H:I:M:PR:S:T:VX:"
 
 static const struct option
 long_options[] = {
@@ -137,6 +142,7 @@ long_options[] = {
 	{ "mux_mode",			required_argument, NULL, 'm' },
 	{ "modules",			required_argument, NULL, 'm' }, /* alias */
 	{ "num_frames",			required_argument, NULL, 'n' },
+	{ "outputfile",			required_argument, NULL, 'o' },
 	{ "pcm_device",			required_argument, NULL, 'p' },
 	{ "rec_source",			required_argument, NULL, 'r' },
 	{ "image_size",			required_argument, NULL, 's' },
@@ -387,8 +393,23 @@ parse_option(int c)
 			break;
 
 		case 'n':
-			video_num_frames =
-			audio_num_frames = strtol(optarg, NULL, 0);
+			if (strchr(optarg, ':')) {
+				int video_num_secs;
+				char *s = optarg;
+
+				video_num_secs = 3600 * strtol(s, &s, 0);
+				while (*s && !isalnum(*s)) s++;
+				if (*s) {
+					video_num_secs += 60 * strtol(s, &s, 0);
+					while (*s && !isalnum(*s)) s++;
+					if (*s)
+						video_num_secs += strtol(s, &s, 0);
+				}
+				audio_num_secs = video_num_secs;
+			} else {
+				audio_num_frames = strtol(optarg, NULL, 0);
+				video_num_frames = audio_num_frames; 
+			}
 			break;
 
 		case 'h':
@@ -401,6 +422,14 @@ parse_option(int c)
 
 		case 'l':
 			have_letterbox = TRUE;
+			break;
+
+                case 'o':
+                        outFileFD = open(optarg, 
+					 O_CREAT | O_WRONLY | O_TRUNC | O_LARGEFILE,
+					 S_IRUSR | S_IWUSR | S_IRGRP
+					 | S_IWGRP | S_IROTH | S_IWOTH);
+			ASSERT("open output file '%s'", outFileFD == -1, optarg);
 			break;
 
 		case 'p':
@@ -426,9 +455,11 @@ parse_option(int c)
 			/*
 			  1 - audio fft, filter and dct test
 			  2 - video
+			  4 - DONT USE
 			  8 - video frame dropping test (20%)
 			  16 - video effective bit rate
 			  32 - deliberate sampling rate mismatch
+			  64 - randomize video
 			 */
 			test_mode = strtol(optarg, NULL, 0);
 			break;
@@ -610,6 +641,10 @@ bark(void)
 		     "A valid sequence can consist of the picture types 'I' (intra coded),\n"
 		     "'P' (forward predicted), and 'B' (bidirectionally predicted) in any\n"
 		     "order headed by an 'I' picture.", gop_sequence);
+
+	if (audio_num_frames > 1000 && audio_num_frames < INT_MAX && verbose > 0)
+		fprintf(stderr, "Hint: you can write -n h:m[:s] instead of -n %lld\n",
+			audio_num_frames);
 
 	have_audio_bit_rate = FALSE;
 	have_image_size = FALSE;

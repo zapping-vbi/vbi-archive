@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: afl.c,v 1.7 2001-09-26 10:44:48 mschimek Exp $ */
+/* $Id: afl.c,v 1.8 2002-02-08 15:03:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -90,8 +90,8 @@ send_empty(consumer *c, buffer *b)
 	b->data = NULL;
 }
 
-fifo *
-open_pcm_afl(char *name, int ignored1, bool ignored2)
+void
+open_pcm_afl(char *name, int ignored1, bool ignored2, fifo **f)
 {
 	struct afl_context *afl;
 	int buffer_size = 8192;
@@ -133,7 +133,7 @@ open_pcm_afl(char *name, int ignored1, bool ignored2)
 	if (channels > 2)
 		FAIL("Cannot read %d channel file %s\n", channels, name);
 
-	afl->pcm.format = RTE_SNDFMT_S16LE;
+	afl->pcm.format = RTE_SNDFMT_S16_LE;
 	afl->pcm.sampling_rate = rate;
 	afl->pcm.stereo = (channels > 1);
 
@@ -157,29 +157,28 @@ open_pcm_afl(char *name, int ignored1, bool ignored2)
 	afl->buffer_period = buffer_size
 		/ (double)(afl->pcm.sampling_rate << (afl->pcm.stereo + 1));
 
-	ASSERT("init afl fifo",	init_callback_fifo(
-		&afl->pcm.fifo, "audio-afl",
+	*f = &afl->pcm.fifo;
+
+	ASSERT("init afl fifo",	init_callback_fifo(*f, "audio-afl",
 		NULL, NULL, wait_full, send_empty,
 		1, buffer_size));
 
 	ASSERT("init afl producer",
-		add_producer(&afl->pcm.fifo, &afl->pcm.producer));
+		add_producer(*f, &afl->pcm.producer));
 
-	afl->pcm.fifo.user_data = afl;
+	(*f)->user_data = afl;
 
 	b = PARENT(afl->pcm.fifo.buffers.head, buffer, added);
 
 	b->data = NULL;
 	b->used = b->size;
 	b->offset = 0;
-
-	return &afl->pcm.fifo;
 }
 
 #else /* !HAVE_LIBAUDIOFILE */
 
-fifo *
-open_pcm_afl(char *name, int ignored1, bool ignored2)
+void
+open_pcm_afl(char *name, int ignored1, bool ignored2, fifo *f)
 {
 	FAIL("Audio compression from file requires libaudiofile:\n"
 		"http://www.68k.org/~michael/audiofile\n");

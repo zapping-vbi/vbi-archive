@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.10 2002-01-21 07:41:04 mschimek Exp $ */
+/* $Id: esd.c,v 1.11 2002-02-08 15:03:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -121,8 +121,8 @@ send_empty(consumer *c, buffer *b)
 	b->data = NULL;
 }
 
-fifo *
-open_pcm_esd(char *unused, int sampling_rate, bool stereo)
+void
+open_pcm_esd(char *unused, int sampling_rate, bool stereo, fifo **f)
 {
 	struct esd_context *esd;
 	esd_format_t format;
@@ -132,7 +132,7 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 	ASSERT("allocate pcm context",
 		(esd = calloc(1, sizeof(struct esd_context))));
 
-	esd->pcm.format = RTE_SNDFMT_S16LE;
+	esd->pcm.format = RTE_SNDFMT_S16_LE;
 	esd->pcm.sampling_rate = sampling_rate;
 	esd->pcm.stereo = stereo;
 
@@ -157,29 +157,28 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 		format, sampling_rate, stereo ? "stereo" : "mono",
 		buffer_size, esd->tfmem.ref);
 
-	ASSERT("init esd fifo",	init_callback_fifo(
-		&esd->pcm.fifo, "audio-esd",
+	*f = &esd->pcm.fifo;
+
+	ASSERT("init esd fifo",	init_callback_fifo(*f, "audio-esd",
 		NULL, NULL, wait_full, send_empty,
 		1, buffer_size));
 
 	ASSERT("init esd producer",
-		add_producer(&esd->pcm.fifo, &esd->pcm.producer));
+		add_producer(*f, &esd->pcm.producer));
 
-	esd->pcm.fifo.user_data = esd;
+	(*f)->user_data = esd;
 
-	b = PARENT(esd->pcm.fifo.buffers.head, buffer, added);
+	b = PARENT((*f)->buffers.head, buffer, added);
 
 	b->data = NULL;
 	b->used = b->size;
 	b->offset = 0;
-
-	return &esd->pcm.fifo;
 }
 
 #else /* !HAVE_ESD */
 
-fifo *
-open_pcm_esd(char *dev_name, int sampling_rate, bool stereo)
+void
+open_pcm_esd(char *dev_name, int sampling_rate, bool stereo, fifo *f)
 {
 	FAIL("Not compiled with ESD interface.\n"
 	     "For more info about ESD visit http://www.tux.org/~ricdude/EsounD.html\n");

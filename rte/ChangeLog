@@ -1,3 +1,9 @@
+2002-02-05	<mschimek@users.sf.net>
+
+	* src/rte.c: Added option strings from vbi export. Moved
+	  context_new from backend_info into context_class,
+	  rte_context_new() got a errstr parameter.
+
 2002-01-13	<mschimek@users.sf.net>
 
 	* src/rte.h: Resynched options with libzvbi.

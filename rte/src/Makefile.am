@@ -29,8 +29,11 @@ lib_LTLIBRARIES = librte.la
 
 librteincludedir = $(includedir)/rte
 librteinclude_HEADERS = rte.h rte-enums.h rte-types.h rte-version.h
-librte_la_SOURCES = rte.c rte.h rte-enums.h rte-types.h rte-version.h \
-rtepriv.h
+librte_la_SOURCES = \
+	rte.c rte.h \
+	context.c codec.c \
+	rte-enums.h rte-types.h rte-version.h \
+	rtepriv.h
 librte_la_LIBADD = -lpthread -lm ../common/libcommon.la \
 $(ffmpeg_libs) $(mp1e_libs) $(divx4linux_libs)
 librte_la_LDFLAGS = -export-dynamic -release @VERSION@ -export-symbols rte.sym

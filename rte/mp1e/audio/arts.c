@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: arts.c,v 1.1 2002-01-21 07:35:00 mschimek Exp $ */
+/* $Id: arts.c,v 1.2 2002-02-08 15:03:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -112,8 +112,8 @@ send_empty(consumer *c, buffer *b)
 	b->data = NULL;
 }
 
-fifo *
-open_pcm_arts(char *unused, int sampling_rate, bool stereo)
+void
+open_pcm_arts(char *unused, int sampling_rate, bool stereo, fifo *f)
 {
 	struct arts_context *arts;
 	int errcode;
@@ -145,29 +145,26 @@ open_pcm_arts(char *unused, int sampling_rate, bool stereo)
 	/* FIXME: can this really fail? */
 	ASSERT("open ARTS recording stream", arts->stream != 0);
 
-	ASSERT("init arts fifo", init_callback_fifo(
-		&arts->pcm.fifo, "audio-arts",
+	ASSERT("init arts fifo", init_callback_fifo(f, "audio-arts",
 		NULL, NULL, wait_full, send_empty,
 		1, buffer_size));
 
 	ASSERT("init arts producer",
-		add_producer(&arts->pcm.fifo, &arts->pcm.producer));
+		add_producer(f, &arts->pcm.producer));
 
-	arts->pcm.fifo.user_data = arts;
+	f->user_data = arts;
 
-	b = PARENT(arts->pcm.fifo.buffers.head, buffer, added);
+	b = PARENT(f->buffers.head, buffer, added);
 
 	b->data = NULL;
 	b->used = b->size;
 	b->offset = 0;
-
-	return &arts->pcm.fifo;
 }
 
 #else /* !HAVE_ARTS */
 
-fifo *
-open_pcm_arts(char *dev_name, int sampling_rate, bool stereo)
+void
+open_pcm_arts(char *dev_name, int sampling_rate, bool stereo, fifo **f)
 {
 	FAIL("Not compiled with ARTS interface.\n");
 }

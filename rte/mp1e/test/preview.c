@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preview.c,v 1.6 2002-01-13 09:52:47 mschimek Exp $ */
+/* $Id: preview.c,v 1.7 2002-02-08 15:03:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -182,7 +182,7 @@ build_control(gint i)
 	gtk_scale_set_digits(GTK_SCALE(hscale), params[i].digits);
 	gtk_box_pack_start_defaults(GTK_BOX (hbox), hscale);
 
-	button = gtk_button_new_with_label(_("Reset"));
+	button = gtk_button_new_with_label("Reset");
 	gtk_signal_connect(GTK_OBJECT(button), "clicked",
 			   GTK_SIGNAL_FUNC(on_capture_param_reset),
 			   GINT_TO_POINTER(i));
@@ -209,7 +209,7 @@ build_control_box(void)
 		gtk_box_pack_start_defaults(GTK_BOX (vbox), control);
 	}
 	control_box = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(control_box), _("Mp1e"));
+	gtk_window_set_title(GTK_WINDOW(control_box), "Mp1e");
 	gtk_window_set_policy(GTK_WINDOW(control_box), FALSE, TRUE, TRUE);
 	gtk_widget_show(vbox);
 	gtk_container_add(GTK_CONTAINER(control_box), vbox);

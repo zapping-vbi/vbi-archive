@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999, 2000, 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,13 +17,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.11 2002-01-21 13:54:53 mschimek Exp $ */
+/* $Id: audio.h,v 1.12 2002-02-08 15:03:11 mschimek Exp $ */
 
 #include <stdint.h>
 #include <pthread.h>
-#include "../common/fifo.h"
 #include "../common/bstream.h"
-#include "../common/sync.h"
 
 #include "libaudio.h"
 #include "mpeg.h"
@@ -36,18 +34,18 @@
 typedef struct mp2_context {
 	/* Buffers */
 
-	unsigned char		wrap[(SAMPLES_PER_FRAME + 512 - 32) * 4];
+	uint8_t			wrap[(SAMPLES_PER_FRAME + 512 - 32) * 4];
 
-	int			sb_samples[2][3][12][SBLIMIT];	// channel, scale group, sample
-	char			bit_alloc[2][SBLIMIT];
+	int			sb_samples[2][3][12][SBLIMIT];	/* channel, scale group, sample */
+	int8_t			bit_alloc[2][SBLIMIT];
 	struct {
-		unsigned char		mant, exp;
-	}			scalar[2][3][SBLIMIT];		// channel, scale group
+		uint8_t			mant, exp;
+	}			scalar[2][3][SBLIMIT];		/* channel, scale group */
 	union {
-		unsigned int		scf[2][SBLIMIT];	// scaling factors
-		mmx_t			fb_temp[17];		// filterbank temp
+		unsigned int		scf[2][SBLIMIT];	/* scaling factors */
+		mmx_t			fb_temp[17];		/* filterbank temp */
 	}			sf;
-	char			scfsi[2][SBLIMIT];		// scale factor selector information
+	int8_t			scfsi[2][SBLIMIT];		/* scale factor selector information */
 	float			mnr[2][SBLIMIT];
 	int			sblimit;
 	int			sum_nbal;
@@ -56,16 +54,16 @@ typedef struct mp2_context {
 
 	/* Tables */
 
-	unsigned char		sb_group[SBLIMIT];
-	unsigned char		bits[4][MAX_BA_INDICES];
+	uint8_t			sb_group[SBLIMIT];
+	uint8_t			bits[4][MAX_BA_INDICES];
 	struct {
-		unsigned char		quant, shift;
+		uint8_t		quant, shift;
 	}			qs[4][MAX_BA_INDICES];
-	unsigned char		nbal[SBLIMIT];
-	unsigned short		bit_incr[8][MAX_BA_INDICES];
+	uint8_t			nbal[SBLIMIT];
+	uint16_t		bit_incr[8][MAX_BA_INDICES];
 	float			mnr_incr[8][SBLIMIT];
-	unsigned char		steps[4];
-	unsigned char		packed[4];
+	uint8_t			steps[4];
+	uint8_t			packed[4];
 
 	/* Psycho buffers */
 
@@ -79,12 +77,12 @@ typedef struct mp2_context {
 
 	/* Psycho tables */
 
-	char			partition[HBLKSIZE];		// frequency line to cband mapping
+	int8_t			partition[HBLKSIZE];		/* frequency line to cband mapping */
 	struct {
-		char			off, cnt;
+		int8_t			off, cnt;
 	}			s_limits[CBANDS];
-	FLOAT			s_packed[2048];			// packed spreading function
-	FLOAT			absthres[HBLKSIZE];		// absolute thresholds, linear
+	FLOAT			s_packed[2048];			/* packed spreading function */
+	FLOAT			absthres[HBLKSIZE];		/* absolute thresholds, linear */
 	FLOAT			xnorm[CBANDS];
 	FLOAT			p1[CBANDS];
 	FLOAT			p2[CBANDS];
@@ -108,15 +106,12 @@ typedef struct mp2_context {
 	int			incr;
 	double			nominal_time_elapsed;
 	double			nominal_sample_period;
-	synchr_stream 		sstr;
 	uint32_t		format_sign;
 	bool			format_scale;
 
 	/* Output */
 
-	fifo *			fifo;
 	producer		prod;
-
 	unsigned int		header_template;
 	double			coded_frame_period;
 	int			sampling_freq;
@@ -125,7 +120,7 @@ typedef struct mp2_context {
 
 	/* Options */
 
-	rte_codec		codec;
+	mp1e_codec		codec;
 
 	int			mpeg_version;
 	int			sampling_freq_code;

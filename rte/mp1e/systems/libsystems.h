@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libsystems.h,v 1.4 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: libsystems.h,v 1.5 2002-02-08 15:03:11 mschimek Exp $ */
 
 #ifndef LIBSYSTEMS_H
 #define LIBSYSTEMS_H
@@ -34,6 +34,7 @@ extern fifo *			mux_add_input_stream(multiplexer *mux,
 					int stream_id, char *name,
 					int max_size, int buffers,
 					double frame_rate, int bit_rate);
+extern void			mux_rem_input_stream(fifo *);
 
 extern void *			stream_sink(void *mux);
 extern void *			mpeg1_system_mux(void *mux);

@@ -22,10 +22,13 @@
 #  include <config.h>
 #endif
 
-#include "rtepriv.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+#include <errno.h>
+
+#include "rtepriv.h"
 
 /*
   TODO in no particular order:
@@ -39,22 +42,30 @@
   * i18n support.
 */
 
+/*
+[enum context]
+rte_context_new (which format)
+  for each option not left at defaults
+    rte_option_set
+  [enum codecs]
+  for each elementary stream to be encoded
+    rte_codec_set (which format)
+      [enum options]
+      for each option not left at defaults
+        rte_option_set
+      negotiate sample parameters (changing options after this unlocks
+                                   parameters)
+      select input interface (which also puts the codec in ready
+                              state, changing parameters unlocks)
+  select output interface (this puts the whole context in ready state,
+                           replacing rte_init)
+<<
+  start/pause/restart/stop
+delete 
+ */
+
 #define xc context->class
 #define dc codec->class
-
-#ifdef MP1E
-extern const rte_backend_info b_mp1e_info;
-#endif
-
-static const rte_backend_info *
-backends[] = 
-{
-#ifdef MP1E
-	&b_mp1e_info
-#endif
-	/* tbd */
-};
-static const int num_backends = sizeof(backends)/sizeof(backends[0]);
 
 /* Private flag for fifos */
 #define BLANK_BUFFER 1
@@ -70,7 +81,8 @@ static rte_bool codec_forall(rte_context *context,
 	/* FIXME: Should this use codec->next instead?? */
 
 	for (i=0; i<RTE_STREAM_MAX; i++)
-		for (j=0; j<xc->public.elementary[i]; j++) {
+#warning
+		for (j=0; j<xc->public.max_elementary[i]; j++) {
 			rte_codec *codec = rte_codec_get(context, i, j);
 			if (codec && !func(codec, udata))
 				return FALSE;
@@ -79,971 +91,372 @@ static rte_bool codec_forall(rte_context *context,
 	return TRUE;
 }
 
-/* inits the backends if not already inited. */
-static void
-rte_init(void)
-{
-	static rte_bool inited = FALSE;
-
-	if (!inited) {
-		int i;
-		for (i = 0; i<num_backends; i++)
-			if (backends[i]->init)
-				backends[i]->init();
-
-		inited = TRUE;
-	}
-}
-
-rte_context_info *
-rte_context_info_enum(int index)
-{
-	rte_context_info *rxi;
-	int i, j;
-
-	rte_init();
-	
-	for (j = 0; j < num_backends; j++)
-		for (i = 0; backends[j]->context_enum != NULL
-			     && (rxi = backends[j]->context_enum(i)); i++)
-			if (index-- == 0)
-				return rxi;
-	return NULL;
-}
-
-rte_context_info *
-rte_context_info_keyword(const char *keyword)
-{
-	rte_context_info *rxi;
-	int i, j;
-
-	rte_init();
-
-	for (j = 0; j < num_backends; j++)
-		for (i = 0; backends[j]->context_enum != NULL
-			     && (rxi = backends[j]->context_enum(i)); i++)
-			if (strcmp(keyword, rxi->keyword) == 0)
-				return rxi;
-	return NULL;
-}
-
-rte_context_info *
-rte_context_info_context(rte_context *context)
-{
-	nullcheck(context, return NULL);
-
-	return &xc->public;
-}
-
-rte_context *
-rte_context_new(const char *keyword)
-{
-	rte_context *context = NULL;
-	int j;
-
-	rte_init();
-
-	for (j = 0; j < num_backends; j++)
-		if (backends[j]->context_new
-		    && (context = backends[j]->context_new(keyword))) {
-			/* set output and we are ready */
-			context->status = RTE_STATUS_PARAM;
-			return context;
-		}
-
-	return NULL;
-}
-
-void
-rte_context_delete(rte_context *context)
-{
-	nullcheck(context, return);
-
-	if (context->status == RTE_STATUS_RUNNING)
-		rte_stop(context);
-	else if (context->status == RTE_STATUS_PAUSED)
-		/* FIXME */;
-
-	if (context->error) {
-		free(context->error);
-		context->error = NULL;
-	}
-
-	xc->delete(context);
-}
-
-void
-rte_context_set_user_data(rte_context *context, rte_pointer user_data)
-{
-	context->user_data = user_data;
-}
-
-rte_pointer
-rte_context_get_user_data	(rte_context *context)
-{
-	return context->user_data;
-}
-
-rte_codec_info *
-rte_codec_info_enum(rte_context *context, int index)
-{
-	nullcheck(context, return NULL);
-
-	if (!xc->codec_enum)
-		return NULL;
-
-	return xc->codec_enum(context, index);
-}
-
-rte_codec_info *
-rte_codec_info_keyword(rte_context *context,
-		       const char *keyword)
-{
-	rte_codec_info *rci;
-	int i;
-
-	nullcheck(context, return NULL);
-
-	if (!xc->codec_enum)
-		return NULL;
-
-	for (i = 0;; i++)
-	        if (!(rci = xc->codec_enum(context, i))
-		    || strcmp(keyword, rci->keyword) == 0)
-			break;
-	return rci;
-}
-
-rte_codec_info *
-rte_codec_info_codec(rte_codec *codec)
-{
-	nullcheck(codec, return NULL);
-
-	return &dc->public;
-}
-
-rte_codec *
-rte_codec_set(rte_context *context,
-	      rte_stream_type stream_type,
-	      int stream_index,
-	      const char *codec_keyword)
-{
-	nullcheck(context, return NULL);
-	nullcheck(xc->codec_set, return NULL);
-
-	return xc->codec_set(context, stream_type, stream_index,
-			     codec_keyword);
-}
-
-void
-rte_codec_remove(rte_context *context,
-		 rte_stream_type stream_type,
-		 int stream_index)
-{
-	nullcheck(context, return);
-	nullcheck(xc->codec_set, return);
-
-	xc->codec_set(context, stream_type, stream_index, NULL);
-}
-
-rte_codec *
-rte_codec_get(rte_context *context, rte_stream_type stream_type,
-	      int stream_index)
-{
-	nullcheck(context, return NULL);
-	nullcheck(xc->codec_get, return NULL);
-
-	return xc->codec_get(context, stream_type, stream_index);
-}
-
-void
-rte_codec_set_user_data(rte_codec *codec, rte_pointer data)
-{
-	nullcheck(codec, return);
-
-	codec->user_data = data;
-}
-
-rte_pointer
-rte_codec_get_user_data(rte_codec *codec)
-{
-	nullcheck(codec, return NULL);
-
-	return codec->user_data;
-}
-
+/**
+ * rte_set_input_callback_active:
+ * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
+ * @read_cb: Function called by the codec to read more data to encode.
+ * @unref_cb: Optional function called by the codec to free the data.
+ * @queue_length: When non-zero, the codec queue length is returned here. That
+ *   is the maximum number of buffers read before freeing the oldest.
+ *   When for example @read_cb and @unref_cb calls always pair, this number
+ *   is 1.
+ *
+ * Sets the input mode for the codec and puts the codec into ready state.
+ * Using this method, when the @codec needs more data it will call @read_cb
+ * with a rte_buffer to be initialized by the rte client. After using the
+ * data, it is released by calling @unref_cb. See #rte_buffer_callback for
+ * the handshake details.
+ *
+ * Attention: A codec may read more than once before freeing the data, and it
+ * may also free the data in a different order than it has been read.
+ *
+ * <example><title>Typical usage of rte_set_input_callback_active()</title>
+ * <programlisting>
+ * rte_bool
+ * my_read_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
+ * {
+ * &nbsp;    buffer->data = malloc();
+ * &nbsp;    read(buffer->data, &amp;buffer->timestamp);
+ * &nbsp;    return TRUE;
+ * }
+ * &nbsp;
+ * rte_bool
+ * my_unref_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
+ * {
+ * &nbsp;    free(buffer->data);
+ * }
+ * </programlisting></example>
+ *
+ * Return value:
+ * Before selecting an input method you must negotiate sample parameters with
+ * rte_codec_set_parameters(), else this function fails with a return value
+ * of %FALSE. Setting codec options invalidates previously selected sample
+ * parameters, and thus also the input method selection. The function can
+ * also fail when the codec does not support this input method.
+ **/
 rte_bool
-rte_codec_set_parameters(rte_codec *codec, rte_stream_parameters *rsp)
+rte_set_input_callback_active(rte_codec *codec,
+			      rte_buffer_callback read_cb,
+			      rte_buffer_callback unref_cb,
+			      int *queue_length)
 {
-	nullcheck(codec, return FALSE);
-	nullcheck(rsp, return FALSE);
-	nullcheck(dc->set_parameters, return FALSE);
-
-	return dc->set_parameters(codec, rsp);
-}
-
-void
-rte_codec_get_parameters(rte_codec *codec, rte_stream_parameters *rsp)
-{
-	nullcheck(codec, return);
-	nullcheck(rsp, return);
-	nullcheck(dc->get_parameters, return);
-
-	dc->get_parameters(codec, rsp);
-
-}
-
-void
-rte_set_input_callback_buffered(rte_codec *codec,
-				rteBufferCallback get_cb,
-				rteBufferCallback unref_cb)
-{
-	nullcheck(codec, return);
-
-	if (codec->status != RTE_STATUS_PARAM &&
-	    codec->status != RTE_STATUS_READY) {
-		rte_error(NULL,
-			  "You must set_parameters before setting the"
-			  " input mode.");
-		return;
-	}
-
-	codec->input_mode = RTE_INPUT_CB;
-	codec->input.cb.get = get_cb;
-	codec->input.cb.unref = unref_cb;
-
-	codec->status = RTE_STATUS_READY;
-}
-
-void
-rte_set_input_callback_data(rte_codec *codec,
-			    rteDataCallback data_cb)
-{
-	nullcheck(codec, return);
-
-	if (codec->status != RTE_STATUS_PARAM &&
-	    codec->status != RTE_STATUS_READY) {
-		rte_error(NULL,
-			  "You must set_parameters before setting the"
-			  " input mode.");
-		return;
-	}
-
-	codec->input_mode = RTE_INPUT_CD;
-	codec->input.cd.get = data_cb;
-
-	codec->status = RTE_STATUS_READY;
-}
-
-void
-rte_set_input_push_buffered(rte_codec *codec,
-			    rteBufferCallback unref_cb)
-{
-	nullcheck(codec, return);
-
-	if (codec->status != RTE_STATUS_PARAM &&
-	    codec->status != RTE_STATUS_READY) {
-		rte_error(NULL,
-			  "You must set_parameters before setting the"
-			  " input mode.");
-		return;
-	}
-
-	codec->input_mode = RTE_INPUT_PB;
-	codec->input.pb.unref = unref_cb;
-
-	codec->status = RTE_STATUS_READY;
-}
-
-void
-rte_set_input_push_data(rte_codec *codec)
-{
-	nullcheck(codec, return);
-
-	if (codec->status != RTE_STATUS_PARAM &&
-	    codec->status != RTE_STATUS_READY) {
-		rte_error(NULL,
-			  "You must set_parameters before setting the"
-			  " input mode.");
-		return;
-	}
-
-	codec->input_mode = RTE_INPUT_PD;
-
-	codec->status = RTE_STATUS_READY;
-}
-
-void
-rte_push_buffer(rte_codec *codec, rte_buffer *rbuf,
-		rte_bool blocking)
-{
-	buffer *b;
-
-	nullcheck(codec, return);
-
-	if (codec->input_mode != RTE_INPUT_PB) {
-		rte_error(NULL, "[%s] Pushing buffer but current input mode"
-			  " isn't push_buffered", dc->public.keyword);
-		return;
-	}
-
-	if (blocking)
-		b = wait_empty_buffer(&codec->prod);
-	else {
-		b = recv_empty_buffer(&codec->prod);
-		if (!b) {
-			rte_error(codec->context,
-				  "[%s] push_buffer failed, "
-				  "would block", dc->public.keyword);
-			return;
-		}
-	}
-
-	b->time = rbuf->timestamp;
-	b->data = rbuf->data;
-	b->used = codec->bsize;
-	b->user_data = rbuf->user_data;
-
-	send_full_buffer(&codec->prod, b);
-}
-
-rte_pointer
-rte_push_data(rte_codec *codec, rte_pointer data, double timestamp,
-	      rte_bool blocking)
-{
-	buffer *b, *b2 = NULL;
-
-	nullcheck(codec, return NULL);
-
-	if (codec->input_mode != RTE_INPUT_PD) {
-		rte_error(NULL, "[%s] Pushing data but current input mode"
-			  " isn't push_data", dc->public.keyword);
-		return NULL;
-	}
-
-	b = codec->input.pd.last_buffer;
-	
-	if (!blocking) {
-		b2 = recv_empty_buffer(&codec->prod);
-		if (!b2) {
-			rte_error(codec->context, "[%s] push_data failed, "
-				  "would block", dc->public.keyword);
-			return NULL;
-		}
-	}
-
-	if ((data && !b) || (!data && b)) {
-		rte_error(NULL, "[%s] Stick to the usage, please",
-			  dc->public.keyword);
-		return NULL;
-	}
-
-	if (data) {
-		if (data != b->data) {
-			rte_error(NULL, "[%s] You haven't written to"
-				  " the provided buffer",
-				  dc->public.keyword);
-			return NULL;
-		}
-		/* We always send full buffers except eof */
-		/* FIXME: We should expose b->allocated somehow */
-		b->used = codec->bsize;
-		b->time = timestamp;
-		send_full_buffer(&codec->prod, b);
-	}
-
-	if (blocking)
-		b2 = wait_empty_buffer(&codec->prod);
-
-	codec->input.pd.last_buffer = b2;
-
-	return b->data;
-}
-
-void
-rte_set_output_callback(rte_context *context,
-			rteWriteCallback write_cb,
-			rteSeekCallback seek_cb)
-{
-	nullcheck(context, return);
-
-	context->write = write_cb;
-	context->seek = seek_cb;
-
-	context->status = RTE_STATUS_READY;
-}
-
-rte_option_info *
-rte_codec_option_info_enum(rte_codec *codec, int index)
-{
-	nullcheck(codec, return 0);
-
-	if (!dc->option_enum)
-		return NULL;
-
-	return dc->option_enum(codec, index);
-}
-
-rte_option_info *
-rte_codec_option_info_keyword(rte_codec *codec, const char *keyword)
-{
-	rte_option_info *ro;
-	int i;
-
-	nullcheck(codec, return NULL);
-
-	if (!dc->option_enum)
-		return NULL;
-
-	for (i = 0;; i++)
-	        if (!(ro = dc->option_enum(codec, i))
-		    || strcmp(keyword, ro->keyword) == 0)
-			break;
-	return ro;
-}
-
-rte_bool
-rte_codec_option_get(rte_codec *codec, const char *keyword,
-		     rte_option_value *v)
-{
-	nullcheck(codec, return 0);
-
-	if (!dc->option_get)
-		return FALSE;
-
-	return dc->option_get(codec, keyword, v);
-}
-
-rte_bool
-rte_codec_option_set(rte_codec *codec, const char *keyword, ...)
-{
-	va_list args;
-	rte_bool r;
+	rte_context *context;
+	int ql = 0;
 
 	nullcheck(codec, return FALSE);
 
-	if (!dc->option_set)
-		return FALSE;
+	context = codec->context;
+	rte_error_reset(context);
 
-	va_start(args, keyword);
+	nullcheck(read_cb, return FALSE);
 
-	r = dc->option_set(codec, keyword, args);
+	if (!queue_length)
+		queue_length = &ql;
 
-	va_end(args);
+	if (xc->set_input)
+		return xc->set_input(codec, RTE_INPUT_CA,
+				     read_cb, unref_cb, queue_length);
+	else if (dc->option_enum)
+		return dc->set_input(codec, RTE_INPUT_CA,
+				     read_cb, unref_cb, queue_length);
 
-	return r;
-}
+	fprintf(stderr, "rte: context %s and codec %s lack mandatory "
+		"set_input function\n", xc->public.keyword, dc->public.keyword);
 
-char *
-rte_codec_option_print(rte_codec *codec, const char *keyword, ...)
-{
-	va_list args;
-	char *r;
-
-	nullcheck(codec, return NULL);
-
-	if (!dc->option_print)
-		return NULL;
-
-	va_start(args, keyword);
-
-	r = dc->option_print(codec, keyword, args);
-
-	va_end(args);
-
-	return r;
+	exit(EXIT_FAILURE);
 }
 
 /**
- * rte_codec_option_menu_get:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or
- *	   rte_codec_set().
- * @keyword: Keyword identifying the option, as in #rte_option_info.
- * @entry: A place to store the current menu entry.
- * 
- * Similar to rte_codec_option_get() this function queries the current
- * value of the named option, but returns this value as number of the
- * corresponding menu entry. Naturally this must be an option with
- * menu, else this function will fail.
- * 
- * Return value: 
- * %TRUE on success, otherwise @value remained unchanged.
+ * rte_set_input_callback_passive:
+ * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
+ * @read_cb: Function called by the codec to read more data to encode.
+ *
+ * Sets the input mode for the codec and puts the codec into ready state.
+ * Using this method the codec allocates the necessary buffers, when it
+ * needs more data it calls @data_cb, passing a pointer to the buffer
+ * space where the client shall copy the data.
+ *
+ * <example><title>Typical usage of rte_set_input_callback_passive()</title>
+ * <programlisting>
+ * rte_bool
+ * my_read_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
+ * {
+ * &nbsp;    read(buffer->data, &amp;buffer->timestamp);
+ * &nbsp;    return TRUE;
+ * }
+ * </programlisting></example>
+ *
+ * Return value:
+ * Before selecting an input method you must negotiate sample parameters with
+ * rte_codec_set_parameters(), else this function fails with a return value
+ * of %FALSE. Setting codec options invalidates previously selected sample
+ * parameters, and thus also the input method selection. The function can
+ * also fail when the codec does not support this input method.
  **/
 rte_bool
-rte_codec_option_menu_get(rte_codec *codec, const char *keyword, int *entry)
+rte_set_input_callback_passive(rte_codec *codec,
+			       rte_buffer_callback read_cb)
 {
-	rte_option_info *oi;
-	rte_option_value val;
-	rte_bool r;
-	int i;
+	rte_context *context;
+	int ql = 0;
 
-	if (!(oi = rte_codec_option_info_keyword(codec, keyword)))
-		return FALSE;
+	nullcheck(codec, return FALSE);
 
-	if (!rte_codec_option_get(codec, keyword, &val))
-		return FALSE;
+	context = codec->context;
+	rte_error_reset(context);
 
-	r = FALSE;
+	nullcheck(read_cb, return FALSE);
 
-	for (i = 0; i <= oi->max.num; i++) {
-		switch (oi->type) {
-		case RTE_OPTION_BOOL:
-		case RTE_OPTION_INT:
-			if (!oi->menu.num)
-				return FALSE;
-			r = (oi->menu.num[i] == val.num);
-			break;
+	if (xc->set_input)
+		return xc->set_input(codec, RTE_INPUT_CP, read_cb, NULL, &ql);
+	else if (dc->option_enum)
+		return dc->set_input(codec, RTE_INPUT_CP, read_cb, NULL, &ql);
 
-		case RTE_OPTION_REAL:
-			if (!oi->menu.dbl)
-				return FALSE;
-			r = (oi->menu.dbl[i] == val.dbl);
-			break;
+	fprintf(stderr, "rte: context %s and codec %s lack mandatory "
+		"set_input function\n", xc->public.keyword, dc->public.keyword);
 
-		case RTE_OPTION_MENU:
-			r = (i == val.num);
-			break;
-
-		default:
-			fprintf(stderr, __PRETTY_FUNCTION__
-				": unknown export option type %d\n", oi->type);
-			exit(EXIT_FAILURE);
-		}
-
-		if (r) {
-			*entry = i;
-			break;
-		}
-	}
-
-	return r;
+	exit(EXIT_FAILURE);
 }
 
 /**
- * rte_codec_option_menu_set:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or
- *	   rte_codec_set().
- * @keyword: Keyword identifying the option, as in #rte_option_info.
- * @entry: Menu entry to be selected.
- * 
- * Similar to rte_codec_option_set() this function sets the value of
- * the named option, however it does so by number of the corresponding
- * menu entry. Naturally this must be an option with menu, else
- * this function will fail.
- * 
- * Return value: 
- * %TRUE on success, otherwise the option is not changed.
+ * rte_set_input_push_active:
+ * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
+ * @unref_cb: Optional function called as subroutine of rte_push_buffer()
+ *   to free the data.
+ * @queue_request: The minimum number of buffers you will be able to push before
+ *   rte_push_buffer() blocks.
+ * @queue_length: When non-zero the codec queue length is returned here. This is
+ *   at least the number of buffers read before freeing the oldest, and at most
+ *   @queue_request. When for example rte_push_buffer() and @unref_cb calls
+ *   always pair, the minimum length is 1.
+ *
+ * Sets the input mode for the codec and puts the codec into ready state.
+ * Using this method, when the codec needs data it waits until the rte client
+ * called rte_push_buffer(). After using the data, it is released by calling
+ * @unref_cb. See #rte_buffer_callback for the handshake details.
+ *
+ * Attention: A codec may wait for more than one buffer before releasing the
+ * oldest, it may also free in a different order than has been pushed.
+ *
+ * <example><title>Typical usage of rte_set_input_push_active()</title>
+ * <programlisting>
+ * rte_bool
+ * my_unref_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
+ * {
+ * &nbsp;    free(buffer->data);
+ * }
+ * &nbsp;
+ * while (have_data) {
+ * &nbsp;    rte_buffer buffer;
+ * &nbsp;
+ * &nbsp;    buffer->data = malloc();
+ * &nbsp;    read(buffer->data, &amp;buffer->timestamp);
+ * &nbsp;    if (!rte_push_buffer(codec, &amp;buffer, FALSE)) {
+ * &nbsp;        // The codec is not fast enough, we drop the frame.
+ * &nbsp;        free(buffer->data);
+ * &nbsp;    }
+ * }
+ * </programlisting></example>
+ *
+ * Return value:
+ * Before selecting an input method you must negotiate sample parameters with
+ * rte_codec_set_parameters(), else this function fails with a return value
+ * of %FALSE. Setting codec options invalidates previously selected sample
+ * parameters, and thus also the input method selection. The function can
+ * also fail when the codec does not support this input method.
  **/
 rte_bool
-rte_codec_option_menu_set(rte_codec *codec, const char *keyword, int entry)
+rte_set_input_push_active(rte_codec *codec,
+			  rte_buffer_callback unref_cb,
+			  int queue_request, int *queue_length)
 {
-	rte_option_info *oi;
+	rte_context *context;
 
-	if (!(oi = rte_codec_option_info_keyword(codec, keyword)))
-		return FALSE;
+	nullcheck(codec, return FALSE);
 
-	if (entry < 0 || entry > oi->max.num)
-		return FALSE;
+	context = codec->context;
+	rte_error_reset(context);
 
-	switch (oi->type) {
-	case RTE_OPTION_BOOL:
-	case RTE_OPTION_INT:
-		if (!oi->menu.num)
-			return FALSE;
-		return rte_codec_option_set(codec,
-			keyword, oi->menu.num[entry]);
+	if (!queue_length)
+		queue_length = &queue_request;
+	else
+		*queue_length = queue_request;
 
-	case RTE_OPTION_REAL:
-		if (!oi->menu.dbl)
-			return FALSE;
-		return rte_codec_option_set(codec,
-			keyword, oi->menu.dbl[entry]);
+	if (xc->set_input)
+		return xc->set_input(codec, RTE_INPUT_PA,
+				     NULL, unref_cb, queue_length);
+	else if (dc->option_enum)
+		return dc->set_input(codec, RTE_INPUT_PA,
+				     NULL, unref_cb, queue_length);
 
-	case RTE_OPTION_MENU:
-		return rte_codec_option_set(codec, keyword, entry);
+	fprintf(stderr, "rte: context %s and codec %s lack mandatory "
+		"set_input function\n", xc->public.keyword, dc->public.keyword);
 
-	default:
-		fprintf(stderr, __PRETTY_FUNCTION__
-			": unknown export option type %d\n", oi->type);
-		exit(EXIT_FAILURE);
-	}
+	exit(EXIT_FAILURE);
 }
 
 /**
- * rte_codec_options_reset:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or
- *	   rte_codec_set().
- * 
- * RTE internal function to reset all options of a codec to their
- * default.
- * 
- * Return value: 
- * %TRUE on success.
+ * rte_set_input_push_passive:
+ * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
+ * @queue_request: The minimum number of buffers you will be able to push before
+ *   rte_push_buffer() blocks.
+ * @queue_length: When non-zero the actual codec queue length is returned here,
+ *   this may be more or less than @queue_request.
+ *
+ * Sets the input mode for the codec and puts the codec into ready state.
+ * Using this method the codec allocates the necessary buffers, when it needs more
+ * data it waits until the rte client called rte_push_buffer(). In buffer.data
+ * this function always returns a pointer to buffer space where the rte client
+ * shall store the data. You can pass %NULL as buffer.data to start the cycle.
+ *
+ * <example><title>Typical usage of rte_set_input_push_passive()</title>
+ * <programlisting>
+ * rte_buffer buffer;
+ * &nbsp;
+ * buffer.data = NULL;
+ * rte_push_buffer(codec, &amp;buffer, FALSE); // cannot fail
+ * &nbsp;
+ * while (have_data) {
+ * &nbsp;    read(buffer->data, &amp;buffer->timestamp);
+ * &nbsp;    if (!rte_push_buffer(codec, &amp;buffer, FALSE)) {
+ * &nbsp;         // The codec is not fast enough, we drop the frame.
+ * &nbsp;    }
+ * }
+ * </programlisting></example>
+ *
+ * Return value:
+ * Before selecting an input method you must negotiate sample parameters with
+ * rte_codec_set_parameters(), else this function fails with a return value
+ * of %FALSE. Setting codec options invalidates previously selected sample
+ * parameters, and thus also the input method selection. The function can
+ * also fail when the codec does not support this input method.
  **/
 rte_bool
-rte_codec_options_reset(rte_codec *codec)
+rte_set_input_push_data(rte_codec *codec,
+			int queue_request, int *queue_length)
 {
-	rte_option_info *oi;
-	rte_bool r;
-	int i;
+	rte_context *context;
 
-	for (i = 0; (oi = rte_codec_option_info_enum(codec, i)); i++) {
-		switch (oi->type) {
-		case RTE_OPTION_BOOL:
-		case RTE_OPTION_INT:
-			if (oi->menu.num)
-				r = rte_codec_option_set(codec, oi->keyword,
-							 oi->menu.num[oi->def.num]);
-			else
-				r = rte_codec_option_set(codec, oi->keyword,
-							 oi->def.num);
-			break;
+	nullcheck(codec, return FALSE);
 
-		case RTE_OPTION_REAL:
-			if (oi->menu.dbl)
-				r = rte_codec_option_set(codec, oi->keyword,
-							 oi->menu.dbl[oi->def.num]);
-			else
-				r = rte_codec_option_set(codec, oi->keyword, 
-							 oi->def.dbl);
-			break;
+	context = codec->context;
+	rte_error_reset(context);
 
-		case RTE_OPTION_STRING:
-			if (oi->menu.str)
-				r = rte_codec_option_set(codec, oi->keyword,
-							 oi->menu.str[oi->def.num]);
-			else
-				r = rte_codec_option_set(codec, oi->keyword, 
-							 oi->def.str);
-			break;
+	if (!queue_length)
+		queue_length = &queue_request;
+	else
+		*queue_length = queue_request;
 
-		case RTE_OPTION_MENU:
-			r = rte_codec_option_set(codec, oi->keyword, oi->def.num);
-			break;
+	if (xc->set_input)
+		return xc->set_input(codec, RTE_INPUT_PP, NULL, NULL, queue_length);
+	else if (dc->option_enum)
+		return dc->set_input(codec, RTE_INPUT_PP, NULL, NULL, queue_length);
 
-		default:
-			fprintf(stderr, __PRETTY_FUNCTION__
-				": unknown codec option type %d\n", oi->type);
-			exit(EXIT_FAILURE);
-		}
+	fprintf(stderr, "rte: context %s and codec %s lack mandatory "
+		"set_input function\n", xc->public.keyword, dc->public.keyword);
 
-		if (!r)
-			return FALSE;
-	}
-
-	return TRUE;
+	exit(EXIT_FAILURE);
 }
 
-rte_option_info *
-rte_context_option_info_enum(rte_context *context, int index)
-{
-	nullcheck(context, return 0);
-
-	if (!xc->option_enum)
-		return NULL;
-
-	return xc->option_enum(context, index);
-}
-
-rte_option_info *
-rte_context_option_info_keyword(rte_context *context, const char *keyword)
-{
-	rte_option_info *ro;
-	int i;
-
-	nullcheck(context, return 0);
-
-	if (!xc->option_enum)
-		return NULL;
-
-	for (i = 0;; i++)
-	        if (!(ro = xc->option_enum(context, i))
-		    || strcmp(keyword, ro->keyword) == 0)
-			break;
-	return ro;
-}
-
+/**
+ * rte_push_buffer:
+ * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
+ * @buffer: Pointer to a #rte_buffer, can be %NULL.
+ * @blocking: %TRUE to enable blocking behaviour.
+ * 
+ * Passes data for encoding to the codec when the input method is 'push'.
+ * When the codec input queue is full and @blocking is %TRUE this function waits
+ * until space becomes available, when @blocking is %FALSE it immediately
+ * returns %FALSE.
+ *
+ * Return value:
+ * %FALSE if the function would block. In active push mode and when the function
+ * fails, the contents of @buffer are unmodified on return. Otherwise, that is in
+ * passive push mode, buffer.data points to the next buffer space to be filled.
+ * You can always obtain a pointer by calling rte_push_buffer() with buffer.data
+ * set to %NULL, in active push mode this has no effect.
+ **/
 rte_bool
-rte_context_option_get(rte_context *context, const char *keyword,
-		     rte_option_value *v)
+rte_push_buffer(rte_codec *codec, rte_buffer *buffer, rte_bool blocking)
 {
-	nullcheck(context, return 0);
+	rte_context *context;
 
-	if (!xc->option_get)
+	nullcheck(codec, return FALSE);
+
+	context = codec->context;
+	rte_error_reset(context);
+
+	if (xc->push_buffer)
+		return xc->push_buffer(codec, buffer, blocking);
+	else if (dc->push_buffer)
+		return dc->push_buffer(codec, buffer, blocking);
+	else
 		return FALSE;
-
-	return xc->option_get(context, keyword, v);
 }
 
+/**
+ * rte_set_output_callback_passive:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ * @write_cb: Function called by the codec to write encoded data.
+ * @seek_cb: Optional function called by the codec to move the output
+ *  file pointer, for example to complete a header.
+ *
+ * Sets the output mode for the context and makes the context ready
+ * to start encoding. Using this method the codec allocates the necessary
+ * buffers, when data is available for writing it calls @write_cb with
+ * buffer.data and buffer.size initialized.
+ *
+ * <example><title>Typical usage of rte_set_output_callback()</title>
+ * <programlisting>
+ * rte_bool
+ * my_write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
+ * {
+ * &nbsp;    ssize_t actual;
+ * &nbsp;
+ * &nbsp;    do actual = write(STDOUT_FILENO, buffer->data, buffer->size);
+ * &nbsp;    while (actual == -1 && errno == EINTR);
+ * &nbsp;
+ * &nbsp;    return actual == buffer->size; // no error
+ * }
+ * &nbsp;
+ * rte_bool
+ * my_seek_cb(rte_context *context, rte_codec *codec, off64_t offset, int whence)
+ * {
+ * &nbsp;    return lseek64(STDOUT_FILENO, offset, whence) != (off64_t) -1;
+ * }
+ * </programlisting></example>
+ *
+ * Return value:
+ * Before selecting an output method you must select input methods for all
+ * codecs, else this function fails with a return value of %FALSE. Setting
+ * context options or selecting or removing codecs cancels the output method
+ * selection.
+ **/
 rte_bool
-rte_context_option_set(rte_context *context, const char *keyword, ...)
+rte_set_output_callback_passive(rte_context *context,
+				rte_buffer_callback write_cb,
+				rte_seek_callback seek_cb)
 {
-	va_list args;
-	rte_bool r;
-
 	nullcheck(context, return FALSE);
 
-	if (!xc->option_set)
-		return FALSE;
+	rte_error_reset(context);
 
-	va_start(args, keyword);
+	nullcheck(write_cb, return FALSE);
 
-	r = xc->option_set(context, keyword, args);
+	if (xc->set_output)
+		return xc->set_output(context, write_cb, seek_cb);
 
-	va_end(args);
+	fprintf(stderr, "rte: context %s lacks mandatory "
+		"set_output function\n", xc->public.keyword);
 
-	return r;
+	exit(EXIT_FAILURE);
 }
 
-char *
-rte_context_option_print(rte_context *context, const char *keyword, ...)
-{
-	va_list args;
-	char *r;
 
-	nullcheck(context, return NULL);
 
-	if (!xc->option_print)
-		return NULL;
 
-	va_start(args, keyword);
 
-	r = xc->option_print(context, keyword, args);
 
-	va_end(args);
-
-	return r;
-}
-
-/**
- * rte_context_option_menu_get:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @keyword: Keyword identifying the option, as in #rte_option_info.
- * @entry: A place to store the current menu entry.
- * 
- * Similar to rte_context_option_get() this function queries the current
- * value of the named option, but returns this value as number of the
- * corresponding menu entry. Naturally this must be an option with
- * menu, else this function will fail.
- * 
- * Return value: 
- * %TRUE on success, otherwise @value remained unchanged.
- **/
-rte_bool
-rte_context_option_menu_get(rte_context *context, const char *keyword, int *entry)
-{
-	rte_option_info *oi;
-	rte_option_value val;
-	rte_bool r;
-	int i;
-
-	if (!(oi = rte_context_option_info_keyword(context, keyword)))
-		return FALSE;
-
-	if (!rte_context_option_get(context, keyword, &val))
-		return FALSE;
-
-	r = FALSE;
-
-	for (i = 0; i <= oi->max.num; i++) {
-		switch (oi->type) {
-		case RTE_OPTION_BOOL:
-		case RTE_OPTION_INT:
-			if (!oi->menu.num)
-				return FALSE;
-			r = (oi->menu.num[i] == val.num);
-			break;
-
-		case RTE_OPTION_REAL:
-			if (!oi->menu.dbl)
-				return FALSE;
-			r = (oi->menu.dbl[i] == val.dbl);
-			break;
-
-		case RTE_OPTION_MENU:
-			r = (i == val.num);
-			break;
-
-		default:
-			fprintf(stderr, __PRETTY_FUNCTION__
-				": unknown export option type %d\n", oi->type);
-			exit(EXIT_FAILURE);
-		}
-
-		if (r) {
-			*entry = i;
-			break;
-		}
-	}
-
-	return r;
-}
-
-/**
- * rte_context_option_menu_set:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @keyword: Keyword identifying the option, as in #rte_option_info.
- * @entry: Menu entry to be selected.
- * 
- * Similar to rte_context_option_set() this function sets the value of
- * the named option, however it does so by number of the corresponding
- * menu entry. Naturally this must be an option with menu, else
- * this function will fail.
- * 
- * Return value: 
- * %TRUE on success, otherwise the option is not changed.
- **/
-rte_bool
-rte_context_option_menu_set(rte_context *context, const char *keyword, int entry)
-{
-	rte_option_info *oi;
-
-	if (!(oi = rte_context_option_info_keyword(context, keyword)))
-		return FALSE;
-
-	if (entry < 0 || entry > oi->max.num)
-		return FALSE;
-
-	switch (oi->type) {
-	case RTE_OPTION_BOOL:
-	case RTE_OPTION_INT:
-		if (!oi->menu.num)
-			return FALSE;
-		return rte_context_option_set(context,
-			keyword, oi->menu.num[entry]);
-
-	case RTE_OPTION_REAL:
-		if (!oi->menu.dbl)
-			return FALSE;
-		return rte_context_option_set(context,
-			keyword, oi->menu.dbl[entry]);
-
-	case RTE_OPTION_MENU:
-		return rte_context_option_set(context, keyword, entry);
-
-	default:
-		fprintf(stderr, __PRETTY_FUNCTION__
-			": unknown export option type %d\n", oi->type);
-		exit(EXIT_FAILURE);
-	}
-}
-
-/**
- * rte_context_options_reset:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * 
- * RTE internal function to reset all options of a context to their
- * default.
- * 
- * Return value: 
- * %TRUE on success.
- **/
-rte_bool
-rte_context_options_reset(rte_context *context)
-{
-	rte_option_info *oi;
-	rte_bool r;
-	int i;
-
-	for (i = 0; (oi = rte_context_option_info_enum(context, i)); i++) {
-		switch (oi->type) {
-		case RTE_OPTION_BOOL:
-		case RTE_OPTION_INT:
-			if (oi->menu.num)
-				r = rte_context_option_set(context, oi->keyword,
-							   oi->menu.num[oi->def.num]);
-			else
-				r = rte_context_option_set(context, oi->keyword,
-							   oi->def.num);
-			break;
-
-		case RTE_OPTION_REAL:
-			if (oi->menu.dbl)
-				r = rte_context_option_set(context, oi->keyword,
-							   oi->menu.dbl[oi->def.num]);
-			else
-				r = rte_context_option_set(context, oi->keyword,
-							   oi->def.dbl);
-			break;
-
-		case RTE_OPTION_STRING:
-			if (oi->menu.str)
-				r = rte_context_option_set(context, oi->keyword,
-							   oi->menu.str[oi->def.num]);
-			else
-				r = rte_context_option_set(context, oi->keyword, 
-							   oi->def.str);
-			break;
-
-		case RTE_OPTION_MENU:
-			r = rte_context_option_set(context, oi->keyword,
-						   oi->def.num);
-			break;
-
-		default:
-			fprintf(stderr, __PRETTY_FUNCTION__
-				": unknown context option type %d\n", oi->type);
-			exit(EXIT_FAILURE);
-		}
-
-		if (!r)
-			return FALSE;
-	}
-
-	return TRUE;
-}
-
-rte_status_info *
-rte_context_status_enum(rte_context *context, int n)
-{
-	nullcheck(context, return NULL);
-	nullcheck(xc->status_enum, return NULL);
-
-	return xc->status_enum(context, n);
-}
-
-rte_status_info *
-rte_context_status_keyword(rte_context *context, const char *keyword)
-{
-	rte_status_info *si;
-	int i;
-
-	nullcheck(context, return NULL);
-	nullcheck(xc->status_enum, return NULL);
-
-	for (i = 0;; i++)
-	        if (!(si = xc->status_enum(context, i))
-		    || strcmp(keyword, si->keyword) == 0)
-			break;
-
-	return si;
-}
-
-rte_status_info *
-rte_codec_status_enum(rte_codec *codec, int n)
-{
-	nullcheck(codec, return NULL);
-	nullcheck(dc->status_enum, return NULL);
-
-	return dc->status_enum(codec, n);
-}
-
-rte_status_info *
-rte_codec_status_keyword(rte_codec *codec, const char *keyword)
-{
-	rte_status_info *si;
-	int i;
-
-	nullcheck(codec, return NULL);
-	nullcheck(dc->status_enum, return NULL);
-
-	for (i = 0;; i++)
-	        if (!(si = dc->status_enum(codec, i))
-		    || strcmp(keyword, si->keyword) == 0)
-			break;
-
-	return si;
-}
 
 void
 rte_status_free(rte_status_info *status)
@@ -1060,6 +473,8 @@ rte_status_free(rte_status_info *status)
 static void
 codecs_uninit(rte_context *context)
 {
+#warning
+#if 0
 	static rte_bool uninit_codec(rte_codec *codec,
 				     rte_pointer udata) {
 		switch (codec->input_mode) {
@@ -1088,27 +503,31 @@ codecs_uninit(rte_context *context)
 
 	codec_forall(context, uninit_codec, NULL);
 	xc->uninit(context);
+#endif
 }
+
+#if 0
 
 /* Returns the required buffer size for the codec */
 static int
 buffer_size (rte_codec *codec)
 {
 	rte_stream_parameters par;
-	rte_video_stream_parameters *vid =
-		(rte_video_stream_parameters*)&par;
+	rte_video_stream_params *vid = (rte_video_stream_params *) &par;
 
-	rte_codec_get_parameters(codec, &par);
+	rte_codec_parameters_get(codec, &par);
 
 	if (dc->public.stream_type == RTE_STREAM_AUDIO)
 		return par.audio.fragment_size;
 	else if (dc->public.stream_type == RTE_STREAM_SLICED_VBI)
 		return 0; /* FIXME */
+#warning
 	/* video */
 	switch (vid->pixfmt) {
 	case RTE_PIXFMT_YUV420:
 		/* Assumes that there's no padding between Y, U, V
 		   fields */
+		/* FIXME */
 		return vid->stride * vid->height +
 			vid->uv_stride * vid->height * 2;
 	default:
@@ -1219,10 +638,14 @@ rte_send_empty (consumer *c, buffer *b)
 	send_empty_buffered(c, b);
 }
 
+#endif
+
 /* init one codec */
 static rte_bool
 init_codec (rte_codec *codec, rte_pointer udata)
 {
+#warning
+#if 0
 	rte_context *context = (rte_context*)udata;
 	int buffers;
 	int alloc_bytes = 0;
@@ -1269,11 +692,16 @@ init_codec (rte_codec *codec, rte_pointer udata)
 	}
 
 	return retval;
+#endif
+
+	return 0;
 }
 
 rte_bool
 rte_start(rte_context *context)
 {
+#warning
+#if 0
 	rte_bool result;
 	int num_codecs = 0;
 	char *failed_codec = NULL;
@@ -1327,6 +755,8 @@ rte_start(rte_context *context)
 		codecs_uninit(context);
 
 	return result;
+#endif
+	return 0;
 }
 
 void
@@ -1378,10 +808,347 @@ rte_resume(rte_context *context)
 	return TRUE;
 }
 
-char *
-rte_last_error(rte_context *context)
+/**
+ * rte_option_string:
+ * @context: Initialized #rte_context.
+ * @codec: Pointer to #rte_codec if these are codec options,
+ *   %NULL if context options.
+ * @optstr: Option string.
+ *
+ * RTE internal function to parse an option string and set
+ * the options accordingly.
+ *
+ * Return value:
+ * %FALSE if the string is invalid or setting some option failed.
+ **/
+rte_bool
+rte_option_string(rte_context *context, rte_codec *codec, const char *optstr)
 {
-	nullcheck(context, return NULL);
+	rte_option_info *oi;
+	char *s, *s1, *keyword, *string, quote;
+	rte_bool r = TRUE;
+
+	assert(context != NULL);
+	assert(optstr != NULL);
+
+	s = s1 = strdup(optstr);
+
+	if (!s) {
+		rte_error_printf(context, _("Out of memory."));
+		return FALSE;
+	}
+
+	if (codec)
+		pthread_mutex_lock(&codec->mutex);
+	else
+		pthread_mutex_lock(&context->mutex);
+
+	do {
+		while (isspace(*s))
+			s++;
+
+		if (*s == ',' || *s == ';') {
+			s++;
+			continue;
+		}
+
+		if (!*s)
+			break;
+
+		keyword = s;
+
+		while (isalnum(*s) || *s == '_')
+			s++;
+
+		if (!*s)
+			goto invalid;
+
+		*s++ = 0;
+
+		while (isspace(*s) || *s == '=')
+			s++;
+
+		if (!*s) {
+ invalid:
+			rte_error_printf(context, "Invalid option string \"%s\".",
+					 optstr);
+			break;
+		}
+
+		if (codec)
+			oi = rte_codec_option_info_keyword(codec, keyword);
+		else
+			oi = rte_context_option_info_keyword(context, keyword);
+
+		if (!oi)
+			break;
+
+		switch (oi->type) {
+		case RTE_OPTION_BOOL:
+		case RTE_OPTION_INT:
+		case RTE_OPTION_MENU:
+			if (codec)
+				r = rte_codec_option_set(codec,
+					keyword, (int) strtol(s, &s, 0));
+			else
+				r = rte_context_option_set(context,
+					keyword, (int) strtol(s, &s, 0));
+			break;
+
+		case RTE_OPTION_REAL:
+			if (codec)
+				r = rte_codec_option_set(codec,
+					keyword, (double) strtod(s, &s));
+			else
+				r = rte_context_option_set(context,
+					keyword, (double) strtod(s, &s));
+			break;
+
+		case RTE_OPTION_STRING:
+			quote = 0;
+			if (*s == '\'' || *s == '"')
+				quote = *s++;
+			string = s;
+
+			while (*s && *s != quote
+			       && (quote || (*s != ',' && *s != ';')))
+				s++;
+			if (*s)
+				*s++ = 0;
+
+			if (codec)
+				r = rte_codec_option_set(codec, keyword, string);
+			else
+				r = rte_context_option_set(context, keyword, string);
+			break;
+
+		default:
+			fprintf(stderr, __PRETTY_FUNCTION__
+				": unknown export option type %d\n", oi->type);
+			exit(EXIT_FAILURE);
+		}
+
+	} while (r);
+
+	if (codec)
+		pthread_mutex_unlock(&codec->mutex);
+	else
+		pthread_mutex_unlock(&context->mutex);
+
+	free(s1);
+
+	return r;
+}
+
+/*
+ *  Error functions
+ */
+
+/**
+ * rte_asprintf:
+ * @errstr: 
+ * @templ: See printf().
+ * @Varargs: See printf(). 
+ * 
+ * RTE internal helper function.
+ **/
+void
+rte_asprintf(char **errstr, const char *templ, ...)
+{
+	char buf[512];
+	va_list ap;
+	int temp;
+
+	if (!errstr)
+		return;
+
+	temp = errno;
+
+	va_start(ap, templ);
+
+	vsnprintf(buf, sizeof(buf) - 1, templ, ap);
+
+	va_end(ap);
+
+	*errstr = strdup(buf);
+
+	errno = temp;
+}
+
+/**
+ * rte_errstr:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ *
+ * When a RTE function failed you can use this function to get a
+ * verbose description of the failure cause, if available.
+ *
+ * Attention: This function is not thread safe. Never use it when
+ * another thread may call a RTE function between the failed function
+ * and the time you evaluated the error string.
+ * <!-- This could be fixed by using thread keys. -->
+ *
+ * Return value:
+ * Static pointer, string not to be freed, describing the error. The pointer
+ * remains valid until the next call of a RTE function for this context
+ * and all its codecs.
+ **/
+char *
+rte_errstr(rte_context *context)
+{
+	if (!context)
+		return "Invalid RTE context.";
+
+	if (!context->error)
+		return _("Unknown error.");
 
 	return context->error;
+}
+
+/**
+ * rte_error_printf:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ * @templ: See printf().
+ * @Varargs: See printf().
+ * 
+ * Store an error description in the @context which can be retrieved
+ * with rte_errstr(). You can also include the current error description.
+ *
+ * FIXME: This function is not thread safe.
+ **/
+void
+rte_error_printf(rte_context *context, const char *templ, ...)
+{
+	char buf[512], *s, *t;
+	va_list ap;
+	int temp;
+
+	if (!context)
+		return;
+
+	temp = errno;
+
+	va_start(ap, templ);
+	vsnprintf(buf, sizeof(buf) - 1, templ, ap);
+	va_end(ap);
+
+	s = strdup(buf);
+
+	t = context->error;
+	context->error = s;
+
+	if (t)
+		free(t);
+
+	errno = temp;
+}
+
+static char *
+whois(rte_context *context, rte_codec *codec)
+{
+	char name[80];
+
+	if (codec) {
+		rte_codec_info *ci = &codec->class->public;
+
+		snprintf(name, sizeof(name) - 1,
+			 "codec %s", ci->label ? _(ci->label) : ci->keyword);
+	} else if (context) {
+		rte_context_info *ci = &context->class->public;
+
+		snprintf(name, sizeof(name) - 1,
+			 "context %s", ci->label ? _(ci->label) : ci->keyword);
+	} else {
+		fprintf(stderr, "rte bug: unknown context or codec called error function\n");
+		return NULL;
+	}
+
+	return strdup(name);
+}
+
+void
+rte_unknown_option(rte_context *context, rte_codec *codec, const char *keyword)
+{
+	char *name = whois(context, codec);
+
+	if (!name)
+		return;
+
+	if (!keyword)
+		rte_error_printf(context, "No option keyword for %s.", name);
+	else
+		rte_error_printf(context, "'%s' is no option of %s.", keyword, name);
+
+	free(name);
+}
+
+void
+rte_invalid_option(rte_context *context, rte_codec *codec, const char *keyword, ...)
+{
+	char buf[256], *name = whois(context, codec);
+	rte_option_info *oi;
+
+	if (!name)
+		return;
+
+	if (codec)
+		oi = rte_codec_option_info_keyword(codec, keyword);
+	else
+		oi = rte_context_option_info_keyword(context, keyword);
+
+	if (oi) {
+		va_list args;
+		char *s;
+
+		va_start(args, keyword);
+
+		switch (oi->type) {
+		case RTE_OPTION_BOOL:
+		case RTE_OPTION_INT:
+		case RTE_OPTION_MENU:
+			snprintf(buf, sizeof(buf) - 1, "'%d'", va_arg(args, int));
+			break;
+		case RTE_OPTION_REAL:
+			snprintf(buf, sizeof(buf) - 1, "'%f'", va_arg(args, double));
+			break;
+		case RTE_OPTION_STRING:
+			s = va_arg(args, char *);
+			if (s == NULL)
+				strncpy(buf, "NULL", 4);
+			else
+				snprintf(buf, sizeof(buf) - 1, "'%s'", s);
+			break;
+		default:
+			fprintf(stderr, __PRETTY_FUNCTION__
+				": unknown export option type %d\n", oi->type);
+			strncpy(buf, "?", 1);
+			break;
+		}
+
+		va_end(args);
+	} else
+		buf[0] = 0;
+
+	rte_error_printf(context, "Invalid argument %s for option %s of %s.",
+			 buf, keyword, name);
+	free(name);
+}
+
+char *
+rte_strdup(rte_context *context, char **d, const char *s)
+{
+	char *new = strdup(s ? s : "");
+
+	if (!new) {
+		rte_error_printf(context, _("Out of memory."));
+		errno = ENOMEM;
+		return NULL;
+	}
+
+	if (d) {
+		if (*d)
+			free(*d);
+		*d = new;
+	}
+
+	return new;
 }

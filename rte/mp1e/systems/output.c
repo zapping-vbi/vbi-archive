@@ -53,7 +53,7 @@ output_stdout(struct multiplexer *mux,
 	n = b->used; // XXX eof 
 
 	while (n > 0) {
-		r = write(STDOUT_FILENO, s, n);
+		r = write(outFileFD, s, n);
 
 		if (r < 0 && errno == EINTR)
 			continue;

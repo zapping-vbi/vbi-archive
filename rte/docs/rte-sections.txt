@@ -1,13 +1,20 @@
 <SECTION>
-<TITLE>Creating encoding contexts.</TITLE>
+<TITLE>Creating encoding contexts</TITLE>
 <FILE>contexts</FILE>
+<SUBSECTION>
+rte_context_info
 rte_context_info_enum
 rte_context_info_keyword
 rte_context_info_context
+</SUBSECTION>
+<SUBSECTION>
+rte_context
 rte_context_new
 rte_context_delete
-rte_context_set_user_data
-rte_context_get_user_data
+rte_context_user_data
+</SUBSECTION>
+rte_error_printf
+rte_errstr
 </SECTION>
 
 <SECTION>
@@ -16,12 +23,13 @@ rte_context_get_user_data
 rte_codec_info_enum
 rte_codec_info_keyword
 rte_codec_info_codec
+rte_codec
 rte_codec_set
 rte_codec_get
-rte_codec_set_user_data
-rte_codec_get_user_data
-rte_codec_set_parameters
-rte_codec_get_parameters
+rte_codec_remove
+rte_codec_user_data
+rte_codec_parameters_set
+rte_codec_parameters_get
 </SECTION>
 
 <SECTION>
@@ -29,26 +37,31 @@ rte_codec_get_parameters
 <FILE>options</FILE>
 rte_codec_option_info_enum
 rte_codec_option_info_keyword
-rte_codec_option_get
 rte_codec_option_set
+rte_codec_option_get
+rte_codec_option_menu_set
+rte_codec_option_menu_get
 rte_codec_option_print
+rte_codec_options_reset
 rte_context_option_info_enum
 rte_context_option_info_keyword
-rte_context_option_get
 rte_context_option_set
+rte_context_option_get
+rte_context_option_menu_set
+rte_context_option_menu_get
 rte_context_option_print
+rte_context_options_reset
 </SECTION>
 
 <SECTION>
 <TITLE>Input-output interfaces.</TITLE>
 <FILE>io</FILE>
-rte_set_input_callback_buffered
-rte_set_input_callback_data
-rte_set_input_push_buffered
-rte_set_input_push_data
+rte_set_input_callback_active
+rte_set_input_callback_passive
+rte_set_input_push_active
+rte_set_input_push_passive
 rte_push_buffer
-rte_push_data
-rte_set_output_callback
+rte_set_output_callback_passive
 </SECTION>
 
 <SECTION>
@@ -79,19 +92,23 @@ rte_string
 rte_real
 rte_menu
 rte_pointer
-rte_context_info
 rte_codec_info
 rte_stream_type
 rte_basic_type
+rte_option_type
 rte_option_value
 rte_option_info
-rte_stream_parameters
-rte_video_stream_parameters
-rte_audio_stream_parameters
+rte_pixfmt
+RTE_PIXFMT_ABGR32_LE
+RTE_PIXFMT_ARGB32_LE
+RTE_PIXFMT_ARGB32_BE
+RTE_PIXFMT_ABGR32_BE
+rte_video_stream_params
+rte_sndfmt
+rte_audio_stream_params
 rte_buffer
+rte_stream_parameters
 rte_status_info
-rteBufferCallback
-rteDataCallback
-rteWriteCallback
-rteSeekCallback
+rte_buffer_callback
+rte_seek_callback
 </SECTION>

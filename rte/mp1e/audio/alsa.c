@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.13 2002-01-21 07:41:04 mschimek Exp $ */
+/* $Id: alsa.c,v 1.14 2002-02-08 15:03:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -173,20 +173,27 @@ wait_full(fifo *f)
 		- (frag - alsa->curr_frag) * alsa->tfmem.ref;
 
 	if (alsa->time > 0) {
+#if 1
+		alsa->time += alsa->tfmem.ref;
+#else
 		double dt = now - alsa->time;
 
 		if (dt - alsa->tfmem.err > alsa->tfmem.ref * 1.98) {
 			/* data lost, out of sync; XXX 1.98 bad */
 			alsa->time = now;
-			(printv(0, "dropped dt=%f t/b=%f\n",
-					      dt, alsa->tfmem.ref));
+#if 0
+			printv(0, "alsa dropped dt=%f t/b=%f\n",
+				 dt, alsa->tfmem.ref);
+#endif
 		} else {
 			alsa->time += mp1e_timestamp_filter
 				(&alsa->tfmem, dt, 0.05, 1e-7, 0.08);
 		}
-
-		ALSA_TIME_LOG(printv(0, "now %f dt %+f err %+f t/b %+f\n",
-				     now, dt, alsa->tfmem.err, alsa->tfmem.ref));
+#if 0
+		printv(0, "alsa %f dt %+f err %+f t/b %+f\n",
+		       now, dt, alsa->tfmem.err, alsa->tfmem.ref);
+#endif
+#endif
 	} else {
 		snd_pcm_channel_status_t status;
 		double stime;
@@ -242,8 +249,8 @@ start(fifo *f)
 	return TRUE;
 }
 
-fifo *
-open_pcm_alsa(char *dev_name1, int sampling_rate, bool stereo)
+void
+open_pcm_alsa(char *dev_name1, int sampling_rate, bool stereo, fifo *f)
 {
 	struct alsa_context *alsa;
 	snd_pcm_info_t pcm_info;
@@ -395,24 +402,21 @@ do {									\
 	mp1e_timestamp_init(&alsa->tfmem, (setup.buf.block.frag_size / bpf)
 		/ (double) sampling_rate);
 
-	ASSERT("init alsa fifo", init_callback_fifo(
-		&alsa->pcm.fifo, "audio-alsa1",
+	ASSERT("init alsa fifo", init_callback_fifo(f, "audio-alsa1",
 		NULL, NULL, wait_full, send_empty,
 		1, 0));
 
 	ASSERT("init alsa producer",
-		add_producer(&alsa->pcm.fifo, &alsa->pcm.producer));
+		add_producer(f, &alsa->pcm.producer));
 
-	alsa->pcm.fifo.user_data = alsa;
-	alsa->pcm.fifo.start = start;
+	f->user_data = alsa;
+	f->start = start;
 
-	b = PARENT(alsa->pcm.fifo.buffers.head, buffer, added);
+	b = PARENT(f->buffers.head, buffer, added);
 
 	b->data = NULL;
 	b->used = setup.buf.block.frag_size;
 	b->offset = 0;
-
-	return &alsa->pcm.fifo;
 }
 
 #else /* SND_LIB >= 0.9 */
@@ -503,8 +507,8 @@ start(fifo *f)
 	return TRUE;
 }
 
-fifo *
-open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
+void
+open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo, fifo **f)
 {
 	struct alsa_context *alsa;
 	snd_pcm_info_t *info;
@@ -525,7 +529,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 	ASSERT("allocate pcm context",
 		(alsa = calloc(1, sizeof(struct alsa_context))));
 
-	alsa->pcm.format = RTE_SNDFMT_S16LE;
+	alsa->pcm.format = RTE_SNDFMT_S16_LE;
 	alsa->pcm.sampling_rate = sampling_rate;
 	alsa->pcm.stereo = stereo;
 
@@ -611,32 +615,31 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 	buffer_size = period_size << (stereo + 1);
 	alsa->sleep = 400000.0 * period_size / (double) sampling_rate;
 
-	ASSERT("init alsa fifo", init_callback_fifo(
-		&alsa->pcm.fifo, "audio-alsa2",
+	*f = &alsa->pcm.fifo;
+
+	ASSERT("init alsa fifo", init_callback_fifo(*f, "audio-alsa2",
 		NULL, NULL, wait_full, send_empty,
 		1, buffer_size));
 
 	ASSERT("init alsa producer",
-		add_producer(&alsa->pcm.fifo, &alsa->pcm.producer));
+		add_producer(*f, &alsa->pcm.producer));
 
-	alsa->pcm.fifo.user_data = alsa;
-	alsa->pcm.fifo.start = start;
+	(*f)->user_data = alsa;
+	(*f)->start = start;
 
-	b = PARENT(alsa->pcm.fifo.buffers.head, buffer, added);
+	b = PARENT((*f)->buffers.head, buffer, added);
 
 	b->data = NULL;
 	b->used = b->size;
 	b->offset = 0;
-
-	return &alsa->pcm.fifo;
 }
 
 #endif /* SND_LIB >= 0.9 */
 
 #else /* !HAVE_LIBASOUND */
 
-fifo *
-open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
+void
+open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo, fifo *f)
 {
 	FAIL("Not compiled with ALSA interface.\n"
 	     "For more info about ALSA visit http://www.alsa-project.org\n");

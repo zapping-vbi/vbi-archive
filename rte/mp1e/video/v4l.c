@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.16 2002-01-21 07:41:04 mschimek Exp $ */
+/* $Id: v4l.c,v 1.17 2002-02-08 15:03:11 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -71,8 +71,8 @@ timestamp2(buffer *b)
 
 		if (dt_acc > tfmem.ref * 1.5) {
 			/* bah. */
-#if 0
-			printv(0, "video dropped %f > %f * 1.5\n",
+#if 1
+			printv(0, "v4l dropped %f > %f * 1.5\n",
 			       dt_acc, tfmem.ref);
 #endif
 			cap_time = now;
@@ -81,7 +81,7 @@ timestamp2(buffer *b)
 			cap_time += mp1e_timestamp_filter
 				(&tfmem, dt, 0.001, 1e-7, 0.1);
 		}
-#if 0
+#if 1
 		printv(0, "now %f dt %+f dta %+f err %+f t/b %+f\n",
 		       now, dt, dt_acc, tfmem.err, tfmem.ref);
 #endif

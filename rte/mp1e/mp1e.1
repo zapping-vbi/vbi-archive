@@ -1,4 +1,4 @@
-.TH MP1E 1 "$Date: 2001-11-28 22:13:22 $" "mp1e manual" \" -*- nroff -*-
+.TH MP1E 1 "$Date: 2002-02-08 15:03:10 $" "mp1e manual" \" -*- nroff -*-
 .SH NAME
 mp1e \- realtime MPEG-1 audio/video encoder
 .SH SYNOPSIS
@@ -230,19 +230,25 @@ bandwidth, so excluding them is generally a good idea.
 Enables compression of only video, only audio, or both. Default is
 both.
 .TP
-.BI "\-n, \-\-num_frames " n
+.BI "\-n, \-\-num_frames " n or h:m[:s]
 .RS
 Terminate compression after exactly n video frames, including
-dropped ones. Note in PAL/SECAM countries there are 25 frames
-per second, in NTSC countries 30, and in some other countries
-which couldn't decide between straight PAL and NTSC one has to
-guess.
+dropped ones, or the given time. In PAL/SECAM countries there
+are 25 frames per second, in NTSC countries 30, and in some other
+countries which couldn't decide between straight PAL and NTSC one
+has to guess.
 .P
-In audio only mode the frame number refers to audio frames of
+In audio only mode the frame number n refers to audio frames of
 1152 samples each (regardless of stereo or dual channel mode).
 .P
 The other method to stop compression is to hit Ctrl-C or to
 send the process a SIGTERM signal.
+.RE
+.TP
+.BI "\-o, \-\-outputfile " name
+.RS
+Instead of writing to standard output, create a file and store
+the output there.
 .RE
 .TP
 .BI "\-p, \-\-pcm_device " name

@@ -16,7 +16,7 @@ EXTRA_DIST = common/videodev.h common/videodev2.h \
 mp1e.lsm.in mp1e.spec.in rte.h rtepriv.h rte-enums.h rte-types.h \
 rte-version.h $(man_MANS)
 
-libmp1e_la_SOURCES = global_data.c options.h main.h b_mp1e.c
+libmp1e_la_SOURCES = global_data.c options.h main.h b_mp1e.c b_mp1e.h
 
 mp1e_SOURCES = main.c main.h \
 options.c global_data.c options.h
