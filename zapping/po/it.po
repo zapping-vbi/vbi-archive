@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: zapping\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-10-11 04:03+0200\n"
-"PO-Revision-Date: 2004-09-26 15:15+0200\n"
+"PO-Revision-Date: 2004-10-17 13:07+0200\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <kde-i18n-it@kde.org>\n"
 "MIME-Version: 1.0\n"
@@ -721,9 +721,8 @@ msgid "_Edit Bookmarks..."
 msgstr "Modifica s_egnalibri..."
 
 #: plugins/teletext/main.c:484
-#, fuzzy
 msgid "Teletext plugin"
-msgstr "Televideo"
+msgstr "Plugin del televideo"
 
 #: plugins/teletext/main.c:613
 msgid "Western and Central Europe"
@@ -830,9 +829,8 @@ msgid "General"
 msgstr "Generale"
 
 #: plugins/teletext/main.c:811
-#, fuzzy
 msgid "_Preferences"
-msgstr "Preferenze di Zapping"
+msgstr "_Preferenze"
 
 #: plugins/teletext/main.c:813
 msgid "_Colors"
@@ -1031,9 +1029,8 @@ msgid "Go to the index page"
 msgstr "Vai alla pagina indice"
 
 #: plugins/teletext/view.c:2141
-#, fuzzy
 msgid "Save this page to a file"
-msgstr "Apri questa pagina con Zapzilla"
+msgstr "Salva questa pagina su file"
 
 #: plugins/teletext/window.c:204 src/zapping.c:399
 msgid "_File"
@@ -1052,9 +1049,8 @@ msgid "Toolbar"
 msgstr "Barra degli strumenti"
 
 #: plugins/teletext/window.c:271
-#, fuzzy
 msgid "Statusbar"
-msgstr "Barra di _stato"
+msgstr "Barra di stato"
 
 #. TRANSLATORS: Soundcard mixer line.
 #: src/audio.c:498
@@ -1160,8 +1156,7 @@ msgstr "Aggiungi tutti i _canali"
 
 #: src/channel_editor.c:1815
 msgid "Add all channels in the frequency table to the channel list."
-msgstr ""
-"Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
+msgstr "Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
 
 #: src/channel_editor.c:1819
 msgid "_Import XawTV configuration"
@@ -2111,27 +2106,27 @@ msgstr "File del dispositivo:"
 #: src/zmisc.c:2441
 #, c-format
 msgid "%s exists."
-msgstr ""
+msgstr "%s esiste."
 
 #: src/zmisc.c:2446
 msgid "_Overwrite"
-msgstr ""
+msgstr "S_ovrascrivi"
 
 #: src/zmisc.c:2451
-#, fuzzy, c-format
+#, c-format
 msgid "%s is a directory."
-msgstr "%s non è una directory"
+msgstr "%s è una directory."
 
 #. TRANSLATORS: device file, pipe,
 #. socket etc.
 #: src/zmisc.c:2464
 #, c-format
 msgid "%s is a special file."
-msgstr ""
+msgstr "%s è un file speciale."
 
 #: src/zmisc.c:2468
 msgid "Continue"
-msgstr ""
+msgstr "Continua"
 
 #. TRANSLATORS: VBI audio mode
 #: src/zvbi.c:132
@@ -2229,44 +2224,3 @@ msgstr "Apri questa pagina con Zapzilla"
 msgid "Zapping TV Viewer"
 msgstr "Zapping Visualizzatore TV"
 
-#~ msgid "_Toolbar"
-#~ msgstr "Barra degli strumenti"
-
-#~ msgid "_Search"
-#~ msgstr "_Cerca"
-
-#~ msgid "_Back"
-#~ msgstr "_Indietro"
-
-#~ msgid "_Forward"
-#~ msgstr "_Avanti"
-
-#~ msgid "_Home"
-#~ msgstr "I_ndice"
-
-#~ msgid "Show menu"
-#~ msgstr "Mostra menu"
-
-#~ msgid "Show toolbar"
-#~ msgstr "Mostra barra degli strumenti"
-
-#~ msgid "Show Menu and Toolbar"
-#~ msgstr "Mostra menu e barra strumenti"
-
-#~ msgid "Keep Window on Top"
-#~ msgstr "Mantieni finestra in primo piano"
-
-#~ msgid "No XFree86 DGA extension.\n"
-#~ msgstr "Senza estensione DGA di XFree86.\n"
-
-#~ msgid "Preview will not work: %s"
-#~ msgstr "L'anteprima non funzionerà: %s"
-
-#~ msgid ""
-#~ "Open this link with the predetermined Web browser.\n"
-#~ "You can configure this in the GNOME Control Center, under Handlers/Url "
-#~ "Navigator"
-#~ msgstr ""
-#~ "Apri questo collegamento con il browser Web predefinito.\n"
-#~ "Puoi configurare questo comportamento nel Centro di Controllo di GNOME, "
-#~ "sotto Avanzato/Applicazioni Preferite"
