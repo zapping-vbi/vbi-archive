@@ -80,18 +80,18 @@ static int		bpp;
 #define STF2(x) #x
 #define STF1(x) STF2(x)
 
-#define errmsg(template, ...)						\
+#define errmsg(template, args...)					\
 do {									\
   if (verbosity > 0)							\
     fprintf (stderr, "%s:" __FILE__ ":" STF1(__LINE__) ": "		\
-	     template ": %d, %s\n", my_name, ##__VA_ARGS__,		\
+	     template ": %d, %s\n", my_name , ##args,			\
 	     errno, strerror (errno));					\
 } while (0)
 
-#define message(level, template, ...)					\
+#define message(level, template, args...)				\
 do {									\
   if ((int) level <= verbosity)						\
-    fprintf (stderr, template, ##__VA_ARGS__);				\
+    fprintf (stderr, template , ##args);				\
 } while (0)
 
 
@@ -119,7 +119,7 @@ check_dga			(Display *		display,
   int banksize, memsize;
   char buffer[256];
   Window root;
-  XVisualInfo *info, template;
+  XVisualInfo *info, templ;
   XPixmapFormatValues *pf;
   XWindowAttributes wts;
   int found, v, i, n;
@@ -177,9 +177,9 @@ check_dga			(Display *		display,
 
   if (bpp_arg == -1)
     {
-      template.screen = screen;
+      templ.screen = screen;
 
-      info = XGetVisualInfo (display, VisualScreenMask, &template, &found);
+      info = XGetVisualInfo (display, VisualScreenMask, &templ, &found);
 
       for (i = 0, v = -1; v == -1 && i < found; i++)
         if (info[i].class == TrueColor && info[i].depth >= 15)
