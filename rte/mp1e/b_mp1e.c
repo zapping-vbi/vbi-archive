@@ -20,9 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.36 2002-06-12 03:59:49 mschimek Exp $ */
-
-#warning context status NI
+/* $Id: b_mp1e.c,v 1.37 2002-06-18 02:22:33 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -85,6 +83,8 @@ status(rte_context *context, rte_codec *codec,
        rte_status *status, int size)
 {
 	rte_context_class *xc = context->class;
+
+#warning context status todo
 
 	if (xc == &mp1e_mpeg1_video_context
 	    || xc == &mp1e_mpeg1_audio_context) {
