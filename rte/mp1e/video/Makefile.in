@@ -20,8 +20,7 @@ VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
-@BACKEND_MP1E_FALSE@top_builddir = ..
-@BACKEND_MP1E_TRUE@top_builddir = ../..
+top_builddir = ..
 
 am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd
 INSTALL = @INSTALL@
@@ -38,8 +37,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 host_triplet = @host@
 ACLOCAL = @ACLOCAL@
-@BACKEND_MP1E_FALSE@ALSA_CFLAGS = @ALSA_CFLAGS@
-@BACKEND_MP1E_FALSE@ALSA_LIBS = @ALSA_LIBS@
+ALSA_CFLAGS = @ALSA_CFLAGS@
+ALSA_LIBS = @ALSA_LIBS@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
@@ -47,25 +46,17 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
-@BACKEND_MP1E_TRUE@BACKEND_DIVX4LINUX_FALSE = @BACKEND_DIVX4LINUX_FALSE@
-@BACKEND_MP1E_TRUE@BACKEND_DIVX4LINUX_TRUE = @BACKEND_DIVX4LINUX_TRUE@
-@BACKEND_MP1E_TRUE@BACKEND_FFMPEG_FALSE = @BACKEND_FFMPEG_FALSE@
-@BACKEND_MP1E_TRUE@BACKEND_FFMPEG_TRUE = @BACKEND_FFMPEG_TRUE@
 BACKEND_MP1E_FALSE = @BACKEND_MP1E_FALSE@
 BACKEND_MP1E_TRUE = @BACKEND_MP1E_TRUE@
 CC = @CC@
 CCAS = @CCAS@
 CCASFLAGS = @CCASFLAGS@
 CCDEPMODE = @CCDEPMODE@
-@BACKEND_MP1E_TRUE@CCMALLOC = @CCMALLOC@
 CFLAGS = @CFLAGS@
-@BACKEND_MP1E_FALSE@CLI_MP1E_FALSE = @CLI_MP1E_FALSE@
-@BACKEND_MP1E_FALSE@CLI_MP1E_TRUE = @CLI_MP1E_TRUE@
+CLI_MP1E_FALSE = @CLI_MP1E_FALSE@
+CLI_MP1E_TRUE = @CLI_MP1E_TRUE@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
-@BACKEND_MP1E_TRUE@CXX = @CXX@
-@BACKEND_MP1E_TRUE@CXXDEPMODE = @CXXDEPMODE@
-@BACKEND_MP1E_TRUE@CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
@@ -74,37 +65,24 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
-@BACKEND_MP1E_FALSE@ESD_CFLAGS = @ESD_CFLAGS@
-@BACKEND_MP1E_FALSE@ESD_LIBS = @ESD_LIBS@
+ESD_CFLAGS = @ESD_CFLAGS@
+ESD_LIBS = @ESD_LIBS@
 EXEEXT = @EXEEXT@
-@BACKEND_MP1E_FALSE@GTK_CFLAGS = @GTK_CFLAGS@
-@BACKEND_MP1E_FALSE@GTK_LIBS = @GTK_LIBS@
-@BACKEND_MP1E_TRUE@GMSGFMT = @GMSGFMT@
-@BACKEND_MP1E_TRUE@HAVE_DOXYGEN = @HAVE_DOXYGEN@
-@BACKEND_MP1E_TRUE@HAVE_DOXYGEN_FALSE = @HAVE_DOXYGEN_FALSE@
-@BACKEND_MP1E_TRUE@HAVE_DOXYGEN_TRUE = @HAVE_DOXYGEN_TRUE@
+GTK_CFLAGS = @GTK_CFLAGS@
+GTK_LIBS = @GTK_LIBS@
 INSIDE_GNOME_COMMON_FALSE = @INSIDE_GNOME_COMMON_FALSE@
 INSIDE_GNOME_COMMON_TRUE = @INSIDE_GNOME_COMMON_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
-@BACKEND_MP1E_TRUE@INTLLIBS = @INTLLIBS@
 LDFLAGS = @LDFLAGS@
-@BACKEND_MP1E_TRUE@LIBICONV = @LIBICONV@
-@BACKEND_MP1E_TRUE@LIBINTL = @LIBINTL@
 LIBOBJS = @LIBOBJS@
-@BACKEND_MP1E_TRUE@LIBRTE_SO_VERSION = @LIBRTE_SO_VERSION@
 LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
-@BACKEND_MP1E_TRUE@LTLIBICONV = @LTLIBICONV@
-@BACKEND_MP1E_TRUE@LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
-@BACKEND_MP1E_TRUE@MKINSTALLDIRS = @MKINSTALLDIRS@
-@BACKEND_MP1E_TRUE@MSGFMT = @MSGFMT@
-@BACKEND_MP1E_TRUE@MSGMERGE = @MSGMERGE@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
@@ -113,28 +91,22 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
-@BACKEND_MP1E_TRUE@POSUB = @POSUB@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
-@BACKEND_MP1E_TRUE@USE_NLS = @USE_NLS@
 USE_SSE2_FALSE = @USE_SSE2_FALSE@
 USE_SSE2_TRUE = @USE_SSE2_TRUE@
 VERSION = @VERSION@
-@BACKEND_MP1E_FALSE@X_CFLAGS = @X_CFLAGS@
-@BACKEND_MP1E_FALSE@X_EXTRA_LIBS = @X_EXTRA_LIBS@
-@BACKEND_MP1E_FALSE@X_LIBS = @X_LIBS@
-@BACKEND_MP1E_FALSE@X_PRE_LIBS = @X_PRE_LIBS@
-@BACKEND_MP1E_TRUE@XGETTEXT = @XGETTEXT@
+X_CFLAGS = @X_CFLAGS@
+X_EXTRA_LIBS = @X_EXTRA_LIBS@
+X_LIBS = @X_LIBS@
+X_PRE_LIBS = @X_PRE_LIBS@
 ac_ct_CC = @ac_ct_CC@
-@BACKEND_MP1E_TRUE@ac_ct_CXX = @ac_ct_CXX@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
 am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
 am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
-@BACKEND_MP1E_TRUE@am__fastdepCXX_FALSE = @am__fastdepCXX_FALSE@
-@BACKEND_MP1E_TRUE@am__fastdepCXX_TRUE = @am__fastdepCXX_TRUE@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
@@ -168,7 +140,8 @@ target_alias = @target_alias@
 
 noinst_LTLIBRARIES = libvideo.la
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT -include $(top_builddir)/config.h 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT -include $(top_builddir)/config.h \
+	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 @USE_SSE2_FALSE@SSE2_FILES = 
 
@@ -179,10 +152,16 @@ EXTRA_DIST = vlc_gen.c
 
 CLEANFILES = vlc_tables.h vlc_gen
 
-libvideo_la_SOURCES = 	dct.c dct_mmx.s dct.h dct_ieee.h dct_ref.c 	filter.c filter_mmx.s 	mblock.c mblock.h ratectl.h 	mpeg1.c mpeg2.c mpeg.h video.h libvideo.h 	tables.c vlc.c vlc_mmx.s vlc.h vlc_tables.h 	motion.c motion_mmx.s motion.h 	$(SSE2_FILES)
+libvideo_la_SOURCES = \
+	dct.c dct_mmx.s dct.h dct_ieee.h dct_ref.c \
+	filter.c filter_mmx.s \
+	mblock.c mblock.h ratectl.h \
+	mpeg1.c mpeg2.c mpeg.h video.h libvideo.h \
+	tables.c vlc.c vlc_mmx.s vlc.h vlc_tables.h \
+	motion.c motion_mmx.s motion.h \
+	$(SSE2_FILES)
 
-@BACKEND_MP1E_FALSE@subdir = video
-@BACKEND_MP1E_TRUE@subdir = mp1e/video
+subdir = video
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
@@ -191,22 +170,36 @@ LTLIBRARIES = $(noinst_LTLIBRARIES)
 
 libvideo_la_LDFLAGS =
 libvideo_la_LIBADD =
-am__libvideo_la_SOURCES_DIST = dct.c dct_mmx.s dct.h dct_ieee.h 	dct_ref.c filter.c filter_mmx.s mblock.c mblock.h ratectl.h 	mpeg1.c mpeg2.c mpeg.h video.h libvideo.h tables.c vlc.c 	vlc_mmx.s vlc.h vlc_tables.h motion.c motion_mmx.s motion.h 	motion_sse2.s
+am__libvideo_la_SOURCES_DIST = dct.c dct_mmx.s dct.h dct_ieee.h \
+	dct_ref.c filter.c filter_mmx.s mblock.c mblock.h ratectl.h \
+	mpeg1.c mpeg2.c mpeg.h video.h libvideo.h tables.c vlc.c \
+	vlc_mmx.s vlc.h vlc_tables.h motion.c motion_mmx.s motion.h \
+	motion_sse2.s
 @USE_SSE2_TRUE@am__objects_1 = motion_sse2.lo
 @USE_SSE2_FALSE@am__objects_1 =
-am_libvideo_la_OBJECTS = dct.lo dct_mmx.lo dct_ref.lo filter.lo 	filter_mmx.lo mblock.lo mpeg1.lo mpeg2.lo tables.lo vlc.lo 	vlc_mmx.lo motion.lo motion_mmx.lo $(am__objects_1)
+am_libvideo_la_OBJECTS = dct.lo dct_mmx.lo dct_ref.lo filter.lo \
+	filter_mmx.lo mblock.lo mpeg1.lo mpeg2.lo tables.lo vlc.lo \
+	vlc_mmx.lo motion.lo motion_mmx.lo $(am__objects_1)
 libvideo_la_OBJECTS = $(am_libvideo_la_OBJECTS)
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/dct.Plo ./$(DEPDIR)/dct_ref.Plo @AMDEP_TRUE@	./$(DEPDIR)/filter.Plo ./$(DEPDIR)/mblock.Plo @AMDEP_TRUE@	./$(DEPDIR)/motion.Plo ./$(DEPDIR)/mpeg1.Plo @AMDEP_TRUE@	./$(DEPDIR)/mpeg2.Plo ./$(DEPDIR)/tables.Plo @AMDEP_TRUE@	./$(DEPDIR)/vlc.Plo
-COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) 	$(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/dct.Plo ./$(DEPDIR)/dct_ref.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/filter.Plo ./$(DEPDIR)/mblock.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/motion.Plo ./$(DEPDIR)/mpeg1.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/mpeg2.Plo ./$(DEPDIR)/tables.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/vlc.Plo
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
+	$(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
-LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 CCASCOMPILE = $(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS)
-LTCCASCOMPILE = $(LIBTOOL) --mode=compile $(CCAS) $(AM_CCASFLAGS) 	$(CCASFLAGS)
+LTCCASCOMPILE = $(LIBTOOL) --mode=compile $(CCAS) $(AM_CCASFLAGS) \
+	$(CCASFLAGS)
 DIST_SOURCES = $(am__libvideo_la_SOURCES_DIST)
 DIST_COMMON = Makefile.am Makefile.in
 SOURCES = $(libvideo_la_SOURCES)
@@ -217,14 +210,19 @@ all: $(BUILT_SOURCES)
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj .s
 $(srcdir)/Makefile.in:  Makefile.am  $(top_srcdir)/configure.in $(ACLOCAL_M4)
-@BACKEND_MP1E_FALSE@	cd $(top_srcdir) && 	  $(AUTOMAKE) --gnu  video/Makefile
-@BACKEND_MP1E_TRUE@	cd $(top_srcdir) && 	  $(AUTOMAKE) --gnu  mp1e/video/Makefile
+	cd $(top_srcdir) && \
+	  $(AUTOMAKE) --gnu  video/Makefile
 Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe)
 
 clean-noinstLTLIBRARIES:
 	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
-	@list='$(noinst_LTLIBRARIES)'; for p in $$list; do 	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; 	  test "$$dir" = "$$p" && dir=.; 	  echo "rm -f \"$${dir}/so_locations\""; 	  rm -f "$${dir}/so_locations"; 	done
+	@list='$(noinst_LTLIBRARIES)'; for p in $$list; do \
+	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
+	  test "$$dir" = "$$p" && dir=.; \
+	  echo "rm -f \"$${dir}/so_locations\""; \
+	  rm -f "$${dir}/so_locations"; \
+	done
 libvideo.la: $(libvideo_la_OBJECTS) $(libvideo_la_DEPENDENCIES) 
 	$(LINK)  $(libvideo_la_LDFLAGS) $(libvideo_la_OBJECTS) $(libvideo_la_LIBADD) $(LIBS)
 
@@ -248,21 +246,33 @@ distclean-depend:
 	-rm -rf ./$(DEPDIR)
 
 .c.o:
-@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" @am__fastdepCC_TRUE@	  -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<; @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; @am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; @am__fastdepCC_TRUE@	fi
+@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
 
 .c.obj:
-@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" @am__fastdepCC_TRUE@	  -c -o $@ `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`; @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; @am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; @am__fastdepCC_TRUE@	fi
+@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o $@ `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`
 
 .c.lo:
-@am__fastdepCC_TRUE@	if $(LTCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" @am__fastdepCC_TRUE@	  -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<; @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Plo"; @am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; @am__fastdepCC_TRUE@	fi
+@am__fastdepCC_TRUE@	if $(LTCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Plo"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/$*.Plo' tmpdepfile='$(DEPDIR)/$*.TPlo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
@@ -296,28 +306,82 @@ CTAGSFLAGS =
 tags: TAGS
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
-	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; 	unique=`for i in $$list; do 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; 	  done | 	  $(AWK) '    { files[$$0] = 1; } 	       END { for (i in files) print i; }'`; 	mkid -fID $$unique
+	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	mkid -fID $$unique
 
-TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) 		$(TAGS_FILES) $(LISP)
-	tags=; 	here=`pwd`; 	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; 	unique=`for i in $$list; do 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; 	  done | 	  $(AWK) '    { files[$$0] = 1; } 	       END { for (i in files) print i; }'`; 	test -z "$(ETAGS_ARGS)$$tags$$unique" 	  || $(ETAGS) $(ETAGSFLAGS) $(AM_ETAGSFLAGS) $(ETAGS_ARGS) 	     $$tags $$unique
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+		$(TAGS_FILES) $(LISP)
+	tags=; \
+	here=`pwd`; \
+	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	test -z "$(ETAGS_ARGS)$$tags$$unique" \
+	  || $(ETAGS) $(ETAGSFLAGS) $(AM_ETAGSFLAGS) $(ETAGS_ARGS) \
+	     $$tags $$unique
 
 ctags: CTAGS
-CTAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) 		$(TAGS_FILES) $(LISP)
-	tags=; 	here=`pwd`; 	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; 	unique=`for i in $$list; do 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; 	  done | 	  $(AWK) '    { files[$$0] = 1; } 	       END { for (i in files) print i; }'`; 	test -z "$(CTAGS_ARGS)$$tags$$unique" 	  || $(CTAGS) $(CTAGSFLAGS) $(AM_CTAGSFLAGS) $(CTAGS_ARGS) 	     $$tags $$unique
+CTAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+		$(TAGS_FILES) $(LISP)
+	tags=; \
+	here=`pwd`; \
+	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	test -z "$(CTAGS_ARGS)$$tags$$unique" \
+	  || $(CTAGS) $(CTAGSFLAGS) $(AM_CTAGSFLAGS) $(CTAGS_ARGS) \
+	     $$tags $$unique
 
 GTAGS:
-	here=`$(am__cd) $(top_builddir) && pwd` 	  && cd $(top_srcdir) 	  && gtags -i $(GTAGS_ARGS) $$here
+	here=`$(am__cd) $(top_builddir) && pwd` \
+	  && cd $(top_srcdir) \
+	  && gtags -i $(GTAGS_ARGS) $$here
 
 distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 
-@BACKEND_MP1E_FALSE@top_distdir = ..
-@BACKEND_MP1E_TRUE@top_distdir = ../..
+top_distdir = ..
 distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
 
 distdir: $(DISTFILES)
-	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; 	list='$(DISTFILES)'; for file in $$list; do 	  case $$file in 	    $(srcdir)/*) file=`echo "$$file" | sed "s|^$$srcdirstrip/||"`;; 	    $(top_srcdir)/*) file=`echo "$$file" | sed "s|^$$topsrcdirstrip/|$(top_builddir)/|"`;; 	  esac; 	  if test -f $$file || test -d $$file; then d=.; else d=$(srcdir); fi; 	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; 	  if test "$$dir" != "$$file" && test "$$dir" != "."; then 	    dir="/$$dir"; 	    $(mkinstalldirs) "$(distdir)$$dir"; 	  else 	    dir=''; 	  fi; 	  if test -d $$d/$$file; then 	    if test -d $(srcdir)/$$file && test $$d != $(srcdir); then 	      cp -pR $(srcdir)/$$file $(distdir)$$dir || exit 1; 	    fi; 	    cp -pR $$d/$$file $(distdir)$$dir || exit 1; 	  else 	    test -f $(distdir)/$$file 	    || cp -p $$d/$$file $(distdir)/$$file 	    || exit 1; 	  fi; 	done
+	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
+	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
+	list='$(DISTFILES)'; for file in $$list; do \
+	  case $$file in \
+	    $(srcdir)/*) file=`echo "$$file" | sed "s|^$$srcdirstrip/||"`;; \
+	    $(top_srcdir)/*) file=`echo "$$file" | sed "s|^$$topsrcdirstrip/|$(top_builddir)/|"`;; \
+	  esac; \
+	  if test -f $$file || test -d $$file; then d=.; else d=$(srcdir); fi; \
+	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
+	  if test "$$dir" != "$$file" && test "$$dir" != "."; then \
+	    dir="/$$dir"; \
+	    $(mkinstalldirs) "$(distdir)$$dir"; \
+	  else \
+	    dir=''; \
+	  fi; \
+	  if test -d $$d/$$file; then \
+	    if test -d $(srcdir)/$$file && test $$d != $(srcdir); then \
+	      cp -pR $(srcdir)/$$file $(distdir)$$dir || exit 1; \
+	    fi; \
+	    cp -pR $$d/$$file $(distdir)$$dir || exit 1; \
+	  else \
+	    test -f $(distdir)/$$file \
+	    || cp -p $$d/$$file $(distdir)/$$file \
+	    || exit 1; \
+	  fi; \
+	done
 check-am: all-am
 check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-am
@@ -335,7 +399,10 @@ install-am: all-am
 
 installcheck: installcheck-am
 install-strip:
-	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" 	  INSTALL_STRIP_FLAG=-s 	  `test -z '$(STRIP)' || 	    echo "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'"` install
+	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
+	  INSTALL_STRIP_FLAG=-s \
+	  `test -z '$(STRIP)' || \
+	    echo "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'"` install
 mostlyclean-generic:
 
 clean-generic:
@@ -350,11 +417,13 @@ maintainer-clean-generic:
 	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
 clean: clean-am
 
-clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES 	mostlyclean-am
+clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
+	mostlyclean-am
 
 distclean: distclean-am
 
-distclean-am: clean-am distclean-compile distclean-depend 	distclean-generic distclean-libtool distclean-tags
+distclean-am: clean-am distclean-compile distclean-depend \
+	distclean-generic distclean-libtool distclean-tags
 
 dvi: dvi-am
 
@@ -380,7 +449,8 @@ maintainer-clean-am: distclean-am maintainer-clean-generic
 
 mostlyclean: mostlyclean-am
 
-mostlyclean-am: mostlyclean-compile mostlyclean-generic 	mostlyclean-libtool
+mostlyclean-am: mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool
 
 pdf: pdf-am
 
@@ -392,7 +462,17 @@ ps-am:
 
 uninstall-am: uninstall-info-am
 
-.PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic 	clean-libtool clean-noinstLTLIBRARIES ctags distclean 	distclean-compile distclean-depend distclean-generic 	distclean-libtool distclean-tags distdir dvi dvi-am info 	info-am install install-am install-data install-data-am 	install-exec install-exec-am install-info install-info-am 	install-man install-strip installcheck installcheck-am 	installdirs maintainer-clean maintainer-clean-generic 	mostlyclean mostlyclean-compile mostlyclean-generic 	mostlyclean-libtool pdf pdf-am ps ps-am tags uninstall 	uninstall-am uninstall-info-am
+.PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
+	clean-libtool clean-noinstLTLIBRARIES ctags distclean \
+	distclean-compile distclean-depend distclean-generic \
+	distclean-libtool distclean-tags distdir dvi dvi-am info \
+	info-am install install-am install-data install-data-am \
+	install-exec install-exec-am install-info install-info-am \
+	install-man install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-info-am
 
 
 vlc_tables.h: vlc_gen.c
