@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.34 2002-06-19 19:56:34 mschimek Exp $ */
+/* $Id: main.c,v 1.35 2002-08-22 22:01:33 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -126,16 +126,56 @@ void rte_invalid_option(rte_context *context, rte_codec *codec, const char *keyw
 char *
 rte_strdup(rte_context *context, char **d, const char *s)
 {
-	char *new;
+	char *_new;
 
-	ASSERT("duplicate string", (new = strdup(s ? s : "")));
+	ASSERT("duplicate string", (_new = strdup(s ? s : "")));
 
 	if (d) {
 		if (*d) free(*d);
-		*d = new;
+		*d = _new;
 	}
 
-	return new;
+	return _new;
+}
+
+unsigned int
+rte_closest_int(const int *vec, unsigned int len, int val)
+{
+	unsigned int i, imin = 0;
+	int dmin = INT_MAX;
+
+	assert(vec != NULL && len > 0);
+
+	for (i = 0; i < len; i++) {
+		int d = fabs(val - vec[i]);
+
+		if (d < dmin) {
+			dmin = d;
+		        imin = i;
+		}
+	}
+
+	return imin;
+}
+
+unsigned int
+rte_closest_double(const double *vec, unsigned int len, double val)
+{
+	unsigned int i, imin = 0;
+	double dmin = DBL_MAX;
+
+	assert(vec != NULL && len > 0);
+
+	for (i = 0; i < len; i++) {
+		double d = fabs(val - vec[i]);
+
+		if (d < dmin) {
+			dmin = d;
+		        imin = i;
+		}
+	}
+
+	return imin;
 }
 
 static void
@@ -144,7 +184,7 @@ set_option(rte_codec *codec, char *keyword, ...)
 	va_list args;
 
 	va_start(args, keyword);
-	ASSERT("set option %s", !!codec->class->option_set(
+	ASSERT("set option %s", !!codec->_class->option_set(
 		codec, keyword, args), keyword);
 	va_end(args);
 }
@@ -152,7 +192,7 @@ set_option(rte_codec *codec, char *keyword, ...)
 static void
 get_option(rte_codec *codec, char *keyword, void *r)
 {
-	ASSERT("get option %s", !!codec->class->option_get(
+	ASSERT("get option %s", !!codec->_class->option_get(
 		codec, keyword, (rte_option_value *) r), keyword);
 }
 
@@ -162,7 +202,7 @@ reset_options(rte_codec *codec)
 	rte_option_info *option;
 	int i = 0;
 
-	while ((option = codec->class->option_enum(codec, i++))) {
+	while ((option = codec->_class->option_enum(codec, i++))) {
 		switch (option->type) {
 		case RTE_OPTION_BOOL:
 		case RTE_OPTION_INT:
@@ -393,6 +433,7 @@ main(int ac, char **av)
 
 	mp1e_mp2_module_init(test_mode & 1);
 	mp1e_mpeg1_module_init(test_mode & 2);
+	mp1e_mpeg2_module_init(test_mode & 2);
 
 	if (test_mode >= 1 && test_mode <= 3) {
 		printv(1, "Tests passed\n");
@@ -496,6 +537,9 @@ main(int ac, char **av)
 		} else {
 			vfifo = file_init(&video_params.video, fp);
 		}
+
+		if (sample_aspect > 0.0)
+			video_params.video.sample_aspect = sample_aspect;
 	}
 
 	if (modules & MOD_SUBTITLES) {
@@ -537,9 +581,9 @@ main(int ac, char **av)
 		/* Initialize audio codec */
 
 		if (sampling_rate < 32000)
-			audio_codec = mp1e_mpeg2_layer2_codec.new(&mp1e_mpeg2_layer2_codec, &errstr);
+			audio_codec = mp1e_mpeg2_layer2_codec._new(&mp1e_mpeg2_layer2_codec, &errstr);
 		else
-			audio_codec = mp1e_mpeg1_layer2_codec.new(&mp1e_mpeg1_layer2_codec, &errstr);
+			audio_codec = mp1e_mpeg1_layer2_codec._new(&mp1e_mpeg1_layer2_codec, &errstr);
 
 		ASSERT("create audio context: %s", audio_codec, errstr);
 
@@ -557,7 +601,7 @@ main(int ac, char **av)
 		rsp.audio.sndfmt = pcm->format;
 
 		ASSERT("set audio parameters",
-		       audio_codec->class->parameters_set(audio_codec, &rsp));
+		       audio_codec->_class->parameters_set(audio_codec, &rsp));
 
 		/* XXX move into codec */
 		if (   (sampling_rate >= 32000 && audio_mode == 3 && audio_bit_rate > 192000)
@@ -584,11 +628,14 @@ main(int ac, char **av)
 	if (modules & MOD_VIDEO) {
 		double coded_rate;
 
-		video_coding_size(width, height);
+		video_coding_size(width, height, m2i);
 
 		/* Initialize video codec */
 
-		video_codec = mp1e_mpeg1_video_codec.new(&mp1e_mpeg1_video_codec, &errstr);
+		if (m2i)
+			video_codec = mp1e_mpeg2_video_codec._new(&mp1e_mpeg2_video_codec, &errstr);
+		else
+			video_codec = mp1e_mpeg1_video_codec._new(&mp1e_mpeg1_video_codec, &errstr);
 
 		ASSERT("create video context: %s", video_codec, errstr);
 
@@ -627,7 +674,7 @@ main(int ac, char **av)
 		memcpy(&PARENT(video_codec, mpeg1_context, codec.codec)->filter_param, fp, sizeof(fp));
 
 		ASSERT("set video parameters",
-		       video_codec->class->parameters_set(video_codec, &video_params));
+		       video_codec->_class->parameters_set(video_codec, &video_params));
 
 		/* preliminary */
 		{
@@ -702,9 +749,14 @@ main(int ac, char **av)
 	}
 
 	if (modules & MOD_VIDEO) {
-		ASSERT("create video compression thread",
-		       !pthread_create(&video_thread_id, NULL,
-				       mp1e_mpeg1, video_codec));
+		if (m2i)
+			ASSERT("create video compression thread",
+			       !pthread_create(&video_thread_id, NULL,
+					       mp1e_mpeg2, video_codec));
+		else
+			ASSERT("create video compression thread",
+			       !pthread_create(&video_thread_id, NULL,
+					       mp1e_mpeg1, video_codec));
 
 		printv(2, "Video compression thread launched\n");
 	}
