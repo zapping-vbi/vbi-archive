@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct_ref.c,v 1.2 2001-08-22 01:28:10 mschimek Exp $ */
+/* $Id: dct_ref.c,v 1.3 2002-05-07 06:40:35 mschimek Exp $ */
 
 #include "dct.h"
 #include "mpeg.h"
@@ -246,7 +246,7 @@ mpeg1_idct_intra(int quant_scale)
 
 		mirror(mblock[1][i]);
 
-		F[0][0] = mblock[1][i][0][0] * 8 * aan_inv_lut[0][0];
+		F[0][0] = (mblock[1][i][0][0] + 128 /* + 0 */) * 8;
 
 		for (j = 1; j < 64; j++) {
 			val = (int)(mblock[1][i][0][j] * 
@@ -257,8 +257,11 @@ mpeg1_idct_intra(int quant_scale)
 			if (!(val & 1))
 				val -= sign(val);
 
-			F[0][j] = aan_inv_lut[0][j] * saturate(val, -2048, 2047);
+			F[0][j] = saturate(val, -2048, 2047);
 		}
+
+		for (j = 0; j < 64; j++)
+			F[0][j] *= aan_inv_lut[0][j];
 
 		for (j = 0; j < 8; j++)
 			aan_double_1d_idct(F[j], t[j]);
@@ -272,7 +275,8 @@ mpeg1_idct_intra(int quant_scale)
 
 		for (j = 0, p = new; j < 8; j++) {
 			for (k = 0; k < 8; k++)
-				p[k] = saturate(lroundn(F[j][k]) + 128, 0, 255);
+				p[k] = saturate(lroundn(F[j][k])
+						+ 0 /* 128 */, 0, 255);
 			p += mb_address.block[i].pitch;
 		}
 	}
