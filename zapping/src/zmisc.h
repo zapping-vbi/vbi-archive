@@ -428,23 +428,15 @@ z_pixbuf_scale_simple		(GdkPixbuf	*source,
 gboolean
 z_build_path(const gchar *path, gchar **error_description);
 
-/**
- * Joins dir and file name strings, similar to
- * g_build_filename (glib 2.0). May return an absolute
- * path in the future.
- */
-gchar *
-z_build_filename (const gchar *dirname, const gchar *filename);
-
-/* See ttxview.c
- */
 void
-z_on_electric_filename (GtkWidget *w, gpointer user_data);
-
-/* The returned string must be g_free()ed.
- */
+z_on_electric_filename		(GtkWidget *		w,
+				 gpointer		user_data);
+void
+z_electric_replace_extension	(GtkWidget *		w,
+				 const gchar *		ext);
 extern gchar *
-z_replace_filename_extension (gchar *filename, gchar *new_ext);
+z_replace_filename_extension	(const gchar *		filename,
+				 const gchar *		new_ext);
 
 /**
  * Makes the toolbar modify its children toolbars to always
