@@ -303,7 +303,8 @@ void plugin_process_sample(plugin_sample * sample)
     return;
   else if (save_screenshot == 1)
     {
-      start_saving_screenshot(sample->video_data, &(sample->format));
+      start_saving_screenshot(sample->video_data,
+			      &(sample->video_format));
       save_screenshot = 0;
     }
   else
@@ -559,6 +560,7 @@ start_saving_screenshot (gpointer data_to_save,
 {
   struct screenshot_data * data = (struct screenshot_data*)
     malloc(sizeof(struct screenshot_data));
+  J_COLOR_SPACE jpeg_color_space = JCS_RGB;
 
   GtkWidget * vbox;
   GtkWidget * label;
@@ -636,17 +638,6 @@ start_saving_screenshot (gpointer data_to_save,
       return;
     }  
 
-  data->cinfo.err = jpeg_std_error(&(data->jerr));
-  jpeg_create_compress(&(data->cinfo));
-  jpeg_stdio_dest(&(data->cinfo), data->handle);
-  data->cinfo.image_width = data->format.width;
-  data->cinfo.image_height = data->format.height;
-  data->cinfo.input_components = 3;
-  data->cinfo.in_color_space = JCS_RGB;
-  jpeg_set_defaults(&(data->cinfo));
-  jpeg_set_quality(&(data->cinfo), quality, TRUE);
-  jpeg_start_compress(&(data->cinfo), TRUE);
-  
   data -> set_bgr = FALSE;
 
   /* Check if BGR must be used */
@@ -670,13 +661,14 @@ start_saving_screenshot (gpointer data_to_save,
     case TVENG_PIX_RGB555:
       data->set_bgr = TRUE;
       break;
+    case TVENG_PIX_YUYV:
+      jpeg_color_space = JCS_YCbCr;
+      break;
     default:
       ShowBox("The current pixformat isn't supported",
 	      GNOME_MESSAGE_BOX_ERROR);
 
       g_free(buffer);
-      jpeg_finish_compress(&(data->cinfo));
-      jpeg_destroy_compress(&(data->cinfo));
       fclose(data->handle);
       free(data->line_data);
       free(data->data);
@@ -684,6 +676,17 @@ start_saving_screenshot (gpointer data_to_save,
       
       return;
     }
+
+  data->cinfo.err = jpeg_std_error(&(data->jerr));
+  jpeg_create_compress(&(data->cinfo));
+  jpeg_stdio_dest(&(data->cinfo), data->handle);
+  data->cinfo.image_width = data->format.width;
+  data->cinfo.image_height = data->format.height;
+  data->cinfo.input_components = 3;
+  data->cinfo.in_color_space = jpeg_color_space;
+  jpeg_set_defaults(&(data->cinfo));
+  jpeg_set_quality(&(data->cinfo), quality, TRUE);
+  jpeg_start_compress(&(data->cinfo), TRUE);
 
   data -> window = gtk_window_new(GTK_WINDOW_DIALOG);
   progressbar =
@@ -774,6 +777,9 @@ static void * saver_thread(void * _data)
       break;
     case TVENG_PIX_RGB555:
       Converter = (LineConverter) Convert_RGB555_RGB24;
+      break;
+    case TVENG_PIX_YUYV:
+      Converter = NULL;
       break;
     default:
       fprintf(stderr, "pixformat not supported");

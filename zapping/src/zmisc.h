@@ -92,31 +92,6 @@ gint hex2dec(gint hex);
 gint dec2hex(gint dec);
 
 /*
-  Resizes the image to a new size. If this is the same as the old
-  size, nothing happens. Returns the newly allocated image on exit.
-*/
-GdkImage*
-zimage_reallocate(int new_width, int new_height);
-
-/*
-  Returns a pointer to the zimage
-*/
-GdkImage*
-zimage_get(void);
-
-/*
-  Returns a pointer to the zimage data.
-*/
-gpointer
-zimage_get_data ( GdkImage * image);
-
-/*
-  Destroys the image that holds the capture
-*/
-void
-zimage_destroy(void);
-
-/*
   Creates a GtkPixmapMenuEntry with the desired pixmap and the
   desired label. The pixmap is a stock GNOME pixmap.
 */

@@ -103,11 +103,10 @@ print_visual_info(GdkVisual * visual, const char * name)
 static void
 print_info(void)
 {
-  GdkImage * image = zimage_get();
   GdkWindow * tv_screen = lookup_widget(main_window, "tv_screen")->window;
   struct tveng_frame_format * format = &(main_info->format);
 
-  if ((!debug_msg) || (!image) || (print_info_inited))
+  if ((!debug_msg) || (print_info_inited))
     return;
 
   print_info_inited = TRUE;
@@ -115,24 +114,7 @@ print_info(void)
   /* info about the used visuals (they should match exactly) */
   print_visual_info(gdk_visual_get_system(), "system visual");
   print_visual_info(gdk_window_get_visual(tv_screen), "tv screen visual");
-  print_visual_info(image->visual, "zimage visual");
 
-  /* info about the zmisc image */
-  fprintf(stderr,
-	  "zimage info:\n"
-	  "	type:		%d\n"
-	  "	visual:		%p\n"
-	  "	order:		%d\n"
-	  "	width:		%d\n"
-	  "	height:		%d\n"
-	  "	depth:		%d\n"
-	  "	bpp:		%d\n"
-	  "	bpl:		%d\n"
-	  "	mem:		%p\n",
-	  image->type, image->visual, image->byte_order, (gint)image->width,
-	  (gint)image->height, (gint)image->depth, (gint)image->bpp,
-	  (gint)image->bpl, image->mem
-	  );
   fprintf(stderr,
 	  "tveng frame format:\n"
 	  "	width:		%d\n"
@@ -532,7 +514,8 @@ int main(int argc, char * argv[])
 	  usleep(10000);
 	  memset(&sample, 0, sizeof(plugin_sample));
 	  sample.video_data =
-	    zvbi_build_current_teletext_page(tv_screen, &(sample.format));
+	    zvbi_build_current_teletext_page(tv_screen,
+					     &(sample.video_format));
 	  if (!sample.video_data)
 	    continue;
 	  /* fixme: add zvbi_process_frame */
@@ -549,15 +532,7 @@ int main(int argc, char * argv[])
       print_info();
 
       if (main_info->current_mode == TVENG_CAPTURE_READ)
-	{
-	  /*	  gdk_draw_image(tv_screen -> window,
-			 tv_screen -> style -> white_gc,
-			 zimage_get(),
-			 0, 0, 0, 0,
-			 sample.format.width,
-			 sample.format.height);*/
-	  capture_process_frame(tv_screen, main_info);
-	}
+	capture_process_frame(tv_screen, main_info);
     }
   D();
   /* Closes all fd's, writes the config to HD, and that kind of things
@@ -638,9 +613,6 @@ void shutdown_zapping(void)
   /* Mute the device again and close */
   tveng_set_mute(1, main_info);
   tveng_device_info_destroy(main_info);
-
-  /* Destroy the image that holds the capture */
-  zimage_destroy();
 
   /*
    * Tell the overlay engine to shut down and to do a cleanup if necessary

@@ -856,13 +856,13 @@ tveng1_update_capture_format(tveng_device_info * info)
       info->format.depth = 32;
       info->format.pixformat = TVENG_PIX_BGR32;
       break;
-    case VIDEO_PALETTE_YUV420:
+    case VIDEO_PALETTE_YUV420P:
       info->format.depth = 12;
       info->format.pixformat = TVENG_PIX_YUV420;
       break;
-    case VIDEO_PALETTE_UYVY:
+    case VIDEO_PALETTE_YUV422:
       info->format.depth = 16;
-      info->format.pixformat = TVENG_PIX_UYVY;
+      info->format.pixformat = TVENG_PIX_YUYV;
       break;
     case VIDEO_PALETTE_YUYV:
       info->format.depth = 16;
@@ -944,16 +944,13 @@ tveng1_set_capture_format(tveng_device_info * info)
       pict.depth = 32;
       break;
     case TVENG_PIX_YUYV:
-      pict.palette = VIDEO_PALETTE_YUYV;
-      pict.depth = 16;
-      break;
     case TVENG_PIX_UYVY:
-      pict.palette = VIDEO_PALETTE_UYVY;
+      pict.palette = VIDEO_PALETTE_YUV422;
       pict.depth = 16;
       break;
     case TVENG_PIX_YUV420:
     case TVENG_PIX_YVU420:
-      pict.palette = VIDEO_PALETTE_YUV420;
+      pict.palette = VIDEO_PALETTE_YUV420P;
       pict.depth = 12;
       break;
     default:
@@ -2011,6 +2008,8 @@ static int p_tveng1_queue(tveng_device_info * info)
   t_assert(info -> current_mode == TVENG_CAPTURE_READ);
 
   /* Fill in the mmaped_buffer struct */
+  memset(&bm, 0, sizeof(struct video_mmap));
+
   switch(info->format.pixformat)
     {
     case TVENG_PIX_RGB555:
@@ -2028,14 +2027,12 @@ static int p_tveng1_queue(tveng_device_info * info)
       bm.format = VIDEO_PALETTE_RGB32;
       break;
     case TVENG_PIX_YUYV:
-      bm.format = VIDEO_PALETTE_YUYV;
-      break;
     case TVENG_PIX_UYVY:
-      bm.format = VIDEO_PALETTE_UYVY;
+      bm.format = VIDEO_PALETTE_YUV422;
       break;
     case TVENG_PIX_YUV420:
     case TVENG_PIX_YVU420:
-      bm.format = VIDEO_PALETTE_YUV420;
+      bm.format = VIDEO_PALETTE_YUV420P;
       break;
     default:
       info -> tveng_errno = -1;
@@ -2101,14 +2098,12 @@ static int p_tveng1_dequeue(void * where, tveng_device_info * info)
       bm.format = VIDEO_PALETTE_RGB32;
       break;
     case TVENG_PIX_YUYV:
-      bm.format = VIDEO_PALETTE_YUYV;
-      break;
     case TVENG_PIX_UYVY:
-      bm.format = VIDEO_PALETTE_UYVY;
+      bm.format = VIDEO_PALETTE_YUV422;
       break;
     case TVENG_PIX_YUV420:
     case TVENG_PIX_YVU420:
-      bm.format = VIDEO_PALETTE_YUV420;
+      bm.format = VIDEO_PALETTE_YUV420P;
       break;
     default:
       info -> tveng_errno = -1;

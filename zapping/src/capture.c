@@ -43,11 +43,13 @@
 #include <tveng.h>
 #include "zmisc.h"
 #include "x11stuff.h"
+#include "plugins.h"
 #include "capture.h"
 
 /* Some global stuff we need, see descriptions in main.c */
 extern GList		*plugin_list;
 static gboolean		have_xv = FALSE; /* Can we use the Xv extension? */
+static GdkImage		*gdkimage=NULL; /* gdk, possibly shm, image */
 
 #ifdef USE_XV
 static XvPortID		xvport; /* Xv port we will use */
@@ -65,9 +67,10 @@ xv_mode_id(char * fourcc)
 }
 
 #define YV12 xv_mode_id("YV12") /* YVU420 (planar, 12 bits) */
-#define UYVY xv_mode_id("UYVY") /* UYUV (packed, 16 bits) */
+#define UYVY xv_mode_id("UYVY") /* UYVY (packed, 16 bits) */
+#define YUY2 xv_mode_id("YUY2") /* YUYV (packed, 16 bits) */
 
-#define XV_MODE UYVY /* preferred mode in Xv */
+#define XV_MODE YUY2 /* preferred mode in Xv */
 
 #ifdef USE_XV
 static void
@@ -113,6 +116,26 @@ xv_image_rescale(gint w, gint h)
   XSync(GDK_DISPLAY(), False);
 }
 #endif /* USE_XV */
+
+/*
+ * Just live xv_image_rescale, but operates on the GdkImage
+ */
+static void
+gdkimage_rescale(gint w, gint h)
+{
+  if ((gdkimage) && (gdkimage->width == w) && (gdkimage->height == h))
+    return; /* nothing to be done */
+
+  if (gdkimage)
+    gdk_image_destroy(gdkimage);
+
+  gdkimage = NULL;
+
+  gdkimage = gdk_image_new(GDK_IMAGE_FASTEST,
+			    gdk_visual_get_system(),
+			    w, h);
+
+}
 
 /* Checks for the Xv extension, and sets have_xv accordingly */
 static void
@@ -216,6 +239,7 @@ shutdown_xv(void)
 #ifdef USE_XV
   if (xvimage)
     xv_image_delete();
+  xvimage = NULL;
 
   if (have_xv)
     XvUngrabPort(GDK_DISPLAY(), xvport, CurrentTime);
@@ -226,36 +250,87 @@ void
 shutdown_capture(void)
 {
   shutdown_xv();
+
+  if (gdkimage)
+    gdk_image_destroy(gdkimage);
+
+  gdkimage = NULL;
+}
+
+static void
+give_data_to_plugins(tveng_device_info * info, void * data)
+{
+  plugin_sample sample;
+  GList *p;
+
+  memset(&sample, 0, sizeof(plugin_sample));
+  memcpy(&(sample.video_format), &(info->format),
+	 sizeof(struct tveng_frame_format));
+  sample.video_timestamp = tveng_get_timestamp(info);
+  sample.video_data = data;
+
+  p = g_list_first(plugin_list);
+  while (p)
+    {
+      plugin_process_sample(&sample, (struct plugin_info*)p->data);
+      p = p->next;
+    }
 }
 
 void
 capture_process_frame(GtkWidget * widget, tveng_device_info * info)
 {
-#ifdef USE_XV
   gint w, h;
 
   gdk_window_get_size(widget->window, &w, &h);
 
   if (have_xv)
     {
+#ifdef USE_XV
       xv_image_rescale(info->format.width, info->format.height);
 
       if (-1 == tveng_read_frame(xvimage->data, xvimage->data_size,
 				 50, info))
 	{
 	  g_warning("cap: read(): %s\n", info->error);
-	  usleep(50);
+	  usleep(5000);
 	  return;
 	}
+
+      /* Give the image to the plugins */
+      give_data_to_plugins(info, xvimage->data);
 
       XvShmPutImage(GDK_DISPLAY(), xvport,
 		    GDK_WINDOW_XWINDOW(widget->window),
 		    GDK_GC_XGC(widget->style->white_gc), xvimage,
 		    0, 0, xvimage->width, xvimage->height, /* source */
 		    0, 0, w, h, /* dest */
-		    False /* wait for completition */);
-    }
+		    True /* wait for completition */);
+#else
+      g_warning("BUG: Configured without Xv support");
+      have_xv = FALSE;
 #endif
+    }
+  else
+    {
+      gdkimage_rescale(info->format.width, info->format.height);
+
+      if (-1 == tveng_read_frame(x11_get_data(gdkimage),
+				 info->format.sizeimage, 50, info))
+	{
+	  g_warning("cap: read(): %s\n", info->error);
+	  usleep(5000);
+	  return;
+	}
+
+      give_data_to_plugins(info, x11_get_data(gdkimage));
+
+      gdk_draw_image(widget -> window,
+		     widget -> style -> white_gc,
+		     gdkimage,
+		     0, 0, 0, 0,
+		     gdkimage->width, gdkimage->height);
+    }
 }
 
 gint
@@ -264,7 +339,7 @@ capture_start(GtkWidget * window, tveng_device_info *info)
   enum tveng_frame_pixformat pixformat;
 
   if (have_xv)
-    pixformat = TVENG_PIX_UYVY;
+    pixformat = TVENG_PIX_YUYV;
   else
     pixformat =
 	zmisc_resolve_pixformat(x11_get_bpp(), x11_get_byte_order());
@@ -283,14 +358,12 @@ capture_start(GtkWidget * window, tveng_device_info *info)
 		info->format.pixformat);
       return -1;
     }
-
   /* OK, startup done, try to start capturing */
   if (-1 == tveng_start_capturing(info))
     {
       g_warning("Couldn't start capturing: %s", info->error);
       return -1;
     }
-
   /* Capture started correctly */
   return 0;
 }

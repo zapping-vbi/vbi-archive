@@ -87,11 +87,11 @@ typedef struct
 {
   /* VIDEO fields */
   gpointer video_data; /* The data contained in the image */
-  __s64 v_timestamp; /*
+  __s64 video_timestamp; /*
 		       Timestamp for this video frame, format is:
 		       timestamp = (sec*1000000+usec)*1000
 		     */
-  struct tveng_frame_format format; /* Format of the frame */
+  struct tveng_frame_format video_format; /* Format of the frame */
 }
 plugin_sample;
 

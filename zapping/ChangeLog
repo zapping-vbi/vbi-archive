@@ -1,3 +1,14 @@
+31.10.2000	More work on Xv <garetxe@users.sourceforge.net>
+
+	* src/capture.c: Default Xv pixformat is YUYV now, was UYVY.
+	* src/tveng1.c: Fixed the YUV modes defs (TVENG_PIX_YUV420 =
+	PALETTE_YUV420P, not PALETTE_YUV420)
+
+30.10.2000	Capture code working <garetxe@eusers.sourceforge.net>
+
+	* src/capture.c: It can work without Xv support now.
+	* src/zmisc.c: Removed some code (obsoleted by capture.c).
+
 29.10.2000	YUV and XV support <garetxe@users.sourceforge.net>
 
 	* src/tveng: Added support for YUV modes (YUV420, YVU420, UYVY,

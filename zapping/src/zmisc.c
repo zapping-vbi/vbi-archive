@@ -34,7 +34,6 @@
 extern tveng_device_info * main_info;
 extern GtkWidget * main_window;
 extern gboolean disable_preview; /* TRUE if preview won't work */
-static GdkImage * zimage = NULL; /* The buffer that holds the capture */
 gboolean debug_msg=FALSE; /* Debugging messages on or off */
 static GtkWidget * black_window = NULL; /* The black window when you go
 					   preview */
@@ -116,85 +115,6 @@ gint dec2hex(gint dec)
   sscanf(representation, "%x", &returned_value);
   g_free(representation);
   return returned_value;
-}
-
-/*
-  Resizes the image to a new size. If this is the same as the old
-  size, nothing happens. Returns the newly allocated image on exit.
-*/
-GdkImage*
-zimage_reallocate(int new_width, int new_height)
-{
-  GdkImage * new_zimage;
-  gpointer new_data;
-  gint old_size;
-  gint new_size;
-
-  if ((!zimage) || (zimage->width != new_width) || (zimage->height !=
-						    new_height))
-    {
-      new_zimage = gdk_image_new(GDK_IMAGE_FASTEST,
-				 gdk_visual_get_system(),
-				 new_width,
-				 new_height);
-      if (!new_zimage)
-	{
-	  g_warning(_("Sorry, but a %dx%d image couldn't be "
-		      "allocated, the image will not be changed."),
-		    new_width, new_height);
-
-	  return zimage;
-	}
-      /*
-	A new image has been allocated, keep as much data as possible
-      */
-      if (zimage)
-	{
-	  old_size = zimage->height* zimage->bpl;
-	  new_size = new_zimage->height * new_zimage->bpl;
-	  new_data = zimage_get_data(new_zimage);
-	  if (old_size > new_size)
-	    memcpy(new_data, zimage_get_data(zimage), new_size);
-	  else
-	    memcpy(new_data, zimage_get_data(zimage), old_size);
-	  
-	  /* Destroy the old image, now it is useless */
-	  gdk_image_destroy(zimage);
-	}
-      zimage = new_zimage;
-    }
-
-  return zimage;
-}
-
-/*
-  Returns a pointer to the zimage
-*/
-GdkImage*
-zimage_get(void)
-{
-  return zimage;
-}
-
-/*
-  Returns a pointer to the image data
-*/
-gpointer
-zimage_get_data( GdkImage * image)
-{
-  return (x11_get_data(image));
-}
-
-/*
-  Destroys the image that holds the capture
-*/
-void
-zimage_destroy(void)
-{
-  if (zimage)
-    gdk_image_destroy( zimage );
-
-  zimage = NULL;
 }
 
 /*

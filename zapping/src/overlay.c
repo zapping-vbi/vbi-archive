@@ -109,10 +109,8 @@ overlay_get_clips(GdkWindow * window, gint * clipcount)
 			tv_info.info->window.height,
 			clipcount);
 
-  if (clips) {
+  if (clips)
     malloc_count ++;
-    //    g_message("mallocs: %d", malloc_count);
-  }
 
   return clips;
 }

@@ -165,6 +165,9 @@ on_zapping_delete_event                (GtkWidget       *widget,
   return FALSE;
 }
 
+/*
+ * FIXME: This should go into the capture module
+ */
 void
 on_tv_screen_size_allocate             (GtkWidget       *widget,
                                         GtkAllocation   *allocation,
@@ -173,21 +176,9 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
   if (main_info -> current_mode != TVENG_CAPTURE_READ)
     return;
 
-  /* Delete the old image */
-  zimage_destroy();
-
   if (tveng_set_capture_size(allocation->width, allocation->height, 
 			     main_info) == -1)
     g_warning(main_info->error);
-
-  /* Reallocate a new image (if possible) */
-  if (tveng_update_capture_format(main_info) == -1)
-    {
-      g_warning(main_info->error);
-      return;
-    }
-
-  zimage_reallocate(main_info->format.width, main_info->format.height);
 }
 
 /* Activate an standard */
