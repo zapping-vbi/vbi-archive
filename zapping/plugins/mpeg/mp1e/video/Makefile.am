@@ -2,6 +2,8 @@ noinst_LTLIBRARIES = libvideo_rte.la libvideo.la
 
 INCLUDES=-D_GNU_SOURCE -D_REENTRANT
 
+EXTRA_DIST=motion.c
+
 libvideo_rte_la_SOURCES = \
 	dct.c dct_mmx.s dct.h dct_ieee.h \
 	dct_ref.c \

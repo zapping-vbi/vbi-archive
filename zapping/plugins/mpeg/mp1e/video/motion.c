@@ -5,12 +5,12 @@
  *  Copyright (C) 2001 Michael H. Schimek
  *
  *  Reg test: make && ./mp1e -R4,16 -b2.3 -vvvv -m1 -c files/tennis/grab%04u.ppm >rec.mpg; cmp rec.mpg ref.mpg; echo -e "\7Done"
- *  use ref25.mpg after rev. 25
- *  use ref34.mpg after rev. 34
+ *  use ref25.mpg after rev. 25 *** dead branch, use ref39.mpg
+ *  use ref34.mpg after rev. 34 *** dead branch, use ref40.mpg
  *  Motion test: add -b4, -gIPIP or -gIBIB, set T3RT 0, T3RI 0
  */
 
-/* $Id: motion.c,v 1.3 2001-05-24 01:11:36 mschimek Exp $ */
+/* $Id: motion.c,v 1.4 2001-05-31 19:52:59 mschimek Exp $ */
 
 #define TEST3p1 1	/* enable */
 #define T3RT 1		/* use prediction (zero prediction error if 0) */
