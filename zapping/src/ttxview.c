@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.116.2.20 2003-11-26 07:15:12 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.116.2.21 2003-11-28 18:34:29 mschimek Exp $ */
 
 /*
  *  Teletext View
@@ -607,7 +607,12 @@ get_ttxview_page		(GtkWidget *		view,
 				 vbi_pgno *		pgno,
 				 vbi_subno *		subno)
 {
-  ttxview_data *data = g_object_get_data (G_OBJECT (view), "ttxview_data");
+  ttxview_data *data;
+  
+  if (!view)
+    return FALSE;
+  
+  data = g_object_get_data (G_OBJECT (view), "ttxview_data");
 
   if (!data)
     return FALSE;
@@ -2093,7 +2098,8 @@ on_export_dialog_activate	(GtkWidget *		widget,
 
   if (data->fmt_page->pgno < 0x100)
     {
-      if (data->appbar) /* XXX make save option insensitive instead */
+      /* XXX make save option insensitive instead */
+      if (data->appbar)
 	gnome_appbar_set_status (data->appbar, _("No page loaded"));
       return;
     }
@@ -3587,6 +3593,7 @@ ttxview_hotlist_menu_append	(GtkMenuShell *		menu,
 
 	case VBI_PROGR_WARNING:
 	  ONCE (have_progr_warning);
+	  /* TRANSLATORS: Schedule changes and the like. */
 	  menu_item = z_gtk_pixmap_menu_item_new
 	    (_("Program Warning"), "gnome-stock-mail");
 	  new_window = FALSE;
@@ -3719,7 +3726,7 @@ popup_page_uiinfo [] = {
     0, (GdkModifierType) 0, NULL
   },
   {
-    GNOME_APP_UI_ITEM, N_("_Color..."), NULL,
+    GNOME_APP_UI_ITEM, N_("_Colors..."), NULL,
     G_CALLBACK (on_color_dialog_activate), NULL, NULL,
     GNOME_APP_PIXMAP_NONE, NULL,
     0, (GdkModifierType) 0, NULL
@@ -3940,7 +3947,7 @@ main_view_uiinfo [] = {
   GNOMEUIINFO_TOGGLEITEM (N_("_Statusbar"), NULL,
 			  on_view_statusbar_toggled, NULL),
   GNOMEUIINFO_SEPARATOR,
-  GNOMEUIINFO_ITEM_DATA (N_("_Color"), NULL,
+  GNOMEUIINFO_ITEM_DATA (N_("_Colors"), NULL,
 			 on_color_dialog_activate, NULL, NULL),
   GNOMEUIINFO_END
 };
@@ -3973,8 +3980,10 @@ static GnomeUIInfo
 main_uiinfo [] = {
   GNOMEUIINFO_MENU_FILE_TREE (main_file_uiinfo),
   GNOMEUIINFO_MENU_EDIT_TREE (main_edit_uiinfo),
-  /* XXX doesn't work when window is opened
-     GNOMEUIINFO_MENU_VIEW_TREE (main_view_uiinfo), */
+#if 0
+  /* XXX doesn't work when window is opened */
+     GNOMEUIINFO_MENU_VIEW_TREE (main_view_uiinfo),
+#endif
   GNOMEUIINFO_SUBTREE (N_("_Go"), main_go_uiinfo),
   {
     GNOME_APP_UI_ITEM, N_("_Bookmarks"), NULL,
@@ -4230,7 +4239,7 @@ open_url			(vbi_link *		ld)
 
   if (err)
     {
-      /* TRANSLATORS: Cannot open URL (http, smtp). */
+      /* TRANSLATORS: "Cannot open <URL>" (http or smtp). */
       ShowBox (_("Cannot open %s:\n%s"),
 	       GTK_MESSAGE_ERROR,
 	       ld->url, err->message);
@@ -4625,7 +4634,7 @@ ttxview_toolbar_attach		(ttxview_data *		data,
     gtk_widget_show (frame);
     gtk_container_add (GTK_CONTAINER (widget), frame);
 
-    widget = gtk_label_new (_("888.88"));
+    widget = gtk_label_new ("888.88");
     gtk_widget_show (widget);
     data->tool.url = GTK_LABEL (widget);
     gtk_container_add (GTK_CONTAINER (frame), widget);
