@@ -69,9 +69,7 @@ void shutdown_callbacks(void)
 }
 
 /* Gets the geometry of the main window */
-void UpdateCoords(GdkWindow * window);
-
-void UpdateCoords(GdkWindow * window)
+static void UpdateCoords(GdkWindow * window)
 {
   int x, y, w, h;
   gdk_window_get_origin(window, &x, &y);
@@ -81,6 +79,8 @@ void UpdateCoords(GdkWindow * window)
   zcs_int(y, "y");
   zcs_int(w, "w");
   zcs_int(h, "h");
+  zconf_set_integer(tveng_stop_everything(main_info),
+		    "/zapping/options/main/capture_mode");
 }
 
 void

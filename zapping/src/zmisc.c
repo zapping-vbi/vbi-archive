@@ -20,6 +20,8 @@
 #  include <config.h>
 #endif
 
+#include <gdk/gdkx.h>
+
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zmisc.h"
 #include "zconf.h"
@@ -302,6 +304,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       info->window.width = w;
       info->window.height = h;
       info->window.clipcount = 0;
+      info->window.win = GDK_WINDOW_XWINDOW(tv_screen->window);
+      info->window.gc = GDK_GC_XGC(tv_screen->style->white_gc);
       tveng_set_preview_window(info);
       return_value = tveng_start_window(info);
       if (return_value != -1)

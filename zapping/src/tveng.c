@@ -36,10 +36,12 @@
 #include "tveng.h"
 #include "tveng1.h" /* V4L specific headers */
 #include "tveng2.h" /* V4L2 specific headers */
+#include "tvengxv.h" /* XVideo specific headers */
 #include "tveng_private.h" /* private definitions */
 
 typedef void (*tveng_controller)(struct tveng_module_info *info);
 static tveng_controller tveng_controllers[] = {
+  tvengxv_init_module,
   tveng2_init_module,
   tveng1_init_module
 };
@@ -1576,7 +1578,7 @@ tveng_stop_window (tveng_device_info * info)
   if (info -> current_mode == TVENG_NO_CAPTURE)
     {
       fprintf(stderr, 
-	      _("Warning: trying to stop window with no capture active\n"));
+	      "Warning: trying to stop window with no capture active\n");
       return 0; /* Nothing to be done */
     }
 
@@ -1605,7 +1607,6 @@ enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
   enum tveng_capture_mode returned_mode;
 
   returned_mode = info->current_mode;
-
   switch (info->current_mode)
     {
     case TVENG_CAPTURE_READ:
@@ -1620,6 +1621,8 @@ enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
     default:
       break;
     };
+
+  t_assert(info->current_mode == TVENG_NO_CAPTURE);
 
   return returned_mode;
 }

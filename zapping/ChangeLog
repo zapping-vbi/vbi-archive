@@ -1,3 +1,10 @@
+25.11.2000	XVideo working (mol) <garetxe@users.sourceforge.net>
+
+	* src/tvengxv.c, src/callbacks.c, src/main.c, src/overlay.c: First
+	working XVideo code. It almost works, except for some glitches,
+	and that some parts (mainly overlay) are a compendium of gross
+	hacks that should be rewritten cleanly.
+
 24.11.2000	Russian glyphs, XVideo <garetxe@users.sourceforge.net>
 
 	* libvbi/: Added font3 and font4, they are the Russian

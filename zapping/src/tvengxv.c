@@ -119,8 +119,8 @@ p_tvengxv_open_device(tveng_device_info *info)
 	    {
 	      p_info->port = pAdaptor->base_id + j;
 
-	      if (Success == XvGrabPort(dpy, p_info->port, CurrentTime))
-		goto adaptor_found;
+	      //	      if (Success == XvGrabPort(dpy, p_info->port, CurrentTime))
+	      goto adaptor_found;
 	    }
 	}
     }
@@ -141,7 +141,7 @@ p_tvengxv_open_device(tveng_device_info *info)
     goto error4;
 
   XvFreeAdaptorInfo(pAdaptors);
-  return 0; /* the port seems to work ok, success */
+  return 0xbeaf; /* the port seems to work ok, success */
 
  error4:
   XvFreeEncodingInfo(p_info->ei);
@@ -226,8 +226,8 @@ int tvengxv_attach_device(const char* device_file,
       if (info->debug_level>0)
 	fprintf(stderr, "  TVeng Xv atom: %s%s%s (%i -> %i)\n",
 		at[i].name,
-		(at[i].flags & XvGettable) ? "gettable" : "",
-		(at[i].flags & XvSettable) ? "settable" : "",
+		(at[i].flags & XvGettable) ? " gettable" : "",
+		(at[i].flags & XvSettable) ? " settable" : "",
 		at[i].min_value, at[i].max_value);
       if (!strcmp("XV_ENCODING", at[i].name))
 	{
@@ -326,6 +326,20 @@ int tvengxv_attach_device(const char* device_file,
   if (error == -1)
       return -1;
 
+  info->current_controller = TVENG_CONTROLLER_XV;
+
+  /* fill in capabilities info */
+  info->caps.channels = info->num_inputs;
+  /* Let's go creative! */
+  snprintf(info->caps.name, 32, "XVideo device");
+  info->caps.flags = TVENG_CAPS_TUNER | TVENG_CAPS_OVERLAY |
+    TVENG_CAPS_CHROMAKEY | TVENG_CAPS_CLIPPING;
+  info->caps.audios = 1;
+  info->caps.minwidth = 32;
+  info->caps.minheight = 32;
+  info->caps.maxwidth = 1600;
+  info->caps.maxheight = 1600;
+
   return info -> fd;
 
  error1:
@@ -367,7 +381,7 @@ static void tvengxv_close_device(tveng_device_info * info)
 
   tveng_stop_everything(info);
 
-  XvUngrabPort(info->private->display, p_info->port, CurrentTime);
+  //  XvUngrabPort(info->private->display, p_info->port, CurrentTime);
   XvFreeEncodingInfo(p_info->ei);
 
   info -> fd = 0;
@@ -447,9 +461,13 @@ tvengxv_get_inputs(tveng_device_info *info)
 
   for (i=0; i<p_info->encodings; i++)
     {
+      if (info->debug_level > 0)
+	fprintf(stderr, "  TVeng Xv input #%d: %s\n", i,
+		p_info->ei[i].name);
+
       if (2 != sscanf(p_info->ei[i].name, "%63[^-]-%63s", norm, input))
 	continue; /* not parseable */
-      if (-1 == tvengxv_find_input(input, info))
+      if (-1 != tvengxv_find_input(input, info))
 	continue;
       /* norm not present, add to the list */
       info->inputs = realloc(info->inputs, (info->num_inputs+1)*
@@ -471,7 +489,7 @@ tvengxv_get_inputs(tveng_device_info *info)
     XvGetPortAttribute(info->private->display, p_info->port,
 		       p_info->encoding, &val);
 
-  if ((2 == sscanf(p_info->ei[i].name, "%63[^-]-%63s", norm, input)) &&
+  if ((2 == sscanf(p_info->ei[val].name, "%63[^-]-%63s", norm, input)) &&
       (-1 != (i=tvengxv_find_input(input, info))))
     info->cur_input = i;
 
@@ -489,18 +507,14 @@ tvengxv_find_encoding(const char *standard, const char *input,
   struct private_tvengxv_device_info * p_info =
     (struct private_tvengxv_device_info *) info;
   int i;
-  char xv_norm[64], xv_input[64];
+  char encoding_name[128];
 
-  xv_norm[63] = xv_input[63] = 0;
+  encoding_name[127] = 0;
+  snprintf(encoding_name, 127, "%s-%s", standard, input);
 
   for (i=0; i<p_info->encodings; i++)
     {
-      if (2 != sscanf(p_info->ei[i].name, "%63[^-]-%63s", xv_norm,
-		      xv_input))
-	continue; /* not parseable */
-      
-      if ((!strcasecmp(xv_norm, standard)) && (!strcasecmp(xv_input,
-							   input)))
+      if (!strcasecmp(encoding_name, p_info->ei[i].name))
 	return i;
     }
 
@@ -581,16 +595,16 @@ tvengxv_get_standards(tveng_device_info *info)
     {
       if (2 != sscanf(p_info->ei[i].name, "%63[^-]-%63s", norm, input))
 	continue; /* not parseable */
-      if (-1 == tvengxv_find_standard(norm, info))
+      if (-1 != tvengxv_find_standard(norm, info))
 	continue;
       /* norm not present, add to the list */
       info->standards = realloc(info->standards,
 				(info->num_standards+1)*
 			     sizeof(struct tveng_enumstd));
-      info->standards[info->num_standards].id = i;
+      info->standards[info->num_standards].id = info->num_standards;
       snprintf(info->standards[info->num_standards].name, 32,
 	       norm);
-      info->standards[info->num_standards].index = i;
+      info->standards[info->num_standards].index = info->num_standards;
       info->num_standards++;
     }
   /* Get the current input */
@@ -599,7 +613,7 @@ tvengxv_get_standards(tveng_device_info *info)
     XvGetPortAttribute(info->private->display, p_info->port,
 		       p_info->encoding, &val);
 
-  if ((2 == sscanf(p_info->ei[i].name, "%63[^-]-%63s", norm, input)) &&
+  if ((2 == sscanf(p_info->ei[val].name, "%63[^-]-%63s", norm, input)) &&
       (-1 != (i=tvengxv_find_standard(norm, info))))
     info->cur_standard = i;
 
@@ -639,6 +653,18 @@ tvengxv_set_standard(struct tveng_enumstd * standard,
   info->cur_standard = standard->index;
 
   return 0;
+}
+
+static int
+tvengxv_set_capture_format(tveng_device_info * info)
+{
+  return 0; /* this just doesn't make sense in XVideo */
+}
+
+static int
+tvengxv_update_capture_format(tveng_device_info * info)
+{
+  return 0; /* This one was easy too :-) */
 }
 
 static int
@@ -841,7 +867,7 @@ tvengxv_tune_input(__u32 freq, tveng_device_info *info)
   XvSetPortAttribute(info->private->display,
 		     p_info->port,
 		     p_info->freq,
-		     freq);
+		     freq*0.016);
 
   return 0;
 }
@@ -865,11 +891,15 @@ tvengxv_get_tune(__u32 * freq, tveng_device_info *info)
     (struct private_tvengxv_device_info*)info;
 
   t_assert(info != NULL);
+  if (!freq)
+    return 0;
 
   XvGetPortAttribute(info->private->display,
 		     p_info->port,
 		     p_info->freq,
 		     (int*)(&freq));
+
+  *freq = *freq / 0.016;
 
   return 0;
 }
@@ -891,6 +921,77 @@ tvengxv_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
   return 0;
 }
 
+static int
+tvengxv_detect_preview(tveng_device_info *info)
+{
+  return 1; /* we do support preview */
+}
+
+static int
+tvengxv_set_preview_window(tveng_device_info * info)
+{
+  t_assert(info != NULL);
+  
+  /* Just reinit if necessary */
+  if (info->current_mode == TVENG_CAPTURE_WINDOW)
+    {
+      tveng_set_preview_off(info);
+      tveng_set_preview_on(info);
+    }
+
+  return 0; /* We don't need do do anything now */
+}
+
+static int
+tvengxv_get_preview_window(tveng_device_info * info)
+{
+  return 0;
+}
+
+static int
+tvengxv_set_preview(int on, tveng_device_info * info)
+{
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info *)info;
+  int val, width, height, dummy;
+  Window win_ignore;
+
+  t_assert(info != NULL);
+
+  if ((info->window.win == 0) || (info->window.gc == 0))
+    {
+      info->tveng_errno = -1;
+      t_error_msg("win",
+		  "The window value hasn't been set", info);
+      return -1;
+    }
+
+  XGetGeometry(info->private->display, info->window.win, &win_ignore,
+	       &dummy, &dummy, &width, &height, &dummy, &dummy);
+
+  val = 0;
+  if (p_info->encoding != None)
+    XvGetPortAttribute(info->private->display, p_info->port,
+		       p_info->encoding, &val);
+
+  if (on)
+    {
+      XvPutVideo(info->private->display, p_info->port, info->window.win,
+		 info->window.gc,
+		 0, 0, p_info->ei[val].width, p_info->ei[val].height, /* src */
+		 0, 0, width, height);
+      info->current_mode = TVENG_CAPTURE_WINDOW;
+    }
+  else
+    {
+      XvStopVideo(info->private->display, p_info->port,
+		  info->window.win);
+      info->current_mode = TVENG_NO_CAPTURE;
+    }
+
+  return 0;
+}
+
 static struct tveng_module_info tvengxv_module_info = {
   tvengxv_attach_device,
   tvengxv_describe_controller,
@@ -899,8 +1000,8 @@ static struct tveng_module_info tvengxv_module_info = {
   tvengxv_set_input,
   tvengxv_get_standards,
   tvengxv_set_standard,
-  NULL, //  tvengxv_update_capture_format,
-  NULL, //  tvengxv_set_capture_format,
+  tvengxv_update_capture_format,
+  tvengxv_set_capture_format,
   tvengxv_update_controls,
   tvengxv_set_control,
   tvengxv_get_mute,
@@ -915,10 +1016,10 @@ static struct tveng_module_info tvengxv_module_info = {
   NULL, //  tvengxv_get_timestamp,
   NULL, //  tvengxv_set_capture_size,
   NULL, //  tvengxv_get_capture_size,
-  NULL, //  tvengxv_detect_preview,
-  NULL, //  tvengxv_set_preview_window,
-  NULL, //  tvengxv_get_preview_window,
-  NULL, //  tvengxv_set_preview,
+  tvengxv_detect_preview,
+  tvengxv_set_preview_window,
+  tvengxv_get_preview_window,
+  tvengxv_set_preview,
   NULL, //  tvengxv_start_previewing,
   NULL, //  tvengxv_stop_previewing,
   sizeof(struct private_tvengxv_device_info)

@@ -2,7 +2,7 @@
 #define FONT_H
 
 /* Uncomment this line to get Cyrillic Russian fonts */
-// #define FONTS_RUSSIAN 1
+//#define FONTS_RUSSIAN 1
 /*
   FIXME: This is a hot fix, we should allow dynamic switching between
   fonts, not difficult once we have the glyphs ;-)

@@ -131,6 +131,8 @@ struct tveng_window{
   unsigned int chromakey; /* The chromakey (RGB32) */
   int clipcount; /* Number of clipping rectangles */
   struct tveng_clip * clips; /* pointer to the clip rectangle array */
+  Window win; /* window we are previewing to (only needed in XV mode) */
+  GC gc; /* gc associated with win */
 };
 
 enum tveng_field
@@ -231,7 +233,8 @@ enum tveng_controller
 {
   TVENG_CONTROLLER_NONE, /* No controller set */
   TVENG_CONTROLLER_V4L1, /* V4L1 controller (old V4l spec) */
-  TVENG_CONTROLLER_V4L2  /* V4L2 controller (new v4l spec) */
+  TVENG_CONTROLLER_V4L2, /* V4L2 controller (new v4l spec) */
+  TVENG_CONTROLLER_XV	 /* XVideo controller */
 };
 
 /* The structure used to hold info about a video_device */

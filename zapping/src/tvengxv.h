@@ -159,49 +159,6 @@ static int
 tvengxv_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
 			info);
 
-#if 0 /* not done yet */
-/*
-  Sets up the capture device so any read() call after this one
-  succeeds. Returns -1 on error.
-*/
-static int
-tvengxv_start_capturing(tveng_device_info * info);
-
-/* Tries to stop capturing. -1 on error. */
-static int
-tvengxv_stop_capturing(tveng_device_info * info);
-
-/* 
-   Reads a frame from the video device, storing the read data in
-   info->format.data
-   time: time to wait using select() in miliseconds
-   info: pointer to the video device info structure
-   Returns -1 on error, anything else on success.
-   Note: if you want this call to be non-blocking, call it with time=0
-*/
-static int tvengxv_read_frame(void * where, unsigned int size,
-			     unsigned int time, tveng_device_info * info);
-
-/*
-  Gets the timestamp of the last read frame in seconds.
-*/
-static double tvengxv_get_timestamp(tveng_device_info * info);
-
-/* 
-   Sets the capture buffer to an specific size. returns -1 on
-   error. Remember to check the value of width and height in the
-   format struct since it can be different to the one requested. 
-*/
-static int tvengxv_set_capture_size(int width, int height,
-				   tveng_device_info * info);
-
-/* 
-   Gets the actual size of the capture buffer in width and height.
-   -1 on error
-*/
-static
-int tvengxv_get_capture_size(int *width, int *height, tveng_device_info * info);
-
 /* XF86 Frame Buffer routines */
 /*
   Returns 1 if the device attached to info suports previewing, 0 otherwise
@@ -238,6 +195,7 @@ tvengxv_get_preview_window(tveng_device_info * info);
 static int
 tvengxv_set_preview (int on, tveng_device_info * info);
 
+#if 0 /* not done yet */
 /* 
    Sets up everything and starts previewing.
    Just call this function to start previewing, it takes care of

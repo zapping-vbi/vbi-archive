@@ -252,6 +252,7 @@ int main(int argc, char * argv[])
     {
     case 1:
       printv("MMX enabled.\n");
+      break;
     case 3:
       printv("Cyrix MMX / Extended MMX. MMX enabled.\n");
       break;
@@ -304,14 +305,15 @@ int main(int argc, char * argv[])
 					       "zapping_setup_fb_verbosity"),
 				       main_info);
   D();
-  /* try to run the auxiliary suid program */
-  if (tveng_run_zapping_setup_fb(main_info) == -1)
-    disable_preview = TRUE;
+  /* fixme: try to run the auxiliary suid program */
+  //  if ((main_info->current_controller != TVENG_CONTROLLER_XV) &&
+      //      (tveng_run_zapping_setup_fb(main_info) == -1))
+  //disable_preview = TRUE;
   D();
   free(main_info -> file_name);
   D();
   if (tveng_attach_device(zcg_char(NULL, "video_device"),
-			  TVENG_ATTACH_READ,
+			  TVENG_ATTACH_XV,
 			  main_info) == -1)
     {
       /* Check that the given device is /dev/video, if it isn't, try
@@ -587,7 +589,6 @@ static void shutdown_zapping(void)
   if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
     do_screen_cleanup = TRUE;
 
-  zcs_int(tveng_stop_everything(main_info), "capture_mode");
   if (was_fullscreen)
     zcs_int(TVENG_CAPTURE_PREVIEW, "capture_mode");
 

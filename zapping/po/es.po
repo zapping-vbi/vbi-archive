@@ -94,7 +94,7 @@ msgid ""
 "Cannot restore previous mode%s:\n"
 "%s"
 msgstr ""
-"No se pudo resturar el modo anterior%s:\n"
+"No se pudo restaurar el modo anterior%s:\n"
 "%s"
 
 #: src/main.c:484
@@ -1702,7 +1702,7 @@ msgstr "Mbits de vídeo por segundo:"
 
 #: plugins/mpeg/mpeg_strings.c:22 plugins/mpeg/plugin.c:525
 msgid "Output audio Kbits per second:"
-msgstr "Kbits de audio pro segundo:"
+msgstr "Kbits de audio por segundo:"
 
 #: plugins/mpeg/plugin.c:675 plugins/mpeg/plugin.c:812
 msgid "MPEG"

@@ -18,6 +18,7 @@
 
 /*
  * These routines handle the Windowed overlay mode.
+ * FIXME: This is WAY too HACKISH!
  */
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -184,6 +185,7 @@ overlay_clearing_timeout(gpointer data)
   }
 
   if ((tv_info.info->current_mode == TVENG_CAPTURE_WINDOW) &&
+      (tv_info.info->current_controller != TVENG_CONTROLLER_XV) &&
       (tv_info.visible))
     {
       if (tv_info.clean_screen)
@@ -201,11 +203,19 @@ overlay_clearing_timeout(gpointer data)
   /* Setup the overlay and start it again if needed */
   if (tv_info.info->current_mode == TVENG_CAPTURE_WINDOW)
     {
-      overlay_sync(FALSE);
-      if (tv_info.visible)
-	tveng_set_preview_on(tv_info.info);
+      if (tv_info.info->current_controller != TVENG_CONTROLLER_XV)
+	{
+	  overlay_sync(FALSE);
+	  if (tv_info.visible)
+	    tveng_set_preview_on(tv_info.info);
+	  else
+	    tveng_set_preview_off(tv_info.info);
+	}
       else
-	tveng_set_preview_off(tv_info.info);
+	{
+	  tveng_set_preview_off(tv_info.info);
+	  tveng_set_preview_on(tv_info.info);
+	}
     }
 
   *((gint*)data) = -1; /* set timeout_id to destroyed */
@@ -227,7 +237,8 @@ overlay_status_changed(gboolean clean_screen)
     gtk_timeout_add(CLEAR_TIMEOUT, overlay_clearing_timeout,
 		    &(tv_info.clear_timeout_id));
 
-  if (tv_info.info->current_mode == TVENG_CAPTURE_WINDOW)
+  if ((tv_info.info->current_mode == TVENG_CAPTURE_WINDOW) &&
+      (tv_info.info->current_controller != TVENG_CONTROLLER_XV))
     tveng_set_preview_off(tv_info.info);
 
   if (!tv_info.clean_screen)
@@ -430,7 +441,8 @@ overlay_sync(gboolean clean_screen)
 
   tveng_set_preview_window(tv_info.info);
 
-  if (clean_screen)
+  if ((clean_screen) &&
+      (tv_info.info->current_controller != TVENG_CONTROLLER_XV))
     {
       x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
       tv_info.ignore_expose = TRUE;
