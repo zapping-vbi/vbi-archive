@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alirc.c,v 1.6 2003-11-29 19:43:22 mschimek Exp $ */
+/* $Id: alirc.c,v 1.7 2004-08-13 01:00:27 mschimek Exp $ */
 
 /* XXX gtk_input */
 #undef GTK_DISABLE_DEPRECATED
@@ -141,14 +141,14 @@ struct legacy_command
 static const struct legacy_command
 legacy_command_txl_table [] =
 {
-  { "CHANUP",		"zapping.channel_up()",		NULL },
-  { "CHANDOWN",		"zapping.channel_down()",	NULL },
-  { "QUIT",		"zapping.quit()",		NULL },
+  { "CHANUP",		"zapping.channel_up()",			NULL },
+  { "CHANDOWN",		"zapping.channel_down()",		NULL },
+  { "QUIT",		"zapping.quit()",			NULL },
   { "ZOOM",		NULL,				legacy_zoom },
   { "SETCHANNEL",	NULL,				legacy_setchannel },
-  { "MUTE",		"zapping.mute()",		NULL },
-  { "VOL_UP",		"zapping.volume_incr(+1)",	NULL },
-  { "VOL_DOWN",		"zapping.volume_incr(-1)",	NULL },
+  { "MUTE",		"zapping.mute()",			NULL },
+  { "VOL_UP",		"zapping.control_incr('volume',+1)",	NULL },
+  { "VOL_DOWN",		"zapping.control_incr('volume',-1)",	NULL },
 };
 
 static void 
