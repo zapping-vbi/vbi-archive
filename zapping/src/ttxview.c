@@ -26,6 +26,7 @@
 
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <regex.h> /* FIXME: This should be a cache operation */
 
 #include "interface.h"
 #include "ttxview.h"
@@ -38,7 +39,6 @@
 
 /*
   TODO:
-	better handling of loading... page
 	Search
 	Export filters
 	ttxview in main window (alpha et al)
@@ -65,6 +65,7 @@ typedef struct {
   gboolean		no_history; /* don't send to history next page */
   gboolean		hold; /* hold the current subpage */
   gint			pop_pgno, pop_subno; /* for popup */
+  gboolean		in_link; /* whether the cursor is over a link */
 } ttxview_data;
 
 struct bookmark {
@@ -359,13 +360,20 @@ update_pointer (ttxview_data *data)
 	buffer = g_strdup_printf(_("Page %d"), hex2dec(page));
       else
 	buffer = g_strdup_printf(_("Subpage %d"), hex2dec(subpage));
-      gnome_appbar_set_status(GNOME_APPBAR(appbar1), buffer);
+      if (!data->in_link)
+	{
+	  gnome_appbar_push(GNOME_APPBAR(appbar1), buffer);
+	  data->in_link = TRUE;
+	}
+      else
+	gnome_appbar_set_status(GNOME_APPBAR(appbar1), buffer);
       g_free(buffer);
       gdk_window_set_cursor(widget->window, hand);
     }
-  else
+  else if (data->in_link)
     {
-      gnome_appbar_set_status(GNOME_APPBAR(appbar1), "");
+      gnome_appbar_pop(GNOME_APPBAR(appbar1));
+      data->in_link = FALSE;
       gdk_window_set_cursor(widget->window, arrow);
     }
 }
@@ -377,6 +385,7 @@ event_timeout				(ttxview_data	*data)
   gint w, h;
   GtkWidget *widget;
   gchar *buffer;
+  GtkWidget *appbar1 = lookup_widget(data->da, "appbar1");
 
   while ((msg = peek_ttx_message(data->id)))
     {
@@ -395,6 +404,15 @@ event_timeout				(ttxview_data	*data)
 			   data->monitored_subpage, data);
 	  data->no_history = FALSE;
 	  g_free(buffer);
+	  gnome_appbar_set_status(GNOME_APPBAR(appbar1), "");
+	  if (data->in_link)
+	    {
+	      gnome_appbar_pop(GNOME_APPBAR(appbar1));
+	      data->in_link = FALSE;
+	    }
+	  if (!data->fmt_page->vtp->pgno)
+	    gnome_appbar_set_status(GNOME_APPBAR(appbar1),
+				    _("Warning: Page not valid"));
 	  update_pointer(data);
 	  break;
 	case TTX_BROKEN_PIPE:
@@ -436,12 +454,17 @@ load_page (int page, int subpage, ttxview_data *data)
   gtk_label_set_text(GTK_LABEL(widget), buffer);
   g_free(buffer);
 
-  if (subpage == ANY_SUB)
-    buffer = g_strdup_printf(_("Loading page %d..."), hex2dec(page));
+  if ((page >= 0x100) && (page <= 0x899))
+    {
+      if (subpage == ANY_SUB)
+	buffer = g_strdup_printf(_("Loading page %x..."), page);
+      else
+	buffer = g_strdup_printf(_("Loading subpage %x..."),
+				 subpage);
+    }
   else
-    buffer = g_strdup_printf(_("Loading subpage %d..."),
-			     hex2dec(subpage));
-  gnome_appbar_push(GNOME_APPBAR(appbar1), buffer);
+    buffer = g_strdup_printf(_("Warning: Page not valid"));
+  gnome_appbar_set_status(GNOME_APPBAR(appbar1), buffer);
   g_free(buffer);
 
   gtk_widget_grab_focus(data->da);
@@ -547,11 +570,65 @@ void on_ttxview_next_subpage_clicked	(GtkButton	*button,
   load_page(data->fmt_page->vtp->pgno, new_subpage, data);
 }
 
+static inline
+gchar *describe_regerror(int error, regex_t *preg)
+{
+  gchar *description;
+  gint n;
+
+  n = regerror(error, preg, NULL, 0);
+  description = g_malloc(n);
+  regerror(error, preg, description, n);
+
+  return description;
+}
+
 static
 void on_ttxview_search_clicked		(GtkButton	*button,
 					 ttxview_data	*data)
 {
-  ShowBox("Not done yet", GNOME_MESSAGE_BOX_INFO);
+  #if 0
+  gchar * regexp =
+    Prompt(lookup_widget(data->da, "ttxview"),
+	   _("Search"),
+	   _("Enter extended regexp to search for:"), NULL);
+  regex_t preg;
+  gint error;
+  gchar *description;
+  gchar *buffer = "Testing extended regular expressions ....";
+
+  if (regexp)
+    {
+      if ((error = regcomp(&preg, regexp,
+			   REG_EXTENDED | REG_ICASE | REG_NOSUB)))
+	{
+	  description = describe_regerror(error, &preg);
+	  ShowBox("Invalid regular expression (%s)",
+		  GNOME_MESSAGE_BOX_ERROR, description);
+	  g_free(description);
+	  goto done;
+	}
+
+      /* OK, do search */
+      if ((error = regexec(&preg, buffer, 0, NULL, 0)))
+	{
+	  description = describe_regerror(error, &preg);
+	  ShowBox("Regular expression search failed: %s",
+		  GNOME_MESSAGE_BOX_ERROR, description);
+	  g_free(description);
+	}
+      else
+	ShowBox("Pattern found", GNOME_MESSAGE_BOX_INFO);
+
+      regfree(&preg);
+    }
+
+ done:
+  g_free(regexp);
+
+#else
+  ShowBox("Not done yet", GNOME_MESSAGE_BOX_ERROR);
+#endif
 }
 
 static

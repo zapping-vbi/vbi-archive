@@ -1,8 +1,16 @@
+31.12.2000	Small fixes <garetxe@users.sourceforge.net>
+
+	* libvbi/export.h: Prototype for fmt_page
+	* src/ttxview.c: Better handling of invalid pages..., better
+	management of status bar.
+
 30.12.2000	Bookmarks editor <garetxe@users.sourceforge.net>
 
 	* glade/zapping.glade: Bookmarks editing dialog added.
 	* src/ttxview.c: Added some bookmarks editing (currently just
 	deleting, anything else is a wombat)
+	* src/zmodel.c, src/zmodel.h: Added, generic model object, with
+	just a "changed" signal. Quite useful for MV design.
 
 30.12.2000	Faster rendering, bookmarks <garetxe@users.sourceforge.net>
 

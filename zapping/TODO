@@ -22,3 +22,4 @@ Outstanding issues for the next release
 	+ GUI improvements (channel selection, controls, toolbar...)
 	+ Make it more independant from the video device (we should be
 	  able to attach to a different device while running)
+	+ Screenshot preview.

@@ -237,6 +237,7 @@ register_ttx_client(void)
   vbi_get_rendered_size(&w, &h);
   client->unscaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w,
 				  h);
+  g_assert(client->unscaled != NULL);
   
   simple = gdk_pixbuf_new_from_file(filename);
   g_free(filename);
@@ -251,7 +252,6 @@ register_ttx_client(void)
       gdk_pixbuf_unref(simple);
     }
 
-  g_assert(client->unscaled != NULL);
   g_assert(init_buffered_fifo(&client->mqueue, NULL, 16, 0) > 0);
   ttx_clients = g_list_append(ttx_clients, client);
   pthread_mutex_unlock(&clients_mutex);
@@ -373,15 +373,48 @@ unregister_ttx_client(int id)
 static void
 build_client_page(struct ttx_client *client, struct vt_page *vtp)
 {
+  GdkPixbuf *simple;
+  gchar *filename;
+
   g_assert(client != NULL);
-  g_assert(vtp != NULL);
 
   pthread_mutex_lock(&client->mutex);
-  memcpy(&client->vtp, vtp, sizeof(struct vt_page));
-  fmt_page(FALSE, &client->fp, vtp);
-  client->fp.vtp = &client->vtp;
+  if (vtp)
+    {
+      memcpy(&client->vtp, vtp, sizeof(struct vt_page));
+      fmt_page(FALSE, &client->fp, vtp, 25);
+      client->fp.vtp = &client->vtp;
+      vbi_draw_page(&client->fp,
+		    gdk_pixbuf_get_pixels(client->unscaled));
+    }
+  else
+    {
+      memset(&client->vtp, 0, sizeof(struct vt_page));
+      memset(&client->fp, 0, sizeof(struct fmt_page));
+      client->fp.vtp = &client->vtp;
+      filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
+				 "../pixmaps/zapping/vt_loading",
+				 (rand()%2)+1);
   
-  vbi_draw_page(&client->fp, gdk_pixbuf_get_pixels(client->unscaled));
+      simple = gdk_pixbuf_new_from_file(filename);
+      g_free(filename);
+      if (simple)
+	{
+	  gdk_pixbuf_scale(simple,
+			   client->unscaled, 0, 0,
+			   gdk_pixbuf_get_width(client->unscaled),
+			   gdk_pixbuf_get_height(client->unscaled),
+			   0, 0,
+			   (double)
+			   gdk_pixbuf_get_width(client->unscaled) /
+			   gdk_pixbuf_get_width(simple),
+			   (double)
+			   gdk_pixbuf_get_height(client->unscaled) /
+			   gdk_pixbuf_get_height(simple),
+			   INTERP_MODE);
+	  gdk_pixbuf_unref(simple);
+	}
+    }
 
   if ((!client->scaled) &&
       (client->w > 0) &&
@@ -413,14 +446,20 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
     {
       client->page = page;
       client->subpage = subpage;
-      if (vbi->cache) {
-	cached = vbi->cache->op->get(vbi->cache, page, subpage, 0xFFFF);
-	if (cached)
-	  {
-	    build_client_page(client, cached);
-	    clear_message_queue(client);
-	    send_ttx_message(client, TTX_PAGE_RECEIVED);
-	  }
+      if ((page >= 0x100) && (page <= 0x899)) {
+	if (vbi->cache) {
+	  cached = vbi->cache->op->get(vbi->cache, page, subpage, 0xFFFF);
+	  if (cached)
+	    {
+	      build_client_page(client, cached);
+	      clear_message_queue(client);
+	      send_ttx_message(client, TTX_PAGE_RECEIVED);
+	    }
+	}
+      } else {
+	build_client_page(client, NULL);
+	clear_message_queue(client);
+	send_ttx_message(client, TTX_PAGE_RECEIVED);
       }
     }
   pthread_mutex_unlock(&clients_mutex);
@@ -439,7 +478,7 @@ get_ttx_index(int id, int *pgno, int *subno)
     {
       *pgno = client->vtp.data.lop.link[5].pgno;
       *subno = client->vtp.data.lop.link[5].subno;
-      if ((*pgno & 0xff) == 0xff)
+      if (((*pgno & 0xff) == 0xff) || (*pgno < 0x100) || (*pgno > 0x899))
 	{
 	  *pgno = vbi->initial_page.pgno;
 	  *subno = vbi->initial_page.subno;
@@ -786,7 +825,7 @@ zvbi_format_page(gint page, gint subpage, gboolean reveal,
 
   zvbi_set_page_state(vtp->pgno, vtp->subno, FALSE, time(NULL));
 
-  fmt_page(reveal, pg, vtp);
+  fmt_page(reveal, pg, vtp, 25);
 
   return TRUE;
 }
@@ -1020,7 +1059,7 @@ zvbi_render_monitored_page(struct vt_page * vtp)
 	{
 	  pthread_mutex_lock(&(mp->mutex));
 	  memcpy(&(mp->vtp), vtp, sizeof(struct vt_page));
-	  fmt_page(FALSE, &(mp->pg), &(mp->vtp));
+	  fmt_page(FALSE, &(mp->pg), &(mp->vtp), 25);
 	  if (mp->mem)
 	    free(mp->mem);
 	  mp->mem = zvbi_render_page_rgba(&(mp->pg), &(mp->width),
