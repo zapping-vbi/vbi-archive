@@ -712,8 +712,7 @@ add				(GnomeDialog	*dialog)
     { N_("VBI Options"), vbi_options, acount(vbi_options) }
   };
 
-  standard_properties_add(dialog, groups, acount(groups),
-			  PACKAGE_DATA_DIR "/zapping.glade");
+  standard_properties_add(dialog, groups, acount(groups), "zapping.glade");
 }
 
 void startup_properties_handler(void)

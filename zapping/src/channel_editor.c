@@ -691,7 +691,7 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
       return;
     }
 
-  channel_editor = create_widget("channel_editor");
+  channel_editor = build_widget("channel_editor", NULL);
   country_options_menu = lookup_widget(channel_editor,
 				       "country_options_menu");
 
@@ -1497,7 +1497,7 @@ on_channel_search_clicked              (GtkButton       *button,
       return;
     }
 
-  searching = create_searching();
+  searching = build_widget("searching", NULL);
   progress = lookup_widget(searching, "progressbar1");
 
   gtk_progress_set_percentage(GTK_PROGRESS(progress), 0.0);

@@ -50,7 +50,7 @@ static GtkWidget *create_console	(void)
   if (ec)
     return ec;
 
-  ec = create_widget("error_console");
+  ec = build_widget("error_console", NULL);
 
   gnome_dialog_close_hides(GNOME_DIALOG(ec), TRUE);
   gnome_dialog_set_default(GNOME_DIALOG(ec), 0);

@@ -60,7 +60,7 @@ on_plugins1_activate                   (GtkMenuItem     *menuitem,
 
   gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
 
-  plugin_properties = create_plugin_properties();
+  plugin_properties = build_widget("plugin_properties", NULL);
 
   /* So the menuitem can be set sensitive again */
   gtk_object_set_user_data(GTK_OBJECT(plugin_properties),

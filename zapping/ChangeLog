@@ -1,3 +1,37 @@
+29.05.2002	<mschimek@users.sf.net>
+
+	* plugins/mpeg: Finished changes for rte 0.5 (still compiles with
+	  rte 0.4).
+
+28.05.2002	<mschimek@users.sf.net>
+
+	* src/zmisc.c, src/zmisc.h: Added set_sensitive_with_tooltips(),
+	  made find_unused_name() more flexible.
+	* plugins/screenshot/screenshot.c: Disabled widgets explain
+	  why... doesn't seem to work. :-(
+
+25.05.2002	<mschimek@users.sf.net>
+
+	* src/properties.c, src/properties.h: Added handler cancel
+	  function.
+	* src/interface.c: Modified build_widget() semantics to get
+	  rid of hardcoded PACKAGE_DATA_DIR.
+
+24.05.2002	<mschimek@users.sf.net>
+
+	* src/zmisc.c, src/zmisc.h: Added z_load_pixmap() (simplification
+	  and less instances of PACKAGE_PIXMAP_DIR), replaced
+	  old pixmap from file creation code.
+	* src/interface.c, src/properties.c, src/lirc.c: Replaced
+	  old pixmap from file creation code.
+	* src/ttxview.c, src/zvbi.c: Replaced old pixmap/pixbuf
+	  from file creation code.
+
+20.05.2002	<mschimek@users.sf.net>
+
+	* configure.in: Now inherits CFLAGS from environment, modified
+	  clean.pl to retain argument order.
+
 17.04.2002	<mschimek@users.sf.net>
 
 	* plugins/mpeg/mpeg.c: Some work towards the new recording

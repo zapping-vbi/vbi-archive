@@ -30,22 +30,13 @@ register_widget(GtkWidget * widget, const char * name);
 void
 change_toolbar_style (GtkWidget *widget, int style);
 
-/*
- * Loads a GtkWidget from zapping.glade. All the memory is freed when
- * the object (widget) is destroyed. If name is NULL, all widgets are
- * loaded, but this is not recommended.
- */
-GtkWidget*
-build_widget(const char* name, const char* glade_file);
+extern GtkWidget *
+build_widget(const gchar* name, const gchar* file);
 GtkWidget* create_zapping (void);
-GtkWidget* create_zapping_properties (void);
+//GtkWidget* create_zapping_properties (void);
 GtkWidget* create_about2 (void);
-GtkWidget* create_plugin_properties (void);
+//GtkWidget* create_plugin_properties (void);
 GtkWidget* create_popup_menu1 (void);
-GtkWidget* create_searching (void);
-GtkWidget* create_txtcontrols (void);
-GtkWidget* create_ttxview (void);
-GtkWidget* create_ttxview_popup (void);
-GtkWidget* create_prompt (void);
-GtkWidget* create_widget (const gchar *name);
+//GtkWidget* create_searching (void);
+//GtkWidget* create_txtcontrols (void);
 #endif

@@ -93,34 +93,36 @@ extern void plugin_add_key				(const gchar *	canonical_name,
 gint plugin_get_protocol (void);
 gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr);
 
-static gboolean plugin_running ( void ) __attribute__ ((unused));
+#define UNUSED __attribute__ ((unused))
+
+static gboolean plugin_running ( void ) UNUSED;
 static
 void plugin_get_info ( const gchar ** canonical_name,
 		       const gchar ** descriptive_name,
 		       const gchar ** description,
 		       const gchar ** short_description,
 		       const gchar ** author,
-		       const gchar ** version ) __attribute__ ((unused)) ;
+		       const gchar ** version ) UNUSED ;
 static
-gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info ) __attribute__ ((unused)) ;
-static void plugin_close( void ) __attribute__ ((unused)) ;
-static gboolean plugin_start ( void ) __attribute__ ((unused)) ;
-static void plugin_stop( void ) __attribute__ ((unused)) ;
-static void plugin_load_config ( gchar * root_key ) __attribute__ ((unused)) ;
-static void plugin_save_config ( gchar * root_key ) __attribute__ ((unused)) ;
-static void plugin_write_bundle( capture_bundle * bundle ) __attribute__ ((unused)) ;
-static void plugin_read_bundle( capture_bundle * bundle ) __attribute__ ((unused)) ;
-static void plugin_capture_stop( void ) __attribute__ ((unused)) ;
+gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info ) UNUSED ;
+static void plugin_close( void ) UNUSED ;
+static gboolean plugin_start ( void ) UNUSED ;
+static void plugin_stop( void ) UNUSED ;
+static void plugin_load_config ( gchar * root_key ) UNUSED ;
+static void plugin_save_config ( gchar * root_key ) UNUSED ;
+static void plugin_write_bundle( capture_bundle * bundle ) UNUSED ;
+static void plugin_read_bundle( capture_bundle * bundle ) UNUSED ;
+static void plugin_capture_stop( void ) UNUSED ;
 static
 gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
 				 symbol, gchar ** description, gchar **
-				 type, gint * hash) __attribute__ ((unused)) ;
-static void plugin_add_gui ( GnomeApp * app ) __attribute__ ((unused)) ;
-static void plugin_remove_gui ( GnomeApp * app ) __attribute__ ((unused)) ;
-static struct plugin_misc_info * plugin_get_misc_info ( void ) __attribute__ ((unused)) ;
+				 type, gint * hash) UNUSED ;
+static void plugin_add_gui ( GnomeApp * app ) UNUSED ;
+static void plugin_remove_gui ( GnomeApp * app ) UNUSED ;
+static struct plugin_misc_info * plugin_get_misc_info ( void ) UNUSED ;
 static void plugin_process_popup_menu ( GtkWidget *window,
 					GdkEventButton *button,
-					GtkMenu *popup) __attribute__ ((unused));
+					GtkMenu *popup) UNUSED;
 
 /* This macro if for your convenience, it symplifies adding symbols */
 #define SYMBOL(symbol, hash) \

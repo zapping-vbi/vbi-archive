@@ -1,7 +1,5 @@
 Outstanding issues for the next release (0.6.5)
 -----------------------------------------------
-> Somewhen...
-	+ RTE 0.5 interface.
 	+ Video standard question.
 	+ Improve documentation.
 	+ Switching subtitles on/off needs improvement.
@@ -39,13 +37,10 @@ Outstanding issues for the next release (0.6.5)
 	+ Mpeg plugin/mp1e very low frame rate interrupts display,
 	  probably a scheduling issue. Investigate if/how this can be avoided.
 	+ Examine the possiblity of linking movie titles, VBI plugin API.
-	+ Screenshot plugin: Add tooltip explaining why deinterlace is
-	  deactivated.
 	+ Deinterlace plugin.
 	+ iodiag module.
 
 Please tell me about anything you think is worth adding:
 
-  mailto:zapping-misc@lists.sourceforge.net
-
-
+    http://sourceforge.net/tracker/?func=add&group_id=2599&atid=352599
+or  mailto:zapping-misc@lists.sourceforge.net

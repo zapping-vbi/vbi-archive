@@ -416,8 +416,7 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
   if (!gpb)
     return TRUE;
 
-  vbox1 =
-    build_widget("vbox1", PACKAGE_DATA_DIR "/parrot.glade");
+  vbox1 = build_widget("vbox1", "parrot.glade");
   update_size_estimation(lookup_widget(vbox1, "size_estimation"), num_bundles);
   nbundles = lookup_widget(vbox1, "nbundles");
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(nbundles), num_bundles);

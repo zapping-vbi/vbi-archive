@@ -307,8 +307,7 @@ add				(GnomeDialog	*dialog)
     { N_("General Options"), general_options, acount(general_options) }
   };
 
-  standard_properties_add(dialog, groups, acount(groups),
-			  PACKAGE_DATA_DIR "/zapping.glade");
+  standard_properties_add(dialog, groups, acount(groups), "zapping.glade");
 }
 
 static gboolean

@@ -360,7 +360,7 @@ on_key_table_clicked			(GtkWidget *	w,
 					 gpointer	user_data)
 {
   struct z_key_entry *ke = user_data;
-  GtkWidget *dialog = create_widget("choose_key");
+  GtkWidget *dialog = build_widget("choose_key", NULL);
   GtkWidget *key_clist = lookup_widget(dialog, "key_clist");
   gchar *name, *tmp[1];
   gint i, selected = -1;
@@ -811,8 +811,7 @@ add				(GnomeDialog *		dialog)
     { N_("General Options"), general_options, acount (general_options) }
   };
 
-  standard_properties_add (dialog, groups, acount (groups),
-			   PACKAGE_DATA_DIR "/zapping.glade");
+  standard_properties_add (dialog, groups, acount (groups), "zapping.glade");
 }
 
 void

@@ -322,12 +322,22 @@ custom_properties_add		(GnomeDialog	*dialog,
 
       for (j = 0; j<groups[i].num_items; j++)
 	{
-	  const gchar *icon_name = groups[i].items[j].icon_name;
-	  gchar *pixmap_path = (groups[i].items[j].icon_source ==
-				ICON_ZAPPING) ?
-	    g_strdup_printf("%s/%s", PACKAGE_PIXMAPS_DIR, icon_name) :
-	    g_strdup(gnome_pixmap_file(icon_name)); /* FIXME: leak?? */
-	  GtkWidget *pixmap = z_pixmap_new_from_file(pixmap_path);
+	  GtkWidget *pixmap;
+
+	  if (groups[i].items[j].icon_source ==	ICON_ZAPPING)
+	    {
+	      pixmap = z_load_pixmap (groups[i].items[j].icon_name);
+	    }
+	  else
+	    {
+	      gchar *pixmap_path = g_strdup (gnome_pixmap_file
+	      	(groups[i].items[j].icon_name)); /* FIXME: leak?? */
+
+	      pixmap = z_pixmap_new_from_file (pixmap_path);
+
+	      g_free (pixmap_path);
+	    }
+
 	  GtkWidget *page = gtk_vbox_new(FALSE, 15);
 
 	  gtk_object_set_data(GTK_OBJECT(page), "apply",
@@ -341,8 +351,6 @@ custom_properties_add		(GnomeDialog	*dialog,
 
 	  create_lirc_properties(page);
 	  add_actions_to_list();
-
-	  g_free(pixmap_path);
 	}
     }
 }
