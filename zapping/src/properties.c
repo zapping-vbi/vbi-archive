@@ -16,8 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
-  Handles the property dialog. This was previously in callbacks.c, but
-  it was getting too big, so I moved the code here.
+  This is just the properties "shell" code, that is, the code that
+  manages the dialog.
+  To see the code that manages the properties themselves, look at
+  properties-handler.c
 */
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -25,28 +27,34 @@
 
 #include <gnome.h>
 
-/* Manages config values for zconf (it saves me some typing) */
-#define ZCONF_DOMAIN "/zapping/internal/callbacks/"
-
-#include "tveng.h"
 #include "callbacks.h"
 #include "interface.h"
-#include "v4linterface.h"
 #include "properties.h"
-#include "zconf.h"
-#include "zvbi.h"
 #include "zmisc.h"
-#include "osd.h"
 
-extern tveng_device_info * main_info; /* About the device we are using */
 extern GtkWidget * main_window;
 
-/* Signals that the given page has been modified */
+static GnomeDialog *PropertiesDialog = NULL; /* Only you.. */
+static property_handler2 *handlers = NULL;
+static gint num_handlers = 0;
+
+/**
+ * Signals that the given page has been modified, mark the page as
+ * dirty and set Apply sensitive.
+ */
 static void
 page_modified			(GnomeDialog	*dialog,
 				 gint		page_id)
 {
-  g_message("modify!!");
+  GtkNotebook *notebook = GTK_NOTEBOOK
+    (lookup_widget(GTK_WIDGET(dialog), "notebook"));
+  GtkWidget *page = gtk_notebook_get_nth_page(notebook, page_id);
+
+  gtk_object_set_data(GTK_OBJECT(page), "properties-dirty",
+		      GINT_TO_POINTER(TRUE));
+
+  gtk_widget_set_sensitive(lookup_widget(GTK_WIDGET(dialog), "apply"),
+			   TRUE);
 }
 
 static void
@@ -156,6 +164,13 @@ autoconnect_modify		(GnomeDialog	*dialog,
   gtk_object_set_data(GTK_OBJECT(widget), "modify_page_dialog", dialog);
 }
 
+/**
+ * Note that the structure is
+ * + nsbutton (type = gtk_radio_button, descendant of gtk_button)
+ * + group button (type gtk_button)
+ *   + group contents (packed in a vbox)
+ * This explains the -1, +2 etc magic.
+ */
 static void
 find_selected_group		(GtkWidget	*widget,
 				 gint		*group)
@@ -167,7 +182,8 @@ find_selected_group		(GtkWidget	*widget,
     return; /* Nothing to be done for buttons */
 
   if (GTK_WIDGET_VISIBLE(widget))
-    *group = g_list_index(gtk_container_children(group_container), widget)/2;
+    *group =
+      (g_list_index(gtk_container_children(group_container), widget)-1)/2;
 }
 
 /* Gets the currently selected group and item, or sets to -1 both
@@ -194,7 +210,7 @@ get_cur_sel			(GtkWidget	*dialog,
   
   group_widget = GTK_WIDGET
     (g_list_nth_data(gtk_container_children(group_container),
-		     2*(*group) + 1));
+		     2*(*group) + 2));
   group_list = gtk_object_get_data(GTK_OBJECT(group_widget), "group_list");
 
   while (group_list)
@@ -206,13 +222,35 @@ get_cur_sel			(GtkWidget	*dialog,
     }
 
   /* For some weird reason the group list is reversed ?!?!?! */
-  *item = count - (*item + 1);
+  *item = count - *item;
+}
+
+static void
+generic_apply			(GnomeDialog	*dialog)
+{
+  gint i = 0;
+  GtkWidget *page;
+  GtkNotebook *notebook =
+    GTK_NOTEBOOK(lookup_widget(GTK_WIDGET(dialog), "notebook"));
+
+  while ((page = gtk_notebook_get_nth_page(notebook, i++)))
+    if (gtk_object_get_data(GTK_OBJECT(page), "properties-dirty"))
+      {
+	property_handler2 *handler = (property_handler2*)
+	  gtk_object_get_data(GTK_OBJECT(page), "property-handler");
+
+	handler->apply(dialog, page);
+
+	gtk_object_set_data(GTK_OBJECT(page), "properties-dirty", NULL);
+      }
 }
 
 static void
 on_properties_ok_clicked	(GtkWidget	*button,
 				 GnomeDialog	*dialog)
 {
+  generic_apply(dialog);
+
   gnome_dialog_close(dialog);
 }
 
@@ -220,7 +258,9 @@ static void
 on_properties_apply_clicked	(GtkWidget	*button,
 				 GnomeDialog	*dialog)
 {
-  gtk_signal_emit_stop_by_name(GTK_OBJECT(button), "clicked");
+  gtk_widget_set_sensitive(button, FALSE);
+
+  generic_apply(dialog);
 }
 
 static void
@@ -234,55 +274,31 @@ static void
 on_properties_help_clicked	(GtkWidget	*button,
 				 GnomeDialog	*dialog)
 {
+  GtkNotebook *notebook = GTK_NOTEBOOK(lookup_widget(button, "notebook"));
+  gint cur_page = gtk_notebook_current_page(notebook);
+  GtkWidget *page = gtk_notebook_get_nth_page(notebook, cur_page);
+  property_handler2 *handler = (property_handler2*)
+    gtk_object_get_data(GTK_OBJECT(page), "property-handler");
+
+  if (!handler)
+    {
+      /* All pages must have a handler except the first (Z logo) */
+      g_assert(cur_page == 0);
+      return;
+    }
+
+  handler->help(dialog, page);
 }
 
 static gint
 on_properties_close		(GnomeDialog	*dialog,
-				 gpointer	unused)
+				 GtkWidget	*menuitem)
 {
+  gtk_widget_set_sensitive(menuitem, TRUE);
+
+  PropertiesDialog = NULL;
+
   return FALSE; /* done */
-}
-
-static void
-show_hide_foreach		(GtkWidget	*widget,
-				 GtkWidget	*show)
-{
-  if (GTK_IS_BUTTON(widget))
-    return; /* Nothing to be done for buttons */
-
-  if (widget == show)
-    gtk_widget_show(widget);
-  else
-    gtk_widget_hide(widget);
-}
-
-static void
-open_properties_group		(GtkWidget	*dialog,
-				 const gchar	*group)
-{
-  gchar *buf = g_strdup_printf("group-contents-%s", group);
-  GtkWidget *contents = lookup_widget(dialog, buf);
-  GtkContainer *group_container = GTK_CONTAINER
-    (lookup_widget(dialog, "group-container"));
-  gint cur_group, cur_item;
-
-  /* If the current selection is in a different group, switch and
-     select the hidden toggle */
-  get_cur_sel(dialog, &cur_group, &cur_item);
-
-  if (cur_group == -1 ||
-      GTK_WIDGET
-      (g_list_nth_data(gtk_container_children(group_container),
-		       2*cur_group + 1)) != contents)
-  {
-    gtk_button_clicked(GTK_BUTTON(gtk_object_get_data(GTK_OBJECT(contents),
-						      "nsbutton")));
-    gtk_container_foreach(GTK_CONTAINER(group_container),
-			  GTK_SIGNAL_FUNC(show_hide_foreach),
-			  contents);
-  }
-
-  g_free(buf);
 }
 
 /**
@@ -306,44 +322,53 @@ ensure_width			(GtkWidget	*widget,
     }
 }
 
+/**
+ * Connected to containers in the sidebar. Makes sure that there's
+ * enough room for displaying everything without resizes.
+ * @container: The container being populated.
+ * @widget: The widget being added.
+ * @sidebar: Pointer to the sidebar we are managing.
+ */
 static void
-append_properties_group		(GnomeDialog	*dialog,
-				 const gchar	*group)
+on_container_add		(GtkWidget	*container,
+				 GtkWidget	*widget,
+				 GtkWidget	*sidebar)
 {
-  GtkWidget *button;
-  GtkWidget *vbox = lookup_widget(GTK_WIDGET(dialog), "group-container");
-  GtkWidget *contents;
-  gchar *buf;
-  GtkWidget *nsbutton;
+  GtkRequisition request;
+  /* Sum of all the buttons height up to now */
+  gint req_button_height = GPOINTER_TO_INT
+    (gtk_object_get_data(GTK_OBJECT(sidebar), "req_button_height"));
+  /* Biggest subgroup allocated */
+  gint req_max_height = GPOINTER_TO_INT
+    (gtk_object_get_data(GTK_OBJECT(sidebar), "req_max_height"));
 
-  buf = g_strdup_printf("group-button-%s", group);
-  if (find_widget(GTK_WIDGET(dialog), buf))
-    g_error("A group named %s already exists in this dialog", buf);
+  /* Adding a new group */
+  if (container == sidebar && GTK_IS_BUTTON(widget))
+    {
+      gtk_widget_size_request(widget, &request);
 
-  button = gtk_button_new_with_label(group);
-  gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
-  gtk_widget_show(button);
-  register_widget(button, buf);
-  gtk_signal_connect(GTK_OBJECT(button), "clicked",
-		     GTK_SIGNAL_FUNC(open_properties_group),
-		     (gpointer)group);
-  ensure_width(button, vbox);
+      req_button_height += request.height;
+      gtk_object_set_data(GTK_OBJECT(sidebar), "req_button_height",
+			  GINT_TO_POINTER(req_button_height));
+      gtk_widget_set_usize(sidebar, -2, req_button_height + req_max_height);
+    }
+  /* Adding a new item to a group */
+  else if (GTK_IS_BUTTON(widget))
+    {
+      /* Get size request for the parent container */
+      gtk_widget_size_request(container, &request);
 
-  g_free(buf);
+      if (req_max_height < request.height)
+	{
+	  req_max_height = request.height;
+	  gtk_object_set_data(GTK_OBJECT(sidebar), "req_max_height",
+			      GINT_TO_POINTER(req_max_height));
+	  gtk_widget_set_usize(sidebar, -2, req_button_height +
+			       req_max_height);
+	}
+    }
 
-  buf = g_strdup_printf("group-contents-%s", group);
-  contents = gtk_vbox_new(FALSE, 0);
-  gtk_box_pack_start_defaults(GTK_BOX(vbox), contents);
-  /* Note that we don't show() contents */
-  register_widget(contents, buf);
-  g_free(buf);
-
-  /* Add the nothing selected button */
-  nsbutton = gtk_radio_button_new(NULL);
-  gtk_box_pack_start(GTK_BOX(contents), nsbutton, FALSE, TRUE, 0);
-  gtk_object_set_data(GTK_OBJECT(contents), "group_list",
-		      gtk_radio_button_group(GTK_RADIO_BUTTON(nsbutton)));
-  gtk_object_set_data(GTK_OBJECT(contents), "nsbutton", nsbutton);
+  ensure_width(widget, sidebar);  
 }
 
 static void
@@ -358,129 +383,6 @@ on_radio_toggled		(GtkWidget	*selector,
 }
 
 static void
-append_properties_page		(GnomeDialog	*dialog,
-				 const gchar	*group,
-				 const gchar	*label,
-				 GtkWidget	*pixmap,
-				 GtkWidget	*page)
-{
-  gchar *buf = g_strdup_printf("group-contents-%s", group);
-  GtkWidget *contents = lookup_widget(GTK_WIDGET(dialog), buf);
-  GtkWidget *radio;
-  GSList *group_list = gtk_object_get_data(GTK_OBJECT(contents),
-					   "group_list");
-  GtkWidget *notebook = lookup_widget(GTK_WIDGET(dialog), "notebook");
-  GtkWidget *container = lookup_widget(contents, "group-container");
-  GtkWidget *vbox;
-  GtkWidget *label_widget;
-  guint page_id;
-
-  radio = gtk_radio_button_new(group_list);
-  gtk_toggle_button_set_mode(GTK_TOGGLE_BUTTON(radio), FALSE);
-  gtk_box_pack_start(GTK_BOX(contents), radio, FALSE, TRUE, 0);
-  gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new(""));
-  page_id = gtk_notebook_page_num(GTK_NOTEBOOK(notebook), page);
-  autoconnect_modify(dialog, page, page_id);
-
-  gtk_signal_connect(GTK_OBJECT(radio), "toggled",
-		     GTK_SIGNAL_FUNC(on_radio_toggled),
-		     GINT_TO_POINTER(page_id));
-
-  group_list = gtk_radio_button_group(GTK_RADIO_BUTTON(radio));
-  gtk_object_set_data(GTK_OBJECT(contents), "group_list", group_list);
-
-  vbox = gtk_vbox_new(FALSE, 0);
-  gtk_container_add(GTK_CONTAINER(radio), vbox);
-  if (pixmap)
-    gtk_box_pack_start_defaults(GTK_BOX(vbox), pixmap);
-  label_widget = gtk_label_new(label);
-  gtk_box_pack_start_defaults(GTK_BOX(vbox), label_widget);
-
-  gtk_button_set_relief(GTK_BUTTON(radio), GTK_RELIEF_NONE);
-
-  gtk_widget_show_all(radio);
-
-  ensure_width(radio, container);
-}
-
-typedef struct {
-  /* Label for the entry */
-  const gchar	*label;
-  /* Source of the icon (we use both GNOME and Z icons for the moment) */
-  enum {
-    ICON_ZAPPING,
-    ICON_GNOME
-  } icon_source;
-  const gchar	*icon_name; /* relative to PACKAGE_PIXMAPS_DIR or
-			       gnome_pixmap_file */
-  const gchar	*widget; /* Notebook page to use (must be in zapping.glade) */
-} SidebarEntry;
-
-typedef struct {
-  /* Label */
-  const gchar	*label;
-  /* Contents of the group */
-  SidebarEntry	*items;
-  /* Number of entries in the group */
-  gint num_items;
-} SidebarGroup;
-
-#ifndef acount
-#define acount(x) ((sizeof(x))/(sizeof(x[0])))
-#else
-#warning "Redefining acount"
-#endif
-
-static void
-populate_sidebar		(GnomeDialog	*dialog)
-{
-  SidebarEntry device_info[] = {
-    { N_("Device Info"), ICON_GNOME, "gnome-info.png", "vbox9" }
-  };
-  SidebarEntry general_options[] = {
-    { N_("Main Window"), ICON_GNOME, "gnome-session.png", "vbox35" },
-    { N_("Video"), ICON_ZAPPING, "gnome-television.png", "vbox36" },
-    { N_("Audio"), ICON_GNOME, "gnome-grecord.png", "vbox39" },
-    { N_("OSD"), ICON_GNOME, "gnome-oscilloscope.png", "vbox37" }
-  };
-  SidebarEntry vbi_options[] = {
-    { N_("General"), ICON_GNOME, "gnome-monitor.png", "vbox17" },
-    { N_("Interactive TV"), ICON_GNOME, "gnome-monitor.png", "vbox33" }
-  };
-  SidebarGroup groups[] = {
-    { N_("Device Info"), device_info, acount(device_info) },
-    { N_("General Options"), general_options, acount(general_options) },
-    { N_("VBI Options"), vbi_options, acount(vbi_options) }
-  };
-  gint i, j;
-
-  for (i = 0; i<acount(groups); i++)
-    {
-      append_properties_group(dialog, _(groups[i].label));
-
-      for (j = 0; j<groups[i].num_items; j++)
-	{
-	  const gchar *icon_name = groups[i].items[j].icon_name;
-	  gchar *pixmap_path = (groups[i].items[j].icon_source ==
-				ICON_ZAPPING) ?
-	    g_strdup_printf("%s/%s", PACKAGE_PIXMAPS_DIR, icon_name) :
-	    g_strdup(gnome_pixmap_file(icon_name)); /* FIXME: leak?? */
-	  GtkWidget *pixmap = z_pixmap_new_from_file(pixmap_path);
-	  GtkWidget *page = build_widget(groups[i].items[j].widget,
-					 PACKAGE_DATA_DIR "/zapping.glade");
-
-	  append_properties_page(dialog, _(groups[i].label),
-				 _(groups[i].items[j].label),
-				 pixmap, page);
-
-	  g_free(pixmap_path);
-	}
-    }
-
-  open_properties_group(GTK_WIDGET(dialog), _("General Options"));
-}
-
-static void
 build_properties_contents	(GnomeDialog	*dialog)
 {
   GtkWidget *hbox;
@@ -488,6 +390,8 @@ build_properties_contents	(GnomeDialog	*dialog)
   GtkNotebook *notebook;
   GtkWidget *vbox;
   GtkWidget *logo;
+  GtkWidget *nsbutton;
+  gint i, page_count = 0;
 
   hbox = gtk_hbox_new(FALSE, 3);
   gtk_box_pack_start_defaults(GTK_BOX(dialog->vbox), hbox);
@@ -497,10 +401,6 @@ build_properties_contents	(GnomeDialog	*dialog)
   vbox = gtk_vbox_new(FALSE, 0);
   gtk_container_add(GTK_CONTAINER(frame), vbox);
   register_widget(vbox, "group-container");
-
-  /* Set the minimum height to something usable */
-  /* FIXME: something in the line of ensure_width would be better */
-  gtk_widget_set_usize(frame, -2, 400);
 
   /* Create a notebook for holding the pages. Note that we don't rely
      on any of the notebook's features, we select the active page
@@ -519,11 +419,32 @@ build_properties_contents	(GnomeDialog	*dialog)
     {
       gtk_widget_show(logo);
       gtk_notebook_append_page(notebook, logo, gtk_label_new(""));
+      page_count ++; /* No handler for this page */
     }
 
   gtk_widget_show_all(hbox);
 
-  populate_sidebar(dialog);
+  /* Add the nothing selected button */
+  nsbutton = gtk_radio_button_new(NULL);
+  gtk_box_pack_start(GTK_BOX(vbox), nsbutton, FALSE, TRUE, 0);
+  gtk_object_set_data(GTK_OBJECT(vbox), "group_list",
+		      gtk_radio_button_group(GTK_RADIO_BUTTON(nsbutton)));
+
+  /* Make the widget adapt itself to fit all added items/groups */
+  gtk_signal_connect(GTK_OBJECT(vbox), "add",
+		     GTK_SIGNAL_FUNC(on_container_add),
+		     vbox);
+
+  /* Make property handlers build their pages */
+  for (i = 0; i<num_handlers; i++)
+    {
+      GtkWidget *page;
+      handlers[i].add(dialog);
+      while ((page = gtk_notebook_get_nth_page(notebook, page_count++)))
+	gtk_object_set_data(GTK_OBJECT(page), "property-handler",
+				       handlers + i);
+      page_count--;
+    }
 }
 
 void
@@ -531,9 +452,12 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
   GnomeDialog *dialog;
+  GtkWidget *apply_button;
   enum {
     OK_ID, APPLY_ID, CANCEL_ID, HELP_ID
   };
+
+  g_assert(PropertiesDialog == NULL);
 
   dialog = GNOME_DIALOG(gnome_dialog_new(_("Zapping Properties"),
 					 GNOME_STOCK_BUTTON_OK,
@@ -541,6 +465,12 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 					 GNOME_STOCK_BUTTON_CANCEL,
 					 GNOME_STOCK_BUTTON_HELP,
 					 NULL));
+
+  /* We need this later on */
+  apply_button = GTK_WIDGET(g_list_nth_data(dialog->buttons, APPLY_ID));
+  register_widget(apply_button, "apply");
+
+  gtk_widget_set_sensitive(apply_button, FALSE);
 
   gtk_window_set_policy(GTK_WINDOW(dialog), FALSE, TRUE, FALSE);
 
@@ -551,10 +481,11 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
   gnome_dialog_close_hides(dialog, FALSE); /* destroy on close */
   gnome_dialog_set_close(dialog, FALSE);
 
-  /* callbacks */
+  /* Connect the appropiate callbacks */
+  gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
   gtk_signal_connect(GTK_OBJECT(dialog), "close",
 		     GTK_SIGNAL_FUNC(on_properties_close),
-		     dialog);
+		     menuitem);
   gnome_dialog_button_connect(dialog, OK_ID,
 			      GTK_SIGNAL_FUNC(on_properties_ok_clicked),
 			      dialog);
@@ -568,15 +499,133 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 			      GTK_SIGNAL_FUNC(on_properties_help_clicked),
 			      dialog);
 
-  gnome_dialog_run_and_close(dialog);
+  PropertiesDialog = dialog;
+
+  gtk_widget_show(GTK_WIDGET(dialog));
 }
 
-static property_handler *handlers = NULL;
-static gint num_handlers = 0;
+void
+append_properties_group		(GnomeDialog	*dialog,
+				 const gchar	*group)
+{
+  GtkWidget *button;
+  GtkWidget *vbox = lookup_widget(GTK_WIDGET(dialog), "group-container");
+  GtkWidget *contents;
+  gchar *buf;
 
-void register_properties_handler (property_handler *p)
+  buf = g_strdup_printf("group-button-%s", group);
+  if (find_widget(GTK_WIDGET(dialog), buf))
+    g_error("A group named %s already exists in this dialog", buf);
+
+  button = gtk_button_new_with_label(group);
+  gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
+  gtk_widget_show(button);
+  register_widget(button, buf);
+  gtk_signal_connect(GTK_OBJECT(button), "clicked",
+		     GTK_SIGNAL_FUNC(open_properties_group),
+		     (gpointer)group);
+  g_free(buf);
+
+  buf = g_strdup_printf("group-contents-%s", group);
+  contents = gtk_vbox_new(FALSE, 0);
+  gtk_box_pack_start_defaults(GTK_BOX(vbox), contents);
+  /* Note that we don't show() contents */
+  register_widget(contents, buf);
+  gtk_signal_connect(GTK_OBJECT(contents), "add",
+		     GTK_SIGNAL_FUNC(on_container_add),
+		     vbox);
+  g_free(buf);
+}
+
+void
+append_properties_page		(GnomeDialog	*dialog,
+				 const gchar	*group,
+				 const gchar	*label,
+				 GtkWidget	*pixmap,
+				 GtkWidget	*page)
+{
+  gchar *buf = g_strdup_printf("group-contents-%s", group);
+  GtkWidget *contents = lookup_widget(GTK_WIDGET(dialog), buf);
+  GtkWidget *radio;
+  GtkWidget *container = lookup_widget(contents, "group-container");
+  GSList *group_list = gtk_object_get_data(GTK_OBJECT(container),
+					   "group_list");
+  GtkWidget *notebook = lookup_widget(GTK_WIDGET(dialog), "notebook");
+  GtkWidget *vbox;
+  GtkWidget *label_widget;
+  guint page_id;
+
+  radio = gtk_radio_button_new(group_list);
+  gtk_toggle_button_set_mode(GTK_TOGGLE_BUTTON(radio), FALSE);
+  gtk_box_pack_start(GTK_BOX(contents), radio, FALSE, TRUE, 0);
+  gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new(""));
+  page_id = gtk_notebook_page_num(GTK_NOTEBOOK(notebook), page);
+  autoconnect_modify(dialog, page, page_id);
+
+  gtk_signal_connect(GTK_OBJECT(radio), "toggled",
+		     GTK_SIGNAL_FUNC(on_radio_toggled),
+		     GINT_TO_POINTER(page_id));
+
+  group_list = gtk_radio_button_group(GTK_RADIO_BUTTON(radio));
+  gtk_object_set_data(GTK_OBJECT(container), "group_list", group_list);
+
+  vbox = gtk_vbox_new(FALSE, 0);
+  gtk_container_add(GTK_CONTAINER(radio), vbox);
+  if (pixmap)
+    gtk_box_pack_start_defaults(GTK_BOX(vbox), pixmap);
+  label_widget = gtk_label_new(label);
+  gtk_box_pack_start_defaults(GTK_BOX(vbox), label_widget);
+
+  gtk_button_set_relief(GTK_BUTTON(radio), GTK_RELIEF_NONE);
+
+  gtk_widget_show_all(radio);
+}
+
+static void
+show_hide_foreach		(GtkWidget	*widget,
+				 GtkWidget	*show)
+{
+  if (GTK_IS_BUTTON(widget))
+    return; /* Nothing to be done for buttons */
+
+  if (widget == show)
+    gtk_widget_show(widget);
+  else
+    gtk_widget_hide(widget);
+}
+
+void
+open_properties_group		(GtkWidget	*dialog,
+				 const gchar	*group)
+{
+  gchar *buf = g_strdup_printf("group-contents-%s", group);
+  GtkWidget *contents = lookup_widget(dialog, buf);
+  GtkContainer *group_container = GTK_CONTAINER
+    (lookup_widget(dialog, "group-container"));
+  gint cur_group, cur_item;
+
+  /* If the current selection is in a different group, switch and
+     select the hidden toggle */
+  get_cur_sel(dialog, &cur_group, &cur_item);
+
+  if (cur_group == -1 ||
+      GTK_WIDGET
+      (g_list_nth_data(gtk_container_children(group_container),
+		       2*cur_group + 1)) != contents)
+    gtk_container_foreach(GTK_CONTAINER(group_container),
+			  GTK_SIGNAL_FUNC(show_hide_foreach),
+			  contents);
+
+  g_free(buf);
+}
+
+void register_property_handler2 (property_handler2 *p)
 {
   handlers = g_realloc(handlers, (num_handlers+1)*sizeof(handlers[0]));
   memcpy(&handlers[num_handlers++], p, sizeof(*p));
 }
 
+void register_properties_handler (property_handler *p)
+{
+  return;
+}

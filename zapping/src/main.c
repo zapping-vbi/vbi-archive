@@ -46,6 +46,7 @@
 #include "remote.h"
 #include "audio.h"
 #include "csconvert.h"
+#include "properties-handler.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
@@ -416,7 +417,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.141 2001-10-28 20:05:13 garetxe Exp $",
+	 "$Id: main.c,v 1.142 2001-11-05 19:38:23 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -676,6 +677,8 @@ int main(int argc, char * argv[])
   D();
   startup_csconvert();
   D();
+  startup_properties_handler();
+  D();
   osd_set_window(tv_screen);
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM
        (lookup_widget(main_window, "closed_caption1")),
@@ -925,6 +928,12 @@ static void shutdown_zapping(void)
    */
   printv(" csconvert");
   shutdown_csconvert();
+
+  /*
+   * The properties handler.
+   */
+  printv(" ph");
+  shutdown_properties_handler();
     
   /* Close */
   printv(" video device");

@@ -43,7 +43,8 @@ zapping_SOURCES = \
 	plugins.c plugins.h plugin_common.h \
 	zconf.c zconf.h \
 	zmisc.c error_console.c zmisc.h \
-	properties.c \
+	properties.c properties.h \
+	properties-handler.c properties-handler.h \
 	channel_editor.c keysyms.h \
 	plugin_properties.c \
 	tveng1.c tveng1.h \

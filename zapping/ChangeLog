@@ -1,3 +1,10 @@
+5.11.2001	Properties almost done <garetxe@users.sf.net>
+
+	* properties.c: Finished the shell code.
+	* properties-handler.c: Added, it's the handler for Z's properties
+	pages. Almost done except for audio backend properties code and
+	dynamic ITV sensitivity.
+
 4.11.2001	GUI sweetpill follow-up <mschimek@users.sf.net>
 
 	* mpeg.c: Added rte.h version check.
