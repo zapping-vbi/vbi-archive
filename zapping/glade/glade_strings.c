@@ -320,5 +320,5 @@ gchar *s = N_("Description:");
 gchar *s = N_("If checked, the current channel will be automatically selected when the bookmark is selected");
 gchar *s = N_("Switch to the current channel when the bookmark is selected");
 gchar *s = N_("Text colors");
-gchar *s = N_("Brightness");
-gchar *s = N_("Contrast");
+gchar *s = N_("Reset");
+gchar *s = N_("Reset");

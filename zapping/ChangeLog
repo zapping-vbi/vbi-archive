@@ -1,3 +1,9 @@
+8.06.2001	color dialog <garetxe@users.sf.net>
+
+	* glade/zapping.glade: Beautified ttx color dialog a bit.
+	* pixmaps/*.xpm: Added con and brig used above, the rest in
+	prevision for future use.
+
 29.05.2001	<mschimek@users.sf.net>
 
 	* list.h: double linked now

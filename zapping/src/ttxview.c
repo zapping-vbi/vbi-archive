@@ -41,6 +41,10 @@
 #include "osd.h"
 #include "callbacks.h"
 
+/* graphics */
+#include <pixmaps/con.xpm> /* contrast */
+#include <pixmaps/brig.xpm> /* brightness */
+
 /* Useful vars from Zapping */
 extern gboolean flag_exit_program;
 extern int cur_tuned_channel;
@@ -140,6 +144,7 @@ do { \
 
 static GList	*bookmarks=NULL;
 static ZModel	*model=NULL; /* for bookmarks */
+static ZModel	*refresh=NULL; /* tell all the views to refresh */
 static GdkAtom	clipboard_atom = GDK_NONE;
 
 
@@ -191,6 +196,7 @@ startup_ttxview (void)
   arrow = gdk_cursor_new (GDK_LEFT_PTR);
   xterm = gdk_cursor_new (GDK_XTERM);
   model = ZMODEL(zmodel_new());
+  refresh = ZMODEL(zmodel_new());
   clipboard_atom = gdk_atom_intern("CLIPBOARD", FALSE);
 
   zcc_char(g_get_home_dir(), "Directory to export pages to",
@@ -266,6 +272,7 @@ shutdown_ttxview (void)
     remove_bookmark(0);
 
   gtk_object_destroy(GTK_OBJECT(model));
+  gtk_object_destroy(GTK_OBJECT(refresh));
 }
 
 static
@@ -395,6 +402,115 @@ on_vbi_model_changed			(ZModel		*model,
     }
 }
 
+static gint wait_timeout (ttxview_data *data)
+{
+  int page, subpage;
+
+  page = data->wait_page >> 8;
+  subpage = data->wait_page & 0xff;
+  if (subpage == (ANY_SUB & 0xff))
+    subpage = ANY_SUB;
+
+  data->wait_timeout_id = -1;
+
+  if (data->wait_pg.pgno<=0)
+    monitor_ttx_page(data->id, page, subpage);
+  else
+    monitor_ttx_this(data->id, &data->wait_pg);
+
+  data->wait_mode = FALSE;
+
+  return 0; /* don't call me again */
+}
+
+static void retarded_load(gint page, gint subpage,
+			  ttxview_data *data, struct fmt_page *pg)
+{
+
+  data->wait_page = (page << 8) + (subpage & 0xff);
+  if (pg)
+    memcpy(&data->wait_pg, pg, sizeof(struct fmt_page));
+  else
+    data->wait_pg.pgno = -1;
+
+  if (data->wait_timeout_id >= 0)
+    {
+      gtk_timeout_remove(data->wait_timeout_id);
+      data->wait_timeout_id =
+	gtk_timeout_add(300, (GtkFunction)wait_timeout, data);
+      return;
+    }
+
+  if (data->wait_mode)
+    {
+      data->wait_timeout_id =
+	gtk_timeout_add(300, (GtkFunction)wait_timeout, data); 
+      return;
+    }
+
+  if (data->wait_pg.pgno<=0)
+    monitor_ttx_page(data->id, page, subpage);
+  else
+    monitor_ttx_this(data->id, &data->wait_pg);
+}
+
+static void
+load_page (int page, int subpage, ttxview_data *data,
+	   struct fmt_page *pg)
+{
+  GtkWidget *ttxview_url = lookup_widget(data->toolbar, "ttxview_url");
+  GtkWidget *ttxview_hold = lookup_widget(data->toolbar, "ttxview_hold");
+  GtkWidget *widget;
+  gchar *buffer;
+
+  buffer = g_strdup_printf("%d", bcd2dec(page));
+  gtk_label_set_text(GTK_LABEL(ttxview_url), buffer);
+  g_free(buffer);
+
+  data->hold = (subpage != ANY_SUB)?TRUE:FALSE;
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_hold),
+			       data->hold);
+    
+  data->subpage = subpage;
+  data->page = page;
+  data->monitored_subpage = subpage;
+  widget = lookup_widget(data->toolbar, "ttxview_subpage");
+  if (subpage != ANY_SUB)
+    buffer = g_strdup_printf("S%x", data->subpage);
+  else
+    buffer = g_strdup("");
+  gtk_label_set_text(GTK_LABEL(widget), buffer);
+  g_free(buffer);
+
+  if ((page >= 0x100) && (page <= 0x900))
+    {
+      if (subpage == ANY_SUB)
+	buffer = g_strdup_printf(_("Loading page %x..."), page);
+      else
+	buffer = g_strdup_printf(_("Loading subpage %x..."),
+				 subpage);
+    }
+  else
+    buffer = g_strdup_printf(_("Warning: Page not valid"));
+
+  if (data->appbar)
+    gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer);
+  g_free(buffer);
+
+  gtk_widget_grab_focus(data->da);
+
+  retarded_load(page, subpage, data, pg);
+
+  z_update_gui();
+}
+
+static void
+on_ttxview_refresh			(ZModel		*model,
+					 ttxview_data	*data)
+{
+  load_page(data->page, data->subpage, data, NULL);
+}
+
 static void
 remove_ttxview_instance			(ttxview_data	*data)
 {
@@ -428,7 +544,9 @@ remove_ttxview_instance			(ttxview_data	*data)
   gtk_signal_disconnect_by_func(GTK_OBJECT(data->vbi_model),
 				GTK_SIGNAL_FUNC(on_vbi_model_changed),
 				data);
-  
+  gtk_signal_disconnect_by_func(GTK_OBJECT(refresh),
+				GTK_SIGNAL_FUNC(on_ttxview_refresh),
+				data);
   g_free(data);
 }
 
@@ -685,108 +803,6 @@ event_timeout				(ttxview_data	*data)
     }
 
   return TRUE;
-}
-
-static gint wait_timeout (ttxview_data *data)
-{
-  int page, subpage;
-
-  page = data->wait_page >> 8;
-  subpage = data->wait_page & 0xff;
-  if (subpage == (ANY_SUB & 0xff))
-    subpage = ANY_SUB;
-
-  data->wait_timeout_id = -1;
-
-  if (data->wait_pg.pgno<=0)
-    monitor_ttx_page(data->id, page, subpage);
-  else
-    monitor_ttx_this(data->id, &data->wait_pg);
-
-  data->wait_mode = FALSE;
-
-  return 0; /* don't call me again */
-}
-
-static void retarded_load(gint page, gint subpage,
-			  ttxview_data *data, struct fmt_page *pg)
-{
-
-  data->wait_page = (page << 8) + (subpage & 0xff);
-  if (pg)
-    memcpy(&data->wait_pg, pg, sizeof(struct fmt_page));
-  else
-    data->wait_pg.pgno = -1;
-
-  if (data->wait_timeout_id >= 0)
-    {
-      gtk_timeout_remove(data->wait_timeout_id);
-      data->wait_timeout_id =
-	gtk_timeout_add(300, (GtkFunction)wait_timeout, data);
-      return;
-    }
-
-  if (data->wait_mode)
-    {
-      data->wait_timeout_id =
-	gtk_timeout_add(300, (GtkFunction)wait_timeout, data); 
-      return;
-    }
-
-  if (data->wait_pg.pgno<=0)
-    monitor_ttx_page(data->id, page, subpage);
-  else
-    monitor_ttx_this(data->id, &data->wait_pg);
-}
-
-static void
-load_page (int page, int subpage, ttxview_data *data,
-	   struct fmt_page *pg)
-{
-  GtkWidget *ttxview_url = lookup_widget(data->toolbar, "ttxview_url");
-  GtkWidget *ttxview_hold = lookup_widget(data->toolbar, "ttxview_hold");
-  GtkWidget *widget;
-  gchar *buffer;
-
-  buffer = g_strdup_printf("%d", bcd2dec(page));
-  gtk_label_set_text(GTK_LABEL(ttxview_url), buffer);
-  g_free(buffer);
-
-  data->hold = (subpage != ANY_SUB)?TRUE:FALSE;
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_hold),
-			       data->hold);
-    
-  data->subpage = subpage;
-  data->page = page;
-  data->monitored_subpage = subpage;
-  widget = lookup_widget(data->toolbar, "ttxview_subpage");
-  if (subpage != ANY_SUB)
-    buffer = g_strdup_printf("S%x", data->subpage);
-  else
-    buffer = g_strdup("");
-  gtk_label_set_text(GTK_LABEL(widget), buffer);
-  g_free(buffer);
-
-  if ((page >= 0x100) && (page <= 0x900))
-    {
-      if (subpage == ANY_SUB)
-	buffer = g_strdup_printf(_("Loading page %x..."), page);
-      else
-	buffer = g_strdup_printf(_("Loading subpage %x..."),
-				 subpage);
-    }
-  else
-    buffer = g_strdup_printf(_("Warning: Page not valid"));
-
-  if (data->appbar)
-    gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer);
-  g_free(buffer);
-
-  gtk_widget_grab_focus(data->da);
-
-  retarded_load(page, subpage, data, pg);
-
-  z_update_gui();
 }
 
 static
@@ -1854,6 +1870,56 @@ on_color_control			(GtkWidget *w,
   if (cont > 127) cont = 127;
 
   vbi_set_colour_level(vbi, brig, cont);
+  zmodel_changed(refresh);
+}
+
+static void
+on_brig_con_reset			(GtkWidget	*widget,
+					 gpointer	user_data)
+{
+  gint control = GPOINTER_TO_INT(user_data);
+  GtkWidget *w;
+  GtkAdjustment *adj;
+  gint value;
+
+  switch (control)
+    {
+    case 0: /* brightness */
+      value = 255;
+      w = lookup_widget(widget, "hscale71");
+      break;
+    default: /* contrast */
+      value = 127;
+      w = lookup_widget(widget, "hscale72");
+      break;
+    }
+
+  adj = GTK_ADJUSTMENT(gtk_range_get_adjustment(GTK_RANGE(w)));
+  gtk_adjustment_set_value(adj, value);
+}
+
+static
+gboolean on_color_box_key_press		(GtkWidget	*widget,
+					 GdkEventKey	*event,
+					 gpointer	data)
+{
+  switch (event->keyval)
+    {
+    case GDK_Escape:
+      gtk_widget_destroy(widget);
+      break;
+    case GDK_c:
+    case GDK_C:
+      if (event->state & GDK_CONTROL_MASK)
+	{
+	  gtk_widget_destroy(widget);
+	  break;
+	}
+    default:
+      return FALSE;
+    }
+
+  return TRUE;
 }
 
 /*
@@ -1865,10 +1931,35 @@ static GtkWidget *
 create_color_dialog			(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
-  GtkWidget *dialog = create_widget("color_dialog71");
+  GtkWidget *dialog = create_widget("ttxview_color");
   GtkAdjustment *adj;
   GtkWidget *w;
   gint value;
+  GdkBitmap *mask;
+  GdkPixmap *pixmap;
+  GdkPixbuf *pb;
+  GtkWidget *pix;
+  GtkTable *table71 =
+    GTK_TABLE(lookup_widget(dialog, "table71"));
+
+  /* Add brightness, contrast icons */
+  pb = gdk_pixbuf_new_from_xpm_data(brig_xpm);
+  gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
+  pix = gtk_pixmap_new(pixmap, mask);
+  gtk_widget_show(pix);
+  gtk_table_attach_defaults(table71, pix, 0, 1, 0, 1);
+  gdk_bitmap_unref(mask);
+  gdk_bitmap_unref(pixmap);
+  gdk_pixbuf_unref(pb);
+
+  pb = gdk_pixbuf_new_from_xpm_data(con_xpm);
+  gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
+  pix = gtk_pixmap_new(pixmap, mask);
+  gtk_widget_show(pix);
+  gtk_table_attach_defaults(table71, pix, 0, 1, 1, 2);
+  gdk_bitmap_unref(mask);
+  gdk_bitmap_unref(pixmap);
+  gdk_pixbuf_unref(pb);
 
   w = lookup_widget(dialog, "hscale71");
   zconf_get_integer(&value, TXCOLOR_DOMAIN "brightness");
@@ -1885,6 +1976,21 @@ create_color_dialog			(GtkWidget	*widget,
   gtk_signal_connect(GTK_OBJECT(adj), "value-changed",
 		     GTK_SIGNAL_FUNC (on_color_control),
 		     GINT_TO_POINTER (1));
+
+  w = lookup_widget(dialog, "brig_reset");
+  gtk_signal_connect(GTK_OBJECT(w), "clicked",
+		     GTK_SIGNAL_FUNC (on_brig_con_reset),
+		     GINT_TO_POINTER (0));
+
+  w = lookup_widget(dialog, "con_reset");
+  gtk_signal_connect(GTK_OBJECT(w), "clicked",
+		     GTK_SIGNAL_FUNC (on_brig_con_reset),
+		     GINT_TO_POINTER (1));
+
+  gtk_signal_connect(GTK_OBJECT(dialog), "key-press-event",
+		     GTK_SIGNAL_FUNC(on_color_box_key_press),
+		     NULL);
+
   return dialog;
 }
 
@@ -3260,6 +3366,10 @@ build_ttxview(void)
   gtk_signal_connect (GTK_OBJECT(data->vbi_model), "changed",
 		      GTK_SIGNAL_FUNC(on_vbi_model_changed),
 		      data);
+  /* handle refreshing */
+  gtk_signal_connect (GTK_OBJECT(refresh), "changed",
+		      GTK_SIGNAL_FUNC(on_ttxview_refresh),
+		      data);
 
   data->blink_timeout = gtk_timeout_add(BLINK_CYCLE / 4, ttxview_blink, data);
 
@@ -3397,6 +3507,10 @@ ttxview_attach			(GtkWidget	*parent,
   /* handle the destruction of the vbi object */
   gtk_signal_connect (GTK_OBJECT(data->vbi_model), "changed",
 		      GTK_SIGNAL_FUNC(on_vbi_model_changed),
+		      data);
+  /* handle refreshing */
+  gtk_signal_connect (GTK_OBJECT(refresh), "changed",
+		      GTK_SIGNAL_FUNC(on_ttxview_refresh),
 		      data);
 
   if (data->da->window)
