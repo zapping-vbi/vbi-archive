@@ -180,12 +180,6 @@ ZModel *
 zvbi_get_model(void);
 
 /*
-  Modifies the gui according to VBI availability.
- */
-void
-vbi_gui_sensitive (gboolean on);
-
-/*
   Returns the g_strdup'ed name of the current station, if known, or
   NULL. The returned value should be g_free'ed
 */
@@ -236,5 +230,16 @@ zvbi_current_rating(void);
 vbi_wst_level
 zvbi_teletext_level (void);
 
-#endif /* HAVE_LIBZVBI */
+#else /* !HAVE_LIBZVBI */
+
+typedef unsigned int vbi_pgno;
+
+#endif /* !HAVE_LIBZVBI */
+
+/*
+  Modifies the gui according to VBI availability.
+ */
+void
+vbi_gui_sensitive (gboolean on);
+
 #endif /* zvbi.h */
