@@ -4,7 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: rte 0.5\n"
-"POT-Creation-Date: 2002-12-27 04:43+0100\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-10-31 22:17+0100\n"
 "PO-Revision-Date: 2002-10-03 21:16+0200\n"
 "Last-Translator: Guus Bonnema <abonnema@xs4all.nl>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -38,37 +39,37 @@ msgstr ""
 "Het aantal beelden achter elkaar van het type beelden voorspeld als 'B' "
 "bidirectioneel is beperkt tot %u."
 
-#: mp1e/video/mpeg1.c:2549 mp1e/video/mpeg1.c:2571 mp1e/video/mpeg1.c:2576
-#: mp1e/video/mpeg1.c:2586 mp1e/video/mpeg1.c:2943 mp1e/audio/mp2.c:1161
+#: mp1e/video/mpeg1.c:2555 mp1e/video/mpeg1.c:2577 mp1e/video/mpeg1.c:2582
+#: mp1e/video/mpeg1.c:2592 mp1e/video/mpeg1.c:2949 mp1e/audio/mp2.c:1161
 #: mp1e/b_mp1e.c:448 mp1e/b_mp1e.c:498 mp1e/b_mp1e.c:508 mp1e/b_mp1e.c:1095
 #: ffmpeg/b_ffmpeg.c:673 ffmpeg/b_ffmpeg.c:1453 ffmpeg/b_ffmpeg.c:1880
 #: divx4linux/b_divx4linux.c:486 divx4linux/b_divx4linux.c:929
 msgid "Out of memory."
 msgstr "Gebrek aan geheugen."
 
-#: mp1e/video/mpeg1.c:2687
+#: mp1e/video/mpeg1.c:2693
 msgid "Standard compliant"
 msgstr "Overeenkomstig de standaard"
 
-#: mp1e/video/mpeg1.c:2688
+#: mp1e/video/mpeg1.c:2694
 msgid "Multiplexer timestamps"
 msgstr "Multiplexer tijdstempels"
 
-#: mp1e/video/mpeg1.c:2689
+#: mp1e/video/mpeg1.c:2695
 msgid "Insert fake pictures"
 msgstr "Voeg nep beelden in"
 
-#: mp1e/video/mpeg1.c:2698 mp1e/audio/mp2.c:982 ffmpeg/b_ffmpeg.c:914
+#: mp1e/video/mpeg1.c:2704 mp1e/audio/mp2.c:982 ffmpeg/b_ffmpeg.c:914
 #: ffmpeg/b_ffmpeg.c:918 ffmpeg/b_ffmpeg.c:931 ffmpeg/b_ffmpeg.c:935
 #: divx4linux/b_divx4linux.c:679
 msgid "Bit rate"
 msgstr "Bit frequentie"
 
-#: mp1e/video/mpeg1.c:2704
+#: mp1e/video/mpeg1.c:2710
 msgid "Virtual frame rate"
 msgstr "Virtuele frame frequentie"
 
-#: mp1e/video/mpeg1.c:2706
+#: mp1e/video/mpeg1.c:2712
 msgid ""
 "MPEG-1 allows only a few discrete values for frames/s, but this codec can "
 "skip frames if you wish. Choose the output bit rate accordingly."
@@ -77,11 +78,11 @@ msgstr ""
 "codec kan frames overslaan als u dat wilt. Kies de uitvoer bit frequentie "
 "(rate) conform uw wens."
 
-#: mp1e/video/mpeg1.c:2710
+#: mp1e/video/mpeg1.c:2716
 msgid "Virtual frame rate method"
 msgstr "Virtuele frame frequentie methode"
 
-#: mp1e/video/mpeg1.c:2712
+#: mp1e/video/mpeg1.c:2718
 msgid ""
 "The standard compliant method has one major drawback: it may have to promote "
 "some or even all B to P pictures, reducing the image quality."
@@ -90,15 +91,15 @@ msgstr ""
 "sommige of alle B beelden promoveren naar P beelden.Dit vermindert de "
 "beeldkwaliteit."
 
-#: mp1e/video/mpeg1.c:2716
+#: mp1e/video/mpeg1.c:2722
 msgid "GOP sequence"
 msgstr "GOP sequentie"
 
-#: mp1e/video/mpeg1.c:2719
+#: mp1e/video/mpeg1.c:2725
 msgid "Motion compensation"
 msgstr "Bewegingscompensatie"
 
-#: mp1e/video/mpeg1.c:2720
+#: mp1e/video/mpeg1.c:2726
 msgid ""
 "Enable motion compensation to improve the image quality. The motion search "
 "range is automatically adjusted."
@@ -106,11 +107,11 @@ msgstr ""
 "Zet bewegingscompensatie aan om de beeldkwaliteit te verhogen. Het beeld "
 "zoekgebied wordt automatisch aangepast."
 
-#: mp1e/video/mpeg1.c:2727
+#: mp1e/video/mpeg1.c:2733
 msgid "Annotation"
 msgstr "Annotatie"
 
-#: mp1e/video/mpeg1.c:2728
+#: mp1e/video/mpeg1.c:2734
 msgid ""
 "Add an annotation in the user data field shortly after the video stream "
 "start. This is an mp1e extension, players will ignore it."
@@ -118,30 +119,30 @@ msgstr ""
 "Voeg een annotatie toe in de user data field, vlak na de start van de "
 "videostream.Dit is een mp1e extensie, players negeren het."
 
-#: mp1e/video/mpeg1.c:2744 ffmpeg/b_ffmpeg.c:985 divx4linux/b_divx4linux.c:708
+#: mp1e/video/mpeg1.c:2750 ffmpeg/b_ffmpeg.c:985 divx4linux/b_divx4linux.c:708
 #, c-format
 msgid "%5.3f Mbit/s"
 msgstr "%5.3f Mbit/s"
 
-#: mp1e/video/mpeg1.c:2746
+#: mp1e/video/mpeg1.c:2752
 #, c-format
 msgid "%4.2f frames/s"
 msgstr "%4.2f frames/s"
 
-#: mp1e/video/mpeg1.c:2751
+#: mp1e/video/mpeg1.c:2757
 #, c-format
 msgid "%5.3f frames/s"
 msgstr "%5.3f frames/s"
 
-#: mp1e/video/mpeg1.c:2759 divx4linux/b_divx4linux.c:718
+#: mp1e/video/mpeg1.c:2765 divx4linux/b_divx4linux.c:718
 msgid "on"
 msgstr "aan"
 
-#: mp1e/video/mpeg1.c:2759 divx4linux/b_divx4linux.c:718
+#: mp1e/video/mpeg1.c:2765 divx4linux/b_divx4linux.c:718
 msgid "off"
 msgstr "uit"
 
-#: mp1e/video/mpeg1.c:2761 mp1e/audio/mp2.c:1030
+#: mp1e/video/mpeg1.c:2767 mp1e/audio/mp2.c:1030
 #, c-format
 msgid "%f frames"
 msgstr "%f frames"

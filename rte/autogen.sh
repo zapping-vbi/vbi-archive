@@ -3,6 +3,9 @@
 NORECURSIVE=true
 NOCONFIGURE=true
 
+aclf="$ACLOCAL_FLAGS"
+
+topdir=`pwd`
 srcdir=`dirname $0`/mp1e
 test -z "$srcdir" && srcdir=./mp1e
 
@@ -13,6 +16,7 @@ test -z "$srcdir" && srcdir=./mp1e
 }
 
 PACKAGE=mp1e
+ACLOCAL_FLAGS="$aclf -I $topdir/m4"
 
 . $srcdir/../m4/autogen.sh
 
@@ -28,6 +32,7 @@ srcdir=`dirname $0`
 test -z "$srcdir" && srcdir=.
 
 PACKAGE=rte
+ACLOCAL_FLAGS="$aclf -I $topdir/m4"
 
 . $srcdir/m4/autogen.sh
 
