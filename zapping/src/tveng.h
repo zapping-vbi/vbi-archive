@@ -593,4 +593,27 @@ tveng_start_previewing (tveng_device_info * info);
 int
 tveng_stop_previewing(tveng_device_info * info);
 
+/* Some utility functions a la glib */
+
+/* Sanity checks should use this */
+#define t_assert(condition) if (!(condition)) { \
+fprintf(stderr, _("%s (%d): %s: assertion (%s) failed\n"), __FILE__, \
+__LINE__, __PRETTY_FUNCTION__, #condition); \
+exit(1);}
+
+/* Builds an error message that lets me debug much better */
+#define t_error(str_error, info) \
+t_error_msg(str_error, strerror(info->tveng_errno), info)
+
+/* Builds a custom error message, doesn't use errno */
+#define t_error_msg(str_error, msg_error, info) \
+snprintf(info->error, 256, _("[%s] %s (line %d)\n%s failed: %s"), \
+__FILE__, __PRETTY_FUNCTION__, __LINE__, str_error, msg_error)
+
+/* Defines a point that should never be reached */
+#define t_assert_not_reached() \
+fprintf(stderr, \
+_("[%s: %d: %s] This should have never been reached\n" ), __FILE__, \
+__LINE__, __PRETTY_FUNCTION__)
+
 #endif /* TVENG.H */

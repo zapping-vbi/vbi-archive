@@ -110,7 +110,7 @@ on_plugin_writing1_activate            (GtkMenuItem     *menuitem,
 					gpointer         user_data)
 {
   GnomeHelpMenuEntry help_ref = { "zapping",
-				  "plugin_devel.html" };
+				  "plugin_devel" };
 
   gnome_help_display (NULL, &help_ref);
 }

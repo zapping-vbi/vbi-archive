@@ -132,7 +132,7 @@ create_about2 (void)
                         authors,
                         _("A TV viewer for the Gnome Desktop Environment"),
                         "zapping/logo.png");
-  gtk_window_set_modal (GTK_WINDOW (about2), TRUE);
+  gtk_window_set_modal (GTK_WINDOW (about2), FALSE);
 
   return about2;
 }

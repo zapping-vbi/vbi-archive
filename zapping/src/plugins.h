@@ -50,7 +50,7 @@
 #define ZAPPING /* Tell this header that we are Zapping */
 #include "plugin_common.h"
 
-/* Any plugin should have this in its name */
+/* Any plugin should have its filename ending in this string */
 #define PLUGIN_STRID ".zapping.so"
 
 /* This structure holds the info needed for identifying and using a
@@ -59,6 +59,8 @@ struct plugin_info{
   GModule * handle; /* The handle to the plugin */
   /* This returns the protocol the plugin understands */
   gint (*plugin_protocol) (void);
+
+  /******* OPTATIVE FUNCTIONS *******/
   /* Init the plugin using the current video device, FALSE on error */
   gboolean (*plugin_init)(PluginBridge bridge, tveng_device_info *
 			  info);
@@ -80,7 +82,6 @@ struct plugin_info{
   /* Returns TRUE if the plugin is working */
   gboolean (*plugin_running) ( void );
 
-  /******* OPTATIVE FUNCTIONS *******/
   /* Lets the plugin process one frame */
   GdkImage * (*plugin_process_frame) ( GdkImage * image, gpointer
 				       data, struct

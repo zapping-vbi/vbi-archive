@@ -70,14 +70,13 @@ int main(int argc, char * argv[])
   struct tveng_frame_format format;
   gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
 				     work */
-  GdkImage * image; /* The image we are processing */
 
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
   textdomain (PACKAGE);
 #endif
 
-  /* Init libglade, gnome and zconf */
+  /* Init gnome, libglade, modules and tveng */
   gnome_init ("zapping", VERSION, argc, argv);
   glade_gnome_init();
 
@@ -244,6 +243,8 @@ int main(int argc, char * argv[])
 	  continue;
 	}
 
+      zimage_reallocate(main_info->format.width, main_info->format.height);
+
       /* Do the image processing here */
       if (tveng_read_frame(zimage_get_data(zimage_get()),
 			   ((int)zimage_get()->bpl)*zimage_get()->height,
@@ -257,17 +258,18 @@ int main(int argc, char * argv[])
       memcpy(&format, &(main_info->format),
 	     sizeof(struct tveng_frame_format));
       p = g_list_first(plugin_list);
-      image = zimage_get();
       while (p)
 	{
-	  image =
-	    plugin_process_frame(image, zimage_get_data(image), &format,
-				 (struct plugin_info*)p->data);
+	  plugin_process_frame(zimage_get(),
+			       zimage_get_data(zimage_get()), &format,
+			       (struct plugin_info*)p->data);
+	  /* Update the gdkimage, since it may have changed */
+	  zimage_reallocate(format.width, format.height);
 	  p = p->next;
 	}
       gdk_draw_image(tv_screen -> window,
 		     tv_screen -> style -> white_gc,
-		     image,
+		     zimage_get(),
 		     0, 0, 0, 0,
 		     format.width,
 		     format.height);

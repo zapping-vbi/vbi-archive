@@ -51,8 +51,10 @@
 struct private_tveng1_device_info
 {
   tveng_device_info info; /* Info field, inherited */
+#ifdef TVENG1_BTTV_MUTE_BUG_WORKAROUND
   int muted; /* 0 if the device is muted, 1 otherwise. A workaround
 		for a bttv problem. */
+#endif
   char * mmaped_data; /* A pointer to the data mmap() returned */
   struct video_mbuf mmbuf; /* Info about the location of the frames */
   int queued, dequeued; /* The index of the [de]queued frames */
@@ -329,7 +331,7 @@ tveng1_set_preview_window(tveng_device_info * info);
 int
 tveng1_get_preview_window(tveng_device_info * info);
 
-/*
+/* 
    Sets the previewing on/off.
    on : if 1, set preview on, if 0 off, other values are silently ignored
    info  : device to use for previewing

@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-05-01 12:00+0200\n"
+"POT-Creation-Date: 2000-05-16 13:26+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -50,23 +50,23 @@ msgstr ""
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:299
+#: src/main.c:300
 msgid "Channel name"
 msgstr ""
 
-#: src/main.c:303
+#: src/main.c:304
 msgid "Tuning frequence"
 msgstr ""
 
-#: src/main.c:307
+#: src/main.c:308
 msgid "Real channel name"
 msgstr ""
 
-#: src/main.c:312
+#: src/main.c:313
 msgid "Country the channel is in"
 msgstr ""
 
-#: src/main.c:324
+#: src/main.c:325
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -78,28 +78,28 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:353
+#: src/main.c:354
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
 #. Sets defaults for zconf
-#: src/main.c:358
+#: src/main.c:359
 msgid "Save and restore zapping geometry (non ICCM compliant)"
 msgstr ""
 
-#: src/main.c:361
+#: src/main.c:362
 msgid "The country you are currently in"
 msgstr ""
 
-#: src/main.c:364
+#: src/main.c:365
 msgid "The device file to open on startup"
 msgstr ""
 
-#: src/main.c:366
+#: src/main.c:367
 msgid "TRUE if Zapping should be started without sound"
 msgstr ""
 
-#: src/main.c:368
+#: src/main.c:369
 msgid "Verbosity value given to zapping_setup_fb"
 msgstr ""
 
@@ -478,18 +478,30 @@ msgstr ""
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
-#: src/plugins.c:162
+#: src/plugins.c:74
+#, c-format
+msgid ""
+"The plugin uses the protocol %d, and the current one is %d, it cannot be "
+"loaded."
+msgstr ""
+
+#: src/plugins.c:95
+#, c-format
+msgid "Sorry, plugin_get_info was not found in %s"
+msgstr ""
+
+#: src/plugins.c:171
 #, c-format
 msgid ""
 "\"%s\" seems to be a valid plugin, but it doesn't provide a canonical name."
 msgstr ""
 
-#: src/plugins.c:171
+#: src/plugins.c:180
 #, c-format
 msgid "\"%s\" doesn't provide a version"
 msgstr ""
 
-#: src/plugins.c:180
+#: src/plugins.c:189
 msgid ""
 "Sorry, the version of the plugin cannot be parsed.\n"
 "The version must be something like %%d[.%%d[%%d[other things]]]\n"
@@ -497,17 +509,17 @@ msgid ""
 "Error loading \"%s\" (%s)"
 msgstr ""
 
-#: src/plugins.c:207
+#: src/plugins.c:216
 #, c-format
 msgid "There wasn't enough mem for allocating symbol %d in %s"
 msgstr ""
 
-#: src/plugins.c:217
+#: src/plugins.c:226
 msgid "[No description provided]"
 msgstr ""
 
 #. Warn
-#: src/plugins.c:306
+#: src/plugins.c:315
 #, c-format
 msgid ""
 "Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
@@ -1219,48 +1231,48 @@ msgstr ""
 msgid "This plugin takes screenshots of the capture."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:232
+#: plugins/screenshot/screenshot.c:231
 msgid "Whether the plugin should start automatically when opening Zapping"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:239
+#: plugins/screenshot/screenshot.c:238
 msgid "Whether interlacing should be used"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:246
+#: plugins/screenshot/screenshot.c:245
 msgid "The directory where screenshot will be written to"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:301
+#: plugins/screenshot/screenshot.c:300
 msgid "Converts a row in RGB565 format to RGB24. Returns the destination"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:307
+#: plugins/screenshot/screenshot.c:306
 msgid "Converts a row in RGB555 format to RGB24. Returns the destination"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:313
+#: plugins/screenshot/screenshot.c:312
 msgid "Converts a row in RGBA format to RGB24. Returns the destination"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:345
+#: plugins/screenshot/screenshot.c:344
 msgid "PNG saver"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:349
+#: plugins/screenshot/screenshot.c:348
 msgid "Select here the directory where screenshots will be saved"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:355
+#: plugins/screenshot/screenshot.c:354
 msgid "Select directory to save screenshots"
 msgstr ""
 
 #. The interlaced checkbutton
-#: plugins/screenshot/screenshot.c:372
+#: plugins/screenshot/screenshot.c:371
 msgid "Save interlaced PNG"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:426
+#: plugins/screenshot/screenshot.c:425
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
@@ -1270,46 +1282,46 @@ msgid ""
 "interlaced. This allows image viewers load it progressively."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:453
+#: plugins/screenshot/screenshot.c:452
 msgid "Screenshot"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:454
+#: plugins/screenshot/screenshot.c:453
 msgid "Take a PNG screenshot"
 msgstr ""
 
 #. Probably there is no mem even for this, but try anyway
-#: plugins/screenshot/screenshot.c:524 plugins/screenshot/screenshot.c:535
-#: plugins/screenshot/screenshot.c:545
+#: plugins/screenshot/screenshot.c:523 plugins/screenshot/screenshot.c:533
+#: plugins/screenshot/screenshot.c:542
 msgid "Sorry, not enough mem"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:575
+#: plugins/screenshot/screenshot.c:571
 msgid "Sorry, but I cannot write\n"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:577
+#: plugins/screenshot/screenshot.c:573
 msgid ""
 "\n"
 "The image won't be saved."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:602
+#: plugins/screenshot/screenshot.c:597
 msgid "Cannot init the first PNG saving structure"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:618
+#: plugins/screenshot/screenshot.c:612
 msgid "Cannot init the second PNG saving structure"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:688
+#: plugins/screenshot/screenshot.c:681
 msgid "Saving..."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:699
+#: plugins/screenshot/screenshot.c:692
 msgid "Sorry, not enough resources for creating a new thread"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:703
+#: plugins/screenshot/screenshot.c:696
 msgid "There are too many threads"
 msgstr ""
