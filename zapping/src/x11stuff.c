@@ -378,6 +378,7 @@ xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
     g_malloc0(sizeof(struct _xvzImagePrivate));
   void * image_data = NULL;
   unsigned int xvmode = (pixformat == TVENG_PIX_YUYV) ? YUY2 : YV12;
+  double bpp = (pixformat == TVENG_PIX_YUYV) ? 2 : 1.5;
   //  int old_sync;
 
   // FIXME: Broken, returned param is a int (*function)(Display *)
@@ -441,7 +442,7 @@ xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
 
   if (!pimage->image)
     {
-      image_data = malloc(16*w*h);
+      image_data = malloc(bpp*w*h);
       if (!image_data)
 	{
 	  g_warning("XV image data allocation failed");

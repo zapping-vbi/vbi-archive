@@ -51,7 +51,7 @@ extern GList			*plugin_list;
 extern gint			disable_xv; /* TRUE is XVideo should be
 					       disabled */
 
-#define NUM_BUNDLES 8 /* in capture_fifo */
+#define NUM_BUNDLES 6 /* in capture_fifo */
 static fifo		_capture_fifo;
 fifo			*capture_fifo = &_capture_fifo;
 static pthread_t	capture_thread_id; /* the producer */
@@ -79,7 +79,7 @@ typedef struct {
   capture_buffer	d;
   /* our reference, this cannot they touch */
   capture_bundle	vanilla;
-  /* scheduled for rebuilding in the main thread */
+  /* TRUE if the buffer needs rebuilding */
   gboolean		dirty;
 } producer_buffer;
 
@@ -350,12 +350,12 @@ capture_thread (void *data)
 	(producer_buffer*)wait_empty_buffer(&prod);
       capture_bundle *d = &(p->d.d);
 
+      /* resent til the rebuilder gets it */
       if (p->dirty)
-	/*
-	  huh! we scheduled this one for rebuilding, it shouldn't
-	  have come back.
-	*/
-	g_assert_not_reached();
+	{
+	  send_full_buffer(&prod, (buffer*)p);
+	  continue;
+	}
 
       /* needs rebuilding */
       pthread_mutex_lock(&req_format_mutex);
@@ -366,7 +366,7 @@ capture_thread (void *data)
 	  !pixformat_ok(p->vanilla.format.pixformat, req_format.pixformat))
 	{
 	  /* schedule for rebuilding in the main thread */
-	  memcpy(&(p->d.d), &req_format, sizeof(req_format));
+	  memcpy(&(p->d.d.format), &req_format, sizeof(req_format));
 	  p->d.d.image_type = 0;
 	  p->d.b.used = 1; /* used==0 is eof */
 	  p->dirty = TRUE;
@@ -376,7 +376,7 @@ capture_thread (void *data)
 	  continue;
 	}
       pthread_mutex_unlock(&req_format_mutex);
-	
+
       fill_bundle_tveng(&p->vanilla, info);
       p->d.b.time = p->vanilla.timestamp;
 
@@ -592,6 +592,7 @@ static gint idle_handler(gpointer ignored)
   buffer *b;
   capture_bundle *d;
   producer_buffer *p;
+  capture_buffer *cb;
   gint w, h, iw, ih;
   GList *plugin;
 
@@ -608,7 +609,8 @@ static gint idle_handler(gpointer ignored)
       return TRUE;
     }
 
-  d = &(((capture_buffer*)b)->d);
+  cb = (capture_buffer*)b;
+  d = &(cb->d);
   p = (producer_buffer*)b;
 
   g_assert(b->used > 0);
@@ -634,7 +636,7 @@ static gint idle_handler(gpointer ignored)
 	  d->format.pixformat != TVENG_PIX_YVU420 &&
 	  d->format.pixformat != TVENG_PIX_YUYV)
 	break;
-
+	
       if (!yuv_image ||
 	  yuv_image->width != d->format.width ||
 	  yuv_image->height != d->format.height)
@@ -648,7 +650,7 @@ static gint idle_handler(gpointer ignored)
 				    d->format.width,
 				    d->format.height);
 	}
-
+	
       /* fixme: need a flag to turn drawing off, it's slow */
       if (d->format.pixformat == TVENG_PIX_YUYV)
 	{
@@ -698,14 +700,11 @@ static gint idle_handler(gpointer ignored)
       break;
     case 0:
       /* scheduled for rebuilding */
-      if (p->dirty)
-	{
-	  clear_bundle(&p->vanilla);
-	  build_bundle(&p->vanilla, &p->d.d.format);
-	  p->d.b.data = p->vanilla.data;
-	  p->d.b.used = p->vanilla.format.sizeimage;
-	  p->dirty = FALSE;
-	}
+      clear_bundle(&p->vanilla);
+      build_bundle(&p->vanilla, &p->d.d.format);
+      p->d.b.data = p->vanilla.data;
+      p->d.b.used = p->vanilla.format.sizeimage;
+      p->dirty = FALSE;
       break;
     default:
       g_assert_not_reached();

@@ -1898,8 +1898,11 @@ static int p_tveng1_dequeue(unsigned char * where, tveng_device_info * info)
   bm.width = info -> format.width;
   bm.height = info -> format.height;
 
-  if (ioctl(info -> fd, VIDIOCSYNC, &(bm.frame)) == -1)
+  while (ioctl(info -> fd, VIDIOCSYNC, &(bm.frame)) == -1)
     {
+      if (errno == EINTR)
+	continue;
+
       info -> tveng_errno = errno;
       t_error("VIDIOCSYNC", info);
       return -1;

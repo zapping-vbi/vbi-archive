@@ -1102,24 +1102,18 @@ refresh_ttx_page(int id, GtkWidget *drawable)
 }
 
 static int
-build_client_page(struct ttx_client *client, int page, int subpage)
+build_client_page(struct ttx_client *client, struct fmt_page *pg)
 {
   GdkPixbuf *simple;
   gchar *filename;
 
   if (!vbi)
     return 0;
-  
-  g_assert(client != NULL);
 
   pthread_mutex_lock(&client->mutex);
-  if (page > 0)
+  if (pg && pg != (struct fmt_page *)-1)
     {
-      if (!vbi_fetch_vt_page(vbi, &client->fp, page, subpage, 25, 1))
-        {
-	  pthread_mutex_unlock(&client->mutex);
-	  return 0;
-	}
+      memcpy(&client->fp, pg, sizeof(client->fp));
       vbi_draw_vt_page(&client->fp,
 		       (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on),
 		       client->reveal, 1 /* flash_on */);
@@ -1131,7 +1125,7 @@ build_client_page(struct ttx_client *client, int page, int subpage)
 			      client->reveal, 0 /* flash_on */);
       client->waiting = FALSE;
     }
-  else if (page == 0)
+  else if (!pg)
     {
       memset(&client->fp, 0, sizeof(struct fmt_page));
       filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
@@ -1239,6 +1233,7 @@ void
 monitor_ttx_page(int id/*client*/, int page, int subpage)
 {
   struct ttx_client *client;
+  struct fmt_page pg;
 
   if (!vbi)
     return;
@@ -1250,15 +1245,17 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
       client->freezed = FALSE;
       client->page = page;
       client->subpage = subpage;
+
       /* 0x900 is our TOP index page */
       if ((page >= 0x100) && (page <= 0x900)) {
-        if (build_client_page(client, page, subpage))
+        if (vbi_fetch_vt_page(vbi, &pg, page, subpage, 25, 1))
 	  {
+	    build_client_page(client, &pg);
 	    clear_message_queue(client);
 	    send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
 	  }
       } else {
-	build_client_page(client, 0, 0);
+	build_client_page(client, NULL);
 	clear_message_queue(client);
 	send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
       }
@@ -1292,7 +1289,7 @@ void monitor_ttx_this(int id, struct fmt_page *pg)
 			      pg->columns, pg->rows,
 			      -1 /* rowstride */,
 			      client->reveal, 0 /* flash_on */);
-      build_client_page(client, -1, -1);
+      build_client_page(client, (struct fmt_page*)-1);
       clear_message_queue(client);
       send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
     }
@@ -1328,57 +1325,17 @@ ttx_unfreeze (int id)
 }
 
 static void
-notify_clients(int page, int subpage, gboolean rolling)
+scan_header(struct fmt_page *pg)
 {
-  GList *p;
-  struct ttx_client *client;
-  struct fmt_page pg;
-
-  if (!vbi)
-    return;
-
-  if (rolling)
-    rolling = vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0);
-
-  pthread_mutex_lock(&clients_mutex);
-  p = g_list_first(ttx_clients);
-  while (p)
-    {
-      client = (struct ttx_client*)p->data;
-
-      if ((client->page == page) && (!client->freezed) &&
-	  ((client->subpage == subpage) || (client->subpage == ANY_SUB)))
-	{
-	  build_client_page(client, page, subpage);
-	  send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
-	}
-      
-      if (rolling)
-	rolling_headers(client, &pg);
-
-      p = p->next;
-    }
-  pthread_mutex_unlock(&clients_mutex);
-}
-
-static void
-scan_header(int page, int subpage)
-{
-  struct fmt_page pg;
   gint col, i=0;
   attr_char *ac;
   ucs2_t ucs2[256];
   char *buf;
 
-  if (!vbi)
-    return;
-
-  if (vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0))
-
   /* Station name usually goes here */
   for (col = 7; col < 16; col++)
     {
-      ac = pg.text + col;
+      ac = pg->text + col;
 
       if (!ac->glyph || !gl_isalnum(ac->glyph))
 	/* prob. bad reception, abort */
@@ -1427,6 +1384,71 @@ scan_header(int page, int subpage)
   free(buf);
 
   station_name_known = TRUE;
+}
+
+static void
+notify_clients(int page, int subpage, gboolean rolling)
+{
+  GList *p;
+  struct ttx_client *client;
+  struct fmt_page pg;
+
+  if (!vbi)
+    return;
+
+  if (!ttx_clients)
+    {
+      if (vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0))
+	scan_header(&pg);
+      return;
+    }
+
+  pg.vbi = NULL;
+
+  pthread_mutex_lock(&clients_mutex);
+  p = g_list_first(ttx_clients);
+  while (p)
+    {
+      client = (struct ttx_client*)p->data;
+
+      if ((client->page == page) && (!client->freezed) &&
+	  ((client->subpage == subpage) || (client->subpage == ANY_SUB)))
+	{
+	  if (!pg.vbi &&
+	      !vbi_fetch_vt_page(vbi, &pg, page, subpage, 25, 1))
+	    {
+	      pthread_mutex_unlock(&clients_mutex);
+	      return;
+	    }
+	  build_client_page(client, &pg);
+	  send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
+	}
+      
+      p = p->next;
+    }
+
+  if (!pg.vbi &&
+      !vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0))
+    {
+      pthread_mutex_unlock(&clients_mutex);
+      return;
+    }
+
+  if (rolling)
+    {
+      p = g_list_first(ttx_clients);
+
+      while (p)
+	{
+	  rolling_headers((struct ttx_client*)p->data, &pg);
+	  
+	  p=p->next;
+	}
+    }
+
+  pthread_mutex_unlock(&clients_mutex);
+
+  scan_header(&pg);
 }
 
 static void
@@ -1615,8 +1637,7 @@ event(vbi_event *ev, void *unused)
 	  notify_trigger(&link);
 	}
 #endif
-      /* scan header for station name */
-      scan_header(ev->pgno, ev->subno);
+
       break;
     case VBI_EVENT_NETWORK:
       pthread_mutex_lock(&network_mutex);
@@ -1641,6 +1662,7 @@ event(vbi_event *ev, void *unused)
 	}
       else
 	  station_name_known = FALSE;
+
       notify_network();
       pthread_mutex_unlock(&network_mutex);
       break;

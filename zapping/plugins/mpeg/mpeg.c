@@ -235,7 +235,7 @@ audio_data_callback(rte_context * context, void * data, double * time, enum
 {
   struct timeval tv;
 
-  g_assert                      (stream == RTE_AUDIO);
+  g_assert (stream == RTE_AUDIO);
 
   read_audio(data, time, context);
 }
@@ -352,11 +352,27 @@ video_buffer_callback(rte_context *context,
 		      rte_buffer *rb,
 		      enum rte_mux_mode stream)
 {
-  buffer *b;
+  buffer *b = NULL;
+  struct tveng_frame_format *fmt;
 
   g_assert(stream == RTE_VIDEO);
-    
-  b = wait_full_buffer(&mpeg_consumer);
+
+  /* skip invalid buffers */
+  do {
+    if (b)
+      send_empty_buffer(&mpeg_consumer, b);
+    b = wait_full_buffer(&mpeg_consumer);
+
+    fmt = &((capture_buffer*)b)->d.format;
+
+    if (((capture_buffer*)b)->d.image_type &&
+	fmt->height == context->height &&
+	fmt->width == context->width &&
+	fmt->sizeimage == context->video_bytes &&
+	b->time)
+      break;
+  } while (1);
+
   rb->time = b->time;
   rb->data = b->data;
   rb->user_data = b;

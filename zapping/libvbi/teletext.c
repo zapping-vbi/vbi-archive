@@ -2021,6 +2021,8 @@ vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
 	struct vt_page *vtp;
 	int row;
 
+	memset(pg, 0, sizeof(*pg));
+
 	switch (pgno) {
 	case 0x900:
 		if (subno == ANY_SUB)

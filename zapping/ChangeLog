@@ -1,13 +1,24 @@
-16.08.2001	Zapzilla gui <mschimek@users.sf.net>
+16.08.2001	fixes <garetxe@users.sf.net>
 
-	* exp-html.c: Added color option, fixed anchor insertion.
-	* ttxview.c: Didn't set vbi export from zconf, fixed.
+	* zvbi.c: Reduced the number of fetch_page calls. Better now?
+	* vbi_fetch_vt_page: Added memset(pg, 0, sizeof(*pg)), otherwise
+	segfault when drawing the page if pg is initially bogus data.
+	* capture.c: Fixes, but mc still breaks the mpeg plugin. Spent the
+	whole day tracking this down, nothing so far :-(
+
+16.08.2001	Zapzilla gui <mschimek@users.sf.net>
 	* ttxview.c: Removed export dir field, Zapzilla now
 	  remembers the path last entered. z_build_path is
 	  applied to the entered path, not exportdir. Made the
 	  file entry "electric", ie. the proposed file name is
 	  automagically appended.
 	* search.c, ttxview.c: Added regular expression option.
+
+16.08.2001	libvbi et al <mschimek@users.sf.net>
+
+	* exp-html.c: Added color option, fixed anchor insertion.
+	* ttxview.c: Didn't set vbi export from zconf, fixed.
+
 
 15.08.2001	add all channels <garetxe@users.sf.net>
 

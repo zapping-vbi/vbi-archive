@@ -78,7 +78,7 @@ static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
 						support */
 
 static void shutdown_zapping(void);
-static gboolean startup_zapping(void);
+static gboolean startup_zapping(gboolean load_plugins);
 
 /*
  * This removes the bug when resizing toolbar makes the tv_screen have
@@ -229,6 +229,7 @@ int main(int argc, char * argv[])
   gint x_bpp = -1;
   gint dword_align = FALSE;
   gint disable_zsfb = FALSE;
+  gint disable_plugins = FALSE;
   char *default_norm = NULL;
   char *video_device = NULL;
   char *command = NULL;
@@ -251,6 +252,51 @@ int main(int argc, char * argv[])
 
   const struct poptOption options[] = {
     {
+      "device",
+      0,
+      POPT_ARG_STRING,
+      &video_device,
+      0,
+      N_("Video device to use"),
+      N_("DEVICE")
+    },
+    {
+      "no-plugins",
+      'p',
+      POPT_ARG_NONE,
+      &disable_plugins,
+      0,
+      N_("Disable plugins support"),
+      NULL
+    },
+    {
+      "no-vbi",
+      0,
+      POPT_ARG_NONE,
+      &disable_vbi,
+      0,
+      N_("Disable VBI support"),
+      NULL
+    },
+    {
+      "no-xv",
+      'v',
+      POPT_ARG_NONE,
+      &disable_xv,
+      0,
+      N_("Disable XVideo extension support"),
+      NULL
+    },
+    {
+      "no-zsfb",
+      'z',
+      POPT_ARG_NONE,
+      &disable_zsfb,
+      0,
+      N_("Do not call zapping_setup_fb on startup"),
+      NULL
+    },
+    {
       "bpp",
       'b',
       POPT_ARG_INT,
@@ -269,15 +315,6 @@ int main(int argc, char * argv[])
       NULL
     },
     {
-      "no-vbi",
-      0,
-      POPT_ARG_NONE,
-      &disable_vbi,
-      0,
-      N_("Disable VBI support"),
-      NULL
-    },
-    {
       "tunerless-norm",
       'n',
       POPT_ARG_STRING,
@@ -285,24 +322,6 @@ int main(int argc, char * argv[])
       0,
       N_("Set the default standard/norm for tunerless inputs"),
       N_("NORM")
-    },
-    {
-      "device",
-      0,
-      POPT_ARG_STRING,
-      &video_device,
-      0,
-      N_("Video device to use"),
-      N_("DEVICE")
-    },
-    {
-      "no-xv",
-      'v',
-      POPT_ARG_NONE,
-      &disable_xv,
-      0,
-      N_("Disable XVideo extension support"),
-      NULL
     },
     {
       "dword-align",
@@ -321,15 +340,6 @@ int main(int argc, char * argv[])
       0,
       N_("Execute the given command and exit"),
       N_("CMD")
-    },
-    {
-      "no-zsfb",
-      'z',
-      POPT_ARG_NONE,
-      &disable_zsfb,
-      0,
-      N_("Do not call zapping_setup_fb on startup"),
-      NULL
     },
     {
       "yuv-format",
@@ -375,7 +385,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.124 2001-08-13 00:10:23 garetxe Exp $",
+	 "$Id: main.c,v 1.125 2001-08-17 00:12:19 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
@@ -436,7 +446,7 @@ int main(int argc, char * argv[])
   tveng_set_xv_support(disable_xv, main_info);
   tveng_set_dword_align(dword_align, main_info);
   D();
-  if (!startup_zapping())
+  if (!startup_zapping(!disable_plugins))
     {
       RunBox(_("Zapping couldn't be started"), GNOME_MESSAGE_BOX_ERROR);
       tveng_device_info_destroy(main_info);
@@ -877,7 +887,7 @@ static void shutdown_zapping(void)
   printv(".\nShutdown complete, goodbye.\n");
 }
 
-static gboolean startup_zapping()
+static gboolean startup_zapping(gboolean load_plugins)
 {
   int i = 0, j;
   gchar * buffer = NULL;
@@ -1011,7 +1021,8 @@ static gboolean startup_zapping()
     return FALSE;
   D();
   /* Loads the plugins */
-  plugin_list = plugin_load_plugins();
+  if (load_plugins)
+    plugin_list = plugin_load_plugins();
   D();
   /* init them, and remove the ones that couldn't be inited */
  restart_loop:
