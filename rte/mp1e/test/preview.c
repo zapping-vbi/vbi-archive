@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preview.c,v 1.5 2001-10-16 11:18:17 mschimek Exp $ */
+/* $Id: preview.c,v 1.6 2002-01-13 09:52:47 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -40,6 +40,7 @@
 #include <gdk/gdkx.h>
 #include "support.h"
 #include "../common/log.h"
+#include "../video/video.h"
 
 static Display		*display;
 static int		screen;
@@ -81,7 +82,8 @@ struct test_capture_param{
 static struct test_capture_param params[] =
 {
 	{"Video bit rate:", 2.3, 0.01, 0.01, 8, 2},
-	{"Force drop rate (%):", 0, 1, 0, 100, 0},
+/*	{"Force drop rate (%):", 0, 1, 0, 100, 0}, */
+	  {"", 0, 1, 0, 100, 0},
 	{"P inter bias:", 48, 1, 0, 512, 0},
 	{"B inter bias:", 96, 1, 0, 512, 0},
 	{"Frame rate:", 25, 0.01, 1, 30, 2},
@@ -94,30 +96,33 @@ static int num_params = sizeof(params)/sizeof(struct test_capture_param);
 #include "../video/video.h"
 
 extern int video_do_reset;
-extern int force_drop_rate;
+/*extern int force_drop_rate;*/
 extern int p_inter_bias;
 extern int b_inter_bias;
 extern int x_bias;
 extern double frame_rate;
 extern int quant_max;
 
+extern mpeg1_context *
+mp1e_static_context(void);
+
 /* callbacks */
 static void
-on_capture_param_changed(GtkAdjustment *adj,
-			 gint i)
+on_capture_param_changed(GtkAdjustment *adj, gint i)
 {
 	double value = adj->value;
+	mpeg1_context *mpeg1 = mp1e_static_context();
 
 	switch (i) {
 	case 0:
-//		value = value * 1e6;
-//		if (value != vseg.video_bit_rate) {
-//			vseg.video_bit_rate = value;
-//			video_do_reset = 1;
-//		}
+		value = value * 1e6;
+		if (value != mpeg1->bit_rate) {
+			mpeg1->bit_rate = value;
+			video_do_reset = 1;
+		}
 		break;
 	case 1:
-		force_drop_rate = value;
+/*		force_drop_rate = value;*/
 		break;
 	case 2:
 		p_inter_bias = value * 65536;
@@ -126,7 +131,7 @@ on_capture_param_changed(GtkAdjustment *adj,
 		b_inter_bias = value * 65536;
 		break;
 	case 4:
-		frame_rate = value;
+		mpeg1->virtual_frame_rate = value;
 		video_do_reset = 1;
 		break;
 	case 5:
