@@ -21,7 +21,7 @@ libvideo_la_SOURCES = \
 	filter.c filter_mmx.s \
 	mblock.c mblock.h \
 	mpeg1.c mpeg.h video.h libvideo.h \
-	tables.c vlc.c vlc_mmx.s vlc.h \
+	tables.c vlc.c vlc_mmx.s vlc.h vlc_tables.h \
 	motion.c motion_mmx.s motion.h \
 	$(SSE2_FILES)
 
