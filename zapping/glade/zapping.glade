@@ -160,7 +160,7 @@
 	    <name>view1_menu</name>
 
 	    <widget>
-	      <class>GtkMenuItem</class>
+	      <class>GtkPixmapMenuItem</class>
 	      <name>go_fullscreen1</name>
 	      <tooltip>Use this to go fullscreen. Press ESC to return to Windowed mode</tooltip>
 	      <accelerator>
@@ -175,24 +175,7 @@
 	      </signal>
 	      <label>Go _Fullscreen</label>
 	      <right_justify>False</right_justify>
-	    </widget>
-
-	    <widget>
-	      <class>GtkMenuItem</class>
-	      <name>go_windowed1</name>
-	      <tooltip>This option is for returning to windowed mode from fullscreen</tooltip>
-	      <accelerator>
-		<modifiers>0</modifiers>
-		<key>GDK_Escape</key>
-		<signal>activate</signal>
-	      </accelerator>
-	      <signal>
-		<name>activate</name>
-		<handler>on_go_windowed1_activate</handler>
-		<last_modification_time>Thu, 03 Feb 2000 19:10:58 GMT</last_modification_time>
-	      </signal>
-	      <label>Go _Windowed</label>
-	      <right_justify>False</right_justify>
+	      <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
 	    </widget>
 	  </widget>
 	</widget>
@@ -361,10 +344,16 @@
       <class>GtkDrawingArea</class>
       <child_name>GnomeDock:contents</child_name>
       <name>tv_screen</name>
+      <events>GDK_BUTTON_PRESS_MASK</events>
       <signal>
 	<name>size_allocate</name>
 	<handler>on_tv_screen_size_allocate</handler>
 	<last_modification_time>Thu, 06 Jan 2000 19:43:37 GMT</last_modification_time>
+      </signal>
+      <signal>
+	<name>button_press_event</name>
+	<handler>on_tv_screen_button_press_event</handler>
+	<last_modification_time>Wed, 14 Jun 2000 09:20:18 GMT</last_modification_time>
       </signal>
     </widget>
   </widget>
@@ -1907,6 +1896,31 @@ in the next release of this program.</label>
 	</widget>
       </widget>
     </widget>
+  </widget>
+</widget>
+
+<widget>
+  <class>GtkMenu</class>
+  <name>popup_menu1</name>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>separador3</name>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkPixmapMenuItem</class>
+    <name>go_fullscreen2</name>
+    <tooltip>Use this for starting the fullscreen mode</tooltip>
+    <signal>
+      <name>activate</name>
+      <handler>on_go_fullscreen2_activate</handler>
+      <last_modification_time>Tue, 13 Jun 2000 22:34:03 GMT</last_modification_time>
+    </signal>
+    <label>Go _Fullscreen</label>
+    <right_justify>False</right_justify>
+    <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
   </widget>
 </widget>
 

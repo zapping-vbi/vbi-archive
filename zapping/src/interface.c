@@ -142,3 +142,9 @@ create_plugin_properties (void)
 {
   return build_widget("plugin_properties");
 }
+
+GtkWidget*
+create_popup_menu1 (void)
+{
+  return build_widget("popup_menu1");
+}

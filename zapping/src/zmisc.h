@@ -78,6 +78,13 @@ zimage_get_data ( GdkImage * image);
 void
 zimage_destroy(void);
 
+/*
+  Creates a GtkPixmapMenuEntry with the desired pixmap and the
+  desired label. The pixmap is a stock GNOME pixmap.
+*/
+GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
+				       const gchar * icon);
+
 #endif /* ZMISC.H */
 
 #ifdef ZCONF_DOMAIN

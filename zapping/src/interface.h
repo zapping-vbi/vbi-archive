@@ -21,5 +21,6 @@ GtkWidget* create_channel_window (void);
 GtkWidget* create_zapping_properties (void);
 GtkWidget* create_about2 (void);
 GtkWidget* create_plugin_properties (void);
+GtkWidget* create_popup_menu1 (void);
 
 #endif

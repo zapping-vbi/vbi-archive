@@ -43,6 +43,8 @@ gboolean flag_exit_program = FALSE;
 tveng_channels * current_country = NULL;
 GList * plugin_list = NULL;
 struct soundinfo * si;
+gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
+				     work */
 
 void shutdown_zapping(void);
 gboolean startup_zapping(void);
@@ -70,8 +72,6 @@ int main(int argc, char * argv[])
   gchar * buffer;
   GList * p;
   struct tveng_frame_format format;
-  gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
-				     work */
   gint x, y, w, h; /* Saved geometry */
   GdkGeometry geometry;
 

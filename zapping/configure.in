@@ -40,12 +40,6 @@ AC_CHECK_LIB(png, png_create_write_struct, PNG_LIB="-lpng",
 AC_MSG_ERROR(*** PNG saving library couldn't be found ***))
 AC_SUBST(PNG_LIB)
 
-dnl ----------------------------------------------------------------------
-dnl Check for the presence of the esd lib
-dnl ----------------------------------------------------------------------
-AC_CHECK_LIB(esd, esd_record_stream_fallback,,
-AC_MSG_ERROR(*** libesd couldn't be found ***))
-
 GNOME_COMPILE_WARNINGS
 GNOME_X_CHECKS
 GNOME_XML_CHECK

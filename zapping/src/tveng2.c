@@ -302,6 +302,9 @@ int tveng2_attach_device(const char* device_file,
       return -1;
     }
 
+  /* Get fb_info */
+  tveng2_detect_preview(info);
+
   /* Set our desired size, make it halfway */
   info -> format.width = (info->caps.minwidth + info->caps.maxwidth)/2;
   info -> format.height = (info->caps.minheight +

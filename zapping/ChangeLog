@@ -1,3 +1,11 @@
+14.6.2000	Right-click menu <garetxe@users.sourceforge.net>
+
+	* src/callbacks.c: Fullscreen mode grabs the keyboard again, but
+	it is apparently safe now.
+	* glade/zapping.glade: Added a right click menu. Not very useful,
+	but it is fancy and somewhat faster to use.
+	* src/tveng.c: Now it fills the fb_info struct correctly on startup.
+
 13.6.2000	Sound fixes <garetxe@users.sourceforge.net>
 
 	* src/sound.c: Some fixes have been made, now it should be
@@ -5,6 +13,9 @@
 	* src/tveng.c: Added support for 15 bpp screen depth.
 	* zapping.spec.in: Fixed, now it adds the translations to the RPM
 	correctly.
+	* src/callbacks.c: Fullscreen mode no longer grabs the
+	keybord. This should avoid blocking X (completely :-) if something
+	doesn't work while we are fullscreen.
 
 12.6.2000	Docs added <garetxe@users.sourceforge.net>
 

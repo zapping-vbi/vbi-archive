@@ -136,6 +136,9 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
   if (caps.type & VID_TYPE_SUBCAPTURE)
     info ->caps.flags |= TVENG_CAPS_SUBCAPTURE;
 
+  /* This tries to fill the fb_info field */
+  tveng1_detect_preview(info);
+
   /* Set some flags for this device */
   fcntl( info -> fd, F_SETFD, FD_CLOEXEC );
 

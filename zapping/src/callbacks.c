@@ -36,6 +36,8 @@ gboolean flag_exit_program; /* set this flag to TRUE to exit the program */
 GtkWidget * ToolBox = NULL; /* Here is stored the Toolbox (if any) */
 
 extern tveng_device_info * main_info; /* About the device we are using */
+extern gboolean disable_preview; /* TRUE if preview (fullscreen)
+				    doesn't work */
 
 int cur_tuned_channel = 0; /* Currently tuned channel */
 
@@ -262,6 +264,19 @@ void on_channel_activate              (GtkMenuItem     *menuitem,
 }
 
 void
+on_channel2_activate                   (GtkMenuItem     *menuitem,
+			       	        gpointer        user_data)
+{
+  GtkWidget * zapping =
+    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(menuitem)));
+  GtkWidget * Channels = lookup_widget(zapping, "Channels");
+
+  gtk_option_menu_set_history(GTK_OPTION_MENU(Channels),
+			      GPOINTER_TO_INT(user_data));
+  on_channel_activate(NULL, user_data);
+}
+
+void
 on_controls_clicked                    (GtkButton       *button,
                                         gpointer         user_data)
 {
@@ -362,12 +377,16 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
   black_window = gtk_window_new( GTK_WINDOW_POPUP );
   da = gtk_drawing_area_new();
 
-  gtk_container_add(GTK_CONTAINER(black_window), da);
-  gtk_widget_set_usize(black_window, gdk_screen_width(), gdk_screen_height());
   gtk_widget_show(da);
 
+  gtk_container_add(GTK_CONTAINER(black_window), da);
+  gtk_widget_set_usize(black_window, gdk_screen_width(),
+		       gdk_screen_height());
+
   gtk_widget_show(black_window);
-  
+  gtk_window_set_modal(GTK_WINDOW(black_window), TRUE);
+  gdk_window_set_decorations(black_window->window, 0);
+
   /* Draw on the drawing area */
   gdk_draw_rectangle(da -> window,
 		     da -> style -> black_gc,
@@ -386,12 +405,31 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
   if (main_info -> current_mode != TVENG_CAPTURE_PREVIEW)
     g_warning("Setting preview succeeded, but the mode is not set");
 
-  /* Grab the keyboard to the main zapping window */
-  gdk_keyboard_grab(lookup_widget(GTK_WIDGET(menuitem), "zapping")->window,
-		    TRUE,
-		    GDK_CURRENT_TIME);
+  gtk_widget_grab_focus(black_window);
+  /*
+    If something doesn't work, everything will be blocked here, maybe
+    this isn't a good idea... but it is apparently the less bad one.
+  */
+  gdk_keyboard_grab(black_window->window, TRUE, GDK_CURRENT_TIME);
+
+  gdk_window_set_events(black_window->window, GDK_KEY_PRESS_MASK);
+
+  gtk_signal_connect(GTK_OBJECT(black_window), "event",
+		     GTK_SIGNAL_FUNC(on_fullscreen_event),
+		     lookup_widget(GTK_WIDGET(menuitem), "zapping"));
 }
 
+void
+on_go_fullscreen2_activate             (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  GtkWidget * widget = lookup_widget(GTK_WIDGET(menuitem),
+				     "popup_menu1");
+  GtkWidget * go_fullscreen1 = lookup_widget(GTK_WIDGET(
+    gtk_object_get_user_data(GTK_OBJECT(widget))), "go_fullscreen1");
+
+  on_go_fullscreen1_activate(GTK_MENU_ITEM(go_fullscreen1), NULL);
+}
 
 void
 on_go_windowed1_activate               (GtkMenuItem     *menuitem,
@@ -404,7 +442,6 @@ on_go_windowed1_activate               (GtkMenuItem     *menuitem,
   if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
     return;
 
-  /* Ungrab the previously grabbed keyboard */
   gdk_keyboard_ungrab(GDK_CURRENT_TIME);
 
   /* Remove the black window */
@@ -485,3 +522,116 @@ on_channel_down1_activate              (GtkMenuItem     *menuitem,
   gtk_option_menu_set_history(GTK_OPTION_MENU (Channels),
 			      new_channel);
 }
+
+gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
+			      gpointer user_data)
+{
+  GtkWidget * window = GTK_WIDGET(user_data);
+  GtkMenuItem * channel_up1 =
+    GTK_MENU_ITEM(lookup_widget(window, "channel_up1"));
+  GtkMenuItem * channel_down1 =
+    GTK_MENU_ITEM(lookup_widget(window, "channel_down1"));
+  GtkMenuItem * go_windowed1 =
+    GTK_MENU_ITEM(lookup_widget(window, "channel_down1"));
+  GtkMenuItem * exit2 =
+    GTK_MENU_ITEM(lookup_widget(window, "exit2"));
+
+  if (event->type == GDK_KEY_PRESS)
+    {
+      GdkEventKey * kevent = (GdkEventKey*) event;
+      switch (kevent->keyval)
+	{
+	case GDK_Page_Up:
+	case GDK_KP_Page_Up:
+	  on_channel_up1_activate(channel_up1, NULL);
+	  break;
+	case GDK_Page_Down:
+	case GDK_KP_Page_Down:
+	  on_channel_down1_activate(channel_down1, NULL);
+	  break;
+	case GDK_Escape:
+	  on_go_windowed1_activate(go_windowed1, NULL);
+	  break;
+	  /* Let control-Q exit the app */
+	case GDK_q:
+	  if (kevent->state & GDK_CONTROL_MASK)
+	    {
+	      on_go_windowed1_activate(go_windowed1, NULL);
+	      on_exit2_activate(exit2, NULL);
+	    }
+	  break;
+	}
+      return TRUE; /* Event processing done */
+    }
+  return FALSE; /* We aren't interested in this event, pass it on */
+}
+
+gboolean
+on_tv_screen_button_press_event        (GtkWidget       *widget,
+					GdkEvent        *event,
+					gpointer        user_data)
+{
+  gint i;
+  GtkWidget * zapping = lookup_widget(widget, "zapping");
+  GdkEventButton * bevent = (GdkEventButton *) event;
+
+  if (event->type != GDK_BUTTON_PRESS)
+    return FALSE;
+
+  if (bevent->button == 3)
+    {
+      GtkMenu * menu = GTK_MENU(create_popup_menu1());
+      GtkWidget * menuitem;
+      tveng_tuned_channel * tuned;
+      
+      if (!(main_info->inputs[main_info->cur_input].flags &
+	    TVENG_INPUT_TUNER))
+	{
+	  menuitem = z_gtk_pixmap_menu_item_new(_("No tuner"),
+						GNOME_STOCK_PIXMAP_CLOSE);
+	  gtk_widget_set_sensitive(menuitem, FALSE);
+	  gtk_widget_show(menuitem);
+	  gtk_menu_prepend(menu, menuitem);
+	}
+      else if (tveng_tuned_channel_num() == 0)
+	{
+	  menuitem = z_gtk_pixmap_menu_item_new(_("No tuned channels"),
+						GNOME_STOCK_PIXMAP_CLOSE);
+	  gtk_widget_set_sensitive(menuitem, FALSE);
+	  gtk_widget_show(menuitem);
+	  gtk_menu_prepend(menu, menuitem);
+	}
+      else
+	for (i = tveng_tuned_channel_num()-1; i >= 0; i--)
+	  {
+	    tuned = tveng_retrieve_tuned_channel_by_index(i);
+	    g_assert(tuned != NULL);
+	    menuitem =
+	      z_gtk_pixmap_menu_item_new(tuned->name,
+					 GNOME_STOCK_PIXMAP_PROPERTIES);
+	    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+			       GTK_SIGNAL_FUNC(on_channel2_activate),
+			       GINT_TO_POINTER(i));
+	    gtk_object_set_user_data(GTK_OBJECT(menuitem), zapping);
+	    gtk_widget_show(menuitem);
+	    gtk_menu_prepend(menu, menuitem);
+	  }
+      
+      if (disable_preview)
+	{
+	  GtkWidget * go_fullscreen2 =
+	    lookup_widget(GTK_WIDGET(menu), "go_fullscreen2");
+	  gtk_widget_set_sensitive(go_fullscreen2, FALSE);
+	  gtk_widget_hide(lookup_widget(GTK_WIDGET(menu),
+					"separador3"));
+	  gtk_widget_hide(go_fullscreen2);
+	}
+      gtk_menu_popup(menu, NULL, NULL, NULL,
+		     NULL, bevent->button, bevent->time);
+      gtk_object_set_user_data(GTK_OBJECT(menu), zapping);
+      return TRUE;
+    }
+  return FALSE;
+}
+
+

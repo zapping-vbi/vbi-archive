@@ -260,13 +260,27 @@ void sound_destroy_struct (struct soundinfo * info)
 */
 gint sound_read_data(struct soundinfo * info)
 {
-  gint index;
+  static gint index;
+  static gboolean waiting = FALSE;
 
-  /* Tell the thread to switch buffers */
-  si.write_index = 1 - si.write_index;
-  si.switch_buffers = TRUE;
-  index = 1 - si.write_index;
-  pthread_mutex_lock(&(si.sb[index].mutex));
+  if (!waiting)
+    {
+      /* Tell the thread to switch buffers */
+      si.write_index = 1 - si.write_index;
+      si.switch_buffers = TRUE;
+      index = 1 - si.write_index;
+      waiting = TRUE;
+      return 0; /* pthread_mutex_try_lock will fall anyway */
+    }
+
+  if (pthread_mutex_trylock(&(si.sb[index].mutex)))
+    {
+      /* Do not block, just return 0 bytes read, the thread is
+	 probably sleeping now during the select() */
+      return 0;
+    }
+
+  waiting = FALSE; /* We were able to lock the mutex, stop waiting */
 
   /* Now it's safe to read the data */
   memcpy(&(info->tv), &(si.sb[index].tv), sizeof(struct timeval));

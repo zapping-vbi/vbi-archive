@@ -115,17 +115,17 @@ void update_inputs_menu(GtkWidget * widget, tveng_device_info *
   update_channels_menu(widget, info);
 }
 
-/* 
-   Update the menu from where we can choose the TV channel. Widget is
-   any widget in the same window as the standard menu (we lookup() it)
- */
+/*
+  Update the menu from where we can choose the TV channel. Widget is
+  any widget in the same window as the standard menu (we lookup() it)
+*/
 void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
 {
   GtkWidget * Channels = lookup_widget(widget, "Channels");
   GtkWidget * NewMenu; /* New menu */
   int i = 0;
-  GtkWidget * menu_item;
   tveng_tuned_channel * tuned;
+  GtkWidget * menu_item;
   gboolean tunes;
 
   /* remove old menu */

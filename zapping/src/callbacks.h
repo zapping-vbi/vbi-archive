@@ -56,15 +56,21 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
                                         GtkAllocation   *allocation,
                                         gpointer         user_data);
 
-
-void on_standard_activate              (GtkMenuItem     *menuitem,
+void
+on_standard_activate                   (GtkMenuItem     *menuitem,
 					gpointer        user_data);
 
-void on_input_activate                 (GtkMenuItem     *menuitem,
+void
+on_input_activate                      (GtkMenuItem     *menuitem,
 					gpointer        user_data);
 
-void on_channel_activate              (GtkMenuItem     *menuitem,
-				       gpointer        user_data);
+void
+on_channel_activate                    (GtkMenuItem     *menuitem,
+				        gpointer        user_data);
+
+void
+on_channel2_activate                   (GtkMenuItem     *menuitem,
+			       	        gpointer        user_data);
 
 void
 on_controls_clicked                    (GtkButton       *button,
@@ -96,6 +102,10 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 void
+on_go_fullscreen2_activate             (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
 on_go_windowed1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
@@ -106,6 +116,16 @@ on_channel_up1_activate                (GtkMenuItem     *menuitem,
 void
 on_channel_down1_activate              (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
+
+gboolean
+on_fullscreen_event                    (GtkWidget       *widget,
+					GdkEvent        *event,
+					gpointer        user_data);
+
+gboolean
+on_tv_screen_button_press_event        (GtkWidget       *widget,
+					GdkEvent        *event,
+					gpointer        user_data);
 
 /******************************************************************************
  Stuff located in properties.c

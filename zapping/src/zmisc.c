@@ -152,3 +152,39 @@ zimage_destroy(void)
 
   zimage = NULL;
 }
+
+/*
+  Creates a GtkPixmapMenuEntry with the desired pixmap and the
+  desired label.
+*/
+GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
+				       const gchar * icon)
+{
+  GtkWidget * pixmap_menu_item;
+  GtkWidget * accel_label;
+  GtkWidget * pixmap;
+
+  g_assert(label != NULL);
+
+  pixmap_menu_item = gtk_pixmap_menu_item_new();
+  accel_label = gtk_accel_label_new (label);
+  gtk_misc_set_alignment(GTK_MISC(accel_label), 0.0, 0.5);
+  gtk_container_add(GTK_CONTAINER (pixmap_menu_item), accel_label);
+  gtk_accel_label_set_accel_widget (GTK_ACCEL_LABEL (accel_label),
+				    pixmap_menu_item);
+  gtk_widget_show (accel_label);
+
+  if (icon)
+    {
+      /* if i don't specify the size, the pixmap is too big, but the
+	 one libgnomeui creates isn't... why? */
+      pixmap = gnome_stock_pixmap_widget_at_size (pixmap_menu_item,
+						  icon, 16, 16);
+      
+      gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(pixmap_menu_item),
+				      pixmap);
+      gtk_widget_show(pixmap);
+    }
+
+  return (pixmap_menu_item);
+}

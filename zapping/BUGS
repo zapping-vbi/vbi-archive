@@ -4,9 +4,6 @@ Known bugs with zapping
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
-	! Sometimes Zapping starts at minimum size, when it
-shouldn't (i'm trying to find a pattern for it, i've no idea of what
-the problem is) (Note: This doesn't happen now, maybe it's fixed).
 	* Somehow the docs aren't displayed with the GnomeHelpBrowser
 but with Mozilla. Annoying, since Mozilla needs a lot of resources.
 	* Some users have reported that FS mode doesn't work
