@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.41 2004-12-07 17:30:39 mschimek Exp $ */
+/* $Id: fifo.c,v 1.42 2005-01-08 14:42:43 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -43,6 +43,9 @@ extern char *program_invocation_short_name;
 
 #define _pthread_mutex_lock pthread_mutex_lock
 #define _pthread_mutex_unlock pthread_mutex_unlock
+
+typedef void
+cleanup_fn			(void *);
 
 static char *
 addr2line(void *addr)
@@ -310,60 +313,13 @@ uninit_fifo(zf_fifo *f)
 }
 
 /**
- * wait_full_buffer:
- * @c: zf_consumer *
- * 
- * Suspends execution of the calling thread until a full buffer becomes
- * available for consumption. Otherwise identical to recv_full_buffer().
- *
- * Return value:
- * Buffer pointer, never %NULL.
- **/
-zf_buffer *
-zf_wait_full_buffer(zf_consumer *c)
-{
-	zf_fifo *f = c->fifo;
-	zf_buffer *b;
-
-	_pthread_mutex_lock(&f->consumer->mutex);
-
-	while (!(b = c->next_buffer)->node.succ) {
-		if (f->c_reentry++ || !f->wait_full) {
-			/* Free resources which may block other consumers */
-			pthread_cleanup_push((void (*)(void *))
-				_pthread_mutex_unlock, &f->consumer->mutex);
-			pthread_cond_wait(&f->consumer->cond, &f->consumer->mutex);
-			pthread_cleanup_pop(0);
-		} else {
-			_pthread_mutex_unlock(&f->consumer->mutex);
-			f->wait_full(f);
-			_pthread_mutex_lock(&f->consumer->mutex);
-		}
-
-		f->c_reentry--;
-	}
-
-	c->next_buffer = PARENT(b->node.succ, zf_buffer, node);
-
-	b->dequeued++;
-
-	_pthread_mutex_unlock(&f->consumer->mutex);
-
-	c->dequeued++;
-
-//	fprintf(stderr, "WFB %s b=%p dq=%d\n", f->name, b, c->dequeued);
-
-	return b;
-}
-
-/**
  * wait_full_buffer_timeout:
  * @c: zf_consumer *
  * @timeout: struct timespec *
  * 
  * Suspends execution of the calling thread until a full buffer becomes
- * available for consumption or the timeout is reached. Identical
- * behaviour to wait_full_buffer otherwise.
+ * available for consumption or the timeout is reached.
+ * Otherwise identical to recv_full_buffer().
  *
  * Return value:
  * Buffer pointer, or %NULL if the timeout was reached.
@@ -380,12 +336,20 @@ zf_wait_full_buffer_timeout(zf_consumer *c, struct timespec *timeout)
 	while (!(b = c->next_buffer)->node.succ) {
 		if (f->c_reentry++ || !f->wait_full) {
 			/* Free resources which may block other consumers */
-			pthread_cleanup_push((void (*)(void *))
-				_pthread_mutex_unlock, &f->consumer->mutex);
-			err = pthread_cond_timedwait(&f->consumer->cond,
-						     &f->consumer->mutex,
-						     timeout);
-			pthread_cleanup_pop(0);
+			pthread_cleanup_push
+				((cleanup_fn *)	_pthread_mutex_unlock,
+				 &f->consumer->mutex);
+
+			if (timeout)
+				err = pthread_cond_timedwait
+					(&f->consumer->cond,
+					 &f->consumer->mutex,
+					 timeout);
+			else
+				err = pthread_cond_wait (&f->consumer->cond,
+							 &f->consumer->mutex);
+
+			pthread_cleanup_pop (0);
 		} else {
 			_pthread_mutex_unlock(&f->consumer->mutex);
 			f->wait_full(f);
@@ -394,11 +358,10 @@ zf_wait_full_buffer_timeout(zf_consumer *c, struct timespec *timeout)
 
 		f->c_reentry--;
 
-		if (err == ETIMEDOUT)
-		  {
-		    _pthread_mutex_unlock(&f->consumer->mutex);
-		    return NULL;
-		  }
+		if (err == ETIMEDOUT) {
+			_pthread_mutex_unlock(&f->consumer->mutex);
+			return NULL;
+		}
 	}
 
 	c->next_buffer = (zf_buffer *) b->node.succ;
@@ -409,7 +372,25 @@ zf_wait_full_buffer_timeout(zf_consumer *c, struct timespec *timeout)
 
 	c->dequeued++;
 
+//	fprintf(stderr, "WFB %s b=%p dq=%d\n", f->name, b, c->dequeued);
+
 	return b;
+}
+
+/**
+ * wait_full_buffer:
+ * @c: zf_consumer *
+ * 
+ * Suspends execution of the calling thread until a full buffer becomes
+ * available for consumption. Otherwise identical to recv_full_buffer().
+ *
+ * Return value:
+ * Buffer pointer, never %NULL.
+ **/
+zf_buffer *
+zf_wait_full_buffer(zf_consumer *c)
+{
+	return zf_wait_full_buffer_timeout (c, NULL);
 }
 
 /*
@@ -473,19 +454,22 @@ wait_empty_buffer_cleanup(mucon *m)
 /**
  * wait_empty_buffer:
  * @p: zf_producer *
+ * @timeout: struct timespec *
  * 
  * Suspends execution of the calling thread until an empty buffer becomes
- * available. Otherwise identical to recv_empty_buffer().
+ * available or the timeout is reached. Otherwise identical to
+ * recv_empty_buffer().
  *
  * Return value:
- * Buffer pointer, never %NULL.
+ * Buffer pointer, or %NULL if the timeout was reached.
  **/
 zf_buffer *
-zf_wait_empty_buffer(zf_producer *p)
+zf_wait_empty_buffer_timeout(zf_producer *p, struct timespec *timeout)
 {
 	zf_fifo *f = p->fifo;
 	zf_buffer *b = NULL;
 	node n;
+	int err = 0;
 
 	_pthread_mutex_lock(&f->producer->mutex);
 
@@ -504,8 +488,9 @@ zf_wait_empty_buffer(zf_producer *p)
  wait:
 		if (f->p_reentry++ || !f->wait_empty) {
 			/* Free resources which may block other producers */
-			pthread_cleanup_push((void (*)(void *))
-				wait_empty_buffer_cleanup, f->producer);
+			pthread_cleanup_push
+				((cleanup_fn *)	wait_empty_buffer_cleanup,
+				 f->producer);
 
 			add_tail(&f->producer->list, &n);
 
@@ -513,8 +498,18 @@ zf_wait_empty_buffer(zf_producer *p)
 			 *  Assure first come first served
 			 *  XXX works, but inefficient
 			 */
-			do pthread_cond_wait(&f->producer->cond, &f->producer->mutex);
-			while (f->producer->list.head != &n);
+			do {
+				if (timeout)
+					err = pthread_cond_timedwait
+						(&f->producer->cond,
+						 &f->producer->mutex,
+						 timeout);
+				else
+					err = pthread_cond_wait
+						(&f->producer->cond,
+						 &f->producer->mutex);
+			} while (err != ETIMEDOUT
+				 && f->producer->list.head != &n);
 
 			pthread_cleanup_pop(0);
 
@@ -526,6 +521,11 @@ zf_wait_empty_buffer(zf_producer *p)
 		}
 
 		f->p_reentry--;
+
+		if (err == ETIMEDOUT) {
+			_pthread_mutex_unlock(&f->producer->mutex);
+			return NULL;
+		}
 	}
 
 	_pthread_mutex_unlock(&f->producer->mutex);
@@ -536,6 +536,22 @@ zf_wait_empty_buffer(zf_producer *p)
 //	fprintf(stderr, "WEB %s b=%p dq=%d\n", f->name, b, p->dequeued);
 
 	return b;
+}
+
+/**
+ * wait_empty_buffer:
+ * @p: zf_producer *
+ * 
+ * Suspends execution of the calling thread until an empty buffer becomes
+ * available. Otherwise identical to recv_empty_buffer().
+ *
+ * Return value:
+ * Buffer pointer, never %NULL.
+ **/
+zf_buffer *
+zf_wait_empty_buffer(zf_producer *p)
+{
+	return zf_wait_empty_buffer_timeout (p, NULL);
 }
 
 /*
