@@ -513,7 +513,6 @@ static void selection_handle		(GtkWidget	*widget,
 	  gtk_selection_data_set (selection_data,
 				  GDK_SELECTION_TYPE_PIXMAP, 32,
 				  (char*)&id[0], 4);
-	  /* FIXME: Is there any way to free the pixmap? */
 	  gdk_pixbuf_unref(canvas);
 	}
     }
@@ -2359,6 +2358,7 @@ gboolean on_ttxview_expose_event	(GtkWidget	*widget,
 {
   gint w, h;
   gint scol, srow, col, row;
+  GdkRegion *region;
 
   render_ttx_page(data->id, widget->window, widget->style->white_gc,
 		  event->area.x, event->area.y,
@@ -2379,8 +2379,12 @@ gboolean on_ttxview_expose_event	(GtkWidget	*widget,
       scol = SATURATE(scol, 0, 39);
       srow = SATURATE(srow, 0, 24);
 
+      region = region_from_rect(&event->area);
+
       transform_region(scol, srow, col, row, scol, srow, col, row,
-                       data->sel_table, data->sel_table, &event->area, data);
+                       data->sel_table, data->sel_table, region, data);
+
+      gdk_region_destroy(region);
     }
 
   return TRUE;

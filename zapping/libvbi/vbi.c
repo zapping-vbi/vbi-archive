@@ -154,9 +154,9 @@ vbi_mainloop(void *p)
 // #define FILTER_ADD SLICED_CAPTION
 // #define SAMPLE "libvbi/samples/s1"
 
- #define FILTER_REM SLICED_TELETEXT_B
- #define FILTER_ADD SLICED_TELETEXT_B
- #define SAMPLE "libvbi/samples/t1-swr"
+// #define FILTER_REM SLICED_TELETEXT_B
+// #define FILTER_ADD SLICED_TELETEXT_B
+// #define SAMPLE "libvbi/samples/t1-swr"
 
 // #define FILTER_* (SLICED_TELETEXT_B | SLICED_CAPTION | SLICED_VPS)
 

@@ -163,12 +163,21 @@ if test $? -eq 0; then
 	AC_MSG_RESULT($LIBXML_VERSION)
 	LIBXML_CFLAGS=`xml-config --cflags`
 	LIBXML_LIBS=`xml-config --libs`
-	AC_SUBST(LIBXML_CFLAGS)
-	AC_SUBST(LIBXML_LIBS)
+	XML_LIB="xml"
 else
-	AC_MSG_ERROR([This version of Zapping requires libxml:
-	ftp://ftp.gnome.org/pub/GNOME/stable/sources])
+	LIBXML_VERSION=`xml2-config --version`
+	if test $? -eq 0; then
+		LIBXML_CFLAGS=`xml2-config --cflags`
+		LIBXML_LIBS=`xml2-config --libs`
+		XML_LIB="xml2"
+	else
+		AC_MSG_ERROR([This version of Zapping requires libxml:
+		ftp://ftp.gnome.org/pub/GNOME/stable/sources])
+	fi
 fi
+
+AC_SUBST(LIBXML_CFLAGS)
+AC_SUBST(LIBXML_LIBS)
 
 saved_cppflags="$CPPFLAGS"
 saved_ldflags="$LDFLAGS"
@@ -190,9 +199,10 @@ AC_DEFINE(LIBXML_CHILDS),
 AC_MSG_RESULT(children))
 
 dnl ----------------------------------------------------------------------
-dnl Check for existance of xmlDocGetRootNode and friends
+dnl Check for existance of xmlDocGetRootElement
 dnl ----------------------------------------------------------------------
-AC_CHECK_LIB(xml, xmlDocGetRootNode,, AC_DEFINE(LIBXML_NO_ROOT))
+AC_CHECK_LIB($XML_LIB, xmlDocGetRootElement,
+	AC_DEFINE(LIBXML_xmlDocGetRootElement))
 
 CPPFLAGS="$saved_cppflags"
 LDFLAGS="$saved_ldflags"

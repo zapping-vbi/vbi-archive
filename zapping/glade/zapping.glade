@@ -1733,6 +1733,48 @@ in the next release of this program.</label>
 
     <widget>
       <class>GtkHBox</class>
+      <name>hbox30</name>
+      <homogeneous>True</homogeneous>
+      <spacing>0</spacing>
+      <child>
+	<padding>0</padding>
+	<expand>False</expand>
+	<fill>False</fill>
+      </child>
+
+      <widget>
+	<class>GtkOptionMenu</class>
+	<name>attached_input</name>
+	<tooltip>Select here the input to be attached to this channel</tooltip>
+	<can_focus>True</can_focus>
+	<items>Magical input
+</items>
+	<initial_choice>0</initial_choice>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkOptionMenu</class>
+	<name>attached_standard</name>
+	<tooltip>Select here the Standard this channel uses</tooltip>
+	<can_focus>True</can_focus>
+	<items>Magical Standard
+</items>
+	<initial_choice>0</initial_choice>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
+      </widget>
+    </widget>
+
+    <widget>
+      <class>GtkHBox</class>
       <name>hbox17</name>
       <homogeneous>False</homogeneous>
       <spacing>0</spacing>

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.16 2000-11-04 20:38:02 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.17 2001-03-22 23:27:42 garetxe Exp $
  * This is a simple RTE test.
  */
 
@@ -489,7 +489,7 @@ int main(int argc, char *argv[])
 	char dest_file[] = "tempx.mpeg";
 	pthread_t audio_thread_id;
 	enum rte_mux_mode mux_mode = RTE_AUDIO | RTE_VIDEO;
-	enum rte_interface video_interface = RTE_PUSH;
+	enum rte_interface video_interface = RTE_CALLBACKS;
 	int num_encoded_frames;
 	void * dest_ptr = NULL;
 	int i=0;

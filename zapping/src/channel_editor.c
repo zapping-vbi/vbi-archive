@@ -146,6 +146,51 @@ on_country_switch                      (GtkWidget       *menu_item,
   gtk_object_set_user_data ( GTK_OBJECT(clist1), country);
 }
 
+static void rebuild_inputs_standards(GtkWidget *widget)
+{
+  GtkWidget * input = lookup_widget(widget, "attached_input");
+  GtkWidget * standard = lookup_widget(widget, "attached_standard");
+  GtkWidget * NewMenu; /* New menu */
+  GtkWidget * menu_item;
+  int i;
+  
+  /* remove old menu */
+  gtk_widget_destroy(gtk_option_menu_get_menu (GTK_OPTION_MENU (input)));
+  gtk_widget_destroy(gtk_option_menu_get_menu (GTK_OPTION_MENU (standard)));
+
+  NewMenu = gtk_menu_new ();
+
+  menu_item = gtk_menu_item_new_with_label(_("Do not change standard"));
+  gtk_widget_show (menu_item);
+  gtk_menu_append(GTK_MENU (NewMenu), menu_item);
+
+  for (i = 0; i < main_info->num_standards; i++)
+  {
+    menu_item =
+      gtk_menu_item_new_with_label(main_info->standards[i].name);
+    gtk_widget_show (menu_item);
+    gtk_menu_append(GTK_MENU (NewMenu), menu_item);
+  }
+
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (standard), NewMenu);
+
+  NewMenu = gtk_menu_new ();
+
+  menu_item = gtk_menu_item_new_with_label(_("Do not change input"));
+  gtk_widget_show (menu_item);
+  gtk_menu_append(GTK_MENU (NewMenu), menu_item);
+
+  for (i = 0; i < main_info->num_inputs; i++)
+  {
+    menu_item =
+      gtk_menu_item_new_with_label(main_info->inputs[i].name);
+    gtk_widget_show (menu_item);
+    gtk_menu_append(GTK_MENU (NewMenu), menu_item);
+  }
+
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (input), NewMenu);
+}
+
 void
 on_channels1_activate                  (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
@@ -246,6 +291,8 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
   gtk_combo_set_popdown_strings(GTK_COMBO(combo1), keylist);
 
   g_list_free(keylist);
+
+  rebuild_inputs_standards(channel_window);
 
   gtk_widget_show(channel_window);
 

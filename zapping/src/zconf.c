@@ -36,6 +36,7 @@
 #include <gnome.h>
 #include <tree.h> /* libxml */
 #include <parser.h> /* libxml */
+#include <xmlmemory.h> /* libxml */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -54,7 +55,7 @@
 #define children childs
 #endif
 
-#ifdef LIBXML_NO_ROOT
+#ifndef LIBXML_xmlDocGetRootElement
 /* Some people don't need this defines, but need the ones above */
 #define xmlDocSetRootElement(doc, node) (doc->root = node)
 #define xmlDocGetRootElement(doc) (doc->root)
@@ -171,7 +172,7 @@ zconf_init(const gchar * domain)
     {
       buffer = g_strconcat(domain,
 			   " cannot determine your home dir", NULL);
-      ShowBox(buffer, GNOME_MESSAGE_BOX_ERROR);
+      RunBox(buffer, GNOME_MESSAGE_BOX_ERROR);
       g_free(buffer);
       return FALSE;
     }
@@ -184,7 +185,7 @@ zconf_init(const gchar * domain)
       if (mkdir(buffer, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP |
 		S_IXGRP | S_IROTH | S_IXOTH) == -1)
 	{
-	  ShowBox("Cannot create config home dir, check your permissions",
+	  RunBox("Cannot create config home dir, check your permissions",
 		  GNOME_MESSAGE_BOX_ERROR);
 	  g_free(buffer);
 	  return FALSE;
@@ -192,7 +193,7 @@ zconf_init(const gchar * domain)
       config_dir = opendir(buffer);
       if (!config_dir)
 	{
-	  ShowBox("Cannot open config home dir, this is weird",
+	  RunBox("Cannot open config home dir, this is weird",
 		  GNOME_MESSAGE_BOX_ERROR);
 	  g_free(buffer);
 	  return FALSE;
@@ -217,7 +218,10 @@ zconf_init(const gchar * domain)
       /* We couldn't open the doc, create a new one */
       doc = xmlNewDoc("1.0");
       if (!doc)
-	return FALSE;
+	{
+	  g_warning("ZConf: xmlNewDoc failed");
+	  return FALSE;
+	}
 
       /* Add the main node to the tree, so the parser has something to
 	 parse */
@@ -245,7 +249,10 @@ zconf_init(const gchar * domain)
 
   /* No root node found, return error */
   if (zconf_root == NULL)
-    return FALSE;
+    {
+      g_warning("ZConf: No root node found!");
+      return FALSE;
+    }
 
   if (doc)
     xmlFreeDoc(doc); /* Free the memory, we don't need it any more */
@@ -1157,7 +1164,11 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
   new_key -> type = ZCONF_TYPE_DIR;
   new_key -> name = name;
   new_key -> type = key_type;
-  new_key -> description = description;
+  if (description)
+    {
+      new_key -> description = g_strdup(description);
+      xmlFree(description);
+    }
 
   if ((!node_string) && (key_type != ZCONF_TYPE_DIR))
     {

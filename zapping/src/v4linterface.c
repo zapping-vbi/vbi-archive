@@ -16,6 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 /* Routines for building GUI elements dependant on the v4l device
    (such as the number of inputs and so on) */
 #include "v4linterface.h"
@@ -27,6 +31,19 @@
 extern tveng_tuned_channel * global_channel_list;
 extern int cur_tuned_channel; /* currently tuned channel (in callbacks.c) */
 GtkWidget * ToolBox = NULL; /* Pointer to the last control box */
+ZModel *z_input_model = NULL;
+
+void
+startup_v4linterface(void)
+{
+  z_input_model = ZMODEL(zmodel_new());
+}
+
+void
+shutdown_v4linterface(void)
+{
+  gtk_object_destroy(GTK_OBJECT(z_input_model));
+}
 
 /* 
    Update the menu from where we can choose the standard. Widget is
@@ -553,4 +570,16 @@ update_control_box(tveng_device_info * info)
   gtk_widget_show(hbox);
   gtk_container_add(GTK_CONTAINER (control_box), hbox);
   gtk_object_set_data(GTK_OBJECT(control_box), "hbox", hbox);
+}
+
+void
+z_switch_input			(struct tveng_enum_input *input,
+				 tveng_device_info *info)
+{
+}
+
+void
+z_switch_standard		(struct tveng_enumstd *standard,
+				 tveng_device_info *info)
+{
 }

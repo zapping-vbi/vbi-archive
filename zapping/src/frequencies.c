@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,9 +15,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-/*
-  The frequency table is taken from xawtv
-*/
+/**
+ * The frequency table is taken from xawtv with donations around the globe.
+ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1252,7 +1252,7 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel,
 			    tveng_tuned_channel * list)
 {
   tveng_tuned_channel * channel_added = (tveng_tuned_channel*)
-    malloc(sizeof(tveng_tuned_channel));
+    g_malloc0(sizeof(tveng_tuned_channel));
   tveng_tuned_channel * tc_ptr = first_channel(list);
   int index = 0; /* Where are we storing it */
 
@@ -1277,6 +1277,10 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel,
   channel_added->accel_key = new_channel->accel_key;
   channel_added->accel_mask = new_channel->accel_mask;
   channel_added->freq = new_channel->freq;
+  if (new_channel->input)
+    channel_added->input = g_strdup(new_channel->input);
+  if (new_channel->standard)
+    channel_added->standard = g_strdup(new_channel->standard);
 
   /* OK, we are starting the list */
   if (!tc_ptr)
@@ -1418,6 +1422,8 @@ tveng_remove_tuned_channel (gchar * real_name, int id,
   g_free(tc_ptr -> name);
   g_free(tc_ptr -> real_name);
   g_free(tc_ptr -> country);
+  g_free(tc_ptr -> input);
+  g_free(tc_ptr -> standard);
 
   if (list == tc_ptr) /* We are deleting the first item */
     list = tc_ptr -> next;
@@ -1446,6 +1452,10 @@ tveng_copy_tuned_channel(tveng_tuned_channel * dest,
   g_free(dest->name);
   g_free(dest->real_name);
   g_free(dest->country);
+  g_free(dest->input);
+  g_free(dest->standard);
+
+  memset(dest, 0, sizeof(tveng_tuned_channel));
 
   if (src->name)
     dest->name = g_strdup(src->name);
@@ -1459,6 +1469,11 @@ tveng_copy_tuned_channel(tveng_tuned_channel * dest,
     dest->country = g_strdup(src->country);
   else
     dest->country = g_strdup(_("(Unknown country)"));
+
+  if (src->input)
+    dest->input = g_strdup(src->input);
+  if (src->standard)
+    dest->standard = g_strdup(src->standard);
 
   dest->accel_key = src->accel_key;
   dest->accel_mask = src->accel_mask;

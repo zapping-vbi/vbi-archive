@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.36 2001-03-22 08:28:47 mschimek Exp $ */
+/* $Id: export.c,v 1.37 2001-03-22 23:27:42 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <errno.h>
 
 #include "export.h"
 #include "libvbi.h"

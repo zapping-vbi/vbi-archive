@@ -37,7 +37,8 @@
 #include "ttxview.h"
 #include "osd.h"
 
-gboolean flag_exit_program; /* set this flag to TRUE to exit the program */
+/* set this flag to TRUE to exit the program */
+extern volatile gboolean flag_exit_program;
 extern GtkWidget * ToolBox; /* Here is stored the Toolbox (if any) */
 /* the mode set when we went fullscreen (used by main.c too) */
 enum tveng_capture_mode restore_mode;
@@ -49,7 +50,7 @@ extern gint disable_preview; /* TRUE if preview (fullscreen)
 
 int cur_tuned_channel = 0; /* Currently tuned channel */
 
-GtkWidget * main_window; /* main Zapping window */
+extern GtkWidget * main_window; /* main Zapping window */
 
 extern GList * plugin_list; /* The plugins we have */
 
@@ -281,6 +282,11 @@ void on_channel_activate              (GtkMenuItem     *menuitem,
       if (!mute)
 	tveng_set_mute(1, main_info);
     }
+
+  if (channel->standard)
+    g_message("Switch to standard %s", channel->standard);
+  if (channel->input)
+    g_message("Switch to input %s", channel->input);
 
   if (tveng_tune_input(channel->freq, main_info) == -1) /* Set the
 						       input freq*/

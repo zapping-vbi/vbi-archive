@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -298,7 +298,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.97 2001-03-20 22:19:50 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.98 2001-03-22 23:27:43 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -483,6 +483,7 @@ int main(int argc, char * argv[])
       gtk_widget_hide(lookup_widget(main_window, "go_fullscreen1"));
     }
   /* Restore the input and the standard */
+  /* FIXME: Use the v4linterface */
   tveng_set_input_by_index(zcg_int(NULL, "current_input"), main_info);
   D();
   tveng_set_standard_by_index(zcg_int(NULL, "current_standard"), main_info);
@@ -509,18 +510,6 @@ int main(int argc, char * argv[])
 						 "closed_caption1");
       gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
 				     FALSE);
-    }
-  D();
-  /* Disable the View menu completely if it is redundant */
-  /* FIXME */
-  if ((!zvbi_get_object()) && (disable_preview))
-    {
-      gtk_widget_set_sensitive(lookup_widget(main_window, "go_capturing2"),
-			       FALSE);
-      //      gtk_widget_hide(lookup_widget(main_window, "go_capturing2"));
-      //      gtk_widget_set_sensitive(lookup_widget(main_window, "view1"),
-      //			       FALSE);
-      //      gtk_widget_hide(lookup_widget(main_window, "view1"));
     }
   D();
   printv("switching to mode %d (%d)\n", zcg_int(NULL,
@@ -651,6 +640,20 @@ static void shutdown_zapping(void)
       zconf_create_string(channel->country, 
 			  "Country the channel is in", buffer);
       g_free(buffer);
+      if (channel->input)
+	{
+	  buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/input",
+				   i);
+	  zconf_create_string(channel->input, "Attached input", buffer);
+	  g_free(buffer);
+	}
+      if (channel->standard)
+	{
+	  buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/standard",
+				   i);
+	  zconf_create_string(channel->standard, "Attached standard", buffer);
+	  g_free(buffer);
+	}
       i++;
     }
   global_channel_list = tveng_clear_tuned_channel(global_channel_list);
@@ -681,18 +684,9 @@ static void shutdown_zapping(void)
   printv(" vbi");
   shutdown_zvbi();
 
-  /* Save the config and show an error if something failed */
-  printv(" config");
-  if (!zconf_close())
-    ShowBox(_("ZConf could not be closed properly , your\n"
-	      "configuration will be lost.\n"
-	      "Possible causes for this are:\n"
-	      "   - There is not enough free memory\n"
-	      "   - You do not have permissions to write to $HOME/.zapping\n"
-	      "   - libxml is non-functional (?)\n"
-	      "   - or, more probably, you have found a bug in\n"
-	      "     Zapping. Please contact the author.\n"
-	      ), GNOME_MESSAGE_BOX_ERROR);
+  /* inputs, standards handling */
+  printv(" v4linterface");
+  shutdown_v4linterface();
 
   /*
    * Tell the overlay engine to shut down and to do a cleanup if necessary
@@ -709,6 +703,19 @@ static void shutdown_zapping(void)
   /* Close */
   printv(" video device");
   tveng_device_info_destroy(main_info);
+
+  /* Save the config and show an error if something failed */
+  printv(" config");
+  if (!zconf_close())
+    ShowBox(_("ZConf could not be closed properly , your\n"
+	      "configuration will be lost.\n"
+	      "Possible causes for this are:\n"
+	      "   - There is not enough free memory\n"
+	      "   - You do not have permissions to write to $HOME/.zapping\n"
+	      "   - libxml is non-functional (?)\n"
+	      "   - or, more probably, you have found a bug in\n"
+	      "     Zapping. Please contact the author.\n"
+	      ), GNOME_MESSAGE_BOX_ERROR);
 
   printv(".\nShutdown complete, goodbye.\n");
 }
@@ -759,6 +766,8 @@ static gboolean startup_zapping()
     {
       g_assert(strlen(buffer) > 0);
 
+      memset(&new_channel, 0, sizeof(new_channel));
+
       if (buffer[strlen(buffer)-1] == '/')
 	buffer[strlen(buffer)-1] = 0;
 
@@ -782,6 +791,13 @@ static gboolean startup_zapping()
       zconf_get_string(&new_channel.country, buffer2);
       g_free(buffer2);
 
+      buffer2 = g_strconcat(buffer, "/input", NULL);
+      zconf_get_string(&new_channel.input, buffer2);
+      g_free(buffer2);
+      buffer2 = g_strconcat(buffer, "/standard", NULL);
+      zconf_get_string(&new_channel.standard, buffer2);
+      g_free(buffer2);
+
       new_channel.index = 0;
       global_channel_list =
 	tveng_insert_tuned_channel(&new_channel, global_channel_list);
@@ -790,16 +806,20 @@ static gboolean startup_zapping()
       g_free(new_channel.name);
       g_free(new_channel.real_name);
       g_free(new_channel.country);
+      g_free(new_channel.standard);
+      g_free(new_channel.input);
 
       g_free(buffer);
       i++;
     }
   D();
   /* Starts all modules */
+  startup_v4linterface();
+  D();
   if (!startup_callbacks())
     return FALSE;
   D();
-  /* Loads the modules */
+  /* Loads the plugins */
   plugin_list = plugin_load_plugins();
   D();
   /* init them, and remove the ones that couldn't be inited */

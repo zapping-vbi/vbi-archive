@@ -1,3 +1,9 @@
+22.3.2001	libxml2 <garetxe@users.sourceforge.net>
+
+	* configure.in: Better libxml detection, libxml2 support.
+	* ttxview.c: Fixed segv in expose.
+	* Started channel => channel+input+standard work.
+
 21.3.2001	ttxview.c <mschimek@users.sourceforge.net>
 
 	* frequencies.c: Added PAL-China, ripped from XawTV. Isn't GPL

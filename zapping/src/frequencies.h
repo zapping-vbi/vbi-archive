@@ -15,6 +15,8 @@ struct _tveng_tuned_channel{
   gchar *name; /* Name given to the channel (RTL, Eurosport, whatever) */
   gchar *real_name; /* Channel we chose this one from ("35", for
 		       example) */
+  gchar *input; /* attached input or NULL */
+  gchar *standard; /* attached standard or NULL */
   gint accel_key; /* associated accelerator, or 0 for none (GDK) */
   gint accel_mask; /* mask for the accelerator (GDK) */
   gchar * country; /* The country this channel is in */

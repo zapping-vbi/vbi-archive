@@ -22,6 +22,7 @@
 #include <gnome.h>
 #include "tveng.h"
 #include "callbacks.h"
+#include "zmodel.h"
 
 /* 
    Update the menu from where we can choose the standard. Widget is
@@ -55,4 +56,26 @@ GtkWidget * create_control_box(tveng_device_info * info);
 */
 void
 update_control_box(tveng_device_info * info);
+
+/* Notification of standard/input changes */
+extern ZModel *z_input_model;
+
+/**
+ * Sets the given input.
+ */
+void
+z_switch_input			(struct tveng_enum_input *input,
+				 tveng_device_info *info);
+
+/**
+ * Sets the given standard
+ */
+void
+z_switch_standard		(struct tveng_enumstd *standard,
+				 tveng_device_info *info);
+
+/* Do the startup/shutdown */
+void startup_v4linterface	(void);
+void shutdown_v4linterface	(void);
+
 #endif
