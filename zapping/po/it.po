@@ -1,3 +1,4 @@
+# translation of zapping.po to Italian
 # translation of zapping.po to Italian  -*- coding: utf-8 -*-
 # Zapping (a Gnome TV viewer) / Zapping (Visualizzatore TV per Gnome)
 # Zapping italian translation
@@ -8,7 +9,7 @@ msgstr ""
 "Project-Id-Version: zapping\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-09-18 17:08+0200\n"
-"PO-Revision-Date: 2004-09-18 18:05+0200\n"
+"PO-Revision-Date: 2004-09-20 19:10+0200\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <kde-i18n-it@kde.org>\n"
 "MIME-Version: 1.0\n"
@@ -848,8 +849,7 @@ msgstr "Aggiungi tutti i _canali"
 
 #: src/channel_editor.c:1815
 msgid "Add all channels in the frequency table to the channel list."
-msgstr ""
-"Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
+msgstr "Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
 
 #: src/channel_editor.c:1819
 msgid "_Import XawTV configuration"
@@ -1721,7 +1721,7 @@ msgstr "Stereo"
 
 #: src/tveng.c:4437
 msgid "Language 2"
-msgstr ""
+msgstr "Lingua 2"
 
 #: src/tveng2.c:432 src/tveng25.c:474 src/tvengbktr.c:372 src/tvengbktr.c:389
 #: src/tvengxv.c:534
@@ -2196,24 +2196,3 @@ msgstr "Apri questa pagina con Zapzilla"
 msgid "TV viewer"
 msgstr "Visualizzatore TV"
 
-#~ msgid "Show Menu and Toolbar"
-#~ msgstr "Mostra menu e barra strumenti"
-
-#~ msgid "Keep Window on Top"
-#~ msgstr "Mantieni finestra in primo piano"
-
-#~ msgid "No XFree86 DGA extension.\n"
-#~ msgstr "Senza estensione DGA di XFree86.\n"
-
-#~ msgid "Preview will not work: %s"
-#~ msgstr "L'anteprima non funzionerà: %s"
-
-#, fuzzy
-#~ msgid ""
-#~ "Open this link with the predetermined Web browser.\n"
-#~ "You can configure this in the GNOME Control Center, under Handlers/Url "
-#~ "Navigator"
-#~ msgstr ""
-#~ "Apri questo collegamento con il browser Web predefinito.\n"
-#~ "Puoi configurare questo comportamento nel Centro di Controllo di GNOME, "
-#~ "sotto Avanzato/Applicazioni Preferite"
