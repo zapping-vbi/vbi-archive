@@ -244,15 +244,15 @@ void plugin_load_config (gchar * root_key)
 
   buffer = g_strconcat(root_key, "interlaced", NULL);
   zconf_create_boolean(TRUE,
-		       _("Whether interlacing should be used"),
+		       "Whether interlacing should be used",
 		       buffer);
   interlaced = zconf_get_boolean(NULL, buffer);
   g_free(buffer);
 
   buffer = g_strconcat(root_key, "save_dir", NULL);
   zconf_create_string(getenv("HOME"),
-		      _("The directory where screenshot will be"
-			" written to"), buffer);
+		      "The directory where screenshot will be"
+			" written to", buffer);
   zconf_get_string(&save_dir, buffer);
   g_free(buffer);
 }
@@ -492,7 +492,8 @@ struct plugin_misc_info * plugin_get_misc_info (void)
 	    processed image */
     /* Cathegory */
     PLUGIN_CATHEGORY_VIDEO_OUT |
-    PLUGIN_CATHEGORY_FILTER
+    PLUGIN_CATHEGORY_FILTER |
+    PLUGIN_CATHEGORY_GUI
   };
 
   /*

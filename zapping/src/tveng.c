@@ -1441,3 +1441,59 @@ tveng_stop_previewing(tveng_device_info * info)
 
   return 0;
 }
+
+/*
+  Utility function, stops the capture or the previewing. Returns the
+  mode the device was before stopping.
+  For stopping and restarting the device do:
+  enum tveng_capture_mode cur_mode;
+  cur_mode = tveng_stop_everything(info);
+  ... do some stuff ...
+  if (tveng_restart_everything(cur_mode, info) == -1)
+     ... show error dialog ...
+*/
+enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
+					       info)
+{
+  enum tveng_capture_mode returned_mode;
+
+  returned_mode = info->current_mode;
+
+  switch (info->current_mode)
+    {
+    case TVENG_CAPTURE_READ:
+      tveng_stop_capturing(info);
+      break;
+    case TVENG_CAPTURE_PREVIEW:
+      tveng_stop_previewing(info);
+      break;
+    default:
+      break;
+    };
+
+  return returned_mode;
+}
+
+/*
+  Restarts the given capture mode. See the comments on
+  tveng_stop_everything. Returns -1 on error.
+*/
+int tveng_restart_everything (enum tveng_capture_mode mode,
+			      tveng_device_info * info)
+{
+  switch (mode)
+    {
+    case TVENG_CAPTURE_READ:
+      if (tveng_start_capturing(info) == -1)
+	return -1;
+      break;
+    case TVENG_CAPTURE_PREVIEW:
+      if (tveng_start_previewing(info) == -1)
+	return -1;
+      break;
+    default:
+      break;
+    }
+  return 0; /* Success */
+}
+

@@ -48,11 +48,11 @@ extern GList * plugin_list; /* The plugins we have */
 gboolean startup_callbacks(void)
 {
   /* Init values to their defaults */
-  zcc_int(30, _("X coord of the Zapping window"), "x");
-  zcc_int(30, _("Y coord of the Zapping window"), "y");
-  zcc_int(640, _("Width of the Zapping window"), "w");
-  zcc_int(480, _("Height of the Zapping window"), "h");
-  zcc_int(0, _("Currently tuned channel"), "cur_tuned_channel");
+  zcc_int(30, "X coord of the Zapping window", "x");
+  zcc_int(30, "Y coord of the Zapping window", "y");
+  zcc_int(640, "Width of the Zapping window", "w");
+  zcc_int(480, "Height of the Zapping window", "h");
+  zcc_int(0, "Currently tuned channel", "cur_tuned_channel");
   cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
 
   return TRUE;
@@ -109,10 +109,32 @@ void
 on_plugin_writing1_activate            (GtkMenuItem     *menuitem,
 					gpointer         user_data)
 {
-  GnomeHelpMenuEntry help_ref = { "zapping",
-				  "plugin_devel" };
+  static GnomeHelpMenuEntry help_ref = { "zapping",
+					 "plugin_devel.html" };
+  enum tveng_capture_mode cur_mode;
+
+  cur_mode = tveng_stop_everything(main_info);
 
   gnome_help_display (NULL, &help_ref);
+
+  if (tveng_restart_everything(cur_mode, main_info) == -1)
+    ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
+}
+
+void
+on_main_help1_activate                 (GtkMenuItem     *menuitem,
+					gpointer         user_data)
+{
+  static GnomeHelpMenuEntry help_ref = { "zapping",
+					 "index.html" };
+  enum tveng_capture_mode cur_mode;
+
+  cur_mode = tveng_stop_everything(main_info);
+
+  gnome_help_display (NULL, &help_ref);
+
+  if (tveng_restart_everything(cur_mode, main_info) == -1)
+    ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
 }
 
 gboolean

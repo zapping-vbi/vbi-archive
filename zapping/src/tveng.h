@@ -594,6 +594,25 @@ int
 tveng_stop_previewing(tveng_device_info * info);
 
 /* Some utility functions a la glib */
+/*
+  Utility function, stops the capture or the previewing. Returns the
+  mode the device was before stopping.
+  For stopping and restarting the device do:
+  enum tveng_capture_mode cur_mode;
+  cur_mode = tveng_stop_everything(info);
+  ... do some stuff ...
+  if (tveng_restart_everything(cur_mode, info) == -1)
+     ... show error dialog ...
+*/
+enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
+					       info);
+
+/*
+  Restarts the given capture mode. See the comments on
+  tveng_stop_everything. Returns -1 on error.
+*/
+int tveng_restart_everything (enum tveng_capture_mode mode,
+			      tveng_device_info * info);
 
 /* Sanity checks should use this */
 #define t_assert(condition) if (!(condition)) { \

@@ -5,7 +5,7 @@ Zapping - The Gnome TV viewer
 box there were only a few TV viewing programs, and none of them for
 Gnome. So I built a TV viewer following V4L2 spec (not compiled into
 the Kernel by default) from scratch, but trying to make it as complete
-as possible.
+as possible. This is version 0.5.0 of that software.
 
 INSTALLING
 ----------
@@ -15,19 +15,11 @@ won't create any icon, thought, but you can run it as 'zapping &'.
 
 PROGRAM INFO
 ------------
-	The program stores its configuration in a file called
-~/.zappingrc. That means that Zapping will read any options from that
-file, that has XML format, so it is human-readable. (For the novice,
-~/.zappingrc means that if your home directory is /home/garetxe, then
-the file will be called /home/garetxe/.zappingrc).
-	Currently, in my PII 350, the best results are with a 16 bit
-screen depth. With a maximized 800x600 window I get just a 60%-90% CPU
-usage. With higher depths, the capture process is slower, and the best
-size I can get before going 100% CPU usage is about 600x400.
-	Interlaced mode allows you for higher resolutions, but the
-image can get somewhat blurry if there is a lot of movement in the
-screen. You can reduce a lot this blurryness by using a window size
-that keeps standard TV dimensions (about 640x480 in PAL modes).
+	* XFree notes:
+	In releases of XFree prior to 4.0, if you capture with a
+screen depth over 16bpp, CPU usage jumps to 100%. This is actually a
+XFree thing, and it is solved with XFree 4.0. But fullscreen mode
+won't work with XF4.0, because DGA doesn't work by default.
 	The fullscreen mode uses framebuffer access. For using it,
 root privileges are needed. I created a small SUID program that sets
 up everything and returns. There is a potential secutiry flaw here (i
@@ -40,22 +32,19 @@ really care about security, you may:
 	b) Check the suid's sources and locate the security flaws.
 	   Drop me a line and in a couple of hours since i read the
 	   message it will be fixed (this is the preferred method ;-)
-	SUID root: it means that the program, when executed, will be
-given root privileges, even if the user isn't root (don't smile, when
-i came into Linux from Windoze, i kept wondering what where that
-marvellous suid programs able to hack every Unix system)
 
 USEFUL ADDRESSES
 ----------------
 http://millennium.diads.com/bdirks/v4l2.htm
 	Video for Linux 2 home page. There are links to some other
 	pages regarding the V4L2 project.
+http://me.in-berlin.de/~kraxel/bttv.html
+	Video for Linux home page. Actually the bttv page.
 http://www.gnome.org
 	The home page of the Gnome community. Lots of info about
 	projects and programming.
-http://sawmill.sourceforge.net
-	Well, this isn't related to this program, but this WM is
-	really great ;)
+http://www.gtk.org
+	The toolkit used to build Gnome and this program.
 
 CONTACTING
 ----------
@@ -66,43 +55,3 @@ would like to learn (Hebrew, to put an example) to
 
 	thanks and enjoy the TV (as difficult as that might seem),
 	Iñaki
-
-*****************************************************************************
-
-Plugin writer's help (as of 24-2-2000)
---------------------
-I'm not going to add much more functionality to the "core"
-zapping. Extra features should be coded as plugins, so the app gets
-easier to maintain and to work on. This file describes how to write
-one of those plugins for zapping.
-
-Plugin API
-----------
-
--- Not described yet, see test_plugin.c (not distributed, look below) --
-
-Where will zapping look for plugins
------------------------------------
-Zapping will only try to load files that have the ".zapping.so" string
-in their name. It will look for these files in the following dirs (in
-this order):
-
- * Paths listed under the LD_LIBRARY env var.
- * Paths extracted from the /etc/ld.so.conf file
- * /usr/lib
- * /lib
- * $HOME/.zapping_plugins
-
-Notes
------
-
-Any plugin must have some exported funcions with some given names, so
-zapping can communicate with the plugin. You can see how it works in
-the test plugin (not included yet in the standard zapping
-distribution, ask me (garetxe@users.sourceforge.net) for it for the
-moment).
-
-For more info regarding how to build or use any plugin, please contact
-me <garetxe@users.sourceforge.net>
-
-Iñaki

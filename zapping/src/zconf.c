@@ -413,7 +413,7 @@ void zconf_create_integer(gint new_value, const gchar * desc,
 
   if (key -> type != ZCONF_TYPE_INTEGER)
     g_warning(_("Trying to create %s as %s, but it existed before"
-		"as %s"),
+		" as %s"),
 	      path, zconf_type_string(ZCONF_TYPE_INTEGER),
 	      zconf_type_string(key -> type));
 
@@ -551,7 +551,7 @@ gboolean zconf_create_string(gchar * value, const gchar * desc,
 
   if (key -> type != ZCONF_TYPE_STRING)
     g_warning(_("Trying to create %s as %s, but it existed before"
-		"as %s"),
+		" as %s"),
 	      path, zconf_type_string(ZCONF_TYPE_STRING),
 	      zconf_type_string(key -> type));
 
@@ -680,7 +680,7 @@ void zconf_create_boolean(gboolean new_value, const gchar * desc,
 
   if (key -> type != ZCONF_TYPE_BOOLEAN)
     g_warning(_("Trying to create %s as %s, but it existed before"
-		"as %s"),
+		" as %s"),
 	      path, zconf_type_string(ZCONF_TYPE_BOOLEAN),
 	      zconf_type_string(key -> type));
 
@@ -808,7 +808,7 @@ void zconf_create_float(gfloat new_value, const gchar * desc,
 
   if (key -> type != ZCONF_TYPE_FLOAT)
     g_warning(_("Trying to create %s as %s, but it existed before"
-		"as %s"),
+		" as %s"),
 	      path, zconf_type_string(ZCONF_TYPE_FLOAT),
 	      zconf_type_string(key -> type));
 
@@ -1294,7 +1294,7 @@ p_zconf_resolve(const gchar * key, struct zconf_key * starting_dir)
   while (key[0] == '/')
     {
       if (i > 0)
-	g_warning(_("Removing %i consecutive slashes, this shouldn't happen"),
+	g_warning(_("Removing %d consecutive slashes, this shouldn't happen"),
 		  i+1);
       i++;
       key++;

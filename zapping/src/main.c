@@ -70,6 +70,7 @@ int main(int argc, char * argv[])
   struct tveng_frame_format format;
   gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
 				     work */
+  gint x, y, w, h; /* Saved geometry */
 
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
@@ -210,15 +211,15 @@ int main(int argc, char * argv[])
   
   /* Sets the coords to the previous values, if the users wants to */
   if (zcg_bool(NULL, "keep_geometry"))
-    gdk_window_move_resize(main_window->window,
-			   zconf_get_integer(NULL,
-					     "/zapping/internal/callbacks/x"),
-			   zconf_get_integer(NULL, 
-					     "/zapping/internal/callbacks/y"),
-			   zconf_get_integer(NULL, 
-					     "/zapping/internal/callbacks/w"),
-			   zconf_get_integer(NULL, 
-					     "/zapping/internal/callbacks/h"));
+    {
+      zconf_get_integer(&x, "/zapping/internal/callbacks/x");
+      zconf_get_integer(&y, "/zapping/internal/callbacks/y");
+      zconf_get_integer(&w, "/zapping/internal/callbacks/w");
+      zconf_get_integer(&h, "/zapping/internal/callbacks/h");
+      /* Hopefully this will let me track the bug */
+      g_message("Restoring %dx%d - %d-%d", x, y, w, h);
+      gdk_window_move_resize(main_window->window, x, y, w, h);
+    }
 
   if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"),
 			   main_info))
@@ -298,20 +299,20 @@ void shutdown_zapping(void)
     {
       buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/name",
 			       i);
-      zconf_create_string(channel->name, _("Channel name"), buffer);
+      zconf_create_string(channel->name, "Channel name", buffer);
       g_free(buffer);
       buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/freq",
 			       i);
-      zconf_create_integer((int)channel->freq, _("Tuning frequence"), buffer);
+      zconf_create_integer((int)channel->freq, "Tuning frequence", buffer);
       g_free(buffer);
       buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/real_name",
 			       i);
-      zconf_create_string(channel->real_name, _("Real channel name"), buffer);
+      zconf_create_string(channel->real_name, "Real channel name", buffer);
       g_free(buffer);
       buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/country",
 			       i);
       zconf_create_string(channel->country, 
-			  _("Country the channel is in"), buffer);
+			  "Country the channel is in", buffer);
       g_free(buffer);
       i++;
     }
@@ -357,17 +358,17 @@ gboolean startup_zapping()
     }
 
   /* Sets defaults for zconf */
-  zcc_bool(TRUE, _("Save and restore zapping geometry (non ICCM compliant)"), 
+  zcc_bool(TRUE, "Save and restore zapping geometry (non ICCM compliant)", 
 	   "keep_geometry");
   zcc_char(tveng_get_country_tune_by_id(0)->name,
-	     _("The country you are currently in"), "current_country");
+	     "The country you are currently in", "current_country");
   current_country = 
     tveng_get_country_tune_by_name(zcg_char(NULL, "current_country"));
-  zcc_char("/dev/video", _("The device file to open on startup"),
+  zcc_char("/dev/video", "The device file to open on startup",
 	   "video_device");
-  zcc_bool(FALSE, _("TRUE if Zapping should be started without sound"),
+  zcc_bool(FALSE, "TRUE if Zapping should be started without sound",
 	   "start_muted");
-  zcc_int(0, _("Verbosity value given to zapping_setup_fb"),
+  zcc_int(0, "Verbosity value given to zapping_setup_fb",
 	  "zapping_setup_fb_verbosity");
 
   /* Loads all the tuned channels */

@@ -19,6 +19,7 @@ gchar *s = N_("Select the previous station in the channel list");
 gchar *s = N_("Channel up");
 gchar *s = N_("Select the next station in the channel list");
 gchar *s = N_("Channel down");
+gchar *s = N_("_Main help");
 gchar *s = N_("This document explains how to write a plugin for Zapping.");
 gchar *s = N_("_Plugin writing");
 gchar *s = N_("Configure capture");

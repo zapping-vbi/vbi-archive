@@ -259,6 +259,19 @@
 
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
+	      <name>main_help1</name>
+	      <signal>
+		<name>activate</name>
+		<handler>on_main_help1_activate</handler>
+		<last_modification_time>Wed, 31 May 2000 07:53:05 GMT</last_modification_time>
+	      </signal>
+	      <label>_Main help</label>
+	      <right_justify>False</right_justify>
+	      <stock_icon>GNOME_STOCK_MENU_BOOK_OPEN</stock_icon>
+	    </widget>
+
+	    <widget>
+	      <class>GtkPixmapMenuItem</class>
 	      <name>plugin_writing1</name>
 	      <tooltip>This document explains how to write a plugin for Zapping.</tooltip>
 	      <signal>

@@ -293,8 +293,6 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
                                         gpointer         user_data)
 {
   GList * p = g_list_first(plugin_list); /* Traverse all the plugins */
-  GnomeHelpMenuEntry help_ref = { "zapping",
-				  "index.html" };
 
   switch (arg1)
     {
@@ -302,7 +300,8 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
       break; /* end of the calls */
     case 0:
     case 1:
-      gnome_help_display(NULL, &help_ref);
+      ShowBox(_("Sorry, no help for the properties dialog has been"
+		" created yet"), GNOME_MESSAGE_BOX_INFO);
       break;
     default:
       while (p)

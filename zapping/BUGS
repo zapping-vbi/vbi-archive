@@ -6,16 +6,17 @@ Known bugs with zapping
 ------------------------
 
 	! Sometimes Zapping starts at minimum size, when it
-shouldn't.
-	* 'Colour' in controls seems duplicated (i18n error)
+shouldn't (i'm trying to find a pattern for it, i've no idea of what
+the problem is)
+	> 'Colour' in controls seems duplicated (i18n error)
 	* In the plugin dialog, text widget shows the end with long
 descriptions (will be fixed in 0.5.1).
-	* The template widget should be declared 'noinst' in the Makefile.am
+	> The template widget should be declared 'noinst' in the Makefile.am
 	* Some controls appear that don't do anything, check them
 before adding.
 	* Somehow the docs aren't displayed with the GnomeHelpBrowser
 but with Mozilla. Annoying.
-	! With V4L2, capture starts giving errors when exec'ing
-external programs.
+	> With V4L2, capture starts giving errors when exec'ing
+external programs (actually just worked around).
 	> Capture is EXTREMELY SLOW in 24 or 32 bpp modes. Works OK in
 16 bit modes. Actually XPutImage is the slow thing, this is fixed in X4.

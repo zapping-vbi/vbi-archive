@@ -192,8 +192,8 @@ void plugin_load_config (gchar * root_key)
   buffer = g_strconcat(root_key, "autostart", NULL);
   /* Create sets a default value for a key, check src/zconf.h */
   zconf_create_boolean(FALSE,
-		       _("Whether the plugin should start"
-			 " automatically when opening Zapping"), buffer);
+		       "Whether the plugin should start"
+		       " automatically when opening Zapping", buffer);
   active = zconf_get_boolean(NULL, buffer);
   g_free(buffer);
 
