@@ -17,8 +17,6 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#if 1 /*** UNTESTED ***/
-
 /*
   This is the library in charge of simplifying Video Access API (I
   don't want to use thirteen lines of code with ioctl's every time I
@@ -2101,5 +2099,3 @@ void tveng25_init_module(struct tveng_module_info *module_info)
 }
 
 #endif /* ENABLE_V4L */
-
-#endif /* TODO */

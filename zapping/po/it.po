@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6.6\n"
-"POT-Creation-Date: 2003-02-16 22:07+0100\n"
+"POT-Creation-Date: 2003-02-18 12:47+0100\n"
 "PO-Revision-Date: 2003-02-10 22:00+0100\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -14,93 +14,97 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/main.c:338
+#: src/main.c:339
 msgid "Video device to use"
 msgstr "Dispositivo video"
 
-#: src/main.c:339 src/zapzilla.c:88
+#: src/main.c:340 src/zapzilla.c:88
 msgid "DEVICE"
 msgstr "DISPOSITIVO"
 
-#: src/main.c:347
+#: src/main.c:348
 msgid "Disable plugins support"
 msgstr "Disabilita supporto plugin"
 
-#: src/main.c:356
+#: src/main.c:357
 msgid "Disable VBI support"
 msgstr "Disabilita supporto VBI"
 
-#: src/main.c:365
+#: src/main.c:366
 msgid "Disable XVideo extension support"
 msgstr "Disabilita supporto estensioni XVideo"
 
-#: src/main.c:374
+#: src/main.c:375
+msgid "XVideo port for overlay. Default is first usable"
+msgstr ""
+
+#: src/main.c:384
 msgid "X11 display is remote. This basically disables video overlay"
 msgstr ""
 
-#: src/main.c:383
+#: src/main.c:393
 msgid "Do not call zapping_setup_fb on startup"
 msgstr "Non eseguire zapping_setup_fb all'avvio"
 
-#: src/main.c:392
+#: src/main.c:402
 msgid "Color depth of the X display"
 msgstr "Profondità di colore del server X"
 
-#: src/main.c:393
+#: src/main.c:403
 msgid "BPP"
 msgstr "BPP"
 
-#: src/main.c:401 src/zapzilla.c:78
+#: src/main.c:411 src/zapzilla.c:78
 msgid "Set debug messages on"
 msgstr "Attiva i messaggi di debug"
 
-#: src/main.c:410
+#: src/main.c:420
 msgid "Force dword aligning of the overlay window"
 msgstr "Forza allineamento a dword della finestra sovrascritta"
 
-#: src/main.c:419
+#: src/main.c:429
 msgid "Execute the given command and exit"
 msgstr "Esegue il comando dato ed esce"
 
-#: src/main.c:420
+#: src/main.c:430
 msgid "CMD"
 msgstr "CMD"
 
-#: src/main.c:428
+#: src/main.c:438
 msgid "Pixformat for XVideo capture mode [YUYV | YVU420]"
 msgstr "Formato per il modo di cattura XVideo [YUYV | YVU420]"
 
-#: src/main.c:429
+#: src/main.c:439
 msgid "PIXFORMAT"
 msgstr "FORMATO"
 
-#: src/main.c:437 src/zapzilla.c:96
+#: src/main.c:447 src/zapzilla.c:96
 msgid "Redirect the error messages to the console"
 msgstr "Ridireziona i messaggi di errore alla console"
 
-#: src/main.c:525
+#: src/main.c:535
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Spiacente, ma non c'è il supporto per i moduli nelle GLib"
 
-#: src/main.c:535
+#: src/main.c:545
 msgid "Cannot get device info struct"
 msgstr "Impossibile ottenere la struttura delle informazioni del dispositivo"
 
-#: src/main.c:544
+#: src/main.c:554
 msgid "Zapping couldn't be started"
 msgstr "Zapping non è potuto partire"
 
-#: src/main.c:605
+#: src/main.c:615
 #, c-format
 msgid "Couldn't open %s, should I try some common options?"
 msgstr "Impossibile aprire %s, posso provare alcune opzioni comuni?"
 
-#: src/main.c:639
+#: src/main.c:649
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "%s riuscito, impostato come nuovo valore predefinito"
 
-#: src/main.c:648
+#: src/main.c:658
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -109,7 +113,7 @@ msgstr ""
 "Spiacente, ma \"%s\" non può essere aperto:\n"
 "%s"
 
-#: src/main.c:768
+#: src/main.c:778
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -118,11 +122,11 @@ msgstr ""
 "Impossibile ripristinare il modo precedente%s:\n"
 "%s"
 
-#: src/main.c:771
+#: src/main.c:781
 msgid ", I will try starting capture mode"
 msgstr ", proverò ad iniziare il modo di cattura"
 
-#: src/main.c:775
+#: src/main.c:785
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -131,7 +135,7 @@ msgstr ""
 "Impossibile avviare anche il modo di cattura:\n"
 "%s"
 
-#: src/main.c:788
+#: src/main.c:798
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -140,15 +144,15 @@ msgstr ""
 "Impossibile avviare il modo di cattura:\n"
 "%s"
 
-#: src/main.c:820 src/callbacks.c:501 src/callbacks.c:630
+#: src/main.c:830 src/callbacks.c:501 src/callbacks.c:630
 msgid "Show controls"
 msgstr "Mostra controlli"
 
-#: src/main.c:821 src/callbacks.c:502 src/callbacks.c:631
+#: src/main.c:831 src/callbacks.c:502 src/callbacks.c:631
 msgid "Show the menu and the toolbar"
 msgstr "Mostra il menu e la barra degli strumenti"
 
-#: src/main.c:1016 src/zapzilla.c:175
+#: src/main.c:1026 src/zapzilla.c:175
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -169,7 +173,7 @@ msgstr ""
 "   - o, più probabilmente, hai trovato un bug in\n"
 "     %s. Per favore contatta l'autore.\n"
 
-#: src/main.c:1053
+#: src/main.c:1063
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Spiacente, Zapping non può creare la conigurazione"
 
