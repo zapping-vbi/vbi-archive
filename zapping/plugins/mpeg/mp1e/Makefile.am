@@ -28,4 +28,4 @@ systems/libsystems.la common/libcommon.la test/libtest.la $(X_LIBS) -lm \
 
 rte_test_SOURCES = rte_test_main.c
 
-rte_test_LDADD = librte.la $(ESD_LIBS) -lpthread
+rte_test_LDADD = $(ESD_LIBS) -lpthread -lrte

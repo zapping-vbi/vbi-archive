@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.10 2000-10-23 21:51:39 garetxe Exp $
+ * $Id: rtepriv.h,v 1.11 2000-11-04 20:38:02 garetxe Exp $
  * Private stuff in the context.
  */
 
@@ -68,7 +68,7 @@ struct _rte_context_private {
 	enum rte_interface audio_interface; /* audio interface */
 	enum rte_interface video_interface; /* video interface */
 	int audio_buffered; /* whether the audio uses buffers or memcpy */
-	int video_buffered; /* whether the audio uses buffers or memcpy */
+	int video_buffered; /* whether the video uses buffers or memcpy */
 	pthread_t mux_thread; /* mp1e multiplexer thread */
 	pthread_t video_thread_id; /* video encoder thread */
 	pthread_t audio_thread_id; /* audio encoder thread */

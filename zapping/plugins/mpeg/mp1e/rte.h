@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: rte.h,v 1.16 2000-10-23 21:51:39 garetxe Exp $
+ * $Id: rte.h,v 1.17 2000-11-04 20:38:02 garetxe Exp $
  * Function prototypes for RTE
  */
 
@@ -377,10 +377,14 @@ void rte_push_audio_buffer ( rte_context * context,
 			     rte_buffer * buffer );
 
 /*
-  Returns: a pointer to the last error. The returned string is
-  statically allocated (and it can be NULL), you don't need to free it.
-*/
-char * rte_last_error ( rte_context * context );
+ * Sets the verbosity value.
+ */
+void rte_set_verbosity ( rte_context * context, int level );
+
+/*
+ * Returns the current verbosity value
+ */
+int rte_get_verbosity ( rte_context * context );
 
 /*
  * Some useful stuff

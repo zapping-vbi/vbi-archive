@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.35 2000-11-04 00:22:57 garetxe Exp $ */
+/* $Id: rte.c,v 1.36 2000-11-04 20:38:02 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -50,9 +50,12 @@
   BUGS:
       . It isn't reentrant.
       . We shouldn't use ASSERTS if possible
+      . When doing start/stop many times, the mux thread cannot be
+      joined sometimes, why?
   TODO:
       . Add VBI support
       . Add preview support.
+      . Drop the lib dependencies to a minimum.
 */
 
 #define NUM_AUDIO_BUFFERS 8 /* audio buffers in the audio fifo */
@@ -63,11 +66,7 @@ rte_context * rte_global_context = NULL;
  * Global options from rte.
  */
 char *			my_name="rte";
-int			verbose=1;
-
-double			video_stop_time = 1e30;
-double			audio_stop_time = 1e30;
-double			vbi_stop_time = 1e30;
+int			verbose=0;
 
 fifo *			audio_cap_fifo;
 int			stereo;
@@ -158,17 +157,13 @@ wait_data(rte_context * context, int video)
 static buffer*
 video_wait_full(fifo *f)
 {
-	buffer * b;
-	b = wait_data((rte_context*)f->user_data, 1);
-	return b;
+	return wait_data((rte_context*)f->user_data, 1);
 }
 
 static buffer*
 audio_wait_full(fifo *f)
 {
-	buffer * b;
-	b = wait_data((rte_context*)f->user_data, 0);
-	return b;
+	return wait_data((rte_context*)f->user_data, 0);
 }
 
 static void
@@ -625,63 +620,7 @@ int rte_init_context ( rte_context * context )
 			  "!= NULL too");
 		return 0;
 	}
-	/* FIXME: this doesn't work */
-/*
-	if (context->private->audio_buffered) {
-		if (context->private->audio_data_callback) {
-			rte_error(context, "audio_data_callback isn't needed");
-			return 0;
-		}
-		if (!context->private->audio_buffer_callback) {
-			rte_error(context, "audio_buffer_callback is needed");
-			return 0;
-		}
-		if (!context->private->audio_unref_callback) {
-			rte_error(context, "audio_unref_callback is needed");
-			return 0;
-		}
-	} else {
-		if (context->private->audio_data_callback) {
-			rte_error(context, "audio_data_callback isn't needed");
-			return 0;
-		}
-		if (context->private->audio_buffer_callback) {
-			rte_error(context, "audio_buffer_callback isn't needed");
-			return 0;
-		}
-		if (context->private->audio_unref_callback) {
-			rte_error(context, "audio_unref_callback isn't needed");
-			return 0;
-		}
-	}
-	if (context->private->video_buffered) {
-		if (context->private->video_data_callback) {
-			rte_error(context, "video_data_callback isn't needed");
-			return 0;
-		}
-		if (!context->private->video_buffer_callback) {
-			rte_error(context, "video_buffer_callback is needed");
-			return 0;
-		}
-		if (!context->private->video_unref_callback) {
-			rte_error(context, "video_unref_callback is needed");
-			return 0;
-		}
-	} else {
-		if (context->private->video_data_callback) {
-			rte_error(context, "video_data_callback isn't needed");
-			return 0;
-		}
-		if (context->private->video_buffer_callback) {
-			rte_error(context, "video_buffer_callback isn't needed");
-			return 0;
-		}
-		if (context->private->video_unref_callback) {
-			rte_error(context, "video_unref_callback isn't needed");
-			return 0;
-		}
-	}
-*/
+	/* FIXME: we need some checks here for callbacks */
 	if (!rte_fake_options(context))
 		return 0;
 
@@ -781,6 +720,10 @@ int rte_init_context ( rte_context * context )
 	/* allow pushing from now */
 	context->private->inited = 1;
 
+	/* Set up some fields */
+	context->private->last_video_buffer =
+		context->private->last_audio_buffer = NULL;
+
 	return 1; /* done, we are prepared for encoding */
 }
 
@@ -799,8 +742,9 @@ int rte_start_encoding (rte_context * context)
 		ASSERT("create audio compression thread",
 			!pthread_create(&context->private->audio_thread_id,
 					NULL,
-			stereo ? mpeg_audio_layer_ii_stereo :
-				 mpeg_audio_layer_ii_mono, NULL));
+					stereo ? mpeg_audio_layer_ii_stereo :
+					mpeg_audio_layer_ii_mono,
+					NULL));
 
 		printv(2, "Audio compression thread launched\n");
 	}
@@ -809,7 +753,8 @@ int rte_start_encoding (rte_context * context)
 		ASSERT("create video compression thread",
 			!pthread_create(&context->private->video_thread_id,
 					NULL,
-				mpeg1_video_ipb, NULL));
+					mpeg1_video_ipb,
+					NULL));
 
 		printv(2, "Video compression thread launched\n");
 	}
@@ -891,16 +836,30 @@ void rte_stop ( rte_context * context )
 		   video push() wakes up, and uses the dead end */
 		pthread_cond_broadcast(&(context->private->vid_consumer.cond));
 	}
+
 	/* Tell the mp1e threads to shut down */
 	remote_stop(0.0); // now
+
 	/* Join the mux thread */
+	printv(2, "joining mux\n");
 	pthread_join(context->private->mux_thread, NULL);
+	printv(2, "mux joined\n");
+
+	if (context->mode & RTE_AUDIO) {
+		printv(2, "joining audio\n");
+		pthread_cancel(context->private->audio_thread_id);
+		pthread_join(context->private->audio_thread_id, NULL);
+		printv(2, "audio joined\n");
+	}
+	if (context->mode & RTE_VIDEO) {
+		printv(2, "joining video\n");
+		pthread_cancel(context->private->video_thread_id);
+		pthread_join(context->private->video_thread_id, NULL);
+		printv(2, "video joined\n");
+	}
+
 	mux_cleanup();
 	output_end();
-
-	/* restore callbacks, as if nothing had happened */
-	context->private->audio_data_callback = audio_callback;
-	context->private->video_data_callback = video_callback;
 
 	if (context->mode & RTE_VIDEO) {
 		uninit_fifo(&context->private->vid);
@@ -910,6 +869,9 @@ void rte_stop ( rte_context * context )
 		uninit_fifo(&context->private->aud);
 		mucon_destroy(&context->private->aud_consumer);
 	}
+
+	context->private->audio_data_callback = audio_callback;
+	context->private->video_data_callback = video_callback;
 //	pr_report();
 
 	/* mp1e is done (fixme: close preview if needed) */
@@ -1081,6 +1043,16 @@ void rte_push_audio_buffer ( rte_context * context,
 			 context->private->last_audio_buffer);
 }
 
+void rte_set_verbosity ( rte_context * context, int level )
+{
+	verbose = level;
+}
+
+int rte_get_verbosity ( rte_context * context )
+{
+	return verbose;
+}
+
 int rte_init ( void )
 {
 	if (!cpu_id(ARCH_PENTIUM_MMX))
@@ -1195,7 +1167,7 @@ static void rte_audio_startup(void)
 	}
 }
 
-/* FIXME: Subtitles support (when it gets into the bttv 2 driver?) */
+/* FIXME: Subtitles support */
 
 /* Compression parameters */
 static void rte_compression_startup(void)
