@@ -804,7 +804,7 @@ static void
 add				(GnomeDialog *		dialog)
 {
   SidebarEntry general_options[] = {
-    { N_("Keyboard"), ICON_ZAPPING, "gnome-shutdown.png", "table75",
+    { N_("Keyboard"), ICON_ZAPPING, "gnome-keyboard.png", "table75",
       setup, apply }
   };
   SidebarGroup groups[] = {
