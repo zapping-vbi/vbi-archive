@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: MoComp2.h,v 1.1 2005-01-08 14:54:24 mschimek Exp $
+// $Id: MoComp2.h,v 1.2 2005-01-20 01:38:34 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2003 Tom Barry & John Adcock.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:54:24  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2003/05/26 15:54:36  adcockj
 // Improved Performance of motion detection
 // Fixed bug with pBobP
@@ -38,10 +41,10 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
-#include <malloc.h>
+//Z #include <malloc.h>
 #include <string.h>
 //Z #include <math.h>
-#include <malloc.h>
+//Z #include <malloc.h>
 
 #define BOOL unsigned int
 #define BYTE unsigned char

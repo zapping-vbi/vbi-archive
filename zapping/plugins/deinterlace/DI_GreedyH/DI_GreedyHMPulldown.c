@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHMPulldown.c,v 1.1 2005-01-08 14:54:23 mschimek Exp $
+// $Id: DI_GreedyHMPulldown.c,v 1.2 2005-01-20 01:38:33 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:54:23  mschimek
+// *** empty log message ***
+//
 // Revision 1.5  2001/11/25 04:33:37  trbarry
 // Fix for TDeinterlace_Info. Also release UN-Filter code, 5-tap V & H sharp/soft filters optimized to reverse excessive filtering (or EE?)
 //
@@ -797,7 +800,7 @@ _save(edi)
 "		mov		edi, %[Dest]					## new output line dest\n"
 "		mov		ecx, %[ct]\n"
 "        movq    mm7, %[YMask]                  ## useful constant\n"
-"        cmp     %[QC],0              ## was 3rd parm 0?\n"
+"        cmp     %[Int_QC],0              ## was 3rd parm 0?\n"
 "        je      5f # cloopEasy                   ## yes, do faster way\n"
 "\n"
 "1: # cloop:	\n"
@@ -867,7 +870,7 @@ _restore(ecx)
 _restore(eax)
 _asm_end,
 _m(Source2), _m(Source1), _m(Dest), _m(ct), _m(YMask), _m(UVMask),
-_m(QA), _m(QB), _m(QC));
+_m(QA), _m(QB), _m(QC), _m_int(QC));
 	return TRUE;
 }
 
@@ -891,7 +894,7 @@ _save(edi)
 "		mov		edi, %[Dest]					## new output line dest\n"
 "		mov		ecx, %[ct]\n"
 "        movq    mm7, %[YMask]                  ## useful constant\n"
-"        cmp     %[QC],0              ## was 3rd parm 0?\n"
+"        cmp     %[Int_QC],0              ## was 3rd parm 0?\n"
 "        je      5f # cloopEasy                   ## yes, do faster way\n"
 "\n"
 "1: # cloop:	\n"
@@ -962,7 +965,7 @@ _restore(ecx)
 _restore(eax)
 _asm_end,
 _m(Source2), _m(Source1), _m(Dest), _m(ct), _m(YMask), _m(UVMask),
-_m(QA), _m(QB), _m(QC));
+_m(QA), _m(QB), _m(QC), _m_int(QC));
 
 	return TRUE;
 }

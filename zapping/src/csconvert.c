@@ -26,6 +26,7 @@
 #endif
 
 #include <glib.h>
+#include "bayer.h"
 #include "csconvert.h"
 #include "yuv2rgb.h"
 #include "zmisc.h"
@@ -352,6 +353,44 @@ bgra_bgr			(void *			dst_image,
 	}
 }
 
+static void
+sbggr_bgr			(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format,
+				 const void *		user_data _unused_)
+{
+	uint8_t *d;
+	const uint8_t *s;
+	unsigned int width;
+	unsigned int height;
+
+	d = (uint8_t *) dst_image + dst_format->offset[0];
+	s = (const uint8_t *) src_image + src_format->offset[0];
+
+	width = MIN (dst_format->width, src_format->width);
+	height = MIN (dst_format->height, src_format->height);
+
+	/* XXX bytes per line */
+
+	switch (dst_format->pixel_format->pixfmt) {
+	case TV_PIXFMT_BGRA32_LE:
+		sbggr8_to_bgra32_le (d, s, width, height);
+		break;
+
+	case TV_PIXFMT_BGR24_LE:
+		sbggr8_to_bgr24_le (d, s, width, height);
+		break;
+				
+	case TV_PIXFMT_BGR16_LE:
+		sbggr8_to_bgr16_le (d, s, width, height);
+		break;
+				
+	default:
+		assert (!"reached");
+	}
+}
+
 void startup_csconvert(void)
 {
   CSFilter rgb_filters [] = {
@@ -379,7 +418,11 @@ void startup_csconvert(void)
     { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGRA32_LE, bgra_bgr, "bgr->bgra" },
     { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGRA32_BE, bgra_bgr, "bgr->bgra" },
     { TV_PIXFMT_BGRA32_LE, TV_PIXFMT_BGR24_LE,  bgra_bgr, "bgra->bgr" },
-    { TV_PIXFMT_BGRA32_BE, TV_PIXFMT_BGR24_BE,  bgra_bgr, "bgra->bgr" }
+    { TV_PIXFMT_BGRA32_BE, TV_PIXFMT_BGR24_BE,  bgra_bgr, "bgra->bgr" },
+
+    { TV_PIXFMT_SBGGR, TV_PIXFMT_BGRA32_LE, sbggr_bgr, "sbbgr->bgra" },
+    { TV_PIXFMT_SBGGR, TV_PIXFMT_BGR24_LE, sbggr_bgr, "sbbgr->bgra" },
+    { TV_PIXFMT_SBGGR, TV_PIXFMT_BGR16_LE, sbggr_bgr, "sbbgr->bgra" }
   };
 
   CLEAR (filters);

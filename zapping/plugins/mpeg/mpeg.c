@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.53 2005-01-08 14:54:24 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.54 2005-01-20 01:38:34 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -1208,6 +1208,8 @@ rebuild_config_dialog		(GtkWidget *		mpeg_properties,
   }
 }
 
+static void on_pref_config_changed (GtkWidget *, GtkWidget *);
+
 /**
  * pref_rebuild_configs:
  * @page: 
@@ -1221,7 +1223,6 @@ static void
 pref_rebuild_configs		(GtkWidget *		page,
 				 const gchar *		default_item)
 {
-  static void on_pref_config_changed (GtkWidget *, GtkWidget *);
   GtkWidget *configs;
   gchar *why;
   gint nformats;

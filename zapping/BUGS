@@ -21,9 +21,6 @@ Zapping 0.7 bugs, need more work later:
   could have a "null" channel, but what about e.g. ttx bookmarks?
 * Prefs does not apply screenshot add toolbar option. Seems to be
   another gtk_widget_show/hide toolbar item problem.
-* capture.c/retrieve_frame() fails to convert a previously
-  successfully requested format (specifically YUV420 to YUYV
-  requested by plugins/mpeg/mpeg.c).
 * When a/v recording is started under high system load the
   timestamps may differ too much, triggering the mp1e
   "cannot sync" check and aborting Zapping.

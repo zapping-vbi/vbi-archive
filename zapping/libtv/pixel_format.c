@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.c,v 1.3 2005-01-08 14:42:12 mschimek Exp $ */
+/* $Id: pixel_format.c,v 1.4 2005-01-20 01:38:33 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"		/* Z_BYTE_ORDER */
@@ -104,6 +104,7 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 	CASE (BGRA8)
 	CASE (ARGB8)
 	CASE (ABGR8)
+	CASE (SBGGR)
 
 	case TV_PIXFMT_RESERVED0:
 	case TV_PIXFMT_RESERVED1:
@@ -234,6 +235,10 @@ pixel_formats [] = {
 	PACKED8 (BGRA8, 0x60, 0x1C, 0x03, 0x80),
 	PACKED8 (ARGB8, 0x06, 0x38, 0xC0, 0x01),
 	PACKED8 (ABGR8, 0xC0, 0x38, 0x06, 0x01),
+
+	[TV_PIXFMT_SBGGR] = PIXEL_FORMAT (SBGGR, TV_COLSPC_RGB, 8, 24,
+					  0, 0, FALSE, FALSE, FALSE,
+					  0xFF, 0xFF, 0xFF, 0),
 };
 
 unsigned int

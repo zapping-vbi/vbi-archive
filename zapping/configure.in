@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.165 2005-01-08 14:54:10 mschimek Exp $
+dnl $Id: configure.in,v 1.166 2005-01-20 01:38:33 mschimek Exp $
 
 AC_INIT(zapping, 0.9cvs,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
@@ -45,6 +45,7 @@ test -e site_def.h || cat <<EOF >site_def.h
 /* #define TVENG_MIXER_VOLUME_DEBUG 1 */
 /* #define TVENGEMU_ENABLE 1 */
 /* #define TVENG_FORCE_FORMAT 20 */
+/* #define TVENG25_BAYER_TEST 1 */
 /* #define X11STUFF_WM_HINTS_DEBUG 1 */
 /* #define X11STUFF_VIDMODE_DEBUG 1 */
 /* #define X11STUFF_SCREENSAVER_DEBUG 1 */

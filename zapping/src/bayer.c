@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bayer.c,v 1.2 2004-12-11 11:46:24 mschimek Exp $ */
+/* $Id: bayer.c,v 1.3 2005-01-20 01:38:34 mschimek Exp $ */
 
 #include <inttypes.h>
 #include "bayer.h"
@@ -84,11 +84,12 @@
 
 void
 sbggr8_to_bgra32_le		(void *			dst,
-				 void *			src,
+				 const void *		src,
 				 unsigned int		width,
 				 unsigned int		height)
 {
-  uint8_t *s = src, *d = dst;
+  uint8_t *d = dst;
+  const uint8_t *s = src;
   unsigned int w = width, h = height;
   unsigned int vcount, hcount;
 
@@ -105,11 +106,12 @@ sbggr8_to_bgra32_le		(void *			dst,
 
 void
 sbggr8_to_bgr24_le		(void *			dst,
-				 void *			src,
+				 const void *		src,
 				 unsigned int		width,
 				 unsigned int		height)
 {
-  uint8_t *s = src, *d = dst;
+  uint8_t *d = dst;
+  const uint8_t *s = src;
   unsigned int w = width, h = height;
   unsigned int vcount, hcount;
 
@@ -127,11 +129,12 @@ sbggr8_to_bgr24_le		(void *			dst,
 
 void
 sbggr8_to_bgr16_le		(void *			dst,
-				 void *			src,
+				 const void *		src,
 				 unsigned int		width,
 				 unsigned int		height)
 {
-  uint8_t *s = src, *d = dst;
+  uint8_t *d = dst;
+  const uint8_t *s = src;
   unsigned int w = width, h = height;
   unsigned int vcount, hcount;
   unsigned int gr;

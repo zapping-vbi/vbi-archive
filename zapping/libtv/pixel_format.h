@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.h,v 1.3 2005-01-08 14:54:19 mschimek Exp $ */
+/* $Id: pixel_format.h,v 1.4 2005-01-20 01:38:33 mschimek Exp $ */
 
 #ifndef __ZTV_PIXEL_FORMAT_H__
 #define __ZTV_PIXEL_FORMAT_H__
@@ -127,6 +127,9 @@ typedef enum {
 	TV_PIXFMT_BGRA8,		/* arrgggbb */
 	TV_PIXFMT_ARGB8,		/* bbgggrra */
 	TV_PIXFMT_ABGR8,		/* rrgggbba */
+
+	/* Preliminary */
+	TV_PIXFMT_SBGGR,
 } tv_pixfmt;
 
 #define TV_MAX_PIXFMTS 64
@@ -208,8 +211,10 @@ typedef uint64_t tv_pixfmt_set;
 #define TV_PIXFMT_SET_PLANAR	    TV_PIXFMT_SET_YUV_PLANAR
 #define TV_PIXFMT_SET_PACKED	 (+ TV_PIXFMT_SET_YUV_PACKED		\
 				  + TV_PIXFMT_SET_RGB_PACKED)
+/* Note SBGGR is neither YUV nor RGB nor packed nor planar. */
 #define TV_PIXFMT_SET_ALL	 (+ TV_PIXFMT_SET_YUV			\
-				  + TV_PIXFMT_SET_RGB)
+				  + TV_PIXFMT_SET_RGB			\
+				  + TV_PIXFMT_SET (TV_PIXFMT_SBGGR))
 
 #define TV_PIXFMT_IS_YUV(pixfmt)					\
 	(0 != (TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_YUV))
@@ -232,7 +237,8 @@ typedef uint64_t tv_pixfmt_set;
 	      ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGB16) ? 2 :	\
 	       ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGBA16) ? 2 :	\
 	        ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGBA12) ? 2 :	\
-		 1))))))))
+		 ((TV_PIXFMT_SBBGR == (pixfmt)) ? 1 :			\
+		   1))))))))))
 #else
 #define TV_PIXFMT_BYTES_PER_PIXEL(pixfmt)				\
 	(tv_pixfmt_bytes_per_pixel (pixfmt))

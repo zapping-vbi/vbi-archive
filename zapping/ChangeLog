@@ -1,3 +1,25 @@
+2005-01-20    <mschimek@users.sf.net>
+
+	* src/tveng25.c: Removed bayer hack, bayer is now a first class format.
+	* src/capture.c (rebuild_buffer): Fixed to handle cases where
+	  available capture formats do not intersect with requested formats.
+
+2005-01-19    <mschimek@users.sf.net>
+
+	* plugins/deinterlace/DI_TomsMoComp/TomsMoComp.h,
+	  plugins/deinterlace/DI_MoComp2/MoComp2.h: Don't include malloc.h,
+	  makes problems with gcc 4.0 and is obsolete and unneeded anyway.
+	* plugins/mpeg/mpeg.c (pref_rebuild_configs): 
+	  Nested func declaration fix for gcc 4.0.
+	* plugins/deinterlace/windows.h: Added _m_int().
+	* plugins/deinterlace/DI_GreedyH/DI_GreedyHMPulldown.c (PullDown_VSharp2,
+	  PullDown_VSoft2), plugins/deinterlace/DI_GreedyH/DI_GreedyHF.asm: 
+	  QWORD PTR fix, bug #1102718.
+	* src/csconvert.c, libtv/pixel_format.c	(tv_pixfmt_name,
+	  pixel_formats), libtv/image_format.c (tv_clear_image),
+	  libtv/pixel_format.h: Added SBBGR, Bayer conversion to get rid of
+	  tveng25 hack.
+
 2005-01-18    <mschimek@users.sf.net>
 
 	* src/tveng1.c (p_tveng1_dequeue): Timeout fix.

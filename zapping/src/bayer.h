@@ -18,20 +18,20 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bayer.h,v 1.1 2004-12-02 02:46:17 mschimek Exp $ */
+/* $Id: bayer.h,v 1.2 2005-01-20 01:38:34 mschimek Exp $ */
 
 extern void
 sbggr8_to_bgra32_le		(void *			dst,
-				 void *			src,
+				 const void *		src,
 				 unsigned int		width,
 				 unsigned int		height);
 extern void
 sbggr8_to_bgr24_le		(void *			dst,
-				 void *			src,
+				 const void *		src,
 				 unsigned int		width,
 				 unsigned int		height);
 extern void
 sbggr8_to_bgr16_le		(void *			dst,
-				 void *			src,
+				 const void *		src,
 				 unsigned int		width,
 				 unsigned int		height);

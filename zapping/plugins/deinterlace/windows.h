@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: windows.h,v 1.2 2005-01-08 14:54:22 mschimek Exp $ */
+/* $Id: windows.h,v 1.3 2005-01-20 01:38:33 mschimek Exp $ */
 
 #ifndef WINDOWS_H
 #define WINDOWS_H
@@ -125,6 +125,9 @@ enum {
 
 /* Replaces  mov eax,local+3  by  mov eax,%[local3]  and  _m_nth(local,3) */
 #define _m_nth(x, nth) [x##nth] "m" (((char *) &x)[nth])
+
+/* Some "as" dislike type mixing, eg. cmp QWORD PTR [eax], 0 */
+#define _m_int(x) [Int_##x] "m" (* (int *) &x)
 
 /* NOTE Intel syntax - dest first. */
 #define _save(x) " mov %[saved_" #x "]," #x "\n"

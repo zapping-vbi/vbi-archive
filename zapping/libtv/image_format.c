@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.5 2005-01-08 14:41:05 mschimek Exp $ */
+/* $Id: image_format.c,v 1.6 2005-01-20 01:38:33 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -498,6 +498,13 @@ tv_clear_image			(void *			image,
 	case TV_PIXFMT_ABGR8:
 		assert (!"reached");
 
+	case TV_PIXFMT_SBGGR:
+		clear_block[0] (data + format->offset[0], 0,
+				format->width * 2,
+				format->height,
+				format->bytes_per_line[0]);
+
+		return TRUE;
 	}
 
 	return FALSE;

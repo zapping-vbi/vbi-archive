@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHF.asm,v 1.1 2005-01-08 14:54:23 mschimek Exp $
+// $Id: DI_GreedyHF.asm,v 1.2 2005-01-20 01:38:33 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:54:23  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2001/11/25 04:33:37  trbarry
 // Fix for TDeinterlace_Info. Also release UN-Filter code, 5-tap V & H sharp/soft filters optimized to reverse excessive filtering (or EE?)
 //
@@ -153,7 +156,7 @@ _save(ecx)
 _save(edx)
 _save(esi)
 _save(edi)
-"			mov %[LastAvg], 0       ## init easy way\n"
+"			mov %[Int_LastAvg],0      ## init easy way\n"
 "			mov eax, %[L1]		\n"
 "            lea ebx, [eax+8]                ## next qword needed by DJR\n"
 "			mov ecx, %[L3]		\n"
@@ -308,8 +311,9 @@ _restore(ecx)
 _restore(eax)
 _asm_end,
 _m_nth(LastAvg, 6), _m(L1), _m(L2), _m(L3), _m(L2P),
-_m(Dest), _m(ShiftMask), _m(LastAvg), _m(MaxCombW), _m(MotionThresholdW),
-_m(MotionSenseW), _m(QW256), _m(QW256B), _m(YMask), _m(UVMask), _m(LoopCtr)) ;
+_m(Dest), _m(ShiftMask), _m(LastAvg), _m_int(LastAvg), _m(MaxCombW),
+_m(MotionThresholdW), _m(MotionSenseW), _m(QW256), _m(QW256B),
+_m(YMask), _m(UVMask), _m(LoopCtr)) ;
 
         Dest += pInfo->OverlayPitch;
         pInfo->pMemcpy(Dest, L3, pInfo->LineLength);
