@@ -1298,7 +1298,7 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 
 	new_enhance(pg, vtp, 0, 0);
 
-	if (0)
+	if (1)
 		return;
 
 	/* Test */
