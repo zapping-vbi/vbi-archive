@@ -3468,6 +3468,8 @@ build_ttxview(void)
 
   load_page(0x100, ANY_SUB, data, NULL);
 
+  setup_history_gui(data);
+
   inc_model_count();
 
   return (ttxview);
@@ -3628,6 +3630,8 @@ ttxview_attach			(GtkWidget	*parent,
   set_ttx_parameters(data->id, zcg_bool(NULL, "reveal"));
 
   load_page(0x100, ANY_SUB, data, NULL);
+
+  setup_history_gui(data);
 
   inc_model_count();
 }
