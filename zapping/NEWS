@@ -1,9 +1,35 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+Zapping 0.9.2, 2004-02-28
+-------------------------
+This is a bugfix release.
+
+- Zapping used to hang when recording was stopped. This is a
+  preliminary fix, as a side effect Zapping cannot record and
+  deinterlace at the same time.
+- Various bugs were fixed in librte, used by the recording plugin.
+- The zapping.schemas file was not localized and installed. (Christian)
+- With active deinterlacing no display mode, capture mode, video input
+  or video standard changes were possible. (SF #1145094)
+- The error box appearing if capturing cannot be started did not
+  contain a message. (SF #1145094)
+- src/cpu.c did not compile on target powerpc due to missing #includes
+  and -maltivec flag. (Christian)
+- The manual pages did not install unless configure found xsltproc,
+  the DocBook XML DTD and DocBook XSL Stylesheets. (Christian)
+
 Zapping 0.9.1, 2004-02-20
 -------------------------
-Added French translation. Documentation and build fixes.
+Added French translation. Documentation and build fixes:
+
+- help/C/settings.xml contained a stray & (&amp;). (Christian)
+- The documentation contained &#nnn; entities not defined in xml.soc.
+  Version numbers where outdated.
+- The manual pages Makefile failed if configure did not find xsltproc,
+  the DocBook XML DTD and DocBook XSL Stylesheets.
+- zapping_setup_fb/v4l25.c did not compile on big endian targets.
+  (Christian)
 
 Zapping 0.9, 2004-02-15
 -----------------------

@@ -1,3 +1,27 @@
+2005-02-28    <mschimek@users.sf.net>
+
+	* Release 0.9.2.
+
+2005-02-27    <mschimek@users.sf.net>
+
+	* src/zmisc.c (zmisc_stop): Didn't work right.
+	* src/capture.c (change_capture_format): Start capturing only when
+	  it was active before, so we can request formats before starting.
+	* src/capture.c (capture_stop, capture_start): Don't use the capture
+	  queue when a REQ_CONTINUOUS format has been requested (i.e. we're
+	  recording). Works a problem in plugins/mpeg/mpeg.c.
+	* plugins/mpeg/mpeg.c (do_start): Must restart capturing because
+	  recording doesn't work with a capture queue yet. Symptom: hangs
+	  when recording is stopped.
+	* plugins/mpeg/mpeg.c (plugin_capture_stop): Do not close the
+	  recording dialog on capture stop.
+
+2005-02-26    <mschimek@users.sf.net>
+
+	* help/C/zapping.xml: Improved overlay explanation.
+	* Makefile.am: s/srcdir/top_builddir in zapping.schemas install rule.
+	* libtv/avec/Makefile.am: Changed to LTLIBRARIES.
+
 2005-02-25    <mschimek@users.sf.net>
 
 	* src/v4linterface.c (z_switch_video_input, z_switch_standard):

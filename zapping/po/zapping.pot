@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-02-24 22:59+0100\n"
+"POT-Creation-Date: 2005-02-28 13:42+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -594,7 +594,7 @@ msgstr ""
 #. hash collision code
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:2162
+#: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:2203
 #: plugins/screenshot/screenshot.c:1645
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
@@ -613,8 +613,8 @@ msgstr ""
 msgid "Deinterlace"
 msgstr ""
 
-#: plugins/deinterlace/main.c:441 plugins/mpeg/mpeg.c:1485
-#: plugins/mpeg/mpeg.c:2096 plugins/screenshot/screenshot.c:509
+#: plugins/deinterlace/main.c:441 plugins/mpeg/mpeg.c:1525
+#: plugins/mpeg/mpeg.c:2137 plugins/screenshot/screenshot.c:509
 #: plugins/screenshot/screenshot.c:1408 plugins/teletext/main.c:258
 msgid "Plugins"
 msgstr ""
@@ -824,41 +824,41 @@ msgstr ""
 msgid "Format %s is incomplete, please configure the video or audio codec."
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:682
+#: plugins/mpeg/mpeg.c:722
 #, c-format
 msgid "Cannot create file %s: %s\n"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1303
+#: plugins/mpeg/mpeg.c:1343
 msgid "New format"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1304
+#: plugins/mpeg/mpeg.c:1344
 msgid "Format name:"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1485 plugins/mpeg/mpeg.c:1953 plugins/mpeg/mpeg.c:1981
-#: plugins/mpeg/mpeg.c:2085 plugins/mpeg/mpeg_properties.glade2.h:6
+#: plugins/mpeg/mpeg.c:1525 plugins/mpeg/mpeg.c:1994 plugins/mpeg/mpeg.c:2022
+#: plugins/mpeg/mpeg.c:2126 plugins/mpeg/mpeg_properties.glade2.h:6
 msgid "Record"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1774
+#: plugins/mpeg/mpeg.c:1814
 msgid "Not implemented yet"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1946
+#: plugins/mpeg/mpeg.c:1987
 msgid "Record a video stream"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:2031
+#: plugins/mpeg/mpeg.c:2072
 msgid "Audio/Video Recorder"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:2034
+#: plugins/mpeg/mpeg.c:2075
 msgid "This plugin records video and audio into a file"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:2037
+#: plugins/mpeg/mpeg.c:2078
 msgid "Record video and audio."
 msgstr ""
 
@@ -1496,11 +1496,11 @@ msgstr ""
 msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr ""
 
-#: src/capture.c:893
+#: src/capture.c:894
 msgid "Cannot stop capturing while recording."
 msgstr ""
 
-#: src/capture.c:961
+#: src/capture.c:969
 #, c-format
 msgid "Cannot start capturing: %s"
 msgstr ""
