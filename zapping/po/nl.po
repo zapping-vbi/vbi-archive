@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-09-18 17:08+0200\n"
-"PO-Revision-Date: 2004-09-18 18:10+0200\n"
+"POT-Creation-Date: 2004-09-22 23:04+0200\n"
+"PO-Revision-Date: 2004-09-21 06:51+0200\n"
 "Last-Translator: Guus Bonnema <abonnema@xs4all.nl>\n"
 "Language-Team: Dutch\n"
 "MIME-Version: 1.0\n"
@@ -46,11 +46,11 @@ msgstr ""
 msgid "Advanced"
 msgstr "Geavanceerd"
 
-#: glade/zapping.glade2.h:5
+#: glade/zapping.glade2.h:5 plugins/teletext/main.c:619
 msgid "Arabic"
 msgstr "Arabisch"
 
-#: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng.c:4404
+#: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng.c:4402
 #: src/tveng2.c:615
 msgid "Audio"
 msgstr "Audio"
@@ -63,7 +63,7 @@ msgstr "Auteur:"
 msgid "Biggest noninterlaced (autodetect)"
 msgstr "Grootst mogelijk zonder interlace (automatisch)"
 
-#: glade/zapping.glade2.h:9
+#: glade/zapping.glade2.h:9 plugins/teletext/main.c:633
 msgid "Bilinear (good quality but slow)"
 msgstr "Bi-linear (goede kwaliteit maar langzaam)"
 
@@ -72,7 +72,7 @@ msgstr "Bi-linear (goede kwaliteit maar langzaam)"
 msgid "Canonical name:"
 msgstr "Programmanaam:"
 
-#: glade/zapping.glade2.h:11
+#: glade/zapping.glade2.h:11 plugins/teletext/main.c:616
 msgid "Central and Southeast Europe"
 msgstr "Midden- en Zuid Europa"
 
@@ -106,11 +106,11 @@ msgstr "Copyright (C) 2000-2003 degenen die bijgedragen hebben\n"
 msgid "Current controller:"
 msgstr "Huidige controller:"
 
-#: glade/zapping.glade2.h:20
+#: glade/zapping.glade2.h:20 plugins/teletext/main.c:617
 msgid "Cyrillic"
 msgstr "Cyrillisch"
 
-#: glade/zapping.glade2.h:21
+#: glade/zapping.glade2.h:21 plugins/teletext/main.c:647
 msgid "Default _region:"
 msgstr "Default _region:"
 
@@ -118,7 +118,7 @@ msgstr "Default _region:"
 msgid "Device name:"
 msgstr "Appraatnaam:"
 
-#: glade/zapping.glade2.h:23 src/audio.c:530 src/properties-handler.c:1606
+#: glade/zapping.glade2.h:23 src/audio.c:530 src/properties-handler.c:1537
 msgid "Devices"
 msgstr "Apparaten"
 
@@ -127,7 +127,7 @@ msgid "Disable _screensaver"
 msgstr "Uitzetten _screensaver"
 
 # src/frequencies.c:821
-#: glade/zapping.glade2.h:25
+#: glade/zapping.glade2.h:25 plugins/teletext/main.c:614
 msgid "Eastern Europe"
 msgstr "Oost-Europa"
 
@@ -147,15 +147,15 @@ msgstr "Favoriete _picture formaat:"
 msgid "General options"
 msgstr "Algemene opties"
 
-#: glade/zapping.glade2.h:30
+#: glade/zapping.glade2.h:30 plugins/teletext/main.c:618
 msgid "Greek and Turkish"
 msgstr "Grieks en Turks"
 
-#: glade/zapping.glade2.h:31
+#: glade/zapping.glade2.h:31 plugins/teletext/main.c:620
 msgid "Hebrew and Arabic"
 msgstr "Hebreeuws en Arabisch"
 
-#: glade/zapping.glade2.h:32
+#: glade/zapping.glade2.h:32 plugins/teletext/main.c:634
 msgid "Hyper (best quality but CPU intensive)"
 msgstr "Hyper (beste kwaliteit, zware processorbelasting)"
 
@@ -175,19 +175,19 @@ msgstr "Toetsenbord"
 msgid "Known key names"
 msgstr "Bekende toetsen"
 
-#: glade/zapping.glade2.h:37
+#: glade/zapping.glade2.h:37 plugins/teletext/main.c:624
 msgid "Level 1.0"
 msgstr "Level 1.0"
 
-#: glade/zapping.glade2.h:38
+#: glade/zapping.glade2.h:38 plugins/teletext/main.c:625
 msgid "Level 1.5 (additional national characters)"
 msgstr "Level 1.5 (extra vreemde tekens)"
 
-#: glade/zapping.glade2.h:39
+#: glade/zapping.glade2.h:39 plugins/teletext/main.c:626
 msgid "Level 2.5 (more colours, font styles and graphics)"
 msgstr "Level 2.5 (meer kleur, lettertypen en figuren)"
 
-#: glade/zapping.glade2.h:40
+#: glade/zapping.glade2.h:40 plugins/teletext/main.c:627
 msgid "Level 3.5 (proportional spacing, multicolour graphics)"
 msgstr "Level 3.5 (proportionele letters, meerkleurige figuren)"
 
@@ -207,7 +207,7 @@ msgstr "Onderdruk ruis tijdens _kanaalwisseling"
 msgid "NTSC"
 msgstr "NTSC"
 
-#: glade/zapping.glade2.h:45
+#: glade/zapping.glade2.h:45 plugins/teletext/main.c:631
 msgid "Nearest (fast, looks ugly when scaled)"
 msgstr "Nearest (snel, lelijk bij schalen)"
 
@@ -251,7 +251,7 @@ msgstr "Pluginversie:"
 msgid "Properties"
 msgstr "Eigenschappen"
 
-#: glade/zapping.glade2.h:56
+#: glade/zapping.glade2.h:56 plugins/teletext/main.c:665
 msgid "Quality/speed trade-off when scaling and anti-aliasing the page."
 msgstr ""
 "Kwaliteit/snelheid afweging bij het schalen en gebruik van anti-aliasing op "
@@ -311,7 +311,7 @@ msgstr "Selecteer het VBI-apparaat"
 msgid "Show _tooltips"
 msgstr "Toon _tooltips"
 
-#: glade/zapping.glade2.h:69
+#: glade/zapping.glade2.h:69 plugins/teletext/main.c:654
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Teletext viewer may not display the correct font or national characters. You "
@@ -341,7 +341,7 @@ msgstr ""
 "Het video opname apparaat (device capture) komt niet met een geldige video "
 "standaard: graag met de hand aanpassen."
 
-#: glade/zapping.glade2.h:74
+#: glade/zapping.glade2.h:74 plugins/teletext/main.c:632
 msgid "Tiles (slightly slower, somewhat better)"
 msgstr "Tiles (langzamer maar beter)"
 
@@ -354,8 +354,8 @@ msgid "VBI options"
 msgstr "VBI opties"
 
 # src/v4l2interface.c:344
-#: glade/zapping.glade2.h:77 src/main.c:162 src/properties-handler.c:1584
-#: src/properties-handler.c:1592
+#: glade/zapping.glade2.h:77 src/main.c:166 src/properties-handler.c:1515
+#: src/properties-handler.c:1523
 msgid "Video"
 msgstr "Beeld"
 
@@ -368,11 +368,11 @@ msgstr "Video standaard"
 msgid "Video device capabilities"
 msgstr "Mogelijkheden van video-apparaat"
 
-#: glade/zapping.glade2.h:80
+#: glade/zapping.glade2.h:80 plugins/teletext/main.c:615
 msgid "Western Europe and Turkey"
 msgstr "West-Europa en Turkije"
 
-#: glade/zapping.glade2.h:81
+#: glade/zapping.glade2.h:81 plugins/teletext/main.c:613
 msgid "Western and Central Europe"
 msgstr "West- en Midden-Europa"
 
@@ -433,7 +433,7 @@ msgstr "_Fullscreen video resolutie"
 msgid "_Gnome sound daemon (ESD)"
 msgstr "G_nome geluid server (ESD)"
 
-#: glade/zapping.glade2.h:96
+#: glade/zapping.glade2.h:96 plugins/teletext/main.c:649
 msgid "_Interpolation type:"
 msgstr "_Interpolatie type:"
 
@@ -461,7 +461,7 @@ msgstr "_Schalen in vaste stappen"
 msgid "_Start Zapping muted"
 msgstr "_Zapping opstarten zonder geluid"
 
-#: glade/zapping.glade2.h:103
+#: glade/zapping.glade2.h:103 plugins/teletext/main.c:648
 msgid "_Teletext implementation:"
 msgstr "_Teletekstprotocol:"
 
@@ -491,7 +491,7 @@ msgstr "Bestuur Zapping met LIRC (Linux Infrared Remote Control)"
 #. hash collision code
 #. Warn
 #: plugins/alirc/alirc.c:411 plugins/mpeg/mpeg.c:2146
-#: plugins/screenshot/screenshot.c:1616
+#: plugins/screenshot/screenshot.c:1615 plugins/teletext/main.c:988
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Waarschuwing: \"%s\" in plugin %s heeft checksum 0x%x i.p.v. 0x%x"
@@ -526,7 +526,8 @@ msgid "Format name:"
 msgstr "Formaatnaam:"
 
 #: plugins/mpeg/mpeg.c:1467 plugins/mpeg/mpeg.c:2080
-#: plugins/screenshot/screenshot.c:498 plugins/screenshot/screenshot.c:1403
+#: plugins/screenshot/screenshot.c:497 plugins/screenshot/screenshot.c:1402
+#: plugins/teletext/main.c:708
 msgid "Plugins"
 msgstr "Plugins"
 
@@ -555,7 +556,7 @@ msgstr "Deze plugin neemt beeld en geluid op als MPEG bestand"
 msgid "Record video and audio."
 msgstr "Opnemen van beeld en geluid"
 
-#: plugins/mpeg/options.c:406 src/ttxview.c:1866
+#: plugins/mpeg/options.c:406 plugins/teletext/export.c:484
 msgid "Options"
 msgstr "Opties"
 
@@ -623,15 +624,15 @@ msgid "_Stop"
 msgstr "_Stop"
 
 # src/v4l2interface.c:344
-#: plugins/mpeg/mpeg_properties.glade2.h:17 src/zapping.c:374
+#: plugins/mpeg/mpeg_properties.glade2.h:17 src/zapping.c:376
 msgid "_Video"
 msgstr "_Videobeeld"
 
-#: plugins/screenshot/screenshot.c:44
+#: plugins/screenshot/screenshot.c:43
 msgid "Screenshot saver"
 msgstr "Opslaan van screenshots"
 
-#: plugins/screenshot/screenshot.c:46
+#: plugins/screenshot/screenshot.c:45
 msgid ""
 "With this plugin you can take screen shots of the program you are watching "
 "and save them in various formats."
@@ -639,29 +640,29 @@ msgstr ""
 "Met deze plugin kunt u screenshots maken van het huidige beeld in deverse "
 "formaten."
 
-#: plugins/screenshot/screenshot.c:49
+#: plugins/screenshot/screenshot.c:48
 msgid "This plugin takes screenshots of the video capture."
 msgstr "Deze plugin maakt screenshots van het videobeeld."
 
-#: plugins/screenshot/screenshot.c:493 plugins/screenshot/screenshot.c:518
-#: plugins/screenshot/screenshot.c:1403
+#: plugins/screenshot/screenshot.c:492 plugins/screenshot/screenshot.c:517
+#: plugins/screenshot/screenshot.c:1402
 msgid "Screenshot"
 msgstr "Screenshot"
 
-#: plugins/screenshot/screenshot.c:523
+#: plugins/screenshot/screenshot.c:522
 msgid "Take a screenshot"
 msgstr "Maak een screenshot"
 
-#: plugins/screenshot/screenshot.c:658 plugins/screenshot/screenshot.c:754
+#: plugins/screenshot/screenshot.c:657 plugins/screenshot/screenshot.c:753
 msgid "Error while writing screenshot\n"
 msgstr "Fout bij het schrijven van een screenshot\n"
 
-#: plugins/screenshot/screenshot.c:804
+#: plugins/screenshot/screenshot.c:803
 msgid "Saving..."
 msgstr "Bezig met opslaan..."
 
 #. XXX check errno and possibly retry
-#: plugins/screenshot/screenshot.c:827
+#: plugins/screenshot/screenshot.c:826
 #, c-format
 msgid ""
 "Cannot create directory:\n"
@@ -670,7 +671,7 @@ msgid ""
 msgstr "Kan directory '%s' niet aanmaken: %s"
 
 # src/tveng.c:70
-#: plugins/screenshot/screenshot.c:837
+#: plugins/screenshot/screenshot.c:836
 #, c-format
 msgid ""
 "Sorry, but I cannot write %s\n"
@@ -679,29 +680,29 @@ msgstr ""
 "Er is een fout opgetreden tijdens het wegschrijven. %s\n"
 "%s"
 
-#: plugins/screenshot/screenshot.c:871
+#: plugins/screenshot/screenshot.c:870
 msgid "Sorry, not enough resources to create a new thread"
 msgstr "Onvoldoende systeembronnen voor het starten van een nieuwe taak"
 
-#: plugins/screenshot/screenshot.c:876
+#: plugins/screenshot/screenshot.c:875
 msgid "There are too many threads"
 msgstr "Er zijn te veel actieve taken"
 
-#: plugins/screenshot/screenshot.c:1050
+#: plugins/screenshot/screenshot.c:1049
 #, c-format
 msgid "appx %u KB"
 msgstr "ca %u KB"
 
-#: plugins/screenshot/screenshot.c:1053
+#: plugins/screenshot/screenshot.c:1052
 #, c-format
 msgid "appx %.2f MB"
 msgstr "ca %.2f MB"
 
-#: plugins/screenshot/screenshot.c:1118 plugins/screenshot/screenshot.c:1262
+#: plugins/screenshot/screenshot.c:1117 plugins/screenshot/screenshot.c:1261
 msgid "This format has no quality option"
 msgstr "Dit formaat kent geen kwaliteitsoptie"
 
-#: plugins/screenshot/screenshot.c:1298
+#: plugins/screenshot/screenshot.c:1297
 msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
 msgstr ""
 "Alleen bruikbaar in volledig formaat, \\\"unscaled\\\" beeld (480 of 576 "
@@ -763,13 +764,328 @@ msgstr "_Overslaan"
 msgid "pictures before grabbing"
 msgstr "beelden voor grabben"
 
+#: plugins/teletext/bookmark.c:338
+msgid "Bookmarks"
+msgstr "Bladwijzers"
+
+# src/interface.c:362
+# glade/glade_strings.c:148, glade/glade_strings.c:153
+#: plugins/teletext/bookmark.c:377
+msgid "Channel"
+msgstr "Kanaal"
+
+#: plugins/teletext/bookmark.c:383
+msgid "Page"
+msgstr "Pagina"
+
+#: plugins/teletext/bookmark.c:388
+msgid "Description"
+msgstr "Beschrijving"
+
+#: plugins/teletext/color.c:107
+msgid "Text Color"
+msgstr "Tekstkleur"
+
+#: plugins/teletext/color.c:124 src/tveng2.c:430 src/tveng25.c:472
+#: src/tvengbktr.c:368 src/tvengbktr.c:385 src/tvengxv.c:532
+msgid "Brightness"
+msgstr "Helderheid"
+
+# src/interface.c:247
+#: plugins/teletext/color.c:146 src/tveng2.c:431 src/tveng25.c:473
+#: src/tvengbktr.c:370 src/tvengbktr.c:387 src/tvengxv.c:533
+msgid "Contrast"
+msgstr "Contrast"
+
+#: plugins/teletext/export.c:543
+#, c-format
+msgid ""
+"Cannot create directory %s:\n"
+"%s"
+msgstr ""
+"Kan directory '%s' niet aanmaken: \n"
+"%s"
+
+#: plugins/teletext/export.c:622
+msgid "Save as"
+msgstr "Opslaan als:"
+
+#: plugins/teletext/export.c:640
+msgid "Format:"
+msgstr "Formaat: "
+
+#: plugins/teletext/main.c:176
+#, c-format
+msgid "Added page %x.%02x to bookmarks"
+msgstr "Toegevoegd %x, %02x aan bookmarks"
+
+#: plugins/teletext/main.c:179
+#, c-format
+msgid "Added page %x to bookmarks"
+msgstr "Pagina %x toegevoegd aan bookmarks"
+
+#: plugins/teletext/main.c:260
+msgid "_Add Bookmark"
+msgstr "_Toevoegen Bladwijzers"
+
+#: plugins/teletext/main.c:266
+msgid "_Edit Bookmarks..."
+msgstr "_Bladwijzers bewerken..."
+
+#: plugins/teletext/main.c:484
+#, fuzzy
+msgid "Teletext plugin"
+msgstr "Teletekst"
+
+#: plugins/teletext/main.c:701 src/main.c:164
+msgid "Teletext"
+msgstr "Teletekst"
+
+#: plugins/teletext/main.c:798 src/properties-handler.c:1318
+#: src/properties-handler.c:1539
+msgid "VBI Options"
+msgstr "VBI opties"
+
+#: plugins/teletext/main.c:798 src/properties-handler.c:1528
+msgid "General"
+msgstr "Algemene opties"
+
+#: plugins/teletext/main.c:803
+#, fuzzy
+msgid "_Preferences"
+msgstr "Open voorkeuren"
+
+#: plugins/teletext/main.c:805
+msgid "_Colors"
+msgstr "_Kleuren"
+
+#: plugins/teletext/search.c:138 plugins/teletext/search.c:352
+msgid "Search text:"
+msgstr "Zoek tekst:"
+
+#: plugins/teletext/search.c:149
+#, c-format
+msgid "Found text on page %x.%02x:"
+msgstr "Text gevonden op pagina %x. %02x:"
+
+#: plugins/teletext/search.c:155
+msgid "Not found:"
+msgstr "Niet gevonden"
+
+#: plugins/teletext/search.c:166
+msgid "Page memory is empty"
+msgstr "Geheugen pagina is leeg"
+
+#: plugins/teletext/search.c:345 plugins/teletext/view.c:2134
+msgid "Search page memory"
+msgstr "Zoek page geheugen:"
+
+#: plugins/teletext/search.c:361
+msgid "_Regular expression"
+msgstr "Reguliere expressie"
+
+#: plugins/teletext/search.c:366
+msgid "Search case _insensitive"
+msgstr "Hoofdletterongevoelig"
+
+#: plugins/teletext/search.c:408
+msgid "VBI has been disabled"
+msgstr "VBI is uitgeschakeld"
+
+#: plugins/teletext/toolbar.c:124
+msgid "Next page"
+msgstr "Volgende pagina"
+
+#: plugins/teletext/toolbar.c:127
+msgid "Previous page"
+msgstr "Vorige pagina"
+
+#: plugins/teletext/toolbar.c:130
+msgid "Previous subpage"
+msgstr "Vorige subpagina"
+
+#: plugins/teletext/toolbar.c:133
+msgid "Next subpage"
+msgstr "Volgende subpagina"
+
+#: plugins/teletext/toolbar.c:190
+msgid "Open new Teletext window"
+msgstr "Open in nieuw venster"
+
+#: plugins/teletext/toolbar.c:213
+msgid "Hold the current subpage"
+msgstr "Huidige subpagina vastzetten"
+
+#: plugins/teletext/toolbar.c:243
+msgid "Reveal"
+msgstr "Onthullen"
+
+#: plugins/teletext/toolbar.c:244
+msgid "Reveal concealed text"
+msgstr "Toon verborgen text"
+
+#: plugins/teletext/view.c:250
+#, c-format
+msgid "Loading page %x..."
+msgstr "Laden van pagina %x..."
+
+#: plugins/teletext/view.c:252
+#, c-format
+msgid "Loading page %x.%02x..."
+msgstr "Laden pagina %x. %02x..."
+
+#: plugins/teletext/view.c:360
+#, c-format
+msgid " Page %x"
+msgstr "Pagina %x"
+
+#: plugins/teletext/view.c:364
+#, c-format
+msgid " Subpage %x"
+msgstr " Subpagina %x"
+
+#: plugins/teletext/view.c:681
+msgid "Text export failed"
+msgstr "Tekst-export mislukt: %s"
+
+#: plugins/teletext/view.c:1049
+msgid "Selection copied to clipboard"
+msgstr "Selectie gekopiëerd naar klembord"
+
+#: plugins/teletext/view.c:1133 plugins/teletext/view.c:1174
+msgid "No page loaded"
+msgstr "Geen pagina geladen"
+
+#: plugins/teletext/view.c:1146
+msgid "Selecting - press Shift key for table mode"
+msgstr "Selecteren - voor table mode shift ingedrukt houden"
+
+#: plugins/teletext/view.c:1466
+msgid "Subtitle index"
+msgstr "Ondertitelingsindex"
+
+#: plugins/teletext/view.c:1473
+msgid "Now and Next"
+msgstr "Nu en straks"
+
+#: plugins/teletext/view.c:1480
+msgid "Current program"
+msgstr "Huidige programma"
+
+#: plugins/teletext/view.c:1487
+msgid "Program Index"
+msgstr "Programma-index"
+
+#: plugins/teletext/view.c:1494
+msgid "Program Schedule"
+msgstr "Programma-overzicht"
+
+#: plugins/teletext/view.c:1502
+msgid "Program Warning"
+msgstr "Waarschuwing"
+
+#: plugins/teletext/view.c:1556
+msgid "_Open"
+msgstr "_Open"
+
+#: plugins/teletext/view.c:1562
+msgid "Open in _New Window"
+msgstr "Open in _nieuwe venster"
+
+#: plugins/teletext/view.c:1573
+msgid "_Open Link"
+msgstr "_Open link"
+
+#: plugins/teletext/view.c:1584 plugins/teletext/window.c:216
+msgid "_New Window"
+msgstr "_Nieuwe window"
+
+#: plugins/teletext/view.c:1590
+msgid "_Save as..."
+msgstr "Op_slaan als ..."
+
+#: plugins/teletext/view.c:1596
+msgid "S_earch..."
+msgstr "_Zoeken..."
+
+#: plugins/teletext/view.c:1602
+msgid "_Colors..."
+msgstr "_Kleuren"
+
+#: plugins/teletext/view.c:1608
+msgid "S_ubtitles"
+msgstr "S_ubtitels"
+
+#: plugins/teletext/view.c:1614 plugins/teletext/window.c:221
+#: src/zapping.c:373
+msgid "_Bookmarks"
+msgstr "_Bladwijzers"
+
+#. TRANSLATORS: "Cannot open <URL>" (http or smtp).
+#: plugins/teletext/view.c:1908 src/zvbi.c:630
+#, c-format
+msgid ""
+"Cannot open %s:\n"
+"%s"
+msgstr ""
+"Kan '%s' niet openen: \n"
+"%s."
+
+#: plugins/teletext/view.c:2126
+msgid "_Go"
+msgstr "_Ga naar"
+
+#: plugins/teletext/view.c:2128
+msgid "Previous page in history"
+msgstr "Terug"
+
+#: plugins/teletext/view.c:2130
+msgid "Next page in history"
+msgstr "Vooruit"
+
+#: plugins/teletext/view.c:2131
+msgid "Index"
+msgstr "Inhoud"
+
+#: plugins/teletext/view.c:2132
+msgid "Go to the index page"
+msgstr "Ga naar de indexpagina"
+
+#: plugins/teletext/view.c:2136
+#, fuzzy
+msgid "Save this page to a file"
+msgstr "Opslaan als bestand"
+
+#: plugins/teletext/window.c:215 src/zapping.c:325
+msgid "_File"
+msgstr "_Bestand"
+
+#: plugins/teletext/window.c:219 src/zapping.c:327
+msgid "_Edit"
+msgstr "Be_werken"
+
+# src/v4l2interface.c:344
+#: plugins/teletext/window.c:220 src/zapping.c:334
+msgid "_View"
+msgstr "Beel_d"
+
+# src/v4l2interface.c:344
+#: plugins/teletext/window.c:280 src/zapping.c:363
+msgid "Toolbar"
+msgstr "Toetsenbalk"
+
+#: plugins/teletext/window.c:282
+#, fuzzy
+msgid "Statusbar"
+msgstr "_Statusbalk"
+
 #. TRANSLATORS: Soundcard mixer line.
 #: src/audio.c:498
 msgid "Input:"
 msgstr "Input:"
 
 #: src/audio.c:531 src/keyboard.c:1146 src/osd.c:1335
-#: src/properties-handler.c:1607 src/properties.c:955
+#: src/properties-handler.c:1538 src/properties.c:957
 msgid "General Options"
 msgstr "Algemene opties"
 
@@ -993,20 +1309,16 @@ msgstr "Commando"
 msgid "Shortcut"
 msgstr "Sneltoets"
 
-#: src/main.c:159 src/tveng.c:2089 src/tveng1.c:903 src/tveng2.c:450
+#: src/main.c:163 src/tveng.c:2089 src/tveng1.c:903 src/tveng2.c:450
 #: src/tveng25.c:491 src/tvengbktr.c:399 src/tvengxv.c:538
 msgid "Mute"
 msgstr "Geluid uit"
 
-#: src/main.c:160
-msgid "Teletext"
-msgstr "Teletekst"
-
-#: src/main.c:161
+#: src/main.c:165
 msgid "Subtitles"
 msgstr "Ondertiteling"
 
-#: src/main.c:256 src/main.c:289
+#: src/main.c:260 src/main.c:293
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -1015,7 +1327,7 @@ msgstr ""
 "Opnamemodus kon niet gestart worden:\n"
 "%s"
 
-#: src/main.c:273
+#: src/main.c:277
 #, c-format
 msgid ""
 "Cannot restore previous mode, will try capture mode:\n"
@@ -1024,7 +1336,7 @@ msgstr ""
 "Herstellen van vorige modus mislukt, ga opname mode proberen:\n"
 "%s"
 
-#: src/main.c:280
+#: src/main.c:284
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -1033,7 +1345,7 @@ msgstr ""
 "Opnamemodus kon ook niet gestart worden:\n"
 "%s"
 
-#: src/main.c:283
+#: src/main.c:287
 #, c-format
 msgid ""
 "Cannot restore previous mode:\n"
@@ -1042,103 +1354,103 @@ msgstr ""
 "Herstellen van vorige modus mislukt:\n"
 "%s"
 
-#: src/main.c:347
+#: src/main.c:350
 msgid "Kernel video device"
 msgstr "Kernel video device"
 
-#: src/main.c:348
+#: src/main.c:351
 msgid "FILENAME"
 msgstr "bestandsnaam"
 
-#: src/main.c:359 src/main.c:377
+#: src/main.c:362 src/main.c:380
 msgid "XVideo video input port"
 msgstr "XVideo video input poort"
 
-#: src/main.c:368
+#: src/main.c:371
 msgid "XVideo image overlay port"
 msgstr "XVideo beeld overlay port"
 
-#: src/main.c:386
+#: src/main.c:389
 msgid "Disable XVideo video input support"
 msgstr "XVideo input support uitschakelen"
 
-#: src/main.c:395
+#: src/main.c:398
 msgid "Disable XVideo image overlay support"
 msgstr "XVideo image overlay support uitschakelen"
 
-#: src/main.c:404
+#: src/main.c:407
 msgid "Disable XVideo extension support"
 msgstr "XVideo-extensies uitschakelen"
 
-#: src/main.c:416
+#: src/main.c:419
 msgid "Disable video overlay"
 msgstr "Schakel video overlay uit"
 
-#: src/main.c:425
+#: src/main.c:428
 msgid "X display is remote, disable video overlay"
 msgstr "X display is remote, disable video overlay"
 
-#: src/main.c:434
+#: src/main.c:437
 msgid "Disable VBI support"
 msgstr "VBI-ondersteuning uitschakelen"
 
-#: src/main.c:443
+#: src/main.c:446
 msgid "Disable plugins"
 msgstr "Plugins uitschakelen"
 
 #. TRANSLATORS: --no-zsfb command line option.
-#: src/main.c:457 src/main.c:512 src/main.c:521
+#: src/main.c:460 src/main.c:515 src/main.c:524
 msgid "Obsolete"
 msgstr "Verouderd"
 
-#: src/main.c:466
+#: src/main.c:469
 msgid "Color depth of the X display"
 msgstr "Kleurendiepte beeld"
 
-#: src/main.c:467
+#: src/main.c:470
 msgid "BPP"
 msgstr "BPP"
 
-#: src/main.c:475 src/zapzilla.c:74
+#: src/main.c:478 src/zapzilla.c:74
 msgid "Print debug messages"
 msgstr "activeren debugberichten"
 
-#: src/main.c:493
+#: src/main.c:496
 msgid "Force dword alignment of the overlay window"
 msgstr "Forceer dword layout van overlayvenster"
 
-#: src/main.c:502
+#: src/main.c:505
 msgid "Execute the given command and exit"
 msgstr "Voer commando uit en verlaat programma"
 
-#: src/main.c:503
+#: src/main.c:506
 msgid "CMD"
 msgstr "CMD"
 
-#: src/main.c:609
+#: src/main.c:612
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Sorry, GLib heeft geen modulesupport"
 
 # src/callbacks.c:320 src/v4l2interface.c:89
-#: src/main.c:724
+#: src/main.c:727
 msgid "Cannot get device info struct"
 msgstr "Kan device struct info niet opvragen"
 
-#: src/main.c:733
+#: src/main.c:736
 msgid "Zapping couldn't be started"
 msgstr "Zapping starten lukt niet"
 
-#: src/main.c:792
+#: src/main.c:795
 #, c-format
 msgid "Couldn't open %s, try other devices?"
 msgstr "Kon %s niet openen - andere devices proberen?"
 
-#: src/main.c:818
+#: src/main.c:821
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "%s succesvol, opgeslagen als nieuwe standaardwaarde"
 
-#: src/main.c:829
+#: src/main.c:832
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -1270,21 +1582,21 @@ msgstr "Symbool"
 msgid "Hash"
 msgstr "Checksum"
 
-#: src/plugins.c:188
+#: src/plugins.c:186
 #, c-format
 msgid "\"%s\" doesn't provide a version"
 msgstr "\"%s\" heeft geen versienummer"
 
-#: src/plugins.c:225
+#: src/plugins.c:223
 msgid "Insufficient memory"
 msgstr "Onvoldoende geheugen"
 
-#: src/plugins.c:234
+#: src/plugins.c:232
 msgid "No description available"
 msgstr "[Omschrijving ontbreekt]"
 
 #. Warn
-#: src/plugins.c:313
+#: src/plugins.c:346
 #, c-format
 msgid ""
 "Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
@@ -1364,360 +1676,53 @@ msgstr "Breedte"
 msgid "Height"
 msgstr "Hoogte"
 
-#: src/properties-handler.c:890
+#: src/properties-handler.c:886
 msgid "Text Below Icons"
 msgstr "Tekst onder pictogrammen"
 
-#: src/properties-handler.c:891
+#: src/properties-handler.c:887
 msgid "Priority Text Beside Icons"
 msgstr "Prioriteitstekst naast pictogrammen"
 
-#: src/properties-handler.c:892
+#: src/properties-handler.c:888
 msgid "Icons Only"
 msgstr "Alleen pictogrammen"
 
-#: src/properties-handler.c:893
+#: src/properties-handler.c:889
 msgid "Text Only"
 msgstr "Aleen tekst"
 
-#: src/properties-handler.c:959
+#: src/properties-handler.c:954
 #, c-format
 msgid "Use desktop default (%s)"
 msgstr "Bureaubladstandaard (%s) gebruiken"
 
 #. TRANSLATORS: Fullscreen video mode
-#: src/properties-handler.c:1167
+#: src/properties-handler.c:1162
 msgid "Do not change"
 msgstr "Niet aanpassen"
 
-#: src/properties-handler.c:1171 src/tveng.c:4415 src/tveng2.c:463
+#: src/properties-handler.c:1166 src/tveng.c:4413 src/tveng2.c:463
 msgid "Automatic"
 msgstr "Automatisch"
 
 #. TRANSLATORS: Fullscreen video mode
-#: src/properties-handler.c:1186
+#: src/properties-handler.c:1181
 #, c-format
 msgid "%u x %u @ %u Hz"
 msgstr "%u x %u @ %u Hz"
 
-#: src/properties-handler.c:1326 src/properties-handler.c:1608
-#: src/ttxview.c:3967
-msgid "VBI Options"
-msgstr "VBI opties"
-
-#: src/properties-handler.c:1327 src/properties-handler.c:1601
+#: src/properties-handler.c:1319 src/properties-handler.c:1532
 msgid "Interactive TV"
 msgstr "Interactieve TV"
 
-#: src/properties-handler.c:1589
+#: src/properties-handler.c:1520
 msgid "Main Window"
 msgstr "Hoofdvenster"
 
-#: src/properties-handler.c:1597 src/ttxview.c:3967
-msgid "General"
-msgstr "Algemene opties"
-
-#: src/properties.c:595
+#: src/properties.c:594
 msgid "Zapping Properties"
 msgstr "Zapping eigenschappen"
-
-#: src/ttxview.c:449
-#, c-format
-msgid "Loading page %x..."
-msgstr "Laden van pagina %x..."
-
-#: src/ttxview.c:451
-#, c-format
-msgid "Loading page %x.%02x..."
-msgstr "Laden pagina %x. %02x..."
-
-#: src/ttxview.c:554
-#, c-format
-msgid " Page %x"
-msgstr "Pagina %x"
-
-#: src/ttxview.c:558
-#, c-format
-msgid " Subpage %x"
-msgstr " Subpagina %x"
-
-#: src/ttxview.c:706 src/ttxview.c:3206
-msgid "VBI has been disabled"
-msgstr "VBI is uitgeschakeld"
-
-#: src/ttxview.c:928
-msgid "Text export failed"
-msgstr "Tekst-export mislukt: %s"
-
-#: src/ttxview.c:1296
-msgid "Selection copied to clipboard"
-msgstr "Selectie gekopiëerd naar klembord"
-
-#: src/ttxview.c:1380 src/ttxview.c:2130
-msgid "No page loaded"
-msgstr "Geen pagina geladen"
-
-#: src/ttxview.c:1393
-msgid "Selecting - press Shift key for table mode"
-msgstr "Selecteren - voor table mode shift ingedrukt houden"
-
-#: src/ttxview.c:1933
-#, c-format
-msgid ""
-"Cannot create directory %s:\n"
-"%s"
-msgstr ""
-"Kan directory '%s' niet aanmaken: \n"
-"%s"
-
-#: src/ttxview.c:2006
-msgid "Save as"
-msgstr "Opslaan als:"
-
-#: src/ttxview.c:2028
-msgid "Format:"
-msgstr "Formaat: "
-
-#: src/ttxview.c:2222
-msgid "Text Color"
-msgstr "Tekstkleur"
-
-#: src/ttxview.c:2238 src/tveng2.c:430 src/tveng25.c:472 src/tvengbktr.c:368
-#: src/tvengbktr.c:385 src/tvengxv.c:532
-msgid "Brightness"
-msgstr "Helderheid"
-
-# src/interface.c:247
-#: src/ttxview.c:2262 src/tveng2.c:431 src/tveng25.c:473 src/tvengbktr.c:370
-#: src/tvengbktr.c:387 src/tvengxv.c:533
-msgid "Contrast"
-msgstr "Contrast"
-
-#: src/ttxview.c:2602
-msgid "Bookmarks"
-msgstr "Bladwijzers"
-
-# src/interface.c:362
-# glade/glade_strings.c:148, glade/glade_strings.c:153
-#: src/ttxview.c:2648
-msgid "Channel"
-msgstr "Kanaal"
-
-#: src/ttxview.c:2654
-msgid "Page"
-msgstr "Pagina"
-
-#: src/ttxview.c:2659
-msgid "Description"
-msgstr "Beschrijving"
-
-#: src/ttxview.c:2743
-#, c-format
-msgid "Added page %x.%02x to bookmarks"
-msgstr "Toegevoegd %x, %02x aan bookmarks"
-
-#: src/ttxview.c:2746
-#, c-format
-msgid "Added page %x to bookmarks"
-msgstr "Pagina %x toegevoegd aan bookmarks"
-
-#: src/ttxview.c:2800
-msgid "_Add Bookmark"
-msgstr "_Toevoegen Bladwijzers"
-
-#: src/ttxview.c:2806
-msgid "_Edit Bookmarks..."
-msgstr "_Bladwijzers bewerken..."
-
-#: src/ttxview.c:2999 src/ttxview.c:3239
-msgid "Search text:"
-msgstr "Zoek tekst:"
-
-#: src/ttxview.c:3009
-#, c-format
-msgid "Found text on page %x.%02x:"
-msgstr "Text gevonden op pagina %x. %02x:"
-
-#: src/ttxview.c:3016
-msgid "Not found:"
-msgstr "Niet gevonden"
-
-#: src/ttxview.c:3027
-msgid "Page memory is empty"
-msgstr "Geheugen pagina is leeg"
-
-#: src/ttxview.c:3228 src/ttxview.c:4658
-msgid "Search page memory"
-msgstr "Zoek page geheugen:"
-
-#: src/ttxview.c:3248
-msgid "_Regular expression"
-msgstr "Reguliere expressie"
-
-#: src/ttxview.c:3253
-msgid "Search case _insensitive"
-msgstr "Hoofdletterongevoelig"
-
-#: src/ttxview.c:3490
-msgid "_Disable"
-msgstr "Uitschakelen"
-
-#: src/ttxview.c:3559
-#, c-format
-msgid "Page %x"
-msgstr "Pagina %x"
-
-#: src/ttxview.c:3628
-msgid "Subtitle index"
-msgstr "Ondertitelingsindex"
-
-#: src/ttxview.c:3635
-msgid "Now and Next"
-msgstr "Nu en straks"
-
-#: src/ttxview.c:3642
-msgid "Current program"
-msgstr "Huidige programma"
-
-#: src/ttxview.c:3649
-msgid "Program Index"
-msgstr "Programma-index"
-
-#: src/ttxview.c:3656
-msgid "Program Schedule"
-msgstr "Programma-overzicht"
-
-#: src/ttxview.c:3664
-msgid "Program Warning"
-msgstr "Waarschuwing"
-
-#: src/ttxview.c:3753
-msgid "_Open"
-msgstr "_Open"
-
-#: src/ttxview.c:3759
-msgid "Open in _New Window"
-msgstr "Open in _nieuwe venster"
-
-#: src/ttxview.c:3770
-msgid "_Open Link"
-msgstr "_Open link"
-
-#: src/ttxview.c:3781 src/ttxview.c:3990
-msgid "_New Window"
-msgstr "_Nieuwe window"
-
-#: src/ttxview.c:3787
-msgid "_Save as..."
-msgstr "Op_slaan als ..."
-
-#: src/ttxview.c:3793
-msgid "S_earch..."
-msgstr "_Zoeken..."
-
-#: src/ttxview.c:3799
-msgid "_Colors..."
-msgstr "_Kleuren"
-
-#: src/ttxview.c:3805
-msgid "S_ubtitles"
-msgstr "S_ubtitels"
-
-#: src/ttxview.c:3811 src/ttxview.c:4062 src/zapping.c:371
-msgid "_Bookmarks"
-msgstr "_Bladwijzers"
-
-#: src/ttxview.c:4006
-msgid "_Search"
-msgstr "_Zoeken"
-
-# src/v4l2interface.c:344
-#: src/ttxview.c:4018
-msgid "_Toolbar"
-msgstr "_Toetsenbalk"
-
-#: src/ttxview.c:4020
-msgid "_Statusbar"
-msgstr "_Statusbalk"
-
-#: src/ttxview.c:4023
-msgid "_Colors"
-msgstr "_Kleuren"
-
-# src/frequencies.c:827
-#: src/ttxview.c:4031
-msgid "_Back"
-msgstr "_Terug"
-
-#: src/ttxview.c:4037
-msgid "_Forward"
-msgstr "_Voorwaarts"
-
-#: src/ttxview.c:4044
-msgid "_Home"
-msgstr "_Home"
-
-#: src/ttxview.c:4060
-msgid "_Go"
-msgstr "_Ga naar"
-
-#. TRANSLATORS: "Cannot open <URL>" (http or smtp).
-#: src/ttxview.c:4316 src/zvbi.c:632
-#, c-format
-msgid ""
-"Cannot open %s:\n"
-"%s"
-msgstr ""
-"Kan '%s' niet openen: \n"
-"%s."
-
-#: src/ttxview.c:4583
-msgid "Next page"
-msgstr "Volgende pagina"
-
-#: src/ttxview.c:4586
-msgid "Previous page"
-msgstr "Vorige pagina"
-
-#: src/ttxview.c:4589
-msgid "Previous subpage"
-msgstr "Vorige subpagina"
-
-#: src/ttxview.c:4592
-msgid "Next subpage"
-msgstr "Volgende subpagina"
-
-#: src/ttxview.c:4631
-msgid "Previous page in history"
-msgstr "Terug"
-
-#: src/ttxview.c:4637
-msgid "Next page in history"
-msgstr "Vooruit"
-
-#: src/ttxview.c:4646
-msgid "Index"
-msgstr "Inhoud"
-
-#: src/ttxview.c:4646
-msgid "Go to the index page"
-msgstr "Ga naar de indexpagina"
-
-#: src/ttxview.c:4653
-msgid "Open new Teletext window"
-msgstr "Open in nieuw venster"
-
-#: src/ttxview.c:4676
-msgid "Hold the current subpage"
-msgstr "Huidige subpagina vastzetten"
-
-#: src/ttxview.c:4698
-msgid "Reveal"
-msgstr "Onthullen"
-
-#: src/ttxview.c:4698
-msgid "Reveal concealed text"
-msgstr "Toon verborgen text"
 
 #: src/tveng.c:2081 src/tveng2.c:449 src/tveng25.c:490 src/tvengxv.c:539
 msgid "Volume"
@@ -1740,24 +1745,24 @@ msgstr "zapping_setup_fb niet gevonden in \"%s\" of in search path."
 msgid "Unknown error in zapping_setup_fb."
 msgstr "Onbekende fout in zapping_setup_fb."
 
-#: src/tveng.c:3570 src/tveng.c:3591
+#: src/tveng.c:3568 src/tveng.c:3589
 msgid "Filter"
 msgstr "Filter"
 
 #. TRANSLATORS: Color replaced by video in overlay mode.
-#: src/tveng.c:3613
+#: src/tveng.c:3611
 msgid "Colorkey"
 msgstr "Chromakey"
 
-#: src/tveng.c:4422 src/tveng2.c:464 src/zvbi.c:135
+#: src/tveng.c:4420 src/tveng2.c:464 src/zvbi.c:133
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng.c:4429 src/tveng2.c:465 src/zvbi.c:136
+#: src/tveng.c:4427 src/tveng2.c:465 src/zvbi.c:134
 msgid "Stereo"
 msgstr "Stereo"
 
-#: src/tveng.c:4437
+#: src/tveng.c:4435
 msgid "Language 2"
 msgstr ""
 
@@ -1919,11 +1924,11 @@ msgstr "Dubbelscan"
 msgid "Adjust %s"
 msgstr "%s bijregelen"
 
-#: src/v4linterface.c:615 src/zapping.c:351
+#: src/v4linterface.c:615 src/zapping.c:353
 msgid "Controls"
 msgstr "Regelpanelen"
 
-#: src/v4linterface.c:1107 src/zmisc.c:1713
+#: src/v4linterface.c:1107 src/zmisc.c:1858
 msgid "Unknown"
 msgstr "Onbekend"
 
@@ -1960,123 +1965,107 @@ msgstr "Video invoer"
 msgid "No channels"
 msgstr "Geen kanalen"
 
-#: src/zapping.c:323
-msgid "_File"
-msgstr "_Bestand"
-
-#: src/zapping.c:325
-msgid "_Edit"
-msgstr "Be_werken"
-
-#: src/zapping.c:328
+#: src/zapping.c:330
 msgid "P_lugins"
 msgstr "P_lugins"
 
 # src/interface.c:362
-#: src/zapping.c:330 src/zapping.c:339
+#. 2.6 GTK_STOCK_EDIT
+#: src/zapping.c:332 src/zapping.c:341
 msgid "_Channels"
 msgstr "_Kanalen"
 
-# src/v4l2interface.c:344
-#: src/zapping.c:332
-msgid "_View"
-msgstr "Beel_d"
-
-#: src/zapping.c:333
+#: src/zapping.c:335
 msgid "_Fullscreen"
 msgstr "_Beeldvullend"
 
-#: src/zapping.c:335
+#: src/zapping.c:337
 msgid "_Overlay mode"
 msgstr "Overlappende modus"
 
-#: src/zapping.c:337
+#: src/zapping.c:339
 msgid "_Capture mode"
 msgstr "_Capture mode"
 
-#: src/zapping.c:340
+#: src/zapping.c:342
 msgid "_Help"
 msgstr "_Hulp"
 
-#: src/zapping.c:341
+#: src/zapping.c:343
 msgid "_Contents"
 msgstr "_Inhoud"
 
-#: src/zapping.c:343
+#: src/zapping.c:345
 msgid "_About"
 msgstr "In_fo"
 
-#: src/zapping.c:346
+#: src/zapping.c:348
 msgid "Appearance"
 msgstr "Beeld"
 
-#: src/zapping.c:347
+#: src/zapping.c:349
 msgid "Ch. Up"
 msgstr "kanaal hoger"
 
 # src/interface.c:362
-#: src/zapping.c:348
+#: src/zapping.c:350
 msgid "Switch to higher channel"
 msgstr "Ga naar hoger kanaal"
 
-#: src/zapping.c:349
+#: src/zapping.c:351
 msgid "Ch. Down"
 msgstr "Kanaal lager"
 
-#: src/zapping.c:350
+#: src/zapping.c:352
 msgid "Switch to lower channel"
 msgstr "Ga naar lager kanaal"
 
-#: src/zapping.c:352
+#: src/zapping.c:354
 msgid "Change picture controls"
 msgstr "Wijzig beeldinstellingen"
 
-#: src/zapping.c:357
+#: src/zapping.c:359
 msgid "_Mute"
 msgstr "_Zonder geluid"
 
-#: src/zapping.c:358
+#: src/zapping.c:360
 msgid "Switch audio on or off"
 msgstr "Aan- en uitschakelen van geluid"
 
-#: src/zapping.c:359
-msgid "Show menu"
-msgstr "Toon menu"
-
-# src/interface.c:247
 #: src/zapping.c:361
-msgid "Show toolbar"
-msgstr "Toon knoppenbalk"
+#, fuzzy
+msgid "Menu"
+msgstr "Menubalk"
 
-#: src/zapping.c:363 src/zapping.c:874
+#: src/zapping.c:365 src/zapping.c:898
 msgid "Keep window on top"
 msgstr "Houdt venster bovenop andere vensters"
 
-#: src/zapping.c:369 src/zapping.c:372
+#: src/zapping.c:371 src/zapping.c:374
 msgid "_Teletext"
 msgstr "_Teletekst"
 
-#: src/zapping.c:370 src/zapping.c:382
+#: src/zapping.c:372 src/zapping.c:384
 msgid "_Subtitles"
 msgstr "_Ontertitels"
 
-#: src/zapping.c:373
+#: src/zapping.c:375
 msgid "Activate Teletext mode"
 msgstr "Activeer teletekstvenster"
 
-#: src/zapping.c:375
+#: src/zapping.c:377
 msgid "Return to video mode"
 msgstr "Terug naar video mode"
 
-#: src/zapping.c:376
+#: src/zapping.c:378
 msgid "_New Teletext View"
 msgstr "_Nieuw teletekstvenster"
 
-#: src/zapping.c:383
+#: src/zapping.c:385
 msgid "Switch subtitles on or off"
 msgstr "Aan- en uitschakelen subtitels"
 
-#: src/zapping.c:872
+#: src/zapping.c:896
 msgid "Show menu and toolbar"
 msgstr "Toon menu en knoppenbalk"
 
@@ -2096,7 +2085,7 @@ msgstr "Zapzilla kon niet worden gestart"
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Zapzilla kon het configuratiebestand niet aanmaken"
 
-#: src/zmisc.c:470
+#: src/zmisc.c:634
 #, c-format
 msgid ""
 "Cannot start video overlay.\n"
@@ -2105,7 +2094,7 @@ msgstr ""
 "Kan video overlay niet starten.\n"
 "%s"
 
-#: src/zmisc.c:489
+#: src/zmisc.c:653
 #, c-format
 msgid ""
 "Cannot start fullscreen overlay.\n"
@@ -2114,90 +2103,116 @@ msgstr ""
 "Kan fullscreen overlay niet starten\n"
 "%s"
 
-#: src/zmisc.c:529
+#: src/zmisc.c:666
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI is uitgeschakeld of functioneert niet correct."
 
-#: src/zmisc.c:800
+#: src/zmisc.c:945
 msgid "Hide the statusbar"
 msgstr "Verberg de statusbalk"
 
-#: src/zmisc.c:901
+#: src/zmisc.c:1046
 msgid "The path must start with /"
 msgstr "Padnaam moet met een / beginnen"
 
-#: src/zmisc.c:916
+#: src/zmisc.c:1061
 #, c-format
 msgid "Cannot create %s: %s"
 msgstr "Kan '%s' niet aanmaken: %s"
 
-#: src/zmisc.c:929
+#: src/zmisc.c:1074
 #, c-format
 msgid "%s is not a directory"
 msgstr "%s is geen map"
 
-#: src/zmisc.c:1624 src/zmisc.c:1628
+#: src/zmisc.c:1769 src/zmisc.c:1773
 msgid "Reset"
 msgstr "Resetten"
 
-#: src/zmisc.c:1908
+#: src/zmisc.c:2053
 msgid "Device:"
 msgstr "Device:"
 
-#: src/zmisc.c:1909
+#: src/zmisc.c:2054
 msgid "Driver:"
 msgstr "Driver"
 
-#: src/zmisc.c:1910
+#: src/zmisc.c:2055
 msgid "Device file:"
 msgstr "Apparaatbestand:"
 
+#: src/zmisc.c:2395
+#, c-format
+msgid "%s exists."
+msgstr ""
+
+#: src/zmisc.c:2400
+msgid "_Overwrite"
+msgstr ""
+
+#: src/zmisc.c:2405
+#, fuzzy, c-format
+msgid "%s is a directory."
+msgstr "%s is geen map"
+
+#. TRANSLATORS: device file, pipe,
+#. socket etc.
+#: src/zmisc.c:2418
+#, c-format
+msgid "%s is a special file."
+msgstr ""
+
+#: src/zmisc.c:2422
+#, fuzzy
+msgid "Continue"
+msgstr "Configureren"
+
 #. TRANSLATORS: VBI audio mode
-#: src/zvbi.c:134
+#: src/zvbi.c:132
 msgid "No Audio"
 msgstr "Geen geluid"
 
-#: src/zvbi.c:137
+#: src/zvbi.c:135
 msgid "Stereo Surround"
 msgstr "Stereo surround"
 
-#: src/zvbi.c:138
+#: src/zvbi.c:136
 msgid "Simulated Stereo"
 msgstr "Gesimuleerde stereo"
 
 #. TRANSLATORS: Video description for the blind,
 #. on a secondary audio channel.
-#: src/zvbi.c:141
+#: src/zvbi.c:139
 msgid "Video Descriptions"
 msgstr "Videobeschrijvingen"
 
 #. TRANSLATORS: Audio unrelated to the current
 #. program.
-#: src/zvbi.c:144
+#: src/zvbi.c:142
 msgid "Non-program Audio"
 msgstr "Geluid van buiten het programma"
 
-#: src/zvbi.c:145
+#: src/zvbi.c:143
 msgid "Special Effects"
 msgstr "Speciale effecten"
 
-#: src/zvbi.c:146
+#: src/zvbi.c:144
 msgid "Data Service"
 msgstr "Data service"
 
-#: src/zvbi.c:147
+#: src/zvbi.c:145
 msgid "Unknown Audio"
 msgstr "Onbekende audio"
 
-#: src/zvbi.c:270
+#: src/zvbi.c:268
 msgid "VBI interface timeout"
 msgstr "VBI-interface timeout"
 
-#: src/zvbi.c:290
+#: src/zvbi.c:288
 msgid "VBI interface: Failed to read from the device"
 msgstr "VBI-interface: Leesfout"
 
-#: src/zvbi.c:387
+#: src/zvbi.c:385
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
@@ -2206,15 +2221,15 @@ msgstr ""
 "initialisatie van VBI mislukt\n"
 "%s"
 
-#: src/zvbi.c:388
+#: src/zvbi.c:386
 msgid "Ran out of memory."
 msgstr "Geheugentekort."
 
-#: src/zvbi.c:389
+#: src/zvbi.c:387
 msgid "Out of resources to start a new thread."
 msgstr "Onvoldoende systeembronnen voor het starten van een nieuwe taak"
 
-#: src/zvbi.c:391
+#: src/zvbi.c:389
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -2230,23 +2245,54 @@ msgstr ""
 "niet functioneert, schakel dan VBI ondersteuning uit onder Voorkeuzen/"
 "Instellingen/VBI ondersteuning inschakelen"
 
-#: src/zvbi.c:775
+#: src/zvbi.c:773
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s: Teletekst pagina %x"
 
-#: src/zvbi.c:778
+#: src/zvbi.c:776
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Teletekst pagina %x"
 
-#: src/zvbi.c:779
+#: src/zvbi.c:777
 msgid "Open this page with Zapzilla"
 msgstr "Open deze pagina met Zapzilla"
 
 #: zapping.desktop.in.h:1
 msgid "TV viewer"
 msgstr "TV tuner"
+
+# src/v4l2interface.c:344
+#, fuzzy
+#~ msgid "_Toolbar"
+#~ msgstr "Toetsenbalk"
+
+#~ msgid "_Disable"
+#~ msgstr "Uitschakelen"
+
+#~ msgid "Page %x"
+#~ msgstr "Pagina %x"
+
+#~ msgid "_Search"
+#~ msgstr "_Zoeken"
+
+# src/frequencies.c:827
+#~ msgid "_Back"
+#~ msgstr "_Terug"
+
+#~ msgid "_Forward"
+#~ msgstr "_Voorwaarts"
+
+#~ msgid "_Home"
+#~ msgstr "_Home"
+
+#~ msgid "Show menu"
+#~ msgstr "Toon menu"
+
+# src/interface.c:247
+#~ msgid "Show toolbar"
+#~ msgstr "Toon knoppenbalk"
 
 #~ msgid "Show Menu and Toolbar"
 #~ msgstr "Toon Menu- en knoppenbalk"
@@ -2424,9 +2470,6 @@ msgstr "TV tuner"
 #~ msgid "What to do with the compressed stream"
 #~ msgstr "Wat te doen met de gecomprimeerde data"
 
-#~ msgid "Save to file"
-#~ msgstr "Opslaan als bestand"
-
 #~ msgid "/dev/null"
 #~ msgstr "/dev/null"
 
@@ -2472,9 +2515,6 @@ msgstr "TV tuner"
 
 #~ msgid "Configure the properties for this plugin"
 #~ msgstr "Configureer de opties voor deze plugin"
-
-#~ msgid "Configure"
-#~ msgstr "Configureren"
 
 #~ msgid "Destination file:"
 #~ msgstr "Doelbestand"
@@ -3147,9 +3187,6 @@ msgstr "TV tuner"
 #~ "Dit is de eerste keer dat u de plugin gebruikt.\n"
 #~ "Neem even de tijd om de plugin aan uw smaak aan te passen "
 #~ "(configureren).\n"
-
-#~ msgid "Open preferences"
-#~ msgstr "Open voorkeuren"
 
 #~ msgid "Start recording"
 #~ msgstr "Start opnemen"

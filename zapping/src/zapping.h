@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.h,v 1.2 2004-09-20 04:36:44 mschimek Exp $ */
+/* $Id: zapping.h,v 1.3 2004-09-22 21:29:16 mschimek Exp $ */
 
 #ifndef ZAPPING_H
 #define ZAPPING_H
@@ -42,11 +42,18 @@ G_BEGIN_DECLS
   TYPE_ZAPPING, ZappingClass))
 
 typedef enum {
-  DISPLAY_MODE_NONE		= 0x00,
-  DISPLAY_MODE_WINDOW		= 0x10,
-  DISPLAY_MODE_BACKGROUND	= 0x20,
-  DISPLAY_MODE_FULLSCREEN	= 0x30,
+  DISPLAY_MODE_NONE			= 0x00,
+  DISPLAY_MODE_WINDOW			= 0x10,
+  DISPLAY_MODE_BACKGROUND		= 0x20,
+  DISPLAY_MODE_FULLSCREEN		= 0x30,
 } display_mode;
+
+typedef enum {
+  DISPLAY_CONTENT_NONE			= 0x000,
+  DISPLAY_CONTENT_VIDEO_CAPTURE		= 0x100,
+  DISPLAY_CONTENT_VIDEO_OVERLAY		= 0x200,
+  DISPLAY_CONTENT_TELETEXT		= 0x300,
+} display_content;
 
 typedef struct _Zapping Zapping;
 typedef struct _ZappingClass ZappingClass;
@@ -68,6 +75,7 @@ struct _Zapping
   GtkToolbar *		toolbar;
   gboolean		toolbar_added;
   GnomeAppBar *		appbar;
+  GtkBox *		contents;
   ZVideo *		video;
 };
 
@@ -85,6 +93,9 @@ zapping_enable_appbar		(Zapping *		z,
 				 gboolean		show);
 extern void
 zapping_rebuild_channel_menu	(Zapping *		z);
+extern void
+zapping_create_popup		(Zapping *		z,
+				 GdkEventButton *	event);
 
 G_END_DECLS
 

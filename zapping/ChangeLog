@@ -1,3 +1,54 @@
+2004-09-22    <mschimek@users.sf.net>
+
+	* src/zvbi.c: Switched to GConf for Teletext region, level and
+	  interpolation. Eliminated some duplicate code. No more rendering of
+	  flash-off image if the page has no flashing chars to speed things
+	  up. 
+	(find_subtitle_page): Moved to subtitle.c.
+	* src/zmisc.c, src/zmisc.h (z_overwrite_file): New helper function
+	  asking user whether to overwrite existing file.
+	(z_toggle_action_connect_gconf_key): New helper function connecting
+	  GtkToggleAction with GConf bool key, improved.
+	(z_gconf_combo_box_new): New helper function creating GtkComboBox
+	  menu with GConf string key connection.
+	(z_gconf_get_string_enum): New helper function looking up GConf
+	  string in menu table.
+	(z_action_set_sensitive, z_action_set_visible): Replacement for 2.6
+	  GtkAction functions.
+	* src/zapping.c: Include fixes. s/show/view_menu and toolbar for
+	  clarity, s/Show //Menu and Toolbar in menu name which is Gnome
+	  standard. Public create_popup for Teletext in main window context
+	  menu. Enable proper i18n. Public video widget box for Teletext.
+	* src/video_xv.c (image_put), src/video_x11.c (image_put),
+	  src/video_gdkrgb.c (image_put): With gtk 2.4 for some reasons
+	  images do not display continuously. XFlush seems to fix this.
+	* src/ttxview.c, src/ttxview.h: Removed. Teletext code moved to
+	  plugin, split into several files and GObject-ified. Switched to
+	  GtkAction, GConf, made a few improvements. Subtitle menu code
+	  moved to src/subtitle.c/h, is not Teletext specific.
+	* src/properties.h, src/properties.c (standard_properties_add):
+	  Extended to create prefs page on the fly for Teletext plugin.
+	* src/properties-handler.c (vbi_general_setup, vbi_general_apply):
+	  Moved Teletext preferences to plugin, switched to gconf.
+	* src/zvbi.c, src/zmisc.c, src/properties-handler.c, src/main.c:
+	  Changes after moving teletext code from ttxview.c to plugin.  
+	* src/properties-handler.c (style_menu_item_activated,
+	  global_menu_item_activated, create_toolbar_style_menu): Use
+	  default gconf_client. 
+	* src/plugins.c, src/plugins.h: Simplify plugin symbol access.
+	* src/zmisc.c, src/properties.c, src/plugin_properties.c,
+	  src/main.c: Replaced 2.6 GtkAction calls.
+	* src/globals.c, src/globals.h: Added preliminary teletext plugin
+	  interface.
+	* src/Makefile.am (zapping_SOURCES): Added subtitle.c/h, removed
+	  ttxview.c/h. 
+	* po/POTFILES.in: Added teletext plugin files.
+	* plugins/Makefile.am: Added teletext.
+	* configure.in: Require gtk >= 2.4. Added plugins/teletext/Makefile.
+	* zapping.schemas: Added.
+	* Makefile.am: Added rules to install zapping.schemas.
+	* configure.in (AM_GCONF_SOURCE_2): Added to install schemas. 
+
 2004-09-20    <mschimek@users.sf.net>
 
 	* src/zvbi.c (vbi_gui_sensitive): Use GtkActionGroup visibility

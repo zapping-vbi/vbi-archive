@@ -23,6 +23,8 @@
 
 #include <stdio.h>
 
+G_BEGIN_DECLS
+
 /* Possible key types */
 enum zconf_type
 {
@@ -315,5 +317,7 @@ extern void
 zconf_hook_check_menu		(const gchar *		key,
 				 gpointer		new_value_ptr,
 				 gpointer		user_data);
+
+G_END_DECLS
 
 #endif /* ZCONF.H */

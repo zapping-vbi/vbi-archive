@@ -5,7 +5,7 @@ SUBDIRS = common libtv po glade pixmaps plugins help zapping_setup_fb src
 EXTRA_DIST = autogen.sh acinclude.m4 \
 	README.plugins BUGS THANKS \
 	intltool-extract.in intltool-merge.in intltool-update.in \
-	zapping.desktop.in
+	zapping.desktop.in zapping.schemas
 
 Multimediadir = $(datadir)/gnome/apps/Multimedia
 Multimedia_in_files = zapping.desktop.in
@@ -13,3 +13,11 @@ Multimedia_in_files = zapping.desktop.in
 # but that's gmake-ish.
 Multimedia_DATA = zapping.desktop
 @INTLTOOL_DESKTOP_RULE@
+
+if GCONF_SCHEMAS_INSTALL
+install-data-local:
+	GCONF_CONFIG_SOURCE=$(GCONF_SCHEMA_CONFIG_SOURCE) \
+	gconftool --makefile-install-rule zapping.schemas
+else
+install-data-local:
+endif

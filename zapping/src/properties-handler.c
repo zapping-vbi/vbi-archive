@@ -836,19 +836,18 @@ static void
 style_menu_item_activated	(GtkWidget *		item _unused_,
 				 GtkToolbarStyle	style)
 {
-  GConfClient *conf;
   char *key;
   guint i;
 
   key = gnome_gconf_get_gnome_libs_settings_relative ("toolbar_style");
-  conf = gconf_client_get_default ();
 
   /* Set our per-app toolbar setting */
   for (i = 0; i < G_N_ELEMENTS (toolbar_styles); i++)
     {
       if (toolbar_styles[i].enum_value == (int) style)
 	{
-	  gconf_client_set_string (conf, key, toolbar_styles[i].str, NULL);
+	  gconf_client_set_string (gconf_client, key,
+				   toolbar_styles[i].str, NULL);
 	  break;
 	}
     }
@@ -859,14 +858,12 @@ style_menu_item_activated	(GtkWidget *		item _unused_,
 static void
 global_menu_item_activated	(GtkWidget *		item _unused_)
 {
-  GConfClient *conf;
   char *key;
 
   key = gnome_gconf_get_gnome_libs_settings_relative ("toolbar_style");
-  conf = gconf_client_get_default ();
 
   /* Unset the per-app toolbar setting */
-  gconf_client_unset (conf, key, NULL);
+  gconf_client_unset (gconf_client, key, NULL);
   g_free (key);
 }
 
@@ -881,7 +878,6 @@ create_toolbar_style_menu	(void)
   char *both, *both_horiz, *icons, *text, *global;
   char *str, *key;
   GtkToolbarStyle toolbar_style;
-  GConfClient *conf;
 
   group = NULL;
   toolbar_style = GTK_TOOLBAR_BOTH;
@@ -926,9 +922,8 @@ create_toolbar_style_menu	(void)
   gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
 
   /* Get global setting */
-  conf = gconf_client_get_default ();
   str = gconf_client_get_string
-    (conf, "/desktop/gnome/interface/toolbar_style", NULL);
+    (gconf_client, "/desktop/gnome/interface/toolbar_style", NULL);
 
   if (str != NULL)
     {
@@ -968,7 +963,7 @@ create_toolbar_style_menu	(void)
 
   /* Now select the correct menu according to our preferences */
   key = gnome_gconf_get_gnome_libs_settings_relative ("toolbar_style");
-  str = gconf_client_get_string (conf, key, NULL);
+  str = gconf_client_get_string (gconf_client, key, NULL);
 
   if (str == NULL)
     {
@@ -1335,10 +1330,9 @@ vbi_general_setup	(GtkWidget	*page)
 
 #ifdef HAVE_LIBZVBI
 
-  if (1)
+  if (_teletext_view_new /* have ttx plugin */)
     {
       GtkWidget *widget;
-      guint hist;
 
       /* Enable VBI decoding */
       widget = lookup_widget(page, "checkbutton6");
@@ -1355,21 +1349,6 @@ vbi_general_setup	(GtkWidget	*page)
       gtk_entry_set_text(GTK_ENTRY(widget),
 			 zconf_get_string(NULL,
 					  "/zapping/options/vbi/vbi_device"));
-
-      /* Default region */
-      widget = lookup_widget(page, "optionmenu3");
-      hist = zconf_get_uint (NULL, "/zapping/options/vbi/default_region");
-      gtk_option_menu_set_history (GTK_OPTION_MENU (widget), hist);
-
-      /* Teletext level */
-      widget = lookup_widget(page, "optionmenu4");
-      hist = zconf_get_uint (NULL, "/zapping/options/vbi/teletext_level");
-      gtk_option_menu_set_history (GTK_OPTION_MENU (widget), hist);
-
-      /* Quality/speed tradeoff */
-      widget = lookup_widget(page, "optionmenu21");
-      hist = zconf_get_uint (NULL, "/zapping/options/vbi/qstradeoff");
-      gtk_option_menu_set_history (GTK_OPTION_MENU (widget), hist);
     }
   else
 
@@ -1415,18 +1394,6 @@ vbi_general_apply	(GtkWidget	*page)
   togglean enable_vbi;
   GtkWidget *widget;
   gchar *text;
-  gint index;
-
-  int region_mapping[8] = {
-    0, /* WCE */
-    8, /* EE */
-    16, /* WET */
-    24, /* CSE */
-    32, /* C */
-    48, /* GC */
-    64, /* A */
-    80 /* I */
-  };
 
   /* enable VBI decoding */
   enable_vbi = set_toggle (page, "checkbutton6",
@@ -1454,39 +1421,6 @@ vbi_general_apply	(GtkWidget	*page)
   if (text)
     zconf_set_string(text, "/zapping/options/vbi/vbi_device");
   g_free(text); /* In the docs it says this should be freed */
-
-  /* default_region */
-  widget = lookup_widget(page, "optionmenu3");
-  index = z_option_menu_get_active(widget);
-
-  if (index < 0)
-    index = 0;
-  if (index > 7)
-    index = 7;
-
-  zconf_set_int(index, "/zapping/options/vbi/default_region");
-  if (zvbi_get_object())
-    vbi_teletext_set_default_region(zvbi_get_object(), region_mapping[index]);
-
-  /* teletext_level */
-  widget = lookup_widget(page, "optionmenu4");
-  index = z_option_menu_get_active(widget);
-  if (index < 0)
-    index = 0;
-  if (index > 3)
-    index = 3;
-  zconf_set_int(index, "/zapping/options/vbi/teletext_level");
-  if (zvbi_get_object())
-    vbi_teletext_set_level(zvbi_get_object(), index);
-
-  /* Quality/speed tradeoff */
-  widget = lookup_widget(page, "optionmenu21");
-  index = z_option_menu_get_active(widget);
-  if (index < 0)
-    index = 0;
-  if (index > 3)
-    index = 3;
-  zconf_set_int(index, "/zapping/options/vbi/qstradeoff");
 
 #endif /* HAVE_LIBZVBI */
 

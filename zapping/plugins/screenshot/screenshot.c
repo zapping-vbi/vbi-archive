@@ -25,7 +25,6 @@
 
 #include "screenshot.h"
 #include "src/yuv2rgb.h"
-/* #include "plugins/teletext/ttxview.h" */
 #include "src/properties.h"
 #include <gdk-pixbuf/gdk-pixbuf.h> /* previews */
 #include <sys/stat.h>

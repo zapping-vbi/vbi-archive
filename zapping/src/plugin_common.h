@@ -130,6 +130,8 @@ static void plugin_process_popup_menu ( GtkWidget *window,
 /* This macro if for your convenience, it symplifies adding symbols */
 #define SYMBOL(symbol, hash) \
 {(void *) symbol, #symbol, NULL, NULL, hash}
+#define SYMBOL2(prefix, symbol) \
+{(void *) prefix##_##symbol, #symbol, NULL, NULL, 0x1234 }
 #endif
 
 #endif /* PLUGINS_COMMON */

@@ -1,0 +1,96 @@
+<gconfschemafile>
+ <schemalist>
+  <schema>
+   <key>/schemas/apps/zapping/window/view_menu</key>
+   <applyto>/apps/zapping/window/view_menu</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>1</default>
+   <locale name="C">
+    <short>Show menu in the main window.</short>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/window/view_toolbar</key>
+   <applyto>/apps/zapping/window/view_toolbar</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>1</default>
+   <locale name="C">
+    <short>Show toolbar in the main window.</short>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/default_charset</key>
+   <applyto>/apps/zapping/plugins/teletext/default_charset</applyto>
+   <owner>Zapping</owner>
+   <type>string</type>
+   <default>western_central_europe</default>
+   <locale name="C">
+    <short>Default Teletext character set.</short>
+    <long>Some stations fail to transmit a complete language
+ identifier, so the Teletext viewer may not display the correct font
+ or national characters. You can select your geographical region here
+ as an additional hint. Valid values: western_and_central_europe,
+ eastern_europe, western_europe_and_turkey, central_and_southeast_europe,
+ cyrillic, greek_and_turkish, arabic, hebrew_and_arabic.</long>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/level</key>
+   <applyto>/apps/zapping/plugins/teletext/level</applyto>
+   <owner>Zapping</owner>
+   <type>string</type>
+   <default>2.5</default>
+   <locale name="C">
+    <short>Teletext implementation level.</short>
+    <long>Teletext implementation level. Valid values: 1.0, 1.5,
+ 2.5, 3.5.</long>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/view/interp_type</key>
+   <applyto>/apps/zapping/plugins/teletext/view/interp_type</applyto>
+   <owner>Zapping</owner>
+   <type>string</type>
+   <default>hyper</default>
+   <locale name="C">
+    <short>Page scaling quality.</short>
+    <long>Quality/speed trade-off when scaling and anti-aliasing the
+ page. Valid values: nearest, tiles, bilinear, hyper.</long>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/home_page</key>
+   <applyto>/apps/zapping/plugins/teletext/home_page</applyto>
+   <owner>Zapping</owner>
+   <type>int</type>
+   <default>100</default>
+   <locale name="C">
+    <short>Default Teletext home page.</short>
+    <long>Default Teletext home page, usually 100. Valid values range
+ from 100 to 899.</long>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/window/view_toolbar</key>
+   <applyto>/apps/zapping/plugins/teletext/window/view_toolbar</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>1</default>
+   <locale name="C">
+    <short>Show toolbar in Teletext windows.</short>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/window/view_statusbar</key>
+   <applyto>/apps/zapping/plugins/teletext/window/view_statusbar</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>1</default>
+   <locale name="C">
+    <short>Show status bar in Teletext windows.</short>
+   </locale>
+  </schema>
+ </schemalist>
+</gconfschemafile>

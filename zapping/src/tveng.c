@@ -3224,8 +3224,6 @@ tveng_get_preview_window(tveng_device_info * info)
 int
 p_tveng_set_preview (int on, tveng_device_info * info)
 {
-	tv_overlay_buffer dma;
-
 	t_assert (info != NULL);
 
 	if (TVENG_CONTROLLER_NONE == info->current_controller)

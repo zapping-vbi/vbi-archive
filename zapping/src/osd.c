@@ -667,7 +667,7 @@ osd_event		(gpointer	   data _unused_,
    case 0x100 ... 0x899:
      if (!vbi_fetch_vt_page(vbi, &osd_page,
 			    zvbi_caption_pgno, VBI_ANY_SUBNO,
-			    zvbi_teletext_level(), 25 /* rows */, TRUE /* nav */))
+			    VBI_WST_LEVEL_1p5, 25 /* rows */, TRUE /* nav */))
        return;
      break;
 
