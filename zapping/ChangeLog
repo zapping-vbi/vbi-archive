@@ -5,6 +5,8 @@
 	* zmisc.c: Fixed button hor/vert aligning in toolbars when the
 	orientation changes. Left the '<[Subpage]>' group always
 	horizontal because it made more sense.
+	* zvbi.c, v4linterface.c: Called vbi_channel_switched when
+	changing inputs, standards or channels.
 
 17.08.2001	many channels <garetxe@users.sf.net>
 

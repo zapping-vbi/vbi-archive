@@ -794,7 +794,7 @@ event_timeout				(ttxview_data	*data)
 
   while ((msg = peek_ttx_message(data->id, &msg_data)))
     {
-      if (data->selecting)
+      if (data->selecting && msg == TTX_PAGE_RECEIVED)
 	continue;
 
       /* discard page received messages while selecting */
@@ -831,6 +831,10 @@ event_timeout				(ttxview_data	*data)
 	  break;
 	case TTX_NETWORK_CHANGE:
 	case TTX_TRIGGER:
+	  break;
+	case TTX_CHANNEL_SWITCHED:
+	  gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
+				  _("The cache has been cleared"));
 	  break;
 	case TTX_BROKEN_PIPE:
 	  g_warning("Broken TTX pipe");

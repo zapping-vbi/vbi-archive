@@ -33,6 +33,7 @@
 #include "zconf.h"
 #include "zmisc.h"
 #include "interface.h"
+#include "zvbi.h"
 
 extern tveng_tuned_channel * global_channel_list;
 extern tveng_device_info *main_info;
@@ -746,7 +747,15 @@ z_switch_channel	(tveng_tuned_channel	*channel,
       if (!first_switch)
 	{
 	  g_free(tc->controls);
-	  store_control_values(&tc->num_controls, &tc->controls, info);
+	  if (channel->num_controls &&
+	      zcg_bool(NULL, "save_controls"))
+	    store_control_values(&tc->num_controls, &tc->controls,
+				 info);
+	  else
+	    {
+	      tc->num_controls = 0;
+	      tc->controls = NULL;
+	    }
 	}
       else
 	first_switch = FALSE;
@@ -798,6 +807,8 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 			info);
 
   update_control_box(info);
+
+  zvbi_channel_switched();
 }
 
 void
@@ -887,6 +898,7 @@ void on_input_activate              (GtkMenuItem     *menuitem,
 				     gpointer        user_data)
 {
   z_switch_input(GPOINTER_TO_INT(user_data), main_info);
+  zvbi_channel_switched();
 }
 
 /* Activate an standard */
@@ -895,6 +907,7 @@ void on_standard_activate              (GtkMenuItem     *menuitem,
 					gpointer        user_data)
 {
   z_switch_standard(GPOINTER_TO_INT(user_data), main_info);
+  zvbi_channel_switched();
 }
 
 /**

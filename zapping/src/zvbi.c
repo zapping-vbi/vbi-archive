@@ -456,6 +456,9 @@ static gint trigger_timeout		(gint	client_id)
     switch(msg)
       {
       case TTX_PAGE_RECEIVED:
+      case TTX_CHANNEL_SWITCHED:
+	break;
+
       case TTX_NETWORK_CHANGE:
 	{
 	  extern tveng_tuned_channel * global_channel_list;
@@ -1766,6 +1769,7 @@ event_timeout				(struct vi_data	*data)
 	{
 	case TTX_PAGE_RECEIVED:
 	case TTX_TRIGGER:
+	case TTX_CHANNEL_SWITCHED:
 	  break;
 	case TTX_NETWORK_CHANGE:
 	  update_vi(data->vi);
@@ -1829,4 +1833,26 @@ void
 zvbi_name_unknown(void)
 {
   station_name_known = FALSE;
+}
+
+void
+zvbi_channel_switched(void)
+{
+  GList *p;
+  struct ttx_client *client;
+
+  if (!vbi)
+    return;
+
+  vbi_channel_switched(vbi, 0);
+
+  pthread_mutex_lock(&clients_mutex);
+  p = g_list_first(ttx_clients);
+  while (p)
+    {
+      client = (struct ttx_client*)p->data;
+      send_ttx_message(client, TTX_CHANNEL_SWITCHED, NULL, 0);
+      p = p->next;
+    }
+  pthread_mutex_unlock(&clients_mutex);
 }

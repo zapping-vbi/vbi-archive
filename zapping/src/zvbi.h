@@ -40,6 +40,8 @@ enum ttx_message {
   TTX_PAGE_RECEIVED, /* The monitored page has been received */
   TTX_NETWORK_CHANGE, /* New network info feeded into the decoder */
   TTX_TRIGGER, /* Trigger event, ttx_message_data.link filled */
+  TTX_CHANNEL_SWITCHED, /* zvbi_channel_switched was called, the cache
+			   has been cleared */
   TTX_BROKEN_PIPE /* No longer connected to the TTX decoder */
 };
 
@@ -191,5 +193,12 @@ zvbi_get_name(void);
 */
 void
 zvbi_name_unknown(void);
+
+/*
+  Called when changing channels, inputs, etc, tells the decoding engine
+  to flush the cache, triggers, etc.
+*/
+void
+zvbi_channel_switched(void);
 
 #endif /* zvbi.h */
