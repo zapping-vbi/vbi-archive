@@ -272,28 +272,29 @@ zvbi_open_device(void)
     80 /* I */
   };
 
+  D();
   if ((vbi) || (!zcg_bool(NULL, "enable_vbi")))
     return FALSE; /* this code isn't reentrant */
-
+  D();
   device = zcg_char(NULL, "vbi_device");
-
+  D();
   if (main_info)
     given_fd = main_info->fd;
   else
     given_fd = -1;
-
+  D();
   if (!(vbi = vbi_open(device, cache_open(), given_fd)))
     {
       g_warning("cannot open %s, vbi services will be disabled",
 		device);
       goto error;
     }
-
+  D();
   if (vbi->cache)
     vbi->cache->op->mode(vbi->cache, CACHE_MODE_ERC, 1);
-
+  D();
   g_assert(vbi_event_handler(vbi, ~0, event, NULL) != 0);
-
+  D();
   if (pthread_create(&zvbi_thread_id, NULL, vbi_mainloop, vbi))
     {
       vbi_event_handler(vbi, 0, event, NULL);
@@ -301,35 +302,36 @@ zvbi_open_device(void)
       vbi = NULL;
       goto error;
     }
-
+  D();
   index = zcg_int(NULL, "default_region");
   if (index < 0)
     index = 0;
   if (index > 7)
     index = 7;
   vbi_set_default_region(vbi, region_mapping[index]);
-
+  D();
   index = zcg_int(NULL, "teletext_level");
   if (index < 0)
     index = 0;
   if (index > 3)
     index = 3;
   vbi_set_teletext_level(vbi, index);
-
+  D();
   pthread_mutex_init(&clients_mutex, NULL);
-
+  D();
   zmodel_changed(vbi_model);
-
+  D();
   g_assert(vbi_event_handler(vbi,
 			     VBI_EVENT_CAPTION | VBI_EVENT_PAGE,
 			     cc_event, test_pipe) != 0);
-
+  D();
   return TRUE;
 
  error:
-
+  D();
   ShowBox(_("VBI: %s couldn't be opened: %d, %s"),
 	  GNOME_MESSAGE_BOX_ERROR, device, errno, strerror(errno));
+  D();
   return FALSE;
 }
 
@@ -1097,43 +1099,6 @@ static void
 event(vbi_event *ev, void *unused)
 {
     switch (ev->type) {
-    case VBI_EVENT_HEADER:
-#if 0 /* FIXME: Obsolete */
-	p = ev->p1;
-	// printv("header %.32s\n", p+8);
-	pthread_mutex_lock(&(last_info.mutex));
-	memcpy(last_info.header,p+8,32);
-	last_info.header[32] = 0;
-	pthread_mutex_unlock(&(last_info.mutex));
-	/* Parse the time from the header */
-	/* first check that we are getting what we expect */
-	if ((!(isdigit(last_info.header[25]))) ||
-	    (!(isdigit(last_info.header[27]))) ||
-	    (!(isdigit(last_info.header[28]))) ||
-	    (!(isdigit(last_info.header[30]))) ||
-	    (!(isdigit(last_info.header[31]))))
-	  {
-	    last_info.hour = last_info.min = last_info.sec = -1;
-	    break;
-	  }
-	if (isdigit(last_info.header[24]))
-	  hour = last_info.header[24]-'0';
-	hour = hour * 10 + (last_info.header[25]-'0');
-	min = (last_info.header[27]-'0')*10+(last_info.header[28]-'0');
-	sec = (last_info.header[30]-'0')*10+(last_info.header[31]-'0');
-	if ((hour >= 24) || (hour < 0) || (min >= 60) || (min < 0) ||
-	    (sec >= 60) || (sec < 0))
-	  {
-	    last_info.hour = last_info.min = last_info.sec = -1;
-	    break;
-	  }
-	pthread_mutex_lock(&(last_info.mutex));
-	last_info.hour = hour;
-	last_info.min = min;
-	last_info.sec = sec;
-	pthread_mutex_unlock(&(last_info.mutex));
-#endif
-	break;
     case VBI_EVENT_PAGE:
       {
 	static gboolean receiving_pages = FALSE;
@@ -1147,36 +1112,6 @@ event(vbi_event *ev, void *unused)
 	/* Set the dirty flag on the page */
 	notify_clients(ev->pgno, ev->subno);
 	break;
-    case VBI_EVENT_XPACKET:
-#if 0 /* FIXME: OBSOLETE */
-	p = ev->p1;
-	//printv("xpacket %x %x %x %x - %.20s\n",
-	// 			p[0],p[1],p[3],p[5],p+20);
-	pthread_mutex_lock(&(last_info.mutex));
-	memcpy(last_info.xpacket,p+20,20);
-	last_info.xpacket[20] = 0;
-	
-	/* parse the VBI name of the broadcaster */
-	last_info.name = NULL;
-	if (last_info.xpacket[0]) {
-	  for (h = last_info.xpacket+19; h >= last_info.xpacket; h--) {
-	    if (' ' != *h)
-	      break;
-	    *h = 0;
-	  }
-	  for (name = last_info.xpacket; *name == ' '; name++)
-	    ;
-	  if (*name)
-	    {
-	      last_info.name = name;
-	      /* signal the condition */
-	      pthread_cond_broadcast(&(last_info.xpacket_cond));
-	    }
-	}
-	pthread_mutex_unlock(&(last_info.mutex));
-#endif
-	break;
-
     case VBI_EVENT_NETWORK:
       pthread_mutex_lock(&network_mutex);
       memcpy(&current_network, ev->p1, sizeof(vbi_network));
