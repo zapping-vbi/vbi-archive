@@ -28,6 +28,7 @@ uninstall-binPROGRAMS:
 	rm -f $(DESTDIR)$(bindir)/zapping
 
 zapping_SOURCES = \
+	audio.c esd.c oss.c arts.c audio.h \
 	main.c zapzilla.c \
 	fullscreen.c fullscreen.h \
 	ttxview.c ttxview.h \
@@ -60,4 +61,4 @@ zapping_SOURCES = \
 zapping_LDADD = $(gen_conv_lib) $(VBI_LIB) $(COMMON_LIB) $(GNOME_LIBDIR) \
 $(GNOMEUI_LIBS) $(GDK_PIXBUF_LIBS) $(INTLLIBS) $(LIBXML_LIBS) \
 $(LIBGLADE_LIBS) $(X_LIBS) $(X_DGA_LIBS) $(X_XV_LIBS) $(X_XDPMS_LIBS) \
-$(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS)
+$(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS) $(ARTS_LIBS)

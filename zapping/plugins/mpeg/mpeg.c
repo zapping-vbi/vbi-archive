@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.13 2001-10-08 19:48:47 garetxe Exp $ */
+/* $Id: mpeg.c,v 1.14 2001-10-14 10:15:50 garetxe Exp $ */
 
 #include "plugin_common.h"
 
@@ -356,7 +356,7 @@ init_audio(gint rate, gboolean stereo)
     {
       int Format = AFMT_S16_LE;
       int Stereo = !!stereo;
-      int Speed = 44100;
+      int Speed = rate;
 
       if ((oss_fd = open(audio_input_file, O_RDONLY)) == -1)
         return FALSE;

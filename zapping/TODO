@@ -1,6 +1,8 @@
 Outstanding issues for the next release (0.6.2)
 -----------------------------------------------
 > 0.6.2
+	+ Finish/test the audio backends.
+	+ Improve audio timestamping.
 	+ Save control values and restore on startup (per channel).
 	+ In ttx search, is Cancel correct at the left? And it may be
 	  cleaner with an Abort (the search) and a Cancel (the dialog).
@@ -8,7 +10,6 @@ Outstanding issues for the next release (0.6.2)
 	+ Improve documentation.
 	+ TTX export: Make blockgfx replacement smarter. Streaming ascii
 	  subtitles. HTML: replace nonstd <blink> by "text-decoration: blink;"
-	+ Chan up/down direction should be configurable (it's nonintutive)
 
 > 0.6.3
 	+ Examine the possiblity of linking movie titles, VBI plugin API.

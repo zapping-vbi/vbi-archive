@@ -17,6 +17,7 @@
  */
 
 #include "plugins.h"
+#include "properties.h"
 
 /* This is the main plugin list, it is only used in plugin_bridge */
 extern GList * plugin_list;
@@ -69,9 +70,9 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 
   if (((*plugin_get_protocol)()) != PLUGIN_PROTOCOL)
     {
-      g_warning(_("While loading %s\n"
-		  "The plugin uses the protocol %d, and the current"
-		  " one is %d, it cannot be loaded."),
+      g_warning("While loading %s\n"
+		"The plugin uses the protocol %d, and the current"
+		" one is %d, it cannot be loaded.",
 		file_name,
 		(*plugin_get_protocol)(), PLUGIN_PROTOCOL);
       g_module_close(info->handle);
@@ -92,7 +93,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
   if (!(*plugin_get_symbol)("plugin_get_info", 0x1234,
 			    (gpointer*)&(info->plugin_get_info)))
     {
-      g_warning(_("Sorry, plugin_get_info was not found in %s"),
+      g_warning("plugin_get_info was not found in %s",
 		file_name);
       g_module_close(info->handle);
       return FALSE;
@@ -195,8 +196,8 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
   if ((!canonical_name) || (strlen(canonical_name) == 0))
     {
       g_module_close(info->handle);
-      g_warning(_("\"%s\" seems to be a valid plugin, but it doesn't "
-		  "provide a canonical name."), file_name);
+      g_warning("\"%s\" seems to be a valid plugin, but it doesn't "
+		"provide a canonical name.", file_name);
       return FALSE;
     }
   /* Get the version of the plugin */
@@ -214,9 +215,9 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
       &(info->micro)) == 0)
     {
       g_warning(
-      _("Sorry, the version of the plugin cannot be parsed.\n"
+	"Sorry, the version of the plugin cannot be parsed.\n"
 	"The version must be something like %%d[.%%d[%%d[other things]]]\n"
-	"The given version is %s.\nError loading \"%s\" (%s)"),
+	"The given version is %s.\nError loading \"%s\" (%s)",
       version, file_name, canonical_name);
       g_module_close(info -> handle);
       return FALSE;
@@ -721,6 +722,47 @@ static gint plugin_sorter (struct plugin_info * a, struct plugin_info * b)
   return (b->misc_info.plugin_priority - a->misc_info.plugin_priority);
 }
 
+static void add_plugin_properties (GnomePropertyBox *gpb)
+{
+  GList *p = g_list_first(plugin_list);
+
+  while (p)
+    {
+      plugin_add_properties(gpb, (struct plugin_info*)p->data);
+      p = p->next;
+    }
+}
+
+static gboolean apply_plugin_properties (GnomePropertyBox *gpb, gint page)
+{
+  GList *p = g_list_first(plugin_list);
+
+  while (p)
+    {
+      if (plugin_activate_properties(gpb, page,
+				     (struct plugin_info*)p->data))
+	return TRUE;
+      p = p->next;
+    }
+
+  return FALSE;
+}
+
+static gboolean help_plugin_properties (GnomePropertyBox *gpb, gint page)
+{
+  GList *p = g_list_first(plugin_list);
+
+  while (p)
+    {
+      if (plugin_help_properties(gpb, page,
+				 (struct plugin_info*)p->data))
+	return TRUE;
+      p = p->next;
+    }
+
+  return FALSE;
+}
+
 /* Loads all the plugins in the system */
 GList * plugin_load_plugins ( void )
 {
@@ -794,6 +836,17 @@ GList * plugin_load_plugins ( void )
   /* Load all the plugins in this dir */
   list = plugin_load_plugins_in_dir (plugin_path, PLUGIN_STRID, list);
   g_free(plugin_path);
+
+  /* Register the plugin handler as a property box handler */
+  {
+    property_handler handler =
+    {
+      add:	add_plugin_properties,
+      apply:	apply_plugin_properties,
+      help:	help_plugin_properties
+    };
+    register_properties_handler(&handler);
+  }
 
   list = g_list_sort (list, (GCompareFunc) plugin_sorter);
 

@@ -19,6 +19,7 @@
 #undef HAVE_LIBJPEG
 #undef HAVE_LIBRTE
 #undef HAVE_LIRC
+#undef HAVE_ARTS
 #undef ENABLE_V4L
 // Set if MMX support will be built
 #undef USE_MMX

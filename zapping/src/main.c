@@ -44,6 +44,7 @@
 #include "yuv2rgb.h"
 #include "osd.h"
 #include "remote.h"
+#include "audio.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
@@ -414,7 +415,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.137 2001-09-29 15:36:10 garetxe Exp $",
+	 "$Id: main.c,v 1.138 2001-10-14 10:15:51 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
@@ -655,6 +656,8 @@ int main(int argc, char * argv[])
   D();
   startup_osd();
   D();
+  startup_audio();
+  D();
   osd_set_window(tv_screen);
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM
        (lookup_widget(main_window, "closed_caption1")),
@@ -886,6 +889,12 @@ static void shutdown_zapping(void)
    */
   printv(" capture");
   shutdown_capture();
+
+  /*
+   * The audio config
+   */
+  printv(" audio");
+  shutdown_audio();
 
   /* Close */
   printv(" video device");

@@ -32,7 +32,7 @@
 #include "callbacks.h"
 #include "interface.h"
 #include "v4linterface.h"
-#include "plugins.h"
+#include "properties.h"
 #include "zconf.h"
 #include "zvbi.h"
 #include "zmisc.h"
@@ -40,7 +40,8 @@
 
 extern tveng_device_info * main_info; /* About the device we are using */
 
-extern GList * plugin_list; /* The plugins we have */
+static property_handler *handlers = NULL;
+static gint num_handlers = 0;
 
 static void
 update_sensitivity(GtkWidget *widget)
@@ -87,8 +88,7 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
   GtkWidget * zapping_properties = create_zapping_properties();
-  GList * p = g_list_first(plugin_list); /* For traversing the plugins
-					  */
+
   GtkNotebook * nb;
   GtkWidget * nb_label;
   GtkWidget * nb_body;
@@ -233,6 +233,15 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
   widget = lookup_widget(zapping_properties, "checkbutton4");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean(NULL, "/zapping/options/main/fixed_increments"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* Swap Page Up/Down */
+  widget = lookup_widget(zapping_properties, "checkbutton13");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean(NULL, "/zapping/options/main/swap_up_down"));
 
   gtk_signal_connect(GTK_OBJECT(widget), "toggled",
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
@@ -510,13 +519,9 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
-  /* Let the plugins add their properties */
-  while (p)
-    {
-      plugin_add_properties(GNOME_PROPERTY_BOX(zapping_properties),
-			    (struct plugin_info *) p->data);
-      p = p->next;
-    }
+  /* Let other modules build their config */
+  for (i=0; i<num_handlers; i++)
+    handlers[i].add(GNOME_PROPERTY_BOX(zapping_properties));
 
   gtk_widget_show(zapping_properties);
 }
@@ -530,8 +535,7 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
   GtkWidget * widget; /* Generic widget */
   GtkWidget * pbox = GTK_WIDGET(gnomepropertybox); /* Very long name */
   gchar * text; /* Pointer to returned text */
-  GList * p; /* For traversing the plugins */
-  gint index;
+  gint index, i;
   gdouble r, g, b, a;
 
   static int region_mapping[8] = {
@@ -573,6 +577,10 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       widget = lookup_widget(pbox, "checkbutton4"); /* fixed increments */
       zconf_set_boolean(gtk_toggle_button_get_active(
 	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/fixed_increments");
+
+      widget = lookup_widget(pbox, "checkbutton13"); /* swap chan up/down */
+      zconf_set_boolean(gtk_toggle_button_get_active(
+	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/swap_up_down");
 
       widget = lookup_widget(pbox, "checkbutton3"); /* start muted */
       zconf_set_boolean(gtk_toggle_button_get_active(
@@ -743,21 +751,16 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 
       break;
     default:
-      p = g_list_first(plugin_list);
-      while (p) /* Try with all the plugins until one of them accepts
-		   the call */
-	{
-	  if (plugin_activate_properties(gnomepropertybox, arg1,
-					 (struct plugin_info*) p->data))
-	    break; /* returned TRUE: stop */
-	  p = p->next;
-	}
-      /* This shouldn't ideally be reached, but a g_assert is too
-	 strong */
-      if ((p == NULL) && (arg1 != -1))
-	ShowBox(_("No plugin accepts this page."),
-		GNOME_MESSAGE_BOX_INFO);
+      break;
     }
+
+  for (i=0; i<num_handlers; i++)
+    if (handlers[i].apply(gnomepropertybox, arg1))
+      break;
+
+  if (arg1 != -1 && i == num_handlers)
+    ShowBox("Nothing accepts this page!!\nPlease contact the maintainer",
+	    GNOME_MESSAGE_BOX_WARNING);
 }
 
 
@@ -767,8 +770,7 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
                                         gpointer         user_data)
 {
   GnomeHelpMenuEntry entry = {"zapping", "properties.html"};
-
-  GList * p = g_list_first(plugin_list); /* Traverse all the plugins */
+  gint i;
 
   enum tveng_capture_mode cur_mode;
 
@@ -782,18 +784,17 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
       gnome_help_display(NULL, &entry);
       break;
     default:
-      while (p)
-	{
-	  if (plugin_help_properties(gnomepropertybox, arg1,
-				     (struct plugin_info*) p->data))
-				     break;
-	  p = p->next;
-	}
-      if (p == NULL)
-	ShowBox(_("The plugin that created the active page doesn't"
-		  " provide help for it. Sorry."),
-		GNOME_MESSAGE_BOX_INFO);
+      break;
     }
+
+  for (i=0; i<num_handlers; i++)
+    if (handlers[i].help(gnomepropertybox, arg1))
+      break;
+  
+  if (i == num_handlers)
+    ShowBox("The code that created the active page doesn't"
+	    " provide help for it!!!\nPlease contact the maintainer",
+	    GNOME_MESSAGE_BOX_WARNING);
 
   if (tveng_restart_everything(cur_mode, main_info) == -1)
     ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
@@ -807,4 +808,10 @@ on_property_item_changed              (GtkWidget * changed_widget,
   update_sensitivity(changed_widget);
 
   gnome_property_box_changed (propertybox);
+}
+
+void register_properties_handler (property_handler *p)
+{
+  handlers = g_realloc(handlers, (num_handlers+1)*sizeof(handlers[0]));
+  memcpy(&handlers[num_handlers++], p, sizeof(*p));
 }

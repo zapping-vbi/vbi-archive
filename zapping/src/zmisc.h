@@ -309,7 +309,7 @@ gboolean
 z_build_path(const gchar *path, gchar **error_description);
 
 /**
- * Makes the toolbar modify its children toolbars to always reflect
+ * Makes the toolbar modify its children toolbars to always
  * mimic its oriention and style.
  */
 void

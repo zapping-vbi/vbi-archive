@@ -1,3 +1,18 @@
+14.10.2001	Audio recording abstraction <garetxe@users.sf.net>
+
+	* audio.c: Audio recording abstraction so we can reuse the code
+	between plugins and make it easier to configure.
+	* esd.c, oss.c, arts.c: Some backends. Still ![finished|tested].
+	* properties.c: Added the property_handler logic, allows for
+	properties managing decentralization.
+	* glade/zapping.glade: Created new properties cathegory, audio.
+
+10.10.2001	Swap chan up/down <garetxe@users.sf.net>
+
+	* v4linterface.c: Made the PgUp/Down behaviour configurable, it
+	was counterintuitive for some people. This is provisional, just
+	till we have the generical bindings stuff in place.
+
 09.10.2001	Requested controls gui polishing <garetxe@users.sf.net>
 
 	* v4linterface.c: Added a spinbutton to the slider in the video

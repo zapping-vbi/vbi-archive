@@ -849,8 +849,8 @@ z_select_channel			(gint num_channel)
   z_switch_channel(channel, main_info);
 }
 
-void
-z_channel_up				(void)
+static void
+real_channel_up				(void)
 {
   gint num_channels = tveng_tuned_channel_num(global_channel_list);
   gint new_channel;
@@ -866,8 +866,8 @@ z_channel_up				(void)
   z_select_channel(new_channel);
 }
 
-void
-z_channel_down				(void)
+static void
+real_channel_down			(void)
 {
   gint num_channels = tveng_tuned_channel_num(global_channel_list);
   gint new_channel;
@@ -881,6 +881,24 @@ z_channel_down				(void)
     new_channel = 0;
 
   z_select_channel(new_channel);
+}
+
+void
+z_channel_up				(void)
+{
+  if (zcg_bool(NULL, "swap_up_down"))
+    real_channel_down();
+  else
+    real_channel_up();
+}
+
+void
+z_channel_down				(void)
+{
+  if (zcg_bool(NULL, "swap_up_down"))
+    real_channel_up();
+  else
+    real_channel_down();
 }
 
 void store_control_values(gint *num_controls,
@@ -1125,6 +1143,7 @@ startup_v4linterface(tveng_device_info *info)
 		     info);
 
   zcc_char("Zapping: $(alias)", "Title format Z will use", "title_format");
+  zcc_bool(FALSE, "Swap the page Up/Down bindings", "swap_up_down");
 }
 
 void
@@ -1132,15 +1151,3 @@ shutdown_v4linterface(void)
 {
   gtk_object_destroy(GTK_OBJECT(z_input_model));
 }
-
-
-
-
-
-
-
-
-
-
-
-

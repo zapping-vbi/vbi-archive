@@ -987,6 +987,21 @@
 	</widget>
 
 	<widget>
+	  <class>GtkCheckButton</class>
+	  <name>checkbutton13</name>
+	  <tooltip>Swap the behaviour of the PageUp and Page Down keys</tooltip>
+	  <can_focus>True</can_focus>
+	  <label>Swap Channel Up/Down keys</label>
+	  <active>False</active>
+	  <draw_indicator>True</draw_indicator>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+
+	<widget>
 	  <class>GtkHBox</class>
 	  <name>hbox16</name>
 	  <homogeneous>True</homogeneous>
@@ -1197,34 +1212,6 @@ Interlaced (window size)
 
 	<widget>
 	  <class>GtkCheckButton</class>
-	  <name>checkbutton1</name>
-	  <can_focus>True</can_focus>
-	  <label>Avoid noise while changing channels</label>
-	  <active>False</active>
-	  <draw_indicator>True</draw_indicator>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkCheckButton</class>
-	  <name>checkbutton3</name>
-	  <can_focus>True</can_focus>
-	  <label>Start Zapping muted</label>
-	  <active>False</active>
-	  <draw_indicator>True</draw_indicator>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkCheckButton</class>
 	  <name>checkbutton5</name>
 	  <can_focus>True</can_focus>
 	  <label>Avoid some flicker in preview mode (leaves artifacts in the main window)</label>
@@ -1260,7 +1247,7 @@ Interlaced (window size)
 	  <child>
 	    <padding>0</padding>
 	    <expand>False</expand>
-	    <fill>True</fill>
+	    <fill>False</fill>
 	  </child>
 
 	  <widget>
@@ -1312,6 +1299,96 @@ Interlaced (window size)
 	<child_name>Notebook:tab</child_name>
 	<name>label225</name>
 	<label>Video</label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+      </widget>
+
+      <widget>
+	<class>GtkVBox</class>
+	<name>vbox39</name>
+	<homogeneous>False</homogeneous>
+	<spacing>3</spacing>
+
+	<widget>
+	  <class>GtkCheckButton</class>
+	  <name>checkbutton3</name>
+	  <can_focus>True</can_focus>
+	  <label>Start Zapping muted</label>
+	  <active>False</active>
+	  <draw_indicator>True</draw_indicator>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkCheckButton</class>
+	  <name>checkbutton1</name>
+	  <can_focus>True</can_focus>
+	  <label>Avoid noise while changing channels</label>
+	  <active>False</active>
+	  <draw_indicator>True</draw_indicator>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkHBox</class>
+	  <name>hbox43</name>
+	  <homogeneous>True</homogeneous>
+	  <spacing>3</spacing>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <name>label233</name>
+	    <label>Audio recording interface:</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>1</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GtkOptionMenu</class>
+	    <name>audio_backends</name>
+	    <can_focus>True</can_focus>
+	    <items></items>
+	    <initial_choice>0</initial_choice>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+	  </widget>
+	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkLabel</class>
+	<child_name>Notebook:tab</child_name>
+	<name>label226</name>
+	<label>Audio</label>
 	<justify>GTK_JUSTIFY_CENTER</justify>
 	<wrap>False</wrap>
 	<xalign>0.5</xalign>
@@ -1561,7 +1638,7 @@ Do not show
       <widget>
 	<class>GtkLabel</class>
 	<child_name>Notebook:tab</child_name>
-	<name>label226</name>
+	<name>label232</name>
 	<label>OSD</label>
 	<justify>GTK_JUSTIFY_CENTER</justify>
 	<wrap>False</wrap>
