@@ -1,12 +1,11 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Add check for DGA in configure.in
+	+ Convert PNG saving into a plugin
 	+ Create tveng2 (tveng V4L2 version)
-	+ Remake plugin code
+	+ Add timestamps to TVeng
 	+ Fix all the bugs in BUGS
 	+ Put a bit of order into CVS and automake files...
 	+ Create a windowed overlay mode
-	+ Convert PNG saving into a plugin
 	+ Add desktop (and root menu) entries
 	+ Report "Control always 0 first time it's read" bug
 	+ Add perfomance test (full v4l2 /dev/video use implemented?)

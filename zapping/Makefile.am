@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 EXTRA_DIST = README.plugins
-SUBDIRS = intl po macros src zapping_setup_fb glade help
+SUBDIRS = intl po macros src zapping_setup_fb glade help plugins
 
 install-data-local:
 	@$(NORMAL_INSTALL)

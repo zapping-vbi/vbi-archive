@@ -1,3 +1,18 @@
+28.4.2000	Plugins working <garetxe@users.sourceofrge.net>
+
+	* src/plugins.c: some bugs (misfeatures ;) corrected, it now works
+	as expected.
+	* help/C/plugin_devel.html: Changed plugin_ prefix to zp_ in the
+	plugin API (there was a symbol collision).
+	* plugins/template/template.c: Template plugin created.
+	* src/zmisc.c: Fixed a bug in zimage_reallocate
+	
+27.4.2000	Plugins finished <garetxe@users.sourceforge.net>
+
+	* help/C/plugins_devel.html: Holds the new plugin API.
+	* src/plugins.c: Implements the functionality described in the
+	doc.
+	
 24.4.2000	Again into CVS <garetxe@users.sourceforge.net>
 
 	* CVS/: Zapping has gone again into CVS (it was time since the
