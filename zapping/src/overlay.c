@@ -676,8 +676,8 @@ start_overlay			(GtkWidget *		main_window,
 
       CLEAR (chroma);
 
-      if (0 == tveng_get_chromakey (&chroma.pixel, info))
-	0; /* error ignored */
+      tveng_get_chromakey (&chroma.pixel, info);
+	 /* error ignored */
 
       z_set_window_bg (video_window, &chroma);
     }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.39 2003-12-17 06:34:26 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.40 2004-05-17 20:46:52 mschimek Exp $ */
 
 /*
   TODO:
@@ -681,6 +681,12 @@ on_channel_search_clicked	(GtkButton *		search,
   const tv_video_line *l;
 
   if (ce->search)
+    return;
+
+  /* XXX we cannot search in Xv mode because there's no signal strength.
+     Or is there? tveng should also tell in advance if this call will
+     fail, so we can disable the option. */
+  if (0 != zmisc_switch_mode (TVENG_CAPTURE_READ, main_info))
     return;
 
   cs = g_malloc (sizeof (station_search));

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.19 2003-12-01 04:29:47 mschimek Exp $ */
+/* $Id: osd.h,v 1.20 2004-05-17 20:46:53 mschimek Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
@@ -51,13 +51,26 @@ osd_timeout_fn			(gboolean);
  * @string: Chars to draw.
  */
 void
-osd_render_markup		(osd_timeout_fn *	timeout_cb,
+osd_render_markup_printf	(osd_timeout_fn *	timeout_cb,
 				 const char *		string,
 				 ...)
 #ifdef __GNUC__
      __attribute__ ((format (printf, 2, 3)))
 #endif
      ;
+
+typedef enum {
+  OSD_TYPE_CONFIG = -1,
+  OSD_TYPE_SCREEN,
+  OSD_TYPE_STATUS_BAR,
+  OSD_TYPE_CONSOLE,
+  OSD_TYPE_IGNORE
+} osd_type;
+
+extern void
+osd_render_markup		(osd_timeout_fn *	timeout_cb,
+				 osd_type		type,
+				 const char *		buf);
 
 /**
  * Like osd_render_pango_markup but no markup parsing is done, the

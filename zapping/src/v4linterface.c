@@ -1250,7 +1250,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
   zvbi_channel_switched();
 
   if (info->current_mode == TVENG_CAPTURE_PREVIEW)
-    osd_render_markup (NULL,
+    osd_render_markup_printf (NULL,
 	("<span foreground=\"yellow\">%s</span>"), channel->name);
 #endif
 
@@ -1484,7 +1484,7 @@ kp_key_press			(GdkEventKey *		event,
 
 	kp_clear = FALSE;
 #ifdef HAVE_LIBZVBI
-	osd_render_markup (kp_timeout,
+	osd_render_markup_printf (kp_timeout,
 			   ("<span foreground=\"green\">%s</span>"),
 			   kp_chsel_buf);
 #else
@@ -1546,7 +1546,7 @@ kp_key_press			(GdkEventKey *		event,
 
       kp_clear = TRUE;
 #ifdef HAVE_LIBZVBI /* FIXME should no rely on OSD clear time */
-      osd_render_markup (kp_timeout,
+      osd_render_markup_printf (kp_timeout,
 			 "<span foreground=\"black\">/</span>");
 #else
       kp_timeout_id =
@@ -2226,9 +2226,10 @@ py_control_incr			(PyObject *self, PyObject *args)
       tveng_set_control ((tv_control *) tc, tc->value + increment * tc->step, main_info);
 
 #ifdef HAVE_LIBZVBI
-      osd_render_markup (NULL, ("<span foreground=\"blue\">%s %d %%</span>"),
-			 tc->label, (tc->value - tc->minimum)
-			 * 100 / (tc->maximum - tc->minimum));
+      osd_render_markup_printf (NULL,
+				("<span foreground=\"blue\">%s %d %%</span>"),
+				tc->label, (tc->value - tc->minimum)
+				* 100 / (tc->maximum - tc->minimum));
 #endif
     }
 

@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.3 2004-05-16 11:41:01 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.4 2004-05-17 20:46:53 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
@@ -37,6 +37,8 @@
 #include "xawtv.h"
 #include "zmisc.h"
 #include "remote.h"
+#include "osd.h"
+#include "globals.h"
 
 #ifndef XAWTV_CONFIG_TEST
 #define XAWTV_CONFIG_TEST 0
@@ -767,15 +769,162 @@ xawtv_import_config		(const tveng_device_info *info,
 
 /* XawTV IPC */
 
+#ifndef XAWTV_IPC_DEBUG
+#define XAWTV_IPC_DEBUG 0
+#endif
+
 static GdkAtom _GA_XAWTV_STATION;
 static GdkAtom _GA_XAWTV_REMOTE;
 static GdkAtom _GA_ZAPPING_REMOTE;
 static GdkAtom _GA_STRING;
 
 static gboolean
+xawtv_command_vtx		(int			argc,
+				 char **		argv)
+{
+  GString *s;
+  gboolean in_span;
+  int i;
+
+  if (1 == argc)
+    {
+      osd_clear ();
+      return TRUE;
+    }
+
+  s = g_string_new (NULL);
+
+  in_span = FALSE;
+
+  for (i = 1; i < argc; ++i)
+    {
+      gchar *t;
+      unsigned int j0;
+      unsigned int j;
+
+      if (!(t = g_locale_to_utf8 (argv[i], -1, NULL, NULL, NULL)))
+	{
+	  g_string_free (s, /* cstring too */ TRUE);
+	  return FALSE;
+	}
+
+      j0 = 0;
+
+      for (j = 0; t[j]; ++j)
+	{
+	  if ('\033' == t[j])
+	    {
+	      gint col[2];
+
+	      g_string_append_len (s, t + j0, j - j0);
+
+	      col[0] = -1;
+	      col[1] = -1;
+
+	      if ('[' == t[j + 1])
+		{
+		  /* ANSI sequence. */
+
+		  for (j += 2; t[j];)
+		    {
+		      switch (t[j])
+			{
+			case '3': /* foreground */
+			case '4': /* background */
+			  if (t[j + 1] >= '0' && t[j + 1] <= '7')
+			    {
+			      col[t[j] & 2] = t[j + 1] & 7;
+			      j += 2;
+			    }
+			  break;
+
+			case '1':
+			case ';':
+			  ++j;
+			  break;
+
+			case 'm':
+			  ++j;
+
+			default:
+			  goto done;
+			}
+		    }
+		}
+	      else
+		{
+		  /* Color ESC */
+
+		  if (t[j + 1] >= '0' && t[j + 1] <= '7'
+		      && t[j + 2] >= '0' && t[j + 2] <= '7')
+		    {
+		      col[1] = t[j + 1] & 7;
+		      col[0] = t[j + 2] & 7;
+		      j += 3;
+		    }
+		  else
+		    {
+		      ++j;
+		    }
+		}
+
+	    done:
+
+	      j0 = j;
+
+	      if (col[0] >= 0 && col[1] >= 0)
+		{
+		  static const gchar *colors[8] =
+		    {
+		      "000000", "FF0000", "00FF00", "FFFF00",
+		      "0000FF", "FF00FF", "00FFFF", "FFFFFF",
+		    };
+
+		  g_string_append_printf
+		    (s, "%s<span foreground=\"#%s\" background=\"#%s\">",
+		     in_span ? "</span>" : "",
+		     colors[col[1]],
+		     colors[col[0]]);
+
+		  in_span = TRUE;
+		}
+	    }
+	}
+
+      g_string_append_len (s, t + j0, j - j0);
+
+      if (in_span)
+	g_string_append (s, "</span>");
+
+      g_free (t);
+
+      /* XXX presently we can render only one row */
+      break;
+    }
+
+  osd_render_markup (NULL, OSD_TYPE_SCREEN, s->str);
+
+  g_string_free (s, /* cstring too */ TRUE);
+
+  return TRUE;
+}
+
+static gboolean
 xawtv_command			(int			argc,
 				 char **		argv)
 {
+  if (XAWTV_IPC_DEBUG)
+    {
+      int i;
+
+      fprintf (stderr, "xawtv_command: ");
+
+      for (i = 0; i < argc; ++i)
+	fprintf (stderr, "<%s> ", argv[i]);
+
+      fputc ('\n', stderr);
+    }
+
   if (0 == argc)
     return TRUE;
 
@@ -872,26 +1021,6 @@ xawtv_command			(int			argc,
        showtime
               Display time (same what the 'D' key does in xawtv).
 
-       msg text
-              Display text on the on-screen display (window title
-              / upper left corner in fullscreen mode).         
-
-       vtx line1 line2 [ ... ]
-              Display subtitles.  It pops up a  small  window  at
-              the  bottom  of  the screen.  It is supported to be
-              used as interface for displaying  subtitles  (often
-              on  videotext  page  150  in  europe, thats why the
-              name) by external programs.
-              Every command line argument is one line, zero lines
-              removes the window.  You can colorize the text with
-              the control sequence "ESC  foreground  background".
-              foreground/background  has the range 0-7 (ansi term
-              colors).  Example: "\03347 hello world " is blue on
-              white.  "\033" must be a real escape character, the
-              string does'nt work.  With the bash you'll  get  it
-              with ^V ESC.  vtx does also understand the ANSI tty
-              escape sequences for color.
-
        quit   quit xawtv
 
        keypad n
@@ -903,6 +1032,35 @@ xawtv_command			(int			argc,
               send  "command"  to  vdr  (via  connect  on  local-
               host:2001).
   */
+
+  if (0 == strcmp (argv[0], "message") ||
+      0 == strcmp (argv[0], "msg"))
+    {
+      gchar *t;
+
+      if (argc < 2)
+	return FALSE;
+
+      if (!(t = g_locale_to_utf8 (argv[1], -1, NULL, NULL, NULL)))
+	return FALSE;
+
+      gtk_window_set_title (GTK_WINDOW (main_window), t);
+
+      g_free (t);
+
+      return TRUE;
+    }
+
+  if (0 == strcmp (argv[0], "quit"))
+    {
+      python_command (NULL, "zapping.quit()");
+      return TRUE;
+    }
+
+  if (0 == strcmp (argv[0], "vtx"))
+    {
+      return xawtv_command_vtx (argc, argv);
+    }
 
   fprintf (stderr, "Command '%s' not implemented\n", argv[0]);
 
@@ -1010,7 +1168,7 @@ on_event			(GtkWidget *		widget,
 					 _GA_ZAPPING_REMOTE)))
 	    return TRUE;
 
-	  on_python_command1 (widget, s->str);
+	  python_command (widget, s->str);
 
 	  g_string_free (s, /* cstring too */ TRUE);
 

@@ -938,28 +938,17 @@ osd_render_osd		(void (*timeout_cb)(gboolean),
 */
 void
 osd_render_markup		(osd_timeout_fn *	timeout_cb,
-				 const char *		template,
-				 ...)
+				 osd_type		type,
+				 const char *		buf)
 {
-  gchar *buf;
-  va_list args;
-
-  buf = NULL;
-
-  if (!template || !template[0])
-    goto failed;
-
-  va_start (args, template);
-
-  buf = g_strdup_vprintf (template, args);
-
-  va_end (args);
-
   if (!buf || !buf[0])
     goto failed;
 
+  if (OSD_TYPE_CONFIG == type)
+    type = zcg_int (NULL, "osd_type");
+
   /* The different ways of drawing */
-  switch (zcg_int (NULL, "osd_type"))
+  switch (type)
     {
     case 0: /* OSD */
       clear_row (OSD_ROW, TRUE);
@@ -995,15 +984,38 @@ osd_render_markup		(osd_timeout_fn *	timeout_cb,
       break;
     }
 
-  g_free (buf);
-
   return;
 
  failed:
-  g_free (buf);
-
   if (timeout_cb)
     timeout_cb (FALSE);
+}
+
+/* If given, timeout_cb(TRUE) is called when osd timed out,
+   timeout_cb(FALSE) when error, replaced.
+*/
+void
+osd_render_markup_printf	(osd_timeout_fn *	timeout_cb,
+				 const char *		template,
+				 ...)
+{
+  gchar *buf;
+  va_list args;
+
+  buf = NULL;
+
+  if (!template || !template[0])
+    return;
+
+  va_start (args, template);
+
+  buf = g_strdup_vprintf (template, args);
+
+  va_end (args);
+
+  osd_render_markup (timeout_cb, OSD_TYPE_CONFIG, buf);
+
+  g_free (buf);
 }
 
 void
@@ -1172,7 +1184,7 @@ static PyObject* py_osd_render_markup (PyObject *self, PyObject *args)
   if (!ok)
     g_error ("zapping.osd_render_markup(s)");
 
-  osd_render_markup (NULL, string);
+  osd_render_markup (NULL, OSD_TYPE_CONFIG, string);
 
   Py_INCREF(Py_None);
   return Py_None;
