@@ -1,6 +1,9 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
+Zapping 0.8:
+* RMB on toolbar opens icon and zapping popup??
+
 Zapping 0.7.2:
 * Fullscreen DMA overlay clips subtitles but not context menu and windows.
 * bktr: Closing and reopening /dev/bktr, /dev/tuner sometimes fails

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: callback.c,v 1.1 2004-10-03 10:03:27 mschimek Exp $ */
+/* $Id: callback.c,v 1.2 2004-11-03 06:52:24 mschimek Exp $ */
 
 #include <assert.h>
 #include <malloc.h>
@@ -38,6 +38,7 @@ tv_nullify_pointer		(void *			object,
 {
 	assert (NULL != user_data);
 
+	object = object;
 	* ((void **) user_data)	= NULL;
 }
 

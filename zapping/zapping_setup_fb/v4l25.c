@@ -2,7 +2,7 @@
  *  Zapping (TV viewer for the Gnome Desktop)
  *
  * Copyright (C) 2000 Iñaki García Etxebarria
- * Copyright (C) 2003 Michael H. Schimek
+ * Copyright (C) 2003, 2004 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.5 2004-09-10 04:46:45 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.6 2004-11-03 06:52:27 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -102,7 +102,7 @@ setup_v4l25			(const char *		device_name,
 
   r = tv_pixel_format_from_pixfmt (&pf,
 				   buffer->format.pixfmt,
-				   buffer->format._reserved);
+				   buffer->format.color_space);
   assert (TRUE == r);
 
   switch (pf.color_depth)

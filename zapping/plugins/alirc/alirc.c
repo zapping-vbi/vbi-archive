@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alirc.c,v 1.10 2004-10-09 02:52:24 mschimek Exp $ */
+/* $Id: alirc.c,v 1.11 2004-11-03 06:52:25 mschimek Exp $ */
 
 /* XXX gtk_input */
 #undef GTK_DISABLE_DEPRECATED
@@ -343,7 +343,7 @@ plugin_misc_info * plugin_get_misc_info (void) {
 
 /* Return FALSE if we aren't able to access a symbol, you should only
    need to edit the pointer table, not the code */
-gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
+gboolean plugin_get_symbol(const gchar * name, gint hash, gpointer * ptr)
 {
   /* Usually this table is the only thing you will need to change */
   const struct plugin_exported_symbol table_of_symbols[] =

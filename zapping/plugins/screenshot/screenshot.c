@@ -706,14 +706,14 @@ execute_command (screenshot_data *data)
     {
       env[envc++] = g_strdup_printf ("CHANNEL_ALIAS=%s", tc->name);
       env[envc++] = g_strdup_printf ("CHANNEL_ID=%s", tc->rf_name);
-      if (zapping_info->cur_video_standard)
+      if (tv_cur_video_standard (zapping_info))
 	env[envc++] =
 	  g_strdup_printf ("CURRENT_STANDARD=%s",
-	    zapping_info->cur_video_standard->label);
-      if (zapping_info->cur_video_input)
+	    tv_cur_video_standard (zapping_info)->label);
+      if (tv_cur_video_input (zapping_info))
 	env[envc++] =
 	  g_strdup_printf ("CURRENT_INPUT=%s",
-	    zapping_info->cur_video_input->label);
+	    tv_cur_video_input (zapping_info)->label);
     }
 
   gnome_execute_async_with_env (NULL, argc, argv, envc, env);
@@ -815,19 +815,13 @@ screenshot_save			(screenshot_data *	data)
 {
   gchar *dir_name;
   gchar *base_name;
-  gchar *errmsg;
 
   dir_name = g_path_get_dirname (data->filename);
   base_name = g_path_get_basename (data->filename);
 
-  if (!z_build_path (dir_name, &errmsg))
-    {
-      /* XXX check errno and possibly retry */
-      ShowBox (_("Cannot create directory:\n%s\n%s"),
-	       GTK_MESSAGE_WARNING, dir_name, errmsg);
-      g_free (errmsg);
-      goto failure;
-    }
+  /* XXX zapping real parent? */
+  if (!z_build_path_with_alert (GTK_WINDOW (zapping), dir_name))
+    goto failure;
 
   if (!(data->io_fp = fopen (data->filename, "wb")))
     {
@@ -1508,13 +1502,13 @@ screenshot_grab (gint dialog)
    *  Switch to capture mode if we aren't viewing Teletext
    *  (associated with TVENG_NO_CAPTURE)
    */
-  if (CAPTURE_MODE_NONE != zapping_info->capture_mode)
+  if (CAPTURE_MODE_NONE != tv_get_capture_mode (zapping_info))
     {
-      if (CAPTURE_MODE_READ != zapping_info->capture_mode)
+      if (CAPTURE_MODE_READ != tv_get_capture_mode (zapping_info))
 	zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 			   CAPTURE_MODE_READ, zapping_info);
 
-      if (zapping_info->capture_mode != CAPTURE_MODE_READ)
+      if (tv_get_capture_mode (zapping_info) != CAPTURE_MODE_READ)
 	{
 	  screenshot_destroy (data);
 	  return FALSE; /* unable to set the mode */
@@ -1581,7 +1575,7 @@ screenshot_grab (gint dialog)
 /* Return FALSE if we aren't able to access a symbol, you should only
    need to edit the pointer table, not the code */
 gboolean
-plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
+plugin_get_symbol(const gchar * name, gint hash, gpointer * ptr)
 {
   /* Usually this table is the only thing you will need to change */
   struct plugin_exported_symbol table_of_symbols[] =

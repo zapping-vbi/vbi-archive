@@ -33,7 +33,7 @@
 
 #include <pthread.h>
 
-#include "zvbi.h" /* for vbi_push_video */
+
 
 #include <tveng.h>
 #include "common/fifo.h"
@@ -155,6 +155,7 @@ static gboolean
 compatible (producer_buffer *p, tveng_device_info *info)
 {
   tv_pixfmt_set avail_mask = 0;
+  const tv_image_format *fmt;
   gint retvalue;
 
   /* No images, it's always failure */
@@ -162,8 +163,9 @@ compatible (producer_buffer *p, tveng_device_info *info)
     return FALSE;
 
   /* first check whether the size is right */
-  if (info->capture_format.width != p->images[0]->fmt.width ||
-      info->capture_format.height != p->images[0]->fmt.height)
+  fmt = tv_cur_capture_format (info);
+  if (fmt->width != p->images[0]->fmt.width ||
+      fmt->height != p->images[0]->fmt.height)
     {
       retvalue = FALSE;
     }
@@ -275,8 +277,9 @@ scan_device		(tveng_device_info	*info)
   gchar *s;
   */
   tv_pixfmt pixfmt;
-  tv_pixfmt old_pixfmt;
   tv_pixfmt_set supported;
+  tv_image_format old_fmt;
+  tv_image_format new_fmt;
 
   /*
   key = g_strdup_printf (ZCONF_DOMAIN "%x/scanned", info->signature);
@@ -294,12 +297,12 @@ scan_device		(tveng_device_info	*info)
     }
   */
 
-  if (0 != info->supported_pixfmt_set) {
+  if (0 != tv_supported_pixfmts (info)) {
     /* Shortcut. */
-    return info->supported_pixfmt_set;
+    return tv_supported_pixfmts (info);
   }
 
-  old_pixfmt = info->capture_format.pixfmt;
+  old_fmt = *tv_cur_capture_format (info);
 
   supported = 0;
 
@@ -310,14 +313,14 @@ scan_device		(tveng_device_info	*info)
       {
 	/* FIXME other code assumes info->capture_format is the
 	   current format, not the one we request. */
-	info->capture_format.pixfmt = pixfmt;
+	new_fmt = old_fmt;
+	new_fmt.pixfmt = pixfmt;
 
-	if (0 == tveng_set_capture_format (info))
+	if (tv_set_capture_format (info, &new_fmt))
 	  supported |= TV_PIXFMT_SET (pixfmt);
       }
 
-  info->capture_format.pixfmt = old_pixfmt;
-  tveng_set_capture_format (info);
+  tv_set_capture_format (info, &old_fmt);
 
   /*
   zconf_create_boolean
@@ -405,14 +408,17 @@ static gint idle_handler(gpointer _info)
 
       /* Get number of requested modes */
       for (i = 0; i < TV_MAX_PIXFMTS; i++)
-	if (TV_PIXFMT_SET (i) & (mask | TV_PIXFMT_SET (info->capture_format.pixfmt)))
+	{
+	  const tv_image_format *fmt;
+
+	  fmt = tv_cur_capture_format (info);
+
+	if (TV_PIXFMT_SET (i) & (mask | TV_PIXFMT_SET (fmt->pixfmt)))
 	  {
 	    pb->images[pb->num_images] =
-	      zimage_new (i,
-			  info->capture_format.width,
-			  info->capture_format.height);
+	      zimage_new (i, fmt->width, fmt->height);
 
-	    if (info->capture_format.pixfmt == i)
+	    if (fmt->pixfmt == i)
 	      {
 		/* XXX is this correct? */
 		pb->src_index = pb->num_images;
@@ -421,6 +427,7 @@ static gint idle_handler(gpointer _info)
 
 	    pb->num_images++;
 	  }
+	}
 
       g_assert (pb->src_image != NULL);
       pb->tag = request_id; /* Done */
@@ -440,7 +447,7 @@ on_capture_canvas_allocate             (GtkWidget       *widget _unused_,
 
   CLEAR (fmt);
 
-  fmt.pixfmt = info->capture_format.pixfmt;
+  fmt.pixfmt = tv_cur_capture_format (info)->pixfmt;
   fmt.width = allocation->width;
   fmt.height = allocation->height;
 
@@ -455,7 +462,7 @@ gint capture_start (tveng_device_info *info, GtkWidget *window)
   if (tveng_start_capturing (info) == -1)
     {
       ShowBox (_("Cannot start capturing: %s"),
-	       GTK_MESSAGE_ERROR, info->error);
+	       GTK_MESSAGE_ERROR, tv_get_errstr (info));
       return FALSE;
     }
 
@@ -643,6 +650,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
   static gint counter = 0;
   gint conversions = 999;
   tv_image_format prev_fmt;
+  const tv_image_format *ifmt;
   guint req_w, req_h;
   gboolean fixed_size;
 
@@ -674,7 +682,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
   if (prev_mask & req_mask)
     {
       /* Keep the current capture pixfmt. */
-      id = info->capture_format.pixfmt;
+      id = tv_cur_capture_format (info)->pixfmt;
       goto req_ok;
     }
 
@@ -741,37 +749,41 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
 
  req_ok:
   /* Request the new format to TVeng (should succeed) [id] */
-  memcpy (&prev_fmt, &info->capture_format, sizeof (prev_fmt));
+  prev_fmt = *tv_cur_capture_format (info);
 
   fixed_size = find_request_size (fmt, &req_w, &req_h);
 
-  if (info->capture_format.pixfmt != id
-      || info->capture_format.width != req_w
-      || info->capture_format.height != req_h)
+  ifmt = tv_cur_capture_format (info);
+  if (ifmt->pixfmt != id
+      || ifmt->width != req_w
+      || ifmt->height != req_h)
     {
-      info->capture_format.pixfmt = id;
-      info->capture_format.width = req_w;
-      info->capture_format.height = req_h;
+      tv_image_format new_fmt;
+
+      new_fmt = *ifmt;
+      new_fmt.pixfmt = id;
+      new_fmt.width = req_w;
+      new_fmt.height = req_h;
 
       printv ("Setting TVeng mode %s [%d x %d]\n",
 	      tv_pixfmt_name (id), req_w, req_h);
 
-      info->error[0] = 0;
+      tv_clear_error (info);
 
-      if (-1 == tveng_set_capture_format (info)
+      if (!(ifmt = tv_set_capture_format (info, &new_fmt))
 	  || (fixed_size &&
 	      /* may change due to driver limits */
-	      (info->capture_format.width != req_w
-	       || info->capture_format.height != req_h)))
+	      (ifmt->width != req_w
+	       || ifmt->height != req_h)))
 	{
-	  if (info->tveng_errno)
-	    g_warning ("Cannot set new mode: %s", info->error);
+	  if (0)
+	    g_warning ("Cannot set new mode: %s", tv_get_errstr (info));
 	  /* Try to restore previous setup so we can keep working */
-	  memcpy (&info->capture_format, &prev_fmt, sizeof (prev_fmt));
+	  new_fmt = prev_fmt;
 
-	  if (tveng_set_capture_format (info) != -1)
-	    if (info->capture_mode == CAPTURE_MODE_NONE
-		|| info->capture_mode == CAPTURE_MODE_TELETEXT)
+	  if (!(ifmt = tv_set_capture_format (info, &new_fmt)))
+	    if (tv_get_capture_mode (info) == CAPTURE_MODE_NONE
+		|| tv_get_capture_mode (info) == CAPTURE_MODE_TELETEXT)
 	      tveng_start_capturing (info);
 	  _pthread_rwlock_unlock (&fmt_rwlock);
 	  return -1;
@@ -792,7 +804,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
       _pthread_rwlock_unlock (&fmt_rwlock);
       printv ("Format %s accepted [%s]\n",
 	      tv_pixfmt_name (fmt->pixfmt),
-	      tv_pixfmt_name (info->capture_format.pixfmt));
+	      tv_pixfmt_name (tv_cur_capture_format (info)->pixfmt));
       /* Safe because we only modify in one thread */
       return formats[num_formats-1].id;
     }

@@ -19,14 +19,14 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: frequencies.h,v 1.12 2004-09-10 04:58:52 mschimek Exp $ */
+/* $Id: frequencies.h,v 1.13 2004-11-03 06:52:26 mschimek Exp $ */
 
 #ifndef FREQUENCIES_H
 #define FREQUENCIES_H
 
 #include "tveng.h"
 #include "keyboard.h"
-#include "zvbi.h"
+//#include "zvbi.h"
 
 typedef struct _tveng_tc_control tveng_tc_control;
 
@@ -53,7 +53,7 @@ struct _tveng_tuned_channel {
   guint				num_controls;	/* number of saved controls for this channel */
   tveng_tc_control *		controls;	/* saved controls for this channel */
 
-  vbi_pgno			caption_pgno;	/* last used subtitle page on this channel */
+  int				caption_pgno;	/* last used subtitle page on this channel */
 
   /* Don't use this to navigate through the tuned_channel list, use
      the API instead */

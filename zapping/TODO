@@ -1,9 +1,8 @@
 Outstanding issues for future releases
 --------------------------------------
 
-* Apparently we can uninstall schemas with --makefile-uninstall-rule.
-  This is not mentioned in gconf docs and gnome libs do not uninstall,
-  should we?
+* Handle locked gconf.
+* Investigate gtkglext.
 * Middle mouse button shouldn't be hardwired but run a Python command.
 * Prefs > Video: "Fullscreen screen resolution" might be a better name.
 * Fullscreen should always fill the visible screen, even if "no

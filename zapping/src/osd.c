@@ -40,6 +40,7 @@
 #include "properties.h"
 #include "interface.h"
 #include "globals.h"
+#include "subtitle.h"
 
 #ifndef OSD_TEST
 #define OSD_TEST 0
@@ -483,8 +484,8 @@ roll_up(guint first_row, guint last_row)
  * OSD sources.
  */
 
-#ifdef HAVE_LIBZVBI
-#include "zvbi.h"
+#if HAVE_LIBZVBI
+#include "src/zvbi.h"
 
 static vbi_page osd_page;
 extern int osd_pipe[2];
@@ -758,13 +759,19 @@ remove_markup			(const gchar *		s)
 
   pango_parse_markup (s, -1, 0, NULL, &d, NULL, &error);
 
-  if (error)
+  if (!d || error)
     {
-      if (OSD_TEST)
-	fprintf (stderr, "%s:%u: Bad markup in \"%s\": %s\n",
-		 __FILE__, __LINE__, s, error->message);
+      g_assert (!d);
 
-      g_error_free (error);
+      if (error)
+	{
+	  if (OSD_TEST)
+	    fprintf (stderr, "%s:%u: Bad markup in \"%s\": %s\n",
+		     __FILE__, __LINE__, s, error->message);
+
+	  g_error_free (error);
+	  error = NULL;
+	}
 
       return NULL;
     }
@@ -801,13 +808,19 @@ render_console			(const gchar *		s,
 
   locale_buf = g_locale_from_utf8 (plain_buf, (gint) i, NULL, &length, &error);
 
-  if (error)
+  if (!locale_buf || error)
     {
-      if (OSD_TEST)
-	fprintf (stderr, "%s:%u: Bad UTF-8 in \"%s\": %s\n",
-		 __FILE__, __LINE__, plain_buf, error->message);
+      g_assert (!locale_buf);
 
-      g_error_free (error);
+      if (error)
+	{
+	  if (OSD_TEST)
+	    fprintf (stderr, "%s:%u: Bad UTF-8 in \"%s\": %s\n",
+		     __FILE__, __LINE__, plain_buf, error->message);
+
+	  g_error_free (error);
+	  error = NULL;
+	}
     }
   else
     {

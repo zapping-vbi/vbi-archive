@@ -37,7 +37,7 @@
 #include "zmisc.h"
 #define ZCONF_DOMAIN "/zapping/internal/callbacks/"
 #include "zconf.h"
-#include "zvbi.h"
+//#include "zvbi.h"
 #include "osd.h"
 #include "x11stuff.h"
 #include "keyboard.h"
@@ -57,47 +57,50 @@ di_setup		(GtkWidget	*page)
   GtkWidget * nb_label;
   GtkWidget * nb_body;
   const tv_video_line *l;
+  const struct tveng_caps *caps;
+
+  caps = tv_get_caps (zapping->info);
 
   /* The device name */
   widget = lookup_widget(page, "label27");
-  gtk_label_set_text(GTK_LABEL(widget), zapping->info->caps.name);
+  gtk_label_set_text(GTK_LABEL(widget), caps->name);
 
   /* Minimum capture dimensions */
   widget = lookup_widget(page, "label28");
   z_label_set_text_printf (GTK_LABEL(widget),
 			   "%d x %d",
-			   zapping->info->caps.minwidth,
-			   zapping->info->caps.minheight);
+			   caps->minwidth,
+			   caps->minheight);
 
   /* Maximum capture dimensions */
   widget = lookup_widget(page, "label29");
   z_label_set_text_printf (GTK_LABEL(widget),
 			   "%d x %d",
-			   zapping->info->caps.maxwidth,
-			   zapping->info->caps.maxheight);
+			   caps->maxwidth,
+			   caps->maxheight);
 
   /* Reported device capabilities */
   widget = lookup_widget(page, "label30");
   buffer = g_strdup_printf("%s%s%s%s%s%s%s%s%s%s",
-			   zapping->info->caps.flags & TVENG_CAPS_CAPTURE
+			   caps->flags & TVENG_CAPS_CAPTURE
 			   ? _("Can capture to memory.\n") : "",
-			   zapping->info->caps.flags & TVENG_CAPS_TUNER
+			   caps->flags & TVENG_CAPS_TUNER
 			   ? _("Has some tuner.\n") : "",
-			   zapping->info->caps.flags & TVENG_CAPS_TELETEXT
+			   caps->flags & TVENG_CAPS_TELETEXT
 			   ? _("Supports the teletext service.\n") : "",
-			   zapping->info->caps.flags & TVENG_CAPS_OVERLAY
+			   caps->flags & TVENG_CAPS_OVERLAY
 			   ? _("Can overlay the image.\n") : "",
-			   zapping->info->caps.flags & TVENG_CAPS_CHROMAKEY
+			   caps->flags & TVENG_CAPS_CHROMAKEY
 			   ? _("Can chromakey the image.\n") : "",
-			   zapping->info->caps.flags & TVENG_CAPS_CLIPPING
+			   caps->flags & TVENG_CAPS_CLIPPING
 			   ? _("Clipping rectangles are supported.\n") : "",
-			   zapping->info->caps.flags & TVENG_CAPS_FRAMERAM
+			   caps->flags & TVENG_CAPS_FRAMERAM
 			   ? _("Framebuffer memory is overwritten.\n") : "",
-			   zapping->info->caps.flags & TVENG_CAPS_SCALES
+			   caps->flags & TVENG_CAPS_SCALES
 			   ? _("The capture can be scaled.\n") : "",
-			   zapping->info->caps.flags & TVENG_CAPS_MONOCHROME
+			   caps->flags & TVENG_CAPS_MONOCHROME
 			   ? _("Only monochrome is available\n") : "",
-			   zapping->info->caps.flags & TVENG_CAPS_SUBCAPTURE
+			   caps->flags & TVENG_CAPS_SUBCAPTURE
 			   ? _("The capture can be zoomed\n") : "");
   /* Delete the last '\n' to save some space */
   if ((strlen(buffer) > 0) && (buffer[strlen(buffer)-1] == '\n'))
@@ -107,7 +110,7 @@ di_setup		(GtkWidget	*page)
   g_free(buffer);
 
   nb = GTK_NOTEBOOK (lookup_widget(page, "notebook2"));
-  if (!zapping->info->video_inputs)
+  if (!tv_video_inputs (zapping->info))
     {
       nb_label = gtk_label_new(_("No available inputs"));
       gtk_widget_show (nb_label);

@@ -30,7 +30,7 @@
 #include "zconf.h"
 #include "x11stuff.h"
 #include "zmisc.h"
-#include "zvbi.h"
+//#include "zvbi.h"
 #include "overlay.h"
 #include "osd.h"
 #include "globals.h"
@@ -94,7 +94,9 @@ static struct {
 
   tv_window		window;		/* overlay rectangle */
 
+  tv_clip_vector	cur_vector;
   tv_clip_vector	tmp_vector;
+  tv_clip_vector	set_vector;
 
   gboolean		clean_screen;
   gboolean		geometry_changed;
@@ -141,13 +143,14 @@ get_clips			(tv_clip_vector *	vector)
 }
 
 static void
-expose_window_clip_vector	(tv_window *		window)
+expose_window_clip_vector	(const tv_window *	window,
+				 const tv_clip_vector *	clip_vector)
 {
   tv_clip *clip;
   guint count;
 
-  clip = window->clip_vector.vector;
-  count = window->clip_vector.size;
+  clip = clip_vector->vector;
+  count = clip_vector->size;
 
   while (count-- > 0)
     {
@@ -173,29 +176,28 @@ expose_screen			(void)
 static gboolean
 set_window			(void)
 {
-  tv_info.info->overlay_window.x	= tv_info.window.x;
-  tv_info.info->overlay_window.y	= tv_info.window.y;
-  tv_info.info->overlay_window.width	= tv_info.window.width;
-  tv_info.info->overlay_window.height	= tv_info.window.height;
+  if (tv_set_overlay_window_clipvec (tv_info.info,
+				     &tv_info.window,
+				     &tv_info.cur_vector))
+    {
+      tv_clip_vector_set (&tv_info.set_vector, &tv_info.cur_vector);
+      return TRUE;
+    }
 
-  if (!tv_clip_vector_set (&tv_info.info->overlay_window.clip_vector,
-			   &tv_info.window.clip_vector))
-    return FALSE;
-
-  return (-1 != tveng_set_preview_window (tv_info.info));
+  return FALSE;
 }
 
 static gboolean
 obscured_timeout		(gpointer		user_data _unused_)
 {
-  tv_window *window;
+  const tv_window *window;
 
   if (OVERLAY_LOG_FP)
     fprintf (OVERLAY_LOG_FP, "obscured_timeout\n");
 
   /* Changed from partially visible or unobscured to fully obscured. */
 
-  window = &tv_info.info->overlay_window;
+  window = tv_cur_overlay_window (tv_info.info);
 
   if (tv_info.clean_screen)
     expose_screen ();
@@ -205,9 +207,9 @@ obscured_timeout		(gpointer		user_data _unused_)
 		      window->width,
 		      window->height);
 
-  tv_clip_vector_clear (&tv_info.window.clip_vector);
+  tv_clip_vector_clear (&tv_info.cur_vector);
   /* XXX error ignored */
-  tv_clip_vector_add_clip_xy (&tv_info.window.clip_vector,
+  tv_clip_vector_add_clip_xy (&tv_info.cur_vector,
 			      0, 0, window->width, window->height);
 
   tv_info.geometry_changed = TRUE;
@@ -233,7 +235,7 @@ visible_timeout			(gpointer		user_data _unused_)
   /* XXX error */
   get_clips (&tv_info.tmp_vector);
 
-  if (!tv_clip_vector_equal (&tv_info.window.clip_vector,
+  if (!tv_clip_vector_equal (&tv_info.cur_vector,
 			     &tv_info.tmp_vector))
     {
       /* Delay until the situation stabilizes. */
@@ -241,7 +243,7 @@ visible_timeout			(gpointer		user_data _unused_)
       if (OVERLAY_LOG_FP)
 	fprintf (OVERLAY_LOG_FP, "visible_timeout: delay\n");
 
-      SWAP (tv_info.window.clip_vector, tv_info.tmp_vector);
+      SWAP (tv_info.cur_vector, tv_info.tmp_vector);
 
       tv_info.geometry_changed = TRUE;
 
@@ -285,7 +287,8 @@ visible_timeout			(gpointer		user_data _unused_)
       if (tv_info.clean_screen)
 	expose_screen ();
       else
-	expose_window_clip_vector (&tv_info.info->overlay_window);
+	expose_window_clip_vector (tv_cur_overlay_window (tv_info.info),
+				   &tv_info.set_vector);
 
       /* Desired overlay bounds */
 
@@ -298,22 +301,26 @@ visible_timeout			(gpointer		user_data _unused_)
 
       for (;;)
 	{
+	  const tv_window *w;
+
 	  if (retry_count-- == 0)
 	    goto finish; /* XXX */
 
 	  /* XXX error */
 	  set_window ();
 
-	  if (tv_window_equal (&tv_info.window, &tv_info.info->overlay_window))
+	  w = tv_cur_overlay_window (tv_info.info);
+
+	  if (tv_window_equal (&tv_info.window, w))
 	    break;
 
 	  /* The driver modified the overlay bounds (alignment, limits),
 	     we must update the clips. */
 
-	  tv_info.window.x      = tv_info.info->overlay_window.x;
-	  tv_info.window.y      = tv_info.info->overlay_window.y;
-	  tv_info.window.width  = tv_info.info->overlay_window.width;
-	  tv_info.window.height = tv_info.info->overlay_window.height;
+	  tv_info.window.x      = w->x;
+	  tv_info.window.y      = w->y;
+	  tv_info.window.width  = w->width;
+	  tv_info.window.height = w->height;
 
 	  /* XXX error */
 	  get_clips (&tv_info.tmp_vector);
@@ -327,7 +334,7 @@ visible_timeout			(gpointer		user_data _unused_)
   if (!OVERLAY_CHROMA_TEST)
     {
       /* XXX error ignored */
-      tveng_set_preview_on (tv_info.info);
+      tv_enable_overlay (tv_info.info, TRUE);
     }
 
  finish:
@@ -350,7 +357,7 @@ restart_timeout			(void)
   if (OVERLAY_LOG_FP)
     fprintf (OVERLAY_LOG_FP, "restart_timeout\n");
 
-  tveng_set_preview_off (tv_info.info);
+  tv_enable_overlay (tv_info.info, FALSE);
 
   stop_timeout ();
 
@@ -410,7 +417,7 @@ on_video_window_event		(GtkWidget *		widget _unused_,
 	  /* XVideo overlay is automatically positioned relative to
 	     the video_window origin, only have to adjust size. */
 
-	  tveng_set_preview_off (tv_info.info);
+	  tv_enable_overlay (tv_info.info, FALSE);
 
 	  /* XXX tveng_set_preview_window (currently default is
 	     fill window size) */
@@ -419,7 +426,7 @@ on_video_window_event		(GtkWidget *		widget _unused_,
 	    {
 	      /* XXX error
 	         XXX off/on is inefficient, XVideo does this automatically. */
-	      tveng_set_preview_on (tv_info.info);
+	      tv_enable_overlay (tv_info.info, TRUE);
 	    }
 	}
 
@@ -547,12 +554,12 @@ root_filter			(GdkXEvent *		gdkxevent,
 	else
 	  {
 	    XConfigureEvent *ev = &event->xconfigure;
-	    tv_window *win = &tv_info.info->overlay_window;
+	    const tv_window *win = tv_cur_overlay_window (tv_info.info);
 
 	    if ((ev->x - ev->border_width) >= (win->x + win->width)
-		|| (ev->x + ev->width + ev->border_width) <= win->x
+		|| (int)(ev->x + ev->width + ev->border_width) <= win->x
 		|| (ev->y - ev->border_width) >= (win->y + win->height)
-		|| (ev->y + ev->height + ev->border_width) <= win->y)
+		|| (int)(ev->y + ev->height + ev->border_width) <= win->y)
 	      /* Windows do not overlap. */
 	      return GDK_FILTER_CONTINUE;
 	  }
@@ -586,7 +593,7 @@ terminate			(void)
 {
   stop_timeout ();
 
-  tveng_set_preview_off (tv_info.info);
+  tv_enable_overlay (tv_info.info, FALSE);
 
   if (tv_info.needs_cleaning)
     {
@@ -595,7 +602,8 @@ terminate			(void)
       if (tv_info.clean_screen)
 	expose_screen ();
       else
-	expose_window_clip_vector (&tv_info.info->overlay_window);
+	expose_window_clip_vector (tv_cur_overlay_window (tv_info.info),
+				   &tv_info.set_vector);
     }
 }
 
@@ -644,11 +652,11 @@ stop_overlay			(void)
 
   terminate ();
 
-  tv_window_destroy (&tv_info.window);
-
+  tv_clip_vector_destroy (&tv_info.set_vector);
   tv_clip_vector_destroy (&tv_info.tmp_vector);
+  tv_clip_vector_destroy (&tv_info.cur_vector);
 
-  tv_info.info->capture_mode = CAPTURE_MODE_NONE;
+  tv_set_capture_mode (tv_info.info, CAPTURE_MODE_NONE);
 
   CLEAR (tv_info);
 }
@@ -682,9 +690,11 @@ start_overlay			(void)
   if (!tv_info.screen)
     tv_info.screen = screens;
 
-  tv_window_init (&tv_info.window);
+  CLEAR (tv_info.window);
 
+  tv_clip_vector_init (&tv_info.cur_vector);
   tv_clip_vector_init (&tv_info.tmp_vector);
+  tv_clip_vector_init (&tv_info.set_vector);
 
   tv_info.visibility		= GDK_VISIBILITY_PARTIAL; /* assume worst */
 
@@ -702,16 +712,16 @@ start_overlay			(void)
        TVENG_ATTACH_XV, zapping->info))
     {
       ShowBox("Overlay mode not available:\n%s",
-	      GTK_MESSAGE_ERROR, zapping->info->error);
+	      GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
       goto failure;
     }
 
   tv_info.needs_cleaning =
-    (zapping->info->current_controller != TVENG_CONTROLLER_XV);
+    (tv_get_controller (zapping->info) != TVENG_CONTROLLER_XV);
 
-  if (zapping->info->current_controller != TVENG_CONTROLLER_XV
+  if (tv_get_controller (zapping->info) != TVENG_CONTROLLER_XV
       && (OVERLAY_CHROMA_TEST
-	  || (zapping->info->caps.flags & TVENG_CAPS_CHROMAKEY)))
+	  || (tv_get_caps (zapping->info)->flags & TVENG_CAPS_CHROMAKEY)))
     {
       GdkColor chroma;
 
@@ -736,14 +746,16 @@ start_overlay			(void)
 		   GTK_MESSAGE_WARNING);
 	}
     }
-  else if (zapping->info->current_controller == TVENG_CONTROLLER_XV)
+  else if (tv_get_controller (zapping->info) == TVENG_CONTROLLER_XV)
     {
       GdkColor chroma;
-
+      unsigned int chromakey;
       CLEAR (chroma);
 
-      tveng_get_chromakey (&chroma.pixel, zapping->info);
-	 /* error ignored */
+      /* Error ignored */
+      tv_get_overlay_chromakey (zapping->info, &chromakey);
+
+      chroma.pixel = chromakey;
 
       z_set_window_bg (GTK_WIDGET (zapping->video), &chroma);
     }
@@ -753,7 +765,7 @@ start_overlay			(void)
      not to be overwritten */
   gtk_widget_set_double_buffered (GTK_WIDGET (zapping->video), FALSE);
 
-  if (TVENG_CONTROLLER_XV == zapping->info->current_controller)
+  if (TVENG_CONTROLLER_XV == tv_get_controller (zapping->info))
     {
       if (!tv_set_overlay_xwindow
 	  (tv_info.info,
@@ -828,12 +840,12 @@ start_overlay			(void)
       if (!OVERLAY_CHROMA_TEST)
 	{
 	  /* XXX error ignored */
-	  tveng_set_preview_on (tv_info.info);
+	  tv_enable_overlay (tv_info.info, TRUE);
 	}
     }
 
   zapping->display_mode = DISPLAY_MODE_WINDOW;
-  zapping->info->capture_mode = CAPTURE_MODE_OVERLAY;
+  tv_set_capture_mode (zapping->info, CAPTURE_MODE_OVERLAY);
 
   return TRUE;
 

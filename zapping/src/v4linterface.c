@@ -40,12 +40,13 @@
 #include "interface.h"
 #include "zvbi.h"
 #include "osd.h"
-#include "remote.h"
 #include "globals.h"
 #include "audio.h"
 #include "mixer.h"
 #include "properties-handler.h"
 #include "xawtv.h"
+#include "subtitle.h"
+#include "remote.h"
 
 struct control_window;
 
@@ -493,9 +494,11 @@ add_controls			(struct control_window *cb,
 
   while ((ctrl = tv_next_control (info, ctrl)))
     {
+      const tv_video_standard *vs;
+
       if (ctrl->id == TV_CONTROL_ID_HUE)
-	if (info->cur_video_standard)
-	  if (!(info->cur_video_standard->videostd_set & TV_VIDEOSTD_SET_NTSC))
+	if ((vs = tv_cur_video_standard (info)))
+	  if (!(vs->videostd_set & TV_VIDEOSTD_SET_NTSC))
 	    {
 	      /* Useless. XXX connect to standard change callback. */
 	      tveng_set_control (ctrl, ctrl->reset, info);
@@ -731,7 +734,7 @@ z_switch_video_input		(guint hash, tveng_device_info *info)
     {
       ShowBox("Couldn't switch to video input %s\n%s",
 	      GTK_MESSAGE_ERROR,
-	      l->label, info->error);
+	      l->label, tv_get_errstr(info));
       return FALSE;
     }
 
@@ -758,7 +761,7 @@ z_switch_audio_input		(guint hash, tveng_device_info *info)
     {
       ShowBox("Couldn't switch to audio input %s\n%s",
 	      GTK_MESSAGE_ERROR,
-	      l->label, info->error);
+	      l->label, tv_get_errstr(info));
       return FALSE;
     }
 
@@ -815,7 +818,7 @@ z_switch_standard		(guint hash, tveng_device_info *info)
     {
       ShowBox("Couldn't switch to standard %s\n%s",
 	      GTK_MESSAGE_ERROR,
-	      s->label, info->error);
+	      s->label, tv_get_errstr (info));
       return FALSE;
     }
 
@@ -1209,6 +1212,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
   tveng_tuned_channel *tc;
   gboolean in_global_list;
   gboolean avoid_noise;
+  const tv_video_line *vi;
 
   if (!channel)
     return;
@@ -1267,10 +1271,10 @@ z_switch_channel		(tveng_tuned_channel *	channel,
   if (avoid_noise)
     reset_quiet (zapping->info, /* delay ms */ 500);
 
-  if (info->cur_video_input
-      && info->cur_video_input->type == TV_VIDEO_LINE_TYPE_TUNER)
+  if ((vi = tv_cur_video_input (info))
+      && vi->type == TV_VIDEO_LINE_TYPE_TUNER)
     if (!tv_set_tuner_frequency (info, channel->frequ))
-      ShowBox(info -> error, GTK_MESSAGE_ERROR);
+      ShowBox(tv_get_errstr (info), GTK_MESSAGE_ERROR);
 
   if (in_global_list)
     z_set_main_title(channel, NULL);
@@ -1713,12 +1717,13 @@ select_cur_video_standard_item	(GtkMenuShell *		menu_shell,
 				 tveng_device_info *	info)
 {
   GtkWidget *menu_item;
+  const tv_video_standard *vs;
   guint index;
 
-  if (!info->cur_video_standard)
+  if (!(vs = tv_cur_video_standard (info)))
     return;
 
-  index = tv_video_standard_position (info, info->cur_video_standard);
+  index = tv_video_standard_position (info, vs);
   menu_item = z_menu_shell_nth_item (menu_shell, index + 1 /* tear-off */);
   g_assert (menu_item != NULL);
 
@@ -1732,7 +1737,7 @@ on_tv_video_standard_change	(tveng_device_info *	info _unused_,
 {
   source_menu *sm = user_data;
 
-  if (!sm->info->cur_video_standard)
+  if (!tv_cur_video_standard (sm->info))
     {
       gtk_widget_set_sensitive (GTK_WIDGET (sm->menu_item), FALSE);
       gtk_menu_item_remove_submenu (sm->menu_item);
@@ -1814,7 +1819,7 @@ video_standard_menu		(source_menu *		sm)
 
   for (; s; s = tv_next_video_standard (sm->info, s))
     append_radio_menu_item (&menu_shell, &group, s->label,
-			    /* active */ s == sm->info->cur_video_standard,
+			    /* active */ s == tv_cur_video_standard (sm->info),
 			    G_CALLBACK (on_video_standard_activate), sm);
 
   select_cur_video_standard_item (menu_shell, sm->info);
@@ -1841,14 +1846,15 @@ select_cur_audio_input_item	(GtkMenuShell *		menu_shell,
 				 tveng_device_info *	info)
 {
   GtkWidget *menu_item;
+  const tv_audio_line *ai;
   guint index;
 
-  if (!info->cur_audio_input)
+  if (!(ai = tv_cur_audio_input (info)))
     return;
 
-  g_assert (info->cur_audio_input != NULL);
+  g_assert (ai != NULL);
 
-  index = tv_audio_input_position (info, info->cur_audio_input);
+  index = tv_audio_input_position (info, ai);
   menu_item = z_menu_shell_nth_item (menu_shell, index + 1 /* tear-off */);
   g_assert (menu_item != NULL);
 
@@ -1862,7 +1868,7 @@ on_tv_audio_input_change	(tveng_device_info *	info _unused_,
 {
   source_menu *sm = user_data;
 
-  if (!sm->info->cur_audio_input)
+  if (!tv_cur_audio_input (sm->info))
     {
       gtk_widget_set_sensitive (GTK_WIDGET (sm->menu_item), FALSE);
       gtk_menu_item_remove_submenu (sm->menu_item);
@@ -1944,7 +1950,7 @@ audio_input_menu		(source_menu *		sm)
 
   for (; l; l = tv_next_audio_input (sm->info, l))
     append_radio_menu_item (&menu_shell, &group, l->label,
-			    /* active */ l == sm->info->cur_audio_input,
+			    /* active */ l == tv_cur_audio_input (sm->info),
 			    G_CALLBACK (on_audio_input_activate), sm);
 
   select_cur_audio_input_item (menu_shell, sm->info);
@@ -1971,12 +1977,13 @@ select_cur_video_input_item	(GtkMenuShell *		menu_shell,
 				 tveng_device_info *	info)
 {
   GtkWidget *menu_item;
+  const tv_video_line *vi;
   guint index;
 
-  if (!info->cur_video_input)
+  if (!(vi = tv_cur_video_input(info)))
     return;
 
-  index = tv_video_input_position (info, info->cur_video_input);
+  index = tv_video_input_position (info, vi);
   menu_item = z_menu_shell_nth_item (menu_shell, index + 1 /* tear-off */);
   g_assert (menu_item != NULL);
 
@@ -1990,7 +1997,7 @@ on_tv_video_input_change	(tveng_device_info *	info _unused_,
 {
   source_menu *sm = user_data;
 
-  if (!sm->info->cur_video_input)
+  if (!tv_cur_video_input (sm->info))
     {
       gtk_widget_set_sensitive (GTK_WIDGET (sm->menu_item), FALSE);
       gtk_menu_item_remove_submenu (sm->menu_item);
@@ -2076,7 +2083,7 @@ video_input_menu		(source_menu *		sm)
 
   for (; l; l = tv_next_video_input (sm->info, l))
     append_radio_menu_item (&menu_shell, &group, l->label,
-			    /* active */ l == sm->info->cur_video_input,
+			    /* active */ l == tv_cur_video_input (sm->info),
 			    G_CALLBACK (on_video_input_activate), sm);
 
   select_cur_video_input_item (menu_shell, sm->info);

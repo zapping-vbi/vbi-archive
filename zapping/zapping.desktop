@@ -12,3 +12,6 @@ Name[sv]=Zapping TV-visare
 Type=Application
 Exec=zapping
 Icon=zapping/gnome-television.png
+Terminal=false
+StartupNotify=true
+Categories=GNOME;Application;Multimedia;AudioVideo;Video;TV;

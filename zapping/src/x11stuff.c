@@ -1836,7 +1836,7 @@ xv_adaptor_dump			(Display *		display,
 {
 	XvImageFormatValues *pImageFormats[2];
 	int nImageFormats[2];
-	int i;
+	unsigned int i;
 
 	xv_adaptor_info_dump (adaptor, index);
 

@@ -61,8 +61,8 @@ image_new (tv_pixfmt pixfmt, guint w, guint h)
   if (!image)
     return NULL;
 
-  if ((gint) image->width != w ||
-      (gint) image->height != h)
+  if ((guint) image->width != w ||
+      (guint) image->height != h)
     {
       g_object_unref (G_OBJECT (image));
       return NULL;

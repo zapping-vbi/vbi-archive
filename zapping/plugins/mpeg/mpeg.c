@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.49 2004-09-20 04:43:48 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.50 2004-11-03 06:52:25 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -443,7 +443,7 @@ do_start			(const gchar *		file_name)
 
 	  ShowBox ("This plugin needs to run in Capture mode, but"
 		   " couldn't switch to that mode:\n%s",
-		   GTK_MESSAGE_INFO, zapping_info->error);
+		   GTK_MESSAGE_INFO, tv_get_errstr (zapping_info));
 	  return FALSE;
 	}
 
@@ -471,6 +471,8 @@ do_start			(const gchar *		file_name)
 
       for (retry = 0;; retry++)
         {
+	  const tv_image_format *ifmt;
+
 	  if (retry == 4)
 	    {
 	      ShowBox ("Cannot switch to requested capture format",
@@ -500,8 +502,9 @@ do_start			(const gchar *		file_name)
 
 	  capture_pixfmt = pixfmt;
 
-	  par->width = zapping_info->capture_format.width;
-	  par->height = zapping_info->capture_format.height;
+	  ifmt = tv_cur_capture_format (zapping_info);
+	  par->width = ifmt->width;
+	  par->height = ifmt->height;
 
 	  if (pixfmt == TV_PIXFMT_YUV420)
 	    {
@@ -525,10 +528,10 @@ do_start			(const gchar *		file_name)
 	      /* defaults */
 	    }
 
-	  if (zapping_info->cur_video_standard)
+	  if (tv_cur_video_standard (zapping_info))
 	    {
 	      captured_frame_rate =
-		zapping_info->cur_video_standard->frame_rate;
+		tv_cur_video_standard (zapping_info)->frame_rate;
 	    }
 	  else
 	    {
@@ -566,8 +569,9 @@ do_start			(const gchar *		file_name)
 	      return FALSE; 
 	    }
 
-	  if (par->width != zapping_info->capture_format.width
-	      || par->height != zapping_info->capture_format.height)
+	  ifmt = tv_cur_capture_format (zapping_info);
+	  if (par->width != ifmt->width
+	      || par->height != ifmt->height)
 	    {
 	      width = par->width;
 	      height = par->height;
@@ -646,13 +650,10 @@ do_start			(const gchar *		file_name)
   if (1)
     {
       gchar *dir = g_path_get_dirname(file_name);
-      gchar *error_msg;
 
-      if (!z_build_path (dir, &error_msg))
+      /* XXX zapping real parent? */
+      if (!z_build_path_with_alert (GTK_WINDOW (zapping), dir))
 	{
-	  ShowBox (_("Cannot create destination directory:\n%s\n%s"),
-		   GTK_MESSAGE_WARNING, dir, error_msg);
-	  g_free (error_msg);
 	  g_free (dir);
 	  goto failed;
 	}
@@ -2112,7 +2113,7 @@ plugin_init			(PluginBridge		bridge _unused_,
 }
 
 gboolean
-plugin_get_symbol		(gchar *		name,
+plugin_get_symbol		(const gchar *		name,
 				 gint			hash,
 				 gpointer *		ptr)
 {

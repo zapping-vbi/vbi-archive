@@ -1,5 +1,5 @@
 #include <config.h>
-#include <libintl.h>
+#include "common/intl-priv.h"
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <gdk/gdkkeysyms.h>

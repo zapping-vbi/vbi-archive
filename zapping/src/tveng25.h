@@ -63,15 +63,6 @@ static void tveng25_close_device(tveng_device_info* info);
 
 
 
-/* Updates the current capture format info. -1 if failed */
-static int
-tveng25_update_capture_format(tveng_device_info * info);
-
-/* -1 if failed. Sets the format and fills in info -> format
-   with the correct values  */
-static int
-tveng25_set_capture_format(tveng_device_info * info);
-
 		   
 
 

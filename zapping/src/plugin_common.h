@@ -83,16 +83,16 @@ struct plugin_misc_info
   gint plugin_category; /* Categories the plugin falls under */
 };
 
-extern void plugin_add_key				(const gchar *	canonical_name,
-							 z_key		key,
-							 void		(* func)(void));
+extern void plugin_add_key	(const gchar *	canonical_name,
+				 z_key		key,
+				 void		(* func)(void));
 
 #ifndef ZAPPING_SRC /* If this is being included from a plugin, give them
 		   the correct prototypes for public symbols ( so
 		   compiling will give an error if defined differently) */
 
 gint plugin_get_protocol (void);
-gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr);
+gboolean plugin_get_symbol(const gchar * name, gint hash, gpointer * ptr);
 
 #if 0
 

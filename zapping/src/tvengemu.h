@@ -62,16 +62,6 @@ static void tvengemu_close_device(tveng_device_info* info);
 */
 
 
-/* Updates the current capture format info. -1 if failed */
-static int
-tvengemu_update_capture_format(tveng_device_info * info);
-
-/* -1 if failed. Sets the format and fills in info -> format
-   with the correct values  */
-static int
-tvengemu_set_capture_format(tveng_device_info * info);
-
-
 
 
 /*

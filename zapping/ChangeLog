@@ -1,3 +1,209 @@
+2004-11-02    <mschimek@users.sf.net>
+
+	* zapping.desktop.in: Added Terminal, StartupNotify, Categories
+	  from patch by Pino Toscano.
+	* configure.in: Libzvbi requirement changed to 0.2.9 for proxy
+	  routines, and checked with pkg-config. Note 0.2.9 is the first
+	  version installing a zvbi-0.2.pc file. Added glibc 2.1 /
+	  libunicode check from libzvbi for libvbi/search.c.
+	(AC_OUTPUT): Added libvbi/Makefile.
+	* src/Makefile.am (INCLUDES): Added -D_GNU_SOURCE - we _want_
+	  to use GNU extensions, but don't _depend_ on them.
+	* common/Makefile.am (libcommon_a_SOURCES): Added intl-priv.h.
+	* common/intl-priv.h: New common localization header.
+	* Makefile.am (SUBDIRS): Added libvbi.
+	* libvbi: Update from libzvbi CVS for the Teletext plugin. Will
+	  be removed after the libzvbi-0.3 release. Renamed prefix
+	  vbi_ to vbi3_ to avoid linker conflicts with libzvbi-0.2,
+	  which is still used for I/O. Various fixes and improvements.
+	* src/zvbi.c, src/zvbi.h:
+	  Moved Teletext page rendering code, GConf level and interp type
+	  code into plugins/teletext/view.c. Replaced VBI decoding thread
+	  by GIOChannel, seems to work well enough and the ability to call
+	  GUI routines directly from Teletext decoder greatly simplifies
+	  things. Removed the ttx_client code. Added basic support for
+	  Tom's zvbid in libvbi 0.2.9. Added a GSource to read from the
+	  proxy. Proxy buffers for us, so we can eliminate the capture
+	  thread too and need no GIOChannel.
+	* src/zmisc.c, src/zmisc.h:
+	  Added z_misc_error_quark, Z_MISC_ERROR, enum ZMiscError to throw
+	  our own GErrors. Renamed z_overwrite_file to
+	  z_overwrite_file_dialog for clarity, improved messages and changed
+	  to HIG-2 style error dialogs.
+	(start_teletext): resize/render_ttx_page obsolete, replaced by
+	  view->client_redraw.
+	(z_message_dialog_new, z_message_dialog_new_va_list):
+	  Added to simplify building of HIG-2 style message dialogs.
+	(z_show_non_modal_message_dialog): HIG-2 style equivalent of
+	  our old ShowBox macro.
+	(z_build_path): Replaced error_description arg by GError. Changed
+	  error messages for nicer dialogs.
+	(z_build_path_with_alert): New function like z_build_path, but
+	  also shows a HIG-2 style alert message dialog on error.
+	(z_gconf_check_button_new): New function to create a check button
+	  linked to a boolean GConf key, for Teletext prefs.
+	(z_show_empty_submenu): New helper function to show action group
+	  submenus despite being empty, when we create them manually.
+	  Used in zapping.c, Teletext plugin.
+	(z_strappend): Clone of g_strconcat which reallocates.
+	(z_help_display): Wrapper of gnome_help_display, switching
+	  out of fullscreen if necessary and showing a HIG-2 style error
+	  dialog on failure.
+	(z_url_display): Wrapper of gnome_url_show, switching
+	  out of fullscreen if necessary and showing a HIG-2 style error
+	  dialog on failure.
+	* src/zmisc.c, src/zapping.c, src/v4linterface.c, src/tvengxv.c,
+          src/tvengemu.c, src/tvengbktr.c, src/tveng_private.h,
+          src/tveng25.c, src/tveng1.c, src/tveng.h,
+          src/tveng.c, src/properties-handler.c, src/overlay.c,
+          src/main.c, src/fullscreen.c, src/cmd.c, src/channel_editor.c,
+          src/capture.c, plugins/screenshot/screenshot.c,
+          plugins/mpeg/mpeg.c:
+          Made struct tveng_device_info opaque and added a various get/set
+          functions. Removed clip vector from tv_window, added clip
+          vector parameter to set overlay window function. Cleaned up
+          chromakey interface.
+	* My First Decent Monitor 1998-2004 RIP. :-(
+        * zapping_setup_fb/v4l2.c (setup_v4l2),
+          zapping_setup_fb/v4l.c (setup_v4l),
+          src/tveng1.c (get_overlay_buffer),
+          src/tveng25.c (image_format_from_format),
+          src/tveng.c (tv_clear_image),
+          libtv/image_format.h,
+          libtv/image_format.c (tv_image_format_init):
+          Added tv_color_space, image_format.color_space.
+        * src/tvengxv.c, src/tvengemu.c, src/tvengbktr.c, src/tveng_private.h,
+          src/tveng25.c, src/tveng1.c, src/tveng.h,
+          src/tveng.c: Merged private device info struct into now
+          opaque tveng_device_info. Grouped overlay and capture
+          values and methods. Cleaned up internal capture format interface.
+        * src/zmisc.c (start_teletext): Moved last remaining ttx_client
+          calls to plugins/teletext/view.c.
+        * src/tveng1.c (p_tveng1_open_device_file): Fixed BTTV_VERSION
+          ioctl parameter.
+        * src/tveng2.c, src/tveng2.h, src/tveng.c,
+          zapping_setup_fb/v4l2.c (setup_v4l2): V4L2 0.20 no longer supported. 
+        * src/zmisc.c, src/main.c, src/globals.c, src/globals.h,
+          src/fullscreen.c, plugins/teletext/view.c,
+          plugins/teletext/view.h: Replaced teletext_view_on_key_press
+	  by "member function".
+	* src/main.c: Call startup_subtitle, subtitle.c,
+	  for py_closed_caption.
+	* src/subtitle.c, src/subtitle.h: zvbi_caption_pgno
+	  and py_closed_caption moved here from zvbi.c.
+	* src/properties.c (generic_cancel): set_data before calling
+	  the cancel function, which may destroy the page like
+	  teletext prefs do.
+	* src/plugin.c (plugin_load_plugins_in_di): Log g_dir_open GError.
+	* src/i18n.c, src/i18n.h (iso639_to_language_name): Added
+	  for TeletextWindow page encoding menu.
+	* src/fullscreen.c (set_blank_timeout),
+	  src/zmisc (zmisc_switch_mode): Default to no cursor blanking.
+	* src/frequencies.c: Oops. Debugging fprintf was enabled.
+	* src/channel_editor.c, src/cmd.c, src/properties.c,
+	  src/zapping.c:
+	  s/gnome_help_display/z_help_display for
+	  fullscreen switch and proper error handling.
+	* src/Makefile.am (INCLUDES): Added -D_GNU_SOURCE - we _want_
+	  to use GNU extensions, but don't _depend_ on them. Added
+	  ZVBI_CFLAGS which comes from pkgconfig.
+	(zapping_LDADD): s/ZVBI_LIB/ZVBI_LIBS from pkgconfig, includes
+	  libs libzvbi depends upon.
+	* plugins/teletext/Makefile.am: Link plugin with local libvbi
+	  0.3 instead of libzvbi 0.2, until libzvbi 0.3 is out.
+	(libteletext_zapping_la_SOURCES): Removed color.c/h, added
+	  preferences.c/h, page_num.h.
+	* plugins/teletext/bookmark.c, plugins/teletext/bookmark.h:
+	  Ported to libvbi 0.3. Replaced pgno, subno in bookmarks by
+	  page_num, unfinished. Functions take network parameter.
+	  Moved bookmark menu routines here.
+	* plugins/teletext/color.c, plugins/teletext/color.h:
+	  Files removed, color settings are now in preferences.
+	* plugins/teletext/export.c:
+	  L10n / encoding improved in libvbi 0.3, work-arounds
+	  removed or replaced here. Constness fixes. Not working
+	  electric filename code removed.
+	(on_ok_clicked): New HIG-2 style overwrite confirmation, build
+	  path error and write error message dialogs. Function simplified
+	  with new zmisc routines.
+	* plugins/teletext/export.c, plugins/teletext/export.h:
+	  Ported to libvbi 0.3. Now uses refcounted vbi_page.
+	* plugins/teletext/main.c, plugins/teletext/main.h:
+	  Ported to libvbi 0.3. Cleaned up plugin interface. BCD hacks
+	  removed. Color dialog removed. ZConf color options now in GConf,
+	  view.c since color changed from decoder to page rendering param
+	  in libvbi 0.3. Popup menu code moved to view.c. GConf charset,
+	  level notification moved to view.c since these changed from
+	  decoder to page formatting params. Bookmark menu code moved
+	  to bookmark.c. Preferences code moved to new file preferences.c.
+	  ZConf search options now in GConf, search.c. The module now
+	  maintains a libvbi 0.3 Teletext decoder. Provides a static
+	  anonymous vbi_network identifier for various functions.
+	* plugins/teletext/page_num.h: New type to conveniently handle
+	  page addresses consisting of network, pgno and subno.
+	* plugins/teletext/preferences.c, plugins/teletext/preferences.h:
+	  Preferences code moved here from main.c, wrapped in GObject.
+	  Added page memory size and number of networks options, text
+	  brightness and contrast moved here from color.c. Ported to
+	  GConf with auto apply. Added apply function for cache
+	  parameters. New HIG-2 style layout.
+	* plugins/teletext/search.c, plugins/teletext/search.h:
+	  Ported to libvbi 0.3. Now uses refcounted vbi_page. View page
+	  hack replaced by teletext_view_show_page call. ZConf regexp
+	  and casefold options now in GConf. UTF-8 conversion removed,
+	  libvbi now supports UTF-8 directly.
+	(on_help_clicked): s/gnome_help_display/z_help_display for
+	  fullscreen switch and proper error handling.
+	* plugins/teletext/toolbar.c, plugins/teletext/toolbar.h:
+	  Ported to libvbi 0.3.
+	(on_reveal_toggled): Fixed.
+	* plugins/teletext/window.c, plugins/teletext/window.h:
+	  Ported to libvbi 0.3. New TOP menu. Rebuilds automatically
+	  on TOP changes and channel change. New Channel radio menu for
+	  multi-channel cache, with received channel option. Rebuilds
+	  automatically on cache or channel changes. New View/Encoding
+	  radio menu to select character set for the current page, with
+	  automatic option. Rebuilds automatically when page view changes.
+	  No config code yet. Removed on_picture_size_key_press call,
+	  doesn't belong here.
+	* plugins/teletext/view.c, plugins/teletext/view.h:
+	  Ported to libvbi 0.3. Replaced deprecated Gtk calls. Merged
+	  zvbi.c drawing routines into TeletextView to simplify things.
+	  Removed the ttx_client interface. Added preliminary sliced
+	  VBI data interface. Cleaned up.
+	  Patch code (blinking, rolling header, clock) is faster
+	  and needs less memory by merging patches of consecutive
+	  characters. Improved scaling.
+	  TeletextView now supports a multi-network cache, interface
+	  changed accordingly. Replaced pgno, subno in browser history
+	  by page_num. Separated teletext_view_load_page into cleaner
+	  load and show functions, the latter used by search.c.
+	  Added two signals to update TeletextWindow on view changes.
+	  Moved teletext level, default charset and interp type GConf
+	  notify code here. Added code for new brightness and contrast
+	  GConf options, formerly part of color dialog. Added code for
+	  new rolling header and live clock GConf options without
+	  preferences. All these options auto apply now.
+	  Support overriding of transmitted charset, but no config code yet.
+	  Removed support for TOP page 900 (also from libvbi 0.3), now
+	  TeletextWindow implements a TOP menu.
+	  Selection supports UTF-8, untested.
+	  Replaced open_url, gnome_url_show by z_url_show for
+	  fullscreen switch and proper error handling.
+	  Fixed teletext_view_popup_menu_new.
+	  Replaced remaining signals by overriding widget
+	  class functions.
+	* zapping.schemas: Added rolling_header, live_clock, cache_size,
+	  cache_networks, brightness, contrast, search regexp, casefold,
+	  all_channels.
+	* POTFILES.in: Updated.
+
+2004-10-28    <mschimek@users.sf.net>
+
+	* Makefile.am (desktopdir): Changed zapping.desktop install dir
+	  <datadir>/gnome/apps/Multimedia to <datadir>/applications.
+	(uninstall-local): Uninstall zapping.schemas.
+
 2004-10-22    <mschimek@users.sf.net>
 
 	* src/zmisc.c (zmisc_switch_mode),

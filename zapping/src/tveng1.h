@@ -75,18 +75,6 @@ static void tveng1_close_device(tveng_device_info* info);
 */
 
 
-
-/* Updates the current capture format info. -1 if failed */
-static int
-tveng1_update_capture_format(tveng_device_info * info);
-
-/* -1 if failed. Sets the format and fills in info -> format
-   with the correct values  */
-static int
-tveng1_set_capture_format(tveng_device_info * info);
-
-
-
 /*
   Gets the signal strength and the afc code. The afc code indicates
   how to get a better signal, if negative, tune higher, if negative,

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.h,v 1.5 2004-10-09 02:52:28 mschimek Exp $ */
+/* $Id: zapping.h,v 1.6 2004-11-03 06:52:27 mschimek Exp $ */
 
 #ifndef ZAPPING_H
 #define ZAPPING_H

@@ -575,6 +575,7 @@ static GList * plugin_load_plugins_in_dir( const gchar * directory,
 					   GList * old )
 {
   struct plugin_info plug;
+  GError *error = NULL;
   GDir *dir;
   const gchar *name;
 
@@ -584,11 +585,20 @@ static GList * plugin_load_plugins_in_dir( const gchar * directory,
 
   printv("looking for plugins in %s\n", directory);
 
-  dir = g_dir_open (directory, /* flags */ 0, /* GError */ NULL);
-  if (!dir)
+  dir = g_dir_open (directory, /* flags */ 0, &error);
+
+  if (!dir || error)
     {
-      if (0)
-	perror("scandir");
+      g_assert (!dir);
+
+      if (error)
+	{
+	  printv ("Cannot open directory '%s': %s\n",
+		  directory, error->message);
+	  g_error_free (error);
+	  error = NULL;
+	}
+
       return old;
     }
 

@@ -1,17 +1,22 @@
 # List of source files containing translatable strings.
 
 glade/zapping.glade2
+libvbi/exp-gfx.c
+libvbi/exp-html.c
+libvbi/exp-txt.c
+libvbi/exp-vtx.c
+libvbi/export.c
+libvbi/teletext.c
 plugins/alirc/alirc.c
-# plugins/lirc/lirc.c
 plugins/mpeg/mpeg.c
 plugins/mpeg/options.c
 plugins/mpeg/mpeg_properties.glade2
 plugins/screenshot/screenshot.c
 plugins/screenshot/screenshot.glade2
 plugins/teletext/bookmark.c
-plugins/teletext/color.c
 plugins/teletext/export.c
 plugins/teletext/main.c
+plugins/teletext/preferences.c
 plugins/teletext/search.c
 plugins/teletext/toolbar.c
 plugins/teletext/view.c
