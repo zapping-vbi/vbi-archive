@@ -506,8 +506,6 @@ zmisc_switch_mode(display_mode new_dmode,
 {
   int return_value = 0;
   gint x, y, w, h;
-  gchar * old_input = NULL;
-  gchar * old_standard = NULL;
   display_mode old_dmode;
   capture_mode old_cmode;
   extern int disable_overlay;
@@ -539,11 +537,9 @@ zmisc_switch_mode(display_mode new_dmode,
 	return 0; /* success */
       }
 
-  /* save this input name for later retrieval */
-  if (tv_cur_video_input (info))
-    old_input = g_strdup (tv_cur_video_input (info)->label);
-  if (tv_cur_video_standard (info))
-    old_standard = g_strdup(tv_cur_video_standard (info)->label);
+  /* On capture <-> overlay change, carry video and audio input,
+     video standard over to the new device. FIXME also control values. */
+  zconf_set_sources (info);
 
   {
     GdkWindow *window;
@@ -639,6 +635,8 @@ zmisc_switch_mode(display_mode new_dmode,
 
 	      goto failure;
 	    }
+
+	  zconf_get_sources (info, /* mute */ FALSE);
 	}
 
       return_value = capture_start (info, GTK_WIDGET (zapping->video)) ?
@@ -656,6 +654,8 @@ zmisc_switch_mode(display_mode new_dmode,
 
       if (start_overlay ())
 	{
+	  zconf_get_sources (info, /* mute */ FALSE);
+
 	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
           z_video_blank_cursor (zapping->video, timeout);
 	}
@@ -680,6 +680,8 @@ zmisc_switch_mode(display_mode new_dmode,
 	  goto failure;
 	}
 
+      zconf_get_sources (info, /* mute */ FALSE);
+
       tv_set_capture_mode (zapping->info, CAPTURE_MODE_TELETEXT); /* ugh */
 
       break;
@@ -697,6 +699,8 @@ zmisc_switch_mode(display_mode new_dmode,
 
       if (start_fullscreen (new_dmode, new_cmode))
 	{
+	  zconf_get_sources (info, /* mute */ FALSE);
+
 	  if (CAPTURE_MODE_TELETEXT != new_cmode)
 	    {
 	      if (CAPTURE_MODE_OVERLAY == new_cmode)
@@ -722,24 +726,6 @@ zmisc_switch_mode(display_mode new_dmode,
 
       break;
     }
-
-  /* Restore old input if we found it earlier */
-  /*
-  if (old_input != NULL)
-    if (-1 == tveng_set_input_by_name(old_input, info))
-      g_warning("couldn't restore old input");
-  if (old_standard != NULL)
-    if (-1 == tveng_set_standard_by_name(old_standard, info))
-      g_warning("couldn't restore old standard");
-  */
-  if (old_input != NULL)
-    tveng_set_input_by_name(old_input, info);
-
-  if (old_standard != NULL)
-    tveng_set_standard_by_name(old_standard, info);
-
-  g_free (old_input);
-  g_free (old_standard);
 
   if (old_cmode != new_cmode
       || old_dmode != new_dmode)
@@ -776,9 +762,6 @@ zmisc_switch_mode(display_mode new_dmode,
   return return_value;
 
  failure:
-  g_free (old_input);
-  g_free (old_standard);
-
   x11_screensaver_set (X11_SCREENSAVER_ON);
 
   z_video_blank_cursor (zapping->video, 0);
