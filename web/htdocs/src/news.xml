@@ -23,8 +23,7 @@ controls api.</li>
 </li>
 <li><b>mp1e</b> 1.9.2
 <ul>
-<li>Many important bugfixes.</li>
-<li>Fixed some audio bugs that could led to extra noise.</li>
+<li>Some important bugs fixed.</li>
 <li>Abort after two seconds if audio and video cannot sync.</li>
 <li>Cleaned up --usage</li>
 </ul>
