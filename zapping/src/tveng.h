@@ -104,28 +104,27 @@ struct tveng_caps{
 };
 
 /* frame buffer info */
-struct tveng_fb_info{
+struct UNUSED_tveng_fb_info{
   void * base; /* Physical address for the FB */
   int height, width; /* Width and height (physical, not window dimensions) */
   int depth; /* FB depth in bits */
   int bytesperline; /* Bytesperline in the image */
 };
 
-/* Description of a clip rectangle */
-struct tveng_clip{
-  int x,y; /* Origin (X coordinates) */
-  int width, height; /* Dimensions */
-};
 
-/* a capture window (for the fb) */
-struct tveng_window{
-  int x,y; /* Origin in X coordinates */
-  int width, height; /* Dimensions */
-  int clipcount; /* Number of clipping rectangles */
-  struct tveng_clip * clips; /* pointer to the clip rectangle array */
-  Window win; /* window we are previewing to (only needed in XV mode) */
-  GC gc; /* gc associated with win */
-};
+
+
+
+
+typedef int tv_bool;
+
+#undef TRUE
+#define TRUE 1
+#undef FALSE
+#define FALSE 0
+
+
+
 
 enum tveng_field
 {
@@ -142,12 +141,12 @@ enum tveng_field
 enum tveng_frame_pixformat{
   TVENG_PIX_FIRST = 0,
   /* common rgb formats */
-  TVENG_PIX_RGB555 = TVENG_PIX_FIRST,
-  TVENG_PIX_RGB565,
-  TVENG_PIX_RGB24,
-  TVENG_PIX_BGR24,
-  TVENG_PIX_RGB32,
-  TVENG_PIX_BGR32,
+  TVENG_PIX_RGB555 = TVENG_PIX_FIRST,	/* G2G1G0R4R3R2R1R0 ??B4B3B2B1B0G4G3 */
+  TVENG_PIX_RGB565,			/* G2G1G0R4R3R2R1R0 B4B3B2B1B0G5G4G3 */
+  TVENG_PIX_RGB24,			/* RR GG BB RR GG BB */
+  TVENG_PIX_BGR24,			/* BB GG RR BB GG RR */
+  TVENG_PIX_RGB32,			/* RR GG BB ?? RR GG BB ?? */
+  TVENG_PIX_BGR32,			/* BB GG RR ?? BB GG RR ?? */
   /* common YUV formats */
   /* note: V4L API doesn't support YVU420. V4L2 API doesn't support
      YUV420, but videodev2.h does */
@@ -162,6 +161,45 @@ enum tveng_frame_pixformat{
 
 #endif /* TVENG_FRAME_PIXFORMAT */
 
+typedef enum {
+	TV_COLOR_SPACE_UNKNOWN,		/* to do */
+} tv_color_space;
+
+/* Broken-down pixel format. */
+
+typedef struct _tv_pixel_format tv_pixel_format;
+
+struct _tv_pixel_format {				/* examples */
+	enum tveng_frame_pixformat
+				pixfmt;			/* RGB555	YVU420 */
+	tv_color_space		color_space;		/* RGB		JFIF */
+	unsigned int		bits_per_pixel;		/* 16		12 */
+	unsigned int		color_depth;		/* 15		12 */
+	unsigned int		uv_hscale;		/* n/a		2 */
+	unsigned int		uv_vscale;		/* n/a		2 */
+	unsigned		big_endian	: 1;	/* FALSE	FALSE */
+	union {
+		struct {
+			unsigned int		r;	/* 0x001F */
+			unsigned int		g;	/* 0x03E0 */
+			unsigned int		b;	/* 0x7C00 */
+			unsigned int		a;	/* 0x8000 */
+		}			rgb;
+		struct {
+			unsigned int		y;	/*		0xFF */
+			unsigned int		u;	/*		0xFF */
+			unsigned int		v;	/*		0xFF */
+			unsigned int		a;	/*		0x00 */
+		}			yuv;
+	}			mask;
+};
+
+extern tv_bool
+tv_pixfmt_to_pixel_format	(tv_pixel_format *	format,
+				 enum tveng_frame_pixformat pixfmt,
+				 tv_color_space		color_space);
+
+/*
 static __inline__ unsigned int
 tveng_pixformat_bits_per_pixel	(enum tveng_frame_pixformat fmt)
 {
@@ -171,6 +209,7 @@ tveng_pixformat_bits_per_pixel	(enum tveng_frame_pixformat fmt)
 
   return bpp[fmt];
 }
+*/
 
 /* This struct holds the structure of the captured frame */
 struct tveng_frame_format
@@ -182,74 +221,6 @@ struct tveng_frame_format
   enum tveng_frame_pixformat pixformat; /* The pixformat entry */
   double bpp; /* Bytes per pixel */
   int sizeimage; /* Size in bytes of the image */
-};
-
-#define TV_VIDEOSTD_PAL_B          (1 << 0)
-#define TV_VIDEOSTD_PAL_B1         (1 << 1)
-#define TV_VIDEOSTD_PAL_G          (1 << 2)
-#define TV_VIDEOSTD_PAL_H          (1 << 3)
-#define TV_VIDEOSTD_PAL_I          (1 << 4)
-#define TV_VIDEOSTD_PAL_D          (1 << 5)
-#define TV_VIDEOSTD_PAL_D1         (1 << 6)
-#define TV_VIDEOSTD_PAL_K          (1 << 7)
-
-#define TV_VIDEOSTD_PAL_M          (1 << 8)
-#define TV_VIDEOSTD_PAL_N          (1 << 9)
-#define TV_VIDEOSTD_PAL_NC         (1 << 10)
-
-#define TV_VIDEOSTD_NTSC_M         (1 << 12)
-#define TV_VIDEOSTD_NTSC_M_JP      (1 << 13)
-
-#define TV_VIDEOSTD_SECAM_B        (1 << 16)
-#define TV_VIDEOSTD_SECAM_D        (1 << 17)
-#define TV_VIDEOSTD_SECAM_G        (1 << 18)
-#define TV_VIDEOSTD_SECAM_H        (1 << 19)
-#define TV_VIDEOSTD_SECAM_K        (1 << 20)
-#define TV_VIDEOSTD_SECAM_K1       (1 << 21)
-#define TV_VIDEOSTD_SECAM_L        (1 << 22)
-
-#define TV_VIDEOSTD_PAL_BG	(TV_VIDEOSTD_PAL_B	|\
-				 TV_VIDEOSTD_PAL_B1	|\
-				 TV_VIDEOSTD_PAL_G)
-#define TV_VIDEOSTD_PAL_DK	(TV_VIDEOSTD_PAL_D	|\
-				 TV_VIDEOSTD_PAL_D1	|\
-				 TV_VIDEOSTD_PAL_K)
-#define TV_VIDEOSTD_PAL		(TV_VIDEOSTD_PAL_BG	|\
-				 TV_VIDEOSTD_PAL_DK	|\
-				 TV_VIDEOSTD_PAL_H	|\
-				 TV_VIDEOSTD_PAL_I)
-#define TV_VIDEOSTD_NTSC	(TV_VIDEOSTD_NTSC_M	|\
-				 TV_VIDEOSTD_NTSC_M_JP)
-#define TV_VIDEOSTD_SECAM	(TV_VIDEOSTD_SECAM_B	|\
-				 TV_VIDEOSTD_SECAM_D	|\
-				 TV_VIDEOSTD_SECAM_G	|\
-				 TV_VIDEOSTD_SECAM_H	|\
-				 TV_VIDEOSTD_SECAM_K	|\
-				 TV_VIDEOSTD_SECAM_K1	|\
-				 TV_VIDEOSTD_SECAM_L)
-#define TV_VIDEOSTD_525_60	(TV_VIDEOSTD_PAL_M	|\
-				 TV_VIDEOSTD_NTSC)
-#define TV_VIDEOSTD_625_50	(TV_VIDEOSTD_PAL	|\
-				 TV_VIDEOSTD_PAL_N	|\
-				 TV_VIDEOSTD_PAL_NC	|\
-				 TV_VIDEOSTD_SECAM)
-#define TV_VIDEOSTD_UNKNOWN     0
-#define TV_VIDEOSTD_ALL         (TV_VIDEOSTD_525_60	|\
-				 TV_VIDEOSTD_625_50)
-
-typedef uint64_t tv_videostd_id;
-
-/* Info about a standard */
-struct tveng_enumstd{
-  int id; /* Standard id */
-  tv_videostd_id stdid; /* attn: don't take this literally. multiple bits
-    could be set if the driver doesn't know exactly, or doesn't care. */
-  int index; /* Index in info->standards */
-  int hash; /* Based on the normalized name */
-  char name[32]; /* Canonical name for the standard */
-  int width; /* width (double of uninterlaced width) */
-  int height; /* height (double of uninterlaced height) */
-  double frame_rate; /* nominal frames/s (eg. PAL 25) */ 
 };
 
 /* Convenience construction for managing image data */
@@ -265,58 +236,79 @@ typedef union {
   } planar;
 } tveng_image_data;
 
-/* Flags for the input */
-#define TVENG_INPUT_TUNER 1      /* has tuner(s) attached */
-#define TVENG_INPUT_AUDIO (1<<1) /* has audio */
 
-enum tveng_input_type{
-  TVENG_INPUT_TYPE_TV,
-  TVENG_INPUT_TYPE_CAMERA
-};
 
-/* info about an input */
-struct tveng_enum_input{
-  int id; /* Id of the input */
-  int index; /* Index in info->inputs */
-  int hash; /* based on the normalized name */
-  char name[32]; /* Canonical name for the input */
-  int tuners; /* Number of tuners for this input */
-  int flags; /* Flags for this channel */
-  enum tveng_input_type type; /* The type for this input */
-  int tuner_id; /* ad-hoc for v4l25, to be replaced */
-};
+#if 0
+/* all frequencies in Hz */
+extern tv_bool
+tv_set_tuner_frequency		(tveng_device_info *	info,
+				 uint64_t		freq);
+extern tv_bool
+tv_get_tuner_frequency		(tveng_device_info *	info,
+				 uint64_t *		freq);
+extern tv_bool
+tv_set_tuner_channel		(tveng_device_info *	info,
+				 tv_rf_channel *	channel);
+/* Magnitude: negative bad, positive good signal quality.
+ * Direction: negative below, positive above optimal tuner frequency.
+ * Arbitrary units, must find limits by trial. Zero if value
+ * is unknown or not applicable, NULL if don't care.
+ */
+extern tv_bool
+tv_get_signal_strength		(tveng_device_info *	info,
+				 int *			magnitude,
+				 int *			direction);
+#endif
+
+
+
 
 typedef struct _tveng_device_info tveng_device_info;
 
+/* The controller we are using for this device */
+enum tveng_controller
+{
+  TVENG_CONTROLLER_NONE, /* No controller set */
+  TVENG_CONTROLLER_V4L1, /* V4L1 controller (old V4l spec) */
+  TVENG_CONTROLLER_V4L2, /* V4L2 controller (new v4l spec) */
+  TVENG_CONTROLLER_XV,	 /* XVideo controller */
+  TVENG_CONTROLLER_EMU,	 /* Emulation controller */
+  TVENG_CONTROLLER_MOTHER /* The wrapper controller (tveng.c) */
+};
 
 
 
-typedef int tv_bool;
+/*
+ *  New stuff
+ */
 
-#undef TRUE
-#define TRUE 1
-#undef FALSE
-#define FALSE 0
+/*
+ *  Callbacks
+ */
 
-typedef struct _tv_callback_node tv_callback_node;
+typedef struct _tv_callback tv_callback;
 
-extern tv_callback_node *
-tv_callback_add			(tv_callback_node **	list,
-				 void			(* notify)(void *object, void *user_data),
-				 void			(* destroy)(void *object, void *user_data),
+typedef void
+tv_callback_fn			(void *			object,
+				 void *			user_data);
+
+extern tv_callback *
+tv_callback_add			(tv_callback **		list,
+				 tv_callback_fn *	notify,
+				 tv_callback_fn *	destroy,
 				 void *			user_data);
 extern void
-tv_callback_remove		(tv_callback_node *	cb);
+tv_callback_remove		(tv_callback *		cb);
 extern void
 tv_callback_destroy		(void *			object,
-				 tv_callback_node **	list);
+				 tv_callback **		list);
 extern void
-tv_callback_block		(tv_callback_node *	cb);
+tv_callback_block		(tv_callback *		cb);
 extern void
-tv_callback_unblock		(tv_callback_node *	cb);
+tv_callback_unblock		(tv_callback *		cb);
 extern void
 tv_callback_notify		(void *			object,
-				 const tv_callback_node *list);
+				 const tv_callback *	list);
 
 #define TV_CALLBACK_BLOCK(cb, statement)				\
 do {									\
@@ -324,6 +316,10 @@ do {									\
 	statement;							\
 	tv_callback_unblock (cb);					\
 } while (0)
+
+/*
+ *  Devices
+ */
 
 typedef struct _tv_device_node tv_device_node;
 
@@ -343,18 +339,19 @@ struct _tv_device_node {
 	void			(* destroy)(tv_device_node *, tv_bool restore);
 };
 
-typedef tv_device_node * tv_device_node_filter_fn (const char *name);
+typedef tv_device_node *
+tv_device_node_filter_fn	(const char *		name);
 
-tv_device_node *
+extern tv_device_node *
 tv_device_node_add		(tv_device_node **	list,
 				 tv_device_node *	node);
-tv_device_node *
+extern tv_device_node *
 tv_device_node_remove		(tv_device_node **	list,
 				 tv_device_node *	node);
-tv_device_node *
+extern tv_device_node *
 tv_device_node_find		(tv_device_node *	list,
 				 const char *		device);
-void
+extern void
 tv_device_node_delete		(tv_device_node **	list,
 				 tv_device_node *	node,
 				 tv_bool		restore);
@@ -363,10 +360,10 @@ tv_device_node_delete_list	(tv_device_node **	list)
 {
 	assert (list != NULL);
 
-	while (*list) tv_device_node_delete (list, *list, FALSE);
+	while (*list)
+		tv_device_node_delete (list, *list, FALSE);
 }
-
-tv_device_node *
+extern tv_device_node *
 tv_device_node_new		(const char *		label,
 				 const char *		bus,
 				 const char *		driver,
@@ -374,22 +371,249 @@ tv_device_node_new		(const char *		label,
 				 const char *		device,
 				 unsigned int		size);
 
-/* The controller we are using for this device */
-enum tveng_controller
-{
-  TVENG_CONTROLLER_NONE, /* No controller set */
-  TVENG_CONTROLLER_V4L1, /* V4L1 controller (old V4l spec) */
-  TVENG_CONTROLLER_V4L2, /* V4L2 controller (new v4l spec) */
-  TVENG_CONTROLLER_XV,	 /* XVideo controller */
-  TVENG_CONTROLLER_EMU,	 /* Emulation controller */
-  TVENG_CONTROLLER_MOTHER /* The wrapper controller (tveng.c) */
+/*
+ *  Video lines (input or output)
+ */
+
+typedef enum {
+	TV_VIDEO_LINE_TYPE_NONE,
+	TV_VIDEO_LINE_TYPE_BASEBAND,		/* CVBS, Y/C, RGB */
+	TV_VIDEO_LINE_TYPE_TUNER,
+	TV_VIDEO_LINE_TYPE_SATELLITE
+} tv_video_line_type;
+
+typedef enum {
+	TV_VIDEO_LINE_ID_NONE,
+	TV_VIDEO_LINE_ID_UNKNOWN = TV_VIDEO_LINE_ID_NONE
+} tv_video_line_id;
+
+typedef struct _tv_video_line tv_video_line;
+
+struct _tv_video_line {
+	tv_video_line *		_next;
+	void *			_parent;
+	tv_callback *		_callback;
+
+	char *			label;
+	unsigned int		hash;
+
+	tv_video_line_type	type;
+	tv_video_line_id	id;
+
+// tv_videostd_id ?
+// tv_tuner * ? min/max/step/freq ?
 };
 
+static __inline__ tv_callback *
+tv_video_line_add_callback	(tv_video_line *	line,
+				 void			(* notify)(tv_video_line *, void *),
+				 void			(* destroy)(tv_video_line *, void *),
+				 void *			user_data)
+{
+	assert (line != NULL);
+
+	return tv_callback_add (&line->_callback,
+				(tv_callback_fn *) notify,
+				(tv_callback_fn *) destroy,
+				user_data);
+}
+
 /*
- *  Programmatically accessable controls. Other controls
- *  are anonymous, only the user knows what they do. Keep
- *  the list short.
+ *  Audio lines (input or output)
  */
+
+typedef enum {
+	TV_AUDIO_LINE_TYPE_NONE
+} tv_audio_line_type;
+
+typedef enum {
+	TV_AUDIO_LINE_ID_NONE,
+	TV_AUDIO_LINE_ID_UNKNOWN = TV_AUDIO_LINE_ID_NONE
+} tv_audio_line_id;
+
+typedef struct _tv_audio_line tv_audio_line;
+
+struct _tv_audio_line {
+	tv_audio_line *		_next;
+	void *			_parent;
+	tv_callback *		_callback;
+
+	char *			label;
+	unsigned int		hash;
+
+	tv_audio_line_type	type;
+	tv_audio_line_id	id;
+
+	int			minimum;	/* volume */
+	int			maximum;
+	int			step;
+	int			reset;
+
+	/* A mixer input which can be routed to the ADC.
+	   Only these are valid args for set_rec_line().
+	   Meaningless for tv audio inputs. */
+	unsigned		recordable	: 1;
+
+	unsigned		stereo		: 1;
+
+	/* Each audio line has a built-in volume control. Or at least that's
+	   what we pretend, only mixers really do. Further we assume it
+	   has a mute switch, independent of volume, emulated when not. These
+	   values reflect the last known left (0) and right (1) volume and
+	   mute state. */
+	unsigned		muted		: 1;
+	int			volume[2];
+};
+
+extern tv_bool
+tv_audio_line_update		(tv_audio_line *	line);
+extern tv_bool
+tv_audio_line_get_volume	(tv_audio_line *	line,
+				 int *			left,
+				 int *			right);
+extern tv_bool
+tv_audio_line_set_volume	(tv_audio_line *	line,
+				 int			left,
+				 int			right);
+extern tv_bool
+tv_audio_line_get_mute		(tv_audio_line *	line,
+				 tv_bool *		mute);
+extern tv_bool
+tv_audio_line_set_mute		(tv_audio_line *	line,
+				 tv_bool		mute);
+
+static __inline__ tv_callback *
+tv_audio_line_add_callback	(tv_audio_line *	line,
+				 void			(* notify)(tv_audio_line *, void *),
+				 void			(* destroy)(tv_audio_line *, void *),
+				 void *			user_data)
+{
+	assert (line != NULL);
+
+	return tv_callback_add (&line->_callback,
+				(tv_callback_fn *) notify,
+				(tv_callback_fn *) destroy,
+				user_data);
+}
+
+/*
+ *  Video standards
+ */
+
+/* tv_video_standard_id values, copied from V4L2 2.5. Should be
+   TV_VIDEO_STANDARD_ID_PAL_B etc to follow the scheme, but
+   let's keep it reasonable. */
+enum {
+	TV_VIDEOSTD_UNKNOWN	= 0,
+
+     	TV_VIDEOSTD_PAL_B	= (1 << 0),
+	TV_VIDEOSTD_PAL_B1	= (1 << 1),
+	TV_VIDEOSTD_PAL_G	= (1 << 2),
+	TV_VIDEOSTD_PAL_H	= (1 << 3),
+	TV_VIDEOSTD_PAL_I	= (1 << 4),
+	TV_VIDEOSTD_PAL_D	= (1 << 5),
+	TV_VIDEOSTD_PAL_D1	= (1 << 6),
+	TV_VIDEOSTD_PAL_K	= (1 << 7),
+
+	TV_VIDEOSTD_PAL_M	= (1 << 8),
+	TV_VIDEOSTD_PAL_N	= (1 << 9),
+	TV_VIDEOSTD_PAL_NC	= (1 << 10),
+
+	TV_VIDEOSTD_NTSC_M	= (1 << 12),
+	TV_VIDEOSTD_NTSC_M_JP	= (1 << 13),
+
+	TV_VIDEOSTD_SECAM_B	= (1 << 16),
+	TV_VIDEOSTD_SECAM_D	= (1 << 17),
+	TV_VIDEOSTD_SECAM_G	= (1 << 18),
+	TV_VIDEOSTD_SECAM_H	= (1 << 19),
+	TV_VIDEOSTD_SECAM_K	= (1 << 20),
+	TV_VIDEOSTD_SECAM_K1	= (1 << 21),
+	TV_VIDEOSTD_SECAM_L	= (1 << 22),
+
+	TV_VIDEOSTD_PAL_BG	= (TV_VIDEOSTD_PAL_B
+				   + TV_VIDEOSTD_PAL_B1
+				   + TV_VIDEOSTD_PAL_G),
+	TV_VIDEOSTD_PAL_DK	= (TV_VIDEOSTD_PAL_D
+				   + TV_VIDEOSTD_PAL_D1
+				   + TV_VIDEOSTD_PAL_K),
+	TV_VIDEOSTD_PAL		= (TV_VIDEOSTD_PAL_BG
+				   + TV_VIDEOSTD_PAL_DK
+				   + TV_VIDEOSTD_PAL_H
+				   + TV_VIDEOSTD_PAL_I),
+	TV_VIDEOSTD_NTSC	= (TV_VIDEOSTD_NTSC_M
+				   + TV_VIDEOSTD_NTSC_M_JP),
+	TV_VIDEOSTD_SECAM	= (TV_VIDEOSTD_SECAM_B
+				   + TV_VIDEOSTD_SECAM_D
+				   + TV_VIDEOSTD_SECAM_G
+				   + TV_VIDEOSTD_SECAM_H
+				   + TV_VIDEOSTD_SECAM_K
+				   + TV_VIDEOSTD_SECAM_K1
+				   + TV_VIDEOSTD_SECAM_L),
+	TV_VIDEOSTD_525_60	= (TV_VIDEOSTD_PAL_M
+				   + TV_VIDEOSTD_NTSC),
+	TV_VIDEOSTD_625_50	= (TV_VIDEOSTD_PAL
+				   + TV_VIDEOSTD_PAL_N
+				   + TV_VIDEOSTD_PAL_NC
+				   + TV_VIDEOSTD_SECAM),
+	TV_VIDEOSTD_ALL		= (TV_VIDEOSTD_525_60
+				   + TV_VIDEOSTD_625_50)
+};
+
+#define TV_VIDEOSTD_CUSTOM ((~ (tv_video_standard_id) 0) << 32)
+
+typedef uint64_t tv_video_standard_id;
+
+typedef struct _tv_video_standard tv_video_standard;
+
+struct _tv_video_standard {
+	tv_video_standard *	_next;
+	void *			_parent;
+	tv_callback *		_callback;
+
+	char *			label;		/* localized */
+	unsigned int		hash;
+
+	/* Note multiple bits can be set if the driver doesn't know
+	   exactly, or doesn't care about the difference (hardware
+	   switches automatically, difference not applicable to
+	   baseband input, etc). */
+	tv_video_standard_id	id;
+
+	/* Nominal frame size, e.g. 640 x 480, assuming square
+	   pixel sampling. */
+	unsigned int		frame_width;
+	unsigned int		frame_height;
+
+	/* Nominal frame rate, either 25 or 30000 / 1001 Hz. */
+	double			frame_rate;
+};
+
+static __inline__ tv_callback *
+tv_video_standard_add_callback	(tv_video_standard *	standard,
+				 void			(* destroy)(tv_video_standard *, void *),
+				 void *			user_data)
+{
+	assert (standard != NULL);
+
+	return tv_callback_add (&standard->_callback,
+				NULL, /* video standards will not change */
+				(tv_callback_fn *) destroy,
+				user_data);
+}
+
+extern tv_callback *
+tv_add_audio_callback		(tveng_device_info *	info,
+				 void			(* notify)(tveng_device_info *, void *),
+				 void			(* destroy)(tveng_device_info *, void *),
+				 void *			user_data);
+
+/*
+ *  Controls
+ */
+
+/* Programmatically accessable controls. Other controls
+   are anonymous, only the user knows what they do. Keep
+   the list short. */
 typedef enum {
 	TV_CONTROL_ID_NONE,
 	TV_CONTROL_ID_UNKNOWN = TV_CONTROL_ID_NONE,
@@ -404,25 +628,34 @@ typedef enum {
 } tv_control_id;
 
 typedef enum {
-	TV_CONTROL_TYPE_INTEGER,		/* integer [min, max] */
-	TV_CONTROL_TYPE_BOOLEAN,		/* integer [0, 1] */
-	TV_CONTROL_TYPE_CHOICE,			/* multiple choice */
-	TV_CONTROL_TYPE_ACTION,			/* setting has one-time effect */
-	TV_CONTROL_TYPE_COLOR			/* RGB color entry */
+	TV_CONTROL_TYPE_NONE,
+	TV_CONTROL_TYPE_INTEGER,	/* integer [min, max] */
+	TV_CONTROL_TYPE_BOOLEAN,	/* integer [0, 1] */
+	TV_CONTROL_TYPE_CHOICE,		/* multiple choice */
+	TV_CONTROL_TYPE_ACTION,		/* setting has one-time effect */
+	TV_CONTROL_TYPE_COLOR		/* RGB color entry */
 } tv_control_type;
 
 typedef struct _tv_control tv_control;
 
 struct _tv_control {
+  // XXX this is private because tveng combines control lists and we don't want
+  // the client to see this. Actually the tv_x_next functions are a pain, I
+  // must think of something else to permit public next pointers everywhere.
 	tv_control *		_next;		/* private, use tv_control_next() */
 
-	tv_control_id		id;
-	tv_control_type		type;
+	void *			_parent;
+	tv_callback *		_callback;
 
 	char *			label;		/* localized */
+	unsigned int		hash;
+
+	tv_control_type		type;
+	tv_control_id		id;
 
 	char **			menu;		/* localized; last entry NULL */
-  //	unsigned int		selectable;	/* menu item 1 << n */
+  // add?	unsigned int		selectable;	/* menu item 1 << n */
+  // control enabled/disabled flag?
 
 	int			minimum;
 	int			maximum;
@@ -431,43 +664,217 @@ struct _tv_control {
 
 	int			value;		/* last known, not current value */
 
-	/* private */
-
-	tveng_device_info *	_device;	/* owner */
-	tv_callback_node *	_callback;
-
-  	tv_bool			_ignore; /* preliminary */
+  	tv_bool		_ignore; /* preliminary, private */
 };
 
-extern tv_control *
-tv_control_next			(tveng_device_info *	info,
-				 const tv_control *	control);
-extern tv_callback_node *
-tv_control_callback_add		(tv_control *		control,
-				 void			(* notify)(tv_control *, void *user_data),
-				 void			(* destroy)(tv_control *, void *user_data),
-				 void *			user_data);
+// XXX should not take info argument
+int
+tveng_update_control(tv_control *control, tveng_device_info * info);
+int
+tveng_set_control(tv_control * control, int value,
+		  tveng_device_info * info);
 
-#if 0
-a) audio mode capability - mono, stereo, sap, bilingual; ! sap & bi
-b) reception lang1, lang2 - nil, mono, stereo
-c) demodulation - auto, mono (l1), stereo (l1), l1 (mono), l2
-#endif
+static __inline__ tv_callback *
+tv_control_add_callback		(tv_control *		control,
+				 void			(* notify)(tv_control *, void *),
+				 void			(* destroy)(tv_control *, void *),
+				 void *			user_data)
+{
+	assert (control != NULL);
 
-typedef struct _tv_videostd tv_videostd;
+	return tv_callback_add (&control->_callback,
+				(tv_callback_fn *) notify,
+				(tv_callback_fn *) destroy,
+				user_data);
+}
 
-struct _tv_videostd {
-	int id; /* Standard id */
-	tv_videostd_id stdid; /* attn: don't take this literally. multiple bits
-    could be set if the driver doesn't know exactly, or doesn't care. */
+/*
+ *  Audio modes
+ */
 
-	int index; /* Index in info->standards */
-	int hash; /* Based on the normalized name */
-	char name[32]; /* Canonical name for the standard */
-	int width; /* width (double of uninterlaced width) */
-	int height; /* height (double of uninterlaced height) */
-	double frame_rate; /* nominal frames/s (eg. PAL 25) */ 
+typedef enum {
+	TV_AUDIO_CAPABILITY_NONE,
+	TV_AUDIO_CAPABILITY_AUTO	= (1 << 0),
+	TV_AUDIO_CAPABILITY_MONO	= (1 << 1),
+	TV_AUDIO_CAPABILITY_STEREO	= (1 << 2),
+	/* Note SAP and BILINGUAL are mutually exclusive. */
+	TV_AUDIO_CAPABILITY_SAP		= (1 << 3),
+	TV_AUDIO_CAPABILITY_BILINGUAL	= (1 << 4),
+} tv_audio_capability;
+
+typedef enum {
+	TV_AUDIO_MODE_AUTO		= 0,
+	TV_AUDIO_MODE_UNKNOWN		= TV_AUDIO_MODE_AUTO,
+	TV_AUDIO_MODE_MONO		= 1,
+	TV_AUDIO_MODE_LANG1_MONO	= TV_AUDIO_MODE_MONO,
+	TV_AUDIO_MODE_STEREO		= 2,
+	TV_AUDIO_MODE_LANG1_STEREO	= TV_AUDIO_MODE_STEREO,
+	TV_AUDIO_MODE_LANG2		= 3,
+	TV_AUDIO_MODE_LANG2_MONO	= TV_AUDIO_MODE_LANG2
+	/* LANG2_STEREO: There are no 4 channel systems. Digital and
+	   satellite are a different matter. */
+} tv_audio_mode;
+
+extern tv_bool
+tv_set_audio_mode		(tveng_device_info *	info,
+				 tv_audio_mode		mode);
+extern tv_bool
+tv_audio_update			(tveng_device_info *	info);
+
+/*
+ *  Video overlay
+ */
+
+/*
+  TODO:
+  capabilities:			setup:			window:
+  dma overlay			g|s_overlay_buffer	g|s_preview_window
+  dma overlay w/clipping	g|s_overlay_buffer	g|s_preview_window (w/clips)
+  chroma-key overlay		g|s_chroma_key		g|s_preview_window
+  xwindow frontend overlay	g|s_xwindow		g|s_preview_window
+  xwindow backend overlay	g|s_xwindow w/chroma	g|s_preview_window
+
+  plus source rectangle (zoom effect etc) where available.
+ */
+
+typedef struct _tv_overlay_buffer tv_overlay_buffer;
+
+/* This is the target of DMA overlay, a continuous chunk of physical memory,
+   unlike malloc'ed virtual memory. Usually it describes the visible portion
+   of the graphics card's video memory. */
+struct _tv_overlay_buffer {
+	/* Frame buffer physical address. (XXX What is physical?) */
+	void *			base;			/* e.g. */
+
+	unsigned int		bytes_per_line;		/* 2048 (>= width) */
+	unsigned int		size;			/* 2048 * 768, bytes */
+	
+	unsigned int		width;			/* 1024 pixels */
+	unsigned int		height;			/* 768 */
+
+	/* XXX rgb1? 1rgb? 1bgr? bgr1? le/be? pixfmt to be replaced
+	   by more accurate enumeration. depth and bpp to be replaced
+	   by pixfmt break-down client helper function. */
+
+	enum tveng_frame_pixformat pixfmt;		/* TVENG_PIX_RGB555 */
+
+//	unsigned int		depth;			/* 15 */
+//	unsigned int		bits_per_pixel;		/* 16 */
 };
+
+/* Overlay clipping rectangle. These are regions you don't want
+   overlaid, with clipping coordinates relative to the overlay
+   window origin (not the overlay buffer). */
+
+typedef struct _tv_clip tv_clip;
+
+struct _tv_clip {
+	unsigned int		x		: 16;
+	unsigned int		y		: 16;
+	unsigned int		width		: 16;
+	unsigned int		height		: 16;
+};
+
+static __inline__ tv_bool
+tv_clip_equal			(const tv_clip *	clip1,
+				 const tv_clip *	clip2)
+{
+	if (sizeof (tv_clip) == 8)
+		return (* (uint64_t *) clip1) == (* (uint64_t *) clip2);
+	else
+		return (0 == ((clip1->x ^ clip2->x) |
+			      (clip1->y ^ clip2->y) |
+			      (clip1->width ^ clip2->width) |
+			      (clip1->height ^ clip2->height)));
+}
+
+/* Imitating STL vector... */
+
+typedef struct _tv_clip_vector tv_clip_vector;
+
+struct _tv_clip_vector {
+	tv_clip *		vector;
+	unsigned int		size;
+	unsigned int		capacity;
+};
+
+extern tv_bool
+tv_clip_vector_equal		(const tv_clip_vector *	vector1,
+				 const tv_clip_vector *	vector2);
+extern tv_bool
+tv_clip_vector_copy		(tv_clip_vector *	dst,
+				 const tv_clip_vector *	src);
+static __inline__ void
+tv_clip_vector_clear		(tv_clip_vector *	vector)
+{
+	vector->size = 0;
+}
+
+extern tv_bool
+tv_clip_vector_add_clip_xy	(tv_clip_vector *	vector,
+				 unsigned int		x1,
+				 unsigned int		y1,
+				 unsigned int		x2,
+				 unsigned int		y2);
+static __inline__ tv_bool
+tv_clip_vector_add_clip_wh	(tv_clip_vector *	vector,
+				 unsigned int		x,
+				 unsigned int		y,
+				 unsigned int		width,
+				 unsigned int		height)
+{
+	return tv_clip_vector_add_clip_xy
+	  (vector, x, y, x + width, y + height);
+}
+
+static __inline__ void
+tv_clip_vector_init		(tv_clip_vector *	vector)
+{
+	memset (vector, 0, sizeof (*vector));
+}
+
+static __inline__ void
+tv_clip_vector_destroy		(tv_clip_vector *	vector)
+{
+	free (vector->vector);
+	tv_clip_vector_init (vector);
+}
+
+/* Overlay rectangle. This is what gets DMAed into the overlay
+   buffer, minus clipping rectangles. Coordinates are relative
+   to the overlay buffer origin. */
+
+typedef struct _tv_window tv_window;
+
+struct _tv_window {
+	int			x;	// sic, can be negative
+	int			y;
+	unsigned int		width;
+	unsigned int		height;
+
+	/* Invisible regions of window, coordinates relative x, y above. */
+	tv_clip_vector		clip_vector;
+
+	// XXX to be removed
+  Window win; /* window we are previewing to (only needed in XV mode) */
+  GC gc; /* gc associated with win */
+};
+
+static __inline__ void
+tv_window_destroy		(tv_window *		window)
+{
+	tv_clip_vector_destroy (&window->clip_vector);
+	memset (window, 0, sizeof (*window));
+}
+
+static __inline__ void
+tv_window_init			(tv_window *		window)
+{
+	memset (window, 0, sizeof (*window));
+}
+
+
+
 
 
 
@@ -491,28 +898,53 @@ struct _tveng_device_info
 				       */
   enum tveng_controller current_controller; /* Controller used */
   struct tveng_caps caps; /* Video system capabilities */
-  int num_standards; /*
-			Number of standards supported by this device
-		      */
-  int cur_standard; /* Index of cur_standard in standards */
-  struct tveng_enumstd *standards; /* Standards supported */
-
-  int num_inputs; /* Number of inputs in this device */
-  int cur_input; /* Currently selected input */
-  struct tveng_enum_input * inputs; /* Video inputs in this device */
 
   /* the format about this capture */
   struct tveng_frame_format format; /* pixel format of this device */
 
-  /* Framebuffer info */
-  struct tveng_fb_info fb_info;
+	/* All internal communication with the device is logged
+	   through this fp when non-NULL. */
+	FILE *			log_fp;
 
-  /* Overlay window */
-  struct tveng_window window;
+	/* Panel properties */
 
-  /* Controls */
-  tv_control *		controls;
-  unsigned		audio_mutable : 1;
+	/* Video inputs of the device, invariable. */
+	tv_video_line *		video_inputs;
+	/* Can be NULL only when no list exists. */
+	tv_video_line *		cur_video_input;
+
+	/* Audio inputs of the device, invariable. Not supported yet.
+	   Need a function telling which video and audio inputs combine. */
+	tv_audio_line *		audio_inputs;
+	/* Can be NULL only when no list exists. */
+	tv_audio_line *		cur_audio_input;
+
+	/* Video standards supported by the current video input. Note
+	   videostd_ids are bitwise mutually exclusive, i.e. no two listed
+	   standards can have the same videostd_id bit set. */
+	tv_video_standard *	video_standards;
+	/* This can be NULL if we don't know. If it matters,
+	   and video_standards is not NULL, clients should ask the user. */
+	tv_video_standard *	cur_video_standard;
+
+	/* Controls */
+	tv_control *		controls;
+	unsigned		audio_mutable : 1;
+
+	/* Audio mode, input & videostd dependant. Not implemented yet. */
+	tv_audio_capability	audio_capability;
+	tv_audio_mode		audio_mode;
+	/* lang1/2: 0-none/unknown 1-mono 2-stereo */
+	unsigned int		audio_reception[2];
+
+	/* Overlay device properties */
+
+	tv_overlay_buffer	overlay_buffer;
+	tv_window		overlay_window;
+
+	tv_bool			overlay_active; // XXX internal
+
+
 
   /* Unique integer that indentifies this device */
   int signature;
@@ -524,6 +956,137 @@ struct _tveng_device_info
 
   struct tveng_private * priv; /* private stuff */
 };
+
+/* Video inputs */
+
+extern const tv_video_line *
+tv_next_video_input		(tveng_device_info *	info,
+				 const tv_video_line *	line);
+extern const tv_video_line *
+tv_nth_video_input		(tveng_device_info *	info,
+				 unsigned int		hash);
+extern unsigned int
+tv_video_input_position		(tveng_device_info *	info,
+				 const tv_video_line *	line);
+extern const tv_video_line *
+tv_video_input_by_hash		(tveng_device_info *	info,
+				 unsigned int		hash);
+extern const tv_video_line *
+tv_get_video_input		(tveng_device_info *	info);
+extern tv_bool
+tv_set_video_input		(tveng_device_info *	info,
+				 const tv_video_line *	line);
+/* Note this refers to the cur_video_input pointer: notify is called after
+   it changed, possibly to NULL. Since this pointer always points to a video
+   input list member NULL implies the list has been destroyed. The pointer
+   itself is never destroyed until info is. */
+extern tv_callback *
+tv_add_video_input_callback	(tveng_device_info *	info,
+				 void			(* notify)(tveng_device_info *, void *),
+				 void			(* destroy)(tveng_device_info *, void *),
+				 void *			user_data);
+
+/* Audio inputs */
+
+extern const tv_audio_line *
+tv_next_audio_input		(tveng_device_info *	info,
+				 const tv_audio_line *	line);
+extern const tv_audio_line *
+tv_nth_audio_input		(tveng_device_info *	info,
+				 unsigned int		hash);
+extern unsigned int
+tv_audio_input_position		(tveng_device_info *	info,
+				 const tv_audio_line *	line);
+extern const tv_audio_line *
+tv_audio_input_by_hash		(tveng_device_info *	info,
+				 unsigned int		hash);
+extern const tv_audio_line *
+tv_get_audio_input		(tveng_device_info *	info);
+extern tv_bool
+tv_set_audio_input		(tveng_device_info *	info,
+				 const tv_audio_line *	line);
+extern tv_callback *
+tv_add_audio_input_callback	(tveng_device_info *	info,
+				 void			(* notify)(tveng_device_info *, void *),
+				 void			(* destroy)(tveng_device_info *, void *),
+				 void *			user_data);
+
+/* Video standards */
+
+extern const tv_video_standard *
+tv_next_video_standard		(tveng_device_info *	info,
+				 const tv_video_standard *standard);
+extern const tv_video_standard *
+tv_nth_video_standard		(tveng_device_info *	info,
+				 unsigned int		index);
+extern unsigned int
+tv_video_standard_position	(tveng_device_info *	info,
+				 const tv_video_standard *standard);
+extern const tv_video_standard *
+tv_video_standard_by_hash	(tveng_device_info *	info,
+				 unsigned int		hash);
+extern const tv_video_standard *
+tv_get_video_standard		(tveng_device_info *	info);
+extern tv_bool
+tv_set_video_standard		(tveng_device_info *	info,
+				 const tv_video_standard *standard);
+extern tv_bool
+tv_set_video_standard_by_id	(tveng_device_info *	info,
+				 tv_video_standard_id	id);
+/* See add_video_input_callback note. The standard list can change with
+   a video input change. If so, the entire list will be rebuilt, calling
+   notify at least once after the pointer changed to NULL. */
+extern tv_callback *
+tv_add_video_standard_callback	(tveng_device_info *	info,
+				 void			(* notify)(tveng_device_info *, void *),
+				 void			(* destroy)(tveng_device_info *, void *),
+				 void *			user_data);
+
+/* Controls */
+
+extern tv_control *
+tv_next_control			(tveng_device_info *	info,
+				 const tv_control *	control);
+extern tv_control *
+tv_nth_control			(tveng_device_info *	info,
+				 unsigned int		index);
+extern unsigned int
+tv_control_position		(tveng_device_info *	info,
+				 const tv_control *	control);
+extern tv_control *
+tv_control_by_hash		(tveng_device_info *	info,
+				 unsigned int		hash);
+extern tv_control *
+tv_control_by_id		(tveng_device_info *	info,
+				 tv_control_id		id);
+/*
+  Gets the current value of the controls, fills in info->controls
+  appropiately. After this (and if it succeeds) you can look in
+  info->controls to get the values for each control. -1 on error
+*/
+int
+tveng_update_controls(tveng_device_info * info);
+/*
+  Gets the value of a control, given its name. Returns -1 on
+  error. The comparison is performed disregarding the case. The value
+  read is stored in cur_value.
+*/
+int
+tveng_get_control_by_name(const char * control_name,
+			  int * cur_value,
+			  tveng_device_info * info);
+/*
+  Sets the value of a control, given its name. Returns -1 on
+  error. The comparison is performed disregarding the case.
+  new_value holds the new value given to the control, and it is
+  clipped as neccessary.
+*/
+int
+tveng_set_control_by_name(const char * control_name,
+			  int new_value,
+			  tveng_device_info * info);
+
+
 
 /* Starts a tveng_device_info object, returns a pointer to the object
    or NULL on error. Display is the display we are connected to, bpp
@@ -578,80 +1141,7 @@ void tveng_close_device(tveng_device_info* info);
   in case of error, so any value != -1 should be considered valid
   (unless explicitly stated in the description of the function) 
 */
-/*
-  Returns the number of inputs in the given device and fills in info,
-  allocating memory as needed
-*/
-int tveng_get_inputs(tveng_device_info * info);
 
-/*
-  Sets the current input for the capture
-*/
-int tveng_set_input(struct tveng_enum_input * input, tveng_device_info
-		    * info);
-
-/*
-  Sets the input named name as the active input. -1 on error
-  (info->error states the exact error)
-*/
-int
-tveng_set_input_by_name(const char * name, tveng_device_info * info);
-
-/*
-  Sets the active input by its id. -1 on error
-*/
-int
-tveng_set_input_by_id(int id, tveng_device_info * info);
-
-/*
-  Sets the active input by its index in inputs. -1 on error
-*/
-int
-tveng_set_input_by_index(int index, tveng_device_info * info);
-
-/**
- * Finds the input with the given hash, or NULL.
- * The hash is based on the input normalized name.
- */
-struct tveng_enum_input *
-tveng_find_input_by_hash(int hash, const tveng_device_info *info);
-
-/*
-  Queries the device about its standards. Fills in info as appropiate
-  and returns the number of standards in the device.
-*/
-int tveng_get_standards(tveng_device_info * info);
-
-/*
-  Sets the given standard as the current standard
-*/
-int 
-tveng_set_standard(struct tveng_enumstd * std, tveng_device_info * info);
-
-/*
-  Sets the standard by name. -1 on error
-*/
-int
-tveng_set_standard_by_name(const char * name, tveng_device_info * info);
-
-/*
-  Sets the standard by id. -1 on error
-*/
-int
-tveng_set_standard_by_id(int id, tveng_device_info * info);
-
-/*
-  Sets the standard by index. -1 on error
-*/
-int
-tveng_set_standard_by_index(int index, tveng_device_info * info);
-
-/**
- * Finds the standard with the given hash, or NULL.
- * The hash is based on the standard normalized name.
- */
-struct tveng_enumstd *
-tveng_find_standard_by_hash(int hash, const tveng_device_info *info);
 
 /* Updates the current capture format info. -1 if failed */
 int
@@ -662,59 +1152,6 @@ tveng_update_capture_format(tveng_device_info * info);
 int
 tveng_set_capture_format(tveng_device_info * info);
 
-/*
-  Gets the current value of the controls, fills in info->controls
-  appropiately. After this (and if it succeeds) you can look in
-  info->controls to get the values for each control. -1 on error
-*/
-int
-tveng_update_controls(tveng_device_info * info);
-
-int
-tveng_update_control(tv_control *control, tveng_device_info * info);
-
-/*
-  Sets the value for an specific control. The given value will be
-  clipped between min and max values. Returns -1 on error
-*/
-int
-tveng_set_control(tv_control * control, int value,
-		  tveng_device_info * info);
-
-/*
-  Gets the value of a control, given its name. Returns -1 on
-  error. The comparison is performed disregarding the case. The value
-  read is stored in cur_value.
-*/
-int
-tveng_get_control_by_name(const char * control_name,
-			  int * cur_value,
-			  tveng_device_info * info);
-
-/*
-  Sets the value of a control, given its name. Returns -1 on
-  error. The comparison is performed disregarding the case.
-  new_value holds the new value given to the control, and it is
-  clipped as neccessary.
-*/
-int
-tveng_set_control_by_name(const char * control_name,
-			  int new_value,
-			  tveng_device_info * info);
-
-/*
-  Gets the value of a control, given its control id. -1 on error (or
-  cid not found). The result is stored in cur_value.
-*/
-//int
-//tveng_get_control_by_id(int cid, int * cur_value,
-//			tveng_device_info * info);
-
-/*
-  Sets a control by its id. Returns -1 on error
-*/
-//int tveng_set_control_by_id(int cid, int new_value,
-//			    tveng_device_info * info);
 
 /* Audio interface */
 
@@ -727,12 +1164,18 @@ tv_mute_get			(tveng_device_info *	info,
 extern int
 tv_mute_set			(tveng_device_info *	info,
 				 tv_bool		mute);
-extern tv_callback_node *
-tv_mute_callback_add		(tveng_device_info *	info,
-				 void			(* notify)(tveng_device_info *, void *user_data),
-				 void			(* destroy)(tveng_device_info *, void *user_data),
+extern tv_callback *
+tv_mute_add_callback		(tveng_device_info *	info,
+				 void			(* notify)(tveng_device_info *, void *),
+				 void			(* destroy)(tveng_device_info *, void *),
 				 void *			user_data);
 
+
+int
+tveng_set_input_by_name(const char * input_name,
+			tveng_device_info * info);
+int
+tveng_set_standard_by_name(const char * name, tveng_device_info * info);
 
 /*
   Tunes the current input to the given freq. Returns -1 on error.
@@ -807,31 +1250,17 @@ int tveng_set_capture_size(int width, int height, tveng_device_info *
 int tveng_get_capture_size(int *width, int *height, tveng_device_info * info);
 
 /* XF86 Frame Buffer routines */
-/* 
-   Detects the presence of a suitable Frame Buffer.
-   1 if the program should continue (Frame Buffer present,
-   available and suitable)
-   0 if the framebuffer shouldn't be used.
-   display: The display we are connected to (gdk_display)
-   info: Its fb member is filled in
-*/
-int
-tveng_detect_XF86DGA(tveng_device_info * info);
 
-/*
-  Returns 1 if the device attached to info suports previewing, 0 otherwise
-*/
-int
-tveng_detect_preview (tveng_device_info * info);
-
-/* 
-   Runs zapping_setup_fb with the actual verbosity value.
-   Returns -1 in case of error, 0 otherwise.
-   This calls (or tries to) the external program zapping_setup_fb,
-   that should be installed as suid root.
-*/
-int
-tveng_run_zapping_setup_fb(tveng_device_info * info);
+extern tv_bool
+tv_get_overlay_buffer		(tveng_device_info *	info,
+				 tv_overlay_buffer *	target);
+extern tv_bool
+tv_set_overlay_buffer		(tveng_device_info *	info,
+				 tv_overlay_buffer *	target);
+extern tv_bool
+tv_set_overlay_xwindow		(tveng_device_info *	info,
+				 Window			window,
+				 GC			gc);
 
 /* 
    This is a convenience function, it returns the real screen depth in
@@ -922,44 +1351,10 @@ tveng_start_previewing (tveng_device_info * info, const char *mode);
 int
 tveng_stop_previewing (tveng_device_info * info);
 
-/*
-  Sets up everything and starts previewing in a window. It doesn't do
-  many of the things tveng_start_previewing does, it's mostly just a
-  wrapper around tveng_set_preview_on. Returns -1 on error
-  The window must be specified from before calling this function (with
-  tveng_set_preview_window), and overlaying must be available.
-*/
-int
-tveng_start_window (tveng_device_info * info);
-
-/*
-  Stops the window mode. Returns -1 on error
-*/
-int
-tveng_stop_window (tveng_device_info * info);
-
 /* Some utility functions a la glib */
-/*
-  Utility function, stops the capture or the previewing. Returns the
-  mode the device was before stopping.
-  For stopping and restarting the device do:
-  enum tveng_capture_mode cur_mode;
-  cur_mode = tveng_stop_everything(info);
-  ... do some stuff ...
-  if (tveng_restart_everything(cur_mode, info) == -1)
-     ... show error dialog ...
-*/
-enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
-					       info);
+
 extern char *
 tveng_strdup_printf(const char *templ, ...);
-
-/*
-  Restarts the given capture mode. See the comments on
-  tveng_stop_everything. Returns -1 on error.
-*/
-int tveng_restart_everything (enum tveng_capture_mode mode,
-			      tveng_device_info * info);
 
 /* build hash for the given string, normalized */
 int
@@ -1010,63 +1405,11 @@ void tveng_mutex_lock(tveng_device_info *info);
 void tveng_mutex_unlock(tveng_device_info * info);
 
 /*
- *  MIXER INTERFACE
+ *  AUDIO MIXER INTERFACE
  */
-
-/*
- *  Machine readable purpose of a mixer line.
- *  We'll see what's needed.
- */
-typedef enum {
-	TV_MIXER_LINE_ID_NONE,
-	TV_MIXER_LINE_ID_UNKNOWN = TV_MIXER_LINE_ID_NONE,
-} tv_mixer_line_id;
 
 typedef struct _tv_mixer tv_mixer;
-typedef struct _tv_mixer_line tv_mixer_line;
 typedef struct _tv_mixer_interface tv_mixer_interface;
-
-struct _tv_mixer_line {
-	tv_mixer_line *		next;
-
-	tv_mixer_line_id	id;
-
-	char *			label;		/* localized */
-	unsigned int		hash;		/* config */
-
-	unsigned int		minimum;	/* volume */
-	unsigned int		maximum;
-	unsigned int		step;
-	unsigned int		reset;
-
-	/*
-	 *  A mixer input which can be routed to the ADC.
-	 *  Only these are valid args for set_rec_line().
-	 */
-	unsigned		recordable	: 1;
-
-	unsigned		stereo		: 1;
-
-	/*
-	 *  Last known left (0) and right (1) volume and
-	 *  mute state. Last known because rogue users
-	 *  equipped with evil mixer applications change these
-	 *  settings whenever we don't expect. Use of callback
-	 *  recommended.
-	 */
-	unsigned		muted		: 1;
-	unsigned int		volume[2];
-
-	/* private */
-
-	tv_mixer *		_mixer;
-
-	/*
-	 *  Called by interface when tv_mixer_line.volume
-	 *  or .muted changed.
-	 */
-	tv_callback_node *	_callback;
-};
 
 /*
  *  Assumptions, for now:
@@ -1110,7 +1453,7 @@ struct _tv_mixer {
 	 *  Routes from inputs to output sum/mux. Mute/volume
 	 *  does not affect recording.
 	 */
-	tv_mixer_line *		inputs;
+	tv_audio_line *		inputs;
 
 	/*
 	 *  Last known recording source, this points to one of the
@@ -1121,17 +1464,17 @@ struct _tv_mixer {
 	 *  one requested with set_rec_line(). Point is this may
 	 *  change asynchronously, use of callback recommended.
 	 */
-	tv_mixer_line *		rec_line;
+	tv_audio_line *		rec_line;
 
 	/*
 	 *  Route from rec mux to ADC or NULL.
 	 */
-	tv_mixer_line *		rec_gain;
+	tv_audio_line *		rec_gain;
 
 	/*
 	 *  Route from DAC to output sum/mux or NULL.
 	 */
-	tv_mixer_line *		play_gain;
+	tv_audio_line *		play_gain;
 
 	/* private */
 
@@ -1143,41 +1486,57 @@ struct _tv_mixer {
 	/*
 	 *  Called by interface when tv_mixer.rec_line changed.
 	 */
-	tv_callback_node *	_callback;
+	tv_callback *		_callback;
 };
 
 extern tv_bool
-tv_mixer_line_update		(tv_mixer_line *	line);
+tv_mixer_line_update		(tv_audio_line *	line);
 
 extern tv_bool
-tv_mixer_line_get_volume	(tv_mixer_line *	line,
+tv_mixer_line_get_volume	(tv_audio_line *	line,
 				 unsigned int *		left,
 				 unsigned int *		right);
 extern tv_bool
-tv_mixer_line_set_volume	(tv_mixer_line *	line,
+tv_mixer_line_set_volume	(tv_audio_line *	line,
 				 unsigned int		left,
 				 unsigned int		right);
 extern tv_bool
-tv_mixer_line_get_mute		(tv_mixer_line *	line,
+tv_mixer_line_get_mute		(tv_audio_line *	line,
 				 tv_bool *		mute);
 extern tv_bool
-tv_mixer_line_set_mute		(tv_mixer_line *	line,
+tv_mixer_line_set_mute		(tv_audio_line *	line,
 				 tv_bool		mute);
 extern tv_bool
-tv_mixer_line_record		(tv_mixer_line *	line,
+tv_mixer_line_record		(tv_audio_line *	line,
 				 tv_bool		exclusive);
-extern tv_callback_node *
-tv_mixer_line_callback_add	(tv_mixer_line *	line,
-				 void			(* notify)(tv_mixer_line *, void *user_data),
-				 void			(* destroy)(tv_mixer_line *, void *user_data),
-				 void *			user_data);
+static __inline__ tv_callback *
+tv_mixer_line_add_callback	(tv_audio_line *	line,
+				 void			(* notify)(tv_audio_line *, void *),
+				 void			(* destroy)(tv_audio_line *, void *),
+				 void *			user_data)
+{
+	assert (line != NULL);
+
+	return tv_callback_add (&line->_callback,
+				(tv_callback_fn *) notify,
+				(tv_callback_fn *) destroy,
+				user_data);
+}
 extern tv_bool
 tv_mixer_update			(tv_mixer *		mixer);
-extern tv_callback_node *
-tv_mixer_callback_add		(tv_mixer *		mixer,
-				 void			(* notify)(tv_mixer_line *, void *user_data),
-				 void			(* destroy)(tv_mixer_line *, void *user_data),
-				 void *			user_data);
+static __inline__ tv_callback *
+tv_mixer_add_callback		(tv_mixer *		mixer,
+				 void			(* notify)(tv_mixer *, void *),
+				 void			(* destroy)(tv_mixer *, void *),
+				 void *			user_data)
+{
+	assert (mixer != NULL);
+
+	return tv_callback_add (&mixer->_callback,
+				(tv_callback_fn *) notify,
+				(tv_callback_fn *) destroy,
+				user_data);
+}
 extern tv_mixer *
 tv_mixer_open			(FILE *			log,
 				 const char *		device);
@@ -1194,7 +1553,7 @@ tv_mixer_scan			(FILE *			log);
 extern void
 tveng_attach_mixer_line		(tveng_device_info *	info,
 				 tv_mixer *		mixer,
-				 tv_mixer_line *	line);
+				 tv_audio_line *	line);
 
 /* Sanity checks should use this */
 #define t_assert(condition) if (!(condition)) { \
