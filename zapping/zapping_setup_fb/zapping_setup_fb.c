@@ -350,7 +350,7 @@ main				(int			argc,
 	       xs->target.format.width,
 	       xs->target.format.height,
 	       xs->target.format.size,
-	       xs->target.format.bytes_per_line,
+	       xs->target.format.bytes_per_line[0],
 	       tv_pixfmt_name (xs->target.format.pixel_format->pixfmt));
     }
 
