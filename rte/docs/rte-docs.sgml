@@ -3,6 +3,7 @@
 <!ENTITY rte-codecs SYSTEM "sgml/codecs.sgml">
 <!ENTITY rte-options SYSTEM "sgml/options.sgml">
 <!ENTITY rte-io SYSTEM "sgml/io.sgml">
+<!ENTITY rte-startstop SYSTEM "sgml/startstop.sgml">
 <!ENTITY rte-status SYSTEM "sgml/status.sgml">
 <!ENTITY rte-types SYSTEM "sgml/types.sgml">
 ]>
@@ -17,6 +18,7 @@
     &rte-codecs;
     &rte-options;
     &rte-io;
+    &rte-startstop;
     &rte-status;
     &rte-types;
   </chapter>

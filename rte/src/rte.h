@@ -28,6 +28,7 @@
   FIXME: Document unions.
   FIXME: Document codec status.
   FIXME: context options?
+  FIXME: Document option_print
 */
 
 #include "rte-enums.h"
@@ -642,5 +643,45 @@ rte_codec_status_keyword(rte_codec *codec, const char *keyword);
  **/
 void
 rte_status_free(rte_status_info *status);
+
+/**
+ * rte_start:
+ * @context: Initialized rte_context
+ *
+ * Tries to start encoding.
+ *
+ * Return value: %TRUE if everything worked, %FALSE otherwise.
+ **/
+rte_bool
+rte_start(rte_context *context);
+
+/**
+ * rte_stop:
+ * @context: Initialized rte_context.
+ *
+ * Stops encoding.
+ **/
+void
+rte_stop(rte_context *context);
+
+/**
+ * rte_pause:
+ * @context: Initialized rte_context.
+ *
+ * Pauses recording.
+ **/
+void
+rte_pause(rte_context *context);
+
+/**
+ * rte_resume:
+ * @context: Initialized rte_context.
+ *
+ * Resumes a paused recording.
+ *
+ * Return value: %TRUE if the recording could be resumed, FALSE otherwise.
+ **/
+rte_bool
+rte_resume(rte_context *context);
 
 #endif /* rte.h */

@@ -50,6 +50,14 @@ rte_push_data
 rte_set_output_callback
 </SECTION>
 
+<SECTION>
+<TITLE>Starting and stopping.</TITLE>
+<FILE>startstop</FILE>
+rte_start
+rte_stop
+rte_pause
+rte_resume
+</SECTION>
 
 <SECTION>
 <TITLE>Querying status.</TITLE>
@@ -65,17 +73,22 @@ rte_status_free
 <TITLE>Fundamental types.</TITLE>
 <FILE>types</FILE>
 rte_bool
+rte_int
+rte_string
+rte_real
+rte_menu
 rte_pointer
 rte_context_info
 rte_codec_info
 rte_stream_type
+rte_basic_type
 rte_option_value
 rte_option_info
 rte_stream_parameters
 rte_video_stream_parameters
 rte_audio_stream_parameters
 rte_buffer
-rte_status
+rte_status_info
 rteBufferCallback
 rteDataCallback
 rteWriteCallback

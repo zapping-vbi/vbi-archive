@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.2 2001-12-15 18:48:56 garetxe Exp $
+ * $Id: rtepriv.h,v 1.3 2001-12-15 20:56:43 garetxe Exp $
  * Private stuff in the context.
  */
 
@@ -44,8 +44,11 @@ typedef enum {
 	/* i/o -> */
 	RTE_STATUS_READY,
 	/* start -> */
-	RTE_STATUS_RUNNING
-	/* stop -> RTE_STATUS_READY */
+	RTE_STATUS_RUNNING,
+	/* stop -> RTE_STATUS_READY
+	   pause -> */
+	RTE_STATUS_PAUSED
+	/* resume -> RTE_STATUS_RUNNING */
 } rte_status;
 
 /* maybe one should add this stuff under a #ifdef RTE_BACKEND to rte.h? */

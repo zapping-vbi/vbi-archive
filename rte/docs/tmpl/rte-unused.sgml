@@ -157,6 +157,54 @@ Library interface
 
 @Returns: 
 
+<!-- ##### FUNCTION rte_option_get ##### -->
+<para>
+
+</para>
+
+@codec: 
+@keyword: 
+@value: 
+@Returns: 
+
+<!-- ##### FUNCTION rte_option_info_enum ##### -->
+<para>
+
+</para>
+
+@codec: 
+@index: 
+@Returns: 
+
+<!-- ##### FUNCTION rte_option_info_keyword ##### -->
+<para>
+
+</para>
+
+@codec: 
+@keyword: 
+@Returns: 
+
+<!-- ##### FUNCTION rte_option_print ##### -->
+<para>
+
+</para>
+
+@codec: 
+@keyword: 
+@Varargs: 
+@Returns: 
+
+<!-- ##### FUNCTION rte_option_set ##### -->
+<para>
+
+</para>
+
+@codec: 
+@keyword: 
+@Varargs: 
+@Returns: 
+
 <!-- ##### ENUM rte_option_type ##### -->
 <para>
 
@@ -224,6 +272,12 @@ Library interface
 @RTE_SNDFMT_U16LE: 
 @RTE_SNDFMT_U16BE: 
 @RTE_SNDFMT_MAX: 
+
+<!-- ##### TYPEDEF rte_status ##### -->
+<para>
+
+</para>
+
 
 <!-- ##### TYPEDEF rte_stream_parameters ##### -->
 <para>

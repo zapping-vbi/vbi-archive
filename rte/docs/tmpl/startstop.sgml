@@ -1,0 +1,50 @@
+<!-- ##### SECTION Title ##### -->
+Starting and stopping.
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION rte_start ##### -->
+<para>
+
+</para>
+
+@context: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_stop ##### -->
+<para>
+
+</para>
+
+@context: 
+
+
+<!-- ##### FUNCTION rte_pause ##### -->
+<para>
+
+</para>
+
+@context: 
+
+
+<!-- ##### FUNCTION rte_resume ##### -->
+<para>
+
+</para>
+
+@context: 
+@Returns: 
+
+

@@ -20,6 +20,30 @@ Basic types
 </para>
 
 
+<!-- ##### TYPEDEF rte_int ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### TYPEDEF rte_string ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### TYPEDEF rte_real ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### TYPEDEF rte_menu ##### -->
+<para>
+
+</para>
+
+
 <!-- ##### TYPEDEF rte_pointer ##### -->
 <para>
 
@@ -48,6 +72,16 @@ Basic types
 @RTE_STREAM_SLICED_VBI: 
 @RTE_STREAM_MAX: 
 
+<!-- ##### ENUM rte_basic_type ##### -->
+<para>
+
+</para>
+
+@RTE_BOOL: 
+@RTE_INT: 
+@RTE_REAL: 
+@RTE_STRING: 
+
 <!-- ##### TYPEDEF rte_option_info ##### -->
 <para>
 
@@ -72,7 +106,7 @@ Basic types
 </para>
 
 
-<!-- ##### TYPEDEF rte_status ##### -->
+<!-- ##### TYPEDEF rte_status_info ##### -->
 <para>
 
 </para>

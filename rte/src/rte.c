@@ -23,9 +23,10 @@
 #include <stdio.h>
 #include <string.h>
 
-/**
- * FIXME: Error reporting.
- **/
+/*
+  FIXME: Better error reporting.
+  TODO: i18n support.
+*/
 
 #define xc context->class
 #define dc codec->class
@@ -117,12 +118,9 @@ rte_context_delete(rte_context *context)
 {
 	nullcheck(context, return);
 
-/** FIXME:
+/* FIXME:
 	if (context->status == RTE_STATUS_RUNNING)
 		rte_stop(context);
-
-	if (context->status == RTE_STATUS_READY)
-		rte_uninit(context);
 */
 
 	if (context->error) {
@@ -560,4 +558,77 @@ rte_status_free(rte_status_info *status)
 	  free(status->val.str);
 
 	free(status);
+}
+
+rte_bool
+rte_start(rte_context *context)
+{
+	rte_bool result;
+
+	nullcheck(context, return FALSE);
+
+	if (context->status != RTE_STATUS_READY) {
+		if (context->status == RTE_STATUS_RUNNING)
+			rte_error(context, "Already encoding!");
+		else if (context->status == RTE_STATUS_PAUSED)
+			rte_error(context, "Paused, use rte_resume");
+		else
+			rte_error(context,
+				  "You must context_set_output first");
+		return FALSE;
+	}
+
+	/* FIXME: to do */
+
+	result = xc->start();
+
+	if (result)
+		context->status = RTE_STATUS_RUNNING;
+
+	return result;
+}
+
+void
+rte_stop(rte_context *context)
+{
+	nullcheck(context, return);
+
+	if (context->status < RTE_STATUS_RUNNING) {
+		rte_error(context, "Not running!!");
+		return;
+	}
+
+	/* FIXME: to do */
+
+	context->status = RTE_STATUS_READY;
+}
+
+void
+rte_pause(rte_context *context)
+{
+	nullcheck(context, return);
+
+	if (context->status != RTE_STATUS_RUNNING) {
+		rte_error(context, "Not running!!");
+		return;
+	}
+
+	/* FIXME: to do */
+
+	context->status = RTE_STATUS_PAUSED;
+}
+
+rte_bool
+rte_resume(rte_context *context)
+{
+	nullcheck(context, return FALSE);
+
+	if (context->status != RTE_STATUS_PAUSED) {
+		rte_error(context, "Not paused!!");
+		return FALSE;
+	}
+
+	/* FIXME: to do */
+
+	context->status = RTE_STATUS_RUNNING;
 }
