@@ -1025,18 +1025,19 @@ py_lookup_channel			(PyObject *self, PyObject *args)
 static gchar			kp_chsel_buf[5];
 static gint			kp_chsel_prefix;
 static gboolean			kp_clear;
+static gboolean			kp_lirc; /* XXX */
 
 static void
-kp_timeout				(gboolean timer)
+kp_timeout			(gboolean		timer)
 {
   gint txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
 
-  if (timer && txl >= 0) /* -1 disable, 0 list entry, 1 RF channel */
+  if (timer && (txl >= 0 || kp_lirc)) /* txl: -1 disable, 0 list entry, 1 RF channel */
     {
       if (!isdigit (kp_chsel_buf[0]) || txl >= 1)
 	cmd_run_printf ("zapping.lookup_channel('%s')", kp_chsel_buf);
       else
-	cmd_run_printf ("zapping.set_channel(%d)", kp_chsel_buf);
+	cmd_run_printf ("zapping.set_channel(%s)", kp_chsel_buf);
     }
 
   if (kp_clear)
@@ -1046,71 +1047,103 @@ kp_timeout				(gboolean timer)
     }
 }
 
+static gboolean
+kp_key_press			(GdkEventKey *		event,
+				 gint			txl)
+{
+  extern tveng_rf_table *current_country; /* Currently selected contry */
+  const gchar *prefix;
+  int i;
+
+  switch (event->keyval)
+    {
+#ifdef HAVE_LIBZVBI
+    case GDK_KP_0 ... GDK_KP_9:
+      i = strlen (kp_chsel_buf);
+
+      if (i >= sizeof (kp_chsel_buf) - 1)
+	memcpy (kp_chsel_buf, kp_chsel_buf + 1, i--);
+
+      kp_chsel_buf[i] = event->keyval - GDK_KP_0 + '0';
+      kp_chsel_buf[i + 1] = 0;
+
+    show:
+      kp_clear = FALSE;
+      /* NLS: Channel name being entered on numeric keypad */
+      osd_render_sgml (kp_timeout, _("<green>%s</green>"), kp_chsel_buf);
+      kp_clear = TRUE;
+
+      return TRUE;
+
+    case GDK_KP_Decimal:
+      /* Run through all RF channel prefixes incl. nil (== clear) */
+
+      prefix = current_country->prefixes[kp_chsel_prefix];
+
+      if (prefix)
+	{
+	  strncpy (kp_chsel_buf, prefix, sizeof (kp_chsel_buf) - 1);
+	  kp_chsel_prefix++;
+	  goto show;
+	}
+      else
+	{
+	  kp_clear = TRUE;
+	  osd_render_sgml (kp_timeout, "<black>/</black>");
+	}
+
+      return TRUE;
+
+    case GDK_KP_Enter:
+      if (!isdigit (kp_chsel_buf[0]) || txl >= 1)
+	cmd_run_printf ("zapping.lookup_channel('%s')", kp_chsel_buf);
+      else
+	cmd_run_printf ("zapping.set_channel(%s)", kp_chsel_buf);
+
+      kp_chsel_buf[0] = 0;
+      kp_chsel_prefix = 0;
+
+      return TRUE;
+#endif
+
+    default:
+      break;
+    }
+
+  return FALSE; /* not for us, pass it on */
+}
+
+/*
+ * Called from alirc.c, preliminary.
+ */
+gboolean
+channel_key_press		(GdkEventKey *		event)
+{
+  gint txl;
+
+  txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
+
+  kp_lirc = TRUE;
+
+  return kp_key_press (event, txl);
+}
+
 gboolean
 on_channel_key_press			(GtkWidget *	widget,
 					 GdkEventKey *	event,
 					 gpointer	user_data)
 {
-  extern tveng_rf_table *current_country; /* Currently selected contry */
   tveng_tuned_channel *tc;
-  const gchar *prefix;
   z_key key;
-  int txl, i;
+  gint txl, i;
 
   txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
 
   if (txl >= 0) /* !disabled */
-    switch (event->keyval)
+    if (kp_key_press (event, txl))
       {
-      case GDK_KP_0 ... GDK_KP_9:
-	i = strlen (kp_chsel_buf);
-
-	if (i >= sizeof (kp_chsel_buf) - 1)
-	  memcpy (kp_chsel_buf, kp_chsel_buf + 1, i--);
-
-	kp_chsel_buf[i] = event->keyval - GDK_KP_0 + '0';
-	kp_chsel_buf[i + 1] = 0;
-
-      show:
-	kp_clear = FALSE;
-	/* NLS: Channel name being entered on numeric keypad */
-	osd_render_sgml (kp_timeout, _("<green>%s</green>"), kp_chsel_buf);
-	kp_clear = TRUE;
-
+	kp_lirc = FALSE;
 	return TRUE;
-
-      case GDK_KP_Decimal:
-	/* Run through all RF channel prefixes incl. nil (== clear) */
-
-	prefix = current_country->prefixes[kp_chsel_prefix];
-
-	if (prefix)
-	  {
-	    strncpy (kp_chsel_buf, prefix, sizeof (kp_chsel_buf) - 1);
-	    kp_chsel_prefix++;
-	    goto show;
-	  }
-	else
-	  {
-	    kp_clear = TRUE;
-	    osd_render_sgml (kp_timeout, "<black>/</black>");
-	  }
-
-	return TRUE;
-
-      case GDK_KP_Enter:
-	if (!isdigit (kp_chsel_buf[0]) || txl >= 1)
-	  cmd_run_printf ("zapping.lookup_channel('%s')", kp_chsel_buf);
-	else
-	  cmd_run_printf ("zapping.set_channel(%d)", kp_chsel_buf);
-
-	kp_chsel_buf[0] = 0;
-	kp_chsel_prefix = 0;
-
-	return TRUE;
-
-      default:
-	break;
       }
 
   /* Channel accelerators */

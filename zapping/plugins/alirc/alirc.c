@@ -17,11 +17,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+
+/* $Id: alirc.c,v 1.4.2.2 2002-12-27 04:14:31 mschimek Exp $ */
+
+#include "v4linterface.h" /* channel_key_press() */
 #include "plugin_common.h"
 
 #ifdef HAVE_LIRC
 #include <lirc/lirc_client.h>
 #include <time.h>
+#include <ctype.h>
 
 /* This is the description of the plugin, change as appropiate */
 static const gchar str_canonical_name[] = "alirc";
@@ -29,20 +34,8 @@ static const gchar str_descriptive_name[] =
 N_("Another lirc plugin");
 static const gchar str_description[] =
 N_("Another plugin to control zapping through lirc\n\n\
-See the lirc documentation for information about the .lircrc file. The plugin \
-will register itself under the name 'zapping_lirc' and you can use the \
-following commands:\n\
-  CHANUP:  One Channel up\n\
-  CHANDOWN:  One Channel down\n\
-  ZOOM: switch between full screen and windowed mode\n\
-  SETCHANNEL <int>: set the channel to <int> (the first channel is 0!!)\n\
-  QUIT: Quit zapping\n\
-  \n\
-Note: when using SETCHANNEL two times within 1500 ms, it will react the same\n\
-as you would expect from a television set. e.g SETCHANNEL 1, SETCHANNEL 3 \
-will set the channel to 13\n\
-The README.alirc file has some more information about the plugin.\
-");
+To enable this plugin you must edit your ~/.lircrc\n\n\
+file. Please see README.alirc for instructions.\n\n");
 
 static const gchar str_short_description[] = 
 N_("Lets you control zapping through lirc");
@@ -69,121 +62,142 @@ static unsigned long setchan_time;
 static int setchan;
 
 static void
-lirc_channel_up(char *args) {
-  cmd_run ("zapping.channel_up()");
-}
-
-static void
-lirc_channel_down(char *args) {
-  cmd_run ("zapping.channel_down()");
-}
-
-static void
-lirc_quit(char *args) {
-  cmd_run ("zapping.quit()");
-}
-
-static const char *
-mode2string (enum tveng_capture_mode mode)
+legacy_zoom			(const gchar *		args)
 {
-  switch (mode)
+  if (tveng_info->current_mode == TVENG_CAPTURE_PREVIEW)
     {
-    case TVENG_CAPTURE_READ:
-      return "capture";
-    case TVENG_CAPTURE_PREVIEW:
-      return "fullscreen";
-    case TVENG_CAPTURE_WINDOW:
-      return "preview";
-    case TVENG_NO_CAPTURE:
-      return "teletext";
-    default:
-      g_assert_not_reached ();
-      break;
+      const gchar *s;
+
+      switch (windowedmode)
+	{
+	case TVENG_CAPTURE_READ:
+	  s = "capture";
+	  break;
+	case TVENG_CAPTURE_PREVIEW:
+	  s = "fullscreen";
+	  break;
+	case TVENG_CAPTURE_WINDOW:
+	  s = "preview";
+	  break;
+	case TVENG_NO_CAPTURE:
+	  s = "teletext";
+	  break;
+	default:
+	  g_assert_not_reached ();
+	  break;
+	}
+
+      cmd_run_printf ("zapping.switch_mode('%s')", s);
     }
-
-  return "dona dona katona, sutondoan aitona";
+  else
+    {
+      windowedmode = tveng_info->current_mode;
+      cmd_run ("zapping.switch_mode('fullscreen')");
+    }
 }
 
 static void
-lirc_zoom(char *args) {
-  if (tveng_info->current_mode == TVENG_CAPTURE_PREVIEW) {
-    cmd_run_printf ("zapping.switch_mode('%s')",
-		    mode2string (windowedmode));
-  } else {
-    windowedmode = tveng_info->current_mode;
-    cmd_run ("zapping.switch_mode('fullscreen')");
-  }
+legacy_setchannel		(const gchar *		args)
+{
+  GdkEventKey event;
+  gint n;
+
+  if (args == NULL)
+    return;
+
+  n = atoi (args);
+
+  if (n < 0)
+    n = 0;
+
+  if (n < 10)
+    {
+      /*
+       *  This (preliminary) calls the routine used to
+       *  enter channel numbers on the numeric keypad.
+       *  Side effects: OSD, digits combine within timeout,
+       *  numbers are interpreted as RF channel or channel name. 
+       */
+      event.keyval = GDK_KP_0 + n;
+      
+      channel_key_press (&event);
+    }
+  else
+    {
+      cmd_run_printf ("zapping.set_channel(%d)", n);
+    }
 }
 
-static void
-lirc_setchannel(char *args) {
-  int channel;
-  struct timeval time;
-  unsigned long timestamp;
-
-  if (args == NULL) return;
-
-  gettimeofday(&time,NULL);
-  /* save timestamp in ms */
-  timestamp = time.tv_sec * 1000 + time.tv_usec / 1000;
-
-  channel = atoi(args);
-
-  if (timestamp - setchan_time < 1500) { 
-    channel += (setchan*10);
-    setchan = 0; /* Go back to default mode.. this is the most sane thing to do
-                 \   except when people have more then 99 channels */ 
-  } else setchan = channel;
-
-  setchan_time = timestamp;
-   
-  /* zapping starts counting channels at 0, we start counting channels at 1 
-   | IMHO this is more sane, as zapping doesn't allow to give a channels a 
-   \ custom number */ 
-  channel--;
-
-  printv("alirc plugin: Setting channel to %d\n",channel);
-  cmd_run_printf ("zapping.set_channel(%d)", channel);
-}
-
-struct lirc_key {
-  char *command; /* lirc command */
-  void (*func)(char *args); /* function to call */
+struct legacy_command
+{
+  const gchar *		lirc_command;
+  const gchar *		py_command;
+  void			(* func)(const gchar *args);
 };
 
-/* list of lirc commands, and which function to call when that command is 
- |   given 
- */
-static struct lirc_key lirc_keys[] = {    
-  {"CHANUP",lirc_channel_up},	   
-  {"CHANDOWN",lirc_channel_down},    
-  {"QUIT",lirc_quit},                
-  {"ZOOM",lirc_zoom},                
-  {"SETCHANNEL",lirc_setchannel}
+static const struct legacy_command
+legacy_command_txl_table [] =
+{
+  { "CHANUP",		"zapping.channel_up()",		NULL },
+  { "CHANDOWN",		"zapping.channel_down()",	NULL },
+  { "QUIT",		"zapping.quit()",		NULL },
+  { "ZOOM",		NULL,				legacy_zoom },
+  { "SETCHANNEL",	NULL,				legacy_setchannel },
+  { "MUTE",		"zapping.mute()",		NULL },
+  { "VOL_UP",		"zapping.volume_incr(+1)",	NULL },
+  { "VOL_DOWN",		"zapping.volume_incr(-1)",	NULL },
 };
 
 static void 
-lirc_do_command(char *string) {
-  char *backup,*command,*args;
-  int num,i;
+run_command			(const gchar *		s)
+{
+  const struct legacy_command *lc;
+  guint i;
 
-  backup = strdup(string);
-  command = strtok(backup," ");
-  if (command == NULL) {
-    free(backup);
+  printv ("alirc: command string '%s'\n", s);
+
+  while (*s && isspace(*s))
+    s++;
+
+  if (!*s)
     return;
-  }
-  args = strtok(NULL,"");
-  printv("alirc: Command->%s... Args->%s\n",command,args);
 
-  num = sizeof(lirc_keys)/sizeof(struct lirc_key);
+  lc = legacy_command_txl_table;
 
-  for (i=0; i < num; i++) {
-    if (!strcmp(command,lirc_keys[i].command)) {
-      (lirc_keys[i].func)(args);
-      return;
+  for (i = 0; i < G_N_ELEMENTS (legacy_command_txl_table); i++)
+    {
+      guint n = strlen (lc->lirc_command);
+
+      if (0 == strncmp (s, lc->lirc_command, n)
+	  && (s[n] == 0 || isspace(s[n])))
+	{
+	  printv ("alirc: command '%*s'\n", n, s);
+
+	  s += n;
+
+	  while (*s && isspace(*s))
+	    s++;
+
+	  if (lc->py_command)
+	    {
+	      printv ("alirc: command txl '%s'\n", lc->py_command);
+	      cmd_run (lc->py_command);
+	    }
+	  else
+	    {
+	      printv ("alirc: command func w/args '%s'\n", s);
+	      lc->func (s);
+	    }
+
+	  return;
+	}
+
+      lc++;
     }
-  }
+
+  printv ("alirc: not a legacy command\n");
+
+  cmd_run (s);
 }
 
 static void
@@ -200,7 +214,7 @@ lirc_receive(gpointer *data,int fd) {
   
   lirc_code2char(config,string,&command);
   while(command != NULL) {
-    lirc_do_command(command);
+    run_command(command);
     lirc_code2char(config,string,&command);
   }
 

@@ -10,6 +10,7 @@
 #include "zmisc.h"
 #include "globals.h"
 #include "zconf.h"
+#include "properties-handler.h"
 
 extern gboolean have_wm_hints;
 
@@ -251,12 +252,9 @@ create_popup_menu1 (void)
   /* Fixme: These don't work, dunno why */
   MENU_CMD (hide_controls1,	"zapping.hide_controls()");
   MENU_CMD (keep_window_on_top1,"zapping.keep_on_top()");
-  MENU_CMD (pal_big,		"zapping.resize_screen(768, 576)");
-  MENU_CMD (rec601_pal_big,	"zapping.resize_screen(720, 576)");
-  MENU_CMD (ntsc_big,		"zapping.resize_screen(640, 480)");
-  MENU_CMD (pal_small,		"zapping.resize_screen(384, 288)");
-  MENU_CMD (rec601_pal_small,	"zapping.resize_screen(360, 288)");
-  MENU_CMD (ntsc_small,		"zapping.resize_screen(320, 240)");
+
+  w = lookup_widget (widget, "appearance1_menu");
+  picture_sizes_append_menu (w);
 
   return widget;
 }

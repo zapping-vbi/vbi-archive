@@ -14,6 +14,7 @@
 	  zapping-misc@lists.sourceforge.net 23 Dec 2002. Connected
 	  SETCHANNEL to the keypad channel number entering routines.
 	  Alirc now accepts the new Python commands.
+	* README.commands: Added.
 
 24.12.2002	<mschimek@users.sf.net>
 

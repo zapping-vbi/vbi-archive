@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.37.2.4 2002-12-24 14:58:37 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.37.2.5 2002-12-27 04:14:31 mschimek Exp $ */
 
 /*
   TODO:
@@ -134,6 +134,8 @@ static void
 on_channel_selection_changed	(GtkTreeSelection *	selection,
 				 channel_editor *	ce);
 
+static channel_editor *		dialog_running;
+
 /*
  *  Misc helpers
  */
@@ -166,15 +168,15 @@ tree_model_index		(GtkTreeModel *		model,
 				 GtkTreeIter *		iter)
 {
   GtkTreePath *path;
-  guint index;
+  guint row;
 
   path = gtk_tree_model_get_path (model, iter);
 
-  index = (gtk_tree_path_get_indices (path))[0];
+  row = gtk_tree_path_get_indices (path)[0];
 
   gtk_tree_path_free (path);
 
-  return index;
+  return row;
 }
 
 static inline tveng_tuned_channel *
@@ -452,8 +454,6 @@ entry_fine_tuning_set		(channel_editor *	ce,
 static void
 no_channel_selected		(channel_editor *	ce)
 {
-  z_key key = { 0, 0 };
-
   gtk_widget_set_sensitive (ce->channel_up, FALSE);
   gtk_widget_set_sensitive (ce->channel_down, FALSE);
   gtk_widget_set_sensitive (ce->channel_remove, FALSE);
@@ -461,7 +461,7 @@ no_channel_selected		(channel_editor *	ce)
   gtk_entry_set_text (ce->entry_name, "");
   z_option_menu_set_active (GTK_WIDGET (ce->entry_standard), 0);
   z_option_menu_set_active (GTK_WIDGET (ce->entry_input), 0);
-  z_key_entry_set_key (ce->entry_accel, key);
+  z_key_entry_set_key (ce->entry_accel, Z_KEY_NONE);
   gtk_widget_set_sensitive (GTK_WIDGET (ce->entry_table), FALSE);  
 }
 
@@ -1194,6 +1194,8 @@ on_channel_editor_destroy	(GtkObject *		unused,
   /* Update menus. XXX should rebuild automatically when
      opened after any change. */
   zmodel_changed (z_input_model);
+
+  dialog_running = NULL;
 }
 
 /*
@@ -1806,7 +1808,8 @@ static PyObject *
 py_channel_editor		(PyObject *		self,
 				 PyObject *		args)
 {
-  gtk_widget_show (create_channel_editor ());
+  if (!dialog_running)
+    gtk_widget_show (create_channel_editor ());
 
   py_return_true;
 }

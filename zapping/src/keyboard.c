@@ -145,7 +145,7 @@ z_key_from_name			(const gchar *		name)
  * @path: 
  * 
  * Similar to other zconf_create_.. functions for z_key types.
- * Give an absolute path like ZCONF_DOMAIN "/foo/bar/accel".
+ * Give an absolute path like ZCONF_DOMAIN "/foo/bar/accel_".
  **/
 void
 zconf_create_z_key		(z_key			key,
@@ -156,14 +156,14 @@ zconf_create_z_key		(z_key			key,
 
   g_assert(path != NULL);
 
-  s = g_strjoin (NULL, path, "_key", NULL);
+  s = g_strjoin (NULL, path, "key", NULL);
   zconf_create_integer ((gint) key.key, desc, s);
   g_free (s);
 
   if (zconf_error ())
     return;
 
-  s = g_strconcat (path, "_mask", NULL);
+  s = g_strconcat (path, "mask", NULL);
   zconf_create_integer ((gint) key.mask, NULL, s);
   g_free (s);
 }
@@ -181,14 +181,14 @@ zconf_set_z_key			(z_key			key,
 
   g_assert(path != NULL);
 
-  s = g_strconcat (path, "_key", NULL);
+  s = g_strconcat (path, "key", NULL);
   zconf_set_integer ((gint) key.key, s);
   g_free (s);
 
   if (zconf_error())
     return;
 
-  s = g_strconcat (path, "_mask", NULL);
+  s = g_strconcat (path, "mask", NULL);
   zconf_set_integer ((gint) key.mask, s);
   g_free (s);
 }
@@ -202,22 +202,19 @@ zconf_get_z_key			(z_key *		keyp,
 
   g_assert(path != NULL);
 
-  s = g_strconcat (path, "_key", NULL);
+  s = g_strconcat (path, "key", NULL);
   zconf_get_integer ((gint *) &key.key, s);
   g_free (s);
 
   if (!zconf_error())
     {
-      s = g_strconcat (path, "_mask", NULL);
+      s = g_strconcat (path, "mask", NULL);
       zconf_get_integer ((gint *) &key.mask, s);
       g_free (s);
     }
 
   if (zconf_error())
-    {
-      key.key = GDK_VoidSymbol;
-      key.mask = 0;
-    }
+    key = Z_KEY_NONE;
   else if (keyp)
     *keyp = key;
 
@@ -675,8 +672,8 @@ static struct {
   { 0,			GDK_KP_Left,	"zapping.ttx_subpage_incr(-1)" },
   { 0,			GDK_Right,	"zapping.ttx_subpage_incr(+1)" },
   { 0,			GDK_KP_Right,	"zapping.ttx_subpage_incr(+1)" },
-  { 0,			GDK_KP_Add,	"zapping.ttx_subpage_incr(+1)" },
-  { 0,			GDK_KP_Subtract,"zapping.ttx_subpage_incr(-1)" },
+  { 0,			GDK_KP_Add,	"zapping.picture_size_cycle(+1)" },	/* was ttx_subpage_incr */
+  { 0,			GDK_KP_Subtract,"zapping.picture_size_cycle(-1)" },	/* was ttx_subpage_incr */
   { 0,			GDK_Escape,	"zapping.toggle_mode()" },
   { 0,			GDK_F11,	"zapping.toggle_mode('fullscreen')" },
 };
@@ -728,7 +725,7 @@ load_key_bindings			(void)
       cmd_txl = cmd_compatibility (command);
       translated = (0 != strcmp (command, cmd_txl));
 
-      buffer = g_strdup_printf ("/zapping/options/main/keys/%d", i);
+      buffer = g_strdup_printf ("/zapping/options/main/keys/%d_", i);
       zconf_get_z_key (&key, buffer);
       g_free (buffer);
 
@@ -758,7 +755,7 @@ save_key_bindings			(void)
 	zconf_create_string (kb->command, NULL, buffer);
       g_free (buffer);
 
-      buffer = g_strdup_printf ("/zapping/options/main/keys/%d", i);
+      buffer = g_strdup_printf ("/zapping/options/main/keys/%d_", i);
       zconf_create_z_key (kb->key, NULL, buffer);
       g_free (buffer);
     }

@@ -40,6 +40,8 @@ z_key_name			(z_key			key);
 extern z_key
 z_key_from_name			(const gchar *		name);
 
+#define Z_KEY_NONE ({ z_key none = { 0, 0 }; none; })
+
 /*
  *  Note: keyvals are supposed to be lower case.
  */
