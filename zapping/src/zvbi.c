@@ -33,6 +33,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <pthread.h>
+#include <math.h>
 
 #include "tveng.h"
 /* Manages config values for zconf (it saves me some typing) */
@@ -85,6 +86,8 @@ struct ttx_patch {
   GdkPixbuf	*scaled_on;
   GdkPixbuf	*scaled_off;
   gint		phase; /* flash phase 0 ... 3, 0 == off */
+  gboolean	vanilla_only; /* apply just once */
+  gboolean	dirty; /* needs reapplying */
 };
 
 struct ttx_client {
@@ -101,6 +104,7 @@ struct ttx_client {
   int		num_patches;
   int		reveal; /* whether to show hidden chars */
   struct ttx_patch *patches; /* patches to be applied */
+  gboolean	waiting; /* waiting for the index page */
 };
 
 static GList *ttx_clients = NULL;
@@ -636,6 +640,7 @@ register_ttx_client(void)
   memset(client, 0, sizeof(struct ttx_client));
   client->id = id++;
   client->reveal = 0;
+  client->waiting = TRUE;
   pthread_mutex_init(&client->mutex, NULL);
   filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
 			     "../pixmaps/zapping/vt_loading",
@@ -808,15 +813,34 @@ unregister_ttx_client(int id)
 #define CH		10
 
 static void
-add_patch(struct ttx_client *client, int col, int row, attr_char *ac)
+add_patch(struct ttx_client *client, int col, int row, attr_char *ac,
+	  gboolean vanilla_only)
 {
-  struct ttx_patch patch;
+  struct ttx_patch patch, *destiny = NULL;
   gint sw, sh; /* scaled dimensions */
+  gint i;
 
+  /* avoid duplicate patches */
+  for (i=0; i<client->num_patches; i++)
+    if (client->patches[i].col == col &&
+	client->patches[i].row == row)
+      {
+	destiny = &client->patches[i];
+	if (destiny->scaled_on)
+	  gdk_pixbuf_unref(destiny->scaled_on);
+	if (destiny->scaled_off)
+	  gdk_pixbuf_unref(destiny->scaled_off);
+	gdk_pixbuf_unref(destiny->unscaled_on);
+	gdk_pixbuf_unref(destiny->unscaled_off);
+	break;
+      }
+      
   memset(&patch, 0, sizeof(struct ttx_patch));
   patch.width = patch.height = 1;
   patch.col = col;
   patch.row = row;
+  patch.vanilla_only = vanilla_only;
+  patch.dirty = TRUE;
 
   switch (ac->size)
     {
@@ -833,10 +857,10 @@ add_patch(struct ttx_client *client, int col, int row, attr_char *ac)
       break;
     }
 
-  sw = (client->w*(patch.width*CW+10))/
-    gdk_pixbuf_get_width(client->unscaled_on);
-  sh = (client->h*(patch.height*CH+10))/
-    gdk_pixbuf_get_height(client->unscaled_on);
+  sw = rint(((double)client->w*(patch.width*CW+10))/
+	    gdk_pixbuf_get_width(client->unscaled_on));
+  sh = rint(((double)client->h*(patch.height*CH+10))/
+	    gdk_pixbuf_get_height(client->unscaled_on));
 
   patch.unscaled_on = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
 				     patch.width*CW+10, patch.height*CH+10);
@@ -860,11 +884,16 @@ add_patch(struct ttx_client *client, int col, int row, attr_char *ac)
 	gdk_pixbuf_scale_simple(patch.unscaled_off, sw, sh, INTERP_MODE);
     }
 
-  client->patches = g_realloc(client->patches, sizeof(struct ttx_patch)*
-			      (client->num_patches+1));
-  memcpy(client->patches+client->num_patches, &patch,
-	 sizeof(struct ttx_patch));
-  client->num_patches++;
+  if (!destiny)
+    {
+      client->patches = g_realloc(client->patches, sizeof(struct ttx_patch)*
+				  (client->num_patches+1));
+      memcpy(client->patches+client->num_patches, &patch,
+	     sizeof(struct ttx_patch));
+      client->num_patches++;
+    }
+  else
+    memcpy(destiny, &patch, sizeof(struct ttx_patch));
 }
 
 /**
@@ -878,10 +907,10 @@ resize_patches(struct ttx_client *client)
 
   for (i=0; i<client->num_patches; i++)
     {
-      sw = (client->w*(client->patches[i].width*CW+10))/
-	gdk_pixbuf_get_width(client->unscaled_on);
-      sh = (client->h*(client->patches[i].height*CH+10))/
-	gdk_pixbuf_get_height(client->unscaled_on);
+      sw = rint(((double)client->w*(client->patches[i].width*CW+10))/
+	gdk_pixbuf_get_width(client->unscaled_on));
+      sh = rint(((double)client->h*(client->patches[i].height*CH+10))/
+	gdk_pixbuf_get_height(client->unscaled_on));
 
       if (client->patches[i].scaled_on)
 	gdk_pixbuf_unref(client->patches[i].scaled_on);
@@ -893,6 +922,7 @@ resize_patches(struct ttx_client *client)
       client->patches[i].scaled_off =
 	gdk_pixbuf_scale_simple(client->patches[i].unscaled_off,
 				sw, sh, INTERP_MODE);
+      client->patches[i].dirty = TRUE;
     }
 }
 
@@ -913,6 +943,8 @@ build_patches(struct ttx_client *client)
 	gdk_pixbuf_unref(client->patches[i].scaled_on);
       if (client->patches[i].scaled_off)
 	gdk_pixbuf_unref(client->patches[i].scaled_off);
+      gdk_pixbuf_unref(client->patches[i].unscaled_on);
+      gdk_pixbuf_unref(client->patches[i].unscaled_off);
     }
   g_free(client->patches);
   client->patches = NULL;
@@ -924,7 +956,7 @@ build_patches(struct ttx_client *client)
       {
 	ac = &client->fp.text[row * client->fp.columns + col];
 	if ((ac->flash) && (ac->size <= DOUBLE_SIZE))
-	  add_patch(client, col, row, ac);
+	  add_patch(client, col, row, ac, FALSE);
       }
 }
 
@@ -938,41 +970,50 @@ refresh_ttx_page_intern(struct ttx_client *client, GtkWidget *drawable)
   struct ttx_patch *p;
   GdkPixbuf *scaled;
   gint x, y;
-  gint sx, sy;
+  double sx, sy;
 
   for (i=0; i<client->num_patches; i++)
     {
       p = &(client->patches[i]);
-      p->phase = (p->phase + 1) & 3;
-      if (p->phase > 1)
-	continue;
-      else if (p->phase)
-	scaled = p->scaled_on;
+      if (!p->vanilla_only)
+	{
+	  p->phase = (p->phase + 1) & 3;
+	  if (p->phase > 1)
+	    continue;
+	  else if (p->phase)
+	    scaled = p->scaled_on;
 	  else
 	    scaled = p->scaled_off;
+	}
+      else
+	{
+	  if (!p->dirty || !p->scaled_on)
+	    continue;
+	  p->dirty = FALSE;
+	  scaled = p->scaled_on;
+	}
       
       /* Update the scaled version of the page */
       if ((scaled) && (client->scaled) && (client->w > 0)
 	  && (client->h > 0))
 	{
-	  /* fixme: roundoff */
-	  x = (client->w*p->col)/client->fp.columns;
-	  y = (client->h*p->row)/client->fp.rows;
-	  sx = (gdk_pixbuf_get_width(scaled)*5)/
-	    gdk_pixbuf_get_width(p->unscaled_on);
-	  sy = (gdk_pixbuf_get_height(scaled)*5)/
-	    gdk_pixbuf_get_height(p->unscaled_on);
+	  x = rint(((double)client->w*p->col)/client->fp.columns);
+	  y = rint(((double)client->h*p->row)/client->fp.rows);
+	  sx = ((double)gdk_pixbuf_get_width(scaled)/
+	    gdk_pixbuf_get_width(p->unscaled_on))*5.0;
+	  sy = ((double)gdk_pixbuf_get_height(scaled)/
+	    gdk_pixbuf_get_height(p->unscaled_on))*5.0;
 	  
-	  z_pixbuf_copy_area(scaled, sx, sy,
-			     gdk_pixbuf_get_width(scaled)-sx*2,
-			     gdk_pixbuf_get_height(scaled)-sy*2,
+	  z_pixbuf_copy_area(scaled, rint(sx), rint(sy),
+			     rint(gdk_pixbuf_get_width(scaled)-sx*2),
+			     rint(gdk_pixbuf_get_height(scaled)-sy*2),
 			     client->scaled,
 			     x, y);
 	  
 	  if (drawable)
 	    gdk_window_clear_area_e(drawable->window, x, y,
-				    gdk_pixbuf_get_width(scaled)-sx*2,
-				    gdk_pixbuf_get_height(scaled)-sy*2);
+				    rint(gdk_pixbuf_get_width(scaled)-sx*2),
+				    rint(gdk_pixbuf_get_height(scaled)-sy*2));
 	}
     }
 }
@@ -1020,6 +1061,7 @@ build_client_page(struct ttx_client *client, int page, int subpage)
 			      client->fp.columns, client->fp.rows,
 			      -1 /* rowstride */,
 			      client->reveal, 0 /* flash_on */);
+      client->waiting = FALSE;
     }
   else if (page == 0)
     {
@@ -1072,6 +1114,44 @@ build_client_page(struct ttx_client *client, int page, int subpage)
 
   pthread_mutex_unlock(&client->mutex);
   return 1; /* success */
+}
+
+static void
+rolling_headers(struct ttx_client *client, struct fmt_page *pg)
+{
+  gint col;
+  attr_char *ac;
+
+  if (client->waiting)
+    return;
+
+  pthread_mutex_lock(&client->mutex);
+
+  /* Just the time field for the moment */
+  for (col = pg->columns-8; col < pg->columns; col++)
+    {
+      ac = client->fp.text + col;
+      if ((client->fp.text[col].glyph != pg->text[col].glyph) &&
+	  ac->size <= DOUBLE_SIZE)
+	{
+	  ac->glyph = pg->text[col].glyph;
+	  vbi_draw_vt_page_region(&client->fp,
+				  (uint32_t *)
+				  gdk_pixbuf_get_pixels(client->unscaled_off)+col*CW,
+				  col, 0, 1, 1,
+				  gdk_pixbuf_get_rowstride(client->unscaled_off) /* rowstride */,
+				  client->reveal, 0 /* flash_on */);
+	  vbi_draw_vt_page_region(&client->fp,
+				  (uint32_t *)
+				  gdk_pixbuf_get_pixels(client->unscaled_on)+col*CW,
+				  col, 0, 1, 1,
+				  gdk_pixbuf_get_rowstride(client->unscaled_on) /* rowstride */,
+				  client->reveal, 1 /* flash_on */);
+	  add_patch(client, col, 0, ac, !ac->flash);
+	}
+    }
+
+  pthread_mutex_unlock(&client->mutex);
 }
 
 void
@@ -1170,21 +1250,30 @@ notify_clients(int page, int subpage)
 {
   GList *p;
   struct ttx_client *client;
+  struct fmt_page pg;
+  gboolean rolling;
 
   if (!vbi)
     return;
+
+  rolling = vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0);
 
   pthread_mutex_lock(&clients_mutex);
   p = g_list_first(ttx_clients);
   while (p)
     {
       client = (struct ttx_client*)p->data;
+
       if ((client->page == page) && (!client->freezed) &&
 	  ((client->subpage == subpage) || (client->subpage == ANY_SUB)))
 	{
 	  build_client_page(client, page, subpage);
 	  send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
 	}
+      
+      if (rolling)
+	rolling_headers(client, &pg);
+
       p = p->next;
     }
   pthread_mutex_unlock(&clients_mutex);

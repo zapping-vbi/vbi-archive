@@ -1,3 +1,8 @@
+24.05.2001	Rolling headers <garetxe@users.sf.net>
+
+	* src/zvbi.c: Rolling headers support (just the time field for the
+	moment).
+
 19.05.2001	Fullscreen <garetxe@users.sourceforge.net>
 
 	* src/fullscreen.c: Made fullscreen usable under many heads.	

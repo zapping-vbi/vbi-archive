@@ -48,6 +48,7 @@ extern tveng_device_info *main_info;
 extern GtkWidget *main_window;
 extern int zvbi_page;
 
+/* FIXME: Reduce this for smoother rolling headers (see t4-arte) */
 #define BLINK_CYCLE 1500 /* ms */
 
 /* targets for the clipboard */
