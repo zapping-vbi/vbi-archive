@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mixer.c,v 1.12 2005-02-15 17:24:30 mschimek Exp $ */
+/* $Id: mixer.c,v 1.13 2005-04-05 19:52:29 mschimek Exp $ */
 
 /*
  *  These functions encapsulate the OS and driver specific
@@ -43,12 +43,13 @@
 #include "globals.h"
 
 /* preliminary */
-void		shutdown_mixer(void)
+void		shutdown_mixer(tveng_device_info *info)
 {
   if (mixer) {
+    mixer_line = NULL;
+    tveng_attach_mixer_line (info, NULL, NULL);
     tv_mixer_close (mixer);
     mixer = NULL;
-    mixer_line = NULL;
   }
 }
 
@@ -57,7 +58,7 @@ void		startup_mixer(tveng_device_info *info)
 {
   const gchar *dev_name;
 
-  shutdown_mixer();
+  shutdown_mixer(info);
 
   if (zconf_get_boolean (NULL, "/zapping/options/audio/force_mixer"))
     {
@@ -71,7 +72,7 @@ void		startup_mixer(tveng_device_info *info)
 
 	      if (!mixer->inputs)
 		{
-		  shutdown_mixer ();
+		  shutdown_mixer (info);
 		  return;
 		}
 	      
@@ -161,6 +162,9 @@ tv_mixer_line_set_mute		(tv_audio_line *	line,
 				 tv_bool		mute)
 {
 	assert (NULL != line);
+	assert (NULL != line->_parent);
+	assert (NULL != ((tv_mixer *) line->_parent)->_interface);
+	assert (NULL != ((tv_mixer *) line->_parent)->_interface->set_mute);
 
 	return ((tv_mixer *) line->_parent)->_interface->set_mute (line, !!mute);
 }
