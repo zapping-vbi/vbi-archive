@@ -2,8 +2,8 @@
 #define __BSWAP_H__
 
 /* It's need for ffmpeg. Else where will be defined ARCH_X86?*/
-/* MHS: Changed from "config.h" */
-#include "../config.h"
+/* MHS: moved into Makefile.am */
+/* #include "config.h" */
 
 #ifdef HAVE_BYTESWAP_H
 #include <byteswap.h>

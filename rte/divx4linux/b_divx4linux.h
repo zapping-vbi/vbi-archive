@@ -19,13 +19,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_divx4linux.h,v 1.1 2002-09-26 20:44:00 mschimek Exp $ */
+/* $Id: b_divx4linux.h,v 1.2 2002-10-04 13:51:19 mschimek Exp $ */
 
 #ifndef B_DIVX4LINUX_H
 #define B_DIVX4LINUX_H
 
 #include "site_def.h"
-#include "config.h"
 #include "rtepriv.h"
 
 #include <stddef.h>

@@ -23,7 +23,8 @@
 #include <inttypes.h>
 
 #include "simple_idct.h"
-#include "config.h"
+/* MHS: Moved into Makefile.am */
+/* #include "config.h" */
 
 #if 0
 #define W1 2841 /* 2048*sqrt (2)*cos (1*pi/16) */

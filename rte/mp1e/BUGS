@@ -1,5 +1,6 @@
-$Id: BUGS,v 1.6 2002-09-12 12:25:21 mschimek Exp $
+$Id: BUGS,v 1.7 2002-10-04 13:51:22 mschimek Exp $
 
+* video/mpeg1.c: GOP_RULE is not nationalized.
 * -k -J -K -L -F9 -F10 undocumented
 * desaturation out of order
 * verify esd error checking

@@ -1,20 +1,19 @@
-Name: rte
-Version: @VERSION@
-Release: 1
-Summary: Real Time Software Video/Audio Encoder library
-Copyright: GPL
-Group: Applications/Multimedia
-Url: http://zapping.sf.net/
-Source: http://prdownloads.sourceforge.net/zapping/rte-@VERSION@.tar.bz2
-Packager: Iñaki García Etxebarria <garetxe@users.sourceforge.net>
-Buildroot: %{_tmppath}/%{name}-root
-PreReq: /sbin/install-info
-Provides: rte
-
-Requires: gettext >= 0.11.2
+Name:		rte
+Summary:	Real Time Software Video/Audio Encoder library
+Version:	@VERSION@
+Release:	1
+Copyright:	GPL
+Group:		Applications/Multimedia
+Url:		http://zapping.sourceforge.net/
+Source:		http://prdownloads.sourceforge.net/zapping/%{name}-%{version}.tar.bz2
+Packager:	Michael H. Schimek <mschimek@users.sourceforge.net>
+Buildroot:	%{_tmppath}/%{name}-%{version}-root
+PreReq:		/sbin/install-info
+Provides:	rte
 
 %description
-Real Time Software Video/Audio Encoder library.
+Real Time Software Video/Audio Encoder library for the
+Zapping TV viewer.
 
 %prep
 %setup -q
@@ -39,10 +38,14 @@ rm -rf %{buildroot}
 %doc AUTHORS BUGS COPYING ChangeLog NEWS README TODO doc/html
 %{_libdir}/librte*
 %{_includedir}/librte.h
+%{_prefix}/share/locale/*/*/*
 
 %changelog
+* Fri Oct 4 2002 Michael H. Schimek <mschimek@users.sourceforge.net>
+- Updated.
+
 * Tue Jun 18 2002 Michael H. Schimek <mschimek@users.sourceforge.net>
-- Requires gettext 0.11.2, ammended doc list
+- Requires gettext 0.11.2, amended doc list
 
 * Tue Aug 8 2001 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
 - Created

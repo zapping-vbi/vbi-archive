@@ -7,6 +7,7 @@ noinst_LTLIBRARIES = libi386.la
 ## enough regs for inline asm()
 ##
 CFLAGS = -D_REENTRANT -DHAVE_AV_CONFIG_H -O2 -fomit-frame-pointer \
+	-include $(top_builddir)/config.h \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 EXTRA_DIST = mpegvideo_mmx_template.c

@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
-## $Id: Makefile.am,v 1.13 2002-10-02 02:13:22 mschimek Exp $
+## $Id: Makefile.am,v 1.14 2002-10-04 13:51:22 mschimek Exp $
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT \
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT -include $(top_builddir)/config.h \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 if BACKEND_MP1E

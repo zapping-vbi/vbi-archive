@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.28 2002-10-02 20:58:48 mschimek Exp $
+dnl $Id: configure.in,v 1.29 2002-10-04 13:50:46 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(rte, 0.5)
@@ -162,7 +162,7 @@ AC_CONFIG_FILES([
 AC_OUTPUT
 
 echo "
-        Backend                 Build
+	Backend                 Build
         -------                 -----
         mp1e                    $BACKEND_MP1E
         ffmpeg                  $BACKEND_FFMPEG
@@ -174,8 +174,8 @@ dnl In cvs we have two build targets: rte with mp1e as backend and
 dnl command line mp1e. The rte dist however will not build cli mp1e
 dnl or vice versa.
 dnl
-test "$BACKEND_MP1E" = yes -a -e $srcdir/mp1e/configure.in && echo "
-Note mp1e is now configured as rte backend. To build the mp1e command
-line program, configure and make in mp1e/ instead. You can build
-rte and mp1e by configuring from other directories too.
-"
+dnl test "$BACKEND_MP1E" = yes -a -e $srcdir/mp1e/configure.in && echo "
+dnl Note mp1e is now configured as rte backend. To build the mp1e command
+dnl line program, configure and make in mp1e/ instead. You can build
+dnl rte and mp1e by configuring from other directories too.
+dnl "

@@ -115,7 +115,7 @@ noinst_LTLIBRARIES = libavcodec.la
 
 SUBDIRS = i386
 
-INCLUDES = -D_REENTRANT -I. -DHAVE_AV_CONFIG_H \
+INCLUDES = -D_REENTRANT -DHAVE_AV_CONFIG_H -include $(top_builddir)/config.h \
 	-Wall -Wunused -Wmissing-declarations
 
 

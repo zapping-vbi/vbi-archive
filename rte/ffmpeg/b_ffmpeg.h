@@ -20,14 +20,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.h,v 1.7 2002-10-02 02:18:02 mschimek Exp $ */
+/* $Id: b_ffmpeg.h,v 1.8 2002-10-04 13:51:20 mschimek Exp $ */
 
 #ifndef B_FFMPEG_H
 #define B_FFMPEG_H
 
-#include "../site_def.h"
-#include "../config.h"
-#include "../src/rtepriv.h"
+#include "site_def.h"
+#include "rtepriv.h"
 
 #include <stddef.h>
 

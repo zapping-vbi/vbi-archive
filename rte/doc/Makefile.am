@@ -2,10 +2,13 @@
 
 if HAVE_DOXYGEN
 
-all-local:
+all-local: html-build.stamp
+
+html-build.stamp: Doxyfile
 	doxygen Doxyfile
+	touch html-build.stamp
 
 clean-local:
-	rm -rf html 
+	rm -rf html html-build.stamp
 
 endif

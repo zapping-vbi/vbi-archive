@@ -30,8 +30,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: rte 0.5\n"
-"POT-Creation-Date: 2002-10-02 21:55+0200\n"
-"PO-Revision-Date: 2002-10-02 16:36+0200\n"
+"POT-Creation-Date: 2002-10-04 07:25+0200\n"
+"PO-Revision-Date: 2002-10-04 07:25+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "MIME-Version: 1.0\n"
@@ -39,12 +39,12 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: mp1e/video/mpeg1.c:2125
+#: mp1e/video/mpeg1.c:2121
 #, c-format
 msgid "Invalid group of pictures sequence: \"%s\".\n"
 msgstr "Invalid group of pictures sequence: “[1m%s[0m”.\n"
 
-#: mp1e/video/mpeg1.c:2132
+#: mp1e/video/mpeg1.c:2128
 #, c-format
 msgid ""
 "Invalid group of pictures sequence: \"%s\", length %d.\n"
@@ -53,7 +53,7 @@ msgstr ""
 "Invalid group of pictures sequence: “[1m%s[0m”, length %d.\n"
 "The number of pictures in a GOP is limited to 1024."
 
-#: mp1e/video/mpeg1.c:2185
+#: mp1e/video/mpeg1.c:2181
 #, c-format
 msgid ""
 "Invalid group of pictures sequence: \"%s\".\n"
@@ -64,37 +64,37 @@ msgstr ""
 "The number of successive ‘[1mB[0m’ bidirectionally predicted pictures is "
 "limited to %u."
 
-#: mp1e/video/mpeg1.c:2433 mp1e/video/mpeg1.c:2455 mp1e/video/mpeg1.c:2460
-#: mp1e/video/mpeg1.c:2470 mp1e/video/mpeg1.c:2827 mp1e/audio/mp2.c:1161
+#: mp1e/video/mpeg1.c:2429 mp1e/video/mpeg1.c:2451 mp1e/video/mpeg1.c:2456
+#: mp1e/video/mpeg1.c:2466 mp1e/video/mpeg1.c:2823 mp1e/audio/mp2.c:1161
 #: mp1e/b_mp1e.c:444 mp1e/b_mp1e.c:494 mp1e/b_mp1e.c:504 mp1e/b_mp1e.c:1091
 #: ffmpeg/b_ffmpeg.c:662 ffmpeg/b_ffmpeg.c:1442 ffmpeg/b_ffmpeg.c:1869
-#: divx4linux/b_divx4linux.c:291 divx4linux/b_divx4linux.c:733
+#: divx4linux/b_divx4linux.c:287 divx4linux/b_divx4linux.c:729
 msgid "Out of memory."
 msgstr "Out of memory."
 
-#: mp1e/video/mpeg1.c:2571
+#: mp1e/video/mpeg1.c:2567
 msgid "Standard compliant"
 msgstr "Standard compliant"
 
-#: mp1e/video/mpeg1.c:2572
+#: mp1e/video/mpeg1.c:2568
 msgid "Multiplexer timestamps"
 msgstr "Multiplexer timestamps"
 
-#: mp1e/video/mpeg1.c:2573
+#: mp1e/video/mpeg1.c:2569
 msgid "Insert fake pictures"
 msgstr "Insert fake pictures"
 
-#: mp1e/video/mpeg1.c:2582 mp1e/audio/mp2.c:982 ffmpeg/b_ffmpeg.c:903
+#: mp1e/video/mpeg1.c:2578 mp1e/audio/mp2.c:982 ffmpeg/b_ffmpeg.c:903
 #: ffmpeg/b_ffmpeg.c:907 ffmpeg/b_ffmpeg.c:920 ffmpeg/b_ffmpeg.c:924
-#: divx4linux/b_divx4linux.c:483
+#: divx4linux/b_divx4linux.c:479
 msgid "Bit rate"
 msgstr "Bit rate"
 
-#: mp1e/video/mpeg1.c:2588
+#: mp1e/video/mpeg1.c:2584
 msgid "Virtual frame rate"
 msgstr "Virtual frame rate"
 
-#: mp1e/video/mpeg1.c:2590
+#: mp1e/video/mpeg1.c:2586
 msgid ""
 "MPEG-1 allows only a few discrete values for frames/s, but this codec can "
 "skip frames if you wish. Choose the output bit rate accordingly."
@@ -102,11 +102,11 @@ msgstr ""
 "MPEG-1 allows only a few discrete values for frames/s, but this codec can "
 "skip frames if you wish. Choose the output bit rate accordingly."
 
-#: mp1e/video/mpeg1.c:2594
+#: mp1e/video/mpeg1.c:2590
 msgid "Virtual frame rate method"
 msgstr "Virtual frame rate method"
 
-#: mp1e/video/mpeg1.c:2596
+#: mp1e/video/mpeg1.c:2592
 msgid ""
 "The standard compliant method has one major drawback: it may have to promote "
 "some or even all B to P pictures, reducing the image quality."
@@ -114,15 +114,15 @@ msgstr ""
 "The standard compliant method has one major drawback: it may have to promote "
 "some or even all B to P pictures, reducing the image quality."
 
-#: mp1e/video/mpeg1.c:2600
+#: mp1e/video/mpeg1.c:2596
 msgid "GOP sequence"
 msgstr "GOP sequence"
 
-#: mp1e/video/mpeg1.c:2603
+#: mp1e/video/mpeg1.c:2599
 msgid "Motion compensation"
 msgstr "Motion compensation"
 
-#: mp1e/video/mpeg1.c:2604
+#: mp1e/video/mpeg1.c:2600
 msgid ""
 "Enable motion compensation to improve the image quality. The motion search "
 "range is automatically adjusted."
@@ -130,11 +130,11 @@ msgstr ""
 "Enable motion compensation to improve the image quality. The motion search "
 "range is automatically adjusted."
 
-#: mp1e/video/mpeg1.c:2611
+#: mp1e/video/mpeg1.c:2607
 msgid "Annotation"
 msgstr "Annotation"
 
-#: mp1e/video/mpeg1.c:2612
+#: mp1e/video/mpeg1.c:2608
 msgid ""
 "Add an annotation in the user data field shortly after the video stream "
 "start. This is an mp1e extension, players will ignore it."
@@ -142,30 +142,30 @@ msgstr ""
 "Add an annotation in the user data field shortly after the video stream "
 "start. This is an mp1e extension, players will ignore it."
 
-#: mp1e/video/mpeg1.c:2628 ffmpeg/b_ffmpeg.c:974 divx4linux/b_divx4linux.c:512
+#: mp1e/video/mpeg1.c:2624 ffmpeg/b_ffmpeg.c:974 divx4linux/b_divx4linux.c:508
 #, c-format
 msgid "%5.3f Mbit/s"
 msgstr "%5.3f Mbit/s"
 
-#: mp1e/video/mpeg1.c:2630
+#: mp1e/video/mpeg1.c:2626
 #, c-format
 msgid "%4.2f frames/s"
 msgstr "%4.2f frames/s"
 
-#: mp1e/video/mpeg1.c:2635
+#: mp1e/video/mpeg1.c:2631
 #, c-format
 msgid "%5.3f frames/s"
 msgstr "%5.3f frames/s"
 
-#: mp1e/video/mpeg1.c:2643 divx4linux/b_divx4linux.c:522
+#: mp1e/video/mpeg1.c:2639 divx4linux/b_divx4linux.c:518
 msgid "on"
 msgstr "on"
 
-#: mp1e/video/mpeg1.c:2643 divx4linux/b_divx4linux.c:522
+#: mp1e/video/mpeg1.c:2639 divx4linux/b_divx4linux.c:518
 msgid "off"
 msgstr "off"
 
-#: mp1e/video/mpeg1.c:2645 mp1e/audio/mp2.c:1030
+#: mp1e/video/mpeg1.c:2641 mp1e/audio/mp2.c:1030
 #, c-format
 msgid "%f frames"
 msgstr "%f frames"
@@ -295,7 +295,7 @@ msgid ""
 msgstr ""
 "MP1E backend requires MMX but the CPU type is unknown, backend disabled."
 
-#: ffmpeg/b_ffmpeg.c:490 divx4linux/b_divx4linux.c:236
+#: ffmpeg/b_ffmpeg.c:490 divx4linux/b_divx4linux.c:232
 msgid "Insufficient resources to start encoding thread.\n"
 msgstr "Insufficient resources to start encoding thread.\n"
 
@@ -411,64 +411,64 @@ msgstr "Shockwave Animation"
 msgid "AVI File"
 msgstr "AVI File"
 
-#: divx4linux/b_divx4linux.c:473
+#: divx4linux/b_divx4linux.c:469
 msgid "Fastest encoding, worst quality"
 msgstr "Fastest encoding, worst quality"
 
-#: divx4linux/b_divx4linux.c:474
+#: divx4linux/b_divx4linux.c:470
 msgid "Lower quality"
 msgstr "Lower quality"
 
-#: divx4linux/b_divx4linux.c:475
+#: divx4linux/b_divx4linux.c:471
 msgid "Medium quality"
 msgstr "Medium quality"
 
-#: divx4linux/b_divx4linux.c:476
+#: divx4linux/b_divx4linux.c:472
 msgid "Higher quality"
 msgstr "Higher quality"
 
-#: divx4linux/b_divx4linux.c:477
+#: divx4linux/b_divx4linux.c:473
 msgid "Slowest encoding, best quality"
 msgstr "Slowest encoding, best quality"
 
-#: divx4linux/b_divx4linux.c:486
+#: divx4linux/b_divx4linux.c:482
 msgid "Key frame distance"
 msgstr "Key frame distance"
 
-#: divx4linux/b_divx4linux.c:489
+#: divx4linux/b_divx4linux.c:485
 msgid "Compression quality"
 msgstr "Compression quality"
 
-#: divx4linux/b_divx4linux.c:492
+#: divx4linux/b_divx4linux.c:488
 msgid "Bidirectional encoding"
 msgstr "Bidirectional encoding"
 
-#: divx4linux/b_divx4linux.c:494
+#: divx4linux/b_divx4linux.c:490
 msgid "Overlapped block motion compensation"
 msgstr "Overlapped block motion compensation"
 
-#: divx4linux/b_divx4linux.c:496
+#: divx4linux/b_divx4linux.c:492
 msgid "Deinterlace"
 msgstr "Deinterlace"
 
-#: divx4linux/b_divx4linux.c:622
+#: divx4linux/b_divx4linux.c:618
 msgid "DivX 4.x Video"
 msgstr "DivX 4.x Video"
 
-#: divx4linux/b_divx4linux.c:753
+#: divx4linux/b_divx4linux.c:749
 msgid "DivX Video Elementary Stream"
 msgstr "DivX Video Elementary Stream"
 
-#: divx4linux/b_divx4linux.c:809
+#: divx4linux/b_divx4linux.c:805
 #, c-format
 msgid "Version %d not supported\n"
 msgstr "Version %d not supported\n"
 
-#: divx4linux/b_divx4linux.c:821
+#: divx4linux/b_divx4linux.c:817
 msgid "DivX 5.x Video"
 msgstr "DivX 5.x Video"
 
-#: divx4linux/b_divx4linux.c:835
+#: divx4linux/b_divx4linux.c:831
 #, c-format
 msgid "DivX4Linux library not available. %s\n"
 msgstr "DivX4Linux library not available. %s\n"

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.7 2002-10-02 20:50:42 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.8 2002-10-04 13:51:23 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -1816,6 +1816,17 @@ mp1e_mpeg2_module_init(int test)
 }
 
 #else
+
+void *
+mp1e_mpeg2(void *codec)
+{
+	return NULL;
+}
+
+void
+mp1e_mpeg2_module_init(int test)
+{
+}
 
 rte_codec_class mp1e_mpeg2_video_codec;
 

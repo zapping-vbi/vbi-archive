@@ -11398,15 +11398,10 @@ fi
 
 
 echo "
-        Backend                 Build
+	Backend                 Build
         -------                 -----
         mp1e                    $BACKEND_MP1E
         ffmpeg                  $BACKEND_FFMPEG
         divx4linux              $BACKEND_DIVX4LINUX
 "
 
-test "$BACKEND_MP1E" = yes -a -e $srcdir/mp1e/configure.in && echo "
-Note mp1e is now configured as rte backend. To build the mp1e command
-line program, configure and make in mp1e/ instead. You can build
-rte and mp1e by configuring from other directories too.
-"

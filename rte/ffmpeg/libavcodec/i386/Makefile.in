@@ -114,6 +114,7 @@ install_sh = @install_sh@
 noinst_LTLIBRARIES = libi386.la
 
 CFLAGS = -D_REENTRANT -DHAVE_AV_CONFIG_H -O2 -fomit-frame-pointer \
+	-include $(top_builddir)/config.h \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 

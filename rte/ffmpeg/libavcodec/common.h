@@ -17,8 +17,8 @@
 
 #ifdef HAVE_AV_CONFIG_H
 /* only include the following when compiling package */
-/* MHS: Changed from "config.h" */
-#include "../../config.h"
+/* MHS: Moved into Makefile.am */
+/* #include "config.h" */
 
 #include <stdlib.h>
 #include <stdio.h>
