@@ -18,8 +18,13 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <stdio.h>
+/* $Id: device.h,v 1.1.2.2 2003-03-06 21:50:36 mschimek Exp $ */
 
+#ifndef DEVICE_H
+#define DEVICE_H
+
+#include <stdio.h>
+#include <fcntl.h>
 #include <sys/ioctl.h>
 
 #if defined (_IOC_SIZE) /* Linux */
@@ -61,8 +66,18 @@ fprintf_unknown_cmd		(FILE *			fp,
 				 unsigned int		cmd,
 				 void *			arg);
 extern int
-device_ioctl			(int			fd,
+device_open			(FILE *			fp,
+				 const char *		pathname,
+				 int			flags,
+				 mode_t			mode);
+extern int
+device_close			(FILE *			fp,
+				 int			fd);
+extern int
+device_ioctl			(FILE *			fp,
+				 ioctl_log_fn *		fn,
+				 int			fd,
 				 unsigned int		cmd,
-				 void *			arg,
-				 FILE *			fp,
-				 ioctl_log_fn *		fn);
+				 void *			arg);
+
+#endif /* DEVICE_H */

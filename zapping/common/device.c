@@ -18,6 +18,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/* $Id: device.c,v 1.1.2.2 2003-03-06 21:50:26 mschimek Exp $ */
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -86,11 +88,78 @@ fprintf_unknown_cmd		(FILE *			fp,
 }
 
 int
-device_ioctl			(int			fd,
+device_open			(FILE *			fp,
+				 const char *		pathname,
+				 int			flags,
+				 mode_t			mode)
+{
+  int fd;
+
+  fd = open (pathname, flags, mode);
+
+  if (fp)
+    {
+      int saved_errno;
+
+      saved_errno = errno;
+
+      fprintf (fp, "%d = open (\"%s\", ", fd, pathname);
+      fprintf_symbolic (fp, 2, flags,
+			"RDONLY", O_RDONLY,
+			"WRONLY", O_WRONLY,
+			"RDWR", O_RDWR,
+			"CREAT", O_CREAT,
+			"EXCL", O_EXCL,
+			"TRUNC", O_TRUNC,
+			"APPEND", O_APPEND,
+			"NONBLOCK", O_NONBLOCK,
+			0);
+      fprintf (fp, ", 0%o)", mode);
+
+      if (-1 == fd)
+	fprintf (fp, ", errno=%d, %s\n",
+		 saved_errno, strerror (saved_errno));
+      else
+	fputc ('\n', fp);
+
+      errno = saved_errno;
+    }
+
+  return fd;
+}
+
+int
+device_close			(FILE *			fp,
+				 int			fd)
+{
+  int err;
+
+  err = close (fd);
+
+  if (err)
+    {
+      int saved_errno;
+
+      saved_errno = errno;
+
+      if (-1 == err)
+	fprintf (fp, "%d = close (%d), errno=%d, %s\n",
+		 err, fd, saved_errno, strerror (saved_errno));
+      else
+	fprintf (fp, "%d = close (%d)\n", err, fd);
+
+      errno = saved_errno;
+    }
+
+  return err;
+}
+
+int
+device_ioctl			(FILE *			fp,
+				 ioctl_log_fn *		fn,
+				 int			fd,
 				 unsigned int		cmd,
-				 void *			arg,
-				 FILE *			fp,
-				 ioctl_log_fn *		fn)
+				 void *			arg)
 {
   int buf[256];
   int err;
