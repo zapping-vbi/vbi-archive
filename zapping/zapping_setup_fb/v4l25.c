@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.10 2005-01-31 07:02:16 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.11 2005-02-18 07:57:17 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -101,46 +101,62 @@ setup_v4l25			(const char *		device_name,
 
   pf = buffer->format.pixel_format;
 
-  switch (pf->color_depth)
+  switch (Z_BYTE_ORDER)
     {
-    case  8:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_HI240; /* XXX bttv only */
+    case Z_LITTLE_ENDIAN:
+      switch (pf->color_depth)
+	{
+	case  8:
+	  fb.fmt.pixelformat = V4L2_PIX_FMT_HI240; /* XXX bttv only */
+	  break;
+
+	  /* Note defines and spec (0.4) are wrong: r <-> b,
+	     RGB32 == A,R,G,B in bttv 0.9 unlike description in spec */
+
+	case 15:
+	  fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555;
+	  break;
+
+	case 16:
+	  fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565;
+	  break;
+
+	case 24:
+	case 32:
+	  if (24 == pf->bits_per_pixel)
+	    fb.fmt.pixelformat = V4L2_PIX_FMT_BGR24;
+	  else
+	    fb.fmt.pixelformat = V4L2_PIX_FMT_BGR32;
+	  break;
+	}
+
       break;
 
-      /* Note defines and spec (0.4) are wrong: r <-> b,
-	 RGB32 == A,R,G,B in bttv 0.9 unlike description in spec */
+    case Z_BIG_ENDIAN:
+      switch (pf->color_depth)
+	{
+	case  8:
+	  fb.fmt.pixelformat = V4L2_PIX_FMT_HI240;
+	  break;
 
-#if Z_BYTE_ORDER == Z_BIG_ENDIAN /* safe? */
-    case 15:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555X;
+	case 15:
+	  fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555X;
+	  break;
+
+	case 16:
+	  fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565X;
+	  break;
+
+	case 24:
+	case 32:
+	  if (24 == pf->bits_per_pixel)
+	    fb.fmt.pixelformat = V4L2_PIX_FMT_RGB24;
+	  else
+	    fb.fmt.pixelformat = V4L2_PIX_FMT_RGB32;
+	  break;
+	}
+
       break;
-    case 16:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565X;
-      break;
-    case 24:
-    case 32:
-      if (24 == pf.bits_per_pixel)
-	fb.fmt.pixelformat = V4L2_PIX_FMT_RGB24;
-      else
-	fb.fmt.pixelformat = V4L2_PIX_FMT_RGB32;
-      break;
-#elif Z_BYTE_ORDER == Z_LITTLE_ENDIAN
-    case 15:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555;
-      break;
-    case 16:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565;
-      break;
-    case 24:
-    case 32:
-      if (24 == pf->bits_per_pixel)
-	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR24;
-      else
-	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR32;
-      break;
-#else
-#  error Unknown or unsupported endianess.
-#endif
     }
 
   fb.fmt.bytesperline	= buffer->format.bytes_per_line[0];
