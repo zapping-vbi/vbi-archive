@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.43 2003-12-17 06:34:25 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.44 2004-05-22 04:54:48 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -151,6 +151,7 @@ video_callback			(rte_context *		context,
     b = zf_wait_full_buffer (&mpeg_consumer);
 
     cf = PARENT (b, capture_frame, b);
+
     zi = retrieve_frame (cf, capture_pixfmt);
 
     if (NULL != zi)
@@ -471,7 +472,7 @@ do_start			(const gchar *		file_name)
 
       for (retry = 0;; retry++)
         {
-	  if (retry == 2)
+	  if (retry == 4)
 	    {
 	      ShowBox ("Cannot switch to requested capture format",
 		       GTK_MESSAGE_ERROR);
@@ -503,21 +504,21 @@ do_start			(const gchar *		file_name)
 	  par->width = zapping_info->format.width;
 	  par->height = zapping_info->format.height;
 
-	  if (pixfmt == TV_PIXFMT_YVU420)
-	    {
-	      par->pixfmt = RTE_PIXFMT_YUV420;
-	      par->stride = par->width;
-	      par->uv_stride = par->stride >> 1;
-	      par->u_offset = par->stride * par->height;
-	      par->v_offset = par->u_offset * 5 / 4;
-	    }
-	  else if (pixfmt == TV_PIXFMT_YUV420)
+	  if (pixfmt == TV_PIXFMT_YUV420)
 	    {
 	      par->pixfmt = RTE_PIXFMT_YUV420;
 	      par->stride = par->width;
 	      par->uv_stride = par->stride >> 1;
 	      par->v_offset = par->stride * par->height;
 	      par->u_offset = par->v_offset * 5 / 4;
+	    }
+	  else if (pixfmt == TV_PIXFMT_YVU420)
+	    {
+	      par->pixfmt = RTE_PIXFMT_YUV420;
+	      par->stride = par->width;
+	      par->uv_stride = par->stride >> 1;
+	      par->u_offset = par->stride * par->height;
+	      par->v_offset = par->u_offset * 5 / 4;
 	    }
 	  else
 	    {
@@ -573,30 +574,34 @@ do_start			(const gchar *		file_name)
 	      height = par->height;
 	      continue;
 	    }
-	  else if (par->pixfmt == RTE_PIXFMT_YUV420)
+	  else if (par->pixfmt == RTE_PIXFMT_YUYV)
 	    {
 	      if (pixfmt == TV_PIXFMT_YUYV)
+		break;
+
+	      pixfmt = TV_PIXFMT_YUYV;
+	      continue;
+	    }
+	  else if (par->pixfmt == RTE_PIXFMT_YUV420)
+	    {
+	      /* NB RTE_PIXFMT_YUV420 is backwards. */
+	      if (par->v_offset < par->u_offset)
 		{
+		  if (pixfmt == TV_PIXFMT_YUV420)
+		    break;
+
+		  pixfmt = TV_PIXFMT_YUV420;
+		  continue;
+		}
+	      else
+		{
+		  if (pixfmt == TV_PIXFMT_YVU420)
+		    break;
+
 		  pixfmt = TV_PIXFMT_YVU420;
 		  continue;
 		}
 	    }
-	  else if (par->pixfmt == RTE_PIXFMT_YUYV)
-	    {
-	      if (pixfmt != TV_PIXFMT_YUYV)
-		{
-		  pixfmt = TV_PIXFMT_YUYV;
-		  continue;
-		}
-	    }
-	  else
-	    {
-	      pixfmt = TV_PIXFMT_YUYV;
-	      continue;
-	    }
-
-	  break;
-
 	} /* retry loop */
     }
 
