@@ -67,7 +67,10 @@ static tveng_device_info * zapping_info = NULL; /* Info about the
 /*
  *  Options
  */
+/* save_dir is no longer an option but still in conf,
+   save_base remembers the file basename too. */
 static gchar *screenshot_option_save_dir = NULL;
+static gchar *screenshot_option_save_base = NULL;
 static gchar *screenshot_option_command = NULL;
 static gboolean screenshot_option_grab_on_ok;
 static gint screenshot_option_skip;
@@ -407,6 +410,9 @@ plugin_load_config (gchar *root_key)
 	       "The directory where screenshot will be written to");
   g_free (default_save_dir);
 
+  LOAD_CONFIG (string, "shot", save_base, 
+	       "Default filename of screenshots");
+
   LOAD_CONFIG (string, "", command, "Command to run after taking the screenshot");
   if (!screenshot_option_command)
     screenshot_option_command = g_strdup ("");
@@ -435,6 +441,10 @@ plugin_save_config (gchar * root_key)
   SAVE_CONFIG (string, save_dir);
   g_free(screenshot_option_save_dir);
   screenshot_option_save_dir = NULL;
+
+  SAVE_CONFIG (string, save_base);
+  g_free(screenshot_option_save_base);
+  screenshot_option_save_base = NULL;
 
   SAVE_CONFIG (string, command);
   g_free (screenshot_option_command);
@@ -861,24 +871,24 @@ create_status_window (screenshot_data *data)
 }
 
 static gboolean
-screenshot_save (screenshot_data *data)
+screenshot_save			(screenshot_data *	data)
 {
   GtkWindow *window;
-  gchar *b, *dir;
+  gchar *dirname;
+  gchar *basename;
+  gchar *errmsg;
 
-  dir = g_path_get_dirname (data->filename);
+  dirname = g_path_get_dirname (data->filename);
+  basename = g_path_get_basename (data->filename);
 
-  if (!z_build_path (dir, &b))
+  if (!z_build_path (dirname, &errmsg))
     {
+      /* XXX check errno and possibly retry */
       ShowBox (_("Cannot create directory:\n%s\n%s"),
-	       GTK_MESSAGE_WARNING, dir, b);
-      g_free (b);
-      g_free (dir);
-      return FALSE;
+	       GTK_MESSAGE_WARNING, dirname, errmsg);
+      g_free (errmsg);
+      goto failure;
     }
-
-  g_free (screenshot_option_save_dir);
-  screenshot_option_save_dir = dir;
 
   if (!(data->io_fp = fopen (data->filename, "wb")))
     {
@@ -888,23 +898,27 @@ screenshot_save (screenshot_data *data)
 				      data->filename, strerror (errno));
       ShowBox (window_title, GTK_MESSAGE_ERROR);
       g_free (window_title);
-      return FALSE;
+
+      goto failure;
     }
 
   if (!data->io_buffer)
     if (!io_buffer_init (data, 1 << 16))
-      return FALSE;
+      goto failure;
 
   data->io_flush = io_flush_stdio;
 
   if (!data->backend->init (data, /* write */ TRUE,
 			    screenshot_option_quality))
-    return FALSE;
+    goto failure;
 
   data->status_window = create_status_window (data);
 
   if (screenshot_option_command && screenshot_option_command[0])
-    data->command = g_strdup (screenshot_option_command); /* may change */
+    {
+      /* may change while saving */
+      data->command = g_strdup (screenshot_option_command);
+    }
 
   data->thread_abort = FALSE;
 
@@ -916,12 +930,12 @@ screenshot_save (screenshot_data *data)
     case ENOMEM:
       ShowBox (_("Sorry, not enough resources to create a new thread"), 
 	       GTK_MESSAGE_ERROR);
-      return FALSE;
+      goto failure;
 
     case EAGAIN:
       ShowBox (_("There are too many threads"),
 	       GTK_MESSAGE_ERROR);
-      return FALSE;
+      goto failure;
 
     case 0:
       num_threads++;
@@ -932,11 +946,26 @@ screenshot_save (screenshot_data *data)
 	 overwriting the finished status */
       if (data->status != 8)
 	data->status = 7; /* monitoring */
-      return TRUE;
+
+      break;
 
     default:
-      return FALSE;
+      goto failure;
     }
+
+  g_free (screenshot_option_save_dir);
+  screenshot_option_save_dir = dirname;
+
+  g_free (screenshot_option_save_base);
+  screenshot_option_save_base = basename;
+
+  return TRUE;
+
+ failure:
+  g_free (basename);
+  g_free (dirname);
+
+  return FALSE;
 }
 
 /*
@@ -996,7 +1025,7 @@ preview (screenshot_data *data)
 	if (!io_buffer_init (data, PREVIEW_WIDTH
 			     * PREVIEW_HEIGHT * 4))
 	  {
-	    printf ("a\n");
+	    //	    printf ("a\n");
 	    goto restore;
 	  }
 
@@ -1006,7 +1035,7 @@ preview (screenshot_data *data)
       if (!data->backend->init (data, /* write */ TRUE,
 				screenshot_option_quality))
 	{
-	  printf ("b\n");
+	  //	  printf ("b\n");
 	  goto restore;
 	}
 
@@ -1014,7 +1043,7 @@ preview (screenshot_data *data)
 
       if (data->thread_abort)
 	{
-	  printf ("c\n");
+	  //	  printf ("c\n");
 	  goto restore;
 	}
 
@@ -1024,7 +1053,7 @@ preview (screenshot_data *data)
 
       if (!data->backend->init (data, /* write */ FALSE, 0))
 	{
-	  printf ("d\n");
+	  //	  printf ("d\n");
 	  goto restore;
 	}
 
@@ -1159,6 +1188,21 @@ enum {
 				file */
 };
 
+static gchar *
+default_filename		(const screenshot_data *data)
+{
+  if (NULL == screenshot_option_save_base
+      || 0 == screenshot_option_save_base[0])
+    {
+      g_free (screenshot_option_save_base);
+      screenshot_option_save_base = g_strdup ("shot");
+    }
+
+  return find_unused_name (screenshot_option_save_dir,
+			   screenshot_option_save_base,
+			   data->backend->extension);
+}
+
 static void
 build_dialog (screenshot_data *data)
 {
@@ -1201,26 +1245,33 @@ build_dialog (screenshot_data *data)
 
   data->backend = backends[default_item];
 
-  /* File entry */
+  {
+    gchar *filename;
 
-  data->entry = GTK_ENTRY (lookup_widget (data->dialog, "entry"));
-  if (1)
+    /* File entry */
+
+    data->entry = GTK_ENTRY (lookup_widget (data->dialog, "entry"));
+
     z_entry_emits_response (GTK_WIDGET (data->entry),
 			    GTK_DIALOG (data->dialog),
 			    GTK_RESPONSE_OK);
-  gtk_dialog_set_default_response (GTK_DIALOG (data->dialog),
-				   GTK_RESPONSE_OK);
-  filename = find_unused_name (screenshot_option_save_dir, "shot",
-			       data->backend->extension);
-  data->auto_filename = g_path_get_basename (filename);
-  gtk_entry_set_text (data->entry, filename);
-  g_free (filename);
-  g_object_set_data (G_OBJECT (data->entry),
+    gtk_dialog_set_default_response (GTK_DIALOG (data->dialog),
+				     GTK_RESPONSE_OK);
+
+    filename = default_filename (data);
+
+    data->auto_filename = g_path_get_basename (filename);
+    gtk_entry_set_text (data->entry, filename);
+
+    g_free (filename);
+
+    g_object_set_data (G_OBJECT (data->entry),
 		       "basename", (gpointer) data->auto_filename);
-  g_signal_connect (G_OBJECT (data->entry), "changed",
-		    G_CALLBACK (z_on_electric_filename),
-		    (gpointer) NULL);
-  gtk_editable_select_region (GTK_EDITABLE (data->entry), 0, -1);
+    g_signal_connect (G_OBJECT (data->entry), "changed",
+		      G_CALLBACK (z_on_electric_filename),
+		      (gpointer) NULL);
+    gtk_editable_select_region (GTK_EDITABLE (data->entry), 0, -1);
+  }
 
   /* Preview */
 
@@ -1348,9 +1399,7 @@ screenshot_timeout (screenshot_data *data)
 
     case 2: /* quick start */
       data->backend = find_backend (screenshot_option_format);
-      data->filename = g_strdup (find_unused_name (
-				 screenshot_option_save_dir, "shot",
-				 data->backend->extension));
+      data->filename = default_filename (data);
 
       if (!screenshot_save (data))
 	{
