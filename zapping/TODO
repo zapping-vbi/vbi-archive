@@ -83,6 +83,7 @@ Outstanding issues for future releases
 * In overlay.c, possible elsewhere, we request GDK events but never
   disable. Can we safely, without disabling events enabled before
   or between, by other zapping/gnome/gtk/gdk modules?
+* WM_ICON could display a network icon in titlebar?
 
 * Parrot plugin:
 

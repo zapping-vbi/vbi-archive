@@ -34,7 +34,7 @@
 
   Highest network id is n529.
 
-  $Id: networks.xml,v 1.1 2004-07-03 01:38:08 mschimek Exp $
+  $Id: networks.xml,v 1.2 2004-07-09 16:12:04 mschimek Exp $
 
 -->
 <networks>
@@ -624,7 +624,7 @@
     <name>Germany</name>
     <country-code>DE</country-code>
     <cni-8301>0x4900</cni-8301>
-    <cni-8302>0x0D00</cni-8302>
+    <cni-vps>0x0D00</cni-vps>
     <cni-pdc-b>0x3D00</cni-pdc-b>
     <network id="n51">
       <name>FESTIVAL</name>

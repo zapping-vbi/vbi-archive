@@ -1,3 +1,7 @@
+2004-07-09    <mschimek@users.sf.net>
+
+	* Release 0.7. 
+
 2004-07-02    <mschimek@users.sf.net>
 
 	* src/video_xv.c (add_backend_xv): Corrected nv overlay adaptor

@@ -3,7 +3,8 @@ the changes.
 
 0.7
 ---
-Humorous introduction.
+Main focus in Zapping 0.7 was porting the user interface to Gnome 2. Along
+with it numerous other improvements and fixes were made, including:
 
 * Video:
   - In the video preferences, apart of "no change" and "automatic
@@ -113,13 +114,12 @@ Humorous introduction.
     will return is undetermined.
   - VBI triggers were removed from this release for a rewrite.
 
-A lot more changes were made internally, for details see the
-ChangeLog file.
+For details see the ChangeLog file.
 
 This release was possible with the help of the following people:
 Guus Bonnema, Iñaki Etxebarria, Henrik Isacsson, Christian Marillat,
-Morten Brix Pedersen, Michael Schimek, Pino Toscano. Many thanks to
-you and everyone submitting ideas, patches and bug reports.
+Morten Brix Pedersen, Pino Toscano. Many thanks to you and everyone
+submitting ideas, patches and bug reports.
 
 0.6.8
 -----

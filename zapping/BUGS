@@ -1,15 +1,5 @@
- Known bugs in Zapping, don't report them
+Known bugs in Zapping, don't report them
 ----------------------------------------
-
-Zapping 0.6 bugs, need verification:
-* RPM creates incorrect zsfb.capps 
-* zsfb.capps conflicts with RPM relocation.
-* Look for endianness problems.
-* vbi eats too much CPU, investigate.
-* Overlay (no XVideo) under E is broken, shading the window
-  isn't correctly detected.
-* Do not assert on ESD timeout
-* Bug in save window geometry, reported by Pawel.
 
 Zapping 0.7 bugs, need more work later:
 * Video size isn't always right on startup.
@@ -68,6 +58,16 @@ Zapping 0.7 bugs, need more work later:
   due to wrong frame buffer bpl.
 * bttv 0.9.14: with YUV 4:2:0 activation of VBI capturing can cause a
   SCERR & driver reset, DQBUF -> EIO.
+
+Zapping 0.6 bugs, need verification:
+* RPM creates incorrect zsfb.capps 
+* zsfb.capps conflicts with RPM relocation.
+* Look for endianness problems.
+* vbi eats too much CPU, investigate.
+* Overlay (no XVideo) under E is broken, shading the window
+  isn't correctly detected.
+* Do not assert on ESD timeout
+* Bug in save window geometry, reported by Pawel.
 
 tvengxv.c
 * Need to handle BadAtom errors resulting from Xv out

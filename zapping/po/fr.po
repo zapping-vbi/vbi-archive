@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-05-30 18:37+0200\n"
+"POT-Creation-Date: 2004-07-03 11:29+0200\n"
 "PO-Revision-Date: 2003-12-08 08:11+0100\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -42,7 +42,7 @@ msgid "Arabic"
 msgstr "Arabe"
 
 #: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng1.c:679
-#: src/tveng2.c:610 src/tveng25.c:471
+#: src/tveng2.c:610 src/tveng25.c:473
 msgid "Audio"
 msgstr "Audio"
 
@@ -470,7 +470,7 @@ msgstr "Vous permet de contrôler zapping avec lirc"
 
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:267 plugins/mpeg/mpeg.c:2110
+#: plugins/alirc/alirc.c:267 plugins/mpeg/mpeg.c:2154
 #: plugins/screenshot/screenshot.c:162
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
@@ -497,41 +497,41 @@ msgstr ""
 msgid "Cannot create file %s: %s\n"
 msgstr "Ne peut créer le fichier %s : %s\n"
 
-#: plugins/mpeg/mpeg.c:1252
+#: plugins/mpeg/mpeg.c:1286
 msgid "New format"
 msgstr "Nouveau format"
 
-#: plugins/mpeg/mpeg.c:1253
+#: plugins/mpeg/mpeg.c:1287
 msgid "Format name:"
 msgstr "Nom du format :"
 
-#: plugins/mpeg/mpeg.c:1427 plugins/mpeg/mpeg.c:2044
+#: plugins/mpeg/mpeg.c:1470 plugins/mpeg/mpeg.c:2088
 #: plugins/screenshot/screenshot.c:554 plugins/screenshot/screenshot.c:1464
 msgid "Plugins"
 msgstr "Greffons"
 
-#: plugins/mpeg/mpeg.c:1427 plugins/mpeg/mpeg.c:1905 plugins/mpeg/mpeg.c:1928
-#: plugins/mpeg/mpeg.c:2033 plugins/mpeg/mpeg_properties.glade2.h:6
+#: plugins/mpeg/mpeg.c:1470 plugins/mpeg/mpeg.c:1949 plugins/mpeg/mpeg.c:1972
+#: plugins/mpeg/mpeg.c:2077 plugins/mpeg/mpeg_properties.glade2.h:6
 msgid "Record"
 msgstr "Enregistrement"
 
-#: plugins/mpeg/mpeg.c:1716
+#: plugins/mpeg/mpeg.c:1760
 msgid "Not implemented yet"
 msgstr "Pas encore implémenté"
 
-#: plugins/mpeg/mpeg.c:1890
+#: plugins/mpeg/mpeg.c:1934
 msgid "Record a video stream"
 msgstr "Enregistrer le flux vidéo"
 
-#: plugins/mpeg/mpeg.c:1979
+#: plugins/mpeg/mpeg.c:2023
 msgid "Audio/Video Recorder"
 msgstr "Enregistrement Audio/Video"
 
-#: plugins/mpeg/mpeg.c:1982
+#: plugins/mpeg/mpeg.c:2026
 msgid "This plugin records video and audio into a file"
 msgstr "Ce greffon enregistre les flux image et audio dans un fichier"
 
-#: plugins/mpeg/mpeg.c:1985
+#: plugins/mpeg/mpeg.c:2029
 msgid "Record video and audio."
 msgstr "Enregistrer la vidéo et l'audio."
 
@@ -915,24 +915,24 @@ msgstr "Entrez un nouvel accélérateur, ou pressez Backspace pour effacer"
 msgid "Type a new accelerator"
 msgstr "Entrez un nouveau accélérateur"
 
-#: src/frequencies.c:93 src/frequencies.c:159
+#: src/frequencies.c:94 src/frequencies.c:160
 msgid "broadcast"
 msgstr "broadcast"
 
-#: src/frequencies.c:106
+#: src/frequencies.c:107
 msgid "cable IRC"
 msgstr "cable IRC"
 
-#: src/frequencies.c:125
+#: src/frequencies.c:126
 msgid "cable HRC"
 msgstr "cable HRC"
 
-#: src/frequencies.c:143 src/frequencies.c:171
+#: src/frequencies.c:144 src/frequencies.c:172
 msgid "cable"
 msgstr "cable"
 
 #. TRANSLATORS: Leave "Autocom" untranslated.
-#: src/frequencies.c:274
+#: src/frequencies.c:275
 msgid "Autocom cable"
 msgstr "Cable autocom"
 
@@ -1024,8 +1024,8 @@ msgstr "Contrôles"
 msgid "Change picture controls"
 msgstr "Régler l'image et le son"
 
-#: src/interface.c:709 src/main.c:155 src/tveng.c:1966 src/tveng1.c:751
-#: src/tveng2.c:448 src/tveng25.c:310 src/tvengxv.c:529
+#: src/interface.c:709 src/main.c:155 src/tveng.c:1968 src/tveng1.c:751
+#: src/tveng2.c:448 src/tveng25.c:312 src/tvengxv.c:546
 msgid "Mute"
 msgstr "Sourdine"
 
@@ -1186,25 +1186,25 @@ msgstr "CMD"
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Désolé, mais il n'y a pas le support des modules dans Glib"
 
-#: src/main.c:632
+#: src/main.c:640
 msgid "Cannot get device info struct"
 msgstr "Impossible d'obtenir les infos du périphérique"
 
-#: src/main.c:641
+#: src/main.c:649
 msgid "Zapping couldn't be started"
 msgstr "Zapping ne peut pas démarrer"
 
-#: src/main.c:699
+#: src/main.c:707
 #, c-format
 msgid "Couldn't open %s, try other devices?"
 msgstr "Ne peut ouvrir %s, dois-je essayer un autre périphérique ?"
 
-#: src/main.c:724
+#: src/main.c:732
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "%s avec succès, prendre comme le nouveau défaut"
 
-#: src/main.c:735
+#: src/main.c:743
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -1213,7 +1213,7 @@ msgstr ""
 "Désolé, mais \"%s\" ne peut pas être ouvert :\n"
 "%s"
 
-#: src/main.c:1070 src/zapzilla.c:165
+#: src/main.c:1078 src/zapzilla.c:165
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -1234,7 +1234,7 @@ msgstr ""
 "   - ou, plus sûrement, vous venez de trouver un bogue dans\n"
 "     %s. Contactez l'auteur SVP.\n"
 
-#: src/main.c:1098
+#: src/main.c:1106
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Désolé, Zapping est incapable de créer la configuration par défaut"
 
@@ -1455,7 +1455,7 @@ msgid "Do not change"
 msgstr "Ne pas changer"
 
 #: src/properties-handler.c:1167 src/tveng1.c:285 src/tveng2.c:461
-#: src/tveng25.c:321
+#: src/tveng25.c:323
 msgid "Automatic"
 msgstr "Automatique"
 
@@ -1547,13 +1547,13 @@ msgstr "Format :"
 msgid "Text Color"
 msgstr "Couleur du texte"
 
-#: src/ttxview.c:2212 src/tveng2.c:428 src/tveng25.c:291 src/tvengbktr.c:272
-#: src/tvengbktr.c:284 src/tvengxv.c:523
+#: src/ttxview.c:2212 src/tveng2.c:428 src/tveng25.c:293 src/tvengbktr.c:272
+#: src/tvengbktr.c:284 src/tvengxv.c:540
 msgid "Brightness"
 msgstr "Luminosité"
 
-#: src/ttxview.c:2234 src/tveng2.c:429 src/tveng25.c:292 src/tvengbktr.c:273
-#: src/tvengbktr.c:285 src/tvengxv.c:524
+#: src/ttxview.c:2234 src/tveng2.c:429 src/tveng25.c:294 src/tvengbktr.c:273
+#: src/tvengbktr.c:285 src/tvengxv.c:541
 msgid "Contrast"
 msgstr "Contraste"
 
@@ -1718,7 +1718,7 @@ msgid "_Go"
 msgstr "_Aller"
 
 #. TRANSLATORS: "Cannot open <URL>" (http or smtp).
-#: src/ttxview.c:4276 src/zvbi.c:593
+#: src/ttxview.c:4276 src/zvbi.c:615
 #, c-format
 msgid ""
 "Cannot open %s:\n"
@@ -1775,149 +1775,149 @@ msgstr "Découvrir"
 msgid "Reveal concealed text"
 msgstr "Afficher le texte caché"
 
-#: src/tveng.c:1958 src/tveng2.c:447 src/tveng25.c:309 src/tvengxv.c:530
+#: src/tveng.c:1960 src/tveng2.c:447 src/tveng25.c:311 src/tvengxv.c:547
 msgid "Volume"
 msgstr "Volume"
 
-#: src/tveng.c:2597
+#: src/tveng.c:2601
 msgid "Cannot execute zapping_setup_fb."
 msgstr "Ne peut exécuter zapping_setup_fb."
 
-#: src/tveng.c:2613
+#: src/tveng.c:2611 src/tveng.c:2619
 msgid "zapping_setup_fb failed."
 msgstr "Échec de zapping__setup__fb."
 
-#: src/tveng.c:2618
+#: src/tveng.c:2624
 #, c-format
 msgid "zapping_setup_fb not found in \"%s\" or executable search path."
 msgstr ""
 "Impossible de trouver zapping__setup__fb dans \"%s\" ou dans le chemin des "
 "exécutables."
 
-#: src/tveng.c:2625
+#: src/tveng.c:2631
 msgid "Unknown error in zapping_setup_fb."
 msgstr "Erreur inconnue de zapping_setup_fb."
 
-#: src/tveng.c:3140 src/tveng.c:3161
+#: src/tveng.c:3146 src/tveng.c:3167
 msgid "Filter"
 msgstr "Filtre"
 
 #. TRANSLATORS: Color replaced by video in overlay mode.
-#: src/tveng.c:3183
+#: src/tveng.c:3189
 msgid "Colorkey"
 msgstr "Colorkey"
 
-#: src/tveng1.c:286 src/tveng2.c:462 src/tveng25.c:322 src/zvbi.c:131
+#: src/tveng1.c:286 src/tveng2.c:462 src/tveng25.c:324 src/zvbi.c:135
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng1.c:287 src/tveng2.c:463 src/tveng25.c:323 src/zvbi.c:132
+#: src/tveng1.c:287 src/tveng2.c:463 src/tveng25.c:325 src/zvbi.c:136
 msgid "Stereo"
 msgstr "Stéréo"
 
-#: src/tveng1.c:288 src/tveng2.c:464 src/tveng25.c:324
+#: src/tveng1.c:288 src/tveng2.c:464 src/tveng25.c:326
 msgid "Alternate 1"
 msgstr "Alternate 1"
 
-#: src/tveng1.c:289 src/tveng2.c:465 src/tveng25.c:325
+#: src/tveng1.c:289 src/tveng2.c:465 src/tveng25.c:327
 msgid "Alternate 2"
 msgstr "Alternate 2"
 
-#: src/tveng2.c:430 src/tveng25.c:293 src/tvengbktr.c:274 src/tvengbktr.c:286
-#: src/tvengxv.c:525
+#: src/tveng2.c:430 src/tveng25.c:295 src/tvengbktr.c:274 src/tvengbktr.c:286
+#: src/tvengxv.c:542
 msgid "Saturation"
 msgstr "Saturation"
 
-#: src/tveng2.c:431 src/tveng25.c:294 src/tvengbktr.c:275 src/tvengbktr.c:287
-#: src/tvengxv.c:526
+#: src/tveng2.c:431 src/tveng25.c:296 src/tvengbktr.c:275 src/tvengbktr.c:287
+#: src/tvengxv.c:543
 msgid "Hue"
 msgstr "Teinte"
 
-#: src/tveng2.c:432 src/tveng25.c:295
+#: src/tveng2.c:432 src/tveng25.c:297
 msgid "Whiteness"
 msgstr "Blancheur"
 
-#: src/tveng2.c:433 src/tveng25.c:296
+#: src/tveng2.c:433 src/tveng25.c:298
 msgid "Black level"
 msgstr "Niveau de noir"
 
-#: src/tveng2.c:434 src/tveng2.c:435 src/tveng25.c:297 src/tveng25.c:298
+#: src/tveng2.c:434 src/tveng2.c:435 src/tveng25.c:299 src/tveng25.c:300
 msgid "White balance"
 msgstr "Balance du blanc"
 
-#: src/tveng2.c:436 src/tveng25.c:299
+#: src/tveng2.c:436 src/tveng25.c:301
 msgid "Red balance"
 msgstr "Balance rouge"
 
-#: src/tveng2.c:437 src/tveng25.c:300
+#: src/tveng2.c:437 src/tveng25.c:302
 msgid "Blue balance"
 msgstr "Balance Bleu"
 
-#: src/tveng2.c:438 src/tveng25.c:301
+#: src/tveng2.c:438 src/tveng25.c:303
 msgid "Gamma"
 msgstr "Gamma"
 
 #. TRANSLATORS: Video camera control.
-#: src/tveng2.c:440 src/tveng25.c:302
+#: src/tveng2.c:440 src/tveng25.c:304
 msgid "Exposure"
 msgstr "Exposition"
 
-#: src/tveng2.c:441 src/tveng25.c:303
+#: src/tveng2.c:441 src/tveng25.c:305
 msgid "Auto gain"
 msgstr "Gain auto"
 
-#: src/tveng2.c:442 src/tveng25.c:304
+#: src/tveng2.c:442 src/tveng25.c:306
 msgid "Gain"
 msgstr "Gain"
 
-#: src/tveng2.c:443 src/tveng25.c:305
+#: src/tveng2.c:443 src/tveng25.c:307
 msgid "HCenter"
 msgstr "Hcentre"
 
-#: src/tveng2.c:444 src/tveng25.c:306
+#: src/tveng2.c:444 src/tveng25.c:308
 msgid "VCenter"
 msgstr "Vcentre"
 
-#: src/tveng2.c:445 src/tveng25.c:307
+#: src/tveng2.c:445 src/tveng25.c:309
 msgid "Hor. flipping"
 msgstr "Retournement Hor."
 
-#: src/tveng2.c:446 src/tveng25.c:308
+#: src/tveng2.c:446 src/tveng25.c:310
 msgid "Vert. flipping"
 msgstr "Retournement Vert."
 
-#: src/tveng2.c:449 src/tveng25.c:311
+#: src/tveng2.c:449 src/tveng25.c:313
 msgid "Audio Mute"
 msgstr "Audio Muet"
 
 #. TRANSLATORS: Left/right audio balance.
-#: src/tveng2.c:451 src/tveng25.c:312
+#: src/tveng2.c:451 src/tveng25.c:314
 msgid "Balance"
 msgstr "Balance"
 
-#: src/tveng2.c:452 src/tveng25.c:313
+#: src/tveng2.c:452 src/tveng25.c:315
 msgid "Audio Balance"
 msgstr "Balance Audio"
 
-#: src/tveng2.c:453 src/tveng25.c:314
+#: src/tveng2.c:453 src/tveng25.c:316
 msgid "Treble"
 msgstr "Aigu"
 
 #. TRANSLATORS: Probably a bass boost effect.
-#: src/tveng2.c:455 src/tveng25.c:315
+#: src/tveng2.c:455 src/tveng25.c:317
 msgid "Loudness"
 msgstr "Loudness"
 
-#: src/tveng2.c:456 src/tveng25.c:316
+#: src/tveng2.c:456 src/tveng25.c:318
 msgid "Bass"
 msgstr "Grave"
 
-#: src/tveng2.c:1766 src/tveng25.c:1100
+#: src/tveng2.c:1766 src/tveng25.c:1105
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s n'est pas un périphérique de capture valide"
 
-#: src/tveng2.c:1777 src/tveng25.c:1112
+#: src/tveng2.c:1777 src/tveng25.c:1117
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "Désolé, mais \"%s\" ne peu pas faire de streaming"
@@ -1939,23 +1939,23 @@ msgstr "Saturation U"
 msgid "V Saturation"
 msgstr "Saturation V"
 
-#: src/tvengxv.c:527
+#: src/tvengxv.c:544
 msgid "Color"
 msgstr "Couleur"
 
-#: src/tvengxv.c:528
+#: src/tvengxv.c:545
 msgid "Interlace"
 msgstr "Deinterlacer"
 
-#: src/tvengxv.c:569
+#: src/tvengxv.c:586
 msgid "No"
 msgstr "Non"
 
-#: src/tvengxv.c:570
+#: src/tvengxv.c:587
 msgid "Yes"
 msgstr "Oui"
 
-#: src/tvengxv.c:571
+#: src/tvengxv.c:588
 msgid "Doublescan"
 msgstr "Balayage double"
 
@@ -2082,51 +2082,51 @@ msgid "Device file:"
 msgstr "Fichier du périphérique :"
 
 #. TRANSLATORS: VBI audio mode
-#: src/zvbi.c:130
+#: src/zvbi.c:134
 msgid "No Audio"
 msgstr "Pas d'audio"
 
-#: src/zvbi.c:133
+#: src/zvbi.c:137
 msgid "Stereo Surround"
 msgstr "Surround Stéréo"
 
-#: src/zvbi.c:134
+#: src/zvbi.c:138
 msgid "Simulated Stereo"
 msgstr "Simulation Stéréo"
 
 #. TRANSLATORS: Video description for the blind,
 #. on a secondary audio channel.
-#: src/zvbi.c:137
+#: src/zvbi.c:141
 msgid "Video Descriptions"
 msgstr "Description de la vidéo"
 
 #. TRANSLATORS: Audio unrelated to the current
 #. program.
-#: src/zvbi.c:140
+#: src/zvbi.c:144
 msgid "Non-program Audio"
 msgstr "Programme non Audio"
 
-#: src/zvbi.c:141
+#: src/zvbi.c:145
 msgid "Special Effects"
 msgstr "Effets Spéciaux"
 
-#: src/zvbi.c:142
+#: src/zvbi.c:146
 msgid "Data Service"
 msgstr "Service de données"
 
-#: src/zvbi.c:143
+#: src/zvbi.c:147
 msgid "Unknown Audio"
 msgstr "Audio Inconnu"
 
-#: src/zvbi.c:254
+#: src/zvbi.c:267
 msgid "VBI interface timeout"
 msgstr "Pause de l'interface VBI"
 
-#: src/zvbi.c:267
+#: src/zvbi.c:287
 msgid "VBI interface: Failed to read from the device"
 msgstr "Interface VBI : Échec de la lecture à partir du périphérique"
 
-#: src/zvbi.c:362
+#: src/zvbi.c:384
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
@@ -2135,15 +2135,15 @@ msgstr ""
 "L'initialisation du VBI à échouée.\n"
 "%s"
 
-#: src/zvbi.c:363
+#: src/zvbi.c:385
 msgid "Ran out of memory."
 msgstr "Plus de mémoire"
 
-#: src/zvbi.c:364
+#: src/zvbi.c:386
 msgid "Out of resources to start a new thread."
 msgstr "Plus de ressource pour créer un nouveau thread"
 
-#: src/zvbi.c:367
+#: src/zvbi.c:389
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -2159,17 +2159,17 @@ msgstr ""
 "et créez /dev/vbi0 . Si ceci ne marche pas, vous pouvez déactiver le VBI "
 "dans Paramètres/Préférences/options VBI/Activer le décodage VBI."
 
-#: src/zvbi.c:736
+#: src/zvbi.c:758
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s : Page Télétexte %x"
 
-#: src/zvbi.c:739
+#: src/zvbi.c:761
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Page Télétexte %x"
 
-#: src/zvbi.c:740
+#: src/zvbi.c:762
 msgid "Open this page with Zapzilla"
 msgstr "Ouvrir cette page avec Zapzilla"
 
