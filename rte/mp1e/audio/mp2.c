@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.34 2002-09-05 04:19:12 mschimek Exp $ */
+/* $Id: mp2.c,v 1.35 2002-09-12 12:23:30 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -1200,8 +1200,8 @@ mp1e_mpeg2_layer2_codec = {
 	._public = {
 		.stream_type	= RTE_STREAM_AUDIO,
 		.keyword	= "mpeg2_audio_layer2",
-		.label		= N_("MPEG-2 Audio Layer II LFE"),
-		.tooltip	= N_("MPEG-2 Low (Sampling) Frequency Extension to MPEG-1 "
+		.label		= N_("MPEG-2 Audio Layer II LSF"),
+		.tooltip	= N_("MPEG-2 Low Sampling Frequency extension to MPEG-1 "
 				     "Audio Layer II. Be warned not all MPEG video and "
 				     "audio players support MPEG-2 audio."),
 	},
