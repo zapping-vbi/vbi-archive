@@ -281,6 +281,11 @@ scan_device		(tveng_device_info	*info)
     }
   */
 
+  if (0 != info->supported_pixfmt_set) {
+    /* Shortcut. */
+    return info->supported_pixfmt_set;
+  }
+
   old_pixfmt = info->format.pixfmt;
 
   supported = 0;
@@ -643,7 +648,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
 	      /* Mode i supported, k requested */
 	      if (i != k)
 		{
-		  if (lookup_csconvert (i, k))
+		  if (-1 != lookup_csconvert (i, k))
 		    {
 		      /* Available through a cs conversion */
 		      num_conversions++;
@@ -867,8 +872,10 @@ retrieve_frame (capture_frame *frame,
 
 	    csconvert (id, &src->data, &dest->data, src->fmt.width,
 		       src->fmt.height);
+
 	    pb->converted[i] = TRUE;
 	  }
+
 	return pb->images[i];
       }
 
