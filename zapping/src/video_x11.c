@@ -51,11 +51,11 @@ image_new (tv_pixfmt pixfmt, gint w, gint h)
 {
   zimage *new_image;
   zimage_private *pimage;
-  GdkImage *image = gdk_image_new (GDK_IMAGE_FASTEST,
-				   gdk_visual_get_system (), w, h);
+  GdkImage *image;
 
   g_assert (pixfmt == x11_pixfmt);
-  g_assert (TV_PIXFMT_IS_PLANAR (pixfmt));
+
+  image = gdk_image_new (GDK_IMAGE_FASTEST, gdk_visual_get_system (), w, h);
 
   if (!image)
     return NULL;
@@ -76,7 +76,7 @@ image_new (tv_pixfmt pixfmt, gint w, gint h)
   new_image->fmt.height = h;
   new_image->fmt.pixfmt = pixfmt;
   new_image->fmt.bytesperline = image->bpl;
-  new_image->fmt.sizeimage = image->bpl*image->height;
+  new_image->fmt.sizeimage = image->bpl * image->height;
   new_image->data.linear.data = image->mem;
   new_image->data.linear.stride = image->bpl;
 
@@ -194,6 +194,7 @@ void add_backend_x11 (void)
   x11_pixfmt = dga_param.pixfmt;
 
   g_assert (TV_PIXFMT_UNKNOWN != x11_pixfmt);
+  g_assert (TV_PIXFMT_IS_PACKED (x11_pixfmt));
 
   register_video_backend (x11_pixfmt, &x11);
 }
