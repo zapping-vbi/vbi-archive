@@ -654,7 +654,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
 #if 0
   /* XXX don't reset when we're in shutdown, see cmd.c/py_quit(). */
-  if (/* Always: avoid_noise && */ !flag_exit_program)
+  if (avoid_noise && !flag_exit_program)
     reset_quiet (main_info, /* delay ms */ 300);
 #else
   if (muted != -1)

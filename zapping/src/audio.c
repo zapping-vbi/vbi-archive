@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.22 2004-04-19 16:51:26 mschimek Exp $ */
+/* $Id: audio.c,v 1.23 2004-04-21 05:46:14 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -156,6 +156,10 @@ general_audio_apply		(GtkWidget *		page)
   widget = lookup_widget (page, "general-audio-quit-muted");
   active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
   zconf_set_boolean (active, "/zapping/options/main/quit_muted");
+
+  widget = lookup_widget (page, "general-audio-mute-chsw");
+  active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  zconf_set_boolean (active, "/zapping/options/main/avoid_noise");
 }
 
 static void
@@ -170,6 +174,10 @@ general_audio_setup		(GtkWidget *		page)
 
   zconf_get_boolean (&active, "/zapping/options/main/quit_muted");
   widget = lookup_widget (page, "general-audio-quit-muted");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), active);
+
+  zconf_get_boolean (&active, "/zapping/options/main/avoid_noise");
+  widget = lookup_widget (page, "general-audio-mute-chsw");
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), active);
 }
 
@@ -679,6 +687,8 @@ void startup_audio ( void )
 			"/zapping/options/main/start_muted");
   zconf_create_boolean (TRUE, "Mute on exit",
 			"/zapping/options/main/quit_muted");
+  zconf_create_boolean (TRUE, "Mute when changing channels",
+			"/zapping/options/main/avoid_noise");
 
   if (esd_backend.init)
     esd_backend.init ();

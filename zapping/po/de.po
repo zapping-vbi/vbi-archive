@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-19 21:07+0200\n"
+"POT-Creation-Date: 2004-04-21 07:57+0200\n"
 "PO-Revision-Date: 2003-11-27 01:18+0100\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -46,7 +46,7 @@ msgstr "Komplex"
 msgid "Arabic"
 msgstr "Arabisch"
 
-#: glade/zapping.glade2.h:6 src/audio.c:512 src/audio.c:517 src/tveng1.c:677
+#: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng1.c:677
 #: src/tveng2.c:613 src/tveng25.c:471
 msgid "Audio"
 msgstr "Audio"
@@ -114,7 +114,7 @@ msgstr "_Sprachvorgabe:"
 msgid "Device name:"
 msgstr "Gerätename:"
 
-#: glade/zapping.glade2.h:23 src/audio.c:522 src/properties-handler.c:1605
+#: glade/zapping.glade2.h:23 src/audio.c:530 src/properties-handler.c:1605
 msgid "Devices"
 msgstr "Geräte"
 
@@ -196,111 +196,115 @@ msgid "Minimum capture size:"
 msgstr "Minimale Capture Größe:"
 
 #: glade/zapping.glade2.h:43
+msgid "Mute while ch_anging channels"
+msgstr "Stumm beim _Kanalwechsel"
+
+#: glade/zapping.glade2.h:44
 msgid "NTSC"
 msgstr "NTSC"
 
-#: glade/zapping.glade2.h:44
+#: glade/zapping.glade2.h:45
 msgid "Nearest (fast, looks ugly when scaled)"
 msgstr "Nearest (schnell, aber unschön beim Vergrößern)"
 
-#: glade/zapping.glade2.h:45
+#: glade/zapping.glade2.h:46
 msgid "No Display"
 msgstr "Deaktiviert"
 
-#: glade/zapping.glade2.h:46
+#: glade/zapping.glade2.h:47
 msgid "OK, let's go on"
 msgstr "Ok, los geht's"
 
-#: glade/zapping.glade2.h:47 src/osd.c:1306
+#: glade/zapping.glade2.h:48 src/osd.c:1306
 msgid "OSD"
 msgstr "OSD"
 
-#: glade/zapping.glade2.h:48
+#: glade/zapping.glade2.h:49
 msgid "On Screen Display (OSD)"
 msgstr "On Screen Display (OSD)"
 
-#: glade/zapping.glade2.h:49
+#: glade/zapping.glade2.h:50
 msgid "PAL"
 msgstr "PAL"
 
-#: glade/zapping.glade2.h:50
+#: glade/zapping.glade2.h:51
 msgid "Plugin location"
 msgstr "Plugin Quelle"
 
-#: glade/zapping.glade2.h:51
+#: glade/zapping.glade2.h:52
 msgid "Plugin priority:"
 msgstr "Priorität:"
 
-#: glade/zapping.glade2.h:52
+#: glade/zapping.glade2.h:53
 msgid "Plugin properties"
 msgstr "Plugin Eigenschaften"
 
-#: glade/zapping.glade2.h:53
+#: glade/zapping.glade2.h:54
 msgid "Plugin version:"
 msgstr "Version:"
 
-#: glade/zapping.glade2.h:54
+#: glade/zapping.glade2.h:55
 msgid "Properties"
 msgstr "Eigenschaften"
 
-#: glade/zapping.glade2.h:55
+#: glade/zapping.glade2.h:56
 msgid "Quality/speed trade-off when scaling and anti-aliasing the page."
 msgstr ""
 "Verhältnis von Qualität und Geschwindigkeit beim Skalieren und Antialiasing."
 
 # src/interface.c:362
-#: glade/zapping.glade2.h:56
+#: glade/zapping.glade2.h:57
 msgid "RF channel number"
 msgstr "Durch Kanalname"
 
 # src/v4l2interface.c:344
-#: glade/zapping.glade2.h:57
+#: glade/zapping.glade2.h:58
 msgid "Remember this video standard"
 msgstr "Diesen Videostandard speichern"
 
-#: glade/zapping.glade2.h:58
+#: glade/zapping.glade2.h:59
 msgid "Remove all this mess"
 msgstr "Weg mit diesem Käse"
 
-#: glade/zapping.glade2.h:59
+#: glade/zapping.glade2.h:60
 msgid "Run the plugin"
 msgstr "Plugin ausführen"
 
-#: glade/zapping.glade2.h:60
+#: glade/zapping.glade2.h:61
 msgid "SECAM"
 msgstr "SECAM"
 
 # src/interface.c:247
-#: glade/zapping.glade2.h:61
+#: glade/zapping.glade2.h:62
 msgid "S_how toolbar as:"
 msgstr "_Werkzeugleiste zeigen als:"
 
-#: glade/zapping.glade2.h:62
+#: glade/zapping.glade2.h:63
 msgid "Save _control values per channel"
 msgstr "Bildeinstellungen _per Sender speichern"
 
-#: glade/zapping.glade2.h:63
+#: glade/zapping.glade2.h:64
 msgid "Save window _geometry (some WM's don't like it)"
 msgstr "_Fenstergeometrie speichern (manche Fenstermanager mögen das nicht)"
 
-#: glade/zapping.glade2.h:64
+#: glade/zapping.glade2.h:65
 msgid "Select OSD font"
 msgstr "OSD Schrift wählen"
 
-#: glade/zapping.glade2.h:65
+#: glade/zapping.glade2.h:66
 msgid "Select the V4L device"
 msgstr "V4L Gerät wählen"
 
-#: glade/zapping.glade2.h:66
+#: glade/zapping.glade2.h:67
 msgid "Select the VBI device"
 msgstr "VBI-Gerät auswählen"
 
 # src/interface.c:247
-#: glade/zapping.glade2.h:67
+#: glade/zapping.glade2.h:68
 msgid "Show _tooltips"
 msgstr "_Minihilfen anzeigen"
 
-#: glade/zapping.glade2.h:68
+#: glade/zapping.glade2.h:69
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Teletext viewer may not display the correct font or national characters. You "
@@ -310,19 +314,19 @@ msgstr ""
 "kann der Teletext-Dekoder eine falsche Schrift oder falsche Sonderzeichen "
 "zeigen. Zur Ergänzung können Sie hier ihre geographische Region vorgeben."
 
-#: glade/zapping.glade2.h:69
+#: glade/zapping.glade2.h:70
 msgid "Status Bar"
 msgstr "Statusleiste"
 
-#: glade/zapping.glade2.h:70
+#: glade/zapping.glade2.h:71
 msgid "Stop this plugin"
 msgstr "Plugin anhalten"
 
-#: glade/zapping.glade2.h:71
+#: glade/zapping.glade2.h:72
 msgid "TV viewer for the Gnome environment"
 msgstr "Ein Programm zum Fernsehen für den Gnome Desktop"
 
-#: glade/zapping.glade2.h:72
+#: glade/zapping.glade2.h:73
 msgid ""
 "The video capture device does not report the correct video standard, please "
 "select manually:"
@@ -330,130 +334,130 @@ msgstr ""
 "Das Videogerät gibt nicht den korrekten Videostandard an, bitte manuell "
 "eingeben:"
 
-#: glade/zapping.glade2.h:73
+#: glade/zapping.glade2.h:74
 msgid "Tiles (slightly slower, somewhat better)"
 msgstr "Kacheln (etwas langsamer und besser)"
 
-#: glade/zapping.glade2.h:74
+#: glade/zapping.glade2.h:75
 msgid "Title _bar contents:"
 msgstr "Inhalt der _Titelleiste:"
 
-#: glade/zapping.glade2.h:75
+#: glade/zapping.glade2.h:76
 msgid "VBI options"
 msgstr "VBI Optionen"
 
-#: glade/zapping.glade2.h:76 src/main.c:157 src/properties-handler.c:1583
+#: glade/zapping.glade2.h:77 src/main.c:157 src/properties-handler.c:1583
 #: src/properties-handler.c:1591
 msgid "Video"
 msgstr "Video"
 
 # src/v4l2interface.c:344
-#: glade/zapping.glade2.h:77
+#: glade/zapping.glade2.h:78
 msgid "Video Standard"
 msgstr "Videostandard:"
 
-#: glade/zapping.glade2.h:78
+#: glade/zapping.glade2.h:79
 msgid "Video device capabilities"
 msgstr "Möglichkeiten des Videogeräts"
 
-#: glade/zapping.glade2.h:79
+#: glade/zapping.glade2.h:80
 msgid "Western Europe and Turkey"
 msgstr "Westeuropa und die Türkei"
 
-#: glade/zapping.glade2.h:80
+#: glade/zapping.glade2.h:81
 msgid "Western and Central Europe"
 msgstr "West- und Mitteleuropa"
 
-#: glade/zapping.glade2.h:81
+#: glade/zapping.glade2.h:82
 msgid "Window"
 msgstr "Fenster"
 
-#: glade/zapping.glade2.h:82
+#: glade/zapping.glade2.h:83
 msgid "Zapping Preferences"
 msgstr "Zapping Eigenschaften"
 
-#: glade/zapping.glade2.h:83
+#: glade/zapping.glade2.h:84
 msgid "Zapping error console"
 msgstr "Zapping Fehlerkonsole"
 
-#: glade/zapping.glade2.h:84
+#: glade/zapping.glade2.h:85
 msgid "_Background color:"
 msgstr "_Hintergrundfarbe:"
 
-#: glade/zapping.glade2.h:85
+#: glade/zapping.glade2.h:86
 msgid "_Capture size under XVideo:"
 msgstr "_Capture-Größe unter XVideo:"
 
-#: glade/zapping.glade2.h:86
+#: glade/zapping.glade2.h:87
 msgid "_Command:"
 msgstr "_Befehl:"
 
-#: glade/zapping.glade2.h:87
+#: glade/zapping.glade2.h:88
 msgid "_Control volume with soundcard mixer"
 msgstr "_Lautstärke mit Mixer der Soundkarte regeln"
 
-#: glade/zapping.glade2.h:88
+#: glade/zapping.glade2.h:89
 msgid "_Device file:"
 msgstr "_Gerätedatei:"
 
-#: glade/zapping.glade2.h:89
+#: glade/zapping.glade2.h:90
 msgid "_Display mode:"
 msgstr "Anzeige_modus:"
 
-#: glade/zapping.glade2.h:90
+#: glade/zapping.glade2.h:91
 msgid "_Enable VBI decoding"
 msgstr "_VBI Dekodierung aktivieren"
 
 # src/v4l2interface.c:146
-#: glade/zapping.glade2.h:91
+#: glade/zapping.glade2.h:92
 msgid "_Enter channels by:"
 msgstr "_Senderwahl:"
 
-#: glade/zapping.glade2.h:92
+#: glade/zapping.glade2.h:93
 msgid "_Foreground color:"
 msgstr "_Textfarbe:"
 
-#: glade/zapping.glade2.h:93
+#: glade/zapping.glade2.h:94
 msgid "_Fullscreen video resolution:"
 msgstr "_Vollbildauflösung:"
 
-#: glade/zapping.glade2.h:94
+#: glade/zapping.glade2.h:95
 msgid "_Gnome sound daemon (ESD)"
 msgstr "_Gnome Sound Dämon (ESD)"
 
-#: glade/zapping.glade2.h:95
+#: glade/zapping.glade2.h:96
 msgid "_Interpolation type:"
 msgstr "_Interpolation:"
 
-#: glade/zapping.glade2.h:96
+#: glade/zapping.glade2.h:97
 msgid "_KDE sound daemon (ARTS)"
 msgstr "_KDE Sound Dämon (ARTS)"
 
-#: glade/zapping.glade2.h:97
+#: glade/zapping.glade2.h:98
 msgid "_Mute on exit"
 msgstr "Zapping stumm _beenden"
 
-#: glade/zapping.glade2.h:98
+#: glade/zapping.glade2.h:99
 msgid "_No audio recording"
 msgstr "Keine _Tonaufnahmen"
 
-#: glade/zapping.glade2.h:99
+#: glade/zapping.glade2.h:100
 msgid "_Remove after:"
 msgstr "_Entfernen nach:"
 
-#: glade/zapping.glade2.h:100
+#: glade/zapping.glade2.h:101
 msgid "_Resize using fixed increments"
 msgstr "_Fenstergröße in festen Schritten verändern"
 
-#: glade/zapping.glade2.h:101
+#: glade/zapping.glade2.h:102
 msgid "_Start Zapping muted"
 msgstr "Zapping stumm _starten"
 
-#: glade/zapping.glade2.h:102
+#: glade/zapping.glade2.h:103
 msgid "_Teletext implementation:"
 msgstr "_Teletext-Implementation:"
 
-#: glade/zapping.glade2.h:103
+#: glade/zapping.glade2.h:104
 msgid "seconds"
 msgstr "Sekunden"
 
@@ -756,20 +760,20 @@ msgid "pictures before grabbing"
 msgstr "Bilder vor dem Bildschirmfoto"
 
 #. TRANSLATORS: Soundcard mixer line.
-#: src/audio.c:490
+#: src/audio.c:498
 msgid "Input:"
 msgstr "Eingang:"
 
-#: src/audio.c:523 src/keyboard.c:1144 src/osd.c:1311
+#: src/audio.c:531 src/keyboard.c:1144 src/osd.c:1311
 #: src/properties-handler.c:1606 src/properties.c:942
 msgid "General Options"
 msgstr "Allgemeine Optionen"
 
-#: src/audio.c:634
+#: src/audio.c:642
 msgid "<span foreground=\"blue\">Audio off</span>"
 msgstr "<span foreground=\"blue\">Ton aus</span>"
 
-#: src/audio.c:635
+#: src/audio.c:643
 msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr "<span foreground=\"yellow\">Ton an</span>"
 
@@ -2004,7 +2008,7 @@ msgid "Unknown"
 msgstr "Unbekannt"
 
 # Unbenannt
-#: src/v4linterface.c:1080 src/v4linterface.c:2014
+#: src/v4linterface.c:1080 src/v4linterface.c:2015
 msgid "Unnamed"
 msgstr "Namenlos"
 
@@ -2018,22 +2022,22 @@ msgid "No standard"
 msgstr "Keine Standard"
 
 # src/v4l2interface.c:344
-#: src/v4linterface.c:1915
+#: src/v4linterface.c:1916
 msgid "Video standards"
 msgstr "Videostandards"
 
-#: src/v4linterface.c:1932
+#: src/v4linterface.c:1933
 msgid "Audio inputs"
 msgstr "Audioeingänge"
 
-#: src/v4linterface.c:1945
+#: src/v4linterface.c:1946
 msgid "Video inputs"
 msgstr "Videoeingänge"
 
 # src/v4l2interface.c:146
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: src/v4linterface.c:2042
+#: src/v4linterface.c:2043
 msgid "No channels"
 msgstr "Keine Sender"
 

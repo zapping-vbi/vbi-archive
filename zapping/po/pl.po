@@ -1,3 +1,18 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"PO-Revision-Date: 2004-04-21 07:41+0200\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
 # Zapping Polish translation -*- coding: utf-8 -*-
 # Paweł Sakowski <pawel@sakowski.eu.org>, 2000
 # Arkadiusz Lipiec <alipiec@elka.pw.edu.pl>, 2003
@@ -2308,6 +2323,9 @@ msgstr "Otwórz tą stronę w Zapzilli"
 msgid "TV viewer"
 msgstr "Program TV"
 
+msgid "Avoid noise while ch_anging channels"
+msgstr "_Unikaj szumu podczas zmiany kanałów"
+
 #~ msgid "LIRC plugin"
 #~ msgstr "Wtyczka LIRC"
 
@@ -2773,9 +2791,6 @@ msgstr "Program TV"
 
 #~ msgid "Autodetect"
 #~ msgstr "Autodetekcja"
-
-#~ msgid "Avoid noise while changing channels"
-#~ msgstr "Unikaj szumu podczas zmiany kanałów"
 
 #~ msgid ""
 #~ "Avoid some flicker in preview mode (leaves artifacts in the main window)"
