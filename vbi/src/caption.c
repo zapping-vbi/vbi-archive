@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.9.2.3 2004-02-13 02:14:10 mschimek Exp $ */
+/* $Id: caption.c,v 1.9.2.4 2004-02-25 17:31:51 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -282,10 +282,11 @@ caption_command(vbi_decoder *vbi, struct caption *cc,
 		if (row < 0 || !ch->mode)
 			return;
 
-		ch->attr.underline = c2 & 1;
+		COPY_SET_COND (ch->attr.attr, VBI_UNDERLINE, c2 & 1);
+
 		ch->attr.background = VBI_BLACK;
 		ch->attr.opacity = VBI_OPAQUE;
-		ch->attr.flash = FALSE;
+		ch->attr.attr &= ~VBI_FLASH;
 
 		word_break(cc, ch, 1);
 
@@ -314,17 +315,17 @@ caption_command(vbi_decoder *vbi, struct caption *cc,
 			if (col > ch->col)
 				ch->col = ch->col1 = col;
 
-			ch->attr.italic = FALSE;
+			ch->attr.attr &= ~VBI_ITALIC;
 			ch->attr.foreground = VBI_WHITE;
 		} else {
 // not verified
 			c2 = (c2 >> 1) & 7;
 
 			if (c2 < 7) {
-				ch->attr.italic = FALSE;
+				ch->attr.attr &= ~VBI_ITALIC;
 				ch->attr.foreground = palette_mapping[c2];
 			} else {
-				ch->attr.italic = TRUE;
+				ch->attr.attr |= VBI_ITALIC;
 				ch->attr.foreground = VBI_WHITE;
 			}
 		}
@@ -360,16 +361,16 @@ caption_command(vbi_decoder *vbi, struct caption *cc,
 			}
 		} else {		/* Midrow Codes		001 c001  010 xxxu */
 // not verified
-			ch->attr.flash = FALSE;
-			ch->attr.underline = c2 & 1;
+			ch->attr.attr &= ~VBI_FLASH;
+			COPY_SET_COND (ch->attr.attr, VBI_UNDERLINE, c2 & 1);
 
 			c2 = (c2 >> 1) & 7;
 
 			if (c2 < 7) {
-				ch->attr.italic = FALSE;
+				ch->attr.attr &= ~VBI_ITALIC;
 				ch->attr.foreground = palette_mapping[c2];
 			} else {
-				ch->attr.italic = TRUE;
+				ch->attr.attr |= VBI_ITALIC;
 				ch->attr.foreground = VBI_WHITE;
 			}
 		}
@@ -461,7 +462,7 @@ caption_command(vbi_decoder *vbi, struct caption *cc,
 
 		case 8:		/* Flash On			001 c10f  010 1000 */
 // not verified
-			ch->attr.flash = TRUE;
+			ch->attr.attr |= VBI_FLASH;
 			return;
 
 		case 1:		/* Backspace			001 c10f  010 0001 */
@@ -577,7 +578,7 @@ caption_command(vbi_decoder *vbi, struct caption *cc,
 		case 0x2F:
 // not verified
 			ch->attr.foreground = VBI_BLACK;
-			ch->attr.underline = c2 & 1;
+			COPY_SET_COND (ch->attr.attr, VBI_UNDERLINE, c2 & 1);
 			break;
 
 		default:
@@ -843,14 +844,18 @@ default_color_map[8] = {
  * 
  * After the client changed text brightness and saturation
  * this function adjusts the Closed Caption color palette.
+XXX changed
  */
 void
 vbi_caption_color_level(vbi_decoder *vbi)
 {
 	int i;
 
-	vbi_transp_colormap (vbi, vbi->cc.channel[0].pg[0].color_map,
-			     default_color_map, 8);
+	//	vbi_transp_colormap (vbi, vbi->cc.channel[0].pg[0].color_map,
+	//		     default_color_map, 8);
+
+	memcpy (vbi->cc.channel[0].pg[0].color_map, default_color_map,
+		sizeof (default_color_map)); 
 
 	for (i = 1; i < 16; i++)
 		memcpy(vbi->cc.channel[i >> 1].pg[i & 1].color_map,
