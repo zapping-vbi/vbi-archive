@@ -24,6 +24,7 @@
 
 #include <gdk/gdkx.h>
 
+#include <stdarg.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -232,6 +233,7 @@ z_set_sensitive_with_tooltip	(GtkWidget *		widget,
 }
 
 /**************************************************************************/
+
 int
 zmisc_restore_previous_mode(tveng_device_info * info)
 {
@@ -241,6 +243,9 @@ zmisc_restore_previous_mode(tveng_device_info * info)
 void
 zmisc_stop (tveng_device_info *info)
 {
+  if (TVENG_NO_CAPTURE == info->current_mode)
+    return;
+
   /* Stop current capture mode */
   switch (info->current_mode)
     {
@@ -249,22 +254,50 @@ zmisc_stop (tveng_device_info *info)
       tveng_stop_previewing(info);
       fullscreen_stop(info);
       break;
+
     case TVENG_CAPTURE_READ:
       /* capture windowed */
       capture_stop();
       video_uninit ();
       tveng_stop_capturing(info);
       break;
+
     case TVENG_CAPTURE_WINDOW:
       /* overlay windowed */
       stop_overlay ();
       break;
+
+    case TVENG_TELETEXT:
+      /* teletext in main window */
+      ttxview_detach (main_window);
+      info->current_mode = TVENG_NO_CAPTURE;
+      break;
+
     case TVENG_NO_CAPTURE:
       break;
+
     default:
       g_assert_not_reached ();
       break;
     }
+
+  {
+    GdkColor col = { 0, 0, 0, 0 };
+    GdkRectangle rect;
+    GtkWidget *tv_screen;
+
+    tv_screen = lookup_widget (main_window, "tv-screen");
+
+    gtk_widget_modify_bg (tv_screen, GTK_STATE_NORMAL, &col);
+
+    rect.x = 0;
+    rect.y = 0;
+    rect.width = tv_screen->allocation.width;
+    rect.height = tv_screen->allocation.height;
+
+    gdk_window_invalidate_rect (tv_screen->window,
+				&rect, /* children */ FALSE);
+  }
 }
 
 #define BLANK_CURSOR_TIMEOUT 1500 /* ms */
@@ -294,15 +327,17 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   tv_screen = lookup_widget(main_window, "tv-screen");
   g_assert(tv_screen != NULL);
 
-  if ((info->current_mode == new_mode) &&
-      (new_mode != TVENG_NO_CAPTURE))
-    {
-      x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
-      z_video_blank_cursor (Z_VIDEO (tv_screen),
-			    (mode == TVENG_NO_CAPTURE) ?
-			    0 : BLANK_CURSOR_TIMEOUT);
-      return 0; /* success */
-    }
+  if (info->current_mode == new_mode)
+    switch (new_mode)
+      {
+      case TVENG_TELETEXT:
+      case TVENG_NO_CAPTURE:
+	break;
+      default:
+	x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
+	z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
+	return 0; /* success */
+      }
 
   /* save this input name for later retrieval */
   if (info->cur_video_input)
@@ -330,49 +365,52 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 #ifdef HAVE_LIBZVBI
   if (!flag_exit_program)
     {
-      GtkWidget *button = lookup_widget (main_window, "videotext3");
-      GtkWidget *pixmap;
+      GtkWidget *toolbar = lookup_widget (main_window, "toolbar1");
+      GtkWidget *button = lookup_widget (main_window, "toolbar-teletext");
 
-      if (new_mode != TVENG_NO_CAPTURE)
+      if (new_mode == TVENG_TELETEXT)
 	{
-	  gtk_widget_hide (lookup_widget (main_window, "appbar2"));
-
-	  ttxview_detach (main_window);
-#warning
-	  //	  pixmap = gtk_image_new_from_stock ("zapping-teletext",
-	  //					     GTK_ICON_SIZE_BUTTON);
-	  pixmap=0;
-
-	  if (pixmap)
-	    {
-	      gtk_widget_show (pixmap);
-	      gtk_container_remove (GTK_CONTAINER (button),
-	                            gtk_bin_get_child (GTK_BIN (button)));
-	      gtk_container_add (GTK_CONTAINER (button), pixmap);
-	    }
-	  else
-	    {
-	      set_stock_pixmap (button, GTK_STOCK_JUSTIFY_FILL);
-	    }
-
-	  z_tooltip_set (button, _("Use Zapping as a Teletext navigator"));
+	  gtk_container_remove (GTK_CONTAINER (toolbar), button);
+	  button = gtk_toolbar_insert_stock (GTK_TOOLBAR (toolbar),
+					     "zapping-video",
+					     _("Return to video mode"), NULL,
+					     G_CALLBACK (on_python_command1),
+					     "zapping.toggle_mode()",
+					     5);
+	  register_widget (main_window, button, "toolbar-teletext");
 	}
-      else
+      else if (mode == TVENG_TELETEXT)
 	{
-	  set_stock_pixmap (button, GTK_STOCK_REDO);
-	  z_tooltip_set (button, _("Return to windowed mode and use the current "
-			   "page as subtitles"));
+	  GtkWidget *appbar;
+
+	  gtk_container_remove (GTK_CONTAINER (toolbar), button);
+	  button = gtk_toolbar_insert_stock (GTK_TOOLBAR (toolbar),
+					     "zapping-teletext",
+					     _("Activate Teletext mode"), NULL,
+					     G_CALLBACK (on_python_command1),
+					     "zapping.switch_mode('teletext')",
+					     5);
+	  register_widget (main_window, button, "toolbar-teletext");
+
+	  appbar = lookup_widget (main_window, "appbar2");
+	  gtk_widget_hide (appbar);
+	  gtk_widget_queue_resize (main_window);
 	}
     }
 #endif /* HAVE_LIBZVBI */
 
-  if (new_mode != TVENG_CAPTURE_PREVIEW &&
-      new_mode != TVENG_NO_CAPTURE)
-    osd_set_window(tv_screen);
-  else if (new_mode == TVENG_NO_CAPTURE)
+  switch (new_mode)
     {
+    case TVENG_TELETEXT:
+    case TVENG_NO_CAPTURE:
       osd_clear();
       osd_unset_window();
+      break;
+    case TVENG_CAPTURE_PREVIEW:
+      break;
+    default:
+      osd_set_window(tv_screen);
+      break;
     }
 
   switch (new_mode)
@@ -408,6 +446,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 			   | X11_SCREENSAVER_CPU_ACTIVE);
       z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
       break;
+
     case TVENG_CAPTURE_WINDOW:
       if (disable_preview || disable_overlay) {
 	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
@@ -531,30 +570,41 @@ XX();
           z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
 	}
       break;
-    default:
+
+    case TVENG_TELETEXT:
       x11_screensaver_set (X11_SCREENSAVER_ON);
       z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 
-      if (!flag_exit_program) /* Just closing */
-	{
 #ifdef HAVE_LIBZVBI
-	  if (zvbi_get_object())
-	    {
-	      /* start vbi code */
-	      gtk_widget_show(lookup_widget(main_window, "appbar2"));
-	      ttxview_attach(main_window, lookup_widget(main_window, "tv-screen"),
-			     lookup_widget(main_window, "toolbar1"),
-			     lookup_widget(main_window, "appbar2"));
-	    }
-	  else
-#endif
-	    {
-	      ShowBox(_("VBI has been disabled, or it doesn't work."),
-		      GTK_MESSAGE_INFO);
-	      break;
-	    }
+      if (zvbi_get_object ())
+	{
+	  /* start vbi code */
+
+	  gtk_widget_show (lookup_widget (main_window, "appbar2"));
+	  gtk_widget_queue_resize (main_window);
+
+	  ttxview_attach (main_window,
+			  lookup_widget (main_window, "tv-screen"),
+			  lookup_widget (main_window, "toolbar1"),
+			  lookup_widget (main_window, "appbar2"));
+
+	  info->current_mode = TVENG_TELETEXT;
 	}
-      break; /* TVENG_NO_CAPTURE */
+      else
+#endif
+	{
+	  ShowBox(_("VBI has been disabled, or it doesn't work."),
+		  GTK_MESSAGE_INFO);
+	  break;
+	}
+
+      break;
+
+    default: /* TVENG_NO_CAPTURE */
+      x11_screensaver_set (X11_SCREENSAVER_ON);
+      z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
+
+      break;
     }
 
   /* Restore old input if we found it earlier */
@@ -1011,12 +1061,15 @@ z_on_electric_filename		(GtkWidget *		w,
   gint baseextlen;
 
   name = gtk_entry_get_text (GTK_ENTRY (w));
-
   len = strlen (name);
+
   /* Last '/' in name. */
-  for (ext = name + len - 1; ext > name && *ext != '/'; ext--);
+  for (ext = name + len - 1; ext > name && *ext != '/'; ext--)
+    ;
+
   /* First '.' in last part of name. */
-  for (; *ext && *ext != '.'; ext++);
+  for (; *ext && *ext != '.'; ext++)
+    ;
 
   basename = (gchar *) g_object_get_data (G_OBJECT (w), "basename");
   g_assert (basename != NULL);
@@ -1137,6 +1190,8 @@ set_orientation_recursive	(GtkToolbar	*toolbar,
   gtk_toolbar_set_orientation(toolbar, orientation);
 }
 
+#if 0
+
 static void
 on_orientation_changed		(GtkToolbar	*toolbar,
 				 GtkOrientation	orientation,
@@ -1161,26 +1216,39 @@ on_orientation_changed		(GtkToolbar	*toolbar,
     }  
 }
 
-static void
-set_style_recursive		(GtkToolbar	*toolbar,
-				 GtkToolbarStyle style)
-{
-  GList *p = toolbar->children;
-  GtkToolbarChild *child;
+#endif
 
-  while (p)
+void
+z_toolbar_set_style_recursive	(GtkToolbar *		toolbar,
+				 GtkToolbarStyle	style)
+{
+  GList *p;
+
+  for (p = toolbar->children; p; p = p->next)
     {
-      child = (GtkToolbarChild*)p->data;
+      GtkToolbarChild *child = (GtkToolbarChild *) p->data;
       
-      if (child->type == GTK_TOOLBAR_CHILD_WIDGET &&
-	  GTK_IS_TOOLBAR(child->widget))
-	set_style_recursive(GTK_TOOLBAR(child->widget), style);
-      p = p->next;
+      if (child->type == GTK_TOOLBAR_CHILD_WIDGET
+	  && GTK_IS_TOOLBAR (child->widget))
+	z_toolbar_set_style_recursive (GTK_TOOLBAR (child->widget), style);
     }
 
-  gtk_toolbar_set_style(toolbar, style);
+  switch (style)
+    {
+    case GTK_TOOLBAR_ICONS:
+    case GTK_TOOLBAR_TEXT:
+    case GTK_TOOLBAR_BOTH:
+    case GTK_TOOLBAR_BOTH_HORIZ:
+      gtk_toolbar_set_style (toolbar, style);
+      break;
+
+    default:
+      gtk_toolbar_unset_style (toolbar);
+      break;
+    }
 }
 
+/*
 static void
 on_style_changed		(GtkToolbar	*toolbar,
 				 GtkToolbarStyle style,
@@ -1200,23 +1268,11 @@ on_style_changed		(GtkToolbar	*toolbar,
 
       if (child->type == GTK_TOOLBAR_CHILD_WIDGET &&
 	  GTK_IS_TOOLBAR(child->widget))
-	set_style_recursive(GTK_TOOLBAR(child->widget), style);
+	z_toolbar_set_style_recursive(GTK_TOOLBAR(child->widget), style);
       p = p->next;
     }
 }
-
-void
-propagate_toolbar_changes	(GtkWidget	*toolbar)
-{
-  g_return_if_fail (GTK_IS_TOOLBAR(toolbar));
-
-  g_signal_connect(G_OBJECT(toolbar), "style-changed",
-		   GTK_SIGNAL_FUNC(on_style_changed),
-		   NULL);
-  g_signal_connect(G_OBJECT(toolbar), "orientation-changed",
-		   GTK_SIGNAL_FUNC(on_orientation_changed),
-		   NULL);
-}
+*/
 
 void zmisc_overlay_subtitles	(gint page)
 {
@@ -1929,7 +1985,7 @@ z_widget_add_accelerator	(GtkWidget	*widget,
 }
 
 static void
-on_entry_activated (GObject *entry, GtkDialog *dialog)
+on_entry_activate (GObject *entry, GtkDialog *dialog)
 {
   gtk_dialog_response (dialog, GPOINTER_TO_INT
 		       (g_object_get_data (entry, "zmisc-response")));
@@ -1941,7 +1997,7 @@ z_entry_emits_response		(GtkWidget	*entry,
 				 GtkResponseType response)
 {
   g_signal_connect (G_OBJECT (entry), "activate",
-		    G_CALLBACK (on_entry_activated),
+		    G_CALLBACK (on_entry_activate),
 		    dialog);
 
   g_object_set_data (G_OBJECT (entry), "zmisc-response",
@@ -2056,24 +2112,32 @@ z_icon_factory_add_pixdata	(const gchar *		stock_id,
   return TRUE;
 }
 
+/* This is for tveng, which will eventually spin off.
+   Elsewhere use g_strlcpy. */
 size_t
-z_strlcpy			(char *			dst1,
+z_strlcpy			(char *			dst,
 				 const char *		src,
 				 size_t			size)
 {
-	char c, *dst, *end;
+	register const char *s;
+	register char c, *d, *e;
 
-	assert (size > 0);
+	if (size < 1)
+		return strlen (src);
 
-	dst = dst1;
-	end = dst1 + size - 1;
+	s = src;
+	d = dst;
+	e = d + size - 1;
 
-	while (dst < end && (c = *src++))
-		*dst++ = c;
+	while ((c = *s++) && d < e)
+		*d++ = c;
 
-	*dst = 0;
+	*d = 0;
 
-	return dst - dst1;
+	while (c)
+		c = *s++;
+
+	return s - src;
 }
 
 /* Debugging. */
@@ -2097,4 +2161,21 @@ z_gdk_event_name		(GdkEvent *		event)
     return event_name[event->type - GDK_NOTHING];
   else
     return "unknown";
+}
+
+void
+z_label_set_text_printf		(GtkLabel *		label,
+				 const gchar *		format,
+				 ...)
+{
+  gchar *buffer;
+  va_list args;
+
+  va_start (args, format);
+  buffer = g_strdup_vprintf (format, args);
+  va_end (args);
+
+  gtk_label_set_text (label, buffer);
+
+  g_free (buffer);
 }
