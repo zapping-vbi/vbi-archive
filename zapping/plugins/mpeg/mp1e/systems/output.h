@@ -23,12 +23,7 @@
 #ifndef __OUTPUT_H__
 #define __OUTPUT_H__
 
-
-#define 			PACKET_SIZE		2048	// including any headers
-
-extern void *                   output_thread(void * unused);
-extern int                      output_init(void);
+extern bool                     output_init(void);
 extern void                     output_end(void);
-extern _buffer *                output(_buffer *);
 
 #endif // OUTPUT.H

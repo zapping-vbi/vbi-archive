@@ -21,11 +21,29 @@
 #ifndef __RTEPRIV_H__
 #define __RTEPRIV_H__
 #include "rte.h"
+#include <pthread.h>
 
 extern rte_context * rte_global_context;
 
 typedef void (*_rte_filter)(const char * src, char * dest, int width,
 			    int height);
+
+#define RC(X) ((rte_context*)X)
+
+#define rte_error(context, format, args...) \
+{ \
+	if (context) { \
+		if (!RC(context)->error) \
+			RC(context)->error = malloc(256); \
+		RC(context)->error[255] = 0; \
+		snprintf(RC(context)->error, 255, \
+			 "rte:%s:%s(%d): " format, \
+			 __FILE__, __PRETTY_FUNCTION__, __LINE__ ,##args); \
+	} \
+	else \
+		fprintf(stderr, "rte:%s:%s(%d): " format ".\n", \
+			__FILE__, __PRETTY_FUNCTION__, __LINE__ ,##args); \
+}
 
 /*
   Private things we don't want people to see, we can play with this
@@ -34,20 +52,20 @@ typedef void (*_rte_filter)(const char * src, char * dest, int width,
   tables.
 */
 struct _rte_context_private {
-	int encoding; /* 1 if working, 0 if not */
+	int encoding; /* 0 if not encoding */
+	int inited; /* 0 if not inited */
 	rteEncodeCallback encode_callback; /* save-data Callback */
 	rteDataCallback data_callback; /* need-data Callback */
+	pthread_t mux_thread; /* mp1e multiplexer thread */
 	int fd; /* file descriptor of the file we are saving */
 	void * user_data; /* user data given to the callback */
-	_fifo aud, vid; /* fifos for pushing */
-	int v_ubuffer; /* for unget() */
-	_buffer * a_ubuffer; /* for unget() */
-	int a_again; /* if 1, return a_ubuffer again */
+	fifo aud, vid; /* callback fifos for pushing */
+	mucon consumer; /* consumer mucon for aud + vid */
 	int depth; /* video bit depth (bytes per pixel, includes
 		      packing) */
-	_buffer * last_video_buffer; /* video buffer the app should be
+	buffer * last_video_buffer; /* video buffer the app should be
 				       encoding to */
-	_buffer * last_audio_buffer; /* audio buffer */
+	buffer * last_audio_buffer; /* audio buffer */
 	/* video fetcher (callbacks) */
 	int video_pending; /* Pending video frames */
 	pthread_t video_fetcher_id; /* id of the video fetcher thread */
@@ -61,5 +79,14 @@ struct _rte_context_private {
 	_rte_filter rgbfilter; /* the filter used for conversion, if any */
 	char * rgbmem; /* allocated mem for the rgb image */
 };
+
+/* Some macros for avoiding repetitive typing */
+#define nullcheck(X, whattodo) \
+do { \
+	if (!X) { \
+		rte_error(NULL, #X " == NULL"); \
+		whattodo; \
+	} \
+} while (0)
 
 #endif /* rtepriv.h */

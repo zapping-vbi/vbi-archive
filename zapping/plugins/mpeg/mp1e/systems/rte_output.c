@@ -40,112 +40,42 @@ buffer *		(* mux_output)(buffer *b);
 
 static buffer		mux_buffer;
 
-static _fifo            out;
-static int              out_buffers = 8;
-static size_t           out_buffer_size;
-
-extern int		stereo;
-extern pthread_t        output_thread_id;
-
 static buffer *
 output(buffer *mbuf)
 {
-	/* fixme: If we are going to write to disk, do it now */
-	/* fixme: use the buffered routines (as in output.c) */
-	_buffer *obuf;
-
 	if (!mbuf)
 		return &mux_buffer;
 
-	obuf = _new_buffer(&out);
-
-	assert(out_buffer_size >= mbuf->used);
-
-	memcpy(obuf->data, mbuf->data, mbuf->used);
-	obuf->size = mbuf->used;
-
-	_send_out_buffer(&out, obuf);
-
-	return mbuf; /* any previously entered */
-}
-
-/*
-  This thread is started from main()
-*/
-void *
-output_thread (void * unused)
-{
-	_buffer * buf;
-
-	for (;;) {
-		pthread_mutex_lock(&out.mutex);
-
-		while (!(buf = (_buffer *) rem_head(&out.full)))
-			pthread_cond_wait(&out.cond, &out.mutex);
-
-		pthread_mutex_unlock(&out.mutex);
-
-		ASSERT("global context is set", rte_global_context != NULL);
-
-		rte_global_context->private->encode_callback(buf->data, buf->size,
-			   rte_global_context, rte_global_context->private->user_data);
-
-		_empty_buffer(&out, buf);
+	/* rte_global_context sanity checks */
+	if ((!rte_global_context) || (!rte_global_context->private) ||
+	    (!rte_global_context->private->encode_callback)) {
+		rte_error(NULL, "sanity check failed");
+		return mbuf;
 	}
 
-	return NULL;
+	rte_global_context->private->
+		encode_callback(mbuf->data,
+				mbuf->used,
+				rte_global_context,
+				rte_global_context->private->user_data);
+
+
+	return mbuf; /* any previously entered */
 }
 
 int
 output_init( void )
 {
-	/* we need this later for the size check */
-	switch (modules & (MOD_VIDEO | MOD_AUDIO)) {
-	case 1:
-		out_buffer_size = mb_num * 384 * 4;
-		break;
-	case 2:
-		out_buffer_size = 2048 << stereo;
-		break;
-	case 3:
-		out_buffer_size = PACKET_SIZE;
-		break;
-	}
-
 	if (!init_buffer(&mux_buffer, PACKET_SIZE))
-		return 0;
-
-	out_buffers = _init_fifo(&out, "output", out_buffer_size,
-				out_buffers);
-
-	if (out_buffers < 5) {
-		uninit_buffer(&mux_buffer);
-		_free_fifo(&out);
-		return 0;
-	}
+		return FALSE;
 
 	mux_output = output;
 
-	return 1;
+	return TRUE;
 }
 
 void
 output_end ( void )
 {
-	_buffer * buf;
-	
-	pthread_cancel(output_thread_id);
-	pthread_join(output_thread_id, NULL);
-
-	while ((buf = (_buffer *) rem_head(&out.full)))
-	{
-		if (!buf->size)
-			break;
-		rte_global_context->private->encode_callback(buf->data, buf->size,
-			   rte_global_context, rte_global_context->private->user_data);
-		_empty_buffer(&out, buf);
-	}
-
 	uninit_buffer(&mux_buffer);
-	_free_fifo(&out);
 }

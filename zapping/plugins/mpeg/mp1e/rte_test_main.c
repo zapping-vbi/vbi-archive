@@ -82,6 +82,8 @@ extern void preview_init(void);
 extern void audio_init(void);
 extern void video_init(void);
 
+#if 0
+
 volatile int program_shutdown = 0;
 
 pthread_t video_emulation_thread_id;
@@ -276,3 +278,10 @@ main(int ac, char **av)
 
 	return EXIT_SUCCESS;
 }
+#else
+int main(int argc, char *argv[])
+{
+	fprintf(stderr, "not done yet\n");
+	return 0;
+}
+#endif

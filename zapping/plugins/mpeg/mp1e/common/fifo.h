@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.4 2000-08-28 21:13:22 garetxe Exp $ */
+/* $Id: fifo.h,v 1.5 2000-10-08 18:03:52 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -32,9 +32,11 @@
 /*
  *  Old stuff to be removed
  */
-
 #include "log.h"
 #include "alloc.h"
+
+/* FIXME: Michael, this is no longer needed, remove when you want */
+#if 0
 
 typedef struct {
 	node 			node;
@@ -156,7 +158,7 @@ _empty_buffer(_fifo *f, _buffer *b)
 	pthread_cond_broadcast(&f->cond);
 }
 
-
+#endif /* disabled old stuff */
 
 /*
  *  New stuff(tm)
@@ -196,6 +198,8 @@ typedef struct _fifo {
 
 	buffer *		buffers;
 	int			num_buffers;
+
+	void *			user_data; // Useful for callbacks
 } fifo;
 
 extern bool	init_buffer(buffer *b, int size);

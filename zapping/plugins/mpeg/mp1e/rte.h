@@ -27,6 +27,7 @@
 
 /*
   What are we going to encode, audio only, video only or both
+  FIXME: subtitles?
 */
 enum rte_mux_mode {
 	RTE_MUX_VIDEO_ONLY = 1,
@@ -131,17 +132,15 @@ typedef struct {
 /*
   "You have to save this data" callback. Defaults to a disk (stdout)
   write().
-  Return 0 if encoding should be stopped, anything else to continue
-  working.
   data: Pointer to the encoded data.
   size: Size in bytes of the data stored in data
   context: Context that created this data.
   user_data: Pointer passed to rte_context_new
 */
-typedef int (*rteEncodeCallback)(void * data,
-				 size_t size,
-				 rte_context * context,
-				 void * user_data);
+typedef void (*rteEncodeCallback)(void * data,
+				  size_t size,
+				  rte_context * context,
+				  void * user_data);
 
 #define RTE_ENCODE_CALLBACK(function) ((rteEncodeCallback)function)
 
@@ -189,9 +188,10 @@ int rte_init ( void );
   data_callback: Function to be called when data to be encoded is needed.
   user_data: Some data you would like to pass to the callback
 */
-rte_context * rte_context_new (char * file,
-			       int width, int height,
+rte_context * rte_context_new (int width, int height,
+			       enum rte_pixformat frame_format,
 			       enum rte_frame_rate rate,
+			       char * file,
 			       rteEncodeCallback encode_callback,
 			       rteDataCallback data_callback,
 			       void * user_data);
@@ -215,18 +215,19 @@ void * rte_context_destroy ( rte_context * context );
 /*
   Sets the video parameters. If you want to leave output_video_bits
   unmodified (for example), use context->output_video_bits
+  Returns 0 on error
 */
-void rte_set_video_parameters (rte_context * context,
-			       enum rte_pixformat frame_format,
-			       int width, int height,
-			       enum rte_frame_rate video_rate,
-			       size_t output_video_bits);
+int rte_set_video_parameters (rte_context * context,
+			      enum rte_pixformat frame_format,
+			      int width, int height,
+			      enum rte_frame_rate video_rate,
+			      size_t output_video_bits);
 
-/* Sets the audio parameters */
-void rte_set_audio_parameters (rte_context * context,
-			       int audio_rate,
-			       enum rte_audio_mode audio_mode,
-			       size_t output_audio_bits);
+/* Sets the audio parameters, 0 on error */
+int rte_set_audio_parameters (rte_context * context,
+			      int audio_rate,
+			      enum rte_audio_mode audio_mode,
+			      size_t output_audio_bits);
 
 /* Specifies whether to encode audio only, video only or both */
 void rte_set_mode (rte_context * context, enum rte_mux_mode mode);
@@ -253,19 +254,15 @@ void rte_set_file_name(rte_context * context, const char * file_name);
 */
 char * rte_get_file_name(rte_context * context);
 
-/* [SG]ets the user data parameter */
+/* [SG]ets the user data parameter. Can be done while encoding */
 void rte_set_user_data(rte_context * context, void * user_data);
 void * rte_get_user_data(rte_context * context);
 
 /*
-  Sets up everything to start coding. Call this after setting the
-  desired parameters, after calling this they will be read-only. If we
-  are currently encoding, the function will fail. (librte isn't
-  reentrant yet)
-  Returns: 1 on success, 0 on error.
-  FIXME: Some error reporting is needed here.
+  FIXME: add comments
 */
-int rte_start ( rte_context * context );
+int rte_init_context ( rte_context * context );
+int rte_start_encoding ( rte_context * context );
 
 /*
   Stops encoding frames. Usually you won't call this, but
