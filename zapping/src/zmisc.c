@@ -35,6 +35,7 @@ static gint curx, cury, curw, curh; /* current geometry of the window
 static gboolean obscured = FALSE;
 gboolean ignore_next_expose = FALSE;
 static guint timeout_id = 0;
+//static GdkPixbuf *pixbuf;
 
 /*
   Prints a message box showing an error, with the location of the code

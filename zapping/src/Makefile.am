@@ -1,10 +1,14 @@
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = \
-	-I$(top_srcdir)/intl \
-	$(GNOME_INCLUDEDIR)
+-I$(top_srcdir)/libvbi \
+-I$(top_srcdir)/intl \
+$(GNOME_INCLUDEDIR) \
+$(GDK_PIXBUF_CFLAGS)
 
 bin_PROGRAMS = zapping
+
+VBI_LIB = $(top_srcdir)/libvbi/libvbi.a
 
 ## Don't forget to put these files into the distribution
 EXTRA_DIST = videodev.h videodev2.h plugin_common.h ROADMAP
@@ -24,8 +28,10 @@ zapping_SOURCES = \
 	plugin_properties.c callbacks.h \
 	tveng1.c tveng1.h \
 	tveng2.c tveng2.h \
-	tveng.c tveng.h
+	tveng.c tveng.h \
+	zvbi.c zvbi.h
 
-zapping_LDADD = $(GNOME_LIBDIR) $(GNOMEUI_LIBS) $(INTLLIBS) \
-$(GNOME_XML_LIB) $(LIBGLADE_LIBS) $(X_DGA_LIBS) $(PTHREAD_LIB) \
-$(PNG_LIB)
+zapping_LDADD = $(VBI_LIB) $(GNOME_LIBDIR) $(GNOMEUI_LIBS) \
+$(GDK_PIXBUF_LIBS) $(INTLLIBS) $(GNOME_XML_LIB) $(LIBGLADE_LIBS) \
+$(X_DGA_LIBS) $(PTHREAD_LIB) $(PNG_LIB)
+

@@ -36,6 +36,7 @@
 #include "zconf.h"
 #include "frequencies.h"
 #include "sound.h"
+#include "zvbi.h"
 
 /* This comes from callbacks.c */
 extern enum tveng_capture_mode restore_mode; /* the mode set when we went
@@ -447,6 +448,9 @@ void shutdown_zapping(void)
 	      "     Zapping. Please contact the author.\n"
 	      ), GNOME_MESSAGE_BOX_ERROR);
 
+  /* Shut down vbi */
+  zvbi_close_device();
+
   /* Mute the device again and close */
   tveng_set_mute(1, main_info);
   tveng_device_info_destroy(main_info);
@@ -530,6 +534,11 @@ gboolean startup_zapping()
       g_free(buffer);
       i++;
     }
+
+  /* Start VBI services, and warn if we cannot */
+  if (!zvbi_open_device("/dev/vbi", 999, TRUE))
+    ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
+	    GNOME_MESSAGE_BOX_ERROR, "/dev/vbi", strerror(errno), errno);
 
   /* Starts all modules */
   if (!startup_callbacks())

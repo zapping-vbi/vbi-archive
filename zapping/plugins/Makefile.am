@@ -1,1 +1,1 @@
-SUBDIRS = screenshot template
+SUBDIRS = $(PLUGINS_TO_BUILD)

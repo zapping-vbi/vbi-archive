@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-08-25 14:00+0200\n"
+"POT-Creation-Date: 2000-09-03 18:02+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,61 +14,61 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: ENCODING\n"
 
-#: src/main.c:96
+#: src/main.c:97
 msgid "Sorry, but there is no module support"
 msgstr ""
 
-#: src/main.c:105
+#: src/main.c:106
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: src/main.c:111
+#: src/main.c:112
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:149
+#: src/main.c:150
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:170
+#: src/main.c:171
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:260
+#: src/main.c:263
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:263
+#: src/main.c:266
 msgid ", I will try starting capture mode"
 msgstr ""
 
-#: src/main.c:267
+#: src/main.c:270
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:272
+#: src/main.c:276
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:325
+#: src/main.c:329
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:437
+#: src/main.c:441
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -80,8 +80,15 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:471
+#: src/main.c:478
 msgid "Sorry, Zapping is unable to create the config tree"
+msgstr ""
+
+#: src/main.c:540
+#, c-format
+msgid ""
+"Sorry, but %s couldn't be opened:\n"
+"%s (%d)"
 msgstr ""
 
 #: src/interface.c:52
@@ -580,7 +587,7 @@ msgid ""
 "Hashes are 0x%x vs. 0x%x"
 msgstr ""
 
-#: src/zmisc.c:113
+#: src/zmisc.c:114
 #, c-format
 msgid ""
 "Sorry, but a %dx%d image couldn't be allocated, the image will not be "
@@ -1330,46 +1337,41 @@ msgstr ""
 
 #. hash collision code
 #. Warn
-#: plugins/screenshot/screenshot.c:182
+#: plugins/screenshot/screenshot.c:181
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:246
-msgid ""
-"You aren't in capture mode. Please switch to it before using this plugin"
-msgstr ""
-
-#: plugins/screenshot/screenshot.c:312
+#: plugins/screenshot/screenshot.c:317
 msgid "Converts a row in RGB565 format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:318
+#: plugins/screenshot/screenshot.c:323
 msgid "Converts a row in RGB555 format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:324
+#: plugins/screenshot/screenshot.c:329
 msgid "Converts a row in RGBA format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:357
+#: plugins/screenshot/screenshot.c:362
 msgid "PNG saver"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:361
+#: plugins/screenshot/screenshot.c:366
 msgid "Select here the directory where screenshots will be saved"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:367
+#: plugins/screenshot/screenshot.c:372
 msgid "Select directory to save screenshots"
 msgstr ""
 
 #. The interlaced checkbutton
-#: plugins/screenshot/screenshot.c:384
+#: plugins/screenshot/screenshot.c:389
 msgid "Save interlaced PNG"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:440
+#: plugins/screenshot/screenshot.c:445
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
@@ -1379,46 +1381,46 @@ msgid ""
 "interlaced. This allows image viewers load it progressively."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:468
+#: plugins/screenshot/screenshot.c:473
 msgid "Screenshot"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:469
+#: plugins/screenshot/screenshot.c:474
 msgid "Take a PNG screenshot"
 msgstr ""
 
 #. Probably there is no mem even for this, but try anyway
-#: plugins/screenshot/screenshot.c:552 plugins/screenshot/screenshot.c:562
-#: plugins/screenshot/screenshot.c:571
+#: plugins/screenshot/screenshot.c:557 plugins/screenshot/screenshot.c:567
+#: plugins/screenshot/screenshot.c:576
 msgid "Sorry, not enough mem"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:600
+#: plugins/screenshot/screenshot.c:605
 msgid "Sorry, but I cannot write\n"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:602
+#: plugins/screenshot/screenshot.c:607
 msgid ""
 "\n"
 "The image won't be saved."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:626
+#: plugins/screenshot/screenshot.c:631
 msgid "Cannot init the first PNG saving structure"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:641
+#: plugins/screenshot/screenshot.c:646
 msgid "Cannot init the second PNG saving structure"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:710
+#: plugins/screenshot/screenshot.c:715
 msgid "Saving..."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:721
+#: plugins/screenshot/screenshot.c:726
 msgid "Sorry, not enough resources for creating a new thread"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:725
+#: plugins/screenshot/screenshot.c:730
 msgid "There are too many threads"
 msgstr ""

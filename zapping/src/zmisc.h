@@ -18,7 +18,7 @@
 
 /*
   Misc stuff for zapping that didn't fit properly in any other place,
-  but where commonly used.
+  but was commonly used.
 */
 
 #ifndef __ZMISC_H__

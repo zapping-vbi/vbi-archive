@@ -9,6 +9,10 @@ AM_ACLOCAL_INCLUDE(macros)
 
 AM_PROG_LIBTOOL
 
+dnl These are the plugins we can build, they depend on the present
+dnl libs.
+PLUGINS_TO_BUILD="template"
+
 dnl ---------------------------------------------------------------------------
 dnl disable X extensions
 dnl ---------------------------------------------------------------------------
@@ -50,14 +54,42 @@ dnl ----------------------------------------------------------------------
 dnl Check the PNG writing library
 dnl ----------------------------------------------------------------------
 PNG_LIB=""
+HAVE_PNG="yes"
 AC_CHECK_LIB(png, png_create_write_struct, PNG_LIB="-lpng",
 AC_CHECK_LIB(png, png_create_write_struct, PNG_LIB="-lpng -lz",
-AC_MSG_ERROR(**** Cannot link a simple program with libpng ****), "-lz"))
+HAVE_PNG="no", "-lz"))
+dnl The screenshot plugin requires libpng
+if test "$HAVE_PNG" = "yes"; then
+	PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD screenshot"
+fi
 AC_SUBST(PNG_LIB)
 
 GNOME_COMPILE_WARNINGS
 GNOME_X_CHECKS
 GNOME_XML_CHECK
+
+dnl ----------------------------------------------------------------------
+dnl Check for the existance of gdk-pixbuf (some plugins need it)
+dnl ----------------------------------------------------------------------
+AC_MSG_CHECKING(for gdk_pixbuf)
+GDK_PIXBUF_VERSION=`gdk-pixbuf-config --version`
+if test $? -eq 0; then
+	AC_MSG_RESULT($GDK_PIXBUF_VERSION)
+	GDK_PIXBUF_CFLAGS=`gdk-pixbuf-config --cflags`
+	dnl Avoid including twice the result of "gtk-config --libs"
+	dnl (gdk-pixbuf includes it too)
+	TMP_VAR=`gtk-config --libs | sed "s/\//\\\\\\\\\//g"`
+	GDK_PIXBUF_LIBS=`gdk-pixbuf-config --libs`
+	GDK_PIXBUF_LIBS=`echo $GDK_PIXBUF_LIBS | sed "s/$TMP_VAR//g"`
+	AC_SUBST(GDK_PIXBUF_VERSION)
+	AC_SUBST(GDK_PIXBUF_CFLAGS)
+	AC_SUBST(GDK_PIXBUF_LIBS)
+	HAVE_GDK_PIXBUF="yes"
+else
+	AC_MSG_RESULT([no, VBI plugin will be disabled])
+	HAVE_GDK_PIXBUF="no"
+dnl fixme: Remember to disable the VBI plugin now
+fi
 
 dnl ----------------------------------------------------------------------
 dnl Check which libxml syntax we will use (children vs. childs)
@@ -101,6 +133,8 @@ dnl Subst PACKAGE_PIXMAPS_DIR.
 PACKAGE_PIXMAPS_DIR="${datadir}/pixmaps/${PACKAGE}"
 AC_SUBST(PACKAGE_PIXMAPS_DIR)
 
+AC_SUBST(PLUGINS_TO_BUILD)
+
 AC_OUTPUT([
 zapping.spec
 Makefile
@@ -108,12 +142,25 @@ macros/Makefile
 pixmaps/Makefile
 src/Makefile
 intl/Makefile
+libvbi/Makefile
 po/Makefile.in
-zapping_setup_fb/Makefile
 glade/Makefile
 help/Makefile
 help/C/Makefile
 plugins/Makefile
+zapping_setup_fb/Makefile
 plugins/template/Makefile
 plugins/screenshot/Makefile
 ])
+
+echo "
+	Optional package		Found
+	----------------		-----
+	GdkPixbuf			$HAVE_GDK_PIXBUF
+	LibPng				$HAVE_PNG
+
+	Plugins to build
+	----------------
+	`echo $PLUGINS_TO_BUILD | sed "s/ /\\\\
+	/g"`
+"

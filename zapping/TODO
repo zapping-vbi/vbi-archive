@@ -1,5 +1,8 @@
 Outstanding issues for the next release
 ---------------------------------------
 	+ Write the mpeg plugin
+	+ Add support for vtx in the core Zapping (just opening the
+		device and providing plugins with functions)
+	+ Make a plugin that puts a given Teletext page on screen
 	+ Bug fixes
 	> Release 0.5.3

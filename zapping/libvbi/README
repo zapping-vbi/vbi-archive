@@ -1,0 +1,5 @@
+This is for vbi decoding.  Taken from xawtv-3.19, which in turn took
+it from alevt 1.5.1.
+Changes:
+  * Makefile.am created.
+  * Removed debug code from vbi.c

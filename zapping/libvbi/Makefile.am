@@ -1,0 +1,18 @@
+noinst_LIBRARIES = libvbi.a
+
+EXTRA_DIST = font1.xbm font2.xbm README
+
+## Avoid warning messages (i'm not going to maintain this code)
+CFLAGS = -w
+
+libvbi_a_SOURCES = \
+	cache.c cache.h \
+	exp-gfx.c exp-html.c exp-txt.c export.c export.h \
+	dllist.h \
+	fdset.c fdset.h \
+	font.c font.h fontsize.h \
+	hamm.c hamm.h \
+	lang.c lang.h \
+	misc.c misc.h \
+	vbi.c vbi.h libvbi.h \
+	os.h vt.h

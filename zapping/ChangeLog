@@ -1,3 +1,16 @@
+03.9.2000	Project structure changes <garetxe@users.sourceforge.net>
+
+	* libvbi/: It's a bit cleaner now, and commited to CVS
+	* src/zvbi.c: Gets the date and the name on each header/xpacket
+	* configure.in: Not having -lpng is not longer fatal, conditional
+	plugin build, [optional] GdkPixbuf support added (i will need it
+	for the VBI plugin)
+	
+01.9.2000	VBI support added <garetxe@users.sourceforge.net>
+
+	* libvbi/: Added support for VBI (stolen from alevt)
+	* src/zvbi.c: Swallow support and encapsulation added
+
 25.8.2000	mode switch when needed <garetxe@users.sourceforge.net>
 
 	* plugins/screenshot: Now switchs to capture mode automagically

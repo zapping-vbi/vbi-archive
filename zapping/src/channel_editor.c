@@ -670,7 +670,13 @@ gint do_search (GtkWidget * searching)
 	{
 	  GtkWidget * channel_name =
 	    lookup_widget(channel_list, "channel_name");
-	  gtk_entry_set_text(GTK_ENTRY(channel_name), channel->name);
+	  //	  fdset_select(fds, 1000 * 3);
+	  //	  if (!(tuned_name = get_vbi_name()))
+	  //	    gtk_entry_set_text(GTK_ENTRY(channel_name),
+	  //			       channel->name);
+	  //	  else
+	    gtk_entry_set_text(GTK_ENTRY(channel_name), channel->name);
+
 	  on_channel_name_activate(GTK_EDITABLE(channel_name), NULL);
 	}
     }
@@ -705,7 +711,18 @@ gint do_search (GtkWidget * searching)
   gtk_object_set_data(GTK_OBJECT(searching), "scanning_channel",
 		      GINT_TO_POINTER(scanning_channel));
 
-  return TRUE;
+  /* The timeout has to be big enough to let the tuner estabilize */
+  gtk_object_set_data(GTK_OBJECT(searching), "timeout",
+		      GINT_TO_POINTER((gtk_timeout_add(150,
+			    (GtkFunction)do_search, searching))));
+
+  return FALSE;
+  /*
+    rationale: returning TRUE might look like it does the same thing as
+    above, but it doesn't. We want 150ms from now, not from when this
+    callback was called. This is because some vbi functions here might
+    take some time to complete.
+  */
 }
 
 void
@@ -745,6 +762,7 @@ on_cancel_search_clicked               (GtkButton       *button,
     GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(searching), "timeout"));
 
   gtk_timeout_remove(timeout);
+
   gtk_widget_destroy(searching);
 }
 
@@ -757,5 +775,6 @@ on_searching_delete_event              (GtkWidget       *widget,
     GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), "timeout"));
 
   gtk_timeout_remove(timeout);
+
   return FALSE;
 }
