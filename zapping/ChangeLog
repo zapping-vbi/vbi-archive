@@ -1,3 +1,20 @@
+2005-01-15    <mschimek@users.sf.net>
+
+	* plugins/screenshot/screenshot.c (ov511_grab_button_timeout,
+	  screenshot_apply): Nested func declaration fix for gcc 4.0,
+	  Debian bug #288749.
+	* libvbi/exp-gfx.c (export_png): Nested func fix for gcc 4.0,
+	  Debian bug #288749.
+
+2005-01-10    <mschimek@users.sf.net>
+
+	* plugins/screenshot/screenshot.glade2: Added full size grab option.
+	* plugins/screenshot/screenshot.c (screenshot_setup,
+	  screenshot_apply): Added full size grab option. 
+	  (screenshot_grab): Optionally switch to full image size before
+	  capturing an image.
+	* zapping.schemas: Added plugins/screenshot/full_size.
+
 2005-01-08    <mschimek@users.sf.net>
 
 	* src/capture.h, src/capture.c: Rewrote the capture format
