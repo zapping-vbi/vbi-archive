@@ -396,7 +396,7 @@ threads_init (gchar *dev_name, int given_fd)
 	{
 	  if (errno == ENOENT || errno == ENXIO || errno == ENODEV)
 	    {
-	      gchar *s = g_strconcat(_errstr, "\n", mknod_hint);
+	      gchar *s = g_strconcat(_errstr, "\n", mknod_hint, NULL);
 	      
 	      ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, s);
 	      g_free (s);
