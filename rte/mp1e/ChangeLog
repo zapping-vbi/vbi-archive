@@ -1,3 +1,14 @@
+2002-11-11	<zhubr@users.sf.net>
+
+	* devices/v4l.c: Avoid grab width padding (Allows to use 
+	  horizontal decimating modes on ATI radeons in PAL/SECAM);
+	* devices/v4l.c: Try yet harder to automatically correct grab 
+	  size before giving up;
+	* devices/v4l.c: Better use of > 2 kernel buffers (if present);
+	* devices/v4l.c: Fixed minor typos (hopefully);
+	* devices/v4l.c: Changed ffmpeg's author obsolete alias to his 
+	  actual name in the header.
+
 2002-10-05	<mschimek@users.sf.net>
 
 	* video/mpeg1.c, video/mpeg2.c: GOP header fix, incorrect
