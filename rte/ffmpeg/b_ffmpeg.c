@@ -20,10 +20,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.14 2002-10-02 20:58:49 mschimek Exp $ */
+/* $Id: b_ffmpeg.c,v 1.15 2002-12-14 00:46:19 mschimek Exp $ */
 
 #include <limits.h>
 #include "b_ffmpeg.h"
+
+#ifndef INT64_MAX
+#define INT64_MAX 0x7FFFFFFFFFFFFFFFLL
+#endif
 
 /* Dummies */
 
@@ -185,6 +189,9 @@ mainloop			(void *			p)
 	ffmpeg_codec_class *fdc;
 	rte_codec *codec;
 
+	/* No interruption btw read / unref, mutex */
+	pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, NULL);
+
 	memset (&fx->av, 0, sizeof (fx->av));
 
 	init_put_byte (&fx->av.pb, fx->buf,
@@ -260,11 +267,12 @@ mainloop			(void *			p)
 		if (!(fd = min_fd))
 			break; /* all elementary streams done */
 
-		if (min_pts >= fx->stop_pts) {
+		if (min_pts >= fx->stop_pts || fx->stopped >= 20) {
 			fd->eof = TRUE;
 			pthread_mutex_unlock(&fx->context.mutex);
 			continue;
-		}
+		} else if (fx->stopped) /* abort */
+			fx->stopped++;
 
 		fdc = FDC (fd->codec._class);
 
@@ -411,9 +419,10 @@ stop				(rte_context *		context,
 		fx->stop_pts = max_pts;
 	} /* else done already */
 
+	fx->stopped = 1;
+
 	pthread_mutex_unlock (&fx->context.mutex);
 
-	/* XXX timeout && force */
 	pthread_join (fx->thread_id, NULL);
 
 	for (codec = fx->codecs; codec; codec = codec->next) {
@@ -478,6 +487,7 @@ start				(rte_context *		context,
 		codec->state = RTE_STATE_RUNNING;
 
 	fx->stop_pts = INT64_MAX;
+	fx->stopped = 0;
 
 	error = pthread_create (&fx->thread_id, NULL, mainloop, fx);
 
