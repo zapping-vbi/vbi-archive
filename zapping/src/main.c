@@ -215,6 +215,9 @@ int main(int argc, char * argv[])
       N_("Kernel video device"),
       N_("FILENAME")
     },
+
+#ifdef HAVE_XV_EXTENSION
+
     {
       "xv-video-port",
       0,
@@ -269,6 +272,9 @@ int main(int argc, char * argv[])
       N_("Disable XVideo extension support"),
       NULL
     },
+
+#endif /* !HAVE_XV_EXTENSION */
+
     {
       "no-overlay",
       0,
@@ -302,18 +308,19 @@ int main(int argc, char * argv[])
       POPT_ARG_NONE,
       &disable_plugins,
       0,
-      N_("Disable plugins support"),
+      N_("Disable plugins"),
       NULL
     },
     {
+      /* We used to call zapping_setup_fb on startup unless this
+	 switch was given. Now it is only called if necessary
+	 before enabling V4L overlay. So the switch is no longer
+         used, but kept for compatibility. */
       "no-zsfb",
       'z',
       POPT_ARG_NONE,
       &dummy,
       0,
-      /* We used to call zapping_setup_fb on startup unless this
-	 switch was given. Now it is only called if necessary
-	 before enabling V4L overlay. */
       /* TRANSLATORS: --no-zsfb command line switch. */
       N_("Obsolete"),
       NULL
@@ -360,10 +367,7 @@ int main(int argc, char * argv[])
       POPT_ARG_STRING,
       &yuv_format,
       0,
-      /* We used to call zapping_setup_fb on startup unless this
-	 switch was given. Now it is only called if necessary
-	 before enabling V4L overlay. */
-      /* TRANSLATORS: --no-zsfb command line switch. */
+      /* TRANSLATORS: --yuv-format command line switch. */
       N_("Obsolete"),
     },
     {
@@ -404,7 +408,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.28 2003-11-26 07:15:44 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.29 2003-11-28 18:36:35 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -562,8 +566,7 @@ int main(int argc, char * argv[])
 			       GTK_DIALOG_MODAL,
 			       GTK_MESSAGE_QUESTION,
 			       GTK_BUTTONS_YES_NO,
-			       _("Couldn't open %s, should I try "
-				 "some common options?"),
+			       _("Couldn't open %s, try other devices?"),
 			       zcg_char(NULL, "video_device"));
 #if 0
       /* Destroy the dialog when the user responds to it */
@@ -712,11 +715,13 @@ int main(int argc, char * argv[])
 			    zcg_int(NULL, "capture_mode"), main_info)
 	  == -1)
 	{
-	  ShowBox(_("Cannot restore previous mode%s:\n%s"),
-		  GTK_MESSAGE_ERROR,
-		  (zcg_int(NULL, "capture_mode") == TVENG_CAPTURE_READ) ? ""
-		  : _(", I will try starting capture mode"),
-		  main_info->error);
+	  if (TVENG_CAPTURE_READ == zcg_int (NULL, "capture_mode"))
+	    ShowBox(_("Cannot restore previous mode, will try capture mode:\n%s"),
+		    GTK_MESSAGE_ERROR, main_info->error);
+	  else
+	    ShowBox(_("Cannot restore previous mode:\n%s"),
+		    GTK_MESSAGE_ERROR, main_info->error);
+
 	  if ((zcg_int(NULL, "capture_mode") != TVENG_CAPTURE_READ) &&
 	      (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1))
 	    ShowBox(_("Capture mode couldn't be started either:\n%s"),
