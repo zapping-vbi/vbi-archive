@@ -2,6 +2,7 @@
 
 	* Many fixes, mainly Solaris portability (thanks to Roger Fujii
 	for his help with this).
+	* mpeg: run the properties dialog at least once before recording.
 
 9.12.2001	JPEG plugin <mschimek@users.sf.net>
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.26 2001-11-26 17:08:15 garetxe Exp $ */
+/* $Id: mpeg.c,v 1.27 2001-12-10 21:09:16 garetxe Exp $ */
 
 #include "plugin_common.h"
 
@@ -68,6 +68,8 @@ static gboolean lip_sync_warning = TRUE;
 static consumer mpeg_consumer;
 /* This updates the GUI */
 static gint update_timeout_id;
+/* Whether the plugin has been configured */
+static gboolean configured = FALSE;
 
 /* Plugin options */
 /* Compressor options */
@@ -709,6 +711,12 @@ void plugin_load_config (gchar * root_key)
   gchar *buffer;
   gchar *default_save_dir;
 
+  buffer = g_strconcat (root_key, "configured", NULL);
+  zconf_create_boolean (FALSE,
+			"Whether the plugin has been configured", buffer);
+  configured = zconf_get_boolean (NULL, buffer);
+  g_free (buffer);
+
   default_save_dir = g_strconcat (getenv ("HOME"), "/clips", NULL);
 
   buffer = g_strconcat (root_key, "engine_verbosity", NULL);
@@ -750,6 +758,10 @@ static
 void plugin_save_config (gchar * root_key)
 {
   gchar *buffer;
+
+  buffer = g_strconcat (root_key, "configured", NULL);
+  zconf_set_boolean (configured, buffer);
+  g_free (buffer);
 
   buffer = g_strconcat (root_key, "engine_verbosity", NULL);
   zconf_set_integer (engine_verbosity, buffer);
@@ -1025,6 +1037,8 @@ mpeg_apply			(GtkWidget	*page)
 
   if (context_prop)
     grte_context_save (context_prop, MPEG_CONFIG);
+
+  configured = TRUE;
 }
 
 static void
@@ -1043,6 +1057,30 @@ properties_add			(GnomeDialog	*dialog)
 			  PACKAGE_DATA_DIR "/mpeg_properties.glade");
 }
 
+/**
+ * Makes sure that the plugin has been configured at least once.
+ */
+static gboolean
+mpeg_configured			(void)
+{
+  if (!configured)
+    {
+      GtkWidget *properties;
+      GtkWidget *configure_message =
+	build_widget("messagebox1", PACKAGE_DATA_DIR "/mpeg_properties.glade");
+      gnome_dialog_run(GNOME_DIALOG(configure_message));
+
+      properties = build_properties_dialog();
+      open_properties_page(properties,
+			   _("Plugins"), _("MPEG"));
+      gnome_dialog_run(GNOME_DIALOG(properties));
+
+      configured = TRUE;
+    }
+
+  return TRUE;
+}
+
 /* User defined functions */
 static void
 on_mpeg_button_clicked          (GtkButton       *button,
@@ -1053,6 +1091,8 @@ on_mpeg_button_clicked          (GtkButton       *button,
   GtkEntry *entry;
   gchar *filename;
   GtkWidget *properties;
+
+  mpeg_configured();
 
   if (output_mode != OUTPUT_FILE)
     {
@@ -1101,6 +1141,8 @@ static void
 on_mpeg_button_fast_clicked	(GtkButton	*button,
 				 gpointer	user_data)
 {
+  mpeg_configured();
+
   plugin_start ();
 }
 
