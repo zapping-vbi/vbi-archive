@@ -1375,7 +1375,7 @@
 <widget>
   <class>GtkWindow</class>
   <name>window4</name>
-  <title>window4</title>
+  <title></title>
   <type>GTK_WINDOW_TOPLEVEL</type>
   <position>GTK_WIN_POS_NONE</position>
   <modal>False</modal>

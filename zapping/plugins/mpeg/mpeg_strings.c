@@ -40,7 +40,6 @@ gchar *s = N_("%P %%");
 gchar *s = N_("Stop");
 gchar *s = N_("Record");
 gchar *s = N_("Pause");
-gchar *s = N_("window4");
 gchar *s = N_("Format:");
 gchar *s = N_("New");
 gchar *s = N_("Delete");
