@@ -58,6 +58,7 @@
 
 #define MAX_VERBOSE 2 /* Greatest verbosity allowed */
 #define ZSFB_VERSION "zapping_setup_fb 0.8.9" /* Current program version */
+#define MY_NAME "zapping_setup_fb"
 
 /* Well, this isn't very clean, but anyway... */
 #define EXIT { \
@@ -221,7 +222,7 @@ int check_dga(Display * display, int screen)
 
   return TRUE;
 #else
-  PM("X extensions have been disabled, this program won't work\n", 1);
+  PM("X extensions have been disabled, " MY_NAME " won't work\n", 1);
   return FALSE;
 #endif
 }
@@ -384,7 +385,7 @@ int main(int argc, char * argv[])
       if (verbosity)
 	fprintf(stderr,
 		"The given device doesn't have the VID_TYPE_OVERLAY flag\n"
-		"set, this program is nonsense for the device.\n");
+		"set, " MY_NAME " is nonsense for the device.\n");
       close(fd);
       return 1;
     }
@@ -455,7 +456,7 @@ int main(int argc, char * argv[])
   if (ioctl(fd, VIDIOCSFBUF, &fb))
     {
       if ((errno == EPERM) && (geteuid()))
-	PM("This program must be run as root, or marked as SUID root\n",
+	PM(MY_NAME " must be run as root, or marked as SUID root\n",
 	   0);
       if (verbosity)
 	perror("VIDIOCSFBUF");
