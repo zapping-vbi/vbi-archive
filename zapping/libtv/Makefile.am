@@ -18,7 +18,8 @@ libtv_la_SOURCES = \
 	misc.c misc.h \
 	overlay_buffer.h \
 	pixel_format.c pixel_format.h \
-	screen.c screen.h
+	screen.c screen.h \
+	simd.h
 
 SUBDIRS =
 libtv_la_LIBADD =
