@@ -182,6 +182,10 @@ struct private_tveng1_device_info
 
 #define P_INFO(p) PARENT (p, struct private_tveng1_device_info, info)
 
+static tv_bool
+get_capture_format	(tveng_device_info * info);
+
+
 static tv_pixfmt
 palette_to_pixfmt		(unsigned int		palette)
 {
@@ -342,7 +346,7 @@ set_audio_capability		(struct private_tveng1_device_info *p_info)
 	if (p_info->info.audio_capability != cap) {
 		p_info->info.audio_capability = cap;
 		tv_callback_notify (&p_info->info, &p_info->info,
-				    p_info->info.priv->audio_callback);
+				    p_info->info.audio_callback);
 	}
 }
 
@@ -369,7 +373,7 @@ set_audio_reception		(struct private_tveng1_device_info *p_info,
 		p_info->info.audio_reception[1] = rec[1];
 
 		tv_callback_notify (&p_info->info, &p_info->info,
-				    p_info->info.priv->audio_callback);
+				    p_info->info.audio_callback);
 	}
 }
 
@@ -532,7 +536,7 @@ set_audio_mode			(tveng_device_info *	info,
 	if (p_info->info.audio_mode != mode) {
 		p_info->info.audio_mode = mode;
 		tv_callback_notify (&p_info->info, &p_info->info,
-				    p_info->info.priv->audio_callback);
+				    p_info->info.audio_callback);
 	}
 
 	return TRUE;
@@ -1416,7 +1420,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 	   low, we don't want that. However usually the quiet
 	   switch will be set anyway. */
 	if (p_info->control_mute
-	    && !info->priv->quiet)
+	    && !info->quiet)
 	  set_control (info, p_info->control_mute,
 		       p_info->control_mute->value);
 
@@ -1426,7 +1430,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 		for (i = 0; i < (unsigned int) p_info->mmbuf.frames; ++i) {
 			tv_clear_image (p_info->mmaped_data
 					+ p_info->mmbuf.offsets[i], 0,
-					&info->capture_format);
+					&info->capture.format);
 		}
 	}
 
@@ -1628,34 +1632,34 @@ get_overlay_buffer		(tveng_device_info *	info)
 	if (-1 == v4l_ioctl (info, VIDIOCGFBUF, &buffer))
 		goto failure;
 
-	info->overlay_buffer.base = (unsigned long) buffer.base;
+	info->overlay.buffer.base = (unsigned long) buffer.base;
 
-	if (!tv_image_format_init (&info->overlay_buffer.format,
+	if (!tv_image_format_init (&info->overlay.buffer.format,
 				   (unsigned int) buffer.width,
 				   (unsigned int) buffer.height,
 				   0,
 				   pig_depth_to_pixfmt ((unsigned) buffer.depth),
-				   0))
+				   TV_COLOR_SPACE_UNKNOWN))
 		goto failure;
 
 	assert ((unsigned) buffer.bytesperline
-		>= info->overlay_buffer.format.bytes_per_line);
+		>= info->overlay.buffer.format.bytes_per_line);
 
 	if ((unsigned) buffer.bytesperline
-	    > info->overlay_buffer.format.bytes_per_line) {
+	    > info->overlay.buffer.format.bytes_per_line) {
 		assert (TV_PIXFMT_IS_PACKED
-			(info->overlay_buffer.format.pixfmt));
+			(info->overlay.buffer.format.pixfmt));
 
-		info->overlay_buffer.format.bytes_per_line =
+		info->overlay.buffer.format.bytes_per_line =
 		  buffer.bytesperline;
-		info->overlay_buffer.format.size =
+		info->overlay.buffer.format.size =
 		  buffer.bytesperline * buffer.height;
 	}
 
 	return TRUE;
 
  failure:
-	CLEAR (info->overlay_buffer);
+	CLEAR (info->overlay.buffer);
 
 	return FALSE;
 }
@@ -1700,7 +1704,7 @@ static uint32_t calc_chroma (tveng_device_info * info)
   info   : Device we are controlling
 */
 static tv_bool
-set_overlay_window		(tveng_device_info *	info,
+set_overlay_window_clipvec	(tveng_device_info *	info,
 				 const tv_window *	w,
 				 const tv_clip_vector *	v)
 {
@@ -1736,8 +1740,8 @@ set_overlay_window		(tveng_device_info *	info,
 
 	CLEAR (window);
 
-	window.x		= w->x - info->overlay_buffer.x;
-	window.y		= w->y - info->overlay_buffer.y;
+	window.x		= w->x - info->overlay.buffer.x;
+	window.y		= w->y - info->overlay.buffer.y;
 
 	window.width		= w->width;
 	window.height		= w->height;
@@ -1748,7 +1752,7 @@ set_overlay_window		(tveng_device_info *	info,
 	window.chromakey	= calc_chroma (info); // XXX check this
 
 	/* Up to the caller to call _on */
-	p_tveng_set_preview (FALSE, info);
+	p_tv_enable_overlay (info, FALSE);
 
 	if (-1 == v4l_ioctl (info, VIDIOCSWIN, &window)) {
 		free (clips);
@@ -1760,10 +1764,10 @@ set_overlay_window		(tveng_device_info *	info,
 	if (-1 == v4l_ioctl (info, VIDIOCGWIN, &window))
 		return FALSE;
 
-	info->overlay_window.x		= window.x;
-	info->overlay_window.y		= window.y;
-	info->overlay_window.width	= window.width;
-	info->overlay_window.height	= window.height;
+	info->overlay.window.x		= window.x;
+	info->overlay.window.y		= window.y;
+	info->overlay.window.width	= window.width;
+	info->overlay.window.height	= window.height;
 
 	/* Clips cannot be read back, we assume no change. */
 
@@ -1773,10 +1777,7 @@ set_overlay_window		(tveng_device_info *	info,
 static tv_bool
 get_overlay_window		(tveng_device_info *	info)
 {
-  /* Updates the entire capture format, since in V4L there is no
-     difference */
-
-  return (0 == tveng1_update_capture_format(info));
+  return get_capture_format (info);
 }
 
 static tv_bool
@@ -1793,28 +1794,33 @@ enable_overlay			(tveng_device_info *	info,
 	}
 }
 
-static void
-tveng1_set_chromakey		(uint32_t chroma, tveng_device_info *info)
+static tv_bool
+set_overlay_window_chromakey	(tveng_device_info *	info,
+				 const tv_window *	window,
+				 unsigned int		chromakey)
 {
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info*) info;
   XColor color;
-  Display *dpy = info->priv->display;
+  Display *dpy = info->display;
+  tv_clip_vector vec;
 
-  color.pixel = chroma;
+  color.pixel = chromakey;
   XQueryColor (dpy, DefaultColormap(dpy, DefaultScreen(dpy)),
 	       &color);
 
-  p_info->chroma = chroma;
+  p_info->chroma = chromakey;
   p_info->r = color.red>>8;
   p_info->g = color.green>>8;
   p_info->b = color.blue>>8;
 
-  /* Will be set in the next set_window call */
+  CLEAR (vec);
+
+  return set_overlay_window_clipvec (info, window, &vec);
 }
 
-static int
-tveng1_get_chromakey		(uint32_t *chroma, tveng_device_info *info)
+static tv_bool
+get_overlay_chromakey		(tveng_device_info *info)
 {
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info*) info;
@@ -1824,9 +1830,9 @@ tveng1_get_chromakey		(uint32_t *chroma, tveng_device_info *info)
      unclear whether calc_chroma works correctly or not, and that
      color precision could be lost during the V4L->X conversion. In
      other words, this is prolly good enough. */
-  *chroma = p_info->chroma;
+  info->overlay.chromakey = p_info->chroma;
 
-  return 0;
+  return TRUE;
 }
 
 
@@ -1921,8 +1927,9 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
   if (strstr (info->caps.name, "bt")
       || strstr (info->caps.name, "BT")) {
 	  int version;
+	  int dummy;
 
-	  version = v4l_ioctl_nf (info, BTTV_VERSION, (int *) 0);
+	  version = v4l_ioctl_nf (info, BTTV_VERSION, &dummy);
 
 	  if (version != -1)
 		  p_info->bttv_driver = TRUE;
@@ -1955,164 +1962,6 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
 
   /* Everything seems to be OK with this device */
   return (info -> fd);
-}
-
-/*
-  Associates the given tveng_device_info with the given video
-  device. On error it returns -1 and sets info->tveng_errno, info->error to
-  the correct values.
-  device_file: The file used to access the video device (usually
-  /dev/video)
-  attach_mode: Specifies the mode to open the device file
-  depth: The color depth the capture will be in, -1 means let tveng
-  decide based on the current display depth.
-  info: The structure to be associated with the device
-*/
-static
-int tveng1_attach_device(const char* device_file,
-			Window window _unused_,
-			enum tveng_attach_mode attach_mode,
-			tveng_device_info * info)
-{
-  int error;
-  struct private_tveng1_device_info * p_info =
-    (struct private_tveng1_device_info *)info;
-  struct stat st;
-  int minor = -1;
-
-  t_assert(device_file != NULL);
-  t_assert(info != NULL);
-
-  if (-1 != info -> fd) /* If the device is already attached, detach it */
-    tveng_close_device(info);
-
-  info -> file_name = strdup(device_file);
-  if (!(info -> file_name))
-    {
-      perror("strdup");
-      info->tveng_errno = errno;
-      snprintf(info->error, 256, "Cannot duplicate device name");
-      return -1;
-    }
-
-  if ((attach_mode == TVENG_ATTACH_XV) ||
-      (attach_mode == TVENG_ATTACH_CONTROL) ||
-      (attach_mode == TVENG_ATTACH_VBI))
-    attach_mode = TVENG_ATTACH_READ;
-
-  switch (attach_mode)
-    {
-      /* In V4L there is no control-only mode */
-    case TVENG_ATTACH_READ:
-      info -> fd = p_tveng1_open_device_file(O_RDWR, info);
-      break;
-    default:
-      t_error_msg("switch()", "Unknown attach mode for the device",
-		  info);
-      free(info->file_name);
-      info->file_name = NULL;
-      return -1;
-    };
-
-  /*
-    Errors (if any) are already aknowledged when we reach this point,
-    so we don't show them again
-  */
-  if (-1 == info -> fd)
-    {
-      free(info->file_name);
-      info->file_name = NULL;
-      return -1;
-    }
-  
-  info -> attach_mode = attach_mode;
-  /* Current capture mode is no capture at all */
-  info -> capture_mode = CAPTURE_MODE_NONE;
-
-  /* We have a valid device, get some info about it */
-
-	/* Video inputs & standards */
-
-	info->video_inputs = NULL;
-	info->cur_video_input = NULL;
-
-	info->video_standards = NULL;
-	info->cur_video_standard = NULL;
-
-	/* XXX error */
-	get_video_input_list (info);
-
-	if (!init_audio (P_INFO (info)))
-		return -1;
-
-  /* Query present controls */
-  info->controls = NULL;
-  if (!get_control_list (info))
-      return -1;
-
-#ifdef TVENG1_BTTV_MUTE_BUG_WORKAROUND
-  /* Mute the device, so we know for sure which is the mute value on
-     startup */
-/*  tveng1_set_mute(0, info); */
-#endif
-
-  /* Set up the palette according to the one present in the system */
-  error = info->priv->current_bpp;
-
-  if (error == -1)
-    {
-      tveng1_close_device(info);
-      return -1;
-    }
-
-  if (!tv_image_format_init (&info->capture_format,
-			     (info->caps.minwidth + info->caps.maxwidth) / 2, 
-			     (info->caps.minheight + info->caps.maxheight) / 2,
-			     0,
-			     pig_depth_to_pixfmt ((unsigned) error),
-			     0)) {
-    info -> tveng_errno = -1;
-    t_error_msg("switch()", 
-		"Cannot find appropiate palette for current display",
-		info);
-    tveng1_close_device(info);
-    return -1;
-  }
-
-  tveng1_set_capture_format(info);
-
-  /* init the private struct */
-  p_info->mmaped_data = NULL;
-  p_info->queued = p_info->dequeued = 0;
-
-  /* get the minor device number for accessing the appropiate /proc
-     entry */
-  if (!fstat(info -> fd, &st))
-    minor = MINOR(st.st_rdev);
-
-  p_info -> ogb_fd = -1;
-  if (strstr(info -> caps.name, "OV51") &&
-      strstr(info -> caps.name, "USB") &&
-      minor > -1)
-    {
-      char filename[256];
-
-      filename[sizeof(filename)-1] = 0;
-      snprintf(filename, sizeof(filename)-1,
-	       "/proc/video/ov511/%d/button", minor);
-      p_info -> ogb_fd = device_open(0, filename, O_RDONLY, 0);
-      if (p_info -> ogb_fd > 0 &&
-	  flock (p_info->ogb_fd, LOCK_EX | LOCK_NB) == -1)
-	{
-	  device_close(0, p_info -> ogb_fd);
-	  p_info -> ogb_fd = -1;
-	}
-    }
-
-  if (info->debug_level > 0)
-    fprintf(stderr, "TVeng: V4L1 controller loaded\n");
-
-  return info -> fd;
 }
 
 /*
@@ -2192,131 +2041,104 @@ tveng1_ioctl			(tveng_device_info *	info,
 
 
 
-/* Updates the current capture format info. -1 if failed */
-static int
-tveng1_update_capture_format(tveng_device_info * info)
+/* Updates the current capture format info. */
+static tv_bool
+get_capture_format	(tveng_device_info * info)
 {
-  struct video_picture pict;
-  struct video_window window;
+	struct video_picture pict;
+	struct video_window window;
 
-  t_assert(info != NULL);
+	CLEAR (window);
 
-  CLEAR (window);
+	if (-1 == v4l_ioctl (info, VIDIOCGPICT, &pict))
+		return FALSE;
 
-  if (v4l_ioctl(info, VIDIOCGPICT, &pict))
-      return -1;
+	if (-1 == v4l_ioctl (info, VIDIOCGWIN, &window))
+		return FALSE;
 
-  if (v4l_ioctl(info, VIDIOCGWIN, &window))
-      return -1;
+	if (!tv_image_format_init (&info->capture.format,
+				   window.width,
+				   window.height,
+				   0,
+				   palette_to_pixfmt (pict.palette),
+				   0)) {
+		info->tveng_errno = -1; /* unknown */
+		t_error_msg("switch()",
+			    "Cannot understand the palette", info);
+		return FALSE;
+	}
 
-  if (!tv_image_format_init (&info->capture_format,
-			     window.width,
-			     window.height,
-			     0,
-			     palette_to_pixfmt (pict.palette),
-			     0)) {
-      info->tveng_errno = -1; /* unknown */
-      t_error_msg("switch()",
-		  "Cannot understand the actual palette", info);
-    return -1;
-  }
+	info->overlay.window.x = window.x;
+	info->overlay.window.y = window.y;
+	info->overlay.window.width = window.width;
+	info->overlay.window.height = window.height;
 
-  info->overlay_window.x = window.x;
-  info->overlay_window.y = window.y;
-  info->overlay_window.width = window.width;
-  info->overlay_window.height = window.height;
-  /* These two are write-only */
-/* tv_clip_vector_clear (&info->overlay_window.clip_vector); */
-
-
-
-  return 0;
+	return TRUE;
 }
 
-/* -1 if failed. Sets the pixformat and fills in info -> pix_format
-   with the correct values  */
-static int
-tveng1_set_capture_format(tveng_device_info * info)
+static tv_bool
+set_capture_format		(tveng_device_info *	info,
+				 const tv_image_format *fmt)
 {
-  struct video_picture pict;
-  struct video_window window;
-  capture_mode mode;
-  gboolean overlay_was_active;
-  int r;
+	struct video_picture pict;
+	struct video_window window;
+	int r;
 
-  CLEAR (pict);
-  CLEAR (window);
+	CLEAR (pict);
+	CLEAR (window);
 
-  t_assert(info != NULL);
+	if (-1 == v4l_ioctl (info, VIDIOCGPICT, &pict))
+		return FALSE;
 
-  mode = p_tveng_stop_everything(info, &overlay_was_active);
-
-  if (v4l_ioctl(info, VIDIOCGPICT, &pict))
-    {
-      p_tveng_restart_everything(mode, overlay_was_active, info);
-      return -1;
-    }
-
-  pict.palette = pixfmt_to_palette (info->capture_format.pixfmt);
+	pict.palette = pixfmt_to_palette (fmt->pixfmt);
   
-  if (0 == pict.palette) {
-    info->tveng_errno = EINVAL;
-    tv_error_msg (info, "%s not supported",
-		  tv_pixfmt_name (info->capture_format.pixfmt));
-    p_tveng_restart_everything(mode, overlay_was_active, info);
-    return -1;
-  }
+	if (0 == pict.palette) {
+		info->tveng_errno = EINVAL;
+		tv_error_msg (info, "%s not supported",
+			      tv_pixfmt_name (fmt->pixfmt));
+		return FALSE;
+	}
 
-  /* Set this values for the picture properties */
-  r = v4l_ioctl (info, VIDIOCSPICT, &pict);
+	/* Set this values for the picture properties */
+	r = v4l_ioctl (info, VIDIOCSPICT, &pict);
 
-  if (-1 == r
-      && EINVAL == errno 
-      && VIDEO_PALETTE_YUYV == pict.palette)
-    {
-      /* These are synonyms, some drivers understand only one. */
-      pict.palette = VIDEO_PALETTE_YUV422;
+	if (-1 == r
+	    && EINVAL == errno 
+	    && VIDEO_PALETTE_YUYV == pict.palette) {
+		/* These are synonyms, some drivers understand only one. */
+		pict.palette = VIDEO_PALETTE_YUV422;
 
-      r = v4l_ioctl (info, VIDIOCSPICT, &pict);
-    }
+		r = v4l_ioctl (info, VIDIOCSPICT, &pict);
+	}
 
-  if (-1 == r)
-    {
-      p_tveng_restart_everything(mode, overlay_was_active, info);
-      return -1;
-    }
+	if (-1 == r)
+		return FALSE;
 
-  info->capture_format.width = (info->capture_format.width + 3) & (unsigned int) -4;
-  info->capture_format.height = (info->capture_format.height + 3) & (unsigned int) -4;
+	info->capture.format.width = (fmt->width + 3) & (unsigned int) -4;
+	info->capture.format.height = (fmt->height + 3) & (unsigned int) -4;
 
-  info->capture_format.width = SATURATE (info->capture_format.width,
-				 info->caps.minwidth,
-				 info->caps.maxwidth);
-  info->capture_format.height = SATURATE (info->capture_format.height,
-				  info->caps.minheight,
-				  info->caps.maxheight);
+	info->capture.format.width = SATURATE (info->capture.format.width,
+					       info->caps.minwidth,
+					       info->caps.maxwidth);
+	info->capture.format.height = SATURATE (info->capture.format.height,
+						info->caps.minheight,
+						info->caps.maxheight);
 
-  window.width = info->capture_format.width;
-  window.height = info->capture_format.height;
-  window.clips = NULL;
-  window.clipcount = 0;
+	window.width = info->capture.format.width;
+	window.height = info->capture.format.height;
+	window.clips = NULL;
+	window.clipcount = 0;
 
-  /* Ok, now set the video window dimensions */
-  if (v4l_ioctl(info, VIDIOCSWIN, &window))
-    {
-      p_tveng_restart_everything(mode, overlay_was_active, info);
-      return -1;
-    }
+	/* Ok, now set the video window dimensions */
+	if (-1 == v4l_ioctl (info, VIDIOCSWIN, &window))
+		return FALSE;
 
-  p_tveng_restart_everything(mode, overlay_was_active, info);
+	/* Actual image size. */
 
-  /* Check fill in info with the current values (may not be the ones
-     asked for) */
+	if (!get_capture_format (info))
+		return FALSE;
 
-  if (tveng1_update_capture_format(info) == -1)
-    return -1; /* error */
-
-  return 0; /* Success */
+	return TRUE;
 }
 
 
@@ -2469,7 +2291,7 @@ static int p_tveng1_queue(tveng_device_info * info)
   CLEAR (bm);
   
   /* XXX we may have to address YUYV, YUV422 synonyms. */
-  bm.format = pixfmt_to_palette (info->capture_format.pixfmt);
+  bm.format = pixfmt_to_palette (info->capture.format.pixfmt);
   
   if (0 == bm.format) {
       info -> tveng_errno = -1;
@@ -2479,8 +2301,8 @@ static int p_tveng1_queue(tveng_device_info * info)
     }
 
   bm.frame = (p_info -> queued) % p_info->mmbuf.frames;
-  bm.width = info -> capture_format.width;
-  bm.height = info -> capture_format.height;
+  bm.width = info -> capture.format.width;
+  bm.height = info -> capture.format.height;
 
   if (v4l_ioctl(info, VIDIOCMCAPTURE, &bm) == -1)
     {
@@ -2659,6 +2481,183 @@ ov511_get_button_state		(tveng_device_info	*info)
   return (button_state - '0');
 }
 
+/*
+  Associates the given tveng_device_info with the given video
+  device. On error it returns -1 and sets info->tveng_errno, info->error to
+  the correct values.
+  device_file: The file used to access the video device (usually
+  /dev/video)
+  attach_mode: Specifies the mode to open the device file
+  depth: The color depth the capture will be in, -1 means let tveng
+  decide based on the current display depth.
+  info: The structure to be associated with the device
+*/
+static
+int tveng1_attach_device(const char* device_file,
+			Window window _unused_,
+			enum tveng_attach_mode attach_mode,
+			tveng_device_info * info)
+{
+  int error;
+  struct private_tveng1_device_info * p_info =
+    (struct private_tveng1_device_info *)info;
+  struct stat st;
+  int minor = -1;
+
+  t_assert(device_file != NULL);
+  t_assert(info != NULL);
+
+  if (-1 != info -> fd) /* If the device is already attached, detach it */
+    tveng_close_device(info);
+
+  info -> file_name = strdup(device_file);
+  if (!(info -> file_name))
+    {
+      perror("strdup");
+      info->tveng_errno = errno;
+      snprintf(info->error, 256, "Cannot duplicate device name");
+      return -1;
+    }
+
+  if ((attach_mode == TVENG_ATTACH_XV) ||
+      (attach_mode == TVENG_ATTACH_CONTROL) ||
+      (attach_mode == TVENG_ATTACH_VBI))
+    attach_mode = TVENG_ATTACH_READ;
+
+  switch (attach_mode)
+    {
+      /* In V4L there is no control-only mode */
+    case TVENG_ATTACH_READ:
+      info -> fd = p_tveng1_open_device_file(O_RDWR, info);
+      break;
+    default:
+      t_error_msg("switch()", "Unknown attach mode for the device",
+		  info);
+      free(info->file_name);
+      info->file_name = NULL;
+      return -1;
+    };
+
+  /*
+    Errors (if any) are already aknowledged when we reach this point,
+    so we don't show them again
+  */
+  if (-1 == info -> fd)
+    {
+      free(info->file_name);
+      info->file_name = NULL;
+      return -1;
+    }
+  
+  info -> attach_mode = attach_mode;
+  /* Current capture mode is no capture at all */
+  info -> capture_mode = CAPTURE_MODE_NONE;
+
+  /* We have a valid device, get some info about it */
+
+	/* Video inputs & standards */
+
+	info->video_inputs = NULL;
+	info->cur_video_input = NULL;
+
+	info->video_standards = NULL;
+	info->cur_video_standard = NULL;
+
+	/* XXX error */
+	get_video_input_list (info);
+
+	if (!init_audio (P_INFO (info)))
+		return -1;
+
+  /* Query present controls */
+  info->controls = NULL;
+  if (!get_control_list (info))
+      return -1;
+
+#ifdef TVENG1_BTTV_MUTE_BUG_WORKAROUND
+  /* Mute the device, so we know for sure which is the mute value on
+     startup */
+/*  tveng1_set_mute(0, info); */
+#endif
+
+  CLEAR (info->capture);
+
+  info->capture.get_format = get_capture_format;
+  info->capture.set_format = set_capture_format;
+  info->capture.start_capturing = tveng1_start_capturing;
+  info->capture.stop_capturing = tveng1_stop_capturing;
+  info->capture.read_frame = tveng1_read_frame;
+  info->capture.get_timestamp = tveng1_get_timestamp;
+
+  CLEAR (info->overlay);
+
+  info->overlay.get_buffer           = get_overlay_buffer;
+  info->overlay.set_window_clipvec   = set_overlay_window_clipvec;
+  info->overlay.get_window           = get_overlay_window;
+  info->overlay.set_window_chromakey = set_overlay_window_chromakey;
+  info->overlay.get_chromakey        = get_overlay_chromakey;
+  info->overlay.enable               = enable_overlay;
+
+
+  /* Set up the palette according to the one present in the system */
+  error = info->current_bpp;
+
+  if (error == -1)
+    {
+      tveng1_close_device(info);
+      return -1;
+    }
+
+  if (!tv_image_format_init (&info->capture.format,
+			     (info->caps.minwidth + info->caps.maxwidth) / 2, 
+			     (info->caps.minheight + info->caps.maxheight) / 2,
+			     0,
+			     pig_depth_to_pixfmt ((unsigned) error),
+			     0)) {
+    info -> tveng_errno = -1;
+    t_error_msg("switch()", 
+		"Cannot find appropiate palette for current display",
+		info);
+    tveng1_close_device(info);
+    return -1;
+  }
+
+  set_capture_format (info, &info->capture.format);
+
+  /* init the private struct */
+  p_info->mmaped_data = NULL;
+  p_info->queued = p_info->dequeued = 0;
+
+  /* get the minor device number for accessing the appropiate /proc
+     entry */
+  if (!fstat(info -> fd, &st))
+    minor = MINOR(st.st_rdev);
+
+  p_info -> ogb_fd = -1;
+  if (strstr(info -> caps.name, "OV51") &&
+      strstr(info -> caps.name, "USB") &&
+      minor > -1)
+    {
+      char filename[256];
+
+      filename[sizeof(filename)-1] = 0;
+      snprintf(filename, sizeof(filename)-1,
+	       "/proc/video/ov511/%d/button", minor);
+      p_info -> ogb_fd = device_open(0, filename, O_RDONLY, 0);
+      if (p_info -> ogb_fd > 0 &&
+	  flock (p_info->ogb_fd, LOCK_EX | LOCK_NB) == -1)
+	{
+	  device_close(0, p_info -> ogb_fd);
+	  p_info -> ogb_fd = -1;
+	}
+    }
+
+  if (info->debug_level > 0)
+    fprintf(stderr, "TVeng: V4L1 controller loaded\n");
+
+  return info -> fd;
+}
+
 static struct tveng_module_info tveng1_module_info = {
   .attach_device =		tveng1_attach_device,
   .describe_controller =	tveng1_describe_controller,
@@ -2674,19 +2673,7 @@ static struct tveng_module_info tveng1_module_info = {
   .get_control			= get_control,
   .set_audio_mode		= set_audio_mode,
 
-  .update_capture_format =	tveng1_update_capture_format,
-  .set_capture_format =		tveng1_set_capture_format,
-  .get_signal_strength =	tveng1_get_signal_strength,
-  .start_capturing =		tveng1_start_capturing,
-  .stop_capturing =		tveng1_stop_capturing,
-  .read_frame =			tveng1_read_frame,
-  .get_timestamp =		tveng1_get_timestamp,
-  .get_overlay_buffer		= get_overlay_buffer,
-  .set_overlay_window		= set_overlay_window,
-  .get_overlay_window		= get_overlay_window,
-  .enable_overlay		= enable_overlay,
-  .set_chromakey =		tveng1_set_chromakey,
-  .get_chromakey =		tveng1_get_chromakey,
+  .get_signal_strength		= tveng1_get_signal_strength,
 
   .ov511_get_button_state =	ov511_get_button_state,
 
