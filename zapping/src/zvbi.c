@@ -113,7 +113,7 @@ struct ttx_client {
   int		page, subpage; /* monitored page, subpage */
   int		id; /* of the client */
   pthread_mutex_t mutex;
-  vbi_page	fp; /* formatted page */
+  vbi_page	fpg; /* formatted page */
   GdkPixbuf	*unscaled_on; /* unscaled version of the page (on) */
   GdkPixbuf	*unscaled_off;
   GdkPixbuf	*scaled; /* scaled version of the page */
@@ -1089,7 +1089,7 @@ get_ttx_fmt_page(int id)
   pthread_mutex_lock(&clients_mutex);
 
   if ((client = find_client(id)))
-    pg = &client->fp;
+    pg = &client->fpg;
 
   pthread_mutex_unlock(&clients_mutex);
 
@@ -1343,10 +1343,10 @@ build_patches(struct ttx_client *client)
   client->num_patches = 0;
 
   /* FIXME: This is too cumbersome, something more smart is needed */
-  for (col = 0; col < client->fp.columns; col++)
-    for (row = 0; row < client->fp.rows; row++)
+  for (col = 0; col < client->fpg.columns; col++)
+    for (row = 0; row < client->fpg.rows; row++)
       {
-	ac = &client->fp.text[row * client->fp.columns + col];
+	ac = &client->fpg.text[row * client->fpg.columns + col];
 	if ((ac->flash) && (ac->size <= VBI_DOUBLE_SIZE))
 	  add_patch(client, col, row, ac, FALSE);
       }
@@ -1390,8 +1390,8 @@ refresh_ttx_page_intern(struct ttx_client *client, GtkWidget *drawable)
       if ((scaled) && (client->scaled) && (client->w > 0)
 	  && (client->h > 0))
 	{
-	  x = (((double)client->w*p->col)/client->fp.columns);
-	  y = (((double)client->h*p->row)/client->fp.rows);
+	  x = (((double)client->w*p->col)/client->fpg.columns);
+	  y = (((double)client->h*p->row)/client->fpg.rows);
 	  sx = ((double)gdk_pixbuf_get_width(scaled)/
 	    gdk_pixbuf_get_width(p->unscaled_on))*5.0;
 	  sy = ((double)gdk_pixbuf_get_height(scaled)/
@@ -1437,23 +1437,23 @@ build_client_page(struct ttx_client *client, vbi_page *pg)
   pthread_mutex_lock(&client->mutex);
   if (pg && pg != (vbi_page *) -1)
     {
-      memcpy(&client->fp, pg, sizeof(client->fp));
-      vbi_draw_vt_page(&client->fp,
+      memcpy(&client->fpg, pg, sizeof(client->fpg));
+      vbi_draw_vt_page(&client->fpg,
 		       VBI_PIXFMT_RGBA32_LE,
 		       (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on),
 		       client->reveal, 1 /* flash_on */);
-      vbi_draw_vt_page_region(&client->fp,
+      vbi_draw_vt_page_region(&client->fpg,
 			      VBI_PIXFMT_RGBA32_LE,
 			      (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off),
 			      -1 /* rowstride */,
 			      0 /* column */, 0 /* row */,
-			      client->fp.columns, client->fp.rows,
+			      client->fpg.columns, client->fpg.rows,
 			      client->reveal, 0 /* flash_on */);
       client->waiting = FALSE;
     }
   else if (!pg)
     {
-      CLEAR (client->fp);
+      CLEAR (client->fpg);
 
       if ((simple = vt_loading ()))
 	{
@@ -1505,6 +1505,8 @@ rolling_headers(struct ttx_client *client, vbi_page *pg)
   gint col;
   vbi_char *ac;
   const gint first_col = 32; /* 8 needs more thoughts */
+  uint8_t *drcs_clut;
+  uint8_t *drcs[32];
 
 /* To debug page formatting (site_def.h) */
 #if ZVBI_DISABLE_ROLLING
@@ -1519,21 +1521,32 @@ rolling_headers(struct ttx_client *client, vbi_page *pg)
   if (pg->pgno < 0x100)
     goto abort;
 
+  /* FIXME due to a channel change between the time this page
+     was fetched and this function is called these pointers
+     may no longer be valid. We likely don't need drcs here,
+     so the pointers are temporarily cleared. The real fix
+     requires proper reference counting in libzvbi and/or page
+     invalidating on channel change in zapping. */
+  drcs_clut = client->fpg.drcs_clut;
+  client->fpg.drcs_clut = NULL;
+  memcpy (drcs, client->fpg.drcs, sizeof (drcs));
+  CLEAR (client->fpg.drcs);
+
   for (col = first_col; col < 40; col++)
     {
-      ac = client->fp.text + col;
+      ac = client->fpg.text + col;
       
       if (ac->unicode != pg->text[col].unicode
 	  && ac->size <= VBI_DOUBLE_SIZE)
 	{
 	  ac->unicode = pg->text[col].unicode;
 
-	  vbi_draw_vt_page_region(&client->fp,
+	  vbi_draw_vt_page_region(&client->fpg,
 		VBI_PIXFMT_RGBA32_LE,
 	  	(uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off) + col * CW,
 		gdk_pixbuf_get_rowstride(client->unscaled_off),
 		col, 0, 1, 1, client->reveal, 0 /* flash_off */);
-	  vbi_draw_vt_page_region(&client->fp,
+	  vbi_draw_vt_page_region(&client->fpg,
 		VBI_PIXFMT_RGBA32_LE,
 		(uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on) + col * CW,
 		gdk_pixbuf_get_rowstride(client->unscaled_on),
@@ -1541,6 +1554,9 @@ rolling_headers(struct ttx_client *client, vbi_page *pg)
 	  add_patch(client, col, 0, ac, !ac->flash);
 	}
     }
+
+  client->fpg.drcs_clut = drcs_clut;
+  memcpy (client->fpg.drcs, drcs, sizeof (drcs));
 
  abort:
   pthread_mutex_unlock(&client->mutex);
@@ -1600,12 +1616,12 @@ void monitor_ttx_this(int id, vbi_page *pg)
       client->page = pg->pgno;
       client->subpage = pg->subno;
       client->freezed = TRUE;
-      memcpy(&client->fp, pg, sizeof(client->fp));
-      vbi_draw_vt_page(&client->fp,
+      memcpy(&client->fpg, pg, sizeof(client->fpg));
+      vbi_draw_vt_page(&client->fpg,
 		VBI_PIXFMT_RGBA32_LE,
 		(uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on),
 		client->reveal, 1 /* flash_on */);
-      vbi_draw_vt_page_region(&client->fp,
+      vbi_draw_vt_page_region(&client->fpg,
 		VBI_PIXFMT_RGBA32_LE,
       		(uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off),
 		-1 /* rowstride */, 0 /* column */, 0 /* row */,
@@ -1727,8 +1743,10 @@ notify_clients(int page, int subpage,
     {
       client = (struct ttx_client*)p->data;
       
-      if ((client->page == page) && (!client->freezed) &&
-	  ((client->subpage == subpage) || (client->subpage == VBI_ANY_SUBNO)))
+      if ((client->page == page)
+	  && (!client->freezed)
+	  && ((client->subpage == subpage)
+	      || (client->subpage == VBI_ANY_SUBNO)))
 	{
 	  if (pg.rows < 25
 	      && !vbi_fetch_vt_page(vbi, &pg, page, subpage,
@@ -1749,6 +1767,7 @@ notify_clients(int page, int subpage,
 	      pthread_mutex_unlock(&clients_mutex);
 	      return;
 	    }
+
 	  rolling_headers(client, &pg);
 	}
     }
