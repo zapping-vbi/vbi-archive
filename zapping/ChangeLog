@@ -1,3 +1,10 @@
+20.07.2002	Fixes <garetxe@users.sf.net>
+
+	* lirc: Fixed a typo.
+	* acinclude.in: Don't check whether we can build libs depending on
+	libpython, we won't use it anyway.
+	* help: Include it.
+	
 19.07.2002	Plugins done <garetxe@users.sf.net>
 
 	* mpeg, screenshot, lirc, alirc: Ported.

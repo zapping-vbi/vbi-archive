@@ -403,6 +403,10 @@ plugins/lirc/Makefile
 plugins/mpeg/Makefile
 plugins/screenshot/Makefile
 plugins/template/Makefile
+help/Makefile
+help/C/Makefile
+help/de/Makefile
+help/man/Makefile
 ])
 
 echo "

@@ -760,7 +760,7 @@ void on_lirc_button_delete_clicked (GtkButton *button, gpointer user_data)
   delete_action(buffer);
   g_free (buffer);
 
-  gtk_list_store_remove (GTK_LIST_STORE (lirc_actionlist), &iter);
+  gtk_list_store_remove (GTK_LIST_STORE (model), &iter);
 
   gtk_tree_path_free (last_row);
   last_row = NULL;

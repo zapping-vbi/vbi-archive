@@ -35,27 +35,4 @@ dnl The name of the python executable
 	AC_SUBST(PY_CFLAGS)
 	AC_SUBST(PY_EXTRA_LIBS)
 	AC_SUBST(PYTHON_LIBS)
-dnl We have found the libs et al but we still need them to be usable.
-	AC_MSG_CHECKING(whether we can build a shared library depending on libpython)
-	rm -rf testpython
-	mkdir testpython
-	cd testpython
-	cat > testpython.c <<EOF
-#include <Python.h>
-int testpython (void)
-{
-Py_Exit (0);
-}
-EOF
-	if /bin/sh ../libtool --mode=compile ${CC} $PY_CFLAGS -c testpython.c >/dev/null 2>&1 && \
-	   /bin/sh ../libtool --mode=link ${CC} -o testpython.la -rpath `pwd` -module -avoid-version $PY_LIB_LOC testpython.lo -l$PY_LIBS $PY_EXTRA_LIBS >/dev/null 2>&1 && \
-	   grep 'dlname.*testpython' testpython.la >/dev/null 2>&1; then
-		AC_MSG_RESULT(yes)
-		rm -rf testpython
-	else
-		AC_MSG_RESULT(no)
-		rm -rf testpython
-		AC_MSG_ERROR(Cannot build shared libraries using libptyhon)
-	fi
-	cd ..
 ])
