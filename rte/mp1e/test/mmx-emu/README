@@ -1,0 +1,66 @@
+This is an MMX emulation library derived from mmx-emu version 0.6,
+at <http://www.inria.fr/prisme/personnel/pion/progs/mmx-emu>.
+
+== Merely a debugging tool, not required for mp1e. ==
+
+Usage:
+------
+LD_PRELOAD=/the/path/of/libmmxemu.so program
+
+Defining the following variable:	does the following action:
+MMX_EMU_NO_LOOK_AHEAD			emulate one instruction at a time
+					(useful for debugging)
+MMX_EMU_NO_CYRIX_EMMX			obsolete, to be updated
+MMX_EMU_NO_AMD_3DNOW
+
+You can also use the script "mmx-emu" (edit first), and simply type:
+mmx-emu program
+
+Instruction sets:
+-----------------
+- The classic Intel MMX instructions
+- "3DNow!" integer and floating point extensions
+- Cyrix MMX extensions
+- AMD Athlon "3DNow!" and SSE integer extensions
+- Intel Pentium III SSE integer and floating point extensions
+- Intel Pentium 4 SSE2 integer and floating point extensions
+however only a subset has been implemented yet.
+
+Caveats:
+--------
+- mmx-emu is not thread safe yet, and when the program overrides
+  the SIGILL handler you're out of luck too.
+- The cpuid instruction isn't supported. I'm not aware of a method
+  to trap a cpu identification sequence even if the cpuid instruction
+  will raise #UD. cpuid will always report the MMX functions actually
+  supported, so it has to be bypassed in the tested software.
+- Cyrix MMX extensions use the same opcodes as SSE float, this
+  will disable SSE capable CPUs from emulating these instructions.
+- Some instructions refused as invalid on a real CPU (eg. a lock
+  prefix or misaligned memory access) will emulate without an error.
+- "3DNow!" instructions may not behave and return exactly the
+  same result as the original.
+- Most MMX and SSE integer instructions extended to 128 bit
+  with SSE2 use an operand size prefix (0x66) which is ignored
+  on earlier MMX and SSE capable CPUs. Intel Pentium family
+  CPUs will have to disable the on-board FPU to emulate SSE2
+  instructions, this may or may not work with other CPUs.
+  With the FPU, all MMX and SSE hardware support will be lost
+  and has to be emulated, as far as implemented yet. Under Linux
+  a simple way to disable the FPU is to compile the kernel with FPU
+  emulation, and to add "no387" to the boot command line (see man
+  bootparam, man lilo) to force FPU emulation. You better keep a
+  rescue disk handy.
+- The emulation is incomplete and barely tested since 0.6.
+
+Copyright:
+----------
+The code is copyrighted by the following authors, and placed under
+the terms of the LGPL.  See the file COPYING.LIB for details.
+
+Authors:
+--------
+Sylvain Pion <Sylvain.Pion@sophia.inria.fr>   [core, cmp, logic, shifts, 3dnow]
+Oliver Delise <delise@online-club.de>         [packs, 3dnow]
+Vincent Renardias <vincent@waw.com>           [arithmetic, cyrix]
+Michael H. Schimek <mschimek@users.sourceforge.net> [all changes after 0.6]
