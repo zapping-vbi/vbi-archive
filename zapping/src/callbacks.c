@@ -217,47 +217,6 @@ on_zapping_delete_event                (GtkWidget       *widget,
   return FALSE;
 }
 
-/* Activate an standard */
-void on_standard_activate              (GtkMenuItem     *menuitem,
-					gpointer        user_data)
-{
-  gint std = GPOINTER_TO_INT(user_data);
-  GtkWidget * main_window = lookup_widget(GTK_WIDGET(menuitem), "zapping");
-
-  if (std == main_info->cur_standard)
-    return; /* Do nothing if this standard is already active */
-
-  if (tveng_set_standard_by_index(std, main_info) == -1) /* Set the
-							 standard */
-    {
-      ShowBox(main_info -> error, GNOME_MESSAGE_BOX_ERROR);
-      return;
-    }
-
-  /* redesign menus */
-  update_standards_menu(main_window, main_info);
-}
-
-/* Activate an input */
-void on_input_activate              (GtkMenuItem     *menuitem,
-				     gpointer        user_data)
-{
-  gint input = GPOINTER_TO_INT (user_data);
-  GtkWidget * main_window = lookup_widget(GTK_WIDGET(menuitem), "zapping");
-
-  if (main_info -> cur_input == input)
-    return; /* Nothing if no change is needed */
-
-  if (tveng_set_input_by_index(input, main_info) == -1) /* Set the
-							 input */
-    {
-      ShowBox(_("Cannot set input"), GNOME_MESSAGE_BOX_ERROR);
-      return;
-    }
-
-  update_standards_menu(main_window, main_info);
-}
-
 /* Activate a TV channel */
 void on_channel_activate              (GtkMenuItem     *menuitem,
 				       gpointer        user_data)
@@ -284,9 +243,10 @@ void on_channel_activate              (GtkMenuItem     *menuitem,
     }
 
   if (channel->standard)
-    g_message("Switch to standard %s", channel->standard);
+    z_switch_standard(channel->standard, main_info);
+
   if (channel->input)
-    g_message("Switch to input %s", channel->input);
+    z_switch_input(channel->input, main_info);
 
   if (tveng_tune_input(channel->freq, main_info) == -1) /* Set the
 						       input freq*/
@@ -542,17 +502,7 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	/* it needs to be realized before operating on it */
 	gtk_widget_realize(GTK_WIDGET(menu));
 	gtk_widget_hide(lookup_widget(GTK_WIDGET(menu), "channel_list1"));
-	if ((main_info->num_inputs == 0) ||
-	    (!(main_info->inputs[main_info->cur_input].flags &
-	       TVENG_INPUT_TUNER)))
-	  {
-	    menuitem = z_gtk_pixmap_menu_item_new(_("No tuner"),
-						  GNOME_STOCK_PIXMAP_CLOSE);
-	    gtk_widget_set_sensitive(menuitem, FALSE);
-	    gtk_widget_show(menuitem);
-	    gtk_menu_insert(menu, menuitem, 1);
-	  }
-	else if (tveng_tuned_channel_num(global_channel_list) == 0)
+	if (tveng_tuned_channel_num(global_channel_list) == 0)
 	  {
 	    menuitem = z_gtk_pixmap_menu_item_new(_("No tuned channels"),
 						  GNOME_STOCK_PIXMAP_CLOSE);

@@ -56,7 +56,6 @@
 #include "tveng.h"
 #define TVENG2_PROTOTYPES 1
 #include "tveng2.h"
-#include "tveng_private.h"
 #include "videodev2.h" /* the V4L2 definitions */
 
 struct tveng2_vbuf
@@ -471,6 +470,8 @@ int tveng2_get_inputs(tveng_device_info * info)
       info->inputs[i].id = i;
       info->inputs[i].index = i;
       snprintf(info->inputs[i].name, 32, input.name);
+      info->inputs[i].name[31] = 0;
+      info->inputs[i].hash = tveng_build_hash(info->inputs[i].name);
       info->inputs[i].flags = 0;
       if (input.type & V4L2_INPUT_TYPE_TUNER)
 	{
@@ -486,6 +487,8 @@ int tveng2_get_inputs(tveng_device_info * info)
       if (input.capability & V4L2_INPUT_CAP_AUDIO)
 	info->inputs[i].flags |= TVENG_INPUT_AUDIO;
     }
+
+  input_collisions(info);
 
   if (i) /* If there is any input present, switch to the first one */
     {
@@ -578,9 +581,14 @@ int tveng2_get_standards(tveng_device_info * info)
 				(count+1)*sizeof(struct tveng_enumstd));
       info->standards[count].index = count;
       info->standards[count].id = i;
-      snprintf(info->standards[count].name, 24, enumstd.std.name);
+      snprintf(info->standards[count].name, 32, enumstd.std.name);
+      info->standards[count].name[31] = 0; /* not needed, std.name < 24 */
+      info->standards[count].hash =
+	tveng_build_hash(info->standards[count].name);
       count++;
     }
+
+  standard_collisions(info);
 
   info -> num_standards = count;
 

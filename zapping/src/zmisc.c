@@ -387,7 +387,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   /* Update the controls window if it's open */
   update_control_box(info);
   /* Update the standards, channels, etc */
-  update_standards_menu(tv_screen, info);
+  zmodel_changed(z_input_model);
   /* Updating the properties is not so useful, and it isn't so easy,
      since there might be multiple properties dialog open */
   tveng_set_mute(muted, info);
@@ -506,4 +506,20 @@ z_pixbuf_render_to_drawable	(GdkPixbuf	*pixbuf,
 
   gdk_pixbuf_render_to_drawable(pixbuf, window, gc, x, y, x, y, width,
 				height, GDK_RGB_DITHER_NORMAL, x, y);
+}
+
+gint
+z_option_menu_get_active	(GtkWidget	*option_menu)
+{
+  option_menu = GTK_WIDGET(GTK_OPTION_MENU(option_menu)->menu);
+
+  return g_list_index(GTK_MENU_SHELL(option_menu)->children,
+		      gtk_menu_get_active(GTK_MENU(option_menu)));
+}
+
+void
+z_option_menu_set_active	(GtkWidget	*option_menu,
+				 gint		index)
+{
+  gtk_option_menu_set_history(GTK_OPTION_MENU(option_menu), index);
 }

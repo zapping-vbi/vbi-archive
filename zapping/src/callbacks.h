@@ -70,14 +70,6 @@ on_tv_screen_configure_event           (GtkWidget       *widget,
                                         gpointer         user_data);
 
 void
-on_standard_activate                   (GtkMenuItem     *menuitem,
-					gpointer        user_data);
-
-void
-on_input_activate                      (GtkMenuItem     *menuitem,
-					gpointer        user_data);
-
-void
 on_channel_activate                    (GtkMenuItem     *menuitem,
 				        gpointer        user_data);
 

@@ -146,7 +146,8 @@ on_country_switch                      (GtkWidget       *menu_item,
   gtk_object_set_user_data ( GTK_OBJECT(clist1), country);
 }
 
-static void rebuild_inputs_standards(GtkWidget *widget)
+static void rebuild_inputs_standards(gpointer ignored,
+				     GtkWidget *widget)
 {
   GtkWidget * input = lookup_widget(widget, "attached_input");
   GtkWidget * standard = lookup_widget(widget, "attached_standard");
@@ -292,7 +293,10 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
 
   g_list_free(keylist);
 
-  rebuild_inputs_standards(channel_window);
+  rebuild_inputs_standards(NULL, channel_window);
+  gtk_signal_connect(GTK_OBJECT(z_input_model), "changed",
+		     GTK_SIGNAL_FUNC(rebuild_inputs_standards),
+		     channel_window);
 
   gtk_widget_show(channel_window);
 
@@ -332,7 +336,10 @@ on_channels_done_clicked               (GtkButton       *button,
   menu_item =
     GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(channel_window)));
 
-  update_channels_menu(menu_item, main_info);
+  gtk_signal_disconnect_by_func(GTK_OBJECT(z_input_model),
+				GTK_SIGNAL_FUNC(rebuild_inputs_standards),
+				ChannelWindow);
+  zmodel_changed(z_input_model);
 
   gtk_widget_set_sensitive(menu_item, TRUE);
 
@@ -365,6 +372,7 @@ on_add_channel_clicked                 (GtkButton       *button,
   int index = 0; /* The row we are reading now */
   tveng_tuned_channel tc;
   gchar * buffer;
+  gint selected;
   
   memset(&tc, 0, sizeof(tveng_tuned_channel));
   tc.name = gtk_entry_get_text (GTK_ENTRY(channel_name));
@@ -393,6 +401,20 @@ on_add_channel_clicked                 (GtkButton       *button,
   tc.accel_mask |=
     gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)) ?
     GDK_MOD1_MASK : 0;
+
+  selected =
+    z_option_menu_get_active(lookup_widget(clist1, "attached_input"));
+  if (selected)
+    tc.input = main_info->inputs[selected-1].hash;
+  else
+    tc.input = 0;
+
+  selected =
+    z_option_menu_get_active(lookup_widget(clist1, "attached_standard"));
+  if (selected)
+    tc.standard = main_info->standards[selected-1].hash;
+  else
+    tc.standard = 0;
 
   ptr = GTK_CLIST(clist1) -> row_list;
 
@@ -439,6 +461,7 @@ on_modify_channel_clicked              (GtkButton       *button,
   int index=0; /* The row we are reading now */
   tveng_tuned_channel tc, *p;
   gchar * buffer;
+  gint selected;
 
   tc.name = gtk_entry_get_text (GTK_ENTRY(channel_name));
   if (current_country)
@@ -468,6 +491,20 @@ on_modify_channel_clicked              (GtkButton       *button,
     gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)) ?
     GDK_MOD1_MASK : 0;
 
+  selected =
+    z_option_menu_get_active(lookup_widget(clist1, "attached_input"));
+  if (selected)
+    tc.input = main_info->inputs[selected-1].hash;
+  else
+    tc.input = 0;
+
+  selected =
+    z_option_menu_get_active(lookup_widget(clist1, "attached_standard"));
+  if (selected)
+    tc.standard = main_info->standards[selected-1].hash;
+  else
+    tc.standard = 0;
+
   ptr = GTK_CLIST(clist1) -> row_list;
 
   /* Again, using a GUI element as a data storage struct is a
@@ -494,11 +531,9 @@ on_modify_channel_clicked              (GtkButton       *button,
   while (ptr)
     {
       if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
-	{
-	  if ((p = tveng_retrieve_tuned_channel_by_index(index,
-							 list)))
-	    tveng_copy_tuned_channel(p, &tc);
-	}
+	if ((p = tveng_retrieve_tuned_channel_by_index(index,
+						       list)))
+	  tveng_copy_tuned_channel(p, &tc);
 
       ptr = ptr -> next;
       index++;
@@ -581,7 +616,11 @@ on_channel_window_delete_event         (GtkWidget       *widget,
 
   tveng_clear_tuned_channel(list);
 
-  update_channels_menu(related_menuitem, main_info);
+  gtk_signal_disconnect_by_func(GTK_OBJECT(z_input_model),
+				GTK_SIGNAL_FUNC(rebuild_inputs_standards),
+				ChannelWindow);
+
+  zmodel_changed(z_input_model);
 
   /* Set the menuentry sensitive again */
   gtk_widget_set_sensitive(related_menuitem, TRUE);
@@ -607,7 +646,11 @@ on_cancel_channels_clicked             (GtkButton       *button,
 
   tveng_clear_tuned_channel(list);
 
-  update_channels_menu(menu_item, main_info);
+  gtk_signal_disconnect_by_func(GTK_OBJECT(z_input_model),
+				GTK_SIGNAL_FUNC(rebuild_inputs_standards),
+				ChannelWindow);
+
+  zmodel_changed(z_input_model);
 
   gtk_widget_set_sensitive(menu_item, TRUE);
 
@@ -668,6 +711,8 @@ on_channel_list_select_row             (GtkCList        *clist,
   GtkWidget * channel_accel = lookup_widget(GTK_WIDGET(clist),
 					    "channel_accel");
   GtkWidget * widget;
+  struct tveng_enumstd *std;
+  struct tveng_enum_input *input;
 
   list = tveng_retrieve_tuned_channel_by_index(row, list);
 
@@ -739,6 +784,30 @@ on_channel_list_select_row             (GtkCList        *clist,
       widget = lookup_widget(channel_accel, "channel_accel_shift");
       gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), FALSE);
     }
+
+  widget = lookup_widget(channel_accel, "attached_standard");
+  if (list->standard)
+    {
+      std = tveng_find_standard_by_hash(list->standard, main_info);
+      if (std)
+	z_option_menu_set_active(widget, std->index+1);
+      else
+	z_option_menu_set_active(widget, 0);
+    }
+  else
+    z_option_menu_set_active(widget, 0);
+
+  widget = lookup_widget(channel_accel, "attached_input");
+  if (list->input)
+    {
+      input = tveng_find_input_by_hash(list->input, main_info);
+      if (input)
+	z_option_menu_set_active(widget, input->index+1);
+      else
+	z_option_menu_set_active(widget, 0);
+    }
+  else
+    z_option_menu_set_active(widget, 0);
 
   /* Tune to this channel's freq */
   if (zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"))

@@ -189,6 +189,7 @@ struct tveng_frame_format
 struct tveng_enumstd{
   int id; /* Standard id */
   int index; /* Index in info->standards */
+  int hash; /* Based on the normalized name */
   char name[32]; /* Canonical name for the standard */
 };
 
@@ -205,6 +206,7 @@ enum tveng_input_type{
 struct tveng_enum_input{
   int id; /* Id of the input */
   int index; /* Index in info->inputs */
+  int hash; /* based on the normalized name */
   char name[32]; /* Canonical name for the input */
   int tuners; /* Number of tuners for this input */
   int flags; /* Flags for this channel */
@@ -383,6 +385,13 @@ tveng_set_input_by_id(int id, tveng_device_info * info);
 int
 tveng_set_input_by_index(int index, tveng_device_info * info);
 
+/**
+ * Finds the input with the given hash, or NULL.
+ * The hash is based on the input normalized name.
+ */
+struct tveng_enum_input *
+tveng_find_input_by_hash(int hash, tveng_device_info *info);
+
 /*
   Queries the device about its standards. Fills in info as appropiate
   and returns the number of standards in the device.
@@ -412,6 +421,13 @@ tveng_set_standard_by_id(int id, tveng_device_info * info);
 */
 int
 tveng_set_standard_by_index(int index, tveng_device_info * info);
+
+/**
+ * Finds the standard with the given hash, or NULL.
+ * The hash is based on the standard normalized name.
+ */
+struct tveng_enumstd *
+tveng_find_standard_by_hash(int hash, tveng_device_info *info);
 
 /* Updates the current capture format info. -1 if failed */
 int
@@ -707,6 +723,10 @@ enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
 */
 int tveng_restart_everything (enum tveng_capture_mode mode,
 			      tveng_device_info * info);
+
+/* build hash for the given string, normalized */
+int
+tveng_build_hash(const char *string);
 
 /* get the current debug level */
 int tveng_get_debug_level(tveng_device_info * info);

@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +20,11 @@
 #  include <config.h>
 #endif
 
+#include <gnome.h>
+
 /* Routines for building GUI elements dependant on the v4l device
    (such as the number of inputs and so on) */
+#include "tveng.h"
 #include "v4linterface.h"
 #include "callbacks.h"
 #include "zconf.h"
@@ -29,26 +32,33 @@
 #include "interface.h"
 
 extern tveng_tuned_channel * global_channel_list;
+extern tveng_device_info *main_info;
+extern GtkWidget *main_window;
 extern int cur_tuned_channel; /* currently tuned channel (in callbacks.c) */
 GtkWidget * ToolBox = NULL; /* Pointer to the last control box */
 ZModel *z_input_model = NULL;
 
-void
-startup_v4linterface(void)
+/* Activate an standard */
+static
+void on_standard_activate              (GtkMenuItem     *menuitem,
+					gpointer        user_data)
 {
-  z_input_model = ZMODEL(zmodel_new());
+  z_switch_standard(GPOINTER_TO_INT(user_data), main_info);
 }
 
-void
-shutdown_v4linterface(void)
+/* Activate an input */
+static
+void on_input_activate              (GtkMenuItem     *menuitem,
+				     gpointer        user_data)
 {
-  gtk_object_destroy(GTK_OBJECT(z_input_model));
+  z_switch_input(GPOINTER_TO_INT(user_data), main_info);
 }
 
 /* 
    Update the menu from where we can choose the standard. Widget is
    any widget in the same window as the standard menu (we lookup() it)
 */
+static
 void update_standards_menu(GtkWidget * widget, tveng_device_info *
 			   info)
 {
@@ -73,8 +83,7 @@ void update_standards_menu(GtkWidget * widget, tveng_device_info *
       gtk_menu_item_new_with_label(info->standards[i].name);
     gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 		       GTK_SIGNAL_FUNC(on_standard_activate),
-		       GINT_TO_POINTER(i)); /* it should know about
-					       itself */
+		       GINT_TO_POINTER(info->standards[i].hash));
     gtk_widget_show (menu_item);
     gtk_menu_append(GTK_MENU (NewMenu), menu_item);
   }
@@ -92,15 +101,13 @@ void update_standards_menu(GtkWidget * widget, tveng_device_info *
 
   gtk_option_menu_set_history (GTK_OPTION_MENU (Standards), 
 			       info -> cur_standard);
-
-  /* Call this so the remaining menus get updated */
-  update_inputs_menu(widget, info);
 }
 
 /* 
    Update the menu from where we can choose the input. Widget is
    any widget in the same window as the standard menu (we lookup() it)
  */
+static
 void update_inputs_menu(GtkWidget * widget, tveng_device_info *
 			info)
 {
@@ -121,23 +128,22 @@ void update_inputs_menu(GtkWidget * widget, tveng_device_info *
 
     gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 		       GTK_SIGNAL_FUNC(on_input_activate),
-		       GINT_TO_POINTER( i )); /* it should know about
-						 itself*/
+		       GINT_TO_POINTER(info->inputs[i].hash));
     gtk_widget_show (menu_item);
     gtk_menu_append(GTK_MENU (NewMenu), menu_item);
   }
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (Inputs), NewMenu);
 
-  gtk_option_menu_set_history (GTK_OPTION_MENU (Inputs), info->cur_input);
-
-  update_channels_menu(widget, info);
+  gtk_option_menu_set_history (GTK_OPTION_MENU (Inputs),
+			       info->cur_input);
 }
 
 /*
   Update the menu from where we can choose the TV channel. Widget is
   any widget in the same window as the standard menu (we lookup() it)
 */
+static
 void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
 {
   GtkWidget * Channels = lookup_widget(widget, "Channels");
@@ -145,19 +151,13 @@ void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
   int i = 0;
   tveng_tuned_channel * tuned;
   GtkWidget * menu_item;
-  gboolean tunes;
+  gboolean tunes = TRUE;
 
   /* remove old menu */
   gtk_widget_destroy(gtk_option_menu_get_menu (GTK_OPTION_MENU (Channels)));
 
   NewMenu = gtk_menu_new ();
   
-  /* Check whether the current input has a tuner attached */
-  if (info->num_inputs == 0)
-    tunes = FALSE;
-  else
-    tunes = info->inputs[info->cur_input].flags & TVENG_INPUT_TUNER;
-
   /* If no tuned channels show error not sensitive */
   if (tveng_tuned_channel_num(global_channel_list) == 0)
     tunes = FALSE;
@@ -182,11 +182,7 @@ void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
       }
   else
     {
-      if ((info->num_inputs == 0) ||
-	  (! (info->inputs[info->cur_input].flags & TVENG_INPUT_TUNER)))
-	menu_item = gtk_menu_item_new_with_label(_("No tuner"));
-      else
-	menu_item = gtk_menu_item_new_with_label(_("No tuned channels"));
+      menu_item = gtk_menu_item_new_with_label(_("No tuned channels"));
       gtk_widget_show (menu_item);
       gtk_menu_append (GTK_MENU (NewMenu), menu_item);
     }
@@ -207,8 +203,17 @@ void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
       g_assert (tuned != NULL); /* This cannot happen, just for
 				   checking */
       if (tveng_tune_input(tuned -> freq, info) == -1)
-	ShowBox(_("Cannot tune the device"), GNOME_MESSAGE_BOX_ERROR);
+	ShowBox("Cannot tune the device", GNOME_MESSAGE_BOX_ERROR);
     }
+}
+
+static void
+update_bundle				(ZModel		*model,
+					 tveng_device_info *info)
+{
+  update_inputs_menu(lookup_widget(main_window, "Inputs"), info);
+  update_standards_menu(lookup_widget(main_window, "Standards"), info);
+  update_channels_menu(lookup_widget(main_window, "Channels"), info);
 }
 
 static void
@@ -573,13 +578,65 @@ update_control_box(tveng_device_info * info)
 }
 
 void
-z_switch_input			(struct tveng_enum_input *input,
-				 tveng_device_info *info)
+z_switch_input			(int hash, tveng_device_info *info)
 {
+  struct tveng_enum_input *input =
+    tveng_find_input_by_hash(hash, info);
+
+  if (!input)
+    {
+      ShowBox("Couldn't find input with hash %d",
+	      GNOME_MESSAGE_BOX_ERROR, hash);
+      return;
+    }
+
+  if (input->index == info->cur_input)
+    return;
+
+  if (tveng_set_input(input, info) == -1)
+    ShowBox("Couldn't switch to input %s\n%s",
+	    GNOME_MESSAGE_BOX_ERROR,
+	    input->name, info->error);
+  else
+    zmodel_changed(z_input_model);
 }
 
 void
-z_switch_standard		(struct tveng_enumstd *standard,
-				 tveng_device_info *info)
+z_switch_standard		(int hash, tveng_device_info *info)
 {
+  struct tveng_enumstd *standard =
+    tveng_find_standard_by_hash(hash, info);
+
+  if (!standard)
+    {
+      ShowBox("Couldn't find standard with hash %d",
+	      GNOME_MESSAGE_BOX_ERROR, hash);
+      return;
+    }
+
+  if (standard->index == info->cur_standard)
+    return;
+
+  if (tveng_set_standard(standard, info) == -1)
+    ShowBox("Couldn't switch to standard %s\n%s",
+	    GNOME_MESSAGE_BOX_ERROR,
+	    standard->name, info->error);
+  else
+    zmodel_changed(z_input_model);
+}
+
+void
+startup_v4linterface(tveng_device_info *info)
+{
+  z_input_model = ZMODEL(zmodel_new());
+
+  gtk_signal_connect(GTK_OBJECT(z_input_model), "changed",
+		     GTK_SIGNAL_FUNC(update_bundle),
+		     info);
+}
+
+void
+shutdown_v4linterface(void)
+{
+  gtk_object_destroy(GTK_OBJECT(z_input_model));
 }

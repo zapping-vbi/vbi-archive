@@ -1277,10 +1277,8 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel,
   channel_added->accel_key = new_channel->accel_key;
   channel_added->accel_mask = new_channel->accel_mask;
   channel_added->freq = new_channel->freq;
-  if (new_channel->input)
-    channel_added->input = g_strdup(new_channel->input);
-  if (new_channel->standard)
-    channel_added->standard = g_strdup(new_channel->standard);
+  channel_added->input = new_channel->input;
+  channel_added->standard = new_channel->standard;
 
   /* OK, we are starting the list */
   if (!tc_ptr)
@@ -1422,8 +1420,6 @@ tveng_remove_tuned_channel (gchar * real_name, int id,
   g_free(tc_ptr -> name);
   g_free(tc_ptr -> real_name);
   g_free(tc_ptr -> country);
-  g_free(tc_ptr -> input);
-  g_free(tc_ptr -> standard);
 
   if (list == tc_ptr) /* We are deleting the first item */
     list = tc_ptr -> next;
@@ -1452,10 +1448,6 @@ tveng_copy_tuned_channel(tveng_tuned_channel * dest,
   g_free(dest->name);
   g_free(dest->real_name);
   g_free(dest->country);
-  g_free(dest->input);
-  g_free(dest->standard);
-
-  memset(dest, 0, sizeof(tveng_tuned_channel));
 
   if (src->name)
     dest->name = g_strdup(src->name);
@@ -1470,10 +1462,8 @@ tveng_copy_tuned_channel(tveng_tuned_channel * dest,
   else
     dest->country = g_strdup(_("(Unknown country)"));
 
-  if (src->input)
-    dest->input = g_strdup(src->input);
-  if (src->standard)
-    dest->standard = g_strdup(src->standard);
+  dest->input = src->input;
+  dest->standard = src->standard;
 
   dest->accel_key = src->accel_key;
   dest->accel_mask = src->accel_mask;
@@ -1557,9 +1547,11 @@ tveng_retrieve_tuned_channel_by_index (int index,
 {
   tveng_tuned_channel * tc_ptr = first_channel(list);
 
-  if ((index < 0) || (index >= tveng_tuned_channel_num(tc_ptr)))
-    return NULL; /* Bounds error */
-  
+  g_assert(index >= 0);
+
+  if (index >= tveng_tuned_channel_num(list))
+    return NULL; /* probably just traversing */
+
   while (tc_ptr)
     {
       if (tc_ptr -> index == index)

@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -212,5 +212,18 @@ z_pixbuf_render_to_drawable	(GdkPixbuf	*pixbuf,
 				 gint		y,
 				 gint		width,
 				 gint		height);
+
+/**
+ * Returns the index of the selected entry in a GtkOptionMenu.
+ */
+gint
+z_option_menu_get_active	(GtkWidget	*option_menu);
+
+/**
+ * Sets (visually too) a given item as active.
+ */
+void
+z_option_menu_set_active	(GtkWidget	*option_menu,
+				 int index);
 
 #endif /* ZMISC.H */

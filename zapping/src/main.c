@@ -298,7 +298,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.98 2001-03-22 23:27:43 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.99 2001-03-23 23:47:10 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -482,13 +482,6 @@ int main(int argc, char * argv[])
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "go_fullscreen1"));
     }
-  /* Restore the input and the standard */
-  /* FIXME: Use the v4linterface */
-  tveng_set_input_by_index(zcg_int(NULL, "current_input"), main_info);
-  D();
-  tveng_set_standard_by_index(zcg_int(NULL, "current_standard"), main_info);
-  D();
-  update_standards_menu(main_window, main_info);
   D();
   startup_teletext();
   D();
@@ -573,6 +566,12 @@ int main(int argc, char * argv[])
     gtk_spin_button_set_value(wzp, bcd2dec(zvbi_page));
   }
   D();
+  /* Restore the input and the standard */
+  if (zcg_int(NULL, "current_input"))
+    z_switch_input(zcg_int(NULL, "current_input"), main_info);
+  if (zcg_int(NULL, "current_standard"))
+    z_switch_standard(zcg_int(NULL, "current_standard"), main_info);
+  D();
   /* Sets the coords to the previous values, if the users wants to */
   if (zcg_bool(NULL, "keep_geometry"))
     gtk_timeout_add(500, resize_timeout, NULL);
@@ -640,29 +639,32 @@ static void shutdown_zapping(void)
       zconf_create_string(channel->country, 
 			  "Country the channel is in", buffer);
       g_free(buffer);
-      if (channel->input)
-	{
-	  buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/input",
-				   i);
-	  zconf_create_string(channel->input, "Attached input", buffer);
-	  g_free(buffer);
-	}
-      if (channel->standard)
-	{
-	  buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/standard",
-				   i);
-	  zconf_create_string(channel->standard, "Attached standard", buffer);
-	  g_free(buffer);
-	}
+      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/input",
+			       i);
+      zconf_create_integer(channel->input, "Attached input", buffer);
+      g_free(buffer);
+      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/standard",
+			       i);
+      zconf_create_integer(channel->standard, "Attached standard", buffer);
+      g_free(buffer);
+
       i++;
     }
   global_channel_list = tveng_clear_tuned_channel(global_channel_list);
 
   zcs_char(current_country -> name, "current_country");
+
   if (main_info->num_standards)
-    zcs_int(main_info -> cur_standard, "current_standard");
+    zcs_int(main_info->standards[main_info -> cur_standard].hash,
+	    "current_standard");
+  else
+    zcs_int(0, "current_standard");
+
   if (main_info->num_inputs)
-    zcs_int(main_info -> cur_input, "current_input");
+    zcs_int(main_info->inputs[main_info->cur_input].hash,
+	    "current_input");
+  else
+    zcs_int(0, "current_input");
 
   /* Shutdown all other modules */
   printv(" callbacks");
@@ -792,10 +794,10 @@ static gboolean startup_zapping()
       g_free(buffer2);
 
       buffer2 = g_strconcat(buffer, "/input", NULL);
-      zconf_get_string(&new_channel.input, buffer2);
+      zconf_get_integer(&new_channel.input, buffer2);
       g_free(buffer2);
       buffer2 = g_strconcat(buffer, "/standard", NULL);
-      zconf_get_string(&new_channel.standard, buffer2);
+      zconf_get_integer(&new_channel.standard, buffer2);
       g_free(buffer2);
 
       new_channel.index = 0;
@@ -806,15 +808,13 @@ static gboolean startup_zapping()
       g_free(new_channel.name);
       g_free(new_channel.real_name);
       g_free(new_channel.country);
-      g_free(new_channel.standard);
-      g_free(new_channel.input);
 
       g_free(buffer);
       i++;
     }
   D();
   /* Starts all modules */
-  startup_v4linterface();
+  startup_v4linterface(main_info);
   D();
   if (!startup_callbacks())
     return FALSE;

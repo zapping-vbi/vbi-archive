@@ -225,13 +225,15 @@ int tveng_attach_device(const char* device_file,
 	      info->window.height);
       fprintf(stderr, "Detected standards:\n");
       for (i=0;i<info->num_standards;i++)
-	fprintf(stderr, "  %d) [%s] ID: %d\n", i,
-		info->standards[i].name, info->standards[i].id);
+	fprintf(stderr, "  %d) [%s] ID: %d Hash: %x\n", i,
+		info->standards[i].name, info->standards[i].id,
+		info->standards[i].hash);
       fprintf(stderr, "Detected inputs:\n");
       for (i=0;i<info->num_inputs;i++)
 	{
-	  fprintf(stderr, "  %d) [%s] ID: %d\n", i, info->inputs[i].name,
-		  info->inputs[i].id);
+	  fprintf(stderr, "  %d) [%s] ID: %d Hash: %x\n", i,
+		  info->inputs[i].name, info->inputs[i].id,
+		  info->inputs[i].hash);
 	  fprintf(stderr, "      Type: %s  Tuners: %d  Flags: 0x%x\n",
 		  (info->inputs[i].type == TVENG_INPUT_TYPE_TV) ? _("TV")
 		  : _("Camera"), info->inputs[i].tuners,
@@ -338,54 +340,42 @@ int tveng_get_inputs(tveng_device_info * info)
   return -1;
 }
 
+/* Returns a newly allocated copy of the string, normalized */
+static char* normalize(const char *string)
+{
+  int i = 0;
+  const char *strptr=string;
+  char *result;
+
+  t_assert(string != NULL);
+
+  result = strdup(string);
+
+  t_assert(result != NULL);
+
+  while (*strptr != 0) {
+    if (*strptr == '_' || *strptr == '-' || *strptr == ' ') {
+      strptr++;
+      continue;
+    }
+    result[i] = tolower(*strptr);
+
+    strptr++;
+    i++;
+  }
+  result[i] = 0;
+
+  return result;
+}
+
 /* nomalize and compare */
 static int tveng_normstrcmp (const char * in1, const char * in2)
 {
-  int i;
-  char * s1;
-  char * s2;
-  char * strptr;
+  char *s1 = normalize(in1);
+  char *s2 = normalize(in2);
 
-  s1 = strdup(in1);
-  s2 = strdup(in2);
-
-  if (s1 == NULL  ||  s2 == NULL)
-    {
-      free(s1);
-      free(s2);
-      return 0;
-    }
-
-
-  /* Normalize the first string */
-  i=0;
-  strptr = (char *)in1;
-  while (strptr[0] != 0) {
-    if (strptr[0] == '_' || strptr[0] == '-' || strptr[0] == ' ') {
-      strptr++;
-      continue;
-    }
-    s1[i] = tolower(strptr[0]);
-
-    strptr++;
-    i++;
-  }
-  s1[i] = 0;
-
-  /* Normalize the second string */
-  i = 0;
-  strptr = (char *)in2;
-  while (strptr[0] != 0) {
-    if (strptr[0] == '_' || strptr[0] == '-' || strptr[0] == ' ') {
-      strptr++;
-      continue;
-    }
-    s2[i] = tolower(strptr[0]);
-
-    strptr++;
-    i++;
-  }
-  s2[i] = 0;
+  t_assert(in1 != NULL);
+  t_assert(in2 != NULL);
 
   /* Compare the strings */
   if (!strcmp(s1, s2)) {
@@ -397,6 +387,22 @@ static int tveng_normstrcmp (const char * in1, const char * in2)
     free(s2);
     return 0;
   }
+}
+
+/* build hash for the given string, normalized */
+int
+tveng_build_hash(const char *string)
+{
+  char *norm = normalize(string);
+  int i;
+  int result=0;
+
+  for (i = 0; i<strlen(norm); i++)
+    result += ((result+171)*((int)norm[i]) & ~(norm[i]>>4));
+
+  free(norm);
+
+  return result;
 }
 
 /*
@@ -479,6 +485,24 @@ tveng_set_input_by_index(int index, tveng_device_info * info)
       return (tveng_set_input(&(info -> inputs[index]), info));
     }
   return 0;
+}
+
+/**
+ * Finds the input with the given hash, or NULL.
+ * The hash is based on the input normalized name.
+ */
+struct tveng_enum_input *
+tveng_find_input_by_hash(int hash, tveng_device_info *info)
+{
+  int i;
+
+  t_assert(info != NULL);
+
+  for (i=0; i<info->num_inputs; i++)
+    if (info->inputs[i].hash == hash)
+      return &(info->inputs[i]);
+
+  return  NULL;
 }
 
 /*
@@ -573,6 +597,24 @@ tveng_set_standard_by_index(int index, tveng_device_info * info)
       return (tveng_set_standard(&(info->standards[index]), info));
     }
   return 0;
+}
+
+/**
+ * Finds the standard with the given hash, or NULL.
+ * The hash is based on the standard normalized name.
+ */
+struct tveng_enumstd *
+tveng_find_standard_by_hash(int hash, tveng_device_info *info)
+{
+  int i;
+
+  t_assert(info != NULL);
+
+  for (i=0; i<info->num_standards; i++)
+    if (info->standards[i].hash == hash)
+      return &(info->standards[i]);
+
+  return  NULL;
 }
 
 /* Updates the current capture format info. -1 if failed */

@@ -135,4 +135,41 @@ p_tveng_append_control(struct tveng_control * new_control,
 #ifndef MIN
 #define MIN(X, Y) (((X) > (Y)) ? (Y) : (X))
 #endif
-#endif
+
+/* check for hash collisions in info->inputs */
+static inline void
+input_collisions(tveng_device_info *info)
+{
+  int i, j, hash;
+
+  for (i=0; i<info->num_inputs; i++)
+    {
+      hash = info->inputs[i].hash;
+      for (j = i+1; j<info->num_inputs; j++)
+	if (info->inputs[j].hash == hash)
+	  fprintf(stderr,
+		  "WARNING: TVENG: Hash collision between %s and %s (%x)\n"
+		  "please send a bug report the maintainer!\n",
+		  info->inputs[i].name, info->inputs[j].name, hash);
+    }
+}
+
+/* check for hash collisions in info->standards */
+static inline void
+standard_collisions(tveng_device_info *info)
+{
+  int i, j, hash;
+
+  for (i=0; i<info->num_standards; i++)
+    {
+      hash = info->standards[i].hash;
+      for (j = i+1; j<info->num_standards; j++)
+	if (info->standards[j].hash == hash)
+	  fprintf(stderr,
+		  "WARNING: TVENG: Hash collision between %s and %s (%x)\n"
+		  "please send a bug report the maintainer!\n",
+		  info->standards[i].name, info->standards[j].name, hash);
+    }
+}
+
+#endif /* tveng_private.h */

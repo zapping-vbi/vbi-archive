@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -345,6 +345,8 @@ gboolean
 startup_capture(GtkWidget * widget)
 {
   startup_xv();
+
+  gdk_window_set_back_pixmap(widget->window, NULL, FALSE);
 
   return TRUE;
 }

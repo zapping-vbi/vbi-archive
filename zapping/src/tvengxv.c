@@ -515,8 +515,14 @@ tvengxv_get_inputs(tveng_device_info *info)
       if (p_info->volume != None || p_info->mute != None)
         info->inputs[info->num_inputs].flags |= TVENG_INPUT_AUDIO;
       snprintf(info->inputs[info->num_inputs].name, 32, input);
+      info->inputs[info->num_inputs].name[31] = 0;
+      info->inputs[info->num_inputs].hash =
+	tveng_build_hash(info->inputs[info->num_inputs].name);
       info->num_inputs++;
     }
+
+  input_collisions(info);
+
   /* Get the current input */
   val = 0;
   if ((p_info->encoding != None) &&
@@ -643,9 +649,15 @@ tvengxv_get_standards(tveng_device_info *info)
       info->standards[info->num_standards].id = info->num_standards;
       snprintf(info->standards[info->num_standards].name, 32,
 	       norm);
+      info->standards[info->num_standards].name[31] = 0;
+      info->standards[info->num_standards].hash =
+	tveng_build_hash(info->standards[info->num_standards].name);
       info->standards[info->num_standards].index = info->num_standards;
       info->num_standards++;
     }
+
+  standard_collisions(info);
+
   /* Get the current input */
   val = 0;
   if ((p_info->encoding != None) &&

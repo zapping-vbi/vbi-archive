@@ -471,6 +471,9 @@ static int tveng1_get_inputs(tveng_device_info * info)
       info->inputs[info->num_inputs].id = i;
       info->inputs[info->num_inputs].index = info->num_inputs;
       snprintf(info->inputs[info->num_inputs].name, 32, channel.name);
+      info->inputs[info->num_inputs].name[31] = 0;
+      info->inputs[info->num_inputs].hash =
+	tveng_build_hash(info->inputs[info->num_inputs].name);
       info->inputs[info->num_inputs].tuners = channel.tuners;
       info->inputs[info->num_inputs].flags = 0;
       if (channel.flags & VIDEO_VC_TUNER)
@@ -491,6 +494,9 @@ static int tveng1_get_inputs(tveng_device_info * info)
 	}
       info->num_inputs++;
     }
+
+  input_collisions(info);
+
   if (i) /* If there is any channel, switch to the first one */
     {
       channel.channel = 0;
@@ -680,8 +686,13 @@ static int tveng1_get_standards(tveng_device_info * info)
       info -> standards[count].id = std_t[count].id;
       info -> standards[count].index = count;
       snprintf(info -> standards[count].name, 32, std_t[count].name);
+      info -> standards[count].name[31] = 0;
+      info -> standards[count].hash =
+	tveng_build_hash(info->standards[count].name);
       count++;
     }
+
+  standard_collisions(info);
 
   /* Get the current standard */
   /* Fill in the channel with the appropiate info */

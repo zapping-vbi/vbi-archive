@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,30 +19,7 @@
 #ifndef __V4LINTERFACE_H__
 #define __V4LINTERFACE_H__
 
-#include <gnome.h>
-#include "tveng.h"
-#include "callbacks.h"
 #include "zmodel.h"
-
-/* 
-   Update the menu from where we can choose the standard. Widget is
-   any widget in the same window as the standard menu (we lookup() it)
- */
-void update_standards_menu(GtkWidget * widget, tveng_device_info *
-			   info);
-
-/* 
-   Update the menu from where we can choose the input. Widget is
-   any widget in the same window as the standard menu (we lookup() it)
- */
-void update_inputs_menu(GtkWidget * widget, tveng_device_info *
-			info);
-
-/* 
-   Update the menu from where we can choose the TV channel. Widget is
-   any widget in the same window as the standard menu (we lookup() it)
- */
-void update_channels_menu(GtkWidget* widget, tveng_device_info * info);
 
 /* 
    Creates a control box suited for setting up all the controls this
@@ -61,21 +38,19 @@ update_control_box(tveng_device_info * info);
 extern ZModel *z_input_model;
 
 /**
- * Sets the given input.
+ * Sets the given input, based on its hash.
  */
 void
-z_switch_input			(struct tveng_enum_input *input,
-				 tveng_device_info *info);
+z_switch_input			(int hash, tveng_device_info *info);
 
 /**
- * Sets the given standard
+ * Sets the given standard, based on its hash.
  */
 void
-z_switch_standard		(struct tveng_enumstd *standard,
-				 tveng_device_info *info);
+z_switch_standard		(int hash, tveng_device_info *info);
 
 /* Do the startup/shutdown */
-void startup_v4linterface	(void);
+void startup_v4linterface	(tveng_device_info *info);
 void shutdown_v4linterface	(void);
 
 #endif

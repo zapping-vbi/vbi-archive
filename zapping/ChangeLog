@@ -1,3 +1,10 @@
+23.3.2001	channels <garetxe@users.sourceforge.net>
+
+	* src/: Mostly finished new channels design. Lacks gui
+	polishing, but works.
+	* src/zmisc.c: Added convenience functions for GtkOptionMenu.
+	* tveng: Added hash for input/standards.
+
 22.3.2001	libxml2 <garetxe@users.sourceforge.net>
 
 	* configure.in: Better libxml detection, libxml2 support.

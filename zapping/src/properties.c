@@ -387,20 +387,14 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 			"/zapping/options/main/zapping_setup_fb_verbosity");
 
       widget = lookup_widget(pbox, "optionmenu1"); /* ratio mode */
-      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
 
-      zconf_set_integer(
-	g_list_index(GTK_MENU_SHELL(widget)->children,
-		     gtk_menu_get_active(GTK_MENU(widget))),
-	"/zapping/options/main/ratio");
+      zconf_set_integer(z_option_menu_get_active(widget),
+			"/zapping/options/main/ratio");
 
-      widget = lookup_widget(pbox, "optionmenu2");
-      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+      widget = lookup_widget(pbox, "optionmenu2"); /* change mode */
 
-      zconf_set_integer(
-	g_list_index(GTK_MENU_SHELL(widget)->children,
-		     gtk_menu_get_active(GTK_MENU(widget))),
-	"/zapping/options/main/change_mode");
+      zconf_set_integer(z_option_menu_get_active(widget),
+			"/zapping/options/main/change_mode");
 
       break;
     case 2:
@@ -424,10 +418,8 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 
       /* default_region */
       widget = lookup_widget(pbox, "optionmenu3");
-      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+      index = z_option_menu_get_active(widget);
 
-      index = g_list_index(GTK_MENU_SHELL(widget)->children,
-			   gtk_menu_get_active(GTK_MENU(widget)));
       if (index < 0)
 	index = 0;
       if (index > 7)
@@ -439,10 +431,8 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 
       /* teletext_level */
       widget = lookup_widget(pbox, "optionmenu4");
-      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+      index = z_option_menu_get_active(widget);
 
-      index = g_list_index(GTK_MENU_SHELL(widget)->children,
-			   gtk_menu_get_active(GTK_MENU(widget)));
       if (index < 0)
 	index = 0;
       if (index > 3)
