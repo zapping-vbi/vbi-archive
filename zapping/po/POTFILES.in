@@ -6,9 +6,9 @@ src/callbacks.c
 src/frequencies.c
 src/v4linterface.c
 src/zvbi.c
-# src/tveng.c
-# src/tveng1.c
-# src/tveng2.c
+src/tveng.c
+src/tveng1.c
+src/tveng2.c
 src/plugins.c
 src/zmisc.c
 src/zconf.c
