@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-02-28 23:53+0100\n"
+"POT-Creation-Date: 2005-04-05 21:59+0200\n"
 "PO-Revision-Date: 2005-02-17 17:27+0100\n"
 "Last-Translator: Christian Marillat <marillat@free.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -610,32 +610,32 @@ msgstr "Vous permet de contrôler zapping avec lirc"
 #. hash collision code
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:2203
+#: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:2212
 #: plugins/screenshot/screenshot.c:1645
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Check erreur : \"%s\" du greffon %s has hash 0x%x vs. 0x%x"
 
-#: plugins/deinterlace/main.c:340
+#: plugins/deinterlace/main.c:348
 msgid "Could not start deinterlace plugin"
 msgstr "Ne peut démarrer le plugin de désentrelacement"
 
-#: plugins/deinterlace/main.c:341
+#: plugins/deinterlace/main.c:349
 #, c-format
 msgid "Could not switch to capture format YUYV %u x %u."
 msgstr "Ne peut changer le format de capture YUYV %u x %u."
 
-#: plugins/deinterlace/main.c:434
+#: plugins/deinterlace/main.c:442
 msgid "Deinterlace"
 msgstr "Désentrelacement"
 
-#: plugins/deinterlace/main.c:441 plugins/mpeg/mpeg.c:1525
-#: plugins/mpeg/mpeg.c:2137 plugins/screenshot/screenshot.c:509
+#: plugins/deinterlace/main.c:449 plugins/mpeg/mpeg.c:1534
+#: plugins/mpeg/mpeg.c:2146 plugins/screenshot/screenshot.c:509
 #: plugins/screenshot/screenshot.c:1408 plugins/teletext/main.c:258
 msgid "Plugins"
 msgstr "Greffons"
 
-#: plugins/deinterlace/main.c:521
+#: plugins/deinterlace/main.c:529
 msgid "Deinterlace plugin"
 msgstr "Greffon deinterlacer"
 
@@ -734,23 +734,19 @@ msgstr "Bob simple"
 msgid "Even Scanlines Only"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_Greedy.c:77
+#: plugins/deinterlace/DI_Misc/DI_Greedy.c:212
 msgid "Greedy Max Comb"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_Greedy.c:88
+#: plugins/deinterlace/DI_Misc/DI_Greedy.c:223
 msgid "Video (Greedy, Low Motion)"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:78
+#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:229
 msgid "Greedy 2 Frame Luma Threshold"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:84
-msgid "Greedy 2 Frame Chroma Threshold"
-msgstr ""
-
-#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:96
+#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:241
 msgid "Greedy 2 Frame"
 msgstr ""
 
@@ -758,15 +754,15 @@ msgstr ""
 msgid "Odd Scanlines Only"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_OldGame.c:147
+#: plugins/deinterlace/DI_Misc/DI_OldGame.c:226
 msgid "Maximum motion"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_OldGame.c:153
+#: plugins/deinterlace/DI_Misc/DI_OldGame.c:232
 msgid "Composite mode"
 msgstr "Mode composite"
 
-#: plugins/deinterlace/DI_Misc/DI_OldGame.c:165
+#: plugins/deinterlace/DI_Misc/DI_OldGame.c:243
 msgid "Old Game"
 msgstr ""
 
@@ -774,43 +770,43 @@ msgstr ""
 msgid "Scaler Bob"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:78
+#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:282
 msgid "2 Frame Spatial Tolerance"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:84
+#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:288
 msgid "2 Frame Temporal Tolerance"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:95
+#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:299
 msgid "Video Deinterlace (2-Frame)"
 msgstr "Désentrelacement vidéo (2-Frame)"
 
-#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:82
+#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:214
 msgid "Weave Edge Detect"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:88
+#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:220
 msgid "Weave Jaggie Threshold"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:99
+#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:231
 msgid "Video Deinterlace (Bob)"
 msgstr "Désentrelacement vidéo (bob)"
 
-#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:79
+#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:242
 msgid "Temporal Tolerance"
 msgstr "Tolérance temporelle"
 
-#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:85
+#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:248
 msgid "Spatial Tolerance"
 msgstr "Tolérance spatiale"
 
-#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:91
+#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:254
 msgid "Similarity Threshold"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:102
+#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:265
 msgid "Video Deinterlace (Weave)"
 msgstr "Désentrelacement vidéo (Weave)"
 
@@ -835,46 +831,46 @@ msgstr "Utiliser 'Strange Bob'"
 msgid "Video (TomsMoComp)"
 msgstr "Vidéo (TomsMoComp)"
 
-#: plugins/mpeg/mpeg.c:417
+#: plugins/mpeg/mpeg.c:426
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
 msgstr "Le format %s est incomplet, configurer le codec video ou audio."
 
-#: plugins/mpeg/mpeg.c:722
+#: plugins/mpeg/mpeg.c:731
 #, c-format
 msgid "Cannot create file %s: %s\n"
 msgstr "Ne peut créer le fichier %s : %s\n"
 
-#: plugins/mpeg/mpeg.c:1343
+#: plugins/mpeg/mpeg.c:1352
 msgid "New format"
 msgstr "Nouveau format"
 
-#: plugins/mpeg/mpeg.c:1344
+#: plugins/mpeg/mpeg.c:1353
 msgid "Format name:"
 msgstr "Nom du format :"
 
-#: plugins/mpeg/mpeg.c:1525 plugins/mpeg/mpeg.c:1994 plugins/mpeg/mpeg.c:2022
-#: plugins/mpeg/mpeg.c:2126 plugins/mpeg/mpeg_properties.glade2.h:6
+#: plugins/mpeg/mpeg.c:1534 plugins/mpeg/mpeg.c:2003 plugins/mpeg/mpeg.c:2031
+#: plugins/mpeg/mpeg.c:2135 plugins/mpeg/mpeg_properties.glade2.h:6
 msgid "Record"
 msgstr "Enregistrement"
 
-#: plugins/mpeg/mpeg.c:1814
+#: plugins/mpeg/mpeg.c:1823
 msgid "Not implemented yet"
 msgstr "Pas encore implémenté"
 
-#: plugins/mpeg/mpeg.c:1987
+#: plugins/mpeg/mpeg.c:1996
 msgid "Record a video stream"
 msgstr "Enregistrer le flux vidéo"
 
-#: plugins/mpeg/mpeg.c:2072
+#: plugins/mpeg/mpeg.c:2081
 msgid "Audio/Video Recorder"
 msgstr "Enregistrement Audio/Video"
 
-#: plugins/mpeg/mpeg.c:2075
+#: plugins/mpeg/mpeg.c:2084
 msgid "This plugin records video and audio into a file"
 msgstr "Ce greffon enregistre les flux image et audio dans un fichier"
 
-#: plugins/mpeg/mpeg.c:2078
+#: plugins/mpeg/mpeg.c:2087
 msgid "Record video and audio."
 msgstr "Enregistrer la vidéo et l'audio."
 
@@ -1457,8 +1453,8 @@ msgstr "Sauvegarder cette page dans un fichier"
 msgid "_Received"
 msgstr ""
 
-#: plugins/teletext/window.c:341 src/v4linterface.c:1172
-#: src/v4linterface.c:2288
+#: plugins/teletext/window.c:341 src/v4linterface.c:1236
+#: src/v4linterface.c:2360
 msgid "Unnamed"
 msgstr "Sans nom"
 
@@ -1722,8 +1718,8 @@ msgstr "Commande"
 msgid "Shortcut"
 msgstr "Raccourcis"
 
-#: src/main.c:164 src/tveng.c:2251 src/tveng1.c:1126 src/tveng25.c:495
-#: src/tvengbktr.c:412 src/tvengxv.c:578
+#: src/main.c:164 src/tveng.c:2251 src/tveng1.c:1123 src/tveng25.c:495
+#: src/tvengbktr.c:413 src/tvengxv.c:578
 msgid "Mute"
 msgstr "Sourdine"
 
@@ -1731,7 +1727,7 @@ msgstr "Sourdine"
 msgid "Subtitles"
 msgstr "Sous-titres"
 
-#: src/main.c:267 src/main.c:300
+#: src/main.c:236 src/main.c:269
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -1740,7 +1736,7 @@ msgstr ""
 "Le mode capture ne peut être démarré :\n"
 "%s"
 
-#: src/main.c:284
+#: src/main.c:253
 #, c-format
 msgid ""
 "Cannot restore previous mode, will try capture mode:\n"
@@ -1749,7 +1745,7 @@ msgstr ""
 "Ne peut restaurer le mode précédent, essaie en mode capture :\n"
 "%s"
 
-#: src/main.c:291
+#: src/main.c:260
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -1758,7 +1754,7 @@ msgstr ""
 "La capture ne peut pas être faites soit :\n"
 "%s"
 
-#: src/main.c:294
+#: src/main.c:263
 #, c-format
 msgid ""
 "Cannot restore previous mode:\n"
@@ -1767,104 +1763,104 @@ msgstr ""
 "Ne peut restaurer le mode précédent :\n"
 "%s"
 
-#: src/main.c:357
+#: src/main.c:326
 msgid "Kernel video device"
 msgstr "Périphérique vidéo du noyau"
 
-#: src/main.c:358
+#: src/main.c:327
 msgid "FILENAME"
 msgstr "FILENAME"
 
-#: src/main.c:369 src/main.c:387
+#: src/main.c:338 src/main.c:356
 msgid "XVideo video input port"
 msgstr "Entrée vidéo XVideo"
 
-#: src/main.c:378
+#: src/main.c:347
 msgid "XVideo image overlay port"
 msgstr "Interface pour l'overlay image XVideo"
 
-#: src/main.c:396
+#: src/main.c:365
 msgid "Disable XVideo video input support"
 msgstr "Déactiver le support XVideo pour l'entrée vidéo"
 
-#: src/main.c:405
+#: src/main.c:374
 msgid "Disable XVideo image overlay support"
 msgstr "Déactiver le support XVideo de l'overlay"
 
-#: src/main.c:414
+#: src/main.c:383
 msgid "Disable XVideo extension support"
 msgstr "Déactiver le support XVideo"
 
-#: src/main.c:426
+#: src/main.c:395
 msgid "Disable video overlay"
 msgstr "Déactiver l'overlay vidéo"
 
-#: src/main.c:435
+#: src/main.c:404
 msgid "X display is remote, disable video overlay"
 msgstr "L'affichage de X est distant, dé-activation de l'overlay vidéo"
 
-#: src/main.c:444
+#: src/main.c:413
 msgid "Disable VBI support"
 msgstr "Déactiver le support VBI"
 
-#: src/main.c:453
+#: src/main.c:422
 msgid "Disable plugins"
 msgstr "Déactiver les greffons"
 
 #. TRANSLATORS: --no-zsfb command line option.
 #. TRANSLATORS: --yuv-format command line option.
 #. TRANSLATORS: --tunerless-norm command line option.
-#: src/main.c:467 src/main.c:522 src/main.c:531
+#: src/main.c:436 src/main.c:491 src/main.c:501
 msgid "Obsolete"
 msgstr "Obsolète"
 
-#: src/main.c:476
+#: src/main.c:445
 msgid "Color depth of the X display"
 msgstr "Nombres de couleurs du display X"
 
-#: src/main.c:477
+#: src/main.c:446
 msgid "BPP"
 msgstr "BPP"
 
-#: src/main.c:485 src/zapzilla.c:74
+#: src/main.c:454 src/zapzilla.c:74
 msgid "Print debug messages"
 msgstr "Afficher les messages de déboguage"
 
-#: src/main.c:503
+#: src/main.c:472
 msgid "Force dword alignment of the overlay window"
 msgstr "Forcer l'alignement en dword pour la fenêtre d'overlay"
 
-#: src/main.c:512
+#: src/main.c:481
 msgid "Execute the given command and exit"
 msgstr "Exécuter la commande donnée et quitter"
 
-#: src/main.c:513
+#: src/main.c:482
 msgid "CMD"
 msgstr "CMD"
 
-#: src/main.c:595
+#: src/main.c:572
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Désolé, mais il n'y a pas le support des modules dans Glib"
 
-#: src/main.c:710
+#: src/main.c:696
 msgid "Cannot get device info struct"
 msgstr "Impossible d'obtenir les infos du périphérique"
 
-#: src/main.c:719
+#: src/main.c:705
 msgid "Zapping couldn't be started"
 msgstr "Zapping ne peut pas démarrer"
 
-#: src/main.c:773
+#: src/main.c:759
 #, c-format
 msgid "Couldn't open %s, try other devices?"
 msgstr "Ne peut ouvrir %s, dois-je essayer un autre périphérique ?"
 
-#: src/main.c:800
+#: src/main.c:786
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "%s avec succès, prendre comme le nouveau défaut"
 
-#: src/main.c:810
+#: src/main.c:796
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -1873,7 +1869,7 @@ msgstr ""
 "Désolé, mais \"%s\" ne peut pas être ouvert :\n"
 "%s"
 
-#: src/main.c:1156 src/zapzilla.c:165
+#: src/main.c:1126 src/zapzilla.c:165
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -1894,7 +1890,7 @@ msgstr ""
 "   - ou, plus sûrement, vous venez de trouver un bogue dans\n"
 "     %s. Contactez l'auteur SVP.\n"
 
-#: src/main.c:1184
+#: src/main.c:1154
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Désolé, Zapping est incapable de créer la configuration par défaut"
 
@@ -2189,30 +2185,30 @@ msgstr "Stéréo"
 msgid "Language 2"
 msgstr "Language 2"
 
-#: src/tveng1.c:1178
+#: src/tveng1.c:1175
 msgid "Frame Rate"
 msgstr "Débit de trame"
 
 #. TRANSLATORS: PWC driver control.  In 'Snapshot' mode the
 #. camera freezes its automatic exposure and colour balance
 #. controls.
-#: src/tveng1.c:1191
+#: src/tveng1.c:1188
 msgid "Snapshot Mode"
 msgstr "Mode copie d'écran"
 
-#: src/tveng25.c:476 src/tvengbktr.c:381 src/tvengbktr.c:398 src/tvengxv.c:572
+#: src/tveng25.c:476 src/tvengbktr.c:382 src/tvengbktr.c:399 src/tvengxv.c:572
 msgid "Brightness"
 msgstr "Luminosité"
 
-#: src/tveng25.c:477 src/tvengbktr.c:383 src/tvengbktr.c:400 src/tvengxv.c:573
+#: src/tveng25.c:477 src/tvengbktr.c:384 src/tvengbktr.c:401 src/tvengxv.c:573
 msgid "Contrast"
 msgstr "Contraste"
 
-#: src/tveng25.c:478 src/tvengbktr.c:385 src/tvengbktr.c:402 src/tvengxv.c:574
+#: src/tveng25.c:478 src/tvengbktr.c:386 src/tvengbktr.c:403 src/tvengxv.c:574
 msgid "Saturation"
 msgstr "Saturation"
 
-#: src/tveng25.c:479 src/tvengbktr.c:391 src/tvengbktr.c:410 src/tvengxv.c:575
+#: src/tveng25.c:479 src/tvengbktr.c:392 src/tvengbktr.c:411 src/tvengxv.c:575
 msgid "Hue"
 msgstr "Teinte"
 
@@ -2302,15 +2298,15 @@ msgstr "%s n'est pas un périphérique de capture valide"
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "Désolé, mais \"%s\" ne peu pas faire de streaming"
 
-#: src/tvengbktr.c:388
+#: src/tvengbktr.c:389
 msgid "U/V Gain"
 msgstr "U/V Gain"
 
-#: src/tvengbktr.c:405
+#: src/tvengbktr.c:406
 msgid "U Saturation"
 msgstr "Saturation U"
 
-#: src/tvengbktr.c:407
+#: src/tvengbktr.c:408
 msgid "V Saturation"
 msgstr "Saturation V"
 
@@ -2345,33 +2341,33 @@ msgstr "Ajuster %s"
 msgid "Controls"
 msgstr "Contrôles"
 
-#: src/v4linterface.c:1163 src/zmisc.c:1765
+#: src/v4linterface.c:1227 src/zmisc.c:1748
 msgid "Unknown"
 msgstr "Inconnu"
 
-#: src/v4linterface.c:1181
+#: src/v4linterface.c:1245
 msgid "No input"
 msgstr "Pas d'entrée"
 
-#: src/v4linterface.c:1192
+#: src/v4linterface.c:1256
 msgid "No standard"
 msgstr "Pas de standard"
 
-#: src/v4linterface.c:2178
+#: src/v4linterface.c:2250
 msgid "Video standards"
 msgstr "Standards vidéo"
 
-#: src/v4linterface.c:2198
+#: src/v4linterface.c:2270
 msgid "Audio inputs"
 msgstr "Entrées Audio"
 
-#: src/v4linterface.c:2218
+#: src/v4linterface.c:2290
 msgid "Video inputs"
 msgstr "Entrée vidéo"
 
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: src/v4linterface.c:2316
+#: src/v4linterface.c:2388
 msgid "No channels"
 msgstr "Pas de chaîne"
 
@@ -2508,7 +2504,7 @@ msgstr ""
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "Le VBI n'a pas été activé, ou il ne marche pas."
 
-#: src/zmisc.c:711
+#: src/zmisc.c:715
 #, c-format
 msgid ""
 "Cannot start fullscreen overlay.\n"
@@ -2517,86 +2513,86 @@ msgstr ""
 "Ne peut démarrer le mode plein écran en overlay.\n"
 "%s"
 
-#: src/zmisc.c:988
+#: src/zmisc.c:971
 msgid "Hide the statusbar"
 msgstr "Cacher la barre d'état"
 
-#: src/zmisc.c:1198
+#: src/zmisc.c:1181
 #, c-format
 msgid "%s is not a directory."
 msgstr "%s n'est pas un répertoire."
 
-#: src/zmisc.c:1240
+#: src/zmisc.c:1223
 #, c-format
 msgid "Could not create directory %s"
 msgstr "Ne peut créer le répertoire %s"
 
-#: src/zmisc.c:1960
+#: src/zmisc.c:1943
 msgid "Device:"
 msgstr "Périphérique :"
 
-#: src/zmisc.c:1961
+#: src/zmisc.c:1944
 msgid "Driver:"
 msgstr "Pilote :"
 
-#: src/zmisc.c:1962
+#: src/zmisc.c:1945
 msgid "Device file:"
 msgstr "Fichier du périphérique :"
 
-#: src/zmisc.c:2308
+#: src/zmisc.c:2291
 #, c-format
 msgid "Overwrite %s?"
 msgstr "Écraser %s ?"
 
-#: src/zmisc.c:2313
+#: src/zmisc.c:2296
 msgid "_Overwrite"
 msgstr "É_craser"
 
-#: src/zmisc.c:2321
+#: src/zmisc.c:2304
 #, c-format
 msgid "%s is a directory."
 msgstr "%s est un répertoire."
 
-#: src/zmisc.c:2336
+#: src/zmisc.c:2319
 #, c-format
 msgid "%s is a special file"
 msgstr "%s est un fichier spécial"
 
-#: src/zmisc.c:2340
+#: src/zmisc.c:2323
 msgid "Continue"
 msgstr "Continuer"
 
-#: src/zmisc.c:2617
+#: src/zmisc.c:2600
 msgid "Could not open help file"
 msgstr "Ne peut ouvrir le fichier d'aide"
 
-#: src/zmisc.c:2649
+#: src/zmisc.c:2632
 msgid "Could not open URL"
 msgstr "Ne peut ouvrir l'URL"
 
-#: src/zvbi.c:300
+#: src/zvbi.c:304
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s : Page Télétexte %x"
 
-#: src/zvbi.c:303
+#: src/zvbi.c:307
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Page Télétexte %x"
 
-#: src/zvbi.c:304
+#: src/zvbi.c:308
 msgid "Open this page with Zapzilla"
 msgstr "Ouvrir cette page avec Zapzilla"
 
-#: src/zvbi.c:863
+#: src/zvbi.c:867
 msgid "VBI interface timeout"
 msgstr "Pause de l'interface VBI"
 
-#: src/zvbi.c:886
+#: src/zvbi.c:890
 msgid "VBI interface: Failed to read from the device"
 msgstr "Interface VBI : Échec de la lecture à partir du périphérique"
 
-#: src/zvbi.c:1157
+#: src/zvbi.c:1161
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
@@ -2605,11 +2601,11 @@ msgstr ""
 "L'initialisation du VBI à échouée.\n"
 "%s"
 
-#: src/zvbi.c:1158
+#: src/zvbi.c:1162
 msgid "Ran out of memory."
 msgstr "Plus de mémoire"
 
-#: src/zvbi.c:1261
+#: src/zvbi.c:1264
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -2625,7 +2621,7 @@ msgstr ""
 "et créez /dev/vbi0 . Si ceci ne marche pas, vous pouvez déactiver le VBI "
 "dans Paramètres/Préférences/options VBI/Activer le décodage VBI."
 
-#: src/zvbi.c:1370
+#: src/zvbi.c:1371
 msgid "Out of resources to start a new thread."
 msgstr "Plus de ressource pour créer un nouveau thread"
 
