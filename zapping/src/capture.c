@@ -233,7 +233,7 @@ startup_capture(GtkWidget * widget)
 }
 
 static void
-shutdown_xv(void)
+shutdown_xv(tveng_device_info * info)
 {
 #ifdef USE_XV
   if (xvimage)
@@ -241,14 +241,17 @@ shutdown_xv(void)
   xvimage = NULL;
 
   if (have_xv)
-    XvUngrabPort(GDK_DISPLAY(), xvport, CurrentTime);
+    {
+      XvUngrabPort(GDK_DISPLAY(), xvport, CurrentTime);
+      tveng_unset_xv_port(info);
+    }
 #endif
 }
 
 void
-shutdown_capture(void)
+shutdown_capture(tveng_device_info * info)
 {
-  shutdown_xv();
+  shutdown_xv(info);
 
   if (gdkimage)
     gdk_image_destroy(gdkimage);
@@ -363,6 +366,12 @@ capture_start(GtkWidget * window, tveng_device_info *info)
       g_warning("Couldn't start capturing: %s", info->error);
       return -1;
     }
+
+#ifdef USE_XV
+  /* Add the necessary Xvport controls to the TVeng device */
+  tveng_set_xv_port(xvport, info);
+#endif
+
   /* Capture started correctly */
   return 0;
 }

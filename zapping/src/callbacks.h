@@ -86,21 +86,6 @@ void
 on_controls_clicked                    (GtkButton       *button,
                                         gpointer         user_data);
 
-void
-on_control_slider_changed              (GtkAdjustment *adjust,
-					gpointer user_data);
-
-void
-on_control_checkbutton_toggled         (GtkToggleButton *tb,
-					gpointer user_data);
-
-void
-on_control_menuitem_activate           (GtkMenuItem *menuitem,
-					gpointer user_data);
-
-void
-on_control_button_clicked              (GtkButton *button,
-					gpointer user_data);
 
 gboolean
 on_control_box_delete_event            (GtkWidget      *widget,

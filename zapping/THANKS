@@ -2,6 +2,7 @@ Thanks are due to the following people for helping with the program:
 
 - Christian Marillat: French translation
 - Edgar Toerning: AleVT, permission to use a derivative (libvbi) into Z.
+- Michael Schimek: Help with mp1e, vbi_decoder.c, de.po.
 - Sergey Nikulin: Russian translation and cyrillic TTX glyphs.
 - Eugene Crosser: Russian freq table.
 

@@ -185,22 +185,23 @@ void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
     }
 }
 
-/* Prototype this functions to avoid compiler warnings, but they
-   shouldn't be externally accesible */
-GtkWidget * create_slider(struct tveng_control * qc,
-			  int index,
-			  tveng_device_info * info);
-GtkWidget * create_checkbutton(struct tveng_control * qc,
-			       int index,
-			       tveng_device_info * info);
-GtkWidget * create_menu(struct tveng_control * qc,
-			int index,
-			tveng_device_info * info);
-GtkWidget * create_button(struct tveng_control * qc,
-			  int index,
-			  tveng_device_info * info);
+static void
+on_control_slider_changed              (GtkAdjustment *adjust,
+					gpointer user_data)
+{
+  /* Control id */
+  gint cid = GPOINTER_TO_INT (user_data);
+  tveng_device_info * info =
+    (tveng_device_info*)gtk_object_get_data(GTK_OBJECT(adjust), "info");
 
-/* helper function for create_control_box */
+  g_assert(info != NULL);
+  g_assert(cid < info -> num_controls);
+
+  tveng_set_control(&(info->controls[cid]), (int)adjust->value,
+		    info);
+}
+
+static
 GtkWidget * create_slider(struct tveng_control * qc,
 			  int index,
 			  tveng_device_info * info)
@@ -221,7 +222,7 @@ GtkWidget * create_slider(struct tveng_control * qc,
   adj = gtk_adjustment_new(cur_value, qc->min, qc->max, 1, 10,
 			   10);
 
-  gtk_object_set_data(adj, "info", (gpointer) info);
+  gtk_object_set_data(GTK_OBJECT(adj), "info", (gpointer) info);
 
   gtk_signal_connect(adj, "value-changed", 
 		     GTK_SIGNAL_FUNC(on_control_slider_changed),
@@ -238,7 +239,24 @@ GtkWidget * create_slider(struct tveng_control * qc,
   return (vbox);
 }
 
+static void
+on_control_checkbutton_toggled         (GtkToggleButton *tb,
+					gpointer user_data)
+{
+  gint cid = GPOINTER_TO_INT (user_data);
+  tveng_device_info * info =
+    (tveng_device_info*)gtk_object_get_data(GTK_OBJECT(tb), "info");
+
+  g_assert(info != NULL);
+  g_assert(cid < info -> num_controls);
+
+  tveng_set_control(&(info-> controls[cid]),
+		    gtk_toggle_button_get_active(tb),
+		    info);
+}
+
 /* helper function for create_control_box */
+static
 GtkWidget * create_checkbutton(struct tveng_control * qc,
 			       int index,
 			       tveng_device_info * info)
@@ -249,16 +267,34 @@ GtkWidget * create_checkbutton(struct tveng_control * qc,
   cur_value = qc->cur_value;
 
   cb = gtk_check_button_new_with_label(_(qc->name));
-  gtk_object_set_data(GTK_OBJECT(cb), "info", info);
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(cb), cur_value);
 
+  gtk_object_set_data(GTK_OBJECT(cb), "info", (gpointer) info);
   gtk_signal_connect(GTK_OBJECT(cb), "toggled",
 		     GTK_SIGNAL_FUNC(on_control_checkbutton_toggled),
 		     GINT_TO_POINTER(index));
   return cb;
 }
 
+static void
+on_control_menuitem_activate           (GtkMenuItem *menuitem,
+					gpointer user_data)
+{
+  gint cid = GPOINTER_TO_INT (user_data);
+
+  int value = (int) gtk_object_get_data(GTK_OBJECT(menuitem),
+					"value");
+  tveng_device_info * info =
+    (tveng_device_info*)gtk_object_get_data(GTK_OBJECT(menuitem), "info");
+
+  g_assert(info != NULL);
+  g_assert(cid < info -> num_controls);
+
+  tveng_set_control(&(info -> controls[cid]), value, info);
+}
+
 /* helper function for create_control_box */
+static
 GtkWidget * create_menu(struct tveng_control * qc,
 			int index,
 			tveng_device_info * info)
@@ -308,7 +344,22 @@ GtkWidget * create_menu(struct tveng_control * qc,
   return vbox;
 }
 
+static void
+on_control_button_clicked              (GtkButton *button,
+					gpointer user_data)
+{
+  gint cid = GPOINTER_TO_INT (user_data);
+  tveng_device_info * info =
+    (tveng_device_info*)gtk_object_get_data(GTK_OBJECT(button), "info");
+
+  g_assert(info != NULL);
+  g_assert(cid < info -> num_controls);
+
+  tveng_set_control(&(info->controls[cid]), 1, info);
+}
+
 /* helper function for create_control_box */
+static
 GtkWidget * create_button(struct tveng_control * qc,
 			  int index,
 			  tveng_device_info * info)
@@ -318,12 +369,62 @@ GtkWidget * create_button(struct tveng_control * qc,
   button = gtk_button_new_with_label(_(qc->name));
 
   gtk_object_set_data(GTK_OBJECT(button), "info", (gpointer) info);
-
   gtk_signal_connect(GTK_OBJECT(button), "clicked",
 		     GTK_SIGNAL_FUNC(on_control_button_clicked),
 		     GINT_TO_POINTER(index));
 
   return button;
+}
+
+static void
+on_color_set		       (GnomeColorPicker *colorpicker,
+				guint arg1,
+				guint arg2,
+				guint arg3,
+				guint arg4,
+				gpointer user_data)
+{
+  gint cid = GPOINTER_TO_INT (user_data);
+  gint color = ((arg1>>8)<<16)+((arg2>>8)<<8)+(arg3>>8);
+  tveng_device_info * info =
+    (tveng_device_info*)gtk_object_get_data(GTK_OBJECT(colorpicker), "info");
+
+  g_assert(info != NULL);
+  g_assert(cid < info -> num_controls);
+
+  tveng_set_control(&(info->controls[cid]), color, info);
+}
+
+static
+GtkWidget * create_color_picker(struct tveng_control * qc,
+				int index,
+				tveng_device_info * info)
+{
+  GnomeColorPicker * color_picker =
+    GNOME_COLOR_PICKER(gnome_color_picker_new());
+  gchar * buffer = g_strdup_printf(_("Adjust %s"), qc->name);
+  GtkWidget * label = gtk_label_new(_(qc->name));
+  GtkWidget * hbox = gtk_hbox_new(TRUE, 10);
+
+  gnome_color_picker_set_use_alpha(color_picker, FALSE);
+  gnome_color_picker_set_i8(color_picker,
+			    (qc->cur_value&0xff0000)>>16,
+			    (qc->cur_value&0xff00)>>8,
+			    (qc->cur_value&0xff), 0);
+  gnome_color_picker_set_title(color_picker, buffer);
+  gtk_object_set_data(GTK_OBJECT(color_picker), "info", (gpointer) info);
+  g_free(buffer);
+
+  gtk_widget_show(label);
+  gtk_widget_show(GTK_WIDGET(color_picker));
+  gtk_box_pack_start_defaults(GTK_BOX (hbox), label);
+  gtk_box_pack_end_defaults(GTK_BOX (hbox), GTK_WIDGET(color_picker));
+
+  gtk_signal_connect(GTK_OBJECT(color_picker), "color-set",
+		     GTK_SIGNAL_FUNC(on_color_set),
+		     GINT_TO_POINTER(index));
+
+  return hbox;
 }
 
 static void
@@ -360,6 +461,9 @@ build_control_box(GtkWidget * vbox, tveng_device_info * info)
 	  break;
 	case TVENG_CONTROL_BUTTON:
 	  control_added = create_button(control, i, info);
+	  break;
+	case TVENG_CONTROL_COLOR:
+	  control_added = create_color_picker(control, i, info);
 	  break;
 	default:
 	  control_added = NULL; /* for sanity purpouses */

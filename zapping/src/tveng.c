@@ -103,6 +103,11 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp,
 
   new_object->private->zapping_setup_fb_verbosity = 0; /* No output by
 							  default */
+#ifdef USE_XV
+  new_object->private->port = None;
+  new_object->private->filter = None;
+  new_object->private->colorkey = None;
+#endif
 
   new_object->current_controller = TVENG_CONTROLLER_NONE;
 
@@ -157,7 +162,8 @@ int tveng_attach_device(const char* device_file,
   /*
     Check that the current private->display depth is one of the supported ones
   */
-  switch (tveng_get_display_depth(info))
+  info->private->current_bpp = tveng_get_display_depth(info);
+  switch (info->private->current_bpp)
     {
     case 15:
     case 16:
@@ -558,8 +564,70 @@ tveng_set_capture_format(tveng_device_info * info)
 int
 tveng_update_controls(tveng_device_info * info)
 {
+  struct tveng_control * control;
+  int i;
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  /* Update the controls we maintain */
+  for (i=0; i<info->num_controls; i++)
+    {
+      control = &(info->controls[i]);
+      if (control->controller != TVENG_CONTROLLER_MOTHER)
+	continue; /* not created by us */
+#ifdef USE_XV
+      if ((control->id == (int)info->private->filter) &&
+	  (info->private->port != None))
+	{
+	  XvGetPortAttribute(info->private->display,
+			     info->private->port,
+			     info->private->filter,
+			     &(info->controls[i].cur_value));
+	  return 0;
+	}      
+      else if ((control->id == (int)info->private->colorkey) &&
+	       (info->private->port != None))
+	{
+	  int r,g,b, val;
+	  int rm=0xff, gm=0xff, bm=0xff, rs=16, gs=8, bs=0; /* masks, shifts */
+	  XvGetPortAttribute(info->private->display,
+			     info->private->port,
+			     info->private->colorkey,
+			     &(val));
+	  /* Adjust colorkey to the current pixformat */
+	  switch (info->private->current_bpp)
+	    {
+	    case 15:
+	      rm = gm = bm = 0xf8;
+	      rs = 7; gs = 2; bs = -3;
+	      break;
+	    case 16:
+	      rm = bm = 0xf8; gm = 0xfc;
+	      rs = 8; gs = 3; bs = -3;
+	      break;
+	    default:
+	      break;
+	    }
+	  if (rs > 0)
+	    r = val >> rs;
+	  else
+	    r = val << -rs;
+	  r &= rm;
+	  if (gs > 0)
+	    g = val >> gs;
+	  else
+	    g = val << -gs;
+	  g &= gm;
+	  if (bs > 0)
+	    b = val >> bs;
+	  else
+	    b = val << -bs;
+	  b &= bm;
+	  info->controls[i].cur_value = (r<<16)+(g<<8)+b;
+	  return 0;
+	}
+#endif
+    }
 
   if (info->private->module.update_controls)
     return info->private->module.update_controls(info);
@@ -583,9 +651,71 @@ tveng_set_control(struct tveng_control * control, int value,
   t_assert(control != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  if (info->private->module.set_control)
+  if (control->controller == TVENG_CONTROLLER_MOTHER)
+    {
+#ifdef USE_XV
+      if ((control->id == (int)info->private->filter) &&
+	  (info->private->port != None))
+	{
+	  XvSetPortAttribute(info->private->display,
+			     info->private->port,
+			     info->private->filter,
+			     value);
+	  return 0;
+	}
+      else if ((control->id == (int)info->private->colorkey) &&
+	       (info->private->port != None))
+	{
+	  int r, g, b;
+	  int rm=0xff, gm=0xff, bm=0xff, rs=16, gs=8, bs=0; /* masks, shifts */
+	  /* Adjust colorkey to the current pixformat */
+	  switch (info->private->current_bpp)
+	    {
+	    case 15:
+	      rm = gm = bm = 0xf8;
+	      rs = 7; gs = 2; bs = -3;
+	      break;
+	    case 16:
+	      rm = bm = 0xf8; gm = 0xfc;
+	      rs = 8; gs = 3; bs = -3;
+	      break;
+	    default:
+	      break;
+	    }
+	  r = (value>>16)&rm;
+	  if (rs > 0)
+	    r <<= rs;
+	  else
+	    r >>= -rs;
+	  g = (value>>8)&gm;
+	  if (gs > 0)
+	    g <<= gs;
+	  else
+	    g >>= -gs;
+	  b = value&bm;
+	  if (bs > 0)
+	    b <<= bs;
+	  else
+	    b >>= -bs;
+	  value = r+g+b;
+	  XvSetPortAttribute(info->private->display,
+			     info->private->port,
+			     info->private->colorkey,
+			     value);
+	  return 0;
+	}
+      else
+#endif
+	{
+	  info->tveng_errno = -1;
+	  t_error_msg("check",
+		      "Unknown control given: %d", info, control->id);
+	  return -1;
+	}
+    }
+  else if (info->private->module.set_control)
     return info->private->module.set_control(control, value, info);
-
+  
   /* function not supported by the module */
   info->tveng_errno = -1;
   t_error_msg("module",
@@ -1667,3 +1797,67 @@ void tveng_set_debug_level(tveng_device_info * info, int level)
 
   info->debug_level = level;
 }
+
+#ifdef USE_XV
+void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
+{
+  XvAttribute *at;
+  int attributes, i;
+  Display *dpy;
+  struct tveng_control control;
+
+  info->private->port = port;
+  dpy = info->private->display;
+  info->private->filter = info->private->colorkey = None;
+
+  /* Add the controls in this port to the struct of controls */
+  at = XvQueryPortAttributes(dpy, port, &attributes);
+  for (i=0; i<attributes; i++)
+    {
+      if (info->debug_level)
+	fprintf(stderr, "  TVeng.c Xv atom: %s%s%s (%i -> %i)\n",
+		at[i].name,
+		(at[i].flags & XvGettable) ? " gettable" : "",
+		(at[i].flags & XvSettable) ? " settable" : "",
+		at[i].min_value, at[i].max_value);
+
+      if (!strcmp("XV_FILTER", at[i].name))
+	  {
+	    info->private->filter = XInternAtom(dpy, "XV_FILTER",
+						False);
+	    control.id = (int)info->private->filter;
+	    snprintf(control.name, 32, _("Filter"));
+	    control.min = at[i].min_value;
+	    control.max = at[i].max_value;
+	    control.type = TVENG_CONTROL_CHECKBOX;
+	    control.data = NULL;
+	    control.controller = TVENG_CONTROLLER_MOTHER;
+	    if (p_tveng_append_control(&control, info) == -1)
+	      return;
+	  }
+
+      if (!strcmp("XV_COLORKEY", at[i].name))
+	  {
+	    info->private->colorkey = XInternAtom(dpy, "XV_COLORKEY",
+						False);
+	    control.id = (int)info->private->colorkey;
+	    snprintf(control.name, 32, _("Colorkey"));
+	    control.min = at[i].min_value;
+	    control.max = at[i].max_value;
+	    control.type = TVENG_CONTROL_COLOR;
+	    control.data = NULL;
+	    control.controller = TVENG_CONTROLLER_MOTHER;
+	    if (p_tveng_append_control(&control, info) == -1)
+	      return;
+	  }
+    }
+
+  tveng_update_controls(info);
+}
+
+void tveng_unset_xv_port(tveng_device_info * info)
+{
+  info->private->port = None;
+  info->private->filter = info->private->colorkey = None;
+}
+#endif

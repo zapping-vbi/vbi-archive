@@ -247,7 +247,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.67 2000-11-30 21:47:32 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.68 2000-12-02 19:47:06 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -647,10 +647,6 @@ static void shutdown_zapping(void)
 	      "     Zapping. Please contact the author.\n"
 	      ), GNOME_MESSAGE_BOX_ERROR);
 
-  /* Mute the device again and close */
-  tveng_set_mute(1, main_info);
-  tveng_device_info_destroy(main_info);
-
   /*
    * Tell the overlay engine to shut down and to do a cleanup if necessary
    */
@@ -658,7 +654,11 @@ static void shutdown_zapping(void)
   /*
    * Shuts down the capture engine
    */
-  shutdown_capture();
+  shutdown_capture(main_info);
+
+  /* Mute the device again and close */
+  tveng_set_mute(1, main_info);
+  tveng_device_info_destroy(main_info);
 }
 
 static gboolean startup_zapping()

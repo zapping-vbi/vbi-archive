@@ -295,57 +295,6 @@ on_controls_clicked                    (GtkButton       *button,
   gtk_widget_show(ToolBox);
 }
 
-void
-on_control_slider_changed              (GtkAdjustment *adjust,
-					gpointer user_data)
-{
-  /* Control id */
-  gint cid = GPOINTER_TO_INT (user_data);
-
-  g_assert(cid < main_info -> num_controls);
-
-  tveng_set_control(&(main_info->controls[cid]), (int)adjust->value,
-		    main_info);
-}
-
-void
-on_control_checkbutton_toggled         (GtkToggleButton *tb,
-					gpointer user_data)
-{
-  gint cid = GPOINTER_TO_INT (user_data);
-
-  g_assert(cid < main_info -> num_controls);
-
-  tveng_set_control(&(main_info-> controls[cid]),
-		    gtk_toggle_button_get_active(tb),
-		    main_info);
-}
-
-void
-on_control_menuitem_activate           (GtkMenuItem *menuitem,
-					gpointer user_data)
-{
-  gint cid = GPOINTER_TO_INT (user_data);
-
-  int value = (int) gtk_object_get_data(GTK_OBJECT(menuitem),
-					"value");
-
-  g_assert(cid < main_info -> num_controls);
-
-  tveng_set_control(&(main_info -> controls[cid]), value, main_info);
-}
-
-void
-on_control_button_clicked              (GtkButton *button,
-					gpointer user_data)
-{
-  gint cid = GPOINTER_TO_INT (user_data);
-
-  g_assert(cid < main_info -> num_controls);
-
-  tveng_set_control(&(main_info->controls[cid]), 1, main_info);
-}
-
 gboolean
 on_control_box_delete_event            (GtkWidget      *widget,
 					GdkEvent       *event,

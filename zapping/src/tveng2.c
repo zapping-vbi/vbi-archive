@@ -304,7 +304,7 @@ int tveng2_attach_device(const char* device_file,
       return -1;
 
   /* Set up the palette according to the one present in the system */
-  error = tveng_get_display_depth(info);
+  error = info->private->current_bpp;
 
   if (error == -1)
     {
@@ -851,40 +851,43 @@ tveng2_set_capture_format(tveng_device_info * info)
   return 0; /* Success */
 }
 
-/* private, add a control to the control structure, -1 means ENOMEM */
-static int
-p_tveng2_append_control(struct tveng_control * new_control, 
-			tveng_device_info * info);
-
-static int
-p_tveng2_append_control(struct tveng_control * new_control, 
-			tveng_device_info * info)
-{
-  struct tveng_control * new_pointer = (struct tveng_control*)
-    realloc(info->controls, (info->num_controls+1)*
-	    sizeof(struct tveng_control));
-
-  t_assert(info != NULL);
-
-  if (!new_pointer)
-    {
-      info->tveng_errno = errno;
-      t_error("realloc", info);
-      return -1;
-    }
-  info->controls = new_pointer;
-
-  memcpy(&info->controls[info->num_controls], new_control, sizeof(struct
-							   tveng_control));
-  info->num_controls++;
-  return 0;
-}
-
 /* To aid i18n, possible label isn't actually used */
 struct p_tveng2_control_with_i18n
 {
   __u32 cid;
   char * possible_label;
+};
+
+/* This shouldn't be neccessary is control querying worked properly */
+/* FIXME: add audio subchannels selecting controls */
+static struct p_tveng2_control_with_i18n cids[] =
+{
+  {V4L2_CID_BRIGHTNESS, N_("Brightness")},
+  {V4L2_CID_CONTRAST, N_("Contrast")},
+  {V4L2_CID_SATURATION, N_("Saturation")},
+  {V4L2_CID_HUE, N_("Hue")},
+  {V4L2_CID_WHITENESS, N_("Whiteness")},
+  {V4L2_CID_BLACK_LEVEL, N_("Black level")},
+  {V4L2_CID_AUTO_WHITE_BALANCE, N_("White balance")},
+  {V4L2_CID_DO_WHITE_BALANCE, N_("Do white balance")},
+  {V4L2_CID_RED_BALANCE, N_("Red balance")},
+  {V4L2_CID_BLUE_BALANCE, N_("Blue balance")},
+  {V4L2_CID_GAMMA, N_("Gamma")},
+  {V4L2_CID_EXPOSURE, N_("Exposure")},
+  {V4L2_CID_AUTOGAIN, N_("Auto gain")},
+  {V4L2_CID_GAIN, N_("Gain")},
+  {V4L2_CID_HCENTER, N_("HCenter")},
+  {V4L2_CID_VCENTER, N_("VCenter")},
+  {V4L2_CID_HFLIP, N_("Horizontal flipping")},
+  {V4L2_CID_VFLIP, N_("Vertical flipping")},
+  {V4L2_CID_AUDIO_VOLUME, N_("Volume")},
+  {V4L2_CID_AUDIO_MUTE, N_("Mute")},
+  {V4L2_CID_AUDIO_MUTE, N_("Audio Mute")},
+  {V4L2_CID_AUDIO_BALANCE, N_("Balance")},
+  {V4L2_CID_AUDIO_BALANCE, N_("Audio Balance")},
+  {V4L2_CID_AUDIO_TREBLE, N_("Treble")},
+  {V4L2_CID_AUDIO_LOUDNESS, N_("Loudness")},
+  {V4L2_CID_AUDIO_BASS, N_("Bass")}
 };
 
 /* Private, builds the controls structure */
@@ -897,38 +900,6 @@ p_tveng2_build_controls(tveng_device_info * info)
   int i;
   int j;
   int p;
-
-  /* This shouldn't be neccessary is control querying worked properly */
-  /* FIXME: add audio subchannels selecting controls */
-  struct p_tveng2_control_with_i18n cids[] =
-  {
-    {V4L2_CID_BRIGHTNESS, N_("Brightness")},
-    {V4L2_CID_CONTRAST, N_("Contrast")},
-    {V4L2_CID_SATURATION, N_("Saturation")},
-    {V4L2_CID_HUE, N_("Hue")},
-    {V4L2_CID_WHITENESS, N_("Whiteness")},
-    {V4L2_CID_BLACK_LEVEL, N_("Black level")},
-    {V4L2_CID_AUTO_WHITE_BALANCE, N_("White balance")},
-    {V4L2_CID_DO_WHITE_BALANCE, N_("Do white balance")},
-    {V4L2_CID_RED_BALANCE, N_("Red balance")},
-    {V4L2_CID_BLUE_BALANCE, N_("Blue balance")},
-    {V4L2_CID_GAMMA, N_("Gamma")},
-    {V4L2_CID_EXPOSURE, N_("Exposure")},
-    {V4L2_CID_AUTOGAIN, N_("Auto gain")},
-    {V4L2_CID_GAIN, N_("Gain")},
-    {V4L2_CID_HCENTER, N_("HCenter")},
-    {V4L2_CID_VCENTER, N_("VCenter")},
-    {V4L2_CID_HFLIP, N_("Horizontal flipping")},
-    {V4L2_CID_VFLIP, N_("Vertical flipping")},
-    {V4L2_CID_AUDIO_VOLUME, N_("Volume")},
-    {V4L2_CID_AUDIO_MUTE, N_("Mute")},
-    {V4L2_CID_AUDIO_MUTE, N_("Audio Mute")},
-    {V4L2_CID_AUDIO_BALANCE, N_("Balance")},
-    {V4L2_CID_AUDIO_BALANCE, N_("Audio Balance")},
-    {V4L2_CID_AUDIO_TREBLE, N_("Treble")},
-    {V4L2_CID_AUDIO_LOUDNESS, N_("Loudness")},
-    {V4L2_CID_AUDIO_BASS, N_("Bass")}
-  };
 
   memset(&qc, 0, sizeof(struct v4l2_queryctrl));
   for (p = V4L2_CID_BASE; p < V4L2_CID_LASTP1; p++)
@@ -952,6 +923,7 @@ p_tveng2_build_controls(tveng_device_info * info)
 	  control.min = qc.minimum;
 	  control.max = qc.maximum;
 	  control.id = qc.id;
+	  control.controller = TVENG_CONTROLLER_V4L2;
 	  switch (qc.type)
 	    {
 	    case V4L2_CTRL_TYPE_INTEGER:
@@ -992,7 +964,7 @@ p_tveng2_build_controls(tveng_device_info * info)
 		      qc.type, qc.name);
 	      continue; /* Skip this one */
 	    }
-	  if (p_tveng2_append_control(&control, info) == -1)
+	  if (p_tveng_append_control(&control, info) == -1)
 	    return -1;
 	}
     }
@@ -1017,6 +989,8 @@ tveng2_update_controls(tveng_device_info * info)
   for (i=0; i<info->num_controls; i++)
     {
       c.id = info->controls[i].id;
+      if (info->controls[i].controller != TVENG_CONTROLLER_V4L2)
+	continue; /* somebody else created this control */
       if (ioctl(info->fd, VIDIOC_G_CTRL, &c))
 	{
 	  info->tveng_errno = errno;

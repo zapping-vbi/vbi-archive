@@ -38,7 +38,7 @@ startup_capture(GtkWidget * widget);
  * Releases the capture structs.
  */
 void
-shutdown_capture(void);
+shutdown_capture(tveng_device_info * info);
 
 /*
  * Starts capturing to the given widget, returns -1 on error

@@ -102,32 +102,32 @@ plugin_sample;
 gint plugin_get_protocol (void);
 gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr);
 
-static gboolean plugin_running ( void );
+static gboolean plugin_running ( void ) __attribute__ ((unused));
 static
 void plugin_get_info ( gchar ** canonical_name, gchar **
 		       descriptive_name, gchar ** description, gchar **
 		       short_description, gchar ** author, gchar **
-		       version );
+		       version ) __attribute__ ((unused)) ;
 static
-gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info );
-static void plugin_close( void );
-static gboolean plugin_start ( void );
-static void plugin_stop( void );
-static void plugin_load_config ( gchar * root_key );
-static void plugin_save_config ( gchar * root_key );
-static void plugin_process_sample( plugin_sample * sample );
+gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info ) __attribute__ ((unused)) ;
+static void plugin_close( void ) __attribute__ ((unused)) ;
+static gboolean plugin_start ( void ) __attribute__ ((unused)) ;
+static void plugin_stop( void ) __attribute__ ((unused)) ;
+static void plugin_load_config ( gchar * root_key ) __attribute__ ((unused)) ;
+static void plugin_save_config ( gchar * root_key ) __attribute__ ((unused)) ;
+static void plugin_process_sample( plugin_sample * sample ) __attribute__ ((unused)) ;
 static
 gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
 				 symbol, gchar ** description, gchar **
-				 type, gint * hash);
-static void plugin_add_properties ( GnomePropertyBox * gpb );
+				 type, gint * hash) __attribute__ ((unused)) ;
+static void plugin_add_properties ( GnomePropertyBox * gpb ) __attribute__ ((unused)) ;
 static
-gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page );
+gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page ) __attribute__ ((unused)) ;
 static
-gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page );
-static void plugin_add_gui ( GnomeApp * app );
-static void plugin_remove_gui ( GnomeApp * app );
-static struct plugin_misc_info * plugin_get_misc_info ( void );
+gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page ) __attribute__ ((unused)) ;
+static void plugin_add_gui ( GnomeApp * app ) __attribute__ ((unused)) ;
+static void plugin_remove_gui ( GnomeApp * app ) __attribute__ ((unused)) ;
+static struct plugin_misc_info * plugin_get_misc_info ( void ) __attribute__ ((unused)) ;
 
 /* This macro if for your convenience, it symplifies adding symbols */
 #define SYMBOL(symbol, hash) \

@@ -77,6 +77,7 @@ struct tveng_private {
   Display	*display;
   int		save_x, save_y;
   int		bpp;
+  int		current_bpp;
   char		*default_standard;
   struct tveng_module_info module;
 
@@ -88,7 +89,43 @@ struct tveng_private {
 
   int		zapping_setup_fb_verbosity;
   int		change_mode;
+
+  /* Controls managed directly by tveng.c */
+#ifdef USE_XV
+  XvPortID	port;
+  Atom filter;
+  Atom colorkey; /* colorkey doesn't have min, max, it's defined by
+		    RGB triplets */
+#endif
 };
+
+#ifdef USE_XV
+static int
+p_tveng_append_control(struct tveng_control * new_control, 
+		       tveng_device_info * info) __attribute__ ((unused));
+
+static int
+p_tveng_append_control(struct tveng_control * new_control, 
+		       tveng_device_info * info)
+{
+  struct tveng_control * new_pointer = (struct tveng_control*)
+    realloc(info->controls, (info->num_controls+1)*
+	    sizeof(struct tveng_control));
+
+  if (!new_pointer)
+    {
+      info->tveng_errno = errno;
+      t_error("realloc", info);
+      return -1;
+    }
+  info->controls = new_pointer;
+
+  memcpy(&info->controls[info->num_controls], new_control,
+	 sizeof(struct tveng_control));
+  info->num_controls++;
+  return 0;
+}
+#endif
 
 #ifndef MAX
 #define MAX(X, Y) (((X) < (Y)) ? (Y) : (X))

@@ -243,6 +243,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   int return_value = 0;
   gint x, y, w, h;
   enum tveng_frame_pixformat format;
+  gboolean muted;
 
   g_assert(info != NULL);
   g_assert(main_window != NULL);
@@ -254,6 +255,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
   gdk_window_get_size(tv_screen->window, &w, &h);
   gdk_window_get_origin(tv_screen->window, &x, &y);
+
+  muted = tveng_get_mute(info);
 
   /* Stop current capture mode */
   switch (info->current_mode)
@@ -363,6 +366,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   update_standards_menu(tv_screen, info);
   /* Updating the properties is not so useful, and it isn't so easy,
      since there might be multiple properties dialog open */
+  tveng_set_mute(muted, info);
 
   return return_value;
 }

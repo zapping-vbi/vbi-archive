@@ -759,7 +759,6 @@ static void * saver_thread(void * _data)
 				      conversion) */
   gint rowstride;
   gchar * pixels, *row_pointer = NULL;
-  gint number_of_passes;
   gboolean done_writing = FALSE;
 
   data -> lines = 0;

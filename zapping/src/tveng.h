@@ -40,6 +40,14 @@
 #include <linux/types.h>
 #include <errno.h>
 
+#ifndef DISABLE_X_EXTENSIONS
+#ifdef HAVE_LIBXV
+#ifndef USE_XV /* avoid redefinition */
+#define USE_XV 1
+#endif
+#endif
+#endif
+
 /* We need video extensions (DGA) */
 #include <X11/X.h>
 #include <X11/Xlib.h>
@@ -47,6 +55,10 @@
 #ifndef DISABLE_X_EXTENSIONS
 #include <X11/extensions/xf86dga.h>
 #include <X11/extensions/xf86vmode.h>
+#endif
+#ifdef USE_XV
+#include <X11/extensions/Xv.h>
+#include <X11/extensions/Xvlib.h>
 #endif
 
 /* i18n support if it hasn't been defined previously */
@@ -205,8 +217,20 @@ enum tveng_control_type{
   TVENG_CONTROL_CHECKBOX, /* Can only take boolean values */
   TVENG_CONTROL_MENU, /* The control is a menu with max options and
 			 labels listed in the data struct */
-  TVENG_CONTROL_BUTTON /* The control is a button (when assigned a value does
-		  something, regarless the value given to it) */
+  TVENG_CONTROL_BUTTON, /* The control is a button (when assigned a value does
+			   something, regarless the value given to it)
+			*/
+  TVENG_CONTROL_COLOR /* RGB color entry */
+};
+
+/* The controller we are using for this device */
+enum tveng_controller
+{
+  TVENG_CONTROLLER_NONE, /* No controller set */
+  TVENG_CONTROLLER_V4L1, /* V4L1 controller (old V4l spec) */
+  TVENG_CONTROLLER_V4L2, /* V4L2 controller (new v4l spec) */
+  TVENG_CONTROLLER_XV,	 /* XVideo controller */
+  TVENG_CONTROLLER_MOTHER /* The wrapper controller (tveng.c) */
 };
 
 /* info about a video control (could be image, sound, whatever) */
@@ -218,6 +242,7 @@ struct tveng_control{
   enum tveng_control_type type; /* The control type */
   char ** data; /* If this is a menu entry, pointer to a array of
 		   pointers to the labels, ended by a NULL pointer */
+  enum tveng_controller controller; /* controller owning this control */
 };
 
 enum tveng_capture_mode
@@ -226,15 +251,6 @@ enum tveng_capture_mode
   TVENG_CAPTURE_PREVIEW, /* Capture is through (fullscreen) previewing */
   TVENG_CAPTURE_WINDOW, /* Capture is through windowed overlays */
   TVENG_NO_CAPTURE /* Capture isn't active */
-};
-
-/* The controller we are using for this device */
-enum tveng_controller
-{
-  TVENG_CONTROLLER_NONE, /* No controller set */
-  TVENG_CONTROLLER_V4L1, /* V4L1 controller (old V4l spec) */
-  TVENG_CONTROLLER_V4L2, /* V4L2 controller (new v4l spec) */
-  TVENG_CONTROLLER_XV	 /* XVideo controller */
 };
 
 /* The structure used to hold info about a video_device */
@@ -683,6 +699,13 @@ int tveng_get_debug_level(tveng_device_info * info);
 
 /* set the debug level. The value will be clipped to valid values */
 void tveng_set_debug_level(tveng_device_info * info, int level);
+
+#ifdef USE_XV
+/* Add special XV controls to the device */
+void tveng_set_xv_port(XvPortID port, tveng_device_info * info);
+/* Tell that the given XV port isn't valid any more */
+void tveng_unset_xv_port(tveng_device_info *info);
+#endif
 
 /* Sanity checks should use this */
 #define t_assert(condition) if (!(condition)) { \

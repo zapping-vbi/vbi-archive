@@ -1,3 +1,13 @@
+2.12.2000	Multi-controller controls <garetxe@users.sourceforge.net>
+
+	* src/tveng.c: Filter and Colorkey controls are now managed by the
+	"mother" controller.
+	* src/tveng.h: Mother controller added, COLOR control type added,
+	controllers now know who do they belong to.
+	* src/v4linterface.c: Added GUI item for COLOR controls, cleanup.
+	* src/tvengxv.c: removed filter control, now managed by the mother
+	controller.
+
 30.11.2000	Bug fixes <garetxe@users.sourceforge.net>
 
 	* all: some code cleanups, wrong assumptions removed.
