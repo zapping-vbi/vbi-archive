@@ -1,92 +1,57 @@
 /*
- *  Zapping (TV viewer for the Gnome Desktop)
+ *  Zapping TV viewer
  *
- * Copyright (C) 2001 Iñaki García Etxebarria
- * Copyright (C) 2003 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002 Iñaki García Etxebarria
+ *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.1 2004-09-22 21:29:07 mschimek Exp $ */
+/* $Id: export.c,v 1.2 2004-11-03 06:45:15 mschimek Exp $ */
 
-#ifdef ENABLE_NLS
-#  include <libintl.h>
-#endif
+#include "config.h"
 
 #define ZCONF_DOMAIN "/zapping/ttxview/"
-#include "zconf.h"
-#include "zmisc.h"
-
+#include "src/zconf.h"
+#include "src/zmisc.h"
 #include "export.h"
 
-static GObjectClass *parent_class;
-
-/* Libzvbi returns static strings which must be localized using
-   the zvbi domain. Stupid. Fix planned for next version. */
-static gchar *
-localize			(const gchar *		s)
-{
-  const gchar *buffer;
-
-#ifdef ENABLE_NLS
-  buffer = dgettext ("zvbi", s);
-#else
-  buffer = s;
-#endif
-
-  /* must g_free! */
-  return g_locale_to_utf8 (buffer, NUL_TERMINATED, NULL, NULL, NULL);
-}
-
+static GObjectClass *		parent_class;
 
 /* Zconf name for the given export option, must be g_free()ed. */
 static gchar *
-xo_zconf_name			(vbi_export *		e,
-				 vbi_option_info *	oi)
+xo_zconf_name			(const vbi3_export *	e,
+				 const vbi3_option_info *oi)
 {
-  vbi_export_info *xi = vbi_export_info_export (e);
+  const vbi3_export_info *xi;
 
+  xi = vbi3_export_info_from_export (e);
   g_assert (xi != NULL);
 
   return g_strdup_printf ("/zapping/options/export/%s/%s",
 			  xi->keyword, oi->keyword);
 }
 
-static void
-set_tooltip			(GtkWidget *		widget,
-				 vbi_option_info *	oi)
-{
-  gchar *buffer;
-
-  buffer = localize (oi->tooltip);
-  z_tooltip_set (widget, buffer);
-  g_free (buffer);
-}
-
 static GtkWidget *
-label_new			(vbi_option_info *	oi)
+label_new			(const vbi3_option_info *oi)
 {
   GtkWidget *label;
   GtkMisc *misc;
-  gchar *buffer1;
   gchar *buffer2;
 
-  /* XXX */
-  buffer1 = localize (oi->label);
-  buffer2 = g_strconcat (buffer1, ":", NULL);
-  g_free (buffer1);
+  buffer2 = g_strconcat (oi->label, ":", NULL);
   label = gtk_label_new (buffer2);
   g_free (buffer2);
 
@@ -99,17 +64,17 @@ label_new			(vbi_option_info *	oi)
 
 static void
 on_control_changed		(GtkWidget *		widget,
-				 vbi_export *		e)
+				 vbi3_export *		e)
 {
   gchar *keyword;
-  vbi_option_info *oi;
-  vbi_option_value val;
+  const vbi3_option_info *oi;
+  vbi3_option_value val;
   gchar *zcname;
 
   g_assert (e != NULL);
 
   keyword = (gchar *) g_object_get_data (G_OBJECT (widget), "key");
-  oi = vbi_export_option_info_keyword (e, keyword);
+  oi = vbi3_export_option_info_by_keyword (e, keyword);
 
   g_assert (oi != NULL);
 
@@ -118,38 +83,38 @@ on_control_changed		(GtkWidget *		widget,
   if (oi->menu.str)
     {
       val.num = (gint) g_object_get_data (G_OBJECT (widget), "index");
-      vbi_export_option_menu_set (e, keyword, val.num);
+      vbi3_export_option_menu_set (e, keyword, val.num);
     }
   else
     {
       switch (oi->type)
 	{
-	case VBI_OPTION_BOOL:
+	case VBI3_OPTION_BOOL:
 	  val.num = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
-	  if (vbi_export_option_set (e, keyword, val))
+	  if (vbi3_export_option_set (e, keyword, val))
 	    zconf_set_boolean (val.num, zcname);
 	  break;
 
-	case VBI_OPTION_INT:
+	case VBI3_OPTION_INT:
 	  val.num = (int) GTK_ADJUSTMENT (widget)->value;
-	  if (vbi_export_option_set (e, keyword, val))
+	  if (vbi3_export_option_set (e, keyword, val))
 	    zconf_set_int (val.num, zcname);
 	  break;
 
-	case VBI_OPTION_REAL:
+	case VBI3_OPTION_REAL:
 	  val.dbl = GTK_ADJUSTMENT (widget)->value;
-	  if (vbi_export_option_set (e, keyword, val))
+	  if (vbi3_export_option_set (e, keyword, val))
 	    zconf_set_float (val.dbl, zcname);
 	  break;
 
-	case VBI_OPTION_STRING:
+	case VBI3_OPTION_STRING:
 	  val.str = (gchar * ) gtk_entry_get_text (GTK_ENTRY (widget));
-	  if (vbi_export_option_set (e, keyword, val))
+	  if (vbi3_export_option_set (e, keyword, val))
 	    zconf_set_string (val.str, zcname);
 	  break;
 
 	default:
-	  g_warning ("Unknown export option type %d in %s",
+	  g_warning ("Unknown export option type %d in %s\n",
 		     oi->type, __PRETTY_FUNCTION__);
 	  break;
 	}
@@ -160,9 +125,9 @@ on_control_changed		(GtkWidget *		widget,
 
 static void
 create_menu			(GtkWidget *		table,
-				 vbi_option_info *	oi,
+				 const vbi3_option_info *oi,
 				 unsigned int		index,
-				 vbi_export *		e)
+				 vbi3_export *		e)
 {
   GtkWidget *option_menu;
   GtkWidget *menu;
@@ -179,36 +144,31 @@ create_menu			(GtkWidget *		table,
   for (i = 0; i <= (unsigned int) oi->max.num; ++i)
     {
       gchar buf[32];
-      gchar *buffer;
       GtkWidget *menu_item;
 
       switch (oi->type)
 	{
-	case VBI_OPTION_BOOL:
-	case VBI_OPTION_INT:
+	case VBI3_OPTION_BOOL:
+	case VBI3_OPTION_INT:
 	  g_snprintf (buf, sizeof (buf), "%d", oi->menu.num[i]);
 	  menu_item = gtk_menu_item_new_with_label (buf);
 	  break;
 
-	case VBI_OPTION_REAL:
+	case VBI3_OPTION_REAL:
 	  g_snprintf (buf, sizeof (buf), "%f", oi->menu.dbl[i]);
 	  menu_item = gtk_menu_item_new_with_label (buf);
 	  break;
 
-	case VBI_OPTION_STRING:
-	  /* XXX encoding? */
+	case VBI3_OPTION_STRING:
 	  menu_item = gtk_menu_item_new_with_label (oi->menu.str[i]);
 	  break;
 
-	case VBI_OPTION_MENU:
-	  /* XXX */
-	  buffer = localize (oi->menu.str[i]);
-	  menu_item = gtk_menu_item_new_with_label (buffer);
-	  g_free (buffer);
+	case VBI3_OPTION_MENU:
+	  menu_item = gtk_menu_item_new_with_label (oi->menu.str[i]);
 	  break;
 
 	default:
-	  g_warning ("Unknown export option type %d in %s",
+	  g_warning ("Unknown export option type %d in %s\n",
 		     oi->type, __PRETTY_FUNCTION__);
 	  continue;
 	}
@@ -228,7 +188,7 @@ create_menu			(GtkWidget *		table,
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
   zconf_create_int (oi->def.num, oi->tooltip, zcname);
   gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu), saved);
-  set_tooltip (option_menu, oi);
+  z_tooltip_set (option_menu, oi->tooltip);
 
   g_free (zcname);
 
@@ -245,24 +205,20 @@ create_menu			(GtkWidget *		table,
 
 static void
 create_checkbutton		(GtkWidget *		table,
-				 vbi_option_info *	oi,
+				 const vbi3_option_info *oi,
 				 unsigned int		index,
-				 vbi_export *		e)
+				 vbi3_export *		e)
 {
   GtkWidget *check_button;
-  gchar *buffer;
   gchar *zcname;
 
-  /* XXX */
-  buffer = localize (oi->label);
-  check_button = gtk_check_button_new_with_label (buffer);
-  g_free (buffer);
+  check_button = gtk_check_button_new_with_label (oi->label);
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (check_button),
 			      /* indicator */ FALSE);
-  set_tooltip (check_button, oi);
+  z_tooltip_set (check_button, oi->tooltip);
   g_object_set_data (G_OBJECT (check_button), "key", oi->keyword);
   g_signal_connect (G_OBJECT (check_button), "toggled",
-		     G_CALLBACK (on_control_changed), e);
+		    G_CALLBACK (on_control_changed), e);
 
   zcname = xo_zconf_name (e, oi);
   zconf_create_boolean (oi->def.num, oi->tooltip, zcname);
@@ -281,9 +237,9 @@ create_checkbutton		(GtkWidget *		table,
 
 static void
 create_slider			(GtkWidget *		table,
-				 vbi_option_info *	oi,
+				 const vbi3_option_info *oi,
 				 unsigned int		index,
-				 vbi_export *		e)
+				 vbi3_export *		e)
 { 
   GtkObject *adj;
   GtkWidget *hscale;
@@ -291,18 +247,18 @@ create_slider			(GtkWidget *		table,
 
   zcname = xo_zconf_name (e, oi);
 
-  if (oi->type == VBI_OPTION_INT)
+  if (oi->type == VBI3_OPTION_INT)
     {
-      adj = gtk_adjustment_new (oi->def.num, oi->min.num,
-				oi->max.num, 1, 10, 10);
+      adj = gtk_adjustment_new (oi->def.num, oi->min.num, oi->max.num,
+				1, 10, 10);
       zconf_create_int (oi->def.num, oi->tooltip, zcname);
       gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
 				zconf_get_int (NULL, zcname));
     }
   else
     {
-      adj = gtk_adjustment_new (oi->def.dbl, oi->min.dbl,
-				oi->max.dbl, 1, 10, 10);
+      adj = gtk_adjustment_new (oi->def.dbl, oi->min.dbl, oi->max.dbl,
+				1, 10, 10);
       zconf_create_float (oi->def.dbl, oi->tooltip, zcname);
       gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
 				zconf_get_float (NULL, zcname));
@@ -311,15 +267,14 @@ create_slider			(GtkWidget *		table,
   g_free (zcname);
 
   g_object_set_data (G_OBJECT (adj), "key", oi->keyword);
-  g_signal_connect (adj, "value-changed",
-		    G_CALLBACK (on_control_changed), e);
+  g_signal_connect (adj, "value-changed", G_CALLBACK (on_control_changed), e);
 
   on_control_changed ((GtkWidget *) adj, e);
 
   hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
   gtk_scale_set_value_pos (GTK_SCALE (hscale), GTK_POS_LEFT);
   gtk_scale_set_digits (GTK_SCALE (hscale), 0);
-  set_tooltip (hscale, oi);
+  z_tooltip_set (hscale, oi->tooltip);
 
   gtk_table_resize (GTK_TABLE (table), index + 1, 2);
   gtk_table_attach (GTK_TABLE (table), label_new (oi),
@@ -334,15 +289,15 @@ create_slider			(GtkWidget *		table,
 
 static void
 create_entry			(GtkWidget *		table,
-				 vbi_option_info *	oi,
+				 const vbi3_option_info *oi,
 				 unsigned int		index,
-				 vbi_export *		e)
+				 vbi3_export *		e)
 { 
   GtkWidget *entry;
   gchar *zcname;
 
   entry = gtk_entry_new ();
-  set_tooltip (entry, oi);
+  z_tooltip_set (entry, oi->tooltip);
 
   g_object_set_data (G_OBJECT (entry), "key", oi->keyword);
   g_signal_connect (G_OBJECT (entry), "changed", 
@@ -352,8 +307,7 @@ create_entry			(GtkWidget *		table,
 
   zcname = xo_zconf_name (e, oi);
   zconf_create_string (oi->def.str, oi->tooltip, zcname);
-  gtk_entry_set_text (GTK_ENTRY (entry),
-		      zconf_get_string (NULL, zcname));
+  gtk_entry_set_text (GTK_ENTRY (entry), zconf_get_string (NULL, zcname));
   g_free (zcname);
 
   gtk_table_resize (GTK_TABLE (table), index + 1, 2);
@@ -368,15 +322,15 @@ create_entry			(GtkWidget *		table,
 }
 
 static GtkWidget *
-options_table_new		(vbi_export *		e)
+options_table_new		(vbi3_export *		e)
 {
   GtkWidget *table;
-  vbi_option_info *oi;
+  const vbi3_option_info *oi;
   unsigned int i;
 
   table = gtk_table_new (1, 2, FALSE);
 
-  for (i = 0; (oi = vbi_export_option_info_enum (e, (int) i)); ++i)
+  for (i = 0; (oi = vbi3_export_option_info_enum (e, (int) i)); ++i)
     {
       if (!oi->label)
 	continue; /* not intended for user */
@@ -389,16 +343,16 @@ options_table_new		(vbi_export *		e)
 	{
 	  switch (oi->type)
 	    {
-	    case VBI_OPTION_BOOL:
+	    case VBI3_OPTION_BOOL:
 	      create_checkbutton (table, oi, i, e);
 	      break;
 
-	    case VBI_OPTION_INT:
-	    case VBI_OPTION_REAL:
+	    case VBI3_OPTION_INT:
+	    case VBI3_OPTION_REAL:
 	      create_slider (table, oi, i, e);
 	      break;
 
-	    case VBI_OPTION_STRING:
+	    case VBI3_OPTION_STRING:
 	      create_entry (table, oi, i, e);
 	      break;
 
@@ -416,23 +370,23 @@ options_table_new		(vbi_export *		e)
 static gchar *
 default_filename		(ExportDialog *		sp)
 {
-  vbi_export_info *xi;
+  const vbi3_export_info *xi;
   gchar **extensions;
   gchar *filename;
-  vbi_subno subno;
+  vbi3_subno subno;
 
-  xi = vbi_export_info_export (sp->context);
+  xi = vbi3_export_info_from_export (sp->context);
   extensions = g_strsplit (xi->extension, ",", 2);
 
-  subno = sp->page.subno;
+  subno = sp->pg->subno;
 
   if (subno > 0 && subno <= 0x99)
     filename = g_strdup_printf ("%s-%x-%x.%s", sp->network,
-				sp->page.pgno, subno,
+				sp->pg->pgno, subno,
 				extensions[0]);
   else
     filename = g_strdup_printf ("%s-%x.%s", sp->network,
-				sp->page.pgno,
+				sp->pg->pgno,
 				extensions[0]);
 
   g_strfreev (extensions);
@@ -442,7 +396,7 @@ default_filename		(ExportDialog *		sp)
 
 static void
 on_menu_activate		(GtkWidget *		menu_item,
-				 ExportDialog *	sp)
+				 ExportDialog *		sp)
 {
   gchar *keyword;
   GtkContainer *container;
@@ -453,20 +407,20 @@ on_menu_activate		(GtkWidget *		menu_item,
   zconf_set_string (keyword, "/zapping/options/export_format");
 
   if (sp->context)
-    vbi_export_delete (sp->context);
-  sp->context = vbi_export_new (keyword, NULL);
+    vbi3_export_delete (sp->context);
+  sp->context = vbi3_export_new (keyword, NULL);
   g_assert (sp->context != NULL);
 
   /* Don't care if these fail */
-  vbi_export_option_set (sp->context, "network", sp->network);
-  vbi_export_option_set (sp->context, "creator", "Zapzilla " VERSION);
-  vbi_export_option_set (sp->context, "reveal", sp->reveal);
+  vbi3_export_option_set (sp->context, "network", sp->network);
+  vbi3_export_option_set (sp->context, "creator", "Zapzilla " VERSION);
+  vbi3_export_option_set (sp->context, "reveal", sp->reveal);
 
   {
-    vbi_export_info *xi;
+    const vbi3_export_info *xi;
     gchar **extensions;
 
-    xi = vbi_export_info_export (sp->context);
+    xi = vbi3_export_info_from_export (sp->context);
     extensions = g_strsplit (xi->extension, ",", 2);
     z_electric_replace_extension (sp->entry, extensions[0]);
     g_strfreev (extensions);
@@ -476,7 +430,7 @@ on_menu_activate		(GtkWidget *		menu_item,
   while ((glist = gtk_container_get_children (container)))
     gtk_container_remove (container, GTK_WIDGET (glist->data));
 
-  if (vbi_export_option_info_enum (sp->context, 0))
+  if (vbi3_export_option_info_enum (sp->context, 0))
     {
       GtkWidget *frame;
       GtkWidget *table;
@@ -501,16 +455,16 @@ on_cancel_clicked		(GtkWidget *		widget,
 
 static void
 on_ok_clicked			(GtkWidget *		button,
-				 ExportDialog *	sp)
+				 ExportDialog *		sp)
 {
   const gchar *cname;
   gchar *name;
+  gchar *dirname;
 
-#if 0 /* XXX electric doesn't work */
-  cname = sp->filename;
-#else
+  name = NULL;
+  dirname = NULL;
+
   cname = gtk_entry_get_text (GTK_ENTRY (sp->entry));
-#endif
 
   if (!cname || !*cname)
     {
@@ -521,76 +475,49 @@ on_ok_clicked			(GtkWidget *		button,
 
   name = g_strdup (cname);
 
-  if (!z_overwrite_file (GTK_WINDOW (sp), name))
+  if (!z_overwrite_file_dialog (GTK_WINDOW (sp),
+				_("Could not save page"),
+				name))
+    goto failure;
+
+  g_strstrip (name);
+
+  dirname = g_path_get_dirname (name);
+
+  if (0 != strcmp (dirname, ".") || '.' == name[0])
     {
-      g_free (name);
-      return;
+      if (!z_build_path_with_alert (GTK_WINDOW (sp), dirname))
+	goto failure;
+
+      /* XXX make absolute path? */
+      zcs_char (dirname, "exportdir");
+    }
+  else
+    {
+      zcs_char ("", "exportdir");
+    }
+  
+  if (!vbi3_export_file (sp->context, name, sp->pg))
+    {
+      z_show_non_modal_message_dialog
+	(GTK_WINDOW (sp),
+	 GTK_MESSAGE_ERROR,
+	 _("Could not save page"), "%s",
+	 vbi3_export_errstr (sp->context));
+
+      goto failure;
     }
 
-  {
-    gchar *dirname;
-
-    g_strstrip (name);
-
-    dirname = g_path_get_dirname (name);
-
-    if (strcmp (dirname, ".") != 0 || name[0] == '.')
-      {
-	gchar *errstr;
-
-	if (!z_build_path (dirname, &errstr))
-	  {
-	    ShowBox (_("Cannot create directory %s:\n%s"),
-		     GTK_MESSAGE_WARNING, dirname, errstr);
-	    g_free (errstr);
-	    g_free (dirname);
-	    goto finish;
-	  }
-
-	/* make absolute path? */
-	zcs_char (dirname, "exportdir");
-      }
-    else
-      {
-	zcs_char ("", "exportdir");
-      }
-
-    g_free (dirname);
-  }
-
-  if (!vbi_export_file (sp->context, name, &sp->page))
-    {
-      char *msg = vbi_export_errstr (sp->context);
-      gchar *t;
-
-      t = g_locale_to_utf8 (msg, NUL_TERMINATED, NULL, NULL, NULL);
-      g_assert (t != NULL);
-
-      g_warning (msg);
-
-      /*
-	if (data->appbar)
-      	  gnome_appbar_set_status (data->appbar, msg);
-      */
-
-      g_free (t);
-
-      free (msg);
-    }
-  /*
-  else if (data->appbar)
-    {
-      gchar *msg = g_strdup_printf (_("%s saved"), name);
-
-      gnome_appbar_set_status (data->appbar, msg);
-      g_free (msg);
-    }
-  */
-
- finish:
   g_free (name);
+  g_free (dirname);
 
   on_cancel_clicked (button, sp);
+
+  return;
+
+ failure:
+  g_free (name);
+  g_free (dirname);
 }
 
 static void
@@ -599,10 +526,11 @@ instance_finalize		(GObject *		object)
   ExportDialog *t = EXPORT_DIALOG (object);
 
   if (t->context)
-    vbi_export_delete (t->context);
+    vbi3_export_delete (t->context);
 
   g_free (t->network);
-  g_free (t->filename);
+
+  vbi3_page_delete (t->pg);
 
   parent_class->finalize (object);
 }
@@ -636,7 +564,7 @@ instance_init			(GTypeInstance *	instance,
     widget = gtk_hbox_new (FALSE, 0);
     hbox = GTK_BOX (widget);
     gtk_box_pack_start (vbox, widget, FALSE, FALSE, 0);
-    
+
     widget = gtk_label_new (_("Format:"));
     gtk_misc_set_padding (GTK_MISC (widget), 3, 0);
     gtk_box_pack_start (hbox, widget, FALSE, FALSE, 0);
@@ -651,7 +579,7 @@ instance_init			(GTypeInstance *	instance,
   {
     GtkWidget *menu;
     gchar *format;
-    vbi_export_info *xm;
+    const vbi3_export_info *xm;
     unsigned int i;
 
     menu = gtk_menu_new ();
@@ -659,7 +587,7 @@ instance_init			(GTypeInstance *	instance,
 
     zconf_get_string (&format, "/zapping/options/export_format");
 
-    for (i = 0; (xm = vbi_export_info_enum ((int) i)); ++i)
+    for (i = 0; (xm = vbi3_export_info_enum ((int) i)); ++i)
       if (xm->label) /* user module */
 	{
 	  GtkWidget *menu_item;
@@ -706,7 +634,7 @@ instance_init			(GTypeInstance *	instance,
 }
 
 GtkWidget *
-export_dialog_new		(const vbi_page *	pg,
+export_dialog_new		(const vbi3_page *	pg,
 				 const gchar *		network,
 				 gboolean		reveal)
 {
@@ -714,7 +642,9 @@ export_dialog_new		(const vbi_page *	pg,
 
   sp = (ExportDialog *) g_object_new (TYPE_EXPORT_DIALOG, NULL);
 
-  sp->page = *pg;
+  sp->pg = vbi3_page_dup (pg);
+  g_assert (NULL != sp->pg);
+
   sp->reveal = reveal;
   sp->network = g_strdup (network);
 
@@ -727,14 +657,6 @@ export_dialog_new		(const vbi_page *	pg,
 
     path = g_build_filename (zcg_char (NULL, "exportdir"), base, NULL);
     gtk_entry_set_text (GTK_ENTRY (sp->entry), path);
-
-    sp->filename = path;
-
-    /* XXX doesn't work
-    g_signal_connect (G_OBJECT (sp->entry), "changed",
-		      G_CALLBACK (z_on_electric_filename),
-		      (gpointer) &sp->filename);
-    */
 
     g_free (base);
   }
