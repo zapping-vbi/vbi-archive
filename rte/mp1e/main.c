@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.31 2002-04-20 06:42:54 mschimek Exp $ */
+/* $Id: main.c,v 1.32 2002-05-07 06:40:08 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -94,9 +94,6 @@ static fifo *			vfifo;
 extern void options(int ac, char **av);
 
 extern void preview_init(int *argc, char ***argv);
-
-
-
 
 /*
  *  These are functions needed to link without the rte frontend.
@@ -254,6 +251,69 @@ audio_parameters(int *sampling_freq, int *bit_rate)
 
 	*bit_rate = bit_rate_value[mpeg_version][imin];
 }
+
+static void
+incr_file_name(void)
+{
+	char buf[sizeof(outFile)];
+	char *s, *ext;
+	int len;
+
+	strcpy(buf, outFile);
+
+	s = buf + strlen(buf);
+
+	for (ext = s - 1; ext >= buf; ext--)
+		if (*ext == '.')
+			break;
+
+	for (s = (ext >= buf) ? ext : s; s > buf; s--)
+		if (!isdigit(s[-1]))
+			break;
+
+	len = s - buf;
+
+	snprintf(outFile + len, sizeof(outFile) - len - 1,
+		 "%ld%s", strtol(s, NULL, 0) + 1,
+		 (ext >= buf) ? ext : "");
+}
+
+void
+break_sequence(void)
+{
+	if (close(outFileFD) == -1) {
+		fprintf(stderr,	"%s:" __FILE__ ":" ISTF1(__LINE__) ": "
+			"Failed to close output file '%s' - "
+			"%d, %s (ignored)\n",
+			program_invocation_short_name,
+			outFile, errno, strerror(errno));
+	}
+
+	incr_file_name();
+
+	do
+		outFileFD = open(outFile,
+				 O_CREAT | O_TRUNC | O_WRONLY | O_LARGEFILE,
+			      /* O_CREAT | O_EXCL | O_WRONLY | O_LARGEFILE, */
+				 S_IRUSR | S_IWUSR | S_IRGRP
+				 | S_IWGRP | S_IROTH | S_IWOTH);
+	while (outFileFD == -1 && errno == EINTR);
+
+	if (outFileFD == -1)
+		switch (errno) {
+		case EEXIST:
+			/* could try another name */
+
+		case ENOSPC:
+			/* ditto */
+
+		default:
+			ASSERT("open output file '%s'", outFileFD != -1, outFile);
+		}
+
+	printv(1, "\rSwitching to output file '%s'\n", outFile);
+}
+
 
 static void
 terminate(int signum)
@@ -456,14 +516,14 @@ main(int ac, char **av)
 	mux = mux_alloc(NULL);
 
 	if (audio_num_secs < (audio_num_frames * sampling_rate / 1152.0))
-		audio_num_frames = llroundn(audio_num_secs * sampling_rate / 1152.0);
+		audio_num_frames = audio_num_secs * sampling_rate / 1152.0;
 	if (video_num_secs < (video_num_frames * video_params.video.frame_rate))
 		video_num_frames = video_num_secs * video_params.video.frame_rate;
 
 	if (modules & MOD_AUDIO) {
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
-		long long n = llroundn(((double) video_num_frames / video_params.video.frame_rate)
-				       / (1152.0 / sampling_rate));
+		double n = (video_num_frames / video_params.video.frame_rate)
+			/ (1152.0 / sampling_rate);
 		rte_stream_parameters rsp;
 
 		printv(1, "Audio compression %2.1f kHz%s %s at %d kbits/s (%1.1f : 1)\n",
@@ -490,7 +550,7 @@ main(int ac, char **av)
 		set_option(audio_codec, "bit_rate", audio_bit_rate);
 		set_option(audio_codec, "audio_mode", (int) "\1\3\2\0"[audio_mode]);
 		set_option(audio_codec, "psycho", psycho_loops);
-		set_option(audio_codec, "num_frames", MIN((int64_t) INT_MAX, audio_num_frames));
+		set_option(audio_codec, "num_frames", audio_num_frames);
 
 		memset(&rsp, 0, sizeof(rsp));
 		rsp.audio.sndfmt = pcm->format;
@@ -561,7 +621,7 @@ main(int ac, char **av)
 //	        set_option(video_codec, "motion_compensation", motion_min > 0 && motion_max > 0);
 //		set_option(video_codec, "desaturate", !!luma_only);
 		set_option(video_codec, "anno", anno);
-		set_option(video_codec, "num_frames", MIN((int64_t) INT_MAX, video_num_frames));
+		set_option(video_codec, "num_frames", video_num_frames);
 
 		ASSERT("set video parameters",
 		       video_codec->class->parameters_set(video_codec, &video_params));
@@ -598,6 +658,20 @@ main(int ac, char **av)
 			printv(1, "Recording Teletext, verbatim\n");
 
 		vbi_init(vbi_cap_fifo, mux);
+	}
+
+	if (outFile[0]) {
+		/* increment file name instead of overwriting files?
+		   for now compatibility rules */
+		do
+			outFileFD = open(outFile,
+					 O_CREAT | O_TRUNC | O_WRONLY | O_LARGEFILE,
+				      /* O_CREAT | O_EXCL | O_WRONLY | O_LARGEFILE, */
+					 S_IRUSR | S_IWUSR | S_IRGRP
+					 | S_IWGRP | S_IROTH | S_IWOTH);
+		while (outFileFD == -1 && errno == EINTR);
+
+		ASSERT("open output file '%s'", outFileFD != -1, outFile);
 	}
 
 	ASSERT("initialize output routine", init_output_stdout(mux));
@@ -645,6 +719,9 @@ main(int ac, char **av)
 
 	if ((modules == MOD_VIDEO || modules == MOD_AUDIO) && mux_syn >= 2)
 		mux_syn = 1; // compatibility
+
+	if (split_sequence && mux_syn >= 3)
+		FAIL("Sorry, -z and -X%d do not combine\n", mux_syn); 
 
 	mp1e_sync_start(&context.sync, 0.0);
 
