@@ -1,21 +1,48 @@
-# RTE German translation -*- coding: utf-8 -*-
-# Copyright (C) 2001-2002 Michael H. Schimek <mschimek@users.sf.net>
+# English translations for RTE package.
+# This file is put in the public domain.
+# Automatically generated, 2002.
+#
+# All this catalog "translates" are quotation characters.
+# The msgids must be ASCII and therefore cannot contain real quotation
+# characters, only substitutes like grave accent (0x60), apostrophe (0x27)
+# and double quote (0x22). These substitutes look strange; see
+# http://www.cl.cam.ac.uk/~mgk25/ucs/quotes.html
+#
+# This catalog translates grave accent (0x60) and apostrophe (0x27) to
+# left single quotation mark (U+2018) and right single quotation mark (U+2019).
+# It also translates pairs of apostrophe (0x27) to
+# left single quotation mark (U+2018) and right single quotation mark (U+2019)
+# and pairs of quotation mark (0x22) to
+# left double quotation mark (U+201C) and right double quotation mark (U+201D).
+#
+# When output to an UTF-8 terminal, the quotation characters appear perfectly.
+# When output to an ISO-8859-1 terminal, the single quotation marks are
+# transliterated to apostrophes (by iconv in glibc 2.2 or newer) or to
+# grave/acute accent (by libiconv), and the double quotation marks are
+# transliterated to 0x22.
+# When output to an ASCII terminal, the single quotation marks are
+# transliterated to apostrophes, and the double quotation marks are
+# transliterated to 0x22.
+#
+# This catalog furthermore displays the text between the quotation marks in
+# bold face, assuming the VT100/XTerm escape sequences.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: RTE 0.5\n"
 "POT-Creation-Date: 2002-06-16 15:33+0200\n"
-"PO-Revision-Date: 2002-06-13 05:06+0200\n"
-"Last-Translator: Michael H. Schimek <mschimek@users.sf.net>\n"
-"Language-Team: German <de@li.org>\n"
+"PO-Revision-Date: 2002-06-16 15:33+0200\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: mp1e/video/mpeg1.c:2145
 #, c-format
 msgid "Invalid group of pictures sequence: \"%s\".\n"
-msgstr "Unzulässige Gruppe von Bildern: \"%s\".\n"
+msgstr "Invalid group of pictures sequence: “[1m%s[0m”.\n"
 
 #: mp1e/video/mpeg1.c:2152
 #, c-format
@@ -23,8 +50,8 @@ msgid ""
 "Invalid group of pictures sequence: \"%s\", length %d.\n"
 "The number of pictures in a GOP is limited to 1024."
 msgstr ""
-"Unzulässige Gruppe von Bildern: \"%s\", länge %d.\n"
-"Die Anzahl der Bilder in einer Gruppe ist begrenzt auf 1024."
+"Invalid group of pictures sequence: “[1m%s[0m”, length %d.\n"
+"The number of pictures in a GOP is limited to 1024."
 
 #: mp1e/video/mpeg1.c:2205
 #, c-format
@@ -33,27 +60,27 @@ msgid ""
 "The number of successive 'B' bidirectionally predicted pictures is limited "
 "to %u."
 msgstr ""
-"Unzulässige Gruppe von Bildern: \"%s\".\n"
-"Die Anzahl aufeinanderfolgender 'B' bidirektional kodierter\n"
-"Bilder ist begrenzt auf %u."
+"Invalid group of pictures sequence: “[1m%s[0m”.\n"
+"The number of successive ‘[1mB[0m’ bidirectionally predicted pictures is "
+"limited to %u."
 
 #: mp1e/video/mpeg1.c:2466
 msgid "Out of memory for mc buffer."
-msgstr "Nicht genug Speicher für MC-Puffer."
+msgstr "Out of memory for mc buffer."
 
 #: mp1e/video/mpeg1.c:2486 mp1e/video/mpeg1.c:2491
 msgid "Out of memory for video buffer."
-msgstr "Nicht genug Speicher für Bildpuffer."
+msgstr "Out of memory for video buffer."
 
 #: mp1e/video/mpeg1.c:2501 mp1e/video/mpeg1.c:2858 mp1e/audio/mp2.c:1172
 #: mp1e/b_mp1e.c:431 mp1e/b_mp1e.c:481 mp1e/b_mp1e.c:491 mp1e/b_mp1e.c:1079
 #: ffmpeg/b_ffmpeg.c:889 ffmpeg/b_ffmpeg.c:1140
 msgid "Out of memory."
-msgstr "Nicht genug Speicher."
+msgstr "Out of memory."
 
 #: mp1e/video/mpeg1.c:2601
 msgid "Standard compliant"
-msgstr "Standardkonform"
+msgstr "Standard compliant"
 
 #: mp1e/video/mpeg1.c:2602
 msgid "Multiplexer"
@@ -61,70 +88,68 @@ msgstr "Multiplexer"
 
 #: mp1e/video/mpeg1.c:2603
 msgid "Fake picture"
-msgstr "Unechte Bilder einfügen"
+msgstr "Fake picture"
 
 #: mp1e/video/mpeg1.c:2612 mp1e/audio/mp2.c:973 ffmpeg/b_ffmpeg.c:608
 #: ffmpeg/b_ffmpeg.c:612
 msgid "Bit rate"
-msgstr "Bitrate"
+msgstr "Bit rate"
 
 #: mp1e/video/mpeg1.c:2614
 msgid "Output bit rate"
-msgstr "Bitrate"
+msgstr "Output bit rate"
 
 #: mp1e/video/mpeg1.c:2619
 msgid "Virtual frame rate"
-msgstr "Virtuelle Bildrate"
+msgstr "Virtual frame rate"
 
 #: mp1e/video/mpeg1.c:2621
 msgid ""
 "MPEG-1 allows only a few discrete values for frames/s, but this codec can "
 "skip frames if you wish. Choose the output bit rate accordingly."
 msgstr ""
-"MPEG-1 erlaubt nur einige wenige Werte für Bilder/s, aber dieser\n"
-"Encoder kann Bilder überspringen wenn Sie möchten. Wählen Sie\n"
-"die Bitrate entsprechend."
+"MPEG-1 allows only a few discrete values for frames/s, but this codec can "
+"skip frames if you wish. Choose the output bit rate accordingly."
 
 #: mp1e/video/mpeg1.c:2625
 msgid "Virtual frame rate method"
-msgstr "Methode für virtuelle Bildrate"
+msgstr "Virtual frame rate method"
 
 #: mp1e/video/mpeg1.c:2627
 msgid ""
 "The standard compliant method has one major drawback: it may have to promote "
 "some or even all B to P pictures, reducing the image quality."
 msgstr ""
-"Die standardkonforme Methode hat einen Hauptnachteil: Möglicherweise müssen "
-"einige oder sogar alle B- als P-Bilder kodiert werden, was die Bildqualität "
-"reduziert."
+"The standard compliant method has one major drawback: it may have to promote "
+"some or even all B to P pictures, reducing the image quality."
 
 #: mp1e/video/mpeg1.c:2631
 msgid "GOP sequence"
-msgstr "Bildsequenz"
+msgstr "GOP sequence"
 
 #: mp1e/video/mpeg1.c:2634
 msgid "Motion compensation"
-msgstr "Bewegungskompensation"
+msgstr "Motion compensation"
 
 #: mp1e/video/mpeg1.c:2635
 msgid ""
 "Enable motion compensation to improve the image quality. The motion search "
 "range is automatically adjusted."
 msgstr ""
-"Aktivieren Sie Bewegungskompensation um die Bildqualität zu verbessern. Die "
-"Suchweite stellt sich automatisch ein."
+"Enable motion compensation to improve the image quality. The motion search "
+"range is automatically adjusted."
 
 #: mp1e/video/mpeg1.c:2642
 msgid "Annotation"
-msgstr "Anmerkung"
+msgstr "Annotation"
 
 #: mp1e/video/mpeg1.c:2643
 msgid ""
 "Add an annotation in the user data field shortly after the video stream "
 "start. This is an mp1e extension, players will ignore it."
 msgstr ""
-"Fügt eine Anmerkung im User-Data Feld kurz nach Beginn der Datei ein. Das "
-"ist eine mp1e spezifische Erweiterung, wird von Playern ignoriert."
+"Add an annotation in the user data field shortly after the video stream "
+"start. This is an mp1e extension, players will ignore it."
 
 #: mp1e/video/mpeg1.c:2659
 #, c-format
@@ -134,25 +159,25 @@ msgstr "%5.3f Mbit/s"
 #: mp1e/video/mpeg1.c:2661
 #, c-format
 msgid "%4.2f frames/s"
-msgstr "%4.2f Bilder/s"
+msgstr "%4.2f frames/s"
 
 #: mp1e/video/mpeg1.c:2666
 #, c-format
 msgid "%5.3f frames/s"
-msgstr "%5.3f Bilder/s"
+msgstr "%5.3f frames/s"
 
 #: mp1e/video/mpeg1.c:2674
 msgid "on"
-msgstr "an"
+msgstr "on"
 
 #: mp1e/video/mpeg1.c:2674
 msgid "off"
-msgstr "aus"
+msgstr "off"
 
 #: mp1e/video/mpeg1.c:2676 mp1e/audio/mp2.c:1041
 #, c-format
 msgid "%f frames"
-msgstr "%f Bilder"
+msgstr "%f frames"
 
 #: mp1e/audio/mp2.c:954 ffmpeg/b_ffmpeg.c:576
 msgid "Mono"
@@ -164,45 +189,45 @@ msgstr "Stereo"
 
 #: mp1e/audio/mp2.c:957 ffmpeg/b_ffmpeg.c:579
 msgid "Bilingual"
-msgstr "Zweisprachig"
+msgstr "Bilingual"
 
 #: mp1e/audio/mp2.c:965
 msgid "Static"
-msgstr "Statisch"
+msgstr "Static"
 
 #: mp1e/audio/mp2.c:966
 msgid "Fast"
-msgstr "Schnell"
+msgstr "Fast"
 
 #: mp1e/audio/mp2.c:967
 msgid "Accurate"
-msgstr "Genau"
+msgstr "Accurate"
 
 #: mp1e/audio/mp2.c:975 ffmpeg/b_ffmpeg.c:610 ffmpeg/b_ffmpeg.c:614
 msgid "Output bit rate, all channels together"
-msgstr "Bitrate, alle Kanäle zusammen"
+msgstr "Output bit rate, all channels together"
 
 #: mp1e/audio/mp2.c:977 ffmpeg/b_ffmpeg.c:602 ffmpeg/b_ffmpeg.c:616
 #: ffmpeg/b_ffmpeg.c:619
 msgid "Sampling frequency"
-msgstr "Samplingfrequenz"
+msgstr "Sampling frequency"
 
 #: mp1e/audio/mp2.c:980 ffmpeg/b_ffmpeg.c:605
 msgid "Mode"
-msgstr "Modus"
+msgstr "Mode"
 
 #: mp1e/audio/mp2.c:983
 msgid "Psychoacoustic analysis"
-msgstr "Psychoakustische Analyse"
+msgstr "Psychoacoustic analysis"
 
 #: mp1e/audio/mp2.c:985
 msgid ""
 "Speed/quality tradeoff. Selecting 'Accurate' is recommended below 80 kbit/s "
 "per channel, when you have bat ears or a little more CPU load doesn't matter."
 msgstr ""
-"Verhältnis von Geschwindigkeit und Qualität. 'Genau' ist empfohlen unterhalb "
-"80 kbit/s je Kanal, wenn Sie Fledermausohren haben oder der zusätzliche "
-"Aufwand nicht weiter ins Gewicht fällt."
+"Speed/quality tradeoff. Selecting ‘[1mAccurate[0m’ is recommended below 80 "
+"kbit/s per channel, when you have bat ears or a little more CPU load doesn't "
+"matter."
 
 #: mp1e/audio/mp2.c:1025 ffmpeg/b_ffmpeg.c:662 ffmpeg/b_ffmpeg.c:666
 #, c-format
@@ -228,39 +253,38 @@ msgid ""
 "MPEG-2 Low (Sampling) Frequency Extension to MPEG-1 Audio Layer II. Be "
 "warned not all MPEG video and audio players support MPEG-2 audio."
 msgstr ""
-"MPEG-2 Erweiterung von MPEG-1 Audio Layer II für niedrigere "
-"Samplingfrequenzen. Vorsicht: Nicht alle MPEG Video und Audio Player "
-"unterstützen MPEG-2 Audio."
+"MPEG-2 Low (Sampling) Frequency Extension to MPEG-1 Audio Layer II. Be "
+"warned not all MPEG video and audio players support MPEG-2 audio."
 
 #: mp1e/b_mp1e.c:188 ffmpeg/b_ffmpeg.c:384
 msgid "Insufficient resources to start video encoding thread.\n"
-msgstr "Unzureichende Resourcen um den Videokodierungsthread zu starten.\n"
+msgstr "Insufficient resources to start video encoding thread.\n"
 
 #: mp1e/b_mp1e.c:201
 msgid "Insufficient resources to start audio encoding thread.\n"
-msgstr "Unzureichende Resourcen um den Audiokodierungsthread zu starten.\n"
+msgstr "Insufficient resources to start audio encoding thread.\n"
 
 #: mp1e/b_mp1e.c:255
 msgid "Insufficient resources to start codec thread.\n"
-msgstr "Unzureichende Resourcen um den Codecthread zu starten\n"
+msgstr "Insufficient resources to start codec thread.\n"
 
 #: mp1e/b_mp1e.c:275
 msgid "Insufficient resources to start context thread.\n"
-msgstr "Unzureichende Resourcen um den Contextthread zu starten\n"
+msgstr "Insufficient resources to start context thread.\n"
 
 #: mp1e/b_mp1e.c:915 ffmpeg/b_ffmpeg.c:974
 #, c-format
 msgid "Cannot create new codec instance '%s': %s"
-msgstr "Kann keine neue Codecinstanz '%s' erstellen: %s"
+msgstr "Cannot create new codec instance '%s': %s"
 
 #: mp1e/b_mp1e.c:919 ffmpeg/b_ffmpeg.c:979
 #, c-format
 msgid "Cannot create new codec instance '%s'."
-msgstr "Kann keine neue Codecinstanz '%s' erstellen."
+msgstr "Cannot create new codec instance '%s'."
 
 #: mp1e/b_mp1e.c:985
 msgid "MPEG-1 Program Stream"
-msgstr "MPEG-1 Program Stream (Bild und Ton)"
+msgstr "MPEG-1 Program Stream"
 
 #: mp1e/b_mp1e.c:997
 msgid "MPEG-1 VCD Program Stream"
@@ -278,7 +302,7 @@ msgstr "MPEG Audio Elementary Stream"
 msgid ""
 "MP1E backend requires MMX but the CPU type is unknown, backend disabled."
 msgstr ""
-"MP1E Modul erfordert MMX, aber der CPU Typ ist unbekannt. Modul deaktiviert."
+"MP1E backend requires MMX but the CPU type is unknown, backend disabled."
 
 #: ffmpeg/b_ffmpeg.c:785
 msgid "PCM 16 Bit Signed Little Endian"
@@ -293,33 +317,25 @@ msgid "PCM a-Law"
 msgstr "PCM a-Law"
 
 #: ffmpeg/b_ffmpeg.c:821
-#, fuzzy
 msgid "PCM mu-Law"
 msgstr "PCM mu-Law"
 
 #: ffmpeg/b_ffmpeg.c:847
-#, fuzzy
 msgid "MPEG-2 Audio Layer II LSF"
-msgstr "MPEG-2 Audio Layer II LFE"
+msgstr "MPEG-2 Audio Layer II LSF"
 
 #: ffmpeg/b_ffmpeg.c:848
-#, fuzzy
 msgid ""
 "MPEG-2 Low Sampling Frequency extension to MPEG-1 Audio Layer II. Be warned "
 "not all MPEG video and audio players support MPEG-2 audio."
 msgstr ""
-"MPEG-2 Erweiterung von MPEG-1 Audio Layer II für niedrigere "
-"Samplingfrequenzen. Vorsicht: Nicht alle MPEG Video und Audio Player "
-"unterstützen MPEG-2 Audio."
+"MPEG-2 Low Sampling Frequency extension to MPEG-1 Audio Layer II. Be warned "
+"not all MPEG video and audio players support MPEG-2 audio."
 
 #: ffmpeg/b_ffmpeg.c:1041
 msgid "RIFF-WAVE Audio"
 msgstr "RIFF-WAVE Audio"
 
 #: ffmpeg/b_ffmpeg.c:1081
-#, fuzzy
 msgid "AC3 Audio Elementary Stream"
-msgstr "MPEG Audio Elementary Stream"
-
-#~ msgid "Coded frame rate"
-#~ msgstr "Kodierte Bildrate"
+msgstr "AC3 Audio Elementary Stream"

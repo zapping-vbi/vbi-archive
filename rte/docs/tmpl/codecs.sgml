@@ -82,6 +82,14 @@ Codecs
 @stream_index: 
 
 
+<!-- ##### FUNCTION rte_codec_remove_codec ##### -->
+<para>
+
+</para>
+
+@codec: 
+
+
 <!-- ##### FUNCTION rte_codec_user_data ##### -->
 <para>
 

@@ -44,6 +44,7 @@ rte_codec
 rte_codec_set
 rte_codec_get
 rte_codec_remove
+rte_codec_remove_codec
 rte_codec_user_data
 </SUBSECTION>
 <SUBSECTION>

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.15 2002-06-14 07:58:47 mschimek Exp $ */
+/* $Id: rte.c,v 1.16 2002-06-18 02:26:38 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -680,6 +680,10 @@ rte_stop(rte_context *context, double timestamp)
 
 /* rte_pause() TODO */
 /* rte_resume() TODO */
+
+/* no public prototype */
+void rte_status_query(rte_context *context, rte_codec *codec,
+		      rte_status *status, int size);
 
 /*
  *  This functions returns context or codec status. It is not

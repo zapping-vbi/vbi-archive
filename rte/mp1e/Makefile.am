@@ -1,12 +1,12 @@
 ## Process this file with automake to produce Makefile.in
-## $Id: Makefile.am,v 1.9 2002-06-12 04:01:05 mschimek Exp $
+## $Id: Makefile.am,v 1.10 2002-06-18 02:24:12 mschimek Exp $
 
 INCLUDES = -D_GNU_SOURCE -D_REENTRANT
 
 EXTRA_DIST = \
 	common/videodev.h common/videodev2.h \
 	mp1e.lsm.in mp1e.spec.in $(man_MANS) BUGS \
-	context.h codec.h rte.h option.h rtepriv.h
+	context.h codec.h rte.h option.h rtepriv.h b_mp1e.h
 
 if BACKEND_MP1E
 
@@ -14,6 +14,7 @@ SUBDIRS = video audio systems common
 
 noinst_LTLIBRARIES = libmp1e.la
 libmp1e_la_SOURCES = b_mp1e.c b_mp1e.h
+man_MANS =
 
 else
 
@@ -29,3 +30,4 @@ mp1e_LDADD = \
 man_MANS = mp1e.1
 
 endif
+

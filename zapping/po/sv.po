@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6\n"
-"POT-Creation-Date: 2002-05-30 16:56+0200\n"
+"POT-Creation-Date: 2002-06-16 15:59+0200\n"
 "PO-Revision-Date: 2001-08-31 01:29+01:00\n"
 "Last-Translator: <snout@ctrl-c.liu.se>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -136,11 +136,11 @@ msgstr ""
 "%s"
 
 # src/interface.c:247
-#: src/callbacks.c:501 src/callbacks.c:630 src/main.c:798
+#: src/main.c:798 src/callbacks.c:501 src/callbacks.c:630
 msgid "Show controls"
 msgstr "Visa Inställningar"
 
-#: src/callbacks.c:502 src/callbacks.c:631 src/main.c:799
+#: src/main.c:799 src/callbacks.c:502 src/callbacks.c:631
 msgid "Show the menu and the toolbar"
 msgstr "Visa Meny och Verktyg"
 
@@ -186,12 +186,13 @@ msgstr "Tyvärr, Zapping kan inte skapa konfigurationsträdet"
 msgid "Mute"
 msgstr "Tyst"
 
-#: glade/glade_strings.c:26 src/interface.c:222
+#: src/interface.c:222 glade/glade_strings.c:26
 msgid "Switch audio on and off"
 msgstr ""
 
 #: src/interface.c:257
-msgid "(C) Iñaki García Etxebarria"
+#, fuzzy
+msgid "(C) Iaki Garca Etxebarria"
 msgstr "(C) Iñaki García Etxebarria"
 
 #: src/interface.c:259
@@ -214,11 +215,11 @@ msgid "<yellow>AUDIO ON</yellow>"
 msgstr ""
 
 # src/v4l2interface.c:344
-#: glade/glade_strings.c:217 src/callbacks.c:488
+#: src/callbacks.c:488 glade/glade_strings.c:217
 msgid "Hide controls"
 msgstr "Göm kontrollerna"
 
-#: glade/glade_strings.c:30 glade/glade_strings.c:216 src/callbacks.c:489
+#: src/callbacks.c:489 glade/glade_strings.c:30 glade/glade_strings.c:216
 msgid "Hide the menu and the toolbar"
 msgstr "Göm Meny och Verktygsfält"
 
@@ -264,7 +265,7 @@ msgid "Europe"
 msgstr "Europa"
 
 # src/frequencies.c:821
-#: glade/glade_strings.c:128 src/frequencies.c:1100
+#: src/frequencies.c:1100 glade/glade_strings.c:128
 msgid "Eastern Europe"
 msgstr "Östeuropa"
 
@@ -349,7 +350,6 @@ msgstr "Ställa in %s"
 msgid "Available controls"
 msgstr "Inställningar"
 
-#. NLS: Network info, network name
 #: src/v4linterface.c:663 src/zvbi.c:2106
 msgid "Unknown"
 msgstr "Okänd"
@@ -372,7 +372,6 @@ msgstr "Ingen standard"
 msgid "Channel: <yellow>%s</yellow>"
 msgstr ""
 
-#. NLS: Channel name being entered on numeric keypad
 #: src/v4linterface.c:1014
 #, c-format
 msgid "<green>%s</green>"
@@ -387,17 +386,16 @@ msgstr "Ingångar"
 msgid "No tuned channels"
 msgstr "Inga inställda kanaler"
 
-#. vbi audio mode
 #: src/zvbi.c:136
 #, fuzzy
 msgid "No Audio"
 msgstr "Endast ljud"
 
-#: src/tveng1.c:1018 src/zvbi.c:137
+#: src/zvbi.c:137 src/tveng1.c:1018
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng1.c:1019 src/zvbi.c:138
+#: src/zvbi.c:138 src/tveng1.c:1019
 msgid "Stereo"
 msgstr "Stereo"
 
@@ -499,12 +497,10 @@ msgstr " Teletext sida %x"
 msgid "Open this page with Zapzilla"
 msgstr "Öppna denna sida med Zapzilla"
 
-#. NLS: Network info, call letters (USA) - not applicable
 #: src/zvbi.c:2111
 msgid "n/a"
 msgstr ""
 
-#. NLS: Network info, tape delay (USA)
 #: src/zvbi.c:2115
 #, fuzzy
 msgid "none"
@@ -516,13 +512,12 @@ msgid "%d minute"
 msgid_plural "%d minutes"
 msgstr[0] "minut"
 
-#. NLS: Network info, tape delay (USA)
 #: src/zvbi.c:2120
 #, c-format
 msgid "%d h %d m"
 msgstr "%d h %d m"
 
-#: src/ttxview.c:2538 src/zvbi.c:2152
+#: src/zvbi.c:2152 src/ttxview.c:2538
 msgid "Current program"
 msgstr "Om pågående program"
 
@@ -547,13 +542,11 @@ msgstr ""
 msgid "Elapsed: %uh%02u"
 msgstr ""
 
-#. Program info audio language
 #: src/zvbi.c:2233 src/zvbi.c:2235
 #, fuzzy
 msgid "unknown language"
 msgstr "%x: Okänt språk"
 
-#. Program info audio mode, language
 #: src/zvbi.c:2238
 #, c-format
 msgid ""
@@ -561,8 +554,6 @@ msgid ""
 "Channel 2: %s (%s)"
 msgstr ""
 
-#. Program info audio mode 1&2
-#. (eg. language 1&2: "mono", "mono")
 #: src/zvbi.c:2246
 #, c-format
 msgid ""
@@ -570,19 +561,16 @@ msgid ""
 "Channel 2: %s"
 msgstr ""
 
-#. Program info audio mode, language
 #: src/zvbi.c:2259
 #, c-format
 msgid "Audio: %s (%s)"
 msgstr ""
 
-#. Program info audio mode
 #: src/zvbi.c:2264
 #, fuzzy, c-format
 msgid "Audio: %s"
 msgstr "Endast ljud"
 
-#. Program info: has subtitles [language if known]
 #: src/zvbi.c:2283
 #, fuzzy, c-format
 msgid "Captioned %s"
@@ -593,8 +581,6 @@ msgstr "Bildtext %x"
 msgid "Captioned"
 msgstr "Bildtext %x"
 
-#. NLS: Current program rating
-#. (not rated means we don't know, not it's exempt)
 #: src/zvbi.c:2367 src/zvbi.c:2628
 msgid "Not rated"
 msgstr ""
@@ -603,7 +589,7 @@ msgstr ""
 msgid "TV"
 msgstr "TV"
 
-#: src/properties-handler.c:122 src/tveng.c:271
+#: src/tveng.c:271 src/properties-handler.c:122
 msgid "Camera"
 msgstr "Kamera"
 
@@ -776,7 +762,6 @@ msgstr "Inte nog med minne för symbolen %d i %s"
 msgid "[No description provided]"
 msgstr "[Ingen beskrivning bifogad]"
 
-#. Warn
 #: src/plugins.c:322
 #, c-format
 msgid ""
@@ -786,7 +771,7 @@ msgstr ""
 "kontrollfel: \"%s\" i plugin %s skulle vara \"%s\", men är: \"%s\". Hashes "
 "är 0x%x respektive 0x%x"
 
-#: glade/glade_strings.c:19 src/zmisc.c:304
+#: src/zmisc.c:304 glade/glade_strings.c:19
 msgid "Use Zapping as a Teletext navigator"
 msgstr "Använd Zapping som teletext-navigator"
 
@@ -818,7 +803,7 @@ msgstr "Kan inte skapa %s: %s"
 msgid "%s is not a directory"
 msgstr "%s är inte en katalog."
 
-#: glade/glade_strings.c:287 glade/glade_strings.c:288 src/zmisc.c:1444
+#: src/zmisc.c:1444 glade/glade_strings.c:287 glade/glade_strings.c:288
 msgid "Reset"
 msgstr "Återställ"
 
@@ -827,7 +812,7 @@ msgstr "Återställ"
 msgid "Zapping Properties"
 msgstr "Egenskaper"
 
-#: src/keyboard.c:811 src/properties-handler.c:727 src/properties.c:960
+#: src/properties.c:960 src/properties-handler.c:727 src/keyboard.c:811
 #, fuzzy
 msgid "General Options"
 msgstr "Diverse val"
@@ -897,8 +882,8 @@ msgstr[0] "%s med %d tuners"
 msgid "VBI Options"
 msgstr "VBI-val"
 
-#: glade/glade_strings.c:183 src/properties-handler.c:433
-#: src/properties-handler.c:722
+#: src/properties-handler.c:433 src/properties-handler.c:722
+#: glade/glade_strings.c:183
 msgid "Interactive TV"
 msgstr "Interaktiv TV"
 
@@ -907,22 +892,22 @@ msgstr "Interaktiv TV"
 msgid "Device Info"
 msgstr "Enhetsinfo"
 
-#: glade/glade_strings.c:69 src/properties-handler.c:712
+#: src/properties-handler.c:712 glade/glade_strings.c:69
 msgid "Main Window"
 msgstr ""
 
-#: glade/glade_strings.c:106 src/properties-handler.c:714
+#: src/properties-handler.c:714 glade/glade_strings.c:106
 msgid "OSD"
 msgstr ""
 
 # src/v4l2interface.c:344
-#: glade/glade_strings.c:83 plugins/mpeg/mpeg_strings.c:19
-#: plugins/mpeg/mpeg_strings.c:51 src/properties-handler.c:716
+#: src/properties-handler.c:716 glade/glade_strings.c:83
+#: plugins/mpeg/mpeg_strings.c:19 plugins/mpeg/mpeg_strings.c:51
 #, fuzzy
 msgid "Video"
 msgstr "Endast bild"
 
-#: glade/glade_strings.c:146 src/properties-handler.c:720
+#: src/properties-handler.c:720 glade/glade_strings.c:146
 msgid "General"
 msgstr "Diverse"
 
@@ -1079,8 +1064,8 @@ msgstr "Vilken undersida som helst"
 msgid "Export %s"
 msgstr "Exportera %s"
 
-#: plugins/mpeg/mpeg_strings.c:36 plugins/screenshot/screenshot_strings.c:19
-#: src/ttxview.c:1986
+#: src/ttxview.c:1986 plugins/screenshot/screenshot_strings.c:19
+#: plugins/mpeg/mpeg_strings.c:36
 msgid "Save as:"
 msgstr "Spara som:"
 
@@ -1195,17 +1180,17 @@ msgid "Selection copied to clipboard"
 msgstr "Markering kopierad till urklipp"
 
 # src/frequencies.c:827
-#: src/oss.c:174
+#: src/oss.c:175
 #, fuzzy
 msgid "Audio device:"
 msgstr "Bild och ljud"
 
-#: src/oss.c:177
+#: src/oss.c:178
 #, fuzzy
 msgid "Select the audio device"
 msgstr "Välj VBI-enhet"
 
-#: src/oss.c:204
+#: src/oss.c:205
 #, c-format
 msgid "The given audio device \"%s\" doesn't exist"
 msgstr ""
@@ -1241,16 +1226,11 @@ msgstr "Skift"
 msgid "Key table..."
 msgstr ""
 
-#: glade/glade_strings.c:113 src/keyboard.c:807
+#: src/keyboard.c:807 glade/glade_strings.c:113
 msgid "Keyboard"
 msgstr ""
 
 # src/interface.c:104
-#.
-#. * Translatable strings file generated by Glade.
-#. * Add this file to your project's POTFILES.in.
-#. * DO NOT compile it as part of your application.
-#.
 #: glade/glade_strings.c:7
 msgid "Zapping"
 msgstr "Zapping"
@@ -1942,10 +1922,10 @@ msgstr "Stoppa pluginen"
 msgid "S_top Plugin"
 msgstr "S_toppa pluginen"
 
-#: glade/glade_strings.c:191 plugins/lirc/lirc.c:383 plugins/mpeg/mpeg.c:1093
-#: plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184 plugins/mpeg/mpeg.c:2649
-#: plugins/mpeg/mpeg.c:3223 plugins/screenshot/screenshot.c:576
-#: plugins/screenshot/screenshot.c:1422
+#: glade/glade_strings.c:191 plugins/screenshot/screenshot.c:576
+#: plugins/screenshot/screenshot.c:1422 plugins/lirc/lirc.c:383
+#: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
+#: plugins/mpeg/mpeg.c:2649 plugins/mpeg/mpeg.c:3223
 msgid "Plugins"
 msgstr "Plugins"
 
@@ -2508,10 +2488,8 @@ msgstr ""
 msgid "This plugin takes screenshots of the video capture."
 msgstr "Denna plugin tar stillbilder."
 
-#. hash collision code
-#. Warn
-#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:134 plugins/mpeg/mpeg.c:142
-#: plugins/mpeg/mpeg.c:3285 plugins/screenshot/screenshot.c:173
+#: plugins/screenshot/screenshot.c:173 plugins/lirc/lirc.c:134
+#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3285
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Varning: \"%s\" i plugin %s har nyckel 0x%x vs. 0x%x"
@@ -2616,11 +2594,6 @@ msgstr ""
 msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
 msgstr ""
 
-#.
-#. * Translatable strings file generated by Glade.
-#. * Add this file to your project's POTFILES.in.
-#. * DO NOT compile it as part of your application.
-#.
 #: plugins/screenshot/screenshot_strings.c:7
 msgid "Select here the directory where screenshots will be saved"
 msgstr "Välj katalogen stillbilder ska sparas i här"
@@ -2666,18 +2639,18 @@ msgstr ""
 msgid "Save screenshot"
 msgstr "Stillbild"
 
-#: plugins/mpeg/mpeg_strings.c:30 plugins/screenshot/screenshot_strings.c:17
+#: plugins/screenshot/screenshot_strings.c:17 plugins/mpeg/mpeg_strings.c:30
 #, fuzzy
 msgid "Configure the properties for this plugin"
 msgstr "Visa konfigurationsvalen för denna plugin"
 
-#: plugins/mpeg/mpeg_strings.c:31 plugins/screenshot/screenshot_strings.c:18
+#: plugins/screenshot/screenshot_strings.c:18 plugins/mpeg/mpeg_strings.c:31
 #, fuzzy
 msgid "Configure"
 msgstr "Konfigurera"
 
-#: plugins/mpeg/mpeg_strings.c:33 plugins/mpeg/mpeg_strings.c:38
-#: plugins/screenshot/screenshot_strings.c:20
+#: plugins/screenshot/screenshot_strings.c:20 plugins/mpeg/mpeg_strings.c:33
+#: plugins/mpeg/mpeg_strings.c:38
 #, fuzzy
 msgid "Destination file"
 msgstr "Destination"
@@ -2686,13 +2659,8 @@ msgstr "Destination"
 msgid "Quality:"
 msgstr ""
 
-#.
-#. * Translatable strings file generated by Glade.
-#. * Add this file to your project's POTFILES.in.
-#. * DO NOT compile it as part of your application.
-#.
-#: plugins/mpeg/mpeg_strings.c:7 plugins/mpeg/mpeg_strings.c:35
-#: plugins/mpeg/mpeg_strings.c:43 plugins/screenshot/screenshot_strings.c:22
+#: plugins/screenshot/screenshot_strings.c:22 plugins/mpeg/mpeg_strings.c:7
+#: plugins/mpeg/mpeg_strings.c:35 plugins/mpeg/mpeg_strings.c:43
 #, fuzzy
 msgid "Format:"
 msgstr "Normal"
@@ -2834,7 +2802,6 @@ msgstr "Denna plugin sparar ner bilden och ljudet till en MPEG-fil"
 msgid "Encode the stream as MPEG."
 msgstr "Spara strömmen som MPEG."
 
-#. NB *_frames display will wrap after two years.
 #: plugins/mpeg/mpeg.c:280
 #, c-format
 msgid "%d frame dropped"
@@ -2967,7 +2934,6 @@ msgstr ""
 "%s\n"
 "%s"
 
-#. XXX more info please
 #: plugins/mpeg/mpeg.c:1840
 #, fuzzy, c-format
 msgid "Cannot create file %s: %s\n"

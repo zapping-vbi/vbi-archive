@@ -11,11 +11,10 @@
   When the source comes from a .tgz or .rpm package, just
   type "./configure".
 
-  You can preset the CFLAGS environment variable. This is
-  useful to optimize a little more, or to pass compiler flags
-  like -g to aid debugging (see info gcc for more). Example:
-
-    CFLAGS="-mcpu=athlon-xp" ./configure
+  As "./configure --help" elaborates, you can preset the CFLAGS
+  environment variable. This is useful to pass compiler flags
+  for debugging or CPU specific optimization. See info gcc for
+  more. Example: CFLAGS="-mcpu=athlon-xp" ./configure
 
   Finally type "make install".
 
@@ -36,10 +35,3 @@
   in various countries. The authors of this program disclaim any
   liability for patent infringement caused by using, modifying or
   redistributing this program.
-
-  Contributions
-  =============
-
-  Contributions to mp1e are welcome. As of 2002-06-01 all contributions
-  are considered in public domain unless you claim copyright by adding
-  a copyright notice, or by requesting such a notice be added.

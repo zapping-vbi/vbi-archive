@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rtepriv.h,v 1.14 2002-06-14 07:58:47 mschimek Exp $ */
+/* $Id: rtepriv.h,v 1.15 2002-06-18 02:26:38 mschimek Exp $ */
 
 #ifndef __RTEPRIV_H__
 #define __RTEPRIV_H__
@@ -111,11 +111,18 @@ struct rte_backend_class {
 #      define N_(String) (String)
 #    endif
 #  else /* Stubs that do something close enough.  */
-#    define textdomain(String) (String)
-#    define gettext(String) (String)
-#    define dgettext(Domain,Message) (Message)
-#    define dcgettext(Domain,Message,Type) (Message)
-#    define bindtextdomain(Domain,Directory) (Domain)
+#    define gettext(Msgid) ((const char *) (Msgid))
+#    define dgettext(Domainname, Msgid) ((const char *) (Msgid))
+#    define dcgettext(Domainname, Msgid, Category) ((const char *) (Msgid))
+#    define ngettext(Msgid1, Msgid2, N) \
+       ((N) == 1 ? (const char *) (Msgid1) : (const char *) (Msgid2))
+#    define dngettext(Domainname, Msgid1, Msgid2, N) \
+       ((N) == 1 ? (const char *) (Msgid1) : (const char *) (Msgid2))
+#    define dcngettext(Domainname, Msgid1, Msgid2, N, Category) \
+       ((N) == 1 ? (const char *) (Msgid1) : (const char *) (Msgid2))
+#    define textdomain(Domainname) ((const char *) (Domainname))
+#    define bindtextdomain(Domainname, Dirname) ((const char *) (Dirname))
+#    define bind_textdomain_codeset(Domainname, Codeset) ((const char *) (Codeset))
 #    define _(String) (String)
 #    define N_(String) (String)
 #  endif

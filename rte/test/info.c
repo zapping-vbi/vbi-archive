@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: info.c,v 1.8 2002-06-14 07:58:48 mschimek Exp $ */
+/* $Id: info.c,v 1.9 2002-06-18 02:26:38 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -113,7 +113,7 @@ static void
 print_current(rte_option_info *oi, rte_option_value current)
 {
 	if (REAL_TYPE(oi)) {
-		printf("    current value=%f ", current.dbl);
+		printf("    current value=%g ", current.dbl);
 		if (!oi->menu.dbl
 		    && (current.dbl < oi->min.dbl
 			|| current.dbl > oi->max.dbl))
@@ -133,7 +133,7 @@ test_modified(rte_option_info *oi, rte_option_value old, rte_option_value new)
 {
 	if (REAL_TYPE(oi)) {
 		if (old.dbl != new.dbl) {
-			printf("but modified current value to %f\n", new.dbl);
+			printf("but modified current value to %g\n", new.dbl);
 			exit(EXIT_FAILURE);
 		}
 	} else {
@@ -191,7 +191,7 @@ test_set_real(rte_context *cx, rte_codec *cc, rte_option_info *oi,
 	rte_option_value new_current;
 	rte_bool r, r2;
 
-	printf("    try to set %f: ", value);
+	printf("    try to set %g: ", value);
 	if (cc)
 		r = rte_codec_option_set(cc, oi->keyword, value);
 	else
@@ -213,7 +213,7 @@ test_set_real(rte_context *cx, rte_codec *cc, rte_option_info *oi,
 		printf("rte_*_option_get failed, errstr==\"%s\"\n",
 		       rte_errstr(cx));
 		if (new_current.dbl != 8192.0)
-			printf("but modified destination to %f\n",
+			printf("but modified destination to %g\n",
 			       new_current.dbl);
 		exit(EXIT_FAILURE);
 	}
@@ -395,10 +395,10 @@ show_option_info(rte_context *cx, rte_codec *cc, rte_option_info *oi)
 			printf("      %d menu entries, default=%d: ",
 			       oi->max.num - oi->min.num  + 1, oi->def.num);
 			for (i = oi->min.num; i <= oi->max.num; i++)
-				printf("%f%s", oi->menu.dbl[i],
+				printf("%g%s", oi->menu.dbl[i],
 				       (i < oi->max.num) ? ", " : "");
 		} else
-			printf("      default=%f, min=%f, max=%f, step=%f\n",
+			printf("      default=%g, min=%g, max=%g, step=%g\n",
 			       oi->def.dbl, oi->min.dbl, oi->max.dbl, oi->step.dbl);
 		if (cc)
 			ASSERT_ERRSTR(rte_codec_option_get
