@@ -18,24 +18,19 @@
 %META{"form"}%
 %META{"attachments"}%
 %TMPL:DEF{"topicaction"}%
-  %EDITTOPIC%
-  %TMPL:P{"sep"}% <a href="%SCRIPTURLPATH%/changes%SCRIPTSUFFIX%/%WEB%/%TOPIC%">Changes</a>
-  %TMPL:P{"sep"}% <a href="%SCRIPTURLPATH%/attach%SCRIPTSUFFIX%/%WEB%/%TOPIC%">Attach</a>
-  %TMPL:P{"sep"}% <a href="%SCRIPTURLPATH%/search%SCRIPTSUFFIX%/%WEB%/SearchResult?scope=text&amp;regex=on&amp;search=%SPACEDTOPIC%%5B%5EA-Za-z%5D">Ref-By</a>
-  %TMPL:P{"sep"}% <a href="%SCRIPTURLPATH%/view%SCRIPTSUFFIX%/%WEB%/%TOPIC%?skin=print%REVARG%">Printable</a>
-  %TMPL:P{"sep"}% <a href="%SCRIPTURLPATH%/rdiff%SCRIPTSUFFIX%/%WEB%/%TOPIC%">Diffs</a> %REVISIONS%
+  <img src="%PUBURL%/%TWIKIWEB%/TWikiDocGraphics/edittopic.gif" border="0" alt="Edit" /> %EDITTOPIC%
+  %TMPL:P{"sep"}% <img src="%PUBURL%/%TWIKIWEB%/TWikiDocGraphics/topicdiffs.gif" border="0" alt="Changes" /> <a href="%SCRIPTURLPATH%/changes%SCRIPTSUFFIX%/%WEB%/%TOPIC%">Changes</a>
+  %TMPL:P{"sep"}% <img src="%PUBURL%/%TWIKIWEB%/TWikiDocGraphics/attachfile.gif" border="0" alt="Attach" /> <a href="%SCRIPTURLPATH%/attach%SCRIPTSUFFIX%/%WEB%/%TOPIC%">Attach</a>
+  %TMPL:P{"sep"}% <img src="%PUBURL%/%TWIKIWEB%/TWikiDocGraphics/topicbacklinks.gif" border="0" alt="Ref-By" /> <a href="%SCRIPTURLPATH%/search%SCRIPTSUFFIX%/%WEB%/SearchResult?scope=text&amp;regex=on&amp;search=%SPACEDTOPIC%%5B%5EA-Za-z%5D">Ref-By</a>
+  %TMPL:P{"sep"}% <img src="%PUBURL%/%TWIKIWEB%/TWikiDocGraphics/printtopic.png" border="0" alt="Printable" /> <a href="%SCRIPTURLPATH%/view%SCRIPTSUFFIX%/%WEB%/%TOPIC%?skin=print%REVARG%">Printable</a>
   %TMPL:P{"sep"}% <a href="%SCRIPTURLPATH%/oops%SCRIPTSUFFIX%/%WEB%/%TOPIC%?template=oopsmore&amp;param1=%MAXREV%&amp;param2=%CURRREV%">More</a> %TMPL:END%
 %TMPL:P{"standardfooter"}%
 <table width="100%" border="0" cellpadding="3" cellspacing="0">
  <tr>
   <td valign="top">
-   Revision %REVINFO% %META{"parent" prefix="<br />Parents: "}%
-  </td>
-  <td width="40%" valign="top">
-   %WEBCOPYRIGHT%
+   Revision %REVINFO%
   </td>
  </tr>
- <tr><td colspan="2"> %META{"moved"}% </td></tr>
 </table>
 #PageBottom
 </body>
