@@ -55,13 +55,14 @@ image_new (tv_pixfmt pixfmt, guint w, guint h)
 
   g_assert (pixfmt == x11_pixfmt);
 
-  image = gdk_image_new (GDK_IMAGE_FASTEST, gdk_visual_get_system (), w, h);
+  image = gdk_image_new (GDK_IMAGE_FASTEST, gdk_visual_get_system (),
+			 (gint) w, (gint) h);
 
   if (!image)
     return NULL;
 
-  if (image->width != w ||
-      image->height != h)
+  if ((gint) image->width != w ||
+      (gint) image->height != h)
     {
       g_object_unref (G_OBJECT (image));
       return NULL;
@@ -117,6 +118,8 @@ image_put (zimage *image, guint w, guint h)
   clear_canvas (window, w, h, iw, ih);
   gdk_draw_image (window, gc, pimage->image,
 		  0, 0, (w - iw)/2, (h - ih)/2, iw, ih);
+
+  gdk_display_flush (gdk_display_get_default ());
 }
 
 static void

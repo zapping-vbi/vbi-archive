@@ -311,6 +311,7 @@ static void
 image_put(zimage *image, guint width, guint height)
 {
   zimage_private *pimage = image->priv;
+  Display *display;
 
   if (!window || !gc)
     return;
@@ -321,9 +322,11 @@ image_put(zimage *image, guint width, guint height)
       return;
     }
 
+  display = GDK_DISPLAY ();
+
 #ifdef USE_XV_SHM
   if (pimage->uses_shm)
-    XvShmPutImage(GDK_DISPLAY(), pimage->xvport,
+    XvShmPutImage(display, pimage->xvport,
 		  GDK_WINDOW_XWINDOW(window),
 		  GDK_GC_XGC(gc), pimage->image,
 		  0, 0, image->fmt.width, image->fmt.height, /* source */
@@ -332,11 +335,13 @@ image_put(zimage *image, guint width, guint height)
 #endif
 
   if (!pimage->uses_shm)
-    XvPutImage(GDK_DISPLAY(), pimage->xvport,
+    XvPutImage(display, pimage->xvport,
 	       GDK_WINDOW_XWINDOW(window),
 	       GDK_GC_XGC(gc), pimage->image,
 	       0, 0, image->fmt.width, image->fmt.height, /* source */
 	       0, 0, width, height /* dest */);
+
+  XFlush (display);
 }
 
 /**

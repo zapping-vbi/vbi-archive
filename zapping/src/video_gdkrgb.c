@@ -111,6 +111,7 @@ image_put (zimage *image, guint w, guint h)
 			  (gint) (h - ih)/2, iw, ih,
 			  GDK_RGB_DITHER_NORMAL, pimage->data,
 			  (gint) image->data.linear.stride);
+      gdk_display_flush (gdk_display_get_default ());
       break;
     case TV_PIXFMT_RGBA32_LE:
       gdk_draw_rgb_32_image (window, gc,
@@ -118,6 +119,7 @@ image_put (zimage *image, guint w, guint h)
 			     (gint) (h - ih)/2, iw, ih,
 			     GDK_RGB_DITHER_NORMAL, pimage->data,
 			     (gint) image->data.linear.stride);
+      gdk_display_flush (gdk_display_get_default ());
       break;
     default:
       g_assert_not_reached ();
