@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.38 2002-06-24 03:19:36 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.39 2002-06-25 04:36:04 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -62,7 +62,8 @@ static const int		audio_buffers = 2*32;	/* audio compression -> mux */
 
 /* Legacy, will be removed */
 
-int				verbose = 0;
+#warning verbose
+int				verbose = 1;
 int				test_mode = 0;
 int				filter_mode;
 int				preview;
