@@ -325,8 +325,14 @@ void plugin_process_bundle ( capture_bundle * bundle )
   GtkWidget *widget;
   gchar *buffer;
 
-  if (!active || !context || !bundle || !bundle->data ||
-      !bundle->image_type || !mux_mode)
+  if (!active || !context)
+    return;
+
+  if (mux_mode == 0)
+    goto audio_only;  
+
+  if (!bundle || !bundle->data ||
+      !bundle->image_type)
     return;
 
   /* format check */
@@ -359,6 +365,7 @@ void plugin_process_bundle ( capture_bundle * bundle )
 #endif
     }
 
+ audio_only:
   rte_get_status(context, &status);
 
   widget = lookup_widget(saving_dialog, "label12");

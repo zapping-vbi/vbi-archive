@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: remote.h,v 1.4 2001-07-28 06:55:57 mschimek Exp $ */
+/* $Id: remote.h,v 1.5 2001-08-07 12:56:14 mschimek Exp $ */
 
 #ifndef REMOTE_H
 #define REMOTE_H
@@ -43,14 +43,14 @@ extern bool	remote_stop(double time);
 extern bool	remote_sync(consumer *c, unsigned int this_module, double frame_period);
 
 static inline int
-remote_break(double time, double frame_period)
+remote_break(unsigned int this_module, double time, double frame_period)
 {
 	pthread_mutex_lock(&remote.mucon.mutex);
 
 	if (time >= remote.stop_time) {
 		pthread_mutex_unlock(&remote.mucon.mutex);
-		printv(4, "remote_break %f, stop_time %f\n",
-			time, remote.stop_time);
+		printv(4, "remote_break %08x, %f, stop_time %f\n",
+			this_module, time, remote.stop_time);
 		return TRUE;
 	}
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: remote.c,v 1.8 2001-07-28 06:55:57 mschimek Exp $ */
+/* $Id: remote.c,v 1.9 2001-08-07 12:56:14 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "remote.h"
@@ -90,7 +90,7 @@ remote_sync(consumer *c, unsigned int this_module, double frame_period)
 	b = wait_full_buffer2(c);
 
 	if (b->used <= 0)
-		FAIL("Premature end of file");
+		FAIL("Premature end of file (%s)", c->fifo->name);
 
 	pthread_mutex_lock(&remote.mucon.mutex);
 

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.4 2001-07-31 12:59:50 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.5 2001-08-07 12:56:14 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -53,19 +53,6 @@ typedef struct {
 	pthread_t mux_thread; /* mp1e multiplexer thread */
 	pthread_t video_thread_id; /* video encoder thread */
 	pthread_t audio_thread_id; /* audio encoder thread */
-
-	fifo2		aud; /* mp1e audio fifo */
-	producer	aud_prod; /* of backend aud */
-	consumer	aud_cons; /* of context aud */
-	short		*p; /* somewhere in abuffer */
-	int		left; /* bytes left (unread) in abuffer */
-	double		time; /* timestamp for aud */
-	int		stereo; /* 1 if stereo, 0 otherwise */
-	int		sampling_rate; /* same as context->audio_rate */
-	/* audio sample "geometry" */
-	int		samples_per_frame;
-	int		scan_range;
-	int		look_ahead;
 } backend_private;
 
 /* translates the context options to the global mp1e options */
@@ -81,8 +68,7 @@ static void rte_video_init(void); /* init video capture */
  * Global options from rte.
  */
 char *			my_name="rte";
-// int			verbose=0;
-int			verbose=6;
+int			verbose=0;
 int			stereo;
 
 /* fixme: This is just to satisfy dependencies for now */
@@ -117,73 +103,10 @@ context_destroy			(rte_context	*context)
 	free(context->format);
 }
 
-#define BUFFER_SIZE 8192 // bytes per read(), appx.
-
-/*
- *  Read window: samples_per_frame (1152 * channels) + look_ahead
- *  (480 * channels); from subband window size 512 samples, step
- *  width 32 samples (32 * 3 * 12 total)
- *
- *  XXX can be removed; -> mp2.c/fetch_samples()
- */
-static void
-wait_full(fifo2 *f)
-{
-	rte_context *context = f->user_data;
-	backend_private *priv = (backend_private *) context->private;
-	buffer2 *b = PARENT(f->buffers.head, buffer2, added);
-
-	assert(b->data == NULL); /* no queue */
-
-	if (priv->left <= 0) {
-		buffer2 *sb;
-
-		memcpy(b->allocated, (short *) b->allocated + priv->scan_range,
-		       priv->look_ahead * sizeof(short));
-
-		sb = wait_full_buffer2(&(priv->aud_cons));
-
-		memcpy(b->allocated + priv->look_ahead *
-		       sizeof(short), sb->data, context->audio_bytes);
-
-		priv->time = sb->time;
-
-		send_empty_buffer2(&(priv->aud_cons), sb);
-
-		priv->p = (short *) b->allocated;
-		priv->left = priv->scan_range - priv->samples_per_frame;
-
-		b->time = priv->time;
-		b->data = b->allocated;
-
-		send_full_buffer2(&priv->aud_prod, b);
-		return;
-	}
-
-	b->time = priv->time
-		+ ((priv->p - (short *) b->allocated) >> priv->stereo)
-			/ (double) priv->sampling_rate;
-
-	priv->p += priv->samples_per_frame;
-	priv->left -= priv->samples_per_frame;
-
-	b->data = (unsigned char *) priv->p;
-
-	send_full_buffer2(&priv->aud_prod, b);
-}
-
-static void
-send_empty(consumer *c, buffer2 *b)
-{
-	// XXX
-	rem_node3(&c->fifo->full, &b->node);
-	b->data = NULL;
-}
-
 static int
 init_context			(rte_context	*context)
 {
-	backend_private *priv = (backend_private*)context->private;
+//	backend_private *priv = (backend_private*)context->private;
 
 	if (!context->format)
 	{
@@ -199,61 +122,22 @@ init_context			(rte_context	*context)
 
 	if (context->mode & RTE_AUDIO)
 	{
-		int buffer_size;
-		buffer2 *b;
+		/* x8, let's see */
+		context->audio_bytes = 8 * SAMPLES_PER_FRAME * sizeof(short);
 
 		switch (context->audio_mode)
 		{
-		case RTE_AUDIO_MODE_MONO:
-			priv->stereo = 0;
-			break;
 		case RTE_AUDIO_MODE_STEREO:
-			priv->stereo = 1;
+			context->audio_bytes *= 2;
 			break;
-			/* fixme:dual channel */
+
 		default:
-			priv->stereo = 0;
 			break;
 		}
-
-		priv->sampling_rate = context->audio_rate;
-		priv->samples_per_frame = SAMPLES_PER_FRAME << priv->stereo;
-		priv->scan_range = MAX(BUFFER_SIZE / sizeof(short) /
-				       priv->samples_per_frame, 1) *
-			priv->samples_per_frame;
-		priv->look_ahead = (512 - 32) << priv->stereo;
-		
-		context->audio_bytes = priv->scan_range*sizeof(short);
-
-		buffer_size = (priv->scan_range + priv->look_ahead) * sizeof(short);
-
-		if (!init_callback_fifo2(&(priv->aud), "rte-mp1e-audio",
-			NULL, NULL, wait_full, send_empty,
-			1, buffer_size))
-		{
-			rte_error(context, "not enough mem");
-			return 0;
-		}
-
-		assert(add_producer(&priv->aud, &priv->aud_prod));
-
-		b = PARENT(priv->aud.buffers.head, buffer2, added);
-
-		b->data = NULL;
-		b->used = (priv->samples_per_frame + priv->look_ahead)
-			* sizeof(short);
-		b->offset = priv->look_ahead * sizeof(short);
-
-		priv->aud.user_data = context;
-		priv->left = 0;
 	}
 
 	if (!rte_fake_options(context))
-	{
-		if (context->mode & RTE_AUDIO)
-			destroy_fifo(&(priv->aud));
 		return 0;
-	}
 
 	/* Init the mp1e engine, as main would do */
 	rte_audio_startup();
@@ -263,9 +147,6 @@ init_context			(rte_context	*context)
 
 	if (!output_init())
 	{
-		if (context->mode & RTE_AUDIO)
-			destroy_fifo(&(priv->aud));
-
 		rte_error(context, "Cannot init output");
 		return 0;
 	}
@@ -276,12 +157,9 @@ init_context			(rte_context	*context)
 static void
 uninit_context			(rte_context	*context)
 {
-	backend_private *priv = (backend_private*)context->private;
+//	backend_private *priv = (backend_private*)context->private;
 
 	output_end();
-
-	if (context->mode & RTE_AUDIO)
-		destroy_fifo(&(priv->aud));
 
 	if (gop_sequence)
 		free(gop_sequence);
@@ -295,17 +173,13 @@ start			(rte_context	*context)
 
 	remote_init(modules);
 
-	mux_thread_done = 0;
-
 	if (modules & MOD_AUDIO) {
-		add_consumer(&(context->private->aud), &(priv->aud_cons));
-
 		ASSERT("create audio compression thread",
 			!pthread_create(&priv->audio_thread_id,
 					NULL,
 					stereo ? mpeg_audio_layer_ii_stereo :
 					         mpeg_audio_layer_ii_mono,
-					(fifo2 *) &(priv->aud)));
+					(fifo2 *) &(context->private->aud)));
 
 		printv(2, "Audio compression thread launched\n");
 	}
@@ -362,22 +236,22 @@ stop			(rte_context	*context)
 	/* Tell the mp1e threads to shut down */
 	remote_stop(0.0); // now
 
-	/* Join the mux thread */
-	printv(2, "joining mux\n");
-	pthread_join(priv->mux_thread, NULL);
-	mux_thread_done = 1;
-	printv(2, "mux joined\n");
+	if (context->mode & RTE_VIDEO) {
+		printv(2, "joining video\n");
+		pthread_join(priv->video_thread_id, NULL);
+		printv(2, "video joined\n");
+	}
 
 	if (context->mode & RTE_AUDIO) {
 		printv(2, "joining audio\n");
 		pthread_join(priv->audio_thread_id, NULL);
 		printv(2, "audio joined\n");
 	}
-	if (context->mode & RTE_VIDEO) {
-		printv(2, "joining video\n");
-		pthread_join(priv->video_thread_id, NULL);
-		printv(2, "video joined\n");
-	}
+
+	/* Join the mux thread */
+	printv(2, "joining mux\n");
+	pthread_join(priv->mux_thread, NULL);
+	printv(2, "mux joined\n");
 
 	mux_cleanup();
 
@@ -403,8 +277,13 @@ status			(rte_context	*context,
 			 struct rte_status_info	*status)
 {
 	status->bytes_out = context->private->bytes_out;
-	status->processed_frames = video_frame_count;
-	status->dropped_frames = video_frames_dropped;
+	if (context->mode == RTE_AUDIO) {
+		status->processed_frames = audio_frame_count;
+		status->dropped_frames = audio_frames_dropped;
+	} else {
+		status->processed_frames = video_frame_count;
+		status->dropped_frames = video_frames_dropped;
+	}
 }
 
 static int rte_fake_options(rte_context * context)

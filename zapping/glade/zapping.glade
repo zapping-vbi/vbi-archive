@@ -3833,9 +3833,6 @@ in the next release of this program.</label>
 	  <tooltip>Go to the index page [Home]</tooltip>
 	  <label>Home</label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_HOME</stock_pixmap>
-	  <child>
-	    <new_group>True</new_group>
-	  </child>
 	</widget>
 
 	<widget>

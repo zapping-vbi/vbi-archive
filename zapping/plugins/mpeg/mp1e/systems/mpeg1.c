@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.16 2001-07-28 06:55:57 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.17 2001-08-07 12:56:14 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,9 +36,6 @@
 #include "mpeg.h"
 #include "systems.h"
 #include "stream.h"
-
-volatile int	mux_thread_done = 0; /* audio/video threads will quit
-					when this becomes 1 */
 
 #define put(p, val, bytes)						\
 do {									\

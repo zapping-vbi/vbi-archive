@@ -1,3 +1,14 @@
+2001-08-06	<mschimek@users.sf.net>
+
+	* ffmpeg: crash due to cpuid bug, updated from ffmpeg cvs.
+	* rte/b_mp1e: report audio frame count in audio only mode.
+	* b_mp1e: increased audio buffer size to 8 * frame size (similar
+	  to mp1e btw.), hope this gives better sync w/esd. Data is more
+	  likely new when we read/stamp because encoding is much faster
+	  than input, although still far from reliable synching.
+	* rte: fixed a typo in destroy sequence causing hangs.
+	* mp1e video: missing eof reply.
+
 2001-08-01	<garetxe@users.sf.net>
 
 	* ffmpeg/: Added ffmpeg backend, taken from ffmpeg cvs

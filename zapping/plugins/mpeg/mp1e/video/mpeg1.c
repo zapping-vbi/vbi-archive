@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.47 2001-08-03 13:05:00 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.48 2001-08-07 12:56:14 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1527,9 +1527,11 @@ mpeg1_video_ipb(void *capture_fifo)
 							buddy.buffer = b;
 							buddy.org[0] = b->data;
 						}
-					} else
+					} else {
 						this->org[0] = NULL;
-
+						send_empty_buffer2(&cons, b);
+					}
+					
 					if (!this->org[1]) {
 						this->buffer = NULL;
 						this->org[1] = this->org[0];
@@ -1543,8 +1545,10 @@ mpeg1_video_ipb(void *capture_fifo)
 					if (b->used > 0) {
 						this->time = b->time;
 						this->org[0] = b->data;
-					} else
+					} else {
 						this->org[0] = NULL;
+						send_empty_buffer2(&cons, b);
+					}
 				}
 #if TEST_PREVIEW
 				if (this->org[0] && (rand() % 100) < force_drop_rate) {
@@ -1560,7 +1564,7 @@ mpeg1_video_ipb(void *capture_fifo)
 
 			sp++;
 
-			if (!this->org[0] || remote_break(this->time, time_per_frame) ||
+			if (!this->org[0] || remote_break(MOD_VIDEO, this->time, time_per_frame) ||
 			    video_frame_count + sp > video_num_frames) {
 				printv(2, "Video: End of file\n");
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.31 2001-08-01 18:33:02 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.32 2001-08-07 12:56:14 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -421,10 +421,17 @@ int main(int argc, char *argv[])
 	int width = 16, height = 16;
 	int sleep_time = 10;
 	int audio_rate=44100, stereo=1;
+#if 1
 	char * video_device = "/dev/video0";
 	char * audio_device = "/dev/audio";
 	char * backend = "ffmpeg";
 	char * format="avi", *extension = ".avi";
+#else
+	char * video_device = "/dev/video";
+	char * audio_device = "/dev/audio";
+	char * backend = "mp1e";
+	char * format="mpeg1", *extension = ".mpg";
+#endif
 	char dest_file[256], *buffer;
 	pthread_t audio_thread_id;
 	enum rte_mux_mode mux_mode = RTE_AUDIO | RTE_VIDEO;

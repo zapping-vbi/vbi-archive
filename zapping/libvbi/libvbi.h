@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.41 2001-07-31 12:59:50 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.42 2001-08-07 12:56:14 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -312,7 +312,8 @@ typedef struct {
  *  On return from the event handler the vbi mainloop will terminate
  *  and must be restarted after the problem has been solved.
  *
- *  (XXX this should include an error code and message) 
+ *  (XXX this should include an error code and message)
+ *  (XXX rethink termination)
  */
 
 #define	VBI_EVENT_RATIO		(1 << 7)

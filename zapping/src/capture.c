@@ -349,6 +349,9 @@ on_capture_canvas_allocate             (GtkWidget       *widget,
 void
 clear_bundle(capture_bundle *d)
 {
+  if (!d)
+    return;
+
   switch (d->image_type)
     {
     case CAPTURE_BUNDLE_XV:

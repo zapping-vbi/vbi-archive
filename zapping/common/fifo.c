@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.25 2001-07-31 12:59:50 mschimek Exp $ */
+/* $Id: fifo.c,v 1.26 2001-08-07 12:56:14 mschimek Exp $ */
 
 #define FIFO_C
 
@@ -350,8 +350,6 @@ wait_full_buffer(fifo *f)
 {
 	buffer *b;
 	coninfo *consumer;
-
-asserts(f);
 
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
 

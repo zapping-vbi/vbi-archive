@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.17 2001-07-31 12:59:50 mschimek Exp $ */
+/* $Id: mp2.c,v 1.18 2001-08-07 12:56:14 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -77,7 +77,9 @@ static producer		audio_prod;
 extern int		audio_num_frames;
 extern int		aud_buffers;
 
-
+/* mhs: read by rte */
+int			audio_frame_count;
+int			audio_frames_dropped;
 
 /* UI convenience, find closest valid parameters */
 
@@ -314,7 +316,8 @@ audio_init(int sampling_freq, int stereo, int audio_mode, int bit_rate, int psyc
 	subband_filter_init(&aseg);
 	psycho_init(mp2, sampling_freq, psycho_loops);
 
-	mp2->audio_frame_count = 0;
+	audio_frame_count = 0;
+	audio_frames_dropped = 0;
 
 	mp2->frame_period = SAMPLES_PER_FRAME / (double) sampling_freq;
 
@@ -372,7 +375,7 @@ fetch_samples(struct audio_seg *mp2, double *btime, int stereo)
 	buffer2 *buf = mp2->ibuf;
 	int todo, avail;
 
-	if (mp2->audio_frame_count > audio_num_frames) {
+	if (audio_frame_count > audio_num_frames) {
 		if (buf)
 			send_empty_buffer2(&mp2->cons, buf);
 		goto terminate;
@@ -430,7 +433,7 @@ fetch_samples(struct audio_seg *mp2, double *btime, int stereo)
 		}
 	}
 
-	if (remote_break(mp2->time, mp2->frame_period)) {
+	if (remote_break(MOD_AUDIO, mp2->time, mp2->frame_period)) {
 		if (buf)
 			send_empty_buffer2(&mp2->cons, buf);
 		goto terminate;
@@ -439,7 +442,7 @@ fetch_samples(struct audio_seg *mp2, double *btime, int stereo)
 	*btime = mp2->time;
 	mp2->time += mp2->frame_period; /* XXX */
 
-	mp2->audio_frame_count++;
+	audio_frame_count++;
 
 	return (short *) mp2->o;
 

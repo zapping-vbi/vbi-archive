@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libaudio.h,v 1.3 2001-07-28 06:55:57 mschimek Exp $ */
+/* $Id: libaudio.h,v 1.4 2001-08-07 12:56:14 mschimek Exp $ */
 
 #include "../common/fifo.h"
 
@@ -29,6 +29,9 @@ extern void *		mpeg_audio_layer_ii_stereo(void *cap_fifo);
 extern void		audio_parameters(int *sampling_freq, int *bit_rate);
 extern void		audio_init(int sampling_freq, int stereo,
 				int audio_mode, int bit_rate, int psycho_loops);
+
+extern int		audio_frame_count;
+extern int		audio_frames_dropped;
 
 /* oss.c */
 

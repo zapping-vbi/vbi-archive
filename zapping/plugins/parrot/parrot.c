@@ -188,6 +188,11 @@ gboolean plugin_init (PluginBridge bridge, tveng_device_info * info)
 {
   gint i;
 
+/* mhs: IMHO not solid enough for daily use,
+ temporarily disabled to see if there are any side effects */
+  num_bundles = 0;
+  return FALSE;
+
   /* Do any startup you need here, and return FALSE on error */
   pthread_rwlock_init(rwlock, NULL);
 
