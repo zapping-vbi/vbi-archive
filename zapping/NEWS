@@ -1,17 +1,68 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
-0.8
----
+Zapping 0.8, 2004-11-11
+-----------------------
+Main focus in Zapping 0.8 was on Teletext and VBI features.
 
-0.7.3
------
+Dependency changes:
+- Zapping now requires libzvbi 0.2.9 or higher.
+- The V4L2 0.20 API (predecessor of V4L2 in Linux 2.6) is no
+  longer supported.
+
+User visible changes:
+- The page cache has been redesigned, it can now hold pages of
+  multiple networks. No more delay to reload pages after a channel
+  change. Offline browsing is possible, i.e. one can read pages of a
+  different channel than the one currently received, a different
+  channel in each Teletext window.
+- The Teletext window has a new radio menu to change between networks
+  in the cache, or to show pages of the currently received network.
+- The Teletext decoding and formatting routines improved.
+  The Teletext decoder will try hard to detect channel changes and
+  identify channels, so multi-channel page caching also works properly
+  on composite video input.
+- The page cache used to store all received pages. It now has a
+  user defined size limit. When the limit is reached the last recently
+  used pages of the last recently used network are replaced, with
+  higher priority give to frequently visited pages and subpages which
+  often take longer to reload.
+- TOP navigation has been redesigned. In addition to the navigation
+  bar at the bottom of the page Teletext windows now have a TOP
+  drop-down menu.
+- In addition to the default character set region in preferences
+  users can now completely override the character encoding of a page
+  by choosing from a radio menu in Teletext windows.
+- Zapzilla used to add a 41st black column to balance an often black
+  first column. It now extends colors and graphics if the first
+  column is not black.
+- Rendering of blinking characters and the real time clock improved.
+  Clock updates can be disabled in gconf-editor.
+- When a requested page is not cached the page number in the header
+  rolls to show the currently received pages. This can be disabled
+  in gconf-editor.
+- Cut & paste now speaks UTF-8.
+- Teletext preferences have been redesigned along Gnome 2 human
+  interface guidelines. Except for cache size all options apply
+  immediately.
+- The Teletext color dialog was merged into Teletext preferences.
+- The page save dialog asks before overwriting an existing file.
+  Error dialogs have been redesigned along Gnome 2 HIG.
+- Zapping automatically leaves fullscreen mode to display help or
+  an URL on a Teletext page, and error handling improved.
+- Zapping now supports the new libzvbi proxy to share a VBI device
+  with other applications such as the Nxtvepg EPG viewer.
+- For tests (this will become a regular feature in future versions)
+  Zapping can read Teletext, subtitle and caption data from a
+  DVB MPEG stream (skipping video and audio, if any).
+- The GConf interface improved to avoid problems we had in 0.7.
+
+Zapping 0.7.3, 2004-10-11
+-------------------------
 Bug fixes.
 
-0.7.2
------
-This version of Zapping requires Gtk+ 2.4.
-
+Zapping 0.7.2, 2004-10-04
+-------------------------
 Zapping now supports fullscreen video capturing, including screenshots
 and recording while in fullscreen mode, and fullscreen Teletext. Since
 overlay limitations do not apply to captured video (if the graphics
@@ -26,13 +77,16 @@ can be disabled separately. Changing channels by mouse wheel should
 work better and Zapping now properly disables the KDE 3.0 screensaver
 (untested).
 
+Dependency changes:
+- This version of Zapping requires Gtk+ 2.4.
+
 Important bug fixes:
 - Zapping did not work with MSI TV-@nywhere (cx8800 based, using
   Linux 2.6 V4L2), this has been fixed and the driver interface
   generally improved.
 
-0.7.1
------
+Zapping 0.7.1, 2004-09-13
+-------------------------
 This time we have three major improvements: Zapping now runs on FreeBSD
 using the bktr driver, missing only support for remote controls and
 recording. Again it also runs on Solaris using XVideo, fixes courtesy
@@ -46,8 +100,8 @@ Important bug fixes:
 - Position of subtitles in fullscreen mode was wrong.
 - Alirc VOL_UP/DOWN did not work.
 
-0.7
----
+Zapping 0.7, 2004-07-09
+-----------------------
 Main focus in Zapping 0.7 was porting the user interface to Gnome 2. Along
 with it numerous other improvements and fixes were made, including:
 

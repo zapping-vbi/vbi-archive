@@ -268,21 +268,39 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
       <title>Teletext plugin</title>
       <variablelist>
         <varlistentry>
-          <term><guilabel>Default region</guilabel></term>
-          <listitem>
-            <para>Some stations fail to transmit a complete language identifier, so the Teletext viewer may not display the correct font or national characters. You can select your geographical region as an additional hint.</para>
-          </listitem>
-        </varlistentry>
-        <varlistentry>
           <term><guilabel>Teletext implementation</guilabel></term>
           <listitem>
-            <para>The Teletext standard knows different implementation levels. The built-in Teletext browser supports them all, but you can select if you want to see pages as displayed by simpler decoders. Note most stations still only transmit at the basic levels 1.0 or 1.5.</para>
+            <para>The Teletext standard knows different implementation levels. The built-in Teletext browser supports them all, but you can choose to see pages as displayed by simpler decoders. Note most stations still only transmit at the basic levels 1.0 or 1.5.</para>
           </listitem>
         </varlistentry>
         <varlistentry>
-          <term><guilabel>Interpolation type</guilabel></term>
+          <term><guilabel>Default encoding</guilabel></term>
           <listitem>
-            <para>You can freely resize Teletext windows. There are different ways to scale the image, some give better results, others are faster. Select here the mode you like best.</para>
+            <para>Some stations fail to transmit a complete character set code, so the Teletext viewer may not display the correct font or national characters. You can select your geographical region as an additional hint.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><guilabel>Page memory size</guilabel></term>
+          <listitem>
+            <para>With this option you can limit the size of the page cache in memory. A complete set of pages of one station will require around 1000 KiB. When the limit is reached, Zapzilla will remove the last recently used pages and you must wait for retransmission to see them. Frequently visited pages like page 100 or subpages which take longer to reload get priority.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><guilabel>Number of channels in page memory</guilabel></term>
+          <listitem>
+            <para>The page memory can contain pages of more than one channel. When the limit is reached, Zapzilla will remove pages of the last recently used channel first.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><guilabel>Brightness and contrast</guilabel></term>
+          <listitem>
+            <para>These values change the brightness and contrast of the text in Teletext windows or the main window.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><guilabel>Scaling</guilabel></term>
+          <listitem>
+            <para>You can freely resize Teletext windows. There are different ways to scale the image, some give better visual results, others are faster.</para>
           </listitem>
         </varlistentry>
       </variablelist>

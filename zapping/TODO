@@ -35,7 +35,6 @@ Outstanding issues for future releases
 * Examine interaction of Zapping (esp. overlay) with RANDR.
   http://keithp.com/~keithp/talks/randr/randr/
   xc/doc/specs/Randr, xrandr et al
-* Support libzvbi proxyd
 * After "add all channels" in the channel editor Zapping
   should scan for station names.
 * UYVY in mpeg plugin.
@@ -68,8 +67,6 @@ Outstanding issues for future releases
 * Better audio mode (mono/stereo etc) support.
 * Check tveng has frame rate for timestamping. (Unlike mpeg bug.)
 * Remove default overlay page?
-* Is zvbi really needed for osd?
-* --roottv switch (use Z as screensaver)
 * More compression formats.
 * Trigger: Close should remember it had been clicked already
   when a trigger is merely repeated.
@@ -88,7 +85,7 @@ Outstanding issues for future releases
 * Remove tveng_frame_format.bytesperline. (Um, why?)
 * Verify all Gnome etc URLs everywhere.
 * Proper error messages on xawtv import.
-* In overlay.c, possible elsewhere, we request GDK events but never
+* In overlay.c, possibly elsewhere, we request GDK events but never
   disable. Can we safely, without disabling events enabled before
   or between, by other zapping/gnome/gtk/gdk modules?
 * WM_ICON could display a network icon in titlebar?

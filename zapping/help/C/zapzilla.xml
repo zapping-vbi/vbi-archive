@@ -11,7 +11,7 @@
 	    <imagedata fileref="figures/zapzilla.png" format="PNG"/> 
 	  </imageobject>
 	  <textobject>
-	    <phrase>Zapzilla window. Contains titlebar, menubar, toolbar, display area showing a Teletext page, and statusbar. The menubar contains File, Edit, Go and Bookmarks menus.</phrase>
+	    <phrase>Zapzilla window. Contains titlebar, menubar, toolbar, display area showing a Teletext page, and statusbar. The menubar contains File, Edit, View, Go, Channels and Bookmarks menus.</phrase>
 	  </textobject>
 	</mediaobject>
       </screenshot>
@@ -65,10 +65,10 @@
       <title>To Open a Teletext Page</title>
       
       <para>Type the page number on the keyboard. You can also press the cursor keys or click on the small arrow buttons in the toolbar to go to the next or previous page or subpage.</para>
-      <para>You can click on a page number in the page. With the first mouse button the page opens in the same window, with the third (middle) button in a new window. When the page has subpages it often contains a subpage number like 2/5 (meaning this is subpage 2 of 5). As with page numbers you can click on this number to go to the next subpage.</para>
+      <para>You can click on a page number in the page. With the first (left) mouse button the page opens in the same window, with the third (middle) button in a new window. When the page has subpages it often contains a subpage number like 2/5 (meaning this is subpage 2 of 5). As with page numbers you can click on this number to go to the next subpage. Two right angle brackets &gt;%gt; on a page also link to the next subpage.</para>
       <para>If Zapzilla can identify web links or e-mail addresses you can click on them to open your web browser or e-mail application.</para>
     </sect2>
-    
+
     <sect2 id="zapzilla-navigation-rotating-subpages">
       <title>Rotating Subpages</title>
       
@@ -78,16 +78,18 @@
     <sect2 id="zapzilla-navigation-top-flof">
       <title>Links in the last row</title>
       
-      <para>Some TV stations provide a basic navigation system called TOP or FLOF. Here the last row of the page shows links to important pages or sections. You can click on these links to browse the Teletext. A TOP index is available on page 900.</para>
+      <para>Some TV stations provide a basic navigation system called TOP or FLOF. Here the last row of the page shows links to important pages or sections. You can click on these links to browse the Teletext. A complete TOP index is available under the <menuchoice>
+          <guimenu>Go</guimenu>
+        </menuchoice> menu.</para>
     </sect2>
 
     <sect2 id="zapzilla-navigation-bookmarks">
-	<title>Bookmarks</title>
-      
+      <title>Bookmarks</title>
+
       <para>When you choose <menuchoice>
           <guimenu>Bookmarks</guimenu>
           <guisubmenu>Add Bookmark</guisubmenu>
-        </menuchoice> from the main or context menu the current page will be added to the <guimenu>Bookmarks</guimenu> menu. When you choose a bookmark Zapzilla will change to the respective channel and open the page. You can edit the bookmarks by choosing <menuchoice>
+        </menuchoice> from the main or context menu the current page will be added to the <guimenu>Bookmarks</guimenu> menu. When you choose a bookmark Zapzilla will change to the respective channel and open the page. You can remove or edit the bookmarks by choosing <menuchoice>
           <guimenu>Bookmarks</guimenu>
           <guisubmenu>Edit Bookmarks</guisubmenu>
         </menuchoice>.</para>
@@ -108,7 +110,29 @@
 
       <para>Teletext pages can contain concealed text, typically to hide quiz answers. You can see this text after clicking on the <guilabel>Reveal</guilabel> button in the toolbar.</para>
     </sect2>
-    
+
+    <sect2 id="zapzilla-character-encoding">
+      <title>Character Encoding</title>
+
+      <para>TV stations do not always transmit correct character set codes. By choosing from <menuchoice>
+          <guimenu>View</guimenu>
+          <guisubmenu>Encoding</guisubmenu>
+        </menuchoice> you can override the default character encoding.</para>
+    </sect2>
+
+    <sect2 id="zapzilla-channels">
+      <title>Multi-Channel Page Memory</title>
+
+      <para>The Zapzilla page memory can contain pages of more than one station. To switch between stations choose from the <menuchoice>
+          <guimenu>Channels</guimenu>
+        </menuchoice> menu. Note when the memory limit is reached, older pages are removed from page memory. You can change the limit in the Teletext preferences, by choosing <menuchoice>
+          <guimenu>Edit</guimenu>
+          <guisubmenu>Preferences</guisubmenu>
+        </menuchoice>. When you choose the <menuchoice>
+          <guimenu>Received</guimenu>
+        </menuchoice> channel, Zapzilla shows only pages of the currently received channel and updates the display on channel changes.</para>
+    </sect2>
+
     <sect2 id="zapzilla-export">
       <title>Exporting Pages</title>
       
