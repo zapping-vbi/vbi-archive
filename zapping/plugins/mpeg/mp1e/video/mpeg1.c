@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.11 2000-10-17 07:45:08 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.12 2000-10-22 05:24:50 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -134,13 +134,6 @@ extern int p6_predict_forward_planar(unsigned char *) reg(1);
 #endif
 
 static const unsigned char
-quant_res_inter[32] __attribute__ ((SECTION("video_tables") aligned (CACHE_LINE))) =
-{
-	1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-	16, 16, 18, 18, 20, 20, 22, 22,	24, 24, 26, 26, 28, 28, 30, 30
-};
-
-static const unsigned char
 quant_res_intra[32] __attribute__ ((SECTION("video_tables") aligned (CACHE_LINE))) =
 {
 	1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
@@ -152,9 +145,11 @@ extern bool		temporal_interpolation;
 extern int		preview;
 extern void		packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
 
-int p_inter_bias = 65536 * 64, // 48,
-    b_inter_bias = 65536 * 128, // 96,
+int p_inter_bias = 65536 * 48,
+    b_inter_bias = 65536 * 96,
     quant_max = 31;
+
+#define QS 1
 
 fifo *			video_fifo;
 
@@ -263,7 +258,7 @@ do {									\
 									\
 			quant = lroundn((bwritten(&video_out) - Ti)	\
 				* r31 * act);				\
-			quant = quant_res_intra[saturate(quant >> 1,	\
+			quant = quant_res_intra[saturate(quant >> QS,	\
 				1, quant_max)];				\
 									\
 			Ti += Tmb;					\
@@ -327,7 +322,7 @@ picture_i(unsigned char *org0, unsigned char *org1)
 	quant_sum = 0;
 	act_sum = 0.0;
 
-	swap(oldref, newref);
+//	swap(oldref, newref);
 
 	reset_mba();
 	reset_dct_pred();
@@ -587,7 +582,7 @@ picture_p(unsigned char *org0, unsigned char *org1)
 
 				quant = 
 lroundn((bwritten(&video_out) - Ti) * r31 * act);
-quant = quant_res_intra[saturate(quant >> 1, 1, quant_max)];
+quant = quant_res_intra[saturate(quant >> QS, 1, quant_max)];
 
 //				if (quant >= 4 && abs(quant - prev_quant) <= 2)
 //					quant = prev_quant;
@@ -625,8 +620,7 @@ quant = quant_res_intra[saturate(quant >> 1, 1, quant_max)];
 				act_sum += act = vmc / 65536.0 + 1;
 				act = (2.0 * act + avg_act) / (act + 2.0 * avg_act);
 
-quant = quant_res_inter[saturate(
-lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
+quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
     				
 //				if (quant >= 4 && abs(quant - prev_quant) <= 2)
 //					quant = prev_quant;
@@ -738,7 +732,7 @@ lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
 				
 								if (referenced) {
 						    			pr_start(27, "IDCT inter");
-									mpeg1_idct_inter(cbp); // [0] & [3]
+									mpeg1_idct_inter(quant, cbp); // [0] & [3]
 									pr_end(27);
 								}
 
@@ -953,7 +947,7 @@ picture_b(unsigned char *org0, unsigned char *org1)
 				act = (2.0 * act + avg_act) / (act + 2.0 * avg_act);
 	
 	quant = lroundn((bwritten(&video_out) - Ti) * r31 * act);
-	quant = quant_res_intra[saturate(quant >> 1, 1, quant_max)];
+	quant = quant_res_intra[saturate(quant >> QS, 1, quant_max)];
 
 //				if (quant >= 4 && abs(quant - prev_quant) <= 2)
 //					quant = prev_quant;
@@ -988,8 +982,7 @@ picture_b(unsigned char *org0, unsigned char *org1)
 				act_sum += act = vmc / 65536.0 + 1;
 				act = (2.0 * act + avg_act) / (act + 2.0 * avg_act);
 
-				quant = quant_res_inter[saturate(
-			lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
+quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
 
 //				if (quant >= 4 && abs(quant - prev_quant) <= 2)
 //					quant = prev_quant;

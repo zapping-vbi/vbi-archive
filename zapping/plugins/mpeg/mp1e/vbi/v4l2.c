@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.3 2000-10-15 21:24:49 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.4 2000-10-22 05:24:50 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -191,8 +191,6 @@ vbi_v4l2_init(void)
 			      * vbi_para.samples_per_line;
 
 		if (vcap.flags & V4L2_FLAG_STREAMING) {
-			int str_type = V4L2_BUF_TYPE_VBI;
-
 			printv(2, "Using V4L2 VBI streaming interface\n");
 
 			vrbuf.type = V4L2_BUF_TYPE_VBI;

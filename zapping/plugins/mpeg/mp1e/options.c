@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.10 2000-10-15 21:24:48 mschimek Exp $ */
+/* $Id: options.c,v 1.11 2000-10-22 05:24:49 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +122,7 @@ long_options[] = {
 	{ "rec_source",			required_argument, NULL, 'r' },
 	{ "image_size",			required_argument, NULL, 's' },
 	{ "verbose",			optional_argument, NULL, 'v' },
-	{ "bw",				no_argument,	   NULL, 'w' },
+	{ "mono",			no_argument,	   NULL, 'w' },
 	{ "mixer_device",		required_argument, NULL, 'x' },
 	{ "anno",			required_argument, NULL, 'A' },
 	{ "audio_bit_rate",		required_argument, NULL, 'B' },

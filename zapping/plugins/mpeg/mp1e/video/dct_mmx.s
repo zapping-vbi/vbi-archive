@@ -18,7 +18,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: dct_mmx.s,v 1.3 2000-09-29 17:54:33 mschimek Exp $
+# $Id: dct_mmx.s,v 1.4 2000-10-22 05:24:50 mschimek Exp $
 
 	.text
 	.align		16
@@ -250,237 +250,6 @@ mmx_fdct_intra:
 	popl		%ecx;				
 	popl		%esi;
 	ret
-
-
-
-
-
-
-OLD_mmx_fdct_intra:
-
-	leal		-16(%esp),%esp;
-	movl		%esi,12(%esp);			movl		$mblock,%esi;
-	movl		%ebx,8(%esp);			movl		$mblock+1536,%ebx;
-	movl		%eax,4(%esp);			movl		qfiql,%eax;
-	movl		%ecx,(%esp);			movl		$6,%ecx;
-
-	.align		16
-1:
-	movq		7*16+0(%esi),%mm0;		movq		(%esi),%mm7;
-	movq		1*16+0(%esi),%mm6;		decl		%ecx;
-	movq		6*16+0(%esi),%mm1;		paddw		%mm7,%mm0;
-	movq		2*16+0(%esi),%mm5;		paddw		%mm7,%mm7;
-	movq		5*16+0(%esi),%mm2;		psubw		%mm0,%mm7;
-	movq		3*16+0(%esi),%mm4;		paddw		%mm6,%mm1;
-	movq		4*16+0(%esi),%mm3;		paddw		%mm6,%mm6;
-	paddw		%mm5,%mm2;			psubw		%mm1,%mm6;
-	paddw		%mm4,%mm3;			paddw		%mm4,%mm4;
-	paddw		%mm5,%mm5;			psubw		%mm3,%mm4;
-	psubw		%mm2,%mm5;			psubw		%mm2,%mm1;
-	psubw		%mm3,%mm0;			paddw		%mm2,%mm2;
-	paddw		%mm1,%mm2;			paddw		%mm3,%mm3;
-	paddw		%mm0,%mm3;			paddw		%mm0,%mm1;
-	paddw		%mm3,%mm2;			psllw		$3,%mm1;
-	paddw		%mm5,%mm4;			psllw		$4,%mm3;
-	paddw		%mm6,%mm5;			psllw		$3,%mm2;
-	pmulhw		cC4_15,%mm1;			psllw		$3,%mm5;
-	pmulhw		cC4C6_14,%mm5;			psubw		%mm2,%mm3;
-	movq		%mm3,4*16+0(%ebx);		psllw		$2,%mm0;
-	paddw		%mm7,%mm6;			psllw		$4,%mm7;
-	paddw		%mm0,%mm1;			movq		%mm6,%mm3;
-	pmulhw		c1C6_13,%mm7;			paddw		%mm0,%mm0;
-	psubw		%mm1,%mm0;			psllw		$3,%mm3;
-	movq		%mm0,6*16+0(%ebx);		paddw		%mm4,%mm6;
-	pmulhw		cC4_15,%mm3;			movq		%mm4,%mm0;
-	paddw		%mm6,%mm6;			psllw		$3,%mm0;
-	paddw		%mm7,%mm5; 			psllw		$2,%mm4;
-	pmulhw		cC4_15,%mm0;			paddw		%mm7,%mm7;
-	psubw		%mm6,%mm4;	 		psubw		%mm5,%mm7;
-	paddw		%mm7,%mm4;			paddw		%mm7,%mm7;
-	paddw		%mm0,%mm4;			paddw		%mm3,%mm6;
-	psubw		c128_6,%mm2;			paddw		%mm5,%mm6;
-	psubw		%mm4,%mm7;			paddw		%mm5,%mm5;
-	movq		%mm2,%mm0;			punpcklwd	%mm6,%mm2;
-	psubw		%mm6,%mm5;			punpckhwd	%mm6,%mm0;
-	movq		%mm1,%mm6;			punpcklwd	%mm7,%mm1;
-	movq		c1,%mm3;			punpckhwd	%mm7,%mm6;
-	movq		%mm2,%mm7;			punpckldq	%mm1,%mm2;
-        movq		%mm2,(%ebx);			punpckhdq	%mm1,%mm7;
-	movq		%mm0,%mm2;			punpckldq	%mm6,%mm0;
-	paddw		%mm3,%mm7;			punpckhdq	%mm6,%mm2;
-	movq		4*16+0(%ebx),%mm6;		paddw		%mm3,%mm0;
-        movq		%mm7,1*16+0(%ebx);		paddw		%mm3,%mm2;
-	movq		%mm6,%mm1;			punpcklwd	%mm4,%mm6;
-	movq		6*16+0(%ebx),%mm7;		punpckhwd	%mm4,%mm1;
-	movq		%mm7,%mm4;			punpcklwd	%mm5,%mm7;
-	movq		%mm0,2*16+0(%ebx);		punpckhwd	%mm5,%mm4;
-	movq		%mm6,%mm0;			punpckldq	%mm7,%mm6;
-	movq		%mm2,3*16+0(%ebx);		punpckhdq	%mm7,%mm0;
-	movq		%mm1,%mm7;			punpckldq	%mm4,%mm1;
-	movq		%mm6,0*16+8(%ebx);		paddw		%mm3,%mm0;
-	movq		6*16+8(%esi),%mm2;		punpckhdq	%mm4,%mm7;
-	movq		%mm0,1*16+8(%ebx);		paddw		%mm3,%mm1;
-	movq		1*16+8(%esi),%mm6;		paddw		%mm3,%mm7;
-	movq		%mm1,2*16+8(%ebx);		paddw		%mm6,%mm2;
-	movq		2*16+8(%esi),%mm5;		paddw		%mm6,%mm6;
-	movq		5*16+8(%esi),%mm1; 		psubw		%mm2,%mm6;
-	movq		%mm7,3*16+8(%ebx);		paddw		%mm5,%mm1;
-	movq		0*16+8(%esi),%mm7;		paddw		%mm5,%mm5;
-	movq		7*16+8(%esi),%mm0; 		psubw		%mm1,%mm5;
-	movq		4*16+8(%esi),%mm3; 		paddw		%mm7,%mm0;
-	movq		3*16+8(%esi),%mm4;		paddw		%mm7,%mm7;
-	psubw		%mm0,%mm7;			paddw		%mm2,%mm1;
-	paddw		%mm4,%mm3; 			paddw		%mm4,%mm4;
-	psubw		%mm3,%mm4;			paddw		%mm0,%mm3;
-	paddw		%mm0,%mm0; 			paddw		%mm2,%mm2;
-	psubw		%mm3,%mm0;			psubw		%mm1,%mm2;
-	paddw		%mm0,%mm2; 			psllw		$2,%mm0;
-	paddw		%mm3,%mm1; 			psllw		$3,%mm2;
-	pmulhw		cC4_15,%mm2;			psllw		$3,%mm1;
-	paddw		%mm5,%mm4; 			psllw		$4,%mm3;
-	psubw		%mm1,%mm3;			paddw		%mm6,%mm5;
-	paddw		%mm7,%mm6;			psllw		$3,%mm5;
-	movq		%mm3,4*16+8(%ebx); 		psllw		$4,%mm7;
-	pmulhw		cC4C6_14,%mm5;			paddw		%mm0,%mm2;
-	paddw		%mm0,%mm0; 			psubw		%mm2,%mm0;
-	pmulhw		c1C6_13,%mm7;			movq		%mm6,%mm3;
-	movq		%mm0,6*16+8(%ebx);		psllw		$3,%mm3;
-	pmulhw		cC4_15,%mm3;			movq		%mm4,%mm0;
-	paddw		%mm4,%mm6; 			psllw		$3,%mm0;
-	pmulhw		cC4_15,%mm0;			paddw		%mm6,%mm6;
-	paddw		%mm7,%mm5;			paddw		%mm7,%mm7;
-	psubw		%mm5,%mm7;			psllw		$2,%mm4;
-	psubw		c128_6,%mm1;			psubw		%mm6,%mm4;
-	paddw		%mm3,%mm6;			paddw		%mm7,%mm4;
-	paddw		%mm0,%mm4;			paddw		%mm7,%mm7;
-	psubw		%mm4,%mm7;			paddw		%mm5,%mm6;
-	movq		%mm1,%mm0;			punpcklwd	%mm6,%mm1;
-	paddw		%mm5,%mm5; 			punpckhwd	%mm6,%mm0;
-	movq		%mm2,%mm3;			punpcklwd	%mm7,%mm2;
-	psubw		%mm6,%mm5;			punpckhwd	%mm7,%mm3;
-	movq		%mm1,%mm6;			punpckldq	%mm2,%mm1;
-	movq		%mm0,%mm7;			punpckldq	%mm3,%mm0;
-	movq		%mm1,4*16+0(%ebx);		punpckhdq	%mm2,%mm6;
-	movq		4*16+8(%ebx),%mm2;		punpckhdq	%mm3,%mm7;
-	movq		%mm0,6*16+0(%ebx);		movq		%mm2,%mm0;
-	movq		6*16+8(%ebx),%mm1;		punpcklwd	%mm4,%mm2;
-	movq		%mm6,5*16+0(%ebx);		punpckhwd	%mm4,%mm0;
-	movq		%mm1,%mm3;			punpcklwd	%mm5,%mm1;
-	movq		%mm7,7*16+0(%ebx);    		punpckhwd	%mm5,%mm3;
-	movq		%mm2,%mm4;			punpckldq	%mm1,%mm2;
-	movq		1*16+8(%ebx),%mm6;    		punpckhdq	%mm1,%mm4;
-	movq		%mm0,%mm5;			punpckldq	%mm3,%mm5;
-	movq		0*16+8(%ebx),%mm7;		punpckhdq	%mm3,%mm0;
-	movq		3*16+8(%ebx),%mm1;		paddw		%mm6,%mm5;
-	movq		2*16+8(%ebx),%mm3;		paddw		%mm6,%mm6;
-	paddw		%mm7,%mm0; 			psubw		%mm5,%mm6;
-	paddw		%mm7,%mm7; 			paddw		%mm1,%mm2;
-	psubw		%mm0,%mm7;			paddw		%mm1,%mm1;
-	paddw		%mm3,%mm4; 			paddw		%mm3,%mm3;
-	psubw		%mm2,%mm1;			psubw		%mm4,%mm3;
-	paddw		%mm0,%mm2; 			paddw		%mm0,%mm0;
-	paddw		%mm5,%mm4; 			paddw		%mm5,%mm5;
-	psubw		%mm2,%mm0;			psraw		$1,%mm2;
-	psubw		%mm4,%mm5;			psraw		$1,%mm4;
-	paddw		%mm2,%mm4;			paddw		%mm2,%mm2;
-	movq		%mm0,0*16+8(%ebx);		psubw		%mm4,%mm2;
-	pmulhw		0*16+8(%eax),%mm4;		paddw		%mm3,%mm1;
-	movq		crnd,%mm0;			paddw		%mm6,%mm3;
-	pmulhw		4*16+8(%eax),%mm2;		paddw		%mm0,%mm4;
-	psraw		csh,%mm4;			paddw		%mm7,%mm6;
-	pmulhw		cC4C6_14,%mm3;			paddw		%mm0,%mm2;
-        movq		%mm4,0*16+8+768(%esi);		movq		%mm1,%mm4;
-        psraw		csh,%mm2;	        	psraw		$3,%mm1; 
-	movq		%mm2,4*16+8+768(%esi);		movq		%mm6,%mm2;
-	pmulhw		c1C6_13,%mm7;			psraw		$3,%mm6;
-	pmulhw		cC2C61_13,%mm4;			paddw		%mm1,%mm6;
-	pmulhw		cC2C61_13,%mm2;			paddw		%mm1,%mm1;
-	psubw		%mm6,%mm1;			psraw		$1,%mm3; // red
-	paddw		%mm4,%mm1; 			paddw		%mm7,%mm3;
-	paddw		%mm2,%mm6;			paddw		%mm7,%mm7;
-	psubw		%mm3,%mm7;			paddw		%mm3,%mm6;
-	movq		csh,%mm4;			psraw		$1,%mm5;
-	paddw		%mm7,%mm1; 			paddw		%mm7,%mm7;
-	psubw		%mm1,%mm7;			paddw		%mm3,%mm3;
-	movq		0*16+8(%ebx),%mm2;		psubw		%mm6,%mm3;
-	pmulhw		5*16+8(%eax),%mm1;		psraw		$1,%mm2;
-	pmulhw		3*16+8(%eax),%mm7;		paddw		%mm2,%mm5;
-	pmulhw		cC4_15,%mm5; 			psraw		$1,%mm2;
-	pmulhw		7*16+8(%eax),%mm3; 		paddw		%mm0,%mm1;
-	pmulhw		1*16+8(%eax),%mm6;		psraw		%mm4,%mm1;
-	paddw		%mm2,%mm5; 			paddw		%mm2,%mm2;
-	movq		%mm1,5*16+8+768(%esi);		psubw		%mm5,%mm2;
-	pmulhw		6*16+8(%eax),%mm2;		paddw		%mm0,%mm7;
-	psraw		%mm4,%mm7;			paddw		%mm0,%mm3;
-	pmulhw		2*16+8(%eax),%mm5;		paddw		%mm0,%mm6;
-	paddw		%mm0,%mm2;			psraw		%mm4,%mm6;
-	movq		%mm7,3*16+8+768(%esi);		psraw		%mm4,%mm3;
-	movq		%mm3,7*16+8+768(%esi);		psraw		%mm4,%mm2;
-	movq		7*16+0(%ebx),%mm1; 		paddw		%mm0,%mm5;
-	movq		(%ebx),%mm7;			psraw		%mm4,%mm5;
-	movq		%mm6,1*16+8+768(%esi);		paddw		%mm7,%mm1;
-	movq		2*16+0(%ebx),%mm3;		paddw		%mm7,%mm7;
-	movq		5*16+0(%ebx),%mm4; 		psubw		%mm1,%mm7;
-	movq		%mm2,6*16+8+768(%esi);		paddw		%mm3,%mm4;
-	movq		3*16+0(%ebx),%mm0;		paddw		%mm3,%mm3;
-	movq		4*16+0(%ebx),%mm2; 		psubw		%mm4,%mm3;
-	movq		%mm5,2*16+8+768(%esi);		paddw		%mm0,%mm2;
-	movq		1*16+0(%ebx),%mm6;		paddw		%mm0,%mm0;
-	movq		6*16+0(%ebx),%mm5; 		psubw		%mm2,%mm0;
-	paddw		%mm1,%mm2; 			paddw		%mm1,%mm1;
-	paddw		%mm6,%mm5; 			paddw		%mm6,%mm6;
-	psubw		%mm5,%mm6;			psubw		%mm2,%mm1;
-	paddw		%mm5,%mm4; 			paddw		%mm5,%mm5;
-	psubw		%mm4,%mm5;			psraw		$1,%mm4; 
-	movq		%mm5,(%ebx);			psraw		$1,%mm2;
-	paddw		%mm2,%mm4; 			paddw		%mm2,%mm2;
-	psubw		%mm4,%mm2;			psraw		$1,%mm1;
-	pmulhw		4*16+0(%eax),%mm2;		movq		%mm4,%mm5;
-	pmulhw		(%eax),%mm4;			paddw		%mm3,%mm0;
-	paddw		c128,%mm5;			paddw		%mm6,%mm3;
-	paddw		crnd,%mm2;			psraw		$8,%mm5;
-	psraw		csh,%mm2;			psllq		$48,%mm5;
-	paddw		crnd,%mm4;			psrlq		$48,%mm5;
-	movq		%mm2,4*16+0+768(%esi);		paddw		%mm7,%mm6;
-	psraw		csh,%mm4;			movq		%mm6,%mm2;
-	pmulhw		cC2C61_13,%mm2;			por		%mm5,%mm4;
-	pmulhw		cC4C6_14,%mm3;			psraw		$3,%mm6;
-	movq		%mm4,768(%esi);			movq		%mm0,%mm4;
-	pmulhw		c1C6_13,%mm7;			psraw		$3,%mm0; 
-	pmulhw		cC2C61_13,%mm4;			paddw		%mm0,%mm6;
-	paddw		%mm0,%mm0; 			psraw		$1,%mm3; // red
-	paddw		%mm7,%mm3; 			psubw		%mm6,%mm0;
-	paddw		%mm4,%mm0; 			paddw		%mm7,%mm7;
-	paddw		%mm2,%mm6;			psubw		%mm3,%mm7;
-	movq		crnd,%mm5;			paddw		%mm7,%mm0;
-	paddw		%mm7,%mm7; 			leal		128(%esi),%esi;
-	movq		(%ebx),%mm4;			paddw		%mm3,%mm6;
-	psubw		%mm0,%mm7;			paddw		%mm3,%mm3;
-	pmulhw		5*16+0(%eax),%mm0;		psraw		$1,%mm4;
-	movq		csh,%mm2;			paddw		%mm1,%mm4;
-	pmulhw		cC4_15,%mm4;			psubw		%mm6,%mm3;
-	pmulhw		3*16+0(%eax),%mm7;		psraw		$1,%mm1;
-	pmulhw		1*16+0(%eax),%mm6;		paddw		%mm1,%mm4;
-	pmulhw		7*16+0(%eax),%mm3;		paddw		%mm1,%mm1;
-	psubw		%mm4,%mm1;			paddw		%mm5,%mm0;
-	pmulhw		2*16+0(%eax),%mm4;		psraw		%mm2,%mm0;
-	pmulhw		6*16+0(%eax),%mm1;		paddw		%mm5,%mm7;
-	paddw		%mm5,%mm6;			psraw		%mm2,%mm7;
-	movq		%mm0,5*16-128+768(%esi);	psraw		%mm2,%mm6;
-	movq		%mm7,3*16-128+768(%esi);	paddw		%mm5,%mm3;
-	movq		%mm6,1*16-128+768(%esi);	psraw		%mm2,%mm3;
-	paddw		%mm5,%mm4;			psraw		%mm2,%mm4;
-	movq		%mm3,7*16-128+768(%esi);	paddw		%mm5,%mm1;
-	movq		%mm4,2*16-128+768(%esi);	psraw		%mm2,%mm1;
-	movq		%mm1,6*16-128+768(%esi);	jne		1b;
-
-	popl		%ecx;				popl		%eax;
-	popl		%ebx;				popl		%esi;
-	ret
-
-
-
-
 
 	.text
 	.align		16
@@ -1111,6 +880,739 @@ mmx_fdct_inter:
 	popl		%esi;
 	xorb		$63,%al;
 	popl		%ebx;
+	ret
+
+	.text
+	.align		16
+	.globl		mmx_mpeg1_idct_inter
+
+mmx_mpeg1_idct_inter:
+
+	pushl %edi
+	pushl %esi
+	pushl %ebx
+
+	movd		%eax,%mm1;
+	punpcklwd	%mm1,%mm1;
+	punpcklwd	%mm1,%mm1;
+	movq		c1,%mm3;
+	movq		%mm1,%mm0;
+	movq		%mm1,%mm2;
+	pand		%mm3,%mm0;
+	paddw		%mm1,%mm1;
+	psubw		%mm3,%mm2;
+	movq		%mm1,mblock+768+14*8;	// quant2
+	paddw		%mm0,%mm2;
+	movq		%mm2,mblock+768+15*8;	// qodd
+
+	xorl		%eax,%eax;
+	movl		newref,%edi;
+	sall		$26,%edx;		// cbp: 1 << (5 - i)
+	movl		$mblock,%esi;
+
+	.align		16
+1:
+	addl		mb_address(%eax),%edi
+	sall		%edx
+	movl		mb_address+4(%eax),%ecx
+	leal		8(%eax),%eax
+	jnc		2f
+
+	movl		$mblock+768,%ebx
+
+	movq 		0*16+0(%esi),%mm6;
+	pxor		%mm0,%mm0;
+	movq		mblock+768+14*8,%mm1;	// quant2	
+	movq		%mm6,%mm4;		
+	movq		mblock+768+15*8,%mm2;	// qodd
+	movq		%mm4,%mm3;
+	pmullw		%mm1,%mm4;
+	pcmpeqw		%mm0,%mm6;
+	movq		2*16+0(%esi),%mm5;	
+	pandn		%mm2,%mm6;
+	psraw		$15,%mm3;		
+	pxor		%mm3,%mm6;		
+	psubw		%mm3,%mm4;
+	movq		4*16+0(%esi),%mm3;	
+	paddw		%mm6,%mm4;		
+	movq		%mm5,%mm7;
+	psllw		$3,%mm4;		
+	pmullw		%mm1,%mm5;
+	paddsw		%mm4,%mm4;		
+	movq		%mm7,%mm6;	
+	psraw		$1,%mm4;		
+	pcmpeqw		%mm0,%mm7;
+	psraw		$15,%mm6;		
+	pandn		%mm2,%mm7;	
+	movq		%mm4,0*16+0(%esi);	
+	pxor		%mm6,%mm7;	
+	psubw		%mm6,%mm5;		
+	movq		%mm3,%mm4;
+	movq		6*16+0(%esi),%mm6;	
+	paddw		%mm7,%mm5;		
+	pmullw		%mm1,%mm4;		
+	psllw		$3,%mm5;		
+	movq		%mm3,%mm7;	
+	paddsw		%mm5,%mm5;		
+	pcmpeqw		%mm0,%mm3;
+	pandn		%mm2,%mm3;		
+	psraw		$15,%mm7;
+	psraw		$4,%mm5;		
+	pxor		%mm7,%mm3;
+	psubw		%mm7,%mm4;		
+	movq		%mm6,%mm7;		
+	movq		%mm5,2*16+0(%esi);	
+	pmullw		%mm1,%mm6;
+	movq		3*16+0(%esi),%mm5;	
+	paddw		%mm3,%mm4;		
+	movq		%mm7,%mm3;
+	pcmpeqw		%mm0,%mm7;		
+	psraw		$15,%mm3;
+	movq		%mm4,4*16+0(%esi);	
+	pandn		%mm2,%mm7;	
+	pxor		%mm3,%mm7;		
+	psubw		%mm3,%mm6;
+	paddw		%mm7,%mm6;		
+	movq		%mm5,%mm4;
+	pmullw		%mm1,%mm5;		
+	movq		%mm4,%mm3;
+	movq 		%mm6,6*16+0(%esi);	
+	pcmpeqw		%mm0,%mm4;
+	movq		7*16+0(%esi),%mm6;	
+	psraw		$15,%mm3;		
+	pandn		%mm2,%mm4;
+	psubw		%mm3,%mm5;		
+	pxor		%mm3,%mm4;
+	paddw		%mm4,%mm5;		
+	movq		%mm6,%mm7;	
+	movq		1*16+0(%esi),%mm4;	
+	pmullw		%mm1,%mm6;		
+	movq		%mm7,%mm3;
+	pcmpeqw		%mm0,%mm7;		
+	psraw		$15,%mm3;
+	pandn		%mm2,%mm7;		
+	psubw		%mm3,%mm6;
+	pxor		%mm3,%mm7;		
+	movq		%mm4,%mm3;		
+	paddw		%mm7,%mm6;		
+	pmullw		%mm1,%mm4;
+	movq		%mm3,%mm7;		
+	psraw		$15,%mm3;
+	pcmpeqw		%mm0,%mm7;
+	pandn		%mm2,%mm7;		
+	pxor		%mm3,%mm7;
+	psubw		%mm3,%mm7;		
+	paddw		%mm7,%mm4;
+	movq		5*16+0(%esi),%mm7;	
+	psllw		$3,%mm4;		
+	paddsw		%mm4,%mm4;         	
+	movq		%mm7,%mm2;	
+	psraw		$4,%mm4;		
+	pmullw		%mm1,%mm7;
+	movq		mmx_q_idct_inter_tab+10*8,%mm1;		
+	pcmpeqw		%mm2,%mm0;		
+	psraw		$15,%mm2;	
+	pandn		mblock+768+15*8,%mm0;	// qodd		
+	movq		%mm4,%mm3;
+
+	pxor		%mm2,%mm0;		
+	punpcklwd	%mm6,%mm4;
+	psubw		%mm2,%mm0;		
+	punpckhwd 	%mm6,%mm3;
+	movq		%mm4,%mm6;		
+	paddw		%mm0,%mm7;		
+	pmaddwd 	mmx_q_idct_inter_tab+0*8,%mm4;		
+	movq		%mm3,%mm2;
+	pmaddwd 	mmx_q_idct_inter_tab+0*8,%mm3;		
+	movq		%mm5,%mm0;
+	pmaddwd 	mmx_q_idct_inter_tab+1*8,%mm6;		
+	punpcklwd 	%mm7,%mm5;
+	pmaddwd 	mmx_q_idct_inter_tab+1*8,%mm2;		
+	punpckhwd 	%mm7,%mm0;
+	paddd		%mm1,%mm4;		
+	movq		%mm5,%mm7;
+	paddd		%mm1,%mm3;		
+	psrad		$11,%mm4; 
+	pmaddwd 	mmx_q_idct_inter_tab+2*8,%mm5;		
+	psrad		$11,%mm3;
+	pmaddwd 	mmx_q_idct_inter_tab+3*8,%mm7;		
+	packssdw 	%mm3,%mm4;
+	paddd		%mm1,%mm6; 		
+	movq		%mm0,%mm3;
+	paddd		%mm1,%mm2; 		
+	psrad		$11,%mm6; 
+	pmaddwd 	mmx_q_idct_inter_tab+2*8,%mm0;		
+	psrad		$11,%mm2; 
+	pmaddwd 	mmx_q_idct_inter_tab+3*8,%mm3;		
+	paddd		%mm1,%mm5;
+	paddd		%mm1,%mm7;		
+	packssdw	%mm2,%mm6;
+	movq		2*16+0(%esi),%mm2;	
+	psrad		$11,%mm5;
+	paddd		%mm1,%mm0;		
+	psrad		$11,%mm0;		
+	paddd		%mm1,%mm3;		
+	packssdw	%mm0,%mm5;		
+	movq		%mm2,%mm0;
+	movq		4*16+0(%esi),%mm1;	
+	psubw		%mm5,%mm4;
+	psrad		$11,%mm7; 
+	paddw		%mm5,%mm5;		
+	psrad		$11,%mm3; 
+	paddw		%mm4,%mm5;		
+	packssdw	%mm3,%mm7;
+	movq		6*16+0(%esi),%mm3;	
+	psubw		%mm7,%mm6;
+	paddw		%mm7,%mm7;
+
+	psubw		%mm3,%mm2; 		
+	psllw		$4,%mm3; 
+	pmulhw		mmx_q_idct_inter_tab+13*8,%mm3;		
+	psllw		$3,%mm2; 
+	paddw		c2,%mm2;		
+	psubw		%mm6,%mm4;
+	pmulhw		mmx_q_idct_inter_tab+12*8,%mm2;		
+	psllw		$4,%mm0;
+	paddw		%mm6,%mm7;		
+	psllw		$3,%mm1;
+	pmulhw		mmx_q_idct_inter_tab+15*8,%mm0;		
+	psllw		$2,%mm6;
+	paddw		%mm3,%mm3;		
+	psllw		$2,%mm2;
+	paddw		%mm2,%mm3;		
+	paddw		%mm0,%mm2;		
+	movq		0*16+0(%esi),%mm0;	
+	paddw		%mm4,%mm4;		
+	psubw		%mm1,%mm0;		
+	paddw		%mm1,%mm1;
+	paddw		%mm4,%mm6;	 	
+	paddw		%mm0,%mm1;
+	psubw		%mm2,%mm0;		
+	paddw		%mm2,%mm2; 
+	pmulhw		cC4_15,%mm4;		
+	paddw		%mm0,%mm2;
+	psubw		%mm3,%mm1;		
+	paddw		%mm3,%mm3; 
+	pmulhw		cC4_15,%mm6;		
+	paddw		%mm1,%mm3;
+
+	psubw		%mm7,%mm1;		
+	paddw		%mm7,%mm7;
+	psubw		%mm5,%mm3;		
+	paddw		%mm5,%mm5;
+	paddw		%mm1,%mm7;		
+	paddw		%mm3,%mm5;
+	movq		%mm1,mm8;		
+	psubw		%mm4,%mm0;		
+	psubw		%mm6,%mm2;		
+	paddw		%mm6,%mm6;
+	movq		%mm5,%mm1;		
+	paddw		%mm2,%mm6;
+	paddw		%mm4,%mm4;		
+	punpcklwd	%mm6,%mm5;
+	paddw		%mm0,%mm4;		
+	punpckhwd	%mm6,%mm1;
+	movq		%mm4,%mm6;		
+	punpcklwd	%mm7,%mm4;
+	punpckhwd	%mm7,%mm6;
+	movq		%mm5,%mm7;		
+	punpckldq	%mm4,%mm5;
+	movq		%mm5,(%ebx);	
+	punpckhdq	%mm4,%mm7;
+	movq		%mm1,%mm4;		
+	punpckldq	%mm6,%mm1;
+	movq		%mm7,1*8(%ebx);	
+	punpckhdq	%mm6,%mm4;
+	movq		%mm2,%mm7;		
+	punpcklwd	%mm3,%mm2;
+	movq 		%mm1,2*8(%ebx);	
+	punpckhwd	%mm3,%mm7;
+	movq		mm8,%mm1;		
+	movq		%mm4,3*8(%ebx);
+	movq		%mm1,%mm5;		
+	punpcklwd	%mm0,%mm1;
+	movq		0*16+8(%esi),%mm6;	
+	punpckhwd	%mm0,%mm5;
+	movq		%mm1,%mm0;		
+	punpckldq	%mm2,%mm1;
+	movq		%mm5,%mm3;		
+	punpckhdq	%mm2,%mm0;
+	movq		%mm1,4*8(%ebx);	
+	punpckldq	%mm7,%mm5;
+	movq		mblock+768+14*8,%mm1;	// quant2		
+	punpckhdq	%mm7,%mm3;
+	movq		%mm0,5*8(%ebx);	
+	movq		%mm6,%mm4;
+	movq		mblock+768+15*8,%mm2;	// qodd		
+	pxor		%mm0,%mm0;
+
+	pmullw		%mm1,%mm6;
+	movq		%mm3,6*8(%ebx);	
+	movq		%mm4,%mm3;
+	movq		2*16+8(%esi),%mm7;	
+	pcmpeqw		%mm0,%mm4;
+	psraw		$15,%mm3;
+	movq		%mm5,7*8(%ebx);	
+	pandn		%mm2,%mm4;
+	pxor		%mm3,%mm4;		
+	psubw		%mm3,%mm6;
+	paddw		%mm4,%mm6;		
+	movq		%mm7,%mm5;
+	movq		%mm6,0*16+8(%esi);	
+	pmullw		%mm1,%mm7;
+	movq		4*16+8(%esi),%mm6;	
+	movq		%mm5,%mm3;		
+	pcmpeqw		%mm0,%mm5;
+	psraw		$15,%mm3;		
+	pandn		%mm2,%mm5;
+	pxor		%mm3,%mm5;		
+	psubw		%mm3,%mm7;
+	paddw		%mm5,%mm7;		
+	movq		%mm6,%mm4;
+	movq		%mm7,2*16+8(%esi);	
+	pmullw		%mm1,%mm6;
+	movq		6*16+8(%esi),%mm5;	
+	movq		%mm4,%mm3;		
+	pcmpeqw		%mm0,%mm4;
+	psraw		$15,%mm3;		
+	pandn		%mm2,%mm4;
+	pxor		%mm3,%mm4;		
+	psubw		%mm3,%mm6;
+	paddw		%mm4,%mm6;		
+	movq		%mm5,%mm7;
+	movq		%mm6,4*16+8(%esi);	
+	pmullw		%mm1,%mm5;
+	movq		3*16+8(%esi),%mm6;	
+	movq		%mm7,%mm3;		
+	pcmpeqw		%mm0,%mm7;
+	psraw		$15,%mm3;		
+	pandn		%mm2,%mm7;
+	pxor		%mm3,%mm7;		
+	psubw		%mm3,%mm5;
+	paddw		%mm7,%mm5;		
+	movq		%mm6,%mm4;
+	movq		%mm5,6*16+8(%esi);	
+	pmullw		%mm1,%mm6;
+	movq 		7*16+8(%esi),%mm5;	
+	movq		%mm4,%mm3;		
+	pcmpeqw		%mm0,%mm4;
+	psraw		$15,%mm3;		
+	pandn		%mm2,%mm4;
+	pxor		%mm3,%mm4;		
+	psubw		%mm3,%mm6;
+	movq		%mm5,%mm7;		
+	pmullw		%mm1,%mm5;
+	paddw		%mm4,%mm6;		
+	movq		%mm7,%mm3;
+	movq		1*16+8(%esi),%mm4;	
+	psraw		$15,%mm3;		
+	pcmpeqw		%mm0,%mm7;		
+	pandn		%mm2,%mm7;		
+	psubw		%mm3,%mm5;
+	pxor		%mm3,%mm7;		
+	movq		%mm4,%mm3;
+	paddw		%mm7,%mm5;		
+	pmullw		%mm1,%mm4;
+	movq		%mm3,%mm7;		
+	psraw		$15,%mm3;
+	pcmpeqw		%mm0,%mm7;		
+	psubw		%mm3,%mm4;
+	pandn		%mm2,%mm7;		
+	pxor		%mm3,%mm7;
+	paddw		%mm7,%mm4;		
+	movq		%mm4,%mm2;
+	movq		5*16+8(%esi),%mm7;	
+	punpcklwd 	%mm5,%mm4;
+	movq		%mm7,%mm3;		
+	punpckhwd	%mm5,%mm2;
+	pmullw		%mm1,%mm7;		
+	movq		%mm4,%mm5;		
+	pmaddwd 	mmx_q_idct_inter_tab+0*8,%mm4;		
+	pcmpeqw		%mm3,%mm0;
+	movq		mmx_q_idct_inter_tab+10*8,%mm1;		
+	psraw		$15,%mm3;		
+	psubw		%mm3,%mm7;
+	pandn		mblock+768+15*8,%mm0;	// qodd		
+	pxor		%mm3,%mm0;
+	pmaddwd 	mmx_q_idct_inter_tab+1*8,%mm5; 		
+	movq		%mm2,%mm3;
+	pmaddwd 	mmx_q_idct_inter_tab+1*8,%mm2;		
+	paddw		%mm0,%mm7;
+	pmaddwd 	mmx_q_idct_inter_tab+0*8,%mm3;		
+	movq		%mm6,%mm0;
+	paddd		%mm1,%mm4;		
+	punpcklwd	%mm7,%mm6;
+	paddd		%mm1,%mm5;		
+	punpckhwd	%mm7,%mm0;
+	movq		%mm6,%mm7;		
+	psrad		$11,%mm4;
+	paddd		%mm1,%mm2;		
+	psrad		$11,%mm5; 
+	paddd		%mm1,%mm3;		
+	psrad		$11,%mm2;
+	pmaddwd		mmx_q_idct_inter_tab+2*8,%mm6;		
+	packssdw	%mm2,%mm5;
+	pmaddwd		mmx_q_idct_inter_tab+3*8,%mm7;		
+	movq		%mm0,%mm2;
+	pmaddwd		mmx_q_idct_inter_tab+2*8,%mm0; 		
+	psrad		$11,%mm3;
+	paddd		%mm1,%mm6;		
+	packssdw	%mm3,%mm4;
+	pmaddwd		mmx_q_idct_inter_tab+3*8,%mm2;		
+	psrad		$11,%mm6;
+	paddd		%mm1,%mm7;		
+	psrad		$11,%mm7;
+	movq		6*16+8(%esi),%mm3;		
+	paddd		%mm1,%mm0;		
+	psrad		$11,%mm0;
+	paddd		%mm1,%mm2;		
+	packssdw	%mm0,%mm6;
+	psubw		%mm6,%mm4;		
+	psrad		$11,%mm2;
+	paddw		%mm6,%mm6;		
+	packssdw	%mm2,%mm7;
+
+	movq		2*16+8(%esi),%mm2;		
+	psubw		%mm7,%mm5;		
+	paddw		%mm7,%mm7;
+	paddw		%mm4,%mm6;		
+	paddw		%mm5,%mm7;
+	movq		%mm2,%mm0;		
+	psubw		%mm3,%mm2;
+	psllw		$3,%mm2;			
+	psubw		%mm5,%mm4;
+	paddw		c2,%mm2;			
+	paddw		%mm4,%mm4;
+	pmulhw		mmx_q_idct_inter_tab+12*8,%mm2;		
+	psllw		$2,%mm5;
+	paddw		%mm4,%mm5;		
+	psllw		$4,%mm3;
+	pmulhw		mmx_q_idct_inter_tab+13*8,%mm3; 		
+	psllw		$4,%mm0;
+	pmulhw		cC4_15,%mm4;		
+	psllw		$2,%mm2;
+	pmulhw		mmx_q_idct_inter_tab+15*8,%mm0;		
+	paddw		%mm3,%mm3;
+	pmulhw		cC4_15,%mm5;		
+	paddw		%mm2,%mm3;
+	movq		4*16+8(%esi),%mm1;		
+	paddw		%mm0,%mm2;		
+	psllw		$3,%mm1;
+	movq		0*16+8(%esi),%mm0;		
+	psllw		$3,%mm0;			
+	psubw		%mm1,%mm0;
+	paddw		%mm1,%mm1;		
+	paddw		%mm0,%mm1;
+	psubw		%mm2,%mm0;		
+	paddw		%mm2,%mm2;
+	psubw		%mm3,%mm1;		
+	paddw		%mm3,%mm3;
+	paddw		%mm0,%mm2;		
+	paddw		%mm1,%mm3;
+
+	psubw		%mm4,%mm0;		
+	paddw		%mm4,%mm4;
+	psubw		%mm7,%mm1;		
+	paddw		%mm7,%mm7; 
+	movq 		%mm1,mm8;		
+	paddw		%mm1,%mm7;
+	psubw		%mm5,%mm2;		
+	paddw		%mm5,%mm5; 
+	psubw		%mm6,%mm3;		
+	paddw		%mm6,%mm6; 
+	paddw		%mm2,%mm5;		
+	paddw		%mm3,%mm6;
+	movq		%mm6,%mm1;		
+	punpcklwd	%mm5,%mm6;
+	paddw		%mm0,%mm4;		
+	punpckhwd	%mm5,%mm1;
+	movq		%mm4,%mm5;		
+	punpcklwd	%mm7,%mm4;
+	punpckhwd	%mm7,%mm5;
+	movq		%mm6,%mm7;		
+	punpckldq	%mm4,%mm6;
+	movq		%mm6,8*8(%ebx);	
+	punpckhdq	%mm4,%mm7;
+	movq		%mm1,%mm4;		
+	punpckldq	%mm5,%mm1;
+	movq		%mm7,9*8(%ebx);	
+	punpckhdq	%mm5,%mm4;
+	movq		%mm2,%mm7;		
+	punpcklwd	%mm3,%mm2;
+	movq		%mm1,10*8(%ebx);	
+	punpckhwd	%mm3,%mm7;
+	movq		mm8,%mm1;		
+	movq		%mm4,11*8(%ebx);
+	movq		%mm1,%mm6;		
+	punpcklwd	%mm0,%mm1;
+	movq		c2,%mm4;		
+	punpckhwd	%mm0,%mm6;
+	movq		%mm1,%mm0;		
+	punpckldq	%mm2,%mm1;
+	movq		%mm1,12*8(%ebx);	
+	punpckhdq	%mm2,%mm0;
+	movq		%mm6,%mm2;		
+	punpckldq	%mm7,%mm6;
+	movq		%mm6,13*8(%ebx);	
+	punpckhdq	%mm7,%mm2;
+
+	movq		5*8(%ebx),%mm5;	
+	movq		%mm2,%mm7;
+	movq 		6*8(%ebx),%mm6;	
+	paddw		%mm4,%mm2;
+	paddw		%mm5,%mm2;
+	movq		c1,%mm1;		
+	paddw		%mm1,%mm5;
+	pmulhw		mmx_q_idct_inter_tab+4*8,%mm2;		
+	psubw		%mm1,%mm7;
+	pmulhw		mmx_q_idct_inter_tab+5*8,%mm5;		
+	movq		%mm6,%mm3;
+	pmulhw		mmx_q_idct_inter_tab+6*8,%mm7; 		
+	paddw		%mm4,%mm6;
+	paddw		%mm0,%mm6;		
+	paddw		%mm1,%mm0;
+	pmulhw		mmx_q_idct_inter_tab+7*8,%mm6;		
+	psubw		%mm2,%mm5;
+	paddw		%mm7,%mm2;		
+	paddw		%mm4,%mm3;
+	movq		7*8(%ebx),%mm7;
+	pmulhw		mmx_q_idct_inter_tab+8*8,%mm0;		
+	paddw		%mm7,%mm4;
+	pmulhw		mmx_q_idct_inter_tab+9*8,%mm3;
+	psubw		%mm6,%mm0;		
+	paddw		%mm3,%mm6;
+
+	movq		13*8(%ebx),%mm3;		
+	psubw		%mm6,%mm2;
+	paddw		%mm6,%mm6; 
+	psubw		%mm0,%mm5;		
+	paddw		%mm0,%mm0; 
+	psubw		%mm3,%mm4;		
+	paddw		%mm5,%mm0;
+	pmulhw		mmx_q_idct_inter_tab+12*8,%mm4;		
+	paddw		%mm2,%mm6;
+	pmulhw		mmx_q_idct_inter_tab+13*8,%mm3;		
+	psubw		%mm1,%mm7;
+	pmulhw		mmx_q_idct_inter_tab+14*8,%mm7;		
+	psubw		%mm5,%mm2;
+	movq		12*8(%ebx),%mm1;		
+	psllw		$2,%mm5;
+	paddw		%mm2,%mm2;
+	paddw		%mm4,%mm3;		
+	paddw		%mm2,%mm5;		
+	pmulhw		cC4_15,%mm2;		
+	paddw		%mm7,%mm4;
+	movq		4*8(%ebx),%mm7; 
+	paddw		mmx_q_idct_inter_tab+11*8,%mm7;
+	pmulhw		cC4_15,%mm5;
+	psubw		%mm1,%mm7;		
+	paddw		%mm1,%mm1;
+	paddw		%mm7,%mm1;		
+	psraw		$2,%mm7;
+	psraw		$2,%mm1;
+	psubw		%mm4,%mm7; 
+	paddw		%mm4,%mm4; 
+	psubw		%mm3,%mm1; 
+	paddw		%mm3,%mm3; 
+	paddw		%mm7,%mm4; 
+	paddw		%mm1,%mm3;
+
+	psubw		%mm2,%mm7; 
+	paddw		%mm2,%mm2; 
+	psubw		%mm0,%mm1; 
+	paddw		%mm0,%mm0; 
+	paddw		%mm7,%mm2; 
+	paddw		%mm1,%mm0;
+	psubw		%mm5,%mm4; 
+	paddw		%mm5,%mm5; 
+	psubw		%mm6,%mm3; 
+	paddw		%mm6,%mm6; 
+	paddw		%mm4,%mm5; 
+	paddw		%mm3,%mm6;
+	psraw		$4,%mm6; 
+	paddsw		0*16+8+3*768(%esi),%mm6; 
+	movq		%mm6,0*16+8(%esi);
+	psraw		$4,%mm5; 
+	paddsw		1*16+8+3*768(%esi),%mm5; 
+	movq		%mm5,1*16+8(%esi);
+	psraw		$4,%mm2; 
+	paddsw		2*16+8+3*768(%esi),%mm2; 
+	movq		%mm2,2*16+8(%esi);
+	psraw		$4,%mm0; 
+	paddsw		3*16+8+3*768(%esi),%mm0; 
+	movq		%mm0,3*16+8(%esi);
+	psraw		$4,%mm1; 
+	paddsw		4*16+8+3*768(%esi),%mm1; 
+	movq		%mm1,4*16+8(%esi);
+	psraw		$4,%mm7; 
+	paddsw		5*16+8+3*768(%esi),%mm7; 
+	movq		%mm7,5*16+8(%esi);
+	psraw		$4,%mm4; 
+	paddsw		6*16+8+3*768(%esi),%mm4; 
+	movq		%mm4,6*16+8(%esi);
+	psraw		$4,%mm3; 
+	paddsw		7*16+8+3*768(%esi),%mm3; 
+	movq		%mm3,7*16+8(%esi);
+		
+	movq		c2,%mm4;
+	movq		11*8(%ebx),%mm2;
+	movq		1*8(%ebx),%mm5;		
+	movq		%mm2,%mm7;
+	movq		c1,%mm1;
+	paddw		%mm4,%mm2; 
+	paddw		%mm5,%mm2;
+	pmulhw		mmx_q_idct_inter_tab+4*8,%mm2;
+	paddw		%mm1,%mm5; 
+	psubw		%mm1,%mm7;
+	movq		3*8(%ebx),%mm6; 
+	movq		%mm6,%mm3;
+	pmulhw		mmx_q_idct_inter_tab+5*8,%mm5;
+	paddw		%mm4,%mm6; 
+	pmulhw		mmx_q_idct_inter_tab+6*8,%mm7; 
+	movq		9*8(%ebx),%mm0;
+	paddw		%mm0,%mm6;
+	pmulhw		mmx_q_idct_inter_tab+7*8,%mm6;
+	paddw		%mm1,%mm0; 
+	paddw		%mm4,%mm3;
+	pmulhw		mmx_q_idct_inter_tab+8*8,%mm0; 
+	pmulhw		mmx_q_idct_inter_tab+9*8,%mm3; 
+	psubw		%mm2,%mm5;
+	paddw		%mm7,%mm2;
+	movq		2*8(%ebx),%mm7;
+	psubw		%mm6,%mm0;
+	paddw		%mm3,%mm6;
+	movq		10*8(%ebx),%mm3;
+
+	paddw		%mm7,%mm4; 
+	psubw		%mm1,%mm7;
+	pmulhw		mmx_q_idct_inter_tab+14*8,%mm7; 
+	psubw		%mm3,%mm4;
+	pmulhw		mmx_q_idct_inter_tab+13*8,%mm3; 
+	pmulhw		mmx_q_idct_inter_tab+12*8,%mm4;
+	movq		8*8(%ebx),%mm1;
+	psubw		%mm6,%mm2; 
+	paddw		%mm6,%mm6; 
+	paddw		%mm2,%mm6;
+	psubw		%mm0,%mm5; 
+	paddw		%mm0,%mm0; 
+	paddw		%mm5,%mm0;
+	psubw		%mm5,%mm2; 
+	paddw		%mm2,%mm2; 
+	psllw		$2,%mm5; 
+	paddw		%mm2,%mm5;
+	pmulhw		cC4_15,%mm2;
+	pmulhw		cC4_15,%mm5;
+	paddw		%mm4,%mm3;
+	paddw		%mm7,%mm4;
+	movq		(%ebx),%mm7; 
+	paddw		mmx_q_idct_inter_tab+11*8,%mm7;
+	psubw		%mm1,%mm7; 
+	paddw		%mm1,%mm1; 
+	paddw		%mm7,%mm1;
+	psraw		$2,%mm7; 
+	psraw		$2,%mm1;
+	psubw		%mm4,%mm7; 
+	paddw		%mm4,%mm4; 
+	psubw		%mm3,%mm1; 
+	paddw		%mm3,%mm3; 
+	paddw		%mm7,%mm4; 
+	paddw		%mm1,%mm3;
+
+	psubw		%mm2,%mm7; 
+	paddw		%mm2,%mm2; 
+	psubw		%mm0,%mm1; 
+	paddw		%mm0,%mm0; 
+	paddw		%mm7,%mm2; 
+	paddw		%mm1,%mm0;
+	psubw		%mm5,%mm4; 
+	paddw		%mm5,%mm5; 
+	psubw		%mm6,%mm3; 
+	paddw		%mm6,%mm6; 
+	paddw		%mm4,%mm5; 
+	paddw		%mm3,%mm6;
+	leal		(%edi,%ecx),%ebx;
+	psraw		$4,%mm6; 
+	paddsw		0*16+0+3*768(%esi),%mm6; 
+	packuswb	0*16+8(%esi),%mm6;
+	psraw		$4,%mm5; 
+	paddsw		1*16+0+3*768(%esi),%mm5; 
+	packuswb	1*16+8(%esi),%mm5;
+	movq		%mm6,(%edi);		// 0
+	psraw		$4,%mm2; 
+	paddsw		2*16+0+3*768(%esi),%mm2; 
+	packuswb	2*16+8(%esi),%mm2;
+	movq		%mm5,(%edi,%ecx);	// 1
+	psraw		$4,%mm0; 
+	paddsw		3*16+0+3*768(%esi),%mm0; 
+	packuswb	3*16+8(%esi),%mm0;
+	movq		%mm2,(%edi,%ecx,2);	// 2
+	psraw		$4,%mm1; 
+	paddsw		4*16+0+3*768(%esi),%mm1; 
+	packuswb	4*16+8(%esi),%mm1;
+	movq		%mm0,(%ebx,%ecx,2);	// 3
+	leal		(%ebx,%ecx,4),%ebx;
+	psraw		$4,%mm7; 
+	paddsw		5*16+0+3*768(%esi),%mm7; 
+	packuswb	5*16+8(%esi),%mm7;
+	movq		%mm1,(%edi,%ecx,4);	// 4
+	psraw		$4,%mm4; 
+	paddsw  	6*16+0+3*768(%esi),%mm4; 
+	packuswb	6*16+8(%esi),%mm4;
+	movq		%mm7,(%ebx);		// 5
+	psraw		$4,%mm3;
+	paddsw		7*16+0+3*768(%esi),%mm3; 
+	packuswb	7*16+8(%esi),%mm3;
+	movq		%mm4,(%ebx,%ecx);	// 6
+	addl		$128,%esi
+	movq		%mm3,(%ebx,%ecx,2);	// 7
+
+	jmp		3f
+
+	.align		16
+2:
+	addl		$3*768,%esi
+	leal		(%edi,%ecx),%ebx;
+	movq		(%esi),%mm0;
+	movq		1*8(%esi),%mm1;
+	movq		2*8(%esi),%mm2;		
+	packuswb 	%mm1,%mm0;
+	movq		3*8(%esi),%mm3;		
+	movq 		%mm0,(%edi);		// 0
+	movq		4*8(%esi),%mm4;		
+	packuswb	%mm3,%mm2;
+	movq		5*8(%esi),%mm5;		
+	movq		%mm2,(%edi,%ecx);	// 1
+	movq		6*8(%esi),%mm6;		
+	packuswb 	%mm5,%mm4;
+	movq		7*8(%esi),%mm7;		
+	movq 		%mm4,(%edi,%ecx,2);	// 2
+	movq		8*8(%esi),%mm0;		
+	packuswb	%mm7,%mm6;
+	movq		9*8(%esi),%mm1;		
+	movq		%mm6,(%ebx,%ecx,2);	// 3
+	leal		(%ebx,%ecx,4),%ebx;
+	movq		10*8(%esi),%mm2;	
+	packuswb 	%mm1,%mm0;
+	movq		11*8(%esi),%mm3;	
+	movq 		%mm0,(%edi,%ecx,4);	// 4
+	movq		12*8(%esi),%mm4;	
+	packuswb	%mm3,%mm2;
+	movq		13*8(%esi),%mm5;	
+	movq		%mm2,(%ebx);		// 5
+	movq		14*8(%esi),%mm6;	
+	packuswb 	%mm5,%mm4;
+	movq		15*8(%esi),%mm7;	
+	movq 		%mm4,(%ebx,%ecx);	// 6
+	packuswb	%mm7,%mm6;
+	movq		%mm6,(%ebx,%ecx,2);	// 7
+	addl		$128-3*768,%esi
+3:
+	cmpl		$5*8,%eax
+	jle		1b
+
+	popl %ebx
+	popl %esi
+	popl %edi
 	ret
 
 	.text

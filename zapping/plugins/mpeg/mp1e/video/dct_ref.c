@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct_ref.c,v 1.4 2000-09-29 17:54:33 mschimek Exp $ */
+/* $Id: dct_ref.c,v 1.5 2000-10-22 05:24:50 mschimek Exp $ */
 
 #include "dct.h"
 #include "mpeg.h"
@@ -282,7 +282,7 @@ mpeg1_idct_intra(int quant_scale)
 }
 
 void
-mpeg1_idct_inter(unsigned int cbp)
+mpeg1_idct_inter(int quant_scale, unsigned int cbp)
 {
 	FLOAT F[8][8], t[8][8];
 	unsigned char *new = newref;
@@ -299,7 +299,7 @@ mpeg1_idct_inter(unsigned int cbp)
 			mirror(mblock[0][i]);
 
 			for (j = 0; j < 64; j++) {
-				val = (2 * mblock[0][i][0][j] + sign(mblock[0][i][0][j])) * inter_quant_scale;
+				val = (2 * mblock[0][i][0][j] + sign(mblock[0][i][0][j])) * quant_scale;
 
 				/* mismatch control */
 
@@ -388,7 +388,7 @@ mpeg2_idct_intra(int quant_scale)
 }
 
 void
-mpeg2_idct_inter(unsigned int cbp)
+mpeg2_idct_inter(int quant_scale, unsigned int cbp)
 {
 	FLOAT F[8][8], t[8][8];
 	unsigned char *new = newref;
@@ -405,7 +405,7 @@ mpeg2_idct_inter(unsigned int cbp)
 			mirror(mblock[0][i]);
 
 			for (j = 0, sum = 0; j < 64; j++) {
-				val = (2 * mblock[0][i][0][j] + sign(mblock[0][i][0][j])) * inter_quant_scale;
+				val = (2 * mblock[0][i][0][j] + sign(mblock[0][i][0][j])) * quant_scale;
 
 				sum += val = saturate(val, -2048, 2047);
 

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.7 2000-10-15 21:24:48 mschimek Exp $ */
+/* $Id: fifo.h,v 1.8 2000-10-22 05:24:50 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -64,6 +64,8 @@ typedef struct _fifo {
 	void			(* send_full)(struct _fifo *, buffer *);
 
 	bool			(* start)(struct _fifo *);
+
+	/* Owner private */
 
 	buffer *		buffers;
 	int			num_buffers;

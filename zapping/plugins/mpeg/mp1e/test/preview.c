@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preview.c,v 1.1 2000-10-21 22:40:10 garetxe Exp $ */
+/* $Id: preview.c,v 1.2 2000-10-22 05:24:50 mschimek Exp $ */
 
 #if defined(HAVE_LIBXV) && defined (TEST_PREVIEW)
 
@@ -28,6 +28,7 @@
 #include <X11/Xutil.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <sys/time.h>
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
@@ -61,6 +62,7 @@ static int 		nAdaptors, nImgFormats;
 
 static XShmSegmentInfo	shminfo;
 static XvImage		*ximage;
+  static XEvent		event;
 // static int		CompletionType = -1;
 
 extern int		width, height;
@@ -112,10 +114,10 @@ on_capture_param_changed(GtkAdjustment *adj,
 		force_drop_rate = value;
 		break;
 	case 2:
-		p_inter_bias = value;
+		p_inter_bias = value * 65536;
 		break;
 	case 3:
-		b_inter_bias = value;
+		b_inter_bias = value * 65536;
 		break;
 	case 4:
 		frame_rate = value;
@@ -249,7 +251,7 @@ packed_preview(unsigned char *buffer, int mb_cols, int mb_rows)
 	/* adquire the global gdk lock */
 	gdk_threads_enter();
 
-//	XSync(display, False);
+	XSync(display, False);
 
 	gdk_window_get_size(gtk_win->window, &wwidth, &wheight);
 

@@ -2,7 +2,7 @@
  *  MPEG Real Time Encoder
  *  ALSA Interface (draft)
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 2000 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.2 2000-10-16 05:39:09 mschimek Exp $ */
+/* $Id: alsa.c,v 1.3 2000-10-22 05:24:50 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,6 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <asm/types.h>
-#include <linux/soundcard.h>
 
 #include "../common/log.h" 
 #include "../common/mmx.h" 
