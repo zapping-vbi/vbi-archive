@@ -1326,7 +1326,7 @@ static
 void on_ttxview_search_clicked		(GtkButton	*button,
 					 ttxview_data	*data)
 {
-  GnomeDialog *ure_search = GNOME_DIALOG(create_widget("ure_search"));
+  GnomeDialog *ure_search = GNOME_DIALOG(build_widget("ure_search", NULL));
   GtkWidget *entry2 = gnome_entry_gtk_entry(GNOME_ENTRY(
     lookup_widget(GTK_WIDGET(ure_search), "entry2")));
   GtkWidget * button23;
@@ -1400,7 +1400,7 @@ void on_ttxview_search_clicked		(GtkButton	*button,
 	    {
 	      if (search_progress)
 		gtk_widget_destroy(search_progress);
-	      search_progress = create_widget("search_progress");
+	      search_progress = build_widget("search_progress", NULL);
 	      gtk_window_set_modal(GTK_WINDOW(search_progress), TRUE);
 	      gnome_dialog_set_parent(GNOME_DIALOG(search_progress),
 				      GTK_WINDOW(data->parent));
@@ -1497,7 +1497,7 @@ void new_bookmark			(GtkWidget	*widget,
   gchar *buffer;
   gint page, subpage;
   gint active;
-  GtkWidget *dialog = create_widget("new_bookmark");
+  GtkWidget *dialog = build_widget("new_bookmark", NULL);
   GtkWidget *bookmark_name = lookup_widget(dialog, "bookmark_name");
   GtkWidget *bookmark_switch = lookup_widget(dialog, "bookmark_switch");
   tveng_tuned_channel *channel;
@@ -1645,7 +1645,7 @@ static
 void on_edit_bookmarks_activated	(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
-  GtkWidget *be = create_widget("bookmarks_editor");
+  GtkWidget *be = build_widget("bookmarks_editor", NULL);
   gtk_signal_connect(GTK_OBJECT(lookup_widget(be, "bookmarks_close")),
 		     "clicked",
 		     GTK_SIGNAL_FUNC(on_be_close), data);
@@ -2243,7 +2243,7 @@ static GtkWidget *
 create_color_dialog			(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
-  GtkWidget *dialog = create_widget("ttxview_color");
+  GtkWidget *dialog = build_widget("ttxview_color", NULL);
   GtkAdjustment *adj;
   GtkWidget *w;
   gint value;
@@ -2624,7 +2624,7 @@ build_subtitles_submenu(GtkWidget *widget,
 static
 GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 {
-  GtkWidget *popup = create_ttxview_popup();
+  GtkWidget *popup = build_widget("ttxview_popup", NULL);
   GtkWidget *export;
   GList *p = g_list_first(bookmarks);
   struct bookmark *bookmark;
@@ -3386,28 +3386,6 @@ ttxview_blink			(gpointer	p)
   return TRUE;
 }
 
-static GtkWidget *
-pixmap_from_file			(const char	*file)
-{
-  GdkBitmap *mask;
-  GdkPixmap *pixmap;
-  GdkPixbuf *pb;
-  GtkWidget *pix;
-
-  pb = gdk_pixbuf_new_from_file(file);
-  if (!pb)
-    return NULL;
-
-  gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
-  pix = gtk_pixmap_new(pixmap, mask);
-  gtk_widget_show(pix);
-  gdk_bitmap_unref(mask);
-  gdk_bitmap_unref(pixmap);
-  gdk_pixbuf_unref(pb);
-
-  return pix;
-}
-
 #define BUTTON_CMD(_name, _signal, _cmd)				\
   gtk_signal_connect (GTK_OBJECT (lookup_widget (toolbar, #_name)),	\
 		      #_signal, GTK_SIGNAL_FUNC (on_remote_command1),	\
@@ -3438,13 +3416,47 @@ connect_toolbar				(ttxview_data *	data)
 		     data);
 }
 
+static void
+ttxview_toolbar_init		(GtkWidget *		toolbar)
+{
+  struct {
+    const gchar *	pixmap;
+    const gchar *	replacement;
+    const gchar *	widget;
+  } buttons[] = {
+    { "left.png",	"<", "ttxview_prev_subpage" },
+    { "down.png",	"v", "ttxview_prev_page" },
+    { "up.png",		"^", "ttxview_next_page" },
+    { "right.png",	">", "ttxview_next_subpage" },
+    { "reveal.png",	"?", "ttxview_reveal" }
+  };
+  GtkWidget *widget;
+  GtkWidget *button;
+  gint i;
+
+  for (i = 0; i < sizeof (buttons) / sizeof (buttons[0]); i++)
+    {
+      if (!(widget = z_load_pixmap (buttons[i].pixmap)))
+	{
+	  widget = gtk_label_new (buttons[i].replacement);
+	  gtk_widget_show (widget);
+	}
+
+      button = lookup_widget (toolbar, buttons[i].widget);
+      gtk_container_add (GTK_CONTAINER (button), widget);
+    }
+
+  button = lookup_widget (toolbar, "ttxview_reveal");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button),
+				zcg_bool(NULL, "reveal"));
+}
+
+
 GtkWidget*
 build_ttxview(void)
 {
-  GtkWidget *ttxview = create_ttxview();
-  GtkWidget *ttxview_reveal;
+  GtkWidget *ttxview = build_widget("ttxview", NULL);
   ttxview_data *data;
-  GtkWidget *widget;
 
   if (!zvbi_get_object())
     {
@@ -3471,9 +3483,7 @@ build_ttxview(void)
   data->wait_timeout_id = -1;
   gdk_gc_set_function(data->xor_gc, GDK_INVERT);
 
-  ttxview_reveal = lookup_widget(data->toolbar, "ttxview_reveal");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_reveal),
-			       zcg_bool(NULL, "reveal"));
+  ttxview_toolbar_init (data->toolbar);
 
   /* Callbacks */
   gtk_signal_connect(GTK_OBJECT(ttxview), "delete-event",
@@ -3535,51 +3545,6 @@ build_ttxview(void)
 
   inc_model_count();
 
-  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/left.png");
-  if (!widget)
-    {
-      widget = gtk_label_new("<");
-      gtk_widget_show(widget);
-    }
-  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_prev_subpage")), widget);
-
-  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/down.png");
-  if (!widget)
-    {
-      widget = gtk_label_new("v");
-      gtk_widget_show(widget);
-    }
-  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_prev_page")), widget);
-
-  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/up.png");
-  if (!widget)
-    {
-      widget = gtk_label_new("^");
-      gtk_widget_show(widget);
-    }
-  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_next_page")), widget);
-
-  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/right.png");
-  if (!widget)
-    {
-      widget = gtk_label_new(">");
-      gtk_widget_show(widget);
-    }
-  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_next_subpage")), widget);
-
-  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/reveal.png");
-  if (!widget)
-    {
-      widget = gtk_label_new("?");
-      gtk_widget_show(widget);
-    }
-  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_reveal")), widget);
-
   return (ttxview);
 }
 
@@ -3596,8 +3561,6 @@ ttxview_attach				(GtkWidget	*parent,
 {
   ttxview_data *data =
     gtk_object_get_data(GTK_OBJECT(parent), "ttxview_data");
-  GtkWidget *ttxview_reveal;
-  GtkWidget *widget;
   gint w, h;
 
   if (!zvbi_get_object())
@@ -3618,7 +3581,7 @@ ttxview_attach				(GtkWidget	*parent,
 
   data->da = da;
   data->appbar = appbar;
-  data->toolbar = create_widget("toolbar2");
+  data->toolbar = build_widget("toolbar2", NULL);
   data->id = register_ttx_client();
   data->parent = parent;
   data->parent_toolbar = toolbar;
@@ -3631,9 +3594,7 @@ ttxview_attach				(GtkWidget	*parent,
   data->wait_timeout_id = -1;
   gdk_gc_set_function(data->xor_gc, GDK_INVERT);
 
-  ttxview_reveal = lookup_widget(data->toolbar, "ttxview_reveal");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_reveal),
-			       zcg_bool(NULL, "reveal"));
+  ttxview_toolbar_init (data->toolbar);
 
   /* Callbacks */
   gtk_signal_connect(GTK_OBJECT(data->parent), "delete-event",
@@ -3711,51 +3672,6 @@ ttxview_attach				(GtkWidget	*parent,
   load_page(0x100, VBI_ANY_SUBNO, data, NULL);
 
   setup_history_gui(data);
-
-  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/left.png");
-  if (!widget)
-    {
-      widget = gtk_label_new("<");
-      gtk_widget_show(widget);
-    }
-  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_prev_subpage")), widget);
-
-  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/down.png");
-  if (!widget)
-    {
-      widget = gtk_label_new("v");
-      gtk_widget_show(widget);
-    }
-  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_prev_page")), widget);
-
-  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/up.png");
-  if (!widget)
-    {
-      widget = gtk_label_new("^");
-      gtk_widget_show(widget);
-    }
-  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_next_page")), widget);
-
-  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/right.png");
-  if (!widget)
-    {
-      widget = gtk_label_new(">");
-      gtk_widget_show(widget);
-    }
-  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_next_subpage")), widget);
-
-  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/reveal.png");
-  if (!widget)
-    {
-      widget = gtk_label_new("?");
-      gtk_widget_show(widget);
-    }
-  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_reveal")), widget);
 
   inc_model_count();
 }

@@ -654,9 +654,6 @@ acknowledge_trigger			(vbi_link	*link)
 {
   GtkWidget *button;
   gchar *buffer;
-  GdkBitmap *mask;
-  GdkPixmap *pixmap;
-  GdkPixbuf *pb;
   GtkWidget *pix;
   gint filter_level = 9;
   gint action = zcg_int(NULL, "trigger_default");
@@ -709,25 +706,16 @@ acknowledge_trigger			(vbi_link	*link)
       return;
     }
 
-  if (link->eacem)
-    pb = gdk_pixbuf_new_from_file(PACKAGE_PIXMAPS_DIR "/eacem_icon.png");
-  else
-    pb = gdk_pixbuf_new_from_file(PACKAGE_PIXMAPS_DIR "/atvef_icon.png");
-
-  if (pb)
+  if ((pix = z_load_pixmap (link->eacem ?
+			    "eacem_icon.png" : "atvef_icon.png")))
     {
-      button = gtk_button_new();
-      gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
-      gdk_pixbuf_unref(pb);
-      pix = gtk_pixmap_new(pixmap, mask);
-      gdk_bitmap_unref(mask);
-      gdk_pixmap_unref(pixmap);
-
-      gtk_widget_show(pix);
-      gtk_container_add(GTK_CONTAINER(button), pix);
+      button = gtk_button_new ();
+      gtk_container_add (GTK_CONTAINER (button), pix);
     }
   else /* pixmaps not installed */
-    button = gtk_button_new_with_label(_("Click me"));
+    {
+      button = gtk_button_new_with_label (_("Click me"));
+    }
 
   /* FIXME: Show more fields (type, itv...)
    * {mhs}:
@@ -996,13 +984,29 @@ remove_client(struct ttx_client *client)
   g_free(client);
 }
 
+static GdkPixbuf *
+vt_loading			(void)
+{
+  gchar *filename;
+  GdkPixbuf *pixbuf;
+
+  filename = g_strdup_printf("%s/vt_loading%d.jpeg",
+			     PACKAGE_PIXMAPS_DIR,
+			     (rand() % 2) + 1);
+
+  pixbuf = gdk_pixbuf_new_from_file (filename);
+
+  g_free (filename);
+
+  return pixbuf;
+}
+
 /* returns the id */
 int
 register_ttx_client(void)
 {
   static int id;
   struct ttx_client *client;
-  gchar *filename;
   int w, h; /* of the unscaled image */
   GdkPixbuf *simple;
 
@@ -1012,9 +1016,6 @@ register_ttx_client(void)
   client->reveal = 0;
   client->waiting = TRUE;
   pthread_mutex_init(&client->mutex, NULL);
-  filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
-			     "../pixmaps/zapping/vt_loading",
-			     (rand()%2)+1);
   vbi_get_max_rendered_size(&w, &h);
   client->unscaled_on = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w,
 				    h);
@@ -1024,9 +1025,7 @@ register_ttx_client(void)
   g_assert(client->unscaled_on != NULL);
   g_assert(client->unscaled_off != NULL);
   
-  simple = gdk_pixbuf_new_from_file(filename);
-  g_free(filename);
-  if (simple)
+  if ((simple = vt_loading ()))
     {
       gdk_pixbuf_scale(simple,
 		       client->unscaled_on, 0, 0, w, h,
@@ -1432,7 +1431,6 @@ static int
 build_client_page(struct ttx_client *client, vbi_page *pg)
 {
   GdkPixbuf *simple;
-  gchar *filename;
 
   if (!vbi)
     return 0;
@@ -1457,13 +1455,8 @@ build_client_page(struct ttx_client *client, vbi_page *pg)
   else if (!pg)
     {
       memset(&client->fp, 0, sizeof(client->fp));
-      filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
-				 "../pixmaps/zapping/vt_loading",
-				 (rand()%2)+1);
-  
-      simple = gdk_pixbuf_new_from_file(filename);
-      g_free(filename);
-      if (simple)
+
+      if ((simple = vt_loading ()))
 	{
 	  gdk_pixbuf_scale(simple,
 			   client->unscaled_on, 0, 0,
@@ -2333,14 +2326,13 @@ update_vi_program			(struct vi_data *data)
     {
     case VBI_RATING_AUTH_MPAA:
       snprintf(buffer2, sizeof(buffer2) - 1,
-	       "%s/rating_mpaa_%x.png",
-	       PACKAGE_PIXMAPS_DIR, pi->rating_id & 7);
+	       "rating_mpaa_%x.png",
+	       pi->rating_id & 7);
       break;
 
     case VBI_RATING_AUTH_TV_US:
       snprintf(buffer2, sizeof(buffer2) - 1,
-	       "%s/rating_tv_us_%x%x.png",
-	       PACKAGE_PIXMAPS_DIR,
+	       "rating_tv_us_%x%x.png",
 	       pi->rating_id & 7, pi->rating_dlsv & 15);
       if (n > 0 && pi->rating_dlsv != 0)
 	snprintf(buffer + n, sizeof(buffer) - n - 1,
@@ -2353,22 +2345,21 @@ update_vi_program			(struct vi_data *data)
 
     case VBI_RATING_AUTH_TV_CA_EN:
       snprintf(buffer2, sizeof(buffer2) - 1,
-	       "%s/rating_tv_ca_en_%x.png",
-	       PACKAGE_PIXMAPS_DIR, pi->rating_id & 7);
+	       "rating_tv_ca_en_%x.png",
+	       pi->rating_id & 7);
       break;
 
     case VBI_RATING_AUTH_TV_CA_FR:
       snprintf(buffer2, sizeof(buffer2) - 1,
-	       "%s/rating_tv_ca_fr_%x.png",
-	       PACKAGE_PIXMAPS_DIR, pi->rating_id & 7);
+	       "rating_tv_ca_fr_%x.png",
+	       pi->rating_id & 7);
       break;
 
     default:
       break;
     }
 
-  if (buffer2[0] == 0
-      || !(widget = z_pixmap_new_from_file(buffer2)))
+  if (buffer2[0] == 0 || !(widget = z_load_pixmap (buffer2)))
     {
       if (buffer[0] == 0)
 	/* NLS: Current program rating
@@ -2376,9 +2367,9 @@ update_vi_program			(struct vi_data *data)
 	widget = gtk_label_new(_("Not rated"));
       else
 	widget = gtk_label_new(buffer);
-    }
 
-  gtk_widget_show(widget);
+      gtk_widget_show(widget);
+    }
 
   if (data->rating)
     gtk_container_remove(GTK_CONTAINER(vbox), data->rating);
@@ -2471,7 +2462,7 @@ event_timeout				(struct vi_data	*data)
 GtkWidget *
 zvbi_build_network_info(void)
 {
-  GtkWidget * vbi_info = create_widget("vbi_info");
+  GtkWidget * vbi_info = build_widget("vbi_info", NULL);
   struct vi_data *data;
 
   if (!zvbi_get_object())
@@ -2506,7 +2497,7 @@ zvbi_build_network_info(void)
 GtkWidget *
 zvbi_build_program_info(void)
 {
-  GtkWidget * prog_info = create_widget("program_info");
+  GtkWidget * prog_info = build_widget("program_info", NULL);
   struct vi_data *data;
 
   if (!zvbi_get_object())
