@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.35 2002-09-12 12:23:30 mschimek Exp $ */
+/* $Id: mp2.c,v 1.36 2002-09-26 20:38:05 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -963,7 +963,7 @@ menu_audio_mode[] = {
 	/* 0 */ N_("Mono"),
 	/* 1 */ N_("Stereo"),
 	/* NLS: Bilingual for example left audio channel English, right French */
-	/* 2 */ N_("Bilingual"), 
+	N_("Bilingual"), 
 	/* 3 TODO N_("Joint Stereo"), */
 };
 
