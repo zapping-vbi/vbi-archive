@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.19 2001-07-26 05:41:31 mschimek Exp $ */
+/* $Id: fifo.h,v 1.20 2001-07-27 05:52:24 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -418,6 +418,9 @@ struct buffer2 {
 	void			(* destroy)(buffer2 *);
 
 	void *			user_data;
+
+	/* XXX? */
+	int			rte_flags;	/* rte internal use */
 };
 
 struct fifo2 {
@@ -635,6 +638,9 @@ send_empty_buffer2(consumer *c, buffer2 *b)
 
 	c->fifo->send_empty(c, b);
 }
+
+/* XXX rethink */
+extern void			send_empty_buffered(consumer *c, buffer2 *b);
 
 /**
  * recv_empty_buffer:

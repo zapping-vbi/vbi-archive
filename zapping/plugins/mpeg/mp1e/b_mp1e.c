@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.2 2001-07-26 05:41:31 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.3 2001-07-27 05:52:24 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -54,7 +54,9 @@ typedef struct {
 	pthread_t video_thread_id; /* video encoder thread */
 	pthread_t audio_thread_id; /* audio encoder thread */
 
-	fifo		aud; /* mp1e audio fifo */
+	fifo2		aud; /* mp1e audio fifo */
+	producer	aud_prod; /* of backend aud */
+	consumer	aud_cons; /* of context aud */
 	short		*p; /* somewhere in abuffer */
 	int		left; /* bytes left (unread) in abuffer */
 	double		time; /* timestamp for aud */
@@ -79,12 +81,9 @@ static void rte_video_init(void); /* init video capture */
  * Global options from rte.
  */
 char *			my_name="rte";
-int			verbose=0;
-
-fifo *			audio_cap_fifo;
+// int			verbose=0;
+int			verbose=6;
 int			stereo;
-
-static fifo2 *		video_cap_fifo;
 
 /* fixme: This is just to satisfy dependencies for now */
 void
@@ -125,27 +124,29 @@ context_destroy			(rte_context	*context)
  *  (480 * channels); from subband window size 512 samples, step
  *  width 32 samples (32 * 3 * 12 total)
  */
-static buffer *
-wait_full(fifo *f)
+static void
+wait_full(fifo2 *f)
 {
 	rte_context *context = f->user_data;
-	backend_private *priv = (backend_private*)context->private;
-	buffer *b = f->buffers;
+	backend_private *priv = (backend_private *) context->private;
+	buffer2 *b = PARENT(f->buffers.head, buffer2, added);
 
-	if (b->data)
-		return NULL; // no queue
+	assert(b->data == NULL); /* no queue */
 
 	if (priv->left <= 0) {
-		buffer *c;
+		buffer2 *sb;
 
 		memcpy(b->allocated, (short *) b->allocated + priv->scan_range,
 		       priv->look_ahead * sizeof(short));
 
-		c = wait_full_buffer(&(context->private->aud));
+		sb = wait_full_buffer2(&(priv->aud_cons));
+
 		memcpy(b->allocated + priv->look_ahead *
-		       sizeof(short), c->data, context->audio_bytes);
-		priv->time = c->time;
-		send_empty_buffer(&(context->private->aud), c);
+		       sizeof(short), sb->data, context->audio_bytes);
+
+		priv->time = sb->time;
+
+		send_empty_buffer2(&(priv->aud_cons), sb);
 
 		priv->p = (short *) b->allocated;
 		priv->left = priv->scan_range - priv->samples_per_frame;
@@ -153,7 +154,8 @@ wait_full(fifo *f)
 		b->time = priv->time;
 		b->data = b->allocated;
 
-		return b;
+		send_full_buffer2(&priv->aud_prod, b);
+		return;
 	}
 
 	b->time = priv->time
@@ -165,12 +167,14 @@ wait_full(fifo *f)
 
 	b->data = (unsigned char *) priv->p;
 
-	return b;
+	send_full_buffer2(&priv->aud_prod, b);
 }
 
 static void
-send_empty			(fifo *f, buffer *b)
+send_empty(consumer *c, buffer2 *b)
 {
+	// XXX
+	rem_node3(&c->fifo->full, &b->node);
 	b->data = NULL;
 }
 
@@ -193,6 +197,9 @@ init_context			(rte_context	*context)
 
 	if (context->mode & RTE_AUDIO)
 	{
+		int buffer_size;
+		buffer2 *b;
+
 		switch (context->audio_mode)
 		{
 		case RTE_AUDIO_MODE_MONO:
@@ -215,21 +222,25 @@ init_context			(rte_context	*context)
 		priv->look_ahead = (512 - 32) << priv->stereo;
 		
 		context->audio_bytes = priv->scan_range*sizeof(short);
-		
-		if (!init_callback_fifo(&(priv->aud),
-					"rte-mp1e-audio", wait_full,
-					send_empty, 
-					1, (priv->scan_range+
-					    priv->look_ahead)*sizeof(short)))
+
+		buffer_size = (priv->scan_range + priv->look_ahead) * sizeof(short);
+
+		if (!init_callback_fifo2(&(priv->aud), "rte-mp1e-audio",
+			NULL, NULL, wait_full, send_empty,
+			1, buffer_size))
 		{
 			rte_error(context, "not enough mem");
 			return 0;
 		}
 
-		priv->aud.buffers[0].data = NULL;
-		priv->aud.buffers[0].used =
-			(priv->samples_per_frame + priv->look_ahead) *
-			sizeof(short);
+		assert(add_producer(&priv->aud, &priv->aud_prod));
+
+		b = PARENT(priv->aud.buffers.head, buffer2, added);
+
+		b->data = NULL;
+		b->used = (priv->samples_per_frame + priv->look_ahead)
+			* sizeof(short);
+
 		priv->aud.user_data = context;
 		priv->left = 0;
 	}
@@ -237,7 +248,7 @@ init_context			(rte_context	*context)
 	if (!rte_fake_options(context))
 	{
 		if (context->mode & RTE_AUDIO)
-			uninit_fifo(&(priv->aud));
+			destroy_fifo(&(priv->aud));
 		return 0;
 	}
 
@@ -250,7 +261,7 @@ init_context			(rte_context	*context)
 	if (!output_init())
 	{
 		if (context->mode & RTE_AUDIO)
-			uninit_fifo(&(priv->aud));
+			destroy_fifo(&(priv->aud));
 
 		rte_error(context, "Cannot init output");
 		return 0;
@@ -267,7 +278,7 @@ uninit_context			(rte_context	*context)
 	output_end();
 
 	if (context->mode & RTE_AUDIO)
-		uninit_fifo(&(priv->aud));
+		destroy_fifo(&(priv->aud));
 
 	if (gop_sequence)
 		free(gop_sequence);
@@ -284,12 +295,14 @@ start			(rte_context	*context)
 	mux_thread_done = 0;
 
 	if (modules & MOD_AUDIO) {
+		add_consumer(&(context->private->aud), &(priv->aud_cons));
+
 		ASSERT("create audio compression thread",
 			!pthread_create(&priv->audio_thread_id,
 					NULL,
 					stereo ? mpeg_audio_layer_ii_stereo :
-					mpeg_audio_layer_ii_mono,
-					NULL));
+					         mpeg_audio_layer_ii_mono,
+					(fifo2 *) &(priv->aud)));
 
 		printv(2, "Audio compression thread launched\n");
 	}
@@ -299,7 +312,7 @@ start			(rte_context	*context)
 			!pthread_create(&priv->video_thread_id,
 					NULL,
 					mpeg1_video_ipb,
-					video_cap_fifo));
+					(fifo2 *) &(context->private->vid)));
 
 		printv(2, "Video compression thread launched\n");
 	}
@@ -393,7 +406,7 @@ status			(rte_context	*context,
 
 static int rte_fake_options(rte_context * context)
 {
-	backend_private *priv = (backend_private*)context->private;
+//	backend_private *priv = (backend_private*)context->private;
 	int pitch;
 
 	ASSERT("guiroppaaaaa!\n", context != NULL);
@@ -471,9 +484,6 @@ static int rte_fake_options(rte_context * context)
 
 	motion_min = context->motion_min;
 	motion_max = context->motion_max;
-
-	video_cap_fifo = &(context->private->vid);
-	audio_cap_fifo = &(priv->aud);
 
 	return 1;
 }

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.16 2001-07-26 05:41:31 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.17 2001-07-27 05:52:25 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -131,6 +131,9 @@ static void
 send_empty(consumer *c, buffer2 *b)
 {
 	struct v4l2_buffer vbuf;
+
+	// XXX
+	rem_node3(&c->fifo->full, &b->node);
 
 	vbuf.type = V4L2_BUF_TYPE_CAPTURE;
 	vbuf.index = b - buffers;

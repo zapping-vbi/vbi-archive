@@ -18,16 +18,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libaudio.h,v 1.1 2000-11-11 02:32:21 mschimek Exp $ */
+/* $Id: libaudio.h,v 1.2 2001-07-27 05:52:24 mschimek Exp $ */
 
 #include "../common/fifo.h"
 
 extern fifo *		audio_fifo;
-extern fifo *		audio_cap_fifo;
-extern pthread_t	audio_thread_id;
 
-extern void *		mpeg_audio_layer_ii_mono(void *unused);
-extern void *		mpeg_audio_layer_ii_stereo(void *unused);
+extern void *		mpeg_audio_layer_ii_mono(void *cap_fifo);
+extern void *		mpeg_audio_layer_ii_stereo(void *cap_fifo);
 extern void		audio_parameters(int *sampling_freq, int *bit_rate);
 extern void		audio_init(int sampling_freq, int stereo,
 				int audio_mode, int bit_rate, int psycho_loops);
@@ -37,7 +35,7 @@ extern void		audio_init(int sampling_freq, int stereo,
 extern void		mix_init(void);
 extern char *		mix_sources(void);
 
-extern fifo *		open_pcm_oss(char *dev_name, int sampling_rate, bool stereo);
-extern fifo *		open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo);
-extern fifo *		open_pcm_esd(char *, int sampling_rate, bool stereo);
-extern fifo *		open_pcm_afl(char *name, int, bool);
+extern fifo2 *		open_pcm_oss(char *dev_name, int sampling_rate, bool stereo);
+extern fifo2 *		open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo);
+extern fifo2 *		open_pcm_esd(char *, int sampling_rate, bool stereo);
+extern fifo2 *		open_pcm_afl(char *name, int, bool);

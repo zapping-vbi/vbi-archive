@@ -1,8 +1,8 @@
 /*
  *  MPEG Real Time Encoder
- *  Advanced Linux Sound Architecture Interface (draft)
+ *  Advanced Linux Sound Architecture Interface
  *
- *  Copyright (C) 2000 Michael H. Schimek
+ *  Copyright (C) 2000-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.13 2001-05-31 19:40:49 mschimek Exp $ */
+/* $Id: alsa.c,v 1.14 2001-07-27 05:52:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -46,6 +46,7 @@
 #include <sys/asoundlib.h>
 #include "../common/mmx.h" 
 #include "../common/math.h" 
+#include "../common/alloc.h"
 #include "audio.h"
 
 /*
@@ -69,14 +70,13 @@ struct alsa_context {
 
 /* XXX Clock drift & overflow detection missing */
 
-static buffer *
-wait_full(fifo *f)
+static void
+wait_full(fifo2 *f)
 {
 	struct alsa_context *alsa = f->user_data;
-	buffer *b = f->buffers;
+	buffer2 *b = PARENT(f->buffers.head, buffer2, added);
 
-	if (b->data)
-		return NULL; // no queue
+	assert(b->data == NULL); /* no queue */
 
 	if (alsa->left <= 0) {
 		ssize_t r, n, m;
@@ -128,7 +128,8 @@ wait_full(fifo *f)
 		b->time = alsa->time;
 		b->data = b->allocated;
 
-		return b;
+		send_full_buffer2(&alsa->pcm.producer, b);
+		return;
 	}
 
 	b->time = alsa->time
@@ -140,17 +141,19 @@ wait_full(fifo *f)
 
 	b->data = (unsigned char *) alsa->p;
 
-	return b;
+	send_full_buffer2(&alsa->pcm.producer, b);
 }
 
 static void
-send_empty(fifo *f, buffer *b)
+send_empty(consumer *c, buffer2 *b)
 {
+	// XXX
+	rem_node3(&c->fifo->full, &b->node);
 	b->data = NULL;
 }
 
 static bool
-start(fifo *f)
+start(fifo2 *f)
 {
 	struct alsa_context *alsa = f->user_data;
 	int err;
@@ -162,7 +165,7 @@ start(fifo *f)
 	return TRUE;
 }
 
-fifo *
+fifo2 *
 open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 {
 	struct alsa_context *alsa;
@@ -170,6 +173,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 	snd_pcm_channel_params_t params;
 	snd_pcm_channel_setup_t setup;
 	int card = 0, device = 0, buffer_size;
+	buffer2 *b;
 	int err;
 
 	while (*dev_name && !isdigit(*dev_name))
@@ -232,23 +236,27 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 		setup.format.rate, setup.format.voices,
 		setup.buf.stream.queue_size);
 
-	ASSERT("init pcm/alsa capture fifo", init_callback_fifo(
-		audio_cap_fifo = &alsa->pcm.fifo, "audio-alsa",
-		wait_full, send_empty, 1, buffer_size));
+	ASSERT("init alsa fifo", init_callback_fifo2(
+		&alsa->pcm.fifo, "audio-alsa",
+		NULL, NULL, wait_full, send_empty,
+		1, buffer_size));
 
-	alsa->pcm.fifo.start = start;
+	ASSERT("init alsa producer",
+		add_producer(&alsa->pcm.fifo, &alsa->pcm.producer));
 
-	alsa->pcm.fifo.buffers[0].data = NULL;
-	alsa->pcm.fifo.buffers[0].used =
-		(alsa->samples_per_frame + alsa->look_ahead) * sizeof(short);
 	alsa->pcm.fifo.user_data = alsa;
+
+	b = PARENT(alsa->pcm.fifo.buffers.head, buffer2, added);
+
+	b->data = NULL;
+	b->used = (alsa->samples_per_frame + alsa->look_ahead) * sizeof(short);
 
 	return &alsa->pcm.fifo;
 }
 
 #else // !HAVE_LIBASOUND
 
-fifo *
+fifo2 *
 open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 {
 	FAIL("Not compiled with ALSA interface.\n"

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.17 2001-07-26 05:41:31 mschimek Exp $ */
+/* $Id: oss.c,v 1.18 2001-07-27 05:52:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -41,6 +41,7 @@
 #include "../common/log.h" 
 #include "../common/mmx.h" 
 #include "../common/math.h" 
+#include "../common/alloc.h"
 #include "audio.h"
 
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
@@ -70,18 +71,16 @@ struct oss_context {
  *  (480 * channels); from subband window size 512 samples, step
  *  width 32 samples (32 * 3 * 12 total)
  */
-static buffer *
-wait_full(fifo *f)
+static void
+wait_full(fifo2 *f)
 {
 	struct oss_context *oss = f->user_data;
-	buffer *b = f->buffers;
+	buffer2 *b = PARENT(f->buffers.head, buffer2, added);
 
-	if (b->data)
-		return NULL; // no queue
+	assert(b->data == NULL); /* no queue */
 
 	if (oss->left <= 0) {
 		struct audio_buf_info info;
-		struct timeval tv;
 		unsigned char *p;
 		ssize_t r, n;
 /*
@@ -134,7 +133,8 @@ wait_full(fifo *f)
 		b->time = oss->time;
 		b->data = b->allocated;
 
-		return b;
+		send_full_buffer2(&oss->pcm.producer, b);
+		return;
 	}
 
 	b->time = oss->time
@@ -146,16 +146,19 @@ wait_full(fifo *f)
 
 	b->data = (unsigned char *) oss->p;
 
-	return b;
+	send_full_buffer2(&oss->pcm.producer, b);
 }
 
 static void
-send_empty(fifo *f, buffer *b)
+send_empty(consumer *c, buffer2 *b)
 {
+	// XXX
+	rem_node3(&c->fifo->full, &b->node);
+
 	b->data = NULL;
 }
 
-fifo *
+fifo2 *
 open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 {
 	struct oss_context *oss;
@@ -163,6 +166,7 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	int oss_speed = sampling_rate;
 	int oss_stereo = stereo;
 	int buffer_size;
+	buffer2 *b;
 
 	ASSERT("allocate pcm context",
 		(oss = calloc(1, sizeof(struct oss_context))));
@@ -205,14 +209,20 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 		printv(3, "Dsp buffer size %i\n", frag_size);
 	}
 
-	ASSERT("init pcm/oss capture fifo", init_callback_fifo(
+	ASSERT("init oss fifo",	init_callback_fifo2(
 		&oss->pcm.fifo, "audio-oss",
-		wait_full, send_empty, 1, buffer_size));
+		NULL, NULL, wait_full, send_empty,
+		1, buffer_size));
 
-	oss->pcm.fifo.buffers[0].data = NULL;
-	oss->pcm.fifo.buffers[0].used =
-		(oss->samples_per_frame + oss->look_ahead) * sizeof(short);
+	ASSERT("init oss producer",
+		add_producer(&oss->pcm.fifo, &oss->pcm.producer));
+
 	oss->pcm.fifo.user_data = oss;
+
+	b = PARENT(oss->pcm.fifo.buffers.head, buffer2, added);
+
+	b->data = NULL;
+	b->used = (oss->samples_per_frame + oss->look_ahead) * sizeof(short);
 
 	return &oss->pcm.fifo;
 }

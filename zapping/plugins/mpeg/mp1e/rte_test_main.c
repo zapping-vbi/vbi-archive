@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.28 2001-07-26 05:41:31 mschimek Exp $
+ * $Id: rte_test_main.c,v 1.29 2001-07-27 05:52:24 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -36,6 +36,7 @@
 #include <asm/types.h>
 #include <pthread.h>
 #include "common/log.h"
+#include "common/fifo.h"
 #include "common/videodev2.h"
 #include "rte.h"
 
@@ -65,11 +66,12 @@ static void
 read_video(rte_buffer * buffer)
 {
 	struct v4l2_buffer vbuf;
-	struct timeval tv;
 	fd_set fds;
 	int r = -1;
 
 	while (r <= 0) {
+		struct timeval tv;
+
 		FD_ZERO(&fds);
 		FD_SET(fd, &fds);
 
@@ -94,7 +96,7 @@ read_video(rte_buffer * buffer)
 	buffer->data = buffers[vbuf.index];
 	buffer->user_data = (void*)vbuf.index; /* we need this for
 						  queuing on unref */
-	buffer->time = vbuf.timestamp / 1e9; // UST, currently TOD
+	buffer->time = vbuf.timestamp * (1 / 1e9); // UST, currently TOD
 }
 
 static void
@@ -162,8 +164,8 @@ init_video(const char * cap_dev, int * width, int * height)
 
 	vfmt.fmt.pix.flags = V4L2_FMT_FLAG_INTERLACED;
 
-	ASSERT("set capture format", ioctl(fd, VIDIOC_S_FMT,
-						   &vfmt) == 0);
+	ASSERT("set capture format", 
+		ioctl(fd, VIDIOC_S_FMT, &vfmt) == 0);
 
 	if ((vfmt.fmt.pix.width & 15) || (vfmt.fmt.pix.height & 15))
 		FAIL("width and height not valid: %d x %d",
@@ -248,7 +250,6 @@ read_audio(void * data, double * time, rte_context * context)
 {
 	int stereo = (context->audio_mode == RTE_AUDIO_MODE_STEREO) ? 1
 		: 0;
-	struct timeval tv;
 	int sampling_rate = context->audio_rate;
 	ssize_t r, n = context->audio_bytes;
 	struct audio_buf_info info;
@@ -285,11 +286,11 @@ read_audio(void * data, double * time, rte_context * context)
 {
 	int stereo = (context->audio_mode == RTE_AUDIO_MODE_STEREO) ? 1
 		: 0;
-	struct timeval tv;
 	int sampling_rate = context->audio_rate;
 	ssize_t r, n = context->audio_bytes;
 
 	while (n > 0) {
+		struct timeval tv;
 		fd_set rdset;
 		int err;
 		
@@ -427,7 +428,7 @@ int main(int argc, char *argv[])
 	char dest_file[256], *buffer;
 	pthread_t audio_thread_id;
 	enum rte_mux_mode mux_mode = RTE_AUDIO | RTE_VIDEO;
-	enum rte_interface video_interface = RTE_PUSH;
+	enum rte_interface video_interface = RTE_CALLBACKS;
 	int video_buffered = 1; /* just for push */
 	enum rte_interface audio_interface = RTE_CALLBACKS;
 	int num_encoded_frames;

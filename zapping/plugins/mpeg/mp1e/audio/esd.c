@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.13 2001-07-26 05:41:31 mschimek Exp $ */
+/* $Id: esd.c,v 1.14 2001-07-27 05:52:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -42,6 +42,7 @@
 #include "../common/log.h" 
 #include "../common/mmx.h" 
 #include "../common/math.h" 
+#include "../common/alloc.h"
 #include "audio.h"
 
 #ifdef USE_ESD
@@ -62,14 +63,13 @@ struct esd_context {
 	double			time;
 };
 
-static buffer *
-wait_full(fifo *f)
+static void
+wait_full(fifo2 *f)
 {
 	struct esd_context *esd = f->user_data;
-	buffer *b = f->buffers;
+	buffer2 *b = PARENT(f->buffers.head, buffer2, added);
 
-	if (b->data)
-		return NULL; // no queue
+	assert(b->data == NULL); /* no queue */
 
 	if (esd->left <= 0) {
 		struct timeval tv;
@@ -112,7 +112,7 @@ wait_full(fifo *f)
 			n -= r;
 		}
 
-		esd->time = current_time();
+		esd->time = current_time()
 			- ((esd->scan_range - n / sizeof(short)) >> esd->pcm.stereo)
 				/ (double) esd->pcm.sampling_rate;
 
@@ -122,7 +122,8 @@ wait_full(fifo *f)
 		b->time = esd->time;
 		b->data = b->allocated;
 
-		return b;
+		send_full_buffer2(&esd->pcm.producer, b);
+		return;
 	}
 
 	b->time = esd->time
@@ -134,21 +135,24 @@ wait_full(fifo *f)
 
 	b->data = (unsigned char *) esd->p;
 
-	return b;
+	send_full_buffer2(&esd->pcm.producer, b);
 }
 
 static void
-send_empty(fifo *f, buffer *b)
+send_empty(consumer *c, buffer2 *b)
 {
+	// XXX
+	rem_node3(&c->fifo->full, &b->node);
 	b->data = NULL;
 }
 
-fifo *
+fifo2 *
 open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 {
 	struct esd_context *esd;
 	esd_format_t format;
 	int buffer_size;
+	buffer2 *b;
 
 	ASSERT("allocate pcm context",
 		(esd = calloc(1, sizeof(struct esd_context))));
@@ -177,21 +181,27 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 
 	printv(2, "Opened ESD socket\n");
 
-	ASSERT("init pcm/esd capture fifo", init_callback_fifo(
+	ASSERT("init esd fifo",	init_callback_fifo2(
 		&esd->pcm.fifo, "audio-esd",
-		wait_full, send_empty, 1, buffer_size));
+		NULL, NULL, wait_full, send_empty,
+		1, buffer_size));
 
-	esd->pcm.fifo.buffers[0].data = NULL;
-	esd->pcm.fifo.buffers[0].used =
-		(esd->samples_per_frame + esd->look_ahead) * sizeof(short);
+	ASSERT("init esd producer",
+		add_producer(&esd->pcm.fifo, &esd->pcm.producer));
+
 	esd->pcm.fifo.user_data = esd;
+
+	b = PARENT(esd->pcm.fifo.buffers.head, buffer2, added);
+
+	b->data = NULL;
+	b->used = (esd->samples_per_frame + esd->look_ahead) * sizeof(short);
 
 	return &esd->pcm.fifo;
 }
 
 #else // !USE_ESD
 
-fifo *
+fifo2 *
 open_pcm_esd(char *dev_name, int sampling_rate, bool stereo)
 {
 	FAIL("Not compiled with ESD interface.\n"

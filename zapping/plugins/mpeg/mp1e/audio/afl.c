@@ -2,7 +2,7 @@
  *  MPEG-1 Real Time Encoder
  *  Audio File Library (libaudiofile) Interface
  *
- *  Copyright (C) 2000 Michael H. Schimek
+ *  Copyright (C) 2000-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: afl.c,v 1.8 2001-05-31 19:40:49 mschimek Exp $ */
+/* $Id: afl.c,v 1.9 2001-07-27 05:52:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -42,6 +42,7 @@
 
 #include "audio.h"
 #include "../common/math.h"
+#include "../common/alloc.h"
 
 #define BUFFER_SIZE 8192 // bytes
 
@@ -58,21 +59,21 @@ struct afl_context {
 	bool			eof;
 };
 
-static buffer *
-wait_full(fifo *f)
+static void
+wait_full(fifo2 *f)
 {
 	struct afl_context *afl = f->user_data;
-	buffer *b = f->buffers;
+	buffer2 *b = PARENT(f->buffers.head, buffer2, added);
 
-	if (b->data)
-		return NULL; // no queue
+	assert(b->data == NULL); /* no queue */
 
 	if (afl->left <= 0) {
 		ssize_t r;
 
 		if (afl->eof) {
 			b->used = 0;
-			return NULL;
+			send_full_buffer2(&afl->pcm.producer, b);
+			return;
 		}
 
 		memcpy(b->allocated, (short *) b->allocated + afl->scan_range,
@@ -93,8 +94,8 @@ wait_full(fifo *f)
 			afl->eof = TRUE;
 
 			if (afl->left < afl->samples_per_frame) {
-				b->used = 0;
-				return NULL;
+				b->used = 0; /* EOF */
+				send_full_buffer2(&afl->pcm.producer, b);
 			}
 		}
 
@@ -109,21 +110,24 @@ wait_full(fifo *f)
 	b->time = afl->time;
 	afl->time += afl->frame_period;
 
-	return b;
+	send_full_buffer2(&afl->pcm.producer, b);
 }
 
 static void
-send_empty(fifo *f, buffer *b)
+send_empty(consumer *c, buffer *b)
 {
+	// XXX
+	rem_node3(&c->fifo->full, &b->node);
 	b->data = NULL;
 }
 
-fifo *
+fifo2 *
 open_pcm_afl(char *name, int ignored1, bool ignored2)
 {
 	struct afl_context *afl;
 	int buffer_size;
 	int version, channels, rate;
+	buffer2 *b;
 
 	ASSERT("allocate pcm context",
 		(afl = calloc(1, sizeof(struct afl_context))));
@@ -184,21 +188,27 @@ open_pcm_afl(char *name, int ignored1, bool ignored2)
 
 	buffer_size = (afl->scan_range + afl->look_ahead) * sizeof(short);
 
-	ASSERT("init pcm/afl capture fifo", init_callback_fifo(
+	ASSERT("init afl fifo",	init_callback_fifo2(
 		&afl->pcm.fifo, "audio-afl",
-		wait_full, send_empty, 1, buffer_size));
+		NULL, NULL, wait_full, send_empty,
+		1, buffer_size));
 
-	afl->pcm.fifo.buffers[0].data = NULL;
-	afl->pcm.fifo.buffers[0].used =
-		(afl->samples_per_frame + afl->look_ahead) * sizeof(short);
+	ASSERT("init afl producer",
+		add_producer(&afl->pcm.fifo, &afl->pcm.producer));
+
 	afl->pcm.fifo.user_data = afl;
+
+	b = PARENT(afl->pcm.fifo.buffers.head, buffer2, added);
+
+	b->data = NULL;
+	b->used = (afl->samples_per_frame + afl->look_ahead) * sizeof(short);
 
 	return &afl->pcm.fifo;
 }
 
 #else // !HAVE_LIBAUDIOFILE
 
-fifo *
+fifo2 *
 open_pcm_afl(char *name, int ignored1, bool ignored2)
 {
 	FAIL("Audio compression from file requires libaudiofile:\n"

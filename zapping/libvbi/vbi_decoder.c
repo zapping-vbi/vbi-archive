@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.16 2001-07-26 05:41:31 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.17 2001-07-27 05:52:24 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1118,7 +1118,6 @@ static buffer *
 wait_full_read(fifo *f)
 {
 	struct vbi_capture *vbi = f->user_data;
-	struct timeval tv;
 	buffer *b;
 	size_t r;
 

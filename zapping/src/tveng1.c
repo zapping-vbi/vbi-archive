@@ -51,6 +51,8 @@
 #include <X11/extensions/xf86dga.h>
 #endif
 
+#include "common/fifo.h" /* current_time() */
+
 /* 
    This works around a bug bttv appears to have with the mute
    property. Comment out the line if your V4L driver isn't buggy.
@@ -1850,7 +1852,6 @@ static int p_tveng1_dequeue(unsigned char * where, tveng_device_info * info)
   struct video_mmap bm;
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info*) info;
-  struct timeval tv;
   unsigned char *y, *v, *u;
   unsigned int bytes;
 

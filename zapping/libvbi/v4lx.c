@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.25 2001-07-26 05:41:31 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.26 2001-07-27 05:52:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -99,7 +99,6 @@ static void
 wait_full_read(fifo2 *f)
 {
 	vbi_device *vbi = PARENT(f, vbi_device, fifo);
-	struct timeval tv;
 	buffer2 *b;
 	size_t r;
 
@@ -149,7 +148,6 @@ read_thread(void *p)
 	fifo2 *f = (fifo2 *) p;
 	vbi_device *vbi = PARENT(f, vbi_device, fifo);
 	double last_time, stacked_time, glitch_time;
-	struct timeval tv;
 	list3 stack;
 	int stacked;
 	buffer2 *b;
@@ -715,7 +713,6 @@ wait_full_stream(fifo2 *f)
 {
 	vbi_device *vbi = PARENT(f, vbi_device, fifo);
 	struct v4l2_buffer vbuf;
-	struct timeval tv;
 	double time;
 	fd_set fds;
 	buffer2 *b;
@@ -728,6 +725,8 @@ wait_full_stream(fifo2 *f)
 			r = -1;
 
 			while (r <= 0) {
+				struct timeval tv;
+
 				FD_ZERO(&fds);
 				FD_SET(vbi->fd, &fds);
 

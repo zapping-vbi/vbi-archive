@@ -3,7 +3,7 @@
  *  MPEG-1 Audio Layer II
  *  MPEG-2 Audio Layer II Low Frequency Extensions
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.14 2001-07-24 20:02:55 mschimek Exp $ */
+/* $Id: mp2.c,v 1.15 2001-07-27 05:52:24 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -472,14 +472,20 @@ scale_quant(struct audio_seg *mp2, int channels)
 
 
 void *
-mpeg_audio_layer_ii_mono(void *unused)
+mpeg_audio_layer_ii_mono(void *cap_fifo)
 {
+	consumer cons;
+
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
-	remote_sync(audio_cap_fifo, NULL, MOD_AUDIO, aseg.frame_period);
+	ASSERT("add audio consumer",
+		add_consumer((fifo2 *) cap_fifo, &cons));
+
+	remote_sync(NULL, &cons, MOD_AUDIO, aseg.frame_period);
 
 	for (;;) {
-		buffer *ibuf, *obuf;
+		buffer2 *ibuf;
+		buffer *obuf;
 		unsigned int adb, bpf;
 		double time;
 
@@ -488,11 +494,12 @@ mpeg_audio_layer_ii_mono(void *unused)
 		if (aseg.audio_frame_count > audio_num_frames)
 			terminate();
 
-		ibuf = wait_full_buffer(audio_cap_fifo);
+		ibuf = wait_full_buffer2(&cons);
 
-		if (!ibuf || remote_break(ibuf->time, aseg.frame_period)) {
+		if (!ibuf || ibuf->used == 0
+		    || remote_break(ibuf->time, aseg.frame_period)) {
 			if (ibuf)
-				send_empty_buffer(audio_cap_fifo, ibuf);
+				send_empty_buffer2(&cons, ibuf);
 			terminate();
 		}
 
@@ -517,7 +524,7 @@ mpeg_audio_layer_ii_mono(void *unused)
 
 		pr_end(34);
 
-		send_empty_buffer(audio_cap_fifo, ibuf);
+		send_empty_buffer2(&cons, ibuf);
 
 		pr_start(36, "Bit twiddling");
 
@@ -648,14 +655,20 @@ mpeg_audio_layer_ii_mono(void *unused)
 }
 
 void *
-mpeg_audio_layer_ii_stereo(void *unused)
+mpeg_audio_layer_ii_stereo(void *cap_fifo)
 {
+	consumer cons;
+
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
-	remote_sync(audio_cap_fifo, NULL, MOD_AUDIO, aseg.frame_period);
+	ASSERT("add audio consumer",
+		add_consumer((fifo2 *) cap_fifo, &cons));
+
+	remote_sync(NULL, &cons, MOD_AUDIO, aseg.frame_period);
 
 	for (;;) {
-		buffer *ibuf, *obuf;
+		buffer2 *ibuf;
+		buffer *obuf;
 		unsigned int adb, bpf;
 		double time;
 
@@ -664,11 +677,12 @@ mpeg_audio_layer_ii_stereo(void *unused)
 		if (aseg.audio_frame_count > audio_num_frames)
 			terminate();
 
-		ibuf = wait_full_buffer(audio_cap_fifo);
+		ibuf = wait_full_buffer2(&cons);
 
-		if (!ibuf || remote_break(ibuf->time, aseg.frame_period)) {
+		if (!ibuf || ibuf->used == 0
+		    || remote_break(ibuf->time, aseg.frame_period)) {
 			if (ibuf)
-				send_empty_buffer(audio_cap_fifo, ibuf);
+				send_empty_buffer2(&cons, ibuf);
 			terminate();
 		}
 
@@ -694,7 +708,7 @@ mpeg_audio_layer_ii_stereo(void *unused)
 
 		pr_end(34);
 
-		send_empty_buffer(audio_cap_fifo, ibuf);
+		send_empty_buffer2(&cons, ibuf);
 
 		pr_start(36, "Bit twiddling");
 

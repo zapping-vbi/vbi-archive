@@ -538,7 +538,6 @@ int
 vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **language)
 {
 	struct page_info *pi;
-	struct timeval tv;
 	int code, subc;
 	char *lang;
 

@@ -26,7 +26,6 @@ extern double		video_stop_time;
 extern double		audio_stop_time;
 
 extern pthread_t	audio_thread_id;
-extern fifo *		audio_cap_fifo;
 extern int		stereo;
 
 extern pthread_t	video_thread_id;

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.22 2001-07-26 05:41:31 mschimek Exp $ */
+/* $Id: fifo.c,v 1.23 2001-07-27 05:52:24 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -903,7 +903,7 @@ send_empty_unbuffered(consumer *c, buffer2 *b)
 /*
  *  This is the buffered lower half of function send_empty_buffer().
  */
-static void
+void
 send_empty_buffered(consumer *c, buffer2 *b)
 {
 	fifo2 *f = c->fifo;
@@ -1278,6 +1278,7 @@ init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size)
  *       for wait_empty_buffer().
  *   Producer, asynchronous i/o:
  *     custom_send_empty():
+ *   XXX flawed, rethink: send_empty_buffered?
  *       start i/o and return
  *     custom_wait_full():
  *       wait for i/o completion
@@ -1307,6 +1308,7 @@ init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size)
  *       for wait_full_buffer().
  *   Consumer, asynchronous i/o:
  *     custom_send_full():
+ *   XXX check
  *       start i/o and return
  *     custom_wait_empty():
  *       wait for i/o completion

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.9 2000-11-11 02:32:21 mschimek Exp $ */
+/* $Id: audio.h,v 1.10 2001-07-27 05:52:24 mschimek Exp $ */
 
 #include <pthread.h>
 #include "../common/fifo.h"
@@ -26,7 +26,8 @@
 #include "mpeg.h"
 
 struct pcm_context {
-	fifo		fifo;
+	fifo2		fifo;
+	producer	producer;
 
 	int		sampling_rate;
 	bool		stereo;
@@ -102,6 +103,8 @@ extern struct audio_seg
 	FLOAT *			h_save_oldest;
 	int			psycho_loops;
 
+	/* Misc */
+
 	unsigned int		header_template;
 	double			frame_period;
 	int			sampling_freq;
@@ -110,8 +113,6 @@ extern struct audio_seg
 
 	int			audio_frame_count;
 } aseg;
-
-extern fifo *		audio_cap_fifo;
 
 /* psycho.c */
 

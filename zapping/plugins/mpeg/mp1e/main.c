@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.45 2001-07-26 05:41:31 mschimek Exp $ */
+/* $Id: main.c,v 1.46 2001-07-27 05:52:24 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,8 +56,8 @@
 char *			my_name;
 int			verbose;
 
-pthread_t		audio_thread_id;
-fifo *			audio_cap_fifo;
+static pthread_t	audio_thread_id;
+static fifo2 *		audio_cap_fifo;
 int			stereo;
 
 pthread_t		video_thread_id;
@@ -86,7 +86,6 @@ extern void video_init(void);
 static void
 terminate(int signum)
 {
-	struct timeval tv;
 	double now;
 
 	printv(3, "Received termination signal\n");
@@ -296,7 +295,8 @@ main(int ac, char **av)
 		ASSERT("create audio compression thread",
 			!pthread_create(&audio_thread_id, NULL,
 			stereo ? mpeg_audio_layer_ii_stereo :
-				 mpeg_audio_layer_ii_mono, NULL));
+				 mpeg_audio_layer_ii_mono,
+				 audio_cap_fifo));
 
 		printv(2, "Audio compression thread launched\n");
 	}
@@ -361,8 +361,6 @@ main(int ac, char **av)
 	if (1)
     		remote_start(0.0); // past times: start as soon as possible
 	else {
-		struct timeval tv;
-
 		printv(0, "Deferred start in 3 seconds\n");
 
     		remote_start(3.0 + current_time());
