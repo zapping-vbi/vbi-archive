@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.6 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.7 2001-11-28 22:13:24 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +25,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <assert.h>
-#include <limits.h>
 #include "../video/mpeg.h"
 #include "../video/video.h"
 #include "../audio/libaudio.h"
@@ -213,9 +212,10 @@ PES_packet_header(unsigned char *p, stream *str)
 #define Raud (0.0)
 
 static inline bool
-next_access_unit(stream *str, double *ppts, unsigned char *ph)
+next_access_unit(stream *str, double *ppts, unsigned char **pph)
 {
 	buffer *buf;
+	unsigned char *ph;
 
 	str->buf = buf = wait_full_buffer(&str->cons);
 
@@ -232,15 +232,16 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 			((buf->used * 8 * str->frame_rate)
 			 - str->eff_bit_rate) * Rvid;
 
-	if (ph) {
+	if ((ph = *pph)) {
 		if (IS_VIDEO_STREAM(str->stream_id)) {
 			switch (buf->type) {
 			case I_TYPE:
 			case P_TYPE:
-				*ppts = str->dts + str->ticks_per_frame * buf->offset;
+				*ppts = str->dts + str->ticks_per_frame * (buf->offset + 1);
 				ph[7] |= MARKER_PTS << 6;
 				time_stamp(ph +  9, MARKER_PTS, *ppts);
 				time_stamp(ph + 14, MARKER_DTS, str->dts);
+				*pph = NULL;
 				break;
 			
 			case B_TYPE:
@@ -248,6 +249,7 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 				ph[7] |= MARKER_PTS << 6;
 				time_stamp(ph +  9, MARKER_PTS, *ppts);
 				time_stamp(ph + 14, MARKER_DTS, str->dts);
+				*pph = NULL;
 				break;
 
 			default:
@@ -255,8 +257,11 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 			}			
 		} else {
 			*ppts = str->dts;
+/* XXX ?		*ppts = str->dts + str->pts_offset;
+*/
 			ph[7] |= MARKER_PTS_ONLY << 6;
 			time_stamp(ph + 9, MARKER_PTS_ONLY, *ppts);
+			*pph = NULL;
 		}
 	}
 
@@ -265,7 +270,7 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 	return TRUE;
 }
 
-#define LARGE_DTS (DBL_MAX / 2.0)
+#define LARGE_DTS 1E30
 
 static inline stream *
 schedule(multiplexer *mux)
@@ -295,10 +300,10 @@ mpeg2_program_stream_mux(void *muxp)
 {
 	multiplexer *mux = muxp;
 	unsigned char *p, *ph, *ps, *pl, *px;
-	unsigned long long bytes_out = 0;
+	unsigned long bytes_out = 0;
 	unsigned int pack_packet_count = PACKETS_PER_PACK;
-	unsigned long long packet_count = 0;
-	unsigned long long pack_count = 0;
+	unsigned int packet_count = 0;
+	unsigned int pack_count = 0;
 	double system_rate, system_rate_bound;
 	double system_overhead;
 	double ticks_per_pack;
@@ -373,7 +378,7 @@ mpeg2_program_stream_mux(void *muxp)
 		/* Packet header, system header */
 
 		if (pack_packet_count >= PACKETS_PER_PACK) {
-			printv(4, "Pack #%lld, scr=%f\n", pack_count++, scr);
+			printv(4, "Pack #%d, scr=%f\n",	pack_count++, scr);
 
 			p = PS_pack_header(p, scr, system_rate);
 			p = PS_system_header(mux, p, system_rate_bound);
@@ -413,7 +418,7 @@ reschedule:
 			int n;
 
 			if (str->left == 0) {
-				if (!next_access_unit(str, &pts, ph)) {
+				if (!next_access_unit(str, &pts, &ph)) {
 					str->dts = LARGE_DTS * 2.0; // don't schedule stream
 
 					if (pl == p) {
@@ -429,8 +434,6 @@ reschedule:
 
 					break;
 				}
-
-				ph = NULL;
 			}
 
 			n = MIN(str->left, px - p);
@@ -451,7 +454,7 @@ reschedule:
 			str->ptr += n;
 		}
 
-		printv(4, "Packet #%lld %s, pts=%f\n",
+		printv(4, "Packet #%d %s, pts=%f\n",
 			packet_count, mpeg_header_name(str->stream_id), pts);
 
 		((unsigned short *) ps)[2] = swab16(p - ps - 6);

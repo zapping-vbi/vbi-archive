@@ -1,3 +1,13 @@
+2001-11-28	Multiplexer fixes <mschimek@users.sf.net>
+
+	* systems/mpeg1.c, mpeg2.c, vcd.c: Fixed I picture PTS reorder
+	  offset bug, created incorrect I PTS when encoding B frames
+	  (not in 1.9.1).
+	* -e0: Fixed incorrect P picture offset.
+	* -e1: Fake B picture PTS not coded anymore, fixed incorrect
+	  I/P PTS offset in video/mpeg1.c.
+	* -e2: worked. :-)
+
 2001-11-27	<mschimek@users.sf.net>
 
 	* v4l.c: Try VIDEO_PALETTE_YUYV before _YUV422. (Some drivers

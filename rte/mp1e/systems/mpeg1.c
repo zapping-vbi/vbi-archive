@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.6 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.7 2001-11-28 22:13:24 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +25,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <assert.h>
-#include <limits.h>
 #include "../video/mpeg.h"
 #include "../video/video.h"
 #include "../audio/libaudio.h"
@@ -176,10 +175,13 @@ static FILE *cdlog;
 #define Rvid (1.0 / 1024)
 #define Raud (0.0)
 
+#define TPF 3600.0
+
 static inline bool
-next_access_unit(stream *str, double *ppts, unsigned char *ph)
+next_access_unit(stream *str, double *ppts, unsigned char **pph)
 {
 	buffer *buf;
+	unsigned char *ph;
 
 	str->buf = buf = wait_full_buffer(&str->cons);
 
@@ -215,7 +217,7 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 	}
 #endif
 
-	if (ph) {
+	if ((ph = *pph)) {
 		/*
 		 *  Add DTS/PTS of first access unit
 		 *  commencing in packet.
@@ -230,33 +232,44 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 			switch (buf->type) {
 			case I_TYPE:
 			case P_TYPE:
-				*ppts = str->dts + str->ticks_per_frame * buf->offset; // reorder delay
+				*ppts = str->dts + str->ticks_per_frame * (buf->offset + 1); // reorder delay
 				time_stamp(ph +  6, MARKER_PTS, *ppts);
 				time_stamp(ph + 11, MARKER_DTS, str->dts);
+				*pph = NULL;
 				break;
-			
+
 			case B_TYPE:
 				*ppts = str->dts; // delay always 0
 				time_stamp(ph +  6, MARKER_PTS, *ppts);
 				time_stamp(ph + 11, MARKER_DTS, str->dts);
+				*pph = NULL;
 				break;
 
 			default:
 				; /* no time stamp */
 			}
-		} else {
+		} else /* audio */ {
 			*ppts = str->dts + str->pts_offset;
 			time_stamp(ph + 11, MARKER_PTS_ONLY, *ppts);
+			*pph = NULL;
 		}
-	}
 
+		printv(4, "%02x %c %06x dts=%16.8f pts=%16.8f off=%+2d %s\n",
+			str->stream_id, "?IPB?"[buf->type], buf->used,
+			str->dts / TPF, *ppts / TPF, buf->offset,
+			*pph ? "not coded" : "");
+	} else {
+		printv(4, "%02x %c %06x dts=%16.8f in same packet\n",
+			str->stream_id, "?IPB?"[buf->type], buf->used,
+			str->dts / TPF);
+	}
 
 	str->ticks_per_byte = str->ticks_per_frame / str->left;
 
 	return TRUE;
 }
 
-#define LARGE_DTS (DBL_MAX / 2.0)
+#define LARGE_DTS 1E30
 
 static inline stream *
 schedule(multiplexer *mux)
@@ -286,10 +299,10 @@ mpeg1_system_mux(void *muxp)
 {
 	multiplexer *mux = muxp;
 	unsigned char *p, *ph, *ps, *pl, *px;
-	unsigned long long bytes_out = 0;
+	unsigned long bytes_out = 0;
 	unsigned int pack_packet_count = PACKETS_PER_PACK;
-	unsigned long long packet_count = 0;
-	unsigned long long pack_count = 0;
+	unsigned int packet_count = 0;
+	unsigned int pack_count = 0;
 	double system_rate, system_rate_bound;
 	double system_overhead;
 	double ticks_per_pack;
@@ -372,7 +385,7 @@ mpeg1_system_mux(void *muxp)
 		/* Pack header, system header */
 
 		if (pack_packet_count >= PACKETS_PER_PACK) {
-			printv(4, "Pack #%lld, scr=%f\n", pack_count++, scr);
+			printv(4, "Pack #%d, scr=%f\n",	pack_count++, scr);
 
 			p = pack_header(p, scr, system_rate);
 			p = system_header(mux, p, system_rate_bound);
@@ -412,7 +425,7 @@ reschedule:
 			int n;
 
 			if (str->left == 0) {
-				if (!next_access_unit(str, &pts, ph)) {
+				if (!next_access_unit(str, &pts, &ph)) {
 					str->dts = LARGE_DTS * 2.0; // don't schedule stream
 
 					if (pl == p) {
@@ -428,8 +441,6 @@ reschedule:
 
 					break;
 				}
-
-				ph = NULL;
 			}
 
 			n = MIN(str->left, px - p);
@@ -450,7 +461,7 @@ reschedule:
 			str->ptr += n;
 		}
 
-		printv(4, "Packet #%lld %s, pts=%f\n",
+		printv(4, "Packet #%d %s, pts=%f\n",
 			packet_count, mpeg_header_name(str->stream_id), pts);
 
 		((unsigned short *) ps)[2] = swab16(p - ps - 6);
@@ -484,13 +495,12 @@ reschedule:
 				printv(1, ", %5.2f %% dropped",
 					100.0 * video_frames_dropped / video_frame_count);
 
-
 #if 0 /* garetxe: num_buffers_queued doesn't exist any longer */
 			printv(1, ", fifo v=%5.2f%% a=%5.2f%%",
 			       100.0 * num_buffers_queued(video_fifo) / video_fifo->num_buffers,
 			       100.0 * num_buffers_queued(audio_fifo) / audio_fifo->num_buffers);
 #endif
-			printv(1, (verbose > 3) ? "\n" : "  \r");
+			printv(1, (verbose > 2) ? "\n" : "  \r");
 
 			fflush(stderr);
 		}

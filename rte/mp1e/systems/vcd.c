@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.6 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: vcd.c,v 1.7 2001-11-28 22:13:24 mschimek Exp $ */
 
 /*
  *  This code creates a stream suitable for mkvcdfs as vcdmplex
@@ -38,7 +38,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <assert.h>
-#include <limits.h>
 #include "../video/mpeg.h"
 #include "../video/video.h"
 #include "../audio/libaudio.h"
@@ -163,9 +162,10 @@ padding_packet(unsigned char *p, int size)
 }
 
 static inline bool
-next_access_unit(stream *str, double *ppts, unsigned char *ph)
+next_access_unit(stream *str, double *ppts, unsigned char **pph)
 {
 	buffer *buf;
+	unsigned char *ph;
 
 	str->buf = buf = wait_full_buffer(&str->cons);
 
@@ -177,7 +177,7 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 		return FALSE;
 	}
 
-	if (ph) {
+	if ((ph = *pph)) {
 		/*
 		 *  Add DTS/PTS of first access unit
 		 *  commencing in packet.
@@ -192,16 +192,18 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 			switch (buf->type) {
 			case I_TYPE:
 			case P_TYPE:
-				*ppts = str->dts + str->ticks_per_frame * buf->offset; // reorder delay
+				*ppts = str->dts + str->ticks_per_frame * (buf->offset + 1);
 				put(ph + 6, (0x1 << 14) + (1 << 13) + (47104 >> 10), 2);
 				time_stamp(ph +  8, MARKER_PTS, *ppts);
 				time_stamp(ph + 13, MARKER_DTS, str->dts);
+				*pph = NULL;
 				break;
 
 			case B_TYPE:
-				*ppts = str->dts; // delay always 0
+				*ppts = str->dts;
 				time_stamp(ph +  8, MARKER_PTS, *ppts);
 				time_stamp(ph + 13, MARKER_DTS, str->dts);
+				*pph = NULL;
 				break;
 
 			default:
@@ -211,6 +213,7 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 			*ppts = str->dts + str->pts_offset;
 			put(ph + 6, (0x1 << 14) + (0 << 13) + (4096 >> 7), 2);
 			time_stamp(ph + 8, MARKER_PTS_ONLY, *ppts);
+			*pph = NULL;
 		}
 	}
 
@@ -219,7 +222,7 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 	return TRUE;
 }
 
-#define LARGE_DTS (DBL_MAX / 2.0)
+#define LARGE_DTS 1E30
 
 static inline stream *
 schedule(multiplexer *mux)
@@ -249,8 +252,8 @@ vcd_system_mux(void *muxp)
 {
 	multiplexer *mux = muxp;
 	unsigned char *p, *ph, *ps, *pl, *px;
-	unsigned long long bytes_out = 0;
-	unsigned long long packet_count;
+	unsigned long bytes_out = 0;
+	unsigned int packet_count;
 	double system_rate, system_rate_bound;
 	double system_overhead;
 	double ticks_per_pack, tscr;
@@ -409,7 +412,7 @@ reschedule:
 
 			while (p < px) {
 				if (str->left <= 0) {
-					if (!next_access_unit(str, &pts, ph)) {
+					if (!next_access_unit(str, &pts, &ph)) {
 						str->dts = LARGE_DTS * 2.0; // don't schedule stream
 
 						if (pl == p) {
@@ -425,8 +428,6 @@ reschedule:
 
 						break;
 					}
-
-					ph = NULL;
 				}
 
 				n = MIN(str->left, px - p);
@@ -448,7 +449,7 @@ reschedule:
 			}
 		}
 
-		printv(4, "Packet #%lld %s, pts=%f\n",
+		printv(4, "Packet #%d %s, pts=%f\n",
 			packet_count, mpeg_header_name(str->stream_id), pts);
 
 		((unsigned short *) ps)[2] = swab16(p - ps - 6);

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.17 2001-11-22 17:51:07 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.18 2001-11-28 22:13:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1247,7 +1247,8 @@ encode_skipped_frames(mpeg1_context *mpeg1, stacked_frame *this)
 		case SKIP_METHOD_FAKE:
 			/*
 			 *  We encode a placeholder for the
-			 *  missing frame (beyond MPEG-1).
+			 *  missing frame (beyond MPEG-1). The mux picture
+			 *  type is B, coded in order with normal time stamping.
 			 */
 
 			printv(3, "Encoding fake picture #%lld GOP #%d\n",
@@ -1288,14 +1289,15 @@ encode_skipped_frames(mpeg1_context *mpeg1, stacked_frame *this)
 			 *  playback according to the DTS/PTS of coded pictures
 			 *  (beyond MPEG-1). Note we still send the mux a
 			 *  dummy picture for proper a/v sync. used = 0 is
-			 *  not possible because that's an EOF sign.
+			 *  not possible because that's an EOF sign. The picture
+			 *  type is 'none' to suppress the PTS stamp.
 			 */
 
 			printv(3, "Skipping picture (not counted)\n");
 
 			obuf = wait_empty_buffer(&mpeg1->prod);
 
-			obuf->type = B_TYPE;
+			obuf->type = 0;
 			obuf->offset = 0;
 			obuf->used = 4;
 			obuf->time = this->time;
@@ -1437,6 +1439,10 @@ encode_keyframe(mpeg1_context *mpeg1, stacked_frame *this,
 	}
 
 	mpeg1->gop_frame_count -= key_offset;
+
+	/* Skipped frames don't add to GOP, but DTS/PTS */
+	if (mpeg1->skip_method == SKIP_METHOD_MUX)
+		key_offset += mpeg1->skipped_fake;
 
 	obuf->offset = key_offset;
 	obuf->time = this->time;
@@ -1613,7 +1619,7 @@ mpeg1_video_ipb(void *p)
 					if (this->buffer && this->org)
 						send_empty_buffer(&mpeg1->cons, this->buffer);
 
-					mpeg1->skipped_fake = 0;
+					mpeg1->skipped_fake++;
 					this->skipped++;
 					sp--;
 
@@ -1649,7 +1655,7 @@ mpeg1_video_ipb(void *p)
 							       | ((mpeg1->gop_frame_count & 1023) << 22));
 
 						obuf->type = P_TYPE;
-						obuf->offset = 1;
+						obuf->offset = 0;
 						obuf->used = mpeg1->Sz;
 						obuf->time = this->time;
 
@@ -1767,8 +1773,8 @@ finish:
 	if (video_frame_count > 0) {
 		obuf = wait_empty_buffer(&mpeg1->prod);
 		((unsigned int *) obuf->data)[0] = swab32(SEQUENCE_END_CODE);
-		obuf->type = 0;
-		obuf->offset = 1;
+		obuf->type = 0; /* no picture, no timestamp */
+		obuf->offset = 0;
 		obuf->used = 4;
 		obuf->time = mpeg1->last.time += mpeg1->time_per_frame; /* not used */
 		_send_full_buffer(mpeg1, obuf);
@@ -1778,7 +1784,7 @@ finish:
 
 	obuf = wait_empty_buffer(&mpeg1->prod);
 	obuf->type = 0;
-	obuf->offset = 1;
+	obuf->offset = 0;
 	obuf->used = 0; /* EOF */
 	obuf->time = 0;
 	_send_full_buffer(mpeg1, obuf);
