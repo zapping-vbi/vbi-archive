@@ -123,12 +123,7 @@ int main(int argc, char * argv[])
 
   /* try to run the auxiliary suid program */
   if (tveng_run_zapping_setup_fb(main_info) == -1)
-    {
-      g_warning(_("tveng_run_zapping_setup_fb: %s\n"
-		  "Fullscreen mode will not work"),
-		main_info->error);
-      disable_preview = TRUE;
-    }
+    disable_preview = TRUE;
 
   free(main_info -> file_name);
 
@@ -216,8 +211,10 @@ int main(int argc, char * argv[])
       zconf_get_integer(&y, "/zapping/internal/callbacks/y");
       zconf_get_integer(&w, "/zapping/internal/callbacks/w");
       zconf_get_integer(&h, "/zapping/internal/callbacks/h");
-      /* Hopefully this will let me track the bug */
+      /* Hopefully this will let me track the ghost bug */
+#ifdef DEBUG
       g_message("Restoring %dx%d - %d-%d", x, y, w, h);
+#endif
       gdk_window_move_resize(main_window->window, x, y, w, h);
     }
 

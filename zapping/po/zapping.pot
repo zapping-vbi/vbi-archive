@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-05-31 11:07+0200\n"
+"POT-Creation-Date: 2000-05-31 23:11+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -26,31 +26,24 @@ msgstr ""
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:127
-#, c-format
-msgid ""
-"tveng_run_zapping_setup_fb: %s\n"
-"Fullscreen mode will not work"
-msgstr ""
-
-#: src/main.c:144
+#: src/main.c:139
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:165
+#: src/main.c:160
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:243
+#: src/main.c:240
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:327
+#: src/main.c:324
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -62,7 +55,7 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:356
+#: src/main.c:353
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
@@ -249,175 +242,175 @@ msgstr ""
 msgid "Cannot figure out X depth"
 msgstr ""
 
-#: src/tveng1.c:61
-msgid "Mono"
-msgstr ""
-
-#: src/tveng1.c:62
-msgid "Stereo"
-msgstr ""
-
-#: src/tveng1.c:63
-msgid "European alternate 1"
-msgstr ""
-
-#: src/tveng1.c:64
-msgid "European alternate 2"
-msgstr ""
-
-#: src/tveng1.c:109 src/tveng2.c:85
+#: src/tveng1.c:99 src/tveng2.c:85
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr ""
 
-#: src/tveng1.c:187
+#: src/tveng1.c:177
 msgid "Cannot duplicate device name"
 msgstr ""
 
-#: src/tveng1.c:199 src/tveng2.c:203
+#: src/tveng1.c:189 src/tveng2.c:203
 msgid "Unknown attach mode for the device"
 msgstr ""
 
-#: src/tveng1.c:225 src/tveng2.c:229
+#: src/tveng1.c:215 src/tveng2.c:229
 msgid "No inputs for this device"
 msgstr ""
 
-#: src/tveng1.c:248 src/tveng2.c:252
+#: src/tveng1.c:238 src/tveng2.c:252
 msgid "No standards for this device"
 msgstr ""
 
-#: src/tveng1.c:302 src/tveng2.c:296
+#: src/tveng1.c:292 src/tveng2.c:296
 msgid "Cannot find appropiate palette for current display"
 msgstr ""
 
-#: src/tveng1.c:547 src/tveng2.c:522
+#: src/tveng1.c:537 src/tveng2.c:522
 #, c-format
 msgid "Input %s doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:569 src/tveng2.c:544
+#: src/tveng1.c:559 src/tveng2.c:544
 #, c-format
 msgid "Input number %d doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:748 src/tveng2.c:712
+#: src/tveng1.c:738 src/tveng2.c:712
 #, c-format
 msgid "Standard %s doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:766 src/tveng2.c:730
+#: src/tveng1.c:756 src/tveng2.c:730
 #, c-format
 msgid "Standard %d doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:820 src/tveng2.c:805
+#: src/tveng1.c:810 src/tveng2.c:805
 msgid "Cannot understand the actual palette"
 msgstr ""
 
 #. unknown
-#: src/tveng1.c:888 src/tveng2.c:859
+#: src/tveng1.c:878 src/tveng2.c:859
 msgid "Cannot understand the given palette"
 msgstr ""
 
-#: src/tveng1.c:1015 src/tveng1.c:1518 src/tveng1.c:1531 src/tveng2.c:970
+#: src/tveng1.c:953
+msgid "Mono"
+msgstr ""
+
+#: src/tveng1.c:954
+msgid "Stereo"
+msgstr ""
+
+#: src/tveng1.c:955
+msgid "Alternate 1"
+msgstr ""
+
+#: src/tveng1.c:956
+msgid "Alternate 2"
+msgstr ""
+
+#: src/tveng1.c:1111 src/tveng1.c:1607 src/tveng1.c:1620 src/tveng2.c:970
 #: src/tveng2.c:1255 src/tveng2.c:1268
 msgid "Mute"
 msgstr ""
 
-#: src/tveng1.c:1026 src/tveng2.c:969
+#: src/tveng1.c:1122 src/tveng2.c:969
 msgid "Volume"
 msgstr ""
 
-#: src/tveng1.c:1037
+#: src/tveng1.c:1133
 msgid "Bass"
 msgstr ""
 
-#: src/tveng1.c:1048 src/tveng2.c:972
+#: src/tveng1.c:1144 src/tveng2.c:972
 msgid "Treble"
 msgstr ""
 
-#: src/tveng1.c:1058 src/tveng2.c:971
+#: src/tveng1.c:1159 src/tveng2.c:971
 msgid "Balance"
 msgstr ""
 
-#: src/tveng1.c:1067
+#: src/tveng1.c:1172
 msgid "Audio Decoding"
 msgstr ""
 
-#: src/tveng1.c:1084 src/tveng2.c:952
+#: src/tveng1.c:1186 src/tveng2.c:952
 msgid "Brightness"
 msgstr ""
 
-#: src/tveng1.c:1093 src/tveng2.c:955
+#: src/tveng1.c:1195 src/tveng2.c:955
 msgid "Hue"
 msgstr ""
 
-#: src/tveng1.c:1102
+#: src/tveng1.c:1204
 msgid "Colour"
 msgstr ""
 
-#: src/tveng1.c:1111 src/tveng2.c:953
+#: src/tveng1.c:1213 src/tveng2.c:953
 msgid "Contrast"
 msgstr ""
 
-#: src/tveng1.c:1206
+#: src/tveng1.c:1302
 msgid "Unknown decoding mode"
 msgstr ""
 
-#: src/tveng1.c:1228
+#: src/tveng1.c:1324
 #, c-format
 msgid "Unknown control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1319
+#: src/tveng1.c:1408
 #, c-format
 msgid "Unknown audio control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1357
+#: src/tveng1.c:1446
 #, c-format
 msgid "Unknown video control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1411 src/tveng1.c:1441 src/tveng2.c:1145 src/tveng2.c:1176
+#: src/tveng1.c:1500 src/tveng1.c:1530 src/tveng2.c:1145 src/tveng2.c:1176
 #, c-format
 msgid "Cannot find control \"%s\" in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1480 src/tveng1.c:1505 src/tveng2.c:1216 src/tveng2.c:1242
+#: src/tveng1.c:1569 src/tveng1.c:1594 src/tveng2.c:1216 src/tveng2.c:1242
 #, c-format
 msgid "Cannot find control %d in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1654 src/tveng2.c:1377
+#: src/tveng1.c:1743 src/tveng2.c:1377
 msgid "There are no tuners for the active input"
 msgstr ""
 
-#: src/tveng1.c:1815 src/tveng2.c:1609
+#: src/tveng1.c:1904 src/tveng2.c:1609
 msgid "Warning: trying to stop capture with no capture active\n"
 msgstr ""
 
-#: src/tveng1.c:1862 src/tveng1.c:1919
+#: src/tveng1.c:1951 src/tveng1.c:2008
 msgid "Cannot understand actual palette"
 msgstr ""
 
-#: src/tveng1.c:1875
+#: src/tveng1.c:1964
 msgid "Grabber chip can't sync (no station tuned in?)"
 msgstr ""
 
-#: src/tveng1.c:1967 src/tveng2.c:1665
+#: src/tveng1.c:2056 src/tveng2.c:1665
 msgid "Current capture mode is not READ"
 msgstr ""
 
-#: src/tveng1.c:1976 src/tveng2.c:1674
+#: src/tveng1.c:2065 src/tveng2.c:1674
 msgid "Size check failed, quitting to avoid segfault"
 msgstr ""
 
-#: src/tveng1.c:2099 src/tveng2.c:1817
+#: src/tveng1.c:2188 src/tveng2.c:1817
 msgid "The capability field says that there is no overlay"
 msgstr ""
 
-#: src/tveng1.c:2336 src/tveng2.c:2067
+#: src/tveng1.c:2425 src/tveng2.c:2067
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
@@ -964,206 +957,198 @@ msgid "_Main help"
 msgstr ""
 
 #: glade/glade_strings.c:23
-msgid "This document explains how to write a plugin for Zapping."
-msgstr ""
-
-#: glade/glade_strings.c:24
-msgid "_Plugin writing"
-msgstr ""
-
-#: glade/glade_strings.c:25
 msgid "Configure capture"
 msgstr ""
 
-#: glade/glade_strings.c:26
+#: glade/glade_strings.c:24
 msgid "Controls"
 msgstr ""
 
-#: glade/glade_strings.c:27
+#: glade/glade_strings.c:25
 msgid "Video device capabilities"
 msgstr ""
 
-#: glade/glade_strings.c:28
+#: glade/glade_strings.c:26
 msgid "label30"
 msgstr ""
 
-#: glade/glade_strings.c:29
+#: glade/glade_strings.c:27
 msgid "Device name:"
 msgstr ""
 
-#: glade/glade_strings.c:30
+#: glade/glade_strings.c:28
 msgid "label27"
 msgstr ""
 
-#: glade/glade_strings.c:31
+#: glade/glade_strings.c:29
 msgid "label31"
 msgstr ""
 
-#: glade/glade_strings.c:32
+#: glade/glade_strings.c:30
 msgid "Current controller:"
 msgstr ""
 
-#: glade/glade_strings.c:33
+#: glade/glade_strings.c:31
 msgid "Device file:"
 msgstr ""
 
-#: glade/glade_strings.c:34
+#: glade/glade_strings.c:32
 msgid "Minimum capture size:"
 msgstr ""
 
-#: glade/glade_strings.c:35
+#: glade/glade_strings.c:33
 msgid "Maximum capture size:"
 msgstr ""
 
-#: glade/glade_strings.c:36
+#: glade/glade_strings.c:34
 msgid "label28"
 msgstr ""
 
-#: glade/glade_strings.c:37
+#: glade/glade_strings.c:35
 msgid "label29"
 msgstr ""
 
-#: glade/glade_strings.c:38
+#: glade/glade_strings.c:36
 msgid "Device info"
 msgstr ""
 
-#: glade/glade_strings.c:39
+#: glade/glade_strings.c:37
 msgid "Avoid noise while changing channels"
 msgstr ""
 
-#: glade/glade_strings.c:40
+#: glade/glade_strings.c:38
 msgid "Save window geometry (some WM's don't like it)"
 msgstr ""
 
-#: glade/glade_strings.c:41
+#: glade/glade_strings.c:39
 msgid "Start Zapping muted"
 msgstr ""
 
-#: glade/glade_strings.c:42
+#: glade/glade_strings.c:40
 msgid "Verbosity value given to zapping_setup_fb:"
 msgstr ""
 
-#: glade/glade_strings.c:43
+#: glade/glade_strings.c:41
 msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
 msgstr ""
 
-#: glade/glade_strings.c:44
+#: glade/glade_strings.c:42
 msgid "General options"
 msgstr ""
 
-#: glade/glade_strings.c:45
+#: glade/glade_strings.c:43
 msgid "Plugin properties"
 msgstr ""
 
-#: glade/glade_strings.c:46
+#: glade/glade_strings.c:44
 msgid "Modules"
 msgstr ""
 
-#: glade/glade_strings.c:47
+#: glade/glade_strings.c:45
 msgid "label67 (Plugin name)"
 msgstr ""
 
-#: glade/glade_strings.c:48
+#: glade/glade_strings.c:46
 msgid "label68 (Plugin short description)"
 msgstr ""
 
-#: glade/glade_strings.c:49
+#: glade/glade_strings.c:47
 msgid "This is the file where the plugin is located"
 msgstr ""
 
-#: glade/glade_strings.c:50
+#: glade/glade_strings.c:48
 msgid "text2"
 msgstr ""
 
-#: glade/glade_strings.c:51
+#: glade/glade_strings.c:49
 msgid "Canonical name:"
 msgstr ""
 
-#: glade/glade_strings.c:52
+#: glade/glade_strings.c:50
 msgid "label69"
 msgstr ""
 
-#: glade/glade_strings.c:53
+#: glade/glade_strings.c:51
 msgid "Author:"
 msgstr ""
 
-#: glade/glade_strings.c:54
+#: glade/glade_strings.c:52
 msgid "label71"
 msgstr ""
 
-#: glade/glade_strings.c:55
+#: glade/glade_strings.c:53
 msgid "Plugin version:"
 msgstr ""
 
-#: glade/glade_strings.c:56
+#: glade/glade_strings.c:54
 msgid "label72"
 msgstr ""
 
-#: glade/glade_strings.c:57
+#: glade/glade_strings.c:55
 msgid "Plugin priority:"
 msgstr ""
 
-#: glade/glade_strings.c:58
+#: glade/glade_strings.c:56
 msgid "label73"
 msgstr ""
 
-#: glade/glade_strings.c:59
+#: glade/glade_strings.c:57
 msgid "Plugin description"
 msgstr ""
 
-#: glade/glade_strings.c:60
+#: glade/glade_strings.c:58
 msgid "text1"
 msgstr ""
 
-#: glade/glade_strings.c:61
+#: glade/glade_strings.c:59
 msgid "label76"
 msgstr ""
 
-#: glade/glade_strings.c:62
+#: glade/glade_strings.c:60
 msgid "Symbol"
 msgstr ""
 
-#: glade/glade_strings.c:63
+#: glade/glade_strings.c:61
 msgid "Hash"
 msgstr ""
 
-#: glade/glade_strings.c:64
+#: glade/glade_strings.c:62
 msgid "label74 (prototype)"
 msgstr ""
 
-#: glade/glade_strings.c:65
+#: glade/glade_strings.c:63
 msgid "label75 (symbol description)"
 msgstr ""
 
-#: glade/glade_strings.c:66
+#: glade/glade_strings.c:64
 msgid "Click here when you are done with the plugins"
 msgstr ""
 
-#: glade/glade_strings.c:67
+#: glade/glade_strings.c:65
 msgid "Activate (start) the plugin"
 msgstr ""
 
-#: glade/glade_strings.c:68
+#: glade/glade_strings.c:66
 msgid "Start Plugin"
 msgstr ""
 
-#: glade/glade_strings.c:69
+#: glade/glade_strings.c:67
 msgid "Stop the plugin"
 msgstr ""
 
-#: glade/glade_strings.c:70
+#: glade/glade_strings.c:68
 msgid "Stop Plugin"
 msgstr ""
 
-#: glade/glade_strings.c:71
+#: glade/glade_strings.c:69
 msgid "dialog1"
 msgstr ""
 
-#: glade/glade_strings.c:72
+#: glade/glade_strings.c:70
 msgid "Channel choosing"
 msgstr ""
 
-#: glade/glade_strings.c:73
+#: glade/glade_strings.c:71
 msgid ""
 "Choose here the channels you want to use.\n"
 "If your country is not listed, please find out the frequencies used for\n"
@@ -1171,83 +1156,83 @@ msgid ""
 "in the next release of this program."
 msgstr ""
 
-#: glade/glade_strings.c:77
+#: glade/glade_strings.c:75
 msgid "Select here the country you are in"
 msgstr ""
 
-#: glade/glade_strings.c:78
+#: glade/glade_strings.c:76
 msgid "Dummy country\n"
 msgstr ""
 
-#: glade/glade_strings.c:80
+#: glade/glade_strings.c:78
 msgid "Select here the channel you want to tune"
 msgstr ""
 
-#: glade/glade_strings.c:81 glade/glade_strings.c:84
+#: glade/glade_strings.c:79 glade/glade_strings.c:82
 msgid "Channel"
 msgstr ""
 
-#: glade/glade_strings.c:82
+#: glade/glade_strings.c:80
 msgid "Freq (kHz)"
 msgstr ""
 
-#: glade/glade_strings.c:83
+#: glade/glade_strings.c:81
 msgid "Alias"
 msgstr ""
 
-#: glade/glade_strings.c:85
+#: glade/glade_strings.c:83
 msgid "Country"
 msgstr ""
 
-#: glade/glade_strings.c:86
+#: glade/glade_strings.c:84
 msgid "kHz"
 msgstr ""
 
-#: glade/glade_strings.c:87
+#: glade/glade_strings.c:85
 msgid "label43"
 msgstr ""
 
-#: glade/glade_strings.c:88
+#: glade/glade_strings.c:86
 msgid "This tries to find the best signal around this frequence"
 msgstr ""
 
-#: glade/glade_strings.c:89
+#: glade/glade_strings.c:87
 msgid "A_utoTune"
 msgstr ""
 
-#: glade/glade_strings.c:90
+#: glade/glade_strings.c:88
 msgid "Enter here the alias you want to give to this channel:"
 msgstr ""
 
-#: glade/glade_strings.c:91
+#: glade/glade_strings.c:89
 msgid "Enter here the name you want to give to this channel"
 msgstr ""
 
-#: glade/glade_strings.c:92
+#: glade/glade_strings.c:90
 msgid "Click here when you are done"
 msgstr ""
 
-#: glade/glade_strings.c:93
+#: glade/glade_strings.c:91
 msgid "Click this button if you want to discard current changes"
 msgstr ""
 
-#: glade/glade_strings.c:94
+#: glade/glade_strings.c:92
 msgid "Click here to add current channel"
 msgstr ""
 
-#: glade/glade_strings.c:95
+#: glade/glade_strings.c:93
 msgid "_Add"
 msgstr ""
 
-#: glade/glade_strings.c:96
+#: glade/glade_strings.c:94
 msgid "Click here to delete selected channels"
 msgstr ""
 
-#: glade/glade_strings.c:97
+#: glade/glade_strings.c:95
 msgid "_Remove"
 msgstr ""
 
-#: glade/glade_strings.c:98
+#: glade/glade_strings.c:96
 msgid "This shows some help about this dialog"
 msgstr ""
 

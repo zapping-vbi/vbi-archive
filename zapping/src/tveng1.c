@@ -55,16 +55,6 @@
 */
 /* #define TVENG1_PAL_N 1 */
 
-/* The following audio decoding modes are defined */
-char * tveng1_audio_decoding_entries[] =
-{
-  N_("Mono"),
-  N_("Stereo"),
-  N_("European alternate 1"),
-  N_("European alternate 2"),
-  NULL
-};
-
 /* Private, builds the controls structure */
 int
 p_tveng1_build_controls(tveng_device_info * info);
@@ -951,6 +941,24 @@ tveng1_set_capture_format(tveng_device_info * info)
 #define P_TVENG1_C_VIDEO_MAX P_TVENG1_C_VIDEO_CONTRAST /* The last video
 						  control */
 
+/* the defined audio decoding modes */
+struct p_tveng1_audio_decoding_entry
+{
+  char * label;
+  __u16 id;
+};
+
+struct p_tveng1_audio_decoding_entry audio_decoding_modes[] =
+{
+  { N_("Mono"), VIDEO_SOUND_MONO },
+  { N_("Stereo"), VIDEO_SOUND_STEREO },
+  { N_("Alternate 1"), VIDEO_SOUND_LANG1 },
+  { N_("Alternate 2"), VIDEO_SOUND_LANG2 }
+};
+
+/* i don't like defines too much, but it's better this way */
+#define num_audio_decoding_modes \
+(sizeof(audio_decoding_modes)/sizeof(struct p_tveng1_audio_decoding_entry))
 
 /* private, add a control to the control structure, -1 means ENOMEM */
 int
@@ -979,6 +987,95 @@ p_tveng1_append_control(struct tveng_control * new_control,
   return 0;
 }
 
+/* tests if audio decoding selecting actually works, NULL if not */
+char ** p_tveng1_test_audio_decode (tveng_device_info * info);
+
+char ** p_tveng1_test_audio_decode (tveng_device_info * info)
+{
+  struct video_audio audio;
+  __u16 cur_value;
+  int i, j;
+  char ** list = NULL; /* The returned list of menu entries labels */
+
+  memset(&audio, 0, sizeof(struct video_audio));
+
+  if (ioctl(info->fd, VIDIOCGAUDIO, &audio))
+    {
+      info -> tveng_errno = errno; /* Nobody will check this, but
+				      anyway */
+      t_error("VIDIOCGAUDIO", info);
+      return NULL;
+    }
+
+  cur_value = audio.mode;
+  for (i = 0; i<num_audio_decoding_modes; i++)
+    {
+      audio.mode = audio_decoding_modes[i].id;
+      if (ioctl(info->fd, VIDIOCSAUDIO, &audio))
+	{
+	  info->tveng_errno = errno;
+	  t_error("VIDIOCSAUDIO", info);
+	  if (list)
+	    {
+	      for (j=0; j<i; j++)
+		free(list[j]);
+	      free(list);
+	    }
+	  return NULL;
+	}
+      if (ioctl(info->fd, VIDIOCGAUDIO, &audio))
+	{
+	  info->tveng_errno = errno;
+	  t_error("VIDIOCGAUDIO", info);
+	  if (list)
+	    {
+	      for (j=0; j<i; j++)
+		free(list[j]);
+	      free(list);
+	    }
+	  return NULL;
+	}
+      if (audio.mode != audio_decoding_modes[i].id)
+	{
+	  info->tveng_errno = -1;
+	  t_error_msg("check()",
+		      "Audio decoding mode not selectable", info);
+	  if (list)
+	    {
+	      for (j=0; j<i; j++)
+		free(list[j]);
+	      free(list);
+	    }
+	  return NULL;
+	}
+      /* Ok, add this id */
+      list = realloc(list, sizeof(char*) * (i+1));
+      t_assert(list != NULL);
+      list[i] = strdup(audio_decoding_modes[i].label);
+    }
+
+  /* restore previous mode */
+  audio.mode = cur_value;
+  if (ioctl(info->fd, VIDIOCSAUDIO, &audio))
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOCSAUDIO", info);
+      if (list)
+	{
+	  for (j=0; j<i; j++)
+	    free(list[j]);
+	  free(list);
+	}
+      return NULL;
+    }
+
+  /* Add the NULL at the end of the list */
+  list = realloc(list, sizeof(char*) * (i+1));
+  list[i] = NULL;
+
+  return list; /* Success, the control apparently works */
+}
+
 /* Private, builds the controls structure */
 int
 p_tveng1_build_controls(tveng_device_info * info)
@@ -987,7 +1084,6 @@ p_tveng1_build_controls(tveng_device_info * info)
   struct video_picture pict;
   struct video_audio audio;
   struct tveng_control control;
-  int i;
 
   memset(&pict, 0, sizeof(struct video_picture));
   memset(&audio, 0, sizeof(struct video_audio));
@@ -1053,32 +1149,38 @@ p_tveng1_build_controls(tveng_device_info * info)
       if (p_tveng1_append_control(&control, info) == -1)
 	return -1;
     }
-  /* Add the balance control */
-  control.id = P_TVENG1_C_AUDIO_BALANCE;
-  snprintf(control.name, 32, _("Balance"));
-  control.min = 0;
-  control.max = 65535;
-  control.type = TVENG_CONTROL_SLIDER;
-  control.data = NULL;
-  if (p_tveng1_append_control(&control, info) == -1)
-    return -1;
+  
+/* This is in the V4L API, but not present in bttv */
+#ifdef VIDEO_AUDIO_BALANCE
+  if (audio.flags & VIDEO_AUDIO_BALANCE)
+    {
+#endif
+      control.id = P_TVENG1_C_AUDIO_BALANCE;
+      snprintf(control.name, 32, _("Balance"));
+      control.min = 0;
+      control.max = 65535;
+      control.type = TVENG_CONTROL_SLIDER;
+      control.data = NULL;
+      if (p_tveng1_append_control(&control, info) == -1)
+	return -1;
+#ifdef VIDEO_AUDIO_BALANCE
+    }
+#endif
 
+  /* Add the control only if the audio decoding actually works */
   control.id = P_TVENG1_C_AUDIO_DECODING;
   snprintf(control.name, 32, _("Audio Decoding"));
   control.min = 0;
   control.max = 3;
   control.type = TVENG_CONTROL_MENU;
-  /* Build each entry */
-  control.data = malloc(sizeof(tveng1_audio_decoding_entries));
-  i = 0;
-  while (tveng1_audio_decoding_entries[i]){
-    control.data[i] = strdup(tveng1_audio_decoding_entries[i]);
-    i++;
-  }
-  control.data[i] = NULL; /* Finish the array */  
-  if (p_tveng1_append_control(&control, info) == -1)
-    return -1;
-
+  /* Build entries, will be NULL if no entries exist */
+  control.data = p_tveng1_test_audio_decode(info);
+  if (control.data)
+    {
+      if (p_tveng1_append_control(&control, info) == -1)
+	return -1;
+    }
+  
   /* Build the video controls now */
   control.id = P_TVENG1_C_VIDEO_BRIGHTNESS;
   snprintf(control.name, 32, _("Brightness"));
@@ -1132,6 +1234,7 @@ tveng1_update_controls(tveng_device_info * info)
   struct video_picture pict;
   struct video_audio audio;
   int i;
+  int j;
   struct tveng_control * control;
 #ifdef TVENG1_BTTV_MUTE_BUG_WORKAROUND
   struct private_tveng1_device_info * p_info =
@@ -1188,21 +1291,14 @@ tveng1_update_controls(tveng_device_info * info)
 	  control -> cur_value = audio.balance;
 	  break;
 	case P_TVENG1_C_AUDIO_DECODING:
-	  switch (audio.mode)
+	  for (j = 0; j<num_audio_decoding_modes; j++)
 	    {
-	    case VIDEO_SOUND_MONO:
-	      control -> cur_value = 0;
-	      break;
-	    case VIDEO_SOUND_STEREO:
-	      control -> cur_value = 1;
-	      break;
-	    case VIDEO_SOUND_LANG1:
-	      control -> cur_value = 2;
-	      break;
-	    case VIDEO_SOUND_LANG2:
-	      control -> cur_value = 3;
-	      break;
-	    default:
+	      if (audio.mode == audio_decoding_modes[j].id)
+		control -> cur_value = j;
+	    }
+	  if (j == num_audio_decoding_modes)
+	    {
+	      info -> tveng_errno = -1;
 	      t_error_msg("switch()", _("Unknown decoding mode"),
 			  info);
 	      break;
@@ -1248,14 +1344,6 @@ tveng1_set_control(struct tveng_control * control, int value,
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info*) info;
 #endif
-  /* The possible audio decoding modes */
-  int decoding_mode[] =
-  {
-    VIDEO_SOUND_MONO,
-    VIDEO_SOUND_STEREO,
-    VIDEO_SOUND_LANG1,
-    VIDEO_SOUND_LANG2
-  };
 
   memset(&pict, 0, sizeof(struct video_picture));
   memset(&audio, 0, sizeof(struct video_audio));
@@ -1311,7 +1399,8 @@ tveng1_set_control(struct tveng_control * control, int value,
 	  audio.balance = value;
 	  break;
 	case P_TVENG1_C_AUDIO_DECODING:
-	  audio.mode = decoding_mode[value];
+	  t_assert(value < num_audio_decoding_modes);
+	  audio.mode = audio_decoding_modes[value].id;
 	  break;
 
 	default:
