@@ -79,9 +79,9 @@ convert_rgb565_ycrcb420(const char * src, char * dest, int width, int
   r, g, b: pointer to the first component in the image
   y, cb, cr: pointer to the places to store the data.
 */
-void convert_rgb_ycbcr(const char *_r, const char *_g,
-		       const char *_b, int jump, int width,
-		       int height, char *_y, char *_cb, char *_cr);
+void convert_rgb_ycbcr(const unsigned char *_r, const unsigned char *_g,
+		       const unsigned char *_b, int jump, int width,
+		       int height, unsigned char *_y, unsigned char *_cb, unsigned char *_cr);
 
 /*
   Generic converter from RGB555 to YCbCr420, YCrCb420

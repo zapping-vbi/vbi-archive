@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.h,v 1.4 2000-08-25 21:27:19 garetxe Exp $ */
+/* $Id: options.h,v 1.5 2000-08-27 19:53:01 garetxe Exp $ */
 
 extern char *		cap_dev;
 extern char *		pcm_dev;
@@ -64,4 +64,4 @@ extern int		aud_buffers;
 extern void		options(int ac, char **av);
 
 /* fixme: this will need to be removed when the rgb filters work */
-//#define TESTING_RGBMODE RTE_BGR32
+#define TESTING_RGBMODE RTE_BGR32

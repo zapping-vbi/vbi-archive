@@ -90,13 +90,13 @@ static void convert_init_tables( void )
   r, g, b: pointer to the first component in the image
   y, cb, cr: pointer to the places to store the data.
 */
-void convert_rgb_ycbcr(const char *_r, const char *_g,
-		       const char *_b, int jump, int width,
-		       int height, char *_y, char *_cb, char *_cr)
+void convert_rgb_ycbcr(const unsigned char *_r, const unsigned char *_g,
+		       const unsigned char *_b, int jump, int width,
+		       int height, unsigned char *_y, unsigned char *_cb, unsigned char *_cr)
 {
 	int x, j;
-	const char *r = _r, *g = _g, *b = _b;
-	char *y = _y, *cb = _cb, *cr = _cr;
+	const unsigned char *r = _r, *g = _g, *b = _b;
+	unsigned char *y = _y, *cb = _cb, *cr = _cr;
  
 	CHECK("validate args", r != NULL);
 	CHECK("validate args", g != NULL);
@@ -123,7 +123,7 @@ void convert_rgb_ycbcr(const char *_r, const char *_g,
 			b += jump;
 			*(y++) = ((conv_ry[R] + conv_gy[G] +
 				   conv_by[B])>>16) + 16;
-			*(cb) = conv_rcb[R] + conv_gcb[G] + conv_gcr[B];
+			*(cb) = conv_rcb[R] + conv_gcb[G] + conv_bcb[B];
 			*(cr) = conv_rcr[R] + conv_gcr[G] + conv_bcr[B];
 			R = *r;
 			G = *g;
@@ -133,7 +133,7 @@ void convert_rgb_ycbcr(const char *_r, const char *_g,
 			b += jump;
 			*(y++) = ((conv_ry[R] + conv_gy[G] +
 				   conv_by[B])>>16) + 16;
-			*(cb++) += conv_rcb[R] + conv_gcb[G] + conv_gcr[B];
+			*(cb++) += conv_rcb[R] + conv_gcb[G] + conv_bcb[B];
 			*(cr++) += conv_rcr[R] + conv_gcr[G] + conv_bcr[B];
 		}
 		/* Skip the even line */
@@ -164,7 +164,7 @@ void convert_rgb_ycbcr(const char *_r, const char *_g,
 			b += jump;
 			*(y++) = ((conv_ry[R] + conv_gy[G] +
 				   conv_by[B])>>16) + 16;
-			*(cb) += conv_rcb[R] + conv_gcb[G] + conv_gcr[B];
+			*(cb) += conv_rcb[R] + conv_gcb[G] + conv_bcb[B];
 			*(cr) += conv_rcr[R] + conv_gcr[G] + conv_bcr[B];
 			R = *r;
 			G = *g;
@@ -175,7 +175,7 @@ void convert_rgb_ycbcr(const char *_r, const char *_g,
 			*(y++) = ((conv_ry[R] + conv_gy[G] +
 				   conv_by[B])>>16) + 16;
 			*(cb++) = ((*cb + conv_rcb[R] + conv_gcb[G] +
-				    conv_gcr[B]) >> 16) + 128;
+				    conv_bcb[B]) >> 16) + 128;
 			*(cr++) = ((*cb + conv_rcr[R] + conv_gcr[G] +
 				    conv_bcr[B]) >> 16) + 128;
 		}
