@@ -23,9 +23,8 @@
   the name is TV Engine, since it is intended mainly for TV viewing.
   This file is separated so zapping doesn't need to know about V4L[2]
 */
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+
+#include "zmisc.h"
 
 #ifdef ENABLE_V4L
 #include <stdio.h>
@@ -48,17 +47,7 @@
 #include <math.h>
 #include <endian.h>
 
-/* We need video extensions (DGA) */
-#include <X11/X.h>
-#include <X11/Xlib.h>
-#include <X11/Xfuncs.h>
-#ifndef DISABLE_X_EXTENSIONS
-#include <X11/extensions/xf86dga.h>
-#endif
-
 #include "../common/fifo.h" /* current_time() */
-
-#define CLEAR(v) memset (&(v), 0, sizeof (v))
 
 /* 
    This works around a bug bttv appears to have with the mute
@@ -409,11 +398,12 @@ int tveng1_attach_device(const char* device_file,
       tveng1_close_device(info);
       return -1;
     }
-
+XX();
   /* Set our desired size, make it halfway */
   info -> format.width = (info->caps.minwidth + info->caps.maxwidth)/2;
   info -> format.height = (info->caps.minheight +
 			   info->caps.maxheight)/2;
+XX();
   tveng1_set_capture_format(info);
 
   /* init the private struct */
@@ -919,6 +909,7 @@ tveng1_update_capture_format(tveng_device_info * info)
 		  "Cannot understand the actual palette", info);
       return -1;
     }
+
   /* Ok, now get the video window dimensions */
   if (v4l_ioctl(info->fd, VIDIOCGWIN, &window))
     {
@@ -926,6 +917,7 @@ tveng1_update_capture_format(tveng_device_info * info)
       t_error("VIDIOCGWIN", info);
       return -1;
     }
+
   /* Fill in the format structure (except for the data field) */
   info->format.bpp = ((double)info->format.depth)/8;
   info->format.width = window.width;
@@ -939,6 +931,9 @@ tveng1_update_capture_format(tveng_device_info * info)
   /* These two are write-only */
   info->window.clipcount = 0;
   info->window.clips = NULL;
+
+XX();
+
   return 0;
 }
 
@@ -953,6 +948,8 @@ tveng1_set_capture_format(tveng_device_info * info)
 
   CLEAR (pict);
   CLEAR (window);
+
+XX();
 
   t_assert(info != NULL);
 
@@ -1014,21 +1011,22 @@ tveng1_set_capture_format(tveng_device_info * info)
       return -1;
     }
 
-  /* Fill in the new width and height parameters */
-  /* Make them 4-byte multiplus to avoid errors */
-  if (info->format.height < info->caps.minheight)
-    info->format.height = info->caps.minheight;
-  if (info->format.height > info->caps.maxheight)
-    info->format.height = info->caps.maxheight;
-  if (info->format.width < info->caps.minwidth)
-    info->format.width = info->caps.minwidth;
-  if (info->format.width > info->caps.maxwidth)
-    info->format.width = info->caps.maxwidth;
+  info->format.width = (info->format.width + 3) & -4;
+  info->format.height = (info->format.height + 3) & -4;
+
+  info->format.width = SATURATE (info->format.width,
+				 info->caps.minwidth,
+				 info->caps.maxwidth);
+  info->format.height = SATURATE (info->format.height,
+				  info->caps.minheight,
+				  info->caps.maxheight);
 
   window.width = info->format.width;
   window.height = info->format.height;
   window.clips = NULL;
   window.clipcount = 0;
+
+XX();
 
   /* Ok, now set the video window dimensions */
   if (v4l_ioctl(info->fd, VIDIOCSWIN, &window))
@@ -1043,6 +1041,7 @@ tveng1_set_capture_format(tveng_device_info * info)
 
   /* Check fill in info with the current values (may not be the ones
      asked for) */
+XX();
   if (tveng1_update_capture_format(info) == -1)
     return -1; /* error */
 
@@ -2126,6 +2125,8 @@ int tveng1_set_capture_size(int width, int height, tveng_device_info * info)
   t_assert(width > 0);
   t_assert(height > 0);
 
+XX();
+
   current_mode = tveng_stop_everything(info);
 
   if (width < info->caps.minwidth)
@@ -2139,6 +2140,9 @@ int tveng1_set_capture_size(int width, int height, tveng_device_info * info)
 
   info -> format.width = width;
   info -> format.height = height;
+
+XX();
+
   if (tveng1_set_capture_format(info) == -1)
     return -1;
 
@@ -2154,6 +2158,7 @@ static
 int tveng1_get_capture_size(int *width, int *height, tveng_device_info * info)
 {
   t_assert(info != NULL);
+XX();
 
   if (tveng1_update_capture_format(info))
     return -1;
@@ -2323,6 +2328,7 @@ tveng1_get_preview_window(tveng_device_info * info)
 {
   /* Updates the entire capture format, since in V4L there is no
      difference */
+XX();
   return (tveng1_update_capture_format(info));
 }
 
@@ -2357,13 +2363,12 @@ tveng1_set_preview (int on, tveng_device_info * info)
    Returns -1 on error.
 */
 static int
-tveng1_start_previewing (tveng_device_info * info)
+tveng1_start_previewing (tveng_device_info * info,
+			 x11_dga_parameters *dga)
 {
-#ifndef DISABLE_X_EXTENSIONS
   int width, height;
-  int dwidth, dheight; /* Width and height of the display */
 
-  if (!tveng_detect_XF86DGA(info))
+  if (!x11_dga_present (dga))
     return -1;
 
   tveng_stop_everything(info);
@@ -2374,19 +2379,17 @@ tveng1_start_previewing (tveng_device_info * info)
     /* We shouldn't be reaching this if the app is well programmed */
     t_assert_not_reached();
 
-  x11_root_geometry (&dwidth, &dheight);
-
   width = info->caps.maxwidth;
-  if (width > dwidth)
-    width = dwidth;
+  if (width > dga->width)
+    width = dga->width;
 
   height = info->caps.maxheight;
-  if (height > dheight)
-    height = dheight;
+  if (height > dga->height)
+    height = dga->height;
 
   /* Center the window, dwidth is always >= width */
-  info->window.x = (dwidth - width)/2;
-  info->window.y = (dheight - height)/2;
+  info->window.x = (dga->width - width)/2;
+  info->window.y = (dga->height - height)/2;
   info->window.width = width;
   info->window.height = height;
   info->window.clips = NULL;
@@ -2398,8 +2401,8 @@ tveng1_start_previewing (tveng_device_info * info)
 
   /* Center preview window (maybe the requested width and/or height)
      aren't valid */
-  info->window.x = (dwidth - info->window.width)/2;
-  info->window.y = (dheight - info->window.height)/2;
+  info->window.x = (dga->width - info->window.width)/2;
+  info->window.y = (dga->height - info->window.height)/2;
   info->window.clipcount = 0;
   info->window.clips = NULL;
   if (tveng1_set_preview_window(info) == -1)
@@ -2411,13 +2414,6 @@ tveng1_start_previewing (tveng_device_info * info)
 
   info -> current_mode = TVENG_CAPTURE_PREVIEW;
   return 0; /* Success */
-#else
-  info -> tveng_errno = -1;
-  t_error_msg("configure()",
-	      "The X extensions have been disabled when configuring",
-	      info);
-  return -1;
-#endif
 }
 
 /*
@@ -2426,7 +2422,6 @@ tveng1_start_previewing (tveng_device_info * info)
 static int
 tveng1_stop_previewing(tveng_device_info * info)
 {
-#ifndef DISABLE_X_EXTENSIONS
   if (info -> current_mode == TVENG_NO_CAPTURE)
     {
       fprintf(stderr, 
@@ -2440,9 +2435,6 @@ tveng1_stop_previewing(tveng_device_info * info)
 
   info -> current_mode = TVENG_NO_CAPTURE;
   return 0; /* Success */
-#else
-  return 0; /* Does it really matter ? */
-#endif
 }
 
 static void

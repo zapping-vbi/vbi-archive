@@ -234,6 +234,7 @@ scan_device		(tveng_device_info	*info)
   for (fmt = TVENG_PIX_FIRST; fmt <= TVENG_PIX_LAST; fmt++)
     {
       info->format.pixformat = fmt;
+XX();
       if (!tveng_set_capture_format (info))
 	values += 1<<fmt;
     }
@@ -552,6 +553,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
   info->format.height = req_h;
   printv ("Setting TVeng mode %s [%d x %d]\n", mode2str(id), req_w,
 	  req_h);
+XX();
   if (tveng_set_capture_format (info) == -1 ||
       info->format.width != req_w || info->format.height != req_h)
     {
@@ -559,6 +561,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
 	g_warning ("Cannot set new mode: %s", info->error);
       /* Try to restore previous setup so we can keep working */
       memcpy (&info->format, &prev_fmt, sizeof (prev_fmt));
+XX();
       if (tveng_set_capture_format (info) != -1)
 	if (info->current_mode == TVENG_NO_CAPTURE)
 	  tveng_start_capturing (info);

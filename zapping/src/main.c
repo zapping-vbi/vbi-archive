@@ -345,6 +345,15 @@ int main(int argc, char * argv[])
       NULL
     },
     {
+      "xv-port",
+      0,
+      POPT_ARG_INT,
+      &xv_overlay_port,
+      0,
+      N_("XVideo port for overlay. Default is first usable"),
+      NULL
+    },
+    {
       "remote",
       0,
       POPT_ARG_NONE,
@@ -445,7 +454,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.14 2003-01-30 02:39:49 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.15 2003-02-18 10:12:06 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -505,6 +514,19 @@ int main(int argc, char * argv[])
         fprintf (stderr, "  %ux%u@%u\n",
 		 v->width, v->height,
 		 (unsigned int)(v->vfreq + 0.5));
+    }
+
+  if (x11_dga_query (&dga_param, 0) && debug_msg)
+    {
+      fprintf (stderr, "DGA parameters:\n"
+	       "  frame buffer address   %p\n"
+	       "  frame buffer size      %ux%u pixels, 0x%x bytes\n"
+	       "  bytes per line         %u bytes\n"
+	       "  depth, bits per pixel  %u, %u\n",
+	       dga_param.base,
+	       dga_param.width, dga_param.height,
+	       dga_param.size, dga_param.bytes_per_line,
+	       dga_param.depth, dga_param.bits_per_pixel);
     }
 
   main_info = tveng_device_info_new(GDK_DISPLAY (), x_bpp);

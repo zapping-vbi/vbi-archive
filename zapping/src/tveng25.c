@@ -50,13 +50,6 @@
 #include <errno.h>
 #include <linux/kernel.h>
 
-#include <X11/X.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#ifndef DISABLE_X_EXTENSIONS
-#include <X11/extensions/xf86dga.h>
-#endif
-
 #include "tveng.h"
 #define TVENG25_PROTOTYPES 1
 #include "tveng25.h"
@@ -2018,12 +2011,12 @@ tveng25_set_preview (int on, tveng_device_info * info)
    Returns -1 on error.
 */
 static int
-tveng25_start_previewing (tveng_device_info * info)
+tveng25_start_previewing (tveng_device_info * info,
+			  x11_dga_parameters *dga)
 {
-#ifndef DISABLE_X_EXTENSIONS
   Display * dpy = info->priv->display;
   int width, height;
-  int dwidth, dheight; /* Width and height of the display */
+  //  int dwidth, dheight; /* Width and height of the display */
 
   tveng_stop_everything(info);
 
@@ -2033,7 +2026,7 @@ tveng25_start_previewing (tveng_device_info * info)
     /* We shouldn't be reaching this if the app is well programmed */
     t_assert_not_reached();
 
-  if (!tveng_detect_XF86DGA(info))
+  if (!x11_dga_present (dga))
     return -1;
 
   /* calculate coordinates for the preview window. We compute this for
@@ -2042,16 +2035,16 @@ tveng25_start_previewing (tveng_device_info * info)
 			 &dwidth, &dheight);
   width = info->caps.maxwidth;
 
-  if (width > dwidth)
-    width = dwidth;
+  if (width > dga->width)
+    width = dga->width;
 
   height = info->caps.maxheight;
-  if (height > dheight)
-    height = dheight;
+  if (height > dga->height)
+    height = dga->height;
 
   /* Center the window, dwidth is always >= width */
-  info->window.x = (dwidth - width)/2;
-  info->window.y = (dheight - height)/2;
+  info->window.x = (dga->width - width)/2;
+  info->window.y = (dga->height - height)/2;
   info->window.width = width;
   info->window.height = height;
   info->window.clips = NULL;
@@ -2063,8 +2056,8 @@ tveng25_start_previewing (tveng_device_info * info)
 
   /* Center preview window (maybe the requested width and/or height)
      aren't valid */
-  info->window.x = (dwidth - info->window.width)/2;
-  info->window.y = (dheight - info->window.height)/2;
+  info->window.x = (dga->width - info->window.width)/2;
+  info->window.y = (dga->height - info->window.height)/2;
   info->window.clipcount = 0;
   info->window.clips = NULL;
   if (tveng25_set_preview_window(info) == -1)
@@ -2076,13 +2069,6 @@ tveng25_start_previewing (tveng_device_info * info)
 
   info -> current_mode = TVENG_CAPTURE_PREVIEW;
   return 0; /* Success */
-#else
-  info -> tveng_errno = -1;
-  t_error_msg("configure()",
-	      "The X extensions have been disabled when configuring",
-	      info);
-  return -1;
-#endif
 }
 
 /*
@@ -2091,7 +2077,6 @@ tveng25_start_previewing (tveng_device_info * info)
 static int
 tveng25_stop_previewing(tveng_device_info * info)
 {
-#ifndef DISABLE_X_EXTENSIONS
   if (info -> current_mode == TVENG_NO_CAPTURE)
     {
       fprintf(stderr, 
@@ -2105,9 +2090,6 @@ tveng25_stop_previewing(tveng_device_info * info)
 
   info -> current_mode = TVENG_NO_CAPTURE;
   return 0; /* Success */
-#else
-  return 0;
-#endif
 }
 
 static struct tveng_module_info tveng25_module_info = {

@@ -25,8 +25,110 @@
 #define __ZMISC_H__
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+# include <config.h>
 #endif
+
+#include <stddef.h>
+#include <string.h>
+#include <assert.h>
+
+#define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
+
+#undef PARENT
+#define PARENT(ptr, type, member)					\
+  ((type *)(((char *)(ptr)) - offsetof (type, member)))
+
+#ifdef __GNUC__
+
+#if __GNUC__ < 3
+#define __builtin_expect(exp, c) (exp)
+#endif
+
+#undef ABS
+#define ABS(n) ({							\
+	register int _n = n, _t = _n;					\
+	_t >>= sizeof (_t) * 8 - 1;					\
+	_n ^= _t;							\
+	_n -= _t;							\
+})
+
+#undef MIN
+#define MIN(x, y) ({							\
+	__typeof__ (x) _x = x;						\
+	__typeof__ (y) _y = y;						\
+	(void)(&_x == &_y); /* alert when type mismatch */		\
+	(_x < _y) ? _x : _y;						\
+})
+
+#undef MAX
+#define MAX(x, y) ({							\
+	__typeof__ (x) _x = x;						\
+	__typeof__ (y) _y = y;						\
+	(void)(&_x == &_y); /* alert when type mismatch */		\
+	(_x > _y) ? _x : _y;						\
+})
+
+#define SWAP(x, y)							\
+do {									\
+	__typeof__ (x) _x = x;						\
+	x = y;								\
+	y = _x;								\
+} while (0)
+
+#undef SATURATE
+#ifdef __i686__ /* conditional move */
+#define SATURATE(n, min, max) ({					\
+	__typeof__ (n) _n = n;						\
+	__typeof__ (n) _min = min;					\
+	__typeof__ (n) _max = max;					\
+	if (_n < _min)							\
+		_n = _min;						\
+	if (_n > _max)							\
+		_n = _max;						\
+	_n;								\
+})
+#else
+#define SATURATE(n, min, max) ({					\
+	__typeof__ (n) _n = n;						\
+	__typeof__ (n) _min = min;					\
+	__typeof__ (n) _max = max;					\
+	if (_n < _min)							\
+		_n = _min;						\
+	else if (_n > _max)						\
+		_n = _max;						\
+	_n;								\
+})
+#endif
+
+#else /* !__GNUC__ */
+
+#define __inline__
+#define __builtin_expect(exp, c) (exp)
+
+#undef ABS
+#define ABS(n) (((n) < 0) ? -(n) : (n))
+
+#undef MIN
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+#undef MAX
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+
+#define SWAP(x, y)							\
+do {									\
+	long _x = x;							\
+	x = y;								\
+	y = _x;								\
+} while (0)
+
+#undef SATURATE
+#define SATURATE(n, min, max) MIN (MAX (n, min), max)
+
+#endif /* !__GNUC__ */
+
+#define SET(var) memset (&(var), ~0, sizeof (var))
+#define CLEAR(var) memset (&(var), 0, sizeof (var))
+#define MOVE(d, s) memmove (d, s, sizeof (d))
 
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
@@ -86,11 +188,16 @@ do {			\
   gtk_widget_destroy (dialog);					\
 } while (FALSE)
 
+extern int debug_msg;
+
 #define D() \
 do { \
   if (debug_msg) \
     fprintf(stderr, "Line %d, routine %s\n", __LINE__, __PRETTY_FUNCTION__); \
 } while (FALSE)
+
+/* temporary */
+#define XX D
 
 #define printv(format, args...) \
 do { \

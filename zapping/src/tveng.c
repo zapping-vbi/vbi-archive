@@ -46,9 +46,10 @@
 #include "tvengemu.h" /* Emulation device */
 #include "tveng_private.h" /* private definitions */
 
-#include "globals.h" /* XXX for vidmodes */
+#include "globals.h" /* XXX for vidmodes, dga_param */
 
-#include "../common/types.h"
+//#include "../common/types.h"
+#include "zmisc.h"
 
 #define TVLOCK								\
 ({									\
@@ -773,7 +774,7 @@ tveng_set_capture_format(tveng_device_info * info)
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
   TVLOCK;
-
+XX();
   if (info->format.height < info->caps.minheight)
     info->format.height = info->caps.minheight;
   if (info->format.height > info->caps.maxheight)
@@ -782,7 +783,7 @@ tveng_set_capture_format(tveng_device_info * info)
     info->format.width = info->caps.minwidth;
   if (info->format.width > info->caps.maxwidth)
     info->format.width = info->caps.maxwidth;
-
+XX();
   /* force dword aligning of width if requested */
   if (info->priv->dword_align)
     info->format.width = (info->format.width+3) & ~3;
@@ -805,7 +806,7 @@ tveng_set_capture_format(tveng_device_info * info)
     default:
       break;
     }
-
+XX();
   if (info->priv->module.set_capture_format)
     RETURN_UNTVLOCK(info->priv->module.set_capture_format(info));
 
@@ -1494,10 +1495,6 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
 
 /* XF86 Frame Buffer routines */
 
-#ifdef HAVE_DGA_EXTENSION
-
-#include <X11/extensions/xf86dga.h>
-
 /* 
    Detects the presence of a suitable Frame Buffer.
    1 if the program should continue (Frame Buffer present,
@@ -1509,71 +1506,8 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
 int
 tveng_detect_XF86DGA(tveng_device_info * info)
 {
-  int event_base, error_base;
-  int major_version, minor_version;
-  int flags;
-  static int info_printed = 0; /* Print the info just once */
-
-  Display * dpy = info->priv->display;
-
-  TVLOCK;
-
-  if (!XF86DGAQueryExtension(dpy, &event_base, &error_base))
-    {
-      perror("XF86DGAQueryExtension");
-      UNTVLOCK;
-      return 0;
-    }
-
-  if (!XF86DGAQueryVersion(dpy, &major_version, &minor_version))
-    {
-      perror("XF86DGAQueryVersion");
-      UNTVLOCK;
-      return 0;
-    }
-
-  if (!XF86DGAQueryDirectVideo(dpy, 0, &flags))
-    {
-      perror("XF86DGAQueryDirectVideo");
-      UNTVLOCK;
-      return 0;
-    }
-
-  /* Direct Video should be present (otherwise enabling all this would
-     be pointless) */
-  if (!(flags & XF86DGADirectPresent))
-    {
-      printf("flags & XF86DGADirectPresent\n");
-      UNTVLOCK;
-      return 0;
-    }
-
-  /* Print collected info if we are in debug mode */
-  if ((info->debug_level > 0) && (!info_printed))
-    {
-      info_printed = 1;
-      fprintf(stderr, "DGA info:\n");
-      fprintf(stderr, "  - event and error base  : %d, %d\n", event_base,
-	      error_base);
-      fprintf(stderr, "  - DGA reported version  : %d.%d\n",
-	      major_version, minor_version);
-      fprintf(stderr, "  - Supported features    :%s\n",
-	      (flags & XF86DGADirectPresent) ? " DirectVideo" : "");
-    }
-
-  UNTVLOCK;
-  return 1; /* Everything correct */
+  return x11_dga_present (&dga_param);
 }
-
-#else /* !HAVE_DGA_EXTENSION */
-
-int
-tveng_detect_XF86DGA(tveng_device_info * info)
-{
-  return 0; /* disabled by configure */
-}
-
-#endif
 
 /*
   Returns 1 if the device attached to info suports previewing, 0 otherwise
@@ -2008,7 +1942,7 @@ tveng_start_previewing (tveng_device_info * info, const char *mode)
     goto failure;
 
   if (info->priv->module.start_previewing)
-    RETURN_UNTVLOCK(info->priv->module.start_previewing(info));
+    RETURN_UNTVLOCK(info->priv->module.start_previewing(info, &dga_param));
 
  failure:
   TVUNSUPPORTED;

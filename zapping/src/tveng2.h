@@ -237,7 +237,8 @@ tveng2_set_preview (int on, tveng_device_info * info);
    Returns -1 on error.
 */
 static int
-tveng2_start_previewing (tveng_device_info * info);
+tveng2_start_previewing (tveng_device_info * info,
+			 x11_dga_parameters *dga);
 
 /*
   Stops the fullscreen mode. Returns -1 on error

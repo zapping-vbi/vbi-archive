@@ -261,8 +261,7 @@ static PyObject* py_hide_controls (PyObject *self, PyObject *args)
       gtk_widget_hide (toolbar);
       z_change_menuitem(menuitem,
 			"gnome-stock-book-open",
-			_("Show controls"),
-			_("Show the menu and the toolbar"));
+			_("Show menu and toolbar"), NULL);
     }
   else
     {
@@ -270,13 +269,11 @@ static PyObject* py_hide_controls (PyObject *self, PyObject *args)
       gtk_widget_show (toolbar);
       z_change_menuitem(menuitem,
 			"gnome-stock-book-yellow",
-			_("Hide controls"),
-			_("Hide the menu and the toolbar"));
+			_("Hide menu and toolbar"), NULL);
     }
 
   gtk_widget_queue_resize (main_window);
-  zconf_set_boolean (hide,
-		     "/zapping/internal/callbacks/hide_controls");
+  zconf_set_boolean (hide, "/zapping/internal/callbacks/hide_controls");
 
   py_return_none;
 }

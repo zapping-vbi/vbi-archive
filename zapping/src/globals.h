@@ -17,12 +17,14 @@ extern gint			disable_preview;
 extern gint			disable_xv;
 /* Whether the device can be attached as XV */
 extern gboolean			xv_present;
+extern gint			xv_overlay_port;
 extern GtkWidget		*main_window;
 /* Will be TRUE if when quitting we were fullscreen */
 extern gboolean			was_fullscreen;
 extern tveng_tuned_channel *	global_channel_list;
 extern x11_vidmode_info *	vidmodes;
 extern gboolean			have_wm_hints;
+extern x11_dga_parameters	dga_param;
 extern int			debug_msg;
 extern gint			cur_tuned_channel;
 #endif

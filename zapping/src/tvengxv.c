@@ -35,7 +35,8 @@
 #define TVENGXV_PROTOTYPES 1
 #include "tvengxv.h"
 
-#include "../common/types.h"
+#include "globals.h" /* xv_overlay_port */
+#include "zmisc.h"
 
 struct control {
 	tv_dev_control		dev;
@@ -104,6 +105,7 @@ p_tvengxv_open_device(tveng_device_info *info)
   if (nAdaptors <= 0)
     goto error1;
 
+ retry:
   for (i=0; i<nAdaptors; i++)
     {
       pAdaptor = pAdaptors + i;
@@ -114,10 +116,35 @@ p_tvengxv_open_device(tveng_device_info *info)
 	    {
 	      p_info->port = pAdaptor->base_id + j;
 
+	      /* --xv-port option hack */
+	      if (xv_overlay_port >= 0
+		  && p_info->port != xv_overlay_port)
+		continue;
+
 	      if (Success == XvGrabPort(dpy, p_info->port, CurrentTime))
 		goto adaptor_found;
 	    }
 	}
+    }
+
+  if (xv_overlay_port >= 0)
+    {
+      fprintf (stderr, "Xvideo overlay port #%d not found, "
+	       "will try default. Available are:\n", xv_overlay_port);
+      for (i=0; i<nAdaptors; i++)
+	{
+	  pAdaptor = pAdaptors + i;
+	  if ((pAdaptor->type & XvInputMask) &&
+	      (pAdaptor->type & XvVideoMask))
+	    {
+	      for (j=0; j<pAdaptor->num_ports; j++)
+		fprintf (stderr, "%3d %s\n",
+			 (int)(pAdaptor->base_id + j),
+			 pAdaptor->name);
+	    }
+	}
+      xv_overlay_port = -1;
+      goto retry;
     }
 
   goto error2; /* no adaptors found */
@@ -574,7 +601,10 @@ tvengxv_get_inputs(tveng_device_info *info)
       (p_info->encoding_gettable))
     XvGetPortAttribute(info->priv->display, p_info->port,
 		       p_info->encoding, &val);
-
+#warning
+  /* Xv/v4l BUG? */
+  if (val < 0 || val > 10 /*XXX*/)
+    val = 0;
   if (p_info->ei)
     if ((2 == sscanf(p_info->ei[val].name, "%63[^-]-%63s", norm, input)) &&
 	(-1 != (i=tvengxv_find_input(input, info))))

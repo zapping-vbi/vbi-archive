@@ -40,6 +40,8 @@
 #endif /* ENABLE_NLS */
 #endif /* _ */
 
+#include "x11stuff.h"
+
 typedef struct _tv_dev_control tv_dev_control;
 
 struct _tv_dev_control {
@@ -102,12 +104,17 @@ struct tveng_module_info {
 			    tveng_device_info *info);
   int	(*get_capture_size)(int *width, int *height,
 			    tveng_device_info *info);
+
   int	(*detect_preview)(tveng_device_info *info);
+
   int	(*set_preview_window)(tveng_device_info *info);
   int	(*get_preview_window)(tveng_device_info *info);
   int	(*set_preview)(int on, tveng_device_info *info);
-  int	(*start_previewing)(tveng_device_info *info);
+
+  int	(*start_previewing)(tveng_device_info *info,
+			    x11_dga_parameters *dga);
   int	(*stop_previewing)(tveng_device_info *info);
+
   void	(*set_chromakey)(uint32_t pixel, tveng_device_info *info);
   int	(*get_chromakey)(uint32_t *pixel, tveng_device_info *info);
 

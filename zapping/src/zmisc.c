@@ -424,6 +424,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	  (info->current_controller != TVENG_CONTROLLER_XV))
 	{
 	  info->format.pixformat = format;
+XX();
 	  if ((tveng_set_capture_format(info) == -1) ||
 	      (info->format.pixformat != format))
 	    g_warning("Preview format invalid: %s (%d, %d)", info->error,
@@ -483,6 +484,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	  (info->current_controller != TVENG_CONTROLLER_XV))
 	{
 	  info->format.pixformat = format;
+XX();
 	  if ((tveng_set_capture_format(info) == -1) ||
 	      (info->format.pixformat != format))
 	    g_warning("Fullscreen format invalid: %s (%d, %d)", info->error,

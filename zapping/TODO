@@ -1,5 +1,7 @@
 Outstanding issues for the next release (0.7)
 -----------------------------------------------
+	* Maybe Zapping should support all xawtv command line options?
+	* We need an Xv overlay port menu.
 	* http://developer.gnome.org/dotplan/porting/ checklist.
         + Are we using window fully visible, partially visible and
 	  fully obscured X11 events to optimize capture mode?

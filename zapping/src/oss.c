@@ -252,12 +252,6 @@ const audio_backend_info oss_backend =
 
 /* XXX check for freebsd quirks */
 
-/* stubs */
-#define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
-#define SET(var) memset (&(var), ~0, sizeof (var))
-#define CLEAR(var) memset (&(var), 0, sizeof (var))
-#define MOVE(d, s) memmove (d, s, sizeof (d))
-
 #if defined (_IOC_SIZE) /* Linux */
 
 #define IOCTL_ARG_SIZE(cmd)	_IOC_SIZE (cmd)
@@ -499,12 +493,12 @@ volume_changed			(struct line *		l,
 	 *  ret = (int)((int)(req * scale / 100) * 100 / scale),
 	 *  this must be corrected to prevent error accumulation.
 	 */
-	left = MIN (left + 1, VOL_MAX);
+	left = MIN (left + 1, (unsigned int) VOL_MAX);
 
 	if (!l->dev.pub.stereo)
 		right = left;
 	else
-		right = MIN (right + 1, VOL_MAX);
+		right = MIN (right + 1, (unsigned int) VOL_MAX);
 
 	if (l->dev.pub.volume[0] != left
 	    || l->dev.pub.volume[1] != right) {

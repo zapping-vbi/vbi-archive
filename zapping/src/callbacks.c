@@ -110,8 +110,8 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	  z_change_menuitem(lookup_widget(GTK_WIDGET(menu),
 					  "hide_controls1"),
 			    "gnome-stock-book-open",
-			    _("Show controls"),
-			    _("Show the menu and the toolbar"));
+			    _("Show menu and toolbar"), NULL);
+
 #ifdef HAVE_LIBZVBI
 	process_ttxview_menu_popup(main_window, bevent, menu);
 #endif

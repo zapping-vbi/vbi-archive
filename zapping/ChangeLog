@@ -3,6 +3,8 @@
 	* po/LINGUAS, po/da.po, THANKS: Added Danish translation
 	  by Morten Brix Pedersen.
 	* configure.in: Cleaned up gettext checks.
+	* src/main.c, src/global.c, src/global.h, src/tvengxv.c:
+	  Added --xv-port option.
 
 16.2.2003	<mschimek@users.sf.net>
 

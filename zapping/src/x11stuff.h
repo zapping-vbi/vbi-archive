@@ -69,9 +69,9 @@ x11_force_expose(gint x, gint y, gint w, gint h);
 gboolean
 x11_window_viewable(GdkWindow *window);
 
-void
-x11_root_geometry		(unsigned int *		width,
-				 unsigned int *		height);
+//void
+//x11_root_geometry		(unsigned int *		width,
+//				 unsigned int *		height);
 
 /* Keep-window-on-top routines */
 
@@ -138,5 +138,33 @@ extern void
 x11_screensaver_control		(gboolean		enable);
 extern void
 x11_screensaver_init		(void);
+
+/* DGA routines */
+
+typedef struct _x11_dga_parameters x11_dga_parameters;
+
+struct _x11_dga_parameters {
+  void *		base;			/* frame buffer */
+  unsigned int		size;			/* 2048 * 768, bytes */
+
+  unsigned int		width;			/* 1024 */
+  unsigned int		height;			/* 768 */
+
+  /* XXX rgb1? 1rgb? 1bgr? bgr1? le/be? */
+  unsigned int		depth;			/* 15 */
+
+  unsigned int		bytes_per_line;		/* 2048 */
+  unsigned int		bits_per_pixel;		/* 16 */
+};
+
+gboolean
+x11_dga_query			(x11_dga_parameters *	par,
+				 int			bpp_hint);
+
+static __inline__ gboolean
+x11_dga_present			(x11_dga_parameters *	par)
+{
+  return par->base != 0;
+}
 
 #endif /* x11stuff.h */

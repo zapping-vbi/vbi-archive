@@ -2848,17 +2848,6 @@ static void scale_rect(GdkRectangle *rect,
   rect->height = ((y2 + 1) * h) / rows - rect->y;
 }
 
-#define SWAP(a, b)			\
-do {					\
-  gint temp = b;			\
-  b = a;				\
-  a = temp;				\
-} while (0)
-
-#define SATURATE(n, min, max)		\
-  (((n) < (min)) ? (min) :		\
-    (((n) > (max)) ? (max) : (n)))
-
 #define hidden_row(X) real_hidden_row(X, data)
 static int real_hidden_row(int row, ttxview_data * data)
 {
