@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.34 2002-04-20 06:42:54 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.35 2002-05-09 21:04:29 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -72,9 +72,11 @@ double				frame_rate;
 int				luma_only;
 int				outFileFD;
 int				mux_syn;
+int				split_sequence = 0;
 
 void packed_preview(unsigned char *buffer, int mb_cols, int mb_rows) { }
 void preview_init(int *argc, char ***argv) { }
+void break_sequence(void) { }
 
 static void
 status(rte_context *context, rte_codec *codec,
