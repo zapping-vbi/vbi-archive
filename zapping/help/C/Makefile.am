@@ -11,7 +11,12 @@ entities = \
 
 include $(top_srcdir)/help/xmldocs.make
 
+# Missing in xmldocs.make
+DISTCLEANFILES = $(omffile).out
+
 dist-hook: app-dist-hook
 
-xmlcheck: $(entitites)
-	nsgmls -s -E3000 zapping.xml
+xmlcheck: $(entities)
+	SP_CHARSET_FIXED=YES \
+	SP_ENCODING=XML \
+	onsgmls -s -wxml zapping.xml
