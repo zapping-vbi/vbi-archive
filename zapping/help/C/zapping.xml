@@ -171,8 +171,10 @@ EndSection
       <title>Video Modes</title>
 
       <para>Zapping can work in windowed, fullscreen or background mode. In each mode it can show Teletext, captured images or it can overlay video. What is the difference?</para>
-      <para>In capture mode Zapping programs your TV card to store images in main memory. This permits screenshots and video recording. It is also quite CPU intensive because to display video Zapping must copy the images to the X server.</para>
-      <para>In overlay mode the TV card stores the images directly in video memory. This is a more efficient display method, but now Zapping cannot access the images. When you try to take a screenshot or record in this mode it will switch back to capture mode, if supported by your TV card.</para>
+      <para>In capture mode Zapping programs your TV card to store images in main memory. This permits screenshots, deinterlacing and video recording. It is also quite CPU intensive because to display video Zapping must further pass the images to the X server which programs the graphics processor to convert the images from YUV to RGB format, scale them, and copy them into screen memory.</para>
+      <para>In overlay mode the TV card stores the images directly in screen memory. This is a more efficient display method, but now Zapping cannot access the images. When you try to take a screenshot, activate deinterlacing or recording in this mode it will switch back to capture mode, if supported by your TV card.</para>
+      <para>The available PCI bus bandwidth limits the image size in overlay mode. When the window or screen is larger than 768&times;576 pixels you will see a black border around the image. To avoid this Zapping can automatically <link linkend="zapping-settings-video-options">reduce the screen resolution</link> in fullscreen mode, or you can switch to capture mode. Capture mode is not limited if your graphics card supports image scaling.</para>
+
       <para>To switch between modes choose the mode from the <menuchoice>
 	  <guimenu>View</guimenu>
 	</menuchoice> menu, or the context menu. To return from fullscreen or background mode to windowed press the <keycap>Esc</keycap> key.</para>
