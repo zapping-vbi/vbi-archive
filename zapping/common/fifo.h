@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.26 2001-10-08 19:48:47 garetxe Exp $ */
+/* $Id: fifo.h,v 1.27 2001-10-26 09:12:05 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -134,6 +134,8 @@ struct fifo {
 	void			(* destroy)(fifo *);
 
 	void *			user_data;
+
+	buffer *		(* alloc_buffer)(ssize_t);
 };
 
 struct producer {
@@ -256,7 +258,7 @@ recv_full_buffer(consumer *c)
 }
 
 extern buffer *		wait_full_buffer(consumer *c);
-extern buffer *		recv_full_buffer_timeout(consumer *c, struct
+extern buffer *		wait_full_buffer_timeout(consumer *c, struct
 						 timespec *timeout);
 
 /**

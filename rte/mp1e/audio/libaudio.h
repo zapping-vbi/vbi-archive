@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libaudio.h,v 1.8 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: libaudio.h,v 1.9 2001-10-26 09:14:51 mschimek Exp $ */
 
 #include "../common/fifo.h"
 #include "../systems/libsystems.h"
@@ -41,7 +41,7 @@ extern rte_codec_class	mp1e_mpeg2_layer2_codec;
 
 /* preliminary */
 extern void		mp1e_mp2_init(rte_codec *, unsigned int,
-				      fifo *cap_fifo, multiplexer *, rte_sndfmt);
+				      fifo *cap_fifo, multiplexer *);
 extern void *		mp1e_mp2_thread(void *foo);
 
 /* historic */

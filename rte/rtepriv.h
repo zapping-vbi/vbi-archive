@@ -2,6 +2,7 @@
  *  MPEG-1 Real Time Encoder lib wrapper api
  *
  *  Copyright (C) 2000 Iñaki García Etxebarria
+ *  Modified 2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.11 2001-10-21 05:08:48 mschimek Exp $
+ * $Id: rtepriv.h,v 1.12 2001-10-26 09:14:51 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -39,41 +40,81 @@ typedef void (*_wait_data)(rte_context *context, int video);
 
 
 
-typedef struct rte_codec_class {
-	rte_codec_info	public;
+
+
+
+/* Experimental */
+
+/* maybe one should add this stuff under a #ifdef RTE_BACKEND to rte.h? */
+
+typedef struct rte_context_class rte_context_class;
+
+struct rte_context_class {
+	rte_context_class *	next;
+	rte_context_info	public;
+
+	/* ? */
+
+	rte_codec_info *	(* codec_enum)(rte_context *, int);
+	rte_codec *		(* codec_get)(rte_context *, rte_stream_type, int);
+	rte_codec *		(* codec_set)(rte_context *, rte_stream_type, int, char *);
+
+	rte_option *		(* option_enum)(rte_codec *, int);
+	int			(* option_get)(rte_codec *, char *, rte_option_value *);
+	int			(* option_set)(rte_codec *, char *, va_list);
+	char *			(* option_print)(rte_codec *, char *, va_list);
+
+	int			(* parameters)(rte_codec *, rte_stream_parameters *);
+};
+
+typedef struct rte_codec_class rte_codec_class;
+
+struct rte_codec_class {
+	rte_codec_class *	next;
+	rte_codec_info		public;
 
 	/*
 	 *  Allocate new codec instance. All fields zero except
 	 *  rte_codec.class, .status (RTE_STATUS_NEW), .mutex (initialized),
 	 *  and all codec properties reset to defaults.
 	 */
-	rte_codec *	(* new)(void);
-	void		(* delete)(rte_codec *);
+	rte_codec *		(* new)(void);
+	void			(* delete)(rte_codec *);
 
-	rte_option *	(* option_enum)(rte_codec *, int index);
-	int		(* option_get)(rte_codec *, char *, rte_option_value *);
-	int		(* option_set)(rte_codec *, char *, va_list);
-	char *		(* option_print)(rte_codec *, char *, va_list);
+	rte_option *		(* option_enum)(rte_codec *, int index);
+	int			(* option_get)(rte_codec *, char *, rte_option_value *);
+	int			(* option_set)(rte_codec *, char *, va_list);
+	char *			(* option_print)(rte_codec *, char *, va_list);
 
-	/* get/set sample parameters */
-	/* prepare */
+	int			(* parameters)(rte_codec *, rte_stream_parameters *);
 
 	/* result unused (yet) */
-	void *		(* mainloop)(void *rte_codec);
+	void *			(* mainloop)(void *rte_codec);
+};
 
-} rte_codec_class;
-
-typedef enum {
+typedef enum rte_codec_status {
 	/* new -> */
 	RTE_STATUS_NEW = 1,
-	/* accept options, parameters -> */
+	RTE_STATUS_RESERVED2,
+	/* accept options,
+           sample parameters -> */
+	RTE_STATUS_PARAM,
+	/* option change -> RTE_STATUS_NEW,
+           params change -> RTE_STATUS_PARAM,
+           i/o -> */
 	RTE_STATUS_READY,
-/* XXX a) options, b) parameters, c) fifo connections -- ? */
-	/* option change -> RTE_STATUS_NEW, start -> */
+	RTE_STATUS_RESERVED5,
+	RTE_STATUS_RESERVED6,
+	/* option change -> RTE_STATUS_NEW,
+	   params change -> RTE_STATUS_PARAM,
+	   i/o change -> RTE_STATUS_READY,
+           start -> */
 	RTE_STATUS_RUNNING,
-	/* pause? */
+	RTE_STATUS_RESERVED8,
 	/* stop -> */
 	RTE_STATUS_STOPPED,
+	/* ? -> ? */
+	RTE_STATUS_RESERVED10,
 } rte_codec_status;
 
 struct rte_codec {
@@ -125,22 +166,25 @@ typedef struct {
 
 	/* Experimental */
 
-	rte_codec_info *(* enum_codec)(rte_context *context, int index);
-	rte_codec *	(* get_codec)(rte_context *context,
-				      rte_stream_type stream_type,
-				      int stream_index, char **keyword_p);
-	rte_codec *	(* set_codec)(rte_context *context,
-				      rte_stream_type stream_type,
-				      int stream_index, char *keyword);
+	rte_context_info *	(* context_enum)(int);
+	rte_context *		(* context_new2)(char *);
+	void			(* context_delete)(rte_context *);
 
-	rte_option *	(* enum_option)(rte_codec *, int index);
-	int		(* get_option)(rte_codec *, char *, rte_option_value *);
-	int		(* set_option)(rte_codec *, char *, va_list);
-	char *		(* print_option)(rte_codec *, char *, va_list);
+	/* tbd context_class */
 
-	int		(* set_parameters)(rte_codec *, rte_stream_parameters *);
+	rte_codec_info *	(* codec_enum)(rte_context *, int);
+	rte_codec *		(* codec_get)(rte_context *, rte_stream_type, int);
+	rte_codec *		(* codec_set)(rte_context *, rte_stream_type, int, char *);
+
+	rte_option *		(* option_enum)(rte_codec *, int);
+	int			(* option_get)(rte_codec *, char *, rte_option_value *);
+	int			(* option_set)(rte_codec *, char *, va_list);
+	char *			(* option_print)(rte_codec *, char *, va_list);
+
+	int			(* parameters)(rte_codec *, rte_stream_parameters *);
 
 } rte_backend_info;
+
 
 #define RC(X) ((rte_context*)X)
 
@@ -191,6 +235,8 @@ struct _rte_context_private {
 				       encoding to */
 	buffer * last_audio_buffer; /* audio buffer */
 	unsigned long long bytes_out; /* sent bytes */
+
+	rte_context_class *	class;
 };
 
 /*
@@ -251,7 +297,5 @@ rte_helper_reset_options(rte_codec *codec)
 }
 
 #endif /* rtepriv.h */
-
-
 
 

@@ -2,6 +2,7 @@
  *  MPEG-1 Real Time Encoder lib wrapper api
  *
  *  Copyright (C) 2000-2001 Iñaki García Etxebarria
+ *  Modified 2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,11 +37,12 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.14 2001-10-19 06:57:56 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.15 2001-10-26 09:14:51 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
  * FIXME: subtitles?
+ * to be removed, replacement codec_get|set
  */
 enum rte_mux_mode {
 	RTE_VIDEO = 1,
@@ -62,6 +64,7 @@ enum rte_interface {
   will be pushed in, the output (encoded) format is the one specified
   by the MPEG standard (YCbCr)
   The YUV formats are in the YCbCr colorspace
+ * to be removed, replacement rte_pixfmt
 */
 enum rte_pixformat {
 	RTE_YUV420, /* Planar Y:Cb:Cr 1.5 bytes per pixel */
@@ -83,6 +86,7 @@ enum rte_pixformat {
 
 /*
   Video frame rate. From the standard.
+ * to be removed, is a codec option
 */
 enum rte_frame_rate {
 	RTE_RATE_NORATE=0, /* frame rate not set, rte won't encode */
@@ -99,6 +103,7 @@ enum rte_frame_rate {
 
 /*
   Available audio modes
+ * to be removed, is a codec option
 */
 enum rte_audio_mode {
 	RTE_AUDIO_MODE_MONO,
@@ -125,7 +130,10 @@ struct rte_status_info {
 
 typedef struct _rte_context_private rte_context_private;
 
-typedef struct {
+typedef struct rte_context rte_context;
+
+/* will become private */
+struct rte_context {
 	/* Filename used when creating this context, NULL if unknown */
 	char * file_name;
 	/* Whether to encode audio only, video only or both */
@@ -169,7 +177,7 @@ typedef struct {
 
 	/* Stuff we don't want you to see ;-) */
 	rte_context_private * private;
-} rte_context;
+};
 
 /*
   "You have to save this data" callback. Defaults to a disk (stdout)
@@ -264,6 +272,9 @@ typedef void (*rteUnrefCallback)(rte_context * contex,
 /*
   Inits the lib, and it does some checks.
   Returns 1 if the lib can be used in this box, and 0 if not.
+
+  to become a lib constructor (?),
+  codecs/formats which won't work in this box won't be enumerated.
 */
 int rte_init ( void );
 
@@ -274,10 +285,11 @@ int rte_init ( void );
   Returns: The new context on startup, NULL on error.
   width, height: Width and height of the pushed frames, must be 16-multiplus
   backend: Backend to use ("mp1e", ...). NULL for default backend (mp1e)
+  **changed**
   user_data: Some data you would like to pass to the callback
 */
 rte_context * rte_context_new (int width, int height,
-			       const char *backend,
+			       char *backend,
 			       void * user_data);
 
 /*
@@ -285,7 +297,7 @@ rte_context * rte_context_new (int width, int height,
   frees the memory allocated by the rte_context.
   Returns: Always NULL
 */
-void * rte_context_destroy ( rte_context * context );
+#define rte_context_destroy rte_context_delete
 
 /*
  * Sets the a/v input mode for the context.
@@ -327,6 +339,7 @@ void rte_set_output (rte_context * context,
  * stored here. Ignored if it's NULL.
  * Returns: NULL if the nth format doesn't exist and a statically
  * allocated string that shouldn't be freed if it exists.
+ * will be removed, replaced by rte_context_enum
  */
 char * rte_query_format (rte_context * context,
 			 int n,
@@ -336,6 +349,7 @@ char * rte_query_format (rte_context * context,
  * Sets the encoding format for the context.
  * format: Name of the format, as reported by rte_query_format.
  * Returns: 0 on error.
+ * will be removed, replaced by rte_context_new
  */
 int rte_set_format (rte_context * context,
 		    const char * format);
@@ -344,6 +358,7 @@ int rte_set_format (rte_context * context,
   Sets the video parameters. If you don't want to change any field of
   these, just pass the current value. For example, if you don't want
   to change the gop sequence, just pass context->gop_sequence.
+  will be replaced by codec parameters
 */
 int rte_set_video_parameters (rte_context * context,
 			      enum rte_pixformat video_format,
@@ -352,18 +367,21 @@ int rte_set_video_parameters (rte_context * context,
 			      ssize_t output_video_bits,
 			      const char *gop_sequence);
 
-/* Sets the audio parameters, 0 on error */
+/* Sets the audio parameters, 0 on error
+  will be replaced by codec parameters */
 int rte_set_audio_parameters (rte_context * context,
 			      int audio_rate,
 			      enum rte_audio_mode audio_mode,
 			      ssize_t output_audio_bits);
 
-/* Specifies whether to encode audio only, video only or both */
+/* Specifies whether to encode audio only, video only or both
+  will be removed, replaced by rte_codec_set */
 void rte_set_mode (rte_context * context, enum rte_mux_mode mode);
 
 /*
   Specifies motion compensation search range,
   min <= max, min = max = 0 = off, in half samples.
+  will be removed, is a codec option
  */
 void rte_set_motion (rte_context * context, int min, int max);
 
@@ -374,6 +392,9 @@ void * rte_get_user_data(rte_context * context);
 /*
  * Prepares the context for encoding. Must be called before calling
  * start_encoding. Returns 1 on success.
+ * will be removed,
+    rte_codec_input_<method>(...) puts the codec,
+    rte_context_output_<method>(...) the context in ready state.
  */
 int rte_init_context ( rte_context * context );
 
@@ -484,7 +505,11 @@ void rte_get_status( rte_context * context,
  *  don't use in production code 
  */
 
-typedef enum {
+/*
+ *  Contexts (backends, file formats, multiplexed streams)
+ */
+
+typedef enum rte_stream_type {
   RTE_STREAM_VIDEO = 1,  /* XXX STREAM :-( need a better term */
   RTE_STREAM_AUDIO,	 /* input/output distinction? */
   RTE_STREAM_SLICED_VBI,
@@ -492,7 +517,136 @@ typedef enum {
   RTE_STREAM_MAX = 15
 } rte_stream_type;
 
-typedef enum {
+typedef struct rte_context_info {
+  char *		keyword;	/* eg. "mp1e-mpeg1-ps" */
+
+  char *		backend;	/* no NLS b/c proper name */
+
+  char *		label;		/* gettext()ized _N() */
+  char *		tooltip;	/* or NULL, gettext()ized _N() */
+
+  /*
+   *  Multiple strings allowed, separated by comma. The first
+   *  string is preferred. Ex "video/x-mpeg", "mpg,mpeg".
+   */
+  char *		mime_type;	/* or NULL */
+  char *		extension;	/* or NULL */
+
+  /*
+   *  Permitted number of elementary streams of each type, for example
+   *  MPEG-1 PS: video 16, audio 32, sliced vbi 1, to select rte_codec_set
+   *  substream number 0 ... n-1.
+   */
+  char			elementary[RTE_STREAM_MAX + 1];
+} rte_context_info;
+
+// typedef struct rte_context rte_context; /* opaque */
+
+extern rte_context_info *rte_context_info_enum(int);
+extern rte_context_info *rte_context_info_keyword(char *);
+extern rte_context_info *rte_context_info_context(rte_context *);
+
+extern rte_context *rte_context_new2(char *);
+extern void rte_context_delete(rte_context *);
+
+/*
+ *  Codecs (elementary streams)
+ */
+
+typedef struct rte_codec_info {
+  rte_stream_type	stream_type;
+  char *		keyword;
+  char *		label;		/* gettext()ized _N() */
+  char *		tooltip;	/* or NULL, gettext()ized _N() */
+} rte_codec_info;
+
+typedef struct rte_codec rte_codec; /* opaque */
+
+extern rte_codec_info *rte_codec_info_enum(rte_context *, int);
+extern rte_codec_info *rte_codec_info_keyword(rte_context *, char *);
+extern rte_codec_info *rte_codec_info_codec(rte_codec *);
+
+/*** 'set' copies string values, 'get' strings must be free()ed */
+extern rte_codec *rte_codec_get(rte_context *, rte_stream_type, int);
+extern rte_codec *rte_codec_set(rte_context *, rte_stream_type, int, char *);
+
+/*
+ *  Codec options
+ */
+
+typedef enum rte_option_type {
+  RTE_OPTION_BOOL = 1,
+  RTE_OPTION_INT,
+  RTE_OPTION_REAL,
+  RTE_OPTION_STRING,
+  RTE_OPTION_MENU,
+} rte_option_type;
+
+typedef union rte_option_value {
+  int			num;
+  char *		str;		/* gettext()ized _N() */
+  double		dbl;
+} rte_option_value;
+
+typedef struct rte_option {
+  rte_option_type	type;
+  char *		keyword;
+  char *		label;		/* gettext()ized _N() */
+  rte_option_value	def;		/* default (reset) */
+  rte_option_value	min, max;
+  rte_option_value	step;
+  union {
+    int *                 num;
+    char **               str;
+    double *              dbl;
+  }                     menu;
+  int			entries;
+  char *		tooltip;	/* or NULL, gettext()ized _N() */
+} rte_option;
+
+#define RTE_OPTION_BOUNDS_INITIALIZER_(type_, def_, min_, max_, step_)	\
+  { type_ = def_ }, { type_ = min_ }, { type_ = max_ }, { type_ = step_ }
+
+#define RTE_OPTION_BOOL_INITIALIZER(key_, label_, def_, tip_)		\
+  { RTE_OPTION_BOOL, key_, label_,					\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, 1, 1),		\
+    { .num = NULL }, 0, tip_ }
+
+#define RTE_OPTION_INT_INITIALIZER(key_, label_, def_, min_, max_,	\
+  step_, menu_, entries_, tip_) { RTE_OPTION_INT, key_, label_,		\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, min_, max_, step_),	\
+    { .num = menu_ }, entries_, tip_ }
+
+#define RTE_OPTION_REAL_INITIALIZER(key_, label_, def_, min_, max_,	\
+  step_, menu_, entries_, tip_) { RTE_OPTION_REAL, key_, label_,	\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.dbl, def_, min_, max_, step_),	\
+    { .dbl = menu_ }, entries_, tip_ }
+
+#define RTE_OPTION_STRING_INITIALIZER(key_, label_, def_, menu_,	\
+  entries_, tip_) { RTE_OPTION_STRING, key_, label_,			\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.str, def_, NULL, NULL, NULL),	\
+    { .str = menu_ }, entries_, tip_ }
+
+#define RTE_OPTION_MENU_INITIALIZER(key_, label_, def_, menu_,		\
+  entries_, tip_) { RTE_OPTION_MENU, key_, label_,			\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
+    { .str = menu_ }, entries_, tip_ }
+
+extern rte_option *rte_option_enum(rte_codec *, int);
+extern rte_option *rte_option_keyword(rte_codec *, char *);
+
+/*** 'set' copies string values, 'get' and 'print' strings must be free()ed */
+extern int rte_option_get(rte_codec *, char *, rte_option_value *);
+extern int rte_option_set(rte_codec *, char *, ...);
+extern int rte_option_get_menu(rte_codec *, char *, int *);
+extern int rte_option_set_menu(rte_codec *, char *, int);
+extern char *rte_option_print(rte_codec *, char *, ...);
+
+/*
+ *  Source parameters
+ */
+
+typedef enum rte_pixfmt {
   RTE_PIXFMT_YUV420 = 1,
   RTE_PIXFMT_YUYV,
   RTE_PIXFMT_YVYU,
@@ -510,7 +664,7 @@ typedef enum {
   RTE_PIXFMT_MAX = 31
 } rte_pixfmt;
 
-typedef enum {
+typedef enum rte_sndfmt {
   RTE_SNDFMT_S8 = 1,
   RTE_SNDFMT_U8,
   RTE_SNDFMT_S16LE,
@@ -521,7 +675,7 @@ typedef enum {
   RTE_SNDFMT_MAX = 31
 } rte_sndfmt;
 
-typedef enum {
+typedef enum rte_vbifmt {
   RTE_VBIFMT_TELETEXT_B_L10_625 = 1,
   RTE_VBIFMT_TELETEXT_B_L25_625,
   RTE_VBIFMT_VPS,
@@ -554,101 +708,16 @@ typedef enum {
 #define RTE_VBIFMTS_RESERVED1		(1UL << RTE_VBIFMT_RESERVED1)
 #define RTE_VBIFMTS_RESERVED2		(1UL << RTE_VBIFMT_RESERVED2)
 
-typedef struct rte_codec rte_codec; /* opaque */
-
-typedef struct rte_codec_info {
-  rte_stream_type	stream_type;
-  char *		keyword;
-  char *		label;		/* gettext()ized _N() */
-  char *		tooltip;	/* or NULL, gettext()ized _N() */
-} rte_codec_info;
-
-extern rte_codec_info *rte_codec_enum(rte_context *context, int index);
-extern rte_codec_info *rte_codec_by_keyword(rte_context *, char *);
-
-/*** 'set' copies string values, 'get' strings must be free()ed */
-extern rte_codec *rte_codec_get(rte_context *, rte_stream_type, int, char **);
-extern rte_codec *rte_codec_set(rte_context *, rte_stream_type, int, char *);
-
-typedef enum {
-  RTE_OPTION_BOOL = 1,
-  RTE_OPTION_INT,
-  RTE_OPTION_REAL,
-  RTE_OPTION_STRING,
-  RTE_OPTION_MENU,
-} rte_option_type;
-
-typedef union rte_option_value {
-  int			num;
-  char *		str;		/* gettext()ized _N() */
-  double		dbl;
-} rte_option_value;
-
-typedef struct rte_option {
-  rte_option_type	type;
-  char *		keyword;
-  char *		label;		/* gettext()ized _N() */
-  rte_option_value	def;		/* default (reset) */
-  rte_option_value	min, max;
-  rte_option_value	step;
-  union {
-    int *                 num;
-    char **               str;
-    double *              dbl;
-  }                     menu;
-  int			entries;
-  char *		tooltip;	/* or NULL, gettext()ized _N() */
-} rte_option;
-
-extern rte_option *rte_option_enum(rte_codec *, int);
-extern rte_option *rte_option_by_keyword(rte_codec *, char *);
-/*** 'set' copies string values, 'get' and 'print' strings must be free()ed */
-extern int rte_option_get(rte_codec *, char *, rte_option_value *);
-extern int rte_option_set(rte_codec *, char *, ...);
-extern int rte_option_get_menu(rte_codec *, char *, int *);
-extern int rte_option_set_menu(rte_codec *, char *, int);
-extern char *rte_option_print(rte_codec *, char *, ...);
-
-#define RTE_OPTION_BOUNDS_INITIALIZER_(type_, def_, min_, max_, step_)	\
-  { type_ = def_ }, { type_ = min_ }, { type_ = max_ }, { type_ = step_ }
-
-#define RTE_OPTION_BOOL_INITIALIZER(key_, label_, def_, tip_)		\
-  { RTE_OPTION_BOOL, key_, label_,					\
-    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, 1, 1),		\
-    { .num = NULL }, 0, tip_ }
-
-#define RTE_OPTION_INT_INITIALIZER(key_, label_, def_, min_, max_,	\
-  step_, menu_, entries_, tip_) { RTE_OPTION_INT, key_, label_,		\
-    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, min_, max_, step_),	\
-    { .num = menu_ }, entries_, tip_ }
-
-#define RTE_OPTION_REAL_INITIALIZER(key_, label_, def_, min_, max_,	\
-  step_, menu_, entries_, tip_) { RTE_OPTION_REAL, key_, label_,	\
-    RTE_OPTION_BOUNDS_INITIALIZER_(.dbl, def_, min_, max_, step_),	\
-    { .dbl = menu_ }, entries_, tip_ }
-
-#define RTE_OPTION_STRING_INITIALIZER(key_, label_, def_, menu_,	\
-  entries_, tip_) { RTE_OPTION_STRING, key_, label_,			\
-    RTE_OPTION_BOUNDS_INITIALIZER_(.str, def_, NULL, NULL, NULL),	\
-    { .str = menu_ }, entries_, tip_ }
-
-#define RTE_OPTION_MENU_INITIALIZER(key_, label_, def_, menu_,		\
-  entries_, tip_) { RTE_OPTION_MENU, key_, label_,			\
-    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
-    { .str = menu_ }, entries_, tip_ }
-
-typedef struct rte_stream_parameters {
-  union {
-    struct rte_audio_stream_parameters {
-      rte_sndfmt	    sndfmt;
-      int		    sampling_freq;	/* Hz */
-      int		    channels;		/* mono: 1, stereo: 2 */
-      int		    fragment_size;	/* bytes */
-    }			  audio;
-    char		  pad[128];
-  }			str;
+typedef union rte_stream_parameters {
+  struct rte_audio_stream_parameters {
+    rte_sndfmt		  sndfmt;
+    int			  sampling_freq;	/* Hz */
+    int			  channels;		/* mono: 1, stereo: 2 */
+    int			  fragment_size;	/* bytes */
+  }			audio;
+  char			pad[128];
 } rte_stream_parameters;
 
-extern int rte_set_parameters(rte_codec *codec, rte_stream_parameters *rsp);
+extern int rte_set_parameters(rte_codec *, rte_stream_parameters *);
 
 #endif /* rtelib.h */

@@ -1,3 +1,11 @@
+2001-10-23	<mschimek@users.sf.net>
+
+	* mp2.c: Improved the codec status stuff, moved the sample
+	  parameters code.
+	* systems.c: Made buffer allocation in add_input_stream
+	  optional to clean up init() in mp2.c.
+	* b_mp1e.c: Added format enumeration code, unfinished.
+
 2001-10-21	<mschimek@users.sf.net>
 
 	* video/mpeg1.c: Fixed incorrect type of bit_rate, strdup(0)

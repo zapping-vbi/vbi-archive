@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.19 2001-10-21 05:08:13 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.20 2001-10-26 09:12:06 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -83,20 +83,10 @@ static gint capture_w, capture_h;
  *  we'll have a separate active instance the user can't mess
  *  with and the configuration is copied via zconf. 
  */
-#define ZCONF_DOMAIN "/zapping/plugins/mpeg"
-#define MPEG_CONFIG "default"
 static rte_context *context_prop;
-static rte_codec *audio_codec_prop;
 static GtkWidget *audio_options;
-static rte_codec *video_codec_prop;
 static GtkWidget *video_options;
 
-static rte_codec *
-load_codec_properties (rte_context *context, gchar *zc_domain,
-		       gchar *keyword, rte_stream_type stream_type);
-static void
-save_codec_properties (rte_context *context, gchar *zc_domain,
-		       rte_stream_type stream_type);
 static gboolean on_delete_event (GtkWidget *widget, GdkEvent
 				*event, gpointer user_data);
 static void on_button_clicked (GtkButton *button, gpointer user_data);
@@ -208,14 +198,14 @@ gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
 	      GNOME_MESSAGE_BOX_ERROR);
       return FALSE;
     }
-
+  /*
   if (! (context_prop = rte_context_new (352, 288, "mp1e", NULL)))
     {
       ShowBox ("The encoding context cannot be created",
 	      GNOME_MESSAGE_BOX_ERROR);
       return FALSE;
     }
-
+  */
   return TRUE;
 }
 
@@ -298,7 +288,7 @@ resolve_filename (const gchar * dir, const gchar * prefix,
     
     g_free (buffer);
 
-    if ( (!*save_dir) || (save_dir[strlen (save_dir)-1] != '/'))
+    if ((!*save_dir) || (save_dir[strlen (save_dir)-1] != '/'))
       buffer = g_strdup_printf ("%s/%s%d%s", save_dir, prefix,
 			       clip_index++, suffix);
     else
@@ -357,7 +347,7 @@ gint update_timeout ( rte_context *context )
   rate = status.bytes_out * (8 / 1e6) / t;
 
   snprintf(buf, sizeof(buf) - 1,
-	   "(+) %3u:%02u:%02u  %7.3f MB  %6.3f Mbit/s",
+	   "%3u:%02u:%02u  %7.3f MB  %6.3f Mbit/s",
 	   h, m, s, status.bytes_out / (double)(1 << 20),
 	   rate);
 
@@ -493,21 +483,18 @@ gboolean plugin_start (void)
 #endif
 
   g_assert (context_enc == NULL);
-  context_enc =
-    context = rte_context_new (zapping_info->format.width,
-			       zapping_info->format.height,
-			       "mp1e", NULL);
+
+  context = grte_context_load (MPEG_CONFIG, NULL, &audio_codec, &video_codec);
+
   if (!context)
     {
-	  ShowBox ("Couldn't create the mpeg encoding context",
-		  GNOME_MESSAGE_BOX_ERROR);
-	  return FALSE;
+      ShowBox ("Couldn't create the mpeg encoding context",
+	       GNOME_MESSAGE_BOX_ERROR);
+      return FALSE;
     }
 
-  audio_codec = load_codec_properties (context, MPEG_CONFIG,
-				       NULL, RTE_STREAM_AUDIO);
-  video_codec = load_codec_properties (context, MPEG_CONFIG,
-				       NULL, RTE_STREAM_VIDEO);
+  context_enc = context;
+
   if (0)
     fprintf (stderr, "codecs: a%p v%p\n", audio_codec, video_codec);
 
@@ -553,8 +540,8 @@ gboolean plugin_start (void)
       g_assert (rte_set_parameters (audio_codec, &params));
 
       /* XXX improve me */
-      if (!init_audio (params.str.audio.sampling_freq,
-		       params.str.audio.channels > 1))
+      if (!init_audio (params.audio.sampling_freq,
+		       params.audio.channels > 1))
 	{
 	  rte_context_destroy (context);
 	  context_enc = NULL;
@@ -695,7 +682,7 @@ gboolean plugin_start (void)
   g_free (buffer);
 
   widget = lookup_widget (saving_dialog, "label10");
-  switch ( (!!video_codec) * 2 + (!!audio_codec))
+  switch ((!!video_codec) * 2 + (!!audio_codec))
     {
       case 1:
 	buffer = _("Audio only");
@@ -833,8 +820,8 @@ void plugin_save_config (gchar * root_key)
   zconf_set_boolean (lip_sync_warning, buffer);
   g_free (buffer);
 
-  save_codec_properties (context_prop, MPEG_CONFIG, RTE_STREAM_AUDIO);
-  save_codec_properties (context_prop, MPEG_CONFIG, RTE_STREAM_VIDEO);
+  if (context_prop)
+    grte_context_save (context_prop, MPEG_CONFIG);
 }
 
 static void
@@ -883,94 +870,8 @@ gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
 }
 
 /*
- *  Planned zconf structure:
- *  /zapping/plugins/mpeg
- *  + / "user config name"
- *    + format (name preliminary) = "mpeg1-ps" | "avi" | "wav" | ...
- *    + format/config_property_x = ...
- *    + format/config_property_y = ...
- *    + audio_codec = ...
- *    + video_codec = ...
- *    + / "audio codec name"
- *      + property_x = ...
- *      + property_y = ...
- *    + / "video codec name"
- *      + property_x = ...
- *      + property_y = ...
- *    + / "other codec"
- *      + property_x = ...
- *      + property_y = ...
- *    :
- *  + / "other user config"
- *  :
+ *  Properties
  */
-
-static const
-gchar *codec_type[RTE_STREAM_MAX + 1] = {
-  NULL,
-  "video_codec",
-  "audio_codec",
-  "vbi_codec",
-};
-
-static rte_codec *
-load_codec_properties (rte_context *context, gchar *zc_subdomain,
-		       gchar *keyword, rte_stream_type stream_type)
-{
-  rte_codec *codec = NULL;
-  gchar *zcname;
-
-  if (!keyword)
-    {
-      zcname = g_strconcat (ZCONF_DOMAIN, "/", zc_subdomain,
-			    "/", codec_type[stream_type], NULL);
-      keyword = zconf_get_string (NULL, zcname);
-      g_free (zcname);
-    }
-
-  if (keyword && keyword[0])
-    {
-      codec = rte_codec_set (context, stream_type, 0, keyword);
-
-      if (codec)
-	{
-	  zcname = g_strconcat (ZCONF_DOMAIN, "/", zc_subdomain,
-				"/", keyword, NULL);
-	  grte_options_load (codec, zcname);
-	  g_free (zcname);
-	}
-    }
-
-  return codec;
-}
-
-static void
-save_codec_properties (rte_context *context, gchar *zc_subdomain,
-		       rte_stream_type stream_type)
-{
-  rte_codec *codec;
-  gchar *zcname;
-  char *keyword;
-
-  zcname = g_strconcat (ZCONF_DOMAIN, "/", zc_subdomain,
-			"/", codec_type[stream_type], NULL);
-  codec = rte_codec_get (context, stream_type, 0, &keyword);
-
-  if (codec && keyword)
-    {
-      zconf_set_string (keyword, zcname);
-      g_free (zcname);
-      zcname = g_strconcat (ZCONF_DOMAIN, "/", zc_subdomain,
-			    "/", keyword, NULL);
-      grte_options_save (codec, zcname);
-    }
-  else
-    {
-      zconf_set_string ("", zcname);
-    }
-
-  g_free (zcname);
-}
 
 static void
 on_property_item_changed              (GtkWidget * changed_widget,
@@ -1006,28 +907,26 @@ select_codec (GtkWidget *mpeg_properties, GtkWidget *menu,
 	      rte_stream_type stream_type, GnomePropertyBox *propertybox)
 {
   GtkWidget *menu_item = gtk_menu_get_active (GTK_MENU (menu));
-  GtkWidget *table = 0;
+  GtkWidget *vbox = 0;
   GtkWidget **optionspp = 0;
-  rte_codec **codecpp = 0;
+  rte_codec *codec;
   char *keyword;
 
   switch (stream_type)
     {
       case RTE_STREAM_AUDIO:
-	table = lookup_widget (mpeg_properties, "table1");
+	vbox = lookup_widget (mpeg_properties, "vbox5");
 	optionspp = &audio_options;
-	codecpp = &audio_codec_prop;
 	break;
       case RTE_STREAM_VIDEO:
-	table = lookup_widget (mpeg_properties, "table2");
+	vbox = lookup_widget (mpeg_properties, "vbox4");
 	optionspp = &video_options;
-	codecpp = &video_codec_prop;
 	break;
       default:
 	g_assert_not_reached ();
     }
 
-  g_assert (table && menu_item);
+  g_assert (vbox && menu_item);
 
   destroy_options (optionspp);
 
@@ -1035,19 +934,15 @@ select_codec (GtkWidget *mpeg_properties, GtkWidget *menu,
 
   if (keyword)
     {
-      *codecpp = load_codec_properties (context_prop, MPEG_CONFIG,
-					keyword, stream_type);
-      g_assert (*codecpp);
+      codec = grte_codec_load (context_prop, MPEG_CONFIG, stream_type, keyword);
+      g_assert (codec);
 
-      *optionspp = grte_options_create (context_prop, *codecpp, propertybox);
+      *optionspp = grte_options_create (context_prop, codec, propertybox);
 
       if (*optionspp)
 	{
 	  gtk_widget_show (*optionspp);
-	  gtk_table_attach (GTK_TABLE (table), *optionspp, 0, 2, 3, 4,
-			    (GtkAttachOptions) (GTK_FILL),
-			    (GtkAttachOptions) (0), 3, 3);
-
+	  gtk_box_pack_end (GTK_BOX (vbox), *optionspp, TRUE, TRUE, 3);
 	  gtk_signal_connect_object (GTK_OBJECT (*optionspp), "destroy",
 				     GTK_SIGNAL_FUNC (nullify),
 				     (GtkObject *) optionspp);
@@ -1056,7 +951,6 @@ select_codec (GtkWidget *mpeg_properties, GtkWidget *menu,
   else
     {
       rte_codec_set (context_prop, stream_type, 0, NULL);
-      *codecpp = NULL;
     }
 }
 
@@ -1078,62 +972,6 @@ on_video_codec_changed                (GtkWidget * changed_widget,
 
   select_codec (mpeg_properties, changed_widget, RTE_STREAM_VIDEO, propertybox);
   gnome_property_box_changed (propertybox);
-}
-
-static gint
-create_codec_menu (GtkWidget *menu, gint *default_item,
-		   rte_stream_type stream_type)
-{
-  GtkWidget *menu_item;
-  rte_codec_info *info;
-  gint base = 1, items = 0;
-  gchar *keyword, *zcname;
-  int i;
-
-  zcname = g_strconcat (ZCONF_DOMAIN "/" MPEG_CONFIG "/",
-			codec_type[stream_type], NULL);
-  keyword = zconf_get_string (NULL, zcname);
-  g_free (zcname);
-  if (!keyword || !keyword[0])
-    {
-      keyword = "";
-      *default_item = 0; /* "None" */
-    }
-  else
-    {
-      *default_item = 1; /* first valid */
-    }
-
-  menu_item = gtk_menu_item_new_with_label (_("None"));
-  if (!1) /* "None" permitted? */
-    {
-       gtk_widget_set_sensitive (menu_item, FALSE);
-       *default_item = 0;
-       base = 0;
-    }
-  gtk_widget_show (menu_item);
-  gtk_menu_append (GTK_MENU (menu), menu_item);
-
-  // XXX it makes no sense to display a menu when there's
-  // really no choice
-  for (i = 0; (info = rte_codec_enum (context_prop, i)); i++)
-    {
-      if (info->stream_type != stream_type)
-        continue;
-
-      menu_item = gtk_menu_item_new_with_label (_(info->label));
-      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword", info->keyword);
-      set_tooltip (menu_item, _(info->tooltip));
-      gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
-
-      if (strcmp (keyword, info->keyword) == 0)
-	*default_item = base + items;
-
-      items++;
-    }
-
-  return items;
 }
 
 static void
@@ -1159,11 +997,12 @@ attach_codec_menu (GtkWidget *mpeg_properties, gchar *widget_name,
 
   widget = lookup_widget (mpeg_properties, widget_name);
 
-  if ( (menu = gtk_option_menu_get_menu (GTK_OPTION_MENU (widget))))
+  if ((menu = gtk_option_menu_get_menu (GTK_OPTION_MENU (widget))))
     gtk_widget_destroy (menu);
-  menu = gtk_menu_new ();
 
-  create_codec_menu (menu, &default_item, stream_type);
+  menu = grte_codec_create_menu (context_prop, MPEG_CONFIG, stream_type, &default_item);
+
+  g_assert (menu);
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (widget), menu);
   gtk_option_menu_set_history (GTK_OPTION_MENU (widget), default_item);
@@ -1171,6 +1010,57 @@ attach_codec_menu (GtkWidget *mpeg_properties, gchar *widget_name,
 		      "deactivate", on_changed, gpb);
 
   select_codec (mpeg_properties, menu, stream_type, gpb);
+}
+
+static void
+select_format (GtkWidget *mpeg_properties, GtkWidget *menu, GnomePropertyBox *gpb)
+{
+  GtkWidget *menu_item = gtk_menu_get_active (GTK_MENU (menu));
+  char *keyword;
+
+  keyword = gtk_object_get_data (GTK_OBJECT (menu_item), "keyword");
+
+  if (context_prop)
+    rte_context_destroy (context_prop);
+
+  context_prop = rte_context_new (352, 288, keyword, NULL);
+
+  attach_codec_menu (mpeg_properties, "optionmenu5", RTE_STREAM_AUDIO, gpb);
+  attach_codec_menu (mpeg_properties, "optionmenu6", RTE_STREAM_VIDEO, gpb);
+}
+
+static void
+on_format_changed                     (GtkWidget * changed_widget,
+				       GnomePropertyBox *propertybox)
+{
+  GtkWidget *mpeg_properties = mpeg_prop_from_gpb (propertybox);
+
+  select_format (mpeg_properties, changed_widget, propertybox);
+  gnome_property_box_changed (propertybox);
+}
+
+static void
+attach_format_menu (GtkWidget *mpeg_properties, GnomePropertyBox *gpb)
+{
+  GtkWidget *menu, *menu_item;
+  GtkWidget *widget;
+  gint default_item;
+
+  widget = lookup_widget (mpeg_properties, "optionmenu7");
+
+  if ((menu = gtk_option_menu_get_menu (GTK_OPTION_MENU (widget))))
+    gtk_widget_destroy (menu);
+
+  menu = grte_context_create_menu (MPEG_CONFIG, &default_item);
+
+  g_assert (menu);
+
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (widget), menu);
+  gtk_option_menu_set_history (GTK_OPTION_MENU (widget), default_item);
+  gtk_signal_connect (GTK_OBJECT (GTK_OPTION_MENU (widget)->menu),
+  		      "deactivate", on_format_changed, gpb);
+
+  select_format (mpeg_properties, menu, gpb);
 }
 
 static void
@@ -1226,8 +1116,7 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
   gtk_signal_connect (GTK_OBJECT (widget), "changed",
 		     on_property_item_changed, gpb);
 
-  attach_codec_menu (mpeg_properties, "optionmenu5", RTE_STREAM_AUDIO, gpb);
-  attach_codec_menu (mpeg_properties, "optionmenu6", RTE_STREAM_VIDEO, gpb);
+  attach_format_menu (mpeg_properties, gpb);
 
   gtk_widget_show (mpeg_properties);
   gtk_widget_show (label);
@@ -1276,8 +1165,8 @@ plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
 	gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (widget));
       capture_h &= ~15;
 
-      save_codec_properties (context_prop, MPEG_CONFIG, RTE_STREAM_AUDIO);
-      save_codec_properties (context_prop, MPEG_CONFIG, RTE_STREAM_VIDEO);
+      if (context_prop)
+	grte_context_save (context_prop, MPEG_CONFIG);
 
       return TRUE;
     }

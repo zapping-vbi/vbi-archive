@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.75 2001-10-08 19:48:47 garetxe Exp $ */
+/* $Id: vbi.c,v 1.76 2001-10-26 09:12:06 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -362,7 +362,7 @@ mainloop(void *p)
 		timeout.tv_sec = now.tv_sec + 1;
 		timeout.tv_nsec = now.tv_usec * 1000;
 
-		if (!(b = recv_full_buffer_timeout(&c, &timeout)))
+		if (!(b = wait_full_buffer_timeout(&c, &timeout)))
 			continue;
 		
 		d = b->time - vbi->time;

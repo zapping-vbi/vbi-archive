@@ -1,3 +1,12 @@
+23.10.2001	Mpeg plugin <mschimek@users.sf.net>
+
+	* Added format menu, grte_load|save_context and moved all
+	  functions accessing the config file into options.c, with
+	  brief descriptions.
+	* fifo.c: Added alloc_buffer(*) to struct fifo, renamed
+	  recv_full_buffer_timeout to wait_full_buffer_timeout since
+	  recv_* never waits. 
+
 21.10.2001	CS conversion, qce <garetxe@users.sf.net>
 
 	* csconvert.[ch]: Added some unaccelerated rgb colorspace
@@ -13,6 +22,7 @@
 
 	* Slider values are rounded down to option step size.
 	* Added effective bits/s display.
+	* All the video options seem to work now.
 
 19.10.2001	Mpeg plugin <mschimek@users.sf.net>
 

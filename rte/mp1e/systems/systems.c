@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.c,v 1.5 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: systems.c,v 1.6 2001-10-26 09:14:51 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,7 +87,7 @@ mux_add_input_stream(multiplexer *mux, int stream_id, char *name,
 	int max_size, int buffers, double frame_rate, int bit_rate)
 {
 	stream *str;
-	int r;
+	int new_buffers, r;
 
 	/*
 	 *  Returns EBUSY while the mux runs.
@@ -105,9 +105,9 @@ mux_add_input_stream(multiplexer *mux, int stream_id, char *name,
 	str->frame_rate = frame_rate;
 	str->bit_rate = bit_rate;
 
-	buffers = init_buffered_fifo(&str->fifo, name, buffers, max_size);
+	new_buffers = init_buffered_fifo(&str->fifo, name, buffers, max_size);
 
-	if (!buffers) {
+	if (new_buffers < buffers) {
 		free(str);
 		return NULL;
 	}

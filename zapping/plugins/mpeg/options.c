@@ -2,7 +2,7 @@
  * RTE (Real time encoder) front end for Zapping
  * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
- * Export options cloned & extended by Michael H. Schimek
+ * Export options cloned & extended 2001 by Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.8 2001-10-21 05:08:13 mschimek Exp $ */
+/* $Id: options.c,v 1.9 2001-10-26 09:12:06 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -77,7 +77,7 @@ do_option_control (GtkWidget *w, gpointer user_data)
   g_assert (opts && keyword);
 
   if (!opts->context || !opts->codec
-      || !(ro = rte_option_by_keyword (opts->codec, keyword)))
+      || !(ro = rte_option_keyword (opts->codec, keyword)))
     return;
 
   /* XXX rte_option_set errors ignored */
@@ -151,7 +151,7 @@ on_reset_slider (GtkWidget *w, gpointer user_data)
 
   g_assert (opts && adj && keyword);
 
-  if (!(ro = rte_option_by_keyword (opts->codec, keyword)))
+  if (!(ro = rte_option_keyword (opts->codec, keyword)))
     return;
 
   gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
@@ -378,16 +378,36 @@ create_checkbutton (grte_options *opts, rte_option *ro, int index)
                     (GtkAttachOptions) (0), 3, 3);
 }
 
-/*
- *  Create options for the rte_context/codec, returns NULL
- *  when the codec has no options.
+/**
+ * grte_options_create:
+ * @context: 
+ * @codec: 
+ * @propertybox: 
+ * 
+ * Create a tree of GtkWidgets containing all options of &rte_codec @codec
+ * of &rte_context @context. Initially the option widgets will display the
+ * respective CURRENT value of the &rte_codec option, you may need to reset
+ * the options by other means first. DO NOT delete the @context or @codec
+ * while Gtk may access this tree.
  *
  *  + frame "Options"
- *    + table
- *      + option
- *      + option
- *      + option
- */
+ *    + table (3 * n)
+ *      + option (label || menu)
+ *      + option (label | value | [ slider | reset ])
+ *      + option (label || entry)
+ *      + option (|| button)
+ *
+ * On any widget change, the respective &rte_codec option will be set.
+ * Additionally when @propertybox is given, gnome_property_box_changed()
+ * will be called.
+ *
+ * Return value: 
+ * &GtkWidget pointer, %NULL when the @codec has no options. 
+ *
+ * BUGS:
+ * No verification of user input, all rte errors will be ignored.
+ * Undocumented filtering of options.
+ **/
 GtkWidget *
 grte_options_create (rte_context *context, rte_codec *codec,
 		     GnomePropertyBox *propertybox)
@@ -457,16 +477,52 @@ grte_options_create (rte_context *context, rte_codec *codec,
 }
 
 /*
- *  Set all codec options from the named zconf domain, keeps the previous
- *  value [default] if no conf data exists for the keyword. Returns boolean
- *  success, on failure options are only partially loaded.
+ *  Planned zconf structure:
+ *  /zapping/plugins/mpeg
+ *  + / "user config name"
+ *    + format = "mpeg1-ps" | "avi" | "wav" | ...
+ *    + format/config_property_x = ...
+ *    + format/config_property_y = ...
+ *    + audio_codec = ...
+ *    + video_codec = ...
+ *    + / "audio codec name"
+ *      + property_x = ...
+ *      + property_y = ...
+ *    + / "video codec name"
+ *      + property_x = ...
+ *      + property_y = ...
+ *    + / "other codec"
+ *      + property_x = ...
+ *      + property_y = ...
+ *    :
+ *  + / "other user config"
+ *  :
  *
- *  XXX the zconf error handling is unsatisfactory. Keeping the default
- *  if nothing else is known seems ok, but I don't want to record crap
- *  because of some unreported problem (permissions, read error etc)
- *  (should display the error cause too)
+ *  Note this assumes a stream can consist of exactly one video
+ *  and/or audio stream, which is a limitation of Zapping, not rte.
+ *
+ *  All functions accessing this tree below.
  */
-gboolean
+
+/**
+ * grte_options_load:
+ * @codec: 
+ * @zc_domain: 
+ * 
+ * Set the value of all options of &rte_codec @codec which are configured
+ * in the Zapping config file under @zc_domain. All other options remain
+ * unchanged (usually at their respective defaults).
+ *
+ * XXX the zconf error handling is unsatisfactory. Keeping the default
+ * if nothing else is known seems ok, but I don't want to record crap
+ * because of some unreported problem (permissions, read error etc)
+ * (should display the error cause too)
+ *
+ * Return value: 
+ * FALSE if an error ocurred, in this case options may be only
+ * partially loaded.
+ **/
+static gboolean
 grte_options_load (rte_codec *codec, gchar *zc_domain)
 {
   rte_option *ro;
@@ -511,10 +567,19 @@ grte_options_load (rte_codec *codec, gchar *zc_domain)
   return TRUE;
 }
 
-/*
- *  Inverse of grte_options_load.
- */
-gboolean
+/**
+ * grte_options_save:
+ * @codec: 
+ * @zc_domain: 
+ * 
+ * Save the current value of all options of &rte_codec @codec in the Zapping
+ * config file under @zc_domain.
+ *
+ * Return value: 
+ * FALSE if an error ocurred, in this case options may be only
+ * partially saved.
+ **/
+static gboolean
 grte_options_save (rte_codec *codec, gchar *zc_domain)
 {
   rte_option *ro;
@@ -562,6 +627,334 @@ grte_options_save (rte_codec *codec, gchar *zc_domain)
     }
 
   return TRUE;
+}
+
+static const
+gchar *codec_type_string[RTE_STREAM_MAX + 1] = {
+  NULL,
+  "video_codec",
+  "audio_codec",
+  "vbi_codec",
+};
+
+/**
+ * grte_codec_create_menu:
+ * @context: 
+ * @stream_type: 
+ * @zc_subdomain: 
+ * @default_item: 
+ * 
+ * Create a &GtkMenu consisting of all codecs available for
+ * &rte_context @context, of @stream_type (%RTE_STREAM_VIDEO or
+ * %RTE_STREAM_AUDIO). The first menu item (number 0) will be "None".
+ * For all items except "None", a &GtkObject value "keyword" is allocated,
+ * pointing to the respective &rte_codec_info keyword.
+ *
+ * When @default_item is given, this function queries the codec configured
+ * for this @stream_type from the Zapping config file under %ZCONF_DOMAIN /
+ * @zc_subdomain. Then @default_item is set to the item number listing said
+ * codec, or item 0.
+ * 
+ * Return value: 
+ * &GtkWidget pointer, %NULL if no codecs are available.
+ *
+ * BUGS:
+ * The menu will always contain "None", even if the context offers
+ * only one codec, or no suitable codec is available.
+ **/
+GtkWidget *
+grte_codec_create_menu (rte_context *context, gchar *zc_subdomain, 
+			rte_stream_type stream_type, gint *default_item)
+{
+  GtkWidget *menu, *menu_item;
+  rte_codec_info *info;
+  gchar *zcname, *keyword = 0;
+  gint base = 1, items = 0;
+  int i;
+
+  if (default_item)
+    {
+      zcname = g_strconcat (ZCONF_DOMAIN "/", zc_subdomain, "/",
+			    codec_type_string[stream_type], NULL);
+      keyword = zconf_get_string (NULL, zcname);
+      g_free (zcname);
+
+      if (!keyword || !keyword[0])
+	{
+	  keyword = "";
+	  *default_item = 0; /* "None" */
+	}
+      else
+	{
+	  *default_item = 1; /* first valid */
+	}
+    }
+
+  menu = gtk_menu_new ();
+
+  if (1) /* "None" permitted? */
+    {
+      menu_item = gtk_menu_item_new_with_label (_("None"));
+      gtk_widget_show (menu_item);
+      gtk_menu_append (GTK_MENU (menu), menu_item);
+    }
+  else
+    {
+      /* gtk_widget_set_sensitive (menu_item, FALSE); */
+      if (default_item)
+	*default_item = 0;
+      base = 0;
+    }
+
+  // XXX it makes no sense to display a menu when there's
+  // really no choice
+  for (i = 0; (info = rte_codec_info_enum (context, i)); i++)
+    {
+      if (info->stream_type != stream_type)
+        continue;
+
+      menu_item = gtk_menu_item_new_with_label (_(info->label));
+      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword", info->keyword);
+      set_tooltip (menu_item, _(info->tooltip));
+      gtk_widget_show (menu_item);
+      gtk_menu_append (GTK_MENU (menu), menu_item);
+
+      if (default_item)
+	if (strcmp (keyword, info->keyword) == 0)
+	  *default_item = base + items;
+
+      items++;
+    }
+
+  return menu;
+}
+
+/**
+ * grte_codec_load:
+ * @context: 
+ * @zc_subdomain: 
+ * @keyword: 
+ * @stream_type: 
+ * 
+ * Set the &rte_codec for @stream_type (%RTE_STREAM_AUDIO or %RTE_STREAM_VIDEO)
+ * of &rte_context @context named by @keyword and configure according to the
+ * Zapping config file under %ZCONF_DOMAIN / @zc_subdomain. When @keyword is
+ * %NULL, the &rte_codec configured in the Zapping config file will be set.
+ *
+ * Return value: 
+ * &rte_codec pointer (as returned by rte_codec_set()) or %NULL if no codec
+ * has been configured for this %stream_type or another error ocurred.
+ **/
+rte_codec *
+grte_codec_load (rte_context *context, gchar *zc_subdomain,
+		 rte_stream_type stream_type, gchar *keyword)
+{
+  rte_codec *codec = NULL;
+  gchar *zcname;
+
+  if (!keyword)
+    {
+      zcname = g_strconcat (ZCONF_DOMAIN, "/", zc_subdomain,
+			    "/", codec_type_string[stream_type], NULL);
+      keyword = zconf_get_string (NULL, zcname);
+      g_free (zcname);
+    }
+
+  if (keyword && keyword[0])
+    {
+      codec = rte_codec_set (context, stream_type, 0, keyword);
+
+      if (codec)
+	{
+	  zcname = g_strconcat (ZCONF_DOMAIN, "/", zc_subdomain,
+				"/", keyword, NULL);
+	  grte_options_load (codec, zcname);
+	  g_free (zcname);
+	}
+    }
+
+  return codec;
+}
+
+/**
+ * grte_codec_save:
+ * @context: 
+ * @zc_subdomain: 
+ * @stream_type: 
+ * 
+ * Save the configuration of the codec set for @stream_type (%RTE_STREAM_AUDIO
+ * or %RTE_STREAM_VIDEO) of &rte_context @context in the Zapping config file
+ * under %ZCONF_DOMAIN / @zc_subdomain.
+ **/
+void
+grte_codec_save (rte_context *context, gchar *zc_subdomain,
+		 rte_stream_type stream_type)
+{
+  rte_codec *codec;
+  rte_codec_info *info;
+  gchar *zcname;
+
+  zcname = g_strconcat (ZCONF_DOMAIN, "/", zc_subdomain,
+			"/", codec_type_string[stream_type], NULL);
+  codec = rte_codec_get (context, stream_type, 0);
+
+  if (codec)
+    {
+      g_assert ((info = rte_codec_info_codec (codec)));
+
+      zconf_set_string (info->keyword, zcname);
+      g_free (zcname);
+      zcname = g_strconcat (ZCONF_DOMAIN, "/", zc_subdomain,
+			    "/", info->keyword, NULL);
+      grte_options_save (codec, zcname);
+    }
+  else
+    {
+      zconf_set_string ("", zcname);
+    }
+
+  g_free (zcname);
+}
+
+/**
+ * grte_context_create_menu:
+ * @zc_subdomain: 
+ * @default_item: 
+ * 
+ * Create a &GtkMenu consisting of all rte formats / backends / multiplexers
+ * available. For all items except "None", a &GtkObject value "keyword" is
+ * allocated, pointing to the respective &rte_context_info keyword.
+ *
+ * When @default_item is given, this function queries the format configured
+ * for this @stream_type from the Zapping config file under %ZCONF_DOMAIN /
+ * @zc_subdomain. Then @default_item is set to the item number listing said
+ * format, or item 0.
+ * 
+ * Return value: 
+ * &GtkWidget pointer, %NULL if no formats are available.
+ *
+ * BUGS:
+ * Assumes the format list is never empty.
+ **/
+GtkWidget *
+grte_context_create_menu (gchar *zc_subdomain, gint *default_item)
+{
+  GtkWidget *menu, *menu_item;
+  rte_context_info *info;
+  gchar *zcname, *keyword = 0;
+  gint items = 0;
+  int i;
+
+  if (default_item)
+    {
+      zcname = g_strconcat (ZCONF_DOMAIN "/", zc_subdomain, "/" "format", NULL);
+      keyword = zconf_get_string (NULL, zcname);
+      g_free (zcname);
+
+      if (!keyword || !keyword[0])
+	keyword = "";
+
+      *default_item = 0;
+    }
+
+  menu = gtk_menu_new ();
+
+  // XXX prepare for empty menu
+  for (i = 0; (info = rte_context_info_enum (i)); i++)
+    {
+      gchar *label = g_strconcat (info->backend, "  |  ", _(info->label), NULL);
+
+      menu_item = gtk_menu_item_new_with_label (label);
+      g_free(label);
+      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword", info->keyword);
+      set_tooltip (menu_item, _(info->tooltip));
+      gtk_widget_show (menu_item);
+      gtk_menu_append (GTK_MENU (menu), menu_item);
+
+      if (default_item)
+	if (strcmp (keyword, info->keyword) == 0)
+	  *default_item = items;
+
+      items++;
+    }
+
+  return menu; 
+}
+
+/**
+ * grte_context_load:
+ * @zc_subdomain: 
+ * @audio_codec_p: 
+ * @video_codec_p: 
+ * 
+ * Allocate a new &rte_context @context encoding the format @keyword,
+ * and configure according to the Zapping config file entries under
+ * %ZCONF_DOMAIN / @zc_subdomain. When @keyword is %NULL, the format
+ * configured in the Zapping config file will be used.
+ *
+ * If given, pointers to the respective audio and video &rte_codec are
+ * stored in @audio_codec_p and @video_codec_p. They will be %NULL when
+ * the respective stream (audio or video) is not applicable or the codec
+ * has been configured as "None".
+ *
+ * Return value:
+ * &rte_context pointer, %NULL if the Zapping config file is empty
+ * or another error occured.
+ **/
+rte_context *
+grte_context_load (gchar *zc_subdomain, gchar *keyword,
+		   rte_codec **audio_codec_p, rte_codec **video_codec_p)
+{
+  gchar *zcname;
+  rte_context *context;
+  rte_codec *dummy;
+
+  if (!keyword)
+    {
+      zcname = g_strconcat (ZCONF_DOMAIN "/", zc_subdomain, "/format", NULL);
+      keyword = zconf_get_string (NULL, zcname);
+      g_free (zcname);
+
+      if (!keyword || !keyword[0])
+	return NULL;
+    }
+
+  context = rte_context_new (352, 288, keyword, NULL);
+
+  if (!context)
+    return NULL;
+
+  if (!audio_codec_p) audio_codec_p = &dummy;
+  if (!video_codec_p) video_codec_p = &dummy;
+
+  *audio_codec_p = grte_codec_load (context, zc_subdomain, RTE_STREAM_AUDIO, NULL);
+  *video_codec_p = grte_codec_load (context, zc_subdomain, RTE_STREAM_VIDEO, NULL);
+
+  return context;
+}
+
+/**
+ * grte_context_save:
+ * @context: 
+ * @zc_subdomain: 
+ * 
+ * Save the configuration of &rte_context @context in the Zapping
+ * config file under %ZCONF_DOMAIN / @zc_subdomain.
+ **/
+void
+grte_context_save (rte_context *context, gchar *zc_subdomain)
+{
+  rte_context_info *info;
+  gchar *zcname;
+
+  g_assert ((info = rte_context_info_context (context)));
+
+  zcname = g_strconcat (ZCONF_DOMAIN "/", zc_subdomain, "/format", NULL);
+  zconf_set_string (info->keyword, zcname);
+  g_free (zcname);
+
+  grte_codec_save (context, zc_subdomain, RTE_STREAM_AUDIO);
+  grte_codec_save (context, zc_subdomain, RTE_STREAM_VIDEO);
 }
 
 #endif /* HAVE_LIBRTE */

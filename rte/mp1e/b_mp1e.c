@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.19 2001-10-21 05:08:48 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.20 2001-10-26 09:14:51 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -85,20 +85,6 @@ int			stereo;
 void
 packed_preview(unsigned char *buffer, int mb_cols, int mb_rows)
 {
-}
-
-static int
-init_backend			(void)
-{
-	cpu_type = cpu_detection();
-
-	if (cpu_type == CPU_UNKNOWN)
-	{
-		rte_error(NULL, "mp1e backend requires MMX");
-		return 0;
-	}
-
-	return 1;
 }
 
 static void
@@ -186,7 +172,7 @@ post_init_context		(rte_context	*context)
 
 	if (modules & MOD_AUDIO) {
 		mp1e_mp2_init(priv->audio_codec, MOD_AUDIO, &priv->priv.aud,
-			      priv->mux, RTE_SNDFMT_S16LE);
+			      priv->mux);
 	}
 
 	if (modules & MOD_VIDEO) {
@@ -460,6 +446,8 @@ static void rte_audio_init(rte_context *context, backend_private *priv)
 		/* preliminary */
 
 		if (!priv->audio_codec) {
+			rte_stream_parameters rsp;
+
 			if (sampling_rate < 32000)
 				priv->audio_codec = mp1e_mpeg2_layer2_codec.new();
 			else
@@ -472,6 +460,9 @@ static void rte_audio_init(rte_context *context, backend_private *priv)
 			rte_helper_set_option_va(priv->audio_codec, "audio_mode",
 						 (int) "\1\3\2\0"[audio_mode]);
 			rte_helper_set_option_va(priv->audio_codec, "psycho", (int) psycho_loops);
+
+			memset(&rsp, 0, sizeof(rsp));
+			priv->audio_codec->class->parameters(priv->audio_codec, &rsp);
 		}
 	}
 }
@@ -533,7 +524,7 @@ codec_table[] = {
 #define NUM_CODECS (sizeof(codec_table) / sizeof(codec_table[0]))
 
 static rte_codec_info *
-enum_codec(rte_context *context, int index)
+codec_enum(rte_context *context, int index)
 {
 	if (index < 0 || index >= NUM_CODECS)
 		return NULL;
@@ -542,8 +533,7 @@ enum_codec(rte_context *context, int index)
 }
 
 static rte_codec *
-get_codec(rte_context *context, rte_stream_type stream_type,
-	  int stream_index, char **codec_keyword_p)
+codec_get(rte_context *context, rte_stream_type stream_type, int stream_index)
 {
 	backend_private *priv = (backend_private *) context->private;
 	rte_codec_class *info;
@@ -579,19 +569,14 @@ get_codec(rte_context *context, rte_stream_type stream_type,
 
 	default:
 	bad:
-		if (codec_keyword_p)
-			*codec_keyword_p = NULL;
 		return NULL;
 	}
-
-	if (codec_keyword_p)
-		*codec_keyword_p = strdup(info->public.keyword);
 
 	return codec;
 }
 
 static rte_codec *
-set_codec(rte_context *context, rte_stream_type stream_type,
+codec_set(rte_context *context, rte_stream_type stream_type,
 	  int stream_index, char *codec_keyword)
 {
 	backend_private *priv = (backend_private *) context->private;
@@ -676,7 +661,7 @@ set_codec(rte_context *context, rte_stream_type stream_type,
 }
 
 static rte_option *
-enum_option(rte_codec *codec, int index)
+option_enum(rte_codec *codec, int index)
 {
 //	rte_context *context = codec->context;
 
@@ -694,7 +679,7 @@ enum_option(rte_codec *codec, int index)
 #include <stdarg.h>
 
 static int
-get_option(rte_codec *codec, char *keyword, rte_option_value *v)
+option_get(rte_codec *codec, char *keyword, rte_option_value *v)
 {
 //	rte_context *context = codec->context;
 
@@ -710,7 +695,7 @@ get_option(rte_codec *codec, char *keyword, rte_option_value *v)
 }
 
 static int
-set_option(rte_codec *codec, char *keyword, va_list args)
+option_set(rte_codec *codec, char *keyword, va_list args)
 {
 //	rte_context *context = codec->context;
 
@@ -726,7 +711,7 @@ set_option(rte_codec *codec, char *keyword, va_list args)
 }
 
 static char *
-print_option(rte_codec *codec, char *keyword, va_list args)
+option_print(rte_codec *codec, char *keyword, va_list args)
 {
 //	rte_context *context = codec->context;
 
@@ -742,30 +727,157 @@ print_option(rte_codec *codec, char *keyword, va_list args)
 }
 
 static int
-set_parameters(rte_codec *codec, rte_stream_parameters *rsp)
+parameters(rte_codec *codec, rte_stream_parameters *rsp)
 {
 	rte_context *context = codec->context;
 	backend_private *priv = (backend_private *) context->private;
-	rte_option_value val;
+//	rte_option_value val;
 
-#warning EEEK! unfinished
+	/* Preliminary */
 
 	if (codec != priv->audio_codec)
 		return 0;
 
-	/* ignore all input */
+	return codec->class->parameters(codec, rsp);
+}
 
-	rsp->str.audio.sndfmt = RTE_SNDFMT_S16LE;
+#define N_(x) x
 
-	assert(rte_option_get(codec, "sampling_rate", &val));
-	rsp->str.audio.sampling_freq = val.num;
+static rte_context_class
+mp1e_mpeg1_ps_context = {
+	.public = {
+		.keyword	= "mp1e-mpeg1-ps",
+		.backend	= "mp1e 1.9.2",
+		.label		= N_("MPEG-1 Program Stream"),
 
-	assert(rte_option_get(codec, "audio_mode", &val));
-	rsp->str.audio.channels = (val.num == 0 /* XXX */) ? 1 : 2;
+		.mime_type	= "video/x-mpeg",
+		.extension	= "mpg,mpe,mpeg",
 
-	rsp->str.audio.fragment_size =
-		context->audio_bytes =
-			2048 * sizeof(short) * rsp->str.audio.channels;
+		.elementary	= { 0, 1, 1 }, /* to be { 0, 16, 32 }, */
+	},
+};
+
+static rte_context_class
+mp1e_mpeg1_vcd_context = {
+	.public = {
+		.keyword	= "mp1e-mpeg1-vcd",
+		.backend	= "mp1e 1.9.2",
+		.label		= N_("MPEG-1 VCD Program Stream"),
+
+		.mime_type	= "video/x-mpeg",
+		.extension	= "mpg,mpe,mpeg",
+
+		.elementary	= { 0, 1, 1 }, /* to be { 0, 16, 32 }, */
+	},
+};
+
+static rte_context_class
+mp1e_mpeg1_video_context = {
+	.public = {
+		.keyword	= "mp1e-mpeg-video",
+		.backend	= "mp1e 1.9.2",
+		.label		= N_("MPEG Video Elementary Stream "),
+
+		.mime_type	= "video/mpeg",
+		.extension	= "mpg,mpe,mpeg",
+
+		.elementary	= { 0, 1, 0 },
+	},
+};
+
+static rte_context_class
+mp1e_mpeg1_audio_context = {
+	.public = {
+		.keyword	= "mp1e-mpeg-audio",
+		.backend	= "mp1e 1.9.2",
+		.label		= N_("MPEG Audio Elementary Stream"),
+
+		.mime_type	= "audio/mpeg",
+		.extension	= "mp2,mpga", /* note */
+
+		.elementary	= { 0, 0, 1 },
+	},
+};
+
+static rte_context_class *
+context_table[] = {
+	&mp1e_mpeg1_ps_context,
+};
+
+#define NUM_CONTEXTS (sizeof(context_table) / sizeof(context_table[0]))
+
+static rte_context_info *
+context_enum(int index)
+{
+	if (index < 0 || index >= NUM_CONTEXTS)
+		return NULL;
+
+	return &context_table[index]->public;
+}
+
+static rte_context *
+context_new2(char *keyword)
+{
+	rte_context *context;
+
+//	if (strcmp(keyword, "mp1e-mpeg1-ps") != 0)
+//		return NULL;
+
+	if (!(context = calloc(1, sizeof(rte_context)))) {
+//XXX		rte_error(NULL, "malloc(): [%d] %s", errno, strerror(errno));
+		return NULL;
+	}
+
+	if (!(context->private = calloc(1, sizeof(backend_private)))) {
+//XXX		rte_error(NULL, "malloc(): [%d] %s", errno, strerror(errno));
+		free(context);
+		return NULL;
+	}
+
+	context->private->class = &mp1e_mpeg1_ps_context;
+
+	/* Legacy */
+
+	context->format = strdup("mpeg1");
+
+	((backend_private *) context->private)->codec_set = 0;
+
+	return context;
+}
+
+static void
+context_delete(rte_context *context)
+{
+	free(context->format);
+	free(context->private);
+	free(context);
+}
+
+static int
+init_backend			(void)
+{
+	extern const rte_backend_info b_mp1e_info;
+	int i;
+
+	cpu_type = cpu_detection();
+
+	if (cpu_type == CPU_UNKNOWN)
+	{
+		rte_error(NULL, "mp1e backend requires MMX");
+		return 0;
+	}
+
+	for (i = 0; i < NUM_CONTEXTS; i++) {
+		context_table[i]->codec_enum = b_mp1e_info.codec_enum;
+		context_table[i]->codec_get = b_mp1e_info.codec_get;
+		context_table[i]->codec_set = b_mp1e_info.codec_set;
+		context_table[i]->option_enum = b_mp1e_info.option_enum;
+		context_table[i]->option_get = b_mp1e_info.option_get;
+		context_table[i]->option_set = b_mp1e_info.option_set;
+		context_table[i]->option_print = b_mp1e_info.option_print;
+		context_table[i]->parameters = b_mp1e_info.parameters;
+	}
+
 	return 1;
 }
 
@@ -775,8 +887,8 @@ rte_backend_info b_mp1e_info =
 	"mp1e",
 	sizeof(backend_private),
 	init_backend,
-	context_new,
-	context_destroy,
+	context_new,	/* obsolete */
+	context_destroy, /* obsolete */
 	init_context,
 	post_init_context,
 	uninit_context,
@@ -785,14 +897,18 @@ rte_backend_info b_mp1e_info =
 	query_format,
 	status,
 
-	.enum_codec		= enum_codec,
-	.get_codec		= get_codec,
-	.set_codec		= set_codec,
+	.context_enum	= context_enum,
+	.context_new2	= context_new2,
+	.context_delete	= context_delete,
 
-	.enum_option		= enum_option,
-	.get_option		= get_option,
-	.set_option		= set_option,
-	.print_option		= print_option,
+	.codec_enum	= codec_enum,
+	.codec_get	= codec_get,
+	.codec_set	= codec_set,
 
-	.set_parameters		= set_parameters,
+	.option_enum	= option_enum,
+	.option_get	= option_get,
+	.option_set	= option_set,
+	.option_print	= option_print,
+
+	.parameters	= parameters,
 };

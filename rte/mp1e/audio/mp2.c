@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.15 2001-10-21 05:08:48 mschimek Exp $ */
+/* $Id: mp2.c,v 1.16 2001-10-26 09:14:51 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -568,8 +568,8 @@ mainloop(void *p)
 {
 	mp2_context *mp2 = PARENT(p, mp2_context, codec);
 	int frame_frac = 0, channels;
-
-// XXX status check
+//XXX
+	assert(mp2->codec.status == RTE_STATUS_READY);
 
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
@@ -646,21 +646,38 @@ audio_parameters(int *sampling_freq, int *bit_rate)
 	*bit_rate = bit_rate_value[mpeg_version][imin];
 }
 
+static void
+uninit(mp2_context *mp2)
+{
+	/* FIXME */
+
+	mp2->codec.status = RTE_STATUS_PARAM;
+}
+
 /*
  *  Prepare for compression
  *  (api preliminary)
  */
 void
 mp1e_mp2_init(rte_codec *codec, unsigned int module,
-	      fifo *cap_fifo, multiplexer *mux, rte_sndfmt format)
+	      fifo *cap_fifo, multiplexer *mux)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
 	int sb, min_sg, bit_rate, bit_rate_per_ch;
-	int channels, table, sampling_freq, temp;
+	int channels, table, sampling_freq, temp, i;
 
+	pthread_mutex_lock(&mp2->codec.mutex);
 
-// XXX status test & locking
-
+	switch (mp2->codec.status) {
+	case RTE_STATUS_PARAM:
+		break;
+	case RTE_STATUS_READY:
+		uninit(mp2);
+		break;
+	default:
+		pthread_mutex_unlock(&mp2->codec.mutex);
+		return;
+	}
 
 	channels = 1 + (mp2->audio_mode != AUDIO_MODE_MONO);
 
@@ -808,51 +825,18 @@ mp1e_mp2_init(rte_codec *codec, unsigned int module,
 
 	mp2->fifo = mux_add_input_stream(mux,
 		AUDIO_STREAM, "audio-mp2",
-		2048 * channels, aud_buffers,
+		2048 * channels, 0, /* aud_buffers, */
 		sampling_freq / (double) SAMPLES_PER_FRAME, bit_rate);
+
+	for (i = 0; i < aud_buffers; i++)
+		assert(add_buffer(mp2->fifo, alloc_buffer(2048 * channels)));
 
 	ASSERT("add audio producer",
 		add_producer(mp2->fifo, &mp2->prod));
 
 	/* Input */
 
-	memset(&mp2->sstr, 0, sizeof(mp2->sstr));
-
-	switch (format) {
-	case RTE_SNDFMT_S8:
-	case RTE_SNDFMT_U8:
-		mp2->sstr.bytes_per_sample = channels * sizeof(int8_t);
-		mp2->format_scale = TRUE;
-		break;
-
-	case RTE_SNDFMT_S16LE:
-	case RTE_SNDFMT_U16LE:
-		mp2->sstr.bytes_per_sample = channels * sizeof(int16_t);
-		mp2->format_scale = FALSE;
-		break;
-
-	default:
-		FAIL("unsupported sample format %d", format);
-	}
-
-	switch (format) {
-	case RTE_SNDFMT_U8:
-	case RTE_SNDFMT_U16LE:
-		mp2->format_sign = 0x80008000;
-		break;
-
-	default:
-		mp2->format_sign = 0;
-		break;
-	}
-
-	/*>*/
 	mp2->sstr.this_module = module;
-	/*<*/
-	mp2->sstr.byte_period = 1.0 / (sampling_freq * mp2->sstr.bytes_per_sample);
-
-	printv(3, "Using sample format %d, bps %d, bp %.20f\n",
-	       format, mp2->sstr.bytes_per_sample, mp2->sstr.byte_period);
 
 	memset(mp2->wrap, 0, sizeof(mp2->wrap));
 
@@ -865,6 +849,10 @@ mp1e_mp2_init(rte_codec *codec, unsigned int module,
 	mp2->codec.byte_output_count = 0;
 	mp2->codec.coded_time_elapsed = 0.0;
 	mp2->codec.frame_output_rate = 1 / (double) mp2->coded_frame_period; 
+
+	mp2->codec.status = RTE_STATUS_READY;
+
+	pthread_mutex_unlock(&mp2->codec.mutex);
 }
 
 /*
@@ -1015,8 +1003,14 @@ option_set(rte_codec *codec, char *keyword, va_list args)
 
 	pthread_mutex_lock(&mp2->codec.mutex);
 
-	if (mp2->codec.status != RTE_STATUS_NEW
-	    && mp2->codec.status != RTE_STATUS_READY) {
+	switch (mp2->codec.status) {
+	case RTE_STATUS_NEW:
+	case RTE_STATUS_PARAM:
+		break;
+	case RTE_STATUS_READY:
+		uninit(mp2);
+		break;
+	default:
 		pthread_mutex_unlock(&mp2->codec.mutex);
 		return 0;
 	}
@@ -1047,7 +1041,7 @@ option_set(rte_codec *codec, char *keyword, va_list args)
 		return 0;
 	}
 
-	mp2->codec.status = RTE_STATUS_NEW; /* not ready */
+	mp2->codec.status = RTE_STATUS_NEW;
 
 	pthread_mutex_unlock(&mp2->codec.mutex);
 
@@ -1086,9 +1080,8 @@ option_print(rte_codec *codec, char *keyword, va_list args)
 	return strdup(buf);
 }
 
-// XXX RETHINK
 static int
-codec_parameters(rte_codec *codec, rte_stream_parameters *rsp)
+parameters(rte_codec *codec, rte_stream_parameters *rsp)
 {
 	static const rte_sndfmt valid_format[] = {
 		RTE_SNDFMT_S16LE,
@@ -1100,54 +1093,68 @@ codec_parameters(rte_codec *codec, rte_stream_parameters *rsp)
 	int fragment_size, sampling_freq;
 	int i;
 
+	pthread_mutex_lock(&mp2->codec.mutex);
+
+	switch (mp2->codec.status) {
+	case RTE_STATUS_NEW:
+	case RTE_STATUS_PARAM:
+		break;
+	case RTE_STATUS_READY:
+		uninit(mp2);
+		break;
+	default:
+		pthread_mutex_unlock(&mp2->codec.mutex);
+		return 0;
+	}
+
 	/*
 	 *  Accept sample format in decreasing order of quality
 	 */
 	for (i = 0; i < elements(valid_format); i++)
-		if (rsp->str.audio.sndfmt == valid_format[i])
+		if (rsp->audio.sndfmt == valid_format[i])
 			break;
 
 	if (i >= elements(valid_format))
-		rsp->str.audio.sndfmt = valid_format[0];
+		rsp->audio.sndfmt = valid_format[0];
 
 	/*
 	 *  Accept sampling freq within 10% coded sampling freq (preliminary)
 	 */
 	sampling_freq =	sampling_freq_value[mp2->mpeg_version][mp2->sampling_freq_code];
 
-	if (nbabs(rsp->str.audio.sampling_freq - sampling_freq)
+	if (nbabs(rsp->audio.sampling_freq - sampling_freq)
 	    > (sampling_freq / 10))
-		rsp->str.audio.sampling_freq = sampling_freq;
+		rsp->audio.sampling_freq = sampling_freq;
 
 	/*
 	 *  No splitting/merging of channels
 	 */
-	rsp->str.audio.channels =
+	rsp->audio.channels =
 		(mp2->audio_mode == AUDIO_MODE_MONO) ? 1 : 2;
 
 	memset(&mp2->sstr, 0, sizeof(mp2->sstr));
 
-	switch (rsp->str.audio.sndfmt) {
+	switch (rsp->audio.sndfmt) {
 	case RTE_SNDFMT_S8:
 	case RTE_SNDFMT_U8:
 		mp2->sstr.bytes_per_sample =
-			rsp->str.audio.channels * 1;
+			rsp->audio.channels * 1;
 		mp2->format_scale = TRUE;
 		break;
 
 	case RTE_SNDFMT_S16LE:
 	case RTE_SNDFMT_U16LE:
 		mp2->sstr.bytes_per_sample =
-			rsp->str.audio.channels * 2;
+			rsp->audio.channels * 2;
 		mp2->format_scale = FALSE;
 		break;
 
 	default:
 		FAIL("unsupported rte sample format %d",
-		     rsp->str.audio.sndfmt);
+		     rsp->audio.sndfmt);
 	}
 
-	switch (rsp->str.audio.sndfmt) {
+	switch (rsp->audio.sndfmt) {
 	case RTE_SNDFMT_U8:
 	case RTE_SNDFMT_U16LE:
 		mp2->format_sign = 0x80008000;
@@ -1159,23 +1166,24 @@ codec_parameters(rte_codec *codec, rte_stream_parameters *rsp)
 	}
 
 	mp2->sstr.byte_period = 1.0
-		/ (rsp->str.audio.sampling_freq * mp2->sstr.bytes_per_sample);
+		/ (rsp->audio.sampling_freq * mp2->sstr.bytes_per_sample);
 
 	printv(3, "Using rte sample format %d, bps %d, bp %.20f\n",
-	       rsp->str.audio.sndfmt,
+	       rsp->audio.sndfmt,
 	       mp2->sstr.bytes_per_sample,
 	       mp2->sstr.byte_period);
 
 	/*
 	 *  Suggest a minimum buffer size to keep overhead reasonable.
 	 */
-	fragment_size = 2048 * sizeof(short) * rsp->str.audio.channels;
+	fragment_size = 2048 * sizeof(short) * rsp->audio.channels;
 
-	rsp->str.audio.fragment_size =
-		MAX(rsp->str.audio.fragment_size, fragment_size);
+	rsp->audio.fragment_size =
+		MAX(rsp->audio.fragment_size, fragment_size);
 
-/* FIXME */
-	mp2->codec.status = RTE_STATUS_READY; /* not ready */
+	mp2->codec.status = RTE_STATUS_PARAM;
+
+	pthread_mutex_unlock(&mp2->codec.mutex);
 
 	return 1;
 }
@@ -1187,13 +1195,21 @@ codec_delete(rte_codec *codec)
 
 	pthread_mutex_lock(&mp2->codec.mutex);
 
-	if (codec->status == RTE_STATUS_RUNNING) {
-		fprintf(stderr, "mp1e bug warning: attempt to delete running mp2 codec\n");
+	switch (mp2->codec.status) {
+	case RTE_STATUS_READY:
+		uninit(mp2);
+		break;
+	case RTE_STATUS_RUNNING:
+		fprintf(stderr, "mp1e bug warning: attempt to delete "
+			"running mp2 codec ignored\n");
 		pthread_mutex_unlock(&mp2->codec.mutex);
-	} else {
-		pthread_mutex_destroy(&mp2->codec.mutex);
-		free_aligned(mp2);
+		return;
+	default:
+		break;
 	}
+
+	pthread_mutex_destroy(&mp2->codec.mutex);
+	free_aligned(mp2);
 }
 
 static rte_codec *
@@ -1228,7 +1244,6 @@ codec_new(int mpeg_version)
 	mp2->codec.status = RTE_STATUS_NEW;
 
 	rte_helper_reset_options(&mp2->codec);
-// XXX reset sample params?
 
 	return &mp2->codec;
 }
@@ -1242,9 +1257,9 @@ codec_mpeg1_new(void)
 rte_codec_class
 mp1e_mpeg1_layer2_codec = {
 	.public = {
-		.stream_type = RTE_STREAM_AUDIO,
-		.keyword = "mpeg1_audio_layer2",
-		.label = N_("MPEG-1 Audio Layer II"),
+		.stream_type	= RTE_STREAM_AUDIO,
+		.keyword	= "mpeg1_audio_layer2",
+		.label		= N_("MPEG-1 Audio Layer II"),
 	},
 
 	.new		= codec_mpeg1_new,
@@ -1254,6 +1269,8 @@ mp1e_mpeg1_layer2_codec = {
 	.option_get	= option_get,
 	.option_set	= option_set,
 	.option_print	= option_print,
+
+	.parameters	= parameters,
 
 	.mainloop	= mainloop,
 };
@@ -1267,23 +1284,25 @@ codec_mpeg2_new(void)
 rte_codec_class
 mp1e_mpeg2_layer2_codec = {
 	.public = {
-		.stream_type = RTE_STREAM_AUDIO,
-		.keyword = "mpeg2_audio_layer2",
-		.label = N_("MPEG-2 Audio Layer II LFE"),
-		.tooltip = N_("MPEG-2 Low (Sampling) Frequency Extension to MPEG-1 "
-			      "Audio Layer II. Caution: Not all MPEG video and "
-			      "audio players support MPEG-2 audio."),
+		.stream_type	= RTE_STREAM_AUDIO,
+		.keyword	= "mpeg2_audio_layer2",
+		.label		= N_("MPEG-2 Audio Layer II LFE"),
+		.tooltip	= N_("MPEG-2 Low (Sampling) Frequency Extension to MPEG-1 "
+				     "Audio Layer II. Caution: Not all MPEG video and "
+				     "audio players support MPEG-2 audio."),
 	},
 
-	.new			= codec_mpeg2_new,
-	.delete         	= codec_delete,
+	.new		= codec_mpeg2_new,
+	.delete         = codec_delete,
 
-	.option_enum		= option_enum,
-	.option_get		= option_get,
-	.option_set		= option_set,
-	.option_print		= option_print,
+	.option_enum	= option_enum,
+	.option_get	= option_get,
+	.option_set	= option_set,
+	.option_print	= option_print,
 
-	.mainloop		= mainloop,
+	.parameters	= parameters,
+
+	.mainloop	= mainloop,
 };
 
 static void mp1e_mp2(void) __attribute__ ((constructor));

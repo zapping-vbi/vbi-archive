@@ -1,3 +1,15 @@
+2001-10-23	<mschimek@users.sf.net>
+
+	* rte.c: Added backend/ff/mux enumeration, rte_context
+	  allocated & deleted by backend instead of rte.c.
+	  Meaning of backend in context_new changed. Renamed
+	  context_destroy (init <-> destroy, new <-> delete).
+	  Renamed codec_enum for consistency.
+	* rtepriv.h: Added a context class, unfinished. Extended
+	  rte_codec_status.
+	* rte.h/rte.c: Added functions to get context|codec_info
+	  (keyword, label etc) from context|codec pointer.
+
 2001-10-21	<mschimek@users.sf.net>
 
 	* rtepriv.h: Added codec.class.mainloop, codec.mutex and

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.15 2001-10-21 05:08:48 mschimek Exp $ */
+/* $Id: main.c,v 1.16 2001-10-26 09:14:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -263,6 +263,7 @@ main(int ac, char **av)
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
 		long long n = llroundn(((double) video_num_frames / c_frame_rate)
 				       / (1152.0 / sampling_rate));
+		rte_stream_parameters rsp;
 
 		printv(1, "Audio compression %2.1f kHz%s %s at %d kbits/s (%1.1f : 1)\n",
 			sampling_rate / (double) 1000, sampling_rate < 32000 ? " (MPEG-2)" : "", modes[audio_mode],
@@ -285,8 +286,12 @@ main(int ac, char **av)
 		rte_helper_set_option_va(audio_codec, "audio_mode", (int) "\1\3\2\0"[audio_mode]);
 		rte_helper_set_option_va(audio_codec, "psycho", psycho_loops);
 
+		memset(&rsp, 0, sizeof(rsp));
+		rsp.audio.sndfmt = pcm->format;
+		audio_codec->class->parameters(audio_codec, &rsp);
+
 		mp1e_mp2_init(audio_codec, MOD_AUDIO,
-			      audio_cap_fifo, mux, pcm->format);
+			      audio_cap_fifo, mux);
 	}
 
 	if (modules & MOD_VIDEO) {

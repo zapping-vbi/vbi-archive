@@ -5,6 +5,7 @@
  */
 
 gchar *s = N_("window1");
+gchar *s = N_("Format:");
 gchar *s = N_("What to do with the compressed stream");
 gchar *s = N_("Save to file");
 gchar *s = N_("/dev/null");
@@ -13,9 +14,9 @@ gchar *s = N_("MPEG file destination");
 gchar *s = N_("Sets the dir where the encoded clips will be written to");
 gchar *s = N_("Engine verbosity (output goes to stderr):");
 gchar *s = N_("Input / output");
+gchar *s = N_("Codec:");
 gchar *s = N_("Capture Width:");
 gchar *s = N_("Capture Height:");
-gchar *s = N_("Codec:");
 gchar *s = N_("Video");
 gchar *s = N_("Codec:");
 gchar *s = N_("Audio");

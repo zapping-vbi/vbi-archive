@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.9 2001-10-16 11:18:11 mschimek Exp $
+ * $Id: rte_test_main.c,v 1.10 2001-10-26 09:14:51 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -521,7 +521,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "mp1e: MPEG-1 Program Stream\n");
 
 		fprintf(stderr, "Elementary stream codecs:\n");
-		for (i = 0; (info = rte_codec_enum(context, i)); i++)
+		for (i = 0; (info = rte_codec_info_enum(context, i)); i++)
 			fprintf(stderr, "%2d %s\n",
 				info->stream_type,
 				info->label);
@@ -552,7 +552,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr,
 				"set_audio_parameters failed: %s\n",
 				context->error);
-			rte_context_destroy(context);
+			rte_context_delete(context);
 			return -1;
 		}
 	}
@@ -608,7 +608,7 @@ int main(int argc, char *argv[])
 		if (!rte_init_context(context)) {
 			fprintf(stderr, "cannot init the context: %s\n",
 				context->error);
-			rte_context_destroy(context);
+			rte_context_delete(context);
 			return 0;
 		}
 
@@ -625,7 +625,7 @@ int main(int argc, char *argv[])
 		if (!rte_start_encoding(context)) {
 			fprintf(stderr, "cannot start encoding: %s\n",
 				context->error);
-			rte_context_destroy(context);
+			rte_context_delete(context);
 			return 0;
 		}
 
@@ -675,7 +675,7 @@ int main(int argc, char *argv[])
 	}
 
 	fprintf(stderr, "End of testing, goodbye.\n");
-	rte_context_destroy(context);
+	rte_context_delete(context);
 
 #ifdef USE_ESD
 	if (mux_mode & RTE_AUDIO)

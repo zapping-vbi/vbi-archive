@@ -2,6 +2,7 @@
  *  Real Time Encoder lib
  *
  *  Copyright (C) 2000-2001 Iñaki García Etxebarria
+ *  Modified 2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.16 2001-10-19 17:11:21 mschimek Exp $ */
+/* $Id: rte.c,v 1.17 2001-10-26 09:14:51 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -57,7 +58,8 @@
 extern rte_backend_info b_mp1e_info;
 extern rte_backend_info b_ffmpeg_info;
 
-static rte_backend_info *backends[] = 
+static rte_backend_info *
+backends[] = 
 {
 	&b_mp1e_info,
 	&b_ffmpeg_info
@@ -244,38 +246,34 @@ static off64_t default_seek_callback ( rte_context * context,
 }
 
 rte_context * rte_context_new (int width, int height,
-			       const char *backend,
+			       char *backend,
 			       void * user_data)
 {
-	rte_context * context;
-	int priv_bytes=0, i;
+	rte_context *context = NULL;
+	int j;
 
 fprintf(stderr, "WARNING rte under construction\n");
 
-	context = malloc(sizeof(rte_context));
+	/*
+	 *  Attn: 'backend' no longer applies, changed to a
+	 *  format identifier. Any backend may respond to the
+	 *  keyword.
+	 */
+	for (j = 0; j < num_backends; j++)
+		if (backends[j]->context_new2
+		    && (context = backends[j]->context_new2(backend)))
+			break;
 
-	if (!context)
-	{
-		rte_error(NULL, "malloc(): [%d] %s", errno, strerror(errno));
+	if (j >= num_backends)
 		return NULL;
-	}
-	memset(context, 0, sizeof(rte_context));
 
-	for (i=0; i<num_backends; i++)
-		priv_bytes = MAX(priv_bytes, backends[i]->priv_size);
-
-	context->private = malloc(priv_bytes);
-	if (!context->private)
-	{
-		rte_error(NULL, "malloc(): [%d] %s", errno, strerror(errno));
-		free(context);
-		return NULL;
-	}
-	memset(context->private, 0, priv_bytes);
+	/* Legacy */
 
 	context->mode = RTE_AUDIO_AND_VIDEO;
 
-	context->private->backend = -1;
+	context->private->backend = j;
+
+/*
 	if (!backend)
 		backend = "mp1e";
 	for (i=0; i<num_backends; i++)
@@ -289,6 +287,7 @@ fprintf(stderr, "WARNING rte under construction\n");
 		rte_error(NULL, "backend [%s] not found", backend);
 		return NULL;
 	}
+*/
 
 	if (!rte_set_video_parameters(context, RTE_YUV420,
 				      width, height, RTE_RATE_3, 2.3e6,
@@ -296,7 +295,8 @@ fprintf(stderr, "WARNING rte under construction\n");
 		rte_error(NULL, "invalid video format: %s",
 			  context->error);
 
-		return rte_context_destroy(context);
+		rte_context_destroy(context);
+		return NULL;
 	}
 
 	if (!rte_set_audio_parameters(context, 44100,
@@ -304,52 +304,14 @@ fprintf(stderr, "WARNING rte under construction\n");
 		rte_error(NULL, "invalid audio format: %s",
 			  context->error);
 
-		return rte_context_destroy(context);
+		rte_context_destroy(context);
+		return NULL;
 	}
 
 	context->private->user_data = user_data;
 	context->private->fd64 = -1;
 
-	BACKEND->context_new(context);
-
-	return (context);
-}
-
-void * rte_context_destroy ( rte_context * context )
-{
-	nullcheck(context, return NULL);
-
-	if (context->private->encoding)
-		rte_stop(context);
-
-	if (context->private->inited) {
-		BACKEND->uninit_context(context);
-
-		if (context->mode & RTE_VIDEO) {
-			destroy_fifo(&context->private->vid);
-		}
-		if (context->mode & RTE_AUDIO) {
-			destroy_fifo(&context->private->aud);
-		}
-	}
-
-	BACKEND->context_destroy(context);
-
-	if (context->error)
-	{
-		free(context->error);
-		context->error = NULL;
-	}
-
-	if (context->file_name) {
-		free(context->file_name);
-		context->file_name = NULL;
-	}
-
-	free(context->private);
-	free(context);
-
-	return NULL;
+	return context;
 }
 
 void rte_set_input (rte_context * context,
@@ -403,6 +365,8 @@ void rte_set_output (rte_context * context,
 		context->file_name = NULL;
 }
 
+/* will be removed, replacement rte_context_enum and rte_context_new */
+
 char * rte_query_format (rte_context * context,
 			 int n,
 			 enum rte_mux_mode * mux_mode)
@@ -426,6 +390,8 @@ int rte_set_format (rte_context *context,
 
 	return 1;
 }
+
+/* will be removed, replacement codec parameters */
 
 #define DECIMATING(mode) (mode == RTE_YUYV_VERTICAL_DECIMATION ||	\
 			  mode == RTE_YUYV_EXP_VERTICAL_DECIMATION)
@@ -515,6 +481,8 @@ int rte_set_video_parameters (rte_context * context,
 	return 1;
 }
 
+/* will be removed, replacement codec parameters */
+
 /* Sets the audio parameters */
 int rte_set_audio_parameters (rte_context * context,
 			      int audio_rate,
@@ -541,6 +509,8 @@ int rte_set_audio_parameters (rte_context * context,
 	return 1;
 }
 
+/* will be removed, replacement codec_get|set */
+
 void rte_set_mode (rte_context * context, enum rte_mux_mode mode)
 {
 	nullcheck(context, return);
@@ -553,6 +523,8 @@ void rte_set_mode (rte_context * context, enum rte_mux_mode mode)
 
 	context->mode = mode;
 }
+
+/* will be removed, is a codec option */
 
 void rte_set_motion (rte_context * context, int min, int max)
 {
@@ -580,6 +552,8 @@ void rte_set_motion (rte_context * context, int min, int max)
 	context->motion_min = min;
 	context->motion_max = max;
 }
+
+/* will be replaced (probably) by stream (aud/vid/.../output) user data */
 
 void rte_set_user_data(rte_context * context, void * user_data)
 {
@@ -983,6 +957,7 @@ int rte_get_verbosity ( rte_context * context )
 	return verbose;
 }
 
+/* XXX constructor? */
 int rte_init ( void )
 {
 	int i;
@@ -1011,8 +986,133 @@ void rte_get_status ( rte_context * context,
 
 /* Experimental */
 
+/*
+ *  Application interface
+ */
+
 /**
- * rte_codec_enum:
+ * rte_context_info_enum:
+ * @index: Index into the context format table, 0 ... n.
+ *
+ * Enumerates available backends / file formats / multiplexers. You
+ * should start at index 0, incrementing. Assume a subsequent call to
+ * this function will overwrite the returned context description.
+ *
+ * Some codecs may depend on machine features such as SIMD instructions
+ * or the presence of certain libraries, thus the list can vary from
+ * session to session.
+ *
+ * Return value:
+ * Pointer to a &rte_context_info structure, %NULL if the index is out of
+ * bounds.
+ **/
+rte_context_info *
+rte_context_info_enum(int index)
+{
+	rte_context_info *rxi;
+	int i, j;
+
+	for (j = 0; j < num_backends; j++)
+		for (i = 0; backends[j]->context_enum != NULL
+			     && (rxi = backends[j]->context_enum(i)); i++)
+			if (index-- == 0)
+				return rxi;
+	return NULL;
+}
+
+/**
+ * rte_context_info_keyword:
+ * @keyword: Context format identifier as in &rte_context_info and
+ *           rte_context_new().
+ * 
+ * Similar to rte_context_enum(), but this function attempts to find a
+ * context by keyword.
+ * 
+ * Return value:
+ * Pointer to a &rte_context_info structure, %NULL if the named context
+ * format has not been found.
+ **/
+rte_context_info *
+rte_context_info_keyword(char *keyword)
+{
+	rte_context_info *rxi;
+	int i, j;
+
+	for (j = 0; j < num_backends; j++)
+		for (i = 0; backends[j]->context_enum != NULL
+			     && (rxi = backends[j]->context_enum(i)); i++)
+			if (strcmp(keyword, rxi->keyword) == 0)
+				return rxi;
+	return NULL;
+}
+
+rte_context_info *
+rte_context_info_context(rte_context *context)
+{
+	nullcheck(context, return NULL);
+
+	return &context->private->class->public;
+}
+
+/**
+ * rte_context_new2:
+ * @keyword: Context format identifier as in &rte_context_info.
+ * 
+ * Creates a new rte context, encoding files of the specified type.
+ *
+ * Return value:
+ * Pointer to a newly allocated &rte_context structure, which must be
+ * freed by calling rte_context_delete(). %NULL is returned when the
+ * named context format is unavailable or some other error occurred.
+ **/
+rte_context *
+rte_context_new2(char *keyword)
+{
+	return rte_context_new(352, 288, keyword, NULL);
+}
+
+/**
+ * rte_context_delete:
+ * @context: Pointer to a previously with rte_context_new() allocated
+ *   &rte_context structure.
+ * 
+ * This function stops encoding if active, then frees all resources
+ * associated with the context.
+ **/
+void
+rte_context_delete(rte_context *context)
+{
+	nullcheck(context, return);
+
+	if (context->private->encoding)
+		rte_stop(context);
+
+	if (context->private->inited) {
+		BACKEND->uninit_context(context);
+
+		if (context->mode & RTE_VIDEO) {
+			destroy_fifo(&context->private->vid);
+		}
+		if (context->mode & RTE_AUDIO) {
+			destroy_fifo(&context->private->aud);
+		}
+	}
+
+	if (context->error) {
+		free(context->error);
+		context->error = NULL;
+	}
+
+	if (context->file_name) {
+		free(context->file_name);
+		context->file_name = NULL;
+	}
+
+	BACKEND->context_delete(context);
+}
+
+/**
+ * rte_codec_info_enum:
  * @context: Initialized rte_context.
  * @index: Index into the codec table, 0 ... n.
  * 
@@ -1026,20 +1126,20 @@ void rte_get_status ( rte_context * context,
  * or the index is out of bounds.
  **/
 rte_codec_info *
-rte_codec_enum(rte_context *context, int index)
+rte_codec_info_enum(rte_context *context, int index)
 {
 	nullcheck(context, return NULL);
 
 	/* XXX check backend validity */
 
-	if (!BACKEND->enum_codec)
+	if (!BACKEND->codec_enum)
 		return NULL;
 
-	return BACKEND->enum_codec(context, index);
+	return BACKEND->codec_enum(context, index);
 }
 
 /**
- * rte_codec_by_keyword:
+ * rte_codec_info_keyword:
  * @context: Initialized rte_context.
  * @keyword: Codec identifier as in rte_codec_info, rte_codec_get|set..
  * 
@@ -1051,7 +1151,7 @@ rte_codec_enum(rte_context *context, int index)
  * or the named codec has not been found.
  **/
 rte_codec_info *
-rte_codec_by_keyword(rte_context *context, char *keyword)
+rte_codec_info_keyword(rte_context *context, char *keyword)
 {
 	rte_codec_info *rci;
 	int i;
@@ -1060,30 +1160,34 @@ rte_codec_by_keyword(rte_context *context, char *keyword)
 
 	/* XXX check backend validity */
 
-	if (!BACKEND->enum_codec)
+	if (!BACKEND->codec_enum)
 		return NULL;
 
 	for (i = 0;; i++)
-	        if (!(rci = BACKEND->enum_codec(context, i))
+	        if (!(rci = BACKEND->codec_enum(context, i))
 		    || strcmp(keyword, rci->keyword) == 0)
 			break;
 	return rci;
 }
 
+rte_codec_info *
+rte_codec_info_codec(rte_codec *codec)
+{
+	nullcheck(codec, return NULL);
+
+	return &codec->class->public;
+}
+
 rte_codec *
-rte_codec_get(rte_context *context, rte_stream_type stream_type,
-	      int stream_index, char **codec_keyword_p)
+rte_codec_get(rte_context *context, rte_stream_type stream_type, int stream_index)
 {
 	nullcheck(context, return NULL);
 
-	if (!context || !BACKEND->get_codec) {
-		if (codec_keyword_p)
-			codec_keyword_p = NULL;
+	if (!context || !BACKEND->codec_get) {
 		return NULL;
 	}
 
-	return BACKEND->get_codec(context, stream_type,
-				  stream_index, codec_keyword_p);
+	return BACKEND->codec_get(context, stream_type, stream_index);
 }
 
 /**
@@ -1118,10 +1222,10 @@ rte_codec_set(rte_context *context, rte_stream_type stream_type,
 {
 	nullcheck(context, return NULL);
 
-	if (!BACKEND->set_codec)
+	if (!BACKEND->codec_set)
 		return NULL;
 
-	return BACKEND->set_codec(context, stream_type,
+	return BACKEND->codec_set(context, stream_type,
 				  stream_index, codec_keyword);
 }
 
@@ -1133,14 +1237,14 @@ rte_option_enum(rte_codec *codec, int index)
 	nullcheck(codec, return 0);
 	nullcheck((context = codec->context), return 0);
 
-	if (!BACKEND->enum_option)
+	if (!BACKEND->option_enum)
 		return NULL;
 
-	return BACKEND->enum_option(codec, index);
+	return BACKEND->option_enum(codec, index);
 }
 
 rte_option *
-rte_option_by_keyword(rte_codec *codec, char *keyword)
+rte_option_keyword(rte_codec *codec, char *keyword)
 {
 	rte_context *context = NULL;
 	rte_option *ro;
@@ -1149,11 +1253,11 @@ rte_option_by_keyword(rte_codec *codec, char *keyword)
 	nullcheck(codec, return 0);
 	nullcheck((context = codec->context), return 0);
 
-	if (!BACKEND->enum_option)
+	if (!BACKEND->option_enum)
 		return NULL;
 
 	for (i = 0;; i++)
-	        if (!(ro = BACKEND->enum_option(codec, i))
+	        if (!(ro = BACKEND->option_enum(codec, i))
 		    || strcmp(keyword, ro->keyword) == 0)
 			break;
 	return ro;
@@ -1167,10 +1271,10 @@ rte_option_get(rte_codec *codec, char *keyword, rte_option_value *v)
 	nullcheck(codec, return 0);
 	nullcheck((context = codec->context), return 0);
 
-	if (!BACKEND->get_option)
+	if (!BACKEND->option_get)
 		return 0;
 
-	return BACKEND->get_option(codec, keyword, v);
+	return BACKEND->option_get(codec, keyword, v);
 }
 
 int
@@ -1183,12 +1287,12 @@ rte_option_set(rte_codec *codec, char *keyword, ...)
 	nullcheck(codec, return 0);
 	nullcheck((context = codec->context), return 0);
 
-	if (!BACKEND->set_option)
+	if (!BACKEND->option_set)
 		return 0;
 
 	va_start(args, keyword);
 
-	r = BACKEND->set_option(codec, keyword, args);
+	r = BACKEND->option_set(codec, keyword, args);
 
 	va_end(args);
 
@@ -1310,12 +1414,12 @@ rte_option_print(rte_codec *codec, char *keyword, ...)
 	nullcheck(codec, return 0);
 	nullcheck((context = codec->context), return 0);
 
-	if (!BACKEND->print_option)
+	if (!BACKEND->option_print)
 		return 0;
 
 	va_start(args, keyword);
 
-	r = BACKEND->print_option(codec, keyword, args);
+	r = BACKEND->option_print(codec, keyword, args);
 
 	va_end(args);
 
@@ -1330,8 +1434,8 @@ rte_set_parameters(rte_codec *codec, rte_stream_parameters *rsp)
 	nullcheck(codec, return 0);
 	nullcheck((context = codec->context), return 0);
 
-	if (!BACKEND->set_parameters)
+	if (!BACKEND->parameters)
 		return 0;
 
-	return BACKEND->set_parameters(codec, rsp);
+	return BACKEND->parameters(codec, rsp);
 }

@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.34 2001-10-16 11:17:04 mschimek Exp $ */
+/* $Id: fifo.c,v 1.35 2001-10-26 09:12:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -288,6 +288,8 @@ uninit_fifo(fifo *f)
 	f->start      = (bool (*)(fifo *)) dead_fifo;
 	f->stop       = (void (*)(fifo *)) dead_fifo;
 
+	f->alloc_buffer = NULL;
+
 	while ((n = rem_tail(&f->buffers)))
 		destroy_buffer(PARENT(n, buffer, added));
 
@@ -350,7 +352,7 @@ wait_full_buffer(consumer *c)
 }
 
 /**
- * recv_full_buffer_timeout:
+ * wait_full_buffer_timeout:
  * @c: consumer *
  * @timeout: struct timespec *
  * 
@@ -362,7 +364,7 @@ wait_full_buffer(consumer *c)
  * Buffer pointer, or %NULL if the timeout was reached.
  **/
 buffer *
-recv_full_buffer_timeout(consumer *c, struct timespec *timeout)
+wait_full_buffer_timeout(consumer *c, struct timespec *timeout)
 {
 	fifo *f = c->fifo;
 	buffer *b;
@@ -826,6 +828,8 @@ init_fifo(fifo *f, char *name,
 
 	f->destroy = uninit_fifo;
 
+	f->alloc_buffer = alloc_buffer;
+
 	init_list(&f->full);
 	init_list(&f->empty);
 	init_list(&f->producers);
@@ -839,7 +843,7 @@ init_fifo(fifo *f, char *name,
 	for (; num_buffers > 0; num_buffers--) {
 		buffer *b;
 
-		if (!(b = attach_buffer(f, alloc_buffer(buffer_size)))) {
+		if (!(b = attach_buffer(f, f->alloc_buffer(buffer_size)))) {
 			if (empty_list(&f->buffers)) {
 				uninit_fifo(f);
 				return 0;
