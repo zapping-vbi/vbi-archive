@@ -266,10 +266,12 @@ static void cc_event(vbi_event *ev, void *data)
         if (ev->ev.ttx_page.pgno != zvbi_page)
           return;
 	break;
+
       case VBI_EVENT_CAPTION:
-        if (ev->pgno != zvbi_page)
+        if (ev->ev.caption.pgno != zvbi_page)
           return;
 	break;
+
       default:
         return;
     }
@@ -568,10 +570,10 @@ zvbi_open_device(char *device)
   /* Enter something valid or accept the default */
   index = zcg_int(NULL, "default_region");
   if (index >= 0 && index <= 7)
-    vbi_set_default_region(vbi, region_mapping[index]);
+    vbi_teletext_set_default_region(vbi, region_mapping[index]);
   index = zcg_int(NULL, "teletext_level");
   if (index >= 0 && index <= 3)
-    vbi_set_teletext_level(vbi, index);
+    vbi_teletext_set_level(vbi, index);
   D();
   /* Send all events to our main event handler */
   g_assert(vbi_event_handler(vbi, ~0, event, NULL) != 0);

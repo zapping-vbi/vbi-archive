@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.48 2001-08-20 00:53:23 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.49 2001-08-20 17:46:49 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -80,8 +80,8 @@ struct vbi; /* opaque type */
 
 extern int		vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
 				          int pgno, int subno, int display_rows, int navigation);
-extern void		vbi_set_default_region(struct vbi *vbi, int default_region);
-extern void		vbi_set_teletext_level(struct vbi *vbi, int level);
+extern void		vbi_teletext_set_default_region(struct vbi *vbi, int default_region);
+extern void		vbi_teletext_set_level(struct vbi *vbi, int level);
 
 /*
  *  Closed Caption (caption.c)
@@ -95,8 +95,6 @@ extern int		vbi_fetch_cc_page(struct vbi *vbi, struct fmt_page *pg, int pgno);
  *  All strings are ISO 8859-1, local language, and NUL terminated.
  *  Prepare for empty strings. Read only.
  */
-typedef unsigned int nuid; /* Unique network id (a Zapzilla thing),
-			      0 = none, bit 31 reserved for fakes */
 typedef struct {
 	nuid			nuid;			/* unique id */
 
@@ -281,6 +279,7 @@ typedef struct {
 
 #define VBI_EVENT_NONE		0
 #define	VBI_EVENT_CLOSE		(1 << 0)
+
 #define	VBI_EVENT_TTX_PAGE	(1 << 1)
 /*
  *  Received (and cached) another Teletext page designated by
@@ -307,6 +306,33 @@ typedef struct {
  */
 
 #define VBI_EVENT_CAPTION	(1 << 2)
+/*
+ *  A closed caption page has changed and needs visual update.
+ *  The page a.k.a. CC channel is designated by ev.caption.pgno,
+ *  which is CC_PAGE_BASE (1) plus
+ *
+ *  0:	"Caption 1" "Primary synchronous caption service [English]"
+ *  1:  "Caption 2" "Special non-synchronous data that is intended to
+ *                   augment information carried in the program"
+ *  2:  "Caption 3" "Secondary synchronous caption service, usually
+ *                   second language [Spanish, French]"
+ *  3:  "Caption 4" "Special non-synchronous data similar to Caption 2"
+ *  4:  "Text 1"    "First text service, data usually not program
+ *                   related"
+ *  5:  "Text 2"    "Second text service, additional data usually
+ *                   not program related (ITV)"
+ *  6:  "Text 3"    "Third and forth text services, to be used only
+ *  7:  "Text 4"     if Text 1 and Text 2 are not sufficient"
+ *
+ *  If the client is monitoring this page, the expected action is
+ *  to call vbi_fetch_cc_page(). To speed up rendering more detailed
+ *  update information is provided in fmt_page.dirty (see format.h).
+ *  The fmt_page is will be a snapshot of the current status,
+ *  fmt_page.dirty accumulates all changes since the last fetch.
+ *
+ *  XXX the dirty mechanism is not prepared for multiple
+ *  caption event handlers.
+ */
 
 #define	VBI_EVENT_NETWORK	(1 << 4)
 /*
@@ -365,6 +391,9 @@ typedef struct {
 		        unsigned int            header_update : 1;
 			unsigned int            clock_update : 1;
 	        }                       ttx_page;
+		struct {
+			int                     pgno;
+		}                       caption;
 	}                       ev;
 } vbi_event;
 

@@ -542,7 +542,7 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 
       zconf_set_integer(index, "/zapping/options/vbi/default_region");
       if (zvbi_get_object())
-	vbi_set_default_region(zvbi_get_object(), region_mapping[index]);
+	vbi_teletext_set_default_region(zvbi_get_object(), region_mapping[index]);
 
       /* teletext_level */
       widget = lookup_widget(pbox, "optionmenu4");
@@ -555,7 +555,7 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 
       zconf_set_integer(index, "/zapping/options/vbi/teletext_level");
       if (zvbi_get_object())
-	vbi_set_teletext_level(zvbi_get_object(), index);
+	vbi_teletext_set_level(zvbi_get_object(), index);
 
       /* Quality/speed tradeoff */
       widget = lookup_widget(pbox, "optionmenu21");

@@ -1,7 +1,7 @@
 /*
  *  Zapzilla - Closed Caption decoder
  *
- *  gcc -g -ocaption caption.c -L/usr/X11R6/lib -lX11 -DTEST=1
+ *  gcc -g -ocaption caption.c -L/usr/X11R6/lib -lX11 -DTEST=1 -D_GNU_SOURCE=1
  *
  *  Copyright (C) 2000-2001 Michael H. Schimek
  *
@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.31 2001-08-14 16:36:48 mschimek Exp $ */
+/* $Id: caption.c,v 1.32 2001-08-20 17:46:49 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1254,7 +1254,18 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 void
 vbi_caption_desync(struct vbi *vbi)
 {
-	/* XXX TODO */
+	struct caption *cc = &vbi->cc;
+
+	/* cc->curr_chan = 8; *//* garbage */
+
+	/* cc->xds = FALSE; */
+
+	if (cc->curr_sp) {
+		memset(cc->curr_sp, 0, sizeof(*(cc->curr_sp)));
+		cc->curr_sp = NULL;
+	}
+
+	cc->itv_count = 0;
 }
 
 void
@@ -1264,21 +1275,7 @@ vbi_caption_channel_switched(struct vbi *vbi)
 	channel *ch;
 	int i;
 
-	memset(cc, 0, sizeof(struct caption));
-
-	/* XXX */
-	pthread_mutex_init(&cc->mutex, NULL);
-
-       	for (i = 0; i < 2; i++) {
-		cc->transp_space[i].foreground = WHITE;
-		cc->transp_space[i].background = BLACK;
-		cc->transp_space[i].glyph = GL_CAPTION + 0x20;
-	}
-
-	cc->transp_space[0].opacity = TRANSPARENT_SPACE;
-	cc->transp_space[1].opacity = OPAQUE;
-
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < 9; i++) {
 		ch = &cc->channel[i];
 
 		if (i < 4) {
@@ -1310,8 +1307,13 @@ vbi_caption_channel_switched(struct vbi *vbi)
 
 		memcpy(&ch->pg[1], &ch->pg[0], sizeof(ch->pg[1]));
 	}
-}
 
+	cc->xds = FALSE;
+
+	memset(&cc->sub_packet, 0, sizeof(cc->sub_packet));
+
+	vbi_caption_desync(vbi);
+}
 
 static attr_rgba
 default_colour_map[8] = {
@@ -1328,7 +1330,8 @@ vbi_caption_colour_level(struct vbi *vbi)
 	memcpy(vbi->cc.channel[0].pg[0].colour_map, default_colour_map,
 		sizeof(default_colour_map));
 #else
-	vbi_transp_colourmap(vbi, vbi->cc.channel[0].pg[0].colour_map, default_colour_map, 8);
+	vbi_transp_colourmap(vbi, vbi->cc.channel[0].pg[0].colour_map,
+			     default_colour_map, 8);
 #endif
 	for (i = 1; i < 16; i++)
 		memcpy(vbi->cc.channel[i >> 1].pg[i & 1].colour_map,
@@ -1337,21 +1340,29 @@ vbi_caption_colour_level(struct vbi *vbi)
 }
 
 void
-vbi_init_caption(struct vbi *vbi)
+vbi_caption_destroy(struct vbi *vbi)
+{
+	pthread_mutex_destroy(&vbi->cc.mutex);
+}
+
+void
+vbi_caption_init(struct vbi *vbi)
 {
 	struct caption *cc = &vbi->cc;
 	channel *ch;
 	int i;
 
-	vbi_caption_channel_switched(vbi);
+	memset(cc, 0, sizeof(struct caption));
 
-	for (i = 0; i < 8; i++) {
+	pthread_mutex_init(&cc->mutex, NULL);
+
+	for (i = 0; i < 9; i++) {
 		ch = &cc->channel[i];
 
 		ch->pg[0].vbi = vbi;
 
 		ch->pg[0].pgno = CC_PAGE_BASE + i;
-		ch->pg[0].subno = ANY_SUB;
+		ch->pg[0].subno = 0;
 
 		ch->pg[0].rows = ROWS;
 		ch->pg[0].columns = COLUMNS;
@@ -1365,11 +1376,26 @@ vbi_init_caption(struct vbi *vbi)
 		memcpy(&ch->pg[1], &ch->pg[0], sizeof(ch->pg[1]));
 	}
 
+       	for (i = 0; i < 2; i++) {
+		cc->transp_space[i].foreground = WHITE;
+		cc->transp_space[i].background = BLACK;
+		cc->transp_space[i].glyph = GL_CAPTION + 0x20;
+	}
+
+	cc->transp_space[0].opacity = TRANSPARENT_SPACE;
+	cc->transp_space[1].opacity = OPAQUE;
+
+	vbi_caption_channel_switched(vbi);
+
 	vbi_caption_colour_level(vbi);
 }
 
 
 #if !TEST
+
+/*
+ *  Public interface
+ */
 
 int
 vbi_fetch_cc_page(struct vbi *vbi, struct fmt_page *pg, int page)
@@ -1409,7 +1435,7 @@ render(struct fmt_page *pg, int row)
 	}
 
 	event.type = VBI_EVENT_CAPTION;
-	event.pgno = pg->pgno;
+	event.ev.caption.pgno = pg->pgno;
 
 	vbi_send_event(pg->vbi, &event);
 }
@@ -1424,7 +1450,7 @@ clear(struct fmt_page *pg)
 	pg->dirty.roll = -ROWS;
 
 	event.type = VBI_EVENT_CAPTION;
-	event.pgno = pg->pgno;
+	event.ev.caption.pgno = pg->pgno;
 
 	vbi_send_event(pg->vbi, &event);
 }
@@ -1446,10 +1472,35 @@ roll_up(struct fmt_page *pg, int first_row, int last_row)
 	}
 
 	event.type = VBI_EVENT_CAPTION;
-	event.pgno = pg->pgno;
+	event.ev.caption.pgno = pg->pgno;
 
 	vbi_send_event(pg->vbi, &event);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #else /* TEST */
 

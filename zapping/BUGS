@@ -17,16 +17,9 @@ Known bugs with zapping, don't report them
 	* Zapzilla: No fallback on incomplete DRCS page?
 	~ Zapzilla: Calls fetch_page more often than necessary,
 	  investigate.
-	~ Not really a bug, but I didn't test caption for some time,
-          expect bit rot.
 	* Don't compile conv_gen.s if $host != x86
 	* PgUp/PgDown changes the channel in TTX mode.
-	* html-exp: buttons don't remember. anchor broken.
-
-
-
-
-
+	~ Zapzilla: what's v4lx doing on standard change?
 
 
 

@@ -2497,7 +2497,7 @@ default_colour_map[40] = {
  * The factory default is 16.
  **/
 void
-vbi_set_default_region(struct vbi *vbi, int default_region)
+vbi_teletext_set_default_region(struct vbi *vbi, int default_region)
 {
 	int i;
 
@@ -2516,7 +2516,7 @@ vbi_set_default_region(struct vbi *vbi, int default_region)
 }
 
 void
-vbi_set_teletext_level(struct vbi *vbi, int level)
+vbi_teletext_set_level(struct vbi *vbi, int level)
 {
 	if (level < VBI_LEVEL_1)
 		level = VBI_LEVEL_1;
@@ -2579,13 +2579,13 @@ vbi_teletext_channel_switched(struct vbi *vbi)
 		memcpy(ext->colour_map, default_colour_map, sizeof(ext->colour_map));
 	}
 
-	vbi_set_default_region(vbi, vbi->vt.region);
+	vbi_teletext_set_default_region(vbi, vbi->vt.region);
 
 	vbi_teletext_desync(vbi);
 }
 
 void
-vbi_init_teletext(struct vbi *vbi)
+vbi_teletext_init(struct vbi *vbi)
 {
 	vbi->vt.region = 16;
 	vbi->vt.max_level = VBI_LEVEL_2p5;

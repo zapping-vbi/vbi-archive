@@ -610,7 +610,7 @@ void osd_clear(void)
   zmodel_changed(osd_model);
 }
 
-void osd_render2(void)
+void osd_render(void)
 {
   attr_char *ac_row;
   int row, i, j;
@@ -711,5 +711,8 @@ osd_event			(gpointer	   data,
   g_assert(osd_page.dirty.roll == 0);
     /* currently never down or more than one row */
 
-  osd_render2();
+  osd_render();
 }
+
+
+

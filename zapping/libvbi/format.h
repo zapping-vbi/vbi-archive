@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.13 2001-08-15 23:15:37 mschimek Exp $ */
+/* $Id: format.h,v 1.14 2001-08-20 17:46:49 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -84,8 +84,7 @@ typedef enum {
  *  (ie. DH2 only) will not appear, so DH2, DB2, OT, OB can
  *  be safely ignored.
  *
- *  Code depends on N == 0, DS == DW + DH,
- *  (OT, OB, DH2, DS2) > DS, don't change.
+ *  Code depends on order, don't change.
  */
 typedef enum {
 	NORMAL,	DOUBLE_WIDTH, DOUBLE_HEIGHT, DOUBLE_SIZE,
@@ -122,26 +121,30 @@ typedef struct {
 	unsigned	glyph		: 32;	/* see lang.c for details */
 } attr_char;
 
+struct vbi; /* opaque */
+struct vbi_font_descr; /* lang.h */
 
 #ifndef ANY_SUB
 #define ANY_SUB		0x3F7F
 #endif
 
-struct vbi; /* opaque */
-struct vbi_font_descr; /* lang.h */
+/*
+ *  Unique network id (a Zapzilla thing),
+ *  0 = unknown network, bit 31 reserved for preliminary nuids.
+ */
+typedef unsigned int nuid;
 
 struct fmt_page
 {
 	/*
-	 *  Source context, libvbi.h internal use only (exp-vtx.h).
+	 *  Source context
 	 */
 	struct vbi *		vbi;
-
-	unsigned int		nuid;
+        nuid	        	nuid;
 
 	/*
 	 *  Teletext page number, pgno 0x100 ... 0x8FF, subno 0 ... 0x3F7F
-	 *  or Closed Caption channel, pgno 1 ... 8, subno ANY_SUB.
+	 *  or Closed Caption channel, pgno 1 ... 8, subno 0.
 	 */
 	int			pgno;
 	int			subno;
@@ -191,3 +194,12 @@ struct fmt_page
 };
 
 #endif /* FORMAT_H */
+
+
+
+
+
+
+
+
+

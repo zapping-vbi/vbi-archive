@@ -338,7 +338,7 @@ struct vbi; /* parent of struct teletext */
 
 /* packet.c */
 
-extern void		vbi_init_teletext(struct vbi *vbi);
+extern void		vbi_teletext_init(struct vbi *vbi);
 extern bool		vbi_teletext_packet(struct vbi *vbi, unsigned char *p);
 extern void		vbi_teletext_desync(struct vbi *vbi);
 extern void             vbi_teletext_channel_switched(struct vbi *vbi);
@@ -354,3 +354,7 @@ extern int		vbi_format_page(struct vbi *, struct fmt_page *,
 			        int display_rows, int navigation);
 
 #endif
+
+
+
+

@@ -1,7 +1,8 @@
 19.08.2001	<mschimek@users.sf.net>
 
         * common/errstr.*: Added. libvbi/export and v4lx first victims.
-	* zvbi.c: page event change broke TTX subtitles, fixed.
+	* zvbi.c: page event change broke TTX and CC subtitles, fixed.
+	* caption.c: Corrected a channel switch bug.
 
 18.08.2001	<mschimek@users.sf.net>
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.10 2001-04-03 22:10:05 garetxe Exp $ */
+/* $Id: osd.h,v 1.11 2001-08-20 17:46:49 mschimek Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
@@ -38,7 +38,7 @@ void osd_set_window(GtkWidget *dest_window, GtkWidget *parent);
 void osd_set_coords(gint x, gint y, gint w, gint h);
 
 /* See libvbi/caption.c */
-void osd_render2(void);
+void osd_render(void);
 void osd_clear(void);
 void osd_roll_up(attr_char *buffer, int first_row, int last_row);
 
@@ -47,3 +47,9 @@ void cc_event(vbi_event *ev, void *data);
 extern ZModel *osd_model; /* used for notification of changes */
 
 #endif /* osd.h */
+
+
+
+
+
+

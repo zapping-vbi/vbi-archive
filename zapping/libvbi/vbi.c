@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.72 2001-08-20 00:53:23 mschimek Exp $ */
+/* $Id: vbi.c,v 1.73 2001-08-20 17:46:49 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -826,6 +826,8 @@ vbi_close(struct vbi *vbi)
 
 	vbi_trigger_flush(vbi);
 
+	vbi_caption_destroy(vbi);
+
 	pthread_mutex_destroy(&vbi->event_mutex);
 	pthread_mutex_destroy(&vbi->chswcd_mutex);
 
@@ -886,20 +888,21 @@ vbi_open(fifo *source)
 
 	vbi->time = 0.0;
 
-	vbi_init_teletext(vbi);
-
-	vbi->vt.max_level = VBI_LEVEL_2p5;
-
-	vbi_init_caption(vbi);
-
 	vbi->brightness	= 128;
 	vbi->contrast	= 64;
+
+	vbi_teletext_init(vbi);
+
+	vbi_teletext_set_level(vbi, VBI_LEVEL_2p5);
+
+	vbi_caption_init(vbi);
 
 
 	/* Here we go */
 
 	if (pthread_create(&vbi->mainloop_thread_id, NULL, mainloop, vbi)) {
 		/* Or maybe not */
+		vbi_caption_destroy(vbi);
 		pthread_mutex_destroy(&vbi->event_mutex);
 		pthread_mutex_destroy(&vbi->chswcd_mutex);
 		rem_producer(&vbi->wss_producer);
@@ -915,3 +918,15 @@ vbi_open(fifo *source)
 #endif
 	return vbi;
 }
+
+
+
+
+
+
+
+
+
+
+
+

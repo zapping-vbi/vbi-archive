@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.39 2001-08-20 00:53:23 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.40 2001-08-20 17:46:49 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -312,6 +312,21 @@ vbi_draw_cc_page_region(struct fmt_page *pg, uint32_t *canvas,
 	uint32_t pen[2];
 	int count, row_adv;
 	attr_char *ac;
+
+	if (0) {
+		int i, j;
+
+		for (i = 0; i < pg->rows; i++) {
+			fprintf(stderr, "%2d: ", i);
+			ac = &pg->text[i * pg->columns];
+			for (j = 0; j < pg->columns; j++)
+				fprintf(stderr, "%d%d%02x ",
+					ac[j].foreground,
+					ac[j].background,
+					ac[j].glyph & 0xFF);
+			fprintf(stderr, "\n");
+		}
+	}
 
 	if (rowstride == -1)
 		rowstride = pg->columns * 16 * sizeof(*canvas);

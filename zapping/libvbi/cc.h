@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cc.h,v 1.11 2001-08-10 04:43:28 mschimek Exp $ */
+/* $Id: cc.h,v 1.12 2001-08-20 17:46:49 mschimek Exp $ */
 
 #ifndef CC_H
 #define CC_H
@@ -69,7 +69,7 @@ struct caption {
 
 	int			curr_chan;
 	attr_char		transp_space[2];	/* caption, text mode */
-	channel			channel[8];		/* caption 1-4, text 1-4 */
+	channel			channel[9];		/* caption 1-4, text 1-4, garbage */
 	pthread_mutex_t		mutex;
 
 	bool			xds;
@@ -82,7 +82,8 @@ struct caption {
 
 struct vbi; /* parent of struct caption */
 
-extern void		vbi_init_caption(struct vbi *vbi);
+extern void		vbi_caption_init(struct vbi *vbi);
+extern void		vbi_caption_destroy(struct vbi *vbi);
 extern void		vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf);
 extern void		vbi_caption_desync(struct vbi *vbi);
 extern void		vbi_caption_channel_switched(struct vbi *vbi);
