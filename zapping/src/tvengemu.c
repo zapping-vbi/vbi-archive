@@ -168,7 +168,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 {
 	if (l->u.tuner.frequency != frequency) {
 		l->u.tuner.frequency = frequency;
-		tv_callback_notify (l, l->_callback);
+		tv_callback_notify (info, l, l->_callback);
 	}
 
 	return TRUE;
@@ -312,7 +312,7 @@ tvengemu_describe_controller(char ** short_str, char ** long_str,
 /* Closes a device opened with tveng_init_device */
 static void tvengemu_close_device(tveng_device_info * info)
 {
-  tveng_stop_everything (info);
+  p_tveng_stop_everything (info);
   info->fd = 0;
   info->current_controller = TVENG_CONTROLLER_NONE;
 
@@ -395,7 +395,7 @@ tvengemu_start_capturing (tveng_device_info *info)
 {
   t_assert (info != NULL);
 
-  tveng_stop_everything (info);
+  p_tveng_stop_everything (info);
 
   info->current_mode = TVENG_CAPTURE_READ;
 
@@ -447,7 +447,7 @@ tvengemu_set_capture_size (int width, int height,
   info->format.width = width;
   info->format.height = height;
 
-  return tveng_set_capture_format (info);
+  return p_tveng_set_capture_format (info);
 }
 
 static int

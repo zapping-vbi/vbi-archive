@@ -62,6 +62,19 @@ enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
 int tveng_restart_everything (enum tveng_capture_mode mode,
 			      tveng_device_info * info);
 
+int p_tveng_set_preview_window(tveng_device_info * info);
+int p_tveng_set_preview (int on, tveng_device_info * info);
+enum tveng_capture_mode 
+p_tveng_stop_everything (tveng_device_info * info);
+int p_tveng_restart_everything (enum tveng_capture_mode mode,
+				tveng_device_info * info);
+int p_tveng_set_capture_format(tveng_device_info * info);
+
+extern void
+tv_callback_notify		(tveng_device_info *	info,
+				 void *			object,
+				 const tv_callback *	list);
+
 /*
   Function prototypes for modules, NULL means not implemented or not
   pertinent.
@@ -195,6 +208,8 @@ struct tveng_private {
   Atom colorkey; /* colorkey doesn't have min, max, it's defined by
 		    RGB triplets */
 #endif
+
+  unsigned int		callback_recursion;
 
   tv_callback *		video_input_callback;
   tv_callback *		audio_input_callback;

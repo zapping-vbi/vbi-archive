@@ -373,7 +373,7 @@ set_standard			(tveng_device_info *	info,
 	enum tveng_capture_mode current_mode;
 	int r;
 
-	current_mode = tveng_stop_everything (info);
+	current_mode = p_tveng_stop_everything (info);
 
 	if (P_INFO (info)->bktr_driver) {
 		r = bktr_ioctl (info, BT848GFMT, &S(s)->fmt);
@@ -383,7 +383,7 @@ set_standard			(tveng_device_info *	info,
 
 	/* Start capturing again as if nothing had happened */
 	/* XXX stop yes, restarting is not our business (eg. frame geometry change). */
-	tveng_restart_everything (current_mode, info);
+	p_tveng_restart_everything (current_mode, info);
 
 	return (0 == r);
 }
@@ -558,7 +558,7 @@ set_video_input			(tveng_device_info *	info,
 	}
 
 	pixformat = info->format.pixformat;
-	current_mode = tveng_stop_everything(info);
+	current_mode = p_tveng_stop_everything(info);
 
 	if (-1 == bktr_ioctl (info, METEORSINPUT, &VI(l)->dev))
 		return FALSE;
@@ -578,10 +578,10 @@ set_video_input			(tveng_device_info *	info,
 				     info->cur_video_input->u.tuner.frequency);
 
 	info->format.pixformat = pixformat;
-	tveng_set_capture_format(info);
+	p_tveng_set_capture_format(info);
 
 	/* XXX Start capturing again as if nothing had happened */
-	tveng_restart_everything (current_mode, info);
+	p_tveng_restart_everything (current_mode, info);
 
 	return TRUE;
 }
@@ -874,7 +874,7 @@ set_overlay			(tveng_device_info *	info,
 static void
 tvengbktr_close_device (tveng_device_info * info)
 {
-  tveng_stop_everything(info);
+  p_tveng_stop_everything(info);
 
   device_close (info->log_fp, info->fd);
   info->fd = 0;

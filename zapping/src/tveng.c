@@ -50,19 +50,23 @@
 
 #include "globals.h" /* XXX for vidmodes, dga_param */
 
-//#include "../common/types.h"
 #include "zmisc.h"
 #include "../common/device.h"
 
+/* XXX recursive callbacks not good, think again. */
 #define TVLOCK								\
 ({									\
-  /* fprintf (stderr, "TVLOCK   in " __PRETTY_FUNCTION__ "\n"); */	\
-  pthread_mutex_lock(&(info->priv->mutex));				\
+  if (0 == info->priv->callback_recursion) {				\
+    /* fprintf (stderr, "TVLOCK   %d in %s\n", rc++, __FUNCTION__); */	\
+    pthread_mutex_lock(&(info->priv->mutex));				\
+  }									\
 })
 #define UNTVLOCK							\
 ({									\
-  /* fprintf (stderr, "UNTVLOCK in " __PRETTY_FUNCTION__ "\n"); */	\
-  pthread_mutex_unlock(&(info->priv->mutex));				\
+  if (0 == info->priv->callback_recursion) {				\
+    /* fprintf (stderr, "UNTVLOCK %d in %s\n", --rc, __FUNCTION__); */	\
+    pthread_mutex_unlock(&(info->priv->mutex));				\
+  }									\
 })
 
 #define RETURN_UNTVLOCK(X)						\
@@ -109,6 +113,13 @@ deref_callback			(void *			object,
 	*((void **) user_data) = NULL;
 }
 */
+
+void p_tveng_close_device(tveng_device_info * info);
+int p_tveng_update_controls(tveng_device_info * info);
+int p_tveng_get_display_depth(tveng_device_info * info);
+
+
+
 
 /* Initializes a tveng_device_info object */
 tveng_device_info * tveng_device_info_new(Display * display, int bpp)
@@ -160,7 +171,7 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp)
   x11_vidmode_clear_state (&new_object->priv->old_mode);
 
   pthread_mutexattr_init(&attr);
-  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+  //  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
   pthread_mutex_init(&(new_object->priv->mutex), &attr);
   pthread_mutexattr_destroy(&attr);
 
@@ -176,7 +187,7 @@ void tveng_device_info_destroy(tveng_device_info * info)
   t_assert(info != NULL);
 
   if (info -> fd > 0)
-    tveng_close_device(info);
+    p_tveng_close_device(info);
 
   if (info -> error)
     free(info -> error);
@@ -220,7 +231,7 @@ int tveng_attach_device(const char* device_file,
   TVLOCK;
 
   if (info -> fd) /* If the device is already attached, detach it */
-    tveng_close_device(info);
+    p_tveng_close_device(info);
 
   info -> current_controller = TVENG_CONTROLLER_NONE;
 
@@ -232,7 +243,7 @@ int tveng_attach_device(const char* device_file,
     formats supported by the video HW and our conversion
     capabilities.
   */
-  info->priv->current_bpp = tveng_get_display_depth(info);
+  info->priv->current_bpp = p_tveng_get_display_depth(info);
 
   switch (info->priv->current_bpp)
     {
@@ -311,7 +322,7 @@ int tveng_attach_device(const char* device_file,
 		info->caps.maxheight) == -1)
     {
       t_error ("asprintf", info);
-      tveng_close_device (info);
+      p_tveng_close_device (info);
       CLEAR (info->priv->module);
       UNTVLOCK;
       return -1;
@@ -321,14 +332,20 @@ int tveng_attach_device(const char* device_file,
 
   if (info->debug_level>0)
     {
+      short_str = "?";
+      long_str = "?";
+
       fprintf(stderr, "[TVeng] - Info about the video device\n");
       fprintf(stderr, "-------------------------------------\n");
-      tveng_describe_controller(&short_str, &long_str, info);
+
+      if (info->priv->module.describe_controller)
+	info->priv->module.describe_controller (&short_str, &long_str, info);
+
       fprintf(stderr, "Device: %s [%s - %s]\n", info->file_name,
 	      short_str, long_str);
       fprintf(stderr, "Device signature: %x\n", info->signature);
       fprintf(stderr, "Detected framebuffer depth: %d\n",
-	      tveng_get_display_depth(info));
+	      p_tveng_get_display_depth(info));
       fprintf (stderr, "Capture format:\n"
 	       "  buffer size            %ux%u pixels, 0x%x bytes\n"
 	       "  bytes per line         %u, %u bytes\n"
@@ -464,6 +481,23 @@ tveng_describe_controller(char ** short_str, char ** long_str,
 }
 
 /* Closes a device opened with tveng_init_device */
+void p_tveng_close_device(tveng_device_info * info)
+{
+  if (info->current_controller == TVENG_CONTROLLER_NONE)
+    return; /* nothing to be done */
+
+  p_tveng_stop_everything(info);
+
+  /* remove mixer controls */
+  tveng_attach_mixer_line (info, NULL, NULL);
+
+  if (info->priv->module.close_device)
+    info->priv->module.close_device(info);
+
+  info->priv->control_mute = NULL;
+}
+
+/* Closes a device opened with tveng_init_device */
 void tveng_close_device(tveng_device_info * info)
 {
   t_assert(info != NULL);
@@ -473,15 +507,7 @@ void tveng_close_device(tveng_device_info * info)
 
   TVLOCK;
 
-  tveng_stop_everything(info);
-
-  /* remove mixer controls */
-  tveng_attach_mixer_line (info, NULL, NULL);
-
-  if (info->priv->module.close_device)
-    info->priv->module.close_device(info);
-
-  info->priv->control_mute = NULL;
+  p_tveng_close_device (info);
 
   UNTVLOCK;
 }
@@ -827,8 +853,11 @@ tveng_set_input_by_name(const char * input_name,
 
   for_all (tl, info->video_inputs)
     if (tveng_normstrcmp(tl->label, input_name))
+      {
 //XXX
-      RETURN_UNTVLOCK(tv_set_video_input(info, tl));
+	UNTVLOCK;
+	return tv_set_video_input (info, tl);
+      }
 
   info->tveng_errno = -1;
   t_error_msg("finding",
@@ -1181,6 +1210,41 @@ tveng_update_capture_format(tveng_device_info * info)
   return -1;
 }
 
+int
+p_tveng_set_capture_format(tveng_device_info * info)
+{
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  /* FIXME */
+  if (0 == (TV_PIXFMT_SET (info->format.pixfmt) &
+	    (TV_PIXFMT_SET (TV_PIXFMT_YUV420) |
+	     TV_PIXFMT_SET (TV_PIXFMT_YVU420) |
+	     TV_PIXFMT_SET (TV_PIXFMT_YUYV) |
+	     TV_PIXFMT_SET (TV_PIXFMT_UYVY))))
+    {
+      return -1;
+    }
+
+  REQUIRE_IO_MODE (-1);
+
+  info->format.height = SATURATE (info->format.height,
+				  info->caps.minheight, info->caps.maxheight);
+  info->format.width  = SATURATE (info->format.width,
+				  info->caps.minwidth, info->caps.maxwidth);
+
+  if (info->priv->dword_align)
+    round_boundary_4 (NULL, &info->format.width,
+		      info->format.pixfmt, info->caps.maxwidth);
+
+  if (info->priv->module.set_capture_format)
+    return (info->priv->module.set_capture_format(info));
+
+  TVUNSUPPORTED;
+
+  return -1;
+}
+
+
 /* -1 if failed. Sets the pixformat and fills in info -> pix_format
    with the correct values
 
@@ -1196,37 +1260,9 @@ int
 tveng_set_capture_format(tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
-
-  /* FIXME */
-  if (0 == (TV_PIXFMT_SET (info->format.pixfmt) &
-	    (TV_PIXFMT_SET (TV_PIXFMT_YUV420) |
-	     TV_PIXFMT_SET (TV_PIXFMT_YVU420) |
-	     TV_PIXFMT_SET (TV_PIXFMT_YUYV) |
-	     TV_PIXFMT_SET (TV_PIXFMT_UYVY))))
-    {
-      return -1;
-    }
-
-  REQUIRE_IO_MODE (-1);
 
   TVLOCK;
-
-  info->format.height = SATURATE (info->format.height,
-				  info->caps.minheight, info->caps.maxheight);
-  info->format.width  = SATURATE (info->format.width,
-				  info->caps.minwidth, info->caps.maxwidth);
-
-  if (info->priv->dword_align)
-    round_boundary_4 (NULL, &info->format.width,
-		      info->format.pixfmt, info->caps.maxwidth);
-
-  if (info->priv->module.set_capture_format)
-    RETURN_UNTVLOCK(info->priv->module.set_capture_format(info));
-
-  TVUNSUPPORTED;
-  UNTVLOCK;
-  return -1;
+  RETURN_UNTVLOCK (p_tveng_set_capture_format (info));
 }
 
 /*
@@ -1323,7 +1359,7 @@ update_xv_control (tveng_device_info * info, struct control *c)
   if (c->pub.value != value)
     {
       c->pub.value = value;
-      tv_callback_notify (&c->pub, c->pub._callback);
+      tv_callback_notify (info, &c->pub, c->pub._callback);
     }
 
   return 0;
@@ -1354,14 +1390,11 @@ tveng_update_control(tv_control *control,
 }
 
 int
-tveng_update_controls(tveng_device_info * info)
+p_tveng_update_controls(tveng_device_info * info)
 {
   tv_control *tc;
 
-  t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
-
-  TVLOCK;
 
   /* FIXME quiet */
 
@@ -1371,9 +1404,19 @@ tveng_update_controls(tveng_device_info * info)
       update_xv_control (info, C(tc));
 
   if (!info->priv->module.update_control)
-    RETURN_UNTVLOCK(0);
+    return 0;
 
-  RETURN_UNTVLOCK(info->priv->module.update_control (info, NULL) ? 0 : -1);
+  return (info->priv->module.update_control (info, NULL) ? 0 : -1);
+}
+
+int
+tveng_update_controls(tveng_device_info * info)
+{
+  t_assert(info != NULL);
+
+  TVLOCK;
+
+  RETURN_UNTVLOCK (p_tveng_update_controls (info));
 }
 
 /*
@@ -1510,7 +1553,7 @@ set_control			(struct control * c, int value,
       if (c->pub.value != value)
 	{
 	  c->pub.value = value;
-	  tv_callback_notify (&c->pub, c->pub._callback);
+	  tv_callback_notify (info, &c->pub, c->pub._callback);
 	}
 
       return r;
@@ -1612,7 +1655,7 @@ tveng_set_control_by_name(const char * control_name,
   for (tc = info->controls; tc; tc = tc->_next)
     if (!strcasecmp(tc->label,control_name))
       /* we found it */
-      RETURN_UNTVLOCK((tveng_set_control(tc, new_value, info)));
+      RETURN_UNTVLOCK (set_control (C(tc), new_value, TRUE, info));
 
   /* if we reach this, we haven't found the control */
   info->tveng_errno = -1;
@@ -1623,87 +1666,6 @@ tveng_set_control_by_name(const char * control_name,
   return -1;
 }
 
-/*
-  Gets the value of a control, given its control id. -1 on error (or
-  cid not found). The result is stored in cur_value.
-*/
-#if 0
-int
-tveng_get_control_by_id(int cid, int * cur_value,
-			tveng_device_info * info)
-{
-  t_assert (0);
-
-
-  int i;
-  int value;
-  tv_dev_control *tc;
-
-  t_assert(info != NULL);
-  t_assert(info -> _controls != NULL);
-
-  TVLOCK;
-
-  /* Update the controls (their values) */
-  if (tveng_update_controls(info) == -1)
-    RETURN_UNTVLOCK(-1);
-
-  for (tc = info->_controls; tc; tc = tc->next)
-    if (tc->id == cid)
-      /* we found it */
-      {
-	value = tc->cur_value;
-	t_assert(value <= tc->max);
-	t_assert(value >= tc->min);
-	if (cur_value)
-	  *cur_value = value;
-	UNTVLOCK;
-	return 0; /* Success */
-      }
-
-  /* if we reach this, we haven't found the control */
-  info->tveng_errno = -1;
-  t_error_msg("finding",
-	      "Cannot find control %d in the list of controls",
-	      info, cid);
-  UNTVLOCK;
-
-  return -1;
-}
-#endif
-/*
-  Sets a control by its id. Returns -1 on error
-*/
-#if 0
-int tveng_set_control_by_id(int cid, int new_value,
-			    tveng_device_info * info)
-{
-  t_assert (0);
-
-
-  int i;
-  tv_dev_control *tc;
-
-  t_assert(info != NULL);
-  t_assert(info -> _controls != NULL);
-
-  TVLOCK;
-
-  for (tc = info->_controls; tc; tc = tc->next)
-    if (tc->id == cid)
-      /* we found it */
-      RETURN_UNTVLOCK(tveng_set_control(tc, new_value, info));
-
-  /* if we reach this, we haven't found the control */
-  info->tveng_errno = -1;
-  t_error_msg("finding",
-	      "Cannot find control %d in the list of controls",
-	      info, cid);
-  UNTVLOCK;
-
-  return -1;
-}
-#endif
 
 /*
  *  AUDIO ROUTINES
@@ -1751,7 +1713,7 @@ mixer_line_notify_cb		(tv_audio_line *	line,
   if (!c->info->priv->quiet)
     {
       tc->value = value;
-      tv_callback_notify (tc, tc->_callback);
+      tv_callback_notify (NULL, tc, tc->_callback);
     }
 }
 
@@ -2459,7 +2421,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 		/* FIXME need a safer solution. */
 		/* Could temporarily switch to control attach_mode. */
 		t_assert (info->file_name != NULL);
-		tveng_stop_everything (info);
+		p_tveng_stop_everything (info);
 		device_close (info->log_fp, info->fd);
 		info->fd = 0;
 	}
@@ -2560,17 +2522,8 @@ tv_set_overlay_xwindow		(tveng_device_info *	info,
 			 (info, window, gc));
 }
 
-/* 
-   This is a convenience function, it returns the real screen depth in
-   PRIV->BPP (bits per pixel). This one is quite important for 24 and 32 bit
-   modes, since the default X visual may be 24 bit and the real screen
-   depth 32, thus an expensive RGB -> RGBA conversion must be
-   performed for each frame.
-   priv->display: the priv->display we want to know its real depth (can be
-   accessed through gdk_private->display)
-*/
 int
-tveng_get_display_depth(tveng_device_info * info)
+p_tveng_get_display_depth(tveng_device_info * info)
 {
   /* This routines are taken form xawtv, i don't understand them very
      well, but they seem to work OK */
@@ -2580,10 +2533,8 @@ tveng_get_display_depth(tveng_device_info * info)
   int found, v, i, n;
   int bpp = 0;
 
-  TVLOCK;
-
   if (info->priv->bpp != -1)
-    RETURN_UNTVLOCK(info->priv->bpp);
+    return info->priv->bpp;
 
   /* Use the first screen, should give no problems assuming this */
   template.screen = 0;
@@ -2599,7 +2550,6 @@ tveng_get_display_depth(tveng_device_info * info)
     t_error_msg("XGetVisualInfo",
 		"Cannot find an appropiate visual", info);
     XFree(visual_info);
-    UNTVLOCK;
     return 0;
   }
   
@@ -2621,15 +2571,65 @@ tveng_get_display_depth(tveng_device_info * info)
 		"Cannot figure out X depth", info);
     XFree(visual_info);
     XFree(pf);
-    UNTVLOCK;
     return 0;
   }
 
   XFree(visual_info);
   XFree(pf);
 
+  return bpp;
+}
+
+/* 
+   This is a convenience function, it returns the real screen depth in
+   PRIV->BPP (bits per pixel). This one is quite important for 24 and 32 bit
+   modes, since the default X visual may be 24 bit and the real screen
+   depth 32, thus an expensive RGB -> RGBA conversion must be
+   performed for each frame.
+   priv->display: the priv->display we want to know its real depth (can be
+   accessed through gdk_private->display)
+*/
+int
+tveng_get_display_depth(tveng_device_info * info)
+{
+  int bpp;
+
+  TVLOCK;
+
+  bpp = p_tveng_get_display_depth (info);
+
   UNTVLOCK;
   return bpp;
+}
+
+int
+p_tveng_set_preview_window(tveng_device_info * info)
+{
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  REQUIRE_IO_MODE (-1);
+
+  if (info->priv->dword_align)
+    round_boundary_4 (&info->overlay_window.x,
+		      &info->overlay_window.width,
+		      info->overlay_buffer.format.pixfmt,
+		      info->caps.maxwidth);
+
+  if (info->overlay_window.height < info->caps.minheight)
+    info->overlay_window.height = info->caps.minheight;
+  if (info->overlay_window.height > info->caps.maxheight)
+    info->overlay_window.height = info->caps.maxheight;
+  if (info->overlay_window.width < info->caps.minwidth)
+    info->overlay_window.width = info->caps.minwidth;
+  if (info->overlay_window.width > info->caps.maxwidth)
+    info->overlay_window.width = info->caps.maxwidth;
+
+  if (info->priv->module.set_preview_window)
+    return (info->priv->module.set_preview_window(info));
+
+  TVUNSUPPORTED;
+
+  return -1;
 }
 
 /*
@@ -2650,28 +2650,7 @@ tveng_set_preview_window(tveng_device_info * info)
   REQUIRE_IO_MODE (-1);
 
   TVLOCK;
-
-  if (info->priv->dword_align)
-    round_boundary_4 (&info->overlay_window.x,
-		      &info->overlay_window.width,
-		      info->overlay_buffer.format.pixfmt,
-		      info->caps.maxwidth);
-
-  if (info->overlay_window.height < info->caps.minheight)
-    info->overlay_window.height = info->caps.minheight;
-  if (info->overlay_window.height > info->caps.maxheight)
-    info->overlay_window.height = info->caps.maxheight;
-  if (info->overlay_window.width < info->caps.minwidth)
-    info->overlay_window.width = info->caps.minwidth;
-  if (info->overlay_window.width > info->caps.maxwidth)
-    info->overlay_window.width = info->caps.maxwidth;
-
-  if (info->priv->module.set_preview_window)
-    RETURN_UNTVLOCK(info->priv->module.set_preview_window(info));
-
-  TVUNSUPPORTED;
-  UNTVLOCK;
-  return -1;
+  RETURN_UNTVLOCK (p_tveng_set_preview_window (info));
 }
 
 /*
@@ -2697,14 +2676,8 @@ tveng_get_preview_window(tveng_device_info * info)
   return -1;
 }
 
-/* 
-   Sets the previewing on/off.
-   on : if 1, set preview on, if 0 off, other values are silently ignored
-   info  : device to use for previewing
-   Returns -1 on error, anything else on success
-*/
 int
-tveng_set_preview (int on, tveng_device_info * info)
+p_tveng_set_preview (int on, tveng_device_info * info)
 {
 	tv_overlay_buffer dma;
 
@@ -2716,22 +2689,20 @@ tveng_set_preview (int on, tveng_device_info * info)
 
 	on = !!on;
 
-	TVLOCK;
-
 	if (on && info->current_controller != TVENG_CONTROLLER_XV) {
 		if (!info->priv->module.get_overlay_buffer) {
 			support_failure (info, __PRETTY_FUNCTION__);
-			RETURN_UNTVLOCK (-1);
+			return (-1);
 		}
 
 		if (!info->priv->module.get_overlay_buffer (info, &dma))
-			RETURN_UNTVLOCK (-1);
+			return (-1);
 
 		if (!validate_overlay_buffer (&dga_param, &dma)) {
 			fprintf (stderr, "** %s: Cannot start overlay, "
 				 "DMA target is not properly initialized.",
 				 __PRETTY_FUNCTION__);
-			RETURN_UNTVLOCK (-1);
+			return (-1);
 		}
 
 		// XXX should also check if a previous
@@ -2739,11 +2710,26 @@ tveng_set_preview (int on, tveng_device_info * info)
 	}
 
 	if (!info->priv->module.set_overlay (info, on))
-	  RETURN_UNTVLOCK (-1);
+	  return (-1);
 
 	info->overlay_active = on;
 
-	RETURN_UNTVLOCK (0);
+	return (0);
+}
+
+/* 
+   Sets the previewing on/off.
+   on : if 1, set preview on, if 0 off, other values are silently ignored
+   info  : device to use for previewing
+   Returns -1 on error, anything else on success
+*/
+int
+tveng_set_preview (int on, tveng_device_info * info)
+{
+	t_assert (info != NULL);
+
+	TVLOCK;
+	RETURN_UNTVLOCK (p_tveng_set_preview (on, info));
 }
 
 /* Adjusts the verbosity value passed to zapping_setup_fb, cannot fail
@@ -2816,6 +2802,55 @@ tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info)
 // overlay_active due to delay timer. Don't reactivate prematurely.
 static tv_bool overlay_was_active = FALSE;
 
+enum tveng_capture_mode 
+p_tveng_stop_everything (tveng_device_info *       info)
+{
+  enum tveng_capture_mode returned_mode;
+
+  returned_mode = info->current_mode;
+  switch (info->current_mode)
+    {
+    case TVENG_CAPTURE_READ:
+      overlay_was_active = FALSE;
+      if (info->priv->module.stop_capturing)
+	(info->priv->module.stop_capturing(info));
+      t_assert(info->current_mode == TVENG_NO_CAPTURE);
+      break;
+
+    case TVENG_CAPTURE_PREVIEW:
+#if 0
+      /* Eeek. The client must stop overlay, switch, check if the
+         image geometry changed (new video standard), handle this
+         appropriately and restart. Not our business to switch
+	 the vidmode back and forth, and changing the overlay window.
+	 That belongs at a higher layer, e.g. the zvideo widget. */
+      overlay_was_active = info->overlay_active;
+      p_tveng_stop_previewing(info);
+      t_assert(info->current_mode == TVENG_NO_CAPTURE);
+      break;
+#else
+      /* fall through */
+#endif
+    case TVENG_CAPTURE_WINDOW:
+      overlay_was_active = info->overlay_active;
+  /* No error checking */
+      if (info->overlay_active)
+	p_tveng_set_preview (FALSE, info);
+      info -> current_mode = TVENG_NO_CAPTURE;
+      break;
+
+    case TVENG_TELETEXT:
+      /* nothing */
+      break;
+
+    default:
+      t_assert(info->current_mode == TVENG_NO_CAPTURE);
+      break;
+    };
+
+  return returned_mode;
+}
+
 /*
   tveng INTERNAL function, stops the capture or the previewing. Returns the
   mode the device was before stopping.
@@ -2835,73 +2870,29 @@ tveng_stop_everything (tveng_device_info *       info)
 
   TVLOCK;
 
-  returned_mode = info->current_mode;
-  switch (info->current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      overlay_was_active = FALSE;
-      tveng_stop_capturing(info);
-      t_assert(info->current_mode == TVENG_NO_CAPTURE);
-      break;
-
-    case TVENG_CAPTURE_PREVIEW:
-#if 0
-      /* Eeek. The client must stop overlay, switch, check if the
-         image geometry changed (new video standard), handle this
-         appropriately and restart. Not our business to switch
-	 the vidmode back and forth, and changing the overlay window.
-	 That belongs at a higher layer, e.g. the zvideo widget. */
-      overlay_was_active = info->overlay_active;
-      tveng_stop_previewing(info);
-      t_assert(info->current_mode == TVENG_NO_CAPTURE);
-      break;
-#else
-      /* fall through */
-#endif
-    case TVENG_CAPTURE_WINDOW:
-      overlay_was_active = info->overlay_active;
-  /* No error checking */
-      if (info->overlay_active)
-	tveng_set_preview_off(info);
-      info -> current_mode = TVENG_NO_CAPTURE;
-      break;
-
-    case TVENG_TELETEXT:
-      /* nothing */
-      break;
-
-    default:
-      t_assert(info->current_mode == TVENG_NO_CAPTURE);
-      break;
-    };
+  returned_mode = p_tveng_stop_everything (info);
 
   UNTVLOCK;
 
   return returned_mode;
 }
 
-/*
-  Restarts the given capture mode. See the comments on
-  tveng_stop_everything. Returns -1 on error.
-*/
-int tveng_restart_everything (enum tveng_capture_mode mode,
+int p_tveng_restart_everything (enum tveng_capture_mode mode,
 			      tveng_device_info * info)
 {
-  t_assert(info != NULL);
-
-  TVLOCK;
-
   switch (mode)
     {
     case TVENG_CAPTURE_READ:
-      if (tveng_start_capturing(info) == -1)
-	RETURN_UNTVLOCK(-1);
+      // XXX REQUIRE_IO_MODE (-1);
+      if (info->priv->module.start_capturing)
+	if (-1 == info->priv->module.start_capturing(info))
+	  return -1;
       break;
 
     case TVENG_CAPTURE_PREVIEW:
 #if 0 /* See above. */
-      if (tveng_start_previewing(info, (const char *) -1) == -1)
-	RETURN_UNTVLOCK(-1);
+      if (p_tveng_start_previewing(info, (const char *) -1) == -1)
+	return (-1);
       break;
 #else
       /* fall through */
@@ -2910,14 +2901,14 @@ int tveng_restart_everything (enum tveng_capture_mode mode,
     case TVENG_CAPTURE_WINDOW:
       if (info->current_mode != mode)
 	{
-	  tveng_stop_everything(info);
+	  p_tveng_stop_everything(info);
 
 	  if (overlay_was_active)
 	    {
-	      tveng_set_preview_window(info);
+	      p_tveng_set_preview_window(info);
 
-	      if (tveng_set_preview_on(info) == -1)
-		RETURN_UNTVLOCK(-1);
+	      if (p_tveng_set_preview (TRUE, info) == -1)
+		return (-1);
 	    }
 
 	  info->current_mode = mode;
@@ -2931,9 +2922,23 @@ int tveng_restart_everything (enum tveng_capture_mode mode,
     default:
       break;
     }
+
   overlay_was_active = FALSE;
-  UNTVLOCK;
+
   return 0; /* Success */
+}
+
+/*
+  Restarts the given capture mode. See the comments on
+  tveng_stop_everything. Returns -1 on error.
+*/
+int tveng_restart_everything (enum tveng_capture_mode mode,
+			      tveng_device_info * info)
+{
+  t_assert(info != NULL);
+
+  TVLOCK;
+  RETURN_UNTVLOCK (p_tveng_restart_everything (mode, info));
 }
 
 int tveng_get_debug_level(tveng_device_info * info)
@@ -3061,7 +3066,7 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 
   XFree (at);
 
-  tveng_update_controls(info);
+  p_tveng_update_controls(info);
 
   UNTVLOCK;
 }
@@ -3218,6 +3223,7 @@ tv_callback_remove		(tv_callback *		cb)
 /*
  *  Delete an entire callback list, usually before the object owning
  *  the list is destroyed.
+ *  XXX we probably need ref counting.
  */
 void
 tv_callback_destroy		(void *			object,
@@ -3243,6 +3249,8 @@ tv_callback_destroy		(void *			object,
 
 /*
  *  Temporarily block calls to the notify handler.
+ *  XXX user tv_callback * is fast but inconvenient because
+ *  the user must prepare a destroy handler. Ideas? 
  */
 void
 tv_callback_block		(tv_callback *		cb)
@@ -3263,19 +3271,26 @@ tv_callback_unblock		(tv_callback *		cb)
 
 /*
  *  Traverse a callback list and call all notify functions,
- *  usually on some event. Only the list owner should call this.
+ *  usually on some event. Only tveng calls this.
  */
 void
-tv_callback_notify		(void *			object,
+tv_callback_notify		(tveng_device_info *	info,
+				 void *			object,
 				 const tv_callback *	list)
 {
 	const tv_callback *cb;
 
 	t_assert (object != NULL);
 
+	if (info)
+		++info->priv->callback_recursion;
+
 	for (cb = list; cb; cb = cb->next)
 		if (cb->notify && cb->blocked == 0)
 			cb->notify (object, cb->user_data);
+
+	if (info)
+		--info->priv->callback_recursion;
 }
 
 /*
@@ -4224,7 +4239,8 @@ free_##kind##_list		(tv_##kind **		list)		\
 do {									\
 	if (info->cur_##item != p) {					\
 		info->cur_##item = (tv_##kind *) p;			\
-		tv_callback_notify (info, info->priv->item##_callback);	\
+		tv_callback_notify (info, info,				\
+				    info->priv->item##_callback);	\
 	}								\
 } while (0)
 

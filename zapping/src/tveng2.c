@@ -284,13 +284,13 @@ tveng2_set_capture_format(tveng_device_info * info)
   int result;
 
   pixfmt = info->format.pixfmt;
-  current_mode = tveng_stop_everything(info);
+  current_mode = p_tveng_stop_everything(info);
   info->format.pixfmt = pixfmt;
 
   result = set_capture_format(info);
 
   /* Start capturing again as if nothing had happened */
-  tveng_restart_everything(current_mode, info);
+  p_tveng_restart_everything(current_mode, info);
 
   return result;
 }
@@ -336,7 +336,7 @@ do_update_control		(struct private_tveng2_device_info *p_info,
 
 	if (c->pub.value != ctrl.value) {
 		c->pub.value = ctrl.value;
-		tv_callback_notify (&c->pub, c->pub._callback);
+		tv_callback_notify (&p_info->info, &c->pub, c->pub._callback);
 	}
 
 	return TRUE;
@@ -406,7 +406,7 @@ set_control			(tveng_device_info *	info,
 		if (ctrl.id == V4L2_CID_AUDIO_MUTE) {
 			if (tc->value != value) {
 				tc->value = value;
-				tv_callback_notify (tc, tc->_callback);
+				tv_callback_notify (info, tc, tc->_callback);
 			}
 			return TRUE;
 		}
@@ -415,7 +415,7 @@ set_control			(tveng_device_info *	info,
 	} else {
 		if (tc->value != value) {
 			tc->value = value;
-			tv_callback_notify (tc, tc->_callback);
+			tv_callback_notify (info, tc, tc->_callback);
 		}
 
 		return TRUE;
@@ -712,7 +712,7 @@ set_standard			(tveng_device_info *	info,
   int r;
 
   pixfmt = info->format.pixfmt;
-  current_mode = tveng_stop_everything(info);
+  current_mode = p_tveng_stop_everything(info);
 
 	r = v4l2_ioctl (info, VIDIOC_S_STD, &S(s)->enumstd.std);
 
@@ -721,8 +721,8 @@ set_standard			(tveng_device_info *	info,
 
 // XXX bad idea
   info->format.pixfmt = pixfmt;
-  tveng_set_capture_format(info);
-  tveng_restart_everything(current_mode, info);
+  p_tveng_set_capture_format(info);
+  p_tveng_restart_everything(current_mode, info);
 
   return (0 == r);
 }
@@ -851,14 +851,15 @@ static tv_bool
 update_video_input		(tveng_device_info *	info);
 
 static void
-store_frequency			(struct video_input *	vi,
+store_frequency			(tveng_device_info *	info,
+				 struct video_input *	vi,
 				 unsigned long		freq)
 {
 	unsigned int frequency = SCALE_FREQUENCY (vi, freq);
 
 	if (vi->pub.u.tuner.frequency != frequency) {
 		vi->pub.u.tuner.frequency = frequency;
-		tv_callback_notify (&vi->pub, vi->pub._callback);
+		tv_callback_notify (info, &vi->pub, vi->pub._callback);
 	}
 }
 
@@ -875,7 +876,7 @@ update_tuner_frequency		(tveng_device_info *	info,
 		if (-1 == v4l2_ioctl (info, VIDIOC_G_FREQ, &freq))
 			return FALSE;
 
-		store_frequency (VI (l), freq);
+		store_frequency (info, VI (l), freq);
 	}
 
 	return TRUE;
@@ -903,12 +904,12 @@ set_tuner_frequency		(tveng_device_info *	info,
 			goto store;
 
 	if (-1 == v4l2_ioctl (info, VIDIOC_S_FREQ, &new_freq)) {
-		store_frequency (vi, old_freq);
+		store_frequency (info, vi, old_freq);
 		return FALSE;
 	}
 
  store:
-	store_frequency (vi, new_freq);
+	store_frequency (info, vi, new_freq);
 	return TRUE;
 }
 
@@ -938,7 +939,7 @@ update_video_input		(tveng_device_info *	info)
 	}
 
 	info->cur_video_input = l;
-	tv_callback_notify (info, info->priv->video_input_callback);
+	tv_callback_notify (info, info, info->priv->video_input_callback);
 
 	if (l)
 		update_standard_list (info);
@@ -964,7 +965,7 @@ set_video_input			(tveng_device_info *	info,
 	}
 
 	pixfmt = info->format.pixfmt;
-	current_mode = tveng_stop_everything(info);
+	current_mode = p_tveng_stop_everything(info);
 
 	if (-1 == v4l2_ioctl (info, VIDIOC_S_INPUT, &VI (l)->index))
 		return FALSE;
@@ -982,10 +983,10 @@ set_video_input			(tveng_device_info *	info,
 				     info->cur_video_input->u.tuner.frequency);
 
 	info->format.pixfmt = pixfmt;
-	tveng_set_capture_format(info);
+	p_tveng_set_capture_format(info);
 
 	/* XXX Start capturing again as if nothing had happened */
-	tveng_restart_everything (current_mode, info);
+	p_tveng_restart_everything (current_mode, info);
 
 	return TRUE;
 }
@@ -1026,7 +1027,7 @@ tuner_bounds			(tveng_device_info *	info,
 	if (-1 == v4l2_ioctl (info, VIDIOC_G_FREQ, &freq))
 		return FALSE;
 
-	store_frequency (vi, freq);
+	store_frequency (info, vi, freq);
 
 	return TRUE;
 }
@@ -1235,7 +1236,7 @@ tveng2_start_capturing(tveng_device_info * info)
 
   t_assert(info != NULL);
 
-  tveng_stop_everything(info);
+  p_tveng_stop_everything(info);
 
   t_assert(info -> current_mode == TVENG_NO_CAPTURE);
   t_assert(p_info->num_buffers == 0);
@@ -1457,7 +1458,7 @@ int tveng2_set_capture_size(int width, int height, tveng_device_info * info)
 
   tveng2_update_capture_format(info);
 
-  current_mode = tveng_stop_everything(info);
+  current_mode = p_tveng_stop_everything(info);
 
   if (width < info->caps.minwidth)
     width = info->caps.minwidth;
@@ -1473,7 +1474,7 @@ int tveng2_set_capture_size(int width, int height, tveng_device_info * info)
   retcode = tveng2_set_capture_format(info);
 
   /* Restart capture again */
-  if (tveng_restart_everything(current_mode, info) == -1)
+  if (p_tveng_restart_everything(current_mode, info) == -1)
     retcode = -1;
 
   return retcode;
@@ -1590,7 +1591,7 @@ tveng2_set_preview_window(tveng_device_info * info)
 		vclip[-1].next = NULL;
 	}
 
-	tveng_set_preview_off (info);
+	p_tveng_set_preview (FALSE, info);
 
 	/* Set the new window */
 	if (-1 == v4l2_ioctl (info, VIDIOC_S_WIN, &window)) {
@@ -1885,7 +1886,7 @@ int tveng2_attach_device(const char* device_file,
 
   info->overlay_window.width = info->overlay_window.height = 16;
 
-  tveng_set_preview_window(info);
+  p_tveng_set_preview_window(info);
 
   /* Set our desired size, make it halfway */
   info -> format.width = (info->caps.minwidth + info->caps.maxwidth)/2;
@@ -1926,7 +1927,7 @@ tveng2_describe_controller(char ** short_str, char ** long_str,
 /* Closes a device opened with tveng_init_device */
 static void tveng2_close_device(tveng_device_info * info)
 {
-  tveng_stop_everything(info);
+  p_tveng_stop_everything(info);
 
   device_close (info->log_fp, info->fd);
   info -> fd = 0;

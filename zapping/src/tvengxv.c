@@ -465,7 +465,7 @@ do_update_control		(struct private_tvengxv_device_info *p_info,
 
 	if (c->pub.value != value) {
 		c->pub.value = value;
-		tv_callback_notify (&c->pub, c->pub._callback);
+		tv_callback_notify (&p_info->info, &c->pub, c->pub._callback);
 	}
 
 	return TRUE; /* ? */
@@ -502,7 +502,7 @@ set_control			(tveng_device_info *	info,
 	if (C(c)->atom == p_info->xa_mute) {
 		if (c->value != value) {
 			c->value = value;
-			tv_callback_notify (c, c->_callback);
+			tv_callback_notify (info, c, c->_callback);
 		}
 
 		return TRUE;
@@ -708,14 +708,15 @@ static tv_bool
 update_video_input		(tveng_device_info *	info);
 
 static void
-store_frequency			(struct video_input *	vi,
+store_frequency			(tveng_device_info *	info,
+				 struct video_input *	vi,
 				 int			freq)
 {
 	unsigned int frequency = freq * 62500;
 
 	if (vi->pub.u.tuner.frequency != frequency) {
 		vi->pub.u.tuner.frequency = frequency;
-		tv_callback_notify (&vi->pub, vi->pub._callback);
+		tv_callback_notify (info, &vi->pub, vi->pub._callback);
 	}
 }
 
@@ -738,7 +739,7 @@ update_tuner_frequency		(tveng_device_info *	info,
 				    p_info->xa_freq,
 				    &freq);
 
-		store_frequency (VI (l), freq);
+		store_frequency (info, VI (l), freq);
 	}
 
 	return TRUE;
@@ -771,7 +772,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 	XSync (info->priv->display, False);
 
  store:
-	store_frequency (VI (l), freq);
+	store_frequency (info, VI (l), freq);
 	return TRUE;
 }
 
@@ -806,10 +807,10 @@ set_source			(tveng_device_info *	info,
 	info->cur_video_standard = (tv_video_standard *) standard;
 
 	if (old_input != input)
-		tv_callback_notify (info, info->priv->video_input_callback);
+		tv_callback_notify (info, info, info->priv->video_input_callback);
 
 	if (old_standard != standard)
-		tv_callback_notify (info, info->priv->video_standard_callback);
+		tv_callback_notify (info, info, info->priv->video_standard_callback);
 }
 
 static tv_bool
@@ -1258,7 +1259,7 @@ static void tvengxv_close_device(tveng_device_info * info)
 
   t_assert(info != NULL);
 
-  tveng_stop_everything(info);
+  p_tveng_stop_everything(info);
 
   if (p_info->ei)
     XvFreeEncodingInfo(p_info->ei);
