@@ -139,8 +139,9 @@ set_piece_geometry		(piece		*p)
     {
       dest_x = (gint)(cx + p->x * cw);
       dest_y = (gint)(cy + p->y * ch);
-      dest_sw = dest_w = (gint)(p->w * cw);
-      dest_h =(gint)(p->h * ch);
+      dest_w = (gint)(p->w * cw);
+      dest_h = (gint)(p->h * ch);
+      dest_sw = dest_w;
     }
 
   if (osd_window && ((!p->scaled)  ||
@@ -491,26 +492,31 @@ static gint input_id = -1;
 static void
 ttx_position		(piece		*p)
 {
-  gint x = 0, y = 0, w = cw, h = ch;
+  gint x = cx, y = cy, w = cw, h = ch;
+  gint scol;
+  gint srow;
 
   /* Text area 40x25 is (64, 38) - (703, 537) in a 768x576 screen */
-  x += (64*w)/768;
-  y += (38*h)/576;
-  w -= (128*w)/768;
-  h -= (76*h)/576;
+  x += (64 * w) / 768;
+  y += (38 * h) / 576;
+  w -= (128 * w) / 768;
+  h -= (76 * h) / 576;
 
-  p->sw = p->w = ((p->column+p->width)*w)/p->max_columns
-    - (p->column*w)/p->max_columns;
-  p->h = ((p->row+1)*h)/p->max_rows-(p->row*h)/p->max_rows;
+  scol = (p->column * w) / p->max_columns;
+  srow = (p->row * h) / p->max_rows;
 
-  p->x = x + (p->column*w)/p->max_columns;
-  p->y = y + (p->row*h)/p->max_rows;
+  p->w = ((p->column + p->width) * w) / p->max_columns - scol;
+  p->h = ((p->row + 1) * h) / p->max_rows - srow;
+  p->sw = p->w;
+
+  p->x = x + scol;
+  p->y = y + srow;
 }
 
 static void
 cc_position		(piece		*p)
 {
-  gint x = 0, y = 0, w = cw, h = ch;
+  gint x = cx, y = cy, w = cw, h = ch;
   gint width0 /* min width of each char */,
     extra /* pixels remaining for completing total width */,
     total /* total width of the line */;
