@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.15 2000-11-30 09:36:38 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.16 2000-12-21 07:39:19 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -40,7 +40,7 @@
 #include "../systems/mpeg.h"
 #include "../systems/systems.h"
 
-
+/**/
 
 
 enum {
