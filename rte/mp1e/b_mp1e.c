@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.31 2002-03-19 19:25:47 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.32 2002-03-23 14:06:26 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -63,20 +63,29 @@ static const int		audio_buffers = 2*32;	/* audio compression -> mux */
 /* Legacy */
 
 int				verbose = 0;
-// int				filter_mode = 0;
+int				test_mode = 0;
+int				filter_mode;
+int				preview;
+int				width, height;
+int				motion_min, motion_max;
+double				frame_rate;
+int				luma_only;
+
+
 void packed_preview(unsigned char *buffer, int mb_cols, int mb_rows) { }
 void preview_init(int *argc, char ***argv) { }
 
 /* Start / Stop */
 
-/* forward */ static void reset_output(rte_context *context);
 /* forward */ static void reset_input(rte_codec *codec);
+/* forward */ static void reset_output(rte_context *context);
 
 static rte_bool
-context_stop(rte_context *context, double timestamp)
+stop(rte_context *context, double timestamp)
 {
 	mp1e_context *mx = PARENT(context, mp1e_context, context);
 	rte_context_class *xc = context->class;
+	rte_codec *codec;
 
 	if (context->status != RTE_STATUS_RUNNING) {
 		rte_error_printf(context, "Context %s not running.",
@@ -84,12 +93,11 @@ context_stop(rte_context *context, double timestamp)
 		return FALSE;
 	}
 
-	if (xc == &mp1e_mpeg1_video_context
-	    || xc == &mp1e_mpeg1_audio_context) {
-		mp1e_codec *md = PARENT(mx->codecs, mp1e_codec, codec);
-		rte_codec_class *dc = md->codec.class;
+	mp1e_sync_stop(&mx->sync, timestamp);
 
-		mp1e_sync_stop(&mx->sync, timestamp);
+	for (codec = mx->codecs; codec; codec = codec->next) {
+		mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
+		rte_codec_class *dc = md->codec.class;
 
 		// XXX timeout && force
 		pthread_join(md->thread_id, NULL);
@@ -101,8 +109,12 @@ context_stop(rte_context *context, double timestamp)
 		reset_input(&md->codec);
 
 		dc->parameters_set(&md->codec, &md->codec.params);
-	} else {
-		assert(0); /* FIXME */
+	}
+
+	if (xc != &mp1e_mpeg1_video_context
+	    && xc != &mp1e_mpeg1_audio_context) {
+		// XXX timeout && force
+		pthread_join(mx->thread_id, NULL);
 	}
 
 	reset_output(context);
@@ -113,8 +125,8 @@ context_stop(rte_context *context, double timestamp)
 }
 
 static rte_bool
-context_start(rte_context *context, double timestamp,
-	      rte_codec *time_ref, rte_bool async)
+start(rte_context *context, double timestamp,
+      rte_codec *time_ref, rte_bool async)
 {
 	mp1e_context *mx = PARENT(context, mp1e_context, context);
 	rte_context_class *xc = context->class;
@@ -162,7 +174,81 @@ context_start(rte_context *context, double timestamp,
 			return FALSE;
 		}
 	} else {
-		assert(0); /* FIXME */
+		rte_codec *codec, *ref = NULL;
+
+		for (codec = mx->codecs; codec; codec = codec->next) {
+		     /* if (codec == time_ref) {
+				/x requested stream is ok x/
+				ref = time_ref;
+				break;
+			} else */ if (!ref) {
+				/* first stream, any */
+				ref = codec;
+			} else if (codec->class->public.stream_type
+				   == ref->class->public.stream_type) {
+				/* lowest index, any */
+				if (codec->stream_index < ref->stream_index)
+					ref = codec;
+			} else if (codec->class->public.stream_type == RTE_STREAM_VIDEO) {
+				/* video preferred */
+				ref = codec;
+			}
+		}
+
+		mx->sync.time_base =
+			PARENT(ref, mp1e_codec, codec)->sstr.this_module;
+
+		for (codec = mx->codecs; codec; codec = codec->next) {
+			mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
+			rte_codec_class *dc = md->codec.class;
+
+			md->codec.status = RTE_STATUS_RUNNING;
+
+			error = -1;
+
+			switch (dc->public.stream_type) {
+			case RTE_STREAM_VIDEO:
+				error = pthread_create(&md->thread_id, NULL,
+						       mp1e_mpeg1, &md->codec);
+				break;
+
+			case RTE_STREAM_AUDIO:
+				error = pthread_create(&md->thread_id, NULL,
+						       mp1e_mp2, &md->codec);
+				break;
+
+			default:
+				assert(!"reached");
+			}
+
+			if (error != 0) {
+				md->codec.status = RTE_STATUS_READY;
+				rte_error_printf(context, _("Insufficient resources to start "
+							    "codec thread.\n"));
+				/* FIXME */
+				fprintf(stderr, "Oops. -554\n");
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		error = -1;
+
+		if (xc == &mp1e_mpeg1_ps_context)
+			error = pthread_create(&mx->thread_id, NULL,
+					       mpeg1_system_mux, &mx->mux);
+		else if (xc == &mp1e_mpeg1_vcd_context)
+			error = pthread_create(&mx->thread_id, NULL,
+					       vcd_system_mux, &mx->mux);
+		else
+			assert(!"reached");
+
+		if (error != 0) {
+			rte_error_printf(context, _("Insufficient resources to start "
+						    "context thread.\n"));
+			/* FIXME */
+			fprintf(stderr, "Oops. -555\n");
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	mp1e_sync_start(&mx->sync, timestamp);
@@ -380,7 +466,7 @@ set_output(rte_context *context,
 		mx->write_cb = write_cb;
 		mx->mux.mux_output = mux_out;
 
-		mp1e_sync_init(&mx->sync, modules, modules);
+		mp1e_sync_init(&mx->sync, modules, 1 /* refined in start() */);
 	}
 
 	context->status = RTE_STATUS_READY;
@@ -913,8 +999,8 @@ mp1e_mpeg1_audio_context = {
 
 static rte_context_class *
 context_table[] = {
-//	&mp1e_mpeg1_ps_context,
-//	&mp1e_mpeg1_vcd_context,
+	&mp1e_mpeg1_ps_context,
+	&mp1e_mpeg1_vcd_context,
 	&mp1e_mpeg1_video_context,
 	&mp1e_mpeg1_audio_context,
 };
@@ -1039,8 +1125,8 @@ backend_init(void)
 
 		context_table[i]->set_output = set_output;
 
-		context_table[i]->start = context_start;
-		context_table[i]->stop = context_stop;
+		context_table[i]->start = start;
+		context_table[i]->stop = stop;
 	}
 
 	mp1e_mpeg1_vcd_context.codec_option_enum = option_enum;

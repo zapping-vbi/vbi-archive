@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.12 2002-03-16 16:35:38 mschimek Exp $ */
+/* $Id: rte.c,v 1.13 2002-03-23 14:06:45 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -777,8 +777,8 @@ rte_option_string(rte_context *context, rte_codec *codec, const char *optstr)
 			break;
 
 		default:
-			fprintf(stderr, __PRETTY_FUNCTION__
-				": unknown export option type %d\n", oi->type);
+			fprintf(stderr,	"rte:%s: unknown export option type %d\n",
+				__PRETTY_FUNCTION__, oi->type);
 			exit(EXIT_FAILURE);
 		}
 
@@ -989,8 +989,8 @@ rte_invalid_option(rte_context *context, rte_codec *codec, const char *keyword, 
 				snprintf(buf, sizeof(buf) - 1, "'%s'", s);
 			break;
 		default:
-			fprintf(stderr, __PRETTY_FUNCTION__
-				": unknown export option type %d\n", oi->type);
+			fprintf(stderr,	"rte:%s: unknown export option type %d\n",
+				__PRETTY_FUNCTION__, oi->type);
 			strncpy(buf, "?", 1);
 			break;
 		}

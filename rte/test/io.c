@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.2 2002-03-16 16:35:38 mschimek Exp $ */
+/* $Id: io.c,v 1.3 2002-03-23 14:06:45 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -40,18 +40,16 @@
 #define BIG_ENDIAN __BIG_ENDIAN
 #endif
 
+#define MAX_CODECS		16
+
 /* Globals */
 
 static rte_context *		context;
 static rte_codec *		codec;
 static rte_codec_info *		dinfo;
-static rte_stream_parameters	params;
 
-static void			(* fake)(void *data, int size);
-static double			byte_period;
-static int			buffer_size;
-
-static double			time = 1000.0;
+static int			audio_tracks = 0;
+static int			video_tracks = 0;
 
 /* Options */
 
@@ -60,92 +58,126 @@ static int			blocking;
 static int			queue;
 static int			sleep_secs = 3;
 static char *			context_key = "mp1e_mpeg_audio";
-static char *			codec_key = "mpeg1_audio_layer2";
+static char *			codec_key[MAX_CODECS];
+static int			num_codecs = 0;
+
+struct generator {
+	void			(* func)(struct generator *, void *, int, double *);
+	double			byte_period;
+	int			buffer_size;
+
+	double			time;
+
+	rte_stream_parameters	params;
+
+	union {
+		struct {
+			double			freq;
+			double			w;
+			int			sample_count;
+		}			audio;
+		struct {
+			uint32_t		yuyv_band[8 * 8 * 8 + 1];
+			double			frame_var;
+			double			frame_vel;
+		}			video;
+	}			u;
+};
 
 /* Sine wave generator */
 
-#define AUDIO_FREQ		440 /* Hz */
-
-static int			sample_count = 0;
-static double			w;
-
 static void
-fake_audio(void *data, int size)
+audio(struct generator *gen, void *data, int size, double *timep)
 {
 	int16_t *sample = data;
 
-//	fprintf(stderr, "read %p %d #%d\n", data, size, sample_count);
+//	fprintf(stderr, "read %p %d #%d\n", data, size, gen->u.audio.sample_count);
 
-	for (size /= sizeof(int16_t); size--; sample_count++)
-		*sample++ = sin(sample_count * w) * 25000;
+	*timep = gen->time;
+	gen->time += size * gen->byte_period;
+
+	/* FIXME */
+	if (num_codecs > 1)
+		usleep(size * gen->byte_period * 1e6);
+
+	for (size /= sizeof(int16_t); size--; gen->u.audio.sample_count++)
+		*sample++ = sin(gen->u.audio.sample_count * gen->u.audio.w) * 25000;
 }
 
 static void
-init_audio(void)
+init_audio(struct generator *g)
 {
-	memset(&params, 0, sizeof(params));
+	fprintf(stderr, "Audio generator track #%d: %d Hz 16 bit mono\n",
+		audio_tracks, 220 << audio_tracks);
+
+	g->func = audio;
+	g->time = 1000.0;
+	g->u.audio.freq = 220 << audio_tracks;
+	g->u.audio.sample_count = 0;
+
+	audio_tracks++;
+
+	memset(&g->params, 0, sizeof(g->params));
 
 #if BYTE_ORDER == LITTLE_ENDIAN
-	params.audio.sndfmt = RTE_SNDFMT_S16_LE;
+	g->params.audio.sndfmt = RTE_SNDFMT_S16_LE;
 #elif BYTE_ORDER == BIG_ENDIAN
-	params.audio.sndfmt = RTE_SNDFMT_S16_BE;
+	g->params.audio.sndfmt = RTE_SNDFMT_S16_BE;
 #else
 #error Unknown machine endianess
 #endif
-	params.audio.sampling_freq = 44100;
-	params.audio.channels = 1;
+	g->params.audio.sampling_freq = 44100;
+	g->params.audio.channels = 1;
 
-	if (!rte_codec_parameters_set(codec, &params)) {
-		fprintf(stderr, "Sampling parameter negotiation failed: %s\n", rte_errstr(context));
+	if (!rte_codec_parameters_set(codec, &g->params)) {
+		fprintf(stderr, "Sampling parameter negotiation failed: %s\n",
+			rte_errstr(context));
 		exit(EXIT_FAILURE);
 	}
 
-	switch (params.audio.sndfmt) {
+	switch (g->params.audio.sndfmt) {
 	case RTE_SNDFMT_S16_LE:
 	case RTE_SNDFMT_S16_BE:
-		if (params.audio.channels == 1)
+		if (g->params.audio.channels == 1)
 			break;
 	default:
 		fprintf(stderr, "Sorry, cannot generate sample format required by codec.\n");
 		exit(EXIT_FAILURE);
 	}
 
-	fake = fake_audio;
-
-	w = AUDIO_FREQ / (double) params.audio.sampling_freq * M_PI * 2;
-	byte_period = 1.0 / (params.audio.sampling_freq * sizeof(int16_t)); 
-	buffer_size = params.audio.fragment_size; /* recommended minimum */
+	g->u.audio.w = g->u.audio.freq
+		/ (double) g->params.audio.sampling_freq * M_PI * 2;
+	g->byte_period = 1.0 / (g->params.audio.sampling_freq * sizeof(int16_t)); 
+	g->buffer_size = g->params.audio.fragment_size; /* recommended minimum */
 }
 
 /* Image generator */
 
-static uint32_t			yuyv_band[8 * 8 * 8 + 1];
-static double			frame_var = 0;
-static double			frame_vel = 0.05;
-
 static void
-fake_video(void *data, int size)
+video(struct generator *g, void *data, int size, double *timep)
 {
 	uint8_t *canvas = data;
 	int x, y, i;
 
-//	fprintf(stderr, "read %p %d %f\n", data, size, time);
+//	fprintf(stderr, "read %p %d %f\n", data, size, g->time);
 
-	frame_var += frame_vel;
+	g->u.video.frame_var += g->u.video.frame_vel;
 
-	for (y = 0; y < params.video.height; y += 4) {
-		for (x = 0; x < params.video.width; x += 4) {
+	for (y = 0; y < g->params.video.height; y += 4) {
+		for (x = 0; x < g->params.video.width; x += 4) {
 #if BYTE_ORDER == LITTLE_ENDIAN
-			uint32_t yuyv = ((int)((x ^ y) * frame_var) & 0xFF) * 0x00010001 + 0x80008000;
+			uint32_t yuyv = ((int)((x ^ y) * g->u.video.frame_var) & 0xFF)
+				* 0x00010001 + 0x80008000;
 #elif BYTE_ORDER == BIG_ENDIAN
-			uint32_t yuyv = ((int)((x ^ y) * frame_var) & 0xFF) * 0x01000100 + 0x00800080;
+			uint32_t yuyv = ((int)((x ^ y) * g->u.video.frame_var) & 0xFF)
+				* 0x01000100 + 0x00800080;
 #else
 #error Unknown machine endianess
 #endif
 			for (i = 0; i < 4; i++) {
 				uint32_t *d = (uint32_t *)(canvas
-					+ params.video.offset
-					+ (y + i) * params.video.stride
+					+ g->params.video.offset
+					+ (y + i) * g->params.video.stride
 					+ x * 2);
 
 				d[0] = yuyv;
@@ -154,14 +186,17 @@ fake_video(void *data, int size)
 		}
 	}
 
-	i = (params.video.height >> 1) & -16;
+	i = (g->params.video.height >> 1) & -16;
 
 	for (y = i - 16; y < i + 17; y++) {
 		uint32_t *d = (uint32_t *)(canvas
-			+ params.video.offset + y * params.video.stride);
+			+ g->params.video.offset + y * g->params.video.stride);
 
-		memcpy(d, yuyv_band, params.video.width * 2);
+		memcpy(d, g->u.video.yuyv_band, g->params.video.width * 2);
 	}
+
+	*timep = g->time;
+	g->time += size * g->byte_period;
 }
 
 static int
@@ -185,38 +220,47 @@ max(double val)
 }
 
 static void
-init_video(void)
+init_video(struct generator *gen)
 {
 	double r, g, b, i;
 	double Y, Cb, Cr;
 	int x;
 
-	memset(&params, 0, sizeof(params));
+	fprintf(stderr, "Video generator track #%d: 352x288 YUYV 24 Hz\n",
+		video_tracks);
 
-	params.video.pixfmt = RTE_PIXFMT_YUYV;
-	params.video.frame_rate = 24.0;
-	params.video.pixel_aspect = 1.0;
-	params.video.width = 352;
-	params.video.height = 288;
+	gen->func = video;
+	gen->time = 1000.0;
+	gen->u.video.frame_var = 0;
+	gen->u.video.frame_vel = 0.05;
 
-	if (!rte_codec_parameters_set(codec, &params)) {
-		fprintf(stderr, "Sampling parameter negotiation failed: %s\n", rte_errstr(context));
+	video_tracks++;
+
+	memset(&gen->params, 0, sizeof(gen->params));
+
+	gen->params.video.pixfmt = RTE_PIXFMT_YUYV;
+	gen->params.video.frame_rate = 24.0;
+	gen->params.video.pixel_aspect = 1.0;
+	gen->params.video.width = 352;
+	gen->params.video.height = 288;
+
+	if (!rte_codec_parameters_set(codec, &gen->params)) {
+		fprintf(stderr, "Sampling parameter negotiation failed: %s\n",
+			rte_errstr(context));
 		exit(EXIT_FAILURE);
 	}
 
-	if (params.video.pixfmt != RTE_PIXFMT_YUYV) {
+	if (gen->params.video.pixfmt != RTE_PIXFMT_YUYV) {
 		fprintf(stderr, "Sorry, cannot generate sample format #%d "
-			"required by codec, only YUYV.\n", params.video.pixfmt);
+			"required by codec, only YUYV.\n", gen->params.video.pixfmt);
 		exit(EXIT_FAILURE);
 	}
 
-	fake = fake_video;
+	gen->buffer_size = gen->params.video.stride * gen->params.video.height * 2;
+	gen->byte_period = 1.0 / (gen->params.video.frame_rate * gen->buffer_size);
 
-	buffer_size = params.video.stride * params.video.height * 2;
-	byte_period = 1.0 / (params.video.frame_rate * buffer_size);
-
-	for (x = 0; x < params.video.width >> 1; x++) {
-		i = x / (double)(params.video.width >> 1);
+	for (x = 0; x < gen->params.video.width >> 1; x++) {
+		i = x / (double)(gen->params.video.width >> 1);
 		r = 1.0 - max(fabs(i - 0.25) * 2);
 		g = 1.0 - max(fabs(i - 0.5) * 2);
 		b = 1.0 - max(fabs(i - 0.75) * 2);
@@ -227,7 +271,7 @@ init_video(void)
 		Cb = (- 0.1687 * r - 0.3312 * g + 0.5000 * b) * 255.0;
 		Cr = (+ 0.5000 * r - 0.4183 * g - 0.0816 * b) * 255.0;
 
-		yuyv_band[x] =
+		gen->u.video.yuyv_band[x] =
 #if BYTE_ORDER == LITTLE_ENDIAN
 			+ (saturate(Y * 219.0 / 255.0 + 16) << 0)
 			+ (saturate(Cb * 224.0 / 255.0 + 128) << 8)
@@ -249,14 +293,13 @@ init_video(void)
 static rte_bool
 read_ca_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 {
+	struct generator *gen = rte_codec_user_data(codec);
+
 	/* A real recording app allocates in main(), this is just a test. */
-	buffer->data = malloc(buffer_size);
-	buffer->size = buffer_size;
+	buffer->data = malloc(gen->buffer_size);
+	buffer->size = gen->buffer_size;
 
-	fake(buffer->data, buffer->size);
-
-	buffer->timestamp = time;
-	time += buffer->size * byte_period;
+	gen->func(gen, buffer->data, buffer->size, &buffer->timestamp);
 
 	return TRUE;
 }
@@ -274,10 +317,9 @@ unref_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 static rte_bool
 read_cp_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 {
-	fake(buffer->data, buffer->size);
+	struct generator *gen = rte_codec_user_data(codec);
 
-	buffer->timestamp = time;
-	time += buffer->size * byte_period;
+	gen->func(gen, buffer->data, buffer->size, &buffer->timestamp);
 
 	return TRUE;
 }
@@ -296,7 +338,7 @@ mainloop_pa(void)
 
 		/*
 		 *  NB the codec may or may not be another thread, so this
-		 *  function may or may not call write_cb().
+		 *  function not call write_cb() directly.
 		 */
 		if (!rte_push_buffer(codec, &buffer, blocking)) {
 			fprintf(stderr, "The codec is not fast enough, we drop frame #%d.\n", count);
@@ -363,7 +405,7 @@ long_options[] = {
 int
 main(int argc, char **argv)
 {
-	int index, c;
+	int index, c, i;
 	int queue_length;
 	char *errstr;
 	rte_bool r;
@@ -388,12 +430,15 @@ main(int argc, char **argv)
 			break;
 
 		case 'd':
-			codec_key = strdup(optarg);
+			codec_key[num_codecs++] = strdup(optarg);
 			break;
 
 		default:
 			exit(EXIT_FAILURE);
 		}
+
+	if (num_codecs == 0) /* use default */
+		codec_key[num_codecs++] = "mpeg1_audio_layer2";
 
 	/* Context */
 
@@ -402,70 +447,85 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	/* Codec */
+	for (i = 0; i < num_codecs; i++) {
+		struct generator *g = calloc(1, sizeof(*g));
+		int track = 0;
 
-	if (!(codec = rte_codec_set(context, codec_key, 0, NULL))) {
-		fprintf(stderr, "Cannot select codec: %s\n", rte_errstr(context));
-		exit(EXIT_FAILURE);
-	}
+		assert(g != NULL);
 
-	/* No options, we take the defaults (or the keyword option string) */
-
-	/* Sampling parameters */
-
-	dinfo = rte_codec_info_codec(codec);
-
-	switch (dinfo->stream_type) {
-	case RTE_STREAM_AUDIO:
-		init_audio();
-		break;
-
-	case RTE_STREAM_VIDEO:
-		init_video();
-		break;
-
-	default:
-		fprintf(stderr, "Sorry, can only feed audio and video codecs.\n");
-		exit(EXIT_FAILURE);
-	}
-
-	/* Input method */
-
-	switch (io_mode) {
-	case 1:
-		r = rte_set_input_callback_active(codec, read_ca_cb, unref_cb, &queue_length);
-		/* That's the number of buffers we'd normally allocate here. */
-		r && fprintf(stderr, "Callback-active queue: %d buffers\n", queue_length);
-		break;
-
-	case 2:
-		r = rte_set_input_callback_passive(codec, read_cp_cb);
-		break;
-
-	case 3:
-		r = rte_set_input_push_active(codec, unref_cb, queue, &queue_length);
-		r && fprintf(stderr, "Push-active queue: %d buffers requested, %d needed\n",
-			     queue, queue_length);
-		break;
-
-	case 4:
-		r = rte_set_input_push_passive(codec, queue, &queue_length);
-		if (r) {
-			fprintf(stderr, "Push-passive queue: %d buffers requested, %d needed\n",
-				queue, queue_length);
-			memset(&buffer, 0, sizeof(buffer));
-			rte_push_buffer(codec, &buffer, FALSE);
+		if ((dinfo = rte_codec_info_keyword(context, codec_key[i]))) {
+			track = (dinfo->stream_type == RTE_STREAM_AUDIO) ?
+				audio_tracks : video_tracks;
 		}
-		break;
 
-	default:
-		fprintf(stderr, "I/O mode %d?\n", io_mode);
-		exit(EXIT_FAILURE);
-	}
+		/* Codec */
 
-	if (!r) {
-		fprintf(stderr, "Unable to set input method: %s\n", rte_errstr(context));
-		exit(EXIT_FAILURE);
+		if (!(codec = rte_codec_set(context, codec_key[i], track, g))) {
+			fprintf(stderr, "Cannot select codec '%s': %s\n",
+				codec_key[i],
+				rte_errstr(context));
+			exit(EXIT_FAILURE);
+		}
+
+		/* No options, we take the defaults (or the keyword option string) */
+
+		/* Sampling parameters */
+
+		assert(dinfo != NULL);
+
+		switch (dinfo->stream_type) {
+		case RTE_STREAM_AUDIO:
+			init_audio(g);
+			break;
+			
+		case RTE_STREAM_VIDEO:
+			init_video(g);
+			break;
+			
+		default:
+			fprintf(stderr, "Sorry, can only feed audio and video codecs.\n");
+			exit(EXIT_FAILURE);
+		}
+
+		/* Input method */
+
+		switch (io_mode) {
+		case 1:
+			r = rte_set_input_callback_active(codec, read_ca_cb, unref_cb, &queue_length);
+			/* That's the number of buffers we'd normally allocate here. */
+			r && fprintf(stderr, "Callback-active queue: %d buffers\n", queue_length);
+			break;
+
+		case 2:
+			r = rte_set_input_callback_passive(codec, read_cp_cb);
+			break;
+
+		case 3:
+			r = rte_set_input_push_active(codec, unref_cb, queue, &queue_length);
+			r && fprintf(stderr, "Push-active queue: %d buffers requested, %d needed\n",
+				     queue, queue_length);
+			break;
+
+		case 4:
+			r = rte_set_input_push_passive(codec, queue, &queue_length);
+			if (r) {
+				fprintf(stderr, "Push-passive queue: %d buffers requested, %d needed\n",
+					queue, queue_length);
+				memset(&buffer, 0, sizeof(buffer));
+				rte_push_buffer(codec, &buffer, FALSE);
+			}
+			break;
+
+		default:
+			fprintf(stderr, "I/O mode %d?\n", io_mode);
+			exit(EXIT_FAILURE);
+		}
+
+		if (!r) {
+			fprintf(stderr, "Unable to set input method: %s\n",
+				rte_errstr(context));
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	/* Output method */
@@ -491,10 +551,18 @@ main(int argc, char **argv)
 		break;
 
 	case 3:
+		if (num_codecs > 1) {
+			fprintf(stderr, "Sorry, can feed only one codec.\n");
+			exit(EXIT_FAILURE);
+		}
 		mainloop_pa();
 		break;
 
 	case 4:
+		if (num_codecs > 1) {
+			fprintf(stderr, "Sorry, can feed only one codec.\n");
+			exit(EXIT_FAILURE);
+		}
 		mainloop_pp();
 		break;
 
@@ -504,6 +572,8 @@ main(int argc, char **argv)
 	}
 
 	/* Stop */
+
+	fprintf(stderr, "Stopping.\n");
 
 	rte_stop(context, 0.0);
 

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.c,v 1.3 2002-03-16 16:35:37 mschimek Exp $ */
+/* $Id: codec.c,v 1.4 2002-03-23 14:06:45 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -569,8 +569,8 @@ rte_codec_option_menu_get(rte_codec *codec, const char *keyword, int *entry)
 			break;
 
 		default:
-			fprintf(stderr, "rte:" __PRETTY_FUNCTION__
-				": unknown export option type %d\n", oi->type);
+			fprintf(stderr, "rte:%s: unknown export option type %d\n",
+				__PRETTY_FUNCTION__, oi->type);
 			exit(EXIT_FAILURE);
 		}
 
@@ -633,8 +633,8 @@ rte_codec_option_menu_set(rte_codec *codec, const char *keyword, int entry)
 		return rte_codec_option_set(codec, keyword, entry);
 
 	default:
-		fprintf(stderr, "rte:" __PRETTY_FUNCTION__
-			": unknown export option type %d\n", oi->type);
+		fprintf(stderr, "rte:%s: unknown export option type %d\n",
+			__PRETTY_FUNCTION__, oi->type);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -694,8 +694,8 @@ rte_codec_options_reset(rte_codec *codec)
 			break;
 
 		default:
-			fprintf(stderr, "rte:" __PRETTY_FUNCTION__
-				": unknown codec option type %d\n", oi->type);
+			fprintf(stderr, "rte:%s: unknown codec option type %d\n",
+				__PRETTY_FUNCTION__, oi->type);
 			exit(EXIT_FAILURE);
 		}
 	}

@@ -1,3 +1,11 @@
+2002-03-22	automake 1.6 <mschimek@users.sf.net>
+
+	* configure.in: Prepared for automake 1.6.
+	* Automake.am: Removed global_data.c from libmp1e_la_SOURCES,
+	  1.6 doesn't like it and it's no longer needed anyway.
+	* b_mp1e.c: Added mux thread, seems to work.
+	  More tests required.
+
 2002-03-16	<mschimek@users.sf.net>
 
 	* b_mp1e.c: Added mux i/o, untested.

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rtepriv.h,v 1.11 2002-03-16 16:35:38 mschimek Exp $ */
+/* $Id: rtepriv.h,v 1.12 2002-03-23 14:06:45 mschimek Exp $ */
 
 #ifndef __RTEPRIV_H__
 #define __RTEPRIV_H__
@@ -207,12 +207,13 @@ rte_error_reset(rte_context *context)
 #define nullcheck(X, whattodo)						\
 do {									\
 	if ((X) == NULL) {						\
-		const char *s = "rte:" __FILE__ ":" IRTF1(__LINE__) ":"	\
-			__PRETTY_FUNCTION__ ": " #X " == NULL.\n";	\
+		const char *s = "rte:" __FILE__ ":" IRTF1(__LINE__)	\
+				":%s: " #X " == NULL.\n";		\
 		if (context)						\
-			rte_error_printf(context, "%s", s);		\
+			rte_error_printf(context, s,			\
+					 __PRETTY_FUNCTION__);		\
 		else							\
-			fprintf(stderr, "%s", s);			\
+			fprintf(stderr, s, __PRETTY_FUNCTION__);	\
 		whattodo;						\
 	}								\
 } while (0)

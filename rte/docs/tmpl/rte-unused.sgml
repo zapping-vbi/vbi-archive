@@ -1,3 +1,23 @@
+<!-- ##### SECTION ./tmpl/options.sgml:Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/options.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/options.sgml:Short_Description ##### -->
+
+
+
+<!-- ##### SECTION ./tmpl/options.sgml:Title ##### -->
+Setting encoding options.
+
+
 <!-- ##### TYPEDEF rte_audio_stream_params ##### -->
 <para>
 

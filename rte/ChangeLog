@@ -1,3 +1,7 @@
+2002-02-22	<mschimek@users.sf.net>
+
+	* test/io.c: Extended for multiple codecs / tracks.
+
 2002-02-13	<mschimek@users.sf.net>
 
 	* Modified the i/o functions, added context stdio and file output,

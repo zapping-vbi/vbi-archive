@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.3 2002-03-16 16:35:37 mschimek Exp $ */
+/* $Id: context.c,v 1.4 2002-03-23 14:06:45 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -545,8 +545,8 @@ rte_context_option_menu_get(rte_context *context, const char *keyword, int *entr
 			break;
 
 		default:
-			fprintf(stderr, __PRETTY_FUNCTION__
-				": unknown export option type %d\n", oi->type);
+			fprintf(stderr,	"rte:%s: unknown export option type %d\n",
+				__PRETTY_FUNCTION__, oi->type);
 			exit(EXIT_FAILURE);
 		}
 
@@ -604,8 +604,8 @@ rte_context_option_menu_set(rte_context *context, const char *keyword, int entry
 		return rte_context_option_set(context, keyword, entry);
 
 	default:
-		fprintf(stderr, __PRETTY_FUNCTION__
-			": unknown export option type %d\n", oi->type);
+		fprintf(stderr,	"rte:%s: unknown export option type %d\n",
+			__PRETTY_FUNCTION__, oi->type);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -665,8 +665,8 @@ rte_context_options_reset(rte_context *context)
 			break;
 
 		default:
-			fprintf(stderr, __PRETTY_FUNCTION__
-				": unknown context option type %d\n", oi->type);
+			fprintf(stderr,	"rte:%s: unknown context option type %d\n",
+				__PRETTY_FUNCTION__, oi->type);
 			exit(EXIT_FAILURE);
 		}
 	}
