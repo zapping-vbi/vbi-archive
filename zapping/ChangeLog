@@ -1,3 +1,11 @@
+22.7.2000	Windowed preview working <garetxe@users.sourceforge.net>
+
+	* src/zmisc.c: Fixed the last bugs with it except one, that i
+	would need to get events from the root window to fix (and I don't
+	want to). You could call it a "feature" ;-) Did I tell that
+	windowed preview sucks? There is a bug with it that i'm trying to
+	reproduce (a SIGSEV when exitting)
+
 21.7.2000	Windowed preview <garetxe@users.sourceforge.net>
 
 	* src/zmisc.c: It's still unfinished (and sucks), but it mostly

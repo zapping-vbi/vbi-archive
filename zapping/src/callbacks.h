@@ -61,6 +61,11 @@ on_zapping_configure_event             (GtkWidget       *widget,
                                         GdkEvent        *event,
                                         gpointer         user_data);
 
+gboolean
+on_tv_screen_configure_event           (GtkWidget       *widget,
+                                        GdkEvent        *event,
+                                        gpointer         user_data);
+
 void
 on_standard_activate                   (GtkMenuItem     *menuitem,
 					gpointer        user_data);

@@ -23,9 +23,13 @@
 
 extern tveng_device_info * main_info;
 extern GtkWidget * main_window;
-GdkImage * zimage = NULL; /* The buffer that holds the capture */
-gint oldx=-1, oldy=-1, oldw=-1, oldh=-1; /* Last geometry of the
+static GdkImage * zimage = NULL; /* The buffer that holds the capture */
+static gint oldx=-1, oldy=-1, oldw=-1, oldh=-1; /* Last geometry of the
 					    Zapping window */
+static gint curx, cury, curw, curh; /* current geometry of the window
+				     */
+static gboolean obscured = FALSE;
+gboolean ignore_next_expose = FALSE;
 
 /*
   Prints a message box showing an error, with the location of the code
@@ -204,10 +208,11 @@ static
 void zmisc_add_clip(int x1, int y1, int x2, int y2,
 		    struct tveng_clip ** clips, gint* num_clips)
 {
+  /* the border is because of the possible dword-alignings */
   *clips = realloc(*clips, ((*num_clips)+1)*sizeof(struct tveng_clip));
-  (*clips)[*num_clips].x = x1;
+  (*clips)[*num_clips].x = x1-4;
   (*clips)[*num_clips].y = y1;
-  (*clips)[*num_clips].width = x2-x1;
+  (*clips)[*num_clips].width = (x2-x1);
   (*clips)[*num_clips].height = y2-y1;
   (*num_clips)++;
 }
@@ -244,6 +249,7 @@ void zmisc_get_clips(void)
   
   root=GDK_ROOT_WINDOW();
   me=GDK_WINDOW_XWINDOW(lookup_widget(main_window, "tv_screen")->window);
+
   for (;;) {
     XQueryTree(dpy, me, &rroot, &parent, &children, &nchildren);
     XFree((char *) children);
@@ -285,6 +291,29 @@ void zmisc_get_clips(void)
     free(clips);
 }
 
+/* Force an expose event in the given area */
+static 
+void zmisc_clear_area(gint x, gint y, gint width, gint height);
+
+static GtkWidget * clear_window = NULL;
+
+static
+void zmisc_clear_area(gint x, gint y, gint width, gint height)
+{
+  if (!clear_window)
+    {
+      clear_window = gtk_window_new( GTK_WINDOW_POPUP );
+
+      /*      gtk_widget_set_uposition(clear_window, x, y);
+	      gtk_widget_set_usize(clear_window, width, height);*/
+    }
+
+  gtk_widget_show(clear_window);
+  gdk_window_set_decorations(clear_window->window, 0);
+  gdk_window_move_resize(clear_window->window, x, y, width, height);
+
+  gtk_widget_hide(clear_window);
+}
 
 static
 gint zmisc_timeout_done (gpointer data);
@@ -294,40 +323,34 @@ gint zmisc_timeout_done (gpointer data)
 {
   *((guint*)data) = 0;
   if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
-      zmisc_get_clips(), tveng_set_preview_on(main_info);
+    {
+      main_info->window.x = curx;
+      main_info->window.y = cury;
+      main_info->window.width = curw;
+      main_info->window.height = curh;
+      zmisc_get_clips(); /* fills main_info->window.clips and calls
+			    tveng_set_window */
+      if (!obscured)
+	tveng_set_preview_on(main_info);
+    }
 
   return FALSE; /* destroy the timeout */
 }
 
 /* Announces that the tv_screen has moved. This routine refreshes the
    old placement of the window if neccesary */
-void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h)
+void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h, gboolean
+			     obscured_param)
 {
-  /* I'm using X directly here because the special properties the
-     window should have. Probably just a popup window would do too,
-     but this code is "borrowed" from xawtv */
-  Window   win = GDK_ROOT_WINDOW();
-  Display *dpy = GDK_DISPLAY();
-  XSetWindowAttributes xswa;
-  unsigned long mask;
-  Window   tmp;
   static guint timeout_id = 0;
   gint timeout_length = 100; /* 0.1 sec */
+
+  curx = x; cury = y; curw = w; curh = h; obscured = obscured_param;
   
   /* Just do the update (exitting zapping) */
   if ((!w && !h) && (!x && !y))
     {
-      xswa.override_redirect = True;
-      xswa.backing_store = NotUseful;
-      xswa.save_under = False;
-      mask = (CWSaveUnder | CWBackingStore| CWOverrideRedirect );
-      tmp = XCreateWindow(dpy,win, 0, 0,
-			  gdk_screen_width(), gdk_screen_height(), 0,
-			  CopyFromParent, InputOutput, CopyFromParent,
-			  mask, &xswa);
-      XMapWindow(dpy, tmp);
-      XUnmapWindow(dpy, tmp);
-      XDestroyWindow(dpy, tmp);
+      zmisc_clear_area(0, 0, gdk_screen_width(), gdk_screen_height());
       return;
     }
   
@@ -337,20 +360,9 @@ void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h)
 
     if ((main_info -> current_mode == TVENG_CAPTURE_PREVIEW) && (oldw != -1))
       {
-	xswa.override_redirect = True;
-	xswa.backing_store = NotUseful;
-	xswa.save_under = False;
-	mask = (CWSaveUnder | CWBackingStore| CWOverrideRedirect );
-	tmp = XCreateWindow(dpy,win,
-			    main_info->window.x,
-			    main_info->window.y,
-			    main_info->window.width,
-			    main_info->window.height,
-			    0, CopyFromParent, InputOutput,
-			    CopyFromParent, mask, &xswa);
-	XMapWindow(dpy, tmp);
-	XUnmapWindow(dpy, tmp);
-	XDestroyWindow(dpy, tmp);
+	zmisc_clear_area(main_info->window.x, main_info->window.y,
+			 main_info->window.width, main_info->window.height);
+	ignore_next_expose = TRUE;
       }
     timeout_id = gtk_timeout_add(timeout_length, zmisc_timeout_done,
 				 &timeout_id);
@@ -360,8 +372,10 @@ void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h)
     timeout_id = gtk_timeout_add(timeout_length, zmisc_timeout_done,
 				 &timeout_id);
   }
-  oldx = x;
+  gdk_window_get_origin(main_window->window, &oldx, &oldy);
+  gdk_window_get_size(main_window->window, &oldw, &oldh);
+  /*  oldx = x;
   oldy = y;
   oldw = w;
-  oldh = h;
+  oldh = h;*/
 }

@@ -295,7 +295,7 @@ int main(int argc, char * argv[])
       /* We are probably viewing fullscreen, just do nothing */
       if (main_info -> current_mode != TVENG_CAPTURE_READ)
 	{
-	  usleep(100000);
+	  usleep(50000);
 	  continue;
 	}
 
@@ -432,7 +432,7 @@ void shutdown_zapping(void)
   /* refresh the tv screen (in case we were in windowed preview mode)
    */
   if (do_screen_cleanup)
-    zmisc_refresh_tv_screen(0, 0, 0, 0);
+    zmisc_refresh_tv_screen(0, 0, 0, 0, FALSE);
 }
 
 gboolean startup_zapping()

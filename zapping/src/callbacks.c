@@ -192,28 +192,85 @@ on_zapping_configure_event             (GtkWidget       *widget,
                                         GdkEvent        *event,
                                         gpointer         user_data)
 {
-  GtkWidget * tv_screen = lookup_widget(widget, "tv_screen");
+  GtkWidget * tv_screen;
   int x, y, w, h;
+  gboolean obscured = FALSE;
 
   if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
     return FALSE;
 
+  switch (event->type) {
+  case GDK_CONFIGURE:
+    break;
+  case GDK_DELETE:
+    break;
+  case GDK_NO_EXPOSE:
+    break;
+  case GDK_UNMAP: /* iconized */
+    obscured = TRUE; break;
+  case GDK_FOCUS_CHANGE:
+    break;
+  default:
+    return FALSE;
+  }
+
+  tv_screen = lookup_widget(widget, "tv_screen");
+
   gdk_window_get_origin(tv_screen->window, &x, &y);
   gdk_window_get_size(tv_screen->window, &w, &h);
 
-  g_message("event: %d", event->type);
-
-  zmisc_refresh_tv_screen(x, y, w, h);
-
-  main_info->window.x = x;
-  main_info->window.y = y;
-  main_info->window.width = w;
-  main_info->window.height = h;
-  main_info->window.clipcount = 0;
-  if (tveng_set_preview_window(main_info) == -1)
-    g_warning("%s", main_info->error);
-
+  zmisc_refresh_tv_screen(x, y, w, h, obscured);
+  
   return FALSE;
+}
+
+gboolean
+on_tv_screen_configure_event           (GtkWidget       *widget,
+                                        GdkEvent        *event,
+                                        gpointer         user_data)
+{
+  GtkWidget * tv_screen;
+  int x, y, w, h;
+  gboolean obscured = FALSE;
+  extern gboolean ignore_next_expose;
+
+  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
+    return FALSE;
+
+  switch (event->type) {
+  case GDK_CONFIGURE:
+    break;
+  case GDK_DELETE:
+    break;
+  case GDK_EXPOSE:
+    if (ignore_next_expose)
+      {
+	ignore_next_expose = FALSE;
+	return FALSE;
+      }
+    break;
+  case GDK_MAP:
+    break;
+  case GDK_UNMAP:
+    break;
+  case GDK_VISIBILITY_NOTIFY:
+    if(((GdkEventVisibility*)event)->state == GDK_VISIBILITY_FULLY_OBSCURED)
+      obscured = TRUE;
+    break;
+  case GDK_NO_EXPOSE:
+    break;
+  default:
+    return FALSE;
+  }
+
+  tv_screen = lookup_widget(widget, "tv_screen");
+
+  gdk_window_get_origin(tv_screen->window, &x, &y);
+  gdk_window_get_size(tv_screen->window, &w, &h);
+
+  zmisc_refresh_tv_screen(x, y, w, h, obscured);
+
+  return TRUE;
 }
 
 /* Activate an standard */

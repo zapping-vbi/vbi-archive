@@ -33,9 +33,9 @@
     <last_modification_time>Thu, 06 Jan 2000 13:53:16 GMT</last_modification_time>
   </signal>
   <signal>
-    <name>configure_event</name>
+    <name>event</name>
     <handler>on_zapping_configure_event</handler>
-    <last_modification_time>Thu, 20 Jul 2000 19:50:24 GMT</last_modification_time>
+    <last_modification_time>Sat, 22 Jul 2000 16:00:46 GMT</last_modification_time>
   </signal>
   <title>Zapping</title>
   <type>GTK_WINDOW_TOPLEVEL</type>
@@ -349,7 +349,7 @@
       <class>GtkDrawingArea</class>
       <child_name>GnomeDock:contents</child_name>
       <name>tv_screen</name>
-      <events>GDK_BUTTON_PRESS_MASK | GDK_VISIBILITY_NOTIFY_MASK</events>
+      <events>GDK_EXPOSURE_MASK | GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK | GDK_PROPERTY_CHANGE_MASK | GDK_VISIBILITY_NOTIFY_MASK</events>
       <signal>
 	<name>size_allocate</name>
 	<handler>on_tv_screen_size_allocate</handler>
@@ -362,8 +362,8 @@
       </signal>
       <signal>
 	<name>event</name>
-	<handler>on_zapping_configure_event</handler>
-	<last_modification_time>Fri, 21 Jul 2000 21:01:16 GMT</last_modification_time>
+	<handler>on_tv_screen_configure_event</handler>
+	<last_modification_time>Sat, 22 Jul 2000 15:57:00 GMT</last_modification_time>
       </signal>
     </widget>
   </widget>
