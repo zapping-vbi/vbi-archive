@@ -403,7 +403,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.26 2003-11-04 21:09:21 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.27 2003-11-13 05:29:36 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -474,14 +474,14 @@ int main(int argc, char * argv[])
   if (debug_msg)
     {
       fprintf (stderr, "DGA parameters:\n"
-	       "  frame buffer address   %p\n"
+	       "  frame buffer address   0x%lx\n"
 	       "  frame buffer size      %ux%u pixels, 0x%x bytes\n"
 	       "  bytes per line         %u bytes\n"
 	       "  pixfmt                 %s\n",
 	       dga_param.base,
-	       dga_param.width, dga_param.height,
-	       dga_param.size, dga_param.bytes_per_line,
-	       tv_pixfmt_name (dga_param.pixfmt));
+	       dga_param.format.width, dga_param.format.height,
+	       dga_param.format.size, dga_param.format.bytes_per_line,
+	       tv_pixfmt_name (dga_param.format.pixfmt));
     }
 
   if (debug_msg)

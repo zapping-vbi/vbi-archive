@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.12 2003-10-10 18:02:30 mschimek Exp $
+ * $Id: fullscreen.c,v 1.21.2.13 2003-11-13 05:29:46 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -294,8 +294,8 @@ start_fullscreen		(tveng_device_info *	info)
       height = MIN (info->caps.maxheight, 576);
     }
 
-  width = MIN (width, dga_param.width);
-  height = MIN (height, dga_param.height);
+  width = MIN (width, dga_param.format.width);
+  height = MIN (height, dga_param.format.height);
 
   v = NULL;
 
@@ -333,8 +333,8 @@ start_fullscreen		(tveng_device_info *	info)
   else
     {
       /* Center the window, dwidth is always >= width */
-      info->overlay_window.x = (dga_param.width - width) >> 1;
-      info->overlay_window.y = (dga_param.height - height) >> 1;
+      info->overlay_window.x = (dga_param.format.width - width) >> 1;
+      info->overlay_window.y = (dga_param.format.height - height) >> 1;
       info->overlay_window.width = width;
       info->overlay_window.height = height;
 
@@ -348,9 +348,9 @@ start_fullscreen		(tveng_device_info *	info)
 	  || info->overlay_window.height != height)
 	{
 	  info->overlay_window.x =
-	    (dga_param.width - info->overlay_window.width) >> 1;
+	    (dga_param.format.width - info->overlay_window.width) >> 1;
 	  info->overlay_window.y =
-	    (dga_param.height - info->overlay_window.height) >> 1;
+	    (dga_param.format.height - info->overlay_window.height) >> 1;
 
 	  if (-1 == tveng_set_preview_window (info))
 	    goto failure;

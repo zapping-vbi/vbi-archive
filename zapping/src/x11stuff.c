@@ -1472,7 +1472,7 @@ x11_dga_query			(tv_overlay_buffer *	target,
 	      (void *) start, width, banksize, banksize,
 	      memsize, memsize);
 
-    target->base = (void *) start;
+    target->base = start;
   }
 
   {
@@ -1487,8 +1487,8 @@ x11_dga_query			(tv_overlay_buffer *	target,
       printv ("DGA root width=%u height=%u\n",
 	      wts.width, wts.height);
 
-    target->width  = wts.width;
-    target->height = wts.height;
+    target->format.width  = wts.width;
+    target->format.height = wts.height;
   }
 
   {
@@ -1577,18 +1577,19 @@ x11_dga_query			(tv_overlay_buffer *	target,
     format.big_endian = (MSBFirst == XImageByteOrder (display));
   }
 
-  target->bytes_per_line = target->width * format.bits_per_pixel;
+  target->format.bytes_per_line =
+    target->format.width * format.bits_per_pixel;
 
-  if (target->bytes_per_line & 7)
+  if (target->format.bytes_per_line & 7)
     {
       printv ("DGA: Unknown frame buffer bits per pixel\n");
       CLEAR (*target);
       return FALSE;
     }
 
-  target->bytes_per_line >>= 3;
+  target->format.bytes_per_line >>= 3;
 
-  target->size = target->height * target->bytes_per_line;
+  target->format.size = target->format.height * target->format.bytes_per_line;
 
   tv_pixel_format_to_pixfmt (&format);
 
@@ -1598,7 +1599,7 @@ x11_dga_query			(tv_overlay_buffer *	target,
     return FALSE;
   }
 
-  target->pixfmt = format.pixfmt;
+  target->format.pixfmt = format.pixfmt;
 
   return TRUE;
 }
