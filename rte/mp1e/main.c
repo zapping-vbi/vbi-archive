@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.41 2002-12-14 00:43:43 mschimek Exp $ */
+/* $Id: main.c,v 1.42 2003-01-15 23:33:46 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -530,8 +530,9 @@ main(int ac, char **av)
 		video_params.video.height = grab_height;
 
 		if (!stat(cap_dev, &st) && S_ISCHR(st.st_mode)) {
-			if (!(vfifo = v4l2_init(&video_params.video, fp)))
-				vfifo = v4l_init(&video_params.video, fp);
+			if (!(vfifo = v4l25_init(&video_params.video, fp)))
+				if (!(vfifo = v4l2_init(&video_params.video, fp)))
+					vfifo = v4l_init(&video_params.video, fp);
 		} else if (!strncmp(cap_dev, "raw:", 4)) {
 			vfifo = raw_init(&video_params.video, fp);
 		} else {
