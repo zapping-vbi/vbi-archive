@@ -297,7 +297,7 @@ add_dev_mixer_devices		(void)
   int i, j;
   device_entry *d = NULL;
 
-  for (i=0; ;i++)
+  for (i=-1; ;i++)
     {
       char buffer[256];
       int fd;
@@ -305,7 +305,10 @@ add_dev_mixer_devices		(void)
       int devmask, recmask;
 
       buffer[sizeof(buffer)-1] = 0;
-      snprintf(buffer, sizeof(buffer)-1, "/dev/mixer%d", i);
+      if (i != -1)
+	snprintf(buffer, sizeof(buffer)-1, "/dev/mixer%d", i);
+      else /* try /dev/mixer first */
+	snprintf(buffer, sizeof(buffer)-1, "/dev/mixer");
 
       fd = open(buffer, O_RDWR, 0);
       if (fd < 1)
