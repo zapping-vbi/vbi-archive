@@ -627,12 +627,46 @@ extern void
 z_toggle_action_connect_gconf_key
 				(GtkToggleAction *	toggle_action,
 				 const gchar *		key);
-extern GtkWidget *
-z_gconf_combo_box_new		(const gchar **		option_menu,
+extern gboolean
+z_gconf_get			(gpointer		result,
+				 const gchar *		key,
+				 GConfValueType		type);
+extern void
+z_gconf_auto_update		(gpointer		var,
+				 const gchar *		key,
+				 GConfValueType		type);
+
+#define Z_GCONF_GET_NOTIFY(t1, t2, t3)					\
+static __inline__ gboolean						\
+z_gconf_get_##t1 (t2 *result, const gchar *key)				\
+{ return z_gconf_get (result, key, GCONF_VALUE_##t3); }			\
+static __inline__ void							\
+z_gconf_auto_update_##t1 (t2 *var, const gchar *key)			\
+{ z_gconf_auto_update (var, key, GCONF_VALUE_##t3); }
+
+Z_GCONF_GET_NOTIFY (bool, gboolean, BOOL)
+Z_GCONF_GET_NOTIFY (int, gint, INT)
+Z_GCONF_GET_NOTIFY (float, gdouble, FLOAT)
+
+extern gboolean
+z_gconf_set_bool		(const gchar *		key,
+				 gboolean		val);
+extern gboolean
+z_gconf_set_int			(const gchar *		key,
+				 gint			val);
+extern gboolean
+z_gconf_set_string		(const gchar *		key,
+				 const gchar *		val);
+extern gboolean
+z_gconf_get_string_enum		(gint *			enum_value,
 				 const gchar *		gconf_key,
 				 const GConfEnumStringPair *lookup_table);
 extern gboolean
-z_gconf_get_string_enum		(gint *			enum_value,
+z_gconf_notify_add		(const gchar *		key,
+				 GConfClientNotifyFunc	func,
+				 gpointer		user_data);
+extern GtkWidget *
+z_gconf_combo_box_new		(const gchar **		option_menu,
 				 const gchar *		gconf_key,
 				 const GConfEnumStringPair *lookup_table);
 extern void
@@ -641,6 +675,9 @@ z_action_set_sensitive		(GtkAction *		action,
 extern void
 z_action_set_visible		(GtkAction *		action,
 				 gboolean		visible);
+extern void
+z_menu_shell_chop_off		(GtkMenuShell *		menu_shell,
+				 GtkMenuItem *		menu_item);
 
 /* Common constants for item position in Gtk insert functions. */
 #define PREPEND 0
