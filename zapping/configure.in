@@ -11,7 +11,7 @@ AM_PROG_LIBTOOL
 
 dnl These are the plugins we can build, they depend on the present
 dnl libs.
-PLUGINS_TO_BUILD="template mpeg"
+PLUGINS_TO_BUILD="template"
 
 dnl ---------------------------------------------------------------------------
 dnl disable X extensions
@@ -73,6 +73,19 @@ AC_CHECK_LIB(jpeg, jpeg_destroy_compress, JPEG_LIB="-ljpeg", HAVE_JPEG="no")
 dnl The screenshot plugin requires libjpeg
 if test "$HAVE_JPEG" = "yes"; then
 	PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD screenshot"
+fi
+AC_SUBST(JPEG_LIB)
+
+dnl ----------------------------------------------------------------------
+dnl Check for RTE, the MPEG encoder
+dnl ----------------------------------------------------------------------
+HAVE_RTE=""
+AC_CHECK_LIB(rte, rte_start_encoding, HAVE_RTE="yes", HAVE_RTE="no")
+dnl The mpeg plugin requires RTE
+if test "$HAVE_RTE" = "yes"; then
+	PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD mpeg"
+else
+	AC_MSG_WARN([*** RTE not found, MPEG capture will be disabled ***])
 fi
 AC_SUBST(JPEG_LIB)
 
@@ -226,6 +239,7 @@ echo "
 	GdkPixbuf			$HAVE_GDK_PIXBUF
 	JPEG lib			$HAVE_JPEG
 	MMX support			$HAVE_MMX
+	MPEG encoder			$HAVE_RTE
 
 	Plugins to build
 	----------------

@@ -268,6 +268,9 @@ static
 void plugin_load_config (gchar * root_key)
 {
   gchar * buffer;
+  gchar * default_save_dir;
+
+  default_save_dir = g_strconcat(getenv("HOME"), "/shots", NULL);
 
   buffer = g_strconcat(root_key, "quality", NULL);
   zconf_create_integer(75,
@@ -277,11 +280,13 @@ void plugin_load_config (gchar * root_key)
   g_free(buffer);
 
   buffer = g_strconcat(root_key, "save_dir", NULL);
-  zconf_create_string(getenv("HOME"),
+  zconf_create_string(default_save_dir,
 		      "The directory where screenshot will be"
 			" written to", buffer);
   zconf_get_string(&save_dir, buffer);
   g_free(buffer);
+
+  g_free(default_save_dir);
 }
 
 static

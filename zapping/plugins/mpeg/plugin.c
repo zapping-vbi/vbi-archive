@@ -21,9 +21,10 @@
 #include <rte.h>
 
 /*
-  This plugin was built from the template one. It does some thing
-  that the template one doesn't, such as adding itself to the gui and
-  adding help for the properties.
+  TODO:
+    . lock sizes
+    . support for SECAM/NTSC/etc standards
+    . Less CPU usage (less memcopy's)
 */
 
 /* This is the description of the plugin, change as appropiate */
@@ -49,6 +50,22 @@ static void * dest_buffer = NULL;
 static rte_context * context = NULL;
 /* Info about the video device */
 static tveng_device_info * zapping_info = NULL;
+/* Whether we should start encoding in the next frame */
+static gboolean start_encoding = FALSE;
+/* Whether we should stop encoding in the next frame */
+static gboolean stop_encoding = FALSE;
+/* Pointer to the dialog that appears while saving */
+static GtkWidget * saving_dialog = NULL;
+
+/* Plugin options */
+/* Compressor options */
+static gdouble output_video_bits;
+static gdouble output_audio_bits;
+static gint engine_verbosity;
+/* I/O */
+static gchar* save_dir;
+static gint output_mode; /* 0:file, 1:/dev/null */
+static gint mux_mode; /* 0:audio, 1:video, 2:both */
 
 gint plugin_get_protocol ( void )
 {
@@ -293,10 +310,67 @@ close_audio(void)
     free(abuffer);
 }
 
+/* Called when compressed data is ready */
+static void
+encode_callback(rte_context * context, void * data, size_t size,
+		void * user_data)
+{
+  /* currently /dev/null handler */
+}
+
+/*
+ * Returns a pointer to a file available for writing and stores in
+ * name the name of the opened file.
+ * On error, NULL is returned, and name is undefined.
+ * You need to g_free name on success.
+ */
+static FILE*
+resolve_filename(const gchar * dir, const gchar * prefix,
+		 const gchar * suffix, gchar ** name)
+{
+  gint clip_index = 1;
+  gchar * buffer = NULL;
+  FILE * returned_file = NULL;
+
+  do {
+    if (returned_file)
+      fclose(returned_file);
+    
+    g_free(buffer);
+
+    if ((!*save_dir) || (save_dir[strlen(save_dir)-1] != '/'))
+      buffer = g_strdup_printf("%s/%s%d%s", save_dir, prefix,
+			       clip_index++, suffix);
+    else
+      buffer = g_strdup_printf("%s%s%d%s", save_dir, prefix,
+			       clip_index++, suffix);
+
+    /* Just check for the existance for now */
+    returned_file = fopen(buffer, "rb");
+  } while (returned_file);
+
+  if (!(returned_file = fopen(buffer, "wb")))
+    {
+      ShowBox("%s couldn't be opened for writing.\n"
+	      "Check your permissions.", GNOME_MESSAGE_BOX_ERROR, buffer);
+      g_free(buffer);
+      return NULL;
+    }
+
+  if (name)
+    *name = buffer;
+
+  return returned_file;
+}
+
 static
 gboolean plugin_start (void)
 {
   enum rte_pixformat pixformat = RTE_YUV420;
+  gchar * file_name = NULL;
+  GtkWidget * widget;
+  FILE * file_fd;
+  gchar * buffer;
 
   /* it would be better to gray out the button and set insensitive */
   if (active)
@@ -322,12 +396,13 @@ gboolean plugin_start (void)
 
   g_assert(context == NULL);
 
-  if (!init_audio(44100, FALSE))
-    {
-      ShowBox("Couldn't open the ESD device for capturing audio",
-	      GNOME_MESSAGE_BOX_ERROR);
-      return FALSE;
-    }
+  if ((mux_mode+1) & 1)
+    if (!init_audio(44100, FALSE))
+      {
+	ShowBox("Couldn't open the ESD device for capturing audio",
+		GNOME_MESSAGE_BOX_ERROR);
+	return FALSE;
+      }
 
   context =
     rte_context_new(zapping_info->format.width,
@@ -338,45 +413,202 @@ gboolean plugin_start (void)
     {
       ShowBox("The encoding context cannot be created",
 	      GNOME_MESSAGE_BOX_ERROR);
+      close_audio();
       return FALSE;
     }
 
+  rte_set_verbosity(context, engine_verbosity);
+
   /* Set up the context for encoding */
-  rte_set_mode(context, RTE_AUDIO | RTE_VIDEO);
-  rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE, NULL, NULL,
-		NULL);
-  rte_set_input(context, RTE_AUDIO, RTE_CALLBACKS, FALSE,
-  		audio_data_callback, NULL, NULL);
-  rte_set_output(context, NULL, "temp.mpeg");
+  switch (mux_mode)
+    {
+    case 0:
+      rte_set_mode(context, RTE_AUDIO);
+      rte_set_input(context, RTE_AUDIO, RTE_CALLBACKS, FALSE,
+		    audio_data_callback, NULL, NULL);
+      break;
+    case 1:
+      rte_set_mode(context, RTE_VIDEO);
+      rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE, NULL, NULL, NULL);
+      break;
+    default:
+      rte_set_mode(context, RTE_AUDIO | RTE_VIDEO);
+      rte_set_input(context, RTE_AUDIO, RTE_CALLBACKS, FALSE,
+		    audio_data_callback, NULL, NULL);
+      rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE, NULL, NULL, NULL);
+      break;
+    }
+
+  switch (output_mode)
+    {
+    case 0:
+      /* we are just interested in the file name */
+      file_fd = resolve_filename(save_dir, "clip", ".mpeg",
+				 &file_name);
+      if (!file_fd)
+	{
+	  context = rte_context_destroy(context);
+	  if ((mux_mode+1) & 1)
+	    close_audio();
+	  return FALSE;
+	}
+      fclose(file_fd);
+      g_message("saving in %s", file_name);
+      rte_set_output(context, NULL, file_name);
+      break;
+    default:
+      rte_set_output(context, encode_callback, NULL);
+      file_name = g_strdup("/dev/null");
+      break;
+    }
+
+  /* Set video and audio rates */
+  rte_set_video_parameters(context, context->video_format,
+			   context->width, context->height,
+			   context->video_rate, output_video_bits*1e6);
+  rte_set_audio_parameters(context, context->audio_rate,
+			   context->audio_mode, output_audio_bits*1e3);
+
   /* Set everything up for encoding */
   if (!rte_init_context(context))
     {
       ShowBox("The encoding context cannot be inited: %s",
 	      GNOME_MESSAGE_BOX_ERROR, context->error);
-      rte_context_destroy(context);
+      context = rte_context_destroy(context);
+      if ((mux_mode+1) & 1)
+	close_audio();
       return FALSE;
     }
-  if (!rte_start_encoding(context))
-    {
-      ShowBox("Cannot start encoding: %s", GNOME_MESSAGE_BOX_ERROR,
-	      context->error);
-      rte_context_destroy(context);
-      return FALSE;
-    }
+  start_encoding = TRUE;
   dest_buffer = rte_push_video_data(context, NULL, 0.0);
   active = TRUE;
   coded_frames = 0;
+
+  if (saving_dialog)
+    gtk_widget_destroy(saving_dialog);
+
+  saving_dialog =
+    build_widget("dialog1", PACKAGE_DATA_DIR
+		 "/mpeg_properties.glade");
+
+  /* Set the fields on the control window */
+  widget = lookup_widget(saving_dialog, "label13");
+  buffer = g_strdup_printf(_("RTE ID: %s"), RTE_ID);
+  gtk_label_set_text(GTK_LABEL(widget), buffer);
+  g_free(buffer);
+
+  widget = lookup_widget(saving_dialog, "label9");
+  buffer = g_strdup_printf(_("Destination: %s"), file_name);
+  gtk_label_set_text(GTK_LABEL(widget), buffer);
+  g_free(buffer);
+
+  widget = lookup_widget(saving_dialog, "label10");
+  switch (mux_mode)
+    {
+    case 0:
+      buffer = _("Audio only");
+      break;
+    case 1:
+      buffer = _("Video only");
+      break;
+    default:
+      buffer = _("Audio and Video");
+      break;
+    }
+  gtk_label_set_text(GTK_LABEL(widget), buffer);
+
+  widget = lookup_widget(saving_dialog, "label11");
+  buffer =
+    g_strdup_printf("%s %g\n%s %g",
+		    _("Output video Mbits per second:"),
+		    context->output_video_bits/1e6,
+		    _("Output audio Kbits per second:"),
+		    context->output_audio_bits/1e3);
+  gtk_label_set_text(GTK_LABEL(widget), buffer);
+  g_free(buffer);
+
+  /* fixme: label12 : dinamic stats */
+
+  g_free(file_name);
+
+  gtk_widget_show(saving_dialog);
+
   return TRUE;
 }
 
 static
 void plugin_load_config (gchar * root_key)
 {
+  gchar *buffer;
+  gchar *default_save_dir;
+
+  default_save_dir = g_strconcat(getenv("HOME"), "/clips", NULL);
+
+  buffer = g_strconcat(root_key, "output_video_bits", NULL);
+  zconf_create_float(2.3, "Output video Mbits", buffer);
+  output_video_bits = zconf_get_float(NULL, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "output_audio_bits", NULL);
+  zconf_create_float(80, "Output audio Kbits", buffer);
+  output_audio_bits = zconf_get_float(NULL, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "engine_verbosity", NULL);
+  zconf_create_integer(0, "Engine verbosity", buffer);
+  engine_verbosity = zconf_get_integer(NULL, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "save_dir", NULL);
+  zconf_create_string(default_save_dir,
+		      "Where will we write the clips to", buffer);
+  zconf_get_string(&save_dir, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "output_mode", NULL);
+  zconf_create_integer(0, "Where will we send the encoded stream",
+		       buffer);
+  output_mode = zconf_get_integer(NULL, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "mux_mode", NULL);
+  zconf_create_integer(2, "Which kind of stream are we going to produce",
+		       buffer);
+  mux_mode = zconf_get_integer(NULL, buffer);
+  g_free(buffer);
+
+  g_free(default_save_dir);
 }
 
 static
 void plugin_save_config (gchar * root_key)
 {
+  gchar *buffer;
+
+  buffer = g_strconcat(root_key, "output_video_bits", NULL);
+  zconf_set_float(output_video_bits, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "output_audio_bits", NULL);
+  zconf_set_float(output_audio_bits, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "engine_verbosity", NULL);
+  zconf_set_integer(engine_verbosity, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "save_dir", NULL);
+  zconf_set_string(save_dir, buffer);
+  g_free(save_dir);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "output_mode", NULL);
+  zconf_set_integer(output_mode, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "mux_mode", NULL);
+  zconf_set_integer(mux_mode, buffer);
+  g_free(buffer);
 }
 
 static
@@ -385,16 +617,36 @@ void plugin_process_sample(plugin_sample * sample)
   if (!active)
     return;
 
-  if (dest_buffer) /* fixme: this will segfault if the size changes */
-    memcpy(dest_buffer, sample->video_data,
-	   context->video_bytes);
+  if ((mux_mode+1)&2)
+    {
+      if (dest_buffer) /* fixme: this will segfault if the size changes */
+	memcpy(dest_buffer, sample->video_data,
+	       context->video_bytes);
 
-  dest_buffer = rte_push_video_data(context, dest_buffer,
-				    sample->video_timestamp);
+      dest_buffer = rte_push_video_data(context, dest_buffer,
+					sample->video_timestamp);
+    }
+
+  if (start_encoding)
+    {
+      start_encoding = FALSE;
+      if (!rte_start_encoding(context))
+	{
+	  ShowBox("Cannot start encoding: %s", GNOME_MESSAGE_BOX_ERROR,
+		  context->error);
+	  context = rte_context_destroy(context);
+	  active = FALSE;
+	  if ((mux_mode+1) & 1)
+	    close_audio();
+	  return;
+	}
+    }
+
   if ((coded_frames++) > (25*10)) /* If we have encoded 10 seconds */
     {
       context = rte_context_destroy(context);
-      close_audio();
+      if ((mux_mode+1) & 1)
+	close_audio();
       active = FALSE;
     }
 }
@@ -407,12 +659,21 @@ gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
   return FALSE; /* Nothing exported */
 }
 
+static void
+on_property_item_changed              (GtkWidget * changed_widget,
+				       GnomePropertyBox *propertybox)
+{
+  gnome_property_box_changed (propertybox);
+}
+
 static
 void plugin_add_properties ( GnomePropertyBox * gpb )
 {
   GtkWidget *mpeg_properties =
     build_widget("notebook1", PACKAGE_DATA_DIR "/mpeg_properties.glade");
   GtkWidget * label = gtk_label_new(_("MPEG"));
+  GtkWidget * widget;
+  GtkAdjustment * adj;
   gint page;
 
   if (!mpeg_properties)
@@ -422,6 +683,40 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
 	      GNOME_MESSAGE_BOX_ERROR);
       return;
     }
+
+  /* Set current values and connect callbacks */
+  widget = lookup_widget(mpeg_properties, "fileentry1");
+  widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
+  gtk_entry_set_text(GTK_ENTRY(widget), save_dir);
+  gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     on_property_item_changed, gpb);
+
+  widget = lookup_widget(mpeg_properties, "optionmenu2");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget), mux_mode);
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu),
+		     "deactivate", on_property_item_changed, gpb);
+
+  widget = lookup_widget(mpeg_properties, "optionmenu1");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget), output_mode);
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu),
+		     "deactivate", on_property_item_changed, gpb);
+
+  widget = lookup_widget(mpeg_properties, "spinbutton1");
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget), engine_verbosity);
+  gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     on_property_item_changed, gpb);
+
+  widget = lookup_widget(mpeg_properties, "hscale1");
+  adj = gtk_range_get_adjustment(GTK_RANGE(widget));
+  gtk_adjustment_set_value(adj, output_video_bits);
+  gtk_signal_connect(GTK_OBJECT(adj), "value-changed",
+		     on_property_item_changed, gpb);
+
+  widget = lookup_widget(mpeg_properties, "hscale2");
+  adj = gtk_range_get_adjustment(GTK_RANGE(widget));
+  gtk_adjustment_set_value(adj, output_audio_bits);
+  gtk_signal_connect(GTK_OBJECT(adj), "value-changed",
+		     on_property_item_changed, gpb);
 
   gtk_widget_show(mpeg_properties);
   gtk_widget_show(label);
@@ -435,10 +730,43 @@ static
 gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
 {
   gpointer data = gtk_object_get_data(GTK_OBJECT(gpb), "mpeg_page");
+  GtkWidget * widget;
+  GtkWidget * mpeg_properties;
+  GtkAdjustment * adj;
 
   if (GPOINTER_TO_INT(data) == page)
     {
-      g_message("FIXME: activate mpeg properties");
+      mpeg_properties =
+	gtk_notebook_get_nth_page(GTK_NOTEBOOK(gpb->notebook), page);
+
+      widget = lookup_widget(mpeg_properties, "fileentry1");
+      g_free(save_dir);
+      save_dir =
+	gnome_file_entry_get_full_path(GNOME_FILE_ENTRY(widget),
+				       FALSE);
+
+      widget = lookup_widget(mpeg_properties, "optionmenu2");
+      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+      mux_mode = g_list_index(GTK_MENU_SHELL(widget)->children,
+			      gtk_menu_get_active(GTK_MENU(widget)));
+
+      widget = lookup_widget(mpeg_properties, "optionmenu1");
+      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+      output_mode = g_list_index(GTK_MENU_SHELL(widget)->children,
+				 gtk_menu_get_active(GTK_MENU(widget)));
+
+      widget = lookup_widget(mpeg_properties, "spinbutton1");
+      engine_verbosity =
+	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget));
+      
+      widget = lookup_widget(mpeg_properties, "hscale1");
+      adj = gtk_range_get_adjustment(GTK_RANGE(widget));
+      output_video_bits = adj->value;;
+
+      widget = lookup_widget(mpeg_properties, "hscale2");
+      adj = gtk_range_get_adjustment(GTK_RANGE(widget));
+      output_audio_bits = adj->value;;
+
       return TRUE;
     }
   else
@@ -452,7 +780,8 @@ gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page )
 
   if (GPOINTER_TO_INT(data) == page)
     {
-      g_message("FIXME: help about mpeg properties");
+      ShowBox("FIXME: The help for this plugin hasn't been written yet",
+	      GNOME_MESSAGE_BOX_INFO);
       return TRUE;
     }
   else
@@ -523,4 +852,39 @@ struct plugin_misc_info * plugin_get_misc_info (void)
     priority (just to put an example)
   */
   return (&returned_struct);
+}
+
+/*
+ * Callback telling that the X in the dialog has been closed, we
+ * should stop capturing.
+*/
+gboolean
+on_mpeg_dialog1_delete_event		(GtkWidget	*widget,
+					 GdkEvent	*event,
+					 gpointer	user_data)
+{
+  stop_encoding = TRUE;
+
+  g_message("delete!");
+
+  saving_dialog = NULL;
+  
+  return FALSE;
+}
+
+/*
+ * Stop capturing pressed.
+ */
+void
+on_mpeg_button1_clicked			(GtkButton	*button,
+					 gpointer	user_data)
+{
+  g_assert(saving_dialog != NULL);
+
+  g_message("Stop!");
+
+  gtk_widget_destroy(saving_dialog);
+  saving_dialog = NULL;
+
+  stop_encoding = TRUE;
 }

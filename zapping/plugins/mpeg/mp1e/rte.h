@@ -19,7 +19,6 @@
  */
 
 /*
- * $Id: rte.h,v 1.17 2000-11-04 20:38:02 garetxe Exp $
  * Function prototypes for RTE
  */
 
@@ -29,6 +28,11 @@
 
 #ifndef __RTELIB_H__
 #define __RTELIB_H__
+
+/*
+ * Lib build ID, for debugging.
+ */
+#define RTE_ID " $Id: rte.h,v 1.18 2000-11-10 22:55:06 garetxe Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -283,7 +287,7 @@ void rte_set_output (rte_context * context,
   Returns 0 on error
 */
 int rte_set_video_parameters (rte_context * context,
-			      enum rte_pixformat frame_format,
+			      enum rte_pixformat video_format,
 			      int width, int height,
 			      enum rte_frame_rate video_rate,
 			      size_t output_video_bits);

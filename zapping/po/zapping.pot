@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-11-04 21:28+0100\n"
+"POT-Creation-Date: 2000-11-07 22:55+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -391,7 +391,7 @@ msgstr ""
 msgid "Alternate 2"
 msgstr ""
 
-#: src/tveng1.c:1199 src/tveng1.c:1695 src/tveng1.c:1708 src/tveng2.c:993
+#: src/tveng1.c:1199 src/tveng1.c:1693 src/tveng1.c:1706 src/tveng2.c:993
 msgid "Mute"
 msgstr ""
 
@@ -407,88 +407,88 @@ msgstr ""
 msgid "Treble"
 msgstr ""
 
-#: src/tveng1.c:1247 src/tveng2.c:995
+#: src/tveng1.c:1246 src/tveng2.c:995
 msgid "Balance"
 msgstr ""
 
-#: src/tveng1.c:1260
+#: src/tveng1.c:1258
 msgid "Audio Decoding"
 msgstr ""
 
-#: src/tveng1.c:1274 src/tveng2.c:974
+#: src/tveng1.c:1272 src/tveng2.c:974
 msgid "Brightness"
 msgstr ""
 
-#: src/tveng1.c:1283 src/tveng2.c:977
+#: src/tveng1.c:1281 src/tveng2.c:977
 msgid "Hue"
 msgstr ""
 
-#: src/tveng1.c:1292
+#: src/tveng1.c:1290
 msgid "Colour"
 msgstr ""
 
-#: src/tveng1.c:1301 src/tveng2.c:975
+#: src/tveng1.c:1299 src/tveng2.c:975
 msgid "Contrast"
 msgstr ""
 
-#: src/tveng1.c:1390
+#: src/tveng1.c:1388
 msgid "Unknown decoding mode"
 msgstr ""
 
-#: src/tveng1.c:1412
+#: src/tveng1.c:1410
 #, c-format
 msgid "Unknown control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1496
+#: src/tveng1.c:1494
 #, c-format
 msgid "Unknown audio control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1534
+#: src/tveng1.c:1532
 #, c-format
 msgid "Unknown video control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1588 src/tveng1.c:1618 src/tveng2.c:1172 src/tveng2.c:1203
+#: src/tveng1.c:1586 src/tveng1.c:1616 src/tveng2.c:1172 src/tveng2.c:1203
 #, c-format
 msgid "Cannot find control \"%s\" in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1657 src/tveng1.c:1682 src/tveng2.c:1243 src/tveng2.c:1269
+#: src/tveng1.c:1655 src/tveng1.c:1680 src/tveng2.c:1243 src/tveng2.c:1269
 #, c-format
 msgid "Cannot find control %d in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1831 src/tveng2.c:1425
+#: src/tveng1.c:1829 src/tveng2.c:1425
 msgid "There are no tuners for the active input"
 msgstr ""
 
-#: src/tveng1.c:1980 src/tveng2.c:1649
+#: src/tveng1.c:1978 src/tveng2.c:1649
 msgid "Warning: trying to stop capture with no capture active\n"
 msgstr ""
 
-#: src/tveng1.c:2040 src/tveng1.c:2111
+#: src/tveng1.c:2038 src/tveng1.c:2109
 msgid "Cannot understand actual palette"
 msgstr ""
 
-#: src/tveng1.c:2053
+#: src/tveng1.c:2051
 msgid "Grabber chip can't sync (no station tuned in?)"
 msgstr ""
 
-#: src/tveng1.c:2164 src/tveng2.c:1711
+#: src/tveng1.c:2162 src/tveng2.c:1711
 msgid "Current capture mode is not READ"
 msgstr ""
 
-#: src/tveng1.c:2173 src/tveng2.c:1720
+#: src/tveng1.c:2171 src/tveng2.c:1720
 msgid "Size check failed, quitting to avoid segfault"
 msgstr ""
 
-#: src/tveng1.c:2279 src/tveng2.c:1855
+#: src/tveng1.c:2277 src/tveng2.c:1855
 msgid "The capability field says that there is no overlay"
 msgstr ""
 
-#: src/tveng1.c:2497 src/tveng2.c:2056
+#: src/tveng1.c:2495 src/tveng2.c:2056
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
@@ -1457,40 +1457,40 @@ msgstr ""
 
 #. hash collision code
 #. Warn
-#: plugins/mpeg/plugin.c:95 plugins/screenshot/screenshot.c:181
+#: plugins/mpeg/plugin.c:95 plugins/screenshot/screenshot.c:185
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:324
+#: plugins/screenshot/screenshot.c:328
 msgid "Converts a row in RGB565 format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:330
+#: plugins/screenshot/screenshot.c:334
 msgid "Converts a row in RGB555 format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:336
+#: plugins/screenshot/screenshot.c:340
 msgid "Converts a row in RGBA format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:375
+#: plugins/screenshot/screenshot.c:379
 msgid "Select here the directory where screenshots will be saved"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:381
+#: plugins/screenshot/screenshot.c:385
 msgid "Select directory to save screenshots"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:399
+#: plugins/screenshot/screenshot.c:403
 msgid "Quality of the compressed image:"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:420 plugins/screenshot/screenshot.c:494
+#: plugins/screenshot/screenshot.c:424 plugins/screenshot/screenshot.c:498
 msgid "Screenshot"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:466
+#: plugins/screenshot/screenshot.c:470
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
@@ -1500,35 +1500,35 @@ msgid ""
 "discarded when compressing the JPEG."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:495
+#: plugins/screenshot/screenshot.c:499
 msgid "Take a JPEG screenshot"
 msgstr ""
 
 #. Probably there is no mem even for this, but try anyway
-#: plugins/screenshot/screenshot.c:576 plugins/screenshot/screenshot.c:586
-#: plugins/screenshot/screenshot.c:595
+#: plugins/screenshot/screenshot.c:579 plugins/screenshot/screenshot.c:589
+#: plugins/screenshot/screenshot.c:598
 msgid "Sorry, not enough mem"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:624
+#: plugins/screenshot/screenshot.c:627
 msgid "Sorry, but I cannot write\n"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:626
+#: plugins/screenshot/screenshot.c:629
 msgid ""
 "\n"
 "The image won't be saved."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:716
+#: plugins/screenshot/screenshot.c:709
 msgid "Saving..."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:727
+#: plugins/screenshot/screenshot.c:720
 msgid "Sorry, not enough resources for creating a new thread"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:731
+#: plugins/screenshot/screenshot.c:724
 msgid "There are too many threads"
 msgstr ""
 

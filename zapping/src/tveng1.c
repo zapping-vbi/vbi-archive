@@ -1242,7 +1242,6 @@ p_tveng1_build_controls(tveng_device_info * info)
 #ifdef VIDEO_AUDIO_BALANCE
   if (audio.flags & VIDEO_AUDIO_BALANCE)
     {
-#endif
       control.id = P_TVENG1_C_AUDIO_BALANCE;
       snprintf(control.name, 32, _("Balance"));
       control.min = 0;
@@ -1251,7 +1250,6 @@ p_tveng1_build_controls(tveng_device_info * info)
       control.data = NULL;
       if (p_tveng1_append_control(&control, info) == -1)
 	return -1;
-#ifdef VIDEO_AUDIO_BALANCE
     }
 #endif
 

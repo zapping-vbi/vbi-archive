@@ -8,6 +8,8 @@ Outstanding issues for the next release
 	+ Xv support if present.
 	+ Update THANKS, README and NEWS, mark the rest of the docs as 'OLD'
 	+ Bug fixes
+	+ Add to the configure script and to the .spec deps the
+		dependency on mp1e (actually RTE).
 	> Release 0.5.9
 	+ Subtitles support
 	+ Better teletext navigation
@@ -16,6 +18,7 @@ Outstanding issues for the next release
 		depends on feedback.
 	+ Teletext docs
 	+ Right click sizes choosing (a la kwintv)
+	+ Parrot buffer for observing parrots.
 	> Release 0.6.0
 	+ Add some remote control applet (or sth like that).
 	+ Have a copy of the stuff in the "quick bar" in the main menu
