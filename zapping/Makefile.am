@@ -9,5 +9,7 @@ EXTRA_DIST = autogen.sh acinclude.m4 \
 
 Multimediadir = $(datadir)/gnome/apps/Multimedia
 Multimedia_in_files = zapping.desktop.in
-Multimedia_DATA = $(Multimedia_in_files:.desktop.in=.desktop)
+# Gnome docs recommend $(Multimedia_in_files:.desktop.in=.desktop)
+# but that's gmake-ish.
+Multimedia_DATA = zapping.desktop
 @INTLTOOL_DESKTOP_RULE@

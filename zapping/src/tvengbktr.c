@@ -29,7 +29,7 @@
 
 #include "common/ioctl_meteor.h"
 #include "common/ioctl_bt848.h"
-#include "common/fprintf_bktr.h"
+#include "common/_bktr.h"
 
 struct private_tvengbktr_device_info
 {
@@ -104,7 +104,7 @@ do_get_control		(struct private_tvengbktr_device_info * p_info,
 		unsigned char uc; /* range 0 ... 255 */
 
 		if (-1 == device_ioctl (p_info->info.log_fp,
-					fprintf_ioctl_arg,
+					fprint_ioctl_arg,
 					p_info->info.fd,
 					/* cmd */ c->id, &uc)) {
 			ioctl_failure (&p_info->info,
@@ -144,7 +144,7 @@ do_get_control		(struct private_tvengbktr_device_info * p_info,
 
 	if (c->pub.value != value) {
 		c->pub.value = value;
-		tv_callback_notify (&c->pub, c->pub._callback);
+		tv_callback_notify (NULL, &c->pub, c->pub._callback);
 	}
 
 	return TRUE;
@@ -250,7 +250,7 @@ set_control			(tveng_device_info *	info,
 
 	if (c->value != value) {
 		c->value = value;
-		tv_callback_notify (&c, c->_callback);
+		tv_callback_notify (NULL, &c, c->_callback);
 	}
 
 	return TRUE;
@@ -373,7 +373,8 @@ set_standard			(tveng_device_info *	info,
 	enum tveng_capture_mode current_mode;
 	int r;
 
-	current_mode = p_tveng_stop_everything (info);
+	current_mode = p_tveng_stop_everything
+	  (info, /* overlay_was_active */ FALSE);
 
 	if (P_INFO (info)->bktr_driver) {
 		r = bktr_ioctl (info, BT848GFMT, &S(s)->fmt);
@@ -383,7 +384,8 @@ set_standard			(tveng_device_info *	info,
 
 	/* Start capturing again as if nothing had happened */
 	/* XXX stop yes, restarting is not our business (eg. frame geometry change). */
-	p_tveng_restart_everything (current_mode, info);
+	p_tveng_restart_everything
+	  (current_mode, /* overlay_was_active */ FALSE, info);
 
 	return (0 == r);
 }
@@ -391,7 +393,7 @@ set_standard			(tveng_device_info *	info,
 struct standard_bridge {
 	unsigned int		fmt;
 	const char *		label;
-	tv_video_standard_id	id;
+	tv_videostd_set         videostd_set;
 };
 
 #define STANDARD_BRIDGE_END { 0, NULL, 0 }
@@ -399,23 +401,27 @@ struct standard_bridge {
 static const struct standard_bridge
 meteor_standards [] = {
 	/* XXX should investigate what exactly these videostandards are. */
-	{ METEOR_FMT_PAL,		"PAL",		TV_VIDEOSTD_PAL },
-	{ METEOR_FMT_NTSC,		"NTSC",		TV_VIDEOSTD_NTSC },
-	{ METEOR_FMT_SECAM,		"SECAM",	TV_VIDEOSTD_SECAM },
+	{ METEOR_FMT_PAL,		"PAL",	 TV_VIDEOSTD_SET_PAL },
+	{ METEOR_FMT_NTSC,		"NTSC",	 TV_VIDEOSTD_SET_NTSC },
+	{ METEOR_FMT_SECAM,		"SECAM", TV_VIDEOSTD_SET_SECAM },
 	STANDARD_BRIDGE_END
 };
 
 static const struct standard_bridge
 bktr_standards [] = {
-	{ BT848_IFORM_F_PALBDGHI,	"PAL",		TV_VIDEOSTD_PAL },
-	{ BT848_IFORM_F_NTSCM,		"NTSC",		TV_VIDEOSTD_NTSC_M },
-	{ BT848_IFORM_F_SECAM,		"SECAM",	TV_VIDEOSTD_SECAM },
-	{ BT848_IFORM_F_PALM,		"PAL-M",	TV_VIDEOSTD_PAL_M },
-	{ BT848_IFORM_F_PALN,		"PAL-N",	TV_VIDEOSTD_PAL_N },
-	{ BT848_IFORM_F_NTSCJ,		"NTSC-JP",	TV_VIDEOSTD_NTSC_M_JP },
+	{ BT848_IFORM_F_PALBDGHI,	"PAL",	   TV_VIDEOSTD_SET_PAL },
+	{ BT848_IFORM_F_NTSCM,		"NTSC",
+	  TV_VIDEOSTD_SET (TV_VIDEOSTD_NTSC_M) },
+	{ BT848_IFORM_F_SECAM,		"SECAM",   TV_VIDEOSTD_SET_SECAM },
+	{ BT848_IFORM_F_PALM,		"PAL-M",
+	  TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_M) },
+	{ BT848_IFORM_F_PALN,		"PAL-N",
+	  TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_N) },
+	{ BT848_IFORM_F_NTSCJ,		"NTSC-JP",
+	  TV_VIDEOSTD_SET (TV_VIDEOSTD_NTSC_M_JP) },
 #if 0
-	{ BT848_IFORM_F_AUTO,		"AUTO",		TV_VIDEOSTD_UNKNOWN },
-	{ BT848_IFORM_F_RSVD,		"RSVD",		TV_VIDEOSTD_UNKNOWN },
+	{ BT848_IFORM_F_AUTO,		"AUTO",	   TV_VIDEOSTD_SET_UNKNOWN },
+	{ BT848_IFORM_F_RSVD,		"RSVD",	   TV_VIDEOSTD_SET_UNKNOWN },
 #endif
 	STANDARD_BRIDGE_END
 };
@@ -437,7 +443,7 @@ get_standard_list		(tveng_device_info *	info)
 		struct standard *s;
 
 		if (!(s = S(append_video_standard (&info->video_standards,
-						   table->id,
+						   table->videostd_set,
 						   table->label,
 						   table->label,
 						   sizeof (*s))))) {
@@ -474,7 +480,7 @@ store_frequency			(struct video_input *	vi,
 
 	if (vi->pub.u.tuner.frequency != frequency) {
 		vi->pub.u.tuner.frequency = frequency;
-		tv_callback_notify (&vi->pub, vi->pub._callback);
+		tv_callback_notify (NULL, &vi->pub, vi->pub._callback);
 	}
 }
 
@@ -547,7 +553,7 @@ set_video_input			(tveng_device_info *	info,
 				 const tv_video_line *	l)
 {
 	enum tveng_capture_mode current_mode;
-	enum tveng_frame_pixformat pixformat;
+	tv_pixfmt pixfmt;
 
 	if (info->cur_video_input) {
 		unsigned long dev;
@@ -557,8 +563,8 @@ set_video_input			(tveng_device_info *	info,
 				return TRUE;
 	}
 
-	pixformat = info->format.pixformat;
-	current_mode = p_tveng_stop_everything(info);
+	pixfmt = info->format.pixfmt;
+	current_mode = p_tveng_stop_everything (info, FALSE);
 
 	if (-1 == bktr_ioctl (info, METEORSINPUT, &VI(l)->dev))
 		return FALSE;
@@ -577,11 +583,11 @@ set_video_input			(tveng_device_info *	info,
 		set_tuner_frequency (info, info->cur_video_input,
 				     info->cur_video_input->u.tuner.frequency);
 
-	info->format.pixformat = pixformat;
+	info->format.pixfmt = pixfmt;
 	p_tveng_set_capture_format(info);
 
 	/* XXX Start capturing again as if nothing had happened */
-	p_tveng_restart_everything (current_mode, info);
+	p_tveng_restart_everything (current_mode, FALSE, info);
 
 	return TRUE;
 }
@@ -756,8 +762,8 @@ set_overlay_buffer		(tveng_device_info *	info,
 
 	/* XXX check if we support the pixfmt. */
 
-	if (!tv_pixfmt_to_pixel_format (&format, t->pixfmt,
-					TV_COLOR_SPACE_UNKNOWN))
+	if (!tv_pixfmt_to_pixel_format (&format, t->format.pixfmt,
+					0 /* TV_COLOR_SPACE_UNKNOWN */))
 		return FALSE;
 
 	p_info->overlay_buffer = *t;
@@ -874,7 +880,7 @@ set_overlay			(tveng_device_info *	info,
 static void
 tvengbktr_close_device (tveng_device_info * info)
 {
-  p_tveng_stop_everything(info);
+  p_tveng_stop_everything (info, FALSE);
 
   device_close (info->log_fp, info->fd);
   info->fd = 0;
