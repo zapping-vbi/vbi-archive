@@ -69,6 +69,16 @@ dnl Subst PACKAGE_PIXMAPS_DIR.
 PACKAGE_PIXMAPS_DIR="`${GNOME_CONFIG} --datadir`/pixmaps/${PACKAGE}"
 AC_SUBST(PACKAGE_PIXMAPS_DIR)
 
+dnl ----------------------------------------------------------------------
+dnl Check which libxml syntax we will use (children vs. childs)
+dnl ----------------------------------------------------------------------
+AC_TRY_LINK([#include <gnome-xml/tree.h>],
+[
+xmlNodePtr node;
+node->childs = NULL;
+return 0;
+], AC_DEFINE(LIBXML_CHILDS))
+
 AC_OUTPUT([
 Makefile
 macros/Makefile

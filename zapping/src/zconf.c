@@ -46,6 +46,14 @@
 #include "zmisc.h" /* Misc common stuff */
 
 /*
+  Work around this little annoying incompatibility between libxml 1
+  and 2
+*/
+#ifdef LIBXML_CHILDS
+#define children childs
+#endif
+
+/*
   This defines a key in the configuration tree.
 */
 struct zconf_key

@@ -8,5 +8,6 @@ Outstanding issues for the next release
 	+ Add the help for the Properties
 	+ Add desktop (and root menu) entries
 	+ Build RPMS (rpm -tb) and DEBS (using alien)
+	+ Add some code to change children into childs if libxml < 2.0.0
 	+ Fix bugs
 	> Release 0.5.1

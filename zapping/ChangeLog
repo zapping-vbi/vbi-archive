@@ -2,6 +2,8 @@
 
 	* configure.in: Added the option to disable X extensions (DGA)
 	from the configure script (thanks to Jan Castermans).
+	* configure.in: Added a test to determine whether to use
+	node->children or node->childs.
 	
 01.6.2000	Bug fixes <garetxe@users.sourceforge.net>
 
