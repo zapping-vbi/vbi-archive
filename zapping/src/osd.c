@@ -629,7 +629,8 @@ osd_event		(gpointer	   data,
 {
   vbi_decoder *vbi = zvbi_get_object();
   char dummy[16];
-  extern int zvbi_page, zvbi_subpage;
+  extern vbi_pgno zvbi_page;
+  extern vbi_subno zvbi_subpage;
 
   if (!vbi)
     return;

@@ -233,7 +233,7 @@ mw_apply		(GtkWidget	*page)
   widget = lookup_widget(page, "checkbutton13"); /* keep on top */
   top = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
   zconf_set_boolean (top, "/zapping/options/main/keep_on_top");
-  window_on_top (main_window, top);
+  window_on_top (GTK_WINDOW (main_window), top);
 
   widget = lookup_widget(page, "checkbutton14"); /* show tooltips */
   top = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));

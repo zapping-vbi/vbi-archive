@@ -52,8 +52,7 @@
 #include "keyboard.h"
 #include "globals.h"
 #include "plugin_properties.h"
-#warning #include "channel_editor.h"
-//#include "channel_editor.h"
+#include "channel_editor.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
@@ -435,7 +434,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.6 2002-12-05 07:48:27 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.7 2002-12-14 12:35:22 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -753,7 +752,7 @@ int main(int argc, char * argv[])
     {
       gtk_widget_show(main_window);
       D();
-      window_on_top (main_window, zconf_get_boolean
+      window_on_top (GTK_WINDOW (main_window), zconf_get_boolean
 		     (NULL, "/zapping/options/main/keep_on_top"));
       D();
       resize_timeout(NULL);
