@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: rte.h,v 1.14 2000-10-21 23:28:23 garetxe Exp $
+ * $Id: rte.h,v 1.15 2000-10-21 23:36:11 garetxe Exp $
  * Function prototypes for RTE
  */
 
@@ -133,11 +133,6 @@ typedef struct {
 	/* Pointer to the private data of this struct */
 	rte_context_private * private;
 } rte_context;
-
-/*
- * Prototypes for the ref/unref mechanism.
- */
-//typedef void (*rteUnrefCallback)
 
 /*
   "You have to save this data" callback. Defaults to a disk (stdout)
