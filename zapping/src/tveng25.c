@@ -67,7 +67,7 @@ fprint_ioctl_arg		(FILE *			fp,
 				 int			rw,
 				 void *			arg)
 {
-	if (0 == ((cmd ^ VIDIOC_QUERYCAP) & (_IOC_TYPEMASK_ << IOC_TYPESHIFT)))
+	if (0 == ((cmd ^ VIDIOC_QUERYCAP) & (_IOC_TYPEMASK << _IOC_TYPESHIFT)))
 		fprint_v4l25_ioctl_arg (fp, cmd, rw, arg);
 	else
 		fprint_v4l_ioctl_arg (fp, cmd, rw, arg);
