@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.126 2002-05-30 14:49:03 mschimek Exp $
+dnl $Id: configure.in,v 1.127 2002-06-18 02:19:23 mschimek Exp $
 
 AC_INIT(src/callbacks.c)
 AM_INIT_AUTOMAKE(zapping, 0.6.4)
@@ -373,9 +373,10 @@ AM_PATH_LIBGLADE(,
   AC_MSG_ERROR(*** Cannot find libglade in your system. Is it installed? ***),
   gnome)
 
-dnl Add the languages which your application supports here.
-ALL_LINGUAS="de es fr nl pl sv"
-AM_GNU_GETTEXT(, [need-ngettext])
+dnl -----------------------------------------------------------
+dnl Native language support
+dnl -----------------------------------------------------------
+AM_GNU_GETTEXT
 
 dnl -----------------------------------------------------------
 dnl look for ngettext
@@ -502,16 +503,14 @@ AC_SUBST(PLUGIN_DEFAULT_DIR)
 PLUGIN_DEFAULT_FLAGS="$CFLAGS -Wno-unused"
 AC_SUBST(PLUGIN_DEFAULT_FLAGS)
 
-rm -f po/Makefile
-
 AC_OUTPUT([
-zapping.spec
 Makefile
+m4/Makefile
 macros/Makefile
-pixmaps/Makefile
-src/Makefile
 intl/Makefile
 po/Makefile.in
+pixmaps/Makefile
+src/Makefile
 glade/Makefile
 help/Makefile
 help/C/Makefile
@@ -526,15 +525,8 @@ plugins/lirc/Makefile
 plugins/mpeg/Makefile
 plugins/screenshot/Makefile
 plugins/template/Makefile
+zapping.spec
 ])
-
-dnl fscking broken world
-if test ! -r po/Makefile; then
-  dnl Don't ask :-)
-  PF="POT"
-  PF=$PF"FILES"
-  sed -e "/$PF =/r po/PF" po/Makefile.in > po/Makefile
-fi
 
 echo "
 	Optional package                Found
