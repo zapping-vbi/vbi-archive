@@ -16,13 +16,16 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.9 2002-04-20 06:42:30 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.10 2002-05-29 02:32:29 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
 #if defined(HAVE_LIBRTE4)
+
+#define ZCONF_DOMAIN "/zapping/plugins/mpeg"
+#define MPEG_CONFIG "default"
 
 #include <rte.h>
 
@@ -51,20 +54,36 @@ extern gint grte_num_codecs (rte_context *context, rte_stream_type stream_type,
 			     rte_codec_info **info_p);
 #endif
 
-#define ZCONF_DOMAIN "/zapping/plugins/mpeg"
-#define MPEG_CONFIG "default"
-
-extern GtkWidget *grte_options_create (rte_context *context, rte_codec *codec);
-
-extern GtkWidget *grte_codec_create_menu (rte_context *context, gchar *zc_subdomain,
-					  rte_stream_type stream_type, gint *default_item);
-extern rte_codec *grte_codec_load (rte_context *context, gchar *zc_subdomain,
-				   rte_stream_type stream_type, gchar *keyword);
-extern void grte_codec_save (rte_context *context, gchar *zc_subdomain,
-			     rte_stream_type stream_type);
-
-extern GtkWidget *grte_context_create_menu (gchar *zc_subdomain, gint *default_item);
-extern rte_context *grte_context_load (gchar *zc_subdomain, gchar *keyword,
-				       rte_codec **audio_codec_p,
-				       rte_codec **video_codec_p);
-extern void grte_context_save (rte_context *context, gchar *zc_subdomain);
+extern GtkWidget *	grte_options_create	(rte_context *		context,
+						 rte_codec *		codec);
+extern GtkWidget *	grte_codec_create_menu	(rte_context *		context,
+						 const gchar *		zc_root,
+						 const gchar *		zc_conf,
+						 rte_stream_type	stream_type,
+						 gint *			default_item);
+extern rte_codec *	grte_codec_load		(rte_context *		context,
+						 const gchar *		zc_root,
+						 const gchar *		zc_conf,
+						 rte_stream_type	stream_type,
+						 const gchar *		keyword);
+extern void		grte_codec_save		(rte_context *		context,
+						 const gchar *		zc_root,
+						 const gchar *		zc_conf,
+						 rte_stream_type	stream_type);
+extern GtkWidget *	grte_context_create_menu (const gchar *		zc_root,
+						  const gchar *		zc_conf,
+						  gint *		default_item);
+extern rte_context *	grte_context_load	(const gchar *		zc_root,
+						 const gchar *		zc_conf,
+						 const gchar *		keyword,
+						 rte_codec **		audio_codec_p,
+						 rte_codec **		video_codec_p,
+						 gint *			capture_w,
+						 gint *			capture_h);
+extern void		grte_context_save	(rte_context *		context,
+						 const gchar *		zc_root,
+						 const gchar *		zc_conf,
+						 gint			capture_w,
+						 gint			capture_h);
+extern void		grte_config_delete	(const gchar *		zc_root,
+						 const gchar *		zc_conf);
