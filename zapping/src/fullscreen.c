@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.7 2003-06-16 06:07:05 mschimek Exp $
+ * $Id: fullscreen.c,v 1.21.2.8 2003-07-29 03:43:07 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -94,29 +94,29 @@ static void
 osd_model_changed			(ZModel		*ignored1,
 					 tveng_device_info *info)
 {
-  struct tveng_window window;
-  struct tveng_clip *clips;
+  tv_window window;
+  GdkWindow *gdk_window;
 
   if (info->current_controller == TVENG_CONTROLLER_XV ||
       !black_window || !black_window->window)
     return;
 
-  /* save for later use */
-  memcpy(&window, &info->window, sizeof(struct tveng_window));
+  window = info->overlay_window;
+  tveng_set_preview_off (info);
+  info->overlay_window = window;
 
-  tveng_set_preview_off(info);
-  memcpy(&info->window, &window, sizeof(struct tveng_window));
-  clips = info->window.clips =
-    x11_get_clips(GTK_BIN(black_window)->child->window,
-		  window.x, window.y,
-		  window.width,
-		  window.height,
-		  &window.clipcount);
-  info->window.clipcount = window.clipcount;
-  tveng_set_preview_window(info);
-  tveng_set_preview_on(info);
+  gdk_window = GTK_BIN (black_window)->child->window;
 
-  g_free(clips);
+  x11_window_clip_vector (&info->overlay_window.clip_vector,
+			  GDK_WINDOW_XDISPLAY (gdk_window),
+			  GDK_WINDOW_XID (gdk_window),
+			  window.x,
+			  window.y,
+			  window.width,
+			  window.height);
+
+  tveng_set_preview_window (info);
+  tveng_set_preview_on (info);
 }
 
 static void
@@ -196,8 +196,8 @@ fullscreen_start(tveng_device_info * info)
   gtk_widget_set_double_buffered (da, FALSE);
 
   /* Needed for XV fullscreen */
-  info->window.win = GDK_WINDOW_XWINDOW(da->window);
-  info->window.gc = GDK_GC_XGC(da->style->white_gc);
+  info->overlay_window.win = GDK_WINDOW_XWINDOW(da->window);
+  info->overlay_window.gc = GDK_GC_XGC(da->style->white_gc);
 
   if (tveng_start_previewing(info, zcg_char(NULL, "fullscreen/vidmode")) == -1)
     {
@@ -222,11 +222,11 @@ fullscreen_start(tveng_device_info * info)
 
   if (info->current_controller != TVENG_CONTROLLER_XV)
     osd_set_coords(da,
-		   info->window.x, info->window.y, info->window.width,
-		   info->window.height);
+		   info->overlay_window.x, info->overlay_window.y, info->overlay_window.width,
+		   info->overlay_window.height);
   else /* wrong because Xv may pad to this size (DMA hw limit) */
-    osd_set_coords(da, 0, 0, info->window.width,
-		   info->window.height);
+    osd_set_coords(da, 0, 0, info->overlay_window.width,
+		   info->overlay_window.height);
 
   g_signal_connect(G_OBJECT(osd_model), "changed",
 		     G_CALLBACK(osd_model_changed), info);
