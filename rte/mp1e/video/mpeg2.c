@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.3 2002-09-12 12:24:03 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.4 2002-09-14 04:20:08 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -325,7 +325,7 @@ template_slice_i		(mpeg1_context *	mpeg1,
 		emms ();
 
 		{
-			quant = rc_quant (&mpeg1->rc, MB_INTRA,
+			quant = rc_quant (&mpeg1->rc, &mpeg1->rc.f, MB_INTRA,
 					  var / VARQ + 1, 0.0,
 					  bwritten (bs), 0, quant_max);
 
@@ -377,13 +377,13 @@ template_slice_i		(mpeg1_context *	mpeg1,
 
 		bprolog (bs);
 
-		mpeg1->quant_sum += quant;
+		mpeg1->rc.f.quant_sum += quant;
 		MB_HIST (mb_col).quant = quant;
 	}
 
 	MB_HIST (-1) = MB_HIST (mb_col - 1);
 
-	mba_row_incr (); // FIXME
+	mba_row_incr ();
 }
 
 /* obsolete */
@@ -884,8 +884,8 @@ rc_reset(mpeg1_context *mpeg1)
 	mpeg1->rc.r31	= (double) quant_max
 		/ lroundn(mpeg1->bit_rate / mpeg1->virtual_frame_rate * 1.0);
 	mpeg1->rc.Tmin	= lroundn(mpeg1->bit_rate / mpeg1->virtual_frame_rate / 8.0);
-	mpeg1->rc.avg_acti = 400.0;
-	mpeg1->rc.avg_actp = 400.0;
+	mpeg1->rc.act_avg_i = 400.0;
+	mpeg1->rc.act_avg_p = 400.0;
 
 	mpeg1->rc.Xi	= lroundn(160.0 * mpeg1->bit_rate / 115.0);
 	mpeg1->rc.Xp	= lroundn( 60.0 * mpeg1->bit_rate / 115.0); 
@@ -921,7 +921,7 @@ mp1e_mpeg2			(void *			codec)
 	mpeg1_context *mpeg1 = PARENT (codec, mpeg1_context, codec);
 	buffer *obuf;
 
-	printv (3, "Video compression thread\n");
+	printv (3, "Video compression thread MPEG-2\n");
 
 	assert (mpeg1->codec.codec.state == RTE_STATE_RUNNING);
 
