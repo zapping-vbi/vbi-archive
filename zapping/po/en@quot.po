@@ -27,8 +27,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.5cvs\n"
-"POT-Creation-Date: 2002-06-24 05:01+0200\n"
-"PO-Revision-Date: 2002-06-24 05:01+0200\n"
+"POT-Creation-Date: 2002-06-25 06:11+0200\n"
+"PO-Revision-Date: 2002-06-25 06:11+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "MIME-Version: 1.0\n"
@@ -127,7 +127,7 @@ msgstr ""
 "Sorry, but “%s” could not be opened:\n"
 "%s"
 
-#: src/main.c:751
+#: src/main.c:752
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -136,11 +136,11 @@ msgstr ""
 "Cannot restore previous mode%s:\n"
 "%s"
 
-#: src/main.c:754
+#: src/main.c:755
 msgid ", I will try starting capture mode"
 msgstr ", I will try starting capture mode"
 
-#: src/main.c:758
+#: src/main.c:759
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -149,7 +149,7 @@ msgstr ""
 "Capture mode couldn't be started either:\n"
 "%s"
 
-#: src/main.c:771
+#: src/main.c:772
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -158,15 +158,15 @@ msgstr ""
 "Capture mode couldn't be started:\n"
 "%s"
 
-#: src/main.c:801 src/callbacks.c:501 src/callbacks.c:630
+#: src/main.c:802 src/callbacks.c:501 src/callbacks.c:630
 msgid "Show controls"
 msgstr "Show controls"
 
-#: src/main.c:802 src/callbacks.c:502 src/callbacks.c:631
+#: src/main.c:803 src/callbacks.c:502 src/callbacks.c:631
 msgid "Show the menu and the toolbar"
 msgstr "Show the menu and the toolbar"
 
-#: src/main.c:997 src/zapzilla.c:175
+#: src/main.c:998 src/zapzilla.c:175
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -187,7 +187,7 @@ msgstr ""
 "   - or, more probably, you have found a bug in\n"
 "     %s. Please contact the author.\n"
 
-#: src/main.c:1034
+#: src/main.c:1035
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Sorry, Zapping is unable to create the config tree"
 
@@ -501,7 +501,7 @@ msgstr[1] "%d minutes"
 msgid "%d h %d m"
 msgstr "%d h %d m"
 
-#: src/zvbi.c:2152 src/ttxview.c:2538
+#: src/zvbi.c:2152 src/ttxview.c:2539
 msgid "Current program"
 msgstr "Current program"
 
@@ -962,95 +962,95 @@ msgstr "List of symbols exported by the plugin"
 msgid "Sorry, but the plugin couldn't be started"
 msgstr "Sorry, but the plugin couldn't be started"
 
-#: src/ttxview.c:180 src/ttxview.c:755 src/ttxview.c:1351
+#: src/ttxview.c:180 src/ttxview.c:756 src/ttxview.c:1352
 msgid "VBI has been disabled"
 msgstr "VBI has been disabled"
 
-#: src/ttxview.c:395
+#: src/ttxview.c:396
 #, c-format
 msgid "Loading page %x..."
 msgstr "Loading page %x..."
 
-#: src/ttxview.c:397
+#: src/ttxview.c:398
 #, c-format
 msgid "Loading subpage %x..."
 msgstr "Loading subpage %x..."
 
-#: src/ttxview.c:401 src/ttxview.c:693
+#: src/ttxview.c:402 src/ttxview.c:694
 msgid "Warning: Page not valid"
 msgstr "Warning: Page not valid"
 
-#: src/ttxview.c:522
+#: src/ttxview.c:523
 msgid "Text export failed"
 msgstr "Text export failed"
 
-#: src/ttxview.c:596
+#: src/ttxview.c:597
 #, c-format
 msgid " Page %d"
 msgstr " Page %d"
 
-#: src/ttxview.c:600
+#: src/ttxview.c:601
 #, c-format
 msgid " Subpage %d"
 msgstr " Subpage %d"
 
-#: src/ttxview.c:704
+#: src/ttxview.c:705
 msgid "The cache has been cleared"
 msgstr "The cache has been cleared"
 
-#: src/ttxview.c:1061 src/ttxview.c:1082
+#: src/ttxview.c:1062 src/ttxview.c:1083
 msgid "No other subpage in the cache"
 msgstr "No other subpage in the cache"
 
-#: src/ttxview.c:1145
+#: src/ttxview.c:1146
 msgid "Found"
 msgstr "Found"
 
-#: src/ttxview.c:1163
+#: src/ttxview.c:1164
 msgid "Not found"
 msgstr "Not found"
 
-#: src/ttxview.c:1183
+#: src/ttxview.c:1184
 msgid "Empty cache"
 msgstr "Empty cache"
 
-#: src/ttxview.c:1306
+#: src/ttxview.c:1307
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Scanning %x.%02x"
 
-#: src/ttxview.c:1560
+#: src/ttxview.c:1561
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> added to the bookmarks"
 
-#: src/ttxview.c:1623
+#: src/ttxview.c:1624
 msgid "Any subpage"
 msgstr "Any subpage"
 
-#: src/ttxview.c:1972
+#: src/ttxview.c:1973
 #, c-format
 msgid "Export %s"
 msgstr "Export %s"
 
-#: src/ttxview.c:1986 plugins/screenshot/screenshot_strings.c:19
+#: src/ttxview.c:1987 plugins/screenshot/screenshot_strings.c:19
 #: plugins/mpeg/mpeg_strings.c:36
 msgid "Save as:"
 msgstr "Save as:"
 
-#: src/ttxview.c:1991
+#: src/ttxview.c:1992
 msgid "Select file you'll be exporting to"
 msgstr "Select file you'll be exporting to"
 
-#: src/ttxview.c:2006
+#: src/ttxview.c:2007
 msgid "Options"
 msgstr "Options"
 
-#: src/ttxview.c:2036 src/ttxview.c:2996
+#: src/ttxview.c:2037 src/ttxview.c:2997
 msgid "No page loaded"
 msgstr "No page loaded"
 
-#: src/ttxview.c:2096
+#: src/ttxview.c:2097
 #, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
@@ -1061,90 +1061,90 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: src/ttxview.c:2115
+#: src/ttxview.c:2116
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "Export to %s failed: %s"
 
-#: src/ttxview.c:2124
+#: src/ttxview.c:2125
 #, c-format
 msgid "%s saved"
 msgstr "%s saved"
 
-#: src/ttxview.c:2136
+#: src/ttxview.c:2137
 #, c-format
 msgid "Export failed: %s"
 msgstr "Export failed: %s"
 
-#: src/ttxview.c:2444
+#: src/ttxview.c:2445
 #, c-format
 msgid "Caption %x - %s"
 msgstr "Caption %x - %s"
 
-#: src/ttxview.c:2446
+#: src/ttxview.c:2447
 #, c-format
 msgid "Text %x - %s"
 msgstr "Text %x - %s"
 
-#: src/ttxview.c:2450
+#: src/ttxview.c:2451
 #, c-format
 msgid "Caption %x"
 msgstr "Caption %x"
 
-#: src/ttxview.c:2452
+#: src/ttxview.c:2453
 #, c-format
 msgid "Text %x"
 msgstr "Text %x"
 
-#: src/ttxview.c:2477
+#: src/ttxview.c:2478
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: Unknown language"
 
-#: src/ttxview.c:2489 src/ttxview.c:2504 src/ttxview.c:2528 src/ttxview.c:2544
-#: src/ttxview.c:2560 src/ttxview.c:2576 src/ttxview.c:2592
+#: src/ttxview.c:2490 src/ttxview.c:2505 src/ttxview.c:2529 src/ttxview.c:2545
+#: src/ttxview.c:2561 src/ttxview.c:2577 src/ttxview.c:2593
 #, c-format
 msgid "Page %x"
 msgstr "Page %x"
 
-#: src/ttxview.c:2498
+#: src/ttxview.c:2499
 msgid "Index"
 msgstr "Index"
 
-#: src/ttxview.c:2522
+#: src/ttxview.c:2523
 msgid "Now and Next"
 msgstr "Now and Next"
 
-#: src/ttxview.c:2554
+#: src/ttxview.c:2555
 msgid "Program Index"
 msgstr "Program Index"
 
-#: src/ttxview.c:2570
+#: src/ttxview.c:2571
 msgid "Program Schedule"
 msgstr "Program Schedule"
 
-#: src/ttxview.c:2586
+#: src/ttxview.c:2587
 msgid "Program Warning"
 msgstr "Program Warning"
 
-#: src/ttxview.c:2606
+#: src/ttxview.c:2607
 msgid "Subtitles"
 msgstr "Subtitles"
 
-#: src/ttxview.c:2608
+#: src/ttxview.c:2609
 msgid "Select subtitles page"
 msgstr "Select subtitles page"
 
-#: src/ttxview.c:2681
+#: src/ttxview.c:2682
 #, c-format
 msgid "%s in %s"
 msgstr "%s in %s"
 
-#: src/ttxview.c:3005
+#: src/ttxview.c:3006
 msgid "Selecting - hold Shift for table mode"
 msgstr "Selecting - hold Shift for table mode"
 
-#: src/ttxview.c:3125
+#: src/ttxview.c:3126
 msgid "Selection copied to clipboard"
 msgstr "Selection copied to clipboard"
 
@@ -1849,7 +1849,7 @@ msgstr "S_top Plugin"
 #: glade/glade_strings.c:188 plugins/screenshot/screenshot.c:576
 #: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:383
 #: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
-#: plugins/mpeg/mpeg.c:2650 plugins/mpeg/mpeg.c:3225
+#: plugins/mpeg/mpeg.c:2666 plugins/mpeg/mpeg.c:3241
 msgid "Plugins"
 msgstr "Plugins"
 
@@ -2333,7 +2333,7 @@ msgid "This plugin takes screenshots of the video capture."
 msgstr "This plugin takes screenshots of the video capture."
 
 #: plugins/screenshot/screenshot.c:173 plugins/lirc/lirc.c:134
-#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3287
+#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3303
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Check error: “%s” in plugin %s has hash 0x%x vs. 0x%x"
@@ -2773,29 +2773,29 @@ msgstr ""
 msgid "Cannot create file %s: %s\n"
 msgstr "Cannot create file %s: %s\n"
 
-#: plugins/mpeg/mpeg.c:2650 plugins/mpeg/mpeg.c:3079 plugins/mpeg/mpeg.c:3103
-#: plugins/mpeg/mpeg.c:3213 plugins/mpeg/mpeg_strings.c:34
+#: plugins/mpeg/mpeg.c:2666 plugins/mpeg/mpeg.c:3095 plugins/mpeg/mpeg.c:3119
+#: plugins/mpeg/mpeg.c:3229 plugins/mpeg/mpeg_strings.c:34
 #: plugins/mpeg/mpeg_strings.c:41
 msgid "Record"
 msgstr "Record"
 
-#: plugins/mpeg/mpeg.c:2894
+#: plugins/mpeg/mpeg.c:2910
 msgid "Not implemented yet"
 msgstr "Not implemented yet"
 
-#: plugins/mpeg/mpeg.c:3063
+#: plugins/mpeg/mpeg.c:3079
 msgid "Recording dialog"
 msgstr "Recording dialog"
 
-#: plugins/mpeg/mpeg.c:3154
+#: plugins/mpeg/mpeg.c:3170
 msgid "Audio/Video Recorder"
 msgstr "Audio/Video Recorder"
 
-#: plugins/mpeg/mpeg.c:3157
+#: plugins/mpeg/mpeg.c:3173
 msgid "This plugin records video and audio into a file"
 msgstr "This plugin records video and audio into a file"
 
-#: plugins/mpeg/mpeg.c:3160
+#: plugins/mpeg/mpeg.c:3176
 msgid "Record video and audio."
 msgstr "Record video and audio."
 

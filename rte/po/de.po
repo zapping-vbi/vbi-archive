@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: RTE 0.5\n"
-"POT-Creation-Date: 2002-06-24 05:29+0200\n"
+"POT-Creation-Date: 2002-06-25 05:50+0200\n"
 "PO-Revision-Date: 2002-06-13 05:06+0200\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -46,7 +46,7 @@ msgid "Out of memory for video buffer."
 msgstr "Nicht genug Speicher für Bildpuffer."
 
 #: mp1e/video/mpeg1.c:2501 mp1e/video/mpeg1.c:2858 mp1e/audio/mp2.c:1172
-#: mp1e/b_mp1e.c:439 mp1e/b_mp1e.c:489 mp1e/b_mp1e.c:499 mp1e/b_mp1e.c:1087
+#: mp1e/b_mp1e.c:440 mp1e/b_mp1e.c:490 mp1e/b_mp1e.c:500 mp1e/b_mp1e.c:1088
 #: ffmpeg/b_ffmpeg.c:889 ffmpeg/b_ffmpeg.c:1140
 msgid "Out of memory."
 msgstr "Nicht genug Speicher."
@@ -232,49 +232,49 @@ msgstr ""
 "Samplingfrequenzen. Vorsicht: Nicht alle MPEG Video und Audio Player "
 "unterstützen MPEG-2 Audio."
 
-#: mp1e/b_mp1e.c:197 ffmpeg/b_ffmpeg.c:384
+#: mp1e/b_mp1e.c:198 ffmpeg/b_ffmpeg.c:384
 msgid "Insufficient resources to start video encoding thread.\n"
 msgstr "Unzureichende Resourcen um den Videokodierungsthread zu starten.\n"
 
-#: mp1e/b_mp1e.c:210
+#: mp1e/b_mp1e.c:211
 msgid "Insufficient resources to start audio encoding thread.\n"
 msgstr "Unzureichende Resourcen um den Audiokodierungsthread zu starten.\n"
 
-#: mp1e/b_mp1e.c:263
+#: mp1e/b_mp1e.c:264
 msgid "Insufficient resources to start codec thread.\n"
 msgstr "Unzureichende Resourcen um den Codecthread zu starten\n"
 
-#: mp1e/b_mp1e.c:283
+#: mp1e/b_mp1e.c:284
 msgid "Insufficient resources to start context thread.\n"
 msgstr "Unzureichende Resourcen um den Contextthread zu starten\n"
 
-#: mp1e/b_mp1e.c:923 ffmpeg/b_ffmpeg.c:974
+#: mp1e/b_mp1e.c:924 ffmpeg/b_ffmpeg.c:974
 #, c-format
 msgid "Cannot create new codec instance '%s': %s"
 msgstr "Kann keine neue Codecinstanz '%s' erstellen: %s"
 
-#: mp1e/b_mp1e.c:927 ffmpeg/b_ffmpeg.c:979
+#: mp1e/b_mp1e.c:928 ffmpeg/b_ffmpeg.c:979
 #, c-format
 msgid "Cannot create new codec instance '%s'."
 msgstr "Kann keine neue Codecinstanz '%s' erstellen."
 
-#: mp1e/b_mp1e.c:993
+#: mp1e/b_mp1e.c:994
 msgid "MPEG-1 Program Stream"
 msgstr "MPEG-1 Program Stream (Bild und Ton)"
 
-#: mp1e/b_mp1e.c:1005
+#: mp1e/b_mp1e.c:1006
 msgid "MPEG-1 VCD Program Stream"
 msgstr "MPEG-1 VCD Program Stream"
 
-#: mp1e/b_mp1e.c:1017
+#: mp1e/b_mp1e.c:1018
 msgid "MPEG Video Elementary Stream"
 msgstr "MPEG Video Elementary Stream"
 
-#: mp1e/b_mp1e.c:1029 ffmpeg/b_ffmpeg.c:1064
+#: mp1e/b_mp1e.c:1030 ffmpeg/b_ffmpeg.c:1064
 msgid "MPEG Audio Elementary Stream"
 msgstr "MPEG Audio Elementary Stream"
 
-#: mp1e/b_mp1e.c:1207
+#: mp1e/b_mp1e.c:1208
 msgid ""
 "MP1E backend requires MMX but the CPU type is unknown, backend disabled."
 msgstr ""
