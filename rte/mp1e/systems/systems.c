@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.c,v 1.10 2002-05-07 06:39:23 mschimek Exp $ */
+/* $Id: systems.c,v 1.11 2002-05-09 21:04:46 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,7 +58,7 @@ mux_init(multiplexer *mux, void *user_data)
 
 	/* vcd sector size is hardcoded, this one for hd
            should be a context option */
-	mux->packet_size = 2048;
+	mux->packet_size = PACKET_SIZE;
 
 	assert(mux->packet_size >= 512 && mux->packet_size <= 32768);
 

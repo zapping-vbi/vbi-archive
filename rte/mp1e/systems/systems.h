@@ -17,7 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.10 2002-05-07 06:39:37 mschimek Exp $ */
+/* $Id: systems.h,v 1.11 2002-05-09 21:04:53 mschimek Exp $ */
+
+#include "../site_def.h"
 
 #include "libsystems.h"
 
@@ -25,7 +27,9 @@
 #include "../common/types.h"
 #include "../common/fifo.h"
 
+#ifndef PACKET_SIZE
 #define PACKET_SIZE		2048
+#endif
 #define PACKETS_PER_PACK	16
 #define PAD_PACKETS		FALSE
 #define CONST_BIT_RATE		FALSE
