@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.21 2002-09-12 12:24:24 mschimek Exp $ */
+/* $Id: video.h,v 1.22 2002-09-14 04:20:50 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -42,173 +42,7 @@
 #define reg(n) __attribute__ ((regparm (n)))
 #define elements(array) (sizeof(array) / sizeof(array[0]))
 
-struct rc {
-	int		ni, np, nb, ob;		/* picture types per GOP */
-	long long	Ei, Ep, Eb;
-	long long	gop_count;
-	double		ei, ep, eb;
-	int		G0, Gn;			/* estimated target bits per GOP */
-	double		G4;
-	int		Tavg;			/* estimated avg. bits per frame */
-	int		Tmin;			/* minimum target bits per frame */
-	int		R;			/* remaining bits in GOP */
-
-	double		Xi, Xp, Xb;		/* global complexity measure */
-	double		d0i, d0p, d0b;		/* virtual buffer fullness */
-	double		r31;			/* reaction parameter */
-
-	double		avg_acti, avg_actp;	/* avg spatial activity, intra/inter */
-
-	/* auto */
-
-	double		act_sumi, act_sump;	/* sum spatial activity, intra/inter */
-	double		Ti, Tmb;
-	int		T;
-};
-
-/*
- *  Max. successive P pictures when overriding gop_sequence
- *  (error accumulation) and max. successive B pictures we can stack up
- */
-#define MAX_P_SUCC 3
-#define MAX_B_SUCC 31
-
-#define B_SHARE 1.4
-
-static inline void
-rc_picture_start(struct rc *rc, picture_type type, int mb_num)
-{
-	switch (type) {
-	case I_TYPE:
-		/*
-		 *  T = lroundn(R / (+ (ni) * Xi / (Xi * 1.0)
-		 *		     + (np) * Xp / (Xi * 1.0)
-		 *		     + (nb) * Xb / (Xi * 1.4)));
-		 */
-		rc->T = lroundn(rc->R / ((rc->ni + rc->ei)
-					 + ((rc->np + rc->ep) * rc->Xp
-					    + (rc->nb + rc->eb) * rc->Xb * (1 / B_SHARE))
-					 / rc->Xi));
-		rc->Ti = -rc->d0i;
-		break;
-
-	case P_TYPE:
-		rc->T = lroundn(rc->R / ((rc->np + rc->ep)
-					 + ((rc->ni + rc->ei) * rc->Xi
-					    + (rc->nb + rc->eb) * rc->Xb * (1 / B_SHARE))
-					 / rc->Xp));
-		rc->Ti = -rc->d0p;
-		break;
-
-	case B_TYPE:
-		/*
-		 *  T = lroundn(R / (+ (ni + ei) * Xi * 1.4 / Xb
-		 *		     + (np + ep) * Xp * 1.4 / Xb
-		 *		     + (nb + eb) * Xb / Xb));
-		 */
-		rc->T = lroundn(rc->R / (((rc->ni + rc->ei) * rc->Xi
-					  + (rc->np + rc->ep) * rc->Xp) * B_SHARE
-					 / rc->Xb + (rc->nb + rc->eb)));
-		rc->Ti = -rc->d0b;
-		break;
-
-	default:
-		FAIL("!reached");
-	}
-
-	if (rc->T < rc->Tmin)
-		rc->T = rc->Tmin;
-
-	rc->Tmb = rc->T / mb_num;
-
-	rc->act_sumi = 0.0;
-	rc->act_sump = 0.0;
-
-	if (0)
-	fprintf(stderr, "P%d T=%8d Ti=%f Tmin=%8d Tavg=%8d Tmb=%f X=%f,%f,%f\n",
-		type, rc->T, rc->Ti, rc->Tmin, rc->Tavg, rc->Tmb, rc->Xi, rc->Xp, rc->Xb);
-}
-
-static inline int
-rc_quant(struct rc *rc, mb_type type,
-	 double acti, double actp,
-	 int bits_out, int qs, int quant_max)
-{
-	int quant;
-
-	switch (type) {
-	case MB_INTRA:
-		rc->act_sumi += acti;
-		acti = (2.0 * acti + rc->avg_acti) / (acti + 2.0 * rc->avg_acti);
-		quant = lroundn((bits_out - rc->Ti) * rc->r31 * acti);
-		quant = saturate(quant >> qs, 1, quant_max);
-		if (0)
-		fprintf(stderr, "<< %f %f %d\n", (double) bits_out, (double) rc->Ti, quant);
-		rc->Ti += rc->Tmb;
-		break;
-
-	case MB_FORWARD:
-	case MB_BACKWARD:
-		rc->act_sumi += acti;
-		rc->act_sump += actp;
-		actp = (2.0 * actp + rc->avg_actp) / (actp + 2.0 * rc->avg_actp);
-		quant = lroundn((bits_out - rc->Ti) * rc->r31 * actp);
-		quant = saturate(quant >> qs, 1, quant_max);
-		rc->Ti += rc->Tmb;
-		break;
-
-	case MB_INTERP:
-		rc->act_sumi += acti;
-		rc->act_sump += actp;
-		actp = (2.0 * actp + rc->avg_actp) / (actp + 2.0 * rc->avg_actp);
-		quant = lroundn((bits_out - rc->Ti) * rc->r31 * actp);
-		/* quant = saturate(quant, 1, quant_max); */
-		rc->Ti += rc->Tmb;
-		break;
-
-	default:
-		FAIL("!reached");
-	}
-
-	return quant;
-}
-
-// XXX this is no CBR/VBR anymore, but for now better than nothing.
-// zap: Wed, 30 Jan 2002 11:07:55 +0100
-#define RQ(d0) do { if (d0 < -2 * rc->T) d0 = -2 * rc->T; } while (0)
-
-static inline void
-rc_picture_end(struct rc *rc, picture_type type,
-	       int S, int quant_sum, int mb_num)
-{
-	switch (type) {
-	case I_TYPE:
-		rc->avg_acti = rc->act_sumi / mb_num;
-		rc->Xi = lroundn(S * (double) quant_sum / mb_num);
-		rc->d0i += S - rc->T; /* bits encoded - estimated bits */
-		RQ(rc->d0i);
-		break;
-
-	case P_TYPE:
-		rc->avg_acti = rc->act_sumi / mb_num;
-		rc->avg_actp = rc->act_sump / mb_num;
-		rc->Xp = lroundn(S * (double) quant_sum / mb_num);
-		rc->d0p += S - rc->T;
-		RQ(rc->d0p);
-		break;
-
-	case B_TYPE:
-		rc->avg_acti = rc->act_sumi / mb_num;
-		rc->avg_actp = rc->act_sump / mb_num;
-		rc->Xb = lroundn(S * (double) quant_sum / mb_num);
-		rc->d0b += S - rc->T;
-		RQ(rc->d0b);
-		break;
-
-	default:
-		FAIL("!reached");
-	}
-}
+#include "ratectl.h"
 
 typedef struct filter_param __attribute__ ((aligned (64))) filter_param;
 
@@ -291,7 +125,7 @@ struct mpeg1_context {
 	bool		referenced;		/* by other P or B pictures */
 	bool		slice;
 
-	int		quant_sum;
+//	int		quant_sum;
 
 	struct rc	rc;
 
@@ -389,7 +223,7 @@ struct mpeg2_context {
 	bool		referenced;		/* by other P or B pictures */
 	bool		slice;
 
-	int		quant_sum;
+//	int		quant_sum;
 
 	struct rc	rc;
 
