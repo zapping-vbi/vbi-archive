@@ -1283,12 +1283,7 @@ static int output_frame_end(AC3EncodeContext *s)
     return frame_size * 2;
 }
 
-int AC3_encode_frame(AVCodecContext *avctx,
-                     unsigned char *frame, int buf_size, void *data)
-{
-    AC3EncodeContext *s = avctx->priv_data;
-    short *samples = data;
-    int i, j, k, v, ch;
+struct ac3_data {
     INT16 input_samples[N];
     INT32 mdct_coef[NB_BLOCKS][AC3_MAX_CHANNELS][N/2];
     UINT8 exp[NB_BLOCKS][AC3_MAX_CHANNELS][N/2];
@@ -1296,7 +1291,19 @@ int AC3_encode_frame(AVCodecContext *avctx,
     UINT8 encoded_exp[NB_BLOCKS][AC3_MAX_CHANNELS][N/2];
     UINT8 bap[NB_BLOCKS][AC3_MAX_CHANNELS][N/2];
     INT8 exp_samples[NB_BLOCKS][AC3_MAX_CHANNELS];
+};
+
+int AC3_encode_frame(AVCodecContext *avctx,
+                     unsigned char *frame, int buf_size, void *data)
+{
+    AC3EncodeContext *s = avctx->priv_data;
+    struct ac3_data *ac3;
+    short *samples = data;
+    int i, j, k, v, ch;
     int frame_bits;
+
+    ac3 = malloc (sizeof (*ac3));
+    assert (NULL != ac3);
 
     frame_bits = 0;
     for(ch=0;ch<s->nb_all_channels;ch++) {
@@ -1306,54 +1313,54 @@ int AC3_encode_frame(AVCodecContext *avctx,
             int sinc;
 
             /* compute input samples */
-            memcpy(input_samples, s->last_samples[ch], N/2 * sizeof(INT16));
+            memcpy(ac3->input_samples, s->last_samples[ch], N/2 * sizeof(INT16));
             sinc = s->nb_all_channels;
             sptr = samples + (sinc * (N/2) * i) + ch;
             for(j=0;j<N/2;j++) {
                 v = *sptr;
-                input_samples[j + N/2] = v;
+                ac3->input_samples[j + N/2] = v;
                 s->last_samples[ch][j] = v; 
                 sptr += sinc;
             }
 
             /* apply the MDCT window */
             for(j=0;j<N/2;j++) {
-                input_samples[j] = MUL16(input_samples[j], 
+                ac3->input_samples[j] = MUL16(ac3->input_samples[j], 
                                          ac3_window[j]) >> 15;
-                input_samples[N-j-1] = MUL16(input_samples[N-j-1], 
+                ac3->input_samples[N-j-1] = MUL16(ac3->input_samples[N-j-1], 
                                              ac3_window[j]) >> 15;
             }
         
             /* Normalize the samples to use the maximum available
                precision */
-            v = 14 - log2_tab(input_samples, N);
+            v = 14 - log2_tab(ac3->input_samples, N);
             if (v < 0)
                 v = 0;
-            exp_samples[i][ch] = v - 8;
-            lshift_tab(input_samples, N, v);
+            ac3->exp_samples[i][ch] = v - 8;
+            lshift_tab(ac3->input_samples, N, v);
 
             /* do the MDCT */
-            mdct512(mdct_coef[i][ch], input_samples);
+            mdct512(ac3->mdct_coef[i][ch], ac3->input_samples);
             
             /* compute "exponents". We take into account the
                normalization there */
             for(j=0;j<N/2;j++) {
                 int e;
-                v = abs(mdct_coef[i][ch][j]);
+                v = abs(ac3->mdct_coef[i][ch][j]);
                 if (v == 0)
                     e = 24;
                 else {
-                    e = 23 - av_log2(v) + exp_samples[i][ch];
+                    e = 23 - av_log2(v) + ac3->exp_samples[i][ch];
                     if (e >= 24) {
                         e = 24;
-                        mdct_coef[i][ch][j] = 0;
+                        ac3->mdct_coef[i][ch][j] = 0;
                     }
                 }
-                exp[i][ch][j] = e;
+                ac3->exp[i][ch][j] = e;
             }
         }
         
-        compute_exp_strategy(exp_strategy, exp, ch, ch == s->lfe_channel);
+        compute_exp_strategy(ac3->exp_strategy, ac3->exp, ch, ch == s->lfe_channel);
 
         /* compute the exponents as the decoder will see them. The
            EXP_REUSE case must be handled carefully : we select the
@@ -1361,30 +1368,34 @@ int AC3_encode_frame(AVCodecContext *avctx,
         i = 0;
         while (i < NB_BLOCKS) {
             j = i + 1;
-            while (j < NB_BLOCKS && exp_strategy[j][ch] == EXP_REUSE) {
-                exponent_min(exp[i][ch], exp[j][ch], s->nb_coefs[ch]);
+            while (j < NB_BLOCKS && ac3->exp_strategy[j][ch] == EXP_REUSE) {
+                exponent_min(ac3->exp[i][ch], ac3->exp[j][ch], s->nb_coefs[ch]);
                 j++;
             }
-            frame_bits += encode_exp(encoded_exp[i][ch],
-                                     exp[i][ch], s->nb_coefs[ch], 
-                                     exp_strategy[i][ch]);
+            frame_bits += encode_exp(ac3->encoded_exp[i][ch],
+                                     ac3->exp[i][ch], s->nb_coefs[ch], 
+                                     ac3->exp_strategy[i][ch]);
             /* copy encoded exponents for reuse case */
             for(k=i+1;k<j;k++) {
-                memcpy(encoded_exp[k][ch], encoded_exp[i][ch], 
+                memcpy(ac3->encoded_exp[k][ch], ac3->encoded_exp[i][ch], 
                        s->nb_coefs[ch] * sizeof(UINT8));
             }
             i = j;
         }
     }
 
-    compute_bit_allocation(s, bap, encoded_exp, exp_strategy, frame_bits);
+    compute_bit_allocation(s, ac3->bap, ac3->encoded_exp, ac3->exp_strategy, frame_bits);
     /* everything is known... let's output the frame */
     output_frame_header(s, frame);
         
     for(i=0;i<NB_BLOCKS;i++) {
-        output_audio_block(s, exp_strategy[i], encoded_exp[i], 
-                           bap[i], mdct_coef[i], exp_samples[i], i);
+        output_audio_block(s, ac3->exp_strategy[i], ac3->encoded_exp[i], 
+                           ac3->bap[i], ac3->mdct_coef[i], ac3->exp_samples[i], i);
     }
+
+    free (ac3);
+    ac3 = NULL;
+
     return output_frame_end(s);
 }
 
