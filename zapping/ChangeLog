@@ -1,3 +1,8 @@
+22.03.2002	automake 1.6 <mschimek@users.sf.net>
+
+	* configure.in: Prepared for automake 1.6, removed
+	  'deprecated and discouraged' acconfig.h.
+
 21.03.2002	Fixes <mschimek@users.sf.net>
 
 	* src/callbacks.c: quit_cmd() didn't work correctly when

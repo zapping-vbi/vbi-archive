@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.118 2002-03-21 18:07:37 mschimek Exp $
+dnl $Id: configure.in,v 1.119 2002-03-23 14:05:56 mschimek Exp $
 
 AC_INIT(src/callbacks.c)
 AM_INIT_AUTOMAKE(zapping, 0.6.3)
@@ -7,7 +7,7 @@ AM_CONFIG_HEADER(config.h)
 
 REQUIRED_RTE_VERSION="0.4"
 
-CFLAGS="-D_GNU_SOURCE -O0 -g -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations"
+CFLAGS="-D_GNU_SOURCE -O2 -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations"
 
 dnl Pick up the Gnome macros.
 AM_ACLOCAL_INCLUDE(macros /opt/gnome/share/aclocal)
@@ -30,7 +30,7 @@ AC_ARG_ENABLE(
 	enable_x_extensions="$enableval", enable_x_extensions="yes")
 AC_MSG_RESULT($enable_x_extensions)
 if test "x$enable_x_extensions" = "xno"; then
-	AC_DEFINE(DISABLE_X_EXTENSIONS)
+	AC_DEFINE(DISABLE_X_EXTENSIONS, 1, [Duh])
 else
 	X_DGA_LIBS="-lXxf86dga -lXxf86vm"
 	AC_SUBST(X_DGA_LIBS)
@@ -55,7 +55,7 @@ fi
 
 AC_MSG_RESULT($enable_v4l)
 if test "x$enable_v4l" = "xyes"; then
-	AC_DEFINE(ENABLE_V4L)
+	AC_DEFINE(ENABLE_V4L, 1, [Define to build with V4L support])
 fi
 
 GNOME_INIT
@@ -89,8 +89,8 @@ HAVE_JPEG="yes"
 AC_CHECK_LIB(jpeg, jpeg_destroy_compress, JPEG_LIB="-ljpeg", HAVE_JPEG="no")
 dnl The screenshot plugin requires libjpeg
 if test "$HAVE_JPEG" = "yes"; then
-	PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD screenshot"
-	AC_DEFINE(HAVE_LIBJPEG)
+  PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD screenshot"
+  AC_DEFINE(HAVE_LIBJPEG, 1, [Define if JPEG lib is present])
 fi
 AC_SUBST(JPEG_LIB)
 
@@ -102,7 +102,7 @@ HAVE_PNG="yes"
 AC_CHECK_LIB(png, png_destroy_write_struct, PNG_LIB="-lpng -lz -lm", HAVE_PNG="no", -lz -lm)
 dnl Zapzilla PNG export
 if test "x$HAVE_PNG" = "xyes"; then
-AC_DEFINE(HAVE_LIBPNG)
+  AC_DEFINE(HAVE_LIBPNG, 1, [Define if PNG lib is present])
 fi
 AC_SUBST(PNG_LIB)
 
@@ -113,12 +113,12 @@ AC_MSG_CHECKING(for unicode)
 HAVE_UNICODE="no"
 UNICODE_VERSION=`unicode-config --version`
 if test $? -eq 0; then
-	UNICODE_CFLAGS=`unicode-config --cflags`
-	UNICODE_LIBS=`unicode-config --libs`
-	SAVE_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS $UNICODE_CFLAGS $UNICODE_LIBS"
-	AC_TRY_LINK([#include <unicode.h>],, HAVE_UNICODE="yes")
-	CFLAGS="$SAVE_CFLAGS"
+  UNICODE_CFLAGS=`unicode-config --cflags`
+  UNICODE_LIBS=`unicode-config --libs`
+  SAVE_CFLAGS="$CFLAGS"
+  CFLAGS="$CFLAGS $UNICODE_CFLAGS $UNICODE_LIBS"
+  AC_TRY_LINK([#include <unicode.h>],, HAVE_UNICODE="yes")
+  CFLAGS="$SAVE_CFLAGS"
 fi
 test $HAVE_UNICODE = "no" && AC_MSG_ERROR([This version of Zapping requires
         libunicode: ftp://ftp.gnome.org/pub/GNOME/unstable/sources])
@@ -131,18 +131,16 @@ dnl ---------------------------------------------------------------------------
 dnl Profiling
 dnl ---------------------------------------------------------------------------
 AC_MSG_CHECKING(whether to include profiling info in the executable)
-AC_ARG_ENABLE(
-	profiling,
-	[  --enable-profiling      Include profiling info in the executable],
-	enable_profiling="$enableval", enable_profiling="no")
+AC_ARG_ENABLE(profiling,
+  [  --enable-profiling      Include profiling info in the executable],
+  enable_profiling="$enableval", enable_profiling="no")
 AC_MSG_RESULT($enable_profiling)
 if test "x$enable_profiling" = "xyes"; then
-	CFLAGS="-pg -a $CFLAGS"
+  CFLAGS="-pg -a $CFLAGS"
 fi
-AC_ARG_ENABLE(
-	ccmalloc,
-	[  --enable-ccmalloc       Link with ccmalloc],
-	CCMALLOC=-lccmalloc, CCMALLOC=)
+AC_ARG_ENABLE(ccmalloc,
+  [  --enable-ccmalloc       Link with ccmalloc],
+  CCMALLOC=-lccmalloc, CCMALLOC=)
 AC_SUBST(CCMALLOC)
 
 dnl ---------------------------------------------------------------------
@@ -151,15 +149,15 @@ dnl ---------------------------------------------------------------------
 HAVE_PAM="no"
 AC_MSG_CHECKING(whether to enable PAM support)
 AC_ARG_ENABLE(pam,
-	[  --enable-pam            Enable PAM support],
-	enable_pam="$enableval", enable_pam="yes")
+  [  --enable-pam            Enable PAM support],
+  enable_pam="$enableval", enable_pam="yes")
 AC_MSG_RESULT($enable_pam)
 if test "x$enable_pam" = "xyes"; then
-	AC_PATH_PROG(CONSOLEHELPER_LOCATION, consolehelper, "")
-	if test "x$CONSOLEHELPER_LOCATION" = "x"; then
-		AC_MSG_RESULT([consolehelper not found, using setuid binary])
-	fi
-	HAVE_PAM="yes"
+  AC_PATH_PROG(CONSOLEHELPER_LOCATION, consolehelper, "")
+  if test "x$CONSOLEHELPER_LOCATION" = "x"; then
+    AC_MSG_RESULT([consolehelper not found, using setuid binary])
+  fi
+  HAVE_PAM="yes"
 fi
 AC_SUBST(CONSOLEHELPER_LOCATION)
 AM_CONDITIONAL(SUID_ZSFB, test x$CONSOLEHELPER_LOCATION = x)
@@ -173,10 +171,10 @@ AC_CHECK_LIB(zvbi, vbi_decoder_new,
   AC_EGREP_HEADER(vbi_decoder, libzvbi.h, true, HAVE_ZVBI=no),
     HAVE_ZVBI=no, $UNICODE_LIBS)
 if test "$HAVE_ZVBI" = "yes"; then
-	AC_DEFINE(HAVE_LIBZVBI)
-	ZVBI_LIB="-lzvbi"
+  AC_DEFINE(HAVE_LIBZVBI, 1, [Define if ZVBI lib is present])
+  ZVBI_LIB="-lzvbi"
 else
-	AC_MSG_WARN([*** ZVBI library not found, VBI will be disabled ***])
+  AC_MSG_WARN([*** ZVBI library not found, VBI will be disabled ***])
 fi
 AC_SUBST(ZVBI_LIB)
 
@@ -185,14 +183,15 @@ dnl Check for RTE, the MPEG encoder
 dnl ----------------------------------------------------------------------
 HAVE_RTE="yes"
 AC_CHECK_LIB(rte-$REQUIRED_RTE_VERSION, rte_start_encoding,
-  AC_CHECK_HEADER(rte.h,true,HAVE_RTE=no),HAVE_RTE=no)
+  AC_EGREP_HEADER(rte_start_encoding, rte.h, true, HAVE_RTE=no),
+    HAVE_RTE=no,)
 dnl The mpeg plugin requires RTE
 if test "$HAVE_RTE" = "yes"; then
-	PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD mpeg"
-	AC_DEFINE(HAVE_LIBRTE)
-	RTE_LIB="-lrte"
+  PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD mpeg"
+  AC_DEFINE(HAVE_LIBRTE, 1, [Define if RTE lib is present])
+  RTE_LIB="-lrte"
 else
-	AC_MSG_WARN([*** RTE not found, MPEG capture will be disabled ***])
+  AC_MSG_WARN([*** RTE not found, MPEG capture will be disabled ***])
 fi
 AC_SUBST(RTE_LIB)
 
@@ -201,12 +200,12 @@ dnl Check for lirc_client
 dnl ----------------------------------------------------------------------
 HAVE_LIRC="yes"
 AC_REQUIRE_CPP
-AC_CHECK_LIB(lirc_client,lirc_init,
-  AC_CHECK_HEADER(lirc/lirc_client.h,true,HAVE_LIRC=no),HAVE_LIRC=no)
-
+AC_CHECK_LIB(lirc_client, lirc_init,
+  AC_EGREP_HEADER(lirc_init, lirc/lirc_client.h, true, HAVE_LIRC=no),
+    HAVE_LIRC=no,)
 if test "$HAVE_LIRC" = "yes"; then
   PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD alirc"
-  AC_DEFINE(HAVE_LIRC)
+  AC_DEFINE(HAVE_LIRC, 1, [Define if LIRC client lib is present])
   LIRC_LIB="-llirc_client"
 else
   AC_MSG_WARN([*** LIRC client support not available, not building alirc ***])
@@ -222,13 +221,13 @@ dnl ----------------------------------------------------------------------
 AC_MSG_CHECKING(for gdk_pixbuf)
 GDK_PIXBUF_VERSION=`gdk-pixbuf-config --version`
 if test $? -eq 0; then
-	AC_MSG_RESULT($GDK_PIXBUF_VERSION)
-	GDK_PIXBUF_CFLAGS=`gdk-pixbuf-config --cflags`
-	GDK_PIXBUF_LIBS=`gdk-pixbuf-config --libs`
-	AC_SUBST(GDK_PIXBUF_CFLAGS)
-	AC_SUBST(GDK_PIXBUF_LIBS)
+  AC_MSG_RESULT($GDK_PIXBUF_VERSION)
+  GDK_PIXBUF_CFLAGS=`gdk-pixbuf-config --cflags`
+  GDK_PIXBUF_LIBS=`gdk-pixbuf-config --libs`
+  AC_SUBST(GDK_PIXBUF_CFLAGS)
+  AC_SUBST(GDK_PIXBUF_LIBS)
 else
-	AC_MSG_ERROR([This version of Zapping requires GdkPixbuf])
+  AC_MSG_ERROR([This version of Zapping requires GdkPixbuf])
 fi
 
 dnl ----------------------------------------------------------------------
@@ -238,20 +237,20 @@ AC_MSG_CHECKING(for ARTS)
 HAVE_ARTS_TEXT="no"
 ARTS_VERSION=`artsc-config --version`
 if test $? -eq 0; then
-	ARTS_CFLAGS=`artsc-config --cflags`
-	ARTS_LIBS=`artsc-config --libs`
-	SAVE_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS $ARTS_CFLAGS $ARTS_LIBS"
-	AC_TRY_LINK([#include <artsc.h>],, HAVE_ARTS_TEXT="yes")
-	CFLAGS="$SAVE_CFLAGS"
+  ARTS_CFLAGS=`artsc-config --cflags`
+  ARTS_LIBS=`artsc-config --libs`
+  SAVE_CFLAGS="$CFLAGS"
+  CFLAGS="$CFLAGS $ARTS_CFLAGS $ARTS_LIBS"
+  AC_TRY_LINK([#include <artsc.h>],, HAVE_ARTS_TEXT="yes")
+  CFLAGS="$SAVE_CFLAGS"
 fi
 if test $HAVE_ARTS_TEXT = "no"; then
-	AC_MSG_RESULT([not found])
+  AC_MSG_RESULT([not found])
 else
-	AC_MSG_RESULT($ARTS_VERSION)
-	AC_SUBST(ARTS_CFLAGS)
-	AC_SUBST(ARTS_LIBS)
-	AC_DEFINE(HAVE_ARTS)
+  AC_MSG_RESULT($ARTS_VERSION)
+  AC_SUBST(ARTS_CFLAGS)
+  AC_SUBST(ARTS_LIBS)
+  AC_DEFINE(HAVE_ARTS, 1, [Define if ARTS sound server is present])
 fi
 
 dnl ----------------------------------------------------------------------
@@ -261,28 +260,28 @@ AC_MSG_CHECKING(for libxml)
 HAVE_LIBXML="no"
 LIBXML_VERSION=`xml-config --version`
 if test $? -eq 0; then
-	LIBXML_CFLAGS=`xml-config --cflags`
-	LIBXML_LIBS=`xml-config --libs`
-	XML_LIB="xml"
-	SAVE_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS $LIBXML_CFLAGS $LIBXML_LIBS"
-	AC_TRY_LINK([#include <parser.h>],, HAVE_LIBXML="yes")
-	CFLAGS="$SAVE_CFLAGS"
+  LIBXML_CFLAGS=`xml-config --cflags`
+  LIBXML_LIBS=`xml-config --libs`
+  XML_LIB="xml"
+  SAVE_CFLAGS="$CFLAGS"
+  CFLAGS="$CFLAGS $LIBXML_CFLAGS $LIBXML_LIBS"
+  AC_TRY_LINK([#include <parser.h>],, HAVE_LIBXML="yes")
+  CFLAGS="$SAVE_CFLAGS"
 else
-	LIBXML_VERSION=`xml2-config --version`
-	if test $? -eq 0; then
-		LIBXML_CFLAGS=`xml2-config --cflags`
-		LIBXML_LIBS=`xml2-config --libs`
-		XML_LIB="xml2"
-		SAVE_CFLAGS="$CFLAGS"
-		CFLAGS="$CFLAGS $LIBXML_CFLAGS $LIBXML_LIBS"
-		AC_TRY_LINK([#include <parser.h>],, HAVE_LIBXML="yes")
-		CFLAGS="$SAVE_CFLAGS"
-	fi
+  LIBXML_VERSION=`xml2-config --version`
+  if test $? -eq 0; then
+    LIBXML_CFLAGS=`xml2-config --cflags`
+    LIBXML_LIBS=`xml2-config --libs`
+    XML_LIB="xml2"
+    SAVE_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS $LIBXML_CFLAGS $LIBXML_LIBS"
+    AC_TRY_LINK([#include <parser.h>],, HAVE_LIBXML="yes")
+    CFLAGS="$SAVE_CFLAGS"
+  fi
 fi
 
 test $HAVE_LIBXML = "no" && AC_MSG_ERROR([This version of Zapping
-	requires libxml: ftp://ftp.gnome.org/pub/GNOME/stable/sources])
+  requires libxml: ftp://ftp.gnome.org/pub/GNOME/stable/sources])
 
 AC_SUBST(LIBXML_CFLAGS)
 AC_SUBST(LIBXML_LIBS)
@@ -297,21 +296,20 @@ dnl ----------------------------------------------------------------------
 dnl Check which libxml syntax we will use (children vs. childs)
 dnl ----------------------------------------------------------------------
 AC_MSG_CHECKING(which syntax to use for xml child nodes)
-AC_TRY_LINK([#include <tree.h>],
-[
-xmlNodePtr node = 0xdeadbeef;
-node->childs = NULL;
-return 0;
-],
-AC_MSG_RESULT(chils)
-AC_DEFINE(LIBXML_CHILDS),
-AC_MSG_RESULT(children))
+AC_TRY_LINK([#include <tree.h>], [
+  xmlNodePtr node = 0xdeadbeef;
+  node->childs = NULL;
+  return 0; ],
+  AC_MSG_RESULT(chils)
+  AC_DEFINE(LIBXML_CHILDS, 1, [Define if xmlNodePtr has childs, not children]),
+  AC_MSG_RESULT(children))
 
 dnl ----------------------------------------------------------------------
 dnl Check for existance of xmlDocGetRootElement
 dnl ----------------------------------------------------------------------
 AC_CHECK_LIB($XML_LIB, xmlDocGetRootElement,
-	AC_DEFINE(LIBXML_xmlDocGetRootElement))
+  AC_DEFINE(LIBXML_xmlDocGetRootElement, 1,
+  [Define if xmlDocGetRootElement exists]))
 
 CPPFLAGS="$saved_cppflags"
 LDFLAGS="$saved_ldflags"
@@ -322,28 +320,36 @@ dnl ----------------------------------------------------------------------
 HAVE_MMX="no"
 case "$host" in
 i?86-* | k?-*) dnl catch i386,i486,i586,i686,k6,k7
-	AC_DEFINE(__i386__) 
-        HAVE_MMX="yes";;
-alpha*-*) AC_DEFINE(__alpha__);;
+  AC_DEFINE(__i386__, 1, [host]) 
+  HAVE_MMX="yes";;
+alpha*-*) AC_DEFINE(__alpha__, 1, [host]);;
 sparc-*) 
-	AC_DEFINE(__sparc__);;
-ppc-*) AC_DEFINE(__ppc__);;
-powerpc-*) AC_DEFINE(__ppc__);;
-*) ;;
+  AC_DEFINE(__sparc__, 1, [host]);;
+ppc-*)
+  AC_DEFINE(__ppc__, 1, [host]);;
+powerpc-*)
+  AC_DEFINE(__ppc__, 1, [host]);;
+*)
+  ;;
 esac
 
 if test "x$HAVE_MMX" = "xyes"; then
-	AC_DEFINE(USE_MMX)
-	AC_PATH_PROG(ASLOCATION, "as")
-	if test "x$ASLOCATION" != "x"; then
-		ASVERSION=`$ASLOCATION --version | grep GNU`
-		if test "x$ASVERSION" != "x"; then
-			AC_DEFINE(HAVE_GAS)
-		fi
-	fi
+  AC_DEFINE(USE_MMX, 1, [Define to use MMX optimized code])
+  AC_PATH_PROG(ASLOCATION, "as")
+  if test "x$ASLOCATION" != "x"; then
+    ASVERSION=`$ASLOCATION --version | grep GNU`
+    if test "x$ASVERSION" != "x"; then
+      AC_DEFINE(HAVE_GAS, 1, [Define if GNU as is present to compile MMX code])
+    fi
+  fi
 fi
 
 AM_CONDITIONAL(BUILD_GEN_CONV, test "x$ASVERSION" != "x")
+
+CCAS=$CC
+AC_SUBST(CCAS)
+CCASFLAGS=
+AC_SUBST(CCASFLAGS)
 
 dnl -----------------------------------------------------------
 dnl Check whether program_invocation_name exists, GNU extension
@@ -351,8 +357,8 @@ dnl -----------------------------------------------------------
 AC_CHECK_FUNCS(program_invocation_name)
 
 AM_PATH_LIBGLADE(,
-AC_MSG_ERROR(*** Cannot find libglade in your system. Is it installed? ***),
-gnome)
+  AC_MSG_ERROR(*** Cannot find libglade in your system. Is it installed? ***),
+  gnome)
 
 dnl Add the languages which your application supports here.
 ALL_LINGUAS="de es fr nl pl sv"
@@ -362,49 +368,46 @@ dnl -----------------------------------------------------------
 dnl look for ngettext
 dnl -----------------------------------------------------------
 if test "x$USE_INCLUDED_LIBINTL" = "xyes"; then
-if test ! -e intl/ngettext.c; then
-	AC_MSG_ERROR([GNU gettext 0.10.36 or greater is required.
-	http://www.gnu.org/software/gettext/gettext.html#downloading
-	])
-fi
+  if test ! -e intl/ngettext.c; then
+    AC_MSG_ERROR([GNU gettext 0.10.36 or greater is required.
+      http://www.gnu.org/software/gettext/gettext.html])
+  fi
 else
-saved_ldflags="$LDFLAGS"
-LDFLAGS="$LDFLAGS $INTLLIBS"
-AC_CHECK_FUNC(ngettext, [],
-	AC_MSG_ERROR([GNU gettext 0.10.36 or greater is required.
-	http://www.gnu.org/software/gettext/gettext.html#downloading
-	]))
-
-LDFLAGS="$saved_ldflags"
+  saved_ldflags="$LDFLAGS"
+  LDFLAGS="$LDFLAGS $INTLLIBS"
+  AC_CHECK_FUNC(ngettext, [],
+    AC_MSG_ERROR([GNU gettext 0.10.36 or greater is required.
+      http://www.gnu.org/software/gettext/gettext.html]))
+  LDFLAGS="$saved_ldflags"
 fi
 
 dnl -----------------------------------------------------------
 dnl with-gnome-prefix handling, used for building packages.
 dnl -----------------------------------------------------------
 AC_ARG_WITH(gnome-prefix,
-	[  --with-gnome-prefix     Use the given path as the Gnome prefix],
-		if test ! "x$withval" = x; then
-			GNOME_PREFIX=$withval
-		fi)
+  [  --with-gnome-prefix     Use the given path as the Gnome prefix],
+  if test ! "x$withval" = x; then
+    GNOME_PREFIX=$withval
+  fi)
 
 if test "x$GNOME_PREFIX" = "x"; then
-	GNOME_PREFIX=`$GNOME_CONFIG --prefix`
+  GNOME_PREFIX=`$GNOME_CONFIG --prefix`
 fi
 AC_SUBST(GNOME_PREFIX)
 
 if test "x${prefix}" = "xNONE"; then
-	prefix=$GNOME_PREFIX
+  prefix=$GNOME_PREFIX
 fi
 
 dnl Set PACKAGE_*_DIR in config.h.
-AC_DEFINE_UNQUOTED(PACKAGE_LOCALE_DIR, "${prefix}/${DATADIRNAME}/locale")
-AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR, "${prefix}/${DATADIRNAME}/${PACKAGE}")
+AC_DEFINE_UNQUOTED(PACKAGE_LOCALE_DIR, "${prefix}/${DATADIRNAME}/locale", [ld])
+AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR, "${prefix}/${DATADIRNAME}/${PACKAGE}", [dd])
 PACKAGE_LIB_DIR="${prefix}/lib/${PACKAGE}"
 PACKAGE_PIXMAPS_DIR="${prefix}/${DATADIRNAME}/pixmaps/${PACKAGE}"
 
-AC_DEFINE_UNQUOTED(PACKAGE_LIB_DIR, "${PACKAGE_LIB_DIR}")
+AC_DEFINE_UNQUOTED(PACKAGE_LIB_DIR, "${PACKAGE_LIB_DIR}", [ld])
 AC_SUBST(PACKAGE_LIB_DIR)
-AC_DEFINE_UNQUOTED(PACKAGE_PIXMAPS_DIR, "${PACKAGE_PIXMAPS_DIR}")
+AC_DEFINE_UNQUOTED(PACKAGE_PIXMAPS_DIR, "${PACKAGE_PIXMAPS_DIR}", [pd])
 AC_SUBST(PACKAGE_PIXMAPS_DIR)
 
 dnl ----------------------------------------------------------------------
@@ -413,9 +416,9 @@ dnl ----------------------------------------------------------------------
 XV_PRESENT=""
 AC_CHECK_LIB(Xv, XvShmPutImage, XV_PRESENT="yes",, $GTK_LIBS)
 if test "x$XV_PRESENT" = "xyes"; then
-AC_DEFINE(HAVE_LIBXV)
-X_XV_LIBS="-lXv"
-AC_SUBST(X_XV_LIBS)
+  AC_DEFINE(HAVE_LIBXV, 1, [Define if XVideo lib is present])
+  X_XV_LIBS="-lXv"
+  AC_SUBST(X_XV_LIBS)
 fi
 
 dnl ----------------------------------------------------------------------
@@ -424,36 +427,35 @@ dnl ----------------------------------------------------------------------
 DPMS_PRESENT=""
 AC_CHECK_LIB(Xdpms, DPMSQueryExtension, DPMS_PRESENT="yes",, $GTK_LIBS)
 if test "x$DPMS_PRESENT" = "xyes"; then
-AC_DEFINE(HAVE_LIBXDPMS)
-X_XDPMS_LIBS="-lXdpms"
-AC_SUBST(X_XDPMS_LIBS)
+  AC_DEFINE(HAVE_LIBXDPMS, 1, [Define if Xdpms lib is present])
+  X_XDPMS_LIBS="-lXdpms"
+  AC_SUBST(X_XDPMS_LIBS)
 fi
 if test "x$DPMS_PRESENT" = "x"; then
-AC_CHECK_LIB(Xext, DPMSQueryExtension, DPMS_PRESENT="yes",, $GTK_LIBS)
-if test "x$DPMS_PRESENT" = "xyes"; then
-AC_DEFINE(HAVE_LIBXDPMS)
-X_XDPMS_LIBS="-lXext"
-AC_SUBST(X_XDPMS_LIBS)
-fi
+  AC_CHECK_LIB(Xext, DPMSQueryExtension, DPMS_PRESENT="yes",, $GTK_LIBS)
+  if test "x$DPMS_PRESENT" = "xyes"; then
+    AC_DEFINE(HAVE_LIBXDPMS, 1, [Define if Xdpms lib is present])
+    X_XDPMS_LIBS="-lXext"
+    AC_SUBST(X_XDPMS_LIBS)
+  fi
 fi
 
 dnl ----------------------------------------------------------------------
 dnl Check for OSS.
 dnl ----------------------------------------------------------------------
-HAVE_OSS="yes"
+HAVE_OSS="no"
 AC_REQUIRE_CPP
-AC_CHECK_HEADERS(sys/soundcard.h,true,
-	AC_CHECK_HEADERS(machine/soundcard.h, true, HAVE_OSS=no))
-
+AC_CHECK_HEADERS(sys/soundcard.h, HAVE_OSS=yes, )
+AC_CHECK_HEADERS(machine/soundcard.h, HAVE_OSS=yes, )
 if test "$HAVE_OSS" = "yes"; then
-  AC_DEFINE(USE_OSS)
+  AC_DEFINE(USE_OSS, 1, [Define to compile with OSS support])
 else
   AC_MSG_WARN([*** OSS support not available ***])
 fi
 
 dnl Avoid passing a zillion times the same flags to gcc
 if test -f /usr/bin/perl; then
-    cat > clean.pl << EOF
+  cat > clean.pl << EOF
 #!/usr/bin/perl
 my %tokens = ();
 
@@ -466,7 +468,7 @@ foreach \$token (keys %tokens) {
 }
 EOF
 else
-    cat > clean.pl << EOF
+  cat > clean.pl << EOF
 #!/bin/sh
 echo \$*
 EOF
@@ -485,6 +487,11 @@ PLUGIN_DEFAULT_FLAGS="$CFLAGS -Wno-unused"
 AC_SUBST(PLUGIN_DEFAULT_FLAGS)
 
 rm -f po/Makefile
+
+dnl GNOME_X_CHECKS
+if true; then true; else
+  AC_DEFINE(HAVE_LIBSM, 1, [Define if SM lib is present])
+fi
 
 AC_OUTPUT([
 zapping.spec
@@ -512,10 +519,10 @@ plugins/template/Makefile
 
 dnl fscking broken world
 if test ! -r po/Makefile; then
-	dnl Don't ask :-)
-	PF="POT"
-	PF=$PF"FILES"
-        sed -e "/$PF =/r po/PF" po/Makefile.in > po/Makefile
+  dnl Don't ask :-)
+  PF="POT"
+  PF=$PF"FILES"
+  sed -e "/$PF =/r po/PF" po/Makefile.in > po/Makefile
 fi
 
 echo "
@@ -535,5 +542,5 @@ echo "
 	----------------"
 
 for x in $PLUGINS_TO_BUILD; do
-echo "	"$x
+  echo "        "$x
 done
