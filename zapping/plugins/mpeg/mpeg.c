@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.9 2001-09-11 13:13:26 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.10 2001-09-13 12:20:14 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -841,12 +841,12 @@ void plugin_load_config (gchar * root_key)
   zconf_create_float(2.3, "Output video Mbits", buffer);
   output_video_bits = zconf_get_float(NULL, buffer);
   g_free(buffer);
-
+/* TODO
   buffer = g_strconcat(root_key, "output_audio_bits", NULL);
   zconf_create_float(80, "Output audio Kbits", buffer);
   output_audio_bits = zconf_get_float(NULL, buffer);
   g_free(buffer);
-
+*/
   buffer = g_strconcat(root_key, "engine_verbosity", NULL);
   zconf_create_integer(0, "Engine verbosity", buffer);
   engine_verbosity = zconf_get_integer(NULL, buffer);
@@ -928,11 +928,11 @@ void plugin_save_config (gchar * root_key)
   buffer = g_strconcat(root_key, "output_video_bits", NULL);
   zconf_set_float(output_video_bits, buffer);
   g_free(buffer);
-
+/*
   buffer = g_strconcat(root_key, "output_audio_bits", NULL);
   zconf_set_float(output_audio_bits, buffer);
   g_free(buffer);
-
+*/
   buffer = g_strconcat(root_key, "engine_verbosity", NULL);
   zconf_set_integer(engine_verbosity, buffer);
   g_free(buffer);
