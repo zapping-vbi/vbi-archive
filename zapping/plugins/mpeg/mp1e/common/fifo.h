@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.19 2001-04-01 20:12:37 garetxe Exp $ */
+/* $Id: fifo.h,v 1.20 2001-04-07 14:48:36 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -195,8 +195,6 @@ propagate_buffer(fifo *f, buffer *b, coninfo *consumer)
 {
 	coninfo *p = (coninfo*)f->consumers.head;
 
-	b->refcount = 0;
-
 	while (p) {
 		if (p != consumer) {
 			pthread_mutex_lock(&(p->consumer.mutex));
@@ -204,8 +202,8 @@ propagate_buffer(fifo *f, buffer *b, coninfo *consumer)
 			p->waiting++;
 			pthread_mutex_unlock(&(p->consumer.mutex));
 			pthread_cond_broadcast(&(p->consumer.cond));
+			b->refcount++;
 		}
-		b->refcount++;
 		p = (coninfo*)(p->node.next);
 	}
 
@@ -241,6 +239,7 @@ wait_full_buffer(fifo *f)
 		/* Wait for a new buffer */
 		while (!b)
 			b = f->wait_full(f);
+		b->refcount = 1;
 		propagate_buffer(f, b, consumer);
 	} else if (!b) {
 		while (!(b = (buffer *) rem_head(&consumer->full)))
@@ -272,8 +271,10 @@ recv_full_buffer(fifo *f)
 
 	if ((!b) && (f->wait_full)) {
 		b = f->wait_full(f);
-		if (b)
+		if (b) {
+			b->refcount = 1;
 			propagate_buffer(f, b, consumer);
+		}
 	}
 
 	pthread_rwlock_unlock(&f->consumers_rwlock);

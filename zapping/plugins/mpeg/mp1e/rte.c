@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.48 2001-04-02 22:39:49 garetxe Exp $ */
+/* $Id: rte.c,v 1.49 2001-04-07 14:48:36 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -48,6 +48,7 @@
 
 /*
   BUGS:
+      . mux cannot be joined if no data has been encoded
       . It isn't reentrant.
       . We shouldn't use ASSERTS if possible
   TODO:
@@ -85,6 +86,27 @@ static void rte_compression_startup(void); /* Compression parameters */
 static void rte_audio_init(void); /* init audio capture */
 static void rte_video_init(void); /* init video capture */
 
+/* This must be kept in sync with fifo.h */
+static inline buffer *
+rte_recv_full_buffer(fifo *f)
+{
+	buffer *b;
+	coninfo *consumer;
+
+	pthread_rwlock_rdlock(&f->consumers_rwlock);
+	consumer = query_consumer(f);
+
+	pthread_mutex_lock(&consumer->consumer.mutex);
+	b = (buffer*) rem_head(&consumer->full);
+	if (b)
+		consumer->waiting--;
+	pthread_mutex_unlock(&consumer->consumer.mutex);
+
+	pthread_rwlock_unlock(&f->consumers_rwlock);
+
+	return b;
+}
+
 /*
  * Waits for video or audio data. Returns a buffer valid for
  * encoding. NULL on error.
@@ -94,70 +116,54 @@ wait_data(rte_context * context, int video)
 {
 	fifo * f;
 	buffer * b;
-	mucon *consumer; list *full; coninfo *koninfo;
-	rteDataCallback data_callback;
-	rteBufferCallback buffer_callback;
+	/* *_callback are volatile, access by reference */
+	rteDataCallback *data_callback;
+	rteBufferCallback *buffer_callback;
 	rte_buffer rbuf;
 	enum rte_mux_mode stream = video ? RTE_VIDEO : RTE_AUDIO;
+	mucon * consumer;
 
 	nullcheck(context, return NULL);
 
 	if (video) {
 		f = &context->private->vid;
-		data_callback = context->private->video_data_callback;
-		buffer_callback = context->private->video_buffer_callback;
+		data_callback = &(context->private->video_data_callback);
+		buffer_callback = &(context->private->video_buffer_callback);
+		consumer = &(context->private->vid_consumer);
 	}
 	else {
 		f = &context->private->aud;
-		data_callback = context->private->audio_data_callback;
-		buffer_callback = context->private->audio_buffer_callback;
+		data_callback = &(context->private->audio_data_callback);
+		buffer_callback = &(context->private->audio_buffer_callback);
+		consumer = &(context->private->aud_consumer);
 	}
 
-	/* FIXME: This is too low-level, prone to errors. Better
-	   figure out some way to use fifo.h instead */
-
-	pthread_rwlock_rdlock(&f->consumers_rwlock);
-	koninfo = query_consumer(f);
-	full = &koninfo->full;
-	consumer = &koninfo->consumer;
-
-	/* do we have an available buffer from the push interface? */
-	pthread_mutex_lock(&consumer->mutex);
-
-	while (!(b = (buffer*) rem_head(full))) {
-		if (data_callback) { /* no, callback
-					 interface */
-			b = wait_empty_buffer(f);
-			
-			ASSERT("size checks",
-			       b->size == (video ? context->video_bytes :
-					    context->audio_bytes));
-
-			data_callback(context, b->data, &(b->time),
-				      stream, context->private->user_data);
-			
-			pthread_mutex_unlock(&consumer->mutex);
-			pthread_rwlock_unlock(&f->consumers_rwlock);
-			return b;
-		} else if (buffer_callback) {
+	while (!(b = rte_recv_full_buffer(f))) {
+		if (*data_callback) {
 			b = wait_empty_buffer(f);
 
-			buffer_callback(context, &rbuf, stream);
+			(*data_callback)(context, b->data, &(b->time),
+					 stream, context->private->user_data);
+
+			send_full_buffer(f, b);
+			continue;
+		} else if (*buffer_callback) {
+			b = wait_empty_buffer(f);
+
+			(*buffer_callback)(context, &rbuf, stream);
 			b->data = rbuf.data;
 			b->time = rbuf.time;
 			b->user_data = rbuf.user_data;
 
-			pthread_mutex_unlock(&consumer->mutex);
-			pthread_rwlock_unlock(&f->consumers_rwlock);
-			return b;
+			send_full_buffer(f, b);
+			continue;
 		}
 		/* wait for the push interface */
+		pthread_mutex_lock(&consumer->mutex);
 		pthread_cond_wait(&consumer->cond, &consumer->mutex);
+		pthread_mutex_unlock(&consumer->mutex);
 	}
 
-	koninfo->waiting--;
-	pthread_mutex_unlock(&consumer->mutex);
-	pthread_rwlock_unlock(&f->consumers_rwlock);
 	return b;
 }
 
@@ -180,20 +186,22 @@ video_send_empty(fifo *f, buffer *b)
 	rteUnrefCallback unref_callback =
 		((rte_context*)f->user_data)->private->video_unref_callback;
 
-	if (unref_callback) {
-		rbuf.data = b->data;
-		rbuf.time = b->time;
-		rbuf.user_data = b->user_data;
+	if ((--(b->refcount)) <= 0) {
+		if (unref_callback) {
+			rbuf.data = b->data;
+			rbuf.time = b->time;
+			rbuf.user_data = b->user_data;
+			
+			unref_callback((rte_context*)f->user_data, &rbuf);
+		}
 		
-		unref_callback((rte_context*)f->user_data, &rbuf);
+		pthread_mutex_lock(&f->producer.mutex);
+		
+		add_head(&f->empty, &b->node);
+		
+		pthread_mutex_unlock(&f->producer.mutex);
+		pthread_cond_broadcast(&f->producer.cond);
 	}
-
-	pthread_mutex_lock(&f->producer.mutex);
-
-	add_head(&f->empty, &b->node);
-
-	pthread_mutex_unlock(&f->producer.mutex);
-	pthread_cond_broadcast(&f->producer.cond);
 }
 
 static void
@@ -203,20 +211,22 @@ audio_send_empty(fifo *f, buffer *b)
 	rteUnrefCallback unref_callback =
 		((rte_context*)f->user_data)->private->audio_unref_callback;
 
-	if (unref_callback) {
-		rbuf.data = b->data;
-		rbuf.time = b->time;
-		rbuf.user_data = b->user_data;
-
-		unref_callback((rte_context*)f->user_data, &rbuf);
+	if ((--(b->refcount)) <= 0) {
+		if (unref_callback) {
+			rbuf.data = b->data;
+			rbuf.time = b->time;
+			rbuf.user_data = b->user_data;
+			
+			unref_callback((rte_context*)f->user_data, &rbuf);
+		}
+		
+		pthread_mutex_lock(&f->producer.mutex);
+		
+		add_head(&f->empty, &b->node);
+		
+		pthread_mutex_unlock(&f->producer.mutex);
+		pthread_cond_broadcast(&f->producer.cond);
 	}
-
-	pthread_mutex_lock(&f->producer.mutex);
-
-	add_head(&f->empty, &b->node);
-
-	pthread_mutex_unlock(&f->producer.mutex);
-	pthread_cond_broadcast(&f->producer.cond);
 }
 
 /* Just produces a blank buffer */
@@ -336,11 +346,6 @@ void * rte_context_destroy ( rte_context * context )
 		}
 	}
 
-	if (context->private->rgbmem) {
-		free(context->private->rgbmem);
-		context->private->rgbmem = NULL;
-	}
-
 	if (context->error)
 	{
 		free(context->error);
@@ -419,8 +424,6 @@ int rte_set_video_parameters (rte_context * context,
 			      enum rte_frame_rate video_rate,
 			      size_t output_video_bits)
 {
-	int check_malloc = 0;
-
 	nullcheck(context, return 0);
 
 	if (context->private->inited) {
@@ -452,12 +455,6 @@ int rte_set_video_parameters (rte_context * context,
 	context->video_rate = video_rate;
 	context->output_video_bits = output_video_bits;
 	context->video_bytes = context->width * context->height;
-	context->private->rgbfilter = NULL;
-	if (context->private->rgbmem)
-	{
-		free(context->private->rgbmem);
-		context->private->rgbmem = NULL;
-	}
 
 	switch (frame_format)
 	{
@@ -475,56 +472,8 @@ int rte_set_video_parameters (rte_context * context,
 	case RTE_YUV420:
 		context->video_bytes *= 1.5;
 		break;
-	case RTE_RGB555:
-		context->video_bytes *= 2;
-		context->private->rgbfilter = convert_rgb555_ycbcr420;
-		context->private->rgbmem =
-			malloc(context->width*context->height*2);
-		check_malloc = 1;
-		break;
-	case RTE_RGB565:
-		context->video_bytes *= 2;
-		context->private->rgbfilter = convert_rgb565_ycbcr420;
-		context->private->rgbmem =
-			malloc(context->width*context->height*2);
-		check_malloc = 1;
-		break;
-	case RTE_RGB24:
-		context->video_bytes *= 3;
-		context->private->rgbfilter = convert_rgb24_ycbcr420;
-		context->private->rgbmem =
-			malloc(context->width*context->height*3);
-		check_malloc = 1;
-		break;
-	case RTE_BGR24:
-		context->video_bytes *= 3;
-		context->private->rgbfilter = convert_bgr24_ycbcr420;
-		context->private->rgbmem =
-			malloc(context->width*context->height*3);
-		check_malloc = 1;
-		break;
-	case RTE_RGB32:
-		context->video_bytes *= 4;
-		context->private->rgbfilter = convert_rgb32_ycbcr420;
-		context->private->rgbmem =
-			malloc(context->width*context->height*4);
-		check_malloc = 1;
-		break;
-	case RTE_BGR32:
-		context->video_bytes *= 4;
-		context->private->rgbfilter = convert_bgr32_ycbcr420;
-		context->private->rgbmem =
-			malloc(context->width*context->height*4);
-		check_malloc = 1;
-		break;
 	default:
 		rte_error(context, "unhandled pixformat: %d", frame_format);
-		return 0;
-	}
-
-	if ((check_malloc) && (!context->private->rgbmem)) {
-		rte_error(context, "malloc: %d (%s)", errno,
-			  strerror(errno));
 		return 0;
 	}
 
@@ -607,7 +556,7 @@ static int rte_fake_options(rte_context * context);
 /* Prepare the context for encoding */
 int rte_init_context ( rte_context * context )
 {
-	int alloc_bytes; /* bytes allocated for the video fifo */
+	int alloc_bytes;
 
 	nullcheck(context, return 0);
 
@@ -629,32 +578,6 @@ int rte_init_context ( rte_context * context )
 			  "!= NULL too");
 		return 0;
 	}
-	
-	/* FIXME: we need some checks here for callbacks */
-	if (!rte_fake_options(context))
-		return 0;
-
-	/* Now init the mp1e engine, as main would do */
-	rte_audio_startup();
-	rte_compression_startup();
-
-	rte_audio_init();
-	rte_video_init();
-
-	if (!output_init())
-		return 0;
-
-	if (context->file_name) {
-		context->private->fd = creat(context->file_name, 00644);
-		if (context->private->fd == -1) {
-			rte_error(context, "creat(%s): %s [%d]",
-				  context->file_name, strerror(errno), errno);
-			return 0;
-		}
-
-		context->private->encode_callback =
-			RTE_ENCODE_CALLBACK(default_write_callback);
-	}
 
 	if (context->mode & RTE_AUDIO)
 		mucon_init(&(context->private->aud_consumer));
@@ -663,40 +586,11 @@ int rte_init_context ( rte_context * context )
 
 	/* create needed fifos */
 	if (context->mode & RTE_VIDEO) {
-		alloc_bytes = context->video_bytes;
-		switch (context->video_format)
-		{
-		case RTE_RGB555:
-		case RTE_RGB565:
-		case RTE_RGB24:
-		case RTE_BGR24:
-		case RTE_RGB32:
-		case RTE_BGR32:
-			/* fixme: add support for this */
-			if (context->private->video_buffered) {
-				rte_error(context, "buffering isn't"
-					  "supported in RGB modes");
-				return 0;
-			}
-		case RTE_YUV420:
-			alloc_bytes = context->width*context->height*1.5;
-			break;
-		case RTE_YUYV_VERTICAL_DECIMATION:
-		case RTE_YUYV_TEMPORAL_INTERPOLATION:
-		case RTE_YUYV_VERTICAL_INTERPOLATION:
-		case RTE_YUYV_PROGRESSIVE:
-		case RTE_YUYV_PROGRESSIVE_TEMPORAL:
-		case RTE_YUYV_EXP:
-		case RTE_YUYV_EXP_VERTICAL_DECIMATION:
-		case RTE_YUYV_EXP2:
-		case RTE_YUYV:
-			alloc_bytes = context->video_bytes;
-			break;
-		}
-
 		if (context->private->video_buffered)
 			alloc_bytes = 0; /* no need for preallocated
 					    mem */
+		else
+			alloc_bytes = context->video_bytes;
 		if (2 > init_buffered_fifo(&(context->private->vid),
 					   "rte-video",
 					   video_look_ahead(gop_sequence),
@@ -717,8 +611,10 @@ int rte_init_context ( rte_context * context )
 			alloc_bytes = 0;
 		if (4 > init_buffered_fifo(&(context->private->aud),
 					   "rte-audio",
-					   NUM_AUDIO_BUFFERS, alloc_bytes)) {
-			uninit_fifo(&(context->private->vid));
+					   NUM_AUDIO_BUFFERS,
+					   alloc_bytes)) {
+			if (context->mode & RTE_VIDEO)
+				uninit_fifo(&(context->private->vid));
 			rte_error(context, "not enough mem");
 			return 0;
 		}
@@ -727,13 +623,53 @@ int rte_init_context ( rte_context * context )
 		context->private->aud.wait_full = audio_wait_full;
 		context->private->aud.send_empty = audio_send_empty;
 	}
+	
+	/* FIXME: we need some checks here for callbacks */
+	if (!rte_fake_options(context)) {
+		if (context->mode & RTE_VIDEO)
+			uninit_fifo(&(context->private->vid));
+		if (context->mode & RTE_AUDIO)
+			uninit_fifo(&(context->private->aud));
+		return 0;
+	}
 
-	/* allow pushing from now */
-	context->private->inited = 1;
+	/* Now init the mp1e engine, as main would do */
+	rte_audio_startup();
+	rte_compression_startup();
+
+	rte_audio_init();
+	rte_video_init();
+
+	if (!output_init()) {
+		if (context->mode & RTE_VIDEO)
+			uninit_fifo(&(context->private->vid));
+		if (context->mode & RTE_AUDIO)
+			uninit_fifo(&(context->private->aud));
+		return 0;
+	}
+
+	if (context->file_name) {
+		context->private->fd = creat(context->file_name, 00644);
+		if (context->private->fd == -1) {
+			rte_error(context, "creat(%s): %s [%d]",
+				  context->file_name, strerror(errno), errno);
+			if (context->mode & RTE_VIDEO)
+				uninit_fifo(&(context->private->vid));
+			if (context->mode & RTE_AUDIO)
+				uninit_fifo(&(context->private->aud));
+			return 0;
+		}
+
+		context->private->encode_callback =
+			RTE_ENCODE_CALLBACK(default_write_callback);
+	}
 
 	/* Set up some fields */
 	context->private->last_video_buffer =
 		context->private->last_audio_buffer = NULL;
+
+	/* allow pushing from now */
+	context->private->inited = 1;
 
 	return 1; /* done, we are prepared for encoding */
 }
@@ -747,7 +683,11 @@ int rte_start_encoding (rte_context * context)
 		return 0;
 	}
 
-	remote_init(modules); /* FIXME: remote_shutdown needed */
+	/* Set up some fields */
+	context->private->last_video_buffer =
+		context->private->last_audio_buffer = NULL;
+
+	remote_init(modules);
 
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
@@ -823,7 +763,6 @@ void rte_stop ( rte_context * context )
 	}
 
 	context->private->encoding = 0;
-	context->private->inited = 0;
 
 	/* save for future use */
 	audio_callback = context->private->audio_data_callback;
@@ -834,8 +773,13 @@ void rte_stop ( rte_context * context )
 		/* set to dead end */
 		context->private->audio_data_callback = blank_callback;
 
-		/* Signal the conditions so any thread waiting for an
-		   video push() wakes up, and uses the dead end */
+		/* send the used buffer as empty */
+		if (context->private->last_audio_buffer)
+			send_empty_buffer(&(context->private->aud),
+					  context->private->last_audio_buffer);
+
+		/* Signal the conditions so any thread waiting for a
+		   audio push() wakes up, and uses the dead end */
 		pthread_cond_broadcast(&(context->private->aud_consumer.cond));
 	}
 
@@ -844,7 +788,11 @@ void rte_stop ( rte_context * context )
 		/* set to dead end */
 		context->private->video_data_callback = blank_callback;
 
-		/* Signal the conditions so any thread waiting for an
+		if (context->private->last_video_buffer)
+			send_empty_buffer(&(context->private->vid),
+					  context->private->last_video_buffer);
+
+		/* Signal the conditions so any thread waiting for a
 		   video push() wakes up, and uses the dead end */
 		pthread_cond_broadcast(&(context->private->vid_consumer.cond));
 	}
@@ -873,6 +821,8 @@ void rte_stop ( rte_context * context )
 	mux_cleanup();
 	output_end();
 
+	context->private->inited = 0;
+
 	if (context->mode & RTE_VIDEO) {
 		uninit_fifo(&context->private->vid);
 		mucon_destroy(&context->private->vid_consumer);
@@ -891,10 +841,6 @@ void rte_stop ( rte_context * context )
 	if (context->private->fd > 0) {
 		close(context->private->fd);
 		context->private->fd = -1;
-	}
-	if (context->private->rgbmem) {
-		free(context->private->rgbmem);
-		context->private->rgbmem = NULL;
 	}
 }
 
@@ -918,35 +864,33 @@ void * rte_push_video_data ( rte_context * context, void * data,
 		rte_error(NULL, "use push_buffer, not push_data");
 		return NULL;
 	}
+	if (!context->private->encoding) {
+		rte_error(context, "context not encoding, push_video_data"
+			  " not allowed");
+		return NULL;
+	}
 	ASSERT("Arrr... stick to the usage, please\n",
 	       (context->private->last_video_buffer && data)
 	       || (!context->private->last_video_buffer && !data));
 
 	if (data) {
-		if (!context->private->rgbfilter)
-			ASSERT("you haven't written to the provided buffer!\n",
-			       data ==
-			       context->private->last_video_buffer->data);
-		else {
-			ASSERT("you haven't written to the provided buffer!\n",
-			       data == context->private->rgbmem);
-			context->private->rgbfilter(data,
-				 context->private->last_video_buffer->data,
-						    context->width,
-						    context->height);
-		}
+		ASSERT("you haven't written to the provided buffer!\n",
+		       data ==
+		       context->private->last_video_buffer->data);
 			
 		context->private->last_video_buffer->time = time;
+		ASSERT("size check", context->video_bytes ==
+		       context->private->last_video_buffer->size);
 
 		send_full_buffer(&(context->private->vid),
 				 context->private->last_video_buffer);
+
+		/* aknowledge to wait_data */
+		pthread_cond_broadcast(&(context->private->vid_consumer.cond));
 	}
 
 	context->private->last_video_buffer =
 		wait_empty_buffer(&(context->private->vid));
-
-	if (context->private->rgbfilter)
-		return context->private->rgbmem;
 
 	return context->private->last_video_buffer->data;
 }
@@ -971,6 +915,11 @@ void rte_push_video_buffer ( rte_context * context,
 		rte_error(NULL, "use push_data, not push_buffer");
 		return;
 	}
+	if (!context->private->encoding) {
+		rte_error(context, "context not encoding, push_video_buffer"
+			  " not allowed");
+		return;
+	}
 
 	b = context->private->last_video_buffer =
 		wait_empty_buffer(&(context->private->vid));
@@ -981,6 +930,8 @@ void rte_push_video_buffer ( rte_context * context,
 
 	send_full_buffer(&(context->private->vid),
 			 context->private->last_video_buffer);
+
+	pthread_cond_broadcast(&(context->private->vid_consumer.cond));
 }
 
 void * rte_push_audio_data ( rte_context * context, void * data,
@@ -1002,6 +953,11 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 		rte_error(NULL, "use push_buffer, not push_data");
 		return NULL;
 	}
+	if (!context->private->encoding) {
+		rte_error(context, "context not encoding, push_audio_data"
+			  " not allowed");
+		return NULL;
+	}
 
 	ASSERT("Arrr... stick to the usage, please\n",
 	       (context->private->last_audio_buffer && data)
@@ -1015,6 +971,7 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 
 		send_full_buffer(&(context->private->aud),
 				 context->private->last_audio_buffer);
+		pthread_cond_broadcast(&(context->private->aud_consumer.cond));
 	}
 
 	context->private->last_audio_buffer =
@@ -1043,6 +1000,11 @@ void rte_push_audio_buffer ( rte_context * context,
 		rte_error(NULL, "use push_data, not push_buffer");
 		return;
 	}
+	if (!context->private->encoding) {
+		rte_error(context, "context not encoding, push_audio_buffer"
+			  " not allowed");
+		return;
+	}
 
 	b = context->private->last_audio_buffer =
 		wait_empty_buffer(&(context->private->aud));
@@ -1053,6 +1015,8 @@ void rte_push_audio_buffer ( rte_context * context,
 
 	send_full_buffer(&(context->private->aud),
 			 context->private->last_audio_buffer);
+
+	pthread_cond_broadcast(&(context->private->aud_consumer.cond));
 }
 
 void rte_set_verbosity ( rte_context * context, int level )
@@ -1111,13 +1075,6 @@ static int rte_fake_options(rte_context * context)
 		pitch = grab_width*2;
 		break;
 	case RTE_YUV420:
-		/* the RGB modes get converted to this mode too */
-	case RTE_RGB555:
-	case RTE_RGB565:
-	case RTE_RGB24:
-	case RTE_BGR24:
-	case RTE_RGB32:
-	case RTE_BGR32:
 		filter_mode = CM_YUV;
 		pitch = grab_width;
 		break;

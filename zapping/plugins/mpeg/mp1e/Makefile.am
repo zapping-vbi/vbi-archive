@@ -14,8 +14,7 @@ EXTRA_DIST = videodev1.h videodev2.h mp1e.lsm.in
 librteincludedir = $(includedir)
 librteinclude_HEADERS = rte.h
 librte_la_SOURCES = global_data.c options.h \
-		rte.c rte.h rtepriv.h main.h \
-		convert_ry.c convert_ry.h
+		rte.c rte.h rtepriv.h main.h
 librte_la_LIBADD = video/libvideo_rte.la audio/libaudio_rte.la \
 systems/libsystems_rte.la common/libcommon.la -lpthread -lm
 librte_la_LDFLAGS = -export-dynamic

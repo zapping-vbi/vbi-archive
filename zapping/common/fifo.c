@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.6 2001-03-31 11:10:26 garetxe Exp $ */
+/* $Id: fifo.c,v 1.7 2001-04-07 14:48:36 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -238,6 +238,8 @@ send_full(fifo *f, buffer *b)
 {
 	coninfo *consumer;
 
+	b->refcount = 0;
+
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
 
 	consumer = (coninfo*)f->consumers.head;
@@ -248,6 +250,7 @@ send_full(fifo *f, buffer *b)
 		consumer->waiting ++;
 		pthread_mutex_unlock(&(consumer->consumer.mutex));
 		pthread_cond_broadcast(&(consumer->consumer.cond));
+		b->refcount ++;
 	}
 
 	propagate_buffer(f, b, consumer);
