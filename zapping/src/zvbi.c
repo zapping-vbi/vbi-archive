@@ -104,7 +104,7 @@ zvbi_open_device(gint newbttv)
   zcc_char("/dev/vbi", "VBI device", "vbi_device");
   zcc_bool(TRUE, "Error correction", "erc");
   zcc_int(999, "Finetune range", "finetune");
-  zcc_int(0, "Glyphs used to render TTX", "glyphs");
+  zcc_int(0, "Default TTX region", "default_region");
   srand(time(NULL));
 
   if ((vbi) || (!zcg_bool(NULL, "enable_vbi")))
@@ -113,12 +113,6 @@ zvbi_open_device(gint newbttv)
   device = zcg_char(NULL, "vbi_device");
   finetune = zcg_int(NULL, "finetune");
   erc = zcg_bool(NULL, "erc");
-/* TODO teletext region
-  vbi_set_glyphs(zcg_int(NULL, "glyphs"));
-*/
-
-/* fifo - OBSOLETE */
-/*  fdset_init(fds);*/
 
   if (!(vbi = vbi_open(device, cache_open(), finetune, newbttv)))
     {
@@ -146,6 +140,7 @@ zvbi_open_device(gint newbttv)
     }
 
   zvbi_set_current_page(cur_page, cur_subpage);
+  vbi_set_default_region(vbi, zcg_int(NULL, "default_region"));
 
   return TRUE;
 }

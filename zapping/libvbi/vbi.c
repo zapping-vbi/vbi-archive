@@ -142,6 +142,21 @@ default_colour_map[32] = {
     0x333, 0x77F, 0x7F7, 0x7FF, 0xF77, 0xF7F, 0xFF7, 0xDDD
 };
 
+void
+vbi_set_default_region(struct vbi *vbi, int default_region)
+{
+	int i;
+	struct vt_extension *x;
+
+	for (i=0; i < 8; i++) {
+		x = vbi->magazine_extension + i;
+
+		/* garetxe: fixme: is this correct? */
+		x->primary_char_set = x->secondary_char_set =
+			default_region;
+	}
+}
+
 static void
 reset_magazines(struct vbi *vbi)
 {

@@ -82,5 +82,6 @@ int v4l_vbi_setup_dev(struct vbi *vbi);
 
 void out_of_sync(struct vbi *vbi);
 int vbi_line(struct vbi *vbi, u8 *p);
+void vbi_set_default_region(struct vbi *vbi, int default_region);
 
 #endif
