@@ -37,7 +37,7 @@
 #define TVENGXV_PROTOTYPES 1
 #include "tvengxv.h"
 
-#include "globals.h" /* xv_video_port */
+#include "globals.h" /* xv_video_port, disable_overlay */
 #include "zmisc.h"
 
 struct video_input {
@@ -69,9 +69,12 @@ struct private_tvengxv_device_info
 {
   tveng_device_info info; /* Info field, inherited */
   XvPortID	port; /* port id */
-  XvEncodingInfo *ei; /* list of encodings, for reference */
-  int encodings; /* number of encodings */
-  unsigned int cur_encoding;
+
+	/** List of encodings, i.e. standards and inputs. */
+	XvEncodingInfo *	ei;
+	unsigned int		n_encodings;
+	unsigned int		cur_encoding;
+
   /* This atoms define the controls */
 	Atom			xa_encoding;
   int encoding_max, encoding_min, encoding_gettable;
@@ -95,6 +98,7 @@ struct private_tvengxv_device_info
 
 #define P_INFO(p) PARENT (p, struct private_tvengxv_device_info, info)
 
+
 static int
 find_encoding			(tveng_device_info *	info,
 				 const char *		input,
@@ -107,7 +111,7 @@ find_encoding			(tveng_device_info *	info,
 	snprintf (encoding, 199, "%s-%s", standard, input);
 	encoding[199] = 0;
 
-	for (i = 0; i < (unsigned int) p_info->encodings; ++i)
+	for (i = 0; i < p_info->n_encodings; ++i)
 		if (0 == strcasecmp (encoding, p_info->ei[i].name))
 			return i;
 
@@ -118,24 +122,31 @@ find_encoding			(tveng_device_info *	info,
    (can be 0), returning pointer to "input". Returns NULL on error. */
 static const char *
 split_encoding			(char *			d,
-				 size_t			size,
-				 const char *		s)
+				 size_t			d_size,
+				 const char *		s1)
 {
-	for (; *s && *s != '-'; ++s)
-		if (size > 1) {
-			*d++ = *s;
-			--size;
-		} else if (size > 0) {
-			return NULL;
-		}
+	const char *s;
 
-	if (size > 0)
-		*d = 0;
+	/* We must parse the string backwards because some clown wrote
+	   standards in the v4l Xv driver as "PAL-M", "PAL-Nc" etc not
+	   realizing "-" is a separator. */
 
-	if (*s == 0)
+	s = s1 + strlen (s1);
+
+	for (; s > s1 && s[-1] != '-'; --s)
+		;
+
+	if (s <= s1)
 		return NULL;
 
-	return ++s; /* skip '-' */
+	if (d_size > 0) {
+		size_t std_len;
+		
+		std_len = s - s1;
+		_tv_strlcpy (d, s1, MIN (std_len, d_size));
+	}
+
+	return s;
 }
 
 #define NO_PORT ((XvPortID) None)
@@ -202,28 +213,32 @@ p_tvengxv_open_device(tveng_device_info *info,
   unsigned int major_opcode;
   unsigned int event_base;
   unsigned int error_base;
-  XvAdaptorInfo *pAdaptors;
-  int nAdaptors;
-  XvAttribute *pAttributes;
-  int nAttributes;
+  XvAdaptorInfo *adaptor_info;
+  unsigned int num_adaptors;
+  XvAttribute *attribute;
+  int num_attributes;
 
   printv ("xv_video_port 0x%x\n", xv_video_port);
 
   display = info->display;
 
-  pAdaptors = NULL;
-  pAttributes = NULL;
+  adaptor_info = NULL;
+  num_adaptors = 0;
 
-  nAdaptors = 0;
-  nAttributes = 0;
+  attribute = NULL;
+  num_attributes = 0;
 
   p_info->port = NO_PORT;
-  p_info->encodings = 0;
+
+  p_info->ei = NULL;
+  p_info->n_encodings = 0;
 
   if (Success != XvQueryExtension (display,
-				   &version, &revision,
+				   &version,
+				   &revision,
 				   &major_opcode,
-				   &event_base, &error_base))
+				   &event_base,
+				   &error_base))
     {
       printv ("XVideo extension not available\n");
       goto failure;
@@ -244,19 +259,24 @@ p_tvengxv_open_device(tveng_device_info *info,
   if (None == window)
     window = DefaultRootWindow (display);
 
-  if (Success != XvQueryAdaptors (display, window, &nAdaptors, &pAdaptors))
+  if (Success != XvQueryAdaptors (display,
+				  window,
+				  &num_adaptors,
+				  &adaptor_info))
     {
       printv ("XvQueryAdaptors failed\n");
       goto failure;
     }
 
-  if (nAdaptors <= 0)
+  if (0 == num_adaptors)
     {
       printv ("No XVideo adaptors\n");
       goto failure;
     }
 
-  p_info->port = grab_port (display, pAdaptors, nAdaptors,
+  p_info->port = grab_port (display,
+			    adaptor_info,
+			    num_adaptors,
 			    (XvPortID) xv_video_port);
 
   if (NO_PORT == p_info->port
@@ -265,7 +285,10 @@ p_tvengxv_open_device(tveng_device_info *info,
       printv ("XVideo video input port 0x%x not found\n",
 	      (unsigned int) xv_video_port);
 
-      p_info->port = grab_port (display, pAdaptors, nAdaptors, ANY_PORT);
+      p_info->port = grab_port (display,
+				adaptor_info,
+				num_adaptors,
+				ANY_PORT);
     }
 
   if (NO_PORT == p_info->port)
@@ -278,41 +301,47 @@ p_tvengxv_open_device(tveng_device_info *info,
 	  (unsigned int) p_info->port);
 
   /* Check that it supports querying controls and encodings */
-  if (Success != XvQueryEncodings(display, p_info->port,
-				  &p_info->encodings,
-				  &p_info->ei))
+  if (Success != XvQueryEncodings (display,
+				   p_info->port,
+				   &p_info->n_encodings,
+				   &p_info->ei))
     goto failure;
 
-  if (p_info->encodings <= 0)
+  if (0 == p_info->n_encodings)
     {
       info->tveng_errno = -1;
       tv_error_msg(info, "You have no encodings available");
       goto failure;
     }
 
-  /* create the atom that handles the encoding */
-  pAttributes = XvQueryPortAttributes(display, p_info->port, &nAttributes);
-
-  if (nAttributes <= 0)
+  /* Create the atom that handles the encoding. */
+  if (!(attribute = XvQueryPortAttributes (display,
+					   p_info->port,
+					   &num_attributes)))
     goto failure;
 
-  XFree (pAttributes);
+  if (num_attributes <= 0)
+    goto failure;
 
-  XvFreeAdaptorInfo (pAdaptors);
+  XFree (attribute);
+  attribute = NULL;
 
   XvUngrabPort (display, p_info->port, CurrentTime);
+
+  XvFreeAdaptorInfo (adaptor_info);
+  adaptor_info = NULL;
 
   return 0xbeaf; /* the port seems to work ok, success */
 
  failure:
-  if (nAttributes > 0)
-    XFree (pAttributes);
+  if (attribute)
+    XFree (attribute);
 
-  if (p_info->encodings > 0)
+  if (p_info->ei)
     {
       XvFreeEncodingInfo (p_info->ei);
       p_info->ei = NULL;
-      p_info->encodings = 0;
+      p_info->n_encodings = 0;
     }
 
   if (NO_PORT != p_info->port)
@@ -321,8 +350,8 @@ p_tvengxv_open_device(tveng_device_info *info,
       p_info->port = NO_PORT;
     }
 
-  if (nAdaptors > 0)
-    XvFreeAdaptorInfo (pAdaptors);
+  if (adaptor_info)
+    XvFreeAdaptorInfo (adaptor_info);
 
   return -1; /* failure */
 }
@@ -613,22 +642,36 @@ add_control			(struct private_tvengxv_device_info *p_info,
  */
 
 static tv_bool
-set_video_standard		(tveng_device_info *	info,
-				 tv_video_standard *	s)
+set_encoding			(tveng_device_info *	info,
+				 int			num)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 
 	if (io_debug_msg > 0) {
-		fprintf (stderr, "XvSetPortAttribute XA_ENCODING %s\n",
-			 s->label);
+		fprintf (stderr, "XvSetPortAttribute XA_ENCODING %d (%s)\n",
+			 num, p_info->ei[num].name);
 	}
 
 	XvSetPortAttribute (info->display,
 			    p_info->port,
 			    p_info->xa_encoding,
-			    (int) CS(s)->num);
+			    num);
 
-	p_info->cur_encoding = CS(s)->num;
+	return TRUE;
+}
+
+static tv_bool
+set_video_standard		(tveng_device_info *	info,
+				 tv_video_standard *	s)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+	int num;
+
+	num = CS(s)->num;
+
+	set_encoding (info, num);
+
+	p_info->cur_encoding = num;
 
 	store_cur_video_standard (info, s);
 
@@ -642,19 +685,45 @@ static const struct {
 	const char *		label;
 	tv_videostd_set		set;
 } standards [] = {
-	{ "pal",	"PAL",		TV_VIDEOSTD_SET_PAL },
-	{ "ntsc",	"NTSC",		TV_VIDEOSTD_SET (TV_VIDEOSTD_NTSC_M) },
-	{ "secam",	"SECAM",	TV_VIDEOSTD_SET_SECAM },
-	{ "palnc",	"PAL-NC",	TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_NC) },
-	{ "palm",	"PAL-M",	TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_M) },
-	{ "paln",	"PAL-N",	TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_N) },
-	{ "ntscjp",	"NTSC-JP",	TV_VIDEOSTD_SET (TV_VIDEOSTD_NTSC_M_JP) },
+	{ "pal",	"PAL",	   TV_VIDEOSTD_SET_PAL },
+	{ "ntsc",	"NTSC",	   TV_VIDEOSTD_SET (TV_VIDEOSTD_NTSC_M) },
+	{ "secam",	"SECAM",   TV_VIDEOSTD_SET_SECAM },
+	{ "palnc",	"PAL-NC",  TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_NC) },
+	{ "palm",	"PAL-M",   TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_M) },
+	{ "paln",	"PAL-N",   TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_N) },
+	{ "ntscjp",	"NTSC-JP", TV_VIDEOSTD_SET (TV_VIDEOSTD_NTSC_M_JP) },
 };
+
+static int
+stdcmp				(const char *		s1,
+				 const char *		s2)
+{
+	for (;;) {
+		int c = *s1;
+
+		if (0 == c)
+			return 0 - *s2;
+
+		if (!isalnum (c)) {
+			++s1;
+			continue;
+		}
+
+		if (tolower (c) != *s2)
+			return -1;
+
+		++s1;
+		++s2;
+	}
+
+	return -1;
+}
 
 static tv_bool
 get_video_standard_list		(tveng_device_info *	info)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
+	const XvEncodingInfo *cur_ei;
 	const char *cur_input;
 	unsigned int custom;
 	unsigned int i;
@@ -664,13 +733,14 @@ get_video_standard_list		(tveng_device_info *	info)
 	if (p_info->xa_encoding == None)
 		return TRUE;
 
-	if (!(cur_input = split_encoding
-	      (NULL, 0, p_info->ei[p_info->cur_encoding].name)))
+	cur_ei = &p_info->ei[p_info->cur_encoding];
+	cur_input = split_encoding (NULL, 0, cur_ei->name);
+	if (!cur_input)
 		return TRUE;
 
 	custom = 32;
 
-	for (i = 0; i < (unsigned int) p_info->encodings; ++i) {
+	for (i = 0; i < p_info->n_encodings; ++i) {
 		struct standard *s;
 		char buf[sizeof (s->name)];
 		const char *input;
@@ -687,7 +757,7 @@ get_video_standard_list		(tveng_device_info *	info)
 			continue;
 
 		for (j = 0; j < N_ELEMENTS (standards); ++j)
-			if (0 == strcmp (buf, standards[j].name))
+			if (0 == stdcmp (buf, standards[j].name))
 				break;
 
 		if (j < N_ELEMENTS (standards)) {
@@ -756,7 +826,7 @@ get_tuner_frequency		(tveng_device_info *	info,
 	struct private_tvengxv_device_info * p_info = P_INFO (info);
 	int freq;
 
-	if (p_info->xa_freq == None)
+	if (None == p_info->xa_freq)
 		return FALSE;
 
 	if (!get_video_input (info))
@@ -794,7 +864,8 @@ set_tuner_frequency		(tveng_device_info *	info,
 		goto store;
 
 	if (io_debug_msg > 0) {
-		fprintf (stderr, "XvSetPortAttribute XA_FREQ %d\n", freq);
+		fprintf (stderr, "XvSetPortAttribute XA_FREQ %d (%f MHz)\n",
+			 freq, frequency / 1e6);
 	}
 
 	XvSetPortAttribute (info->display,
@@ -933,30 +1004,14 @@ set_video_input			(tveng_device_info *	info,
 		num = find_encoding (info, vi->name, s->name);
 	}
 
-	if (num == -1) {
+	if (-1 == num) {
 		num = vi->num; /* random standard */
 
-		if (io_debug_msg > 0) {
-			fprintf (stderr, "XvSetPortAttribute XA_ENCODING %d\n",
-				 num);
-		}
-
-		XvSetPortAttribute (info->display,
-				    p_info->port,
-				    p_info->xa_encoding,
-				    num);
+		set_encoding (info, num);
 
 		get_video_standard_list (info);
 	} else {
-		if (io_debug_msg > 0) {
-			fprintf (stderr, "XvSetPortAttribute XA_ENCODING %d\n",
-				 num);
-		}
-
-		XvSetPortAttribute (info->display,
-				    p_info->port,
-				    p_info->xa_encoding,
-				    num);
+		set_encoding (info, num);
 	}
 
 	p_info->cur_encoding = num;
@@ -972,7 +1027,8 @@ set_video_input			(tveng_device_info *	info,
 	   party changed the frequency from the value we know. */
 	if (IS_TUNER_LINE (tl))
 		set_tuner_frequency (info, info->panel.cur_video_input,
-				     info->panel.cur_video_input->u.tuner.frequency);
+				     info->panel.cur_video_input
+				     ->u.tuner.frequency);
 
 	return TRUE;
 }
@@ -988,11 +1044,12 @@ get_video_input_list		(tveng_device_info *	info)
 	if (p_info->xa_encoding == None)
 		return TRUE;
 
-	for (i = 0; i < (unsigned int) p_info->encodings; ++i) {
+	for (i = 0; i < p_info->n_encodings; ++i) {
 		struct video_input *vi;
 		char buf[100];
 		const char *input;
 		tv_video_line_type type;
+		int freq;
 
 		if (info->debug_level > 0)
 			fprintf (stderr, "  TVeng Xv input #%d: %s\n",
@@ -1024,7 +1081,7 @@ get_video_input_list		(tveng_device_info *	info)
 
 		vi->num = i;
 
-		if (vi->pub.type == TV_VIDEO_LINE_TYPE_TUNER) {
+		if (TV_VIDEO_LINE_TYPE_TUNER == vi->pub.type) {
 			/* FIXME */
 #if 0 /* Xv/v4l reports bogus maximum */
 			vi->pub.u.tuner.minimum = p_info->freq_min * 1000;
@@ -1035,7 +1092,14 @@ get_video_input_list		(tveng_device_info *	info)
 			/* NB freq attr is int */
 #endif
 			vi->pub.u.tuner.step = 62500;
-			vi->pub.u.tuner.frequency = vi->pub.u.tuner.minimum;
+
+			/* FIXME gets frequency of current input. */
+			XvGetPortAttribute (info->display,
+					    p_info->port,
+					    p_info->xa_freq,
+					    &freq);
+
+			store_frequency (info, vi, freq);
 		}
 	}
 
@@ -1108,7 +1172,6 @@ int tvengxv_attach_device(const char* device_file _unused_,
   struct private_tvengxv_device_info * p_info =
     (struct private_tvengxv_device_info *)info;
   Display *dpy;
-  extern int disable_overlay;
   XvAttribute *at;
   int num_attributes;
   int i;
@@ -1255,15 +1318,15 @@ int tvengxv_attach_device(const char* device_file _unused_,
   }
 
   /* Glint bug - XV_ENCODING not listed */
-  if (p_info->encodings > 0
+  if (p_info->n_encodings > 0
       && None == p_info->xa_encoding)
     {
       if (info->debug_level > 0)
 	fprintf(stderr, "  TVeng Xv atom: XV_ENCODING (hidden) (%i -> %i)\n",
-		0, p_info->encodings - 1);
+		0, p_info->n_encodings - 1);
 
       p_info->xa_encoding = XInternAtom (dpy, "XV_ENCODING", False);
-      p_info->encoding_max = p_info->encodings - 1;
+      p_info->encoding_max = p_info->n_encodings - 1;
       p_info->encoding_min = 0;
       p_info->encoding_gettable = TRUE;
     }
