@@ -284,7 +284,7 @@ gboolean on_osd_event			(GtkWidget	*widget,
   return FALSE;
 }
 
-static void
+void
 osd_unset_window(void)
 {
   if (!osd_window && !osd_parent_window)

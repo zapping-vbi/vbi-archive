@@ -181,6 +181,24 @@ ucs22latin (const void *string)
   return ucs22code (string, "ISO-8859-1");
 }
 
+char*
+local2utf8 (const char *string)
+{
+  const char *local = get_locale_charset();
+
+  if (!local)
+    local = "ISO-8859-1";
+
+  return convert(string, strlen(string),
+		 local, "UTF-8");
+}
+
+void *
+utf82ucs2 (const char *string)
+{
+  return code2ucs2(string, "UTF-8");
+}
+
 #if TEST
 int main(int argc, char *argv[])
 {

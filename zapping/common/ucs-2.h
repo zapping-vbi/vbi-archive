@@ -46,6 +46,15 @@ latin2ucs2 (const void *string);
 void*
 ucs22latin (const void *string);
 
+/**
+ * Some utf-8 utility functions too.
+ */
+char*
+local2utf8 (const char *string);
+
+void*
+utf82ucs2 (const char *string);
+
 /*
  * Startup/shutdown functions. Must be called before using any other
  * routine in this file, or in URE.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.12 2001-08-30 23:19:35 garetxe Exp $ */
+/* $Id: osd.h,v 1.13 2001-09-03 22:19:58 garetxe Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
@@ -34,6 +34,9 @@ void osd_on(GtkWidget *dest_window, GtkWidget *parent);
 void osd_off(void);
 /* Sets the given window as the destination, overrides the coords */
 void osd_set_window(GtkWidget *dest_window, GtkWidget *parent);
+/* Set no destination window for OSD */
+void osd_unset_window(void);
+
 /* Forces the given coordinates, overrides the dest window */
 void osd_set_coords(gint x, gint y, gint w, gint h);
 
