@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.7 2004-11-09 07:00:14 mschimek Exp $ */
+/* $Id: view.c,v 1.8 2004-11-11 14:34:27 mschimek Exp $ */
 
 /*
  *  Zapping (TV viewer for the Gnome Desktop)
@@ -42,7 +42,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.7 2004-11-09 07:00:14 mschimek Exp $ */
+/* $Id: view.c,v 1.8 2004-11-11 14:34:27 mschimek Exp $ */
 
 #include "config.h"
 
@@ -89,6 +89,8 @@ static gboolean			live_clock		= TRUE;
 static gboolean			hex_pages		= TRUE;
 static gint			brightness		= 128;
 static gint			contrast		= 64;
+static gint			navigation		= 2;
+static gboolean			hyperlinks		= TRUE;
 
 enum {
   TARGET_LAT1_STRING,
@@ -938,6 +940,9 @@ redraw_view			(TeletextView *		view)
 			   &height,
 			   /* depth */ NULL);
 
+  /* XXX if we have rolling header and this is an old page from
+     cache we'll show an old header. */
+
   /* Trigger expose event for later redrawing. */
   gdk_window_clear_area_e (window, 0, 0, width, height);
 
@@ -995,8 +1000,8 @@ get_page			(const vbi3_network *	nk,
 	(td, nk, pgno, subno,
 	 VBI3_41_COLUMNS, TRUE, /* add_column, */
 	 /* VBI3_PANELS, FALSE, */
-	 VBI3_NAVIGATION, 2,
-	 VBI3_HYPERLINKS, TRUE,
+	 VBI3_NAVIGATION, navigation,
+	 VBI3_HYPERLINKS, hyperlinks,
 	 /* VBI3_PDC_LINKS, TRUE, */
 	 VBI3_WST_LEVEL, teletext_level,
 	 VBI3_OVERRIDE_CHARSET_0, charset,
@@ -1008,8 +1013,8 @@ get_page			(const vbi3_network *	nk,
 	(td, nk, pgno, subno,
 	 VBI3_41_COLUMNS, TRUE, /* add_column, */
 	 /* VBI3_PANELS, FALSE, */
-	 VBI3_NAVIGATION, 2,
-	 VBI3_HYPERLINKS, TRUE,
+	 VBI3_NAVIGATION, navigation,
+	 VBI3_HYPERLINKS, hyperlinks,
 	 /* VBI3_PDC_LINKS, TRUE, */
 	 VBI3_WST_LEVEL, teletext_level,
 	 VBI3_DEFAULT_CHARSET_0, default_charset,
@@ -1044,6 +1049,12 @@ reformat_all_views		(void)
   for (p = g_list_first (teletext_views); p; p = p->next)
     {
       TeletextView *view = p->data;
+
+      if (view->selecting)
+	continue;
+
+      if (view->freezed)
+	continue;
 
       if (view->pg)
 	reformat_view (view);
@@ -1172,7 +1183,7 @@ view_vbi3_event_handler		(const vbi3_event *	ev,
 
   switch (ev->type) {
   case VBI3_EVENT_NETWORK:
-    if (1)
+    if (0)
       {
 	_vbi3_network_dump (ev->network, stderr);
 	fputc ('\n', stderr);
@@ -3351,6 +3362,34 @@ color_notify			(GConfClient *		client _unused_,
     redraw_all_views ();
 }
 
+GConfEnumStringPair
+navigation_enum [] = {
+  { 0, "disabled" },
+  { 1, "flof_top1" },
+  { 2, "flof_top2" },
+  { 0, NULL }
+};
+
+static void
+navigation_notify		(GConfClient *		client _unused_,
+				 guint			cnxn_id _unused_,
+				 GConfEntry *		entry,
+				 gpointer		user_data _unused_)
+{
+  if (entry->value)
+    {
+      const gchar *s;
+      gint enum_value;
+
+      s = gconf_value_get_string (entry->value);
+      if (s && gconf_string_to_enum (navigation_enum, s, &enum_value))
+	{
+	  navigation = enum_value;
+	  reformat_all_views ();
+	}
+    }
+}
+
 static void
 class_init			(gpointer		g_class,
 				 gpointer		class_data _unused_)
@@ -3375,7 +3414,7 @@ class_init			(gpointer		g_class,
   widget_class->selection_get		= selection_get;
 
   signals[REQUEST_CHANGED] =
-    g_signal_new ("request-changed",
+    g_signal_new ("z-request-changed",
 		  G_TYPE_FROM_CLASS (g_class),
 		  G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
 		  G_STRUCT_OFFSET (TeletextViewClass, request_changed),
@@ -3385,7 +3424,7 @@ class_init			(gpointer		g_class,
 		  /* n_params */ 0);
 
   signals[CHARSET_CHANGED] =
-    g_signal_new ("charset-changed",
+    g_signal_new ("z-charset-changed",
 		  G_TYPE_FROM_CLASS (g_class),
 		  G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
 		  G_STRUCT_OFFSET (TeletextViewClass, charset_changed),
@@ -3410,6 +3449,7 @@ class_init			(gpointer		g_class,
   z_gconf_notify_add (GCONF_DIR "/view/interp_type", interp_type_notify, NULL);
   z_gconf_notify_add (GCONF_DIR "/view/brightness", color_notify, NULL);
   z_gconf_notify_add (GCONF_DIR "/view/contrast", color_notify, NULL);
+  z_gconf_notify_add (GCONF_DIR "/view/navigation", navigation_notify, NULL);
 
   cmd_register ("ttx_open", py_ttx_open, METH_VARARGS);
   cmd_register ("ttx_page_incr", py_ttx_page_incr, METH_VARARGS,
