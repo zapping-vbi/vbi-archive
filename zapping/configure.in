@@ -37,7 +37,8 @@ dnl Check the PNG writing library
 dnl ----------------------------------------------------------------------
 PNG_LIB=""
 AC_CHECK_LIB(png, png_create_write_struct, PNG_LIB="-lpng",
-AC_MSG_ERROR(*** PNG saving library couldn't be found ***))
+AC_CHECK_LIB(png, png_create_write_struct, PNG_LIB="-lpng -lz",
+AC_MSG_ERROR(**** Cannot link a simple program with libpng ****), "-lz"))
 AC_SUBST(PNG_LIB)
 
 GNOME_COMPILE_WARNINGS
@@ -102,5 +103,5 @@ help/C/Makefile
 plugins/Makefile
 plugins/template/Makefile
 plugins/screenshot/Makefile
-plugins/mp1e/Makefile
+plugins/mpeg/Makefile
 ])

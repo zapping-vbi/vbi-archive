@@ -10,9 +10,9 @@
   <language>C</language>
   <gnome_support>True</gnome_support>
   <gettext_support>True</gettext_support>
-  <output_main_file>False</output_main_file>
   <output_support_files>False</output_support_files>
   <output_build_files>False</output_build_files>
+  <gnome_help_support>True</gnome_help_support>
   <main_source_file>old_stuff/interface.c</main_source_file>
   <main_header_file>old_stuff/interface.h</main_header_file>
   <handler_source_file>old_stuff/callbacks.c</handler_source_file>

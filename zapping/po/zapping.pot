@@ -2,11 +2,12 @@
 # Copyright (C) YEAR Free Software Foundation, Inc.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
+#: plugins/mpeg/mpeg.c:22 plugins/mpeg/mpeg.c:24 plugins/mpeg/mpeg.c:26
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-06-21 18:33+0200\n"
+"POT-Creation-Date: 2000-07-04 19:05+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -26,24 +27,24 @@ msgstr ""
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:142
+#: src/main.c:143
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:163
+#: src/main.c:164
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:275
+#: src/main.c:276
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:378
+#: src/main.c:379
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -55,7 +56,7 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:407
+#: src/main.c:408
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
@@ -216,8 +217,8 @@ msgstr ""
 #: src/tveng.c:714 src/tveng.c:740 src/tveng.c:765 src/tveng.c:795
 #: src/tveng.c:820 src/tveng.c:848 src/tveng.c:874 src/tveng.c:897
 #: src/tveng.c:931 src/tveng.c:959 src/tveng.c:987 src/tveng.c:1012
-#: src/tveng.c:1095 src/tveng.c:1268 src/tveng.c:1295 src/tveng.c:1323
-#: src/tveng.c:1492 src/tveng.c:1524
+#: src/tveng.c:1095 src/tveng.c:1273 src/tveng.c:1300 src/tveng.c:1328
+#: src/tveng.c:1497 src/tveng.c:1529
 #, c-format
 msgid "%s called on a non-controlled device: %s\n"
 msgstr ""
@@ -234,11 +235,11 @@ msgstr ""
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr ""
 
-#: src/tveng.c:1224
+#: src/tveng.c:1225
 msgid "Cannot find an appropiate visual"
 msgstr ""
 
-#: src/tveng.c:1240
+#: src/tveng.c:1245
 msgid "Cannot figure out X depth"
 msgstr ""
 
@@ -398,19 +399,19 @@ msgstr ""
 msgid "Grabber chip can't sync (no station tuned in?)"
 msgstr ""
 
-#: src/tveng1.c:2103 src/tveng2.c:1695
+#: src/tveng1.c:2104 src/tveng2.c:1695
 msgid "Current capture mode is not READ"
 msgstr ""
 
-#: src/tveng1.c:2112 src/tveng2.c:1704
+#: src/tveng1.c:2113 src/tveng2.c:1704
 msgid "Size check failed, quitting to avoid segfault"
 msgstr ""
 
-#: src/tveng1.c:2254 src/tveng2.c:1867
+#: src/tveng1.c:2255 src/tveng2.c:1867
 msgid "The capability field says that there is no overlay"
 msgstr ""
 
-#: src/tveng1.c:2489 src/tveng2.c:2116
+#: src/tveng1.c:2490 src/tveng2.c:2116
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
@@ -587,61 +588,61 @@ msgstr ""
 msgid "Trying to create %s as %s, but it existed before as %s"
 msgstr ""
 
-#: src/zconf.c:1010
+#: src/zconf.c:1013
 msgid "Integer"
 msgstr ""
 
-#: src/zconf.c:1012
+#: src/zconf.c:1015
 msgid "String"
 msgstr ""
 
-#: src/zconf.c:1014
+#: src/zconf.c:1017
 msgid "Float"
 msgstr ""
 
-#: src/zconf.c:1016
+#: src/zconf.c:1019
 msgid "Boolean"
 msgstr ""
 
-#: src/zconf.c:1018
+#: src/zconf.c:1021
 msgid "Directory"
 msgstr ""
 
-#: src/zconf.c:1020
+#: src/zconf.c:1023
 msgid "Undefined"
 msgstr ""
 
-#: src/zconf.c:1022
+#: src/zconf.c:1025
 msgid "Unknown"
 msgstr ""
 
-#: src/zconf.c:1103
+#: src/zconf.c:1106
 #, c-format
 msgid "Sorry, the especified type \"%s\" is unknown\n"
 msgstr ""
 
 #. It already exists, warn
-#: src/zconf.c:1114
+#: src/zconf.c:1117
 #, c-format
 msgid "Duplicated node in the config tree: %s"
 msgstr ""
 
-#: src/zconf.c:1134
+#: src/zconf.c:1137
 #, c-format
 msgid "%s is empty, but it shouldn't be"
 msgstr ""
 
-#: src/zconf.c:1311 src/zconf.c:1389
+#: src/zconf.c:1314 src/zconf.c:1392
 #, c-format
 msgid "Removing %d consecutive slashes, this shouldn't happen"
 msgstr ""
 
-#: src/zconf.c:1328 src/zconf.c:1406 src/zconf.c:1444
+#: src/zconf.c:1331 src/zconf.c:1409 src/zconf.c:1447
 #, c-format
 msgid "Path item too long: %s"
 msgstr ""
 
-#: src/zconf.c:1420
+#: src/zconf.c:1423
 #, c-format
 msgid "%s isn't your domain name, zconf will exit now"
 msgstr ""
@@ -1345,25 +1346,9 @@ msgstr ""
 msgid "There are too many threads"
 msgstr ""
 
-#: plugins/mp1e/mp1e.c:30
-msgid "MPEG saver plugin"
-msgstr ""
-
-#: plugins/mp1e/mp1e.c:32
-msgid ""
-"This plugin saves the audio and video stream into a MPEG file.\n"
-"This code is an adaptation of the utility mp1e\n"
-"Some code contained herein might infringe third party patents, please read "
-"the README file before using this plugin."
-msgstr ""
-
-#: plugins/mp1e/mp1e.c:37
-msgid "MPEG saver for Zapping."
-msgstr ""
-
 #. hash collision code
 #. Warn
-#: plugins/mp1e/mp1e.c:97
+#: plugins/mpeg/mpeg.c:77
 #, c-format
 msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
 msgstr ""

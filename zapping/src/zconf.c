@@ -926,7 +926,10 @@ gchar * zconf_get_nth(gint index, gchar ** where, const gchar * path)
     return NULL;
 
   if (zconf_buffer)
-    g_free(zconf_buffer);
+    {
+      g_free(zconf_buffer);
+      zconf_buffer = NULL;
+    }
 
   subkey = (struct zconf_key *) g_list_nth_data(key->tree, index);
 

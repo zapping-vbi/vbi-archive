@@ -1,3 +1,10 @@
+04.7.2000	configure.in fix <garetxe@users.sourceforge.net>
+
+	* configure.in: configure.in now tries "-lpng -lz" if "-lpng"
+	fails.
+	* /me: I'm working with M.Schimek in a lib front-end for mp1e,
+	don't expect changes in Zapping in the near future.
+
 21.6.2000	Timestamps <garetxe@users.sourceforge.net>
 
 	* src/tveng: Timestamps support has been added

@@ -124,6 +124,7 @@ int main(int argc, char * argv[])
 					       "zapping_setup_fb_verbosity"),
 				       main_info);
 
+
   /* try to run the auxiliary suid program */
   if (tveng_run_zapping_setup_fb(main_info) == -1)
     disable_preview = TRUE;
@@ -490,7 +491,7 @@ gboolean startup_zapping()
 
   si = sound_create_struct();
 
-  /* Sync the timestamps from the video and the audio */
+  /* Sync (more or less) the timestamps from the video and the audio */
   sound_start_timer();
   tveng_start_timer(main_info);
 

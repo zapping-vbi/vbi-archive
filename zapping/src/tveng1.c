@@ -216,11 +216,11 @@ int tveng1_attach_device(const char* device_file,
   if (error < 1)
     {
       if (error == 0) /* No inputs */
-      {
-	info->tveng_errno = -1;
-	snprintf(info->error, 256, _("No inputs for this device"));
-	fprintf(stderr, "%s\n", info->error);
-      }
+	{
+	  info->tveng_errno = -1;
+	  snprintf(info->error, 256, _("No inputs for this device"));
+	  fprintf(stderr, "%s\n", info->error);
+	}
       tveng1_close_device(info);
       return -1;
     }
@@ -2061,6 +2061,7 @@ static int p_tveng1_dequeue(void * where, tveng_device_info * info)
       tv.tv_usec += 1000000;
     }
 
+  /* fixme: This is usually harmless, but sometimes the assertions fail ? */
   t_assert(tv.tv_sec >= 0);
   t_assert(tv.tv_usec >= 0);
 

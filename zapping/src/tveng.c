@@ -1215,7 +1215,8 @@ tveng_get_display_depth(tveng_device_info * info)
   visual_info = XGetVisualInfo(display, VisualScreenMask, &template, &found);
   v = -1;
   for (i = 0; v == -1 && i < found; i++)
-    if (visual_info[i].class == TrueColor && visual_info[i].depth >= 15)
+    if (visual_info[i].class == TrueColor && visual_info[i].depth >=
+	15)
       v = i;
 
   if (v == -1) {
@@ -1230,10 +1231,14 @@ tveng_get_display_depth(tveng_device_info * info)
   pf = XListPixmapFormats(display,&n);
   for (i = 0; i < n; i++) {
     if (pf[i].depth == visual_info[v].depth) {
-      bpp   = pf[i].bits_per_pixel;
+      if (visual_info[v].depth == 15)
+	bpp = 15; /* here bits_per_pixel is 16, but the depth is 15 */
+      else
+	bpp   = pf[i].bits_per_pixel;
       break;
     }
   }
+
   if (bpp == 0) {
     info -> tveng_errno = -1;
     t_error_msg("XListPixmapFormats",
