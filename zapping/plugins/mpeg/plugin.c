@@ -889,3 +889,4 @@ on_mpeg_button1_clicked			(GtkButton	*button,
 
   stop_encoding = TRUE;
 }
+

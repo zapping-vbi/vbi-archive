@@ -39,7 +39,7 @@ vbi_handler(struct vbi *vbi, int fd)
         if(n < 0 && errno == EINTR) continue;
         if(n<0) perror("select");
     }
-    qbuf.type = V4L2_BUF_TYPE_CAPTURE;
+    qbuf.type = V4L2_BUF_TYPE_VBI;
     if(ioctl(vbi->fd, VIDIOC_DQBUF, &qbuf)<0)
     {
     	perror("dqbuf");
@@ -147,18 +147,20 @@ v4l2_vbi_setup_dev(struct vbi *vbi)
     if (!(vcap.flags & V4L2_FLAG_STREAMING))
       return -1;
 
-    v4l2_format->type = V4L2_BUF_TYPE_CAPTURE;
-    /* fixme: this isn't right according to the V4L2 VBI spec,
-       this will only work with the currently broken bttv2 */
-    vbifmt->start[0]=0;
-    vbifmt->start[1]=313;
+    v4l2_format->type = V4L2_BUF_TYPE_VBI;
+    vbifmt->start[0]=6;
+    vbifmt->start[1]=318;
     vbifmt->count[0]=16;
     vbifmt->count[1]=16;
     vbifmt->sample_format = V4L2_VBI_SF_UBYTE;
     vbifmt->sampling_rate = 27000000;
-    ioctl(vbi->fd, VIDIOC_S_FMT, v4l2_format);
+    if (ioctl(vbi->fd, VIDIOC_S_FMT, v4l2_format)<0)
+      {
+	perror("sfmt");
+	return -1;
+      }
 
-    req.type = V4L2_BUF_TYPE_CAPTURE;
+    req.type = V4L2_BUF_TYPE_VBI;
     req.count = BUFS;
     if(ioctl(vbi->fd, VIDIOC_REQBUFS, &req)<0)
     {
@@ -168,7 +170,7 @@ v4l2_vbi_setup_dev(struct vbi *vbi)
     vbi->nbufs = req.count;
     for(i=0; i<vbi->nbufs; i++)
     {
-        qbuf.type = V4L2_BUF_TYPE_CAPTURE;
+        qbuf.type = V4L2_BUF_TYPE_VBI;
         qbuf.index = i;
         if(ioctl(vbi->fd, VIDIOC_QUERYBUF, &qbuf)<0)
         {
@@ -187,7 +189,7 @@ v4l2_vbi_setup_dev(struct vbi *vbi)
             return -1;
         }
     }
-    i = V4L2_BUF_TYPE_CAPTURE;
+    i = V4L2_BUF_TYPE_VBI;
     if(ioctl(vbi->fd, VIDIOC_STREAMON, &i)<0)
     {
         perror("streamon");

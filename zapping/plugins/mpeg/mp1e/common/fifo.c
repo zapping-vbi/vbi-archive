@@ -18,11 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.6 2000-11-01 08:59:18 mschimek Exp $ */
+/* $Id: fifo.c,v 1.7 2000-12-11 22:19:40 garetxe Exp $ */
 
 #include "fifo.h"
 #include "alloc.h"
 #include "mmx.h"
+
+
 
 void
 uninit_buffer(buffer *b)

@@ -258,7 +258,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.69 2000-12-04 21:55:11 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.70 2000-12-11 22:19:41 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -380,9 +380,10 @@ int main(int argc, char * argv[])
   D();
   if (!main_window)
     {
-      g_warning("Sorry, but " PACKAGE_DATA_DIR
-		"/zapping.glade\ncouldn't"
-		" be loaded. Check your installation.\n");
+      RunBox("Sorry, but " PACKAGE_DATA_DIR
+	     "/zapping.glade\ncouldn't"
+	     " be loaded. Check your installation.\n",
+	     GNOME_MESSAGE_BOX_ERROR);
       tveng_device_info_destroy(main_info);
       return 0;
     }
@@ -399,7 +400,7 @@ int main(int argc, char * argv[])
   D();
   if (!startup_capture(tv_screen))
     {
-      g_warning("The capture couldn't be started");
+      RunBox("The capture couldn't be started", GNOME_MESSAGE_BOX_ERROR);
       tveng_device_info_destroy(main_info);
       return 0;
     }
@@ -513,6 +514,7 @@ int main(int argc, char * argv[])
       gdk_window_move_resize(main_window->window, x, y, w, h);
     }
   D();
+  gdk_window_set_back_pixmap(tv_screen->window, NULL, FALSE);
   if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"),
 			   main_info))
     fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);

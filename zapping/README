@@ -68,6 +68,13 @@ NTSC/SECAM/..., and the image appears horribly distorted/colorless/...
 	--tunerless-norm option to set the norm for those inputs. You
 	might switch to V4L2, since it doesn't have this limitation.
 
+*) It crashes when loading the program, complaining about a Gdk-Error,
+request_code 14?, but it didn't happen before (Zapping < 0.5.8).
+	That appears to be a bug with XV support (either the X driver
+	or Zapping itself). The --no-xv option might help, but please
+	contact me (garetxe@users.sourceforge.net), maybe i can fix
+	the bug.
+
 USEFUL ADDRESSES
 ----------------
 http://www.thedirks.org/v4l2/

@@ -7,9 +7,12 @@ Outstanding issues for the next release
 	+ VBI can be opened/closed while running, try.
 	+ Teletext docs
 	+ Right click sizes choosing (a la kwintv)
+	+ Configurable Vidmode
 	+ Parrot buffer for observing parrots.
 	+ Add to the configure script and to the .spec deps the
 		dependency on mp1e (actually RTE) and the mpeg plugin.
+	+ Hide the pointer in Fullscreen mode.
+	+ Channel shortcuts.
 	> Release 0.6.0
 	+ Add some remote control applet (or sth like that).
 	+ Have a copy of the stuff in the "quick bar" in the main menu

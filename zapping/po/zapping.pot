@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-12-02 23:49+0100\n"
+"POT-Creation-Date: 2000-12-11 23:18+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,100 +14,104 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: ENCODING\n"
 
-#: src/main.c:91
+#: src/main.c:93
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
 "%s (%d)"
 msgstr ""
 
-#: src/main.c:95
+#: src/main.c:97
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr ""
 
-#: src/main.c:183
+#: src/main.c:185
 msgid "Give the XImage bpp"
 msgstr ""
 
-#: src/main.c:184 src/main.c:193
+#: src/main.c:186 src/main.c:195
 msgid "BPP"
 msgstr ""
 
-#: src/main.c:192
+#: src/main.c:194
 msgid "Color depth of the X display"
 msgstr ""
 
-#: src/main.c:201
+#: src/main.c:203
 msgid "Set debug messages on"
 msgstr ""
 
-#: src/main.c:210
+#: src/main.c:212
 msgid "Disable VBI support"
 msgstr ""
 
-#: src/main.c:219
+#: src/main.c:221
 msgid "VBI support for old (<0.5.2) bttv drivers"
 msgstr ""
 
-#: src/main.c:228
+#: src/main.c:230
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr ""
 
-#: src/main.c:229
+#: src/main.c:231
 msgid "NORM"
 msgstr ""
 
-#: src/main.c:271
+#: src/main.c:239
+msgid "Disable XVideo extension support"
+msgstr ""
+
+#: src/main.c:282
 msgid "Sorry, but there is no module support"
 msgstr ""
 
-#: src/main.c:279
+#: src/main.c:290
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: src/main.c:286
+#: src/main.c:298
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:324
+#: src/main.c:336
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:345
+#: src/main.c:357
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:468
+#: src/main.c:480
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:471
+#: src/main.c:483
 msgid ", I will try starting capture mode"
 msgstr ""
 
-#: src/main.c:475
+#: src/main.c:487
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:488
+#: src/main.c:500
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:640
+#: src/main.c:653
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -119,7 +123,7 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:675
+#: src/main.c:688
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
@@ -166,11 +170,11 @@ msgstr ""
 msgid "VBI has been disabled, or it doesn't work."
 msgstr ""
 
-#: src/callbacks.c:489 src/v4linterface.c:162
+#: src/callbacks.c:490 src/v4linterface.c:166
 msgid "No tuner"
 msgstr ""
 
-#: src/callbacks.c:497 src/v4linterface.c:164
+#: src/callbacks.c:498 src/v4linterface.c:168
 msgid "No tuned channels"
 msgstr ""
 
@@ -242,68 +246,68 @@ msgstr ""
 msgid "No available standards"
 msgstr ""
 
-#: src/v4linterface.c:184
+#: src/v4linterface.c:188
 msgid "Cannot tune the device"
 msgstr ""
 
-#: src/v4linterface.c:405
+#: src/v4linterface.c:409
 #, c-format
 msgid "Adjust %s"
 msgstr ""
 
-#: src/v4linterface.c:440
+#: src/v4linterface.c:444
 msgid "Tveng critical error, zapping will exit NOW."
 msgstr ""
 
 #. for sanity purpouses
-#: src/v4linterface.c:470
+#: src/v4linterface.c:474
 #, c-format
 msgid "Type %d of control %s is not supported"
 msgstr ""
 
-#: src/v4linterface.c:481
+#: src/v4linterface.c:485
 #, c-format
 msgid "Error adding %s"
 msgstr ""
 
-#: src/v4linterface.c:491
+#: src/v4linterface.c:495
 msgid "Available controls"
 msgstr ""
 
-#: src/tveng.c:233
+#: src/tveng.c:234
 msgid "TV"
 msgstr ""
 
 #: src/properties.c:141 src/properties.c:148 src/properties.c:155
-#: src/tveng.c:234
+#: src/tveng.c:235
 msgid "Camera"
 msgstr ""
 
-#: src/tveng.c:1273
+#: src/tveng.c:1292
 msgid "zapping_setup_fb exited abnormally, check stderr"
 msgstr ""
 
-#: src/tveng.c:1283
+#: src/tveng.c:1302
 msgid "zapping_setup_fb failed to set up the video"
 msgstr ""
 
-#: src/tveng.c:1288
+#: src/tveng.c:1307
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr ""
 
-#: src/tveng.c:1332
+#: src/tveng.c:1351
 msgid "Cannot find an appropiate visual"
 msgstr ""
 
-#: src/tveng.c:1352
+#: src/tveng.c:1371
 msgid "Cannot figure out X depth"
 msgstr ""
 
-#: src/tveng.c:1829
+#: src/tveng.c:1861 src/tveng.c:1876
 msgid "Filter"
 msgstr ""
 
-#: src/tveng.c:1844
+#: src/tveng.c:1891
 msgid "Colorkey"
 msgstr ""
 
@@ -522,7 +526,7 @@ msgstr ""
 msgid "Not enough buffers"
 msgstr ""
 
-#: src/plugins.c:73
+#: src/plugins.c:71
 #, c-format
 msgid ""
 "While loading %s\n"
@@ -530,23 +534,23 @@ msgid ""
 "loaded."
 msgstr ""
 
-#: src/plugins.c:96
+#: src/plugins.c:94
 #, c-format
 msgid "Sorry, plugin_get_info was not found in %s"
 msgstr ""
 
-#: src/plugins.c:187
+#: src/plugins.c:185
 #, c-format
 msgid ""
 "\"%s\" seems to be a valid plugin, but it doesn't provide a canonical name."
 msgstr ""
 
-#: src/plugins.c:196
+#: src/plugins.c:194
 #, c-format
 msgid "\"%s\" doesn't provide a version"
 msgstr ""
 
-#: src/plugins.c:206
+#: src/plugins.c:204
 msgid ""
 "Sorry, the version of the plugin cannot be parsed.\n"
 "The version must be something like %%d[.%%d[%%d[other things]]]\n"
@@ -554,17 +558,17 @@ msgid ""
 "Error loading \"%s\" (%s)"
 msgstr ""
 
-#: src/plugins.c:233
+#: src/plugins.c:231
 #, c-format
 msgid "There wasn't enough mem for allocating symbol %d in %s"
 msgstr ""
 
-#: src/plugins.c:243
+#: src/plugins.c:241
 msgid "[No description provided]"
 msgstr ""
 
 #. Warn
-#: src/plugins.c:333
+#: src/plugins.c:328
 #, c-format
 msgid ""
 "Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
@@ -784,7 +788,7 @@ msgstr ""
 msgid "Returned channel id (%d) is not valid"
 msgstr ""
 
-#: src/channel_editor.c:747
+#: src/channel_editor.c:746
 msgid ""
 "Channel autosearching won't work with XVideo.\n"
 "Please switch to another controller by starting\n"

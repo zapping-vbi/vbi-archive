@@ -118,9 +118,9 @@ gboolean plugin_running (void)
 
 static
 void plugin_get_info (gchar ** canonical_name, gchar **
-			descriptive_name, gchar ** description, gchar **
-			short_description, gchar ** author, gchar **
-			version)
+		      descriptive_name, gchar ** description, gchar **
+		      short_description, gchar ** author, gchar **
+		      version)
 {
   /* Usually, this one doesn't need modification either */
   if (canonical_name)

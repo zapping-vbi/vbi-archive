@@ -28,7 +28,7 @@ static gint draw_offset = 0; /* vertical shift between pixmap and win */
 static guint32 char_canvas[CHAR_WIDTH*CHAR_HEIGHT];
 
 /* 1 for smoother scroll, CHAR_HEIGHT or above for no scroll */
-#define LINES_PER_BLOCK CHAR_HEIGHT
+#define LINES_PER_BLOCK CHAR_HEIGHT-1
 #define MOVES_PER_SEC ((CHAR_HEIGHT+5)*5)
 
 static guint32 palette[9] = {

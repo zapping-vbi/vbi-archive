@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.9 2000-12-06 15:38:45 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.10 2000-12-11 22:19:40 garetxe Exp $ */
 
 /*
     TODO:
@@ -118,7 +118,7 @@ do {							\
 } while (0)
 
 
-#define V4L2_LINE -1 // API rev. Nov 2000 (-1 -> 0)
+#define V4L2_LINE 0 // API rev. Nov 2000 (-1 -> 0)
 
 
 
@@ -1672,7 +1672,7 @@ vbi->buf.size = sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]);
 				goto mmap_failure;
 			}
 
-			p = mmap(NULL, vbuf.length, PROT_READ | PROT_WRITE, // _WRITE for cc_sim
+			p = mmap(NULL, vbuf.length, PROT_READ, // _WRITE for cc_sim
 				MAP_SHARED, vbi->fd, vbuf.offset); // _PRIVATE ?
 
 			if ((int) p == -1) {

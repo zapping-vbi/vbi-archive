@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.9 2000-10-23 21:51:39 garetxe Exp $ */
+/* $Id: fifo.h,v 1.10 2000-12-11 22:19:40 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -34,6 +34,8 @@
 typedef struct {
 	node 			node;
 	int			index;
+	int			destiny; // 0:empty list, 1:unget
+	int			refcount; // 0:face its destiny
 
 	/* Prod. r/w, Cons. r/o */
 
@@ -59,8 +61,8 @@ typedef struct _fifo {
 	mucon			producer;
 	mucon *			consumer;
 
-	list			full;		// FIFO
-	list			empty;		// LIFO
+	list			fulla;		// FIFO
+	list			emptya;		// LIFO
 
 	buffer *		(* wait_full)(struct _fifo *);
 	void			(* send_empty)(struct _fifo *, buffer *);
@@ -74,7 +76,11 @@ typedef struct _fifo {
 	buffer *		buffers;
 	int			num_buffers;
 
-	void *			user_data; // Useful for callbacks
+	/* multi-consuming */
+	pthread_mutex_t		cconlist_mutex;
+	list			conlist;
+
+	void *			user_data;
 } fifo;
 
 extern bool	init_buffer(buffer *b, int size);

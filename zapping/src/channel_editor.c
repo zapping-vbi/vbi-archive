@@ -43,8 +43,7 @@ extern tveng_device_info * main_info; /* About the device we are using */
 extern int cur_tuned_channel; /* Currently tuned channel */
 
 /* Tunes the current input and updates hscale1 */
-int channel_editor_tune_input(__u32 freq, tveng_device_info * info);
-int channel_editor_tune_input(__u32 freq, tveng_device_info * info)
+static int channel_editor_tune_input(__u32 freq, tveng_device_info * info)
 {
   GtkAdjustment * adj;
   GtkWidget * hscale1 = lookup_widget(ChannelWindow, "hscale1");
@@ -644,8 +643,7 @@ on_hscale1_value_changed               (GtkAdjustment   *adj,
   tveng_tune_input(adj->value, main_info);
 }
 
-gint do_search (GtkWidget * searching);
-
+static
 gint do_search (GtkWidget * searching)
 {
   GtkWidget * progress = lookup_widget(searching, "progressbar1");

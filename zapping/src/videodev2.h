@@ -10,6 +10,9 @@
 #define __LINUX_VIDEODEV_H
 
 #include <linux/poll.h>
+#if LINUX_VERSION_CODE >= 0x020400
+#include <linux/devfs_fs_kernel.h>
+#endif
 
 #define V4L2_MAJOR_VERSION	0
 #define V4L2_MINOR_VERSION	20
@@ -60,6 +63,8 @@ struct v4l2_capability
 #define V4L2_TYPE_VTR		5	/* Is a tape recorder controller */
 #define V4L2_TYPE_VTX		6	/* Is a teletext device */
 #define V4L2_TYPE_RADIO		7	/* Is a radio device */
+#define V4L2_TYPE_VBI_INPUT	4	/* Is a VBI capture device */
+#define V4L2_TYPE_VBI_OUTPUT	9	/* Is a VBI output device */
 #define V4L2_TYPE_PRIVATE	1000	/* Start of driver private types */
 /* Flags for 'flags' field */
 #define V4L2_FLAG_READ		0x00001 /* Can capture via read() call */
@@ -101,6 +106,7 @@ struct v4l2_pix_format
 #define V4L2_PIX_FMT_UYVY    fourcc('U','Y','V','Y') /* 16  YUV 4:2:2     */
 #define V4L2_PIX_FMT_YVU422P fourcc('4','2','2','P') /* 16  YVU422 planar */
 #define V4L2_PIX_FMT_YVU411P fourcc('4','1','1','P') /* 16  YVU411 planar */
+#define V4L2_PIX_FMT_Y41P    fourcc('Y','4','1','P') /* 12  YUV 4:1:1     */
 
 /*  The following formats are not defined in the V4L2 specification */
 #define V4L2_PIX_FMT_YUV410  fourcc('Y','U','V','9') /*  9  YUV 4:1:0     */
@@ -240,6 +246,7 @@ struct v4l2_buffer
 #define V4L2_BUF_TYPE_EFFECTSOUT	0x00000006
 #define V4L2_BUF_TYPE_VIDEOOUT		0x00000007
 #define V4L2_BUF_TYPE_FXCONTROL		0x00000008
+#define V4L2_BUF_TYPE_VBI		0x00000009
 
 /*  Starting value of driver private buffer types  */
 #define V4L2_BUF_TYPE_PRIVATE		0x00001000
@@ -946,7 +953,7 @@ extern void *v4l2_openid_from_file(struct file *file);
 
   All new applications should use the new API calls.
 
-  (These definitions taken from 2.2.1.)
+  (These definitions taken from 2.4.0-test9.)
 
  */
 
@@ -961,6 +968,10 @@ extern void *v4l2_openid_from_file(struct file *file);
 #define VID_TYPE_SCALES		128	/* Scalable */
 #define VID_TYPE_MONOCHROME	256	/* Monochrome only */
 #define VID_TYPE_SUBCAPTURE	512	/* Can capture subareas of the image */
+#define VID_TYPE_MPEG_DECODER	1024	/* Can decode MPEG streams */
+#define VID_TYPE_MPEG_ENCODER	2048	/* Can encode MPEG streams */
+#define VID_TYPE_MJPEG_DECODER	4096	/* Can decode MJPEG streams */
+#define VID_TYPE_MJPEG_ENCODER	8192	/* Can encode MJPEG streams */
 
 struct video_capability
 {
@@ -1078,6 +1089,7 @@ struct video_window
 	struct	video_clip *clips;	/* Set only */
 	int	clipcount;
 #define VIDEO_WINDOW_INTERLACE	1
+#define VIDEO_WINDOW_CHROMAKEY	16	/* Overlay by chromakey */
 #define VIDEO_CLIP_BITMAP	-1
 /* bitmap is 1024x625, a '1' bit represents a clipped pixel */
 #define VIDEO_CLIPMAP_SIZE	(128 * 625)
@@ -1137,6 +1149,47 @@ struct video_unit
 	int	teletext;	/* Teletext minor */
 };
 
+struct vbi_format {
+	__u32	sampling_rate;	/* in Hz */
+	__u32	samples_per_line;
+	__u32	sample_format;	/* VIDEO_PALETTE_RAW only (1 byte) */
+	__s32	start[2];	/* starting line for each frame */
+	__u32	count[2];	/* count of lines for each frame */
+	__u32	flags;
+#define	VBI_UNSYNC	1	/* can distingues between top/bottom field */
+#define	VBI_INTERLACED	2	/* lines are interlaced */
+};
+
+/* video_info is biased towards hardware mpeg encode/decode */
+/* but it could apply generically to any hardware compressor/decompressor */
+struct video_info
+{
+	__u32	frame_count;	/* frames output since decode/encode began */
+	__u32	h_size;		/* current unscaled horizontal size */
+	__u32	v_size;		/* current unscaled veritcal size */
+	__u32	smpte_timecode;	/* current SMPTE timecode (for current GOP) */
+	__u32	picture_type;	/* current picture type */
+	__u32	temporal_reference;	/* current temporal reference */
+	__u8	user_data[256];	/* user data last found in compressed stream */
+	/* user_data[0] contains user data flags, user_data[1] has count */
+};
+
+/* generic structure for setting playback modes */
+struct video_play_mode
+{
+	int	mode;
+	int	p1;
+	int	p2;
+};
+
+/* for loading microcode / fpga programming */
+struct video_code
+{
+	char	loadwhat[16];	/* name or tag of file being passed */
+	int	datasize;
+	__u8	*data;
+};
+
 #define VIDIOCGCAP		_IOR('v',1,struct video_capability)	/* Get capabilities */
 #define VIDIOCGCHAN		_IOWR('v',2,struct video_channel)	/* Get channel info (sources) */
 #define VIDIOCSCHAN		_IOW('v',3,struct video_channel)	/* Set channel 	*/
@@ -1160,10 +1213,51 @@ struct video_unit
 #define VIDIOCGUNIT		_IOR('v', 21, struct video_unit)	/* Get attached units */
 #define VIDIOCGCAPTURE		_IOR('v',22, struct video_capture)	/* Get frame buffer */
 #define VIDIOCSCAPTURE		_IOW('v',23, struct video_capture)	/* Set frame buffer - root only */
+#define VIDIOCSPLAYMODE		_IOW('v',24, struct video_play_mode)	/* Set output video mode/feature */
+#define VIDIOCSWRITEMODE	_IOW('v',25, int)			/* Set write mode */
+#define VIDIOCGPLAYINFO		_IOR('v',26, struct video_info)		/* Get current playback info from hardware */
+#define VIDIOCSMICROCODE	_IOW('v',27, struct video_code)		/* Load microcode into hardware */
+#define	VIDIOCGVBIFMT		_IOR('v',28, struct vbi_format)		/* Get VBI information */
+#define	VIDIOCSVBIFMT		_IOW('v',29, struct vbi_format)		/* Set VBI information */
+
 #define BASE_VIDIOCPRIVATE	192		/* 192-255 are private */
+
+/* VIDIOCSWRITEMODE */
+#define VID_WRITE_MPEG_AUD		0
+#define VID_WRITE_MPEG_VID		1
+#define VID_WRITE_OSD			2
+#define VID_WRITE_TTX			3
+#define VID_WRITE_CC			4
+#define VID_WRITE_MJPEG			5
+
+/* VIDIOCSPLAYMODE */
+#define VID_PLAY_VID_OUT_MODE		0
+	/* p1: = VIDEO_MODE_PAL, VIDEO_MODE_NTSC, etc ... */
+#define VID_PLAY_GENLOCK		1
+	/* p1: 0 = OFF, 1 = ON */
+	/* p2: GENLOCK FINE DELAY value */ 
+#define VID_PLAY_NORMAL			2
+#define VID_PLAY_PAUSE			3
+#define VID_PLAY_SINGLE_FRAME		4
+#define VID_PLAY_FAST_FORWARD		5
+#define VID_PLAY_SLOW_MOTION		6
+#define VID_PLAY_IMMEDIATE_NORMAL	7
+#define VID_PLAY_SWITCH_CHANNELS	8
+#define VID_PLAY_FREEZE_FRAME		9
+#define VID_PLAY_STILL_MODE		10
+#define VID_PLAY_MASTER_MODE		11
+	/* p1: see below */
+#define		VID_PLAY_MASTER_NONE	1
+#define		VID_PLAY_MASTER_VIDEO	2
+#define		VID_PLAY_MASTER_AUDIO	3
+#define VID_PLAY_ACTIVE_SCANLINES	12
+	/* p1 = first active; p2 = last active */
+#define VID_PLAY_RESET			13
+#define VID_PLAY_END_MARK		14
 
 /* v4l1 stuff */
 
+#ifdef __KERNEL__
 
 struct video_init
 {
@@ -1190,21 +1284,23 @@ struct video_device
 	void *priv;             /* Used to be 'private' but that upsets C++ */
 	int busy;
 	int minor;
+#if LINUX_VERSION_CODE >= 0x020400
+	devfs_handle_t devfs_handle;
+#endif
 };
-                                                                                                                                        
-#ifdef __KERNEL__
+
 
 extern int video_register_device(struct video_device *, int type);
 extern void video_unregister_device(struct video_device *);
-
-#endif
-
 
 #define VIDEO_MAJOR     81
 #define VFL_TYPE_GRABBER        0
 #define VFL_TYPE_VBI            1
 #define VFL_TYPE_RADIO          2
 #define VFL_TYPE_VTX            3
+
+#endif
+
 
 #define VID_HARDWARE_BT848      1
 #define VID_HARDWARE_QCAM_BW    2
@@ -1228,6 +1324,12 @@ extern void video_unregister_device(struct video_device *);
 #define VID_HARDWARE_VINO       20      /* Reserved for SGI Indy Vino */
 #define VID_HARDWARE_CADET      21      /* Cadet radio */
 #define VID_HARDWARE_TRUST      22      /* Trust FM Radio */
+#define VID_HARDWARE_TERRATEC	23	/* TerraTec ActiveRadio */
+#define VID_HARDWARE_CPIA	24
+#define VID_HARDWARE_ZR36120	25	/* Zoran ZR36120/ZR36125 */
+#define VID_HARDWARE_ZR36067	26	/* Zoran ZR36067/36060 */
+#define VID_HARDWARE_OV511	27	
+#define VID_HARDWARE_ZR356700	28	/* Zoran 36700 series */
 
 
 #endif/*ifndef __LINUX_VIDEODEV_H*/

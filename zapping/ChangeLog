@@ -1,3 +1,10 @@
+6.12.2000	XV bugfixes, remote.c <garetxe@users.sourceforge.net>
+
+	* src/remote.[ch]: Created, allows running some internal Zapping
+	functions from inside the plugins.
+	* All: Fixed a number of bugs with the XVideo support, thanks to
+	all the people that helped with them.
+	
 2.12.2000	Multi-controller controls <garetxe@users.sourceforge.net>
 
 	* src/tveng.c: Filter and Colorkey controls are now managed by the
