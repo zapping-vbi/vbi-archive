@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.12 2005-01-27 04:20:20 mschimek Exp $ */
+/* $Id: view.c,v 1.13 2005-01-31 07:06:47 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -554,7 +554,7 @@ create_page_images_from_pg	(TeletextView *		view)
      VBI3_CONTRAST, contrast,
      VBI3_REVEAL, (vbi3_bool) view->reveal,
      VBI3_FLASH_ON, TRUE,
-     0);
+     VBI3_END);
 
   g_assert (success);
 
@@ -588,7 +588,7 @@ create_page_images_from_pg	(TeletextView *		view)
 	 VBI3_CONTRAST, contrast,
 	 VBI3_REVEAL, (vbi3_bool) view->reveal,
 	 VBI3_FLASH_ON, FALSE,
-	 0);
+	 VBI3_END);
 
       g_assert (success);
 
@@ -982,7 +982,7 @@ get_page			(const vbi3_network *	nk,
 	 /* VBI3_PDC_LINKS, TRUE, */
 	 VBI3_WST_LEVEL, teletext_level,
 	 VBI3_OVERRIDE_CHARSET_0, charset,
-	 0);
+	 VBI3_END);
     }
   else
     {
@@ -995,7 +995,7 @@ get_page			(const vbi3_network *	nk,
 	 /* VBI3_PDC_LINKS, TRUE, */
 	 VBI3_WST_LEVEL, teletext_level,
 	 VBI3_DEFAULT_CHARSET_0, default_charset,
-	 0);
+	 VBI3_END);
     }
 
   return pg;
@@ -1080,7 +1080,7 @@ update_header			(TeletextView *		view,
 	 VBI3_HEADER_ONLY, TRUE,
 	 VBI3_WST_LEVEL, VBI3_WST_LEVEL_1p5,
 	 VBI3_OVERRIDE_CHARSET_0, view->charset,
-	 0);
+	 VBI3_END);
     } else {
       pg = vbi3_teletext_decoder_get_page
 	(td,
@@ -1091,7 +1091,7 @@ update_header			(TeletextView *		view,
 	 VBI3_HEADER_ONLY, TRUE,
 	 VBI3_WST_LEVEL, VBI3_WST_LEVEL_1p5,
 	 VBI3_DEFAULT_CHARSET_0, default_charset,
-	 0);
+	 VBI3_END);
     }
 
   if (!pg)
@@ -1139,7 +1139,7 @@ update_header			(TeletextView *		view,
 					   VBI3_CONTRAST, contrast,
 					   VBI3_REVEAL, TRUE,
 					   VBI3_FLASH_ON, TRUE,
-					   0);
+					   VBI3_END);
   g_assert (success);
 
   add_patch (view,
@@ -1875,7 +1875,7 @@ selection_get			(GtkWidget *		widget,
 	       VBI3_RTL, (vbi3_bool) view->select.rtl_mode,
 	       VBI3_REVEAL, (vbi3_bool) view->select.reveal,
 	       VBI3_FLASH_ON, TRUE,
-	       0);
+	       VBI3_END);
 
 	    if (actual > 0)
 	      {
@@ -1939,7 +1939,7 @@ selection_get			(GtkWidget *		widget,
 	       VBI3_CONTRAST, contrast,
 	       VBI3_REVEAL, (vbi3_bool) view->select.reveal,
 	       VBI3_FLASH_ON, TRUE,
-	       0);
+	       VBI3_END);
 
 	    g_assert (success);
 
