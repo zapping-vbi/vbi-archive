@@ -65,7 +65,8 @@
 #include "common/_videodev.h"
 
 #define BTTV_VERSION _IOR ('v' , BASE_VIDIOCPRIVATE + 6, int)
-static __inline__ void IOCTL_ARG_TYPE_CHECK_BTTV_VERSION (int *arg) {}
+static __inline__ void IOCTL_ARG_TYPE_CHECK_BTTV_VERSION
+	(int *arg __attribute__ ((unused))) {}
 
 /* This macro checks the ioctl argument type at compile time. It
    executes the ioctl, when it fails stores an error message
@@ -93,6 +94,7 @@ struct video_input {
 };
 
 #define VI(l) PARENT (l, struct video_input, pub)
+#define CVI(l) CONST_PARENT (l, struct video_input, pub)
 
 struct standard {
 	tv_video_standard	pub;
@@ -100,6 +102,7 @@ struct standard {
 };
 
 #define S(l) PARENT (l, struct standard, pub)
+#define CS(l) CONST_PARENT (l, struct standard, pub)
 
 /*
  *  Private control IDs. In v4l the control concept doesn't exist.
@@ -191,13 +194,13 @@ palette_to_pixfmt		(unsigned int		palette)
 #if BYTE_ORDER == BIG_ENDIAN
 	case VIDEO_PALETTE_RGB565:	return TV_PIXFMT_BGR16_BE;
 	case VIDEO_PALETTE_RGB24:	return TV_PIXFMT_BGR24_BE;
-	case VIDEO_PALETTE_RGB32:	return TV_PIXFMT_BGRA24_BE;
-	case VIDEO_PALETTE_RGB555:	return TV_PIXFMT_BGRA15_BE;
+	case VIDEO_PALETTE_RGB32:	return TV_PIXFMT_BGRA32_BE;
+	case VIDEO_PALETTE_RGB555:	return TV_PIXFMT_BGRA16_BE;
 #else
 	case VIDEO_PALETTE_RGB565:	return TV_PIXFMT_BGR16_LE;
 	case VIDEO_PALETTE_RGB24:	return TV_PIXFMT_BGR24_LE;
-	case VIDEO_PALETTE_RGB32:	return TV_PIXFMT_BGRA24_LE;
-	case VIDEO_PALETTE_RGB555:	return TV_PIXFMT_BGRA15_LE;
+	case VIDEO_PALETTE_RGB32:	return TV_PIXFMT_BGRA32_LE;
+	case VIDEO_PALETTE_RGB555:	return TV_PIXFMT_BGRA16_LE;
 #endif
 	case VIDEO_PALETTE_YUV422:	return TV_PIXFMT_YUYV;
 	case VIDEO_PALETTE_YUYV:	return TV_PIXFMT_YUYV;
@@ -224,8 +227,8 @@ pixfmt_to_palette		(tv_pixfmt		pixfmt)
 
 	case TV_PIXFMT_BGR16_LE:	return VIDEO_PALETTE_RGB565;
 	case TV_PIXFMT_BGR24_LE:	return VIDEO_PALETTE_RGB24;
-	case TV_PIXFMT_BGRA24_LE:	return VIDEO_PALETTE_RGB32;
-	case TV_PIXFMT_BGRA15_LE:	return VIDEO_PALETTE_RGB555;
+	case TV_PIXFMT_BGRA32_LE:	return VIDEO_PALETTE_RGB32;
+	case TV_PIXFMT_BGRA16_LE:	return VIDEO_PALETTE_RGB555;
 
 	/* Synonyms. May have to try both. */
 	case TV_PIXFMT_YUYV:		return VIDEO_PALETTE_YUYV;
@@ -247,7 +250,7 @@ pixfmt_to_palette		(tv_pixfmt		pixfmt)
    device for the access, or to return an error if the device
    is already in use. */
 static tv_bool
-panel_close			(tveng_device_info *	info)
+panel_close			(tveng_device_info *	info _unused_)
 {
 	/* to do */
 
@@ -415,8 +418,8 @@ init_audio			(struct private_tveng1_device_info *p_info)
 	old_mode = audio.mode;
 	received = audio.mode;
 
-	fst_mode = -1;
-	cur_mode = -1;
+	fst_mode = (unsigned int) -1;
+	cur_mode = (unsigned int) -1;
 
 	capability = 0;
 
@@ -432,7 +435,7 @@ init_audio			(struct private_tveng1_device_info *p_info)
 		if (0 == v4l_ioctl_nf (&p_info->info, VIDIOCSAUDIO, &audio)) {
 			capability |= mode;
 
-			if (-1 == fst_mode)
+			if ((unsigned int) -1 == fst_mode)
 				fst_mode = audio.mode;
 
 			cur_mode = audio.mode;
@@ -457,7 +460,7 @@ init_audio			(struct private_tveng1_device_info *p_info)
 		}
 	}
 
-	if (0 == capability || -1 == fst_mode)
+	if (0 == capability || (unsigned int) -1 == fst_mode)
 		return TRUE;
 
 	if (p_info->audio_mode_reads_rx) {
@@ -1071,7 +1074,7 @@ static tv_bool
 set_video_standard		(tveng_device_info *	info,
 				 const tv_video_standard *s)
 {
-	enum tveng_capture_mode current_mode;
+	capture_mode current_mode;
 	gboolean overlay_was_active;
 	unsigned int norm;
 	int r;
@@ -1080,7 +1083,7 @@ set_video_standard		(tveng_device_info *	info,
 		if (!panel_open (info))
 			return FALSE;
 
-	norm = S(s)->norm;
+	norm = CS(s)->norm;
 
 	if (info->cur_video_input
 	    && P_INFO(info)->channel_norm_usable) {
@@ -1294,7 +1297,7 @@ get_video_standard_list		(tveng_device_info *	info)
 		/* Supported video standards of baseband inputs are
 		   not reported. */
 
-		flags = ~0;
+		flags = (unsigned int) ~0;
 	}
 
 	for (i = 0; table[i].label; ++i) {
@@ -1418,10 +1421,10 @@ set_tuner_frequency		(tveng_device_info *	info,
 	  set_control (info, p_info->control_mute,
 		       p_info->control_mute->value);
 
-	if (TVENG_CAPTURE_READ == info->current_mode) {
+	if (CAPTURE_MODE_READ == info->capture_mode) {
 		unsigned int i;
 
-		for (i = 0; i < p_info->mmbuf.frames; ++i) {
+		for (i = 0; i < (unsigned int) p_info->mmbuf.frames; ++i) {
 			tv_clear_image (p_info->mmaped_data
 					+ p_info->mmbuf.offsets[i], 0,
 					&info->format);
@@ -1442,7 +1445,7 @@ set_video_input			(tveng_device_info *	info,
 				 const tv_video_line *	l)
 {
 	struct video_channel channel;
-	enum tveng_capture_mode current_mode;
+	capture_mode current_mode;
 	gboolean overlay_was_active;
 
 	if (TVENG_ATTACH_CONTROL == info->attach_mode)
@@ -1453,7 +1456,7 @@ set_video_input			(tveng_device_info *	info,
 
 	CLEAR (channel);
 
-	channel.channel = VI (l)->channel;
+	channel.channel = CVI (l)->channel;
 
 	if (-1 == v4l_ioctl (info, VIDIOCGCHAN, &channel))
 		goto failure;
@@ -1512,14 +1515,18 @@ tuner_bounds			(tveng_device_info *	info,
 		vi->pub.u.tuner.step = 125;
 		vi->step_shift = 1;
 
-		tuner.rangelow = MIN (tuner.rangelow, UINT_MAX / 125);
-		tuner.rangehigh = MIN (tuner.rangehigh, UINT_MAX / 125);
+		tuner.rangelow = MIN ((unsigned int) tuner.rangelow,
+				      UINT_MAX / 125);
+		tuner.rangehigh = MIN ((unsigned int) tuner.rangehigh,
+				       UINT_MAX / 125);
 	} else {
 		vi->pub.u.tuner.step = 62500;
 		vi->step_shift = 0;
 
-		tuner.rangelow = MIN (tuner.rangelow, UINT_MAX / 62500);
-		tuner.rangehigh = MIN (tuner.rangehigh, UINT_MAX / 62500);
+		tuner.rangelow = MIN ((unsigned int) tuner.rangelow,
+				      UINT_MAX / 62500);
+		tuner.rangehigh = MIN ((unsigned int) tuner.rangehigh,
+				       UINT_MAX / 62500);
 	}
 
 	vi->pub.u.tuner.minimum = SCALE_FREQUENCY (vi, tuner.rangelow);
@@ -1541,7 +1548,7 @@ get_video_input_list		(tveng_device_info *	info)
 
 	free_video_inputs (info);
 
-	for (i = 0; i < info->caps.channels; ++i) {
+	for (i = 0; i < (unsigned int) info->caps.channels; ++i) {
 		struct video_input *vi;
 		char buf[sizeof (channel.name) + 1];
 		tv_video_line_type type;
@@ -1626,16 +1633,16 @@ get_overlay_buffer		(tveng_device_info *	info,
 	t->base = (unsigned long) buffer.base;
 
 	if (!tv_image_format_init (&t->format,
-				   buffer.width,
-				   buffer.height,
+				   (unsigned int) buffer.width,
+				   (unsigned int) buffer.height,
 				   0,
-				   pig_depth_to_pixfmt (buffer.depth),
+				   pig_depth_to_pixfmt ((unsigned) buffer.depth),
 				   0))
 		goto failure;
 
-	assert (buffer.bytesperline >= t->format.bytes_per_line);
+	assert ((unsigned) buffer.bytesperline >= t->format.bytes_per_line);
 
-	if (buffer.bytesperline > t->format.bytes_per_line) {
+	if ((unsigned) buffer.bytesperline > t->format.bytes_per_line) {
 		assert (TV_PIXFMT_IS_PACKED (t->format.pixfmt));
 
 		t->format.bytes_per_line = buffer.bytesperline;
@@ -1691,56 +1698,61 @@ static uint32_t calc_chroma (tveng_device_info * info)
 */
 static tv_bool
 set_overlay_window		(tveng_device_info *	info,
-				 const tv_window *	w)
+				 const tv_window *	w,
+				 const tv_clip_vector *	v)
 {
-  struct video_window window;
+	struct video_window window;
+	struct video_clip *clips;
 
-  t_assert (info != NULL);
-
-	CLEAR (window);
-
-	window.x		= w->x;
-	window.y		= w->y;
-	window.width		= w->width;
-	window.height		= w->height;
-	window.clipcount	= w->clip_vector.size;
-	window.chromakey	= calc_chroma (info); // XXX check this
-
-	if (w->clip_vector.size > 0) {
-		struct video_clip *vclip;
-		const tv_clip *tclip;
+	if (v->size > 0) {
+		struct video_clip *vc;
+		const tv_clip *tc;
 		unsigned int i;
 
-		vclip =	calloc (w->clip_vector.size, sizeof (*vclip));
-		if (!vclip) {
+		clips = malloc (v->size * sizeof (*clips));
+		if (!clips) {
 			info->tveng_errno = errno;
 			t_error("malloc", info);
 			return FALSE;
 		}
 
-		window.clips = vclip;
-		tclip = w->clip_vector.vector;
+		vc = clips;
+		tc = v->vector;
 
-		for (i = 0; i < w->clip_vector.size; ++i) {
-		  // XXX check order
-			vclip->x	= tclip->x1;
-			vclip->y	= tclip->y1;
-			vclip->width	= tclip->x2 - tclip->x1;
-			vclip->height	= tclip->y2 - tclip->y1;
-			++vclip;
-			++tclip;
+		for (i = 0; i < v->size; ++i) {
+			vc->x		= tc->x1;
+			vc->y		= tc->y1;
+			vc->width	= tc->x2 - tc->x1;
+			vc->height	= tc->y2 - tc->y1;
+			++vc;
+			++tc;
 		}
+	} else {
+		clips = NULL;
 	}
+
+	CLEAR (window);
+
+	window.x		= w->x - info->overlay_buffer.x;
+	window.y		= w->y - info->overlay_buffer.y;
+
+	window.width		= w->width;
+	window.height		= w->height;
+
+	window.clips		= clips;
+	window.clipcount	= v->size;
+
+	window.chromakey	= calc_chroma (info); // XXX check this
 
 	/* Up to the caller to call _on */
 	p_tveng_set_preview (FALSE, info);
 
 	if (-1 == v4l_ioctl (info, VIDIOCSWIN, &window)) {
-		free (window.clips);
+		free (clips);
 		return FALSE;
 	}
 
-	free (window.clips);
+	free (clips);
 
 	if (-1 == v4l_ioctl (info, VIDIOCGWIN, &window))
 		return FALSE;
@@ -1751,9 +1763,6 @@ set_overlay_window		(tveng_device_info *	info,
 	info->overlay_window.height	= window.height;
 
 	/* Clips cannot be read back, we assume no change. */
-
-	tv_clip_vector_copy (&info->overlay_window.clip_vector,
-			     &w->clip_vector);
 
 	return TRUE;
 }
@@ -1958,6 +1967,7 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
 */
 static
 int tveng1_attach_device(const char* device_file,
+			Window window _unused_,
 			enum tveng_attach_mode attach_mode,
 			tveng_device_info * info)
 {
@@ -2014,7 +2024,7 @@ int tveng1_attach_device(const char* device_file,
   
   info -> attach_mode = attach_mode;
   /* Current capture mode is no capture at all */
-  info -> current_mode = TVENG_NO_CAPTURE;
+  info -> capture_mode = CAPTURE_MODE_NONE;
 
   /* We have a valid device, get some info about it */
 
@@ -2056,7 +2066,7 @@ int tveng1_attach_device(const char* device_file,
 			     (info->caps.minwidth + info->caps.maxwidth) / 2, 
 			     (info->caps.minheight + info->caps.maxheight) / 2,
 			     0,
-			     pig_depth_to_pixfmt (error),
+			     pig_depth_to_pixfmt ((unsigned) error),
 			     0)) {
     info -> tveng_errno = -1;
     t_error_msg("switch()", 
@@ -2113,7 +2123,7 @@ int tveng1_attach_device(const char* device_file,
   This function always succeeds.
 */
 static void
-tveng1_describe_controller(char ** short_str, char ** long_str,
+tveng1_describe_controller(const char ** short_str, const char ** long_str,
 			   tveng_device_info * info)
 {
   t_assert(info != NULL);
@@ -2163,7 +2173,7 @@ static void tveng1_close_device(tveng_device_info * info)
 
 static int
 tveng1_ioctl			(tveng_device_info *	info,
-				 int			cmd,
+				 unsigned int		cmd,
 				 char *			arg)
 {
 	return device_ioctl (info->log_fp, fprint_ioctl_arg,
@@ -2227,7 +2237,7 @@ tveng1_set_capture_format(tveng_device_info * info)
 {
   struct video_picture pict;
   struct video_window window;
-  enum tveng_capture_mode mode;
+  capture_mode mode;
   gboolean overlay_was_active;
   int r;
 
@@ -2273,8 +2283,8 @@ tveng1_set_capture_format(tveng_device_info * info)
       return -1;
     }
 
-  info->format.width = (info->format.width + 3) & -4;
-  info->format.height = (info->format.height + 3) & -4;
+  info->format.width = (info->format.width + 3) & (unsigned int) -4;
+  info->format.height = (info->format.height + 3) & (unsigned int) -4;
 
   info->format.width = SATURATE (info->format.width,
 				 info->caps.minwidth,
@@ -2369,7 +2379,7 @@ tveng1_start_capturing(tveng_device_info * info)
   gboolean dummy;
 
   p_tveng_stop_everything(info, &dummy);
-  t_assert(info -> current_mode == TVENG_NO_CAPTURE);
+  t_assert(info -> capture_mode == CAPTURE_MODE_NONE);
 
   p_tveng1_timestamp_init(info);
 
@@ -2387,12 +2397,12 @@ tveng1_start_capturing(tveng_device_info * info)
 
   /* NB PROT_WRITE required since bttv 0.8,
      client may write mmapped buffers too. */
-  p_info->mmaped_data = (char *) mmap (0, p_info->mmbuf.size,
+  p_info->mmaped_data = (char *) mmap (0, (unsigned int) p_info->mmbuf.size,
 				       PROT_READ | PROT_WRITE,
 				       MAP_SHARED, info->fd, 0);
 
   if (p_info->mmaped_data == (char *) -1)
-    p_info->mmaped_data = (char *) mmap (0, p_info->mmbuf.size,
+    p_info->mmaped_data = (char *) mmap (0, (unsigned int) p_info->mmbuf.size,
 					 PROT_READ, MAP_SHARED,
 					 info->fd, 0);
 
@@ -2405,7 +2415,7 @@ tveng1_start_capturing(tveng_device_info * info)
 
   p_info -> queued = p_info -> dequeued = 0;
 
-  info->current_mode = TVENG_CAPTURE_READ;  
+  info->capture_mode = CAPTURE_MODE_READ;
 
   /* Queue first buffer */
   if (p_tveng1_queue(info) == -1)
@@ -2421,25 +2431,25 @@ tveng1_stop_capturing(tveng_device_info * info)
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info*) info;
 
-  if (info -> current_mode == TVENG_NO_CAPTURE)
+  if (info -> capture_mode == CAPTURE_MODE_NONE)
     {
       fprintf(stderr, 
 	      "Warning: trying to stop capture with no capture active\n");
       return 0; /* Nothing to be done */
     }
-  t_assert(info->current_mode == TVENG_CAPTURE_READ);
+  t_assert(info->capture_mode == CAPTURE_MODE_READ);
 
   /* Dequeue last buffer */
   p_tveng1_dequeue(NULL, info);
 
   if (p_info -> mmaped_data != ((char*)-1))
-    if (munmap(p_info->mmaped_data, p_info->mmbuf.size) == -1)
+    if (munmap(p_info->mmaped_data, (unsigned int) p_info->mmbuf.size) == -1)
       {
 	info -> tveng_errno = errno;
 	t_error("munmap()", info);
       }
 
-  info->current_mode = TVENG_NO_CAPTURE;
+  info->capture_mode = CAPTURE_MODE_NONE;
 
   return 0;
 }
@@ -2451,7 +2461,7 @@ static int p_tveng1_queue(tveng_device_info * info)
     (struct private_tveng1_device_info*) info;
 
   t_assert(info != NULL);
-  t_assert(info -> current_mode == TVENG_CAPTURE_READ);
+  t_assert(info -> capture_mode == CAPTURE_MODE_READ);
 
   CLEAR (bm);
   
@@ -2537,7 +2547,7 @@ static int p_tveng1_dequeue(tveng_image_data * where,
   int frame;
 
   t_assert(info != NULL);
-  t_assert(info -> current_mode == TVENG_CAPTURE_READ);
+  t_assert(info -> capture_mode == CAPTURE_MODE_READ);
 
   if (p_info -> dequeued == p_info -> queued)
     return 0; /* All queued frames have been dequeued */
@@ -2582,7 +2592,7 @@ int tveng1_read_frame(tveng_image_data *where,
 
   t_assert(info != NULL);
 
-  if (info -> current_mode != TVENG_CAPTURE_READ)
+  if (info -> capture_mode != CAPTURE_MODE_READ)
     {
       info -> tveng_errno = -1;
       t_error_msg("check", "Current capture mode is not READ",
@@ -2621,7 +2631,7 @@ static double tveng1_get_timestamp(tveng_device_info * info)
     (struct private_tveng1_device_info *) info;
 
   t_assert(info != NULL);
-  if (info->current_mode != TVENG_CAPTURE_READ)
+  if (info->capture_mode != CAPTURE_MODE_READ)
     return -1;
 
   return (p_info -> last_timestamp);
