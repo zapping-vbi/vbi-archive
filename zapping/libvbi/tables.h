@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.h,v 1.5 2001-08-22 01:26:53 mschimek Exp $ */
+/* $Id: tables.h,v 1.6 2001-12-05 07:25:00 mschimek Exp $ */
 
 #ifndef TABLES_H
 #define TABLES_H
@@ -37,10 +37,5 @@ extern struct pdc_vps_entry {
 	unsigned short		cni3;		/* Packet X/26 */
 	unsigned short		cni4;		/* VPS */
 } PDC_VPS_CNI[];
-
-extern char *		program_class[16];
-extern char *		program_type[8][16];
-
-extern char *		eia608_program_type[96];
 
 #endif /* TABLES_H */

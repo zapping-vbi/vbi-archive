@@ -308,9 +308,6 @@ on_trigger_clicked			(gpointer	ignored,
 
     case VBI_LINK_PAGE:
     case VBI_LINK_SUBPAGE:
-
-fprintf(stderr, "trigger->page %x\n", trigger->page);
-#warning
       open_in_new_ttxview(trigger->page, trigger->subpage);
       break;
 
@@ -1679,11 +1676,49 @@ event(vbi_event *ev, void *unused)
       notify_trigger(ev->ev.trigger);
       break;
 
-    case VBI_EVENT_RATIO:
+    case VBI_EVENT_ASPECT:
       if (zconf_get_integer(NULL, "/zapping/options/main/ratio") == 3)
-	zvbi_ratio = ev->ev.ratio.ratio;
+	zvbi_ratio = ev->ev.aspect.ratio;
       break;
-      
+
+#ifdef ZVBI_DUMP_PROG_INFO
+    case VBI_EVENT_PROG_INFO:
+    {
+      vbi_program_info *pi = ev->ev.prog_info;
+      int i;
+
+      fprintf(stderr, "Program Info %d\n"
+	      "  %d/%d %d:%d T%d L%d:%d E%d:%d:%d\n"
+	      "  title <%s> type <",
+	      pi->future,
+	      pi->month, pi->day, pi->hour, pi->min, pi->tape_delayed,
+	      pi->length_hour, pi->length_min,
+	      pi->elapsed_hour, pi->elapsed_min, pi->elapsed_sec,
+	      pi->title);
+      for (i = 0; pi->type_id[i]; i++)
+	fprintf(stderr, "%s ",
+		vbi_prog_type_str_by_id(pi->type_classf, pi->type_id[i]));
+      fprintf(stderr, "> rating <%s> dlsv %d\n"
+	      "  audio %d,%s / %d,%s\n"
+	      "  caption %d lang ",
+	      vbi_rating_str_by_id(pi->rating_auth, pi->rating_id), pi->rating_dlsv,
+	      pi->audio[0].mode, pi->audio[0].language,
+	      pi->audio[1].mode, pi->audio[1].language,
+	      pi->caption_services);
+      for (i = 0; i < 8; i++)
+	fprintf(stderr, "%s, ", pi->caption_language[i]);
+      fprintf(stderr, "\n"
+	      "  cgms %d aspect %f description: \""
+	      "  %s\\%s\\%s\\%s\\%s\\%s\\%s\\%s\"\n",
+	      pi->cgms_a, (double) pi->aspect.ratio,
+	      pi->description[0], pi->description[1],
+	      pi->description[2], pi->description[3],
+	      pi->description[4], pi->description[5],
+	      pi->description[6], pi->description[7]);
+      break;
+    }
+#endif
+ 
     default:
       break;
     }

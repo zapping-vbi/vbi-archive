@@ -1,16 +1,13 @@
 Outstanding issues for the next release (0.6.2)
 -----------------------------------------------
-> 0.6.2
+> 0.6.3
 	+ Improve documentation.
 	+ TTX export: Make blockgfx replacement smarter.
 	+ vbi: add toggle button to disable CC/TTX decoding
           (independent of station name decoding, that is). Mind
 	  listing subtitles. Should also disable trigger
           decoding when all set to ignore.
-	+ XDS program info & TTX program name.
-	+ Properties icons.
-
-> 0.6.3
+	+ TTX program name & program info dialog.
 	+ Standards for each input.
 	+ Move tigrux's patch to a more convenient place.
 	+ Look into scripting.
@@ -24,6 +21,8 @@ Outstanding issues for the next release (0.6.2)
 	  a CNI (instead of guessing the name from ttx). Needs some sort of
 	  raw dump, so users can send updates. Upd: Oops, we do have a raw
 	  dump: VTX.
+	+ Take TTX out of the context menus when Zapping doesn't
+	  receive TTX. (event timestamps?)
 
 > 0.7.0
 	+ Support for Python scripting, write all new gui handling as

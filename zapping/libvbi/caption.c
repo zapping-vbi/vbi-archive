@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.34 2001-11-22 17:48:11 mschimek Exp $ */
+/* $Id: caption.c,v 1.35 2001-12-05 07:25:00 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -85,25 +85,21 @@ vbi_chsw_reset(struct vbi *vbi, nuid nuid)
 
 #define XDS_END			15
 
-/* -> vbi_classify_page */
-static char *
+/* vbi_classify_page, program_info language */
+static unsigned char *
 language[8] = {
-	NULL,		/* unknown */
+	"Unknown",
 	"English",
 	"Español",
 	"Français",
 	"Deutsch",
 	"Italiano",
-	NULL,		/* unknown */
-	NULL		/* none */
+	"Other",
+	"None"
 };
 
 #if XDS_DEBUG
 
-static char *mpaa_rating[8]	= { "n/a", "G", "PG", "PG-13", "R", "NC-17", "X", "not rated" };
-static char *us_tv_rating[8]	= { "not rated", "TV-Y", "TV-Y7", "TV-G", "TV-PG", "TV-14", "TV-MA", "not rated" };
-static char *cdn_en_rating[8]	= { "exempt", "C", "C8+", "G", "PG", "14+", "18+", "-" };
-static char *cdn_fr_rating[8]	= { "exempt", "G", "8 ans +", "13 ans +", "16 ans +", "18 ans +", "-", "-" };
 static char *map_type[8]	= { "unknown", "mono", "simulated stereo", "stereo", "stereo surround", "data service", "unknown", "none" };
 static char *sap_type[8]	= { "unknown", "mono", "video descriptions", "non-program audio", "special effects", "data service", "unknown", "none" };
 
@@ -140,6 +136,10 @@ static uint32_t hcrc[128];
 
 static void init_hcrc(void) __attribute__ ((constructor));
 
+/*
+ *  XDS has no unique station id as EBU (or is the call sign?)
+ *  so we create a checksum over the station name.
+ */
 static void
 init_hcrc(void)
 {
@@ -174,118 +174,335 @@ xds_strfu(char *d, char *s, int len)
 	return neq;
 }
 
+#define xds_intfu(d, val) (neq |= d ^ (val), d = (val)) 
+
+static void
+flush_prog_info(struct vbi *vbi, vbi_program_info *pi, vbi_event *e)
+{
+	e->ev.aspect = pi->aspect;
+
+	vbi_reset_prog_info(pi);
+
+	if (memcmp(&e->ev.aspect, &pi->aspect, sizeof(pi->aspect)) != 0) {
+		e->type = VBI_EVENT_ASPECT;
+		vbi_send_event(vbi, e);
+	}
+
+	vbi->cc.info_cycle[pi->future] = 0;
+}
+
 static inline void
 xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 {
 	vbi_network *n = &vbi->network.ev.network;
-	int i __attribute__ ((unused));
+	vbi_program_info *pi;
+	int neq, i;
+	vbi_event e;
 
 	// assert(length > 0 && length < 32);
 
+// XXX we have no indication how long the program info applies.
+//     It will be canceled on channel switch, but who knows
+//     what the station transmits when the next program starts.
+//     (Nothing, possibly.) A timeout seems necessary. 
+
 	switch (class) {
-	case XDS_CURRENT:
-	case XDS_FUTURE:
+	case XDS_CURRENT: /* 0 */
+	case XDS_FUTURE: /* 1 */
 #if XDS_DEBUG
 		if (class == XDS_CURRENT)
 			printf("Current ");
 		else
 			printf("Next ");
-#endif /* XDS_DEBUG */
+#endif
+		if (!(vbi->event_mask & (VBI_EVENT_ASPECT | VBI_EVENT_PROG_INFO)))
+			return;
+
+		pi = &vbi->prog_info[class];
+		neq = 0;
 
 		switch (type) {
 		case 1:		/* program identification number */
-#if XDS_DEBUG
+		{
+			int month, day, hour, min;
+
 			if (length != 4)
 				return;
+
+			month = buffer[3] & 15;
+			day = buffer[2] & 31;
+			hour = buffer[1] & 31;
+			min = buffer[0] & 63;
+#if XDS_DEBUG
 			printf("PIN: %d %s %02d:%02d UTC, D=%d L=%d Z=%d T(ape delayed)=%d\n",
-				buffer[2] & 31, month_names[buffer[3] & 15],
-				buffer[1] & 31, buffer[0] & 63,
+				day, month_names[month], hour, min,
 				!!(buffer[1] & 0x20),
 				!!(buffer[2] & 0x20),
 				!!(buffer[3] & 0x20),
 				!!(buffer[3] & 0x10));
-#endif /* XDS_DEBUG */
+#endif
+			if (month == 0 || month > 12
+			    || day == 0 || day > 31
+			    || hour > 23 || min > 59)
+				return;
+
+			month--;
+			day--;
+
+			neq = (pi->month ^ month) | (pi->day ^ day)
+				| (pi->hour ^ hour) | (pi->min ^ min);
+
+			pi->tape_delayed = !!(buffer[3] & 0x10);
+
+			if (neq) {
+				flush_prog_info(vbi, pi, &e);
+
+				pi->month = month;
+				pi->day = day;
+				pi->hour = hour;
+				pi->min = min;
+
+				pi->tape_delayed = !!(buffer[3] & 0x10);
+			}
+
 			break;
+		}
 
 		case 2:		/* program length */
-#if XDS_DEBUG
-			if (length > 5)
+		{
+			int lhour, lmin, ehour = -1, emin = -1, esec = 0;
+
+			if (length < 2 || length > 6)
 				return;
-			printf("length: %02d:%02d",
-				buffer[1] & 63, buffer[0] & 63);
-			if (length >= 4)
-				printf(", elapsed: %02d:%02d",
-					buffer[3] & 63, buffer[2] & 63);
+
+			lhour = buffer[1] & 63;
+			lmin = buffer[0] & 63;
+
+			if (length >= 3) {
+				ehour = buffer[3] & 63;
+				emin = buffer[2] & 63;
+
+				if (length >= 5)
+					esec = buffer[4] & 63;
+			}
+#if XDS_DEBUG
+			printf("length: %02d:%02d, ", lhour, lmin);
+			printf("elapsed: %02d:%02d", ehour, emin);
 			if (length >= 5)
-				printf(":%02d", buffer[4] & 63);
+				printf(":%02d", esec);
 			printf("\n");
-#endif /* XDS_DEBUG */
+#endif
+			if (lmin > 59 || emin > 59 || esec > 59)
+				return;
+
+			xds_intfu(pi->length_hour, lhour);
+			xds_intfu(pi->length_min, lmin);
+			xds_intfu(pi->elapsed_hour, ehour);
+			xds_intfu(pi->elapsed_min, emin);
+			xds_intfu(pi->elapsed_sec, esec);
+
 			break;
+		}
 
 		case 3:		/* program name */
+			if (length < 2)
+				return;
 #if XDS_DEBUG
 			printf("program title: '");
 			for (i = 0; i < length; i++)
 				putchar(printable(buffer[i]));
 			printf("'\n");
-#endif /* XDS_DEBUG */
+#endif
+			neq = xds_strfu(pi->title, buffer, length);
+
+			if (!neq) { /* no title change */
+				if (!(vbi->cc.info_cycle[class] & (1 << 3)))
+					break; /* already reported */
+
+				if (!(vbi->cc.info_cycle[class] & (1 << 1))) {
+					/* Second occurence without PIN */
+
+					flush_prog_info(vbi, pi, &e);
+
+					xds_strfu(pi->title, buffer, length);
+					vbi->cc.info_cycle[class] |= 1 << 3;
+				}
+			}
+
 			break;
 
 		case 4:		/* program type */
+		{
+			int neq;
 #if XDS_DEBUG
 			printf("program type: ");
 			for (i = 0; i < length; i++)
 				printf((i > 0) ? ", %s" : "%s",
-					eia608_program_type[buffer[i] - 0x20]);
+					vbi_prog_type_str_by_id(
+					 VBI_PROG_CLASSF_EIA_608, buffer[i]));
 			printf("\n");
-#endif /* XDS_DEBUG */
+#endif
+			neq = (pi->type_classf != VBI_PROG_CLASSF_EIA_608);
+			pi->type_classf = VBI_PROG_CLASSF_EIA_608;
+
+			for (i = 0; i < length; i++) {
+				neq |= pi->type_id[i] ^ buffer[i];
+				pi->type_id[i] = buffer[i];
+			}
+
+			neq |= pi->type_id[i];
+			pi->type_id[i] = 0;
+
 			break;
+		}
 
 		case 5:		/* program rating */
+		{
+			vbi_rating_auth auth;
+			int r, g, dlsv = 0;
+
+			if (length != 2)
+				return;
+
+			r = buffer[0] & 7;
+			g = buffer[1] & 7;
+
+			if (buffer[0] & 0x20)
+				dlsv |= VBI_RATING_D;
+			if (buffer[1] & 0x08)
+				dlsv |= VBI_RATING_L;
+			if (buffer[1] & 0x10)
+				dlsv |= VBI_RATING_S;
+			if (buffer[1] & 0x20)
+				dlsv |= VBI_RATING_V;
 #if XDS_DEBUG
 			printf("program movie rating: %s, tv rating: ",
-				mpaa_rating[buffer[0] & 7]);
+				vbi_rating_str_by_id(VBI_RATING_AUTH_MPAA, r));
 			if (buffer[0] & 0x10) {
 				if (buffer[0] & 0x20)
-					puts(cdn_fr_rating[buffer[1] & 7]);
+					puts(vbi_rating_str_by_id(VBI_RATING_AUTH_TV_CA_FR, g));
 				else
-					puts(cdn_en_rating[buffer[1] & 7]);
+					puts(vbi_rating_str_by_id(VBI_RATING_AUTH_TV_CA_EN, g));
 			} else {
-				printf("%s; ", us_tv_rating[buffer[1] & 7]);
+				printf("%s; ", vbi_rating_str_by_id(VBI_RATING_AUTH_TV_US, g));
 				if (buffer[1] & 0x20)
 					printf("violence; ");
 				if (buffer[1] & 0x10)
 					printf("sexual situations; ");
 				if (buffer[1] & 8)
-					printf("adult language; ");
+					printf("indecent language; ");
 				if (buffer[0] & 0x20)
 					printf("sexually suggestive dialog");
 				putchar('\n');
 			}
 #endif /* XDS_DEBUG */
+			if ((buffer[0] & 0x08) == 0) {
+				if (r == 0) return;
+				auth = VBI_RATING_AUTH_MPAA;
+				pi->rating_dlsv = dlsv = 0;
+			} else if ((buffer[0] & 0x10) == 0) {
+				auth = VBI_RATING_AUTH_TV_US;
+				r = g;
+			} else if ((buffer[1] & 0x08) == 0) {
+				if ((buffer[0] & 0x20) == 0) {
+					if ((r = g) > 6) return;
+					auth = VBI_RATING_AUTH_TV_CA_EN;
+				} else {
+					if ((r = g) > 5) return;
+					auth = VBI_RATING_AUTH_TV_CA_FR;
+				}
+				pi->rating_dlsv = dlsv = 0;
+			} else
+				return;
+
+			if ((neq = (pi->rating_auth != auth
+				    || pi->rating_id != r
+				    || pi->rating_dlsv != dlsv))) {
+				pi->rating_auth = auth;
+				pi->rating_id = r;
+				pi->rating_dlsv = dlsv;
+			}
+
 			break;
+		}
 
 		case 6:		/* program audio services */
-#if XDS_DEBUG
+		{
+			static const vbi_audio_mode mode[2][8] = {
+				{
+					VBI_AUDIO_MODE_UNKNOWN,
+					VBI_AUDIO_MODE_MONO,
+					VBI_AUDIO_MODE_SIMULATED_STEREO,
+					VBI_AUDIO_MODE_STEREO,
+					VBI_AUDIO_MODE_STEREO_SURROUND,
+					VBI_AUDIO_MODE_DATA_SERVICE,
+					VBI_AUDIO_MODE_UNKNOWN, /* "other" */
+					VBI_AUDIO_MODE_NONE
+				}, {
+					VBI_AUDIO_MODE_UNKNOWN,
+					VBI_AUDIO_MODE_MONO,
+					VBI_AUDIO_MODE_VIDEO_DESCRIPTIONS,
+					VBI_AUDIO_MODE_NON_PROGRAM_AUDIO,
+					VBI_AUDIO_MODE_SPECIAL_EFFECTS,
+					VBI_AUDIO_MODE_DATA_SERVICE,
+					VBI_AUDIO_MODE_UNKNOWN, /* "other" */
+					VBI_AUDIO_MODE_NONE
+				}
+			};
+
 			if (length != 2)
 				return;
+#if XDS_DEBUG
 			printf("main audio: %s, %s; second audio program: %s, %s\n",
 				map_type[buffer[0] & 7], language[(buffer[0] >> 3) & 7],
 				sap_type[buffer[1] & 7], language[(buffer[1] >> 3) & 7]);
-#endif /* XDS_DEBUG */
+#endif
+			for (i = 0; i < 2; i++) {
+				int l = (buffer[i] >> 3) & 7;
+				vbi_audio_mode m = mode[i][buffer[i] & 7];
+				char *s = ((1 << l) & 0xC1) ? NULL : language[l];
+
+				if (pi->audio[i].mode != m) {
+					neq = 1; pi->audio[i].mode = m;
+				}
+				if (pi->audio[i].language != s) {
+					neq = 1; pi->audio[i].language = s;
+				}
+			}
+
 			break;
+		}
 
 		case 7:		/* program caption services */
+		{
+			int services = 0;
+
 			if (length > 8)
 				return;
 
+			for (i = 0; i < 8; i++)
+				pi->caption_language[i] = NULL;
+
 			for (i = 0; i < length; i++) {
 				int ch = buffer[i] & 7;
+				int l = (buffer[i] >> 3) & 7;
+				char *s;
 
 				ch = (ch & 1) * 4 + (ch >> 1);
-				vbi->cc.channel[ch].language =
-					language[(buffer[i] >> 3) & 7];			
+
+				services |= 1 << ch;
+				s = ((1 << l) & 0xC1) ? NULL : language[l];
+
+				if (pi->caption_language[ch] != s) {
+					neq = 1; pi->caption_language[ch] = s;
+				}
+
+				if (class == XDS_CURRENT)
+					vbi->cc.channel[ch].language =
+						pi->caption_language[ch];
 			}
+
+			xds_intfu(pi->caption_services, services);
 #if XDS_DEBUG
 			printf("program caption services:\n");
 			for (i = 0; i < length; i++)
@@ -294,68 +511,95 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 					(buffer[i] & 2) ? 2 : 1,
 					(buffer[i] & 1) ? "text      " : "captioning",
 					language[(buffer[i] >> 3) & 7]);
-#endif /* XDS_DEBUG */
+#endif
 			break;
+		}
 
 		case 8:		/* copy generation management system */
-#if XDS_DEBUG
 			if (length != 1)
 				return;
+#if XDS_DEBUG
 			printf("CGMS: %s", cgmsa[(buffer[0] >> 3) & 3]);
 			if (buffer[0] & 0x18)
 				printf("; %s", scrambling[(buffer[0] >> 1) & 3]);
 			printf("; analog source: %d", buffer[0] & 1);
-#endif /* XDS_DEBUG */
+#endif
+			xds_intfu(pi->cgms_a, buffer[0] & 63);
+
 			break;
 
 		case 9:		/* program aspect ratio */
 		{
-			vbi_ratio r;
+			vbi_aspect_ratio *r = &e.ev.aspect;
 
 			if (length > 3)
 				return;
 
-			r.first_line = (buffer[0] & 63) + 22;
-			r.last_line = 262 - (buffer[1] & 63);
-			r.film_mode = 0;
-			r.open_subtitles = VBI_SUBT_UNKNOWN;
+			memset(&e, 0, sizeof(e));
+
+			r->first_line = (buffer[0] & 63) + 22;
+			r->last_line = 262 - (buffer[1] & 63);
+			r->film_mode = 0;
+			r->open_subtitles = VBI_SUBT_UNKNOWN;
 
 			if (length >= 3 && (buffer[2] & 1))
-				r.ratio = 16.0 / 9.0;
+				r->ratio = 16.0 / 9.0;
 			else
-				r.ratio = 1.0;
-
-			if (memcmp(&r, &vbi->ratio, sizeof(r)) != 0) {
-				vbi->ratio.ev.ratio = r;
-				vbi->ratio_source = 3;
-
-				vbi->ratio.type = VBI_EVENT_RATIO;
-				vbi_send_event(vbi, &vbi->ratio);
-			}
+				r->ratio = 1.0;
 #if XDS_DEBUG
-			if (length > 3)
-				return;
 			printf("program aspect ratio info: active start %d, end %d%s\n",
 				(buffer[0] & 63) + 22, 262 - (buffer[1] & 63),
 				(length >= 3 && (buffer[2] & 1)) ? " (anamorphic)" : "");
-#endif /* XDS_DEBUG */
+#endif
+			if (memcmp(r, &vbi->prog_info[0].aspect, sizeof(*r)) != 0) {
+				vbi->prog_info[0].aspect = *r;
+				vbi->aspect_source = 3;
+
+				e.type = VBI_EVENT_ASPECT;
+				vbi_send_event(vbi, &e);
+
+				neq = 1;
+			}
+
 			break;
 		}
 
 		case 0x10 ... 0x17: /* program description */
+		{
+			int line = type & 7;
 #if XDS_DEBUG
-			printf("program descr. line %d: >", type - 0x10 + 1);
+			printf("program descr. line %d: >", line + 1);
 			for (i = 0; i < length; i++)
 				putchar(printable(buffer[i]));
 			printf("<\n");
-#endif /* XDS_DEBUG */
+#endif
+			neq = xds_strfu(pi->description[line], buffer, length);
+
 			break;
+		}
 
 		default:
 #if XDS_DEBUG
 			printf("<unknown %d/%02x length %d>\n", class, type, length);
-#endif /* XDS_DEBUG */
-			break;
+#endif
+			return; /* no event */
+		}
+
+#if 0
+		printf("[type %d cycle %08x class %d neq %d]\n",
+		       type, vbi->cc.info_cycle[class], class, neq);
+#endif
+		if (neq) /* first occurence of this type with this data */
+			vbi->cc.info_cycle[class] |= 1 << type;
+		else if (vbi->cc.info_cycle[class] & (1 << type)) {
+			/* Second occurance of this type with same data */
+
+			e.type = VBI_EVENT_PROG_INFO;
+			e.ev.prog_info = pi;
+
+			vbi_send_event(vbi, &e);
+
+			vbi->cc.info_cycle[class] = 0; /* all changes reported */
 		}
 
 		break;
@@ -1156,6 +1400,11 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 		break;
 
 	case 284:	/* NTSC */
+#if 0
+		putchar(printable(buf[0]));
+		putchar(printable(buf[1]));
+		fflush(stdout);
+#endif
 		if (parity(buf[0]) >= 0) {
 			if (c1 == 0)
 				return;
@@ -1187,7 +1436,11 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 	}
 
 	pthread_mutex_lock(&cc->mutex);
-
+#if 0
+	putchar(printable(buf[0]));
+	putchar(printable(buf[1]));
+	fflush(stdout);
+#endif
 	switch (c1) {
 		channel *ch;
 		attr_char c;
@@ -1219,6 +1472,11 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 		break;
 
 	default:
+#if 0
+		putchar(printable(buf[0]));
+		putchar(printable(buf[1]));
+		fflush(stdout);
+#endif
 		ch = &cc->channel[(cc->curr_chan & 5) + field2 * 2];
 
 		if (buf[0] == 0x80 && buf[1] == 0x80) {
@@ -1321,6 +1579,9 @@ vbi_caption_channel_switched(struct vbi *vbi)
 	cc->xds = FALSE;
 
 	memset(&cc->sub_packet, 0, sizeof(cc->sub_packet));
+
+	cc->info_cycle[0] = 0;
+	cc->info_cycle[1] = 0;
 
 	vbi_caption_desync(vbi);
 }
@@ -1470,7 +1731,7 @@ roll_up(struct fmt_page *pg, int first_row, int last_row)
 {
 	vbi_event event;
 
-	if (pg->dirty.y0 <= pg->dirty.y1) {
+	if (pg->dirty.roll != 0 || pg->dirty.y0 <= pg->dirty.y1) {
 		/* not fetched since last update, redraw all */
 		pg->dirty.roll = 0;
 		pg->dirty.y0 = MIN(first_row, pg->dirty.y0);

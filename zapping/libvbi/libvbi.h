@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.50 2001-09-02 03:25:58 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.51 2001-12-05 07:25:00 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -259,7 +259,7 @@ extern int		vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **la
  *  ratio: eg. 14/9, 16/9 (ie. anamorphic; letterbox is 1/1).
  */
 typedef enum {
-	VBI_SUBT_NONE,
+	VBI_SUBT_NONE = 0,
 	VBI_SUBT_ACTIVE,	/* in active area */
 	VBI_SUBT_MATTE,		/* letterbox, below active video */
 	VBI_SUBT_UNKNOWN,
@@ -271,7 +271,162 @@ typedef struct {
 	double			ratio;
 	int			film_mode;		/* bool, if known */
 	vbi_subt		open_subtitles;
-} vbi_ratio;
+} vbi_aspect_ratio;
+
+/*
+ *  Program Info
+ *
+ *  ATTN this is subject to change
+ */
+
+typedef enum {
+	VBI_RATING_AUTH_NONE = 0,
+	VBI_RATING_AUTH_MPAA,
+	VBI_RATING_AUTH_TV_US,
+	VBI_RATING_AUTH_TV_CA_EN,
+	VBI_RATING_AUTH_TV_CA_FR,
+} vbi_rating_auth;
+
+/* VBI_RATING_AUTH_TV_US flags */
+
+#define VBI_RATING_D 0x08 /* "sexually suggestive dialog" */
+#define VBI_RATING_L 0x04 /* "indecent language" */
+#define VBI_RATING_S 0x02 /* "sexual situations" */
+#define VBI_RATING_V 0x01 /* "violence" */
+
+extern char *		vbi_rating_str_by_id(vbi_rating_auth auth, int id);
+
+typedef enum {
+	VBI_PROG_CLASSF_NONE = 0,
+	VBI_PROG_CLASSF_EIA_608,
+	VBI_PROG_CLASSF_ETS_300231,
+} vbi_prog_classf;
+
+extern char *		vbi_prog_type_str_by_id(vbi_prog_classf classf, int id);
+
+typedef enum {
+	VBI_AUDIO_MODE_NONE = 0,
+	VBI_AUDIO_MODE_MONO,
+	VBI_AUDIO_MODE_STEREO,
+	VBI_AUDIO_MODE_STEREO_SURROUND,
+	VBI_AUDIO_MODE_SIMULATED_STEREO,
+	VBI_AUDIO_MODE_VIDEO_DESCRIPTIONS,
+	VBI_AUDIO_MODE_NON_PROGRAM_AUDIO,
+	VBI_AUDIO_MODE_SPECIAL_EFFECTS,
+	VBI_AUDIO_MODE_DATA_SERVICE,
+	VBI_AUDIO_MODE_UNKNOWN,
+} vbi_audio_mode;
+
+typedef struct vbi_program_info {
+	/*
+	 *  Refers to the current or next program.
+	 *  (No [2] to allow clients filtering current data more easily.)
+	 */
+	unsigned int		future : 1;
+
+	/* 01 Program Identification Number */
+
+	/* If unknown all these fields are -1 */
+	char			month;		/* 0 ... 11 */
+	char			day;		/* 0 ... 30 */
+	char			hour;		/* 0 ... 23 */
+	char			min;		/* 0 ... 59 */
+
+	/*
+	 *  VD: "T indicates if a program is routinely tape delayed for the
+	 *  Mountain and Pacific time zones."
+	 */
+	char			tape_delayed;
+
+	/* 02 Program Length */
+
+	/* If unknown all these fields are -1 */
+	char			length_hour;	/* 0 ... 63 */
+	char			length_min;	/* 0 ... 59 */
+
+	char			elapsed_hour;	/* 0 ... 63 */
+	char			elapsed_min;	/* 0 ... 59 */
+	char			elapsed_sec;	/* 0 ... 59 */
+
+	/* 03 Program name */
+
+	/* If unknown title[0] == 0 */
+	char			title[64];	/* ASCII + '\0' */
+
+	/* 04 Program type */
+
+	/*
+	 *  If unknown type_classf == VBI_PROG_CLASSF_NONE.
+	 *  VBI_PROG_CLASSF_EIA_608 can have up to 32 tags
+	 *  identifying 96 keywords. Their numerical value
+	 *  is given here instead of composing a string for
+	 *  easier filtering. Use vbi_prog_type_str_by_id to
+	 *  get the keywords. A zero marks the end.
+	 */
+	vbi_prog_classf		type_classf;
+	int			type_id[33];
+
+	/* 05 Program rating */
+
+	/*
+	 *  For details STFW for "v-chip"
+	 *  If unknown rating_auth == VBI_RATING_NONE
+	 */
+	vbi_rating_auth		rating_auth;
+	int			rating_id;
+
+	/* Only valid when auth == VBI_RATING_TV_US */
+	int			rating_dlsv;
+
+	/* 06 Program Audio Services */
+
+	/*
+	 *  BTSC audio (two independent tracks) is flagged according to XDS,
+	 *  Zweiton/NICAM/EIA-J audio is flagged mono/none, stereo/none or
+	 *  mono/mono for bilingual transmissions.
+	 */
+	struct {
+		/* If unknown mode == VBI_AUDIO_MODE_UNKNOWN */
+		vbi_audio_mode		mode;
+		/* If unknown language == NULL */
+		char *			language; /* Latin-1 */
+	}			audio[2];	/* primary and secondary */
+
+	/* 07 Program Caption Services */
+
+	/*
+	 *  Bits 0...7 corresponding to Caption page 1...8.
+	 *  Note for the current program this information is also
+	 *  available via vbi_classify_page().
+	 *
+	 *  If unknown caption_services == -1, _language[] = NULL
+	 */
+	int			caption_services;
+	char *			caption_language[8]; /* Latin-1 */
+
+	/* 08 Copy Generation Management System */
+
+	/* If unknown cgms_a == -1 */
+	int			cgms_a; /* XXX */
+
+	/* 09 Aspect Ratio */
+
+	/*
+	 *  Note for the current program this information is also
+	 *  available via VBI_EVENT_ASPECT.
+	 *
+	 *  If unknown first_line == last_line == -1, ratio == 0.0
+	 */
+	vbi_aspect_ratio	aspect;
+
+	/* 10 - 17 Program Description */
+
+	/*
+	 *  8 rows of 0...32 ASCII chars + '\0',
+	 *  if unknown description[0...7][0] == 0
+	 */
+	char			description[8][33];
+} vbi_program_info;
 
 /*
  *  Event (vbi.c)
@@ -354,7 +509,8 @@ typedef struct {
 
 #define	VBI_EVENT_TRIGGER	(1 << 5)
 /*
- *  A trigger has fired, ev.trigger is a vbi_link *pointer*.
+ *  A trigger has fired, ev.trigger is a vbi_link *pointer*
+ *  (because it's looked up in a database).
  */
 
 #define VBI_EVENT_IO_ERROR	(1 << 6)
@@ -367,10 +523,18 @@ typedef struct {
  *  (XXX rethink termination)
  */
 
-#define	VBI_EVENT_RATIO		(1 << 7)
+#define	VBI_EVENT_ASPECT	(1 << 7)
 /*
- *  Aspect ratio change, ev.ratio is a vbi_ratio object, read only.
+ *  Aspect ratio change, ev.aspect is a vbi_aspect_ratio object, read only.
  *  (From PAL WSS, NTSC XDS or EIA-J CPR-1204)
+ */
+
+#define	VBI_EVENT_PROG_INFO	(1 << 8)
+/*
+ *  We have new information about the current or next program.
+ *  ev.prog_info is a vbi_program_info pointer (due to size), read only.
+ *
+ *  XXX TTX not implemented yet
  */
 
 typedef struct {
@@ -390,7 +554,8 @@ typedef struct {
 		}                       caption;
 		vbi_network             network;
                 vbi_link *              trigger;
-                vbi_ratio               ratio;
+                vbi_aspect_ratio	aspect;
+		vbi_program_info *	prog_info;
 	}                       ev;
 } vbi_event;
 
@@ -454,16 +619,3 @@ void vbi_get_vt_cell_size(int *w, int *h);
 int vbi_cache_hi_subno(struct vbi *vbi, int pgno);
 
 #endif /* __LIBVBI_H__ */
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,9 +1,12 @@
 /*
- *  Zapzilla - Teletext / PDC tables
+ *  Zapzilla - Teletext / PDC / XDS tables
  *
  *  PDC and VPS CNI codes rev. 5, based on
  *    TR 101 231 EBU (2001-08): www.ebu.ch
  *  Programme type tables (PDC/EPG)
+ *
+ *  XDS tables based on Video Demystified, rev. unknown,
+ *    standard document EIA-608.
  *
  *  Copyright (C) 1999-2001 Michael H. Schimek
  *
@@ -21,26 +24,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.c,v 1.9 2001-09-02 03:25:58 mschimek Exp $ */
+/* $Id: tables.c,v 1.10 2001-12-05 07:25:00 mschimek Exp $ */
 
-/*
-    Packet 8/30 f1	Byte 13			Byte 14
-    Bit (tx order)	0 1 2 3	4 5 6 7		0 1 2 3 4 5 6 7
-    CNI			--------------- 15:8	--------------- 7:0
-
-    Packet 8/30 f2	Byte 15		Byte 16		Byte 21		Byte 22		Byte 23
-    Bit (tx order)	0 1 2 3		0 1		2 3		0 1 2 3		0 1 2 3
-    VPS			Byte 5		Byte 11		Byte 13			Byte 14
-    Bit (tx order)	4 5 6 7		0 1		6 7		0 1 2 3		4 5 6 7
-    Country		------- 15:12 / 7:4		------------------- 11:8 / 3:0
-    Network				--- 7:6			  	5:0 -------------------
-
-    Packet X/26		Address			Mode		Data
-    Bit (tx order)	0 1 2 3 4 5 6 7 8 9	A B C D E F	G H I J K L M N
-    Data Word A		P P - P ----- P 1 1 0:5 (0x3n)
-    Mode				        0 0 0 1 0 P 0:5 ("Country & Programme Source")
-    Data Word B							------------- P 0:6
- */
+#include <stdlib.h>
+#include "libvbi.h"
 
 /*
  *  ISO 3166-1 country codes
@@ -63,7 +50,7 @@ enum {
 	US, UM, UY, UZ, VU, VE, VN, VG, VI, WF, EH, YE, YU, ZM, ZW
 };
 
- char *
+char *
 country_names_en[] = {
 	"Afghanistan",
 	"Albania",
@@ -305,6 +292,25 @@ country_names_en[] = {
 	"Zambia",
 	"Zimbabwe"
 };
+
+/*
+    Packet 8/30 f1	Byte 13			Byte 14
+    Bit (tx order)	0 1 2 3	4 5 6 7		0 1 2 3 4 5 6 7
+    CNI			--------------- 15:8	--------------- 7:0
+
+    Packet 8/30 f2	Byte 15		Byte 16		Byte 21		Byte 22		Byte 23
+    Bit (tx order)	0 1 2 3		0 1		2 3		0 1 2 3		0 1 2 3
+    VPS			Byte 5		Byte 11		Byte 13			Byte 14
+    Bit (tx order)	4 5 6 7		0 1		6 7		0 1 2 3		4 5 6 7
+    Country		------- 15:12 / 7:4		------------------- 11:8 / 3:0
+    Network				--- 7:6			  	5:0 -------------------
+
+    Packet X/26		Address			Mode		Data
+    Bit (tx order)	0 1 2 3 4 5 6 7 8 9	A B C D E F	G H I J K L M N
+    Data Word A		P P - P ----- P 1 1 0:5 (0x3n)
+    Mode				        0 0 0 1 0 P 0:5 ("Country & Programme Source")
+    Data Word B							------------- P 0:6
+ */
 
 /*
  *  TR 101 231 Table A.1: Register of Country and Network Identification (CNI) codes for
@@ -755,11 +761,13 @@ struct {
 	{ 0, 0,  0, 0,  0, 0, 0, 0 }
 };
 
+#if 0
+
 /*
  *  ETS 300 231 Table 3: Codes for programme type (PTY) Principle of classification
  */
-char *
-program_class[16] =
+static const char *
+ets_program_class[16] =
 {
 	"undefined content",
 	"drama & films",
@@ -779,11 +787,13 @@ program_class[16] =
 	"series code",
 };
 
+#endif
+
 /*
  *  ETS 300 231 Table 3: Codes for programme type (PTY) Principle of classification
  */
-char *
-program_type[8][16] =
+static const char *
+ets_program_type[8][16] =
 {
 	{
 		0
@@ -877,7 +887,7 @@ program_type[8][16] =
 	}
 };
 
-char *
+static const char *
 eia608_program_type[96] =
 {
 	"education",
@@ -977,3 +987,53 @@ eia608_program_type[96] =
 	"weather",
 	"western"
 };
+
+char *
+vbi_rating_str_by_id(vbi_rating_auth auth, int id)
+{
+	static const char *ratings[4][8] = {
+		{ NULL, "G", "PG", "PG-13", "R", "NC-17", "X", "not rated" },
+		{ "not rated", "TV-Y", "TV-Y7", "TV-G", "TV-PG", "TV-14", "TV-MA", "not rated" },
+		{ "exempt", "C", "C8+", "G", "PG", "14+", "18+", NULL },
+		{ "exempt", "G", "8 ans +", "13 ans +", "16 ans +", "18 ans +", NULL, NULL },
+	};
+
+	if (id < 0 || id > 7)
+		return NULL;
+
+	switch (auth) {
+	case VBI_RATING_AUTH_MPAA:
+		return (char *) ratings[0][id];
+
+	case VBI_RATING_AUTH_TV_US:
+		return (char *) ratings[1][id];
+
+	case VBI_RATING_AUTH_TV_CA_EN:
+		return (char *) ratings[2][id];
+
+	case VBI_RATING_AUTH_TV_CA_FR:
+		return (char *) ratings[3][id];
+
+	default:
+		return NULL;
+	}
+}
+
+char *
+vbi_prog_type_str_by_id(vbi_prog_classf classf, int id)
+{
+	switch (classf) {
+	case VBI_PROG_CLASSF_EIA_608:
+		if (id < 0x20 || id > 0x7F)
+			return NULL;
+		return (char *) eia608_program_type[id - 0x20];
+
+	case VBI_PROG_CLASSF_ETS_300231:
+		if (id < 0x00 || id > 0x7F)
+			return NULL;
+		return (char *) ets_program_type[0][id];
+
+	default:
+		return NULL;
+	}
+}

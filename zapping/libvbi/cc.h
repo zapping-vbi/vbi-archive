@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cc.h,v 1.13 2001-09-02 03:25:58 mschimek Exp $ */
+/* $Id: cc.h,v 1.14 2001-12-05 07:25:00 mschimek Exp $ */
 
 #ifndef CC_H
 #define CC_H
@@ -78,6 +78,8 @@ struct caption {
 
 	unsigned char		itv_buf[256];
 	int			itv_count;
+
+	int			info_cycle[2];
 };
 
 struct vbi; /* parent of struct caption */

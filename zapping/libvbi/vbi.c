@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.77 2001-11-27 04:38:07 mschimek Exp $ */
+/* $Id: vbi.c,v 1.78 2001-12-05 07:25:00 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -113,9 +113,16 @@ vbi_event_handler(struct vbi *vbi, int event_mask,
 		memset(&vbi->network, 0, sizeof(vbi->network));
 	if (activate & VBI_EVENT_TRIGGER)
 		vbi_trigger_flush(vbi);
-	if (activate & VBI_EVENT_RATIO) {
-		memset(&vbi->ratio, 0, sizeof(vbi->ratio));
-		vbi->ratio_source = 0;
+	if (activate & (VBI_EVENT_ASPECT | VBI_EVENT_PROG_INFO)) {
+		if (!(vbi->event_mask & (VBI_EVENT_ASPECT | VBI_EVENT_PROG_INFO))) {
+			vbi_reset_prog_info(&vbi->prog_info[0]);
+			vbi_reset_prog_info(&vbi->prog_info[1]);
+
+			vbi->prog_info[1].future = TRUE;
+			vbi->prog_info[0].future = FALSE;
+
+			vbi->aspect_source = 0;
+		}
 	}
 
 	vbi->event_mask = mask;
@@ -129,8 +136,11 @@ vbi_event_handler(struct vbi *vbi, int event_mask,
 static void
 decode_wss_625(struct vbi *vbi, unsigned char *buf, double time)
 {
-	vbi_ratio r;
+	vbi_event e;
+	vbi_aspect_ratio *r = &e.ev.aspect;
 	int parity;
+
+	memset(&e, 0, sizeof(e));
 
 	/* Two producers... */
 	if (time < vbi->wss_time)
@@ -156,64 +166,68 @@ decode_wss_625(struct vbi *vbi, unsigned char *buf, double time)
 	if (!(parity & 1))
 		return;
 
-	r.ratio = 1.0;
+	r->ratio = 1.0;
 
 	switch (buf[0] & 7) {
 	case 0: /* 4:3 */
 	case 6: /* 14:9 soft matte */
-		r.first_line = 23;
-		r.last_line = 310;
+		r->first_line = 23;
+		r->last_line = 310;
 		break;
 	case 1: /* 14:9 */
-		r.first_line = 41;
-		r.last_line = 292;
+		r->first_line = 41;
+		r->last_line = 292;
 		break;
 	case 2: /* 14:9 top */
-		r.first_line = 23;
-		r.last_line = 274;
+		r->first_line = 23;
+		r->last_line = 274;
 		break;
 	case 3: /* 16:9 */
 	case 5: /* "Letterbox > 16:9" */
-		r.first_line = 59; // 59.5 ?
-		r.last_line = 273;
+		r->first_line = 59; // 59.5 ?
+		r->last_line = 273;
 		break;
 	case 4: /* 16:9 top */
-		r.first_line = 23;
-		r.last_line = 237;
+		r->first_line = 23;
+		r->last_line = 237;
 		break;
 	case 7: /* 16:9 anamorphic */
-		r.first_line = 23;
-		r.last_line = 310;
-		r.ratio = 16.0 / 9.0;
+		r->first_line = 23;
+		r->last_line = 310;
+		r->ratio = 16.0 / 9.0;
 		break;
 	}
 
-	r.film_mode = !!(buf[0] & 0x10);
+	r->film_mode = !!(buf[0] & 0x10);
 
 	switch ((buf[1] >> 1) & 3) {
 	case 0:
-		r.open_subtitles = VBI_SUBT_NONE;
+		r->open_subtitles = VBI_SUBT_NONE;
 		break;
 	case 1:
-		r.open_subtitles = VBI_SUBT_ACTIVE;
+		r->open_subtitles = VBI_SUBT_ACTIVE;
 		break;
 	case 2:
-		r.open_subtitles = VBI_SUBT_MATTE;
+		r->open_subtitles = VBI_SUBT_MATTE;
 		break;
 	case 3:
-		r.open_subtitles = VBI_SUBT_UNKNOWN;
+		r->open_subtitles = VBI_SUBT_UNKNOWN;
 		break;
 	}
 
-	if (memcmp(&r, &vbi->ratio, sizeof(r)) != 0) {
-		vbi->ratio.ev.ratio = r;
-		vbi->ratio_source = 1;
+	if (memcmp(r, &vbi->prog_info[0].aspect, sizeof(*r)) != 0) {
+		vbi->prog_info[0].aspect = *r;
+		vbi->aspect_source = 1;
 
-		vbi->ratio.type = VBI_EVENT_RATIO;
-		vbi_send_event(vbi, &vbi->ratio);
+		e.type = VBI_EVENT_ASPECT;
+		vbi_send_event(vbi, &e);
+
+		e.type = VBI_EVENT_PROG_INFO;
+		e.ev.prog_info = &vbi->prog_info[0];
+		vbi_send_event(vbi, &e);
 	}
 
-	if (1) {
+	if (0) {
 		static const char *formats[] = {
 			"Full format 4:3, 576 lines",
 			"Letterbox 14:9 centre, 504 lines",
@@ -252,26 +266,33 @@ decode_wss_cpr1204(struct vbi *vbi, unsigned char *buf)
 {
 	int b0 = buf[0] & 0x80;
 	int b1 = buf[0] & 0x40;
-	vbi_ratio r;
+	vbi_event e;
+	vbi_aspect_ratio *r = &e.ev.aspect;
+
+	memset(&e, 0, sizeof(e));
 
 	if (b1) {
-		r.first_line = 72; // wild guess
-		r.last_line = 212;
+		r->first_line = 72; // wild guess
+		r->last_line = 212;
 	} else {
-		r.first_line = 22;
-		r.last_line = 262;
+		r->first_line = 22;
+		r->last_line = 262;
 	}
 
-	r.ratio = b0 ? 16.0 / 9.0 : 1.0;
-	r.film_mode = 0;
-	r.open_subtitles = VBI_SUBT_UNKNOWN;
+	r->ratio = b0 ? 16.0 / 9.0 : 1.0;
+	r->film_mode = 0;
+	r->open_subtitles = VBI_SUBT_UNKNOWN;
 
-	if (memcmp(&r, &vbi->ratio, sizeof(&r)) != 0) {
-		vbi->ratio.ev.ratio = r;
-		vbi->ratio_source = 2;
+	if (memcmp(r, &vbi->prog_info[0].aspect, sizeof(*r)) != 0) {
+		vbi->prog_info[0].aspect = *r;
+		vbi->aspect_source = 2;
 
-		vbi->ratio.type = VBI_EVENT_RATIO;
-		vbi_send_event(vbi, &vbi->ratio);
+		e.type = VBI_EVENT_ASPECT;
+		vbi_send_event(vbi, &e);
+
+		e.type = VBI_EVENT_PROG_INFO;
+		e.ev.prog_info = &vbi->prog_info[0];
+		vbi_send_event(vbi, &e);
 	}
 
 	if (0)
@@ -309,21 +330,26 @@ vbi_chsw_reset(struct vbi *vbi, nuid identified)
 
 	vbi_trigger_flush(vbi); /* sic? */
 
-	if (vbi->ratio_source > 0) {
-		vbi->ratio.ev.ratio.first_line =
-			(vbi->ratio_source == 1) ? 23 : 22;
-		vbi->ratio.ev.ratio.last_line =
-			(vbi->ratio_source == 1) ? 310 : 262;
-		vbi->ratio.ev.ratio.ratio = 1.0;
-		vbi->ratio.ev.ratio.film_mode = 0;
-		vbi->ratio.ev.ratio.open_subtitles = VBI_SUBT_UNKNOWN;
+	if (vbi->aspect_source > 0) {
+		vbi_event e;
 
-		vbi->ratio.type = VBI_EVENT_RATIO;
-		vbi_send_event(vbi, &vbi->ratio);
+		e.ev.aspect.first_line = (vbi->aspect_source == 1) ? 23 : 22;
+		e.ev.aspect.last_line =	(vbi->aspect_source == 1) ? 310 : 262;
+		e.ev.aspect.ratio = 1.0;
+		e.ev.aspect.film_mode = 0;
+		e.ev.aspect.open_subtitles = VBI_SUBT_UNKNOWN;
+
+		e.type = VBI_EVENT_ASPECT;
+		vbi_send_event(vbi, &e);
 	}
 
-	memset(&vbi->ratio, 0, sizeof(vbi->ratio));
-	vbi->ratio_source = 0;
+	vbi_reset_prog_info(&vbi->prog_info[0]);
+	vbi_reset_prog_info(&vbi->prog_info[1]);
+
+	vbi->prog_info[1].future = TRUE;
+	vbi->prog_info[0].future = FALSE;
+
+	vbi->aspect_source = 0;
 
 	vbi->wss_last[0] = 0;
 	vbi->wss_last[1] = 0;
@@ -564,12 +590,10 @@ wait_full_filter(fifo *f)
 			d++;
 		}
 
-	if (feof(filter.fp)) {
+	while (feof(filter.fp) || !fgets(buf, 255, filter.fp)) {
 		rewind(filter.fp);
 		printf("Rewind sample stream\n");
 	}
-
-	fgets(buf, 255, filter.fp);
 
 //	dt = strtod(buf, NULL);
 
@@ -744,6 +768,51 @@ vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **language)
 	}
 
 	return VBI_UNKNOWN_PAGE;
+}
+
+void
+vbi_reset_prog_info(vbi_program_info *pi)
+{
+	int i;
+
+	/* PID */
+	pi->month = -1;
+	pi->day = -1;
+	pi->hour = -1;
+	pi->min = -1;
+	pi->tape_delayed = 0;
+	/* PL */
+	pi->length_hour = -1;
+	pi->length_min = -1;
+	pi->elapsed_hour = -1;
+	pi->elapsed_min = -1;
+	pi->elapsed_sec = -1;
+	/* PN */
+	pi->title[0] = 0;
+	/* PT */
+	pi->type_classf = VBI_PROG_CLASSF_NONE;
+	/* PR */
+	pi->rating_auth = VBI_RATING_AUTH_NONE;
+	/* PAS */
+	pi->audio[0].mode = VBI_AUDIO_MODE_UNKNOWN;
+	pi->audio[0].language = NULL;
+	pi->audio[1].mode = VBI_AUDIO_MODE_UNKNOWN;
+	pi->audio[1].language = NULL;
+	/* PCS */
+	pi->caption_services = -1;
+	for (i = 0; i < 8; i++)
+		pi->caption_language[i] = NULL;
+	/* CGMS */
+	pi->cgms_a = -1;
+	/* AR */
+	pi->aspect.first_line = -1;
+	pi->aspect.last_line = -1;
+	pi->aspect.ratio = 0.0;
+	pi->aspect.film_mode = 0;
+	pi->aspect.open_subtitles = VBI_SUBT_UNKNOWN;
+	/* PD */
+	for (i = 0; i < 8; i++)
+		pi->description[i][0] = 0;
 }
 
 /*

@@ -640,6 +640,21 @@ osd_event		(gpointer	   data,
         return;
     }
 
+#if 0
+  {
+    int row, col;
+
+    fprintf (stderr, "osd_event page=%d dirty.y0=%d .y1=%d .roll=%d\n",
+      osd_page.pgno, osd_page.dirty.y0, osd_page.dirty.y1, osd_page.dirty.roll);
+    for (row = osd_page.dirty.y0; row <= osd_page.dirty.y1; row++)
+      {
+        for (col = 0; col < osd_page.columns; col++)
+          fputc (osd_page.text[row * osd_page.columns + col].glyph & 0x7F, stderr);
+        fputc ('\n', stderr);
+      }
+  }
+#endif
+
   if (osd_page.dirty.y0 > osd_page.dirty.y1)
     return; /* not dirty (caption only) */
 

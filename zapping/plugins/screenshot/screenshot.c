@@ -89,11 +89,33 @@ static void
 on_screenshot_button_fast_clicked	(GtkButton       *button,
 					 gpointer         user_data);
 
-/* This one starts a new thread that saves the current screenshot */
-static void
-start_saving_screenshot (gpointer data_to_save,
-			 const gchar *path,
-			 struct tveng_frame_format * format);
+
+/* Conversions between different RGB pixel formats */
+/*
+  These Convert... functions are exported through the symbol mechanism
+  so other plugins can use them too.
+*/
+static gchar *Convert_RGB565_RGB24 (gint width, gchar* src, gchar* dest);
+static gchar *Convert_BGR565_RGB24 (gint width, gchar* src, gchar* dest);
+static gchar *Convert_RGB555_RGB24 (gint width, gchar* src, gchar* dest);
+static gchar *Convert_BGR555_RGB24 (gint width, gchar* src, gchar* dest);
+static gchar *Convert_RGBA_RGB24 (gint width, gchar* src, gchar* dest);
+static gchar *Convert_BGRA_RGB24 (gint width, gchar* src, gchar* dest);
+static gchar *Convert_BGR24_RGB24 (gint width, gchar* src, gchar* dest);
+static gchar *Convert_YUYV_RGB24 (gint w, guchar *src, guchar *dest);
+static gchar *Convert_Null (gint width, gchar *src, gchar *dest);
+
+/* The definition of a line converter function */
+/* The purpose of this kind of functions is to convert one line of src
+ into one line of dest */
+typedef gchar* (*LineConverter) (gint width, gchar* src, gchar* dest);
+
+static LineConverter Converter_select(enum tveng_frame_pixformat);
+
+struct backend_private {
+  struct jpeg_compress_struct cinfo;	/* Compression parameters */
+  struct jpeg_error_mgr jerr;		/* Error handler */
+};
 
 /* This struct is shared between the main and the saving thread */
 struct screenshot_data
@@ -106,12 +128,19 @@ struct screenshot_data
   gboolean close; /* TRUE if the plugin should close itself */
   pthread_t thread; /* The thread responsible for this data */
   GtkWidget * window; /* The window that contains the progressbar */
-  struct jpeg_compress_struct cinfo; /* Compression parameters */
-  struct jpeg_error_mgr jerr; /* Error handler */
   FILE * handle; /* Handle to the file we are saving */
   gchar *path; /* path to the file we are saving */
-  gboolean set_bgr; /* TRUE if we got BGR data instead of RGB */
+
+  LineConverter Converter;
+  struct backend_private private;
 };
+
+
+/* This one starts a new thread that saves the current screenshot */
+static void
+start_saving_screenshot (gpointer data_to_save,
+			 const gchar *path,
+			 struct tveng_frame_format * format);
 
 /*
   This routine is the one that takes care of saving the image. It runs
@@ -134,31 +163,9 @@ on_progress_delete_event               (GtkWidget       *widget,
 					GdkEvent        *event,
                                         struct screenshot_data * data);
 
-/* Conversions between different RGB pixel formats */
-/*
-  This Convert... functions are exported through the symbol mechanism
-  so other plugins can use them too.
-*/
-static gchar *
-Convert_RGB565_RGB24 (gint width, gchar* src, gchar* dest);
 
-/* Conversions between different pixel formats */
-static gchar *
-Convert_RGB555_RGB24 (gint width, gchar* src, gchar* dest);
 
-/* Removes the last byte (supposedly alpha channel info) from the
-   image */
-static gchar *
-Convert_RGBA_RGB24 (gint width, gchar* src, gchar* dest);
-
-/* Converts the given YUYV line to RGB */
-static gchar *
-Convert_YUYV_RGB24 (gint width, guchar* src, guchar* dest);
-
-/* The definition of a line converter function */
-/* The purpose of this kind of functions is to convert one line of src
- into one line of dest */
-typedef gchar* (*LineConverter) (gint width, gchar* src, gchar* dest);
+static void bgr2rgb(gchar * data, gint npixels);
 
 gint plugin_get_protocol ( void )
 {
@@ -681,6 +688,60 @@ on_screenshot_button_fast_clicked	(GtkButton       *button,
   plugin_start ();
 }
 
+
+/**************/
+
+static gboolean
+backend_init(struct screenshot_data *data)
+{
+  struct backend_private *priv = &data->private;
+
+  priv->cinfo.err = jpeg_std_error(&priv->jerr);
+  jpeg_create_compress(&priv->cinfo);
+  jpeg_stdio_dest(&priv->cinfo, data->handle);
+  priv->cinfo.image_width = data->format.width;
+  priv->cinfo.image_height = data->format.height;
+  priv->cinfo.input_components = 3;
+  priv->cinfo.in_color_space = JCS_RGB;
+  jpeg_set_defaults(&priv->cinfo);
+  jpeg_set_quality(&priv->cinfo, quality, TRUE);
+
+  jpeg_start_compress(&priv->cinfo, TRUE);
+
+  return TRUE;
+}
+
+static gboolean
+backend_save(struct screenshot_data *data, LineConverter Converter)
+{
+  struct backend_private *priv = &data->private;
+  gchar *pixels, *row_pointer;
+  gint rowstride;
+
+  pixels = (gchar *) data->data;
+  rowstride = data->format.bytesperline;
+
+  for (data->lines = 0; data->lines < data->format.height; data->lines++)
+    {
+      if (close_everything || data->close)
+	break;
+
+      row_pointer = (data->Converter)(data->format.width, pixels,
+				      (gchar *) data->line_data);
+
+      jpeg_write_scanlines(&priv->cinfo, (JSAMPROW *) &row_pointer, 1);
+
+      pixels += rowstride;
+    }
+
+  jpeg_finish_compress(&priv->cinfo);
+  jpeg_destroy_compress(&priv->cinfo);
+
+  return TRUE;
+}
+
+/*****************/
+
 /* This one starts a new thread that saves the current screenshot */
 static void
 start_saving_screenshot (gpointer data_to_save,
@@ -767,33 +828,10 @@ start_saving_screenshot (gpointer data_to_save,
       return;
     }  
 
-  data -> set_bgr = FALSE;
+  data->Converter = Converter_select (data->format.pixformat);
 
-  /* Check if BGR must be used */
-  switch (data->format.pixformat)
+  if (!data->Converter)
     {
-    case TVENG_PIX_RGB32:
-      data->set_bgr = FALSE;
-      break;
-    case TVENG_PIX_RGB24:
-      data->set_bgr = FALSE;
-      break;
-    case TVENG_PIX_BGR32:
-      data->set_bgr = TRUE;
-      break;
-    case TVENG_PIX_BGR24:
-      data->set_bgr = TRUE;
-      break;
-    case TVENG_PIX_RGB565:
-      data->set_bgr = TRUE;
-      break;
-    case TVENG_PIX_RGB555:
-      data->set_bgr = TRUE;
-      break;
-    case TVENG_PIX_YUYV:
-      data->set_bgr = FALSE;
-      break;
-    default:
       ShowBox("The current pixformat isn't supported",
 	      GNOME_MESSAGE_BOX_ERROR);
 
@@ -805,17 +843,7 @@ start_saving_screenshot (gpointer data_to_save,
       return;
     }
 
-  data->cinfo.err = jpeg_std_error(&(data->jerr));
-  jpeg_create_compress(&(data->cinfo));
-  jpeg_stdio_dest(&(data->cinfo), data->handle);
-  data->cinfo.image_width = data->format.width;
-  data->cinfo.image_height = data->format.height;
-  data->cinfo.input_components = 3;
-  data->cinfo.in_color_space = JCS_RGB;
-  jpeg_set_defaults(&(data->cinfo));
-  jpeg_set_quality(&(data->cinfo), quality, TRUE);
-
-  jpeg_start_compress(&(data->cinfo), TRUE);
+  backend_init(data);
 
   data -> window = gtk_window_new(GTK_WINDOW_DIALOG);
   progressbar =
@@ -855,19 +883,6 @@ start_saving_screenshot (gpointer data_to_save,
     }
 }
 
-/* Swaps the R and the B components of a RGB (BGR) image */
-static void bgr2rgb(gchar * data, gint npixels)
-{
-  gchar c;
-  gint i;
-
-  for (i=0; i<npixels; i++)
-    {
-      c = data[0]; data[0] = data[2]; data[2] = c;
-      data += 3;
-    }
-}
-
 /*
   This routine is the one that takes care of saving the image. It runs
   in another thread.
@@ -886,7 +901,6 @@ static void * saver_thread(void * _data)
   int envc = 0;
   int i;
 
-  data -> lines = 0;
   data -> done = FALSE;
   data -> close = FALSE;
 
@@ -918,32 +932,8 @@ static void * saver_thread(void * _data)
       g_assert_not_reached();
     }
 
-  pixels = (gchar*) data->data;
-  rowstride = data->format.bytesperline;
+  backend_save(data, Converter);
 
-  while ((!done_writing) && (!close_everything) &&
-	 (!data -> close))
-    {
-      if (Converter)
-	row_pointer = (*Converter)(data->format.width, pixels,
-				   (gchar*)data->line_data);
-      else
-	row_pointer = pixels;
-
-      if (data->set_bgr)
-	bgr2rgb(row_pointer, data->format.width);
-
-      jpeg_write_scanlines(&(data->cinfo), (JSAMPROW*)&row_pointer, 1);
-
-      pixels += rowstride;
-
-      data->lines++;
-      if (data->lines == data->format.height)
-	done_writing = TRUE;
-    }
-
-  jpeg_finish_compress(&(data->cinfo));
-  jpeg_destroy_compress(&(data->cinfo));
   fclose(data->handle);
 
   data->done = TRUE;
@@ -956,7 +946,7 @@ static void * saver_thread(void * _data)
       tveng_tuned_channel *tc =
 	tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
 					      global_channel_list);
-      /* Invoque through sh */
+      /* Invoke through sh */
       argv[argc++] = "sh";
       argv[argc++] = "-c";
       argv[argc++] = command;
@@ -1028,23 +1018,57 @@ on_progress_delete_event               (GtkWidget       *widget,
   return FALSE; /* destroy it, yes */
 }
 
+/*
+ *  Conversions
+ */
+
+/* XXX ENDIANESS */
+
 /* Takes a RGB565 line and saves it as RGB24 */
 static gchar *
 Convert_RGB565_RGB24 (gint width, gchar* src, gchar* dest)
 {
   gint16 * line = (gint16*) src;
   gchar * where_have_we_written = dest;
-  int i;
-  gint16 word_value;
+  gint i;
 
   for (i = 0; i < width; i++)
     {
-      word_value = *line;
-      *(dest++) = (word_value & 0x1f) << 3;
-      word_value >>= 5;
-      *(dest++) = (word_value & 0x3f) << 2;
-      word_value >>= 6;
-      *(dest++) = (word_value) << 3;
+      gint word, val;
+
+      word = *line; /* gggrrrrr bbbbbggg */
+      val = word & 0x001f;
+      dest[0] = (val << 3) + (val >> 2);
+      val = word & 0x07E0;
+      dest[1] = (val >> 3) + (val >> 9);
+      word &= 0xF800;
+      dest[2] = (word >> 8) + (word >> 13);
+      dest += 3;
+      line ++;
+    }
+  return where_have_we_written;
+}
+
+/* Takes a RGB565 line and saves it as RGB24 */
+static gchar *
+Convert_BGR565_RGB24 (gint width, gchar* src, gchar* dest)
+{
+  gint16 * line = (gint16*) src;
+  gchar * where_have_we_written = dest;
+  int i;
+
+  for (i = 0; i < width; i++)
+    {
+      gint word, val;
+
+      word = *line; /* gggbbbbb rrrrrggg */
+      val = word & 0x001f;
+      dest[2] = (val << 3) + (val >> 2);
+      val = word & 0x07E0;
+      dest[1] = (val >> 3) + (val >> 9);
+      word &= 0xF800;
+      dest[0] = (word >> 8) + (word >> 13);
+      dest += 3;
       line ++;
     }
   return where_have_we_written;
@@ -1057,16 +1081,44 @@ Convert_RGB555_RGB24 (gint width, gchar* src, gchar* dest)
   gint16 * line = (gint16*) src;
   gchar * where_have_we_written = dest;
   int i;
-  gint16 word_value;
 
   for (i = 0; i < width; i++)
     {
-      word_value = *line;
-      *(dest++) = (word_value & 0x1f) << 3;
-      word_value >>= 5;
-      *(dest++) = (word_value & 0x1f) << 3;
-      word_value >>= 5;
-      *(dest++) = (word_value & 0x1f) << 3;
+      gint word, val;
+
+      word = *line; /* gggrrrrr abbbbbgg */
+      val = word & 0x001f;
+      dest[0] = (val << 3) + (val >> 2);
+      val = word & 0x03e0;
+      dest[1] = (val >> 2) + (val >> 7);
+      word &= 0x7C00;
+      dest[2] = (word >> 7) + (word >> 12);
+      dest += 3;
+      line ++;
+    }
+  return where_have_we_written;
+}
+
+/* Takes a BGR555 line and saves it as RGB24 */
+static gchar *
+Convert_BGR555_RGB24 (gint width, gchar* src, gchar* dest)
+{
+  gint16 * line = (gint16*) src;
+  gchar * where_have_we_written = dest;
+  int i;
+
+  for (i = 0; i < width; i++)
+    {
+      gint word, val;
+
+      word = *line; /* gggbbbbb arrrrrgg */
+      val = word & 0x001f;
+      dest[2] = (val << 3) + (val >> 2);
+      val = word & 0x03e0;
+      dest[1] = (val >> 2) + (val >> 7);
+      word &= 0x7C00;
+      dest[0] = (word >> 7) + (word >> 12);
+      dest += 3;
       line ++;
     }
   return where_have_we_written;
@@ -1082,92 +1134,144 @@ Convert_RGBA_RGB24 (gint width, gchar* src, gchar* dest)
 
   for (i = 0; i < width; i++)
     {
-      *(dest++) = *(src++);
-      *(dest++) = *(src++);
-      *(dest++) = *(src++);
-      src++;
+      dest[0] = src[0];
+      dest[1] = src[1];
+      dest[2] = src[2];
+      dest += 3;
+      src += 4;
     }
   return where_have_we_written;
+}
+
+/* Removes the last byte (suppoosedly alpha channel info) from the
+   image */
+static gchar *
+Convert_BGRA_RGB24 (gint width, gchar* src, gchar* dest)
+{
+  gchar * where_have_we_written = dest;
+  int i;
+
+  for (i = 0; i < width; i++)
+    {
+      dest[0] = src[2];
+      dest[1] = src[1];
+      dest[2] = src[0];
+      dest += 3;
+      src += 4;
+    }
+  return where_have_we_written;
+}
+
+/* Swaps the R and the B components of a RGB24 image */
+static gchar *
+Convert_BGR24_RGB24 (gint width, gchar* src, gchar* dest)
+{
+  gchar * where_have_we_written = dest;
+  gint i;
+
+  for (i = 0; i < width; i++)
+    {
+      dest[0] = src[2];
+      dest[1] = src[1];
+      dest[2] = src[0];
+      dest += 3;
+      src += 3;
+    }
+  return where_have_we_written;
+}
+
+static inline int
+clamp (double n)
+{
+  int r = n;
+
+  if (r > 255)
+    return 255;
+  else if (r < 0)
+    return 0;
+  else
+    return r;
 }
 
 /* Converts a YUYV line into a RGB24 one */
 static gchar *
-Convert_YUYV_RGB24 (gint w, guchar *src, guchar *dest )
+Convert_YUYV_RGB24 (gint w, guchar *src, guchar *dest)
 {
   gchar *where_have_we_written = dest;
   gint i;
-  double y,u,v;
-  double r, g, b;
+  double y1, y2, u, v, uv;
 
   for (i=0; i<w; i+=2)
     {
-      y = src[0];
-      u = src[1];
-      v = src[3];
+      y1 = ((src[0] - 16) * 255) * (1 / 219.0);
+      u  =  (src[1] - 128) * 127;
+      y2 = ((src[2] - 16) * 255) * (1 / 219.0);
+      v  =  (src[3] - 128) * 127;
 
-      y = ((y-16)*255)/219;
-      u = ((u-128)*127)/112;
-      v = ((v-128)*127)/112;
+      uv = (- 0.344 / 112.0) * u - (0.714 / 112.0) * v;
+      v *= 1.402 / 112.0;
+      u *= 1.772 / 112.0;
 
-      r = y + 1.402*v;
-      g = y - 0.344*u - 0.714*v;
-      b = y + 1.772*u;
+      dest[0] = clamp(y1 + v);
+      dest[1] = clamp(y1 + uv);
+      dest[2] = clamp(y1 + u);
 
-      /* clamping is needed */
-      if (r > 255)
-	r = 255;
-      else if (r < 0)
-	r = 0;
-      if (g > 255)
-	g = 255;
-      else if (g < 0)
-	g = 0;
-      if (b > 255)
-	b = 255;
-      else if (b < 0)
-	b = 0;
-
-      dest[0] = r;
-      dest[1] = g;
-      dest[2] = b;
-
-      dest += 3;
-
-      y = src[2];
-      u = src[1];
-      v = src[3];
-
-      y = ((y-16)*255)/219;
-      u = ((u-128)*127)/112;
-      v = ((v-128)*127)/112;
-
-      r = y + 1.402*v;
-      g = y - 0.344*u - 0.714*v;
-      b = y + 1.772*u;
-
-      /* clamping is needed */
-      if (r > 255)
-	r = 255;
-      else if (r < 0)
-	r = 0;
-      if (g > 255)
-	g = 255;
-      else if (g < 0)
-	g = 0;
-      if (b > 255)
-	b = 255;
-      else if (b < 0)
-	b = 0;
-
-      dest[0] = r;
-      dest[1] = g;
-      dest[2] = b;
+      dest[3] = clamp(y2 + v);
+      dest[4] = clamp(y2 + uv);
+      dest[5] = clamp(y2 + u);
 
       src += 4;
-      dest += 3;
+      dest += 6;
     }
-
   return where_have_we_written;
 }
+
+/* Converts any format known to mankind to any other identical format */
+static gchar *
+Convert_Null (gint width, gchar* src, gchar* dest)
+{
+  return src;
+}
+
+static LineConverter
+Converter_select(enum tveng_frame_pixformat pixformat)
+{
+  LineConverter Converter;
+
+  switch (pixformat)
+    {
+    case TVENG_PIX_RGB32:
+      Converter = (LineConverter) Convert_RGBA_RGB24;
+      break;
+    case TVENG_PIX_RGB24:
+      Converter = (LineConverter) Convert_Null;
+      break;
+    case TVENG_PIX_BGR32:
+      Converter = (LineConverter) Convert_BGRA_RGB24;
+      break;
+    case TVENG_PIX_BGR24:
+      Converter = (LineConverter) Convert_BGR24_RGB24;
+      break;
+    case TVENG_PIX_RGB565:
+      Converter = (LineConverter) Convert_BGR565_RGB24;
+      break;
+    case TVENG_PIX_RGB555:
+      Converter = (LineConverter) Convert_BGR555_RGB24;
+      break;
+    case TVENG_PIX_YUYV:
+      Converter = (LineConverter) Convert_YUYV_RGB24;
+      break;
+    default:
+      Converter = NULL;
+    }
+
+  return Converter;
+}
+
 #else // !HAVE_LIBJPEG
 #endif
+
+
+
+
+

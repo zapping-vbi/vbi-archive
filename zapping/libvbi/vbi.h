@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.36 2001-09-02 03:25:58 mschimek Exp $ */
+/* $Id: vbi.h,v 1.37 2001-12-05 07:25:00 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -61,8 +61,8 @@ struct vbi
 
 	vbi_trigger *		triggers;
 
-	vbi_event		ratio;
-	int                     ratio_source;
+	vbi_program_info	prog_info[2];
+	int                     aspect_source;
 
 	int			brightness;
 	int			contrast;
@@ -111,5 +111,6 @@ vbi_send_event(struct vbi *vbi, vbi_event *ev)
 
 extern void		vbi_transp_colourmap(struct vbi *vbi, attr_rgba *d, attr_rgba *s, int entries);
 extern void             vbi_chsw_reset(struct vbi *vbi, nuid nuid);
+extern void		vbi_reset_prog_info(vbi_program_info *pi);
 
 #endif /* VBI_H */

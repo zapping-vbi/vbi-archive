@@ -1,3 +1,20 @@
+5.12.2001	caption.c <mschimek@users.sf.net>
+
+	* Fixed repeated roll-ups may be merged into one.
+	  (Not related to the osd bug.)
+	* vbi.c: Fixed full stop bug in filter.
+	* Fixed vbi_classify_page could mistake current/next
+	  program caption language.
+	* Added XDS program info event.
+	* Added rating pixmaps for program info dialog.
+
+5.12.2001	screenshot.c <mschimek@users.sf.net>
+
+	* Made Convert_RGB5*5_RGB24 more accurate ((r & 31) * 255 / 31
+	  instead of (r & 31) << 3).
+	* Cleaned up and slightly accelerated line converters.
+	* Primitive beginnings of multiple backends.
+
 3.12.2001	fr.po <garetxe@users.sf.net>
 
 	* fr.po: Update by Christian Marillat.
