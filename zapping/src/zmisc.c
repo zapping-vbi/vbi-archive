@@ -203,7 +203,7 @@ z_tooltip_set_wrap		(GtkWidget *		widget,
     {
       GtkWidget *event_box = gtk_event_box_new ();
 
-      gtk_widget_show (event_box);
+      gtk_widget_show (widget);
       gtk_container_add (GTK_CONTAINER (event_box), widget);
       widget = event_box;
     }
@@ -245,20 +245,24 @@ zmisc_stop (tveng_device_info *info)
   switch (info->current_mode)
     {
     case TVENG_CAPTURE_PREVIEW:
-      tveng_stop_everything(info);
+      /* fullscreen overlay */
+      tveng_stop_previewing(info);
       fullscreen_stop(info);
       break;
     case TVENG_CAPTURE_READ:
+      /* capture windowed */
       capture_stop();
       video_uninit ();
-      tveng_stop_everything(info);
+      tveng_stop_capturing(info);
       break;
     case TVENG_CAPTURE_WINDOW:
-      tveng_stop_everything(info);
-      overlay_stop(info);
+      /* overlay windowed */
+      stop_overlay ();
+      break;
+    case TVENG_NO_CAPTURE:
       break;
     default:
-      tveng_stop_everything(info);
+      g_assert_not_reached ();
       break;
     }
 }
@@ -301,10 +305,10 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     }
 
   /* save this input name for later retrieval */
-  if (info->num_inputs > 0)
-    old_input = g_strdup(info->inputs[info->cur_input].name);
-  if (info->num_standards > 0)
-    old_standard = g_strdup(info->standards[info->cur_standard].name);
+  if (info->cur_video_input)
+    old_input = g_strdup (info->cur_video_input->label);
+  if (info->cur_video_standard)
+    old_standard = g_strdup(info->cur_video_standard->label);
 
   gdk_window_get_geometry(tv_screen->window, NULL, NULL, &w, &h, NULL);
   gdk_window_get_origin(tv_screen->window, &x, &y);
@@ -313,6 +317,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
          how the controls are rebuilt when switching btw
          v4l <-> xv. */
   if ((avoid_noise = zcg_bool (NULL, "avoid_noise")))
+
     tv_quiet_set (main_info, TRUE);
 #else
   muted = tv_mute_get (main_info, FALSE);
@@ -333,9 +338,14 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	  gtk_widget_hide (lookup_widget (main_window, "appbar2"));
 
 	  ttxview_detach (main_window);
+#warning
+	  //	  pixmap = gtk_image_new_from_stock ("zapping-teletext",
+	  //					     GTK_ICON_SIZE_BUTTON);
+	  pixmap=0;
 
-	  if ((pixmap = z_load_pixmap ("teletext.png")))
+	  if (pixmap)
 	    {
+	      gtk_widget_show (pixmap);
 	      gtk_container_remove (GTK_CONTAINER (button),
 	                            gtk_bin_get_child (GTK_BIN (button)));
 	      gtk_container_add (GTK_CONTAINER (button), pixmap);
@@ -422,13 +432,18 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	    }
 	}
 
-      if (!tveng_detect_preview(info))
+      if (info->current_controller != TVENG_CONTROLLER_XV)
 	{
-	  ShowBox(_("Preview will not work: %s"),
-		  GTK_MESSAGE_ERROR, info->error);
-	  x11_screensaver_set (X11_SCREENSAVER_ON);
-          z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
-	  return -1;
+	  tv_overlay_buffer dma;
+
+	  if (!tv_get_overlay_buffer (info, &dma))
+	    {
+	      ShowBox(_("Preview will not work: %s"),
+		      GTK_MESSAGE_ERROR, info->error);
+	      x11_screensaver_set (X11_SCREENSAVER_ON);
+	      z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
+	      return -1;
+	    }
 	}
 
       format = zmisc_resolve_pixformat(tveng_get_display_depth(info),
@@ -447,29 +462,23 @@ XX();
 		 info->format.pixformat);
 	}
 
-      info->window.x = x;
-      info->window.y = y;
-      info->window.width = w;
-      info->window.height = h;
-      info->window.clipcount = 0;
-      info->window.win = GDK_WINDOW_XWINDOW(tv_screen->window);
-      info->window.gc = GDK_GC_XGC(tv_screen->style->white_gc);
-      tveng_set_preview_window(info);
-      return_value = tveng_start_window(info);
-      if (return_value != -1)
+      if ((x + w) <= 0 || (y + h) <= 0)
+	goto oops;
+
+      if (start_overlay (main_window, tv_screen, info))
 	{
-	  startup_overlay(tv_screen, main_window, info);
-	  overlay_sync(TRUE);
 	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
           z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
 	}
       else
 	{
 	  g_warning(info->error);
+	oops:
 	  x11_screensaver_set (X11_SCREENSAVER_ON);
           z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 	}
       break;
+
     case TVENG_CAPTURE_PREVIEW:
       if (disable_preview || disable_overlay) {
 	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
@@ -510,8 +519,7 @@ XX();
 		 info->format.pixformat);
 	}
 
-      return_value = fullscreen_start(info);
-      if (return_value == -1)
+      if (-1 == (return_value = fullscreen_start (info)))
 	{
 	  g_warning("couldn't start fullscreen mode");
 	  x11_screensaver_set (X11_SCREENSAVER_ON);
@@ -584,21 +592,6 @@ XX();
   gtk_widget_queue_resize(main_window);
 
   return return_value;
-}
-
-int
-z_restart_everything(enum tveng_capture_mode mode,
-		     tveng_device_info * info)
-{
-  int result = tveng_restart_everything(mode, info);
-
-  if (result)
-    return result;
-
-  if (info->current_mode == TVENG_CAPTURE_WINDOW)
-    overlay_sync(FALSE);
-
-  return 0;
 }
 
 void set_stock_pixmap	(GtkWidget	*button,
@@ -718,6 +711,19 @@ z_menu_get_index		(GtkWidget	*menu,
 
   return return_value ? return_value : -1;
 }
+
+GtkWidget *
+z_menu_shell_nth_item		(GtkMenuShell *		menu_shell,
+				 guint			n)
+{
+  GList *list;
+
+  list = g_list_nth (menu_shell->children, n);
+  assert (list != NULL);
+
+  return GTK_WIDGET (list->data);
+}
+
 
 gint
 z_option_menu_get_active	(GtkWidget	*option_menu)
@@ -1498,6 +1504,8 @@ on_z_spinslider_reset		(GtkWidget *		widget,
     sp->reset_state = (sp->reset_state + 1) % 3;
 }
 
+#include "../pixmaps/reset.h"
+
 GtkWidget *
 z_spinslider_new		(GtkAdjustment *	spin_adj,
 				 GtkAdjustment *	hscale_adj,
@@ -1586,8 +1594,9 @@ z_spinslider_new		(GtkAdjustment *	spin_adj,
   /* Reset button */
 
   {
+    static GdkPixbuf *pixbuf = NULL;
     GtkWidget *button;
-    GtkWidget *pixmap;
+    GtkWidget *image;
 
     sp->history[0] = reset;
     sp->history[1] = reset;
@@ -1595,10 +1604,14 @@ z_spinslider_new		(GtkAdjustment *	spin_adj,
     sp->reset_state = 0;
     sp->in_reset = FALSE;
 
-    if ((pixmap = z_load_pixmap ("reset.png")))
+    if (!pixbuf)
+      pixbuf = gdk_pixbuf_from_pixdata (&reset_png, FALSE, NULL);
+
+    if (pixbuf && (image = gtk_image_new_from_pixbuf (pixbuf)))
       {
+	gtk_widget_show (image);
 	button = gtk_button_new ();
-	gtk_container_add (GTK_CONTAINER (button), pixmap);
+	gtk_container_add (GTK_CONTAINER (button), image);
 	z_tooltip_set (button, _("Reset"));
       }
     else
@@ -1939,9 +1952,38 @@ z_entry_emits_response		(GtkWidget	*entry,
  *  Application stock icons
  */
 
-static gboolean
-icon_factory_add_file		(GtkIconFactory *	factory,
-				 const gchar *		stock_id,
+GtkWidget *
+z_gtk_image_new_from_pixdata	(const GdkPixdata *	pixdata)
+{
+  GdkPixbuf *pixbuf;
+  GtkWidget *image;
+
+  pixbuf = gdk_pixbuf_from_pixdata (pixdata, FALSE, NULL);
+  g_assert (pixbuf != NULL);
+
+  image = gtk_image_new_from_pixbuf (pixbuf);
+  g_object_unref (G_OBJECT (pixbuf));
+
+  return image;
+}
+
+static GtkIconFactory *
+icon_factory			(void)
+{
+  static GtkIconFactory *factory = NULL;
+
+  if (!factory)
+    {
+      factory = gtk_icon_factory_new ();
+      gtk_icon_factory_add_default (factory);
+      /* g_object_unref (factory); */
+    }
+
+  return factory;
+}
+
+gboolean
+z_icon_factory_add_file		(const gchar *		stock_id,
 				 const gchar *		filename)
 {
   GtkIconSet *icon_set;
@@ -1951,104 +1993,108 @@ icon_factory_add_file		(GtkIconFactory *	factory,
  
   path = g_strconcat (PACKAGE_PIXMAPS_DIR "/", filename, NULL);
 
+  err = NULL;
+
   pixbuf = gdk_pixbuf_new_from_file (path, &err);
 
   g_free (path);
 
-  if (!pixbuf && err)
+  if (!pixbuf)
     {
+      if (err)
+	{
 #ifdef ZMISC_DEBUG_STOCK /* FIXME */
-      fprintf (stderr, "Cannot read image file '%s':\n%s\n",
-	       err->message);
+	  fprintf (stderr, "Cannot read image file '%s':\n%s\n",
+		   err->message);
 #endif
-      g_error_free (err);
+	  g_error_free (err);
+	}
+
       return FALSE;
     }
 
-  g_assert (pixbuf && !err);
-
   icon_set = gtk_icon_set_new_from_pixbuf (pixbuf);
+  g_object_unref (G_OBJECT (pixbuf));
 
-  gtk_icon_factory_add (factory, stock_id, icon_set);
+  gtk_icon_factory_add (icon_factory (), stock_id, icon_set);
+  gtk_icon_set_unref (icon_set);
 
   return TRUE;
 }
 
-#if 0
-
-static gboolean
-icon_factory_add_pixdata	(GtkIconFactory *	factory,
-				 const gchar *		stock_id,
+gboolean
+z_icon_factory_add_pixdata	(const gchar *		stock_id,
 				 const GdkPixdata *	pixdata)
 {
   GtkIconSet *icon_set;
   GdkPixbuf *pixbuf;
   GError *err;
 
+  err = NULL;
+
   pixbuf = gdk_pixbuf_from_pixdata (pixdata, /* copy_pixels */ FALSE, &err);
 
-  if (!pixbuf && err)
+  if (!pixbuf)
     {
+      if (err)
+	{
 #ifdef ZMISC_DEBUG_STOCK /* FIXME */
-      fprintf (stderr, "Cannot read pixdata:\n%s\n", err->message);
+	  fprintf (stderr, "Cannot read pixdata:\n%s\n", err->message);
 #endif
-      g_error_free (err);
+	  g_error_free (err);
+	}
+
       return FALSE;
     }
 
-  g_assert (pixbuf && !err);
+  icon_set = gtk_icon_set_new_from_pixbuf (pixbuf);
+  g_object_unref (G_OBJECT (pixbuf));
 
-  iconset = gtk_icon_set_new_from_pixbuf (pixbuf);
-
-  gtk_icon_factory_add (factory, stock_id, icon_set);
+  gtk_icon_factory_add (icon_factory (), stock_id, icon_set);
+  gtk_icon_set_unref (icon_set);
 
   return TRUE;
 }
 
-#endif
-
-gboolean
-z_icon_factory_add_default_files
-				(const gchar *		stock_id,
-				 const gchar *		filename,
-				 ...);
-gboolean
-z_icon_factory_add_default_files
-				(const gchar *		stock_id,
-				 const gchar *		filename,
-				 ...)
+size_t
+z_strlcpy			(char *			dst1,
+				 const char *		src,
+				 size_t			size)
 {
-  GtkIconFactory *factory;
-  va_list ap;
+	char c, *dst, *end;
 
-  factory = gtk_icon_factory_new ();
+	assert (size > 0);
 
-  if (!icon_factory_add_file (factory, stock_id, filename))
-    goto failure;
+	dst = dst1;
+	end = dst1 + size - 1;
 
-  va_start (ap, filename);
+	while (dst < end && (c = *src++))
+		*dst++ = c;
 
-  for (;;)
+	*dst = 0;
+
+	return dst - dst1;
+}
+
+/* Debugging. */
+const gchar *
+z_gdk_event_name		(GdkEvent *		event)
+{
+  static const gchar *event_name[] =
     {
-      stock_id = va_arg (ap, const gchar *);
-
-      if (!stock_id)
-	break;
-
-      filename = va_arg (ap, const gchar *);
-
-      if (!icon_factory_add_file (factory, stock_id, filename))
-	goto failure;
-    }
-
-  va_end (ap);
-
-  gtk_icon_factory_add_default (factory);
-
-  return TRUE;
-
- failure:
-  va_end (ap);
-  g_object_unref (G_OBJECT (factory));
-  return FALSE;
+      "NOTHING", "DELETE", "DESTROY", "EXPOSE", "MOTION_NOTIFY",
+      "BUTTON_PRESS", "2BUTTON_PRESS", "3BUTTON_PRESS", "BUTTON_RELEASE",
+      "KEY_PRESS", "KEY_RELEASE", "ENTER_NOTIFY", "LEAVE_NOTIFY",
+      "FOCUS_CHANGE", "CONFIGURE", "MAP", "UNMAP", "PROPERTY_NOTIFY",
+      "SELECTION_CLEAR", "SELECTION_REQUEST", "SELECTION_NOTIFY",
+      "PROXIMITY_IN", "PROXIMITY_OUT", "DRAG_ENTER", "DRAG_LEAVE",
+      "DRAG_MOTION", "DRAG_STATUS", "DROP_START", "DROP_FINISHED",
+      "CLIENT_EVENT", "VISIBILITY_NOTIFY", "NO_EXPOSE"
+    };
+  
+  if (event->type >= GDK_NOTHING
+      && event->type <= GDK_NO_EXPOSE)
+    return event_name[event->type - GDK_NOTHING];
+  else
+    return "unknown";
 }
