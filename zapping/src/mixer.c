@@ -43,6 +43,9 @@ struct _line_entry {
   int		volume_max;
   int		volume_min;
 
+  int           muted;
+  int           muted_volume;
+
   union {
     /* /dev/mixer fields */
     struct {
@@ -56,6 +59,9 @@ struct _line_entry {
   int		(*set_volume)		(device_entry	*dev,
 					 line_entry	*line,
 					 int volume);
+  int		(*get_volume)		(device_entry	*dev,
+					 line_entry	*line,
+					 int *volume);
   int		(*set_recording_line)	(device_entry	*dev,
 					 line_entry	*line);
   void		(*destroy)		(device_entry	*dev,
@@ -138,9 +144,65 @@ int		mixer_set_volume	(int	line,
 	      volume = devices[i].lines[j].volume_min;
 	    if (volume > devices[i].lines[j].volume_max)
 	      volume = devices[i].lines[j].volume_max;
+            devices[i].lines[j].muted = 0;
 	    return devices[i].lines[j].set_volume(&devices[i],
 						  &devices[i].lines[j],
 						  volume);
+	  }
+    }
+  
+  return -1; /* not found */
+}
+
+int		mixer_set_mute		(int	line,
+					 int	mute)
+{
+  int linecount = 0;
+  int i, j;
+
+  for (i=0; i<num_devices; i++)
+    {
+      for (j=0; j<devices[i].num_lines; j++, linecount++)
+	if (linecount == line)
+	  {
+	    if (devices[i].lines[j].muted == !!mute)
+	      return 0;
+	    if (mute)
+	      {
+	        devices[i].lines[j].get_volume (&devices[i],
+						&devices[i].lines[j],
+						&devices[i].lines[j].muted_volume);
+	        devices[i].lines[j].set_volume (&devices[i],
+						&devices[i].lines[j],
+						devices[i].lines[j].volume_min);
+		devices[i].lines[j].muted = 1;
+	      }
+	    else
+	      {
+	        devices[i].lines[j].set_volume (&devices[i],
+						&devices[i].lines[j],
+						devices[i].lines[j].muted_volume);
+		devices[i].lines[j].muted = 0;
+	      }
+
+	    return 0;
+	  }
+    }
+  
+  return -1; /* not found */
+}
+
+int		mixer_get_mute		(int	line)
+{
+  int linecount = 0;
+  int i, j;
+
+  for (i=0; i<num_devices; i++)
+    {
+      for (j=0; j<devices[i].num_lines; j++, linecount++)
+	if (linecount == line)
+	  {
+	    return devices[i].lines[j].muted;
 	  }
     }
   
@@ -267,6 +329,21 @@ dev_mixer_set_volume		(device_entry	*dev,
 }
 
 static int
+dev_mixer_get_volume		(device_entry	*dev,
+				 line_entry	*line,
+				 int *		volume)
+{
+  int r;
+
+  r = ioctl (dev->data.dev_mixer.fd,
+	       MIXER_READ (line->data.dev_mixer.index), volume);
+
+  *volume = ((*volume & 0xFF) + (*volume >> 8)) / 2;
+
+  return r;
+}
+
+static int
 dev_mixer_set_recording_line	(device_entry	*dev,
 				 line_entry	*line)
 {
@@ -335,11 +412,13 @@ add_dev_mixer_devices		(void)
 	      d = add_device_entry();
 
 	    line = add_line(d);
-	    line->description = strdup(labels[j]); /* FIXME: i18n */
+	    line->description = g_strdup_printf("%s %u: %s", buffer, j, labels[j]); /* FIXME: i18n */
 	    line->volume_min = 0;
 	    line->volume_max = 100;
-
+	    line->muted = 0;
+	    
 	    line->set_volume = dev_mixer_set_volume;
+	    line->get_volume = dev_mixer_get_volume;
 	    line->set_recording_line = dev_mixer_set_recording_line;
 	    line->destroy = dev_mixer_line_destroy;
 
