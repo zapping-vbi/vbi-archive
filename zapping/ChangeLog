@@ -4,6 +4,8 @@
 	TVeng_emu driver. Appears to have fewer bugs than i expected,
 	yeeha! :-) Commiting, so the world finally sees the
 	breakage. Plugins are broken, btw.
+	* video_xv.c, video_x11.c: (later) Both work fine, sometimes i
+	find myself utterly amazing:-)
 
 18.08.2002	capture.c finished <garetxe@users.sf.net>
 

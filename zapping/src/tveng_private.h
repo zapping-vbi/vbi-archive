@@ -263,12 +263,12 @@ tveng_copy_frame (unsigned char *src, tveng_image_data *where,
 	}
       tveng_copy_block (src_y, y, info->format.width,
 			where->planar.y_stride, info->format.height);
-      tveng_copy_block (src_u, u, info->format.width>>2,
+      tveng_copy_block (src_u, u, info->format.width/2,
 			where->planar.uv_stride,
-			info->format.height>>1);
-      tveng_copy_block (src_v, v, info->format.width>>2,
+			info->format.height/2);
+      tveng_copy_block (src_v, v, info->format.width/2,
 			where->planar.uv_stride,
-			info->format.height>>1);
+			info->format.height/2);
     }
   else /* linear */
     tveng_copy_block (src, where->linear.data,

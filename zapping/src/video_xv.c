@@ -168,14 +168,21 @@ ungrab_port (XvPortID	xvport)
   int i;
 
   for (i = 0; i<num_xvports; i++)
+    printv ("Port: %d, %d\n", (int)xvports[i].xvport,
+	    xvports[i].refcount);
+
+  for (i = 0; i<num_xvports; i++)
     if (xvports[i].xvport == xvport)
-      if ((--xvports[i].refcount) < 1)
-	{
-	  /* Check for screwed up stuff */
-	  g_assert (xvports[i].refcount == 0);
-	  XvUngrabPort (GDK_DISPLAY (), xvports[i].xvport,
-			CurrentTime);
-	}
+      {
+	if ((--xvports[i].refcount) < 1)
+	  {
+	    /* Check for screwed up stuff */
+	    g_assert (xvports[i].refcount == 0);
+	    XvUngrabPort (GDK_DISPLAY (), xvports[i].xvport,
+			  CurrentTime);
+	  }
+	return;
+      }
 
   /* Port not found, meaning that we are ungrabbing a port we don't
      know about... bad */
@@ -309,6 +316,12 @@ image_new(enum tveng_frame_pixformat pixformat, gint w, gint h)
       break;
     }
 
+  printv ("Created image: %d, %d, %d, %d, %d\n",
+	  new_image->fmt.width, new_image->fmt.height,
+	  new_image->fmt.pixformat,
+	  new_image->data.planar.y_stride,
+	  new_image->data.planar.uv_stride);
+
   return new_image;
 
  error3:
@@ -386,6 +399,7 @@ image_destroy(zimage *image)
     g_assert(shmdt(pimage->shminfo.shmaddr) != -1);
 #endif
 
+  printv ("ungrabing %d\n", (gint)pimage->xvport);
   ungrab_port (pimage->xvport);
 
   g_free(image->priv);
