@@ -8,7 +8,6 @@
 #include "vt.h"
 #include "misc.h"
 #include "vbi.h"
-#include "fdset.h"
 #include "hamm.h"
 #include "lang.h"
 #include "export.h"

@@ -113,7 +113,9 @@ zvbi_open_device(gint newbttv)
   device = zcg_char(NULL, "vbi_device");
   finetune = zcg_int(NULL, "finetune");
   erc = zcg_bool(NULL, "erc");
+/* TODO teletext region
   vbi_set_glyphs(zcg_int(NULL, "glyphs"));
+*/
 
 /* fifo - OBSOLETE */
 /*  fdset_init(fds);*/
@@ -166,7 +168,9 @@ zvbi_close_device(void)
   vbi_close(vbi);
   vbi = NULL;
 
+/*
   zcs_int(vbi_get_glyphs(), "glyphs");
+*/
 }
 
 /*

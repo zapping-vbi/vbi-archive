@@ -12,7 +12,7 @@ libvbi_a_SOURCES = \
 	exp-gfx.c exp-html.c exp-txt.c export.c export.h \
 	dllist.h \
 ##	fdset.c fdset.h \
-	font.c font.h fontsize.h \
+##	font.c font.h fontsize.h \
 	hamm.c hamm.h \
 	lang.c lang.h \
 	misc.c misc.h \

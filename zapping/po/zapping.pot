@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-12-16 00:23+0100\n"
+"POT-Creation-Date: 2000-12-16 13:18+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -740,11 +740,11 @@ msgstr ""
 msgid "%s with %d tuners"
 msgstr ""
 
-#: src/properties.c:445
+#: src/properties.c:454
 msgid "No plugin accepts this page."
 msgstr ""
 
-#: src/properties.c:480
+#: src/properties.c:489
 msgid ""
 "The plugin that created the active page doesn't provide help for it. Sorry."
 msgstr ""

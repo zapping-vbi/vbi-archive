@@ -9,7 +9,6 @@
 
 #include <vt.h>
 #include <misc.h>
-#include <fdset.h>
 #include <vbi.h>
 #include <lang.h>
 #include <dllist.h>

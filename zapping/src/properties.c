@@ -302,9 +302,12 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 
   /* Glyphs */
   widget = lookup_widget(zapping_properties, "optionmenu3");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget), 0);
+ /*
+ {mhs} TODO teletext region
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
 			      vbi_get_glyphs());
-
+*/
   gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
@@ -425,9 +428,15 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 
       widget = lookup_widget(pbox, "optionmenu3"); /* glyphs */
       widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+
+/* {mhs}
+ need default region for stations not transmitting a complete
+ character set designation code, see export.c/font_d_table. default 
+ set in vbi.c/reset_magazine: *_char_set = n (multiple of 8)
       
       vbi_set_glyphs(g_list_index(GTK_MENU_SHELL(widget)->children,
 				  gtk_menu_get_active(GTK_MENU(widget))));
+*/
       break;
     default:
       p = g_list_first(plugin_list);
