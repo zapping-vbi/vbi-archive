@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.3 2000-12-04 16:23:30 mschimek Exp $ */
+/* $Id: caption.c,v 1.4 2000-12-05 14:59:07 mschimek Exp $ */
 
 #include "ccfont.xbm"
 
@@ -177,7 +177,7 @@ struct caption {
 static void
 word_break(struct caption *cc, struct ch_rec *ch)
 {
-	/* box, iff */
+	/* box & render iff */
 
 	render(CC_PAGE_BASE + (ch - cc->channels), ch->buffer, ch->redraw_all ? -1 : ch->row);
 	ch->redraw_all = FALSE;
@@ -221,7 +221,7 @@ static inline void
 caption_command(struct caption *cc,
 	unsigned char c1, unsigned char c2, bool field2)
 {
-	static const colours palette[8] = {
+	static const colours palette_mapping[8] = {
 		WHITE, GREEN, BLUE, CYAN, RED, YELLOW, MAGENTA, BLACK
 	};
 	struct ch_rec *ch;
@@ -244,6 +244,7 @@ caption_command(struct caption *cc,
 				ch->line[ch->col++] = cc->transp_space[chan >> 2];
 
 			ch->col1 = ch->col;
+			ch->attr.foreground = WHITE;
 		} else {
 			int row = row_mapping[(c1 << 1) + ((c2 >> 5) & 1)];
 
@@ -260,9 +261,11 @@ caption_command(struct caption *cc,
 
 				if (c2 < 7) {
 					ch->italic = FALSE;
-					ch->attr.foreground = palette[c2];
-				} else
+					ch->attr.foreground = palette_mapping[c2];
+				} else {
 					ch->italic = TRUE;
+					ch->attr.foreground = WHITE;
+				}
 			}
 		}
 
@@ -272,7 +275,7 @@ caption_command(struct caption *cc,
 	switch (c1) {
 	case 0:		/* Optional Attributes		001 c000  010 xxxt */
 		ch->attr.opacity = (c2 & 1) ? SEMI_TRANSPARENT : OPAQUE;
-		ch->attr.background = palette[(c2 >> 1) & 7];
+		ch->attr.background = palette_mapping[(c2 >> 1) & 7];
 		return;
 
 	case 1:
@@ -300,9 +303,11 @@ caption_command(struct caption *cc,
 
 			if (c2 < 7) {
 				ch->italic = FALSE;
-				ch->attr.foreground = palette[c2];
-			} else
+				ch->attr.foreground = palette_mapping[c2];
+			} else {
 				ch->italic = TRUE;
+				ch->attr.foreground = WHITE;
+			}
 		}
 
 		return;
@@ -751,7 +756,7 @@ roll_up(int page, attr_char *buffer, int first_row, int last_row)
 //	if (page != draw_page)
 //		return;
 
-#if 1
+#if 0
 	sh_first = first_row;
 	sh_last = last_row;
 	shift = 26;
@@ -1076,7 +1081,7 @@ main(int ac, char **av)
 	print("01234567890123456789012345678901234567890123456789"); CR;
 	MIDROW(white, 0);
 	print(" DONE - Caption 2 "); CR;
-	print(" Not impressed. Hit [Q]");	
+	print(" Not impressed. Hit [Q] ");	
 	PAUSE(30);
 
 	for (;;)
