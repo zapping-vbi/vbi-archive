@@ -58,7 +58,7 @@ static gboolean rebuild_channel_menu = TRUE;
 
 static void
 update_bundle				(ZModel		*model _unused_,
-					 tveng_device_info *info)
+					 tveng_device_info *info _unused_)
 {
   if (freeze)
     {
@@ -67,29 +67,7 @@ update_bundle				(ZModel		*model _unused_,
     }
 
   if (rebuild_channel_menu)
-    {
-      GtkMenuItem *channels;
-      GtkMenuShell *menu;
-      GtkWidget *menu_item;
-      gint has_rf;
-
-      channels = GTK_MENU_ITEM (lookup_widget (GTK_WIDGET (zapping),
-					       "channels"));
-      menu = GTK_MENU_SHELL(gtk_menu_new());
-
-      menu_item = gtk_tearoff_menu_item_new();
-      gtk_widget_show(menu_item);
-      gtk_menu_shell_append(menu, menu_item);
-
-      gtk_widget_show(GTK_WIDGET(menu));
-      gtk_menu_item_remove_submenu(channels);
-      gtk_menu_item_set_submenu(channels, GTK_WIDGET(menu));
-
-      has_rf = add_channel_entries(menu, 1, 16, info);
-
-      if (0)
-	gtk_widget_set_sensitive(GTK_WIDGET(channels), has_rf);
-    }
+    zapping_rebuild_channel_menu (zapping);
 }
 
 static void
