@@ -1,11 +1,11 @@
-2002-06-17	<mschimek@users.sf.net>
+17.06.2002	<mschimek@users.sf.net>
 
-	* m4, po, config.rpath: Added because cannot use autogen.sh
+	* m4, po, intl, config.rpath: Added because cannot use autogen.sh
 	  gettextize --force since gettext 0.11. The fine hack insists
 	  on updating already updated Makefile.am's and configure.in.
 	* po/Rules-quot: s/PACKAGE VERSION/... because msgfmt complains.
 
-2002-06-16  gettextize  <bug-gnu-gettext@gnu.org>
+16.06.2002	gettextize  <bug-gnu-gettext@gnu.org>
 
 	* Makefile.am (SUBDIRS): Add m4.
 	(ACLOCAL_AMFLAGS): New variable.
