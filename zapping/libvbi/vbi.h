@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.30 2001-08-08 05:23:27 mschimek Exp $ */
+/* $Id: vbi.h,v 1.31 2001-08-09 15:12:20 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -107,3 +107,6 @@ vbi_send_event(struct vbi *vbi, vbi_event *ev)
 extern void		vbi_transp_colourmap(struct vbi *vbi, attr_rgba *d, attr_rgba *s, int entries);
 
 #endif /* VBI_H */
+
+
+

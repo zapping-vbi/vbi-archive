@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.c,v 1.5 2001-03-28 07:48:15 mschimek Exp $ */
+/* $Id: tables.c,v 1.6 2001-08-09 15:12:20 mschimek Exp $ */
 
 /*
     Packet 8/30 f1	Byte 13			Byte 14
@@ -312,10 +312,10 @@ country_names_en[] = {
  *
  *  TR 101 231 Table B.1: VPS CNI Codes used in Germany, Switzerland and Austria
  *
- *  (Unified to create a unique station address where A.1 and B.1 overlap.)
+ *  (Unified to create a unique station id where A.1 and B.1 overlap.)
  */
 struct {
-	short		id;		/* unique id, largest is 378 */
+	short		id;		/* unique id 1++, currently the largest is 378 */
 	short		country;
 	char *		short_name;	/* 8 chars (ISO 8859-1) */
 	char *		long_name;	/* (ISO 8859-1) */
@@ -389,7 +389,7 @@ struct {
 	{ 54,	DE, "ONYX-TV",  "ONYX-TV",			0x0000, 0x0000, 0x0000, 0x0D7C },
 	{ 55,	DE, "QVC",	"QVC-Teleshopping",		0x5C49, 0x0000, 0x0000, 0x0D7D },
 	{ 56,	DE, "Nick.",	"Nickelodeon",			0x0000, 0x0000, 0x0000, 0x0D7E },
-	{ 57,	DE, "HOT",	"Home Order Television",	0x0000, 0x0000, 0x0000, 0x0D7F },
+	{ 57,	DE, "HSE",	"Home Shopping Europe",	        0x0000, 0x0000, 0x0000, 0x0D7F },
 
 	{ 58,	DE, "ORB-1",	"ORB-1 Regional",		0x0000, 0x0000, 0x0000, 0x0D81 },
 	{ 59,	DE, "ORB-3",	"ORB-3 Landesweit",		0x4982, 0x0000, 0x0000, 0x0D82 },
@@ -405,7 +405,7 @@ struct {
 	{ 65,	DE, "RTL Club", "RTL Club",			0x0000, 0x0000, 0x0000, 0x0D8B },
 	{ 66,	DE, "n-tv",	"n-tv",				0x0000, 0x0000, 0x0000, 0x0D8C },
 	{ 67,	DE, "DSF",	"Deutsches Sportfernsehen",	0x0000, 0x0000, 0x0000, 0x0D8D },
-	{ 68,	DE, "VOX",	"VOX Fernsehen",		0x490C, 0x0000, 0x0000, 0x0D8E },
+	{ 68,	DE, "VOX",	"VOX",		                0x490C, 0x0000, 0x0000, 0x0D8E },
 	{ 69,	DE, "RTL 2",	"RTL 2",			0x0D8F, 0x0000, 0x0000, 0x0D8F },
 	/* not in TR 101 231: 0x0D8F */
 	{ 70,	DE, "RTL 2",	"RTL 2 Regional",		0x0000, 0x0000, 0x0000, 0x0D90 },
@@ -437,7 +437,7 @@ struct {
 	{ 94,	DE, "RTL",	"RTL Sachsen",			0x0000, 0x0000, 0x0000, 0x0DA8 },
 	{ 95,	DE, "RTL",	"RTL Thüringen",		0x0000, 0x0000, 0x0000, 0x0DA9 },
 	{ 96,	DE, "RTL",	"RTL Brandenburg",		0x0000, 0x0000, 0x0000, 0x0DAA },
-	{ 97,	DE, "RTL Plus", "RTL Plus",			0x0000, 0x0000, 0x0000, 0x0DAB },
+	{ 97,	DE, "RTL",      "RTL",		           	0x0000, 0x0000, 0x0000, 0x0DAB },
 	{ 98,	DE, "Premiere", "Premiere",			0x0000, 0x0000, 0x0000, 0x0DAC },
 	{ 99,	DE, "SAT 1",	"SAT 1 Regional",		0x0000, 0x0000, 0x0000, 0x0DAD },
 	{ 100,	DE, "SAT 1",	"SAT 1 Schleswig-Holstein",	0x0000, 0x0000, 0x0000, 0x0DAE },
@@ -452,7 +452,7 @@ struct {
 	{ 109,	DE, "SAT 1",	"SAT 1 Bayern",			0x0000, 0x0000, 0x0000, 0x0DB7 },
 	{ 110,	DE, "SAT 1",	"SAT 1 Saarland",		0x0000, 0x0000, 0x0000, 0x0DB8 },
 	{ 111,	DE, "SAT 1",	"SAT 1",			0x0000, 0x0000, 0x0000, 0x0DB9 },
-	{ 112,	DE, "TM3",	"TM3 Fernsehen",		0x0000, 0x0000, 0x0000, 0x0DBA },
+	{ 112,	DE, "TM3",	"TM3",	                 	0x0000, 0x0000, 0x0000, 0x0DBA },
 	{ 113,	DE, "DW Bln",	"Deutsche Welle TV Berlin",	0x0000, 0x0000, 0x0000, 0x0DBB },
 	{ 114,	DE, "OK Bln",	"Berlin Offener Kanal",		0x0000, 0x0000, 0x0000, 0x0DBD },
 	{ 115,	DE, "Bln-Mix2", "Berlin-Mix-Channel 2",		0x0000, 0x0000, 0x0000, 0x0DBE },

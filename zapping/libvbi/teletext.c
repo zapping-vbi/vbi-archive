@@ -133,9 +133,9 @@ top_label(struct vbi *vbi, struct fmt_page *pg, struct vbi_font_descr *font,
 
 	for (i = 0; i < 8; i++)
 		if (vbi->vt.btt_link[i].type == 2) {
-			vtp = vbi->cache->op->get(vbi->cache,
-				vbi->vt.btt_link[i].pgno, vbi->vt.btt_link[i].subno, 0x3f7f);
-
+			vtp = vbi_cache_get(vbi,
+					    vbi->vt.btt_link[i].pgno,
+					    vbi->vt.btt_link[i].subno, 0x3f7f);
 			if (!vtp) {
 				printv("top ait page %x not cached\n", vbi->vt.btt_link[i].pgno);
 				continue;
@@ -246,8 +246,9 @@ next_ait(struct vbi *vbi, int pgno, int subno)
 
 	for (i = 0; i < 8; i++) {
 		if (vbi->vt.btt_link[i].type == 2) {
-			vtp = vbi->cache->op->get(vbi->cache,
-				vbi->vt.btt_link[i].pgno, vbi->vt.btt_link[i].subno, 0x3f7f);
+			vtp = vbi_cache_get(vbi,
+					    vbi->vt.btt_link[i].pgno, 
+					    vbi->vt.btt_link[i].subno, 0x3f7f);
 
 			if (!vtp) {
 				printv("top ait page %x not cached\n", vbi->vt.btt_link[i].pgno);
@@ -620,8 +621,9 @@ vbi_page_title(struct vbi *vbi, int pgno, int subno, char *buf)
 	if (vbi->vt.top) {
 		for (i = 0; i < 8; i++)
 			if (vbi->vt.btt_link[i].type == 2) {
-				vtp = vbi->cache->op->get(vbi->cache,
-					vbi->vt.btt_link[i].pgno, vbi->vt.btt_link[i].subno, 0x3f7f);
+				vtp = vbi_cache_get(vbi,
+						    vbi->vt.btt_link[i].pgno, 
+						    vbi->vt.btt_link[i].subno, 0x3f7f);
 
 				if (!vtp) {
 					printv("p/t top ait page %x not cached\n", vbi->vt.btt_link[i].pgno);
@@ -686,7 +688,7 @@ resolve_obj_address(struct vbi *vbi, object_type type,
 	printv("obj invocation, source page %03x/%04x, "
 		"pointer packet %d triplet %d\n", pgno, s1, packet + 1, i);
 
-	vtp = vbi->cache->op->get(vbi->cache, pgno, s1, 0x000F);
+	vtp = vbi_cache_get(vbi, pgno, s1, 0x000F);
 
 	if (!vtp) {
 		printv("... page not cached\n");
@@ -1376,7 +1378,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 					printv("... %s drcs from page %03x/%04x\n",
 						normal ? "normal" : "global", pgno, drcs_s1[normal]);
 
-					dvtp = vbi->cache->op->get(vbi->cache,
+					dvtp = vbi_cache_get(vbi,
 						pgno, drcs_s1[normal], 0x000F);
 
 					if (!dvtp) {
@@ -1982,7 +1984,7 @@ vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
 		return 1;
 
 	default:
-		vtp = vbi->cache->op->get(vbi->cache, pgno, subno, 0xFFFF);
+		vtp = vbi_cache_get(vbi, pgno, subno, -1);
 
 		if (!vtp)
 			return 0;

@@ -1,3 +1,8 @@
+9.08.2001	<mschimek@users.sf.net>
+
+	* zvbi.c: Displays the received station name in the titlebar if
+	  not known from channel list.
+
 8.08.2001	prepare_dist.sh <garetxe@users.sf.net>
 
 	* prepare_dist.sh: rpm generation now works for zapping, mp1e and

@@ -79,12 +79,10 @@ static void yuv2rgb_c (void * dst, uint8_t * py,
     }
 }
 
-#ifdef USE_MMX
-
 #if #cpu (i386)
 
 static yuv2rgb_fun
-yuv2rgb_init_mmx (int bpp, int mode)
+yuv2rgb_init_swar (int bpp, int mode)
 {
   switch (cpu_detection())
     {
@@ -176,11 +174,11 @@ yuv2rgb_init_mmx (int bpp, int mode)
       break;
     }
 
-  return NULL; // Fallback to C.
+  return NULL; /* Fallback to C */
 }
 
 static yuyv2rgb_fun
-yuyv2rgb_init_mmx (int bpp, int mode)
+yuyv2rgb_init_swar (int bpp, int mode)
 {
   switch (cpu_detection())
     {
@@ -272,39 +270,33 @@ yuyv2rgb_init_mmx (int bpp, int mode)
       break;
     }
 
-  return NULL; // Fallback to C.
+  return NULL; /* Fallback to C */
 }
 
 #else /* !cpu x86 */
 
 static yuv2rgb_fun
-yuv2rgb_init_mmx (int bpp, int mode)
+yuv2rgb_init_swar (int bpp, int mode)
 {
-  return NULL; // Fallback to C.
+  return NULL; /* Fallback to C */
 }
 
 static yuyv2rgb_fun
-yuyv2rgb_init_mmx (int bpp, int mode)
+yuyv2rgb_init_swar (int bpp, int mode)
 {
-  return NULL; // Fallback to C.
+  return NULL; /* Fallback to C */
 }
 
 #endif /* !cpu x86 */
-
-#endif /* USE_MMX */
 
 void yuv2rgb_init (int bpp, int mode) 
 {
     yuv2rgb = NULL;
 
-#ifdef USE_MMX
-
-    yuv2rgb = yuv2rgb_init_mmx (bpp, mode);
+    yuv2rgb = yuv2rgb_init_swar (bpp, mode);
     
     if (yuv2rgb != NULL)
       printv ("Using accelerated YVU420 colorspace transform\n");
-
-#endif
 
     if (yuv2rgb == NULL) {
       printv ("No accelerated YVU420 colorspace conversion found\n");
@@ -317,14 +309,10 @@ void yuyv2rgb_init (int bpp, int mode)
 {
     yuyv2rgb = NULL;
 
-#ifdef USE_MMX
+    yuyv2rgb = yuyv2rgb_init_swar (bpp, mode);
 
-    yuyv2rgb = yuyv2rgb_init_mmx (bpp, mode);
-    
     if (yuyv2rgb != NULL)
       printv ("Using accelerated YUYV colorspace transform\n");
-
-#endif
 
     if (yuyv2rgb == NULL) {
       printv ("No accelerated YUYV colorspace conversion found\n");

@@ -495,7 +495,7 @@ parse_mip_page(struct vbi *vbi, struct vt_page *vtp,
 		subc = 0;
 		vbi->vt.page_info[pgno - 0x100].language =
 			page_language(&vbi->vt,
-				vbi->cache->op->get(vbi->cache, pgno, 0, 0),
+				vbi_cache_get(vbi, pgno, 0, 0),
 				pgno, code & 7);
 		break;
 
@@ -668,7 +668,7 @@ parse_btt(struct vbi *vbi, unsigned char *raw, int packet)
 				switch (code) {
 				case BTT_SUBTITLE:
 					pi->code = VBI_SUBTITLE_PAGE;
-					if ((vtp = vbi->cache->op->get(vbi->cache, index + 0x100, 0, 0)))
+					if ((vtp = vbi_cache_get(vbi, index + 0x100, 0, 0)))
 						pi->language = page_language(&vbi->vt, vtp, 0, 0);
 					break;
 
@@ -924,7 +924,7 @@ vbi_convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_functio
 	page.function = new_function;
 
 	if (cached) {
-		return vbi->cache->op->put(vbi->cache, &page);
+		return vbi_cache_put(vbi, &page);
 	} else {
 		memcpy(vtp, &page, vtp_size(&page));
 		return vtp;
@@ -1548,16 +1548,14 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 				ev.pgno = vtp->pgno;
 				ev.subno = vtp->subno;
 
-				if (vbi->cache)
-					if (vbi->cache->op->put(vbi->cache, vtp))
-			    			vbi_send_event(vbi, &ev);
+				if (vbi_cache_put(vbi, vtp))
+			    		vbi_send_event(vbi, &ev);
 				break;
 
 			case PAGE_FUNCTION_DRCS:
 			case PAGE_FUNCTION_GDRCS:
 				if (convert_drcs(vtp, vtp->data.drcs.raw[1]))
-					if (vbi->cache)
-						vbi->cache->op->put(vbi->cache, vtp);
+					vbi_cache_put(vbi, vtp);
 				break;
 
 			case PAGE_FUNCTION_MIP:
@@ -1569,8 +1567,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 				break;
 
 			default:
-				if (vbi->cache)
-					vbi->cache->op->put(vbi->cache, vtp);
+				vbi_cache_put(vbi, vtp);
 				break;
 			}
 
@@ -1599,7 +1596,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 		if (1
 		    && pgno != 0x1E7
 		    && !(cvtp->flags & C4_ERASE_PAGE)
-		    && (vtp = vbi->cache->op->get(vbi->cache, cvtp->pgno, cvtp->subno, 0xFFFF)))
+		    && (vtp = vbi_cache_get(vbi, cvtp->pgno, cvtp->subno, -1)))
 		{
 			memset(&cvtp->data, 0, sizeof(cvtp->data));
 			memcpy(&cvtp->data, &vtp->data,

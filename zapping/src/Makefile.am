@@ -17,7 +17,7 @@ VBI_LIB = $(top_srcdir)/libvbi/libvbi.a
 COMMON_LIB = $(top_srcdir)/common/libcommon.a
 
 ## Don't forget to put these files into the distribution
-EXTRA_DIST = ROADMAP
+EXTRA_DIST = ROADMAP gen_conv.s
 
 install-binPROGRAMS: $(bin_PROGRAMS)
 	$(mkinstalldirs) $(DESTDIR)$(bindir)

@@ -4119,7 +4119,6 @@ in the next release of this program.</label>
   <widget>
     <class>GtkMenuItem</class>
     <name>ttx_color_dialog1</name>
-    <tooltip>Foo</tooltip>
     <label>_Colors</label>
     <right_justify>False</right_justify>
   </widget>

@@ -341,7 +341,7 @@ find_prev_subpage (ttxview_data	*data, int subpage)
   if (!vbi)
     return -1;
 
-  if (!vbi->cache->hi_subno[data->fmt_page->pgno])
+  if (!vbi_cache_hi_subno(vbi, data->fmt_page->pgno))
     return -1;
 
   do {
@@ -351,8 +351,8 @@ find_prev_subpage (ttxview_data	*data, int subpage)
       return -1;
     
     if (subpage < 0)
-      subpage = vbi->cache->hi_subno[data->fmt_page->pgno] - 1;
-  } while (!vbi_is_cached(vbi->cache, data->fmt_page->pgno, subpage));
+      subpage = vbi_cache_hi_subno(vbi, data->fmt_page->pgno) - 1;
+  } while (!vbi_is_cached(vbi, data->fmt_page->pgno, subpage));
 
   return subpage;
 }
@@ -366,7 +366,7 @@ find_next_subpage (ttxview_data	*data, int subpage)
   if (!vbi)
     return -1;
 
-  if (!vbi->cache->hi_subno[data->fmt_page->pgno])
+  if (!vbi_cache_hi_subno(vbi, data->fmt_page->pgno))
     return -1;
 
   do {
@@ -375,9 +375,9 @@ find_next_subpage (ttxview_data	*data, int subpage)
     if (subpage == start_subpage)
       return -1;
     
-    if (subpage >= vbi->cache->hi_subno[data->fmt_page->pgno])
+    if (subpage >= vbi_cache_hi_subno(vbi, data->fmt_page->pgno))
       subpage = 0;
-  } while (!vbi_is_cached(vbi->cache, data->fmt_page->pgno, subpage));
+  } while (!vbi_is_cached(vbi, data->fmt_page->pgno, subpage));
 
   return subpage;
 }
@@ -893,19 +893,10 @@ static
 void on_ttxview_prev_sp_cache_clicked	(GtkButton	*button,
 					 ttxview_data	*data)
 {
-  struct vbi *vbi = zvbi_get_object();
   int subpage = ANY_SUB; /* compiler happy */
 
   nullcheck();
 
-  if (!vbi->cache)
-    {
-      if (data->appbar)
-	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
-				_("No cache"));
-      return;
-    }
-  
   if (data->fmt_page->pgno == 0x900 ||
       (((subpage = find_prev_subpage(data, data->subpage)) >= 0) &&
        (subpage != data->subpage)))
@@ -931,18 +922,10 @@ static
 void on_ttxview_next_sp_cache_clicked	(GtkButton	*button,
 					 ttxview_data	*data)
 {
-  struct vbi *vbi = zvbi_get_object();
   int subpage;
 
   nullcheck();
 
-  if (!vbi->cache)
-    {
-      if (data->appbar)
-	gnome_appbar_set_status(GNOME_APPBAR(data->appbar), _("No cache"));
-      return;
-    }
-  
   if (((subpage = find_next_subpage(data, data->subpage)) >= 0) &&
       (subpage != data->subpage))
     load_page(data->fmt_page->pgno, subpage, data, NULL);

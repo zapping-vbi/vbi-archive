@@ -723,7 +723,8 @@ void load_control_values(gint num_controls,
 */
 static
 gchar *substitute_keywords	(gchar		*string,
-				 tveng_tuned_channel *tc)
+				 tveng_tuned_channel *tc,
+				 gchar          *default_name)
 {
   gint i;
   gchar *found, *buffer = NULL, *p;
@@ -754,6 +755,8 @@ gchar *substitute_keywords	(gchar		*string,
 	 case 0:
 	   if (tc->name)
 	     buffer = g_strdup(tc->name);
+	   else if (default_name)
+	     buffer = g_strdup(default_name);
 	   else
 	     buffer = g_strdup(_("Unnamed"));
 	   break;
@@ -798,6 +801,31 @@ gchar *substitute_keywords	(gchar		*string,
   return string;
 }
 
+void
+z_set_main_title	(tveng_tuned_channel	*channel,
+			 gchar *default_name)
+{
+  tveng_tuned_channel ch;
+  gchar *buffer;
+
+  memset(&ch, 0, sizeof(ch));
+
+  if (!channel)
+    channel = &ch;
+
+  buffer = substitute_keywords(g_strdup(zcg_char(NULL, "title_format")),
+			       channel, default_name);
+  if (buffer && *buffer)
+    gtk_window_set_title(GTK_WINDOW(main_window), buffer);
+  else
+    gtk_window_set_title(GTK_WINDOW(main_window), "Zapping");
+
+  g_free(buffer);
+
+  if (channel != &ch)
+    cur_tuned_channel = channel->index;
+}
+
 /* Do not save the control values in the first switch_channel */
 static gboolean first_switch = TRUE;
 
@@ -810,7 +838,6 @@ z_switch_channel	(tveng_tuned_channel	*channel,
   tveng_tuned_channel *tc;
   gboolean in_global_list =
     tveng_tuned_channel_in_list(channel, global_channel_list);
-  gchar *buffer;
 
   if (!channel)
     return;
@@ -854,7 +881,7 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 
   if (zcg_bool(NULL, "avoid_noise"))
     {
-      /* Sleep a little so the noise dissappears */
+      /* Sleep a little so the noise disappears */
       usleep(100000);
       
       if (!mute)
@@ -862,16 +889,7 @@ z_switch_channel	(tveng_tuned_channel	*channel,
     }
 
   if (in_global_list)
-    {
-      buffer = substitute_keywords(g_strdup(zcg_char(NULL, "title_format")),
-				   channel);
-      if (buffer && *buffer)
-	gtk_window_set_title(GTK_WINDOW(main_window), buffer);
-      else
-	gtk_window_set_title(GTK_WINDOW(main_window), "Zapping");
-      g_free(buffer);
-      cur_tuned_channel = channel->index;
-    }
+    z_set_main_title(channel, NULL);
   else
     gtk_window_set_title(GTK_WINDOW(main_window), "Zapping");
 
@@ -983,3 +1001,16 @@ shutdown_v4linterface(void)
 {
   gtk_object_destroy(GTK_OBJECT(z_input_model));
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.66 2001-08-08 05:23:27 mschimek Exp $ */
+/* $Id: vbi.c,v 1.67 2001-08-09 15:12:20 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -696,7 +696,7 @@ vbi_close(struct vbi *vbi)
 
 	remove_filter(vbi);
 
-	vbi->cache->op->close(vbi->cache);
+	vbi_cache_destroy(vbi);
 
 	free(vbi);
 }
@@ -721,7 +721,7 @@ vbi_open(fifo *source)
 	if (!(vbi = calloc(1, sizeof(*vbi))))
 		return NULL;
 
-	vbi->cache = cache_open();
+	vbi->cache = vbi_cache_init(vbi);
 
 
 	/* Our sliced VBI data source */
@@ -763,7 +763,7 @@ vbi_open(fifo *source)
 		pthread_mutex_destroy(&vbi->event_mutex);
 		rem_producer(&vbi->wss_producer);
 		remove_filter(vbi);
-		vbi->cache->op->close(vbi->cache);
+		vbi_cache_destroy(vbi);
 		free(vbi);
 
 		return NULL;

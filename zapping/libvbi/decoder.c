@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.c,v 1.8 2001-07-17 02:09:59 mschimek Exp $ */
+/* $Id: decoder.c,v 1.9 2001-08-09 15:12:20 mschimek Exp $ */
 
 /*
     XXX NTSC transmits 0-4 (AFAIS) CC packets per frame,
@@ -780,3 +780,6 @@ init_vbi_decoder(struct vbi_decoder *vbi)
 
 	uninit_vbi_decoder(vbi);
 }
+
+
+

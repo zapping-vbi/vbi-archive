@@ -76,6 +76,12 @@ void
 z_channel_down			(void);
 
 /**
+ * Sets the given channel.
+ */
+void
+z_set_main_title		(tveng_tuned_channel	*channel,
+				 gchar *default_name);
+/**
  * Stores the current values of the known controls in the given
  * struct. num_controls and list are filled in appropiately.
  * used when saving 

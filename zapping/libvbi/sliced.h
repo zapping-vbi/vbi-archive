@@ -1,4 +1,6 @@
 /*
+ *  Sliced vbi data object
+ *
  *  Copyright (C) 2000 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -16,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.h,v 1.3 2001-06-18 12:33:58 mschimek Exp $ */
+/* $Id: sliced.h,v 1.4 2001-08-09 15:12:20 mschimek Exp $ */
 
 /*
     Definition of sliced vbi data (vbi device interface),
@@ -48,3 +50,9 @@ typedef struct {
 	unsigned int		line;		/* ITU-R line number 1..n, 0: unknown */
 	unsigned char		data[56];
 } vbi_sliced;
+
+
+
+
+
+

@@ -25,7 +25,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.4 2001-03-22 08:28:47 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.5 2001-08-09 15:12:20 mschimek Exp $ */
 
 /*
  *  VTX is the file format used by VideoteXt. It stores Teletext pages in
@@ -83,7 +83,7 @@ vtx_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 
 	/**/
 
-	vtp = pg->vbi->cache->op->get(pg->vbi->cache, pg->pgno, pg->subno, 0xFFFF);
+	vtp = vbi_cache_get(pg->vbi, pg->pgno, pg->subno, -1);
 
 	if (!vtp) {
 		vbi_export_error(e, _("Page is not cached, sorry"));

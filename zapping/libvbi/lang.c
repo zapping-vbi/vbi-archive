@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.13 2001-08-08 23:07:21 garetxe Exp $ */
+/* $Id: lang.c,v 1.14 2001-08-09 15:12:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -713,3 +713,6 @@ conv:
 	else
 		return c;
 }
+
+
+

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.43 2001-08-08 05:23:27 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.44 2001-08-09 15:12:20 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -90,6 +90,33 @@ extern void		vbi_set_teletext_level(struct vbi *vbi, int level);
 extern int		vbi_fetch_cc_page(struct vbi *vbi, struct fmt_page *pg, int pgno);
 
 /*
+ *  Network identification.
+ *
+ *  All strings are ISO 8859-1, local language, and NUL terminated.
+ *  Prepare for empty strings. Read only.
+ */
+typedef unsigned int nuid; /* Unique network id (a Zapzilla thing),
+			      0 = none, bit 31 reserved for fakes */
+typedef struct {
+	nuid			nuid;			/* unique id */
+
+	char			name[33];		/* descriptive name */
+	char			label[33];		/* short name (TTX/VPS) - max. 8 chars */
+	char			call[33];		/* network call letters (XDS) */
+
+	int			tape_delay;		/* tape delay, minutes (XDS) */
+
+	/* Private */
+
+	int			cni_vps;
+	int			cni_8301;
+	int			cni_8302;
+	int			cni_x26;
+
+	int			cycle;
+} vbi_network;
+
+/*
  *  Navigation (teletext.c)
  */
 
@@ -123,7 +150,7 @@ typedef struct {
 	unsigned char			url[256];
 	unsigned char			script[256];
 
-	unsigned int                    nuid;
+	nuid                            nuid;
 	int				page;
 	int				subpage;
 
@@ -151,6 +178,12 @@ extern void *		vbi_new_search(struct vbi *vbi, int pgno, int subno,
 extern int		vbi_next_search(void *p, struct fmt_page **pg, int dir);
 
 /*
+ *  Teletext page cache (cache.c)
+ */
+
+extern int              vbi_is_cached(struct vbi *, int pgno, int subno);
+
+/*
  *  Rendering (exp_gfx.c)
  */
 
@@ -166,31 +199,6 @@ vbi_draw_vt_page(struct fmt_page *pg, uint32_t *canvas, int reveal, int flash_on
 	vbi_draw_vt_page_region(pg, canvas, 0, 0,
 		pg->columns, pg->rows, -1, reveal, flash_on);
 }
-
-/*
- *  Network identification.
- *
- *  All strings are ISO 8859-1, local language, and NUL terminated.
- *  Prepare for empty strings. Read only.
- */
-typedef struct {
-	unsigned int		nuid;			/* unique id */
-
-	char			name[33];		/* descriptive name */
-	char			label[33];		/* short name (TTX/VPS) - max. 8 chars */
-	char			call[33];		/* network call letters (XDS) */
-
-	int			tape_delay;		/* tape delay, minutes (XDS) */
-
-	/* Private */
-
-	int			cni_vps;
-	int			cni_8301;
-	int			cni_8302;
-	int			cni_x26;
-
-	int			cycle;
-} vbi_network;
 
 /*
  *  Page classification
@@ -385,8 +393,7 @@ extern int		vbi_export_file(vbi_export *e, FILE *fp, struct fmt_page *pg);
 /* XXX */
 void vbi_get_max_rendered_size(int *w, int *h);
 void vbi_get_vt_cell_size(int *w, int *h);
-
-#include "vbi.h" /* XXX cache */
+int vbi_cache_hi_subno(struct vbi *vbi, int pgno);
 
 #endif /* __LIBVBI_H__ */
 

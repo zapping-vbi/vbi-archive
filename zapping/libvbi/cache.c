@@ -1,9 +1,11 @@
 #include <stdlib.h>
 #include <string.h>
-#include "../common/list.h"
-#include "cache.h"
 #include <stdio.h>
+
+#include "vbi.h"
+
 /*
+  AleVT:
     There are some subtleties in this cache.
 
     - Simple hash is used.
@@ -16,13 +18,16 @@
 
 //static struct cache_ops cops;
 
-struct cache_page
-{
-    node node[1];
-    struct vt_page page[1];
+typedef struct {
+	node			node;		/* hash chain */
 
-    /* dynamic size, no fields below */
-};
+	nuid			nuid;		/* network sending this page */
+	int			priority;	/* cache purge priority */
+
+	struct vt_page		page;
+
+	/* dynamic size, no fields below */
+} cache_page;
 
 
 static inline int
@@ -32,31 +37,33 @@ hash(int pgno)
     return pgno % HASH_SIZE;
 }
 
-static void
-cache_close(struct cache *ca)
+void
+vbi_cache_destroy(struct vbi *vbi)
 {
-    struct cache_page *cp;
-    int i;
+	struct cache *ca = vbi->cache;
+	cache_page *cp;
+	int h;
 
-    for (i = 0; i < HASH_SIZE; ++i)
-	while ((cp = PARENT(rem_head(ca->hash + i), struct cache_page, node[0]))) {
-	    free(cp);
-	}
-    free(ca);
+	for (h = 0; h < HASH_SIZE; h++)
+		while ((cp = PARENT(rem_head(ca->hash + h), cache_page, node))) {
+			free(cp);
+		}
+
+	free(ca);
 }
 
 static void
 cache_reset(struct cache *ca)
 {
-    struct cache_page *cp, *cpn;
+    cache_page *cp, *cpn;
     int i;
 
     for (i = 0; i < HASH_SIZE; ++i)
-	for (cp = (struct cache_page *) ca->hash[i].head;
-	     (cpn = (struct cache_page *) cp->node->succ); cp = cpn)
-	    if (cp->page->pgno / 256 != 9) // don't remove help pages
+	for (cp = (cache_page *) ca->hash[i].head;
+	     (cpn = (cache_page *) cp->node.succ); cp = cpn)
+	    if (cp->page.pgno / 256 != 9) // don't remove help pages
 	    {
-		rem_node(ca->hash + i, cp->node);
+		rem_node(ca->hash + i, &cp->node);
 		free(cp);
 		ca->npages--;
 	    }
@@ -70,57 +77,68 @@ cache_reset(struct cache *ca)
     If subno is SUB_ANY, the newest subpage of that page is returned
 */
 
-static struct vt_page *
-cache_get(struct cache *ca, int pgno, int subno, int subno_mask)
+struct vt_page *
+vbi_cache_get(struct vbi *vbi, int pgno, int subno, int subno_mask)
 {
-    struct cache_page *cp;
-    int h = hash(pgno);
+	struct cache *ca = vbi->cache;
+	cache_page *cp;
+	int h = hash(pgno);
 
-    for (cp = (struct cache_page *) ca->hash[h].head;
-	 cp->node->succ; cp = (struct cache_page *) cp->node->succ) {
-	if (cp->page->pgno == pgno)
-	    if (subno == ANY_SUB || (cp->page->subno & subno_mask) == subno)
-	    {
-		// found, move to front (make it 'new')
-		add_head(ca->hash + h, rem_node(ca->hash + h, cp->node));
-		return cp->page;
-	    }
+	if (subno == ANY_SUB) {
+		subno = 0;
+		subno_mask = 0;
 	}
-    return 0;
+
+	for_all_nodes (cp, ca->hash + h, node)
+		if (cp->page.pgno == pgno
+		    && (cp->page.subno & subno_mask) == subno) {
+			/* found, move to front (make it 'new') */
+			add_head(ca->hash + h, rem_node(ca->hash + h, &cp->node));
+			return &cp->page;
+		}
+
+	return NULL;
 }
 
+/* public */ int
+vbi_is_cached(struct vbi *vbi, int pgno, int subno)
+{
+	return NULL != vbi_cache_get(vbi, pgno, subno, -1);
+}
 
 /*
     Put a page in the cache.
     If it's already there, it is updated.
 */
 
-static struct vt_page *
-cache_put(struct cache *ca, struct vt_page *vtp)
+struct vt_page *
+vbi_cache_put(struct vbi *vbi, struct vt_page *vtp)
 {
-    struct cache_page *cp;
-    int h = hash(vtp->pgno);
-    int size = vtp_size(vtp);
+	struct cache *ca = vbi->cache;
+	cache_page *cp;
+	int h = hash(vtp->pgno);
+	int size = vtp_size(vtp);
 
+	for_all_nodes (cp, ca->hash + h, node)
+		if (cp->page.pgno == vtp->pgno
+		    && cp->page.subno == vtp->subno)
+			break;
 
-    for (cp = (struct cache_page *) ca->hash[h].head;
-         cp->node->succ; cp = (struct cache_page *) cp->node->succ)
-	if (cp->page->pgno == vtp->pgno && cp->page->subno == vtp->subno)
-	    break;
+	if (cp->node.succ) {
+		/* already cached */
 
-	if (cp->node->succ) {
-		if (vtp_size(cp->page) == size) {
+		if (vtp_size(&cp->page) == size) {
 			// move to front.
-			add_head(ca->hash + h, rem_node(ca->hash + h, cp->node));
+			add_head(ca->hash + h, rem_node(ca->hash + h, &cp->node));
 		} else {
-			struct cache_page *new_cp;
+			cache_page *new_cp;
 
 			if (!(new_cp = malloc(sizeof(*cp) - sizeof(cp->page) + size)))
 				return 0;
-			rem_node(ca->hash + h, cp->node);
+			rem_node(ca->hash + h, &cp->node);
 			free(cp);
 			cp = new_cp;
-			add_head(ca->hash + h, cp->node);
+			add_head(ca->hash + h, &cp->node);
 		}
 	} else {
 		if (!(cp = malloc(sizeof(*cp) - sizeof(cp->page) + size)))
@@ -128,12 +146,12 @@ cache_put(struct cache *ca, struct vt_page *vtp)
 		if (vtp->subno >= ca->hi_subno[vtp->pgno])
 			ca->hi_subno[vtp->pgno] = vtp->subno + 1;
 		ca->npages++;
-		add_head(ca->hash + h, cp->node);
+		add_head(ca->hash + h, &cp->node);
 	}
 
-	memcpy(cp->page, vtp, size);
+	memcpy(&cp->page, vtp, size);
 
-    return cp->page;
+	return &cp->page;
 }
 
 
@@ -149,15 +167,14 @@ cache_put(struct cache *ca, struct vt_page *vtp)
 static struct vt_page *
 cache_lookup(struct cache *ca, int pgno, int subno)
 {
-    struct cache_page *cp;
-    int h = hash(pgno);
+	cache_page *cp;
+	int h = hash(pgno);
 
-    for (cp = (struct cache_page *) ca->hash[h].head;
-	 cp->node->succ; cp = (struct cache_page *) cp->node->succ)
-	if (cp->page->pgno == pgno)
-	    if (subno == ANY_SUB || cp->page->subno == subno)
-		return cp->page;
-    return 0;
+	for_all_nodes (cp, ca->hash + h, node)
+		if (cp->page.pgno == pgno)
+			if (subno == ANY_SUB || cp->page.subno == subno)
+				return &cp->page;
+	return NULL;
 }
 
 
@@ -242,38 +259,23 @@ cache_foreach_pg2(struct cache *ca, int pgno, int subno,
     }
 }
 
-
-
-static int
-cache_mode(struct cache *ca, int mode, int arg)
+/* preliminary */
+int
+vbi_cache_hi_subno(struct vbi *vbi, int pgno)
 {
-    int res = -1;
-
-    switch (mode)
-    {
-	case CACHE_MODE_ERC:
-	    res = ca->erc;
-	    ca->erc = arg ? 1 : 0;
-	    break;
-    }
-    return res;
+	return vbi->cache->hi_subno[pgno];
 }
-
 
 static struct cache_ops cops =
 {
-    cache_close,
-    cache_get,
-    cache_put,
-    cache_reset,
+	//    cache_reset,
     cache_foreach_pg,
     cache_foreach_pg2,
-    cache_mode,
 };
 
 
 struct cache *
-cache_open(void)
+vbi_cache_init(struct vbi *vbi)
 {
     struct cache *ca;
 //    struct vt_page *vtp;
@@ -299,9 +301,4 @@ fail1:
 }
 
 
-/* preliminary */
-int
-vbi_is_cached(struct cache *ca, int pgno, int subno)
-{
-	return NULL != ca->op->get(ca, pgno, subno, 0xffff);
-}
+

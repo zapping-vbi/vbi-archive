@@ -45,6 +45,7 @@
 #include "zvbi.h"
 #include "zmisc.h"
 #include "interface.h"
+#include "v4linterface.h"
 #include "ttxview.h"
 
 #undef TRUE
@@ -454,7 +455,22 @@ static gint trigger_timeout		(gint	client_id)
       {
       case TTX_PAGE_RECEIVED:
       case TTX_NETWORK_CHANGE:
-	break;
+	{
+	  extern tveng_tuned_channel * global_channel_list;
+	  extern int cur_tuned_channel;
+	  tveng_tuned_channel *channel;
+
+	  if (*current_network.name)
+	    {
+	      channel = tveng_retrieve_tuned_channel_by_index(
+			 cur_tuned_channel, global_channel_list);
+	      if (!channel)
+		z_set_main_title(NULL, current_network.name);
+	      else if (!channel->name)
+		z_set_main_title(channel, current_network.name);
+	    }
+	  break;
+	}
       case TTX_BROKEN_PIPE:
 	g_warning("Broken TTX pipe");
 	trigger_timeout_id = -1;
@@ -1561,6 +1577,7 @@ event(vbi_event *ev, void *unused)
 		   ev->subno & 0xFF);
 	  }
       }
+
       /* Set the dirty flag on the page */
       notify_clients(ev->pgno, ev->subno);
 
