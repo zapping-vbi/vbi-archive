@@ -1,13 +1,13 @@
 # Zapping (a Gnome TV viewer) / Zapping (TV para Gnome) -*- coding: utf-8 -*-
 # Copyright (C) 2000 Joseba García Etxebarria <josebag@mixmail.com>
-# Copyright (C) 2000-2003 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
+# Copyright (C) 2000-2004 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-10-04 04:56+0200\n"
-"PO-Revision-Date: 2004-09-26 15:15+0200\n"
+"POT-Creation-Date: 2004-10-04 14:48+0200\n"
+"PO-Revision-Date: 2004-10-04 14:53+0200\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -389,6 +389,9 @@ msgstr "Le permite controlar Zapping a través de lirc"
 
 #. hash collision code
 #. Warn
+#. hash collision code
+#. hash collision code
+#. Warn
 #: plugins/alirc/alirc.c:411 plugins/mpeg/mpeg.c:2146
 #: plugins/screenshot/screenshot.c:1615 plugins/teletext/main.c:998
 #, c-format
@@ -732,9 +735,8 @@ msgid "_Edit Bookmarks..."
 msgstr "_Editar Marcadores..."
 
 #: plugins/teletext/main.c:484
-#, fuzzy
 msgid "Teletext plugin"
-msgstr "Teletexto"
+msgstr "Plugin de teletexto"
 
 #: plugins/teletext/main.c:613
 msgid "Western and Central Europe"
@@ -842,7 +844,6 @@ msgid "General"
 msgstr "General"
 
 #: plugins/teletext/main.c:811
-#, fuzzy
 msgid "_Preferences"
 msgstr "_Preferencias"
 
@@ -1013,6 +1014,7 @@ msgid "_Bookmarks"
 msgstr "_Marcadores"
 
 #. TRANSLATORS: "Cannot open <URL>" (http or smtp).
+#. TRANSLATORS: "Cannot open <URL>"
 #: plugins/teletext/view.c:1913 src/zvbi.c:628
 #, c-format
 msgid ""
@@ -1043,9 +1045,8 @@ msgid "Go to the index page"
 msgstr "Ir al índice"
 
 #: plugins/teletext/view.c:2141
-#, fuzzy
 msgid "Save this page to a file"
-msgstr "Abrir esta página con Zapzilla"
+msgstr "Guardar esta página en un fichero"
 
 #: plugins/teletext/window.c:201 src/zapping.c:399
 msgid "_File"
@@ -1065,9 +1066,8 @@ msgid "Toolbar"
 msgstr "Barra de herramientas"
 
 #: plugins/teletext/window.c:268
-#, fuzzy
 msgid "Statusbar"
-msgstr "Barra de _Estado"
+msgstr "Barra de estado"
 
 #. TRANSLATORS: Soundcard mixer line.
 #: src/audio.c:498
@@ -1388,6 +1388,8 @@ msgid "Disable plugins"
 msgstr "Sin soporte de plugins"
 
 #. TRANSLATORS: --no-zsfb command line option.
+#. TRANSLATORS: --yuv-format command line option.
+#. TRANSLATORS: --tunerless-norm command line option.
 #: src/main.c:460 src/main.c:515 src/main.c:524
 msgid "Obsolete"
 msgstr "Obsoleto"
@@ -2155,27 +2157,27 @@ msgstr "Fichero:"
 #: src/zmisc.c:2438
 #, c-format
 msgid "%s exists."
-msgstr ""
+msgstr "%s existe."
 
 #: src/zmisc.c:2443
 msgid "_Overwrite"
-msgstr ""
+msgstr "_Sobrescribir"
 
 #: src/zmisc.c:2448
-#, fuzzy, c-format
+#, c-format
 msgid "%s is a directory."
-msgstr "%s no es un directorio"
+msgstr "%s es un directorio."
 
 #. TRANSLATORS: device file, pipe,
 #. socket etc.
 #: src/zmisc.c:2461
 #, c-format
 msgid "%s is a special file."
-msgstr ""
+msgstr "%s es un fichero especial."
 
 #: src/zmisc.c:2465
 msgid "Continue"
-msgstr ""
+msgstr "Continuar"
 
 #. TRANSLATORS: VBI audio mode
 #: src/zvbi.c:132
