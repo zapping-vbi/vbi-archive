@@ -88,7 +88,7 @@ tveng_get_channel_by_name (gchar *name, tveng_rf_table *country);
   error.
 */
 tveng_rf_channel *
-tveng_get_channel_by_id (int id, tveng_rf_table *country);
+tveng_get_channel_by_id (int id, const tveng_rf_table *country);
 
 /*
   Returns the id of the given channel, that can be used later with
@@ -97,107 +97,49 @@ tveng_get_channel_by_id (int id, tveng_rf_table *country);
 int
 tveng_get_id_of_channel (tveng_rf_channel *channel, tveng_rf_table *country);
 
-/**
- * This function inserts a channel in the list (the list will keep
- * alphabetically ordered).
- * new_channel: The channel to be inserted, all fields must be filled
- * in, except prev and next.
- * list: List where we should insert the channel, or NULL for starting
- * a new list.
- * Returns the new pointer to the list (it might be different from list)
-*/
+
 tveng_tuned_channel *
-tveng_insert_tuned_channel_sorted (tveng_tuned_channel * new_channel,
-				   tveng_tuned_channel * list);
-
-/**
- * Append the given channel to the list
- */
+tveng_tuned_channel_first	(const tveng_tuned_channel *list);
 tveng_tuned_channel *
-tveng_append_tuned_channel (tveng_tuned_channel * new_channel,
-			    tveng_tuned_channel * list);
-
-/**
- * Swaps the given channel and the previous one.
- */
+tveng_tuned_channel_nth		(const tveng_tuned_channel *list,
+				 guint			index);
+tveng_tuned_channel *
+tveng_tuned_channel_by_name	(tveng_tuned_channel *	list,
+				 const gchar *		name);
+tveng_tuned_channel *
+tveng_tuned_channel_by_rf_name	(tveng_tuned_channel *	list,
+				 const gchar *		rf_name);
 void
-tveng_tuned_channel_up (tveng_tuned_channel * channel);
-
-/**
- * Swaps the given channel and the next one.
- */
+tveng_tuned_channel_insert	(tveng_tuned_channel **	list,
+				 tveng_tuned_channel *	tc,
+				 guint			index);
 void
-tveng_tuned_channel_down (tveng_tuned_channel * channel);
-
-/**
- * Swaps the two given channels.
- */
+tveng_tuned_channel_move	(tveng_tuned_channel **	list,
+				 tveng_tuned_channel *	tc,
+				 guint			new_index);
 void
-tveng_tuned_channels_swap (tveng_tuned_channel * a,
-			   tveng_tuned_channel * b);
+tveng_tuned_channel_remove	(tveng_tuned_channel **	list,
+				 tveng_tuned_channel *	tc);
+void
+tveng_tuned_channel_copy	(tveng_tuned_channel *	dst,
+				 const tveng_tuned_channel *src);
+tveng_tuned_channel *
+tveng_tuned_channel_new		(const tveng_tuned_channel *tc);
+void
+tveng_tuned_channel_delete	(tveng_tuned_channel *	tc);
 
-/**
- *  Returns the number of items in the tuned_channel list
- */
+tveng_tuned_channel *
+tveng_tuned_channel_list_new	(tveng_tuned_channel *	list);
+void
+tveng_tuned_channel_list_delete (tveng_tuned_channel **	list);
+gboolean
+tveng_tuned_channel_in_list	(tveng_tuned_channel *	list,
+				 tveng_tuned_channel *	tc);
+
+/* old stuff */
 int
-tveng_tuned_channel_num (tveng_tuned_channel * list);
-
-/**
- * Removes an specific channel form the list. You must provide its
- * "real" name, i.e. "64" instead of "Tele5", for example. Returns -1
- * if the channel could not be found. If rf_name is NULL, then id is
- * interpreted as the index in the tuned_channel list. Then -1 means
- * out of bounds. if rf_name is not NULL, then the first matching
- * item from id is deleted.
- * Returns a pointer to the list (can return NULL, that's OK)
-*/
+tveng_tuned_channel_num (const tveng_tuned_channel * list);
 tveng_tuned_channel *
 tveng_remove_tuned_channel (gchar * rf_name, int id,
 			    tveng_tuned_channel * list);
-
-/**
- * replaces the contents of dest with the contents of src
- */
-void
-tveng_copy_tuned_channel (tveng_tuned_channel * dest,
-			  tveng_tuned_channel * src);
-
-/**
- *  Removes all the items in the channel list, returns NULL.
- */
-tveng_tuned_channel *
-tveng_clear_tuned_channel (tveng_tuned_channel * list);
-
-/*
-  Retrieves the specified channel form the list, searching by name
-  ("VOX"), and starting from index. Returns NULL on error. It uses
-  strcasecomp(), so "VoX" matches "vOx", "Vox", "voX", ...
-*/
-tveng_tuned_channel*
-tveng_retrieve_tuned_channel_by_name (gchar * name, int index,
-				      tveng_tuned_channel * list);
-
-/*
-  Retrieves the specified channel by RF channel name ("S23"), and starting
-  from index. Returns NULL on error. Again a strcasecmp
-*/
-tveng_tuned_channel*
-tveng_retrieve_tuned_channel_by_rf_name (gchar * rf_name, int
-					 index,
-					 tveng_tuned_channel * list);
-
-/*
-  Retrieves the channel in position "index". NULL on error
-*/
-tveng_tuned_channel*
-tveng_retrieve_tuned_channel_by_index (int index,
-				       tveng_tuned_channel * list);
-
-/**
- * Returns TRUE if the given channel is in the given channel list.
- */
-gboolean
-tveng_tuned_channel_in_list (tveng_tuned_channel * channel,
-			     tveng_tuned_channel * list);
-
 #endif
