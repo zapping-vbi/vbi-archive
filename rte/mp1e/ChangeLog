@@ -1,3 +1,8 @@
+2002-09-06	<mschimek@users.sf.net>
+
+	* options.c, options.h, main.c: Added -k option.
+	* systems/mpeg1.c, systems/systems.c: Added -k option.
+
 2002-09-05	<mschimek@users.sf.net>
 
 	* audio/mp2.c: Preliminary audio underrun fix by Nikolai Zhubr.
