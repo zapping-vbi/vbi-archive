@@ -232,7 +232,7 @@ msgstr "Europa"
 # src/frequencies.c:821
 #: src/frequencies.c:1234 glade/glade_strings.c:91
 msgid "Eastern Europe"
-msgstr "Europa Meridional"
+msgstr "Europa del Este"
 
 # src/frequencies.c:823
 #: src/frequencies.c:1235
