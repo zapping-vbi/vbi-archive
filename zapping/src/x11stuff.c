@@ -1,6 +1,8 @@
 /* Zapping (TV viewer for the Gnome Desktop)
  * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
+ * The wmhooks code from xawtv 3.58 (C) Gerd Knorr
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -473,3 +475,174 @@ void xvzImage_destroy(xvzImage *image)
 {
   backends[cur_backend].image_destroy(image);
 }
+
+#include <libgnomeui/gnome-winhints.h>
+#include <zmisc.h>
+
+static void
+dummy_window_on_top		(GtkWidget *		widget,
+				 gboolean		on)
+{
+}
+
+/*
+ * Some WindowManager specific stuff
+ *
+ */
+
+#if defined(USE_WMHOOKS) && !defined(DISABLE_X_EXTENSIONS)
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
+
+/* ------------------------------------------------------------------------ */
+
+void		(* window_on_top)	(GtkWidget *		widget,
+					 gboolean		on);
+
+/* ------------------------------------------------------------------------ */
+
+static Atom net_wm;
+static Atom net_wm_state;
+static Atom net_wm_top;
+
+#define _NET_WM_STATE_REMOVE        0    /* remove/unset property */
+#define _NET_WM_STATE_ADD           1    /* add/set property */
+
+static void
+net_wm_window_on_top		(GtkWidget *		widget,
+				 gboolean		on)
+{
+  GdkWindow *window = GTK_BIN (widget)->child->window;
+  Display *dpy = GDK_DISPLAY ();
+  Window win = GDK_WINDOW_XWINDOW (window);
+  XEvent e;
+
+    e.xclient.type = ClientMessage;
+    e.xclient.message_type = net_wm_state;
+    e.xclient.display = dpy;
+    e.xclient.window = win;
+    e.xclient.format = 32;
+    e.xclient.data.l[0] = on ? _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE;
+    e.xclient.data.l[1] = net_wm_top;
+    e.xclient.data.l[2] = 0l;
+    e.xclient.data.l[3] = 0l;
+    e.xclient.data.l[4] = 0l;
+
+    XSendEvent(dpy, DefaultRootWindow(dpy), False,
+	       SubstructureRedirectMask, &e);
+}
+
+/* ------------------------------------------------------------------------ */
+
+static Atom gnome;
+static Atom gnome_layer;
+
+/* Note sawfish (1.0.1) reports _WIN_LAYER compatibility but
+   really supports only WIN_LAYER_NORMAL. Pity. */
+
+static void
+gnome_window_on_top		(GtkWidget *		widget,
+				 gboolean		on)
+{
+  if (1)
+    {
+      /* Supports only Gnome WM hints */
+      gnome_win_hints_set_layer (widget, on ? WIN_LAYER_ONTOP :
+				 	      WIN_LAYER_NORMAL);
+    }
+  else /* from xawtv */
+    {
+      GdkWindow *window = GTK_BIN (widget)->child->window;
+      Display *dpy = GDK_DISPLAY ();
+      Window win = GDK_WINDOW_XWINDOW (window);
+      XClientMessageEvent  xev;
+
+      if (0 == win)
+	return;
+
+      memset(&xev, 0, sizeof(xev));
+      xev.type = ClientMessage;
+      xev.window = win;
+      xev.message_type = gnome_layer;
+      xev.format = 32;
+      switch (on) {
+      case -1: xev.data.l[0] = WIN_LAYER_BELOW;    break;
+      case  0: xev.data.l[0] = WIN_LAYER_NORMAL;   break;
+      case  1: xev.data.l[0] = WIN_LAYER_ONTOP;    break;
+      }
+
+      XSendEvent(dpy,DefaultRootWindow(dpy),False,
+		 SubstructureNotifyMask,(XEvent*)&xev);
+      if (on)
+	XRaiseWindow(dpy,win);
+    }
+}
+
+/* ------------------------------------------------------------------------ */
+
+int
+wm_detect(void)
+{
+    Display * dpy = GDK_DISPLAY ();
+    Atom            type;
+    int             format;
+    unsigned long   nitems, bytesafter;
+    unsigned char  *args = NULL;
+    Window root = DefaultRootWindow(dpy);
+
+    /* build atoms */
+    net_wm       = XInternAtom(dpy, "_NET_SUPPORTED", False);
+    net_wm_state = XInternAtom(dpy, "_NET_WM_STATE", False);
+    net_wm_top   = XInternAtom(dpy, "_NET_WM_STATE_STAYS_ON_TOP", False);
+    gnome        = XInternAtom(dpy, "_WIN_SUPPORTING_WM_CHECK", False);
+    gnome_layer  = XInternAtom(dpy, "_WIN_LAYER", False);
+
+    /* gnome-compilant */
+    if (Success == XGetWindowProperty
+	(dpy, root, gnome, 0, (65536 / sizeof(long)), False,
+	 AnyPropertyType, &type, &format, &nitems, &bytesafter, &args)) {
+        if (nitems > 0) {
+	    printv("wmhooks: gnome\n");
+	    /* FIXME: check capabilities */
+	    window_on_top = gnome_window_on_top;
+	    XFree(args);
+	    return 0;
+	}
+    }
+
+    /* netwm compliant */
+    if (Success == XGetWindowProperty
+        (dpy, root, net_wm, 0, (65536 / sizeof(long)), False,
+         AnyPropertyType, &type, &format, &nitems, &bytesafter, &args) &&
+	nitems > 0) {
+        printv("wmhooks: netwm\n");
+	window_on_top = net_wm_window_on_top;
+        XFree(args);
+        return 0;
+    }
+
+    /* nothing found... */
+
+    printv("wmhooks: nothing\n");
+    window_on_top = dummy_window_on_top;
+
+    return -1;
+}
+
+#else /* !WMHOOKS */
+
+void (* window_on_top)(GtkWidget *widget, gboolean on) =
+  dummy_window_on_top;
+
+int
+wm_detect			(void)
+{
+  return -1;
+}
+
+#endif
