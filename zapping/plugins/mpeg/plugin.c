@@ -16,6 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "plugin_common.h"
+#include <glade/glade.h>
 
 /*
   This plugin was built from the template one. It does some thing
@@ -171,18 +172,55 @@ gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
 static
 void plugin_add_properties ( GnomePropertyBox * gpb )
 {
+  GtkWidget *mpeg_properties =
+    build_widget("notebook1", PACKAGE_DATA_DIR "/mpeg_properties.glade");
+  GtkWidget * label = gtk_label_new(_("MPEG"));
+  gint page;
+
+  g_message("mpeg_properties is %p", mpeg_properties);
+
+  if (!mpeg_properties)
+    {
+      ShowBox("mpeg_properties.glade couldn't be found,\n"
+	      "the mpeg plugin properties cannot be added.",
+	      GNOME_MESSAGE_BOX_ERROR);
+      return;
+    }
+
+  gtk_widget_show(mpeg_properties);
+  gtk_widget_show(label);
+
+  page = gnome_property_box_append_page(gpb, mpeg_properties, label);
+
+  gtk_object_set_data(GTK_OBJECT(gpb), "mpeg_page", GINT_TO_POINTER (page));
 }
 
 static
 gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
 {
-  return FALSE;
+  gpointer data = gtk_object_get_data(GTK_OBJECT(gpb), "mpeg_page");
+
+  if (GPOINTER_TO_INT(data) == page)
+    {
+      g_message("activate mpeg properties");
+      return TRUE;
+    }
+  else
+    return FALSE;
 }
 
 static
 gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page )
 {
-  return FALSE;
+  gpointer data = gtk_object_get_data(GTK_OBJECT(gpb), "mpeg_page");
+
+  if (GPOINTER_TO_INT(data) == page)
+    {
+      g_message("help about mpeg properties");
+      return TRUE;
+    }
+  else
+    return FALSE;
 }
 
 /* User defined functions */
