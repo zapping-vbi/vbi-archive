@@ -1,3 +1,12 @@
+29.10.2000	YUV and XV support <garetxe@users.sourceforge.net>
+
+	* src/tveng: Added support for YUV modes (YUV420, YVU420, UYVY,
+	YUYV).
+	* src/main.c:
+	* src/zmisc.c: The capture code now goes into capture.c
+	* src/capture.c: Now it can read and draw data (only if the Xv
+	extension is present and it works).
+
 28.10.2000	ZVBI more modular <garetxe@users.sourceforge.net>
 
 	* src/zvbi.c, zvbi.h: Now the callbacks that handle the VBI are

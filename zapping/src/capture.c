@@ -25,9 +25,6 @@
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
-#include <tveng.h>
-#include "zmisc.h"
-#include "capture.h"
 
 #ifndef DISABLE_X_EXTENSIONS
 #ifdef HAVE_LIBXV
@@ -36,10 +33,17 @@
 #endif
 
 #ifdef USE_XV
+#include <sys/ipc.h>
+#include <sys/shm.h>
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
 #endif /* USE_XV */
+
+#include <tveng.h>
+#include "zmisc.h"
+#include "x11stuff.h"
+#include "capture.h"
 
 /* Some global stuff we need, see descriptions in main.c */
 extern GList		*plugin_list;
@@ -48,7 +52,36 @@ static gboolean		have_xv = FALSE; /* Can we use the Xv extension? */
 #ifdef USE_XV
 static XvPortID		xvport; /* Xv port we will use */
 static XvImage		*xvimage=NULL; /* Xv, shm image */
+static XShmSegmentInfo	shminfo; /* shared mem info for the xvimage */
 #endif
+
+static unsigned int
+xv_mode_id(char * fourcc)
+{
+  return ((((__u32)(fourcc[0])<<0)|
+	   ((__u32)(fourcc[1])<<8)|
+	   ((__u32)(fourcc[2])<<16)|
+	   ((__u32)(fourcc[3])<<24)));
+}
+
+#define YV12 xv_mode_id("YV12") /* YVU420 (planar, 12 bits) */
+#define UYVY xv_mode_id("UYVY") /* UYUV (packed, 16 bits) */
+
+#define XV_MODE UYVY /* preferred mode in Xv */
+
+#ifdef USE_XV
+static void
+xv_image_delete(void)
+{
+  if (!xvimage)
+    return;
+
+  XShmDetach(GDK_DISPLAY(), &shminfo);
+  XFree(xvimage);
+  shmdt(shminfo.shmaddr);
+
+  xvimage = NULL;
+}
 
 /*
  * Rescale xvimage to the given dimensions. What it actually does is
@@ -56,11 +89,30 @@ static XvImage		*xvimage=NULL; /* Xv, shm image */
  * dimensions.
  */
 static void
-xv_rescale_image()
+xv_image_rescale(gint w, gint h)
 {
-  //  if (xvimage)
-  //    
+  if ((xvimage) && (xvimage->width == w) && (xvimage->height == h))
+    return; /* nothing to be done */
+
+  if (xvimage)
+    xv_image_delete();
+
+  memset(&shminfo, 0, sizeof(XShmSegmentInfo));
+  xvimage = XvShmCreateImage(GDK_DISPLAY(), xvport, XV_MODE, NULL,
+			     w, h, &shminfo);
+  if (!xvimage)
+    return;
+  
+  shminfo.shmid = shmget(IPC_PRIVATE, xvimage->data_size, IPC_CREAT | 0777);
+  shminfo.shmaddr = xvimage->data = shmat(shminfo.shmid, 0, 0);
+  shmctl(shminfo.shmid, IPC_RMID, 0); /* remove when we terminate */
+
+  shminfo.readOnly = False;
+
+  XShmAttach(GDK_DISPLAY(), &shminfo);
+  XSync(GDK_DISPLAY(), False);
 }
+#endif /* USE_XV */
 
 /* Checks for the Xv extension, and sets have_xv accordingly */
 static void
@@ -117,8 +169,8 @@ startup_xv(void)
 		continue;
 
 	      for (k=0; k<nImgFormats; k++)
-		if (pImgFormats[k].id == 0x32315659) /* YVU420 */
-		  break;
+		if (pImgFormats[k].id == XV_MODE)
+		  goto adaptor_found;
 
 	      XvUngrabPort(dpy, xvport, CurrentTime);
 	      xvport ++;
@@ -132,6 +184,7 @@ startup_xv(void)
     goto error2;
 
   /* success */
+ adaptor_found:
   printv("Adaptor #%d, image format #%d (0x%x), port #%d chosen\n",
 	 i, k, pImgFormats[k].id, j);
   have_xv = TRUE;
@@ -161,6 +214,9 @@ static void
 shutdown_xv(void)
 {
 #ifdef USE_XV
+  if (xvimage)
+    xv_image_delete();
+
   if (have_xv)
     XvUngrabPort(GDK_DISPLAY(), xvport, CurrentTime);
 #endif
@@ -170,4 +226,77 @@ void
 shutdown_capture(void)
 {
   shutdown_xv();
+}
+
+void
+capture_process_frame(GtkWidget * widget, tveng_device_info * info)
+{
+#ifdef USE_XV
+  gint w, h;
+
+  gdk_window_get_size(widget->window, &w, &h);
+
+  if (have_xv)
+    {
+      xv_image_rescale(info->format.width, info->format.height);
+
+      if (-1 == tveng_read_frame(xvimage->data, xvimage->data_size,
+				 50, info))
+	{
+	  g_warning("cap: read(): %s\n", info->error);
+	  usleep(50);
+	  return;
+	}
+
+      XvShmPutImage(GDK_DISPLAY(), xvport,
+		    GDK_WINDOW_XWINDOW(widget->window),
+		    GDK_GC_XGC(widget->style->white_gc), xvimage,
+		    0, 0, xvimage->width, xvimage->height, /* source */
+		    0, 0, w, h, /* dest */
+		    False /* wait for completition */);
+    }
+#endif
+}
+
+gint
+capture_start(GtkWidget * window, tveng_device_info *info)
+{
+  enum tveng_frame_pixformat pixformat;
+
+  if (have_xv)
+    pixformat = TVENG_PIX_UYVY;
+  else
+    pixformat =
+	zmisc_resolve_pixformat(x11_get_bpp(), x11_get_byte_order());
+
+  printv("cap: setting format %d\n", pixformat);
+
+  info->format.pixformat = pixformat;
+  if (tveng_set_capture_format(info) == -1)
+    {
+      g_warning("setting cap: %s", info->error);
+      return -1;
+    }
+  if (info->format.pixformat != pixformat)
+    {
+      g_warning("Failed to set valid pixformat: got %d",
+		info->format.pixformat);
+      return -1;
+    }
+
+  /* OK, startup done, try to start capturing */
+  if (-1 == tveng_start_capturing(info))
+    {
+      g_warning("Couldn't start capturing: %s", info->error);
+      return -1;
+    }
+
+  /* Capture started correctly */
+  return 0;
+}
+
+void
+capture_stop(tveng_device_info *info)
+{
+  /* nothing to be done in here */
 }

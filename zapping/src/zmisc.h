@@ -33,7 +33,7 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #endif
 
-#include "tveng.h"
+#include <tveng.h>
 
 /* With precompiler aid we can print much more useful info */
 /* This shows a non-modal, non-blocking message box */
@@ -133,6 +133,42 @@ GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
 int
 zmisc_switch_mode(enum tveng_capture_mode new_mode,
 		  tveng_device_info * info);
+
+/*
+  Given a bpp (bites per pixel) and the endianess, returns the proper
+  TVeng RGB mode.
+  returns -1 if the mode is unknown.
+*/
+static inline enum tveng_frame_pixformat
+zmisc_resolve_pixformat(int bpp, GdkByteOrder byte_order)
+{
+  switch (bpp)
+    {
+    case 15:
+      return TVENG_PIX_RGB555;
+      break;
+    case 16:
+      return TVENG_PIX_RGB565;
+      break;
+    case 24:
+      if (byte_order == GDK_MSB_FIRST)
+	return TVENG_PIX_RGB24;
+      else
+	return TVENG_PIX_BGR24;
+      break;
+    case 32:
+      if (byte_order == GDK_MSB_FIRST)
+	return TVENG_PIX_RGB32;
+      else
+	return TVENG_PIX_BGR32;
+      break;
+    default:
+      g_warning("Unrecognized image bpp: %d",
+		bpp);
+      break;
+    }
+  return -1;
+}
 
 #endif /* ZMISC.H */
 

@@ -29,6 +29,7 @@
 #include "zvbi.h"
 #include "x11stuff.h"
 #include "overlay.h"
+#include "capture.h"
 
 extern tveng_device_info * main_info;
 extern GtkWidget * main_window;
@@ -232,42 +233,6 @@ GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
   return (pixmap_menu_item);
 }
 
-/*
-  Given a bpp (bites per pixel) and the endianess, returns the proper
-  TVeng RGB mode.
-  returns -1 if the mode is unknown.
-*/
-static enum tveng_frame_pixformat
-zmisc_resolve_pixformat(int bpp, GdkByteOrder byte_order)
-{
-  switch (bpp)
-    {
-    case 15:
-      return TVENG_PIX_RGB555;
-      break;
-    case 16:
-      return TVENG_PIX_RGB565;
-      break;
-    case 24:
-      if (byte_order == GDK_MSB_FIRST)
-	return TVENG_PIX_RGB24;
-      else
-	return TVENG_PIX_BGR24;
-      break;
-    case 32:
-      if (byte_order == GDK_MSB_FIRST)
-	return TVENG_PIX_RGB32;
-      else
-	return TVENG_PIX_BGR32;
-      break;
-    default:
-      g_warning("Unrecognized image bpp: %d",
-		bpp);
-      break;
-    }
-  return -1;
-}
-
 static gint
 fullscreen_start(tveng_device_info * info)
 {
@@ -353,10 +318,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 {
   GtkWidget * tv_screen;
   int return_value = 0;
-  GtkAllocation dummy_alloc;
   gint x, y, w, h;
   enum tveng_frame_pixformat format;
-  extern gboolean print_info_inited;
 
   g_assert(info != NULL);
   g_assert(main_window != NULL);
@@ -369,9 +332,18 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   gdk_window_get_size(tv_screen->window, &w, &h);
   gdk_window_get_origin(tv_screen->window, &x, &y);
 
-  /* If we are fullscreen, something else needs to be done */
-  if (info->current_mode == TVENG_CAPTURE_PREVIEW)
-    fullscreen_stop(info);
+  /* Stop current capture mode */
+  switch (info->current_mode)
+    {
+    case TVENG_CAPTURE_PREVIEW:
+      fullscreen_stop(info);
+      break;
+    case TVENG_CAPTURE_READ:
+      capture_stop(info);
+      break;
+    default:
+      break;
+    }
 
   tveng_stop_everything(info);
 
@@ -383,33 +355,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   switch (new_mode)
     {
     case TVENG_CAPTURE_READ:
-      format = zmisc_resolve_pixformat(x11_get_bpp(),
-				       x11_get_byte_order());
-      if (format != -1)
-	{
-	  info->format.pixformat = format;
-	  if ((tveng_set_capture_format(info) == -1) ||
-	      (info->format.pixformat != format))
-	    g_warning("Capture format invalid: %s (%d, %d)", info->error,
-		      info->format.pixformat, format);
-	  printv("cap: setting %d, got %d\n", format,
-		 info->format.pixformat);
-	}
-
-      return_value = tveng_start_capturing(info);
-      if (return_value != -1)
-	{
-	  dummy_alloc.width = w;
-	  dummy_alloc.height = h;
-	  on_tv_screen_size_allocate(tv_screen, &dummy_alloc, NULL);
-	}
-      else
-	g_warning(info->error);
-      if (debug_msg)
-	{
-	  g_message("switching to capture mode");
-	  print_info_inited = FALSE;
-	}
+      return_value = capture_start(tv_screen, info);
       break;
     case TVENG_CAPTURE_WINDOW:
       if (disable_preview) {

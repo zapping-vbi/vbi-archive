@@ -41,6 +41,18 @@ void
 shutdown_capture(void);
 
 /*
+ * Starts capturing to the given widget, returns -1 on error
+ */
+gint
+capture_start(GtkWidget *widget, tveng_device_info * info);
+
+/*
+ * Stops capturing
+ */
+void
+capture_stop(tveng_device_info * info);
+
+/*
  * Get one frame, pass it to the plugins, and render it into the
  * widget, if needed.
  */

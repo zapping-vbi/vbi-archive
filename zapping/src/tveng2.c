@@ -123,16 +123,6 @@ static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
       return -1;
     }
 
-  /*  if (!(caps.flags & V4L2_FLAG_TUNER))
-    {
-      info -> tveng_errno = -1;
-      snprintf(info->error, 255, 
-	       _("Sorry, but \"%s\" has no tuner"),
-	       info -> file_name);
-      close(info -> fd);
-      return -1;
-      }*/
-
   /* Copy capability info */
   snprintf(info->caps.name, 32, caps.name);
   info->caps.channels = caps.inputs;
@@ -749,7 +739,7 @@ tveng2_update_capture_format(tveng_device_info * info)
       t_error("VIDIOC_G_WIN", info);
       return -1;
     }
-  info->format.bpp = (format.fmt.pix.depth + 7)>>3;
+  info->format.bpp = ((double)format.fmt.pix.depth)/8;
   info->format.width = format.fmt.pix.width;
   info->format.height = format.fmt.pix.height;
   if (format.fmt.pix.flags & V4L2_FMT_FLAG_BYTESPERLINE)
@@ -782,6 +772,24 @@ tveng2_update_capture_format(tveng_device_info * info)
     case V4L2_PIX_FMT_BGR32:
       info->format.depth = 32;
       info->format.pixformat = TVENG_PIX_BGR32;
+      break;
+    case V4L2_PIX_FMT_YVU420:
+      info->format.depth = 12;
+      info->format.pixformat = TVENG_PIX_YVU420;
+      break;
+#ifdef V4L2_PIX_FMT_YUV420 /* not in the spec, but very common */
+    case V4L2_PIX_FMT_YUV420:
+      info->format.depth = 12;
+      info->format.pixformat = TVENG_PIX_YUV420;
+      break;
+#endif
+    case V4L2_PIX_FMT_UYVY:
+      info->format.depth = 16;
+      info->format.pixformat = TVENG_PIX_UYVY;
+      break;
+    case V4L2_PIX_FMT_YUYV:
+      info->format.depth = 16;
+      info->format.pixformat = TVENG_PIX_YUYV;
       break;
     case V4L2_PIX_FMT_GREY:
       info->format.depth = 8;
@@ -844,6 +852,24 @@ tveng2_set_capture_format(tveng_device_info * info)
     case TVENG_PIX_BGR32:
       format.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR32;
       format.fmt.pix.depth = 32;
+      break;
+    case TVENG_PIX_YUV420:
+#ifdef V4L2_PIX_FMT_YUV420 /* not in the spec, but very common */
+      format.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
+      format.fmt.pix.depth = 12;
+      break;
+#endif
+    case TVENG_PIX_YVU420:
+      format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
+      format.fmt.pix.depth = 12;
+      break;
+    case TVENG_PIX_UYVY:
+      format.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
+      format.fmt.pix.depth = 16;
+      break;
+    case TVENG_PIX_YUYV:
+      format.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+      format.fmt.pix.depth = 16;
       break;
     default:
       info->tveng_errno = -1; /* unknown */

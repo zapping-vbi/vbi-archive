@@ -135,12 +135,20 @@ enum tveng_field
 /* The format of a pixel, similar to the V4L2 ones, but they aren't
    fourcc'ed */
 enum tveng_frame_pixformat{
+  /* common rgb formats */
   TVENG_PIX_RGB555,
   TVENG_PIX_RGB565,
   TVENG_PIX_RGB24,
   TVENG_PIX_BGR24,
   TVENG_PIX_RGB32,
   TVENG_PIX_BGR32,
+  /* common YUV formats */
+  /* note: V4L API doesn't support YVU420. V4L2 API doesn't support
+     YUV420, but videodev2.h does */
+  TVENG_PIX_YVU420,
+  TVENG_PIX_YUV420,
+  TVENG_PIX_YUYV,
+  TVENG_PIX_UYVY,
   TVENG_PIX_GREY /* this one is used just when querying the device, it
 		  isn't supported by TVeng */
 };
@@ -152,7 +160,7 @@ struct tveng_frame_format
   int bytesperline; /* Bytes per scan line */
   int depth; /* Bits per pixel */
   enum tveng_frame_pixformat pixformat; /* The pixformat entry */
-  int bpp; /* Bytes per pixel */
+  double bpp; /* Bytes per pixel */
   int sizeimage; /* Size in bytes of the image */
 };
 

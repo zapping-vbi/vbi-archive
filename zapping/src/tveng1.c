@@ -856,6 +856,18 @@ tveng1_update_capture_format(tveng_device_info * info)
       info->format.depth = 32;
       info->format.pixformat = TVENG_PIX_BGR32;
       break;
+    case VIDEO_PALETTE_YUV420:
+      info->format.depth = 12;
+      info->format.pixformat = TVENG_PIX_YUV420;
+      break;
+    case VIDEO_PALETTE_UYVY:
+      info->format.depth = 16;
+      info->format.pixformat = TVENG_PIX_UYVY;
+      break;
+    case VIDEO_PALETTE_YUYV:
+      info->format.depth = 16;
+      info->format.pixformat = TVENG_PIX_YUYV;
+      break;
     default:
       info->tveng_errno = -1; /* unknown */
       t_error_msg("switch()",
@@ -870,7 +882,7 @@ tveng1_update_capture_format(tveng_device_info * info)
       return -1;
     }
   /* Fill in the format structure (except for the data field) */
-  info->format.bpp = (info->format.depth + 7)>>3;
+  info->format.bpp = ((double)info->format.depth)/8;
   info->format.width = window.width;
   info->format.height = window.height;
   info->format.bytesperline = window.width * info->format.bpp;
@@ -930,6 +942,19 @@ tveng1_set_capture_format(tveng_device_info * info)
     case TVENG_PIX_BGR32:
       pict.palette = VIDEO_PALETTE_RGB32;
       pict.depth = 32;
+      break;
+    case TVENG_PIX_YUYV:
+      pict.palette = VIDEO_PALETTE_YUYV;
+      pict.depth = 16;
+      break;
+    case TVENG_PIX_UYVY:
+      pict.palette = VIDEO_PALETTE_UYVY;
+      pict.depth = 16;
+      break;
+    case TVENG_PIX_YUV420:
+    case TVENG_PIX_YVU420:
+      pict.palette = VIDEO_PALETTE_YUV420;
+      pict.depth = 12;
       break;
     default:
       info->tveng_errno = -1; /* unknown */
@@ -2002,6 +2027,16 @@ static int p_tveng1_queue(tveng_device_info * info)
     case TVENG_PIX_RGB32:
       bm.format = VIDEO_PALETTE_RGB32;
       break;
+    case TVENG_PIX_YUYV:
+      bm.format = VIDEO_PALETTE_YUYV;
+      break;
+    case TVENG_PIX_UYVY:
+      bm.format = VIDEO_PALETTE_UYVY;
+      break;
+    case TVENG_PIX_YUV420:
+    case TVENG_PIX_YVU420:
+      bm.format = VIDEO_PALETTE_YUV420;
+      break;
     default:
       info -> tveng_errno = -1;
       t_error_msg("switch()", _("Cannot understand actual palette"),
@@ -2064,6 +2099,16 @@ static int p_tveng1_dequeue(void * where, tveng_device_info * info)
     case TVENG_PIX_BGR32:
     case TVENG_PIX_RGB32:
       bm.format = VIDEO_PALETTE_RGB32;
+      break;
+    case TVENG_PIX_YUYV:
+      bm.format = VIDEO_PALETTE_YUYV;
+      break;
+    case TVENG_PIX_UYVY:
+      bm.format = VIDEO_PALETTE_UYVY;
+      break;
+    case TVENG_PIX_YUV420:
+    case TVENG_PIX_YVU420:
+      bm.format = VIDEO_PALETTE_YUV420;
       break;
     default:
       info -> tveng_errno = -1;

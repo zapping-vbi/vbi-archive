@@ -139,7 +139,7 @@ print_info(void)
 	  "	height:		%d\n"
 	  "	depth:		%d\n"
 	  "	pixformat:	%d\n"
-	  "	bpp:		%d\n"
+	  "	bpp:		%g\n"
 	  "	sizeimage:	%d\n",
 	  format->width, format->height, format->depth,
 	  format->pixformat, format->bpp, format->sizeimage );
@@ -535,7 +535,8 @@ int main(int argc, char * argv[])
 	    zvbi_build_current_teletext_page(tv_screen, &(sample.format));
 	  if (!sample.video_data)
 	    continue;
-	  goto give_data_to_plugins;
+	  /* fixme: add zvbi_process_frame */
+	  //goto give_data_to_plugins;
 	}
 
       /* We are probably viewing fullscreen, just do nothing */
@@ -545,53 +546,17 @@ int main(int argc, char * argv[])
 	  continue;
 	}
 
-      /* Avoid segfault */
-      if (!zimage_get())
-	{
-	  g_warning(_("There is no allocated mem for the capture"));
-	  continue;
-	}
-
-      zimage_reallocate(main_info->format.width, main_info->format.height);
-
       print_info();
-
-      /* Do the image processing here */
-      if (tveng_read_frame(zimage_get_data(zimage_get()),
-			   ((int)zimage_get()->bpl)*zimage_get()->height,
-			  50, main_info) == -1)
-	{
-	  g_warning("read(): %s\n", main_info->error);
-	  continue;
-	}
-
-      memset(&sample, 0, sizeof(plugin_sample));
-      memcpy(&(sample.format), &(main_info->format),
-	     sizeof(struct tveng_frame_format));
-      sample.video_data  = zimage_get_data(zimage_get());
-
-    give_data_to_plugins:
-      /* Give the image to the plugins too */
-      sample.v_timestamp = tveng_get_timestamp(main_info);
-
-      p = g_list_first(plugin_list);
-      while (p)
-	{
-	  plugin_process_sample(&sample, (struct plugin_info*)p->data);
-	  p = p->next;
-	}
 
       if (main_info->current_mode == TVENG_CAPTURE_READ)
 	{
-	  /* Update the gdkimage, since it may have changed */
-	  zimage_reallocate(sample.format.width, sample.format.height);
-
-	  gdk_draw_image(tv_screen -> window,
+	  /*	  gdk_draw_image(tv_screen -> window,
 			 tv_screen -> style -> white_gc,
 			 zimage_get(),
 			 0, 0, 0, 0,
 			 sample.format.width,
-			 sample.format.height);
+			 sample.format.height);*/
+	  capture_process_frame(tv_screen, main_info);
 	}
     }
   D();
