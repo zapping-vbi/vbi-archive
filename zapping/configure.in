@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.130.2.22 2003-11-17 06:31:05 mschimek Exp $
+dnl $Id: configure.in,v 1.130.2.23 2003-11-20 19:59:57 mschimek Exp $
 
-AC_INIT(zapping, 0.7cvs3,
+AC_INIT(zapping, 0.7cvs4,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
@@ -548,51 +548,40 @@ dnl fi
 dnl ---------------------------------------------------------------------------
 
 dnl Setup the compilation flags
-DEFAULT_CFLAGS="-g -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations -D_GNU_SOURCE -DGTK_DISABLE_DEPRECATED -DGNOME_DISABLE_DEPRECATED -DG_DISABLE_DEPRECATED -DGDK_DISABLE_DEPRECATED -DGDK_PIXBUF_DISABLE_DEPRECATED $X_CFLAGS"
+
+WARN_CFLAGS="-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations"
+
+DEPR_CFLAGS="\
+  -DG_DISABLE_DEPRECATED \
+  -DGTK_DISABLE_DEPRECATED \
+  -DGDK_DISABLE_DEPRECATED \
+  -DGDK_PIXBUF_DISABLE_DEPRECATED \
+  -DGNOME_DISABLE_DEPRECATED \
+"
+
+DIR_CFLAGS="\
+  -DPACKAGE_DATA_DIR=\\\"\${prefix}/\${DATADIRNAME}\\\" \
+  -DPACKAGE_LOCALE_DIR=\\\"\${prefix}/\${DATADIRNAME}/locale\\\" \
+  -DPACKAGE_PIXMAPS_DIR=\\\"\${prefix}/\${DATADIRNAME}/pixmaps/\${PACKAGE}\\\"\
+  -DPACKAGE_LIB_DIR=\\\"\${prefix}/lib/\${PACKAGE}\\\" \
+  -DPACKAGE_ZSFB_DIR=\\\"\${DESTDIR}\${sbindir}\\\" \
+"
+
+DEFAULT_CFLAGS="$WARN_CFLAGS -D_GNU_SOURCE $DEPR_CFLAGS $X_CFLAGS $DIR_CFLAGS"
 AC_SUBST(DEFAULT_CFLAGS)
 
-dnl AM_PROG_AS
-
-dnl AS=$CC
-dnl ASFLAGS=$DEFAULT_CFLAGS
-dnl AC_SUBST(AS)
-dnl AC_SUBST(ASFLAGS)
-
-dnl ---------------------------------------------------------------------------
-dnl with-gnome-prefix handling, used for building packages.
-dnl ---------------------------------------------------------------------------
-AC_ARG_WITH(gnome-prefix,
-  [  --with-gnome-prefix     Use the given path as the Gnome prefix],
-  if test ! "x$withval" = x; then
-    GNOME_PREFIX=$withval
-  fi)
-
-if test "x$GNOME_PREFIX" = "x"; then
-  GNOME_PREFIX=`dirname $GDK_PIXBUF_CSOURCE`
-fi
-AC_SUBST(GNOME_PREFIX)
-if test "x${prefix}" = "xNONE"; then
-  prefix=$GNOME_PREFIX
-fi
-
-dnl Paths to the various files we use.
-PACKAGE_PIXMAPS_DIR="${prefix}/${DATADIRNAME}/pixmaps/${PACKAGE}"
-AC_DEFINE_UNQUOTED(PACKAGE_PIXMAPS_DIR, "${PACKAGE_PIXMAPS_DIR}", [pd])
+PACKAGE_PIXMAPS_DIR="\${prefix}/\${DATADIRNAME}/pixmaps/\${PACKAGE}"
 AC_SUBST(PACKAGE_PIXMAPS_DIR)
 
-PACKAGE_LIB_DIR="${prefix}/lib/${PACKAGE}"
-AC_DEFINE_UNQUOTED(PACKAGE_LIB_DIR, "${PACKAGE_LIB_DIR}", [ld])
+PACKAGE_LIB_DIR="\${prefix}/lib/\${PACKAGE}"
 AC_SUBST(PACKAGE_LIB_DIR)
 
-AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR, "${prefix}/${DATADIRNAME}", [pdd])
-AC_DEFINE_UNQUOTED(PACKAGE_LOCALE_DIR,
-	"${prefix}/${DATADIRNAME}/locale", [pld])
-
-dnl Default dir for installing plugins
-PLUGIN_DEFAULT_DIR="${PACKAGE_LIB_DIR}/plugins"
+PLUGIN_DEFAULT_DIR="\${PACKAGE_LIB_DIR}/plugins"
 AC_SUBST(PLUGIN_DEFAULT_DIR)
+
 PLUGIN_DEFAULT_FLAGS="$DEFAULT_CFLAGS -Wno-unused"
 AC_SUBST(PLUGIN_DEFAULT_FLAGS)
+
 COMMON_INCLUDES="$PY_CFLAGS $PACKAGE_CFLAGS $UNICODE_CFLAGS $ARTS_CFLAGS"
 AC_SUBST(COMMON_INCLUDES)
 
@@ -619,6 +608,8 @@ dnl needs work
 dnl help/C/Makefile
 dnl help/de/Makefile
 
+dnl ---------------------------------------------------------------------------
+
 echo "
 	Optional package
 	----------------
@@ -638,3 +629,5 @@ echo "
 for x in $PLUGINS_TO_BUILD; do
   echo "        "$x
 done
+
+echo
