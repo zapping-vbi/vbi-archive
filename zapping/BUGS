@@ -4,6 +4,7 @@ Known bugs with zapping
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
+	! Doesn't restore Vidmode correctly when returning from fullscreen.
 	! Find the cause for those /dev/dsp busy error messages (libesd
 <= 0.2.8 broken?)
 	* Add support in TVeng for tuner-less cards.
