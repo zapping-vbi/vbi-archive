@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cc.h,v 1.9 2001-05-12 21:08:33 mschimek Exp $ */
+/* $Id: cc.h,v 1.10 2001-07-02 16:38:14 garetxe Exp $ */
 
 #ifndef CC_H
 #define CC_H
@@ -43,10 +43,10 @@ typedef enum {
 	MODE_PAINT_ON,
 	MODE_ROLL_UP,
 	MODE_TEXT
-} mode;
+} cc_mode;
 
 typedef struct {
-	mode			mode;
+	cc_mode			mode;
 
 	int			col, col1;
 	int			row, row1;
