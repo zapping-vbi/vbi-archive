@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.44 2002-10-02 20:55:17 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.45 2002-12-24 15:04:08 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -499,7 +499,7 @@ set_output(rte_context *context,
 		/* vcd buffer is hardcoded 2324, hd default 2048 */
 		/* XXX recalculate codec->mux fifo lenght before changing */
 		if (!init_buffer(&mx->mux_buffer,
-				 (xc == &mp1e_mpeg1_video_context) ? 4096 : 2048)) {
+				 (xc == &mp1e_mpeg1_vcd_context) ? 4096 : 2048)) {
 			mux_destroy(&mx->mux);
 			rte_error_printf(context, _("Out of memory."));
 			return FALSE;

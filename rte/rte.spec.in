@@ -25,6 +25,7 @@ make
 %install
 rm -rf %{buildroot}
 %makeinstall
+%find_lang %{name}
 
 %clean
 rm -rf %{buildroot}
@@ -38,9 +39,11 @@ rm -rf %{buildroot}
 %doc AUTHORS BUGS COPYING ChangeLog NEWS README TODO doc/html
 %{_libdir}/librte*
 %{_includedir}/librte.h
-%{_prefix}/share/locale/*/*/*
 
 %changelog
+* Sat Dec 14 2002 Michael H. Schimek <mschimek@users.sourceforge.net>
+- Added %%find_lang for locale support.
+
 * Fri Oct 4 2002 Michael H. Schimek <mschimek@users.sourceforge.net>
 - Updated.
 

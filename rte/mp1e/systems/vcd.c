@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.13 2002-12-14 00:43:44 mschimek Exp $ */
+/* $Id: vcd.c,v 1.14 2002-12-24 15:04:09 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,12 +37,12 @@
 #include "mpeg.h"
 #include "systems.h"
 
-#define TEST(x) x
+#define TEST(x)
 #define PVER 4
 
 const int sector_size		= 2324;			/* bytes */
-const int system_rate		= 75 * 2324;		/* bytes */
-const int ticks_per_packet	= SYSTEM_TICKS / 75;	/* SYSTEM_TICKS */
+const int system_rate		= 75 * 2324;		/* bytes/s */
+const int ticks_per_packet	= SYSTEM_TICKS / 75;	/* SYSTEM_TICKS/s */
 const int BS_audio		= 4096;			/* bytes */
 const int BS_video		= 40960;		/* bytes */
 /* video XXX? */

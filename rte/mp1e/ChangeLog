@@ -1,3 +1,8 @@
+2002-12-17	<mschimek@users.sf.net>
+
+	* b_mp1e.c: VCD output buffer too small.
+	* common/mmx.h: gcc minor version++.
+
 2002-11-11	<zhubr@users.sf.net>
 
 	* devices/v4l.c: Avoid grab width padding (Allows to use 

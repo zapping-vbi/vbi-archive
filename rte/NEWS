@@ -1,0 +1,4 @@
+0.5.1
+-----
+Bug fixes. This version compiles and runs on FreeBSD 4.6,
+except for the DivX4Linux interface, naturally.
