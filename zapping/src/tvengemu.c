@@ -131,7 +131,7 @@ add_controls			(tveng_device_info *	info)
 }
 
 static tv_bool
-set_standard			(tveng_device_info *	info,
+set_video_standard		(tveng_device_info *	info,
 				 const tv_video_standard *ts)
 {
 	fprintf (stderr, "emu::set_standard '%s'\n", ts->label);
@@ -426,32 +426,6 @@ tvengemu_get_timestamp (tveng_device_info *info)
   return zf_current_time ();
 }
 
-static int
-tvengemu_set_capture_size (int width, int height,
-			   tveng_device_info * info)
-{
-  t_assert (info != NULL);
-
-  info->format.width = width;
-  info->format.height = height;
-
-  return p_tveng_set_capture_format (info);
-}
-
-static int
-tvengemu_get_capture_size (int *width, int *height,
-			   tveng_device_info *info)
-{
-  t_assert (info != NULL);
-
-  if (width)
-    *width = info->format.width;
-
-  if (height)
-    *height = info->format.height;
-
-  return 0;
-}
 
 static tv_bool
 get_overlay_buffer		(tveng_device_info *	info,
@@ -463,26 +437,35 @@ get_overlay_buffer		(tveng_device_info *	info,
 
 static tv_bool
 set_overlay_buffer		(tveng_device_info *	info,
-				 tv_overlay_buffer *	t)
+				 const tv_overlay_buffer *t)
 {
 	P_INFO (info)->overlay_buffer = *t;
 	return TRUE;
 }
 
-static int
-tvengemu_set_preview_window (tveng_device_info *info)
+static tv_bool
+set_overlay_window		(tveng_device_info *	info,
+				 const tv_window *	w)
 {
-  return 0;
-}
+	info->overlay_window.x		= w->x;
+	info->overlay_window.y		= w->y;
+	info->overlay_window.width	= w->width;
+	info->overlay_window.height	= w->height;
 
-static int
-tvengemu_get_preview_window (tveng_device_info *info)
-{
-  return 0;
+	tv_clip_vector_copy (&info->overlay_window.clip_vector,
+			     &w->clip_vector);
+
+	return TRUE;
 }
 
 static tv_bool
-set_overlay			(tveng_device_info *	info,
+get_overlay_window		(tveng_device_info *	info)
+{
+	return TRUE;
+}
+
+static tv_bool
+enable_overlay			(tveng_device_info *	info,
 				 tv_bool		on)
 {
 	return TRUE;
@@ -519,10 +502,12 @@ static struct tveng_module_info tvengemu_module_info = {
   attach_device:		tvengemu_attach_device,
   describe_controller:		tvengemu_describe_controller,
   close_device:			tvengemu_close_device,
+
   .set_video_input		= set_video_input,
   .set_tuner_frequency		= set_tuner_frequency,
-  .set_standard			= set_standard,
+  .set_video_standard		= set_video_standard,
   .set_control			= set_control,
+
   update_capture_format:	tvengemu_update_capture_format,
   set_capture_format:		tvengemu_set_capture_format,
   get_signal_strength:		tvengemu_get_signal_strength,
@@ -530,13 +515,13 @@ static struct tveng_module_info tvengemu_module_info = {
   stop_capturing:		tvengemu_stop_capturing,
   read_frame:			tvengemu_read_frame,
   get_timestamp:		tvengemu_get_timestamp,
-  set_capture_size:		tvengemu_set_capture_size,
-  get_capture_size:		tvengemu_get_capture_size,
-  .get_overlay_buffer		= get_overlay_buffer,
+
   .set_overlay_buffer		= set_overlay_buffer,
-  set_preview_window:		tvengemu_set_preview_window,
-  get_preview_window:		tvengemu_get_preview_window,
-  .set_overlay			= set_overlay,
+  .get_overlay_buffer		= get_overlay_buffer,
+  .set_overlay_window		= set_overlay_window,
+  .get_overlay_window		= get_overlay_window,
+  .enable_overlay		= enable_overlay,
+
   get_chromakey:		tvengemu_get_chromakey,
   set_chromakey:		tvengemu_set_chromakey,
 
