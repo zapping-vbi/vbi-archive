@@ -55,6 +55,8 @@ void vbi_draw_page_region(struct fmt_page *pg, void *data, int
 	vbi_draw_page_region(X, Y, Z, 0, 0, 40, 25, -1, 1)
 void vbi_get_rendered_size(int *w, int *h);
 
-
+/* preliminary */
+void vbi_draw_cc_page_region(struct fmt_page *pg, void *data,
+	int scol, int srow, int width, int height, int rowstride);
 
 #endif /* EXPORT_H */

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.26 2001-02-26 05:56:59 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.27 2001-02-27 12:26:47 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -94,47 +94,62 @@ init_gfx(void)
 	(((unsigned int *)(p))[i] = (v))))
 
 static inline void
-draw_char(int canvas_type, unsigned char *canvas, unsigned char *pen,
-	int glyph, int bold, int underline, int italic, attr_size size,
-	int rowstride)
+draw_char(int canvas_type, unsigned char *canvas, unsigned int rowstride,
+	unsigned char *pen, unsigned char *font, int cpl, int cw, int ch,
+	int glyph, int bold, int italic, unsigned int underline, attr_size size)
 {
 	unsigned char *src1, *src2;
 	unsigned short g = glyph & 0xFFFF;
 	int shift1, shift2;
 	int x, y, base = 0;
-	int ch = CH;
-	int ww = rowstride/canvas_type;
+
+	/* bold = !!bold; */
 
 	if (italic && g < 0x200)
 		base = GL_ITALICS;
 
-	x = (base + g) * CW;
+	x = (base + g) * cw;
 	shift1 = x & 7;
-	src1 = fimg + (x >> 3);
+	src1 = font + (x >> 3);
 
-	x = (base + 0xC0 + (glyph >> 20)) * CW;
+	x = (base + 0xC0 + (glyph >> 20)) * cw;
 	shift2 = (x & 7) + ((glyph >> 18) & 1);
-	src2 = fimg + (x >> 3);
+	src2 = font + (x >> 3);
+
 	if (glyph & (1 << 19))
-		src2 += CPL * CW / 8;
+		src2 += cpl * cw / 8;
 
-	for (y = 0; y < ch; y++) {
+	switch (size) {
+	case DOUBLE_HEIGHT2:
+	case DOUBLE_SIZE2:
+		src1 += cpl * cw / 8 * ch / 2;
+		src2 += cpl * cw / 8 * ch / 2;
+		underline >>= ch / 2;
+
+	case DOUBLE_HEIGHT:
+	case DOUBLE_SIZE: 
+		ch >>= 1;
+
+	default:
+	}
+
+	for (y = 0; y < ch; underline >>= 1, y++) {
+		int bits = ~0;
+
+		if (!(underline & 1)) {
 #if #cpu (i386)
-		int bits = (*((unsigned short *) src1) >> shift1)
-		           | (*((unsigned short *) src2) >> shift2);
+			bits = (*((unsigned short *) src1) >> shift1)
+		    	     | (*((unsigned short *) src2) >> shift2);
 #else
-		int bits = ((src1[1] * 256 + src1[0]) >> shift1)
-			 | ((src2[1] * 256 + src2[0]) >> shift2); /* unaligned/little endian */
+			bits = ((src1[1] * 256 + src1[0]) >> shift1)
+			     | ((src2[1] * 256 + src2[0]) >> shift2); /* unaligned/little endian */
 #endif
-		if (bold)
-			bits |= bits << 1;
-
-		if (underline && y == 9)
-			bits |= 0x0FFF;
+			bits |= bits << bold;
+		}
 
 		switch (size) {
 		case NORMAL:
-			for (x = 0; x < CW; bits >>= 1, x++)
+			for (x = 0; x < cw; bits >>= 1, x++)
 				poke(canvas, x, peek(pen, bits & 1));
 
 			canvas += rowstride;
@@ -142,19 +157,20 @@ draw_char(int canvas_type, unsigned char *canvas, unsigned char *pen,
 			break;
 
 		case DOUBLE_HEIGHT:
-			for (x = 0; x < CW; bits >>= 1, x++) {
+		case DOUBLE_HEIGHT2:
+			for (x = 0; x < cw; bits >>= 1, x++) {
 				unsigned int col = peek(pen, bits & 1);
 
 				poke(canvas, x, col);
-				poke(canvas, x + ww, col);
+				poke(canvas, x + rowstride / canvas_type, col);
 			}
 
-			canvas += 2 * rowstride;
+			canvas += rowstride * 2;
 
 			break;
 
 		case DOUBLE_WIDTH:
-			for (x = 0; x < CW * 2; bits >>= 1, x += 2) {
+			for (x = 0; x < cw * 2; bits >>= 1, x += 2) {
 				unsigned int col = peek(pen, bits & 1);
 
 				poke(canvas, x + 0, col);
@@ -166,16 +182,17 @@ draw_char(int canvas_type, unsigned char *canvas, unsigned char *pen,
 			break;
 
 		case DOUBLE_SIZE:
-			for (x = 0; x < CW * 2; bits >>= 1, x += 2) {
+		case DOUBLE_SIZE2:
+			for (x = 0; x < cw * 2; bits >>= 1, x += 2) {
 				unsigned int col = peek(pen, bits & 1);
 
 				poke(canvas, x + 0, col);
 				poke(canvas, x + 1, col);
-				poke(canvas, x + ww + 0, col);
-				poke(canvas, x + ww + 1, col);
+				poke(canvas, x + rowstride / canvas_type + 0, col);
+				poke(canvas, x + rowstride / canvas_type + 1, col);
 			}
 
-			canvas += 2 * rowstride;
+			canvas += rowstride * 2;
 
 			break;
 
@@ -183,18 +200,17 @@ draw_char(int canvas_type, unsigned char *canvas, unsigned char *pen,
 			break;
 		}
 
-		src1 += CPL * CW / 8;
-		src2 += CPL * CW / 8;
+		src1 += cpl * cw / 8;
+		src2 += cpl * cw / 8;
 	}
 }
 
 static inline void
 draw_drcs(int canvas_type, unsigned char *canvas, unsigned char *pen,
-	unsigned char *src, int glyph, attr_size size, int rowstride)
+	unsigned char *src, int glyph, attr_size size, unsigned int rowstride)
 {
 	unsigned int col;
 	int x, y;
-	int ww = rowstride/canvas_type;
 
 	src += (glyph & 0x3F) * 60;
 	pen += (glyph >> 16) * canvas_type;
@@ -208,16 +224,19 @@ draw_drcs(int canvas_type, unsigned char *canvas, unsigned char *pen,
 			}
 		break;
 
+	case DOUBLE_HEIGHT2:
+		src += 30;
+
 	case DOUBLE_HEIGHT:
-		for (y = 0; y < CH; canvas += 2 * rowstride, y++)
+		for (y = 0; y < CH / 2; canvas += rowstride * 2, y++)
 			for (x = 0; x < 12; src++, x += 2) {
 				col = peek(pen, *src & 15);
 				poke(canvas, x + 0, col);
-				poke(canvas, x + ww + 0, col);
+				poke(canvas, x + rowstride / canvas_type + 0, col);
 
 				col = peek(pen, *src >> 4);
 				poke(canvas, x + 1, col);
-				poke(canvas, x + ww + 1, col);
+				poke(canvas, x + rowstride / canvas_type + 1, col);
 			}
 		break;
 
@@ -234,28 +253,33 @@ draw_drcs(int canvas_type, unsigned char *canvas, unsigned char *pen,
 			}
 		break;
 
+	case DOUBLE_SIZE2:
+		src += 30;
+
 	case DOUBLE_SIZE:
-		for (y = 0; y < CH; canvas += 2 * rowstride, y++)
+		for (y = 0; y < CH / 2; canvas += rowstride * 2, y++)
 			for (x = 0; x < 12 * 2; src++, x += 4) {
 				col = peek(pen, *src & 15);
 				poke(canvas, x + 0, col);
 				poke(canvas, x + 1, col);
-				poke(canvas, x + ww + 0, col);
-				poke(canvas, x + ww + 1, col);
+				poke(canvas, x + rowstride / canvas_type + 0, col);
+				poke(canvas, x + rowstride / canvas_type + 1, col);
 
 				col = peek(pen, *src >> 4);
 				poke(canvas, x + 2, col);
 				poke(canvas, x + 3, col);
-				poke(canvas, x + ww + 2, col);
-				poke(canvas, x + ww + 3, col);
+				poke(canvas, x + rowstride / canvas_type + 2, col);
+				poke(canvas, x + rowstride / canvas_type + 3, col);
 			}
-	default:
 		break;
+
+	default:
 	}
 }
 
 static inline void
-draw_blank(int canvas_type, unsigned char *canvas, unsigned int colour, int rowstride)
+draw_blank(int canvas_type, unsigned char *canvas,
+	unsigned int colour, unsigned int rowstride)
 {
 	int x, y;
 
@@ -289,10 +313,8 @@ vbi_draw_page_region(struct fmt_page *pg, void *data, int reveal,
 	for (i = 2; i < 2 + 8 + 32; i++)
 		pen[i] = pg->colour_map[pg->drcs_clut[i]];
 
-	for (row = srow; row < srow+height;
-	     canvas += ww * (CH - 1), row++) {
-		for (column = scol; column < scol+width;
-		     canvas += CW, column++) {
+	for (row = srow; row < srow+height; canvas += ww * (CH - 1), row++) {
+		for (column = scol; column < scol+width; canvas += CW, column++) {
 			ac = &pg->text[row * pg->columns + column];
 
 			glyph = ((ac->conceal & conceal) || !flash_on) ?
@@ -301,13 +323,21 @@ vbi_draw_page_region(struct fmt_page *pg, void *data, int reveal,
 			pen[0] = pg->colour_map[ac->background];
 			pen[1] = pg->colour_map[ac->foreground];
 
-			if (ac->size <= DOUBLE_SIZE) {
+			switch (ac->size) {
+			case OVER_TOP:
+			case OVER_BOTTOM:
+				break;
+
+			default:
 				if ((glyph & 0xFFFF) >= GL_DRCS) {
-					draw_drcs(sizeof(*canvas), (unsigned char *) canvas, (unsigned char *) pen,
+					draw_drcs(sizeof(*canvas), (unsigned char *) canvas,
+						(unsigned char *) pen,
 						pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size, rowstride);
 				} else {
-					draw_char(sizeof(*canvas), (unsigned char *) canvas, (unsigned char *) pen,
-						glyph, ac->bold, ac->underline, ac->italic, ac->size, rowstride);
+					draw_char(sizeof(*canvas), (unsigned char *) canvas, rowstride,
+						(unsigned char *) pen, fimg, CPL, CW, CH,
+						glyph, ac->bold, ac->italic,
+						ac->underline << 9 /* cell row 9 */, ac->size);
 				}
 			}
 		}
@@ -485,9 +515,10 @@ static void
 draw_char_indexed(png_bytep canvas, png_bytep pen, int glyph, attr_char *ac,
 		  int rowstride)
 {
-	draw_char(sizeof(png_byte), (unsigned char *) canvas, (unsigned char *) pen,
-		glyph, ac->bold, ac->underline, ac->italic, ac->size,
-		  rowstride);
+	draw_char(sizeof(png_byte), (unsigned char *) canvas, rowstride,
+		(unsigned char *) pen, fimg, CPL, CW, CH,
+		glyph, ac->bold, ac->italic,
+		ac->underline << 9 /* cell row 9 */, ac->size);
 }
 
 static void
@@ -531,7 +562,8 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 			for (column = 0; column < W; canvas += CW, column++) {
 				ac = &pg->text[row * pg->columns + column];
 
-				if (ac->size > DOUBLE_SIZE)
+				if (ac->size == OVER_TOP
+				    || ac->size == OVER_BOTTOM)
 					continue;
 
 				glyph = (ac->conceal & conceal) ? GL_SPACE : ac->glyph;
@@ -541,7 +573,8 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 					/*
 					 *  Transparent foreground and background.
 					 */
-					draw_blank(sizeof(*canvas), (unsigned char *) canvas, TRANSPARENT_BLACK, rowstride);
+					draw_blank(sizeof(*canvas), (unsigned char *) canvas,
+						TRANSPARENT_BLACK, rowstride);
 					break;
 
 				case TRANSPARENT:
@@ -556,8 +589,8 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 						pen[0] = TRANSPARENT_BLACK;
 						pen[1] = ac->foreground;
 
-						draw_drcs_indexed(canvas, pen, 
-							pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size, rowstride);
+						draw_drcs_indexed(canvas, pen, pg->drcs[(glyph & 0x1F00) >> 8],
+							glyph, ac->size, rowstride);
 					} else {
 						pen[0] = TRANSPARENT_BLACK;
 						pen[1] = ac->foreground;
@@ -577,8 +610,8 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 						pen[64] = ac->background + 40;
 						pen[65] = ac->foreground;
 
-						draw_drcs_indexed(canvas, pen + 64, 
-							pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size, rowstride);
+						draw_drcs_indexed(canvas, pen + 64, pg->drcs[(glyph & 0x1F00) >> 8],
+							glyph, ac->size, rowstride);
 					} else {
 						pen[0] = ac->background + 40;
 						pen[1] = ac->foreground;
@@ -593,8 +626,8 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 					pen[1] = ac->foreground;
 
 					if ((glyph & 0xFFFF) >= GL_DRCS) {
-						draw_drcs_indexed(canvas, pen, 
-							pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size, rowstride);
+						draw_drcs_indexed(canvas, pen, pg->drcs[(glyph & 0x1F00) >> 8],
+							glyph, ac->size, rowstride);
 					} else {
 						draw_char_indexed(canvas, pen, glyph, ac, rowstride);
 					}
@@ -732,3 +765,113 @@ export_png[1] =			// exported module definition
 };
 
 #endif /* HAVE_LIBPNG */
+
+/* PRELIMINARY */
+
+#include <assert.h>
+#include "ccfont.xbm"
+
+#define CELL_WIDTH 16
+#define CELL_HEIGHT 26
+
+#define NUM_COLS 34
+#define NUM_ROWS 15
+
+static const unsigned char palette[8][3] = {
+  {0x00, 0x00, 0x00},
+  {0xff, 0x00, 0x00},
+  {0x00, 0xff, 0x00},
+  {0xff, 0xff, 0x00},
+  {0x00, 0x00, 0xff},
+  {0xff, 0x00, 0xff},
+  {0x00, 0xff, 0xff},
+  {0xff, 0xff, 0xff}
+};
+
+static inline void
+cc_draw_char(unsigned char *canvas, unsigned int c, unsigned char *pen,
+	  int underline, int rowstride)
+{
+  unsigned short *s = ((unsigned short *) bitmap_bits)
+    + (c & 31) + (c >> 5) * 32 * CELL_HEIGHT;
+  int x, y, b;
+  
+  for (y = 0; y < CELL_HEIGHT; y++) {
+    b = *s;
+    s += 32;
+    
+    if (underline && (y >= 24 && y <= 25))
+      b = ~0;
+    
+    for (x = 0; x < CELL_WIDTH; x++) {
+      canvas[x*4+0] = pen[(b & 1)*3+0];
+      canvas[x*4+1] = pen[(b & 1)*3+1];
+      canvas[x*4+2] = pen[(b & 1)*3+2];
+      canvas[x*4+3] = 0xFF;
+      b >>= 1;
+    }
+
+    canvas += rowstride;
+  }
+}
+
+static void
+draw_row(unsigned char *canvas, attr_char *line, int width, int rowstride)
+{
+  int i;
+  unsigned char pen[6];
+  
+  for (i = 0; i < width; i++)
+    {
+      switch (line[i].opacity)
+	{
+	case TRANSPARENT_SPACE:
+	  assert(0);
+	  break;
+
+	case TRANSPARENT:
+	case SEMI_TRANSPARENT:
+	  /* Transparency not implemented */
+	  /* It could be done in some cases by setting the background
+	     to the XVideo chroma */
+/*	  pen[0] = palette[0][0];
+	  pen[1] = palette[0][1];
+	  pen[2] = palette[0][2];
+	  pen[3] = palette[line[i].foreground][0];
+	  pen[4] = palette[line[i].foreground][1];
+	  pen[5] = palette[line[i].foreground][2];
+	  break;
+*/	    
+	default:
+	  pen[0] = palette[line[i].background][0];
+	  pen[1] = palette[line[i].background][1];
+	  pen[2] = palette[line[i].background][2];
+	  pen[3] = palette[line[i].foreground][0];
+	  pen[4] = palette[line[i].foreground][1];
+	  pen[5] = palette[line[i].foreground][2];
+	  break;
+	}
+
+      cc_draw_char(canvas, line[i].glyph & 0xFF, pen, line[i].underline,
+		rowstride);
+      canvas += CELL_WIDTH*4;
+    }
+}
+
+void
+vbi_draw_cc_page_region(struct fmt_page *pg, void *data,
+	int scol, int srow, int width, int height, int rowstride)
+{
+	unsigned char *canvas = (unsigned char *) data;
+	int row;
+
+	if (rowstride == -1)
+		rowstride = NUM_COLS * CELL_WIDTH * 4; // sizeof(*canvas);
+
+	for (row = srow; row < srow+height; row++) {
+		draw_row(canvas, pg->text + row * pg->columns + scol,
+			width, rowstride);
+
+		canvas += rowstride * CELL_HEIGHT;
+	}
+}

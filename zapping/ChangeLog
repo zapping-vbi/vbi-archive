@@ -1,3 +1,9 @@
+27.2.2001	osd <mschimek@users.sourceforge.net>
+
+	* osd.c: Pipe replaced fifo/timer event queue. Moved
+	  rendering to exp_gfx.c, modified ttx render funcs
+	  for Teletext overlay. Works nicely.
+
 26.2.2001	TTX <mschimek@users.sourceforge.net>
 
 	* Added VTX export module, rationale <http://alevt.listbot.com/
