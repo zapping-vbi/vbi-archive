@@ -9,16 +9,21 @@ if test x$1 != x; then
 	exit
     fi
     ZSFB_DIR=`dirname $1`
+    ZSFB_PREFIX=`echo $ZSFB_DIR | sed s/\\\\/bin//g`
     ZSFB=$1
 else
     ZSFB_DIR=`dirname $(which zapping_setup_fb)`
-    if test x`echo $ZSFB_DIR | grep sbin` = x; then
-	echo "Couldn't find zapping_setup_fb in */sbin, quit."
+    if test x`echo $ZSFB_DIR | grep bin` = x; then
+	echo "Couldn't find zapping_setup_fb in */bin, quit."
 	exit
     fi
-    ZSFB=`which zapping_setup_fb`
+    ZSFB_PREFIX=`echo $ZSFB_DIR | sed s/\\\\/bin//g`
+    ZSFB="$ZSFB_PREFIX/sbin/zapping_setup_fb"
+    if test ! -f $ZSFB; then
+	echo "Cannot find $ZSFB, quit."
+	exit
+    fi
 fi
-ZSFB_PREFIX=`echo $ZSFB_DIR | sed s/\\\\/sbin//g`
 
 echo "This script will create the SUID ROOT program"
 echo "$ZSFB_PREFIX/bin/zapping_setup_fb, which is needed by Zapping."
@@ -32,12 +37,12 @@ if test ! x$are_u_sure = "xyes"; then
 fi
 
 echo mv $ZSFB $ZSFB_PREFIX/bin/zapping_setup_fb
-mv $ZSFB $ZSFB_PREFIX/bin/zapping_setup_fb
+mv $ZSFB $ZSFB_PREFIX/bin/zapping_setup_fb || exit 1
 
 echo chown root.root $ZSFB_PREFIX/bin/zapping_setup_fb
-chown root.root $ZSFB_PREFIX/bin/zapping_setup_fb
+chown root.root $ZSFB_PREFIX/bin/zapping_setup_fb || exit 1
 
 echo chmod 4755 $ZSFB_PREFIX/bin/zapping_setup_fb
-chmod 4755 $ZSFB_PREFIX/bin/zapping_setup_fb
+chmod 4755 $ZSFB_PREFIX/bin/zapping_setup_fb || exit 1
 
 echo Done.
