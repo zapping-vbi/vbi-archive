@@ -369,7 +369,8 @@ capture_start(GtkWidget * window, tveng_device_info *info)
 
 #ifdef USE_XV
   /* Add the necessary Xvport controls to the TVeng device */
-  tveng_set_xv_port(xvport, info);
+  if (have_xv)
+    tveng_set_xv_port(xvport, info);
 #endif
 
   /* Capture started correctly */
