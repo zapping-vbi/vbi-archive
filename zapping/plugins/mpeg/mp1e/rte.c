@@ -1,5 +1,5 @@
 /*
- *  MPEG-1 Real Time Encoder lib wrapper api
+ *  Real Time Encoder lib
  *
  *  Copyright (C) 2000 Iñaki García Etxebarria
  *
@@ -644,22 +644,37 @@ int rte_start ( rte_context * context )
 	rte_compression_startup();
 
 	/* fixme: clean this up */
-	if (modules & 2) {
-		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
-		long long n = llroundn(((double) video_num_frames / frame_rate_value[frame_rate_code])
-			/ (1152.0 / sampling_rate));
+	if (modules & MOD_AUDIO) {
+	  struct stat st;
+		int psy_level = audio_mode / 10;
 
-		printv(1, "Audio compression %2.1f kHz%s %s at %d kbits/s (%1.1f : 1)\n",
-			sampling_rate / (double) 1000, sampling_rate < 32000 ? " (MPEG-2)" : "", modes[audio_mode],
-			audio_bit_rate / 1000, (double) sampling_rate * (16 << stereo) / audio_bit_rate);
+		audio_mode %= 10;
 
-		if (modules & 1)
-			audio_num_frames = MIN(n, (long long) INT_MAX);
+		stereo = (audio_mode != AUDIO_MODE_MONO);
 
-		audio_init();
+		ASSERT("probe '%s'", !stat(pcm_dev, &st), pcm_dev);
+
+		if (S_ISCHR(st.st_mode)) {
+			audio_parameters(&sampling_rate, &audio_bit_rate);
+			mix_init();
+			pcm_init();
+		} else {
+			tsp_init();
+			// pick up file parameters
+			audio_parameters(&sampling_rate, &audio_bit_rate);
+		}
+
+		if ((audio_bit_rate >> stereo) < 80000 || psy_level >= 1) {
+			psycho_loops = MAX(psycho_loops, 1);
+
+			if (sampling_rate < 32000 || psy_level >= 2)
+				psycho_loops = 2;
+
+			psycho_loops = MAX(psycho_loops, 2);
+		}
 	}
 
-	if (modules & 1) {
+	if (modules & MOD_VIDEO) {
 		video_coding_size(width, height);
 
 		if (frame_rate > frame_rate_value[frame_rate_code])
