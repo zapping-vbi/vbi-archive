@@ -54,9 +54,9 @@ output(buffer *mbuf)
 	}
 
 	rte_global_context->private->
-		encode_callback(mbuf->data,
+		encode_callback(rte_global_context,
+				mbuf->data,
 				mbuf->used,
-				rte_global_context,
 				rte_global_context->private->user_data);
 
 
