@@ -1,8 +1,7 @@
 /*
  *  Copyright (C) 1999-2000 Michael H. Schimek
- *  Unmodified non-profit redistribution permitted.
  *
- *  gcc -O2 test.c tables.c decode.c
+ *  gcc -O2 decode.c tables.c v4l2.c test.c ../common/libcommon.a
  *  ./a.out [/dev/vbi*]
  */
 
@@ -17,7 +16,12 @@
 #include <linux/types.h>
 #include <linux/videodev.h>
 #include "../common/mmx.h"
+#include "../common/fifo.h"
+#include "libvbi.h"
 #include "vbi.h"
+
+char *				my_name;
+int				verbose = 0;
 
 static struct decode_rec	vpsd, ttxd;
 
@@ -116,7 +120,7 @@ dump_status(unsigned char *buf)
 }
 
 static void
-_decode_vps(unsigned char *buf)
+decode_vps2(unsigned char *buf)
 {
 	static char pr_label[20];
 	static char label[20];
@@ -183,7 +187,7 @@ _decode_vps(unsigned char *buf)
 }
 
 static void
-_decode_pdc(unsigned char *buf)
+decode_pdc2(unsigned char *buf)
 {
 	int lci, luf, prf, pcs, mi, pty;
 	int cni, cni_vps, pil;
@@ -296,7 +300,7 @@ decode_8301(unsigned char *buf)
 }
 
 static void
-decode_ttx(unsigned char *buf)
+decode_ttx2(unsigned char *buf, int line)
 {
 	int packet_address;
 	int magazine, packet;
@@ -311,9 +315,24 @@ decode_ttx(unsigned char *buf)
 	magazine = packet_address & 7;
 	packet = packet_address >> 3;
 
-	if (magazine != 0 /* 0 -> 8 */
-	    || packet != 30)
+	if (magazine != 0 /* 0 -> 8 */ || packet != 30) {
+		if (verbose > 0) {
+			printf("%x %02d %02d >", magazine, packet, line);
+
+			for (j = 0; j < 42; j++) {
+				char c = buf[j] & 0x7F;
+
+				if (c < 0x20 || c == 0x7F)
+					c = '.';
+
+				putchar(c);
+			}
+
+			putchar('\n');
+		}
+
 		return;
+	}
 
 	designation = hamming84[buf[2]]; 
 
@@ -336,138 +355,63 @@ decode_ttx(unsigned char *buf)
 			buf[j] = bit_reverse[c];
 		}
 
-		_decode_pdc(buf);
+		decode_pdc2(buf);
 		dump_status(buf + 22);
 	}
-}
-
-static int fd;
-
-static int start;
-static int lines;
-static int samples;
-static int rate;
-
-static unsigned char *raw;
-static int rawsize;
-
-#ifdef V4L2_MAJOR_VERSION
-
-#ifndef V4L2_BUF_TYPE_VBI // pending extension
-#define V4L2_BUF_TYPE_VBI V4L2_BUF_TYPE_CAPTURE;
-#endif
-
-static struct v4l2_capability cap;
-static struct v4l2_format format;
-
-#endif
-
-static int
-init_vbi(char *dev_name)
-{
-	if ((fd = open(dev_name, O_RDONLY)) < 0) {
-		perror("open");
-		exit(EXIT_FAILURE);
-	}
-
-#ifdef V4L2_MAJOR_VERSION
-
-	if (ioctl(fd, VIDIOC_QUERYCAP, &cap) >= 0) {
-
-		printf("Opened %s (\'%s\')\n", dev_name, cap.name);
-
-		if (cap.type != V4L2_TYPE_VBI) {
-			fprintf(stderr, "Not a VBI device: %s\n", dev_name);
-			exit(EXIT_FAILURE);
-		}
-
-		/* Should request PAL scanning here */
-
-		memset(&format, 0, sizeof(format));
-
-		format.type = V4L2_BUF_TYPE_VBI;
-		format.fmt.vbi.sampling_rate = 27000000;
-		format.fmt.vbi.sample_format = V4L2_VBI_SF_UBYTE;
-		format.fmt.vbi.start[0] = 6;
-		format.fmt.vbi.count[0] = 16;
-		format.fmt.vbi.start[1] = 318;
-		format.fmt.vbi.count[1] = 16;
-
-		if (ioctl(fd, VIDIOC_S_FMT, &format) < 0) {
-			perror("VIDIOC_S_FMT");
-			exit(EXIT_FAILURE);
-		}
-
-		if (format.fmt.vbi.sampling_rate < 6937500 * 2 ||
-		    format.fmt.vbi.start[0] > 6 ||
-		    format.fmt.vbi.start[1] > 318 || 
-		    format.fmt.vbi.start[0] + format.fmt.vbi.count[0] < 22 ||
-		    format.fmt.vbi.start[1] + format.fmt.vbi.count[1] < 334) {
-			fprintf(stderr, "Cannot capture Teletext with this device\n");
-			exit(EXIT_FAILURE);
-		}
-
-    		if (format.fmt.vbi.sample_format != V4L2_VBI_SF_UBYTE ||
-		    format.fmt.vbi.flags & V4L2_VBI_INTERLACED) {
-			fprintf(stderr, "Sorry, VBI format not supported by this tool\n");
-			exit(EXIT_FAILURE);
-		}
-
-		fprintf(stderr, "Using V4L2 VBI interface...\n");
-
-		start = format.fmt.vbi.start[0];
-		lines = format.fmt.vbi.count[0] + format.fmt.vbi.count[1];
-		samples = format.fmt.vbi.samples_per_line;
-		rate = format.fmt.vbi.sampling_rate;
-	} else 
-
-#endif
-
-	{
-		fprintf(stderr, "Using BTTV VBI interface...\n");
-
-		start = 6; /* yes? */
-		lines = 16 * 2;
-		samples = 2048;
-		rate = 35468950;
-	}
-
-	rawsize = lines * samples;
-
-	if (!(raw = malloc(rawsize))) {
-		fprintf(stderr, "No memory\n");
-		exit(EXIT_FAILURE);
-	}
-
-	return 1;
 }
 
 int
 main(int ac, char **av)
 {
 	char *dev_name = "/dev/vbi0";
+	struct vbi_context *vbi;
+	int vps_offset;
+	fifo *f;
 
-	if (ac > 1) dev_name = av[1];
+	my_name = av[0];
 
-	init_vbi(dev_name);
+	if (ac > 1)
+		dev_name = av[1];
 
-	init_decoder(&vpsd, samples, rate, 5000000, 0x99515555, 0xFFFFFF00, 26);
-	init_decoder(&ttxd, samples, rate, 6937500, 0x27555500, 0xFFFF0000, 42);
+	f = open_vbi_v4l2(dev_name);
+
+	vbi = f->user_data;
+
+	init_decoder(&vpsd, vbi->samples_per_line, vbi->sampling_rate,
+		     5000000, 0x99515555, 0xFFFFFF00, 26);
+
+	init_decoder(&ttxd, vbi->samples_per_line, vbi->sampling_rate,
+		     6937500, 0x27555500, 0xFFFF0000, 42);
+
+	vps_offset = ((16 - (vbi->start[0] + 1)) << vbi->interlaced)
+		     * vbi->samples_per_line;
 
 	for (;;) {
+		unsigned char buf[42];
+		buffer *b;
 		int i;
 
-		if (rawsize != read(fd, raw, rawsize)) {
-			perror("read");
-			exit(EXIT_FAILURE);
+		if (!(b = wait_full_buffer(&vbi->fifo)))
+			break; // XXX EOF
+
+		if (decode_nrz(&vpsd, b->data + vps_offset, buf))
+			decode_vps2(buf);
+
+		if (vbi->interlaced) {
+			for (i = 0; i < vbi->count[0] * 2; i += 2)
+				if (decode_nrz(&ttxd, b->data + i * vbi->samples_per_line, buf))
+					decode_ttx2(buf, i);
+
+			for (i = 1; i < (vbi->count[0] * 2 + 1); i += 2)
+				if (decode_nrz(&ttxd, b->data + i * vbi->samples_per_line, buf))
+					decode_ttx2(buf, i);
+		} else {
+			for (i = 0; i < vbi->count[0] + vbi->count[1]; i++)
+				if (decode_nrz(&ttxd, b->data + i * vbi->samples_per_line, buf))
+					decode_ttx2(buf, i);
 		}
 
-		if (decode_nrz(&vpsd, raw + (16 - (start + 1)) * samples, buf))
-			_decode_vps(buf);
-
-		for (i = 0; i < lines; i++)
-			if (decode_nrz(&ttxd, raw + i * samples, buf))
-				decode_ttx(buf);
+		send_empty_buffer(&vbi->fifo, b);
 	}
 
 	return EXIT_SUCCESS;

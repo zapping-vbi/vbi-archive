@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.5 2000-10-23 21:51:39 garetxe Exp $ */
+/* $Id: fifo.c,v 1.6 2000-11-01 08:59:18 mschimek Exp $ */
 
 #include "fifo.h"
 #include "alloc.h"
@@ -82,14 +82,14 @@ uninit_fifo(fifo * f)
 
 	mucon_destroy(&f->producer);
 
+	memset(f, 0, sizeof(fifo));
+
 	f->wait_full  = (buffer * (*)(fifo *)) dead_end;
 	f->send_empty = (void (*)(fifo *, buffer *)) dead_end;
 	f->wait_empty = (buffer * (*)(fifo *)) dead_end;
 	f->send_full  = (void (*)(fifo *, buffer *)) dead_end;
 
 	f->start = tv_sucks;
-
-	memset(f, 0, sizeof(fifo));
 }
 
 int

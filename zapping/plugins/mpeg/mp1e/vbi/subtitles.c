@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: subtitles.c,v 1.2 2000-10-15 21:24:49 mschimek Exp $ */
+/* $Id: subtitles.c,v 1.3 2000-11-01 08:59:18 mschimek Exp $ */
 
 #include <ctype.h>
 #include "vbi.h"
@@ -45,7 +45,7 @@ static unsigned char fplo_lut[32];
 unsigned char stuffing_packet[2][46];
 
 int
-init_dvb_packet_filter(char *s)
+init_dvb_packet_filter(struct vbi_context *vbi, char *s)
 {
 	int i, j, max;
 	int page, mask;
@@ -54,17 +54,17 @@ init_dvb_packet_filter(char *s)
 
 	/* 7 (6) ... 22, 320 (318) ... 335 */
 
-	if ((vbi_para.start[0] >= 0 && vbi_para.start[0] + vbi_para.count[0] > 22) ||
-	    (vbi_para.start[1] >= 0 && vbi_para.start[1] + vbi_para.count[0] > 335) ||
-	    (vbi_para.count[0] + vbi_para.count[1]) > 32)
+	if ((vbi->start[0] >= 0 && vbi->start[0] + vbi->count[0] > 22) ||
+	    (vbi->start[1] >= 0 && vbi->start[1] + vbi->count[0] > 335) ||
+	    (vbi->count[0] + vbi->count[1]) > 32)
 		return 0; // XXX relax
 
-	for (i = 0; i < vbi_para.count[0]; i++)
-		fplo_lut[i] = (3 << 6) + (1 << 5) + ((vbi_para.start[0] < 0) ? 0 : vbi_para.start[0] + 1 + i);
+	for (i = 0; i < vbi->count[0]; i++)
+		fplo_lut[i] = (3 << 6) + (1 << 5) + ((vbi->start[0] < 0) ? 0 : vbi->start[0] + 1 + i);
 
-	for (i = 0; i < vbi_para.count[1]; i++)
-		fplo_lut[i + vbi_para.count[0]] = (3 << 6) + (0 << 5)
-			+ ((vbi_para.start[1] < 0) ? 0 : vbi_para.start[1] + 1 + i - 313);
+	for (i = 0; i < vbi->count[1]; i++)
+		fplo_lut[i + vbi->count[0]] = (3 << 6) + (0 << 5)
+			+ ((vbi->start[1] < 0) ? 0 : vbi->start[1] + 1 + i - 313);
 
 	memset(stuffing_packet, 0, sizeof(stuffing_packet));
 
@@ -176,15 +176,20 @@ dvb_packet_filter(unsigned char *p, unsigned char *buf,
 	return 0;
 
 encode_packet:
-#if 0
-	for (i = 0; i < 42; i++) {
-		char c = buf[i] & 0x7F;
-		if (c < 0x20 || c == 0x7F) c = '.';
+
+	if (verbose >= 4) {
+		for (i = 0; i < 42; i++) {
+			char c = buf[i] & 0x7F;
+
+			if (c < 0x20 || c == 0x7F)
+				c = '.';
+
 			fputc(c, stderr);
+		}
+
+		fputc('\n', stderr);
 	}
 
-	fputc('\n', stderr);
-#endif
 	p[0] = DATA_UNIT_EBU_TELETEXT_NON_SUBTITLE; // ?
 	p[1] = 44;
 	p[2] = fplo_lut[line];

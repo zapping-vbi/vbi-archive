@@ -18,20 +18,22 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.1 2000-09-29 17:54:33 mschimek Exp $ */
+/* $Id: vbi.h,v 1.2 2000-11-01 08:59:18 mschimek Exp $ */
 
 #include "../common/types.h"
 #include "../common/fifo.h"
 
-extern struct vbi_parameters {
+/* VBI *device* context (...) */
+
+struct vbi_context {
+	fifo		fifo;
+
+	int		sampling_rate;
+	int		samples_per_line;
 	int		start[2];
 	int		count[2];
-	int		samples_per_line;
-	int		sampling_rate;
 	bool		interlaced;
-} vbi_para;
-
-extern fifo *		vbi_cap_fifo;
+};
 
 /* tables.c */
 
@@ -126,6 +128,6 @@ extern void		decode_pdc(unsigned char *buf);
 
 extern unsigned char	stuffing_packet[2][46];
 
-extern int		init_dvb_packet_filter(char *s);
+extern int		init_dvb_packet_filter(struct vbi_context *, char *s);
 extern int		dvb_packet_filter(unsigned char *p, unsigned char *buf,
 				int line, int magazine, int packet);

@@ -1,5 +1,5 @@
 /*
- *  MPEG Real Time Encoder
+ *  MPEG-1 Real Time Encoder
  *  Audio File Library Interface
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tsp.c,v 1.3 2000-08-12 02:14:37 mschimek Exp $ */
+/* $Id: tsp.c,v 1.4 2000-11-01 08:59:18 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.4 2000-10-27 19:15:18 mschimek Exp $ */
+/* $Id: vbi.c,v 1.5 2000-11-01 08:59:18 mschimek Exp $ */
 
 #include "../common/fifo.h"
 #include "../systems/mpeg.h"
@@ -34,12 +34,9 @@ static int		vps_offset;
 static bool		do_pdc, do_subtitles;
 static struct decode_rec vpsd, ttxd;
 static unsigned char	buf[64];
-static fifo *		vbi_fifo;
-
-struct vbi_parameters	vbi_para;
+static fifo *		vbi_output_fifo;
 
 extern int		video_num_frames;
-extern double		vbi_stop_time;
 
 /*
  *  ETS 300 706 -- Enhanced Teletext specification
@@ -79,21 +76,22 @@ decode_ttx(unsigned char *p, unsigned char *buf, int line)
 }
 
 void *
-vbi_thread(void *unused)
+vbi_thread(void *f) // XXX
 {
+	struct vbi_context *vbi = ((fifo *) f)->user_data;
 	buffer *ibuf, *obuf;
 	unsigned char *p, *p1;
 	int vbi_frame_count = 0;
 
 	if (do_subtitles)
-		remote_sync(vbi_cap_fifo, MOD_SUBTITLES, 1 / 25.0);
+		remote_sync(&vbi->fifo, MOD_SUBTITLES, 1 / 25.0);
 
 	while (vbi_frame_count < video_num_frames) { // XXX video XXX pdc
-		if (!(ibuf = wait_full_buffer(vbi_cap_fifo)))
+		if (!(ibuf = wait_full_buffer(&vbi->fifo)))
 			break; // EOF
 
 		if (do_subtitles && remote_break(ibuf->time, 1 / 25.0)) {
-			send_empty_buffer(vbi_cap_fifo, ibuf);
+			send_empty_buffer(&vbi->fifo, ibuf);
 			break;
 		}
 
@@ -105,12 +103,12 @@ vbi_thread(void *unused)
 		if (do_subtitles) {
 			int i;
 
-			obuf = wait_empty_buffer(vbi_fifo);
+			obuf = wait_empty_buffer(vbi_output_fifo);
 			p1 = p = obuf->data;
 
-			if (vbi_para.interlaced) {
-				for (i = 0; i < (vbi_para.count[0] * 2 + 0); i += 2)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi_para.samples_per_line, buf))
+			if (vbi->interlaced) {
+				for (i = 0; i < (vbi->count[0] * 2 + 0); i += 2)
+					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						p += decode_ttx(p, buf, i);
 
 				if (p == p1) {
@@ -118,13 +116,13 @@ vbi_thread(void *unused)
 					p1 = p += 46;
 				}
 
-				for (i = 1; i < (vbi_para.count[0] * 2 + 1); i += 2)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi_para.samples_per_line, buf))
+				for (i = 1; i < (vbi->count[0] * 2 + 1); i += 2)
+					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						p += decode_ttx(p, buf, i);
 			} else {
 				// Top field
-				for (i = 0; i < vbi_para.count[0]; i++)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi_para.samples_per_line, buf))
+				for (i = 0; i < vbi->count[0]; i++)
+					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						p += decode_ttx(p, buf, i);
 
 				if (p == p1) {
@@ -134,7 +132,7 @@ vbi_thread(void *unused)
 
 				// Bottom field
 				for (; i < lines; i++)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi_para.samples_per_line, buf))
+					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						p += decode_ttx(p, buf, i);
 			}
 
@@ -146,52 +144,54 @@ vbi_thread(void *unused)
 			obuf->time = ibuf->time;
 			obuf->used = p - obuf->data;
 
-			send_full_buffer(vbi_fifo, obuf);
+			send_full_buffer(vbi_output_fifo, obuf);
 		}
 		else if (do_pdc)
 		{
 			int i;
 
-			if (vbi_para.interlaced) {
-				for (i = 0; i < (vbi_para.count[0] * 2 + 0); i += 2)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi_para.samples_per_line, buf))
+			if (vbi->interlaced) {
+				for (i = 0; i < (vbi->count[0] * 2 + 0); i += 2)
+					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						decode_ttx(NULL, buf, i);
 
-				for (i = 1; i < (vbi_para.count[0] * 2 + 1); i += 2)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi_para.samples_per_line, buf))
+				for (i = 1; i < (vbi->count[0] * 2 + 1); i += 2)
+					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						decode_ttx(NULL, buf, i);
 			} else
 				for (i = 0; i < lines; i++)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi_para.samples_per_line, buf))
+					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						decode_ttx(NULL, buf, i);
 		}
 
-		send_empty_buffer(vbi_cap_fifo, ibuf);
+		send_empty_buffer(&vbi->fifo, ibuf);
 	}
 
 	printv(2, "VBI: End of file\n");
 
 	if (do_subtitles)
 		for (;;) {
-			obuf = wait_empty_buffer(vbi_fifo);
+			obuf = wait_empty_buffer(vbi_output_fifo);
 			obuf->used = 0;
-			send_full_buffer(vbi_fifo, obuf);
+			send_full_buffer(vbi_output_fifo, obuf);
 		}
 
 	return NULL;
 }
 
 void
-vbi_init(void)
+vbi_init(fifo *f)
 {
-	lines = vbi_para.count[0] + vbi_para.count[1];
+	struct vbi_context *vbi = f->user_data;
 
-	vps_offset = (16 - (vbi_para.start[0] + 1)) * vbi_para.samples_per_line;
+	lines = vbi->count[0] + vbi->count[1];
 
-	init_decoder(&vpsd, vbi_para.samples_per_line, vbi_para.sampling_rate,
+	vps_offset = ((16 - (vbi->start[0] + 1)) << vbi->interlaced) * vbi->samples_per_line;
+
+	init_decoder(&vpsd, vbi->samples_per_line, vbi->sampling_rate,
 		5000000, 0x99515555, 0xFFFFFF00, 26);
 
-	init_decoder(&ttxd, vbi_para.samples_per_line, vbi_para.sampling_rate,
+	init_decoder(&ttxd, vbi->samples_per_line, vbi->sampling_rate,
 		6937500, 0x27555500, 0xFFFF0000, 42);
 
 	do_pdc = FALSE;
@@ -202,10 +202,10 @@ vbi_init(void)
 	if (subtitle_pages != NULL) {
 		do_subtitles = TRUE;
 
-		init_dvb_packet_filter(subtitle_pages);
+		init_dvb_packet_filter(vbi, subtitle_pages);
 
-		vbi_fifo = mux_add_input_stream(PRIVATE_STREAM_1,
-			32 * 46, 5, 25.0, 294400 /* peak */, vbi_cap_fifo);
+		vbi_output_fifo = mux_add_input_stream(PRIVATE_STREAM_1,
+			32 * 46, 5, 25.0, 294400 /* peak */, &vbi->fifo);
 	}
 
 	if (!do_pdc && !do_subtitles)

@@ -29,29 +29,31 @@
 extern char *		my_name;
 extern int		verbose;
 
-// mp1e (log.h@32): Failed to / explain this (3, No such process)
+#define ISTF2(x) #x
+#define ISTF1(x) ISTF2(x)
 
-#define ASSERT(what, cond, args...)				\
-do {								\
-	if (!(cond)) {						\
-		fprintf(stderr, "%s (" __FILE__ "@%d): "	\
-			"Failed to " what " (%d, %s)\n",	\
-			my_name, __LINE__ ,##args,		\
-			errno, strerror(errno));		\
-			exit(EXIT_FAILURE);			\
-	}							\
+// mp1e:log.h:35: Failed to explain this (3, No such process)
+
+#define ASSERT(what, cond, args...)					\
+do {									\
+	if (!(cond)) {							\
+		fprintf(stderr,	"%s:" __FILE__ ":" ISTF1(__LINE__) ": "	\
+			"Failed to " what " (%d, %s)\n",		\
+			my_name ,##args, errno, strerror(errno));	\
+		exit(EXIT_FAILURE);					\
+	}								\
 } while (0)
 
-// mp1e (log.h@45): Failed to / explain this
+// mp1e:log.h:47: Failed to explain this
 
-#define ASSERTX(what, cond, args...)				\
-do {								\
-	if (!(cond)) {						\
-		fprintf(stderr, "%s (" __FILE__ "@%d): "	\
-			"Failed to " what "\n",			\
-			my_name, __LINE__ ,##args);		\
-			exit(EXIT_FAILURE);			\
-	}							\
+#define ASSERTX(what, cond, args...)					\
+do {									\
+	if (!(cond)) {							\
+		fprintf(stderr,	"%s:" __FILE__ ":" ISTF1(__LINE__) ": "	\
+			"Failed to " what "\n",				\
+			my_name ,##args);				\
+		exit(EXIT_FAILURE);					\
+	}								\
 } while (0)
 
 /* glib-ish g_return_if_fail */
@@ -66,13 +68,13 @@ do {								\
 	}							\
 } while (0)
 
-// mp1e (log.h@57): Elvis lives
+// mp1e:log.h:71: Elvis lives
 
-#define FAIL(why, args...)					\
-do {								\
-	fprintf(stderr, "%s (" __FILE__ "@%d): " why " \n",	\
-		my_name, __LINE__ ,##args);			\
-	exit(EXIT_FAILURE);					\
+#define FAIL(why, args...)						\
+do {									\
+	fprintf(stderr,	"%s:" __FILE__ ":" ISTF1(__LINE__) ": "		\
+		why "\n", my_name ,##args);				\
+	exit(EXIT_FAILURE);						\
 } while (0)
 
 #define DUMP(array, from, to)					\

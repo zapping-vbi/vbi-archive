@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.29 2000-10-27 19:15:17 mschimek Exp $ */
+/* $Id: main.c,v 1.30 2000-11-01 08:59:18 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,6 +43,7 @@
 #include "video/mpeg.h"
 #include "video/video.h"
 #include "audio/audio.h"
+#include "vbi/libvbi.h"
 #include "systems/systems.h"
 #include "common/profile.h"
 #include "common/math.h"
@@ -55,10 +56,6 @@
 char *			my_name;
 int			verbose;
 
-double			video_stop_time = 1e30;
-double			audio_stop_time = 1e30;
-double			vbi_stop_time = 1e30;
-
 pthread_t		audio_thread_id;
 fifo *			audio_cap_fifo;
 int			stereo;
@@ -67,11 +64,8 @@ pthread_t		video_thread_id;
 fifo *			video_cap_fifo;
 void			(* video_start)(void);
 
-pthread_t		vbi_thread_id;
-fifo *			vbi_cap_fifo;
-extern void		vbi_v4l2_init(void);
-extern void		vbi_init(void);
-extern void *		vbi_thread(void *);
+static pthread_t	vbi_thread_id;
+static fifo *		vbi_cap_fifo;
 
 pthread_t               output_thread_id;
 
@@ -153,7 +147,7 @@ main(int ac, char **av)
 		if (!strncmp(pcm_dev, "alsa", 4)) {
 			audio_parameters(&sampling_rate, &audio_bit_rate);
 			mix_init(); // XXX OSS
-			alsa_pcm_init();
+			open_pcm_alsa(pcm_dev, sampling_rate, stereo);
 		} else if (!strncmp(pcm_dev, "esd", 3)) {
 			audio_parameters(&sampling_rate, &audio_bit_rate);
 			mix_init(); /* fixme: esd_mix_init? */
@@ -164,7 +158,7 @@ main(int ac, char **av)
 			if (S_ISCHR(st.st_mode)) {
 				audio_parameters(&sampling_rate, &audio_bit_rate);
 				mix_init();
-				pcm_init();
+				audio_cap_fifo = open_pcm_oss(pcm_dev, sampling_rate, stereo);
 			} else {
 				tsp_init();
 				// pick up file parameters
@@ -196,7 +190,7 @@ main(int ac, char **av)
 	}
 
 	if (modules & MOD_SUBTITLES) {
-		vbi_v4l2_init();
+		vbi_cap_fifo = open_vbi_v4l2(vbi_dev);
 	}
 
 	/* Compression init */
@@ -248,7 +242,7 @@ main(int ac, char **av)
 		else
 			printv(1, "Recording Teletext, page %s\n", subtitle_pages);
 
-		vbi_init();
+		vbi_init(vbi_cap_fifo);
 	}
 
 	ASSERT("initialize output routine", init_output_stdout());
@@ -277,7 +271,7 @@ main(int ac, char **av)
 	if (modules & MOD_SUBTITLES) {
 		ASSERT("create vbi thread",
 			!pthread_create(&vbi_thread_id, NULL,
-				vbi_thread, NULL));
+				vbi_thread, vbi_cap_fifo)); // XXX
 
 		printv(2, "VBI thread launched\n");
 	}

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.3 2000-10-22 05:24:50 mschimek Exp $ */
+/* $Id: alsa.c,v 1.4 2000-11-01 08:59:18 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,6 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <asm/types.h>
-
 #include "../common/log.h" 
 #include "../common/mmx.h" 
 #include "../common/math.h" 
@@ -50,137 +49,132 @@
 
 #define BUFFER_SIZE 8192 // bytes per read(), appx.
 
-static snd_pcm_t *	handle;
-static short *		abuffer;
-static int		scan_range;
-static int		look_ahead;
-static int		samples_per_frame;
-static double		frame_time;
-static short *		ubuffer;
-static buffer		buf;
-static fifo		pcm_fifo;
+static struct alsa_context {
+	struct pcm_context	pcm;
 
-extern char *		pcm_dev;
-extern int		sampling_rate;
-extern int		stereo;
+	snd_pcm_t *		handle;
+	int			scan_range;
+	int			look_ahead;
+	int			samples_per_frame;
+	double			scan_time;
+	short *			p;
+	int			left;
+	double			time;
+};
 
-/*
- *  Read window: samples_per_frame (1152 * channels) + look_ahead (480 * channels);
- *  Subband window size 512 samples, step width 32 samples (32 * 3 * 12 total)
- *
- *  Clock drift not detected (how?)
- */
+// XXX only one buffer at a time, not checked
+// XXX clock drift & overflow detection
 
-// XXX only one at a time, not checked
 static buffer *
-alsa_pcm_wait_full(fifo *f)
+wait_full(fifo *f)
 {
-	static double rtime = -1.0, utime;
-	static int left = 0;
-	static short *p;
+	struct alsa_context *alsa = f->user_data;
+	buffer *b = f->buffers;
 
-	if (ubuffer) {
-		p = ubuffer;
-		ubuffer = NULL;
-		buf.time = utime;
-		buf.data = (unsigned char *) p;
-		return &buf;
-	}
-
-	if (left <= 0)
+	if (alsa->left <= 0)
 	{
-		ssize_t r;
-		int n, m;
+		ssize_t r, n, m;
+		unsigned char *p;
 
-		memcpy(abuffer, abuffer + scan_range, look_ahead * sizeof(abuffer[0]));
+		memcpy(b->allocated, (short *) b->allocated + alsa->scan_range,
+			alsa->look_ahead * sizeof(short));
 
-		p = abuffer + look_ahead;
-		m = scan_range * sizeof(abuffer[0]);
+		p = b->allocated + alsa->look_ahead * sizeof(short);
+		m = alsa->scan_range * sizeof(short);
 
 		for (n = m; n > 0;) {
-			r = snd_pcm_plugin_read(handle, p, n);
+			r = snd_pcm_plugin_read(alsa->handle, p, n);
 
 			if (r == -EINTR)
 				continue;
 
 			if (r == 0 || r == -EAGAIN) {
-				usleep(frame_time * 800000);
+				usleep(alsa->scan_time * 800000);
 				continue;
 			}
 
 			ASSERT("read PCM data, %d bytes", r > 0, n);
 
-			(char *) p += r;
+			p += r;
 			n -= r;
 
 			if (r < 200)
-				usleep(frame_time * 800000);
+				usleep(alsa->scan_time * 800000);
 		}
 
-		if (rtime < 0.0) {
+		if (alsa->time < 0.0) {
 			snd_pcm_channel_status_t status;
 			int err;
 
 			status.channel = SND_PCM_CHANNEL_CAPTURE;
 
-			if ((err = snd_pcm_plugin_status(handle, &status)) < 0)
-				FAIL("Failed to query ALSA PCM plugin status (%d, %s)", err, snd_strerror(err));
+			if ((err = snd_pcm_plugin_status(alsa->handle, &status)) < 0)
+				FAIL("Failed to query ALSA PCM plugin status (%d, %s)",
+					err, snd_strerror(err));
 
-			rtime = status.stime.tv_sec + status.stime.tv_usec / 1e6;
+			alsa->time = status.stime.tv_sec + status.stime.tv_usec / 1e6;
 		} else
-			rtime += frame_time;
+			alsa->time += alsa->scan_time;
 
-		left = scan_range - samples_per_frame;
-		p = abuffer;
+		alsa->p = (short *) b->allocated;
+		alsa->left = alsa->scan_range - alsa->samples_per_frame;
 
-		buf.time = rtime;
-		buf.data = (unsigned char *) p;
-		return &buf;
+		b->time = alsa->time;
+		b->data = b->allocated;
+
+		return b;
 	}
 
-	utime = rtime + ((p - abuffer) >> stereo) / (double) sampling_rate;
-	left -= samples_per_frame;
+	b->time = alsa->time
+		+ ((alsa->p - (short *) b->allocated) >> alsa->pcm.stereo)
+			/ (double) alsa->pcm.sampling_rate;
 
-	p += samples_per_frame;
+	alsa->p += alsa->samples_per_frame;
+	alsa->left -= alsa->samples_per_frame;
 
-	buf.time = utime;
-	buf.data = (unsigned char *) p;
-	return &buf;
+	b->data = (unsigned char *) alsa->p;
+
+	return b;
 }
 
 static void
-alsa_pcm_send_empty(fifo *f, buffer *b)
+send_empty(fifo *f, buffer *b)
 {
 }
 
-void
-alsa_pcm_init(void)
+fifo *
+open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 {
+	struct alsa_context *alsa;
 	snd_pcm_channel_info_t info;
 	snd_pcm_channel_params_t params;
 	snd_pcm_channel_setup_t setup;
 	int buffer_size;
 	int err;
 
-	samples_per_frame = SAMPLES_PER_FRAME << stereo;
-	scan_range = MAX(BUFFER_SIZE / sizeof(short) / samples_per_frame, 1) * samples_per_frame;
-	frame_time = (scan_range >> stereo) / (double) sampling_rate;
-	look_ahead = (512 - 32) << stereo;
+	ASSERT("allocate pcm context",
+		(alsa = calloc(1, sizeof(struct alsa_context))));
 
-	buffer_size = (scan_range + look_ahead)	* sizeof(abuffer[0]);
+	alsa->pcm.sampling_rate = sampling_rate;
+	alsa->pcm.stereo = stereo;
 
-	ASSERT("allocate PCM buffer, %d bytes",
-		(abuffer = calloc_aligned(buffer_size, CACHE_LINE)) != NULL, buffer_size);
+	alsa->samples_per_frame = SAMPLES_PER_FRAME << stereo;
+	alsa->scan_range = MAX(BUFFER_SIZE / sizeof(short) / alsa->samples_per_frame, 1)
+			  * alsa->samples_per_frame;
+	alsa->look_ahead = (512 - 32) << stereo;
+	alsa->scan_time = (alsa->scan_range >> stereo)
+			   / (double) sampling_rate;
+	alsa->time = -1.0;
 
-	printv(3, "Allocated PCM buffer, %d bytes\n", buffer_size);
+	buffer_size = (alsa->scan_range + alsa->look_ahead) * sizeof(short);
 
-	if ((err = snd_pcm_open(&handle, 0, 0, SND_PCM_OPEN_CAPTURE)) < 0)
+	if ((err = snd_pcm_open(&alsa->handle, 0, 0, SND_PCM_OPEN_CAPTURE)) < 0)
 		FAIL("Cannot open ALSA device 0,0 (%d, %s)", err, snd_strerror(err));
 	// XXX 0,0
 
 	info.channel = SND_PCM_CHANNEL_CAPTURE;
 
-	if ((err = snd_pcm_plugin_info(handle, &info)) < 0)
+	if ((err = snd_pcm_plugin_info(alsa->handle, &info)) < 0)
 		FAIL("Cannot obtain ALSA device info (%d, %s)", err, snd_strerror(err));
 
 	printv(2, "Opened ALSA PCM plugin device\n");
@@ -199,12 +193,12 @@ alsa_pcm_init(void)
 	params.buf.stream.queue_size = BUFFER_SIZE * 2;
 	params.buf.stream.fill = SND_PCM_FILL_NONE;
 
-	if ((err = snd_pcm_plugin_params(handle, &params)) < 0)
+	if ((err = snd_pcm_plugin_params(alsa->handle, &params)) < 0)
 		FAIL("Failed to set ALSA PCM plugin parameters (%d, %s)", err, snd_strerror(err));
 
 	setup.channel = SND_PCM_CHANNEL_CAPTURE;
 
-	if ((err = snd_pcm_plugin_setup(handle, &setup)) < 0)
+	if ((err = snd_pcm_plugin_setup(alsa->handle, &setup)) < 0)
 		FAIL("Failed to query ALSA PCM plugin parameters (%d, %s)", err, snd_strerror(err));
 
 	printv(3, "ALSA setup: ilv %d, format %d, rate %d, voices %d, queue %d\n",
@@ -212,21 +206,24 @@ alsa_pcm_init(void)
 		setup.format.rate, setup.format.voices,
 		setup.buf.stream.queue_size);
 
-	if ((err = snd_pcm_plugin_prepare(handle, SND_PCM_CHANNEL_CAPTURE)) < 0)
+	if ((err = snd_pcm_plugin_prepare(alsa->handle, SND_PCM_CHANNEL_CAPTURE)) < 0)
 		FAIL("Failed to prepare ALSA PCM plugin for recording (%d, %s)", err, snd_strerror(err));
 
-	init_callback_fifo(audio_cap_fifo = &pcm_fifo,
-		alsa_pcm_wait_full, alsa_pcm_send_empty,
-		NULL, NULL, 0, 0);
+	ASSERT("init pcm/alsa capture fifo", init_callback_fifo(audio_cap_fifo = &alsa->pcm.fifo,
+		wait_full, send_empty, NULL, NULL, buffer_size, 1));
+
+	alsa->pcm.fifo.user_data = alsa;
+
+	return &alsa->pcm.fifo;
 }
 
-#else // HAVE_LIBASOUND
+#else // !HAVE_LIBASOUND
 
-void
-alsa_pcm_init(void)
+fifo *
+open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 {
 	FAIL("Not compiled with ALSA interface.\n"
-	     "More about ALSA at http://www.alsa-project.org\n");
+	     "For more info about ALSA visit http://www.alsa-project.org\n");
 }
 
 #endif // !HAVE_LIBASOUND
