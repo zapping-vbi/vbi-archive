@@ -43,8 +43,11 @@ static PyObject* py_quit (PyObject *self, PyObject *args)
   if (!main_window)
     py_return_false;
 
-  /* Error ignored */
-  tv_quiet_set (main_info, TRUE);
+  if (zconf_get_boolean (NULL, "/zapping/options/audio/quit_muted"))
+    {
+      /* Error ignored */
+      tv_quiet_set (main_info, TRUE);
+    }
 
   /* Save the currently tuned channel */
   zconf_set_integer (cur_tuned_channel,
@@ -282,35 +285,30 @@ void
 startup_cmd (void)
 {
   cmd_register ("quit", py_quit, METH_VARARGS,
-		_("Quits the program"), "zapping.quit()");
+		("Quit"), "zapping.quit()");
   cmd_register ("switch_mode", py_switch_mode, METH_VARARGS,
-		_("Switches Zapping to the "
-		  "given mode"), "zapping.switch_mode('preview')");
+		("Switch to Fullscreen mode"), "zapping.switch_mode('fullscreen')",
+		("Switch to Capture mode"), "zapping.switch_mode('capture')",
+		("Switch to Overlay mode"), "zapping.switch_mode('preview')",
+		("Switch to Teletext mode"), "zapping.switch_mode('teletext')");
   /* FIXME: This isn't the place for this, create a mode.c containing
      the mode switching logic, it's getting a bit too  complex */
   cmd_register ("toggle_mode", py_toggle_mode, METH_VARARGS,
-		_("Toggles between the previous and the given "
-		  "(or current by default) mode"),
-		"zapping.toggle_mode('fullscreen')");
+		("Switch to Fullscreen mode or previous mode"), "zapping.toggle_mode('fullscreen')",
+		("Switch to Capture mode or previous mode"), "zapping.toggle_mode('capture')",
+		("Switch to Overlay mode or previous mode"), "zapping.toggle_mode('preview')",
+		("Switch to Teletext mode or previous mode"), "zapping.toggle_mode('teletext')");
   /* Compatibility (FIXME: Does it really make sense to keep this?) */
-  cmd_register ("restore_mode", py_toggle_mode, METH_VARARGS,
-		_("Toggles between the previous and the given "
-		  "(or current by default) mode"),
-		"zapping.restore_mode('fullscreen')");
+  cmd_register ("restore_mode", py_toggle_mode, METH_VARARGS);
   cmd_register ("about", py_about, METH_VARARGS,
-		_("Shows the About box"), "zapping.about()");
-  cmd_register ("resize_screen", py_resize_screen, METH_VARARGS,
-		_("Resizes the screen to the given dimensions"),
-		"zapping.resize_screen(640, 480)");
+		("About Zapping"), "zapping.about()");
+  cmd_register ("resize_screen", py_resize_screen, METH_VARARGS);
   cmd_register ("hide_controls", py_hide_controls, METH_VARARGS,
-		_("Hides the menu and the toolbar"),
-		"zapping.hide_controls(1)");
+		("Show/hide menu and toolbar"), "zapping.hide_controls()");
   cmd_register ("help", py_help, METH_VARARGS,
-		_("Opens the help page"), "zapping.help()"); 
+		("Zapping help"), "zapping.help()"); 
   cmd_register ("keep_on_top", py_keep_on_top, METH_VARARGS,
-		_("Whether to keep the video window on top of all "
-		  "other windows (if supported by the window manager)"),
-		"zapping.keep_on_top([1])");
+		("Keep window on top"), "zapping.keep_on_top()");
 }
 
 void
