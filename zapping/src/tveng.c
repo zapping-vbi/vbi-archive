@@ -78,8 +78,7 @@ static tveng_controller tveng_controllers[] = {
 };
 
 /* Initializes a tveng_device_info object */
-tveng_device_info * tveng_device_info_new(Display * display, int bpp,
-					  const char *default_standard)
+tveng_device_info * tveng_device_info_new(Display * display, int bpp)
 {
   size_t needed_mem = 0;
   tveng_device_info * new_object;
@@ -128,10 +127,6 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp,
 
   new_object->private->display = display;
   new_object->private->bpp = bpp;
-  if (default_standard)
-    new_object->private->default_standard=strdup(default_standard);
-  else
-    new_object->private->default_standard=NULL;
 
   new_object->private->zapping_setup_fb_verbosity = 0; /* No output by
 							  default */
@@ -163,9 +158,6 @@ void tveng_device_info_destroy(tveng_device_info * info)
 
   if (info -> error)
     free(info -> error);
-
-  if (info -> private->default_standard)
-    free(info -> private->default_standard);
 
   pthread_mutex_destroy(&(info->private->mutex));
 
@@ -253,9 +245,6 @@ int tveng_attach_device(const char* device_file,
 	      short_str, long_str);
       fprintf(stderr, "Detected framebuffer depth: %d\n",
 	      tveng_get_display_depth(info));
-      if (info->private->default_standard)
-	fprintf(stderr, "On tunerless inputs, the norm defaults to %s\n",
-		info->private->default_standard);
       fprintf(stderr, "Current capture format:\n");
       fprintf(stderr, "  Dimensions: %dx%d  BytesPerLine: %d  Depth: %d "
 	      "Size: %d K\n", info->format.width,

@@ -295,11 +295,8 @@ tveng_device_info;
    or NULL on error. Display is the display we are connected to, bpp
    is the current X display's depth in Bits Per Pixel, or -1 if TVeng
    should try to detect it.
-   Default standard is the standard TVeng will switch to when a
-   tunerless input is selected, NULL if you don't care.
 */
-tveng_device_info * tveng_device_info_new(Display * display, int bpp,
-					  const char *default_standard);
+tveng_device_info * tveng_device_info_new(Display * display, int bpp);
 
 /* Destroys a tveng_device_info object */
 void tveng_device_info_destroy(tveng_device_info * info);

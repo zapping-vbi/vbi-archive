@@ -1,3 +1,10 @@
+23.12.2001	fake std <garetxe@users.sf.net>
+
+	* tveng1.c: Automatic workaround for v4l api bug, now tunerless
+	inputs can set the std when there's a tuner in the card.
+	* screenshot: Made the ov511 button polling a
+	timeout+thread. Rather inelegant, but we don't have much choice.
+
 16.12.2001	pl.po updated <garetxe@users.sf.net>
 
 	* pl.po: Update by Paweł.

@@ -259,7 +259,6 @@ int main(int argc, char * argv[])
   gint dword_align = FALSE;
   gint disable_zsfb = FALSE;
   gint disable_plugins = FALSE;
-  char *default_norm = NULL;
   char *video_device = NULL;
   char *command = NULL;
   char *yuv_format = NULL;
@@ -344,15 +343,6 @@ int main(int argc, char * argv[])
       NULL
     },
     {
-      "tunerless-norm",
-      'n',
-      POPT_ARG_STRING,
-      &default_norm,
-      0,
-      N_("Set the default standard/norm for tunerless inputs"),
-      N_("NORM")
-    },
-    {
       "dword-align",
       0,
       POPT_ARG_NONE,
@@ -423,7 +413,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.149 2001-12-10 20:29:49 garetxe Exp $",
+	 "$Id: main.c,v 1.150 2001-12-23 17:33:27 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -474,7 +464,7 @@ int main(int argc, char * argv[])
       return 0;
     }
   D();
-  main_info = tveng_device_info_new( GDK_DISPLAY(), x_bpp, default_norm);
+  main_info = tveng_device_info_new( GDK_DISPLAY(), x_bpp);
   if (!main_info)
     {
       g_error(_("Cannot get device info struct"));

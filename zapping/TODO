@@ -7,10 +7,7 @@ Outstanding issues for the next release (0.6.2)
           (independent of station name decoding, that is). Mind
 	  listing subtitles. Should also disable trigger
           decoding when all set to ignore.
-	+ Standards for each input.
 	+ rte: We need a TODO/Changelog for this, do not forget
-	+ rte: Add non-blocking push.
-	+ Move tigrux's patch to a more convenient place.
 	+ Look into scripting.
 	+ Examine the possiblity of linking movie titles, VBI plugin API.
 	+ Streaming ASCII plugin.

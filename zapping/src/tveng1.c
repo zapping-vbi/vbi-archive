@@ -546,53 +546,6 @@ int tveng1_set_input(struct tveng_enum_input * input,
 
   current_mode = tveng_stop_everything(info);
 
-  /* If this input has no tuner, switch to an input with a tuner and
-     set the given standard. This fixes the V4L1 design flaw */
-  if ((input->tuners == 0) || (!(input->flags & TVENG_INPUT_TUNER)))
-    if (info->private->default_standard)
-      {
-	int i, j;
-	for (i = 0; i<info->num_inputs;i++)
-	  if ((info->inputs[i].tuners > 0) && (info->inputs[i].flags &
-					       TVENG_INPUT_TUNER))
-	    break;
-	if (i != info->num_inputs) /* found a candidate */
-	  {
-	    /* failing here isn't critical */
-	    if (info->debug_level > 0)
-	      fprintf(stderr,
-		      "Tunerless input, switching to input #%d to set %s\n",
-		      i, info->private->default_standard);
-	    for (j=0; j<info->num_inputs; j++)
-	      fprintf(stderr, "I %d) [%s]\n", j, info->inputs[j].name);
-	    for (j=0;j<info->num_standards; j++)
-	      fprintf(stderr, "S %d) [%s]\n", j,
-		      info->standards[j].name);
-	    fprintf(stderr, "cur_input: %d cur_standard: %d\n",
-		    info->cur_input, info->cur_standard);
-	    fprintf(stderr, "a) %s) %d\n",
-		    info->inputs[i].name,
-		    tveng_set_input(&(info->inputs[i]), info));
-	    for (j=0; j<info->num_inputs; j++)
-	      fprintf(stderr, "I %d) [%s]\n", j, info->inputs[j].name);
-	    for (j=0;j<info->num_standards; j++)
-	      fprintf(stderr, "S %d) [%s]\n", j,
-		      info->standards[j].name);
-	    fprintf(stderr, "cur_input: %d cur_standard: %d\n",
-		    info->cur_input, info->cur_standard);
-	    fprintf(stderr, "b) %d\n",
-		    tveng_set_standard_by_name(info->private->default_standard,
-					       info));
-	    for (j=0; j<info->num_inputs; j++)
-	      fprintf(stderr, "I %d) [%s]\n", j, info->inputs[j].name);
-	    for (j=0;j<info->num_standards; j++)
-	      fprintf(stderr, "S %d) [%s]\n", j,
-		      info->standards[j].name);
-	    fprintf(stderr, "cur_input: %d cur_standard: %d\n",
-		    info->cur_input, info->cur_standard);
-	  }
-      }
-
   /* Fill in the channel with the appropiate info */
   channel.channel = input->id;
   if (ioctl(info->fd, VIDIOCGCHAN, &channel))
@@ -671,7 +624,7 @@ static int tveng1_get_standards(tveng_device_info * info)
   info->tveng_errno = 0; /* Set errno flag */
 
   /* If it has no tuners, we are done */
-  if (info->inputs[info->cur_input].tuners == 0)
+  if (!(info->caps.flags & TVENG_CAPS_TUNER))
     return 0;
 
   /* This comes from xawtv, in its author's words: "dirty hack time"
@@ -729,9 +682,20 @@ static int tveng1_get_standards(tveng_device_info * info)
 
   standard_collisions(info);
 
-  /* Get the current standard */
-  /* Fill in the channel with the appropiate info */
-  channel.channel = info->inputs[info->cur_input].id;
+  /* Get the current standard if this input has a tuner */
+  if (info->inputs[info->cur_input].tuners)
+    channel.channel = info->inputs[info->cur_input].id;
+  else /* look for the input we're using to fake the tuner */
+    {
+      int j;
+      for (j=0; j<info->num_inputs; j++)
+	if (info->inputs[j].tuners)
+	  break;
+      /* Otherwise we've a broken driver */
+      t_assert(j != info->num_inputs);
+      channel.channel = info->inputs[j].id;
+    }
+
   if (ioctl(info->fd, VIDIOCGCHAN, &channel))
     {
       info->tveng_errno = errno;
@@ -766,24 +730,69 @@ int tveng1_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
 
   current_mode = tveng_stop_everything(info);
 
-  /* Fill in the channel with the appropiate info */
-  channel.channel = info->inputs[info->cur_input].id;
-  if (ioctl(info->fd, VIDIOCGCHAN, &channel))
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOCGCHAN", info);
-      return -1;
-    }    
+  if ((!info->inputs[info->cur_input].tuners) &&
+      (info->caps.flags & TVENG_CAPS_TUNER))
+    { /* switch to an input with tuner and then switch back */
+      int i = 0;
+      struct video_channel schan;
 
-  /* Now set the channel and the norm */
-  channel.norm = std->id;
-  if ((retcode = ioctl(info->fd, VIDIOCSCHAN, &channel)))
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOCSCHAN", info);
+      for (i=0; i<info->num_inputs; i++)
+	if (info->inputs[i].tuners)
+	  {
+	    schan.channel = info->inputs[i].id;
+	    if (ioctl(info->fd, VIDIOCGCHAN, &schan))
+	      continue; /* not valid */
+	    schan.norm = std->id;
+	    if (!ioctl(info->fd, VIDIOCSCHAN, &schan))
+	      break; /* assume the std was changed correctly */
+	  }
+
+      if (i==info->num_inputs)
+	{
+	  t_error_msg("set_standard",
+		      "No available input found for setting standard",
+		      info);
+	  retcode = -1;
+	}
+      else
+	{
+	  info->cur_standard = std->index;
+	  retcode = 0;
+	}
+
+      /* restore current input */
+      /* no error checking, try to get as far as we can */
+      fprintf(stderr, "Restoring %s\n", info->inputs[info->cur_input].name);
+      schan.channel = info->inputs[info->cur_input].id;
+      printf("%d [%s]\n", ioctl(info->fd, VIDIOCGCHAN, &schan), schan.name);
+      printf("%d\n", ioctl(info->fd, VIDIOCSCHAN, &schan));
     }
+  /* The current input can do itself */
+  else if (info->inputs[info->cur_input].tuners)
+    {
+      /* Fill in the channel with the appropiate info */
+      channel.channel = info->inputs[info->cur_input].id;
+      if (ioctl(info->fd, VIDIOCGCHAN, &channel))
+	{
+	  info->tveng_errno = errno;
+	  t_error("VIDIOCGCHAN", info);
+	  return -1;
+	}
 
-  info->cur_standard = std->index;
+      /* Now set the channel and the norm */
+      channel.norm = std->id;
+      if ((retcode = ioctl(info->fd, VIDIOCSCHAN, &channel)))
+	{
+	  info->tveng_errno = errno;
+	  t_error("VIDIOCSCHAN", info);
+	}
+      info->cur_standard = std->index;
+    }
+  else
+    {
+      t_error_msg("set_standard", "No tuners in the given device", info);
+      retcode = -1;
+    }
 
   /* Start capturing again as if nothing had happened */
   tveng_restart_everything(current_mode, info);
@@ -2015,9 +2024,6 @@ static int p_tveng1_dequeue(unsigned char * where, tveng_device_info *
 		p_info->mmbuf.offsets[bm.frame];
 	      unsigned int line;
 
-	      fprintf(stderr, "bytesperline: %d, %d\n", bpl,
-		      info->format.bytesperline);
-	      
 	      for (line = 0; line < info->format.height; line++)
 		{
 		  memcpy(where, p, bpl);

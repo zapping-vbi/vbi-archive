@@ -100,7 +100,6 @@ struct tveng_private {
   int		save_x, save_y;
   int		bpp;
   int		current_bpp;
-  char		*default_standard;
   struct tveng_module_info module;
 
 #ifndef DISABLE_X_EXTENSIONS

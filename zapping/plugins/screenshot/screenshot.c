@@ -212,28 +212,64 @@ plugin_get_info (const gchar ** canonical_name,
 /*
  *  Creative WebCam (ov511) grab button
  *  Contributed by Sandino Flores Moreno <tigrux@avantel.net>
+ *
+ *  tveng_ov511_get_button_state apparently can take some time, but
+ *  plugin_start must be called from the main thread. Thus we have a
+ *  thread reading the /proc entry and a 250 ms timeout that get notified
+ *  (nothing fancy, just a gboolean) and calls plugin_start.
  */
 
 static gint ogb_timeout_id = -1;
+static volatile gboolean ov511_clicked = FALSE;
+static volatile gboolean ov511_poll_quit = FALSE;
+static pthread_t ov511_poll_thread_id = -1;
+
+static void *
+ov511_poll_thread (void *unused)
+{
+  /* I know this while (!quit) isn't the best thing since sliced
+     bread, but it's easy to do and will work just fine */
+  while (!ov511_poll_quit)
+    switch (tveng_ov511_get_button_state(zapping_info))
+      {
+      case 1:
+	ov511_clicked = TRUE; /* clicked */
+	break;
+      case 0: /* not clicked since last get_button_state */
+	break;
+      default: /* sth has gone wrong, exit the thread */
+	return NULL;
+      }
+
+  return NULL;
+}
 
 static gint
 ov511_grab_button_timeout (gint *timeout_id)
 {
-  switch (tveng_ov511_get_button_state(zapping_info))
+  static gboolean first_run = TRUE;
+  /* Startup. This has two uses. First we check that the ov511
+     controller is loaded and if loaded we clear any previous
+     "clicked" flag */
+  if (first_run)
     {
-    case 1:
-      plugin_start();
-      break;
-    case 0:
-      /* Not clicked but camera detected, continue */
-      break;
-    default:
-      /* Some kind of error, destroy */
-      *timeout_id = -1;
-      return FALSE;
+      if (tveng_ov511_get_button_state(zapping_info) < 0)
+	{
+	  *timeout_id = -1;
+	  return FALSE;
+	}
+      pthread_create(&ov511_poll_thread_id, NULL, ov511_poll_thread, NULL);
+      first_run = FALSE;
     }
 
-  return TRUE;
+  /* only done afterwards */
+  if (ov511_clicked)
+    {
+      ov511_clicked = FALSE;
+      plugin_start();
+    }
+
+  return TRUE; /* Continue */
 }
 
 static gboolean
@@ -248,7 +284,7 @@ plugin_init ( PluginBridge bridge, tveng_device_info * info )
   append_property_handler(&screenshot_handler);
 
   ogb_timeout_id =
-    gtk_timeout_add (250 /* ms */,
+    gtk_timeout_add (100 /* ms */,
 		     (GtkFunction) ov511_grab_button_timeout,
 		     &ogb_timeout_id);
 
@@ -266,6 +302,13 @@ plugin_close(void)
     {
       gtk_timeout_remove (ogb_timeout_id);
       ogb_timeout_id = -1;
+    }
+
+  if (ov511_poll_thread_id >= 0)
+    {
+      ov511_poll_quit = TRUE;
+      pthread_join(ov511_poll_thread_id, NULL);
+      ov511_poll_thread_id = -1;
     }
 
   while (num_threads) /* Wait until all threads exit cleanly */
