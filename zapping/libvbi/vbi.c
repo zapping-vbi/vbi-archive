@@ -277,7 +277,7 @@ add_filter(struct vbi *vbi)
 	filter.old_fifo = vbi->fifo;
 
 	init_callback_fifo(&filter.fifo, "vbi-filter",
-		wait_full_filter, send_empty_filter, NULL, 0, 0);
+		wait_full_filter, send_empty_filter, 0, 0);
 
 	vbi->fifo = &filter.fifo;
 }

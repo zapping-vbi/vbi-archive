@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.13 2001-03-31 11:10:26 garetxe Exp $ */
+/* $Id: v4lx.c,v 1.14 2001-05-05 23:45:06 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -222,10 +222,8 @@ start_read(fifo *f)
 
 	if ((b = wait_full_read(f))) {
 		unget_full_buffer(f, b);
-		remove_consumer(f);
 		return TRUE; /* access should be finally granted */
 	}
-	remove_consumer(f);
 	return FALSE;
 }
 
@@ -619,7 +617,7 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 		}
 	} else {
 		if (!init_callback_fifo(&vbi->fifo, "vbi-v4l",
-		    wait_full_read, send_empty_read, NULL, fifo_depth,
+		    wait_full_read, send_empty_read, fifo_depth,
 		    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 			goto failure;
 		}
@@ -756,10 +754,8 @@ start_stream(fifo *f)
 
 	if ((b = wait_full_stream(f))) {
 		unget_full_buffer(f, b);
-		remove_consumer(f);
 		return TRUE;
 	}
-	remove_consumer(f);
 
 	return FALSE;
 }
@@ -922,7 +918,7 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 			}
 		} else {
 			if (!init_callback_fifo(&vbi->fifo, "vbi-v4l2-stream",
-			    wait_full_stream, send_empty_stream, NULL, fifo_depth,
+			    wait_full_stream, send_empty_stream, fifo_depth,
 			    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 				goto failure;
 			}
@@ -1006,7 +1002,7 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 			}
 		} else {
 			if (!init_callback_fifo(&vbi->fifo, "vbi-v4l2-read",
-			    wait_full_read, send_empty_read, NULL, fifo_depth,
+			    wait_full_read, send_empty_read, fifo_depth,
 			    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 				goto failure;
 			}

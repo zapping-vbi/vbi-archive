@@ -24,7 +24,7 @@
 /*
   TODO:
     . support for SECAM/NTSC/etc standards
-    . Less CPU usage (less memcopy's)
+    . Dynamic stats.
 */
 
 /* This is the description of the plugin, change as appropiate */
@@ -42,10 +42,6 @@ static const gchar str_author[] = "Iñaki García Etxebarria";
 static const gchar str_version[] = "0.1";
 /* TRUE if we are running */
 static gboolean active = FALSE;
-/* Number of encoded frames */
-static gint coded_frames = 0;
-/* Destination buffer provided by rte */
-static void * dest_buffer = NULL;
 /* The context we are encoding to */
 static rte_context * context = NULL;
 /* Info about the video device */
@@ -82,7 +78,6 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_start, 0x1234),
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
-    SYMBOL(plugin_process_bundle, 0x1234),
     SYMBOL(plugin_capture_stop, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
     SYMBOL(plugin_add_properties, 0x1234),
@@ -262,7 +257,6 @@ audio_data_callback(rte_context * context, void * data, double * time, enum
   struct timeval tv;
 
   g_assert(stream == RTE_AUDIO);
-  g_assert(user_data == (void*)0xbeefdead);
 
   read_audio(data, time, context);
 }
@@ -363,6 +357,50 @@ resolve_filename(const gchar * dir, const gchar * prefix,
   return returned_file;
 }
 
+static void
+video_get_buffer(rte_context *context, rte_buffer *buf,
+		 enum rte_mux_mode stream)
+{
+  fifo *capture_fifo = rte_get_user_data(context);
+  buffer *b = NULL;
+  capture_bundle *bundle;
+
+  g_assert(capture_fifo != NULL);
+
+  while (!b)
+    {
+      fprintf(stderr, "waiting full mpeg\n");
+      b = wait_full_buffer(capture_fifo);
+      fprintf(stderr, "waited full mpeg\n");
+      bundle = (capture_bundle*)b->data;
+
+      /* empty bundles are allowed (resizing, etc.) */
+      if (!bundle->image_type ||
+	  !bundle->data)
+	{
+	  fprintf(stderr, "sending empty mpeg\n");
+	  send_empty_buffer(capture_fifo, b);
+	  fprintf(stderr, "sent empty mpeg\n");
+	  b = NULL;
+	}
+    }
+
+  buf->data = bundle->data;
+  buf->time = bundle->timestamp;
+  buf->user_data = b;
+}
+
+static void
+video_unref_buffer(rte_context *context, rte_buffer *buf)
+{
+  fifo *capture_fifo = rte_get_user_data(context);
+  g_assert(capture_fifo != NULL);
+
+  fprintf(stderr, "sending empty unref mpeg\n");
+  send_empty_buffer(capture_fifo, (buffer*)buf->user_data);
+  fprintf(stderr, "sent empty unref mpeg\n");
+}
+
 static
 gboolean plugin_start (void)
 {
@@ -422,7 +460,7 @@ gboolean plugin_start (void)
   context =
     rte_context_new(zapping_info->format.width,
 		    zapping_info->format.height, pixformat,
-		    (void*)0xbeefdead);
+		    get_capture_fifo());
 
   if (!context)
     {
@@ -444,13 +482,15 @@ gboolean plugin_start (void)
       break;
     case 1:
       rte_set_mode(context, RTE_VIDEO);
-      rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE, NULL, NULL, NULL);
+      rte_set_input(context, RTE_VIDEO, RTE_CALLBACKS, TRUE, NULL,
+		    video_get_buffer, video_unref_buffer);
       break;
     default:
       rte_set_mode(context, RTE_AUDIO | RTE_VIDEO);
       rte_set_input(context, RTE_AUDIO, RTE_CALLBACKS, FALSE,
 		    audio_data_callback, NULL, NULL);
-      rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE, NULL, NULL, NULL);
+      rte_set_input(context, RTE_VIDEO, RTE_CALLBACKS, TRUE, NULL,
+		    video_get_buffer, video_unref_buffer);
       break;
     }
 
@@ -503,9 +543,6 @@ gboolean plugin_start (void)
 	close_audio();
       return FALSE;
     }
-
-  dest_buffer = rte_push_video_data(context, NULL, 0.0);
-  coded_frames = 0;
 
   if (saving_dialog)
     gtk_widget_destroy(saving_dialog);
@@ -657,23 +694,6 @@ do_stop(void)
   saving_dialog = NULL;
 
   active = FALSE;
-}
-
-static
-void plugin_process_bundle ( capture_bundle * bundle )
-{
-  if (!active)
-    return;
-
-  if ((mux_mode+1)&2)
-    {
-      if (dest_buffer)
-	memcpy(dest_buffer, bundle->data,
-	       context->video_bytes);
-
-      dest_buffer = rte_push_video_data(context, dest_buffer,
-					bundle->timestamp);
-    }
 }
 
 static

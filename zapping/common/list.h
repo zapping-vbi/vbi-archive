@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: list.h,v 1.3 2001-03-31 11:10:26 garetxe Exp $ */
+/* $Id: list.h,v 1.4 2001-05-05 23:45:06 garetxe Exp $ */
 
 #ifndef LIST_H
 #define LIST_H
@@ -93,6 +93,9 @@ static inline void
 unlink_node(list *l, node *n)
 {
 	node *p = l->head;
+
+	if (!n)
+		return;
 
 	if (p == n) {
 		rem_head(l);

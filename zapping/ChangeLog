@@ -1,6 +1,8 @@
 5.05.2001	remote(get_channel_info) <garetxe@users.sourceforge.net>
 
 	* src/remote.c: added get_channel_info call.
+	* common/fifo: "slow consumer" killing code, unfinished, breaks
+	some things.
 
 4.05.2001	mpeg plugin improvements <garetxe@users.sourceforge.net>
 

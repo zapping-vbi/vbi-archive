@@ -197,17 +197,18 @@ capture_thread (gpointer data)
   capture_bundle *d;
   tveng_device_info *info = (tveng_device_info *)data;
 
-  while (!exit_capture_thread) /* cancel is called on this thread */
+  while (!exit_capture_thread)
     {
       if ((b = recv_empty_buffer(&capture_fifo)))
 	{
 	  d = (capture_bundle*)b->data;
 	  
 	  fill_bundle(d, info);
+	  fprintf(stderr, "sending full\n");
 	  send_full_buffer(&capture_fifo, b);
+	  fprintf(stderr, "sent full\n");
 	}
       usleep(1000);
-      pthread_testcancel();
     }
 
   /* clear capture_fifo on exit */
@@ -368,7 +369,10 @@ static gint idle_handler(gpointer ignored)
 
   print_info(main_window);
 
-  if ((b = recv_full_buffer(&capture_fifo)))
+  fprintf(stderr, "receiving full capture\n");
+  b = recv_full_buffer(&capture_fifo);
+  fprintf(stderr, "received full capture (%p)\n", b);
+  if (b)
     {
       d = (capture_bundle*)b->data;
       if (d->timestamp)
@@ -412,7 +416,9 @@ static gint idle_handler(gpointer ignored)
 	  clear_bundle(d);
 	  build_bundle(d, &current_format, &capture_fifo);
 	}
+      fprintf(stderr, "sending empty ml\n");
       send_empty_buffer(&capture_fifo, b);
+      fprintf(stderr, "sent empty ml\n");
     }
   else
     usleep(2000);
@@ -496,7 +502,7 @@ capture_stop(tveng_device_info *info)
       p = p->next;
     }
 
-  /* Free the memeory used by the bundles */
+  /* Free the memory used by the bundles */
   for (i=0; i<capture_fifo.num_buffers; i++)
     clear_bundle((capture_bundle*)capture_fifo.buffers[i].data);
 
@@ -572,3 +578,8 @@ print_info(GtkWidget *main_window)
   fprintf(stderr, "detected x11 depth: %d\n", x11_get_bpp());
 }
 
+fifo *
+get_capture_fifo (void)
+{
+  return &capture_fifo;
+}

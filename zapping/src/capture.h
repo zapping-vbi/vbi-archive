@@ -28,6 +28,7 @@
 
 #include <gtk/gtk.h>
 #include <tveng.h>
+#include "common/fifo.h"
 
 /*
  * Inits the capture, setting the given widget as a destination.
@@ -75,5 +76,8 @@ capture_lock(void);
  */
 void
 capture_unlock(void);
+
+fifo *
+get_capture_fifo(void);
 
 #endif /* capture.h */
