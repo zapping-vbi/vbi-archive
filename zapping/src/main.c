@@ -62,7 +62,7 @@ char *program_invocation_short_name;
 
 static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
 						support */
-gint			disable_overlay = FALSE; /* Xv or V4L */
+
 
 static void shutdown_zapping(void);
 static gboolean startup_zapping(gboolean load_plugins);
@@ -187,7 +187,7 @@ int main(int argc, char * argv[])
   char *video_device = NULL;
   char *command = NULL;
   char *yuv_format = NULL;
-  gboolean unmutable = FALSE;
+  gboolean mutable = TRUE;
   /* Some other common options in case the standard one fails */
   char *fallback_devices[] =
   {
@@ -211,8 +211,89 @@ int main(int argc, char * argv[])
       POPT_ARG_STRING,
       &video_device,
       0,
-      N_("Video device to use"),
-      N_("DEVICE")
+      N_("Kernel video device"),
+      N_("FILENAME")
+    },
+    {
+      "xv-video-port",
+      0,
+      POPT_ARG_INT,
+      &xv_video_port,
+      0,
+      N_("XVideo video input port"),
+      NULL
+    },
+    {
+      "xv-image-port",
+      0,
+      POPT_ARG_INT,
+      &xv_image_port,
+      0,
+      N_("XVideo image overlay port"),
+      NULL
+    },
+    {
+      "xv-port", /* for compatibility with Zapping 0.6 */
+      0,
+      POPT_ARG_INT,
+      &xv_video_port,
+      0,
+      N_("XVideo video input port"),
+      NULL
+    },
+    {
+      "no-xv-video",
+      0,
+      POPT_ARG_NONE,
+      &disable_xv_video,
+      0,
+      N_("Disable XVideo video input support"),
+      NULL
+    },
+    {
+      "no-xv-image",
+      0,
+      POPT_ARG_NONE,
+      &disable_xv_image,
+      0,
+      N_("Disable XVideo image overlay support"),
+      NULL
+    },
+    {
+      "no-xv", /* for compatibility with Zapping 0.6 */
+      'v',
+      POPT_ARG_NONE,
+      &disable_xv,
+      0,
+      N_("Disable XVideo extension support"),
+      NULL
+    },
+    {
+      "no-overlay",
+      0,
+      POPT_ARG_NONE,
+      &disable_overlay,
+      0,
+      N_("Disable video overlay"),
+      NULL
+    },
+    {
+      "remote",
+      0,
+      POPT_ARG_NONE,
+      &disable_overlay,
+      0,
+      N_("X display is remote, disable video overlay"),
+      NULL
+    },
+    {
+      "no-vbi",
+      'i',
+      POPT_ARG_NONE,
+      &disable_vbi,
+      0,
+      N_("Disable VBI support"),
+      NULL
     },
     {
       "no-plugins",
@@ -224,47 +305,14 @@ int main(int argc, char * argv[])
       NULL
     },
     {
-      "no-vbi",
-      0,
-      POPT_ARG_NONE,
-      &disable_vbi,
-      0,
-      N_("Disable VBI support"),
-      NULL
-    },
-    {
-      "no-xv",
-      'v',
-      POPT_ARG_NONE,
-      &disable_xv,
-      0,
-      N_("Disable XVideo extension support"),
-      NULL
-    },
-    {
-      "xv-port",
-      0,
-      POPT_ARG_INT,
-      &xv_overlay_port,
-      0,
-      N_("XVideo port for overlay. Default is first usable"),
-      NULL
-    },
-    {
-      "remote",
-      0,
-      POPT_ARG_NONE,
-      &disable_overlay,
-      0,
-      N_("X11 display is remote. This basically disables video overlay"),
-      NULL
-    },
-    {
       "no-zsfb",
       'z',
       POPT_ARG_NONE,
       &dummy,
       0,
+      /* We used to call zapping_setup_fb on startup unless this
+	 switch was given. Now it is only called if necessary
+	 before enabling V4L overlay. */
       /* TRANSLATORS: --no-zsfb command line switch. */
       N_("Obsolete"),
       NULL
@@ -284,7 +332,7 @@ int main(int argc, char * argv[])
       POPT_ARG_NONE,
       &debug_msg,
       0,
-      N_("Set debug messages on"),
+      N_("Print debug messages"),
       NULL
     },
     {
@@ -293,7 +341,7 @@ int main(int argc, char * argv[])
       POPT_ARG_NONE,
       &dword_align,
       0,
-      N_("Force dword aligning of the overlay window"),
+      N_("Force dword alignment of the overlay window"),
       NULL
     },
     {
@@ -311,8 +359,11 @@ int main(int argc, char * argv[])
       POPT_ARG_STRING,
       &yuv_format,
       0,
-      N_("Pixformat for XVideo capture mode [YUYV | YVU420]"),
-      N_("PIXFORMAT")
+      /* We used to call zapping_setup_fb on startup unless this
+	 switch was given. Now it is only called if necessary
+	 before enabling V4L overlay. */
+      /* TRANSLATORS: --no-zsfb command line switch. */
+      N_("Obsolete"),
     },
     {
       NULL,
@@ -352,7 +403,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.24 2003-10-20 21:34:27 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.25 2003-10-31 19:08:41 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -447,7 +498,7 @@ int main(int argc, char * argv[])
       return -1;
     }
   tveng_set_debug_level(debug_msg, main_info);
-  tveng_set_xv_support(disable_xv, main_info);
+  tveng_set_xv_support(disable_xv || disable_xv_video, main_info);
   tveng_set_dword_align(dword_align, main_info);
   D();
   if (!startup_zapping(!disable_plugins))
@@ -563,7 +614,7 @@ int main(int argc, char * argv[])
   /* mute the device while we are starting up */
   /* FIXME */
   if (-1 == tv_mute_set (main_info, TRUE))
-    unmutable = TRUE;
+    mutable = FALSE;
   D();
   z_tooltips_active (zconf_get_boolean
 		     (NULL, "/zapping/options/main/show_tooltips"));
@@ -592,10 +643,10 @@ int main(int argc, char * argv[])
 
       D();
 
-  if (unmutable)
+  if (0 && !mutable)
     {
-#warning
-fprintf(stderr, "UNMUTABLE\n");
+      /* FIXME the device we open initially might not be mutable,
+         but could be later when we switch btw capture and overlay. */
       /* FIXME this can change at runtime, the mute button
          should update just like the controls box. */
       /* has no mute function */
