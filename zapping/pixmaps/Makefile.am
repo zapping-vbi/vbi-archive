@@ -15,7 +15,16 @@ PIXMAPS = \
 	left.png \
 	right.png \
 	reset.png \
-	reveal.png
+	reveal.png \
+	brightness.png \
+	contrast.png \
+	saturation.png \
+	hue.png \
+	recordtb.png \
+	screenshot.png \
+	mute.png \
+	teletext.png \
+	video.png
 
 RATING_CA = \
 	rating_tv_ca_en_1.png rating_tv_ca_en_2.png \
@@ -52,23 +61,16 @@ IMAGES = \
 	vt_loading2.jpeg \
 	gnome-television.png
 
-ZAPPING_STOCK = \
-	brightness.png contrast.png saturation.png hue.png \
-	recordtb.png \
-	mute.png \
-	teletext.png \
-	screenshot.png
-
 pixmapdir = $(datadir)/pixmaps/zapping
-pixmap_DATA = gnome-television.png $(PIXMAPS) $(RATING_CA) $(RATING_US) $(IMAGES)
+pixmap_DATA = gnome-television.png $(PIXMAPS) $(IMAGES)
 
-EXTRA_DIST = $(pixmap_DATA) $(ZAPPING_STOCK)
+EXTRA_DIST = $(pixmap_DATA)
 
-BUILT_SOURCES = zapping_stock.h $(PIXMAPS:.png=.h)
+BUILT_SOURCES = $(PIXMAPS:.png=.h)
 
 noinst_HEADERS = $(BUILT_SOURCES)
 
-CLEANFILES = $(BUILT_SOURCES) $(ZAPPING_STOCK:.png=.h)
+CLEANFILES = $(BUILT_SOURCES)
 
 %.h: @GDK_PIXBUF_CSOURCE@
 
@@ -76,14 +78,3 @@ CLEANFILES = $(BUILT_SOURCES) $(ZAPPING_STOCK:.png=.h)
 	echo -e "\n/* Generated file, do not edit! */\n" > $@
 	@GDK_PIXBUF_CSOURCE@ --struct --build-list \
 	  `echo $(<F) | sed -e 's%[^[:alnum:]]%_%g'` $< >> $@
-
-zapping_stock.h: $(ZAPPING_STOCK:.png=.h)
-	echo -e "\n/* Generated file, do not edit! */\n" > $@
-	for fi in $^; do echo "#include \"$$fi\"" >> $@; done
-	echo -e "\nstatic const struct {\n const gchar *stock_id;" >> $@
-	echo -e " const GdkPixdata *pixdata;\n} zapping_stock_table [] = {" >> $@
-	for fi in $(ZAPPING_STOCK); do \
-	  echo -n $$fi | sed -e 's%[^[:alnum:]]%-%g;s%\(.*\).png%  { "zapping-\1", \&%' >> $@; \
-	  echo -n $$fi | sed -e 's%[^[:alnum:]]%_%g' >> $@; echo " }," >> $@; \
-	done
-	echo -e "  { 0, 0 }\n};\n" >> $@
