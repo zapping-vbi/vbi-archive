@@ -88,7 +88,7 @@ void PrintUsage(void)
 void PM(char * message, int min_message)
 {
   if (min_message <= verbosity)
-    printf(message);
+    fprintf(stderr, message);
 }
 
 gboolean check_dga(Display * display, int screen)
@@ -109,40 +109,46 @@ gboolean check_dga(Display * display, int screen)
 
   if (!XF86DGAQueryExtension(display, &event_base, &error_base))
     {
-      perror("XF86DGAQueryExtension");
+      if (verbosity)
+	perror("XF86DGAQueryExtension");
       return FALSE;
     }
 
   if (!XF86DGAQueryVersion(display, &major_version, &minor_version))
     {
-      perror("XF86DGAQueryVersion");
+      if (verbosity)
+	perror("XF86DGAQueryVersion");
       return FALSE;
     }
 
   if (!XF86DGAQueryDirectVideo(display, screen, &flags))
     {
-      perror("XF86DGAQueryDirectVideo");
+      if (verbosity)
+	perror("XF86DGAQueryDirectVideo");
       return FALSE;
     }
 
   if (!(flags & XF86DGADirectPresent))
     {
-      fprintf(stderr,
-	      "No DirectVideo present (according to DGA extension %d.%d)\n",
-	      major_version, minor_version);
+      if (verbosity)
+	fprintf(stderr,
+		"No DirectVideo present (according to DGA extension %d.%d)\n",
+		major_version, minor_version);
       return FALSE;
     }
 
   if (!XF86DGAGetVideoLL(display, screen, &addr, &width, &banksize,
 			 &memsize))
     {
-      perror("XF86DGAGetVideoLL");
+      if (verbosity)
+	perror("XF86DGAGetVideoLL");
       return FALSE;
     }
 
   if (!XF86DGAGetViewPortSize(display, screen, &vp_width, &vp_height))
     {
-      perror("XF86DGAGetViewPortSize");
+      if (verbosity)
+	perror("XF86DGAGetViewPortSize");
       return FALSE;
     }
 
@@ -162,8 +168,9 @@ gboolean check_dga(Display * display, int screen)
 	if (info[i].class == TrueColor && info[i].depth >= 15)
 	    v = i;
     if (-1 == v) {
+      if (verbosity)
 	fprintf(stderr, "x11: no approximate visual available\n");
-	return FALSE;
+      return FALSE;
     }
 
     /* get depth + bpp (heuristic) */
@@ -175,8 +182,9 @@ gboolean check_dga(Display * display, int screen)
 	}
     }
     if (0 == bpp) {
+      if (verbosity)
 	fprintf(stderr,"x11: can't figure out framebuffer depth\n");
-	return FALSE;
+      return FALSE;
     }
 
   /* Print some info about the DGA device in --verbose mode */
@@ -218,7 +226,8 @@ int main(int argc, char * argv[])
 	{
 	  /* New video device specified */
 	  if ((i+1) == argc)
-	    printf(_("Video device name seems to be missing\n"));
+	    fprintf(stderr,
+		    _("Video device name seems to be missing\n"));
 	  else
 	    video_device = argv[++i];
 	}
@@ -226,7 +235,7 @@ int main(int argc, char * argv[])
 	{
 	  /* X display to use */
 	  if ((i+1) == argc)
-	    printf(_("X display name seems to be missing\n"));
+	    fprintf(stderr, _("X display name seems to be missing\n"));
 	  else
 	    display_name = argv[++i];
 	}
@@ -247,7 +256,8 @@ int main(int argc, char * argv[])
       else if (!strcasecmp(argv[i], "--version"))
 	show_version = TRUE;
       else
-	printf(_("Unknown command line option %s, ignoring it\n"), argv[i]);
+	fprintf(stderr,
+		_("Unknown command line option %s, ignoring it\n"), argv[i]);
     }
 
   if (show_version)
@@ -259,7 +269,7 @@ int main(int argc, char * argv[])
   if (verbosity)
     /* Print a short copyright notice if we aren't totally quiet */
     printf(_("(C) 2000 Iñaki García Etxebarria.\n"
-	     "This file is under the GNU General Public License.\n"));
+	     "This program is under the GNU General Public License.\n"));
 
   /* The user has asked for help, give it and exit */
   if (print_usage)
@@ -282,8 +292,9 @@ int main(int argc, char * argv[])
     {
       if (video_device[i] == '.')
 	{
-	  printf(_("Given device %s has dots in it, cannot use it\n"),
-		 video_device);
+	  fprintf(stderr,
+		  _("Given device %s has dots in it, cannot use it\n"),
+		  video_device);
 	  return 1;
 	}
     }
@@ -291,15 +302,17 @@ int main(int argc, char * argv[])
   /* Check that it's on the /dev/ directory */
   if (strlen(video_device) < 7) /* Minimum size */
     {
-      printf(_("Given device %s is too short, cannot use it\n"),
-	     video_device);
+      fprintf(stderr,
+	      _("Given device %s is too short, cannot use it\n"),
+	      video_device);
       return 1;      
     }
 
   if (strncmp(video_device, "/dev/", 5))
     {
-      printf(_("Given device %s doesn't start with /dev/, cannot use it\n"),
-	     video_device);
+      fprintf(stderr,
+	      _("Given device %s doesn't start with /dev/, cannot use it\n"),
+	      video_device);
       return 1;
     }
 
@@ -309,16 +322,19 @@ int main(int argc, char * argv[])
   fd = open (video_device, O_TRUNC);
   if (fd <= 0)
     {
-      perror("open()");
-      fprintf(stderr, 
-	      _("Cannot open given device %s\n"), video_device);
+      if (verbosity)
+	perror("open()");
+      if (verbosity)
+	fprintf(stderr, 
+		_("Cannot open given device %s\n"), video_device);
       return 1;
     }
 
   PM("Querying video device capabilities\n", 2);
   if (ioctl(fd, VIDIOCGCAP, &caps))
     {
-      perror("VIDIOCGCAP");
+      if (verbosity)
+	perror("VIDIOCGCAP");
       close(fd);
       return 1;
     }
@@ -326,8 +342,10 @@ int main(int argc, char * argv[])
   PM("Checking returned capabilities for overlay devices\n", 2);
   if (!(caps.type & VID_TYPE_OVERLAY))
     {
-      printf("The given device doesn't have the VID_TYPE_OVERLAY flag\n"
-	     "set, this program is nonsense then for this device.\n");
+      if (verbosity)
+	fprintf(stderr,
+		"The given device doesn't have the VID_TYPE_OVERLAY flag\n"
+		"set, this program is nonsense for the device.\n");
       close(fd);
       return 1;
     }
@@ -337,7 +355,8 @@ int main(int argc, char * argv[])
   display = XOpenDisplay(display_name);
   if (!display)
     {
-      printf(_("Cannot open display %s, quitting\n"), display_name);
+      fprintf(stderr,
+	      _("Cannot open display %s, quitting\n"), display_name);
       close(fd);
       return 1;
     }
@@ -358,7 +377,8 @@ int main(int argc, char * argv[])
   PM("Getting current FB characteristics\n", 2);
   if (ioctl(fd, VIDIOCGFBUF, &fb))
     {
-      perror("VIDIOCGFBUF");
+      if (verbosity)
+	perror("VIDIOCGFBUF");
       EXIT
     }
 
@@ -371,7 +391,8 @@ int main(int argc, char * argv[])
   PM("Setting new FB characteristics\n", 2);
   if (ioctl(fd, VIDIOCSFBUF, &fb))
     {
-      perror("VIDIOCSFBUF");
+      if (verbosity)
+	perror("VIDIOCSFBUF");
       EXIT
     }
 

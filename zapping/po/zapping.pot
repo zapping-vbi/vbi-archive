@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-05-16 13:26+0200\n"
+"POT-Creation-Date: 2000-05-20 22:46+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,59 +14,59 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: ENCODING\n"
 
-#: src/main.c:86
+#: src/main.c:85
 msgid "Sorry, but there is no module support"
 msgstr ""
 
-#: src/main.c:95
+#: src/main.c:94
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: src/main.c:104
+#: src/main.c:103
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:127
+#: src/main.c:126
 #, c-format
 msgid ""
 "tveng_run_zapping_setup_fb: %s\n"
 "Fullscreen mode will not work"
 msgstr ""
 
-#: src/main.c:144
+#: src/main.c:143
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:165
+#: src/main.c:164
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:243
+#: src/main.c:242
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:300
+#: src/main.c:301
 msgid "Channel name"
 msgstr ""
 
-#: src/main.c:304
+#: src/main.c:305
 msgid "Tuning frequence"
 msgstr ""
 
-#: src/main.c:308
+#: src/main.c:309
 msgid "Real channel name"
 msgstr ""
 
-#: src/main.c:313
+#: src/main.c:314
 msgid "Country the channel is in"
 msgstr ""
 
-#: src/main.c:325
+#: src/main.c:326
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -78,28 +78,28 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:354
+#: src/main.c:355
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
 #. Sets defaults for zconf
-#: src/main.c:359
+#: src/main.c:360
 msgid "Save and restore zapping geometry (non ICCM compliant)"
 msgstr ""
 
-#: src/main.c:362
+#: src/main.c:363
 msgid "The country you are currently in"
 msgstr ""
 
-#: src/main.c:365
+#: src/main.c:366
 msgid "The device file to open on startup"
 msgstr ""
 
-#: src/main.c:367
+#: src/main.c:368
 msgid "TRUE if Zapping should be started without sound"
 msgstr ""
 
-#: src/main.c:369
+#: src/main.c:370
 msgid "Verbosity value given to zapping_setup_fb"
 msgstr ""
 
@@ -265,243 +265,244 @@ msgstr ""
 msgid "Error adding %s"
 msgstr ""
 
-#: src/tveng.c:164
+#: src/tveng.c:139
 msgid "The current display depth isn't supported by TVeng"
 msgstr ""
 
-#: src/tveng.c:180
+#: src/tveng.c:155
 msgid "The device cannot be attached to any controller"
 msgstr ""
 
-#: src/tveng.c:204 src/tveng.c:225 src/tveng.c:254 src/tveng.c:279
-#: src/tveng.c:304 src/tveng.c:329 src/tveng.c:353 src/tveng.c:379
-#: src/tveng.c:404 src/tveng.c:429 src/tveng.c:453 src/tveng.c:477
-#: src/tveng.c:499 src/tveng.c:522 src/tveng.c:548 src/tveng.c:575
-#: src/tveng.c:604 src/tveng.c:635 src/tveng.c:662 src/tveng.c:686
-#: src/tveng.c:711 src/tveng.c:736 src/tveng.c:760 src/tveng.c:789
-#: src/tveng.c:813 src/tveng.c:840 src/tveng.c:865 src/tveng.c:887
-#: src/tveng.c:920 src/tveng.c:947 src/tveng.c:971 src/tveng.c:1049
-#: src/tveng.c:1215 src/tveng.c:1241 src/tveng.c:1268 src/tveng.c:1316
-#: src/tveng.c:1340
+#: src/tveng.c:179 src/tveng.c:200 src/tveng.c:229 src/tveng.c:254
+#: src/tveng.c:279 src/tveng.c:304 src/tveng.c:328 src/tveng.c:354
+#: src/tveng.c:379 src/tveng.c:404 src/tveng.c:428 src/tveng.c:452
+#: src/tveng.c:474 src/tveng.c:497 src/tveng.c:523 src/tveng.c:550
+#: src/tveng.c:579 src/tveng.c:610 src/tveng.c:637 src/tveng.c:661
+#: src/tveng.c:686 src/tveng.c:711 src/tveng.c:735 src/tveng.c:764
+#: src/tveng.c:788 src/tveng.c:815 src/tveng.c:840 src/tveng.c:862
+#: src/tveng.c:895 src/tveng.c:922 src/tveng.c:946 src/tveng.c:1024
+#: src/tveng.c:1190 src/tveng.c:1216 src/tveng.c:1243 src/tveng.c:1291
+#: src/tveng.c:1315
 #, c-format
 msgid "%s called on a non-controlled device: %s\n"
 msgstr ""
 
-#: src/tveng.c:1122
+#: src/tveng.c:1097
 msgid "zapping_setup_fb exited abnormally, check stderr"
 msgstr ""
 
-#: src/tveng.c:1132
+#: src/tveng.c:1107
 msgid "zapping_setup_fb failed to set up the video"
 msgstr ""
 
-#: src/tveng.c:1137
+#: src/tveng.c:1112
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr ""
 
-#: src/tveng.c:1177
+#: src/tveng.c:1152
 msgid "Cannot find an appropiate visual"
 msgstr ""
 
-#: src/tveng.c:1192
+#: src/tveng.c:1167
 msgid "Cannot figure out X depth"
 msgstr ""
 
-#: src/tveng1.c:83
+#: src/tveng1.c:62
 msgid "Mono"
 msgstr ""
 
-#: src/tveng1.c:84
+#: src/tveng1.c:63
 msgid "Stereo"
 msgstr ""
 
-#: src/tveng1.c:85
+#: src/tveng1.c:64
 msgid "European alternate 1"
 msgstr ""
 
-#: src/tveng1.c:86
+#: src/tveng1.c:65
 msgid "European alternate 2"
 msgstr ""
 
-#: src/tveng1.c:131
+#: src/tveng1.c:110
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr ""
 
-#: src/tveng1.c:209
+#: src/tveng1.c:188
 msgid "Cannot duplicate device name"
 msgstr ""
 
-#: src/tveng1.c:221
+#: src/tveng1.c:200
 msgid "Unknown attach mode for the device"
 msgstr ""
 
-#: src/tveng1.c:247
+#: src/tveng1.c:226
 msgid "No inputs for this device"
 msgstr ""
 
-#: src/tveng1.c:270
+#: src/tveng1.c:249
 msgid "No standards for this device"
 msgstr ""
 
-#: src/tveng1.c:324
+#: src/tveng1.c:303
 msgid "Cannot find appropiate palette for current display"
 msgstr ""
 
-#: src/tveng1.c:552
+#: src/tveng1.c:531
 #, c-format
 msgid "Input %s doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:574
+#: src/tveng1.c:553
 #, c-format
 msgid "Input number %d doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:753
+#: src/tveng1.c:732
 #, c-format
 msgid "Standard %s doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:771
+#: src/tveng1.c:750
 #, c-format
 msgid "Standard %d doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:825
+#: src/tveng1.c:804
 msgid "Cannot understand the actual palette"
 msgstr ""
 
 #. unknown
-#: src/tveng1.c:891
+#: src/tveng1.c:870
 msgid "Cannot understand the given palette"
 msgstr ""
 
-#: src/tveng1.c:1015 src/tveng1.c:1514 src/tveng1.c:1527
+#: src/tveng1.c:994 src/tveng1.c:1493 src/tveng1.c:1506
 msgid "Mute"
 msgstr ""
 
-#: src/tveng1.c:1026
+#: src/tveng1.c:1005
 msgid "Volume"
 msgstr ""
 
-#: src/tveng1.c:1037
+#: src/tveng1.c:1016
 msgid "Bass"
 msgstr ""
 
-#: src/tveng1.c:1048
+#: src/tveng1.c:1027
 msgid "Treble"
 msgstr ""
 
-#: src/tveng1.c:1058
+#: src/tveng1.c:1037
 msgid "Balance"
 msgstr ""
 
-#: src/tveng1.c:1067
+#: src/tveng1.c:1046
 msgid "Audio Decoding"
 msgstr ""
 
-#: src/tveng1.c:1077
+#: src/tveng1.c:1056
 msgid "Brightness"
 msgstr ""
 
-#: src/tveng1.c:1086
+#: src/tveng1.c:1065
 msgid "Hue"
 msgstr ""
 
-#: src/tveng1.c:1095
+#: src/tveng1.c:1074
 msgid "Colour"
 msgstr ""
 
-#: src/tveng1.c:1104
+#: src/tveng1.c:1083
 msgid "Contrast"
 msgstr ""
 
-#: src/tveng1.c:1198
+#: src/tveng1.c:1177
 msgid "Unknown decoding mode"
 msgstr ""
 
-#: src/tveng1.c:1220
+#: src/tveng1.c:1199
 #, c-format
 msgid "Unknown control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1311
+#: src/tveng1.c:1290
 #, c-format
 msgid "Unknown audio control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1349
+#: src/tveng1.c:1328
 #, c-format
 msgid "Unknown video control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1403 src/tveng1.c:1434
+#: src/tveng1.c:1382 src/tveng1.c:1413
 #, c-format
 msgid "Cannot find control \"%s\" in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1474 src/tveng1.c:1500
+#: src/tveng1.c:1453 src/tveng1.c:1479
 #, c-format
 msgid "Cannot find control %d in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1649
+#: src/tveng1.c:1628
 msgid "There are no tuners for the active input"
 msgstr ""
 
-#: src/tveng1.c:1810
+#: src/tveng1.c:1789
 msgid "Warning: trying to stop capture with no capture active\n"
 msgstr ""
 
-#: src/tveng1.c:1857 src/tveng1.c:1914
+#: src/tveng1.c:1836 src/tveng1.c:1893
 msgid "Cannot understand actual palette"
 msgstr ""
 
-#: src/tveng1.c:1870
+#: src/tveng1.c:1849
 msgid "Grabber chip can't sync (no station tuned in?)"
 msgstr ""
 
-#: src/tveng1.c:1962
+#: src/tveng1.c:1941
 msgid "Current capture mode is not READ"
 msgstr ""
 
-#: src/tveng1.c:1971
+#: src/tveng1.c:1950
 msgid "Size check failed, quitting to avoid segfault"
 msgstr ""
 
-#: src/tveng1.c:2085
+#: src/tveng1.c:2064
 msgid "The capability field says that there is no overlay"
 msgstr ""
 
-#: src/tveng1.c:2321
+#: src/tveng1.c:2300
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
-#: src/plugins.c:74
+#: src/plugins.c:73
 #, c-format
 msgid ""
+"While loading %s\n"
 "The plugin uses the protocol %d, and the current one is %d, it cannot be "
 "loaded."
 msgstr ""
 
-#: src/plugins.c:95
+#: src/plugins.c:96
 #, c-format
 msgid "Sorry, plugin_get_info was not found in %s"
 msgstr ""
 
-#: src/plugins.c:171
+#: src/plugins.c:186
 #, c-format
 msgid ""
 "\"%s\" seems to be a valid plugin, but it doesn't provide a canonical name."
 msgstr ""
 
-#: src/plugins.c:180
+#: src/plugins.c:195
 #, c-format
 msgid "\"%s\" doesn't provide a version"
 msgstr ""
 
-#: src/plugins.c:189
+#: src/plugins.c:205
 msgid ""
 "Sorry, the version of the plugin cannot be parsed.\n"
 "The version must be something like %%d[.%%d[%%d[other things]]]\n"
@@ -509,21 +510,21 @@ msgid ""
 "Error loading \"%s\" (%s)"
 msgstr ""
 
-#: src/plugins.c:216
+#: src/plugins.c:232
 #, c-format
 msgid "There wasn't enough mem for allocating symbol %d in %s"
 msgstr ""
 
-#: src/plugins.c:226
+#: src/plugins.c:242
 msgid "[No description provided]"
 msgstr ""
 
 #. Warn
-#: src/plugins.c:315
+#: src/plugins.c:331
 #, c-format
 msgid ""
 "Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
-"Hashes are %d vs. %d"
+"Hashes are 0x%x vs. 0x%x"
 msgstr ""
 
 #: src/zmisc.c:89
@@ -818,47 +819,47 @@ msgid ""
 " --version    - Shows the program version\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:221
+#: zapping_setup_fb/zapping_setup_fb.c:230
 msgid "Video device name seems to be missing\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:229
+#: zapping_setup_fb/zapping_setup_fb.c:238
 msgid "X display name seems to be missing\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:250
+#: zapping_setup_fb/zapping_setup_fb.c:260
 #, c-format
 msgid "Unknown command line option %s, ignoring it\n"
 msgstr ""
 
 #. Print a short copyright notice if we aren't totally quiet
-#: zapping_setup_fb/zapping_setup_fb.c:261
+#: zapping_setup_fb/zapping_setup_fb.c:271
 msgid ""
 "(C) 2000 Iñaki García Etxebarria.\n"
-"This file is under the GNU General Public License.\n"
+"This program is under the GNU General Public License.\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:285
+#: zapping_setup_fb/zapping_setup_fb.c:296
 #, c-format
 msgid "Given device %s has dots in it, cannot use it\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:294
+#: zapping_setup_fb/zapping_setup_fb.c:306
 #, c-format
 msgid "Given device %s is too short, cannot use it\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:301
+#: zapping_setup_fb/zapping_setup_fb.c:314
 #, c-format
 msgid "Given device %s doesn't start with /dev/, cannot use it\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:314
+#: zapping_setup_fb/zapping_setup_fb.c:329
 #, c-format
 msgid "Cannot open given device %s\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:340
+#: zapping_setup_fb/zapping_setup_fb.c:359
 #, c-format
 msgid "Cannot open display %s, quitting\n"
 msgstr ""
@@ -1216,63 +1217,66 @@ msgstr ""
 msgid "This shows some help about this dialog"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:32
+#: plugins/screenshot/screenshot.c:31
 msgid "Screenshot saver"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:34
+#: plugins/screenshot/screenshot.c:33
 msgid ""
 "You can use this plugin to take screenshots of what you are actually "
 "watching in TV.\n"
 "It will save the screenshots in PNG format."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:38
+#: plugins/screenshot/screenshot.c:37
 msgid "This plugin takes screenshots of the capture."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:231
-msgid "Whether the plugin should start automatically when opening Zapping"
+#. hash collision code
+#. Warn
+#: plugins/screenshot/screenshot.c:178
+#, c-format
+msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:238
+#: plugins/screenshot/screenshot.c:247
 msgid "Whether interlacing should be used"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:245
+#: plugins/screenshot/screenshot.c:254
 msgid "The directory where screenshot will be written to"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:300
-msgid "Converts a row in RGB565 format to RGB24. Returns the destination"
+#: plugins/screenshot/screenshot.c:303
+msgid "Converts a row in RGB565 format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:306
-msgid "Converts a row in RGB555 format to RGB24. Returns the destination"
+#: plugins/screenshot/screenshot.c:309
+msgid "Converts a row in RGB555 format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:312
-msgid "Converts a row in RGBA format to RGB24. Returns the destination"
-msgstr ""
-
-#: plugins/screenshot/screenshot.c:344
-msgid "PNG saver"
+#: plugins/screenshot/screenshot.c:315
+msgid "Converts a row in RGBA format to RGB24. Returns the destination."
 msgstr ""
 
 #: plugins/screenshot/screenshot.c:348
+msgid "PNG saver"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:352
 msgid "Select here the directory where screenshots will be saved"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:354
+#: plugins/screenshot/screenshot.c:358
 msgid "Select directory to save screenshots"
 msgstr ""
 
 #. The interlaced checkbutton
-#: plugins/screenshot/screenshot.c:371
+#: plugins/screenshot/screenshot.c:375
 msgid "Save interlaced PNG"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:425
+#: plugins/screenshot/screenshot.c:431
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
@@ -1282,46 +1286,46 @@ msgid ""
 "interlaced. This allows image viewers load it progressively."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:452
+#: plugins/screenshot/screenshot.c:459
 msgid "Screenshot"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:453
+#: plugins/screenshot/screenshot.c:460
 msgid "Take a PNG screenshot"
 msgstr ""
 
 #. Probably there is no mem even for this, but try anyway
-#: plugins/screenshot/screenshot.c:523 plugins/screenshot/screenshot.c:533
-#: plugins/screenshot/screenshot.c:542
+#: plugins/screenshot/screenshot.c:532 plugins/screenshot/screenshot.c:542
+#: plugins/screenshot/screenshot.c:551
 msgid "Sorry, not enough mem"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:571
+#: plugins/screenshot/screenshot.c:580
 msgid "Sorry, but I cannot write\n"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:573
+#: plugins/screenshot/screenshot.c:582
 msgid ""
 "\n"
 "The image won't be saved."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:597
+#: plugins/screenshot/screenshot.c:606
 msgid "Cannot init the first PNG saving structure"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:612
+#: plugins/screenshot/screenshot.c:621
 msgid "Cannot init the second PNG saving structure"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:681
+#: plugins/screenshot/screenshot.c:690
 msgid "Saving..."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:692
+#: plugins/screenshot/screenshot.c:701
 msgid "Sorry, not enough resources for creating a new thread"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:696
+#: plugins/screenshot/screenshot.c:705
 msgid "There are too many threads"
 msgstr ""

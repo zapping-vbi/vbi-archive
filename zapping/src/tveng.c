@@ -35,6 +35,7 @@
 #undef WUNTRACED
 #include "tveng.h"
 #include "tveng1.h" /* V4L specific headers */
+#include "tveng2.h" /* V4L2 specific headers */
 
 /*
   This is the structure we will be actually allocating. Note that we
@@ -47,6 +48,7 @@ struct private_tveng_device_info
 {
   union{
     struct private_tveng1_device_info do_not_access_this_1;
+    struct private_tveng2_device_info do_not_access_this_2;
   } do_not_touch_this;
 };
 
