@@ -16,6 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#include "../site_def.h"
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -36,6 +38,8 @@
 #include "zvbi.h"
 #include "ttxview.h"
 #include "osd.h"
+#include "mixer.h"
+
 
 /* set this flag to TRUE to exit the program */
 extern volatile gboolean flag_exit_program;
@@ -309,6 +313,9 @@ set_mute1				(gint	        mode,
 					 gboolean	osd)
 {
   static gboolean recursion;
+  int cur_line = zconf_get_integer
+   (NULL, "/zapping/options/audio/record_source");
+  int audio_mutable = main_info->audio_mutable;
   GtkCheckMenuItem *check;
   GtkWidget *button;
   gint mute;
@@ -320,12 +327,26 @@ set_mute1				(gint	        mode,
 
   if (mode >= 2)
     {
-      if ((mute = tveng_get_mute(main_info)) < 0)
-	{
-	  printv("tveng_get_mute failed\n");
-	  recursion = FALSE;
-	  return FALSE;
+      if (audio_mutable)
+        {
+	  if ((mute = tveng_get_mute(main_info)) < 0)
+	    {
+	      printv("tveng_get_mute failed\n");
+	      recursion = FALSE;
+	      return FALSE;
+	    }
 	}
+      else if (cur_line > 0) /* !use system settings */
+        {
+	  if ((mute = mixer_get_mute(cur_line - 1)) < 0)
+	    {
+	      printv("mixer_get_mute failed\n");
+	      recursion = FALSE;
+	      return FALSE;
+	    }
+	}
+      else
+	return TRUE;
 
       if (mode == 2)
 	mute = !mute;
@@ -335,12 +356,26 @@ set_mute1				(gint	        mode,
 
   if (mode <= 2)
     {
-      if (tveng_set_mute(mute, main_info) < 0)
-	{
-	  printv("tveng_set_mute failed\n");
-	  recursion = FALSE;
-	  return FALSE;
+      if (audio_mutable)
+        {
+	  if (tveng_set_mute(mute, main_info) < 0)
+	    {
+	      printv("tveng_set_mute failed\n");
+	      recursion = FALSE;
+	      return FALSE;
+	    }
 	}
+      else if (cur_line > 0) /* !use system settings */
+        {
+          if (mixer_set_mute(cur_line - 1, mute) < 0)
+	    {
+	      printv("mixer_set_mute failed\n");
+	      recursion = FALSE;
+	      return FALSE;
+	    }
+	}
+      else
+	return TRUE;
     }
 
   /* Reflect change in GUI */

@@ -1008,7 +1008,7 @@ tveng_set_control_by_name(const char * control_name,
 
   TVLOCK;
 
-  /* iterate through the info struct to find the mute control */
+  /* iterate through the info struct to find the control */
   for (i = 0; i < info->num_controls; i++)
     if (!strcasecmp(info->controls[i].name,control_name))
       /* we found it */
@@ -1044,7 +1044,7 @@ tveng_get_control_by_id(int cid, int * cur_value,
   if (tveng_update_controls(info) == -1)
     RETURN_UNTVLOCK(-1);
 
-  /* iterate through the info struct to find the mute control */
+  /* iterate through the info struct to find the control */
   for (i = 0; i < info->num_controls; i++)
     if (info->controls[i].id == cid)
       /* we found it */

@@ -62,7 +62,7 @@ typedef struct mhandle {
   gpointer	handle; /* for the backend */
 } mhandle;
 
-static void mixer_setup ( void )
+void mixer_setup ( void )
 {
   int cur_line = zcg_int(NULL, "record_source");
 

@@ -58,4 +58,6 @@ typedef struct {
   void		(*apply_props)(GtkBox *vbox);
 } audio_backend_info;
 
+extern void mixer_setup ( void );
+
 #endif /* audio.h */

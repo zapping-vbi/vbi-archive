@@ -1,3 +1,13 @@
+28.12.2002	<mschimek@users.sf.net>
+
+	* src/tveng.h: mutable.
+	* src/tveng1.c, src/tveng2.c, src/tvengxv.c: Set
+	  info->audio_mutable flag.
+	* src/tveng2.c: Bttv mute bug work-around.
+	* src/mixer.h, src/mixer.c: Added mute function.
+	* src/main.c, src/zmisc.c, src/callback.c (set_mute1): Mute
+	  by mixer if not supported by video device (preliminary).
+
 26.12.2002	<mschimek@users.sf.net>
 
 	* src/v4linterface.c: Splitted keypad channel number entering

@@ -36,6 +36,7 @@
 #include "zvbi.h"
 #include "osd.h"
 #include "remote.h"
+#include "mixer.h"
 
 extern tveng_tuned_channel * global_channel_list;
 extern tveng_device_info *main_info;
@@ -779,10 +780,19 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 	first_switch = FALSE;
     }
 
+  mute = -1;
+
   if (zcg_bool(NULL, "avoid_noise"))
     {
-      mute = tveng_get_mute(info);
-      set_mute1(TRUE, TRUE, FALSE);
+      gint cur_line = zconf_get_integer (NULL, "/zapping/options/audio/record_source");
+
+      if (info->audio_mutable)
+	mute = tveng_get_mute (info);
+      else if (cur_line > 0)
+	mute = mixer_get_mute (cur_line - 1);
+
+      if (mute == 0)
+	set_mute1 (1, TRUE, FALSE);
     }
 
   freeze_update();
@@ -988,9 +998,7 @@ kp_key_press			(GdkEventKey *	event,
 {
   extern tveng_rf_table *current_country; /* Currently selected contry */
   gchar *vec[2] = { 0, kp_chsel_buf };
-  tveng_tuned_channel *tc;
   const gchar *prefix;
-  z_key key;
   int i;
 
   switch (event->keyval)
@@ -1072,10 +1080,7 @@ on_channel_key_press			(GtkWidget *	widget,
 					 GdkEventKey *	event,
 					 gpointer	user_data)
 {
-  extern tveng_rf_table *current_country; /* Currently selected contry */
-  gchar *vec[2] = { 0, kp_chsel_buf };
   tveng_tuned_channel *tc;
-  const gchar *prefix;
   z_key key;
   int txl, i;
 
