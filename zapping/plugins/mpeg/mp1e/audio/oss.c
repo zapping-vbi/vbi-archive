@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.16 2001-07-07 08:46:54 mschimek Exp $ */
+/* $Id: oss.c,v 1.17 2001-07-26 05:41:31 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -116,7 +116,7 @@ wait_full(fifo *f)
 			n -= r;
 		}
 
-		gettimeofday(&tv, NULL);
+		oss->time = current_time();
 
 		ASSERT("SNDCTL_DSP_GETISPACE",
 			IOCTL(oss->fd, SNDCTL_DSP_GETISPACE, &info) == 0);
@@ -124,8 +124,8 @@ wait_full(fifo *f)
 		if (TEST)
 			write(oss->fd2, b->allocated, oss->scan_range * sizeof(short));
 
-		oss->time = tv.tv_sec + tv.tv_usec / 1e6
-			- ((oss->scan_range - (n + info.bytes) / sizeof(short)) >> oss->pcm.stereo)
+		oss->time -=
+			((oss->scan_range - (n + info.bytes) / sizeof(short)) >> oss->pcm.stereo)
 				/ (double) oss->pcm.sampling_rate;
 
 		oss->p = (short *) b->allocated;

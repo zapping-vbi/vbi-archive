@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.13 2001-07-18 06:32:38 mschimek Exp $ */
+/* $Id: motion.c,v 1.14 2001-07-26 05:41:31 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -2733,6 +2733,8 @@ mmx_load_pref(char t[16][16])
 	:: "S" (&mblock[0][0][0][0]), "D" (&t[0][0]) : "memory");
 }
 
+#if USE_SSE2
+
 static inline void
 sse2_load_pref(char t[16][16])
 {
@@ -2810,6 +2812,8 @@ sse2_load_pref(char t[16][16])
 		" movdqa	%%xmm1,16(%1);\n"
 	:: "S" (&mblock[0][0][0][0]), "D" (&t[0][0]) : "memory");
 }
+
+#endif /* USE_SSE2 */
 
 static inline int
 mmx_predict(unsigned char *from, int d2x, int d2y,
@@ -3197,9 +3201,10 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 
 	switch (cpu_type) {
 	case CPU_PENTIUM_4:
+#if USE_SSE2
 		sse2_load_pref(tbuf);
 		break;
-
+#endif
 	default:
 		mmx_load_pref(tbuf);
 		break;
@@ -3248,14 +3253,15 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 	p = from + x + y * mb_address.block[0].pitch;
 
 	switch (cpu_type) {
+	case CPU_PENTIUM_4:
+#if USE_SSE2
+		mmx_load_ref(tbuf);
+		min = sse2_sad(tbuf, p, mb_address.block[0].pitch);
+		break;
+#endif
 	case CPU_PENTIUM_III:
 		mmx_load_ref(tbuf);
 		min = sse_sad(tbuf, p, mb_address.block[0].pitch);
-		break;
-
-	case CPU_PENTIUM_4:
-		mmx_load_ref(tbuf);
-		min = sse2_sad(tbuf, p, mb_address.block[0].pitch);
 		break;
 
 	default:
@@ -3269,15 +3275,16 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 
 	for (i = 0; i < 4; i++) {
 		switch (cpu_type) {
-		case CPU_PENTIUM_III:
-			act = sse_sad(tbuf,
+		case CPU_PENTIUM_4:
+#if USE_SSE2
+			act = sse2_sad(tbuf,
 				p + bbdxy.b[i * 2 + 0] /* x */ 
 				+ bbdxy.b[i * 2 + 1] * mb_address.block[0].pitch,
 				mb_address.block[0].pitch);
 			break;
-
-		case CPU_PENTIUM_4:
-			act = sse2_sad(tbuf,
+#endif
+		case CPU_PENTIUM_III:
+			act = sse_sad(tbuf,
 				p + bbdxy.b[i * 2 + 0] /* x */ 
 				+ bbdxy.b[i * 2 + 1] * mb_address.block[0].pitch,
 				mb_address.block[0].pitch);
@@ -3493,12 +3500,16 @@ sse_search(int *dhx, int *dhy, unsigned char *from,
 	return tmp_search(dhx, dhy, from, x, y, range, dest, CPU_PENTIUM_III);
 }
 
+#if USE_SSE2
+
 int
 sse2_search(int *dhx, int *dhy, unsigned char *from,
        int x, int y, int range, short dest[6][8][8])
 {
 	return tmp_search(dhx, dhy, from, x, y, range, dest, CPU_PENTIUM_4);
 }
+
+#endif
 
 static int
 t4_edu(unsigned char *ref, int *dxp, int *dyp, int sx, int sy,

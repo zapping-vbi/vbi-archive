@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.15 2001-06-18 12:33:58 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.16 2001-07-26 05:41:31 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1136,10 +1136,8 @@ wait_full_read(fifo *f)
 		return NULL;
 	}
 
-	gettimeofday(&tv, NULL);
-
 	b->data = b->allocated;
-	b->time = tv.tv_sec + tv.tv_usec / 1e6;
+	b->time = current_time();
 
 	if (opt_ccsim)
 		cc_gen(vbi, vbi->raw_buffer[0].data);

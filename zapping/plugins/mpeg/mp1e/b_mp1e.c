@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.1 2001-07-24 20:47:04 garetxe Exp $ */
+/* $Id: b_mp1e.c,v 1.2 2001-07-26 05:41:31 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -84,7 +84,7 @@ int			verbose=0;
 fifo *			audio_cap_fifo;
 int			stereo;
 
-fifo *			video_cap_fifo;
+static fifo2 *		video_cap_fifo;
 
 /* fixme: This is just to satisfy dependencies for now */
 void
@@ -299,7 +299,7 @@ start			(rte_context	*context)
 			!pthread_create(&priv->video_thread_id,
 					NULL,
 					mpeg1_video_ipb,
-					NULL));
+					video_cap_fifo));
 
 		printv(2, "Video compression thread launched\n");
 	}

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.24 2001-07-24 20:02:55 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.25 2001-07-26 05:41:31 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -130,10 +130,8 @@ wait_full_read(fifo2 *f)
 			return;
 		}
 
-		gettimeofday(&tv, NULL);
-
 		b->data = b->allocated;
-		b->time = tv.tv_sec + tv.tv_usec / 1e6;
+		b->time = current_time();
 
 		b->used = sizeof(vbi_sliced) *
 			vbi_decoder(&vbi->dec, vbi->raw_buffer[0].data,
@@ -190,10 +188,8 @@ read_thread(void *p)
 				assert(!"read error in v4lx read thread"); /* XXX */
 			}
 
-			gettimeofday(&tv, NULL);
-
 			b->data = b->allocated;
-			b->time = tv.tv_sec + tv.tv_usec / 1e6;
+			b->time = current_time();
 
 			b->used = sizeof(vbi_sliced) *
 				vbi_decoder(&vbi->dec, vbi->raw_buffer[0].data,

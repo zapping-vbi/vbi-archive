@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.27 2001-07-24 17:19:27 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.28 2001-07-26 05:41:31 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -270,12 +270,11 @@ read_audio(void * data, double * time, rte_context * context)
 		n -= r;
 	}
 
-	gettimeofday(&tv, NULL);
+	*time = current_time();
 
 	ASSERT("SNDCTL_DSP_GETISPACE",
 	       ioctl(fd2, SNDCTL_DSP_GETISPACE, &info) != 1);
 	
-	*time = tv.tv_sec + tv.tv_usec / 1e6;
 	*time -= (((context->audio_bytes -
 		    (n+info.bytes))/sizeof(short))>>stereo) / (double)
 		sampling_rate;
@@ -320,9 +319,7 @@ read_audio(void * data, double * time, rte_context * context)
 		n -= r;
 	}
 
-	gettimeofday(&tv, NULL);
-	
-	*time = tv.tv_sec + tv.tv_usec / 1e6;
+	*time = current_time();
 	*time -= (((context->audio_bytes - n)/sizeof(short))>>stereo)
 		/ (double) sampling_rate;
 }

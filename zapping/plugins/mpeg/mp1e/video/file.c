@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.11 2001-07-12 01:22:06 mschimek Exp $ */
+/* $Id: file.c,v 1.12 2001-07-26 05:41:31 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -32,8 +32,11 @@
 
 enum { FREE = 0, BUSY };
 
-static fifo		cap_fifo;
-static int		width0, height0;
+static fifo2			cap_fifo;
+static producer			cap_prod;
+
+static int			buffer_size;
+static int			width0, height0;
 
 static int
 ppm_getc(FILE *fi)
@@ -208,21 +211,15 @@ ppm_read(unsigned char *d1, char *name_template, int count)
 	return 1;
 }
 
-static buffer *
-wait_full(fifo *f)
+static void
+wait_full(fifo2 *f)
 {
 	static double time = 0.0;
 	static int count = 0;
-	buffer *b;
-	int i;
+	buffer2 *b;
 
-	for (i = 0, b = cap_fifo.buffers; i < cap_fifo.num_buffers; i++, b++)
-		if (b->type == FREE)
-			break;
+	b = wait_empty_buffer2(&cap_prod);
 
-	assert(i < cap_fifo.num_buffers);
-
-	b->type = BUSY;
 	b->time = time;
 
 	switch (ppm_read(b->data, cap_dev, count)) {
@@ -230,27 +227,25 @@ wait_full(fifo *f)
 		exit(EXIT_FAILURE);
 
 	case -1:
-		return NULL; // End of file
-// XXX wrong & incompatible with mc-fifo routines
+		b->used = 0; /* EOF */
+		send_full_buffer2(&cap_prod, b);
+		return;
+
+	default:
+		b->used = buffer_size;
+		send_full_buffer2(&cap_prod, b);
+		break;
 	}
 
 	time += 1.0 / 24.0;
+
 	count++;
-
-	return b;
 }
 
-static void
-send_empty(fifo *f, buffer *b)
-{
-	b->type = FREE;
-}
-
-void
+fifo2 *
 file_init(void)
 {
 	int len = strlen(cap_dev);
-	int buffer_size;
 	int aligned_width;
 	int aligned_height;
 	int pitch;
@@ -289,13 +284,16 @@ file_init(void)
 
 	filter_init(pitch);
 
-	ASSERT("init capture fifo", init_callback_fifo(
+	ASSERT("init capture fifo", init_callback_fifo2(
 		&cap_fifo, "video-ppm",
-		wait_full, send_empty,
+		NULL, NULL, wait_full, NULL,
 		video_look_ahead(gop_sequence), buffer_size));
+
+	ASSERT("init capture producer",
+		add_producer(&cap_fifo, &cap_prod));
 
 	printv(2, "Reading images %d x %d named '%s'\n",
 		width, height, cap_dev);
 
-	video_cap_fifo = &cap_fifo;
+	return &cap_fifo;
 }

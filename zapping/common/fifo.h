@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.18 2001-07-24 20:02:55 mschimek Exp $ */
+/* $Id: fifo.h,v 1.19 2001-07-26 05:41:31 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -27,6 +27,7 @@
 #include "threads.h"
 
 #include <stdlib.h>
+#include <sys/time.h>
 
 /*
   TODO:
@@ -477,12 +478,35 @@ struct consumer {
 };
 
 /**
+ * current_time:
+ * 
+ * Buffer time is usually noted in seconds TOD. Unfortunately too
+ * many interfaces provide no interrupt time so we have no choice
+ * but to query the system clock.
+ *
+ * Attn Y2K+39.
+ *
+ * Return value:
+ * gettimeofday() in seconds and fractions, double.
+ **/
+static inline double
+current_time(void)
+{
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+
+	return tv.tv_sec + tv.tv_usec * (1 / 1e6);
+	/* rezp. mult is faster, not auto optimized for accuracy */
+}
+
+/**
  * destroy_buffer:
  * @b: buffer2 *
  * 
  * Free all resources associated with the buffer. This is a
  * low-level function, don't call it for buffers which have
- * been added to a fifo. No op when @b is NULL.
+ * been added to a fifo. No op when @b is %NULL.
  **/
 static inline void
 destroy_buffer(buffer2 *b)
@@ -506,7 +530,7 @@ extern buffer2 *		alloc_buffer(ssize_t);
  * function is not necessary, for example when a consumer
  * aborted before detaching himself from the fifo.
  *
- * No op when @f is NULL.
+ * No op when @f is %NULL.
  **/
 static inline void
 destroy_fifo(fifo2 *f)
@@ -536,7 +560,7 @@ destroy_fifo(fifo2 *f)
  * (thread_t), however we assume the consumer object is not shared. 
  *
  * Return value:
- * Buffer pointer, or NULL if the full queue is empty.
+ * Buffer pointer, or %NULL if the full queue is empty.
  **/
 static inline buffer2 *
 recv_full_buffer2(consumer *c)
@@ -627,7 +651,7 @@ send_empty_buffer2(consumer *c, buffer2 *b)
  * (thread_t), however we assume the producer object is not shared. 
  *
  * Return value:
- * Buffer pointer, or NULL if the empty queue is empty.
+ * Buffer pointer, or %NULL if the empty queue is empty.
  **/
 static inline buffer2 *
 recv_empty_buffer2(producer *p)

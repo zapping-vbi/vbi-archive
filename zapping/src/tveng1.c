@@ -1904,10 +1904,7 @@ static int p_tveng1_dequeue(unsigned char * where, tveng_device_info * info)
       return -1;
     }
 
-  /* get the timestamp */
-  gettimeofday(&tv, NULL);
-
-  p_info->last_timestamp = tv.tv_sec + tv.tv_usec / 1e6;
+  p_info->last_timestamp = current_time();
 
   /* Copy the mmaped data to the data struct, if it is not null */
   if (where)

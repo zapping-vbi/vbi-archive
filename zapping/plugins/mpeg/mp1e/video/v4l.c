@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.15 2001-07-12 01:22:06 mschimek Exp $ */
+/* $Id: v4l.c,v 1.16 2001-07-26 05:41:31 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -33,6 +33,8 @@
 #include "../common/math.h"
 #include "../options.h"
 #include "video.h"
+
+#if 0
 
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
 
@@ -57,7 +59,7 @@ wait_full(fifo *f)
 {
 	buffer *b;
 	int r = -1;
-	struct timeval tv;
+	double now;
 	unsigned char * data;
 	int oldcframe;
 
@@ -74,7 +76,7 @@ wait_full(fifo *f)
 
         	r = ioctl(fd, VIDIOCSYNC, &(vmmap.frame));
 
-		gettimeofday(&tv, NULL);
+		now = current_time();
 
 		if (r < 0 && errno == EINTR)
 			continue;
@@ -85,7 +87,7 @@ wait_full(fifo *f)
 	data = (unsigned char *)(buf_base + buf.offsets[vmmap.frame]);
 
 	b = f->buffers + cframe;
-	b->time = tv.tv_sec + tv.tv_usec / 1e6;
+	b->time = now;
 
 	memcpy(b->data, data, b->size);
 
@@ -115,7 +117,7 @@ mute_restore(void)
 	ASSERT("Audio muting", IOCTL(fd, VIDIOCSAUDIO, &vaud) == 0);
 }
 
-void
+fifo2 *
 v4l_init(void)
 {
 	int aligned_width;
@@ -210,5 +212,15 @@ v4l_init(void)
 	ASSERT("queue buffer",
 	       IOCTL(fd, VIDIOCMCAPTURE, &vmmap) == 0);
 
-	video_cap_fifo = &cap_fifo;
+	return &cap_fifo;
+}
+
+#endif
+
+fifo2 *
+v4l_init(void)
+{
+	FAIL("The V4L interface is out of order, please install V4L2.");
+
+	return NULL;
 }

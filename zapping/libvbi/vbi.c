@@ -553,12 +553,7 @@ vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **language)
 	if (pgno < 1) {
 		return VBI_UNKNOWN_PAGE;
 	} else if (pgno <= 8) {
-		double time;
-
-		gettimeofday(&tv, NULL);
-		time = tv.tv_sec + tv.tv_usec / 1e6;
-
-		if ((time - vbi->cc.channel[pgno - 1].time) > 20)
+		if ((current_time() - vbi->cc.channel[pgno - 1].time) > 20)
 			return VBI_NO_PAGE;
 
 		*language = vbi->cc.channel[pgno - 1].language;

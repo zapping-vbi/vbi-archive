@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.43 2001-07-24 20:02:55 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.44 2001-07-26 05:41:31 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -107,6 +107,8 @@ static unsigned char *	zerop_template;			// precompressed empty P picture
 static int		Sz;				// .. size in bytes
 
 double video_eff_bit_rate;
+
+static consumer		cons;
 
 static int mb_cx_row, mb_cx_thresh;
 
@@ -1360,7 +1362,7 @@ _send_full_buffer(fifo *f, buffer *b)
 
 static struct {
 	unsigned char * org[2];
-	buffer *	buffer;
+	buffer2 *	buffer;
 	double		time;
 } stack[MAX_B_SUCC], last, buddy, *this;
 
@@ -1398,7 +1400,7 @@ promote(int n)
 		}
 
 		if (stack[i].buffer)
-			send_empty_buffer(video_cap_fifo, stack[i].buffer);
+			send_empty_buffer2(&cons, stack[i].buffer);
 
 		obuf->offset = 1;
 		obuf->time = stack[i].time;
@@ -1449,7 +1451,7 @@ resume(int n)
 				i + 1, (i + 1) * motion, (n - i) * motion);
 
 			if (stack[i].buffer)
-				send_empty_buffer(video_cap_fifo, stack[i].buffer);
+				send_empty_buffer2(&cons, stack[i].buffer);
 
 			obuf->type = B_TYPE;
 			obuf->offset = 0;
@@ -1474,7 +1476,7 @@ char video_do_reset = FALSE;
 int force_drop_rate = 0;
 
 void *
-mpeg1_video_ipb(void *unused)
+mpeg1_video_ipb(void *capture_fifo)
 {
 	bool done = FALSE;
 	char *seq = "";
@@ -1482,7 +1484,10 @@ mpeg1_video_ipb(void *unused)
 
 	printv(3, "Video compression thread\n");
 
-	remote_sync(video_cap_fifo, NULL, MOD_VIDEO, time_per_frame);
+	ASSERT("add video cons",
+		add_consumer((fifo2 *) capture_fifo, &cons));
+
+	remote_sync(NULL, &cons, MOD_VIDEO, time_per_frame);
 
 	while (!done) {
 		int sp = 0;
@@ -1496,12 +1501,12 @@ mpeg1_video_ipb(void *unused)
 				last.org[0] = NULL;
 			} else {
 				if (temporal_interpolation) {
-					buffer *b;
+					buffer2 *b;
 
 					this->buffer = buddy.buffer;
 					this->org[1] = buddy.org[0];
 
-					if ((b = wait_full_buffer(video_cap_fifo))) {
+					if ((b = wait_full_buffer2(&cons))) {
 						this->time = b->time;
 						this->org[0] = b->data;
 
@@ -1517,9 +1522,9 @@ mpeg1_video_ipb(void *unused)
 						this->org[1] = this->org[0];
 					}
 				} else {
-					buffer *b;
+					buffer2 *b;
 
-					this->buffer = b = wait_full_buffer(video_cap_fifo);
+					this->buffer = b = wait_full_buffer2(&cons);
 
 					if (b) {
 						this->time = b->time;
@@ -1532,7 +1537,7 @@ mpeg1_video_ipb(void *unused)
 					printv(3, "Forced drop #%d\n", video_frame_count + sp);
 
 					if (this->buffer)
-						send_empty_buffer(video_cap_fifo, this->buffer);
+						send_empty_buffer2(&cons, this->buffer);
 
 					continue;
 				}
@@ -1546,10 +1551,10 @@ mpeg1_video_ipb(void *unused)
 				printv(2, "Video: End of file\n");
 
 				if (this->org[0] && this->buffer)
-					send_empty_buffer(video_cap_fifo, this->buffer);
+					send_empty_buffer2(&cons, this->buffer);
 
 				if (buddy.org[0])
-					send_empty_buffer(video_cap_fifo, buddy.buffer);
+					send_empty_buffer2(&cons, buddy.buffer);
 
 				while (*seq == 'B')
 					seq++;
@@ -1587,7 +1592,7 @@ mpeg1_video_ipb(void *unused)
 
 			if (skip_rate_acc < frames_per_sec) {
 				if (this->org[0] && this->buffer)
-					send_empty_buffer(video_cap_fifo, this->buffer);
+					send_empty_buffer2(&cons, this->buffer);
 
 				if (hack2) {
 					obuf = wait_empty_buffer(video_fifo);
@@ -1754,7 +1759,7 @@ gop_count++;
 		}
 
 		if (this->buffer)
-			send_empty_buffer(video_cap_fifo, this->buffer);
+			send_empty_buffer2(&cons, this->buffer);
 
 		obuf->offset = sp;
 		obuf->time = this->time;
@@ -1799,6 +1804,8 @@ finish:
 			_send_full_buffer(video_fifo, obuf);
 		}
 	}
+
+	rem_consumer(&cons);
 
 	return NULL;
 }
@@ -1895,13 +1902,15 @@ video_init(void)
 		search = _3dn_search;
 		break;
 
+	case CPU_PENTIUM_4:
+#if USE_SSE2
+		search = sse2_search;
+		break;
+#endif
+
 	case CPU_PENTIUM_III:
 	case CPU_ATHLON:
 		search = sse_search;
-		break;
-
-	case CPU_PENTIUM_4:
-		search = sse2_search;
 		break;
 
 	default:

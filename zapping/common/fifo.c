@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.21 2001-07-24 20:02:55 mschimek Exp $ */
+/* $Id: fifo.c,v 1.22 2001-07-26 05:41:31 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -521,7 +521,7 @@ uninit_buffer2(buffer2 *b)
  * add your own cleanup functions.
  * 
  * Return value: 
- * The buffer pointer, or NULL if the allocation failed.
+ * The buffer pointer, or %NULL if the allocation failed.
  **/
 buffer2 *
 init_buffer2(buffer2 *b, ssize_t size)
@@ -558,7 +558,7 @@ free_buffer(buffer2 *b)
 
 /**
  * alloc_buffer:
- * @size: buffer memory to be allocated, in bytes < SSIZE_MAX.
+ * @size: buffer memory to be allocated, in bytes < %SSIZE_MAX.
  * 
  * Allocate a buffer structure, and buffer memory if
  * size > 0. You must call destroy_buffer() to free all
@@ -566,7 +566,7 @@ free_buffer(buffer2 *b)
  * b->destroy to add your own cleanup functions.
  * 
  * Return value: 
- * Buffer pointer, or NULL if any allocation failed.
+ * Buffer pointer, or %NULL if any allocation failed.
  **/
 buffer2 *
 alloc_buffer(ssize_t size)
@@ -711,10 +711,10 @@ uninit_fifo2(fifo2 *f)
  * @c: consumer *
  * 
  * Suspends execution of the calling thread until a full buffer becomes
- * available for consumption. Otherwise identical to recv_full_buffer.
+ * available for consumption. Otherwise identical to recv_full_buffer().
  *
  * Return value:
- * Buffer pointer, never NULL.
+ * Buffer pointer, never %NULL.
  **/
 buffer2 *
 wait_full_buffer2(consumer *c)
@@ -815,13 +815,13 @@ wait_empty_buffer_cleanup(mucon *m)
 
 /**
  * wait_empty_buffer:
- * @c: consumer *
+ * @p: producer *
  * 
  * Suspends execution of the calling thread until an empty buffer becomes
- * available. Otherwise identical to recv_empty_buffer.
+ * available. Otherwise identical to recv_empty_buffer().
  *
  * Return value:
- * Buffer pointer, never NULL.
+ * Buffer pointer, never %NULL.
  **/
 buffer2 *
 wait_empty_buffer2(producer *p)
@@ -1000,7 +1000,7 @@ send_full2(producer *p, buffer2 *b)
  *            is not permitted.
  * b->error   Copy of errno if appropriate, zero otherwise.
  * b->errstr  Pointer to a localized error message for display
- *            to the user if appropriate, NULL otherwise. Shall not
+ *            to the user if appropriate, %NULL otherwise. Shall not
  *            include strerror(errno), but rather hint the attempted
  *            action (e.g. "tried to read foo", errno = [no such file]).
  *
@@ -1008,7 +1008,7 @@ send_full2(producer *p, buffer2 *b)
  * b->type    e.g. MPEG picture type
  * b->offset  e.g. IPB picture reorder offset
  * b->time    Seconds elapsed since some arbitrary reference point,
- *            usually epoch (gettimeofday), for example the capture
+ *            usually epoch (gettimeofday()), for example the capture
  *            instant of a picture. b->time may not always increase,
  *            but consumers are guaranteed to receive buffers in
  *            sent order.
@@ -1016,8 +1016,9 @@ send_full2(producer *p, buffer2 *b)
 void
 send_full_buffer2(producer *p, buffer2 *b)
 {
-	/* Migration prohibited, don't use this to add buffers to the fifo */
-	asserts(p->fifo == b->fifo && b->dequeued == 1);
+	/* Migration prohibited, don't use this to add buffers to the fifo
+	   (n/a to asy callback producers) */
+	asserts(p->fifo == b->fifo /* && b->dequeued == 1 */);
 
 	b->consumers = 1;
 
@@ -1128,12 +1129,12 @@ attach_buffer(fifo2 *f, buffer2 *b)
  * @b: buffer2 *
  * 
  * Add the buffer to the fifo buffers list and make it available
- * for use. No op when @b is NULL. Be warned havoc may prevail
+ * for use. No op when @b is %NULL. Be warned havoc may prevail
  * when the caller of this function and the fifo owner disagree
  * about the buffer allocation method.
  * 
  * Return value: 
- * FALSE when @b is NULL.
+ * %FALSE when @b is %NULL.
  **/
 bool
 add_buffer(fifo2 *f, buffer2 *b)
@@ -1145,7 +1146,7 @@ add_buffer(fifo2 *f, buffer2 *b)
 
 	c.fifo = f;
 
-	f->send_empty(&c, b);
+	send_empty_unbuffered(&c, b);
 
 	return TRUE;
 }
@@ -1256,9 +1257,9 @@ init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size)
  *   Preface:
  *     add_buffer() (or init_callback_fifo does it)
  *   custom_send_full():
- *     NULL (default)
+ *     %NULL (default)
  *   custom_wait_empty():
- *     NULL (default). If no buffers are available this will
+ *     %NULL (default). If no buffers are available this will
  *     block until a consumer returns an empty buffer, should
  *     only happen when the fifo has less buffers than consumers
  *     or the producer wants more than one buffer for synchronous i/o.
@@ -1273,7 +1274,7 @@ init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size)
  *	 call send_full_buffer() and return
  *       Of course you can wait for and send more buffers at once.
  *     custom_send_empty():
- *       NULL (default). Puts the buffer on the empty queue
+ *       %NULL (default). Puts the buffer on the empty queue
  *       for wait_empty_buffer().
  *   Producer, asynchronous i/o:
  *     custom_send_empty():
@@ -1286,9 +1287,9 @@ init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size)
  *   Preface:
  *     add_buffer() (or init_callback_fifo does it)
  *   custom_send_empty():
- *     NULL (default)
+ *     %NULL (default)
  *   custom_wait_full():
- *     NULL (default). If no buffers are available this will
+ *     %NULL (default). If no buffers are available this will
  *     block until a producer provides a full buffer, should
  *     only happen when the fifo has less buffers than producers
  *     or the consumer wants more than one buffer for synchronous i/o.
@@ -1347,7 +1348,7 @@ init_callback_fifo2(fifo2 *f, char *name,
 
 /**
  * rem_producer:
- * @c: producer *
+ * @p: producer *
  * 
  * Detach a producer from its fifo. No resource tracking;
  * All previously dequeued buffers must be returned with
@@ -1393,7 +1394,7 @@ rem_producer(producer *p)
  * the rem_producer() function.
  * 
  * Return value: 
- * The producer pointer, or NULL if the operation failed.
+ * The producer pointer, or %NULL if the operation failed.
  **/
 producer *
 add_producer(fifo2 *f, producer *p)
@@ -1459,7 +1460,7 @@ rem_consumer(consumer *c)
  * the rem_consumer() function.
  * 
  * Return value: 
- * The consumer pointer, or NULL if the operation failed.
+ * The consumer pointer, or %NULL if the operation failed.
  **/
 consumer *
 add_consumer(fifo2 *f, consumer *c)

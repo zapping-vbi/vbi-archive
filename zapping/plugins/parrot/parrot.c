@@ -237,9 +237,7 @@ parrot_filler(capture_bundle *bundle, tveng_device_info *info)
   gint start_pos = read_index;
   capture_bundle *d;
 
-  gettimeofday(&tv, NULL);
-
-  bundle->timestamp = tv.tv_sec + tv.tv_usec / 1e6; /* something != 0 */
+  bundle->timestamp = current_time(); /* something != 0 */
 
   pthread_rwlock_rdlock(rwlock);
   do {
@@ -255,8 +253,7 @@ parrot_filler(capture_bundle *bundle, tveng_device_info *info)
       double now;
 
       memcpy(bundle->data, d->data, bundle->image_size);
-      gettimeofday(&tv, NULL);
-      now = tv.tv_sec + tv.tv_usec/1e6;
+      now = current_time();
       
       if (last_timestamp > 0)
 	{

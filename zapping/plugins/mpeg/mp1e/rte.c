@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.58 2001-07-24 17:19:26 garetxe Exp $ */
+/* $Id: rte.c,v 1.59 2001-07-26 05:41:31 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -92,20 +92,11 @@ blank_callback(rte_context * context, void *data, double *time,
 {
 	struct timeval tv;
 
-	gettimeofday(&tv, NULL);
-
-	*time = tv.tv_sec + tv.tv_usec/1e6;
+	*time = current_time();
 
 	/* set to 0's (avoid ugly noise on stop) */
 	if (stream == RTE_AUDIO)
 		memset(data, 0, context->audio_bytes);
-}
-
-typedef long long int tsc_t;
-static tsc_t rdtsc(void) {
-	tsc_t tsc;
-    asm ("\trdtsc\n" : "=A" (tsc));
-    return tsc;
 }
 
 /*

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.12 2001-07-16 07:06:01 mschimek Exp $ */
+/* $Id: esd.c,v 1.13 2001-07-26 05:41:31 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -112,9 +112,7 @@ wait_full(fifo *f)
 			n -= r;
 		}
 
-		gettimeofday(&tv, NULL);
-
-		esd->time = tv.tv_sec + tv.tv_usec / 1e6
+		esd->time = current_time();
 			- ((esd->scan_range - n / sizeof(short)) >> esd->pcm.stereo)
 				/ (double) esd->pcm.sampling_rate;
 

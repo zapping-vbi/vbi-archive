@@ -18,7 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.15 2001-07-12 23:20:18 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.16 2001-07-26 05:41:31 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#include "site_def.h"
 
 #include <ctype.h>
 #include <assert.h>
@@ -40,7 +46,9 @@
 #ifdef V4L2_MAJOR_VERSION
 
 static int			fd;
-static fifo 			cap_fifo;
+static fifo2			cap_fifo;
+static producer			cap_prod;
+static buffer2 *		buffers;
 
 static struct v4l2_capability	vcap;
 static struct v4l2_standard	vstd;
@@ -70,20 +78,20 @@ le4cc2str(int n)
 }
 
 static bool
-capture_on(fifo *unused)
+capture_on(fifo2 *unused)
 {
 	int str_type = V4L2_BUF_TYPE_CAPTURE;
 
 	return IOCTL(fd, VIDIOC_STREAMON, &str_type) == 0;
 }
 
-static buffer *
-wait_full(fifo *f)
+static void
+wait_full(fifo2 *f)
 {
 	struct v4l2_buffer vbuf;
 	struct timeval tv;
 	fd_set fds;
-	buffer *b;
+	buffer2 *b;
 	int r = -1;
 
 	while (r <= 0) {
@@ -109,25 +117,23 @@ wait_full(fifo *f)
 	ASSERT("dequeue capture buffer",
 		IOCTL(fd, VIDIOC_DQBUF, &vbuf) == 0);
 
-	b = cap_fifo.buffers + vbuf.index;
+	b = buffers + vbuf.index;
 
 #if 1
-	b->time = vbuf.timestamp / 1e9; // UST, currently TOD
+	b->time = vbuf.timestamp * (1 / 1e9); // UST, currently TOD
 #else
-	gettimeofday(&tv, NULL);
-	b->time = tv.tv_sec + tv.tv_usec / 1e6;
+	b->time = current_time();
 #endif
-
-    	return b;
+	send_full_buffer2(&cap_prod, b);
 }
 
 static void
-send_empty(fifo *f, buffer *b)
+send_empty(consumer *c, buffer2 *b)
 {
 	struct v4l2_buffer vbuf;
 
 	vbuf.type = V4L2_BUF_TYPE_CAPTURE;
-	vbuf.index = b->index;
+	vbuf.index = b - buffers;
 
 	ASSERT("enqueue capture buffer",
 		IOCTL(fd, VIDIOC_QBUF, &vbuf) == 0);
@@ -145,7 +151,7 @@ mute_restore(void)
 #define PROGRESSIVE(mode) (mode == CM_YUYV_PROGRESSIVE || \
 			   mode == CM_YUYV_PROGRESSIVE_TEMPORAL)
 
-bool
+fifo2 *
 v4l2_init(void)
 {
 	int aligned_width;
@@ -153,12 +159,13 @@ v4l2_init(void)
 	unsigned int probed_modes = 0;
 	int mod;
 	int min_cap_buffers = video_look_ahead(gop_sequence);
+	int i;
 
 	ASSERT("open video capture device", (fd = open(cap_dev, O_RDONLY)) != -1);
 
 	if (IOCTL(fd, VIDIOC_QUERYCAP, &vcap) == -1) {
 		close(fd);
-		return FALSE; /* Supposedly no V4L2 device, we'll try V4L */
+		return NULL; /* Supposedly no V4L2 device, we'll try V4L */
 	}
 
 	if (vcap.type != V4L2_TYPE_CAPTURE)
@@ -324,7 +331,7 @@ v4l2_init(void)
 	printv(2, "Image format '%s' %d x %d granted\n",
 		le4cc2str(vfmt.fmt.pix.pixelformat), vfmt.fmt.pix.width, vfmt.fmt.pix.height);
 
-#ifdef TEST_PREVIEW
+#if USE_PSB
 
 	if (grab_width * grab_height < 128000) {
 		int b = 12;
@@ -349,51 +356,53 @@ v4l2_init(void)
 
 	printv(2, "%d capture buffers granted\n", vrbuf.count);
 
-	ASSERT("init capture fifo", init_callback_fifo(
-		&cap_fifo, "video-v4l2",
-		wait_full, send_empty, vrbuf.count, 0));
+	ASSERT("allocate capture buffers",
+		(buffers = calloc(vrbuf.count, sizeof(buffer2))));
+
+	init_callback_fifo2(&cap_fifo, "video-v4l2",
+		NULL, NULL, wait_full, send_empty, 0, 0);
+
+	ASSERT("init capture producer",
+		add_producer(&cap_fifo, &cap_prod));
 
 	cap_fifo.start = capture_on;
 
 	// Map capture buffers
 
-	cap_fifo.num_buffers = 0;
-
-	while (cap_fifo.num_buffers < vrbuf.count) {
+	for (i = 0; i < vrbuf.count; i++) {
 		unsigned char *p;
 
 		vbuf.type = V4L2_BUF_TYPE_CAPTURE;
-		vbuf.index = cap_fifo.num_buffers;
+		vbuf.index = i;
 
-		printv(3, "Mapping capture buffer #%d\n", cap_fifo.num_buffers);
+		printv(3, "Mapping capture buffer #%d\n", i);
 
 		ASSERT("query capture buffer #%d",
-			IOCTL(fd, VIDIOC_QUERYBUF, &vbuf) == 0,
-			cap_fifo.num_buffers);
+			IOCTL(fd, VIDIOC_QUERYBUF, &vbuf) == 0, i);
 
 		p = mmap(NULL, vbuf.length, PROT_READ, MAP_SHARED, fd, vbuf.offset);
 
 		if ((int) p == -1) {
-			if (errno == ENOMEM && cap_fifo.num_buffers > 0)
+			if (errno == ENOMEM && i > 0)
 				break;
 			else
-				ASSERT("map capture buffer #%d", 0, cap_fifo.num_buffers);
-		} else
-			cap_fifo.buffers[cap_fifo.num_buffers].data = p;
+				ASSERT("map capture buffer #%d", 0, i);
+		} else {
+			add_buffer(&cap_fifo, buffers + i);
+
+			buffers[i].data = p;
+			buffers[i].used = vbuf.length;
+		}
 
 		ASSERT("enqueue capture buffer #%d",
 			IOCTL(fd, VIDIOC_QBUF, &vbuf) == 0,
 			vbuf.index);
-
-		cap_fifo.num_buffers++;
 	}
 
-	if (cap_fifo.num_buffers < min_cap_buffers)
+	if (i < min_cap_buffers)
 		FAIL("Cannot allocate enough (%d) capture buffers", min_cap_buffers);
 
-	video_cap_fifo = &cap_fifo;
-
-	return TRUE;
+	return &cap_fifo;
 }
 
 #endif // V4L2

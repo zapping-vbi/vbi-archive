@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.44 2001-07-24 20:02:55 mschimek Exp $ */
+/* $Id: main.c,v 1.45 2001-07-26 05:41:31 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,7 +61,7 @@ fifo *			audio_cap_fifo;
 int			stereo;
 
 pthread_t		video_thread_id;
-fifo *			video_cap_fifo;
+static fifo2 *		video_cap_fifo;
 void			(* video_start)(void);
 
 static pthread_t	vbi_thread_id;
@@ -93,9 +93,7 @@ terminate(int signum)
 
 	ASSERT("re-install termination handler", signal(signum, terminate) != SIG_ERR);
 
-	gettimeofday(&tv, NULL);
-
-	now = tv.tv_sec + tv.tv_usec / 1e6;
+	now = current_time();
 
 	if (1)
 		remote_stop(0.0); // past times: stop asap
@@ -219,10 +217,10 @@ main(int ac, char **av)
 		struct stat st;
 
 		if (!stat(cap_dev, &st) && S_ISCHR(st.st_mode)) {
-			if (!v4l2_init())
-				v4l_init();
+			if (!(video_cap_fifo = v4l2_init()))
+				video_cap_fifo = v4l_init();
 		} else
-			file_init();
+			video_cap_fifo = file_init();
 	}
 
 	if (modules & MOD_SUBTITLES) {
@@ -306,7 +304,7 @@ main(int ac, char **av)
 	if (modules & MOD_VIDEO) {
 		ASSERT("create video compression thread",
 			!pthread_create(&video_thread_id, NULL,
-				mpeg1_video_ipb, NULL));
+				mpeg1_video_ipb, video_cap_fifo));
 
 		printv(2, "Video compression thread launched\n");
 	}
@@ -367,9 +365,7 @@ main(int ac, char **av)
 
 		printv(0, "Deferred start in 3 seconds\n");
 
-		gettimeofday(&tv, NULL);
-
-    		remote_start(3.0 + tv.tv_sec + tv.tv_usec / 1e6);
+    		remote_start(3.0 + current_time());
 	}
 
 /*

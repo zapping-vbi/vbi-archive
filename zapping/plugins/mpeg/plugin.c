@@ -221,9 +221,7 @@ read_audio(void * data, double * time, rte_context * context)
 		n -= r;
 	}
 
-	gettimeofday(&tv, NULL);
-	
-	*time = tv.tv_sec + tv.tv_usec / 1e6;
+	*time = current_time();
 	*time -= (((context->audio_bytes - n)/sizeof(short))>>stereo)
 		/ (double) sampling_rate;
 }

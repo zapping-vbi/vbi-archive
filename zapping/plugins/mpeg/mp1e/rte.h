@@ -32,7 +32,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.24 2001-07-24 17:19:27 garetxe Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.25 2001-07-26 05:41:31 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -158,6 +158,11 @@ typedef struct {
 
 	/* Stuff we don't want you to see ;-) */
 	rte_context_private * private;
+
+
+
+	char *format;
+
 } rte_context;
 
 /*
@@ -336,7 +341,7 @@ int rte_set_video_parameters (rte_context * context,
 			      int width, int height,
 			      enum rte_frame_rate video_rate,
 			      size_t output_video_bits,
-			      const char *gop_sequence
+			      const char *gop_sequence);
 
 /* Sets the audio parameters, 0 on error */
 int rte_set_audio_parameters (rte_context * context,

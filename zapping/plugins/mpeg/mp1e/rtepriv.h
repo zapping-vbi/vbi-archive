@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.14 2001-07-24 17:19:27 garetxe Exp $
+ * $Id: rtepriv.h,v 1.15 2001-07-26 05:41:31 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -100,7 +100,8 @@ struct _rte_context_private {
 	int video_buffered; /* whether the video uses buffers or memcpy */
 	int fd; /* file descriptor of the file we are saving */
 	void * user_data; /* user data given to the callback */
-	fifo aud, vid; /* callback fifos for pushing */
+	fifo aud; /* callback fifos for pushing */
+	fifo2 vid;
 	mucon aud_consumer; /* consumer mucon for audio */
 	mucon vid_consumer; /* consumer mucon for video */
 	int depth; /* video bit depth (bytes per pixel, includes

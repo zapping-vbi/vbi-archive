@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.31 2001-07-24 20:02:55 mschimek Exp $
+dnl $Id: configure.in,v 1.32 2001-07-26 05:41:31 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(mp1e, 1.9pre2)
@@ -68,6 +68,18 @@ AC_CHECK_FUNCS(memalign)
 
 AC_DEFINE(ENABLE_V4L, 1, [For Z/VBI])
 AC_DEFINE(NO_TVENG_H, 1, [For Z/VBI])
+
+AC_MSG_CHECKING([whether 'as' supports SSE2])
+use_sse2=no
+AC_TRY_COMPILE(, [
+int main(void) {
+  __asm__ __volatile__ (" mo4vdqu 0,%xmm0\n");
+  return 0;
+}],
+[AC_DEFINE(USE_SSE2, 1, [Define if 'as' supports SSE2])
+use_sse2=yes])
+AC_MSG_RESULT($use_sse2)
+AM_CONDITIONAL(USE_SSE2, test x$use_sse2 = xyes)
 
 dnl
 dnl ALSA support (libasound)
