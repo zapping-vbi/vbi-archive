@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.26 2001-04-19 23:54:21 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.27 2001-05-07 13:06:06 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -149,7 +149,7 @@ int p_inter_bias = 65536 * 48,
     x_bias = 65536 * 31,
     quant_max = 31;
 
-#define QS 1
+#define QS 1 // (PACKED)
 
 fifo *			video_fifo;
 
@@ -182,7 +182,7 @@ do {									\
 	length += l0 + l1; /* 2...26 (f_code == 3) */			\
 } while (0)
 
-static inline void
+static void
 motion_dmv(struct motion *m, int dmv[2])
 {
 	dmv[0] = (m->MV[0] - m->PMV[0]) & m->f_mask;
@@ -197,10 +197,12 @@ motion_dmv(struct motion *m, int dmv[2])
 #define T3RI 1
 #define PSKIP 0
 static const int motion = 0;
+const int mm_row; // ld dead end
+const int mm_mbrow;
 #define zero_forward_motion()
 #else
 static int motion = 8 * 256;
-#include "test-3p1.c"
+#include "motion.c"
 #endif
 
 static int
@@ -268,11 +270,11 @@ picture_i(unsigned char *org0, unsigned char *org1)
 			pr_start(41, "Filter");
 			var = (*filter)(org0, org1); // -> mblock[0]
 			pr_end(41);
-
-			emms();
 #if TEST3p1
 			t1();
 #endif
+			emms();
+
 			/* Calculate quantization factor */
 
 			act_sum += act = var / 65536.0 + 1;
@@ -550,21 +552,19 @@ picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_motion
 			pr_start(41, "Filter");
 			var = (*filter)(org0, org1); // -> mblock[0]
 			pr_end(41);
-
 #if TEST3p1
 			t1();
 #endif
 			pr_start(51, "Predict forward");
 
 #if TEST3p1
-			if (motion) {
+			if (motion)
 				vmc = predict_forward_motion(&M, oldref, dist);
-			} else
+			else
 #endif
 				vmc = predict_forward(oldref + mb_address.block[0].offset);
 
 			pr_end(51);
-
 
 			emms();
 
@@ -939,9 +939,11 @@ if (TEST3) {
 			}
 
 			emms();
+
+#if !T3P1_25 // ATTN vmc change
 if (!TEST3)
 			vmc <<= 8;
-
+#endif
 			/* Encode macroblock */
 
 			if (T3RI && vmc > b_inter_bias) {
@@ -1288,7 +1290,7 @@ static struct {
 	double		time;
 } stack[MAX_B_SUCC], last, buddy, *this;
 
-static inline void
+static void
 promote(int n)
 {
 	int i;
@@ -1335,7 +1337,7 @@ promote(int n)
 	}
 }
 
-static inline void
+static void
 resume(int n)
 {
 	int i;

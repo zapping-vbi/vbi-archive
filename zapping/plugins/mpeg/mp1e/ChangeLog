@@ -1,4 +1,10 @@
-2001-05-6	<garetxe@users.sourceforge.net>
+2001-05-07	<mschimek@users.sourceforge.net>
+
+	* Added MC 3.1, not yet compiled in by default, needs testing.
+	- MC: stream syntax bug, probably large vectors
+	- With MC enabled: P/B block bug (quant?), apparently at scene cuts
+
+2001-05-06	<garetxe@users.sourceforge.net>
 
 	* more work on fifos (killing zombies, fixes). Still some bugs
 	left.

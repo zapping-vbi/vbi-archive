@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct.c,v 1.10 2001-03-31 11:10:26 garetxe Exp $ */
+/* $Id: dct.c,v 1.11 2001-05-07 13:06:06 mschimek Exp $ */
 
 #include <assert.h>
 #include "../common/math.h"
@@ -59,9 +59,11 @@ mmx_t c4 align(8);
 mmx_t c1_15 align(8);
 mmx_t c1_16 align(8);
 mmx_t c1_17 align(8);
+mmx_t c1_15w align(8);
 mmx_t c128 align(8);
 mmx_t c255 align(8);
 mmx_t c128_6 align(8);
+mmx_t c1b align(8);
 mmx_t cC4_14 align(8);
 mmx_t cC4_15 align(8);
 mmx_t c1C6_13 align(8);
@@ -109,11 +111,12 @@ init_dct(void)
 	c1_15		= MMXRD(1 << 15);
 	c1_16		= MMXRD(1 << 16);
 	c1_17		= MMXRD(1 << 17);
+	c1_15w		= MMXRW(0x8000);
 
 	c128		= MMXRW(128);
 	c255		= MMXRW(255);
-
 	c128_6		= MMXRW(128 << 6);
+	c1b		= MMXRB(1);
 
 	cC4_14		= MMXRW(lroundn(C4 * S14));
 	cC4_15		= MMXRW(lroundn(C4 * S15));
