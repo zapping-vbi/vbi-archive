@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.6 2005-01-20 01:38:33 mschimek Exp $ */
+/* $Id: image_format.c,v 1.7 2005-01-31 07:04:04 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -586,11 +586,12 @@ tv_copy_image			(void *			dst_image,
 	unsigned int width;
 	unsigned int height;
 
+	assert (NULL != dst_image);
+	assert (NULL != dst_format);
+
 	if (NULL == src_image)
 		return tv_clear_image (dst_image, dst_format);
 
-	assert (NULL != dst_image);
-	assert (NULL != dst_format);
 	assert (NULL != src_format);
 
 	assert (dst_format->pixel_format == src_format->pixel_format);
