@@ -205,13 +205,25 @@ struct control {
 #define C(l) PARENT (l, struct control, pub)
 
 
-static int p_tveng1_queue(tveng_device_info * info);
-static int p_tveng1_dequeue(void *image,
-			    const tv_image_format *format,
-			    tveng_device_info * info,
-			    const struct timeval *	timeout);
 
 
+/** @internal */
+struct xbuffer {
+	void *			data;
+
+	struct xbuffer *	next_queued;
+
+	int			frame_number;
+
+	/** Queued with VIDIOCMCAPTURE. */
+	tv_bool			queued;
+
+	/** Client got a cb pointer with dequeue_buffer(). */
+	tv_bool			dequeued;
+
+	/** Clear this buffer before next VIDIOCMCAPTURE. */
+	tv_bool			clear;
+};
 
 /*
   If this is enabled, some specific features of the bttv driver are
@@ -229,9 +241,7 @@ struct private_tveng1_device_info
 #endif
 #endif
   int audio_mode; /* auto, mono, stereo, ... */
-  char * mmaped_data; /* A pointer to the data mmap() returned */
-  struct video_mbuf mmbuf; /* Info about the location of the frames */
-  int queued, dequeued; /* The index of the [de]queued frames */
+
   double last_timestamp; /* Timestamp of the last frame captured */
 
   double capture_time;
@@ -243,6 +253,15 @@ struct private_tveng1_device_info
 
   /* OV511 camera */
   int ogb_fd;
+
+	/* Info about mapped buffers. */
+	void *			mapped_addr;
+	struct video_mbuf	mbuf;
+
+	struct xbuffer *	buffers;
+	unsigned int		n_buffers;
+
+	struct xbuffer *	first_queued;
 
 	tv_bool			streaming;
 
@@ -1652,9 +1671,9 @@ set_tuner_frequency		(tveng_device_info *	info,
 	if (CAPTURE_MODE_READ == info->capture_mode) {
 		unsigned int i;
 
-		for (i = 0; i < (unsigned int) p_info->mmbuf.frames; ++i) {
-			tv_clear_image (p_info->mmaped_data
-					+ p_info->mmbuf.offsets[i],
+		/* XXX do it like v4l2 */
+		for (i = 0; i < p_info->n_buffers; ++i) {
+			tv_clear_image (p_info->buffers[i].data,
 					&info->capture.format);
 		}
 	}
@@ -1885,8 +1904,7 @@ get_capture_and_overlay_parameters
 				   palette_to_pixfmt (pict.palette),
 				   TV_COLSPC_UNKNOWN)) {
 		info->tveng_errno = -1; /* unknown */
-		t_error_msg("tv_image_format_init()",
-			    "Cannot understand the palette", info);
+		tv_error_msg(info, "Cannot understand the palette");
 		return FALSE;
 	}
 
@@ -2210,10 +2228,8 @@ set_capture_format		(tveng_device_info *	info,
 
 	if (-1 == xioctl_may_fail (info, VIDIOCSWIN, &window)) {
 		unsigned int size;
-		int i;
 		int smaller;
 		int larger;
-		int r;
 
 		if (EINVAL != errno) {
 			ioctl_failure (info,
@@ -2322,203 +2338,6 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 	return pixfmt_set;
 }
 
-static tv_bool
-unmap_xbuffers			(tveng_device_info *	info,
-				 tv_bool		ignore_errors)
-{
-	struct private_tveng1_device_info *p_info = P_INFO (info);
-	tv_bool success;
-
-	if ((void *) -1 == p_info->mmaped_data)
-		return TRUE;
-
-	success = TRUE;
-
-	if (-1 == device_munmap (info->log_fp,
-				 p_info->mmaped_data,
-				 p_info->mmbuf.size)) {
-		if (!ignore_errors) {
-			info->tveng_errno = errno;
-			t_error("munmap()", info);
-
-			success = FALSE;
-		}
-	}
-
-	p_info->mmaped_data = (void *) -1;
-
-	return success;
-}
-
-static tv_bool
-map_xbuffers			(tveng_device_info *	info)
-{
-	struct private_tveng1_device_info *p_info = P_INFO (info);
-
-	assert ((void *) -1 == p_info->mmaped_data);
-
-	CLEAR (p_info->mmbuf);
-
-	if (-1 == xioctl (info, VIDIOCGMBUF, &p_info->mmbuf))
-		return FALSE;
-
-	if (0 == p_info->mmbuf.frames)
-		return FALSE;
-
-	p_info->mmaped_data = device_mmap (info->log_fp,
-					   /* start: any */ NULL,
-					   (size_t) p_info->mmbuf.size,
-					   PROT_READ | PROT_WRITE,
-					   MAP_SHARED,
-					   info->fd,
-					   (off_t) 0);
-
-	if ((void *) -1 == p_info->mmaped_data) {
-		info->tveng_errno = errno;
-		t_error("mmap()", info);
-		return FALSE;
-	}
-
-	if (p_info->mmbuf.frames > VIDEO_MAX_FRAME)
-		p_info->mmbuf.frames = VIDEO_MAX_FRAME;
-
-	p_info -> queued = p_info -> dequeued = 0;
-
-	return TRUE;
-}
-
-
-
-
-
-
-
-static int p_tveng1_queue(tveng_device_info * info)
-{
-  struct video_mmap bm;
-  struct private_tveng1_device_info * p_info =
-    (struct private_tveng1_device_info*) info;
-
-  t_assert(info != NULL);
-  t_assert(info -> capture_mode == CAPTURE_MODE_READ);
-
-  CLEAR (bm);
-  
-  bm.format =
-	  pixfmt_to_palette (info, info->capture.format.pixel_format->pixfmt);
-  
-  if (0 == bm.format) {
-      info -> tveng_errno = -1;
-      t_error_msg("switch()", "Cannot understand actual palette",
-		  info);
-      return -1;
-    }
-
-  bm.frame = (p_info -> queued) % p_info->mmbuf.frames;
-  bm.width = info -> capture.format.width;
-  bm.height = info -> capture.format.height;
-
-  if (-1 == xioctl (info, VIDIOCMCAPTURE, &bm))
-    {
-      /* This comes from xawtv, it isn't in the V4L API */
-      if (errno == EAGAIN)
-	t_error_msg("VIDIOCMCAPTURE", 
-		    "Grabber chip can't sync (no station tuned in?)",
-		    info);
-      return -1;
-    }
-
-  /* increase the queued index */
-  p_info -> queued ++;
-
-  return 0; /* Success */
-}
-
-
-
-
-
-
-static void p_tveng1_timestamp_init(tveng_device_info *info);
-
-/*
-  Sets up the capture device so any read() call after this one
-  succeeds. Returns -1 on error.
-*/
-static int
-tveng1_start_capturing(tveng_device_info * info)
-{
-  struct private_tveng1_device_info * p_info =
-    (struct private_tveng1_device_info*) info;
-  gboolean dummy;
-
-  p_tveng_stop_everything(info, &dummy);
-  t_assert(info -> capture_mode == CAPTURE_MODE_NONE);
-
-  p_tveng1_timestamp_init(info);
-
-	if (!map_xbuffers (info)) {
-		return -1;
-	}
-
-  info->capture_mode = CAPTURE_MODE_READ;
-
-  /* Queue first buffer */
-  if (p_tveng1_queue(info) == -1)
-    return -1;
-
-  p_info->streaming = TRUE;
-
-  return 0;
-}
-
-/* Tries to stop capturing. -1 on error. */
-static int
-tveng1_stop_capturing(tveng_device_info * info)
-{
-  struct private_tveng1_device_info * p_info =
-    (struct private_tveng1_device_info*) info;
-  struct timeval timeout;
-
-  if (info -> capture_mode == CAPTURE_MODE_NONE)
-    {
-      fprintf(stderr, 
-	      "Warning: trying to stop capture with no capture active\n");
-      return 0; /* Nothing to be done */
-    }
-  t_assert(info->capture_mode == CAPTURE_MODE_READ);
-
-  timeout.tv_sec = 1;
-  timeout.tv_usec = 0;
-
-  /* Dequeue last buffer */
-  p_tveng1_dequeue(NULL, NULL, info, &timeout);
-
-  if (!unmap_xbuffers (info, /* ignore_errors */ FALSE))
-	  return -1;
-
-  info->capture_mode = CAPTURE_MODE_NONE;
-
-  p_info->streaming = FALSE;
-
-  return 0;
-}
-
-static tv_bool
-capture_enable			(tveng_device_info *	info,
-				 tv_bool		enable)
-{
-  int r;
-
-  if (enable)
-    r = tveng1_start_capturing (info);
-  else
-    r = tveng1_stop_capturing (info);
-
-  return (0 == r);
-}
-
-
 /*
  *  From rte/mp1e since it now needs much more stable
  *  time stamps than v4l/gettimeofday can provide. 
@@ -2572,19 +2391,19 @@ alarm_handler			(int			signum _unused_)
 	timeout_alarm = TRUE;
 }
 
-static int p_tveng1_dequeue(void *image,
-			    const tv_image_format *format,
-			    tveng_device_info * info,
-			    const struct timeval *	timeout)
+static int
+dequeue_xbuffer			(tveng_device_info *	info,
+				 struct xbuffer **	buffer,
+				 const struct timeval *	timeout)
 {
-  struct private_tveng1_device_info *p_info = P_INFO (info);
-  int frame;
+	struct private_tveng1_device_info *p_info = P_INFO (info);
+	struct xbuffer *b;
+	int frame;
 
-  t_assert(info != NULL);
-  t_assert(info -> capture_mode == CAPTURE_MODE_READ);
+	*buffer = NULL;
 
-  if (p_info -> dequeued == p_info -> queued)
-    return 0; /* All queued frames have been dequeued */
+	if (!(b = p_info->first_queued))
+		return 0; /* all buffers dequeued, timeout */
 
 	timeout_alarm = FALSE;
 
@@ -2611,25 +2430,25 @@ static int p_tveng1_dequeue(void *image,
 		if (-1 == setitimer (ITIMER_REAL, &iv, NULL)) {
 			info->tveng_errno = errno;
 			t_error("setitimer()", info);
-			return -1;
+			return -1; /* error */
 		}
 	} else {
 		/* Block forever. */
 	}
 
-	frame = p_info->dequeued % p_info->mmbuf.frames;
+	frame = b->frame_number;
 
 	/* XXX must bypass device_ioctl() to get EINTR. */
-	while (-1 == xioctl (info, VIDIOCSYNC, &frame)) {
+	while (-1 == ioctl (info->fd, VIDIOCSYNC, &frame)) {
 		switch (errno) {
 		case EINTR:
 			if (timeout_alarm)
-				return -1;
+				return 0; /* timeout */
 
 			continue;
 
 		default:
-			return -1;
+			return -1; /* error */
 		}
 	}
 
@@ -2644,48 +2463,310 @@ static int p_tveng1_dequeue(void *image,
 		setitimer (ITIMER_REAL, &iv, NULL);
 	}
 
-  /* Copy the mmaped data to the data struct, if it is not null */
-  if (image)
-    {
-      tv_copy_image (image, format,
-		     p_info->mmaped_data
-		     + p_info->mmbuf.offsets[frame],
-		     &info->capture.format);
-    }
+	*buffer = b;
 
-  p_info -> dequeued ++;
+	p_info->first_queued = b->next_queued;
+
+	b->next_queued = NULL;
+	b->queued = FALSE;
+
+	return 1; /* success */
+}
+
+static tv_bool
+queue_xbuffer			(tveng_device_info *	info,
+				 struct xbuffer *	b)
+{
+	struct private_tveng1_device_info *p_info = P_INFO (info);
+	struct video_mmap bm;
+	struct xbuffer **xp;
+
+	assert (!b->queued);
+
+	if (b->clear) {
+		if (!tv_clear_image (b->data, &info->capture.format))
+			return FALSE;
+
+		b->clear = FALSE;
+	}
+
+	CLEAR (bm);
+  
+	bm.format = pixfmt_to_palette (info, info->capture.format
+				       .pixel_format->pixfmt);
+	if (0 == bm.format) {
+		info -> tveng_errno = -1;
+		tv_error_msg(info, "Cannot understand the palette");
+		return FALSE;
+	}
+
+	bm.frame = b->frame_number;
+	bm.width = info -> capture.format.width;
+	bm.height = info -> capture.format.height;
+
+	if (-1 == xioctl (info, VIDIOCMCAPTURE, &bm)) {
+		/* This comes from xawtv, it isn't in the V4L API */
+		if (errno == EAGAIN)
+			tv_error_msg(info, "VIDIOCMCAPTURE: "
+				     "Grabber chip can't sync "
+				     "(no station tuned in?)");
+		return FALSE;
+	}
+
+	for (xp = &p_info->first_queued; *xp; xp = &(*xp)->next_queued)
+		;
+
+	*xp = b;
+
+	b->next_queued = NULL;
+	b->queued = TRUE;
+
+	return TRUE;
+}
+
+static tv_bool
+queue_xbuffers			(tveng_device_info *	info)
+{
+	struct private_tveng1_device_info *p_info = P_INFO (info);
+	unsigned int i;
+
+	for (i = 0; i < p_info->n_buffers; ++i) {
+		if (p_info->buffers[i].queued)
+			continue;
+
+		if (p_info->buffers[i].dequeued)
+			continue;
+
+		if (!queue_xbuffer (info, &p_info->buffers[i]))
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+static tv_bool
+unmap_xbuffers			(tveng_device_info *	info,
+				 tv_bool		ignore_errors)
+{
+	struct private_tveng1_device_info *p_info = P_INFO (info);
+	tv_bool success;
+
+	success = TRUE;
+
+	if ((void *) -1 != p_info->mapped_addr) {
+		if (-1 == device_munmap (info->log_fp,
+					 p_info->mapped_addr,
+					 p_info->mbuf.size)) {
+			if (!ignore_errors) {
+				info->tveng_errno = errno;
+				t_error("munmap()", info);
+
+				success = FALSE;
+			}
+		}
+
+		p_info->mapped_addr = (void *) -1;
+	}
+
+	if (p_info->buffers) {
+		free (p_info->buffers);
+
+		p_info->buffers = NULL;
+		p_info->n_buffers = 0;
+	}
+
+	return success;
+}
+
+static tv_bool
+map_xbuffers			(tveng_device_info *	info)
+{
+	struct private_tveng1_device_info *p_info = P_INFO (info);
+	unsigned int i;
+
+	assert ((void *) -1 == p_info->mapped_addr
+		&& NULL == p_info->buffers);
+
+	CLEAR (p_info->mbuf);
+
+	if (-1 == xioctl (info, VIDIOCGMBUF, &p_info->mbuf))
+		return FALSE;
+
+	if (0 == p_info->mbuf.frames)
+		return FALSE;
+
+	/* Limited by the size of the mbuf.offset[] array. */
+	p_info->n_buffers = MIN (p_info->mbuf.frames, VIDEO_MAX_FRAME);
+
+	p_info->buffers = calloc (p_info->n_buffers, sizeof (struct xbuffer));
+	if (!p_info->buffers) {
+		p_info->n_buffers = 0;
+		return FALSE;
+	}
+
+	p_info->mapped_addr = device_mmap (info->log_fp,
+					   /* start: any */ NULL,
+					   (size_t) p_info->mbuf.size,
+					   PROT_READ | PROT_WRITE,
+					   MAP_SHARED,
+					   info->fd,
+					   (off_t) 0);
+
+	if ((void *) -1 == p_info->mapped_addr) {
+		info->tveng_errno = errno;
+		t_error("mmap()", info);
+
+		free (p_info->buffers);
+
+		p_info->buffers = NULL;
+		p_info->n_buffers = 0;
+
+		return FALSE;
+	}
+
+	for (i = 0; i < p_info->n_buffers; ++i) {
+		p_info->buffers[i].data =
+			(char *) p_info->mapped_addr
+			+ p_info->mbuf.offsets[i];
+
+		p_info->buffers[i].frame_number = i;
+	}
+
+	return TRUE;
+}
+
+static void p_tveng1_timestamp_init(tveng_device_info *info);
+
+/*
+  Sets up the capture device so any read() call after this one
+  succeeds. Returns -1 on error.
+*/
+static int
+tveng1_start_capturing(tveng_device_info * info)
+{
+  struct private_tveng1_device_info * p_info =
+    (struct private_tveng1_device_info*) info;
+  gboolean dummy;
+
+  p_tveng_stop_everything(info, &dummy);
+  t_assert(info -> capture_mode == CAPTURE_MODE_NONE);
+
+  p_tveng1_timestamp_init(info);
+
+	if (!map_xbuffers (info)) {
+		return -1;
+	}
+
+	if (!queue_xbuffers (info)) {
+		unmap_xbuffers (info, /* ignore_errors */ TRUE);
+		return -1;
+	}
+
+  info->capture_mode = CAPTURE_MODE_READ;
+
+  p_info->streaming = TRUE;
 
   return 0;
 }
+
+/* Tries to stop capturing. -1 on error. */
+static int
+tveng1_stop_capturing(tveng_device_info * info)
+{
+  struct private_tveng1_device_info * p_info =
+    (struct private_tveng1_device_info*) info;
+  struct timeval timeout;
+  int r;
+
+  if (info -> capture_mode == CAPTURE_MODE_NONE)
+    {
+      fprintf(stderr, 
+	      "Warning: trying to stop capture with no capture active\n");
+      return 0; /* Nothing to be done */
+    }
+
+  r = 0;
+
+  t_assert(info->capture_mode == CAPTURE_MODE_READ);
+
+	/* Dequeue all buffers. */
+
+	timeout.tv_sec = 1;
+	timeout.tv_usec = 0;
+
+	while (p_info->first_queued) {
+		struct xbuffer *b;
+
+		if (dequeue_xbuffer (info, &b, &timeout) <= 0) {
+			/* FIXME caller cannot properly
+			   handle stop error yet. */
+			r = -1; /* error or timeout */
+		}
+	}
+
+	if (!unmap_xbuffers (info, /* ignore_errors */ FALSE)) {
+		/* FIXME caller cannot properly
+		   handle stop error yet. */
+		r = -1;
+	}
+
+  info->capture_mode = CAPTURE_MODE_NONE;
+
+  p_info->streaming = FALSE;
+
+  return r;
+}
+
+static tv_bool
+capture_enable			(tveng_device_info *	info,
+				 tv_bool		enable)
+{
+  int r;
+
+  if (enable)
+    r = tveng1_start_capturing (info);
+  else
+    r = tveng1_stop_capturing (info);
+
+  return (0 == r);
+}
+
 
 static int
 read_frame			(tveng_device_info *	info,
 				 tv_capture_buffer *	buffer,
 				 const struct timeval *	timeout)
 {
+	struct xbuffer *b;
+	int r;
+
   t_assert(info != NULL);
 
   if (info -> capture_mode != CAPTURE_MODE_READ)
     {
       info -> tveng_errno = -1;
-      t_error_msg("check", "Current capture mode is not READ",
-		  info);
-      return -1;
+      tv_error_msg(info, "Current capture mode is not READ");
+      return -1; /* error */
     }
 
-  /* This should be inmediate */
-  if (p_tveng1_queue(info) == -1)
-    return -1;
+	if ((r = dequeue_xbuffer (info, &b, timeout)) <= 0)
+		return r; /* error or timeout */
 
-	/* Dequeue previously queued frame */
+	if (buffer) {
+		const tv_image_format *dst_format;
 
-/* XXX 0 timeout */
-  if (p_tveng1_dequeue(buffer ? buffer->data : NULL,
-		       buffer ? buffer->format : NULL, info, timeout) == -1)
-    return -1;
+		dst_format = buffer->format;
+		if (!dst_format)
+			dst_format = &info->capture.format;
 
-  /* Everything has been OK, return 1 (success) */
-  return 1;
+		tv_copy_image (buffer->data, dst_format,
+			       b->data, &info->capture.format);
+	}
+
+	if (!queue_xbuffer (info, b))
+		return -1; /* error */
+
+	return 1; /* success */
 }
 
 static int
@@ -2799,7 +2880,9 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
   if (caps.type & VID_TYPE_SUBCAPTURE)
     info ->caps.flags |= TVENG_CAPS_SUBCAPTURE;
 
-  p_info -> mmaped_data = (char*) -1;
+  p_info->mapped_addr = (char*) -1;
+  p_info->buffers = NULL;
+  p_info->first_queued = NULL;
 
 	p_info->pwc_driver = FALSE;
 
@@ -2981,8 +3064,7 @@ int tveng1_attach_device(const char* device_file,
       info -> fd = p_tveng1_open_device_file(O_RDWR, info);
       break;
     default:
-      t_error_msg("switch()", "Unknown attach mode for the device",
-		  info);
+      tv_error_msg(info, "Unknown attach mode for the device");
       free(info->file_name);
       info->file_name = NULL;
       return -1;
@@ -3075,9 +3157,8 @@ int tveng1_attach_device(const char* device_file,
 			     pig_depth_to_pixfmt ((unsigned) error),
 			     0)) {
     info -> tveng_errno = -1;
-    t_error_msg("switch()", 
-		"Cannot find appropiate palette for current display",
-		info);
+    tv_error_msg(info,
+		"Cannot find appropiate palette for current display");
     tveng1_close_device(info);
     return -1;
   }
@@ -3085,8 +3166,9 @@ int tveng1_attach_device(const char* device_file,
   set_capture_format (info, &info->capture.format);
 
   /* init the private struct */
-  p_info->mmaped_data = (void *) -1;
-  p_info->queued = p_info->dequeued = 0;
+  p_info->mapped_addr = (void *) -1;
+  p_info->buffers = NULL;
+  p_info->first_queued = NULL;
 
   /* get the minor device number for accessing the appropiate /proc
      entry */
