@@ -46,6 +46,7 @@
 #include "zmisc.h"
 #include "zvbi.h"
 #include "overlay.h"
+#include "osd.h"
 
 #define CHECK_TIMEOUT 100 /* ms for the overlay check timeout */
 #define CLEAR_TIMEOUT 50 /* ms for the clear window timeout */
@@ -315,7 +316,7 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
 }
 
 /*
- * Called when the main overlay window is destroyed (shuts down the
+3 * Called when the main overlay window is destroyed (shuts down the
  * timers)
  */
 static gboolean
@@ -336,6 +337,36 @@ on_main_overlay_delete_event           (GtkWidget       *widget,
     }
 
   return FALSE; /* go on with the callbacks */
+}
+
+/*
+ * The osd pieces have changed, avoid flicker if not needed.
+ */
+static void
+on_osd_model_changed			(ZModel		*osd_model,
+					 gpointer	ignored)
+{
+  struct tveng_window window;
+
+  if (tv_info.clear_timeout_id >= 0 ||
+      tv_info.info->current_controller == TVENG_CONTROLLER_XV)
+    return; /* there will be flicker (something else has changed) */
+
+  if (tv_info.clips) {
+    malloc_count --;
+    g_free(tv_info.clips);
+  }
+
+  tv_info.clips =
+    overlay_get_clips(tv_info.window->window, &tv_info.clipcount);
+
+  memcpy(&window, &tv_info.info->window, sizeof(struct tveng_window));
+  tveng_set_preview_off(tv_info.info);
+  memcpy(&tv_info.info->window, &window, sizeof(struct tveng_window));
+  tv_info.info->window.clips = tv_info.clips;
+  tv_info.info->window.clipcount = tv_info.clipcount;
+  tveng_set_preview_window(tv_info.info);
+  tveng_set_preview_on(tv_info.info);
 }
 
 /*
@@ -360,6 +391,9 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 
   gtk_signal_connect(GTK_OBJECT(window), "size-allocate",
 		     GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
+		     NULL);
+  gtk_signal_connect(GTK_OBJECT(osd_model), "changed",
+		     GTK_SIGNAL_FUNC(on_osd_model_changed),
 		     NULL);
 
   /*
@@ -410,6 +444,10 @@ overlay_stop(tveng_device_info *info)
 
   gtk_signal_disconnect_by_func(GTK_OBJECT(tv_info.window),
 				GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
+				NULL);
+
+  gtk_signal_disconnect_by_func(GTK_OBJECT(osd_model),
+				GTK_SIGNAL_FUNC(on_osd_model_changed),
 				NULL);
 
   if (tv_info.clear_timeout_id >= 0)

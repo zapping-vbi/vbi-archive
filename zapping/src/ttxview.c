@@ -2207,6 +2207,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
   GtkWidget * ttxview_hold = lookup_widget(data->toolbar, "ttxview_hold");
   GtkWidget * ttxview_reveal =
     lookup_widget(data->toolbar, "ttxview_reveal");
+  GtkWidget * ttxview;
   gboolean active;
 
   switch (event->keyval)
@@ -2310,6 +2311,16 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ttxview_reveal));
       gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_reveal),
 				   !active);
+      break;
+    case GDK_Escape:
+    case GDK_q:
+    case GDK_Q:
+      if (!data->parent_toolbar) /* not attached, standalone window */
+	{
+	  ttxview = lookup_widget(data->toolbar, "ttxview");
+	  remove_ttxview_instance(data);
+	  gtk_widget_destroy(ttxview);
+	}
       break;
     default:
       return FALSE;

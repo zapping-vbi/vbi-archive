@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.1 2001-03-08 21:16:33 garetxe Exp $
+ * $Id: fullscreen.c,v 1.2 2001-03-10 00:09:21 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -75,6 +75,7 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
 	  on_channel_down1_activate(channel_down1, NULL);
 	  break;
 	case GDK_Escape:
+	case GDK_F11: /* Might be common too */
 	  on_go_windowed1_activate(go_windowed1, NULL);
 	  break;
 	  /* Let control-Q exit the app */

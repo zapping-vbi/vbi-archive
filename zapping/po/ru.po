@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.5.8cvs\n"
-"POT-Creation-Date: 2001-02-28 18:26+0100\n"
+"POT-Creation-Date: 2001-03-09 23:13+0100\n"
 "PO-Revision-Date: 2000-11-18 17:00+0300\n"
 "Last-Translator: Sergey Nikulin <sergey-nikulin@mail.ru>\n"
 "Language-Team: LANGUAGE <ru@li.org>\n"
@@ -11,69 +11,62 @@ msgstr ""
 "Content-Type: text/plain; charset=koi8-r\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:180
-#, c-format
-msgid ""
-"Sorry, but %s couldn't be opened:\n"
-"%s (%d)"
-msgstr "Извините, но %s не может быть открыт:%s (%d)"
-
-#: src/main.c:184
+#: src/main.c:182
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr "Нет поддержки GdkPizbuf, VBI будет отключен"
 
-#: src/main.c:226
+#: src/main.c:224
 msgid "Color depth of the X display"
 msgstr "Глубина цвета Х-дисплея"
 
-#: src/main.c:227
+#: src/main.c:225
 msgid "BPP"
 msgstr ""
 
-#: src/main.c:235
+#: src/main.c:233
 msgid "Set debug messages on"
 msgstr "Устнановить отладлчные сообщения на"
 
-#: src/main.c:244
+#: src/main.c:242
 msgid "Disable VBI support"
 msgstr "Отключить поддержку VBI"
 
-#: src/main.c:253
+#: src/main.c:251
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr "Установить стандарт/норму по умолчанию для входов без тюнера"
 
-#: src/main.c:254
+#: src/main.c:252
 msgid "NORM"
 msgstr "НОРМА"
 
-#: src/main.c:262
+#: src/main.c:260
 #, fuzzy
 msgid "Video device to use"
 msgstr "Возможности видео устройства"
 
-#: src/main.c:263
+#: src/main.c:261
 msgid "DEVICE"
 msgstr ""
 
-#: src/main.c:271
+#: src/main.c:269
 #, fuzzy
 msgid "Disable XVideo extension support"
 msgstr "Отключить поддержку VBI"
 
-#: src/main.c:314
+#: src/main.c:312
 #, fuzzy
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Извините, нет поддержки модулей"
 
-#: src/main.c:322
+#: src/main.c:320
 msgid "Cannot get device info struct"
 msgstr "Не могу получить информацию об устройстве"
 
-#: src/main.c:330
+#: src/main.c:328
 msgid "Zapping couldn't be started"
 msgstr "Zapping не может стартовать"
 
-#: src/main.c:372
+#: src/main.c:369
 #, fuzzy
 msgid ""
 "The specified device isn't \"/dev/video0\".\n"
@@ -82,14 +75,14 @@ msgstr ""
 "Указанное устройство не \"/dev/video0\"\n"
 "Попробывать его?"
 
-#: src/main.c:393
+#: src/main.c:390
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr "Извините, но \"%s\" не может быть открыт:%s"
 
-#: src/main.c:525
+#: src/main.c:497
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -98,11 +91,11 @@ msgstr ""
 "Не могу восстановить предыдущий режим%s:\n"
 "%s"
 
-#: src/main.c:528
+#: src/main.c:500
 msgid ", I will try starting capture mode"
 msgstr ", я попробую запустить режим захвата"
 
-#: src/main.c:532
+#: src/main.c:504
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -111,7 +104,7 @@ msgstr ""
 "Режим захвата не может быть запущен из-за:\n"
 "%s"
 
-#: src/main.c:545
+#: src/main.c:517
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -120,7 +113,7 @@ msgstr ""
 "Режим захвата не может быть запущен:\n"
 "%s"
 
-#: src/main.c:669
+#: src/main.c:656
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -140,7 +133,7 @@ msgstr ""
 "   - или, что более вероятно, вы нашли баг в\n"
 "     Zapping. Пожалуйста свяжитесь с автором.\n"
 
-#: src/main.c:708
+#: src/main.c:695
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Извините, Zapping не может создать конфигурационное дерево"
 
@@ -152,38 +145,38 @@ msgstr ""
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr "Просмотр TV для GNOME"
 
-#: src/callbacks.c:250
+#: src/callbacks.c:253
 msgid "Cannot set input"
 msgstr "Не могу установить вход"
 
 #. Set the
 #. input freq
-#: src/callbacks.c:284
+#: src/callbacks.c:287
 msgid "Cannot tune input"
 msgstr "Не могу настроить вход"
 
-#: src/callbacks.c:567 src/v4linterface.c:170
+#: src/callbacks.c:543 src/v4linterface.c:170
 msgid "No tuner"
 msgstr "Нет тюнера"
 
-#: src/callbacks.c:575 src/v4linterface.c:172
+#: src/callbacks.c:551 src/v4linterface.c:172
 msgid "No tuned channels"
 msgstr "Нет настроенных каналов"
 
-#: src/callbacks.c:673
+#: src/callbacks.c:649
 msgid "Show extra controls"
 msgstr ""
 
-#: src/callbacks.c:675
+#: src/callbacks.c:651
 msgid "Show the Inputs and Standards menu"
 msgstr ""
 
-#: src/callbacks.c:691
+#: src/callbacks.c:667
 #, fuzzy
 msgid "Show controls"
 msgstr "Настройки"
 
-#: src/callbacks.c:693
+#: src/callbacks.c:669
 msgid "Show the menu and the toolbar"
 msgstr ""
 
@@ -272,11 +265,42 @@ msgstr ""
 msgid "Available controls"
 msgstr "Доступные настройки"
 
+#: src/zvbi.c:139
+#, c-format
+msgid ""
+"Sorry, but %s couldn't be opened:\n"
+"%s (%d)"
+msgstr "Извините, но %s не может быть открыт:%s (%d)"
+
+#: src/zvbi.c:331
+#, fuzzy, c-format
+msgid "VBI: %s couldn't be opened: %d, %s"
+msgstr "Извините, но %s не может быть открыт:%s (%d)"
+
+#: src/zvbi.c:1260
+#, c-format
+msgid "%d %s"
+msgstr ""
+
+#: src/zvbi.c:1261
+#, fuzzy
+msgid "minute"
+msgstr "Отключить звук"
+
+#: src/zvbi.c:1261
+msgid "minutes"
+msgstr ""
+
+#: src/zvbi.c:1263
+#, c-format
+msgid "%d h %d m"
+msgstr ""
+
 #: src/tveng.c:235
 msgid "TV"
 msgstr ""
 
-#: src/properties.c:141 src/properties.c:148 src/properties.c:155
+#: src/properties.c:133 src/properties.c:140 src/properties.c:147
 #: src/tveng.c:236
 msgid "Camera"
 msgstr "Камера"
@@ -284,14 +308,6 @@ msgstr "Камера"
 #: src/tveng.c:1371
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr "Не могу найти zapping_setup_fb, проверте инсталляцию"
-
-#: src/tveng.c:1415
-msgid "Cannot find an appropiate visual"
-msgstr ""
-
-#: src/tveng.c:1435
-msgid "Cannot figure out X depth"
-msgstr "Не могу определить число цветов X дисплея"
 
 #: src/tveng.c:1925 src/tveng.c:1940
 msgid "Filter"
@@ -301,28 +317,6 @@ msgstr ""
 #, fuzzy
 msgid "Colorkey"
 msgstr "Цвет"
-
-#: src/tveng1.c:125 src/tveng2.c:119
-#, c-format
-msgid "%s doesn't look like a valid capture device"
-msgstr "%s не похоже на корректное устройства захвата"
-
-#: src/tveng1.c:262
-msgid "No inputs for this device"
-msgstr "Нет входов для этого устройства"
-
-#: src/tveng1.c:348
-msgid "Cannot find appropiate palette for current display"
-msgstr "Не могу найти подходящую палитру для текущего дисплея"
-
-#: src/tveng1.c:800
-msgid "Cannot understand the actual palette"
-msgstr "Не могу понять настоящую палитру"
-
-#. unknown
-#: src/tveng1.c:884
-msgid "Cannot understand the given palette"
-msgstr "Не могу понять данную палитру"
 
 #: src/tveng1.c:966
 msgid "Mono"
@@ -380,47 +374,14 @@ msgstr "Баланс"
 msgid "Audio Decoding"
 msgstr "Авто декодирование"
 
-#: src/tveng1.c:1389
-#, c-format
-msgid "Unknown audio control: %s (%d)"
-msgstr "Неизвестная аудио настройка: %s (%d)"
-
-#: src/tveng1.c:1427
-#, c-format
-msgid "Unknown video control: %s (%d)"
-msgstr "Неизвестная видео настройка: %s (%d)"
-
 #: src/tveng1.c:1588
 msgid "There are no tuners for the active input"
 msgstr "Нет тюнеров для активного входа"
 
-#: src/tveng1.c:1737
-msgid "Warning: trying to stop capture with no capture active\n"
-msgstr ""
-
-#: src/tveng1.c:1795 src/tveng1.c:1866
-msgid "Cannot understand actual palette"
-msgstr "Не могу понять настоящую палитру"
-
-#: src/tveng1.c:1808
-msgid "Grabber chip can't sync (no station tuned in?)"
-msgstr "Чмп захвата не может синхронизироваться (нет настроенных станций?)"
-
-#: src/tveng1.c:1920
-msgid "Current capture mode is not READ"
-msgstr ""
-
-#: src/tveng1.c:1929
-msgid "Size check failed, quitting to avoid segfault"
-msgstr "Проверка размера неудачна, выхожу во избежание segfault"
-
-#: src/tveng1.c:2037
-msgid "The capability field says that there is no overlay"
-msgstr "Поле возможностей говорит, что нет поддержки overlay"
-
-#: src/tveng1.c:2255 src/tveng2.c:1852
-msgid "Warning: trying to stop preview with no capture active\n"
-msgstr ""
+#: src/tveng2.c:119
+#, c-format
+msgid "%s doesn't look like a valid capture device"
+msgstr "%s не похоже на корректное устройства захвата"
 
 #: src/tveng2.c:130
 #, c-format
@@ -560,14 +521,7 @@ msgid ""
 "Hashes are 0x%x vs. 0x%x"
 msgstr ""
 
-#: src/zmisc.c:267
-#, fuzzy, c-format
-msgid ""
-"Sorry, but cannot go fullscreen:\n"
-"%s"
-msgstr "Извините, не могу переключиться в полноэкранный режим"
-
-#: src/zmisc.c:492
+#: src/zmisc.c:365
 msgid ""
 "The teletext decoder needs GdkPixbuf, and\n"
 "configure didn't find it."
@@ -575,89 +529,82 @@ msgstr ""
 "Декодеру телетекста нужен GdkPixbuf, и\n"
 "configure не нашел его."
 
-#: src/zmisc.c:499
+#: src/zmisc.c:372
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI был отключен или не работает."
 
-#: src/properties.c:62
-#, fuzzy
-msgid ""
-"The properties dialog could not be opened\n"
-"Check the location of zapping.glade"
-msgstr "Диалог свойств не может быть открыт, извините"
-
-#: src/properties.c:93
+#: src/properties.c:85
 msgid "Can capture to memory.\n"
 msgstr "Может захватывать в память\n"
 
-#: src/properties.c:95
+#: src/properties.c:87
 msgid "Has some tuner.\n"
 msgstr "Имеет тюнер.\n"
 
-#: src/properties.c:97
+#: src/properties.c:89
 msgid "Supports the teletext service.\n"
 msgstr "Поддержка телетекста.\n"
 
-#: src/properties.c:99
+#: src/properties.c:91
 msgid "Can overlay the image.\n"
 msgstr "Поддерживает overlay\n"
 
-#: src/properties.c:101
+#: src/properties.c:93
 msgid "Can chromakey the image.\n"
 msgstr ""
 
-#: src/properties.c:103
+#: src/properties.c:95
 msgid "Clipping rectangles are supported.\n"
 msgstr "Поддерживает вырезанные прямоугольники\n"
 
-#: src/properties.c:105
+#: src/properties.c:97
 msgid "Framebuffer memory is overwritten.\n"
 msgstr "Память фрэймбуффера перезаписывается.\n"
 
-#: src/properties.c:107
+#: src/properties.c:99
 msgid "The capture can be scaled.\n"
 msgstr "Захват может масштабироваться\n"
 
-#: src/properties.c:109
+#: src/properties.c:101
 msgid "Only monochrome is available\n"
 msgstr "Доступен только монохромный режим\n"
 
-#: src/properties.c:111
+#: src/properties.c:103
 msgid "The capture can be zoomed\n"
 msgstr ""
 
-#: src/properties.c:122
+#: src/properties.c:114
 msgid "No available inputs"
 msgstr "Нет доступных входов"
 
-#: src/properties.c:124
+#: src/properties.c:116
 msgid "Your video device has no inputs"
 msgstr "Ваше видео устройство не имеет входов"
 
-#: src/properties.c:138
+#: src/properties.c:130
 #, c-format
 msgid "%s"
 msgstr ""
 
-#: src/properties.c:140 src/properties.c:147 src/properties.c:154
+#: src/properties.c:132 src/properties.c:139 src/properties.c:146
 msgid "TV input"
 msgstr "TV вход"
 
-#: src/properties.c:145
+#: src/properties.c:137
 #, c-format
 msgid "%s with a tuner"
 msgstr "%s с тюнером"
 
-#: src/properties.c:152
+#: src/properties.c:144
 #, c-format
 msgid "%s with %d tuners"
 msgstr "%s с %d тюнерами"
 
-#: src/properties.c:469
+#: src/properties.c:474
 msgid "No plugin accepts this page."
 msgstr "Нет плагинов принимающих эту страницу"
 
-#: src/properties.c:504
+#: src/properties.c:509
 msgid ""
 "The plugin that created the active page doesn't provide help for it. Sorry."
 msgstr ""
@@ -667,7 +614,7 @@ msgstr ""
 msgid "Sorry, but the current input has no tuners"
 msgstr "Извините, но текущий вход не имеет тюнеров"
 
-#: src/channel_editor.c:845
+#: src/channel_editor.c:846
 msgid ""
 "Channel autosearching won't work with XVideo.\n"
 "Please switch to another controller by starting\n"
@@ -722,110 +669,115 @@ msgstr "Извините, но плагин не может быть запущен"
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Извините, плагин не предоставляет справки для этого"
 
-#: src/ttxview.c:487
+#: src/ttxview.c:524
 #, fuzzy, c-format
 msgid " Page %d"
 msgstr "Страница"
 
-#: src/ttxview.c:491
+#: src/ttxview.c:528
 #, c-format
 msgid " Subpage %d"
 msgstr ""
 
-#: src/ttxview.c:566 src/ttxview.c:618
+#: src/ttxview.c:604 src/ttxview.c:660
 msgid "Warning: Page not valid"
 msgstr ""
 
-#: src/ttxview.c:612
+#: src/ttxview.c:654
 #, c-format
 msgid "Loading page %x..."
 msgstr ""
 
-#: src/ttxview.c:614
+#: src/ttxview.c:656
 #, c-format
 msgid "Loading subpage %x..."
 msgstr ""
 
-#: src/ttxview.c:688 src/ttxview.c:724
+#: src/ttxview.c:730 src/ttxview.c:766
 msgid "No cache"
 msgstr ""
 
-#: src/ttxview.c:697 src/ttxview.c:733
+#: src/ttxview.c:739 src/ttxview.c:775
 msgid "No other subpage in the cache"
 msgstr ""
 
-#: src/ttxview.c:805
+#: src/ttxview.c:847
 msgid "Found"
 msgstr ""
 
-#: src/ttxview.c:824
+#: src/ttxview.c:866
 msgid "Not found"
 msgstr ""
 
-#: src/ttxview.c:946
+#: src/ttxview.c:988
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr ""
 
-#: src/ttxview.c:1183
+#: src/ttxview.c:1030
+#, fuzzy
+msgid "VBI has been disabled"
+msgstr "VBI был отключен или не работает."
+
+#: src/ttxview.c:1238
 msgid "New bookmark"
 msgstr ""
 
-#: src/ttxview.c:1184
+#: src/ttxview.c:1239
 #, fuzzy
 msgid "Description:"
 msgstr "Точка назначения"
 
-#: src/ttxview.c:1190
+#: src/ttxview.c:1245
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr ""
 
-#: src/ttxview.c:1252
+#: src/ttxview.c:1307
 msgid "Any subpage"
 msgstr ""
 
-#: src/ttxview.c:1308
+#: src/ttxview.c:1363
 msgid "You must first set the destination dir in the properties dialog"
 msgstr ""
 
-#: src/ttxview.c:1317 src/ttxview.c:1634
+#: src/ttxview.c:1372 src/ttxview.c:1689
 msgid "No page loaded"
 msgstr ""
 
-#: src/ttxview.c:1328
+#: src/ttxview.c:1383
 msgid "[none]"
 msgstr ""
 
-#: src/ttxview.c:1329
+#: src/ttxview.c:1384
 #, c-format
 msgid ""
 "Global options: %s\n"
 "Options for %s filter: %s"
 msgstr ""
 
-#: src/ttxview.c:1337
+#: src/ttxview.c:1392
 #, fuzzy
 msgid "Export options"
 msgstr "VBI опции"
 
-#: src/ttxview.c:1380
+#: src/ttxview.c:1435
 #, c-format
 msgid "%s saved"
 msgstr ""
 
-#: src/ttxview.c:1642
+#: src/ttxview.c:1697
 msgid "Selecting"
 msgstr ""
 
-#: src/ttxview.c:1750
+#: src/ttxview.c:1805
 msgid "Selection copied to clipboard"
 msgstr ""
 
 #.
-#. * Translatable strings file generated by Glade.
-#. * Add this file to your project's POTFILES.in.
-#. * DO NOT compile it as part of your application.
+#. * Archivo de cadenas traducibles generado por Glade.
+#. * AЯada este archivo a su POTFILES.in de su proyecto.
+#. * NO lo compile como parte de su aplicaciСn.
 #.
 #: glade/glade_strings.c:7
 msgid "Zapping"
@@ -853,270 +805,342 @@ msgstr ""
 "Используйте это для перехода в полноэкранный режим. Нажмите ESC что-бы "
 "вернуться в оконный режим"
 
-#: glade/glade_strings.c:13 glade/glade_strings.c:153
+#: glade/glade_strings.c:13 glade/glade_strings.c:158
 msgid "Go _Fullscreen"
 msgstr "В _Полноэкранный режим"
 
-#: glade/glade_strings.c:14 glade/glade_strings.c:154
+#: glade/glade_strings.c:14 glade/glade_strings.c:159
 msgid "Use this to start the windowed overlay mode"
 msgstr "Используйте это для просмотра в оконном overlay режиме"
 
-#: glade/glade_strings.c:15 glade/glade_strings.c:155
+#: glade/glade_strings.c:15 glade/glade_strings.c:160
 msgid "Go _Previewing"
 msgstr "В _Предпросмотр"
 
-#: glade/glade_strings.c:16 glade/glade_strings.c:156
+#: glade/glade_strings.c:16 glade/glade_strings.c:161
 msgid "Use this to start the windowed capture mode"
 msgstr "Используйте это для просмотра в оконном режиме захвата"
 
-#: glade/glade_strings.c:17 glade/glade_strings.c:157
+#: glade/glade_strings.c:17 glade/glade_strings.c:162
 msgid "Go _Capturing"
 msgstr "В _Захват"
 
-#: glade/glade_strings.c:18 glade/glade_strings.c:33
+#: glade/glade_strings.c:18 glade/glade_strings.c:35
 msgid "Use Zapping as a Teletext navigator"
 msgstr "Используйте Zapping как Телетекст навигатор"
 
-#: glade/glade_strings.c:19 glade/glade_strings.c:159
+#: glade/glade_strings.c:19 glade/glade_strings.c:164
 msgid "_Teletext"
 msgstr "_Телетекст"
 
-#: glade/glade_strings.c:20 glade/glade_strings.c:160
+#: glade/glade_strings.c:20 glade/glade_strings.c:165
 msgid "Starts the Teletext decoder in a new window"
 msgstr ""
 
-#: glade/glade_strings.c:21 glade/glade_strings.c:161
+#: glade/glade_strings.c:21 glade/glade_strings.c:166
 #, fuzzy
 msgid "_New Teletext View"
 msgstr "_Телетекст"
 
 #: glade/glade_strings.c:22
-msgid "Toggle Closed Caption Display (if transmitted)"
-msgstr ""
+#, fuzzy
+msgid "Info about the current network"
+msgstr "Извините, но текущий вход не имеет тюнеров"
 
 #: glade/glade_strings.c:23
-msgid "C_losed Caption"
-msgstr ""
+#, fuzzy
+msgid "_VBI info"
+msgstr "VBI опции"
 
 #: glade/glade_strings.c:24
+msgid "Toggle Subtitles Display (if transmitted)"
+msgstr ""
+
+#: glade/glade_strings.c:25
+msgid "_Subtitles"
+msgstr ""
+
+#: glade/glade_strings.c:26
 msgid "Go _Zapping"
 msgstr "В _Zapping"
 
-#: glade/glade_strings.c:25
+#: glade/glade_strings.c:27
 msgid "Select the previous station in the channel list"
 msgstr "Выбрать предыдущую станцию в списке каналов"
 
-#: glade/glade_strings.c:26
+#: glade/glade_strings.c:28
 msgid "Channel up"
 msgstr "Канал вверх"
 
-#: glade/glade_strings.c:27
+#: glade/glade_strings.c:29
 msgid "Select the next station in the channel list"
 msgstr "Выбрать следующую станцию в списке каналов"
 
-#: glade/glade_strings.c:28
+#: glade/glade_strings.c:30
 msgid "Channel down"
 msgstr "Канал вниз"
 
-#: glade/glade_strings.c:29
+#: glade/glade_strings.c:31
 msgid "You can get here some info about this program"
 msgstr "Здесь вы можете немного узнать об этой программе"
 
-#: glade/glade_strings.c:30
+#: glade/glade_strings.c:32
 msgid "_Main help"
 msgstr "_Основная справка"
 
-#: glade/glade_strings.c:31
+#: glade/glade_strings.c:33
 msgid "Configure capture"
 msgstr "Настроить захват"
 
-#: glade/glade_strings.c:32
+#: glade/glade_strings.c:34
 msgid "Controls"
 msgstr "Настройки"
 
-#: glade/glade_strings.c:34
+#: glade/glade_strings.c:36
 #, fuzzy
 msgid "Teletext"
 msgstr "_Телетекст"
 
-#: glade/glade_strings.c:35
-msgid "Video device capabilities"
-msgstr "Возможности видео устройства"
-
-#: glade/glade_strings.c:36
-msgid "label30"
-msgstr ""
-
-#: glade/glade_strings.c:37 glade/glade_strings.c:68
-msgid "Device name:"
-msgstr "Имя устройства:"
+#: glade/glade_strings.c:37 glade/glade_strings.c:228
+msgid "Page"
+msgstr "Страница"
 
 #: glade/glade_strings.c:38
-msgid "label27"
+msgid ""
+"Where will the subtitles be taken from. Use 1...8 for Closed Caption and "
+"100...899 for Teletext."
 msgstr ""
 
 #: glade/glade_strings.c:39
+msgid "Video device capabilities"
+msgstr "Возможности видео устройства"
+
+#: glade/glade_strings.c:40
+msgid "label30"
+msgstr ""
+
+#: glade/glade_strings.c:41 glade/glade_strings.c:85
+msgid "Device name:"
+msgstr "Имя устройства:"
+
+#: glade/glade_strings.c:42
+msgid "label27"
+msgstr ""
+
+#: glade/glade_strings.c:43
 msgid "Select the V4L device"
 msgstr "Выберете V4L устройство"
 
-#: glade/glade_strings.c:40
+#: glade/glade_strings.c:44
 msgid "label31"
 msgstr ""
 
-#: glade/glade_strings.c:41
+#: glade/glade_strings.c:45
 msgid "Current controller:"
 msgstr "Текущий контроллер:"
 
-#: glade/glade_strings.c:42
+#: glade/glade_strings.c:46
 msgid "Device file:"
 msgstr "Файл устройства:"
 
-#: glade/glade_strings.c:43
+#: glade/glade_strings.c:47
 msgid "Minimum capture size:"
 msgstr "Минимальный размер захвата:"
 
-#: glade/glade_strings.c:44
+#: glade/glade_strings.c:48
 msgid "Maximum capture size:"
 msgstr "Максимальный размер захвата:"
 
-#: glade/glade_strings.c:45
+#: glade/glade_strings.c:49
 msgid "label28"
 msgstr ""
 
-#: glade/glade_strings.c:46
+#: glade/glade_strings.c:50
 msgid "label29"
 msgstr ""
 
-#: glade/glade_strings.c:47
+#: glade/glade_strings.c:51
 msgid "Device info"
 msgstr "Информация об устройстве"
 
-#: glade/glade_strings.c:48
+#: glade/glade_strings.c:52
 msgid "Fullscreen video mode:"
 msgstr "Полноэкранный видео режим:"
 
-#: glade/glade_strings.c:49
-msgid ""
-"Autodetect\n"
-"Do not change mode\n"
+#: glade/glade_strings.c:53
+msgid "Autodetect"
+msgstr ""
+
+#: glade/glade_strings.c:54
+#, fuzzy
+msgid "Do not change mode"
 msgstr ""
 "Автоопределение\n"
 "Не изменять режим\n"
 
-#: glade/glade_strings.c:52
+#: glade/glade_strings.c:55
 msgid "Avoid noise while changing channels"
 msgstr "Исключить шум при переключении каналов"
 
-#: glade/glade_strings.c:53
+#: glade/glade_strings.c:56
 msgid "Save window geometry (some WM's don't like it)"
 msgstr "Сохранить геометрию окна (некоторым WM это не нравится)"
 
-#: glade/glade_strings.c:54
+#: glade/glade_strings.c:57
 msgid "Resize using fixed increments"
 msgstr "Изменеие размера используя фиксированное увеличение"
 
-#: glade/glade_strings.c:55
+#: glade/glade_strings.c:58
 msgid "Start Zapping muted"
 msgstr "Запускать Zapping с отключенным звуком"
 
-#: glade/glade_strings.c:56
+#: glade/glade_strings.c:59
 msgid ""
 "Avoid some flicker in preview mode (leaves artifacts in the main window)"
 msgstr ""
 "Устраняет некоторое мерцание в режиме предпросмотра (оставляет артифакты в "
 "главном окне)"
 
-#: glade/glade_strings.c:57
+#: glade/glade_strings.c:60
 msgid "Ratio mode:"
 msgstr "Пропорции"
 
-#: glade/glade_strings.c:58
-msgid ""
-"No fixed ratio\n"
-"4:3\n"
-"16:9\n"
+#: glade/glade_strings.c:61
+#, fuzzy
+msgid "No fixed ratio"
 msgstr ""
 "Нет фиксирования\n"
 "4:3\n"
 "16:9\n"
 
 #: glade/glade_strings.c:62
-msgid "Verbosity value given to zapping_setup_fb:"
+msgid "4:3"
 msgstr ""
 
 #: glade/glade_strings.c:63
-msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
+msgid "16:9"
 msgstr ""
 
 #: glade/glade_strings.c:64
+msgid "Verbosity value given to zapping__setup__fb:"
+msgstr ""
+
+#: glade/glade_strings.c:65
+msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
+msgstr ""
+
+#: glade/glade_strings.c:66
 msgid "General options"
 msgstr "Главные опции"
 
-#: glade/glade_strings.c:65
+#: glade/glade_strings.c:67
 msgid "Enable VBI decoding"
 msgstr "Включить VBI декодирование"
 
-#: glade/glade_strings.c:66
+#: glade/glade_strings.c:68
 msgid "Use VBI for getting station names"
 msgstr "Использовать VBI для получения имен станций"
 
-#: glade/glade_strings.c:67
-msgid "Try to correct errors when decoding"
-msgstr "Пытаться исправлять ошибки при декодировании"
-
 #: glade/glade_strings.c:69
-msgid "Select the VBI device"
-msgstr "Выбрать VBI устройство"
-
-#: glade/glade_strings.c:70
-msgid "Enter here the device associated with the VBI input"
-msgstr ""
-
-#: glade/glade_strings.c:71
 msgid "Default region:"
 msgstr ""
 
-#: glade/glade_strings.c:72
+#: glade/glade_strings.c:70
+msgid "Teletext implementation:"
+msgstr ""
+
+#: glade/glade_strings.c:71
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Teletext viewer may not display the correct font or national characters. You "
 "can select your geographical region here as an additional hint."
 msgstr ""
 
+#: glade/glade_strings.c:72
+msgid "Western and Central Europe"
+msgstr ""
+
 #: glade/glade_strings.c:73
+#, fuzzy
+msgid "Eastern Europe"
+msgstr "Европа"
+
+#: glade/glade_strings.c:74
+msgid "Western Europe and Turkey"
+msgstr ""
+
+#: glade/glade_strings.c:75
+msgid "Central and Southeast Europe"
+msgstr ""
+
+#: glade/glade_strings.c:76
+msgid "Cyrillic"
+msgstr ""
+
+#: glade/glade_strings.c:77
+msgid "Greek and Turkish"
+msgstr ""
+
+#: glade/glade_strings.c:78
+msgid "Arabic"
+msgstr ""
+
+#: glade/glade_strings.c:79
+msgid "Hebrew and Arabic"
+msgstr ""
+
+#: glade/glade_strings.c:80
 msgid ""
-"Western and Central Europe\n"
-"Eastern Europe\n"
-"Western Europe and Turkey\n"
-"Central and Southeast Europe\n"
-"Cyrillic\n"
-"Greek and Turkish\n"
-"Arabic\n"
-"Hebrew and Arabic\n"
+"Zapping supports several levels of Teletext extensions, you can disable "
+"higher levels if you dislike the appearance."
+msgstr ""
+
+#: glade/glade_strings.c:81
+msgid "Level 1.0"
 msgstr ""
 
 #: glade/glade_strings.c:82
-msgid "Export Teletext pages to:"
+msgid "Level 1.5 (additional national characters)"
 msgstr ""
 
 #: glade/glade_strings.c:83
+msgid "Level 2.5 (more colours, font styles and graphics)"
+msgstr ""
+
+#: glade/glade_strings.c:84
+msgid "Level 3.5 (proportional spacing, multicolour graphics)"
+msgstr ""
+
+#: glade/glade_strings.c:86
+msgid "Select the VBI device"
+msgstr "Выбрать VBI устройство"
+
+#: glade/glade_strings.c:87
+msgid "Enter here the device associated with the VBI input"
+msgstr ""
+
+#: glade/glade_strings.c:88
+msgid "Export Teletext pages to:"
+msgstr ""
+
+#: glade/glade_strings.c:89
 #, fuzzy
 msgid "Select directory we will export pages to"
 msgstr "Выберите дирректорию для сохранения скриншотов"
 
-#: glade/glade_strings.c:84
+#: glade/glade_strings.c:90
 msgid "Enter here the directory we will be exporting TTX pages to"
 msgstr ""
 
-#: glade/glade_strings.c:85
+#: glade/glade_strings.c:91
 msgid "VBI options"
 msgstr "VBI опции"
 
-#: glade/glade_strings.c:86
+#: glade/glade_strings.c:92
 msgid "Channel choosing"
 msgstr "Выбор канала"
 
-#: glade/glade_strings.c:87
+#: glade/glade_strings.c:93
 msgid ""
 "Choose here the channels you want to use.\n"
 "If your country is not listed, please find out the frequencies used for\n"
@@ -1128,578 +1152,632 @@ msgstr ""
 "и отправте ее автору. Таким образом они смогут быть включены в следующие\n"
 "версии программы."
 
-#: glade/glade_strings.c:91
+#: glade/glade_strings.c:97
 msgid "Select here the country you are in"
 msgstr "Выберете здесь страну в который вы находитесь"
 
-#: glade/glade_strings.c:92
-msgid "Dummy country\n"
+#: glade/glade_strings.c:98
+#, fuzzy
+msgid "Dummy country"
 msgstr "Пустышка\n"
 
-#: glade/glade_strings.c:94
+#: glade/glade_strings.c:99
 msgid "Select here the channel you want to tune"
 msgstr "Выберете здесь канал на который вы хотите настроиться"
 
-#: glade/glade_strings.c:95
+#: glade/glade_strings.c:100
 msgid "Channel"
 msgstr "Канал"
 
-#: glade/glade_strings.c:96
+#: glade/glade_strings.c:101
 msgid "Freq (kHz)"
 msgstr "Частота (кГц)"
 
-#: glade/glade_strings.c:97
+#: glade/glade_strings.c:102
 msgid "Alias"
 msgstr "Метка"
 
-#: glade/glade_strings.c:98
+#: glade/glade_strings.c:103
 msgid "ID"
 msgstr ""
 
-#: glade/glade_strings.c:99
+#: glade/glade_strings.c:104
 msgid "Country"
 msgstr "Страна"
 
-#: glade/glade_strings.c:100
+#: glade/glade_strings.c:105
 msgid "kHz"
 msgstr "кГц"
 
-#: glade/glade_strings.c:101
+#: glade/glade_strings.c:106
 msgid "Accelerator"
 msgstr ""
 
-#: glade/glade_strings.c:102
+#: glade/glade_strings.c:107
 msgid "Select your country and click here to search for the available channels"
 msgstr "Выберете вашу страну и щелкните здесь для поиска доступных каналов"
 
-#: glade/glade_strings.c:103
+#: glade/glade_strings.c:108
 msgid "_Search for the available channels in the current country"
 msgstr "_Поиск доступных каналов в текущей стране"
 
-#: glade/glade_strings.c:104
+#: glade/glade_strings.c:109
 msgid "Frequence:"
 msgstr "Частота:"
 
-#: glade/glade_strings.c:105
+#: glade/glade_strings.c:110
 msgid "Enter here the alias you want to give to this channel:"
 msgstr "Введите здесь метку которую вы хотите дать каналу:"
 
-#: glade/glade_strings.c:106
+#: glade/glade_strings.c:111
 msgid "Enter here the name you want to give to this channel"
 msgstr "Введите здесь имя которое вы хотите дать каналу"
 
-#: glade/glade_strings.c:107
+#: glade/glade_strings.c:112
 #, fuzzy
 msgid "Ctrl"
 msgstr "Настройки"
 
-#: glade/glade_strings.c:108
+#: glade/glade_strings.c:113
 msgid "Shift"
 msgstr ""
 
-#: glade/glade_strings.c:109
+#: glade/glade_strings.c:114
 msgid "Alt"
 msgstr ""
 
-#: glade/glade_strings.c:110 glade/glade_strings.c:120
-#: glade/glade_strings.c:226
+#: glade/glade_strings.c:115 glade/glade_strings.c:125
+#: glade/glade_strings.c:233
 msgid "Click here when you are done"
 msgstr "Щелкните здесь когда закончите"
 
-#: glade/glade_strings.c:111
+#: glade/glade_strings.c:116
 msgid "Click this button if you want to discard current changes"
 msgstr "Щелкните здесь если вы хотите забыть текущие изменения"
 
-#: glade/glade_strings.c:112
+#: glade/glade_strings.c:117
 msgid "Click here to add current channel"
 msgstr "Щелкните здесь что бы добавить текущий канал"
 
-#: glade/glade_strings.c:113
+#: glade/glade_strings.c:118
 msgid "_Add"
 msgstr "_Добавить"
 
-#: glade/glade_strings.c:114
+#: glade/glade_strings.c:119
 msgid "Click here to apply the current options to the selected channels"
 msgstr "Щелкните здесь что бы применить текущие опции к выбранному каналу"
 
-#: glade/glade_strings.c:115
+#: glade/glade_strings.c:120
 msgid "_Modify"
 msgstr "_Изменить"
 
-#: glade/glade_strings.c:116
+#: glade/glade_strings.c:121
 msgid "Click here to delete selected channels"
 msgstr "Щелкните здесь что бы удалить выбранные каналы"
 
-#: glade/glade_strings.c:117
+#: glade/glade_strings.c:122
 msgid "_Remove"
 msgstr "_Удалить"
 
-#: glade/glade_strings.c:118
+#: glade/glade_strings.c:123
 msgid "This shows some help about this dialog"
 msgstr "Показывает справку об этом диалоге"
 
-#: glade/glade_strings.c:119
+#: glade/glade_strings.c:124
 msgid "Plugin properties"
 msgstr "Свойства плагинов"
 
-#: glade/glade_strings.c:121
+#: glade/glade_strings.c:126
 msgid "Run the plugin"
 msgstr "Запустить плагин"
 
-#: glade/glade_strings.c:122
+#: glade/glade_strings.c:127
 msgid "_Start Plugin"
 msgstr "_Запустить плагин"
 
-#: glade/glade_strings.c:123
+#: glade/glade_strings.c:128
 msgid "Stop this plugin"
 msgstr "Остановить этот плагин"
 
-#: glade/glade_strings.c:124
+#: glade/glade_strings.c:129
 msgid "S_top Plugin"
 msgstr "_Остановить этот плагин"
 
-#: glade/glade_strings.c:125
+#: glade/glade_strings.c:130
 msgid "Show the configuration options for this plugin"
 msgstr "Показать конфигурационные параметры для этого плагина"
 
-#: glade/glade_strings.c:126
+#: glade/glade_strings.c:131
 msgid "_Configure"
 msgstr "_Настроить"
 
-#: glade/glade_strings.c:127
+#: glade/glade_strings.c:132
 msgid "Plugins"
 msgstr "Плагины"
 
-#: glade/glade_strings.c:128
+#: glade/glade_strings.c:133
 msgid "label67 (Plugin name)"
 msgstr ""
 
-#: glade/glade_strings.c:129
+#: glade/glade_strings.c:134
 msgid "label68 (Plugin short description)"
 msgstr ""
 
-#: glade/glade_strings.c:130
+#: glade/glade_strings.c:135
 msgid "Canonical name:"
 msgstr "Каноническое имя:"
 
-#: glade/glade_strings.c:131
+#: glade/glade_strings.c:136
 msgid "label69"
 msgstr ""
 
-#: glade/glade_strings.c:132
+#: glade/glade_strings.c:137
 msgid "Author:"
 msgstr "Автор:"
 
-#: glade/glade_strings.c:133
+#: glade/glade_strings.c:138
 msgid "label71"
 msgstr ""
 
-#: glade/glade_strings.c:134
+#: glade/glade_strings.c:139
 msgid "Plugin version:"
 msgstr "Версия плагина:"
 
-#: glade/glade_strings.c:135
+#: glade/glade_strings.c:140
 msgid "label72"
 msgstr ""
 
-#: glade/glade_strings.c:136
+#: glade/glade_strings.c:141
 msgid "Plugin priority:"
 msgstr "Приоритет плагина:"
 
-#: glade/glade_strings.c:137
+#: glade/glade_strings.c:142
 msgid "label73"
 msgstr ""
 
-#: glade/glade_strings.c:138
+#: glade/glade_strings.c:143
 msgid "Plugin description"
 msgstr "Описание плагина"
 
-#: glade/glade_strings.c:139
+#: glade/glade_strings.c:144
 msgid "text1"
 msgstr ""
 
-#: glade/glade_strings.c:140
+#: glade/glade_strings.c:145
 msgid "Properties"
 msgstr "Свойства"
 
-#: glade/glade_strings.c:141
+#: glade/glade_strings.c:146
 msgid "Plugin location"
 msgstr "Расположение плагина"
 
-#: glade/glade_strings.c:142
+#: glade/glade_strings.c:147
 msgid "This is the file where the plugin is located"
 msgstr "Это файл где расположен плагин"
 
-#: glade/glade_strings.c:143
+#: glade/glade_strings.c:148
 msgid "text2"
 msgstr ""
 
-#: glade/glade_strings.c:144
+#: glade/glade_strings.c:149
 msgid "label76"
 msgstr ""
 
-#: glade/glade_strings.c:145
+#: glade/glade_strings.c:150
 msgid "Symbol"
 msgstr "Сомвол"
 
-#: glade/glade_strings.c:146
+#: glade/glade_strings.c:151
 msgid "Hash"
 msgstr ""
 
-#: glade/glade_strings.c:147
+#: glade/glade_strings.c:152
 msgid "Description of the symbol"
 msgstr "Описание символа"
 
-#: glade/glade_strings.c:148
+#: glade/glade_strings.c:153
 msgid "text3"
 msgstr ""
 
-#: glade/glade_strings.c:149
+#: glade/glade_strings.c:154
 msgid "Advanced"
 msgstr "Расширенные"
 
-#: glade/glade_strings.c:150
+#: glade/glade_strings.c:155
 msgid "The list of channels you have configured in the Channel Editor"
 msgstr ""
 
-#: glade/glade_strings.c:151
+#: glade/glade_strings.c:156
 #, fuzzy
 msgid "Channel list"
 msgstr "Канал"
 
-#: glade/glade_strings.c:152
+#: glade/glade_strings.c:157
 msgid "Use this for starting the fullscreen mode"
 msgstr "Используйте для запуска полноэкранного режима"
 
-#: glade/glade_strings.c:158
+#: glade/glade_strings.c:163
 msgid "Use Zapping as a teletext navigator"
 msgstr "Использовать Zapping как телетекст навигатор"
 
-#: glade/glade_strings.c:162
+#: glade/glade_strings.c:167
 msgid "Hide the menu and the toolbar"
 msgstr ""
 
-#: glade/glade_strings.c:163
+#: glade/glade_strings.c:168
 #, fuzzy
 msgid "Hide controls"
 msgstr "Доступные настройки"
 
-#: glade/glade_strings.c:164
+#: glade/glade_strings.c:169
 msgid "Hide the Inputs and Standards menus"
 msgstr ""
 
-#: glade/glade_strings.c:165
+#: glade/glade_strings.c:170
 msgid "Hide extra controls"
 msgstr ""
 
-#: glade/glade_strings.c:166
+#: glade/glade_strings.c:171
 msgid "Resize the window to some standard sizes"
 msgstr ""
 
-#: glade/glade_strings.c:167
+#: glade/glade_strings.c:172
 msgid "_Resize"
 msgstr ""
 
-#: glade/glade_strings.c:168
+#: glade/glade_strings.c:173
 msgid "768x576"
 msgstr ""
 
-#: glade/glade_strings.c:169
+#: glade/glade_strings.c:174
 msgid "640x480"
 msgstr ""
 
-#: glade/glade_strings.c:170
+#: glade/glade_strings.c:175
 msgid "384x288"
 msgstr ""
 
-#: glade/glade_strings.c:171
+#: glade/glade_strings.c:176
 msgid "320x240"
 msgstr ""
 
-#: glade/glade_strings.c:172
+#: glade/glade_strings.c:177
 msgid "Searching..."
 msgstr "Поиск..."
 
-#: glade/glade_strings.c:173 glade/glade_strings.c:237
+#: glade/glade_strings.c:178 glade/glade_strings.c:244
 msgid "%P %%"
 msgstr ""
 
-#: glade/glade_strings.c:174
-msgid "Zapzilla"
-msgstr ""
-
-#: glade/glade_strings.c:175
-#, fuzzy
-msgid "Previous page in history"
-msgstr "Пред. страница"
-
-#: glade/glade_strings.c:176
-#, fuzzy
-msgid "Previous"
-msgstr "Пред. страница"
-
-#: glade/glade_strings.c:177
-#, fuzzy
-msgid "Next page in history"
-msgstr "Следующая запись в истории"
-
-#: glade/glade_strings.c:178
-#, fuzzy
-msgid "Next"
-msgstr "След. страница"
-
 #: glade/glade_strings.c:179
-msgid "Go to the index page [Home]"
+msgid "Zapzilla"
 msgstr ""
 
 #: glade/glade_strings.c:180
 #, fuzzy
+msgid "Previous page in history"
+msgstr "Пред. страница"
+
+#: glade/glade_strings.c:181
+#, fuzzy
+msgid "Previous"
+msgstr "Пред. страница"
+
+#: glade/glade_strings.c:182
+#, fuzzy
+msgid "Next page in history"
+msgstr "Следующая запись в истории"
+
+#: glade/glade_strings.c:183
+#, fuzzy
+msgid "Next"
+msgstr "След. страница"
+
+#: glade/glade_strings.c:184
+msgid "Go to the index page [Home]"
+msgstr ""
+
+#: glade/glade_strings.c:185
+#, fuzzy
 msgid "Home"
 msgstr "Громкость"
 
-#: glade/glade_strings.c:181
+#: glade/glade_strings.c:186
 msgid "Clone the current Teletext window"
 msgstr ""
 
-#: glade/glade_strings.c:182
+#: glade/glade_strings.c:187
 msgid "button13"
 msgstr ""
 
-#: glade/glade_strings.c:183 glade/glade_strings.c:200
+#: glade/glade_strings.c:188 glade/glade_strings.c:205
 msgid "Search for a given pattern in the cache"
 msgstr ""
 
-#: glade/glade_strings.c:184 glade/glade_strings.c:227
+#: glade/glade_strings.c:189 glade/glade_strings.c:234
 #, fuzzy
 msgid "Search"
 msgstr "Поиск..."
 
-#: glade/glade_strings.c:185
+#: glade/glade_strings.c:190
 msgid "Previous subpage in the cache [Left]"
 msgstr ""
 
-#: glade/glade_strings.c:186
+#: glade/glade_strings.c:191
 msgid "<<"
 msgstr ""
 
-#: glade/glade_strings.c:187
+#: glade/glade_strings.c:192
 #, fuzzy
 msgid "Previous subpage [-]"
 msgstr "Пред. страница"
 
-#: glade/glade_strings.c:188
+#: glade/glade_strings.c:193
 msgid "<"
 msgstr ""
 
-#: glade/glade_strings.c:189
+#: glade/glade_strings.c:194
 msgid "Hold the current subpage [H]"
 msgstr ""
 
-#: glade/glade_strings.c:190
+#: glade/glade_strings.c:195
 msgid "S0"
 msgstr ""
 
-#: glade/glade_strings.c:191
+#: glade/glade_strings.c:196
 #, fuzzy
 msgid "Next subpage [+]"
 msgstr "След. страница"
 
-#: glade/glade_strings.c:192
+#: glade/glade_strings.c:197
 msgid ">"
 msgstr ""
 
-#: glade/glade_strings.c:193
+#: glade/glade_strings.c:198
 msgid "Next subpage in the cache [Right]"
 msgstr ""
 
-#: glade/glade_strings.c:194
+#: glade/glade_strings.c:199
 msgid ">>"
 msgstr ""
 
-#: glade/glade_strings.c:195
+#: glade/glade_strings.c:200
 msgid "100"
 msgstr ""
 
-#: glade/glade_strings.c:196
+#: glade/glade_strings.c:201
 msgid "Reveal hidden characters [R]"
 msgstr ""
 
-#: glade/glade_strings.c:197
+#: glade/glade_strings.c:202
 msgid "R"
 msgstr ""
 
-#: glade/glade_strings.c:198
+#: glade/glade_strings.c:203
 msgid "Open this link in a new window"
 msgstr ""
 
-#: glade/glade_strings.c:199
+#: glade/glade_strings.c:204
 msgid "_Open in new window"
 msgstr ""
 
-#: glade/glade_strings.c:201
+#: glade/glade_strings.c:206
 #, fuzzy
 msgid "_Search..."
 msgstr "Поиск..."
 
-#: glade/glade_strings.c:202
+#: glade/glade_strings.c:207
 msgid "Export the current page to different formats"
 msgstr ""
 
-#: glade/glade_strings.c:203
+#: glade/glade_strings.c:208
 #, fuzzy
 msgid "_Export"
 msgstr "Экспозиция"
 
-#: glade/glade_strings.c:204
-msgid "Export the current page as HTML"
-msgstr ""
+#: glade/glade_strings.c:209
+#, fuzzy
+msgid "Export the current page as HTML page"
+msgstr "Извините, но текущий вход не имеет тюнеров"
 
-#: glade/glade_strings.c:205
+#: glade/glade_strings.c:210
 msgid "_HTML"
 msgstr ""
 
-#: glade/glade_strings.c:206
-msgid "Export the current page as PPM"
-msgstr ""
+#: glade/glade_strings.c:211
+#, fuzzy
+msgid "Export the current page as PPM image"
+msgstr "Извините, но текущий вход не имеет тюнеров"
 
-#: glade/glade_strings.c:207
+#: glade/glade_strings.c:212
 msgid "P_PM"
 msgstr ""
 
-#: glade/glade_strings.c:208
-msgid "Export the current page as PNG"
-msgstr ""
+#: glade/glade_strings.c:213
+#, fuzzy
+msgid "Export the current page as PNG image"
+msgstr "Извините, но текущий вход не имеет тюнеров"
 
-#: glade/glade_strings.c:209
+#: glade/glade_strings.c:214
 msgid "P_NG"
 msgstr ""
 
-#: glade/glade_strings.c:210
+#: glade/glade_strings.c:215
 #, fuzzy
 msgid "Export the current page as ASCII text"
 msgstr "Извините, но текущий вход не имеет тюнеров"
 
-#: glade/glade_strings.c:211
+#: glade/glade_strings.c:216
 msgid "_ASCII"
 msgstr ""
 
-#: glade/glade_strings.c:212
+#: glade/glade_strings.c:217
 #, fuzzy
 msgid "Export the current page as ANSI text"
 msgstr "Извините, но текущий вход не имеет тюнеров"
 
-#: glade/glade_strings.c:213
+#: glade/glade_strings.c:218
 msgid "ANS_I"
 msgstr ""
 
-#: glade/glade_strings.c:214
-msgid "Manage your bookmarks"
-msgstr ""
-
-#: glade/glade_strings.c:215
-msgid "_Bookmarks"
-msgstr ""
-
-#: glade/glade_strings.c:216
-msgid "Add the current page to the bookmarks"
-msgstr ""
-
-#: glade/glade_strings.c:217
-msgid "_Add current page..."
-msgstr ""
-
-#: glade/glade_strings.c:218
-msgid "Delete some bookmarks"
-msgstr ""
-
 #: glade/glade_strings.c:219
-msgid "_Delete Bookmarks..."
-msgstr ""
+#, fuzzy
+msgid "Export the current page as VTX file"
+msgstr "Извините, но текущий вход не имеет тюнеров"
 
 #: glade/glade_strings.c:220
-msgid "Edit Bookmarks"
+msgid "_VTX"
 msgstr ""
 
 #: glade/glade_strings.c:221
-msgid "Page"
-msgstr "Страница"
+msgid "Manage your bookmarks"
+msgstr ""
 
 #: glade/glade_strings.c:222
-msgid "Subpage"
+msgid "_Bookmarks"
 msgstr ""
 
 #: glade/glade_strings.c:223
+msgid "Add the current page to the bookmarks"
+msgstr ""
+
+#: glade/glade_strings.c:224
+msgid "_Add current page..."
+msgstr ""
+
+#: glade/glade_strings.c:225
+msgid "Delete some bookmarks"
+msgstr ""
+
+#: glade/glade_strings.c:226
+msgid "_Delete Bookmarks..."
+msgstr ""
+
+#: glade/glade_strings.c:227
+msgid "Edit Bookmarks"
+msgstr ""
+
+#: glade/glade_strings.c:229
+msgid "Subpage"
+msgstr ""
+
+#: glade/glade_strings.c:230
 #, fuzzy
 msgid "Description"
 msgstr "Точка назначения"
 
-#: glade/glade_strings.c:224
+#: glade/glade_strings.c:231
 msgid "Remove the currently selected bookmark"
 msgstr ""
 
-#: glade/glade_strings.c:225
+#: glade/glade_strings.c:232
 msgid "Remove Bookmark"
 msgstr ""
 
-#: glade/glade_strings.c:228
+#: glade/glade_strings.c:235
 msgid "Regular Expression:"
 msgstr ""
 
-#: glade/glade_strings.c:229
+#: glade/glade_strings.c:236
 msgid "Search case insensitive"
 msgstr ""
 
-#: glade/glade_strings.c:230
+#: glade/glade_strings.c:237
 msgid "Search backwards"
 msgstr ""
 
-#: glade/glade_strings.c:231
+#: glade/glade_strings.c:238
 #, fuzzy
 msgid "Search in progress..."
 msgstr "Поиск..."
 
-#: glade/glade_strings.c:232
+#: glade/glade_strings.c:239
 msgid "Cancel the current search"
 msgstr ""
 
-#: glade/glade_strings.c:233
+#: glade/glade_strings.c:240
 msgid "Search forwards for the next match"
 msgstr ""
 
-#: glade/glade_strings.c:234
+#: glade/glade_strings.c:241
 msgid "Search backwards for the previous match"
 msgstr ""
 
-#: glade/glade_strings.c:235
+#: glade/glade_strings.c:242
 msgid "Start a new search"
 msgstr ""
 
-#: glade/glade_strings.c:236
+#: glade/glade_strings.c:243
 msgid "New"
 msgstr ""
 
-#: glade/glade_strings.c:238
+#: glade/glade_strings.c:245
 msgid "Zapping error console"
 msgstr ""
 
-#: glade/glade_strings.c:239
+#: glade/glade_strings.c:246
 msgid "OK, let's go on"
 msgstr ""
 
-#: glade/glade_strings.c:240
+#: glade/glade_strings.c:247
 msgid "Remove all this mess"
 msgstr ""
 
-#: glade/glade_strings.c:241
+#: glade/glade_strings.c:248
 #, fuzzy
 msgid "Clean console"
 msgstr "Текущий контроллер:"
 
-#: plugins/screenshot/screenshot.c:32
+#: glade/glade_strings.c:249
+#, fuzzy
+msgid "VBI info"
+msgstr "VBI опции"
+
+#: glade/glade_strings.c:250
+msgid "My curiosity has been fullfilled"
+msgstr ""
+
+#: glade/glade_strings.c:251
+msgid "Network info"
+msgstr ""
+
+#: glade/glade_strings.c:252
+msgid "Name:"
+msgstr ""
+
+#: glade/glade_strings.c:253
+msgid "Short Name:"
+msgstr ""
+
+#: glade/glade_strings.c:254
+msgid "Network call letters:"
+msgstr ""
+
+#: glade/glade_strings.c:255
+msgid "label204"
+msgstr ""
+
+#: glade/glade_strings.c:256
+msgid "label205"
+msgstr ""
+
+#: glade/glade_strings.c:257
+msgid "label206"
+msgstr ""
+
+#: glade/glade_strings.c:258
+msgid "Tape delay"
+msgstr ""
+
+#: glade/glade_strings.c:259
+msgid "label207"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:33
 msgid "Screenshot saver"
 msgstr "Граббер экрана"
 
-#: plugins/screenshot/screenshot.c:34
+#: plugins/screenshot/screenshot.c:35
 msgid ""
 "You can use this plugin to take screenshots of what you are actually "
 "watching in TV.\n"
@@ -1709,46 +1787,46 @@ msgstr ""
 "TV.\n"
 "Он сохранит скриншоты в JPEG формате."
 
-#: plugins/screenshot/screenshot.c:38
+#: plugins/screenshot/screenshot.c:39
 msgid "This plugin takes screenshots of the capture."
 msgstr "Этот плагин позволяет делать скриншоты."
 
 #. hash collision code
 #. Warn
-#: plugins/screenshot/screenshot.c:186
+#: plugins/screenshot/screenshot.c:187
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:333
+#: plugins/screenshot/screenshot.c:336
 msgid "Converts a row in RGB565 format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:339
+#: plugins/screenshot/screenshot.c:342
 msgid "Converts a row in RGB555 format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:345
+#: plugins/screenshot/screenshot.c:348
 msgid "Converts a row in RGBA format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:384
+#: plugins/screenshot/screenshot.c:387
 msgid "Select here the directory where screenshots will be saved"
 msgstr "Выберите здесь дирректорию где скриншоты будут сохраняться"
 
-#: plugins/screenshot/screenshot.c:390
+#: plugins/screenshot/screenshot.c:393
 msgid "Select directory to save screenshots"
 msgstr "Выберите дирректорию для сохранения скриншотов"
 
-#: plugins/screenshot/screenshot.c:408
+#: plugins/screenshot/screenshot.c:411
 msgid "Quality of the compressed image:"
 msgstr "Качество сжатой картинки:"
 
-#: plugins/screenshot/screenshot.c:429 plugins/screenshot/screenshot.c:503
+#: plugins/screenshot/screenshot.c:432 plugins/screenshot/screenshot.c:506
 msgid "Screenshot"
 msgstr "Скриншот"
 
-#: plugins/screenshot/screenshot.c:475
+#: plugins/screenshot/screenshot.c:478
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
@@ -1764,21 +1842,21 @@ msgstr ""
 "Опция качества позволяет вам указать сколько данных\n"
 "пропадет из сжатого JPEG."
 
-#: plugins/screenshot/screenshot.c:504
+#: plugins/screenshot/screenshot.c:507
 msgid "Take a JPEG screenshot"
 msgstr "Сделать скриншот в JPEG"
 
 #. Probably there is no mem even for this, but try anyway
-#: plugins/screenshot/screenshot.c:584 plugins/screenshot/screenshot.c:594
-#: plugins/screenshot/screenshot.c:603
+#: plugins/screenshot/screenshot.c:587 plugins/screenshot/screenshot.c:597
+#: plugins/screenshot/screenshot.c:606
 msgid "Sorry, not enough mem"
 msgstr "Извините, недостаточно памяти"
 
-#: plugins/screenshot/screenshot.c:632
+#: plugins/screenshot/screenshot.c:635
 msgid "Sorry, but I cannot write\n"
 msgstr "Извините, но я не могу записать\n"
 
-#: plugins/screenshot/screenshot.c:634
+#: plugins/screenshot/screenshot.c:637
 msgid ""
 "\n"
 "The image won't be saved."
@@ -1786,17 +1864,140 @@ msgstr ""
 "\n"
 "Картинка не может быть сохранена."
 
-#: plugins/screenshot/screenshot.c:714
+#: plugins/screenshot/screenshot.c:717
 msgid "Saving..."
 msgstr "Сохраняется..."
 
-#: plugins/screenshot/screenshot.c:725
+#: plugins/screenshot/screenshot.c:728
 msgid "Sorry, not enough resources for creating a new thread"
 msgstr "Извините, недостаточно ресурсов для создания новой нити"
 
-#: plugins/screenshot/screenshot.c:729
+#: plugins/screenshot/screenshot.c:732
 msgid "There are too many threads"
 msgstr "Слишком много нитей"
+
+#: plugins/lirc/lirc.c:39
+#, fuzzy
+msgid "LIRC plugin"
+msgstr "Запустить плагин"
+
+#: plugins/lirc/lirc.c:40
+msgid ""
+"This plugin enables the usage of LIRC, the Linux Infrared Remote Control."
+msgstr ""
+
+#: plugins/lirc/lirc.c:41
+msgid "This plugin enables the usage of LIRC."
+msgstr ""
+
+#. hash collision code
+#. Warn
+#: plugins/lirc/lirc.c:101
+#, c-format
+msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
+msgstr ""
+
+#: plugins/lirc/lirc.c:301
+msgid "LIRC"
+msgstr ""
+
+#: plugins/lirc/lirc.c:517
+msgid "Button"
+msgstr ""
+
+#: plugins/lirc/lirc.c:524
+msgid "Action"
+msgstr ""
+
+#: plugins/lirc/lirc.c:541
+msgid "Button:"
+msgstr ""
+
+#: plugins/lirc/lirc.c:552
+#, fuzzy
+msgid "Action:"
+msgstr "Точка назначения"
+
+#: plugins/lirc/lirc.c:580 plugins/lirc/lirc.c:592
+#, fuzzy
+msgid "channel up"
+msgstr "Канал вверх"
+
+#: plugins/lirc/lirc.c:581
+#, fuzzy
+msgid "channel down"
+msgstr "Канал вниз"
+
+#: plugins/lirc/lirc.c:582
+#, fuzzy
+msgid "set channel"
+msgstr "Канал"
+
+#: plugins/lirc/lirc.c:583
+msgid "power off"
+msgstr ""
+
+#: plugins/lirc/lirc.c:626
+msgid "1"
+msgstr ""
+
+#: plugins/lirc/lirc.c:635
+#, fuzzy
+msgid "Add"
+msgstr "_Добавить"
+
+#: plugins/lirc/lirc.c:644
+#, fuzzy
+msgid "Delete"
+msgstr "_Телетекст"
+
+#~ msgid "Cannot figure out X depth"
+#~ msgstr "Не могу определить число цветов X дисплея"
+
+#~ msgid "No inputs for this device"
+#~ msgstr "Нет входов для этого устройства"
+
+#~ msgid "Cannot find appropiate palette for current display"
+#~ msgstr "Не могу найти подходящую палитру для текущего дисплея"
+
+#~ msgid "Cannot understand the actual palette"
+#~ msgstr "Не могу понять настоящую палитру"
+
+#~ msgid "Cannot understand the given palette"
+#~ msgstr "Не могу понять данную палитру"
+
+#~ msgid "Unknown audio control: %s (%d)"
+#~ msgstr "Неизвестная аудио настройка: %s (%d)"
+
+#~ msgid "Unknown video control: %s (%d)"
+#~ msgstr "Неизвестная видео настройка: %s (%d)"
+
+#~ msgid "Cannot understand actual palette"
+#~ msgstr "Не могу понять настоящую палитру"
+
+#~ msgid "Grabber chip can't sync (no station tuned in?)"
+#~ msgstr "Чмп захвата не может синхронизироваться (нет настроенных станций?)"
+
+#~ msgid "Size check failed, quitting to avoid segfault"
+#~ msgstr "Проверка размера неудачна, выхожу во избежание segfault"
+
+#~ msgid "The capability field says that there is no overlay"
+#~ msgstr "Поле возможностей говорит, что нет поддержки overlay"
+
+#, fuzzy
+#~ msgid ""
+#~ "Sorry, but cannot go fullscreen:\n"
+#~ "%s"
+#~ msgstr "Извините, не могу переключиться в полноэкранный режим"
+
+#, fuzzy
+#~ msgid ""
+#~ "The properties dialog could not be opened\n"
+#~ "Check the location of zapping.glade"
+#~ msgstr "Диалог свойств не может быть открыт, извините"
+
+#~ msgid "Try to correct errors when decoding"
+#~ msgstr "Пытаться исправлять ошибки при декодировании"
 
 #~ msgid "Tveng critical error, zapping will exit NOW."
 #~ msgstr "Непоправимая ошибка Tveng, zapping выйдет немедленно."

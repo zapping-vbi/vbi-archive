@@ -1,3 +1,8 @@
+10.3.2001	osd rough edges <garetxe@users.sourceforge.net>
+
+	* osd.c: No flicker even w/o XVideo, knows about showing/hiding
+	the main window.
+
 9.3.2001	Cleanup <mschimek@users.sourceforge.net>
 
 	* Updated de.po

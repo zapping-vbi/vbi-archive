@@ -25,6 +25,7 @@
 #include <pthread.h>
 #include "osd.h"
 #include "zmisc.h"
+#include "x11stuff.h"
 #include "../common/fifo.h"
 
 #include "../libvbi/export.h"
@@ -198,7 +199,8 @@ set_piece_geometry(int row, int piece)
       if (p->scaled)
 	gdk_pixbuf_unref(p->scaled);
       p->scaled = gdk_pixbuf_scale_simple(p->unscaled, dest_w,
-					  dest_h, GDK_INTERP_BILINEAR);
+					  dest_h,
+					  GDK_INTERP_BILINEAR);
     }
 
   paint_piece(p->window, p, 0, 0, dest_w, dest_h);
@@ -208,15 +210,42 @@ static void
 osd_geometry_update(void)
 {
   int i, j;
+  gboolean visible;
 
   g_assert(osd_started == TRUE);
   g_assert(osd_window != NULL);
+
+  visible = x11_window_viewable(osd_window->window);
 
   for (i=0; i<osd_page.rows; i++)
     for (j=0; j<osd_matrix[i]->n_pieces; j++)
       {
 	set_piece_geometry(i, j);
-	gtk_widget_show(osd_matrix[i]->pieces[j].window);
+	if (visible)
+	  gtk_widget_show(osd_matrix[i]->pieces[j].window);
+	else
+	  gtk_widget_hide(osd_matrix[i]->pieces[j].window);
+      }
+}
+
+static void
+update_visibilities(void)
+{
+  int i, j;
+  gboolean visible;
+
+  g_assert(osd_started == TRUE);
+  g_assert(osd_window != NULL);
+
+  visible = x11_window_viewable(osd_window->window);
+
+  for (i=0; i<osd_page.rows; i++)
+    for (j=0; j<osd_matrix[i]->n_pieces; j++)
+      {
+	if (visible)
+	  gtk_widget_show(osd_matrix[i]->pieces[j].window);
+	else
+	  gtk_widget_hide(osd_matrix[i]->pieces[j].window);
       }
 }
 
@@ -238,6 +267,25 @@ void on_osd_screen_size_allocate	(GtkWidget	*widget,
   osd_geometry_update();
 }
 
+/* Handle the map/unmap logic */
+static
+gboolean on_osd_event			(GtkWidget	*widget,
+					 GdkEvent	*event,
+					 gpointer	ignored)
+{
+  switch (event->type)
+    {
+    case GDK_UNMAP:
+    case GDK_MAP:
+      update_visibilities();
+      break;
+    default:
+      break;
+    }
+
+  return FALSE;
+}
+
 void
 osd_set_window(GtkWidget *dest_window, GtkWidget *parent)
 {
@@ -252,8 +300,11 @@ osd_set_window(GtkWidget *dest_window, GtkWidget *parent)
   gtk_signal_connect(GTK_OBJECT(parent), "configure-event",
 		     GTK_SIGNAL_FUNC(on_osd_screen_configure),
 		     NULL);
+  gtk_signal_connect(GTK_OBJECT(parent), "event",
+		     GTK_SIGNAL_FUNC(on_osd_event), NULL);
 
   osd_geometry_update();
+  update_visibilities();
 }
 
 static void
@@ -268,6 +319,8 @@ osd_unset_window(void)
   gtk_signal_disconnect_by_func(GTK_OBJECT(osd_parent_window),
 				GTK_SIGNAL_FUNC(on_osd_screen_configure),
 				NULL);
+  gtk_signal_disconnect_by_func(GTK_OBJECT(osd_parent_window),
+				GTK_SIGNAL_FUNC(on_osd_event), NULL);
 
   osd_window = NULL;
 }
@@ -449,6 +502,7 @@ add_piece(int col, int row, int width, attr_char *c)
   g_assert(row < MAX_COLUMNS);
   g_assert(col >= 0);
   g_assert(col+width <= MAX_COLUMNS);
+  g_assert(osd_window != NULL);
 
   memset(&p, 0, sizeof(p));
 
@@ -488,7 +542,8 @@ add_piece(int col, int row, int width, attr_char *c)
 
   set_piece_geometry(row, osd_matrix[row]->n_pieces-1);
 
-  gtk_widget_show(pp->window);
+  if (x11_window_viewable(osd_window->window))
+    gtk_widget_show(pp->window);
 
   return osd_matrix[row]->n_pieces-1;
 }

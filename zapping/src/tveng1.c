@@ -122,7 +122,7 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
     {
       info->tveng_errno = -1;
       snprintf(info->error, 256, 
-	       _("%s doesn't look like a valid capture device"), info
+	       "%s doesn't look like a valid capture device", info
 	       -> file_name);
       close(info -> fd);
       return -1;
@@ -259,7 +259,7 @@ int tveng1_attach_device(const char* device_file,
       if (error == 0) /* No inputs */
 	{
 	  info->tveng_errno = -1;
-	  snprintf(info->error, 256, _("No inputs for this device"));
+	  snprintf(info->error, 256, "No inputs for this device");
 	  fprintf(stderr, "%s\n", info->error);
 	}
       tveng1_close_device(info);
@@ -345,7 +345,7 @@ int tveng1_attach_device(const char* device_file,
     default:
       info -> tveng_errno = -1;
       t_error_msg("switch()", 
-		  _("Cannot find appropiate palette for current display"),
+		  "Cannot find appropiate palette for current display",
 		  info);
       tveng1_close_device(info);
       return -1;
@@ -797,7 +797,7 @@ tveng1_update_capture_format(tveng_device_info * info)
     default:
       info->tveng_errno = -1; /* unknown */
       t_error_msg("switch()",
-		  _("Cannot understand the actual palette"), info);
+		  "Cannot understand the actual palette", info);
       return -1;
     }
   /* Ok, now get the video window dimensions */
@@ -881,7 +881,7 @@ tveng1_set_capture_format(tveng_device_info * info)
       break;
     default:
       info->tveng_errno = -1; /* unknown */
-      t_error_msg("switch()", _("Cannot understand the given palette"),
+      t_error_msg("switch()", "Cannot understand the given palette",
 		  info);
       tveng_restart_everything(mode, info);
       return -1;
@@ -1386,7 +1386,7 @@ tveng1_set_control(struct tveng_control * control, int value,
 
 	default:
 	  info->tveng_errno = -1;
-	  snprintf(info->error, 256, _("Unknown audio control: %s (%d)"),
+	  snprintf(info->error, 256, "Unknown audio control: %s (%d)",
 			    control->name, control->id);
 	  fprintf(stderr, "%s\n", info->error);
 	  return -1;
@@ -1424,7 +1424,7 @@ tveng1_set_control(struct tveng_control * control, int value,
 	  break;
 	default:
 	  info->tveng_errno = -1;
-	  snprintf(info->error, 256, _("Unknown video control: %s (%d)"),
+	  snprintf(info->error, 256, "Unknown video control: %s (%d)",
 			    control->name, control->id);
 	  fprintf(stderr, "%s\n", info->error);
 	  return -1;
@@ -1734,7 +1734,7 @@ tveng1_stop_capturing(tveng_device_info * info)
   if (info -> current_mode == TVENG_NO_CAPTURE)
     {
       fprintf(stderr, 
-	      _("Warning: trying to stop capture with no capture active\n"));
+	      "Warning: trying to stop capture with no capture active\n");
       return 0; /* Nothing to be done */
     }
   t_assert(info->current_mode == TVENG_CAPTURE_READ);
@@ -1792,7 +1792,7 @@ static int p_tveng1_queue(tveng_device_info * info)
       break;
     default:
       info -> tveng_errno = -1;
-      t_error_msg("switch()", _("Cannot understand actual palette"),
+      t_error_msg("switch()", "Cannot understand actual palette",
 		  info);
       return -1;
     }
@@ -1805,7 +1805,7 @@ static int p_tveng1_queue(tveng_device_info * info)
       /* This comes from xawtv, it isn't in the V4L API */
       if (errno == EAGAIN)
 	t_error_msg("VIDIOCMCAPTURE", 
-		    _("Grabber chip can't sync (no station tuned in?)"),
+		    "Grabber chip can't sync (no station tuned in?)",
 		    info);
       else
 	{
@@ -1863,7 +1863,7 @@ static int p_tveng1_dequeue(void * where, tveng_device_info * info)
       break;
     default:
       info -> tveng_errno = -1;
-      t_error_msg("switch()", _("Cannot understand actual palette"),
+      t_error_msg("switch()", "Cannot understand actual palette",
 		  info);
       return -1;
     }
@@ -1917,7 +1917,7 @@ int tveng1_read_frame(void * where, unsigned int size,
   if (info -> current_mode != TVENG_CAPTURE_READ)
     {
       info -> tveng_errno = -1;
-      t_error_msg("check", _("Current capture mode is not READ"),
+      t_error_msg("check", "Current capture mode is not READ",
 		  info);
       return -1;
     }
@@ -1926,7 +1926,7 @@ int tveng1_read_frame(void * where, unsigned int size,
     {
       info -> tveng_errno = ENOMEM;
       t_error_msg("check()", 
-	      _("Size check failed, quitting to avoid segfault"), info);
+	      "Size check failed, quitting to avoid segfault", info);
       return -1;
     }
 
@@ -2034,7 +2034,7 @@ tveng1_detect_preview (tveng_device_info * info)
     {
       info -> tveng_errno = -1;
       t_error_msg("flags check",
-       _("The capability field says that there is no overlay"), info);
+       "The capability field says that there is no overlay", info);
       return 0;
     }
 
@@ -2252,7 +2252,7 @@ tveng1_stop_previewing(tveng_device_info * info)
   if (info -> current_mode == TVENG_NO_CAPTURE)
     {
       fprintf(stderr, 
-	      _("Warning: trying to stop preview with no capture active\n"));
+	      "Warning: trying to stop preview with no capture active\n");
       return 0; /* Nothing to be done */
     }
   t_assert(info->current_mode == TVENG_CAPTURE_PREVIEW);

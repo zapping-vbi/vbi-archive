@@ -30,9 +30,9 @@
 
 #include "callbacks.h"
 #include "plugin_common.h"
-#include "lirc.h"
 #include "tveng.h"
 #include "remote.h"
+#include "lirc.h"
 
 /* This is the description of the plugin, change as appropiate */
 static const gchar str_canonical_name[] = "lirc";
@@ -49,7 +49,7 @@ static gboolean first = TRUE;
 static pthread_t lirc_thread_id;
 static int thread_exit = 0;
 
-int num_channels;
+static int num_channels;
 
 /*
   Declaration of the static symbols of the plugin. Refer to the docs
@@ -356,7 +356,7 @@ struct plugin_misc_info * plugin_get_misc_info (void)
   return (&returned_struct);
 }
 
-
+static
 void *lirc_thread(void *dummy)
 {
   int i;
@@ -440,6 +440,7 @@ void *lirc_thread(void *dummy)
   return NULL;
 }
 
+static
 int init_socket()
 {
   addr.sun_family=AF_UNIX;
@@ -458,6 +459,7 @@ int init_socket()
   return INIT_SOCKET_OK;
 }
 
+static
 void set_channel(int c)
 {
   c--;
@@ -467,7 +469,7 @@ void set_channel(int c)
   remote_command("set_channel", GINT_TO_POINTER(c));
 }
 
-GtkWidget*
+static GtkWidget*
 create_lirc_properties (GtkWidget *lirc_properties)
 {
   GtkWidget *lirc_vbox;
@@ -665,6 +667,7 @@ create_lirc_properties (GtkWidget *lirc_properties)
   return lirc_properties;
 }
 
+static
 void on_lirc_actionlist_select_row (GtkCList *clist, gint row, gint column,
                                     GdkEvent *event, gpointer user_data)
 {
@@ -672,6 +675,7 @@ void on_lirc_actionlist_select_row (GtkCList *clist, gint row, gint column,
 }
 
 
+static
 void on_lirc_button_add_clicked (GtkButton *button, gpointer user_data)
 {
   gchar buf[50];
@@ -711,7 +715,7 @@ void on_lirc_button_add_clicked (GtkButton *button, gpointer user_data)
   gtk_clist_append(GTK_CLIST(lirc_actionlist), data);
 }
 
-
+static
 void on_lirc_button_delete_clicked (GtkButton *button, gpointer user_data)
 {
   if (last_row != -1) {
@@ -724,7 +728,7 @@ void on_lirc_button_delete_clicked (GtkButton *button, gpointer user_data)
   }
 }
 
-
+static
 void add_action(action_list_item *item)
 {
   action_list_item *prev;
@@ -744,6 +748,7 @@ void add_action(action_list_item *item)
   }
 }
 
+static
 void delete_action(gchar *button)
 {
   action_list_item *item, *prev, *next;
@@ -778,6 +783,7 @@ void delete_action(gchar *button)
   }
 }
 
+static
 gchar *get_action(gchar *button)
 {
   action_list_item *item = first_item;
@@ -790,6 +796,7 @@ gchar *get_action(gchar *button)
   return NULL;
 }
 
+static
 void add_actions_to_list()
 {
   gchar *data[2];
@@ -803,6 +810,7 @@ void add_actions_to_list()
   }
 }
 
+static
 void dump_list()
 {
   action_list_item *item = first_item;

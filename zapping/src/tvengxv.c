@@ -209,7 +209,7 @@ int tvengxv_attach_device(const char* device_file,
   p_info->ei = NULL;
 
   /* In this module, the given device file doesn't matter */
-  info -> file_name = strdup(_("XVideo"));
+  info -> file_name = strdup("XVideo");
   if (!(info -> file_name))
     {
       perror("strdup");

@@ -1849,7 +1849,7 @@ tveng2_stop_previewing(tveng_device_info * info)
   if (info -> current_mode == TVENG_NO_CAPTURE)
     {
       fprintf(stderr, 
-	      _("Warning: trying to stop preview with no capture active\n"));
+	      "Warning: trying to stop preview with no capture active\n");
       return 0; /* Nothing to be done */
     }
   t_assert(info->current_mode == TVENG_CAPTURE_PREVIEW);
