@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.h,v 1.3.2.1 2003-02-16 21:03:33 mschimek Exp $ */
+/* $Id: decoder.h,v 1.3.2.2 2003-06-16 06:02:46 mschimek Exp $ */
 
 #ifndef DECODER_H
 #define DECODER_H
@@ -160,14 +160,83 @@ typedef enum {
 
 /* Private */
 
+#define VBI_PIXFMT_RGB2(fmt) ((fmt) >= VBI_PIXFMT_RGB16_LE)
+
 #define VBI_PIXFMT_BPP(fmt)						\
 	(((fmt) == VBI_PIXFMT_YUV420) ? 1 :				\
 	 (((fmt) >= VBI_PIXFMT_RGBA32_LE				\
 	   && (fmt) <= VBI_PIXFMT_BGRA32_BE) ? 4 :			\
-	  (((fmt) == VBI_PIXFMT_RGB24					\
-	    || (fmt) == VBI_PIXFMT_BGR24) ? 3 : 2)))
+	  (((fmt) >= VBI_PIXFMT_RGB24					\
+	    && (fmt) <= VBI_PIXFMT_BGR24) ? 3 : 2)))
 
 /* Public */
+
+/**
+ * @ingroup Rawdec
+ * @brief Raw VBI sampling parameters.
+ */
+typedef struct _vbi_sampling_parameters vbi_sampling_parameters;
+
+struct _vbi_sampling_parameters {
+	/**
+	 * Either 525 (M/NTSC, M/PAL) or 625 (PAL, SECAM), describing the
+	 * scan line system all line numbers refer to.
+	 */
+	int			scanning;
+	/**
+	 * Format of the raw vbi data.
+	 */
+	vbi_pixfmt		sampling_format;
+	/**
+	 * Sampling rate in Hz, the number of samples or pixels
+	 * captured per second.
+	 */
+	int			sampling_rate;		/* Hz */
+	/**
+	 * Number of samples or pixels captured per scan line,
+	 * in bytes. This determines the raw vbi image width and you
+	 * want it large enough to cover all data transmitted in the line (with
+	 * headroom).
+	 */
+	int			bytes_per_line;
+	/**
+	 * The distance from 0H (leading edge hsync, half amplitude point)
+	 * to the first sample (pixel) captured, in samples (pixels). You want
+	 * an offset small enough not to miss the start of the data
+	 * transmitted.
+	 */
+	int			offset;			/* 0H, samples */
+	/**
+	 * First scan line to be captured, first and second field
+	 * respectively, according to the ITU-R line numbering scheme
+	 * (see vbi_sliced). Set to zero if the exact line number isn't
+	 * known.
+	 */
+	int			start[2];		/* ITU-R numbering */
+	/**
+	 * Number of scan lines captured, first and second
+	 * field respectively. This can be zero if only data from one
+	 * field is required. The sum @a count[0] + @a count[1] determines the
+	 * raw vbi image height.
+	 */
+	int			count[2];		/* field lines */
+	/**
+	 * In the raw vbi image, normally all lines of the second
+	 * field are supposed to follow all lines of the first field. When
+	 * this flag is set, the scan lines of first and second field
+	 * will be interleaved in memory. This implies @a count[0] and @a count[1]
+	 * are equal.
+	 */
+	vbi_bool		interlaced;
+	/**
+	 * Fields must be stored in temporal order, i. e. as the
+	 * lines have been captured. It is assumed that the first field is
+	 * also stored first in memory, however if the hardware cannot reliable
+	 * distinguish fields this flag shall be cleared, which disables
+	 * decoding of data services depending on the field number.
+	 */
+	vbi_bool		synchronous;
+};
 
 /**
  * @ingroup Rawdec
@@ -205,61 +274,65 @@ typedef enum {
  * The contents of this structure are private,
  * use vbi_bit_slicer_init() to initialize.
  */
-typedef struct vbi_bit_slicer {
+typedef struct vbi_bit_slicer vbi_bit_slicer;
+
+struct vbi_bit_slicer {
 	vbi_bool	(* func)(struct vbi_bit_slicer *slicer,
-				 uint8_t *raw, uint8_t *buf);
+				 uint8_t *buf, const uint8_t *raw);
 	unsigned int	cri;
 	unsigned int	cri_mask;
-	int		thresh;
-	int		cri_bytes;
-	int		cri_rate;
-	int		oversampling_rate;
-	int		phase_shift;
-	int		step;
+	unsigned int	thresh;
+	unsigned int	cri_bytes;
+	unsigned int	cri_rate;
+	unsigned int	oversampling_rate;
+	unsigned int	phase_shift;
+	unsigned int	step;
 	unsigned int	frc;
-	int		frc_bits;
-	int		payload;
-	int		endian;
-	int		skip;
-} vbi_bit_slicer;
+	unsigned int	frc_bits;
+	unsigned int	payload;
+	unsigned int	endian;
+	unsigned int	skip;
+	unsigned int	green_mask;
+};
 
 /**
  * @addtogroup Rawdec
  * @{
  */
-extern void		vbi_bit_slicer_init(vbi_bit_slicer *slicer,
-					    int raw_samples, int sampling_rate,
-					    int cri_rate, int bit_rate,
-					    unsigned int cri_frc, unsigned int cri_mask,
-					    int cri_bits, int frc_bits, int payload,
-					    vbi_modulation modulation, vbi_pixfmt fmt);
-/**
- * @param slicer Pointer to initialized vbi_bit_slicer object.
- * @param raw Input data. At least the number of pixels or samples
- *  given as @a raw_samples to vbi_bit_slicer_init().
- * @param buf Output data. The buffer must be large enough to store
- *   the number of bits given as @a payload to vbi_bit_slicer_init().
- * 
- * Decode one scan line of raw vbi data. Note the bit slicer tries
- * to adapt to the average signal amplitude, you should avoid
- * using the same vbi_bit_slicer object for data from different
- * devices.
- *
- * @note As a matter of speed this function does not lock the
- * @a slicer. When you want to share a vbi_bit_slicer object between
- * multiple threads you must implement your own locking mechanism.
- * 
- * @return
- * @c FALSE if the raw data does not contain the expected
- * information, i. e. the CRI/FRC has not been found. This may also
- * result from a too weak or noisy signal. Error correction must be
- * implemented at a higher layer.
- */
-static_inline vbi_bool
-vbi_bit_slice(vbi_bit_slicer *slicer, uint8_t *raw, uint8_t *buf)
-{
-	return slicer->func(slicer, raw, buf);
-}
+extern vbi_bit_slicer *
+vbi_bit_slicer_new		(vbi_pixfmt		sample_format,
+				 unsigned int		sampling_rate,
+				 unsigned int		samples_per_line,
+				 unsigned int		cri,
+				 unsigned int		cri_mask,
+				 unsigned int		cri_bits,
+				 unsigned int		cri_rate,
+				 unsigned int		frc,
+				 unsigned int		frc_bits,
+				 unsigned int		payload_bits,
+				 unsigned int		payload_rate,
+				 vbi_modulation		modulation);
+extern void
+vbi_bit_slicer_delete		(vbi_bit_slicer *	slicer);
+/* XXX private */
+extern void
+vbi_bit_slicer_init		(vbi_bit_slicer *	slicer,
+				 vbi_pixfmt		sample_format,
+				 unsigned int		sampling_rate,
+				 unsigned int		samples_per_line,
+				 unsigned int		cri,
+				 unsigned int		cri_mask,
+				 unsigned int		cri_bits,
+				 unsigned int		cri_rate,
+				 unsigned int		frc,
+				 unsigned int		frc_bits,
+				 unsigned int		payload_bits,
+				 unsigned int		payload_rate,
+				 vbi_modulation		modulation);
+extern vbi_bool
+vbi_bit_slice			(vbi_bit_slicer *	slicer,
+				 uint8_t *		buf,
+				 const uint8_t *	raw);
 /** @} */
 
 /**
