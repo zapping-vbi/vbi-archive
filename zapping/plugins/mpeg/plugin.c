@@ -48,6 +48,8 @@ static rte_context * context = NULL;
 static tveng_device_info * zapping_info = NULL;
 /* Pointer to the dialog that appears while saving */
 static GtkWidget * saving_dialog = NULL;
+/* Show the warning about sync with V4L */
+static gboolean lip_sync_warning = TRUE;
 
 /* Plugin options */
 /* Compressor options */
@@ -437,6 +439,7 @@ gboolean plugin_start (void)
   GtkWidget * widget;
   FILE * file_fd;
   gchar * buffer;
+  GtkWidget *dialog, *label;
 
   /* it would be better to gray out the button and set insensitive */
   if (active)
@@ -444,6 +447,44 @@ gboolean plugin_start (void)
       ShowBox("The plugin is running!", GNOME_MESSAGE_BOX_WARNING);
       return FALSE;
     }
+
+  if (lip_sync_warning &&
+      zapping_info->current_controller == TVENG_CONTROLLER_V4L1)
+    {
+      dialog =
+	gnome_dialog_new(_("Synchronization under V4L1"),
+			 GNOME_STOCK_BUTTON_OK,
+			 _("Do not show this again"),
+			 _("V4L2 page"),
+			 NULL);
+      label =
+	gtk_label_new(_("You are using a V4L1 driver, so synchronization\n"
+			"between audio and video will not be very good.\n"
+			"V4L2 drivers provide a much better sync,\n"
+			"you might want to try those if you aren't\n"
+			"satisfied with the results."));
+
+      gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(dialog)->vbox), label,
+			 TRUE, TRUE, 0);
+
+      gtk_widget_show(label);
+
+      gnome_dialog_set_default(GNOME_DIALOG(dialog), 1);
+
+      switch (gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+	{
+	case 1:
+	  lip_sync_warning = FALSE;
+	  break;
+	case 2:
+	  gnome_url_show("http://www.thedirks.org/v4l2");
+	  break;
+	default:
+	  break;
+	}
+    }
+
+  return FALSE;
 
   if (zmisc_switch_mode(TVENG_CAPTURE_READ, zapping_info))
     {
@@ -702,6 +743,11 @@ void plugin_load_config (gchar * root_key)
   capture_h = zconf_get_integer(NULL, buffer);
   g_free(buffer);
 
+  buffer = g_strconcat(root_key, "lip_sync_warning", NULL);
+  zconf_create_boolean(TRUE, "Warning about lip sync with V4L", buffer);
+  lip_sync_warning = zconf_get_boolean(NULL, buffer);
+  g_free(buffer);
+
   g_free(default_save_dir);
 }
 
@@ -741,6 +787,10 @@ void plugin_save_config (gchar * root_key)
 
   buffer = g_strconcat(root_key, "capture_h", NULL);
   zconf_set_integer(capture_h, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "lip_sync_warning", NULL);
+  zconf_set_boolean(lip_sync_warning, buffer);
   g_free(buffer);
 }
 
