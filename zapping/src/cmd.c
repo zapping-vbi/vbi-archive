@@ -186,6 +186,7 @@ py_toggle_mode			(PyObject *		self _unused_,
   capture_mode new_cmode;
   display_mode old_dmode;
   display_mode new_dmode;
+  gboolean dtoggle;
   char *mode_str;
 
   if (!zapping)
@@ -202,6 +203,8 @@ py_toggle_mode			(PyObject *		self _unused_,
   new_dmode = old_dmode;
   new_cmode = old_cmode;
 
+  dtoggle = FALSE;
+
   if (mode_str)
     {
       if (0 == g_ascii_strcasecmp (mode_str, "preview"))
@@ -211,14 +214,17 @@ py_toggle_mode			(PyObject *		self _unused_,
       else if (0 == g_ascii_strcasecmp (mode_str, "window"))
 	{
 	  new_dmode = DISPLAY_MODE_WINDOW;
+	  dtoggle = TRUE;
 	}
       else if (0 == g_ascii_strcasecmp (mode_str, "fullscreen"))
 	{
 	  new_dmode = DISPLAY_MODE_FULLSCREEN;
+	  dtoggle = TRUE;
 	}
       else if (0 == g_ascii_strcasecmp (mode_str, "background"))
 	{
 	  new_dmode = DISPLAY_MODE_BACKGROUND;
+	  dtoggle = TRUE;
 	}
       else if (0 == g_ascii_strcasecmp (mode_str, "capture"))
 	{
@@ -239,24 +245,25 @@ py_toggle_mode			(PyObject *		self _unused_,
     }
 
   if (0)
-    fprintf (stderr, "toggle: old=%d,%d new=%d,%d last=%d,%d\n",
+    fprintf (stderr, "toggle: d=%d old=%d,%d new=%d,%d last=%d,%d\n",
+	     dtoggle,
 	     old_dmode, old_cmode,
 	     new_dmode, new_cmode,
 	     last_dmode, last_cmode);
 
-  if (new_cmode == old_cmode)
+  if (dtoggle)
     {
-      if (new_cmode == last_cmode)
-	py_return_true;
-
-      if (!switch_mode (new_dmode, last_cmode))
-	py_return_false;
+      if (new_dmode == old_dmode)
+	new_dmode = last_dmode;
     }
   else
     {
-      if (!switch_mode (new_dmode, new_cmode))
-	py_return_false;
+      if (new_cmode == old_cmode)
+	new_cmode = last_cmode;
     }
+
+  if (!switch_mode (new_dmode, new_cmode))
+    py_return_false;
 
   py_return_true;
 }
