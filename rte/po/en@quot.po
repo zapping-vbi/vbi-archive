@@ -1,4 +1,4 @@
-# English translations for RTE package.
+# English translations for PACKAGE package.
 # This file is put in the public domain.
 # Automatically generated, 2002.
 #
@@ -26,9 +26,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: RTE 0.5\n"
-"POT-Creation-Date: 2002-06-19 21:17+0200\n"
-"PO-Revision-Date: 2002-06-16 15:33+0200\n"
+"Project-Id-Version: rte 0.5cvs\n"
+"POT-Creation-Date: 2002-06-24 05:29+0200\n"
+"PO-Revision-Date: 2002-06-24 05:29+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "MIME-Version: 1.0\n"
@@ -70,7 +70,7 @@ msgid "Out of memory for video buffer."
 msgstr "Out of memory for video buffer."
 
 #: mp1e/video/mpeg1.c:2501 mp1e/video/mpeg1.c:2858 mp1e/audio/mp2.c:1172
-#: mp1e/b_mp1e.c:431 mp1e/b_mp1e.c:481 mp1e/b_mp1e.c:491 mp1e/b_mp1e.c:1079
+#: mp1e/b_mp1e.c:439 mp1e/b_mp1e.c:489 mp1e/b_mp1e.c:499 mp1e/b_mp1e.c:1087
 #: ffmpeg/b_ffmpeg.c:889 ffmpeg/b_ffmpeg.c:1140
 msgid "Out of memory."
 msgstr "Out of memory."
@@ -252,49 +252,49 @@ msgstr ""
 "MPEG-2 Low (Sampling) Frequency Extension to MPEG-1 Audio Layer II. Be "
 "warned not all MPEG video and audio players support MPEG-2 audio."
 
-#: mp1e/b_mp1e.c:188 ffmpeg/b_ffmpeg.c:384
+#: mp1e/b_mp1e.c:197 ffmpeg/b_ffmpeg.c:384
 msgid "Insufficient resources to start video encoding thread.\n"
 msgstr "Insufficient resources to start video encoding thread.\n"
 
-#: mp1e/b_mp1e.c:201
+#: mp1e/b_mp1e.c:210
 msgid "Insufficient resources to start audio encoding thread.\n"
 msgstr "Insufficient resources to start audio encoding thread.\n"
 
-#: mp1e/b_mp1e.c:255
+#: mp1e/b_mp1e.c:263
 msgid "Insufficient resources to start codec thread.\n"
 msgstr "Insufficient resources to start codec thread.\n"
 
-#: mp1e/b_mp1e.c:275
+#: mp1e/b_mp1e.c:283
 msgid "Insufficient resources to start context thread.\n"
 msgstr "Insufficient resources to start context thread.\n"
 
-#: mp1e/b_mp1e.c:915 ffmpeg/b_ffmpeg.c:974
+#: mp1e/b_mp1e.c:923 ffmpeg/b_ffmpeg.c:974
 #, c-format
 msgid "Cannot create new codec instance '%s': %s"
 msgstr "Cannot create new codec instance '%s': %s"
 
-#: mp1e/b_mp1e.c:919 ffmpeg/b_ffmpeg.c:979
+#: mp1e/b_mp1e.c:927 ffmpeg/b_ffmpeg.c:979
 #, c-format
 msgid "Cannot create new codec instance '%s'."
 msgstr "Cannot create new codec instance '%s'."
 
-#: mp1e/b_mp1e.c:985
+#: mp1e/b_mp1e.c:993
 msgid "MPEG-1 Program Stream"
 msgstr "MPEG-1 Program Stream"
 
-#: mp1e/b_mp1e.c:997
+#: mp1e/b_mp1e.c:1005
 msgid "MPEG-1 VCD Program Stream"
 msgstr "MPEG-1 VCD Program Stream"
 
-#: mp1e/b_mp1e.c:1009
+#: mp1e/b_mp1e.c:1017
 msgid "MPEG Video Elementary Stream"
 msgstr "MPEG Video Elementary Stream"
 
-#: mp1e/b_mp1e.c:1021 ffmpeg/b_ffmpeg.c:1064
+#: mp1e/b_mp1e.c:1029 ffmpeg/b_ffmpeg.c:1064
 msgid "MPEG Audio Elementary Stream"
 msgstr "MPEG Audio Elementary Stream"
 
-#: mp1e/b_mp1e.c:1199
+#: mp1e/b_mp1e.c:1207
 msgid ""
 "MP1E backend requires MMX but the CPU type is unknown, backend disabled."
 msgstr ""

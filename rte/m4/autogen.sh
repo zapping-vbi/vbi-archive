@@ -84,11 +84,13 @@ if test "$DIE" -eq 1; then
   test "$yesno" == "y" || exit 1
 fi
 
-if test -z "$*"; then
-  echo "**Warning**: I am going to run 'configure' with no arguments."
-  echo "If you wish to pass any to it, please specify them on the"
-  echo $0 "command line."
-  echo
+if test x$NOCONFIGURE = x; then
+  if test -z "$*"; then
+    echo "**Warning**: I am going to run 'configure' with no arguments."
+    echo "If you wish to pass any to it, please specify them on the"
+    echo $0 "command line."
+    echo
+  fi
 fi
 
 case $CC in
@@ -96,13 +98,20 @@ xlc )
   am_opt=--include-deps;;
 esac
 
-for coin in `find $srcdir -name configure.in -print`
+if test x$NORECURSIVE = x; then
+  configure_files="`find $srcdir -name configure.in -print`"
+else
+  configure_files=$srcdir/configure.in
+fi
+
+for coin in $configure_files
 do 
   dr=`dirname $coin`
   if test -f $dr/NO-AUTO-GEN; then
     echo skipping $dr -- flagged as no auto-gen
   else
-    echo processing $dr
+    echo
+    echo Processing `cd $dr; pwd; cd -`
     macrodirs=`sed -n -e 's,AM_ACLOCAL_INCLUDE(\(.*\)),\1,gp' < $coin`
     ( cd $dr
       macrosdir="`find . -name macros -print` `find . -name macros -print`"
@@ -187,6 +196,7 @@ done
 conf_flags="--enable-maintainer-mode --enable-compile-warnings" #--enable-iso-c
 
 if test x$NOCONFIGURE = x; then
+  echo
   echo Running $srcdir/configure $conf_flags "$@" ...
   $srcdir/configure $conf_flags "$@" || exit 1
 else
