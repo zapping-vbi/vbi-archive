@@ -222,7 +222,7 @@ zvbi_current_title(void);
   Returns the current program rating ("TV-MA", "Not rated"),
   don't free, just a pointer.
 */
-gchar *
+const gchar *
 zvbi_current_rating(void);
 
 /*

@@ -1,8 +1,6 @@
 /* Zapping (TV viewer for the Gnome Desktop)
  * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
- * The wmhooks code from xawtv 3.58 (C) Gerd Knorr
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -21,6 +19,8 @@
 /*
  * the routines contained here are all the X-specific stuff in Zapping
  */
+
+#include "../site_def.h"
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -392,173 +392,215 @@ x11_set_screensaver(gboolean on)
   }
 }
 
-static void
-dummy_window_on_top		(GtkWidget *		widget,
-				 gboolean		on)
-{
-}
-
 /*
- * Some WindowManager specific stuff
- *
+ *  WindowManager hints for stay-on-top option
  */
 
-#if defined(USE_WMHOOKS) && !defined(DISABLE_X_EXTENSIONS)
-
-#include <libgnomeui/gnome-winhints.h>
-#include <zmisc.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
-
-/* ---------------------------------------------------------------------- */
-
-void		(* window_on_top)	(GtkWidget *		widget,
-					 gboolean		on);
-
-/* ---------------------------------------------------------------------- */
-
-static Atom net_wm;
-static Atom net_wm_state;
-static Atom net_wm_top;
-
-#define _NET_WM_STATE_REMOVE        0    /* remove/unset property */
-#define _NET_WM_STATE_ADD           1    /* add/set property */
+#ifndef X11STUFF_WM_HINT_DEBUG
+#define X11STUFF_WM_HINT_DEBUG(x)
+#endif
 
 static void
-net_wm_window_on_top		(GtkWidget *		widget,
+dummy_window_on_top		(GtkWindow *		window,
 				 gboolean		on)
+{ }
+
+/**
+ * Tell the WM to keep the window on top of other windows.
+ * You must call wm_hints_detect () and gtk_widget_show (window) first.
+ */
+void (* window_on_top)		(GtkWindow *		window,
+				 gboolean		on)
+  = dummy_window_on_top;
+
+#ifdef DISABLE_X_EXTENSIONS
+
+gboolean
+wm_hints_detect (void)
 {
-  GdkWindow *window = GTK_BIN (widget)->child->window;
-  Display *dpy = GDK_DISPLAY ();
-  Window win = GDK_WINDOW_XWINDOW (window);
-  XEvent e;
-
-    e.xclient.type = ClientMessage;
-    e.xclient.message_type = net_wm_state;
-    e.xclient.display = dpy;
-    e.xclient.window = win;
-    e.xclient.format = 32;
-    e.xclient.data.l[0] = on ? _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE;
-    e.xclient.data.l[1] = net_wm_top;
-    e.xclient.data.l[2] = 0l;
-    e.xclient.data.l[3] = 0l;
-    e.xclient.data.l[4] = 0l;
-
-    XSendEvent(dpy, DefaultRootWindow(dpy), False,
-	       SubstructureRedirectMask, &e);
+  return FALSE;
 }
 
-/* ------------------------------------------------------------------------ */
-
-static Atom gnome;
-static Atom gnome_layer;
-
-/* Note sawfish (1.0.1) reports _WIN_LAYER compatibility but
-   really supports only WIN_LAYER_NORMAL. Pity. */
+#else
 
 static void
-gnome_window_on_top		(GtkWidget *		widget,
+wm_send_event			(GtkWindow *		window,
+				 Atom			message_type,
+				 long			l0,
+				 long			l1)
+{
+  GdkWindow *toplevel = window->frame ? window->frame
+    : GTK_WIDGET (window)->window;
+  Display *xdisplay;
+  Window xwindow;
+  XEvent xev;
+
+  g_assert (toplevel != NULL);
+  g_assert (GTK_WIDGET_MAPPED (window));
+
+  X11STUFF_WM_HINT_DEBUG (printv ("wm_send_event\n"));
+
+  xdisplay = GDK_WINDOW_XDISPLAY (toplevel);
+  xwindow = GDK_WINDOW_XWINDOW (toplevel);
+
+  memset (&xev, 0, sizeof (xev));
+
+  xev.type = ClientMessage;
+  xev.xclient.display = xdisplay;
+  xev.xclient.window = xwindow;
+  xev.xclient.send_event = TRUE;
+  xev.xclient.message_type = message_type;
+  xev.xclient.format = 32;
+  xev.xclient.data.l[0] = l0;
+  xev.xclient.data.l[1] = l1;
+
+  XSendEvent (xdisplay, DefaultRootWindow (xdisplay),
+	      False,
+	      SubstructureNotifyMask |
+	      SubstructureRedirectMask,
+	      &xev);
+
+  XSync (xdisplay, False);
+}
+
+static GdkFilterReturn
+wm_event_handler		(GdkXEvent *		xevent,
+				 GdkEvent *		event,
+				 gpointer		data)
+{
+  return GDK_FILTER_REMOVE; /* ignore */
+}
+
+enum {
+  _NET_WM_STATE_REMOVE,
+  _NET_WM_STATE_ADD,
+  _NET_WM_STATE_TOGGLE
+};
+
+static Atom _XA_NET_SUPPORTED;
+static Atom _XA_NET_WM_STATE;
+static Atom _XA_NET_WM_STATE_ABOVE;
+static Atom _XA_NET_WM_STATE_FULLSCREEN;
+
+/* Tested: Sawfish 1.2 */
+static void
+net_wm_window_on_top		(GtkWindow *		window,
 				 gboolean		on)
 {
-  if (1)
+  wm_send_event (window,
+		 _XA_NET_WM_STATE,
+		 on ? _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE,
+		 _XA_NET_WM_STATE_ABOVE);
+}
+
+enum {
+  WIN_LAYER_BELOW = 2,
+  WIN_LAYER_NORMAL = 4,
+  WIN_LAYER_ONTOP = 6,
+  WIN_LAYER_DOCK = 8,
+  WIN_LAYER_ABOVE_DOCK = 10
+};
+
+static Atom _XA_WIN_SUPPORTING_WM_CHECK;
+static Atom _XA_WIN_LAYER;
+
+/* Tested: IceWM 1.2.2 */
+static void
+gnome_window_on_top		(GtkWindow *		window,
+				 gboolean		on)
+{
+  wm_send_event (window,
+		 _XA_WIN_LAYER,
+		 on ? WIN_LAYER_ONTOP : WIN_LAYER_NORMAL,
+		 0);
+}
+
+gboolean
+wm_hints_detect (void)
+{
+  Display *display;
+  Window root;
+  unsigned char *args = NULL;
+  Atom *atoms = NULL;
+  unsigned long nitems, bytesafter;
+  int format, i;
+  Atom type;
+
+  display = gdk_x11_get_default_xdisplay ();
+  g_assert (display != 0);
+
+  root = DefaultRootWindow (display);
+
+  _XA_NET_SUPPORTED		= XInternAtom (display, "_NET_SUPPORTED", False);
+  _XA_NET_WM_STATE		= XInternAtom (display, "_NET_WM_STATE", False);
+  _XA_NET_WM_STATE_FULLSCREEN	= XInternAtom (display, "_NET_WM_STATE_FULLSCREEN", False);
+  _XA_NET_WM_STATE_ABOVE	= XInternAtom (display, "_NET_WM_STATE_ABOVE", False);
+
+  /* netwm compliant */
+
+  if (Success == XGetWindowProperty
+      (display, root, _XA_NET_SUPPORTED, 0, (65536 / sizeof (long)),
+       False, AnyPropertyType, &type, &format, &nitems, &bytesafter,
+       (unsigned char **) &atoms))
     {
-      /* Supports only Gnome WM hints */
-      gnome_win_hints_set_layer (widget, on ? WIN_LAYER_ONTOP :
-				 	      WIN_LAYER_NORMAL);
+      printv ("wm hints _NET_SUPPORTED (%lu)\n", nitems);
+
+      for (i = 0; i < nitems; i++)
+	{
+	  /* atoms[i] != _XA_... */
+	  char *atom_name = XGetAtomName (display, atoms[i]);
+
+	  X11STUFF_WM_HINT_DEBUG (printv("  atom %s\n", atom_name));
+
+	  /* E.g. IceWM 1.2.2 _NET yes, _ABOVE no, but _LAYER */
+	  if (strcmp (atom_name, "_NET_WM_STATE_ABOVE") == 0)
+	    {
+	      XFree (atom_name);
+	      XFree (atoms);
+
+	      window_on_top = net_wm_window_on_top;
+
+	      gdk_add_client_message_filter
+		(gdk_x11_xatom_to_atom (_XA_NET_WM_STATE),
+		 wm_event_handler, 0);
+
+	      return TRUE;
+	    }
+
+	  XFree (atom_name);
+	}
+
+      XFree (atoms);
     }
-  else /* from xawtv */
-    {
-      GdkWindow *window = GTK_BIN (widget)->child->window;
-      Display *dpy = GDK_DISPLAY ();
-      Window win = GDK_WINDOW_XWINDOW (window);
-      XClientMessageEvent  xev;
 
-      if (0 == win)
-	return;
+  _XA_WIN_SUPPORTING_WM_CHECK	= XInternAtom (display, "_WIN_SUPPORTING_WM_CHECK", False);
+  _XA_WIN_LAYER			= XInternAtom (display, "_WIN_LAYER", False);
 
-      memset(&xev, 0, sizeof(xev));
-      xev.type = ClientMessage;
-      xev.window = win;
-      xev.message_type = gnome_layer;
-      xev.format = 32;
-      switch (on) {
-      case -1: xev.data.l[0] = WIN_LAYER_BELOW;    break;
-      case  0: xev.data.l[0] = WIN_LAYER_NORMAL;   break;
-      case  1: xev.data.l[0] = WIN_LAYER_ONTOP;    break;
+  /* gnome compliant */
+
+  if (Success == XGetWindowProperty
+      (display, root, _XA_WIN_SUPPORTING_WM_CHECK, 0, (65536 / sizeof (long)),
+       False, AnyPropertyType, &type, &format, &nitems, &bytesafter, &args))
+    if (nitems > 0)
+      {
+        printv("wm hints _WIN_SUPPORTING_WM_CHECK\n");
+
+        /* FIXME: check capabilities */
+
+        XFree (args);
+
+        window_on_top = gnome_window_on_top;
+
+	gdk_add_client_message_filter
+	  (gdk_x11_xatom_to_atom (_XA_WIN_LAYER),
+	   wm_event_handler, 0);
+
+        return TRUE;
       }
 
-      XSendEvent(dpy,DefaultRootWindow(dpy),False,
-		 SubstructureNotifyMask,(XEvent*)&xev);
-      if (on)
-	XRaiseWindow(dpy,win);
-    }
+  printv ("wm hints unknown\n");
+
+  return FALSE;
 }
 
-/* ------------------------------------------------------------------------ */
-
-int
-wm_detect(void)
-{
-    Display * dpy = GDK_DISPLAY ();
-    Atom            type;
-    int             format;
-    unsigned long   nitems, bytesafter;
-    unsigned char  *args = NULL;
-    Window root = DefaultRootWindow(dpy);
-
-    /* build atoms */
-    net_wm       = XInternAtom(dpy, "_NET_SUPPORTED", False);
-    net_wm_state = XInternAtom(dpy, "_NET_WM_STATE", False);
-    net_wm_top   = XInternAtom(dpy, "_NET_WM_STATE_STAYS_ON_TOP", False);
-    gnome        = XInternAtom(dpy, "_WIN_SUPPORTING_WM_CHECK", False);
-    gnome_layer  = XInternAtom(dpy, "_WIN_LAYER", False);
-
-    /* gnome-compilant */
-    if (Success == XGetWindowProperty
-	(dpy, root, gnome, 0, (65536 / sizeof(long)), False,
-	 AnyPropertyType, &type, &format, &nitems, &bytesafter, &args)) {
-        if (nitems > 0) {
-	    printv("wmhooks: gnome\n");
-	    /* FIXME: check capabilities */
-	    window_on_top = gnome_window_on_top;
-	    XFree(args);
-	    return 0;
-	}
-    }
-
-    /* netwm compliant */
-    if (Success == XGetWindowProperty
-        (dpy, root, net_wm, 0, (65536 / sizeof(long)), False,
-         AnyPropertyType, &type, &format, &nitems, &bytesafter, &args) &&
-	nitems > 0) {
-        printv("wmhooks: netwm\n");
-	window_on_top = net_wm_window_on_top;
-        XFree(args);
-        return 0;
-    }
-
-    /* nothing found... */
-
-    printv("wmhooks: nothing\n");
-    window_on_top = dummy_window_on_top;
-
-    return -1;
-}
-
-#else /* !WMHOOKS */
-
-void (* window_on_top)(GtkWidget *widget, gboolean on) =
-  dummy_window_on_top;
-
-int
-wm_detect			(void)
-{
-  return -1;
-}
-
-#endif
+#endif /* !DISABLE_X_EXTENSIONS */

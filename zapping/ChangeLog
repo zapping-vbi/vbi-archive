@@ -1,3 +1,20 @@
+4.12.2002	<mschimek@users.sf.net>
+
+	* src/main.c, src/x11stuff.c (wm_hints_detect): Rewrote to
+	  work with Sawfish.
+	* src/gen_conv.s: Replaced comments, older as dislike C style.
+	* src/tveng.h, src/tveng2.c, src/tvengxv.c: Provisions for
+	  control icons.
+	* src/tveng1.c: Provisions for control icons and defaults
+	  32768.
+	* src/zmisc.c, src/zmisc.h: Spinslider improvements.
+	* src/v4linterface.c: More compact control box.
+
+15.11.2002	<mschimek@users.sf.net>
+
+	* src/Makefile.am: Added DEFAULT_CFLAGS, didn't compile
+	  without -D_GNU_SOURCE.
+
 30.10.2002	Italian translation <garetxe@users.sf.net>
 
 	* po/it.po: Italian translation, contributed by Pino Toscano.

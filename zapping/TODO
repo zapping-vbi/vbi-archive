@@ -1,6 +1,7 @@
 Outstanding issues for the next release (0.6.5)
 -----------------------------------------------
 	+ configure.in: esd, oss etc checks
+	+ mpeg plugin: capture format saving <-> prefs
 	+ Video standard question.
 	+ Improve documentation.
 	+ Switching subtitles on/off needs improvement.

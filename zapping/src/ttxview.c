@@ -53,10 +53,6 @@
 #include "callbacks.h"
 #include "remote.h"
 
-/* graphics */
-#include "../pixmaps/con.xpm" /* contrast */
-#include "../pixmaps/brig.xpm" /* brightness */
-
 /* Useful vars from Zapping */
 extern gboolean flag_exit_program;
 extern int cur_tuned_channel;
@@ -2305,23 +2301,18 @@ create_color_dialog			(GtkWidget	*widget,
   GtkAdjustment *adj;
   GtkWidget *w;
   gint value;
-  GdkPixbuf *pb;
   GtkWidget *pix;
   GtkTable *table71 =
     GTK_TABLE(lookup_widget(dialog, "table71"));
 
   /* Add brightness, contrast icons */
-  pb = gdk_pixbuf_new_from_xpm_data(brig_xpm);
-  pix = gtk_image_new_from_pixbuf (pb);
+  pix = z_load_pixmap ("brightness.png");
   gtk_widget_show(pix);
   gtk_table_attach_defaults(table71, pix, 0, 1, 0, 1);
-  g_object_unref(pb);
 
-  pb = gdk_pixbuf_new_from_xpm_data(con_xpm);
-  pix = gtk_image_new_from_pixbuf (pb);
+  pix = z_load_pixmap ("contrast.png");
   gtk_widget_show(pix);
   gtk_table_attach_defaults(table71, pix, 0, 1, 1, 2);
-  g_object_unref(pb);
 
   w = lookup_widget(dialog, "hscale71");
   zconf_get_integer(&value, TXCOLOR_DOMAIN "brightness");

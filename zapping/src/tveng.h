@@ -233,6 +233,15 @@ enum tveng_control_type{
   TVENG_CONTROL_COLOR /* RGB color entry */
 };
 
+/* XXX rethink */
+enum tveng_control_property {
+  TVENG_CTRL_PROP_OTHER = 0,
+  TVENG_CTRL_PROP_BRIGHTNESS,
+  TVENG_CTRL_PROP_CONTRAST,
+  TVENG_CTRL_PROP_SATURATION,
+  TVENG_CTRL_PROP_HUE,
+};
+
 /* The controller we are using for this device */
 enum tveng_controller
 {
@@ -248,6 +257,7 @@ enum tveng_controller
 struct tveng_control{
   char name[32]; /* Canonical name */
   int id; /* control id */
+  enum tveng_control_property property;
   int min, max; /* Control ranges */
   int cur_value; /* The current control value */
   int def_value; /* Default (reset) value */

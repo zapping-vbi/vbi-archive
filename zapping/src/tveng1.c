@@ -1132,29 +1132,11 @@ p_tveng1_build_controls(tveng_device_info * info)
 
   /* Build the video controls now */
   control.id = P_TVENG1_C_VIDEO_BRIGHTNESS;
+  control.property = TVENG_CTRL_PROP_BRIGHTNESS;
   snprintf(control.name, 32, _("Brightness"));
   control.min = 0;
   control.max = 65535;
-  control.type = TVENG_CONTROL_SLIDER;
-  control.data = NULL;
-  control.controller = TVENG_CONTROLLER_V4L1;
-  if (p_tveng_append_control(&control, info) == -1)
-    return -1;
-
-  control.id = P_TVENG1_C_VIDEO_HUE;
-  snprintf(control.name, 32, _("Hue"));
-  control.min = 0;
-  control.max = 65535;
-  control.type = TVENG_CONTROL_SLIDER;
-  control.data = NULL;
-  control.controller = TVENG_CONTROLLER_V4L1;
-  if (p_tveng_append_control(&control, info) == -1)
-    return -1;
-
-  control.id = P_TVENG1_C_VIDEO_COLOUR;
-  snprintf(control.name, 32, _("Colour"));
-  control.min = 0;
-  control.max = 65535;
+  control.def_value = 32768;
   control.type = TVENG_CONTROL_SLIDER;
   control.data = NULL;
   control.controller = TVENG_CONTROLLER_V4L1;
@@ -1162,14 +1144,42 @@ p_tveng1_build_controls(tveng_device_info * info)
     return -1;
 
   control.id = P_TVENG1_C_VIDEO_CONTRAST;
+  control.property = TVENG_CTRL_PROP_CONTRAST;
   snprintf(control.name, 32, _("Contrast"));
   control.min = 0;
   control.max = 65535;
+  control.def_value = 32768;
   control.type = TVENG_CONTROL_SLIDER;
   control.data = NULL;
   control.controller = TVENG_CONTROLLER_V4L1;
   if (p_tveng_append_control(&control, info) == -1)
     return -1;
+
+  control.id = P_TVENG1_C_VIDEO_COLOUR;
+  control.property = TVENG_CTRL_PROP_SATURATION;
+  snprintf(control.name, 32, _("Colour"));
+  control.min = 0;
+  control.max = 65535;
+  control.def_value = 32768;
+  control.type = TVENG_CONTROL_SLIDER;
+  control.data = NULL;
+  control.controller = TVENG_CONTROLLER_V4L1;
+  if (p_tveng_append_control(&control, info) == -1)
+    return -1;
+
+  control.id = P_TVENG1_C_VIDEO_HUE;
+  control.property = TVENG_CTRL_PROP_HUE;
+  snprintf(control.name, 32, _("Hue"));
+  control.min = 0;
+  control.max = 65535;
+  control.def_value = 32768;
+  control.type = TVENG_CONTROL_SLIDER;
+  control.data = NULL;
+  control.controller = TVENG_CONTROLLER_V4L1;
+  if (p_tveng_append_control(&control, info) == -1)
+    return -1;
+
+  control.property = 0;
 
   /* Build the audio controls if they are available */
   if (!audio_disabled)
@@ -1192,6 +1202,7 @@ p_tveng1_build_controls(tveng_device_info * info)
 	  snprintf(control.name, 32, _("Volume"));
 	  control.min = 0;
 	  control.max = 65535;
+	  control.def_value = 32768;
 	  control.type = TVENG_CONTROL_SLIDER;
 	  control.data = NULL;
 	  control.controller = TVENG_CONTROLLER_V4L1;
@@ -1204,6 +1215,7 @@ p_tveng1_build_controls(tveng_device_info * info)
 	  snprintf(control.name, 32, _("Bass"));
 	  control.min = 0;
 	  control.max = 65535;
+	  control.def_value = 32768;
 	  control.type = TVENG_CONTROL_SLIDER;
 	  control.data = NULL;
 	  control.controller = TVENG_CONTROLLER_V4L1;
@@ -1216,6 +1228,7 @@ p_tveng1_build_controls(tveng_device_info * info)
 	  snprintf(control.name, 32, _("Treble"));
 	  control.min = 0;
 	  control.max = 65535;
+	  control.def_value = 32768;
 	  control.type = TVENG_CONTROL_SLIDER;
 	  control.data = NULL;
 	  control.controller = TVENG_CONTROLLER_V4L1;
@@ -1231,6 +1244,7 @@ p_tveng1_build_controls(tveng_device_info * info)
 	  snprintf(control.name, 32, _("Balance"));
 	  control.min = 0;
 	  control.max = 65535;
+	  control.def_value = 32768;
 	  control.type = TVENG_CONTROL_SLIDER;
 	  control.data = NULL;
 	  control.controller = TVENG_CONTROLLER_V4L1;
@@ -1241,7 +1255,7 @@ p_tveng1_build_controls(tveng_device_info * info)
 
       /* Add the control only if the audio decoding actually works */
       control.id = P_TVENG1_C_AUDIO_DECODING;
-      snprintf(control.name, 32, _("Audio Decoding"));
+      snprintf(control.name, 32, _("Audio"));
       control.min = 0;
       control.max = 3;
       control.type = TVENG_CONTROL_MENU;

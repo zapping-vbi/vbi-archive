@@ -167,7 +167,7 @@ di_apply		(GtkWidget	*page)
 static void
 mw_setup		(GtkWidget	*page)
 {
-  extern gboolean have_wmhooks;
+  extern gboolean have_wm_hints;
   GtkWidget *widget;
 
   /* Save the geometry through sessions */
@@ -179,7 +179,7 @@ mw_setup		(GtkWidget	*page)
   widget = lookup_widget (page, "checkbutton13");
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top"));
-  if (!have_wmhooks)
+  if (!have_wm_hints)
     gtk_widget_set_sensitive (widget, FALSE);
 
   /* Show tooltips */

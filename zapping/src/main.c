@@ -435,7 +435,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.5 2002-10-10 04:26:40 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.6 2002-12-05 07:48:27 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -479,7 +479,7 @@ int main(int argc, char * argv[])
       return 0;
     }
   D();
-  have_wmhooks = (wm_detect () != -1);
+  have_wm_hints = wm_hints_detect ();
   D();
   main_info = tveng_device_info_new( GDK_DISPLAY(), x_bpp);
   if (!main_info)
@@ -646,9 +646,6 @@ int main(int argc, char * argv[])
 				     tv_screen);
 
   D();
-  window_on_top (main_window, zconf_get_boolean
-		 (NULL, "/zapping/options/main/keep_on_top"));
-  D();
   if (unmutable)
     {
       /* has no mute function */
@@ -755,6 +752,10 @@ int main(int argc, char * argv[])
   if (!command)
     {
       gtk_widget_show(main_window);
+      D();
+      window_on_top (main_window, zconf_get_boolean
+		     (NULL, "/zapping/options/main/keep_on_top"));
+      D();
       resize_timeout(NULL);
       /* hide toolbars and co. if necessary */
       if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_controls"))

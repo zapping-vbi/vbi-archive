@@ -21,7 +21,7 @@ extern GtkWidget		*main_window;
 /* Will be TRUE if when quitting we were fullscreen */
 extern gboolean			was_fullscreen;
 extern tveng_tuned_channel	*global_channel_list;
-extern gboolean			have_wmhooks;
+extern gboolean			have_wm_hints;
 extern int			debug_msg;
 extern gint			cur_tuned_channel;
 #endif

@@ -748,6 +748,7 @@ p_tvengxv_build_controls(tveng_device_info *info)
   if (p_info->hue != None)
     {
       control.id = (int)p_info->hue;
+      control.property = TVENG_CTRL_PROP_HUE;
       snprintf(control.name, 32, _("Hue"));
       control.min = p_info->hue_min;
       control.max = p_info->hue_max;
@@ -760,6 +761,7 @@ p_tvengxv_build_controls(tveng_device_info *info)
   if (p_info->saturation != None)
     {
       control.id = (int)p_info->saturation;
+      control.property = TVENG_CTRL_PROP_SATURATION;
       snprintf(control.name, 32, _("Saturation"));
       control.min = p_info->saturation_min;
       control.max = p_info->saturation_max;
@@ -772,6 +774,7 @@ p_tvengxv_build_controls(tveng_device_info *info)
   if (p_info->brightness != None)
     {
       control.id = (int)p_info->brightness;
+      control.property = TVENG_CTRL_PROP_BRIGHTNESS;
       snprintf(control.name, 32, _("Brightness"));
       control.min = p_info->brightness_min;
       control.max = p_info->brightness_max;
@@ -784,6 +787,7 @@ p_tvengxv_build_controls(tveng_device_info *info)
   if (p_info->contrast != None)
     {
       control.id = (int)p_info->contrast;
+      control.property = TVENG_CTRL_PROP_CONTRAST;
       snprintf(control.name, 32, _("Contrast"));
       control.min = p_info->contrast_min;
       control.max = p_info->contrast_max;

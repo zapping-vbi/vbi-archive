@@ -16,6 +16,7 @@ GtkWidget		*main_window = NULL;
 /* Will be TRUE if when quitting we were fullscreen */
 gboolean		was_fullscreen = FALSE;
 tveng_tuned_channel	*global_channel_list = NULL;
-gboolean		have_wmhooks = FALSE;
+/* TRUE if we can tell the WM to keep the video window on top */
+gboolean		have_wm_hints = FALSE;
 int			debug_msg = 0;
 gint			cur_tuned_channel = -1;

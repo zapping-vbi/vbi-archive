@@ -20,6 +20,8 @@
 #  include <config.h>
 #endif
 
+#include "site_def.h"
+
 #include <gdk/gdkx.h>
 
 #include <sys/types.h>
@@ -177,7 +179,36 @@ z_tooltip_set			(GtkWidget *		widget,
   if (!tooltips_default)
     tooltips_default = z_tooltips_add (NULL);
 
+#ifndef ZMISC_TOOLTIP_WARNING
+#define ZMISC_TOOLTIP_WARNING 0
+#endif
+
+  if (ZMISC_TOOLTIP_WARNING && GTK_WIDGET_NO_WINDOW(widget))
+    fprintf(stderr, "Warning: tooltip <%s> for "
+            "widget without window\n", tip_text);
+
   gtk_tooltips_set_tip (tooltips_default, widget, tip_text, "private tip");
+}
+
+GtkWidget *
+z_tooltip_set_wrap		(GtkWidget *		widget,
+				 const gchar *		tip_text)
+{
+  if (!tooltips_default)
+    tooltips_default = z_tooltips_add (NULL);
+
+  if (GTK_WIDGET_NO_WINDOW(widget))
+    {
+      GtkWidget *event_box = gtk_event_box_new ();
+
+      gtk_widget_show (event_box);
+      gtk_container_add (GTK_CONTAINER (event_box), widget);
+      widget = event_box;
+    }
+
+  gtk_tooltips_set_tip (tooltips_default, widget, tip_text, "private tip");
+
+  return widget;
 }
 
 void
@@ -272,21 +303,32 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 #ifdef HAVE_LIBZVBI
   if (!flag_exit_program)
     {
-      GtkWidget *w = lookup_widget (main_window, "videotext3"); /* toolbar */
+      GtkWidget *button = lookup_widget (main_window, "videotext3");
+      GtkWidget *pixmap;
 
       if (new_mode != TVENG_NO_CAPTURE)
 	{
-	  gtk_widget_hide(lookup_widget(main_window, "appbar2"));
+	  gtk_widget_hide (lookup_widget (main_window, "appbar2"));
 
-	  ttxview_detach(main_window);
+	  ttxview_detach (main_window);
 
-	  set_stock_pixmap(w, GTK_STOCK_JUSTIFY_FILL);
-	  z_tooltip_set(w, _("Use Zapping as a Teletext navigator"));
+	  if ((pixmap = z_load_pixmap ("teletext.png")))
+	    {
+	      gtk_container_remove (GTK_CONTAINER (button),
+	                            gtk_bin_get_child (GTK_BIN (button)));
+	      gtk_container_add (GTK_CONTAINER (button), pixmap);
+	    }
+	  else
+	    {
+	      set_stock_pixmap (button, GTK_STOCK_JUSTIFY_FILL);
+	    }
+
+	  z_tooltip_set (button, _("Use Zapping as a Teletext navigator"));
 	}
       else
 	{
-	  set_stock_pixmap(w, GTK_STOCK_REDO);
-	  z_tooltip_set(w, _("Return to windowed mode and use the current "
+	  set_stock_pixmap (button, GTK_STOCK_REDO);
+	  z_tooltip_set (button, _("Return to windowed mode and use the current "
 			   "page as subtitles"));
 	}
     }
@@ -1224,6 +1266,8 @@ find_unused_name		(const gchar *		dir,
 
 /*
  *  "Spinslider"
+ *
+ *  [12345___|<>] unit [-<>--------][Reset]
  */
 
 GtkAdjustment *
@@ -1336,9 +1380,10 @@ on_z_spinslider_reset			(GtkWidget *widget,
 }
 
 GtkWidget *
-z_spinslider_new			(GtkAdjustment * spin_adj,
-					 GtkAdjustment * hscale_adj,
-					 gchar *unit, gfloat reset)
+z_spinslider_new		(GtkAdjustment *	spin_adj,
+				 GtkAdjustment *	hscale_adj,
+				 const gchar *		unit,
+				 gfloat			reset)
 {
   GtkWidget * hbox;
   GtkWidget * hscale;
@@ -1351,6 +1396,8 @@ z_spinslider_new			(GtkAdjustment * spin_adj,
 
   hbox = gtk_hbox_new (FALSE, 0);
   g_object_set_data (G_OBJECT (hbox), "spin_adj", spin_adj);
+
+  /* Spin button */
 
   /* Set decimal digits so that step increments < 1.0 become visible */
   if (spin_adj->step_increment == 0.0
@@ -1376,6 +1423,8 @@ z_spinslider_new			(GtkAdjustment * spin_adj,
   g_signal_connect (G_OBJECT (spin_adj), "value-changed",
 		      G_CALLBACK (on_z_spinslider_spinbutton_changed), hbox);
 
+  /* Unit name */
+
   if (unit)
     {
       label = gtk_label_new (unit);
@@ -1383,38 +1432,53 @@ z_spinslider_new			(GtkAdjustment * spin_adj,
       gtk_box_pack_start (GTK_BOX (hbox), label, FALSE, FALSE, 3);
     }
 
+  /* Slider */
+
   /* Necessary to reach spin_adj->upper with slider */
   if (!hscale_adj)
     hscale_adj = GTK_ADJUSTMENT (gtk_adjustment_new (spin_adj->value,
       spin_adj->lower, spin_adj->upper + spin_adj->page_size,
       spin_adj->step_increment, spin_adj->page_increment,
       spin_adj->page_size));
+
   g_object_set_data (G_OBJECT (hbox), "hscale_adj", hscale_adj);
+
   hscale = gtk_hscale_new (hscale_adj);
+  /* Another hack */
+  gtk_widget_set_size_request (hscale, 80, -1);
   gtk_widget_show (hscale);
+
   gtk_scale_set_draw_value (GTK_SCALE (hscale), FALSE);
   gtk_scale_set_digits (GTK_SCALE (hscale), -digits);
+
   gtk_box_pack_start (GTK_BOX (hbox), hscale, TRUE, TRUE, 3);
+
   g_signal_connect (G_OBJECT (hscale_adj), "value-changed",
 		      G_CALLBACK (on_z_spinslider_hscale_changed), hbox);
+
+  /* Reset button */
 
   if ((pixmap = z_load_pixmap ("reset.png")))
     {
       button = gtk_button_new ();
-      gtk_widget_show (button);
       gtk_container_add (GTK_CONTAINER (button), pixmap);
+      z_tooltip_set (button, _("Reset"));
     }
   else
     {
       button = gtk_button_new_with_label (_("Reset"));
     }
+
   gtk_widget_show (button);
   gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 0);
+
   /* Sigh */
   reset_value = g_malloc (sizeof (gfloat));
   *reset_value = reset;
+
   g_object_set_data_full (G_OBJECT (hbox), "reset_value", reset_value,
 			  (GDestroyNotify) g_free);
+
   g_signal_connect (G_OBJECT (button), "pressed",
 		      G_CALLBACK (on_z_spinslider_reset), hbox);
 

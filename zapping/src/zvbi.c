@@ -2134,7 +2134,8 @@ update_vi_program			(struct vi_data *data)
   GtkWidget *title, *date, *audio, *caption;
   GtkWidget *type, *synopsis, *vbox, *widget;
   vbi_program_info *pi = &program_info[0];
-  gchar buffer[300], buffer2[256], *s;
+  gchar buffer[300], buffer2[256];
+  const gchar *s;
   gint i, n, r;
 
   title = lookup_widget(vi, "label906");
@@ -2730,10 +2731,10 @@ zvbi_current_title(void)
   return s;
 }
 
-gchar *
+const gchar *
 zvbi_current_rating(void)
 {
-  gchar *s = NULL;
+  const gchar *s = NULL;
 
   pthread_mutex_lock(&prog_info_mutex);
 

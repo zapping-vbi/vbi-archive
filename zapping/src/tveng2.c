@@ -929,7 +929,7 @@ static struct p_tveng2_control_with_i18n cids[] =
   {V4L2_CID_WHITENESS, N_("Whiteness")},
   {V4L2_CID_BLACK_LEVEL, N_("Black level")},
   {V4L2_CID_AUTO_WHITE_BALANCE, N_("White balance")},
-  {V4L2_CID_DO_WHITE_BALANCE, N_("Do white balance")},
+  {V4L2_CID_DO_WHITE_BALANCE, N_("White balance")},
   {V4L2_CID_RED_BALANCE, N_("Red balance")},
   {V4L2_CID_BLUE_BALANCE, N_("Blue balance")},
   {V4L2_CID_GAMMA, N_("Gamma")},
@@ -938,8 +938,8 @@ static struct p_tveng2_control_with_i18n cids[] =
   {V4L2_CID_GAIN, N_("Gain")},
   {V4L2_CID_HCENTER, N_("HCenter")},
   {V4L2_CID_VCENTER, N_("VCenter")},
-  {V4L2_CID_HFLIP, N_("Horizontal flipping")},
-  {V4L2_CID_VFLIP, N_("Vertical flipping")},
+  {V4L2_CID_HFLIP, N_("Hor. flipping")},
+  {V4L2_CID_VFLIP, N_("Vert. flipping")},
   {V4L2_CID_AUDIO_VOLUME, N_("Volume")},
   {V4L2_CID_AUDIO_MUTE, N_("Mute")},
   {V4L2_CID_AUDIO_MUTE, N_("Audio Mute")},
@@ -992,6 +992,20 @@ p_tveng2_build_controls(tveng_device_info * info)
 	    {
 	    case V4L2_CTRL_TYPE_INTEGER:
 	      control.type = TVENG_CONTROL_SLIDER;
+	      switch (qc.id) {
+	      case V4L2_CID_BRIGHTNESS:
+	        control.property = TVENG_CTRL_PROP_BRIGHTNESS;
+		break;
+	      case V4L2_CID_CONTRAST:
+	        control.property = TVENG_CTRL_PROP_CONTRAST;
+		break;
+	      case V4L2_CID_SATURATION:
+	        control.property = TVENG_CTRL_PROP_SATURATION;
+		break;
+	      case V4L2_CID_HUE:
+	        control.property = TVENG_CTRL_PROP_HUE;
+		break;
+	      }
 	      control.data = NULL;
 	      break;
 	    case V4L2_CTRL_TYPE_BOOLEAN:

@@ -135,6 +135,9 @@ z_tooltips_active		(gboolean		enable);
 extern void
 z_tooltip_set			(GtkWidget *		widget,
 				 const gchar *		tip_text);
+GtkWidget *
+z_tooltip_set_wrap		(GtkWidget *		widget,
+				 const gchar *		tip_text);
 extern void
 z_set_sensitive_with_tooltip	(GtkWidget *		widget,
 				 gboolean		sensitive,
@@ -365,7 +368,7 @@ find_unused_name (const gchar * dir, const gchar * prefix,
 GtkWidget *
 z_spinslider_new		(GtkAdjustment *spin_adj,
 				 GtkAdjustment *hscale_adj,
-				 gchar *unit,
+				 const gchar *unit,
 				 gfloat reset_value);
 GtkAdjustment *
 z_spinslider_get_spin_adj	(GtkWidget *hbox);

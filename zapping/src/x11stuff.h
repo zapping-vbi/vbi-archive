@@ -83,7 +83,7 @@ x11_set_screensaver(gboolean on);
 #define ON TRUE
 #endif
 
-extern void (* window_on_top)(GtkWidget *widget, gboolean on);
-extern int wm_detect (void);
+extern void (* window_on_top)(GtkWindow *window, gboolean on);
+extern gboolean wm_hints_detect (void);
 
 #endif /* x11stuff.h */
