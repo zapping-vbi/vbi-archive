@@ -1,3 +1,146 @@
+27.05.2001	MPEG fixes <garetxe@users.sf.net>
+
+	* plugins/mpeg.c: Works now if Z's yuv pixformat is YUYV and
+	capture isn't buffered push. Core when buffered push and lock with
+	YVU420 (probably RGB too, untested). Probably bugs in plugin.c
+	and capture.c.
+	* glade/zapping.glade: Configurable Q/S tradeoff when doing the
+	scaling of the TTX pages.
+
+25.05.2001	<garetxe@users.sf.net>
+
+	* plugins/screenshot: YVU420, TTX capture.
+
+24.05.2001	<mschimek@users.sourceforge.net>
+
+	* plugins/lirc/lirc.c: lirc_page fixed in plugin_add_properties
+
+24.05.2001	Rolling headers <garetxe@users.sf.net>
+
+	* src/zvbi.c: Rolling headers support (just the time field for the
+	moment).
+
+19.05.2001	Fullscreen <garetxe@users.sourceforge.net>
+
+	* src/fullscreen.c: Made fullscreen usable under many heads.	
+
+16.05.2001	<mschimek@users.sourceforge.net>
+
+	* Fixed port_grabbed shortcut in xvz_grab_port.
+
+14.05.2001	--yuv-format flag <garetxe@users.sourceforge.net>
+
+	* src/main.c, capture.c, x11stuff.c: Added CLO [command line
+	option :-)] for deciding between YUYV and YVU420.
+	* src/fullscreen.c: No longer grabs the keyboard.
+	* src/videodev*: moved to /common, made libvbi use these versions
+	too for consistency.
+
+13.05.2001	CC classify gui <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Added gui for the CC classification, added
+	'Subtitle Page' VBI property and removed toolbar spinbutton.
+	* BUGS: Investigated problems with bundle_data under V4L1, they
+	were due to a bug in bttv support for interlaced YUV420P. Maintainer
+	informed.
+
+12.05.2001	YVU420 <garetxe@users.sourceforge.net>
+
+	* src/capture.c: Defaulted to YVU420P for capture, plugins need
+	to be adapted. Added display of _DATA bundles, using yuv2rgb.
+	* tveng: Added assume_yvu to work around V4L1 API limitations.
+	* yuv2rgb_mmx: Added lacking "emms" to reenable math coprocessor.
+
+11.05.2001	did some things from TODO <garetxe@users.sourceforge.net>
+
+	* src/channel_editor.c: Channels can have an arbitrary order now.
+	* configure.in: Remove --disable-ordering flag.
+	* src/zvbi.c: Added a verboser message when vbi fails to open.
+	* src/ttxview.c: Go back from TTX.
+	
+5.05.2001	remote(get_channel_info) <garetxe@users.sourceforge.net>
+
+	* src/remote.c: added get_channel_info call.
+	* common/fifo: "slow consumer" killing code, unfinished, breaks
+	some things.
+
+4.05.2001	mpeg plugin improvements <garetxe@users.sourceforge.net>
+
+	* plugins/mpeg: Adapted to new bundled capture. Now it's possible
+	to record mpeg's without XVideo backend scaler.
+
+2.05.2001	Config options <garetxe@users.sourceforge.net>
+
+	* src/capture.c: Fixed, so plugins can work again. Made capture
+	size under XVideo configurable.
+
+1.05.2001	New capture code <garetxe@users.sourceforge.net>
+
+	* src/capture.c: Rewrote capture code using fifos, etc. Appears to
+	use less CPU with XV scaling (identically 0 :-)). Oppps, and
+	plugins won't work either, will fix tomorrow.
+
+30.4.2001	xvzImage <garetxe@users.sourceforge.net>
+
+	* src/x11stuff.c: Moved XvImage support here, made easier to use.
+
+28.4.2001	XV_SIGNAL_STRENGTH <garetxe@users.sourceforge.net>
+
+	* src/tvengxv.c: Added support for this atom, allows for automatic
+	channel searching. Now let's see if the v4l.c maintainer in XFree
+	accepts my patch, and the rest of the world sees this too :-)
+	* src/zmisc.c: Reduce unnecessary open/close couples.
+
+27.4.2001	TVeng thread-safe <garetxe@users.sourceforge.net>
+
+	* src/tveng.c: Added a per-device mutex, made tveng.c lock,
+	unlock it as necessary. Rewrote some common code as #macros.
+
+25.4.2001	--command switch <garetxe@users.sourceforge.net>
+
+	* src/remote.c, src/main.c: Added --command line switch, currently
+	just "set_channel". Use with 'zapping -c "set_channel BBC"'
+
+24.4.2001	trigger gui <garetxe@users.sourceforge.net>
+
+	* zvbi.c, properties, .glade: Started trigger gui.
+	* eacem_icon, atvef_icon: Moved to pixmaps. 
+
+7.04.2001	mpeg plugin <garetxe@users.sourceforge.net>
+
+	* rte: rte_stop closes properly, buffers used for push are
+	send_empty'ed, lots of fixes and tuning. Removed rgb support, it
+	was nonfunctional.
+	* fifos: Proper refcounting.
+	* plugins/mpeg/: Encodes, needs a lot of work though.
+
+5.04.2001	libvbi, help <mschimek@users.sourceforge.net>
+
+	* Finished trigger rewrite.
+	* Some work in /help.
+
+3.04.2001	overlay+osd fixes <garetxe@users.sourceforge.net>
+
+	* overlay, tveng, osd: Made them play nice together under V4L[12].
+	* src/tveng: Print more verbose messages if no DGA present.
+	* src/tvengxv.c: Made it work without DGA.
+	* src/osd.c, fullscreen: Centered subtitles in fullscreen even if
+	VidMode changed.
+
+2.04.2001	accelerators <garetxe@users.sourceforge.net>
+
+	* controls: Added accelerators for hiding/showing menu bars
+	(Ctrl+H), control box (Ctrl+C).
+	* es.po: Updated.
+	* src/ttxview.c: Added TTX subtitles selection to the popup menu.
+
+1.04.2001	screenshot gladefied <garetxe@users.sourceforge.net>
+
+	* plugins/screenshot: uses libglade now, added accelator for saving
+	(Ctrl+s).
+	* src/capture.c: send_event = False. Appears to be faster in some
+	setups.
+
 31.3.2001	mcfifos fixed <garetxe@users.sourceforge.net>
 
 	* fifo: Rewrote most multi-consumer part of fifos, rte
@@ -7,7 +150,7 @@
 
 30.3.2001	libvbi <mschimek@users.sourceforge.net>
 
-	* Teletext page classification finished.
+	* Teletext page classification.
 
 28.3.2001	libvbi <mschimek@users.sourceforge.net>
 
