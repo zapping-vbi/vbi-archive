@@ -1,0 +1,148 @@
+#!/bin/sh
+
+usage="\
+Usage: zapping_fix_overlay [--revert] [location/of/zapping_setup_fb]\n\n\
+For some strange reason, zapping_setup_fb fails to run properly in\n\
+a variety of situations. Running this script will get rid of the\n\
+consolehelper mediation and make zapping_setup_fb a suid root program.\n"
+
+revert=no
+zsfb=no
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+sbindir=@sbindir@
+consolehelper=@CONSOLEHELPER_LOCATION@
+
+while test $# -gt 0; do
+  case $1 in
+    -h | --help)
+      echo -e "${usage}"
+      exit 1
+      ;;
+    --revert)
+      revert=yes
+      ;;
+    *)
+      zsfb=$1
+      ;;
+  esac
+  shift
+done
+
+if test x$zsfb = "xno"; then
+  zsfb=$sbindir/zapping_setup_fb
+
+  if test ! -f $zsfb; then
+    zsfb=`which zapping_setup_fb` || {
+      echo "zapping_setup_fb does not seem to exist in your"
+      echo "command search path. Please enter the directory"
+      echo -e "or type Ctrl-C to abort: "
+      read zsfb
+    }
+  fi
+fi
+
+test -d $zsfb && \
+  zsfb=$zsfb/zapping_setup_fb
+
+if test ! -e $zsfb; then
+  echo "$zsfb does not exist."
+  exit 1
+fi
+
+zsfb_dir=`cd $(dirname $zsfb); pwd`
+
+if test x$zsfb_dir != x$bindir -a x$zsfb_dir != x$sbindir; then
+  # presumably relocated
+
+  zsfb_parent=`basename $zsfb_dir`
+
+  if test x$zsfb_parent != "xbin" -a x$zsfb_parent != "xsbin"; then
+    echo "Sorry, zapping_setup_fb is not in */bin or */sbin but"
+    echo "$zsfb_dir. You will have to fix manually."
+    exit 1
+  fi
+
+  exec_prefix=`dirname $zsfb_dir`
+  bindir=$exec_prefix/bin
+  sbindir=$exec_prefix/sbin
+fi
+
+zsfb=$sbindir/zapping_setup_fb
+zsfb_link=$bindir/zapping_setup_fb
+
+if test -h $zsfb -o ! -f $zsfb; then
+  echo "$zsfb is not an executable."
+  exit 1
+fi
+
+echo
+
+if test x$revert = "xyes"; then
+  echo "Reverting to PAM method of starting zapping_setup_fb."
+  echo
+
+  if test ! -f $consolehelper; then
+    echo "Cannot revert, $consolehelper does not exist."
+    exit 1
+  fi
+
+  echo chmod u-s $zsfb
+  chmod u-s $zsfb || exit 1
+
+  test -e $zsfb_link && rm $zsfb_link
+
+  echo ln -s $consolehelper $zsfb_link
+  ln -s $consolehelper $zsfb_link
+
+  zsfb_dir=`which zapping_setup_fb`
+
+  if test x$zsfb_dir != x$zsfb_link; then
+    echo
+    echo "Warning: $zsfb_link is not in"
+    echo "your current command search path, Zapping may not work"
+    echo "as expected."
+  fi
+else
+  echo "This script will make $zsfb a SUID ROOT program"
+  echo "and create a symbolic link $zsfb_link to it."
+  echo "This is often necessary when the more secure PAM method didn't work,"
+  echo "see 'man zapping_setup_fb' for more info. When Zapping has been"
+  echo "installed with PAM enabled you can revert to PAM by running"
+  echo "zapping_fix_overlay --revert."
+  echo
+  echo -n "Please enter \"yes\" if you want to continue: "
+  read are_u_sure
+  if test x$are_u_sure != "xyes"; then
+    echo "Aborted."
+    exit 1
+  fi
+
+  echo
+
+  echo chown root.root $zsfb
+  chown root.root $zsfb || exit 1
+
+  echo chmod 4755 $zsfb
+  chmod 4755 $zsfb || exit 1
+
+  test -e $zsfb_link && rm $zsfb_link
+
+  echo ln -s $zsfb $zsfb_link
+  ln -s $zsfb $zsfb_link
+
+  zsfb_dir=`which zapping_setup_fb`
+
+  if test x$zsfb_dir != x$zsfb -a x$zsfb_dir != x$zsfb_link; then
+    echo
+    echo "Warning: neither $zsfb nor $zsfb_link"
+    echo "are not in your current command search path, Zapping"
+    echo "may not work as expected."
+  fi
+fi
+
+echo
+echo Done.
+exit 0
