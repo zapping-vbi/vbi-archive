@@ -399,7 +399,8 @@ int tveng_attach_device(const char* device_file,
 #endif
 
 #ifdef YUVHACK
-  info->capture.supported_pixfmt_set &= YUVHACK;
+  if (info->capture.supported_pixfmt_set & TV_PIXFMT_SET_YUV)
+    info->capture.supported_pixfmt_set &= YUVHACK;
 #endif
 
   {
@@ -1462,9 +1463,10 @@ p_tv_set_capture_format		(tveng_device_info *	info,
 		/* FIXME the format selection (capture.c) has problems
 		   with RGB & YUV, so for now we permit only YUV. */
 #ifdef YUVHACK
-		if (0 == (TV_PIXFMT_SET (fmt->pixfmt) & YUVHACK)) {
-			return NULL;
-		}
+		if (info->capture.supported_pixfmt_set & TV_PIXFMT_SET_YUV)
+		  if (0 == (TV_PIXFMT_SET (fmt->pixfmt) & YUVHACK)) {
+		    return NULL;
+		  }
 #endif
 #endif
 	}
