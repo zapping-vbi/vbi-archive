@@ -32,7 +32,7 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include <tveng.h>
-#include <frequencies.h>
+//#include <frequencies.h>
 
 /* in error_console.c, just adds the given message to the console */
 void ec_add_message(const gchar *text, gboolean show,
@@ -380,43 +380,5 @@ z_spinslider_set_reset_value	(GtkWidget *hbox,
 /* Change both adjustments or use this */
 void
 z_spinslider_adjustment_changed	(GtkWidget *hbox);
-
-/* Accelerator helpers */
-
-typedef struct z_key {
-  guint				key;
-  guint				mask;
-} z_key;
-
-extern gchar *			z_key_name				(z_key key);
-extern z_key			z_key_from_name				(gchar *name);
-
-static inline gboolean
-z_key_compare				(GdkEventKey *	event,
-					 z_key		key)
-{
-  const guint mask = GDK_CONTROL_MASK | GDK_MOD1_MASK | GDK_SHIFT_MASK;
-
-  return (event->keyval == key.key && (event->state & mask) == key.mask);
-}
-
-static inline gboolean
-z_key_is_void				(z_key		key)
-{
-  return key.key == GDK_VoidSymbol;
-}
-
-extern void			zconf_create_z_key			(z_key		key,
-									 const gchar * 	desc,
-									 const gchar *	path);
-extern void			zconf_set_z_key				(z_key		key,
-									 const gchar *	path);
-extern z_key			zconf_get_z_key				(z_key *	keyp,
-									 const gchar *	path);
-extern GtkWidget *		z_key_entry_new				(z_key *	keyp);
-extern void			z_widget_add_accelerator		(GtkWidget	*widget,
-									 const gchar	*accel_signal,
-									 guint		accel_key,
-									 guint		accel_mods);
 
 #endif /* __ZMISC_H__ */

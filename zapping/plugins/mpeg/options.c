@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.14 2001-12-14 10:12:14 mschimek Exp $ */
+/* $Id: options.c,v 1.15 2002-03-06 00:53:49 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -889,6 +889,7 @@ grte_context_load (gchar *zc_subdomain, gchar *keyword,
 void
 grte_context_save (rte_context *context, gchar *zc_subdomain)
 {
+  extern rte_context_info *rte_context_info_by_context (rte_context *);
   rte_context_info *info;
   gchar *zcname;
 

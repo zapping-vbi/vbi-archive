@@ -58,9 +58,10 @@ zapping_SOURCES = \
 	strnatcmp.c strnatcmp.h \
 	zmodel.c zmodel.h \
 	gen_conv.h \
-	mixer.c mixer.h
+	mixer.c mixer.h \
+	keyboard.c keyboard.h
 
 zapping_LDADD = $(gen_conv_lib) $(ZVBI_LIB) $(COMMON_LIB) $(GNOME_LIBDIR) \
 $(GNOMEUI_LIBS) $(GDK_PIXBUF_LIBS) $(INTLLIBS) $(LIBXML_LIBS) \
 $(LIBGLADE_LIBS) $(X_LIBS) $(X_DGA_LIBS) $(X_XV_LIBS) $(X_XDPMS_LIBS) \
-$(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS) $(ARTS_LIBS)
+$(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS) $(ARTS_LIBS) $(CCMALLOC)

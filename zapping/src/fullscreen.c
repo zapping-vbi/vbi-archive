@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.19 2002-02-25 06:24:40 mschimek Exp $
+ * $Id: fullscreen.c,v 1.20 2002-03-06 00:53:49 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,6 +38,7 @@
 #include "v4linterface.h"
 #include "fullscreen.h"
 #include "audio.h"
+#include "plugins.h"
 
 static GtkWidget * black_window = NULL; /* The black window when you go
 					   fullscreen */
@@ -53,51 +54,33 @@ extern tveng_device_info *main_info;
    XScreensaver */
 #define MESS_WITH_XSS 1
 
-static
-gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
-			      gpointer user_data)
+static gboolean
+on_fullscreen_event			(GtkWidget *	widget,
+					 GdkEvent *	event,
+					 gpointer	user_data)
 {
   GtkWidget * window = GTK_WIDGET(user_data);
-  GtkMenuItem * exit2 =
-    GTK_MENU_ITEM(lookup_widget(window, "exit2"));
+  GtkMenuItem * exit2 = GTK_MENU_ITEM(lookup_widget(window, "quit1"));
 
   if (event->type == GDK_KEY_PRESS)
     {
-      GdkEventKey * kevent = (GdkEventKey*) event;
+      GdkEventKey *kevent = (GdkEventKey *) event;
 
-      switch (kevent->keyval)
+      if (kevent->keyval == GDK_q && (kevent->state & GDK_CONTROL_MASK))
 	{
-	case GDK_Page_Up:
-	case GDK_KP_Page_Up:
-	  z_channel_up();
-	  break;
-	case GDK_Page_Down:
-	case GDK_KP_Page_Down:
-	  z_channel_down();
-	  break;
-	case GDK_Escape:
-	case GDK_F11: /* Might be common too */
+	  extern gboolean was_fullscreen;
+
+	  was_fullscreen = TRUE;
 	  zmisc_switch_mode(restore_mode, main_info);
-	  break;
-	  /* Let control-Q exit the app */
-	case GDK_q:
-	  if (kevent->state & GDK_CONTROL_MASK)
-	    {
-	      extern gboolean was_fullscreen;
-	      was_fullscreen = TRUE;
-	      zmisc_switch_mode(restore_mode, main_info);
-	      on_exit2_activate(exit2, NULL);
-	    }
-	  break;
-	  /* mute/unmute */
-	case GDK_a:
-	  if (kevent->state & GDK_CONTROL_MASK)
-	    set_mute1(2, TRUE, TRUE);
-	  break;
-	default:
-          return z_volume_change(kevent) || z_select_channel_by_key(kevent);
+	  cmd_execute (GTK_WIDGET (exit2), "quit");
+
+	  return TRUE;
 	}
-      return TRUE; /* Event processing done */
+      else
+	{
+          return on_user_key_press (widget, kevent, user_data)
+	    || on_channel_key_press (widget, kevent, user_data);
+	}
     }
   else if (event->type == GDK_BUTTON_PRESS)
     {

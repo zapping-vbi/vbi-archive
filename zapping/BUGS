@@ -4,6 +4,7 @@ Known bugs with zapping, don't report them
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
+	! Segv in mpeg_configured(), reason unclear.
 	* Need better no-overlay-present handling.
 	* Capture won't work under PPC (endianess)
 	* Look for endianness problems.
@@ -19,7 +20,7 @@ Known bugs with zapping, don't report them
 	* Auto-overlays search result pages.
 	* Closing the main window while recording blocks.
 	  Backtrace:
-	  on_exit2_activate()
+	  on_exit2_activate() [now quit_cmd()]
 	  UpdateCoords()
 	  zmisc_switch_mode(TVENG_NO_CAPTURE, main_info)
 	    shuts down capturing before calling
@@ -48,5 +49,3 @@ Known bugs with zapping, don't report them
 	  TVLOCK   in tveng_mutex_lock 625163
 	  TVLOCK   in tveng_read_frame 625197
 	   :
-
-

@@ -21,6 +21,7 @@
 
 #include "frequencies.h"
 #include "zmodel.h"
+#include "zmisc.h"
 
 /* 
    Creates a control box suited for setting up all the controls this
@@ -57,29 +58,10 @@ void
 z_switch_channel		(tveng_tuned_channel	*channel,
 				 tveng_device_info	*info);
 
-/**
- * Sets the channel that has the given index in global_channel_list
- */
-void
-z_select_channel		(gint num_channel);
-
-void
-z_select_rf_channel		(gchar *name);
-
 gboolean
-z_select_channel_by_key		(GdkEventKey *event);
-
-/**
- * Select previous channel
- */
-void
-z_channel_up			(void);
-
-/**
- * Select next channel
- */
-void
-z_channel_down			(void);
+on_channel_key_press		(GtkWidget *	widget,
+				 GdkEventKey *	event,
+				 gpointer	user_data);
 
 /**
  * Sets the given channel.
@@ -107,5 +89,15 @@ add_channel_entries		(GtkMenu *menu,
 /* Do the startup/shutdown */
 void startup_v4linterface	(tveng_device_info *info);
 void shutdown_v4linterface	(void);
+
+/* XXX called by glade */
+extern gboolean channel_up_cmd		(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data);
+extern gboolean channel_down_cmd	(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data);
 
 #endif

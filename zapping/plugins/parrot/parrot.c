@@ -516,7 +516,7 @@ struct plugin_misc_info * plugin_get_misc_info (void)
   {
     sizeof(struct plugin_misc_info), /* size of this struct */
     10, /* we should run after the rest of the plugins */
-    PLUGIN_CATHEGORY_GUI | PLUGIN_CATHEGORY_DEVICE_CONTROL /* Cathegory */
+    PLUGIN_CATEGORY_GUI | PLUGIN_CATEGORY_DEVICE_CONTROL
   };
 
   return (&returned_struct);

@@ -1,143 +1,35 @@
-Outstanding issues for the next release (0.6.3)
+Outstanding issues for the next release (0.6.4)
 -----------------------------------------------
-> 0.6.3
+> 0.6.4
+	! RTE 0.5 interface.
 	! Video standard question.
+
+> Somewhen...
 	+ Improve documentation.
 	+ vbi: add toggle button to disable CC/TTX decoding
           (independent of station name decoding, that is). Mind
 	  listing subtitles. Should also disable trigger
           decoding when all set to ignore.
-	+ Examine the possiblity of linking movie titles, VBI plugin API.
 	+ zapzilla: channel selector, properties.
 	+ Finish parrot buffer for observing parrots.
 	+ Get thumbnails of all tuned channels.
+	+ PIP?
 	+ Take TTX out of the context menus when Zapping doesn't
 	  receive TTX. (event timestamps?)
-	+ Volume bindings
+	+ Better audio support.
 	+ Make Zapping UTF-8 clean (for now by moving all string ops
-          into one place, propose zmisc.c, avoiding strlen etc).
+          into one place, propose zmisc.c, avoiding strcmp etc).
 	+ Finish WSS.
 	+ Check tveng has frame rate for timestamping. (Unlike mpeg bug.)
 	+ Remove default overlay page?
 	+ ttxview.c/selection_handle: What's the correct char set?
-	+ Improve kbd shortcuts:
-
-Key			Function				Defined
-
-Main window:
-Ctrl-Q			Quit Zapping				2
-F11			Go fullscreen				1, 2
-Escape			Leave fullscreen			2
-Ctrl-Alt-P		Go previewing				1
-Ctrl-Alt-C		Go capturing				1
-Ctrl-Alt-T		Teletext mode				1
-Ctrl-Alt-N		Teletext new window			1
-Ctrl-H			Hide menu & toolbar			1
-Page Up			Previous channel in list		1, 2
-Page Down		Next channel in list			1, 2
-KP Page Up		Previous channel in list		2
-KP Page Down		Next channel in list			2
-Ctrl-A			Mute / Unmute				1, 2
-Ctrl-C			Controls dialog				1
-KP 0 .. KP 9		Channel number entering			9
-KP +			Ditto, 'T' prefix (NTSC)		9
-KP -			Ditto, delete				9
-KP .			Ditto, delete				9
-KP Del			Ditto, delete				9
-KP Enter		Ditto, enter				9
-Other			User defined channel key		8, 9
-+			Volume up				10
--			Volume down				10
-
-Teletext window:
-Escape			Leave Teletext				3
-[Shift-] Q		Leave Teletext				3
-[Shift-] C		New Teletext window			3
-Shift- Left MB		Selection switch			ttxview.c
-[KP] 0 .. 9		Page number entering			3
-[KP] Up			Previous page				3
-[KP] Down		Next page				3
-Shift- [KP] Up		Page -0x10				3
-Shift- [KP] Down	Page +0x10				3
-[KP] Left		Previous subpage			3
-[KP] Right		Next subpage				3
-[KP] Home		Start page				3
-[Shift-] H		Toggle hold page			3
-?			Toggle reveal				3
-[Shift-] R		Toggle reveal				3
-KP -			Previous subpage			1
-KP +			Next subpage				1
-
-Teletext bookmark dialog:
-Delete			Remove bookmark				1
-
-Controls dialog:
-Escape			Leave dialog				4
-Ctrl- [Shift-] C	Leave dialog				4
-
-Teletext color dialog:
-Escape			Leave dialog				5
-Ctrl- [Shift-] C	Leave dialog				5
-
-Recording plugin:
-R			Record with dialog			6
-Ctrl-R			Record w/o dialog			6
-
-Screenshot plugin:
-S			Screenshot with dialog			7
-Ctrl-S			Screenshot w/o dialog			7
-
-1	zapping.glade
-2	on_fullscreen_event()
-3	on_ttxview_key_press()
-4	on_control_box_key_press()
-5	on_color_box_key_press()
-6	plugins/mpeg/mpeg.c/plugin_add_gui()
-7	plugins/screenshot/screenshot.c/plugin_add_gui()
-8	channel_editor.c
-9	z_select_channel_by_key()
-10	z_volume_change()
-
-Xawtv:
-V            Video (Capture) on/off
-A            Audio on/off
-F            Fullscreen on/off
-G            Grab picture (full size, ppm)
-J            Grab picture (full size, jpeg)
-Ctrl+G       Grab picture (window size, ppm)
-Ctrl+J       Grab picture (window size, jpeg)
-O            Popup Options Window
-C            Popup Channels Window
-E            Popup Channel Editor
-R            Popup AVI Recording Window
-Z            Channel Hopper (zapping, tune in every
-             station a few seconds)
-Ctrl+Z       Fast Channel Hopping (grab the images for the
-             Channel Bottons)
-up/down      tune up/down one channel
-left/right   fine tuning
-pgup/pgdown  station up/down
-space        next station (same as pgup)
-backspace    previously tuned station
-Ctrl+up      scan for next station
-ESC,Q        Quit
-+/-          Volume up/down (keypad)
-Enter        mute (keypad)
-
-See also http://developer.gnome.org/projects/gup/hig/
-
 	+ Settings: Toolbar >> hide/show, icons, text, both
 	+ Is zvbi really needed for osd?
-	+ PIP?
-
-> 0.7.0
 	+ Support for Python scripting, write all new gui handling as
 	Python code.
 	+ Add some remote control applet, or sth like that (moved here
 	because it will use scripting).
 	+ --roottv switch (use Z as screensaver)
-
-> Somewhen...
 	+ Do realtime effects to the image, plainly wonderful, see
 	http://matsu-www.is.titech.ac.jp/~fukuchi/rooms/EffecTV/index.html
 	+ More compression formats.
@@ -147,6 +39,8 @@ See also http://developer.gnome.org/projects/gup/hig/
 	+ Screenshot plugin: subtitle overlay
 	+ Mpeg plugin/mp1e very low frame rate interrupts display,
 	  probably a scheduling issue. Investigate if/how this can be avoided.
+	+ Examine the possiblity of linking movie titles, VBI plugin API.
 
-please tell me about anything you think it's worth adding. 
-garetxe@users.sourceforge.net
+Please tell me about anything you think is worth adding:
+
+  mailto:zapping-misc@lists.sourceforge.net

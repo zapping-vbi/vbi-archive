@@ -12,6 +12,7 @@ gchar *s = N_("Preview");
 gchar *s = N_("Grab on clicking OK");
 gchar *s = N_("Skip one picture before grabbing");
 gchar *s = N_("Entering file name closes dialog");
+gchar *s = N_("Add toolbar button");
 gchar *s = N_("Save screenshot");
 gchar *s = N_("Configure the properties for this plugin");
 gchar *s = N_("Configure");

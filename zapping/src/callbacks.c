@@ -92,72 +92,129 @@ static void UpdateCoords(GdkWindow * window)
   zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
 }
 
-void
-on_exit2_activate                      (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
+gboolean
+quit_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data)
 {
-  GtkWidget * widget = lookup_widget(GTK_WIDGET(menuitem), "zapping");
-  GList * p;
+  GtkWidget *zapping = find_widget (GTK_WIDGET (widget), "zapping");
+  GList *p;
+
+  if (!zapping)
+    return FALSE; /* XXX ttxview */
 
   flag_exit_program = TRUE;
 
-  UpdateCoords(widget->window);
+  UpdateCoords (widget->window);
 
   /* Tell the widget that the GUI is going to be closed */
   p = g_list_first(plugin_list);
   while (p)
     {
-      plugin_remove_gui(GNOME_APP(widget), 
-			(struct plugin_info*)p->data);
+      plugin_remove_gui (GNOME_APP (zapping), 
+			 (struct plugin_info *) p->data);
       p = p->next;
     }
 
   gtk_main_quit();
 }
 
+gboolean
+switch_mode_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data)
+{
+  if (argc < 2)
+    return FALSE;
+
+  if (strcmp (argv[1], "fullscreen") == 0)
+    {
+      restore_mode = main_info->current_mode;
+
+      zmisc_switch_mode (TVENG_CAPTURE_PREVIEW, main_info);
+    }
+  else if (strcmp (argv[1], "preview") == 0)
+    {
+      if (zmisc_switch_mode (TVENG_CAPTURE_WINDOW, main_info) == -1)
+	ShowBox(_("%s:\n"
+		  "Try running as root \"zapping_fix_overlay\" in a console"),
+		GNOME_MESSAGE_BOX_ERROR, main_info->error);
+    }
+  else if (strcmp (argv[1], "capture") == 0)
+    {
+      if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
+	ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
+    }
+  else if (strcmp (argv[1], "teletext") == 0)
+    {
+#ifdef HAVE_LIBZVBI
+      /* Switch from TTX to Subtitles overlay, and vice versa */
+      if (main_info->current_mode == TVENG_NO_CAPTURE)
+	{
+	  if (get_ttxview_page(main_window, &zvbi_page, NULL))
+	    zmisc_overlay_subtitles(zvbi_page);
+	}
+      else
+	zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
+#else
+      return FALSE;
+#endif
+    }
+  else
+    return FALSE;
+
+  return TRUE;
+}
+
+gboolean
+restore_mode_cmd			(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data)
+{
+  if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
+    zmisc_switch_mode(restore_mode, main_info);
+
+  return TRUE;
+}
+
 static gboolean mute_controls = TRUE;
 static gboolean mute_osd = TRUE;
 
-void
-on_mute1_toggled			(GtkWidget	*w,
-					 gpointer	user_data)
-{
-  GtkWidget *widget;
-  gboolean state;
-
-  widget = lookup_widget (main_window, "mute1");
-  state = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
-
-  if (tveng_set_mute(!!state, main_info) < 0)
-    printv("tveng_set_mute failed\n");
-  else
-    {
-      if (mute_controls)
-	update_control_box(main_info);
-
-#ifdef HAVE_LIBZVBI
-      if (mute_osd && main_info->current_mode == TVENG_CAPTURE_PREVIEW)
-	osd_render_sgml(NULL, tveng_get_mute(main_info) ?
-			_("<blue>audio off</blue>") :
-			_("<yellow>AUDIO ON</yellow>"));
-#endif
-    }
-}
-
-/* mode - 0: off, 1: on, 2: toggle, 3: follow */
+/**
+ * set_mute1:
+ * @mode: 0 - off, 1 - on, 2 - toggle, 3 - query driver.
+ * @controls: Update the controls box, if open.
+ * @osd: OSD mute state, if in fullscreen mode.
+ * 
+ * Switch audio on or off.
+ * 
+ * Return value: 
+ * %TRUE on success.
+ **/
 gboolean
-set_mute1				(int	        mode,
+set_mute1				(gint	        mode,
 					 gboolean	controls,
 					 gboolean	osd)
 {
-  GtkWidget *widget;
-  int mute;
+  static gboolean recursion;
+  GtkCheckMenuItem *check;
+  GtkWidget *button;
+  gint mute;
+
+  if (recursion)
+    return TRUE;
+
+  recursion = TRUE;
 
   if (mode >= 2)
     {
       if ((mute = tveng_get_mute(main_info)) < 0)
 	{
 	  printv("tveng_get_mute failed\n");
+	  recursion = FALSE;
 	  return FALSE;
 	}
 
@@ -172,34 +229,94 @@ set_mute1				(int	        mode,
       if (tveng_set_mute(mute, main_info) < 0)
 	{
 	  printv("tveng_set_mute failed\n");
+	  recursion = FALSE;
 	  return FALSE;
 	}
     }
 
+  /* Reflect change in GUI */
+
   mute_controls = controls;
   mute_osd = osd;
 
-  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
-    {
-      if ((widget = lookup_widget (main_window, "mute1")))
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(widget), mute);
-    }
-  else
-    {
-      if (mute_controls)
-	update_control_box(main_info);
+  /* The if's here break the signal -> change -> signal recursion */
+
+  button = lookup_widget (main_window, "mute1");
+
+  check = GTK_CHECK_MENU_ITEM (lookup_widget (main_window, "mute2"));
+
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)) != mute)
+    ORC_BLOCK (gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), mute));
+  else if (check->active == mute)
+    mute_controls = FALSE;
+
+  if (check->active != mute)
+    ORC_BLOCK (gtk_check_menu_item_set_active (check, mute));
+
+  if (mute_controls)
+    update_control_box (main_info);
 
 #ifdef HAVE_LIBZVBI
+  if (mute_osd)
+    if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
       // XXX or toolbar hidden
-      if (mute_osd && main_info->current_mode == TVENG_CAPTURE_PREVIEW)
-	osd_render_sgml(NULL, mute ?
-			_("<blue>audio off</blue>") :
-			_("<yellow>AUDIO ON</yellow>"));
+      osd_render_sgml(NULL, mute ?
+		      _("<blue>audio off</blue>") :
+		      _("<yellow>AUDIO ON</yellow>"));
 #endif
-    }
 
   mute_controls = TRUE;
   mute_osd = TRUE;
+
+  recursion = FALSE;
+
+  return TRUE;
+}
+
+void
+on_mute1_toggled			(GtkWidget	*w,
+					 gpointer	user_data)
+{
+  GtkWidget *widget = lookup_widget (main_window, "mute1");
+  gboolean state = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+
+  set_mute1 (!!state, mute_controls, mute_osd);
+}
+
+void
+on_mute2_activate            	       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  GtkCheckMenuItem *button = GTK_CHECK_MENU_ITEM(menuitem);
+  gboolean state = button->active;
+
+  set_mute1 (!!state, mute_controls, mute_osd);
+}
+
+/**
+ * mute_cmd:
+ * @widget: Ignored.
+ * @argc: 1 or 2.
+ * @argv: Non-zero number mutes, zero or no number unmutes,
+ *   without arguments toggles mute.
+ * 
+ * Switch audio on or off.
+ *
+ * Return value: 
+ * %TRUE on success.
+ **/
+gboolean
+mute_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data)
+{
+  gint value = 2; /* toggle */
+
+  if (argc > 1)
+    value = !!strtol (argv[1], NULL, 0);
+
+  set_mute1 (value, mute_controls, mute_osd);
 
   return TRUE;
 }
@@ -277,31 +394,6 @@ on_hide_controls1_activate             (GtkMenuItem     *menuitem,
     }
 }
 
-gboolean
-on_zapping_delete_event                (GtkWidget       *widget,
-                                        GdkEvent        *event,
-                                        gpointer         user_data)
-{
-  GList * p;
-
-  flag_exit_program = TRUE;
-
-  UpdateCoords(widget->window);
-
-  /* Tell the widget that the GUI is going to be closed */
-  p = g_list_first(plugin_list);
-  while (p)
-    {
-      plugin_remove_gui(GNOME_APP(widget), 
-			 (struct plugin_info*)p->data);
-      p = p->next;
-    }
-
-  gtk_main_quit();
-
-  return FALSE;
-}
-
 void
 on_controls_clicked                    (GtkButton       *button,
                                         gpointer         user_data)
@@ -322,15 +414,6 @@ on_controls_clicked                    (GtkButton       *button,
 }
 
 void
-on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
-{
-  restore_mode = main_info->current_mode;
-
-  zmisc_switch_mode(TVENG_CAPTURE_PREVIEW, main_info);
-}
-
-void
 on_closed_caption1_activate            (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
@@ -342,22 +425,6 @@ on_closed_caption1_activate            (GtkMenuItem     *menuitem,
 
   if (!status)
     osd_clear();
-#endif
-}
-
-void
-on_videotext1_activate                 (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
-{
-#ifdef HAVE_LIBZVBI
-  /* Switch from TTX to Subtitles overlay, and viceversa */
-  if (main_info->current_mode == TVENG_NO_CAPTURE)
-    {
-      if (get_ttxview_page(main_window, &zvbi_page, NULL))
-	zmisc_overlay_subtitles(zvbi_page);
-    }
-  else
-    zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
 #endif
 }
 
@@ -377,33 +444,6 @@ on_program_info1_activate              (GtkMenuItem     *menuitem,
 #ifdef HAVE_LIBZVBI
   gtk_widget_show(zvbi_build_program_info());
 #endif
-}
-
-void
-on_new_ttxview_activate		       (GtkMenuItem	*menuitem,
-					gpointer	user_data)
-{
-#ifdef HAVE_LIBZVBI
-  gtk_widget_show(build_ttxview());
-#endif
-}
-
-void
-on_go_capturing2_activate              (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
-{
-  if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
-    ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
-}
-
-void
-on_go_previewing2_activate             (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
-{
-  if (zmisc_switch_mode(TVENG_CAPTURE_WINDOW, main_info) == -1)
-    ShowBox(_("%s:\n"
-	      "Try running as root \"zapping_fix_overlay\" in a console"),
-	    GNOME_MESSAGE_BOX_ERROR, main_info->error);
 }
 
 gboolean
@@ -498,17 +538,15 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
       }
       return TRUE;
     case 4:
-      z_channel_up();
+      cmd_execute (widget, "channel_up");
       return TRUE;
     case 5:
-      z_channel_down();
+      cmd_execute (widget, "channel_down");
       return TRUE;
     case 2:
       if (main_info->current_mode == TVENG_NO_CAPTURE)
 	return FALSE;
-      on_go_fullscreen1_activate(GTK_MENU_ITEM(lookup_widget(widget,
-					     "go_fullscreen1")),
-				NULL);
+      cmd_execute (widget, "switch_mode fullscreen");
       break;
     default:
       break;

@@ -31,6 +31,8 @@
 #include "interface.h"
 #include "zvbi.h"
 #include "ttxview.h"
+#include "remote.h"
+#include "keyboard.h"
 
 static void shutdown_zapzilla(void);
 static gboolean startup_zapzilla(void);
@@ -97,7 +99,7 @@ int zapzilla_main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: zapzilla.c,v 1.2 2002-01-13 09:52:22 mschimek Exp $",
+	 "$Id: zapzilla.c,v 1.3 2002-03-06 00:53:49 mschimek Exp $",
 	 "Zapzilla", VERSION, __DATE__);
   glade_gnome_init();
   D();
@@ -131,6 +133,8 @@ int zapzilla_main(int argc, char * argv[])
   D();
   gtk_widget_show(build_ttxview());
   D();
+  startup_keyboard();
+  D();
   gtk_main();
   /* Closes all fd's, writes the config to HD, and that kind of things
    */
@@ -141,6 +145,9 @@ int zapzilla_main(int argc, char * argv[])
 static void shutdown_zapzilla(void)
 {
   printv("Shutting down the beast:\n");
+
+  printv(" kbd");
+  shutdown_keyboard();
 
   /*
    * Shuts down the teletext view
@@ -163,11 +170,17 @@ static void shutdown_zapzilla(void)
 	     "     %s. Please contact the author.\n"
 	     ), GNOME_MESSAGE_BOX_ERROR, "Zapzilla");
 
+  printv(" cmd");
+  shutdown_remote();
+
   printv(".\nShutdown complete, goodbye.\n");
 }
 
 static gboolean startup_zapzilla()
 {
+  startup_remote ();
+  D();
+
   /* Starts the configuration engine */
   if (!zconf_init("zapping"))
     {

@@ -49,6 +49,7 @@
 #include "properties-handler.h"
 #include "properties.h"
 #include "mixer.h"
+#include "keyboard.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
@@ -67,7 +68,7 @@ extern GtkWidget *ChannelWindow;
 /* These are accessed by other modules as extern variables */
 tveng_device_info	*main_info = NULL;
 volatile gboolean	flag_exit_program = FALSE;
-tveng_channels		*current_country = NULL;
+tveng_rf_table *	current_country = NULL;
 GList			*plugin_list = NULL;
 gint			disable_preview = FALSE;/* preview should be
 						   disabled */
@@ -202,12 +203,17 @@ static gint timeout_handler(gpointer unused)
   return 1; /* Keep calling me */
 }
 
-static
-gboolean on_zapping_key_press		(GtkWidget	*widget,
+gboolean
+on_zapping_key_press			(GtkWidget	*widget,
 					 GdkEventKey	*event,
-					 gpointer	*ignored)
+					 gpointer	*user_data);
+gboolean
+on_zapping_key_press			(GtkWidget	*widget,
+					 GdkEventKey	*event,
+					 gpointer	*user_data)
 {
-  return z_volume_change(event) || z_select_channel_by_key(event);
+  return on_user_key_press (widget, event, user_data)
+    || on_channel_key_press (widget, event, user_data);
 }
 
 static gint hide_pointer_tid = -1;
@@ -456,7 +462,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.156 2002-02-25 06:24:40 mschimek Exp $",
+	 "$Id: main.c,v 1.157 2002-03-06 00:53:49 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -644,11 +650,6 @@ int main(int argc, char * argv[])
     }
   D();
   main_window = create_zapping();
-  /* Change the pixmaps, work around glade bug */
-  set_stock_pixmap(lookup_widget(main_window, "channel_up"),
-		   GNOME_STOCK_PIXMAP_UP);
-  set_stock_pixmap(lookup_widget(main_window, "channel_down"),
-		   GNOME_STOCK_PIXMAP_DOWN);
   propagate_toolbar_changes(lookup_widget(main_window, "toolbar1"));
   D();
   tv_screen = lookup_widget(main_window, "tv_screen");
@@ -710,6 +711,8 @@ int main(int argc, char * argv[])
   D();
 #endif
   startup_audio();
+  D();
+  startup_keyboard();
   D();
   startup_csconvert();
   D();
@@ -851,67 +854,39 @@ static void shutdown_zapping(void)
 	  store_control_values(&channel->num_controls,
 			       &channel->controls, main_info);
 	}
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/name",
-			       i);
-      zconf_create_string(channel->name, "Channel name", buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/freq",
-			       i);
-      zconf_create_integer((int)channel->freq, "Tuning frequence", buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/accel_key",
-			       i);
-      zconf_create_integer((int)channel->accel_key, "Accelator key",
-			   buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/accel_mask",
-			       i);
-      zconf_create_integer((int)channel->accel_mask, "Accelerator mask",
-			   buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/real_name",
-			       i);
-      zconf_create_string(channel->real_name, "Real channel name", buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/country",
-			       i);
-      zconf_create_string(channel->country, 
-			  "Country the channel is in", buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/input",
-			       i);
-      zconf_create_integer(channel->input, "Attached input", buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/standard",
-			       i);
-      zconf_create_integer(channel->standard, "Attached standard", buffer);
-      g_free(buffer);
 
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/num_controls",
-			       i);
-      zconf_create_integer(channel->num_controls, "Saved controls", buffer);
-      g_free(buffer);
+#define SAVE_CONFIG(_type, _name, _cname, _descr)			\
+  buffer = g_strdup_printf (ZCONF_DOMAIN "tuned_channels/%d/" #_cname, i); \
+  zconf_create_##_type (channel-> _name, _descr, buffer);		\
+  g_free (buffer);
+
+      SAVE_CONFIG (string,  name,         name,         "Station name");
+      SAVE_CONFIG (integer, freq,         freq,         "Tuning frequency");
+      SAVE_CONFIG (z_key,   accel,        accel,        "Accelerator key");
+      /* historic "real_name", changed to less confusing rf_name */
+      SAVE_CONFIG (string,  rf_name,      real_name,    "RF channel name");
+      SAVE_CONFIG (string,  country,      country,      "Country the channel is in");
+      SAVE_CONFIG (integer, input,        input,        "Attached input");
+      SAVE_CONFIG (integer, standard,     standard,     "Attached standard");
+      SAVE_CONFIG (integer, num_controls, num_controls, "Saved controls");
 
       for (j = 0; j<channel->num_controls; j++)
 	{
-	  buffer =
-	    g_strdup_printf(ZCONF_DOMAIN
-			    "tuned_channels/%d/controls/%d/name",
-			    i, j);
-	  zconf_create_string(channel->controls[j].name, "Control name",
-			      buffer);
+	  buffer = g_strdup_printf(ZCONF_DOMAIN
+				   "tuned_channels/%d/controls/%d/name",
+				   i, j);
+	  zconf_create_string (channel->controls[j].name, "Control name", buffer);
 	  g_free(buffer);
-	  buffer =
-	    g_strdup_printf(ZCONF_DOMAIN
-			    "tuned_channels/%d/controls/%d/value",
-			    i, j);
-	  zconf_create_float(channel->controls[j].value, "Control value",
-			     buffer);
+	  buffer = g_strdup_printf(ZCONF_DOMAIN
+				   "tuned_channels/%d/controls/%d/value",
+				   i, j);
+	  zconf_create_float(channel->controls[j].value, "Control value", buffer);
 	  g_free(buffer);
 	}
 
       i++;
     }
+
   global_channel_list = tveng_clear_tuned_channel(global_channel_list);
 
   if (current_country)
@@ -962,6 +937,12 @@ static void shutdown_zapping(void)
   shutdown_capture();
 
   /*
+   * Keyboard
+   */
+  printv(" kbd");
+  shutdown_keyboard();
+
+  /*
    * The audio config
    */
   printv(" audio");
@@ -1009,6 +990,9 @@ static void shutdown_zapping(void)
 	      "     %s. Please contact the author.\n"
 	      ), GNOME_MESSAGE_BOX_ERROR, "Zapping");
 
+  printv(" cmd");
+  shutdown_remote();
+
   printv(".\nShutdown complete, goodbye.\n");
 }
 
@@ -1022,6 +1006,11 @@ static gboolean startup_zapping(gboolean load_plugins)
   tveng_tuned_channel new_channel;
   GList * p;
   GtkObjectClass *button_class, *option_class;
+  D();
+  startup_remote ();
+  cmd_register ("switch_mode", switch_mode_cmd, NULL);
+  cmd_register ("restore_mode", restore_mode_cmd, NULL);
+  cmd_register ("quit", quit_cmd, NULL);
   D();
   /* Starts the configuration engine */
   if (!zconf_init("zapping"))
@@ -1102,35 +1091,20 @@ static gboolean startup_zapping(gboolean load_plugins)
 	buffer[strlen(buffer)-1] = 0;
 
       /* Get all the items from here  */
-      buffer2 = g_strconcat(buffer, "/name", NULL);
-      zconf_get_string(&new_channel.name, buffer2);
-      g_free(buffer2);
-      buffer2 = g_strconcat(buffer, "/real_name", NULL);
-      zconf_get_string(&new_channel.real_name, buffer2);
-      g_free(buffer2);
-      buffer2 = g_strconcat(buffer, "/freq", NULL);
-      zconf_get_integer(&new_channel.freq, buffer2);
-      g_free(buffer2);
-      buffer2 = g_strconcat(buffer, "/accel_key", NULL);
-      zconf_get_integer(&new_channel.accel_key, buffer2);
-      g_free(buffer2);
-      buffer2 = g_strconcat(buffer, "/accel_mask", NULL);
-      zconf_get_integer(&new_channel.accel_mask, buffer2);
-      g_free(buffer2);
-      buffer2 = g_strconcat(buffer, "/country", NULL);
-      zconf_get_string(&new_channel.country, buffer2);
-      g_free(buffer2);
 
-      buffer2 = g_strconcat(buffer, "/input", NULL);
-      zconf_get_integer(&new_channel.input, buffer2);
-      g_free(buffer2);
-      buffer2 = g_strconcat(buffer, "/standard", NULL);
-      zconf_get_integer(&new_channel.standard, buffer2);
-      g_free(buffer2);
+#define LOAD_CONFIG(_type, _name, _cname)				\
+  buffer2 = g_strconcat (buffer, "/" #_cname, NULL);			\
+  zconf_get_##_type (&new_channel. _name, buffer2);			\
+  g_free (buffer2);
 
-      buffer2 = g_strconcat(buffer, "/num_controls", NULL);
-      zconf_get_integer(&new_channel.num_controls, buffer2);
-      g_free(buffer2);
+      LOAD_CONFIG (string,  name,         name);
+      LOAD_CONFIG (string,  rf_name,      real_name);
+      LOAD_CONFIG (integer, freq,         freq);
+      LOAD_CONFIG (z_key,   accel,        accel);
+      LOAD_CONFIG (string,  country,      country);
+      LOAD_CONFIG (integer, input,        input);
+      LOAD_CONFIG (integer, standard,     standard);
+      LOAD_CONFIG (integer, num_controls, num_controls);
 
       buffer2 = g_strconcat(buffer, "/controls", NULL);
       if (new_channel.num_controls)
@@ -1162,7 +1136,7 @@ static gboolean startup_zapping(gboolean load_plugins)
 
       /* Free the previously allocated mem */
       g_free(new_channel.name);
-      g_free(new_channel.real_name);
+      g_free(new_channel.rf_name);
       g_free(new_channel.country);
       g_free(new_channel.controls);
 

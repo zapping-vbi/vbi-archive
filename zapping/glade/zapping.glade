@@ -30,8 +30,9 @@
   <events>GDK_KEY_PRESS_MASK</events>
   <signal>
     <name>delete_event</name>
-    <handler>on_zapping_delete_event</handler>
-    <last_modification_time>Thu, 06 Jan 2000 13:53:16 GMT</last_modification_time>
+    <handler>on_remote_command2</handler>
+    <data>quit</data>
+    <last_modification_time>Sun, 03 Mar 2002 23:51:06 GMT</last_modification_time>
   </signal>
   <title>Zapping</title>
   <type>GTK_WINDOW_TOPLEVEL</type>
@@ -84,13 +85,15 @@
 
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
-	      <name>exit2</name>
-	      <signal>
-		<name>activate</name>
-		<handler>on_exit2_activate</handler>
-		<last_modification_time>Wed, 05 Jan 2000 21:30:10 GMT</last_modification_time>
-	      </signal>
-	      <stock_item>GNOMEUIINFO_MENU_EXIT_ITEM</stock_item>
+	      <name>quit1</name>
+	      <accelerator>
+		<modifiers>GDK_CONTROL_MASK</modifiers>
+		<key>GDK_Q</key>
+		<signal>activate</signal>
+	      </accelerator>
+	      <label>_Quit</label>
+	      <right_justify>False</right_justify>
+	      <stock_icon>GNOME_STOCK_MENU_EXIT</stock_icon>
 	    </widget>
 	  </widget>
 	</widget>
@@ -165,15 +168,10 @@
 	      <name>go_fullscreen1</name>
 	      <tooltip>Use this to go fullscreen. Press ESC to return to Windowed mode</tooltip>
 	      <accelerator>
-		<modifiers>0</modifiers>
-		<key>GDK_F11</key>
+		<modifiers>GDK_CONTROL_MASK</modifiers>
+		<key>GDK_F</key>
 		<signal>activate</signal>
 	      </accelerator>
-	      <signal>
-		<name>activate</name>
-		<handler>on_go_fullscreen1_activate</handler>
-		<last_modification_time>Thu, 03 Feb 2000 18:58:07 GMT</last_modification_time>
-	      </signal>
 	      <label>Go _Fullscreen</label>
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
@@ -184,15 +182,10 @@
 	      <name>go_previewing2</name>
 	      <tooltip>Use this to start the windowed overlay mode</tooltip>
 	      <accelerator>
-		<modifiers>GDK_CONTROL_MASK | GDK_MOD1_MASK</modifiers>
+		<modifiers>GDK_CONTROL_MASK</modifiers>
 		<key>GDK_P</key>
 		<signal>activate</signal>
 	      </accelerator>
-	      <signal>
-		<name>activate</name>
-		<handler>on_go_previewing2_activate</handler>
-		<last_modification_time>Sat, 22 Jul 2000 19:45:20 GMT</last_modification_time>
-	      </signal>
 	      <label>Go _Previewing</label>
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
@@ -203,15 +196,10 @@
 	      <name>go_capturing2</name>
 	      <tooltip>Use this to start the windowed capture mode</tooltip>
 	      <accelerator>
-		<modifiers>GDK_CONTROL_MASK | GDK_MOD1_MASK</modifiers>
+		<modifiers>GDK_CONTROL_MASK</modifiers>
 		<key>GDK_C</key>
 		<signal>activate</signal>
 	      </accelerator>
-	      <signal>
-		<name>activate</name>
-		<handler>on_go_capturing2_activate</handler>
-		<last_modification_time>Sat, 22 Jul 2000 19:45:21 GMT</last_modification_time>
-	      </signal>
 	      <label>Go _Capturing</label>
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
@@ -228,15 +216,10 @@
 	      <name>videotext1</name>
 	      <tooltip>Use Zapping as a Teletext navigator</tooltip>
 	      <accelerator>
-		<modifiers>GDK_CONTROL_MASK | GDK_MOD1_MASK</modifiers>
+		<modifiers>GDK_CONTROL_MASK</modifiers>
 		<key>GDK_T</key>
 		<signal>activate</signal>
 	      </accelerator>
-	      <signal>
-		<name>activate</name>
-		<handler>on_videotext1_activate</handler>
-		<last_modification_time>Wed, 06 Sep 2000 17:25:34 GMT</last_modification_time>
-	      </signal>
 	      <label>_Teletext</label>
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_ALIGN_JUSTIFY</stock_icon>
@@ -247,15 +230,10 @@
 	      <name>new_ttxview</name>
 	      <tooltip>Starts the Teletext decoder in a new window</tooltip>
 	      <accelerator>
-		<modifiers>GDK_CONTROL_MASK | GDK_MOD1_MASK</modifiers>
+		<modifiers>GDK_CONTROL_MASK</modifiers>
 		<key>GDK_N</key>
 		<signal>activate</signal>
 	      </accelerator>
-	      <signal>
-		<name>activate</name>
-		<handler>on_new_ttxview_activate</handler>
-		<last_modification_time>Tue, 26 Dec 2000 14:34:18 GMT</last_modification_time>
-	      </signal>
 	      <label>_New Teletext View</label>
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_ALIGN_JUSTIFY</stock_icon>
@@ -272,7 +250,7 @@
 	      </signal>
 	      <label>Network Info</label>
 	      <right_justify>False</right_justify>
-	      <stock_icon>GNOME_STOCK_MENU_VOLUME</stock_icon>
+	      <stock_icon>GNOME_STOCK_MENU_HOME</stock_icon>
 	    </widget>
 
 	    <widget>
@@ -292,6 +270,20 @@
 	      <class>GtkMenuItem</class>
 	      <name>separator8</name>
 	      <right_justify>False</right_justify>
+	    </widget>
+
+	    <widget>
+	      <class>GtkCheckMenuItem</class>
+	      <name>mute2</name>
+	      <tooltip>Switch audio on and off</tooltip>
+	      <accelerator>
+		<modifiers>GDK_CONTROL_MASK</modifiers>
+		<key>GDK_A</key>
+		<signal>activate</signal>
+	      </accelerator>
+	      <label>_Mute</label>
+	      <active>False</active>
+	      <always_show_toggle>True</always_show_toggle>
 	    </widget>
 
 	    <widget>
@@ -328,7 +320,7 @@
 		<handler>on_hide_controls1_activate</handler>
 		<last_modification_time>Mon, 02 Apr 2001 18:39:33 GMT</last_modification_time>
 	      </signal>
-	      <label>Hide controls</label>
+	      <label>Hide toolbar</label>
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_BOOK_YELLOW</stock_icon>
 	    </widget>
@@ -426,16 +418,12 @@
 	    <class>GtkButton</class>
 	    <child_name>Toolbar:button</child_name>
 	    <name>channel_up</name>
-	    <tooltip>Select the previous station in the channel list [Page Up]</tooltip>
-	    <accelerator>
-	      <modifiers>0</modifiers>
-	      <key>GDK_Page_Up</key>
-	      <signal>clicked</signal>
-	    </accelerator>
+	    <tooltip>Select the next station in the channel list</tooltip>
 	    <signal>
 	      <name>clicked</name>
-	      <handler>z_channel_up</handler>
-	      <last_modification_time>Wed, 25 Jul 2001 19:07:09 GMT</last_modification_time>
+	      <handler>on_remote_command1</handler>
+	      <data>channel_up</data>
+	      <last_modification_time>Sat, 02 Mar 2002 05:29:19 GMT</last_modification_time>
 	    </signal>
 	    <label>Up</label>
 	    <stock_pixmap>GNOME_STOCK_PIXMAP_TOP</stock_pixmap>
@@ -456,16 +444,12 @@
 	    <class>GtkButton</class>
 	    <child_name>Toolbar:button</child_name>
 	    <name>channel_down</name>
-	    <tooltip>Select the next station in the channel list [Page Down]</tooltip>
-	    <accelerator>
-	      <modifiers>0</modifiers>
-	      <key>GDK_Page_Down</key>
-	      <signal>clicked</signal>
-	    </accelerator>
+	    <tooltip>Select the previous station in the channel list</tooltip>
 	    <signal>
 	      <name>clicked</name>
-	      <handler>z_channel_down</handler>
-	      <last_modification_time>Wed, 25 Jul 2001 19:07:23 GMT</last_modification_time>
+	      <handler>on_remote_command1</handler>
+	      <data>channel_down</data>
+	      <last_modification_time>Sat, 02 Mar 2002 05:52:23 GMT</last_modification_time>
 	    </signal>
 	    <label>Down</label>
 	    <stock_pixmap>GNOME_STOCK_PIXMAP_BOTTOM</stock_pixmap>
@@ -476,7 +460,7 @@
 	  <class>GtkToggleButton</class>
 	  <child_name>Toolbar:button</child_name>
 	  <name>mute1</name>
-	  <tooltip>Mute [Ctrl-A]</tooltip>
+	  <tooltip>Switch audio on and off</tooltip>
 	  <accelerator>
 	    <modifiers>GDK_CONTROL_MASK</modifiers>
 	    <key>GDK_a</key>
@@ -484,8 +468,9 @@
 	  </accelerator>
 	  <signal>
 	    <name>toggled</name>
-	    <handler>on_mute1_toggled</handler>
-	    <last_modification_time>Mon, 04 Feb 2002 23:59:17 GMT</last_modification_time>
+	    <handler>on_remote_command1</handler>
+	    <data>mute</data>
+	    <last_modification_time>Sat, 02 Mar 2002 05:19:44 GMT</last_modification_time>
 	  </signal>
 	  <label>Mute</label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_VOLUME</stock_pixmap>
@@ -499,12 +484,7 @@
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
 	  <name>button1</name>
-	  <tooltip>Configure capture [Ctrl+C]</tooltip>
-	  <accelerator>
-	    <modifiers>GDK_CONTROL_MASK</modifiers>
-	    <key>GDK_C</key>
-	    <signal>clicked</signal>
-	  </accelerator>
+	  <tooltip>Change picture controls</tooltip>
 	  <signal>
 	    <name>clicked</name>
 	    <handler>on_controls_clicked</handler>
@@ -518,10 +498,17 @@
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
 	  <name>videotext3</name>
+	  <tooltip>Activate Teletext mode</tooltip>
+	  <accelerator>
+	    <modifiers>GDK_CONTROL_MASK</modifiers>
+	    <key>GDK_t</key>
+	    <signal>clicked</signal>
+	  </accelerator>
 	  <signal>
 	    <name>clicked</name>
-	    <handler>on_videotext1_activate</handler>
-	    <last_modification_time>Tue, 26 Dec 2000 15:55:19 GMT</last_modification_time>
+	    <handler>on_remote_command1</handler>
+	    <data>switch_mode teletext</data>
+	    <last_modification_time>Mon, 04 Mar 2002 04:52:51 GMT</last_modification_time>
 	  </signal>
 	  <label>Teletext</label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY</stock_pixmap>
@@ -1003,29 +990,17 @@
 	</widget>
 
 	<widget>
-	  <class>GtkCheckButton</class>
-	  <name>checkbutton13</name>
-	  <tooltip>Swap the behaviour of the PageUp and Page Down keys</tooltip>
-	  <can_focus>True</can_focus>
-	  <label>Swap Channel Up/Down keys</label>
-	  <active>False</active>
-	  <draw_indicator>True</draw_indicator>
+	  <class>GtkTable</class>
+	  <name>table74</name>
+	  <rows>3</rows>
+	  <columns>2</columns>
+	  <homogeneous>False</homogeneous>
+	  <row_spacing>0</row_spacing>
+	  <column_spacing>0</column_spacing>
 	  <child>
 	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkHBox</class>
-	  <name>hbox53</name>
-	  <homogeneous>True</homogeneous>
-	  <spacing>3</spacing>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
+	    <expand>True</expand>
+	    <fill>True</fill>
 	  </child>
 
 	  <widget>
@@ -1039,38 +1014,20 @@
 	    <xpad>2</xpad>
 	    <ypad>0</ypad>
 	    <child>
-	      <padding>0</padding>
-	      <expand>True</expand>
-	      <fill>True</fill>
+	      <left_attach>0</left_attach>
+	      <right_attach>1</right_attach>
+	      <top_attach>0</top_attach>
+	      <bottom_attach>1</bottom_attach>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <xexpand>False</xexpand>
+	      <yexpand>False</yexpand>
+	      <xshrink>False</xshrink>
+	      <yshrink>False</yshrink>
+	      <xfill>True</xfill>
+	      <yfill>False</yfill>
 	    </child>
 	  </widget>
-
-	  <widget>
-	    <class>GtkOptionMenu</class>
-	    <name>optionmenu23</name>
-	    <can_focus>True</can_focus>
-	    <items>Channel list
-RF channel number
-</items>
-	    <initial_choice>0</initial_choice>
-	    <child>
-	      <padding>0</padding>
-	      <expand>True</expand>
-	      <fill>True</fill>
-	    </child>
-	  </widget>
-	</widget>
-
-	<widget>
-	  <class>GtkHBox</class>
-	  <name>hbox16</name>
-	  <homogeneous>True</homogeneous>
-	  <spacing>3</spacing>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>True</fill>
-	  </child>
 
 	  <widget>
 	    <class>GtkLabel</class>
@@ -1083,9 +1040,68 @@ RF channel number
 	    <xpad>2</xpad>
 	    <ypad>0</ypad>
 	    <child>
-	      <padding>0</padding>
-	      <expand>True</expand>
-	      <fill>True</fill>
+	      <left_attach>0</left_attach>
+	      <right_attach>1</right_attach>
+	      <top_attach>1</top_attach>
+	      <bottom_attach>2</bottom_attach>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <xexpand>False</xexpand>
+	      <yexpand>False</yexpand>
+	      <xshrink>False</xshrink>
+	      <yshrink>False</yshrink>
+	      <xfill>True</xfill>
+	      <yfill>False</yfill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <name>label223</name>
+	    <label>Title bar contents:</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>1</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <child>
+	      <left_attach>0</left_attach>
+	      <right_attach>1</right_attach>
+	      <top_attach>2</top_attach>
+	      <bottom_attach>3</bottom_attach>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <xexpand>False</xexpand>
+	      <yexpand>False</yexpand>
+	      <xshrink>False</xshrink>
+	      <yshrink>False</yshrink>
+	      <xfill>True</xfill>
+	      <yfill>False</yfill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GtkOptionMenu</class>
+	    <name>optionmenu23</name>
+	    <can_focus>True</can_focus>
+	    <items>Channel list
+RF channel number
+</items>
+	    <initial_choice>0</initial_choice>
+	    <child>
+	      <left_attach>1</left_attach>
+	      <right_attach>2</right_attach>
+	      <top_attach>0</top_attach>
+	      <bottom_attach>1</bottom_attach>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <xexpand>False</xexpand>
+	      <yexpand>False</yexpand>
+	      <xshrink>False</xshrink>
+	      <yshrink>False</yshrink>
+	      <xfill>True</xfill>
+	      <yfill>False</yfill>
 	    </child>
 	  </widget>
 
@@ -1100,38 +1116,18 @@ Autodetect
 </items>
 	    <initial_choice>0</initial_choice>
 	    <child>
-	      <padding>0</padding>
-	      <expand>True</expand>
-	      <fill>True</fill>
-	    </child>
-	  </widget>
-	</widget>
-
-	<widget>
-	  <class>GtkHBox</class>
-	  <name>hbox35</name>
-	  <homogeneous>True</homogeneous>
-	  <spacing>3</spacing>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>True</fill>
-	  </child>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <name>label223</name>
-	    <label>Title bar contents:</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>1</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <child>
-	      <padding>0</padding>
-	      <expand>True</expand>
-	      <fill>True</fill>
+	      <left_attach>1</left_attach>
+	      <right_attach>2</right_attach>
+	      <top_attach>1</top_attach>
+	      <bottom_attach>2</bottom_attach>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <xexpand>False</xexpand>
+	      <yexpand>False</yexpand>
+	      <xshrink>False</xshrink>
+	      <yshrink>False</yshrink>
+	      <xfill>True</xfill>
+	      <yfill>False</yfill>
 	    </child>
 	  </widget>
 
@@ -1141,9 +1137,18 @@ Autodetect
 	    <history_id>title_format</history_id>
 	    <max_saved>10</max_saved>
 	    <child>
-	      <padding>0</padding>
-	      <expand>True</expand>
-	      <fill>True</fill>
+	      <left_attach>1</left_attach>
+	      <right_attach>2</right_attach>
+	      <top_attach>2</top_attach>
+	      <bottom_attach>3</bottom_attach>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <xexpand>True</xexpand>
+	      <yexpand>False</yexpand>
+	      <xshrink>False</xshrink>
+	      <yshrink>False</yshrink>
+	      <xfill>True</xfill>
+	      <yfill>False</yfill>
 	    </child>
 
 	    <widget>
@@ -1828,6 +1833,247 @@ Do not show
 	<child_name>Notebook:tab</child_name>
 	<name>label232</name>
 	<label>OSD</label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+      </widget>
+
+      <widget>
+	<class>GtkTable</class>
+	<name>table75</name>
+	<rows>4</rows>
+	<columns>2</columns>
+	<homogeneous>False</homogeneous>
+	<row_spacing>2</row_spacing>
+	<column_spacing>0</column_spacing>
+
+	<widget>
+	  <class>Custom</class>
+	  <name>custom2</name>
+	  <creation_function>z_key_entry_new</creation_function>
+	  <int1>0</int1>
+	  <int2>0</int2>
+	  <last_modification_time>Fri, 01 Mar 2002 02:08:03 GMT</last_modification_time>
+	  <child>
+	    <left_attach>1</left_attach>
+	    <right_attach>2</right_attach>
+	    <top_attach>1</top_attach>
+	    <bottom_attach>2</bottom_attach>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>False</xexpand>
+	    <yexpand>False</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>True</xfill>
+	    <yfill>True</yfill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label934</name>
+	  <label>Command:</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>1</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>3</xpad>
+	  <ypad>3</ypad>
+	  <child>
+	    <left_attach>0</left_attach>
+	    <right_attach>1</right_attach>
+	    <top_attach>2</top_attach>
+	    <bottom_attach>3</bottom_attach>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>False</xexpand>
+	    <yexpand>False</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>True</xfill>
+	    <yfill>False</yfill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label935</name>
+	  <label>Key:</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>1</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>3</xpad>
+	  <ypad>3</ypad>
+	  <child>
+	    <left_attach>0</left_attach>
+	    <right_attach>1</right_attach>
+	    <top_attach>1</top_attach>
+	    <bottom_attach>2</bottom_attach>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>False</xexpand>
+	    <yexpand>False</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>True</xfill>
+	    <yfill>False</yfill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkCombo</class>
+	  <name>combo1</name>
+	  <value_in_list>False</value_in_list>
+	  <ok_if_empty>True</ok_if_empty>
+	  <case_sensitive>False</case_sensitive>
+	  <use_arrows>True</use_arrows>
+	  <use_arrows_always>False</use_arrows_always>
+	  <items></items>
+	  <child>
+	    <left_attach>1</left_attach>
+	    <right_attach>2</right_attach>
+	    <top_attach>2</top_attach>
+	    <bottom_attach>3</bottom_attach>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>True</xexpand>
+	    <yexpand>False</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>True</xfill>
+	    <yfill>False</yfill>
+	  </child>
+
+	  <widget>
+	    <class>GtkEntry</class>
+	    <child_name>GtkCombo:entry</child_name>
+	    <name>combo-entry6</name>
+	    <can_focus>True</can_focus>
+	    <editable>True</editable>
+	    <text_visible>True</text_visible>
+	    <text_max_length>0</text_max_length>
+	    <text></text>
+	  </widget>
+	</widget>
+
+	<widget>
+	  <class>GtkHBox</class>
+	  <name>hbox53</name>
+	  <homogeneous>False</homogeneous>
+	  <spacing>0</spacing>
+	  <child>
+	    <left_attach>0</left_attach>
+	    <right_attach>2</right_attach>
+	    <top_attach>3</top_attach>
+	    <bottom_attach>4</bottom_attach>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>True</xexpand>
+	    <yexpand>False</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>True</xfill>
+	    <yfill>False</yfill>
+	  </child>
+
+	  <widget>
+	    <class>GtkButton</class>
+	    <name>button41</name>
+	    <can_focus>True</can_focus>
+	    <label>_Add</label>
+	    <relief>GTK_RELIEF_NORMAL</relief>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GtkButton</class>
+	    <name>button43</name>
+	    <can_focus>True</can_focus>
+	    <label>_Delete</label>
+	    <relief>GTK_RELIEF_NORMAL</relief>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+	  </widget>
+	</widget>
+
+	<widget>
+	  <class>GtkScrolledWindow</class>
+	  <name>scrolledwindow15</name>
+	  <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+	  <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+	  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	  <child>
+	    <left_attach>0</left_attach>
+	    <right_attach>2</right_attach>
+	    <top_attach>0</top_attach>
+	    <bottom_attach>1</bottom_attach>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>False</xexpand>
+	    <yexpand>True</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>True</xfill>
+	    <yfill>True</yfill>
+	  </child>
+
+	  <widget>
+	    <class>GtkCList</class>
+	    <name>clist2</name>
+	    <can_focus>True</can_focus>
+	    <columns>2</columns>
+	    <column_widths>193,80</column_widths>
+	    <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
+	    <show_titles>True</show_titles>
+	    <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <child_name>CList:title</child_name>
+	      <name>label936</name>
+	      <label>Key</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <child_name>CList:title</child_name>
+	      <name>label937</name>
+	      <label>Command</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	    </widget>
+	  </widget>
+	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkLabel</class>
+	<child_name>Notebook:tab</child_name>
+	<name>label924</name>
+	<label>Keyboard</label>
 	<justify>GTK_JUSTIFY_CENTER</justify>
 	<wrap>False</wrap>
 	<xalign>0.5</xalign>
@@ -3275,11 +3521,11 @@ Open automatically
     <class>GtkPixmapMenuItem</class>
     <name>go_fullscreen2</name>
     <tooltip>Use this for starting the fullscreen mode</tooltip>
-    <signal>
-      <name>activate</name>
-      <handler>on_go_fullscreen1_activate</handler>
-      <last_modification_time>Tue, 14 Nov 2000 21:36:52 GMT</last_modification_time>
-    </signal>
+    <accelerator>
+      <modifiers>GDK_CONTROL_MASK</modifiers>
+      <key>GDK_F</key>
+      <signal>activate</signal>
+    </accelerator>
     <label>Go _Fullscreen</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
@@ -3289,11 +3535,11 @@ Open automatically
     <class>GtkPixmapMenuItem</class>
     <name>go_previewing2</name>
     <tooltip>Use this to start the windowed overlay mode</tooltip>
-    <signal>
-      <name>activate</name>
-      <handler>on_go_previewing2_activate</handler>
-      <last_modification_time>Tue, 14 Nov 2000 21:36:49 GMT</last_modification_time>
-    </signal>
+    <accelerator>
+      <modifiers>GDK_CONTROL_MASK</modifiers>
+      <key>GDK_P</key>
+      <signal>activate</signal>
+    </accelerator>
     <label>Go _Previewing</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
@@ -3303,11 +3549,11 @@ Open automatically
     <class>GtkPixmapMenuItem</class>
     <name>go_capturing2</name>
     <tooltip>Use this to start the windowed capture mode</tooltip>
-    <signal>
-      <name>activate</name>
-      <handler>on_go_capturing2_activate</handler>
-      <last_modification_time>Sat, 22 Jul 2000 19:27:13 GMT</last_modification_time>
-    </signal>
+    <accelerator>
+      <modifiers>GDK_CONTROL_MASK</modifiers>
+      <key>GDK_C</key>
+      <signal>activate</signal>
+    </accelerator>
     <label>Go _Capturing</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
@@ -3323,11 +3569,11 @@ Open automatically
     <class>GtkPixmapMenuItem</class>
     <name>videotext2</name>
     <tooltip>Use Zapping as a teletext navigator</tooltip>
-    <signal>
-      <name>activate</name>
-      <handler>on_videotext1_activate</handler>
-      <last_modification_time>Wed, 06 Sep 2000 21:13:23 GMT</last_modification_time>
-    </signal>
+    <accelerator>
+      <modifiers>GDK_CONTROL_MASK</modifiers>
+      <key>GDK_T</key>
+      <signal>activate</signal>
+    </accelerator>
     <label>_Teletext</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_ALIGN_JUSTIFY</stock_icon>
@@ -3337,11 +3583,11 @@ Open automatically
     <class>GtkPixmapMenuItem</class>
     <name>new_ttxview2</name>
     <tooltip>Starts the Teletext decoder in a new window</tooltip>
-    <signal>
-      <name>activate</name>
-      <handler>on_new_ttxview_activate</handler>
-      <last_modification_time>Tue, 26 Dec 2000 14:37:58 GMT</last_modification_time>
-    </signal>
+    <accelerator>
+      <modifiers>GDK_CONTROL_MASK</modifiers>
+      <key>GDK_N</key>
+      <signal>activate</signal>
+    </accelerator>
     <label>_New Teletext View</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_ALIGN_JUSTIFY</stock_icon>
@@ -3645,7 +3891,7 @@ Open automatically
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
 	  <name>ttxview_home</name>
-	  <tooltip>Go to the index page [Home]</tooltip>
+	  <tooltip>Go to the index page</tooltip>
 	  <label>Home</label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_HOME</stock_pixmap>
 	</widget>
@@ -3654,7 +3900,12 @@ Open automatically
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
 	  <name>ttxview_clone</name>
-	  <tooltip>Clone the current Teletext window</tooltip>
+	  <tooltip>Open new Teletext window</tooltip>
+	  <accelerator>
+	    <modifiers>GDK_CONTROL_MASK</modifiers>
+	    <key>GDK_n</key>
+	    <signal>clicked</signal>
+	  </accelerator>
 	  <label></label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_COPY</stock_pixmap>
 	</widget>
@@ -3663,7 +3914,12 @@ Open automatically
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
 	  <name>ttxview_search</name>
-	  <tooltip>Search for a given pattern in the cache</tooltip>
+	  <tooltip>Search the page cache</tooltip>
+	  <accelerator>
+	    <modifiers>GDK_CONTROL_MASK</modifiers>
+	    <key>GDK_f</key>
+	    <signal>clicked</signal>
+	  </accelerator>
 	  <label>Search</label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_SEARCH</stock_pixmap>
 	</widget>
@@ -3677,17 +3933,7 @@ Open automatically
 	  <widget>
 	    <class>GtkButton</class>
 	    <name>ttxview_prev_subpage</name>
-	    <tooltip>Previous subpage [-]</tooltip>
-	    <accelerator>
-	      <modifiers>0</modifiers>
-	      <key>GDK_KP_Subtract</key>
-	      <signal>clicked</signal>
-	    </accelerator>
-	    <accelerator>
-	      <modifiers>0</modifiers>
-	      <key>GDK_minus</key>
-	      <signal>clicked</signal>
-	    </accelerator>
+	    <tooltip>Previous subpage</tooltip>
 	    <relief>GTK_RELIEF_NONE</relief>
 	    <child>
 	      <padding>0</padding>
@@ -3703,7 +3949,7 @@ Open automatically
 	  <widget>
 	    <class>GtkButton</class>
 	    <name>ttxview_prev_page</name>
-	    <tooltip>Go to the previous page [Down]</tooltip>
+	    <tooltip>Go to the previous page</tooltip>
 	    <can_focus>True</can_focus>
 	    <relief>GTK_RELIEF_NONE</relief>
 	    <child>
@@ -3721,7 +3967,7 @@ Open automatically
 	<widget>
 	  <class>GtkToggleButton</class>
 	  <name>ttxview_hold</name>
-	  <tooltip>Hold the current subpage [H]</tooltip>
+	  <tooltip>Hold the current subpage</tooltip>
 	  <relief>GTK_RELIEF_NORMAL</relief>
 	  <active>False</active>
 
@@ -3754,7 +4000,7 @@ Open automatically
 	  <widget>
 	    <class>GtkButton</class>
 	    <name>ttxview_next_page</name>
-	    <tooltip>Go to the next page [Up]</tooltip>
+	    <tooltip>Go to the next page</tooltip>
 	    <can_focus>True</can_focus>
 	    <relief>GTK_RELIEF_NONE</relief>
 	    <child>
@@ -3771,17 +4017,7 @@ Open automatically
 	  <widget>
 	    <class>GtkButton</class>
 	    <name>ttxview_next_subpage</name>
-	    <tooltip>Next subpage [+]</tooltip>
-	    <accelerator>
-	      <modifiers>0</modifiers>
-	      <key>GDK_KP_Add</key>
-	      <signal>clicked</signal>
-	    </accelerator>
-	    <accelerator>
-	      <modifiers>0</modifiers>
-	      <key>GDK_plus</key>
-	      <signal>clicked</signal>
-	    </accelerator>
+	    <tooltip>Next subpage</tooltip>
 	    <relief>GTK_RELIEF_NONE</relief>
 	    <child>
 	      <padding>0</padding>
@@ -3799,8 +4035,13 @@ Open automatically
 	  <class>GtkToggleButton</class>
 	  <name>ttxview_reveal</name>
 	  <border_width>4</border_width>
-	  <tooltip>Reveal hidden characters [?]</tooltip>
+	  <tooltip>Reveal hidden characters</tooltip>
 	  <can_focus>True</can_focus>
+	  <accelerator>
+	    <modifiers>GDK_CONTROL_MASK</modifiers>
+	    <key>GDK_r</key>
+	    <signal>clicked</signal>
+	  </accelerator>
 	  <relief>GTK_RELIEF_NONE</relief>
 	  <active>True</active>
 
@@ -3813,7 +4054,7 @@ Open automatically
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
 	  <name>ttxview_exit</name>
-	  <tooltip>Exit TTX mode [Esc]</tooltip>
+	  <tooltip>Leave Teletext mode</tooltip>
 	  <label></label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_STOP</stock_pixmap>
 	</widget>
@@ -4514,12 +4755,10 @@ Open automatically
     </widget>
 
     <widget>
-      <class>GtkScrolledWindow</class>
-      <name>scrolledwindow14</name>
-      <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-      <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+      <class>GtkVBox</class>
+      <name>vbox49</name>
+      <homogeneous>False</homogeneous>
+      <spacing>5</spacing>
       <child>
 	<padding>0</padding>
 	<expand>True</expand>
@@ -4527,27 +4766,55 @@ Open automatically
       </child>
 
       <widget>
-	<class>GtkCList</class>
-	<name>key_clist</name>
-	<can_focus>True</can_focus>
-	<columns>1</columns>
-	<column_widths>80</column_widths>
-	<selection_mode>GTK_SELECTION_SINGLE</selection_mode>
-	<show_titles>True</show_titles>
-	<shadow_type>GTK_SHADOW_IN</shadow_type>
+	<class>GtkScrolledWindow</class>
+	<name>scrolledwindow14</name>
+	<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+	<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+	<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
 
 	<widget>
-	  <class>GtkLabel</class>
-	  <child_name>CList:title</child_name>
-	  <name>label209</name>
-	  <label>Keys</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
+	  <class>GtkCList</class>
+	  <name>key_clist</name>
+	  <can_focus>True</can_focus>
+	  <columns>1</columns>
+	  <column_widths>80</column_widths>
+	  <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+	  <show_titles>True</show_titles>
+	  <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <child_name>CList:title</child_name>
+	    <name>label209</name>
+	    <label>Keys</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	  </widget>
 	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkToggleButton</class>
+	<name>togglebutton1</name>
+	<can_focus>True</can_focus>
+	<label>Enter key</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
+	<active>False</active>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
       </widget>
     </widget>
   </widget>
@@ -5519,122 +5786,6 @@ adding the table if possible, for inclusion in the next release of this program.
 	    </widget>
 
 	    <widget>
-	      <class>GtkHBox</class>
-	      <name>hbox47</name>
-	      <homogeneous>False</homogeneous>
-	      <spacing>0</spacing>
-	      <child>
-		<left_attach>1</left_attach>
-		<right_attach>2</right_attach>
-		<top_attach>4</top_attach>
-		<bottom_attach>5</bottom_attach>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-		<xexpand>False</xexpand>
-		<yexpand>True</yexpand>
-		<xshrink>False</xshrink>
-		<yshrink>False</yshrink>
-		<xfill>True</xfill>
-		<yfill>True</yfill>
-	      </child>
-
-	      <widget>
-		<class>GtkHBox</class>
-		<name>hbox29</name>
-		<homogeneous>False</homogeneous>
-		<spacing>0</spacing>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>False</fill>
-		</child>
-
-		<widget>
-		  <class>GtkCheckButton</class>
-		  <name>channel_accel_ctrl</name>
-		  <can_focus>True</can_focus>
-		  <label>Ctrl</label>
-		  <active>False</active>
-		  <draw_indicator>True</draw_indicator>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkCheckButton</class>
-		  <name>channel_accel_shift</name>
-		  <can_focus>True</can_focus>
-		  <label>Shift</label>
-		  <active>False</active>
-		  <draw_indicator>True</draw_indicator>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkCheckButton</class>
-		  <name>channel_accel_alt</name>
-		  <can_focus>True</can_focus>
-		  <label>Alt</label>
-		  <active>False</active>
-		  <draw_indicator>True</draw_indicator>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
-	      </widget>
-
-	      <widget>
-		<class>GtkHBox</class>
-		<name>hbox31</name>
-		<homogeneous>False</homogeneous>
-		<spacing>0</spacing>
-		<child>
-		  <padding>0</padding>
-		  <expand>True</expand>
-		  <fill>True</fill>
-		</child>
-
-		<widget>
-		  <class>GtkEntry</class>
-		  <name>channel_accel</name>
-		  <tooltip>Enter here the key you want to attach to this channel</tooltip>
-		  <can_focus>True</can_focus>
-		  <editable>True</editable>
-		  <text_visible>True</text_visible>
-		  <text_max_length>0</text_max_length>
-		  <text></text>
-		  <child>
-		    <padding>0</padding>
-		    <expand>True</expand>
-		    <fill>True</fill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkButton</class>
-		  <name>known_keys</name>
-		  <can_focus>True</can_focus>
-		  <label>List of known keys</label>
-		  <relief>GTK_RELIEF_NORMAL</relief>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
-	      </widget>
-	    </widget>
-
-	    <widget>
 	      <class>GtkLabel</class>
 	      <name>label234</name>
 	      <label>Keyboard shortcut:</label>
@@ -5657,6 +5808,29 @@ adding the table if possible, for inclusion in the next release of this program.
 		<yshrink>False</yshrink>
 		<xfill>True</xfill>
 		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>Custom</class>
+	      <name>channel_accel</name>
+	      <creation_function>z_key_entry_new</creation_function>
+	      <int1>0</int1>
+	      <int2>0</int2>
+	      <last_modification_time>Fri, 01 Mar 2002 02:08:03 GMT</last_modification_time>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>4</top_attach>
+		<bottom_attach>5</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>True</yfill>
 	      </child>
 	    </widget>
 	  </widget>

@@ -386,8 +386,8 @@ struct plugin_misc_info * plugin_get_misc_info (void)
   {
     sizeof(struct plugin_misc_info),
     6,
-    PLUGIN_CATHEGORY_DEVICE_CONTROL |
-    PLUGIN_CATHEGORY_GUI
+    PLUGIN_CATEGORY_DEVICE_CONTROL |
+    PLUGIN_CATEGORY_GUI
   };
 
   /*

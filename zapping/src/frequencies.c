@@ -31,8 +31,9 @@
 
 /* --------------------------------------------------------------------- */
 
-/* US broadcast */
-static tveng_channel ntsc_bcast[] = {
+/* US terrestrial */
+static tveng_rf_channel
+ntsc_bcast[] = {
     /* "1" eliminated by FCC in 1945 */
     { "2",	 55250 },
     { "3",	 61250 },
@@ -119,7 +120,8 @@ static tveng_channel ntsc_bcast[] = {
 };
 
 /* US cable */
-static tveng_channel ntsc_cable[] = {
+static tveng_rf_channel
+ntsc_cable[] = {
     { "1",	 73250 },
     { "2",	 55250 },
     { "3",	 61250 },
@@ -257,7 +259,8 @@ static tveng_channel ntsc_cable[] = {
 };
 
 /* US HRC */
-static tveng_channel ntsc_hrc[] = {
+static tveng_rf_channel
+ntsc_hrc[] = {
     { "1",	  72000 },
     { "2",	  54000 }, 
     { "3",	  60000 }, 
@@ -397,7 +400,8 @@ static tveng_channel ntsc_hrc[] = {
 /* --------------------------------------------------------------------- */
 
 /* JP broadcast */
-static tveng_channel ntsc_bcast_jp[] = {
+static tveng_rf_channel
+ntsc_bcast_jp[] = {
     { "1",   91250 },
     { "2",   97250 },
     { "3",  103250 },
@@ -464,7 +468,8 @@ static tveng_channel ntsc_bcast_jp[] = {
 };
 
 /* JP cable */
-static tveng_channel ntsc_cable_jp[] = {
+static tveng_rf_channel
+ntsc_cable_jp[] = {
     { "13",	109250 },
     { "14",	115250 },
     { "15",	121250 },
@@ -521,7 +526,8 @@ static tveng_channel ntsc_cable_jp[] = {
 /* --------------------------------------------------------------------- */
 
 /* australia */
-static tveng_channel pal_australia[] = {
+static tveng_rf_channel
+pal_australia[] = {
     { "0",	 46250 },
     { "1",	 57250 },
     { "2",	 64250 },
@@ -734,21 +740,24 @@ static tveng_channel pal_australia[] = {
     { "68",  847250 },	\
     { "69",  855250 }
 
-static tveng_channel pal_europe[] = {
+static tveng_rf_channel
+pal_europe[] = {
     FREQ_CCIR_I_III,
     FREQ_CCIR_SL_SH,
     FREQ_CCIR_H,
     FREQ_UHF
 };
 
-static tveng_channel pal_europe_east[] = {
+static tveng_rf_channel
+pal_europe_east[] = {
     FREQ_OIRT_I_III,
     FREQ_OIRT_SL_SH,
     FREQ_CCIR_H,
     FREQ_UHF
 };
 
-static tveng_channel pal_italy[] = {
+static tveng_rf_channel
+pal_italy[] = {
     { "2",	 53750 },
     { "3",	 62250 },
     { "4",	 82250 },
@@ -763,7 +772,8 @@ static tveng_channel pal_italy[] = {
     FREQ_UHF
 };
 
-static tveng_channel pal_ireland[] = {
+static tveng_rf_channel
+pal_ireland[] = {
     { "0",    45750 },
     { "1",    53750 },
     { "2",    61750 },
@@ -776,7 +786,8 @@ static tveng_channel pal_ireland[] = {
     FREQ_UHF,
 };
 
-static tveng_channel secam_france[] = {
+static tveng_rf_channel
+secam_france[] = {
     { "K01",    47750 },
     { "K02",    55750 },
     { "K03",    60500 },
@@ -827,7 +838,8 @@ static tveng_channel secam_france[] = {
 
 /* --------------------------------------------------------------------- */
 
-static tveng_channel pal_newzealand[] = {
+static tveng_rf_channel
+pal_newzealand[] = {
     { "1", 	  45250 }, 
     { "2",	  55250 }, 
     { "3",	  62250 },
@@ -842,7 +854,8 @@ static tveng_channel pal_newzealand[] = {
     FREQ_UHF
 };
 
-static tveng_channel secam_russia[] = {
+static tveng_rf_channel
+secam_russia[] = {
     { "1", 	  48500 }, 
     { "2", 	  58000 }, 
     { "3", 	  76000 }, 
@@ -897,7 +910,8 @@ static tveng_channel secam_russia[] = {
     { "60", 	 782000 }, 
 };
 
-static tveng_channel south_africa[] = {
+static tveng_rf_channel
+south_africa[] = {
   { "4",	175250 },
   { "5",	183250 },
   { "6",	191250 },
@@ -957,7 +971,8 @@ static tveng_channel south_africa[] = {
   { "68",	847250 }
 };
 
-static tveng_channel pal_bcast_cn[] = {
+static tveng_rf_channel
+pal_bcast_cn[] = {
     { "1",	49750 },
     { "2",	57750 },
     { "3",	65750 },
@@ -1056,23 +1071,26 @@ static tveng_channel pal_bcast_cn[] = {
 
 /* --------------------------------------------------------------------- */
 
-static tveng_channels chanlists[] = {
-    { N_("US terrestrial"),	ntsc_bcast,      CHAN_COUNT(ntsc_bcast)      },
-    { N_("US cable"),		ntsc_cable,      CHAN_COUNT(ntsc_cable)      },
-    { N_("US cable-hrc"),	ntsc_hrc,        CHAN_COUNT(ntsc_hrc)        },
-    { N_("Japan terrestrial"),	ntsc_bcast_jp,   CHAN_COUNT(ntsc_bcast_jp)   },
-    { N_("Japan cable"),	ntsc_cable_jp,   CHAN_COUNT(ntsc_cable_jp)   },
-    { N_("Europe"),		pal_europe,      CHAN_COUNT(pal_europe)      },
-    { N_("Eastern Europe"),	pal_europe_east, CHAN_COUNT(pal_europe_east) },
-    { N_("Italy"),		pal_italy,       CHAN_COUNT(pal_italy)       },
-    { N_("New Zealand"),	pal_newzealand,  CHAN_COUNT(pal_newzealand)  },
-    { N_("Australia"),		pal_australia,   CHAN_COUNT(pal_australia)   },
-    { N_("Ireland"),		pal_ireland,     CHAN_COUNT(pal_ireland)     },
-    { N_("France"),		secam_france,    CHAN_COUNT(secam_france)    },
-    { N_("Russia"),		secam_russia,    CHAN_COUNT(secam_russia)    },
-    { N_("South Africa"),	south_africa,    CHAN_COUNT(south_africa)    },
-    { N_("China"),		pal_bcast_cn,    CHAN_COUNT(pal_bcast_cn)    },
-    { NULL, NULL, 0 } /* EOF */
+#define COUNT(array) (sizeof(array) / sizeof(array[0]))
+
+static tveng_rf_table
+rf_tables[] = {
+  { N_("US terrestrial"),    ntsc_bcast,      COUNT (ntsc_bcast),      { 0 } },
+  { N_("US cable"),	     ntsc_cable,      COUNT (ntsc_cable),      { "T", 0 } },
+  { N_("US cable-hrc"),	     ntsc_hrc,        COUNT (ntsc_hrc),        { "T", 0 } },
+  { N_("Japan terrestrial"), ntsc_bcast_jp,   COUNT (ntsc_bcast_jp),   { 0 } },
+  { N_("Japan cable"),	     ntsc_cable_jp,   COUNT (ntsc_cable_jp),   { 0 } },
+  { N_("Europe"),	     pal_europe,      COUNT (pal_europe),      { "E", "S", "SE", 0 } },
+  { N_("Eastern Europe"),    pal_europe_east, COUNT (pal_europe_east), { "R", "S", "SR", 0 } },
+  { N_("Italy"),	     pal_italy,       COUNT (pal_italy),       { 0 } },
+  { N_("New Zealand"),	     pal_newzealand,  COUNT (pal_newzealand),  { 0 } },
+  { N_("Australia"),	     pal_australia,   COUNT (pal_australia),   { 0 } },
+  { N_("Ireland"),	     pal_ireland,     COUNT (pal_ireland),     { 0 } },
+  { N_("France"),	     secam_france,    COUNT (secam_france),    { "K", "H", 0 } },
+  { N_("Russia"),	     secam_russia,    COUNT (secam_russia),    { 0 } },
+  { N_("South Africa"),	     south_africa,    COUNT (south_africa),    { 0 } },
+  { N_("China"),	     pal_bcast_cn,    COUNT (pal_bcast_cn),    { 0 } },
+  { 0 }
 };
 
 /* 
@@ -1080,7 +1098,7 @@ static tveng_channels chanlists[] = {
    country. NULL if the specified country is not found.
    The country should be in english.
 */
-tveng_channels*
+tveng_rf_table *
 tveng_get_country_tune_by_name (gchar * country)
 {
   int i=0;
@@ -1088,10 +1106,10 @@ tveng_get_country_tune_by_name (gchar * country)
   if (country == NULL)
     return NULL;
   
-  while (chanlists[i].name)
+  while (rf_tables[i].name)
     {
-      if (!strcasecmp(chanlists[i].name, country))
-	return (&(chanlists[i]));
+      if (!strcasecmp(rf_tables[i].name, country))
+	return (&(rf_tables[i]));
       i++;
     }
 
@@ -1103,7 +1121,7 @@ tveng_get_country_tune_by_name (gchar * country)
    country. NULL if the specified country is not found.
    The given name can be i18ed this time.
 */
-tveng_channels*
+tveng_rf_table *
 tveng_get_country_tune_by_i18ed_name (gchar * i18ed_country)
 {
   int i=0;
@@ -1111,10 +1129,10 @@ tveng_get_country_tune_by_i18ed_name (gchar * i18ed_country)
   if (i18ed_country == NULL)
     return NULL;
   
-  while (chanlists[i].name)
+  while (rf_tables[i].name)
     {
-      if (!strcasecmp(_(chanlists[i].name), i18ed_country))
-	return (&(chanlists[i]));
+      if (!strcasecmp(_(rf_tables[i].name), i18ed_country))
+	return (&(rf_tables[i]));
       i++;
     }
 
@@ -1127,18 +1145,17 @@ tveng_get_country_tune_by_i18ed_name (gchar * i18ed_country)
   This is useful if you want to get all the countries we know about,
   you can start from id 0, and go up until you get an error.
 */
-tveng_channels*
+tveng_rf_table *
 tveng_get_country_tune_by_id (int id)
 {
-  int num_countries = sizeof(chanlists)/sizeof(tveng_channels);
-  num_countries --; /* NULL entry in the end */
+  int num_countries = COUNT (rf_tables) - 1; /* NULL entry in the end */
 
   if (id >= num_countries)
     return NULL;
   if (id < 0)
     return NULL;
 
-  return &(chanlists[id]);
+  return rf_tables + id;
 }
 
 /*
@@ -1146,16 +1163,16 @@ tveng_get_country_tune_by_id (int id)
   on with tveng_get_country_tune_by_id. Returns -1 on error.
 */
 int
-tveng_get_id_of_country_tune (tveng_channels * country)
+tveng_get_id_of_country_tune (tveng_rf_table * country)
 {
   int i=0;
 
   if (country == NULL)
     return -1;
   
-  while (chanlists[i].name)
+  while (rf_tables[i].name)
     {
-      if (!strcasecmp(chanlists[i].name, country->name))
+      if (!strcasecmp(rf_tables[i].name, country->name))
 	return i; /* Found */
       i++;
     }
@@ -1167,8 +1184,8 @@ tveng_get_id_of_country_tune (tveng_channels * country)
   Finds an especific channel in an especific country by name. NULL on
   error.
 */
-tveng_channel*
-tveng_get_channel_by_name (gchar* name, tveng_channels * country)
+tveng_rf_channel *
+tveng_get_channel_by_name (gchar* name, tveng_rf_table *country)
 {
   int i;
 
@@ -1178,7 +1195,7 @@ tveng_get_channel_by_name (gchar* name, tveng_channels * country)
   if (country == NULL)
     return NULL;
 
-  for (i=0; i<country->chan_count; i++)
+  for (i=0; i<country->channel_count; i++)
     if (!strcasecmp(name, country->channel_list[i].name))
       return &(country->channel_list[i]);
 
@@ -1189,14 +1206,14 @@ tveng_get_channel_by_name (gchar* name, tveng_channels * country)
   Finds an especific channel in an especific country by its id. NULL on
   error.
 */
-tveng_channel*
-tveng_get_channel_by_id (int id, tveng_channels * country)
+tveng_rf_channel *
+tveng_get_channel_by_id (int id, tveng_rf_table * country)
 {
   if (id < 0)
     return NULL;
   if (country == NULL)
     return NULL;
-  if (id >= country->chan_count)
+  if (id >= country->channel_count)
     return NULL;
   return &(country->channel_list[id]);
 }
@@ -1206,8 +1223,7 @@ tveng_get_channel_by_id (int id, tveng_channels * country)
   tveng_get_channel_by_id. Returns -1 on error.
 */
 int
-tveng_get_id_of_channel (tveng_channel * channel, tveng_channels *
-			 country)
+tveng_get_id_of_channel (tveng_rf_channel *channel, tveng_rf_table *country)
 {
   int i;
 
@@ -1217,7 +1233,7 @@ tveng_get_id_of_channel (tveng_channel * channel, tveng_channels *
   if (country == NULL)
     return -1;
 
-  for (i=0; i<country->chan_count; i++)
+  for (i=0; i<country->channel_count; i++)
     if ((!strcasecmp(channel->name, country->channel_list[i].name)) && 
 	(channel -> freq == country->channel_list[i].freq))
       return i; /* Found */
@@ -1270,17 +1286,16 @@ tveng_insert_tuned_channel_sorted (tveng_tuned_channel * new_channel,
     channel_added->name = g_strdup(new_channel->name);
   else
     channel_added->name = g_strdup(_("(Unnamed channel)"));
-  if (new_channel->real_name)
-    channel_added->real_name = g_strdup(new_channel->real_name);
+  if (new_channel->rf_name)
+    channel_added->rf_name = g_strdup(new_channel->rf_name);
   else
-    channel_added->real_name = g_strdup(_("(Unknown real channel)"));
+    channel_added->rf_name = g_strdup(_("(Unknown real channel)"));
   if (new_channel->country)
     channel_added->country = g_strdup(new_channel->country);
   else
     channel_added->country = g_strdup(_("(Unknown country)"));
 
-  channel_added->accel_key = new_channel->accel_key;
-  channel_added->accel_mask = new_channel->accel_mask;
+  channel_added->accel = new_channel->accel;
   channel_added->freq = new_channel->freq;
   channel_added->input = new_channel->input;
   channel_added->standard = new_channel->standard;
@@ -1376,17 +1391,16 @@ tveng_append_tuned_channel (tveng_tuned_channel * new_channel,
     channel_added->name = g_strdup(new_channel->name);
   else
     channel_added->name = g_strdup(_("(Unnamed channel)"));
-  if (new_channel->real_name)
-    channel_added->real_name = g_strdup(new_channel->real_name);
+  if (new_channel->rf_name)
+    channel_added->rf_name = g_strdup(new_channel->rf_name);
   else
-    channel_added->real_name = g_strdup(_("(Unknown real channel)"));
+    channel_added->rf_name = g_strdup(_("(Unknown real channel)"));
   if (new_channel->country)
     channel_added->country = g_strdup(new_channel->country);
   else
     channel_added->country = g_strdup(_("(Unknown country)"));
 
-  channel_added->accel_key = new_channel->accel_key;
-  channel_added->accel_mask = new_channel->accel_mask;
+  channel_added->accel = new_channel->accel;
   channel_added->freq = new_channel->freq;
   channel_added->input = new_channel->input;
   channel_added->standard = new_channel->standard;
@@ -1449,11 +1463,10 @@ tveng_tuned_channels_swap (tveng_tuned_channel * a,
     return;
 
   swap(a->name, b->name);
-  swap(a->real_name, b->real_name);
+  swap(a->rf_name, b->rf_name);
   swap(a->input, b->input);
   swap(a->standard, b->standard);
-  swap(a->accel_key, b->accel_key);
-  swap(a->accel_mask, b->accel_mask);
+  swap(a->accel, b->accel);
   swap(a->country, b->country);
   swap(a->freq, b->freq);
   swap(a->num_controls, b->num_controls);
@@ -1480,14 +1493,14 @@ tveng_tuned_channel_num (tveng_tuned_channel * list)
 
 /*
   Removes an specific channel form the list. You must provide its
-  "real" name, i.e. "64" instead of "Tele5", for example. Returns -1
-  if the channel could not be found. If real_name is NULL, then id is
+  the radio frequency name, e.g. "64" instead of "Tele5". Returns -1
+  if the channel could not be found. If rf_name is NULL, then id is
   interpreted as the index in the tuned_channel list. Then -1 means
-  out of bounds. if real_name is not NULL, then the first matching
+  out of bounds. if rf_name is not NULL, then the first matching
   item from id is deleted.
 */
 tveng_tuned_channel *
-tveng_remove_tuned_channel (gchar * real_name, int id,
+tveng_remove_tuned_channel (gchar * rf_name, int id,
 			    tveng_tuned_channel * list)
 {
   tveng_tuned_channel * tc_ptr;
@@ -1499,7 +1512,7 @@ tveng_remove_tuned_channel (gchar * real_name, int id,
     return NULL;
   
   /* We don't have a real name, use the id as the offset */
-  if (!real_name)
+  if (!rf_name)
     {
       tc_ptr = tveng_retrieve_tuned_channel_by_index(id, list);
       if (!tc_ptr)
@@ -1507,7 +1520,7 @@ tveng_remove_tuned_channel (gchar * real_name, int id,
     }
   else /* We have a real name, go find it */
     {
-      tc_ptr = tveng_retrieve_tuned_channel_by_real_name(real_name,
+      tc_ptr = tveng_retrieve_tuned_channel_by_rf_name(rf_name,
 							id, list);
       if (!tc_ptr)
 	return list;
@@ -1520,7 +1533,7 @@ tveng_remove_tuned_channel (gchar * real_name, int id,
     tc_ptr -> next -> prev = tc_ptr -> prev;
 
   g_free(tc_ptr -> name);
-  g_free(tc_ptr -> real_name);
+  g_free(tc_ptr -> rf_name);
   g_free(tc_ptr -> country);
   g_free(tc_ptr -> controls);
 
@@ -1549,7 +1562,7 @@ tveng_copy_tuned_channel(tveng_tuned_channel * dest,
 			 tveng_tuned_channel * src)
 {
   g_free(dest->name);
-  g_free(dest->real_name);
+  g_free(dest->rf_name);
   g_free(dest->country);
   g_free(dest->controls);
 
@@ -1557,10 +1570,10 @@ tveng_copy_tuned_channel(tveng_tuned_channel * dest,
     dest->name = g_strdup(src->name);
   else
     dest->name = g_strdup(_("(Unnamed channel)"));
-  if (src->real_name)
-    dest->real_name = g_strdup(src->real_name);
+  if (src->rf_name)
+    dest->rf_name = g_strdup(src->rf_name);
   else
-    dest->real_name = g_strdup(_("(Unknown real channel)"));
+    dest->rf_name = g_strdup(_("(Unknown RF channel)"));
   if (src->country)
     dest->country = g_strdup(src->country);
   else
@@ -1569,8 +1582,7 @@ tveng_copy_tuned_channel(tveng_tuned_channel * dest,
   dest->input = src->input;
   dest->standard = src->standard;
 
-  dest->accel_key = src->accel_key;
-  dest->accel_mask = src->accel_mask;
+  dest->accel = src->accel;
   dest->freq = src->freq;
   dest->num_controls = src->num_controls;
 
@@ -1622,12 +1634,12 @@ tveng_retrieve_tuned_channel_by_name (gchar * name, int index,
 }
 
 /*
-  Retrieves the specified channel by real name ("S23"), and starting
+  Retrieves the specified channel by RF channel name ("S23"), and starting
   from index. Returns NULL on error. Again a strcasecmp
 */
 tveng_tuned_channel*
-tveng_retrieve_tuned_channel_by_real_name (gchar * real_name, int index,
-					   tveng_tuned_channel * list)
+tveng_retrieve_tuned_channel_by_rf_name (gchar * rf_name, int index,
+					 tveng_tuned_channel * list)
 {
   tveng_tuned_channel * tc_ptr =
     tveng_retrieve_tuned_channel_by_index (index, list);
@@ -1635,12 +1647,12 @@ tveng_retrieve_tuned_channel_by_real_name (gchar * real_name, int index,
   if (!tc_ptr)
     return NULL;
 
-  if (!real_name)
+  if (!rf_name)
     return NULL;
 
   while (tc_ptr)
     {
-      if (!strcasecmp(real_name, tc_ptr -> real_name))
+      if (!strcasecmp(rf_name, tc_ptr -> rf_name))
 	return tc_ptr;
 
       tc_ptr = tc_ptr -> next;

@@ -5,8 +5,8 @@
  * Finds in the tree the given widget, returns a pointer to it or NULL
  * if not found
  */
-GtkWidget*
-find_widget(GtkWidget * parent, const char * name);
+GtkWidget *
+find_widget (GtkWidget * parent, const gchar * name);
 
 /*
  * Tries to find a widget, that is accesible though parent, named
@@ -15,8 +15,8 @@ find_widget(GtkWidget * parent, const char * name);
  * If the widget isn't found, a message is printed and the program
  * quits, it always returns a valid widget.
  */
-GtkWidget*
-lookup_widget(GtkWidget * parent, const char * name);
+GtkWidget *
+lookup_widget (GtkWidget * parent, const gchar * name);
 
 /**
  * Registers a widget created by the app so lookup_widget finds it.

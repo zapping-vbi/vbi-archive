@@ -250,6 +250,7 @@ zconf_remove_hook(const gchar * key, ZConfHook hook, gpointer data);
 */
 void
 zconf_touch(const gchar * key);
+
 #ifdef ZCONF_DOMAIN
 #define zcs_int(var, key) \
 zconf_set_integer(var,  ZCONF_DOMAIN key)
@@ -275,7 +276,12 @@ zconf_set_boolean(var,  ZCONF_DOMAIN key)
 zconf_get_boolean(where, ZCONF_DOMAIN key)
 #define zcc_bool(value, desc, key) \
 zconf_create_boolean(value, desc, ZCONF_DOMAIN key)
-
+#define zcs_z_key(var, key) \
+zconf_set_z_key(var, ZCONF_DOMAIN key)
+#define zcg_z_key(where, key) \
+zconf_get_z_key(where, ZCONF_DOMAIN key)
+#define zcc_z_key(value, desc, key) \
+zconf_create_z_key(value, desc, ZCONF_DOMAIN key)
 #endif /* ZCONF_DOMAIN */
 
 #endif /* ZCONF.H */

@@ -1,3 +1,41 @@
+26.02.2002	Keyboard and command changes <mschimek@users.sf.net>
+
+	* Channel number entering on KP: Removed all keys except
+	  0-9, decimal, enter. Decimal now runs through all channel
+	  prefixes and serves as clear key.
+	* src/v4linterface.c: Removed channel up/down swap option.
+	* src/remote.c: Added new command functions. These replace
+	  a number of on_event functions, allowing both keys and
+	  glade GUI elements to trigger kind of mini scripts.
+	  Will probably add more of these and extend to (a)lirc
+	  and command line.
+	* src/ttxview.c: Removed all key bindings except 0-9.
+	  Replaced several functions by remote commands.
+	* src/keyboard.c: New file. Added key entry widget based
+	  on channel dialog with two changes: Reordered the 'known
+	  keys' dialog key table and added a key enter function.
+	  Preferences: Added keyboard section to assign commands
+	  to keys. Added new one-key bindings. Key events are
+	  differently handled now, see README.
+	* plugins/screenshot/screenshot.c: Made toolbar button
+	  optional. Added two remote commands to activate, with
+	  format parameter.
+	* plugins/screenshot/mpeg.c: Added two remote commands
+	  to activate. Had to rewrite mpeg_configured() message,
+	  crashed due to a glade bug (?).
+	* src/audio.c: Volume and mute remote commands.
+	* src/callbacks.c: Switch mode/restore/quit remote
+	  commands. (Should probably go into main.c)
+	* src/channel_editor.c: Replaced key entry dialog.
+	  The channel accel stuff is much cleaner now.
+	* src/frequencies.c: A little renaming to reduce the
+	  confusion between station name and RF channel name.
+
+24.02.2002	Audio <mschimek@users.sf.net>
+
+	* Added preliminary volume +/- buttons. This affects
+	  the record line volume using OSS /dev/mixer.
+
 25.02.2002	zapping_setup_fb patch <mschimek@users.sf.net>
 
 	* zapping_setup_fb/zapping_setup_fb.c: Patch by David Fries.

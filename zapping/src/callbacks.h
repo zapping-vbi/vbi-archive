@@ -30,20 +30,41 @@ void shutdown_callbacks(void);
 /******************************************************************************
  Stuff located in callbacks.c
 ******************************************************************************/
-void
-on_exit2_activate                      (GtkMenuItem     *menuitem,
-                                        gpointer         user_data);
+gboolean
+quit_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data);
+gboolean
+switch_mode_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data);
+gboolean
+restore_mode_cmd			(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data);
 
 void
 on_mute1_toggled			(GtkWidget	*widget,
 					 gpointer	user_data);
+void
+on_mute2_activate			(GtkMenuItem     *menuitem,
+					 gpointer         user_data);
+gboolean
+mute_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data);
+
 gboolean
 set_mute1				(int		mode,
 					 gboolean	update_controls,
 					 gboolean	osd);
 
 void
-on_toggle_muted1_activate                     (GtkMenuItem     *menuitem,
+on_toggle_muted1_activate              (GtkMenuItem     *menuitem,
 				       gpointer         user_data);
 
 void
@@ -61,11 +82,6 @@ on_main_help1_activate                 (GtkMenuItem     *menuitem,
 void
 on_hide_controls1_activate             (GtkMenuItem     *menuitem,
 					gpointer         user_data);
-
-gboolean
-on_zapping_delete_event                (GtkWidget       *widget,
-                                        GdkEvent        *event,
-                                        gpointer         user_data);
 
 gboolean
 on_zapping_configure_event             (GtkWidget       *widget,
@@ -88,15 +104,7 @@ on_control_box_delete_event            (GtkWidget      *widget,
 					gpointer        user_data);
 
 void
-on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
-                                        gpointer         user_data);
-
-void
 on_closed_caption1_activate            (GtkMenuItem     *menuitem,
-                                        gpointer         user_data);
-
-void
-on_videotext1_activate                 (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 void
@@ -109,14 +117,6 @@ on_program_info1_activate              (GtkMenuItem     *menuitem,
 
 void
 on_new_ttxview_activate                (GtkMenuItem     *menuitem,
-                                        gpointer         user_data);
-
-void
-on_go_capturing2_activate              (GtkMenuItem     *menuitem,
-                                        gpointer         user_data);
-
-void
-on_go_previewing2_activate             (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 gboolean

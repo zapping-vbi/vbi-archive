@@ -349,7 +349,7 @@ struct plugin_misc_info * plugin_get_misc_info (void)
   {
     sizeof(struct plugin_misc_info), /* size of this struct */
     6, /* plugin priority, this is just an example */
-    0 /* Cathegory */
+    0 /* Category */
   };
 
   /*

@@ -63,17 +63,13 @@ struct plugin_exported_symbol
 /*
   Use this flags to describe your plugin. OR any convenient flags.
 */
-#define PLUGIN_CATHEGORY_AUDIO_OUT (1<<0) /* Sends audio to other
-					     device */
-#define PLUGIN_CATHEGORY_AUDIO_PROCESS (1<<1) /* Processes audio */
-#define PLUGIN_CATHEGORY_VIDEO_OUT (1<<2) /* Sends video to other
-					     device */
-#define PLUGIN_CATHEGORY_VIDEO_PROCESS (1<<3) /* Processes the video
-						 stream */
-#define PLUGIN_CATHEGORY_DEVICE_CONTROL (1<<4) /* Controls the video
-						  device */
-#define PLUGIN_CATHEGORY_FILTER (1<<5) /* Provides filters */
-#define PLUGIN_CATHEGORY_GUI (1<<6) /* Modifies the GUI */
+#define PLUGIN_CATEGORY_AUDIO_OUT	(1<<0) /* Sends audio to other device */
+#define PLUGIN_CATEGORY_AUDIO_PROCESS	(1<<1) /* Processes audio */
+#define PLUGIN_CATEGORY_VIDEO_OUT	(1<<2) /* Sends video to other device */
+#define PLUGIN_CATEGORY_VIDEO_PROCESS	(1<<3) /* Processes the video stream */
+#define PLUGIN_CATEGORY_DEVICE_CONTROL	(1<<4) /* Controls the video device */
+#define PLUGIN_CATEGORY_FILTER		(1<<5) /* Provides filters */
+#define PLUGIN_CATEGORY_GUI		(1<<6) /* Modifies the GUI */
 
 /*
   This struct holds some misc info about the plugin. If it exists, all
@@ -83,8 +79,12 @@ struct plugin_misc_info
 {
   gint size; /* Size of this structure */
   gint plugin_priority; /* Priority the plugin requests */
-  gint plugin_cathegory; /* Cathegories the plugin falls under */
+  gint plugin_category; /* Categories the plugin falls under */
 };
+
+extern void plugin_add_key				(const gchar *	canonical_name,
+							 z_key		key,
+							 void		(* func)(void));
 
 #ifndef ZAPPING /* If this is being included from a plugin, give them
 		   the correct prototypes for public symbols ( so

@@ -12,43 +12,45 @@
 
 #include "interface.h"
 #include "zmisc.h"
+#include "remote.h"
 
 /**
  * Finds in the tree the given widget, returns a pointer to it or NULL
  * if not found
  */
-GtkWidget*
-find_widget(GtkWidget * parent, const char * name)
+GtkWidget *
+find_widget				(GtkWidget *	parent,
+					 const gchar *	name)
 {
-  GtkWidget * widget = parent;
-  GtkWidget * result = NULL;
-  GladeXML* tree;
+  GtkWidget *widget = parent;
+  GtkWidget *result = NULL;
+  GladeXML *tree;
+  gchar *long_name;
   gchar *buf;
 
   buf = g_strdup_printf("registered-widget-%s", name);
 
-  for (;;)
+  while (widget)
     {
-      result = (GtkWidget*)gtk_object_get_data(GTK_OBJECT(widget), buf);
-      if (result)
+      if ((result = (GtkWidget *) gtk_object_get_data (GTK_OBJECT (widget), buf)))
 	break; /* found registered widget with that name */
 
-      tree = glade_get_widget_tree(widget);
-      if (tree)
-      {
-	result = glade_xml_get_widget (tree, name);
-	if (result)
+      if ((tree = glade_get_widget_tree (widget)))
+	if ((result = glade_xml_get_widget (tree, name)))
 	  break; /* found glade widget with that name */
-      }
+
+      if (0)
+	if ((long_name = (gchar *) glade_get_widget_long_name (widget)))
+	  {
+	    fprintf (stderr, "found '%s'\n", long_name);
+	    g_free (long_name);
+	  }
 
       /* try to go to the parent widget */
-      if (GTK_IS_MENU(widget))
-	widget = gtk_menu_get_attach_widget (GTK_MENU (widget) );
+      if (GTK_IS_MENU (widget))
+	widget = gtk_menu_get_attach_widget (GTK_MENU (widget));
       else
-	widget = widget -> parent;
-
-      if (!widget)
-	break; /* Walked to the top of the tree, nothing found */
+	widget = widget->parent;
     }
 
   g_free(buf);
@@ -64,7 +66,8 @@ find_widget(GtkWidget * parent, const char * name)
  * quits, it always returns a valid widget.
  */
 GtkWidget *
-lookup_widget( GtkWidget *parent, const char *name)
+lookup_widget				(GtkWidget *	parent,
+					 const gchar *	name)
 {
   GtkWidget *widget = find_widget(parent, name);
 
@@ -138,16 +141,42 @@ build_widget(const char* name, const char* glade_file)
   return widget;
 }
 
+#define MENU_CMD(_name, _cmd)						\
+  w = lookup_widget (widget, #_name);					\
+  gtk_signal_connect (GTK_OBJECT (w), "activate",			\
+		      (GtkSignalFunc) on_remote_command1,		\
+		      (gpointer)((const gchar *) _cmd));
+
 GtkWidget*
 create_zapping (void)
 {
-  return build_widget("zapping", PACKAGE_DATA_DIR "/zapping.glade");
+  GtkWidget *widget;
+  GtkWidget *w;
+
+  widget = build_widget("zapping", PACKAGE_DATA_DIR "/zapping.glade");
+
+  /* Change the pixmaps, work around glade bug */
+  set_stock_pixmap (w = lookup_widget (widget, "channel_up"),
+		    GNOME_STOCK_PIXMAP_UP);
+  set_stock_pixmap (w = lookup_widget (widget, "channel_down"),
+		    GNOME_STOCK_PIXMAP_DOWN);
+
+  /* Menu remote commands, not possible with glade */
+  MENU_CMD (quit1,		"quit");
+  MENU_CMD (go_fullscreen1,	"switch_mode fullscreen");
+  MENU_CMD (go_previewing2,	"switch_mode preview");
+  MENU_CMD (go_capturing2,	"switch_mode capture");
+  MENU_CMD (videotext1,		"switch_mode teletext");
+  MENU_CMD (new_ttxview,	"ttx_open_new");
+  MENU_CMD (mute2,		"mute");
+
+  return widget;
 }
 
 GtkWidget*
 create_zapping_properties (void)
 {
-  return build_widget("zapping_properties", PACKAGE_DATA_DIR "/zapping.glade");
+  return build_widget ("zapping_properties", PACKAGE_DATA_DIR "/zapping.glade");
 }
 
 /*
@@ -182,7 +211,19 @@ create_plugin_properties (void)
 GtkWidget*
 create_popup_menu1 (void)
 {
-  return build_widget("popup_menu1", PACKAGE_DATA_DIR "/zapping.glade");
+  GtkWidget *widget;
+  GtkWidget *w;
+
+  widget = build_widget ("popup_menu1", PACKAGE_DATA_DIR "/zapping.glade");
+
+  /* Menu remote commands, not possible with glade */
+  MENU_CMD (go_fullscreen2,	"switch_mode fullscreen");
+  MENU_CMD (go_previewing2,	"switch_mode preview");
+  MENU_CMD (go_capturing2,	"switch_mode capture");
+  MENU_CMD (videotext2,		"switch_mode teletext");
+  MENU_CMD (new_ttxview2,	"ttx_open_new");
+
+  return widget;
 }
 
 GtkWidget*

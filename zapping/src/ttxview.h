@@ -75,12 +75,6 @@ process_ttxview_menu_popup	(GtkWidget	*widget,
 				 GdkEventButton	*event,
 				 GtkMenu	*popup);
 
-/**
- * Opens the given page in a new TTXView
- */
-void
-open_in_new_ttxview			(gint		page,
-					 gint		subpage);
 
 /**
  * If the given window is a TTXView, the given page is opened on it.

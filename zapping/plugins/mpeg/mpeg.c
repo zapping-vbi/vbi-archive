@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.30 2002-02-25 06:24:40 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.31 2002-03-06 00:53:49 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -204,6 +204,17 @@ void plugin_get_info (const gchar ** canonical_name,
     *version = _(str_version);
 }
 
+static gboolean
+record_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data);
+static gboolean
+quickrec_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data);
+
 static
 gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
 {
@@ -223,6 +234,9 @@ gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
     }
 
   append_property_handler(&mpeg_handler);
+
+  cmd_register ("record", record_cmd, NULL);
+  cmd_register ("quickrec", quickrec_cmd, NULL);
 
   return TRUE;
 }
@@ -1099,25 +1113,39 @@ mpeg_configured			(void)
   if (!configured)
     {
       GtkWidget *properties;
-      GtkWidget *configure_message =
-	build_widget("messagebox1", PACKAGE_DATA_DIR "/mpeg_properties.glade");
-      gnome_dialog_run(GNOME_DIALOG(configure_message));
+      GtkWidget *configure_message = gnome_message_box_new
+	(_("This is the first time you run the plugin,\n"
+	   "please take a moment to configure it to your tastes.\n"),
+	 GNOME_MESSAGE_BOX_GENERIC,
+	 _("Open preferences"), GNOME_STOCK_BUTTON_CANCEL, NULL);
+      gint ret = gnome_dialog_run (GNOME_DIALOG (configure_message));
 
-      properties = build_properties_dialog();
-      open_properties_page(properties,
-			   _("Plugins"), _("MPEG"));
-      gnome_dialog_run(GNOME_DIALOG(properties));
+      switch (ret)
+	{
+	case 0:
+	  properties = build_properties_dialog ();
+	  open_properties_page (properties, _("Plugins"), _("MPEG"));
+	  gnome_dialog_run (GNOME_DIALOG (properties));
+	  configured = TRUE;
+	  break;
 
-      configured = TRUE;
+	case 1:
+	default:
+	  /* User closed dialog with window manager,
+	   * assume "cancel"
+	   */
+	  return FALSE;
+	}
     }
 
   return TRUE;
 }
 
-/* User defined functions */
-static void
-on_mpeg_button_clicked          (GtkButton       *button,
-				 gpointer         user_data)
+static gboolean
+record_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data)
 {
   /* Normal invocation, configure and start */
   GtkWidget *dialog;
@@ -1125,12 +1153,13 @@ on_mpeg_button_clicked          (GtkButton       *button,
   gchar *filename;
   GtkWidget *properties;
 
-  mpeg_configured();
+  if (!mpeg_configured())
+    return FALSE;
 
   if (output_mode != OUTPUT_FILE)
     {
       plugin_start();
-      return;
+      return FALSE;
     }
 
   dialog = build_widget("dialog2",
@@ -1168,18 +1197,25 @@ on_mpeg_button_clicked          (GtkButton       *button,
     }
 
   gtk_widget_destroy(GTK_WIDGET(dialog));
+
+  return TRUE;
 }
 
-static void
-on_mpeg_button_fast_clicked	(GtkButton	*button,
-				 gpointer	user_data)
+static gboolean
+quickrec_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data)
 {
-  mpeg_configured();
+  if (!mpeg_configured())
+    return FALSE;
 
   plugin_start ();
+
+  return TRUE;
 }
 
-static const gchar *tooltip = N_("Start recording [r, Ctrl+r]");
+static const gchar *tooltip = N_("Start recording");
 
 static
 void plugin_add_gui (GnomeApp * app)
@@ -1193,19 +1229,12 @@ void plugin_add_gui (GnomeApp * app)
     gnome_stock_pixmap_widget (GTK_WIDGET (app),
 			       GNOME_STOCK_PIXMAP_COLORSELECTOR);
   button = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
-				      GTK_TOOLBAR_CHILD_BUTTON, NULL,
-				      _("MPEG"),
-				      _(tooltip),
-				      NULL, tmp_toolbar_icon,
-				      on_mpeg_button_clicked,
-				      NULL);
-  /* Ctrl variants, start recording without configuring */
-  gtk_signal_connect (GTK_OBJECT(button), "fast-clicked",
-		      GTK_SIGNAL_FUNC(on_mpeg_button_fast_clicked),
-		      NULL);
-
-  z_widget_add_accelerator (button, "fast-clicked", GDK_r, GDK_CONTROL_MASK);
-  z_widget_add_accelerator (button, "clicked", GDK_r, 0);
+				       GTK_TOOLBAR_CHILD_BUTTON, NULL,
+				       _("MPEG"),
+				       _(tooltip),
+				       NULL, tmp_toolbar_icon,
+				       on_remote_command1,
+				       (gpointer)((const gchar *) "record"));
 
   /* Set up the widget so we can find it later */
   gtk_object_set_data (GTK_OBJECT (app), "mpeg_button",
@@ -1239,8 +1268,11 @@ plugin_process_popup_menu		 (GtkWidget	*widget,
   menuitem = z_gtk_pixmap_menu_item_new (_("Record as MPEG"),
 					GNOME_STOCK_PIXMAP_COLORSELECTOR);
   set_tooltip (menuitem, _(tooltip));
+
   gtk_signal_connect (GTK_OBJECT (menuitem), "activate",
-		     GTK_SIGNAL_FUNC (on_mpeg_button_clicked), NULL);
+		      (GtkSignalFunc) on_remote_command1,
+		      (gpointer)((const gchar *) "record"));
+
   gtk_widget_show (menuitem);
   gtk_menu_append (popup, menuitem);
 }
@@ -1253,9 +1285,9 @@ struct plugin_misc_info * plugin_get_misc_info (void)
     sizeof (struct plugin_misc_info), /* size of this struct */
     -10, /* plugin priority, we must be executed with a fully
 	    processed image */
-    /* Cathegory */
-    PLUGIN_CATHEGORY_VIDEO_OUT |
-    PLUGIN_CATHEGORY_GUI
+    /* Category */
+    PLUGIN_CATEGORY_VIDEO_OUT |
+    PLUGIN_CATEGORY_GUI
   };
 
   /*

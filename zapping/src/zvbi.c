@@ -51,6 +51,7 @@
 #include "ttxview.h"
 #include "osd.h"
 #include "callbacks.h"
+#include "remote.h"
 
 #undef TRUE
 #undef FALSE
@@ -327,7 +328,7 @@ capturing_thread (void *x)
 static gint
 join (pthread_t id, gboolean *ack, gint timeout)
 {
-//  vbi_quit = TRUE;
+  vbi_quit = TRUE;
 
   /* Dirty. Where is pthread_try_join()? */
   for (; !*ack && timeout > 0; timeout--) {
@@ -623,7 +624,8 @@ on_trigger_clicked			(gpointer	ignored,
 
     case VBI_LINK_PAGE:
     case VBI_LINK_SUBPAGE:
-      open_in_new_ttxview(trigger->pgno, trigger->subno);
+      cmd_execute_printf (NULL, "ttx_open_new %x %x",
+			  trigger->pgno, trigger->subno);
       break;
 
     case VBI_LINK_LID:
@@ -2111,7 +2113,8 @@ update_vi_network			(struct vi_data *data)
   if (td == 0) /* NLS: Network info, tape delay (USA) */
     buffer = g_strdup(_("none"));
   else if (td < 60) /* NLS: Network info, tape delay (USA) */
-    buffer = g_strdup_printf(ngettext("%d minute", "%d minutes", td), td);
+    buffer = g_strdup_printf((char *)
+			     ngettext("%d minute", "%d minutes", td), td);
   else /* NLS: Network info, tape delay (USA) */
     buffer = g_strdup_printf(_("%d h %d m"), td / 60, td % 60);
   gtk_label_set_text(GTK_LABEL(tape), buffer);

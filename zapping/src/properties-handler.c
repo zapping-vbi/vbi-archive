@@ -188,9 +188,11 @@ mw_setup		(GtkWidget	*page)
     zconf_get_boolean(NULL, "/zapping/options/main/fixed_increments"));  
 
   /* Swap Page Up/Down */
+/*
   widget = lookup_widget(page, "checkbutton13");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean(NULL, "/zapping/options/main/swap_up_down"));
+*/
 
   /* Title format Z will use */
   widget = lookup_widget(page, "title_format");
@@ -225,10 +227,11 @@ mw_apply		(GtkWidget	*page)
   zconf_set_boolean(gtk_toggle_button_get_active(
 		 GTK_TOGGLE_BUTTON(widget)),
 		    "/zapping/options/main/fixed_increments");
-
-  widget = lookup_widget(page, "checkbutton13"); /* swap chan up/down */
+/*
+  widget = lookup_widget(page, "checkbutton13"); // swap chan up/down
   zconf_set_boolean(gtk_toggle_button_get_active(
 	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/swap_up_down");  
+*/
 
   widget = lookup_widget(page, "title_format"); /* title format */
   widget = gnome_entry_gtk_entry(GNOME_ENTRY(widget));

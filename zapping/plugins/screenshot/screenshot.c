@@ -1,7 +1,7 @@
 /*
  * Screenshot saving plugin for Zapping
- * Copyright (C) 2000-2001 Iñaki García Etxebarria
- * Copyright (C) 2001 Michael H. Schimek
+ * Copyright (C) 2000, 2001 Iñaki García Etxebarria
+ * Copyright (C) 2001, 2002 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,6 +69,7 @@ static gboolean screenshot_option_preview;
 static gboolean screenshot_option_grab_on_ok;
 static gboolean screenshot_option_skip_one;
 static gboolean screenshot_option_enter_closes;
+static gboolean screenshot_option_toolbutton;
 /* Dialog options */
 static gchar *screenshot_option_format = NULL;
 static gint screenshot_option_quality;
@@ -272,6 +273,47 @@ ov511_grab_button_timeout (gint *timeout_id)
   return TRUE; /* Continue */
 }
 
+static gboolean screenshot_grab (gint dialog);
+
+static screenshot_backend *
+find_backend (gchar *keyword)
+{
+    gint i;
+
+    if (keyword)
+      for (i = 0; backends[i]; i++)
+	if (strcmp(keyword, backends[i]->keyword) == 0)
+	  return backends[i];
+
+    g_assert (backends[0] != NULL);
+
+    return backends[0];
+}
+
+static gboolean
+screenshot_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data)
+{
+  g_assert (argc > 0);
+
+  if (argc > 1)
+    {
+      struct screenshot_backend *backend = find_backend (argv[1]);
+
+      if (!backend)
+	return FALSE;
+
+      g_free (screenshot_option_format);
+      screenshot_option_format = g_strdup (backend->keyword);
+    }
+
+  /* 1 = screenshot, 0 = quickshot */
+  screenshot_grab (strcmp (argv[0], "screenshot") == 0);
+  return TRUE;
+}
+
 static gboolean
 plugin_init ( PluginBridge bridge, tveng_device_info * info )
 {
@@ -290,12 +332,18 @@ plugin_init ( PluginBridge bridge, tveng_device_info * info )
 
   zapping_info = info;
 
+  cmd_register ("screenshot", screenshot_cmd, NULL);
+  cmd_register ("quickshot", screenshot_cmd, NULL);
+
   return TRUE;
 }
 
 static void
 plugin_close(void)
 {
+  cmd_remove ("screenshot");
+  cmd_remove ("quickshot");
+
   screenshot_close_everything = TRUE;
 
   if (ogb_timeout_id >= 0)
@@ -322,9 +370,15 @@ plugin_close(void)
 static gboolean
 plugin_start (void)
 {
-  on_screenshot_button_fast_clicked (NULL, NULL);
+  screenshot_grab (0);
   return TRUE;
 }
+
+#define LOAD_CONFIG(_type, _def, _name, _descr)				\
+  buffer = g_strconcat (root_key, #_name, NULL);			\
+  zconf_create_##_type (_def, _descr, buffer);				\
+  screenshot_option_##_name = zconf_get_##_type (NULL, buffer);		\
+  g_free (buffer);
 
 static void
 plugin_load_config (gchar *root_key)
@@ -333,104 +387,59 @@ plugin_load_config (gchar *root_key)
   gchar *default_save_dir;
 
   default_save_dir = g_strconcat (getenv ("HOME"), "/shots", NULL);
-  buffer = g_strconcat (root_key, "save_dir", NULL);
-  zconf_create_string (default_save_dir,
-		       "The directory where screenshot will be "
-		       "written to", buffer);
-  zconf_get_string (&screenshot_option_save_dir, buffer);
-  g_free (buffer);
+  LOAD_CONFIG (string, default_save_dir, save_dir, 
+	       "The directory where screenshot will be written to");
+  screenshot_option_save_dir = g_strdup (screenshot_option_save_dir);
   g_free (default_save_dir);
 
-  buffer = g_strconcat (root_key, "command", NULL);
-  zconf_create_string ("", "Command to run after taking the screenshot",
-		       buffer);
-  zconf_get_string (&screenshot_option_command, buffer);
-  if (!screenshot_option_command)
-    screenshot_option_command = g_strdup("");
-  g_free (buffer);
+  LOAD_CONFIG (string, "", command, "Command to run after taking the screenshot");
+  screenshot_option_command = g_strdup (screenshot_option_command ?: "");
 
-  buffer = g_strconcat (root_key, "preview", NULL);
-  zconf_create_boolean (TRUE, "Enable preview", buffer);
-  screenshot_option_preview = zconf_get_boolean (NULL, buffer);
-  g_free (buffer);
+  LOAD_CONFIG (boolean, FALSE, preview, "Enable preview");
+  LOAD_CONFIG (boolean, FALSE, grab_on_ok, "Grab on clicking OK");
+  LOAD_CONFIG (boolean, TRUE, skip_one, "Skip one picture before grabbing");
+  LOAD_CONFIG (boolean, FALSE, enter_closes, "Entering file name closes dialog");
 
-  buffer = g_strconcat (root_key, "grab_on_ok", NULL);
-  zconf_create_boolean (FALSE, "Grab on clicking OK", buffer);
-  screenshot_option_grab_on_ok = zconf_get_boolean (NULL, buffer);
-  g_free (buffer);
+  LOAD_CONFIG (string, "jpeg", format, "File format");
+  screenshot_option_format = g_strdup (screenshot_option_format);
 
-  buffer = g_strconcat (root_key, "skip_one", NULL);
-  zconf_create_boolean (TRUE, "Skip one picture before grabbing",
-			buffer);
-  screenshot_option_skip_one = zconf_get_boolean (NULL, buffer);
-  g_free (buffer);
+  LOAD_CONFIG (integer, 75, quality, "Quality of the compressed image");
+  LOAD_CONFIG (integer, 0, deint, "Deinterlace mode");
 
-  buffer = g_strconcat (root_key, "enter_closes", NULL);
-  zconf_create_boolean (FALSE, "Entering file name closes dialog",
-			buffer);
-  screenshot_option_enter_closes = zconf_get_boolean (NULL, buffer);
-  g_free (buffer);
-
-  buffer = g_strconcat (root_key, "format", NULL);
-  zconf_create_string ("jpeg", "File format", buffer);
-  zconf_get_string (&screenshot_option_format, buffer);
-  g_free (buffer);
-
-  buffer = g_strconcat (root_key, "quality", NULL);
-  zconf_create_integer (75, "Quality of the compressed image",
-			buffer);
-  screenshot_option_quality = zconf_get_integer (NULL, buffer);
-  g_free (buffer);
-
-  buffer = g_strconcat (root_key, "deint", NULL);
-  zconf_create_integer (0, "Deinterlace mode", buffer);
-  screenshot_option_deint = zconf_get_integer (NULL, buffer);
-  g_free (buffer);
+  LOAD_CONFIG (boolean, TRUE, toolbutton, "Add toolbar button");
 }
+
+#define SAVE_CONFIG(_type, _name)					\
+  buffer = g_strconcat (root_key, #_name, NULL);			\
+  zconf_set_##_type (screenshot_option_##_name, buffer);		\
+  g_free (buffer);
 
 static void
 plugin_save_config (gchar * root_key)
 {
-  gchar * buffer;
+  gchar *buffer;
 
-  buffer = g_strconcat (root_key, "save_dir", NULL);
-  zconf_set_string (screenshot_option_save_dir, buffer);
+  SAVE_CONFIG (string, save_dir);
   g_free(screenshot_option_save_dir);
-  g_free (buffer);
+  screenshot_option_save_dir = NULL;
 
-  buffer = g_strconcat(root_key, "command", NULL);
-  zconf_set_string (screenshot_option_command, buffer);
+  SAVE_CONFIG (string, command);
   g_free (screenshot_option_command);
-  g_free (buffer);
+  screenshot_option_command = NULL;
 
-  buffer = g_strconcat (root_key, "preview", NULL);
-  zconf_set_boolean (screenshot_option_preview, buffer);
-  g_free (buffer);
+  SAVE_CONFIG (boolean, preview);
+  SAVE_CONFIG (boolean, grab_on_ok);
+  SAVE_CONFIG (boolean, skip_one);
+  SAVE_CONFIG (boolean, enter_closes);
 
-  buffer = g_strconcat (root_key, "grab_on_ok", NULL);
-  zconf_set_boolean (screenshot_option_grab_on_ok, buffer);
-  g_free (buffer);
-
-  buffer = g_strconcat (root_key, "skip_one", NULL);
-  zconf_set_boolean (screenshot_option_skip_one, buffer);
-  g_free (buffer);
-
-  buffer = g_strconcat (root_key, "enter_closes", NULL);
-  zconf_set_boolean (screenshot_option_enter_closes, buffer);
-  g_free (buffer);
-
-  buffer = g_strconcat (root_key, "format", NULL);
-  zconf_set_string (screenshot_option_format, buffer);
+  SAVE_CONFIG (string, format);
   g_free (screenshot_option_format);
-  g_free (buffer);
+  screenshot_option_format = NULL;
 
-  buffer = g_strconcat (root_key, "quality", NULL);
-  zconf_set_integer (screenshot_option_quality, buffer);
-  g_free (buffer);
+  SAVE_CONFIG (integer, quality);
+  SAVE_CONFIG (integer, deint);
 
-  buffer = g_strconcat (root_key, "deint", NULL);
-  zconf_set_integer (screenshot_option_deint, buffer);
-  g_free (buffer);
+  SAVE_CONFIG (boolean, toolbutton);
 }
 
 static gboolean
@@ -480,71 +489,66 @@ plugin_get_public_info (gint index, gpointer * ptr, gchar **
   return TRUE; /* Exported */
 }
 
+/* Preferences */
+
+#define SET_BOOL(_name)							\
+  w = lookup_widget (page, "screenshot_" #_name);			\
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (w),			\
+				screenshot_option_##_name);
+
 static void
 screenshot_setup		(GtkWidget	*page)
 {
-  GtkWidget *save_dir = lookup_widget (page, "screenshot_dir");
-  GtkWidget *combo_entry1 = lookup_widget (page, "combo-entry1");
-  GtkWidget *command = lookup_widget (page, "screenshot_command");
-  GtkWidget *preview = lookup_widget (page, "screenshot_preview");
-  GtkWidget *grab_on_ok = lookup_widget (page, "screenshot_grab_on_ok");
-  GtkWidget *skip_one = lookup_widget (page, "screenshot_skip_one");
-  GtkWidget *enter_closes = lookup_widget (page, "screenshot_enter_closes");
+  GtkWidget *w;
 
-  gnome_file_entry_set_default_path (GNOME_FILE_ENTRY (save_dir),
+  w = lookup_widget (page, "screenshot_dir");
+  gnome_file_entry_set_default_path (GNOME_FILE_ENTRY (w),
 				     screenshot_option_save_dir);
-  gtk_entry_set_text (GTK_ENTRY (combo_entry1),
-		      screenshot_option_save_dir);
 
-  gtk_entry_set_text (GTK_ENTRY (command),
-		      screenshot_option_command);
+  w = lookup_widget (page, "combo-entry1");
+  gtk_entry_set_text (GTK_ENTRY (w), screenshot_option_save_dir);
 
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (preview),
-				screenshot_option_preview);
+  w = lookup_widget (page, "screenshot_command");
+  gtk_entry_set_text (GTK_ENTRY (w), screenshot_option_command);
 
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (grab_on_ok),
-				screenshot_option_grab_on_ok);
-
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (skip_one),
-				screenshot_option_skip_one);
-
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (enter_closes),
-				screenshot_option_enter_closes);
+  SET_BOOL (preview);
+  SET_BOOL (grab_on_ok);
+  SET_BOOL (skip_one);
+  SET_BOOL (enter_closes);
+  SET_BOOL (toolbutton);
 }
+
+#define GET_BOOL(_name)							\
+  w = lookup_widget (page, "screenshot_" #_name);			\
+  screenshot_option_##_name =						\
+    gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (w));
 
 static void
 screenshot_apply		(GtkWidget	*page)
 {
-  GtkWidget *save_dir = lookup_widget (page, "screenshot_dir");
-  GtkWidget *combo_entry1 = lookup_widget (page, "combo-entry1");
-  GtkWidget *command = lookup_widget (page, "screenshot_command");
-  GtkWidget *preview = lookup_widget (page, "screenshot_preview");
-  GtkWidget *grab_on_ok = lookup_widget (page, "screenshot_grab_on_ok");
-  GtkWidget *skip_one = lookup_widget (page, "screenshot_skip_one");
-  GtkWidget *enter_closes = lookup_widget (page, "screenshot_enter_closes");
+  extern GtkWidget *main_window; /* ouch */
+  void plugin_add_gui (GnomeApp *);
+  GtkWidget *w;
 
+  w = lookup_widget (page, "screenshot_dir");
   g_free (screenshot_option_save_dir);
   screenshot_option_save_dir =
-    gnome_file_entry_get_full_path (GNOME_FILE_ENTRY (save_dir),
-				    FALSE);
+    gnome_file_entry_get_full_path (GNOME_FILE_ENTRY (w), FALSE);
   gnome_entry_save_history (GNOME_ENTRY (
-    gnome_file_entry_gnome_entry (GNOME_FILE_ENTRY (save_dir))));
+    gnome_file_entry_gnome_entry (GNOME_FILE_ENTRY (w))));
 
+  w = lookup_widget (page, "screenshot_command");
   g_free (screenshot_option_command);
   screenshot_option_command =
-    g_strdup (gtk_entry_get_text (GTK_ENTRY (command)));
+    g_strdup (gtk_entry_get_text (GTK_ENTRY (w)));
 
-  screenshot_option_preview =
-    gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (preview));
+  GET_BOOL (preview);
+  GET_BOOL (grab_on_ok);
+  GET_BOOL (skip_one);
+  GET_BOOL (enter_closes);
+  GET_BOOL (toolbutton);
 
-  screenshot_option_grab_on_ok =
-    gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (grab_on_ok));
-
-  screenshot_option_skip_one =
-    gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (skip_one));
-
-  screenshot_option_enter_closes =
-    gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (enter_closes));
+  plugin_add_gui ((GnomeApp *) main_window);
 }
 
 static void
@@ -580,34 +584,38 @@ properties_add			(GnomeDialog	*dialog)
 static
 void plugin_add_gui (GnomeApp * app)
 {
-  GtkWidget * toolbar1 = lookup_widget(GTK_WIDGET(app), "toolbar1");
-  GtkWidget * button;
-  GtkWidget * tmp_toolbar_icon;
+  GtkWidget *toolbar;
+  GtkWidget *button;
+  gpointer p;
 
-  tmp_toolbar_icon =
-    gnome_stock_pixmap_widget (GTK_WIDGET(app),
-			       GNOME_STOCK_PIXMAP_COLORSELECTOR);
-  button = gtk_toolbar_append_element(GTK_TOOLBAR(toolbar1),
-				      GTK_TOOLBAR_CHILD_BUTTON, NULL,
-				      _("Screenshot"),
-				      _("Take a screenshot [s, Ctrl+s]"),
-				      NULL, tmp_toolbar_icon,
-				      on_screenshot_button_clicked,
-				      NULL);
+  toolbar = lookup_widget (GTK_WIDGET (app), "toolbar1");
+  p = gtk_object_get_data (GTK_OBJECT(app), "screenshot_button");
+  button = p ? GTK_WIDGET (p) : NULL;
 
-  /* Ctrl variants, start recording without configuring */
-  gtk_signal_connect (GTK_OBJECT(button), "fast-clicked",
-		      GTK_SIGNAL_FUNC(on_screenshot_button_fast_clicked),
-		      NULL);
+  if (!button)
+    {
+      GtkWidget *tmp_toolbar_icon;
 
-  z_widget_add_accelerator (button, "fast-clicked", GDK_s, GDK_CONTROL_MASK);
-  z_widget_add_accelerator (button, "clicked", GDK_s, 0);
+      tmp_toolbar_icon =
+	gnome_stock_pixmap_widget (GTK_WIDGET (app),
+				   GNOME_STOCK_PIXMAP_COLORSELECTOR);
+
+      button = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar),
+					   GTK_TOOLBAR_CHILD_BUTTON, NULL,
+					   _("Screenshot"),
+					   _("Take a screenshot"),
+					   NULL, tmp_toolbar_icon,
+					   on_remote_command1,
+					   (gpointer)((const gchar *) "screenshot"));
+    }
+
+  if (screenshot_option_toolbutton)
+    gtk_widget_show (button);
+  else
+    gtk_widget_hide (button);
 
   /* Set up the widget so we can find it later */
-  gtk_object_set_data (GTK_OBJECT(app), "screenshot_button",
-		       button);
-
-  gtk_widget_show(button);
+  gtk_object_set_data (GTK_OBJECT (app), "screenshot_button", button);
 }
 
 static void
@@ -629,10 +637,10 @@ plugin_get_misc_info (void)
     sizeof(struct plugin_misc_info), /* size of this struct */
     -10, /* plugin priority, we must be executed with a fully
 	    processed image */
-    /* Cathegory */
-    PLUGIN_CATHEGORY_VIDEO_OUT |
-    PLUGIN_CATHEGORY_FILTER |
-    PLUGIN_CATHEGORY_GUI
+    /* Category */
+    PLUGIN_CATEGORY_VIDEO_OUT |
+    PLUGIN_CATEGORY_FILTER |
+    PLUGIN_CATEGORY_GUI
   };
 
   /*
@@ -662,14 +670,12 @@ screenshot_destroy (screenshot_data *data)
       g_free (data->filename);
     }
 
-  if (data->command)
-    g_free (data->command);
+  g_free (data->command);
 
   if (data->status_window)
     gtk_widget_destroy (data->status_window);
 
-  if (data->io_buffer)
-    g_free (data->io_buffer);
+  g_free (data->io_buffer);
 
   data->io_buffer_size = 0;
   data->io_buffer_used = 0;
@@ -679,22 +685,14 @@ screenshot_destroy (screenshot_data *data)
   if (data->io_fp)
     fclose (data->io_fp);
 
-  if (data->error)
-    g_free (data->error);
-
-  if (data->deint_data)
-    g_free (data->deint_data);
+  g_free (data->error);
+  g_free (data->deint_data);
 
   data->Converter = NULL;
 
-  if (data->line_data)
-    g_free (data->line_data);
-
-  if (data->data)
-    g_free (data->data);
-
-  if (data->auto_filename)
-    g_free (data->auto_filename);
+  g_free (data->line_data);
+  g_free (data->data);
+  g_free (data->auto_filename);
 
   if (data->pixbuf)
     gdk_pixbuf_unref (data->pixbuf);
@@ -794,7 +792,7 @@ execute_command (screenshot_data *data)
   if (tc)
     {
       env[envc++] = g_strdup_printf ("CHANNEL_ALIAS=%s", tc->name);
-      env[envc++] = g_strdup_printf ("CHANNEL_ID=%s", tc->real_name);
+      env[envc++] = g_strdup_printf ("CHANNEL_ID=%s", tc->rf_name);
       if (zapping_info->num_standards)
 	env[envc++] =
 	  g_strdup_printf ("CURRENT_STANDARD=%s",
@@ -817,8 +815,7 @@ screenshot_saving_thread (void *_data)
   screenshot_data *data = (screenshot_data *) _data;
   gchar *new_data;
 
-  if (data->deint_data)
-    g_free (data->deint_data);
+  g_free (data->deint_data);
   data->deint_data = NULL;
 
   if (data->format.height == 480 || data->format.height == 576)
@@ -1129,8 +1126,7 @@ on_deint_changed                      (GtkWidget *widget,
 
   screenshot_option_deint = new_deint;
 
-  if (data->deint_data)
-    g_free (data->deint_data);
+  g_free (data->deint_data);
   data->deint_data = NULL;
 
   preview (data);
@@ -1155,21 +1151,6 @@ on_quality_changed                      (GtkWidget      *widget,
 
   return FALSE;
 }                                                
-
-static screenshot_backend *
-find_backend (gchar *keyword)
-{
-    gint i;
-
-    if (keyword)
-      for (i = 0; backends[i]; i++)
-	if (strcmp(keyword, backends[i]->keyword) == 0)
-	  return backends[i];
-
-    g_assert (backends[0] != NULL);
-
-    return backends[0];
-}
 
 static void
 on_format_changed                     (GtkWidget *menu,
@@ -1857,18 +1838,4 @@ screenshot_grab (gint dialog)
   g_timeout_add (50, (GSourceFunc) screenshot_timeout, data);
 
   return TRUE;
-}
-
-static void
-on_screenshot_button_clicked		(GtkButton       *button,
-					 gpointer         user_data)
-{
-  screenshot_grab (1);
-}
-
-static void
-on_screenshot_button_fast_clicked	(GtkButton       *button,
-					 gpointer         user_data)
-{
-  screenshot_grab (0);
 }

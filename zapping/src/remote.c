@@ -26,6 +26,9 @@
 #  include <config.h>
 #endif
 
+#include <ctype.h>
+#include <glade/glade.h>
+
 #include "callbacks.h"
 #include "zmisc.h"
 #include "zvbi.h"
@@ -127,7 +130,7 @@ gpointer remote_command(gchar *command, gpointer arg)
 {
   if (!strcasecmp(command, "quit"))
     {
-      on_zapping_delete_event(main_window, NULL, NULL);
+      cmd_execute (main_window, "quit");
     }
   else if (!strcasecmp(command, "switch_mode"))
     {
@@ -159,29 +162,26 @@ gpointer remote_command(gchar *command, gpointer arg)
     }
   else if (!strcasecmp(command, "set_channel"))
     {
-      gchar *buf = g_strdup_printf("%u", GPOINTER_TO_INT(arg));
+      gchar *buf = g_strdup_printf("set_channel %u", GPOINTER_TO_INT(arg));
 
-      z_select_rf_channel(buf);
+      cmd_execute (NULL, buf);
       g_free(buf);
     }
   else if (!strcasecmp(command, "channel_up"))
     {
-      z_channel_up();
+      cmd_execute (NULL, "channel_up");
     }
   else if (!strcasecmp(command, "channel_down"))
     {
-      z_channel_down();
+      cmd_execute (NULL, "channel_down");
     }
 #ifdef HAVE_LIBZVBI
   else if (!strcasecmp(command, "set_vbi_mode"))
     {
-
       if (GPOINTER_TO_INT(arg))
-	on_videotext1_activate(GTK_MENU_ITEM(lookup_widget(main_window,
-					     "videotext1")),
-			       NULL);
+	cmd_execute (main_window, "switch_mode teletext");
       else
-	ttxview_detach(main_window);
+	ttxview_detach (main_window);
     }
   else if (!strcasecmp(command, "load_page"))
     {
@@ -199,4 +199,311 @@ gpointer remote_command(gchar *command, gpointer arg)
 #endif /* HAVE_LIBZVBI */
 
   return NULL;
+}
+
+/*
+ *  Zapping commands Mk II
+ */
+
+#define CMD_LOG 0
+
+typedef struct command {
+  struct command *		next;
+  gchar *			name;
+  cmd_func *			func;
+  gpointer			user_data;
+} command;
+
+static command *		command_list = NULL;
+
+ /*
+gboolean
+example_cmd				(GtkWidget *widget,
+					 gint argc,
+					 gchar **argv,
+					 gpointer user_data)
+{
+  gint arg1 = 123;
+  gchar *arg2 = "foo";
+
+  printf("This is command %s called for widget %p\n",
+	 argv[0], widget);
+
+  if (argc > 1)
+    val1 = strtol(argv[1], NULL, 0);
+
+  if (argc > 2)
+    val2 = argv[2];
+
+  cmd_return ("the result");
+
+  return TRUE; // success
+}
+ */
+
+void
+cmd_return (const gchar *command_return_value)
+{
+  /* 2do */
+}
+
+/**
+ * cmd_execute:
+ * @widget: Passed to the command function.
+ * @command_string: 
+ * 
+ * Execute a command string. Commands are separated by newline or
+ * semicolon. Command name and arguments are separated by
+ * whitespace except when "quoted". Backslash escapes the next
+ * character, i. e. newline, semicolon, quote or backslash.
+ * The command return value is --?
+ * 
+ * Return value: 
+ * %TRUE on success.
+ **/
+gboolean
+cmd_execute				(GtkWidget *	widget,
+					 const gchar *	command_string)
+{
+  static gint recursion = 0;
+  gchar buf[1024], *argv[10];
+  const gchar *s = command_string;
+  gboolean r = TRUE;
+  command *cmd;
+  gint argc;
+  gint i;
+
+  g_assert (s != NULL);
+
+  if (!*s)
+    return TRUE; /* nop */
+
+  if (recursion > 20)
+    return FALSE;
+
+  if (CMD_LOG)
+    fprintf (stderr, "cmd_execute '%s'\n", s);
+
+  while (*s != 0)
+    {
+      buf[0] = 0;
+      argv[0] = buf;
+
+      argc = 0;
+      i = 0;
+
+      while (*s == ' ' || *s == '\t' || *s == '\n' || *s == ';')
+	s++;
+
+      while (*s != 0 && *s != '\n' && *s != ';')
+	{
+	  gboolean quote = FALSE;
+
+	  if (argc >= 9)
+	    return FALSE; /* too many arguments */
+
+	  while (*s == ' ' || *s == '\t')
+	    s++;
+
+	  while (*s != 0 && *s != '\n'
+		 && (quote || (*s != ' ' && *s != '\t' && *s != ';')))
+	    {
+	      if (*s == '\"') /* " stupid emacs c mode */
+		{
+		  quote = !quote;
+		  continue;
+		}
+	      else if (*s == '\\')
+		{
+		  if (*++s == 0)
+		    break;
+		}
+
+	      if (i >= 1023)
+		return FALSE; /* command too long */
+
+	      buf[i++] = *s++;
+	    }
+
+	  buf[i++] = 0;
+
+	  argv[++argc] = buf + i;
+	}
+
+      if (!buf[0])
+	continue; /* blank command */
+
+      for (cmd = command_list; cmd; cmd = cmd->next)
+	if (strcmp (cmd->name, buf) == 0)
+	  break;
+
+      if (!cmd)
+	{
+	  g_warning ("Unknown command '%s'\n", command_string);
+	  return FALSE;
+	}
+
+      recursion++;
+
+      r = cmd->func (widget, argc, argv, cmd->user_data);
+
+      recursion--;
+
+      if (!r)
+	break;
+    }
+
+  return r;
+}
+
+gboolean
+cmd_execute_printf			(GtkWidget *	widget,
+					 const gchar *	template,
+					 ...)
+{
+  gchar buf[1024];
+  va_list ap;
+
+  va_start (ap, template);
+
+  vsnprintf (buf, sizeof (buf) - 1, template, ap);
+
+  va_end (ap);
+
+  return cmd_execute (widget, buf);
+}
+
+gboolean			on_remote_command_blocked = FALSE;
+
+void
+on_remote_command1			(GtkWidget *	widget,
+					 gpointer 	user_data)
+{
+  gchar *command = (gchar *) user_data;
+
+  if (on_remote_command_blocked)
+    return;
+
+  g_assert (command != NULL && command[0]);
+
+  if (CMD_LOG)
+    {
+      gchar *long_name = (gchar *) glade_get_widget_long_name (widget);
+
+      fprintf (stderr, "on_remote_command %p '%s' '%s'\n",
+	       widget, long_name, command);
+    }
+
+  if (!cmd_execute (widget, command))
+    if (CMD_LOG)
+      fprintf (stderr, "command failed\n");
+}
+
+void
+on_remote_command2			(GtkWidget *	widget,
+					 gpointer	ignored,
+					 gpointer 	user_data)
+{
+  gchar *command = (gchar *) user_data;
+
+  if (on_remote_command_blocked)
+    return;
+
+  g_assert (command != NULL && command[0]);
+
+  if (CMD_LOG)
+    {
+      gchar *long_name = (gchar *) glade_get_widget_long_name (widget);
+
+      fprintf (stderr, "on_remote_command %p '%s' '%s'\n",
+	       widget, long_name, command);
+    }
+
+  if (!cmd_execute (widget, command))
+    if (CMD_LOG)
+      fprintf (stderr, "command failed\n");
+}
+
+/* Command registry */
+
+/**
+ * cmd_list:
+ * 
+ * Creates a list with the name of all registered commands.
+ * 
+ * Return value: 
+ * GList *. When done call g_list_free().
+ **/
+GList *
+cmd_list (void)
+{
+  command *cmd;
+  GList *list = NULL;
+
+  for (cmd = command_list; cmd; cmd = cmd->next)
+    list = g_list_append (list, cmd->name);
+
+  return list;
+}
+
+static void
+cmd_delete (command *cmd)
+{
+  g_free (cmd->name);
+  g_free (cmd);
+}
+
+void
+cmd_remove (const gchar *name)
+{
+  command *cmd, **cmdpp;
+
+  for (cmdpp = &command_list; (cmd = *cmdpp); cmdpp = &cmd->next)
+    if (strcmp (cmd->name, name) == 0)
+      {
+	*cmdpp = cmd->next;
+	cmd_delete (cmd);
+	break;
+      }
+}
+
+void
+cmd_register (const gchar *name, cmd_func *func, gpointer user_data)
+{
+  command *cmd;
+
+  g_assert (name != NULL && name[0]);
+  g_assert (func);
+
+  for (cmd = command_list; cmd; cmd = cmd->next)
+    if (strcmp (cmd->name, name) == 0)
+      break;
+
+  if (cmd)
+    g_error ("Command %s registered twice.\n", name);
+
+  cmd = g_malloc (sizeof (*cmd));
+  cmd->next = command_list;
+  command_list = cmd;
+
+  cmd->name = g_strdup (name);
+  cmd->func = func;
+  cmd->user_data = user_data;
+}
+
+void
+shutdown_remote (void)
+{
+  command *cmd;
+
+  while ((cmd = command_list))
+    {
+      command_list = cmd->next;
+      cmd_delete (cmd);
+    }
+}
+
+void
+startup_remote (void)
+{
 }

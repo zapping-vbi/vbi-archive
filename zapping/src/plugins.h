@@ -179,6 +179,8 @@ void plugin_process_popup_menu (GtkWidget	*widget,
 				GtkMenu	*popup,
 				struct plugin_info *info);
 
+extern gboolean			plugin_key_press(GdkEventKey *event);
+
 /*
   Loads the plugins, returning a GList. The data item of each element
   in the GList points to a plugin_info structure.

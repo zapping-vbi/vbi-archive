@@ -1,12 +1,21 @@
 #ifndef __FREQUENCIES_H__
 #define __FREQUENCIES_H__
 
-#include <tveng.h>
+#include "tveng.h"
+#include "keyboard.h"
 
-typedef struct {
-  gchar * name;
-  uint32_t freq;
-} tveng_channel;
+typedef struct tveng_rf_channel {
+  const gchar *			name;
+  uint32_t			freq; /* kHz */
+} tveng_rf_channel;
+
+typedef struct tveng_rf_table {
+  const gchar *			name;
+  tveng_rf_channel *		channel_list;
+  int				channel_count;
+  const gchar *			prefixes[4];
+} tveng_rf_table;
+
 
 typedef struct {
   gchar		name[32];
@@ -16,17 +25,16 @@ typedef struct {
 typedef struct _tveng_tuned_channel tveng_tuned_channel;
 
 struct _tveng_tuned_channel {
-  gchar *name; /* Name given to the channel (RTL, Eurosport, whatever) */
-  gchar *real_name; /* Channel we chose this one from ("35", for
-		       example) */
+  gchar *			name;		/* Station (RTL, Eurosport, whatever) */
+  gchar *			rf_name;	/* RF channel ("35", for example) */
   int input, standard; /* Attached input, standard or 0 */
-  gint accel_key; /* associated accelerator, or 0 for none (GDK) */
-  gint accel_mask; /* mask for the accelerator (GDK) */
-  gchar * country; /* The country this channel is in */
+
+  z_key				accel;		/* key to select this channel */
+
+  gchar *country; /* The country this channel is in */
   int index; /* Index in the tuned_channel list */
-  uint32_t freq; /* Frequence this channel is in (may be slightly
-		 different to the one specified by real_name due to
-		 fine tuning) */
+  uint32_t			freq;		/* Frequency of this RF channel in kHz
+						   (may differ from RF table due to fine tuning) */
   gint num_controls; /* number of saved controls for this channel */
   tveng_tc_control *controls; /* saved controls for this
 				 channel pointer */
@@ -37,20 +45,11 @@ struct _tveng_tuned_channel {
   tveng_tuned_channel *next;
 };
 
-typedef struct {
-  gchar * name;
-  tveng_channel * channel_list;
-  int chan_count;
-} tveng_channels;
-
-/* Returns the number of channel in an specific country */
-#define CHAN_COUNT(X) (sizeof(X)/sizeof(tveng_channel))
-
 /* 
    Returns a pointer to the channel struct for some specific
    country. NULL if the specified country is not found.
 */
-tveng_channels*
+tveng_rf_table *
 tveng_get_country_tune_by_name (gchar * country);
 
 /* 
@@ -58,7 +57,7 @@ tveng_get_country_tune_by_name (gchar * country);
    country. NULL if the specified country is not found.
    The given name can be i18ed this time.
 */
-tveng_channels*
+tveng_rf_table *
 tveng_get_country_tune_by_i18ed_name (gchar * i18ed_country);
 
 /*
@@ -67,7 +66,7 @@ tveng_get_country_tune_by_i18ed_name (gchar * i18ed_country);
   This is useful if you want to get all the countries we know about,
   you can start from id 0, and go up until you get an error.
 */
-tveng_channels*
+tveng_rf_table *
 tveng_get_country_tune_by_id (int id);
 
 /*
@@ -75,28 +74,28 @@ tveng_get_country_tune_by_id (int id);
   on with tveng_get_country_tune_by_id. Returns -1 on error.
 */
 int
-tveng_get_id_of_country_tune (tveng_channels * country);
+tveng_get_id_of_country_tune (tveng_rf_table *country);
 
 /*
-  Finds an especific channel in an especific country by name. NULL on
+  Finds a specific channel in a specific country by name. NULL on
   error.
 */
-tveng_channel*
-tveng_get_channel_by_name (gchar* name, tveng_channels * country);
+tveng_rf_channel *
+tveng_get_channel_by_name (gchar *name, tveng_rf_table *country);
 
 /*
-  Finds an especific channel in an especific country by its id. NULL on
+  Finds a specific channel in a specific country by its id. NULL on
   error.
 */
-tveng_channel*
-tveng_get_channel_by_id (int id, tveng_channels * country);
+tveng_rf_channel *
+tveng_get_channel_by_id (int id, tveng_rf_table *country);
 
 /*
   Returns the id of the given channel, that can be used later with
   tveng_get_channel_by_id. Returns -1 on error.
 */
 int
-tveng_get_id_of_channel (tveng_channel * channel, tveng_channels * country);
+tveng_get_id_of_channel (tveng_rf_channel *channel, tveng_rf_table *country);
 
 /**
  * This function inserts a channel in the list (the list will keep
@@ -146,14 +145,14 @@ tveng_tuned_channel_num (tveng_tuned_channel * list);
 /**
  * Removes an specific channel form the list. You must provide its
  * "real" name, i.e. "64" instead of "Tele5", for example. Returns -1
- * if the channel could not be found. If real_name is NULL, then id is
+ * if the channel could not be found. If rf_name is NULL, then id is
  * interpreted as the index in the tuned_channel list. Then -1 means
- * out of bounds. if real_name is not NULL, then the first matching
+ * out of bounds. if rf_name is not NULL, then the first matching
  * item from id is deleted.
  * Returns a pointer to the list (can return NULL, that's OK)
 */
 tveng_tuned_channel *
-tveng_remove_tuned_channel (gchar * real_name, int id,
+tveng_remove_tuned_channel (gchar * rf_name, int id,
 			    tveng_tuned_channel * list);
 
 /**
@@ -179,13 +178,13 @@ tveng_retrieve_tuned_channel_by_name (gchar * name, int index,
 				      tveng_tuned_channel * list);
 
 /*
-  Retrieves the specified channel by real name ("S23"), and starting
+  Retrieves the specified channel by RF channel name ("S23"), and starting
   from index. Returns NULL on error. Again a strcasecmp
 */
 tveng_tuned_channel*
-tveng_retrieve_tuned_channel_by_real_name (gchar * real_name, int
-					   index,
-					   tveng_tuned_channel * list);
+tveng_retrieve_tuned_channel_by_rf_name (gchar * rf_name, int
+					 index,
+					 tveng_tuned_channel * list);
 
 /*
   Retrieves the channel in position "index". NULL on error
