@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.17 2002-08-22 22:02:08 mschimek Exp $ */
+/* $Id: options.c,v 1.18 2002-09-01 15:48:10 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -411,7 +411,6 @@ parse_option(int c)
 
 	case 'n':
 		if (strchr(optarg, ':')) {
-			int video_num_secs;
 			char *s = optarg;
 
 			video_num_secs = 3600 * strtol(s, &s, 0);
