@@ -32,6 +32,7 @@
 #include "overlay.h"
 #include "osd.h"
 #include "globals.h"
+#include "zvideo.h"
 
 /* This code clips DMA overlay into video memory against X window
    boundaries. Which is really the job of the X server, but without
@@ -560,6 +561,9 @@ stop_overlay			(void)
 {
   g_assert (tv_info.main_window != NULL);
 
+  /* XXX see below */
+  z_video_set_max_size (Z_VIDEO (tv_info.video_window), 16384, 16384);
+
   g_signal_handlers_disconnect_matched
     (G_OBJECT (tv_info.main_window),
      G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
@@ -605,6 +609,9 @@ start_overlay			(GtkWidget *		main_window,
 
   tv_info.main_window		= main_window;
   tv_info.video_window		= video_window;
+
+  /* XXX no const limit please */
+  z_video_set_max_size (Z_VIDEO (video_window), 768, 576);
 
   tv_info.needs_cleaning	=
     (info->current_controller != TVENG_CONTROLLER_XV);
@@ -670,7 +677,9 @@ start_overlay			(GtkWidget *		main_window,
       CLEAR (chroma);
 
       if (0 == tveng_get_chromakey (&chroma.pixel, info))
-	z_set_window_bg (video_window, &chroma);
+	0; /* error ignored */
+
+      z_set_window_bg (video_window, &chroma);
     }
 
   /* Disable double buffering just in case, will help when a
