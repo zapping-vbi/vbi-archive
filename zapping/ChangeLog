@@ -1,3 +1,13 @@
+10.2.2001	Visual selection finished <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Visually selecting the region works flicker free,
+	lacks the export filter to clipboard.
+	* src/tveng2.c: dummy s_win on startup, avoid g_win failing later
+	on because no window set.
+	* configure.in, src/x11stuff.c: Deactivate DPMS when going fullscreen.
+	* libvbi/v4lx.c (guess_v4l): Try with /dev/video0 before
+	traversing dev, 1s startup speedup in the common case.
+	
 9.2.2001	CP work <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: Visual selection works, needs to get flicker free

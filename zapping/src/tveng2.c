@@ -338,6 +338,13 @@ int tveng2_attach_device(const char* device_file,
   /* Get fb_info */
   tveng2_detect_preview(info);
 
+  /* Pass some dummy values to the driver, so g_win doesn't fail */
+  memset(&info->window, 0, sizeof(struct tveng_window));
+
+  info->window.width = info->window.height = 16;
+
+  tveng_set_preview_window(info);
+
   /* Set our desired size, make it halfway */
   info -> format.width = (info->caps.minwidth + info->caps.maxwidth)/2;
   info -> format.height = (info->caps.minheight +
@@ -728,7 +735,7 @@ tveng2_update_capture_format(tveng_device_info * info)
     default:
       info->tveng_errno = -1; /* unknown */
       t_error_msg("switch()",
-		  _("Cannot understand the actual palette"), info);
+		  "Cannot understand the actual palette", info);
 
       return -1;    
     };
@@ -1628,7 +1635,7 @@ tveng2_detect_preview (tveng_device_info * info)
     {
       info -> tveng_errno = -1;
       t_error_msg("flags check",
-       _("The capability field says that there is no overlay"), info);
+       "The capability field says that there is no overlay", info);
       return 0;
     }
 

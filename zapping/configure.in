@@ -162,7 +162,7 @@ AC_DEFINE(LIBXML_CHILDS),
 AC_MSG_RESULT(children))
 
 dnl ----------------------------------------------------------------------
-dnl Check whether an intel arch is present, and enable MMX support
+dnl Check which arch is present, and enable MMX support
 dnl ----------------------------------------------------------------------
 YUV2RGB_MMX=""
 HAVE_MMX="no"
@@ -236,11 +236,23 @@ AC_DEFINE_UNQUOTED(PACKAGE_LIB_DIR, "${PACKAGE_LIB_DIR}")
 dnl ----------------------------------------------------------------------
 dnl Check for the Xv extension
 dnl ----------------------------------------------------------------------
+XV_PRESENT=""
 AC_CHECK_LIB(Xv, XvShmPutImage, XV_PRESENT="yes",, $GTK_LIBS)
 if test "x$XV_PRESENT" = "xyes"; then
 AC_DEFINE(HAVE_LIBXV)
 X_XV_LIBS="-lXv"
 AC_SUBST(X_XV_LIBS)
+fi
+
+dnl ----------------------------------------------------------------------
+dnl Check for the DPMS extension
+dnl ----------------------------------------------------------------------
+DPMS_PRESENT=""
+AC_CHECK_LIB(Xdpms, DPMSQueryExtension, DPMS_PRESENT="yes",, $GTK_LIBS)
+if test "x$DPMS_PRESENT" = "xyes"; then
+AC_DEFINE(HAVE_LIBXDPMS)
+X_XDPMS_LIBS="-lXdpms"
+AC_SUBST(X_XDPMS_LIBS)
 fi
 
 dnl Subst PACKAGE_PIXMAPS_DIR.

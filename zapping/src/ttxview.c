@@ -1524,6 +1524,15 @@ static void select_start(gint x, gint y, ttxview_data * data)
   ttx_freeze(data->id);
 }
 
+#define hidden_row(X) real_hidden_row(X, data)
+static int real_hidden_row(int row, ttxview_data * data)
+{
+  if ((row <= 0) || (row >= 25))
+    return FALSE;
+
+  return (data->fmt_page->double_height_lower & (1<<row));
+}
+
 static void select_stop(ttxview_data * data)
 {
   gint w, h;
@@ -1543,6 +1552,29 @@ static void select_stop(ttxview_data * data)
       srow = (data->ssy*25)/h;
       col = (data->osx*40)/w;
       row = (data->osy*25)/h;
+
+      if (row > srow)
+	{
+	  if (hidden_row(srow))
+	    srow--;
+	  if (hidden_row(row+1))
+	    row++;
+	}
+      else if (row < srow)
+	{
+	  if (hidden_row(srow+1))
+	    srow++;
+	  if (hidden_row(row))
+	    row--;
+	}
+      else /* row == srow */
+	{
+	  if (hidden_row(row))
+	    srow--;
+	  else if (hidden_row(row+1))
+	    row++;
+	}
+
       if (col > 39) col = 39;
       if (col < 0) col = 0;
       if (row > 24) row = 24;
@@ -1567,13 +1599,122 @@ static void select_stop(ttxview_data * data)
   update_pointer(data);
 }
 
-/* TODO: Double height lines, avoid flicker */
+/**
+ * Returns a freshly allocated region exactly like rect.
+ */
+static GdkRegion * region_from_rect(GdkRectangle *rect)
+{
+  GdkRegion *region = gdk_region_new();
+  GdkRegion *result = NULL;
+
+  result = gdk_region_union_with_rect(region, rect);
+  g_free(region);
+
+  return result;
+}
+
+/**
+ * transform the selected region from the first rectangle to the
+ * second one. Coordinates are in 40x25 space. No pixel is drawn more
+ * than once.
+ */
+static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
+			     gint dx1, gint dy1, gint dx2, gint dy2,
+			     ttxview_data * data)
+{
+  gint w, h;
+  gint temp;
+  /* tv_screen coordinates */
+  gint nsx1, nsy1, nsx2, nsy2, ndx1, ndy1, ndx2, ndy2;
+  GdkRectangle rect;
+  GdkRegion *window, *temp_region;
+  GdkRegion *clip_region;
+
+  if (sy1 > sy2)
+    {
+      temp = sx1;
+      sx1 = sx2;
+      sx2 = temp;
+      temp = sy1;
+      sy1 = sy2;
+      sy2 = temp;
+    }
+  if (sx1 > sx2)
+    {
+      temp = sx1;
+      sx1 = sx2;
+      sx2 = temp;
+    }
+
+  if (dy1 > dy2)
+    {
+      temp = dx1;
+      dx1 = dx2;
+      dx2 = temp;
+      temp = dy1;
+      dy1 = dy2;
+      dy2 = temp;
+    }
+  if (dx1 > dx2)
+    {
+      temp = dx1;
+      dx1 = dx2;
+      dx2 = temp;
+    }
+
+  gdk_window_get_size(data->da->window, &w, &h);
+
+#define TTX2DA_X(X, Y) Y = ((X)*w)/40
+  TTX2DA_X(sx1, nsx1);
+  TTX2DA_X(sx2+1, nsx2)-1;
+  TTX2DA_X(dx1, ndx1);
+  TTX2DA_X(dx2+1, ndx2)-1;
+
+#define TTX2DA_Y(X, Y) Y = ((X)*h)/25
+  TTX2DA_Y(sy1, nsy1);
+  TTX2DA_Y(sy2+1, nsy2)-1;
+  TTX2DA_Y(dy1, ndy1);
+  TTX2DA_Y(dy2+1, ndy2)-1;
+
+  gdk_gc_set_clip_origin(data->xor_gc, 0, 0);
+
+  rect.x = rect.y = 0;
+  rect.width = w; rect.height = h;
+
+  window = region_from_rect(&rect);
+
+  rect.x = nsx1; rect.y = nsy1;
+  rect.width = (nsx2 - rect.x) +1; rect.height = (nsy2 - rect.y) +1;
+
+  temp_region = region_from_rect(&rect);
+  clip_region = gdk_regions_subtract(window, temp_region);
+  gdk_gc_set_clip_region(data->xor_gc, clip_region);
+  g_free(temp_region);
+  g_free(clip_region);
+
+  select_region(dx1, dy1, dx2, dy2, data);
+
+  rect.x = ndx1; rect.y = ndy1;
+  rect.width = (ndx2 - rect.x)+1; rect.height = (ndy2 - rect.y)+1;
+
+  temp_region = region_from_rect(&rect);
+  clip_region = gdk_regions_subtract(window, temp_region);
+  gdk_gc_set_clip_region(data->xor_gc, clip_region);
+  g_free(temp_region);
+  g_free(clip_region);
+
+  select_region(sx1, sy1, sx2, sy2, data);
+
+  gdk_region_destroy(window);
+
+  /* no more clip rect */
+  gdk_gc_set_clip_rectangle(data->xor_gc, NULL);
+}
 
 static void select_update(gint x, gint y, ttxview_data * data)
 {
   gint w, h;
-  gint ocol, orow, col, row, scol, srow;
-  //  gint odir=0, dir=0;
+  gint ocol, orow, col, row, scol, osrow, srow;
 
   if (!data->selecting)
     return;
@@ -1595,6 +1736,52 @@ static void select_update(gint x, gint y, ttxview_data * data)
       orow = (data->osy*25)/h;
     }
 
+  osrow = srow;;
+
+  if (row > srow)
+    {
+      if (hidden_row(srow))
+	srow--;
+      if (hidden_row(row+1))
+	row++;
+    }
+  else if (row < srow)
+    {
+      if (hidden_row(srow+1))
+	srow++;
+      if (hidden_row(row))
+	row--;
+    }
+  else /* row == srow */
+    {
+      if (hidden_row(row))
+	srow--;
+      else if (hidden_row(row+1))
+	row++;
+    }
+
+  if (orow > osrow)
+    {
+      if (hidden_row(osrow))
+	osrow--;
+      if (hidden_row(orow+1))
+	orow++;
+    }
+  else if (orow < osrow)
+    {
+      if (hidden_row(osrow+1))
+	osrow++;
+      if (hidden_row(orow))
+	orow--;
+    }
+  else /* orow == osrow */
+    {
+      if (hidden_row(orow))
+	osrow--;
+      else if (hidden_row(orow+1))
+	orow++;
+    }
+
   if (col > 39) col = 39;
   if (col < 0) col = 0;
   if (row > 24) row = 24;
@@ -1607,33 +1794,23 @@ static void select_update(gint x, gint y, ttxview_data * data)
   if (ocol < 0) ocol = 0;
   if (orow > 24) orow = 24;
   if (orow < 0) orow = 0;
+  if (osrow > 24) osrow = 24;
+  if (osrow < 0) osrow = 0;
 
   /* first movement */
   if (data->osx == -1)
     {
-      select_region(ocol, orow, col, row, data);
+      select_region(scol, srow, col, row, data);
       data->osx = (x < 0)?0:x;
       data->osy = y;
       return;
     }
 
-  /* not changed, done */
-  if ((ocol == col) && (orow == row))
-    {
-      data->osx = (x < 0)?0:x;
-      data->osy = y;
-      return;
-    }
+  /* transform ocol, orow, scol, osrow  into  col, row, scol, srow */
+  transform_region(ocol, orow, scol, osrow, col, row, scol, srow, data);
 
-#if 1 /* This is the easy way... but it flickers too much, needs rewrite */
-  select_region(scol, srow, ocol, orow, data);
-  select_region(scol, srow, col, row, data);
   data->osx = (x < 0)?0:x;
   data->osy = y;
-#else
-  data->osx = (x < 0)?0:x;
-  data->osy = y;
-#endif
 }
 
 static gboolean

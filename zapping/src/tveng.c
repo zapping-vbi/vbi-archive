@@ -348,9 +348,13 @@ static int tveng_normstrcmp (const char * in1, const char * in2)
   s1 = strdup(in1);
   s2 = strdup(in2);
 
-  /* if this fails, typically there's no way to recover, so just abort */
-  t_assert(s1 != NULL);
-  t_assert(s2 != NULL);
+  if (s1 == NULL  ||  s2 == NULL)
+    {
+      free(s1);
+      free(s2);
+      return 0;
+    }
+
 
   /* Normalize the first string */
   i=0;

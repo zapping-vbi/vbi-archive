@@ -30,6 +30,13 @@
 #include <tveng.h>
 #include "x11stuff.h"
 
+#ifndef DISABLE_X_EXTENSIONS
+#ifdef HAVE_LIBXDPMS
+#define USE_XDPMS 1
+#include <X11/extensions/dpms.h>
+#endif
+#endif
+
 /*
  * Returns a pointer to the data contained in the given GdkImage
  */
@@ -276,6 +283,11 @@ x11_window_viewable(GdkWindow *window)
 void
 x11_set_screensaver(gboolean on)
 {
+#ifdef USE_XDPMS
+  static BOOL dpms_was_on;
+  CARD16 dpms_state;
+  int dummy;
+#endif
   static int timeout=-2, interval, prefer_blanking, allow_exposures;
 
   if (on) {
@@ -285,12 +297,24 @@ x11_set_screensaver(gboolean on)
     }
     XSetScreenSaver(GDK_DISPLAY(), timeout, interval, prefer_blanking,
 		    allow_exposures);
+#ifdef USE_XDPMS
+    if ( (DPMSQueryExtension(GDK_DISPLAY(), &dummy, &dummy) ) &&
+	 (DPMSCapable(GDK_DISPLAY())) && (dpms_was_on) )
+      DPMSEnable(GDK_DISPLAY());
+#endif
   } else {
     XGetScreenSaver(GDK_DISPLAY(), &timeout, &interval,
 		    &prefer_blanking, &allow_exposures);
-    /* fixme: this doesn't appear to work yet (it should, according to
+    /* FIXME: this doesn't appear to work yet (it should, according to
        man, what am i missing?) */
     XSetScreenSaver(GDK_DISPLAY(), 0, interval, prefer_blanking,
 		    allow_exposures);
+#ifdef USE_XDPMS
+    if ( (DPMSQueryExtension(GDK_DISPLAY(), &dummy, &dummy)) &&
+	 (DPMSCapable(GDK_DISPLAY())) ) {
+      DPMSInfo(GDK_DISPLAY(), &dpms_state, &dpms_was_on);
+      DPMSDisable(GDK_DISPLAY());
+    }
+#endif
   }
 }

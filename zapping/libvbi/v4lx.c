@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.5 2001-01-13 23:53:39 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.6 2001-02-10 20:51:10 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -151,6 +151,7 @@ guess_bttv_v4l(vbi_device *vbi, int *strict)
 	struct video_unit vunit;
 	int video_fd = -1;
 	int mode = -1;
+	struct stat dir_stat;
 
 	memset(&vtuner, 0, sizeof(struct video_tuner));
 	memset(&vchan, 0, sizeof(struct video_channel));
@@ -181,15 +182,38 @@ guess_bttv_v4l(vbi_device *vbi, int *strict)
 		if (major(vbi_stat.st_rdev) != 81)
 			return FALSE; /* break? */
 
+		/* Try first /dev/video0, this will speed things up in
+		 the common case */
+		if (stat("/dev/video0", &dir_stat) == -1
+		    || !S_ISCHR(dir_stat.st_mode)
+		    || major(dir_stat.st_rdev) != 81
+		    || minor(dir_stat.st_rdev) == minor(vbi_stat.st_rdev)
+		    || (video_fd = open("/dev/video0",
+					O_RDONLY | O_TRUNC)) == -1) {
+			goto the_hard_way;
+		}
+			
+		if (ioctl(video_fd, VIDIOCGCAP, &vcap) == -1
+		    || !(vcap.type & VID_TYPE_CAPTURE)
+		    || ioctl(video_fd, VIDIOCGUNIT, &vunit) == -1
+		    || vunit.vbi != minor(vbi_stat.st_rdev)) {
+			close(video_fd);
+			video_fd = -1;
+			goto the_hard_way;
+		}
+
+		goto device_found;
+
+	the_hard_way:
 		if (!(dir = opendir("/dev")))
 			break;
 
 		while (readdir_r(dir, &dirent, &pdirent) == 0 && pdirent) {
-			struct stat dir_stat;
 			char *s;
 
 			if (!asprintf(&s, "/dev/%s", dirent.d_name))
 				continue;
+			
 			/*
 			 *  V4l2 O_NOIO == O_TRUNC,
 			 *  shouldn't affect v4l devices.
@@ -202,7 +226,7 @@ guess_bttv_v4l(vbi_device *vbi, int *strict)
 				free(s);
 				continue;
 			}
-
+			
 			if (ioctl(video_fd, VIDIOCGCAP, &vcap) == -1
 			    || !(vcap.type & VID_TYPE_CAPTURE)
 			    || ioctl(video_fd, VIDIOCGUNIT, &vunit) == -1
@@ -212,16 +236,17 @@ guess_bttv_v4l(vbi_device *vbi, int *strict)
 				free(s);
 				continue;
 			}
-
+			
 			free(s);
 			break;
 		}
-
+		
 		closedir(dir);
 
 		if (video_fd == -1)
 			break; /* not found in /dev or some other problem */
 
+	device_found:
 		if (ioctl(video_fd, VIDIOCGTUNER, &vtuner) != -1)
 			mode = vtuner.mode;
 		else if (ioctl(video_fd, VIDIOCGCHAN, &vchan) != -1)

@@ -7,7 +7,6 @@ Outstanding issues for the next release
 	+ Parrot buffer for observing parrots.
 	+ Add to the configure script and to the .spec deps the
 		dependency on mp1e (actually RTE) and the mpeg plugin.
-	+ move plugins to /usr/lib/zapping instead of /usr/share
 	> Release 0.6.0
 	+ Add some remote control applet (or sth like that).
 	+ Have a copy of the stuff in the "quick bar" in the main menu
@@ -19,3 +18,4 @@ Outstanding issues for the next release
 	+ Get thumbnails of all tuned channels.
 	+ --roottv switch (use Z as screensaver)
 	+ XV fullscreen.
+	+ Save control values and restore on startup (per input?).
