@@ -30,6 +30,7 @@ INSTALLHDRS = \
 	bcd.h \
 	bit_slicer.h \
 	cache.h \
+	caption_decoder.h \
 	conv.h \
 	event.h \
 	export.h \
@@ -62,7 +63,8 @@ INSTALLHDRS = \
 	xds_demux.h \
 	xds_decoder.h
 
-libzvbi_0_3_la_SOURCES = $(INSTALLHDRS) \
+libzvbi_0_3_la_SOURCES = \
+	$(INSTALLHDRS) \
 	bcd.c \
 	bit_slicer.c \
 	cache.c cache-priv.h \
@@ -102,6 +104,7 @@ libzvbi_0_3_la_SOURCES = $(INSTALLHDRS) \
 	teletext.c \
 	trigger.c \
 	ure.c ure.h \
+	vbi_decoder.c vbi_decoder-priv.h \
 	vbi.c vbi.h \
 	vps.c \
 	wss.c \
@@ -138,8 +141,8 @@ zvbi.h: Makefile.in $(INSTALLHDRS) version.h
 	echo -e "#include \"version.h\"\n" >> $@
 	echo -e "\n#endif /* __ZVBI_H__ */" >> $@
 
-icheck: $(libzvbiinclude_HEADERS)
-	for i in $(libzvbiinclude_HEADERS); do \
+icheck: $(libzvbi_0_3include_HEADERS)
+	for i in $(libzvbi_0_3include_HEADERS); do \
 		echo Checking $$i; \
 		grep "VBI_BEGIN_DECLS" $$i >/dev/null || exit 1; \
 		grep "VBI_END_DECLS" $$i >/dev/null || exit 1; \

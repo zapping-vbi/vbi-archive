@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.7.2.6 2004-04-17 05:52:24 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.7.2.7 2004-05-12 01:40:44 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -268,6 +268,9 @@ line_doubler			(void *			buffer,
 	 + TRANS_CONV (v, 24, SWAB32 (b))				\
 	 + CONV (v, 32, SWAB32 (a)))
 
+#define PUSH(p, type, value)						\
+	*((type *) p) = value; p += sizeof (type);
+
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 
 #define RGBA_CONV4(r, g, b, a, endian)					\
@@ -278,7 +281,7 @@ line_doubler			(void *			buffer,
 			value = RGBA_CONV (value, r, g, b, a);		\
 		else							\
 			value = RGBA_CONV_SWAB32 (value, r, g, b, a);	\
-		*((uint32_t *) d)++ = value;				\
+		PUSH (d, uint32_t, value);				\
 	}
 
 #define RGBA_CONV2(r, g, b, a, endian)					\
@@ -287,7 +290,7 @@ line_doubler			(void *			buffer,
 									\
 		value = RGBA_CONV (value, r, g, b, a);			\
 		if (0 == endian) {					\
-			*((uint16_t *) d)++ = value;			\
+			PUSH (d, uint16_t, value);			\
 		} else {						\
 			d[0] = value >> 8;				\
 			d[1] = value;					\
@@ -305,7 +308,7 @@ line_doubler			(void *			buffer,
 			value = RGBA_CONV_SWAB32 (value, r, g, b, a);	\
 		else							\
 			value = RGBA_CONV (value, r, g, b, a);		\
-		*((uint32_t *) d)++ = value;				\
+		PUSH (d, uint32_t, value);				\
 	}
 
 #define RGBA_CONV2(r, g, b, a, endian)					\
@@ -314,7 +317,7 @@ line_doubler			(void *			buffer,
 									\
 		value = RGBA_CONV (value, r, g, b, a);			\
 		if (1 == endian) {					\
-			*((uint16_t *) d)++ = value;			\
+			PUSH (d, uint16_t, value);			\
 		} else {						\
 			d[0] = value;					\
 			d[1] = value >> 8;				\

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-bktr.c,v 1.2.2.6 2004-04-15 00:11:16 mschimek Exp $";
+static char rcsid[] = "$Id: io-bktr.c,v 1.2.2.7 2004-05-12 01:40:44 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -202,7 +202,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 	       "%s", rcsid);
 
 	if (!(v = (vbi_capture_bktr *) calloc(1, sizeof(*v)))) {
-		vbi_asprintf(errstr, _("Virtual memory exhausted."));
+		_vbi_asprintf(errstr, _("Virtual memory exhausted."));
 		errno = ENOMEM;
 		return NULL;
 	}
@@ -212,7 +212,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 	v->capture.get_fd = bktr_fd;
 
 	if ((v->fd = device_open(log_fp, dev_name, O_RDONLY)) == -1) {
-		vbi_asprintf(errstr, _("Cannot open '%s': %d, %s."),
+		_vbi_asprintf(errstr, _("Cannot open '%s': %d, %s."),
 			     dev_name, errno, strerror(errno));
 		goto io_error;
 	}
@@ -269,7 +269,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 		*services = vbi_raw_decoder_add_services (&v->dec, *services, strict);
 
 		if (*services == 0) {
-			vbi_asprintf(errstr, _("Sorry, %s (%s) cannot "
+			_vbi_asprintf(errstr, _("Sorry, %s (%s) cannot "
 						 "capture any of "
 						 "the requested data services."),
 				     dev_name, driver_name);
@@ -281,7 +281,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 			       * sizeof(vbi_sliced));
 
 		if (!v->sliced_buffer.data) {
-			vbi_asprintf(errstr, _("Virtual memory exhausted."));
+			_vbi_asprintf(errstr, _("Virtual memory exhausted."));
 			errno = ENOMEM;
 			goto failure;
 		}
@@ -299,7 +299,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 	v->raw_buffer = calloc(1, sizeof(v->raw_buffer[0]));
 
 	if (!v->raw_buffer) {
-		vbi_asprintf(errstr, _("Virtual memory exhausted."));
+		_vbi_asprintf(errstr, _("Virtual memory exhausted."));
 		errno = ENOMEM;
 		goto failure;
 	}
@@ -310,7 +310,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 	v->raw_buffer[0].data = malloc(v->raw_buffer[0].size);
 
 	if (!v->raw_buffer[0].data) {
-		vbi_asprintf(errstr, _("Not enough memory to allocate "
+		_vbi_asprintf(errstr, _("Not enough memory to allocate "
 					 "vbi capture buffer (%d KB)."),
 			     (v->raw_buffer[0].size + 1023) >> 10);
 		goto failure;
@@ -344,7 +344,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 {
   //	pthread_once (&vbi_init_once, vbi_init);
 
-	vbi_asprintf(errstr, _("BKTR interface not compiled."));
+	_vbi_asprintf(errstr, _("BKTR interface not compiled."));
 
 	return NULL;
 }

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.4.2.4 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: trigger.c,v 1.4.2.5 2004-05-12 01:40:44 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +34,7 @@
 
 #include "trigger.h"
 #include "tables.h"
-#include "vbi.h"
+#include "vbi_decoder-priv.h"
 #include "misc.h"
 
 struct vbi_trigger {
@@ -596,7 +596,8 @@ vbi_deferred_trigger(vbi_decoder *vbi)
 
 			ev.type = VBI_EVENT_TRIGGER;
 			ev.ev.trigger = &t->link;
-			vbi_send_event(vbi, &ev);
+#warning obsolete
+//			vbi_send_event(vbi, &ev);
 
 			*tp = t->next;
 			free(t);
@@ -633,7 +634,8 @@ add_trigger(vbi_decoder *vbi, vbi_trigger *a)
 
 		ev.type = VBI_EVENT_TRIGGER;
 		ev.ev.trigger = &a->link;
-		vbi_send_event(vbi, &ev);
+#warning obsolete
+//		vbi_send_event(vbi, &ev);
 
 		return;
 	}

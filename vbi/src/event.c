@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.1.2.2 2004-04-17 05:52:24 mschimek Exp $ */
+/* $Id: event.c,v 1.1.2.3 2004-05-12 01:40:43 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
@@ -42,7 +42,7 @@ _vbi_event_handler_list_send	(_vbi_event_handler_list *es,
 {
 	_vbi_event_handler *eh;
 	_vbi_event_handler *current;
-	
+
 	assert (NULL != es);
 	assert (NULL != ev);
 
@@ -52,11 +52,13 @@ _vbi_event_handler_list_send	(_vbi_event_handler_list *es,
 
 	while (eh) {
 		if (eh->callback && 0 == eh->blocked) {
+			vbi_bool cont;
+
 			es->current = eh;
 			eh->blocked = 1;
 
 			if (eh->event_mask & ev->type)
-				eh->callback (ev, eh->user_data);
+				cont = eh->callback (ev, eh->user_data);
 
 			if (es->current == eh) {
 				--eh->blocked;
@@ -65,6 +67,9 @@ _vbi_event_handler_list_send	(_vbi_event_handler_list *es,
 				/* eh removed itself in callback. */
 				eh = es->current;
 			}
+
+			if (!cont)
+				break;
 		} else {
 			eh = eh->next;
 		}

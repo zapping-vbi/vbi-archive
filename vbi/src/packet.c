@@ -17,9 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet.c,v 1.9.2.15 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: packet.c,v 1.9.2.16 2004-05-12 01:40:44 mschimek Exp $ */
 
-/* NOTE this file should be vbi_teletext_decoder.c */
+/* NOTE this file should be teletext_decoder.c */
 
 #include "../site_def.h"
 
@@ -39,10 +39,10 @@
 #include "cache-priv.h"
 #include "export.h"
 #include "tables.h"
-#include "vbi.h"
+#include "vt.h"
 #include "packet-830.h"
 #include "misc.h"
-
+#include "vbi.h" /* pgp */
 
 #define printable(c)							\
 	((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
@@ -1929,13 +1929,9 @@ detect_channel_switch		(vbi_teletext_decoder *	td,
 }
 
 static void
-store_page			(vbi_decoder * vbi,
+store_page			(vbi_teletext_decoder *	td,
 				 vt_page *		vtp)
 {
-	vbi_teletext_decoder *td;
-
-	td = &vbi->vt;
-
 	if (td->reset_time > 0) {
 		if (PAGE_FUNCTION_LOP != vtp->function)
 			return;
@@ -1953,7 +1949,6 @@ store_page			(vbi_decoder * vbi,
 	{
 		page_stat *ps;
 		vbi_bool roll_header;
-		vbi_event e;
 
 		if (0)
 			vt_page_raw_dump (vtp, stderr, PAGE_CODING_ODD_PARITY);
@@ -1974,7 +1969,7 @@ store_page			(vbi_decoder * vbi,
 		   a switch was already suspected but the header is unsuitable
 		   to make a decision now. Discard received data. */
 		if (td->reset_time > 0)
-			return TRUE;
+			return;
 
 		/* Collect information about pages
 		   not listed in MIP and BTT. */
@@ -2180,7 +2175,7 @@ epg_callback			(vbi_pfc_demux *	pc,
 }
 
 static vbi_bool
-decode_packet_0			(vbi_decoder *		vbi,
+decode_packet_0			(vbi_teletext_decoder *	td,
 				 vt_page *		vtp,
 				 const uint8_t		buffer[42],
 				 unsigned int		mag0)
@@ -2190,9 +2185,6 @@ decode_packet_0			(vbi_decoder *		vbi,
 	vbi_subno subno;
 	unsigned int flags;
 	const vt_page *cached_vtp;
-	vbi_teletext_decoder *td;
-
-	td = &vbi->vt;
 
 	if ((page = vbi_iham16p (buffer + 2)) < 0) {
 		_vbi_teletext_decoder_resync (td);
@@ -2212,14 +2204,14 @@ decode_packet_0			(vbi_decoder *		vbi,
 			   received page. */
 
 			if (td->current->pgno != pgno) {
-				store_page (vbi, td->current);
+				store_page (td, td->current);
 				vtp->function = PAGE_FUNCTION_DISCARD;
 			}
 		} else {
 			/* A new pgno terminates the most recently
 			   received page of the same magazine. */
 			if (0 == ((vtp->pgno ^ pgno) & 0xFF)) {
-				store_page (vbi, vtp);
+				store_page (td, vtp);
 				vtp->function = PAGE_FUNCTION_DISCARD;
 			}
 		}
@@ -3449,17 +3441,15 @@ decode_packet_8_30		(vbi_teletext_decoder *	td,
  * FALSE if the packet contained incorrectable errors. 
  */
 vbi_bool
-vbi_decode_teletext		(vbi_decoder *		vbi,
+vbi_teletext_decoder_decode	(vbi_teletext_decoder *	td,
 				 const uint8_t		buffer[42],
 				 double			timestamp)
 {
-	vbi_teletext_decoder *td;
+
 	vt_page *vtp;
 	int pmag;
 	int mag0;
 	int packet;
-
-	td = &vbi->vt;
 
 	td->timestamp = timestamp;
 
@@ -3481,11 +3471,7 @@ vbi_decode_teletext		(vbi_decoder *		vbi,
 
 	mag0 = pmag & 7;
 	packet = pmag >> 3;
-/*
-	if (packet < 30
-	    && !(vbi->event_mask & TTX_EVENTS))
-		return TRUE;
-*/
+
 	vtp = &td->buffer[mag0];
 
 	if (0) {
@@ -3503,7 +3489,7 @@ vbi_decode_teletext		(vbi_decoder *		vbi,
 	switch (packet) {
 	case 0:
 		/* Page header. */
-		return decode_packet_0 (vbi, vtp, buffer, mag0);
+		return decode_packet_0 (td, vtp, buffer, mag0);
 
 	case 1 ... 25:
 		/* Page body. */
@@ -3614,6 +3600,73 @@ vbi_decode_teletext		(vbi_decoder *		vbi,
 	}
 
 	return TRUE;
+}
+
+vbi_page *
+vbi_teletext_decoder_get_page_va_list
+				(vbi_teletext_decoder *	td,
+				 vbi_nuid		nuid,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 va_list		format_options)
+{
+	const vt_network *vtn;
+	const vt_page *vtp;
+	vbi_page *pg;
+
+	vtn = NULL;
+	vtp = NULL;
+
+	pg = NULL;
+
+	if (VBI_NUID_NONE != nuid) {
+		if (!(vtn = _vbi_cache_get_network (td->cache, nuid)))
+			goto failure;
+	} else {
+		vtn = td->network;
+	}
+
+	if (!(vtp = _vbi_cache_get_page (td->cache, vtn,
+					 pgno, subno, ~0,
+					 /* user access */ FALSE)))
+		goto failure;
+
+	if (!(pg = vbi_page_new ()))
+		goto failure;
+
+	if (!_vbi_page_from_vt_page_va_list (pg->priv, td->cache, vtn, vtp,
+					     format_options)) {
+		vbi_page_delete (pg);
+		pg = NULL;
+	}
+
+ failure:
+	_vbi_cache_release_page (td->cache, vtp);
+
+	if (VBI_NUID_NONE == nuid)
+		_vbi_cache_release_network (td->cache, vtn);
+
+	return pg;
+}
+
+vbi_page *
+vbi_teletext_decoder_get_page	(vbi_teletext_decoder *	td,
+				 vbi_nuid		nuid,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 ...)
+{
+	vbi_page *pg;
+	va_list format_options;
+
+	va_start (format_options, subno);
+
+	pg = vbi_teletext_decoder_get_page_va_list
+		(td, nuid, pgno, subno, format_options);
+
+	va_end (format_options);
+
+	return pg;
 }
 
 /**

@@ -25,7 +25,7 @@
 #  Perl and C gurus cover your eyes. This is one of my first
 #  attempts in this funny tongue and far from a proper C parser.
 
-# $Id: structpr.pl,v 1.1.2.3 2004-05-01 13:51:35 mschimek Exp $
+# $Id: structpr.pl,v 1.1.2.4 2004-05-12 01:40:44 mschimek Exp $
 
 $number		= '[0-9]+';
 $ident		= '\~?_*[a-zA-Z][a-zA-Z0-9_]*';
@@ -124,9 +124,9 @@ sub add_ioctl_check {
     $ioctl_check .= "static __inline__ void IOCTL_ARG_TYPE_CHECK_$name ";
     
     if ($dir eq "W") {
-	$ioctl_check .= "(const $type *arg) {}\n";
+	$ioctl_check .= "(const $type *arg __attribute__ ((unused))) {}\n";
     } else {
-	$ioctl_check .= "($type *arg) {}\n";
+	$ioctl_check .= "($type *arg __attribute__ ((unused))) {}\n";
     }
 }
 
@@ -293,7 +293,7 @@ sub add_arg_func {
 
 	&test_cond ($text, $item);
 
-	$$text .= "fprintf_$type (fp, rw, "
+	$$text .= "fprint_$type (fp, rw, "
 	    . $ref . "t->" . &trail ($item) . ");\n";
 
 	$templ .= "$rp ";
@@ -304,7 +304,7 @@ sub add_arg_func {
 }
 
 # text .= functions this depends upon,
-#     enum mode (see fprintf_symbolic()),
+#     enum mode (see fprint_symbolic()),
 #     "FLAG_", "structname.field1.flags"
 sub add_symbolic {
     my ($text, $deps, $enum_mode, $prefix, $item) = @_;
@@ -326,13 +326,13 @@ sub add_symbolic {
     if ($count > 3) {
 	my $type = "symbol $prefix";
 
-	# No switch() such that fprintf_symbolic() can determine if
+	# No switch() such that fprint_symbolic() can determine if
 	# these are flags or enum.
 	$funcs{$type} = {
 	    text => "static void\n"
-		. "fprintf_symbol_$prefix (FILE *fp, "
-		. "int rw, unsigned long value)\n"
-		. "{\nfprintf_symbolic (fp, $enum_mode, value,\n"
+		. "fprint_symbol_$prefix (FILE *fp, "
+		. "int rw __attribute__ ((unused)), unsigned long value)\n"
+		. "{\nfprint_symbolic (fp, $enum_mode, value,\n"
 		. $sbody . "0);\n}\n\n",
 	    deps => []
 	};
@@ -347,7 +347,7 @@ sub add_symbolic {
 	&test_cond ($text, $item);
 
 	$templ .= " ";
-	$$text .= "fprintf_symbolic (fp, $enum_mode, t->" . &trail ($item)
+	$$text .= "fprint_symbolic (fp, $enum_mode, t->" . &trail ($item)
 	    . ",\n" . $sbody . "0);\n";
     }
 }
@@ -483,10 +483,10 @@ sub aggregate_body {
 		    $templ .= "$field\[\]=? ";
 	        # Wisdom: char pointer is probably a string.
 		} elsif ($type eq "char" || $field eq "name" || $hint eq "string") {
-		    &add_arg ($text, "char *", $item, "\\\"%s\\\"");
+		    &add_arg ($text, "const char *", $item, "\\\"%s\\\"");
 		# Other pointer
 		} else {
-		    &add_arg ($text, "void *", $item, "%p");
+		    &add_arg ($text, "const void *", $item, "%p");
 		}
 	    # Array of something
 	    } elsif ($size ne "") {
@@ -494,7 +494,7 @@ sub aggregate_body {
 		# "Names" are also commonly strings.
 		if ($type eq "char" || $field eq "name" || $hint eq "string") {
 		    $args .= "$size, ";
-		    &add_arg ($text, "char *", $item, "\\\"%.*s\\\"");
+		    &add_arg ($text, "const char *", $item, "\\\"%.*s\\\"");
 		# So this is some other kind of array, what now?
 		} else {
 		    # ignore
@@ -512,7 +512,7 @@ sub aggregate_body {
 	    } elsif ($hint eq "hex") {
 		&add_arg ($text, "unsigned long", $item, "0x%lx");
 	    } elsif ($hint eq "fourcc") {
-		&add_arg ($text, "char *", $item, "\\\"%.4s\\\"=0x%lx");
+		&add_arg ($text, "const char *", $item, "\\\"%.4s\\\"=0x%lx");
 		$args .= "(unsigned long) t->$field, ";
 	    # Field contains symbols, could be flags or enum or both
 	    } elsif ($hint ne "") {
@@ -540,8 +540,8 @@ sub aggregate {
     my $type = "$kind $name";
 
     $funcs{$type} = {
-	text => "static void\nfprintf_$kind\_$name "
-	    . "(FILE *fp, int rw, const $type *t)\n{\n",
+	text => "static void\nfprint_$kind\_$name "
+	    . "(FILE *fp, int rw __attribute__ ((unused)), const $type *t)\n{\n",
 	deps => []
     };
 
@@ -581,9 +581,9 @@ sub enumeration {
     my @symbols;
 
     $funcs{$type} = {
-	text => "static void\nfprintf_enum_$name (FILE *fp, "
-	    . "int rw, int value)\n"
-	    . "{\nfprintf_symbolic (fp, 1, value,\n",
+	text => "static void\nfprint_enum_$name (FILE *fp, "
+	    . "int rw __attribute__ ((unused)), int value)\n"
+	    . "{\nfprint_symbolic (fp, 1, value,\n",
 	deps => []
     };
 
@@ -627,6 +627,14 @@ while (@contents) {
 
 print "/* Generated file, do not edit! */
 
+#include <stdio.h>
+#include \"io-priv.h\"
+
+#ifndef __GNUC__
+#undef __attribute__
+#define __attribute__(x)
+#endif
+
 ";
 
 sub print_type {
@@ -643,14 +651,14 @@ sub print_type {
     }
 }
 
-$text = "static void\nfprintf_ioctl_arg (FILE *fp, unsigned int cmd, int rw, void *arg)\n"
+$text = "static void\nfprint_ioctl_arg (FILE *fp, unsigned int cmd, int rw, void *arg)\n"
     . "{\nswitch (cmd) {\n";
 
 while (($type, $case) = each %ioctl_cases) {
     if ($funcs{$type}) {
 	&print_type ($type);
 	$type =~ s/ /_/;
-	$text .= "$case fprintf_$type (fp, rw, arg);\nbreak;\n";
+	$text .= "$case fprint_$type (fp, rw, arg);\nbreak;\n";
     } elsif ($type =~ m/$unsigned/) {
 	$text .= "$case fprintf (fp, \"%lu\", "
 	    . "(unsigned long) * ($type *) arg);\nbreak;\n";
@@ -663,7 +671,7 @@ while (($type, $case) = each %ioctl_cases) {
 }
 
 $text .= "\tdefault:\n"
-    . "\t\tif (!arg) { fprintf_unknown_cmd (fp, cmd, arg); return; }\n"
+    . "\t\tif (!arg) { fprint_unknown_ioctl (fp, cmd, arg); return; }\n"
     . "\t\tbreak;\n";
 $text .= "\t}\n\}\n\n";
 

@@ -427,8 +427,6 @@ delete_page			(vbi_cache *		ca,
 
 		unlink_node (&cp->hash_node);
 
-		cache_network_remove_page (cp->network, cp);
-
 		cp->priority = CACHE_PRI_ZOMBIE;
 
 		return;
@@ -760,6 +758,13 @@ _vbi_cache_get_page		(vbi_cache *		ca,
 	assert (NULL != ca);
 	assert (NULL != vtn);
 
+	if (pgno < 0x100 || pgno > 0x8FF) {
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
+				"pgno 0x%x out of bounds",
+				pgno);
+		return NULL;
+	}
+
 	ca->lock (ca->lock_user_data);
 
 	cn = PARENT ((vt_network *) vtn, cache_network, network);
@@ -890,7 +895,6 @@ _vbi_cache_put_page		(vbi_cache *		ca,
 			/* This page is still in use. We remove it from
 			   the cache and mark for deletion when unref'd. */
 			unlink_node (&old_cp->hash_node);
-			cache_network_remove_page (old_cp->network, old_cp);
 
 			old_cp->priority = CACHE_PRI_ZOMBIE;
 			old_cp = NULL;

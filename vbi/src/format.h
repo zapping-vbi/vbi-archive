@@ -17,13 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.4.2.10 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: format.h,v 1.4.2.11 2004-05-12 01:40:44 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
 
 #include "macros.h"
-#include "cache.h"	/* vbi_cache */
 #include "network.h"	/* vbi_nuid */
 #include "link.h" 	/* vbi_link */
 #include "pdc.h"        /* vbi_preselection */
@@ -35,6 +34,8 @@ VBI_BEGIN_DECLS
 #define VBI_DECODER
 typedef struct vbi_decoder vbi_decoder;
 #endif
+
+typedef struct _vbi_cache vbi_cache;
 
 /* Public */
 
@@ -201,30 +202,30 @@ typedef struct vbi_char {
 	/**
 	 * Character attribute, see vbi_attr.
 	 */
-	unsigned	attr		: 8;
+	uint8_t		attr;
 	/**
 	 * Character size, see vbi_size.
 	 */
-	unsigned	size		: 8;
+	uint8_t		size;
 	/**
 	 * Character opacity, see vbi_opacity. Both @a foreground
 	 * and @a background color are valid independent of @a opacity.
 	 */
-	unsigned	opacity		: 8;
+	uint8_t		opacity;
 	/**
 	 * Character foreground color, a vbi_color index
 	 * into the vbi_page->color_map.
 	 */
-	unsigned	foreground	: 8;
+	uint8_t		foreground;
 	/**
 	 * Character background color, a vbi_color index
 	 * into the vbi_page->color_map.
 	 */
-	unsigned	background	: 8;
+	uint8_t		background;
 	/**
 	 * DRCS color look-up table offset, see vbi_page for details.
 	 */
-	unsigned	drcs_clut_offs	: 8;
+	uint8_t		drcs_clut_offs;
 	/**
 	 * Character code according to ISO 10646 UCS-2 (not UTF-16).
 	 * 
@@ -259,7 +260,7 @@ typedef struct vbi_char {
 	 * translated to Greek Alpha and Beta, C to Latin C, even if they
 	 * appear in a pure Latin character word.
 	 */
-	unsigned	unicode		: 16;
+	uint16_t	unicode;
 } vbi_char;
 
 typedef struct _vbi_page_private vbi_page_private;

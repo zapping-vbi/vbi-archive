@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cc.h,v 1.2.2.4 2004-04-05 04:42:26 mschimek Exp $ */
+/* $Id: cc.h,v 1.2.2.5 2004-05-12 01:40:43 mschimek Exp $ */
 
 #ifndef CC_H
 #define CC_H
@@ -28,11 +28,7 @@
 #include "bcd.h"
 #include "format.h"
 #include "xds_decoder.h"
-
-#ifndef VBI_DECODER
-#define VBI_DECODER
-typedef struct vbi_decoder vbi_decoder;
-#endif
+#include "caption_decoder.h"
 
 typedef enum {
 	MODE_NONE,
@@ -65,8 +61,9 @@ typedef struct {
 	vbi_page		pg[2];
 } cc_channel;
 
-struct caption {
-	pthread_mutex_t		mutex;
+struct _vbi_caption_decoder {
+  // obsolete
+  //	pthread_mutex_t		mutex;
 
 	unsigned char		last[2];		/* field 1, cc command repetition */
 
@@ -95,17 +92,27 @@ struct caption {
  * @addtogroup Cache
  * @{
  */
-extern vbi_bool		vbi_fetch_cc_page(vbi_decoder *vbi, vbi_page *pg,
+extern vbi_bool		vbi_fetch_cc_page(vbi_caption_decoder *cd,
+					  vbi_page *pg,
 					  vbi_pgno pgno, vbi_bool reset);
 /** @} */
 
 /* Private */
 
-extern void		vbi_caption_init(vbi_decoder *vbi);
-extern void		vbi_caption_destroy(vbi_decoder *vbi);
-extern void		vbi_decode_caption(vbi_decoder *vbi, int line, uint8_t *buf);
-extern void		vbi_caption_desync(vbi_decoder *vbi);
-extern void		vbi_caption_channel_switched(vbi_decoder *vbi);
-extern void		vbi_caption_color_level(vbi_decoder *vbi);
+extern void
+_vbi_caption_decoder_init	(vbi_caption_decoder *	cd,
+				 vbi_cache *		ca,
+				 vbi_nuid		nuid);
+extern void
+_vbi_caption_decoder_destroy	(vbi_caption_decoder *	cd);
+extern void
+vbi_decode_caption		(vbi_caption_decoder *	cd,
+				 int line, uint8_t *buf);
+extern void
+vbi_caption_decoder_resync	(vbi_caption_decoder *	cd);
+extern void
+vbi_caption_channel_switched	(vbi_caption_decoder *	cd);
+extern void
+vbi_caption_color_level		(vbi_caption_decoder *	cd);
 
 #endif /* CC_H */

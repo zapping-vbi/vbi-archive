@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.16 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.17 2004-05-12 01:40:44 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -48,6 +48,7 @@
 #include "version.h"
 #include "vps.h"
 #include "misc.h"
+#include "vbi_decoder.h"
 
 /**
  * @mainpage ZVBI - VBI Decoding Library
@@ -84,93 +85,6 @@ vbi_init			(void)
 #endif
 }
 
-/*
- *  Events
- */
-
-static void
-vbi_event_enable(vbi_decoder *vbi, int activate) 
-{
-	if (activate & VBI_EVENT_TTX_PAGE)
-#warning unfinished
-		vbi_teletext_decoder_reset (&vbi->vt, 0);
-	if (activate & VBI_EVENT_CAPTION)
-		vbi_caption_channel_switched(vbi);
-	if (activate & VBI_EVENT_NETWORK)
-		memset(&vbi->network, 0, sizeof(vbi->network));
-	if (activate & VBI_EVENT_TRIGGER)
-		vbi_trigger_flush(vbi);
-	if ((activate & (VBI_EVENT_ASPECT | VBI_EVENT_PROG_INFO))
-		== (VBI_EVENT_ASPECT | VBI_EVENT_PROG_INFO)) {
-		vbi_reset_prog_info(&vbi->prog_info[0]);
-		vbi_reset_prog_info(&vbi->prog_info[1]);
-
-		vbi->prog_info[1].future = TRUE;
-		vbi->prog_info[0].future = FALSE;
-
-		vbi->aspect_source = 0;
-	}
-}
-
-/**
- * @param vbi Initialized vbi decoding context.
- * @param event_mask Events the handler is waiting for.
- * @param handler Event handler function.
- * @param user_data Pointer passed to the handler.
- * 
- * @return
- * @c FALSE on failure.
- */
-vbi_bool
-vbi_event_handler_register(vbi_decoder *vbi, int event_mask,
-		           vbi_event_handler handler, void *user_data) 
-{
-	unsigned int old_mask = vbi->event_handlers.event_mask;
-
-	if (!vbi_teletext_decoder_add_event_handler
-	    (&vbi->vt, event_mask & ~VBI_EVENT_CLOSE, handler, user_data))
-		return FALSE;
-
-	// XXX unhandled error
-	_vbi_event_handler_list_add (&vbi->event_handlers,
-				     event_mask,
-				     handler, user_data);
-
-	vbi_event_enable(vbi, vbi->event_handlers.event_mask & ~old_mask);
-
-	return TRUE;
-}
-
-/**
- * @param vbi Initialized vbi decoding context.
- * @param handler Event handler function.
- * @param user_data Pointer passed to the handler.
- * 
- * Unregisters an event handler.
- **/
-void
-vbi_event_handler_unregister(vbi_decoder *vbi,
-			     vbi_event_handler handler, void *user_data)
-{
-	vbi_event_handler_register(vbi, 0, handler, user_data);
-}
-
-/**
- * @internal
- * @param vbi Initialized vbi decoding context.
- * @param ev The event to send.
- * 
- * Traverses the list of event handlers and calls each handler waiting
-* * for this @a ev->type of event, passing @a ev as parameter.
- * 
- * This function is reentrant, but not supposed to be called from
- * different threads to ensure correct event order.
- */
-void
-vbi_send_event(vbi_decoder *vbi, vbi_event *ev)
-{
-	_vbi_event_handler_list_send (&vbi->event_handlers, ev);
-}
 
 /*
  *  VBI Decoder
@@ -186,103 +100,12 @@ current_time(void)
 	return tv.tv_sec + tv.tv_usec * (1 / 1e6);
 }
 
-/**
- * @param vbi Initialized vbi decoding context as returned by vbi_decoder_new().
- * @param sliced Array of vbi_sliced data packets to be decoded.
- * @param lines Number of vbi_sliced data packets, i. e. VBI lines.
- * @param time Timestamp associated with <em>all</em> sliced data packets.
- *   This is the time in seconds and fractions since 1970-01-01 00:00,
- *   for example from function gettimeofday(). @a time should only
- *   increment, the latest time entered is considered the current time
- *   for activity calculation.
- * 
- * @brief Main function of the data service decoder.
- *
- * Decodes zero or more lines of sliced VBI data from the same video
- * frame, updates the decoder state and calls event handlers.
- * 
- * @a timestamp shall advance by 1/30 to 1/25 seconds whenever calling this
- * function. Failure to do so will be interpreted as frame dropping, which
- * starts a resynchronization cycle, eventually a channel switch may be assumed
- * which resets even more decoder state. So even if a frame did not contain
- * any useful data this function must be called, with @a lines set to zero.
- * 
- * @note This is one of the few not reentrant libzvbi functions. If multiple
- * threads call this with the same @a vbi context you must implement your
- * own locking mechanism. Never call this function from an event handler.
- */
-void
-vbi_decode(vbi_decoder *vbi, vbi_sliced *sliced, int lines, double time)
-{
-	double d;
-
-	d = time - vbi->time;
-
-	if (vbi->time > 0 && (d < 0.025 || d > 0.050)) {
-	  /*
-	   *  Since (dropped >= channel switch) we give
-	   *  ~1.5 s, then assume a switch.
-	   */
-	  pthread_mutex_lock(&vbi->chswcd_mutex);
-
-#warning later
-	  //	  if (vbi->chswcd == 0)
-	  //		  vbi->chswcd = 40;
-
-	  pthread_mutex_unlock(&vbi->chswcd_mutex);
-
-	  if (0)
-		  fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n",
-			  time, time - vbi->time);
-
-	  if (vbi->event_handlers.event_mask &
-	      (VBI_EVENT_TTX_PAGE | VBI_EVENT_NETWORK))
-		  _vbi_teletext_decoder_resync (&vbi->vt);
-	  if (vbi->event_handlers.event_mask &
-	      (VBI_EVENT_CAPTION | VBI_EVENT_NETWORK))
-		  vbi_caption_desync(vbi);
-	} else {
-		pthread_mutex_lock(&vbi->chswcd_mutex);
-
-		if (vbi->chswcd > 0 && --vbi->chswcd == 0) {
-			pthread_mutex_unlock(&vbi->chswcd_mutex);
-			vbi_chsw_reset(vbi, 0);
-		} else
-			pthread_mutex_unlock(&vbi->chswcd_mutex);
-	}
-
-	if (time > vbi->time)
-		vbi->time = time;
-
-	while (lines) {
-		if (sliced->id & VBI_SLICED_TELETEXT_B)
-			vbi_decode_teletext(vbi, sliced->data, time);
-		else if (sliced->id & (VBI_SLICED_CAPTION_525 | VBI_SLICED_CAPTION_625))
-			vbi_decode_caption(vbi, sliced->line, sliced->data);
-		/* TODO
-		else if (sliced->id & VBI_SLICED_VPS)
-			vbi_decode_vps(vbi, sliced->data);
-		else if (sliced->id & VBI_SLICED_WSS_625)
-			vbi_decode_wss_625(vbi, sliced->data, time);
-		else if (sliced->id & VBI_SLICED_WSS_CPR1204)
-			vbi_decode_wss_cpr1204(vbi, sliced->data);
-		*/
-		sliced++;
-		lines--;
-	}
-
-	if (vbi->event_handlers.event_mask & VBI_EVENT_TRIGGER)
-		vbi_deferred_trigger(vbi);
-
-	if (0 && (rand() % 511) == 0)
-		vbi_eacem_trigger
-		  (vbi, (unsigned char *) /* Latin-1 */
-		   "<http://zapping.sourceforge.net>[n:Zapping][5450]");
-}
 
 void
 vbi_chsw_reset(vbi_decoder *vbi, vbi_nuid identified)
 {
+#warning
+#if 0
 	vbi_nuid old_nuid = vbi->network.ev.network.nuid;
 
 	if (0)
@@ -301,23 +124,24 @@ vbi_chsw_reset(vbi_decoder *vbi, vbi_nuid identified)
 
 		if (old_nuid != 0) {
 			vbi->network.type = VBI_EVENT_NETWORK;
-			vbi_send_event(vbi, &vbi->network);
+#warning obsolete
+//			vbi_send_event(vbi, &vbi->network);
 		}
 	} /* else already identified */
 
 	vbi_trigger_flush(vbi); /* sic? */
 
-	if (vbi->aspect_source > 0) {
+//	if (vbi->aspect_source > 0) {
 		vbi_event e;
 
-		_vbi_aspect_ratio_init (&e.ev.aspect,
-					(vbi->aspect_source == 1) ?
-					VBI_VIDEOSTD_SET_625_50 :
-					VBI_VIDEOSTD_SET_525_60);
+//		_vbi_aspect_ratio_init (&e.ev.aspect,
+//					(vbi->aspect_source == 1) ?
+//					VBI_VIDEOSTD_SET_625_50 :
+//					VBI_VIDEOSTD_SET_525_60);
 
 		e.type = VBI_EVENT_ASPECT;
-		vbi_send_event(vbi, &e);
-	}
+//		vbi_send_event(vbi, &e);
+//	}
 
 	vbi_reset_prog_info(&vbi->prog_info[0]);
 	vbi_reset_prog_info(&vbi->prog_info[1]);
@@ -326,7 +150,7 @@ vbi_chsw_reset(vbi_decoder *vbi, vbi_nuid identified)
 	vbi->prog_info[1].future = TRUE;
 	vbi->prog_info[0].future = FALSE;
 
-	vbi->aspect_source = 0;
+//	vbi->aspect_source = 0;
 
 	vbi->wss_last[0] = 0;
 	vbi->wss_last[1] = 0;
@@ -335,11 +159,12 @@ vbi_chsw_reset(vbi_decoder *vbi, vbi_nuid identified)
 
 	vbi->vt.header_page.pgno = 0;
 
-	pthread_mutex_lock(&vbi->chswcd_mutex);
+	//	pthread_mutex_lock(&vbi->chswcd_mutex);
 
 	vbi->chswcd = 0;
 
-	pthread_mutex_unlock(&vbi->chswcd_mutex);
+	//	pthread_mutex_unlock(&vbi->chswcd_mutex);
+#endif
 }
 
 /**
@@ -364,13 +189,14 @@ vbi_chsw_reset(vbi_decoder *vbi, vbi_nuid identified)
 void
 vbi_channel_switched(vbi_decoder *vbi, vbi_nuid nuid)
 {
+#warning todo
 	/* XXX nuid */
 
-	pthread_mutex_lock(&vbi->chswcd_mutex);
+  //	pthread_mutex_lock(&vbi->chswcd_mutex);
 
-	vbi->chswcd = 1;
+//	vbi->chswcd = 1;
 
-	pthread_mutex_unlock(&vbi->chswcd_mutex);
+	//	pthread_mutex_unlock(&vbi->chswcd_mutex);
 }
 
 /*
@@ -404,6 +230,9 @@ const char **
 vbi_cache_page_language		(vbi_decoder *		vbi,
 				 vbi_pgno		pgno)
 {
+	return 0;
+#warning todo
+#if 0
 	static const char *nil = NULL;
 
 	if (pgno <= 8 && pgno >= 1) {
@@ -427,6 +256,7 @@ vbi_cache_page_language		(vbi_decoder *		vbi,
 	}
 
 	return &nil;
+#endif
 }
 
 /**
@@ -494,6 +324,9 @@ vbi_cache_page_language		(vbi_decoder *		vbi,
 vbi_page_type
 vbi_classify_page(vbi_decoder *vbi, vbi_pgno pgno, vbi_subno *subno)
 {
+	return 0;
+#warning todo
+#if 0
   page_stat *pi;
 	int code, subc;
 //	char *lang;
@@ -543,6 +376,7 @@ vbi_classify_page(vbi_decoder *vbi, vbi_pgno pgno, vbi_subno *subno)
 	}
 
 	return VBI_UNKNOWN_PAGE;
+#endif
 }
 
 
@@ -600,69 +434,6 @@ vbi_reset_prog_info(vbi_program_info *pi)
 }
 
 /**
- * @param vbi Decoder structure allocated with vbi_decoder_new().
- * @brief Delete a data service decoder instance.
- */
-void
-vbi_decoder_delete(vbi_decoder *vbi)
-{
-	vbi_trigger_flush(vbi);
-
-#warning unfinished
-	_vbi_teletext_decoder_destroy (&vbi->vt);
-
-	vbi_caption_destroy(vbi);
-
-	_vbi_event_handler_list_destroy (&vbi->event_handlers);
-
-	pthread_mutex_destroy(&vbi->prog_info_mutex);
-	pthread_mutex_destroy(&vbi->chswcd_mutex);
-
-	//	vbi_cache_destroy(vbi);
-
-	free(vbi);
-}
-
-/**
- * @brief Allocate a new data service decoder instance.
- * 
- * @return
- * vbi_decoder pointer or @c NULL on failure, probably due to lack
- * of memory.
- */
-vbi_decoder *
-vbi_decoder_new(void)
-{
-	vbi_decoder *vbi;
-
-#warning
-	fprintf (stderr, "LIBZVBI NG\n");
-
-	//	pthread_once (&vbi_init_once, vbi_init);
-
-	if (!(vbi = (vbi_decoder *) calloc(1, sizeof(*vbi))))
-		return NULL;
-
-	//	vbi_cache_init(vbi);
-
-	pthread_mutex_init(&vbi->chswcd_mutex, NULL);
-	pthread_mutex_init(&vbi->prog_info_mutex, NULL);
-
-	vbi->time = 0.0;
-
-	_vbi_event_handler_list_init (&vbi->event_handlers);
-
-#warning unfinished
-	_vbi_teletext_decoder_init (&vbi->vt, 0, 0);
-
-	//obsolete	vbi_teletext_set_level(vbi, VBI_WST_LEVEL_2p5);
-
-	vbi_caption_init(vbi);
-
-	return vbi;
-}
-
-/**
  * @param major Store major number here, can be NULL.
  * @param minor Store minor number here, can be NULL.
  * @param micro Store micro number here, can be NULL.
@@ -710,7 +481,7 @@ vbi_strlcpy			(char *			dst1,
  * Note asprintf() is a GNU libc extension.
  */
 void
-vbi_asprintf(char **errstr, char *templ, ...)
+_vbi_asprintf(char **errstr, char *templ, ...)
 {
 	char buf[512];
 	va_list ap;

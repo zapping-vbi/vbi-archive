@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.9.2.8 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: caption.c,v 1.9.2.9 2004-05-12 01:40:43 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,8 +31,9 @@
 #include "lang.h"
 #include "hamm.h"
 #include "tables.h"
-#include "vbi.h"
+#include "vbi_decoder-priv.h"
 #include "misc.h"
+#include "cc.h"
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 #define elements(array) (sizeof(array) / sizeof(array[0]))
@@ -48,11 +49,12 @@ vbi_inline void
 caption_send_event(vbi_decoder *vbi, vbi_event *ev)
 {
 	/* Permits calling vbi_fetch_cc_page from handler */
-	pthread_mutex_unlock(&vbi->cc.mutex);
+  //	pthread_mutex_unlock(&vbi->cc.mutex);
 
-	vbi_send_event(vbi, ev);
+// obsolete
+//	vbi_send_event(vbi, ev);
 
-	pthread_mutex_lock(&vbi->cc.mutex);
+//	pthread_mutex_lock(&vbi->cc.mutex);
 }
 
 /*
@@ -60,11 +62,11 @@ caption_send_event(vbi_decoder *vbi, vbi_event *ev)
  */
 
 static void
-itv_separator(vbi_decoder *vbi, struct caption *cc, char c)
+itv_separator(vbi_decoder *vbi, vbi_caption_decoder *cc, char c)
 {
-	if (ITV_DEBUG(0 &&) !(vbi->event_handlers.event_mask
-			      & VBI_EVENT_TRIGGER))
-		return;
+  	if (ITV_DEBUG(0 &&) !(vbi->handlers.event_mask
+  			      & VBI_EVENT_TRIGGER))
+  		return;
 
 	if (c >= 0x20) {
 		if (c == '<') // s4-nbc omitted CR
@@ -160,7 +162,7 @@ update(cc_channel *ch)
 }
 
 static void
-word_break(struct caption *cc, cc_channel *ch, int upd)
+word_break(vbi_caption_decoder *cc, cc_channel *ch, int upd)
 {
 	/*
 	 *  Add a leading and trailing space.
@@ -210,7 +212,7 @@ set_cursor(cc_channel *ch, int col, int row)
 }
 
 static void
-put_char(struct caption *cc, cc_channel *ch, vbi_char c)
+put_char(vbi_caption_decoder *cc, cc_channel *ch, vbi_char c)
 {
 	/* c.foreground = rand() & 7; */
 	/* c.background = rand() & 7; */
@@ -228,7 +230,7 @@ put_char(struct caption *cc, cc_channel *ch, vbi_char c)
 }
 
 vbi_inline cc_channel *
-switch_channel(struct caption *cc, cc_channel *ch, int new_chan)
+switch_channel(vbi_caption_decoder *cc, cc_channel *ch, int new_chan)
 {
 	word_break(cc, ch, 1); // we leave for a number of frames
 
@@ -236,7 +238,7 @@ switch_channel(struct caption *cc, cc_channel *ch, int new_chan)
 }
 
 static void
-erase_memory(struct caption *cc, cc_channel *ch, int page)
+erase_memory(vbi_caption_decoder *cc, cc_channel *ch, int page)
 {
 	vbi_page *pg = ch->pg + page;
 	vbi_char *acp = pg->text;
@@ -266,7 +268,7 @@ row_mapping[] = {
 // sample stream yet
 
 static void
-caption_command(vbi_decoder *vbi, struct caption *cc,
+caption_command(vbi_decoder *vbi, vbi_caption_decoder *cc,
 	unsigned char c1, unsigned char c2, vbi_bool field2)
 {
 	cc_channel *ch;
@@ -608,9 +610,9 @@ caption_command(vbi_decoder *vbi, struct caption *cc,
  * updating the decoder state accordingly. May send events.
  */
 void
-vbi_decode_caption(vbi_decoder *vbi, int line, uint8_t *buf)
+vbi_decode_caption(vbi_caption_decoder *cd, int line, uint8_t *buf)
 {
-	struct caption *cc = &vbi->cc;
+
 	char c1 = buf[0] & 0x7F;
 	int field2 = 1, i;
 
@@ -619,7 +621,7 @@ vbi_decode_caption(vbi_decoder *vbi, int line, uint8_t *buf)
 		       buf, 2, 0);
  */
 
-	pthread_mutex_lock(&cc->mutex);
+//	pthread_mutex_lock(&cc->mutex);
 
 	switch (line) {
 	case 21:	/* NTSC */
@@ -641,17 +643,17 @@ vbi_decode_caption(vbi_decoder *vbi, int line, uint8_t *buf)
 			if (c1 == 0) {
 				goto finish;
 			} else if (c1 <= 0x0F) {
-				vbi_xds_demux_demux (&vbi->cc.xds_demux, buf);
-				cc->xds = (c1 != 0x0F);
+//TODO				vbi_xds_demux_demux (&vbi->cc.xds_demux, buf);
+				cd->xds = (c1 != 0x0F);
 				goto finish;
 			} else if (c1 <= 0x1F) {
-				cc->xds = FALSE;
-			} else if (cc->xds) {
-				vbi_xds_demux_demux (&vbi->cc.xds_demux, buf);
+				cd->xds = FALSE;
+			} else if (cd->xds) {
+//				vbi_xds_demux_demux (&vbi->cc.xds_demux, buf);
 				goto finish;
 			}
-		} else if (cc->xds) {
-			vbi_xds_demux_demux (&vbi->cc.xds_demux, buf);
+		} else if (cd->xds) {
+			vbi_xds_demux_demux (&cd->xds_demux, buf);
 			goto finish;
 		}
  
@@ -679,27 +681,27 @@ vbi_decode_caption(vbi_decoder *vbi, int line, uint8_t *buf)
 
 	case 0x01 ... 0x0F:
 		if (!field2)
-			cc->last[0] = 0;
+			cd->last[0] = 0;
 		break; /* XDS field 1?? */
 
 	case 0x10 ... 0x1F:
 		if (vbi_ipar8 (buf[1]) >= 0) {
 			if (!field2
-			    && buf[0] == cc->last[0]
-			    && buf[1] == cc->last[1]) {
+			    && buf[0] == cd->last[0]
+			    && buf[1] == cd->last[1]) {
 				/* cmd repetition F1: already executed */
-				cc->last[0] = 0; /* one rep */
+				cd->last[0] = 0; /* one rep */
 				break;
 			}
 
-			caption_command(vbi, cc, c1, buf[1] & 0x7F, field2);
+//TODO			caption_command(vbi, cc, c1, buf[1] & 0x7F, field2);
 
 			if (!field2) {
-				cc->last[0] = buf[0];
-				cc->last[1] = buf[1];
+				cd->last[0] = buf[0];
+				cd->last[1] = buf[1];
 			}
 		} else if (!field2)
-			cc->last[0] = 0;
+			cd->last[0] = 0;
 
 		break;
 
@@ -710,12 +712,12 @@ vbi_decode_caption(vbi_decoder *vbi, int line, uint8_t *buf)
 			fflush(stdout);
 		)
 
-		ch = &cc->channel[(cc->curr_chan & 5) + field2 * 2];
+		ch = &cd->channel[(cd->curr_chan & 5) + field2 * 2];
 
 		if (buf[0] == 0x80 && buf[1] == 0x80) {
 			if (ch->mode) {
 				if (ch->nul_ct == 2)
-					word_break(cc, ch, 1);
+					word_break(cd, ch, 1);
 				ch->nul_ct += 2;
 			}
 
@@ -723,14 +725,14 @@ vbi_decode_caption(vbi_decoder *vbi, int line, uint8_t *buf)
 		}
 
 		if (!field2)
-			cc->last[0] = 0;
+			cd->last[0] = 0;
 
 		ch->nul_ct = 0;
 
 		if (!ch->mode)
 			break;
 
-		ch->time = vbi->time; /* activity measure */
+//TODO		ch->time = vbi->time; /* activity measure */
 
 		c = ch->attr;
 
@@ -740,97 +742,21 @@ vbi_decode_caption(vbi_decoder *vbi, int line, uint8_t *buf)
 			if (ci <= 0x1F) /* 0x00 no char, 0x01 ... 0x1F invalid */
 				continue;
 
-			if (ch == cc->channel + 5) // 'T2'
-				itv_separator(vbi, cc, ci);
+//TODO			if (ch == cd->channel + 5) // 'T2'
+//				itv_separator(vbi, cc, ci);
 
 			c.unicode = vbi_caption_unicode(ci);
 
-			put_char(cc, ch, c);
+			put_char(cd, ch, c);
 		}
 	}
 
  finish:
-	pthread_mutex_unlock(&cc->mutex);
+	;
+//	pthread_mutex_unlock(&cc->mutex);
 }
 
-/**
- * @internal
- * @param vbi Initialized vbi decoding context. 
- * 
- * This function must be called after desynchronisation
- * has been detected (i. e. vbi data has been lost)
- * to reset the Closed Caption decoder.
- */
-void
-vbi_caption_desync(vbi_decoder *vbi)
-{
-	struct caption *cc = &vbi->cc;
 
-	/* cc->curr_chan = 8; *//* garbage */
-
-	cc->xds = FALSE;
-
-	vbi_xds_demux_reset (&vbi->cc.xds_demux);
-
-	cc->itv_count = 0;
-}
-
-/**
- * @internal
- * @param vbi Initialized vbi decoding context.
- * 
- * This function must be called after a channel switch,
- * to reset the Closed Caption decoder.
- */
-void
-vbi_caption_channel_switched(vbi_decoder *vbi)
-{
-	struct caption *cc = &vbi->cc;
-	cc_channel *ch;
-	int i;
-
-	for (i = 0; i < 9; i++) {
-		ch = &cc->channel[i];
-
-		if (i < 4) {
-			ch->mode = MODE_NONE; // MODE_ROLL_UP;
-			ch->row = ROWS - 1;
-			ch->row1 = ROWS - 3;
-			ch->roll = 3;
-		} else {
-			ch->mode = MODE_TEXT;
-			ch->row1 = ch->row = 0;
-			ch->roll = ROWS;
-		}
-
-		ch->attr.opacity = VBI_OPAQUE;
-		ch->attr.foreground = VBI_WHITE;
-		ch->attr.background = VBI_BLACK;
-
-		set_cursor(ch, 1, ch->row);
-
-		ch->time = 0.0;
-
-		ch->hidden = 0;
-
-		ch->pg[0].dirty.y0 = 0;
-		ch->pg[0].dirty.y1 = ROWS - 1;
-		ch->pg[0].dirty.roll = 0;
-
-		erase_memory(cc, ch, 0);
-
-		memcpy(&ch->pg[1], &ch->pg[0], sizeof(ch->pg[1]));
-	}
-
-	cc->xds = FALSE;
-
-	vbi_xds_demux_reset (&vbi->cc.xds_demux);
-
-	cc->info_cycle[0] = 0;
-	cc->info_cycle[1] = 0;
-
-	vbi_caption_desync(vbi);
-}
 
 static vbi_rgba
 default_color_map[8] = {
@@ -849,90 +775,20 @@ default_color_map[8] = {
 XXX changed
  */
 void
-vbi_caption_color_level(vbi_decoder *vbi)
+vbi_caption_color_level(vbi_caption_decoder *cd)
 {
 	int i;
 
 	//	vbi_transp_colormap (vbi, vbi->cc.channel[0].pg[0].color_map,
 	//		     default_color_map, 8);
 
-	memcpy (vbi->cc.channel[0].pg[0].color_map, default_color_map,
+	memcpy (cd->channel[0].pg[0].color_map, default_color_map,
 		sizeof (default_color_map)); 
 
 	for (i = 1; i < 16; i++)
-		memcpy(vbi->cc.channel[i >> 1].pg[i & 1].color_map,
-		       vbi->cc.channel[0].pg[0].color_map,
+		memcpy(cd->channel[i >> 1].pg[i & 1].color_map,
+		       cd->channel[0].pg[0].color_map,
 		       sizeof(default_color_map));
-}
-
-/**
- * @internal
- * @param vbi VBI decoding context.
- * 
- * This function is called during @a vbi destruction
- * to destroy Closed Caption subset of @a vbi.
- */
-void
-vbi_caption_destroy(vbi_decoder *vbi)
-{
-	pthread_mutex_destroy(&vbi->cc.mutex);
-
-	_vbi_xds_demux_destroy (&vbi->cc.xds_demux);
-}
-
-/**
- * @internal
- * @param vbi VBI decoding context.
- * 
- * This function is called during @a vbi initialization
- * to initialize the Closed Caption subset of @a vbi.
- */
-void
-vbi_caption_init(vbi_decoder *vbi)
-{
-	struct caption *cc = &vbi->cc;
-	cc_channel *ch;
-	int i;
-
-	memset(cc, 0, sizeof(struct caption));
-
-	pthread_mutex_init(&cc->mutex, NULL);
-
-	for (i = 0; i < 9; i++) {
-		ch = &cc->channel[i];
-
-		ch->pg[0].vbi = vbi;
-
-		ch->pg[0].pgno = i + 1;
-		ch->pg[0].subno = 0;
-
-		ch->pg[0].rows = ROWS;
-		ch->pg[0].columns = COLUMNS;
-
-		ch->pg[0].screen_color = 0;
-		ch->pg[0].screen_opacity = (i < 4) ? VBI_TRANSPARENT_SPACE : VBI_OPAQUE;
-
-#warning todo
-//		ch->pg[0].font[0] = vbi_font_descriptors; /* English */
-//		ch->pg[0].font[1] = vbi_font_descriptors;
-
-		memcpy(&ch->pg[1], &ch->pg[0], sizeof(ch->pg[1]));
-	}
-
-       	for (i = 0; i < 2; i++) {
-		cc->transp_space[i].foreground = VBI_WHITE;
-		cc->transp_space[i].background = VBI_BLACK;
-		cc->transp_space[i].unicode = 0x0020;
-	}
-
-	cc->transp_space[0].opacity = VBI_TRANSPARENT_SPACE;
-	cc->transp_space[1].opacity = VBI_OPAQUE;
-
-	_vbi_xds_demux_init (&vbi->cc.xds_demux, _vbi_decode_xds, vbi);
-
-	vbi_caption_channel_switched(vbi);
-
-	vbi_caption_color_level(vbi);
 }
 
 /**
@@ -961,15 +817,15 @@ vbi_caption_init(vbi_decoder *vbi)
  * @c FALSE if some error occured.
  */
 vbi_bool
-vbi_fetch_cc_page(vbi_decoder *vbi, vbi_page *pg, vbi_pgno pgno, vbi_bool reset)
+vbi_fetch_cc_page(vbi_caption_decoder *cd, vbi_page *pg, vbi_pgno pgno, vbi_bool reset)
 {
-	cc_channel *ch = vbi->cc.channel + ((pgno - 1) & 7);
+	cc_channel *ch = cd->channel + ((pgno - 1) & 7);
 	vbi_page *spg;
 
 	if (pgno < 1 || pgno > 8)
 		return FALSE;
 
-	pthread_mutex_lock(&vbi->cc.mutex);
+//	pthread_mutex_lock(&vbi->cc.mutex);
 
 	spg = ch->pg + (ch->hidden ^ 1);
 
@@ -979,7 +835,195 @@ vbi_fetch_cc_page(vbi_decoder *vbi, vbi_page *pg, vbi_pgno pgno, vbi_bool reset)
 	spg->dirty.y1 = -1;
 	spg->dirty.roll = 0;
 
-	pthread_mutex_unlock(&vbi->cc.mutex);
+//	pthread_mutex_unlock(&vbi->cc.mutex);
 
 	return 1;
+}
+
+
+
+
+
+
+
+
+
+
+const vbi_program_id *
+vbi_caption_decoder_program_id	(vbi_caption_decoder *	cd)
+{
+	/* TODO */
+	return NULL;
+}
+
+void
+vbi_caption_decoder_remove_event_handler
+				(vbi_caption_decoder *	cd,
+				 vbi_event_cb *		callback,
+				 void *			user_data)
+{
+	/* TODO */
+}
+
+vbi_bool
+vbi_caption_decoder_add_event_handler
+				(vbi_caption_decoder *	cd,
+				 unsigned int		event_mask,
+				 vbi_event_cb *		callback,
+				 void *			user_data)
+{
+	/* TODO */
+	return TRUE;
+}
+
+/** @internal */
+void
+vbi_caption_decoder_resync	(vbi_caption_decoder *	cd)
+{
+
+
+	/* cc->curr_chan = 8; *//* garbage */
+
+	cd->xds = FALSE;
+
+	vbi_xds_demux_reset (&cd->xds_demux);
+
+	cd->itv_count = 0;
+}
+
+void
+vbi_caption_decoder_reset	(vbi_caption_decoder *	cd,
+				 vbi_nuid		nuid)
+{
+
+	cc_channel *ch;
+	int i;
+
+	for (i = 0; i < 9; i++) {
+		ch = &cd->channel[i];
+
+		if (i < 4) {
+			ch->mode = MODE_NONE; // MODE_ROLL_UP;
+			ch->row = ROWS - 1;
+			ch->row1 = ROWS - 3;
+			ch->roll = 3;
+		} else {
+			ch->mode = MODE_TEXT;
+			ch->row1 = ch->row = 0;
+			ch->roll = ROWS;
+		}
+
+		ch->attr.opacity = VBI_OPAQUE;
+		ch->attr.foreground = VBI_WHITE;
+		ch->attr.background = VBI_BLACK;
+
+		set_cursor(ch, 1, ch->row);
+
+		ch->time = 0.0;
+
+		ch->hidden = 0;
+
+		ch->pg[0].dirty.y0 = 0;
+		ch->pg[0].dirty.y1 = ROWS - 1;
+		ch->pg[0].dirty.roll = 0;
+
+		erase_memory(cd, ch, 0);
+
+		memcpy(&ch->pg[1], &ch->pg[0], sizeof(ch->pg[1]));
+	}
+
+	cd->xds = FALSE;
+
+	vbi_xds_demux_reset (&cd->xds_demux);
+
+	cd->info_cycle[0] = 0;
+	cd->info_cycle[1] = 0;
+
+	vbi_caption_decoder_resync (cd);
+}
+
+vbi_bool
+vbi_caption_decoder_decode	(vbi_caption_decoder *	cd,
+				 const uint8_t		buffer[2],
+				 double			timestamp)
+{
+	/* TODO */
+	return FALSE;
+}
+
+/** @internal */
+void
+_vbi_caption_decoder_destroy	(vbi_caption_decoder *	cd)
+{
+	assert (NULL != cd);
+
+//	pthread_mutex_destroy(&vbi->cc.mutex);
+
+	_vbi_xds_demux_destroy (&cd->xds_demux);
+}
+
+/** @internal */
+void
+_vbi_caption_decoder_init	(vbi_caption_decoder *	cd,
+				 vbi_cache *		ca,
+				 vbi_nuid		nuid)
+{
+
+	cc_channel *ch;
+	int i;
+
+	assert (NULL != cd);
+
+	memset(cd, 0, sizeof(*cd));
+
+//	pthread_mutex_init(&cc->mutex, NULL);
+
+	for (i = 0; i < 9; i++) {
+		ch = &cd->channel[i];
+
+		ch->pg[0].vbi = NULL; //vbi;
+
+		ch->pg[0].pgno = i + 1;
+		ch->pg[0].subno = 0;
+
+		ch->pg[0].rows = ROWS;
+		ch->pg[0].columns = COLUMNS;
+
+		ch->pg[0].screen_color = 0;
+		ch->pg[0].screen_opacity = (i < 4) ? VBI_TRANSPARENT_SPACE : VBI_OPAQUE;
+
+#warning todo
+//		ch->pg[0].font[0] = vbi_font_descriptors; /* English */
+//		ch->pg[0].font[1] = vbi_font_descriptors;
+
+		memcpy(&ch->pg[1], &ch->pg[0], sizeof(ch->pg[1]));
+	}
+
+       	for (i = 0; i < 2; i++) {
+		cd->transp_space[i].foreground = VBI_WHITE;
+		cd->transp_space[i].background = VBI_BLACK;
+		cd->transp_space[i].unicode = 0x0020;
+	}
+
+	cd->transp_space[0].opacity = VBI_TRANSPARENT_SPACE;
+	cd->transp_space[1].opacity = VBI_OPAQUE;
+
+//TODO	_vbi_xds_demux_init (&cd->xds_demux, _vbi_decode_xds, vbi);
+
+//TODO	vbi_caption_channel_switched(vbi);
+
+//TODO	vbi_caption_color_level(vbi);
+}
+
+void
+vbi_caption_decoder_delete	(vbi_caption_decoder *	cd)
+{
+	/* TODO */
+}
+
+vbi_caption_decoder *
+vbi_caption_decoder_new		(vbi_cache *		ca)
+{
+	/* TODO */
+	return NULL;
 }

@@ -18,10 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: aspect_ratio.h,v 1.1.2.3 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: aspect_ratio.h,v 1.1.2.4 2004-05-12 01:40:43 mschimek Exp $ */
 
-#ifndef __ZVBI_ASPECT_H__
-#define __ZVBI_ASPECT_H__
+#ifndef __ZVBI_ASPECT_RATIO_H__
+#define __ZVBI_ASPECT_RATIO_H__
 
 #include <stdio.h>		/* FILE */
 #include "macros.h"
@@ -113,4 +113,4 @@ _vbi_aspect_ratio_init		(vbi_aspect_ratio *	r,
 
 VBI_END_DECLS
 
-#endif /* __ZVBI_ASPECT_H__ */
+#endif /* __ZVBI_ASPECT_RATIO_H__ */

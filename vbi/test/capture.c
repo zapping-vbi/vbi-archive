@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: capture.c,v 1.7.2.4 2004-04-08 23:36:49 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.5 2004-05-12 01:40:45 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -342,7 +342,7 @@ mainloop(void)
 }
 
 static void
-log	       			(const char *		function,
+logfn    			(const char *		function,
 				 const char *		message,
 				 void *			user_data)
 {
@@ -422,7 +422,7 @@ main(int argc, char **argv)
 		| VBI_SLICED_WSS_625 | VBI_SLICED_WSS_CPR1204;
 
 	if (verbose)
-		vbi_set_log_fn (log, NULL);
+		vbi_set_log_fn (logfn, NULL);
 
 	if (do_sim) {
 		rd = init_sim (scanning, services);

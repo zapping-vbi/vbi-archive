@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.4.2.2 2004-04-15 00:11:16 mschimek Exp $ */
+/* $Id: io.c,v 1.4.2.3 2004-05-12 01:40:44 mschimek Exp $ */
 
 #include <assert.h>
 #include <string.h>
@@ -294,7 +294,7 @@ vbi_capture_delete(vbi_capture *capture)
    FIXME remove fp arg, call user log function instead (0.3). */
 
 void
-fprintf_symbolic		(FILE *			fp,
+fprint_symbolic			(FILE *			fp,
 				 int			mode,
 				 unsigned long		value,
 				 ...)
@@ -342,7 +342,7 @@ fprintf_symbolic		(FILE *			fp,
 }
 
 void
-fprintf_unknown_cmd		(FILE *			fp,
+fprint_unknown_ioctl		(FILE *			fp,
 				 unsigned int		cmd,
 				 void *			arg)
 {
@@ -372,16 +372,16 @@ device_open			(FILE *			fp,
 		saved_errno = errno;
 
 		fprintf (fp, "%d = open (\"%s\", ", fd, pathname);
-		fprintf_symbolic (fp, 2, flags,
-				  "RDONLY", O_RDONLY,
-				  "WRONLY", O_WRONLY,
-				  "RDWR", O_RDWR,
-				  "CREAT", O_CREAT,
-				  "EXCL", O_EXCL,
-				  "TRUNC", O_TRUNC,
-				  "APPEND", O_APPEND,
-				  "NONBLOCK", O_NONBLOCK,
-				  0);
+		fprint_symbolic (fp, 2, flags,
+				 "RDONLY", O_RDONLY,
+				 "WRONLY", O_WRONLY,
+				 "RDWR", O_RDWR,
+				 "CREAT", O_CREAT,
+				 "EXCL", O_EXCL,
+				 "TRUNC", O_TRUNC,
+				 "APPEND", O_APPEND,
+				 "NONBLOCK", O_NONBLOCK,
+				 0);
 		fprintf (fp, ", 0%o)", mode);
 
 		if (-1 == fd) {

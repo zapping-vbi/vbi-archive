@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.16 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.17 2004-05-12 01:40:44 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
@@ -535,8 +535,8 @@ typedef struct {
 	/**
 	 * Highest subpage number transmitted according to MOT, MIP, BTT.
 	 * - 0x0000		single page (SUBCODE_SINGLE_PAGE)
-	 * - 0x0002 - 0x0099	multi-page
-	 * - 0x0100 - 0x3F7F	clock page, other pages with non-standard
+	 * - 0x0002 - 0x0079	multi-page
+	 * - 0x0080 - 0x3F7F	clock page, other pages with non-standard
 	 *			subpages not to be cached
 	 * - 0xFFFE		has 2+ subpages (libzvbi) (SUBCODE_MULTI_PAGE)
 	 * - 0xFFFF		unknown (libzvbi) (SUBCODE_UNKNOWN)
@@ -671,11 +671,6 @@ _vbi_convert_cached_page	(vbi_cache *		ca,
 				 const vt_network *	vtn,
 				 const vt_page **	vtpp,
 				 page_function		new_function);
-// preliminary
-extern vbi_bool
-vbi_decode_teletext		(vbi_decoder *		vbi,
-				 const uint8_t		buffer[42],
-				 double			timestamp);
 
 extern void
 _vbi_teletext_decoder_resync	(vbi_teletext_decoder *	td);

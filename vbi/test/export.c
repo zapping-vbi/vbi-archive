@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5.2.8 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.9 2004-05-12 01:40:45 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -124,8 +124,8 @@ export_pdc			(vbi_export *		export,
 	return 0 == ferror (fp);
 }
 
-static void
-handler(vbi_event *ev, void *unused)
+static vbi_bool
+handler(const vbi_event *ev, void *unused)
 {
 	static double timestamp = 0.0;
 	FILE *fp;
@@ -138,11 +138,11 @@ handler(vbi_event *ev, void *unused)
 			cr);
 
 	if (pgno >= 0 && ev->ev.ttx_page.pgno != pgno)
-		return;
+		return TRUE;
 
 	if (delay > 0) {
 		--delay;
-		return;
+		return TRUE;
 	}
 
 	if (!option_quiet) {
@@ -152,15 +152,16 @@ handler(vbi_event *ev, void *unused)
 		fflush(stderr);
 	}
 
-	pg = vbi_fetch_vt_page(vbi,
-			       ev->ev.ttx_page.pgno,
-			       ev->ev.ttx_page.subno,
-			       VBI_WST_LEVEL, VBI_WST_LEVEL_3p5,
-			       VBI_41_COLUMNS, option_columns_41,
-			       VBI_NAVIGATION, option_navigation,
-			       VBI_HYPERLINKS, option_hyperlinks,
-			       VBI_PDC_LINKS, option_pdc_links,
-			       0);
+	pg = vbi_decoder_get_teletext_page (vbi,
+					    VBI_NUID_UNKNOWN,
+					    ev->ev.ttx_page.pgno,
+					    ev->ev.ttx_page.subno,
+					    VBI_WST_LEVEL, VBI_WST_LEVEL_3p5,
+					    VBI_41_COLUMNS, option_columns_41,
+					    VBI_NAVIGATION, option_navigation,
+					    VBI_HYPERLINKS, option_hyperlinks,
+					    VBI_PDC_LINKS, option_pdc_links,
+					    0);
 
 	if (pgno == -1) {
 		char name[256];
@@ -198,6 +199,8 @@ handler(vbi_event *ev, void *unused)
 	} else {
 		quit = TRUE;
 	}
+
+	return TRUE;
 }
 
 static void
@@ -259,7 +262,7 @@ stream(void)
 		if (feof(stdin) || ferror(stdin))
 			goto abort;
 
-		vbi_decode(vbi, sliced, items, time);
+		vbi_decoder_decode (vbi, sliced, items, time);
 
 		time += dt;
 	}
@@ -357,9 +360,9 @@ main(int argc, char **argv)
 	assert ((extens = strdup (xi->extension)));
 	extens = strtok_r (extens, ",", &t);
 
-	assert ((vbi = vbi_decoder_new ()));
+	assert ((vbi = vbi_decoder_new (NULL)));
 
-	assert (vbi_event_handler_register
+	assert (vbi_decoder_add_event_handler
 		(vbi, VBI_EVENT_TTX_PAGE, handler, NULL)); 
 
 	stream ();

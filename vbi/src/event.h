@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.h,v 1.5.2.8 2004-04-17 05:52:24 mschimek Exp $ */
+/* $Id: event.h,v 1.5.2.9 2004-05-12 01:40:43 mschimek Exp $ */
 
 #ifndef EVENT_H
 #define EVENT_H
@@ -472,10 +472,7 @@ typedef struct vbi_event {
 	}			ev;
 } vbi_event;
 
-/**
- * @addtogroup Event
- * @{
- */
+#if 0 // obsolete
 typedef void (* vbi_event_handler)(vbi_event *event, void *user_data);
 
 extern vbi_bool		vbi_event_handler_add(vbi_decoder *vbi, int event_mask,
@@ -489,12 +486,8 @@ extern vbi_bool		vbi_event_handler_register(vbi_decoder *vbi, int event_mask,
 extern void		vbi_event_handler_unregister(vbi_decoder *vbi,
 						     vbi_event_handler handler,
 						     void *user_data);
-/** @} */
-
-/* Private */
-
 extern void		vbi_send_event(vbi_decoder *vbi, vbi_event *ev);
-
+#endif
 
 
 
@@ -516,16 +509,16 @@ typedef struct _vbi_event_handler _vbi_event_handler;
 
 struct _vbi_event_handler {
 	_vbi_event_handler *	next;
-	unsigned int		event_mask;
-	unsigned int		blocked;
 	vbi_event_cb *		callback;
 	void *			user_data;
+	unsigned int		event_mask;
+	unsigned int		blocked;
 };
 
 typedef struct {
-	unsigned int		event_mask;
 	_vbi_event_handler *	first;
 	_vbi_event_handler *	current;
+	unsigned int		event_mask;
 } _vbi_event_handler_list;
 
 extern void

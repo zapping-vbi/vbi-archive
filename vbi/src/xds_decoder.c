@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_decoder.c,v 1.1.2.3 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: xds_decoder.c,v 1.1.2.4 2004-05-12 01:40:45 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -27,6 +27,7 @@
 #include <stdlib.h>
 
 #include "vbi.h"
+#include "vbi_decoder-priv.h"
 
 #include "hamm.h"
 #include "xds_decoder.h"
@@ -52,11 +53,13 @@ static inline void
 caption_send_event(vbi_decoder *vbi, vbi_event *ev)
 {
 	/* Permits calling vbi_fetch_cc_page from handler */
-	pthread_mutex_unlock(&vbi->cc.mutex);
+#warning todo
+  //	pthread_mutex_unlock(&vbi->cc.mutex);
 
-	vbi_send_event(vbi, ev);
+#warning obsolete
+//	vbi_send_event(vbi, ev);
 
-	pthread_mutex_lock(&vbi->cc.mutex);
+//	pthread_mutex_lock(&vbi->cc.mutex);
 }
 
 #define XDS_DEBUG(x)
@@ -217,7 +220,7 @@ decode_program			(vbi_decoder *		vbi,
 	vbi_event e;
 	int neq, i;
 
-	if (!(vbi->event_handlers.event_mask
+	if (!(vbi->handlers.event_mask
 	      & (VBI_EVENT_ASPECT | VBI_EVENT_PROG_INFO)))
 		return;
 
@@ -562,7 +565,8 @@ decode_program			(vbi_decoder *		vbi,
 		*/
 		if (0 != memcmp (r, &vbi->prog_info[0].aspect, sizeof(*r))) {
 			vbi->prog_info[0].aspect = *r;
-			vbi->aspect_source = 3;
+// TODO
+//			vbi->aspect_source = 3;
 
 			e.type = VBI_EVENT_ASPECT;
 			caption_send_event (vbi, &e);

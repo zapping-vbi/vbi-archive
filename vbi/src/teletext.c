@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.15 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.16 2004-05-12 01:40:44 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -3207,15 +3207,18 @@ next_ait(vbi_decoder *vbi, int pgno, int subno, const vt_page **mvtp)
 		const vt_page *vtp, *xvtp = NULL;
 		const vt_network *vtn;
 
-		vtn = vbi->vt.network;
+#warning todo
+//		vtn = vbi->vt.network;
 
 		if (vtn->btt_link[i].function != PAGE_FUNCTION_AIT)
 			continue;
-
+		vtp = 0;
+#if 0
 		vtp = _vbi_cache_get_page (vbi->vt.cache, vbi->vt.network,
 					  vtn->btt_link[i].pgno, 
 					  vtn->btt_link[i].subno, 0x3f7f,
 					  /* user access */ FALSE);
+#endif
 		if (!vtp) {
 			nav_log ("top ait page %x not cached\n",
 				 vtn->btt_link[i].pgno);
@@ -3244,11 +3247,13 @@ next_ait(vbi_decoder *vbi, int pgno, int subno, const vt_page **mvtp)
 		}
 
 		if (xvtp) {
-			_vbi_cache_release_page (vbi->vt.cache, *mvtp);
+#warning
+ //			_vbi_cache_release_page (vbi->vt.cache, *mvtp);
 			*mvtp = xvtp;
 		} else {
 		end:
-			_vbi_cache_release_page (vbi->vt.cache, vtp);
+ //			_vbi_cache_release_page (vbi->vt.cache, vtp)
+;
 		}
 	}
 
@@ -3350,8 +3355,9 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
 			if (ait->text[i] > 0x20)
 				break;
 
-		switch (vt_network_page_stat
-			(vbi->vt.network, ait->page.pgno)->page_type) {
+		switch (0) {
+  //		switch (vt_network_page_stat
+  //			(vbi->vt.network, ait->page.pgno)->page_type) {
 		case VBI_TOP_GROUP:
 			k = 3;
 			break;
@@ -3382,8 +3388,9 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
 		acp += pg->columns;
 	}
 
-	if (vtp)
-		_vbi_cache_release_page (vbi->vt.cache, vtp);
+#warning todo
+	//	if (vtp)
+	//		_vbi_cache_release_page (vbi->vt.cache, vtp);
 
 	return 1;
 }
@@ -3435,8 +3442,9 @@ vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf)
 	int i, j;
 
 	subno = subno;
-
-	if (vbi->vt.network->have_top) {
+#warning todo
+	if (0) {
+	  //	if (vbi->vt.network->have_top) {
 		for (i = 0; i < 8; i++) {
 			const vt_page *vtp;
 			const vt_network *vtn;
@@ -3445,12 +3453,15 @@ vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf)
 			if (vtn->btt_link[i].function != PAGE_FUNCTION_AIT)
 				continue;
 
+			vtp = 0;
+#if 0
 			vtp = _vbi_cache_get_page (vbi->vt.cache,
 						  vbi->vt.network,
 						  vtn->btt_link[i].pgno, 
 						  vtn->btt_link[i].subno,
 						  0x3f7f,
 						  /* user access */ FALSE);
+#endif
 			if (!vtp) {
 				nav_log ("p/t top ait page %x not cached\n",
 					 vtn->btt_link[i].pgno);
@@ -3466,11 +3477,13 @@ vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf)
 				if (ait->page.pgno == pgno) {
 
 					do_ait_title(vbi, vtp, ait, buf);
-					_vbi_cache_release_page (vbi->vt.cache, vtp);
+#warning
+//					_vbi_cache_release_page (vbi->vt.cache, vtp);
 					return TRUE;
 				}
 		end:
-			_vbi_cache_release_page (vbi->vt.cache, vtp);
+//			_vbi_cache_release_page (vbi->vt.cache, vtp)
+;
 		}
 	} else {
 		/* find a FLOF link and the corresponding label */
@@ -3565,7 +3578,7 @@ vbi_page_nav_enum		(const vbi_page *	pg,
  * @c TRUE if the page could be formatted.
  */
 vbi_bool
-vbi_format_vt_page_va_list	(vbi_page_private *	pgp,
+_vbi_page_from_vt_page_va_list	(vbi_page_private *	pgp,
 				 vbi_cache *		cache,
 				 const vt_network *	vtn,
 				 const vt_page *	vtp,
@@ -3630,6 +3643,11 @@ vbi_format_vt_page_va_list	(vbi_page_private *	pgp,
 		case VBI_41_COLUMNS:
 			pgp->pg.columns =
 				va_arg (format_options, vbi_bool) ? 41 : 40;
+			break;
+
+		case VBI_PANELS:
+			/* TODO */
+			va_arg (format_options, vbi_bool);
 			break;
 
 		case VBI_NAVIGATION:
@@ -3849,7 +3867,7 @@ vbi_format_vt_page_va_list	(vbi_page_private *	pgp,
  * @c TRUE if the page could be formatted.
  */
 vbi_bool
-vbi_format_vt_page		(vbi_page_private *	pgp,
+_vbi_page_from_vt_page		(vbi_page_private *	pgp,
 				 vbi_cache *		cache,
 				 const vt_network *	vtn,
 				 const vt_page *	vtp,
@@ -3859,91 +3877,61 @@ vbi_format_vt_page		(vbi_page_private *	pgp,
 	va_list format_options;
 
 	va_start (format_options, vtp);
-	r = vbi_format_vt_page_va_list (pgp, cache, vtn, vtp, format_options);
+
+	r = _vbi_page_from_vt_page_va_list
+		(pgp, cache, vtn, vtp, format_options);
+
 	va_end (format_options);
 
 	return r;
 }
 
-/**
- * @param vbi Initialized vbi_decoder context.
- * @param pg Place to store the formatted page.
- * @param pgno Page number of the page to fetch, see vbi_pgno.
- * @param subno Subpage number to fetch (optional @c VBI_ANY_SUBNO).
- * @param format_options Format option list, see vbi_fetch_vt_page() for details.
- * 
- * Fetches a Teletext page designated by @a pgno and @a subno from the
- * cache, formats and stores it in @a pg. Formatting is limited to row
- * 0 ... @a display_rows - 1 inclusive. The really useful values
- * are 1 (format header only) or 25 (everything). Likewise
- * @a navigation can be used to save unnecessary formatting time.
- * 
- * @return
- * @c FALSE if the page is not cached or could not be formatted
- * for other reasons, for instance is a data page not intended for
- * display. Level 2.5/3.5 pages which could not be formatted e. g.
- * due to referencing data pages not in cache are formatted at a
- * lower level.
- */
+/* ------------------------------------------------------------------------ */
+
 vbi_page *
-vbi_fetch_vt_page_va_list	(vbi_decoder *		vbi,
+vbi_cache_get_teletext_page_va_list
+				(vbi_cache *		ca,
+				 vbi_nuid		nuid,
 				 vbi_pgno		pgno,
 				 vbi_subno		subno,
 				 va_list		format_options)
 {
+	const vt_network *vtn;
 	const vt_page *vtp;
 	vbi_page *pg;
-	vbi_page_private *pgp;
 
-	vtp = _vbi_cache_get_page (vbi->vt.cache, vbi->vt.network,
-				   pgno, subno, ~0,
-				   /* user access */ FALSE);
+	vtn = NULL;
+	vtp = NULL;
 
-	if (!vtp)
-		return NULL;
+	pg = NULL;
 
-	if (!(pg = vbi_page_new ())) {
-		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
-				"Out of memory");
-		_vbi_cache_release_page (vbi->vt.cache, vtp);
-		return NULL;
+	if (!(vtn = _vbi_cache_get_network (ca, nuid)))
+		goto failure;
+
+	if (!(vtp = _vbi_cache_get_page (ca, vtn,
+					 pgno, subno, ~0,
+					 /* user access */ FALSE)))
+		goto failure;
+
+	if (!(pg = vbi_page_new ()))
+		goto failure;
+
+	if (!_vbi_page_from_vt_page_va_list (pg->priv, ca, vtn, vtp,
+					     format_options)) {
+		vbi_page_delete (pg);
+		pg = NULL;
 	}
 
-	pgp = PARENT (pg, vbi_page_private, pg);
+ failure:
+	_vbi_cache_release_page (ca, vtp);
+	_vbi_cache_release_network (ca, vtn);
 
-	if (!vbi_format_vt_page_va_list (pgp, vbi->vt.cache, vbi->vt.network,
-					 vtp, format_options)) {
-		vbi_page_delete (&pgp->pg);
-		return NULL;
-	}
-
-	_vbi_cache_release_page (vbi->vt.cache, vtp);
-
-	return &pgp->pg;
+	return pg;
 }
 
-/**
- * @param vbi Initialized vbi_decoder context.
- * @param pg Place to store the formatted page.
- * @param pgno Page number of the page to fetch, see vbi_pgno.
- * @param subno Subpage number to fetch (optional @c VBI_ANY_SUBNO).
- * @param ... Format option list, see vbi_fetch_vt_page() for details.
- * 
- * Fetches a Teletext page designated by @a pgno and @a subno from the
- * cache, formats and stores it in @a pg. Formatting is limited to row
- * 0 ... @a display_rows - 1 inclusive. The really useful values
- * are 1 (format header only) or 25 (everything). Likewise
- * @a navigation can be used to save unnecessary formatting time.
- * 
- * @return
- * @c FALSE if the page is not cached or could not be formatted
- * for other reasons, for instance is a data page not intended for
- * display. Level 2.5/3.5 pages which could not be formatted e. g.
- * due to referencing data pages not in cache are formatted at a
- * lower level.
- */
 vbi_page *
-vbi_fetch_vt_page		(vbi_decoder *		vbi,
+vbi_cache_get_teletext_page	(vbi_cache *		ca,
+				 vbi_nuid		nuid,
 				 vbi_pgno		pgno,
 				 vbi_subno		subno,
 				 ...)
@@ -3952,11 +3940,16 @@ vbi_fetch_vt_page		(vbi_decoder *		vbi,
 	va_list format_options;
 
 	va_start (format_options, subno);
-	pg = vbi_fetch_vt_page_va_list (vbi, pgno, subno, format_options);
+
+	pg = vbi_cache_get_teletext_page_va_list
+		(ca, nuid, pgno, subno, format_options);
+
 	va_end (format_options);
 
 	return pg;
 }
+
+/* ------------------------------------------------------------------------- */
 
 /**
  * @param pg A vbi_page allocated with vbi_page_new(),

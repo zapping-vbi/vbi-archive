@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache-priv.h,v 1.1.2.1 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: cache-priv.h,v 1.1.2.2 2004-05-12 01:40:43 mschimek Exp $ */
 
 #ifndef CACHE_PRIV_H
 #define CACHE_PRIV_H
@@ -56,5 +56,37 @@ _vbi_cache_get_network		(vbi_cache *		ca,
 extern vt_network *
 _vbi_cache_new_network		(vbi_cache *		ca,
 				 vbi_nuid		client_nuid);
+
+typedef void
+vbi_lock_fn			(void *			user_data);
+typedef void
+vbi_unlock_fn			(void *			user_data);
+
+extern void
+_vbi_cache_purge_by_nuid	(vbi_cache *		ca,
+				 vbi_nuid		nuid);
+extern void
+_vbi_cache_purge		(vbi_cache *		ca);
+extern void
+_vbi_cache_normal_network	(vbi_cache *		ca,
+				 vbi_nuid		nuid,
+				 vbi_bool		force);
+extern void
+_vbi_cache_current_network	(vbi_cache *		ca,
+				 vbi_nuid		nuid,
+				 vbi_bool		exclusive);
+extern void
+_vbi_cache_set_lock_functions	(vbi_cache *		ca,
+				 vbi_lock_fn *		lock,
+				 vbi_unlock_fn *	unlock,
+				 void *			user_data);
+extern void
+_vbi_cache_set_memory_limit	(vbi_cache *		ca,
+				 unsigned int		limit);
+extern void
+_vbi_cache_set_network_limit	(vbi_cache *		ca,
+				 unsigned int		limit);
+extern vbi_cache *
+_vbi_cache_dup_ref		(vbi_cache *		ca);
 
 #endif /* CACHE_PRIV_H */

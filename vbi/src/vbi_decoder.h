@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.h,v 1.1.2.2 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: vbi_decoder.h,v 1.1.2.3 2004-05-12 01:40:44 mschimek Exp $ */
 
 #ifndef __ZVBI_VBI_DECODER_H__
 #define __ZVBI_VBI_DECODER_H__
@@ -47,10 +47,15 @@ typedef struct vbi_decoder vbi_decoder;
  * @addtogroup Service
  * @{
  */
-extern vbi_decoder *	vbi_decoder_new(void);
-extern void		vbi_decoder_delete(vbi_decoder *vbi);
-extern void		vbi_decode(vbi_decoder *vbi, vbi_sliced *sliced,
-				   int lines, double timestamp);
+extern const char **
+vbi_cache_page_language		(vbi_decoder *		vbi,
+				 vbi_pgno		pgno);
+extern vbi_page_type
+vbi_classify_page		(vbi_decoder *		vbi,
+				 vbi_pgno		pgno,
+				 vbi_subno *		subno);
+
+
 extern void             vbi_channel_switched(vbi_decoder *vbi, vbi_nuid nuid);
 extern const char **
 vbi_cache_page_language		(vbi_decoder *		vbi,
@@ -59,7 +64,6 @@ extern vbi_page_type	vbi_classify_page(vbi_decoder *vbi, vbi_pgno pgno,
 					  vbi_subno *subno);
 extern void		vbi_version(unsigned int *major, unsigned int *minor, unsigned int *micro);
 
-// XXX doesn't belong here.
 typedef void vbi_log_fn		(const char *		function,
 				 const char *		message,
 				 void *			user_data);
@@ -75,17 +79,28 @@ extern void
 vbi_init			(void)
      __attribute__ ((constructor));
 
+     /*
 extern void		vbi_transp_colormap	(vbi_decoder *		vbi,
 						 vbi_rgba *		d,
 						 const vbi_rgba *	s,
 						 int			entries);
+     */
+
 extern void             vbi_chsw_reset(vbi_decoder *vbi, vbi_nuid nuid);
 
-extern void		vbi_asprintf(char **errstr, char *templ, ...);
+extern void		_vbi_asprintf(char **errstr, char *templ, ...);
 
 
 #include <stdarg.h>
 
+
+
+
+
+
+
+
+#if 0
 /**
  * @ingroup Service
  * @brief Teletext implementation level.
@@ -100,8 +115,9 @@ typedef enum {
 	VBI_WST_LEVEL_2p5,
 	VBI_WST_LEVEL_3p5  /**< 3.5 - Multicolor DRCS, proportional script */
 } vbi_wst_level;
+#endif
 
-
+#if 0
 /**
  * @addtogroup Cache
  * @{
@@ -151,6 +167,9 @@ typedef enum {
 	 */
 	VBI_CHAR_SET_OVERRIDE,
 } vbi_format_option;
+#endif
+
+#include "format.h"
 
 extern vbi_page *
 vbi_page_new			(void);
@@ -189,6 +208,66 @@ vbi_page_nav_enum		(const vbi_page *	pg,
 				 vbi_link *		ld,
 				 unsigned int		index);
 /** @} */
+
+extern void             vbi_chsw_reset(vbi_decoder *vbi, vbi_nuid nuid);
+extern vbi_page *
+
+vbi_fetch_vt_page		(vbi_decoder *		vbi,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 ...);
+extern vbi_page *
+vbi_fetch_vt_page_va_list	(vbi_decoder *		vbi,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 va_list		format_options);
+
+
+extern const vbi_program_id *
+vbi_decoder_program_id		(vbi_decoder *		vbi,
+				 vbi_pid_channel	channel);
+extern const vbi_aspect_ratio *
+vbi_decoder_aspect_ratio	(vbi_decoder *		vbi);
+extern void
+vbi_decoder_decode		(vbi_decoder *		vbi,
+				 vbi_sliced *		sliced,
+				 unsigned int		sliced_size,
+				 double			time);
+extern void
+vbi_decoder_reset		(vbi_decoder *		vbi,
+				 vbi_nuid		nuid);
+extern vbi_page *
+vbi_decoder_get_teletext_page_va_list
+				(vbi_decoder *		vbi,
+				 vbi_nuid		nuid,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 va_list		format_options);
+extern vbi_page *
+vbi_decoder_get_teletext_page	(vbi_decoder *		vbi,
+				 vbi_nuid		nuid,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 ...);
+extern void
+vbi_decoder_remove_event_handler(vbi_decoder *		vbi,
+				 vbi_event_cb *		callback,
+				 void *			user_data);
+extern vbi_bool
+vbi_decoder_add_event_handler	(vbi_decoder *		vbi,
+				 unsigned int		event_mask,
+				 vbi_event_cb *		callback,
+				 void *			user_data);
+extern void
+_vbi_decoder_destroy		(vbi_decoder *		vbi);
+extern vbi_bool
+_vbi_decoder_init		(vbi_decoder *		vbi,
+				 vbi_cache *		ca,
+				 vbi_nuid		nuid);
+extern void
+vbi_decoder_delete		(vbi_decoder *		vbi);
+extern vbi_decoder *
+vbi_decoder_new			(vbi_cache *		ca);
 
 VBI_END_DECLS
 
