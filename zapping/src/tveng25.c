@@ -1166,6 +1166,36 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
 static int
 set_capture_format(tveng_device_info * info);
 
+static void
+reset_crop_rect			(tveng_device_info *	info)
+{
+	struct v4l2_cropcap cropcap;
+	struct v4l2_crop crop;
+
+	cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+	if (-1 == v4l25_ioctl (info, VIDIOC_CROPCAP, &cropcap)) {
+		/* Errors ignored. */
+		return;
+	}
+
+	crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	crop.c = cropcap.defrect;
+
+	if (-1 == v4l25_ioctl (info, VIDIOC_S_CROP, &crop)) {
+		switch (errno) {
+		case EINVAL:
+			/* Cropping not supported. */
+			return;
+		default:
+			/* Errors ignored. */
+			return;
+		}
+	}
+
+	return;
+}
+
 /*
   Associates the given tveng_device_info with the given video
   device. On error it returns -1 and sets info->tveng_errno, info->error to
@@ -1236,6 +1266,9 @@ int tveng25_attach_device(const char* device_file,
   info -> attach_mode = attach_mode;
   /* Current capture mode is no capture at all */
   info -> current_mode = TVENG_NO_CAPTURE;
+
+	if (TVENG_ATTACH_READ == attach_mode)
+		reset_crop_rect	(info);
 
   /* We have a valid device, get some info about it */
 
