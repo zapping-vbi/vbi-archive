@@ -64,6 +64,7 @@ char *program_invocation_short_name;
 
 static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
 						support */
+gint			disable_overlay = FALSE; /* Xv or V4L */
 
 static void shutdown_zapping(void);
 static gboolean startup_zapping(gboolean load_plugins);
@@ -344,6 +345,15 @@ int main(int argc, char * argv[])
       NULL
     },
     {
+      "remote",
+      0,
+      POPT_ARG_NONE,
+      &disable_overlay,
+      0,
+      N_("X11 display is remote. This basically disables video overlay"),
+      NULL
+    },
+    {
       "no-zsfb",
       'z',
       POPT_ARG_NONE,
@@ -435,7 +445,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.12 2003-01-21 05:23:30 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.13 2003-01-24 18:22:23 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())

@@ -91,7 +91,7 @@ static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
 {
   struct v4l2_capability caps;
   struct v4l2_framebuffer fb;
-
+  
   t_assert(info != NULL);
   t_assert(info->file_name != NULL);
 

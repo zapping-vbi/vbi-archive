@@ -38,6 +38,7 @@
 #include "x11stuff.h"
 #include "keyboard.h"
 #include "remote.h"
+#include "globals.h"
 
 /* Property handlers for the different pages */
 /* Device info */
@@ -864,11 +865,54 @@ video_setup		(GtkWidget	*page)
      zconf_get_integer(NULL,
 		       "/zapping/options/main/zapping_setup_fb_verbosity"));
 
-  /* fullscreen video mode */
-  widget = lookup_widget(page, "optionmenu2");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/main/change_mode"));
+  {
+    GtkWidget *menu;
+    GtkWidget *menuitem;
+    x11_vidmode_info *info, *hist;
+    const gchar *mode;
+    guint i, h;
+
+    /* fullscreen video mode */
+
+    mode = zconf_get_string (NULL, "/zapping/options/main/fullscreen/vidmode");
+
+    menu = gtk_menu_new ();
+
+    /* TRANSLATORS: Fullscreen video mode */
+    menuitem = gtk_menu_item_new_with_label (_("Do not change"));
+    gtk_widget_show (menuitem);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
+
+    menuitem = gtk_menu_item_new_with_label (_("Automatic"));
+    gtk_widget_show (menuitem);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
+
+    h = (mode && 0 == strcmp (mode, "auto"));
+    hist = x11_vidmode_by_name (vidmodes, mode);
+
+    for (info = vidmodes, i = 2; info; info = info->next, i++)
+      {
+        gchar *s;
+
+        if (info == hist)
+          h = i;
+      
+        /* TRANSLATORS: Fullscreen video mode */
+        s = g_strdup_printf (_("%u x %u @ %u Hz"),
+		         info->width, info->height,
+		         (unsigned int)(info->vfreq + 0.5));
+
+        menuitem = gtk_menu_item_new_with_label (s);
+        gtk_widget_show (menuitem);
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
+
+        g_free (s);
+      }
+      
+    widget = lookup_widget(page, "optionmenu2");
+    gtk_option_menu_set_menu (GTK_OPTION_MENU (widget), menu);
+    gtk_option_menu_set_history (GTK_OPTION_MENU(widget), h);
+  }
 
   /* capture size under XVideo */
   widget = lookup_widget(page, "optionmenu20");
@@ -898,9 +942,42 @@ video_apply		(GtkWidget	*page)
 	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)),
 		"/zapping/options/main/zapping_setup_fb_verbosity");
 
-  widget = lookup_widget(page, "optionmenu2"); /* change mode */
-  zconf_set_integer(z_option_menu_get_active(widget),
-		    "/zapping/options/main/change_mode");
+  {
+    const gchar *opt = "/zapping/options/main/fullscreen/vidmode";
+    guint i;
+
+    widget = lookup_widget(page, "optionmenu2"); /* change mode */
+    i = z_option_menu_get_active (widget);
+
+    if (i == 1)
+      {
+        zconf_set_string ("auto", opt);
+      }
+    else
+      {
+        x11_vidmode_info *info;
+
+        info = NULL;
+      
+        if (i >= 2)
+          for (info = vidmodes; info; info = info->next)
+            if (i-- == 2)
+	      break;
+
+	if (info)
+	  {
+            gchar *s = g_strdup_printf ("%ux%u@%u",
+					info->width, info->height,
+					(unsigned int)(info->vfreq + 0.5));
+            zconf_set_string (s, opt);
+	    g_free (s);
+	  }
+	else
+	  {
+            zconf_set_string ("", opt);
+          }
+      }
+  }
 
   widget = lookup_widget(page, "optionmenu20"); /* xv capture size */
   zconf_set_integer(z_option_menu_get_active(widget),

@@ -1,5 +1,8 @@
-/* Zapping (TV viewer for the Gnome Desktop)
+/*
+ * Zapping (TV viewer for the Gnome Desktop)
+ *
  * Copyright (C) 2000-2001 Iñaki García Etxebarria
+ * Copyright (C) 2002-2003 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,6 +17,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * Some of this code is based on the xscreensaver source code:
+ * Copyright (c) 1991-1998 by Jamie Zawinski <jwz@jwz.org>
+ *
+ * Permission to use, copy, modify, distribute, and sell this software and its
+ * documentation for any purpose is hereby granted without fee, provided that
+ * the above copyright notice appear in all copies and that both that
+ * copyright notice and this permission notice appear in supporting
+ * documentation.  No representations are made about the suitability of this
+ * software for any purpose.  It is provided "as is" without express or 
+ * implied warranty.
  */
 
 /*
@@ -29,6 +43,8 @@
 #include <gdk/gdkx.h>
 #include <gtk/gtk.h>
 #include <stdlib.h>
+#include <math.h>
+#include <ctype.h>
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zconf.h"
 #include "x11stuff.h"
@@ -40,7 +56,9 @@
 #define USE_XDPMS 1
 #include <X11/extensions/dpms.h>
 #endif
+#include <X11/Xatom.h>
 #endif
+
 
 /*
  * Returns a pointer to the data contained in the given GdkImage
@@ -349,59 +367,112 @@ x11_root_geometry		(unsigned int *		width,
 		&d1, &d2, &d2, width, height, &d2, &d2);
 }
 
-static gboolean
-stop_xscreensaver_timeout (gpointer unused)
-{
-  system ("xscreensaver-command -deactivate >&- 2>&- &");
+/*
+ *
+ */
 
-  return TRUE;
+static XErrorHandler	old_error_handler	= 0;
+static Bool		bad_window		= False;
+
+static int
+bad_window_handler		(Display *		display,
+				 XErrorEvent *		error)
+{
+  if (error->error_code == BadWindow)
+    bad_window = True;
+  else if (old_error_handler)
+    return old_error_handler (display, error);
+
+  return 0;
 }
 
-/*
- * Sets the X screen saver on/off
- */
-void
-x11_set_screensaver(gboolean on)
+static inline int
+get_window_property		(Display *		display,
+				 Window			window,
+				 Atom			property,
+				 Atom			req_type,
+				 unsigned long *	nitems_return,
+				 unsigned char **	prop_return)	 
 {
-#ifdef USE_XDPMS
-  static BOOL dpms_was_on;
-  CARD16 dpms_state;
-  int dummy;
-#endif
-  static int timeout=-2, interval, prefer_blanking, allow_exposures;
-  static gint gtimeout = -1;
+  int status;
+  Atom type;
+  int format;
+  unsigned long bytes_after;
 
-  if (on) {
-    if (timeout == -2) {
-      g_warning("cannot activate screensaver before deactivating");
-      return;
+  bad_window = False;
+  
+  status = XGetWindowProperty (display, window, property,
+                    	       0, (65536 / sizeof (long)),
+			       False, req_type,
+			       &type, &format,
+			       nitems_return, &bytes_after,
+			       prop_return);
+  if (bad_window)
+    {
+      status = BadWindow;
     }
-    XSetScreenSaver(GDK_DISPLAY(), timeout, interval, prefer_blanking,
-		    allow_exposures);
-    gtk_timeout_remove(gtimeout);
-    gtimeout = -1;
-#ifdef USE_XDPMS
-    if ( (DPMSQueryExtension(GDK_DISPLAY(), &dummy, &dummy) ) &&
-	 (DPMSCapable(GDK_DISPLAY())) && (dpms_was_on) )
-      DPMSEnable(GDK_DISPLAY());
-#endif
-  } else {
-    XGetScreenSaver(GDK_DISPLAY(), &timeout, &interval,
-		    &prefer_blanking, &allow_exposures);
-    /* This disables the builtin X screensaver... */
-    XSetScreenSaver(GDK_DISPLAY(), 0, interval, prefer_blanking,
-		    allow_exposures);
-    /* and this XScreensaver. */
-    gtimeout = gtk_timeout_add(5000, stop_xscreensaver_timeout, NULL);
+  else if (status == Success)
+    {
+      if (type == None)
+        status = BadAtom;
+    }
 
-#ifdef USE_XDPMS
-    if ( (DPMSQueryExtension(GDK_DISPLAY(), &dummy, &dummy)) &&
-	 (DPMSCapable(GDK_DISPLAY())) ) {
-      DPMSInfo(GDK_DISPLAY(), &dpms_state, &dpms_was_on);
-      DPMSDisable(GDK_DISPLAY());
+  return status;
+}      
+
+static void
+send_event			(Display *		display,
+				 Window			window,
+				 Atom			message_type,
+				 long			l0,
+				 long			l1)
+{
+  XEvent xev;
+
+  memset (&xev, 0, sizeof (xev));
+
+  xev.type = ClientMessage;
+  xev.xclient.display = display;
+  xev.xclient.window = window;
+  xev.xclient.send_event = TRUE;
+  xev.xclient.message_type = message_type;
+  xev.xclient.format = 32;
+  xev.xclient.data.l[0] = l0;
+  xev.xclient.data.l[1] = l1;
+
+  if (!XSendEvent (display, DefaultRootWindow (display),
+	           False,
+	           SubstructureNotifyMask |
+	           SubstructureRedirectMask,
+	           &xev))
+    {
+//      fprintf(stderr, "bad send event\n");
     }
-#endif
-  }
+
+//      fprintf(stderr, "send event ok\n");
+
+  XSync (display, False);
+}
+
+static void
+window_send_event		(GtkWindow *		window,
+				 Atom			message_type,
+				 long			l0,
+				 long			l1)
+{
+  GdkWindow *toplevel = window->frame ? window->frame
+    : GTK_WIDGET (window)->window;
+
+  g_assert (toplevel != NULL);
+  g_assert (GTK_WIDGET_MAPPED (window));
+
+  if (1) printv ("window_send_event\n");
+
+  send_event (GDK_WINDOW_XDISPLAY (toplevel),
+	      GDK_WINDOW_XWINDOW (toplevel),
+	      message_type,
+	      l0,
+	      l1);
 }
 
 /*
@@ -418,6 +489,10 @@ dummy_window_on_top		(GtkWindow *		window,
 { }
 
 /**
+ * window_on_top:
+ * @window:
+ * @on:
+ *
  * Tell the WM to keep the window on top of other windows.
  * You must call wm_hints_detect () and gtk_widget_show (window) first.
  */
@@ -434,46 +509,6 @@ wm_hints_detect (void)
 }
 
 #else
-
-static void
-wm_send_event			(GtkWindow *		window,
-				 Atom			message_type,
-				 long			l0,
-				 long			l1)
-{
-  GdkWindow *toplevel = window->frame ? window->frame
-    : GTK_WIDGET (window)->window;
-  Display *xdisplay;
-  Window xwindow;
-  XEvent xev;
-
-  g_assert (toplevel != NULL);
-  g_assert (GTK_WIDGET_MAPPED (window));
-
-  X11STUFF_WM_HINT_DEBUG (printv ("wm_send_event\n"));
-
-  xdisplay = GDK_WINDOW_XDISPLAY (toplevel);
-  xwindow = GDK_WINDOW_XWINDOW (toplevel);
-
-  memset (&xev, 0, sizeof (xev));
-
-  xev.type = ClientMessage;
-  xev.xclient.display = xdisplay;
-  xev.xclient.window = xwindow;
-  xev.xclient.send_event = TRUE;
-  xev.xclient.message_type = message_type;
-  xev.xclient.format = 32;
-  xev.xclient.data.l[0] = l0;
-  xev.xclient.data.l[1] = l1;
-
-  XSendEvent (xdisplay, DefaultRootWindow (xdisplay),
-	      False,
-	      SubstructureNotifyMask |
-	      SubstructureRedirectMask,
-	      &xev);
-
-  XSync (xdisplay, False);
-}
 
 static GdkFilterReturn
 wm_event_handler		(GdkXEvent *		xevent,
@@ -499,10 +534,10 @@ static void
 net_wm_window_on_top		(GtkWindow *		window,
 				 gboolean		on)
 {
-  wm_send_event (window,
-		 _XA_NET_WM_STATE,
-		 on ? _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE,
-		 _XA_NET_WM_STATE_ABOVE);
+  window_send_event (window,
+		     _XA_NET_WM_STATE,
+		     on ? _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE,
+		     _XA_NET_WM_STATE_ABOVE);
 }
 
 enum {
@@ -521,10 +556,10 @@ static void
 gnome_window_on_top		(GtkWindow *		window,
 				 gboolean		on)
 {
-  wm_send_event (window,
-		 _XA_WIN_LAYER,
-		 on ? WIN_LAYER_ONTOP : WIN_LAYER_NORMAL,
-		 0);
+  window_send_event (window,
+		     _XA_WIN_LAYER,
+		     on ? WIN_LAYER_ONTOP : WIN_LAYER_NORMAL,
+		     0);
 }
 
 gboolean
@@ -534,9 +569,8 @@ wm_hints_detect (void)
   Window root;
   unsigned char *args = NULL;
   Atom *atoms = NULL;
-  unsigned long nitems, bytesafter;
-  int format, i;
-  Atom type;
+  unsigned long nitems;
+  int i;
 
   display = gdk_x11_get_default_xdisplay ();
   g_assert (display != 0);
@@ -548,12 +582,11 @@ wm_hints_detect (void)
   _XA_NET_WM_STATE_FULLSCREEN	= XInternAtom (display, "_NET_WM_STATE_FULLSCREEN", False);
   _XA_NET_WM_STATE_ABOVE	= XInternAtom (display, "_NET_WM_STATE_ABOVE", False);
 
-  /* netwm compliant */
+  /* Netwm compliant */
 
-  if (Success == XGetWindowProperty
-      (display, root, _XA_NET_SUPPORTED, 0, (65536 / sizeof (long)),
-       False, AnyPropertyType, &type, &format, &nitems, &bytesafter,
-       (unsigned char **) &atoms))
+  if (Success == get_window_property (display, root, _XA_NET_SUPPORTED,
+                                      AnyPropertyType, &nitems,
+				      (unsigned char **) &atoms))
     {
       printv ("wm hints _NET_SUPPORTED (%lu)\n", nitems);
 
@@ -562,10 +595,10 @@ wm_hints_detect (void)
 	  /* atoms[i] != _XA_... */
 	  char *atom_name = XGetAtomName (display, atoms[i]);
 
-	  X11STUFF_WM_HINT_DEBUG (printv("  atom %s\n", atom_name));
+	  X11STUFF_WM_HINT_DEBUG (printv ("  atom %s\n", atom_name));
 
 	  /* E.g. IceWM 1.2.2 _NET yes, _ABOVE no, but _LAYER */
-	  if (strcmp (atom_name, "_NET_WM_STATE_ABOVE") == 0)
+	  if (0 == strcmp (atom_name, "_NET_WM_STATE_ABOVE"))
 	    {
 	      XFree (atom_name);
 	      XFree (atoms);
@@ -588,11 +621,11 @@ wm_hints_detect (void)
   _XA_WIN_SUPPORTING_WM_CHECK	= XInternAtom (display, "_WIN_SUPPORTING_WM_CHECK", False);
   _XA_WIN_LAYER			= XInternAtom (display, "_WIN_LAYER", False);
 
-  /* gnome compliant */
+  /* Gnome compliant */
 
-  if (Success == XGetWindowProperty
-      (display, root, _XA_WIN_SUPPORTING_WM_CHECK, 0, (65536 / sizeof (long)),
-       False, AnyPropertyType, &type, &format, &nitems, &bytesafter, &args))
+  if (Success == get_window_property (display, root,
+                                      _XA_WIN_SUPPORTING_WM_CHECK,
+				      AnyPropertyType, &nitems, &args))
     if (nitems > 0)
       {
         printv("wm hints _WIN_SUPPORTING_WM_CHECK\n");
@@ -798,8 +831,11 @@ x11_vidmode_list_new		(Display *		display)
 		else if (v->pub.width > vv->width)
 		  break;
 
-	      v->pub.next = vv;
-	      *vvv = &v->pub;
+	      if (v)
+	        {
+	          v->pub.next = vv;
+	          *vvv = &v->pub;
+		}
 	    }
 	}
       else
@@ -813,6 +849,74 @@ x11_vidmode_list_new		(Display *		display)
   XFree (mode_info);
 
   return list;
+}
+
+/**
+ * x11_vidmode_by_name:
+ * @list: List of VidModes as returned by x11_vidmode_list_new().
+ * @name: VidMode name "width [sep height [sep vfreq [sep]]]".
+ *   All whitespace is ignored, sep can be any sequence of non-digits,
+ *   characters following the last sep are ignored. Numbers strtoul.
+ *
+ * Returns a pointer to the first VidMode matching the name, NULL
+ * when the mode is not in the list.
+ */
+x11_vidmode_info *
+x11_vidmode_by_name		(x11_vidmode_info *	list,
+				 const char *		name)
+{
+  unsigned int val[3] = { 0, 0, 0 };
+  x11_vidmode_info *info;
+  double fmin;
+  unsigned int i;
+  
+  if (!name)
+    return NULL;
+
+  for (i = 0; i < 3; i++)
+    {
+      while (isspace (*name))
+        name++;
+
+      if (0 == *name || !isdigit (*name))
+        break;
+
+      val[i] = strtoul (name, (char **) &name, 0);
+
+      while (isspace (*name))
+        name++;
+      while (*name && !isdigit (*name))
+        name++;
+    }
+
+  if (val[0] == 0)
+    return NULL;
+
+  info = NULL;
+  fmin = 1e20;
+
+  for (; list; list = list->next)
+    if (   (list->width == val[0])
+        && (val[1] == 0 || list->height == val[1]))
+      {
+        double d;
+      
+        if (val[2] == 0)
+	  {
+	    info = list;
+	    break;
+	  }
+	
+	d = fabs (list->vfreq - val[2]);
+
+	if (d < fmin)
+	  {
+	    info = list;
+	    fmin = d;
+	  }
+      }
+
+  return info;
 }
 
 /**
@@ -1048,3 +1152,162 @@ x11_vidmode_restore		(Display *		display,
 }
 
 #endif /* !DISABLE_X_EXTENSIONS */
+
+/*
+ *  Screensaver
+ */
+
+static Atom _XA_SCREENSAVER_VERSION;
+static Atom _XA_SCREENSAVER;
+static Atom _XA_DEACTIVATE;
+
+static int
+xss_find_screensaver_window	(Display *		display,
+				 Window *		window_return)
+{
+  Window root = RootWindowOfScreen (DefaultScreenOfDisplay (display));
+  Window root2, parent, *kids;
+  unsigned int nkids;
+  unsigned int i;
+
+  if (!XQueryTree (display, root, &root2, &parent, &kids, &nkids)
+      || root != root2 || parent
+      || !kids || nkids == 0)
+    return 0;
+
+  /* We're walking the list of root-level windows and trying to find
+     the one that has a particular property on it.  We need to trap
+     BadWindows errors while doing this, because it's possible that
+     some random window might get deleted in the meantime.  (That
+     window won't have been the one we're looking for.)
+   */
+  old_error_handler = XSetErrorHandler (bad_window_handler);
+
+  for (i = 0; i < nkids; i++)
+    {
+      int status;
+      unsigned long nitems;
+      char *v;
+
+      XSync (display, False);
+
+      if (Success == get_window_property (display, kids[i],
+                                          _XA_SCREENSAVER_VERSION,
+                                          XA_STRING, &nitems,
+				          (unsigned char **) &v))
+        {
+	  XSetErrorHandler (old_error_handler);
+          *window_return = kids[i];
+          XFree (kids);
+	  return 1;
+	}
+    }
+
+  XSetErrorHandler (old_error_handler);
+  XFree (kids);
+  return 0;
+}
+
+static inline void
+xss_deactivate			(Display *		display)
+{
+  Window window;
+  
+  if (!xss_find_screensaver_window (display, &window))
+    return; /* XXX What now? */
+
+  /* If the screensaver is active unblank, otherwise just re-start
+     the countdown. We have to call this regularly to get the desired
+     effect, which is inconvenient, but at least the screensaver
+     won't remain disabled when we bite the dust.  
+   */
+  send_event (display, window, _XA_SCREENSAVER,
+              (long) _XA_DEACTIVATE, 0);
+
+  /* Error ignored, response ignored. */
+}
+
+
+
+#define ROOT_UID 0
+
+static gboolean
+stop_xscreensaver_timeout (gpointer unused)
+{
+  const char *cmd = "xscreensaver-command -deactivate >&- 2>&- &";
+  int r;
+
+xss_deactivate (GDK_DISPLAY());
+
+//  r = system (cmd);
+//
+//  printv ("%d = system(\"%s\")\n", r, cmd);
+//
+//cmd = "/usr/local/bin/bell";
+//  r = system (cmd);
+
+  return TRUE; /* call again */
+}
+
+/*
+ * Sets the X screen saver on/off
+ */
+void
+x11_set_screensaver(gboolean on)
+{
+#ifdef USE_XDPMS
+  static BOOL dpms_was_on;
+  CARD16 dpms_state;
+  int dummy;
+#endif
+  static int timeout=-2, interval, prefer_blanking, allow_exposures;
+  static gint gtimeout = -1;
+
+  static int killme = 0;
+  if (!killme)
+    {
+      Display *display = GDK_DISPLAY();
+
+      killme=1;
+
+      _XA_SCREENSAVER_VERSION	= XInternAtom (display, "_SCREENSAVER_VERSION", False);
+      _XA_SCREENSAVER	= XInternAtom (display, "SCREENSAVER", False);
+      _XA_DEACTIVATE	= XInternAtom (display, "DEACTIVATE", False);
+    }
+
+
+  printv ("x11_set_screensaver(%d)\n", on);
+
+  if (on) {
+    if (timeout == -2) {
+      g_warning("cannot activate screensaver before deactivating");
+      return;
+    }
+    XSetScreenSaver(GDK_DISPLAY(), timeout, interval, prefer_blanking,
+		    allow_exposures);
+    gtk_timeout_remove(gtimeout);
+    gtimeout = -1;
+#ifdef USE_XDPMS
+    if ( (DPMSQueryExtension(GDK_DISPLAY(), &dummy, &dummy) ) &&
+	 (DPMSCapable(GDK_DISPLAY())) && (dpms_was_on) )
+      DPMSEnable(GDK_DISPLAY());
+#endif
+  } else {
+    XGetScreenSaver(GDK_DISPLAY(), &timeout, &interval,
+		    &prefer_blanking, &allow_exposures);
+    /* This disables the builtin X screensaver... */
+    XSetScreenSaver(GDK_DISPLAY(), 0, interval, prefer_blanking,
+		    allow_exposures);
+    /* and this XScreensaver. */
+    gtimeout = gtk_timeout_add(5000, stop_xscreensaver_timeout, NULL);
+
+#ifdef USE_XDPMS
+    if ( (DPMSQueryExtension(GDK_DISPLAY(), &dummy, &dummy)) &&
+	 (DPMSCapable(GDK_DISPLAY())) ) {
+      DPMSInfo(GDK_DISPLAY(), &dpms_state, &dpms_was_on);
+      DPMSDisable(GDK_DISPLAY());
+    }
+#endif
+  }
+}
+

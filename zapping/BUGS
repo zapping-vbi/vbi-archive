@@ -4,6 +4,7 @@ Known bugs with zapping, don't report them
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
+	* resize menu key accel doesn't work?
 	* Need better no-overlay-present handling.
 	! RPM creates incorrect zsfb.capps
 	* Capture won't work under PPC (endianess)

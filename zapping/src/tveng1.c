@@ -111,7 +111,7 @@ static
 int p_tveng1_open_device_file(int flags, tveng_device_info * info)
 {
   struct video_capability caps;
-
+  
   t_assert(info != NULL);
   t_assert(info -> file_name != NULL);
 
@@ -166,12 +166,15 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
     info ->caps.flags |= TVENG_CAPS_TUNER;
   if (caps.type & VID_TYPE_TELETEXT)
     info ->caps.flags |= TVENG_CAPS_TELETEXT;
+  if (1)
+    {
   if (caps.type & VID_TYPE_OVERLAY)
     info ->caps.flags |= TVENG_CAPS_OVERLAY;
   if (caps.type & VID_TYPE_CHROMAKEY)
     info ->caps.flags |= TVENG_CAPS_CHROMAKEY;
   if (caps.type & VID_TYPE_CLIPPING)
     info ->caps.flags |= TVENG_CAPS_CLIPPING;
+    }
   if (caps.type & VID_TYPE_FRAMERAM)
     info ->caps.flags |= TVENG_CAPS_FRAMERAM;
   if (caps.type & VID_TYPE_SCALES)
@@ -2176,7 +2179,7 @@ static int
 tveng1_detect_preview (tveng_device_info * info)
 {
   struct video_buffer buffer;
-
+  
   t_assert(info != NULL);
 
   if ((info -> caps.flags & TVENG_CAPS_OVERLAY) == 0)

@@ -782,7 +782,7 @@ tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info);
    Returns -1 on error.
 */
 int
-tveng_start_previewing (tveng_device_info * info, int change_mode);
+tveng_start_previewing (tveng_device_info * info, const char *mode);
 
 /*
   Stops the fullscreen mode. Returns -1 on error

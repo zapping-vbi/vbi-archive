@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.3 2002-08-22 16:09:38 garetxe Exp $
+ * $Id: fullscreen.c,v 1.21.2.4 2003-01-24 18:22:23 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -174,7 +174,7 @@ fullscreen_start(tveng_device_info * info)
   info->window.win = GDK_WINDOW_XWINDOW(da->window);
   info->window.gc = GDK_GC_XGC(da->style->white_gc);
 
-  if (tveng_start_previewing(info, 1-zcg_int(NULL, "change_mode")) == -1)
+  if (tveng_start_previewing(info, zcg_char(NULL, "fullscreen/vidmode")) == -1)
     {
       ShowBox(_("Sorry, but cannot go fullscreen:\n%s"),
 	      GTK_MESSAGE_ERROR, info->error);

@@ -1794,7 +1794,7 @@ tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info)
    Returns -1 on error.
 */
 int
-tveng_start_previewing (tveng_device_info * info, int change_mode)
+tveng_start_previewing (tveng_device_info * info, const char *mode)
 {
   x11_vidmode_info *v;
   unsigned int width, height;
@@ -1811,8 +1811,9 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
    * 3) try Xv target size from vidmode, get actual,
    *    if closer go back to 2) until sizes converge 
    */
-  if (info->current_controller == TVENG_CONTROLLER_XV)
-    change_mode = 0; /* not needed  XXX wrong */
+  if (info->current_controller == TVENG_CONTROLLER_XV
+      && (mode == NULL || 0 == strcmp (mode, "auto")))
+     mode = NULL; /* not needed  XXX wrong */
   else
   /* XXX ditto, limited V4L/V4L2 overlay */
     if (!tveng_detect_XF86DGA(info))
@@ -1828,20 +1829,29 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
 
   /* special code, used only inside tveng, means remember from last
      time */
-  if (change_mode == -1)
-    change_mode = info->priv->change_mode;
+  if (mode == (const char *) -1)
+    mode = info->priv->mode;
   else
-    info->priv->change_mode = change_mode;
+    {
+      g_free (info->priv->mode);
+      info->priv->mode = g_strdup (mode);
+    }
 
   width = info->caps.maxwidth; /* XXX wrong */
   height = info->caps.maxheight;
 
   v = NULL;
 
-  if (vidmodes && change_mode)
+  if (mode == NULL || mode[0] == 0)
+    {
+      /* Don't change, v = NULL */
+    }
+  else if (vidmodes && !(v = x11_vidmode_by_name (vidmodes, mode)))
     {
       x11_vidmode_info *vmin;
       long long amin;
+
+      /* Automatic */
 
       vmin = vidmodes;
       amin = 1LL << 62;
@@ -2031,7 +2041,7 @@ int tveng_restart_everything (enum tveng_capture_mode mode,
 	RETURN_UNTVLOCK(-1);
       break;
     case TVENG_CAPTURE_PREVIEW:
-      if (tveng_start_previewing(info, -1) == -1)
+      if (tveng_start_previewing(info, (const char *) -1) == -1)
 	RETURN_UNTVLOCK(-1);
       break;
     case TVENG_CAPTURE_WINDOW:

@@ -923,27 +923,11 @@
 		    <widget class="GtkOptionMenu" id="optionmenu2">
 		      <property name="visible">True</property>
 		      <property name="can_focus">True</property>
-		      <property name="history">0</property>
+		      <property name="history">-1</property>
 
 		      <child internal-child="menu">
 			<widget class="GtkMenu" id="convertwidget25">
 			  <property name="visible">True</property>
-
-			  <child>
-			    <widget class="GtkMenuItem" id="convertwidget26">
-			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Autodetect</property>
-			      <property name="use_underline">True</property>
-			    </widget>
-			  </child>
-
-			  <child>
-			    <widget class="GtkMenuItem" id="convertwidget27">
-			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Do not change mode</property>
-			      <property name="use_underline">True</property>
-			    </widget>
-			  </child>
 			</widget>
 		      </child>
 		    </widget>

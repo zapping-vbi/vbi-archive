@@ -129,6 +129,9 @@ x11_vidmode_list_delete		(x11_vidmode_info *	list);
 extern x11_vidmode_info *
 x11_vidmode_list_new		(Display *		display);
 extern x11_vidmode_info *
+x11_vidmode_by_name		(x11_vidmode_info *	list,
+				 const char *		name);
+extern x11_vidmode_info *
 x11_vidmode_current		(Display *		display,
 				 x11_vidmode_info *	list);
 extern void

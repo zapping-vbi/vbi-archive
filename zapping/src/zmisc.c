@@ -279,6 +279,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   gint muted;
   gchar * old_name = NULL;
   enum tveng_capture_mode mode;
+  extern int disable_overlay;
 
   g_assert(info != NULL);
   g_assert(main_window != NULL);
@@ -378,7 +379,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       video_suggest_format ();
       break;
     case TVENG_CAPTURE_WINDOW:
-      if (disable_preview) {
+      if (disable_preview || disable_overlay) {
 	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
 	g_free(old_name);
 	return -1;
@@ -438,7 +439,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	g_warning(info->error);
       break;
     case TVENG_CAPTURE_PREVIEW:
-      if (disable_preview) {
+      if (disable_preview || disable_overlay) {
 	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
 	g_free(old_name);
 	return -1;
