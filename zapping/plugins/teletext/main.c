@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.11 2005-01-19 04:17:01 mschimek Exp $ */
+/* $Id: main.c,v 1.12 2005-01-27 04:16:55 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -56,17 +56,19 @@ ttxview_popup_menu_new		(GtkWidget *		widget,
 				 GdkEventButton *	event)
 {
   TeletextView *view;
+  gboolean success;
   vbi3_link link;
 
   if (!(view = teletext_view_from_widget (widget)))
     return NULL;
 
-  teletext_view_vbi3_link_from_pointer_position
+  success = teletext_view_vbi3_link_from_pointer_position
     (view, &link, (int) event->x, (int) event->y);
 
   widget = teletext_view_popup_menu_new (view, &link, FALSE);
 
-  vbi3_link_destroy (&link);
+  if (success)
+    vbi3_link_destroy (&link);
 
   return widget;
 }
