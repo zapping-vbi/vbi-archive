@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.1 2000-07-04 17:40:20 garetxe Exp $ */
+/* $Id: systems.h,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
 
 #ifndef __SYSTEMS_H__
 #define __SYSTEMS_H__
@@ -27,8 +27,8 @@
 
 extern pthread_mutex_t		mux_mutex;
 extern pthread_cond_t		mux_cond;
+extern buffer			mux_buffer;
 extern int			bytes_out;
-extern unsigned char *		mux_buffer;
 extern double			system_idle;
 
 extern double			get_idle(void);

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.1 2000-07-04 17:40:20 garetxe Exp $ */
+/* $Id: mp2.c,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
 
 #include <limits.h>
 #include "../options.h"
@@ -328,8 +328,7 @@ audio_init(void)
 void *
 audio_compression_thread(void *unused)
 {
-	while (!program_shutdown)
-	{
+	for (;;) {
 		buffer *obuf;
 		unsigned int adb, bpf;
 		double stime;
@@ -576,10 +575,10 @@ audio_compression_thread(void *unused)
 						}
 						else
 						{
-							int t = aseg.sb_samples[0][0][j + 0][sb] << bi;
-		
-							bputl(&aseg.out, t | aseg.sb_samples[0][0][j + 1][sb], bi << 1);
-							bputl(&aseg.out, aseg.sb_samples[0][0][j + 2][sb], bi);
+							bstartq(aseg.sb_samples[0][0][j + 0][sb]);
+							bcatq(aseg.sb_samples[0][0][j + 1][sb], bi);
+							bcatq(aseg.sb_samples[0][0][j + 2][sb], bi);
+							bputq(&aseg.out, bi * 3);
 						}
 					}
 				}
@@ -608,8 +607,7 @@ audio_compression_thread(void *unused)
 void *
 stereo_audio_compression_thread(void *unused)
 {
-	while (!program_shutdown)
-	{
+	for (;;) {
 		buffer *obuf;
 		unsigned int adb, bpf;
 		double stime;

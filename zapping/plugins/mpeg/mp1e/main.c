@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.2 2000-07-04 19:46:05 garetxe Exp $ */
+/* $Id: main.c,v 1.3 2000-07-05 18:09:34 mschimek Exp $ */
 
 #define MAIN_C
 
@@ -57,13 +57,6 @@
 char *			my_name;
 int			verbose;
 
-#define 		PACKET_SIZE		2048
-#define 		PACKETS_PER_PACK	16
-
-pthread_mutex_t		mux_mutex;
-pthread_cond_t		mux_cond;
-int			bytes_out;
-unsigned char *		mux_buffer;
 double			video_stop_time = 1e30;
 double			audio_stop_time = 1e30;
 
@@ -294,19 +287,22 @@ main(int ac, char **av)
 	output_end();
 	printv(3, "done\n");
 
-	/* i cannot get this to work */
-/*	if (mux_mode & 1)
-	printv(3, "\nvideo thread... "),
-			pthread_join(video_thread_id, NULL),
-			printv(3, "done\n");*/
+	if (mux_mode & 1) {
+		printv(3, "\nvideo thread... ");
+		pthread_cancel(video_thread_id);
+		pthread_join(video_thread_id, NULL);
+		printv(3, "done\n");
+	}
 
-	if (mux_mode & 2)
-		printv(3, "\naudio thread... "),
-			pthread_join(audio_thread_id, NULL),
-			printv(3, "done\n");
+	if (mux_mode & 2) {
+		printv(3, "\naudio thread... ");
+		pthread_cancel(audio_thread_id);
+		pthread_join(audio_thread_id, NULL);
+		printv(3, "done\n");
+	}
 
 	printv(2, "\nCleanup done, bye...\n");
-	
+
 	pr_report();
 
 	return EXIT_SUCCESS;

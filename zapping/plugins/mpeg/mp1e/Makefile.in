@@ -1,9 +1,10 @@
-# $Id: Makefile.in,v 1.1 2000-07-04 17:40:20 garetxe Exp $
+# $Id: Makefile.in,v 1.2 2000-07-05 18:09:34 mschimek Exp $
 
 CFLAGS	= -Wall @OPT@ @X_CFLAGS@
 DEFS	= -D_GNU_SOURCE -D_REENTRANT @DEFS@ -DVERSION=\"@VERSION@\"
 LIBS	= @X_LIBS@ -lm -lpthread @LIBS@
 OBJS	= main.o options.o mmx.o bstream.o profile.o rte.o
+MODULES = video/video.o audio/audio.o systems/systems.o @TEST_MODULES@
 TARGET  = mp1e
 
 .PHONY: all depend clean mrproper
@@ -13,14 +14,10 @@ all: configure $(OBJS)
 	$(MAKE) -C video
 	$(MAKE) -C audio
 	$(MAKE) -C systems
-	$(MAKE) -C video/mpeg_stat
+	-$(MAKE) -C video/mpeg_stat
 	-ln -s video/mpeg_stat/mpeg_stat stat
-	if test "@ENABLE_TEST@" = "yes"; then \
-		$(MAKE) -C test; \
-		$(CC) $(CFLAGS) $(OBJS) video/video.o audio/audio.o systems/systems.o test/test.o $(LIBS) -s -o $(TARGET); \
-	else \
-		$(CC) $(CFLAGS) $(OBJS) video/video.o audio/audio.o systems/systems.o $(LIBS) -s -o $(TARGET); \
-	fi
+	-if test "@TEST_MODULES@" != ""; then $(MAKE) -C test; fi
+	$(CC) $(CFLAGS) $(OBJS) $(MODULES) $(LIBS) -s -o $(TARGET);
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@
@@ -43,11 +40,8 @@ mrproper: clean
 
 configure: configure.in
 	autoconf
-	if test "@ENABLE_TEST@" = "yes"; then \
-		./configure --enable-test; \
-	else \
-		./configure; \
-	fi
+	if test "@TEST_MODULES@" != ""; then ./configure --enable-test; \
+	else ./configure; fi
 
 %.d: %.c
 	@echo Creating $@

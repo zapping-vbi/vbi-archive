@@ -1,0 +1,24 @@
+# $Id: Makefile.in,v 1.1 2000-07-05 18:09:34 mschimek Exp $
+
+DEFS   += -DFLOAT=float
+OBJS	= tables.o oss.o tsp.o filter.o filter_mmx.o fft.o psycho.o mp2.o
+
+all: $(OBJS)
+	$(LD) -r $(OBJS) -o audio.o
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@
+
+%.s: %.c
+	$(CC) $(CFLAGS) $(DEFS) -S $< -o $@
+
+clean:
+	-rm $(OBJS) *.d *% *~ *.bak core log audio.o
+
+%.d: %.c
+	@echo Creating $@
+	@$(SHELL) -ec '$(CC) -MM $(CFLAGS) $< \
+	| sed '\''s/\($*\)\.o[ :]*/\1.o $@ : /g'\'' > $@; \
+	[ -s $@ ] || rm -f $@'
+
+-include $(OBJS:.o=.d)

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bstream.h,v 1.1 2000-07-04 17:40:20 garetxe Exp $ */
+/* $Id: bstream.h,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
 
 #ifndef BSTREAM_H
 #define BSTREAM_H
@@ -35,13 +35,13 @@ struct bs_rec
 	char		pad[4];
 };
 
-#define bepilog(b) asm("\tmovq %0,%%mm7\n" :: "m" ((b)->buf) : "st")
-#define bprolog(b) asm("\tmovq %%mm7,%0\n" :: "m" ((b)->buf) : "st")
+#define bepilog(b) asm volatile ("\tmovq %0,%%mm7\n" :: "m" ((b)->buf))
+#define bprolog(b) asm volatile ("\tmovq %%mm7,%0\n" :: "m" ((b)->buf))
 
 extern void		binit(struct bs_rec *b);
 #define			bstart(b, p0) ((b)->p1 = (b)->p = (mmx_t *)(p0));
 extern void		bputl(struct bs_rec *b, unsigned int v, int n) __attribute__ ((regparm (3)));
-// bputq(struct bs_rec *b, unsigned long long reg mm0 v, int n) __attribute__ ((regparm (3)));
+extern void		bputq(struct bs_rec *b, int n) __attribute__ ((regparm (2)));
 #define			bwritten(b) ((((char *)(b)->p - (char *)(b)->p1) * 8) + ((b)->n))
 extern int		bflush(struct bs_rec *b);
 #define			brewind(bd, bs) (*(bd) = *(bs))
@@ -53,9 +53,36 @@ bswap(unsigned long x)
 		return (((x) & 0xFFUL) << 24) | (((x) & 0xFF00UL) << 8)
 			| (((x) & 0xFF0000UL) >> 8) | (((x) & 0xFF000000UL) >> 24);
 
-	asm("bswap %0" : "=r" (x) : "0" (x));
+	asm volatile ("bswap %0" : "=r" (x) : "0" (x));
 
 	return x;
 }
+
+static inline void
+bstartq(unsigned int v)
+{
+	asm volatile ("
+		movd		%0,%%mm0;
+	" :: "rm" (v) : "cc" FPU_REGS);
+}
+
+#define bcatq(v, n)							\
+do {									\
+	if (__builtin_constant_p(n))					\
+		asm volatile (						\
+			"\tpsllq %0,%%mm0;\n"				\
+			:: "im" ((n)) : "cc" FPU_REGS);			\
+			/* never m but suppress warning */		\
+	else								\
+		asm volatile (						\
+			"\tmovd	%0,%%mm2;\n"				\
+			"\tpsllq %%mm2,%%mm0;\n"			\
+			:: "rm" ((unsigned int)(n)) : "cc" FPU_REGS);	\
+									\
+	asm volatile (							\
+		"\tmovd	%0,%%mm1;\n"					\
+		"\tpor %%mm1,%%mm0;\n"					\
+		:: "rm" ((unsigned int)(v)) : "cc" FPU_REGS);		\
+} while (0)
 
 #endif

@@ -2,8 +2,6 @@
  *  MPEG-1 Real Time Encoder
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
- * 
- *  Modified by Iñaki G.E.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,15 +18,31 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __OUTPUT_H__
-#define __OUTPUT_H__
+/* $Id: mblock.c,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
 
+#include "video.h"
 
-#define 			PACKET_SIZE		2048	// including any headers
+int			mb_col, mb_row,			// current
+    			mb_width, mb_height,
+			mb_last_col, mb_last_row,
+			mb_num;
 
-extern void *                   output_thread(void * unsed);
-extern int                      output_init(const char * filename);
-extern void                     output_end(void);
-extern buffer *                 output(buffer *);
+short			mblock[7][6][8][8] __attribute__ ((aligned (CACHE_LINE)));
+/*
+ *  Buffer for current macroblock
+ *  [7]    - intra, forward, backward, interpolated
+ *  [6]    - Y0, Y2, Y1, Y3, Cb, Cr
+ *  [8][8] - 16 bit unsigned samples/dct coefficients
+ */
 
-#endif
+void
+video_coding_size(int width, int height)
+{
+	mb_width  = (saturate(width, 1, MAX_WIDTH) + 15) >> 4;
+	mb_height = (saturate(height, 1, MAX_HEIGHT) + 15) >> 4;
+
+	mb_last_col = mb_width - 1;
+	mb_last_row = mb_height - 1;
+
+	mb_num    = mb_width * mb_height;
+}

@@ -18,12 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.1 2000-07-04 17:40:20 garetxe Exp $ */
+/* $Id: misc.h,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
 
 #include <stdlib.h>
+#include <string.h>
 #include <malloc.h>
 #include <math.h>
 
@@ -41,11 +42,13 @@ static inline int
 saturate(int val, int min, int max)
 {
 #ifdef __i686__
+	/* 2 x cmp cmov, typ. both evaluated */
 	if (val < min)
 		val = min;
 	if (val > max)
 		val = max;
 #else
+	/* 1-2 branches */
 	if (val < min)
 		val = min;
 	else if (val > max)
@@ -69,6 +72,8 @@ saturate(int val, int min, int max)
 #else
 #define lroundn(val) ({ int res; asm volatile ("fistpl %0" : "=m" (res) : "t" (val) : "st"); res; })
 #endif
+
+#define lalign(v, a) ((v) + (a) - (int)(v) % (a))
 
 /*
  *  Absolute value w/o a branch

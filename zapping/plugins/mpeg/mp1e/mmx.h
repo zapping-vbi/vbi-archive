@@ -48,12 +48,37 @@ typedef enum {
 	ARCH_KLAMATH,
 	ARCH_KATMAI,
 	ARCH_K6_2,
-	ARCH_CYRIX
+	ARCH_CYRIX,
+	ARCH_K7
 } cpu_architecture;
 
 extern int cpu_id(cpu_architecture arch);
 
-#define emms() asm ("\temms\n");
+#if __GNUC__ != 2 || __GNUC_MINOR__ < 6
+
+#error Sorry, your GCC does not exist.
+
+#elif __GNUC_MINOR__ < 90 /* gcc [2.7.2.3] */
+
+#define FPU_REGS
+#define SECTION()
+#define emms() asm("\temms\n")
+
+#elif __GNUC_MINOR__ < 95 /* egcs [2.91.66] */
+
+#define FPU_REGS
+#define SECTION()
+#define emms() asm("\temms\n")
+
+#else /* ? [2.95.2] */
+
+#define FPU_REGS , "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)"
+#define SECTION(x) section (x), 
+#define emms() do { asm volatile ("\temms\n" ::: "cc" FPU_REGS); } while(0)
+
+#endif
+
+#define CACHE_LINE 64
 
 /* MMX software simulation */
 

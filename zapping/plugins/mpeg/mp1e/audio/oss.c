@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.1 2000-07-04 17:40:20 garetxe Exp $ */
+/* $Id: oss.c,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,6 +37,7 @@
 #include <linux/soundcard.h>
 
 #include "../log.h" 
+#include "../mmx.h" 
 #include "../misc.h" 
 #include "audio.h"
 #include "mpeg.h"
@@ -167,7 +168,7 @@ pcm_init(void)
 	buffer_size = (scan_range + look_ahead)	* sizeof(abuffer[0]);
 
 	ASSERT("allocate PCM buffer, %d bytes",
-		(abuffer = calloc_aligned(buffer_size, 32)) != NULL, buffer_size);
+		(abuffer = calloc_aligned(buffer_size, CACHE_LINE)) != NULL, buffer_size);
 
 	printv(3, "Allocated PCM buffer, %d bytes\n", buffer_size);
 

@@ -1,9 +1,9 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.1 2000-07-04 17:40:20 garetxe Exp $
+dnl $Id: configure.in,v 1.2 2000-07-05 18:09:34 mschimek Exp $
 
 AC_INIT(main.c)
 
-VERSION=1.8.0-pre3
+VERSION=1.8.0-pre4
 AC_SUBST(VERSION)
 
 AC_PROG_CC()
@@ -19,8 +19,11 @@ AC_TRY_RUN([
 int verbose = 0;
 char *my_name = "configure";
 int main() {
-	return(!cpu_id(ARCH_KLAMATH));
-}], OPT="$OPT -march=pentiumpro",, OPT=$OPT)
+#if (__GNUC__ == 2 && __GNUC_MINOR__ >= 90)
+		exit(!cpu_id(ARCH_KLAMATH));
+#endif
+	exit(1);
+}], OPT="$OPT -march=i686",, OPT=$OPT)
 
 AC_SUBST(OPT)
 
@@ -32,9 +35,9 @@ AC_ARG_ENABLE(test,[  --enable-test           enable test gui])
 if test "$enable_test" = "yes"; then
 	LIBS="$LIBS -ltk8.0 -ltcl8.0"
 	AC_DEFINE(TEST_PREVIEW, 1)
+	TEST_MODULES="test/test.o"
 fi
-ENABLE_TEST=$enable_test
 
-AC_SUBST(ENABLE_TEST)
+AC_SUBST(TEST_MODULES)
 
 AC_OUTPUT(Makefile video/Makefile audio/Makefile systems/Makefile test/Makefile mp1e.lsm)

@@ -2,8 +2,6 @@
  *  MPEG-1 Real Time Encoder
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
- * 
- *  Modified by Iñaki G.E.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,15 +18,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __OUTPUT_H__
-#define __OUTPUT_H__
+/* $Id: mpeg.h,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
 
+#define PACKET_START_CODE	0x00000100L
+#define ISO_END_CODE		0x000001B9L
+#define PACK_START_CODE		0x000001BAL
+#define SYSTEM_HEADER_CODE	0x000001BBL
 
-#define 			PACKET_SIZE		2048	// including any headers
+#define AUDIO_STREAM_0		0xC0
+#define VIDEO_STREAM_0		0xE0
 
-extern void *                   output_thread(void * unsed);
-extern int                      output_init(const char * filename);
-extern void                     output_end(void);
-extern buffer *                 output(buffer *);
+#define MARKER_SCR		2
+#define MARKER_DTS		1
+#define MARKER_PTS_ONLY		2
+#define MARKER_PTS		3
 
-#endif
+#define SYSTEM_TICKS		90000

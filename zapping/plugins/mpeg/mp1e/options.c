@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.1 2000-07-04 17:40:20 garetxe Exp $ */
+/* $Id: options.c,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,7 +29,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <asm/types.h>
-#include "videodev2.h"
+#include <linux/videodev.h>
 #include <linux/soundcard.h>
 #include "misc.h"
 #include "log.h"

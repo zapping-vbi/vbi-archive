@@ -3,6 +3,8 @@
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
  *
+ *  Modified by Iñaki G.E.
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -23,6 +25,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <assert.h>
 #include "../video/mpeg.h"
 #include "../video/video.h"
 #include "../audio/mpeg.h"
@@ -38,6 +41,8 @@ static fifo             out;
 static int              out_buffers = 8;
 static size_t           out_buffer_size;
 
+extern int		stereo;
+
 int
 output_init( const char * file )
 {
@@ -47,7 +52,18 @@ output_init( const char * file )
 	output_file = creat(file, 00755);
 
 	/* we need this later for the size check */
-	out_buffer_size = PACKET_SIZE;
+	switch (mux_mode & 3) {
+	case 1:
+		out_buffer_size = mb_num * 384 * 4;
+		break;
+	case 2:
+		out_buffer_size = 2048 << stereo;
+		break;
+	case 3:
+		out_buffer_size = PACKET_SIZE;
+		break;
+	}
+
 	out_buffers = init_fifo(&out, "output", out_buffer_size,
 				out_buffers);
 
@@ -78,6 +94,7 @@ output_end ( void )
 {
 	buffer * buf;
 	
+	pthread_cancel(output_thread_id);
 	pthread_join(output_thread_id, NULL);
 
 	while ((buf = (buffer *) rem_head(&out.full)))
@@ -85,7 +102,7 @@ output_end ( void )
 		do_real_output(buf->data, buf->size);
 		empty_buffer(&out, buf);
 	}
-	
+
 	if (output_file)
 		close(output_file);
 
@@ -95,21 +112,23 @@ output_end ( void )
   If the output callback is NULL, we should call do_real_output
   directly from here, and avoid the fifo thing.
 */
-void
-output(void * s, size_t n)
+buffer *
+output(buffer *mbuf)
 {
 	buffer *obuf;
 
-	bytes_out += n;
+	bytes_out += mbuf->size;
 
 	obuf = new_buffer(&out);
 
-	ASSERT("overflow check", out_buffer_size >= n);
+	assert(out_buffer_size >= mbuf->size);
 
-	memcpy(obuf->data, s, n);
-	obuf->size = n;
+	memcpy(obuf->data, mbuf->data, mbuf->size);
+	obuf->size = mbuf->size;
 
 	send_out_buffer(&out, obuf);
+
+	return mbuf; /* any previously entered */
 }
 
 /*
@@ -120,7 +139,7 @@ output_thread (void * unused)
 {
 	buffer * buf;
 
-	while (!program_shutdown) {
+	for (;;) {
 		pthread_mutex_lock(&out.mutex);
 
 		while (!(buf = (buffer *) rem_head(&out.full)))

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.1 2000-07-04 17:40:20 garetxe Exp $ */
+/* $Id: mpeg1.c,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,8 +43,6 @@
 #define 			PACKET_SIZE		2048	// including any headers
 #define 			PACKETS_PER_PACK	16
 
-static unsigned char *		mux_buffer;
-
 extern int			stereo;
 extern volatile int		quit_please;
 
@@ -62,7 +60,8 @@ mpeg1_system_run_in(void)
 	double atime, vtime, d, max_d = 0.75 / frame_rate_value[frame_rate_code];
 
 	ASSERT("allocate mux buffer, %d bytes",
-		(mux_buffer = calloc_aligned(PACKET_SIZE, 32)) != NULL, PACKET_SIZE);
+		(mux_buffer.data =
+		 mux_buffer.buffer = calloc_aligned(PACKET_SIZE, CACHE_LINE)) != NULL, PACKET_SIZE);
 
 	for (;;) {
 		if (!ap)
@@ -129,6 +128,7 @@ mpeg1_system_mux(void *unused)
 	double system_rate = 0, scr, pack_tick;
 	buffer *vbuf, *abuf;
 	bool done = FALSE;
+	buffer *mbuf = &mux_buffer;
 
 	// Get sizes of pending first frames
 
@@ -156,6 +156,7 @@ mpeg1_system_mux(void *unused)
 		mux_rate_code = 0x800001 + ((unsigned int)((ceil(system_rate) + 49) / 50) << 1);
 
 		scr = 8 /* SCR field offset */ / system_rate * SYSTEM_TICKS;
+
 		pack_tick = (PACKET_SIZE * PACKETS_PER_PACK) / system_rate * SYSTEM_TICKS;
 
 		vid.tick = (double) SYSTEM_TICKS / frame_rate_value[frame_rate_code];
@@ -187,7 +188,7 @@ mpeg1_system_mux(void *unused)
 	while (!done) {
 		fifo *f;
 		int empty = PACKET_SIZE;
-		unsigned char *ph, *p = mux_buffer;
+		unsigned char *ph, *p = mbuf->data;
 		double pts;
 
 		if ((packet % PACKETS_PER_PACK) == 0) {
@@ -257,7 +258,8 @@ mpeg1_system_mux(void *unused)
 
 						putt(ph +  6, MARKER_PTS, floor(pts + 0.5));
 						putt(ph + 11, MARKER_DTS, floor(vid.dts + 0.5));
-						output(mux_buffer, p - mux_buffer);
+						mbuf->size = p - mbuf->data;
+						mbuf = output(mbuf);
 						ph = NULL;
 					}
 
@@ -267,7 +269,8 @@ mpeg1_system_mux(void *unused)
 						pts = aud.dts;
 
 						putt(ph + 11, MARKER_PTS_ONLY, pts);
-						output(mux_buffer, p - mux_buffer);
+						mbuf->size = p - mbuf->data;
+						mbuf = output(mbuf);
 						ph = NULL;
 					}
 				}
@@ -280,19 +283,23 @@ mpeg1_system_mux(void *unused)
 				if (ph) {
 					memcpy(p, f->ptr, f->left);
 					p += f->left;
-				} else
-					output(f->ptr, f->left);
+				} else {
+					memcpy(mbuf->data, f->ptr, mbuf->size = f->left);
+					mbuf = output(mbuf);
+				}
 
 				f->time += f->tpb * f->left;
 				empty     -= f->left;
 				f->left  = 0;
 			} else {
 				if (ph)	{
-					output(mux_buffer, p - mux_buffer);
+					mbuf->size = p - mbuf->data;
+					mbuf = output(mbuf);
 					ph = NULL;
 				}
 
-				output(f->ptr, empty);
+				memcpy(mbuf->data, f->ptr, mbuf->size = empty);
+				mbuf = output(mbuf);
 
 				f->time += f->tpb * empty;
 				f->ptr  += empty;
@@ -306,7 +313,7 @@ mpeg1_system_mux(void *unused)
 				if (f == &vid)
 					if (video_frame >= video_num_frames || quit_please) {
 						if (!ph)
-							p = mux_buffer;
+							p = mbuf->data;
 
 						if (empty >= 8) { // XXX
 							((unsigned int *) p)[0] = bswap(SEQUENCE_END_CODE);
@@ -318,22 +325,25 @@ mpeg1_system_mux(void *unused)
 
 						memset(p, 0, empty);
 
-						output(mux_buffer, (p - mux_buffer) + empty);
+						mbuf->size = p - mbuf->data + empty;
+						mbuf = output(mbuf);
 
 						if (aud.left > 0) {
 							// XXX does not stop audio in time
 
 							ASSERT("(ugly hack)", aud.left < (PACKET_SIZE - 16));
 
-							((unsigned int *) mux_buffer)[0] = bswap(PACKET_START_CODE + AUDIO_STREAM_0);
-							((unsigned int *) mux_buffer)[1] = bswap(((PACKET_SIZE - 6) << 16) + 0xFFFF);
-							((unsigned int *) mux_buffer)[2] = 0xFFFFFFFF;
-							((unsigned int *) mux_buffer)[3] = 0x0FFFFFFF;
+							memset(mbuf->data, 0, PACKET_SIZE);
 
-							output(mux_buffer, 16);
-							output(aud.ptr, aud.left);
-							memset(mux_buffer, 0, PACKET_SIZE - 16 - aud.left);
-							output(mux_buffer, PACKET_SIZE - 16 - aud.left);
+							((unsigned int *) mbuf->data)[0] = bswap(PACKET_START_CODE + AUDIO_STREAM_0);
+							((unsigned int *) mbuf->data)[1] = bswap(((PACKET_SIZE - 6) << 16) + 0xFFFF);
+							((unsigned int *) mbuf->data)[2] = 0xFFFFFFFF;
+							((unsigned int *) mbuf->data)[3] = 0x0FFFFFFF;
+
+							memcpy(mbuf->data + 16, aud.ptr, aud.left);
+
+							mbuf->size = PACKET_SIZE;
+							mbuf = output(mbuf);
 						}
 
 						printv(1, "\n%s: %d video frames done.\n",

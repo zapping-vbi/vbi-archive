@@ -1,0 +1,25 @@
+# $Id: Makefile.in,v 1.1 2000-07-05 18:09:34 mschimek Exp $
+
+MMX_OBJS = dct_mmx.o vlc_mmx.o filter_mmx.o
+OBJS	= filter.o dct.o vlc.o mpeg1.o tables.o file.o \
+          dct_ref.o v4l.o v4l2.o mblock.o
+
+all: $(OBJS) $(MMX_OBJS)
+	$(LD) -r $(OBJS) $(MMX_OBJS) -o video.o
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@
+
+%.s: %.c
+	$(CC) $(CFLAGS) $(DEFS) -S $< -o $@
+
+clean:
+	-rm $(OBJS) $(MMX_OBJS) *.d *% *~ *.bak core log video.o
+
+%.d: %.c
+	@echo Creating $@
+	@$(SHELL) -ec '$(CC) -MM $(CFLAGS) $< \
+	| sed '\''s/\($*\)\.o[ :]*/\1.o $@ : /g'\'' > $@; \
+	[ -s $@ ] || rm -f $@'
+
+-include $(OBJS:.o=.d)

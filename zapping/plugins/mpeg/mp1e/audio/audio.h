@@ -2,8 +2,6 @@
  *  MPEG-1 Real Time Encoder
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
- * 
- *  Modified by Iñaki G.E.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,15 +18,27 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __OUTPUT_H__
-#define __OUTPUT_H__
+/* $Id: audio.h,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
 
+#include <pthread.h>
+#include "../fifo.h"
 
-#define 			PACKET_SIZE		2048	// including any headers
+extern fifo		aud;
+extern pthread_t	audio_thread_id;
 
-extern void *                   output_thread(void * unsed);
-extern int                      output_init(const char * filename);
-extern void                     output_end(void);
-extern buffer *                 output(buffer *);
+extern void *		audio_compression_thread(void *unused);
+extern void *		stereo_audio_compression_thread(void *unused);
+extern void		audio_parameters(int *sampling_freq, int *bit_rate);
 
-#endif
+extern short *		(* audio_read)(double *);
+extern void		(* audio_unget)(short *);
+
+/* oss.c */
+
+extern void		pcm_init(void);
+extern void		mix_init(void);
+extern char *		mix_sources(void);
+
+/* tsp.c */
+
+extern void		tsp_init(void);

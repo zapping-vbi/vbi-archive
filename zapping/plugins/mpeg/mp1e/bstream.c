@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bstream.c,v 1.1 2000-07-04 17:40:20 garetxe Exp $ */
+/* $Id: bstream.c,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
 
 #include "bstream.h"
 
@@ -30,31 +30,87 @@ binit(struct bs_rec *b)
 	b->uq64.uq	= 64ULL;
 }
 
-// Encode rightmost n bits in v, with v < (1 << n) and 0 < n < 32
-
+/*
+ *  Encode rightmost n bits in v, with v < (1 << n) and 0 < n < 32
+ */
 void
 bputl(struct bs_rec *b, unsigned int v, int n)
 {
 	asm("
-		movd		%0,%%mm2;		subl		%1,%2;
-		movd		%2,%%mm1;		jle		1f;
-		psllq		%%mm1,%%mm2;		movl		%1,%3;
-		por		%%mm2,%%mm7;		jmp		2f;
-1:		movl		%4,%2;			pxor		%%mm4,%%mm4;
-		movd		%5,%%mm3;		addl		$8,%2;
-		movq		%%mm2,%%mm5;		paddd		%%mm1,%%mm3;
-		psubd		%%mm1,%%mm4;		psllq		%%mm3,%%mm2;
-		movd		%%mm4,%3;		psrlq		%%mm4,%%mm5;
-		por		%%mm7,%%mm5;		movq		%%mm2,%%mm7;
-		movd		%%mm5,%0;		psrlq		$32,%%mm5;
-		movd		%%mm5,%1;		movl		%2,%4;
-		bswap		%0;			/**/
-		bswap		%1;			/**/
-		movl		%1,-8(%2);		movl		%0,-4(%2)
+		movd		%0,%%mm2;		
+		subl		%1,%2;
+		movd		%2,%%mm1;		
+		jle		1f;
+		psllq		%%mm1,%%mm2;		
+		movl		%1,%3;
+		por		%%mm2,%%mm7;		
+		jmp		2f;
+1:		movl		%4,%2;			
+		pxor		%%mm4,%%mm4;
+		movd		%5,%%mm3;		
+		addl		$8,%2;
+		movq		%%mm2,%%mm5;		
+		paddd		%%mm1,%%mm3;
+		psubd		%%mm1,%%mm4;		
+		psllq		%%mm3,%%mm2;
+		movd		%%mm4,%3;		
+		psrlq		%%mm4,%%mm5;
+		por		%%mm7,%%mm5;		
+		movq		%%mm2,%%mm7;
+		movd		%%mm5,%0;		
+		psrlq		$32,%%mm5;
+		bswap		%0;
+		movl		%0,-4(%2)
+		movd		%%mm5,%1;		
+		movl		%2,%4;
+		bswap		%1;
+		movl		%1,-8(%2);		
 2:
 	" :: "r" (v), "r" (n + b->n), "r" (64),
 	     "m" (b->n), "m" (b->p), "m" (b->uq64)
-	); //  : "%0", "%1", "%2"); regcall, caller saves
+	  : "0", "1", "2", "cc", "memory" FPU_REGS);
+}
+
+/*
+ *  Encode rightmost n bits in mm0, with mm0.uq < (1 << n) and
+ *  0 < n < 64
+ */
+void
+bputq(struct bs_rec *b, int n)
+{
+	asm("
+		movq		%%mm0,%%mm2;		
+		subl		%1,%2;
+		movd		%2,%%mm1;		
+		jle		1f;
+		psllq		%%mm1,%%mm2;		
+		movl		%1,%3;
+		por		%%mm2,%%mm7;		
+		jmp		2f;
+1:		movl		%4,%2;			
+		pxor		%%mm4,%%mm4;
+		movd		%5,%%mm3;		
+		addl		$8,%2;
+		movq		%%mm2,%%mm5;		
+		paddd		%%mm1,%%mm3;
+		psubd		%%mm1,%%mm4;		
+		psllq		%%mm3,%%mm2;
+		movd		%%mm4,%3;		
+		psrlq		%%mm4,%%mm5;
+		por		%%mm7,%%mm5;		
+		movq		%%mm2,%%mm7;
+		movd		%%mm5,%1;		
+		psrlq		$32,%%mm5;
+		bswap		%1;
+		movl		%1,-4(%2)
+		movd		%%mm5,%1;		
+		movl		%2,%4;
+		bswap		%1;
+		movl		%1,-8(%2);		
+2:
+	" :: "r" (b->n), "r" (n + b->n), "r" (64),
+	     "m" (b->n), "m" (b->p), "m" (b->uq64)
+	  : "0", "1", "2", "cc", "memory" FPU_REGS);
 }
 
 // Returns the number of bits encoded, multiple of 64

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: common.c,v 1.1 2000-07-04 17:40:20 garetxe Exp $ */
+/* $Id: common.c,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +35,8 @@
 
 pthread_mutex_t		mux_mutex;
 pthread_cond_t		mux_cond;
+
+buffer			mux_buffer;
 
 int			bytes_out;
 
@@ -99,7 +101,7 @@ stream_output(fifo *fifo)
 		if (!buf->size)
 			break;
 
-		output(buf->data, buf->size);
+		buf = output(buf);
 
 		if (verbose > 0) {
 			static int upd_idle = 16;
@@ -143,7 +145,7 @@ stream_output(fifo *fifo)
 		empty_buffer(fifo, buf);
 	}
 
-	/* End of file (end code applied by producer) */
+	/* End of file (end code appended by producer) */
 
 	printv(1, "\n%s: Done.\n", my_name);
 }

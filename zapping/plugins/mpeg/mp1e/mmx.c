@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mmx.c,v 1.1 2000-07-04 17:40:20 garetxe Exp $ */
+/* $Id: mmx.c,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "log.h"
@@ -70,7 +70,7 @@ cpu_id(cpu_architecture arch)
 	"
 	: "=d" (feature)
 	: "m" (vendor)
-	: "eax", "ebx", "ecx");
+	: "eax", "ebx", "ecx", "cc");
 
 	/*
 	 *  This is only a rough check for features

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.2 2000-07-04 19:46:05 garetxe Exp $ */
+/* $Id: mpeg1.c,v 1.3 2000-07-05 18:09:34 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -88,7 +88,7 @@ static double		r31;				// reaction parameter
 static double		avg_act;			// average spatial activity
 static int		p_succ;
 
-static unsigned char 	seq_header_template[32] __attribute__ ((aligned (32)));
+static unsigned char 	seq_header_template[32] __attribute__ ((aligned (CACHE_LINE)));
 							// precompressed sequence header
 static char *		banner;
 static unsigned char *	zerop_template;			// precompressed empty P picture
@@ -104,11 +104,17 @@ static unsigned char *	newref;				// future reference frame buffer
  *  [8][8]      - 8 bit unsigned samples, e. g. according to ITU-R Rec. 601
  */
 
+struct {
+	int		offset;
+	int		pitch;
+} mb_address[6];
+
 static int		warn[2];
 
 static double bits = 0;
 double gbits = 0;
 static double counts = 0;
+static int mb_cx_row, mb_cx_thresh;
 
 /* main.c */
 extern int		frames_per_seqhdr;
@@ -129,14 +135,14 @@ extern double		video_stop_time;
 #define predict_backward mmx_predict_backward
 
 static const unsigned char
-quant_res_inter[32] __attribute__ ((section ("video_tables"), aligned (8))) =
+quant_res_inter[32] __attribute__ ((SECTION("video_tables") aligned (CACHE_LINE))) =
 {
 	1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 	16, 16, 18, 18, 20, 20, 22, 22,	24, 24, 26, 26, 28, 28, 30, 30
 };
 
 static const unsigned char
-quant_res_intra[32] __attribute__ ((section ("video_tables"), aligned (8))) =
+quant_res_intra[32] __attribute__ ((SECTION("video_tables") aligned (CACHE_LINE))) =
 {
 	1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 	16, 16, 18, 18, 20, 20, 22, 22,	24, 24, 26, 26, 28, 28, 30, 30
@@ -150,9 +156,6 @@ extern void		packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
 int p_inter_bias = 65536 * 48,
     b_inter_bias = 65536 * 96,
     quant_max = 31;
-
-
-volatile int RRR;
 
 #include "dct/ieee.h"
 
@@ -169,9 +172,121 @@ do {									\
 	for (i = (skipped); i >= 33; i -= 33)				\
 		bputl(&video_out, 0x008, 11); /* mb addr escape */	\
 									\
-	code = macroblock_address_increment[i].code;			\
+	bstartq(macroblock_address_increment[i].code);			\
 	length = macroblock_address_increment[i].length; /* 1...11 */	\
 } while (0)
+
+#define motion_vector(dmv)						\
+do {									\
+	int l0 = motion_vector_component[dmv[0]].length;		\
+	int l1 = motion_vector_component[dmv[1]].length;		\
+									\
+	bcatq(motion_vector_component[dmv[0]].code, l0);		\
+	bcatq(motion_vector_component[dmv[1]].code, l1);		\
+	length += l0 + l1; /* 2...26 (f_code == 3) */			\
+} while (0)
+
+#define pb_intra_mb(f)							\
+do {									\
+	brewind(&mark, &video_out);					\
+									\
+	for (;;) {							\
+		new_intra_quant(quant);					\
+									\
+		pr_start(22, "FDCT intra");				\
+		fdct_intra(); /* mblock[0] -> mblock[1] */		\
+		pr_end(22);						\
+									\
+		bepilog(&video_out);					\
+									\
+		if (f) {						\
+			macroblock_address(mb_skipped);			\
+									\
+			if (prev_quant != quant && prev_quant >= 0) {	\
+			    	bcatq(0x020 + quant, 11);		\
+				bputq(&video_out, length + 11);		\
+				/* macroblock_type '0000 01' */		\
+				/* (P/B Intra, Quant), */		\
+				/* quantiser_scale_code 'xxxxx' */	\
+			} else	{					\
+				bcatq(0x3, 5);				\
+				bputq(&video_out, length + 5);		\
+				/* macroblock_type '0001 1' */		\
+				/* (P/B Intra) */			\
+			}						\
+		} else {						\
+			if (prev_quant != quant) {			\
+				bputl(&video_out, 0x820 + quant, 11);	\
+				/* macroblock_address_increment '1' */	\
+				/* macroblock_type '0000 01' */		\
+				/* quantiser_scale_code 'xxxxx' */	\
+			} else	{					\
+				bputl(&video_out, 0x23, 6);		\
+				/* macroblock_address_increment '1' */	\
+				/* macroblock_type '0001 1' */		\
+			}						\
+		}							\
+									\
+		pr_start(44, "Encode intra");				\
+									\
+		if (!mpeg1_encode_intra()) { /* mblock[1] */		\
+			pr_end(44);					\
+			break;						\
+		}							\
+									\
+		pr_end(44);						\
+									\
+		quant++;						\
+									\
+		brewind(&video_out, &mark);				\
+									\
+		pr_event(49, "PB/intra overflow");			\
+	}								\
+									\
+	bprolog(&video_out);						\
+} while (0)
+
+#define pb_cx_intra(ref)						\
+do {									\
+	for (; mb_row < mb_height; mb_row++) {				\
+		for (mb_col = 0; mb_col < mb_width; mb_col++) {		\
+			int length, i;					\
+									\
+			pr_start(41, "Filter");				\
+			var = (*filter)(org0, org1); /* -> mblock[0] */	\
+			pr_end(41);					\
+									\
+			emms();						\
+									\
+			act_sum += act = var / 65536.0 + 1;		\
+			act = (2.0 * act + avg_act)			\
+				/ (act + 2.0 * avg_act);		\
+									\
+			quant = lroundn((bwritten(&video_out) - Ti)	\
+				* r31 * act);				\
+			quant = quant_res_intra[saturate(quant >> 1,	\
+				1, quant_max)];				\
+									\
+			Ti += Tmb;					\
+									\
+			pb_intra_mb(TRUE);				\
+									\
+			prev_quant = quant;				\
+			quant_sum += quant;				\
+			mb_skipped = 0;					\
+									\
+			if (ref) {					\
+				pr_start(23, "IDCT intra");		\
+				mpeg1_idct_intra(new);			\
+				pr_end(23);				\
+									\
+				new += 6 * 64;				\
+			}						\
+		}							\
+	}								\
+} while (0)
+
+
 
 static int
 picture_i(unsigned char *org0, unsigned char *org1)
@@ -192,7 +307,6 @@ picture_i(unsigned char *org0, unsigned char *org1)
 	/* Initialize rate control parameters */
 
 	T = lroundn(R / ((ni + ei) + ((np + ep) * Xp + (nb + eb) * Xb / B_SHARE) / Xi));
-
 	/*
 	 *  T = lroundn(R / (+ (ni) * Xi / (Xi * 1.0)
 	 *		     + (np) * Xp / (Xi * 1.0)
@@ -222,8 +336,7 @@ picture_i(unsigned char *org0, unsigned char *org1)
 	bepilog(&video_out);
 
 	bputl(&video_out, PICTURE_START_CODE, 32);
-
-	bputl(&video_out, ((gop_frame_count & 1023) << 22) | (I_TYPE << 19) | (0 << 2), 32);
+	bputl(&video_out, ((gop_frame_count & 1023) << 22) + (I_TYPE << 19) + (0 << 2), 32);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
 	 *  extra_bit_picture '0', byte align '00'
@@ -273,8 +386,9 @@ picture_i(unsigned char *org0, unsigned char *org1)
 				bepilog(&video_out);
 
 				if (!slice) {
-					bputl(&video_out, SLICE_START_CODE, 32);
-					bputl(&video_out, (quant << 3) + 0x3, 8);
+					bstartq(SLICE_START_CODE);
+					bcatq((quant << 3) + 0x3, 8);
+					bputq(&video_out, 40);
 					/*
 					 *  slice header: quantiser_scale_code 'xxxxx', extra_bit_slice '0';
 					 *  macroblock_address_increment '1', macroblock_type '1' (I Intra)
@@ -369,7 +483,8 @@ picture_p(unsigned char *org0, unsigned char *org1)
 	unsigned char *q1p;
 	int var, vmc;
 	int mb_skipped, mb_count;
-	
+	int rows, intra_count = 0;
+
 	printv(3, "Encoding P picture #%d GOP #%d, ref=%c\n",
 		video_frame_count, gop_frame_count, "FT"[referenced]);
 
@@ -399,7 +514,7 @@ picture_p(unsigned char *org0, unsigned char *org1)
 	act_sum = 0.0;
 
 	reset_dct_pred();
-
+	
 	prev_quant = -100;
 	mb_count = 1;
 	mb_skipped = 0;
@@ -410,11 +525,11 @@ picture_p(unsigned char *org0, unsigned char *org1)
 
 	bputl(&video_out, PICTURE_START_CODE, 32);
 
-	bputl(&video_out, ((gop_frame_count & 1023) << 19) | (P_TYPE << 16) | 0, 29);
-	bputl(&video_out, (0 << 10) | (1 << 7) | (0 << 6), 11);
+	bputl(&video_out, ((gop_frame_count & 1023) << 19) + (P_TYPE << 16) + 0, 29);
+	bputl(&video_out, (0 << 10) + (3 << 7) + (0 << 6), 11);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
-	 *  full_pel_forward_vector '0', forward_f_code '001',
+	 *  full_pel_forward_vector '0', forward_f_code 3,
 	 *  extra_bit_picture '0', byte align [6]
 	 */
 
@@ -425,7 +540,20 @@ picture_p(unsigned char *org0, unsigned char *org1)
 
 	bprolog(&video_out);
 
-	for (mb_row = 0; mb_row < mb_height; mb_row++) {
+	for (mb_row = 0, rows = mb_cx_row;; mb_row++) {
+		if (mb_row >= rows) {
+			if (mb_row >= mb_height)
+				break;
+
+			if (1 && intra_count >= mb_cx_thresh) {
+				pr_event(43, "P/cx trap");
+				pb_cx_intra(referenced);
+				break;
+			}
+
+			rows = mb_height;
+		}
+
 		for (mb_col = 0; mb_col < mb_width; mb_col++) {
 
 			/* Read macroblock (MMX state) */
@@ -443,7 +571,6 @@ picture_p(unsigned char *org0, unsigned char *org1)
 			/* Encode macroblock */
 
 			if (vmc > var || vmc > p_inter_bias) {
-				unsigned int code;
 				int length, i;
 
 				/* Calculate quantization factor */
@@ -460,49 +587,17 @@ quant = quant_res_intra[saturate(quant >> 1, 1, quant_max)];
 
 				Ti += Tmb;
 
-				brewind(&mark, &video_out);
+				intra_count++;
 
-				for (;;) {
-					new_intra_quant(quant);
-
-					pr_start(22, "FDCT intra");
-					fdct_intra(); // mblock[0] -> mblock[1]
-					pr_end(22);
-
-					bepilog(&video_out);
-
-					macroblock_address(mb_skipped);
-
-					if (prev_quant != quant && prev_quant >= 0) {
-						bputl(&video_out, (code << 11) + 0x020 + quant, length + 11);
-						/* macroblock_type '0000 01' (P/B Intra, Quant), quantiser_scale_code 'xxxxx' */
-					} else
-						bputl(&video_out, (code << 5) + 0x3, length + 5);
-						/* macroblock_type '0001 1' (P/B Intra) */
-
-					pr_start(44, "Encode intra");
-
-					if (!mpeg1_encode_intra()) { // mblock[1]
-						pr_end(44);
-						break;
-					}
-
-					pr_end(44);
-
-					quant++;
-					brewind(&video_out, &mark);
-
-					pr_event(43, "P/intra overflow");
-				}
-
-				bprolog(&video_out);
+				pb_intra_mb(TRUE);
 
 				if (prev_quant < 0)
 					quant1 = quant;
+
 				prev_quant = quant;
+				quant_sum += quant;
 
 				mb_skipped = 0;
-				quant_sum += quant;
 
 				if (referenced) {
 					pr_start(23, "IDCT intra");
@@ -510,8 +605,8 @@ quant = quant_res_intra[saturate(quant >> 1, 1, quant_max)];
 					pr_end(23);
 				}
 			} else {
-				unsigned int code, cbp;
-				int len, length, i;
+				unsigned int cbp;
+				int dmv[2], len, length, i;
 
 				/* Calculate quantization factor */
 
@@ -538,37 +633,44 @@ lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
 					pr_end(26);
 
 					if (cbp == 0 && mb_count > 1 && mb_count < mb_num) {
-						i++;
 						__builtin_memcpy(new, old, 6 * 64);
+
+						i++;
+
 						break;
 					} else {
 						bepilog(&video_out);
 
-						macroblock_address(i);
+						macroblock_address(i); // 1..11
 
 						i = 0;
 
 						if (cbp == 0) {
-							bputl(&video_out, (code << 5) + 0x07, length + 5);
-							/* macroblock_type '001' (P MC, Not Coded), '11' MV(0, 0) */
+							{
+								bcatq(7, 5);
+								bputq(&video_out, length + 5);
+								/* macroblock_type '001' (P MC, Not Coded), '11' MV(0, 0) */
+							}
 
 							bprolog(&video_out);
 							__builtin_memcpy(new, old, 6 * 64);
 							break;
 						} else {
-							if (prev_quant != quant) {
-								code = (code << 10) + 0x020 + quant;
-								length += 10;
-								/* macroblock_type '0000 1' (P No MC, Coded, Quant), quantiser_scale_code 'xxxxx' */
-							} else {
-								code = (code << 2) + 0x1;
-								length += 2;
-								/* macroblock_type '01' (P No MC, Coded) */
+							{
+								if (prev_quant != quant) {
+									bcatq((1 << 5) + quant, 10);
+									length += 10;
+									/* macroblock_type '0000 1' (P No MC, Coded, Quant), quantiser_scale_code 'xxxxx' */
+								} else {
+									bcatq(1, 2);
+									length += 2;
+									/* macroblock_type '01' (P No MC, Coded) */
+								}
+
+								len = coded_block_pattern[cbp].length; // 3..9
+								bcatq(coded_block_pattern[cbp].code, len);
+								bputq(&video_out, length + len);
 							}
-
-							len = coded_block_pattern[cbp].length; // 3..9
-
-							bputl(&video_out, (code << len) + coded_block_pattern[cbp].code, length + len);
 
 							pr_start(46, "Encode inter");
 
@@ -668,6 +770,7 @@ picture_b(unsigned char *org0, unsigned char *org1)
 	int var, vmc, vmcf, vmcb;
 	int macroblock_type, mb_type_last;
 	int mb_skipped, mb_count;
+	int rows, intra_count = 0;
 
 	printv(3, "Encoding B picture #%d GOP #%d, fwd=%c\n",
 		video_frame_count, gop_frame_count, "FT"[!closed_gop]);
@@ -680,7 +783,6 @@ picture_b(unsigned char *org0, unsigned char *org1)
 	new = newref;
 
 	T = lroundn(R / (((ni + ei) * Xi + (np + ep) * Xp) * B_SHARE / Xb + (nb + eb)));
-
 	/*
 	 *  T = lroundn(R / (+ (ni + ei) * Xi * 1.4 / Xb
 	 *		     + (np + ep) * Xp * 1.4 / Xb
@@ -705,18 +807,19 @@ picture_b(unsigned char *org0, unsigned char *org1)
 	mb_skipped = 0;
 	mb_type_last = -1;
 
+
 	/* Picture header */
 
 	bepilog(&video_out);
 
 	bputl(&video_out, PICTURE_START_CODE, 32);
 
-	bputl(&video_out, ((gop_frame_count & 1023) << 19) | (B_TYPE << 16) | 0, 29);
-	bputl(&video_out, (0 << 10) | (1 << 7) | (0 << 6) | (1 << 3) | (0 << 2), 11);
+	bputl(&video_out, ((gop_frame_count & 1023) << 19) + (B_TYPE << 16) + 0, 29);
+	bputl(&video_out, (0 << 10) + (3 << 7) + (0 << 6) + (3 << 3) + (0 << 2), 11);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
-	 *  full_pel_forward_vector '0', forward_f_code '001',
-	 *  full_pel_backward_vector '0', backward_f_code '001',
+	 *  full_pel_forward_vector '0', forward_f_code 3,
+	 *  full_pel_backward_vector '0', backward_f_code 3,
 	 *  extra_bit_picture '0', byte align [2]
 	 */
 
@@ -724,10 +827,23 @@ picture_b(unsigned char *org0, unsigned char *org1)
 	q1p = (unsigned char *) video_out.p + (video_out.n >> 3);
 	bputl(&video_out, (1 << 1) + 0, 6);
 	/* slice header: quantiser_scale_code 'xxxxx', extra_bit_slice '0' */
-	
+
 	bprolog(&video_out);
 
-	for (mb_row = 0; mb_row < mb_height; mb_row++) {
+	for (mb_row = 0, rows = mb_cx_row;; mb_row++) {
+		if (mb_row >= rows) {
+			if (mb_row >= mb_height)
+				break;
+
+			if (1 && intra_count >= mb_cx_thresh) {
+				pr_event(48, "B/cx trap");
+				pb_cx_intra(FALSE);
+				break;
+			}
+
+			rows = mb_height;
+		}
+
 		for (mb_col = 0; mb_col < mb_width; mb_col++) {
 
 			/* Read macroblock (MMX state) */
@@ -765,7 +881,6 @@ picture_b(unsigned char *org0, unsigned char *org1)
 			/* Encode macroblock */
 
 			if (vmc > var || vmc > b_inter_bias) {
-				unsigned int code;
 				int length;
 				int i;
 
@@ -783,58 +898,21 @@ picture_b(unsigned char *org0, unsigned char *org1)
 				Ti += Tmb;
 
 				macroblock_type = MB_INTRA;
+				intra_count++;
 
-				brewind(&mark, &video_out);
-
-				for (;;) {
-					new_intra_quant(quant);
-
-					pr_start(22, "FDCT intra");
-					fdct_intra(); // mblock[0] -> mblock[1]
-					pr_end(22);
-
-					bepilog(&video_out);
-
-					macroblock_address(mb_skipped);
-
-					if (prev_quant != quant && prev_quant >= 0) {
-						bputl(&video_out, (code << 11) + 0x020 + quant, length + 11);
-						/* macroblock_type '0000 01' (P/B Intra, Quant), quantiser_scale_code 'xxxxx' */
-					} else
-						bputl(&video_out, (code << 5) + 0x3, length + 5);
-						/* macroblock_type '0001 1' (P/B Intra) */
-
-					pr_start(44, "Encode intra");
-
-					if (!mpeg1_encode_intra()) { // mblock[1]
-						pr_end(44);
-						break;
-					}
-
-					pr_end(44);
-
-					quant++;
-					brewind(&video_out, &mark);
-			
-					pr_event(49, "B/intra overflow");
-				}
-
-				bprolog(&video_out);
+				pb_intra_mb(TRUE);
 
 				if (prev_quant < 0)
 					quant1 = quant;
+
 				prev_quant = quant;
-				mb_skipped = 0;
 				quant_sum += quant;
 
-				if (referenced) {
-					pr_start(23, "IDCT intra");
-					mpeg1_idct_intra(new); // mblock[0] -> new
-					pr_end(23);
-				}
+				mb_skipped = 0;
+
 			} else {
-				unsigned int code, cbp;
-				int len, length, i;
+				unsigned int cbp;
+				int dmv[2][2], len, length, i;
 
 				/* Calculate quantization factor */
 
@@ -852,73 +930,84 @@ picture_b(unsigned char *org0, unsigned char *org1)
 				brewind(&mark, &video_out);
 
 				for (;;) {
-					i = mb_skipped;
+	i = mb_skipped;
 
-					new_inter_quant(quant);
+	new_inter_quant(quant);
 
-					pr_start(26, "FDCT inter");
-					cbp = fdct_inter(*iblock); // mblock[1|2|3] -> mblock[0]
-					pr_end(26);
+	pr_start(26, "FDCT inter");
+	cbp = fdct_inter(*iblock); // mblock[1|2|3] -> mblock[0]
+	pr_end(26);
 
-					if (cbp == 0 && macroblock_type == mb_type_last && mb_count < mb_num) {
-						// won't skip first mb of slice by imp of mb_type_last
-						i++;
-						break;
-					} else {
-						bepilog(&video_out);
+	if (cbp == 0
+	    && macroblock_type == mb_type_last
+	    /* && not first of slice */
+	    && mb_count < mb_num
+	    && 1) {
+		/* not reset PMV here */
+		i++;
+		break;
+	} else {
+		bepilog(&video_out);
 
-						macroblock_address(i);
+		macroblock_address(i); // 1..11
 
-						i = 0;
+		i = 0;
 
-						if (cbp == 0) {
-							len = macroblock_type_b_notc[macroblock_type].length; // 5..6
-							bputl(&video_out, (code << len) + macroblock_type_b_notc[macroblock_type].code, length + len);
-							bprolog(&video_out);
-							break;
-						} else {
-							if (prev_quant != quant) {
-								bputl(&video_out, code, length);
-							
-								length = macroblock_type_b_nomc_quant[macroblock_type].length; // 13..14
-								code = macroblock_type_b_nomc_quant[macroblock_type].code
-									+ (quant << macroblock_type_b_nomc_quant[macroblock_type].mv_length);
-								/* macroblock_type, quantiser_scale_code, motion vectors */
-							} else {
-								len = macroblock_type_b_nomc[macroblock_type].length; // 5..7
+		if (cbp == 0) {
+			{
+				len = macroblock_type_b_nomc_notc[macroblock_type].length; // 5..6
+				bcatq(macroblock_type_b_nomc_notc[macroblock_type].code, len);
+			}
 
-								length += len;
-								code = (code << len) + macroblock_type_b_nomc[macroblock_type].code;
-								/* macroblock_type, motion vectors */
-							}
+			bputq(&video_out, length + len);
+			bprolog(&video_out);
 
-							len = coded_block_pattern[cbp].length; // 3..9
-
-							bputl(&video_out, (code << len) + coded_block_pattern[cbp].code, length + len);
-
-							pr_start(46, "Encode inter");
-
-							if (!mpeg1_encode_inter(mblock[0], cbp)) {
-								pr_end(46);
-
-								bprolog(&video_out);
-
-								if (prev_quant < 0)
-									quant1 = quant;
-								prev_quant = quant;
-
-								break;
-							}
-
-							pr_end(46);
-
-							quant++;
-							brewind(&video_out, &mark);
-							
-							pr_event(47, "B/inter overflow");
-						}
-					}
+			break;
+		} else {
+			{
+				if (prev_quant != quant) {
+					len = macroblock_type_b_nomc_quant[macroblock_type].length; // 13..14
+					bcatq(macroblock_type_b_nomc_quant[macroblock_type].code
+						+ (quant << macroblock_type_b_nomc_quant[macroblock_type].mv_length), len);
+				} else {
+					len = macroblock_type_b_nomc[macroblock_type].length; // 5..7
+					bcatq(macroblock_type_b_nomc[macroblock_type].code, len);
 				}
+
+				length += len;
+			}
+
+			bcatq(coded_block_pattern[cbp].code,
+			      len = coded_block_pattern[cbp].length);
+
+			bputq(&video_out, length + len);
+
+			pr_start(46, "Encode inter");
+
+			if (!mpeg1_encode_inter(mblock[0], cbp)) {
+				pr_end(46);
+
+				bprolog(&video_out);
+
+				break;
+			}
+
+			pr_end(46);
+
+			quant++;
+			
+			brewind(&video_out, &mark);
+
+			pr_event(47, "B/inter overflow");
+	
+		} // coded mb
+	} // not skipped
+				} // while overflow
+
+				if (prev_quant < 0)
+					quant1 = quant;
+
+				prev_quant = quant;
 
 				quant_sum += quant;
 				mb_skipped = i;
@@ -967,7 +1056,7 @@ static int
 picture_zero(void)
 {
 	int i;
-	int code, length;
+	int length;
 
 	printv(3, "Encoding 0 picture\n");
 
@@ -975,8 +1064,8 @@ picture_zero(void)
 
 	bputl(&video_out, PICTURE_START_CODE, 32);
 	
-	bputl(&video_out, ((gop_frame_count & 1023) << 19) | (P_TYPE << 16) | 0, 29);
-	bputl(&video_out, (0 << 10) | (1 << 7) | (0 << 6), 11);
+	bputl(&video_out, ((gop_frame_count & 1023) << 19) + (P_TYPE << 16) + 0, 29);
+	bputl(&video_out, (0 << 10) + (1 << 7) + (0 << 6), 11);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
 	 *  full_pel_forward_vector '0', forward_f_code '001',
@@ -993,7 +1082,8 @@ picture_zero(void)
 
 	macroblock_address(mb_num - 2);
 
-	bputl(&video_out, (code << 5) + 0x07, length + 5);
+	bcatq(0x07, 5);
+	bputq(&video_out, length + 5);
 	/* macroblock_type '001' (P MC, Not Coded), '11' MV(0, 0) */
 
 	bprolog(&video_out);
@@ -1070,6 +1160,10 @@ user_data(char *s)
 			bputl(&video_out, *s++, 8);
 	}
 }
+
+
+
+
 
 static inline void
 _send_buffer(fifo *f, buffer *b)
@@ -1354,7 +1448,7 @@ if (video_do_reset) {
 				printv(3, "[GOP header, closed=%c]\n", "FT"[closed_gop]);
 
 				bputl(&video_out, GROUP_START_CODE, 32);
-				bputl(&video_out, (closed_gop << 19) | (0 << 6), 32);
+				bputl(&video_out, (closed_gop << 19) + (0 << 6), 32);
 				/*
 				 *  time_code [25 w/marker_bit] omitted, closed_gop,
 				 *  broken_link '0', byte align [5]
@@ -1426,7 +1520,6 @@ d3 = 3;
 	}
 
 finish:
-
 	if (video_frame_count > 0) {
 		obuf = new_buffer(&vid);
 		((unsigned int *) obuf->data)[0] = bswap(SEQUENCE_END_CODE);
@@ -1434,7 +1527,7 @@ finish:
 		_send_buffer(&vid, obuf);
 	}
 
-	while (!program_shutdown) {
+	for (;;) {
 		obuf = new_buffer(&vid);
 		obuf->size = 0; // EOF mark
 		_send_buffer(&vid, obuf);
@@ -1491,9 +1584,11 @@ G0 = Gn;
 
 	if (banner)
 		free(banner);
-	asprintf(&banner, "MP1E " VERSION " Test Stream G%dx%d b%2.2f f%2.1f F%d\nANNO: %s\n",
+	asprintf(&banner,
+		anno ? "MP1E " VERSION " Test Stream G%dx%d b%2.2f f%2.1f F%d\nANNO: %s\n" :
+		       "MP1E " VERSION " Test Stream G%dx%d b%2.2f f%2.1f F%d\n",
 		grab_width, grab_height, (double)(video_bit_rate) / 1E6,
-		frame_rate, filter_mode, anno); 
+		frame_rate, filter_mode, anno);
 }
 
 void
@@ -1559,6 +1654,15 @@ video_init(void)
 		default:
 			i = 1024;
 		}
+
+
+	mb_cx_row = mb_height;
+	mb_cx_thresh = 100000;
+
+	if (mb_height >= 10) {
+		mb_cx_row /= 3;
+		mb_cx_thresh = lroundn(mb_cx_row * mb_width * 0.95);
+	}
 
 	video_reset();
 }
