@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.51 2004-12-07 17:30:41 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.52 2005-01-08 14:30:40 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -161,7 +161,7 @@ video_callback			(rte_context *		context _unused_,
   }
 
   rb->timestamp = b->time;
-  rb->data = zi->data.linear.data;
+  rb->data = zi->img;
   rb->size = 1; /* XXX don't care 4 now, should be zi->fmt.size */
   rb->user_data = b;
 
@@ -390,7 +390,6 @@ do_start			(const gchar *		file_name)
   gdouble captured_frame_rate;
   gint width, height;
   gint retry;
-  capture_fmt fmt;
 
   if (active)
     return FALSE;
@@ -431,10 +430,10 @@ do_start			(const gchar *		file_name)
 
   if (video_codec)
     {
-      tv_pixfmt pixfmt;
-      rte_video_stream_params *par = &video_params.video;
+      tv_pixfmt_set pixfmt_set;
+      rte_video_stream_params *par;
 
-      CLEAR (*par);
+      par = &video_params.video;
 
       if (zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 			     CAPTURE_MODE_READ, zapping_info))
@@ -448,85 +447,87 @@ do_start			(const gchar *		file_name)
 	  return FALSE;
 	}
 
-      /* preliminary hack */
-      pixfmt = native_capture_format ();
-      switch (pixfmt)
+      retry = 0;
+
+      pixfmt_set = (TV_PIXFMT_SET (TV_PIXFMT_YUV420) |
+		    TV_PIXFMT_SET (TV_PIXFMT_YVU420) |
+		    TV_PIXFMT_SET (TV_PIXFMT_YUYV));
+
+      for (;;)
 	{
-	  gint n;
+	  const tv_image_format *fmt;
+	  guint i;
 
-	case TV_PIXFMT_YUV420:
-	case TV_PIXFMT_YVU420:
-	case TV_PIXFMT_YUYV:
-	  break;
-
-	default:
-	  n = zconf_get_int (NULL, "/zapping/options/main/yuv_format");
-	  switch (n)
+	  if (-1 != capture_format_id)
 	    {
-	    case 6: pixfmt = TV_PIXFMT_YVU420; break;
-	    default:
-	    case 7: pixfmt = TV_PIXFMT_YUV420; break;
-	    case 8: pixfmt = TV_PIXFMT_YUYV; break;
+	      release_capture_format (capture_format_id);
+	      capture_format_id = -1;
 	    }
-	}
 
-      for (retry = 0;; retry++)
-        {
-	  const tv_image_format *ifmt;
-
-	  if (retry == 4)
+	  if (6 == retry++
+	      || TV_PIXFMT_SET_EMPTY == pixfmt_set)
 	    {
+	      rte_context_delete (context);
+	      context_enc = NULL;
+
 	      ShowBox ("Cannot switch to requested capture format",
 		       GTK_MESSAGE_ERROR);
+
 	      return FALSE;
 	    }
 
-	  fmt.locked = TRUE;
-	  fmt.width = width;
-	  fmt.height = height;
-	  fmt.pixfmt = pixfmt;
-
-	  if (-1 != capture_format_id)
-	    release_capture_format (capture_format_id);
-
-	  capture_format_id = request_capture_format (&fmt);
+	  capture_format_id = request_capture_format
+	    (zapping_info, width, height,
+	     pixfmt_set, REQ_SIZE | REQ_PIXFMT);
 
 	  if (-1 == capture_format_id)
 	    {
 	      rte_context_delete (context);
 	      context_enc = NULL;
 
-	      ShowBox ("Cannot switch to %s capture format",
-		       GTK_MESSAGE_ERROR, tv_pixfmt_name (pixfmt));
+	      ShowBox ("Cannot switch capture format",
+		       GTK_MESSAGE_ERROR);
+
 	      return FALSE;
 	    }
 
-	  capture_pixfmt = pixfmt;
+	  get_capture_format (capture_format_id,
+			      /* width */ NULL,
+			      /* height */ NULL,
+			      &capture_pixfmt);
 
-	  ifmt = tv_cur_capture_format (zapping_info);
-	  par->width = ifmt->width;
-	  par->height = ifmt->height;
+	  fmt = tv_cur_capture_format (zapping_info);
 
-	  if (pixfmt == TV_PIXFMT_YUV420)
+	  CLEAR (*par);
+
+	  par->width = fmt->width;
+	  par->height = fmt->height;
+
+	  switch (capture_pixfmt)
 	    {
+	    case TV_PIXFMT_YUV420:
 	      par->pixfmt = RTE_PIXFMT_YUV420;
 	      par->stride = par->width;
 	      par->uv_stride = par->stride >> 1;
 	      par->v_offset = par->stride * par->height;
 	      par->u_offset = par->v_offset * 5 / 4;
-	    }
-	  else if (pixfmt == TV_PIXFMT_YVU420)
-	    {
+	      break;
+
+	    case TV_PIXFMT_YVU420:
 	      par->pixfmt = RTE_PIXFMT_YUV420;
 	      par->stride = par->width;
 	      par->uv_stride = par->stride >> 1;
 	      par->u_offset = par->stride * par->height;
 	      par->v_offset = par->u_offset * 5 / 4;
-	    }
-	  else
-	    {
+	      break;
+
+	    case TV_PIXFMT_YUYV:
 	      par->pixfmt = RTE_PIXFMT_YUYV;
 	      /* defaults */
+	      break;
+
+	    default:
+	      g_assert_not_reached ();
 	    }
 
 	  if (tv_cur_video_standard (zapping_info))
@@ -541,16 +542,21 @@ do_start			(const gchar *		file_name)
 	      if (captured_frame_rate < 0.0)
 		{
 		  rte_context_delete (context);
-		  if (-1 != capture_format_id)
-		    release_capture_format (capture_format_id);
-		  capture_format_id = -1;
 		  context_enc = NULL;
+
+		  if (-1 != capture_format_id)
+		    {
+		      release_capture_format (capture_format_id);
+		      capture_format_id = -1;
+		    }
+
 		  return FALSE;
 		}
 	    }
 
 	  /* not supported by all codecs */
-	  /* g_assert */ (rte_codec_option_set (video_codec, "coded_frame_rate",
+	  /* g_assert */ (rte_codec_option_set (video_codec,
+						"coded_frame_rate",
 						(double) captured_frame_rate));
 
 	  par->frame_rate = captured_frame_rate;
@@ -559,51 +565,60 @@ do_start			(const gchar *		file_name)
 	    {
 	      rte_context_delete (context);
 	      context_enc = NULL;
+
 	      if (-1 != capture_format_id)
-		release_capture_format (capture_format_id);
-	      capture_format_id = -1;
+		{
+		  release_capture_format (capture_format_id);
+		  capture_format_id = -1;
+		}
 
 	      /* FIXME */
 
 	      ShowBox ("Oops, catched a bug.",
 		       GTK_MESSAGE_ERROR);
+
 	      return FALSE; 
 	    }
 
-	  ifmt = tv_cur_capture_format (zapping_info);
-	  if (par->width != ifmt->width
-	      || par->height != ifmt->height)
+	  fmt = tv_cur_capture_format (zapping_info);
+
+	  /* Width, height may change due to codec limits. */
+	  if (par->width != fmt->width
+	      || par->height != fmt->height)
 	    {
+	      /* Try to capture this size. */
 	      width = par->width;
 	      height = par->height;
 	      continue;
 	    }
 	  else if (par->pixfmt == RTE_PIXFMT_YUYV)
 	    {
-	      if (pixfmt == TV_PIXFMT_YUYV)
+	      if (capture_pixfmt == TV_PIXFMT_YUYV)
 		break;
-
-	      pixfmt = TV_PIXFMT_YUYV;
-	      continue;
 	    }
 	  else if (par->pixfmt == RTE_PIXFMT_YUV420)
 	    {
 	      /* NB RTE_PIXFMT_YUV420 is backwards. */
 	      if (par->v_offset < par->u_offset)
 		{
-		  if (pixfmt == TV_PIXFMT_YUV420)
+		  if (capture_pixfmt == TV_PIXFMT_YUV420)
 		    break;
-
-		  pixfmt = TV_PIXFMT_YUV420;
-		  continue;
 		}
 	      else
 		{
-		  if (pixfmt == TV_PIXFMT_YVU420)
+		  if (capture_pixfmt == TV_PIXFMT_YVU420)
 		    break;
+		}
+	    }
 
-		  pixfmt = TV_PIXFMT_YVU420;
-		  continue;
+	  /* Try other format. */
+
+	  for (i = 0; i < TV_MAX_PIXFMTS; ++i)
+	    {
+	      if (pixfmt_set & TV_PIXFMT_SET (i))
+		{
+		  pixfmt_set &= ~TV_PIXFMT_SET (i);
+		  break;
 		}
 	    }
 	} /* retry loop */
@@ -1942,9 +1957,8 @@ plugin_add_gui			(GnomeApp *		app _unused_)
 
   z_tooltip_set (GTK_WIDGET (tool_item), _(tooltip));
 
-  g_signal_connect (G_OBJECT (tool_item), "clicked",
-		    G_CALLBACK (on_python_command1),
-		    (gpointer) "zapping.record()");
+  z_signal_connect_python (G_OBJECT (tool_item), "clicked",
+			   "zapping.record()");
 
   gtk_toolbar_insert (zapping->toolbar, tool_item, APPEND);
 
@@ -1967,9 +1981,8 @@ plugin_process_popup_menu	(GtkWidget *		widget _unused_,
 					 GTK_STOCK_SELECT_COLOR);
   z_tooltip_set (menuitem, _(tooltip));
 
-  g_signal_connect (G_OBJECT (menuitem), "activate",
-		    (GtkSignalFunc) on_python_command1,
-		    (gpointer) "zapping.record()");
+  z_signal_connect_python (G_OBJECT (menuitem), "activate",
+			   "zapping.record()");
 
   gtk_widget_show (menuitem);
   gtk_menu_shell_append (GTK_MENU_SHELL (popup), menuitem);
