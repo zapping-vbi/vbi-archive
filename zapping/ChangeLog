@@ -1,3 +1,12 @@
+13.01.2002	libzvbi <mschimek@users.sf.net>
+
+	* Ported Zapping from old libvbi to libzvbi, the new
+	  standalone version in CVS, module "vbi". Right now only
+	  the v4l2 interface works (oops...), ttx search doesn't
+	  and the "sample filter" is gone, but the rest seems to
+	  be in good shape. Zapping will also compile without
+	  libzvbi, disabling all vbi features.
+
 08.01.2002	<mschimek@users.sf.net>
 
 	* ttxview.c: Page is exported with current reveal state.
