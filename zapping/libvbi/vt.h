@@ -98,6 +98,12 @@ typedef struct vt_triplet {
 	unsigned	data : 8;
 } vt_triplet;
 
+typedef struct vt_pagenum {
+	unsigned	type : 4;
+	unsigned	pgno : 12;
+	unsigned	subno : 16;
+} vt_pagenum;
+
 struct vt_page
 {
 	page_function		function;
@@ -110,12 +116,10 @@ struct vt_page
     int errors;		// number of single bit errors in page
     u32 lines;		// 1 bit for each line received
     u8 data[25][40];	// page contents
-    int flof;		// page has FastText links
-    struct {
-	int pgno;
-	int subno;
-    } link[6];		// FastText links (FLOF)
 
+	int			flof;			/* FastText, display row 24 */
+	vt_pagenum		link[4 * 6];		/* X/27/0-3 links */
+	vt_pagenum		enh_link[2 * 6];	/* X/27/4-5 links */	
 	struct vt_extension *	extension;
 
 	/* added temporarily: */

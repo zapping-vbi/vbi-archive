@@ -13,6 +13,7 @@
 #include "export.h"
 
 void reset_magazines(struct vbi *vbi);
+#define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
 void
 out_of_sync(struct vbi *vbi)
@@ -101,11 +102,14 @@ vbi_set_default_region(struct vbi *vbi, int default_region)
 	}
 }
 
- void
+void
 reset_magazines(struct vbi *vbi)
 {
 	struct vt_extension *ext;
 	int i, j;
+
+	vbi->initial_page.pgno = 0x100;
+	vbi->initial_page.subno = 0x3F7F; /* any */
 
 	for (i = 0; i < 8; i++) {
 		ext = vbi->magazine_extension + i;
@@ -253,11 +257,25 @@ dump_drcs_download(u8 *p, u8 *drcs_mode)
 	}
 }					    
 
+static int
+hamm8_page_number(vt_pagenum *pn, u8 *raw, int magazine)
+{
+	int b1, b2, b3, m;
+	int err = 0;
 
+	b1 = hamm16(raw + 0, &err);
+	b2 = hamm16(raw + 2, &err);
+	b3 = hamm16(raw + 4, &err);
+	if (err & 0xf000)
+		return 0;
 
+	m = ((b3 >> 5) & 6) + (b2 >> 7);
 
+	pn->pgno = ((magazine ^ m) ? : 8) * 256 + b1;
+	pn->subno = (b3 * 256 + b2) & 0x3f7f;
 
-
+	return 1;
+}
 
 
 // process one videotext packet
@@ -332,6 +350,14 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    rvtp->extension.designations = 0;
 	    cvtp->num_triplets = 0;
 	    cvtp->vbi = vbi;
+
+		for (i = 0; i < 24; i++) {
+			cvtp->link[i].pgno = 0x0FF;
+			cvtp->link[i].subno = 0x3F7F;
+			cvtp->enh_link[i >> 1].pgno = 0x0FF;
+			cvtp->enh_link[i >> 1].subno = 0xFFFF;
+		}
+
 	    return 0;
 	}
 
@@ -343,7 +369,6 @@ vt_packet(struct vbi *vbi, u8 *p)
 
 	    if (~cvtp->flags & PG_ACTIVE)
 		return 0;
-
 	    cvtp->errors += err;
 	    cvtp->lines |= 1 << pkt;
 	    conv2latin(p, 40, cvtp->lang);
@@ -369,7 +394,7 @@ vt_packet(struct vbi *vbi, u8 *p)
 		if (cvtp->num_triplets >= 16 * 13
 		    || cvtp->num_triplets != designation * 13
 		    || (cvtp->num_triplets > 0
-			&& cvtp->triplets[cvtp->num_triplets - 1].stop)) {
+			&& cvtp->triplets[cvtp->num_triplets - 1].stop)) { /* XXX correct? */
 			cvtp->num_triplets = -1;
 			return 0;
 		}
@@ -396,33 +421,70 @@ vt_packet(struct vbi *vbi, u8 *p)
 
 	case 27:
 	{
-	    // FLOF data (FastText)
-	    int b1,b2,b3,x;
-	    
+		int designation, control, crc;
+
 	    if (~cvtp->flags & PG_ACTIVE)
 		return 0; // -1 flushes all pages.  we may never resync again :(
 
-	    b1 = hamm8(p, &err);
-	    b2 = hamm8(p + 37, &err);
-	    if (err & 0xf000)
-		return 4;
-	    if (b1 != 0 || not(b2 & 8))
-		return 0;
-
-	    for (i = 0; i < 6; ++i)
-	    {
-		err = 0;
-		b1 = hamm16(p+1+6*i, &err);
-		b2 = hamm16(p+3+6*i, &err);
-		b3 = hamm16(p+5+6*i, &err);
+		designation = hamm8(p, &err);
 		if (err & 0xf000)
-		    return 1;
-		x = (b2 >> 7) | ((b3 >> 5) & 0x06);
-		cvtp->link[i].pgno = ((mag ^ x) ?: 8) * 256 + b1;
-		cvtp->link[i].subno = (b2 + b3 * 256) & 0x3f7f;
-	    }
-	    cvtp->flof = 1;
-	    return 0;
+			return 4;
+
+printf("X/27/%d\n", designation);
+		switch (designation) {
+		case 0:
+			control = hamm8(p + 37, &err);
+			if (err & 0xf000)
+				return 4;
+printf("X/27/%d %02x\n", designation, control);
+
+			crc = p[38] + p[39] * 256;
+
+			if ((control & 7) != 7)
+				return 0; /* local COP */
+
+			cvtp->flof = control >> 3; /* display row 24 */
+
+			/* fall through */
+		case 1:
+		case 2:
+		case 3:
+			for (p++, i = 0; i <= 5; p += 6, i++) {
+				if (!hamm8_page_number(cvtp->link + designation * 6 + i, p, mag))
+					return 1;
+
+// printf("X/27/%d link[%d] page %03x/%03x\n", designation, i,
+//	cvtp->link[designation * 6 + i].pgno, cvtp->link[designation * 6 + i].subno);
+			}
+
+			break;
+
+		case 4:
+		case 5:
+			for (p++, i = 0; i <= 5; p += 6, i++) {
+				int t1, t2;
+
+				t1 = hamm24(p + 0, &err);
+				t2 = hamm24(p + 3, &err);
+				if (err & 0xf000)
+					return 4;
+
+				cvtp->enh_link[designation * 6 - 24 + i].type = t1 & 3;
+				cvtp->enh_link[designation * 6 - 24 + i].pgno =
+					((((t1 >> 12) & 0x7) ^ mag) ? : 8) * 256
+					+ ((t1 >> 11) & 0x0F0) + ((t1 >> 7) & 0x00F);
+				cvtp->enh_link[designation * 6 - 24 + i].subno =
+					(t2 >> 3) & 0xFFFF;
+printf("X/27/%d enh_link[%d] type %d page %03x subno %04x\n", designation, i,
+	cvtp->enh_link[designation * 6 - 24 + i].type,
+	cvtp->enh_link[designation * 6 - 24 + i].pgno,
+	cvtp->enh_link[designation * 6 - 24 + i].subno);
+			}
+
+			break;
+		}
+
+		return 0;
 	}
 
 	case 28:
@@ -619,8 +681,25 @@ vt_packet(struct vbi *vbi, u8 *p)
 
 	case 30:
 	{
-	    if (mag8 != 8)
-		return 0;
+		int designation;
+
+		if (mag8 != 8)
+			return 0;
+
+		designation = hamm8(p, &err);
+		if (err & 0xf000)
+			return 4;
+
+		if (designation > 4)
+			return 0;
+
+		if (!hamm8_page_number(&vbi->initial_page, p + 1, 0))
+			return 1;
+
+		if ((vbi->initial_page.pgno & 0xFF) == 0xFF) {
+			vbi->initial_page.pgno = 0x100;
+			vbi->initial_page.subno = 0x3F7F; /* any */
+		}
 
 	    p[0] = hamm8(p, &err);		// designation code
 	    p[1] = hamm16(p+1, &err);		// initial page

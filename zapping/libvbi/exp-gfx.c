@@ -18,86 +18,115 @@
 #define WW (W*CW)
 #define WH (H*CH)
 
+// static void init_gfx(void) __attribute__ ((constructor));
+
 
 ///////////////////////////////////////////////////////
 // COMMON ROUTINES FOR PPM AND PNG
 
-/*
-    Changes:
-    *	All characters composed from c [11:0] and Latin G2 0x40 ... 0x4F [15:12]
- */
+#if CW < 9 || CW > 16
+#error CW out of range
+#endif
+
 static inline void
-draw_char(unsigned char * colour_matrix, 
-	  int fg, int bg, int c, int dbl, int _x, int _y, 
-	  int sep)
+draw_char(unsigned int *canvas, unsigned int *pen, int c, glyph_size size)
 {
-  int x,y;
-  unsigned char* src= wstfont_bits;
-  int dest_x=_x*CW;
-  int dest_y=_y*CH;
-  int cbase = c & 0xFFF;
+	unsigned char *src1, *src2;
+	int shift1, shift2;
+	int x, y;
 
-  c = 0xC0 + (c >> 12); /* diacritical mark */
+	x = (c & 31) * CW;
+	shift1 = x & 7;
+	src1 = wstfont_bits + ((c & 0x3FF) >> 5) * CH * CW * 32 / 8 + (x >> 3);
 
-  for(y=0;y<(CH<<dbl); y++)
-    {
-      for(x=0;x<CW; x++)
-	{
-	  int bitnr, bit, maskbitnr, maskbit;
-	  bitnr=(cbase/32*CH + (y>>dbl))*CW*32+ cbase%32*CW +x;
-	  bit=(*(src+bitnr/8))&(1<<bitnr%8);
-	  bitnr=(c/32*CH + (y>>dbl))*CW*32+ c%32*CW +x;
-	  bit |= (*(src+bitnr/8))&(1<<bitnr%8);
-	  if (0 && sep)
-	    {
-	      maskbitnr=(0xa0/32*CH + (y>>dbl))*CW*32+ 0xa0%32*CW +x;
-	      maskbit=(*(src+maskbitnr/8))&(1<<maskbitnr%8);
-	      *(colour_matrix+WW*(dest_y+y)+dest_x+x)=
-		(char)((bit && (!maskbit)) ? fg : bg);
-	    }
-	  else 
-	    *(colour_matrix+WW*(dest_y+y)+dest_x+x)=
-	      (char)(bit ? fg : bg);
+	x = (c >> 12) * CW;
+	shift2 = (x & 7) + ((c >> 10) & 1);
+	src2 = wstfont_bits + (0xC0 >> 5) * CH * CW * 32 / 8 + (x >> 3);
+	if (c & 0x800) src2 += CW * 32 / 8;
+
+	for (y = 0; y < CH; y++) {
+#if #cpu (i386)
+		int bits = (*((u16 *) src1) >> shift1) | (*((u16 *) src2) >> shift2);
+#else
+		int bits = ((src1[1] * 256 + src1[0]) >> shift1)
+			 | ((src2[1] * 256 + src2[0]) >> shift2); /* unaligned/little endian */
+#endif
+		switch (size) {
+		case NORMAL:
+			for (x = 0; x < CW; bits >>= 1, x++)
+				canvas[x] = pen[bits & 1];
+
+			canvas += WW;
+
+			break;
+
+		case DOUBLE_HEIGHT:
+			for (x = 0; x < CW; bits >>= 1, x++) {
+				int col = pen[bits & 1];
+
+				canvas[x] = col;
+				canvas[x + WW] = col;
+			}
+
+			canvas += 2 * WW;
+
+			break;
+
+		case DOUBLE_WIDTH:
+			for (x = 0; x < CW * 2; bits >>= 1, x += 2) {
+				int col = pen[bits & 1];
+
+				canvas[x + 0] = col;
+				canvas[x + 1] = col;
+			}
+
+			canvas += 2 * WW;
+
+			break;
+
+		case DOUBLE_SIZE:
+			for (x = 0; x < CW * 2; bits >>= 1, x += 2) {
+				int col = pen[bits & 1];
+
+				canvas[x + 0] = col;
+				canvas[x + 1] = col;
+				canvas[x + WW + 0] = col;
+				canvas[x + WW + 1] = col;
+			}
+
+			canvas += 2 * WW;
+
+			break;
+
+		default:
+			break;
+		}
+
+		src1 += CW * 32 / 8;
+		src2 += CW * 32 / 8;
 	}
-    }
-  return;
 }
 
 static void
-prepare_colour_matrix(/*struct export *e,*/
-		      struct fmt_page *pg, 
-		      unsigned char *colour_matrix)
+draw_page(struct fmt_page *pg, unsigned int *canvas)
 {
-   int x, y;
-   //   bzero(colour_matrix, WH*WW);
-   for (y = 0; y < H; ++y)
-	{
-	  for (x = 0; x < W; ++x)
-	    { 
-		switch (pg->data[y][x].size) {
-		case NORMAL:
-		case DOUBLE_HEIGHT:
-		case DOUBLE_WIDTH: /* temporary */
-		case DOUBLE_SIZE: /* temporary */
-		    draw_char(colour_matrix, 
-			pg->data[y][x].foreground,
-			pg->data[y][x].background,
-			pg->data[y][x].glyph,
-			!!(pg->data[y][x].size & DOUBLE_HEIGHT),
-			x, y,
-			0);
-		    break;
+	int row, column;
+	attr_char *ac;
 
-		default: /* OVER_TOP, OVER_BOTTOM, DOUBLE_HEIGHT2, DOUBLE_SIZE2 */
-		    break;
+	for (row = 0; row < H; canvas += W * CW * CH, row++) {
+		for (column = 0; column < W; column++) {
+			unsigned int pen[2];
+
+			ac = &pg->data[row][column];
+
+			pen[0] = pg->colour_map[ac->background];
+			pen[1] = pg->colour_map[ac->foreground];
+
+			if (ac->size <= DOUBLE_SIZE)
+				draw_char(canvas + column * CW, pen, ac->glyph, ac->size);
 		}
-	    }
 	}
-
-    return;
 }
-
-
 
 ///////////////////////////////////////////////////////
 // STUFF FOR PPM OUTPUT
@@ -134,13 +163,15 @@ ppm_output(struct export *e, char *name, struct fmt_page *pg)
   
   unsigned char *colour_matrix;
 
+return 0;
+
   if (!(colour_matrix=malloc(WH*WW))) 
     {
       export_error("cannot allocate memory");
       return 0;
     }
 
-  prepare_colour_matrix(/*e,*/ pg, (unsigned char *)colour_matrix); 
+//  prepare_colour_matrix(/*e,*/ pg, (unsigned char *)colour_matrix); 
   
   if (not(fp = fopen(name, "w")))
     {
@@ -169,15 +200,15 @@ ppm_output(struct export *e, char *name, struct fmt_page *pg)
 
 /* garetxe: This doesn't make sense in alevt, but it's useful in other
  contexts */
-unsigned char *
+unsigned int *
 mem_output(struct fmt_page *pg, int *width, int *height)
 {
-  unsigned char *mem;
+  unsigned int *mem;
 
   if ((!pg) || (!width) || (!height))
-    return (char *) -1;
+    return (unsigned int *) -1;
 
-  mem = malloc(WW*WH);
+  mem = malloc(CW * CH * W * H * sizeof(unsigned int));
   if (!mem)
     {
       perror("malloc");
@@ -187,6 +218,6 @@ mem_output(struct fmt_page *pg, int *width, int *height)
   *width = WW;
   *height = WH;
 
-  prepare_colour_matrix(pg, mem);
+  draw_page(pg, mem);
   return mem;
 }

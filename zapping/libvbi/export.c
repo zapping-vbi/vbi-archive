@@ -458,20 +458,20 @@ struct font_d {
 
 static const int
 national_subst[14][13] = {
-	{ 0x23, 0x24, 0x40, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f, 0x60, 0x7b, 0x7c, 0x7d, 0x7e },
-	{ 0x23, 0xA000 + 'u', 0xF000 + 'c', 0x0B, 0xF000 + 'z', 0x2000 + 'y', 0x09, 0xF000 + 'r', 0x2000 + 'e', 0x07, 0xF000 + 'e', 0x2000 + 'u', 0xF000 + 's' },
-	{ 0xA3, 0xA4, 0x40, 0xAC, 0xBD, 0xAE, 0xAD, '#', 0xD0, 0xBC, 0x01FC, 0xBE, 0xB8 },
-	{ 0x23, 0x4000 + 'o', 0xF01D, 0x12, 0x15, 0xF01F, 0x16, 0x401C, 0xF000 + 's', 0x08, 0x8000 + 'o', 0xF000 + 'z', 0x8000 + 'u' },
-	{ 0x2000 + 'e', 0x0C, 0x1000 + 'a', 0x8000 + 'e', 0x3000 + 'e', 0x1000 + 'u', 0x09, '#', 0x1000 + 'e', 0x3000 + 'a', 0x3000 + 'o', 0x3000 + 'u', 0xB000 + 'c' },
-	{ 0x23, 0xA4, 0xA7, 0x12, 0x15, 0x16, 0x5E, 0x5F, 0xB0, 0x08, 0x8000 + 'o', 0x8000 + 'u', 0xFB },
-	{ 0xA3, 0xA4, 0x2000 + 'e', 0xB0, 0xB000 + 'c', 0xAE, 0xAD, '#', 0x1000 + 'u', 0x1000 + 'a', 0x1000 + 'o', 0x1000 + 'e', 0x1000 + 'i' },
-	{ 0x23, 0xA4, 0xF01D, 0x7000 + 'e', 0xB000 + 'e', 0xF01F, 0xF000 + 'c', 0x5000 + 'u', 0xF000 + 's', 0xE000 + 'a', 0xE000 + 'u', 0xF000 + 'z', 0xB000 + 'i' },
-	{ 0x23, 0x2000 + 'n', 0xE000 + 'a', 0x0E, 0x201D, 0xE8, 0x2000 + 'c', 0x2000 + 'o', 0xE000 + 'e', 0x7000 + 'z', 0x2000 + 's', 0xF8, 0x2000 + 'z' },
-	{ 0xB000 + 'c', 0xA4, 0xA1, 0x07, 0x2000 + 'e', 0x2000 + 'i', 0x2000 + 'o', 0x2000 + 'u', 0xBF, 0x8000 + 'u', 0x4000 + 'n', 0x1000 + 'e', 0x1000 + 'a' },
-	{ 0x23, 0x24, 0xB000 + 'T', 0x10, 0xB000 + 'S', 0xF017, 0x11, 0xF5, 0xB000 + 't', 0x3000 + 'a', 0xB000 + 's', 0xF000 + 'a', 0x09 },
-	{ 0x23, 0x13, 0xF018, 0x2018, 0xF01F, 0xE2, 0xF01D, 0x8000 + 'e', 0xF000 + 'c', 0x2000 + 'c', 0xF000 + 'z', 0xF2, 0xF000 + 's' },
-	{ 0x23, 0x24, 0x2019, 0x12, 0x15, 0x0D, 0x16, 0x5F, 0x2000 + 'e', 0x08, 0x8000 + 'o', 0xA000 + 'a', 0x8000 + 'u' },
-	{ 0x0F, 0xF000 + 'g', 0x06, 0xB000 + 'S', 0x15, 0xB000 + 'C', 0x16, 0xF01A, 0xF5, 0xB000 + 's', 0x8000 + 'o', 0xB000 + 'c', 0x8000 + 'u' }
+	{ 0x0023, 0x24, 0x40, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x7B, 0x7C, 0x7D, 0x7E },
+	{ 0x0023, 0xA000 + 'u', 0xF000 + 'c', 0x16, 0xF000 + 'z', 0x2000 + 'y', 0x24F5, 0xF000 + 'r', 0x2000 + 'e', 0x2400 + 'a', 0xF000 + 'e', 0x2000 + 'u', 0xF000 + 's' },
+	{ 0x00A3, 0xA4, 0x40, 0xAC, 0xBD, 0xAE, 0xAD, '#', 0xD0, 0xBC, 0x01FC, 0xBE, 0xB8 },
+	{ 0x0023, 0x4000 + 'o', 0xF013, 0x8801, 0x880F, 0xF01A, 0x8815, 0x400F, 0xF000 + 's', 0x04, 0x8000 + 'o', 0xF000 + 'z', 0x8000 + 'u' },
+	{ 0x2000 + 'e', 0x0D, 0x1000 + 'a', 0x8000 + 'e', 0x3000 + 'e', 0x1000 + 'u', 0x34F5, '#', 0x1000 + 'e', 0x3400 + 'a', 0x3000 + 'o', 0x3000 + 'u', 0xB000 + 'c' },
+	{ 0x0023, 0xA4, 0xA7, 0x8801, 0x880F, 0x8815, 0x5E, 0x5F, 0xB0, 0x04, 0x8000 + 'o', 0x8000 + 'u', 0xFB },
+	{ 0x00A3, 0xA4, 0x2000 + 'e', 0xB0, 0xB000 + 'c', 0xAE, 0xAD, '#', 0x1000 + 'u', 0x1000 + 'a', 0x1000 + 'o', 0x1000 + 'e', 0x10F5 },
+	{ 0x0023, 0xA4, 0xF013, 0x7000 + 'e', 0xB000 + 'e', 0xF01A, 0xF000 + 'c',	0x5000 + 'u', 0xF000 + 's', 0xE400 + 'a', 0xE000 + 'u', 0xF000 + 'z', 0xB400 + 'i' },
+	{ 0x0023, 0x2000 + 'n', 0xE400 + 'a', 0x1E, 0x2013, 0xE8, 0x2000 + 'c', 0x2000 + 'o', 0xE000 + 'e', 0x7000 + 'z', 0x2000 + 's', 0xF8, 0x2000 + 'z' },
+	{ 0xB000 + 'c', 0xA4, 0xA1, 0x2400 + 'a', 0x2000 + 'e', 0x24F5, 0x2000 + 'o', 0x2000 + 'u', 0xBF, 0x8000 + 'u', 0x4000 + 'n', 0x1000 + 'e', 0x1000 + 'a' },
+	{ 0x0023, 0x24, 0xB000 + 'T', 0x3002, 0xB000 + 'S', 0xF001, 0x3006, 0xF5, 0xB000 + 't', 0x3400 + 'a', 0xB000 + 's', 0xF400 + 'a', 0x34F5 },
+	{ 0x0023, 0x8805, 0xF003, 0x2003, 0xF01A, 0xE2, 0xF013, 0x8000 + 'e', 0xF000 + 'c', 0x2000 + 'c', 0xF000 + 'z', 0xF2, 0xF000 + 's' },
+	{ 0x0023, 0x24, 0x2005, 0x8801, 0x880F, 0x17, 0x8815, 0x5F, 0x2000 + 'e', 0x04, 0x8000 + 'o', 0xA400 + 'a', 0x8000 + 'u' },
+	{ 0x001F, 0x6000 + 'g', 0x7409, 0xB000 + 'S', 0x880F, 0xB000 + 'C', 0x8815, 0x6007, 0xF5, 0xB000 + 's', 0x8000 + 'o', 0xB000 + 'c', 0x8000 + 'u' }
 };
 
 static const int
@@ -546,24 +546,24 @@ glyph(character_set s, national_subset n, int c)
 		if (c == 0x26)
 			return 0x0097;
 		if (c <= 0x3F)
-			return c;
+			return GL_LATIN_G0 + c;
 		return GL_CYRILLIC_2_G0_ALPHA - 0x40 + c;
 
 	case CYRILLIC_3_G0:
 		if (c == 0x24)
 			return 0x00A4;
 		if (c == 0x26)
-			return 0x0C;
+			return 0x000D;
 		if (c <= 0x3F)
-			return c;
+			return GL_LATIN_G0 + c;
 		if (c == 0x59)
-			return 'I';
+			return GL_LATIN_G0 + 'I';
 		if (c == 0x79)
-			return 'i';
+			return GL_LATIN_G0 + 'i';
 		if (c == 0x5C)
 			return 0x0088;
 		if (c == 0x5F)
-			return 0x14;
+			return 0x0010;
 		if (c == 0x67)
 			return 0x0099;
 		if (c == 0x7C)
@@ -589,7 +589,7 @@ glyph(character_set s, national_subset n, int c)
 		if (c == 0x3E)
 			return 0x00BB;
 		if (c <= 0x3F)
-			return c;
+			return GL_LATIN_G0 + c;
 		return GL_GREEK_G0_ALPHA - 0x40 + c;
 
 	case GREEK_G2:
@@ -605,17 +605,17 @@ glyph(character_set s, national_subset n, int c)
 		if (c == 0x27)
 			return 0x009E;
 		if (c == 0x28)
-			return ')';
+			return GL_LATIN_G0 + ')';
 		if (c == 0x29)
-			return '(';
+			return GL_LATIN_G0 + '(';
 		if (c == 0x2C)
 			return 0x009C;
 		if (c == 0x3B)
 			return 0x009B;
 		if (c == 0x3C)
-			return '>';
+			return GL_LATIN_G0 + '>';
 		if (c == 0x3E)
-			return '<';
+			return GL_LATIN_G0 + '<';
 		if (c == 0x3F)
 			return 0x009F;
 		return GL_ARABIC_G0_ALPHA - 0x40 + c;
@@ -624,27 +624,27 @@ glyph(character_set s, national_subset n, int c)
 		if (c <= 0x3F)
 			return GL_ARABIC_G2 + c;
 		if (c == 0x40)
-			return 0x1000 + 'a';
+			return GL_LATIN_G0 + 0x1000 + 'a';
 		if (c == 0x60)
-			return 0x2000 + 'e';
+			return GL_LATIN_G0 + 0x2000 + 'e';
 		if (c == 0x4B)
-			return 0x8000 + 'e';
+			return GL_LATIN_G0 + 0x8000 + 'e';
 		if (c == 0x4C)
-			return 0x3000 + 'e';
+			return GL_LATIN_G0 + 0x3000 + 'e';
 		if (c == 0x4D)
-			return 0x1000 + 'u';
+			return GL_LATIN_G0 + 0x1000 + 'u';
 		if (c == 0x4E)
-			return 0x0A;
+			return 0xF4F5;
 		if (c == 0x4F)
 			return 0x008F;
 		if (c == 0x4B)
-			return 0x3000 + 'a';
+			return GL_LATIN_G0 + 0x3400 + 'a';
 		if (c == 0x4C)
-			return 0x3000 + 'o';
+			return GL_LATIN_G0 + 0x3000 + 'o';
 		if (c == 0x4D)
-			return 0x3000 + 'u';
+			return GL_LATIN_G0 + 0x3000 + 'u';
 		if (c == 0x4E)
-			return 0xB000 + 'c';
+			return GL_LATIN_G0 + 0xB000 + 'c';
 		return GL_LATIN_G0 + c;
 
 	case HEBREW_G0:
@@ -661,7 +661,7 @@ glyph(character_set s, national_subset n, int c)
 		if (c == 0x4E)
 			return 0x00AD;
 		if (c == 0x4F)
-			return '#';
+			return GL_LATIN_G0 + '#';
 		return GL_HEBREW_G0_LOWER - 0x60 + c;
 
 	default:
@@ -672,6 +672,47 @@ glyph(character_set s, national_subset n, int c)
 #undef printv
 #define printv printf
 // #define printv(templ, ...)
+
+static inline int
+compose(int glyph, int mark)
+{
+	int mm = 1 << mark;
+
+	/* requested by the aestethics department */
+	if (0xA5FE & mm) {
+		if (glyph >= 0x40 && glyph <= 0x60
+		    && (0x063CDFAA & (1 << glyph))) {
+			if (glyph == 'I')
+				glyph = (0x0048 & mm) ? 0x0406 : 0x0409;
+			else if (glyph == 'A' && (0x0048 & mm))
+				glyph =  0x0002;
+			else
+				glyph -= 0x0040; /* reduced uppercase */
+			if (0x01A0 & mm)
+				glyph += 0x0800;
+		} else if (glyph == 'a')
+			glyph = 0x0461;
+		else if (glyph == 'i')
+			glyph = (mark == 1) ? 0x00F5 : 0x04F5;
+		else if (glyph == 'j')
+			glyph = 0x0011;
+	}
+
+	glyph |= mark << 12;
+
+	if (glyph == 0xA001)
+		glyph = 0x0017;
+	else if (glyph == 0x8009)
+		glyph = 0x0010;
+	else if (glyph == 0x8061)
+		glyph = 0x0004;
+	else if (glyph == 0xF074)
+		glyph = 0x0016;
+	else if (glyph == 0x80F5)
+		glyph = 0x000D;
+
+	return glyph;
+}
 
 static void
 new_enhance(struct fmt_page *pg, struct vt_page *vtp,
@@ -810,14 +851,32 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 				break;
 
 			case 0x11 ... 0x13:	/* object invocation */
+			{
+				int source = (p->address >> 3) & 3;
+				int type = p->mode & 3;
+				
 				/* TODO */
 
-				printv("enh obj invocation 0x%02x 0x%02x\n", p->mode, p->data);
+				printv("enh obj invocation source %d type %d\n", source, type);
+				
+				if (source == 0)
+					break; /* illegal */
+				else if (source == 1) { /* local */
+					int designation = (p->data >> 4) + ((p->address & 1) << 4);
+					int triplet = p->data & 15;
+					
+					if (triplet > 12)
+						break; /* invalid */
+					printv("... local obj %d/%d\n", designation, triplet);
+										
+				} else {
+				}
 
 				offset_column = 0;
 				offset_row = 0;
 
 				break;
+			}
 
 			/* case 0x14: reserved */
 
@@ -1011,35 +1070,8 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 				active_column = p->address;
 
 				if (p->data >= 0x20) {
-					static const char *reduced_uppercase = "ACEGIOSUZ";
-					static const int composed_subst[32] = {
-						0, 0, 0, 0, 0, 0, 0x701B, 0x1000 + 'a',
-						0x8000 + 'a', 0x20F5, 0x30F5, 0xF000 + 't', 0x80F5, 0xA017, 0, 0,
-						0x3017,	0x301B, 0x8017, 0x8019, 0x801B, 0x801C, 0x801E
-					};
-					int mark = p->mode - 16;
-					char *s;
+					gl = compose(glyph(font->G0, NO_SUBSET, p->data), p->mode - 16);
 
-					gl = glyph(font->G0, NO_SUBSET, p->data);
-
-					/* requested by the aestehics department */
-					if (0xA5FE & (1 << mark)) {
-						if (gl <= 0x60 && (s = strchr(reduced_uppercase, gl)))
-							gl = 0x17 + (s - reduced_uppercase);
-						else if (gl == 'i')
-							gl = 0xF5;
-					}
-
-					if (mark > 0) 
-
-					gl |= (p->mode - 16) << 12;
-
-					/* again */
-					for (j = 6; j <= 22; j++)
-						if (gl == composed_subst[j]) {
-							gl = j;
-							break;
-						}
 			store:
 					printv("enh row %d col %d print 0x%02x/0x%02x -> 0x%04x %c\n",
 						active_row, active_column, p->mode, p->data, gl, printable(gl & 0x7F));
@@ -1065,6 +1097,9 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 	struct vt_extension *ext;
 	struct font_d *g0_font[2];
 	int column, row, i;
+	int display_rows;
+
+	display_rows = vtp->flof ? 25 : 24;
 
 	sprintf(buf, "\2%x.%02x\7", vtp->pgno, vtp->subno & 0xff);
 
@@ -1096,13 +1131,14 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 	    | ((ext->colour_map[i] & 0xF0) << 8) 
 	    | ((ext->colour_map[i] & 0xF0) << 4) 
 	    | ((ext->colour_map[i] & 0xF) << 4)
-	    | ((ext->colour_map[i] & 0xF) << 0);
+	    | ((ext->colour_map[i] & 0xF) << 0)
+	    | 0xFF000000;
     }
 
 	i = 0;
 	reveal = !!reveal;
 
-	for (row = 0; row < H; row++) {
+	for (row = 0; row < display_rows; row++) {
 		struct font_d *font;
 		int mosaic_glyphs;
 		int held_mosaic_glyph;
@@ -1239,15 +1275,22 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 				break;
 
 			case 0x0E:		/* double width */
+				printv("spacing col %d row %d double width\n", column, row);
+
 				if (column < 39)
 					ac.size = DOUBLE_WIDTH;
+
 				break;
 
 			case 0x0F:		/* double size */
+				printv("spacing col %d row %d double size\n", column, row);
+
 				if (column >= 39 || row <= 0 || row >= 22)
 					break;
+
 				ac.size = DOUBLE_SIZE;
 				double_height = TRUE;
+
 				break;
 
 			case 0x10 ... 0x17:	/* mosaic + foreground colour */
@@ -1296,35 +1339,48 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 		}
 	}
 
+	if (!vtp->flof) {
+		attr_char ac;
+
+		memset(&ac, 0, sizeof(ac));
+
+		if (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE | C10_INHIBIT_DISPLAY))
+			ac.opacity = TRANSPARENT_SPACE;
+		else
+			ac.opacity = OPAQUE;
+		ac.foreground	= ext->foreground_clut + WHITE;
+		ac.background	= ext->background_clut + BLACK;
+		ac.glyph	= GL_SPACE;
+
+		for (column = 0; column < W; column++)
+			pg->data[24][column] = ac;
+	}
+
 	new_enhance(pg, vtp, 0, 0);
 
-	if (1)
-		return;
+	if (0) /* Test */
+		for (row = 1; row < 24; row++)
+			for (column = 0; column < 40; column++) {
+				int page = ((vtp->pgno >> 4) & 15) * 10 + (vtp->pgno & 15);
 
-	/* Test */
-
-	for (row = 1; row < 24; row++)
-		for (column = 0; column < 40; column++) {
-			int page = ((vtp->pgno >> 4) & 15) * 10 + (vtp->pgno & 15);
-
-			if (page <= 15) {
-				if (row <= 23 && column <= 31) {
-					pg->data[row][column].foreground = WHITE;
-					pg->data[row][column].background = BLACK;
-					pg->data[row][column].size = NORMAL;
-					pg->data[row][column].glyph =
-						((page & 15) << 12) + (row - 1) * 32 + column;
-				}
-			} else if (page == 16) {
-				if (row <= 14 && column <= 12) {
-					pg->data[row][column].foreground = WHITE;
-					pg->data[row][column].background = BLACK;
-					pg->data[row][column].size = NORMAL;
-					pg->data[row][column].glyph =
-						national_subst[row - 1][column];
+				if (page <= 15) {
+					if (row <= 23 && column <= 31) {
+						pg->data[row][column].foreground = WHITE;
+						pg->data[row][column].background = BLACK;
+						pg->data[row][column].size = NORMAL;
+						pg->data[row][column].glyph =
+							compose((row - 1) * 32 + column, (page & 15));
+					}
+				} else if (page == 16) {
+					if (row <= 14 && column <= 12) {
+						pg->data[row][column].foreground = WHITE;
+						pg->data[row][column].background = BLACK;
+						pg->data[row][column].size = NORMAL;
+						pg->data[row][column].glyph =
+							national_subst[row - 1][column];
+					}
 				}
 			}
-		}
 }
 
 int

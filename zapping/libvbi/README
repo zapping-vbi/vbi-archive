@@ -19,3 +19,6 @@ Changes:
   * successful DRCS download, none stored & rendered yet
   * fmt_page considers page/magazine extension (unfinished)
   * fmt_page exports page colourmap
+  * rewrote X/26 enhancement data rendering
+  * completed packet X/27, X/30 decoder
+  * rewrote drawing function

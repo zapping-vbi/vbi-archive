@@ -106,7 +106,7 @@ zvbi_format_page(gint page, gint subpage, gboolean reveal,
    The allocated buffer should be free'd, not g_free'd, since it's
    allocated with malloc. NULL on error.
 */
-unsigned char*
+unsigned int*
 zvbi_render_page(struct fmt_page *pg, gint *width, gint *height);
 
 /*

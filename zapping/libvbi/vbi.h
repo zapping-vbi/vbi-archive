@@ -43,6 +43,7 @@ struct vbi
     int bpl;			// bytes per line
     u32 seq;
     // magazine defaults
+	vt_pagenum		initial_page;
 	struct vt_extension	magazine_extension[8];
     // page assembly
     struct raw_page rpage[8];	// one for each magazin

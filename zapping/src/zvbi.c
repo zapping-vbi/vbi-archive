@@ -438,7 +438,7 @@ zvbi_format_page(gint page, gint subpage, gboolean reveal,
    The allocated buffer should be free'd, not g_free'd, since it's
    allocated with malloc. NULL on error.
 */
-unsigned char*
+unsigned int *
 zvbi_render_page(struct fmt_page *pg, gint *width, gint *height)
 {
   if ((!vbi) || (!width) || (!height) || (!pg))
@@ -457,7 +457,7 @@ unsigned char*
 zvbi_render_page_rgba(struct fmt_page *pg, gint *width, gint *height,
 		      unsigned char * alpha)
 {
-  unsigned char * mem;
+  unsigned int * mem;
   unsigned char * extra_mem;
   int x, y;
   gint rowstride;
@@ -476,6 +476,8 @@ zvbi_render_page_rgba(struct fmt_page *pg, gint *width, gint *height,
 
   mem = zvbi_render_page(pg, width, height);
 
+return (unsigned char *) mem;
+#if 0
   if (!mem)
     return NULL;
 
@@ -502,6 +504,7 @@ zvbi_render_page_rgba(struct fmt_page *pg, gint *width, gint *height,
 
   free(mem);
   return extra_mem;
+#endif
 }
 
 /*
@@ -554,7 +557,7 @@ zvbi_resolve_flof(gint x, struct vt_page *vtp, gint *page, gint *subpage)
     return FALSE;
 
   *page = vtp->link[code].pgno;
-  *subpage = vtp->link[code].subno;
+  *subpage = vtp->link[code].subno; /* 0x3f7f handled? */
 
   return TRUE;
 }

@@ -85,7 +85,8 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp);
   renders the formatted page into mem (1byte per pixel, paletted) and
   stores in width and height the dimensions in pixels.
   Returns a newly allocated buffer holding the image.
+    {mhs} output is 0xAABBGGRR now
 */
-unsigned char *
+unsigned int *
 mem_output(struct fmt_page *pg, int *width, int *height);
 #endif

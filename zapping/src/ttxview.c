@@ -78,6 +78,11 @@ void on_ttxview_url_changed		(GtkAdjustment	*adj,
   g_free(buffer);
 }
 
+/*
+  vt_page.link[5] (flof index key),
+  if ((pgno & 0xFF) == 0xFF)
+    vbi.initial_page (defaults to 100/any)
+*/
 static
 void on_ttxview_home_clicked		(GtkButton	*button,
 					 ttxview_data	*data)
