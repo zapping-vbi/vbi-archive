@@ -127,6 +127,12 @@ do {									\
 
 #define _unused_ __attribute__ ((unused))
 
+/* TRUE if exactly one bit is set in signed or unsigned n. */
+#define SINGLE_BIT(n) ({						\
+	__typeof__ (n) _n = n;						\
+	(_n > 0 && 0 == (_n & (_n - 1)));				\
+})
+
 #else /* !__GNUC__ */
 
 #define __inline__
@@ -168,6 +174,8 @@ do {									\
 
 #undef SATURATE
 #define SATURATE(n, min, max) MIN (MAX (n, min), max)
+
+#define SINGLE_BIT(n) ((n) > 0 && 0 == ((n) & ((n) - 1)))
 
 #endif /* !__GNUC__ */
 
@@ -337,7 +345,7 @@ zmisc_restore_previous_mode(tveng_device_info *info);
 /*
  * Stops the current tveng mode and shutdowns appropiate subsistems.
  */
-void zmisc_stop (tveng_device_info *info);
+gboolean zmisc_stop (tveng_device_info *info);
 
 /*
   does the mode switching. Since this requires more than just using
@@ -640,6 +648,22 @@ extern void
 z_object_set_const_data		(GObject *		object,
 				 const gchar *		key,
 				 const void *		data);
+extern void
+z_object_set_int_data		(GObject *		object,
+				 const gchar *		key,
+				 gint			data);
+extern gint
+z_object_get_int_data		(GObject *		object,
+				 const gchar *		key);
+extern gulong
+z_signal_connect_const		(gpointer		instance,
+				 const gchar *		detailed_signal,
+				 GCallback		c_handler,
+				 const void *		data);
+extern gulong
+z_signal_connect_python		(gpointer		instance,
+				 const gchar *		detailed_signal,
+				 const gchar *		command);
 
 /* Common constants for item position in Gtk insert functions. */
 #define PREPEND 0
