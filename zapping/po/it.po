@@ -1,4 +1,4 @@
-# Zapping (a Gnome TV viewer) / Zapping (Visualizzatore TV per Gnome)  -*- coding: utf-8 -*-
+# Zapping (a Gnome TV viewer) / Zapping (Visualizzatore TV per Gnome)
 # Zapping italian translation
 # Pino Toscano <toscano.pino@tiscali.it>, 2002
 #
@@ -6,13 +6,12 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6.5\n"
 "POT-Creation-Date: 2002-10-10 23:46+0200\n"
-"PO-Revision-Date: 2002-10-27 12:32+0100\n"
+"PO-Revision-Date: 2002-12-27 13:33+0100\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <it@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/main.c:316
 msgid "Video device to use"
@@ -811,7 +810,7 @@ msgid ""
 "Opens the properties dialog, optionally opening the given group and item too"
 msgstr ""
 "Apre la finestra di dialogo delle proprietà, aprendo opzionalmente anche il "
-"gruppo e l'oggetto dati" 
+"gruppo e l'oggetto dati"
 
 #: src/properties-handler.c:75
 msgid "Can capture to memory.\n"
@@ -1191,7 +1190,8 @@ msgstr "Carica la pagina successiva visitata, se disponibile"
 
 #: src/ttxview.c:3887
 msgid "Opens a new TTX view. You can also specify the page and subpage to open"
-msgstr "Apre una nuova vista TTX. E' possibile specificare la pagina e la "
+msgstr ""
+"Apre una nuova vista TTX. E' possibile specificare la pagina e la "
 "sottopagina da aprire"
 
 #: src/oss.c:176
@@ -1312,7 +1312,7 @@ msgstr "Cambio canali con telecomando numerico:"
 
 #: glade/glade_strings.c:21
 msgid "Ratio mode:"
-msgstr "Modo di rapporto:"
+msgstr "Proporzioni:"
 
 #: glade/glade_strings.c:22
 msgid "Title bar contents:"
@@ -1332,7 +1332,7 @@ msgstr "Per numero RF del canale"
 
 #: glade/glade_strings.c:26
 msgid "No fixed ratio"
-msgstr "Nessun rapporto prestabilito"
+msgstr "Nessuna proporzione prestabilita"
 
 #: glade/glade_strings.c:27
 msgid "4:3"
@@ -1661,7 +1661,7 @@ msgstr "Bilineare (buona qualità ma lento)"
 
 #: glade/glade_strings.c:108
 msgid "Hyper (best quality but CPU intensive)"
-msgstr "Super (migliore qualità ma usa intensiamente la CPU)"
+msgstr "Iper (migliore qualità ma usa intensiamente la CPU)"
 
 #: glade/glade_strings.c:110
 msgid "Program related links:"
@@ -1725,11 +1725,11 @@ msgstr ""
 
 #: glade/glade_strings.c:138
 msgid "High priority only"
-msgstr "Solo Alta priorità"
+msgstr "Solo alta priorità"
 
 #: glade/glade_strings.c:139
 msgid "Medium and High priority"
-msgstr "Priorità Media e Alta"
+msgstr "Priorità media ed alta"
 
 #: glade/glade_strings.c:140
 msgid "All messages"
@@ -2009,7 +2009,7 @@ msgstr "Avvia una nuova ricerca"
 
 #: glade/glade_strings.c:216 plugins/mpeg/mpeg_strings.c:44
 msgid "New"
-msgstr "Nuova"
+msgstr "Nuovo"
 
 #: glade/glade_strings.c:217
 msgid "Zapping error console"
@@ -2062,8 +2062,7 @@ msgstr "Salva i cambiamenti ed esci dalla finestra di dialogo"
 #: glade/glade_strings.c:232
 msgid ""
 "Click this button if you want to leave the dialog discarding the changes"
-msgstr ""
-"Click qui per uscire dalla finestra di dialogo ignorando i cambiamenti"
+msgstr "Click qui per uscire dalla finestra di dialogo ignorando i cambiamenti"
 
 #: glade/glade_strings.c:233
 msgid "This shows some help about this dialog"
@@ -2088,8 +2087,8 @@ msgstr "Ricerca automatica delle _stazioni"
 
 #: glade/glade_strings.c:237
 msgid "Add all channels in the frequency table to the channel list."
-msgstr "Aggiungi tutti i canali della tavola delle frequenze alla lista dei "
-"canali."
+msgstr ""
+"Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
 
 #: glade/glade_strings.c:238
 msgid "Add all _channels"
@@ -2707,8 +2706,8 @@ msgstr "Registra come MPEG"
 #: plugins/mpeg/mpeg.c:1685
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
-msgstr "Il formato %s è incompleto, per favore configurare il codec video o "
-"audio."
+msgstr ""
+"Il formato %s è incompleto, per favore configurare il codec video o audio."
 
 #: plugins/mpeg/mpeg.c:1829
 #, c-format
@@ -2882,3 +2881,172 @@ msgstr "Formato del file"
 #: plugins/mpeg/mpeg_strings.c:54
 msgid "New Format"
 msgstr "Nuovo Formato"
+
+#~ msgid "Redirect the error messages to the console"
+#~ msgstr "Ridireziona i messaggi di errore alla console"
+
+#~ msgid ""
+#~ "%s:\n"
+#~ "Try running as root \"zapping_fix_overlay\" in a console"
+#~ msgstr ""
+#~ "%s:\n"
+#~ "Prova a far partire come root \"zapping_fix_overlay\" in una console"
+
+#~ msgid "<blue>audio off</blue>"
+#~ msgstr "<blue>audio non attivo</blue>"
+
+#~ msgid "<yellow>AUDIO ON</yellow>"
+#~ msgstr "<yellow>AUDIO ATTIVO</yellow>"
+
+#~ msgid "Hide controls"
+#~ msgstr "Nascondi controlli"
+
+#~ msgid "Hide the menu and the toolbar"
+#~ msgstr "Nascondi il menu e la barra degli strumenti"
+
+#~ msgid "Do not change standard"
+#~ msgstr "Non cambiare lo standard"
+
+#~ msgid "Do not change input"
+#~ msgstr "Non cambiare l'ingresso"
+
+#~ msgid "Add Channel"
+#~ msgstr "Aggiungi Canale"
+
+#~ msgid "New channel name:"
+#~ msgstr "Nome del nuovo canale:"
+
+#~ msgid ""
+#~ "Channel autosearching won't work with XVideo.\n"
+#~ "Please switch to another controller by starting\n"
+#~ "Capture mode (\"View/Go Capturing\" menu entry).\n"
+#~ "Reported error:\n"
+#~ "%s"
+#~ msgstr ""
+#~ "La ricerca automatica dei canali non funziona con XVideo.\n"
+#~ "Per favore cambia ad un altro controller avviando il\n"
+#~ "modo Cattura (voce del menu \"Vista/Modo Cattura\").\n"
+#~ "Errore riportato:\n"
+#~ "%s"
+
+#~ msgid "Your current V4L/V4L2 driver cannot do channel autosearching, sorry"
+#~ msgstr ""
+#~ "Il driver V4L/V4L2 corrente non può effettuare la ricerca automatica dei "
+#~ "canali, spiacente"
+
+#~ msgid "_Quit"
+#~ msgstr "_Esci"
+
+#~ msgid "Edit the channel list"
+#~ msgstr "Edita la lista dei canali"
+
+#~ msgid "Switch to fullscreen mode. Press ESC to return to windowed mode"
+#~ msgstr "Cambia a tutto schermo. Premi ESC per ritornare al Modo a finestra"
+
+#~ msgid "Switch to windowed overlay mode"
+#~ msgstr "Cambia al modo sovrascrittura in finestra"
+
+#~ msgid "Switch to windowed capture mode"
+#~ msgstr "Cambia al modo cattura in finestra"
+
+#~ msgid "Switch to Teletext mode"
+#~ msgstr "Cambia al modo Televideo"
+
+#~ msgid "Switch subtitles on and off"
+#~ msgstr "Attiva e disattiva i sottotitoli"
+
+#~ msgid "Up"
+#~ msgstr "Su"
+
+#~ msgid "Down"
+#~ msgstr "Giù"
+
+#~ msgid "Show toolbar as:"
+#~ msgstr "Mostra barra degli strumenti come:"
+
+#~ msgid "Icons"
+#~ msgstr "Icone"
+
+#~ msgid "Text"
+#~ msgstr "Testo"
+
+#~ msgid "Icons and text"
+#~ msgstr "Icone e testo"
+
+#~ msgid "Command"
+#~ msgstr "Comando"
+
+#~ msgid "_Start Plugin"
+#~ msgstr "_Avvia il Plugin"
+
+#~ msgid "S_top Plugin"
+#~ msgstr "_Ferma il Plugin"
+
+#~ msgid "Plugin description"
+#~ msgstr "Descrizione"
+
+#~ msgid "This is the file where the plugin is located"
+#~ msgstr "Questo è il file dove si trova il plugin"
+
+#~ msgid "Description of the symbol"
+#~ msgstr "Descrizione del simbolo"
+
+#~ msgid "Keys"
+#~ msgstr "Tasti"
+
+#~ msgid "No tables"
+#~ msgstr "Senza tavole"
+
+#~ msgid "Select here the channel you want to tune"
+#~ msgstr "Seleziona qui il canale da sintonizzare"
+
+#~ msgid "Station"
+#~ msgstr "Stazione"
+
+#~ msgid "Freq (kHz)"
+#~ msgstr "Freq (kHz)"
+
+#~ msgid "Name"
+#~ msgstr "Nome"
+
+#~ msgid "Country"
+#~ msgstr "Nazione"
+
+#~ msgid "Standard"
+#~ msgstr "Standard"
+
+#~ msgid "Move selected channels one row up"
+#~ msgstr "Muovi i canali selezionati una riga sopra"
+
+#~ msgid "Move selected channels one row down"
+#~ msgstr "Muovi i canali selezionati una riga sotto"
+
+#~ msgid "Delete selected channels"
+#~ msgstr "Cancella i canali selezionati"
+
+#~ msgid "_Remove"
+#~ msgstr "_Cancella"
+
+#~ msgid "_Add as a new channel"
+#~ msgstr "_Aggiungi come nuovo canale"
+
+#~ msgid "Apply the current settings to the marked channels above"
+#~ msgstr "Applica le impostazioni correnti ai canali segnati sotto"
+
+#~ msgid "_Modify selected channels"
+#~ msgstr "_Modifica i canali selezionati"
+
+#~ msgid "Converts a row in RGB565 format to RGB24. Returns the destination."
+#~ msgstr ""
+#~ "Converte una fila nel formato RGB565 a quello RGB24. Ritorna alla "
+#~ "destinazione."
+
+#~ msgid "Converts a row in RGB555 format to RGB24. Returns the destination."
+#~ msgstr ""
+#~ "Converte una fila nel formato RGB555 a quello RGB24. Ritorna alla "
+#~ "destinazione."
+
+#~ msgid "Converts a row in RGBA format to RGB24. Returns the destination."
+#~ msgstr ""
+#~ "Converte una fila nel formato RGBA a quello RGB24. Ritorna alla "
+#~ "destinazione."
