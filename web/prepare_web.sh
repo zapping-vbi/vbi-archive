@@ -1,19 +1,26 @@
 #!/bin/sh
-#$Id: prepare_web.sh,v 1.5 2002-10-04 17:46:45 mschimek Exp $
+#$Id: prepare_web.sh,v 1.6 2003-10-20 23:50:52 mschimek Exp $
+#
+# Checks our html pages out of cvs, puts the files online
+# and cleans up.
+#
+# ssh shell.sourceforge.net -l username
+# cd /home/groups/z/za/zapping
+# ./prepare_web.sh
 
-cd /home/groups/z/za/zapping
 chmod ug=rwX,o-rwx . -R
 umask 007
 cvs -z3 update -dP
-cvs -z3 -d:pserver:anonymous@cvs.zapping.sourceforge.net:/cvsroot/zapping co zapping/ChangeLog
+cvs -z3 -d:pserver:anonymous@cvs1:/cvsroot/zapping co zapping/ChangeLog
 mv zapping/ChangeLog htdocs/
 chmod a+rX htdocs/ChangeLog
 rm -fR zapping
-chmod a+rX . htdocs
+#chmod a+rX . htdocs
+chmod a+rX htdocs
 cd htdocs
 chmod a+r *.php *.inc *.html *.jpeg *.gif *.png bookmark.ico rescd.zip
 for i in images_* screenshots; do
   find $i -name "CVS" -prune -o -exec chmod a+rX '{}' ';'
 done
-chmod a+rX doc -R
+#chmod a+rX doc -R
 cd -
