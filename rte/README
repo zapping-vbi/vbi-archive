@@ -1,1 +1,65 @@
 
+  RTE - Real Time Audio/Video Encoding Library
+
+  Copyright (C) 2000, 2001, 2002 Iñaki García Etxebarria, Michael H. Schimek
+
+  Mp1e backend
+  Copyright (C) 1999-2002 Michael H. Schimek et al
+
+  FFMpeg backend
+  Copyright (C) 2000-2002 Gérard Lantau et al
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+  --------------------------------------------------------------------------
+
+  The RTE library is a frontend or wrapper of other libraries or programs
+  for real time video and audio compression on Linux. Currently it works
+  on x86 CPUs only, sorry. The library is designed to interface between
+  codecs and the Zapping TV viewer: http://zapping.sourceforge.net,
+  precisely its recording plugin.
+
+  For details on using the library see the documentation in doc/html (built
+  only if you have Doxygen) and the files in the test directory. Note until
+  a regular release the API is subject to change.
+
+  Installation
+  ============
+
+  To build and install RTE type "./configure" and "make install". For
+  additional instructions see the INSTALL file.
+
+  If you got this source from the Zapping CVS repository it can (for now)
+  also build the mp1e program. To do this change into the mp1e subdirectory
+  and follow the build instructions there instead. The complete ffmpeg
+  program is available from http://ffmpeg.sourceforge.net.
+
+  You cannot build rte and mp1e in the same source tree. When you built
+  already and reconfigure for the other target you should issue a
+  "make clean". You can however create separate build directories and
+  configure from there: cd <elsewhere>; <here>/configure or
+  <here>/mp1e/configure; make.
+
+  The autogen.sh script bootstraps all configuration scripts and
+  Makefile.ins. No need to run it unless you changed configure.in
+  or Makefile.am files, the generated config files are in CVS now.
+
+  Ideas, questions, patches and bug reports
+  =========================================
+  
+  http://sourceforge.net/tracker/?group_id=2599 or e-mail
+  mailto:zapping-misc@lists.sourceforge.net, registration is not
+  required. Please do not mail the ffmpeg list directly, they
+  will not provide support for our copy of ffmpeg.

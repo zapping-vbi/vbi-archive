@@ -1,36 +1,43 @@
 
   MP1E - Real Time Software MPEG-1 Encoder for Linux
 
+  Copyright (C) 1999-2002 Michael H. Schimek et al
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License version 2 as
+  published by the Free Software Foundation.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+  --------------------------------------------------------------------------
+
+  This program records video and audio from a v4l or v4l2 video capture
+  device and an oss or alsa audio device, as MPEG-1 system stream. Only x86
+  CPUs with MMX extension are supported. For usage instructions see the mp1e
+  manual page: "man mp1e".
+
   Installation
   ============
 
-  When you got mp1e from cvs, type "./autogen.sh" in the
-  parent rte/ directory, then cd into mp1e/ and proceed as follows.
+  To build and install mp1e type "./configure" and "make install".
+  For additional instructions see the INSTALL file.
 
-  When the source comes from a .tgz or .rpm package, just
-  type "./configure".
+  Ideas, questions, patches and bug reports
+  =========================================
+  
+  http://sourceforge.net/tracker/?group_id=2599 or e-mail
+  mailto:zapping-misc@lists.sourceforge.net, registration is not
+  required.
 
-  As "./configure --help" elaborates, you can preset the CFLAGS
-  environment variable. This is useful to pass compiler flags
-  for debugging or CPU specific optimization. See info gcc for
-  more. Example: CFLAGS="-mcpu=athlon-xp" ./configure
-
-  Finally type "make install".
-
-  For usage instructions see the mp1e manual page: "man mp1e".
-
-  License
-  =======
-
-  You can use, modify and redistribute this program free of charge
-  under the terms of the GNU General Public License version 2 as
-  published by the Free Software Foundation. NO WARRANTIES.
-
-  MPEG files created with this program are not derivative works in the
-  sense of the GPL2. You are free to do with them whatever you want.
-
-  For a program compliant to the international standards ISO 11172
-  and ISO 13818 it is inevitable to use methods covered by patents
+  A program compliant to the international standards ISO 11172
+  and ISO 13818 must inevitable use methods covered by patents
   in various countries. The authors of this program disclaim any
   liability for patent infringement caused by using, modifying or
   redistributing this program.

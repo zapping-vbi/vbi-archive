@@ -2,7 +2,7 @@
 
 noinst_PROGRAMS = info io
 
-INCLUDES = -I$(top_srcdir)/src $(COMMON_INCLUDES) \
+INCLUDES = -I$(top_srcdir)/src -I$(top_builddir)/src $(COMMON_INCLUDES) \
 	-D_GNU_SOURCE -D_REENTRANT -D_LARGEFILE64_SOURCE \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
