@@ -59,6 +59,7 @@ FILE_PATTERNS          = *.c \
 			 bit_slicer.h \
                          cache.h \
                          cc.h \
+			 conv.h \
                          decoder.h \
                          event.h \
                          exp-gfx.h \
@@ -68,8 +69,12 @@ FILE_PATTERNS          = *.c \
                          graphics.h \
                          hamm.h \
                          io.h \
+			 io-sim.h \
                          lang.h \
                          misc.h \
+			 network.h \
+			 packet-pfc.h \
+			 packet-830.h \
 			 pdc.h \
 			 raw_decoder.h \
 			 sampling.h \
@@ -79,13 +84,15 @@ FILE_PATTERNS          = *.c \
                          trigger.h \
                          ure.h \
                          vbi.h \
+			 vps.h \
                          vt.h \
-                         wss.h
+                         wss.h \
+			 xds.h
 RECURSIVE              = NO
 EXCLUDE                = 
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
-EXAMPLE_PATH           = @top_srcdir@/src
+EXAMPLE_PATH           = @top_srcdir@/src @top_srcdir@/test
 EXAMPLE_PATTERNS       = 
 EXAMPLE_RECURSIVE      = NO
 IMAGE_PATH             = @top_srcdir@/doc
