@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alloc.h,v 1.2 2001-05-31 19:40:49 mschimek Exp $ */
+/* $Id: alloc.h,v 1.3 2001-06-23 02:50:44 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -28,6 +28,7 @@
 #define ALLOC_H
 
 #include <stdlib.h>
+#include <string.h>
 #include <malloc.h>
 #include "types.h"
 

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.8 2001-06-07 17:43:51 mschimek Exp $ */
+/* $Id: motion.c,v 1.9 2001-06-23 02:50:44 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -70,407 +70,407 @@ mmx_load_interp(unsigned char *p, int pitch, int dx, int dy)
 	unsigned char *p1 = p + dx + dy * pitch;
 	int y;
 
-	asm volatile ("
-		movq		(%0),%%mm0;
-		movq		%%mm0,%%mm1;
-		movq		%%mm0,temp11(%1);
-		psrlq		$8,%%mm1;
-		movq		8(%0),%%mm4;
-		movq		%%mm4,%%mm2;
-		movq		%%mm4,temp11+8(%1);
+	asm volatile (
+		" movq		(%0),%%mm0;\n"
+		" movq		%%mm0,%%mm1;\n"
+		" movq		%%mm0,temp11(%1);\n"
+		" psrlq		$8,%%mm1;\n"
+		" movq		8(%0),%%mm4;\n"
+		" movq		%%mm4,%%mm2;\n"
+		" movq		%%mm4,temp11+8(%1);\n"
 
-		psllq		$56,%%mm2;
-		movq		c1b,%%mm7;
-		por		%%mm2,%%mm1;
-		movq		%%mm0,%%mm2;
-		movq		%%mm0,%%mm5;
-		por		%%mm1,%%mm2;
-		pxor		%%mm1,%%mm5;
-		por		%%mm7,%%mm0;
-		por		%%mm7,%%mm1;
-		psrlq		$1,%%mm0;
-		pand		%%mm7,%%mm2;
-		psrlq		$1,%%mm1;
-		paddb		%%mm0,%%mm1;
-		paddb		%%mm2,%%mm1;
-		movq		%%mm1,temp2h(%1);
+		" psllq		$56,%%mm2;\n"
+		" movq		c1b,%%mm7;\n"
+		" por		%%mm2,%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" movq		%%mm0,%%mm5;\n"
+		" por		%%mm1,%%mm2;\n"
+		" pxor		%%mm1,%%mm5;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp2h(%1);\n"
 
-		pushl		%%ecx;
-		movzxb		16(%0),%%ecx;
-		movd		%%ecx,%%mm2;
-		movb		%%cl,temp11+18*16(%2);
-		movb		17(%0),%%cl;
-		movb		%%cl,temp2h+18*16(%2);
-		popl		%%ecx;
+		" pushl		%%ecx;\n"
+		" movzxb	16(%0),%%ecx;\n"
+		" movd		%%ecx,%%mm2;\n"
+		" movb		%%cl,temp11+18*16(%2);\n"
+		" movb		17(%0),%%cl;\n"
+		" movb		%%cl,temp2h+18*16(%2);\n"
+		" popl		%%ecx;\n"
 
-		movq		%%mm4,%%mm1;
-		psrlq		$8,%%mm1;
-		psllq		$56,%%mm2;
-		por		%%mm2,%%mm1;
-		movq		%%mm4,%%mm2;
-		movq		%%mm4,%%mm6;
-		por		%%mm1,%%mm2;
-		pxor		%%mm1,%%mm6;
-		por		%%mm7,%%mm4;
-		por		%%mm7,%%mm1;
-		psrlq		$1,%%mm4;
-		pand		%%mm7,%%mm2;
-		psrlq		$1,%%mm1;
-		paddb		%%mm4,%%mm1;
-		paddb		%%mm2,%%mm1;
-		movq		%%mm1,temp2h+8(%1);
-	" :: "S" (p1), "c" (0), "r" (0) : "memory");
+		" movq		%%mm4,%%mm1;\n"
+		" psrlq		$8,%%mm1;\n"
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm1;\n"
+		" movq		%%mm4,%%mm2;\n"
+		" movq		%%mm4,%%mm6;\n"
+		" por		%%mm1,%%mm2;\n"
+		" pxor		%%mm1,%%mm6;\n"
+		" por		%%mm7,%%mm4;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm4;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm4,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp2h+8(%1);\n"
+	:: "S" (p1), "c" (0), "r" (0) : "memory");
 
 	for (y = 1; y < 17; y++) {
-		asm volatile ("
-			movq		(%0),%%mm1;
-			movq		%%mm1,temp11(%1);
+		asm volatile (
+			" movq		(%0),%%mm1;\n"
+			" movq		%%mm1,temp11(%1);\n"
 
-			movq		temp11-16(%1),%%mm0;
-			movq		%%mm0,%%mm2;
-			movq		%%mm1,%%mm3;
-			por		%%mm1,%%mm2;
-			por		%%mm7,%%mm0;
-			por		%%mm7,%%mm1;
-			psrlq		$1,%%mm0;
-			pand		%%mm7,%%mm2;
-			psrlq		$1,%%mm1;
-			paddb		%%mm0,%%mm1;
-			paddb		%%mm2,%%mm1;
-			movq		%%mm1,temp2v-16(%1);
+			" movq		temp11-16(%1),%%mm0;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" movq		%%mm1,%%mm3;\n"
+			" por		%%mm1,%%mm2;\n"
+			" por		%%mm7,%%mm0;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm0;\n"
+			" pand		%%mm7,%%mm2;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm0,%%mm1;\n"
+			" paddb		%%mm2,%%mm1;\n"
+			" movq		%%mm1,temp2v-16(%1);\n"
 
-			movq		8(%0),%%mm1;
-			movq		%%mm1,temp11+8(%1);
+			" movq		8(%0),%%mm1;\n"
+			" movq		%%mm1,temp11+8(%1);\n"
 
-			movq		temp11+8-16(%1),%%mm0;
-			movq		%%mm0,%%mm2;
-			movq		%%mm1,%%mm4;
-			por		%%mm1,%%mm2;
-			por		%%mm7,%%mm0;
-			por		%%mm7,%%mm1;
-			psrlq		$1,%%mm0;
-			pand		%%mm7,%%mm2;
-			psrlq		$1,%%mm1;
-			paddb		%%mm0,%%mm1;
-			paddb		%%mm2,%%mm1;
-			movq		%%mm1,temp2v+8-16(%1);
+			" movq		temp11+8-16(%1),%%mm0;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" movq		%%mm1,%%mm4;\n"
+			" por		%%mm1,%%mm2;\n"
+			" por		%%mm7,%%mm0;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm0;\n"
+			" pand		%%mm7,%%mm2;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm0,%%mm1;\n"
+			" paddb		%%mm2,%%mm1;\n"
+			" movq		%%mm1,temp2v+8-16(%1);\n"
 
-			movq		%%mm3,%%mm0;
-			movq		temp11+1(%1),%%mm1;
-			movq		%%mm0,%%mm2;
-			movq		%%mm0,%%mm3;
-			por		%%mm1,%%mm2;
-			pxor		%%mm1,%%mm3;
-			por		%%mm7,%%mm0;
-			por		%%mm7,%%mm1;
-			psrlq		$1,%%mm0;
-			pand		%%mm7,%%mm2;
-			psrlq		$1,%%mm1;
-			paddb		%%mm0,%%mm1;
-			paddb		%%mm2,%%mm1;
-			movq		%%mm1,temp2h(%1);
+			" movq		%%mm3,%%mm0;\n"
+			" movq		temp11+1(%1),%%mm1;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" movq		%%mm0,%%mm3;\n"
+			" por		%%mm1,%%mm2;\n"
+			" pxor		%%mm1,%%mm3;\n"
+			" por		%%mm7,%%mm0;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm0;\n"
+			" pand		%%mm7,%%mm2;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm0,%%mm1;\n"
+			" paddb		%%mm2,%%mm1;\n"
+			" movq		%%mm1,temp2h(%1);\n"
 
-			movq		temp2h-16(%1),%%mm0;
-			movq		%%mm0,%%mm2;
-			pxor		%%mm1,%%mm2;
-			por		%%mm3,%%mm5;
-			pandn		%%mm2,%%mm5;
-			movq		%%mm0,%%mm2;
-			pand		%%mm1,%%mm2;
-			pxor		%%mm5,%%mm2;
-			movq		%%mm3,%%mm5;
-			por		%%mm7,%%mm0;
-			por		%%mm7,%%mm1;
-			psrlq		$1,%%mm0;
-			pand		%%mm7,%%mm2;
-			psrlq		$1,%%mm1;
-			paddb		%%mm1,%%mm0;
-			paddb		%%mm2,%%mm0;
-			movq		%%mm0,temp22-16(%1);
+			" movq		temp2h-16(%1),%%mm0;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pxor		%%mm1,%%mm2;\n"
+			" por		%%mm3,%%mm5;\n"
+			" pandn		%%mm2,%%mm5;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pand		%%mm1,%%mm2;\n"
+			" pxor		%%mm5,%%mm2;\n"
+			" movq		%%mm3,%%mm5;\n"
+			" por		%%mm7,%%mm0;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm0;\n"
+			" pand		%%mm7,%%mm2;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm1,%%mm0;\n"
+			" paddb		%%mm2,%%mm0;\n"
+			" movq		%%mm0,temp22-16(%1);\n"
 
-			pushl		%%ecx;
-			movzxb		16(%0),%%ecx;
-			movd		%%ecx,%%mm2;
-			movb		%%cl,temp11+18*16(%2);
-			movb		17(%0),%%cl;
-			movb		%%cl,temp2h+18*16(%2);
-			popl		%%ecx;
+			" pushl		%%ecx;\n"
+			" movzxb		16(%0),%%ecx;\n"
+			" movd		%%ecx,%%mm2;\n"
+			" movb		%%cl,temp11+18*16(%2);\n"
+			" movb		17(%0),%%cl;\n"
+			" movb		%%cl,temp2h+18*16(%2);\n"
+			" popl		%%ecx;\n"
 
-			movq		%%mm4,%%mm1;
-			psrlq		$8,%%mm1;
-			psllq		$56,%%mm2;
-			por		%%mm2,%%mm1;
-			movq		%%mm4,%%mm3;
-			pxor		%%mm1,%%mm3;
-			movq		%%mm4,%%mm2;
-			por		%%mm1,%%mm2;
-			por		%%mm7,%%mm4;
-			por		%%mm7,%%mm1;
-			psrlq		$1,%%mm4;
-			pand		%%mm7,%%mm2;
-			psrlq		$1,%%mm1;
-			paddb		%%mm4,%%mm1;
-			paddb		%%mm2,%%mm1;
-			movq		%%mm1,temp2h+8(%1);
+			" movq		%%mm4,%%mm1;\n"
+			" psrlq		$8,%%mm1;\n"
+			" psllq		$56,%%mm2;\n"
+			" por		%%mm2,%%mm1;\n"
+			" movq		%%mm4,%%mm3;\n"
+			" pxor		%%mm1,%%mm3;\n"
+			" movq		%%mm4,%%mm2;\n"
+			" por		%%mm1,%%mm2;\n"
+			" por		%%mm7,%%mm4;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm4;\n"
+			" pand		%%mm7,%%mm2;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm4,%%mm1;\n"
+			" paddb		%%mm2,%%mm1;\n"
+			" movq		%%mm1,temp2h+8(%1);\n"
 
-			movq		temp2h+8-16(%1),%%mm0;
-			movq		%%mm0,%%mm2;
-			pxor		%%mm1,%%mm2;
-			por		%%mm3,%%mm6;
-			pandn		%%mm2,%%mm6;
-			movq		%%mm0,%%mm2;
-			pand		%%mm1,%%mm2;
-			pxor		%%mm6,%%mm2;
-			movq		%%mm3,%%mm6;
-			por		%%mm7,%%mm0;
-			por		%%mm7,%%mm1;
-			psrlq		$1,%%mm0;
-			pand		%%mm7,%%mm2;
-			psrlq		$1,%%mm1;
-			paddb		%%mm0,%%mm1;
-			paddb		%%mm2,%%mm1;
-			movq		%%mm1,temp22+8-16(%1);
-		" :: "S" (p1 + y * pitch), "c" (y * 16), "r" (y) : "memory");
+			" movq		temp2h+8-16(%1),%%mm0;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pxor		%%mm1,%%mm2;\n"
+			" por		%%mm3,%%mm6;\n"
+			" pandn		%%mm2,%%mm6;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pand		%%mm1,%%mm2;\n"
+			" pxor		%%mm6,%%mm2;\n"
+			" movq		%%mm3,%%mm6;\n"
+			" por		%%mm7,%%mm0;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm0;\n"
+			" pand		%%mm7,%%mm2;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm0,%%mm1;\n"
+			" paddb		%%mm2,%%mm1;\n"
+			" movq		%%mm1,temp22+8-16(%1);\n"
+		:: "S" (p1 + y * pitch), "c" (y * 16), "r" (y) : "memory");
 	}
 
-	asm volatile ("
-		movq		temp11-16(%1),%%mm0;
-		movq		(%0),%%mm1;
-		movq		%%mm0,%%mm2;
-		movq		%%mm1,%%mm3;
-		por		%%mm1,%%mm2;
-		por		%%mm7,%%mm0;
-		por		%%mm7,%%mm1;
-		psrlq		$1,%%mm0;
-		pand		%%mm7,%%mm2;
-		psrlq		$1,%%mm1;
-		paddb		%%mm0,%%mm1;
-		paddb		%%mm2,%%mm1;
-		movq		%%mm1,temp2v-16(%1);
+	asm volatile (
+		" movq		temp11-16(%1),%%mm0;\n"
+		" movq		(%0),%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" por		%%mm1,%%mm2;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp2v-16(%1);\n"
 
-		movq		temp11+8-16(%1),%%mm0;
-		movq		8(%0),%%mm1;
-		movq		%%mm0,%%mm2;
-		movq		%%mm1,%%mm4;
-		por		%%mm1,%%mm2;
-		por		%%mm7,%%mm0;
-		por		%%mm7,%%mm1;
-		psrlq		$1,%%mm0;
-		pand		%%mm7,%%mm2;
-		psrlq		$1,%%mm1;
-		paddb		%%mm0,%%mm1;
-		paddb		%%mm2,%%mm1;
-		movq		%%mm1,temp2v+8-16(%1);
+		" movq		temp11+8-16(%1),%%mm0;\n"
+		" movq		8(%0),%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" movq		%%mm1,%%mm4;\n"
+		" por		%%mm1,%%mm2;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp2v+8-16(%1);\n"
 
-		movq		%%mm3,%%mm0;
-		movq		%%mm3,%%mm1;
-		movq		%%mm4,%%mm2;
-		psrlq		$8,%%mm1;
-		psllq		$56,%%mm2;
-		por		%%mm2,%%mm1;
-		movq		%%mm0,%%mm2;
-		por		%%mm1,%%mm2;
-		pxor		%%mm1,%%mm3;
-		por		%%mm7,%%mm0;
-		por		%%mm7,%%mm1;
-		psrlq		$1,%%mm0;
-		pand		%%mm7,%%mm2;
-		psrlq		$1,%%mm1;
-		paddb		%%mm0,%%mm1;
-		movq		temp2h-16(%1),%%mm0;
-		por		%%mm3,%%mm5;
-		paddb		%%mm2,%%mm1;
-		movq		%%mm0,%%mm2;
-		pxor		%%mm1,%%mm2;
-		pandn		%%mm2,%%mm5;
-		movq		%%mm0,%%mm2;
-		pand		%%mm1,%%mm2;
-		pxor		%%mm5,%%mm2;
-		por		%%mm7,%%mm0;
-		por		%%mm7,%%mm1;
-		psrlq		$1,%%mm0;
-		pand		%%mm7,%%mm2;
-		psrlq		$1,%%mm1;
-		paddb		%%mm0,%%mm1;
-		paddb		%%mm2,%%mm1;
-		movq		%%mm1,temp22-16(%1);
+		" movq		%%mm3,%%mm0;\n"
+		" movq		%%mm3,%%mm1;\n"
+		" movq		%%mm4,%%mm2;\n"
+		" psrlq		$8,%%mm1;\n"
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" por		%%mm1,%%mm2;\n"
+		" pxor		%%mm1,%%mm3;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" movq		temp2h-16(%1),%%mm0;\n"
+		" por		%%mm3,%%mm5;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pxor		%%mm1,%%mm2;\n"
+		" pandn		%%mm2,%%mm5;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pand		%%mm1,%%mm2;\n"
+		" pxor		%%mm5,%%mm2;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp22-16(%1);\n"
 
-		movq		%%mm4,%%mm0;
-		movq		%%mm4,%%mm1;
-		psrlq		$8,%%mm1;
-		pushl		%%edx;
-		movzxb		16(%0),%%edx;
-		movd		%%edx,%%mm2;
-		popl		%%edx;
-		psllq		$56,%%mm2;
-		por		%%mm2,%%mm1;
-		movq		%%mm0,%%mm2;
-		por		%%mm1,%%mm2;
-		pxor		%%mm1,%%mm4;
-		por		%%mm7,%%mm0;
-		por		%%mm7,%%mm1;
-		psrlq		$1,%%mm0;
-		pand		%%mm7,%%mm2;
-		psrlq		$1,%%mm1;
-		paddb		%%mm0,%%mm1;
-		paddb		%%mm2,%%mm1;
-		movq		temp2h+8-16(%1),%%mm0;
-		movq		%%mm0,%%mm2;
-		pxor		%%mm1,%%mm2;
-		por		%%mm4,%%mm6;
-		pandn		%%mm2,%%mm6;
-		movq		%%mm0,%%mm2;
-		pand		%%mm1,%%mm2;
-		pxor		%%mm6,%%mm2;
-		por		%%mm7,%%mm0;
-		por		%%mm7,%%mm1;
-		psrlq		$1,%%mm0;
-		pand		%%mm7,%%mm2;
-		psrlq		$1,%%mm1;
-		paddb		%%mm0,%%mm1;
-		paddb		%%mm2,%%mm1;
-		movq		%%mm1,temp22+8-16(%1);
+		" movq		%%mm4,%%mm0;\n"
+		" movq		%%mm4,%%mm1;\n"
+		" psrlq		$8,%%mm1;\n"
+		" pushl		%%edx;\n"
+		" movzxb	16(%0),%%edx;\n"
+		" movd		%%edx,%%mm2;\n"
+		" popl		%%edx;\n"
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" por		%%mm1,%%mm2;\n"
+		" pxor		%%mm1,%%mm4;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		temp2h+8-16(%1),%%mm0;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pxor		%%mm1,%%mm2;\n"
+		" por		%%mm4,%%mm6;\n"
+		" pandn		%%mm2,%%mm6;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pand		%%mm1,%%mm2;\n"
+		" pxor		%%mm6,%%mm2;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp22+8-16(%1);\n"
 
 		/* temp2v 16 */
 
-		movq		temp11+18*16+0,%%mm0;
-		movq		%%mm0,%%mm3;
-		movq		temp11+18*16+1,%%mm1;
-		movq		%%mm0,%%mm2;
-		por		%%mm1,%%mm2;
-		por		%%mm7,%%mm0;
-		por		%%mm7,%%mm1;
-		psrlq		$1,%%mm0;
-		pand		%%mm7,%%mm2;
-		psrlq		$1,%%mm1;
-		paddb		%%mm0,%%mm1;
-		paddb		%%mm2,%%mm1;
-		movq		%%mm1,temp2v+18*16+0;
+		" movq		temp11+18*16+0,%%mm0;\n"
+		" movq		%%mm0,%%mm3;\n"
+		" movq		temp11+18*16+1,%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" por		%%mm1,%%mm2;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp2v+18*16+0;\n"
 
-		movq		temp11+18*16+8,%%mm0;
-		movq		%%mm0,%%mm4;
-		movq		%%mm0,%%mm1;
-		psrlq		$8,%%mm1;
-		pushl		%%ecx;
-		pushl		%%edx;
-		movzxb		temp11+18*16+16,%%ecx;
-		movd		%%ecx,%%mm2;
-		movzxb		16(%0),%%edx;
-		addl		%%edx,%%ecx;
-		incl		%%ecx;
-		shrl		$1,%%ecx;
-		movb		%%cl,temp2v+18*16+16;
-		popl		%%edx;
-		popl		%%ecx;
-		psllq		$56,%%mm2;
-		por		%%mm2,%%mm1;
-		movq		%%mm0,%%mm2;
-		por		%%mm1,%%mm2;
-		por		%%mm7,%%mm0;
-		por		%%mm7,%%mm1;
-		psrlq		$1,%%mm0;
-		pand		%%mm7,%%mm2;
-		psrlq		$1,%%mm1;
-		paddb		%%mm0,%%mm1;
-		paddb		%%mm2,%%mm1;
-		movq		%%mm1,temp2v+18*16+8;
+		" movq		temp11+18*16+8,%%mm0;\n"
+		" movq		%%mm0,%%mm4;\n"
+		" movq		%%mm0,%%mm1;\n"
+		" psrlq		$8,%%mm1;\n"
+		" pushl		%%ecx;\n"
+		" pushl		%%edx;\n"
+		" movzxb	temp11+18*16+16,%%ecx;\n"
+		" movd		%%ecx,%%mm2;\n"
+		" movzxb	16(%0),%%edx;\n"
+		" addl		%%edx,%%ecx;\n"
+		" incl		%%ecx;\n"
+		" shrl		$1,%%ecx;\n"
+		" movb		%%cl,temp2v+18*16+16;\n"
+		" popl		%%edx;\n"
+		" popl		%%ecx;\n"
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" por		%%mm1,%%mm2;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp2v+18*16+8;\n"
 
 		/* temp2h 16 */
 
-		movq		temp2h+18*16+0,%%mm0;
-		movq		%%mm3,%%mm2;
-		movq		%%mm0,%%mm5;
-		por		%%mm0,%%mm2;
-		pxor		%%mm3,%%mm5;
-		por		%%mm7,%%mm3;
-		por		%%mm7,%%mm0;
-		psrlq		$1,%%mm3;
-		pand		%%mm7,%%mm2;
-		psrlq		$1,%%mm0;
-		paddb		%%mm3,%%mm0;
-		paddb		%%mm2,%%mm0;
-		movq		%%mm0,temp2h+18*16+0;
+		" movq		temp2h+18*16+0,%%mm0;\n"
+		" movq		%%mm3,%%mm2;\n"
+		" movq		%%mm0,%%mm5;\n"
+		" por		%%mm0,%%mm2;\n"
+		" pxor		%%mm3,%%mm5;\n"
+		" por		%%mm7,%%mm3;\n"
+		" por		%%mm7,%%mm0;\n"
+		" psrlq		$1,%%mm3;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm0;\n"
+		" paddb		%%mm3,%%mm0;\n"
+		" paddb		%%mm2,%%mm0;\n"
+		" movq		%%mm0,temp2h+18*16+0;\n"
 
-		movq		temp2h+18*16+8,%%mm1;
-		movq		%%mm4,%%mm2;
-		movq		%%mm1,%%mm6;
-		por		%%mm1,%%mm2;
-		pxor		%%mm4,%%mm6;
-		por		%%mm7,%%mm4;
-		por		%%mm7,%%mm1;
-		psrlq		$1,%%mm4;
-		pand		%%mm7,%%mm2;
-		psrlq		$1,%%mm1;
-		paddb		%%mm4,%%mm1;
-		paddb		%%mm2,%%mm1;
-		movq		%%mm1,temp2h+18*16+8;
+		" movq		temp2h+18*16+8,%%mm1;\n"
+		" movq		%%mm4,%%mm2;\n"
+		" movq		%%mm1,%%mm6;\n"
+		" por		%%mm1,%%mm2;\n"
+		" pxor		%%mm4,%%mm6;\n"
+		" por		%%mm7,%%mm4;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm4;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm4,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp2h+18*16+8;\n"
 
-		pushl		%%ecx;
-		pushl		%%edx;
-		movzxb		temp11+18*16+16,%%ecx;
-		movzxb		temp2h+18*16+16,%%edx;
-		addl		%%edx,%%ecx;
-		movd		%%ecx,%%mm4;
-		incl		%%ecx;
-		movl		%%ecx,%%edx;
-		shrl		$1,%%ecx;
-		movb		%%cl,temp2h+18*16+16;
-		movzxb		16(%0),%%ecx;
-		addl		%%ecx,%%edx;
-		movzxb		17(%0),%%ecx;
-		addl		%%ecx,%%edx;
-		incl		%%edx;
-		shrl		$2,%%edx;
-		movb		%%dl,temp22+18*16+16;
-		popl		%%edx;
-		popl		%%ecx;
+		" pushl		%%ecx;\n"
+		" pushl		%%edx;\n"
+		" movzxb	temp11+18*16+16,%%ecx;\n"
+		" movzxb	temp2h+18*16+16,%%edx;\n"
+		" addl		%%edx,%%ecx;\n"
+		" movd		%%ecx,%%mm4;\n"
+		" incl		%%ecx;\n"
+		" movl		%%ecx,%%edx;\n"
+		" shrl		$1,%%ecx;\n"
+		" movb		%%cl,temp2h+18*16+16;\n"
+		" movzxb	16(%0),%%ecx;\n"
+		" addl		%%ecx,%%edx;\n"
+		" movzxb	17(%0),%%ecx;\n"
+		" addl		%%ecx,%%edx;\n"
+		" incl		%%edx;\n"
+		" shrl		$2,%%edx;\n"
+		" movb		%%dl,temp22+18*16+16;\n"
+		" popl		%%edx;\n"
+		" popl		%%ecx;\n"
 
 		/* temp22 16 [1 & ((ab & cd) ^ ((ab ^ cd) & ~((a ^ b) | (c ^ d))))] */
 
-		movq		%%mm5,%%mm2;
-		movq		%%mm6,%%mm3;
-		psrlq		$8,%%mm2;
-		psllq		$56,%%mm3;
-		por		%%mm2,%%mm5;
-		por		%%mm3,%%mm5;
-		movq		temp2h+18*16+1,%%mm3;
-		movq		%%mm0,%%mm2;
-		pxor		%%mm3,%%mm2;
-		pandn		%%mm2,%%mm5;
-		movq		%%mm0,%%mm2;
-		pand		%%mm3,%%mm2;
-		pxor		%%mm2,%%mm5;
-		pand		%%mm7,%%mm5;
-		por		%%mm7,%%mm3;
-		por		%%mm7,%%mm0;
-		psrlq		$1,%%mm3;
-		psrlq		$1,%%mm0;
-		paddb		%%mm3,%%mm0;
-		paddb		%%mm5,%%mm0;
-		movq		%%mm0,temp22+18*16+0;
+		" movq		%%mm5,%%mm2;\n"
+		" movq		%%mm6,%%mm3;\n"
+		" psrlq		$8,%%mm2;\n"
+		" psllq		$56,%%mm3;\n"
+		" por		%%mm2,%%mm5;\n"
+		" por		%%mm3,%%mm5;\n"
+		" movq		temp2h+18*16+1,%%mm3;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pxor		%%mm3,%%mm2;\n"
+		" pandn		%%mm2,%%mm5;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pand		%%mm3,%%mm2;\n"
+		" pxor		%%mm2,%%mm5;\n"
+		" pand		%%mm7,%%mm5;\n"
+		" por		%%mm7,%%mm3;\n"
+		" por		%%mm7,%%mm0;\n"
+		" psrlq		$1,%%mm3;\n"
+		" psrlq		$1,%%mm0;\n"
+		" paddb		%%mm3,%%mm0;\n"
+		" paddb		%%mm5,%%mm0;\n"
+		" movq		%%mm0,temp22+18*16+0;\n"
 
-		movq		%%mm6,%%mm2;
-		psrlq		$8,%%mm2;
-		psllq		$56,%%mm4;
-		por		%%mm2,%%mm6;
-		por		%%mm4,%%mm6;
-		movq		temp2h+18*16+9,%%mm4;
-		movq		%%mm1,%%mm2;
-		pxor		%%mm4,%%mm2;
-		pandn		%%mm2,%%mm6;
-		movq		%%mm1,%%mm2;
-		pand		%%mm4,%%mm2;
-		pxor		%%mm2,%%mm6;
-		pand		%%mm7,%%mm6;
-		por		%%mm7,%%mm4;
-		por		%%mm7,%%mm1;
-		psrlq		$1,%%mm4;
-		psrlq		$1,%%mm1;
-		paddb		%%mm4,%%mm1;
-		paddb		%%mm6,%%mm1;
-		movq		%%mm1,temp22+18*16+8;
+		" movq		%%mm6,%%mm2;\n"
+		" psrlq		$8,%%mm2;\n"
+		" psllq		$56,%%mm4;\n"
+		" por		%%mm2,%%mm6;\n"
+		" por		%%mm4,%%mm6;\n"
+		" movq		temp2h+18*16+9,%%mm4;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pandn		%%mm2,%%mm6;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" pand		%%mm4,%%mm2;\n"
+		" pxor		%%mm2,%%mm6;\n"
+		" pand		%%mm7,%%mm6;\n"
+		" por		%%mm7,%%mm4;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm4;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm4,%%mm1;\n"
+		" paddb		%%mm6,%%mm1;\n"
+		" movq		%%mm1,temp22+18*16+8;\n"
 
-	" :: "S" (p1 + y * pitch), "c" (y * 16), "r" (y) : "memory");
+	:: "S" (p1 + y * pitch), "c" (y * 16), "r" (y) : "memory");
 }
 
 static unsigned int
@@ -481,142 +481,141 @@ mmx_sad2h(unsigned char ref[16][16], typeof(temp22) temp, int hy, int *r2)
 	unsigned char *l = &temp[18][hy];
 	int y;
 
-	asm volatile ("
-		movq		(%0),%%mm0;
-		movq		(%1),%%mm1;
-		pxor		%%mm5,%%mm5;
-		pxor		%%mm6,%%mm6;
-		pxor		%%mm7,%%mm7;
-
-	" :: "r" (s), "r" (t), "r" (l));
+	asm volatile (
+		" movq		(%0),%%mm0;\n"
+		" movq		(%1),%%mm1;\n"
+		" pxor		%%mm5,%%mm5;\n"
+		" pxor		%%mm6,%%mm6;\n"
+		" pxor		%%mm7,%%mm7;\n"
+	:: "r" (s), "r" (t), "r" (l));
 
 	for (y = 0; y < 15; y++) {
-	asm volatile ("
-		movq		1(%0),%%mm3;
-		movq		%%mm0,%%mm2;
-		movq		%%mm1,%%mm4;
-		psubusb		%%mm1,%%mm0;
-		psubusb		%%mm2,%%mm1;
-		por		%%mm1,%%mm0;
-		movq		%%mm0,%%mm1;
-		movq		%%mm3,%%mm2;
-		punpcklbw	%%mm5,%%mm0;
-		paddw		%%mm0,%%mm6;
-		movq		8(%0),%%mm0;
-		punpckhbw	%%mm5,%%mm1;
-		paddw		%%mm1,%%mm6;
+	asm volatile (
+		" movq		1(%0),%%mm3;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" movq		%%mm1,%%mm4;\n"
+		" psubusb	%%mm1,%%mm0;\n"
+		" psubusb	%%mm2,%%mm1;\n"
+		" por		%%mm1,%%mm0;\n"
+		" movq		%%mm0,%%mm1;\n"
+		" movq		%%mm3,%%mm2;\n"
+		" punpcklbw	%%mm5,%%mm0;\n"
+		" paddw		%%mm0,%%mm6;\n"
+		" movq		8(%0),%%mm0;\n"
+		" punpckhbw	%%mm5,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
 
-		movq		8(%1),%%mm1;
-		psubusb		%%mm4,%%mm3;
-		psubusb		%%mm2,%%mm4;
-		movq		(%2),%%mm2;
-		por		%%mm4,%%mm3;
-		movq		%%mm3,%%mm4;
-		punpcklbw	%%mm5,%%mm3;
-		paddw		%%mm3,%%mm7;
-		movq		%%mm0,%%mm3;
-		punpckhbw	%%mm5,%%mm4;
-		paddw		%%mm4,%%mm7;
+		" movq		8(%1),%%mm1;\n"
+		" psubusb	%%mm4,%%mm3;\n"
+		" psubusb	%%mm2,%%mm4;\n"
+		" movq		(%2),%%mm2;\n"
+		" por		%%mm4,%%mm3;\n"
+		" movq		%%mm3,%%mm4;\n"
+		" punpcklbw	%%mm5,%%mm3;\n"
+		" paddw		%%mm3,%%mm7;\n"
+		" movq		%%mm0,%%mm3;\n"
+		" punpckhbw	%%mm5,%%mm4;\n"
+		" paddw		%%mm4,%%mm7;\n"
 
-		movq		%%mm1,%%mm4;
-		psubusb		%%mm1,%%mm0;
-		psubusb		%%mm3,%%mm1;
-		psrlq		$8,%%mm3;
-		por		%%mm1,%%mm0;
-		movq		%%mm0,%%mm1;
-		punpcklbw	%%mm5,%%mm0;
-		paddw		%%mm0,%%mm6;
-		movq		16(%0),%%mm0;
-		punpckhbw	%%mm5,%%mm1;
-		paddw		%%mm1,%%mm6;
+		" movq		%%mm1,%%mm4;\n"
+		" psubusb	%%mm1,%%mm0;\n"
+		" psubusb	%%mm3,%%mm1;\n"
+		" psrlq		$8,%%mm3;\n"
+		" por		%%mm1,%%mm0;\n"
+		" movq		%%mm0,%%mm1;\n"
+		" punpcklbw	%%mm5,%%mm0;\n"
+		" paddw		%%mm0,%%mm6;\n"
+		" movq		16(%0),%%mm0;\n"
+		" punpckhbw	%%mm5,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
 
-		movq		16(%1),%%mm1;
-		psllq		$56,%%mm2;
-		por		%%mm2,%%mm3;
-		movq		%%mm3,%%mm2;
-		psubusb		%%mm4,%%mm3;
-		psubusb		%%mm2,%%mm4;
-		por		%%mm4,%%mm3;
-		movq		%%mm3,%%mm4;
-		punpcklbw	%%mm5,%%mm3;
-		paddw		%%mm3,%%mm7;
-		punpckhbw	%%mm5,%%mm4;
-		paddw		%%mm4,%%mm7;
+		" movq		16(%1),%%mm1;\n"
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm3;\n"
+		" movq		%%mm3,%%mm2;\n"
+		" psubusb	%%mm4,%%mm3;\n"
+		" psubusb	%%mm2,%%mm4;\n"
+		" por		%%mm4,%%mm3;\n"
+		" movq		%%mm3,%%mm4;\n"
+		" punpcklbw	%%mm5,%%mm3;\n"
+		" paddw		%%mm3,%%mm7;\n"
+		" punpckhbw	%%mm5,%%mm4;\n"
+		" paddw		%%mm4,%%mm7;\n"
 
-		" :: "r" (s), "r" (t), "r" (l));
+		:: "r" (s), "r" (t), "r" (l));
 
 		s += 16;
 		t += 16;
 		l += 1;
 	}
 
-	asm volatile ("
-		movq		1(%0),%%mm3;
-		movq		%%mm0,%%mm2;
-		movq		%%mm1,%%mm4;
-		psubusb		%%mm1,%%mm0;
-		psubusb		%%mm2,%%mm1;
-		por		%%mm1,%%mm0;
-		movq		%%mm0,%%mm1;
-		punpcklbw	%%mm5,%%mm0;
-		paddw		%%mm0,%%mm6;
-		movq		8(%0),%%mm0;
-		punpckhbw	%%mm5,%%mm1;
-		paddw		%%mm1,%%mm6;
-		movq		8(%1),%%mm1;
+	asm volatile (
+		" movq		1(%0),%%mm3;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" movq		%%mm1,%%mm4;\n"
+		" psubusb	%%mm1,%%mm0;\n"
+		" psubusb	%%mm2,%%mm1;\n"
+		" por		%%mm1,%%mm0;\n"
+		" movq		%%mm0,%%mm1;\n"
+		" punpcklbw	%%mm5,%%mm0;\n"
+		" paddw		%%mm0,%%mm6;\n"
+		" movq		8(%0),%%mm0;\n"
+		" punpckhbw	%%mm5,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		8(%1),%%mm1;\n"
 
-		movq		%%mm3,%%mm2;
-		psubusb		%%mm4,%%mm3;
-		psubusb		%%mm2,%%mm4;
-		movq		(%2),%%mm2;
-		por		%%mm4,%%mm3;
-		movq		%%mm3,%%mm4;
-		punpcklbw	%%mm5,%%mm3;
-		paddw		%%mm3,%%mm7;
-		movq		%%mm0,%%mm3;
-		punpckhbw	%%mm5,%%mm4;
-		paddw		%%mm4,%%mm7;
+		" movq		%%mm3,%%mm2;\n"
+		" psubusb	%%mm4,%%mm3;\n"
+		" psubusb	%%mm2,%%mm4;\n"
+		" movq		(%2),%%mm2;\n"
+		" por		%%mm4,%%mm3;\n"
+		" movq		%%mm3,%%mm4;\n"
+		" punpcklbw	%%mm5,%%mm3;\n"
+		" paddw		%%mm3,%%mm7;\n"
+		" movq		%%mm0,%%mm3;\n"
+		" punpckhbw	%%mm5,%%mm4;\n"
+		" paddw		%%mm4,%%mm7;\n"
 
-		movq		%%mm1,%%mm4;
-		psubusb		%%mm1,%%mm0;
-		psubusb		%%mm3,%%mm1;
-		por		%%mm1,%%mm0;
-		movq		%%mm0,%%mm1;
-		punpcklbw	%%mm5,%%mm0;
-		paddw		%%mm0,%%mm6;
-		punpckhbw	%%mm5,%%mm1;
-		paddw		%%mm1,%%mm6;
+		" movq		%%mm1,%%mm4;\n"
+		" psubusb	%%mm1,%%mm0;\n"
+		" psubusb	%%mm3,%%mm1;\n"
+		" por		%%mm1,%%mm0;\n"
+		" movq		%%mm0,%%mm1;\n"
+		" punpcklbw	%%mm5,%%mm0;\n"
+		" paddw		%%mm0,%%mm6;\n"
+		" punpckhbw	%%mm5,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
 
-		psrlq		$8,%%mm3;
-		psllq		$56,%%mm2;
-		por		%%mm2,%%mm3;
-		movq		%%mm3,%%mm2;
-		psubusb		%%mm4,%%mm3;
-		psubusb		%%mm2,%%mm4;
-		por		%%mm4,%%mm3;
-		movq		%%mm3,%%mm4;
-		punpcklbw	%%mm5,%%mm3;
-		paddw		%%mm3,%%mm7;
-		punpckhbw	%%mm5,%%mm4;
-		paddw		%%mm4,%%mm7;
+		" psrlq		$8,%%mm3;\n"
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm3;\n"
+		" movq		%%mm3,%%mm2;\n"
+		" psubusb	%%mm4,%%mm3;\n"
+		" psubusb	%%mm2,%%mm4;\n"
+		" por		%%mm4,%%mm3;\n"
+		" movq		%%mm3,%%mm4;\n"
+		" punpcklbw	%%mm5,%%mm3;\n"
+		" paddw		%%mm3,%%mm7;\n"
+		" punpckhbw	%%mm5,%%mm4;\n"
+		" paddw		%%mm4,%%mm7;\n"
 
-	" :: "r" (s), "r" (t), "r" (l));
+	:: "r" (s), "r" (t), "r" (l));
 
 	// XXX this is supposed to sort
-	asm volatile ("
-		movq		%%mm7,%%mm0;
-		punpcklwd	%%mm6,%%mm0;
-		punpckhwd	%%mm6,%%mm7;
-		paddw		%%mm0,%%mm7;
+	asm volatile (
+		" movq		%%mm7,%%mm0;\n"
+		" punpcklwd	%%mm6,%%mm0;\n"
+		" punpckhwd	%%mm6,%%mm7;\n"
+		" paddw		%%mm0,%%mm7;\n"
 
-		movq		%%mm7,%%mm0;
-		psrlq		$32,%%mm0;
-		paddw		%%mm0,%%mm7;
-		movd		%%mm7,%0;
-		punpcklwd	%%mm5,%%mm7;
-		movd		%%mm7,(%1);
-		shrl		$16,%0;
-	" : "=&a" (y) : "r" (r2));
+		" movq		%%mm7,%%mm0;\n"
+		" psrlq		$32,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movd		%%mm7,%0;\n"
+		" punpcklwd	%%mm5,%%mm7;\n"
+		" movd		%%mm7,(%1);\n"
+		" shrl		$16,%0;\n"
+	: "=&a" (y) : "r" (r2));
 
 	return y; // left, r2 = right
 }
@@ -630,239 +629,234 @@ mmx_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 	int y;
 
 	if (hx == 0) {
-	asm volatile ("
-		movq		(%0),%%mm3;	
-		movq		8(%0),%%mm4;
-		movq		(%1),%%mm1;
-		movq		16(%0),%%mm0;
-		pxor		%%mm5,%%mm5;
-		pxor		%%mm6,%%mm6;
-		pxor		%%mm7,%%mm7;
-
-	" :: "r" (s), "r" (t), "r" (l));
+	asm volatile (
+		" movq		(%0),%%mm3;\n"
+		" movq		8(%0),%%mm4;\n"
+		" movq		(%1),%%mm1;\n"
+		" movq		16(%0),%%mm0;\n"
+		" pxor		%%mm5,%%mm5;\n"
+		" pxor		%%mm6,%%mm6;\n"
+		" pxor		%%mm7,%%mm7;\n"
+	:: "r" (s), "r" (t), "r" (l));
 
 		for (y = 0; y < 15; y++) {
-	asm volatile ("
-		movq		%%mm1,%%mm2;
-		psubusb		%%mm3,%%mm1;
-		psubusb		%%mm2,%%mm3;
-		por		%%mm1,%%mm3;
-		movq		%%mm3,%%mm1;
-		punpckhbw	%%mm5,%%mm1;
-		paddw		%%mm1,%%mm6;
-		movq		8(%1),%%mm1;
-		punpcklbw	%%mm5,%%mm3;
-		paddw		%%mm3,%%mm6;
+	asm volatile (
+		" movq		%%mm1,%%mm2;\n"
+		" psubusb	%%mm3,%%mm1;\n"
+		" psubusb	%%mm2,%%mm3;\n"
+		" por		%%mm1,%%mm3;\n"
+		" movq		%%mm3,%%mm1;\n"
+		" punpckhbw	%%mm5,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		8(%1),%%mm1;\n"
+		" punpcklbw	%%mm5,%%mm3;\n"
+		" paddw		%%mm3,%%mm6;\n"
 
-		movq		%%mm0,%%mm3;
-		psubusb		%%mm2,%%mm0;
-		psubusb		%%mm3,%%mm2;
-		por		%%mm2,%%mm0;
-		movq		%%mm0,%%mm2;
-		punpcklbw	%%mm5,%%mm0;
-		paddw		%%mm0,%%mm7;
-		movq		24(%0),%%mm0;
-		punpckhbw	%%mm5,%%mm2;
-		paddw		%%mm2,%%mm7;
+		" movq		%%mm0,%%mm3;\n"
+		" psubusb	%%mm2,%%mm0;\n"
+		" psubusb	%%mm3,%%mm2;\n"
+		" por		%%mm2,%%mm0;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" punpcklbw	%%mm5,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		24(%0),%%mm0;\n"
+		" punpckhbw	%%mm5,%%mm2;\n"
+		" paddw		%%mm2,%%mm7;\n"
 
-		movq		%%mm1,%%mm2;
-		psubusb		%%mm4,%%mm1;
-		psubusb		%%mm2,%%mm4;
-		por		%%mm1,%%mm4;
-		movq		%%mm4,%%mm1;
-		punpckhbw	%%mm5,%%mm1;
-		paddw		%%mm1,%%mm6;
-		movq		16(%1),%%mm1;
-		punpcklbw	%%mm5,%%mm4;
-		paddw		%%mm4,%%mm6;
+		" movq		%%mm1,%%mm2;\n"
+		" psubusb	%%mm4,%%mm1;\n"
+		" psubusb	%%mm2,%%mm4;\n"
+		" por		%%mm1,%%mm4;\n"
+		" movq		%%mm4,%%mm1;\n"
+		" punpckhbw	%%mm5,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		16(%1),%%mm1;\n"
+		" punpcklbw	%%mm5,%%mm4;\n"
+		" paddw		%%mm4,%%mm6;\n"
 
-		movq		%%mm0,%%mm4;
-		psubusb		%%mm2,%%mm0;
-		psubusb		%%mm4,%%mm2;
-		por		%%mm2,%%mm0;
-		movq		%%mm0,%%mm2;
-		punpcklbw	%%mm5,%%mm0;
-		paddw		%%mm0,%%mm7;
-		movq		32(%0),%%mm0;
-		punpckhbw	%%mm5,%%mm2;
-		paddw		%%mm2,%%mm7;
-
-	" :: "r" (s), "r" (t), "r" (l));
+		" movq		%%mm0,%%mm4;\n"
+		" psubusb	%%mm2,%%mm0;\n"
+		" psubusb	%%mm4,%%mm2;\n"
+		" por		%%mm2,%%mm0;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" punpcklbw	%%mm5,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		32(%0),%%mm0;\n"
+		" punpckhbw	%%mm5,%%mm2;\n"
+		" paddw		%%mm2,%%mm7;\n"
+	:: "r" (s), "r" (t), "r" (l));
 
 			s += 16;
 			t += 16;
 		}
 
-	asm volatile ("
-		movq		%%mm1,%%mm2;
-		psubusb		%%mm3,%%mm1;
-		psubusb		%%mm2,%%mm3;
-		por		%%mm1,%%mm3;
-		movq		%%mm3,%%mm1;
-		punpckhbw	%%mm5,%%mm1;
-		paddw		%%mm1,%%mm6;
-		movq		8(%1),%%mm1;
-		punpcklbw	%%mm5,%%mm3;
-		paddw		%%mm3,%%mm6;
+	asm volatile (
+		" movq		%%mm1,%%mm2;\n"
+		" psubusb	%%mm3,%%mm1;\n"
+		" psubusb	%%mm2,%%mm3;\n"
+		" por		%%mm1,%%mm3;\n"
+		" movq		%%mm3,%%mm1;\n"
+		" punpckhbw	%%mm5,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		8(%1),%%mm1;\n"
+		" punpcklbw	%%mm5,%%mm3;\n"
+		" paddw		%%mm3,%%mm6;\n"
 
-		movq		%%mm0,%%mm3;
-		psubusb		%%mm2,%%mm0;
-		psubusb		%%mm3,%%mm2;
-		por		%%mm2,%%mm0;
-		movq		%%mm0,%%mm2;
-		punpcklbw	%%mm5,%%mm0;
-		paddw		%%mm0,%%mm7;
-		movq		24(%0),%%mm0;
+		" movq		%%mm0,%%mm3;\n"
+		" psubusb	%%mm2,%%mm0;\n"
+		" psubusb	%%mm3,%%mm2;\n"
+		" por		%%mm2,%%mm0;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" punpcklbw	%%mm5,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		24(%0),%%mm0;\n"
 
-	" :: "r" (s), "r" (t), "r" (l));
+	:: "r" (s), "r" (t), "r" (l));
 
 	} else {
 
-	asm volatile ("
-		movq		8(%0),%%mm4;
-		psrlq		$8,%%mm4;
-		movq		(%2),%%mm2;
-		psllq		$56,%%mm2;
-		por		%%mm2,%%mm4;
+	asm volatile (
+		" movq		8(%0),%%mm4;\n"
+		" psrlq		$8,%%mm4;\n"
+		" movq		(%2),%%mm2;\n"
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm4;\n"
 
-		movq		1(%0),%%mm3;
-		movq		(%1),%%mm1;
-		movq		17(%0),%%mm0;
+		" movq		1(%0),%%mm3;\n"
+		" movq		(%1),%%mm1;\n"
+		" movq		17(%0),%%mm0;\n"
 
-		pxor		%%mm5,%%mm5;
-		pxor		%%mm6,%%mm6;
-		pxor		%%mm7,%%mm7;
-
-	" :: "r" (s), "r" (t), "r" (l));
+		" pxor		%%mm5,%%mm5;\n"
+		" pxor		%%mm6,%%mm6;\n"
+		" pxor		%%mm7,%%mm7;\n"
+	:: "r" (s), "r" (t), "r" (l));
 
 		for (y = 0; y < 15; y++) {
-	asm volatile ("
-		movq		%%mm1,%%mm2;
-		psubusb		%%mm3,%%mm1;
-		psubusb		%%mm2,%%mm3;
-		por		%%mm1,%%mm3;
-		movq		%%mm3,%%mm1;
-		punpckhbw	%%mm5,%%mm1;
-		paddw		%%mm1,%%mm6;
-		movq		8(%1),%%mm1;
-		punpcklbw	%%mm5,%%mm3;
-		paddw		%%mm3,%%mm6;
+	asm volatile (
+		" movq		%%mm1,%%mm2;\n"
+		" psubusb	%%mm3,%%mm1;\n"
+		" psubusb	%%mm2,%%mm3;\n"
+		" por		%%mm1,%%mm3;\n"
+		" movq		%%mm3,%%mm1;\n"
+		" punpckhbw	%%mm5,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		8(%1),%%mm1;\n"
+		" punpcklbw	%%mm5,%%mm3;\n"
+		" paddw		%%mm3,%%mm6;\n"
 
-		movq		%%mm0,%%mm3;
-		psubusb		%%mm2,%%mm0;
-		psubusb		%%mm3,%%mm2;
-		por		%%mm2,%%mm0;
-		movq		%%mm0,%%mm2;
-		punpcklbw	%%mm5,%%mm0;
-		paddw		%%mm0,%%mm7;
-		movq		24(%0),%%mm0;
-		punpckhbw	%%mm5,%%mm2;
-		paddw		%%mm2,%%mm7;
+		" movq		%%mm0,%%mm3;\n"
+		" psubusb	%%mm2,%%mm0;\n"
+		" psubusb	%%mm3,%%mm2;\n"
+		" por		%%mm2,%%mm0;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" punpcklbw	%%mm5,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		24(%0),%%mm0;\n"
+		" punpckhbw	%%mm5,%%mm2;\n"
+		" paddw		%%mm2,%%mm7;\n"
 
-		movq		%%mm1,%%mm2;
-		psubusb		%%mm4,%%mm1;
-		psubusb		%%mm2,%%mm4;
-		psrlq		$8,%%mm0;
-		por		%%mm1,%%mm4;
-		movq		%%mm4,%%mm1;
-		punpckhbw	%%mm5,%%mm1;
-		paddw		%%mm1,%%mm6;
-		movq		16(%1),%%mm1;
-		punpcklbw	%%mm5,%%mm4;
-		paddw		%%mm4,%%mm6;
+		" movq		%%mm1,%%mm2;\n"
+		" psubusb	%%mm4,%%mm1;\n"
+		" psubusb	%%mm2,%%mm4;\n"
+		" psrlq		$8,%%mm0;\n"
+		" por		%%mm1,%%mm4;\n"
+		" movq		%%mm4,%%mm1;\n"
+		" punpckhbw	%%mm5,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		16(%1),%%mm1;\n"
+		" punpcklbw	%%mm5,%%mm4;\n"
+		" paddw		%%mm4,%%mm6;\n"
 
-		movq		1(%2),%%mm4;
-		psllq		$56,%%mm4;
-		por		%%mm4,%%mm0;
-		movq		%%mm0,%%mm4;
-		psubusb		%%mm2,%%mm0;
-		psubusb		%%mm4,%%mm2;
-		por		%%mm2,%%mm0;
-		movq		%%mm0,%%mm2;
-		punpcklbw	%%mm5,%%mm0;
-		paddw		%%mm0,%%mm7;
-		movq		33(%0),%%mm0;
-		punpckhbw	%%mm5,%%mm2;
-		paddw		%%mm2,%%mm7;
-
-	" :: "r" (s), "r" (t), "r" (l));
+		" movq		1(%2),%%mm4;\n"
+		" psllq		$56,%%mm4;\n"
+		" por		%%mm4,%%mm0;\n"
+		" movq		%%mm0,%%mm4;\n"
+		" psubusb	%%mm2,%%mm0;\n"
+		" psubusb	%%mm4,%%mm2;\n"
+		" por		%%mm2,%%mm0;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" punpcklbw	%%mm5,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		33(%0),%%mm0;\n"
+		" punpckhbw	%%mm5,%%mm2;\n"
+		" paddw		%%mm2,%%mm7;\n"
+	:: "r" (s), "r" (t), "r" (l));
 
 			s += 16;
 			t += 16;
 			l += 1;
 		}
 
-	asm volatile ("
-		movq		%%mm1,%%mm2;
-		psubusb		%%mm3,%%mm1;
-		psubusb		%%mm2,%%mm3;
-		por		%%mm1,%%mm3;
-		movq		%%mm3,%%mm1;
-		punpckhbw	%%mm5,%%mm1;
-		paddw		%%mm1,%%mm6;
-		movq		8(%1),%%mm1;
-		punpcklbw	%%mm5,%%mm3;
-		paddw		%%mm3,%%mm6;
+	asm volatile (
+		" movq		%%mm1,%%mm2;\n"
+		" psubusb	%%mm3,%%mm1;\n"
+		" psubusb	%%mm2,%%mm3;\n"
+		" por		%%mm1,%%mm3;\n"
+		" movq		%%mm3,%%mm1;\n"
+		" punpckhbw	%%mm5,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		8(%1),%%mm1;\n"
+		" punpcklbw	%%mm5,%%mm3;\n"
+		" paddw		%%mm3,%%mm6;\n"
 
-		movq		%%mm0,%%mm3;
-		psubusb		%%mm2,%%mm0;
-		psubusb		%%mm3,%%mm2;
-		movq		1(%2),%%mm3;
-		por		%%mm2,%%mm0;
-		psllq		$56,%%mm3;
-		movq		%%mm0,%%mm2;
-		punpcklbw	%%mm5,%%mm0;
-		paddw		%%mm0,%%mm7;
+		" movq		%%mm0,%%mm3;\n"
+		" psubusb	%%mm2,%%mm0;\n"
+		" psubusb	%%mm3,%%mm2;\n"
+		" movq		1(%2),%%mm3;\n"
+		" por		%%mm2,%%mm0;\n"
+		" psllq		$56,%%mm3;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" punpcklbw	%%mm5,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
 
-		movq		24(%0),%%mm0;
-		psrlq		$8,%%mm0;
-		por		%%mm3,%%mm0;
-
-	" :: "r" (s), "r" (t), "r" (l));
+		" movq		24(%0),%%mm0;\n"
+		" psrlq		$8,%%mm0;\n"
+		" por		%%mm3,%%mm0;\n"
+	:: "r" (s), "r" (t), "r" (l));
 
 	}
 
-	asm volatile ("
-		punpckhbw	%mm5,%mm2;
-		paddw		%mm2,%mm7;
+	asm volatile (
+		" punpckhbw	%mm5,%mm2;\n"
+		" paddw		%mm2,%mm7;\n"
 
-		movq		%mm1,%mm2;
-		psubusb		%mm4,%mm1;
-		psubusb		%mm2,%mm4;
-		por		%mm1,%mm4;
-		movq		%mm4,%mm1;
-		punpcklbw	%mm5,%mm4;
-		paddw		%mm4,%mm6;
-		punpckhbw	%mm5,%mm1;
-		paddw		%mm1,%mm6;
+		" movq		%mm1,%mm2;\n"
+		" psubusb	%mm4,%mm1;\n"
+		" psubusb	%mm2,%mm4;\n"
+		" por		%mm1,%mm4;\n"
+		" movq		%mm4,%mm1;\n"
+		" punpcklbw	%mm5,%mm4;\n"
+		" paddw		%mm4,%mm6;\n"
+		" punpckhbw	%mm5,%mm1;\n"
+		" paddw		%mm1,%mm6;\n"
 
-		movq		%mm0,%mm4;
-		psubusb		%mm2,%mm0;
-		psubusb		%mm4,%mm2;
-		por		%mm2,%mm0;
-		movq		%mm0,%mm2;
-		punpcklbw	%mm5,%mm0;
-		paddw		%mm0,%mm7;
-		punpckhbw	%mm5,%mm2;
-		paddw		%mm2,%mm7;
+		" movq		%mm0,%mm4;\n"
+		" psubusb	%mm2,%mm0;\n"
+		" psubusb	%mm4,%mm2;\n"
+		" por		%mm2,%mm0;\n"
+		" movq		%mm0,%mm2;\n"
+		" punpcklbw	%mm5,%mm0;\n"
+		" paddw		%mm0,%mm7;\n"
+		" punpckhbw	%mm5,%mm2;\n"
+		" paddw		%mm2,%mm7;\n"
 
 	// XXX this is supposed to sort
 
-		movq		%mm7,%mm0;
-		punpcklwd	%mm6,%mm0;
-		punpckhwd	%mm6,%mm7;
-		paddw		%mm0,%mm7;
-	");
+		" movq		%mm7,%mm0;\n"
+		" punpcklwd	%mm6,%mm0;\n"
+		" punpckhwd	%mm6,%mm7;\n"
+		" paddw		%mm0,%mm7;\n"
+	);
 
-	asm volatile ("
-		movq		%%mm7,%%mm0;
-		psrlq		$32,%%mm0;
-		paddw		%%mm0,%%mm7;
-		movd		%%mm7,%0;
-		punpcklwd	%%mm5,%%mm7;
-		movd		%%mm7,(%1);
-		shrl		$16,%0;
-	" : "=&a" (y) : "r" (r2));
+	asm volatile (
+		" movq		%%mm7,%%mm0;\n"
+		" psrlq		$32,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movd		%%mm7,%0;\n"
+		" punpcklwd	%%mm5,%%mm7;\n"
+		" movd		%%mm7,(%1);\n"
+		" shrl		$16,%0;\n"
+	: "=&a" (y) : "r" (r2));
 
 	return y; // left, r2 = right
 }
@@ -870,740 +864,740 @@ mmx_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 static inline void
 mmx_load_ref(unsigned char t[16][16])
 {
-	asm volatile ("
-		movq		0*16+0(%0),%%mm0;
-		packuswb	0*16+8(%0),%%mm0;
-		movq		1*16+0(%0),%%mm2;
-		packuswb	1*16+8(%0),%%mm2;
-		movq		256+0*16+0(%0),%%mm1;
-		packuswb	256+0*16+8(%0),%%mm1;
-		movq		%%mm0,0*16+0(%1);
-		movq		256+1*16+0(%0),%%mm3;
-		packuswb	256+1*16+8(%0),%%mm3;
-		movq		%%mm1,0*16+8(%1);
-		movq		2*16+0(%0),%%mm4;
-		packuswb	2*16+8(%0),%%mm4;
-		movq		%%mm2,1*16+0(%1);
-		movq		3*16+0(%0),%%mm6;
-		packuswb	3*16+8(%0),%%mm6;
-		movq		%%mm3,1*16+8(%1);
-		movq		256+2*16+0(%0),%%mm5;
-		packuswb	256+2*16+8(%0),%%mm5;
-		movq		%%mm4,2*16+0(%1);
-		movq		256+3*16+0(%0),%%mm7;
-		packuswb	256+3*16+8(%0),%%mm7;
-		movq		%%mm5,2*16+8(%1);
-		movq		4*16+0(%0),%%mm0;
-		packuswb	4*16+8(%0),%%mm0;
-		movq		%%mm6,3*16+0(%1);
-		movq		5*16+0(%0),%%mm2;
-		packuswb	5*16+8(%0),%%mm2;
-		movq		%%mm7,3*16+8(%1);
-		movq		256+4*16+0(%0),%%mm1;
-		packuswb	256+4*16+8(%0),%%mm1;
-		movq		%%mm0,4*16+0(%1);
-		movq		256+5*16+0(%0),%%mm3;
-		packuswb	256+5*16+8(%0),%%mm3;
-		movq		%%mm1,4*16+8(%1);
-		movq		6*16+0(%0),%%mm4;
-		packuswb	6*16+8(%0),%%mm4;
-		movq		%%mm2,5*16+0(%1);
-		movq		7*16+0(%0),%%mm6;
-		packuswb	7*16+8(%0),%%mm6;
-		movq		%%mm3,5*16+8(%1);
-		movq		256+6*16+0(%0),%%mm5;
-		packuswb	256+6*16+8(%0),%%mm5;
-		movq		%%mm4,6*16+0(%1);
-		movq		256+7*16+0(%0),%%mm7;
-		packuswb	256+7*16+8(%0),%%mm7;
-		movq		%%mm5,6*16+8(%1);
-		movq		8*16+0(%0),%%mm0;
-		packuswb	8*16+8(%0),%%mm0;
-		movq		%%mm6,7*16+0(%1);
-		movq		9*16+0(%0),%%mm2;
-		packuswb	9*16+8(%0),%%mm2;
-		movq		%%mm7,7*16+8(%1);
-		movq		256+8*16+0(%0),%%mm1;
-		packuswb	256+8*16+8(%0),%%mm1;
-		movq		%%mm0,8*16+0(%1);
-		movq		256+9*16+0(%0),%%mm3;
-		packuswb	256+9*16+8(%0),%%mm3;
-		movq		%%mm1,8*16+8(%1);
-		movq		10*16+0(%0),%%mm4;
-		packuswb	10*16+8(%0),%%mm4;
-		movq		%%mm2,9*16+0(%1);
-		movq		11*16+0(%0),%%mm6;
-		packuswb	11*16+8(%0),%%mm6;
-		movq		%%mm3,9*16+8(%1);
-		movq		256+10*16+0(%0),%%mm5;
-		packuswb	256+10*16+8(%0),%%mm5;
-		movq		%%mm4,10*16+0(%1);
-		movq		256+11*16+0(%0),%%mm7;
-		packuswb	256+11*16+8(%0),%%mm7;
-		movq		%%mm5,10*16+8(%1);
-		movq		12*16+0(%0),%%mm0;
-		packuswb	12*16+8(%0),%%mm0;
-		movq		%%mm6,11*16+0(%1);
-		movq		13*16+0(%0),%%mm2;
-		packuswb	13*16+8(%0),%%mm2;
-		movq		%%mm7,11*16+8(%1);
-		movq		256+12*16+0(%0),%%mm1;
-		packuswb	256+12*16+8(%0),%%mm1;
-		movq		%%mm0,12*16+0(%1);
-		movq		256+13*16+0(%0),%%mm3;
-		packuswb	256+13*16+8(%0),%%mm3;
-		movq		%%mm1,12*16+8(%1);
-		movq		14*16+0(%0),%%mm4;
-		packuswb	14*16+8(%0),%%mm4;
-		movq		%%mm2,13*16+0(%1);
-		movq		15*16+0(%0),%%mm6;
-		packuswb	15*16+8(%0),%%mm6;
-		movq		%%mm3,13*16+8(%1);
-		movq		256+14*16+0(%0),%%mm5;
-		packuswb	256+14*16+8(%0),%%mm5;
-		movq		%%mm4,14*16+0(%1);
-		movq		256+15*16+0(%0),%%mm7;
-		packuswb	256+15*16+8(%0),%%mm7;
-		movq		%%mm5,14*16+8(%1);
-		movq		%%mm6,15*16+0(%1);
-		movq		%%mm7,15*16+8(%1);
+	asm volatile (
+		" movq		0*16+0(%0),%%mm0;\n"
+		" packuswb	0*16+8(%0),%%mm0;\n"
+		" movq		1*16+0(%0),%%mm2;\n"
+		" packuswb	1*16+8(%0),%%mm2;\n"
+		" movq		256+0*16+0(%0),%%mm1;\n"
+		" packuswb	256+0*16+8(%0),%%mm1;\n"
+		" movq		%%mm0,0*16+0(%1);\n"
+		" movq		256+1*16+0(%0),%%mm3;\n"
+		" packuswb	256+1*16+8(%0),%%mm3;\n"
+		" movq		%%mm1,0*16+8(%1);\n"
+		" movq		2*16+0(%0),%%mm4;\n"
+		" packuswb	2*16+8(%0),%%mm4;\n"
+		" movq		%%mm2,1*16+0(%1);\n"
+		" movq		3*16+0(%0),%%mm6;\n"
+		" packuswb	3*16+8(%0),%%mm6;\n"
+		" movq		%%mm3,1*16+8(%1);\n"
+		" movq		256+2*16+0(%0),%%mm5;\n"
+		" packuswb	256+2*16+8(%0),%%mm5;\n"
+		" movq		%%mm4,2*16+0(%1);\n"
+		" movq		256+3*16+0(%0),%%mm7;\n"
+		" packuswb	256+3*16+8(%0),%%mm7;\n"
+		" movq		%%mm5,2*16+8(%1);\n"
+		" movq		4*16+0(%0),%%mm0;\n"
+		" packuswb	4*16+8(%0),%%mm0;\n"
+		" movq		%%mm6,3*16+0(%1);\n"
+		" movq		5*16+0(%0),%%mm2;\n"
+		" packuswb	5*16+8(%0),%%mm2;\n"
+		" movq		%%mm7,3*16+8(%1);\n"
+		" movq		256+4*16+0(%0),%%mm1;\n"
+		" packuswb	256+4*16+8(%0),%%mm1;\n"
+		" movq		%%mm0,4*16+0(%1);\n"
+		" movq		256+5*16+0(%0),%%mm3;\n"
+		" packuswb	256+5*16+8(%0),%%mm3;\n"
+		" movq		%%mm1,4*16+8(%1);\n"
+		" movq		6*16+0(%0),%%mm4;\n"
+		" packuswb	6*16+8(%0),%%mm4;\n"
+		" movq		%%mm2,5*16+0(%1);\n"
+		" movq		7*16+0(%0),%%mm6;\n"
+		" packuswb	7*16+8(%0),%%mm6;\n"
+		" movq		%%mm3,5*16+8(%1);\n"
+		" movq		256+6*16+0(%0),%%mm5;\n"
+		" packuswb	256+6*16+8(%0),%%mm5;\n"
+		" movq		%%mm4,6*16+0(%1);\n"
+		" movq		256+7*16+0(%0),%%mm7;\n"
+		" packuswb	256+7*16+8(%0),%%mm7;\n"
+		" movq		%%mm5,6*16+8(%1);\n"
+		" movq		8*16+0(%0),%%mm0;\n"
+		" packuswb	8*16+8(%0),%%mm0;\n"
+		" movq		%%mm6,7*16+0(%1);\n"
+		" movq		9*16+0(%0),%%mm2;\n"
+		" packuswb	9*16+8(%0),%%mm2;\n"
+		" movq		%%mm7,7*16+8(%1);\n"
+		" movq		256+8*16+0(%0),%%mm1;\n"
+		" packuswb	256+8*16+8(%0),%%mm1;\n"
+		" movq		%%mm0,8*16+0(%1);\n"
+		" movq		256+9*16+0(%0),%%mm3;\n"
+		" packuswb	256+9*16+8(%0),%%mm3;\n"
+		" movq		%%mm1,8*16+8(%1);\n"
+		" movq		10*16+0(%0),%%mm4;\n"
+		" packuswb	10*16+8(%0),%%mm4;\n"
+		" movq		%%mm2,9*16+0(%1);\n"
+		" movq		11*16+0(%0),%%mm6;\n"
+		" packuswb	11*16+8(%0),%%mm6;\n"
+		" movq		%%mm3,9*16+8(%1);\n"
+		" movq		256+10*16+0(%0),%%mm5;\n"
+		" packuswb	256+10*16+8(%0),%%mm5;\n"
+		" movq		%%mm4,10*16+0(%1);\n"
+		" movq		256+11*16+0(%0),%%mm7;\n"
+		" packuswb	256+11*16+8(%0),%%mm7;\n"
+		" movq		%%mm5,10*16+8(%1);\n"
+		" movq		12*16+0(%0),%%mm0;\n"
+		" packuswb	12*16+8(%0),%%mm0;\n"
+		" movq		%%mm6,11*16+0(%1);\n"
+		" movq		13*16+0(%0),%%mm2;\n"
+		" packuswb	13*16+8(%0),%%mm2;\n"
+		" movq		%%mm7,11*16+8(%1);\n"
+		" movq		256+12*16+0(%0),%%mm1;\n"
+		" packuswb	256+12*16+8(%0),%%mm1;\n"
+		" movq		%%mm0,12*16+0(%1);\n"
+		" movq		256+13*16+0(%0),%%mm3;\n"
+		" packuswb	256+13*16+8(%0),%%mm3;\n"
+		" movq		%%mm1,12*16+8(%1);\n"
+		" movq		14*16+0(%0),%%mm4;\n"
+		" packuswb	14*16+8(%0),%%mm4;\n"
+		" movq		%%mm2,13*16+0(%1);\n"
+		" movq		15*16+0(%0),%%mm6;\n"
+		" packuswb	15*16+8(%0),%%mm6;\n"
+		" movq		%%mm3,13*16+8(%1);\n"
+		" movq		256+14*16+0(%0),%%mm5;\n"
+		" packuswb	256+14*16+8(%0),%%mm5;\n"
+		" movq		%%mm4,14*16+0(%1);\n"
+		" movq		256+15*16+0(%0),%%mm7;\n"
+		" packuswb	256+15*16+8(%0),%%mm7;\n"
+		" movq		%%mm5,14*16+8(%1);\n"
+		" movq		%%mm6,15*16+0(%1);\n"
+		" movq		%%mm7,15*16+8(%1);\n"
 
-	" :: "S" (&mblock[0][0][0][0]), "D" (&t[0][0]) : "memory");
+	:: "S" (&mblock[0][0][0][0]), "D" (&t[0][0]) : "memory");
 }
 
 static inline void
 mmx_psse_4(char t[16][16], char *p, int pitch)
 {
-	asm volatile ("
-		movq		(%0),%%mm0;
-		movq		(%1),%%mm1;
-		movq		8(%0),%%mm4;
+	asm volatile (
+		" movq		(%0),%%mm0;\n"
+		" movq		(%1),%%mm1;\n"
+		" movq		8(%0),%%mm4;\n"
 
-		movq		%%mm0,%%mm2;
-		movq		%%mm1,%%mm3;
-		pcmpgtb		%%mm1,%%mm2;		// 1 < 0
-		psubb		%%mm0,%%mm1;		// 1 = 1 - 0
-		movq		%%mm1,%%mm6;
-		punpcklbw	%%mm2,%%mm6;
-		pmullw		%%mm6,%%mm6;
-		punpckhbw	%%mm2,%%mm1;
-		pmullw		%%mm1,%%mm1;
-		paddusw		%%mm1,%%mm6;
+		" movq		%%mm0,%%mm2;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pcmpgtb	%%mm1,%%mm2;		// 1 < 0\n"
+		" psubb		%%mm0,%%mm1;		// 1 = 1 - 0\n"
+		" movq		%%mm1,%%mm6;\n"
+		" punpcklbw	%%mm2,%%mm6;\n"
+		" pmullw	%%mm6,%%mm6;\n"
+		" punpckhbw	%%mm2,%%mm1;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm6;\n"
 
-		movq		8(%1),%%mm1;
+		" movq		8(%1),%%mm1;\n"
 
-		psrlq		$32,%%mm0;
-		movq		%%mm4,%%mm2;
-		psllq		$32,%%mm2;
-		por		%%mm2,%%mm0;
+		" psrlq		$32,%%mm0;\n"
+		" movq		%%mm4,%%mm2;\n"
+		" psllq		$32,%%mm2;\n"
+		" por		%%mm2,%%mm0;\n"
 
-		movq		(%0,%2),%%mm5;
+		" movq		(%0,%2),%%mm5;\n"
 
-		movq		%%mm4,%%mm2;
-		movq		%%mm1,%%mm3;
-		pcmpgtb		%%mm1,%%mm2;
-		psubb		%%mm4,%%mm1;
-		movq		%%mm1,%%mm0;
-		punpcklbw	%%mm2,%%mm0;
-		pmullw		%%mm0,%%mm0;
-		paddusw		%%mm0,%%mm6;
-		movd		16(%0),%%mm0;
-		punpckhbw	%%mm2,%%mm1;
-		pmullw		%%mm1,%%mm1;
-		paddusw		%%mm1,%%mm6;
+		" movq		%%mm4,%%mm2;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pcmpgtb		%%mm1,%%mm2;\n"
+		" psubb		%%mm4,%%mm1;\n"
+		" movq		%%mm1,%%mm0;\n"
+		" punpcklbw	%%mm2,%%mm0;\n"
+		" pmullw		%%mm0,%%mm0;\n"
+		" paddusw		%%mm0,%%mm6;\n"
+		" movd		16(%0),%%mm0;\n"
+		" punpckhbw	%%mm2,%%mm1;\n"
+		" pmullw		%%mm1,%%mm1;\n"
+		" paddusw		%%mm1,%%mm6;\n"
 
-		movq		16(%1),%%mm1;
+		" movq		16(%1),%%mm1;\n"
 
-		psrlq		$32,%%mm4;
-		psllq		$32,%%mm0;
-		por		%%mm4,%%mm0;
+		" psrlq		$32,%%mm4;\n"
+		" psllq		$32,%%mm0;\n"
+		" por		%%mm4,%%mm0;\n"
 
-		movq		8(%0,%2),%%mm0;
+		" movq		8(%0,%2),%%mm0;\n"
 
-		movq		%%mm5,%%mm2;
-		movq		%%mm1,%%mm3;
-		pcmpgtb		%%mm1,%%mm2;
-		psubb		%%mm5,%%mm1;
-		movq		%%mm1,%%mm4;
-		punpcklbw	%%mm2,%%mm4;
-		pmullw		%%mm4,%%mm4;
-		paddusw		%%mm4,%%mm6;
-		movq		24(%1),%%mm4;
-		punpckhbw	%%mm2,%%mm1;
-		pmullw		%%mm1,%%mm1;
-		paddusw		%%mm1,%%mm6;
+		" movq		%%mm5,%%mm2;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pcmpgtb		%%mm1,%%mm2;\n"
+		" psubb		%%mm5,%%mm1;\n"
+		" movq		%%mm1,%%mm4;\n"
+		" punpcklbw	%%mm2,%%mm4;\n"
+		" pmullw		%%mm4,%%mm4;\n"
+		" paddusw		%%mm4,%%mm6;\n"
+		" movq		24(%1),%%mm4;\n"
+		" punpckhbw	%%mm2,%%mm1;\n"
+		" pmullw		%%mm1,%%mm1;\n"
+		" paddusw		%%mm1,%%mm6;\n"
 
-		movd		16(%0,%2),%%mm5;
+		" movd		16(%0,%2),%%mm5;\n"
 
-		movq		%%mm0,%%mm2;
-		movq		%%mm4,%%mm3;
-		pcmpgtb		%%mm4,%%mm2;
-		psubb		%%mm0,%%mm4;
-		movq		%%mm4,%%mm1;
-		punpcklbw	%%mm2,%%mm1;
-		pmullw		%%mm1,%%mm1;
-		paddusw		%%mm1,%%mm6;
-		movq		bbmin,%%mm1;
-		punpckhbw	%%mm2,%%mm4;
-		movq		bbdxy,%%mm2;
-		pmullw		%%mm4,%%mm4;
+		" movq		%%mm0,%%mm2;\n"
+		" movq		%%mm4,%%mm3;\n"
+		" pcmpgtb		%%mm4,%%mm2;\n"
+		" psubb		%%mm0,%%mm4;\n"
+		" movq		%%mm4,%%mm1;\n"
+		" punpcklbw	%%mm2,%%mm1;\n"
+		" pmullw		%%mm1,%%mm1;\n"
+		" paddusw		%%mm1,%%mm6;\n"
+		" movq		bbmin,%%mm1;\n"
+		" punpckhbw	%%mm2,%%mm4;\n"
+		" movq		bbdxy,%%mm2;\n"
+		" pmullw		%%mm4,%%mm4;\n"
 
-		psrlq		$32,%%mm0;
-		paddusw		%%mm4,%%mm6;
-		movq		crdxy,%%mm4;
-		psllq		$32,%%mm5;
-		psubw		c1_15w,%%mm6;
-		por		%%mm5,%%mm0;
-		paddb		c4,%%mm4;
+		" psrlq		$32,%%mm0;\n"
+		" paddusw		%%mm4,%%mm6;\n"
+		" movq		crdxy,%%mm4;\n"
+		" psllq		$32,%%mm5;\n"
+		" psubw		c1_15w,%%mm6;\n"
+		" por		%%mm5,%%mm0;\n"
+		" paddb		c4,%%mm4;\n"
 
-		movq		%%mm0,%%mm5;
-		pcmpgtb		%%mm3,%%mm5;
-		psubb		%%mm0,%%mm3;
-		movq		%%mm3,%%mm0;
-		punpcklbw	%%mm5,%%mm0;
-		pmullw		%%mm0,%%mm0;
-		paddusw		%%mm0,%%mm7;
-		punpckhbw	%%mm5,%%mm3;
-		pmullw		%%mm3,%%mm3;
-		paddusw		%%mm3,%%mm7;
+		" movq		%%mm0,%%mm5;\n"
+		" pcmpgtb		%%mm3,%%mm5;\n"
+		" psubb		%%mm0,%%mm3;\n"
+		" movq		%%mm3,%%mm0;\n"
+		" punpcklbw	%%mm5,%%mm0;\n"
+		" pmullw		%%mm0,%%mm0;\n"
+		" paddusw		%%mm0,%%mm7;\n"
+		" punpckhbw	%%mm5,%%mm3;\n"
+		" pmullw		%%mm3,%%mm3;\n"
+		" paddusw		%%mm3,%%mm7;\n"
 
-		movq		%%mm4,crdxy;
+		" movq		%%mm4,crdxy;\n"
 
-		movq		%%mm4,%%mm5;
-		pxor		%%mm3,%%mm3;
-		pcmpgtb		%%mm4,%%mm3;
-		pxor		%%mm3,%%mm5;
-		psubb		%%mm3,%%mm5;
+		" movq		%%mm4,%%mm5;\n"
+		" pxor		%%mm3,%%mm3;\n"
+		" pcmpgtb		%%mm4,%%mm3;\n"
+		" pxor		%%mm3,%%mm5;\n"
+		" psubb		%%mm3,%%mm5;\n"
 
-		movq		%%mm5,%%mm3;
-		psrlw		$8,%%mm5;
-		paddsw		%%mm5,%%mm6;
-		pand		c255,%%mm3;
-		paddsw		%%mm3,%%mm6;
+		" movq		%%mm5,%%mm3;\n"
+		" psrlw		$8,%%mm5;\n"
+		" paddsw		%%mm5,%%mm6;\n"
+		" pand		c255,%%mm3;\n"
+		" paddsw		%%mm3,%%mm6;\n"
 
-		movq		%%mm1,%%mm5;
-		pcmpgtw		%%mm6,%%mm5;
-		movq		%%mm1,%%mm3;
-		pxor		%%mm6,%%mm3;
-		pand		%%mm5,%%mm3;
-		pxor		%%mm3,%%mm6;
-		pxor		%%mm3,%%mm1;
-		pxor		%%mm4,%%mm2;
-		pand		%%mm2,%%mm5;
-		pxor		%%mm5,%%mm4;
-		pxor		%%mm4,%%mm2;
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw		%%mm6,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm6,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm6;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm4;\n"
+		" pxor		%%mm4,%%mm2;\n"
 
-		movq		%%mm6,%%mm5;
-		psllq		$16,%%mm6;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm6;
-		movq		%%mm4,%%mm5;
-		psllq		$16,%%mm4;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm4;
+		" movq		%%mm6,%%mm5;\n"
+		" psllq		$16,%%mm6;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm6;\n"
+		" movq		%%mm4,%%mm5;\n"
+		" psllq		$16,%%mm4;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm4;\n"
 
-		movq		%%mm1,%%mm5;
-		pcmpgtw		%%mm6,%%mm5;
-		movq		%%mm1,%%mm3;
-		pxor		%%mm6,%%mm3;
-		pand		%%mm5,%%mm3;
-		pxor		%%mm3,%%mm6;
-		pxor		%%mm3,%%mm1;
-		pxor		%%mm4,%%mm2;
-		pand		%%mm2,%%mm5;
-		pxor		%%mm5,%%mm4;
-		pxor		%%mm4,%%mm2;
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw		%%mm6,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm6,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm6;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm4;\n"
+		" pxor		%%mm4,%%mm2;\n"
 
-		movq		%%mm6,%%mm5;
-		psllq		$16,%%mm6;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm6;
-		movq		%%mm4,%%mm5;
-		psllq		$16,%%mm4;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm4;
+		" movq		%%mm6,%%mm5;\n"
+		" psllq		$16,%%mm6;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm6;\n"
+		" movq		%%mm4,%%mm5;\n"
+		" psllq		$16,%%mm4;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm4;\n"
 
-		movq		%%mm1,%%mm5;
-		pcmpgtw		%%mm6,%%mm5;
-		movq		%%mm1,%%mm3;
-		pxor		%%mm6,%%mm3;
-		pand		%%mm5,%%mm3;
-		pxor		%%mm3,%%mm6;
-		pxor		%%mm3,%%mm1;
-		pxor		%%mm4,%%mm2;
-		pand		%%mm2,%%mm5;
-		pxor		%%mm5,%%mm4;
-		pxor		%%mm4,%%mm2;
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw		%%mm6,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm6,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm6;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm4;\n"
+		" pxor		%%mm4,%%mm2;\n"
 
-		movq		%%mm6,%%mm5;
-		psllq		$16,%%mm6;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm6;
-		movq		%%mm4,%%mm5;
-		psllq		$16,%%mm4;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm4;
+		" movq		%%mm6,%%mm5;\n"
+		" psllq		$16,%%mm6;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm6;\n"
+		" movq		%%mm4,%%mm5;\n"
+		" psllq		$16,%%mm4;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm4;\n"
 
-		movq		%%mm1,%%mm5;
-		pcmpgtw		%%mm6,%%mm5;
-		movq		%%mm1,%%mm3;
-		pxor		%%mm6,%%mm3;
-		pand		%%mm5,%%mm3;
-		pxor		%%mm3,%%mm6;
-		pxor		%%mm3,%%mm1;
-		pxor		%%mm4,%%mm2;
-		pand		%%mm2,%%mm5;
-		pxor		%%mm5,%%mm4;
-		pxor		%%mm4,%%mm2;
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw		%%mm6,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm6,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm6;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm4;\n"
+		" pxor		%%mm4,%%mm2;\n"
 
-		movq		%%mm1,bbmin;
-		movq		%%mm2,bbdxy;
+		" movq		%%mm1,bbmin;\n"
+		" movq		%%mm2,bbdxy;\n"
 
-	" :: "r" (p), "r" (t), "r" (pitch * 8 /* ch */) : "memory");
+	:: "r" (p), "r" (t), "r" (pitch * 8 /* ch */) : "memory");
 }
 
 static inline void
 mmx_psse_8(char t[16][16], char *p, int pitch)
 {
-	asm volatile ("
-		movq		(%0),%%mm0;
-		movq		(%1),%%mm1;
-		movq		8(%0),%%mm4;
+	asm volatile (
+		" movq		(%0),%%mm0;\n"
+		" movq		(%1),%%mm1;\n"
+		" movq		8(%0),%%mm4;\n"
 
-		movq		%%mm0,%%mm2;
-		movq		%%mm1,%%mm3;
-		pcmpgtb		%%mm1,%%mm2;		// 1 < 0
-		psubb		%%mm0,%%mm1;		// 1 = 1 - 0
-		movq		%%mm1,%%mm6;
-		punpcklbw	%%mm2,%%mm6;
-		pmullw		%%mm6,%%mm6;
-		punpckhbw	%%mm2,%%mm1;
-		pmullw		%%mm1,%%mm1;
-		paddusw		%%mm1,%%mm6;
+		" movq		%%mm0,%%mm2;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pcmpgtb	%%mm1,%%mm2;		// 1 < 0\n"
+		" psubb		%%mm0,%%mm1;		// 1 = 1 - 0\n"
+		" movq		%%mm1,%%mm6;\n"
+		" punpcklbw	%%mm2,%%mm6;\n"
+		" pmullw	%%mm6,%%mm6;\n"
+		" punpckhbw	%%mm2,%%mm1;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm6;\n"
 
-		movq		8(%1),%%mm1;
+		" movq		8(%1),%%mm1;\n"
 
-		psrlq		$32,%%mm0;
-		movq		%%mm4,%%mm2;
-		psllq		$32,%%mm2;
-		por		%%mm2,%%mm0;
+		" psrlq		$32,%%mm0;\n"
+		" movq		%%mm4,%%mm2;\n"
+		" psllq		$32,%%mm2;\n"
+		" por		%%mm2,%%mm0;\n"
 
-		movq		%%mm0,%%mm2;
-		pcmpgtb		%%mm3,%%mm2;
-		psubb		%%mm0,%%mm3;
-		movq		%%mm3,%%mm7;
-		punpcklbw	%%mm2,%%mm7;
-		pmullw		%%mm7,%%mm7;
-		punpckhbw	%%mm2,%%mm3;
-		pmullw		%%mm3,%%mm3;
-		movq		(%0,%2),%%mm5;
-		paddusw		%%mm3,%%mm7;
+		" movq		%%mm0,%%mm2;\n"
+		" pcmpgtb	%%mm3,%%mm2;\n"
+		" psubb		%%mm0,%%mm3;\n"
+		" movq		%%mm3,%%mm7;\n"
+		" punpcklbw	%%mm2,%%mm7;\n"
+		" pmullw	%%mm7,%%mm7;\n"
+		" punpckhbw	%%mm2,%%mm3;\n"
+		" pmullw	%%mm3,%%mm3;\n"
+		" movq		(%0,%2),%%mm5;\n"
+		" paddusw	%%mm3,%%mm7;\n"
 
-		movq		%%mm4,%%mm2;
-		movq		%%mm1,%%mm3;
-		pcmpgtb		%%mm1,%%mm2;
-		psubb		%%mm4,%%mm1;
-		movq		%%mm1,%%mm0;
-		punpcklbw	%%mm2,%%mm0;
-		pmullw		%%mm0,%%mm0;
-		paddusw		%%mm0,%%mm6;
-		movd		16(%0),%%mm0;
-		punpckhbw	%%mm2,%%mm1;
-		pmullw		%%mm1,%%mm1;
-		paddusw		%%mm1,%%mm6;
+		" movq		%%mm4,%%mm2;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pcmpgtb	%%mm1,%%mm2;\n"
+		" psubb		%%mm4,%%mm1;\n"
+		" movq		%%mm1,%%mm0;\n"
+		" punpcklbw	%%mm2,%%mm0;\n"
+		" pmullw	%%mm0,%%mm0;\n"
+		" paddusw	%%mm0,%%mm6;\n"
+		" movd		16(%0),%%mm0;\n"
+		" punpckhbw	%%mm2,%%mm1;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm6;\n"
 
-		movq		16(%1),%%mm1;
+		" movq		16(%1),%%mm1;\n"
 
-		psrlq		$32,%%mm4;
-		psllq		$32,%%mm0;
-		por		%%mm4,%%mm0;
+		" psrlq		$32,%%mm4;\n"
+		" psllq		$32,%%mm0;\n"
+		" por		%%mm4,%%mm0;\n"
 
-		movq		%%mm0,%%mm2;
-		pcmpgtb		%%mm3,%%mm2;
-		psubb		%%mm0,%%mm3;
-		movq		%%mm3,%%mm0;
-		punpcklbw	%%mm2,%%mm0;
-		pmullw		%%mm0,%%mm0;
-		paddusw		%%mm0,%%mm7;
-		movq		8(%0,%2),%%mm0;
-		punpckhbw	%%mm2,%%mm3;
-		pmullw		%%mm3,%%mm3;
-		paddusw		%%mm3,%%mm7;
+		" movq		%%mm0,%%mm2;\n"
+		" pcmpgtb	%%mm3,%%mm2;\n"
+		" psubb		%%mm0,%%mm3;\n"
+		" movq		%%mm3,%%mm0;\n"
+		" punpcklbw	%%mm2,%%mm0;\n"
+		" pmullw	%%mm0,%%mm0;\n"
+		" paddusw	%%mm0,%%mm7;\n"
+		" movq		8(%0,%2),%%mm0;\n"
+		" punpckhbw	%%mm2,%%mm3;\n"
+		" pmullw	%%mm3,%%mm3;\n"
+		" paddusw	%%mm3,%%mm7;\n"
 
-		movq		%%mm5,%%mm2;
-		movq		%%mm1,%%mm3;
-		pcmpgtb		%%mm1,%%mm2;
-		psubb		%%mm5,%%mm1;
-		movq		%%mm1,%%mm4;
-		punpcklbw	%%mm2,%%mm4;
-		pmullw		%%mm4,%%mm4;
-		paddusw		%%mm4,%%mm6;
-		movq		24(%1),%%mm4;
-		punpckhbw	%%mm2,%%mm1;
-		pmullw		%%mm1,%%mm1;
-		paddusw		%%mm1,%%mm6;
+		" movq		%%mm5,%%mm2;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pcmpgtb	%%mm1,%%mm2;\n"
+		" psubb		%%mm5,%%mm1;\n"
+		" movq		%%mm1,%%mm4;\n"
+		" punpcklbw	%%mm2,%%mm4;\n"
+		" pmullw	%%mm4,%%mm4;\n"
+		" paddusw	%%mm4,%%mm6;\n"
+		" movq		24(%1),%%mm4;\n"
+		" punpckhbw	%%mm2,%%mm1;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm6;\n"
 
-		psrlq		$32,%%mm5;
-		movq		%%mm0,%%mm1;
-		psllq		$32,%%mm1;
-		por		%%mm1,%%mm5;
+		" psrlq		$32,%%mm5;\n"
+		" movq		%%mm0,%%mm1;\n"
+		" psllq		$32,%%mm1;\n"
+		" por		%%mm1,%%mm5;\n"
 
-		movq		%%mm5,%%mm2;
-		pcmpgtb		%%mm3,%%mm2;
-		psubb		%%mm5,%%mm3;
-		movd		16(%0,%2),%%mm5;
-		movq		%%mm3,%%mm1;
-		punpcklbw	%%mm2,%%mm1;
-		pmullw		%%mm1,%%mm1;
-		paddusw		%%mm1,%%mm7;
-		punpckhbw	%%mm2,%%mm3;
-		pmullw		%%mm3,%%mm3;
-		paddusw		%%mm3,%%mm7;
+		" movq		%%mm5,%%mm2;\n"
+		" pcmpgtb	%%mm3,%%mm2;\n"
+		" psubb		%%mm5,%%mm3;\n"
+		" movd		16(%0,%2),%%mm5;\n"
+		" movq		%%mm3,%%mm1;\n"
+		" punpcklbw	%%mm2,%%mm1;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm7;\n"
+		" punpckhbw	%%mm2,%%mm3;\n"
+		" pmullw	%%mm3,%%mm3;\n"
+		" paddusw	%%mm3,%%mm7;\n"
 
-		movq		%%mm0,%%mm2;
-		movq		%%mm4,%%mm3;
-		pcmpgtb		%%mm4,%%mm2;
-		psubb		%%mm0,%%mm4;
-		movq		%%mm4,%%mm1;
-		punpcklbw	%%mm2,%%mm1;
-		pmullw		%%mm1,%%mm1;
-		paddusw		%%mm1,%%mm6;
-		movq		bbmin,%%mm1;
-		punpckhbw	%%mm2,%%mm4;
-		movq		bbdxy,%%mm2;
-		pmullw		%%mm4,%%mm4;
+		" movq		%%mm0,%%mm2;\n"
+		" movq		%%mm4,%%mm3;\n"
+		" pcmpgtb	%%mm4,%%mm2;\n"
+		" psubb		%%mm0,%%mm4;\n"
+		" movq		%%mm4,%%mm1;\n"
+		" punpcklbw	%%mm2,%%mm1;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm6;\n"
+		" movq		bbmin,%%mm1;\n"
+		" punpckhbw	%%mm2,%%mm4;\n"
+		" movq		bbdxy,%%mm2;\n"
+		" pmullw	%%mm4,%%mm4;\n"
 
-		psrlq		$32,%%mm0;
-		paddusw		%%mm4,%%mm6;
-		movq		crdxy,%%mm4;
-		psllq		$32,%%mm5;
-		psubw		c1_15w,%%mm6;
-		por		%%mm5,%%mm0;
-		paddb		c4,%%mm4;
+		" psrlq		$32,%%mm0;\n"
+		" paddusw	%%mm4,%%mm6;\n"
+		" movq		crdxy,%%mm4;\n"
+		" psllq		$32,%%mm5;\n"
+		" psubw		c1_15w,%%mm6;\n"
+		" por		%%mm5,%%mm0;\n"
+		" paddb		c4,%%mm4;\n"
 
-		movq		%%mm0,%%mm5;
-		pcmpgtb		%%mm3,%%mm5;
-		psubb		%%mm0,%%mm3;
-		movq		%%mm3,%%mm0;
-		punpcklbw	%%mm5,%%mm0;
-		pmullw		%%mm0,%%mm0;
-		paddusw		%%mm0,%%mm7;
-		punpckhbw	%%mm5,%%mm3;
-		pmullw		%%mm3,%%mm3;
-		paddusw		%%mm3,%%mm7;
+		" movq		%%mm0,%%mm5;\n"
+		" pcmpgtb	%%mm3,%%mm5;\n"
+		" psubb		%%mm0,%%mm3;\n"
+		" movq		%%mm3,%%mm0;\n"
+		" punpcklbw	%%mm5,%%mm0;\n"
+		" pmullw	%%mm0,%%mm0;\n"
+		" paddusw	%%mm0,%%mm7;\n"
+		" punpckhbw	%%mm5,%%mm3;\n"
+		" pmullw	%%mm3,%%mm3;\n"
+		" paddusw	%%mm3,%%mm7;\n"
 
-		movq		%%mm4,%%mm0;
-
-
-		movq		%%mm4,%%mm5;
-		pxor		%%mm3,%%mm3;
-		pcmpgtb		%%mm4,%%mm3;
-		pxor		%%mm3,%%mm5;
-		psubb		%%mm3,%%mm5;
-
-		movq		%%mm5,%%mm3;
-		psrlw		$8,%%mm5;
-		paddsw		%%mm5,%%mm6;
-		pand		c255,%%mm3;
-		paddsw		%%mm3,%%mm6;
+		" movq		%%mm4,%%mm0;\n"
 
 
-		movq		%%mm1,%%mm5;
-		pcmpgtw		%%mm6,%%mm5;
-		movq		%%mm1,%%mm3;
-		pxor		%%mm6,%%mm3;
-		pand		%%mm5,%%mm3;
-		pxor		%%mm3,%%mm6;
-		pxor		%%mm3,%%mm1;
-		pxor		%%mm4,%%mm2;
-		pand		%%mm2,%%mm5;
-		pxor		%%mm5,%%mm4;
-		pxor		%%mm4,%%mm2;
+		" movq		%%mm4,%%mm5;\n"
+		" pxor		%%mm3,%%mm3;\n"
+		" pcmpgtb	%%mm4,%%mm3;\n"
+		" pxor		%%mm3,%%mm5;\n"
+		" psubb		%%mm3,%%mm5;\n"
 
-		movq		%%mm6,%%mm5;
-		psllq		$16,%%mm6;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm6;
-		movq		%%mm4,%%mm5;
-		psllq		$16,%%mm4;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm4;
-
-		movq		%%mm1,%%mm5;
-		pcmpgtw		%%mm6,%%mm5;
-		movq		%%mm1,%%mm3;
-		pxor		%%mm6,%%mm3;
-		pand		%%mm5,%%mm3;
-		pxor		%%mm3,%%mm6;
-		pxor		%%mm3,%%mm1;
-		pxor		%%mm4,%%mm2;
-		pand		%%mm2,%%mm5;
-		pxor		%%mm5,%%mm4;
-		pxor		%%mm4,%%mm2;
-
-		movq		%%mm6,%%mm5;
-		psllq		$16,%%mm6;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm6;
-		movq		%%mm4,%%mm5;
-		psllq		$16,%%mm4;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm4;
-
-		psubw		c1_15w,%%mm7;
-
-		movq		%%mm1,%%mm5;
-		pcmpgtw		%%mm6,%%mm5;
-		movq		%%mm1,%%mm3;
-		pxor		%%mm6,%%mm3;
-		pand		%%mm5,%%mm3;
-		pxor		%%mm3,%%mm6;
-		pxor		%%mm3,%%mm1;
-		pxor		%%mm4,%%mm2;
-		pand		%%mm2,%%mm5;
-		pxor		%%mm5,%%mm4;
-		pxor		%%mm4,%%mm2;
-
-		paddb		c4,%%mm0;
-
-		movq		%%mm6,%%mm5;
-		psllq		$16,%%mm6;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm6;
-		movq		%%mm4,%%mm5;
-		psllq		$16,%%mm4;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm4;
-
-		    movq		%%mm0,crdxy;
-
-		movq		%%mm1,%%mm5;
-		pcmpgtw		%%mm6,%%mm5;
-		movq		%%mm1,%%mm3;
-		pxor		%%mm6,%%mm3;
-		pand		%%mm5,%%mm3;
-		pxor		%%mm3,%%mm6;
-		pxor		%%mm3,%%mm1;
-		pxor		%%mm4,%%mm2;
-		pand		%%mm2,%%mm5;
-		pxor		%%mm5,%%mm4;
-		pxor		%%mm4,%%mm2;
+		" movq		%%mm5,%%mm3;\n"
+		" psrlw		$8,%%mm5;\n"
+		" paddsw	%%mm5,%%mm6;\n"
+		" pand		c255,%%mm3;\n"
+		" paddsw	%%mm3,%%mm6;\n"
 
 
-		movq		%%mm0,%%mm5;
-		pxor		%%mm3,%%mm3;
-		pcmpgtb		%%mm0,%%mm3;
-		pxor		%%mm3,%%mm5;
-		psubb		%%mm3,%%mm5;
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm6,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm6,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm6;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm4;\n"
+		" pxor		%%mm4,%%mm2;\n"
 
-		movq		%%mm5,%%mm3;
-		psrlw		$8,%%mm5;
-		paddsw		%%mm5,%%mm7;
-		pand		c255,%%mm3;
-		paddsw		%%mm3,%%mm7;
+		" movq		%%mm6,%%mm5;\n"
+		" psllq		$16,%%mm6;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm6;\n"
+		" movq		%%mm4,%%mm5;\n"
+		" psllq		$16,%%mm4;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm4;\n"
+
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm6,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm6,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm6;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm4;\n"
+		" pxor		%%mm4,%%mm2;\n"
+
+		" movq		%%mm6,%%mm5;\n"
+		" psllq		$16,%%mm6;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm6;\n"
+		" movq		%%mm4,%%mm5;\n"
+		" psllq		$16,%%mm4;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm4;\n"
+
+		" psubw		c1_15w,%%mm7;\n"
+
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm6,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm6,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm6;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm4;\n"
+		" pxor		%%mm4,%%mm2;\n"
+
+		" paddb		c4,%%mm0;\n"
+
+		" movq		%%mm6,%%mm5;\n"
+		" psllq		$16,%%mm6;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm6;\n"
+		" movq		%%mm4,%%mm5;\n"
+		" psllq		$16,%%mm4;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm4;\n"
+
+		    " movq		%%mm0,crdxy;\n"
+
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm6,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm6,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm6;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm4;\n"
+		" pxor		%%mm4,%%mm2;\n"
 
 
-		movq		%%mm1,%%mm5;
-		pcmpgtw		%%mm7,%%mm5;
-		movq		%%mm1,%%mm3;
-		pxor		%%mm7,%%mm3;
-		pand		%%mm5,%%mm3;
-		pxor		%%mm3,%%mm7;
-		pxor		%%mm3,%%mm1;
-		pxor		%%mm0,%%mm2;
-		pand		%%mm2,%%mm5;
-		pxor		%%mm5,%%mm0;
-		pxor		%%mm0,%%mm2;
+		" movq		%%mm0,%%mm5;\n"
+		" pxor		%%mm3,%%mm3;\n"
+		" pcmpgtb	%%mm0,%%mm3;\n"
+		" pxor		%%mm3,%%mm5;\n"
+		" psubb		%%mm3,%%mm5;\n"
 
-		movq		%%mm7,%%mm5;
-		psllq		$16,%%mm7;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm7;
-		movq		%%mm0,%%mm5;
-		psllq		$16,%%mm0;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm0;
+		" movq		%%mm5,%%mm3;\n"
+		" psrlw		$8,%%mm5;\n"
+		" paddsw	%%mm5,%%mm7;\n"
+		" pand		c255,%%mm3;\n"
+		" paddsw	%%mm3,%%mm7;\n"
 
-		movq		%%mm1,%%mm5;
-		pcmpgtw		%%mm7,%%mm5;
-		movq		%%mm1,%%mm3;
-		pxor		%%mm7,%%mm3;
-		pand		%%mm5,%%mm3;
-		pxor		%%mm3,%%mm7;
-		pxor		%%mm3,%%mm1;
-		pxor		%%mm0,%%mm2;
-		pand		%%mm2,%%mm5;
-		pxor		%%mm5,%%mm0;
-		pxor		%%mm0,%%mm2;
 
-		movq		%%mm7,%%mm5;
-		psllq		$16,%%mm7;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm7;
-		movq		%%mm0,%%mm5;
-		psllq		$16,%%mm0;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm0;
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm7,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm7,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm7;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm0,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm0;\n"
+		" pxor		%%mm0,%%mm2;\n"
 
-		movq		%%mm1,%%mm5;
-		pcmpgtw		%%mm7,%%mm5;
-		movq		%%mm1,%%mm3;
-		pxor		%%mm7,%%mm3;
-		pand		%%mm5,%%mm3;
-		pxor		%%mm3,%%mm7;
-		pxor		%%mm3,%%mm1;
-		pxor		%%mm0,%%mm2;
-		pand		%%mm2,%%mm5;
-		pxor		%%mm5,%%mm0;
-		pxor		%%mm0,%%mm2;
+		" movq		%%mm7,%%mm5;\n"
+		" psllq		$16,%%mm7;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm7;\n"
+		" movq		%%mm0,%%mm5;\n"
+		" psllq		$16,%%mm0;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm0;\n"
 
-		movq		%%mm7,%%mm5;
-		psllq		$16,%%mm7;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm7;
-		movq		%%mm0,%%mm5;
-		psllq		$16,%%mm0;
-		psrlq		$48,%%mm5;
-		por		%%mm5,%%mm0;
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm7,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm7,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm7;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm0,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm0;\n"
+		" pxor		%%mm0,%%mm2;\n"
 
-		movq		%%mm1,%%mm5;
-		pcmpgtw		%%mm7,%%mm5;
-		movq		%%mm1,%%mm3;
-		pxor		%%mm7,%%mm3;
-		pand		%%mm5,%%mm3;
-		pxor		%%mm3,%%mm7;
-		pxor		%%mm3,%%mm1;
-		pxor		%%mm0,%%mm2;
-		pand		%%mm2,%%mm5;
-		pxor		%%mm5,%%mm0;
-		pxor		%%mm0,%%mm2;
+		" movq		%%mm7,%%mm5;\n"
+		" psllq		$16,%%mm7;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm7;\n"
+		" movq		%%mm0,%%mm5;\n"
+		" psllq		$16,%%mm0;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm0;\n"
 
-		movq		%%mm1,bbmin;
-		movq		%%mm2,bbdxy;
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm7,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm7,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm7;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm0,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm0;\n"
+		" pxor		%%mm0,%%mm2;\n"
 
-	" :: "r" (p), "r" (t), "r" (pitch * 8 /* ch */) : "memory");
+		" movq		%%mm7,%%mm5;\n"
+		" psllq		$16,%%mm7;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm7;\n"
+		" movq		%%mm0,%%mm5;\n"
+		" psllq		$16,%%mm0;\n"
+		" psrlq		$48,%%mm5;\n"
+		" por		%%mm5,%%mm0;\n"
+
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm7,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm7,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm7;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm0,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm0;\n"
+		" pxor		%%mm0,%%mm2;\n"
+
+		" movq		%%mm1,bbmin;\n"
+		" movq		%%mm2,bbdxy;\n"
+
+	:: "r" (p), "r" (t), "r" (pitch * 8 /* ch */) : "memory");
 }
 
 static inline void
 mmx_load_pref(char t[16][16])
 {
-	asm volatile ("
-		movq		0*16+0(%0),%%mm0;
-		paddw		1*16+0(%0),%%mm0;
-		movq		0*16+8(%0),%%mm1;
-		paddw		1*16+8(%0),%%mm1;
-		movq		c1b,%%mm7;
-		paddw		2*16+0(%0),%%mm0;
-		movq		%%mm7,%%mm6;
-		paddw		2*16+8(%0),%%mm1;
-		psllq		$7,%%mm7;
-		paddw		3*16+0(%0),%%mm0;
-		psrlw		$8-4,%%mm6;
-		paddw		3*16+8(%0),%%mm1;
-		movq		256+0*16+0(%0),%%mm2;
-		paddw		4*16+0(%0),%%mm0;
-		movq		256+0*16+8(%0),%%mm3;
-		paddw		4*16+8(%0),%%mm1;
-		paddw		5*16+0(%0),%%mm0;
-		paddw		5*16+8(%0),%%mm1;
-		paddw		6*16+0(%0),%%mm0;
-		paddw		6*16+8(%0),%%mm1;
-		paddw		7*16+0(%0),%%mm0;
-		movq		%%mm0,%%mm4;
-		paddw		7*16+8(%0),%%mm1;
-		punpcklwd	%%mm1,%%mm0;
-		paddw		256+1*16+0(%0),%%mm2;
-		punpckhwd	%%mm1,%%mm4;
-		paddw		256+1*16+8(%0),%%mm3;
-		paddw		%%mm4,%%mm0;
-		paddw		256+2*16+0(%0),%%mm2;
-		paddw		256+2*16+8(%0),%%mm3;
-		paddw		256+3*16+0(%0),%%mm2;
-		paddw		256+3*16+8(%0),%%mm3;
-		paddw		256+4*16+0(%0),%%mm2;
-		paddw		256+4*16+8(%0),%%mm3;
-		paddw		256+5*16+0(%0),%%mm2;
-		paddw		256+5*16+8(%0),%%mm3;
-		paddw		256+6*16+0(%0),%%mm2;
-		paddw		256+6*16+8(%0),%%mm3;
-		paddw		256+7*16+0(%0),%%mm2;
-		paddw		256+7*16+8(%0),%%mm3;
-		movq		128+0*16+0(%0),%%mm1;
-		movq		%%mm2,%%mm5;
-		movq		128+0*16+8(%0),%%mm4;
-		punpcklwd	%%mm3,%%mm2;
-		paddw		128+1*16+0(%0),%%mm1;
-		punpckhwd	%%mm3,%%mm5;
-		paddw		128+1*16+8(%0),%%mm4;
-		paddw		%%mm5,%%mm2;
-		paddw		128+2*16+0(%0),%%mm1;
-		movq		%%mm0,%%mm5;
-		paddw		128+2*16+8(%0),%%mm4;
-		punpckldq	%%mm2,%%mm0;
-		paddw		128+3*16+0(%0),%%mm1;
-		punpckhdq	%%mm2,%%mm5;
-		paddw		128+3*16+8(%0),%%mm4;
-		paddw		%%mm5,%%mm0;
-		paddw		128+4*16+0(%0),%%mm1;
-		paddw		%%mm6,%%mm0;
-		paddw		128+4*16+8(%0),%%mm4;
-		psrlw		$5,%%mm0;
-		paddw		128+5*16+0(%0),%%mm1;
-		movq		%%mm0,%%mm2;
-		paddw		128+5*16+8(%0),%%mm4;
-		psllw		$8,%%mm2;
-		paddw		128+6*16+0(%0),%%mm1;
-		por		%%mm2,%%mm0;
-		paddw		128+6*16+8(%0),%%mm4;
-		pxor		%%mm7,%%mm0;
-		paddw		128+7*16+0(%0),%%mm1;
-		movq		%%mm0,%%mm2;
-		paddw		128+7*16+8(%0),%%mm4;
-		punpcklbw	%%mm0,%%mm0;
-		movq		384+0*16+0(%0),%%mm3;
-		punpckhbw	%%mm2,%%mm2;
-		movq		384+0*16+8(%0),%%mm5;
-		movq		%%mm0,0(%1);
-		paddw		384+1*16+0(%0),%%mm3;
-		movq		%%mm2,8(%1);
-		paddw		384+1*16+8(%0),%%mm5;
-		movq		%%mm1,%%mm0;
-		paddw		384+2*16+0(%0),%%mm3;
-		punpcklwd	%%mm4,%%mm1;
-		paddw		384+2*16+8(%0),%%mm5;
-		punpckhwd	%%mm4,%%mm0;
-		paddw		384+3*16+0(%0),%%mm3;
-		paddw		%%mm0,%%mm1;
-		paddw		384+3*16+8(%0),%%mm5;
-		movq		%%mm1,%%mm2;
-		paddw		384+4*16+0(%0),%%mm3;
-		paddw		384+4*16+8(%0),%%mm5;
-		paddw		384+5*16+0(%0),%%mm3;
-		paddw		384+5*16+8(%0),%%mm5;
-		paddw		384+6*16+0(%0),%%mm3;
-		paddw		384+6*16+8(%0),%%mm5;
-		paddw		384+7*16+0(%0),%%mm3;
-		paddw		384+7*16+8(%0),%%mm5;
-		movq		%%mm3,%%mm0;
-		punpcklwd	%%mm5,%%mm3;
-		punpckhwd	%%mm5,%%mm0;
-		paddw		%%mm0,%%mm3;
-		punpckldq	%%mm3,%%mm1;
-		punpckhdq	%%mm3,%%mm2;
-		paddw		%%mm2,%%mm1;
-		paddw		%%mm6,%%mm1;
-		psrlw		$5,%%mm1;
-		movq		%%mm1,%%mm2;
-		psllw		$8,%%mm2;
-		por		%%mm2,%%mm1;
-		pxor		%%mm7,%%mm1;
-		movq		%%mm1,%%mm2;
-		punpcklbw	%%mm1,%%mm1;
-		punpckhbw	%%mm2,%%mm2;
-		movq		%%mm1,16(%1);
-		movq		%%mm2,24(%1);
+	asm volatile (
+		" movq		0*16+0(%0),%%mm0;\n"
+		" paddw		1*16+0(%0),%%mm0;\n"
+		" movq		0*16+8(%0),%%mm1;\n"
+		" paddw		1*16+8(%0),%%mm1;\n"
+		" movq		c1b,%%mm7;\n"
+		" paddw		2*16+0(%0),%%mm0;\n"
+		" movq		%%mm7,%%mm6;\n"
+		" paddw		2*16+8(%0),%%mm1;\n"
+		" psllq		$7,%%mm7;\n"
+		" paddw		3*16+0(%0),%%mm0;\n"
+		" psrlw		$8-4,%%mm6;\n"
+		" paddw		3*16+8(%0),%%mm1;\n"
+		" movq		256+0*16+0(%0),%%mm2;\n"
+		" paddw		4*16+0(%0),%%mm0;\n"
+		" movq		256+0*16+8(%0),%%mm3;\n"
+		" paddw		4*16+8(%0),%%mm1;\n"
+		" paddw		5*16+0(%0),%%mm0;\n"
+		" paddw		5*16+8(%0),%%mm1;\n"
+		" paddw		6*16+0(%0),%%mm0;\n"
+		" paddw		6*16+8(%0),%%mm1;\n"
+		" paddw		7*16+0(%0),%%mm0;\n"
+		" movq		%%mm0,%%mm4;\n"
+		" paddw		7*16+8(%0),%%mm1;\n"
+		" punpcklwd	%%mm1,%%mm0;\n"
+		" paddw		256+1*16+0(%0),%%mm2;\n"
+		" punpckhwd	%%mm1,%%mm4;\n"
+		" paddw		256+1*16+8(%0),%%mm3;\n"
+		" paddw		%%mm4,%%mm0;\n"
+		" paddw		256+2*16+0(%0),%%mm2;\n"
+		" paddw		256+2*16+8(%0),%%mm3;\n"
+		" paddw		256+3*16+0(%0),%%mm2;\n"
+		" paddw		256+3*16+8(%0),%%mm3;\n"
+		" paddw		256+4*16+0(%0),%%mm2;\n"
+		" paddw		256+4*16+8(%0),%%mm3;\n"
+		" paddw		256+5*16+0(%0),%%mm2;\n"
+		" paddw		256+5*16+8(%0),%%mm3;\n"
+		" paddw		256+6*16+0(%0),%%mm2;\n"
+		" paddw		256+6*16+8(%0),%%mm3;\n"
+		" paddw		256+7*16+0(%0),%%mm2;\n"
+		" paddw		256+7*16+8(%0),%%mm3;\n"
+		" movq		128+0*16+0(%0),%%mm1;\n"
+		" movq		%%mm2,%%mm5;\n"
+		" movq		128+0*16+8(%0),%%mm4;\n"
+		" punpcklwd	%%mm3,%%mm2;\n"
+		" paddw		128+1*16+0(%0),%%mm1;\n"
+		" punpckhwd	%%mm3,%%mm5;\n"
+		" paddw		128+1*16+8(%0),%%mm4;\n"
+		" paddw		%%mm5,%%mm2;\n"
+		" paddw		128+2*16+0(%0),%%mm1;\n"
+		" movq		%%mm0,%%mm5;\n"
+		" paddw		128+2*16+8(%0),%%mm4;\n"
+		" punpckldq	%%mm2,%%mm0;\n"
+		" paddw		128+3*16+0(%0),%%mm1;\n"
+		" punpckhdq	%%mm2,%%mm5;\n"
+		" paddw		128+3*16+8(%0),%%mm4;\n"
+		" paddw		%%mm5,%%mm0;\n"
+		" paddw		128+4*16+0(%0),%%mm1;\n"
+		" paddw		%%mm6,%%mm0;\n"
+		" paddw		128+4*16+8(%0),%%mm4;\n"
+		" psrlw		$5,%%mm0;\n"
+		" paddw		128+5*16+0(%0),%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" paddw		128+5*16+8(%0),%%mm4;\n"
+		" psllw		$8,%%mm2;\n"
+		" paddw		128+6*16+0(%0),%%mm1;\n"
+		" por		%%mm2,%%mm0;\n"
+		" paddw		128+6*16+8(%0),%%mm4;\n"
+		" pxor		%%mm7,%%mm0;\n"
+		" paddw		128+7*16+0(%0),%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" paddw		128+7*16+8(%0),%%mm4;\n"
+		" punpcklbw	%%mm0,%%mm0;\n"
+		" movq		384+0*16+0(%0),%%mm3;\n"
+		" punpckhbw	%%mm2,%%mm2;\n"
+		" movq		384+0*16+8(%0),%%mm5;\n"
+		" movq		%%mm0,0(%1);\n"
+		" paddw		384+1*16+0(%0),%%mm3;\n"
+		" movq		%%mm2,8(%1);\n"
+		" paddw		384+1*16+8(%0),%%mm5;\n"
+		" movq		%%mm1,%%mm0;\n"
+		" paddw		384+2*16+0(%0),%%mm3;\n"
+		" punpcklwd	%%mm4,%%mm1;\n"
+		" paddw		384+2*16+8(%0),%%mm5;\n"
+		" punpckhwd	%%mm4,%%mm0;\n"
+		" paddw		384+3*16+0(%0),%%mm3;\n"
+		" paddw		%%mm0,%%mm1;\n"
+		" paddw		384+3*16+8(%0),%%mm5;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" paddw		384+4*16+0(%0),%%mm3;\n"
+		" paddw		384+4*16+8(%0),%%mm5;\n"
+		" paddw		384+5*16+0(%0),%%mm3;\n"
+		" paddw		384+5*16+8(%0),%%mm5;\n"
+		" paddw		384+6*16+0(%0),%%mm3;\n"
+		" paddw		384+6*16+8(%0),%%mm5;\n"
+		" paddw		384+7*16+0(%0),%%mm3;\n"
+		" paddw		384+7*16+8(%0),%%mm5;\n"
+		" movq		%%mm3,%%mm0;\n"
+		" punpcklwd	%%mm5,%%mm3;\n"
+		" punpckhwd	%%mm5,%%mm0;\n"
+		" paddw		%%mm0,%%mm3;\n"
+		" punpckldq	%%mm3,%%mm1;\n"
+		" punpckhdq	%%mm3,%%mm2;\n"
+		" paddw		%%mm2,%%mm1;\n"
+		" paddw		%%mm6,%%mm1;\n"
+		" psrlw		$5,%%mm1;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" psllw		$8,%%mm2;\n"
+		" por		%%mm2,%%mm1;\n"
+		" pxor		%%mm7,%%mm1;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" punpcklbw	%%mm1,%%mm1;\n"
+		" punpckhbw	%%mm2,%%mm2;\n"
+		" movq		%%mm1,16(%1);\n"
+		" movq		%%mm2,24(%1);\n"
 
-	" :: "S" (&mblock[0][0][0][0]), "D" (&t[0][0]) : "memory");
+	:: "S" (&mblock[0][0][0][0]), "D" (&t[0][0]) : "memory");
 }
 
 static inline int
@@ -1616,124 +1610,123 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 
 	pr_start(53, "forward fetch");
 
-	asm volatile ("
-		pxor		%mm5,%mm5;
-		pxor		%mm6,%mm6;
-		pxor		%mm7,%mm7;
-	");
+	asm volatile (
+		" pxor		%mm5,%mm5;\n"
+		" pxor		%mm6,%mm6;\n"
+		" pxor		%mm7,%mm7;\n"
+	);
 
 	if (iright) {
 	for (i = 0; i < 16; i++) {
-		asm volatile ("
-			movq		1(%0),%%mm0;
-			movq		%%mm0,%%mm1;
-			punpcklbw	%%mm5,%%mm0;
-			punpckhbw	%%mm5,%%mm1;
-			movq		%%mm0,2*768+0*128+0(%3);
-			movq		%%mm1,2*768+0*128+8(%3);
-			movq		0*768+0*128+0(%1),%%mm2;
-			movq		0*768+0*128+8(%1),%%mm3;
-			psubw		%%mm0,%%mm2;
-			psubw		%%mm1,%%mm3;
-			movq		%%mm2,0*768+0*128+0(%3);
-			movq		%%mm3,0*768+0*128+8(%3);
-			paddw		%%mm2,%%mm6;
-			paddw		%%mm3,%%mm6;
-			pmaddwd		%%mm2,%%mm2;
-			pmaddwd		%%mm3,%%mm3;
-			paddd		%%mm2,%%mm7;
-			paddd		%%mm3,%%mm7;
+		asm volatile (
+			" movq		1(%0),%%mm0;\n"
+			" movq		%%mm0,%%mm1;\n"
+			" punpcklbw	%%mm5,%%mm0;\n"
+			" punpckhbw	%%mm5,%%mm1;\n"
+			" movq		%%mm0,2*768+0*128+0(%3);\n"
+			" movq		%%mm1,2*768+0*128+8(%3);\n"
+			" movq		0*768+0*128+0(%1),%%mm2;\n"
+			" movq		0*768+0*128+8(%1),%%mm3;\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" psubw		%%mm1,%%mm3;\n"
+			" movq		%%mm2,0*768+0*128+0(%3);\n"
+			" movq		%%mm3,0*768+0*128+8(%3);\n"
+			" paddw		%%mm2,%%mm6;\n"
+			" paddw		%%mm3,%%mm6;\n"
+			" pmaddwd	%%mm2,%%mm2;\n"
+			" pmaddwd	%%mm3,%%mm3;\n"
+			" paddd		%%mm2,%%mm7;\n"
+			" paddd		%%mm3,%%mm7;\n"
 
-			movq		8(%0),%%mm0;
-			psrlq		$8,%%mm0;
-			movq		(%2),%%mm2;
-			psllq		$56,%%mm2;
-			por		%%mm2,%%mm0;
-			movq		%%mm0,%%mm1;
-			punpcklbw	%%mm5,%%mm0;
-			punpckhbw	%%mm5,%%mm1;
-			movq		%%mm0,2*768+2*128+0(%3);
-			movq		%%mm1,2*768+2*128+8(%3);
-			movq		0*768+2*128+0(%1),%%mm2;
-			movq		0*768+2*128+8(%1),%%mm3;
-			psubw		%%mm0,%%mm2;
-			psubw		%%mm1,%%mm3;
-			movq		%%mm2,0*768+2*128+0(%3);
-			movq		%%mm3,0*768+2*128+8(%3);
-			paddw		%%mm2,%%mm6;
-			paddw		%%mm3,%%mm6;
-			pmaddwd		%%mm2,%%mm2;
-			pmaddwd		%%mm3,%%mm3;
-			paddd		%%mm2,%%mm7;
-			paddd		%%mm3,%%mm7;
+			" movq		8(%0),%%mm0;\n"
+			" psrlq		$8,%%mm0;\n"
+			" movq		(%2),%%mm2;\n"
+			" psllq		$56,%%mm2;\n"
+			" por		%%mm2,%%mm0;\n"
+			" movq		%%mm0,%%mm1;\n"
+			" punpcklbw	%%mm5,%%mm0;\n"
+			" punpckhbw	%%mm5,%%mm1;\n"
+			" movq		%%mm0,2*768+2*128+0(%3);\n"
+			" movq		%%mm1,2*768+2*128+8(%3);\n"
+			" movq		0*768+2*128+0(%1),%%mm2;\n"
+			" movq		0*768+2*128+8(%1),%%mm3;\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" psubw		%%mm1,%%mm3;\n"
+			" movq		%%mm2,0*768+2*128+0(%3);\n"
+			" movq		%%mm3,0*768+2*128+8(%3);\n"
+			" paddw		%%mm2,%%mm6;\n"
+			" paddw		%%mm3,%%mm6;\n"
+			" pmaddwd	%%mm2,%%mm2;\n"
+			" pmaddwd	%%mm3,%%mm3;\n"
+			" paddd		%%mm2,%%mm7;\n"
+			" paddd		%%mm3,%%mm7;\n"
 
-		" :: "r" (&(* ibuf)[i+idown][0]),
-		     "r" (&mblock[0][0][i][0]),
-		     "r" (&(* ibuf)[18][i+idown]),
-		     "r" (&dest[0][i][0]));
+		:: "r" (&(* ibuf)[i+idown][0]),
+		   "r" (&mblock[0][0][i][0]),
+		   "r" (&(* ibuf)[18][i+idown]),
+		   "r" (&dest[0][i][0]));
 	}
 	} else {
 	for (i = 0; i < 16; i++) {
-		asm volatile ("
-			movq		(%0),%%mm0;
-			movq		%%mm0,%%mm1;
-			punpcklbw	%%mm5,%%mm0;
-			punpckhbw	%%mm5,%%mm1;
-			movq		%%mm0,2*768+0*128+0(%2);
-			movq		%%mm1,2*768+0*128+8(%2);
-			movq		0*768+0*128+0(%1),%%mm2;
-			movq		0*768+0*128+8(%1),%%mm3;
-			psubw		%%mm0,%%mm2;
-			psubw		%%mm1,%%mm3;
-			movq		%%mm2,0*768+0*128+0(%2);
-			movq		%%mm3,0*768+0*128+8(%2);
-			paddw		%%mm2,%%mm6;
-			paddw		%%mm3,%%mm6;
-			pmaddwd		%%mm2,%%mm2;
-			pmaddwd		%%mm3,%%mm3;
-			paddd		%%mm2,%%mm7;
-			paddd		%%mm3,%%mm7;
+		asm volatile (
+			" movq		(%0),%%mm0;\n"
+			" movq		%%mm0,%%mm1;\n"
+			" punpcklbw	%%mm5,%%mm0;\n"
+			" punpckhbw	%%mm5,%%mm1;\n"
+			" movq		%%mm0,2*768+0*128+0(%2);\n"
+			" movq		%%mm1,2*768+0*128+8(%2);\n"
+			" movq		0*768+0*128+0(%1),%%mm2;\n"
+			" movq		0*768+0*128+8(%1),%%mm3;\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" psubw		%%mm1,%%mm3;\n"
+			" movq		%%mm2,0*768+0*128+0(%2);\n"
+			" movq		%%mm3,0*768+0*128+8(%2);\n"
+			" paddw		%%mm2,%%mm6;\n"
+			" paddw		%%mm3,%%mm6;\n"
+			" pmaddwd	%%mm2,%%mm2;\n"
+			" pmaddwd	%%mm3,%%mm3;\n"
+			" paddd		%%mm2,%%mm7;\n"
+			" paddd		%%mm3,%%mm7;\n"
 
-			movq		8(%0),%%mm0;
-			movq		%%mm0,%%mm1;
-			punpcklbw	%%mm5,%%mm0;
-			punpckhbw	%%mm5,%%mm1;
-			movq		%%mm0,2*768+2*128+0(%2);
-			movq		%%mm1,2*768+2*128+8(%2);
-			movq		0*768+2*128+0(%1),%%mm2;
-			movq		0*768+2*128+8(%1),%%mm3;
-			psubw		%%mm0,%%mm2;
-			psubw		%%mm1,%%mm3;
-			movq		%%mm2,0*768+2*128+0(%2);
-			movq		%%mm3,0*768+2*128+8(%2);
-			paddw		%%mm2,%%mm6;
-			paddw		%%mm3,%%mm6;
-			pmaddwd		%%mm2,%%mm2;
-			pmaddwd		%%mm3,%%mm3;
-			paddd		%%mm2,%%mm7;
-			paddd		%%mm3,%%mm7;
+			" movq		8(%0),%%mm0;\n"
+			" movq		%%mm0,%%mm1;\n"
+			" punpcklbw	%%mm5,%%mm0;\n"
+			" punpckhbw	%%mm5,%%mm1;\n"
+			" movq		%%mm0,2*768+2*128+0(%2);\n"
+			" movq		%%mm1,2*768+2*128+8(%2);\n"
+			" movq		0*768+2*128+0(%1),%%mm2;\n"
+			" movq		0*768+2*128+8(%1),%%mm3;\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" psubw		%%mm1,%%mm3;\n"
+			" movq		%%mm2,0*768+2*128+0(%2);\n"
+			" movq		%%mm3,0*768+2*128+8(%2);\n"
+			" paddw		%%mm2,%%mm6;\n"
+			" paddw		%%mm3,%%mm6;\n"
+			" pmaddwd	%%mm2,%%mm2;\n"
+			" pmaddwd	%%mm3,%%mm3;\n"
+			" paddd		%%mm2,%%mm7;\n"
+			" paddd		%%mm3,%%mm7;\n"
 
-		" :: "r" (&(* ibuf)[i+idown][0]),
+		:: "r" (&(* ibuf)[i+idown][0]),
 		     "r" (&mblock[0][0][i][0]),
 		     "r" (&dest[0][i][0]));
 	}
 	}
 
-	asm volatile ("
-		pmaddwd		c1,%%mm6;
-		movq		%%mm7,%%mm0;
-		psrlq		$32,%%mm7;
-		paddd		%%mm0,%%mm7;
-		movq		%%mm6,%%mm0;
-		psrlq		$32,%%mm6;
-		paddd		%%mm0,%%mm6;
-		pslld		$8,%%mm7;
-		movd		%%mm6,%1;
-		imul		%1,%1;
-		movd		%%mm7,%0;
-		subl		%1,%0;
-
-	" : "=&r" (s) : "r" (0));
+	asm volatile (
+		" pmaddwd		c1,%%mm6;\n"
+		" movq		%%mm7,%%mm0;\n"
+		" psrlq		$32,%%mm7;\n"
+		" paddd		%%mm0,%%mm7;\n"
+		" movq		%%mm6,%%mm0;\n"
+		" psrlq		$32,%%mm6;\n"
+		" paddd		%%mm0,%%mm6;\n"
+		" pslld		$8,%%mm7;\n"
+		" movd		%%mm6,%1;\n"
+		" imul		%1,%1;\n"
+		" movd		%%mm7,%0;\n"
+		" subl		%1,%0;\n"
+	: "=&r" (s) : "r" (0));
 
 	mx = d2x + mb_col * 16 * 2;
 	my = d2y + mb_row * 16 * 2;
@@ -1745,186 +1738,185 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 
 	if (mx & 2) {
 		q = p + mb_address.block[5].offset;
-	asm volatile ("
-		movq		c2,%mm7;
-	");
+	asm volatile (
+		" movq		c2,%mm7;\n"
+	);
 		for (i = 0; i < 8; i++) {
-			asm volatile ("
-				pushl		%1
-				movzxb		(%0),%1;
-				movd		%1,%%mm1;
-				popl		%1
-				movq		1(%0),%%mm2;
-				movq		%%mm2,%%mm0;
-				psllq		$8,%%mm0;
-				por		%%mm1,%%mm0;
-				movq		%%mm0,%%mm1;
-				punpcklbw	%%mm5,%%mm0;
-				punpckhbw	%%mm5,%%mm1;
-				movq		%%mm2,%%mm3;
-				punpcklbw	%%mm5,%%mm2;
-				punpckhbw	%%mm5,%%mm3;
-				paddw		%%mm2,%%mm0;
-				paddw		%%mm3,%%mm1;
-				pushl		%1
-				movzxb		(%0,%2),%1;
-				movd		%1,%%mm3;
-				popl		%1
-				movq		1(%0,%2),%%mm2;
-				movq		%%mm2,%%mm4;
-				psllq		$8,%%mm4;
-				por		%%mm3,%%mm4;
-				movq		%%mm4,%%mm3;
-				punpcklbw	%%mm5,%%mm4;
-				punpckhbw	%%mm5,%%mm3;
-				paddw		%%mm4,%%mm0;
-				paddw		%%mm3,%%mm1;
-				movq		%%mm2,%%mm3;
-				punpcklbw	%%mm5,%%mm2;
-				punpckhbw	%%mm5,%%mm3;
-				paddw		%%mm2,%%mm0;
-				paddw		%%mm3,%%mm1;
-				paddw		%%mm7,%%mm0;
-				paddw		%%mm7,%%mm1;
-				psrlw		$2,%%mm0;
-				psrlw		$2,%%mm1;
-				movq		0*768+4*128+0(%4),%%mm2;
-				movq		0*768+4*128+8(%4),%%mm3;
-				psubw		%%mm0,%%mm2;
-				psubw		%%mm1,%%mm3;
-				movq		%%mm0,2*768+4*128+0(%1);
-				movq		%%mm1,2*768+4*128+8(%1);
-				movq		%%mm2,0*768+4*128+0(%1);
-				movq		%%mm3,0*768+4*128+8(%1);
+			asm volatile (
+				" pushl		%1\n"
+				" movzxb	(%0),%1;\n"
+				" movd		%1,%%mm1;\n"
+				" popl		%1\n"
+				" movq		1(%0),%%mm2;\n"
+				" movq		%%mm2,%%mm0;\n"
+				" psllq		$8,%%mm0;\n"
+				" por		%%mm1,%%mm0;\n"
+				" movq		%%mm0,%%mm1;\n"
+				" punpcklbw	%%mm5,%%mm0;\n"
+				" punpckhbw	%%mm5,%%mm1;\n"
+				" movq		%%mm2,%%mm3;\n"
+				" punpcklbw	%%mm5,%%mm2;\n"
+				" punpckhbw	%%mm5,%%mm3;\n"
+				" paddw		%%mm2,%%mm0;\n"
+				" paddw		%%mm3,%%mm1;\n"
+				" pushl		%1\n"
+				" movzxb	(%0,%2),%1;\n"
+				" movd		%1,%%mm3;\n"
+				" popl		%1\n"
+				" movq		1(%0,%2),%%mm2;\n"
+				" movq		%%mm2,%%mm4;\n"
+				" psllq		$8,%%mm4;\n"
+				" por		%%mm3,%%mm4;\n"
+				" movq		%%mm4,%%mm3;\n"
+				" punpcklbw	%%mm5,%%mm4;\n"
+				" punpckhbw	%%mm5,%%mm3;\n"
+				" paddw		%%mm4,%%mm0;\n"
+				" paddw		%%mm3,%%mm1;\n"
+				" movq		%%mm2,%%mm3;\n"
+				" punpcklbw	%%mm5,%%mm2;\n"
+				" punpckhbw	%%mm5,%%mm3;\n"
+				" paddw		%%mm2,%%mm0;\n"
+				" paddw		%%mm3,%%mm1;\n"
+				" paddw		%%mm7,%%mm0;\n"
+				" paddw		%%mm7,%%mm1;\n"
+				" psrlw		$2,%%mm0;\n"
+				" psrlw		$2,%%mm1;\n"
+				" movq		0*768+4*128+0(%4),%%mm2;\n"
+				" movq		0*768+4*128+8(%4),%%mm3;\n"
+				" psubw		%%mm0,%%mm2;\n"
+				" psubw		%%mm1,%%mm3;\n"
+				" movq		%%mm0,2*768+4*128+0(%1);\n"
+				" movq		%%mm1,2*768+4*128+8(%1);\n"
+				" movq		%%mm2,0*768+4*128+0(%1);\n"
+				" movq		%%mm3,0*768+4*128+8(%1);\n"
 
-				pushl		%1
-				movzxb		(%3),%1;
-				movd		%1,%%mm1;
-				popl		%1
-				movq		1(%3),%%mm2;
-				movq		%%mm2,%%mm0;
-				psllq		$8,%%mm0;
-				por		%%mm1,%%mm0;
-				movq		%%mm0,%%mm1;
-				punpcklbw	%%mm5,%%mm0;
-				punpckhbw	%%mm5,%%mm1;
-				movq		%%mm2,%%mm3;
-				punpcklbw	%%mm5,%%mm2;
-				punpckhbw	%%mm5,%%mm3;
-				paddw		%%mm2,%%mm0;
-				paddw		%%mm3,%%mm1;
-				pushl		%1
-				movzxb		(%3,%2),%1;
-				movd		%1,%%mm3;
-				popl		%1
-				movq		1(%3,%2),%%mm2;
-				movq		%%mm2,%%mm4;
-				psllq		$8,%%mm4;
-				por		%%mm3,%%mm4;
-				movq		%%mm4,%%mm3;
-				punpcklbw	%%mm5,%%mm4;
-				punpckhbw	%%mm5,%%mm3;
-				paddw		%%mm4,%%mm0;
-				paddw		%%mm3,%%mm1;
-				movq		%%mm2,%%mm3;
-				punpcklbw	%%mm5,%%mm2;
-				punpckhbw	%%mm5,%%mm3;
-				paddw		%%mm2,%%mm0;
-				paddw		%%mm3,%%mm1;
-				paddw		%%mm7,%%mm0;
-				paddw		%%mm7,%%mm1;
-				psrlw		$2,%%mm0;
-				psrlw		$2,%%mm1;
+				" pushl		%1\n"
+				" movzxb	(%3),%1;\n"
+				" movd		%1,%%mm1;\n"
+				" popl		%1\n"
+				" movq		1(%3),%%mm2;\n"
+				" movq		%%mm2,%%mm0;\n"
+				" psllq		$8,%%mm0;\n"
+				" por		%%mm1,%%mm0;\n"
+				" movq		%%mm0,%%mm1;\n"
+				" punpcklbw	%%mm5,%%mm0;\n"
+				" punpckhbw	%%mm5,%%mm1;\n"
+				" movq		%%mm2,%%mm3;\n"
+				" punpcklbw	%%mm5,%%mm2;\n"
+				" punpckhbw	%%mm5,%%mm3;\n"
+				" paddw		%%mm2,%%mm0;\n"
+				" paddw		%%mm3,%%mm1;\n"
+				" pushl		%1\n"
+				" movzxb	(%3,%2),%1;\n"
+				" movd		%1,%%mm3;\n"
+				" popl		%1\n"
+				" movq		1(%3,%2),%%mm2;\n"
+				" movq		%%mm2,%%mm4;\n"
+				" psllq		$8,%%mm4;\n"
+				" por		%%mm3,%%mm4;\n"
+				" movq		%%mm4,%%mm3;\n"
+				" punpcklbw	%%mm5,%%mm4;\n"
+				" punpckhbw	%%mm5,%%mm3;\n"
+				" paddw		%%mm4,%%mm0;\n"
+				" paddw		%%mm3,%%mm1;\n"
+				" movq		%%mm2,%%mm3;\n"
+				" punpcklbw	%%mm5,%%mm2;\n"
+				" punpckhbw	%%mm5,%%mm3;\n"
+				" paddw		%%mm2,%%mm0;\n"
+				" paddw		%%mm3,%%mm1;\n"
+				" paddw		%%mm7,%%mm0;\n"
+				" paddw		%%mm7,%%mm1;\n"
+				" psrlw		$2,%%mm0;\n"
+				" psrlw		$2,%%mm1;\n"
 
-				movq		0*768+5*128+0(%4),%%mm2;
-				movq		0*768+5*128+8(%4),%%mm3;
-				psubw		%%mm0,%%mm2;
-				psubw		%%mm1,%%mm3;
-				movq		%%mm0,2*768+5*128+0(%1);
-				movq		%%mm1,2*768+5*128+8(%1);
-				movq		%%mm2,0*768+5*128+0(%1);
-				movq		%%mm3,0*768+5*128+8(%1);
+				" movq		0*768+5*128+0(%4),%%mm2;\n"
+				" movq		0*768+5*128+8(%4),%%mm3;\n"
+				" psubw		%%mm0,%%mm2;\n"
+				" psubw		%%mm1,%%mm3;\n"
+				" movq		%%mm0,2*768+5*128+0(%1);\n"
+				" movq		%%mm1,2*768+5*128+8(%1);\n"
+				" movq		%%mm2,0*768+5*128+0(%1);\n"
+				" movq		%%mm3,0*768+5*128+8(%1);\n"
 
-			" :: "r" (p), "c" (&dest[0][i][0]), "r" (hy), "r" (q),
+			:: "r" (p), "c" (&dest[0][i][0]), "r" (hy), "r" (q),
 			    "r" (&mblock[0][0][i][0]));
 
 		p += mb_address.block[4].pitch;
 		q += mb_address.block[4].pitch;
 	}
 	} else {
-	asm volatile ("
-		movq		(%0),%%mm3;
-		movq		(%0,%1),%%mm4;
-		movq		c1b,%%mm7;
-		pxor		%%mm6,%%mm6;
-
-	" :: "r" (p), "r" (mb_address.block[5].offset), "r" (0));
+	asm volatile (
+		" movq		(%0),%%mm3;\n"
+		" movq		(%0,%1),%%mm4;\n"
+		" movq		c1b,%%mm7;\n"
+		" pxor		%%mm6,%%mm6;\n"
+	:: "r" (p), "r" (mb_address.block[5].offset), "r" (0));
 
 	p += hy;
 
 	if (hy) // XXX
-		asm volatile ("
-			pcmpeqb		%mm6,%mm6;
-		");
+		asm volatile (
+			" pcmpeqb	%mm6,%mm6;\n"
+		);
 
 	for (i = 0; i < 8; i++) {
-		asm volatile ("
-			movq		(%0),%%mm2;
-			movq		%%mm3,%%mm1;
-			pxor		%%mm2,%%mm1;	
-			movq		%%mm2,%%mm0;
-			pand		%%mm6,%%mm1;
-			pxor		%%mm1,%%mm0;
-			pxor		%%mm1,%%mm3;
-			movq		%%mm2,%%mm1;
-			por		%%mm0,%%mm2;
-			por		%%mm7,%%mm0;
-			por		%%mm7,%%mm1;
-			psrlq		$1,%%mm0;
-			pand		%%mm7,%%mm2;
-			psrlq		$1,%%mm1;
-			paddb		%%mm1,%%mm0;
-			paddb		%%mm2,%%mm0;
-			movq		0*768+4*128+0(%4),%%mm2;
-			movq		%%mm0,%%mm1;
-			punpcklbw	%%mm5,%%mm0;
-			movq		%%mm0,2*768+4*128+0(%2);
-			psubw		%%mm0,%%mm2;
-			movq		%%mm2,0*768+4*128+0(%2);
-			movq		(%0,%1),%%mm0;
-			movq		0*768+4*128+8(%4),%%mm2;
-			punpckhbw	%%mm5,%%mm1;
-			movq		%%mm1,2*768+4*128+8(%2);
-			psubw		%%mm1,%%mm2;
-			movq		%%mm2,0*768+4*128+8(%2);
-			movq		%%mm4,%%mm1;
-			pxor		%%mm0,%%mm1;	
-			movq		%%mm0,%%mm2;
-			pand		%%mm6,%%mm1;
-			pxor		%%mm1,%%mm2;
-			pxor		%%mm1,%%mm4;
-			movq		%%mm0,%%mm1;
-			por		%%mm2,%%mm0;
-			por		%%mm7,%%mm2;
-			por		%%mm7,%%mm1;
-			psrlq		$1,%%mm2;
-			pand		%%mm7,%%mm0;
-			psrlq		$1,%%mm1;
-			paddb		%%mm1,%%mm0;
-			paddb		%%mm2,%%mm0;
-			movq		0*768+5*128+0(%4),%%mm2;
-			movq		%%mm0,%%mm1;
-			punpcklbw	%%mm5,%%mm0;
-			movq		%%mm0,2*768+5*128+0(%2);
-			psubw		%%mm0,%%mm2;
-			movq		%%mm2,0*768+5*128+0(%2);
-			movq		0*768+5*128+8(%4),%%mm2;
-			punpckhbw	%%mm5,%%mm1;
-			movq		%%mm1,2*768+5*128+8(%2);
-			psubw		%%mm1,%%mm2;
-			movq		%%mm2,0*768+5*128+8(%2);
+		asm volatile (
+			" movq		(%0),%%mm2;\n"
+			" movq		%%mm3,%%mm1;\n"
+			" pxor		%%mm2,%%mm1;\n"
+			" movq		%%mm2,%%mm0;\n"
+			" pand		%%mm6,%%mm1;\n"
+			" pxor		%%mm1,%%mm0;\n"
+			" pxor		%%mm1,%%mm3;\n"
+			" movq		%%mm2,%%mm1;\n"
+			" por		%%mm0,%%mm2;\n"
+			" por		%%mm7,%%mm0;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm0;\n"
+			" pand		%%mm7,%%mm2;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm1,%%mm0;\n"
+			" paddb		%%mm2,%%mm0;\n"
+			" movq		0*768+4*128+0(%4),%%mm2;\n"
+			" movq		%%mm0,%%mm1;\n"
+			" punpcklbw	%%mm5,%%mm0;\n"
+			" movq		%%mm0,2*768+4*128+0(%2);\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" movq		%%mm2,0*768+4*128+0(%2);\n"
+			" movq		(%0,%1),%%mm0;\n"
+			" movq		0*768+4*128+8(%4),%%mm2;\n"
+			" punpckhbw	%%mm5,%%mm1;\n"
+			" movq		%%mm1,2*768+4*128+8(%2);\n"
+			" psubw		%%mm1,%%mm2;\n"
+			" movq		%%mm2,0*768+4*128+8(%2);\n"
+			" movq		%%mm4,%%mm1;\n"
+			" pxor		%%mm0,%%mm1;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pand		%%mm6,%%mm1;\n"
+			" pxor		%%mm1,%%mm2;\n"
+			" pxor		%%mm1,%%mm4;\n"
+			" movq		%%mm0,%%mm1;\n"
+			" por		%%mm2,%%mm0;\n"
+			" por		%%mm7,%%mm2;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm2;\n"
+			" pand		%%mm7,%%mm0;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm1,%%mm0;\n"
+			" paddb		%%mm2,%%mm0;\n"
+			" movq		0*768+5*128+0(%4),%%mm2;\n"
+			" movq		%%mm0,%%mm1;\n"
+			" punpcklbw	%%mm5,%%mm0;\n"
+			" movq		%%mm0,2*768+5*128+0(%2);\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" movq		%%mm2,0*768+5*128+0(%2);\n"
+			" movq		0*768+5*128+8(%4),%%mm2;\n"
+			" punpckhbw	%%mm5,%%mm1;\n"
+			" movq		%%mm1,2*768+5*128+8(%2);\n"
+			" psubw		%%mm1,%%mm2;\n"
+			" movq		%%mm2,0*768+5*128+8(%2);\n"
 
-		" :: "r" (p), "r" (mb_address.block[5].offset),
+		:: "r" (p), "r" (mb_address.block[5].offset),
 		     "r" (&dest[0][i][0]), "r" (0),
 		     "r" (&mblock[0][0][i][0]));
 
@@ -1994,24 +1986,24 @@ search(int *dhx, int *dhy, unsigned char *from,
 
 	if ((x1 - x0) > 4)
 		for (j = y0; j < y1; p += mb_address.block[0].pitch, j++) {
-			asm volatile ("
-				movq		crdy0,%mm0;
-				paddb		c256,%mm0;
-				movq		%mm0,crdy0;
-				movq		%mm0,crdxy;
-			");
+			asm volatile (
+				" movq		crdy0,%mm0;\n"
+				" paddb		c256,%mm0;\n"
+				" movq		%mm0,crdy0;\n"
+				" movq		%mm0,crdxy;\n"
+			);
 
 			for (i = x0; i < x1; i += 8)
 				mmx_psse_8(tbuf, p + i, mb_address.block[0].pitch);
 		}
 	else
 		for (j = y0; j < y1; p += mb_address.block[0].pitch, j++) {
-			asm volatile ("
-				movq		crdy0,%mm0;
-				paddb		c256,%mm0;
-				movq		%mm0,crdy0;
-				movq		%mm0,crdxy;
-			");
+			asm volatile (
+				" movq		crdy0,%mm0;\n"
+				" paddb		c256,%mm0;\n"
+				" movq		%mm0,crdy0;\n"
+				" movq		%mm0,crdxy;\n"
+			);
 
 			mmx_psse_4(tbuf, p, mb_address.block[0].pitch);
 		}
@@ -2180,7 +2172,7 @@ static int
 t4_edu(unsigned char *ref, int *dxp, int *dyp, int sx, int sy,
 	int src_range, int max_range, short dest[6][8][8])
 {
-	struct motion M;
+//	struct motion M;
 	int x, y, xs, ys;
 	int x0, y0, x1, y1;
 	int hrange, vrange;
@@ -2265,7 +2257,7 @@ static int pdist;
 void
 zero_forward_motion(void)
 {
-	pdx[mb_row][mb_col] = 127;
+//	pdx[mb_row][mb_col] = 127;
 }
 
 int
@@ -2283,8 +2275,8 @@ predict_forward_motion(struct motion *M, unsigned char *from, int dist)
 
 	emms();
 
-	pdx[mb_row][mb_col] = *pmx;
-	pdy[mb_row][mb_col] = *pmy;
+//	pdx[mb_row][mb_col] = *pmx;
+//	pdy[mb_row][mb_col] = *pmy;
 	pdist = dist;
 
 	{
@@ -2347,92 +2339,91 @@ predict_bidirectional_motion(struct motion *M,
 		);
 	}
 
-	asm volatile ("
-		movq		c1,%mm5;
-		pxor		%mm6,%mm6;	
-		pxor		%mm7,%mm7;
-	");	
+	asm volatile (
+		" movq		c1,%mm5;\n"
+		" pxor		%mm6,%mm6;\n"	
+		" pxor		%mm7,%mm7;\n"
+	);	
 
 	for (j = i = 0; j < 16 * 16; j += 16, i += 4) {
-		asm volatile ("
-			movq		3*768+0*128+0(%0),%%mm0;
-			paddw		4*768+0*128+0(%0),%%mm0;
-			paddw		%%mm5,%%mm0;
-			psrlw		$1,%%mm0;
-			movq		0*768+0*128+0(%0),%%mm2;
-			psubw		%%mm0,%%mm2;
-			movq		%%mm2,3*768+0*128+0(%0);
-			paddw		%%mm2,%%mm6;
-			pmaddwd		%%mm2,%%mm2;
-			paddd		%%mm2,%%mm7;
+		asm volatile (
+			" movq		3*768+0*128+0(%0),%%mm0;\n"
+			" paddw		4*768+0*128+0(%0),%%mm0;\n"
+			" paddw		%%mm5,%%mm0;\n"
+			" psrlw		$1,%%mm0;\n"
+			" movq		0*768+0*128+0(%0),%%mm2;\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" movq		%%mm2,3*768+0*128+0(%0);\n"
+			" paddw		%%mm2,%%mm6;\n"
+			" pmaddwd	%%mm2,%%mm2;\n"
+			" paddd		%%mm2,%%mm7;\n"
 
-			movq		3*768+0*128+8(%0),%%mm0;
-			paddw		4*768+0*128+8(%0),%%mm0;
-			paddw		%%mm5,%%mm0;
-			psrlw		$1,%%mm0;
-			movq		0*768+0*128+8(%0),%%mm2;
-			psubw		%%mm0,%%mm2;
-			movq		%%mm2,3*768+0*128+8(%0);
-			paddw		%%mm2,%%mm6;
-			pmaddwd		%%mm2,%%mm2;
-			paddd		%%mm2,%%mm7;
+			" movq		3*768+0*128+8(%0),%%mm0;\n"
+			" paddw		4*768+0*128+8(%0),%%mm0;\n"
+			" paddw		%%mm5,%%mm0;\n"
+			" psrlw		$1,%%mm0;\n"
+			" movq		0*768+0*128+8(%0),%%mm2;\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" movq		%%mm2,3*768+0*128+8(%0);\n"
+			" paddw		%%mm2,%%mm6;\n"
+			" pmaddwd	%%mm2,%%mm2;\n"
+			" paddd		%%mm2,%%mm7;\n"
 
-			movq		3*768+0*128+16(%0),%%mm0;
-			paddw		4*768+0*128+16(%0),%%mm0;
-			paddw		%%mm5,%%mm0;
-			psrlw		$1,%%mm0;
-			movq		0*768+0*128+16(%0),%%mm2;
-			psubw		%%mm0,%%mm2;
-			movq		%%mm2,3*768+0*128+16(%0);
-			paddw		%%mm2,%%mm6;
-			pmaddwd		%%mm2,%%mm2;
-			paddd		%%mm2,%%mm7;
+			" movq		3*768+0*128+16(%0),%%mm0;\n"
+			" paddw		4*768+0*128+16(%0),%%mm0;\n"
+			" paddw		%%mm5,%%mm0;\n"
+			" psrlw		$1,%%mm0;\n"
+			" movq		0*768+0*128+16(%0),%%mm2;\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" movq		%%mm2,3*768+0*128+16(%0);\n"
+			" paddw		%%mm2,%%mm6;\n"
+			" pmaddwd	%%mm2,%%mm2;\n"
+			" paddd		%%mm2,%%mm7;\n"
 
-			movq		3*768+0*128+24(%0),%%mm0;
-			paddw		4*768+0*128+24(%0),%%mm0;
-			paddw		%%mm5,%%mm0;
-			psrlw		$1,%%mm0;
-			movq		0*768+0*128+24(%0),%%mm2;
-			psubw		%%mm0,%%mm2;
-			movq		%%mm2,3*768+0*128+24(%0);
-			paddw		%%mm2,%%mm6;
-			pmaddwd		%%mm2,%%mm2;
-			paddd		%%mm2,%%mm7;
+			" movq		3*768+0*128+24(%0),%%mm0;\n"
+			" paddw		4*768+0*128+24(%0),%%mm0;\n"
+			" paddw		%%mm5,%%mm0;\n"
+			" psrlw		$1,%%mm0;\n"
+			" movq		0*768+0*128+24(%0),%%mm2;\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" movq		%%mm2,3*768+0*128+24(%0);\n"
+			" paddw		%%mm2,%%mm6;\n"
+			" pmaddwd	%%mm2,%%mm2;\n"
+			" paddd		%%mm2,%%mm7;\n"
 
-			movq		3*768+4*128+0(%1),%%mm0;
-			paddw		4*768+4*128+0(%1),%%mm0;
-			paddw		%%mm5,%%mm0;
-			psrlw		$1,%%mm0;
-			movq		0*768+4*128+0(%1),%%mm2;
-			psubw		%%mm0,%%mm2;
-			movq		%%mm2,3*768+4*128+0(%1);
+			" movq		3*768+4*128+0(%1),%%mm0;\n"
+			" paddw		4*768+4*128+0(%1),%%mm0;\n"
+			" paddw		%%mm5,%%mm0;\n"
+			" psrlw		$1,%%mm0;\n"
+			" movq		0*768+4*128+0(%1),%%mm2;\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" movq		%%mm2,3*768+4*128+0(%1);\n"
 
-			movq		3*768+5*128+0(%1),%%mm0;
-			paddw		4*768+5*128+0(%1),%%mm0;
-			paddw		%%mm5,%%mm0;
-			psrlw		$1,%%mm0;
-			movq		0*768+5*128+0(%1),%%mm2;
-			psubw		%%mm0,%%mm2;
-			movq		%%mm2,3*768+5*128+0(%1);
+			" movq		3*768+5*128+0(%1),%%mm0;\n"
+			" paddw		4*768+5*128+0(%1),%%mm0;\n"
+			" paddw		%%mm5,%%mm0;\n"
+			" psrlw		$1,%%mm0;\n"
+			" movq		0*768+5*128+0(%1),%%mm2;\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" movq		%%mm2,3*768+5*128+0(%1);\n"
 
-		" :: "r" (&mblock[0][0][0][j]), "r" (&mblock[0][0][0][i]));
+		:: "r" (&mblock[0][0][0][j]), "r" (&mblock[0][0][0][i]));
 	}
 
-	asm volatile ("
-		pmaddwd		%%mm5,%%mm6;
-		movq		%%mm7,%%mm0;
-		psrlq		$32,%%mm7;
-		paddd		%%mm0,%%mm7;
-		movq		%%mm6,%%mm0;
-		psrlq		$32,%%mm6;
-		paddd		%%mm0,%%mm6;
-		pslld		$8,%%mm7;
-		movd		%%mm6,%1;
-		imul		%1,%1;
-		movd		%%mm7,%0;
-		subl		%1,%0;
-
-	" : "=&r" (si) : "r" (0));
+	asm volatile (
+		" pmaddwd	%%mm5,%%mm6;\n"
+		" movq		%%mm7,%%mm0;\n"
+		" psrlq		$32,%%mm7;\n"
+		" paddd		%%mm0,%%mm7;\n"
+		" movq		%%mm6,%%mm0;\n"
+		" psrlq		$32,%%mm6;\n"
+		" paddd		%%mm0,%%mm6;\n"
+		" pslld		$8,%%mm7;\n"
+		" movd		%%mm6,%1;\n"
+		" imul		%1,%1;\n"
+		" movd		%%mm7,%0;\n"
+		" subl		%1,%0;\n"
+	: "=&r" (si) : "r" (0));
 
 	*vmc1 = sf;
 	*vmc2 = sb;

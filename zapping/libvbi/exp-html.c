@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.17 2001-04-05 19:56:33 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.18 2001-06-23 02:50:44 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -138,6 +138,7 @@ escaped_fputc(FILE *fp, int c)
 
 		default:
 			putc(c, fp);
+			break;
 		}
 }
 
@@ -562,6 +563,7 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 							d->link = TRUE;
 
 						default:
+							break;
 						}
 					}
 
@@ -623,6 +625,7 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 						d->link = TRUE;
 
 					default:
+						break;
 					}
 				}
 			}

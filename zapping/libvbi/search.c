@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.13 2001-03-28 07:48:15 mschimek Exp $ */
+/* $Id: search.c,v 1.14 2001-06-23 02:50:44 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -142,6 +142,7 @@ highlight(struct search *s, struct vt_page *vtp,
 
 			default:
 				// *hp++ = 0x0020; // ignore lower halves (?)
+				break;
 			}
 		}
 
@@ -499,6 +500,7 @@ vbi_next_search(void *p, struct fmt_page **pg, int dir)
 		return -1;
 
 	default:
+		break;
 	}
 
 	return -2;

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.4 2001-04-24 07:14:10 mschimek Exp $ */
+/* $Id: trigger.c,v 1.5 2001-06-23 02:50:44 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +34,7 @@
 
 #include "../common/types.h"
 
+#include "trigger.h"
 #include "tables.h"
 #include "vbi.h"
 
@@ -317,6 +318,7 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 
 			default:
 				/* ignored */
+				break;
 			}
 		} else if (c == 0)
 			break;
@@ -526,6 +528,7 @@ parse_atvef(vbi_trigger *t, unsigned char *s1, double now)
 
 			default:
 				/* ignored */
+				break;
 			}
 
 		} else if (c == 0)

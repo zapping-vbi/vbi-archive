@@ -425,26 +425,26 @@ static void yuyv_rgb16_mmx (uint8_t *d, uint8_t *s,
 
 	for (; v_size > 0; v_size--) {
 		for (x = 0; x < h_size; x += 8) {
-			asm ("
-			movq		(%0),%%mm0;	// Vb Y3 Ub Y2 Va Y1 Ua Y0
-			movq		8(%0),%%mm1;	// Vd Y7 Ud Y6 Vc Y5 Uc Y4
+			asm (
+			" movq		(%0),%%mm0;\n"	// Vb Y3 Ub Y2 Va Y1 Ua Y0
+			" movq		8(%0),%%mm1;\n"	// Vd Y7 Ud Y6 Vc Y5 Uc Y4
 
-			movq		%%mm0,%%mm2;
-			punpcklwd	%%mm1,%%mm0;	// Vc Y5 Va Y1 Uc Y4 Ua Y0
-			punpckhwd	%%mm1,%%mm2;	// Vd Y7 Vb Y3 Ud Y6 Ub Y2
-			movq		%%mm0,%%mm1;
-			punpcklwd	%%mm2,%%mm0;	// Ud Y6 Uc Y4 Ub Y2 Ua Y0
-			punpckhwd	%%mm2,%%mm1;	// Vd Y7 Vc Y5 Vb Y3 Va Y1
+			" movq		%%mm0,%%mm2;\n"
+			" punpcklwd	%%mm1,%%mm0;\n"	// Vc Y5 Va Y1 Uc Y4 Ua Y0
+			" punpckhwd	%%mm1,%%mm2;\n"	// Vd Y7 Vb Y3 Ud Y6 Ub Y2
+			" movq		%%mm0,%%mm1;\n"
+			" punpcklwd	%%mm2,%%mm0;\n"	// Ud Y6 Uc Y4 Ub Y2 Ua Y0
+			" punpckhwd	%%mm2,%%mm1;\n"	// Vd Y7 Vc Y5 Vb Y3 Va Y1
 
-			movq		%%mm0,%%mm6;
-			movq		%%mm1,%%mm7;
-			pand		mmx_00ffw,%%mm6;
-			pand		mmx_00ffw,%%mm7;
-			psrlw		$8,%%mm0;
-			psrlw		$8,%%mm1;
-			psubw		mmx_10w,%%mm6;
-			psubw		mmx_10w,%%mm7;
-		    "
+			" movq		%%mm0,%%mm6;\n"
+			" movq		%%mm1,%%mm7;\n"
+			" pand		mmx_00ffw,%%mm6;\n"
+			" pand		mmx_00ffw,%%mm7;\n"
+			" psrlw		$8,%%mm0;\n"
+			" psrlw		$8,%%mm1;\n"
+			" psubw		mmx_10w,%%mm6;\n"
+			" psubw		mmx_10w,%%mm7;\n"
+
 		     /* Do the multiply part of the conversion for even and odd pixels,
 			register usage:
 			mm0 -> Cblue, mm1 -> Cred, mm2 -> Cgreen even pixels,
@@ -563,26 +563,26 @@ static void  yuyv_argb32_mmx (uint8_t *d, uint8_t *s,
 
 	for (; v_size > 0; v_size--) {
 		for (x = 0; x < h_size; x += 8) {
-			asm ("
-			movq		(%0),%%mm0;	// Vb Y3 Ub Y2 Va Y1 Ua Y0
-			movq		8(%0),%%mm1;	// Vd Y7 Ud Y6 Vc Y5 Uc Y4
+			asm (
+			" movq		(%0),%%mm0;\n"	// Vb Y3 Ub Y2 Va Y1 Ua Y0
+			" movq		8(%0),%%mm1;\n"	// Vd Y7 Ud Y6 Vc Y5 Uc Y4
 
-			movq		%%mm0,%%mm2;
-			punpcklwd	%%mm1,%%mm0;	// Vc Y5 Va Y1 Uc Y4 Ua Y0
-			punpckhwd	%%mm1,%%mm2;	// Vd Y7 Vb Y3 Ud Y6 Ub Y2
-			movq		%%mm0,%%mm1;
-			punpcklwd	%%mm2,%%mm0;	// Ud Y6 Uc Y4 Ub Y2 Ua Y0
-			punpckhwd	%%mm2,%%mm1;	// Vd Y7 Vc Y5 Vb Y3 Va Y1
+			" movq		%%mm0,%%mm2;\n"
+			" punpcklwd	%%mm1,%%mm0;\n"	// Vc Y5 Va Y1 Uc Y4 Ua Y0
+			" punpckhwd	%%mm1,%%mm2;\n"	// Vd Y7 Vb Y3 Ud Y6 Ub Y2
+			" movq		%%mm0,%%mm1;\n"
+			" punpcklwd	%%mm2,%%mm0;\n"	// Ud Y6 Uc Y4 Ub Y2 Ua Y0
+			" punpckhwd	%%mm2,%%mm1;\n"	// Vd Y7 Vc Y5 Vb Y3 Va Y1
 
-			movq		%%mm0,%%mm6;
-			movq		%%mm1,%%mm7;
-			pand		mmx_00ffw,%%mm6;
-			pand		mmx_00ffw,%%mm7;
-			psrlw		$8,%%mm0;
-			psrlw		$8,%%mm1;
-			psubw		mmx_10w,%%mm6;
-			psubw		mmx_10w,%%mm7;
-		    "
+			" movq		%%mm0,%%mm6;\n"
+			" movq		%%mm1,%%mm7;\n"
+			" pand		mmx_00ffw,%%mm6;\n"
+			" pand		mmx_00ffw,%%mm7;\n"
+			" psrlw		$8,%%mm0;\n"
+			" psrlw		$8,%%mm1;\n"
+			" psubw		mmx_10w,%%mm6;\n"
+			" psubw		mmx_10w,%%mm7;\n"
+
 		     /* Do the multiply part of the conversion for even and odd pixels,
 			register usage:
 			mm0 -> Cblue, mm1 -> Cred, mm2 -> Cgreen even pixels,

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bstream.h,v 1.2 2001-03-17 07:44:29 mschimek Exp $ */
+/* $Id: bstream.h,v 1.3 2001-06-23 02:50:44 mschimek Exp $ */
 
 #ifndef BITSTREAM_H
 #define BITSTREAM_H
@@ -48,9 +48,8 @@ extern int		bflush(struct bs_rec *b);
 static inline void
 bstartq(unsigned int v)
 {
-	asm volatile ("
-		movd		%0,%%mm0;
-	" :: "rm" (v) : "cc" FPU_REGS);
+	asm volatile ("\tmovd %0,%%mm0;\n"
+		:: "rm" (v) : "cc" FPU_REGS);
 }
 
 #define bcatq(v, n)							\

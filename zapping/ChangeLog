@@ -1,3 +1,7 @@
+23.06.2001	<mschimek@users.sf.net>
+
+	* gcc 3.0 fixes (nothing serious)
+
 22.06.2001	bug fixes <garetxe@users.sf.net>
 
 	* callbacks.c: fixed channel ordering, reported by n0mada@terra.es.

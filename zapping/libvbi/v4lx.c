@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.18 2001-06-18 12:33:58 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.19 2001-06-23 02:50:44 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,6 +60,8 @@ typedef struct {
 
 	struct vbi_decoder	dec;			/* raw vbi decoder context */
 
+	struct bit_slicer	wss_slicer;
+
 	int			fd;
 	int			btype;			/* v4l2 stream type */
 	int			num_raw_buffers;
@@ -73,6 +75,13 @@ typedef struct {
 	}			raw_buffer[MAX_RAW_BUFFERS];
 
 } vbi_device;
+
+#define WSS_TEST 0
+#if WSS_TEST
+
+static unsigned char wss_test_data[768 * 4];
+
+#endif
 
 /*
  *  Read Interface
@@ -1052,6 +1061,139 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 }
 
 #endif /* !HAVE_V4L2 */
+
+#if WSS_TEST
+
+static const unsigned char
+genuine_pal_wss_green[768] = {
+	 54, 76, 92, 82, 81, 73, 63, 91,200,254,253,183,162,233,246,195,
+	190,224,247,237,203,150, 80, 23, 53,103, 93, 38, 61,172,244,243,
+	240,202,214,251,233,125, 44, 34, 59, 95, 86, 40, 54,149,235,255,
+	240,208,206,247,249,164, 67, 28, 38, 82,100, 49, 26,121,227,249,
+	240,206,203,242,248,182, 87, 26, 33, 82, 94, 51, 37,102,197,250,
+	251,222,205,226,247,210,118, 38, 41, 78, 91, 67, 55,103,190,254,
+	252,240,220,206,211,229,245,254,207,108, 28, 42, 93,100, 60, 21,
+	120,200,245,241,223,221,220,216,222,233,234,188, 97, 27, 30, 70,
+	 70, 68, 67, 70, 71, 67, 58, 49, 77,159,240,248,226,203,211,227,
+	233,221,208,201,221,245,196, 99, 22, 39, 73, 88, 54, 34, 92,181,
+	243,246,217,186,212,245,192, 95, 23, 40, 72, 81, 46, 25, 84,170,
+	250,246,213,194,225,251,211,136, 22, 39, 73, 91, 62, 38, 84,157,
+	236,247,241,208,201,226,235,219,222,233,222,208,230,250,220,158,
+	 54, 36, 42, 74, 79, 58, 56, 76, 72, 49, 53, 80, 65, 20, 35,107,
+	246,249,239,225,217,221,226,227,218,225,220,215,231,250,236,200,
+	 68, 39, 31, 51, 71, 66, 53, 46, 63, 60, 58, 67, 70, 54, 50, 66,
+	194,245,246,209,193,228,240,219,116, 35,  8, 64, 93, 58, 39, 61,
+	170,232,249,234,210,224,237,231,127, 64, 27, 52, 84, 77, 56, 46,
+	136,224,245,233,196,198,240,240,162, 74, 20, 48, 84, 72, 49, 46,
+	126,200,246,242,205,202,227,245,172, 87, 19, 29, 72, 83, 59, 36,
+	 89,186,249,244,196,192,229,250,202, 94, 24, 37, 76, 95, 82, 49,
+	 71,171,251,251,203,189,221,253,220,123, 36, 31, 75, 96, 76, 49,
+	 79,160,247,252,232,199,207,234,233,138, 44, 28, 66, 91, 76, 53,
+	 59,148,229,252,240,202,202,241,252,165, 64, 20, 39, 72, 78, 65,
+	 57, 62, 63, 62, 64, 67, 62, 54, 58, 67, 74, 72, 65, 63, 62, 64,
+	 57, 68, 67, 55, 54, 66, 68, 57, 57, 56, 60, 63, 55, 50, 64
+};
+
+static void
+wss_test_init(vbi_device *vbi)
+{
+	unsigned char *p = wss_test_data;
+	int i, g, r, mode, bpp;
+
+	mode = 0;
+
+	for (i = 0; i < 768; i++) {
+		g = genuine_pal_wss_green[i];
+
+		switch (mode) {
+		case 0: /* RGB / BGR 888 */
+			*p++ = rand();
+			*p++ = g;
+			*p++ = rand();
+			bpp = 3;
+			break;
+
+		case 1: /* RGBA / BGRA 8888 */
+			*p++ = rand();
+			*p++ = g;
+			*p++ = rand();
+			*p++ = rand();
+			bpp = 4;
+			break;
+
+		case 2: /* RGB / BGR 565 */
+			g <<= 3;
+			g ^= rand & 0xF81F;
+			*p++ = g;
+			*p++ = g >> 8;
+			bpp = 2;
+			break;
+
+		case 3: /* RGB / BGR 5551 */
+			g <<= 2;
+			g ^= rand & 0xFC1F;
+			*p++ = g;
+			*p++ = g >> 8;
+			bpp = 2;
+			break;
+	}
+
+	unsigned int c_mask = (unsigned int)(-(cri_bits > 0)) >> (32 - cri_bits);
+	unsigned int f_mask = (unsigned int)(-(frc_bits > 0)) >> (32 - frc_bits);
+
+	d->cri_mask		= cri_mask & c_mask;
+	d->cri		 	= (cri_frc >> frc_bits) & d->cri_mask;
+	d->cri_bytes		= raw_bytes
+		- ((long long) sampling_rate * (payload + frc_bits)) / bit_rate;
+	d->cri_rate		= cri_rate;
+	d->oversampling_rate	= sampling_rate * OVERSAMPLING;
+	d->thresh		= 105 << 9;
+	d->frc			= cri_frc & f_mask;
+	d->frc_bits		= frc_bits;
+	d->step			= sampling_rate * 256.0 / bit_rate;
+
+	if (payload & 7) {
+		d->payload	= payload;
+		d->endian	= 3;
+	} else {
+		d->payload	= payload >> 3;
+		d->endian	= 1;
+	}
+
+	switch (modulation) {
+	case MOD_NRZ_MSB_ENDIAN:
+		d->endian--;
+	case MOD_NRZ_LSB_ENDIAN:
+		d->phase_shift = sampling_rate * 256.0 / cri_rate * .5
+			         + sampling_rate * 256.0 / bit_rate * .5 + 128;
+		break;
+
+	case MOD_BIPHASE_MSB_ENDIAN:
+		d->endian--;
+	case MOD_BIPHASE_LSB_ENDIAN:
+		d->phase_shift = sampling_rate * 256.0 / cri_rate * .5
+			         + sampling_rate * 256.0 / bit_rate * .25 + 128;
+		break;
+	}
+
+	init_bit_slicer(&vbi->wss_slicer, 
+		int raw_bytes,
+		int sampling_rate, 
+		/* cri_rate */ 5000000, 
+		/* bit_rate */ 833333,
+		/* cri_frc */ 0xC71E3C1F, 
+		/* cri_mask */ 0x924C99CE,
+		/* cri_bits */ 32, 
+		/* frc_bits */ 0, 
+		/* payload */ 14 * 1,
+		MOD_BIPHASE_LSB_ENDIAN);
+}
+
+#endif
+
+
+
+
 
 #define SLICED_TELETEXT_B	(SLICED_TELETEXT_B_L10_625 | SLICED_TELETEXT_B_L25_625)
 #define SLICED_CAPTION		(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625 \

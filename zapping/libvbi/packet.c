@@ -999,6 +999,7 @@ station_lookup(vbi_cni_type type, int cni,
 		break;
 
 	default:
+		break;
 	}
 
 	return 0;
@@ -1615,6 +1616,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 				memcpy(cvtp->data.unknown.raw[0], p, 40);
 
 			default:
+				break;
 			}
 
 			cvtp->lop_lines = vtp->lop_lines;
@@ -1827,6 +1829,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 
 		case PAGE_FUNCTION_TRIGGER:
 		default:
+			break;
 		}
 
 		if ((designation = hamm8a[p[0]]) < 0)
@@ -2169,6 +2172,7 @@ if(0)
 			return parse_bsd(vbi, p, packet, designation);
 
 		break;
+	
 	default:
 		break;
 	}

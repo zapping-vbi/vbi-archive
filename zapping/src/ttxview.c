@@ -3049,6 +3049,7 @@ on_ttxview_button_press			(GtkWidget	*widget,
 	  break;
 
 	default:
+	  break;
 	}
       break;
     default: /* context menu */

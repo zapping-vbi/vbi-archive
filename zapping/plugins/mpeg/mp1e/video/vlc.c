@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.c,v 1.7 2001-06-05 17:52:08 mschimek Exp $ */
+/* $Id: vlc.c,v 1.8 2001-06-23 02:50:44 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -289,12 +289,13 @@ mpeg1_encode_intra(void)
 			/*
 			 *  Find first set bit, starting at msb with 0 -> 0.
 			 */
-			asm volatile ("
-				bsrl		%1,%0
-				jnz		1f
-				movl		$-1,%0
-1:		    		incl		%0
-			" : "=&r" (size) : "r" (abs(val)));
+			asm volatile (
+				" bsrl		%1,%0\n"
+				" jnz		1f\n"
+				" movl		$-1,%0\n"
+		    	        "1:\n"
+				" incl		%0\n"
+			: "=&r" (size) : "r" (abs(val)));
 
 			if (val < 0) {
 				val--;

@@ -204,6 +204,7 @@ vtp_size(struct vt_page *vtp)
 		return sizeof(*vtp) - sizeof(vtp->data)	+ sizeof(vtp->data.ait);
 
 	default:
+		;
 	}
 
 	return sizeof(*vtp);

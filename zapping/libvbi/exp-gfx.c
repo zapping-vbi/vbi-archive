@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.32 2001-03-22 08:28:47 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.33 2001-06-23 02:50:44 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -148,6 +148,7 @@ draw_char(int canvas_type, uint8_t *canvas, unsigned int rowstride,
 		ch >>= 1;
 
 	default:
+		break;
 	}
 
 	for (y = 0; y < ch; underline >>= 1, y++) {
@@ -291,6 +292,7 @@ draw_drcs(int canvas_type, uint8_t *canvas, uint8_t *pen,
 		break;
 
 	default:
+		break;
 	}
 }
 

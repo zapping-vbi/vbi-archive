@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mmx.c,v 1.7 2001-06-01 20:24:35 mschimek Exp $ */
+/* $Id: mmx.c,v 1.8 2001-06-23 02:50:44 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "log.h"
@@ -60,23 +60,23 @@ toggle_eflags_id(void)
 {
 	int success;
 
-	__asm__ __volatile__ ("
-		pushfl
-		popl		%%ecx
-		movl		%%ecx,%%eax
-		xorl		$0x200000,%%eax
-		pushl		%%eax
-		popfl
-		pushfl
-		popl		%%eax
-		pushl		%%ecx
-		popfl
-		xorl		%%ecx,%%eax
-		andl		$0x200000,%%eax
-		jz		1f
-		movl		$1,%%eax
-1:
-	" : "=a" (success) :: "ecx", "cc");
+	__asm__ __volatile__ (
+		" pushfl	\n"
+		" popl		%%ecx\n"
+		" movl		%%ecx,%%eax\n"
+		" xorl		$0x200000,%%eax\n"
+		" pushl		%%eax\n"
+		" popfl		\n"
+		" pushfl	\n"
+		" popl		%%eax\n"
+		" pushl		%%ecx\n"
+		" popfl		\n"
+		" xorl		%%ecx,%%eax\n"
+		" andl		$0x200000,%%eax\n"
+		" jz		1f\n"
+		" movl		$1,%%eax\n"
+		"1:\n"
+	: "=a" (success) :: "ecx", "cc");
 
 	return success;
 }
@@ -87,21 +87,19 @@ cpuid(cpuid_t *buf, unsigned int level)
 	unsigned int eax;
 
 	/* ARRRR */
-	__asm__ __volatile__ ("
-		pushl	%%ebx
-		pushl	%%ecx
-		pushl	%%edx
-
-		cpuid
-		movl	%%eax,(%%edi)
-		movl	%%ebx,4(%%edi)
-		movl	%%edx,8(%%edi)
-		movl	%%ecx,12(%%edi)
-
-		popl	%%edx
-		popl	%%ecx
-		popl	%%ebx
-	" : "=a" (eax) : "D" (buf), "a" (level) /*: "ebx", "ecx", "edx", "cc", "memory"*/);
+	__asm__ __volatile__ (
+		" pushl		%%ebx\n"
+		" pushl		%%ecx\n"
+		" pushl		%%edx\n"
+		" cpuid		\n"
+		" movl		%%eax,(%%edi)\n"
+		" movl		%%ebx,4(%%edi)\n"
+		" movl		%%edx,8(%%edi)\n"
+		" movl		%%ecx,12(%%edi)\n"
+		" popl		%%edx\n"
+		" popl		%%ecx\n"
+		" popl		%%ebx\n"
+	: "=a" (eax) : "D" (buf), "a" (level) /*: "ebx", "ecx", "edx", "cc", "memory"*/);
 
 	return eax;
 }
@@ -141,7 +139,7 @@ cpu_detection(void)
 
 		if (FEATURE(INTEL_MMX | INTEL_CMOV | INTEL_SSE | INTEL_SSE2))
 			return CPU_PENTIUM_4;
-		if (FEATURE(INTEL_MMX | INTEL_CMOV | INTEL_SSE))		
+		if (FEATURE(INTEL_MMX | INTEL_CMOV | INTEL_SSE))
 			return CPU_PENTIUM_III;
 		if (FEATURE(INTEL_MMX | INTEL_CMOV))
 			return CPU_PENTIUM_II;
@@ -183,4 +181,4 @@ cpu_detection(cpu_architecture arch)
 	return 0;
 }
 
-#endif // !cpu x86
+#endif /* !cpu x86 */

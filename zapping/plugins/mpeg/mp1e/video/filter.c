@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.6 2001-06-05 17:52:08 mschimek Exp $ */
+/* $Id: filter.c,v 1.7 2001-06-23 02:50:44 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -99,25 +99,24 @@ color_trap(unsigned char *buffer1, unsigned char *buffer2)
 {
 	int r = color_pred(buffer1, buffer2);
 
-	asm volatile ("
-		movq	c128,%%mm0;
-		movq	%%mm0,(%0);	movq	%%mm0,1*8(%0);
-		movq	%%mm0,2*8(%0);	movq	%%mm0,3*8(%0);
-		movq	%%mm0,4*8(%0);	movq	%%mm0,5*8(%0);
-		movq	%%mm0,6*8(%0);	movq	%%mm0,7*8(%0);
-		movq	%%mm0,8*8(%0);	movq	%%mm0,9*8(%0);
-		movq	%%mm0,10*8(%0);	movq	%%mm0,11*8(%0);
-		movq	%%mm0,12*8(%0);	movq	%%mm0,13*8(%0);
-		movq	%%mm0,14*8(%0);	movq	%%mm0,15*8(%0);
-		movq	%%mm0,16*8(%0);	movq	%%mm0,17*8(%0);
-		movq	%%mm0,18*8(%0);	movq	%%mm0,19*8(%0);
-		movq	%%mm0,20*8(%0);	movq	%%mm0,21*8(%0);
-		movq	%%mm0,22*8(%0);	movq	%%mm0,23*8(%0);
-		movq	%%mm0,24*8(%0);	movq	%%mm0,25*8(%0);
-		movq	%%mm0,26*8(%0);	movq	%%mm0,27*8(%0);
-		movq	%%mm0,28*8(%0);	movq	%%mm0,29*8(%0);
-		movq	%%mm0,30*8(%0);	movq	%%mm0,31*8(%0);
-	"
+	asm volatile (
+		"\t movq c128,%%mm0;\n"
+		"\t movq %%mm0,(%0);	movq %%mm0,1*8(%0);\n"
+		"\t movq %%mm0,2*8(%0);	movq %%mm0,3*8(%0);\n"
+		"\t movq %%mm0,4*8(%0);	movq %%mm0,5*8(%0);\n"
+		"\t movq %%mm0,6*8(%0);	movq %%mm0,7*8(%0);\n"
+		"\t movq %%mm0,8*8(%0);	movq %%mm0,9*8(%0);\n"
+		"\t movq %%mm0,10*8(%0); movq %%mm0,11*8(%0);\n"
+		"\t movq %%mm0,12*8(%0); movq %%mm0,13*8(%0);\n"
+		"\t movq %%mm0,14*8(%0); movq %%mm0,15*8(%0);\n"
+		"\t movq %%mm0,16*8(%0); movq %%mm0,17*8(%0);\n"
+		"\t movq %%mm0,18*8(%0); movq %%mm0,19*8(%0);\n"
+		"\t movq %%mm0,20*8(%0); movq %%mm0,21*8(%0);\n"
+		"\t movq %%mm0,22*8(%0); movq %%mm0,23*8(%0);\n"
+		"\t movq %%mm0,24*8(%0); movq %%mm0,25*8(%0);\n"
+		"\t movq %%mm0,26*8(%0); movq %%mm0,27*8(%0);\n"
+		"\t movq %%mm0,28*8(%0); movq %%mm0,29*8(%0);\n"
+		"\t movq %%mm0,30*8(%0); movq %%mm0,31*8(%0);\n"
 	:: "D" (&mblock[0][4][0][0]) : "cc", "memory" FPU_REGS);
 
 	return r;

@@ -61,28 +61,30 @@ typedef	union {
 
 extern int cpu_detection(void);
 
-#if __GNUC__ != 2 || __GNUC_MINOR__ < 6
-
-#error Sorry, your GCC does not exist.
-
-#elif __GNUC_MINOR__ < 90 /* gcc [2.7.2.3] */
-
-#define FPU_REGS
-#define SECTION(x)
-#define emms() asm("\temms\n")
-
-#elif __GNUC_MINOR__ < 95 /* egcs [2.91.66] */
-
-#define FPU_REGS
-#define SECTION(x)
-#define emms() asm("\temms\n")
-
-#else /* ? [2.95.2] */
-
-#define FPU_REGS , "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)"
-#define SECTION(x) section (x), 
-#define emms() do { asm volatile ("\temms\n" ::: "cc" FPU_REGS); } while(0)
-
+#if __GNUC__ == 3
+# if __GNUC_MINOR__ > 0
+#  warning Compilation with your version of gcc is untested,
+#  warning may fail or create incorrect code.
+# endif
+# define FPU_REGS , "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)"
+# define SECTION(x) section (x), 
+# define emms() do { asm volatile ("\temms\n" ::: "cc" FPU_REGS); } while(0)
+#elif __GNUC__ == 2
+# if __GNUC_MINOR__ < 90 /* gcc [2.7.2.3] */
+#  define FPU_REGS
+#  define SECTION(x)
+#  define emms() asm("\temms\n")
+# elif __GNUC_MINOR__ < 95 /* egcs [2.91.66] */
+#  define FPU_REGS
+#  define SECTION(x)
+#  define emms() asm("\temms\n")
+# else /* egcs [2.95.2] */
+#  define FPU_REGS , "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)"
+#  define SECTION(x) section (x), 
+#  define emms() do { asm volatile ("\temms\n" ::: "cc" FPU_REGS); } while(0)
+# endif
+#else
+# error Sorry, your GCC does not exist.
 #endif
 
 #define CACHE_LINE 32 // power of two

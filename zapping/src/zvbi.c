@@ -1500,6 +1500,7 @@ event(vbi_event *ev, void *unused)
       break;
       
     default:
+      break;
     }
 }
 

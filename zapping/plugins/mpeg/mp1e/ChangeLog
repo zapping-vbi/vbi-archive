@@ -1,6 +1,7 @@
 2001-06-22	<mschimek@users.sourceforge.net>
 
 	- MC + 704x576 -> segv
+	* gcc 3.0 fixes
 
 2001-06-07	<mschimek@users.sourceforge.net>
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bstream.c,v 1.2 2000-10-15 21:24:48 mschimek Exp $ */
+/* $Id: bstream.c,v 1.3 2001-06-23 02:50:44 mschimek Exp $ */
 
 #include "bstream.h"
 
@@ -37,37 +37,38 @@ binit_write(struct bs_rec *b)
 void
 bputl(struct bs_rec *b, unsigned int v, int n)
 {
-	asm("
-		movd		%0,%%mm2;		
-		subl		%1,%2;
-		movd		%2,%%mm1;		
-		jle		1f;
-		psllq		%%mm1,%%mm2;		
-		movl		%1,%3;
-		por		%%mm2,%%mm7;		
-		jmp		2f;
-1:		movl		%4,%2;			
-		pxor		%%mm4,%%mm4;
-		movd		%5,%%mm3;		
-		addl		$8,%2;
-		movq		%%mm2,%%mm5;		
-		paddd		%%mm1,%%mm3;
-		psubd		%%mm1,%%mm4;		
-		psllq		%%mm3,%%mm2;
-		movd		%%mm4,%3;		
-		psrlq		%%mm4,%%mm5;
-		por		%%mm7,%%mm5;		
-		movq		%%mm2,%%mm7;
-		movd		%%mm5,%0;		
-		psrlq		$32,%%mm5;
-		bswap		%0;
-		movl		%0,-4(%2)
-		movd		%%mm5,%1;		
-		movl		%2,%4;
-		bswap		%1;
-		movl		%1,-8(%2);		
-2:
-	" :: "r" (v), "r" (n + b->n), "r" (64),
+	asm volatile (
+		" movd		%0,%%mm2;\n"
+		" subl		%1,%2;\n"
+		" movd		%2,%%mm1;\n"
+		" jle		1f;\n"
+		" psllq		%%mm1,%%mm2;\n"
+		" movl		%1,%3;\n"
+		" por		%%mm2,%%mm7;\n"
+		" jmp		2f;\n"
+		"1:\n"
+		" movl		%4,%2;\n"		
+		" pxor		%%mm4,%%mm4;\n"
+		" movd		%5,%%mm3;\n"
+		" addl		$8,%2;\n"
+		" movq		%%mm2,%%mm5;\n"
+		" paddd		%%mm1,%%mm3;\n"
+		" psubd		%%mm1,%%mm4;\n"
+		" psllq		%%mm3,%%mm2;\n"
+		" movd		%%mm4,%3;\n"
+		" psrlq		%%mm4,%%mm5;\n"
+		" por		%%mm7,%%mm5;\n"	
+		" movq		%%mm2,%%mm7;\n"
+		" movd		%%mm5,%0;\n"
+		" psrlq		$32,%%mm5;\n"
+		" bswap		%0;\n"
+		" movl		%0,-4(%2)\n"
+		" movd		%%mm5,%1;\n"
+		" movl		%2,%4;\n"
+		" bswap		%1;\n"
+		" movl		%1,-8(%2);\n"
+		"2:\n"
+	:: "r" (v), "r" (n + b->n), "r" (64),
 	     "m" (b->n), "m" (b->p), "m" (b->uq64)
 	  : "cc", "memory" FPU_REGS);
 }
@@ -79,39 +80,40 @@ bputl(struct bs_rec *b, unsigned int v, int n)
 void
 bputq(struct bs_rec *b, int n)
 {
-	asm("
-		movq		%%mm0,%%mm2;		
-		subl		%1,%2;
-		movd		%2,%%mm1;		
-		jle		1f;
-		psllq		%%mm1,%%mm2;		
-		movl		%1,%3;
-		por		%%mm2,%%mm7;		
-		jmp		2f;
-1:		movl		%4,%2;			
-		pxor		%%mm4,%%mm4;
-		movd		%5,%%mm3;		
-		addl		$8,%2;
-		movq		%%mm2,%%mm5;		
-		paddd		%%mm1,%%mm3;
-		psubd		%%mm1,%%mm4;		
-		psllq		%%mm3,%%mm2;
-		movd		%%mm4,%3;		
-		psrlq		%%mm4,%%mm5;
-		por		%%mm7,%%mm5;		
-		movq		%%mm2,%%mm7;
-		movd		%%mm5,%1;		
-		psrlq		$32,%%mm5;
-		bswap		%1;
-		movl		%1,-4(%2)
-		movd		%%mm5,%1;		
-		movl		%2,%4;
-		bswap		%1;
-		movl		%1,-8(%2);		
-2:
-	" :: "r" (b->n), "r" (n + b->n), "r" (64),
+	asm volatile (
+		" movq		%%mm0,%%mm2;\n"
+		" subl		%1,%2;\n"
+		" movd		%2,%%mm1;\n"
+		" jle		1f;\n"
+		" psllq		%%mm1,%%mm2;\n"
+		" movl		%1,%3;\n"
+		" por		%%mm2,%%mm7;\n"
+		" jmp		2f;\n"
+		"1:\n"
+		" movl		%4,%2;\n"		
+		" pxor		%%mm4,%%mm4;\n"
+		" movd		%5,%%mm3;\n"		
+		" addl		$8,%2;\n"
+		" movq		%%mm2,%%mm5;\n"		
+		" paddd		%%mm1,%%mm3;\n"
+		" psubd		%%mm1,%%mm4;\n"		
+		" psllq		%%mm3,%%mm2;\n"
+		" movd		%%mm4,%3;\n"		
+		" psrlq		%%mm4,%%mm5;\n"
+		" por		%%mm7,%%mm5;\n"
+		" movq		%%mm2,%%mm7;\n"
+		" movd		%%mm5,%1;\n"
+		" psrlq		$32,%%mm5;\n"
+		" bswap		%1;\n"
+		" movl		%1,-4(%2)\n"
+		" movd		%%mm5,%1;\n"		
+		" movl		%2,%4;\n"
+		" bswap		%1;\n"
+		" movl		%1,-8(%2);\n"
+		"2:\n"
+	:: "r" (b->n), "r" (n + b->n), "r" (64),
 	     "m" (b->n), "m" (b->p), "m" (b->uq64)
-	  : "cc", "memory" FPU_REGS);
+	: "cc", "memory" FPU_REGS);
 }
 
 /*

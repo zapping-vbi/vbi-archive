@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.14 2001-05-09 22:33:21 garetxe Exp $ */
+/* $Id: mpeg1.c,v 1.15 2001-06-23 02:50:44 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,7 +37,7 @@
 #include "systems.h"
 #include "stream.h"
 
-int		mux_thread_done = 0; /* audio/video threads will quit
+volatile int	mux_thread_done = 0; /* audio/video threads will quit
 					when this becomes 1 */
 
 #define put(p, val, bytes)						\
@@ -244,7 +244,7 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 				break;
 
 			default:
-				/* no time stamp */
+				; /* no time stamp */
 			}
 		} else {
 			*ppts = str->dts + str->pts_offset;

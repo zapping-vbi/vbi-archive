@@ -18,11 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.h,v 1.1 2001-04-05 19:56:33 mschimek Exp $ */
+/* $Id: trigger.h,v 1.2 2001-06-23 02:50:44 mschimek Exp $ */
 
 #include "vbi.h"
 
 extern void		vbi_trigger_flush(struct vbi *vbi);
 extern void		vbi_deferred_trigger(struct vbi *vbi);
 extern void		vbi_eacem_trigger(struct vbi *vbi, unsigned char *s);
-extern void		vbi_atvef_trigger(struct vbi *vbi, unsigned char *s);
+extern void		vbi_atvef_trigger(struct vbi *vbi, char *s);

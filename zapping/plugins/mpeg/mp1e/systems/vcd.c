@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.2 2001-02-22 14:15:51 mschimek Exp $ */
+/* $Id: vcd.c,v 1.3 2001-06-23 02:50:44 mschimek Exp $ */
 
 /*
  *  This code creates a stream suitable for mkvcdfs as vcdmplex
@@ -204,7 +204,7 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 				break;
 
 			default:
-				/* no time stamp */
+				; /* no time stamp */
 			}
 		} else {
 			*ppts = str->dts + str->pts_offset;
