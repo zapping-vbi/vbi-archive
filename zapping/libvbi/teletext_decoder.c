@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.7 2005-01-27 04:15:23 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.8 2005-01-31 07:09:21 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -1204,7 +1204,7 @@ static vbi3_bool
 mip_page_stat			(cache_network *	cn,
 				 const cache_page *	cp,
 				 const uint8_t **	raw,
-				 int *			sub_index,
+				 unsigned int *		sub_index,
 				 vbi3_pgno		pgno)
 {
 	page_stat *ps;
@@ -4560,6 +4560,8 @@ vbi3_teletext_decoder_reset	(vbi3_teletext_decoder *	td,
 				 vbi3_videostd_set	videostd_set)
 {
 	cache_network *cn;
+
+	assert (NULL != td);
 
 	td->videostd_set = videostd_set;
 
