@@ -1815,7 +1815,7 @@ create_export_slider (GtkWidget *table, vbi_export_option *xo,
   gtk_signal_connect (adj, "value-changed", 
 		     GTK_SIGNAL_FUNC (on_export_control),
 		     GINT_TO_POINTER (index));
-  on_export_control(GTK_WIDGET(adj), GINT_TO_POINTER (index));
+  on_export_control((GtkWidget *) adj, GINT_TO_POINTER (index));
 
   hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
   gtk_scale_set_value_pos (GTK_SCALE (hscale), GTK_POS_LEFT);

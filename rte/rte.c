@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.17 2001-10-26 09:14:51 mschimek Exp $ */
+/* $Id: rte.c,v 1.18 2001-11-01 03:26:46 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -1078,6 +1078,9 @@ rte_context_new2(char *keyword)
  * 
  * This function stops encoding if active, then frees all resources
  * associated with the context.
+
+XXX check this joins all threads regardless of context state.
+
  **/
 void
 rte_context_delete(rte_context *context)

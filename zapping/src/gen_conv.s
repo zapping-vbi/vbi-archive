@@ -20,8 +20,6 @@
 
 /* Generated file - do not edit */
 
-#warning "Me is me"
-
 		.data
 		.align 32
 .L3:

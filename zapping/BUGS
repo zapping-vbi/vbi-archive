@@ -14,6 +14,9 @@ Known bugs with zapping, don't report them
 	* Look for endianness problems.
 	* CC to be checked.
 	* Mpeg plugin/mp1e rc when promoting frames broke.
+	* Mpeg plugin/mp1e frame skipping method 2&3 don't work.
+	* Mpeg plugin/mp1e very low frame rate interrupts display,
+	  probably a scheduling issue. Investigate if/how this can be avoided.
 	* When I set recording size 176x144 the image is garbled,
 	  both displayed and recorded, apparently due to incorrect scan
 	  line pitch. Happened with my driver and the v4l2 sample driver

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.10 2001-10-28 20:05:13 garetxe Exp $ */
+/* $Id: options.c,v 1.11 2001-11-01 03:26:25 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -321,13 +321,13 @@ create_slider (grte_options *opts, rte_option *ro, int index)
   gtk_signal_connect (GTK_OBJECT (adj), "value-changed",
 		      GTK_SIGNAL_FUNC (on_option_control), opts);
 
-  do_option_control (GTK_WIDGET (adj), opts);
-
   hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
   gtk_scale_set_draw_value (GTK_SCALE (hscale), FALSE);
   set_tooltip (hscale, _(ro->tooltip));
   gtk_widget_show (hscale);
   gtk_box_pack_start (GTK_BOX (hbox), hscale, TRUE, TRUE, 0);
+
+  do_option_control ((GtkWidget *) adj, opts);
 
   button = gtk_button_new_with_label (_("Reset"));
   gtk_object_set_data (GTK_OBJECT (button), "key", ro->keyword);

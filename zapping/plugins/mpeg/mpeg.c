@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.20 2001-10-26 09:12:06 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.21 2001-11-01 03:26:25 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -28,10 +28,8 @@
 #include "audio.h"
 #include "mpeg.h"
 
-#warning NOT NTSC READY
 /*
   TODO:
-    . support for SECAM/NTSC/etc standards
     . options aren't checked at input time. problem eg.
       gop_seq, why bother the user while he's still typing.
       otoh we use the codec as temp storage and it wont
@@ -59,6 +57,9 @@ static rte_context * context_enc = NULL;
 
 /* Info about the video device */
 static tveng_device_info * zapping_info = NULL;
+static gdouble captured_frame_rate = 0.0;
+/* Audio device */
+static gpointer audio_handle;
 /* Pointer to the dialog that appears while saving */
 static GtkWidget * saving_dialog = NULL;
 /* Show the warning about sync with V4L */
@@ -90,7 +91,6 @@ static GtkWidget *video_options;
 static gboolean on_delete_event (GtkWidget *widget, GdkEvent
 				*event, gpointer user_data);
 static void on_button_clicked (GtkButton *button, gpointer user_data);
-static void close_audio (void);
 
 gint plugin_get_protocol ( void )
 {
@@ -176,17 +176,6 @@ void plugin_get_info (const gchar ** canonical_name,
     *version = _(str_version);
 }
 
-static void
-destroy_options (GtkWidget **options_p)
-{
-  if (!*options_p)
-    return;
- 
-  gtk_widget_destroy (*options_p);
-
-  *options_p = NULL;
-}
-
 static
 gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
 {
@@ -198,14 +187,7 @@ gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
 	      GNOME_MESSAGE_BOX_ERROR);
       return FALSE;
     }
-  /*
-  if (! (context_prop = rte_context_new (352, 288, "mp1e", NULL)))
-    {
-      ShowBox ("The encoding context cannot be created",
-	      GNOME_MESSAGE_BOX_ERROR);
-      return FALSE;
-    }
-  */
+
   return TRUE;
 }
 
@@ -214,58 +196,20 @@ void plugin_close (void)
 {
   if (active)
     {
-      /* FIXME: This could hang */
       if (context_enc)
 	rte_context_destroy (context_enc);
+      context_enc = NULL;
+
       if (context_prop)
 	rte_context_destroy (context_prop);
-      context_enc = NULL;
-      /* What happened to the grte_options referencing this context? */
       context_prop = NULL;
-      close_audio ();
+
+      if (audio_handle)
+	close_audio_device (audio_handle);
+      audio_handle = NULL;
+
       active = FALSE;
     }
-}
-
-/*
- * Audio capture
- */
-
-static gpointer audio_handle;
-
-static void
-audio_data_callback (rte_context * context, void * data, double * time, enum
-		    rte_mux_mode stream, void * user_data)
-{
-  struct timeval tv;
-
-  g_assert (stream == RTE_AUDIO);
-
-  read_audio_data (audio_handle, data, context->audio_bytes, time);
-}
-
-static gboolean
-init_audio (gint rate, gboolean stereo)
-{
-  audio_handle = open_audio_device (stereo, rate, AUDIO_FORMAT_S16_LE);
-
-  return audio_handle != NULL;
-}
-
-static void
-close_audio (void)
-{
-  if (audio_handle)
-    close_audio_device (audio_handle);
-  audio_handle = NULL;
-}
-
-/* Called when compressed data is ready */
-static void
-encode_callback (rte_context * context, void * data, ssize_t size,
-		void * user_data)
-{
-  /* currently /dev/null handler */
 }
 
 /*
@@ -274,7 +218,7 @@ encode_callback (rte_context * context, void * data, ssize_t size,
  * On error, NULL is returned, and name is undefined.
  * You need to g_free name on success.
  */
-static FILE*
+static FILE *
 resolve_filename (const gchar * dir, const gchar * prefix,
 		 const gchar * suffix, gchar ** name)
 {
@@ -313,10 +257,8 @@ resolve_filename (const gchar * dir, const gchar * prefix,
   return returned_file;
 }
 
-static gpointer data_dest;
-
-static
-gint update_timeout ( rte_context *context )
+static gint
+update_timeout (rte_context *context)
 {
   struct rte_status_info status;
   GtkWidget *widget;
@@ -333,11 +275,9 @@ gint update_timeout ( rte_context *context )
 
   rte_get_status (context, &status);
 
-
-
   widget = lookup_widget (saving_dialog, "label31");
 
-  s  = t = status.processed_frames / 25.0; /* FIXME */
+  s  = t = status.processed_frames / captured_frame_rate;
   m  = s / 60;
   s -= m * 60;
   h  = m / 60;
@@ -376,9 +316,25 @@ gint update_timeout ( rte_context *context )
 }
 
 static void
-video_buffer_callback (rte_context *context,
-		      rte_buffer *rb,
-		      enum rte_mux_mode stream)
+audio_data_callback (rte_context *context, void *data, double *time,
+		     enum rte_mux_mode stream, void *user_data)
+{
+  g_assert (stream == RTE_AUDIO);
+
+  read_audio_data (audio_handle, data, context->audio_bytes, time);
+}
+
+/* Called when compressed data is ready */
+static void
+encode_callback (rte_context *context, void *data, ssize_t size,
+		 void *user_data)
+{
+  /* currently /dev/null handler */
+}
+
+static void
+video_buffer_callback (rte_context *context, rte_buffer *rb,
+		       enum rte_mux_mode stream)
 {
   buffer *b;
   struct tveng_frame_format *fmt;
@@ -412,8 +368,8 @@ video_unref_callback (rte_context *context, rte_buffer *buf)
   send_empty_buffer (&mpeg_consumer, (buffer*)buf->user_data);
 }
 
-static
-gboolean plugin_start (void)
+static gboolean
+plugin_start (void)
 {
   enum rte_pixformat pixformat = 0;
   enum tveng_frame_pixformat tveng_pixformat;
@@ -498,6 +454,8 @@ gboolean plugin_start (void)
   if (0)
     fprintf (stderr, "codecs: a%p v%p\n", audio_codec, video_codec);
 
+  captured_frame_rate = 0.0;
+
   if (video_codec)
     {
       if (zmisc_switch_mode (TVENG_CAPTURE_READ, zapping_info))
@@ -529,27 +487,31 @@ gboolean plugin_start (void)
       else
 	pixformat = RTE_YUYV;
 
-/* FIXME */
+      captured_frame_rate = zapping_info->standards[zapping_info->cur_standard].frame_rate;
+
       g_assert (rte_option_set (video_codec, "coded_frame_rate",
-				(double) 25.0));
+				(double) captured_frame_rate));
     }
 
   if (audio_codec)
     {
+      /* XXX improve me */
+
       memset (&params, 0, sizeof (params));
       g_assert (rte_set_parameters (audio_codec, &params));
 
-      /* XXX improve me */
-      if (!init_audio (params.audio.sampling_freq,
-		       params.audio.channels > 1))
+      audio_handle = open_audio_device (params.audio.channels > 1,
+					params.audio.sampling_freq,
+					AUDIO_FORMAT_S16_LE);
+      if (!audio_handle)
 	{
-	  rte_context_destroy (context);
-	  context_enc = NULL;
-
 	  ShowBox ("Couldn't open the audio device",
 		  GNOME_MESSAGE_BOX_ERROR);
-	  return FALSE;
+	  goto failed;
 	}
+
+      if (!video_codec) /* XXX mp2 only */
+	captured_frame_rate = params.audio.sampling_freq / 1152.0;
     }
 
   rte_set_verbosity (context, engine_verbosity);
@@ -575,16 +537,10 @@ gboolean plugin_start (void)
 		      video_buffer_callback, video_unref_callback);
 	break;
       default:
-	close_audio ();
-	rte_context_destroy (context);
-	context_enc = NULL;
-	
 	ShowBox ("Nothing to record.",
 		GNOME_MESSAGE_BOX_ERROR);
-	return FALSE;
+	goto failed;
     }
-
-  data_dest = NULL;
 
   switch (output_mode)
     {
@@ -594,10 +550,7 @@ gboolean plugin_start (void)
 				 &file_name);
       if (!file_fd)
 	{
-	  close_audio ();
-	  rte_context_destroy (context);
-	  context_enc = NULL;
-	  return FALSE;
+	  goto failed;
 	}
       fclose (file_fd);
       rte_set_output (context, NULL, NULL, file_name);
@@ -629,10 +582,7 @@ gboolean plugin_start (void)
     {
       ShowBox ("The encoding context cannot be inited: %s",
 	      GNOME_MESSAGE_BOX_ERROR, context->error);
-      close_audio ();
-      rte_context_destroy (context);
-      context_enc = NULL;
-      return FALSE;
+      goto failed;
     }
 
   active = TRUE;
@@ -646,13 +596,10 @@ gboolean plugin_start (void)
     {
       ShowBox ("Cannot start encoding: %s", GNOME_MESSAGE_BOX_ERROR,
 	      context->error);
-      close_audio ();
-      rte_context_destroy (context);
-      context_enc = NULL;
-      active = FALSE;
       rem_consumer (&mpeg_consumer);
       capture_unlock ();
-      return FALSE;
+      active = FALSE;
+      goto failed;
     }
 
   if (saving_dialog)
@@ -730,11 +677,55 @@ gboolean plugin_start (void)
   g_free (file_name);
 
   update_timeout_id =
-    gtk_timeout_add (50, (GtkFunction)update_timeout, context);
+    gtk_timeout_add (250, (GtkFunction)update_timeout, context);
 
   gtk_widget_show (saving_dialog);
 
   return TRUE;
+
+ failed:
+  if (context_enc)
+    rte_context_destroy (context_enc);
+  context_enc = NULL;
+
+  if (audio_handle)
+    close_audio_device (audio_handle);
+  audio_handle = NULL;
+
+  return FALSE;
+}
+
+static void
+do_stop (void)
+{
+  if (!active)
+    return;
+
+  rte_context_destroy (context_enc);
+  context_enc = NULL;
+
+  if (saving_dialog)
+    {
+      gtk_widget_destroy (saving_dialog);
+
+      saving_dialog = NULL;
+    }
+
+  active = FALSE;
+
+  rem_consumer (&mpeg_consumer);
+
+  if (update_timeout_id >= 0)
+    {
+      gtk_timeout_remove (update_timeout_id);
+      update_timeout_id = -1;
+    }
+
+  if (audio_handle)
+    close_audio_device (audio_handle);
+  audio_handle = NULL;
+
+  capture_unlock ();
 }
 
 static gboolean
@@ -824,37 +815,6 @@ void plugin_save_config (gchar * root_key)
     grte_context_save (context_prop, MPEG_CONFIG);
 }
 
-static void
-do_stop (void)
-{
-  if (!active)
-    return;
-
-  if (saving_dialog)
-    {
-      gtk_widget_destroy (saving_dialog);
-
-      saving_dialog = NULL;
-    }
-
-  active = FALSE;
-
-  rte_context_destroy (context_enc);
-  context_enc = NULL;
-
-  rem_consumer (&mpeg_consumer);
-
-  if (update_timeout_id >= 0)
-    {
-      gtk_timeout_remove (update_timeout_id);
-      update_timeout_id = -1;
-    }
-
-  close_audio ();
-
-  capture_unlock ();
-}
-
 static
 void plugin_capture_stop ( void )
 {
@@ -928,7 +888,9 @@ select_codec (GtkWidget *mpeg_properties, GtkWidget *menu,
 
   g_assert (vbox && menu_item);
 
-  destroy_options (optionspp);
+  if (*optionspp)
+    gtk_widget_destroy (*optionspp);
+  *optionspp = NULL;
 
   keyword = gtk_object_get_data (GTK_OBJECT (menu_item), "keyword");
 

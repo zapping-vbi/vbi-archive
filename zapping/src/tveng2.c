@@ -572,9 +572,10 @@ int tveng2_get_standards(tveng_device_info * info)
       info -> standards[count].height = enumstd.std.framelines;
       /* unreliable, a driver may report a 16:9 etc standard (api miss?) */
       info -> standards[count].width = (enumstd.std.framelines * 4) / 3;
+      /* eg. 30000 / 1001 */
       info -> standards[count].frame_rate =
-	enumstd.std.framerate.numerator
-	/ (double) enumstd.std.framerate.denominator;
+	enumstd.std.framerate.denominator
+	/ (double) enumstd.std.framerate.numerator;
 
 /* Only a label, contents by definition unknown.
       if (strstr(enumstd.std.name, "ntsc") ||

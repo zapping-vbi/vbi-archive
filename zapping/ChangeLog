@@ -1,3 +1,11 @@
+30.10.2001	<mschimek@users.sf.net>
+
+	* macros: Added as.m4 from automake 1.5, required there but not
+	  shipped with previous versions. aclocal 1.5 doesn't abort on
+	  double def anymore.
+	* mpeg.c: Sets correct frame rate for NTSC.
+	* tveng2.c, tvengxv.c: Fixed tveng_enumstd.frame_rate.
+
 26.10.2001	Show/hide pointer <garetxe@users.sf.net>
 
 	* zmisc.c: Routines for showing/hiding the pointer, adapted from a

@@ -33,6 +33,7 @@
 
 /* US broadcast */
 static tveng_channel ntsc_bcast[] = {
+    /* "1" eliminated by FCC in 1945 */
     { "2",	 55250 },
     { "3",	 61250 },
     { "4",	 67250 },
