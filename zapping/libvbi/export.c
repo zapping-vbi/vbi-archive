@@ -272,7 +272,7 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
 
 #undef printv
 // #define printv printf
-#define printv(templ, somethingelse...)
+ #define printv(templ, somethingelse...)
 
 
 

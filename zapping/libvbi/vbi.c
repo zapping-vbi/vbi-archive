@@ -17,6 +17,7 @@
 
 static void reset_magazines(struct vbi *vbi);
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
+static bool convert_drcs(struct vt_page *vtp, unsigned char *raw);
 
 void
 out_of_sync(struct vbi *vbi)
@@ -69,18 +70,27 @@ for (l = 0; l < 40; l++)
 printf("\n");
 }
 }
-
-
-	    if (rvtp->extension.designations != 0) {
-		rvtp->page->extension = rvtp->extension; /* XXX temporary */
-	    }
+	    if (rvtp->page->function == PAGE_FUNCTION_DRCS
+		|| rvtp->page->function == PAGE_FUNCTION_GDRCS) {
+		    if (!convert_drcs(rvtp->page, rvtp->page->data.drcs.raw[1]))
+			return;
+	    } else if (rvtp->page->function == PAGE_FUNCTION_UNKNOWN
+		|| rvtp->page->function == PAGE_FUNCTION_LOP)
+		if (rvtp->extension.designations != 0) {
+		    rvtp->page->extension = rvtp->extension; /* XXX temporary */
+		}
 
 	    if (vbi->cache)
 		cvtp = vbi->cache->op->put(vbi->cache, rvtp->page);
 
-	    if (cvtp && rvtp->extension.designations != 0) {
-		cvtp->data.unknown.extension = &cvtp->extension;
+	    if (cvtp->function == PAGE_FUNCTION_UNKNOWN
+		|| cvtp->function == PAGE_FUNCTION_LOP) {
+    		if (cvtp && rvtp->extension.designations != 0)
+		    cvtp->data.unknown.extension = &cvtp->extension;
+		else
+		    cvtp->data.unknown.extension = NULL;
 	    }
+
 	    vbi_send(vbi, EV_PAGE, 0, 0, 0, cvtp ?: rvtp->page);
 
 	}
@@ -378,9 +388,6 @@ parse_mot(magazine *mag, u8 *raw, int packet)
 	return TRUE;
 }
 
-
-
-
 static bool
 parse_pop(struct vt_page *vtp, u8 *raw, int packet)
 {
@@ -542,7 +549,7 @@ convert_drcs(struct vt_page *vtp, unsigned char *raw)
 		}
 	}
 
-	if (0)
+	if (1)
 		dump_drcs(vtp);
 
 	return TRUE;
@@ -764,8 +771,10 @@ convert_page(struct vbi *vbi, struct vt_page *vtp, page_function new_function)
 
 	case PAGE_FUNCTION_GDRCS:
 	case PAGE_FUNCTION_DRCS:
+		memcpy(page.data.drcs.raw, vtp->data.unknown.raw, sizeof(page.data.drcs.raw));
 		memset(page.data.drcs.bits, 0, sizeof(page.data.drcs.bits));
 		memset(page.data.drcs.mode, 0, sizeof(page.data.drcs.mode));
+		page.lop_lines = vtp->lop_lines;
 
 		if (!convert_drcs(&page, vtp->data.unknown.raw[1]))
 			return FALSE;
@@ -1396,10 +1405,15 @@ vt_packet(struct vbi *vbi, u8 *p)
 				return FALSE;
 			break;
 
-		case PAGE_FUNCTION_POP:
 		case PAGE_FUNCTION_GPOP:
+		case PAGE_FUNCTION_POP:
 			if (!parse_pop(cvtp, p, packet))
 				return FALSE;
+			break;
+
+		case PAGE_FUNCTION_GDRCS:
+		case PAGE_FUNCTION_DRCS:
+			memcpy(cvtp->data.drcs.raw[packet], p, 40);
 			break;
 
 		case PAGE_FUNCTION_BTT:
@@ -1435,10 +1449,12 @@ vt_packet(struct vbi *vbi, u8 *p)
 		case PAGE_FUNCTION_DISCARD:
 			return TRUE;
 
-		case PAGE_FUNCTION_POP:
 		case PAGE_FUNCTION_GPOP:
+		case PAGE_FUNCTION_POP:
 			return parse_pop(cvtp, p, packet);
 
+		case PAGE_FUNCTION_GDRCS:
+		case PAGE_FUNCTION_DRCS:
 		case PAGE_FUNCTION_BTT:
 		case PAGE_FUNCTION_AIT:
 		case PAGE_FUNCTION_MPT:
@@ -1488,7 +1504,7 @@ vt_packet(struct vbi *vbi, u8 *p)
 		if ((designation = hamm8a[p[0]]) < 0)
 			return 4;
 
-// printf("X/27/%d\n", designation);
+printf("X/27/%d page %x\n", designation, cvtp->pgno);
 
 		switch (designation) {
 		case 0:
@@ -1584,7 +1600,7 @@ if(0)
 		if (err & 0xf000)
 			return 4;
 
-//	printf("packet %d/%d/%d\n", mag8, packet, designation);
+//	printf("packet %d/%d/%d page %3x\n", mag8, packet, designation, cvtp->pgno);
 
 		for (p++, i = 0; i < 13; p += 3, i++)
 			triplet[i] = hamm24(p, &err);
@@ -1598,17 +1614,20 @@ if(0)
 			function = bits(4);
 			bits(3); /* page coding ignored */
 
+//			printf("... function %d\n", function);
+
 			/*
 			 *  ZDF and BR3 transmit GPOP 1EE/.. with 1/28/0 function
 			 *  0 = PAGE_FUNCTION_LOP, should be PAGE_FUNCTION_GPOP.
-			 *  Makes no sense to me.
+			 *  Makes no sense to me. Update: also encountered pages
+			 *  mFE and mFF with function = 0. Strange. 
 			 */
 			if (function != PAGE_FUNCTION_LOP && packet == 28) {
 				if (cvtp->function != PAGE_FUNCTION_UNKNOWN
 				    && cvtp->function != function)
 					return 0; /* XXX discard rpage? */
 
-				cvtp->function = function;
+// XXX rethink				cvtp->function = function;
 			}
 
 			if (function != PAGE_FUNCTION_LOP)
@@ -1739,16 +1758,28 @@ if(0)
 			function = bits(4);
 			bits(3); /* page coding ignored */
 
+//		printf("... function %d\n", function);
+
 			if (function != PAGE_FUNCTION_GDRCS
 			    || function != PAGE_FUNCTION_DRCS)
 				return 0;
 
-			cvtp->function = function;
+			if (cvtp->function == PAGE_FUNCTION_UNKNOWN) {
+				memmove(cvtp->data.drcs.raw, cvtp->data.unknown.raw, sizeof(cvtp->data.drcs.raw));
+				memset(cvtp->data.drcs.bits, 0, sizeof(cvtp->data.drcs.bits));
 
-			bits(11);
+				bits(11);
 
-			for (i = 0; i < 48; i++)
-				cvtp->data.drcs.mode[i] = bits(4);
+				for (i = 0; i < 48; i++)
+					cvtp->data.drcs.mode[i] = bits(4);
+
+				cvtp->function = function;
+			} else if (cvtp->function == function) {
+				bits(11);
+
+				for (i = 0; i < 48; i++)
+					cvtp->data.drcs.mode[i] = bits(4);
+			} // else discard?
 
 			return 0;
 		}

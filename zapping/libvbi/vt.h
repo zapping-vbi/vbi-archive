@@ -163,8 +163,8 @@ struct vt_page
 
 	/* added temporarily: */
 	struct vbi *	vbi;
-	u8		drcs_bits[48][12 * 10 / 2];
-	u8		drcs_mode[48];
+//	u8		drcs_bits[48][12 * 10 / 2];
+//	u8		drcs_mode[48];
 	vt_extension	extension;
 };
 
@@ -184,7 +184,7 @@ struct vt_page
 #define MIP_NORMAL_PAGE		0x01
 #define MIP_SUBTITLE		0x70
 #define MIP_SUBTITLE_INDEX	0x78
-#define MIP_ALARM_CLOCK		0x79	/* sort of */
+#define MIP_CLOCK		0x79	/* sort of */
 #define MIP_WARNING		0x7A
 #define MIP_INFORMATION 	0x7B
 #define MIP_NOW_AND_NEXT	0x7D
