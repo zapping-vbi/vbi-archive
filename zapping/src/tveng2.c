@@ -52,7 +52,6 @@
 #include <X11/extensions/xf86dga.h>
 #endif
 
-/* This undef's are to avoid a couple of header warnings */
 #include "tveng.h"
 #define TVENG2_PROTOTYPES 1
 #include "tveng2.h"

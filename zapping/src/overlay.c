@@ -392,9 +392,6 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
   gtk_signal_connect(GTK_OBJECT(window), "size-allocate",
 		     GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
 		     NULL);
-  gtk_signal_connect(GTK_OBJECT(osd_model), "changed",
-		     GTK_SIGNAL_FUNC(on_osd_model_changed),
-		     NULL);
 
   /*
     gdk has no [Sub]structureNotify wrapper, but a timer will
@@ -452,9 +449,14 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
     }
 
   if (tv_info.needs_cleaning)
-    tv_info.check_timeout_id =
-      gtk_timeout_add(CHECK_TIMEOUT, overlay_periodic_timeout,
-		      &(tv_info.check_timeout_id));
+    {
+      tv_info.check_timeout_id =
+	gtk_timeout_add(CHECK_TIMEOUT, overlay_periodic_timeout,
+			&(tv_info.check_timeout_id));
+      gtk_signal_connect(GTK_OBJECT(osd_model), "changed",
+			 GTK_SIGNAL_FUNC(on_osd_model_changed),
+			 NULL);
+    }
   else
     tv_info.check_timeout_id = -1;
 }
@@ -477,9 +479,10 @@ overlay_stop(tveng_device_info *info)
 				GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
 				NULL);
 
-  gtk_signal_disconnect_by_func(GTK_OBJECT(osd_model),
-				GTK_SIGNAL_FUNC(on_osd_model_changed),
-				NULL);
+  if (tv_info.needs_cleaning)
+    gtk_signal_disconnect_by_func(GTK_OBJECT(osd_model),
+				  GTK_SIGNAL_FUNC(on_osd_model_changed),
+				  NULL);
 
   if (tv_info.clear_timeout_id >= 0)
     {
