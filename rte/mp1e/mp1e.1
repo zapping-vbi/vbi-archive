@@ -1,4 +1,4 @@
-.TH MP1E 1 "$Date: 2001-11-03 23:43:52 $" "mp1e manual" \" -*- nroff -*-
+.TH MP1E 1 "$Date: 2001-11-22 17:51:07 $" "mp1e manual" \" -*- nroff -*-
 .SH NAME
 mp1e \- realtime MPEG-1 audio/video encoder
 .SH SYNOPSIS
@@ -85,6 +85,27 @@ As of version 1.9 the V4L interface is out of order. Contributions
 welcome.
 .RE
 .TP
+.BI "\-e, \-\-skip_method " "0 compatible | 1 mux | 2 fake_picture"
+.RS
+Reducing the video frame rate (see option
+.B -f
+) has certain side effects, thus
+.B mp1e
+offers two alternative methods to skip frames, albeit incompatible
+with the MPEG-1 standard and thus not supported by all players.
+.P
+The -e mux or -e1 method completely removes skipped frames from the
+stream. When the player is unable to deduce the actual frame rate
+from the MPEG system (audio and video) stream timestamps, you have
+to tell the player the actual frame rate by other means, such as a
+command line option. You can e.g. add -fps actual_frame_rate to
+Mplayer.
+.P
+The -e fake_picture or -e2 method additionally inserts a fake picture
+code in place of skipped frames to maintain the nominal frame rate,
+however players may abort on encounter of an invalid picture code.
+.RE
+.TP
 .BI "\-f, \-\-frame_rate " float
 .RS
 How many video frames to compress per second, defaults to the
@@ -99,7 +120,10 @@ frames. Any player should play these streams at the correct rate.
 There is one major side effect however, frame dropping may
 eliminate some or all B pictures from the GOP (see option
 .B -g
-).
+), the
+.B -e
+option offers alternatives.
+.P
 Also, with increasing frame distances P pictures and motion
 compensation become less effective, requiring a higher bit
 rate.
@@ -110,15 +134,6 @@ addressed. So there is no reason to reduce the frame rate
 when the CPU is too slow,
 .B mp1e
 does the right thing automagically.
-.P
-Another low frame rate mode using MPEG system stream timestamps
-instead of skipping B frames is under evaluation, it may be
-activated by adding the preliminary option
-.B -2.
-Note this mode
-is stretching the MPEG standard and thus not supported
-by all players. You can e.g. add -fps actual_frame_rate to
-Mplayer.
 .RE
 .TP
 .BI "\-g, \-\-gop_sequence " string
@@ -623,15 +638,13 @@ Record video without sound, with motion compensation, at 1.15 Mbit/s.
 Record stereo audio, best possible quality at 96 kbit/s and
 32 kHz sampling rate.
 .TP
-.BI "mp1e -v -m1 -b208 -s320x256 -gIPPPPPPPP -F3.125 >paul.mpg"
+.BI "mp1e -v -m1 -b208 -s320x256 -gIPPPPPPPP -f3.125 >paul.mpg"
 Record video, image size 320 x 256 pixel, 3.125 frames/second (25/8),
 GOP IPPPPPPPP, at 208 kbit/s.
 .TP
-.BI "mp1e -v -b190 -s320x256 -F3.125 -2 -R8,64 -B48 -S32 >george.mpg"
+.BI "mp1e -v -b190 -s320x256 -f3.125 -e1 -R8,64 -B48 -S32 >george.mpg"
 Record video and audio, image size 320 x 256 pixel, 3.125
-frames/second (25/8) in hack2 mode (see option
-.B -F
-), IPB with motion
+frames/second (25/8) using skip method 1, IPB with motion
 compensation range 8-64, mono audio at 48 kbit/s, sampling rate 32 kHz,
 video bit rate 190 kbit/s.
 .TP

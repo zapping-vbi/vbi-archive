@@ -37,7 +37,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.15 2001-10-26 09:14:51 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.16 2001-11-22 17:51:07 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -497,7 +497,7 @@ void rte_get_status( rte_context * context,
 #define TRUE (!FALSE)
 #endif
 
-
+typedef int rte_bool; /* just for documentation */
 
 
 /*
@@ -540,6 +540,7 @@ typedef struct rte_context_info {
   char			elementary[RTE_STREAM_MAX + 1];
 } rte_context_info;
 
+// future
 // typedef struct rte_context rte_context; /* opaque */
 
 extern rte_context_info *rte_context_info_enum(int);
@@ -563,8 +564,8 @@ typedef struct rte_codec_info {
 typedef struct rte_codec rte_codec; /* opaque */
 
 extern rte_codec_info *rte_codec_info_enum(rte_context *, int);
-extern rte_codec_info *rte_codec_info_keyword(rte_context *, char *);
-extern rte_codec_info *rte_codec_info_codec(rte_codec *);
+extern rte_codec_info *rte_codec_info_by_keyword(rte_context *, char *);
+extern rte_codec_info *rte_codec_info_by_codec(rte_codec *);
 
 /*** 'set' copies string values, 'get' strings must be free()ed */
 extern rte_codec *rte_codec_get(rte_context *, rte_stream_type, int);
@@ -588,7 +589,7 @@ typedef union rte_option_value {
   double		dbl;
 } rte_option_value;
 
-typedef struct rte_option {
+typedef struct rte_option_info {
   rte_option_type	type;
   char *		keyword;
   char *		label;		/* gettext()ized _N() */
@@ -602,7 +603,7 @@ typedef struct rte_option {
   }                     menu;
   int			entries;
   char *		tooltip;	/* or NULL, gettext()ized _N() */
-} rte_option;
+} rte_option_info;
 
 #define RTE_OPTION_BOUNDS_INITIALIZER_(type_, def_, min_, max_, step_)	\
   { type_ = def_ }, { type_ = min_ }, { type_ = max_ }, { type_ = step_ }
@@ -632,14 +633,14 @@ typedef struct rte_option {
     RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
     { .str = menu_ }, entries_, tip_ }
 
-extern rte_option *rte_option_enum(rte_codec *, int);
-extern rte_option *rte_option_keyword(rte_codec *, char *);
+extern rte_option_info *rte_option_info_enum(rte_codec *, int);
+extern rte_option_info *rte_option_info_by_keyword(rte_codec *, char *);
 
 /*** 'set' copies string values, 'get' and 'print' strings must be free()ed */
-extern int rte_option_get(rte_codec *, char *, rte_option_value *);
-extern int rte_option_set(rte_codec *, char *, ...);
-extern int rte_option_get_menu(rte_codec *, char *, int *);
-extern int rte_option_set_menu(rte_codec *, char *, int);
+extern rte_bool rte_option_get(rte_codec *, char *, rte_option_value *);
+extern rte_bool rte_option_set(rte_codec *, char *, ...);
+extern rte_bool rte_option_get_menu(rte_codec *, char *, int *);
+extern rte_bool rte_option_set_menu(rte_codec *, char *, int);
 extern char *rte_option_print(rte_codec *, char *, ...);
 
 /*
@@ -709,6 +710,15 @@ typedef enum rte_vbifmt {
 #define RTE_VBIFMTS_RESERVED2		(1UL << RTE_VBIFMT_RESERVED2)
 
 typedef union rte_stream_parameters {
+  struct rte_video_stream_parameters {
+    rte_pixfmt	          pixfmt;
+    double		  frame_rate;	    /* 24, 25, 30, 1001 / 30000, .. */
+    int                   width, height;    /* pixels, Y if YUV 4:2:0 */
+    int		          u_offset, v_offset; /* bytes rel. Y org or ignored */
+    int		          stride;	    /* bytes, Y if YUV 4:2:0 */
+    int		          uv_stride;	    /* bytes or ignored */
+    /* scaling? */
+  }			video;
   struct rte_audio_stream_parameters {
     rte_sndfmt		  sndfmt;
     int			  sampling_freq;	/* Hz */
@@ -718,6 +728,7 @@ typedef union rte_stream_parameters {
   char			pad[128];
 } rte_stream_parameters;
 
-extern int rte_set_parameters(rte_codec *, rte_stream_parameters *);
+/* read-write */
+extern rte_bool rte_set_parameters(rte_codec *, rte_stream_parameters *);
 
 #endif /* rtelib.h */

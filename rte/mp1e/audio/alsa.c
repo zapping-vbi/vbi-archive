@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.11 2001-11-03 23:43:54 mschimek Exp $ */
+/* $Id: alsa.c,v 1.12 2001-11-22 17:51:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -697,7 +697,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 	snd_output_t *log;
 	buffer *b;
 
-	FAIL("Sorry, alsa 0.9 interface broken\n");
+	FAIL("Sorry, alsa 0.9 interface broken. Please use OSS interface (-p/dev/dsp).\n");
 
 	snd_pcm_info_alloca(&info);
 	snd_pcm_hw_params_alloca(&params);

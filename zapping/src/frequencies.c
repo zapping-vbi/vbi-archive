@@ -1055,21 +1055,21 @@ static tveng_channel pal_bcast_cn[] = {
 /* --------------------------------------------------------------------- */
 
 static tveng_channels chanlists[] = {
-    { N_("us-bcast"),      ntsc_bcast,      CHAN_COUNT(ntsc_bcast)      },
-    { N_("us-cable"),      ntsc_cable,      CHAN_COUNT(ntsc_cable)      },
-    { N_("us-cable-hrc"),  ntsc_hrc,        CHAN_COUNT(ntsc_hrc)        },
-    { N_("japan-bcast"),   ntsc_bcast_jp,   CHAN_COUNT(ntsc_bcast_jp)   },
-    { N_("japan-cable"),   ntsc_cable_jp,   CHAN_COUNT(ntsc_cable_jp)   },
-    { N_("europe"),        pal_europe,      CHAN_COUNT(pal_europe)      },
-    { N_("europe-east"),   pal_europe_east, CHAN_COUNT(pal_europe_east) },
-    { N_("italy"),         pal_italy,       CHAN_COUNT(pal_italy)       },
-    { N_("newzealand"),    pal_newzealand,  CHAN_COUNT(pal_newzealand)  },
-    { N_("australia"),     pal_australia,   CHAN_COUNT(pal_australia)   },
-    { N_("ireland"),       pal_ireland,     CHAN_COUNT(pal_ireland)     },
-    { N_("france"),        secam_france,    CHAN_COUNT(secam_france)    },
-    { N_("russia"),        secam_russia,    CHAN_COUNT(secam_russia)    },
-    { N_("south africa"),  south_africa,    CHAN_COUNT(south_africa)    },
-    { N_("china"),	   pal_bcast_cn,    CHAN_COUNT(pal_bcast_cn)    },
+    { N_("US terrestrial"),	ntsc_bcast,      CHAN_COUNT(ntsc_bcast)      },
+    { N_("US cable"),		ntsc_cable,      CHAN_COUNT(ntsc_cable)      },
+    { N_("US cable-hrc"),	ntsc_hrc,        CHAN_COUNT(ntsc_hrc)        },
+    { N_("Japan terrestrial"),	ntsc_bcast_jp,   CHAN_COUNT(ntsc_bcast_jp)   },
+    { N_("Japan cable"),	ntsc_cable_jp,   CHAN_COUNT(ntsc_cable_jp)   },
+    { N_("Europe"),		pal_europe,      CHAN_COUNT(pal_europe)      },
+    { N_("Eastern Europe"),	pal_europe_east, CHAN_COUNT(pal_europe_east) },
+    { N_("Italy"),		pal_italy,       CHAN_COUNT(pal_italy)       },
+    { N_("New Zealand"),	pal_newzealand,  CHAN_COUNT(pal_newzealand)  },
+    { N_("Australia"),		pal_australia,   CHAN_COUNT(pal_australia)   },
+    { N_("Ireland"),		pal_ireland,     CHAN_COUNT(pal_ireland)     },
+    { N_("France"),		secam_france,    CHAN_COUNT(secam_france)    },
+    { N_("Russia"),		secam_russia,    CHAN_COUNT(secam_russia)    },
+    { N_("South Africa"),	south_africa,    CHAN_COUNT(south_africa)    },
+    { N_("China"),		pal_bcast_cn,    CHAN_COUNT(pal_bcast_cn)    },
     { NULL, NULL, 0 } /* EOF */
 };
 

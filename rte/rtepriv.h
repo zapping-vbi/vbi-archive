@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.12 2001-10-26 09:14:51 mschimek Exp $
+ * $Id: rtepriv.h,v 1.13 2001-11-22 17:51:07 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -59,7 +59,7 @@ struct rte_context_class {
 	rte_codec *		(* codec_get)(rte_context *, rte_stream_type, int);
 	rte_codec *		(* codec_set)(rte_context *, rte_stream_type, int, char *);
 
-	rte_option *		(* option_enum)(rte_codec *, int);
+	rte_option_info *	(* option_enum)(rte_codec *, int);
 	int			(* option_get)(rte_codec *, char *, rte_option_value *);
 	int			(* option_set)(rte_codec *, char *, va_list);
 	char *			(* option_print)(rte_codec *, char *, va_list);
@@ -81,7 +81,7 @@ struct rte_codec_class {
 	rte_codec *		(* new)(void);
 	void			(* delete)(rte_codec *);
 
-	rte_option *		(* option_enum)(rte_codec *, int index);
+	rte_option_info *	(* option_enum)(rte_codec *, int index);
 	int			(* option_get)(rte_codec *, char *, rte_option_value *);
 	int			(* option_set)(rte_codec *, char *, va_list);
 	char *			(* option_print)(rte_codec *, char *, va_list);
@@ -176,7 +176,7 @@ typedef struct {
 	rte_codec *		(* codec_get)(rte_context *, rte_stream_type, int);
 	rte_codec *		(* codec_set)(rte_context *, rte_stream_type, int, char *);
 
-	rte_option *		(* option_enum)(rte_codec *, int);
+	rte_option_info *	(* option_enum)(rte_codec *, int);
 	int			(* option_get)(rte_codec *, char *, rte_option_value *);
 	int			(* option_set)(rte_codec *, char *, va_list);
 	char *			(* option_print)(rte_codec *, char *, va_list);
@@ -269,7 +269,7 @@ rte_helper_set_option_va(rte_codec *codec, char *keyword, ...)
 static inline int
 rte_helper_reset_options(rte_codec *codec)
 {
-	rte_option *option;
+	rte_option_info *option;
 	int r = 1, i = 0;
 
 	while (r && (option = codec->class->option_enum(codec, i++))) {

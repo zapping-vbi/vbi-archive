@@ -399,9 +399,6 @@ roll_up(int first_row, int last_row)
 static struct fmt_page osd_page;
 extern int osd_pipe[2];
 
-#define CELL_WIDTH 16
-#define CELL_HEIGHT 26
-
 static void
 ttx_position		(piece		*p)
 {
@@ -451,7 +448,7 @@ add_piece_vbi		(int col, int row, int width)
   if (osd_page.columns < 40) /* naive cc test */
     {
       buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
-			   CELL_WIDTH*width, CELL_HEIGHT);
+			   16 * width, 26);
       vbi_draw_cc_page_region(&osd_page,
           (uint32_t *) gdk_pixbuf_get_pixels(buf),
 	  col, row, width, 1 /* height */,
@@ -460,7 +457,7 @@ add_piece_vbi		(int col, int row, int width)
   else
     {
       buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
-			   12*width, 10);
+			   12 * width, 10);
       vbi_draw_vt_page_region(&osd_page,
           (uint32_t *) gdk_pixbuf_get_pixels(buf),
           col, row, width, 1 /* height */,

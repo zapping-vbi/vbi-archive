@@ -1,10 +1,21 @@
+2001-11-20	<mschimek@users.sf.net>
+
+	* motion.c fix: ignored result 2nd of (0,0) test (rare, not critical).
+	* mp1e.1: Corrected -F typo in examples.
+	* video/mpeg1.c: Frame skipping flaws. Rewrote.
+
+2001-11-06	<mschimek@users.sf.net>
+
+	* configure.in: Corrected $AS.
+	* v4l.c: grab size / capture size / decimating fixed.
+	* v4l2.c: 288->240 fallback fixed.
+
 2001-11-01	<mschimek@users.sf.net>
 
 	* mp2.c: Fixed audio table selection (wrong sampling_freq).
 	* oss.c: Mixer always set volume of line, not requested source.
 	* main.c: Added fallback for unsupported joint stereo.
 	* mp1e.1: Corrected a few typos.
-	
 
 2001-10-23	<mschimek@users.sf.net>
 

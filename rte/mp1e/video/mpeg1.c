@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.16 2001-10-21 05:08:48 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.17 2001-11-22 17:51:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1199,129 +1199,183 @@ user_data(char *s)
 
 #define Rvbr (1.0 / 64)
 
+extern int test_mode;
+
 static inline void
 _send_full_buffer(mpeg1_context *mpeg1, buffer *b)
 {
-        if (b->used > 0)
-	        video_eff_bit_rate +=
-			((b->used * 8) * mpeg1->coded_frame_rate
-			 - video_eff_bit_rate) * Rvbr;
+        video_eff_bit_rate +=
+		((b->used * 8) * mpeg1->coded_frame_rate
+		 - video_eff_bit_rate) * Rvbr;
+
+      	if (test_mode & 16)
+		printv(0, "vebr %f \r", (double) video_eff_bit_rate);
 
 	send_full_buffer(&mpeg1->prod, b);
 }
 
+/*
+  012345678901234567890123456789
+  IBBPBBPBBPBBPBBIBBPBBPBBPBBPBB	gop
+   ^    ^    ^ ^ ^ ^  ^^^^^ ^^^		skipped/dropped
+
+  012345678901234567890123456789
+  I0BPBp0BBPp0P0p0p0Pp00000p000B	replace
+  I-BPBB-BBPB-P-B-B-PB-----B---B	(discarded)
+
+  0 1234 5678 9 0 1 23     4   5
+  I0BBPp0BPBp0P0p0p0Pp00000p000I	extend
+  I-BBPB-BPBB-P-B-B-PB-----B---I
+*/
+
+/*
+ *  Encode replacements for the pictures skipped
+ *  between this and the previously coded picture.
+ *  Can't create NULL frames on the B-stack due to
+ *  finite size, hence this->skipped.
+ *
+ *  NB. IB-B-P -> IPB-B-, I-P -> IP-, ie. skipped
+ *  pictures are always coded in order like B frames. 
+ */
 static void
-beeframe(mpeg1_context *mpeg1, int n)
+encode_skipped_frames(mpeg1_context *mpeg1, stacked_frame *this)
+{
+	buffer *obuf;
+
+	for (; this->skipped > 0; this->skipped--) {
+		switch (mpeg1->skip_method) {
+		case SKIP_METHOD_FAKE:
+			/*
+			 *  We encode a placeholder for the
+			 *  missing frame (beyond MPEG-1).
+			 */
+
+			printv(3, "Encoding fake picture #%lld GOP #%d\n",
+			       video_frame_count, mpeg1->gop_frame_count);
+
+			obuf = wait_empty_buffer(&mpeg1->prod);
+
+			obuf->type = B_TYPE;
+			obuf->offset = 0;
+			obuf->used = 12;
+			obuf->time = this->time;
+
+			((uint32_t *) obuf->data)[0] =
+				swab32(PICTURE_START_CODE);
+			((uint32_t *) obuf->data)[1] =
+				swab32(((mpeg1->gop_frame_count & 1023) << 22)
+				       + (7 << 19) + (0 << 3) + (0 << 2));
+			((uint32_t *) obuf->data)[2] =
+				swab32((1 << 31) + (0 << 30) + (1 << 27)
+				       + (0 << 26) + 0);
+			/*
+			 *  temporal_reference [10],
+			 *  picture_coding_type [3] $$ 7 $$, vbv_delay [16],
+			 *  full_pel_forward_vector '0', forward_f_code [3],
+			 *  full_pel_backward_vector '0', backward_f_code [3],
+			 *  extra_bit_picture '0', byte align [2]
+			 */
+
+			_send_full_buffer(mpeg1, obuf);
+
+			mpeg1->gop_frame_count++;
+
+			break;
+
+		case SKIP_METHOD_MUX:
+			/*
+			 *  We encode no frame, the player has to slow down
+			 *  playback according to the DTS/PTS of coded pictures
+			 *  (beyond MPEG-1). Note we still send the mux a
+			 *  dummy picture for proper a/v sync. used = 0 is
+			 *  not possible because that's an EOF sign.
+			 */
+
+			printv(3, "Skipping picture (not counted)\n");
+
+			obuf = wait_empty_buffer(&mpeg1->prod);
+
+			obuf->type = B_TYPE;
+			obuf->offset = 0;
+			obuf->used = 4;
+			obuf->time = this->time;
+
+			memset(obuf->data, 0, 4);
+
+			_send_full_buffer(mpeg1, obuf);
+
+			/* MPEG does not permit gaps */
+			/* mpeg1->gop_frame_count++; */
+
+			break;
+		}
+	}
+}
+
+static inline void
+encode_bframes(mpeg1_context *mpeg1, int stacked_bframes)
 {
 	buffer *obuf, *last = NULL;
-	int i;
+	int dist = 0, i;
 
 	mpeg1->referenced = FALSE;
 
-	for (i = 0; i < n; i++) {
+	for (i = 0; i < stacked_bframes; i++) {
 		stacked_frame *this = mpeg1->stack + i;
 
+		if (this->skipped > 0) {
+			dist += this->skipped;
+			encode_skipped_frames(mpeg1, this);
+		}
+
 		if (!this->org) {
-			switch (mpeg1->skip_method) {
-			case SKIP_METHOD_FAKE:
-				/*
-				 *  We encode a placeholder for the missing frame (beyond MPEG-1).
-				 */
+			/*
+			 *  We've lost this frame and couldn't "skip" it,
+			 *  but the preceeding B frame has been coded, so
+			 *  let's duplicate it.
+			 */
 
-				printv(3, "Encoding fake picture #%lld GOP #%d\n",
-				       video_frame_count, mpeg1->gop_frame_count);
+			assert(last != NULL);
 
-				obuf = wait_empty_buffer(&mpeg1->prod);
+			obuf = wait_empty_buffer(&mpeg1->prod);
 
-				obuf->type = B_TYPE;
-				obuf->offset = 0;
-				obuf->used = 12;
-				obuf->time = this->time;
+			printv(3, "Dupl'ing B picture #%lld GOP #%d\n",
+			       video_frame_count, mpeg1->gop_frame_count);
 
-				((uint32_t *) obuf->data)[0] =
-					swab32(PICTURE_START_CODE);
-				((uint32_t *) obuf->data)[1] =
-					swab32(((mpeg1->gop_frame_count & 1023) << 22)
-					       + (7 << 19) + (0 << 3) + (0 << 2));
-				((uint32_t *) obuf->data)[2] =
-					swab32((1 << 31) + (0 << 30) + (1 << 27)
-					       + (0 << 26) + 0);
-				/*
-				 *  temporal_reference [10],
-				 *  picture_coding_type [3] ** 7 **, vbv_delay [16],
-				 *  full_pel_forward_vector '0', forward_f_code [3],
-				 *  full_pel_backward_vector '0', backward_f_code [3],
-				 *  extra_bit_picture '0', byte align [2]
-				 */
-
-				_send_full_buffer(mpeg1, obuf);
-
-				mpeg1->gop_frame_count++;
-
-				break;
-
-			case SKIP_METHOD_MUX:
-				/*
-				 *  We encode no frame, the player has to slow down
-				 *  playback according to the DTS/PTS of coded pictures
-				 *  (beyond MPEG-1).
-				 */
-
-				printv(3, "Skipping picture\n");
-
-				obuf = wait_empty_buffer(&mpeg1->prod);
-
-				obuf->type = B_TYPE;
-				obuf->offset = 0;
-				obuf->used = 4;
-				obuf->time = this->time;
-
-				memset(obuf->data, 0, 4);
-
-				_send_full_buffer(mpeg1, obuf);
-
-				/* mpeg1->gop_frame_count++; */
-
-				break;
-
-			default:
-				/*
-				 *  Duplicate last B frame
-				 */
-
-				assert(last != NULL);
-
-				obuf = wait_empty_buffer(&mpeg1->prod);
-
-				printv(3, "Dupl'ing B picture #%lld GOP #%d\n",
-				       video_frame_count, mpeg1->gop_frame_count);
-
-				memcpy(obuf->data, last->data, last->used);
+			memcpy(obuf->data, last->data, last->used);
 			
-				((uint32_t *) obuf->data)[1] =
-					swab32((swab32(((uint32_t *) obuf->data)[1]) & ~(1023 << 22)) |
-					       ((mpeg1->gop_frame_count & 1023) << 22));
+			((uint32_t *) obuf->data)[1] =
+				swab32((swab32(((uint32_t *) obuf->data)[1]) & ~(1023 << 22)) |
+				       ((mpeg1->gop_frame_count & 1023) << 22));
 
-				obuf->type = B_TYPE;
-				obuf->offset = 0;
-				obuf->used = last->used;
-				obuf->time = this->time;
+			obuf->type = B_TYPE;
+			obuf->offset = 0;
+			obuf->used = last->used;
+			obuf->time = this->time;
 
-				_send_full_buffer(mpeg1, last);
+			_send_full_buffer(mpeg1, last);
 
-				mpeg1->gop_frame_count++;
-
-				break;
-			}
+			mpeg1->gop_frame_count++;
 		} else {
+			int forward, backward;
+
 			obuf = wait_empty_buffer(&mpeg1->prod);
 			bstart(&video_out, obuf->data);
 
-			obuf->used = mpeg1->picture_b(mpeg1, this->org,
-						    mpeg1->p_dist + i + 1,
-						    (mpeg1->p_dist + i + 1) * motion,
-						    (n - i) * motion);
+			/*
+			 *  dist: number 0++ of B frame
+			 *    + skipped frames since last keyframe
+			 *  skipped_zero: last keyframe did not update
+			 *    decoder (eg. IBP00B: dist=0, sz=2 -> fwd = 3)
+			 *  skipped_fake: skipped frames between last
+			 *    and next keyframe
+			 */
+			forward = mpeg1->skipped_zero + dist + 1;
+			backward = mpeg1->skipped_fake + stacked_bframes - dist;
 
+			obuf->used = mpeg1->picture_b(mpeg1, this->org,
+						      forward, forward * motion,
+						      backward * motion);
 			if (this->buffer)
 				send_empty_buffer(&mpeg1->cons, this->buffer);
 
@@ -1337,63 +1391,101 @@ beeframe(mpeg1_context *mpeg1, int n)
 
 		last = obuf;
 
+		dist++;
+
 		video_frame_count++;
 		mpeg1->seq_frame_count++;
 	}
 
 	if (last)
 		_send_full_buffer(mpeg1, last);
-
-	mpeg1->p_succ = 0;
-	mpeg1->p_dist = 0;
 }
 
-static bool
-keyframe(mpeg1_context *mpeg1, int sp, buffer *obuf, bool p_frame)
+static inline bool
+encode_keyframe(mpeg1_context *mpeg1, stacked_frame *this,
+		int stacked_bframes, int key_offset,
+		buffer *obuf, bool pframe)
 {
-	stacked_frame *this = mpeg1->stack + sp;
+	mpeg1->gop_frame_count += key_offset;
 
 	obuf->used = 0;
 
-	if (p_frame && mpeg1->p_succ < MAX_P_SUCC) {
+	if (pframe && mpeg1->p_succ < MAX_P_SUCC) {
 		struct bs_rec mark;
+		int forward;
 
 		brewind(&mark, &video_out);
 
-		obuf->used = mpeg1->picture_p(mpeg1, this->org,
-					      sp + mpeg1->p_dist + 1, motion);
+		forward = mpeg1->skipped_zero /* I/P but didn't update decoder */
+			+ mpeg1->skipped_fake /* skipped since last I/P frame */
+			+ stacked_bframes;
 
+		obuf->used = mpeg1->picture_p(mpeg1, this->org,
+					      forward + 1, motion);
 		if (obuf->used) {
 			obuf->type = P_TYPE;
 			mpeg1->p_succ++;
-		} else
+		} else /* scene cut, promote this P to I picture */
 			brewind(&video_out, &mark);
 	}
 
 	if (!obuf->used) {
 		obuf->used = mpeg1->picture_i(mpeg1, this->org);
 		obuf->type = I_TYPE;
-		p_frame = FALSE;
+		pframe = FALSE;
 		mpeg1->p_succ = 0;
 	}
 
+	mpeg1->gop_frame_count -= key_offset;
+
+	obuf->offset = key_offset;
+	obuf->time = this->time;
+
 	if (this->buffer)
 		send_empty_buffer(&mpeg1->cons, this->buffer);
-
-	obuf->offset = sp;
-	obuf->time = this->time;
 
 	_send_full_buffer(mpeg1, obuf);
 
 	video_frame_count++;
 	mpeg1->seq_frame_count++;
 
-	return p_frame;
+	return pframe;
+}
+
+static bool
+encode_stacked_frames(mpeg1_context *mpeg1, buffer *obuf, int stacked, bool pframe)
+{
+	int stacked_bframes = stacked - 1;
+	int key_offset = stacked_bframes;
+	stacked_frame *this;
+
+	if (mpeg1->skip_method == SKIP_METHOD_FAKE)
+		key_offset += mpeg1->skipped_fake;
+
+	/* Encode I or P frame */
+
+	this = mpeg1->stack + stacked - 1;
+
+	pframe = encode_keyframe(mpeg1, this, stacked_bframes,
+				 key_offset, obuf, pframe);
+
+	/* Encode B frames */
+
+	encode_bframes(mpeg1, stacked_bframes);
+
+	if (this->skipped > 0)
+		encode_skipped_frames(mpeg1, this);
+
+	mpeg1->gop_frame_count++; /* the keyframe */
+
+	mpeg1->skipped_fake = 0;
+
+	return pframe;
 }
 
 char video_do_reset = FALSE;
 
-/* FIXME 0P insertion can overflow GOP count */
+/* FIXME 0P insertion and skip/fake can overflow GOP count */
 
 void *
 mpeg1_video_ipb(void *p)
@@ -1428,9 +1520,10 @@ mpeg1_video_ipb(void *p)
 				this->buffer = b = wait_full_buffer(&mpeg1->cons);
 
 				if (b->used > 0) {
-					if (0 && (rand() % 100) < 20) {
+					if ((test_mode & 8) && (rand() % 100) < 20) {
 						printv(3, "Forced drop #%lld\n", video_frame_count + sp);
 						send_empty_buffer(&mpeg1->cons, this->buffer);
+
 						continue;
 					}
 
@@ -1494,12 +1587,14 @@ mpeg1_video_ipb(void *p)
 				if (mpeg1->skip_rate_acc >= mpeg1->frames_per_sec) {
 					video_frames_dropped++;
 
-					if (sp >= 2 && *seq == 'B') {
+					if (0 && sp >= 2 && *seq == 'B') {
 						/*
 						 *  We have BB, duplicate last B instead of
 						 *  promoting to z (but only if the next I or P
 						 *  isn't missing as well). NB this will advance
 						 *  the GOP seq pointer, skipping doesn't.
+					       	 *
+						 *  Temporarily disabled: BBXBbX !-> Bp0Bp0
 						 */
 						goto next_frame;
 					} else /* skip this */
@@ -1512,96 +1607,34 @@ mpeg1_video_ipb(void *p)
 			mpeg1->coded_time_elapsed += mpeg1->coded_frame_period;
 
 			if (mpeg1->skip_rate_acc < mpeg1->frames_per_sec) {
-				int valid;
-
-				if (this->buffer && this->org) {
-					send_empty_buffer(&mpeg1->cons, this->buffer);
-					this->org = NULL;
-				}
-
 				switch (mpeg1->skip_method) {
 				case SKIP_METHOD_MUX:
 				case SKIP_METHOD_FAKE:
-					/*
-					 *  We skip this I or P, or replace by a fake picture.
-					 *  If valid B pictures are stacked, the last B is promoted
-					 *  to P. Beyond MPEG. Maybe the compliant method should
-					 *  be forced in case of unplanned dropping, will see.
-					 *  [*(B|0) B] *0 -> [*(B|z) P] *z
-					 */
+					if (this->buffer && this->org)
+						send_empty_buffer(&mpeg1->cons, this->buffer);
 
-					for (valid = sp; valid > 0; valid--)
-						if (mpeg1->stack[valid - 1].org)
-							break;
+					mpeg1->skipped_fake = 0;
+					this->skipped++;
+					sp--;
 
-					if (valid >= 1) {
+					continue;
+
+				case SKIP_METHOD_ZERO_P:
+					if (this->buffer && this->org)
+						send_empty_buffer(&mpeg1->cons, this->buffer);
+
+					if (sp >= 2) {
 						obuf = wait_empty_buffer(&mpeg1->prod);
 						bstart(&video_out, obuf->data);
 
-						mpeg1->gop_frame_count += valid - 1;
 						mpeg1->referenced = TRUE;
-						mpeg1->rc.Eb--;
 
-						if (keyframe(mpeg1, valid - 1, obuf, TRUE))
+						if (encode_stacked_frames(mpeg1, obuf, sp - 1, TRUE))
 							mpeg1->rc.Ep++;
 						else
 							mpeg1->rc.Ei++;
 
-						mpeg1->gop_frame_count -= valid - 1;
-
-						if (valid >= 2)
-							beeframe(mpeg1, valid - 1);
-
-						mpeg1->gop_frame_count++;
-						mpeg1->p_dist = 0;
-					}
-
-					memcpy(&mpeg1->stack[0], &mpeg1->stack[valid],
-					       sizeof(mpeg1->stack) - sizeof(mpeg1->stack[0]) * valid);
-
-					beeframe(mpeg1, sp - valid);
-
-					mpeg1->p_dist += sp - valid;
-					sp = 0;
-
-					break;
-
-				case SKIP_METHOD_ZERO_P:
-					/*
-					 *  We insert an empty P picture. The last stacked
-					 *  frame, if any, must be promoted from B to P to
-					 *  create a reference frame. (Often if the virtual
-					 *  frame rate is lower this will eliminate all B
-					 *  pictures, hence the method option.)
-					 *  *(*B B 0) *0 -> *(*B P z) *z
-					 */
-
-					for (;;) {
-						for (valid = 0; valid < sp; valid++)
-							if (!mpeg1->stack[valid].org)
-								break;
-
-						if (valid >= 1) {
-							obuf = wait_empty_buffer(&mpeg1->prod);
-							bstart(&video_out, obuf->data);
-
-							mpeg1->gop_frame_count += valid - 1;
-							mpeg1->referenced = TRUE;
-							mpeg1->rc.Eb--;
-
-							if (keyframe(mpeg1, valid - 1, obuf, TRUE))
-								mpeg1->rc.Ep++;
-							else
-								mpeg1->rc.Ei++;
-
-							mpeg1->gop_frame_count -= valid - 1;
-
-							if (valid >= 2)
-								beeframe(mpeg1, valid - 1);
-
-							mpeg1->gop_frame_count++;
-							mpeg1->p_dist = 0;
-						}
+						mpeg1->rc.Eb--;
 
 						printv(3, "Encoding 0 picture #%lld GOP #%d\n",
 						       video_frame_count, mpeg1->gop_frame_count);
@@ -1624,25 +1657,13 @@ mpeg1_video_ipb(void *p)
 
 						video_frame_count++;
 						mpeg1->gop_frame_count++;
-						mpeg1->p_dist++; /* zerop did not update motion */
-
-						valid++;
-
-						if (valid == sp)
-							break;
-
-						memcpy(&mpeg1->stack[0], &mpeg1->stack[valid],
-						       sizeof(mpeg1->stack) - sizeof(mpeg1->stack[0]) * valid);
-
-						sp -= valid;
+						mpeg1->skipped_zero++; /* did not update decoder */
 					}
 
 					sp = 0;
 
-					break;
+					continue;
 				}
-
-				continue;
 			}
 next_frame:
 			mpeg1->skip_rate_acc -= mpeg1->frames_per_sec;
@@ -1650,7 +1671,7 @@ next_frame:
 			if (*seq != 'B')
 				break;
 
-			/* B picture follows, stack it up */
+			/* This is a B picture, stack it up */
 
 			seq++;
 		}
@@ -1728,26 +1749,16 @@ mpeg1->rc.gop_count++;
 			mpeg1->rc.ob = 0;
 		}
 
-		/* Encode current or forward P or I picture */
-
-		mpeg1->gop_frame_count += sp - 1;
-
 		mpeg1->referenced = (seq[1] == 'P') || (seq[1] == 'B')
 			|| (sp > 1) || preview;
 
-		keyframe(mpeg1, sp - 1, obuf, *seq++ == 'P');
-
-		/* Encode stacked B pictures */
-
-		mpeg1->gop_frame_count -= sp - 1;
-
-		beeframe(mpeg1, sp - 1);
-
-		mpeg1->gop_frame_count++;
-		mpeg1->p_dist = 0;
-		sp = 0;
+		encode_stacked_frames(mpeg1, obuf, sp, *seq == 'P');
 
 		mpeg1->closed_gop = FALSE;
+
+		seq++;
+
+		sp = 0;
 	}
 
 finish:
@@ -2167,7 +2178,7 @@ menu_skip_method[] = {
 	N_("Fake picture"),
 };
 
-static rte_option
+static rte_option_info
 mpeg1_options[] = {
 	/* FILTER omitted, will change, default for now */
 	/* FRAMES_PER_SEQ_HEADER omitted, ancient legacy */
@@ -2201,6 +2212,7 @@ mpeg1_options[] = {
 		     "adjusted.")),
 /*	RTE_OPTION_BOOL_INITIALIZER
 	  ("monochrome", N_("Disable color"), FALSE, (NULL)),
+XXX
 */	RTE_OPTION_STRING_INITIALIZER
 	  ("anno", N_("Annotation"), "", NULL, 0,
 	   N_("Add an annotation in the user data field shortly after "
@@ -2373,7 +2385,7 @@ option_print(rte_codec *codec, char *keyword, va_list args)
 	return strdup(buf);
 }
 
-static rte_option *
+static rte_option_info *
 option_enum(rte_codec *codec, int index)
 {
 	/* mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec); */
@@ -2434,7 +2446,6 @@ mp1e_mpeg1_video_codec = {
 
 	.new		= codec_new,
 	.delete         = codec_delete,
-
 	.option_enum	= option_enum,
 	.option_get	= option_get,
 	.option_set	= option_set,

@@ -12,11 +12,8 @@ Known bugs with zapping, don't report them
 	  investigate.
 	~ Zapzilla: what's v4lx doing on standard change?
 	* Look for endianness problems.
-	* CC to be checked.
 	* Disabling vbi decoding leaves last known station
           name from vbi on display.
-	* Mpeg plugin/mp1e rc when promoting frames broke.
-	* Mpeg plugin/mp1e frame skipping method 2&3 don't work.
 	* Mpeg plugin/mp1e very low frame rate interrupts display,
 	  probably a scheduling issue. Investigate if/how this can be avoided.
 	* When I set recording size 176x144 the image is garbled,
@@ -26,4 +23,23 @@ Known bugs with zapping, don't report them
 	! With very bad signal i often get:
 zapping: fifo.c:684: send_full_buffer called from /home/garetxe/cvs/zapping/libvbi/v4lx.c:1029: Assertion "!p->eof_sent" failed
 Abortado
+	* top index doesnt work
+	* channel editior: input: add tuner;
+	  standard: don't change behaves strange.
+	  w/o tuner freq display is wrong.
+	* sometimes crash at termination.
+	* eacem triggers broken?
+
+
+
+
+
+
+
+
+
+
+
+
+
 

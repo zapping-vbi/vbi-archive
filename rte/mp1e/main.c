@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.18 2001-11-05 08:25:44 mschimek Exp $ */
+/* $Id: main.c,v 1.19 2001-11-22 17:51:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -160,9 +160,9 @@ main(int ac, char **av)
 		break;
 	}
 
-	mp1e_mp2_module_init(!!test_mode);
+	mp1e_mp2_module_init(test_mode & 1);
 
-	if (test_mode) {
+	if (test_mode <= 3) {
 		printv(1, "Tests passed\n");
 		exit(EXIT_SUCCESS);
 	}
@@ -327,7 +327,7 @@ main(int ac, char **av)
 		rte_helper_set_option_va(video_codec, "coded_frame_rate", c_frame_rate);
 		rte_helper_set_option_va(video_codec, "virtual_frame_rate",
 					 frame_rate);
-		rte_helper_set_option_va(video_codec, "skip_method", !!hack2);
+		rte_helper_set_option_va(video_codec, "skip_method", skip_method);
 		rte_helper_set_option_va(video_codec, "gop_sequence", gop_sequence);
 //	        rte_helper_set_option_va(video_codec, "motion_compensation",
 //					 motion_min > 0 && motion_max > 0);

@@ -16,14 +16,13 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.24 2001-11-18 19:26:43 garetxe Exp $ */
+/* $Id: mpeg.c,v 1.25 2001-11-22 17:48:11 mschimek Exp $ */
 
 #include "plugin_common.h"
 
 #ifdef HAVE_LIBRTE
 
 #include <glade/glade.h>
-#include <rte.h>
 
 #include "audio.h"
 #include "mpeg.h"

@@ -54,7 +54,7 @@ z_spinslider_new		(GtkAdjustment		*adj)
 
   hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
   gtk_widget_show (hscale);
-  gtk_box_pack_start_defaults(GTK_BOX (hbox), hscale);
+  gtk_box_pack_end_defaults(GTK_BOX (hbox), hscale);
   gtk_scale_set_draw_value (GTK_SCALE(hscale), FALSE);
   gtk_scale_set_digits (GTK_SCALE (hscale), 0);
 
@@ -93,6 +93,8 @@ update_edit_buttons_sensitivity		(GtkWidget	*channel_editor)
   GtkWidget *channel_list = lookup_widget(channel_editor, "channel_list");
   GList *ptr;
   gboolean sensitive = FALSE;
+  gboolean sensitive_up = FALSE;
+  gboolean sensitive_down = FALSE;
 
   ptr = GTK_CLIST(channel_list) -> row_list;
 
@@ -101,14 +103,23 @@ update_edit_buttons_sensitivity		(GtkWidget	*channel_editor)
       if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
 	{
 	  sensitive = TRUE;
+
+	  ptr = g_list_first(GTK_CLIST(channel_list) -> row_list);
+	  sensitive_up =
+	    (ptr && GTK_CLIST_ROW(ptr) -> state != GTK_STATE_SELECTED);
+
+	  ptr = g_list_last(GTK_CLIST(channel_list) -> row_list);
+	  sensitive_down =
+	    (ptr && GTK_CLIST_ROW(ptr) -> state != GTK_STATE_SELECTED);
+
 	  break;
 	}
 
       ptr = ptr -> next;
     }
 
-  gtk_widget_set_sensitive(up, sensitive);
-  gtk_widget_set_sensitive(down, sensitive);
+  gtk_widget_set_sensitive(up, sensitive_up);
+  gtk_widget_set_sensitive(down, sensitive_down);
   gtk_widget_set_sensitive(remove, sensitive);
   gtk_widget_set_sensitive(modify, sensitive);
 }
@@ -117,27 +128,22 @@ static void
 build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
 {
   gint i=0;
-  tveng_tuned_channel * tuned_channel;
+  tveng_tuned_channel *tuned_channel;
+  struct tveng_enumstd *std;
+  struct tveng_enum_input *input;
   gchar index[256];
   gchar alias[256];
-  gchar channel[256];
   gchar country[256];
+  gchar channel[256];
   gchar freq[256];
-  gchar accel[256];
   gchar standard[256];
+  gchar accel[256];
   gchar * buffer;
   gfloat value;
-  struct tveng_enumstd *std;
+  gchar *entry[] = { index, alias, country, channel, freq, standard, accel };
 
-  gchar *entry[] = {index, alias, country, channel, freq, standard, accel};
-
-  index[sizeof(index)-1] =
-    alias[sizeof(alias)-1] =
-    channel[sizeof(channel)-1] =
-    country[sizeof(country)-1] =
-    freq[sizeof(freq)-1] =
-    accel[sizeof(accel)-1] =
-    standard[sizeof(standard)-1] = 0;
+  for (i = 0; i < sizeof(entry) / sizeof(entry[0]); i++)
+    memset(entry[i], 0, 256);
 
   value = gtk_clist_get_vadjustment(clist)->value;
 
@@ -146,15 +152,24 @@ build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
   gtk_clist_clear(clist);
 
   /* Setup the channel list */
-  while ((tuned_channel = tveng_retrieve_tuned_channel_by_index(i++, list)))
+  for (i = 0; (tuned_channel =
+	       tveng_retrieve_tuned_channel_by_index(i, list)); i++)
     {
-      g_snprintf(index, sizeof(index)-1, "%u", i); /* 1...n */
-      g_snprintf(alias, sizeof(alias)-1, tuned_channel->name);
-      g_snprintf(country, sizeof(country)-1, _(tuned_channel->country));
-      g_snprintf(channel, sizeof(channel)-1, tuned_channel->real_name);
-      g_snprintf(freq, sizeof(freq)-1, "%u", tuned_channel->freq);
-      if (tuned_channel->accel_key)
+      /* clist has no optional built-in row number? */
+      g_snprintf(entry[0], 255, "%3u", i + 1);
+      strncpy(entry[1], tuned_channel->name, 255);
+
+      entry[2][0] = 0;
+      entry[3][0] = 0;
+      entry[4][0] = 0;
+
+      input = tveng_find_input_by_hash(tuned_channel->input, main_info);
+
+      if (!input || input->tuners > 0)
 	{
+	  strncpy(entry[2], _(tuned_channel->country), 255);
+	  strncpy(entry[3], tuned_channel->real_name, 255);
+	  g_snprintf(entry[4], 255, "%u", tuned_channel->freq);
 	  buffer = gdk_keyval_name(tuned_channel->accel_key);
 	  if (buffer)
 	    g_snprintf(accel, sizeof(accel)-1, "%s%s%s%s",
@@ -166,15 +181,27 @@ build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
 	    accel[0] = 0;
 	}
       else
-	accel[0] = 0;
-      if (tuned_channel->standard &&
-	  (std = tveng_find_standard_by_hash(tuned_channel->standard,
-					     main_info)))
 	{
-	  g_snprintf(standard, sizeof(standard)-1, std->name);
+	  strncpy(entry[3], input->name, 255);
+	  /* too bad there's no span-columns parameter */
 	}
-      else
-	standard[0] = 0;
+
+      std = tveng_find_standard_by_hash(tuned_channel->standard, main_info);
+      strncpy(entry[5], std ? std->name : "", 255);
+
+      entry[6][0] = 0;
+
+      if (tuned_channel->accel_key)
+	{
+	  gchar *buffer = gdk_keyval_name(tuned_channel->accel_key);
+
+	  if (buffer)
+	    g_snprintf(entry[6], 255, "%s%s%s%s",
+	      (tuned_channel->accel_mask & GDK_CONTROL_MASK) ? _("Ctrl+") : "",
+	      (tuned_channel->accel_mask & GDK_MOD1_MASK) ? _("Alt+") : "",
+	      (tuned_channel->accel_mask & GDK_SHIFT_MASK) ? _("Shift+") : "",
+	      buffer);
+	}
 
       gtk_clist_append(clist, entry);
     }
@@ -476,7 +503,7 @@ on_move_channel_down_clicked		(GtkWidget	*button,
     gtk_object_get_data(GTK_OBJECT(channel_editor), "list");
   tveng_tuned_channel * tc;
   GList *ptr;
-  gint pos;
+  gint pos, last_pos;
   gboolean selected[tveng_tuned_channel_num(list)];
   gboolean moved = FALSE;
 
@@ -522,9 +549,22 @@ on_move_channel_down_clicked		(GtkWidget	*button,
   gtk_signal_handler_block_by_func(GTK_OBJECT(channel_list),
 			   GTK_SIGNAL_FUNC(on_channel_list_select_row),
 			   NULL);
-  for (pos=0; pos<tveng_tuned_channel_num(list); pos++)
+
+  for (pos = last_pos = 0; pos < tveng_tuned_channel_num(list); pos++)
     if (selected[pos])
-      gtk_clist_select_row(GTK_CLIST(channel_list), pos, 0);
+      {
+	gtk_clist_select_row(GTK_CLIST(channel_list), pos, 0);
+	if (pos > last_pos)
+	  last_pos = pos;
+      }
+
+  /* bring the row following the selection back in sight */
+  if (last_pos + 1 < pos)
+    last_pos++;
+  if (gtk_clist_row_is_visible(GTK_CLIST(channel_list), last_pos)
+      != GTK_VISIBILITY_FULL)
+    gtk_clist_moveto(GTK_CLIST(channel_list), last_pos, 0, 1.0, 0.0);
+
   gtk_signal_handler_unblock_by_func(GTK_OBJECT(channel_list),
 			     GTK_SIGNAL_FUNC(on_channel_list_select_row),
 			     NULL);
@@ -542,7 +582,7 @@ on_move_channel_up_clicked		(GtkWidget	*button,
     gtk_object_get_data(GTK_OBJECT(channel_editor), "list");
   tveng_tuned_channel * tc;
   GList *ptr;
-  gint pos;
+  gint pos, first_pos;
   gboolean selected[tveng_tuned_channel_num(list)];
   gboolean moved = FALSE;
 
@@ -587,9 +627,23 @@ on_move_channel_up_clicked		(GtkWidget	*button,
   gtk_signal_handler_block_by_func(GTK_OBJECT(channel_list),
 			   GTK_SIGNAL_FUNC(on_channel_list_select_row),
 			   NULL);
-  for (pos=0; pos<tveng_tuned_channel_num(list); pos++)
+
+  for (pos = 0, first_pos = tveng_tuned_channel_num(list);
+       pos < tveng_tuned_channel_num(list); pos++)
     if (selected[pos])
-      gtk_clist_select_row(GTK_CLIST(channel_list), pos, 0);
+      {
+	gtk_clist_select_row(GTK_CLIST(channel_list), pos, 0);
+	if (pos < first_pos)
+	  first_pos = pos;
+      }
+
+  /* bring the row preceding the selection back in sight */
+  if (first_pos > 0)
+    first_pos--;
+  if (gtk_clist_row_is_visible(GTK_CLIST(channel_list), first_pos)
+      != GTK_VISIBILITY_FULL)
+    gtk_clist_moveto(GTK_CLIST(channel_list), first_pos, 0, 0.0, 0.0);
+
   gtk_signal_handler_unblock_by_func(GTK_OBJECT(channel_list),
 			     GTK_SIGNAL_FUNC(on_channel_list_select_row),
 			     NULL);
@@ -1370,7 +1424,7 @@ gint do_search (GtkWidget * searching)
 	  /* zvbi should store the station name if known from now */
 	  zvbi_name_unknown();
 	  /* wait afc code, receive some VBI data to get the station,
-	     etc */
+	     etc. XXX should wake up earlier when the data is ready */
 	  usleep(3e5);
 
 	  /* Fine search (untested) */

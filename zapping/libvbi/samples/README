@@ -40,7 +40,7 @@ s2 - s7
 s2
     field 1: C1 roll-up
     field 2: xds
-s3 xds
+s3 xds (no caption)
     EDM 
     01 05 HD 0f 5f 05 02 A&E 00 0f 3e
     01 03 01 03 'Northern Exposure: No' 00 0f 0b 05 01 'A&E Network' 00 0f 35
@@ -94,3 +94,6 @@ To feed libvbi/Zapzilla, add to zapping/site_def.h:
 
 This works regardless of the video standard, but to suppress side effects
 you may want to add: #define FILTER_REM (-1) /* discard all received data */
+
+
+

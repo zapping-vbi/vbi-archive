@@ -1,7 +1,8 @@
 /*
  *  Zapzilla/libvbi - Closed Caption Decoder
  *
- *  gcc -g -ocaption caption.c -L/usr/X11R6/lib -lX11 -DTEST=1 -D_GNU_SOURCE=1
+ *  gcc -g -O0 -ocaption caption.c -L/usr/X11R6/lib -lX11 -DTEST=1 -D_GNU_SOURCE=1
+ *  ./caption; ./caption <samples/s1 
  *
  *  Copyright (C) 2000-2001 Michael H. Schimek
  *
@@ -20,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.33 2001-09-02 03:25:58 mschimek Exp $ */
+/* $Id: caption.c,v 1.34 2001-11-22 17:48:11 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +41,18 @@
 
 #define XDS_DEBUG 1
 #define ITV_DEBUG 1
+
+void
+vbi_atvef_trigger(struct vbi *vbi, char *s)
+{
+	fprintf(stderr, "atvef <%s>\n", s);
+}
+
+void
+vbi_chsw_reset(struct vbi *vbi, nuid nuid)
+{
+	fprintf(stderr, "chsw nuid %08x\n", nuid);
+}
 
 #else
 
@@ -411,7 +424,9 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 			break;
 
 		default:
+#if XDS_DEBUG
 			printf("<unknown %d/%02x length %d>\n", class, type, length);
+#endif
 			break;
 		}
 
@@ -1023,7 +1038,7 @@ caption_command(struct vbi *vbi, struct caption *cc,
 				attr_char *acp = &ch->pg[ch->hidden ^ (ch->mode != MODE_POP_ON)]
 					.text[ch->row1 * COLUMNS];
 
-				word_break(cc, ch, 0);
+				word_break(cc, ch, 1);
 				update(ch);
 
 				memmove(acp, acp + COLUMNS, sizeof(*acp) * (ch->roll - 1) * COLUMNS);
@@ -1988,8 +2003,8 @@ sample_beta(void)
 			cc[0] = fgetc(stdin);
 			cc[1] = fgetc(stdin);
 
-//			printf(" %3d %02x %02x ", line & 0xFFF, cc[0] & 0x7F, cc[1] & 0x7F);
-//			printf(" %c%c\n", printable(cc[0]), printable(cc[1]));
+			printf(" %3d %02x %02x ", line & 0xFFF, cc[0] & 0x7F, cc[1] & 0x7F);
+			printf(" %c%c\n", printable(cc[0]), printable(cc[1]));
 
 			vbi_caption_dispatcher(&vbi, line & 0xFFF, cc);
 
@@ -2068,7 +2083,7 @@ hello_world(void)
 	ch = 0;
 	ROLL_UP(2);
 	ERASE_DISPLAY;
-	prints(" ROLL-UP TEST "); PAUSE(20);
+	prints(" ROLL-UP TEST "); CR; PAUSE(20);
 	prints(">> A young Jedi named Darth Vader,"); CR; PAUSE(20);
 	prints("who was a pupil of mine until he"); CR; PAUSE(20);
 	prints("turned to evil, helped the Empire"); CR; PAUSE(20);
@@ -2109,7 +2124,7 @@ main(int ac, char **av)
 	if (!init_window(ac, av))
 		exit(EXIT_FAILURE);
 
-	vbi_init_caption(&vbi);
+	vbi_caption_init(&vbi);
 
 	if (isatty(STDIN_FILENO))
 		hello_world();

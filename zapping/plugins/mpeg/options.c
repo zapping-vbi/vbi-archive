@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.12 2001-11-12 22:38:39 garetxe Exp $ */
+/* $Id: options.c,v 1.13 2001-11-22 17:48:11 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -28,7 +28,6 @@
 #include <math.h>
 
 #include <glade/glade.h>
-#include <rte.h>
 
 #include "mpeg.h"
 #include "properties.h"
@@ -47,7 +46,7 @@ grte_options_destroy (grte_options *opts)
 }
 
 static GtkWidget *
-ro_label_new (rte_option *ro)
+ro_label_new (rte_option_info *ro)
 {
   GtkWidget *label;
   gchar *s;
@@ -68,7 +67,7 @@ do_option_control (GtkWidget *w, gpointer user_data)
   grte_options *opts = (grte_options *) user_data;
   char *keyword = (char *) gtk_object_get_data (GTK_OBJECT (w), "key");
   GtkLabel *label;
-  rte_option *ro;
+  rte_option_info *ro;
   rte_option_value val;
   gchar *zcname, *str;
   gint num;
@@ -77,7 +76,7 @@ do_option_control (GtkWidget *w, gpointer user_data)
   g_assert (opts && keyword);
 
   if (!opts->context || !opts->codec
-      || !(ro = rte_option_keyword (opts->codec, keyword)))
+      || !(ro = rte_option_info_by_keyword (opts->codec, keyword)))
     return;
 
   /* XXX rte_option_set errors ignored */
@@ -151,11 +150,11 @@ on_reset_slider (GtkWidget *w, gpointer user_data)
   grte_options *opts = (grte_options *) user_data;
   GtkWidget *adj = (GtkWidget *) gtk_object_get_data (GTK_OBJECT (w), "adj");
   char *keyword = (char *) gtk_object_get_data (GTK_OBJECT (w), "key");
-  rte_option *ro;
+  rte_option_info *ro;
 
   g_assert (opts && adj && keyword);
 
-  if (!(ro = rte_option_keyword (opts->codec, keyword)))
+  if (!(ro = rte_option_info_by_keyword (opts->codec, keyword)))
     return;
 
   gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
@@ -166,7 +165,7 @@ on_reset_slider (GtkWidget *w, gpointer user_data)
 }
 
 static void
-create_entry (grte_options *opts, rte_option *ro, int index)
+create_entry (grte_options *opts, rte_option_info *ro, int index)
 { 
   GtkWidget *label;
   GtkWidget *entry;
@@ -198,7 +197,7 @@ create_entry (grte_options *opts, rte_option *ro, int index)
 }
 
 static void
-create_menu (grte_options *opts, rte_option *ro, int index)
+create_menu (grte_options *opts, rte_option_info *ro, int index)
 {
   GtkWidget *label; /* This shows what the menu is for */
   GtkWidget *option_menu; /* The option menu */
@@ -275,7 +274,7 @@ create_menu (grte_options *opts, rte_option *ro, int index)
 }
 
 static void
-create_slider (grte_options *opts, rte_option *ro, int index)
+create_slider (grte_options *opts, rte_option_info *ro, int index)
 { 
   GtkWidget *label1; /* This shows what the menu is for */
   GtkWidget *label2; /* Displays the current value */
@@ -356,7 +355,7 @@ create_slider (grte_options *opts, rte_option *ro, int index)
 }
 
 static void
-create_checkbutton (grte_options *opts, rte_option *ro, int index)
+create_checkbutton (grte_options *opts, rte_option_info *ro, int index)
 {
   GtkWidget *cb;
   rte_option_value val;
@@ -414,11 +413,11 @@ grte_options_create (rte_context *context, rte_codec *codec)
 {
   GtkWidget *frame;
   grte_options *opts;
-  rte_option *ro;
+  rte_option_info *ro;
   gint index;
   int i;
 
-  if (!rte_option_enum (codec, 0))
+  if (!rte_option_info_enum (codec, 0))
     return NULL; /* no options */
 
   opts = g_malloc (sizeof (*opts));
@@ -435,7 +434,7 @@ grte_options_create (rte_context *context, rte_codec *codec)
   opts->table = gtk_table_new (1, 3, FALSE);
   gtk_widget_show (opts->table);
 
-  for (i = 0, index = 0; (ro = rte_option_enum (codec, i)); i++)
+  for (i = 0, index = 0; (ro = rte_option_info_enum (codec, i)); i++)
     {
       if (strcmp(ro->keyword, "coded_frame_rate") == 0)
 	/* we'll override this */
@@ -524,12 +523,12 @@ grte_options_create (rte_context *context, rte_codec *codec)
 static gboolean
 grte_options_load (rte_codec *codec, gchar *zc_domain)
 {
-  rte_option *ro;
+  rte_option_info *ro;
   int i;
 
   g_assert (codec && zc_domain);
 
-  for (i = 0; (ro = rte_option_enum (codec, i)); i++)
+  for (i = 0; (ro = rte_option_info_enum (codec, i)); i++)
     {
       gchar *zcname = g_strconcat (zc_domain, "/", ro->keyword, NULL);
       rte_option_value val;
@@ -581,12 +580,12 @@ grte_options_load (rte_codec *codec, gchar *zc_domain)
 static gboolean
 grte_options_save (rte_codec *codec, gchar *zc_domain)
 {
-  rte_option *ro;
+  rte_option_info *ro;
   int i;
 
   g_assert (codec && zc_domain);
 
-  for (i = 0; (ro = rte_option_enum (codec, i)); i++)
+  for (i = 0; (ro = rte_option_info_enum (codec, i)); i++)
     {
       gchar *zcname = g_strconcat (zc_domain, "/", ro->keyword, NULL);
       rte_option_value val;
@@ -802,7 +801,7 @@ grte_codec_save (rte_context *context, gchar *zc_subdomain,
 
   if (codec)
     {
-      g_assert ((info = rte_codec_info_codec (codec)));
+      g_assert ((info = rte_codec_info_by_codec (codec)));
 
       zconf_set_string (info->keyword, zcname);
       g_free (zcname);
@@ -949,7 +948,7 @@ grte_context_save (rte_context *context, gchar *zc_subdomain)
   rte_context_info *info;
   gchar *zcname;
 
-  g_assert ((info = rte_context_info_context (context)));
+  g_assert ((info = rte_context_info_by_context (context)));
 
   zcname = g_strconcat (ZCONF_DOMAIN "/", zc_subdomain, "/format", NULL);
   zconf_set_string (info->keyword, zcname);

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.13 2001-11-03 23:43:54 mschimek Exp $ */
+/* $Id: v4l.c,v 1.14 2001-11-22 17:51:07 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -181,22 +181,15 @@ fifo *
 v4l_init(double *frame_rate)
 {
 	struct video_capability vcap;
+	struct video_tuner vtuner;
+	struct video_channel vchan;
+	/* struct video_window vwin; */
+	/* struct video_picture vpict; */
 	int min_cap_buffers = video_look_ahead(gop_sequence);
 	int aligned_width, aligned_height;
 	unsigned long buf_size;
 	int buf_count;
-
-	/* FIXME */
-	if (filter_mode == CM_YUYV_VERTICAL_DECIMATION)
-		filter_mode = CM_YUYV;
-
-	grab_width = width = saturate(width, 1, MAX_WIDTH);
-	grab_height = height = saturate(height, 1, MAX_HEIGHT);
-
-	aligned_width  = (grab_width + 15) & -16;
-	aligned_height = (grab_height + 15) & -16;
-
-	buf_count = MAX(cap_buffers, min_cap_buffers);
+	int max_height;
 
 	ASSERT("open capture device",
 		(fd = open(cap_dev, O_RDWR)) >= 0);
@@ -207,6 +200,9 @@ v4l_init(double *frame_rate)
 	if (!(vcap.type & VID_TYPE_CAPTURE))
 		FAIL("%s ('%s') is not a video capture device",
 			cap_dev, vcap.name);
+
+	printv(2, "Opened %s ('%s')\n", cap_dev, vcap.name);
+
 
 	/* Unmute audio (bttv) */
 
@@ -227,136 +223,142 @@ v4l_init(double *frame_rate)
 		atexit(restore_audio);
 	}
 
-	printv(2, "Opened %s ('%s')\n", cap_dev, vcap.name);
 
 	/* Determine current video standard */
 
-	{
-		struct video_tuner vtuner;
-		struct video_channel vchan;
+	CLEAR(&vtuner);
+	vtuner.tuner = 0; /* first tuner */
 
-		CLEAR(&vtuner);
-		vtuner.tuner = 0; /* first tuner */
+	if (IOCTL(fd, VIDIOCGTUNER, &vtuner) == -1) {
+		printv(2, "Apparently the device has no tuner\n");
 
-		if (IOCTL(fd, VIDIOCGTUNER, &vtuner) == -1) {
-			printv(2, "Apparently the device has no tuner\n");
+		CLEAR(&vchan);
+		vchan.channel = 0; /* first channel */
 
-			CLEAR(&vchan);
-			vchan.channel = 0; /* first channel */
+		ASSERT("query current video input of %s (VIDIOCGCHAN), "
+		       "cannot determine video standard (VIDIOCGTUNER didn't work either)\n",
+		       IOCTL(fd, VIDIOCGCHAN, &vchan) == 0,
+		       cap_dev);
 
-			ASSERT("query current video input of %s (VIDIOCGCHAN), "
-			       "cannot determine video standard (VIDIOCGTUNER didn't work either)\n",
-			       IOCTL(fd, VIDIOCGCHAN, &vchan) == 0,
-			       cap_dev);
-
-			vtuner.mode = vchan.norm;
-		}
-
-		switch (vtuner.mode) {
-		case VIDEO_MODE_PAL:
-		case VIDEO_MODE_SECAM:
-			printv(2, "Video standard is PAL/SECAM\n");
-//			vseg.frame_rate_code = 3;
-			cap_time = 0;
-			frame_period_near =
-			frame_period_far = 1 / 25.0;
-			break;
-
-		case VIDEO_MODE_NTSC:
-			printv(2, "Video standard is NTSC\n");
-//			vseg.frame_rate_code = 4;
-			cap_time = 0;
-			frame_period_near =
-			frame_period_far = 1001 / 30000.0;
-
-			if (grab_height == 288) /* that's the default, assuming PAL */
-				height = aligned_height = grab_height = 240;
-			if (grab_height == 576)
-				height = aligned_height = grab_height = 480;
-
-			break;
-
-		default:
-			FAIL("Current video standard #%d unknown.\n", vtuner.mode);
-			break;
-		}
-
-		*frame_rate = 1.0 / frame_period_far;
+		vtuner.mode = vchan.norm;
 	}
 
-	if (IOCTL(fd, VIDIOCGMBUF, &gb_buffers) == -1) {
-		struct video_window	win;
-		struct video_picture	pict;
+	switch (vtuner.mode) {
+	case VIDEO_MODE_PAL:
+	case VIDEO_MODE_SECAM:
+		printv(2, "Video standard is PAL/SECAM\n");
+		cap_time = 0;
+		frame_period_near =
+		frame_period_far = 1 / 25.0;
+		max_height = 576;
+		break;
 
+	case VIDEO_MODE_NTSC:
+		printv(2, "Video standard is NTSC\n");
+		cap_time = 0;
+		frame_period_near =
+		frame_period_far = 1001 / 30000.0;
+		max_height = 480;
+		if (grab_height == 288) /* that's the default, assuming PAL */
+			grab_height = 240;
+		if (grab_height == 576)
+			grab_height = 480;
+		break;
+
+	default:
+		FAIL("Current video standard #%d unknown.\n", vtuner.mode);
+		break;
+	}
+
+	*frame_rate = 1.0 / frame_period_far;
+
+
+	grab_width = saturate(grab_width, 1, MAX_WIDTH);
+	grab_height = saturate(grab_height, 1, MAX_HEIGHT);
+
+	if (DECIMATING(filter_mode))
+		aligned_height = (grab_height * 2 + 15) & -16;
+	else
+		aligned_height = (grab_height + 15) & -16;
+
+	aligned_width  = (grab_width + 15) & -16;
+
+	buf_count = MAX(cap_buffers, min_cap_buffers);
+
+
+	while (aligned_height > max_height) {
+		if (DECIMATING(filter_mode)) {
+			filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
+			aligned_height = (grab_height + 15) & -16;
+		} else {
+			aligned_height = max_height;
+		}
+	}
+
+#if 0 /* works? */
+
+	/* Set capture format and dimensions */
+
+	CLEAR(&pict);
+
+	ASSERT("determine the current image format of %s (VIDIOCGPICT)",
+	       IOCTL(fd, VIDIOCGPICT, &pict) == 0, cap_dev);
+
+	if (filter_mode == CM_YUV)
+		pict.palette = VIDEO_PALETTE_YUV420P;
+	else
+		pict.palette = VIDEO_PALETTE_YUV422;
+
+	if (IOCTL(fd, VIDIOCSPICT, &pict) != 0) {
+		printv(2, "Image format %d not accepted.\n", pict.palette);
+
+		if (filter_mode == CM_YUV) {
+			filter_mode = CM_YUYV;
+			pict.palette = VIDEO_PALETTE_YUV422;
+		} else {
+			filter_mode = CM_YUV;
+			pict.palette = VIDEO_PALETTE_YUV420P;
+			aligned_height = (grab_height + 15) & -16;
+		}
+
+		ASSERT("set image format of %s, "
+		       "probably none of YUV 4:2:0 or 4:2:2 are supported",
+	    		IOCTL(fd, VIDIOCSPICT, &pict) == 0, cap_dev);
+	}
+
+
+	for (;;) {
+		CLEAR(&win);
+		vwin.width = aligned_width;
+		vwin.height = aligned_height;
+		vwin.chromakey = -1;
+
+		if (IOCTL(fd, VIDIOCSWIN, &vwin) == 0)
+			break;
+
+		ASSERT("set the grab size of %s to %dx%d, "
+		       "suggest other -s, -G, -F values",
+		       DECIMATING(filter_mode),
+		       cap_dev, vwin.width, vwin.height);
+
+		filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
+		aligned_height = (grab_height + 15) & -16;
+	}
+
+	aligned_width = vwin.width;
+	aligned_height = vwin.height;
+
+#endif
+
+	/* Capture setup */
+
+	if (IOCTL(fd, VIDIOCGMBUF, &gb_buffers) == -1) {
 		FAIL("V4L read interface does not work, sorry.\n"
-		    "Please send patches to zapping-misc@lists.sf.net.\n");
+		     "Please send patches to zapping-misc@lists.sf.net.\n");
 
 		printv(2, "VIDICGMBUF failed, using read interface\n");
 
 		use_mmap = 0;
-
-		/* Set capture format and dimensions */
-
-		CLEAR(&win);
-		win.width = aligned_width;
-		win.height = aligned_height;
-
-		if (DECIMATING(filter_mode))
-			win.height *= 2;
-
-		win.chromakey = -1;
-
-		ASSERT("set the grab size of %s to %dx%d, "
-		       "suggest other -s, -G, -F values",
-			!IOCTL(fd, VIDIOCSWIN, &win),
-			cap_dev, win.width, win.height);
-
-		CLEAR(&pict);
-
-		ASSERT("determine the current image format of %s (VIDIOCGPICT)",
-		       IOCTL(fd, VIDIOCGPICT, &pict) == 0, cap_dev);
-
-		if (filter_mode == CM_YUV)
-			pict.palette = VIDEO_PALETTE_YUV420P;
-		else
-			pict.palette = VIDEO_PALETTE_YUV422;
-
-		if (IOCTL(fd, VIDIOCSPICT, &pict) != 0) {
-			printv(2, "Image format %d not accepted.\n",
-				pict.palette);
-
-			if (filter_mode == CM_YUV) {
-				filter_mode = CM_YUYV;
-				pict.palette = VIDEO_PALETTE_YUV422;
-			} else {
-				if (DECIMATING(filter_mode)) {
-					CLEAR(&win);
-					win.width = aligned_width;
-					win.height = aligned_height;
-					win.chromakey = -1;
-
-					ASSERT("set the grab size of %s to %dx%d, "
-					       "suggest other -s, -G, -F values",
-						IOCTL(fd, VIDIOCSWIN, &win) == 0,
-						cap_dev, win.width, win.height);
-				}
-
-				filter_mode = CM_YUV;
-				pict.palette = VIDEO_PALETTE_YUV420P;
-			}
-
-			ASSERT("set image format of %s, "
-			       "probably none of YUV 4:2:0 or 4:2:2 are supported",
-		    		IOCTL(fd, VIDIOCSPICT, &pict) == 0, cap_dev);
-		}
-
-		if (filter_mode == CM_YUV || filter_mode == CM_YVU) {
-	    		filter_init(win.width); /* line stride in bytes */
-			buf_size = win.width * win.height * 3 / 2;
-		} else {
-	    		filter_init(win.width * 2);
-			buf_size = win.width * win.height * 2;
-		}
 	} else {
 		int r;
 
@@ -387,9 +389,6 @@ v4l_init(double *frame_rate)
 		gb_buf.width = aligned_width;
 		gb_buf.height = aligned_height;
 
-		if (DECIMATING(filter_mode))
-			gb_buf.height *= 2;
-
 		if (filter_mode == CM_YUV || filter_mode == CM_YVU)
 			gb_buf.format = VIDEO_PALETTE_YUV420P;
 		else
@@ -406,8 +405,13 @@ v4l_init(double *frame_rate)
 				gb_buf.format = VIDEO_PALETTE_YUV422;
 			} else {
 				filter_mode = CM_YUV;
+
+				if (DECIMATING(filter_mode))
+					aligned_height = (grab_height + 15) & -16;
+
 				gb_buf.width = aligned_width;
 				gb_buf.height = aligned_height;
+
 				gb_buf.format = VIDEO_PALETTE_YUV420P;
 			}
 
@@ -422,6 +426,14 @@ v4l_init(double *frame_rate)
 		       "Different -s, -G, -F values may help.",
 		       r >= 0,
 		       cap_dev, gb_buf.width, gb_buf.height);
+
+		grab_width = gb_buf.width;
+		grab_height = gb_buf.height;
+
+		if (width > grab_width)
+			width = grab_width;
+		if (height > grab_height)
+			height = grab_height;
 
 		if (filter_mode == CM_YUV || filter_mode == CM_YVU) {
 	    		filter_init(gb_buf.width); /* line stride in bytes */

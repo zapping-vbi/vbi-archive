@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2001-09-18 01:27+0200\n"
+"POT-Creation-Date: 2001-11-05 08:07+0100\n"
 "PO-Revision-Date: 2000-02-14 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -14,98 +14,98 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1\n"
 
-#: src/main.c:284
+#: src/main.c:286
 msgid "Video device to use"
 msgstr "Dispositivo de video"
 
-#: src/main.c:285 src/zapzilla.c:72
+#: src/main.c:287 src/zapzilla.c:72
 msgid "DEVICE"
 msgstr "DISPOSITIVO"
 
-#: src/main.c:293
+#: src/main.c:295
 msgid "Disable plugins support"
 msgstr "Sin soporte de plugins"
 
-#: src/main.c:302
+#: src/main.c:304
 msgid "Disable VBI support"
 msgstr "Sin soporte de VBI"
 
-#: src/main.c:311
+#: src/main.c:313
 msgid "Disable XVideo extension support"
 msgstr "Sin soporte de XVideo"
 
-#: src/main.c:320
+#: src/main.c:322
 msgid "Do not call zapping_setup_fb on startup"
 msgstr "No ejecutar zapping_setup_fb al iniciar"
 
-#: src/main.c:329
+#: src/main.c:331
 msgid "Color depth of the X display"
 msgstr "Profundidad de color del servidor X"
 
-#: src/main.c:330
+#: src/main.c:332
 msgid "BPP"
 msgstr ""
 
-#: src/main.c:338 src/zapzilla.c:62
+#: src/main.c:340 src/zapzilla.c:62
 msgid "Set debug messages on"
 msgstr "Mensajes de debugging activos"
 
-#: src/main.c:347
+#: src/main.c:349
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr "Estándar por defecto para entradas sin sintonizador"
 
-#: src/main.c:348
+#: src/main.c:350
 msgid "NORM"
 msgstr "NORMA"
 
-#: src/main.c:356
+#: src/main.c:358
 msgid "Force dword aligning of the overlay window"
 msgstr "Forzar alineamiento a dword"
 
-#: src/main.c:365
+#: src/main.c:367
 msgid "Execute the given command and exit"
 msgstr "Ejecutar el comando dado y salir"
 
-#: src/main.c:366
+#: src/main.c:368
 msgid "CMD"
 msgstr ""
 
-#: src/main.c:374
+#: src/main.c:376
 msgid "Pixformat for XVideo capture mode [YUYV | YVU420]"
 msgstr "Formato para el modo captura XVideo [YUYV | YVU420]"
 
-#: src/main.c:375
+#: src/main.c:377
 msgid "PIXFORMAT"
 msgstr "FORMATO"
 
-#: src/main.c:383 src/zapzilla.c:80
+#: src/main.c:385 src/zapzilla.c:80
 msgid "Redirect the error messages to the console"
 msgstr "Redireccionar los mensajes de error a la consola"
 
-#: src/main.c:463
+#: src/main.c:465
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Lo siento, pero no hay soporte para módulos en GLib"
 
 # src/callbacks.c:320 src/v4l2interface.c:89
-#: src/main.c:471
+#: src/main.c:473
 msgid "Cannot get device info struct"
 msgstr "No se puede obtener el dispositivo"
 
-#: src/main.c:480
+#: src/main.c:482
 msgid "Zapping couldn't be started"
 msgstr "Zapping no se pudo iniciar"
 
-#: src/main.c:537
+#: src/main.c:539
 #, c-format
 msgid "Couldn't open %s, should I try some common options?"
 msgstr "No se pudo abrir %s, ¿pruebo algunas opciones comunes?"
 
-#: src/main.c:571
+#: src/main.c:573
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "%s funcionó, es el nuevo valor por defecto"
 
-#: src/main.c:580
+#: src/main.c:582
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -114,7 +114,7 @@ msgstr ""
 "Lo siento, pero \"%s\" no se pudo abrir:\n"
 "%s"
 
-#: src/main.c:683
+#: src/main.c:693
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -123,11 +123,11 @@ msgstr ""
 "No se pudo restaurar el modo anterior%s:\n"
 "%s"
 
-#: src/main.c:686
+#: src/main.c:696
 msgid ", I will try starting capture mode"
 msgstr ", trataré de iniciar el modo captura"
 
-#: src/main.c:690
+#: src/main.c:700
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -136,7 +136,7 @@ msgstr ""
 "El modo captura tampoco pudo ser iniciado:\n"
 "%s"
 
-#: src/main.c:703
+#: src/main.c:713
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -146,15 +146,15 @@ msgstr ""
 "%s"
 
 # src/interface.c:247
-#: src/callbacks.c:193 src/callbacks.c:373 src/main.c:731
+#: src/callbacks.c:197 src/callbacks.c:378 src/main.c:741
 msgid "Show controls"
 msgstr "Mostrar controles"
 
-#: src/callbacks.c:194 src/callbacks.c:374 src/main.c:732
+#: src/callbacks.c:198 src/callbacks.c:379 src/main.c:742
 msgid "Show the menu and the toolbar"
 msgstr "Mostrar el menu y la barra de herramientas"
 
-#: src/main.c:908 src/zapzilla.c:152
+#: src/main.c:936 src/zapzilla.c:152
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -174,7 +174,7 @@ msgstr ""
 "   - o, más probablemente, esto es un fallo de %s.\n"
 "     Por favor contacte con el autor.\n"
 
-#: src/main.c:934
+#: src/main.c:962
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Zapping no puede crear la configuración"
 
@@ -195,150 +195,177 @@ msgstr "No se pudo abrir %s, saliendo"
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Zapzilla no puede crear la configuración"
 
-#: src/interface.c:150
+#: src/interface.c:166
 msgid "(C) Iñaki García Etxebarria"
 msgstr ""
 
-#: src/interface.c:152
+#: src/interface.c:168
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr "La televisión para Gnome"
 
+#: src/callbacks.c:125
+msgid "<blue>audio off</blue>"
+msgstr ""
+
+#: src/callbacks.c:126
+msgid "<yellow>AUDIO ON</yellow>"
+msgstr ""
+
 # src/v4l2interface.c:344
-#: glade/glade_strings.c:28 glade/glade_strings.c:234 src/callbacks.c:180
+#: glade/glade_strings.c:28 glade/glade_strings.c:198 src/callbacks.c:184
 msgid "Hide controls"
 msgstr "Ocultar controles"
 
-#: glade/glade_strings.c:27 glade/glade_strings.c:233 src/callbacks.c:181
+#: glade/glade_strings.c:27 glade/glade_strings.c:197 src/callbacks.c:185
 msgid "Hide the menu and the toolbar"
 msgstr "Ocultar el menu y la barra"
 
-#: src/callbacks.c:355
+#: src/callbacks.c:309
+#, c-format
+msgid ""
+"%s:\n"
+"Try running as root \"zapping_fix_overlay\" in a console"
+msgstr ""
+
+#: src/callbacks.c:360
 msgid "Overlay this page"
 msgstr "TTX->Subtítulos"
 
-#: src/callbacks.c:356 src/zmisc.c:279
+#: src/callbacks.c:361 src/zmisc.c:279
 msgid "Return to windowed mode and use the current page as subtitles"
 msgstr "Volver al modo ventana y utilizar la página actual como subtítulos"
 
-# src/frequencies.c:816
-#: src/frequencies.c:1057
-msgid "us-bcast"
-msgstr "eeuu-bcast"
+#: src/frequencies.c:1058
+msgid "US terrestrial"
+msgstr ""
 
 # src/frequencies.c:817
-#: src/frequencies.c:1058
-msgid "us-cable"
+#: src/frequencies.c:1059
+#, fuzzy
+msgid "US cable"
 msgstr "eeuu-cable"
 
 # src/frequencies.c:818
-#: src/frequencies.c:1059
-msgid "us-cable-hrc"
+#: src/frequencies.c:1060
+#, fuzzy
+msgid "US cable-hrc"
 msgstr "eeuu-cable-hrc"
 
-# src/frequencies.c:819
-#: src/frequencies.c:1060
-msgid "japan-bcast"
-msgstr "japón-bcast"
+#: src/frequencies.c:1061
+msgid "Japan terrestrial"
+msgstr ""
 
 # src/frequencies.c:820
-#: src/frequencies.c:1061
-msgid "japan-cable"
+#: src/frequencies.c:1062
+#, fuzzy
+msgid "Japan cable"
 msgstr "japón-cable"
 
 # src/frequencies.c:821
-#: src/frequencies.c:1062
-msgid "europe"
+#: src/frequencies.c:1063
+#, fuzzy
+msgid "Europe"
 msgstr "europa"
 
-# src/frequencies.c:822
-#: src/frequencies.c:1063
-msgid "europe-east"
-msgstr "europa del este"
+# src/frequencies.c:821
+#: glade/glade_strings.c:107 src/frequencies.c:1064
+msgid "Eastern Europe"
+msgstr "Europa Meridional"
 
 # src/frequencies.c:823
-#: src/frequencies.c:1064
-msgid "italy"
+#: src/frequencies.c:1065
+#, fuzzy
+msgid "Italy"
 msgstr "italia"
 
 # src/frequencies.c:824
-#: src/frequencies.c:1065
-msgid "newzealand"
+#: src/frequencies.c:1066
+#, fuzzy
+msgid "New Zealand"
 msgstr "nueva zelanda"
 
-# src/frequencies.c:825
-#: src/frequencies.c:1066
-msgid "australia"
+#: src/frequencies.c:1067
+msgid "Australia"
 msgstr ""
 
 # src/frequencies.c:826
-#: src/frequencies.c:1067
-msgid "ireland"
+#: src/frequencies.c:1068
+#, fuzzy
+msgid "Ireland"
 msgstr "irlanda"
 
 # src/frequencies.c:827
-#: src/frequencies.c:1068
-msgid "france"
+#: src/frequencies.c:1069
+#, fuzzy
+msgid "France"
 msgstr "francia"
 
-#: src/frequencies.c:1069
-msgid "russia"
+#: src/frequencies.c:1070
+#, fuzzy
+msgid "Russia"
 msgstr "rusia"
 
-#: src/frequencies.c:1070
-msgid "south africa"
+#: src/frequencies.c:1071
+#, fuzzy
+msgid "South Africa"
 msgstr "sudáfrica"
 
-#: src/frequencies.c:1071
-msgid "china"
+#: src/frequencies.c:1072
+msgid "China"
 msgstr ""
 
 # src/v4l2interface.c:146
-#: src/frequencies.c:1269 src/frequencies.c:1375 src/frequencies.c:1556
+#: src/frequencies.c:1270 src/frequencies.c:1376 src/frequencies.c:1557
 msgid "(Unnamed channel)"
 msgstr "(Canal sin nombre)"
 
 # src/interface.c:412
-#: src/frequencies.c:1273 src/frequencies.c:1379 src/frequencies.c:1560
+#: src/frequencies.c:1274 src/frequencies.c:1380 src/frequencies.c:1561
 msgid "(Unknown real channel)"
 msgstr "(Canal real desconocido)"
 
-#: src/frequencies.c:1277 src/frequencies.c:1383 src/frequencies.c:1564
+#: src/frequencies.c:1278 src/frequencies.c:1384 src/frequencies.c:1565
 msgid "(Unknown country)"
 msgstr "(Región desconocida)"
 
-#: src/v4linterface.c:311
+#: src/v4linterface.c:330
 #, c-format
 msgid "Adjust %s"
 msgstr "Ajustar %s"
 
 # src/v4l2interface.c:344
-#: src/v4linterface.c:453
+#: src/v4linterface.c:472
 msgid "Available controls"
 msgstr "Controles disponibles"
 
-#: src/v4linterface.c:657
+#: src/v4linterface.c:676
 msgid "Unknown"
 msgstr "Desconocido"
 
-#: src/v4linterface.c:666
+#: src/v4linterface.c:685
 msgid "No id"
 msgstr "Sin id"
 
-#: src/v4linterface.c:672
+#: src/v4linterface.c:691
 msgid "No input"
 msgstr "Sin entradas"
 
 # src/v4l2interface.c:344
-#: src/v4linterface.c:678
+#: src/v4linterface.c:697
 msgid "No standard"
 msgstr "Sin estándares"
 
-#: src/v4linterface.c:1006
+#: src/v4linterface.c:832
+#, c-format
+msgid "Channel: <yellow>%s</yellow>"
+msgstr ""
+
+#: src/v4linterface.c:1045
 msgid "Inputs"
 msgstr "Entradas"
 
 # src/v4l2interface.c:146
-#: src/v4linterface.c:1042
+#: src/v4linterface.c:1081
 msgid "No tuned channels"
 msgstr "No hay canales sintonizados"
 
@@ -430,7 +457,6 @@ msgstr ""
 msgid "TV"
 msgstr ""
 
-#: src/properties.c:175 src/properties.c:182 src/properties.c:189
 #: src/tveng.c:273
 msgid "Camera"
 msgstr "Cámara"
@@ -447,65 +473,65 @@ msgstr "Filtro"
 msgid "Colorkey"
 msgstr ""
 
-#: src/tveng1.c:962
+#: src/tveng1.c:977
 msgid "Mono"
 msgstr ""
 
-#: src/tveng1.c:963
+#: src/tveng1.c:978
 msgid "Stereo"
 msgstr "Estéreo"
 
-#: src/tveng1.c:964
+#: src/tveng1.c:979
 msgid "Alternate 1"
 msgstr "Alternativo 1"
 
-#: src/tveng1.c:965
+#: src/tveng1.c:980
 msgid "Alternate 2"
 msgstr "Alternativo 2"
 
-#: src/tveng1.c:1076 src/tveng2.c:872
+#: src/tveng1.c:1089 src/tveng2.c:883
 msgid "Brightness"
 msgstr "Brillo"
 
-#: src/tveng1.c:1086 src/tveng2.c:875
+#: src/tveng1.c:1099 src/tveng2.c:886
 msgid "Hue"
 msgstr "Intensidad"
 
-#: src/tveng1.c:1096
+#: src/tveng1.c:1109
 msgid "Colour"
 msgstr "Color"
 
 # src/interface.c:247
-#: src/tveng1.c:1106 src/tveng2.c:873
+#: src/tveng1.c:1119 src/tveng2.c:884
 msgid "Contrast"
 msgstr "Contraste"
 
-#: src/tveng1.c:1119 src/tveng1.c:1448 src/tveng1.c:1461 src/tveng2.c:891
+#: src/tveng1.c:1134 src/tveng1.c:1477 src/tveng1.c:1490 src/tveng2.c:902
 msgid "Mute"
 msgstr "Silencio"
 
-#: src/tveng1.c:1131 src/tveng2.c:890
+#: src/tveng1.c:1146 src/tveng2.c:901
 msgid "Volume"
 msgstr "Volumen"
 
-#: src/tveng1.c:1143 src/tveng2.c:897
+#: src/tveng1.c:1158 src/tveng2.c:908
 msgid "Bass"
 msgstr "Bajos"
 
-#: src/tveng1.c:1155 src/tveng2.c:895
+#: src/tveng1.c:1170 src/tveng2.c:906
 msgid "Treble"
 msgstr "Trémolo"
 
 # src/frequencies.c:827
-#: src/tveng1.c:1170 src/tveng2.c:893
+#: src/tveng1.c:1185 src/tveng2.c:904
 msgid "Balance"
 msgstr ""
 
-#: src/tveng1.c:1183
+#: src/tveng1.c:1198
 msgid "Audio Decoding"
 msgstr "Decodificación de audio"
 
-#: src/tveng1.c:1584
+#: src/tveng1.c:1613
 msgid "There are no tuners for the active input"
 msgstr "No hay sintonizadores en la entrada actual"
 
@@ -526,131 +552,98 @@ msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr ""
 "\"%s\" no permite hacer select() en descriptores de ficheros, lo siento"
 
-#: src/tveng2.c:874
+#: src/tveng2.c:885
 msgid "Saturation"
 msgstr "Saturación"
 
-#: src/tveng2.c:876
+#: src/tveng2.c:887
 msgid "Whiteness"
 msgstr "Blanco"
 
-#: src/tveng2.c:877
+#: src/tveng2.c:888
 msgid "Black level"
 msgstr "Nivel de negro"
 
 # src/frequencies.c:827
-#: src/tveng2.c:878
+#: src/tveng2.c:889
 msgid "White balance"
 msgstr "Nivel de blanco"
 
-#: src/tveng2.c:879
+#: src/tveng2.c:890
 msgid "Do white balance"
 msgstr "Ajustar nivel de blanco"
 
 # src/frequencies.c:827
-#: src/tveng2.c:880
+#: src/tveng2.c:891
 msgid "Red balance"
 msgstr "Nivel de rojo"
 
 # src/frequencies.c:827
-#: src/tveng2.c:881
+#: src/tveng2.c:892
 msgid "Blue balance"
 msgstr "Nivel de azul"
 
-#: src/tveng2.c:882
+#: src/tveng2.c:893
 msgid "Gamma"
 msgstr ""
 
-#: src/tveng2.c:883
+#: src/tveng2.c:894
 msgid "Exposure"
 msgstr ""
 
-#: src/tveng2.c:884
+#: src/tveng2.c:895
 msgid "Auto gain"
 msgstr ""
 
-#: src/tveng2.c:885
+#: src/tveng2.c:896
 msgid "Gain"
 msgstr ""
 
-#: src/tveng2.c:886
+#: src/tveng2.c:897
 msgid "HCenter"
 msgstr ""
 
-#: src/tveng2.c:887
+#: src/tveng2.c:898
 msgid "VCenter"
 msgstr ""
 
-#: src/tveng2.c:888
+#: src/tveng2.c:899
 msgid "Horizontal flipping"
 msgstr "Intercambiar horizontal"
 
-#: src/tveng2.c:889
+#: src/tveng2.c:900
 msgid "Vertical flipping"
 msgstr "intercambiar vertical"
 
-#: src/tveng2.c:892
+#: src/tveng2.c:903
 msgid "Audio Mute"
 msgstr "Silencio"
 
 # src/frequencies.c:827
-#: src/tveng2.c:894
+#: src/tveng2.c:905
 msgid "Audio Balance"
 msgstr "Balance"
 
-#: src/tveng2.c:896
+#: src/tveng2.c:907
 msgid "Loudness"
 msgstr "Volúmen"
 
-#: src/plugins.c:72
-#, c-format
-msgid ""
-"While loading %s\n"
-"The plugin uses the protocol %d, and the current one is %d, it cannot be "
-"loaded."
-msgstr ""
-"Al cargar %s\n"
-"El plugin usa el protocolo %d, y el actual es %d, no se puede cargar."
-
-#: src/plugins.c:95
-#, c-format
-msgid "Sorry, plugin_get_info was not found in %s"
-msgstr "plugin_get_info no se encuentra en %s, lo siento"
-
-#: src/plugins.c:194
-#, c-format
-msgid ""
-"\"%s\" seems to be a valid plugin, but it doesn't provide a canonical name."
-msgstr "\"%s\" parece un plugin válido, pero no proporciona un nombre canónico"
-
-#: src/plugins.c:203
+#: src/plugins.c:208
 #, c-format
 msgid "\"%s\" doesn't provide a version"
 msgstr "\"%s\" no proporciona una versión"
 
-#: src/plugins.c:213
-msgid ""
-"Sorry, the version of the plugin cannot be parsed.\n"
-"The version must be something like %%d[.%%d[%%d[other things]]]\n"
-"The given version is %s.\n"
-"Error loading \"%s\" (%s)"
-msgstr ""
-"No se entiende la versión del plugin.\n"
-"La versión debe ser algo como %%d[.%%d[%%d[otras cosas]]]\n"
-"La versión dada es %s.\n"
-"Error al cargar \"%s\" (%s)"
-
-#: src/plugins.c:240
+#: src/plugins.c:245
 #, c-format
 msgid "There wasn't enough mem for allocating symbol %d in %s"
 msgstr "No hay suficiente memoria para el símbolo %d en %s"
 
-#: src/plugins.c:250
+#: src/plugins.c:255
 msgid "[No description provided]"
 msgstr "[Sin descripción]"
 
 #. Warn
-#: src/plugins.c:337
+#: src/plugins.c:342
 #, c-format
 msgid ""
 "Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
@@ -673,116 +666,107 @@ msgstr "Overlay no funcionará: %s"
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI ha sido dishabilitado, o no funciona."
 
-#: src/zmisc.c:672
+#: src/zmisc.c:694
+#, fuzzy
+msgid "Hide the status bar"
+msgstr "Mostrar en la barra de estado"
+
+#: src/zmisc.c:751
 msgid "The path must start with /"
 msgstr "La ruta ha de comenzar por /"
 
-#: src/zmisc.c:687
+#: src/zmisc.c:766
 #, c-format
 msgid "Cannot create %s: %s"
 msgstr "No se puede crear %s: %s"
 
-#: src/zmisc.c:700
+#: src/zmisc.c:779
 #, c-format
 msgid "%s is not a directory"
 msgstr "%s no es un directorio"
 
-#: src/properties.c:127
-msgid "Can capture to memory.\n"
-msgstr "Puede capturar a la memoria.\n"
+#: src/properties.c:438 src/properties.c:451
+#, fuzzy
+msgid "Device Info"
+msgstr "Información"
 
-#: src/properties.c:129
-msgid "Has some tuner.\n"
-msgstr "Tiene un sintonizador.\n"
-
-#: src/properties.c:131
-msgid "Supports the teletext service.\n"
-msgstr "Soporta teletexto.\n"
-
-#: src/properties.c:133
-msgid "Can overlay the image.\n"
-msgstr "Soporta overlay.\n"
-
-#: src/properties.c:135
-msgid "Can chromakey the image.\n"
-msgstr "Puede hacer chromakey.\n"
-
-#: src/properties.c:137
-msgid "Clipping rectangles are supported.\n"
-msgstr "Recorte de zonas soportado.\n"
-
-#: src/properties.c:139
-msgid "Framebuffer memory is overwritten.\n"
-msgstr "Se sobreescribe la memoria del FB.\n"
-
-#: src/properties.c:141
-msgid "The capture can be scaled.\n"
-msgstr "La captura puede ser escalada.\n"
-
-#: src/properties.c:143
-msgid "Only monochrome is available\n"
-msgstr "Sólo se soporta monocromo.\n"
-
-#: src/properties.c:145
-msgid "The capture can be zoomed\n"
-msgstr "Se pueden hacer zooms\n"
-
-# src/v4l2interface.c:344
-#: src/properties.c:156
-msgid "No available inputs"
-msgstr "Sin entradas desponibles"
-
-#: src/properties.c:158
-msgid "Your video device has no inputs"
-msgstr "Tu dispositivo no tiene entradas"
-
-#: src/properties.c:172
-#, c-format
-msgid "%s"
+#: glade/glade_strings.c:59 src/properties.c:441
+msgid "Main Window"
 msgstr ""
 
-#: src/properties.c:174 src/properties.c:181 src/properties.c:188
-msgid "TV input"
-msgstr "Entrada de TV"
+# src/v4l2interface.c:344
+#: glade/glade_strings.c:73 plugins/mpeg/mpeg_strings.c:20
+#: src/properties.c:442
+#, fuzzy
+msgid "Video"
+msgstr "Sólo video"
 
-#: src/properties.c:179
-#, c-format
-msgid "%s with a tuner"
-msgstr "%s con sintonizador."
+#: glade/glade_strings.c:77 plugins/mpeg/mpeg_strings.c:22
+#: src/properties.c:443
+#, fuzzy
+msgid "Audio"
+msgstr "Sólo audio"
 
-#: src/properties.c:186
-#, c-format
-msgid "%s with %d tuners"
-msgstr "%s con %d sintonizadores."
+#: glade/glade_strings.c:92 src/properties.c:444
+msgid "OSD"
+msgstr ""
 
-#: src/properties.c:742
-msgid "No plugin accepts this page."
-msgstr "Ningún plugin acepta esta página."
+#: glade/glade_strings.c:125 src/properties.c:447
+msgid "General"
+msgstr ""
 
-#: src/properties.c:777
-msgid ""
-"The plugin that created the active page doesn't provide help for it. Sorry."
-msgstr "El plugin que creó la página actual no ofrece ayuda para ella."
+#: glade/glade_strings.c:162 src/properties.c:448
+msgid "Interactive TV"
+msgstr "TV Interactiva"
 
-#: src/channel_editor.c:315
+#: src/properties.c:452 src/properties.c:480
+#, fuzzy
+msgid "General Options"
+msgstr "Opciones generales"
+
+#: src/properties.c:453
+#, fuzzy
+msgid "VBI Options"
+msgstr "Opciones VBI"
+
+#: src/properties.c:538
+#, fuzzy
+msgid "Zapping Properties"
+msgstr "Propiedades"
+
+# src/interface.c:247
+#: src/channel_editor.c:189
+#, fuzzy
+msgid "Ctrl+"
+msgstr "Controles"
+
+#: src/channel_editor.c:190
+msgid "Alt+"
+msgstr ""
+
+#: src/channel_editor.c:191
+msgid "Shift+"
+msgstr ""
+
+#: src/channel_editor.c:393
 msgid "Do not change standard"
 msgstr "No cambiar el estándar"
 
-#: src/channel_editor.c:336
+#: src/channel_editor.c:414
 msgid "Do not change input"
 msgstr "No cambiar la entrada"
 
 # src/interface.c:362
-#: src/channel_editor.c:744
+#: src/channel_editor.c:896
 msgid "Add Channel"
 msgstr "Añadir Canal"
 
 # src/interface.c:362
-#: src/channel_editor.c:744
+#: src/channel_editor.c:896
 msgid "New channel name:"
 msgstr "Nombre del nuevo canal"
 
-#: src/channel_editor.c:1380
+#: src/channel_editor.c:1509
 #, c-format
 msgid ""
 "Channel autosearching won't work with XVideo.\n"
@@ -797,7 +781,7 @@ msgstr ""
 "Error:\\n\n"
 "%s"
 
-#: src/channel_editor.c:1386
+#: src/channel_editor.c:1515
 msgid "Your current V4L/V4L2 driver cannot do channel autosearching, sorry"
 msgstr ""
 "Tu driver V4L/V4L2 actual no puede buscar canales automáticamente, lo siento"
@@ -922,32 +906,32 @@ msgstr "<%s> añadido a los marcadores"
 msgid "Any subpage"
 msgstr "Cualquier subpágina"
 
-#: src/ttxview.c:1947
+#: src/ttxview.c:1912
 #, c-format
 msgid "Export %s"
 msgstr "Exportar %s"
 
-#: src/ttxview.c:1961
+#: src/ttxview.c:1926
 msgid "Save as:"
 msgstr "Guardar como:"
 
-#: src/ttxview.c:1966
+#: src/ttxview.c:1931
 msgid "Select file you'll be exporting to"
 msgstr "Selecciona el fichero donde exportar"
 
-#: src/ttxview.c:1981
+#: src/ttxview.c:1946
 msgid "Options"
 msgstr "Opciones"
 
-#: src/ttxview.c:2163 src/ttxview.c:2961
+#: src/ttxview.c:2128 src/ttxview.c:2926
 msgid "No page loaded"
 msgstr "Ninguna página cargada"
 
-#: glade/glade_strings.c:243 src/ttxview.c:2169
+#: glade/glade_strings.c:207 src/ttxview.c:2134
 msgid "Zapzilla"
 msgstr ""
 
-#: src/ttxview.c:2223
+#: src/ttxview.c:2188
 #, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
@@ -958,102 +942,102 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: src/ttxview.c:2242
+#: src/ttxview.c:2207
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "Fallo al exportar a %s: %s"
 
-#: src/ttxview.c:2251
+#: src/ttxview.c:2216
 #, c-format
 msgid "%s saved"
 msgstr "%s guardada"
 
-#: src/ttxview.c:2263
+#: src/ttxview.c:2228
 #, c-format
 msgid "Export failed: %s"
 msgstr "Exportar falló: %s"
 
-#: src/ttxview.c:2414
+#: src/ttxview.c:2379
 #, c-format
 msgid "Caption %x - %s"
 msgstr ""
 
-#: src/ttxview.c:2416
+#: src/ttxview.c:2381
 #, c-format
 msgid "Text %x - %s"
 msgstr "TTX %x - %s"
 
-#: src/ttxview.c:2420
+#: src/ttxview.c:2385
 #, c-format
 msgid "Caption %x"
 msgstr ""
 
-#: src/ttxview.c:2422
+#: src/ttxview.c:2387
 #, c-format
 msgid "Text %x"
 msgstr "TTX %x"
 
-#: src/ttxview.c:2447
+#: src/ttxview.c:2412
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: Idioma desconocido"
 
-#: src/ttxview.c:2459 src/ttxview.c:2474 src/ttxview.c:2498 src/ttxview.c:2514
-#: src/ttxview.c:2530 src/ttxview.c:2546 src/ttxview.c:2562
+#: src/ttxview.c:2424 src/ttxview.c:2439 src/ttxview.c:2463 src/ttxview.c:2479
+#: src/ttxview.c:2495 src/ttxview.c:2511 src/ttxview.c:2527
 #, c-format
 msgid "Page %x"
 msgstr "Página %x"
 
-#: src/ttxview.c:2468
+#: src/ttxview.c:2433
 msgid "Index"
 msgstr "Índice"
 
-#: src/ttxview.c:2492
+#: src/ttxview.c:2457
 msgid "Now and Next"
 msgstr "Acto y seguido"
 
-#: src/ttxview.c:2508
+#: src/ttxview.c:2473
 msgid "Current program"
 msgstr "Programa actual"
 
-#: src/ttxview.c:2524
+#: src/ttxview.c:2489
 msgid "Program Index"
 msgstr "Índice de programas"
 
-#: src/ttxview.c:2540
+#: src/ttxview.c:2505
 msgid "Program Schedule"
 msgstr "Horario de emisión"
 
-#: src/ttxview.c:2556
+#: src/ttxview.c:2521
 msgid "Program Warning"
 msgstr "Aviso del programa"
 
-#: src/ttxview.c:2576
+#: src/ttxview.c:2541
 msgid "Subtitles"
 msgstr "Subtítulos"
 
-#: src/ttxview.c:2578
+#: src/ttxview.c:2543
 msgid "Select subtitles page"
 msgstr "Selecciona la página de subtítulos"
 
-#: src/ttxview.c:2651
+#: src/ttxview.c:2616
 #, c-format
 msgid "%s in %s"
 msgstr "%s en %s"
 
-#: src/ttxview.c:2970
+#: src/ttxview.c:2935
 msgid "Selecting - hold Shift for table mode"
 msgstr "Seleccionando - pulse Shift para modo tabla"
 
-#: src/ttxview.c:3090
+#: src/ttxview.c:3055
 msgid "Selection copied to clipboard"
 msgstr "Selección copiada al portapapeles"
 
 # src/interface.c:104
 #.
-#. * Archivo de cadenas traducibles generado por Glade.
-#. * Añada este archivo a su POTFILES.in de su proyecto.
-#. * NO lo compile como parte de su aplicación.
+#. * Translatable strings file generated by Glade.
+#. * Add this file to your project's POTFILES.in.
+#. * DO NOT compile it as part of your application.
 #.
 #: glade/glade_strings.c:7
 msgid "Zapping"
@@ -1085,23 +1069,23 @@ msgstr "Alternar mudo"
 msgid "Use this to go fullscreen. Press ESC to return to Windowed mode"
 msgstr "Usa esto para activar el modo pantalla completa, ESC para volver"
 
-#: glade/glade_strings.c:14 glade/glade_strings.c:222
+#: glade/glade_strings.c:14 glade/glade_strings.c:186
 msgid "Go _Fullscreen"
 msgstr "_Pantalla Completa"
 
-#: glade/glade_strings.c:15 glade/glade_strings.c:223
+#: glade/glade_strings.c:15 glade/glade_strings.c:187
 msgid "Use this to start the windowed overlay mode"
 msgstr "Usa esto para iniciar el modo overlay en ventana"
 
-#: glade/glade_strings.c:16 glade/glade_strings.c:224
+#: glade/glade_strings.c:16 glade/glade_strings.c:188
 msgid "Go _Previewing"
 msgstr "_Overlay en ventana"
 
-#: glade/glade_strings.c:17 glade/glade_strings.c:225
+#: glade/glade_strings.c:17 glade/glade_strings.c:189
 msgid "Use this to start the windowed capture mode"
 msgstr "Usa esto para empezar el modo captura en ventana"
 
-#: glade/glade_strings.c:18 glade/glade_strings.c:226
+#: glade/glade_strings.c:18 glade/glade_strings.c:190
 msgid "Go _Capturing"
 msgstr "_Captura en ventana"
 
@@ -1109,15 +1093,15 @@ msgstr "_Captura en ventana"
 msgid "Use Zapping as a Teletext navigator"
 msgstr "Usar Zapping como un navegador de Teletexto"
 
-#: glade/glade_strings.c:20 glade/glade_strings.c:228
+#: glade/glade_strings.c:20 glade/glade_strings.c:192
 msgid "_Teletext"
 msgstr "_Teletexto"
 
-#: glade/glade_strings.c:21 glade/glade_strings.c:229
+#: glade/glade_strings.c:21 glade/glade_strings.c:193
 msgid "Starts the Teletext decoder in a new window"
 msgstr "Inicia el decodificar de TTX en una ventana nueva"
 
-#: glade/glade_strings.c:22 glade/glade_strings.c:230
+#: glade/glade_strings.c:22 glade/glade_strings.c:194
 msgid "_New Teletext View"
 msgstr "_Nueva Vista TTX"
 
@@ -1183,7 +1167,7 @@ msgstr "Teletexto"
 msgid "Video device capabilities"
 msgstr "Características del dispositivo de video."
 
-#: glade/glade_strings.c:40 glade/glade_strings.c:92
+#: glade/glade_strings.c:40 glade/glade_strings.c:98
 msgid "Device name:"
 msgstr "Nombre:"
 
@@ -1220,64 +1204,42 @@ msgid "Resize using fixed increments"
 msgstr "Redimensionar con incrementos fijos"
 
 #: glade/glade_strings.c:49
-msgid "Ratio mode:"
-msgstr "Relación de tamaños:"
+msgid "Swap the behaviour of the PageUp and Page Down keys"
+msgstr ""
 
 #: glade/glade_strings.c:50
-msgid "No fixed ratio"
-msgstr "Sin relación fija"
+msgid "Swap Channel Up/Down keys"
+msgstr ""
 
 #: glade/glade_strings.c:51
-msgid "4:3"
+msgid "Hide mouse pointer"
 msgstr ""
 
 #: glade/glade_strings.c:52
+msgid "Ratio mode:"
+msgstr "Relación de tamaños:"
+
+#: glade/glade_strings.c:53
+msgid "No fixed ratio"
+msgstr "Sin relación fija"
+
+#: glade/glade_strings.c:54
+msgid "4:3"
+msgstr ""
+
+#: glade/glade_strings.c:55
 msgid "16:9"
 msgstr ""
 
-#: glade/glade_strings.c:53 glade/glade_strings.c:55
+#: glade/glade_strings.c:56 glade/glade_strings.c:64
 msgid "Autodetect"
 msgstr "Autodetección"
 
-#: glade/glade_strings.c:54
-msgid "Fullscreen video mode:"
-msgstr "Modo de vídeo pantalla completa:"
-
-#: glade/glade_strings.c:56
-msgid "Do not change mode"
-msgstr "No cambiar el modo"
-
 #: glade/glade_strings.c:57
-msgid "Capture size under XVideo:"
-msgstr "Tamaño de la capture bajo XVideo"
-
-#: glade/glade_strings.c:58
-msgid ""
-"Thanks to the XVideo extension, if present, the capture buffer can be scaled "
-"to arbitrary sizes using HW acceleration. Select here the capture size to "
-"use in this case."
-msgstr ""
-"Gracias a la extensión XVideo, si está disponible, la imagen capturada\n"
-"puede ser redimensionada a tamaños arbitrarios utilizando aceleración\n"
-"por HW. Selecciona aquí el tamaño real de captura en este caso."
-
-#: glade/glade_strings.c:59
-msgid "Biggest noninterlaced (autodetect)"
-msgstr "Mayor no entrelazado (autodetectar)"
-
-#: glade/glade_strings.c:60
-msgid "320x240"
-msgstr ""
-
-#: glade/glade_strings.c:61
-msgid "Interlaced (window size)"
-msgstr "Entrelazado (tamaño de la ventana)"
-
-#: glade/glade_strings.c:62
 msgid "Title bar contents:"
 msgstr "Contenidos de la barra de título:"
 
-#: glade/glade_strings.c:63
+#: glade/glade_strings.c:58
 msgid ""
 "A format string describing what should the program put as the main window "
 "title when changing channels. $(alias), $(index), $(id), $(freq), "
@@ -1288,24 +1250,12 @@ msgstr ""
 "$(index), $(id), $(freq), $(standard) e $(input) son sustituídos por\n"
 "los valores correctos."
 
-#: glade/glade_strings.c:64
-msgid "Main Window"
-msgstr ""
-
-#: glade/glade_strings.c:65
-msgid "Avoid noise while changing channels"
-msgstr "Tratar de evitar el ruido al cambiar de canal"
-
-#: glade/glade_strings.c:66
-msgid "Start Zapping muted"
-msgstr "Iniciar Zapping sin sonido"
-
-#: glade/glade_strings.c:67
+#: glade/glade_strings.c:60
 msgid ""
 "Avoid some flicker in preview mode (leaves artifacts in the main window)"
 msgstr "Eliminar algo de parpadeo en modo overlay (deja restos en la ventana)"
 
-#: glade/glade_strings.c:68
+#: glade/glade_strings.c:61
 msgid ""
 "If this option is on, the brightness, contrast, etc. info is saved with the "
 "channel, and restored when you select it again"
@@ -1313,130 +1263,171 @@ msgstr ""
 "Si esta opción está activada, los controles son salvados con el canal,\n"
 "y restaurados cuando lo seleccionas de nuevo"
 
-#: glade/glade_strings.c:69
+#: glade/glade_strings.c:62
 msgid "Save control values with the channel info"
 msgstr "Salvar controles con el canal"
 
+#: glade/glade_strings.c:63
+msgid "Fullscreen video mode:"
+msgstr "Modo de vídeo pantalla completa:"
+
+#: glade/glade_strings.c:65
+msgid "Do not change mode"
+msgstr "No cambiar el modo"
+
+#: glade/glade_strings.c:66
+msgid "Capture size under XVideo:"
+msgstr "Tamaño de la capture bajo XVideo"
+
+#: glade/glade_strings.c:67
+msgid ""
+"Thanks to the XVideo extension, if present, the capture buffer can be scaled "
+"to arbitrary sizes using HW acceleration. Select here the capture size to "
+"use in this case."
+msgstr ""
+"Gracias a la extensión XVideo, si está disponible, la imagen capturada\n"
+"puede ser redimensionada a tamaños arbitrarios utilizando aceleración\n"
+"por HW. Selecciona aquí el tamaño real de captura en este caso."
+
+#: glade/glade_strings.c:68
+msgid "Biggest noninterlaced (autodetect)"
+msgstr "Mayor no entrelazado (autodetectar)"
+
+#: glade/glade_strings.c:69
+msgid "320x240"
+msgstr ""
+
 #: glade/glade_strings.c:70
+msgid "Interlaced (window size)"
+msgstr "Entrelazado (tamaño de la ventana)"
+
+#: glade/glade_strings.c:71
 msgid "zapping__setup__fb verbosity:"
 msgstr ""
 
-#: glade/glade_strings.c:71
+#: glade/glade_strings.c:72
 msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
 msgstr "Cuanto mayour sea este valor, más explícito será zapping_setup_fb"
 
-# src/v4l2interface.c:344
-#: glade/glade_strings.c:72
-#, fuzzy
-msgid "Video"
-msgstr "Sólo video"
+#: glade/glade_strings.c:74
+msgid "Start Zapping muted"
+msgstr "Iniciar Zapping sin sonido"
 
-#: glade/glade_strings.c:73
+#: glade/glade_strings.c:75
+msgid "Avoid noise while changing channels"
+msgstr "Tratar de evitar el ruido al cambiar de canal"
+
+#: glade/glade_strings.c:76
+#, fuzzy
+msgid "Audio recording interface:"
+msgstr "Decodificación de audio"
+
+#: glade/glade_strings.c:78
 msgid "How to show extra info:"
 msgstr ""
 
-#: glade/glade_strings.c:74
+#: glade/glade_strings.c:79
 msgid ""
 "Extra information, such as notifying of channel changes, can be reported in "
 "many different ways. Select here the variant you like most."
 msgstr ""
 
-#: glade/glade_strings.c:75
+#: glade/glade_strings.c:80
 msgid "On Screen Display (OSD)"
 msgstr ""
 
-#: glade/glade_strings.c:76
-msgid "Status Bar"
-msgstr ""
-
-#: glade/glade_strings.c:77
-#, fuzzy
-msgid "Console"
-msgstr "Limpiar consola"
-
-#: glade/glade_strings.c:78
-#, fuzzy
-msgid "Do not show"
-msgstr "No mostrar de nuevo"
-
-#: glade/glade_strings.c:79
-msgid "Font used for OSD:"
-msgstr ""
-
-#: glade/glade_strings.c:80
-msgid "Select OSD font"
-msgstr ""
-
 #: glade/glade_strings.c:81
-msgid "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
+msgid "Status Bar"
 msgstr ""
 
 #: glade/glade_strings.c:82
 #, fuzzy
+msgid "Console"
+msgstr "Limpiar consola"
+
+#: glade/glade_strings.c:83
+#, fuzzy
+msgid "Do not show"
+msgstr "No mostrar de nuevo"
+
+#: glade/glade_strings.c:84
+msgid "Font used for OSD:"
+msgstr ""
+
+#: glade/glade_strings.c:85
+msgid "Select OSD font"
+msgstr ""
+
+#: glade/glade_strings.c:86
+msgid "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
+msgstr ""
+
+#: glade/glade_strings.c:87
+#, fuzzy
 msgid "Default foreground color for OSD:"
 msgstr "Color asumido de primer plano de la terminal"
 
-#: glade/glade_strings.c:83 glade/glade_strings.c:85
-msgid "Elija un color"
+#: glade/glade_strings.c:88 glade/glade_strings.c:90
+msgid "Choose a color"
 msgstr ""
 
-#: glade/glade_strings.c:84
+#: glade/glade_strings.c:89
 #, fuzzy
 msgid "Default background color for OSD:"
 msgstr "Color asumido de fondo de la terminal"
 
-#: glade/glade_strings.c:86
-msgid "OSD"
+#: glade/glade_strings.c:91
+msgid "OSD timeout in seconds:"
 msgstr ""
 
-#: glade/glade_strings.c:87
+#: glade/glade_strings.c:93
 msgid "General options"
 msgstr "Opciones generales"
 
-#: glade/glade_strings.c:88
+#: glade/glade_strings.c:94
 msgid "Enable VBI decoding"
 msgstr "Habilitar decodificación VBI"
 
-#: glade/glade_strings.c:89
+#: glade/glade_strings.c:95
 msgid "Use VBI for getting station names"
 msgstr "Usar VBI para obtener los nombres de los canales"
 
-#: glade/glade_strings.c:90
+#: glade/glade_strings.c:96
 msgid ""
 "If you select this option, TTX pages marked as subtitles and opened in the "
 "main window will automagically switch to TV mode and overlay themselves."
 msgstr ""
 
-#: glade/glade_strings.c:91
+#: glade/glade_strings.c:97
 #, fuzzy
 msgid "Overlay subtitle pages automatically"
 msgstr "Abrir automáticamente"
 
-#: glade/glade_strings.c:93
+#: glade/glade_strings.c:99
 msgid "Select the VBI device"
 msgstr "Selecciona el dispositivo VBI"
 
-#: glade/glade_strings.c:94
+#: glade/glade_strings.c:100
 msgid "Enter here the device associated with the VBI input"
 msgstr "Introduce aquí el dispositivo de VBI"
 
-#: glade/glade_strings.c:95
+#: glade/glade_strings.c:101
 msgid "Page to take subtitles from:"
 msgstr "Página de donde se tomará los subtítulos:"
 
-#: glade/glade_strings.c:96
+#: glade/glade_strings.c:102
 msgid "Where will subtitles be taken from"
 msgstr "De dónde se tomarán los subtítulos"
 
-#: glade/glade_strings.c:97
+#: glade/glade_strings.c:103
 msgid "Default region:"
 msgstr "Región por defecto:"
 
-#: glade/glade_strings.c:98
+#: glade/glade_strings.c:104
 msgid "Teletext implementation:"
 msgstr "Implementación de Teletexto:"
 
-#: glade/glade_strings.c:99
+#: glade/glade_strings.c:105
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Teletext viewer may not display the correct font or national characters. You "
@@ -1447,40 +1438,35 @@ msgstr ""
 "caracteres nacionales. Puedes seleccionar aquí tu zona geográfica como una "
 "ayuda adicional."
 
-#: glade/glade_strings.c:100
+#: glade/glade_strings.c:106
 msgid "Western and Central Europe"
 msgstr "Europa Central y Occidental"
 
-# src/frequencies.c:821
-#: glade/glade_strings.c:101
-msgid "Eastern Europe"
-msgstr "Europa Meridional"
-
-#: glade/glade_strings.c:102
+#: glade/glade_strings.c:108
 msgid "Western Europe and Turkey"
 msgstr "Europa Occidental y Turquía"
 
-#: glade/glade_strings.c:103
+#: glade/glade_strings.c:109
 msgid "Central and Southeast Europe"
 msgstr "Europa Central y Sudeste"
 
-#: glade/glade_strings.c:104
+#: glade/glade_strings.c:110
 msgid "Cyrillic"
 msgstr "Cirílico"
 
-#: glade/glade_strings.c:105
+#: glade/glade_strings.c:111
 msgid "Greek and Turkish"
 msgstr "Griego y Turco"
 
-#: glade/glade_strings.c:106
+#: glade/glade_strings.c:112
 msgid "Arabic"
 msgstr "Árabe"
 
-#: glade/glade_strings.c:107
+#: glade/glade_strings.c:113
 msgid "Hebrew and Arabic"
 msgstr "Hebreo y Árabe"
 
-#: glade/glade_strings.c:108
+#: glade/glade_strings.c:114
 msgid ""
 "Zapping supports several levels of Teletext extensions, you can disable "
 "higher levels if you dislike the appearance."
@@ -1488,103 +1474,99 @@ msgstr ""
 "Zapping soporta bastantes extensiones de Teletexto, puedes desactivar los "
 "niveles altos si no te gusta la apariencia."
 
-#: glade/glade_strings.c:109
+#: glade/glade_strings.c:115
 msgid "Level 1.0"
 msgstr "Nivel 1.0"
 
-#: glade/glade_strings.c:110
+#: glade/glade_strings.c:116
 msgid "Level 1.5 (additional national characters)"
 msgstr "Nivel 1.5 (caracteres nacionales adicionales)"
 
-#: glade/glade_strings.c:111
+#: glade/glade_strings.c:117
 msgid "Level 2.5 (more colours, font styles and graphics)"
 msgstr "Nivel 2.5 (más colores, fuentes y gráficos)"
 
-#: glade/glade_strings.c:112
+#: glade/glade_strings.c:118
 msgid "Level 3.5 (proportional spacing, multicolour graphics)"
 msgstr "Nivel 3.5 (espaciado, gráficos multicolor)"
 
-#: glade/glade_strings.c:113
+#: glade/glade_strings.c:119
 msgid "Interpolation type:"
 msgstr "Tipo de interpolación:"
 
-#: glade/glade_strings.c:114
+#: glade/glade_strings.c:120
 msgid "Quality/speed tradeoff when scaling and antialing the page."
 msgstr "Relación calidad/velocidad al redimensionar y suavizar la página."
 
-#: glade/glade_strings.c:115
+#: glade/glade_strings.c:121
 msgid "Nearest (fast, looks ugly when scaled)"
 msgstr "Cercanía (rápido, feo cuando se incrementa el tamaño)"
 
-#: glade/glade_strings.c:116
+#: glade/glade_strings.c:122
 msgid "Tiles (slightly slower, somewhat better)"
 msgstr "Losetas (algo más lento, algo mejor)"
 
-#: glade/glade_strings.c:117
+#: glade/glade_strings.c:123
 msgid "Bilinear (good quality but slow)"
 msgstr "Bilineal (buena calidad pero lento)"
 
-#: glade/glade_strings.c:118
+#: glade/glade_strings.c:124
 msgid "Hyper (best quality but CPU intensive)"
 msgstr "Hyper (la mejor calidad pero el más lento)"
 
-#: glade/glade_strings.c:119
-msgid "General"
-msgstr ""
-
-#: glade/glade_strings.c:120
+#: glade/glade_strings.c:126
 msgid "Filtering"
 msgstr "Filtro"
 
-#: glade/glade_strings.c:121
+#: glade/glade_strings.c:127
 msgid "Program related links:"
 msgstr "Vínculos relacionados con el programa:"
 
-#: glade/glade_strings.c:122
+#: glade/glade_strings.c:128
 msgid "Network related links:"
 msgstr "Vínculos relacionados con la cadena:"
 
-#: glade/glade_strings.c:123
+#: glade/glade_strings.c:129
 msgid "Station related links:"
 msgstr "Vínculos relacionados con la emisora:"
 
-#: glade/glade_strings.c:124
+#: glade/glade_strings.c:130
 msgid "Sponsor messages:"
 msgstr "Mensajes del espónsor:"
 
-#: glade/glade_strings.c:125
+#: glade/glade_strings.c:131
 msgid "Operator messages:"
 msgstr "Mensajes de la operadora:"
 
-#: glade/glade_strings.c:126 glade/glade_strings.c:130
-#: glade/glade_strings.c:134 glade/glade_strings.c:138
-#: glade/glade_strings.c:142
+#: glade/glade_strings.c:132 glade/glade_strings.c:136
+#: glade/glade_strings.c:140 glade/glade_strings.c:144
+#: glade/glade_strings.c:148
 msgid "What to do with this kind of links"
 msgstr "Qué hacer con este tipo de vínculos"
 
-#: glade/glade_strings.c:127 glade/glade_strings.c:131
-#: glade/glade_strings.c:135 glade/glade_strings.c:139
-#: glade/glade_strings.c:143 glade/glade_strings.c:153
+#: glade/glade_strings.c:133 glade/glade_strings.c:137
+#: glade/glade_strings.c:141 glade/glade_strings.c:145
+#: glade/glade_strings.c:149 glade/glade_strings.c:159
 msgid "Ignore"
 msgstr "Ignorar"
 
-#: glade/glade_strings.c:128 glade/glade_strings.c:132
-#: glade/glade_strings.c:136 glade/glade_strings.c:140
-#: glade/glade_strings.c:144 glade/glade_strings.c:154
+#: glade/glade_strings.c:134 glade/glade_strings.c:138
+#: glade/glade_strings.c:142 glade/glade_strings.c:146
+#: glade/glade_strings.c:150 glade/glade_strings.c:160
 msgid "Show in the status bar"
 msgstr "Mostrar en la barra de estado"
 
-#: glade/glade_strings.c:129 glade/glade_strings.c:133
-#: glade/glade_strings.c:137 glade/glade_strings.c:141
-#: glade/glade_strings.c:145 glade/glade_strings.c:155
+#: glade/glade_strings.c:135 glade/glade_strings.c:139
+#: glade/glade_strings.c:143 glade/glade_strings.c:147
+#: glade/glade_strings.c:151 glade/glade_strings.c:161
 msgid "Open automatically"
 msgstr "Abrir automáticamente"
 
-#: glade/glade_strings.c:146
+#: glade/glade_strings.c:152
 msgid "Filter Level:"
 msgstr "Nivel de filtrado:"
 
-#: glade/glade_strings.c:147
+#: glade/glade_strings.c:153
 msgid ""
 "Sometimes a priority level is transmitted with the trigger, it can be used "
 "to filter the messages you want to receive"
@@ -1592,44 +1574,478 @@ msgstr ""
 "A veces un nivel de prioridad se transmite con el trigger, puede\n"
 "utilizarlo para filtrar los mensajes que desea recibir"
 
-#: glade/glade_strings.c:148
+#: glade/glade_strings.c:154
 msgid "High priority only"
 msgstr "Sólo alta prioridad"
 
-#: glade/glade_strings.c:149
+#: glade/glade_strings.c:155
 msgid "Medium and High priority"
 msgstr "Prioridad media-alta"
 
-#: glade/glade_strings.c:150
+#: glade/glade_strings.c:156
 msgid "All messages"
 msgstr "Todos los mensajes"
 
-#: glade/glade_strings.c:151
+#: glade/glade_strings.c:157
 msgid "Default action:"
 msgstr "Acción por defecto:"
 
-#: glade/glade_strings.c:152
+#: glade/glade_strings.c:158
 msgid "What to do with received trigger if no identifier is transmitted"
 msgstr "Qué hacer con el trigger si no se transmite un identificador"
 
-#: glade/glade_strings.c:156
-msgid "Interactive TV"
-msgstr "TV Interactiva"
-
-#: glade/glade_strings.c:157
+#: glade/glade_strings.c:163
 msgid "VBI options"
 msgstr "Opciones VBI"
 
-# src/interface.c:307
-#: glade/glade_strings.c:158
-msgid "Channel choosing"
-msgstr "Selector de canales"
+#: glade/glade_strings.c:164
+msgid "Plugin properties"
+msgstr "Propiedades del plugin"
+
+# src/interface.c:448
+#: glade/glade_strings.c:165 glade/glade_strings.c:244
+msgid "Click here when you are done"
+msgstr "Pulsa aquí cuando hayas acabado"
+
+#: glade/glade_strings.c:166
+msgid "Run the plugin"
+msgstr "Ejecutar el plugin"
+
+#: glade/glade_strings.c:167
+msgid "_Start Plugin"
+msgstr "_Iniciar el Plugin"
+
+#: glade/glade_strings.c:168
+msgid "Stop this plugin"
+msgstr "Parar el plugin"
+
+#: glade/glade_strings.c:169
+msgid "S_top Plugin"
+msgstr "_Parar el plugin"
+
+#: glade/glade_strings.c:170
+msgid "Show the configuration options for this plugin"
+msgstr "Muestra las opciones de configuración de este plugin"
+
+#: glade/glade_strings.c:171
+msgid "_Configure"
+msgstr "_Configurar"
+
+#: glade/glade_strings.c:172
+msgid "Plugins"
+msgstr ""
+
+# src/interface.c:405
+#: glade/glade_strings.c:173
+msgid "Canonical name:"
+msgstr "Nombre canónico:"
+
+#: glade/glade_strings.c:174
+msgid "Author:"
+msgstr "Autor:"
+
+#: glade/glade_strings.c:175
+msgid "Plugin version:"
+msgstr "Version:"
+
+#: glade/glade_strings.c:176
+msgid "Plugin priority:"
+msgstr "Prioridad:"
+
+#: glade/glade_strings.c:177
+msgid "Plugin description"
+msgstr "Descripción del plugin"
+
+#: glade/glade_strings.c:178
+msgid "Properties"
+msgstr "Propiedades"
+
+#: glade/glade_strings.c:179
+msgid "Plugin location"
+msgstr "Ubicación"
+
+#: glade/glade_strings.c:180
+msgid "This is the file where the plugin is located"
+msgstr "Fichero donde se encuentra el plugin"
+
+#: glade/glade_strings.c:181
+msgid "Symbol"
+msgstr "Símbolo"
+
+#: glade/glade_strings.c:182
+msgid "Hash"
+msgstr ""
+
+#: glade/glade_strings.c:183
+msgid "Description of the symbol"
+msgstr "Descripción del símbolo"
+
+#: glade/glade_strings.c:184
+msgid "Advanced"
+msgstr "Avanzado"
+
+#: glade/glade_strings.c:185
+msgid "Use this for starting the fullscreen mode"
+msgstr "Usa esto para iniciar el modo pantalla completa"
+
+#: glade/glade_strings.c:191
+msgid "Use Zapping as a teletext navigator"
+msgstr "Usar Zapping como un navegador de Teletexto"
+
+#: glade/glade_strings.c:195
+msgid "Resize the main window, hide/show toolbars"
+msgstr "Redimensionar la ventana principal, mostrar/ocultar barras"
+
+#: glade/glade_strings.c:196
+msgid "_Appearance"
+msgstr "_Apariencia"
+
+#: glade/glade_strings.c:199
+msgid "Resize to 768x576"
+msgstr "Redimensionar a 768x576"
+
+#: glade/glade_strings.c:200
+msgid "Resize to 720x576"
+msgstr "Redimensionar a 720x576"
+
+#: glade/glade_strings.c:201
+msgid "Resize to 640x480"
+msgstr "Redimensionar a 640x480"
+
+#: glade/glade_strings.c:202
+msgid "Resize to 384x288"
+msgstr "Redimensionar a 384x288"
+
+#: glade/glade_strings.c:203
+msgid "Resize to 352x288"
+msgstr "Redimensionar a 352x288"
+
+#: glade/glade_strings.c:204
+msgid "Resize to 320x240"
+msgstr "Redimensionar a 320x200"
+
+#: glade/glade_strings.c:205
+msgid "Searching..."
+msgstr "Buscando..."
+
+#: glade/glade_strings.c:206 glade/glade_strings.c:256
+msgid "%P %%"
+msgstr ""
+
+#: glade/glade_strings.c:208
+msgid "Previous page in history"
+msgstr "Historia - Anterior"
+
+#: glade/glade_strings.c:209
+msgid "Previous"
+msgstr "Anterior"
+
+#: glade/glade_strings.c:210
+msgid "Next page in history"
+msgstr "Historia - Siguiente"
+
+#: glade/glade_strings.c:211
+msgid "Next"
+msgstr "Siguiente"
+
+#: glade/glade_strings.c:212
+msgid "Go to the index page [Home]"
+msgstr "Ir al índice [Home]"
+
+#: glade/glade_strings.c:213
+msgid "Home"
+msgstr "Índice"
+
+#: glade/glade_strings.c:214
+msgid "Clone the current Teletext window"
+msgstr "Clonar la ventana actual"
+
+#: glade/glade_strings.c:215 glade/glade_strings.c:227
+msgid "Search for a given pattern in the cache"
+msgstr "Buscar un determinado patrón en la caché"
+
+#: glade/glade_strings.c:216 glade/glade_strings.c:245
+msgid "Search"
+msgstr "Buscar"
+
+#: glade/glade_strings.c:217
+msgid "Previous subpage [-]"
+msgstr "Subpágina anterior [-]"
+
+#: glade/glade_strings.c:218
+msgid "Go to the previous page [Down]"
+msgstr "Ir a la página anterior [Abajo]"
+
+#: glade/glade_strings.c:219
+msgid "Hold the current subpage [H]"
+msgstr "Congelar la subpágina actual [H]"
+
+#: glade/glade_strings.c:220
+msgid "100"
+msgstr ""
+
+#: glade/glade_strings.c:221
+msgid "Go to the next page [Up]"
+msgstr "Ir a la siguiente página [Arriba]"
+
+#: glade/glade_strings.c:222
+msgid "Next subpage [+]"
+msgstr "Siguiente subpágina [+]"
+
+#: glade/glade_strings.c:223
+#, fuzzy
+msgid "Reveal hidden characters [?]"
+msgstr "Mostrar caracteres ocultos [R]"
+
+#: glade/glade_strings.c:224
+msgid "Exit TTX mode [Esc]"
+msgstr "Salir del modo TTX [Esc]"
+
+#: glade/glade_strings.c:225
+msgid "Open this link in a new window"
+msgstr "Abrir este enlace en una ventana nueva"
+
+#: glade/glade_strings.c:226
+msgid "_Open in new window"
+msgstr "_Abrir en nueva ventana"
+
+#: glade/glade_strings.c:228
+msgid "_Search..."
+msgstr "_Buscar..."
+
+#: glade/glade_strings.c:229
+msgid "Export the current page to different formats"
+msgstr "Exportar la página actual a diferentes formatos"
+
+#: glade/glade_strings.c:230
+msgid "_Export"
+msgstr "_Exportar"
+
+#: glade/glade_strings.c:231
+msgid "Manage your bookmarks"
+msgstr "Editar tus marcadores"
+
+#: glade/glade_strings.c:232
+msgid "_Bookmarks"
+msgstr "_Marcadores"
+
+#: glade/glade_strings.c:233
+msgid "Add the current page to the bookmarks"
+msgstr "Añadir la página actual a los marcadores"
+
+#: glade/glade_strings.c:234
+msgid "_Add current page..."
+msgstr "_Añadir esta página..."
+
+#: glade/glade_strings.c:235
+msgid "Use this dialog to delete any bookmarks you wish to remove"
+msgstr "Utiliza este diálogo para eliminar marcapáginas"
+
+#: glade/glade_strings.c:236
+msgid "_Edit Bookmarks..."
+msgstr "_Editar Marcadores..."
+
+#: glade/glade_strings.c:237
+msgid "_Colors"
+msgstr "_Colores"
+
+#: glade/glade_strings.c:238
+msgid "Edit Bookmarks"
+msgstr "Editar Marcadores"
+
+#: glade/glade_strings.c:239
+msgid "Page"
+msgstr "Página"
+
+#: glade/glade_strings.c:240
+msgid "Subpage"
+msgstr "Subpágina"
+
+#: glade/glade_strings.c:241
+msgid "Description"
+msgstr "Descripción"
+
+#: glade/glade_strings.c:242
+msgid "Remove the currently selected bookmark"
+msgstr "Borrar el marcador seleccionado"
+
+#: glade/glade_strings.c:243
+msgid "Remove Bookmark"
+msgstr "Borrar marcador"
+
+#: glade/glade_strings.c:246
+msgid "Search pattern:"
+msgstr "Patrón de búsqueda:"
+
+#: glade/glade_strings.c:247
+msgid "Regular expression"
+msgstr "Expresión regular"
+
+#: glade/glade_strings.c:248
+msgid "Search case insensitive"
+msgstr "Buscar sin distinguir mayúsculas y minúsculas"
+
+#: glade/glade_strings.c:249
+msgid "Search backwards"
+msgstr "Buscar hacia atrás"
+
+#: glade/glade_strings.c:250
+msgid "Search in progress..."
+msgstr "Buscando..."
+
+#: glade/glade_strings.c:251
+msgid "Cancel the current search"
+msgstr "Cancelar la búsqueda actual"
+
+#: glade/glade_strings.c:252
+msgid "Search backwards for the previous match"
+msgstr "Buscar hacia atrás la coincidencia anterior"
+
+#: glade/glade_strings.c:253
+msgid "Search forwards for the next match"
+msgstr "Buscar hacia delante la siguiente coincidencia"
+
+#: glade/glade_strings.c:254
+msgid "Start a new search"
+msgstr "Comenzar una nueva búsqueda"
+
+#: glade/glade_strings.c:255
+msgid "New"
+msgstr "Nueva"
+
+#: glade/glade_strings.c:257
+msgid "Zapping error console"
+msgstr "Consola de errores de Zapping"
+
+#: glade/glade_strings.c:258
+msgid "OK, let's go on"
+msgstr "Bien, prosigamos"
+
+#: glade/glade_strings.c:259
+msgid "Remove all this mess"
+msgstr "Borrar este barullo"
+
+#: glade/glade_strings.c:260
+msgid "Clean console"
+msgstr "Limpiar consola"
+
+#: glade/glade_strings.c:261
+msgid "VBI info"
+msgstr "Información VBI"
+
+#: glade/glade_strings.c:262
+msgid "My curiosity has been fullfilled"
+msgstr "Mi curiosidad ha sido satisfecha"
+
+#: glade/glade_strings.c:263
+msgid "Network info"
+msgstr "Info de la emisora"
+
+#: glade/glade_strings.c:264 glade/glade_strings.c:304
+msgid "Name:"
+msgstr "Nombre:"
+
+#: glade/glade_strings.c:265
+msgid "Short Name:"
+msgstr "Abreviatura:"
+
+#: glade/glade_strings.c:266
+msgid "Network call letters:"
+msgstr "Iniciales"
+
+#: glade/glade_strings.c:267
+msgid "Tape delay"
+msgstr "Retraso de cinta"
+
+#: glade/glade_strings.c:268
+msgid "Known key names"
+msgstr "Nombres de tecla conocidos"
+
+#: glade/glade_strings.c:269
+msgid "Keys"
+msgstr "Teclas"
+
+#: glade/glade_strings.c:270
+msgid "New bookmark:"
+msgstr "Nuevo marcapáginas:"
+
+#: glade/glade_strings.c:271
+msgid "Description:"
+msgstr "Descripción:"
+
+#: glade/glade_strings.c:272
+msgid "Switch to the current channel when the bookmark is selected"
+msgstr "Cambiar al canal actual al seleccionar el marcapáginas"
+
+#: glade/glade_strings.c:273
+msgid "Text colors"
+msgstr "Colores del texto"
+
+#: glade/glade_strings.c:274 glade/glade_strings.c:275
+msgid "Reset"
+msgstr "Restablecer"
+
+# src/interface.c:405
+#: glade/glade_strings.c:276
+#, fuzzy
+msgid "Channel editor"
+msgstr "canal abajo"
+
+#: glade/glade_strings.c:277
+msgid "Save the changes and leave the dialog"
+msgstr "Guardar los cambios y cerrar el diálogo"
+
+# src/interface.c:432
+#: glade/glade_strings.c:278
+msgid ""
+"Click this button if you want to leave the dialog discarding the changes"
+msgstr "Pulsa aquí para salir ignorando los cambios actuales"
+
+#: glade/glade_strings.c:279
+msgid "This shows some help about this dialog"
+msgstr "Muestra ayuda sobre el diálogo"
+
+#: glade/glade_strings.c:280
+msgid "Region"
+msgstr ""
+
+# src/interface.c:336
+#: glade/glade_strings.c:281
+msgid "Select here the frequency table used in your country"
+msgstr "Selecciona tu país"
+
+# src/interface.c:247
+#: glade/glade_strings.c:282
+msgid "No tables"
+msgstr "Sin tablas"
+
+#: glade/glade_strings.c:283
+msgid ""
+"Select a suitable frequency table, then click here to search through all "
+"channels in the table and add the received stations to the channel list."
+msgstr ""
+"Selecciona tu país y pulsa aquí para buscar los canales recibidos\n"
+"entre los canales presentes en la tabla de frecuencias."
+
+#: glade/glade_strings.c:284
+msgid "Automatic station _search"
+msgstr "_Busqueda automática de canales"
+
+#: glade/glade_strings.c:285
+msgid "Add all channels in the frequency table to the channel list."
+msgstr ""
+"Añadir todos los canales en la tabla de frecuencias a la lista de canales."
+
+# src/v4l2interface.c:146
+#: glade/glade_strings.c:286
+#, fuzzy
+msgid "Add all _channels"
+msgstr "Añadir todos los canales"
 
 # src/interface.c:316
-#: glade/glade_strings.c:159
+#: glade/glade_strings.c:287
+#, fuzzy
 msgid ""
-"With this dialog you can edit the channel list.\n"
-"To begin, please choose the frequency table used in your country.\n"
 "When your country or the required table is not present please notify the "
 "author,\n"
 "adding the table if possible, for inclusion in the next release of this "
@@ -1639,557 +2055,149 @@ msgstr ""
 "Para España selecciona Europa."
 
 # src/interface.c:336
-#: glade/glade_strings.c:163
-msgid "Select here the frequency table used in your country"
-msgstr "Selecciona tu país"
-
-# src/interface.c:247
-#: glade/glade_strings.c:164
-msgid "No tables"
-msgstr "Sin tablas"
-
-# src/interface.c:336
-#: glade/glade_strings.c:165
+#: glade/glade_strings.c:289
 msgid "Select here the channel you want to tune"
 msgstr "Selecciona el canal que quieras sintonizar"
 
-# src/interface.c:362
-# glade/glade_strings.c:148, glade/glade_strings.c:153
-#: glade/glade_strings.c:166 glade/glade_strings.c:171
-msgid "Channel"
-msgstr "Canal"
+#: glade/glade_strings.c:290 glade/glade_strings.c:295
+#, fuzzy
+msgid "Station"
+msgstr "Saturación"
 
 # src/interface.c:369
 # glade/glade_strings.c:149, glade/glade_strings.c:155
-#: glade/glade_strings.c:167 glade/glade_strings.c:173
+#: glade/glade_strings.c:291 glade/glade_strings.c:296
 msgid "Freq (kHz)"
 msgstr "Frec (kHz)"
 
-#: glade/glade_strings.c:168
-msgid "Add all channels in the frequency table to the channel list."
-msgstr ""
-"Añadir todos los canales en la tabla de frecuencias a la lista de canales."
-
 # src/v4l2interface.c:146
-#: glade/glade_strings.c:169
-msgid "Add all the channels"
-msgstr "Añadir todos los canales"
+#: glade/glade_strings.c:292
+#, fuzzy
+msgid "Tuned channels"
+msgstr "No hay canales sintonizados"
 
-#: glade/glade_strings.c:170
-msgid "Station name"
-msgstr "Nombre del canal"
+#: glade/glade_strings.c:293
+#, fuzzy
+msgid "Name"
+msgstr "Nombre:"
 
 # src/interface.c:247
-#: glade/glade_strings.c:172
+#: glade/glade_strings.c:294
 msgid "Country"
 msgstr "Región"
 
-#: glade/glade_strings.c:174
-msgid "Accelerator"
-msgstr "Acelerador"
+# src/v4l2interface.c:344
+#: glade/glade_strings.c:297
+#, fuzzy
+msgid "Standard"
+msgstr "Sin estándares"
 
-#: glade/glade_strings.c:175
+#: glade/glade_strings.c:298
+#, fuzzy
+msgid "Key"
+msgstr "Teclas"
+
+#: glade/glade_strings.c:299
 msgid "Move selected channels one row up"
 msgstr "Mover los canales seleccionados una línea hacia arriba"
 
-#: glade/glade_strings.c:176
+#: glade/glade_strings.c:300
 msgid "Move selected channels one row down"
 msgstr "Mover los canales seleccionados una línea hacia abajo"
 
 # src/interface.c:440
-#: glade/glade_strings.c:177
+#: glade/glade_strings.c:301
 msgid "Delete selected channels"
 msgstr "Borrar los canales seleccionados"
 
-#: glade/glade_strings.c:178
+#: glade/glade_strings.c:302
 msgid "_Remove"
 msgstr "_Eliminar"
 
-# src/interface.c:440
-#: glade/glade_strings.c:179
-msgid "Click here to apply the current options to the selected channels"
+# src/interface.c:362
+#: glade/glade_strings.c:303
+#, fuzzy
+msgid "Edit channel"
+msgstr "cambiar al canal"
+
+#: glade/glade_strings.c:305
+msgid "Fine tuning:"
 msgstr ""
-"Pulsa aquí para aplicar las opciones actuales a los canales seleccionados"
-
-#: glade/glade_strings.c:180
-msgid "_Modify"
-msgstr "_Modificar"
-
-# src/interface.c:382
-#: glade/glade_strings.c:181
-msgid "Select here the input to be attached to this channel"
-msgstr "Pon aquí la entrada adjunta a este canal"
 
 # src/v4l2interface.c:344
-#: glade/glade_strings.c:182
-msgid "Magical input"
-msgstr "Entrada mágica"
+#: glade/glade_strings.c:306
+#, fuzzy
+msgid "Video standard:"
+msgstr "Sin estándares"
 
-#: glade/glade_strings.c:183
+#: glade/glade_strings.c:307
 msgid "Select here the video standard used on this channel"
 msgstr "Selecciona aquí el estándar que usa este canal"
 
-# src/v4l2interface.c:344
-#: glade/glade_strings.c:184
-msgid "Magical Standard"
-msgstr "Estándar mágico"
-
-#: glade/glade_strings.c:185
-msgid ""
-"Select a suitable frequency table, then click here to search through all "
-"channels in the table and add the received stations to the channel list."
-msgstr ""
-"Selecciona tu país y pulsa aquí para buscar los canales recibidos\n"
-"entre los canales presentes en la tabla de frecuencias."
-
-#: glade/glade_strings.c:186
-msgid "Automatic station _search"
-msgstr "_Busqueda automática de canales"
-
-#: glade/glade_strings.c:187
-msgid "Frequency:"
-msgstr "Frecuencia:"
-
 # src/interface.c:382
-#: glade/glade_strings.c:188
-msgid "Station name:"
-msgstr "Nombre de la cadena:"
+#: glade/glade_strings.c:308
+msgid "Select here the input to be attached to this channel"
+msgstr "Pon aquí la entrada adjunta a este canal"
+
+#: glade/glade_strings.c:309
+#, fuzzy
+msgid "Input:"
+msgstr "Entradas"
 
 # src/interface.c:247
-#: glade/glade_strings.c:189
+#: glade/glade_strings.c:310
 msgid "Ctrl"
 msgstr ""
 
-#: glade/glade_strings.c:190
+#: glade/glade_strings.c:311
 msgid "Shift"
 msgstr ""
 
-#: glade/glade_strings.c:191
+#: glade/glade_strings.c:312
 msgid "Alt"
 msgstr ""
 
 # src/interface.c:382
-#: glade/glade_strings.c:192
+#: glade/glade_strings.c:313
 msgid "Enter here the key you want to attach to this channel"
 msgstr "Pon aquí la tecla a adjuntar a este canal"
 
-#: glade/glade_strings.c:193
-msgid "Open the list of known keys"
+#: glade/glade_strings.c:314
+#, fuzzy
+msgid "List of known keys"
 msgstr "Abrir la lista de teclas conocidas"
 
-#: glade/glade_strings.c:194
-msgid "..."
+#: glade/glade_strings.c:315
+msgid "Keyboard shortcut:"
 msgstr ""
 
-#: glade/glade_strings.c:195
-msgid "Save the changes and leave the dialog"
-msgstr "Guardar los cambios y cerrar el diálogo"
-
-# src/interface.c:432
-#: glade/glade_strings.c:196
-msgid ""
-"Click this button if you want to leave the dialog discarding the changes"
-msgstr "Pulsa aquí para salir ignorando los cambios actuales"
-
-# src/interface.c:432
-#: glade/glade_strings.c:197
-msgid "Click here to add the current channel"
-msgstr "Pulsa aquí para añadir el canal actual"
-
-#: glade/glade_strings.c:198
-msgid "_Add"
-msgstr "_Añadir"
-
-#: glade/glade_strings.c:199
-msgid "This shows some help about this dialog"
-msgstr "Muestra ayuda sobre el diálogo"
-
-#: glade/glade_strings.c:200
-msgid "Plugin properties"
-msgstr "Propiedades del plugin"
-
-# src/interface.c:448
-#: glade/glade_strings.c:201 glade/glade_strings.c:280
-msgid "Click here when you are done"
-msgstr "Pulsa aquí cuando hayas acabado"
-
-#: glade/glade_strings.c:202
-msgid "Run the plugin"
-msgstr "Ejecutar el plugin"
-
-#: glade/glade_strings.c:203
-msgid "_Start Plugin"
-msgstr "_Iniciar el Plugin"
-
-#: glade/glade_strings.c:204
-msgid "Stop this plugin"
-msgstr "Parar el plugin"
-
-#: glade/glade_strings.c:205
-msgid "S_top Plugin"
-msgstr "_Parar el plugin"
-
-#: glade/glade_strings.c:206
-msgid "Show the configuration options for this plugin"
-msgstr "Muestra las opciones de configuración de este plugin"
-
-#: glade/glade_strings.c:207
-msgid "_Configure"
-msgstr "_Configurar"
-
-#: glade/glade_strings.c:208
-msgid "Plugins"
+#: glade/glade_strings.c:316
+msgid "Create a new channel with these settings"
 msgstr ""
 
-# src/interface.c:405
-#: glade/glade_strings.c:209
-msgid "Canonical name:"
-msgstr "Nombre canónico:"
-
-#: glade/glade_strings.c:210
-msgid "Author:"
-msgstr "Autor:"
-
-#: glade/glade_strings.c:211
-msgid "Plugin version:"
-msgstr "Version:"
-
-#: glade/glade_strings.c:212
-msgid "Plugin priority:"
-msgstr "Prioridad:"
-
-#: glade/glade_strings.c:213
-msgid "Plugin description"
-msgstr "Descripción del plugin"
-
-#: glade/glade_strings.c:214
-msgid "Properties"
-msgstr "Propiedades"
-
-#: glade/glade_strings.c:215
-msgid "Plugin location"
-msgstr "Ubicación"
-
-#: glade/glade_strings.c:216
-msgid "This is the file where the plugin is located"
-msgstr "Fichero donde se encuentra el plugin"
-
-#: glade/glade_strings.c:217
-msgid "Symbol"
-msgstr "Símbolo"
-
-#: glade/glade_strings.c:218
-msgid "Hash"
-msgstr ""
-
-#: glade/glade_strings.c:219
-msgid "Description of the symbol"
-msgstr "Descripción del símbolo"
-
-#: glade/glade_strings.c:220
-msgid "Advanced"
-msgstr "Avanzado"
-
-#: glade/glade_strings.c:221
-msgid "Use this for starting the fullscreen mode"
-msgstr "Usa esto para iniciar el modo pantalla completa"
-
-#: glade/glade_strings.c:227
-msgid "Use Zapping as a teletext navigator"
-msgstr "Usar Zapping como un navegador de Teletexto"
-
-#: glade/glade_strings.c:231
-msgid "Resize the main window, hide/show toolbars"
-msgstr "Redimensionar la ventana principal, mostrar/ocultar barras"
-
-#: glade/glade_strings.c:232
-msgid "_Appearance"
-msgstr "_Apariencia"
-
-#: glade/glade_strings.c:235
-msgid "Resize to 768x576"
-msgstr "Redimensionar a 768x576"
-
-#: glade/glade_strings.c:236
-msgid "Resize to 720x576"
-msgstr "Redimensionar a 720x576"
-
-#: glade/glade_strings.c:237
-msgid "Resize to 640x480"
-msgstr "Redimensionar a 640x480"
-
-#: glade/glade_strings.c:238
-msgid "Resize to 384x288"
-msgstr "Redimensionar a 384x288"
-
-#: glade/glade_strings.c:239
-msgid "Resize to 352x288"
-msgstr "Redimensionar a 352x288"
-
-#: glade/glade_strings.c:240
-msgid "Resize to 320x240"
-msgstr "Redimensionar a 320x200"
-
-#: glade/glade_strings.c:241
-msgid "Searching..."
-msgstr "Buscando..."
-
-#: glade/glade_strings.c:242 glade/glade_strings.c:292
-msgid "%P %%"
-msgstr ""
-
-#: glade/glade_strings.c:244
-msgid "Previous page in history"
-msgstr "Historia - Anterior"
-
-#: glade/glade_strings.c:245
-msgid "Previous"
-msgstr "Anterior"
-
-#: glade/glade_strings.c:246
-msgid "Next page in history"
-msgstr "Historia - Siguiente"
-
-#: glade/glade_strings.c:247
-msgid "Next"
-msgstr "Siguiente"
-
-#: glade/glade_strings.c:248
-msgid "Go to the index page [Home]"
-msgstr "Ir al índice [Home]"
-
-#: glade/glade_strings.c:249
-msgid "Home"
-msgstr "Índice"
-
-#: glade/glade_strings.c:250
-msgid "Clone the current Teletext window"
-msgstr "Clonar la ventana actual"
-
-#: glade/glade_strings.c:251 glade/glade_strings.c:263
-msgid "Search for a given pattern in the cache"
-msgstr "Buscar un determinado patrón en la caché"
-
-#: glade/glade_strings.c:252 glade/glade_strings.c:281
-msgid "Search"
-msgstr "Buscar"
-
-#: glade/glade_strings.c:253
-msgid "Previous subpage [-]"
-msgstr "Subpágina anterior [-]"
-
-#: glade/glade_strings.c:254
-msgid "Go to the previous page [Down]"
-msgstr "Ir a la página anterior [Abajo]"
-
-#: glade/glade_strings.c:255
-msgid "Hold the current subpage [H]"
-msgstr "Congelar la subpágina actual [H]"
-
-#: glade/glade_strings.c:256
-msgid "100"
-msgstr ""
-
-#: glade/glade_strings.c:257
-msgid "Go to the next page [Up]"
-msgstr "Ir a la siguiente página [Arriba]"
-
-#: glade/glade_strings.c:258
-msgid "Next subpage [+]"
-msgstr "Siguiente subpágina [+]"
-
-#: glade/glade_strings.c:259
+# src/v4l2interface.c:146
+#: glade/glade_strings.c:317
 #, fuzzy
-msgid "Reveal hidden characters [?]"
-msgstr "Mostrar caracteres ocultos [R]"
+msgid "_Add as a new channel"
+msgstr "Añadir todos los canales"
 
-#: glade/glade_strings.c:260
-msgid "Exit TTX mode [Esc]"
-msgstr "Salir del modo TTX [Esc]"
+# src/interface.c:440
+#: glade/glade_strings.c:318
+#, fuzzy
+msgid "Apply the current settings to the selected channels above"
+msgstr ""
+"Pulsa aquí para aplicar las opciones actuales a los canales seleccionados"
 
-#: glade/glade_strings.c:261
-msgid "Open this link in a new window"
-msgstr "Abrir este enlace en una ventana nueva"
+# src/interface.c:440
+#: glade/glade_strings.c:319
+#, fuzzy
+msgid "_Modify selected channels"
+msgstr "Borrar los canales seleccionados"
 
-#: glade/glade_strings.c:262
-msgid "_Open in new window"
-msgstr "_Abrir en nueva ventana"
-
-#: glade/glade_strings.c:264
-msgid "_Search..."
-msgstr "_Buscar..."
-
-#: glade/glade_strings.c:265
-msgid "Export the current page to different formats"
-msgstr "Exportar la página actual a diferentes formatos"
-
-#: glade/glade_strings.c:266
-msgid "_Export"
-msgstr "_Exportar"
-
-#: glade/glade_strings.c:267
-msgid "Manage your bookmarks"
-msgstr "Editar tus marcadores"
-
-#: glade/glade_strings.c:268
-msgid "_Bookmarks"
-msgstr "_Marcadores"
-
-#: glade/glade_strings.c:269
-msgid "Add the current page to the bookmarks"
-msgstr "Añadir la página actual a los marcadores"
-
-#: glade/glade_strings.c:270
-msgid "_Add current page..."
-msgstr "_Añadir esta página..."
-
-#: glade/glade_strings.c:271
-msgid "Use this dialog to delete any bookmarks you wish to remove"
-msgstr "Utiliza este diálogo para eliminar marcapáginas"
-
-#: glade/glade_strings.c:272
-msgid "_Edit Bookmarks..."
-msgstr "_Editar Marcadores..."
-
-#: glade/glade_strings.c:273
-msgid "_Colors"
-msgstr "_Colores"
-
-#: glade/glade_strings.c:274
-msgid "Edit Bookmarks"
-msgstr "Editar Marcadores"
-
-#: glade/glade_strings.c:275
-msgid "Page"
-msgstr "Página"
-
-#: glade/glade_strings.c:276
-msgid "Subpage"
-msgstr "Subpágina"
-
-#: glade/glade_strings.c:277
-msgid "Description"
-msgstr "Descripción"
-
-#: glade/glade_strings.c:278
-msgid "Remove the currently selected bookmark"
-msgstr "Borrar el marcador seleccionado"
-
-#: glade/glade_strings.c:279
-msgid "Remove Bookmark"
-msgstr "Borrar marcador"
-
-#: glade/glade_strings.c:282
-msgid "Search pattern:"
-msgstr "Patrón de búsqueda:"
-
-#: glade/glade_strings.c:283
-msgid "Regular expression"
-msgstr "Expresión regular"
-
-#: glade/glade_strings.c:284
-msgid "Search case insensitive"
-msgstr "Buscar sin distinguir mayúsculas y minúsculas"
-
-#: glade/glade_strings.c:285
-msgid "Search backwards"
-msgstr "Buscar hacia atrás"
-
-#: glade/glade_strings.c:286
-msgid "Search in progress..."
-msgstr "Buscando..."
-
-#: glade/glade_strings.c:287
-msgid "Cancel the current search"
-msgstr "Cancelar la búsqueda actual"
-
-#: glade/glade_strings.c:288
-msgid "Search backwards for the previous match"
-msgstr "Buscar hacia atrás la coincidencia anterior"
-
-#: glade/glade_strings.c:289
-msgid "Search forwards for the next match"
-msgstr "Buscar hacia delante la siguiente coincidencia"
-
-#: glade/glade_strings.c:290
-msgid "Start a new search"
-msgstr "Comenzar una nueva búsqueda"
-
-#: glade/glade_strings.c:291
-msgid "New"
-msgstr "Nueva"
-
-#: glade/glade_strings.c:293
-msgid "Zapping error console"
-msgstr "Consola de errores de Zapping"
-
-#: glade/glade_strings.c:294
-msgid "OK, let's go on"
-msgstr "Bien, prosigamos"
-
-#: glade/glade_strings.c:295
-msgid "Remove all this mess"
-msgstr "Borrar este barullo"
-
-#: glade/glade_strings.c:296
-msgid "Clean console"
-msgstr "Limpiar consola"
-
-#: glade/glade_strings.c:297
-msgid "VBI info"
-msgstr "Información VBI"
-
-#: glade/glade_strings.c:298
-msgid "My curiosity has been fullfilled"
-msgstr "Mi curiosidad ha sido satisfecha"
-
-#: glade/glade_strings.c:299
-msgid "Network info"
-msgstr "Info de la emisora"
-
-#: glade/glade_strings.c:300
-msgid "Name:"
-msgstr "Nombre:"
-
-#: glade/glade_strings.c:301
-msgid "Short Name:"
-msgstr "Abreviatura:"
-
-#: glade/glade_strings.c:302
-msgid "Network call letters:"
-msgstr "Iniciales"
-
-#: glade/glade_strings.c:303
-msgid "Tape delay"
-msgstr "Retraso de cinta"
-
-#: glade/glade_strings.c:304
-msgid "Known key names"
-msgstr "Nombres de tecla conocidos"
-
-#: glade/glade_strings.c:305
-msgid "Keys"
-msgstr "Teclas"
-
-#: glade/glade_strings.c:306
-msgid "New bookmark:"
-msgstr "Nuevo marcapáginas:"
-
-#: glade/glade_strings.c:307
-msgid "Description:"
-msgstr "Descripción:"
-
-#: glade/glade_strings.c:308
-msgid "Switch to the current channel when the bookmark is selected"
-msgstr "Cambiar al canal actual al seleccionar el marcapáginas"
-
-#: glade/glade_strings.c:309
-msgid "Text colors"
-msgstr "Colores del texto"
-
-#: glade/glade_strings.c:310 glade/glade_strings.c:311
-msgid "Reset"
-msgstr "Restablecer"
+#: glade/glade_strings.c:320
+#, fuzzy
+msgid "Configuration"
+msgstr "_Configurar"
 
 #: plugins/screenshot/screenshot.c:38
 msgid "Screenshot saver"
@@ -2211,7 +2219,7 @@ msgstr "Este plugin toma un screenshot de lo que estés viendo."
 
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133 plugins/mpeg/mpeg.c:130
+#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133 plugins/mpeg/mpeg.c:138
 #: plugins/parrot/parrot.c:141 plugins/screenshot/screenshot.c:196
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
@@ -2429,39 +2437,40 @@ msgstr ""
 msgid "Lets you control zapping through lirc"
 msgstr "Te permite controlar Zapping a través de lirc"
 
-#: plugins/mpeg/mpeg.c:39
+#: plugins/mpeg/mpeg.c:41
 msgid "MPEG encoder"
 msgstr "Compresor MPEG"
 
-#: plugins/mpeg/mpeg.c:41
+#: plugins/mpeg/mpeg.c:43
 msgid "This plugin encodes the image and audio stream into a MPEG file"
 msgstr ""
 "Este plugin te permite comprimir el audio y el video en un fichero MPEG"
 
-#: plugins/mpeg/mpeg.c:43
+#: plugins/mpeg/mpeg.c:45
 msgid "Encode the stream as MPEG."
 msgstr "Comprimir como MPEG."
 
-#: plugins/mpeg/mpeg.c:481
+#. NB *_frames display will wrap after two years.
+#: plugins/mpeg/mpeg.c:299
 #, c-format
 msgid "%d frame dropped"
 msgid_plural "%d frames dropped"
 msgstr[0] "%d cuadro descartado"
 msgstr[1] "%d cuadros descartados"
 
-#: plugins/mpeg/mpeg.c:485
+#: plugins/mpeg/mpeg.c:303
 #, c-format
 msgid "%d frame processed"
 msgid_plural "%d frames processed"
 msgstr[0] "%d cuadro procesado"
 msgstr[1] "%d cuadros procesados"
 
-#: plugins/mpeg/mpeg.c:489
-#, c-format
-msgid "%.1f MB : %s : %s"
-msgstr ""
+#: plugins/mpeg/mpeg.c:307
+#, fuzzy, c-format
+msgid "%s : %s"
+msgstr "%s: %s"
 
-#: plugins/mpeg/mpeg.c:560
+#: plugins/mpeg/mpeg.c:396
 #, c-format
 msgid ""
 "Cannot create destination dir for clips:\n"
@@ -2472,19 +2481,19 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:571
+#: plugins/mpeg/mpeg.c:407
 msgid "Synchronization under V4L1"
 msgstr "Sincronización bajo V4L1"
 
-#: plugins/mpeg/mpeg.c:573
+#: plugins/mpeg/mpeg.c:409
 msgid "Do not show this again"
 msgstr "No mostrar de nuevo"
 
-#: plugins/mpeg/mpeg.c:574
+#: plugins/mpeg/mpeg.c:410
 msgid "V4L2 page"
 msgstr "Página de V4L2"
 
-#: plugins/mpeg/mpeg.c:577
+#: plugins/mpeg/mpeg.c:413
 msgid ""
 "You are using a V4L1 driver, so synchronization\n"
 "between audio and video will not be very good.\n"
@@ -2497,53 +2506,54 @@ msgstr ""
 "Los controladores V4L2 permiten una sincronización mucho mejor, quizá\n"
 "quieras probarlos si no estás satisfecho con los resultados."
 
-#: plugins/mpeg/mpeg.c:762
+#: plugins/mpeg/mpeg.c:621
 #, c-format
 msgid "RTE ID: %s"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:767
+#: plugins/mpeg/mpeg.c:626
 #, c-format
 msgid "Destination: %s"
 msgstr "Destino: %s"
 
-#: plugins/mpeg/mpeg.c:775 plugins/mpeg/mpeg_strings.c:12
+#: plugins/mpeg/mpeg.c:634
 msgid "Audio only"
 msgstr "Sólo audio"
 
 # src/v4l2interface.c:344
-#: plugins/mpeg/mpeg.c:778 plugins/mpeg/mpeg_strings.c:13
+#: plugins/mpeg/mpeg.c:637
 msgid "Video only"
 msgstr "Sólo video"
 
 # src/frequencies.c:827
-#: plugins/mpeg/mpeg.c:781 plugins/mpeg/mpeg_strings.c:14
+#: plugins/mpeg/mpeg.c:640
 msgid "Audio and Video"
 msgstr "Audio y Video"
 
-#: plugins/mpeg/mpeg.c:792 plugins/mpeg/mpeg.c:804
-msgid "Output audio Kbits per second:"
+#: plugins/mpeg/mpeg.c:657 plugins/mpeg/mpeg.c:665
+#, fuzzy
+msgid "Output audio kbits per second:"
 msgstr "Kbits/s de audio a generar:"
 
-#: plugins/mpeg/mpeg.c:798 plugins/mpeg/mpeg.c:806
-#: plugins/mpeg/mpeg_strings.c:22
+#: plugins/mpeg/mpeg.c:661 plugins/mpeg/mpeg.c:667
 msgid "Output video Mbits per second:"
 msgstr "Mbits/s de video a generar:"
 
-#: plugins/mpeg/mpeg.c:814
+#: plugins/mpeg/mpeg.c:674
 msgid "Waiting for frames..."
 msgstr "Esperando cuadros..."
 
-#: plugins/mpeg/mpeg.c:1151
-msgid "None"
-msgstr ""
-
-#: plugins/mpeg/mpeg.c:1195 plugins/mpeg/mpeg.c:1395
+#: plugins/mpeg/mpeg.c:1050 plugins/mpeg/mpeg.c:1175
 msgid "MPEG"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1396
-msgid "Store the data as MPEG"
+#: plugins/mpeg/mpeg.c:1161
+msgid "Start recording [Ctrl+r]"
+msgstr ""
+
+#: plugins/mpeg/mpeg.c:1212
+#, fuzzy
+msgid "Record as MPEG"
 msgstr "Guardar los datos como MPEG"
 
 #.
@@ -2556,110 +2566,79 @@ msgid "window1"
 msgstr ""
 
 #: plugins/mpeg/mpeg_strings.c:8
+msgid "Format:"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:9
 msgid "What to do with the compressed stream"
 msgstr "Qué hacer con los datos comprimidos:"
 
-#: plugins/mpeg/mpeg_strings.c:9
+#: plugins/mpeg/mpeg_strings.c:10
 msgid "Save to file"
 msgstr "Guardar a un fichero"
 
-#: plugins/mpeg/mpeg_strings.c:10
+#: plugins/mpeg/mpeg_strings.c:11
 msgid "/dev/null"
 msgstr ""
 
-#: plugins/mpeg/mpeg_strings.c:11
-msgid "Whether to encode audio and/or video"
-msgstr "Codificar audio y/o video"
-
-#: plugins/mpeg/mpeg_strings.c:15
-msgid "Use motion compensation"
-msgstr "Utilizar compensación de movimiento"
-
-#: plugins/mpeg/mpeg_strings.c:16
+#: plugins/mpeg/mpeg_strings.c:12
 msgid "Write the encoded stream to:"
 msgstr "Escribir el fichero comprimido a:"
 
-#: plugins/mpeg/mpeg_strings.c:17
+#: plugins/mpeg/mpeg_strings.c:13
 msgid "MPEG file destination"
 msgstr "Destino del MPEG"
 
-#: plugins/mpeg/mpeg_strings.c:18
+#: plugins/mpeg/mpeg_strings.c:14
 msgid "Sets the dir where the encoded clips will be written to"
 msgstr "Elige el directorio donde se escribirán los datos"
 
-#: plugins/mpeg/mpeg_strings.c:19
-msgid "Capture Width:"
-msgstr "Ancho de la captura:"
-
-#: plugins/mpeg/mpeg_strings.c:20
-msgid "Capture Height:"
-msgstr "Alto de la captura:"
-
-#: plugins/mpeg/mpeg_strings.c:21
-msgid "Input / output"
-msgstr "Entrada / salida"
-
-#: plugins/mpeg/mpeg_strings.c:23
+#: plugins/mpeg/mpeg_strings.c:15
 msgid "Engine verbosity (output goes to stderr):"
 msgstr "Locuacidad del compresor (la salida va a stderr):"
 
-#: plugins/mpeg/mpeg_strings.c:24
-msgid "Compression parameters"
-msgstr "Parámetros de compresión"
+#: plugins/mpeg/mpeg_strings.c:16
+msgid "Input / output"
+msgstr "Entrada / salida"
 
-# src/frequencies.c:827
-#: plugins/mpeg/mpeg_strings.c:25
-msgid "Audio device:"
-msgstr "Dispositivo de audio:"
-
-#: plugins/mpeg/mpeg_strings.c:26
+#: plugins/mpeg/mpeg_strings.c:17 plugins/mpeg/mpeg_strings.c:21
 msgid "Codec:"
 msgstr ""
 
-#: plugins/mpeg/mpeg_strings.c:27
-msgid "Select the audio input type you would like to use"
-msgstr "Selecciona el tipo de entrada de audio que te gustaría utilizar"
+#: plugins/mpeg/mpeg_strings.c:18
+msgid "Capture Width:"
+msgstr "Ancho de la captura:"
 
-# src/frequencies.c:827
-#: plugins/mpeg/mpeg_strings.c:28
-msgid "Audio device"
-msgstr "Dispositivo de audio"
+#: plugins/mpeg/mpeg_strings.c:19
+msgid "Capture Height:"
+msgstr "Alto de la captura:"
 
-#: plugins/mpeg/mpeg_strings.c:29
-msgid "Select the audio device to open"
-msgstr "Selecciona el dispositivo de audio a abrir"
-
-#: plugins/mpeg/mpeg_strings.c:30
-#, fuzzy
-msgid "Audio"
-msgstr "Sólo audio"
-
-#: plugins/mpeg/mpeg_strings.c:31
+#: plugins/mpeg/mpeg_strings.c:23
 msgid "Saving MPEG"
 msgstr "Guardando MPEG"
 
 # src/interface.c:448
-#: plugins/mpeg/mpeg_strings.c:32
+#: plugins/mpeg/mpeg_strings.c:24
 msgid "Press this when you are done"
 msgstr "Pulsa aquí cuando hayas acabado"
 
-#: plugins/mpeg/mpeg_strings.c:33
+#: plugins/mpeg/mpeg_strings.c:25
 msgid "RTE id (for debugging)"
 msgstr "RTE id (para depurado)"
 
-#: plugins/mpeg/mpeg_strings.c:34
+#: plugins/mpeg/mpeg_strings.c:26
 msgid "Destination"
 msgstr "Destino"
 
-#: plugins/mpeg/mpeg_strings.c:35
+#: plugins/mpeg/mpeg_strings.c:27
 msgid "Mux mode"
 msgstr "Multiplexado"
 
-#: plugins/mpeg/mpeg_strings.c:36
+#: plugins/mpeg/mpeg_strings.c:28
 msgid "Some more info: bit rates"
 msgstr "Algo más de información: tasa de bits"
 
-#: plugins/mpeg/mpeg_strings.c:37
+#: plugins/mpeg/mpeg_strings.c:29
 msgid "Dynamic stats (dropped, output M's, etc)"
 msgstr ""
 
@@ -2753,7 +2732,7 @@ msgstr ""
 msgid "Unable to allocate %d KB image buffer"
 msgstr "no se puede reservar un buffer de %d KB"
 
-#: libvbi/exp-gfx.c:519 libvbi/exp-gfx.c:777 libvbi/exp-html.c:330
+#: libvbi/exp-gfx.c:519 libvbi/exp-gfx.c:777 libvbi/exp-html.c:331
 #: libvbi/exp-vtx.c:119
 #, c-format
 msgid "Cannot create file '%s': %s"
@@ -2768,13 +2747,13 @@ msgstr ""
 msgid "Export this page as raw PPM image"
 msgstr "Exportar la página actual como PPM"
 
-#: libvbi/exp-gfx.c:838 libvbi/exp-html.c:207
+#: libvbi/exp-gfx.c:838 libvbi/exp-html.c:208
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr "Página de Teletexto %3x.%x"
 
-#: libvbi/exp-gfx.c:840 libvbi/exp-html.c:209
-#, c-format, ycp-format
+#: libvbi/exp-gfx.c:840 libvbi/exp-html.c:210
+#, c-format
 msgid "Teletext Page %3x"
 msgstr "Página de Teletexto %3x"
 
@@ -2818,20 +2797,20 @@ msgstr "Incluir la cabecera de la página HTML"
 #. *  "lang=\"en\" refers to the page title "Teletext Page..."
 #. *  below, specify "de", "fr", "es" etc.
 #.
-#: libvbi/exp-html.c:197
+#: libvbi/exp-html.c:198
 msgid "<title lang=\"en\">"
 msgstr "<title lang=\"es\">"
 
-#: libvbi/exp-html.c:325
+#: libvbi/exp-html.c:326
 #, c-format
 msgid "Character conversion Unicode -> %s not supported"
 msgstr "Conversión de caracter Unicode -> %s no soportada"
 
-#: libvbi/exp-html.c:687
+#: libvbi/exp-html.c:688
 msgid "HTML"
 msgstr ""
 
-#: libvbi/exp-html.c:688
+#: libvbi/exp-html.c:689
 msgid "Export this page as HTML page"
 msgstr "Exportar la página actual como HTML"
 
@@ -3106,9 +3085,162 @@ msgstr ""
 "%s (%s) no tiene un interfaz de lectura, posiblemente un dispositivo\n"
 "de sólo salida o un fallo del controlador. %s\n"
 
-#, fuzzy
-#~ msgid "Hide the status bar"
-#~ msgstr "Mostrar en la barra de estado"
+# src/frequencies.c:816
+#~ msgid "us-bcast"
+#~ msgstr "eeuu-bcast"
+
+# src/frequencies.c:819
+#~ msgid "japan-bcast"
+#~ msgstr "japón-bcast"
+
+# src/frequencies.c:822
+#~ msgid "europe-east"
+#~ msgstr "europa del este"
+
+#~ msgid ""
+#~ "While loading %s\n"
+#~ "The plugin uses the protocol %d, and the current one is %d, it cannot be "
+#~ "loaded."
+#~ msgstr ""
+#~ "Al cargar %s\n"
+#~ "El plugin usa el protocolo %d, y el actual es %d, no se puede cargar."
+
+#~ msgid "Sorry, plugin_get_info was not found in %s"
+#~ msgstr "plugin_get_info no se encuentra en %s, lo siento"
+
+#~ msgid ""
+#~ "\"%s\" seems to be a valid plugin, but it doesn't provide a canonical "
+#~ "name."
+#~ msgstr ""
+#~ "\"%s\" parece un plugin válido, pero no proporciona un nombre canónico"
+
+#~ msgid ""
+#~ "Sorry, the version of the plugin cannot be parsed.\n"
+#~ "The version must be something like %%d[.%%d[%%d[other things]]]\n"
+#~ "The given version is %s.\n"
+#~ "Error loading \"%s\" (%s)"
+#~ msgstr ""
+#~ "No se entiende la versión del plugin.\n"
+#~ "La versión debe ser algo como %%d[.%%d[%%d[otras cosas]]]\n"
+#~ "La versión dada es %s.\n"
+#~ "Error al cargar \"%s\" (%s)"
+
+#~ msgid "Can capture to memory.\n"
+#~ msgstr "Puede capturar a la memoria.\n"
+
+#~ msgid "Has some tuner.\n"
+#~ msgstr "Tiene un sintonizador.\n"
+
+#~ msgid "Supports the teletext service.\n"
+#~ msgstr "Soporta teletexto.\n"
+
+#~ msgid "Can overlay the image.\n"
+#~ msgstr "Soporta overlay.\n"
+
+#~ msgid "Can chromakey the image.\n"
+#~ msgstr "Puede hacer chromakey.\n"
+
+#~ msgid "Clipping rectangles are supported.\n"
+#~ msgstr "Recorte de zonas soportado.\n"
+
+#~ msgid "Framebuffer memory is overwritten.\n"
+#~ msgstr "Se sobreescribe la memoria del FB.\n"
+
+#~ msgid "The capture can be scaled.\n"
+#~ msgstr "La captura puede ser escalada.\n"
+
+#~ msgid "Only monochrome is available\n"
+#~ msgstr "Sólo se soporta monocromo.\n"
+
+#~ msgid "The capture can be zoomed\n"
+#~ msgstr "Se pueden hacer zooms\n"
+
+# src/v4l2interface.c:344
+#~ msgid "No available inputs"
+#~ msgstr "Sin entradas desponibles"
+
+#~ msgid "Your video device has no inputs"
+#~ msgstr "Tu dispositivo no tiene entradas"
+
+#~ msgid "TV input"
+#~ msgstr "Entrada de TV"
+
+#~ msgid "%s with a tuner"
+#~ msgstr "%s con sintonizador."
+
+#~ msgid "%s with %d tuners"
+#~ msgstr "%s con %d sintonizadores."
+
+#~ msgid "No plugin accepts this page."
+#~ msgstr "Ningún plugin acepta esta página."
+
+#~ msgid ""
+#~ "The plugin that created the active page doesn't provide help for it. "
+#~ "Sorry."
+#~ msgstr "El plugin que creó la página actual no ofrece ayuda para ella."
+
+# src/interface.c:307
+#~ msgid "Channel choosing"
+#~ msgstr "Selector de canales"
+
+# src/interface.c:362
+# glade/glade_strings.c:148, glade/glade_strings.c:153
+#~ msgid "Channel"
+#~ msgstr "Canal"
+
+#~ msgid "Station name"
+#~ msgstr "Nombre del canal"
+
+#~ msgid "Accelerator"
+#~ msgstr "Acelerador"
+
+#~ msgid "_Modify"
+#~ msgstr "_Modificar"
+
+# src/v4l2interface.c:344
+#~ msgid "Magical input"
+#~ msgstr "Entrada mágica"
+
+# src/v4l2interface.c:344
+#~ msgid "Magical Standard"
+#~ msgstr "Estándar mágico"
+
+#~ msgid "Frequency:"
+#~ msgstr "Frecuencia:"
+
+# src/interface.c:382
+#~ msgid "Station name:"
+#~ msgstr "Nombre de la cadena:"
+
+# src/interface.c:432
+#~ msgid "Click here to add the current channel"
+#~ msgstr "Pulsa aquí para añadir el canal actual"
+
+#~ msgid "_Add"
+#~ msgstr "_Añadir"
+
+#~ msgid "Whether to encode audio and/or video"
+#~ msgstr "Codificar audio y/o video"
+
+#~ msgid "Use motion compensation"
+#~ msgstr "Utilizar compensación de movimiento"
+
+#~ msgid "Compression parameters"
+#~ msgstr "Parámetros de compresión"
+
+# src/frequencies.c:827
+#~ msgid "Audio device:"
+#~ msgstr "Dispositivo de audio:"
+
+#~ msgid "Select the audio input type you would like to use"
+#~ msgstr "Selecciona el tipo de entrada de audio que te gustaría utilizar"
+
+# src/frequencies.c:827
+#~ msgid "Audio device"
+#~ msgstr "Dispositivo de audio"
+
+#~ msgid "Select the audio device to open"
+#~ msgstr "Selecciona el dispositivo de audio a abrir"
 
 #~ msgid "Verbosity value given to zapping__setup__fb:"
 #~ msgstr "Nivel de mensajes de zapping__setup__fb:"

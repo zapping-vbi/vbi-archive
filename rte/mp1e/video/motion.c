@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.6 2001-10-21 05:08:48 mschimek Exp $ */
+/* $Id: motion.c,v 1.7 2001-11-22 17:51:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -53,10 +53,13 @@ search_fn *search;
 mmx_t bbmin, bbdxy, crdxy, crdy0;
 
 /*
- *  vvv                           |||
- *  a B B B B b b b b C C C C c c c c D
- *   . . . . + + + + . . . . + + + + .
- *   ^^^                           |||
+const short
+half_weight[4][4] = {
+	{ 16 + 5,  16 + 3, 16 + 5, 16 + 3 },
+	{ 16 + 3,  16 + 0, 16 + 3, 16 + 0 },
+	{ 16 + 5,  16 + 3, 16 + 5, 16 + 3 },
+	{ 16 + 3,  16 + 0, 16 + 3, 16 + 0 }
+};
  */
 
 // XXX alias mblock
@@ -426,7 +429,7 @@ mmx_load_interp(unsigned char *p, int pitch, int dx, int dy)
 		" popl		%%edx;\n"
 		" popl		%%ecx;\n"
 
-		/* temp22 16 [1 & ((ab & cd) ^ ((ab ^ cd) & ~((a ^ b) | (c ^ d))))] */
+		/* temp22 16 */
 
 		" movq		%%mm5,%%mm2;\n"
 		" movq		%%mm6,%%mm3;\n"
@@ -721,7 +724,7 @@ sse_load_interp(unsigned char *p, int pitch, int dx, int dy)
 		" popl		%%edx;\n"
 		" popl		%%ecx;\n"
 
-		/* temp22 16 [1 & ((ab & cd) ^ ((ab ^ cd) & ~((a ^ b) | (c ^ d))))] */
+		/* temp22 16 */
 
 		" movq		%%mm5,%%mm2;\n"
 		" movq		%%mm6,%%mm3;\n"
@@ -1016,7 +1019,7 @@ _3dn_load_interp(unsigned char *p, int pitch, int dx, int dy)
 		" popl		%%edx;\n"
 		" popl		%%ecx;\n"
 
-		/* temp22 16 [1 & ((ab & cd) ^ ((ab ^ cd) & ~((a ^ b) | (c ^ d))))] */
+		/* temp22 16 */
 
 		" movq		%%mm5,%%mm2;\n"
 		" movq		%%mm6,%%mm3;\n"
@@ -1848,16 +1851,16 @@ mmx_psse_4(char t[16][16], char *p, int pitch)
 
 		" movq		%%mm4,%%mm2;\n"
 		" movq		%%mm1,%%mm3;\n"
-		" pcmpgtb		%%mm1,%%mm2;\n"
+		" pcmpgtb	%%mm1,%%mm2;\n"
 		" psubb		%%mm4,%%mm1;\n"
 		" movq		%%mm1,%%mm0;\n"
 		" punpcklbw	%%mm2,%%mm0;\n"
-		" pmullw		%%mm0,%%mm0;\n"
-		" paddusw		%%mm0,%%mm6;\n"
+		" pmullw	%%mm0,%%mm0;\n"
+		" paddusw	%%mm0,%%mm6;\n"
 		" movd		16(%0),%%mm0;\n"
 		" punpckhbw	%%mm2,%%mm1;\n"
-		" pmullw		%%mm1,%%mm1;\n"
-		" paddusw		%%mm1,%%mm6;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm6;\n"
 
 		" movq		16(%1),%%mm1;\n"
 
@@ -1869,34 +1872,34 @@ mmx_psse_4(char t[16][16], char *p, int pitch)
 
 		" movq		%%mm5,%%mm2;\n"
 		" movq		%%mm1,%%mm3;\n"
-		" pcmpgtb		%%mm1,%%mm2;\n"
+		" pcmpgtb	%%mm1,%%mm2;\n"
 		" psubb		%%mm5,%%mm1;\n"
 		" movq		%%mm1,%%mm4;\n"
 		" punpcklbw	%%mm2,%%mm4;\n"
-		" pmullw		%%mm4,%%mm4;\n"
-		" paddusw		%%mm4,%%mm6;\n"
+		" pmullw	%%mm4,%%mm4;\n"
+		" paddusw	%%mm4,%%mm6;\n"
 		" movq		24(%1),%%mm4;\n"
 		" punpckhbw	%%mm2,%%mm1;\n"
-		" pmullw		%%mm1,%%mm1;\n"
-		" paddusw		%%mm1,%%mm6;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm6;\n"
 
 		" movd		16(%0,%2),%%mm5;\n"
 
 		" movq		%%mm0,%%mm2;\n"
 		" movq		%%mm4,%%mm3;\n"
-		" pcmpgtb		%%mm4,%%mm2;\n"
+		" pcmpgtb	%%mm4,%%mm2;\n"
 		" psubb		%%mm0,%%mm4;\n"
 		" movq		%%mm4,%%mm1;\n"
 		" punpcklbw	%%mm2,%%mm1;\n"
-		" pmullw		%%mm1,%%mm1;\n"
-		" paddusw		%%mm1,%%mm6;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm6;\n"
 		" movq		bbmin,%%mm1;\n"
 		" punpckhbw	%%mm2,%%mm4;\n"
 		" movq		bbdxy,%%mm2;\n"
-		" pmullw		%%mm4,%%mm4;\n"
+		" pmullw	%%mm4,%%mm4;\n"
 
 		" psrlq		$32,%%mm0;\n"
-		" paddusw		%%mm4,%%mm6;\n"
+		" paddusw	%%mm4,%%mm6;\n"
 		" movq		crdxy,%%mm4;\n"
 		" psllq		$32,%%mm5;\n"
 		" psubw		c1_15w,%%mm6;\n"
@@ -1904,32 +1907,32 @@ mmx_psse_4(char t[16][16], char *p, int pitch)
 		" paddb		c4,%%mm4;\n"
 
 		" movq		%%mm0,%%mm5;\n"
-		" pcmpgtb		%%mm3,%%mm5;\n"
+		" pcmpgtb	%%mm3,%%mm5;\n"
 		" psubb		%%mm0,%%mm3;\n"
 		" movq		%%mm3,%%mm0;\n"
 		" punpcklbw	%%mm5,%%mm0;\n"
-		" pmullw		%%mm0,%%mm0;\n"
-		" paddusw		%%mm0,%%mm7;\n"
+		" pmullw	%%mm0,%%mm0;\n"
+		" paddusw	%%mm0,%%mm7;\n"
 		" punpckhbw	%%mm5,%%mm3;\n"
-		" pmullw		%%mm3,%%mm3;\n"
-		" paddusw		%%mm3,%%mm7;\n"
+		" pmullw	%%mm3,%%mm3;\n"
+		" paddusw	%%mm3,%%mm7;\n"
 
 		" movq		%%mm4,crdxy;\n"
 
 		" movq		%%mm4,%%mm5;\n"
 		" pxor		%%mm3,%%mm3;\n"
-		" pcmpgtb		%%mm4,%%mm3;\n"
+		" pcmpgtb	%%mm4,%%mm3;\n"
 		" pxor		%%mm3,%%mm5;\n"
 		" psubb		%%mm3,%%mm5;\n"
 
 		" movq		%%mm5,%%mm3;\n"
 		" psrlw		$8,%%mm5;\n"
-		" paddsw		%%mm5,%%mm6;\n"
+		" paddsw	%%mm5,%%mm6;\n"
 		" pand		c255,%%mm3;\n"
-		" paddsw		%%mm3,%%mm6;\n"
+		" paddsw	%%mm3,%%mm6;\n"
 
 		" movq		%%mm1,%%mm5;\n"
-		" pcmpgtw		%%mm6,%%mm5;\n"
+		" pcmpgtw	%%mm6,%%mm5;\n"
 		" movq		%%mm1,%%mm3;\n"
 		" pxor		%%mm6,%%mm3;\n"
 		" pand		%%mm5,%%mm3;\n"
@@ -1950,7 +1953,7 @@ mmx_psse_4(char t[16][16], char *p, int pitch)
 		" por		%%mm5,%%mm4;\n"
 
 		" movq		%%mm1,%%mm5;\n"
-		" pcmpgtw		%%mm6,%%mm5;\n"
+		" pcmpgtw	%%mm6,%%mm5;\n"
 		" movq		%%mm1,%%mm3;\n"
 		" pxor		%%mm6,%%mm3;\n"
 		" pand		%%mm5,%%mm3;\n"
@@ -1971,7 +1974,7 @@ mmx_psse_4(char t[16][16], char *p, int pitch)
 		" por		%%mm5,%%mm4;\n"
 
 		" movq		%%mm1,%%mm5;\n"
-		" pcmpgtw		%%mm6,%%mm5;\n"
+		" pcmpgtw	%%mm6,%%mm5;\n"
 		" movq		%%mm1,%%mm3;\n"
 		" pxor		%%mm6,%%mm3;\n"
 		" pand		%%mm5,%%mm3;\n"
@@ -1992,7 +1995,7 @@ mmx_psse_4(char t[16][16], char *p, int pitch)
 		" por		%%mm5,%%mm4;\n"
 
 		" movq		%%mm1,%%mm5;\n"
-		" pcmpgtw		%%mm6,%%mm5;\n"
+		" pcmpgtw	%%mm6,%%mm5;\n"
 		" movq		%%mm1,%%mm3;\n"
 		" pxor		%%mm6,%%mm3;\n"
 		" pand		%%mm5,%%mm3;\n"
@@ -2475,7 +2478,10 @@ sse_psse_8(char t[16][16], char *p, int pitch)
 		" paddsw	%%mm5,%%mm6;\n"
 		" pand		c255,%%mm3;\n"
 		" paddsw	%%mm3,%%mm6;\n"
-
+/*
+	movq, pminsw, pmaxsw, pcmpeqw
+	pxor, pand, pxor, pxor
+*/
 		" movq		%%mm1,%%mm5;\n"
 		" pcmpgtw	%%mm6,%%mm5;\n"
 		" movq		%%mm1,%%mm3;\n"
@@ -3151,6 +3157,7 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 	hrange = (range > 8) ? ((range + 15) & -16) >> 1 : 4; 
 	vrange >>= 2;
 
+	/* this can be de-branched and vectorized */
 	if (__builtin_expect(x0 < 0, 0)) {
 		x0 = 0;
 		x1 = hrange;
@@ -3175,14 +3182,7 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 	bbmin = MMXRW(0xFFFE - 0x8000);
 	bbdxy = MMXRW(0x0000);
 
-#if 0
-	{
-		extern void mmx_emu_setverbose(int);
-
-		mmx_emu_setverbose(0);
-	}
-#endif
-
+	/* note cpu_type is const */
 	switch (cpu_type) {
 	case CPU_PENTIUM_4:
 #if USE_SSE2
@@ -3404,6 +3404,7 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 			act = mmx_sad2h(tbuf, *pat1, idown, &act2);
 			break;
 		}
+		mini[1][1] = act;
 	}
 
 	switch (cpu_type) {
@@ -3429,6 +3430,11 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 			act = mini[j+1][i+1];
 
 			/* XXX inaccurate */
+			/* the idea here is to make interpolated blocks
+			 * a little more expensive, which look nice in
+			 * SAD but not human eyes.
+			 * XXX do act *= 16 + 3 etc and forget >> 4
+			 */
 			if (((dx + i) & (dy + j)) & 1)
 				act += (act * 3) >> 4;
 			else if (((dx + i) | (dy + j)) & 1)
@@ -3444,7 +3450,9 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 		}
 	}
 
+#if TEST11
 bail_out:
+#endif
 	if (ii == 0) {
 		ibuf = pat1;
 		if (jj != 0) {
@@ -3476,6 +3484,8 @@ _3dn_search(int *dhx, int *dhy, unsigned char *from,
 {
 	return tmp_search(dhx, dhy, from, x, y, range, dest, CPU_K6_2);
 }
+
+/* PIII and Athlon */
 
 unsigned int
 sse_search(int *dhx, int *dhy, unsigned char *from,

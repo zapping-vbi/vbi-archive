@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.9 2001-10-21 05:08:48 mschimek Exp $ */
+/* $Id: video.h,v 1.10 2001-11-22 17:51:07 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -199,6 +199,7 @@ typedef struct stacked_frame {
 	uint8_t *	org;
 	buffer *	buffer;
 	double		time;
+	int		skipped;
 } stacked_frame;
 
 typedef struct mpeg1_context mpeg1_context;
@@ -241,7 +242,9 @@ struct mpeg1_context {
 
 	struct rc	rc;
 
-	int		p_succ, p_dist;
+	int		p_succ;
+	int		skipped_fake;
+	int		skipped_zero;
 
 	uint8_t *	banner;
 

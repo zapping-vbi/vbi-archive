@@ -3,7 +3,7 @@
 title -> head
 abstract -> short text that describes the page (for themes that support it)
 -->
-<document title="Contact" abstract="Contacting with us">
+<document title="Contact" abstract="Contacting us">
 <header>The mailing list</header>
 Please direct here anything related to the program, you don't need to be
 subscribed to post. The address is <a

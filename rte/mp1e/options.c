@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.7 2001-11-05 08:25:44 mschimek Exp $ */
+/* $Id: options.c,v 1.8 2001-11-22 17:51:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -48,6 +48,7 @@ static const char *mux_syn_options[] = { "nirvana", "bypass", "mpeg1", "mpeg2-ps
 static const char *audio_options[] = { "stereo", "", "dual_channel", "mono" };
 static const char *mute_options[] = { "unmute", "mute", "ignore" };
 static const char *cpu_options[] = { "", "pmmx", "p2", "p3", "p4", "k6-2", "k7", "m2", "c3" };
+static const char *skip_options[] = { "compatible", "mux", "fake_picture" };
 
 void
 usage(FILE *fi)
@@ -119,7 +120,7 @@ usage(FILE *fi)
 	exit((fi == stderr) ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
-#define OPT_STR "2a:b:c:f:g:hi:lm:n:p:r:s:tvwx:A:C:B:F:G:H:I:M:PR:S:T:VX:"
+#define OPT_STR "2a:b:c:e:f:g:hi:lm:n:p:r:s:t:vwx:A:C:B:F:G:H:I:M:PR:S:T:VX:"
 
 static const struct option
 long_options[] = {
@@ -127,6 +128,7 @@ long_options[] = {
 	{ "audio_mode",			required_argument, NULL, 'a' },
 	{ "video_bit_rate",		required_argument, NULL, 'b' },
 	{ "capture_device",		required_argument, NULL, 'c' },
+	{ "skip_method",		required_argument, NULL, 'e' },
 	{ "frame_rate",			required_argument, NULL, 'f' },
 	{ "gop_sequence",		required_argument, NULL, 'g' },
 	{ "help",			no_argument,	   NULL, 'h' },
@@ -138,7 +140,7 @@ long_options[] = {
 	{ "pcm_device",			required_argument, NULL, 'p' },
 	{ "rec_source",			required_argument, NULL, 'r' },
 	{ "image_size",			required_argument, NULL, 's' },
-	{ "test",			no_argument,	   NULL, 't' },
+	{ "test",			required_argument, NULL, 't' },
 	{ "verbose",			optional_argument, NULL, 'v' },
 	{ "mono",			no_argument,	   NULL, 'w' },
 	{ "mixer_device",		required_argument, NULL, 'x' },
@@ -313,7 +315,7 @@ parse_option(int c)
 
 	switch (c) {
 		case '2':
-			hack2 = TRUE;
+			skip_method = 1; /* compatibility */
 			break;
 
 		case 'a':
@@ -350,6 +352,11 @@ parse_option(int c)
 
 		case 'c':
 			cap_dev = strdup(optarg);
+			break;
+
+		case 'e':
+			if ((skip_method = suboption(skip_options, 3, 0)) < 0)
+				return FALSE;
 			break;
 
 		case 'f':
@@ -416,7 +423,13 @@ parse_option(int c)
 			break;
 
 		case 't':
-			test_mode = TRUE;
+			/*
+			  1 - audio fft, filter and dct test
+			  2 - video
+			  8 - video frame dropping test (20%)
+			  16 - video effective bit rate
+			 */
+			test_mode = strtol(optarg, NULL, 0);
 			break;
 
 		case 'v':

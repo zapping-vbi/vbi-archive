@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.22 2001-11-05 08:25:44 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.23 2001-11-22 17:51:07 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -352,7 +352,7 @@ static int rte_fake_options(rte_context * context)
 	case RTE_YUYV_EXP:
 	case RTE_YUYV_EXP_VERTICAL_DECIMATION:
 	case RTE_YUYV_EXP2:
-#warning fixme
+// XXX
 		pitch = grab_width*2;
 		filter_mode =
 			(context->video_format-RTE_YUYV_VERTICAL_DECIMATION) + 
@@ -661,7 +661,7 @@ codec_set(rte_context *context, rte_stream_type stream_type,
 	return codec;
 }
 
-static rte_option *
+static rte_option_info *
 option_enum(rte_codec *codec, int index)
 {
 //	rte_context *context = codec->context;

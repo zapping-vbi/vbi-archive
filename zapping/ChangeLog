@@ -1,3 +1,11 @@
+20.11.2001	Fixes <mschimek@users.sf.net>
+
+	* libvbi/caption.c: Fixed CR display update.
+	* osd.c: Segv in gdk_draw_rgb_image_dithalign at gdkrgb.c:3057
+	  due to missing gdk_rgb_init; Didn't happen when opening prefs
+	  first, gdk_rgb_init was called as load image side effect.
+	  Copied gdk_rgb_init seq from shaped_caption.c to main.c, correct?
+
 18.11.2001	Completed fast-clicked <garetxe@users.sf.net>
 
 	* screenshot: gladeified clicked() dialog.
@@ -60,8 +68,7 @@
 	  by strncpy. Up and down button insensitive at end of list
 	  and after selecting all rows (not always??). The respective
 	  next row is moved back in sight on up or down. My spelling
-	  gland asked for a change of the freq table names, proper
-	  name uppercase most notably.
+	  gland asked for a change of the freq table names.
 
 4.11.2001	New properties dialog <garetxe@users.sf.net>
 

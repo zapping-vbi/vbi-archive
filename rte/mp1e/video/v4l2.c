@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.8 2001-10-16 11:18:18 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.9 2001-11-22 17:51:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -118,7 +118,9 @@ wait_full(fifo *f)
 	buffer *b;
 	int r = -1;
 
+#if 0
 drop:
+#endif
 	for (r = -1; r <= 0;) {
 		FD_ZERO(&fds);
 		FD_SET(fd, &fds);
@@ -229,9 +231,9 @@ v4l2_init(double *frame_rate)
 	cap_time = 0.0;
 
 	if (*frame_rate > 29.0 && grab_height == 288)
-		grab_height = 240; // XXX DAU
+		grab_height = 240;
 	if (*frame_rate > 29.0 && grab_height == 576)
-		grab_height = 480; // XXX DAU
+		grab_height = 480;
 
 	if (PROGRESSIVE(filter_mode)) {
 		FAIL("Sorry, progressive mode out of order\n");
@@ -239,8 +241,8 @@ v4l2_init(double *frame_rate)
 		min_cap_buffers++;
 	}
 
-	printv(2, "Video standard is '%s'\n", vstd.name);
-
+	printv(2, "Video standard is '%s' (%5.2f Hz)\n",
+		vstd.name, *frame_rate);
 
 	if (mute != 2) {
 		old_mute.id = V4L2_CID_AUDIO_MUTE;
@@ -277,7 +279,7 @@ v4l2_init(double *frame_rate)
 	aligned_width  = (grab_width + 15) & -16;
 
 	for (;;) {
-		int new_mode;
+		int new_mode, new_height;
 
 		probed_modes |= 1 << filter_mode;
 
@@ -306,11 +308,13 @@ v4l2_init(double *frame_rate)
 				break;
 		}
 
+		new_height = aligned_height;
+
 		if (filter_mode == CM_YUYV)
 			new_mode = CM_YUV;
 		else if (filter_mode == CM_YUYV_VERTICAL_DECIMATION) {
 			new_mode = CM_YUYV_VERTICAL_INTERPOLATION;
-			aligned_height = (grab_height + 15) & -16;
+			new_height = (grab_height + 15) & -16;
 		} else
 			new_mode = CM_YUYV;
 
@@ -325,6 +329,7 @@ v4l2_init(double *frame_rate)
 			filter_labels[new_mode]);
 
 		filter_mode = new_mode;
+		aligned_height = new_height;
 	}
 
 	mod = DECIMATING(filter_mode) ? 32 : 16;

@@ -405,6 +405,10 @@ int main(int argc, char * argv[])
   gnome_init_with_popt_table ("zapping", VERSION, argc, argv, options,
 			      0, NULL);
 
+  gdk_rgb_init();
+  gtk_widget_set_default_colormap (gdk_rgb_get_cmap());
+  gtk_widget_set_default_visual (gdk_rgb_get_visual());
+
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
   program_invocation_name = argv[0];
   program_invocation_short_name = g_get_prgname();
@@ -418,7 +422,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.146 2001-11-16 22:30:51 garetxe Exp $",
+	 "$Id: main.c,v 1.147 2001-11-22 17:48:12 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())

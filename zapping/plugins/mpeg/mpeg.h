@@ -16,7 +16,13 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.7 2001-11-12 22:38:39 garetxe Exp $ */
+/* $Id: mpeg.h,v 1.8 2001-11-22 17:48:11 mschimek Exp $ */
+
+#include <rte.h>
+
+#if RTE_MAJOR_VERSION != 0 || RTE_MINOR_VERSION < 4
+#  error rte version 0.4+ required, please install the latest version from zapping.sf.net and reconfigure.
+#endif
 
 #define ZCONF_DOMAIN "/zapping/plugins/mpeg"
 #define MPEG_CONFIG "default"

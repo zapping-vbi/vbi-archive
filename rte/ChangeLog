@@ -1,3 +1,8 @@
+2001-11-20	<mschimek@users.sf.net>
+
+	* Makefile.am, configure.in: Commented ffmpeg out
+	  to reduce file sizes, the code isn't used yet.
+
 2001-10-28	<garetxe@users.sf.net>
 
 	* rte.sym: List of exported symbols to satisfy nm voyeurs :-)

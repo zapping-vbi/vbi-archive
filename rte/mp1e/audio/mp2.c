@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.18 2001-11-05 08:25:44 mschimek Exp $ */
+/* $Id: mp2.c,v 1.19 2001-11-22 17:51:07 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -907,7 +907,7 @@ menu_psycho[] = {
 	/* 2 */ N_("Accurate"),
 };
 
-static rte_option
+static rte_option_info
 mpeg1_options[] = {
 	RTE_OPTION_INT_INITIALIZER
 	  ("bit_rate", N_("Bit rate"),
@@ -929,10 +929,10 @@ mpeg1_options[] = {
 	      "little more CPU load doesn't matter.")),
 };
 
-static rte_option
+static rte_option_info
 mpeg2_options[elements(mpeg1_options)];
 
-static rte_option *
+static rte_option_info *
 option_enum(rte_codec *codec, int index)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
@@ -1216,7 +1216,7 @@ static rte_codec *
 codec_new(int mpeg_version)
 {
 	mp2_context *mp2;
-	rte_option *option = NULL;
+	rte_option_info *option = NULL;
 	int i = 0;
 
 	if (!(mp2 = calloc_aligned(sizeof(*mp2), 8192)))
@@ -1317,6 +1317,3 @@ mp1e_mp2_module_init(int test)
 	mp1e_mp2_subband_filter_init(test);
 	mp1e_mp2_fft_init(test);
 }
-
-
-

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.10 2001-10-26 09:14:51 mschimek Exp $
+ * $Id: rte_test_main.c,v 1.11 2001-11-22 17:51:07 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -515,7 +515,7 @@ int main(int argc, char *argv[])
 
 		rte_codec_info *info;
 		rte_codec *codec;
-		rte_option *option;
+		rte_option_info *option;
 
 		/* TODO, printed just for the effect :-) */
 		fprintf(stderr, "mp1e: MPEG-1 Program Stream\n");
@@ -531,7 +531,7 @@ int main(int argc, char *argv[])
 					      "mpeg1-audio-layer2");
 
 			fprintf(stderr, "Audio options:\n");
-			for (i = 0; (option = rte_option_enum(codec, i)); i++)
+			for (i = 0; (option = rte_option_info_enum(codec, i)); i++)
 				fprintf(stderr, "%2d %s\n", i, option->label);
 		}
 
