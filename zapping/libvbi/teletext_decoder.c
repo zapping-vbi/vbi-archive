@@ -17,9 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.1 2004-11-03 06:49:31 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.2 2004-11-03 17:06:49 mschimek Exp $ */
 
-#include "../site_def.h"
+#include "site_def.h"
 
 #include <stdlib.h>		/* malloc() */
 #include <assert.h>

@@ -1,3 +1,7 @@
+2004-11-03    <mschimek@users.sf.net>
+
+	* plugins/teletext/view.c (class_init): live_clock key name fixed.
+
 2004-11-02    <mschimek@users.sf.net>
 
 	* zapping.desktop.in: Added Terminal, StartupNotify, Categories
