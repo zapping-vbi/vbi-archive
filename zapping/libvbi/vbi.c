@@ -99,16 +99,18 @@ vbi_event_handler(struct vbi *vbi, int event_mask,
 #define SLICED_CAPTION		(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625 \
 				 | SLICED_CAPTION_525_F1 | SLICED_CAPTION_525)
 
+#define FIFO_DEPTH 30
+
 void *
 vbi_mainloop(void *p)
 {
 	struct vbi *vbi = p;
+	double time = 0.0;
 	vbi_sliced *s;
-	buffer *b;
 	int items;
 
 	while (!vbi->quit) {
-		b = wait_full_buffer(vbi->fifo);
+		buffer *b = wait_full_buffer(vbi->fifo);
 
 		if (!b) {
 			vbi_event ev;
@@ -119,7 +121,15 @@ vbi_mainloop(void *p)
 			break;
 		}
 
-		/* call out_of_sync if timestamp delta > 1.5 * frame period */
+		if (time > 0 && (b->time - time) > 0.055) {
+fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n", b->time, b->time - time);
+			if (vbi->event_mask & (VBI_EVENT_PAGE | VBI_EVENT_HEADER | VBI_EVENT_NETWORK))
+				vbi_teletext_desync(vbi);
+			if (vbi->event_mask & (VBI_EVENT_CAPTION | VBI_EVENT_NETWORK))
+				vbi_caption_desync(vbi);
+		}
+
+		time = b->time;
 
 		s = (vbi_sliced *) b->data;
 		items = b->used / sizeof(vbi_sliced);
@@ -291,9 +301,6 @@ struct vbi *
 vbi_open(char *vbi_name, struct cache *ca, int given_fd)
 {
     struct vbi *vbi;
-    extern void open_vbi(void);
-    
-    
 
     if (!(vbi = calloc(1, sizeof(*vbi))))
     {
@@ -301,7 +308,7 @@ vbi_open(char *vbi_name, struct cache *ca, int given_fd)
 	goto fail1;
     }
 
-    vbi->fifo = open_vbi_v4lx(vbi_name, given_fd);
+    vbi->fifo = vbi_open_v4lx(vbi_name, given_fd, 1, FIFO_DEPTH);
 
     if (!vbi->fifo)
     {
@@ -322,10 +329,7 @@ vbi_open(char *vbi_name, struct cache *ca, int given_fd)
 
 	vbi->vt.max_level = VBI_LEVEL_2p5;
 
-    out_of_sync(vbi);
-
-
-    return vbi;
+	return vbi;
 
 fail2:
     free(vbi);
@@ -342,7 +346,7 @@ vbi_close(struct vbi *vbi)
 
 	remove_filter(vbi);
 
-    close_vbi_v4lx(vbi->fifo);
+    vbi_close_v4lx(vbi->fifo);
 
     free(vbi);
 }

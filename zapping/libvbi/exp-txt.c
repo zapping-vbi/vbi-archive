@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.13 2001-03-22 08:28:47 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.14 2001-03-24 10:44:57 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -397,10 +397,6 @@ string_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 	for (y = d->row1; y <= d->row2; y++) {
 		int x0, x1;
 
-		/* XXX */
-		if (pg->double_height_lower & (1<<y))
-			continue;
-
 		x0 = (d->table || y == d->row1) ? d->col1 : 0;
 		x1 = (d->table || y == d->row2) ? d->col2 : pg->columns;
 
@@ -410,15 +406,20 @@ string_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 		for (x = x0; x <= x1; ++x) {
 			attr_char ac = pg->text[y * pg->columns + x];
 
-			if (ac.size > DOUBLE_SIZE) {
-				ac.glyph = 0x20;
-				ac.size = NORMAL;
-			} else {
-				ac.glyph = glyph2latin(ac.glyph);
-
-				if (ac.glyph == 0xA0)
+			if (d->table) {
+				if (ac.size > DOUBLE_SIZE)
 					ac.glyph = 0x20;
-			}
+			} else if (ac.size == OVER_TOP || ac.size == OVER_BOTTOM)
+				continue; /* double-width/size right */
+			else if (ac.size >= DOUBLE_HEIGHT2)
+				/* double-height/size lower */
+				if (y > d->row1)
+					ac.glyph = 0x20;
+
+			ac.glyph = glyph2latin(ac.glyph);
+
+			if (ac.glyph == 0xA0)
+				ac.glyph = 0x20;
 
 			if (d->table)
 				fputc(ac.glyph, d->fp);
@@ -435,7 +436,7 @@ string_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 			}
 		}
 
-		/* if (!d->table) discard trailing spaces */
+		/* if (!d->table) discard trailing spaces and blank lines */
 
 		if (y < d->row2)
 			fputc(d->table ? '\n' : ' ', d->fp);

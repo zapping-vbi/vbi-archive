@@ -2065,119 +2065,97 @@ static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
 			     GdkRegion *exposed, ttxview_data * data)
 {
   gint w, h;
+  gint h1, h2, h3, h4;
   GdkRectangle rect;
   GdkRegion *src_region, *dst_region;
   GdkRegion *clip_region;
 
-fprintf(stderr, "from %d,%d-%d,%d to %d,%d-%d,%d >>",
-	sx1,sy1,sx2,sy2,
-	dx1,dy1,dx2,dy2);
+  gdk_window_get_size(data->da->window, &w, &h);
+  gdk_gc_set_clip_origin(data->xor_gc, 0, 0);
+
+  data->sel_table = dtable;
 
   if (sy1 > sy2)
     {
       SWAP(sx1, sx2);
       SWAP(sy1, sy2);
     }
-  if (stable || sy1 == sy2)
-    if (sx1 > sx2)
-      SWAP(sx1, sx2);
+
+  h1 = hidden_row(sy1);
+  h2 = hidden_row(sy1 + 1);
+  h3 = hidden_row(sy2);
+  h4 = hidden_row(sy2 + 1);
+
+  if (stable || sy1 == sy2 || ((sy2 - sy1) == 1 && h3))
+    {
+      if (sx1 > sx2)
+        SWAP(sx1, sx2);
+
+      scale_rect(&rect, sx1, sy1 - h1, sx2, sy2 + h4, w, h);
+      src_region = region_from_rect(&rect);
+    }
+  else
+    {
+      scale_rect(&rect, sx1, sy1 - h1, 39, sy1 + h2, w, h);
+      src_region = region_from_rect(&rect);
+      scale_rect(&rect, 0, sy2 - h3, sx2, sy2 + h4, w, h);
+      region_union_with_rect(&src_region, &rect);
+
+      sy1 += h2 + 1;
+      sy2 -= h3 + 1;
+
+      if (sy2 >= sy1)
+        {
+          scale_rect(&rect, 0, sy1, 39, sy2, w, h);
+	  region_union_with_rect(&src_region, &rect);
+	}
+    }
 
   if (dy1 > dy2)
     {
       SWAP(dx1, dx2);
       SWAP(dy1, dy2);
     }
-  if (dtable || dy1 == dy2)
-    if (dx1 > dx2)
-      SWAP(dx1, dx2);
 
-fprintf(stderr, "from %d,%d-%d,%d to %d,%d-%d,%d\n",
-	sx1,sy1,sx2,sy2,
-	dx1,dy1,dx2,dy2);
+  h1 = hidden_row(dy1);
+  h2 = hidden_row(dy1 + 1);
+  h3 = hidden_row(dy2);
+  h4 = hidden_row(dy2 + 1);
 
-  gdk_window_get_size(data->da->window, &w, &h);
-  gdk_gc_set_clip_origin(data->xor_gc, 0, 0);
-
-  if (stable || sy1 == sy2)
+  if (dtable || dy1 == dy2 || ((dy2 - dy1) == 1 && h3))
     {
-      sy1 -= hidden_row(sy1);
-      sy2 += hidden_row(sy2 + 1);
-
-      scale_rect(&rect, sx1, sy1, sx2, sy2, w, h);
-      src_region = region_from_rect(&rect);
-    }
-  else
-    {
-      gint h1, h2;
-
-      h1 = hidden_row(sy1);
-      h2 = hidden_row(sy2 + 1);
-
-      scale_rect(&rect, sx1, sy1 - h1, 39, sy1, w, h);
-      src_region = region_from_rect(&rect);
-      scale_rect(&rect, 0, sy2, sx2, sy2 + h2, w, h);
-      region_union_with_rect(&src_region, &rect);
-
-      if ((sy2 - sy1) > 1)
-        {
-          sy1 -= hidden_row(sy1 + 1);
-          sy2 += hidden_row(sy2);
-
-          scale_rect(&rect, 0, sy1 + 1, 39, sy2 - 1, w, h);
-	  region_union_with_rect(&src_region, &rect);
-	}
-    }
-
-  data->sel_table = dtable;
-
-  if (dtable || dy1 == dy2)
-    {
-      dy1 -= hidden_row(dy1);
-      dy2 += hidden_row(dy2 + 1);
+      if (dx1 > dx2)
+        SWAP(dx1, dx2);
 
       data->trn_col1 = dx1;
-      data->trn_row1 = dy1;
+      data->trn_row1 = dy1 -= h1;
       data->trn_col2 = dx2;
-      data->trn_row2 = dy2;
+      data->trn_row2 = dy2 += h4;
 
       scale_rect(&rect, dx1, dy1, dx2, dy2, w, h);
       dst_region = region_from_rect(&rect);
     }
   else
     {
-      gint h1, h2;
-
-      h1 = hidden_row(dy1);
-      h2 = hidden_row(dy2 + 1);
-
-      data->trn_col1 = dx1;
-      data->trn_row1 = dy1 - h1;
-      data->trn_col2 = dx2;
-      data->trn_row2 = dy2 + h2;
-
-      scale_rect(&rect, dx1, dy1 - h1, 39, dy1, w, h);
+      scale_rect(&rect, dx1, dy1 - h1, 39, dy1 + h2, w, h);
       dst_region = region_from_rect(&rect);
-      scale_rect(&rect, 0, dy2, dx2, dy2 + h2, w, h);
+      scale_rect(&rect, 0, dy2 - h3, dx2, dy2 + h4, w, h);
       region_union_with_rect(&dst_region, &rect);
 
-      if ((dy2 - dy1) > 1)
+      data->trn_col1 = dx1;
+      data->trn_row1 = dy1 + h2;
+      data->trn_col2 = dx2;
+      data->trn_row2 = dy2 - h3;
+
+      dy1 += h2 + 1;
+      dy2 -= h3 + 1;
+
+      if (dy2 >= dy1)
         {
-          h1 = 1 - hidden_row(dy1 + 1);
-          h2 = 1 - hidden_row(dy2);
-
-	  if (h1 == 0) data->trn_col1 = 0;
-	  if (h2 == 0) data->trn_col2 = 39;
-
-          scale_rect(&rect, 0, dy1 + h1, 39, dy2 - h2, w, h);
+          scale_rect(&rect, 0, dy1, 39, dy2, w, h);
 	  region_union_with_rect(&dst_region, &rect);
 	}
     }
-
-fprintf(stderr, "SEL: %d,%d - %d,%d\n",
-data->trn_col1,
-data->trn_row1,
-data->trn_col2,
-data->trn_row2);
 
   if (exposed)
     {

@@ -17,16 +17,6 @@
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 static bool convert_drcs(struct vt_page *vtp, unsigned char *raw);
 
-void
-out_of_sync(struct vbi *vbi)
-{
-    int i;
-
-    // discard all in progress pages
-
-	for (i = 0; i < 8; i++)
-		vbi->vt.raw_page[i].page->function = PAGE_FUNCTION_DISCARD;
-}
 
 // send an event to all clients
 
@@ -1213,6 +1203,15 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 	return TRUE;
 }
 
+void
+vbi_teletext_desync(struct vbi *vbi)
+{
+	int i;
+
+	/* Discard all in progress pages */
+	for (i = 0; i < 8; i++)
+		vbi->vt.raw_page[i].page->function = PAGE_FUNCTION_DISCARD;
+}
 
 #define TTX_EVENTS (VBI_EVENT_PAGE | VBI_EVENT_HEADER)
 #define BSD_EVENTS (VBI_EVENT_NETWORK)
@@ -1252,7 +1251,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 		struct vt_page *vtp;
 
 		if ((page = hamm16a(p)) < 0) {
-			out_of_sync(vbi);
+			vbi_teletext_desync(vbi);
 //			printf("Hamming error in packet 0 page number\n");
 			return FALSE;
 		}
@@ -1956,4 +1955,7 @@ vbi_init_teletext(struct teletext *vt)
 
 		memcpy(ext->colour_map, default_colour_map, sizeof(ext->colour_map));
 	}
+
+	for (i = 0; i < 8; i++)
+		vt->raw_page[i].page->function = PAGE_FUNCTION_DISCARD;
 }

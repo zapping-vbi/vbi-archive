@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.10 2001-03-20 22:19:50 garetxe Exp $ */
+/* $Id: v4lx.c,v 1.11 2001-03-24 10:44:57 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,12 +56,16 @@
 
 typedef struct {
 	fifo			fifo;			/* world interface */
+	pthread_t		thread_id;
+
 	struct vbi_decoder	dec;			/* raw vbi decoder context */
 
 	int			fd;
 	int			btype;			/* v4l2 stream type */
 	int			num_raw_buffers;
 	bool			streaming;
+	bool			buffered;
+	double			time_per_frame;
 
 	struct {
 		unsigned char *		data;
@@ -82,8 +86,7 @@ wait_full_read(fifo *f)
 	buffer *b;
 	size_t r;
 
-	if (!(b = (buffer *) rem_head(&f->empty)))
-		return NULL;	
+	b = wait_empty_buffer(f);
 
 	for (;;) {
 		// XXX use select if possible to set read timeout
@@ -113,7 +116,91 @@ wait_full_read(fifo *f)
 	b->used = sizeof(vbi_sliced) *
 		vbi_decoder(&vbi->dec, vbi->raw_buffer[0].data,
 			    (vbi_sliced *) b->data);
+
 	return b;
+}
+
+static void *
+read_thread(void *p)
+{
+	fifo *f = (fifo *) p;
+	vbi_device *vbi = PARENT(f, vbi_device, fifo);
+	double last_time, stacked_time, glitch_time;
+	struct timeval tv;
+	list stack;
+	int stacked;
+	buffer *b;
+	size_t r;
+
+	init_list(&stack);
+	glitch_time = vbi->time_per_frame * 1.25;
+	stacked_time = 0.0;
+	last_time = 0.0;
+	stacked = 0;
+
+	for (;;) {
+		b = wait_empty_buffer(f);
+
+		for (;;) {
+			// XXX use select if possible to set read timeout
+
+			r = read(vbi->fd, vbi->raw_buffer[0].data,
+				 vbi->raw_buffer[0].size);
+
+			if (r == vbi->raw_buffer[0].size)
+				break;
+
+			if (r == -1
+			    && (errno == EINTR || errno == ETIME))
+				continue;
+
+			IODIAG("VBI read error");
+
+			for (; stacked > 0; stacked--)
+				send_full_buffer(f, (buffer *) rem_head(&stack));
+
+			assert(!"read error in v4lx read thread"); /* XXX */
+		}
+
+		gettimeofday(&tv, NULL);
+
+		b->data = b->allocated;
+		b->time = tv.tv_sec + tv.tv_usec / 1e6;
+
+		b->used = sizeof(vbi_sliced) *
+			vbi_decoder(&vbi->dec, vbi->raw_buffer[0].data,
+				    (vbi_sliced *) b->data);
+		/*
+		 *  This curious construct compensates temporary shifts
+		 *  caused by an unusual delay between read() and
+		 *  the execution of gettimeofday(). A complete loss
+		 *  remains lost.
+		 */
+		if (last_time > 0 &&
+		    (b->time - (last_time + stacked_time)) > glitch_time) {
+			if (stacked >= (f->num_buffers >> 2)) {
+				/* Not enough space &| hopeless desynced */
+				for (stacked_time = 0.0; stacked > 0; stacked--)
+					send_full_buffer(f, (buffer *) rem_head(&stack));
+			} else {
+				add_tail(&stack, &b->node);
+				stacked_time += vbi->time_per_frame;
+				stacked++;
+				continue;
+			}
+		} else /* (back) on track */ 
+			for (stacked_time = 0.0; stacked > 0; stacked--) {
+				buffer *b = (buffer *) rem_head(&stack);
+
+				b->time = last_time += vbi->time_per_frame; 
+				send_full_buffer(f, b);
+			}
+
+		last_time = b->time;
+		send_full_buffer(f, b);
+	}
+
+	return NULL;
 }
 
 static void
@@ -125,7 +212,12 @@ send_empty_read(fifo *f, buffer *b)
 static bool
 start_read(fifo *f)
 {
+	vbi_device *vbi = PARENT(f, vbi_device, fifo);
 	buffer *b;
+
+	if (vbi->buffered)
+		return pthread_create(&vbi->thread_id, NULL,
+			read_thread, f) == 0;
 
 	if ((b = wait_full_read(f))) {
 		unget_full_buffer(f, b);
@@ -291,7 +383,8 @@ guess_bttv_v4l(vbi_device *vbi, int *strict, int given_fd)
 
 static int
 open_v4l(vbi_device **pvbi, char *dev_name,
-	 int fifo_depth, unsigned int services, int strict, int given_fd)
+	 int fifo_depth, unsigned int services,
+	 int strict, int given_fd, int buffered)
 {
 #if HAVE_V4L_VBI_FORMAT
 	struct vbi_format vfmt;
@@ -413,6 +506,7 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 		vbi->dec.count[1] 		= vfmt.count[1];
 		vbi->dec.interlaced		= !!(vfmt.flags & VBI_INTERLACED);
 		vbi->dec.synchronous		= !(vfmt.flags & VBI_UNSYNC);
+		vbi->time_per_frame 		= (vbi->dec.scanning == 625) ? 1.0 / 25 : 1001.0 / 30000;
 
 	} else /* VIDIOCGVBIFMT failed */
 
@@ -459,6 +553,7 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 		vbi->dec.samples_per_line 	= 2048;
 		vbi->dec.interlaced		= FALSE;
 		vbi->dec.synchronous		= TRUE;
+		vbi->time_per_frame 		= (vbi->dec.scanning == 625) ? 1.0 / 25 : 1001.0 / 30000;
 
 		if ((size = ioctl(vbi->fd, BTTV_VBISIZE, 0)) == -1) {
 			// BSD or older bttv driver.
@@ -489,10 +584,13 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 			goto failure;
 		}
 
-		if (vbi->dec.start[1] >= 286)
+		if (vbi->dec.start[1] >= 286) {
 			vbi->dec.scanning = 625;
-		else
+			vbi->time_per_frame = 1.0 / 25;
+		} else {
 			vbi->dec.scanning = 525;
+			vbi->time_per_frame = 1001.0 / 30000;
+		}
 	}
 
 	/* Nyquist */
@@ -513,10 +611,18 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 	buffer_size = (vbi->dec.count[0] + vbi->dec.count[1])
 		      * vbi->dec.samples_per_line;
 
-	if (!init_callback_fifo(&vbi->fifo, "vbi-v4l",
-	    wait_full_read, send_empty_read, NULL, NULL, fifo_depth,
-	    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
-		goto failure;
+	if ((vbi->buffered = buffered)) {
+		if (!init_buffered_fifo(&vbi->fifo, "vbi-v4l",
+		    NULL, fifo_depth,
+		    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
+			goto failure;
+		}
+	} else {
+		if (!init_callback_fifo(&vbi->fifo, "vbi-v4l",
+		    wait_full_read, send_empty_read, NULL, NULL, fifo_depth,
+		    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
+			goto failure;
+		}
 	}
 
 	if (!(vbi->raw_buffer[0].data = malloc(buffer_size))) {
@@ -561,52 +667,66 @@ wait_full_stream(fifo *f)
 	buffer *b;
 	int r = -1;
 
-	//	b = (buffer *) rem_head(&f->empty);
-	b = wait_empty_buffer(f);
+	for (;;) {
+		b = wait_empty_buffer(f);
 
-	while (r <= 0) {
-		FD_ZERO(&fds);
-		FD_SET(vbi->fd, &fds);
+		while (r <= 0) {
+			FD_ZERO(&fds);
+			FD_SET(vbi->fd, &fds);
 
-		tv.tv_sec = 2;
-		tv.tv_usec = 0;
+			tv.tv_sec = 2;
+			tv.tv_usec = 0;
 
-		r = select(vbi->fd + 1, &fds, NULL, NULL, &tv);
+			r = select(vbi->fd + 1, &fds, NULL, NULL, &tv);
 
-		if (r < 0 && errno == EINTR)
-			continue;
+			if (r < 0 && errno == EINTR)
+				continue;
 
-		if (r == 0) { /* timeout */
-			DIAG("VBI capture stalled, no station tuned in?");
-			return NULL;
-		} else if (r < 0) {
-			IODIAG("Unknown VBI select failure");
+			if (r == 0) { /* timeout */
+				DIAG("VBI capture stalled, no station tuned in?");
+				if (vbi->buffered)
+					continue; /* XXX */
+				return NULL;
+			} else if (r < 0) {
+				IODIAG("Unknown VBI select failure");
+				if (vbi->buffered)
+					assert(0); /* XXX */
+				return NULL;
+			}
+		}
+
+		vbuf.type = vbi->btype;
+
+		if (ioctl(vbi->fd, VIDIOC_DQBUF, &vbuf) == -1) {
+			IODIAG("Cannot dequeue streaming I/O VBI buffer "
+				"(broken driver or application?)");
+			if (vbi->buffered)
+				assert(0); /* XXX */
 			return NULL;
 		}
+
+		b->data = b->allocated;
+		b->time = vbuf.timestamp / 1e9;
+
+		b->used = sizeof(vbi_sliced) *
+			vbi_decoder(&vbi->dec, vbi->raw_buffer[vbuf.index].data,
+				    (vbi_sliced *) b->data);
+
+		if (ioctl(vbi->fd, VIDIOC_QBUF, &vbuf) == -1) {
+			unget_full_buffer(f, b);
+			IODIAG("Cannot enqueue streaming I/O VBI buffer (broken driver?)");
+			if (vbi->buffered)
+				assert(0); /* XXX */
+			return NULL;
+		}
+
+		if (vbi->buffered)
+			send_full_buffer(f, b);
+		else
+			return b;
 	}
 
-	vbuf.type = vbi->btype;
-
-	if (ioctl(vbi->fd, VIDIOC_DQBUF, &vbuf) == -1) {
-		IODIAG("Cannot dequeue streaming I/O VBI buffer "
-			"(broken driver or application?)");
-		return NULL;
-	}
-
-	b->data = b->allocated;
-	b->time = vbuf.timestamp / 1e9;
-
-	b->used = sizeof(vbi_sliced) *
-		vbi_decoder(&vbi->dec, vbi->raw_buffer[vbuf.index].data,
-			    (vbi_sliced *) b->data);
-
-	if (ioctl(vbi->fd, VIDIOC_QBUF, &vbuf) == -1) {
-		unget_full_buffer(f, b);
-		IODIAG("Cannot enqueue streaming I/O VBI buffer (broken driver?)");
-		return NULL;
-	}
-
-	return b;
+	return NULL;
 }
 
 static void
@@ -626,6 +746,10 @@ start_stream(fifo *f)
 		return FALSE;
 	}
 
+	if (vbi->buffered)
+		return pthread_create(&vbi->thread_id, NULL,
+			(void *(*)(void *)) wait_full_stream, f) == 0;
+
 	/* Subsequent I/O shouldn't fail, let's try anyway */
 
 	if ((b = wait_full_stream(f))) {
@@ -640,7 +764,7 @@ start_stream(fifo *f)
 
 static int
 open_v4l2(vbi_device **pvbi, char *dev_name,
-	int fifo_depth, unsigned int services, int strict)
+	int fifo_depth, unsigned int services, int strict, int buffered)
 {
 	struct v4l2_capability vcap;
 	struct v4l2_format vfmt;
@@ -760,6 +884,7 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 	vbi->dec.count[1] 		= vfmt.fmt.vbi.count[1];
 	vbi->dec.interlaced		= !!(vfmt.fmt.vbi.flags & V4L2_VBI_INTERLACED);
 	vbi->dec.synchronous		= !(vfmt.fmt.vbi.flags & V4L2_VBI_UNSYNC);
+	vbi->time_per_frame 		= (vbi->dec.scanning == 625) ? 1.0 / 25 : 1001.0 / 30000;
 
 	if (vfmt.fmt.vbi.sample_format != V4L2_VBI_SF_UBYTE) {
 		DIAG("unknown VBI sampling format %d, "
@@ -787,10 +912,18 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 	    && vcap.flags & V4L2_FLAG_SELECT) {
 		vbi->streaming = TRUE;
 
-		if (!init_callback_fifo(&vbi->fifo, "vbi-v4l2-stream",
-			wait_full_stream, send_empty_stream, NULL, NULL, fifo_depth,
-		    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
-			goto failure;
+		if ((vbi->buffered = buffered)) {
+			if (!init_buffered_fifo(&vbi->fifo, "vbi-v4l2-stream",
+			    NULL, fifo_depth,
+			    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
+				goto failure;
+			}
+		} else {
+			if (!init_callback_fifo(&vbi->fifo, "vbi-v4l2-stream",
+			    wait_full_stream, send_empty_stream, NULL, NULL, fifo_depth,
+			    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
+				goto failure;
+			}
 		}
 
 		vbi->fifo.start = start_stream;
@@ -863,10 +996,18 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 		int buffer_size = (vbi->dec.count[0] + vbi->dec.count[1])
 				  * vbi->dec.samples_per_line;
 
-		if (!init_callback_fifo(&vbi->fifo, "vbi-v4l2-read",
-		    wait_full_read, send_empty_read, NULL, NULL, fifo_depth,
-		    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
-			goto failure;
+		if ((vbi->buffered = buffered)) {
+			if (!init_buffered_fifo(&vbi->fifo, "vbi-v4l2-read",
+			    NULL, fifo_depth,
+			    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
+				goto failure;
+			}
+		} else {
+			if (!init_callback_fifo(&vbi->fifo, "vbi-v4l2-read",
+			    wait_full_read, send_empty_read, NULL, NULL, fifo_depth,
+			    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
+				goto failure;
+			}
 		}
 
 		if (!(vbi->raw_buffer[0].data = malloc(buffer_size))) {
@@ -906,19 +1047,12 @@ failure:
 
 static int
 open_v4l2(vbi_device **pvbi, char *dev_name,
-	int fifo_depth, unsigned int services, int strict)
+	int fifo_depth, unsigned int services, int strict, int buffered)
 {
 	return -1;
 }
 
 #endif /* !HAVE_V4L2 */
-
-
-/*
-    Will add an optional decoding thread here,
-    sending out buffers using a multi-consumer fifo
- */
-
 
 #define SLICED_TELETEXT_B	(SLICED_TELETEXT_B_L10_625 | SLICED_TELETEXT_B_L25_625)
 #define SLICED_CAPTION		(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625 \
@@ -930,9 +1064,13 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
  */
 
 void
-close_vbi_v4lx(fifo *f)
+vbi_close_v4lx(fifo *f)
 {
 	vbi_device *vbi = PARENT(f, vbi_device, fifo);
+
+	if (vbi->buffered)
+		if (pthread_cancel(vbi->thread_id) == 0)
+			pthread_join(vbi->thread_id, NULL);
 
 	if (vbi->streaming)
 		for (; vbi->num_raw_buffers > 0; vbi->num_raw_buffers--)
@@ -950,30 +1088,31 @@ close_vbi_v4lx(fifo *f)
 }
 
 fifo *
-open_vbi_v4lx(char *dev_name, int given_fd)
+vbi_open_v4lx(char *dev_name, int given_fd, int buffered, int fifo_depth)
 {
 	vbi_device *vbi=NULL;
 	int r;
 
-	if (!(r = open_v4l2(&vbi, dev_name, 1,
-	    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION, -1)))
+	if (!(r = open_v4l2(&vbi, dev_name, buffered ? fifo_depth : 1,
+	    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION, -1, buffered)))
 		goto failure;
 
 	if (r < 0)
-		if (!(r = open_v4l(&vbi, dev_name, 1,
+		if (!(r = open_v4l(&vbi, dev_name, buffered ? fifo_depth : 1,
 		    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION,
-				   -1, given_fd)))
+		    -1, given_fd, buffered)))
 			goto failure;
 	if (r < 0)
 		goto failure;
 
-	if (!start_fifo(&vbi->fifo)) /* XXX consider moving this into the decoder thread */
+	if (!start_fifo(&vbi->fifo)) /* XXX consider moving this into vbi_mainloop */
 		goto failure;
+
 	return &vbi->fifo;
 
 failure:
 	if (vbi)
-		close_vbi_v4lx(&vbi->fifo);
+		vbi_close_v4lx(&vbi->fifo);
 
 	return NULL;
 }

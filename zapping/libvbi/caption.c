@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.21 2001-03-22 08:28:47 mschimek Exp $ */
+/* $Id: caption.c,v 1.22 2001-03-24 10:44:57 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1194,6 +1194,12 @@ caption_command(struct caption *cc,
 			ch->line[ch->col - 1] = c;
 		}
 	}
+}
+
+void
+vbi_caption_desync(struct vbi *vbi)
+{
+	/* XXX TODO */
 }
 
 void

@@ -297,6 +297,7 @@ struct vbi; /* parent of struct teletext */
 
 extern void		vbi_init_teletext(struct teletext *vt);
 extern bool		vbi_teletext_packet(struct vbi *vbi, unsigned char *p);
+extern void		vbi_teletext_desync(struct vbi *vbi);
 extern struct vt_page *	vbi_convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_function new_function);
 
 extern void		vbi_vps(struct vbi *vbi, unsigned char *p);
@@ -304,8 +305,5 @@ extern void		vbi_vps(struct vbi *vbi, unsigned char *p);
 /* teletext.c */
 
 extern int		vbi_format_page(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp, int display_rows, int navigation);
-
-// XXX
-extern void out_of_sync(struct vbi *vbi);
 
 #endif
