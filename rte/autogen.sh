@@ -3,6 +3,11 @@
 NORECURSIVE=true
 NOCONFIGURE=true
 
+REQUIRED_AUTOCONF_VERSION=2.53
+REQUIRED_AUTOMAKE_VERSION=1.6
+REQUIRED_LIBTOOL_VERSION=1.4
+REQUIRED_GETTEXT_VERSION=0.11
+
 aclf="$ACLOCAL_FLAGS"
 
 topdir=`pwd`
@@ -44,4 +49,5 @@ diff -d --old-line-format='@BACKEND_MP1E_FALSE@%l
 ' $file.mp1e $file.rte >$file; rm $file.mp1e $file.rte; done)
 
 # Um?
+test -f mp1e/ltmain.sh && rm mp1e/ltmain.sh
 cp ltmain.sh mp1e/
