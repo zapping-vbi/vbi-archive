@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.6 2000-10-17 06:18:05 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.7 2000-11-11 02:32:21 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,8 +28,7 @@
 #include <assert.h>
 #include "../video/mpeg.h"
 #include "../video/video.h"
-#include "../audio/mpeg.h"
-#include "../audio/audio.h"
+#include "../audio/libaudio.h"
 #include "../common/log.h"
 #include "../common/fifo.h"
 #include "../common/math.h"

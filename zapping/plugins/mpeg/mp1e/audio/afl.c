@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: afl.c,v 1.2 2000-11-04 00:22:58 garetxe Exp $ */
+/* $Id: afl.c,v 1.3 2000-11-11 02:32:21 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,9 +36,7 @@
 
 #include <audiofile.h>
 
-#include "mpeg.h"
 #include "audio.h"
-#include "../common/mmx.h"
 #include "../common/math.h"
 
 #define BUFFER_SIZE 8192 // bytes

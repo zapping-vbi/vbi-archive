@@ -1,6 +1,6 @@
 /*
  *  MPEG Real Time Encoder
- *  MPEG-1/2 Audio Layer II Tables
+ *  MPEG-1 Audio Layer II Tables
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
  *
@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.c,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: tables.c,v 1.2 2000-11-11 02:32:21 mschimek Exp $ */
 
 #include "mpeg.h"
 
@@ -42,8 +42,8 @@ bit_rate_value[MPEG_VERSIONS][16] =
 };
 
 /*
- * Some subbands have the same properties, this information is stored here
- * to keep the tables small
+ *  Some subbands have the same properties, this information is stored here
+ *  to keep the tables small
  */
 const unsigned char
 subband_group[TABLES][SBLIMIT] =
@@ -56,7 +56,7 @@ subband_group[TABLES][SBLIMIT] =
 };
 
 /*
- * Bit allocation index 0..15 to bits per sample encoded
+ *  Bit allocation index 0..15 to bits per sample encoded
  */
 const unsigned char
 bits_table[NUM_SG][MAX_BA_INDICES] =
@@ -71,13 +71,15 @@ bits_table[NUM_SG][MAX_BA_INDICES] =
 	{ 0, 5, 7, 10 }
 };
 
-// 1 << n indicates packed encoding for subband n (first 5, 7, 10 in bits_table)
-
+/*
+ *  1 << n indicates packed encoding for subband n (first 5, 7, 10 in bits_table)
+ */
 const unsigned char
 pack_table[NUM_SG] = { 0x02, 0x16, 0x16, 0x06, 0x0E, 0x0E, 0x16, 0x0E };
 
-// Quantization step size
-
+/*
+ *  Quantization step size
+ */
 const unsigned int
 steps_table[NUM_SG][MAX_BA_INDICES] =
 {
@@ -105,8 +107,8 @@ quant_table[NUM_SG][MAX_BA_INDICES] =
 };
 
 /*
- * ISO/IEC 11172-3 Table 3-C.5 Layer II Signal-To-Noise Ratios
- * Steps 0, 3, 5, 7, 9, 15, 31, 63, ...
+ *  ISO/IEC 11172-3 Table 3-C.5 Layer II Signal-To-Noise Ratios
+ *  Steps 0, 3, 5, 7, 9, 15, 31, 63, ...
  */
 const float
 SNR[18] =
@@ -116,7 +118,7 @@ SNR[18] =
 };
 
 /*
- * ISO/IEC 11172-3 Table 3-C.1 Coefficients of the Analysis Window.
+ *  ISO/IEC 11172-3 Table 3-C.1 Coefficients of the Analysis Window.
  */
 const double
 C[512] =
@@ -255,8 +257,8 @@ const struct absthr_rec
 absthr[6][134] =
 {
     /*
-     * From ISO/IEC 11172-3 Table 3-D.1d.:  Frequencies, Critical Band Rates and Absolute Threshold
-     * Table is valid for Layer II at a sampling rate of 32 kHz
+     *  From ISO/IEC 11172-3 Table 3-D.1d.:  Frequencies, Critical Band Rates and Absolute Threshold
+     *  Table is valid for Layer II at a sampling rate of 32 kHz
      */
     {
 	{ 133, 32000.0 },
@@ -396,8 +398,8 @@ absthr[6][134] =
     },
 
     /*
-     * From ISO/IEC 11172-3 Table 3-D.1e.:  Frequencies, Critical Band Rates and Absolute Threshold
-     * Table is valid for Layer II at a sampling rate of 44.1 kHz
+     *  From ISO/IEC 11172-3 Table 3-D.1e.:  Frequencies, Critical Band Rates and Absolute Threshold
+     *  Table is valid for Layer II at a sampling rate of 44.1 kHz
      */
     {
 	{ 131, 44100.0 },
@@ -535,8 +537,8 @@ absthr[6][134] =
     },
 
     /*
-     * ISO/IEC 11172-3 Table 3-D.1f.:  Frequencies, Critical Band Rates and Absolute Threshold
-     * Table is valid for Layer II at a sampling rate of 48.0 kHz
+     *  ISO/IEC 11172-3 Table 3-D.1f.:  Frequencies, Critical Band Rates and Absolute Threshold
+     *  Table is valid for Layer II at a sampling rate of 48.0 kHz
      */
     {
 	{ 127, 48000.0 },
@@ -670,8 +672,8 @@ absthr[6][134] =
     },
 
     /*
-     * From ISO/IEC 13818-3 Table D.1d. - Frequencies, critical band rates and absolute threshold
-     * Table is valid for Layer II at a sampling rate of 16 kHz.
+     *  From ISO/IEC 13818-3 Table D.1d. - Frequencies, critical band rates and absolute threshold
+     *  Table is valid for Layer II at a sampling rate of 16 kHz.
      */
     {
 	{ 133, 16000.0 },
@@ -811,8 +813,8 @@ absthr[6][134] =
     },
 
     /*
-     * From ISO/IEC 13818-3 Table D.1e. - Frequencies, critical band rates and absolute threshold
-     * Table is valid for Layer II at a sampling rate of 22.05 kHz.
+     *  From ISO/IEC 13818-3 Table D.1e. - Frequencies, critical band rates and absolute threshold
+     *  Table is valid for Layer II at a sampling rate of 22.05 kHz.
      */
     {
  	{ 133, 22050.0 },
@@ -952,8 +954,8 @@ absthr[6][134] =
     },
 
     /*
-     * From ISO/IEC 13818-3 Table D.1f. - Frequencies, critical band rates and absolute threshold
-     * Table is valid for Layer II at a sampling rate of 24 kHz.
+     *  From ISO/IEC 13818-3 Table D.1f. - Frequencies, critical band rates and absolute threshold
+     *  Table is valid for Layer II at a sampling rate of 24 kHz.
      */
     {
 	{ 133, 24000.0 },

@@ -47,7 +47,6 @@ extern void options(int ac, char **av);
 
 extern void preview_init(void);
 
-extern void audio_init(void);
 extern void video_init(void);
 
 extern volatile int program_shutdown;

@@ -1,6 +1,6 @@
 /*
  *  MPEG Real Time Encoder
- *  MPEG-1/2 Audio Layer I/II Subband Filter Bank
+ *  MPEG-1 Audio Layer II Subband Filter Bank
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
  *
@@ -19,61 +19,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: filter.c,v 1.3 2000-11-11 02:32:21 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "../common/log.h"
-#include "../common/mmx.h"
 #include "../common/math.h"
-#include "mpeg.h"
+#include "audio.h"
 
 #define TEST 0
 
-struct {
-	short		window_coeff[512];
-	short		filter_coeff[352];
-	mmx_t		c[2], so, t[5];
-	short		y[36];
-} filterbank_tables __attribute__ ((aligned (4096)));
+/* Tables */
 
-extern void mmx_window_mono(short *z) __attribute__ ((regparm (1)));
-extern void mmx_window_left(short *z) __attribute__ ((regparm (1)));
-extern void mmx_window_right(short *z) __attribute__ ((regparm (1)));
-extern void mmx_filterbank(int *s) __attribute__ ((regparm (1)));
-
-void
-mmx_filter_mono(short *p, int *samples)
-{
-	int j;
-
-	for (j = 0; j < 3 * SCALE_BLOCK; j++, p += 32, samples += 32) {
-		mmx_window_mono(p);
-		mmx_filterbank(samples);
-	}
-
-	emms();
-}
-
-void
-mmx_filter_stereo(short *p, int *samples)
-{
-	int j;
-
-	for (j = 0; j < 3 * SCALE_BLOCK; j++, p += 32 * 2, samples += 32) {
-		/*
-		 *  Subband window code could be optimized,
-		 *  I've just adapted the mono version.
-		 */
-		mmx_window_left(p);
-		mmx_filterbank(samples);
-
-		mmx_window_right(p);
-		mmx_filterbank(samples + 3 * SCALE_BLOCK * 32);
-	}
-
-	emms();
-}
+short fb_window_coeff[512] __attribute__ ((aligned (CACHE_LINE)));
+short fb_filter_coeff[352] __attribute__ ((aligned (CACHE_LINE)));
 
 #if TEST
 
@@ -106,17 +64,20 @@ filter_test(int mode)
 	static const char *nsrc[] = { "random", "dc min", "dc max", " sinus" };
 	short *s, src[1024];
 	int i, j, k, sb2[64], step = (mode == 0) ? 1 : 2;
+	mmx_t temp[17];
 	double sb1[64];
 	double d, dmax[32], dsum[32];
 	const int repeat = 10000;
+
+	temp[0].uq = 0xFFFFFFFF00000000LL;
+	temp[1]    = MMXRD(32768L);
 
 	srand(0x76543210);
 
 	fprintf(stderr, "filter_test, %d iterations, %s channel\n",
 		repeat, nmode[mode]);
 
-	for (k = 0; k < 4; k++)
-	{
+	for (k = 0; k < 4; k++) {
 		for (i = 0; i < 32; i++)
 			dmax[i] = dsum[i] = 0.0;
 
@@ -140,17 +101,17 @@ filter_test(int mode)
 
 			switch (mode) {
 			case 0:
-				mmx_window_mono(src);
+				mmx_window_mono(src, temp);
 				break;
 			case 1:
-				mmx_window_left(src);
+				mmx_window_left(src, temp);
 				break;
 			case 2:
-				mmx_window_right(src);
+				mmx_window_right(src, temp);
 				break;
 			}
 			
-			mmx_filterbank(sb2);
+			mmx_filterbank(sb2, temp);
 
 			emms();
 
@@ -179,7 +140,7 @@ filter_test(int mode)
 #endif // TEST
 
 void
-subband_filter_init(void)
+subband_filter_init(struct audio_seg *mp2)
 {
 	int i, j, k, l;
 
@@ -187,31 +148,29 @@ subband_filter_init(void)
 	    for (i = 0; i < 4; i++)
 		for (j = 0; j < 8; j += 2)
 		    for (l = 0; l < 2; l++) {
-			filterbank_tables.window_coeff[(31 - k) * 16 + i * 2 + j * 4 + l] = lroundn((double)(1 << 19) * C[(16 + (k - i)) + 64 * (7 - j - l)]);
-			filterbank_tables.window_coeff[32 + (31 - k) * 16 + i * 2 + j * 4 + l] = lroundn((double)(1 << 19) * C[((16 - (k + 1 - (3 - i))) & 63) + 64 * (7 - j - l)] * ((k - (3 - i) + 48) > 63 ? -1.0 : +1.0));
+			fb_window_coeff[(31 - k) * 16 + i * 2 + j * 4 + l] = lroundn((double)(1 << 19) * C[(16 + (k - i)) + 64 * (7 - j - l)]);
+			fb_window_coeff[32 + (31 - k) * 16 + i * 2 + j * 4 + l] = lroundn((double)(1 << 19) * C[((16 - (k + 1 - (3 - i))) & 63) + 64 * (7 - j - l)] * ((k - (3 - i) + 48) > 63 ? -1.0 : +1.0));
 		    }
 
-	filterbank_tables.filter_coeff[0] = 0;
-	filterbank_tables.filter_coeff[1] = +lroundn(32768.0 * sqrt(2.0) / 2.0);
-	filterbank_tables.filter_coeff[2] = 0;
-	filterbank_tables.filter_coeff[3] = -lroundn(32768.0 * sqrt(2.0) / 2.0);
+	fb_filter_coeff[0] = 0;
+	fb_filter_coeff[1] = +lroundn(32768.0 * sqrt(2.0) / 2.0);
+	fb_filter_coeff[2] = 0;
+	fb_filter_coeff[3] = -lroundn(32768.0 * sqrt(2.0) / 2.0);
 
 	for (k = 16, l = 4; k > 1; k >>= 1)
 	    for (i = 0; i < 32 / k; i++) {
 		for (j = 16 + k / 2; j < 48; j += k) {
-		    filterbank_tables.filter_coeff[l++] = lroundn(cos((double)((2 * i + 1) * (16 - j)) * M_PI / 64.0) * 32768.0);
+		    fb_filter_coeff[l++] = lroundn(cos((double)((2 * i + 1) * (16 - j)) * M_PI / 64.0) * 32768.0);
 	    }
 	}
 
 	for (i = 8; i < 24; i += 8)
 	    for (j = 2; j < 4; j++) {
-		int temp = filterbank_tables.filter_coeff[i + j];
-		filterbank_tables.filter_coeff[i + j] = filterbank_tables.filter_coeff[i + j + 2];
-		filterbank_tables.filter_coeff[i + j + 2] = temp;
-	    }
+		int temp = fb_filter_coeff[i + j];
 
-	filterbank_tables.c[0].uq = 0xFFFFFFFF00000000LL;
-	filterbank_tables.c[1]    = MMXRD(32768L);
+		fb_filter_coeff[i + j] = fb_filter_coeff[i + j + 2];
+		fb_filter_coeff[i + j + 2] = temp;
+	    }
 
 #if TEST
 

@@ -32,8 +32,6 @@
 #include "common/mmx.h"
 #include "rtepriv.h"
 #include "video/video.h" /* fixme: video_unget_frame and friends */
-#include "audio/audio.h" /* fixme: audio_read, audio_unget prots. */
-#include "audio/mpeg.h"
 #include "convert_ry.h"
 
 /* 1 if the tables contain useful data */

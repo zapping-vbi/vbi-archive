@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.31 2000-11-03 06:18:24 mschimek Exp $ */
+/* $Id: main.c,v 1.32 2000-11-11 02:32:21 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,10 +39,10 @@
 #include <sys/stat.h>
 #include <asm/types.h>
 #include "videodev2.h"
+#include "audio/libaudio.h"
 #include "audio/mpeg.h"
-#include "video/mpeg.h"
 #include "video/video.h"
-#include "audio/audio.h"
+#include "video/mpeg.h"
 #include "vbi/libvbi.h"
 #include "systems/systems.h"
 #include "common/profile.h"
@@ -80,7 +80,6 @@ extern void options(int ac, char **av);
 
 extern void preview_init(int *argc, char ***argv);
 
-extern void audio_init(void);
 extern void video_init(void);
 
 
@@ -160,7 +159,11 @@ main(int ac, char **av)
 				mix_init();
 				audio_cap_fifo = open_pcm_oss(pcm_dev, sampling_rate, stereo);
 			} else {
-				struct pcm_context *pcm;
+				struct pcm_context {
+					fifo		fifo;
+					int		sampling_rate;
+					bool		stereo;
+				} *pcm;
 			
 				audio_cap_fifo = open_pcm_afl(pcm_dev, sampling_rate, stereo);
 				// pick up file parameters (preliminary)
@@ -218,7 +221,8 @@ main(int ac, char **av)
 		if (modules & MOD_VIDEO)
 			audio_num_frames = MIN(n, (long long) INT_MAX);
 
-		audio_init();
+		audio_init(sampling_rate, stereo, /* pcm_context* */
+			audio_mode, audio_bit_rate, psycho_loops);
 	}
 
 	if (modules & MOD_VIDEO) {

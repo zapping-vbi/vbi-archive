@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mmx.c,v 1.2 2000-10-15 21:24:48 mschimek Exp $ */
+/* $Id: mmx.c,v 1.3 2000-11-11 02:32:21 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "log.h"
@@ -38,6 +38,52 @@
 #define AMD_MMX_EXT	(1 << 30)
 
 #define FEATURE(bits)	((feature & (bits)) == (bits))
+
+typedef union {
+	unsigned char		s[16];
+	struct {
+		unsigned int		ebx;
+		unsigned int		edx;
+		unsigned int		ecx;
+		unsigned int		eax;
+	}			r;
+} cpuid_u;
+
+static int
+cpuid(cpuid_u *buf, int level)
+{
+	int success;
+
+    	asm ("
+		pushfl
+		popl		%%ecx
+		movl		%%ecx,%%eax
+		xorl		$0x200000,%%eax
+		pushl		%%eax
+		popfl
+		pushfl
+		popl		%%eax
+		pushl		%%ecx
+		popfl
+		xorl		%%ecx,%%eax
+		andl		$0x200000,%%eax
+		jz		1f
+
+		movl		%2,%%eax
+		movl		%1,%%edi
+		cpuid
+		movl		%%ebx,(%%edi)
+		movl		%%edx,4(%%edi)
+		movl		%%ecx,8(%%edi)
+		movl		%%eax,12(%%edi)
+		movl		$1,%%eax
+1:
+	" : "=a" (success)
+	  : "m" (buf), "m" (level)
+	  : "ebx", "ecx", "edx", "edi", "cc", "memory");
+
+	return success;
+}
 
 // XXX rethink
 

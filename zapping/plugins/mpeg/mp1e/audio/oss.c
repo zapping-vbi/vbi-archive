@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.9 2000-11-03 06:18:26 mschimek Exp $ */
+/* $Id: oss.c,v 1.10 2000-11-11 02:32:21 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +38,6 @@
 #include "../common/mmx.h" 
 #include "../common/math.h" 
 #include "audio.h"
-#include "mpeg.h"
 
 #define TEST 0
 

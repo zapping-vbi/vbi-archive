@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.11 2000-10-22 05:24:49 mschimek Exp $ */
+/* $Id: options.c,v 1.12 2000-11-11 02:32:21 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +35,7 @@
 #include "common/log.h"
 #include "common/fifo.h"
 #include "video/video.h"
-#include "audio/audio.h"
+#include "audio/libaudio.h"
 #include "audio/mpeg.h"
 #include "options.h"
 

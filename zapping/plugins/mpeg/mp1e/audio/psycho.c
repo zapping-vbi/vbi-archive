@@ -1,6 +1,6 @@
 /*
  *  MPEG Real Time Encoder
- *  MPEG-1/2 Audio Layer II Psychoacoustic Analysis Model 2
+ *  MPEG-1 Audio Layer II Psychoacoustic Analysis Model 2
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
  *  Copyright (C) 1996 ISO MPEG Audio Subgroup Software Simulation Group
@@ -20,66 +20,22 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: psycho.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: psycho.c,v 1.3 2000-11-11 02:32:21 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
 #include "../common/math.h"
 #include "../common/profile.h"
-#include "mpeg.h"
-
-/* fft.c */
-
-extern void fft_init(void);
-extern void fft_step_1(short *, FLOAT *);
-extern void fft_step_2(short *, FLOAT *);
-
-#define psy_align(n) __attribute__ ((SECTION("PSY_TABLES") aligned (n)))
-
-#define BLKSIZE 1024
-#define HBLKSIZE 513
-#define CBANDS 63
-
-extern int mpeg_version;
-extern int sampling_freq_code;
-extern int sblimit;
-extern int psycho_loops;
-
-/* Buffers */
-
-static FLOAT		h_save[2][3][BLKSIZE]		psy_align(CACHE_LINE);
-static FLOAT		e_save[2][2][HBLKSIZE]		psy_align(CACHE_LINE);
-static struct {
-	FLOAT e, c;
-}			grouped[CBANDS]			psy_align(CACHE_LINE);
-static FLOAT		nb[HBLKSIZE]			psy_align(CACHE_LINE);
-static FLOAT		sum_energy[SBLIMIT]		psy_align(CACHE_LINE);
-
-static int ch;
-#define e_save_new e_save_oldest
-static FLOAT *e_save_old    = e_save[0][1];
-static FLOAT *e_save_oldest = e_save[0][0];
-static FLOAT *h_save_new    = h_save[0][2];
-static FLOAT *h_save_old    = h_save[0][1];
-static FLOAT *h_save_oldest = h_save[0][0];
+#include "audio.h"
 
 /* Tables */
 
-static char		partition[HBLKSIZE]		psy_align(CACHE_LINE);		// frequency line to cband mapping
-static struct {
-	char off, cnt;
-}			s_limits[CBANDS]		psy_align(CACHE_LINE);
-static FLOAT		s_packed[2048]			psy_align(CACHE_LINE);		// packed spreading function
-static FLOAT		absthres[HBLKSIZE]		psy_align(CACHE_LINE);		// absolute thresholds, linear
-static FLOAT		p1[CBANDS]			psy_align(CACHE_LINE);
-static FLOAT		p2[CBANDS]			psy_align(CACHE_LINE);
-static FLOAT		p3[CBANDS - 20]			psy_align(CACHE_LINE);
-static FLOAT		p4[CBANDS - 20]			psy_align(CACHE_LINE);
-static FLOAT		xnorm[CBANDS]			psy_align(CACHE_LINE);
-static float		static_snr[SBLIMIT]		psy_align(CACHE_LINE);
+static float		static_snr[SBLIMIT] __attribute__ ((aligned (CACHE_LINE)));
 
-void
-create_absthres(int sampling_freq)
+/* Initialization */
+
+static void
+create_absthres(struct audio_seg *mp2, int sampling_freq)
 {
 	int table, i, higher, lower = 0;
 
@@ -94,26 +50,24 @@ create_absthres(int sampling_freq)
 
 	for (i = 1; i <= absthr[table][0].line; i++)
 		for (higher = absthr[table][i].line; lower < higher; lower++)
-			absthres[lower] = pow(10.0, (absthr[table][i].thr + 41.837375) * 0.1);
+			mp2->absthres[lower] = pow(10.0, (absthr[table][i].thr + 41.837375) * 0.1);
 
 	while (lower < HBLKSIZE)
-		absthres[lower++] = pow(10.0, (96.0 + 41.837375) * 0.1);
+		mp2->absthres[lower++] = pow(10.0, (96.0 + 41.837375) * 0.1);
 
-	// DUMP(absthres, 0, HBLKSIZE);
+	// DUMP(mp2->absthres, 0, HBLKSIZE);
 }
 
 void
-psycho_init(void)
+psycho_init(struct audio_seg *mp2, int sampling_freq, int psycho_loops)
 {
-	static float crit_band[27] =
-	{
+	static const float crit_band[27] = {
 		0, 100, 200, 300, 400, 510, 630, 770,
         	920, 1080, 1270, 1480, 1720, 2000, 2320, 2700,
         	3150, 3700, 4400, 5300, 6400, 7700, 9500, 12000,
         	15500, 25000, 30000
 	};
-	static float bmax[27] =
-	{
+	static const float bmax[27] = {
 		20.0, 20.0, 20.0, 20.0, 20.0, 17.0, 15.0,
     	        10.0,  7.0,  4.4,  4.5,  4.5,  4.5,  4.5,
         	 4.5,  4.5,  4.5,  4.5,  4.5,  4.5,  4.5,
@@ -121,13 +75,13 @@ psycho_init(void)
 	};
 	double bval[CBANDS], temp[HBLKSIZE];
 	double temp1, temp2, freq_mult, bval_lo;
-	FLOAT *s_pp = s_packed, s[CBANDS][CBANDS];
+	FLOAT *s_pp = mp2->s_packed, s[CBANDS][CBANDS];
 	int numlines[CBANDS];
-	int sampling_freq = sampling_freq_value[mpeg_version][sampling_freq_code];
 	int i, j, k, b;
 
-	fft_init();	
-	create_absthres(sampling_freq);
+	mp2->psycho_loops = saturate(psycho_loops, 0, 2);
+
+	create_absthres(mp2, sampling_freq);
 
 	// Compute fft frequency multiplicand
 
@@ -141,29 +95,28 @@ psycho_init(void)
 		temp[i] = j - 1 + (temp1 - crit_band[j - 1]) / (crit_band[j] - crit_band[j - 1]);
 	}
 
-	partition[0] = 0;
+	mp2->partition[0] = 0;
 	temp2 = 1; // counter of the # of frequency lines in each partition
 	bval[0] = temp[0];
 	bval_lo = temp[0];
 
-	for (i = 1; i < HBLKSIZE; i++)
-	{
+	for (i = 1; i < HBLKSIZE; i++) {
 		if ((temp[i] - bval_lo) > 0.33) {
-			partition[i] = partition[i - 1] + 1;
-			bval[(int) partition[i - 1]] = bval[(int) partition[i - 1]] / temp2;
-			bval[(int) partition[i]] = temp[i];
+			mp2->partition[i] = mp2->partition[i - 1] + 1;
+			bval[(int) mp2->partition[i - 1]] = bval[(int) mp2->partition[i - 1]] / temp2;
+			bval[(int) mp2->partition[i]] = temp[i];
     			bval_lo = temp[i];
-    			numlines[(int) partition[i - 1]] = temp2;
+    			numlines[(int) mp2->partition[i - 1]] = temp2;
 			temp2 = 1;
     		} else {
-    			partition[i] = partition[i - 1];
-	    		bval[(int) partition[i]] += temp[i];
+    			mp2->partition[i] = mp2->partition[i - 1];
+	    		bval[(int) mp2->partition[i]] += temp[i];
 			temp2++;
 		}
 	}
 
-	numlines[(int) partition[i - 1]] = temp2;
-	bval[(int) partition[i - 1]] = bval[(int) partition[i - 1]] / temp2;
+	numlines[(int) mp2->partition[i - 1]] = temp2;
+	bval[(int) mp2->partition[i - 1]] = bval[(int) mp2->partition[i - 1]] / temp2;
 
 	/*
 	 *  Compute the spreading function, s[j][i], the value of the
@@ -192,8 +145,7 @@ psycho_init(void)
 		}
 	}
 
-	for (b = 0; b < CBANDS; b++)
-	{
+	for (b = 0; b < CBANDS; b++) {
 		double NMT, TMN, minval, bc, rnorm;
 
 		// Noise Masking Tone value (in dB) for all partitions
@@ -208,13 +160,13 @@ psycho_init(void)
 		bc = (TMN - NMT) * 0.1;
 
 		if (b < 20) {
-			p1[b] = pow(10.0, -(minval - NMT) / (TMN - NMT)) / 2.0;
-			p2[b] = pow(MIN(0.5, p1[b]) * 2.0, bc);
+			mp2->p1[b] = pow(10.0, -(minval - NMT) / (TMN - NMT)) / 2.0;
+			mp2->p2[b] = pow(MIN(0.5, mp2->p1[b]) * 2.0, bc);
 		} else {
-			p4[b - 20] = bc;
-			p3[b - 20] = pow(10.0, (minval - NMT) / bc);
-			p2[b] = pow(p3[b - 20] * 2.0, bc);
-			p1[b] = pow(0.05 * 2.0, bc);
+			mp2->p4[b - 20] = bc;
+			mp2->p3[b - 20] = pow(10.0, (minval - NMT) / bc);
+			mp2->p2[b] = pow(mp2->p3[b - 20] * 2.0, bc);
+			mp2->p1[b] = pow(0.05 * 2.0, bc);
 		}
 
 		// Calculate normalization factor for the net spreading function
@@ -222,21 +174,21 @@ psycho_init(void)
 		for (i = 0, rnorm = 0.0; i < CBANDS; i++)
 			rnorm += s[b][i];
 
-		xnorm[b] = pow(10.0, -NMT * 0.1) / (rnorm * numlines[b]);
+		mp2->xnorm[b] = pow(10.0, -NMT * 0.1) / (rnorm * numlines[b]);
 
 		// Pack spreading function
 
 	        for (k = 0; s[b][k] == 0.0; k++);
-			s_limits[b].off = k;
+			mp2->s_limits[b].off = k;
 	        for (j = 0; s[b][k + j] != 0.0 && (k + j) < CBANDS; j++)
 		        *s_pp++ = s[b][k + j];
-	        s_limits[b].cnt = j;
+	        mp2->s_limits[b].cnt = j;
 	}
 
 	for (i = 0; i < 3; i++)
 		for (j = 0; j < HBLKSIZE; j++) {
-			h_save[0][i][j] = 1.0; // force oldest, old phi = 0.0
-			e_save[0][i & 1][j] = 1.0; // should be 0.0, see below
+			aseg.h_save[0][i][j] = 1.0; // force oldest, old phi = 0.0
+			aseg.e_save[0][i & 1][j] = 1.0; // should be 0.0, see below
 		}
 
 	for (j = 0; j < SBLIMIT; j++)
@@ -246,6 +198,8 @@ psycho_init(void)
 }
 
 /*
+ *  Psychoacoustic analysis
+ *
  *  This code is equivalent to the psychoacoustic model 2 in the
  *  MPEG-2 Audio Simulation Software Distribution 10, just
  *  a bit :) optimized for speed.
@@ -253,19 +207,17 @@ psycho_init(void)
  *  Doesn't return SNR in dB but linear values (pow(10.0, SNR * 0.1)),
  *  the mnr_incr calculation and bit allocation has been modified accordingly.
  */
-
 void
-psycho(short *buffer, float *snr, int step)
+psycho(struct audio_seg *mp2, short *buffer, float *snr, int step)
 {
 	int i, j;
 
-	if (!psycho_loops) {
+	if (!mp2->psycho_loops) {
 		memcpy(snr, static_snr, sizeof(static_snr));
 		return;
 	}
 
-	for (i = 0; i < psycho_loops; i++)
-	{
+	for (i = 0; i < mp2->psycho_loops;) {
 		/*
 		 *  Filterbank 3 * 12 * 32 samples: 0..1151 (look ahead 480 samples)
 		 *  Pass #1: 0..1023
@@ -277,9 +229,9 @@ psycho(short *buffer, float *snr, int step)
 		pr_start(30, "FFT & Hann window");
 
 		if (step == 1)
-			fft_step_1(buffer, h_save_new);
+			fft_step_1(buffer, mp2->h_save_new);
 		else
-			fft_step_2(buffer, h_save_new);
+			fft_step_2(buffer, mp2->h_save_new);
 
 		pr_end(30);
 
@@ -290,66 +242,65 @@ psycho(short *buffer, float *snr, int step)
 		 *  Calculate the grouped, energy-weighted unpredictability measure,
 		 *  grouped[].c, and the grouped energy, grouped[].e
 		 *
-		 *  XXX optimize here
+		 *  Optimize here
                  */
 
-		memset(grouped, 0, sizeof(grouped));
+		memset(mp2->grouped, 0, sizeof(mp2->grouped));
 
 		{
 			double energy, e_sqrt, r_prime, temp3;
-			double r0 = h_save_new[0];
-		        double r2 = h_save_oldest[0];
+			double r0 = mp2->h_save_new[0];
+		        double r2 = mp2->h_save_oldest[0];
 
-			sum_energy[0] = grouped[0].e = energy = r0 * r0;
+			mp2->sum_energy[0] = mp2->grouped[0].e = energy = r0 * r0;
 
-			r_prime = 2.0 * e_save_old[0] - e_save_oldest[0];
-			e_save_new[0] = e_sqrt = sqrt(energy);
+			r_prime = 2.0 * mp2->e_save_old[0] - mp2->e_save_oldest[0];
+			mp2->e_save_new[0] = e_sqrt = sqrt(energy);
 
 			if ((temp3 = e_sqrt + fabs(r_prime)) != 0.0) {
 				if (r2 < 0.0)
 					r_prime = -r_prime;	
-				grouped[0].c = energy * fabs(r0 - r_prime) / temp3;
+				mp2->grouped[0].c = energy * fabs(r0 - r_prime) / temp3;
 			}
 		}
 
-		for (j = 1; j < HBLKSIZE - 1; j++)
-		{
-	    		int pt = partition[j];
+		for (j = 1; j < HBLKSIZE - 1; j++) {
+	    		int pt = mp2->partition[j];
 			int j4 = j >> 4;
 			double energy, e_sqrt, r_prime, temp3;
-			double i0 = h_save_new[BLKSIZE - j];
-			double i1 = h_save_old[BLKSIZE - j];
-			double i2 = h_save_oldest[BLKSIZE - j];
-			double r0 = h_save_new[j];
-			double r1 = h_save_old[j];
-			double r2 = h_save_oldest[j];
+			double i0 = mp2->h_save_new[BLKSIZE - j];
+			double i1 = mp2->h_save_old[BLKSIZE - j];
+			double i2 = mp2->h_save_oldest[BLKSIZE - j];
+			double r0 = mp2->h_save_new[j];
+			double r1 = mp2->h_save_old[j];
+			double r2 = mp2->h_save_oldest[j];
 
 			energy = r0 * r0 + i0 * i0;
-			grouped[pt].e += energy;
+			mp2->grouped[pt].e += energy;
 			if (j & 15)
-				sum_energy[j4] += energy;
+				mp2->sum_energy[j4] += energy;
 			else {
-				sum_energy[j4 - 1] += energy;
-				sum_energy[j4] = energy;
+				mp2->sum_energy[j4 - 1] += energy;
+				mp2->sum_energy[j4] = energy;
 			}
 
-			r_prime = 2.0 * e_save_old[j] - e_save_oldest[j];
+			r_prime = 2.0 * mp2->e_save_old[j] - mp2->e_save_oldest[j];
 			e_sqrt = sqrt(energy);
 
 			temp3 = e_sqrt + fabs(r_prime);
 
 			if (temp3 == 0.0)
-				; // grouped[pt].c += energy * 0.0;
+				; // mp2->grouped[pt].c += energy * 0.0;
 			else {
 				double c1, s1, c2, s2, ll;
-/*
+/* pre opt
 				double phi = atan2(i0, r0);
 				double phi_prime = 2.0 * atan2(i1, r1) - atan2(i2, r2);
 
 				c1 = e_sqrt * cos(phi) - r_prime * cos(phi_prime);
 				s1 = e_sqrt * sin(phi) - r_prime * sin(phi_prime);
 
-				grouped[pt].c += energy * sqrt(c1 * c1 + s1 * s1) / temp3;
+				mp2->grouped[pt].c += energy * sqrt(c1 * c1 + s1 * s1) / temp3;
 */
 				c2 = r1 * r1;
 				s2 = i1 * i1;
@@ -361,7 +312,7 @@ psycho(short *buffer, float *snr, int step)
 				c2 = s1 * r2 + c1 * i2;
 				s2 = c1 * r2 - s1 * i2;
 
-				r_prime /= ll * e_save_oldest[j];
+				r_prime /= ll * mp2->e_save_oldest[j];
 				/*
 				 *  This should be r_prime /= ll * sqrt(r2 * r2 + i2 * i2), initializing e_save with all
 				 *  zeroes. By initializing to all ones we can omit one sqrt(). The +1 error in temp3
@@ -371,59 +322,59 @@ psycho(short *buffer, float *snr, int step)
 				c1 = r0 - r_prime * c2;
 				s1 = i0 - r_prime * s2;
 
-				grouped[pt].c += energy * sqrt(c1 * c1 + s1 * s1) / temp3;
+				mp2->grouped[pt].c += energy * sqrt(c1 * c1 + s1 * s1) / temp3;
 			}
 
-			e_save_new[j] = e_sqrt;
+			mp2->e_save_new[j] = e_sqrt;
 		}
-#if 0
-		for (j = 206; j < HBLKSIZE - 1; j++)
-		{
-	    		int pt = partition[j], j4 = j >> 4;
-			double i0 = h_save_new[BLKSIZE - j];
-			double r0 = h_save_new[j];
 
-			grouped[pt].e += energy = r0 * r0 + i0 * i0;
-			grouped[pt].c += energy * 0.3;
+#if 0 // a shortcut we don't take
+
+		for (j = 206; j < HBLKSIZE - 1; j++) {
+	    		int pt = mp2->partition[j], j4 = j >> 4;
+			double i0 = mp2->h_save_new[BLKSIZE - j];
+			double r0 = mp2->h_save_new[j];
+
+			mp2->grouped[pt].e += energy = r0 * r0 + i0 * i0;
+			mp2->grouped[pt].c += energy * 0.3;
 			if (j & 15)
-				sum_energy[j4] += energy;
+				mp2->sum_energy[j4] += energy;
 			else {
-				sum_energy[j4 - 1] += energy;
-				sum_energy[j4] = energy;
+				mp2->sum_energy[j4 - 1] += energy;
+				mp2->sum_energy[j4] = energy;
 			}
 		}
 #endif
 		{
 			double energy, e_sqrt, r_prime, temp3;
-		        double r0 = h_save_new[HBLKSIZE - 1];
-			double r2 = h_save_oldest[HBLKSIZE - 1];
+		        double r0 = mp2->h_save_new[HBLKSIZE - 1];
+			double r2 = mp2->h_save_oldest[HBLKSIZE - 1];
 
-			grouped[CBANDS - 1].e += energy = r0 * r0;
-			sum_energy[SBLIMIT - 1] += energy;
+			mp2->grouped[CBANDS - 1].e += energy = r0 * r0;
+			mp2->sum_energy[SBLIMIT - 1] += energy;
 
-			r_prime = 2.0 * e_save_old[HBLKSIZE - 1] - e_save_oldest[HBLKSIZE - 1];
-			e_save_new[HBLKSIZE - 1] = e_sqrt = sqrt(energy);
+			r_prime = 2.0 * mp2->e_save_old[HBLKSIZE - 1] - mp2->e_save_oldest[HBLKSIZE - 1];
+			mp2->e_save_new[HBLKSIZE - 1] = e_sqrt = sqrt(energy);
 
 			if ((temp3 = e_sqrt + fabs(r_prime)) != 0.0) {
 				if (r2 < 0.0)
 					r_prime = -r_prime;
-				grouped[CBANDS - 1].c += energy * fabs(r0 - r_prime) / temp3;
+				mp2->grouped[CBANDS - 1].c += energy * fabs(r0 - r_prime) / temp3;
 			}
 		}
 
-		// DUMP(grouped_e, 0, CBANDS);    
-		// DUMP(grouped_c, 0, CBANDS);
+		// DUMP(mp2->grouped_e, 0, CBANDS);    
+		// DUMP(mp2->grouped_c, 0, CBANDS);
 
 		pr_end(31);
 		pr_start(32, "Psy/2");
 
 		{
-			FLOAT *s_pp = s_packed;
+			FLOAT *s_pp = mp2->s_packed;
 
-			for (j = 0; j < 20; j++)
-			{
+			for (j = 0; j < 20; j++) {
 				double ecb = 0.0, cb = 0.0;
-				int k, cnt = s_limits[j].cnt, off = s_limits[j].off;
+				int k, cnt = mp2->s_limits[j].cnt, off = mp2->s_limits[j].off;
 
 				/*
 				 *  Convolve the grouped energy-weighted unpredictability measure
@@ -431,12 +382,12 @@ psycho(short *buffer, float *snr, int step)
 				 */
 				for (k = 0; k < cnt; k++) {
 				    	double ss = *s_pp++;
-					ecb += ss * grouped[off + k].e;
-    				    	cb += ss * grouped[off + k].c;
+					ecb += ss * mp2->grouped[off + k].e;
+    				    	cb += ss * mp2->grouped[off + k].c;
 				}
 
 				if (ecb == 0.0)
-					nb[j] = 0.0;
+					mp2->nb[j] = 0.0;
 				else {
 					cb /= ecb;
 
@@ -444,49 +395,48 @@ psycho(short *buffer, float *snr, int step)
 					 *  Calculate the required SNR for each of the
 					 *  frequency partitions
 					 */
-					ecb *= xnorm[j];
+					ecb *= mp2->xnorm[j];
 
 			    		if (cb < 0.05)
-						nb[j] = ecb * 0.0125892541179416766333743; // pow(0.05 * 2.0, 1.9);
-					else if (cb > 0.5 || cb > p1[j])
-						nb[j] = ecb * p2[j];
+						mp2->nb[j] = ecb * 0.0125892541179416766333743; // pow(0.05 * 2.0, 1.9);
+					else if (cb > 0.5 || cb > mp2->p1[j])
+						mp2->nb[j] = ecb * mp2->p2[j];
 					else
-						nb[j] = ecb * pow(cb * 2.0, 1.9);
+						mp2->nb[j] = ecb * pow(cb * 2.0, 1.9);
 				}
 			}
 
-			for (; j < CBANDS; j++) // 63
-			{
+			for (; j < CBANDS; j++) { // 63
 				double ecb = 0.0, cb = 0.0;
-				int k, cnt = s_limits[j].cnt, off = s_limits[j].off;
+				int k, cnt = mp2->s_limits[j].cnt, off = mp2->s_limits[j].off;
 
 				for (k = 0; k < cnt; k++) {
 					double ss = *s_pp++;
-					ecb += ss * grouped[off + k].e;
-        				cb += ss * grouped[off + k].c;
+					ecb += ss * mp2->grouped[off + k].e;
+        				cb += ss * mp2->grouped[off + k].c;
 				}
 
 				if (ecb == 0.0)
-					nb[j] = 0.0;
+					mp2->nb[j] = 0.0;
 				else {
 					cb /= ecb;
-					ecb *= xnorm[j];
+					ecb *= mp2->xnorm[j];
 
 					if (cb < 0.05)
-						nb[j] = ecb * p1[j];
+						mp2->nb[j] = ecb * mp2->p1[j];
 					else if (cb > 0.5)
-						nb[j] = ecb; // not exactly, but the error is negligible
-					else if (cb > p3[j - 20])
-						nb[j] = ecb * pow(cb * 2.0, p4[j - 20]);
+						mp2->nb[j] = ecb; // not exactly, but the error is negligible
+					else if (cb > mp2->p3[j - 20])
+						mp2->nb[j] = ecb * pow(cb * 2.0, mp2->p4[j - 20]);
 					else
-						nb[j] = ecb * p2[j];
+						mp2->nb[j] = ecb * mp2->p2[j];
 				}
 			}
 
-			// DUMP(nb, 0, CBANDS);
+			// DUMP(mp2->nb, 0, CBANDS);
 		}
 
-		// DUMP(sum_energy, 0, SBLIMIT);
+		// DUMP(mp2->sum_energy, 0, SBLIMIT);
 
 		pr_end(32);
 		pr_start(33, "Psy/3");
@@ -498,57 +448,53 @@ psycho(short *buffer, float *snr, int step)
 		 */
 
 		if (i == 0) {
-			for (j = 0; j < 13; j++)
-			{
+			for (j = 0; j < 13; j++) {
 				double minthres = 60802371420160.0;
 				int k;
 
 				for (k = 0; k < 17; k++) {
-					double fthr = MAX(absthres[j * 16 + k], nb[(int) partition[j * 16 + k]]);
+					double fthr = MAX(mp2->absthres[j * 16 + k], mp2->nb[(int) mp2->partition[j * 16 + k]]);
 
 					if (minthres > fthr)
 						minthres = fthr;
 				}
 
-				snr[j] = sum_energy[j] / (minthres * 17.0);
+				snr[j] = mp2->sum_energy[j] / (minthres * 17.0);
 			}
 
-			for (j = 13; j < sblimit; j ++)
-			{
+			for (j = 13; j < mp2->sblimit; j ++) {
     				double minthres = 0.0;
 				int k;
 
 				for (k = 0; k < 17; k++)
-					minthres += MAX(absthres[j * 16 + k], nb[(int) partition[j * 16 + k]]);
+					minthres += MAX(mp2->absthres[j * 16 + k], mp2->nb[(int) mp2->partition[j * 16 + k]]);
 
-				snr[j] = sum_energy[j] / minthres;
+				snr[j] = mp2->sum_energy[j] / minthres;
 			}
 		} else {
-			for (j = 0; j < 13; j++)
-			{
+			for (j = 0; j < 13; j++) {
 				double t, minthres = 60802371420160.0;
 				int k;
 
 				for (k = 0; k < 17; k++) {
-					double fthr = MAX(absthres[j * 16 + k], nb[(int) partition[j * 16 + k]]);
+					double fthr = MAX(mp2->absthres[j * 16 + k], mp2->nb[(int) mp2->partition[j * 16 + k]]);
 
 					if (minthres > fthr)
 						minthres = fthr;
 				}
 
-				t = sum_energy[j] / (minthres * 17.0);
+				t = mp2->sum_energy[j] / (minthres * 17.0);
 				if (t > snr[j]) snr[j] = t;
 			}
 
-			for (j = 13; j < sblimit; j++)
-			{
+			for (j = 13; j < mp2->sblimit; j++) {
     				double t, minthres = 0.0;
 				int k;
 
 				for (k = 0; k < 17; k++)
-					minthres += MAX(absthres[j * 16 + k], nb[(int) partition[j * 16 + k]]);
+					minthres += MAX(mp2->absthres[j * 16 + k], mp2->nb[(int) mp2->partition[j * 16 + k]]);
 
-				t = sum_energy[j] / minthres;
+				t = mp2->sum_energy[j] / minthres;
 				if (t > snr[j]) snr[j] = t;
 			}
 		}
@@ -557,36 +503,45 @@ psycho(short *buffer, float *snr, int step)
 
 		pr_end(33);
 
+		buffer += 576;
+
 		{
 			FLOAT *t;
 
-			t = e_save_oldest;
-			e_save_oldest = e_save_old;
-			e_save_old = t;
+			t = mp2->e_save_oldest;
+			mp2->e_save_oldest = mp2->e_save_old;
+			mp2->e_save_old = t;
 
-			t = h_save_oldest;
-			h_save_oldest = h_save_old;
-			h_save_old = h_save_new;
-			h_save_new = t;
+			t = mp2->h_save_oldest;
+			mp2->h_save_oldest = mp2->h_save_old;
+			mp2->h_save_old = mp2->h_save_new;
+			mp2->h_save_new = t;
 		}
 
-		buffer += 576;
+		/************************************************************
+		 **                                                        **
+		 **                     Add one to i                       **
+		 **							   **
+		 ************************************************************/
+
+					 i = i + 1;
 	}
 
 	if (step == 2) {
-		if (ch) {
-			h_save_oldest -= sizeof(h_save[0]) / sizeof(FLOAT);
-			h_save_old    -= sizeof(h_save[0]) / sizeof(FLOAT);
-			h_save_new    -= sizeof(h_save[0]) / sizeof(FLOAT);
-			e_save_oldest -= sizeof(e_save[0]) / sizeof(FLOAT);
-			e_save_old    -= sizeof(e_save[0]) / sizeof(FLOAT);
+		if (mp2->ch) {
+			mp2->h_save_oldest -= sizeof(mp2->h_save[0]) / sizeof(FLOAT);
+			mp2->h_save_old    -= sizeof(mp2->h_save[0]) / sizeof(FLOAT);
+			mp2->h_save_new    -= sizeof(mp2->h_save[0]) / sizeof(FLOAT);
+			mp2->e_save_oldest -= sizeof(mp2->e_save[0]) / sizeof(FLOAT);
+			mp2->e_save_old    -= sizeof(mp2->e_save[0]) / sizeof(FLOAT);
 		} else {
-			h_save_oldest += sizeof(h_save[0]) / sizeof(FLOAT);
-			h_save_old    += sizeof(h_save[0]) / sizeof(FLOAT);
-			h_save_new    += sizeof(h_save[0]) / sizeof(FLOAT);
-			e_save_oldest += sizeof(e_save[0]) / sizeof(FLOAT);
-			e_save_old    += sizeof(e_save[0]) / sizeof(FLOAT);
+			mp2->h_save_oldest += sizeof(mp2->h_save[0]) / sizeof(FLOAT);
+			mp2->h_save_old    += sizeof(mp2->h_save[0]) / sizeof(FLOAT);
+			mp2->h_save_new    += sizeof(mp2->h_save[0]) / sizeof(FLOAT);
+			mp2->e_save_oldest += sizeof(mp2->e_save[0]) / sizeof(FLOAT);
+			mp2->e_save_old    += sizeof(mp2->e_save[0]) / sizeof(FLOAT);
 		}
-		ch ^= 1;
+
+		mp2->ch ^= 1;
 	}
 }

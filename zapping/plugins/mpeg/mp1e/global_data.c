@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.5 2000-11-03 06:18:24 mschimek Exp $ */
+/* $Id: global_data.c,v 1.6 2000-11-11 02:32:21 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +35,6 @@
 #include "common/log.h"
 #include "common/fifo.h"
 #include "video/video.h"
-#include "audio/audio.h"
 #include "audio/mpeg.h"
 #include "options.h"
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.37 2000-11-10 21:02:18 garetxe Exp $ */
+/* $Id: rte.c,v 1.38 2000-11-11 02:32:21 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -34,7 +34,7 @@
 #include "rtepriv.h"
 #include "convert_ry.h"
 #include "video/video.h"
-#include "audio/audio.h"
+#include "audio/libaudio.h"
 #include "audio/mpeg.h"
 #include "video/mpeg.h"
 #include "systems/systems.h"
@@ -1208,7 +1208,8 @@ static void rte_audio_init(void) /* init audio capture */
 		if (modules & MOD_VIDEO)
 			audio_num_frames = MIN(n, (long long) INT_MAX);
 		
-		audio_init();
+		audio_init(sampling_rate, stereo, /* pcm_context* */
+			audio_mode, audio_bit_rate, psycho_loops);
 	}
 }
 
