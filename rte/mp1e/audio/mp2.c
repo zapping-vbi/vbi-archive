@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.25 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: mp2.c,v 1.26 2002-03-12 18:15:26 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -1026,7 +1026,9 @@ option_get(rte_codec *codec, const char *keyword, rte_option_value *v)
 	} else if (KEYWORD("psycho")) {
 		v->num = mp2->psycho_loops;
 	} else if (KEYWORD("num_frames")) {
-		v->num = mp2->psycho_loops;
+		v->num = mp2->num_frames;
+		if (mp2->num_frames > (int64_t) INT_MAX)
+			v->num = INT_MAX;
 	} else {
 		rte_unknown_option(codec->context, codec, keyword);
 		return FALSE;
@@ -1070,6 +1072,8 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 		mp2->psycho_loops = RTE_OPTION_ARG_MENU(menu_psycho);
 	} else if (KEYWORD("num_frames")) {
 		mp2->num_frames = va_arg(args, int);
+		if (mp2->num_frames >= INT_MAX)
+			mp2->num_frames = INT64_MAX;
 	} else {
 		rte_unknown_option(context, codec, keyword);
 	failed:
