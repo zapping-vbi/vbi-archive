@@ -290,7 +290,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   gint muted;
   gchar * old_name = NULL;
   enum tveng_capture_mode mode;
-
+  extern int disable_overlay;
+  
   g_assert(info != NULL);
   g_assert(main_window != NULL);
   tv_screen = lookup_widget(main_window, "tv_screen");
@@ -453,7 +454,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	g_warning(info->error);
       break;
     case TVENG_CAPTURE_PREVIEW:
-      if (disable_preview) {
+      if (disable_preview || disable_overlay) {
 	ShowBox("preview has been disabled", GNOME_MESSAGE_BOX_WARNING);
 	g_free(old_name);
 	return -1;

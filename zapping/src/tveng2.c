@@ -89,6 +89,7 @@ static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
 {
   struct v4l2_capability caps;
   struct v4l2_framebuffer fb;
+  extern int disable_overlay;
 
   t_assert(info != NULL);
   t_assert(info->file_name != NULL);
@@ -172,7 +173,7 @@ static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
   fprintf (stdout, "Faking mute control\n");
 #endif
 
-  if (caps.flags & V4L2_FLAG_PREVIEW)
+  if (!disable_overlay && (caps.flags & V4L2_FLAG_PREVIEW))
     {
       info->caps.flags |= TVENG_CAPS_OVERLAY;
       /* Collect more info about the overlay mode */
@@ -1840,10 +1841,12 @@ static int
 tveng2_detect_preview (tveng_device_info * info)
 {
   struct v4l2_framebuffer fb;
+  extern int disable_overlay;
 
   t_assert(info != NULL);
 
-  if ((info -> caps.flags & TVENG_CAPS_OVERLAY) == 0)
+  if (disable_overlay ||
+      (info -> caps.flags & TVENG_CAPS_OVERLAY) == 0)
     {
       info -> tveng_errno = -1;
       t_error_msg("flags check",

@@ -1,3 +1,8 @@
+23.1.2003	<mschimek@users.sf.net>
+
+	* src/main.c, src/tveng.c, src/tveng1.c, src/tveng2.c,
+	  src/tvengxv.c: Added disable_overlay (--remote) option.
+
 19.1.2003	<mschimek@users.sf.net>
 
 	* zapping_setup_fb/Makefile.am, zapping_setup_fb/dga.c,

@@ -186,10 +186,11 @@ int tvengxv_attach_device(const char* device_file,
   XvAttribute *at;
   int attributes, i;
   Display *dpy;
+  extern int disable_overlay;
 
   t_assert(info != NULL);
 
-  if (info->priv->disable_xv)
+  if (info->priv->disable_xv || disable_overlay)
     {
       info->tveng_errno = -1;
       t_error_msg("disable_xv",

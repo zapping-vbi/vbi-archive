@@ -74,6 +74,7 @@ gint			disable_preview = FALSE;/* preview should be
 						   disabled */
 gint			disable_xv = FALSE; /* XVideo should be
 					       disabled */
+gint			disable_overlay = FALSE; /* Xv or V4L */
 gboolean		xv_present = FALSE; /* Whether the
 					       device can be attached as XV */
 GtkWidget		*main_window = NULL;
@@ -365,6 +366,15 @@ int main(int argc, char * argv[])
       NULL
     },
     {
+      "remote",
+      0,
+      POPT_ARG_NONE,
+      &disable_overlay,
+      0,
+      N_("X11 display is remote. This basically disables video overlay"),
+      NULL
+    },
+    {
       "no-zsfb",
       'z',
       POPT_ARG_NONE,
@@ -466,7 +476,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.169 2003-01-21 05:18:39 mschimek Exp $",
+	 "$Id: main.c,v 1.170 2003-01-24 18:17:18 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
