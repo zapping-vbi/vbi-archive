@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.1 2000-12-13 04:14:17 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.2 2000-12-13 04:40:36 mschimek Exp $ */
 
 #define _GNU_SOURCE
 
@@ -60,17 +60,15 @@ typedef struct {
 	fifo			fifo;			/* world interface */
 	struct vbi_decoder	dec;			/* raw vbi decoder context */
 
-	int			fd;			/* file descriptor */
+	int			fd;
 	int			btype;			/* v4l2 stream type */
 	int			num_raw_buffers;
+	bool			streaming;
 
 	struct {
 		unsigned char *		data;
 		int			size;
 	}			raw_buffer[MAX_RAW_BUFFERS];
-
-	/* test */
-	buffer 			buf;
 
 } vbi_device;
 
@@ -86,7 +84,8 @@ wait_full_read(fifo *f)
 	buffer *b;
 	size_t r;
 
-	b = (buffer *) rem_head(&f->empty);
+	if (!(b = (buffer *) rem_head(&f->empty)))
+		return NULL;	
 
 	for (;;) {
 		// XXX use select if possible to set read timeout
@@ -101,8 +100,10 @@ wait_full_read(fifo *f)
 		    && (errno == EINTR || errno == ETIME))
 			continue;
 
-		IODIAG("VBI Read error");
-		// XXX unget buffer
+		IODIAG("VBI read error");
+
+		add_head(&f->empty, &b->node);
+
 		return NULL;
 	}
 
@@ -606,7 +607,7 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 	struct v4l2_buffer vbuf;
 	struct v4l2_standard vstd;
 	vbi_device *vbi;
-	int max_rate, i, j;
+	int max_rate;
 
 	assert(services != 0);
 	assert(fifo_depth > 0);
@@ -743,6 +744,8 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 
 	if (vcap.flags & V4L2_FLAG_STREAMING
 	    && vcap.flags & V4L2_FLAG_SELECT) {
+		vbi->streaming = TRUE;
+
 		if (!init_callback_fifo(&vbi->fifo,
 		    wait_full_stream, send_empty_stream, NULL, NULL, fifo_depth,
 		    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
@@ -880,18 +883,35 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 #define SLICED_CAPTION		(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625 \
 				 | SLICED_CAPTION_525_F1 | SLICED_CAPTION_525)
 
+/*
+ *  Preliminary. Need something to re-open the
+ *  device for multiple consumers.
+ */
+
 void
 close_vbi_v4lx(fifo *f)
 {
-	fprintf(stderr, "Oops! v4lx.c has no close function yet.\n");
-/*	exit(EXIT_FAILURE); */
+	vbi_device *vbi = PARENT(f, vbi_device, fifo);
+
+	if (vbi->streaming)
+		for (; vbi->num_raw_buffers > 0; vbi->num_raw_buffers--)
+			munmap(vbi->raw_buffer[vbi->num_raw_buffers - 1].data,
+			       vbi->raw_buffer[vbi->num_raw_buffers - 1].size);
+	else
+		for (; vbi->num_raw_buffers > 0; vbi->num_raw_buffers--)
+			free(vbi->raw_buffer[vbi->num_raw_buffers - 1].data);
+
+	uninit_fifo(&vbi->fifo);
+
+	close(vbi->fd);
+
+	free(vbi);
 }
 
 fifo *
 open_vbi_v4lx(char *dev_name)
 {
 	vbi_device *vbi;
-	buffer *b;
 	int r;
 
 	if (!(r = open_v4l2(&vbi, dev_name, 1,
@@ -905,13 +925,14 @@ open_vbi_v4lx(char *dev_name)
 	if (r < 0)
 		goto failure;
 
-	if (!start_fifo(&vbi->fifo))
+	if (!start_fifo(&vbi->fifo)) /* here? */
 		goto failure;
 
 	return &vbi->fifo;
 
 failure:
-	fprintf(stderr, "Oops! v4lx.c has no close function yet.\n");
-	exit(EXIT_FAILURE);
+	if (vbi)
+		close_vbi_v4lx(&vbi->fifo);
+
 	return NULL;
 }
