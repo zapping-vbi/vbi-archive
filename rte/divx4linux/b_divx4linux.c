@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_divx4linux.c,v 1.1 2002-09-26 20:44:00 mschimek Exp $ */
+/* $Id: b_divx4linux.c,v 1.2 2002-10-02 20:58:48 mschimek Exp $ */
 
 #include "site_def.h"
 #include "config.h"
@@ -159,7 +159,7 @@ stop				(rte_context *		context,
 
 	if (dx->context.state != RTE_STATE_RUNNING) {
 		rte_error_printf (&dx->context, "Context %s not running.",
-				  dx->context._class->_public.keyword);
+				  dx->context._class->_public->keyword);
 		return FALSE;
 	}
 
@@ -196,20 +196,20 @@ start				(rte_context *		context,
 
 	case RTE_STATE_RUNNING:
 		rte_error_printf (&dx->context, "Context %s already running.",
-				  dx->context._class->_public.keyword);
+				  dx->context._class->_public->keyword);
 		return FALSE;
 
 	default:
 		rte_error_printf (&dx->context, "Cannot start context %s, "
 				  "initialization unfinished.",
-				  dx->context._class->_public.keyword);
+				  dx->context._class->_public->keyword);
 		return FALSE;
 	}
 
 	if (dx->codec.state != RTE_STATE_READY) {
 		rte_error_printf (&dx->context, "Cannot start context %s, initialization "
 						"of codec is unfinished.",
-				  dx->context._class->_public.keyword);
+				  dx->context._class->_public->keyword);
 		return FALSE;
 	}
 
@@ -269,13 +269,13 @@ set_output			(rte_context *		context,
 
 	default:
 		rte_error_printf (&dx->context, "Cannot change %s output, context is busy.",
-				  dx->context._class->_public.keyword);
+				  dx->context._class->_public->keyword);
 		break;
 	}
 
 	if (!dx->codec_set) {
 		rte_error_printf (context, "No codec allocated for context %s.",
-				  dx->context._class->_public.keyword);
+				  dx->context._class->_public->keyword);
 		return FALSE;
 	}
 
@@ -608,21 +608,21 @@ codec_get			(rte_context *		context,
 	d4l_context *dx = DX (context);
 	rte_codec *codec = &dx->codec;
 
-	if (codec->_class->_public.stream_type == stream_type
+	if (codec->_class->_public->stream_type == stream_type
 	    && codec->stream_index == stream_index)
 		return codec;
 
 	return NULL;
 }
 
-static rte_codec_class
-d4l_codec = {
-        ._public = {
-		.stream_type	= RTE_STREAM_VIDEO,
-		.keyword	= "divx4_video",
-		.label		= N_("DivX 4.x Video"),
-	},
+static rte_codec_info
+d4l_info = {
+	.stream_type	= RTE_STREAM_VIDEO,
+	.keyword	= "divx4_video",
+	.label		= N_("DivX 4.x Video"),
 };
+
+static rte_codec_class d4l_codec = { ._public = &d4l_info };
 
 static rte_codec *
 codec_set			(rte_context *		context,
@@ -657,9 +657,9 @@ codec_set			(rte_context *		context,
 	}
 
 	if (keyword) {
-		if (strcmp (d4l_codec._public.keyword, keyword) != 0) {
+		if (strcmp (d4l_codec._public->keyword, keyword) != 0) {
 			rte_error_printf (&dx->context, "'%s' is no codec of the %s context.",
-				          keyword, dx->context._class->_public.keyword);
+				          keyword, dx->context._class->_public->keyword);
 			return NULL;
 		}
 
@@ -690,7 +690,7 @@ codec_enum			(rte_context *		context,
 	if (index != 0)
 		return NULL;
 
-	return &d4l_codec._public;
+	return d4l_codec._public;
 }
 
 static void
@@ -714,7 +714,7 @@ context_delete			(rte_context *		context)
 
 	if (dx->codec_set)
 		codec_set (&dx->context, NULL,
-			   codec->_class->_public.stream_type,
+			   codec->_class->_public->stream_type,
 			   codec->stream_index);
 
 	pthread_mutex_destroy (&dx->context.mutex);
@@ -746,17 +746,20 @@ context_new			(rte_context_class *	xc,
 
 /* Backend initialization */
 
+static rte_context_info
+divx_info = {
+	.backend		= "divx4linux",
+	.keyword		= "divx4linux_video",
+	.label			= N_("DivX Video Elementary Stream"),
+	.mime_type		= "video/x-mpeg",
+	.extension		= ".divx",
+	.min_elementary		= { 0, 1, 0 },
+	.max_elementary		= { 0, 1, 0 },
+};
+
 static rte_context_class
 divx_context = {
-	._public = {
-		.backend		= "divx4linux",
-		.keyword		= "divx4linux_video",
-		.label			= N_("DivX Video Elementary Stream"),
-		.mime_type		= "video/x-mpeg",
-		.extension		= ".divx",
-		.min_elementary		= { 0, 1, 0 },
-		.max_elementary		= { 0, 1, 0 },
-	},
+	._public		= &divx_info,
 
 	.codec_enum		= codec_enum,
 	.codec_get		= codec_get,
@@ -814,8 +817,8 @@ backend_init			(void)
 	divx_context._delete = context_delete;
 
 	if (encore_vers >= ENCORE5_VERSION) {
-		d4l_codec._public.keyword = "divx5_video";
-		d4l_codec._public.label	= N_("DivX 5.x Video");
+		d4l_codec._public->keyword = "divx5_video";
+		d4l_codec._public->label = N_("DivX 5.x Video");
 	}
 
 	dprintf ("backend_init ok, divx version %d\n", encore_vers);

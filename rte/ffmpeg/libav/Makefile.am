@@ -4,7 +4,6 @@ noinst_LTLIBRARIES = libav.la
 
 INCLUDES = -D_REENTRANT -DHAVE_AV_CONFIG_H \
 	-Wall -Wunused -Wmissing-declarations
-# -I$(srcdir)/../libavcodec
 
 libav_la_SOURCES = \
 	asf.c au.c avformat.h avi.h avidec.c avienc.c avio.c \

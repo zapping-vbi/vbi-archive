@@ -26,9 +26,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: rte 0.5cvs\n"
-"POT-Creation-Date: 2002-10-02 01:36+0200\n"
-"PO-Revision-Date: 2002-09-26 09:02+0200\n"
+"Project-Id-Version: rte 0.5\n"
+"POT-Creation-Date: 2002-10-02 21:55+0200\n"
+"PO-Revision-Date: 2002-10-02 16:36+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "MIME-Version: 1.0\n"
@@ -63,8 +63,8 @@ msgstr ""
 
 #: mp1e/video/mpeg1.c:2433 mp1e/video/mpeg1.c:2455 mp1e/video/mpeg1.c:2460
 #: mp1e/video/mpeg1.c:2470 mp1e/video/mpeg1.c:2827 mp1e/audio/mp2.c:1161
-#: mp1e/b_mp1e.c:444 mp1e/b_mp1e.c:494 mp1e/b_mp1e.c:504 mp1e/b_mp1e.c:1094
-#: ffmpeg/b_ffmpeg.c:662 ffmpeg/b_ffmpeg.c:1424 ffmpeg/b_ffmpeg.c:1841
+#: mp1e/b_mp1e.c:444 mp1e/b_mp1e.c:494 mp1e/b_mp1e.c:504 mp1e/b_mp1e.c:1091
+#: ffmpeg/b_ffmpeg.c:662 ffmpeg/b_ffmpeg.c:1442 ffmpeg/b_ffmpeg.c:1869
 #: divx4linux/b_divx4linux.c:291 divx4linux/b_divx4linux.c:733
 msgid "Out of memory."
 msgstr "Out of memory."
@@ -227,15 +227,15 @@ msgstr "%u kbit/s"
 msgid "%u Hz"
 msgstr "%u Hz"
 
-#: mp1e/audio/mp2.c:1184 ffmpeg/b_ffmpeg.c:1206
+#: mp1e/audio/mp2.c:1183 ffmpeg/b_ffmpeg.c:1206
 msgid "MPEG-1 Audio Layer II"
 msgstr "MPEG-1 Audio Layer II"
 
-#: mp1e/audio/mp2.c:1203 ffmpeg/b_ffmpeg.c:1221
+#: mp1e/audio/mp2.c:1202 ffmpeg/b_ffmpeg.c:1222
 msgid "MPEG-2 Audio Layer II LSF"
 msgstr "MPEG-2 Audio Layer II LSF"
 
-#: mp1e/audio/mp2.c:1204 ffmpeg/b_ffmpeg.c:1222
+#: mp1e/audio/mp2.c:1203 ffmpeg/b_ffmpeg.c:1223
 msgid ""
 "MPEG-2 Low Sampling Frequency extension to MPEG-1 Audio Layer II. Be warned "
 "not all MPEG video and audio players support MPEG-2 audio."
@@ -259,33 +259,33 @@ msgstr "Insufficient resources to start codec thread.\n"
 msgid "Insufficient resources to start context thread.\n"
 msgstr "Insufficient resources to start context thread.\n"
 
-#: mp1e/b_mp1e.c:930 ffmpeg/b_ffmpeg.c:1513
+#: mp1e/b_mp1e.c:930 ffmpeg/b_ffmpeg.c:1531
 #, c-format
 msgid "Cannot create new codec instance '%s'. %s"
 msgstr "Cannot create new codec instance '%s'. %s"
 
-#: mp1e/b_mp1e.c:934 ffmpeg/b_ffmpeg.c:1518
+#: mp1e/b_mp1e.c:934 ffmpeg/b_ffmpeg.c:1536
 #, c-format
 msgid "Cannot create new codec instance '%s'."
 msgstr "Cannot create new codec instance '%s'."
 
-#: mp1e/b_mp1e.c:1000 ffmpeg/b_ffmpeg.c:1693
+#: mp1e/b_mp1e.c:999 ffmpeg/b_ffmpeg.c:1714
 msgid "MPEG-1 Program Stream"
 msgstr "MPEG-1 Program Stream"
 
-#: mp1e/b_mp1e.c:1012
+#: mp1e/b_mp1e.c:1009
 msgid "MPEG-1 VCD Program Stream"
 msgstr "MPEG-1 VCD Program Stream"
 
-#: mp1e/b_mp1e.c:1024 ffmpeg/b_ffmpeg.c:1668
+#: mp1e/b_mp1e.c:1019 ffmpeg/b_ffmpeg.c:1688
 msgid "MPEG Video Elementary Stream"
 msgstr "MPEG Video Elementary Stream"
 
-#: mp1e/b_mp1e.c:1036 ffmpeg/b_ffmpeg.c:1614
+#: mp1e/b_mp1e.c:1029 ffmpeg/b_ffmpeg.c:1631
 msgid "MPEG Audio Elementary Stream"
 msgstr "MPEG Audio Elementary Stream"
 
-#: mp1e/b_mp1e.c:1214
+#: mp1e/b_mp1e.c:1211
 msgid ""
 "MP1E backend requires MMX but the CPU type is unknown, backend disabled."
 msgstr ""
@@ -319,19 +319,19 @@ msgstr "Intra picture distance (M)"
 msgid "Predicted picture distance (N)"
 msgstr "Predicted picture distance (N)"
 
-#: ffmpeg/b_ffmpeg.c:1135
+#: ffmpeg/b_ffmpeg.c:1131
 msgid "PCM 16 Bit Signed Little Endian"
 msgstr "PCM 16 Bit Signed Little Endian"
 
-#: ffmpeg/b_ffmpeg.c:1149
+#: ffmpeg/b_ffmpeg.c:1146
 msgid "PCM 16 Bit Signed Big Endian"
 msgstr "PCM 16 Bit Signed Big Endian"
 
-#: ffmpeg/b_ffmpeg.c:1163
+#: ffmpeg/b_ffmpeg.c:1161
 msgid "PCM 8 Bit Unsigned"
 msgstr "PCM 8 Bit Unsigned"
 
-#: ffmpeg/b_ffmpeg.c:1177
+#: ffmpeg/b_ffmpeg.c:1176
 msgid "PCM a-Law"
 msgstr "PCM a-Law"
 
@@ -339,71 +339,71 @@ msgstr "PCM a-Law"
 msgid "PCM mu-Law"
 msgstr "PCM mu-Law"
 
-#: ffmpeg/b_ffmpeg.c:1239
+#: ffmpeg/b_ffmpeg.c:1241
 msgid "AC3 Audio"
 msgstr "AC3 Audio"
 
-#: ffmpeg/b_ffmpeg.c:1255
+#: ffmpeg/b_ffmpeg.c:1257
 msgid "MPEG-1 Video"
 msgstr "MPEG-1 Video"
 
-#: ffmpeg/b_ffmpeg.c:1271
+#: ffmpeg/b_ffmpeg.c:1274
 msgid "H.263 Video"
 msgstr "H.263 Video"
 
-#: ffmpeg/b_ffmpeg.c:1287
+#: ffmpeg/b_ffmpeg.c:1291
 msgid "H.263+ Video"
 msgstr "H.263+ Video"
 
-#: ffmpeg/b_ffmpeg.c:1303
+#: ffmpeg/b_ffmpeg.c:1308
 msgid "RealVideo 1.0"
 msgstr "RealVideo 1.0"
 
-#: ffmpeg/b_ffmpeg.c:1316
+#: ffmpeg/b_ffmpeg.c:1325
 msgid "Motion JPEG"
 msgstr "Motion JPEG"
 
-#: ffmpeg/b_ffmpeg.c:1332
+#: ffmpeg/b_ffmpeg.c:1339
 msgid "MPEG-4 Video"
 msgstr "MPEG-4 Video"
 
-#: ffmpeg/b_ffmpeg.c:1348
+#: ffmpeg/b_ffmpeg.c:1356
 msgid "MS MPEG-4 V1 Video"
 msgstr "MS MPEG-4 V1 Video"
 
-#: ffmpeg/b_ffmpeg.c:1364
+#: ffmpeg/b_ffmpeg.c:1373
 msgid "MS MPEG-4 V2 Video"
 msgstr "MS MPEG-4 V2 Video"
 
-#: ffmpeg/b_ffmpeg.c:1380
+#: ffmpeg/b_ffmpeg.c:1390
 msgid "MS MPEG-4 V3 (DivX;-) Video"
 msgstr "MS MPEG-4 V3 (DivX;-) Video"
 
-#: ffmpeg/b_ffmpeg.c:1589
+#: ffmpeg/b_ffmpeg.c:1605
 msgid "RIFF-WAVE Audio"
 msgstr "RIFF-WAVE Audio"
 
-#: ffmpeg/b_ffmpeg.c:1633
+#: ffmpeg/b_ffmpeg.c:1651
 msgid "Dolby AC3 Audio Elementary Stream"
 msgstr "Dolby AC3 Audio Elementary Stream"
 
-#: ffmpeg/b_ffmpeg.c:1650
+#: ffmpeg/b_ffmpeg.c:1669
 msgid "Sun AU Audio File"
 msgstr "Sun AU Audio File"
 
-#: ffmpeg/b_ffmpeg.c:1711
+#: ffmpeg/b_ffmpeg.c:1733
 msgid "Real Audio/Video Stream"
 msgstr "Real Audio/Video Stream"
 
-#: ffmpeg/b_ffmpeg.c:1730
+#: ffmpeg/b_ffmpeg.c:1753
 msgid "ASF Audio/Video Stream"
 msgstr "ASF Audio/Video Stream"
 
-#: ffmpeg/b_ffmpeg.c:1749
+#: ffmpeg/b_ffmpeg.c:1773
 msgid "Shockwave Animation"
 msgstr "Shockwave Animation"
 
-#: ffmpeg/b_ffmpeg.c:1768
+#: ffmpeg/b_ffmpeg.c:1793
 msgid "AVI File"
 msgstr "AVI File"
 
@@ -447,24 +447,24 @@ msgstr "Overlapped block motion compensation"
 msgid "Deinterlace"
 msgstr "Deinterlace"
 
-#: divx4linux/b_divx4linux.c:623
+#: divx4linux/b_divx4linux.c:622
 msgid "DivX 4.x Video"
 msgstr "DivX 4.x Video"
 
-#: divx4linux/b_divx4linux.c:754
+#: divx4linux/b_divx4linux.c:753
 msgid "DivX Video Elementary Stream"
 msgstr "DivX Video Elementary Stream"
 
-#: divx4linux/b_divx4linux.c:806
+#: divx4linux/b_divx4linux.c:809
 #, c-format
 msgid "Version %d not supported\n"
 msgstr "Version %d not supported\n"
 
-#: divx4linux/b_divx4linux.c:818
+#: divx4linux/b_divx4linux.c:821
 msgid "DivX 5.x Video"
 msgstr "DivX 5.x Video"
 
-#: divx4linux/b_divx4linux.c:832
+#: divx4linux/b_divx4linux.c:835
 #, c-format
 msgid "DivX4Linux library not available. %s\n"
 msgstr "DivX4Linux library not available. %s\n"

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.19 2002-10-02 02:18:02 mschimek Exp $ */
+/* $Id: rte.c,v 1.20 2002-10-02 20:58:50 mschimek Exp $ */
 
 #include "config.h"
 
@@ -455,12 +455,12 @@ whois(rte_context *context, rte_codec *codec)
 	char name[80];
 
 	if (codec) {
-		rte_codec_info *ci = &codec->_class->_public;
+		rte_codec_info *ci = codec->_class->_public;
 
 		snprintf(name, sizeof(name) - 1,
 			 "codec %s", ci->label ? _(ci->label) : ci->keyword);
 	} else if (context) {
-		rte_context_info *ci = &context->_class->_public;
+		rte_context_info *ci = context->_class->_public;
 
 		snprintf(name, sizeof(name) - 1,
 			 "context %s", ci->label ? _(ci->label) : ci->keyword);

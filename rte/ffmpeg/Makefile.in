@@ -113,6 +113,8 @@ install_sh = @install_sh@
 
 SUBDIRS = libav libavcodec
 
+noinst_LTLIBRARIES = libffmpeg.la
+
 EXTRA_DIST = README
 
 INCLUDES = -D_REENTRANT -D_GNU_SOURCE \
@@ -120,8 +122,6 @@ INCLUDES = -D_REENTRANT -D_GNU_SOURCE \
 
 
 # -I$(srcdir)/libavcodec
-noinst_LTLIBRARIES = libffmpeg.la
-
 libffmpeg_la_SOURCES = \
 	bswap.h mangle.h \
 	b_ffmpeg.c b_ffmpeg.h

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rtepriv.h,v 1.18 2002-09-26 20:47:35 mschimek Exp $ */
+/* $Id: rtepriv.h,v 1.19 2002-10-02 20:58:50 mschimek Exp $ */
 
 #ifndef __RTEPRIV_H__
 #define __RTEPRIV_H__
@@ -113,7 +113,7 @@ struct rte_backend_class {
 	 * Same behaviour as its frontend counterpart. Contexts (rather than
 	 * the entire backend) can be inactive due to lack of resources for
 	 * example, then this function must still return a valid
-	 * @p rte_context_class->_public.keyword so we can enumerate the
+	 * @p rte_context_class->_public->keyword so we can enumerate the
 	 * context and learn about its inavailability. Then @a errstr should
 	 * explain what the problem is and @p rte_context_class->_new shall
 	 * be @c NULL. Use rte_asprintf() to set @a errstr.

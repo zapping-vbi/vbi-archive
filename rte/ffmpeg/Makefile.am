@@ -2,13 +2,12 @@
 
 SUBDIRS = libav libavcodec
 
+noinst_LTLIBRARIES = libffmpeg.la
+
 EXTRA_DIST = README
 
 INCLUDES= -D_REENTRANT -D_GNU_SOURCE \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
-# -I$(srcdir)/libavcodec
-
-noinst_LTLIBRARIES = libffmpeg.la
 
 libffmpeg_la_SOURCES = \
 	bswap.h mangle.h \

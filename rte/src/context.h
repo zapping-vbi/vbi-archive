@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.h,v 1.8 2002-10-02 02:18:02 mschimek Exp $ */
+/* $Id: context.h,v 1.9 2002-10-02 20:58:50 mschimek Exp $ */
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
@@ -226,7 +226,7 @@ struct rte_context_class {
 	 * Backends can use this to store rte_context_info. The
 	 * field is not directly accessed by the frontend.
 	 */
-	rte_context_info	_public;
+	rte_context_info *	_public;
 
 	/**
 	 * Allocate new rte_context instance. Returns all fields zero except

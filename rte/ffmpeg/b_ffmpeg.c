@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.13 2002-10-02 02:18:02 mschimek Exp $ */
+/* $Id: b_ffmpeg.c,v 1.14 2002-10-02 20:58:49 mschimek Exp $ */
 
 #include <limits.h>
 #include "b_ffmpeg.h"
@@ -210,7 +210,7 @@ mainloop			(void *			p)
 
 		fd->str.codec.codec_id = fdc->av->id;
 
-		switch (fdc->rte._public.stream_type) {
+		switch (fdc->rte._public->stream_type) {
 		case RTE_STREAM_AUDIO:
 			fd->str.codec.codec_type = CODEC_TYPE_AUDIO;
 			ticker_init (&fd->pts_ticker,
@@ -295,7 +295,7 @@ mainloop			(void *			p)
 
 		/* increment PTS */
 
-		switch (fdc->rte._public.stream_type) {
+		switch (fdc->rte._public->stream_type) {
 		case RTE_STREAM_AUDIO:
 			fd->pts = ticker_tick (&fd->pts_ticker, fd->sample_index);
 			fd->sample_index += rb.size / (2 * fd->str.codec.channels);
@@ -318,7 +318,7 @@ mainloop			(void *			p)
 
 		/* encode packet */
 
-		switch (fdc->rte._public.stream_type) {
+		switch (fdc->rte._public->stream_type) {
 		case RTE_STREAM_AUDIO:
 			do_audio_out (fx, fd, rb.data, rb.size);
 			break;
@@ -390,7 +390,7 @@ stop				(rte_context *		context,
 
 	if (context->state != RTE_STATE_RUNNING) {
 		rte_error_printf (&fx->context, "Context %s not running.",
-				  fxc->rte._public.keyword);
+				  fxc->rte._public->keyword);
 		return FALSE;
 	}
 
@@ -453,13 +453,13 @@ start				(rte_context *		context,
 
 	case RTE_STATE_RUNNING:
 		rte_error_printf (&fx->context, "Context %s already running.",
-				  fxc->rte._public.keyword);
+				  fxc->rte._public->keyword);
 		return FALSE;
 
 	default:
 		rte_error_printf (&fx->context, "Cannot start context %s, "
 				  "initialization unfinished.",
-				  fxc->rte._public.keyword);
+				  fxc->rte._public->keyword);
 		return FALSE;
 	}
 
@@ -467,8 +467,8 @@ start				(rte_context *		context,
 		if (codec->state != RTE_STATE_READY) {
 			rte_error_printf (&fx->context, "Cannot start context %s, initialization "
 					  "of codec %s unfinished.",
-					  fxc->rte._public.keyword,
-					  codec->_class->_public.keyword);
+					  fxc->rte._public->keyword,
+					  codec->_class->_public->keyword);
 			return FALSE;
 		}
 
@@ -522,13 +522,13 @@ set_output			(rte_context *		context,
 
 	default:
 		rte_error_printf (&fx->context, "Cannot change %s output, context is busy.",
-				  fxc->rte._public.keyword);
+				  fxc->rte._public->keyword);
 		break;
 	}
 
 	if (!fx->codecs) {
 		rte_error_printf (context, "No codec allocated for context %s.",
-				  fxc->rte._public.keyword);
+				  fxc->rte._public->keyword);
 		return FALSE;
 	}
 
@@ -539,24 +539,24 @@ set_output			(rte_context *		context,
 		for (codec = fx->codecs; codec; codec = codec->next) {
 			rte_codec_class *dc = codec->_class;
 
-			if (dc->_public.stream_type != i)
+			if (dc->_public->stream_type != i)
 				continue;
 
 			if (codec->state != RTE_STATE_READY) {
 				rte_error_printf (&fx->context, "Codec %s, elementary stream #%d, "
 						  "initialization unfinished.",
-						  dc->_public.keyword, codec->stream_index);
+						  dc->_public->keyword, codec->stream_index);
 				return FALSE;
 			}
 
 			count++;
 		}
 
-		if (count < fxc->rte._public.min_elementary[i]) {
+		if (count < fxc->rte._public->min_elementary[i]) {
 			rte_error_printf (&fx->context, "Not enough elementary streams of rte stream type %d "
 					  "for context %s. %d required, %d allocated.",
-					  fxc->rte._public.keyword,
-					  fxc->rte._public.min_elementary[i], count);
+					  fxc->rte._public->keyword,
+					  fxc->rte._public->min_elementary[i], count);
 			return FALSE;
 		}
 	}
@@ -601,7 +601,7 @@ set_input			(rte_codec *		codec,
 
 	default:
 		rte_error_printf (context, "Cannot change %s input, codec is busy.",
-				  fdc->rte._public.keyword);
+				  fdc->rte._public->keyword);
 		break;
 	}
 
@@ -678,7 +678,7 @@ parameters_set			(rte_codec *		codec,
 	ffmpeg_codec_class *fdc = FDC (fd->codec._class);
 	struct AVCodecContext *avcc = &fd->str.codec;
 
-	switch (fdc->rte._public.stream_type) {
+	switch (fdc->rte._public->stream_type) {
 	case RTE_STREAM_AUDIO:
 		rsp->audio.sndfmt = (((int8_t *) &x)[0] == 1) ?
 			RTE_SNDFMT_S16_LE : RTE_SNDFMT_S16_BE; /* machine endian */
@@ -937,7 +937,7 @@ static struct {
 static const int num_options = sizeof(options) / sizeof(* options);
 
 #define KEYWORD(name) (strcmp(keyword, name) == 0)
-#define KEYOPT(type, name) ((fdc->options & type) && KEYWORD(name))
+#define KEYOPT(type, name) ((fdc->options & (type)) && KEYWORD(name))
 
 #define sprintf_intvec(vec, len, pre, label)				\
 	snprintf(buf, sizeof(buf), _(label),				\
@@ -997,25 +997,26 @@ option_get			(rte_codec *		codec,
         ffmpeg_codec_class *fdc = FDC(fd->codec._class);
 	rte_context *context = fd->codec.context;
 
-	if ((fdc->options & (OPTION_OPEN_SAMPLING |
-			     OPTION_MPEG1_SAMPLING |
-			     OPTION_MPEG2_SAMPLING |
-			     OPTION_AC3_SAMPLING))
-	    && KEYWORD("sampling_freq")) {
+	if (KEYOPT(OPTION_OPEN_SAMPLING |
+		   OPTION_MPEG1_SAMPLING |
+		   OPTION_MPEG2_SAMPLING |
+		   OPTION_AC3_SAMPLING, "sampling_freq")) {
 		v->num = fd->str.codec.sample_rate;
 	} else if (KEYOPT(OPTION_STEREO, "audio_mode")) {
 		v->num = fd->str.codec.channels - 1;
-	} else if ((fdc->options & (OPTION_MPEG1_AUDIO_BITRATE |
-				    OPTION_MPEG2_AUDIO_BITRATE |
-				    OPTION_AC3_BITRATE |
-				    OPTION_OPEN_BITRATE))) {
+	} else if (KEYOPT(OPTION_MPEG1_AUDIO_BITRATE |
+			  OPTION_MPEG2_AUDIO_BITRATE |
+			  OPTION_AC3_BITRATE |
+			  OPTION_OPEN_BITRATE, "bit_rate")) {
 		v->num = fd->str.codec.bit_rate;
 	} else if (KEYOPT(OPTION_MOTION_TYPE, "motion_estimation")) {
 		unsigned int i;
 
 		for (i = 0; i < 6; i++)
-			if (motion_type[i] == fd->str.codec.me_method)
+			if (motion_type[i] == fd->str.codec.me_method) {
 				v->num = i;
+				break;
+			}
 		assert (i < 6);
 	} else if (KEYOPT(OPTION_I_DIST, "i_dist")) {
 		v->num = fd->str.codec.gop_size;
@@ -1123,18 +1124,26 @@ extern AVCodec msmpeg4v1_encoder;
 extern AVCodec msmpeg4v2_encoder;
 extern AVCodec msmpeg4v3_encoder;
 
+static rte_codec_info
+pcm_s16le_info = {
+	.stream_type    = RTE_STREAM_AUDIO,
+	.keyword        = "pcm_s16le",
+	.label          = N_("PCM 16 Bit Signed Little Endian"),
+};
+
 ffmpeg_codec_class
 pcm_s16le_codec = {
 	.av 		= &pcm_s16le_encoder,
 	.options	= OPTION_OPEN_SAMPLING |
 			  OPTION_STEREO,
-        .rte = {
-		._public = {
-    			.stream_type    = RTE_STREAM_AUDIO,
-    			.keyword        = "pcm_s16le",
-            		.label          = N_("PCM 16 Bit Signed Little Endian"),
-    		},
-	},
+        .rte = { ._public = &pcm_s16le_info },
+};
+
+static rte_codec_info
+pcm_s16be_info = {
+	.stream_type    = RTE_STREAM_AUDIO,
+	.keyword        = "pcm_s16be",
+	.label          = N_("PCM 16 Bit Signed Big Endian"),
 };
 
 ffmpeg_codec_class
@@ -1142,13 +1151,14 @@ pcm_s16be_codec = {
 	.av 		= &pcm_s16be_encoder,
 	.options	= OPTION_OPEN_SAMPLING |
 			  OPTION_STEREO,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_AUDIO,
-			.keyword        = "pcm_s16be",
-			.label          = N_("PCM 16 Bit Signed Big Endian"),
-		},
-	},
+        .rte = { ._public = &pcm_s16be_info },
+};
+
+static rte_codec_info
+pcm_u8_info = {
+	.stream_type    = RTE_STREAM_AUDIO,
+	.keyword        = "pcm_u8",
+	.label          = N_("PCM 8 Bit Unsigned"),
 };
 
 ffmpeg_codec_class
@@ -1156,13 +1166,14 @@ pcm_u8_codec = {
 	.av		= &pcm_u8_encoder,
 	.options	= OPTION_OPEN_SAMPLING | 
 			  OPTION_STEREO,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_AUDIO,
-			.keyword        = "pcm_u8",
-			.label          = N_("PCM 8 Bit Unsigned"),
-		},
-	},
+        .rte = { ._public = &pcm_u8_info },
+};
+
+static rte_codec_info
+pcm_alaw_info = {
+	.stream_type    = RTE_STREAM_AUDIO,
+	.keyword        = "pcm_alaw",
+	.label          = N_("PCM a-Law"),
 };
 
 ffmpeg_codec_class
@@ -1170,13 +1181,14 @@ pcm_alaw_codec = {
 	.av		= &pcm_alaw_encoder,
 	.options	= OPTION_OPEN_SAMPLING | 
 			  OPTION_STEREO,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_AUDIO,
-			.keyword        = "pcm_alaw",
-			.label          = N_("PCM a-Law"),
-		},
-	},
+        .rte = { ._public = &pcm_alaw_info },
+};
+
+static rte_codec_info
+pcm_mulaw_info = {
+	.stream_type    = RTE_STREAM_AUDIO,
+	.keyword        = "pcm_mulaw",
+	.label          = N_("PCM mu-Law"),
 };
 
 ffmpeg_codec_class
@@ -1184,13 +1196,14 @@ pcm_mulaw_codec = {
 	.av		= &pcm_mulaw_encoder,
 	.options	= OPTION_OPEN_SAMPLING | 
 			  OPTION_STEREO,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_AUDIO,
-			.keyword        = "pcm_mulaw",
-			.label          = N_("PCM mu-Law"),
-		},
-	},
+        .rte = { ._public = &pcm_mulaw_info },
+};
+
+static rte_codec_info
+mpeg1_mp2_info = {
+	.stream_type    = RTE_STREAM_AUDIO,
+	.keyword        = "mpeg1_audio_layer2",
+	.label          = N_("MPEG-1 Audio Layer II"),
 };
 
 ffmpeg_codec_class
@@ -1199,13 +1212,17 @@ mpeg1_mp2_codec = {
 	.options	= OPTION_MPEG1_AUDIO_BITRATE |
 			  OPTION_MPEG1_SAMPLING |
 			  OPTION_STEREO,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_AUDIO,
-			.keyword        = "mpeg1_audio_layer2",
-			.label          = N_("MPEG-1 Audio Layer II"),
-		},
-	},
+        .rte = { ._public = &mpeg1_mp2_info },
+};
+
+static rte_codec_info
+mpeg2_mp2_info = {
+	.stream_type    = RTE_STREAM_AUDIO,
+	.keyword        = "mpeg2_audio_layer2",
+	.label          = N_("MPEG-2 Audio Layer II LSF"),
+	.tooltip	= N_("MPEG-2 Low Sampling Frequency extension to MPEG-1 "
+			     "Audio Layer II. Be warned not all MPEG video and "
+			     "audio players support MPEG-2 audio."),
 };
 
 ffmpeg_codec_class
@@ -1214,16 +1231,14 @@ mpeg2_mp2_codec = {
 	.options	= OPTION_MPEG2_AUDIO_BITRATE |
 			  OPTION_MPEG2_SAMPLING |
 			  OPTION_STEREO,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_AUDIO,
-			.keyword        = "mpeg2_audio_layer2",
-			.label          = N_("MPEG-2 Audio Layer II LSF"),
-			.tooltip	= N_("MPEG-2 Low Sampling Frequency extension to MPEG-1 "
-					     "Audio Layer II. Be warned not all MPEG video and "
-					     "audio players support MPEG-2 audio."),
-		},
-	},
+        .rte = { ._public = &mpeg2_mp2_info },
+};
+
+static rte_codec_info
+ac3_info = {
+	.stream_type    = RTE_STREAM_AUDIO,
+	.keyword        = "ac3_audio",
+	.label          = N_("AC3 Audio"),
 };
 
 ffmpeg_codec_class
@@ -1232,13 +1247,14 @@ ac3_codec = {
 	.options	= OPTION_AC3_BITRATE |
 			  OPTION_AC3_SAMPLING |
 			  OPTION_STEREO,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_AUDIO,
-			.keyword        = "ac3_audio",
-			.label          = N_("AC3 Audio"),
-		},
-	},
+        .rte = { ._public = &ac3_info },
+};
+
+static rte_codec_info
+mpeg1_info = {
+	.stream_type    = RTE_STREAM_VIDEO,
+	.keyword        = "mpeg1_video",
+	.label          = N_("MPEG-1 Video"),
 };
 
 ffmpeg_codec_class
@@ -1248,13 +1264,14 @@ mpeg1_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_VIDEO,
-			.keyword        = "mpeg1_video",
-			.label          = N_("MPEG-1 Video"),
-		},
-	},
+        .rte = { ._public = &mpeg1_info },
+};
+
+static rte_codec_info
+h263_info = {
+	.stream_type    = RTE_STREAM_VIDEO,
+	.keyword        = "h263_video",
+	.label          = N_("H.263 Video"),
 };
 
 ffmpeg_codec_class
@@ -1264,13 +1281,14 @@ h263_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_VIDEO,
-			.keyword        = "h263_video",
-			.label          = N_("H.263 Video"),
-		},
-	},
+        .rte = { ._public = &h263_info },
+};
+
+static rte_codec_info
+h263p_info = {
+	.stream_type    = RTE_STREAM_VIDEO,
+	.keyword        = "h263p_video",
+	.label          = N_("H.263+ Video"),
 };
 
 ffmpeg_codec_class
@@ -1280,13 +1298,14 @@ h263p_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_VIDEO,
-			.keyword        = "h263p_video",
-			.label          = N_("H.263+ Video"),
-		},
-	},
+        .rte = { ._public = &h263p_info },
+};
+
+static rte_codec_info
+rv10_info = {
+	.stream_type    = RTE_STREAM_VIDEO,
+	.keyword        = "rv10_video",
+	.label          = N_("RealVideo 1.0"),
 };
 
 ffmpeg_codec_class
@@ -1296,26 +1315,28 @@ rv10_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_VIDEO,
-			.keyword        = "rv10_video",
-			.label          = N_("RealVideo 1.0"),
-		},
-	},
+        .rte = { ._public = &rv10_info },
+};
+
+static rte_codec_info
+mjpeg_info = {
+	.stream_type    = RTE_STREAM_VIDEO,
+	.keyword        = "mjpeg_video",
+	.label          = N_("Motion JPEG"),
 };
 
 ffmpeg_codec_class
 mjpeg_codec = {
 	.av		= &mjpeg_encoder,
 	.options	= OPTION_OPEN_BITRATE,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_VIDEO,
-			.keyword        = "mjpeg_video",
-			.label          = N_("Motion JPEG"),
-		},
-	},
+        .rte = { ._public = &mjpeg_info },
+};
+
+static rte_codec_info
+mpeg4_info = {
+	.stream_type    = RTE_STREAM_VIDEO,
+	.keyword        = "mpeg4_video",
+	.label          = N_("MPEG-4 Video"),
 };
 
 ffmpeg_codec_class
@@ -1325,13 +1346,14 @@ mpeg4_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_VIDEO,
-			.keyword        = "mpeg4_video",
-			.label          = N_("MPEG-4 Video"),
-		},
-	},
+        .rte = { ._public = &mpeg4_info },
+};
+
+static rte_codec_info
+msmpeg4v1_info = {
+	.stream_type    = RTE_STREAM_VIDEO,
+	.keyword        = "msmpeg4v1_video",
+	.label          = N_("MS MPEG-4 V1 Video"),
 };
 
 ffmpeg_codec_class
@@ -1341,13 +1363,14 @@ msmpeg4v1_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_VIDEO,
-			.keyword        = "msmpeg4v1_video",
-			.label          = N_("MS MPEG-4 V1 Video"),
-		},
-	},
+        .rte = { ._public = &msmpeg4v1_info },
+};
+
+static rte_codec_info
+msmpeg4v2_info = {
+	.stream_type    = RTE_STREAM_VIDEO,
+	.keyword        = "msmpeg4v2_video",
+	.label          = N_("MS MPEG-4 V2 Video"),
 };
 
 ffmpeg_codec_class
@@ -1357,13 +1380,14 @@ msmpeg4v2_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_VIDEO,
-			.keyword        = "msmpeg4v2_video",
-			.label          = N_("MS MPEG-4 V2 Video"),
-		},
-	},
+        .rte = { ._public = &msmpeg4v2_info },
+};
+
+static rte_codec_info
+msmpeg4v3_info = {
+	.stream_type    = RTE_STREAM_VIDEO,
+	.keyword        = "msmpeg4v3_video",
+	.label          = N_("MS MPEG-4 V3 (DivX;-) Video"),
 };
 
 ffmpeg_codec_class
@@ -1373,13 +1397,7 @@ msmpeg4v3_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte = {
-		._public = {
-			.stream_type    = RTE_STREAM_VIDEO,
-			.keyword        = "msmpeg4v3_video",
-			.label          = N_("MS MPEG-4 V3 (DivX;-) Video"),
-		},
-	},
+        .rte = { ._public = &msmpeg4v3_info },
 };
 
 static void
@@ -1445,7 +1463,7 @@ codec_get			(rte_context *		context,
 	rte_codec *codec;
 
 	for (codec = fx->codecs; codec; codec = codec->next)
-		if (codec->_class->_public.stream_type == stream_type
+		if (codec->_class->_public->stream_type == stream_type
 		    && codec->stream_index == stream_index)
 			return codec;
 
@@ -1469,10 +1487,10 @@ codec_set			(rte_context *		context,
 		fdc = FDC(old->_class);
 
 		if (keyword) {
-			if (strcmp(fdc->rte._public.keyword, keyword) == 0)
+			if (strcmp(fdc->rte._public->keyword, keyword) == 0)
 				break;
 		} else {
-			if (fdc->rte._public.stream_type == stream_type
+			if (fdc->rte._public->stream_type == stream_type
 			    && old->stream_index == stream_index)
 				break;
 		}
@@ -1484,17 +1502,17 @@ codec_set			(rte_context *		context,
 		int max_elem;
 
 		for (i = 0; (fdc = fxc->codecs[i]); i++)
-			if (strcmp(fdc->rte._public.keyword, keyword) == 0)
+			if (strcmp(fdc->rte._public->keyword, keyword) == 0)
 				break;
 
 		if (!fdc) {
 			rte_error_printf(&fx->context, "'%s' is no codec of the %s encoder.",
-					 keyword, fxc->rte._public.keyword);
+					 keyword, fxc->rte._public->keyword);
 			return NULL;
 		}
 
-		stream_type = fdc->rte._public.stream_type;
-		max_elem = fxc->rte._public.max_elementary[stream_type];
+		stream_type = fdc->rte._public->stream_type;
+		max_elem = fxc->rte._public->max_elementary[stream_type];
 
 		assert(max_elem > 0);
 
@@ -1502,8 +1520,8 @@ codec_set			(rte_context *		context,
 			rte_error_printf(&fx->context, "'%s' selected for "
 					 "elementary stream %d of %s encoder, "
 					 "but only %d available.",
-					 fdc->rte._public.keyword, stream_index,
-					 fxc->rte._public.keyword, max_elem);
+					 fdc->rte._public->keyword, stream_index,
+					 fxc->rte._public->keyword, max_elem);
 			return NULL;
 		}
 
@@ -1511,12 +1529,12 @@ codec_set			(rte_context *		context,
 			if (error) {
 				rte_error_printf(&fx->context,
 						 _("Cannot create new codec instance '%s'. %s"),
-						 fdc->rte._public.keyword, error);
+						 fdc->rte._public->keyword, error);
 				free(error);
 			} else {
 				rte_error_printf(&fx->context,
 						 _("Cannot create new codec instance '%s'."),
-						 fdc->rte._public.keyword);
+						 fdc->rte._public->keyword);
 			}
 
 			return NULL;
@@ -1567,7 +1585,7 @@ codec_enum			(rte_context *		context,
 		else if (i >= index)
 			break;
 
-	return &fxc->codecs[i]->rte._public;
+	return fxc->codecs[i]->rte._public;
 }
 
 extern AVFormat wav_format;
@@ -1581,17 +1599,18 @@ extern AVFormat asf_format;
 extern AVFormat swf_format;
 extern AVFormat avi_format;
 
+static rte_context_info
+ffmpeg_riff_wave_info = {
+	.keyword	= "ffmpeg_riff_wave",
+	.label		= N_("RIFF-WAVE Audio"),
+	.min_elementary	= { 0, 0, 1 },
+	.max_elementary	= { 0, 0, 1 },
+	.flags		= RTE_FLAG_SEEKS,
+};
+
 static ffmpeg_context_class
 ffmpeg_riff_wave_context = {
-	.rte = {
-		._public = {
-			.keyword	= "ffmpeg_riff_wave",
-			.label		= N_("RIFF-WAVE Audio"),
-			.min_elementary	= { 0, 0, 1 },
-			.max_elementary	= { 0, 0, 1 },
-			.flags		= RTE_FLAG_SEEKS,
-		},
-	},
+	.rte = { ._public = &ffmpeg_riff_wave_info },
 	.av = &wav_format,
 	.codecs = {
 		&mpeg1_mp2_codec,
@@ -1606,16 +1625,17 @@ ffmpeg_riff_wave_context = {
 	}
 };
 
+static rte_context_info
+ffmpeg_mpeg_audio_info = {
+	.keyword	= "ffmpeg_mpeg_audio",
+	.label		= N_("MPEG Audio Elementary Stream"),
+	.min_elementary	= { 0, 0, 1 },
+	.max_elementary	= { 0, 0, 1 },
+};
+
 static ffmpeg_context_class
 ffmpeg_mpeg_audio_context = {
-	.rte = {
-		._public = {
-			.keyword	= "ffmpeg_mpeg_audio",
-			.label		= N_("MPEG Audio Elementary Stream"),
-			.min_elementary	= { 0, 0, 1 },
-			.max_elementary	= { 0, 0, 1 },
-		},
-	},
+	.rte = { ._public = &ffmpeg_mpeg_audio_info },
 	.av = &mp2_format,
 	.codecs = {
 		&mpeg1_mp2_codec,
@@ -1625,16 +1645,17 @@ ffmpeg_mpeg_audio_context = {
 	}
 };
 
+static rte_context_info
+ffmpeg_ac3_audio_info = {
+	.keyword	= "ffmpeg_ac3_audio",
+	.label		= N_("Dolby AC3 Audio Elementary Stream"),
+	.min_elementary	= { 0, 0, 1 },
+	.max_elementary	= { 0, 0, 1 },
+};
+
 static ffmpeg_context_class
 ffmpeg_ac3_audio_context = {
-	.rte = {
-		._public = {
-			.keyword	= "ffmpeg_ac3_audio",
-			.label		= N_("Dolby AC3 Audio Elementary Stream"),
-			.min_elementary	= { 0, 0, 1 },
-			.max_elementary	= { 0, 0, 1 },
-		},
-	},
+	.rte = { ._public = &ffmpeg_ac3_audio_info },
 	.av = &ac3_format,
 	.codecs = {
 		&ac3_codec,
@@ -1642,17 +1663,18 @@ ffmpeg_ac3_audio_context = {
 	}
 };
 
+static rte_context_info
+ffmpeg_au_audio_info = {
+	.keyword	= "ffmpeg_au_audio",
+	.label		= N_("Sun AU Audio File"),
+	.min_elementary	= { 0, 0, 1 },
+	.max_elementary	= { 0, 0, 1 },
+	.flags		= RTE_FLAG_SEEKS,
+};
+
 static ffmpeg_context_class
 ffmpeg_au_audio_context = {
-	.rte = {
-		._public = {
-			.keyword	= "ffmpeg_au_audio",
-			.label		= N_("Sun AU Audio File"),
-			.min_elementary	= { 0, 0, 1 },
-			.max_elementary	= { 0, 0, 1 },
-			.flags		= RTE_FLAG_SEEKS,
-		},
-	},
+	.rte = { ._public = &ffmpeg_au_audio_info },
 	.av = &au_format,
 	.codecs = {
 		&pcm_s16be_codec,
@@ -1660,16 +1682,17 @@ ffmpeg_au_audio_context = {
 	}
 };
 
+static rte_context_info
+ffmpeg_mpeg_video_info = {
+	.keyword	= "ffmpeg_mpeg_video",
+	.label		= N_("MPEG Video Elementary Stream"),
+	.min_elementary	= { 0, 1, 0 },
+	.max_elementary	= { 0, 1, 0 },
+};
+
 static ffmpeg_context_class
 ffmpeg_mpeg_video_context = {
-	.rte = {
-		._public = {
-			.keyword	= "ffmpeg_mpeg_video",
-			.label		= N_("MPEG Video Elementary Stream"),
-			.min_elementary	= { 0, 1, 0 },
-			.max_elementary	= { 0, 1, 0 },
-		},
-	},
+	.rte = { ._public = &ffmpeg_mpeg_video_info },
 	.av = &mpeg1video_format,
 	.codecs = {
 		&mpeg1_codec,
@@ -1685,16 +1708,17 @@ ffmpeg_mpeg_video_context = {
 	}
 };
 
+static rte_context_info
+ffmpeg_mpeg1_info = {
+	.keyword	= "ffmpeg_mpeg1_ps",
+	.label		= N_("MPEG-1 Program Stream"),
+	.min_elementary	= { 0, 1, 1 },
+	.max_elementary	= { 0, 1, 1 },
+};
+
 static ffmpeg_context_class
 ffmpeg_mpeg1_context = {
-	.rte = {
-		._public = {
-			.keyword	= "ffmpeg_mpeg1_ps",
-			.label		= N_("MPEG-1 Program Stream"),
-			.min_elementary	= { 0, 1, 1 },
-			.max_elementary	= { 0, 1, 1 },
-		},
-	},
+	.rte = { ._public = &ffmpeg_mpeg1_info },
 	.av = &mpeg_mux_format,
 	.codecs = {
 		&mpeg1_codec,
@@ -1703,17 +1727,18 @@ ffmpeg_mpeg1_context = {
 	}
 };
 
+static rte_context_info
+ffmpeg_real_info = {
+	.keyword	= "ffmpeg_real",
+	.label		= N_("Real Audio/Video Stream"),
+	.min_elementary	= { 0, 1, 1 },
+	.max_elementary	= { 0, 1, 1 },
+	.flags		= RTE_FLAG_SEEKS,
+};
+
 static ffmpeg_context_class
 ffmpeg_real_context = {
-	.rte = {
-		._public = {
-			.keyword	= "ffmpeg_real",
-			.label		= N_("Real Audio/Video Stream"),
-			.min_elementary	= { 0, 1, 1 },
-			.max_elementary	= { 0, 1, 1 },
-			.flags		= RTE_FLAG_SEEKS,
-		},
-	},
+	.rte = { ._public = &ffmpeg_real_info },
 	.av = &rm_format,
 	.codecs = {
 		&rv10_codec,
@@ -1722,17 +1747,18 @@ ffmpeg_real_context = {
 	}
 };
 
+static rte_context_info
+ffmpeg_asf_info = {
+	.keyword	= "ffmpeg_asf",
+	.label		= N_("ASF Audio/Video Stream"),
+	.min_elementary	= { 0, 1, 1 },
+	.max_elementary	= { 0, 1, 1 },
+	.flags		= RTE_FLAG_SEEKS,
+};
+
 static ffmpeg_context_class
 ffmpeg_asf_context = {
-	.rte = {
-		._public = {
-			.keyword	= "ffmpeg_asf",
-			.label		= N_("ASF Audio/Video Stream"),
-			.min_elementary	= { 0, 1, 1 },
-			.max_elementary	= { 0, 1, 1 },
-			.flags		= RTE_FLAG_SEEKS,
-		},
-	},
+	.rte = { ._public = &ffmpeg_asf_info },
 	.av = &asf_format,
 	.codecs = {
 		&msmpeg4v3_codec,
@@ -1741,17 +1767,18 @@ ffmpeg_asf_context = {
 	}
 };
 
+static rte_context_info
+ffmpeg_swf_info = {
+	.keyword	= "ffmpeg_swf",
+	.label		= N_("Shockwave Animation"),
+	.min_elementary	= { 0, 1, 1 },
+	.max_elementary	= { 0, 1, 1 },
+	.flags		= RTE_FLAG_SEEKS,
+};
+
 static ffmpeg_context_class
 ffmpeg_swf_context = {
-	.rte = {
-		._public = {
-			.keyword	= "ffmpeg_swf",
-			.label		= N_("Shockwave Animation"),
-			.min_elementary	= { 0, 1, 1 },
-			.max_elementary	= { 0, 1, 1 },
-			.flags		= RTE_FLAG_SEEKS,
-		},
-	},
+	.rte = { ._public = &ffmpeg_swf_info },
 	.av = &swf_format,
 	.codecs = {
 		&mjpeg_codec,
@@ -1760,17 +1787,18 @@ ffmpeg_swf_context = {
 	}
 };
 
+static rte_context_info
+ffmpeg_avi_info = {
+	.keyword	= "ffmpeg_avi",
+	.label		= N_("AVI File"),
+	.min_elementary	= { 0, 1, 1 },
+	.max_elementary	= { 0, 1, 1 },
+	.flags		= RTE_FLAG_SEEKS,
+};
+
 static ffmpeg_context_class
 ffmpeg_avi_context = {
-	.rte = {
-		._public = {
-			.keyword	= "ffmpeg_avi",
-			.label		= N_("AVI File"),
-			.min_elementary	= { 0, 1, 1 },
-			.max_elementary	= { 0, 1, 1 },
-			.flags		= RTE_FLAG_SEEKS,
-		},
-	},
+	.rte = { ._public = &ffmpeg_avi_info },
 	.av = &avi_format,
 	.codecs = {
 		&msmpeg4v3_codec,
@@ -1821,7 +1849,7 @@ context_delete			(rte_context *		context)
 
 		codec_set (&fx->context,
 			   NULL,
-			   codec->_class->_public.stream_type,
+			   codec->_class->_public->stream_type,
 			   codec->stream_index);
 	}
 
@@ -1876,10 +1904,10 @@ backend_init			(void)
 		ffmpeg_context_class *fxc = context_table[i];
 		rte_context_class *xc = &fxc->rte;
 
-		xc->_public.backend	= "ffmpeg 0.4.6";
+		xc->_public->backend	= "ffmpeg 0.4.6";
 
-		xc->_public.mime_type	= fxc->av->mime_type;
-		xc->_public.extension	= fxc->av->extensions;
+		xc->_public->mime_type	= fxc->av->mime_type;
+		xc->_public->extension	= fxc->av->extensions;
 		
 		xc->_new		= context_new;
 		xc->_delete		= context_delete;

@@ -17,13 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.20 2002-10-02 02:13:22 mschimek Exp $ */
+/* $Id: options.c,v 1.21 2002-10-02 20:55:17 mschimek Exp $ */
 
 #include "site_def.h"
-
-#ifdef HAVE_CONFIG_H
-//#  include "config.h"
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>

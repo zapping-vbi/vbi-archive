@@ -8049,10 +8049,10 @@ cat >>confdefs.h <<\_ACEOF
 #define CONFIG_ENCODERS 1
 _ACEOF
 
+                  fi
 
                                           ac_config_files="$ac_config_files ffmpeg/Makefile ffmpeg/libav/Makefile ffmpeg/libavcodec/Makefile ffmpeg/libavcodec/i386/Makefile"
 
-fi
 
 BACKEND_DIVX4LINUX=no
 

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.h,v 1.8 2002-10-02 02:18:02 mschimek Exp $ */
+/* $Id: codec.h,v 1.9 2002-10-02 20:58:49 mschimek Exp $ */
 
 #ifndef CODEC_H
 #define CODEC_H
@@ -523,7 +523,7 @@ struct rte_codec_class {
 	 * Codecs can use this to store rte_codec_info, the
 	 * field is not directly accessed by the frontend.
 	 */
-	rte_codec_info		_public;
+	rte_codec_info *	_public;
 
 	/**
 	 * Allocate new codec instance. Returns all fields zero except

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.43 2002-10-02 02:13:22 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.44 2002-10-02 20:55:17 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -132,7 +132,7 @@ stop(rte_context *context, double timestamp)
 
 	if (context->state != RTE_STATE_RUNNING) {
 		rte_error_printf(context, "Context %s not running.",
-				 xc->_public.keyword);
+				 xc->_public->keyword);
 		return FALSE;
 	}
 
@@ -181,12 +181,12 @@ start(rte_context *context, double timestamp,
 
 	case RTE_STATE_RUNNING:
 		rte_error_printf(context, "Context %s already running.",
-				 xc->_public.keyword);
+				 xc->_public->keyword);
 		return FALSE;
 
 	default:
 		rte_error_printf(context, "Cannot start context %s, initialization unfinished.",
-				 xc->_public.keyword);
+				 xc->_public->keyword);
 		return FALSE;
 	}
 
@@ -227,12 +227,12 @@ start(rte_context *context, double timestamp,
 			} else */ if (!ref) {
 				/* first stream, any */
 				ref = codec;
-			} else if (codec->_class->_public.stream_type
-				   == ref->_class->_public.stream_type) {
+			} else if (codec->_class->_public->stream_type
+				   == ref->_class->_public->stream_type) {
 				/* lowest index, any */
 				if (codec->stream_index < ref->stream_index)
 					ref = codec;
-			} else if (codec->_class->_public.stream_type == RTE_STREAM_VIDEO) {
+			} else if (codec->_class->_public->stream_type == RTE_STREAM_VIDEO) {
 				/* video preferred */
 				ref = codec;
 			}
@@ -248,7 +248,7 @@ start(rte_context *context, double timestamp,
 
 			error = -1;
 
-			switch (dc->_public.stream_type) {
+			switch (dc->_public->stream_type) {
 			case RTE_STREAM_VIDEO:
 				error = pthread_create(&md->thread_id, NULL,
 						       mp1e_mpeg1, &md->codec);
@@ -390,13 +390,13 @@ set_output(rte_context *context,
 
 	default:
 		rte_error_printf(context, "Cannot change %s output, context is busy.",
-				 xc->_public.keyword);
+				 xc->_public->keyword);
 		break;
 	}
 
 	if (!mx->codecs) {
 		rte_error_printf(context, "No codec allocated for context %s.",
-				 xc->_public.keyword);
+				 xc->_public->keyword);
 		return FALSE;
 	}
 
@@ -407,13 +407,13 @@ set_output(rte_context *context,
 		for (codec = mx->codecs; codec; codec = codec->next) {
 			rte_codec_class *dc = codec->_class;
 
-			if (dc->_public.stream_type != i)
+			if (dc->_public->stream_type != i)
 				continue;
 
 			if (codec->state != RTE_STATE_READY) {
 				rte_error_printf(context, "Codec %s, elementary stream #%d, "
 						 "initialization unfinished.",
-						 dc->_public.keyword, codec->stream_index);
+						 dc->_public->keyword, codec->stream_index);
 				return FALSE;
 			}
 
@@ -422,10 +422,10 @@ set_output(rte_context *context,
 			count++;
 		}
 
-		if (count < xc->_public.min_elementary[i]) {
+		if (count < xc->_public->min_elementary[i]) {
 			rte_error_printf(context, "Not enough elementary streams of rte stream type %d "
 					 "for context %s. %d required, %d allocated.",
-					 xc->_public.keyword, xc->_public.min_elementary[i], count);
+					 xc->_public->keyword, xc->_public->min_elementary[i], count);
 			return FALSE;
 		}
 	}
@@ -434,7 +434,7 @@ set_output(rte_context *context,
 		mp1e_codec *md = MD(mx->codecs);
 		rte_codec_class *dc = md->codec._class;
 
-		snprintf(buf, sizeof(buf) - 1, "%s-output-cp", dc->_public.keyword);
+		snprintf(buf, sizeof(buf) - 1, "%s-output-cp", dc->_public->keyword);
 		queue = init_callback_fifo(&md->out_fifo, buf,
 					   NULL, send_full_cp, NULL, NULL,
 					   md->io_stack_size,
@@ -464,7 +464,7 @@ set_output(rte_context *context,
 			mp1e_codec *md = MD(codec);
 			rte_codec_class *dc = md->codec._class;
 
-			switch (dc->_public.stream_type) {
+			switch (dc->_public->stream_type) {
 			case RTE_STREAM_VIDEO:
 				md->output = mux_add_input_stream(&mx->mux,
 					VIDEO_STREAM + md->codec.stream_index,
@@ -593,7 +593,7 @@ push_buffer(rte_codec *codec, rte_buffer *wb, rte_bool blocking)
 
 	if (md->codec.state != RTE_STATE_RUNNING) {
 		rte_error_printf(codec->context, "Codec %s not running.",
-				 codec->_class->_public.keyword);
+				 codec->_class->_public->keyword);
 		return FALSE;
 	}
 
@@ -685,7 +685,7 @@ set_input(rte_codec *codec, rte_io_method input_method,
 
 	default:
 		rte_error_printf(context, "Cannot change %s input, codec is busy.",
-				 dc->_public.keyword);
+				 dc->_public->keyword);
 		break;
 	}
 
@@ -699,7 +699,7 @@ set_input(rte_codec *codec, rte_io_method input_method,
 	switch (input_method) {
 	case RTE_CALLBACK_MASTER:
 		queue = MAX(*queue_length, md->io_stack_size);
-		snprintf(buf, sizeof(buf) - 1, "%s-input-ca", dc->_public.keyword);
+		snprintf(buf, sizeof(buf) - 1, "%s-input-ca", dc->_public->keyword);
 		queue = init_callback_fifo(&md->in_fifo, buf, NULL, NULL,
 					   wait_full_ca, send_empty_ca,
 					   md->io_stack_size, 0);
@@ -707,7 +707,7 @@ set_input(rte_codec *codec, rte_io_method input_method,
 
 	case RTE_CALLBACK_SLAVE:
 		queue = MAX(*queue_length, md->io_stack_size);
-		snprintf(buf, sizeof(buf) - 1, "%s-input-cp", dc->_public.keyword);
+		snprintf(buf, sizeof(buf) - 1, "%s-input-cp", dc->_public->keyword);
 		queue = init_callback_fifo(&md->in_fifo, buf, NULL, NULL,
 					   wait_full_cp, NULL, queue,
 					   md->input_buffer_size);
@@ -715,13 +715,13 @@ set_input(rte_codec *codec, rte_io_method input_method,
 
 	case RTE_PUSH_MASTER:
 		queue = MAX(*queue_length, md->io_stack_size + 1);
-		snprintf(buf, sizeof(buf) - 1, "%s-input-pa", dc->_public.keyword);
+		snprintf(buf, sizeof(buf) - 1, "%s-input-pa", dc->_public->keyword);
 		queue = init_buffered_fifo(&md->in_fifo, buf, queue, 0);
 		break;
 
 	case RTE_PUSH_SLAVE:
 		queue = MAX(*queue_length, md->io_stack_size);
-		snprintf(buf, sizeof(buf) - 1, "%s-input-pp", dc->_public.keyword);
+		snprintf(buf, sizeof(buf) - 1, "%s-input-pp", dc->_public->keyword);
 		queue = init_buffered_fifo(&md->in_fifo, buf,
 					   queue, md->input_buffer_size);
 		unref_cb = NULL;
@@ -768,7 +768,7 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 		break;
 	default:
 		rte_error_printf(codec->context, "Cannot change %s parameters, codec is busy.",
-				 dc->_public.keyword);
+				 dc->_public->keyword);
 		return FALSE;
 	}
 
@@ -857,7 +857,7 @@ codec_get(rte_context *context, rte_stream_type stream_type,
 	rte_codec *codec;
 
 	for (codec = mx->codecs; codec; codec = codec->next)
-		if (codec->_class->_public.stream_type == stream_type
+		if (codec->_class->_public->stream_type == stream_type
 		    && codec->stream_index == stream_index)
 			return codec;
 
@@ -878,10 +878,10 @@ codec_set(rte_context *context, const char *keyword,
 		dc = old->_class;
 
 		if (keyword) {
-			if (strcmp(dc->_public.keyword, keyword) == 0)
+			if (strcmp(dc->_public->keyword, keyword) == 0)
 				break;
 		} else {
-			if (dc->_public.stream_type == stream_type
+			if (dc->_public->stream_type == stream_type
 			    && old->stream_index == stream_index)
 				break;
 		}
@@ -892,47 +892,47 @@ codec_set(rte_context *context, const char *keyword,
 		int max_elem;
 
 		for (i = 0; i < num_codecs; i++)
-			if (strcmp(codec_table[i]->_public.keyword, keyword) == 0)
+			if (strcmp(codec_table[i]->_public->keyword, keyword) == 0)
 				break;
 
 		if (i >= num_codecs) {
 			rte_error_printf(context, "'%s' is no codec of the %s encoder.",
-					 keyword, xc->_public.keyword);
+					 keyword, xc->_public->keyword);
 			return NULL;
 		}
 
 		dc = codec_table[i];
 
-		stream_type = dc->_public.stream_type;
+		stream_type = dc->_public->stream_type;
 
-		max_elem = xc->_public.max_elementary[stream_type];
+		max_elem = xc->_public->max_elementary[stream_type];
 
 		if (max_elem == 0) {
 			rte_error_printf(context, "'%s' is no valid codec for the %s encoder, "
-					 "wrong stream type.", dc->_public.keyword, xc->_public.keyword);
+					 "wrong stream type.", dc->_public->keyword, xc->_public->keyword);
 			return NULL;
 		} else if (stream_index >= max_elem) {
 			rte_error_printf(context, "'%s' selected for elementary stream %d "
 					 "of %s encoder, but only %d available.",
-					 dc->_public.keyword, stream_index,
-					 xc->_public.keyword, max_elem);
+					 dc->_public->keyword, stream_index,
+					 xc->_public->keyword, max_elem);
 			return NULL;
 		}
 
 		if (!old && mx->num_codecs >= MAX_ELEMENTARY_STREAMS) {
 			rte_error_printf(context, "Limit of %s codecs (%d) reached.",
-					 xc->_public.keyword, MAX_ELEMENTARY_STREAMS);
+					 xc->_public->keyword, MAX_ELEMENTARY_STREAMS);
 			return NULL;
 		}
 
 		if (!(codec = dc->_new(dc, &error))) {
 			if (error) {
 				rte_error_printf(context, _("Cannot create new codec instance '%s'. %s"),
-						 dc->_public.keyword, error);
+						 dc->_public->keyword, error);
 				free(error);
 			} else {
 				rte_error_printf(context, _("Cannot create new codec instance '%s'."),
-						 dc->_public.keyword);
+						 dc->_public->keyword);
 			}
 
 			return NULL;
@@ -971,21 +971,21 @@ static rte_codec_info *
 codec_enum(rte_context *context, unsigned int index)
 {
 	rte_context_class *xc = context->_class;
-	rte_context_info *xi = &xc->_public;
+	rte_context_info *xi = xc->_public;
 	int i;
 
 	if (index < 0)
 		return NULL;
 
 	for (i = 0; i < num_codecs; i++) {
-		if (xi->max_elementary[codec_table[i]->_public.stream_type] <= 0)
+		if (xi->max_elementary[codec_table[i]->_public->stream_type] <= 0)
 			continue;
 		if (xc == &mp1e_mpeg1_vcd_context
 		    && codec_table[i] != &mp1e_mpeg1_video_codec
 		    && codec_table[i] != &mp1e_mpeg1_layer2_codec)
 			continue;
 		if (index-- == 0)
-			return &codec_table[i]->_public;
+			return codec_table[i]->_public;
 	}
 
 	return NULL;
@@ -993,53 +993,50 @@ codec_enum(rte_context *context, unsigned int index)
 
 /* Context allocation */
 
-static rte_context_class
-mp1e_mpeg1_ps_context = {
-	._public = {
-		.keyword	= "mp1e_mpeg1_ps",
-		.label		= N_("MPEG-1 Program Stream"),
-		.mime_type	= "video/x-mpeg",
-		.extension	= "mpg,mpe,mpeg",
-		.min_elementary	= { 0, 0, 0 },
-		.max_elementary	= { 0, 1, 1 }, /* to be { 0, 16, 32, 1 }, */
-	}
+static rte_context_info
+mp1e_mpeg1_ps_info = {
+	.keyword	= "mp1e_mpeg1_ps",
+	.label		= N_("MPEG-1 Program Stream"),
+	.mime_type	= "video/x-mpeg",
+	.extension	= "mpg,mpe,mpeg",
+	.min_elementary	= { 0, 0, 0 },
+	.max_elementary	= { 0, 1, 1 }, /* to be { 0, 16, 32, 1 }, */
 };
 
-static rte_context_class
-mp1e_mpeg1_vcd_context = {
-	._public = {
-		.keyword	= "mp1e_mpeg1_vcd",
-		.label		= N_("MPEG-1 VCD Program Stream"),
-		.mime_type	= "video/x-mpeg",
-		.extension	= "mpg,mpe,mpeg",
-		.min_elementary	= { 0, 1, 1 },
-		.max_elementary	= { 0, 1, 1 },
-	}
+static rte_context_info
+mp1e_mpeg1_vcd_info = {
+	.keyword	= "mp1e_mpeg1_vcd",
+	.label		= N_("MPEG-1 VCD Program Stream"),
+	.mime_type	= "video/x-mpeg",
+	.extension	= "mpg,mpe,mpeg",
+	.min_elementary	= { 0, 1, 1 },
+	.max_elementary	= { 0, 1, 1 },
 };
 
-static rte_context_class
-mp1e_mpeg1_video_context = {
-	._public = {
-		.keyword	= "mp1e_mpeg_video",
-		.label		= N_("MPEG Video Elementary Stream"),
-		.mime_type	= "video/x-mpeg",
-		.extension	= "mpg,mpe,mpeg",
-		.min_elementary	= { 0, 1, 0 },
-		.max_elementary	= { 0, 1, 0 },
-	}
+static rte_context_info
+mp1e_mpeg1_video_info = {
+	.keyword	= "mp1e_mpeg_video",
+	.label		= N_("MPEG Video Elementary Stream"),
+	.mime_type	= "video/x-mpeg",
+	.extension	= "mpg,mpe,mpeg",
+	.min_elementary	= { 0, 1, 0 },
+	.max_elementary	= { 0, 1, 0 },
 };
 
-static rte_context_class
-mp1e_mpeg1_audio_context = {
-	._public = {
-		.keyword	= "mp1e_mpeg_audio",
-		.label		= N_("MPEG Audio Elementary Stream"),
-		.mime_type	= "audio/x-mpeg",
-		.extension	= "mp2,mpga", /* note */
-		.min_elementary	= { 0, 0, 1 },
-		.max_elementary	= { 0, 0, 1 },
-	}
+static rte_context_info
+mp1e_mpeg1_audio_info = {
+	.keyword	= "mp1e_mpeg_audio",
+	.label		= N_("MPEG Audio Elementary Stream"),
+	.mime_type	= "audio/x-mpeg",
+	.extension	= "mp2,mpga", /* note */
+	.min_elementary	= { 0, 0, 1 },
+	.max_elementary	= { 0, 0, 1 },
 };
+
+static rte_context_class mp1e_mpeg1_ps_context = { ._public = &mp1e_mpeg1_ps_info };
+static rte_context_class mp1e_mpeg1_vcd_context = { ._public = &mp1e_mpeg1_vcd_info };
+static rte_context_class mp1e_mpeg1_video_context = { ._public = &mp1e_mpeg1_video_info };
+static rte_context_class mp1e_mpeg1_audio_context = { ._public = &mp1e_mpeg1_audio_info };
 
 static rte_context_class *
 context_table[] = {
@@ -1075,7 +1072,7 @@ context_delete(rte_context *context)
 		rte_codec *codec = mx->codecs;
 
 		codec_set(context, NULL,
-			  codec->_class->_public.stream_type,
+			  codec->_class->_public->stream_type,
 			  codec->stream_index);
 	}
 
@@ -1152,7 +1149,7 @@ backend_init(void)
 	mp1e_mpeg1_module_init(0);
 
 	for (i = 0; i < num_contexts; i++) {
-		context_table[i]->_public.backend = "mp1e 1.9.2";
+		context_table[i]->_public->backend = "mp1e 1.9.2";
 
 		context_table[i]->_new = context_new;
 		context_table[i]->_delete = context_delete;

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.c,v 1.8 2002-09-26 20:42:47 mschimek Exp $ */
+/* $Id: codec.c,v 1.9 2002-10-02 20:58:49 mschimek Exp $ */
 
 #include "config.h"
 #include "rtepriv.h"
@@ -105,7 +105,7 @@ rte_codec_info_by_codec(rte_codec *codec)
 
 	nullcheck(codec, return NULL);
 
-	return &dc->_public;
+	return dc->_public;
 }
 
 /**
@@ -364,6 +364,10 @@ rte_codec_option_menu_get(rte_codec *codec, const char *keyword, int *entry)
 	rte_option_value val;
 	rte_bool r;
 	int i;
+
+if (strcmp(keyword, "motion_estimation")==0) {
+	nullcheck(entry, return FALSE);
+}
 
 	nullcheck(codec, return FALSE);
 

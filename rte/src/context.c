@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.10 2002-09-26 20:43:41 mschimek Exp $ */
+/* $Id: context.c,v 1.11 2002-10-02 20:58:49 mschimek Exp $ */
 
 #include "config.h"
 #include "rtepriv.h"
@@ -93,7 +93,7 @@ rte_context_info_enum(unsigned int index)
 			for (i = 0; (rxc = backends[j]->context_enum(i, NULL)); i++)
 				if (rxc->_new)
 					if (index-- == 0)
-						return &rxc->_public;
+						return rxc->_public;
 	return NULL;
 }
 
@@ -127,8 +127,8 @@ rte_context_info_by_keyword(const char *keyword)
 		if (backends[j]->context_enum)
 			for (i = 0; (rxc = backends[j]->context_enum(i, NULL)); i++)
 				if (rxc->_new)
-					if (strncmp(keyword, rxc->_public.keyword, keylen) == 0)
-						return &rxc->_public;
+					if (strncmp(keyword, rxc->_public->keyword, keylen) == 0)
+						return rxc->_public;
 	return NULL;
 }
 
@@ -146,7 +146,7 @@ rte_context_info_by_context(rte_context *context)
 {
 	nullcheck(context, return NULL);
 
-	return &xc->_public;
+	return xc->_public;
 }
 
 /**
@@ -208,7 +208,7 @@ rte_context_new(const char *keyword, void *user_data, char **errstr)
 	for (j = 0; j < num_backends; j++)
 		if (backends[j]->context_enum)
 			for (i = 0; (rxc = backends[j]->context_enum(i, &error)); i++) {
-				if (strcmp(key, rxc->_public.keyword) == 0) {
+				if (strcmp(key, rxc->_public->keyword) == 0) {
 					j = num_backends + 1;
 					break;
 				}
@@ -227,10 +227,10 @@ rte_context_new(const char *keyword, void *user_data, char **errstr)
 		if (errstr) {
 			if (error)
 				rte_asprintf(errstr, _("Encoder '%s' not available. %s"),
-					     rxc->_public.label ? _(rxc->_public.label) : key, error);
+					     rxc->_public->label ? _(rxc->_public->label) : key, error);
 			else
 				rte_asprintf(errstr, _("Encoder '%s' not available."),
-					     rxc->_public.label ? _(rxc->_public.label) : key);
+					     rxc->_public->label ? _(rxc->_public->label) : key);
 		}
 
 		if (error)
@@ -244,11 +244,11 @@ rte_context_new(const char *keyword, void *user_data, char **errstr)
 	if (!context) {
 		if (error) {
 			rte_asprintf(errstr, _("Cannot create new encoding context '%s'. %s"),
-				     rxc->_public.label ? _(rxc->_public.label) : key, error);
+				     rxc->_public->label ? _(rxc->_public->label) : key, error);
 			free(error);
 		} else {
 			rte_asprintf(errstr, _("Cannot create new encoding context '%s'."),
-				     rxc->_public.label ? _(rxc->_public.label) : key);
+				     rxc->_public->label ? _(rxc->_public->label) : key);
 		}
 
 		return NULL;
@@ -398,7 +398,7 @@ rte_set_codec(rte_context *context, const char *keyword,
 		if (keyword[keylen] && !rte_option_string(
 			context, codec, keyword + keylen + 1)) {
 			xc->codec_set(context, NULL,
-				      codec->_class->_public.stream_type,
+				      codec->_class->_public->stream_type,
 				      codec->stream_index);
 			codec = NULL;
 		}
@@ -456,7 +456,7 @@ rte_codec_delete(rte_codec *codec)
 	assert(xc->codec_set != NULL);
 
 	xc->codec_set(context, NULL,
-		      codec->_class->_public.stream_type,
+		      codec->_class->_public->stream_type,
 		      codec->stream_index);
 }
 
