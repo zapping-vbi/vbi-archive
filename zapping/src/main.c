@@ -74,6 +74,7 @@ gint			disable_preview = FALSE;/* preview should be
 						   disabled */
 gint			disable_xv = FALSE; /* XVideo should be
 					       disabled */
+gint			xv_overlay_port = -1;
 gint			disable_overlay = FALSE; /* Xv or V4L */
 gboolean		xv_present = FALSE; /* Whether the
 					       device can be attached as XV */
@@ -366,6 +367,15 @@ int main(int argc, char * argv[])
       NULL
     },
     {
+      "xv-port",
+      0,
+      POPT_ARG_INT,
+      &xv_overlay_port,
+      0,
+      N_("XVideo port for overlay. Default is first usable"),
+      NULL
+    },
+    {
       "remote",
       0,
       POPT_ARG_NONE,
@@ -476,7 +486,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.170 2003-01-24 18:17:18 mschimek Exp $",
+	 "$Id: main.c,v 1.171 2003-02-18 10:06:40 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
