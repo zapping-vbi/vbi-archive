@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.c,v 1.7 2004-10-09 02:52:23 mschimek Exp $ */
+/* $Id: device.c,v 1.8 2004-12-07 17:28:30 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -88,6 +88,32 @@ fprint_unknown_ioctl		(FILE *			fp,
            cmd, IOCTL_READ (cmd) ? 'R' : 'r',
 	   IOCTL_WRITE (cmd) ? 'W' : 'w',
 	   arg, IOCTL_ARG_SIZE (cmd)); 
+}
+
+/**
+ * Helper function to calculate remaining time for select().
+ * result = timeout - (now - start).
+ */
+void
+timeout_subtract_elapsed	(struct timeval *	result,
+				 const struct timeval *	timeout,
+				 const struct timeval *	now,
+				 const struct timeval *	start)
+{
+	struct timeval elapsed;
+
+	timeval_subtract (&elapsed, now, start);
+
+	if ((elapsed.tv_sec | elapsed.tv_usec) > 0) {
+		timeval_subtract (result, timeout, &elapsed);
+
+		if ((result->tv_sec | result->tv_usec) < 0) {
+			result->tv_sec = 0;
+			result->tv_usec = 0;
+		}
+	} else {
+		*result = *timeout;
+	}
 }
 
 int
