@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.20 2002-10-02 20:58:50 mschimek Exp $ */
+/* $Id: rte.c,v 1.21 2005-02-25 18:16:38 mschimek Exp $ */
 
 #include "config.h"
 
@@ -77,7 +77,7 @@
  * compress raw input to an elementary video or audio stream for this
  * track.
  *
- * @subsection opt Options
+ * @section opt Options
  *
  * Both contexts and codecs can have options which are assigned by name
  * like variables. These are often canonical (like @c "sampling_freq",
@@ -85,7 +85,7 @@
  * but the same name does not necessarily imply the same semantics
  * in different contexts.
  *
- * @subsection par Input Stream Parameters
+ * @section par Input Stream Parameters
  *
  * Codecs need information about the raw data input, for example
  * the image size or audio sample format. These parameters are
@@ -102,7 +102,7 @@
  * frequency (device specific parameter) to the encoded sampling frequency
  * (user option).
  *
- * @subsection io Input/Output Interface
+ * @section io Input/Output Interface
  *
  * An input method must be selected for each rte_codec. Data is
  * always passed in blocks of one video image or a fixed number of
@@ -113,7 +113,7 @@
  * An output method must be selected for each rte_context.
  * RTE can pass encoded data in blocks or directly write to a file.
  *
- * @subsection start Starting and Stopping
+ * @section start Starting and Stopping
  *
  * This version of RTE will always launch one, sometimes more,
  * subthreads for encoding. This happens when the rte_start()
@@ -124,13 +124,13 @@
  * Options, parameters and i/o methods cannot be changed
  * when encoding is in progress.
  *
- * @subsection stat Status Report
+ * @section stat Status Report
  *
  * During encoding the context and its codecs can
  * be polled for status information, such as the number of
  * bytes processed or coding time elapsed.
  *
- * @subsection rec_seq Typical Recording Session
+ * @section rec_seq Typical Recording Session
  *
  * -# Enumeration of available contexts (i. e. file formats)
  * -# <b>Allocation of a context with rte_context_new()</b>
@@ -189,7 +189,7 @@
  * rte_backend_class, rte_context_class and rte_codec_class define
  * the interface of the respective layer to higher layers.
  *
- * @subsection requirements Minimum Requirements
+ * @section requirements Minimum Requirements
  *
  * - Each backend must support at least one class of context (i. e.
  *   file format) and one codec.
@@ -209,7 +209,7 @@
  *   internationalized with GNU gettext. Use the _() etc.
  *   macros defined in rtepriv.h.
  *
- * @subsection compilation Backend Installation
+ * @section compilation Backend Installation
  *
  * Put each backend into a separate directory under rte/. The directory
  * name goes into rte/Makefile.am. A backend switch, the Makefile.am's
@@ -420,7 +420,7 @@ rte_option_string(rte_context *context, rte_codec *codec, const char *optstr)
 /**
  * @param errstr Place to store the allocated string or @c NULL.
  * @param templ See printf().
- * @param Varargs See printf(). 
+ * @param ... See printf(). 
  * 
  * RTE internal helper function for backends.
  *
