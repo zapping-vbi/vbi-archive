@@ -411,44 +411,74 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
   return FALSE;
 }
 
+/* Resize subwindow to wxh */
+static void
+resize_subwindow			(GdkWindow	*subwindow,
+					 gint		w,
+					 gint		h)
+{
+  gint sw_w, sw_h, mw_w, mw_h;
+  GdkWindow *mw = gdk_window_get_toplevel(subwindow);
+
+  gdk_window_get_size(mw, &mw_w, &mw_h);
+  gdk_window_get_size(subwindow, &sw_w, &sw_h);
+
+  w += (mw_w - sw_w);
+  h += (mw_h - sw_h);
+
+  gdk_window_resize(mw, w, h);
+}
+
 void
 on_pal_big_activate		       (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  gdk_window_resize(main_window->window, 768, 576);
+  GtkWidget *tv_screen = lookup_widget(main_window, "tv_screen");
+
+  resize_subwindow(tv_screen->window, 768, 576);
 }
 
 void
 on_rec601_pal_big_activate	       (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  gdk_window_resize(main_window->window, 720, 576);
+  GtkWidget *tv_screen = lookup_widget(main_window, "tv_screen");
+
+  resize_subwindow(tv_screen->window, 720, 576);
 }
 
 void
 on_ntsc_big_activate		       (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  gdk_window_resize(main_window->window, 640, 480);
+  GtkWidget *tv_screen = lookup_widget(main_window, "tv_screen");
+
+  resize_subwindow(tv_screen->window, 640, 480);
 }
 
 void
 on_pal_small_activate		       (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  gdk_window_resize(main_window->window, 768/2, 576/2);
+  GtkWidget *tv_screen = lookup_widget(main_window, "tv_screen");
+
+  resize_subwindow(tv_screen->window, 768/2, 576/2);
 }
 
 void
 on_rec601_pal_small_activate	       (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  gdk_window_resize(main_window->window, 704/2, 576/2);
+  GtkWidget *tv_screen = lookup_widget(main_window, "tv_screen");
+
+  resize_subwindow(tv_screen->window, 704/2, 576/2);
 }
 
 void
 on_ntsc_small_activate		       (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  gdk_window_resize(main_window->window, 640/2, 480/2);
+  GtkWidget *tv_screen = lookup_widget(main_window, "tv_screen");
+
+  resize_subwindow(tv_screen->window, 640/2, 480/2);
 }

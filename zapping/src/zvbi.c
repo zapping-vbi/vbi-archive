@@ -141,6 +141,10 @@ on_vbi_prefs_changed		(const gchar *key,
 		  GNOME_MESSAGE_BOX_ERROR,
 		  zcg_char(NULL, "vbi_device"),
 		  strerror(errno), errno);
+	  /* Define in site_def.h if you don't want this to happen */
+#ifndef DO_NOT_DISABLE_VBI_ON_FAILURE
+	  zcs_bool(FALSE, "enable_vbi");
+#endif	  
 	}
       D();
     }

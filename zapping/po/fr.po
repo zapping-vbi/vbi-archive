@@ -3,9 +3,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: zapping 0.6.1\n"
+"Project-Id-Version: zapping 0.6.2\n"
 "POT-Creation-Date: 2001-09-18 01:27+0200\n"
-"PO-Revision-Date: 2001-09-17 16:15+0200\n"
+"PO-Revision-Date: 2001-11-28 22:04+0100\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -223,12 +223,10 @@ msgid "us-bcast"
 msgstr "us-bcast"
 
 #: src/frequencies.c:1058
-#, fuzzy
 msgid "us-cable"
 msgstr "us-cable"
 
 #: src/frequencies.c:1059
-#, fuzzy
 msgid "us-cable-hrc"
 msgstr "us-cable-hrc"
 
@@ -237,12 +235,10 @@ msgid "japan-bcast"
 msgstr "japan-bcast"
 
 #: src/frequencies.c:1061
-#, fuzzy
 msgid "japan-cable"
 msgstr "japan-cable"
 
 #: src/frequencies.c:1062
-#, fuzzy
 msgid "europe"
 msgstr "Europe"
 
@@ -251,42 +247,34 @@ msgid "europe-east"
 msgstr "Europe-est"
 
 #: src/frequencies.c:1064
-#, fuzzy
 msgid "italy"
 msgstr "Italie"
 
 #: src/frequencies.c:1065
-#, fuzzy
 msgid "newzealand"
 msgstr "Nouvelle zealand"
 
 #: src/frequencies.c:1066
-#, fuzzy
 msgid "australia"
 msgstr "Australie"
 
 #: src/frequencies.c:1067
-#, fuzzy
 msgid "ireland"
 msgstr "Ireland"
 
 #: src/frequencies.c:1068
-#, fuzzy
 msgid "france"
 msgstr "France"
 
 #: src/frequencies.c:1069
-#, fuzzy
 msgid "russia"
 msgstr "Russie"
 
 #: src/frequencies.c:1070
-#, fuzzy
 msgid "south africa"
 msgstr "Afrique du sud"
 
 #: src/frequencies.c:1071
-#, fuzzy
 msgid "china"
 msgstr "Chine"
 
@@ -1268,7 +1256,7 @@ msgstr ""
 
 #: glade/glade_strings.c:64
 msgid "Main Window"
-msgstr ""
+msgstr "Fenêtre principale"
 
 #: glade/glade_strings.c:65
 msgid "Avoid noise while changing channels"
@@ -1300,74 +1288,69 @@ msgstr "Sauvegarder les valeurs de contrôle avec la configuration de la chaîne"
 
 #: glade/glade_strings.c:70
 msgid "zapping__setup__fb verbosity:"
-msgstr ""
+msgstr "Verbosité de zapping__setup__fb :"
 
 #: glade/glade_strings.c:71
 msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
 msgstr "Plus la valeur serra grande, plus zapping_setup_fb serra verbeux"
 
 #: glade/glade_strings.c:72
-#, fuzzy
 msgid "Video"
-msgstr "Vidéo seulement"
+msgstr "Vidéo"
 
 #: glade/glade_strings.c:73
 msgid "How to show extra info:"
-msgstr ""
+msgstr "Ou afficher les infos extra :"
 
 #: glade/glade_strings.c:74
 msgid ""
 "Extra information, such as notifying of channel changes, can be reported in "
 "many different ways. Select here the variant you like most."
-msgstr ""
+msgstr "Les information supplémentaires, comme notification de changements de chaîne, peuvent être reportées de plusieurs manières différente. Sélectionner ici la celle que vous préférez."
 
 #: glade/glade_strings.c:75
 msgid "On Screen Display (OSD)"
-msgstr ""
+msgstr "On Screen Display (OSD)"
 
 #: glade/glade_strings.c:76
 msgid "Status Bar"
-msgstr ""
+msgstr "Barre d'état"
 
 #: glade/glade_strings.c:77
-#, fuzzy
 msgid "Console"
-msgstr "Nettoyer la console"
+msgstr "Console"
 
 #: glade/glade_strings.c:78
-#, fuzzy
 msgid "Do not show"
-msgstr "ne plus afficher la prochaine fois"
+msgstr "Ne pas afficher"
 
 #: glade/glade_strings.c:79
 msgid "Font used for OSD:"
-msgstr ""
+msgstr "Polices utilisées pour l'OSD :"
 
 #: glade/glade_strings.c:80
 msgid "Select OSD font"
-msgstr ""
+msgstr "Selectionner la polices pour l' OSD"
 
 #: glade/glade_strings.c:81
 msgid "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
-msgstr ""
+msgstr "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
 
 #: glade/glade_strings.c:82
-#, fuzzy
 msgid "Default foreground color for OSD:"
-msgstr "Supposer la couleur du texte du terminal"
+msgstr "Couleur par défaut du texte pour l'OSD :"
 
 #: glade/glade_strings.c:83 glade/glade_strings.c:85
 msgid "Elija un color"
 msgstr ""
 
 #: glade/glade_strings.c:84
-#, fuzzy
 msgid "Default background color for OSD:"
-msgstr "Supposer la couleur du fond d'écran du terminal"
+msgstr "Couleur par défaut du fond d'écran pour l'OSD :"
 
 #: glade/glade_strings.c:86
 msgid "OSD"
-msgstr ""
+msgstr "OSD"
 
 #: glade/glade_strings.c:87
 msgid "General options"
@@ -1385,12 +1368,11 @@ msgstr "Utiliser le VBI pour définir le nom des chaînes"
 msgid ""
 "If you select this option, TTX pages marked as subtitles and opened in the "
 "main window will automagically switch to TV mode and overlay themselves."
-msgstr ""
+msgstr "Si vous sélectionnez cette option, les pages TTX marquées comme sous-titre et ouvertes dans la fenêtre principale seront automatiquement basculées dans le mode TV et recouvertes elles-mêmes."
 
 #: glade/glade_strings.c:91
-#, fuzzy
 msgid "Overlay subtitle pages automatically"
-msgstr "Ouvrir automatiquement"
+msgstr "Couvrir les pages de sous-titre automatiquement"
 
 #: glade/glade_strings.c:93
 msgid "Select the VBI device"
@@ -1606,7 +1588,6 @@ msgid "Channel choosing"
 msgstr "Choisir la chaîne"
 
 #: glade/glade_strings.c:159
-#, fuzzy
 msgid ""
 "With this dialog you can edit the channel list.\n"
 "To begin, please choose the frequency table used in your country.\n"
@@ -1651,7 +1632,6 @@ msgstr ""
 "chaînes."
 
 #: glade/glade_strings.c:169
-#, fuzzy
 msgid "Add all the channels"
 msgstr "Ajouter toutes les chaînes"
 
@@ -1684,7 +1664,6 @@ msgid "_Remove"
 msgstr "_Enlever"
 
 #: glade/glade_strings.c:179
-#, fuzzy
 msgid "Click here to apply the current options to the selected channels"
 msgstr ""
 "Cliquez ici pour appliquer les options courantes à la chaîne sélectionnée"
@@ -1748,7 +1727,6 @@ msgid "Enter here the key you want to attach to this channel"
 msgstr "Entrer ici la touche que vous voulez attribuer à cette chaîne"
 
 #: glade/glade_strings.c:193
-#, fuzzy
 msgid "Open the list of known keys"
 msgstr "Ouvrir la liste des clés connues"
 
@@ -1970,9 +1948,8 @@ msgid "Next subpage [+]"
 msgstr "Sous-page suivante [+]"
 
 #: glade/glade_strings.c:259
-#, fuzzy
 msgid "Reveal hidden characters [?]"
-msgstr "Afficher les caractères cachés [R]"
+msgstr "Afficher les caractères cachés [?]"
 
 #: glade/glade_strings.c:260
 msgid "Exit TTX mode [Esc]"
@@ -2209,7 +2186,6 @@ msgid "Screenshot"
 msgstr "Copie d'écran"
 
 #: plugins/screenshot/screenshot.c:514
-#, fuzzy
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
@@ -2224,11 +2200,15 @@ msgid ""
 "correct value."
 msgstr ""
 "La première option, le répertoire de sauvegarde, permet de spécifier ou\n"
-"les copies d'écran sauront sauvegardées. Le nom de fichier sera :\n"
+"les copies d'écran seront sauvegardées. Le nom de fichier sera :\n"
 "répertoire/shot[1,2,3,...].jpeg\n"
 "\n"
 "L'option de qualité permet de définir combien de données\n"
-"seront perdus pendant la compression."
+"seront perdus pendant la compression de l'image.\n"
+"\n"
+"Cette commande sera exécutée après l'écriture sur le disque de l'image,\n"
+"avec les variables d'environnement $SCREENSHOT_PATH, $CHANNEL_ALIAS,\n"
+"\"$CHANNEL_ID, $CURRENT_STANDARD, $CURRENT_INPUT positionnées correctement"
 
 #: plugins/screenshot/screenshot.c:547
 msgid "Take a JPEG screenshot [Ctrl+S]"
@@ -2288,13 +2268,13 @@ msgstr "Qualité de la compression d'image :"
 
 #: plugins/screenshot/screenshot_strings.c:10
 msgid "After saving the screenshot, run the command:"
-msgstr ""
+msgstr "Après sauvegarde de la copie d'écran exécuter la commande :"
 
 #: plugins/screenshot/screenshot_strings.c:11
 msgid ""
 "If this entry isn't empty, Zapping will try to run the given command each "
 "time you save a screenshot."
-msgstr ""
+msgstr "Si cette entrée n'est pas vide, Zapping essayera d'exécuter cette commande chaque fois que vous sauverez une copie d'écran."
 
 #: plugins/lirc/lirc.c:39
 msgid "LIRC plugin"
@@ -2494,7 +2474,6 @@ msgid "Audio and Video"
 msgstr "Audio et Vidéo"
 
 #: plugins/mpeg/mpeg.c:792 plugins/mpeg/mpeg.c:804
-#, fuzzy
 msgid "Output audio Kbits per second:"
 msgstr "Sortie audio Koctets par seconde :"
 
@@ -2509,16 +2488,15 @@ msgstr "Attente des trames..."
 
 #: plugins/mpeg/mpeg.c:1151
 msgid "None"
-msgstr ""
+msgstr "rien"
 
 #: plugins/mpeg/mpeg.c:1195 plugins/mpeg/mpeg.c:1395
 msgid "MPEG"
 msgstr "MPEG"
 
 #: plugins/mpeg/mpeg.c:1396
-#, fuzzy
 msgid "Store the data as MPEG"
-msgstr "Encoder le flux vidéo en MPEG."
+msgstr "Stocker les données en MPEG"
 
 #.
 #. * Translatable strings file generated by Glade.
@@ -2587,7 +2565,7 @@ msgstr "Périphérique audio"
 
 #: plugins/mpeg/mpeg_strings.c:26
 msgid "Codec:"
-msgstr ""
+msgstr "Codec :"
 
 #: plugins/mpeg/mpeg_strings.c:27
 msgid "Select the audio input type you would like to use"
@@ -2602,9 +2580,8 @@ msgid "Select the audio device to open"
 msgstr "Sélectionner le périphérique audio à ouvrir"
 
 #: plugins/mpeg/mpeg_strings.c:30
-#, fuzzy
 msgid "Audio"
-msgstr "Audio seulement"
+msgstr "Audio"
 
 #: plugins/mpeg/mpeg_strings.c:31
 msgid "Saving MPEG"
@@ -2631,7 +2608,6 @@ msgid "Some more info: bit rates"
 msgstr "Quelques infos de plus : taux de transfert"
 
 #: plugins/mpeg/mpeg_strings.c:37
-#, fuzzy
 msgid "Dynamic stats (dropped, output M's, etc)"
 msgstr "Stats dynamique (dropped, sortie M's, etc)"
 
@@ -2736,9 +2712,8 @@ msgid "PPM"
 msgstr "PPM"
 
 #: libvbi/exp-gfx.c:619
-#, fuzzy
 msgid "Export this page as raw PPM image"
-msgstr "Exporter cette page en une image PPM"
+msgstr "Exporter cette page en une image PPM brute"
 
 #: libvbi/exp-gfx.c:838 libvbi/exp-html.c:207
 #, c-format
@@ -2746,7 +2721,7 @@ msgid "Teletext Page %3x.%x"
 msgstr "Page Teletext %3x.%x"
 
 #: libvbi/exp-gfx.c:840 libvbi/exp-html.c:209
-#, c-format, ycp-format
+#, c-format
 msgid "Teletext Page %3x"
 msgstr "Page Teletext %3x"
 
@@ -3079,102 +3054,3 @@ msgid ""
 msgstr ""
 "%s (%s) manque la lecture de l'interface vbi, possibilité d'un périphérique "
 "de sortie seulement ou un bogue du pilote. %s\n"
-
-#, fuzzy
-#~ msgid "Hide the status bar"
-#~ msgstr "Voir dans la barre d'état"
-
-#, fuzzy
-#~ msgid "Device Info"
-#~ msgstr "Info du périphérique"
-
-#, fuzzy
-#~ msgid "General Options"
-#~ msgstr "Options générale"
-
-#, fuzzy
-#~ msgid "VBI Options"
-#~ msgstr "Options VBI"
-
-#, fuzzy
-#~ msgid "Zapping Properties"
-#~ msgstr "Propriétés"
-
-#, fuzzy
-#~ msgid "Ctrl+"
-#~ msgstr "Ctrl"
-
-#, fuzzy
-#~ msgid "Alt+"
-#~ msgstr "Alt"
-
-#, fuzzy
-#~ msgid "Shift+"
-#~ msgstr "Shift"
-
-#, fuzzy
-#~ msgid "Audio recording interface:"
-#~ msgstr "Décodage Audio"
-
-#, fuzzy
-#~ msgid "Channel editor"
-#~ msgstr "chaîne -"
-
-#, fuzzy
-#~ msgid "Station"
-#~ msgstr "Saturation"
-
-#, fuzzy
-#~ msgid "Tuned channels"
-#~ msgstr "Pas de chaîne accordées"
-
-#, fuzzy
-#~ msgid "Name"
-#~ msgstr "Nom :"
-
-#, fuzzy
-#~ msgid "Standard"
-#~ msgstr "Pas de standards"
-
-#, fuzzy
-#~ msgid "Key"
-#~ msgstr "Touches"
-
-#, fuzzy
-#~ msgid "Edit channel"
-#~ msgstr "choisir la chaîne"
-
-#, fuzzy
-#~ msgid "Video standard:"
-#~ msgstr "Pas de standards"
-
-#, fuzzy
-#~ msgid "Input:"
-#~ msgstr "Entrées"
-
-#, fuzzy
-#~ msgid "_Add as a new channel"
-#~ msgstr "Ajouter toutes les chaînes"
-
-#, fuzzy
-#~ msgid "_Modify selected channels"
-#~ msgstr "Effacer les chaînes sélectionnées"
-
-#, fuzzy
-#~ msgid "Configuration"
-#~ msgstr "_Configurer"
-
-#, fuzzy
-#~ msgid "%s : %s"
-#~ msgstr "%s : %s"
-
-#, fuzzy
-#~ msgid "Record as MPEG"
-#~ msgstr "Stocker les données en MPEG"
-
-#, fuzzy
-#~ msgid "Format:"
-#~ msgstr "Normal"
-
-#~ msgid "Verbosity value given to zapping__setup__fb:"
-#~ msgstr "Valeur de verbosité donnée a zapping__setup__fb :"

@@ -347,7 +347,7 @@ int tveng1_attach_device(const char* device_file,
   /* get the minor device number for accessing the appropiate /proc
      entry */
   if (!fstat(info -> fd, &st))
-    minor = MINOR(st.st_dev);
+    minor = MINOR(st.st_rdev);
 
   p_info -> ogb_fd = -1;
   if (strstr(info -> caps.name, "OV51") &&
@@ -366,7 +366,6 @@ int tveng1_attach_device(const char* device_file,
 	  close(p_info -> ogb_fd);
 	  p_info -> ogb_fd = -1;
 	}
-	
     }
 
   if (info->debug_level > 0)

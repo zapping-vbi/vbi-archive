@@ -1,3 +1,10 @@
+3.12.2001	fr.po <garetxe@users.sf.net>
+
+	* fr.po: Update by Christian Marillat.
+	* callbacks.c: Resize the tv_screen, not the whole window.
+	* tveng1.c: Fixed typo when getting the minor device number.
+	* zvbi.c: Disable VBI when opening the device fails.
+
 2.12.2001	Fractional pixel problem <garetxe@users.sf.net>
 
 	* audio.c: Set configured mixer settings when opening the device.
