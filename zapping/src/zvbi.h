@@ -182,13 +182,6 @@ void
 vbi_gui_sensitive (gboolean on);
 
 /*
-  Builds a dialog showing the info we get from the VBI device
-  a) network info, b) program info
-*/
-GtkWidget *zvbi_build_network_info(void);
-GtkWidget *zvbi_build_program_info(void);
-
-/*
   Returns the g_strdup'ed name of the current station, if known, or
   NULL. The returned value should be g_free'ed
 */

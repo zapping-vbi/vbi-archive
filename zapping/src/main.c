@@ -433,7 +433,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.1 2002-07-19 20:53:47 garetxe Exp $",
+	 "$Id: main.c,v 1.165.2.2 2002-07-23 19:06:06 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -756,7 +756,6 @@ int main(int argc, char * argv[])
     z_switch_input(zcg_int(NULL, "current_input"), main_info);
   if (zcg_int(NULL, "current_standard"))
     z_switch_standard(zcg_int(NULL, "current_standard"), main_info);
-  /* FIXME: Figure out what to do regarding callbacks.c */
   cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
   z_switch_channel(tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
 							 global_channel_list),
@@ -883,8 +882,6 @@ static void shutdown_zapping(void)
 	    "current_input");
   else
     zcs_int(0, "current_input");
-
-  tveng_set_mute(1, main_info);
 
 #if GNOME2_PORT_COMPLETE
   /* Shutdown all other modules */

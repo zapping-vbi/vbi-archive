@@ -42,6 +42,13 @@ static PyObject* py_quit (PyObject *self, PyObject *args)
   if (!main_window)
     py_return_false;
 
+  /* Mute the device */
+  tveng_set_mute (TRUE, main_info);
+
+  /* Save the currently tuned channel */
+  zconf_set_integer (cur_tuned_channel,
+		     "/zapping/options/main/cur_tuned_channel");
+
   flag_exit_program = TRUE;
 
   gdk_window_get_origin(main_window->window, &x, &y);
@@ -274,8 +281,7 @@ static PyObject* py_hide_controls (PyObject *self, PyObject *args)
   py_return_none;
 }
 
-PyObject *
-py_help (PyObject *self, PyObject *args)
+static PyObject *py_help (PyObject *self, PyObject *args)
 {
   gnome_help_display ("index.html", NULL, NULL);
 

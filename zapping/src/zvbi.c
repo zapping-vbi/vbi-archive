@@ -521,71 +521,6 @@ on_vbi_prefs_changed		(const gchar *key,
 
 int osd_pipe[2];
 
-void
-startup_zvbi(void)
-{
-#ifdef ENABLE_V4L
-  zcc_bool(TRUE, "Enable VBI decoding", "enable_vbi");
-#else
-  zcc_bool(FALSE, "Enable VBI decoding", "enable_vbi");
-#endif
-  zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
-  zcc_bool(FALSE, "Overlay subtitle pages automagically", "auto_overlay");
-  zcc_char("/dev/vbi0", "VBI device", "vbi_device");
-  zcc_int(0, "Default TTX region", "default_region");
-  zcc_int(3, "Teletext implementation level", "teletext_level");
-  zcc_int(2, "ITV filter level", "filter_level");
-  zcc_int(1, "Default action for triggers", "trigger_default");
-  zcc_int(1, "Program related links", "pr_trigger");
-  zcc_int(1, "Network related links", "nw_trigger");
-  zcc_int(1, "Station related links", "st_trigger");
-  zcc_int(1, "Sponsor messages", "sp_trigger");
-  zcc_int(1, "Operator messages", "op_trigger");
-  zcc_int(INTERP_MODE, "Quality speed tradeoff", "qstradeoff");
-
-#ifdef ENABLE_V4L
-  zconf_add_hook("/zapping/options/vbi/enable_vbi",
-		 (ZConfHook)on_vbi_prefs_changed,
-		 (gpointer)0xdeadbeef);
-
-  vbi_model = ZMODEL(zmodel_new());
-
-  vbi_reset_prog_info(&program_info[0]);
-  vbi_reset_prog_info(&program_info[1]);
-
-  pthread_mutex_init(&network_mutex, NULL);
-  pthread_mutex_init(&prog_info_mutex, NULL);
-
-  memset(&current_network, 0, sizeof(current_network));
-
-  if (pipe(osd_pipe)) {
-    g_warning("Cannot create osd pipe");
-    exit(EXIT_FAILURE);
-  }
-#endif
-}
-
-void shutdown_zvbi(void)
-{
-  pthread_mutex_destroy(&prog_info_mutex);
-  pthread_mutex_destroy(&network_mutex);
-
-  D();
-
-  if (vbi)
-    zvbi_close_device();
-
-  D();
-
-  if (vbi_model)
-    g_object_unref(G_OBJECT(vbi_model));
-
-  D();
-
-  close(osd_pipe[0]);
-  close(osd_pipe[1]);
-}
-
 static void cc_event(vbi_event *ev, void *data)
 {
   int *pipe = data;
@@ -2527,7 +2462,7 @@ event_timeout				(struct vi_data	*data)
   return TRUE;
 }
 
-GtkWidget *
+static GtkWidget *
 zvbi_build_network_info(void)
 {
   GtkWidget * vbi_info = build_widget("vbi_info", NULL);
@@ -2549,20 +2484,20 @@ zvbi_build_network_info(void)
   data->timeout = gtk_timeout_add(5000, (GtkFunction)event_timeout, data);
 
   g_signal_connect(G_OBJECT(data->vbi_model), "changed",
-		     G_CALLBACK(destroy_vi), data);
+		   G_CALLBACK(destroy_vi), data);
   g_signal_connect(G_OBJECT(data->dialog), "delete-event",
-		     G_CALLBACK(on_vi_delete_event),
-		     data);
+		   G_CALLBACK(on_vi_delete_event),
+		   data);
   g_signal_connect(G_OBJECT(lookup_widget(data->dialog, "button38")),
-		     "clicked",
-		     G_CALLBACK(destroy_vi), data);
+		   "clicked",
+		   G_CALLBACK(destroy_vi), data);
 
   update_vi_network(data);
 
   return vbi_info;
 }
 
-GtkWidget *
+static GtkWidget *
 zvbi_build_program_info(void)
 {
   GtkWidget * prog_info = build_widget("program_info", NULL);
@@ -2595,6 +2530,119 @@ zvbi_build_program_info(void)
   update_vi_program(data);
 
   return prog_info;
+}
+
+static PyObject *
+py_network_info (PyObject *self, PyObject *args)
+{
+  gtk_widget_show (zvbi_build_network_info ());
+
+  py_return_true;
+}
+
+static PyObject *
+py_program_info (PyObject *self, PyObject *args)
+{
+  gtk_widget_show (zvbi_build_program_info ());
+
+  py_return_true;
+}
+
+static PyObject *
+py_closed_caption (PyObject *self, PyObject *args)
+{
+  int status = -1;
+  int ok = PyArg_ParseTuple (args, "|i", &status);
+
+  if (!ok)
+    g_error ("zappin.closed_caption(|i)");
+
+  if (status < 0)
+    status = zconf_get_boolean (NULL,
+				"/zapping/internal/callbacks/closed_caption");
+
+  zconf_set_boolean (!!status,
+		     "/zapping/internal/callbacks/closed_caption");
+
+  if (!status)
+    osd_clear ();
+
+  py_return_true;
+}
+
+void
+startup_zvbi(void)
+{
+#ifdef ENABLE_V4L
+  zcc_bool(TRUE, "Enable VBI decoding", "enable_vbi");
+#else
+  zcc_bool(FALSE, "Enable VBI decoding", "enable_vbi");
+#endif
+  zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
+  zcc_bool(FALSE, "Overlay subtitle pages automagically", "auto_overlay");
+  zcc_char("/dev/vbi0", "VBI device", "vbi_device");
+  zcc_int(0, "Default TTX region", "default_region");
+  zcc_int(3, "Teletext implementation level", "teletext_level");
+  zcc_int(2, "ITV filter level", "filter_level");
+  zcc_int(1, "Default action for triggers", "trigger_default");
+  zcc_int(1, "Program related links", "pr_trigger");
+  zcc_int(1, "Network related links", "nw_trigger");
+  zcc_int(1, "Station related links", "st_trigger");
+  zcc_int(1, "Sponsor messages", "sp_trigger");
+  zcc_int(1, "Operator messages", "op_trigger");
+  zcc_int(INTERP_MODE, "Quality speed tradeoff", "qstradeoff");
+
+  cmd_register ("program_info", py_program_info, METH_VARARGS,
+		_("Shows some info about the current program"),
+		"zapping.program_info()");
+  cmd_register ("network_info", py_network_info, METH_VARARGS,
+		_("Shows some info about the current network"),
+		"zapping.network_info()");
+  cmd_register ("closed_caption", py_closed_caption, METH_VARARGS,
+		_("Sets or toggles the display of closed caption"),
+		"zapping.closed_caption([1])");
+
+#ifdef ENABLE_V4L
+  zconf_add_hook("/zapping/options/vbi/enable_vbi",
+		 (ZConfHook)on_vbi_prefs_changed,
+		 (gpointer)0xdeadbeef);
+
+  vbi_model = ZMODEL(zmodel_new());
+
+  vbi_reset_prog_info(&program_info[0]);
+  vbi_reset_prog_info(&program_info[1]);
+
+  pthread_mutex_init(&network_mutex, NULL);
+  pthread_mutex_init(&prog_info_mutex, NULL);
+
+  memset(&current_network, 0, sizeof(current_network));
+
+  if (pipe(osd_pipe)) {
+    g_warning("Cannot create osd pipe");
+    exit(EXIT_FAILURE);
+  }
+#endif
+}
+
+void shutdown_zvbi(void)
+{
+  pthread_mutex_destroy(&prog_info_mutex);
+  pthread_mutex_destroy(&network_mutex);
+
+  D();
+
+  if (vbi)
+    zvbi_close_device();
+
+  D();
+
+  if (vbi_model)
+    g_object_unref(G_OBJECT(vbi_model));
+
+  D();
+
+  close(osd_pipe[0]);
+  close(osd_pipe[1]);
 }
 
 gchar *

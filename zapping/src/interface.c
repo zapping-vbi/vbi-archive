@@ -166,8 +166,10 @@ create_zapping (void)
 
   /* Work around libglade bug */
   w = lookup_widget (widget, "tv_screen");
-  gtk_widget_add_events (w, GDK_BUTTON_PRESS_MASK | GDK_EXPOSURE_MASK
-			 | GDK_POINTER_MOTION_MASK |
+  gtk_widget_add_events (w, GDK_BUTTON_PRESS_MASK |
+			 GDK_BUTTON_RELEASE_MASK |
+			 GDK_EXPOSURE_MASK |
+			 GDK_POINTER_MOTION_MASK |
 			 GDK_VISIBILITY_NOTIFY_MASK |
 			 GDK_KEY_PRESS_MASK);
 
@@ -184,6 +186,9 @@ create_zapping (void)
   MENU_CMD (hide_controls2,	"zapping.hide_controls()");
   MENU_CMD (plugins1,		"zapping.plugin_properties()");
   MENU_CMD (main_help1,		"zapping.help()");
+  MENU_CMD (vbi_info1,		"zapping.network_info()");
+  MENU_CMD (program_info1,	"zapping.program_info()");
+  MENU_CMD (closed_caption1,	"zapping.closed_caption()");
 
   /* Toolbar commands */
   w = lookup_widget (widget, "tb-mute");

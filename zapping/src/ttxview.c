@@ -3515,6 +3515,14 @@ build_ttxview(void)
 
   ttxview_toolbar_init (data->toolbar);
 
+  gtk_widget_add_events (data->da, GDK_BUTTON_PRESS_MASK |
+			 GDK_BUTTON_RELEASE_MASK |
+			 GDK_EXPOSURE_MASK |
+			 GDK_POINTER_MOTION_MASK |
+			 GDK_STRUCTURE_MASK |
+			 GDK_VISIBILITY_NOTIFY_MASK |
+			 GDK_KEY_PRESS_MASK);
+
   /* Callbacks */
   g_signal_connect(G_OBJECT(ttxview), "delete-event",
 		     G_CALLBACK(on_ttxview_delete_event), data);

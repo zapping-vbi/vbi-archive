@@ -6552,7 +6552,6 @@ Iñaki García Etxebarria</property>
 			  <property name="visible">True</property>
 			  <property name="label" translatable="yes">P_lugins</property>
 			  <property name="use_underline">True</property>
-			  <signal name="activate" handler="on_plugins1_activate"/>
 
 			  <child internal-child="image">
 			    <widget class="GtkImage" id="image81">
@@ -6717,7 +6716,6 @@ Iñaki García Etxebarria</property>
 			  <property name="visible">True</property>
 			  <property name="label" translatable="yes">Network Info</property>
 			  <property name="use_underline">True</property>
-			  <signal name="activate" handler="on_vbi_info1_activate"/>
 
 			  <child internal-child="image">
 			    <widget class="GtkImage" id="image87">
@@ -6738,7 +6736,6 @@ Iñaki García Etxebarria</property>
 			  <property name="visible">True</property>
 			  <property name="label" translatable="yes">Program Info</property>
 			  <property name="use_underline">True</property>
-			  <signal name="activate" handler="on_program_info1_activate"/>
 
 			  <child internal-child="image">
 			    <widget class="GtkImage" id="image88">
@@ -6776,7 +6773,6 @@ Iñaki García Etxebarria</property>
 			  <property name="label" translatable="yes">_Subtitles</property>
 			  <property name="use_underline">True</property>
 			  <property name="active">False</property>
-			  <signal name="activate" handler="on_closed_caption1_activate"/>
 			</widget>
 		      </child>
 
@@ -6791,7 +6787,6 @@ Iñaki García Etxebarria</property>
 			  <property name="visible">True</property>
 			  <property name="label" translatable="yes">Hide menu and toolbar</property>
 			  <property name="use_underline">True</property>
-			  <signal name="activate" handler="on_hide_controls1_activate"/>
 			  <accelerator key="H" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
@@ -6945,7 +6940,6 @@ Iñaki García Etxebarria</property>
 		  <property name="label" translatable="yes">Teletext</property>
 		  <property name="use_underline">True</property>
 		  <property name="stock_pixmap">gtk-justify-fill</property>
-		  <signal name="pressed" handler="on_videotext3_pressed"/>
 		</widget>
 	      </child>
 
