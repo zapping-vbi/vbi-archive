@@ -209,7 +209,7 @@ p_tvengxv_open_device(tveng_device_info *info,
 
   printv ("xv_video_port 0x%x\n", xv_video_port);
 
-  display = info->priv->display;
+  display = info->display;
 
   pAdaptors = NULL;
   pAttributes = NULL;
@@ -374,7 +374,7 @@ enable_overlay			(tveng_device_info *	info,
 		return FALSE;
 	}
 
-	XGetGeometry (info->priv->display,
+	XGetGeometry (info->display,
 		      p_info->window,
 		      &root, &x, &y, &width, &height,
 		      /* border width */ &dummy,
@@ -384,12 +384,12 @@ enable_overlay			(tveng_device_info *	info,
 
 	if (p_info->xa_encoding != None
 	    && p_info->encoding_gettable)
-		XvGetPortAttribute (info->priv->display,
+		XvGetPortAttribute (info->display,
 				    p_info->port,
 				    p_info->xa_encoding,
 				    &encoding_num);
 	if (on) {
-		XvPutVideo (info->priv->display,
+		XvPutVideo (info->display,
 			    p_info->port,
 			    p_info->window,
 			    p_info->gc,
@@ -400,46 +400,55 @@ enable_overlay			(tveng_device_info *	info,
 			    /* dest */
 			    0, 0, width, height);
 	} else {
-		XvStopVideo (info->priv->display,
+		XvStopVideo (info->display,
 			     p_info->port,
 			     p_info->window);
 	}
 
-	XSync (info->priv->display, False);
+	XSync (info->display, False);
 
 	return TRUE;
 }
 
-
-static void
-tvengxv_set_chromakey (uint32_t chroma, tveng_device_info *info)
+static tv_bool
+set_overlay_window_chromakey (tveng_device_info *info,
+			      const tv_window *w _unused_,
+			      unsigned int chromakey)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 
 	if (p_info->xa_colorkey != None) {
 		if (io_debug_msg > 0) {
 			fprintf (stderr, "XvSetPortAttribute "
-				 "XA_COLORKEY 0x%x\n", chroma);
+				 "XA_COLORKEY 0x%x\n", chromakey);
 		}
 
-		XvSetPortAttribute (info->priv->display,
+		XvSetPortAttribute (info->display,
 				    p_info->port,
 				    p_info->xa_colorkey,
-				    (int) chroma);
+				    (int) chromakey);
+
+		return TRUE;
 	}
+
+	return FALSE;
 }
 
-static int
-tvengxv_get_chromakey (uint32_t *chroma, tveng_device_info *info)
+static tv_bool
+get_overlay_chromakey (tveng_device_info *info)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
+	int result;
 
   if (p_info->xa_colorkey == None)
-    return -1;
+    return FALSE;
 
-  XvGetPortAttribute (info->priv->display, p_info->port,
-		      p_info->xa_colorkey, chroma);
-  return 0;
+  XvGetPortAttribute (info->display, p_info->port,
+		      p_info->xa_colorkey, &result);
+
+  info->overlay.chromakey = result;
+
+  return TRUE;
 }
 
 
@@ -459,7 +468,7 @@ do_get_control			(struct private_tvengxv_device_info *p_info,
 	if (c->atom == p_info->xa_mute) {
 		return TRUE; /* no read-back (bttv bug) */
 	} else {
-		XvGetPortAttribute (p_info->info.priv->display,
+		XvGetPortAttribute (p_info->info.display,
 				    p_info->port,
 				    c->atom,
 				    &value);
@@ -506,7 +515,7 @@ set_control			(tveng_device_info *	info,
 			 c->label, value);
 	}
 
-	XvSetPortAttribute (info->priv->display,
+	XvSetPortAttribute (info->display,
 			    p_info->port,
 			    C(c)->atom,
 			    value);
@@ -554,7 +563,7 @@ add_control			(struct private_tvengxv_device_info *p_info,
 
 	CLEAR (c);
 
-	xatom = XInternAtom (p_info->info.priv->display, atom, False);
+	xatom = XInternAtom (p_info->info.display, atom, False);
 
 	if (xatom == None)
 		return TRUE;
@@ -612,7 +621,7 @@ set_video_standard		(tveng_device_info *	info,
 			 s->label);
 	}
 
-	XvSetPortAttribute (info->priv->display,
+	XvSetPortAttribute (info->display,
 			    p_info->port,
 			    p_info->xa_encoding,
 			    (int) CS(s)->num);
@@ -696,10 +705,11 @@ get_video_standard_list		(tveng_device_info *	info)
 
 			up[j] = 0;
 
-			s = S(append_video_standard (&info->video_standards,
-						     1 << (custom++),
-						     up, buf,
-						     sizeof (*s)));
+			s = S(append_video_standard
+			      (&info->video_standards,
+			       TV_VIDEOSTD_SET (1) << (custom++),
+			       up, buf,
+			       sizeof (*s)));
 		}
 
 		if (s == NULL)
@@ -751,7 +761,7 @@ get_tuner_frequency		(tveng_device_info *	info,
 		return FALSE;
 
 	if (info->cur_video_input == l) {
-		XvGetPortAttribute (info->priv->display,
+		XvGetPortAttribute (info->display,
 				    p_info->port,
 				    p_info->xa_freq,
 				    &freq);
@@ -785,12 +795,12 @@ set_tuner_frequency		(tveng_device_info *	info,
 		fprintf (stderr, "XvSetPortAttribute XA_FREQ %d\n", freq);
 	}
 
-	XvSetPortAttribute (info->priv->display,
+	XvSetPortAttribute (info->display,
 			    p_info->port,
 			    p_info->xa_freq,
 			    freq);
 
-	XSync (info->priv->display, False);
+	XSync (info->display, False);
 
  store:
 	store_frequency (info, VI (l), freq);
@@ -828,10 +838,10 @@ set_source			(tveng_device_info *	info,
 	info->cur_video_standard = (tv_video_standard *) standard;
 
 	if (old_input != input)
-		tv_callback_notify (info, info, info->priv->video_input_callback);
+		tv_callback_notify (info, info, info->video_input_callback);
 
 	if (old_standard != standard)
-		tv_callback_notify (info, info, info->priv->video_standard_callback);
+		tv_callback_notify (info, info, info->video_standard_callback);
 }
 
 static tv_bool
@@ -849,7 +859,7 @@ get_video_input			(tveng_device_info *	info)
 		return TRUE;
 	}
 
-	XvGetPortAttribute (info->priv->display,
+	XvGetPortAttribute (info->display,
 			    p_info->port,
 			    p_info->xa_encoding,
 			    &enc);
@@ -907,7 +917,7 @@ set_video_input			(tveng_device_info *	info,
 				 num);
 		}
 
-		XvSetPortAttribute (info->priv->display,
+		XvSetPortAttribute (info->display,
 				    p_info->port,
 				    p_info->xa_encoding,
 				    num);
@@ -919,7 +929,7 @@ set_video_input			(tveng_device_info *	info,
 				 num);
 		}
 
-		XvSetPortAttribute (info->priv->display,
+		XvSetPortAttribute (info->display,
 				    p_info->port,
 				    p_info->xa_encoding,
 				    num);
@@ -1082,7 +1092,7 @@ int tvengxv_attach_device(const char* device_file _unused_,
 
   t_assert(info != NULL);
 
-  if (info->priv->disable_xv_video || disable_overlay)
+  if (info->disable_xv_video || disable_overlay)
     {
       info->tveng_errno = -1;
       t_error_msg("disable_xv",
@@ -1090,7 +1100,7 @@ int tvengxv_attach_device(const char* device_file _unused_,
       return -1;
     }
 
-  dpy = info->priv->display;
+  dpy = info->display;
 
   if (-1 != info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
@@ -1248,6 +1258,16 @@ int tvengxv_attach_device(const char* device_file _unused_,
 	if (!get_video_input_list (info))
 	  goto error1; /* XXX*/
 
+	CLEAR (info->overlay);
+
+	info->overlay.set_xwindow = set_overlay_xwindow;
+	info->overlay.set_window_chromakey = set_overlay_window_chromakey;
+	info->overlay.get_chromakey = get_overlay_chromakey;
+	info->overlay.enable = enable_overlay;
+
+	CLEAR (info->capture);
+
+
   /* fill in capabilities info */
 	info->caps.channels = 0; /* FIXME info->num_inputs;*/
   /* Let's go creative! */
@@ -1329,17 +1349,6 @@ static void tvengxv_close_device(tveng_device_info * info)
 
 
 
-static int
-tvengxv_set_capture_format(tveng_device_info * info _unused_)
-{
-  return 0; /* this just doesn't make sense in XVideo */
-}
-
-static int
-tvengxv_update_capture_format(tveng_device_info * info _unused_)
-{
-  return 0; /* This one was easy too :-) */
-}
 
 
 
@@ -1366,7 +1375,7 @@ tvengxv_get_signal_strength(int *strength, int *afc,
     }
 
   if (strength)
-    XvGetPortAttribute(info->priv->display,
+    XvGetPortAttribute(info->display,
 		       p_info->port,
 		       p_info->xa_signal_strength,
 		       strength);
@@ -1394,14 +1403,7 @@ static struct tveng_module_info tvengxv_module_info = {
   .set_control			= set_control,
   .get_control			= get_control,
 
-  .update_capture_format =	tvengxv_update_capture_format,
-  .set_capture_format =		tvengxv_set_capture_format,
   .get_signal_strength =	tvengxv_get_signal_strength,
-
-  .set_overlay_xwindow		= set_overlay_xwindow,
-  .enable_overlay		= enable_overlay,
-  .get_chromakey =		tvengxv_get_chromakey,
-  .set_chromakey =		tvengxv_set_chromakey,
 
   .private_size =		sizeof(struct private_tvengxv_device_info)
 };

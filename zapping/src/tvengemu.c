@@ -209,79 +209,6 @@ static struct tveng_caps caps = {
 };
 
 /*
-  Associates the given tveng_device_info with the given video
-  device. On error it returns -1 and sets info->tveng_errno, info->error to
-  the correct values.
-  device_file: The file used to access the video device (usually
-  /dev/video)
-  attach_mode: Specifies the mode to open the device file
-  depth: The color depth the capture will be in, -1 means let tveng
-  decide based on the current display depth.
-  info: The structure to be associated with the device
-*/
-static
-int tvengemu_attach_device(const char* device_file,
-			   Window window _unused_,
-			   enum tveng_attach_mode attach_mode,
-			   tveng_device_info * info)
-{
-  struct private_tvengemu_device_info * p_info =
-    (struct private_tvengemu_device_info*) info;
-
-  t_assert (device_file != NULL);
-  t_assert (info != NULL);
-
-  if (-1 != info->fd)
-    tveng_close_device (info);
-
-  info -> file_name = strdup (device_file);
-
-  memcpy (&info->caps, &caps, sizeof (caps));
-
-  info -> attach_mode = attach_mode;
-  info -> capture_mode = CAPTURE_MODE_NONE;
-  info -> fd = 0xdeadbeef;
-
-  add_video_inputs (info);
-  add_standards (info);
-  add_controls (info);
-
-  CLEAR (p_info->overlay_buffer);
-
-  /* Set up some capture parameters */
-  info->capture_format.width = info->cur_video_standard->frame_width / 2;
-  info->capture_format.height = info->cur_video_standard->frame_height / 2;
-  info->capture_format.pixfmt = TV_PIXFMT_YVU420;
-  tvengemu_update_capture_format (info);
-
-  /* Overlay window setup */
-  info->overlay_window.x = 0;
-  info->overlay_window.y = 0;
-  info->overlay_window.width = info->capture_format.width;
-  info->overlay_window.height = info->capture_format.height;
-  info->overlay_window.clip_vector.vector = NULL;
-  info->overlay_window.clip_vector.size = 0;
-  info->overlay_window.clip_vector.capacity = 0;
-
-  /* Framebuffer */
-  info->overlay_buffer.base = 0;
-  info->overlay_buffer.format.width = info->caps.maxwidth;
-  info->overlay_buffer.format.height = info->caps.maxheight;
-  /*  info->overlay_buffer.depth = 17;
-    info->overlay_buffer.bytes_per_line = (info->overlay_buffer.depth+7)/8 *
-      info->overlay_buffer.width;
-  */
-  /* Tuner bounds */
-  p_info -> freq_min = 1000;
-  p_info -> freq_max = 1000000;
-  p_info -> freq = 815250;
-
-  info -> current_controller = TVENG_CONTROLLER_EMU;
-
-  return 0;
-}
-
-/*
   Stores in short_str and long_str (if they are non-null) the
   description of the current controller. The enum value can be found in
   info->current_controller.
@@ -322,35 +249,19 @@ static void tvengemu_close_device(tveng_device_info * info)
 	free_video_inputs (info);
 }
 
-static int
-tvengemu_update_capture_format (tveng_device_info *info)
+static tv_bool
+get_capture_format		(tveng_device_info *	info _unused_)
 {
-  tv_image_format_init (&info->capture_format,
-			info->capture_format.width,
-			info->capture_format.height,
-			/* bytes_per_line */ 0,
-			info->capture_format.pixfmt, 0);
-
-  return 0;
+	return TRUE;
 }
 
-static int
-tvengemu_set_capture_format (tveng_device_info *info)
+static tv_bool
+set_capture_format		(tveng_device_info *	info,
+				 const tv_image_format *fmt)
 {
-  t_assert (info != NULL);
+	info->capture.format = *fmt;
 
-  if (info->capture_format.height < info->caps.minheight)
-    info->capture_format.height = info->caps.minheight;
-  if (info->capture_format.height > info->caps.maxheight)
-    info->capture_format.height = info->caps.maxheight;
-  if (info->capture_format.width < info->caps.minwidth)
-    info->capture_format.width = info->caps.minwidth;
-  if (info->capture_format.width > info->caps.maxwidth)
-    info->capture_format.width = info->caps.maxwidth;
-
-  tvengemu_update_capture_format (info);
-
-  return 0;
+	return TRUE;
 }
 
 
@@ -430,13 +341,6 @@ tvengemu_get_timestamp (tveng_device_info *info _unused_)
 
 
 static tv_bool
-get_overlay_buffer		(tveng_device_info *	info _unused_)
-{
-	/* Nothing to do. */
-	return TRUE;
-}
-
-static tv_bool
 set_overlay_buffer		(tveng_device_info *	info,
 				 const tv_overlay_buffer *t)
 {
@@ -445,7 +349,13 @@ set_overlay_buffer		(tveng_device_info *	info,
 }
 
 static tv_bool
-set_overlay_window		(tveng_device_info *	info _unused_,
+get_overlay_buffer		(tveng_device_info *	info _unused_)
+{
+	return TRUE;
+}
+
+static tv_bool
+set_overlay_window_clipvec	(tveng_device_info *	info _unused_,
 				 const tv_window *	w _unused_,
 				 const tv_clip_vector *	v _unused_)
 {
@@ -459,35 +369,119 @@ get_overlay_window		(tveng_device_info *	info _unused_)
 }
 
 static tv_bool
+set_overlay_window_chromakey	(tveng_device_info *	info,
+				 const tv_window *	w _unused_,
+				 unsigned int		chromakey)
+{
+  struct private_tvengemu_device_info * p_info =
+    (struct private_tvengemu_device_info*) info;
+
+  p_info -> chromakey = chromakey;
+  return TRUE;
+}
+
+static tv_bool
+get_overlay_chromakey		(tveng_device_info *info)
+{
+  struct private_tvengemu_device_info * p_info =
+    (struct private_tvengemu_device_info*) info;
+
+  info->overlay.chromakey = p_info -> chromakey;
+  return TRUE;
+}
+
+static tv_bool
 enable_overlay			(tveng_device_info *	info _unused_,
 				 tv_bool		on _unused_)
 {
 	return TRUE;
 }
 
-
-
-static void
-tvengemu_set_chromakey (uint32_t chroma, tveng_device_info *info)
+/*
+  Associates the given tveng_device_info with the given video
+  device. On error it returns -1 and sets info->tveng_errno, info->error to
+  the correct values.
+  device_file: The file used to access the video device (usually
+  /dev/video)
+  attach_mode: Specifies the mode to open the device file
+  depth: The color depth the capture will be in, -1 means let tveng
+  decide based on the current display depth.
+  info: The structure to be associated with the device
+*/
+static
+int tvengemu_attach_device(const char* device_file,
+			   Window window _unused_,
+			   enum tveng_attach_mode attach_mode,
+			   tveng_device_info * info)
 {
   struct private_tvengemu_device_info * p_info =
     (struct private_tvengemu_device_info*) info;
 
+  t_assert (device_file != NULL);
   t_assert (info != NULL);
 
-  p_info -> chromakey = chroma;
-}
+  if (-1 != info->fd)
+    tveng_close_device (info);
 
-static int
-tvengemu_get_chromakey (uint32_t *chroma, tveng_device_info *info)
-{
-  struct private_tvengemu_device_info * p_info =
-    (struct private_tvengemu_device_info*) info;
+  info -> file_name = strdup (device_file);
 
-  t_assert (info != NULL);
+  memcpy (&info->caps, &caps, sizeof (caps));
 
-  if (chroma)
-    *chroma = p_info -> chromakey;
+  info -> attach_mode = attach_mode;
+  info -> capture_mode = CAPTURE_MODE_NONE;
+  info -> fd = 0xdeadbeef;
+
+  add_video_inputs (info);
+  add_standards (info);
+  add_controls (info);
+
+  CLEAR (p_info->overlay_buffer);
+
+  CLEAR (info->overlay);
+
+  info->overlay.set_buffer = set_overlay_buffer;
+  info->overlay.get_buffer = get_overlay_buffer;
+  info->overlay.set_window_clipvec = set_overlay_window_clipvec;
+  info->overlay.get_window = get_overlay_window;
+  info->overlay.set_window_chromakey = set_overlay_window_chromakey;
+  info->overlay.get_chromakey = get_overlay_chromakey;
+  info->overlay.enable = enable_overlay;
+
+  CLEAR (info->capture);
+
+  info->capture.get_format = get_capture_format;
+  info->capture.set_format = set_capture_format;
+  info->capture.start_capturing = tvengemu_start_capturing;
+  info->capture.stop_capturing = tvengemu_stop_capturing;
+  info->capture.read_frame = tvengemu_read_frame;
+  info->capture.get_timestamp = tvengemu_get_timestamp;
+
+  /* Set up some capture parameters */
+  info->capture.format.width = info->cur_video_standard->frame_width / 2;
+  info->capture.format.height = info->cur_video_standard->frame_height / 2;
+  info->capture.format.pixfmt = TV_PIXFMT_YVU420;
+  get_capture_format (info);
+
+  /* Overlay window setup */
+  info->overlay.window.x = 0;
+  info->overlay.window.y = 0;
+  info->overlay.window.width = info->capture.format.width;
+  info->overlay.window.height = info->capture.format.height;
+
+  /* Framebuffer */
+  info->overlay.buffer.base = 0;
+  info->overlay.buffer.format.width = info->caps.maxwidth;
+  info->overlay.buffer.format.height = info->caps.maxheight;
+  /*  info->overlay.buffer.depth = 17;
+    info->overlay.buffer.bytes_per_line = (info->overlay.buffer.depth+7)/8 *
+      info->overlay.buffer.width;
+  */
+  /* Tuner bounds */
+  p_info -> freq_min = 1000;
+  p_info -> freq_max = 1000000;
+  p_info -> freq = 815250;
+
+  info -> current_controller = TVENG_CONTROLLER_EMU;
 
   return 0;
 }
@@ -502,22 +496,7 @@ static struct tveng_module_info tvengemu_module_info = {
   .set_video_standard		= set_video_standard,
   .set_control			= set_control,
 
-  update_capture_format:	tvengemu_update_capture_format,
-  set_capture_format:		tvengemu_set_capture_format,
-  get_signal_strength:		tvengemu_get_signal_strength,
-  start_capturing:		tvengemu_start_capturing,
-  stop_capturing:		tvengemu_stop_capturing,
-  read_frame:			tvengemu_read_frame,
-  get_timestamp:		tvengemu_get_timestamp,
-
-  .set_overlay_buffer		= set_overlay_buffer,
-  .get_overlay_buffer		= get_overlay_buffer,
-  .set_overlay_window		= set_overlay_window,
-  .get_overlay_window		= get_overlay_window,
-  .enable_overlay		= enable_overlay,
-
-  get_chromakey:		tvengemu_get_chromakey,
-  set_chromakey:		tvengemu_set_chromakey,
+  .get_signal_strength = tvengemu_get_signal_strength,
 
   private_size:			sizeof(struct private_tvengemu_device_info)
 };

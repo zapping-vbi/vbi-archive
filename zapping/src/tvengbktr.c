@@ -134,6 +134,10 @@ static const int cap_continuous		= METEOR_CAP_CONTINOUS;
 static const int signal_usr1		= SIGUSR1;
 static const int signal_none		= ~0xFFFF; /* METEOR_SIG_MODE_MASK */
 
+static tv_bool
+set_capture_format		(tveng_device_info *	info,
+				 const tv_image_format *fmt);
+
 /*
 	Controls
 */
@@ -689,7 +693,7 @@ set_video_input			(tveng_device_info *	info,
 				return TRUE;
 	}
 
-	pixfmt = p_info->info.capture_format.pixfmt;
+	pixfmt = p_info->info.capture.format.pixfmt;
 	current_mode = p_tveng_stop_everything (&p_info->info, &was_active);
 
 	if (-1 == bktr_ioctl (&p_info->info, METEORSINPUT, &VI(l)->dev))
@@ -717,8 +721,8 @@ set_video_input			(tveng_device_info *	info,
 				     p_info->info.cur_video_input
 				     ->u.tuner.frequency);
 
-	p_info->info.capture_format.pixfmt = pixfmt;
-	p_tveng_set_capture_format(&p_info->info);
+	p_info->info.capture.format.pixfmt = pixfmt;
+	set_capture_format (info, &info->capture.format);
 
 	/* XXX Start capturing again as if nothing had happened */
 	p_tveng_restart_everything (current_mode, was_active, &p_info->info);
@@ -1057,7 +1061,7 @@ init_pixfmt_lut			(tveng_device_info *	info)
 		++i;
 	}
 
-	info->supported_pixfmt_set = pixfmt_set;
+	info->capture.supported_pixfmt_set = pixfmt_set;
 
 	return TRUE;
 }
@@ -1258,7 +1262,7 @@ set_overlay_buffer		(tveng_device_info *	info,
 		return FALSE;
 	}
 
-	p_info->info.overlay_buffer = *t;
+	p_info->info.overlay.buffer = *t;
 	p_info->ovl_bits_per_pixel = format.bits_per_pixel;
 
 	return TRUE;
@@ -1392,13 +1396,13 @@ set_overlay_window		(tveng_device_info *	info,
 	if (!enable_overlay (info, FALSE))
 		return FALSE;
 
-	wx1 = w->x - p_info->info.overlay_buffer.x;
-	wy1 = w->y - p_info->info.overlay_buffer.y;
+	wx1 = w->x - p_info->info.overlay.buffer.x;
+	wy1 = w->y - p_info->info.overlay.buffer.y;
 
 	wx2 = wx1 + w->width;
 	wy2 = wy1 + w->height;
 
-	bf = &p_info->info.overlay_buffer.format;
+	bf = &p_info->info.overlay.buffer.format;
 
 	if (!p_info->bktr_driver && v->size > 0) {
 		/* Clipping not supported. */
@@ -1410,12 +1414,12 @@ set_overlay_window		(tveng_device_info *	info,
 	start_line = wy1 * (int) bf->bytes_per_line;
 	start_byte = (wx1 * (int) p_info->ovl_bits_per_pixel) / 8;
 
-	video.addr = p_info->info.overlay_buffer.base
+	video.addr = p_info->info.overlay.buffer.base
 		+ start_line + start_byte;
 	video.width = bf->bytes_per_line;
 
 	size = (bf->size - ((char *) video.addr
-			    - (char *) p_info->info.overlay_buffer.base));
+			    - (char *) p_info->info.overlay.buffer.base));
 
 	video.banksize = size;
 	video.ramsize = (size + 1023) >> 10;
@@ -1450,10 +1454,10 @@ set_overlay_window		(tveng_device_info *	info,
 		}
 	}
 
-	info->overlay_window.x		= w->x;
-	info->overlay_window.y		= w->y;
-	info->overlay_window.width	= w->width;
-	info->overlay_window.height	= w->height;
+	info->overlay.window.x		= w->x;
+	info->overlay.window.y		= w->y;
+	info->overlay.window.width	= w->width;
+	info->overlay.window.height	= w->height;
 
 	p_info->ovl_ready = TRUE;
 
@@ -1494,7 +1498,7 @@ enable_overlay			(tveng_device_info *	info,
 	return TRUE;
 }
 
-static int
+static tv_bool
 get_capture_format		(tveng_device_info * info)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
@@ -1507,13 +1511,13 @@ get_capture_format		(tveng_device_info * info)
 		int bktr_pixfmt;
 
 		/* Oddly bktr supports SETGEO but not GETGEO. */
-		geom.columns	= info->capture_format.width;
-		geom.rows	= info->capture_format.height;
+		geom.columns	= info->capture.format.width;
+		geom.rows	= info->capture.format.height;
 
 		bktr_pixfmt = -1;
 
 		if (-1 == bktr_ioctl (info, METEORGACTPIXFMT, &bktr_pixfmt))
-			return -1;
+			return FALSE;
 
 		pixfmt = 0;
 		while (pixfmt < N_ELEMENTS (p_info->pixfmt_lut)) {
@@ -1523,11 +1527,11 @@ get_capture_format		(tveng_device_info * info)
 		}
 
 		if (pixfmt >= N_ELEMENTS (p_info->pixfmt_lut)) {
-			return -1;
+			return FALSE;
 		}
 	} else {
 		if (-1 == bktr_ioctl (info, METEORGETGEO, &geom))
-			return -1;
+			return FALSE;
 
 		switch (geom.oformat) {
 		case METEOR_GEO_RGB16:
@@ -1543,63 +1547,69 @@ get_capture_format		(tveng_device_info * info)
 			break;
 
 		default:
-			return -1;
+			return FALSE;
 		}
 	}
 
 	if (0 == geom.columns || 0 == geom.rows) {
-		CLEAR (info->capture_format);
-		info->capture_format.pixfmt = pixfmt;
+		CLEAR (info->capture.format);
+		info->capture.format.pixfmt = pixfmt;
 	} else {
-		if (!tv_image_format_init (&info->capture_format,
+		if (!tv_image_format_init (&info->capture.format,
 					   geom.columns,
 					   geom.rows,
 					   /* bytes_per_line (minimum) */ 0,
 					   pixfmt,
 					   /* reserved */ 0)) {
-			return -1;
+			return FALSE;
 		}
 	}
 
 	if (0)
-		_tv_image_format_dump (&info->capture_format, stderr);
+		_tv_image_format_dump (&info->capture.format, stderr);
 
-	return 0;
+	return TRUE;
 }
 
-static int
-set_capture_format		(tveng_device_info *	info)
+static tv_bool
+set_capture_format		(tveng_device_info *	info,
+				 const tv_image_format *fmt)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
-	capture_mode mode;
+	capture_mode current_mode;
 	gboolean overlay_was_active;
 
-	mode = p_tveng_stop_everything(info, &overlay_was_active);
+	/* XXX */
+	current_mode = p_tveng_stop_everything(info, &overlay_was_active);
 
 	p_info->cap_ready = FALSE;
 	p_info->ovl_ready = FALSE;
 
 	if (-1 == bktr_ioctl (info, METEORSVIDEO, &no_video)) {
-		return -1;
+		return FALSE;
 	}
 
 	if (p_info->bktr_driver) {
 		if (-1 == bktr_ioctl (info, BT848SCLIP, &no_clips)) {
-			return -1;
+			return FALSE;
 		}
 	}
 
-	if (!set_format (p_info, &info->capture_format, info->cur_video_standard)) {
-		return -1;
+	info->capture.format = *fmt;
+
+	if (!set_format (p_info,
+			 &info->capture.format,
+			 info->cur_video_standard)) {
+		return FALSE;
 	}
 
 	p_info->cap_ready = TRUE;
 
-	p_tveng_restart_everything(mode, overlay_was_active, info);
+	p_tveng_restart_everything(current_mode, overlay_was_active, info);
 
 	usleep (100000);
 
-	return 0;
+	return TRUE;
 }
 
 
@@ -2008,18 +2018,35 @@ tvengbktr_attach_device (const char* device_file,
 	if (!get_control_list (info))
 		goto failure;
 
+	CLEAR (info->overlay);
+
+	info->overlay.set_buffer = set_overlay_buffer;
+	info->overlay.get_buffer = get_overlay_buffer;
+	info->overlay.set_window_clipvec = set_overlay_window;
+	info->overlay.get_window = get_overlay_window;
+	info->overlay.enable     = enable_overlay;
+
+	CLEAR (info->capture);
+
+	info->capture.get_format = get_capture_format;
+	info->capture.set_format = set_capture_format;
+	info->capture.read_frame = read_frame;
+	info->capture.get_timestamp = get_timestamp;
+	info->capture.start_capturing = start_capturing;
+	info->capture.stop_capturing = stop_capturing;
+
 	if (P_INFO (info)->bktr_driver) {
 		init_pixfmt_lut (info);
 	} else {
 		/* Correct? */
-		info->supported_pixfmt_set =
+		info->capture.supported_pixfmt_set =
 			(TV_PIXFMT_SET (TV_PIXFMT_BGR16_LE) |
 			 TV_PIXFMT_SET (TV_PIXFMT_BGRA32_LE) |
 			 TV_PIXFMT_SET (TV_PIXFMT_YUYV) |
 			 TV_PIXFMT_SET (TV_PIXFMT_YUV422));
 	}
 
-	tv_image_format_init (&info->capture_format, 160, 120, 0,
+	tv_image_format_init (&info->capture.format, 160, 120, 0,
 			      TV_PIXFMT_BGR16_LE, 0);
 
 	/* Bug: VBI capturing works only if we capture video
@@ -2032,7 +2059,7 @@ tvengbktr_attach_device (const char* device_file,
 		ul = BT848_IFORM_F_PALBDGHI;
 		bktr_ioctl (info, BT848SFMT, &ul);
 
-		if (-1 == set_capture_format (info))
+		if (-1 == set_capture_format (info, &info->capture.format))
 			goto failure;
 
 		if (-1 == start_capturing (info))
@@ -2077,19 +2104,6 @@ static struct tveng_module_info tvengbktr_module_info = {
   .get_video_standard		= get_video_standard,
   .set_control			= set_control,
   .get_control			= get_control,
-
-  .set_overlay_buffer		= set_overlay_buffer,
-  .get_overlay_buffer		= get_overlay_buffer,
-  .set_overlay_window		= set_overlay_window,
-  .get_overlay_window		= get_overlay_window,
-  .enable_overlay		= enable_overlay,
-
-  .update_capture_format	= get_capture_format,
-  .set_capture_format		= set_capture_format,
-  .read_frame			= read_frame,
-  .get_timestamp		= get_timestamp,
-  .start_capturing		= start_capturing,
-  .stop_capturing		= stop_capturing,
 
   .private_size			= sizeof (struct private_tvengbktr_device_info)
 };

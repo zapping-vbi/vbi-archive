@@ -24,61 +24,10 @@
 #include <tveng.h>
 #include <pthread.h>
 
-/* i18n */
-#ifndef _
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(String) gettext (String)
-#ifndef N_
-#define N_(String) (String)
-#endif
-#else /* ENABLE_NLS */
-#define _(String) (String)
-#ifndef N_
-#define N_(String) (String)
-#endif
-#endif /* ENABLE_NLS */
-#endif /* _ */
-
+#include "common/intl-priv.h"
 #include "libtv/misc.h"
 #include "x11stuff.h"
 #include "zmisc.h" /* preliminary */
-
-
-/*
-  Utility function, stops the capture or the previewing. Returns the
-  mode the device was before stopping.
-  For stopping and restarting the device do:
-  enum tveng_capture_mode cur_mode;
-  cur_mode = tveng_stop_everything(info);
-  ... do some stuff ...
-  if (tveng_restart_everything(cur_mode, info) == -1)
-     ... show error dialog ...
-*/
-capture_mode tveng_stop_everything (tveng_device_info *info,
-				    gboolean *overlay_was_active);
-/*
-  Restarts the given capture mode. See the comments on
-  tveng_stop_everything. Returns -1 on error.
-*/
-int tveng_restart_everything (capture_mode mode,
-			      gboolean overlay_was_active,
-			      tveng_device_info * info);
-
-int p_tveng_set_preview_window(tveng_device_info * info);
-int p_tveng_set_preview (int on, tveng_device_info * info);
-capture_mode 
-p_tveng_stop_everything (tveng_device_info * info,
-			 gboolean * overlay_was_active);
-int p_tveng_restart_everything (capture_mode mode,
-				gboolean overlay_was_active,
-				tveng_device_info * info);
-int p_tveng_set_capture_format(tveng_device_info * info);
-
-extern void
-tv_callback_notify		(tveng_device_info *	info,
-				 void *			object,
-				 const tv_callback *	list);
 
 /*
   Function prototypes for modules, NULL means not implemented or not
@@ -144,34 +93,9 @@ struct tveng_module_info {
 	tv_bool		(* set_audio_mode)	(tveng_device_info *,
 						 tv_audio_mode);
 
-  int	(*update_capture_format)(tveng_device_info *info);
-  int	(*set_capture_format)(tveng_device_info *info);
-
   int	(*get_signal_strength)(int *strength, int *afc,
 			       tveng_device_info *info);
 
-  int	(*start_capturing)(tveng_device_info *info);
-  int	(*stop_capturing)(tveng_device_info *info);
-  int	(*read_frame)(tveng_image_data *where,
-		      unsigned int time, tveng_device_info *info);
-  double (*get_timestamp)(tveng_device_info *info);
-
-
-	tv_bool		(* set_overlay_buffer)	(tveng_device_info *,
-						 const tv_overlay_buffer *);
-	tv_bool		(* get_overlay_buffer)	(tveng_device_info *);
-	tv_bool		(* set_overlay_xwindow)	(tveng_device_info *,
-						 Window,
-						 GC);
-	tv_bool		(* set_overlay_window)	(tveng_device_info *,
-						 const tv_window *,
-						 const tv_clip_vector *);
-	tv_bool		(* get_overlay_window)	(tveng_device_info *);
-	tv_bool		(* enable_overlay)	(tveng_device_info *,
-						 tv_bool);
-
-  void	(*set_chromakey)(uint32_t pixel, tveng_device_info *info);
-  int	(*get_chromakey)(uint32_t *pixel, tveng_device_info *info);
 
   /* Device specific stuff */
   int	(*ov511_get_button_state)(tveng_device_info *info);
@@ -180,11 +104,117 @@ struct tveng_module_info {
   int	private_size;
 };
 
-struct tveng_private {
+struct capture_device {
+	tv_image_format		format;
+
+	/* Preliminary. If zero try set_format. */
+	tv_pixfmt_set		supported_pixfmt_set;
+
+	tv_bool			(* set_format)	(tveng_device_info *,
+						 const tv_image_format *);
+	tv_bool			(* get_format)	(tveng_device_info *);
+
+  int	(*start_capturing)(tveng_device_info *info);
+  int	(*stop_capturing)(tveng_device_info *info);
+  int	(*read_frame)(tveng_image_data *where,
+		      unsigned int time, tveng_device_info *info);
+  double (*get_timestamp)(tveng_device_info *info);
+};
+
+struct overlay_device {
+	tv_overlay_buffer	buffer;
+	tv_window		window;
+
+  	tv_clip_vector		clip_vector; /* 2 b removed */
+
+	unsigned int		chromakey;
+
+	tv_bool			active; /* XXX internal */
+
+	tv_bool			(* set_buffer)	(tveng_device_info *,
+						 const tv_overlay_buffer *);
+	tv_bool			(* get_buffer)	(tveng_device_info *);
+	tv_bool			(* set_window_clipvec)
+       						(tveng_device_info *,
+						 const tv_window *,
+						 const tv_clip_vector *);
+	tv_bool			(* set_window_chromakey)
+						(tveng_device_info *,
+						 const tv_window *,
+						 unsigned int);
+	tv_bool			(* set_xwindow)	(tveng_device_info *,
+						 Window,
+						 GC);
+	tv_bool			(* get_window)	(tveng_device_info *);
+	tv_bool			(* get_chromakey)(tveng_device_info *);
+	tv_bool			(* enable)	(tveng_device_info *,
+						 tv_bool);
+};
+
+/* The structure used to hold info about a video_device */
+struct _tveng_device_info
+{
+  char * file_name; /* The name used to open() this fd */
+  int fd; /* Video device file descriptor */
+  capture_mode capture_mode; /* Current capture mode */
+  enum tveng_attach_mode attach_mode; /* Mode this was attached with
+				       */
+  enum tveng_controller current_controller; /* Controller used */
+  struct tveng_caps caps; /* Video system capabilities */
+
+
+  struct capture_device capture;
+  struct overlay_device overlay;
+
+	/* All internal communication with the device is logged
+	   through this fp when non-NULL. */
+	FILE *			log_fp;
+
+	/* Panel properties */
+
+	/* Video inputs of the device, invariable. */
+	tv_video_line *		video_inputs;
+	/* Can be NULL only when no list exists. */
+	tv_video_line *		cur_video_input;
+
+	/* Audio inputs of the device, invariable. Not supported yet.
+	   Need a function telling which video and audio inputs combine. */
+	tv_audio_line *		audio_inputs;
+	/* Can be NULL only when no list exists. */
+	tv_audio_line *		cur_audio_input;
+
+	/* Video standards supported by the current video input. Note
+	   videostd_ids are bitwise mutually exclusive, i.e. no two listed
+	   standards can have the same videostd_id bit set. */
+	tv_video_standard *	video_standards;
+	/* This can be NULL if we don't know. If it matters,
+	   and video_standards is not NULL, clients should ask the user. */
+	tv_video_standard *	cur_video_standard;
+
+	/* Controls */
+	tv_control *		controls;
+	unsigned		audio_mutable : 1;
+
+	/* Audio mode */
+	tv_audio_capability	audio_capability;
+	/* lang1/2: 0-none/unknown 1-mono 2-stereo */
+	unsigned int		audio_reception[2];
+	tv_audio_mode		audio_mode;
+
+
+  /* Unique integer that indentifies this device */
+  int signature;
+
+  /* Debugging/error reporting stuff */
+  int tveng_errno; /* Numerical id of the last error, 0 == success */
+  char * error; /* points to the last error message */
+  int debug_level; /* 0 for no errors, increase for greater verbosity */
+
   Display	*display;
   int		save_x, save_y;
   int		bpp;
   int		current_bpp;
+
   struct tveng_module_info module;
 
   x11_vidmode_state old_mode;
@@ -217,7 +247,48 @@ struct tveng_private {
 
   /* when audio capability or reception changes */
   tv_callback *		audio_callback;
+
 };
+
+
+
+
+/*
+  Utility function, stops the capture or the previewing. Returns the
+  mode the device was before stopping.
+  For stopping and restarting the device do:
+  enum tveng_capture_mode cur_mode;
+  cur_mode = tveng_stop_everything(info);
+  ... do some stuff ...
+  if (tveng_restart_everything(cur_mode, info) == -1)
+     ... show error dialog ...
+*/
+capture_mode tveng_stop_everything (tveng_device_info *info,
+				    gboolean *overlay_was_active);
+/*
+  Restarts the given capture mode. See the comments on
+  tveng_stop_everything. Returns -1 on error.
+*/
+int tveng_restart_everything (capture_mode mode,
+			      gboolean overlay_was_active,
+			      tveng_device_info * info);
+
+int p_tv_set_preview_window(tveng_device_info * info, const tv_window *window);
+tv_bool p_tv_enable_overlay (tveng_device_info * info, tv_bool enable);
+capture_mode 
+p_tveng_stop_everything (tveng_device_info * info,
+			 gboolean * overlay_was_active);
+int p_tveng_restart_everything (capture_mode mode,
+				gboolean overlay_was_active,
+				tveng_device_info * info);
+const tv_image_format *
+p_tv_set_capture_format(tveng_device_info *info,const tv_image_format *format);
+
+extern void
+tv_callback_notify		(tveng_device_info *	info,
+				 void *			object,
+				 const tv_callback *	list);
+
 
 #define for_all(p, pslist) for (p = pslist; p; p = p->_next)
 

@@ -587,23 +587,7 @@ struct _tv_window {
 	int			y;
 	unsigned int		width;
 	unsigned int		height;
-
-	/* Invisible regions of window, coordinates relative x, y above. */
-	tv_clip_vector		clip_vector;
 };
-
-static __inline__ void
-tv_window_destroy		(tv_window *		window)
-{
-	tv_clip_vector_destroy (&window->clip_vector);
-	memset (window, 0, sizeof (*window));
-}
-
-static __inline__ void
-tv_window_init			(tv_window *		window)
-{
-	memset (window, 0, sizeof (*window));
-}
 
 
 /* Preliminary */
@@ -628,76 +612,6 @@ enum tveng_controller
   TVENG_CONTROLLER_MOTHER /* The wrapper controller (tveng.c) */
 };
 
-/* The structure used to hold info about a video_device */
-struct _tveng_device_info
-{
-  char * file_name; /* The name used to open() this fd */
-  int fd; /* Video device file descriptor */
-  capture_mode capture_mode; /* Current capture mode */
-  enum tveng_attach_mode attach_mode; /* Mode this was attached with
-				       */
-  enum tveng_controller current_controller; /* Controller used */
-  struct tveng_caps caps; /* Video system capabilities */
-
-   tv_image_format capture_format;
-
-	/* All internal communication with the device is logged
-	   through this fp when non-NULL. */
-	FILE *			log_fp;
-
-	/* Panel properties */
-
-	/* Video inputs of the device, invariable. */
-	tv_video_line *		video_inputs;
-	/* Can be NULL only when no list exists. */
-	tv_video_line *		cur_video_input;
-
-	/* Audio inputs of the device, invariable. Not supported yet.
-	   Need a function telling which video and audio inputs combine. */
-	tv_audio_line *		audio_inputs;
-	/* Can be NULL only when no list exists. */
-	tv_audio_line *		cur_audio_input;
-
-	/* Video standards supported by the current video input. Note
-	   videostd_ids are bitwise mutually exclusive, i.e. no two listed
-	   standards can have the same videostd_id bit set. */
-	tv_video_standard *	video_standards;
-	/* This can be NULL if we don't know. If it matters,
-	   and video_standards is not NULL, clients should ask the user. */
-	tv_video_standard *	cur_video_standard;
-
-	/* Controls */
-	tv_control *		controls;
-	unsigned		audio_mutable : 1;
-
-	/* Audio mode */
-	tv_audio_capability	audio_capability;
-	/* lang1/2: 0-none/unknown 1-mono 2-stereo */
-	unsigned int		audio_reception[2];
-	tv_audio_mode		audio_mode;
-
-	/* Overlay device properties */
-
-	tv_overlay_buffer	overlay_buffer;
-	tv_window		overlay_window;
-
-	tv_bool			overlay_active; /* XXX internal */
-
-	/* Preliminary. If zero try set_format. */
-	tv_pixfmt_set		supported_pixfmt_set;
-
-
-  /* Unique integer that indentifies this device */
-  int signature;
-
-  /* Debugging/error reporting stuff */
-  int tveng_errno; /* Numerical id of the last error, 0 == success */
-  char * error; /* points to the last error message */
-  int debug_level; /* 0 for no errors, increase for greater verbosity */
-
-  struct tveng_private * priv; /* private stuff */
-};
-
 /* Video inputs */
 
 extern const tv_video_line *
@@ -712,6 +626,10 @@ tv_video_input_position		(tveng_device_info *	info,
 extern const tv_video_line *
 tv_video_input_by_hash		(tveng_device_info *	info,
 				 unsigned int		hash);
+extern const tv_video_line *
+tv_cur_video_input		(const tveng_device_info *	info);
+extern tv_video_line *
+tv_video_inputs			(const tveng_device_info *	info);
 extern const tv_video_line *
 tv_get_video_input		(tveng_device_info *	info);
 extern tv_bool
@@ -749,6 +667,10 @@ extern const tv_audio_line *
 tv_audio_input_by_hash		(tveng_device_info *	info,
 				 unsigned int		hash);
 extern const tv_audio_line *
+tv_cur_audio_input		(const tveng_device_info *	info);
+extern tv_audio_line *
+tv_audio_inputs			(const tveng_device_info *	info);
+extern const tv_audio_line *
 tv_get_audio_input		(tveng_device_info *	info);
 extern tv_bool
 tv_set_audio_input		(tveng_device_info *	info,
@@ -773,6 +695,10 @@ tv_video_standard_position	(tveng_device_info *	info,
 extern const tv_video_standard *
 tv_video_standard_by_hash	(tveng_device_info *	info,
 				 unsigned int		hash);
+extern const tv_video_standard *
+tv_cur_video_standard		(const tveng_device_info *	info);
+extern tv_video_standard *
+tv_video_standards		(const tveng_device_info *	info);
 extern const tv_video_standard *
 tv_get_video_standard		(tveng_device_info *	info);
 extern tv_bool
@@ -885,22 +811,46 @@ tveng_describe_controller(const char ** short_str, const char ** long_str,
 */
 void tveng_close_device(tveng_device_info* info);
 
+extern const char *
+tv_get_errstr			(tveng_device_info *	info);
+extern int
+tv_get_errno			(tveng_device_info *	info);
+extern capture_mode
+tv_get_capture_mode		(tveng_device_info *	info);
+extern void
+tv_set_capture_mode		(tveng_device_info *	info,
+				 capture_mode		mode);
+extern enum tveng_controller
+tv_get_controller		(tveng_device_info *	info);
+extern const struct tveng_caps *
+tv_get_caps			(tveng_device_info *	info);
+extern enum tveng_attach_mode
+tv_get_attach_mode		(tveng_device_info *	info);
+extern int
+tv_get_fd			(tveng_device_info *	info);
+extern void
+tv_overlay_hack			(tveng_device_info *	info,
+				 int x, int y, int w, int h);
+extern void
+tv_set_filename			(tveng_device_info *	info,
+				 const char *		s);
+
 /*
   Functions for controlling the video capture. All of them return -1
   in case of error, so any value != -1 should be considered valid
   (unless explicitly stated in the description of the function) 
 */
 
+extern tv_pixfmt_set
+tv_supported_pixfmts		(tveng_device_info *	info);
 
-/* Updates the current capture format info. -1 if failed */
-int
-tveng_update_capture_format(tveng_device_info * info);
-
-/* -1 if failed. Sets the format and fills in info -> format
-   with the correct values  */
-int
-tveng_set_capture_format(tveng_device_info * info);
-
+extern const tv_image_format *
+tv_cur_capture_format		(tveng_device_info *	info);
+extern const tv_image_format *
+tv_get_capture_format		(tveng_device_info *	info);
+extern const tv_image_format *
+tv_set_capture_format		(tveng_device_info *	info,
+				 const tv_image_format *format);
 
 /* Audio interface */
 
@@ -980,17 +930,40 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info);
 
 /* XF86 Frame Buffer routines */
 
-extern tv_bool
+extern const tv_overlay_buffer *
+tv_cur_overlay_buffer		(tveng_device_info *	info);
+extern const tv_overlay_buffer *
 tv_get_overlay_buffer		(tveng_device_info *	info);
 extern tv_bool
 tv_set_overlay_buffer		(tveng_device_info *	info,
 				 const char *		display_name,
 				 int			screen_number,
 				 const tv_overlay_buffer *target);
+extern const tv_window *
+tv_cur_overlay_window		(tveng_device_info *	info);
+extern const tv_window *
+tv_get_overlay_window		(tveng_device_info *	info);
+extern const tv_window *
+tv_set_overlay_window_clipvec	(tveng_device_info *	info,
+				 const tv_window *	window,
+				 const tv_clip_vector *	clip_vector);
+extern tv_bool
+tv_cur_overlay_chromakey	(tveng_device_info *	info,
+				 unsigned int *		chroma_key);
+extern tv_bool
+tv_get_overlay_chromakey	(tveng_device_info *	info,
+				 unsigned int *		chroma_key);
+extern const tv_window *
+tv_set_overlay_window_chromakey	(tveng_device_info *	info,
+				 const tv_window *	window,
+				 unsigned int		chroma_key);
 extern tv_bool
 tv_set_overlay_xwindow		(tveng_device_info *	info,
 				 Window			window,
 				 GC			gc);
+extern tv_bool
+tv_enable_overlay		(tveng_device_info *	info,
+				 tv_bool		enable);
 
 /* 
    This is a convenience function, it returns the real screen depth in
@@ -1011,31 +984,6 @@ tveng_get_display_depth(tveng_device_info * info);
   The current chromakey value is used, the caller doesn't need to fill
   it in.
 */
-int
-tveng_set_preview_window(tveng_device_info * info);
-
-/*
-  Gets the current overlay window parameters.
-  Returns -1 on error, and any other value on success.
-  info   : The device to use
-*/
-int
-tveng_get_preview_window(tveng_device_info * info);
-
-/* Some useful macros for the following function */
-#define ON 1
-#define OFF 0
-#define tveng_set_preview_on(INFO) tveng_set_preview (ON, INFO)
-#define tveng_set_preview_off(INFO) tveng_set_preview (OFF, INFO)
-
-/* 
-   Sets the previewing on/off.
-   on : if 1, set preview on, if 0 off, other values are silently ignored
-   info  : device to use for previewing
-   Returns -1 on error, anything else on success
-*/
-int
-tveng_set_preview (int on, tveng_device_info * info);
 
 /*
  * Adjusts the verbosity value passed to zapping_setup_fb, cannot fail
@@ -1055,11 +1003,6 @@ void tveng_set_dword_align(int dword_align, tveng_device_info *info);
  */
 void tveng_set_chromakey(uint32_t chroma, tveng_device_info *info);
 
-/*
- * Returns the current chromakey value as a pixel value. If the driver
- * doesn't support this -1 is returned and chroma is left untouched.
- */
-int tveng_get_chromakey (uint32_t *chroma, tveng_device_info *info);
 
 /* Returns the current verbosity value passed to zapping_setup_fb */
 int
@@ -1252,6 +1195,10 @@ tveng_attach_mixer_line		(tveng_device_info *	info,
 				 tv_mixer *		mixer,
 				 tv_audio_line *	line);
 
+extern void
+tv_clear_error			(tveng_device_info *	info);
+
+
 /* Sanity checks should use this */
 #define t_assert(condition) if (!(condition)) { \
 fprintf(stderr, _("%s (%d): %s: assertion (%s) failed\n"), __FILE__, \
@@ -1274,8 +1221,6 @@ do { \
     fprintf(stderr, "TVeng: %s\n", (info)->error); \
 } while (0)
 
-#define tv_clear_error(info)						\
-do { (info)->error[0] = 0; } while (0)
 
 #define tv_error_msg(info, template, args...)				\
 do {									\
