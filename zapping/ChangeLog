@@ -2,6 +2,7 @@
 
 	* osd.c: No flicker even w/o XVideo, knows about showing/hiding
 	the main window.
+	* help/de: German translation of index.html, by Carsten Menke.
 
 9.3.2001	Cleanup <mschimek@users.sourceforge.net>
 

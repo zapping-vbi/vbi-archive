@@ -56,11 +56,10 @@ I need feedback specially on these bugs:
 	would really appreciate some feedback on this one.
 
 *) Teletext just shows loading..., no page ever loaded
-	Try using the --old-bttv option, it fixes the problem for some
-	people. The code i'm using for decoding teletext comes from
-	AleVT, check with it before reporting a bug. If AleVT doesn't
-	work either, there's little I can do, sorry. But the original
-	AleVT author will appreciate your reports, though ;-) Links below.
+	a) you aren't getting a proper TTX signal. This can be due
+	to a very bad reception of simply no signal broadcast.
+	b) This can also be due to a very old V4L1 driver or a V4L2
+	driver not compliant with the latest release of the spec.
 
 *) The camera/dvd player/whatever connected to Composite uses
 NTSC/SECAM/..., and the image appears horribly distorted/colorless/...
@@ -95,7 +94,8 @@ http://rpmfind.net/linux/RPM/libxml.html
 http://www.megaloman.com/~hany/RPM/doors2.3/libglade-0.12-1.i586.html
 	Libglade, the library used to build the interface (mdk package).
 http://zapping.sourceforge.net
-	I haven't the slightest idea of what's here.
+	I haven't the slightest idea of what's here, sorry. A strange
+	man with a strange face told me to put this here. Go figure.
 
 CONTACTING
 ----------

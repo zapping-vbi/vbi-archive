@@ -65,7 +65,7 @@ gboolean startup_callbacks(void)
   zcc_bool(TRUE, "Show the Closed Caption", "closed_caption");
   cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
   zcc_bool(FALSE, "Hide the extra controls", "hide_extra");
-  zcc_int(0x888, "Subtitles page", "zvbi_page");
+  zcc_int(0x1, "Subtitles page", "zvbi_page");
 
   return TRUE;
 }

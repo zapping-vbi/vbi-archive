@@ -157,7 +157,9 @@ set_piece_geometry(int row, int piece)
   g_assert(row < MAX_ROWS);
   g_assert(piece >= 0);
   g_assert(piece < osd_matrix[row]->n_pieces);
-  g_assert(osd_window != NULL);
+
+  if (!osd_window)
+    return; /* nop */
 
   gdk_window_get_size(osd_window->window, &w, &h);
   gdk_window_get_origin(osd_window->window, &x, &y);
@@ -207,43 +209,28 @@ set_piece_geometry(int row, int piece)
 }
 
 static void
-osd_geometry_update(void)
+osd_geometry_update(gboolean raise_if_visible)
 {
   int i, j;
   gboolean visible;
 
   g_assert(osd_started == TRUE);
-  g_assert(osd_window != NULL);
 
-  visible = x11_window_viewable(osd_window->window);
+  if (osd_window)
+    visible = x11_window_viewable(osd_window->window);
+  else
+    visible = FALSE;
 
   for (i=0; i<osd_page.rows; i++)
     for (j=0; j<osd_matrix[i]->n_pieces; j++)
       {
 	set_piece_geometry(i, j);
 	if (visible)
-	  gtk_widget_show(osd_matrix[i]->pieces[j].window);
-	else
-	  gtk_widget_hide(osd_matrix[i]->pieces[j].window);
-      }
-}
-
-static void
-update_visibilities(void)
-{
-  int i, j;
-  gboolean visible;
-
-  g_assert(osd_started == TRUE);
-  g_assert(osd_window != NULL);
-
-  visible = x11_window_viewable(osd_window->window);
-
-  for (i=0; i<osd_page.rows; i++)
-    for (j=0; j<osd_matrix[i]->n_pieces; j++)
-      {
-	if (visible)
-	  gtk_widget_show(osd_matrix[i]->pieces[j].window);
+	  {
+	    gtk_widget_show(osd_matrix[i]->pieces[j].window);
+	    if (raise_if_visible)
+	      gdk_window_raise(osd_matrix[i]->pieces[j].window->window);
+	  }
 	else
 	  gtk_widget_hide(osd_matrix[i]->pieces[j].window);
       }
@@ -254,7 +241,7 @@ gboolean on_osd_screen_configure	(GtkWidget	*widget,
 					 GdkEventConfigure *event,
 					 gpointer	user_data)
 {
-  osd_geometry_update();
+  osd_geometry_update(FALSE);
 
   return TRUE;
 }
@@ -264,7 +251,7 @@ void on_osd_screen_size_allocate	(GtkWidget	*widget,
 					 GtkAllocation	*allocation,
 					 gpointer	ignored)
 {
-  osd_geometry_update();
+  osd_geometry_update(FALSE);
 }
 
 /* Handle the map/unmap logic */
@@ -277,34 +264,13 @@ gboolean on_osd_event			(GtkWidget	*widget,
     {
     case GDK_UNMAP:
     case GDK_MAP:
-      update_visibilities();
+      osd_geometry_update(FALSE);
       break;
     default:
       break;
     }
 
   return FALSE;
-}
-
-void
-osd_set_window(GtkWidget *dest_window, GtkWidget *parent)
-{
-  g_assert(osd_started == TRUE);
-
-  osd_window = dest_window;
-  osd_parent_window = parent;
-
-  gtk_signal_connect(GTK_OBJECT(dest_window), "size-allocate",
-		     GTK_SIGNAL_FUNC(on_osd_screen_size_allocate),
-		     NULL);
-  gtk_signal_connect(GTK_OBJECT(parent), "configure-event",
-		     GTK_SIGNAL_FUNC(on_osd_screen_configure),
-		     NULL);
-  gtk_signal_connect(GTK_OBJECT(parent), "event",
-		     GTK_SIGNAL_FUNC(on_osd_event), NULL);
-
-  osd_geometry_update();
-  update_visibilities();
 }
 
 static void
@@ -322,7 +288,31 @@ osd_unset_window(void)
   gtk_signal_disconnect_by_func(GTK_OBJECT(osd_parent_window),
 				GTK_SIGNAL_FUNC(on_osd_event), NULL);
 
-  osd_window = NULL;
+  osd_window = osd_parent_window = NULL;
+  osd_geometry_update(FALSE);
+}
+
+void
+osd_set_window(GtkWidget *dest_window, GtkWidget *parent)
+{
+  g_assert(osd_started == TRUE);
+
+  if (osd_window)
+    osd_unset_window();
+
+  osd_window = dest_window;
+  osd_parent_window = parent;
+
+  gtk_signal_connect(GTK_OBJECT(dest_window), "size-allocate",
+		     GTK_SIGNAL_FUNC(on_osd_screen_size_allocate),
+		     NULL);
+  gtk_signal_connect(GTK_OBJECT(parent), "configure-event",
+		     GTK_SIGNAL_FUNC(on_osd_screen_configure),
+		     NULL);
+  gtk_signal_connect(GTK_OBJECT(parent), "event",
+		     GTK_SIGNAL_FUNC(on_osd_event), NULL);
+
+  osd_geometry_update(TRUE);
 }
 
 void
@@ -502,7 +492,6 @@ add_piece(int col, int row, int width, attr_char *c)
   g_assert(row < MAX_COLUMNS);
   g_assert(col >= 0);
   g_assert(col+width <= MAX_COLUMNS);
-  g_assert(osd_window != NULL);
 
   memset(&p, 0, sizeof(p));
 
@@ -542,7 +531,7 @@ add_piece(int col, int row, int width, attr_char *c)
 
   set_piece_geometry(row, osd_matrix[row]->n_pieces-1);
 
-  if (x11_window_viewable(osd_window->window))
+  if (osd_window && x11_window_viewable(osd_window->window))
     gtk_widget_show(pp->window);
 
   return osd_matrix[row]->n_pieces-1;

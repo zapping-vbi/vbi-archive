@@ -3,5 +3,10 @@ the changes.
 
 0.5.9
 -----
-- Greatly improved Teletext engine (michael, me)
+- Greatly improved VBI engine (michael, me)
+- CC/TTX Subtitles support (michael, me)
 - South African frequency table (Jeremy Maccelary)
+- LIRC support (Marco Pfattner)
+- Better XVideo support, XV Fullscreen (me)
+- PAMification of zapping_setup_fb (Tim Powers, me)
+- Some more GUI bloat for your exasperation (i'm the one to blame :-))
