@@ -448,7 +448,7 @@ zmisc_restore_previous_mode(tveng_device_info * info)
 gboolean
 zmisc_stop (tveng_device_info *info)
 {
-  if (CAPTURE_MODE_NONE == tv_get_controller (info))
+  if (CAPTURE_MODE_NONE == tv_get_capture_mode (info))
     return TRUE;
 
   /* Stop current capture mode */
