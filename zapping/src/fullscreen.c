@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.11 2003-10-07 18:33:26 mschimek Exp $
+ * $Id: fullscreen.c,v 1.21.2.12 2003-10-10 18:02:30 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -173,7 +173,7 @@ gboolean
 start_fullscreen		(tveng_device_info *	info)
 {
   GtkWidget *da; /* drawing area */
-  GdkColor chroma = {0, 0, 0, 0};
+  GdkColor chroma;
   const gchar *vidmode;
   x11_vidmode_info *v;
   unsigned int width, height;
@@ -201,7 +201,10 @@ start_fullscreen		(tveng_device_info *	info)
 
   da = z_video_new ();
   gtk_widget_show (da);
+
+  CLEAR (chroma);
   gtk_widget_modify_bg (da, GTK_STATE_NORMAL, &chroma);
+
   gtk_container_add (GTK_CONTAINER (black_window), da);
 
   gtk_widget_add_events (da, GDK_BUTTON_PRESS_MASK);
@@ -215,16 +218,14 @@ start_fullscreen		(tveng_device_info *	info)
   if (info->current_controller != TVENG_CONTROLLER_XV &&
       (info->caps.flags & TVENG_CAPS_CHROMAKEY))
     {
-      chroma.red = chroma.green = 0;
       chroma.blue = 0xffff;
       
       if (gdk_colormap_alloc_color(gdk_colormap_get_system(), &chroma,
 				   FALSE, TRUE))
 	{
-	  tveng_set_chromakey(chroma.pixel, info);
-	  gdk_window_set_background(da->window, &chroma);
-	  gdk_colormap_free_colors(gdk_colormap_get_system(), &chroma,
-				   1);
+	  z_set_window_bg (da, &chroma);
+
+	  gdk_colormap_free_colors (gdk_colormap_get_system(), &chroma, 1);
 	}
       else
 	{
@@ -232,10 +233,14 @@ start_fullscreen		(tveng_device_info *	info)
 		  GTK_MESSAGE_WARNING);
 	}
     }
-  else if (info->current_controller == TVENG_CONTROLLER_XV
-	   && 0 == tveng_get_chromakey (&chroma.pixel, info))
+  else if (info->current_controller == TVENG_CONTROLLER_XV)
     {
-      gdk_window_set_background(da->window, &chroma);
+      GdkColor chroma;
+
+      CLEAR (chroma);
+
+      if (0 == tveng_get_chromakey (&chroma.pixel, info))
+	z_set_window_bg (da, &chroma);
     }
 
   /* Disable double buffering just in case, will help in case a
