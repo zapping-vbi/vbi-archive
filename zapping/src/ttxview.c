@@ -29,8 +29,10 @@
 #include <gdk/gdkx.h>
 
 #include "interface.h"
+#include "frequencies.h"
 #include "ttxview.h"
 #include "zvbi.h"
+#include "v4linterface.h"
 #define ZCONF_DOMAIN "/zapping/ttxview/"
 #include "zconf.h"
 #include "zmisc.h"
@@ -38,6 +40,10 @@
 #include "../common/fifo.h"
 
 extern gboolean flag_exit_program;
+/* For bookmarks */
+extern int cur_tuned_channel;
+extern tveng_tuned_channel *global_channel_list;
+extern tveng_device_info *main_info;
 
 #define BLINK_CYCLE 1500 /* ms */
 
@@ -114,6 +120,7 @@ struct bookmark {
   gint page;
   gint subpage;
   gchar *description;
+  gchar *channel;
 };
 
 #define nullcheck() \
@@ -132,7 +139,8 @@ static GdkAtom	clipboard_atom = GDK_NONE;
 static void on_ttxview_search_clicked(GtkButton *, ttxview_data *);
 
 static void
-add_bookmark(gint page, gint subpage, const gchar *description)
+add_bookmark(gint page, gint subpage, const gchar *description,
+	     const gchar *channel)
 {
   struct bookmark *entry =
     g_malloc(sizeof(struct bookmark));
@@ -140,6 +148,10 @@ add_bookmark(gint page, gint subpage, const gchar *description)
   entry->page = page;
   entry->subpage = subpage;
   entry->description = g_strdup(description);
+  if (channel)
+    entry->channel = g_strdup(channel);
+  else
+    entry->channel = NULL;
 
   bookmarks = g_list_append(bookmarks, entry);
   zmodel_changed(model);
@@ -154,6 +166,7 @@ remove_bookmark(gint index)
     return;
 
   g_free(((struct bookmark*)(node->data))->description);
+  g_free(((struct bookmark*)(node->data))->channel);
   g_free(node->data);
   bookmarks = g_list_remove(bookmarks, node->data);
   zmodel_changed(model);
@@ -163,7 +176,7 @@ gboolean
 startup_ttxview (void)
 {
   gint i=0;
-  gchar *buffer, *buffer2;
+  gchar *buffer, *buffer2, *buffer3;
   gint page, subpage;
 
   hand = gdk_cursor_new (GDK_HAND2);
@@ -177,6 +190,8 @@ startup_ttxview (void)
   zcc_bool(FALSE, "URE matches disregarding case", "ure_casefold");
   zcc_bool(FALSE, "URE search backwards", "ure_backwards");
   zcc_bool(TRUE, "Reveal hidden characters", "reveal");
+  zcc_bool(FALSE, "Selecting a bookmark switchs the current channel",
+	   "bookmark_switch");
 
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "bookmarks"))
     {
@@ -186,8 +201,11 @@ startup_ttxview (void)
       buffer2 = g_strconcat(buffer, "/subpage", NULL);
       zconf_get_integer(&subpage, buffer2);
       g_free(buffer2);
+      buffer2 = g_strconcat(buffer, "/channel", NULL);
+      buffer3 = zconf_get_string(NULL, buffer2);
+      g_free(buffer2);
       buffer2 = g_strconcat(buffer, "/description", NULL);
-      add_bookmark(page, subpage, zconf_get_string(NULL, buffer2));
+      add_bookmark(page, subpage, zconf_get_string(NULL, buffer2), buffer3);
       g_free(buffer2);
 
       g_free(buffer);
@@ -223,6 +241,12 @@ shutdown_ttxview (void)
       buffer = g_strdup_printf(ZCONF_DOMAIN "bookmarks/%d/description", i);
       zconf_create_string(bookmark->description, "Description", buffer);
       g_free(buffer);
+      if (bookmark->channel)
+	{
+	  buffer = g_strdup_printf(ZCONF_DOMAIN "bookmarks/%d/channel", i);
+	  zconf_create_string(bookmark->channel, "Channel", buffer);
+	  g_free(buffer);
+	}
       p=p->next;
       i++;
     }
@@ -1285,10 +1309,15 @@ void new_bookmark			(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
   struct vbi *vbi = zvbi_get_object();
-  gchar *default_description;
+  gchar *default_description=NULL;
   gchar title[41];
   gchar *buffer;
   gint page, subpage;
+  gint active;
+  GtkWidget *dialog = create_widget("new_bookmark");
+  GtkWidget *bookmark_name = lookup_widget(dialog, "bookmark_name");
+  GtkWidget *bookmark_switch = lookup_widget(dialog, "bookmark_switch");
+  tveng_tuned_channel *channel;
 
   nullcheck();
 
@@ -1315,13 +1344,35 @@ void new_bookmark			(GtkWidget	*widget,
         default_description = g_strdup_printf("%x", page);
     }
 
-  buffer = Prompt(data->parent,
-		  _("New bookmark"),
-		  _("Description:"),
-		  default_description);
-  if (buffer)
+  gtk_widget_grab_focus(bookmark_name);
+  gtk_entry_set_text(GTK_ENTRY(bookmark_name), default_description);
+  g_free(default_description);
+  gtk_entry_select_region(GTK_ENTRY(bookmark_name), 0, -1);
+  gnome_dialog_editable_enters(GNOME_DIALOG(dialog),
+			       GTK_EDITABLE (bookmark_name));
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(bookmark_switch),
+			       zcg_bool(NULL, "bookmark_switch"));
+  gnome_dialog_set_default(GNOME_DIALOG (dialog), 0);
+  
+  if ((!gnome_dialog_run_and_close(GNOME_DIALOG(dialog))) &&
+      (buffer = gtk_entry_get_text(GTK_ENTRY(bookmark_name))))
     {
-      add_bookmark(page, subpage, buffer);
+      active =
+	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(bookmark_switch));
+      zcs_bool(active, "bookmark_switch");
+      if (!active)
+	add_bookmark(page, subpage, buffer, NULL);
+      else
+	{
+	  channel =
+	    tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
+						  global_channel_list);
+
+	  if (channel)
+	    add_bookmark(page, subpage, buffer, channel->name);
+	  else
+	    add_bookmark(page, subpage, buffer, NULL);
+	}
       default_description =
 	g_strdup_printf(_("<%s> added to the bookmarks"), buffer);
       if (data->appbar)
@@ -1329,7 +1380,8 @@ void new_bookmark			(GtkWidget	*widget,
 				default_description);
       g_free(default_description);
     }
-  g_free(buffer);
+
+  gtk_widget_destroy(dialog);
 }
 
 static
@@ -1842,6 +1894,13 @@ void on_bookmark_activated		(GtkWidget	*widget,
 {
   struct bookmark *bookmark = (struct bookmark*)
     gtk_object_get_user_data(GTK_OBJECT(widget));
+  tveng_tuned_channel *channel;
+
+  if (bookmark->channel &&
+      (channel =
+       tveng_retrieve_tuned_channel_by_name(bookmark->channel, 0,
+						      global_channel_list)))
+    z_switch_channel(channel, main_info);
 
   load_page(bookmark->page, bookmark->subpage, data, NULL);
 }
@@ -1864,7 +1923,7 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
   GList *p = g_list_first(bookmarks);
   struct bookmark *bookmark;
   GtkWidget *menuitem;
-  gchar *buffer;
+  gchar *buffer, *buffer2;
 
   /* convert to fmt_page space */
   data->pop_pgno = page;
@@ -1907,7 +1966,12 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 	  buffer = g_strdup_printf("%x.%x", bookmark->page, bookmark->subpage);
 	else
 	  buffer = g_strdup_printf("%x", bookmark->page);
-	set_tooltip(menuitem, buffer);
+	if (bookmark->channel)
+	  buffer2 = g_strdup_printf(_("%s in %s"), buffer, bookmark->channel);
+	else
+	  buffer2 = g_strdup(buffer);
+	set_tooltip(menuitem, buffer2);
+	g_free(buffer2);
 	g_free(buffer);
 	gtk_object_set_user_data(GTK_OBJECT(menuitem), bookmark);
 	gtk_widget_show(menuitem);

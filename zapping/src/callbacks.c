@@ -234,8 +234,6 @@ void on_channel_activate              (GtkMenuItem     *menuitem,
     }
 
   z_switch_channel(channel, main_info);
-
-  cur_tuned_channel = num_channel; /* Set the current channel to this */
 }
 
 void

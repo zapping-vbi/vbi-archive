@@ -1,3 +1,9 @@
+25.3.2001	channel=f(bookmark) <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Selecting a bookmark can tune the current channel.
+	* libvbi/v4lx.c: Added some cancellation points, so the thread is
+	always joinable.
+
 24.3.2001	channel editor <garetxe@users.sourceforge.net>
 
 	* src/channel_editor.c: Completed new channel code.

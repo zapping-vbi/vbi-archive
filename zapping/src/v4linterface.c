@@ -190,21 +190,6 @@ void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
   gtk_option_menu_set_menu (GTK_OPTION_MENU (Channels), NewMenu);
 
   gtk_option_menu_set_history (GTK_OPTION_MENU (Channels), cur_tuned_channel);
-
-  if (tunes)
-    {
-      if (cur_tuned_channel >= tveng_tuned_channel_num(global_channel_list))
-	cur_tuned_channel = tveng_tuned_channel_num(global_channel_list) - 1;
-
-      tuned =
-	tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
-					      global_channel_list);
-
-      g_assert (tuned != NULL); /* This cannot happen, just for
-				   checking */
-      if (tveng_tune_input(tuned -> freq, info) == -1)
-	ShowBox("Cannot tune the device", GNOME_MESSAGE_BOX_ERROR);
-    }
 }
 
 static void
@@ -658,6 +643,10 @@ z_switch_channel	(tveng_tuned_channel	*channel,
       if (!mute)
 	tveng_set_mute(0, info);
     }
+
+  cur_tuned_channel = channel->index;
+
+  update_channels_menu(lookup_widget(main_window, "Channels"), info);
 }
 
 void

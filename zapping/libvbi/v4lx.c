@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.11 2001-03-24 10:44:57 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.12 2001-03-25 16:51:07 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +47,6 @@
 
 #define MAX_RAW_BUFFERS 	5
 
-#define BTTV_VERSION		_IOR('v' , BASE_VIDIOCPRIVATE+6, int)
 #define BTTV_VBISIZE		_IOR('v' , BASE_VIDIOCPRIVATE+8, int)
 
 #define HAVE_V4L_VBI_FORMAT	0 // Linux 2.4 XXX configure
@@ -98,8 +97,10 @@ wait_full_read(fifo *f)
 			break;
 
 		if (r == -1
-		    && (errno == EINTR || errno == ETIME))
+		    && (errno == EINTR || errno == ETIME)) {
+			pthread_testcancel();
 			continue;
+		}
 
 		IODIAG("VBI read error");
 
@@ -151,8 +152,10 @@ read_thread(void *p)
 				break;
 
 			if (r == -1
-			    && (errno == EINTR || errno == ETIME))
+			    && (errno == EINTR || errno == ETIME)) {
+				pthread_testcancel();
 				continue;
+			}
 
 			IODIAG("VBI read error");
 
@@ -665,10 +668,11 @@ wait_full_stream(fifo *f)
 	struct timeval tv;
 	fd_set fds;
 	buffer *b;
-	int r = -1;
+	int r;
 
 	for (;;) {
 		b = wait_empty_buffer(f);
+		r = -1;
 
 		while (r <= 0) {
 			FD_ZERO(&fds);
@@ -679,8 +683,10 @@ wait_full_stream(fifo *f)
 
 			r = select(vbi->fd + 1, &fds, NULL, NULL, &tv);
 
-			if (r < 0 && errno == EINTR)
+			if (r < 0 && errno == EINTR) {
+				pthread_testcancel();
 				continue;
+			}
 
 			if (r == 0) { /* timeout */
 				DIAG("VBI capture stalled, no station tuned in?");

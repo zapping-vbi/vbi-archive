@@ -254,3 +254,7 @@ gchar *s = N_("Tape delay");
 gchar *s = N_("label207");
 gchar *s = N_("Known key names");
 gchar *s = N_("Keys");
+gchar *s = N_("New bookmark:");
+gchar *s = N_("Description:");
+gchar *s = N_("If checked, the current channel will be automatically selected when the bookmark is selected");
+gchar *s = N_("Switch to the current channel when the bookmark is selected");

@@ -2,7 +2,6 @@ Outstanding issues for the next release (0.6.0)
 -----------------------------------------------
 	+ Revamp GUI for closed caption, program info, etc.
 	+ Redesign the internal capture structure (fifos and stuff).
-	+ Generalize the channel concept (input, bookmarks, ...)
 	+ Parrot buffer for observing parrots.
 	+ Add to the configure script and to the .spec deps the
 		dependency on mp1e (actually RTE).
