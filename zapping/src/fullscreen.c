@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.29 2004-09-26 13:29:06 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.30 2004-10-03 10:04:23 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -501,7 +501,19 @@ start_fullscreen		(display_mode		dmode,
       break;
 
     case CAPTURE_MODE_TELETEXT:
-      /* Nuk nuk. */
+      /* Bktr driver needs special programming for VBI-only mode. */
+      tveng_close_device (zapping->info);
+
+      if (-1 == tveng_attach_device (zcg_char (NULL, "video_device"),
+				     GDK_WINDOW_XWINDOW (drawing_area->window),
+				     TVENG_ATTACH_VBI,
+				     zapping->info))
+	{
+	  ShowBox ("Teletext mode not available.",
+		   GTK_MESSAGE_ERROR);
+	  goto failure;
+	}
+
       break;
 
     default:
