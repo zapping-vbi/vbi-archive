@@ -30,7 +30,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zvbi 0.3\n"
-"POT-Creation-Date: 2003-02-16 21:52+0100\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2004-01-25 07:38+0100\n"
 "PO-Revision-Date: 2003-02-16 19:51+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -41,7 +42,7 @@ msgstr ""
 
 #. TRANSLATORS: Title of TOP Index page,
 #. for now please Latin-1 or ASCII only
-#: src/teletext.c:417
+#: src/teletext.c:3477
 msgid "TOP Index"
 msgstr "TOP Index"
 
@@ -93,11 +94,11 @@ msgstr "PNG"
 msgid "Export this page as PNG image"
 msgstr "Export this page as PNG image"
 
-#: src/exp-html.c:94 src/exp-txt.c:122
+#: src/exp-html.c:94 src/exp-txt.c:128
 msgid "Graphics char"
 msgstr "Graphics char"
 
-#: src/exp-html.c:95 src/exp-txt.c:123
+#: src/exp-html.c:95 src/exp-txt.c:129
 msgid ""
 "Replacement for block graphic characters: a single character or decimal (32) "
 "or hex (0x20) code"
@@ -127,20 +128,16 @@ msgstr "Include HTML page header"
 msgid "<title lang=\"en\">"
 msgstr "<title lang=“[1men[0m”>"
 
-#: src/exp-html.c:351 src/exp-txt.c:599
+#: src/exp-html.c:355 src/exp-txt.c:732
 #, c-format
 msgid "Character conversion Unicode (UCS-2) to %s not supported."
 msgstr "Character conversion Unicode (UCS-2) to %s not supported."
 
-#: src/exp-html.c:430
-msgid "Character conversion failed."
-msgstr "Character conversion failed."
-
-#: src/exp-html.c:718
+#: src/exp-html.c:714
 msgid "HTML"
 msgstr "HTML"
 
-#: src/exp-html.c:719
+#: src/exp-html.c:715
 msgid "Export this page as HTML page"
 msgstr "Export this page as HTML page"
 
@@ -153,7 +150,8 @@ msgid "ISO-8859-1 (Latin-1 Western languages)"
 msgstr "ISO-8859-1 (Latin-1 Western languages)"
 
 #: src/exp-txt.c:81
-msgid "ISO-8859-2 (Latin-2 Central and Eastern Europe languages)"
+#, fuzzy
+msgid "ISO-8859-2 (Latin-2 Central and Eastern European languages)"
 msgstr "ISO-8859-2 (Latin-2 Central and Eastern Europe languages)"
 
 #: src/exp-txt.c:82
@@ -238,105 +236,105 @@ msgid "VT 200"
 msgstr "VT 200"
 
 #. TRANSLATORS: Text export format (ASCII, Unicode, ...) menu
-#: src/exp-txt.c:116
+#: src/exp-txt.c:122
 msgid "Format"
 msgstr "Format"
 
-#: src/exp-txt.c:126
+#: src/exp-txt.c:132
 msgid "Control codes"
 msgstr "Control codes"
 
-#: src/exp-txt.c:130
+#: src/exp-txt.c:136
 msgid "Foreground"
 msgstr "Foreground"
 
-#: src/exp-txt.c:132
+#: src/exp-txt.c:138
 msgid "Assumed terminal foreground color"
 msgstr "Assumed terminal foreground color"
 
-#: src/exp-txt.c:134
+#: src/exp-txt.c:140
 msgid "Background"
 msgstr "Background"
 
-#: src/exp-txt.c:136
+#: src/exp-txt.c:142
 msgid "Assumed terminal background color"
 msgstr "Assumed terminal background color"
 
-#: src/exp-txt.c:648
+#: src/exp-txt.c:803
 msgid "Text"
 msgstr "Text"
 
-#: src/exp-txt.c:649
+#: src/exp-txt.c:804
 msgid "Export this page as text file"
 msgstr "Export this page as text file"
 
-#: src/exp-vtx.c:78
+#: src/exp-vtx.c:79
 msgid "Can only export Teletext pages."
 msgstr "Can only export Teletext pages."
 
-#: src/exp-vtx.c:89
+#: src/exp-vtx.c:90
 msgid "Page is not cached, sorry."
 msgstr "Page is not cached, sorry."
 
-#: src/exp-vtx.c:97
+#: src/exp-vtx.c:98
 msgid "Cannot export this page, not displayable."
 msgstr "Cannot export this page, not displayable."
 
-#: src/exp-vtx.c:138
+#: src/exp-vtx.c:139
 msgid "VTX"
 msgstr "VTX"
 
-#: src/exp-vtx.c:139
+#: src/exp-vtx.c:140
 msgid ""
 "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 msgstr ""
 "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 
-#: src/export.c:460
+#: src/export.c:585
 #, c-format
 msgid "Invalid option string \"%s\"."
 msgstr "Invalid option string “[1m%s[0m”."
 
-#: src/export.c:548
+#: src/export.c:673
 #, c-format
 msgid "Unknown export module '%s'."
 msgstr "Unknown export module '%s'."
 
-#: src/export.c:558
+#: src/export.c:683
 #, c-format
 msgid "Cannot initialize export module '%s', probably lack of memory."
 msgstr "Cannot initialize export module '%s', probably lack of memory."
 
-#: src/export.c:988
+#: src/export.c:1113
 #, c-format
 msgid "Cannot create file '%s': Error %d, %s."
 msgstr "Cannot create file '%s': Error %d, %s."
 
-#: src/export.c:1060
+#: src/export.c:1185
 #, c-format
 msgid "Error while writing file '%s'"
 msgstr "Error while writing file ‘[1m%s[0m’"
 
-#: src/export.c:1062
+#: src/export.c:1187
 msgid "Error while writing file"
 msgstr "Error while writing file"
 
-#: src/export.c:1092
+#: src/export.c:1217
 #, c-format
 msgid "Export module '%s' has no option '%s'."
 msgstr "Export module ‘[1m%s[0m’ has no option '%s'."
 
-#: src/export.c:1142
+#: src/export.c:1267
 #, c-format
 msgid "Invalid argument %s for option %s of export module %s."
 msgstr "Invalid argument %s for option %s of export module %s."
 
-#: src/export.c:1166
+#: src/export.c:1291
 #, c-format
 msgid "Out of memory in export module '%s'."
 msgstr "Out of memory in export module '%s'."
 
-#: src/export.c:1193
+#: src/export.c:1318
 msgid "Unknown error."
 msgstr "Unknown error."
 
@@ -345,82 +343,83 @@ msgid "BKTR driver"
 msgstr "BKTR driver"
 
 #: src/io-bktr.c:202 src/io-bktr.c:280 src/io-bktr.c:298 src/io-v4l2k.c:333
-#: src/io-v4l2k.c:555 src/io-v4l2k.c:604 src/io-v4l2k.c:686 src/io-v4l2.c:322
-#: src/io-v4l2.c:538 src/io-v4l2.c:586 src/io-v4l2.c:667 src/io-v4l.c:521
-#: src/io-v4l.c:785 src/io-v4l.c:803
+#: src/io-v4l2k.c:543 src/io-v4l2k.c:592 src/io-v4l2k.c:674 src/io-v4l2.c:322
+#: src/io-v4l2.c:542 src/io-v4l2.c:590 src/io-v4l2.c:671 src/io-v4l.c:541
+#: src/io-v4l.c:809 src/io-v4l.c:827
 msgid "Virtual memory exhausted."
 msgstr "Virtual memory exhausted."
 
-#: src/io-bktr.c:212 src/io-v4l2k.c:344 src/io-v4l2.c:334 src/io-v4l.c:531
+#: src/io-bktr.c:212 src/io-v4l2k.c:344 src/io-v4l2.c:334 src/io-v4l.c:551
 #, c-format
 msgid "Cannot open '%s': %d, %s."
 msgstr "Cannot open '%s': %d, %s."
 
-#: src/io-bktr.c:268 src/io-v4l2k.c:440 src/io-v4l2k.c:545 src/io-v4l2.c:415
-#: src/io-v4l2.c:528 src/io-v4l.c:413 src/io-v4l.c:715 src/io-v4l.c:773
+#: src/io-bktr.c:268 src/io-v4l2k.c:445 src/io-v4l2k.c:533 src/io-v4l2.c:418
+#: src/io-v4l2.c:532 src/io-v4l.c:413 src/io-v4l.c:739 src/io-v4l.c:797
 #, c-format
 msgid "Sorry, %s (%s) cannot capture any of the requested data services."
 msgstr "Sorry, %s (%s) cannot capture any of the requested data services."
 
-#: src/io-bktr.c:309 src/io-v4l2k.c:697 src/io-v4l2.c:678 src/io-v4l.c:814
+#: src/io-bktr.c:309 src/io-v4l2k.c:685 src/io-v4l2.c:682 src/io-v4l.c:838
 #, c-format
 msgid "Not enough memory to allocate vbi capture buffer (%d KB)."
 msgstr "Not enough memory to allocate vbi capture buffer (%d KB)."
 
 #: src/io-bktr.c:343
-msgid "bktr interface not compiled."
-msgstr "bktr interface not compiled."
+#, fuzzy
+msgid "BKTR interface not compiled."
+msgstr "V4L interface not compiled."
 
-#: src/io-v4l2k.c:360 src/io-v4l2.c:343
+#: src/io-v4l2k.c:360
 #, c-format
 msgid "Cannot identify '%s': %d, %s."
 msgstr "Cannot identify '%s': %d, %s."
 
-#: src/io-v4l2k.c:362 src/io-v4l2.c:345
+#: src/io-v4l2k.c:362
 msgid "Probably not a v4l2 device."
 msgstr "Probably not a v4l2 device."
 
-#: src/io-v4l2k.c:367 src/io-v4l2.c:357 src/io-v4l.c:556
+#: src/io-v4l2k.c:367 src/io-v4l2.c:358 src/io-v4l.c:576
 #, c-format
 msgid "%s (%s) is not a raw vbi device."
 msgstr "%s (%s) is not a raw vbi device."
 
-#: src/io-v4l2k.c:379 src/io-v4l2k.c:569 src/io-v4l2.c:368 src/io-v4l2.c:551
-#: src/io-v4l.c:707
+#: src/io-v4l2k.c:379 src/io-v4l2k.c:557 src/io-v4l2.c:369 src/io-v4l2.c:555
+#: src/io-v4l.c:731
 #, c-format
 msgid "%s (%s) does not support the select() function."
 msgstr "%s (%s) does not support the select() function."
 
-#: src/io-v4l2k.c:386 src/io-v4l2k.c:401 src/io-v4l2.c:376
+#: src/io-v4l2k.c:386 src/io-v4l2k.c:401 src/io-v4l2.c:377
 #, c-format
 msgid "Cannot query current videostandard of %s (%s): %d, %s."
 msgstr "Cannot query current videostandard of %s (%s): %d, %s."
 
-#: src/io-v4l2k.c:388 src/io-v4l2k.c:403 src/io-v4l2k.c:668 src/io-v4l2.c:378
-#: src/io-v4l2.c:650
+#: src/io-v4l2k.c:388 src/io-v4l2k.c:403 src/io-v4l2k.c:656 src/io-v4l2.c:379
+#: src/io-v4l2.c:654
 msgid "Probably a driver bug."
 msgstr "Probably a driver bug."
 
-#: src/io-v4l2k.c:423 src/io-v4l2.c:398
+#: src/io-v4l2k.c:423 src/io-v4l2.c:399
 #, c-format
 msgid "Cannot query current vbi parameters of %s (%s): %d, %s."
 msgstr "Cannot query current vbi parameters of %s (%s): %d, %s."
 
-#: src/io-v4l2k.c:477 src/io-v4l2.c:452 src/io-v4l.c:450
+#: src/io-v4l2k.c:473 src/io-v4l2.c:456 src/io-v4l.c:450
 #, c-format
 msgid "Cannot initialize %s (%s), the device is already in use."
 msgstr "Cannot initialize %s (%s), the device is already in use."
 
-#: src/io-v4l2k.c:485 src/io-v4l2.c:468 src/io-v4l.c:456
+#: src/io-v4l2k.c:479 src/io-v4l2.c:472 src/io-v4l.c:464
 #, c-format
 msgid "Could not set the vbi capture parameters for %s (%s): %d, %s."
 msgstr "Could not set the vbi capture parameters for %s (%s): %d, %s."
 
-#: src/io-v4l2k.c:488 src/io-v4l2k.c:588 src/io-v4l2.c:471 src/io-v4l2.c:570
+#: src/io-v4l2k.c:482 src/io-v4l2k.c:576 src/io-v4l2.c:475 src/io-v4l2.c:574
 msgid "Possibly a driver bug."
 msgstr "Possibly a driver bug."
 
-#: src/io-v4l2k.c:517 src/io-v4l2.c:500 src/io-v4l.c:595
+#: src/io-v4l2k.c:505 src/io-v4l2.c:504 src/io-v4l.c:618
 #, c-format
 msgid ""
 "%s (%s) offers unknown vbi sampling format #%d. This may be a driver bug or "
@@ -429,7 +428,7 @@ msgstr ""
 "%s (%s) offers unknown vbi sampling format #%d. This may be a driver bug or "
 "libzvbi is too old."
 
-#: src/io-v4l2k.c:529 src/io-v4l2.c:512 src/io-v4l.c:759
+#: src/io-v4l2k.c:517 src/io-v4l2.c:516 src/io-v4l.c:783
 #, c-format
 msgid ""
 "Cannot capture the requested data services with %s (%s), the sampling "
@@ -438,12 +437,12 @@ msgstr ""
 "Cannot capture the requested data services with %s (%s), the sampling "
 "frequency %.2f MHz is too low."
 
-#: src/io-v4l2k.c:585 src/io-v4l2.c:567
+#: src/io-v4l2k.c:573 src/io-v4l2.c:571
 #, c-format
 msgid "Cannot request streaming i/o buffers from %s (%s): %d, %s."
 msgstr "Cannot request streaming i/o buffers from %s (%s): %d, %s."
 
-#: src/io-v4l2k.c:593 src/io-v4l2.c:575
+#: src/io-v4l2k.c:581 src/io-v4l2.c:579
 #, c-format
 msgid ""
 "%s (%s) granted no streaming i/o buffers, perhaps the physical memory is "
@@ -452,22 +451,22 @@ msgstr ""
 "%s (%s) granted no streaming i/o buffers, perhaps the physical memory is "
 "exhausted."
 
-#: src/io-v4l2k.c:618 src/io-v4l2.c:600
+#: src/io-v4l2k.c:606 src/io-v4l2.c:604
 #, c-format
 msgid "Querying streaming i/o buffer #%d from %s (%s) failed: %d, %s."
 msgstr "Querying streaming i/o buffer #%d from %s (%s) failed: %d, %s."
 
-#: src/io-v4l2k.c:640 src/io-v4l2.c:622
+#: src/io-v4l2k.c:628 src/io-v4l2.c:626
 #, c-format
 msgid "Memory mapping streaming i/o buffer #%d from %s (%s) failed: %d, %s."
 msgstr "Memory mapping streaming i/o buffer #%d from %s (%s) failed: %d, %s."
 
-#: src/io-v4l2k.c:664 src/io-v4l2.c:646
+#: src/io-v4l2k.c:652 src/io-v4l2.c:650
 #, c-format
 msgid "Cannot enqueue streaming i/o buffer #%d to %s (%s): %d, %s."
 msgstr "Cannot enqueue streaming i/o buffer #%d to %s (%s): %d, %s."
 
-#: src/io-v4l2k.c:707 src/io-v4l2.c:688
+#: src/io-v4l2k.c:695 src/io-v4l2.c:692
 #, c-format
 msgid ""
 "%s (%s) lacks a vbi read interface, possibly an output only device or a "
@@ -476,20 +475,20 @@ msgstr ""
 "%s (%s) lacks a vbi read interface, possibly an output only device or a "
 "driver bug."
 
-#: src/io-v4l2k.c:758 src/io-v4l2.c:739
+#: src/io-v4l2k.c:746 src/io-v4l2.c:743
 msgid "V4L2 interface not compiled."
 msgstr "V4L2 interface not compiled."
 
-#: src/io-v4l.c:507
+#: src/io-v4l.c:527
 msgid "driver unknown"
 msgstr "driver unknown"
 
-#: src/io-v4l.c:638
+#: src/io-v4l.c:662
 #, c-format
 msgid "Cannot capture with %s (%s), has no standard vbi interface."
 msgstr "Cannot capture with %s (%s), has no standard vbi interface."
 
-#: src/io-v4l.c:656
+#: src/io-v4l.c:680
 #, c-format
 msgid ""
 "Cannot identify %s (%s), reported vbi frame size suggests this is not a bttv "
@@ -498,11 +497,17 @@ msgstr ""
 "Cannot identify %s (%s), reported vbi frame size suggests this is not a bttv "
 "driver."
 
-#: src/io-v4l.c:672 src/io-v4l.c:732
+#: src/io-v4l.c:696 src/io-v4l.c:756
 #, c-format
 msgid "Cannot set or determine current videostandard of %s (%s)."
 msgstr "Cannot set or determine current videostandard of %s (%s)."
 
-#: src/io-v4l.c:862 src/io-v4l.c:872
+#: src/io-v4l.c:886 src/io-v4l.c:896
 msgid "V4L interface not compiled."
 msgstr "V4L interface not compiled."
+
+#~ msgid "Character conversion failed."
+#~ msgstr "Character conversion failed."
+
+#~ msgid "bktr interface not compiled."
+#~ msgstr "bktr interface not compiled."

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-bktr.c,v 1.2.2.1 2003-10-16 18:15:07 mschimek Exp $";
+static char rcsid[] = "$Id: io-bktr.c,v 1.2.2.2 2004-01-30 00:43:03 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -222,6 +222,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 	 *  /dev/hcfr (halt and catch fire on read) ?
 	 */
 
+	v->dec.samples_per_line = 2048;
 	v->dec.bytes_per_line = 2048;
 	v->dec.interlaced = FALSE;
 	v->dec.synchronous = TRUE;

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osc.c,v 1.9 2002-11-30 02:37:18 mschimek Exp $ */
+/* $Id: osc.c,v 1.9.2.1 2004-01-30 00:43:03 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -43,7 +43,8 @@
 #include <X11/Xutil.h>
 
 vbi_capture *		cap;
-vbi_raw_decoder *	par;
+vbi_raw_decoder *	rd;
+vbi_sampling_par	sp;
 int			src_w, src_h;
 vbi_sliced *		sliced;
 int			slines;
@@ -115,16 +116,16 @@ draw(unsigned char *raw)
 
 	XSetForeground(display, gc, ~0);
 
-	field = (draw_row >= par->count[0]);
+	field = (draw_row >= sp.count[0]);
 
-	if (par->start[field] < 0) {
+	if (sp.start[field] < 0) {
 		xti.nchars = snprintf(buf, 255, "Row %d Line ?", draw_row);
 		line = -1;
 	} else if (field == 0) {
-		line = draw_row + par->start[0];
+		line = draw_row + sp.start[0];
 		xti.nchars = snprintf(buf, 255, "Row %d Line %d", draw_row, line);
 	} else {
-		line = draw_row - par->count[0] + par->start[1];
+		line = draw_row - sp.count[0] + sp.start[1];
 		xti.nchars = snprintf(buf, 255, "Row %d Line %d", draw_row, line);
 	}
 
@@ -443,13 +444,13 @@ main(int argc, char **argv)
 		| VBI_SLICED_WSS_625 | VBI_SLICED_WSS_CPR1204;
 
 	if (do_sim) {
-		par = init_sim (scanning, services);
+		rd = init_sim (scanning, services);
 	} else {
 		do {
 			cap = vbi_capture_v4l2_new (dev_name,
 						    /* buffers */ 5,
 						    &services,
-						    /* strict */ -1,
+						    /* strict */ 0,
 						    &errstr,
 						    /* trace */ verbose);
 			if (cap)
@@ -463,7 +464,7 @@ main(int argc, char **argv)
 			cap = vbi_capture_v4l_new (dev_name,
 						   scanning,
 						   &services,
-						   /* strict */ -1,
+						   /* strict */ 0,
 						   &errstr,
 						   /* trace */ verbose);
 			if (cap)
@@ -477,7 +478,7 @@ main(int argc, char **argv)
 			cap = vbi_capture_bktr_new (dev_name,
 						    scanning,
 						    &services,
-						    /* strict */ -1,
+						    /* strict */ 0,
 						    &errstr,
 						    /* trace */ verbose);
 			if (cap)
@@ -491,13 +492,15 @@ main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		} while (0);
 
-		assert ((par = vbi_capture_parameters(cap)));
+		assert ((rd = vbi_capture_parameters(cap)));
 	}
 
-	assert(par->sampling_format == VBI_PIXFMT_YUV420);
+	vbi_raw_decoder_get_sampling_par (rd, &sp);
 
-	src_w = par->bytes_per_line / 1;
-	src_h = par->count[0] + par->count[1];
+	assert (sp.sampling_format == VBI_PIXFMT_YUV420);
+
+	src_w = sp.bytes_per_line / 1;
+	src_h = sp.count[0] + sp.count[1];
 
 	init_window(argc, argv, dev_name);
 

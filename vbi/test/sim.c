@@ -1,201 +1,13 @@
+
 #include <math.h>
 
-#define AMP 110
-#define DC 60
+#include "../src/io-sim.h"
 
-static vbi_raw_decoder sim;
+#define N_ELEMENTS(array) (sizeof(array) / sizeof(*array))
+
+static vbi_sampling_par _sp;
+static vbi_raw_decoder *_rd;
 static double sim_time;
-
-static inline double
-shape(double ph)
-{
-	double x = sin(ph);
-
-	return x * x;
-}
-
-/*
- *  Closed Caption Signal Simulator
- */
-
-static inline double
-cc_sim(double t, double F, unsigned char b1, unsigned char b2)
-{
-	int bits = (b2 << 10) + (b1 << 2) + 2; /* start bit 0 -> 1 */
-	double t1 = 10.5e-6 - .25 / F;
-	double t2 = t1 + 7 / F;		/* CRI 7 cycles */
-	double t3 = t2 + 1.5 / F;
-	double t4 = t3 + 18 / F;	/* 17 bits + raise and fall time */
-	double ph;
-
-	if (t < t1) {
-		return 0.0;
-	} else if (t < t2) {
-		t -= t2;
-		ph = M_PI * 2 * t * F - (M_PI * .5);
-		return sin(ph) / 2 + .5;
-	} else if (t < t3) {
-		return 0.0;
-	} else if (t < t4) {
-		int i, n;
-
-		t -= t3;
-		i = (t * F - .0);
-		n = (bits >> i) & 3; /* low = 0, up, down, high */
-		if (n == 0)
-			return 0.0;
-		else if (n == 3)
-			return 1.0;
-
-		if ((n ^ i) & 1) /* down */
-			ph = M_PI * 2 * (t - 1 / F) * F / 4;
-		else /* up */
-			ph = M_PI * 2 * (t - 0 / F) * F / 4;
-
-		return shape(ph);
-	} else {
-		return 0.0;
-	}
-}
-
-/*
- *  Wide Screen Signalling Simulator
- */
-
-static inline double
-wss625_sim(double t, double F, unsigned int bits)
-{
-	static int twobit[] = { 0xE38, 0xE07, 0x1F8, 0x1C7 };
-	static char frame[] =
-		"\0"
-		"\1\1\1\1\1\0\0\0\1\1\1\0\0\0"
-		"\1\1\1\0\0\0\1\1\1\0\0\0\1\1\1"
-		"\0\0\0\1\1\1\1\0\0\0\1\1\1\1\0\0\0\0\0\1\1\1\1\1"
-		"x";
-	double t1 = 11.0e-6 - .5 / F;
-	double t4 = t1 + (29 + 24 + 84) / F;
-	double ph;
-	int i, j, n;
-
-	frame[1 + 29 + 24] = bits & 1;
-
-	if (t < t1) {
-		return 0.0;
-	} else if (t < t4) {
-		t -= t1;
-		i = (t * F - .0);
-		if (i < 29 + 24) {
-			n = frame[i] + 2 * frame[i + 1];
-		} else {
-			j = i - 29 - 24;
-			n = twobit[(bits >> (j / 6)) & 3];
-			n = (n >> (j % 6)) & 3;
-		}
-
-		/* low = 0, down, up, high */
-		if (n == 0)
-			return 0.0;
-		else if (n == 3)
-			return 1.0;
-		if ((n ^ i) & 1) 
-			ph = M_PI * 2 * (t - 1 / F) * F / 4;
-		else /* down */
-			ph = M_PI * 2 * (t - 0 / F) * F / 4;
-
-		return shape(ph);
-	} else {
-		return 0.0;
-	}
-}
-
-static inline double
-wss525_sim(double t, double F, unsigned int bits)
-{
-	double t1 = 11.2e-6 - .5 / F;
-	double t4 = t1 + (2 + 14 + 6 + 1) / F;
-	double ph;
-	int i, n;
-
-	bits = bits * 2 + (2 << 21); /* start bits 10, stop 0 */
-
-	if (t < t1) {
-		return 0.0;
-	} else if (t < t4) {
-		t -= t1;
-		i = (t * F - .0);
-		n = (bits >> (22 - i)) & 3; /* low = 0, up, down, high */
-
-		if (n == 0)
-			return 0.0;
-		else if (n == 3)
-			return 1.0;
-		if ((n ^ i) & 1) 
-			ph = M_PI * 2 * (t - 0 / F) * F / 4;
-		else /* down */
-			ph = M_PI * 2 * (t - 1 / F) * F / 4;
-
-		return shape(ph);
-	} else
-		return 0.0;
-}
-
-/*
- *  Teletext Signal Simulator
- */
-
-static inline double
-ttx_sim(double t, double F, const uint8_t *text)
-{
-	double t1 = 10.3e-6 - .5 / F;
-	double t2 = t1 + (45 * 8 + 1) / F; /* 45 bytes + raise and fall time */
-	double ph;
-
-	if (t < t1) {
-		return 0.0;
-	} else if (t < t2) {
-		int i, j, n;
-
-		t -= t1;
-		i = (t * F);
-		j = i >> 3;
-		i &= 7;
-
-		if (j == 0)
-			n = ((text[0] * 2) >> i) & 3;
-		else
-			n = (((text[j - 1] >> 7) + text[j] * 2) >> i) & 3;
-
-		if (n == 0) {
-			return 0.0;
-		} else if (n == 3) {
-			return 1.0;
-		} else if ((n ^ i) & 1) {
-			ph = M_PI * 2 * (t - 1 / F) * F / 4;
-			return shape(ph);
-		} else { /* up */
-			ph = M_PI * 2 * (t - 0 / F) * F / 4;
-			return shape(ph);
-		}
-	} else {
-		return 0.0;
-	}
-
-	if (t < t1) {
-		return 0.0;
-	} else if (t < t2) {
-		int i, j, n;
-
-		t -= t1;
-		i = (t * F - .0);
-		j = i >> 3;
-		if (j < 44)
-			n = ((text[j + 1] * 256 + text[j]) >> i) & 3;
-		else
-			n = (text[i] >> i) & 3;
-
-		return shape(ph);
-	}
-}
 
 static int caption_i = 0;
 static const uint8_t caption_text[] = {
@@ -205,21 +17,6 @@ static const uint8_t caption_text[] = {
 	'L', 'A', 'T', 'I', 'O', 'N', 0x14, 0x2D,
 	0x14, 0x2D /* even size please, add 0 if neccessary */
 };
-
-static inline int
-odd(int c)
-{
-	int n;
-
-	n = c ^ (c >> 4);
-	n = n ^ (n >> 2);
-	n = n ^ (n >> 1);
-
-	if (!(n & 1))
-		c |= 0x80;
-
-	return c;
-}
 
 static uint8_t *
 ttx_next(void)
@@ -295,15 +92,15 @@ ttx_next(void)
 		memcpy(buf + 3, s1[page], 10);
 		page ^= 1;
 		for (i = 0; i < 32; i++)
-			buf[13 + i] = odd(s2[i]);
+			buf[13 + i] = vbi_fpar8(s2[i]);
 	} else if (row == 1) {
 		buf[3] = 0x02; buf[4] = 0x02;
 		for (i = 0; i < 40; i++)
-			buf[5 + i] = odd(s3[i]);
+			buf[5 + i] = vbi_fpar8(s3[i]);
 	} else if (row == 2) {
 		buf[3] = 0x02; buf[4] = 0x49;
 		for (i = 0; i < 40; i++)
-			buf[5 + i] = odd(s4[i]);
+			buf[5 + i] = vbi_fpar8(s4[i]);
 	} else {
 		memcpy(buf + 3, s5[row - 3], 42);
 	}
@@ -317,159 +114,153 @@ static void
 read_sim(uint8_t *raw_data, vbi_sliced *sliced_data,
 	 int *lines, double *timestamp)
 {
-	uint8_t *buf;
-	double start, inc;
-	int i;
+	vbi_sliced sliced[50];
+	int j;
 
-	memset(raw_data, 0, (sim.count[0] + sim.count[1])
-			    * sim.bytes_per_line);
+	memset (raw_data, 0,
+		(_sp.count[0] + _sp.count[1])
+		* _sp.bytes_per_line);
 
 	*timestamp = sim_time;
 
-	if (sim.scanning == 525)
+	if (VBI_VIDEOSTD_SET_525_60 & _sp.videostd_set)
 		sim_time += 1001 / 30000.0;
 	else
 		sim_time += 1 / 25.0;
 
-	start = sim.offset / (double) sim.sampling_rate;
-	inc = 1 / (double) sim.sampling_rate;
+	j = 0;
 
-	if (sim.scanning == 525) {
+	if (VBI_VIDEOSTD_SET_525_60 & _sp.videostd_set) {
 		/* Closed Caption */
+
+		sliced[j].id = VBI_SLICED_CAPTION_525;
+		sliced[j].line = 21;
+		sliced[j].data[0] = vbi_fpar8 (caption_text[caption_i]);
+		sliced[j].data[1] = vbi_fpar8 (caption_text[caption_i + 1]);
+
+		if ((caption_i += 2) > sizeof(caption_text))
+			caption_i = 0;
+		++j;
+
+		/* Teletext */
 		{
-			buf = raw_data + (21 - sim.start[0])
-				* sim.bytes_per_line;
+			unsigned int i;
 
-			for (i = 0; i < sim.bytes_per_line; i++)
-				buf[i] = cc_sim(start + i * inc, 15734 * 32,
-						odd(caption_text[caption_i]),
-						odd(caption_text[caption_i + 1]))
-					* AMP + DC;
+			for (i = 0; i < N_ELEMENTS (sliced[j].data); ++i)
+				sliced[j].data[i] = rand ();
 
-			if ((caption_i += 2) > sizeof(caption_text))
-				caption_i = 0;
-		}
+			memcpy (&sliced[j + 1], &sliced[j], sizeof (sliced[j]));
+			memcpy (&sliced[j + 2], &sliced[j], sizeof (sliced[j]));
 
-		/* WSS NTSC-Japan */
-		{
-			const int poly = (1 << 6) + (1 << 1) + 1;
-			int b0 = 1, b1 = 1;
-			int bits = (b0 << 13) + (b1 << 12);
-			int crc, j;
+			sliced[j + 0].id = VBI_SLICED_TELETEXT_B_525;
+			sliced[j + 0].line = 10;
+			sliced[j + 1].id = VBI_SLICED_TELETEXT_C_525;
+			sliced[j + 1].line = 11;
+			sliced[j + 2].id = VBI_SLICED_TELETEXT_D_525;
+			sliced[j + 2].line = 12;
 
-			crc = (((1 << 6) - 1) << (14 + 6)) + (bits << 6);
-
-			for (j = 14 + 6 - 1; j >= 0; j--) {
-				if (crc & ((1 << 6) << j))
-					crc ^= poly << j;
-			}
-
-			bits <<= 6;
-			bits |= crc;
-
-			/* fprintf(stderr, "WSS CPR << %08x\n", bits); */
-
-			buf = raw_data + (20 - sim.start[0])
-				* sim.bytes_per_line;
-
-			for (i = 0; i < sim.bytes_per_line; i++)
-				buf[i] = wss525_sim(start + i * inc,
-						    447443, bits)
-					* AMP + DC;
+			j += 3;
 		}
 	} else {
 		/* Closed Caption */
-		{
-			buf = raw_data + (22 - sim.start[0])
-				* sim.bytes_per_line;
 
-			for (i = 0; i < sim.bytes_per_line; i++)
-				buf[i] = cc_sim(start + i * inc, 15625 * 32,
-						odd(caption_text[caption_i]),
-						odd(caption_text[caption_i + 1]))
-					* AMP + DC;
+		sliced[j].id = VBI_SLICED_CAPTION_625;
+		sliced[j].line = 22;
+		sliced[j].data[0] = vbi_fpar8 (caption_text[caption_i]);
+		sliced[j].data[1] = vbi_fpar8 (caption_text[caption_i + 1]);
 
-			if ((caption_i += 2) > sizeof(caption_text))
-				caption_i = 0;
-		}
+		if ((caption_i += 2) > sizeof(caption_text))
+			caption_i = 0;
+		++j;
 
 		/* WSS PAL */
 		{
 			int g0 = 1, g1 = 2, g2 = 3, g3 = 4;
 			int bits = (g3 << 11) + (g2 << 8) + (g1 << 4) + g0;
 
-			buf = raw_data + (23 - sim.start[0])
-				* sim.bytes_per_line;
+			sliced[j].id = VBI_SLICED_WSS_625;
+			sliced[j].line = 23;
+			sliced[j].data[0] = bits;
+			sliced[j].data[1] = bits >> 8;
 
-			for (i = 0; i < sim.bytes_per_line; i++)
-				buf[i] = wss625_sim(start + i * inc, 15625 * 320,
-						    bits) * AMP + DC;
+			++j;
 		}
 
 		/* Teletext */
 		{
-			int line, count;
-			uint8_t *text;
+			unsigned int i;
 
-			buf = raw_data;
+			for (i = 0; i < N_ELEMENTS (sliced[j].data); ++i)
+				sliced[j].data[i] = rand ();
 
-			for (line = sim.start[0], count = sim.count[0];
-			     count > 0; line++, count--, buf += sim.bytes_per_line)
-				if ((line >= 7 && line <= 15)
-				    || (line >= 19 && line <= 21)) {
-					text = ttx_next();
-					for (i = 0; i < sim.bytes_per_line; i++) {
-						buf[i] = ttx_sim(start + i * inc,
-								 15625 * 444,
-								 text) * AMP + DC;
-					}
-				}
-			for (line = sim.start[1], count = sim.count[1];
-			     count > 0; line++, count--, buf += sim.bytes_per_line)
-				if ((line >= 320 && line <= 328)
-				    || (line >= 332 && line <= 335)) {
-					text = ttx_next();
-					for (i = 0; i < sim.bytes_per_line; i++) {
-						buf[i] = ttx_sim(start + i * inc,
-								 15625 * 444,
-								 text) * AMP + DC;
-					}
-				}
+			memcpy (&sliced[j + 1], &sliced[j], sizeof (sliced[j]));
+			memcpy (&sliced[j + 2], &sliced[j], sizeof (sliced[j]));
+
+			sliced[j + 0].id = VBI_SLICED_TELETEXT_A;
+			sliced[j + 0].line = 6;
+			sliced[j + 1].id = VBI_SLICED_TELETEXT_C_625;
+			sliced[j + 1].line = 7;
+			sliced[j + 2].id = VBI_SLICED_TELETEXT_D_625;
+			sliced[j + 2].line = 8;
+
+			j += 3;
+		}
+
+		/* Teletext */
+		{
+			static const uint16_t lines [] = {
+				9, 10, 11, 12, 13, 14, 15,
+				19, 20, 21,
+				320, 321, 322, 323, 324, 325, 326, 327, 328,
+				332, 333, 334, 335
+			};
+			unsigned int i;
+
+			for (i = 0; i < N_ELEMENTS (lines); ++i) {
+				uint8_t *text;
+
+				sliced[j].id = VBI_SLICED_TELETEXT_B;
+				sliced[j].line = lines[i];
+
+				text = ttx_next();
+				memcpy (&sliced[j].data, text + 3, 42);
+
+				++j;
+			}
 		}
 	}
 
-	*lines = vbi_raw_decode(&sim, raw_data, sliced_data);
+	vbi_test_image_vbi (raw_data, &_sp, sliced, j);
+
+	*lines = vbi_raw_decoder_decode (_rd, sliced_data,
+					 /* FIXME */ 50, raw_data);
 }
 
 static vbi_raw_decoder *
 init_sim(int scanning, unsigned int services)
 {
-	vbi_raw_decoder_init(&sim);
-
-	sim.scanning = scanning;
-	sim.sampling_format = VBI_PIXFMT_YUV420;
-	sim.sampling_rate = 2 * 13500000;
-	sim.bytes_per_line = 1440;
-	sim.offset = 9.7e-6 * sim.sampling_rate;
-	sim.interlaced = FALSE;
-	sim.synchronous = TRUE;
-
-	if (scanning == 525) {
-		sim.start[0] = 10;
-		sim.count[0] = 21 - 10 + 1;
-		sim.start[1] = 272;
-		sim.count[1] = 285 - 272 + 1;
-	} else if (scanning == 625) {
-		sim.start[0] = 6;
-		sim.count[0] = 23 - 6 + 1;
-		sim.start[1] = 318;
-		sim.count[1] = 335 - 318 + 1;
-	} else
-		assert(!"invalid scanning value");
+	vbi_videostd_set vs;
 
 	sim_time = 0.0;
 
-	vbi_raw_decoder_add_services(&sim, services, 0);
+        switch (scanning) {
+        case 525:
+		vs = VBI_VIDEOSTD_SET_525_60;
+                break;
+        case 625:
+                vs = VBI_VIDEOSTD_SET_625_50;
+                break;
+        default:
+		assert (0);
+        }
 
-	return &sim;
+	services = vbi_sampling_par_from_services (&_sp, NULL, vs, services);
+	assert (0 != services);
+
+	_rd = vbi_raw_decoder_new (&_sp);
+	assert (NULL != _rd);
+
+	vbi_raw_decoder_add_services (_rd, services, 0);
+
+	return _rd;
 }

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: capture.c,v 1.7.2.1 2003-06-16 06:05:24 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.2 2004-01-30 00:43:03 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -37,7 +37,8 @@
 #include <libzvbi.h>
 
 vbi_capture *		cap;
-vbi_raw_decoder *	par;
+vbi_raw_decoder *	rd;
+vbi_sampling_par	sp;
 vbi_bool		quit;
 int			src_w, src_h;
 
@@ -71,7 +72,7 @@ odd_parity(uint8_t c)
 static inline int
 vbi_hamm16(uint8_t *p)
 {
-	return vbi_iham16 (p);
+	return vbi_iham16p (p);
 }
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
@@ -448,6 +449,15 @@ mainloop(void)
 	}
 }
 
+static void
+log	       			(const char *		function,
+				 const char *		message,
+				 void *			user_data)
+{
+	fprintf (stderr, "%s: %s\n", function, message);
+}
+
+
 static const char short_options[] = "d:lnpstv";
 
 #ifdef HAVE_GETOPT_LONG
@@ -484,7 +494,7 @@ main(int argc, char **argv)
 	int c, index;
 
 	while ((c = getopt_long(argc, argv, short_options,
-				long_options, &index)) != -1)
+				long_options, &index)) != -1) {
 		switch (c) {
 		case 0: /* set flag */
 			break;
@@ -513,6 +523,7 @@ main(int argc, char **argv)
 			fprintf(stderr, "Unknown option\n");
 			exit(EXIT_FAILURE);
 		}
+	}
 
 	dump = dump_ttx | dump_xds | dump_cc
 		| dump_wss | dump_vps | dump_sliced;
@@ -522,14 +533,17 @@ main(int argc, char **argv)
 		| VBI_SLICED_CAPTION_625 | VBI_SLICED_VPS
 		| VBI_SLICED_WSS_625 | VBI_SLICED_WSS_CPR1204;
 
+	if (verbose)
+		vbi_set_log_fn (log, NULL);
+
 	if (do_sim) {
-		par = init_sim (scanning, services);
+		rd = init_sim (scanning, services);
 	} else {
 		do {
 			cap = vbi_capture_v4l2_new (dev_name,
 						    /* buffers */ 5,
 						    &services,
-						    /* strict */ -1,
+						    /* strict */ 0,
 						    &errstr,
 						    /* trace */ verbose);
 			if (cap)
@@ -543,7 +557,7 @@ main(int argc, char **argv)
 			cap = vbi_capture_v4l_new (dev_name,
 						   scanning,
 						   &services,
-						   /* strict */ -1,
+						   /* strict */ 0,
 						   &errstr,
 						   /* trace */ verbose);
 			if (cap)
@@ -557,7 +571,7 @@ main(int argc, char **argv)
 			cap = vbi_capture_bktr_new (dev_name,
 						    scanning,
 						    &services,
-						    /* strict */ -1,
+						    /* strict */ 0,
 						    &errstr,
 						    /* trace */ verbose);
 			if (cap)
@@ -571,13 +585,15 @@ main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		} while (0);
 
-		assert ((par = vbi_capture_parameters(cap)));
+		assert ((rd = vbi_capture_parameters(cap)));
 	}
 
-	assert (par->sampling_format == VBI_PIXFMT_YUV420);
+	vbi_raw_decoder_get_sampling_par (rd, &sp);
 
-	src_w = par->bytes_per_line / 1;
-	src_h = par->count[0] + par->count[1];
+	assert (sp.sampling_format == VBI_PIXFMT_YUV420);
+
+	src_w = sp.bytes_per_line / 1;
+	src_h = sp.count[0] + sp.count[1];
 
 	mainloop();
 

@@ -22,13 +22,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.h,v 1.2.2.1 2003-06-16 06:05:24 mschimek Exp $ */
+/* $Id: exp-gfx.h,v 1.2.2.2 2004-01-30 00:43:03 mschimek Exp $ */
 
 #ifndef EXP_GFX_H
 #define EXP_GFX_H
 
 #include "format.h"
-#include "decoder.h" /* vbi_pixfmt */
+#include "sampling.h" /* vbi_pixfmt */
 
 /* Public */
 

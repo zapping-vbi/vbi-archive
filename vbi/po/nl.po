@@ -6,7 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zvbi 0.2.2\n"
-"POT-Creation-Date: 2003-02-16 21:52+0100\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2004-01-25 07:38+0100\n"
 "PO-Revision-Date: 2002-10-03 21:38+0200\n"
 "Last-Translator: Guus Bonnema <abonnema@xs4all.nl>\n"
 "Language-Team: Dutch <ime@iae.nl>\n"
@@ -17,7 +18,7 @@ msgstr ""
 
 #. TRANSLATORS: Title of TOP Index page,
 #. for now please Latin-1 or ASCII only
-#: src/teletext.c:417
+#: src/teletext.c:3477
 msgid "TOP Index"
 msgstr ""
 
@@ -69,11 +70,11 @@ msgstr "PNG"
 msgid "Export this page as PNG image"
 msgstr "Exporteren in PNG-formaat"
 
-#: src/exp-html.c:94 src/exp-txt.c:122
+#: src/exp-html.c:94 src/exp-txt.c:128
 msgid "Graphics char"
 msgstr "Grafische tekens"
 
-#: src/exp-html.c:95 src/exp-txt.c:123
+#: src/exp-html.c:95 src/exp-txt.c:129
 msgid ""
 "Replacement for block graphic characters: a single character or decimal (32) "
 "or hex (0x20) code"
@@ -103,20 +104,16 @@ msgstr "HTML-kop invoegen"
 msgid "<title lang=\"en\">"
 msgstr "<title lang=\"nl\">"
 
-#: src/exp-html.c:351 src/exp-txt.c:599
+#: src/exp-html.c:355 src/exp-txt.c:732
 #, c-format
 msgid "Character conversion Unicode (UCS-2) to %s not supported."
 msgstr "Geen ondersteuning voor tekenconversie van unicode (UCS-2) naar %s."
 
-#: src/exp-html.c:430
-msgid "Character conversion failed."
-msgstr "Karakter conversie mislukt."
-
-#: src/exp-html.c:718
+#: src/exp-html.c:714
 msgid "HTML"
 msgstr "HTML"
 
-#: src/exp-html.c:719
+#: src/exp-html.c:715
 msgid "Export this page as HTML page"
 msgstr "Exporteren als HTML-pagina"
 
@@ -129,7 +126,8 @@ msgid "ISO-8859-1 (Latin-1 Western languages)"
 msgstr "ISO-8859-1 (Latin-1 Westerse talen)"
 
 #: src/exp-txt.c:81
-msgid "ISO-8859-2 (Latin-2 Central and Eastern Europe languages)"
+#, fuzzy
+msgid "ISO-8859-2 (Latin-2 Central and Eastern European languages)"
 msgstr "ISO-8859-2 (Latin-2 Centraal- en Oost-Europesche talen)"
 
 #: src/exp-txt.c:82
@@ -215,107 +213,107 @@ msgid "VT 200"
 msgstr "VT 200"
 
 #. TRANSLATORS: Text export format (ASCII, Unicode, ...) menu
-#: src/exp-txt.c:116
+#: src/exp-txt.c:122
 msgid "Format"
 msgstr "Formaat"
 
-#: src/exp-txt.c:126
+#: src/exp-txt.c:132
 msgid "Control codes"
 msgstr "Control codes"
 
-#: src/exp-txt.c:130
+#: src/exp-txt.c:136
 msgid "Foreground"
 msgstr "Voorgrond"
 
-#: src/exp-txt.c:132
+#: src/exp-txt.c:138
 msgid "Assumed terminal foreground color"
 msgstr "Aangenomen voorgrondkleur van terminal"
 
-#: src/exp-txt.c:134
+#: src/exp-txt.c:140
 msgid "Background"
 msgstr "Achtergrond"
 
-#: src/exp-txt.c:136
+#: src/exp-txt.c:142
 msgid "Assumed terminal background color"
 msgstr "Aangenomen achtergrondkleur van terminal"
 
-#: src/exp-txt.c:648
+#: src/exp-txt.c:803
 msgid "Text"
 msgstr "Tekst"
 
-#: src/exp-txt.c:649
+#: src/exp-txt.c:804
 msgid "Export this page as text file"
 msgstr "Exporteren als tekst bestand"
 
-#: src/exp-vtx.c:78
+#: src/exp-vtx.c:79
 msgid "Can only export Teletext pages."
 msgstr "Kan alleen teletekstpaginas exporteren."
 
-#: src/exp-vtx.c:89
+#: src/exp-vtx.c:90
 msgid "Page is not cached, sorry."
 msgstr "Pagina is helaas niet gecached."
 
-#: src/exp-vtx.c:97
+#: src/exp-vtx.c:98
 msgid "Cannot export this page, not displayable."
 msgstr "Kan deze pagina niet exporteren, niet displayable."
 
-#: src/exp-vtx.c:138
+#: src/exp-vtx.c:139
 msgid "VTX"
 msgstr "VTX"
 
-#: src/exp-vtx.c:139
+#: src/exp-vtx.c:140
 msgid ""
 "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 msgstr ""
 "Deze pagina als VTX-bestand exporteren, het formaat dat gebruikt wordt door "
 "VideoteXt en vbidecode"
 
-#: src/export.c:460
+#: src/export.c:585
 #, c-format
 msgid "Invalid option string \"%s\"."
 msgstr "Ongeldige optie string \"%s\"."
 
-#: src/export.c:548
+#: src/export.c:673
 #, c-format
 msgid "Unknown export module '%s'."
 msgstr "Onbekende export module '%s'."
 
-#: src/export.c:558
+#: src/export.c:683
 #, c-format
 msgid "Cannot initialize export module '%s', probably lack of memory."
 msgstr ""
 "Kan export module '%s' niet initialiseren. Waarschijnlijk geheugenprobleem."
 
-#: src/export.c:988
+#: src/export.c:1113
 #, c-format
 msgid "Cannot create file '%s': Error %d, %s."
 msgstr "Kan bestand '%s' niet aanmaken: %d, %s."
 
-#: src/export.c:1060
+#: src/export.c:1185
 #, c-format
 msgid "Error while writing file '%s'"
 msgstr "Fout bij het schrijven van bestan '%s'"
 
-#: src/export.c:1062
+#: src/export.c:1187
 msgid "Error while writing file"
 msgstr "Fout tijdens het schrijven van bestand"
 
-#: src/export.c:1092
+#: src/export.c:1217
 #, c-format
 msgid "Export module '%s' has no option '%s'."
 msgstr "Export module '%s' heeft geen optie '%s'."
 
-#: src/export.c:1142
+#: src/export.c:1267
 #, c-format
 msgid "Invalid argument %s for option %s of export module %s."
 msgstr "Ongeldig argument %s voor optie %s van export module %s."
 
-#: src/export.c:1166
+#: src/export.c:1291
 #, c-format
 msgid "Out of memory in export module '%s'."
 msgstr "Geen geheugen meer in export module '%s'."
 
-#: src/export.c:1193
+#: src/export.c:1318
 msgid "Unknown error."
 msgstr "Onbekende fout."
 
@@ -324,82 +322,83 @@ msgid "BKTR driver"
 msgstr ""
 
 #: src/io-bktr.c:202 src/io-bktr.c:280 src/io-bktr.c:298 src/io-v4l2k.c:333
-#: src/io-v4l2k.c:555 src/io-v4l2k.c:604 src/io-v4l2k.c:686 src/io-v4l2.c:322
-#: src/io-v4l2.c:538 src/io-v4l2.c:586 src/io-v4l2.c:667 src/io-v4l.c:521
-#: src/io-v4l.c:785 src/io-v4l.c:803
+#: src/io-v4l2k.c:543 src/io-v4l2k.c:592 src/io-v4l2k.c:674 src/io-v4l2.c:322
+#: src/io-v4l2.c:542 src/io-v4l2.c:590 src/io-v4l2.c:671 src/io-v4l.c:541
+#: src/io-v4l.c:809 src/io-v4l.c:827
 msgid "Virtual memory exhausted."
 msgstr "Geen virtueel geheugen beschikbaar."
 
-#: src/io-bktr.c:212 src/io-v4l2k.c:344 src/io-v4l2.c:334 src/io-v4l.c:531
+#: src/io-bktr.c:212 src/io-v4l2k.c:344 src/io-v4l2.c:334 src/io-v4l.c:551
 #, c-format
 msgid "Cannot open '%s': %d, %s."
 msgstr "Kan apparaat '%s' niet openen: %d, %s."
 
-#: src/io-bktr.c:268 src/io-v4l2k.c:440 src/io-v4l2k.c:545 src/io-v4l2.c:415
-#: src/io-v4l2.c:528 src/io-v4l.c:413 src/io-v4l.c:715 src/io-v4l.c:773
+#: src/io-bktr.c:268 src/io-v4l2k.c:445 src/io-v4l2k.c:533 src/io-v4l2.c:418
+#: src/io-v4l2.c:532 src/io-v4l.c:413 src/io-v4l.c:739 src/io-v4l.c:797
 #, c-format
 msgid "Sorry, %s (%s) cannot capture any of the requested data services."
 msgstr "%s (%s) kan de gewenste datadienst helaas niet ontvangen."
 
-#: src/io-bktr.c:309 src/io-v4l2k.c:697 src/io-v4l2.c:678 src/io-v4l.c:814
+#: src/io-bktr.c:309 src/io-v4l2k.c:685 src/io-v4l2.c:682 src/io-v4l.c:838
 #, c-format
 msgid "Not enough memory to allocate vbi capture buffer (%d KB)."
 msgstr "Niet genoeg geheugen om VBI-capturebuffer (%d kB) te reserveren."
 
 #: src/io-bktr.c:343
-msgid "bktr interface not compiled."
-msgstr "bktr interface niet gecompileerd."
+#, fuzzy
+msgid "BKTR interface not compiled."
+msgstr "V4L interface niet gecompileerd."
 
-#: src/io-v4l2k.c:360 src/io-v4l2.c:343
+#: src/io-v4l2k.c:360
 #, c-format
 msgid "Cannot identify '%s': %d, %s."
 msgstr "Kan apparaat '%s' niet openen: %d, %s."
 
-#: src/io-v4l2k.c:362 src/io-v4l2.c:345
+#: src/io-v4l2k.c:362
 msgid "Probably not a v4l2 device."
 msgstr "Waarschijnlijk geen v4l2 device."
 
-#: src/io-v4l2k.c:367 src/io-v4l2.c:357 src/io-v4l.c:556
+#: src/io-v4l2k.c:367 src/io-v4l2.c:358 src/io-v4l.c:576
 #, c-format
 msgid "%s (%s) is not a raw vbi device."
 msgstr "%s (%s) is geen VBI-apparaat."
 
-#: src/io-v4l2k.c:379 src/io-v4l2k.c:569 src/io-v4l2.c:368 src/io-v4l2.c:551
-#: src/io-v4l.c:707
+#: src/io-v4l2k.c:379 src/io-v4l2k.c:557 src/io-v4l2.c:369 src/io-v4l2.c:555
+#: src/io-v4l.c:731
 #, c-format
 msgid "%s (%s) does not support the select() function."
 msgstr "%s (%s) ondersteunt de select() functie niet."
 
-#: src/io-v4l2k.c:386 src/io-v4l2k.c:401 src/io-v4l2.c:376
+#: src/io-v4l2k.c:386 src/io-v4l2k.c:401 src/io-v4l2.c:377
 #, c-format
 msgid "Cannot query current videostandard of %s (%s): %d, %s."
 msgstr "Kan huidige videostandaard %s (%s) niet querien: %d, %s"
 
-#: src/io-v4l2k.c:388 src/io-v4l2k.c:403 src/io-v4l2k.c:668 src/io-v4l2.c:378
-#: src/io-v4l2.c:650
+#: src/io-v4l2k.c:388 src/io-v4l2k.c:403 src/io-v4l2k.c:656 src/io-v4l2.c:379
+#: src/io-v4l2.c:654
 msgid "Probably a driver bug."
 msgstr "Waarschijnlijk een driver bug."
 
-#: src/io-v4l2k.c:423 src/io-v4l2.c:398
+#: src/io-v4l2k.c:423 src/io-v4l2.c:399
 #, c-format
 msgid "Cannot query current vbi parameters of %s (%s): %d, %s."
 msgstr "Kan de huidige VBI-parameters van %s (%s) niet uitlezen: %d, %s."
 
-#: src/io-v4l2k.c:477 src/io-v4l2.c:452 src/io-v4l.c:450
+#: src/io-v4l2k.c:473 src/io-v4l2.c:456 src/io-v4l.c:450
 #, c-format
 msgid "Cannot initialize %s (%s), the device is already in use."
 msgstr "%s (%s) is al in gebruik."
 
-#: src/io-v4l2k.c:485 src/io-v4l2.c:468 src/io-v4l.c:456
+#: src/io-v4l2k.c:479 src/io-v4l2.c:472 src/io-v4l.c:464
 #, c-format
 msgid "Could not set the vbi capture parameters for %s (%s): %d, %s."
 msgstr "Kan de VBI-capture-parameters voor %s (%s) niet activeren: %d, %s."
 
-#: src/io-v4l2k.c:488 src/io-v4l2k.c:588 src/io-v4l2.c:471 src/io-v4l2.c:570
+#: src/io-v4l2k.c:482 src/io-v4l2k.c:576 src/io-v4l2.c:475 src/io-v4l2.c:574
 msgid "Possibly a driver bug."
 msgstr "Mogelijk een bug in de drivers."
 
-#: src/io-v4l2k.c:517 src/io-v4l2.c:500 src/io-v4l.c:595
+#: src/io-v4l2k.c:505 src/io-v4l2.c:504 src/io-v4l.c:618
 #, c-format
 msgid ""
 "%s (%s) offers unknown vbi sampling format #%d. This may be a driver bug or "
@@ -408,7 +407,7 @@ msgstr ""
 "%s (%s) biedt een onbekend VBI sampling formaat #%d aan. Dit kan eendriver "
 "bug zijn of libzvbi is te oud."
 
-#: src/io-v4l2k.c:529 src/io-v4l2.c:512 src/io-v4l.c:759
+#: src/io-v4l2k.c:517 src/io-v4l2.c:516 src/io-v4l.c:783
 #, c-format
 msgid ""
 "Cannot capture the requested data services with %s (%s), the sampling "
@@ -417,12 +416,12 @@ msgstr ""
 "Kan de gewenste datadienst niet ontvangen met %s (%s), de samplingfrequentie "
 "%.2f MHz is te laag."
 
-#: src/io-v4l2k.c:585 src/io-v4l2.c:567
+#: src/io-v4l2k.c:573 src/io-v4l2.c:571
 #, c-format
 msgid "Cannot request streaming i/o buffers from %s (%s): %d, %s."
 msgstr "Fout bij opvragen van de streaming I/O-buffers van %s (%s): %d, %s."
 
-#: src/io-v4l2k.c:593 src/io-v4l2.c:575
+#: src/io-v4l2k.c:581 src/io-v4l2.c:579
 #, c-format
 msgid ""
 "%s (%s) granted no streaming i/o buffers, perhaps the physical memory is "
@@ -431,24 +430,24 @@ msgstr ""
 "%s (%s) stelde geen streaming I/O-buffers ter beschikking, geen fysiek "
 "geheugenmeer?"
 
-#: src/io-v4l2k.c:618 src/io-v4l2.c:600
+#: src/io-v4l2k.c:606 src/io-v4l2.c:604
 #, c-format
 msgid "Querying streaming i/o buffer #%d from %s (%s) failed: %d, %s."
 msgstr "Fout bij opvragen van streaming I/O-buffer #%d van %s (%s): %d, %s."
 
-#: src/io-v4l2k.c:640 src/io-v4l2.c:622
+#: src/io-v4l2k.c:628 src/io-v4l2.c:626
 #, c-format
 msgid "Memory mapping streaming i/o buffer #%d from %s (%s) failed: %d, %s."
 msgstr "mmap() van streaming I/O buffer #%d van %s (%s) mislukt: %d, %s."
 
-#: src/io-v4l2k.c:664 src/io-v4l2.c:646
+#: src/io-v4l2k.c:652 src/io-v4l2.c:650
 #, c-format
 msgid "Cannot enqueue streaming i/o buffer #%d to %s (%s): %d, %s."
 msgstr ""
 "Kan streaming I/O buffer #%d van %s (%s) niet in de wachtrij plaatsen: %d, %"
 "s."
 
-#: src/io-v4l2k.c:707 src/io-v4l2.c:688
+#: src/io-v4l2k.c:695 src/io-v4l2.c:692
 #, c-format
 msgid ""
 "%s (%s) lacks a vbi read interface, possibly an output only device or a "
@@ -457,21 +456,21 @@ msgstr ""
 "%s (%s) ontbeert een VBI-leesinterface, driver bug of apparaat is "
 "mogelijkalleen geschikt voor output."
 
-#: src/io-v4l2k.c:758 src/io-v4l2.c:739
+#: src/io-v4l2k.c:746 src/io-v4l2.c:743
 msgid "V4L2 interface not compiled."
 msgstr "V4L2 interface niet gecompileerd."
 
-#: src/io-v4l.c:507
+#: src/io-v4l.c:527
 msgid "driver unknown"
 msgstr "Onbekende driver"
 
-#: src/io-v4l.c:638
+#: src/io-v4l.c:662
 #, c-format
 msgid "Cannot capture with %s (%s), has no standard vbi interface."
 msgstr ""
 "Kan geen gebruik maken van %s (%s) omdat standaard VBI-interface ontbreekt."
 
-#: src/io-v4l.c:656
+#: src/io-v4l.c:680
 #, c-format
 msgid ""
 "Cannot identify %s (%s), reported vbi frame size suggests this is not a bttv "
@@ -480,14 +479,20 @@ msgstr ""
 "Kan %s (%s) niet identificeren. Vermelde vbi frame size suggereert dat dit "
 "geen bttv driver is."
 
-#: src/io-v4l.c:672 src/io-v4l.c:732
+#: src/io-v4l.c:696 src/io-v4l.c:756
 #, c-format
 msgid "Cannot set or determine current videostandard of %s (%s)."
 msgstr "Kan de huidige videostandaard van %s (%s) niet uitlezen of bepalen."
 
-#: src/io-v4l.c:862 src/io-v4l.c:872
+#: src/io-v4l.c:886 src/io-v4l.c:896
 msgid "V4L interface not compiled."
 msgstr "V4L interface niet gecompileerd."
+
+#~ msgid "Character conversion failed."
+#~ msgstr "Karakter conversie mislukt."
+
+#~ msgid "bktr interface not compiled."
+#~ msgstr "bktr interface niet gecompileerd."
 
 #~ msgid "Character conversion Unicode -> %s not supported"
 #~ msgstr "Geen ondersteuning voor tekenconversie van unicode naar %s"

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2k.c,v 1.2.2.4 2003-10-16 18:15:08 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l2k.c,v 1.2.2.5 2004-01-30 00:43:03 mschimek Exp $";
 
 /*
  *  Around Oct-Nov 2002 the V4L2 API was revised for inclusion into
@@ -158,12 +158,18 @@ v4l2_stream(vbi_capture *vc, vbi_capture_buffer **raw,
 		int lines;
 
 		if (*sliced) {
-			lines = vbi_raw_decode(&v->dec, v->raw_buffer[vbuf.index].data,
-					       (vbi_sliced *)(*sliced)->data);
+			lines = vbi_raw_decoder_decode
+			  (&v->dec, 
+			   (vbi_sliced *)(*sliced)->data,
+			   /* FIXME */ 50,
+			   v->raw_buffer[vbuf.index].data);
 		} else {
 			*sliced = &v->sliced_buffer;
-			lines = vbi_raw_decode(&v->dec, v->raw_buffer[vbuf.index].data,
-					       (vbi_sliced *)(v->sliced_buffer.data));
+			lines = vbi_raw_decoder_decode
+			  (&v->dec, 
+			   (vbi_sliced *)(v->sliced_buffer.data),
+			   /* FIXME */ 50,
+			   v->raw_buffer[vbuf.index].data);
 		}
 
 		(*sliced)->size = lines * sizeof(vbi_sliced);
@@ -236,12 +242,18 @@ v4l2_read(vbi_capture *vc, vbi_capture_buffer **raw,
 		int lines;
 
 		if (*sliced) {
-			lines = vbi_raw_decode(&v->dec, (*raw)->data,
-					       (vbi_sliced *)(*sliced)->data);
+			lines = vbi_raw_decoder_decode
+			  (&v->dec,
+			   (vbi_sliced *)(*sliced)->data,
+			   /* FIXME */ 50,
+			   (*raw)->data);
 		} else {
 			*sliced = &v->sliced_buffer;
-			lines = vbi_raw_decode(&v->dec, (*raw)->data,
-					       (vbi_sliced *)(v->sliced_buffer.data));
+			lines = vbi_raw_decoder_decode
+			  (&v->dec,
+			   (vbi_sliced *)(v->sliced_buffer.data),
+			   /* FIXME */ 50,
+			   (*raw)->data);
 		}
 
 		(*sliced)->size = lines * sizeof(vbi_sliced);
@@ -294,7 +306,8 @@ print_vfmt(const char *s, struct v4l2_format *vfmt)
 	fprintf(stderr, "%sformat %08x, %d Hz, %d bpl, offs %d, "
 		"F1 %d+%d, F2 %d+%d, flags %08x\n", s,
 		vfmt->fmt.vbi.sample_format,
-		vfmt->fmt.vbi.sampling_rate, vfmt->fmt.vbi.samples_per_line,
+		vfmt->fmt.vbi.sampling_rate,
+		vfmt->fmt.vbi.samples_per_line,
 		vfmt->fmt.vbi.offset,
 		vfmt->fmt.vbi.start[0], vfmt->fmt.vbi.count[0],
 		vfmt->fmt.vbi.start[1], vfmt->fmt.vbi.count[1],
@@ -406,8 +419,17 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 
 	printv ("Current scanning system is %d\n", vstd.framelines);
 
-	/* add_vbi_services() eliminates non 525/625 */
-	v->dec.scanning = vstd.framelines;
+        switch (vstd.framelines) {
+        case 525:
+		v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_525_60;
+                break;
+        case 625:
+                v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_625_50;
+                break;
+        default:
+                v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_EMPTY;
+                break;
+        }
 
 	memset(&vfmt, 0, sizeof(vfmt));
 
@@ -438,8 +460,9 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 
 		printv("Attempt to set vbi capture parameters\n");
 
-		*services = vbi_raw_decoder_parameters(&v->dec, *services,
-						       v->dec.scanning, &max_rate);
+		*services = vbi_sampling_par_from_services
+		  (&v->dec.sampling, &max_rate,
+		   v->dec.sampling.videostd_set, *services);
 
 		if (*services == 0) {
 			vbi_asprintf(errorstr, _("Sorry, %s (%s) cannot capture any of the "
@@ -448,13 +471,13 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 		}
 
 		vfmt.fmt.vbi.sample_format	= V4L2_PIX_FMT_GREY;
-		vfmt.fmt.vbi.sampling_rate	= v->dec.sampling_rate;
-		vfmt.fmt.vbi.samples_per_line	= v->dec.bytes_per_line;
-		vfmt.fmt.vbi.offset		= v->dec.offset;
-		vfmt.fmt.vbi.start[0]		= v->dec.start[0];
-		vfmt.fmt.vbi.count[0]		= v->dec.count[0];
-		vfmt.fmt.vbi.start[1]		= v->dec.start[1];
-		vfmt.fmt.vbi.count[1]		= v->dec.count[1];
+		vfmt.fmt.vbi.sampling_rate	= v->dec.sampling.sampling_rate;
+		vfmt.fmt.vbi.samples_per_line	= v->dec.sampling.samples_per_line;
+		vfmt.fmt.vbi.offset		= v->dec.sampling.offset;
+		vfmt.fmt.vbi.start[0]		= v->dec.sampling.start[0];
+		vfmt.fmt.vbi.count[0]		= v->dec.sampling.count[0];
+		vfmt.fmt.vbi.start[1]		= v->dec.sampling.start[1];
+		vfmt.fmt.vbi.count[1]		= v->dec.sampling.count[1];
 
 		if (trace)
 			print_vfmt("VBI capture parameters requested: ", &vfmt);
@@ -490,16 +513,21 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 	if (trace)
 		print_vfmt("VBI capture parameters granted: ", &vfmt);
 
-	v->dec.sampling_rate		= vfmt.fmt.vbi.sampling_rate;
-	v->dec.bytes_per_line		= vfmt.fmt.vbi.samples_per_line;
-	v->dec.offset			= vfmt.fmt.vbi.offset;
-	v->dec.start[0] 		= vfmt.fmt.vbi.start[0];
-	v->dec.count[0] 		= vfmt.fmt.vbi.count[0];
-	v->dec.start[1] 		= vfmt.fmt.vbi.start[1];
-	v->dec.count[1] 		= vfmt.fmt.vbi.count[1];
-	v->dec.interlaced		= !!(vfmt.fmt.vbi.flags & V4L2_VBI_INTERLACED);
-	v->dec.synchronous		= !(vfmt.fmt.vbi.flags & V4L2_VBI_UNSYNC);
-	v->time_per_frame 		= (v->dec.scanning == 625) ? 1.0 / 25 : 1001.0 / 30000;
+	v->dec.sampling.sampling_rate		= vfmt.fmt.vbi.sampling_rate;
+	v->dec.sampling.samples_per_line	= vfmt.fmt.vbi.samples_per_line;
+	v->dec.sampling.bytes_per_line		= vfmt.fmt.vbi.samples_per_line;
+	v->dec.sampling.offset			= vfmt.fmt.vbi.offset;
+	v->dec.sampling.start[0] 		= vfmt.fmt.vbi.start[0];
+	v->dec.sampling.count[0] 		= vfmt.fmt.vbi.count[0];
+	v->dec.sampling.start[1] 		= vfmt.fmt.vbi.start[1];
+	v->dec.sampling.count[1] 		= vfmt.fmt.vbi.count[1];
+	v->dec.sampling.interlaced		= !!(vfmt.fmt.vbi.flags & V4L2_VBI_INTERLACED);
+	v->dec.sampling.synchronous		= !(vfmt.fmt.vbi.flags & V4L2_VBI_UNSYNC);
+
+	if (VBI_VIDEOSTD_SET_525_60 & v->dec.sampling.videostd_set)
+		v->time_per_frame = 1001.0 / 30000;
+	else
+		v->time_per_frame = 1.0 / 25;
 
  	if (vfmt.fmt.vbi.sample_format != V4L2_PIX_FMT_GREY) {
 		vbi_asprintf(errorstr, _("%s (%s) offers unknown vbi sampling format #%d. "
@@ -508,18 +536,18 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 		goto failure;
 	}
 
-	v->dec.sampling_format = VBI_PIXFMT_YUV420;
+	v->dec.sampling.sampling_format = VBI_PIXFMT_YUV420;
 
 	if (*services & ~(VBI_SLICED_VBI_525 | VBI_SLICED_VBI_625)) {
 		/* Nyquist (we're generous at 1.5) */
 
-		if (v->dec.sampling_rate < max_rate * 3 / 2) {
+		if (v->dec.sampling.sampling_rate < max_rate * 3 / 2) {
 			vbi_asprintf(errorstr, _("Cannot capture the requested "
 						 "data services with "
 						 "%s (%s), the sampling frequency "
 						 "%.2f MHz is too low."),
 				     dev_name, vcap.card,
-				     v->dec.sampling_rate / 1e6);
+				     v->dec.sampling.sampling_rate / 1e6);
 			goto failure;
 		}
 
@@ -537,7 +565,9 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 		}
 
 		v->sliced_buffer.data =
-			malloc((v->dec.count[0] + v->dec.count[1]) * sizeof(vbi_sliced));
+			malloc((v->dec.sampling.count[0]
+				+ v->dec.sampling.count[1])
+			       * sizeof(vbi_sliced));
 
 		if (!v->sliced_buffer.data) {
 			vbi_asprintf(errorstr, _("Virtual memory exhausted."));
@@ -676,8 +706,9 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 			goto failure;
 		}
 
-		v->raw_buffer[0].size = (v->dec.count[0] + v->dec.count[1])
-			* v->dec.bytes_per_line;
+		v->raw_buffer[0].size = (v->dec.sampling.count[0]
+					 + v->dec.sampling.count[1])
+			* v->dec.sampling.bytes_per_line;
 
 		v->raw_buffer[0].data = malloc(v->raw_buffer[0].size);
 

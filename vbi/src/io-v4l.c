@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.4 2003-10-16 18:15:07 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.5 2004-01-30 00:43:03 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -138,12 +138,18 @@ v4l_read(vbi_capture *vc, vbi_capture_buffer **raw,
 		int lines;
 
 		if (*sliced) {
-			lines = vbi_raw_decode(&v->dec, (*raw)->data,
-					       (vbi_sliced *)(*sliced)->data);
+			lines = vbi_raw_decoder_decode
+			  (&v->dec,
+			   (vbi_sliced *)(*sliced)->data,
+			   /* FIXME */ 50,
+			   (*raw)->data);
 		} else {
 			*sliced = &v->sliced_buffer;
-			lines = vbi_raw_decode(&v->dec, (*raw)->data,
-					       (vbi_sliced *)(v->sliced_buffer.data));
+			lines = vbi_raw_decoder_decode
+			  (&v->dec,
+			   (vbi_sliced *)(v->sliced_buffer.data),
+			   /* FIXME */ 50,
+			   (*raw)->data);
 		}
 
 		(*sliced)->size = lines * sizeof(vbi_sliced);
@@ -292,10 +298,16 @@ guess_bttv_v4l(vbi_capture_v4l *v, int *strict,
 	int mode = -1;
 	unsigned int i;
 
-	if (scanning) {
-		v->dec.scanning = scanning;
-		return TRUE;
-	}
+	switch (scanning) {
+        case 525:
+		v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_525_60;
+                return TRUE;
+        case 625:
+                v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_625_50;
+                return TRUE;
+        default:
+                break;
+        }
 
 	printv("Attempt to guess the videostandard\n");
 
@@ -371,13 +383,13 @@ guess_bttv_v4l(vbi_capture_v4l *v, int *strict,
 	switch (mode) {
 	case VIDEO_MODE_NTSC:
 		printv("Videostandard is NTSC\n");
-		v->dec.scanning = 525;
+		v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_525_60;
 		break;
 
 	case VIDEO_MODE_PAL:
 	case VIDEO_MODE_SECAM:
 		printv("Videostandard is PAL/SECAM\n");
-		v->dec.scanning = 625;
+		v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_625_50;
 		break;
 
 	default:
@@ -386,7 +398,7 @@ guess_bttv_v4l(vbi_capture_v4l *v, int *strict,
 		 *  the scanning if GVBIFMT is available.
 		 */
 		printv("Videostandard unknown (%d)\n", mode);
-		v->dec.scanning = 0;
+		v->dec.sampling.videostd_set = 0;
 		*strict = TRUE;
 		break;
 	}
@@ -406,8 +418,8 @@ set_parameters(vbi_capture_v4l *v, struct vbi_format *vfmt, int *max_rate,
 
 	printv("Attempt to set vbi capture parameters\n");
 
-	*services = vbi_raw_decoder_parameters(&v->dec, *services,
-					       v->dec.scanning, max_rate);
+	*services = vbi_sampling_par_from_services
+	  (&v->dec.sampling, max_rate, v->dec.sampling.videostd_set, *services);
 
 	if (*services == 0) {
 		vbi_asprintf(errorstr, _("Sorry, %s (%s) cannot capture any of the "
@@ -419,20 +431,26 @@ set_parameters(vbi_capture_v4l *v, struct vbi_format *vfmt, int *max_rate,
 	memset(vfmt, 0, sizeof(*vfmt));
 
 	vfmt->sample_format	= VIDEO_PALETTE_RAW;
-	vfmt->sampling_rate	= v->dec.sampling_rate;
-	vfmt->samples_per_line	= v->dec.bytes_per_line;
-	vfmt->start[0]		= v->dec.start[0];
-	vfmt->count[0]		= v->dec.count[1];
-	vfmt->start[1]		= v->dec.start[0];
-	vfmt->count[1]		= v->dec.count[1];
+	vfmt->sampling_rate	= v->dec.sampling.sampling_rate;
+	vfmt->samples_per_line	= v->dec.sampling.samples_per_line;
+	vfmt->start[0]		= v->dec.sampling.start[0];
+	vfmt->count[0]		= v->dec.sampling.count[1];
+	vfmt->start[1]		= v->dec.sampling.start[0];
+	vfmt->count[1]		= v->dec.sampling.count[1];
 
 	/* Single field allowed? */
 
 	if (!vfmt->count[0]) {
-		vfmt->start[0] = (v->dec.scanning == 625) ? 6 : 10;
+		if (VBI_VIDEOSTD_SET_525_60 & v->dec.sampling.videostd_set)
+			vfmt->start[0] = 10;
+		else
+			vfmt->start[0] = 6;
 		vfmt->count[0] = 1;
 	} else if (!vfmt->count[1]) {
-		vfmt->start[1] = (v->dec.scanning == 625) ? 318 : 272;
+		if (VBI_VIDEOSTD_SET_525_60 & v->dec.sampling.videostd_set)
+			vfmt->start[1] = 272;
+		else
+			vfmt->start[1] = 318;
 		vfmt->count[1] = 1;
 	}
 
@@ -585,27 +603,28 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 
 	v->select = FALSE; /* FIXME if possible */
 
-	printv("Hinted video standard %d, guessed %d\n",
-	       scanning, v->dec.scanning);
+	printv("Hinted video standard %d, guessed 0x%08llx\n",
+	       scanning, v->dec.sampling.videostd_set);
 
 	max_rate = 0;
 
 	/* May need a rewrite */
 	if (IOCTL(v->fd, VIDIOCGVBIFMT, &vfmt) == 0) {
-		if (v->dec.start[1] > 0 && v->dec.count[1]) {
-			if (v->dec.start[1] >= 286)
-				v->dec.scanning = 625;
+		if (v->dec.sampling.start[1] > 0 && v->dec.sampling.count[1]) {
+			if (v->dec.sampling.start[1] >= 286)
+				v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_625_50;
 			else
-				v->dec.scanning = 525;
+				v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_525_60;
 		}
 
 		printv("Driver supports VIDIOCGVBIFMT, "
-		       "guessed videostandard %d\n", v->dec.scanning);
+		       "guessed videostandard 0x%08llx\n",
+		       v->dec.sampling.videostd_set);
 
 		if (trace)
 			print_vfmt("VBI capture parameters supported: ", &vfmt);
 
-		if (strict >= 0 && v->dec.scanning)
+		if (strict >= 0 && v->dec.sampling.videostd_set)
 			if (!set_parameters(v, &vfmt, &max_rate,
 					    dev_name, driver_name,
 					    services, strict,
@@ -623,23 +642,27 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 			goto failure;
 		}
 
-		v->dec.sampling_rate		= vfmt.sampling_rate;
-		v->dec.bytes_per_line 		= vfmt.samples_per_line;
-		if (v->dec.scanning == 625)
-			/* v->dec.offset 		= (int)(10.2e-6 * vfmt.sampling_rate); */
-			v->dec.offset           = (int)(6.8e-6 * vfmt.sampling_rate);  /* XXX TZ FIX */
-		else if (v->dec.scanning == 525)
-			v->dec.offset		= (int)(9.2e-6 * vfmt.sampling_rate);
+		v->dec.sampling.sampling_rate		= vfmt.sampling_rate;
+		v->dec.sampling.samples_per_line	= vfmt.samples_per_line;
+		v->dec.sampling.bytes_per_line 		= vfmt.samples_per_line;
+		if (VBI_VIDEOSTD_SET_625_50 & v->dec.sampling.videostd_set)
+			/* v->dec.sampling.offset 		= (int)(10.2e-6 * vfmt.sampling_rate); */
+			v->dec.sampling.offset           = (int)(6.8e-6 * vfmt.sampling_rate);  /* XXX TZ FIX */
+		else if (VBI_VIDEOSTD_SET_525_60 & v->dec.sampling.videostd_set)
+			v->dec.sampling.offset		= (int)(9.2e-6 * vfmt.sampling_rate);
 		else /* we don't know */
-			v->dec.offset		= (int)(9.7e-6 * vfmt.sampling_rate);
-		v->dec.start[0] 		= vfmt.start[0];
-		v->dec.count[0] 		= vfmt.count[0];
-		v->dec.start[1] 		= vfmt.start[1];
-		v->dec.count[1] 		= vfmt.count[1];
-		v->dec.interlaced		= !!(vfmt.flags & VBI_INTERLACED);
-		v->dec.synchronous		= !(vfmt.flags & VBI_UNSYNC);
-		v->time_per_frame 		= (v->dec.scanning == 625) ?
-			1.0 / 25 : 1001.0 / 30000;
+			v->dec.sampling.offset		= (int)(9.7e-6 * vfmt.sampling_rate);
+		v->dec.sampling.start[0] 		= vfmt.start[0];
+		v->dec.sampling.count[0] 		= vfmt.count[0];
+		v->dec.sampling.start[1] 		= vfmt.start[1];
+		v->dec.sampling.count[1] 		= vfmt.count[1];
+		v->dec.sampling.interlaced		= !!(vfmt.flags & VBI_INTERLACED);
+		v->dec.sampling.synchronous		= !(vfmt.flags & VBI_UNSYNC);
+
+		if (VBI_VIDEOSTD_SET_525_60 & v->dec.sampling.videostd_set)
+			v->time_per_frame = 1001.0 / 30000;
+		else
+			v->time_per_frame = 1.0 / 25;
 	} else { 
 		int size;
 
@@ -665,17 +688,18 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 			goto failure;
 		}
 
-		v->dec.bytes_per_line 		= 2048;
-		v->dec.interlaced		= FALSE;
-		v->dec.synchronous		= TRUE;
+		v->dec.sampling.samples_per_line	= 2048;
+		v->dec.sampling.bytes_per_line 		= 2048;
+		v->dec.sampling.interlaced		= FALSE;
+		v->dec.sampling.synchronous		= TRUE;
 
 		printv("Attempt to determine vbi frame size\n");
 
 		if ((size = IOCTL(v->fd, BTTV_VBISIZE, 0)) == -1) {
 			printv("Driver does not support BTTV_VBISIZE, "
 				"assume old BTTV driver\n");
-			v->dec.count[0] = 16;
-			v->dec.count[1] = 16;
+			v->dec.sampling.count[0] = 16;
+			v->dec.sampling.count[1] = 16;
 		} else if (size % 2048) {
 			vbi_asprintf(errorstr, _("Cannot identify %s (%s), reported "
 						 "vbi frame size suggests this is "
@@ -686,12 +710,23 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 			printv("Driver supports BTTV_VBISIZE: %d bytes, "
 			       "assume top field dominance and 2048 bpl\n", size);
 			size /= 2048;
-			v->dec.count[0] = size >> 1;
-			v->dec.count[1] = size - v->dec.count[0];
+			v->dec.sampling.count[0] = size >> 1;
+			v->dec.sampling.count[1] = size - v->dec.sampling.count[0];
 		}
 
-		switch (v->dec.scanning) {
-		default:
+		if (VBI_VIDEOSTD_SET_525_60 & v->dec.sampling.videostd_set) {
+			/* Confirmed for bttv 0.7.52 */
+			v->dec.sampling.sampling_rate = 28636363;
+			v->dec.sampling.offset = (int)(9.2e-6 * 28636363);
+			v->dec.sampling.start[0] = 10;
+			v->dec.sampling.start[1] = 273;
+		} else if (VBI_VIDEOSTD_SET_625_50 & v->dec.sampling.videostd_set) {
+			/* Not confirmed */
+			v->dec.sampling.sampling_rate = 35468950;
+			v->dec.sampling.offset = (int)(9.2e-6 * 35468950);  /* XXX TZ FIX */
+			v->dec.sampling.start[0] = 22 + 1 - v->dec.sampling.count[0];
+			v->dec.sampling.start[1] = 335 + 1 - v->dec.sampling.count[1];
+		} else {
 #ifdef REQUIRE_VIDEOSTD
 			vbi_asprintf(errorstr, _("Cannot set or determine current "
 						 "videostandard of %s (%s)."),
@@ -701,29 +736,19 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 			printv("Warning: Videostandard not confirmed, "
 			       "will assume PAL/SECAM\n");
 
-			v->dec.scanning = 625;
+			v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_625_50;
 
-			/* fall through */
-
-		case 625:
 			/* Not confirmed */
-			v->dec.sampling_rate = 35468950;
-			v->dec.offset = (int)(9.2e-6 * 35468950);  /* XXX TZ FIX */
-			v->dec.start[0] = 22 + 1 - v->dec.count[0];
-			v->dec.start[1] = 335 + 1 - v->dec.count[1];
-			break;
-
-		case 525:
-			/* Confirmed for bttv 0.7.52 */
-			v->dec.sampling_rate = 28636363;
-			v->dec.offset = (int)(9.2e-6 * 28636363);
-			v->dec.start[0] = 10;
-			v->dec.start[1] = 273;
-			break;
+			v->dec.sampling.sampling_rate = 35468950;
+			v->dec.sampling.offset = (int)(9.2e-6 * 35468950);  /* XXX TZ FIX */
+			v->dec.sampling.start[0] = 22 + 1 - v->dec.sampling.count[0];
+			v->dec.sampling.start[1] = 335 + 1 - v->dec.sampling.count[1];
 		}
 
-		v->time_per_frame 		=
-			(v->dec.scanning == 625) ? 1.0 / 25 : 1001.0 / 30000;
+		if (VBI_VIDEOSTD_SET_525_60 & v->dec.sampling.videostd_set)
+			v->time_per_frame = 1001.0 / 30000;
+		else
+			v->time_per_frame = 1.0 / 25;
 	}
 
 #ifdef REQUIRE_SELECT
@@ -742,12 +767,12 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 		goto failure;
 	}
 
-	if (!v->dec.scanning && strict >= 1) {
+	if (!v->dec.sampling.videostd_set && strict >= 1) {
 		printv("Try to guess video standard from vbi bottom field "
 			"boundaries: start=%d, count=%d\n",
-		       v->dec.start[1], v->dec.count[1]);
+		       v->dec.sampling.start[1], v->dec.sampling.count[1]);
 
-		if (v->dec.start[1] <= 0 || !v->dec.count[1]) {
+		if (v->dec.sampling.start[1] <= 0 || !v->dec.sampling.count[1]) {
 			/*
 			 *  We may have requested single field capture
 			 *  ourselves, but then we had guessed already.
@@ -761,37 +786,38 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 			printv("Warning: Videostandard not confirmed, "
 			       "will assume PAL/SECAM\n");
 
-			v->dec.scanning = 625;
+			v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_625_50;
 			v->time_per_frame = 1.0 / 25;
-		} else if (v->dec.start[1] < 286) {
-			v->dec.scanning = 525;
+		} else if (v->dec.sampling.start[1] < 286) {
+			v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_525_60;
 			v->time_per_frame = 1001.0 / 30000;
 		} else {
-			v->dec.scanning = 625;
+			v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_625_50;
 			v->time_per_frame = 1.0 / 25;
 		}
 	}
 
-	printv("Guessed videostandard %d\n", v->dec.scanning);
+	printv("Guessed videostandard %08llx\n", v->dec.sampling.videostd_set);
 
-	v->dec.sampling_format = VBI_PIXFMT_YUV420;
+	v->dec.sampling.sampling_format = VBI_PIXFMT_YUV420;
 
 	if (*services & ~(VBI_SLICED_VBI_525 | VBI_SLICED_VBI_625)) {
 		/* Nyquist */
 
-		if (v->dec.sampling_rate < max_rate * 3 / 2) {
+		if (v->dec.sampling.sampling_rate < max_rate * 3 / 2) {
 			vbi_asprintf(errorstr, _("Cannot capture the requested "
 						 "data services with "
 						 "%s (%s), the sampling frequency "
 						 "%.2f MHz is too low."),
 				     dev_name, driver_name,
-				     v->dec.sampling_rate / 1e6);
+				     v->dec.sampling.sampling_rate / 1e6);
 			goto failure;
 		}
 
 		printv("Nyquist check passed\n");
 
-		*services = vbi_raw_decoder_add_services(&v->dec, *services, strict);
+		*services = vbi_raw_decoder_add_services
+			(&v->dec.sampling, *services, strict);
 
 		if (*services == 0) {
 			vbi_asprintf(errorstr, _("Sorry, %s (%s) cannot "
@@ -802,7 +828,7 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 		}
 
 		v->sliced_buffer.data =
-			malloc((v->dec.count[0] + v->dec.count[1])
+			malloc((v->dec.sampling.count[0] + v->dec.sampling.count[1])
 			       * sizeof(vbi_sliced));
 
 		if (!v->sliced_buffer.data) {
@@ -812,7 +838,7 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 		}
 	}
 
-	printv("Will decode services 0x%08x\n", *services);
+	printv("Will dec.sampling.de services 0x%08x\n", *services);
 
 	/* Read mode */
 
@@ -829,8 +855,8 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 		goto failure;
 	}
 
-	v->raw_buffer[0].size = (v->dec.count[0] + v->dec.count[1])
-		* v->dec.bytes_per_line;
+	v->raw_buffer[0].size = (v->dec.sampling.count[0] + v->dec.sampling.count[1])
+		* v->dec.sampling.bytes_per_line;
 
 	v->raw_buffer[0].data = malloc(v->raw_buffer[0].size);
 

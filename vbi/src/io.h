@@ -17,12 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.h,v 1.6.2.1 2003-05-02 10:44:50 mschimek Exp $ */
+/* $Id: io.h,v 1.6.2.2 2004-01-30 00:43:03 mschimek Exp $ */
 
 #ifndef IO_H
 #define IO_H
 
-#include "decoder.h"
+#include "raw_decoder.h"
 
 /* Public */
 

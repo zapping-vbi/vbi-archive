@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.c,v 1.4.2.1 2003-06-16 06:05:24 mschimek Exp $ */
+/* $Id: tables.c,v 1.4.2.2 2004-01-30 00:43:03 mschimek Exp $ */
 
 #include <stdlib.h>
 
@@ -103,6 +103,15 @@ vbi_country_names_en[] = {
  *	uint16_t	cni3;		* Packet X/26
  *	uint16_t	cni4;		* VPS
  */
+/*
+   How/where is the PDC preselection CNI defined?
+
+   Observed values:
+   German private stations		PDC 1bccc    VPS 0bdd
+     where dd = 80 ... BF (hex) -> ccc = 200 ... 263 (dec)
+   German public and Austrian stations  PDC 1bccc    VPS 0bdd
+     where dd = C0 ... FF (hex) -> ccc = 100 ... 163 (dec)
+ */
 const struct vbi_cni_entry
 vbi_cni_table[] = {
 	{ 1,	BE, "VRT TV1",				0x3201, 0x1601, 0x3603, 0x0000 },
@@ -176,7 +185,7 @@ vbi_cni_table[] = {
 	{ 59,	DE, "ORB-3 Landesweit",			0x4982, 0x0000, 0x0000, 0x0D82 },
 	/* not used 0x0D83 */
 	/* not used 0x0D84 */
-	{ 60,	DE, "Arte",				0x490A, 0x0000, 0x3D05, 0x0D85 },
+	{ 60,	DE, "Arte",				0x490A, 0x0000, 0x3D05, 0x0D85 }, // 1D205 - 72
 	/* not in TR 101 231: 0x3D05 */
 	/* not used 0x0D86 */
 	{ 61,	DE, "1A-Fernsehen",			0x0000, 0x0000, 0x0000, 0x0D87 },
@@ -186,14 +195,14 @@ vbi_cni_table[] = {
 	{ 65,	DE, "RTL Club",				0x0000, 0x0000, 0x0000, 0x0D8B },
 	{ 66,	DE, "n-tv",				0x0000, 0x0000, 0x0000, 0x0D8C },
 	{ 67,	DE, "Deutsches Sportfernsehen",		0x0000, 0x0000, 0x0000, 0x0D8D },
-	{ 68,	DE, "VOX",		                0x490C, 0x0000, 0x0000, 0x0D8E },
+	{ 68,	DE, "VOX",		                0x490C, 0x0000, 0x0000, 0x0D8E }, // 1D214 - 72
 	{ 69,	DE, "RTL 2",				0x0D8F, 0x0000, 0x0000, 0x0D8F },
 	/* not in TR 101 231: 0x0D8F */
 	{ 70,	DE, "RTL 2 Regional",			0x0000, 0x0000, 0x0000, 0x0D90 },
 	{ 71,	DE, "Eurosport",			0x0000, 0x0000, 0x0000, 0x0D91 },
 	{ 72,	DE, "Kabel 1",				0x0000, 0x0000, 0x0000, 0x0D92 },
 	/* not used 0x0D93 */
-	{ 73,	DE, "PRO 7",				0x0000, 0x0000, 0x0000, 0x0D94 },
+	{ 73,	DE, "PRO 7",				0x0000, 0x0000, 0x0000, 0x0D94 }, // 1D220 - 72
 	/* not in TR 101 231: 0x0D14, Pro 7 Austria? */
 	{ 74,	DE, "PRO 7",				0x0000, 0x0000, 0x0000, 0x0D14 },
 	{ 75,	DE, "SAT 1 Brandenburg",		0x0000, 0x0000, 0x0000, 0x0D95 },
@@ -218,7 +227,7 @@ vbi_cni_table[] = {
 	{ 94,	DE, "RTL Sachsen",			0x0000, 0x0000, 0x0000, 0x0DA8 },
 	{ 95,	DE, "RTL Thüringen",			0x0000, 0x0000, 0x0000, 0x0DA9 },
 	{ 96,	DE, "RTL Brandenburg",			0x0000, 0x0000, 0x0000, 0x0DAA },
-	{ 97,	DE, "RTL",		           	0x0000, 0x0000, 0x0000, 0x0DAB },
+	{ 97,	DE, "RTL",		           	0x0000, 0x0000, 0x0000, 0x0DAB }, // 1D243 - 72
 	{ 98,	DE, "Premiere",				0x0000, 0x0000, 0x0000, 0x0DAC },
 	{ 99,	DE, "SAT 1 Regional",			0x0000, 0x0000, 0x0000, 0x0DAD },
 	{ 100,	DE, "SAT 1 Schleswig-Holstein",		0x0000, 0x0000, 0x0000, 0x0DAE },
@@ -232,16 +241,16 @@ vbi_cni_table[] = {
 	{ 108,	DE, "SAT 1 Baden-Württemberg",		0x0000, 0x0000, 0x0000, 0x0DB6 },
 	{ 109,	DE, "SAT 1 Bayern",			0x0000, 0x0000, 0x0000, 0x0DB7 },
 	{ 110,	DE, "SAT 1 Saarland",			0x0000, 0x0000, 0x0000, 0x0DB8 },
-	{ 111,	DE, "SAT 1",				0x0000, 0x0000, 0x0000, 0x0DB9 },
+	{ 111,	DE, "SAT 1",				0x0000, 0x0000, 0x0000, 0x0DB9 }, // 1D257 - 72
 	{ 112,	DE, "NEUN LIVE",	                0x0000, 0x0000, 0x0000, 0x0DBA },
 	{ 113,	DE, "Deutsche Welle TV Berlin",		0x0000, 0x0000, 0x0000, 0x0DBB },
 	{ 114,	DE, "Berlin Offener Kanal",		0x0000, 0x0000, 0x0000, 0x0DBD },
 	{ 115,	DE, "Berlin-Mix-Channel 2",		0x0000, 0x0000, 0x0000, 0x0DBE },
 	{ 116,	DE, "Berlin-Mix-Channel 1",		0x0000, 0x0000, 0x0000, 0x0DBF },
 
-	{ 117,	DE, "ARD",				0x4901, 0x0000, 0x3D41, 0x0DC1 },
+	{ 117,	DE, "ARD",				0x4901, 0x0000, 0x3D41, 0x0DC1 }, // 1D101 + 92
 	/* not in TR 101 231: 0x3D41 */
-	{ 118,	DE, "ZDF",				0x4902, 0x0000, 0x3D42, 0x0DC2 },
+	{ 118,	DE, "ZDF",				0x4902, 0x0000, 0x3D42, 0x0DC2 }, // 1D102 + 92
 	/* not in TR 101 231: 0x3D42 */
 	{ 119,	DE, "ARD/ZDF Vormittagsprogramm",	0x0000, 0x0000, 0x0000, 0x0DC3 },
 /*
@@ -252,11 +261,11 @@ vbi_cni_table[] = {
 	{ 120,	DE, "ARD-TV-Sternpunkt",		0x0000, 0x0000, 0x0000, 0x0DC4 },
 	{ 121,	DE, "ARD-TV-Sternpunkt-Fehler",		0x0000, 0x0000, 0x0000, 0x0DC5 },
 	/* not used 0x0DC6 */
-	{ 122,	DE, "3sat",				0x49C7, 0x0000, 0x0000, 0x0DC7 },
+	{ 122,	DE, "3sat",				0x49C7, 0x0000, 0x0000, 0x0DC7 }, // 1D107 + 92
 	{ 123,	DE, "Phoenix",				0x4908, 0x0000, 0x0000, 0x0DC8 },
 	{ 124,	DE, "ARD/ZDF Kinderkanal",		0x49C9, 0x0000, 0x0000, 0x0DC9 },
 	{ 125,	DE, "BR-1 Regional",			0x0000, 0x0000, 0x0000, 0x0DCA },
-	{ 126,	DE, "BR-3 Landesweit",			0x49CB, 0x0000, 0x3D4B, 0x0DCB },
+	{ 126,	DE, "BR-3 Landesweit",			0x49CB, 0x0000, 0x3D4B, 0x0DCB }, // 1D111 + 92
 	/* not in TR 101 231: 0x3D4B */
 	{ 377,	DE, "BR-Alpha",				0x4944, 0x0000, 0x0000, 0x0000 },
 	{ 127,	DE, "BR-3 Süd",				0x0000, 0x0000, 0x0000, 0x0DCC },
@@ -280,7 +289,7 @@ vbi_cni_table[] = {
 	{ 145,	DE, "SWF-1 Rheinland-Pfalz",		0x0000, 0x0000, 0x0000, 0x0DDE },
 	{ 146,	DE, "SR-1 Regional",			0x49DF, 0x0000, 0x0000, 0x0DDF },
 	{ 147,	DE, "Südwest 3 (SDR/SR/SWF)",		0x0000, 0x0000, 0x0000, 0x0DE0 },
-	{ 148,	DE, "SW 3 Baden-Württemberg",		0x49E1, 0x0000, 0x0000, 0x0DE1 },
+	{ 148,	DE, "SW 3 Baden-Württemberg",		0x49E1, 0x0000, 0x0000, 0x0DE1 }, // 1D133 + 92
 	{ 149,	DE, "SW 3 Saarland",			0x0000, 0x0000, 0x0000, 0x0DE2 },
 	{ 150,	DE, "SW 3 Baden-Württemb. Süd",		0x0000, 0x0000, 0x0000, 0x0DE3 },
 	{ 151,	DE, "SW 3 Rheinland-Pfalz",		0x49E4, 0x0000, 0x0000, 0x0DE4 },
@@ -309,7 +318,7 @@ vbi_cni_table[] = {
 	{ 174,	DE, "MDR-3 Thüringen",			0x0000, 0x0000, 0x0000, 0x0DFB },
 	{ 175,	DE, "MDR Erfurt",			0x0000, 0x0000, 0x0000, 0x0DFC },
 	{ 176,	DE, "MDR-1 Regional",			0x0000, 0x0000, 0x0000, 0x0DFD },
-	{ 177,	DE, "MDR-3 Landesweit",			0x49FE, 0x0000, 0x0000, 0x0DFE },
+	{ 177,	DE, "MDR-3 Landesweit",			0x49FE, 0x0000, 0x0000, 0x0DFE }, // 1D162 + 92
 
 	{ 178,	CH, "TeleZüri",				0x0000, 0x0000, 0x0000, 0x0481 },
 	{ 179,	CH, "Teleclub Abo-Fernsehen",		0x0000, 0x0000, 0x0000, 0x0482 },
@@ -331,8 +340,8 @@ vbi_cni_table[] = {
 	{ 191,	CH, "SSR Televis. svizzera TSI 2",	0x4109, 0x24C9, 0x3449, 0x04C9 },
 	{ 192,	CH, "SRG SSR Sat Access",		0x410A, 0x24CA, 0x344A, 0x04CA },
 
-	{ 193,	AT, "ORF 1",				0x4301, 0x0000, 0x0000, 0x0AC1 },
-	{ 194,	AT, "ORF 2",				0x4302, 0x0000, 0x0000, 0x0AC2 },
+	{ 193,	AT, "ORF 1",				0x4301, 0x0000, 0x0000, 0x0AC1 }, // 1A101 + 92
+	{ 194,	AT, "ORF 2",				0x4302, 0x0000, 0x0000, 0x0AC2 }, // 1A102 + 92
 	{ 195,	AT, "ORF 3",				0x0000, 0x0000, 0x0000, 0x0AC3 },
 	{ 196,	AT, "ORF Burgenland",			0x0000, 0x0000, 0x0000, 0x0ACB },
 	{ 197,	AT, "ORF Kärnten",			0x0000, 0x0000, 0x0000, 0x0ACC },

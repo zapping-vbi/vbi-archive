@@ -1,3 +1,55 @@
+2004-01-24    <mschimek@users.sf.net>
+
+	* src/bcd.c (vbi_dec2bcd): __builtin_expect fix.
+	* src/bcd.h (VBI_BCD_DEC_MIN): Fixed.
+	  (vbi_dec2bcd, vbi_bcd2dec): Permit const optimization.
+	  (vbi_bcd_limit): Renamed to vbi_bcd_vec_greater for
+	  clarity, reversed return value. 
+	* src/hamm.c, src/hamm.h: Appended -p to functions taking
+	  a pointer argument. Added vbi_rev16(), vbi_fpar8(). Changed
+	  vbi_fham8, vbi_iham8 macros to inline functions for proper
+	  type checking.
+	* src/packet.c: hamm.h changes.
+	* src/bcd.c, src/bcd.h: Some doc clarifications.
+	* src/bit_slicer.c, src/bit_slicer.h: Separated from
+	  decoder.c. struct vbi_bit_slicer now private. Renamed
+	  vbi_bit_slice vbi_bit_slicer_slice, added vbi_bit_slicer_fn type.
+	  (vbi_bit_slicer_init, vbi_bit_slicer_new): More parameters,
+	  plausibility checks with error log, support more pixel formats.
+	* src/raw_decoder.c, src/raw_decoder.h: Separated from
+	  decoder.c, integrated Tom's proxy branch changes.
+	  struct vbi_raw_decoder now private, sampling parameters
+	  moved into struct vbi_sampling_par. Proper typing of service set.
+	  Added new, delete and dump functions. Added functions to get and
+	  set sampling parameters (replaces Tom's vbi_raw_decoder_resize()).
+	  Functions vbi_raw_decoder_parameters and
+	  vbi_raw_decoder_check_services now in sampling.c as
+	  vbi_sampling_par_from_services and
+	  vbi_sampling_par_check_services. Renamed vbi_raw_decode to
+	  vbi_raw_decoder_decode. Added error logging as suggested.
+	* src/sampling.c, src/sampling.h: Separated from decoder.c. New
+	  struct vbi_sampling_par, was part of vbi_raw_decoder. New
+	  function vbi_sampling_par_verify, based on Tom's changes.
+	  Functions vbi_raw_decoder_parameters and
+	  vbi_raw_decoder_check_services moved here as
+	  vbi_sampling_par_from_services and
+	  vbi_sampling_par_check_services. Replaced scanning 525/625 by
+	  proper video standard identifier based on tveng code. Extended
+	  vbi_pixfmt, also based on tveng code.
+	* src/io-sim.c, src/io-sim.h: Moved signal simulation from
+	  test/sim.c here. Extended to cover more Teletext formats and
+	  pixel formats. Temporarily removed CPR1204, probably broken.
+	* src/misc.h: New macros for pure and const func optimization.
+	  Added vbi_log_printf().
+	* src/sliced.h: Added missing Teletext service identifiers, VPS
+	  field 2, service set type (preliminary). New helper functions
+	  vbi_sliced_name, vbi_sliced_payload_bits.
+ 	* src/vbi.c, src/vbi.h: Added logging functions.
+	* src/vt.h: misc.h changes.
+	* src/Makefile.am: New files.
+	* test/test-raw_decoder.cc: Added.
+	* test/Makefile.am: Added test-raw_decoder.cc.
+	
 2003-10-13      <mschimek@users.sf.net>
 
 	* src/bcd.c, src/bcd.h: Added bcd.c for full precision

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.5 2002-07-16 00:13:57 mschimek Exp $ */
+/* $Id: caption.c,v 1.5.2.1 2004-01-30 00:43:03 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -118,11 +118,13 @@ draw_row(ushort *canvas, vbi_page *pg, int row)
 			draw_blank(i - num_tspaces, num_tspaces);
 			num_tspaces = 0; 
 		}
-
+#warning TODO
+#if 0
 		vbi_draw_cc_page_region(pg, VBI_PIXFMT_RGBA32_LE,
 					row_buffer + i * CELL_WIDTH,
 					sizeof(row_buffer) / CELL_HEIGHT,
 					i, row, 1, 1);
+#endif
 	}
 
 	if (num_tspaces > 0)

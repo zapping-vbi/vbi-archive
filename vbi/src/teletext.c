@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.4 2003-09-24 18:49:57 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.5 2004-01-30 00:43:03 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -40,18 +40,18 @@ struct pdc_date {
 	signed			year		: 8;	/* 0 ... 99 */
 	signed			month		: 8;	/* 0 ... 11 */
 	signed			day		: 8;	/* 0 ... 30 */
-} PACKED;
+} __attribute__ ((packed));
 
 struct pdc_time {
 	signed			hour		: 8;	/* 0 ... 23 */
 	signed			min		: 8;	/* 0 ... 59 */
-} PACKED;
+} __attribute__ ((packed));
 
 struct pdc_pos {
 	signed			row		: 8;	/* 1 ... 23 */
 	signed			column_begin	: 8;	/* 0 ... 39 */
 	signed			column_end	: 8;	/* 0 ... 40 */
-} PACKED;
+} __attribute__ ((packed));
 
 struct pdc_prog {
 	struct pdc_date		ad;			/* Method B: year -1 */
@@ -3275,6 +3275,13 @@ top_label			(struct temp *		t,
 	return FALSE;
 }
 
+static __inline__ vbi_pgno
+add_modulo			(vbi_pgno		pgno,
+				 int			incr)
+{
+	return ((pgno - 0x100 + incr) & 0x7FF) + 0x100;
+}
+
 /*
  *  Replaces row 25 by labels and links from TOP data.
  */
@@ -3312,7 +3319,7 @@ top_navigation_bar		(struct temp *		t)
 			break;
 		}
 
-		pgno = ((pgno - 0x100 - 1) & 0x7FF) + 0x100;
+		pgno = add_modulo (pgno, -1);
 	} while (pgno != t->pg.pgno);
 
 	/* Item 2 & 3, next group and block */
@@ -3321,7 +3328,7 @@ top_navigation_bar		(struct temp *		t)
 	have_group = FALSE;
 
 	for (;;) {
-		pgno = ((pgno - 0x100 + 1) & 0x7FF) + 0x100;
+		pgno = add_modulo (pgno, +1);
 
 		if (pgno == t->vtp->pgno)
 			break;
