@@ -108,14 +108,17 @@ on_control_slider_changed              (GtkAdjustment *adjust,
 		    info);
 }
 
+/* Creates a spinbutton/slider pair */
 static
 GtkWidget * create_slider(struct tveng_control * qc,
 			  int index,
 			  tveng_device_info * info)
 { 
   GtkWidget * vbox; /* We have a slider and a label */
+  GtkWidget * hbox;
   GtkWidget * label;
   GtkWidget * hscale;
+  GtkWidget * spinbutton;
   GtkObject * adj; /* Adjustment object for the slider */
   int cur_value;
   
@@ -123,6 +126,10 @@ GtkWidget * create_slider(struct tveng_control * qc,
   label = gtk_label_new(_(qc->name));
   gtk_widget_show(label);
   gtk_box_pack_start_defaults(GTK_BOX (vbox), label);
+
+  hbox = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(hbox);
+  gtk_box_pack_start_defaults(GTK_BOX (vbox), hbox);
 
   cur_value = qc -> cur_value;
 
@@ -136,11 +143,22 @@ GtkWidget * create_slider(struct tveng_control * qc,
 		     GINT_TO_POINTER (index));
 
   hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
-
   gtk_widget_show (hscale);
-  gtk_box_pack_end_defaults(GTK_BOX (vbox), hscale);
-  gtk_scale_set_value_pos (GTK_SCALE(hscale), GTK_POS_RIGHT);
+  gtk_box_pack_start_defaults(GTK_BOX (hbox), hscale);
+  gtk_scale_set_draw_value (GTK_SCALE(hscale), FALSE);
   gtk_scale_set_digits (GTK_SCALE (hscale), 0);
+
+  spinbutton = gtk_spin_button_new(GTK_ADJUSTMENT (adj), 1, 0);
+  gtk_widget_show (spinbutton);
+  gtk_box_pack_start_defaults(GTK_BOX (hbox), spinbutton);
+  gtk_spin_button_set_update_policy (GTK_SPIN_BUTTON(spinbutton),
+				     GTK_UPDATE_IF_VALID);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON(spinbutton), TRUE);
+  gtk_spin_button_set_wrap (GTK_SPIN_BUTTON(spinbutton), TRUE);
+  gtk_spin_button_set_snap_to_ticks (GTK_SPIN_BUTTON(spinbutton), TRUE);
+  gtk_spin_button_set_shadow_type (GTK_SPIN_BUTTON(spinbutton),
+				   GTK_SHADOW_NONE);
+  
   gtk_adjustment_set_value( GTK_ADJUSTMENT (adj), cur_value);
   
   return (vbox);

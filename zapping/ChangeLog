@@ -1,3 +1,9 @@
+09.10.2001	Requested controls gui polishing <garetxe@users.sf.net>
+
+	* v4linterface.c: Added a spinbutton to the slider in the video
+	controls for finer tuning.
+	
+
 08.10.2001	Context menu for plugins <garetxe@users.sf.net>
 
 	* plugins.c: Added plugin_process_popup_menu.
