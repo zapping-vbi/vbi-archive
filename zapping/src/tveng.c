@@ -2964,6 +2964,7 @@ void tveng_set_xv_support(int disabled, tveng_device_info * info)
 }
 
 #ifdef USE_XV
+
 void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 {
   XvAttribute *at;
@@ -3070,13 +3071,14 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 
   UNTVLOCK;
 }
-#endif /* USE_XV */
 
 void tveng_unset_xv_port(tveng_device_info * info)
 {
   info->priv->port = None;
   info->priv->filter = info->priv->colorkey = None;
 }
+
+#endif /* USE_XV */
 
 int
 tveng_ov511_get_button_state (tveng_device_info *info)
