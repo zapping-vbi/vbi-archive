@@ -1393,6 +1393,10 @@ set_overlay_window		(tveng_device_info *	info,
 	int wx2;
 	int wy2;
 
+/* Temporarily disabled. */
+p_info->ovl_ready = FALSE;
+return FALSE;
+
 	if (p_info->cap_active)
 		return FALSE;
 
@@ -1415,7 +1419,7 @@ set_overlay_window		(tveng_device_info *	info,
 
 	/* XXX addr must be dword aligned? */
 
-	start_line = wy1 * (int) bf->bytes_per_line;
+	start_line = wy1 * (int) bf->bytes_per_line[0];
 	start_byte = (wx1 * (int) p_info->ovl_bits_per_pixel) / 8;
 
 	video.addr = p_info->info.overlay.buffer.base
@@ -1569,7 +1573,7 @@ get_capture_format		(tveng_device_info * info)
 		if (!tv_image_format_init (&info->capture.format,
 					   geom.columns,
 					   geom.rows,
-					   /* bytes_per_line (minimum) */ 0,
+					   /* bytes_per_line: minimum */ 0,
 					   pixfmt,
 					   /* reserved */ 0)) {
 			return FALSE;
@@ -1947,7 +1951,8 @@ p_tvengbktr_open_device_file(int flags,
       info->caps.flags =
 	TVENG_CAPS_TUNER |
 	TVENG_CAPS_TELETEXT |
-	TVENG_CAPS_OVERLAY |
+#warning Overlay temporarily disabled
+/*	TVENG_CAPS_OVERLAY | */
 	TVENG_CAPS_CLIPPING;
       info->caps.channels = 5;
       info->caps.audios = 0;
@@ -2033,12 +2038,11 @@ tvengbktr_attach_device (const char* device_file,
     case TVENG_ATTACH_CONTROL:
     case TVENG_ATTACH_READ:
     case TVENG_ATTACH_VBI:
-      info->fd = p_tvengbktr_open_device_file(O_RDWR, info);
+      info->fd = p_tvengbktr_open_device_file(O_RDONLY, info);
       break;
 
     default:
-      t_error_msg ("switch()", "Unknown attach mode for the device",
-		   info);
+      tv_error_msg (info, "Unknown attach mode for the device");
       free(info->file_name);
       info->file_name = NULL;
       return -1;
@@ -2087,11 +2091,15 @@ tvengbktr_attach_device (const char* device_file,
 
 	CLEAR (info->overlay);
 
+/* Temporarily disabled.
+
 	info->overlay.set_buffer = set_overlay_buffer;
 	info->overlay.get_buffer = get_overlay_buffer;
 	info->overlay.set_window_clipvec = set_overlay_window;
 	info->overlay.get_window = get_overlay_window;
 	info->overlay.enable = enable_overlay;
+
+*/
 
 	CLEAR (info->capture);
 
