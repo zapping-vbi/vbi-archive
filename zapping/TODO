@@ -1,5 +1,6 @@
 Outstanding issues for the next release (0.6.5)
 -----------------------------------------------
+	+ configure.in: esd, oss etc checks
 	+ Video standard question.
 	+ Improve documentation.
 	+ Switching subtitles on/off needs improvement.
@@ -14,11 +15,12 @@ Outstanding issues for the next release (0.6.5)
 	+ PIP?
 	+ Take TTX out of the context menus when Zapping doesn't
 	  receive TTX. (event timestamps?)
-	+ Better audio support.
+	+ Better audio support, reexamine mute code.
 	+ Finish WSS.
 	+ Check tveng has frame rate for timestamping. (Unlike mpeg bug.)
 	+ Remove default overlay page?
 	+ ttxview.c/selection_handle: What's the correct char set?
+	+ Is zvbi really needed for osd?
 	+ --roottv switch (use Z as screensaver)
 	+ Do realtime effects to the image, plainly wonderful, see
 	http://matsu-www.is.titech.ac.jp/~fukuchi/rooms/EffecTV/index.html
@@ -33,6 +35,7 @@ Outstanding issues for the next release (0.6.5)
 	+ Deinterlace plugin.
 	+ iodiag module.
 	+ Disable screensaver in capture and preview mode too?
+	+ VBI station name ignored when card w/tuner & composite selected 
 	+ Compress config file (libxml).
 	+ Config toolbar...?
 	+ Clean up context menu.
@@ -41,6 +44,8 @@ Outstanding issues for the next release (0.6.5)
 	+ Prefs: The Galeon style selection of areas should probably
 	  use the tab metaphor, not buttons.
 	+ Verify all Gnome etc URLs everywhere.
+	+ Eliminate WSS/GC from the display (paint, clip, whatever)
+	+ Python access to controls
 
 Please tell me about anything you think is worth adding:
 

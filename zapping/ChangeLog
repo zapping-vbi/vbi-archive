@@ -1,3 +1,31 @@
+10.10.2002	<mschimek@users.sf.net>
+
+	* configure.in: Updated rte 0.5 check.
+	* common: Removed obsolete errstr.c, errstr.h.
+	* po/README: Added to explain UTF-8.
+	* po: Updated from 0.6.5 trunk.
+	* plugins/mpeg/mpeg.c, plugins/mpeg/mpeg.h, plugins/mpeg/options.c:
+	  Updated rte 0.5 interface to match latest revision. Changed
+	  gettext() calls to dgettext() where they access library strings.
+	  Proper setup of quickrec recording window. (From 0.6.5)
+	* src/Makefile.am (COMMON_LIB): Changed to $(top_builddir).
+	* src/ttxview.c: Changed gettext() calls to dgettext() where they
+	  access library strings. (From 0.6.5)
+	* src/tvengxv.c: Added XSync in tvengxv_tune_input as
+	  suggested by bug report #599834.
+	* src: #include fixes for GCC 2.7 (as if anyone would
+	  still use it...)
+	* zapping_setup_fb/Makefile.am: Added missing DISTCLEANFILES.
+	* zapping_setup_fb/zapping_setup_fb.c: Had to restore pre-gcc3
+	  macro varargs for compatibility.
+	* BUGS, NEWS, THANKS, prepare_dist.sh, src/zvbi.c, zapping.spec.in:
+	  Merged in changes since 0.6.5 branch.
+
+08.10.2002	<mschimek@users.sf.net>
+
+	* plugins/Makefile.am: Disabled mpeg, does not compile.
+	* glade/Makefile.am: Disabled zapping.glade2p, no file.
+
 05.10.2002	bug fixes in screenshot <garetxe@users.sf.net>
 
 	* plugins/screenshot: Fixed a couple bugs introduced when porting.
@@ -2767,6 +2795,9 @@
 	* src/tveng.c: Direct Video Blitting (BGR -> RGB conversion avoided)
 	* src/interface.c: Channel editor added
 
-;; Local Variables:
-;; coding: utf-8
-;; End:
+Local Variables:
+mode: change-log
+coding: utf-8
+left-margin: 8
+fill-column: 76
+End:
