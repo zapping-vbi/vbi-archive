@@ -1,3 +1,11 @@
+29.11.2000	Doc updates <garetxe@users.sourceforge.net>
+
+	* TODO, README, NEWS, THANKS, BUGS, doc/: Updated, i'm going to
+	make a new release soon.
+	* src/channel_editor.c: Print a notice when the XVideo controller
+	is used and channel autosearching is requested.
+	* all: Fixed some fixme's.
+
 26.11.2000	Controller auto-switching <garetxe@users.sourceforge.net>
 
 	* src/tvengxv.c, src/zmisc.c: Use the XV controller just for

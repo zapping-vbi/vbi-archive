@@ -1641,7 +1641,7 @@ int tveng_restart_everything (enum tveng_capture_mode mode,
 	return -1;
       break;
     case TVENG_CAPTURE_PREVIEW:
-      if (tveng_start_previewing(info, -1) == -1) /* fixme */
+      if (tveng_start_previewing(info, -1) == -1)
 	return -1;
       break;
     case TVENG_CAPTURE_WINDOW:

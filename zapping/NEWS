@@ -1,5 +1,13 @@
-German translation, Michael
-Russian translation, Nik
-fr.po, es.po updates, Christian, Joseba, me
-V4L2 VBI support, me
-MPEG plugin and RTE, Michael, me
+New stuff, refer to the ChangeLog for a more detailed description of
+the changes.
+
+0.5.8
+-----
+- Screenshot plugin moved from PNG into JPEG
+- XVideo support added (XvPutImage and XvPutVideo)
+- Russian freq table (Eugene Crosser), Cyrillic Teletext glyphs
+	(Sergey Nikulin)
+- V4L2 support into libvbi.
+- Updated fr.po (Christian), es.po (me) added ru.po (Sergey) and
+	de.po (Michael).
+- Many bugfixes, some new bugs to play with :-)

@@ -737,10 +737,22 @@ on_channel_search_clicked              (GtkButton       *button,
     lookup_widget(GTK_WIDGET(button), "channel_window");
   GtkWidget * channel_list =
     lookup_widget(channel_window, "channel_list");
-  GtkWidget * searching = create_searching();
-  GtkWidget * progress =
-    lookup_widget(searching, "progressbar1");
+  GtkWidget * searching;
+  GtkWidget * progress;
   gint timeout;
+
+  /* Channel auto-searching won't work with XVideo */
+  if (main_info->current_controller == TVENG_CONTROLLER_XV)
+    {
+      ShowBox(_("Channel autosearching won't work with XVideo.\n"
+		"Please switch to another controller by starting\n"
+		"Capture mode (\"View/Go Capturing\" menu entry)."),
+	      GNOME_MESSAGE_BOX_INFO);
+      return;
+    }
+
+  searching = create_searching();
+  progress = lookup_widget(searching, "progressbar1");
 
   gtk_progress_set_percentage(GTK_PROGRESS(progress), 0.0);
 

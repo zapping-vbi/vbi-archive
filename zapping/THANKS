@@ -1,12 +1,8 @@
-FIXME: This is outdated, fix it.
+Thanks are due to the following people for helping with the program:
 
-Thanks to Christian Marillat for the french translation.
-Thanks to Michael Schimek for helping me with the mp1e
-code, and for building such a wonderful program.
-Thanks to Edgar Toerning for the AleVT code, in which libvbi (the
-teletext decoder built into Zapping) is based, and for his permission
-to use it.
-Thanks to Sergey Nikulin for the Russian translation and the Russian
-TTX glyphs.
+- Christian Marillat: French translation
+- Edgar Toerning: AleVT, permission to use a derivative (libvbi) into Z.
+- Sergey Nikulin: Russian translation and cyrillic TTX glyphs.
+- Eugene Crosser: Russian freq table.
 
 And, of course, thanks to the people that sent bug reports and suggestions.

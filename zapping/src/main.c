@@ -82,7 +82,6 @@ startup_teletext(void)
    * the vbi device and then the video device, the video device cannot
    * be opened (-EBUSY)
    * if we open video and then vbi it works.
-   * Justin has been informed.
    */
 #ifdef HAVE_GDKPIXBUF
   if (disable_vbi)
@@ -248,7 +247,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.65 2000-11-26 18:56:00 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.66 2000-11-29 22:16:12 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {

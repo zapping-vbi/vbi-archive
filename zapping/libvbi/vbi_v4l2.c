@@ -146,7 +146,8 @@ v4l2_vbi_setup_dev(struct vbi *vbi)
       return -1;
 
     v4l2_format->type = V4L2_BUF_TYPE_CAPTURE;
-    /* fixme: this isn't right according to Michael */
+    /* fixme: this isn't right according to the V4L2 VBI spec,
+       this will only work with the currently broken bttv2 */
     vbifmt->start[0]=0;
     vbifmt->start[1]=313;
     vbifmt->count[0]=16;

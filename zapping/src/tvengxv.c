@@ -36,18 +36,15 @@
 #endif
 #endif
 
+#ifdef USE_XV
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xfuncs.h>
-#ifdef USE_XV
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
-#endif
 
 #define TVENGXV_PROTOTYPES 1
 #include "tvengxv.h"
-
-/* fixme: ifdef USE_XV, debug info */
 
 struct private_tvengxv_device_info
 {
@@ -119,8 +116,8 @@ p_tvengxv_open_device(tveng_device_info *info)
 	    {
 	      p_info->port = pAdaptor->base_id + j;
 
-	      //	      if (Success == XvGrabPort(dpy, p_info->port, CurrentTime))
-	      goto adaptor_found;
+	      if (Success == XvGrabPort(dpy, p_info->port, CurrentTime))
+		goto adaptor_found;
 	    }
 	}
     }
@@ -141,6 +138,7 @@ p_tvengxv_open_device(tveng_device_info *info)
     goto error4;
 
   XvFreeAdaptorInfo(pAdaptors);
+  XvUngrabPort(dpy, p_info->port, CurrentTime);
   return 0xbeaf; /* the port seems to work ok, success */
 
  error4:
@@ -771,8 +769,6 @@ p_tvengxv_build_controls(tveng_device_info *info)
       if (p_tvengxv_append_control(&control, info) == -1)
 	return -1;
     }
-  /* fixme: Should we allow controls for freq, encoding and colorkey? */
-
   /* fill in with the proper values */
   return (tvengxv_update_controls(info));
 }
@@ -820,7 +816,6 @@ tvengxv_set_control(struct tveng_control * control, int value,
 static int
 tvengxv_get_mute(tveng_device_info * info)
 {
-  /* FIXME: We should check that mute and freq aren't set to None */
   int val;
   struct private_tvengxv_device_info * p_info =
     (struct private_tvengxv_device_info*)info;
@@ -1032,3 +1027,12 @@ void tvengxv_init_module(struct tveng_module_info *module_info)
   memcpy(module_info, &tvengxv_module_info,
 	 sizeof(struct tveng_module_info)); 
 }
+#else /* do not use the XVideo extension */
+#include "tvengxv.h"
+void tvengxv_init_module(struct tveng_module_info *module_info)
+{
+  t_assert(module_info != NULL);
+
+  memset(module_info, 0, sizeof(struct tveng_module_info));
+}
+#endif
