@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.11 2002-12-25 09:44:14 mschimek Exp $ */
+/* $Id: io.c,v 1.12 2005-02-25 18:16:22 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -70,7 +70,8 @@ static char *			codec_key[MAX_CODECS];
 static int			num_codecs = 0;
 
 struct generator {
-	void			(* func)(struct generator *, void *, int, double *);
+	void			(* func)(struct generator *,
+					 void *, int, double *);
 	double			byte_period;
 	int			buffer_size;
 
@@ -97,9 +98,11 @@ struct generator {
 static void
 audio(struct generator *gen, void *data, int size, double *timep)
 {
-	int16_t *sample = data;
+	int16_t *s;
 
-//	fprintf(stderr, "read %p %d #%d\n", data, size, gen->u.audio.sample_count);
+	if (0)
+		fprintf (stderr, "read %p %d #%d\n",
+			 data, size, gen->u.audio.sample_count);
 
 	*timep = gen->time;
 	gen->time += size * gen->byte_period;
@@ -108,8 +111,19 @@ audio(struct generator *gen, void *data, int size, double *timep)
 	if (num_codecs > 1)
 		usleep(size * gen->byte_period * 1e6);
 
-	for (size /= sizeof(int16_t); size--; gen->u.audio.sample_count++)
-		*sample++ = sin(gen->u.audio.sample_count * gen->u.audio.w) * 25000;
+	s = data;
+
+	for (size /= sizeof (int16_t) * gen->params.audio.channels;
+	     size--; ++gen->u.audio.sample_count) {
+		int sample;
+		unsigned int i;
+
+		sample = sin (gen->u.audio.sample_count * gen->u.audio.w)
+			* 25000;
+
+		for (i = 0; i < gen->params.audio.channels; ++i)
+			*s++ = sample;
+	}
 }
 
 static void
@@ -127,13 +141,20 @@ init_audio(struct generator *g)
 
 	memset(&g->params, 0, sizeof(g->params));
 
-#if BYTE_ORDER == LITTLE_ENDIAN
-	g->params.audio.sndfmt = RTE_SNDFMT_S16_LE;
-#elif BYTE_ORDER == BIG_ENDIAN
-	g->params.audio.sndfmt = RTE_SNDFMT_S16_BE;
-#else
-#error Unknown machine endianess
-#endif
+	switch (BYTE_ORDER) {
+	case LITTLE_ENDIAN:
+		g->params.audio.sndfmt = RTE_SNDFMT_S16_LE;
+		break;
+
+	case BIG_ENDIAN:
+		g->params.audio.sndfmt = RTE_SNDFMT_S16_BE;
+		break;
+
+	default:
+		assert (!"Unknown machine endianess");
+		break;
+	}
+
 	g->params.audio.sampling_freq = 44100;
 	g->params.audio.channels = 1;
 
@@ -146,17 +167,21 @@ init_audio(struct generator *g)
 	switch (g->params.audio.sndfmt) {
 	case RTE_SNDFMT_S16_LE:
 	case RTE_SNDFMT_S16_BE:
-		if (g->params.audio.channels == 1)
-			break;
+		break;
+
 	default:
-		fprintf(stderr, "Sorry, cannot generate sample format required by codec.\n");
+		fprintf(stderr, "Sorry, cannot generate sample format %d "
+			"required by codec.\n",
+			g->params.audio.sndfmt);
 		exit(EXIT_FAILURE);
 	}
 
 	g->u.audio.w = g->u.audio.freq
 		/ (double) g->params.audio.sampling_freq * M_PI * 2;
-	g->byte_period = 1.0 / (g->params.audio.sampling_freq * sizeof(int16_t)); 
-	g->buffer_size = g->params.audio.fragment_size; /* recommended minimum */
+	g->byte_period = 1.0 / (g->params.audio.sampling_freq
+				* sizeof(int16_t)); 
+	g->buffer_size = g->params.audio.fragment_size;
+		/* recommended minimum */
 }
 
 /* Image generator */
@@ -173,15 +198,24 @@ video(struct generator *g, void *data, int size, double *timep)
 
 	for (y = 0; y < g->params.video.height; y += 4) {
 		for (x = 0; x < g->params.video.width; x += 4) {
-#if BYTE_ORDER == LITTLE_ENDIAN
-			uint32_t yuyv = ((int)((x ^ y) * g->u.video.frame_var) & 0xFF)
-				* 0x00010001 + 0x80008000;
-#elif BYTE_ORDER == BIG_ENDIAN
-			uint32_t yuyv = ((int)((x ^ y) * g->u.video.frame_var) & 0xFF)
-				* 0x01000100 + 0x00800080;
-#else
-#error Unknown machine endianess
-#endif
+			uint32_t yuyv;
+
+			switch (BYTE_ORDER) {
+			case LITTLE_ENDIAN:
+				yuyv = ((int)((x ^ y) * g->u.video.frame_var)
+					& 0xFF)	* 0x00010001 + 0x80008000;
+				break;
+
+			case BIG_ENDIAN:
+				yuyv = ((int)((x ^ y) * g->u.video.frame_var)
+					& 0xFF)	* 0x01000100 + 0x00800080;
+				break;
+
+			default:
+				assert (!"Unknown machine endianess");
+				break;
+			}
+
 			for (i = 0; i < 4; i++) {
 				uint32_t *d = (uint32_t *)(canvas
 					+ g->params.video.offset
@@ -279,20 +313,27 @@ init_video(struct generator *gen)
 		Cb = (- 0.1687 * r - 0.3312 * g + 0.5000 * b) * 255.0;
 		Cr = (+ 0.5000 * r - 0.4183 * g - 0.0816 * b) * 255.0;
 
-		gen->u.video.yuyv_band[x] =
-#if BYTE_ORDER == LITTLE_ENDIAN
-			+ (saturate(Y * 219.0 / 255.0 + 16) << 0)
-			+ (saturate(Cb * 224.0 / 255.0 + 128) << 8)
-			+ (saturate(Y * 219.0 / 255.0 + 16) << 16)
-			+ (saturate(Cr * 224.0 / 255.0 + 128) << 24);
-#elif BYTE_ORDER == BIG_ENDIAN
-			+ (saturate(Y * 219.0 / 255.0 + 16) << 24)
-			+ (saturate(Cb * 224.0 / 255.0 + 128) << 16)
-			+ (saturate(Y * 219.0 / 255.0 + 16) << 8)
-			+ (saturate(Cr * 224.0 / 255.0 + 128) << 0);
-#else
-#error Unknown machine endianess
-#endif
+		switch (BYTE_ORDER) {
+		case LITTLE_ENDIAN:
+			gen->u.video.yuyv_band[x] =
+				+ (saturate(Y * 219.0 / 255.0 + 16) << 0)
+				+ (saturate(Cb * 224.0 / 255.0 + 128) << 8)
+				+ (saturate(Y * 219.0 / 255.0 + 16) << 16)
+				+ (saturate(Cr * 224.0 / 255.0 + 128) << 24);
+			break;
+
+		case BIG_ENDIAN:
+			gen->u.video.yuyv_band[x] =
+				+ (saturate(Y * 219.0 / 255.0 + 16) << 24)
+				+ (saturate(Cb * 224.0 / 255.0 + 128) << 16)
+				+ (saturate(Y * 219.0 / 255.0 + 16) << 8)
+				+ (saturate(Cr * 224.0 / 255.0 + 128) << 0);
+			break;
+
+		default:
+			assert (!"Unknown machine endianess");
+			break;
+		}
 	}
 }
 
@@ -421,16 +462,16 @@ static const char *short_options = "d:o:q:s:x:";
 #ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options[] = {
-	{ "cm",			no_argument,		&io_mode,		1 },
-	{ "cs",			no_argument,		&io_mode,		2 },
-	{ "pm",			no_argument,		&io_mode,		3 },
-	{ "ps",			no_argument,		&io_mode,		4 },
-	{ "block",		no_argument,		&blocking,		TRUE },
-	{ "queue",		required_argument,	NULL,			'q' },
-	{ "sleep",		required_argument,	NULL,			's' },
-	{ "context",		required_argument,	NULL,			'x' },
-	{ "codec",		required_argument,	NULL,			'd' },
-	{ "output",		required_argument,	NULL,			'o' },
+	{ "cm",		no_argument,		&io_mode,		1 },
+	{ "cs",		no_argument,		&io_mode,		2 },
+	{ "pm",		no_argument,		&io_mode,		3 },
+	{ "ps",		no_argument,		&io_mode,		4 },
+	{ "block",	no_argument,		&blocking,		TRUE },
+	{ "queue",	required_argument,	NULL,			'q' },
+	{ "sleep",	required_argument,	NULL,			's' },
+	{ "context",	required_argument,	NULL,			'x' },
+	{ "codec",	required_argument,	NULL,			'd' },
+	{ "output",	required_argument,	NULL,			'o' },
 	{ 0, 0, 0, 0 }
 };
 #else
