@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.1 2004-09-22 21:29:07 mschimek Exp $ */
+/* $Id: view.c,v 1.2 2004-09-26 13:30:37 mschimek Exp $ */
 
 #include "config.h"
 
@@ -1821,18 +1821,21 @@ blink_timeout			(gpointer		user_data)
 }
 
 static void
-on_size_allocate		(GtkWidget *		widget,
-				 GtkAllocation *	allocation,
-				 TeletextView *		view)
+size_allocate			(GtkWidget *		widget,
+				 GtkAllocation *	allocation)
 {
+  TeletextView *view = TELETEXT_VIEW (widget);
+
+  GTK_WIDGET_CLASS (parent_class)->size_allocate (widget, allocation);
+
   scale_image (widget, allocation->width, allocation->height, view);
 }
 
 static gboolean
-on_expose_event			(GtkWidget *		widget,
-				 GdkEventExpose *	event,
-				 TeletextView *		view)
+expose_event			(GtkWidget *		widget,
+				 GdkEventExpose *	event)
 {
+  TeletextView *view = TELETEXT_VIEW (widget);
   GdkRegion *region;
 
   /* XXX this prevents a segv, needs probably a fix elsewhere. */
@@ -2139,9 +2142,12 @@ actions [] = {
 /* We cannot initialize this until the widget (and its
    parent GtkWindow) has a window. */
 static void
-on_realize			(GtkWidget *		widget,
-				 TeletextView *		view)
+realize				(GtkWidget *		widget)
 {
+  TeletextView *view = TELETEXT_VIEW (widget);
+
+  GTK_WIDGET_CLASS (parent_class)->realize (widget);
+
   /* No background, prevents flicker. */
   gdk_window_set_back_pixmap (widget->window, NULL, FALSE);
 
@@ -2185,12 +2191,6 @@ instance_init			(GTypeInstance *	instance,
 
   object = G_OBJECT (instance);
 
-  g_signal_connect (object, "size-allocate",
-		    G_CALLBACK (on_size_allocate), view);
-
-  g_signal_connect (object, "expose-event",
-		    G_CALLBACK (on_expose_event), view);
-
   g_signal_connect (object, "motion-notify-event",
 		    G_CALLBACK (on_motion_notify), view);
   
@@ -2219,10 +2219,6 @@ instance_init			(GTypeInstance *	instance,
   /* Update view on color changes. */
   g_signal_connect (G_OBJECT (color_zmodel), "changed",
 		    G_CALLBACK (on_color_zmodel_changed), view);
-
-  /* Post-realize initialization. */
-  g_signal_connect (G_OBJECT (view), "realize",
-		    G_CALLBACK (on_realize), view);
 
   view->zvbi_client_id = register_ttx_client ();
   view->zvbi_timeout_id = g_timeout_add (100, (GSourceFunc)
@@ -2254,11 +2250,17 @@ class_init			(gpointer		g_class,
 				 gpointer		class_data _unused_)
 {
   GObjectClass *object_class;
+  GtkWidgetClass *widget_class;
 
   object_class = G_OBJECT_CLASS (g_class);
-  parent_class = g_type_class_peek_parent (object_class);
+  widget_class = GTK_WIDGET_CLASS (g_class);
+  parent_class = g_type_class_peek_parent (g_class);
 
   object_class->finalize = instance_finalize;
+
+  widget_class->realize	= realize;
+  widget_class->size_allocate = size_allocate;
+  widget_class->expose_event = expose_event;
 
   cursor_normal	= gdk_cursor_new (GDK_LEFT_PTR);
   cursor_link	= gdk_cursor_new (GDK_HAND2);

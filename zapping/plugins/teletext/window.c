@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: window.c,v 1.1 2004-09-22 21:29:07 mschimek Exp $ */
+/* $Id: window.c,v 1.2 2004-09-26 13:30:23 mschimek Exp $ */
 
 #include "config.h"
 
@@ -41,21 +41,6 @@ on_vbi_model_changed		(ZModel *		zmodel _unused_,
 				 TeletextWindow *	window)
 {
   gtk_widget_destroy (GTK_WIDGET (window));
-}
-
-static void
-instance_finalize		(GObject *		object)
-{
-  TeletextWindow *window = TELETEXT_WINDOW (object);
-
-  teletext_windows = g_list_remove (teletext_windows, window);
-
-  g_signal_handlers_disconnect_matched
-    (G_OBJECT (zvbi_get_model ()),
-     G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
-     0, 0, NULL, G_CALLBACK (on_vbi_model_changed), window);
-
-  parent_class->finalize (object);
 }
 
 static void
@@ -158,28 +143,29 @@ create_main_menu		(TeletextWindow *	window)
 }
 
 static gboolean
-on_key_press			(GtkWidget *		widget,
-				 GdkEventKey *		event,
-				 TeletextWindow *	window)
+key_press_event			(GtkWidget *		widget,
+				 GdkEventKey *		event)
 {
+  TeletextWindow *window = TELETEXT_WINDOW (widget);
+
   return (teletext_view_on_key_press (widget, event, window->view)
 	  || on_user_key_press (widget, event, NULL)
 	  || on_picture_size_key_press (widget, event, NULL));
 }
 
 static gboolean
-on_button_press			(GtkWidget *		widget _unused_,
-				 GdkEventButton *	event,
-				 TeletextWindow *	window)
+button_press_event		(GtkWidget *		widget,
+				 GdkEventButton *	event)
 {
+  TeletextWindow *window = TELETEXT_WINDOW (widget);
+  GtkWidget *menu;  
   vbi_link ld;
-  GtkWidget *menu;
 
   switch (event->button)
     {
     case 3: /* right button, context menu */
       teletext_view_vbi_link_from_pointer_position
-	(window->view, &ld, (int) event->x, (int) event->y);
+	(window->view, &ld, (gint) event->x, (gint) event->y);
 
       if ((menu = teletext_view_popup_menu_new (window->view, &ld, TRUE)))
 	gtk_menu_popup (GTK_MENU (menu),
@@ -284,6 +270,21 @@ toggle_actions [] = {
 };
 
 static void
+instance_finalize		(GObject *		object)
+{
+  TeletextWindow *window = TELETEXT_WINDOW (object);
+
+  teletext_windows = g_list_remove (teletext_windows, window);
+
+  g_signal_handlers_disconnect_matched
+    (G_OBJECT (zvbi_get_model ()),
+     G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
+     0, 0, NULL, G_CALLBACK (on_vbi_model_changed), window);
+
+  parent_class->finalize (object);
+}
+
+static void
 instance_init			(GTypeInstance *	instance,
 				 gpointer		g_class _unused_)
 {
@@ -326,12 +327,6 @@ instance_init			(GTypeInstance *	instance,
   gtk_widget_set_size_request (widget, 260, 250);
 
   gnome_app_set_contents (app, widget);
-
-  g_signal_connect (object, "button-press-event",
-		    G_CALLBACK (on_button_press), window);
-
-  g_signal_connect (object, "key-press-event",
-		    G_CALLBACK (on_key_press), window);
 
   create_main_menu (window);
 
@@ -385,11 +380,16 @@ class_init			(gpointer		g_class,
 				 gpointer		class_data _unused_)
 {
   GObjectClass *object_class;
+  GtkWidgetClass *widget_class;
 
   object_class = G_OBJECT_CLASS (g_class);
-  parent_class = g_type_class_peek_parent (object_class);
+  widget_class = GTK_WIDGET_CLASS (g_class);
+  parent_class = g_type_class_peek_parent (g_class);
 
   object_class->finalize = instance_finalize;
+
+  widget_class->key_press_event = key_press_event;
+  widget_class->button_press_event = button_press_event;
 }
 
 GType
