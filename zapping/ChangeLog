@@ -1,3 +1,11 @@
+3.1.2003	<mschimek@users.sf.net>
+
+	* glade: Added force_mixer checkbutton in audio prefs.
+	* src/audio.c, src/audio.h: Added force_mixer checkbutton,
+	  new master mute functions.
+	* src/callback.c, src/main.c, src/zmisc.c, src/v4linterface.c:
+	  Use audio_xxx_mute().
+
 28.12.2002	<mschimek@users.sf.net>
 
 	* src/tveng.h: mutable.

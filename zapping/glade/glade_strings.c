@@ -80,6 +80,7 @@ gchar *s = N_("The bigger this value is, the more verbose zapping_setup_fb will 
 gchar *s = N_("Video");
 gchar *s = N_("Start Zapping muted");
 gchar *s = N_("Avoid noise while changing channels");
+gchar *s = N_("Control volume with mixer instead of video device");
 gchar *s = N_("Mixer settings for recording");
 gchar *s = N_("Recording source:");
 gchar *s = N_("Recording volume:");

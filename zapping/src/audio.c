@@ -240,6 +240,11 @@ audio_setup		(GtkWidget	*page)
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"));
 
+  /* Force mixer for volume control */
+  widget = lookup_widget(page, "force_mixer");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean(NULL, "/zapping/options/audio/force_mixer"));
+
   /* Start zapping muted */
   widget = lookup_widget(page, "checkbutton3");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
@@ -272,6 +277,10 @@ audio_apply		(GtkWidget	*page)
   widget = lookup_widget(page, "checkbutton1"); /* avoid noise */
   zconf_set_boolean(gtk_toggle_button_get_active(
 	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/avoid_noise");
+
+  widget = lookup_widget(page, "force_mixer");
+  zconf_set_boolean(gtk_toggle_button_get_active(
+	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/audio/force_mixer");
 
   widget = lookup_widget(page, "checkbutton3"); /* start muted */
   zconf_set_boolean(gtk_toggle_button_get_active(
@@ -309,6 +318,60 @@ add				(GnomeDialog	*dialog)
 
   standard_properties_add(dialog, groups, acount(groups), "zapping.glade");
 }
+
+extern tveng_device_info * main_info;
+
+gboolean
+audio_set_mute			(gint			mute)
+{
+  int cur_line = zcg_int (NULL, "record_source");
+  gboolean force = zcg_bool (NULL, "force_mixer");
+
+  if (main_info->audio_mutable && !force)
+    {
+      if (tveng_set_mute (!!mute, main_info) < 0)
+        {
+	  printv ("tveng_set_mute failed\n");
+	  return FALSE;
+	}
+    }
+  else if (cur_line > 0) /* !use system settings */
+    {
+      if (mixer_set_mute (cur_line - 1, !!mute) < 0)
+	{
+	  printv ("mixer_set_mute failed\n");
+	  return FALSE;
+	}
+    }
+
+  return TRUE;
+}
+
+gboolean
+audio_get_mute			(gint *			mute)
+{
+  int cur_line = zcg_int (NULL, "record_source");
+  gboolean force = zcg_bool (NULL, "force_mixer");
+
+  if (main_info->audio_mutable && !force)
+    {
+      if ((*mute = tveng_get_mute (main_info)) < 0)
+        {
+          printv ("tveng_get_mute failed\n");
+          return FALSE;
+        }
+    }
+  else if (cur_line > 0) /* !use system settings */
+    {
+      if ((*mute = mixer_get_mute (cur_line - 1)) < 0)
+        {
+          printv ("mixer_get_mute failed\n");
+          return FALSE;
+        }
+    }
+
+  return TRUE;
+}	
 
 static gboolean
 volume_incr_cmd				(GtkWidget *	widget,

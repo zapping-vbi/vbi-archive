@@ -60,4 +60,9 @@ typedef struct {
 
 extern void mixer_setup ( void );
 
+extern gboolean
+audio_set_mute			(gint			mute);
+extern gboolean
+audio_get_mute			(gint *			mute);
+
 #endif /* audio.h */

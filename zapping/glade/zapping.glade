@@ -1460,6 +1460,20 @@ Interlaced (window size)
 	</widget>
 
 	<widget>
+	  <class>GtkCheckButton</class>
+	  <name>force_mixer</name>
+	  <can_focus>True</can_focus>
+	  <label>Control volume with mixer instead of video device</label>
+	  <active>False</active>
+	  <draw_indicator>True</draw_indicator>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+
+	<widget>
 	  <class>GtkFrame</class>
 	  <name>frame11</name>
 	  <label>Mixer settings for recording</label>

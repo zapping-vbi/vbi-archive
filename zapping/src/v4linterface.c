@@ -36,7 +36,7 @@
 #include "zvbi.h"
 #include "osd.h"
 #include "remote.h"
-#include "mixer.h"
+#include "audio.h"
 
 extern tveng_tuned_channel * global_channel_list;
 extern tveng_device_info *main_info;
@@ -784,15 +784,15 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 
   if (zcg_bool(NULL, "avoid_noise"))
     {
-      gint cur_line = zconf_get_integer (NULL, "/zapping/options/audio/record_source");
-
-      if (info->audio_mutable)
-	mute = tveng_get_mute (info);
-      else if (cur_line > 0)
-	mute = mixer_get_mute (cur_line - 1);
-
-      if (mute == 0)
-	set_mute1 (1, TRUE, FALSE);
+      if (audio_get_mute (&mute))
+	{
+	  if (mute == 0)
+	    set_mute1 (1, TRUE, FALSE);
+	}
+      else
+	{
+	  mute = -1;
+	}
     }
 
   freeze_update();

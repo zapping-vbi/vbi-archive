@@ -466,7 +466,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.167 2003-01-03 06:13:55 mschimek Exp $",
+	 "$Id: main.c,v 1.168 2003-01-04 07:51:15 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -655,16 +655,8 @@ int main(int argc, char * argv[])
   /* FIXME */
   /* if (tveng_set_mute(1, main_info) < 0)
      unmutable = TRUE; */
-  {
-    int cur_line = zconf_get_integer (NULL, "/zapping/options/audio/record_source");
-
-    if (main_info->audio_mutable)
-      tveng_set_mute(1, main_info);
-    else if (cur_line > 0)
-      mixer_set_mute (cur_line - 1, 1);
-    else
-      unmutable = TRUE;
-  }
+  if (!audio_set_mute (1))
+    unmutable = TRUE;
   D();
   z_tooltips_active (zconf_get_boolean
 		     (NULL, "/zapping/options/main/show_tooltips"));
@@ -935,14 +927,7 @@ static void shutdown_zapping(void)
   else
     zcs_int(0, "current_input");
 
-  {
-    int cur_line = zconf_get_integer (NULL, "/zapping/options/audio/record_source");
-
-    if (main_info->audio_mutable)
-      tveng_set_mute(1, main_info);
-    else if (cur_line > 0)
-      mixer_set_mute (cur_line - 1, 1);
-  }
+  audio_set_mute (1);
 
   /* Shutdown all other modules */
   printv(" callbacks");
