@@ -58,8 +58,8 @@ set_control			(tveng_device_info *	info,
 				 tv_control *		tc,
 				 int			value)
 {
-	fprintf (stderr, "tvengemu::set_control '%s' value=%d\n",
-		 tc->label, value);
+	fprintf (stderr, "emu::set_control '%s' value=%d=0x%x\n",
+		 tc->label, value, value);
 
 	tc->value = value;
 
@@ -124,7 +124,7 @@ add_controls			(tveng_device_info *	info)
 	add_control (info, "Self Destruct",
 		     TV_CONTROL_ID_UNKNOWN,
 		     TV_CONTROL_TYPE_ACTION,
-		     0, 0, 0, 0, 0);
+		     0, 0, INT_MIN, INT_MAX, 0);
 
 	add_control (info, "Mute",
 		     TV_CONTROL_ID_MUTE,
@@ -134,16 +134,17 @@ add_controls			(tveng_device_info *	info)
 	add_control (info, "Red Alert Color",
 		     TV_CONTROL_ID_UNKNOWN,
 		     TV_CONTROL_TYPE_COLOR,
-		     0x00FF00, 0xFF0000, 0, 0, 0);
+		     0x00FF00, 0xFF0000,
+		     0x000000, 0xFFFFFF, 0);
 }
 
 static tv_bool
 set_standard			(tveng_device_info *	info,
 				 const tv_video_standard *ts)
 {
-	fprintf (stderr, "tvengemu::set_standard '%s'\n", ts->label);
+	fprintf (stderr, "emu::set_standard '%s'\n", ts->label);
 
-	set_cur_video_standard (info, ts);
+	store_cur_video_standard (info, ts);
 
 	return TRUE;
 }
@@ -161,12 +162,25 @@ add_standards			(tveng_device_info *	info)
 }
 
 static tv_bool
+set_tuner_frequency		(tveng_device_info *	info,
+				 tv_video_line *	l,
+				 unsigned int		frequency)
+{
+	if (l->u.tuner.frequency != frequency) {
+		l->u.tuner.frequency = frequency;
+		tv_callback_notify (l, l->_callback);
+	}
+
+	return TRUE;
+}
+
+static tv_bool
 set_video_input			(tveng_device_info *	info,
 				 const tv_video_line *	tl)
 {
 	fprintf (stderr, "emu::set_video_input '%s'\n", tl->label);
 
-	set_cur_video_input (info, tl);
+	store_cur_video_input (info, tl);
 
 	return TRUE;
 }
@@ -174,14 +188,21 @@ set_video_input			(tveng_device_info *	info,
 static void
 add_video_inputs		(tveng_device_info *	info)
 {
-	append_video_line (&info->video_inputs, TV_VIDEO_LINE_TYPE_TUNER,
-			   "Tuner", "Tuner", sizeof (tv_video_line));
+	tv_video_line *l;
 
-	append_video_line (&info->video_inputs, TV_VIDEO_LINE_TYPE_BASEBAND,
-			   "Composite", "Composite", sizeof (tv_video_line));
+	l = append_video_line (&info->video_inputs, TV_VIDEO_LINE_TYPE_TUNER,
+			       "Tuner", "Tuner", sizeof (tv_video_line));
+
+	l->_parent = info;
+
+	l = append_video_line (&info->video_inputs, TV_VIDEO_LINE_TYPE_BASEBAND,
+			       "Composite", "Composite", sizeof (tv_video_line));
+
+	l->_parent = info;
 
 	info->cur_video_input = info->video_inputs;
 }
+
 
 static struct tveng_caps caps = {
   name:		"Emulation device",
@@ -372,23 +393,6 @@ tvengemu_set_capture_format (tveng_device_info *info)
   return 0;
 }
 
-static int
-tvengemu_tune_input (uint32_t freq, tveng_device_info *info)
-{
-  struct private_tvengemu_device_info * p_info =
-    (struct private_tvengemu_device_info*) info;
-
-  t_assert (info != NULL);
-
-  if (!info->cur_video_input
-      || (info->cur_video_input->type
-	  != TV_VIDEO_LINE_TYPE_TUNER))
-    return -1;
-
-  p_info->freq = freq;
-
-  return 0;
-}
 
 static int
 tvengemu_get_signal_strength (int *strength, int *afc,
@@ -410,46 +414,8 @@ tvengemu_get_signal_strength (int *strength, int *afc,
   return 0;
 }
 
-static int
-tvengemu_get_tune (uint32_t *freq, tveng_device_info *info)
-{
-  struct private_tvengemu_device_info * p_info =
-    (struct private_tvengemu_device_info*) info;
 
-  t_assert (info != NULL);
 
-  if (!info->cur_video_input
-      || (info->cur_video_input->type
-	  != TV_VIDEO_LINE_TYPE_TUNER))
-    return -1;
-
-  if (freq)
-    *freq = p_info->freq;
-
-  return 0;
-}
-
-static int
-tvengemu_get_tuner_bounds (uint32_t *min, uint32_t *max,
-			   tveng_device_info *info)
-{
-  struct private_tvengemu_device_info * p_info =
-    (struct private_tvengemu_device_info*) info;
-
-  t_assert (info != NULL);
-
-  if (!info->cur_video_input
-      || (info->cur_video_input->type
-	  != TV_VIDEO_LINE_TYPE_TUNER))
-    return -1;
-
-  if (min)
-    *min = p_info->freq_min;
-  if (max)
-    *max = p_info->freq_max;
-
-  return 0;
-}
 
 static int
 tvengemu_start_capturing (tveng_device_info *info)
@@ -592,18 +558,13 @@ static struct tveng_module_info tvengemu_module_info = {
   attach_device:		tvengemu_attach_device,
   describe_controller:		tvengemu_describe_controller,
   close_device:			tvengemu_close_device,
-  .update_video_input		= NULL,
   .set_video_input		= set_video_input,
-  .update_standard		= NULL,
+  .set_tuner_frequency		= set_tuner_frequency,
   .set_standard			= set_standard,
+  .set_control			= set_control,
   update_capture_format:	tvengemu_update_capture_format,
   set_capture_format:		tvengemu_set_capture_format,
-  .update_control		= NULL,
-  .set_control			= set_control,
-  tune_input:			tvengemu_tune_input,
   get_signal_strength:		tvengemu_get_signal_strength,
-  get_tune:			tvengemu_get_tune,
-  get_tuner_bounds:		tvengemu_get_tuner_bounds,
   start_capturing:		tvengemu_start_capturing,
   stop_capturing:		tvengemu_stop_capturing,
   read_frame:			tvengemu_read_frame,
