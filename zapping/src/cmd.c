@@ -41,6 +41,7 @@ static PyObject* py_quit (PyObject *self _unused_,
   GList *p;
   int x, y, w, h;
   gboolean quit_muted;
+  gint mode;
 
   if (!zapping)
     py_return_false;
@@ -71,9 +72,9 @@ static PyObject* py_quit (PyObject *self _unused_,
   zconf_set_int (w, "/zapping/internal/callbacks/w");
   zconf_set_int (h, "/zapping/internal/callbacks/h");
 
-  zconf_set_int ((int) to_old_tveng_capture_mode (zapping->display_mode,
-						  zapping->info->capture_mode),
-		 "/zapping/options/main/capture_mode");
+  mode = to_old_tveng_capture_mode (zapping->display_mode,
+				    zapping->info->capture_mode);
+  zconf_set_int (mode, "/zapping/options/main/capture_mode");
 
   zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 		     CAPTURE_MODE_NONE,
@@ -110,12 +111,83 @@ switch_mode			(display_mode dmode,
   return TRUE;
 }
 
+static gboolean
+parse_modes			(display_mode *		dmode,
+				 capture_mode *		cmode,
+				 const gchar *		s)
+{
+  *dmode = (display_mode) -1;
+  *cmode = (capture_mode) -1;
+
+  while (*s)
+    {
+      while (*s && !g_ascii_isalnum (*s))
+	++s;
+
+      if (0 == *s)
+	{
+	  break;
+	}
+      /* Historic. */
+      else if (0 == g_ascii_strncasecmp (s, "preview", 7))
+	{
+	  *cmode = CAPTURE_MODE_OVERLAY;
+	  s += 7;
+	}
+      else if (0 == g_ascii_strncasecmp (s, "overlay", 7))
+	{
+	  *cmode = CAPTURE_MODE_OVERLAY;
+	  s += 7;
+	}
+      else if (0 == g_ascii_strncasecmp (s, "window", 6))
+	{
+	  *dmode = DISPLAY_MODE_WINDOW;
+	  s += 6;
+	}
+      else if (0 == g_ascii_strncasecmp (s, "fullscreen", 10))
+	{
+	  *dmode = DISPLAY_MODE_FULLSCREEN;
+	  s += 10;
+	}
+      else if (0 == g_ascii_strncasecmp (s, "background", 10))
+	{
+	  *dmode = DISPLAY_MODE_BACKGROUND;
+	  s += 10;
+	}
+      else if (0 == g_ascii_strncasecmp (s, "capture", 7))
+	{
+	  *cmode = CAPTURE_MODE_READ;
+	  s += 7;
+	}
+      else if (0 == g_ascii_strncasecmp (s, "teletext", 8))
+	{
+	  *cmode = CAPTURE_MODE_TELETEXT;
+	  s += 8;
+	}
+      else
+	{
+	  goto failure;
+	}
+
+      if (g_ascii_isalnum (*s))
+	goto failure;
+    }
+
+  return TRUE;
+
+ failure:
+  *dmode = (display_mode) -1;
+  *cmode = (capture_mode) -1;
+
+  return FALSE;
+}
+
 static PyObject *
 py_switch_mode			(PyObject *		self _unused_,
 				 PyObject *		args)
 {
-  display_mode old_dmode;
-  capture_mode old_cmode;
+  display_mode cur_dmode;
+  capture_mode cur_cmode;
   display_mode new_dmode;
   capture_mode new_cmode;
   char *mode_str;
@@ -126,49 +198,27 @@ py_switch_mode			(PyObject *		self _unused_,
   if (!ParseTuple (args, "s", &mode_str))
     g_error ("zapping.switch_mode(s)");
 
-  old_dmode = zapping->display_mode;
-  old_cmode = zapping->info->capture_mode;
+  cur_dmode = zapping->display_mode;
+  cur_cmode = zapping->info->capture_mode;
 
-  new_dmode = old_dmode;
-  new_cmode = old_cmode;
-
-  if (0 == g_ascii_strcasecmp (mode_str, "preview"))
-    {
-      new_cmode = CAPTURE_MODE_OVERLAY;
-    }
-  else if (0 == g_ascii_strcasecmp (mode_str, "window"))
-    {
-      new_dmode = DISPLAY_MODE_WINDOW;
-    }
-  else if (0 == g_ascii_strcasecmp (mode_str, "fullscreen"))
-    {
-      new_dmode = DISPLAY_MODE_FULLSCREEN;
-    }
-  else if (0 == g_ascii_strcasecmp (mode_str, "background"))
-    {
-      new_dmode = DISPLAY_MODE_BACKGROUND;
-    }
-  else if (0 == g_ascii_strcasecmp (mode_str, "capture"))
-    {
-      new_cmode = CAPTURE_MODE_READ;
-    }
-  else if (0 == g_ascii_strcasecmp (mode_str, "teletext"))
-    {
-      new_cmode = CAPTURE_MODE_TELETEXT;
-    }
-  else
+  if (!parse_modes (&new_dmode, &new_cmode, mode_str))
     {
       /* XXX */
       ShowBox ("Unknown display mode \"%s\", possible choices are:\n"
-	       "preview, fullscreen, capture and teletext",
+	       "window, fullscreen, background, capture, overlay, "
+	       "preview, teletext and combinations separate by spaces.",
 	       GTK_MESSAGE_ERROR, mode_str);
-      new_dmode = old_dmode;
-      new_cmode = CAPTURE_MODE_NONE;
     }
 
+  if ((display_mode) -1 == new_dmode)
+    new_dmode = cur_dmode;
+
+  if ((capture_mode) -1 == new_cmode)
+    new_cmode = cur_cmode;
+
   if (0)
-    fprintf (stderr, "switch: old=%d,%d new=%d,%d last=%d,%d\n",
-	     old_dmode, old_cmode,
+    fprintf (stderr, "switch: cur=%d,%d new=%d,%d last=%d,%d\n",
+	     cur_dmode, cur_cmode,
 	     new_dmode, new_cmode,
 	     last_dmode, last_cmode);
 
@@ -182,11 +232,10 @@ static PyObject *
 py_toggle_mode			(PyObject *		self _unused_,
 				 PyObject *		args)
 {
-  capture_mode old_cmode;
+  capture_mode cur_cmode;
+  display_mode cur_dmode;
   capture_mode new_cmode;
-  display_mode old_dmode;
   display_mode new_dmode;
-  gboolean dtoggle;
   char *mode_str;
 
   if (!zapping)
@@ -197,69 +246,51 @@ py_toggle_mode			(PyObject *		self _unused_,
   if (!ParseTuple (args, "|s", &mode_str))
     g_error ("zapping.toggle_mode(|s)");
 
-  old_dmode = zapping->display_mode;
-  old_cmode = zapping->info->capture_mode;
-
-  new_dmode = old_dmode;
-  new_cmode = old_cmode;
-
-  dtoggle = FALSE;
+  cur_dmode = zapping->display_mode;
+  cur_cmode = zapping->info->capture_mode;
 
   if (mode_str)
     {
-      if (0 == g_ascii_strcasecmp (mode_str, "preview"))
-	{
-	  new_cmode = CAPTURE_MODE_OVERLAY;
-	}
-      else if (0 == g_ascii_strcasecmp (mode_str, "window"))
-	{
-	  new_dmode = DISPLAY_MODE_WINDOW;
-	  dtoggle = TRUE;
-	}
-      else if (0 == g_ascii_strcasecmp (mode_str, "fullscreen"))
-	{
-	  new_dmode = DISPLAY_MODE_FULLSCREEN;
-	  dtoggle = TRUE;
-	}
-      else if (0 == g_ascii_strcasecmp (mode_str, "background"))
-	{
-	  new_dmode = DISPLAY_MODE_BACKGROUND;
-	  dtoggle = TRUE;
-	}
-      else if (0 == g_ascii_strcasecmp (mode_str, "capture"))
-	{
-	  new_cmode = CAPTURE_MODE_READ;
-	}
-      else if (0 == g_ascii_strcasecmp (mode_str, "teletext"))
-	{
-	  new_cmode = CAPTURE_MODE_TELETEXT;
-	}
-      else
+      if (!parse_modes (&new_dmode, &new_cmode, mode_str))
 	{
 	  /* XXX */
 	  ShowBox ("Unknown display mode \"%s\", possible choices are:\n"
-		   "preview, fullscreen, capture and teletext",
+		   "window, fullscreen, background, capture, overlay, "
+		   "preview, teletext and combinations separated by spaces.",
 		   GTK_MESSAGE_ERROR, mode_str);
 	  py_return_false;
 	}
     }
+  else
+    {
+      new_dmode = cur_dmode;
+      new_cmode = cur_cmode;
+    }
 
   if (0)
-    fprintf (stderr, "toggle: d=%d old=%d,%d new=%d,%d last=%d,%d\n",
-	     dtoggle,
-	     old_dmode, old_cmode,
+    fprintf (stderr, "toggle: cur=%d,%d new=%d,%d last=%d,%d\n",
+	     cur_dmode, cur_cmode,
 	     new_dmode, new_cmode,
 	     last_dmode, last_cmode);
 
-  if (dtoggle)
+  if ((display_mode) -1 != new_dmode)
     {
-      if (new_dmode == old_dmode)
+      if (new_dmode == cur_dmode)
 	new_dmode = last_dmode;
     }
   else
     {
-      if (new_cmode == old_cmode)
+      new_dmode = cur_dmode;
+    }
+
+  if ((capture_mode) -1 != new_cmode)
+    {
+      if (new_cmode == cur_cmode)
 	new_cmode = last_cmode;
+    }
+  else
+    {
+      new_cmode = cur_cmode;
     }
 
   if (!switch_mode (new_dmode, new_cmode))
@@ -268,17 +299,23 @@ py_toggle_mode			(PyObject *		self _unused_,
   py_return_true;
 }
 
-static PyObject* py_about (PyObject *self _unused_, PyObject *args _unused_)
+static PyObject *
+py_about			(PyObject *		self _unused_,
+				 PyObject *		args _unused_)
 {
-  GtkWidget *about = build_widget ("about", NULL);
+  GtkWidget *about;
 
-  /* Do the setting up libglade can't */
-  g_object_set (G_OBJECT (about), "name", PACKAGE,
-		"version", VERSION, NULL);
+  about = build_widget ("about", NULL);
+
+  g_object_set (G_OBJECT (about),
+		"name", "Zapping",
+		"version", VERSION,
+		NULL);
 
   gtk_widget_show (about);
 
-  Py_INCREF(Py_None);
+  Py_INCREF (Py_None);
+
   return Py_None;
 }
 
