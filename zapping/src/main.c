@@ -90,7 +90,7 @@ int main(int argc, char * argv[])
   plugin_sample sample; /* The a/v sample passed to the plugins */
   gint x_bpp = -1;
   char *default_norm = NULL;
-  gboolean oldbttv = 0;
+  gboolean oldbttv = FALSE;
 
   const struct poptOption options[] = {
     {
@@ -152,9 +152,6 @@ int main(int argc, char * argv[])
     } /* end the list */
   };
 
-  if (oldbttv)
-    newbttv = 0;
-
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
   textdomain (PACKAGE);
@@ -162,6 +159,12 @@ int main(int argc, char * argv[])
   /* Init gnome, libglade, modules and tveng */
   gnome_init_with_popt_table ("zapping", VERSION, argc, argv, options,
 			      0, NULL);
+
+  printv("oldbttv : %s\n", oldbttv ? "ON" : "OFF");
+
+  if (oldbttv)
+    newbttv = 0;
+
   printv("%s %s, build date: %s\n", "Zapping", VERSION, __DATE__);
   glade_gnome_init();
   D();
