@@ -1,6 +1,6 @@
 noinst_LIBRARIES = libvbi.a
 
-EXTRA_DIST = wstfont.xbm README
+EXTRA_DIST = wstfont.xbm ccfont.xbm README
 
 CFLAGS = -D_GNU_SOURCE -g -O2 -Wall $(ARCH_CFLAGS)
 

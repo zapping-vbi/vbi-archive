@@ -4,7 +4,7 @@ plugindir = $(PLUGIN_DEFAULT_DIR)
 
 plugin_LTLIBRARIES = liblirc.zapping.la
 
-liblirc_zapping_la_SOURCES = lirc.c
+liblirc_zapping_la_SOURCES = lirc.c lirc.h
 
 EXTRA_DIST = README
 
