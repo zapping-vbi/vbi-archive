@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.4 2000-09-24 20:58:06 garetxe Exp $ */
+/* $Id: v4l.c,v 1.5 2000-09-26 22:12:56 garetxe Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -54,6 +54,15 @@ wait_full(fifo *f)
 	int r = -1;
 	struct timeval tv;
 	unsigned char * data;
+	int oldcframe;
+
+	oldcframe = cframe + 1;
+	if (oldcframe == f->num_buffers)
+		oldcframe = 0;
+
+	vmmap.frame = oldcframe;
+	ASSERT("enqueue capture buffer",
+	       ioctl(fd, VIDIOCMCAPTURE, &vmmap) == 0);e
 
 	while (r < 0)
 	{
@@ -69,21 +78,14 @@ wait_full(fifo *f)
 		ASSERT("execute video sync", r >= 0);
 	}
 
-	data = (unsigned char *)(buf_base + buf.offsets[cframe]);
+	data = (unsigned char *)(buf_base + buf.offsets[vmmap.frame]);
 
 	b = f->buffers + cframe;
 	b->time = tv.tv_sec + tv.tv_usec / 1e6;
-	b->time -= (frame_rate_code == 3) ? (1.0/25.0) : (1.0/29.97);
-
-	cframe++;
-	if (cframe == f->num_buffers)
-		cframe = 0;
-
-	vmmap.frame = cframe;
-	ASSERT("enqueue capture buffer",
-	       ioctl(fd, VIDIOCMCAPTURE, &vmmap) == 0);
 
 	memcpy(b->data, data, b->_size);
+
+	cframe = oldcframe;
 
 	return b;
 }
@@ -192,10 +194,6 @@ v4l_init(void)
 		cap_fifo.buffers[cap_fifo.num_buffers]._size = bufsize;
 		ASSERT("allocate mem for the capture buffers",
 		       cap_fifo.buffers[cap_fifo.num_buffers].data);
-
-//		vmmap.frame = cap_fifo.num_buffers;
-//		ASSERT("queue buffer",
-//		       ioctl(fd, VIDIOCMCAPTURE, &vmmap) == 0);
 	}
 
 	vmmap.frame = 0;

@@ -36,7 +36,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <asm/types.h>
-#include "videodev2.h"
+#include <linux/videodev.h>
 #include "audio/mpeg.h"
 #include "video/mpeg.h"
 #include "video/video.h"
@@ -240,7 +240,11 @@ main(int ac, char **av)
 	mix_init();
 	pcm_init();
 
+#ifdef V4L2_MAJOR_VERSION
 	v4l2_init();
+#else
+	v4l_init();
+#endif
 	video_start();
 
 	printv(3, "\nstarting emulation... ");
