@@ -98,6 +98,9 @@ on_exit2_activate                      (GtkMenuItem     *menuitem,
 {
   GtkWidget * widget = lookup_widget(GTK_WIDGET(menuitem), "zapping");
   GList * p;
+
+  flag_exit_program = TRUE;
+
   UpdateCoords(widget->window);
 
   /* Tell the widget that the GUI is going to be closed */
@@ -109,7 +112,6 @@ on_exit2_activate                      (GtkMenuItem     *menuitem,
       p = p->next;
     }
 
-  flag_exit_program = TRUE;
   gtk_main_quit();
 }
 
@@ -225,6 +227,8 @@ on_zapping_delete_event                (GtkWidget       *widget,
 {
   GList * p;
 
+  flag_exit_program = TRUE;
+
   UpdateCoords(widget->window);
 
   /* Tell the widget that the GUI is going to be closed */
@@ -236,7 +240,6 @@ on_zapping_delete_event                (GtkWidget       *widget,
       p = p->next;
     }
 
-  flag_exit_program = TRUE;
   gtk_main_quit();
 
   return FALSE;

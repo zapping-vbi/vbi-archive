@@ -38,6 +38,7 @@
 #include "osd.h"
 
 extern tveng_device_info * main_info;
+extern volatile gboolean flag_exit_program;
 extern GtkWidget * main_window;
 extern gint disable_preview; /* TRUE if preview won't work */
 gboolean debug_msg=FALSE; /* Debugging messages on or off */
@@ -368,19 +369,21 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	g_warning("couldn't start fullscreen mode");
       break;
     default:
-      if (!zvbi_get_object())
+      if (!flag_exit_program) /* Just closing */
 	{
-	  ShowBox(_("VBI has been disabled, or it doesn't work."),
-		  GNOME_MESSAGE_BOX_INFO);
-	  break;
+	  if (!zvbi_get_object())
+	    {
+	      ShowBox(_("VBI has been disabled, or it doesn't work."),
+		      GNOME_MESSAGE_BOX_INFO);
+	      break;
+	    }
+	  
+	  /* start vbi code */
+	  gtk_widget_show(lookup_widget(main_window, "appbar2"));
+	  ttxview_attach(main_window, lookup_widget(main_window, "tv_screen"),
+			 lookup_widget(main_window, "toolbar1"),
+			 lookup_widget(main_window, "appbar2"));
 	}
-
-      /* start vbi code */
-      gtk_widget_show(lookup_widget(main_window, "appbar2"));
-      ttxview_attach(main_window, lookup_widget(main_window, "tv_screen"),
-		     lookup_widget(main_window, "toolbar1"),
-		     lookup_widget(main_window, "appbar2"));
-
       break; /* TVENG_NO_CAPTURE */
     }
 
