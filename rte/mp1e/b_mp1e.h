@@ -19,11 +19,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.h,v 1.7 2002-06-24 03:21:11 mschimek Exp $ */
+/* $Id: b_mp1e.h,v 1.8 2002-09-26 20:42:11 mschimek Exp $ */
 
 #ifndef B_MP1E_H
 #define B_MP1E_H
 
+#include "config.h"
 #include "rtepriv.h"
 #include "common/sync.h"
 #include "systems/libsystems.h"

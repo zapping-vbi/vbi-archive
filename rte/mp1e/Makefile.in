@@ -76,6 +76,7 @@ AWK = @AWK@
 CC = @CC@
 CCAS = @CCAS@
 CCASFLAGS = @CCASFLAGS@
+@BACKEND_MP1E_TRUE@CCMALLOC = @CCMALLOC@
 @BACKEND_MP1E_TRUE@DATADIRNAME = @DATADIRNAME@
 DEPDIR = @DEPDIR@
 DLLTOOL = @DLLTOOL@
@@ -189,7 +190,7 @@ MANS = $(man_MANS)
 
 RECURSIVE_TARGETS = info-recursive dvi-recursive install-info-recursive 	uninstall-info-recursive all-recursive install-data-recursive 	install-exec-recursive installdirs-recursive install-recursive 	uninstall-recursive check-recursive installcheck-recursive
 @BACKEND_MP1E_FALSE@DIST_COMMON = README AUTHORS COPYING ChangeLog INSTALL Makefile.am 	Makefile.in NEWS aclocal.m4 config.guess config.h.in config.sub 	configure configure.in depcomp install-sh ltmain.sh missing 	mkinstalldirs mp1e.lsm.in mp1e.spec.in
-@BACKEND_MP1E_TRUE@DIST_COMMON = README AUTHORS COPYING ChangeLog INSTALL Makefile.am 	Makefile.in NEWS config.guess config.sub configure configure.in 	depcomp install-sh missing mkinstalldirs
+@BACKEND_MP1E_TRUE@DIST_COMMON = README AUTHORS COPYING ChangeLog INSTALL Makefile.am 	Makefile.in NEWS config.guess config.sub configure configure.in 	depcomp install-sh ltmain.sh missing mkinstalldirs
 SOURCES = $(libmp1e_la_SOURCES) $(mp1e_SOURCES)
 
 @BACKEND_MP1E_FALSE@all: config.h

@@ -1,3 +1,14 @@
+26.09.2002	<mschimek@users.sf.net>
+
+	* src/ttxview.c, plugins/mpeg/mpeg.c: Changed gettext() calls to
+	  dgettext() where they access library strings. Oops.
+
+24.09.2002	<mschimek@users.sf.net>
+
+	* configure.in: Change rte 0.5 check to match latest revision.
+	* plugins/mpeg/mpeg.c: Updated rte 0.5 interface to match latest
+	  revision.
+
 09.09.2002	<mschimek@users.sf.net>
 
 	* src/frequencies.c: Added Canada cable contributed by "matt".
