@@ -53,6 +53,7 @@
 #include "i18n.h"
 #include "vdr.h"
 #include "xawtv.h"
+#include "subtitle.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
@@ -258,7 +259,7 @@ restore_last_capture_mode		(void)
 				   CAPTURE_MODE_READ,
 				   zapping->info))
 	ShowBox (_("Capture mode couldn't be started:\n%s"),
-		 GTK_MESSAGE_ERROR, zapping->info->error);
+		 GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
     }
   else
     {
@@ -275,23 +276,23 @@ restore_last_capture_mode		(void)
 	    {
 	      if (0)
 		ShowBox(_("Cannot restore previous mode, will try capture mode:\n%s"),
-			GTK_MESSAGE_ERROR, zapping->info->error);
+			GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
 
 	      if (-1 == zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 					   CAPTURE_MODE_READ, zapping->info))
 		{
 		  if (0)
 		    ShowBox(_("Capture mode couldn't be started either:\n%s"),
-			    GTK_MESSAGE_ERROR, zapping->info->error);
+			    GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
 		  else
 		    ShowBox(_("Cannot restore previous mode:\n%s"),
-			    GTK_MESSAGE_ERROR, zapping->info->error);
+			    GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
 		}
 	    }
 	  else
 	    {
 	      ShowBox (_("Capture mode couldn't be started:\n%s"),
-		       GTK_MESSAGE_ERROR, zapping->info->error);
+		       GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
 	    }
 	}
       else
@@ -569,7 +570,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.190 2004-10-13 20:06:39 mschimek Exp $",
+	 "$Id: main.c,v 1.191 2004-11-03 06:40:48 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -771,13 +772,8 @@ int main(int argc, char * argv[])
   else
     tveng_set_zapping_setup_fb_verbosity(3, info);
 
-  info -> file_name = strdup(zcg_char(NULL, "video_device"));
+  tv_set_filename (info, zcg_char(NULL, "video_device"));
 
-  if (!info -> file_name)
-    {
-      perror("strdup");
-      return 1;
-    }
   D();
 
   if (tveng_attach_device(zcg_char(NULL, "video_device"),
@@ -812,7 +808,8 @@ int main(int argc, char * argv[])
 	  for (i = 0; i<num_fallbacks; i++)
 	    {
 	      printf("trying device: %s\n", fallback_devices[i]);
-	      info->file_name = strdup(fallback_devices[i]);
+
+	      tv_set_filename (info, fallback_devices[i]);
   
 	      if (tveng_attach_device(fallback_devices[i],
 				      None,
@@ -826,21 +823,20 @@ int main(int argc, char * argv[])
 		  goto device_ok;
 		}
 
-	      free (info->file_name);
-	      info->file_name = NULL;
+	      tv_set_filename (info, NULL);
 	    }
 	}
 
       RunBox(_("Sorry, but \"%s\" could not be opened:\n%s"),
 	     GTK_MESSAGE_ERROR, zcg_char(NULL, "video_device"),
-	     info->error);
+	     tv_get_errstr (info));
 
       return -1;
     }
 
  device_ok:
 
-  if (info->current_controller == TVENG_CONTROLLER_XV)
+  if (tv_get_controller (info) == TVENG_CONTROLLER_XV)
     xv_present = TRUE;
 
   D();
@@ -858,7 +854,7 @@ int main(int argc, char * argv[])
   D();
   startup_zvbi();
   D();
-  /*  startup_subtitle();*/
+  startup_subtitle();
   D();
   zapping = ZAPPING (zapping_new ());
   gtk_widget_show(GTK_WIDGET (zapping));
@@ -976,6 +972,9 @@ void shutdown_zapping(void)
   guint i = 0;
   gchar * buffer = NULL;
   tveng_tuned_channel * channel;
+  const tv_video_line *vi;
+  const tv_audio_line *ai;
+  const tv_video_standard *vs;
 
   printv("Shutting down the beast:\n");
 
@@ -999,7 +998,7 @@ void shutdown_zapping(void)
   /* Shut down vbi */
 
   printv(" subtitles\n");
-  /* shutdown_subtitle(); */
+  shutdown_subtitle();
 
   printv(" vbi\n");
   shutdown_zvbi();
@@ -1072,18 +1071,18 @@ void shutdown_zapping(void)
 
   tveng_tuned_channel_list_delete (&global_channel_list);
 
-  if (zapping->info->cur_video_standard)
-    zcs_uint (zapping->info->cur_video_standard->hash, "current_standard");
+  if ((vs = tv_cur_video_standard (zapping->info)))
+    zcs_uint (vs->hash, "current_standard");
   else
     zcs_int (0, "current_standard");
 
-  if (zapping->info->cur_video_input)
-    zcs_uint (zapping->info->cur_video_input->hash, "current_input");
+  if ((vi = tv_cur_video_input (zapping->info)))
+    zcs_uint (vi->hash, "current_input");
   else
     zcs_int (0, "current_input");
 
-  if (zapping->info->cur_audio_input)
-    zcs_uint (zapping->info->cur_audio_input->hash, "current_audio_input");
+  if ((ai = tv_cur_audio_input (zapping->info)))
+    zcs_uint (ai->hash, "current_audio_input");
   else
     zcs_int (0, "current_audio_input");
 
@@ -1351,8 +1350,6 @@ static gboolean startup_zapping(gboolean load_plugins,
       {
 	_teletext_view_new = plugin_symbol (info, "view_new");
 	_teletext_view_from_widget = plugin_symbol (info, "view_from_widget");
-	_teletext_view_on_key_press =
-	  plugin_symbol (info, "view_on_key_press");
 	_teletext_toolbar_new = plugin_symbol (info, "toolbar_new");
       }
   }
