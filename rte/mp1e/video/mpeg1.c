@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.8 2001-09-25 09:29:13 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.9 2001-09-25 11:00:31 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -569,7 +569,7 @@ if (!T3RT) quant = 2;
 
 					if (cbp == 0 && mb_count > 1 && mb_count < mb_num &&
 						(!motion || (M[0].MV[0] | M[0].MV[1]) == 0)) {
-		printv(0, "###\n");		mmx_copy_refblock();
+						mmx_copy_refblock();
 						i++;
 						break;
 					} else {
