@@ -1344,10 +1344,14 @@ void on_delete_bookmarks_activated	(GtkWidget	*widget,
   gtk_widget_show(be);
 }
 
-
-
-
-
+/* returns the zconf name for the given export option, needs to be
+   g_free'd by the caller */
+static inline gchar *
+xo_zconf_name (vbi_export_option *xo, struct export *exp)
+{
+  return g_strdup_printf("/zapping/options/export/%s/%s",
+			 exp->mod->fmt_name, xo->keyword);
+}
 
 static void
 on_export_control			(GtkWidget *w,
@@ -1356,35 +1360,45 @@ on_export_control			(GtkWidget *w,
   gint id = GPOINTER_TO_INT (user_data);
   struct export *exp =
     (struct export *) gtk_object_get_data (GTK_OBJECT (w), "exp");
+  gint t1; gchar *t2;
+  gchar *zcname;
 
   g_assert(exp != NULL);
+
+  zcname = xo_zconf_name(&exp->mod->options[id], exp);
 
   switch (exp->mod->options[id].type)
     {
       case VBI_EXPORT_BOOL:
-        vbi_export_set_option (exp, id,
-	  (int) gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (w)));
+	t1 = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (w));
+        vbi_export_set_option (exp, id, t1);
+	zconf_set_boolean(t1, zcname);
 	break;
       case VBI_EXPORT_INT:
-        vbi_export_set_option (exp, id,
-	  (int) GTK_ADJUSTMENT (w)->value);
+	t1 = GTK_ADJUSTMENT (w)->value;
+        vbi_export_set_option (exp, id, t1);
+	zconf_set_integer(t1, zcname);
 	break;
       case VBI_EXPORT_MENU:
         {
 	  int value = (int) gtk_object_get_data (GTK_OBJECT (w),
 						"value");
 	  vbi_export_set_option (exp, id, value);
+	  zconf_set_integer(value, zcname);
 	  break;
 	}
       case VBI_EXPORT_STRING:
-        vbi_export_set_option (exp, id,
-	  (char *) gtk_entry_get_text (GTK_ENTRY (w)));
+	t2 = gtk_entry_get_text (GTK_ENTRY (w));
+        vbi_export_set_option (exp, id, t2);
+	zconf_set_string(t2, zcname);
 	break;
 
       default:
 	g_warning ("Miracle of type %d in on_export_control",
 		  exp->mod->options[id].type);
     }
+
+  g_free(zcname);
 }
 
 static void
@@ -1393,6 +1407,7 @@ create_export_entry (GtkWidget *table, vbi_export_option *xo,
 { 
   GtkWidget *label;
   GtkWidget *entry;
+  gchar *zcname = xo_zconf_name(xo, exp);
 
   label = gtk_label_new (_(xo->label));
   gtk_widget_show (label);
@@ -1400,7 +1415,10 @@ create_export_entry (GtkWidget *table, vbi_export_option *xo,
   entry = gtk_entry_new ();
   set_tooltip (entry, _(xo->tooltip));
   gtk_widget_show (entry);
-  gtk_entry_set_text (GTK_ENTRY (entry), _(xo->def.str));
+  zconf_create_string(xo->def.str, xo->tooltip, zcname);
+  gtk_entry_set_text (GTK_ENTRY (entry),
+		      _(zconf_get_string(NULL, zcname)));
+  g_free(zcname);
 
   gtk_object_set_data (GTK_OBJECT (entry), "exp", (gpointer) exp);
   gtk_signal_connect (GTK_OBJECT (entry), "changed", 
@@ -1424,6 +1442,7 @@ create_export_menu (GtkWidget *table, vbi_export_option *xo,
   GtkWidget *option_menu; /* The option menu */
   GtkWidget *menu; /* The menu displayed */
   GtkWidget *menu_item; /* Each of the menu items */
+  gchar *zcname = xo_zconf_name(xo, exp); /* Path to the config key */
   int i;
 
   label = gtk_label_new (_(xo->label));
@@ -1448,8 +1467,10 @@ create_export_menu (GtkWidget *table, vbi_export_option *xo,
     }
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
+  zconf_create_integer(xo->def.num, xo->tooltip, zcname);
   gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu),
-			       xo->def.num);
+			       zconf_get_integer(NULL, zcname));
+  g_free(zcname);
   gtk_widget_show (menu);
   set_tooltip (option_menu, _(xo->tooltip));
   gtk_widget_show (option_menu);
@@ -1471,12 +1492,16 @@ create_export_slider (GtkWidget *table, vbi_export_option *xo,
   GtkWidget *label;
   GtkWidget *hscale;
   GtkObject *adj; /* Adjustment object for the slider */
+  gchar *zcname = xo_zconf_name(xo, exp);
 
   label = gtk_label_new (_(xo->label));
   gtk_widget_show (label);
 
   adj = gtk_adjustment_new (xo->def.num, xo->min, xo->max, 1, 10, 10);
-  gtk_adjustment_set_value (GTK_ADJUSTMENT (adj), xo->def.num);
+  zconf_create_integer(xo->def.num, xo->tooltip, zcname);
+  gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
+			    zconf_get_integer(NULL, zcname));
+  g_free (zcname);
 
   gtk_object_set_data (GTK_OBJECT (adj), "exp", (gpointer) exp);
   gtk_signal_connect (adj, "value-changed", 
@@ -1504,9 +1529,13 @@ create_export_checkbutton (GtkWidget *table, vbi_export_option *xo,
 			  int index, struct export *exp)
 {
   GtkWidget *cb;
+  gchar *zcname = xo_zconf_name(xo, exp);
 
   cb = gtk_check_button_new_with_label (_(xo->label));
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cb), xo->def.num);
+  zconf_create_boolean(xo->def.num, xo->tooltip, zcname);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cb),
+				zconf_get_boolean(NULL, zcname));
+  g_free(zcname);
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (cb), FALSE);
   set_tooltip (cb, _(xo->tooltip));
   gtk_widget_show (cb);
@@ -1576,11 +1605,13 @@ create_export_dialog (gchar **bpp, ttxview_data *data,
   GtkWidget *vbox;
   GtkWidget *w;
 
-  dialog = gnome_dialog_new ("Title",
+  dialog = gnome_dialog_new (_("Export"),
 			     GNOME_STOCK_BUTTON_OK,
 			     GNOME_STOCK_BUTTON_CANCEL,
 			     NULL);
   gnome_dialog_set_parent (GNOME_DIALOG (dialog), GTK_WINDOW (data->parent));
+  gnome_dialog_set_default(GNOME_DIALOG(dialog), 0);
+  gtk_window_set_policy(GTK_WINDOW(dialog), TRUE, TRUE, TRUE); // resizable
 
   vbox = gtk_vbox_new (FALSE, 3);
   gtk_widget_show (vbox);
@@ -1589,11 +1620,15 @@ create_export_dialog (gchar **bpp, ttxview_data *data,
   gtk_widget_show (w);
   gtk_box_pack_start_defaults (GTK_BOX (vbox), w);
 
-  w = gtk_entry_new ();
-  gtk_entry_set_text (GTK_ENTRY (w), *bpp);
+  w = gnome_file_entry_new("ttxview_export_id",
+			   _("Select file you'll be exporting to"));
+  gnome_file_entry_set_default_path(GNOME_FILE_ENTRY(w), *bpp);
+  gtk_widget_set_usize (w, 400, -1);
   gtk_widget_show (w);
   gtk_box_pack_start_defaults (GTK_BOX (vbox), w);
 
+  w = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(w));
+  gtk_entry_set_text(GTK_ENTRY(w), *bpp);
   gtk_signal_connect (GTK_OBJECT (w), "changed",
 		      GTK_SIGNAL_FUNC (on_export_filename),
 		      (gpointer) bpp);
