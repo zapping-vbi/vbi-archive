@@ -597,6 +597,8 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
   GtkWidget * zapping_properties = create_zapping_properties();
+  GList * p = g_list_first(plugin_list); /* For traversing the plugins
+					  */
 
   /* Widget for assigning the callbacks (generic) */
   GtkWidget * widget;
@@ -671,6 +673,14 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
+  /* Let the plugins add their properties */
+  while (p)
+    {
+      plugin_add_properties(GNOME_PROPERTY_BOX(zapping_properties),
+			    (struct plugin_info * ) p->data);
+      p = p->next;
+    }
+
   gtk_widget_show(zapping_properties);
 }
 
@@ -683,7 +693,8 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
   GtkWidget * widget; /* Generic widget */
   GtkWidget * pbox = GTK_WIDGET(gnomepropertybox); /* Very long name */
   gchar * text; /* Pointer to returned text */
-
+  GList * p; /* For traversing the plugins */
+  
   /* Apply just the given page */
   switch (arg1)
     {
@@ -737,7 +748,20 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 	(GTK_TOGGLE_BUTTON(widget));
       break;
     default:
-      g_assert(arg1 == -1); /* To make sure we don't miss anything */
+      p = g_list_first(plugin_list);
+      while (p) /* Try with all the plugins until one of them accepts
+		   the call */
+	{
+	  if (plugin_apply_properties(gnomepropertybox, arg1,
+				      (struct plugin_info*) p->data))
+	    break; /* returned TRUE: stop */
+	  p = p->next;
+	}
+      /* This shouldn't ideally be reached, but a g_assert is too
+	 strong */
+      if ((p == NULL) && (arg1 != -1))
+	printf(_("%s (%d): This shouldn't have been reached\n"), 
+	       __FILE__, __LINE__);
       break;
     }
 }
@@ -898,7 +922,7 @@ on_plugins1_activate                   (GtkMenuItem     *menuitem,
   GtkWidget * text1 = lookup_widget(plugin_properties, "text1");
   GList * p = g_list_first(plugin_list); /* Iterate through the
 					    plugins */
-  struct plugin_info * info;
+  struct plugin_info * plug_info;
   gchar * clist2_entries[4]; /* Contains the entries for the CList */
   gchar buffer[256];
   GtkWidget * clist2 = lookup_widget(plugin_properties, "clist2");
@@ -911,13 +935,13 @@ on_plugins1_activate                   (GtkMenuItem     *menuitem,
   /* Add the plugins to the CList */
   while (p)
     {
-      info = (struct plugin_info*) p->data;
-      clist2_entries[0] = plugin_get_canonical_name(info);
-      clist2_entries[1] = plugin_get_name(info);
-      g_snprintf(buffer, 255, "%d.%d.%d", info -> major, info ->
-		 minor, info -> micro);
+      plug_info = (struct plugin_info*) p->data;
+      clist2_entries[0] = plugin_get_canonical_name(plug_info);
+      clist2_entries[1] = plugin_get_name(plug_info);
+      g_snprintf(buffer, 255, "%d.%d.%d", plug_info -> major, plug_info ->
+		 minor, plug_info -> micro);
       clist2_entries[2] = buffer;
-      clist2_entries[3] = plugin_running(info) ? _("Yes") : _("No");
+      clist2_entries[3] = plugin_running(plug_info) ? _("Yes") : _("No");
       gtk_clist_append(GTK_CLIST(clist2), clist2_entries);
       p = p->next;
     }
@@ -934,7 +958,7 @@ on_clist2_select_row                   (GtkCList        *clist,
                                         gpointer         user_data)
 {
   GdkColor blue;
-  struct plugin_info * info;
+  struct plugin_info * plug_info;
   GtkText * text1 = GTK_TEXT(lookup_widget(GTK_WIDGET(clist), "text1"));
   gchar buffer[256];
 
@@ -944,7 +968,7 @@ on_clist2_select_row                   (GtkCList        *clist,
 				TRUE, TRUE))
     return;
 
-  info = (struct plugin_info*) g_list_nth_data(plugin_list, row);
+  plug_info = (struct plugin_info*) g_list_nth_data(plugin_list, row);
   
   gtk_text_freeze(text1); /* We are going to do a number of
 			     modifications */
@@ -953,13 +977,13 @@ on_clist2_select_row                   (GtkCList        *clist,
 
   gtk_text_insert(text1, NULL, &blue, NULL, _("Plugin Description: "),
 		  -1);
-  gtk_text_insert(text1, NULL, NULL, NULL, plugin_get_info(info), -1);
+  gtk_text_insert(text1, NULL, NULL, NULL, plugin_get_info(plug_info), -1);
 
   gtk_text_insert(text1, NULL, &blue, NULL, _("\nPlugin author: "), -1);
-  gtk_text_insert(text1, NULL, NULL, NULL, plugin_author(info), -1);
+  gtk_text_insert(text1, NULL, NULL, NULL, plugin_author(plug_info), -1);
 
-  g_snprintf(buffer, 255, "%d.%d.%d", info -> zapping_major, info ->
-	     zapping_minor, info -> zapping_micro);
+  g_snprintf(buffer, 255, "%d.%d.%d", plug_info -> zapping_major, plug_info ->
+	     zapping_minor, plug_info -> zapping_micro);
 
   /* Adapt this and " required" to your own language structure freely */
   gtk_text_insert(text1, NULL, NULL, NULL, _("\nZapping "), -1);
@@ -989,7 +1013,45 @@ void
 on_plugin_close_clicked                (GtkButton       *button,
                                         gpointer         user_data)
 {
+  /* We traverse the clist and call plugin_close on all the selected
+     plugins */
+  GtkWidget * clist2 = lookup_widget(GTK_WIDGET(button), "clist2");
+  int i = 0;
+  GList * ptr = GTK_CLIST(clist2) -> row_list;
+  struct plugin_info * plug_info;
+  gchar buffer[256];
+  gchar * clist2_entries[4];
+  
+  while (ptr)
+    {
+      if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
+	plugin_stop((struct plugin_info*)
+		    g_list_nth(plugin_list, i)->data);
+      i++;
+      ptr = ptr -> next;
+    }
+  /* And now update the clist */
+  gtk_clist_freeze(GTK_CLIST(clist2));
+  gtk_clist_clear(GTK_CLIST(clist2));
 
+  ptr = g_list_first(plugin_list);
+
+  /* Add the plugins to the CList again */
+  while (ptr)
+    {
+      plug_info = (struct plugin_info*) ptr->data;
+      clist2_entries[0] = plugin_get_canonical_name(plug_info);
+      clist2_entries[1] = plugin_get_name(plug_info);
+      g_snprintf(buffer, 255, "%d.%d.%d", plug_info -> major, plug_info ->
+		 minor, plug_info -> micro);
+      clist2_entries[2] = buffer;
+      clist2_entries[3] = plugin_running(plug_info) ? _("Yes") : _("No");
+      gtk_clist_append(GTK_CLIST(clist2), clist2_entries);
+      ptr = ptr->next;
+    }
+
+  /* Show the changes */
+  gtk_clist_thaw(GTK_CLIST(clist2));
 }
 
 
@@ -997,7 +1059,45 @@ void
 on_plugin_apply_clicked                (GtkButton       *button,
                                         gpointer         user_data)
 {
+  /* We traverse the clist and call plugin_start on all the selected
+     plugins, just a verbatim copy of the above */
+  GtkWidget * clist2 = lookup_widget(GTK_WIDGET(button), "clist2");
+  int i = 0;
+  GList * ptr = GTK_CLIST(clist2) -> row_list;
+  struct plugin_info * plug_info;
+  gchar buffer[256];
+  gchar * clist2_entries[4];
+  
+  while (ptr)
+    {
+      if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
+	plugin_start((struct plugin_info*)
+		    g_list_nth(plugin_list, i)->data);
+      i++;
+      ptr = ptr -> next;
+    }
+  /* And now update the clist */
+  gtk_clist_freeze(GTK_CLIST(clist2));
+  gtk_clist_clear(GTK_CLIST(clist2));
 
+  ptr = g_list_first(plugin_list);
+
+  /* Add the plugins to the CList again */
+  while (ptr)
+    {
+      plug_info = (struct plugin_info*) ptr->data;
+      clist2_entries[0] = plugin_get_canonical_name(plug_info);
+      clist2_entries[1] = plugin_get_name(plug_info);
+      g_snprintf(buffer, 255, "%d.%d.%d", plug_info -> major, plug_info ->
+		 minor, plug_info -> micro);
+      clist2_entries[2] = buffer;
+      clist2_entries[3] = plugin_running(plug_info) ? _("Yes") : _("No");
+      gtk_clist_append(GTK_CLIST(clist2), clist2_entries);
+      ptr = ptr->next;
+    }
+
+  /* Show the changes */
+  gtk_clist_thaw(GTK_CLIST(clist2));
 }
 
 gboolean

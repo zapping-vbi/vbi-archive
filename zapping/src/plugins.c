@@ -41,6 +41,7 @@ gboolean plugin_load(gchar * file_name, struct plugin_info * info)
   void (*plugin_get_version)(int * zapping_major, int * zapping_minor,
 			     int * zapping_micro, int * plugin_major,
 			     int * plugin_minor, int * plugin_micro);
+  struct ParseStruct * (*plugin_get_parse_struct)();
 
 
   /* Open the file resolving all undefined symbols now */
@@ -112,6 +113,72 @@ gboolean plugin_load(gchar * file_name, struct plugin_info * info)
       return FALSE;
     }
 
+  info -> plugin_start = dlsym(info -> handle, "plugin_start");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  info -> plugin_stop = dlsym(info -> handle, "plugin_stop");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  plugin_get_parse_struct = dlsym(info -> handle, 
+				  "plugin_get_parse_struct");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  info -> plugin_add_properties = dlsym(info -> handle,
+					"plugin_add_properties");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  info -> plugin_apply_properties = dlsym(info -> handle, 
+					  "plugin_apply_properties");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  info -> plugin_add_gui = dlsym(info -> handle, "plugin_add_gui");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  info -> plugin_init = dlsym(info -> handle, "plugin_init");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  info -> plugin_close = dlsym(info -> handle, "plugin_close");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  info -> plugin_remove_gui = dlsym(info -> handle, "plugin_remove_gui");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
   /* Get the plugin version */
   (*plugin_get_version)(&info->zapping_major, & info -> zapping_minor,
 			&info->zapping_micro, & info -> major,
@@ -121,6 +188,14 @@ gboolean plugin_load(gchar * file_name, struct plugin_info * info)
   if (!(*info->plugin_get_canonical_name)())
     {
       info -> error = _("The plugin doesn't provide a canonical name");
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  info -> parse_struct = (*plugin_get_parse_struct)();
+  if (!(info -> parse_struct))
+    {
+      info -> error = _("The plugin doesn't provide a parse struct");
       dlclose(info -> handle);
       return FALSE;
     }
@@ -164,10 +239,64 @@ gchar * plugin_get_info(struct plugin_info * info)
     return returned_string;
 }
 
+/* Inits the plugin for the given device and returns TRUE if the
+   plugin coold be inited succesfully */
+gboolean plugin_init(tveng_device_info * info, struct plugin_info *
+		     plug_info)
+{
+  return ((*plug_info -> plugin_init)(info));
+}
+
+/* Closes the plugin, tells it to close all fds and so on */
+void plugin_close(struct plugin_info * info)
+{
+  (*info->plugin_close)();
+}
+
+/* Starts the execution of the plugin, TRUE on success */
+gboolean plugin_start(struct plugin_info * info)
+{
+  return ((*info->plugin_start)());
+}
+
+/* stops (pauses) the execution of the plugin */
+void plugin_stop(struct plugin_info * info)
+{
+  (*info->plugin_stop)();
+}
+
 /* TRUE if the plugin says it's active */
 gboolean plugin_running(struct plugin_info * info)
 {
   return ((*info->plugin_running)());
+}
+
+/* Add the plugin to the GUI */
+void plugin_add_gui(GtkWidget * main_window, struct plugin_info * info)
+{
+  (*info->plugin_add_gui)(main_window);
+}
+
+/* Remove the plugin from the GUI */
+void plugin_remove_gui(GtkWidget * main_window, struct plugin_info * info)
+{
+  (*info->plugin_remove_gui)(main_window);
+}
+
+/* Let the plugin add a page to the property box */
+void plugin_add_properties(GnomePropertyBox * gpb, struct plugin_info
+			   * info)
+{
+  (*info->plugin_add_properties)(gpb);
+}
+
+/* This function is called when apply'ing the changes of the
+   property box. The plugin should ignore (returning FALSE) this
+   call if n is not the property page it has created for itself */
+gboolean plugin_apply_properties(GnomePropertyBox * gpb, int n, struct
+				 plugin_info * info)
+{
+  return ((*info->plugin_apply_properties)(gpb, n));
 }
 
 /* The name of the plugin author */

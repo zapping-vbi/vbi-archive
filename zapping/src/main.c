@@ -39,16 +39,6 @@ extern int cur_tuned_channel;
 tveng_device_info info; /* make this global, so all modules have
 			   access to it */
 
-struct ParseStruct
-{
-  gchar * name; /* The name to parse */
-  gchar * format; /* The format to sscanf */
-  gpointer * where; /* Where to store the value, make sure it has the
-		       correct size for sscanf()'ing it */
-  int max_length; /* If max_length > 0, "where" is supposed to be a
-		     string and g_snprintf is used instead of sscanf */
-};
-
 /* Current configuration */
 struct config_struct config;
 
@@ -96,6 +86,10 @@ SaveTunedChannels(xmlNodePtr tree);
 /* Saves PNG saving options info */
 void
 SavePNGOptions(xmlNodePtr tree, struct config_struct * config);
+
+/* Saves plugin info */
+void
+SavePlugins(xmlNodePtr tree);
 
 /* Saves the config document in XML format (could change, better call
    SaveConfig()) */
@@ -151,6 +145,14 @@ void
 ParsePNGOptions(xmlDocPtr config_doc, 
 	    xmlNodePtr node, struct config_struct * config);
 
+/* 
+   This function doesn't require any config_struct parameter since it
+   operates on plugin_list directly.
+*/
+void
+ParsePlugins(xmlDocPtr config_doc,
+	     xmlNodePtr node);
+
 /*
   Fills in a config_struct with default values, just to have the
   struct working
@@ -177,6 +179,8 @@ main (int argc, char *argv[])
   fd_set rdset;
   struct timeval timeout;
   int n;
+  GList * p; /* For traversing the plugins */
+  struct plugin_info * plug_info;
 
 #ifndef NDEBUG
   int i;
@@ -290,6 +294,17 @@ main (int argc, char *argv[])
 			 &info);
 
       update_standards_menu(zapping, &info);
+
+      /* Now that we have a GUI, add the plugins to it and init them
+	 after that */
+      p = g_list_first(plugin_list);
+      while (p)
+	{
+	  plug_info = (struct plugin_info *) p -> data;
+	  plugin_add_gui(zapping, plug_info);
+	  plugin_init(&info, plug_info);
+	  p = p -> next;
+	}
 
       gtk_widget_show (zapping);
 
@@ -497,6 +512,15 @@ main (int argc, char *argv[])
       /* Save current configuration */
       if (!SaveConfig(&config))
 	printf(_("There was some error writing the configuration\n"));
+
+      /* Close the plugins here */
+      p = g_list_first(plugin_list);
+      while (p)
+	{
+	  plug_info = (struct plugin_info *) p -> data;
+	  plugin_close(plug_info);
+	  p = p->next;
+	}
 
       tveng_close_device(&info);
     }
@@ -841,6 +865,49 @@ ParseTunedChannels(xmlDocPtr config_doc,
     }  
 }
 
+/* 
+   This function doesn't require any config_struct parameter since it
+   operates on plugin_list directly.
+*/
+void
+ParsePlugins(xmlDocPtr config_doc,
+	     xmlNodePtr node)
+{
+  GList *p;
+  struct plugin_info * pi;
+  const xmlChar * property;
+
+  while (node) /* Iterate through all the tree */
+    {
+      /* Only use plugin entries for the moment */
+      if (!strcasecmp(node -> name, "plugin"))
+	{
+	  property = xmlGetProp(node, "name");
+	  if (!property) /* avoid possible segfault */
+	    {
+	      node = node->next;
+	      continue;
+	    }
+
+	  /* Look which plugin we are referring to */
+	  p = g_list_first(plugin_list);
+	  while (p)
+	    {
+	      pi = (struct plugin_info*) p -> data;
+	      if (!strcmp(plugin_get_canonical_name(pi),
+			  (gchar*)property))
+		{
+		  /* We found it, invoque the parser */
+		  Parser(config_doc, node->childs, pi->parse_struct);
+		  break; /* while (p) */
+		}
+	      p = p -> next;
+	    }
+	}
+      node = node -> next;
+    }
+}
+
 /*
   Parses the given tree and fills in the given config structure. In
   case of error, returns FALSE, and config_struct fields are undefined.
@@ -877,6 +944,9 @@ ParseConfigDoc (xmlDocPtr config_doc, struct config_struct *
 
       else if (!strcasecmp(node -> name, "PNG_Options"))
 	ParsePNGOptions(config_doc, node->childs, config);
+
+      else if (!strcasecmp(node -> name, "Plugins"))
+	ParsePlugins(config_doc, node->childs);
 
       node = node -> next;
     };
@@ -1004,6 +1074,38 @@ SavePNGOptions(xmlNodePtr tree, struct config_struct * config)
   xmlNewChild(tree, NULL, "ShowProgress", buffer);
 }
 
+/* Saves plugins info */
+void
+SavePlugins(xmlNodePtr parent)
+{
+  GList * p = g_list_first(plugin_list);
+  struct plugin_info * pi;
+  xmlNodePtr tree;
+  int i;
+  struct ParseStruct * ps;
+  gchar buffer[256];
+  buffer[255] = 0;
+
+  while (p)
+    {
+      pi = (struct plugin_info*) p -> data;
+      tree = xmlNewChild(parent, NULL, "plugin", NULL);
+      xmlSetProp(tree, "name", plugin_get_canonical_name(pi));
+      ps = pi -> parse_struct;
+      for (i=0; ps[i].name != NULL; i++)
+	{
+	  if (ps[i].max_length == 0)
+	    {
+	      g_snprintf(buffer, 255, ps[i].format, *(ps[i].where));
+	      xmlNewChild(tree, NULL, ps[i].name, buffer);
+	    }
+	  else
+	    xmlNewChild(tree, NULL, ps[i].name, (gchar*) ps[i].where);
+	}
+      p = p->next;
+    }
+}
+
 /* 
    Saves the config document in XML format (could change, better call
    SaveConfig()) 
@@ -1054,5 +1156,10 @@ SaveConfigDoc (gchar * file_name, struct config_struct * config)
   
   SavePNGOptions(tree, config);
 
+  /* Save the plugins */
+  tree = xmlNewChild(doc->root, NULL, "Plugins",
+		     _("\nAny options the plugins want to store is here\n"));
+  SavePlugins(tree);
+  
   return (xmlSaveFile(file_name, doc));
 }

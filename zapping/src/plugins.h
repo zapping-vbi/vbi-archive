@@ -59,7 +59,16 @@ struct plugin_info{
      structure) */
   void (*plugin_eat_frame)(gchar * frame, struct v4l2_format *
 			   format);
-  /* FIXME: Add properties and config support */
+  /* Add the plugin entries to the property box, we should connect
+     callbacks from the plugin appropiately */
+  void (*plugin_add_properties)(GnomePropertyBox * gpb);
+  /* This function is called when apply'ing the changes of the
+     property box. The plugin should ignore (returning FALSE) this
+     call if n is not the property page it has created for itself */
+  gboolean (*plugin_apply_properties)(GnomePropertyBox * gpb, int n);
+  /* The structure will be written to the config file just before
+     calling plugin_close and read just before calling plugin_init. */
+  struct ParseStruct * parse_struct;
 };
 
 /* Loads a plugin */
@@ -81,11 +90,41 @@ gchar * plugin_get_canonical_name(struct plugin_info * info);
    descibing its use */
 gchar * plugin_get_info(struct plugin_info * info);
 
+/* Inits the plugin for the given device and returns TRUE if the
+   plugin coold be inited succesfully */
+gboolean plugin_init(tveng_device_info * info, struct plugin_info *
+		     plug_info);
+
+/* Closes the plugin, tells it to close all fds and so on */
+void plugin_close(struct plugin_info * info);
+
+/* Starts the execution of the plugin, TRUE on success */
+gboolean plugin_start(struct plugin_info * info);
+
+/* stops (pauses) the execution of the plugin */
+void plugin_stop(struct plugin_info * info);
+
 /* Returns TRUE if the plugin is running now */
 gboolean plugin_running(struct plugin_info * info);
 
 /* The name of the plugin author */
 gchar * plugin_author(struct plugin_info * info);
+
+/* Add the plugin to the GUI */
+void plugin_add_gui(GtkWidget * main_window, struct plugin_info * info);
+
+/* Remove the plugin from the GUI */
+void plugin_remove_gui(GtkWidget * main_window, struct plugin_info * info);
+
+/* Let the plugin add a page to the property box */
+void plugin_add_properties(GnomePropertyBox * gpb, struct plugin_info
+			   * info);
+
+/* This function is called when apply'ing the changes of the
+   property box. The plugin should ignore (returning FALSE) this
+   call if n is not the property page it has created for itself */
+gboolean plugin_apply_properties(GnomePropertyBox * gpb, int n, struct
+				 plugin_info * info);
 
 /* Loads all the valid plugins in the given directory, and appends them to
    the given GList. It returns the new GList. The plugins should

@@ -52,6 +52,18 @@
 /* Channel tuning by countries */
 #include "frequencies.h"
 
+/* FIXME: This isn't the correct place for this, should go in a
+   standalone module (setup.c or likewise) */
+struct ParseStruct
+{
+  gchar * name; /* The name to parse */
+  gchar * format; /* The format to sscanf */
+  gpointer * where; /* Where to store the value, make sure it has the
+		       correct size for sscanf()'ing it */
+  int max_length; /* If max_length > 0, "where" is supposed to be a
+		     string and g_snprintf is used instead of sscanf */
+};
+
 typedef struct
 {
   struct v4l2_buffer vidbuf; /* Info about the buffer */
