@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.c,v 1.8 2002-09-14 04:21:04 mschimek Exp $ */
+/* $Id: vlc.c,v 1.9 2002-09-26 20:39:59 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -36,7 +36,7 @@ extern struct vlc_rec	video_out;
 
 /* Reference */
 
-#if 1
+#if 0
 
 static int
 escape				(struct bs_rec *	bs,
