@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.8 2001-09-11 13:13:56 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.9 2001-09-13 17:15:44 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -152,7 +152,7 @@ init_context			(rte_context	*context)
 		return 0;
 
 	/* Init the mp1e engine, as main would do */
-	if (!(priv->mux = mux_alloc()))
+	if (!(priv->mux = mux_alloc(context)))
 	{
 		rte_error(context, "Cannot init output");
 		return 0;

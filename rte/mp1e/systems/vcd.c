@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.4 2001-08-22 01:28:08 mschimek Exp $ */
+/* $Id: vcd.c,v 1.5 2001-09-13 17:15:44 garetxe Exp $ */
 
 /*
  *  This code creates a stream suitable for mkvcdfs as vcdmplex
@@ -301,7 +301,7 @@ vcd_system_mux(void *muxp)
 		if (!video_stream || !audio_stream || nstreams != 2)
 			FAIL("One video, one audio stream required");
 
-		buf = mux_output(NULL);
+		buf = mux_output(mux, NULL);
 
 		assert(buf && buf->size >= 512
 		           && buf->size <= 32768);
@@ -337,7 +337,7 @@ vcd_system_mux(void *muxp)
 		p = padding_packet(p, buf->data + buf->size - p);
 
 	bytes_out += buf->used = p - buf->data;
-	buf = mux_output(buf);
+	buf = mux_output(mux, buf);
 
 	scr += ticks_per_pack;
 
@@ -349,7 +349,7 @@ vcd_system_mux(void *muxp)
 		p = padding_packet(p, buf->data + buf->size - p);
 
 	bytes_out += buf->used = p - buf->data;
-	buf = mux_output(buf);
+	buf = mux_output(mux, buf);
 
 	tscr = scr;
 
@@ -454,7 +454,7 @@ reschedule:
 
 		bytes_out += buf->used = p - buf->data;
 
-		buf = mux_output(buf);
+		buf = mux_output(mux, buf);
 
 		assert(buf && buf->size >= 512
 			   && buf->size <= 32768);
@@ -490,7 +490,7 @@ reschedule:
 	*((unsigned int *) p) = swab32(ISO_END_CODE);
 	buf->used = 4;
 
-	mux_output(buf);
+	mux_output(mux, buf);
 
 	pthread_cleanup_pop(1);
 

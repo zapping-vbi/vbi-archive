@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.4 2001-08-22 01:28:08 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.5 2001-09-13 17:15:44 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -334,7 +334,7 @@ mpeg1_system_mux(void *muxp)
 			nstreams++;
 		}
 
-		buf = mux_output(NULL);
+		buf = mux_output(mux, NULL);
 
 		assert(buf && buf->size >= 512
 		           && buf->size <= 32768);
@@ -456,7 +456,7 @@ reschedule:
 
 		bytes_out += buf->used = p - buf->data;
 
-		buf = mux_output(buf);
+		buf = mux_output(mux, buf);
 
 		assert(buf && buf->size >= 512
 			   && buf->size <= 32768);
@@ -505,7 +505,7 @@ reschedule:
 	} else
 		buf->used = 4;
 
-	mux_output(buf);
+	mux_output(mux, buf);
 
 	pthread_cleanup_pop(1);
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.4 2001-09-11 13:13:56 mschimek Exp $
+ * $Id: rtepriv.h,v 1.5 2001-09-13 17:15:42 garetxe Exp $
  * Private stuff in the context.
  */
 
@@ -29,8 +29,6 @@
 
 #define BLANK_BUFFER	1 /* the buffer was created by blank_callback,
 			     do not unref_callback it */
-
-extern rte_context * rte_global_context;
 
 typedef void (*_rte_filter)(const char * src, char * dest, int width,
 			    int height);

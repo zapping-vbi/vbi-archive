@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.5 2001-08-22 01:28:08 mschimek Exp $ */
+/* $Id: systems.h,v 1.6 2001-09-13 17:15:44 garetxe Exp $ */
 
 #include "libsystems.h"
 
@@ -30,8 +30,6 @@
 #define PAD_PACKETS		FALSE
 #define CONST_BIT_RATE		FALSE
 #define PAYLOAD_ALIGNMENT	1
-
-extern buffer *		(* mux_output)(buffer *b);
 
 typedef struct stream stream;
 
@@ -67,4 +65,8 @@ struct multiplexer {
 	producer 		prod;
 
 	int			packet_size;
+
+	void *			user_data;
 };
+
+extern buffer *		(* mux_output)(struct multiplexer *mux, buffer *b);

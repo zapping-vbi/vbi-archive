@@ -35,30 +35,34 @@
 #include "systems.h"
 #include "../rtepriv.h"
 
-buffer *		(* mux_output)(buffer *b);
+buffer *		(* mux_output)(struct multiplexer *mux,
+				       buffer *b);
 
 static buffer		mux_buffer;
 
 static buffer *
-output(buffer *mbuf)
+output(struct multiplexer *mux,
+       buffer *mbuf)
 {
+	rte_context *context = (rte_context*)mux->user_data;
+
 	if (!mbuf)
 		return &mux_buffer;
 
 	/* rte_global_context sanity checks */
-	if ((!rte_global_context) || (!rte_global_context->private) ||
-	    (!rte_global_context->private->encode_callback)) {
+	if ((!context) || (!context->private) ||
+	    (!context->private->encode_callback)) {
 		rte_error(NULL, "sanity check failed");
 		return mbuf;
 	}
 
-	rte_global_context->private->bytes_out += mbuf->used;
+	context->private->bytes_out += mbuf->used;
 
-	rte_global_context->private->
-		encode_callback(rte_global_context,
+	context->private->
+		encode_callback(context,
 				mbuf->data,
 				mbuf->used,
-				rte_global_context->private->user_data);
+				context->private->user_data);
 
 
 	return mbuf; /* any previously entered */

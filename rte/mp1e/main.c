@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.6 2001-09-02 03:26:58 mschimek Exp $ */
+/* $Id: main.c,v 1.7 2001-09-13 17:15:44 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -250,7 +250,7 @@ main(int ac, char **av)
 
 	/* Compression init */
 
-	mux = mux_alloc();
+	mux = mux_alloc(NULL);
 
 	if (modules & MOD_AUDIO) {
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };

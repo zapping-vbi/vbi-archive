@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.7 2001-09-11 13:13:56 mschimek Exp $ */
+/* $Id: rte.c,v 1.8 2001-09-13 17:15:42 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -52,8 +52,6 @@
 */
 
 #define NUM_AUDIO_BUFFERS 4 /* audio buffers in the audio fifo */
-
-rte_context * rte_global_context = NULL;
 
 extern rte_backend_info b_mp1e_info;
 extern rte_backend_info b_ffmpeg_info;
@@ -251,12 +249,6 @@ rte_context * rte_context_new (int width, int height,
 	rte_context * context;
 	int priv_bytes=0, i;
 
-	if (rte_global_context)
-	{
-		rte_error(NULL, "There is already a context");
-		return NULL;
-	}
-
 	context = malloc(sizeof(rte_context));
 
 	if (!context)
@@ -277,7 +269,6 @@ rte_context * rte_context_new (int width, int height,
 		return NULL;
 	}
 	memset(context->private, 0, priv_bytes);
-	rte_global_context = context;
 
 	context->mode = RTE_AUDIO_AND_VIDEO;
 
@@ -325,12 +316,6 @@ void * rte_context_destroy ( rte_context * context )
 {
 	nullcheck(context, return NULL);
 
-	if (context != rte_global_context)
-	{
-		rte_error(NULL, "The given context hasn't been created by rte");
-		return NULL;
-	}
-
 	if (context->private->encoding)
 		rte_stop(context);
 
@@ -360,8 +345,6 @@ void * rte_context_destroy ( rte_context * context )
 
 	free(context->private);
 	free(context);
-
-	rte_global_context = NULL;
 
 	return NULL;
 }
@@ -996,8 +979,6 @@ int rte_init ( void )
 	for (i=0; i<num_backends; i++)
 		if (!backends[i]->init_backend())
 			return 0;
-
-	rte_global_context = NULL;
 
 	return 1;
 }

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.5 2001-09-12 23:06:48 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.6 2001-09-13 17:15:42 garetxe Exp $
  * This is a simple RTE test.
  */
 
@@ -433,7 +433,7 @@ int main(int argc, char *argv[])
 	int width = 16, height = 16;
 	int sleep_time = 10;
 	int audio_rate=44100, stereo=1;
-#if 1 
+#if 0 
 	char * video_device = "/dev/video4";
 	char * audio_device = "/dev/audio";
 	char * backend = "mp1e";

@@ -34,12 +34,14 @@
 #include "../common/log.h"
 #include "systems.h"
 
-buffer *		(* mux_output)(buffer *b);
+buffer *		(* mux_output)(struct multiplexer* mux,
+				       buffer *b);
 
 static buffer		mux_buffer;
 
 static buffer *
-output_stdout(buffer *b)
+output_stdout(struct multiplexer *mux,
+	      buffer *b)
 {
 	unsigned char *s;
 	ssize_t r, n;
@@ -88,7 +90,7 @@ init_output_stdout(void)
 #if 0
 
 static buffer *
-output_buffered(buffer *b)
+output_buffered(struct multiplexer *mux, buffer *b)
 {
 	if (b)
 		send_full_buffer(output_fifo, b);

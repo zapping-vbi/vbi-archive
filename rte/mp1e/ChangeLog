@@ -1,3 +1,8 @@
+2001-09-13	user data to mux_alloc <garetxe@users.sf.net>
+
+	* systems: pass down user_data to mux_output, needed for getting
+	rid of rte_global_context.
+
 2001-09-07	audio noise bug <mschimek@users.sf.net>
 
 	* afl.c, alsa.c, esd.c: Fixed an internal interface bug.

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.c,v 1.3 2001-08-22 01:28:08 mschimek Exp $ */
+/* $Id: systems.c,v 1.4 2001-09-13 17:15:44 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +54,7 @@ mux_free(multiplexer *mux)
 }
 
 multiplexer *
-mux_alloc(void)
+mux_alloc(void *user_data)
 {
 	multiplexer *mux;
 
@@ -68,6 +68,8 @@ mux_alloc(void)
 	mux->packet_size = (mux_syn == 4) ? 2324 /* VCD */ : 2048;
 
 	assert(mux->packet_size >= 512 && mux->packet_size <= 32768);
+
+	mux->user_data = user_data;
 
 	return mux;
 }
@@ -200,7 +202,7 @@ elementary_stream_bypass(void *muxp)
 		frame_count++;
 		bytes_out += buf->used;
 
-		buf = mux_output(buf);
+		buf = mux_output(mux, buf);
 
 		send_empty_buffer(&str->cons, buf);
 
