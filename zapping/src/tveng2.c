@@ -73,6 +73,8 @@ struct private_tveng2_device_info
   struct tveng2_vbuf * buffers; /* Array of buffers */
   double last_timestamp; /* The timestamp of the last captured buffer */
   uint32_t chroma;
+  int muted; /* 1 if the device is muted, a workaround for a bttv problem. */
+  int audio_mode; /* 0 mono */
 };
 
 /* Private, builds the controls structure */
@@ -164,14 +166,6 @@ static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
   if (caps.flags & V4L2_FLAG_MONOCHROME)
     info->caps.flags |= TVENG_CAPS_MONOCHROME;
 
-#ifdef TVENG2_FAKE_TUNER
-  fprintf (stdout, "Faking tuner\n");
-  info->caps.flags |= TVENG_CAPS_TUNER;
-#endif
-#ifdef TVENG2_FAKE_MUTE
-  fprintf (stdout, "Faking mute control\n");
-#endif
-
   if (caps.flags & V4L2_FLAG_PREVIEW)
     {
       info->caps.flags |= TVENG_CAPS_OVERLAY;
@@ -221,6 +215,8 @@ int tveng2_attach_device(const char* device_file,
 
   if (info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
+
+  info->audio_mutable = 0;
 
   info -> file_name = strdup(device_file);
   if (!(info -> file_name))
@@ -479,20 +475,6 @@ int tveng2_get_inputs(tveng_device_info * info)
 	info->inputs[i].flags |= TVENG_INPUT_AUDIO;
     }
 
-#ifdef TVENG2_FAKE_TUNER
-  info->inputs = realloc(info->inputs, (i+1)*
-			 sizeof(struct tveng_enum_input));
-  info->inputs[i].id = 100;
-  info->inputs[i].index = i;
-  snprintf(info->inputs[i].name, 32, "Fake tuner");
-  info->inputs[i].name[31] = 0;
-  info->inputs[i].hash = tveng_build_hash(info->inputs[i].name);
-  info->inputs[i].flags = TVENG_INPUT_TUNER;
-  info->inputs[i].tuners = 1;
-  info->inputs[i].type = TVENG_INPUT_TYPE_TV;
-  i++;
-#endif
-
   input_collisions(info);
 
   if (i) /* If there is any input present, switch to the first one */
@@ -528,28 +510,12 @@ int tveng2_set_input(struct tveng_enum_input * input,
 
   current_mode = tveng_stop_everything(info);
 
-#ifdef TVENG2_FAKE_TUNER
-  if (input->id == 100)
-    {
-      fprintf (stdout, "Switch to fake tuner\n");
-      retcode = 0;
-    }
-  else
-    {
-      if (info->inputs[info->cur_input].id == 100)
-	fprintf (stdout, "Switch away from fake tuner\n");
-#endif
-
       new_input.index = input->id;
       if ((retcode = IOCTL(info->fd, VIDIOC_S_INPUT, &new_input)) != 0)
 	{
 	  info -> tveng_errno = errno;
 	  t_error("VIDIOC_S_INPUT", info);
 	}
-
-#ifdef TVENG2_FAKE_TUNER
-    }
-#endif
 
   info->format.pixformat = pixformat;
   tveng_set_capture_format(info);
@@ -907,10 +873,6 @@ tveng2_set_capture_format(tveng_device_info * info)
   return 0; /* Success */
 }
 
-#ifdef TVENG2_FAKE_MUTE
-static int fake_mute = 0;
-#endif
-
 /* To aid i18n, possible label isn't actually used */
 struct p_tveng2_control_with_i18n
 {
@@ -948,6 +910,18 @@ static struct p_tveng2_control_with_i18n cids[] =
   {V4L2_CID_AUDIO_TREBLE, N_("Treble")},
   {V4L2_CID_AUDIO_LOUDNESS, N_("Loudness")},
   {V4L2_CID_AUDIO_BASS, N_("Bass")}
+};
+
+/* Preliminary */
+#define TVENG2_AUDIO_MAGIC 0x1234
+static const char *
+audio_decoding_modes [] =
+{
+  N_("Mono"),
+  N_("Stereo"),
+  N_("Alternate 1"),
+  N_("Alternate 2"),
+  NULL
 };
 
 /* Private, builds the controls structure */
@@ -988,6 +962,12 @@ p_tveng2_build_controls(tveng_device_info * info)
 	  control.def_value = qc.default_value;
 	  control.id = qc.id;
 	  control.controller = TVENG_CONTROLLER_V4L2;
+
+	  if (qc.id == V4L2_CID_AUDIO_MUTE)
+	    info->audio_mutable = 1;
+
+	  control.property = TVENG_CTRL_PROP_OTHER;
+
 	  switch (qc.type)
 	    {
 	    case V4L2_CTRL_TYPE_INTEGER:
@@ -1055,18 +1035,36 @@ p_tveng2_build_controls(tveng_device_info * info)
       goto build_controls;
     }
 
-#ifdef TVENG2_FAKE_MUTE
-  strncpy(control.name, "Fake Mute", sizeof(control.name) - 1);
-  control.min = 0;
-  control.max = 1;
-  control.def_value = 0;
-  control.id = 1000;
-  control.controller = TVENG_CONTROLLER_V4L2;
-  control.type = TVENG_CONTROL_CHECKBOX;
-  control.data = NULL;
-  if (p_tveng_append_control(&control, info) == -1)
-    return -1;
-#endif
+  /* Artificial control (preliminary) */
+
+  /* Check that there are tuners in the current input */
+  if (info->inputs[info->cur_input].tuners > 0)
+    {
+      struct v4l2_tuner tuner;
+
+      memset(&tuner, 0, sizeof(tuner));
+      tuner.input = info->inputs[info->cur_input].id;
+
+      if (IOCTL(info->fd, VIDIOC_G_TUNER, &tuner) == 0)
+	{
+	  /* NB this is not implemented in bttv 0.8.45 */
+	  if (tuner.capability & (V4L2_TUNER_CAP_STEREO
+				  | V4L2_TUNER_CAP_LANG2))
+	    {
+	      /* XXX this needs refinement */
+	      control.id = TVENG2_AUDIO_MAGIC;
+	      control.type = TVENG_CONTROL_MENU;
+	      strncpy(control.name, _("Audio"), 31);
+	      control.min = 0;
+	      control.max = 3;
+	      control.data = (char **) audio_decoding_modes;
+	      control.def_value = 0;
+	      control.controller = TVENG_CONTROLLER_V4L2;
+
+	      p_tveng_append_control (&control, info);
+	    }
+	}
+    }
 
   return tveng2_update_controls(info);
 }
@@ -1079,6 +1077,8 @@ p_tveng2_build_controls(tveng_device_info * info)
 static int
 tveng2_update_controls(tveng_device_info * info)
 {
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
   int i;
   struct v4l2_control c;
 
@@ -1088,23 +1088,30 @@ tveng2_update_controls(tveng_device_info * info)
 
   for (i=0; i<info->num_controls; i++)
     {
-#ifdef TVENG2_FAKE_MUTE
-      if (info->controls[i].id == 1000)
-        {
-          info->controls[i].cur_value = fake_mute;
-	  continue;
-	}
-#endif
       c.id = info->controls[i].id;
+
       if (info->controls[i].controller != TVENG_CONTROLLER_V4L2)
 	continue; /* somebody else created this control */
-      if (IOCTL(info->fd, VIDIOC_G_CTRL, &c) != 0)
+
+      if (c.id == TVENG2_AUDIO_MAGIC)
+	{
+	  /* FIXME actual value */
+	  info->controls[i].cur_value = p_info->audio_mode;
+	}
+      else if (IOCTL(info->fd, VIDIOC_G_CTRL, &c) != 0)
 	{
 	  info->tveng_errno = errno;
 	  t_error("VIDIOC_G_CTRL", info);
 	  c.value = 0; /* This shouldn't be critical */
 	}
-      info->controls[i].cur_value = c.value;
+/*
+  Doesn't seem to work with bttv.
+  FIXME we should check at runtime.
+*/
+      if (info->controls[i].id == V4L2_CID_AUDIO_MUTE)
+	info->controls[i].cur_value = p_info->muted;
+      else
+	info->controls[i].cur_value = c.value;
     }
   return 0;
 }
@@ -1117,6 +1124,8 @@ static int
 tveng2_set_control(struct tveng_control * control, int value,
 		   tveng_device_info * info)
 {
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
   struct v4l2_control c;
 
   t_assert(control != NULL);
@@ -1132,43 +1141,45 @@ tveng2_set_control(struct tveng_control * control, int value,
   c.id = control->id;
   c.value = value;
 
-#ifdef TVENG2_FAKE_MUTE
-  if (control->id == 1000)
+  if (c.id == TVENG2_AUDIO_MAGIC)
     {
-      fprintf(stdout, "tveng2_set_control fake mute %d\n", value);
-      fake_mute = !!value;
-    }
-  else
-#endif
+      if (info->inputs[info->cur_input].tuners > 0)
+	{
+	  struct v4l2_tuner tuner;
 
-  if (IOCTL(info->fd, VIDIOC_S_CTRL, &c) != 0)
+	  memset(&tuner, 0, sizeof(tuner));
+	  tuner.input = info->inputs[info->cur_input].id;
+
+	  if (IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner) == 0)
+	    {
+	      tuner.audmode = "\0\1\3\2"[value];
+
+	      if (IOCTL(info -> fd, VIDIOC_S_TUNER, &tuner) == 0)
+		{
+		  p_info->audio_mode = value;
+		}
+	    }
+	}
+      else
+	{
+	  p_info->audio_mode = 0; /* mono */
+	}
+    }
+  else if (IOCTL(info->fd, VIDIOC_S_CTRL, &c) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_S_CTRL", info);
       return -1;
     }
+/*
+  Doesn't seem to work with bttv.
+  FIXME we should check at runtime.
+*/
+  if (control->id == V4L2_CID_AUDIO_MUTE)
+    p_info->muted = value;
 
   return (tveng2_update_controls(info));
 }
-
-#ifdef TVENG2_FAKE_MUTE
-
-static int
-tveng2_get_mute(tveng_device_info * info)
-{
-  fprintf(stdout, "tveng2_get_mute fake mute %d\n", fake_mute);
-  return fake_mute;
-}
-
-static int
-tveng2_set_mute(int value, tveng_device_info * info)
-{
-  fake_mute = !!value;
-  fprintf(stdout, "tveng2_set_mute fake mute %d\n", fake_mute);
-  return 0;
-}
-
-#else /* !defined(TVENG2_FAKE_MUTE) */
 
 /*
   Gets the value of the mute property. 1 means mute (no sound) and 0
@@ -1177,11 +1188,21 @@ tveng2_set_mute(int value, tveng_device_info * info)
 static int
 tveng2_get_mute(tveng_device_info * info)
 {
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
+
+  return p_info->muted;
+
+/*
+  Doesn't seem to work with bttv.
+  FIXME we should check at runtime.
+
   int returned_value;
   if (tveng_get_control_by_id(V4L2_CID_AUDIO_MUTE, &returned_value, info) ==
       -1)
     return -1;
   return !!returned_value;
+*/
 }
 
 /*
@@ -1191,10 +1212,11 @@ tveng2_get_mute(tveng_device_info * info)
 static int
 tveng2_set_mute(int value, tveng_device_info * info)
 {
-  return (tveng_set_control_by_id(V4L2_CID_AUDIO_MUTE, !!value, info));
-}
+  if (tveng_set_control_by_id(V4L2_CID_AUDIO_MUTE, !!value, info) < 0)
+      return -1;
 
-#endif /* !defined(TVENG2_FAKE_MUTE) */
+  return 0;
+}
 
 /*
   Tunes the current input to the given freq. Returns -1 on error.
@@ -1212,14 +1234,6 @@ tveng2_tune_input(uint32_t _freq, tveng_device_info * info)
   /* Check that there are tuners in the current input */
   if (info->inputs[info->cur_input].tuners == 0)
     return 0; /* Success (we shouldn't be tuning, anyway) */
-
-#ifdef TVENG2_FAKE_TUNER
-  if (info->inputs[info->cur_input].id == 100)
-    {
-      fprintf (stdout, "Fake tuner to %7.3f Mhz\n", _freq / 1000.0);
-      return 0;
-    }
-#endif
 
   /* Get more info about this tuner */
   tuner_info.input = info->inputs[info->cur_input].id;
@@ -1271,16 +1285,6 @@ tveng2_get_signal_strength (int *strength, int * afc,
   /* Check that there are tuners in the current input */
   if (info->inputs[info->cur_input].tuners == 0)
     return -1;
-
-#ifdef TVENG2_FAKE_TUNER
-  if (info->inputs[info->cur_input].id == 100)
-    {
-      if (strength)
-	*strength = 32768;
-      *afc = 0;
-      return 0;
-    }
-#endif
 
   tuner.input = info->inputs[info->cur_input].id;
   if (IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
@@ -1346,14 +1350,6 @@ tveng2_get_tune(uint32_t * freq, tveng_device_info * info)
       return -1;
     }
 
-#ifdef TVENG2_FAKE_TUNER
-  if (info->inputs[info->cur_input].id == 100)
-    {
-      *freq = 777777;
-      return 0;
-    }
-#endif
-
   if (IOCTL(info->fd, VIDIOC_G_FREQ, &real_freq) != 0)
     {
       info->tveng_errno = errno;
@@ -1395,15 +1391,6 @@ tveng2_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
   /* Check that there are tuners in the current input */
   if (info->inputs[info->cur_input].tuners == 0)
     return -1;
-
-#ifdef TVENG2_FAKE_TUNER
-  if (info->inputs[info->cur_input].id == 100)
-    {
-      *min = 0;
-      *max = 0x7FFFFFFF;
-      return 0;
-    }
-#endif
 
   /* Get info about the current tuner */
   tuner.input = info->inputs[info->cur_input].id;
