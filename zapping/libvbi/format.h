@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.7 2001-03-09 17:39:01 mschimek Exp $ */
+/* $Id: format.h,v 1.8 2001-03-28 07:48:15 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -164,7 +164,7 @@ struct fmt_page
 	 *  text[].foreground, .background,
 	 *  drcs_clut, screen_colour.
 	 */
-	attr_rgba *		colour_map;
+	attr_rgba 		colour_map[40];
 
 	/*
 	 *  DRCS LUTs, see exp_gfx.c.

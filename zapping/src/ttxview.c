@@ -2665,11 +2665,24 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
     case GDK_c:
       if (!(event->state & (GDK_MOD1_MASK | GDK_SHIFT_MASK |
 			    GDK_CONTROL_MASK)))
-	{
 	  on_ttxview_clone_clicked(GTK_BUTTON(lookup_widget(data->toolbar,
 					      "ttxview_clone")), data);
-	  break;
-	}
+      break;
+    case GDK_B:
+    case GDK_b:
+      {
+	 struct vbi *vbi = zvbi_get_object();
+         static int br = 128;
+
+	 /* experimental */
+	 if (event->keyval == GDK_B)
+	   br = (br > 0) ? (br - 4) : 0;
+	 else
+	   br = (br < 255) ? (br + 4) : 256 - 4;
+	 vbi_set_colour_level(vbi, br, 64 /* cont */);
+         load_page(data->page, data->subpage, data, NULL);
+	 break;
+      }
     default:
       return FALSE;
     }

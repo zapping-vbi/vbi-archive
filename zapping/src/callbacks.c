@@ -637,6 +637,13 @@ on_pal_big_activate		       (GtkMenuItem     *menuitem,
 }
 
 void
+on_rec601_pal_big_activate	       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  gdk_window_resize(main_window->window, 720, 576);
+}
+
+void
 on_ntsc_big_activate		       (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
@@ -648,6 +655,13 @@ on_pal_small_activate		       (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
   gdk_window_resize(main_window->window, 768/2, 576/2);
+}
+
+void
+on_rec601_pal_small_activate	       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  gdk_window_resize(main_window->window, 704/2, 576/2);
 }
 
 void

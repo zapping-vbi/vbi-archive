@@ -1,19 +1,31 @@
+28.3.2001	libvbi <mschimek@users.sourceforge.net>
+
+	* New weblink event for ITV and Z2W.
+	* packet.c: Added preliminary decoding of "zap2web", TTX based
+	  equv. of CC-ITV, went on air at CeBit last week.
+	* packet.c: Added page classification (program related,
+	  subtitles, number of subpages etc). Not reliable yet.
+
 25.3.2001	channel=f(bookmark) <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: Selecting a bookmark can tune the current channel.
 	* libvbi/v4lx.c: Added some cancellation points, so the thread is
 	always joinable.
 
-24.3.2001	channel editor <garetxe@users.sourceforge.net>
-
-	* src/channel_editor.c: Completed new channel code.
-
-24.3.2001	ttxview.c <mschimek@users.sourceforge.net>
+25.3.2001	ttxview/libvbi <mschimek@users.sourceforge.net>
 
 	* ttxview.c & exp_txt.c: Improved wrapping selection of double-h/w/s
 	  characters.
 	* v4lx.c has a buffered fifo, timestamps are valid, out-of-sync
 	  function restored.
+	* Added text colour levels (brightness, contrast), no gui.
+	  Primarily an improvement when scaling < 1x.
+	* Page event flags rolling header.
+	* Added resize options 720x576 and 352x288 (ITU-R 601 devices).
+
+24.3.2001	channel editor <garetxe@users.sourceforge.net>
+
+	* src/channel_editor.c: Completed new channel code.
 
 23.3.2001	channels <garetxe@users.sourceforge.net>
 

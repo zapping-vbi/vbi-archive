@@ -16,6 +16,7 @@
 #include "libvbi.h"
 
 #include "../common/fifo.h"
+#include "../common/math.h"
 #include "v4lx.h"
 #include "sliced.h"
 
@@ -123,7 +124,7 @@ vbi_mainloop(void *p)
 
 		if (time > 0 && (b->time - time) > 0.055) {
 fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n", b->time, b->time - time);
-			if (vbi->event_mask & (VBI_EVENT_PAGE | VBI_EVENT_HEADER | VBI_EVENT_NETWORK))
+			if (vbi->event_mask & (VBI_EVENT_PAGE | VBI_EVENT_NETWORK))
 				vbi_teletext_desync(vbi);
 			if (vbi->event_mask & (VBI_EVENT_CAPTION | VBI_EVENT_NETWORK))
 				vbi_caption_desync(vbi);
@@ -287,13 +288,46 @@ remove_filter(struct vbi *vbi)
 	fclose(filter.fp);
 }
 
+static inline int
+transp(int val, int brig, int cont)
+{
+	int r = (((val - 128) * cont) / 64) + brig;
 
+	return saturate(r, 0, 255);
+}
 
+void
+vbi_transp_colourmap(struct vbi *vbi, attr_rgba *d, attr_rgba *s, int entries)
+{
+	int brig, cont;
+	attr_rgba colour;
 
+	brig = saturate(vbi->brightness, 0, 255);
+	cont = saturate(vbi->contrast, -128, +127);
 
+	while (entries--) {
+		colour  = transp(((*s >> 0) & 0xFF), brig, cont) << 0;
+		colour |= transp(((*s >> 8) & 0xFF), brig, cont) << 8;
+		colour |= transp(((*s >> 16) & 0xFF), brig, cont) << 16;
+		colour |= *s & (0xFFUL << 24);
+		*d++ = colour;
+		s++;
+	}
+}
 
+/*
+ *  Brightness: 0 ... 255, default 128
+ *  Contrast: -128 ... +128, default 64
+ *  (maximum contrast at +/-128, zero at 0, inversion below 0)
+ */
+void
+vbi_set_colour_level(struct vbi *vbi, int brightness, int contrast)
+{
+	vbi->brightness = brightness;
+	vbi->contrast = contrast;
 
-
+	vbi_caption_colour_level(vbi);
+}
 
 
 
@@ -328,6 +362,9 @@ vbi_open(char *vbi_name, struct cache *ca, int given_fd)
 	vbi_init_caption(vbi);
 
 	vbi->vt.max_level = VBI_LEVEL_2p5;
+
+	vbi->brightness	= 128;
+	vbi->contrast	= 64;
 
 	return vbi;
 

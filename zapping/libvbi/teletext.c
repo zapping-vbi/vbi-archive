@@ -759,7 +759,7 @@ static bool
 enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 	struct fmt_page *pg, struct vt_page *vtp,
 	object_type type, vt_triplet *p,
-	int inv_row, int inv_column)
+	int inv_row, int inv_column, vbi_wst_level max_level)
 {
 	attr_char ac, mac, *acp;
 	int active_column, active_row;
@@ -984,7 +984,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 
 			switch (p->mode) {
 			case 0x00:		/* full screen colour */
-				if (vbi->vt.max_level >= VBI_LEVEL_2p5
+				if (max_level >= VBI_LEVEL_2p5
 				    && s == 0 && type <= OBJ_TYPE_ACTIVE)
 					screen_colour(pg, vtp, p->data & 0x1F);
 
@@ -1016,7 +1016,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				break;
 
 			case 0x04:		/* set active position */
-				if (vbi->vt.max_level >= VBI_LEVEL_2p5) {
+				if (max_level >= VBI_LEVEL_2p5) {
 					if (p->data >= COLUMNS)
 						break; /* reserved */
 
@@ -1045,7 +1045,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				break;
 
 			case 0x10:		/* origin modifier */
-				if (vbi->vt.max_level < VBI_LEVEL_2p5)
+				if (max_level < VBI_LEVEL_2p5)
 					break;
 
 				if (p->data >= 72)
@@ -1065,7 +1065,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				object_type new_type = p->mode & 3;
 				vt_triplet *trip;
 
-				if (vbi->vt.max_level < VBI_LEVEL_2p5)
+				if (max_level < VBI_LEVEL_2p5)
 					break;
 
 				printv("enh obj invocation source %d type %d\n", source, new_type);
@@ -1103,7 +1103,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 						pgno = vtp->data.lop.link[24].pgno;
 
 						if (NO_PAGE(pgno)) {
-							if (vbi->vt.max_level < VBI_LEVEL_3p5
+							if (max_level < VBI_LEVEL_3p5
 							    || NO_PAGE(pgno = mag->pop_link[8].pgno))
 								pgno = mag->pop_link[0].pgno;
 						} else
@@ -1118,7 +1118,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 								return FALSE; /* has no link (yet) */
 							}
 
-							if (vbi->vt.max_level < VBI_LEVEL_3p5
+							if (max_level < VBI_LEVEL_3p5
 							    || NO_PAGE(pgno = mag->pop_link[i + 8].pgno))
 								pgno = mag->pop_link[i + 0].pgno;
 						} else
@@ -1143,7 +1143,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				column = inv_column + active_column;
 
 				enhance(vbi, mag, ext, pg, vtp, new_type, trip,
-					row + offset_row, column + offset_column);
+					row + offset_row, column + offset_column, max_level);
 
 				printv("... object done\n");
 
@@ -1185,7 +1185,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 
 			switch (p->mode) {
 			case 0x00:		/* foreground colour */
-				if (vbi->vt.max_level >= VBI_LEVEL_2p5 && s == 0) {
+				if (max_level >= VBI_LEVEL_2p5 && s == 0) {
 					if (column > active_column)
 						flush(column);
 
@@ -1198,7 +1198,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				break;
 
 			case 0x01:		/* G1 block mosaic character */
-				if (vbi->vt.max_level >= VBI_LEVEL_2p5) {
+				if (max_level >= VBI_LEVEL_2p5) {
 					if (column > active_column)
 						flush(column);
 
@@ -1214,7 +1214,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				break;
 
 			case 0x0B:		/* G3 smooth mosaic or line drawing character */
-				if (vbi->vt.max_level < VBI_LEVEL_2p5)
+				if (max_level < VBI_LEVEL_2p5)
 					break;
 
 				/* fall through */
@@ -1231,7 +1231,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				break;
 
 			case 0x03:		/* background colour */
-				if (vbi->vt.max_level >= VBI_LEVEL_2p5 && s == 0) {
+				if (max_level >= VBI_LEVEL_2p5 && s == 0) {
 					if (column > active_column)
 						flush(column);
 
@@ -1250,7 +1250,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				break;
 
 			case 0x07:		/* additional flash functions */
-				if (vbi->vt.max_level >= VBI_LEVEL_2p5) {
+				if (max_level >= VBI_LEVEL_2p5) {
 					if (column > active_column)
 						flush(column);
 
@@ -1268,7 +1268,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				break;
 
 			case 0x08:		/* modified G0 and G2 character set designation */
-				if (vbi->vt.max_level >= VBI_LEVEL_2p5) {
+				if (max_level >= VBI_LEVEL_2p5) {
 					if (column > active_column)
 						flush(column);
 
@@ -1283,7 +1283,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				break;
 
 			case 0x09:		/* G0 character */
-				if (vbi->vt.max_level >= VBI_LEVEL_2p5 && p->data >= 0x20) {
+				if (max_level >= VBI_LEVEL_2p5 && p->data >= 0x20) {
 					if (column > active_column)
 						flush(column);
 
@@ -1297,7 +1297,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				break;
 
 			case 0x0C:		/* display attributes */
-				if (vbi->vt.max_level < VBI_LEVEL_2p5)
+				if (max_level < VBI_LEVEL_2p5)
 					break;
 
 				if (column > active_column)
@@ -1338,7 +1338,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				page_function function;
 				int pgno, page, i = 0;
 
-				if (vbi->vt.max_level < VBI_LEVEL_2p5)
+				if (max_level < VBI_LEVEL_2p5)
 					break;
 
 				if (offset >= 48)
@@ -1357,7 +1357,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 						pgno = vtp->data.lop.link[26].pgno;
 
 						if (NO_PAGE(pgno)) {
-							if (vbi->vt.max_level < VBI_LEVEL_3p5
+							if (max_level < VBI_LEVEL_3p5
 							    || NO_PAGE(pgno = mag->drcs_link[8]))
 								pgno = mag->drcs_link[0];
 						} else
@@ -1372,7 +1372,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 								return FALSE; /* has no link (yet) */
 							}
 
-							if (vbi->vt.max_level < VBI_LEVEL_3p5
+							if (max_level < VBI_LEVEL_3p5
 							    || NO_PAGE(pgno = mag->drcs_link[i + 8]))
 								pgno = mag->drcs_link[i + 0];
 						} else
@@ -1426,7 +1426,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				int col, row, count;
 				attr_char *acp;
 
-				if (vbi->vt.max_level < VBI_LEVEL_3p5)
+				if (max_level < VBI_LEVEL_3p5)
 					break;
 
 				row = inv_row + active_row;
@@ -1574,7 +1574,8 @@ post_enhance(struct fmt_page *pg)
 
 static inline bool
 default_object_invocation(struct vbi *vbi, magazine *mag,
-	extension *ext, struct fmt_page *pg, struct vt_page *vtp)
+	extension *ext, struct fmt_page *pg, struct vt_page *vtp,
+	vbi_wst_level max_level)
 {
 	pop_link *pop;
 	int i, order;
@@ -1584,7 +1585,7 @@ default_object_invocation(struct vbi *vbi, magazine *mag,
 
 	pop = mag->pop_link + i + 8;
 
-	if (vbi->vt.max_level < VBI_LEVEL_3p5 || NO_PAGE(pop->pgno)) {
+	if (max_level < VBI_LEVEL_3p5 || NO_PAGE(pop->pgno)) {
 		pop = mag->pop_link + i;
 
 		if (NO_PAGE(pop->pgno)) {
@@ -1610,7 +1611,7 @@ default_object_invocation(struct vbi *vbi, magazine *mag,
 		if (!trip)
 			return FALSE;
 
-		enhance(vbi, mag, ext, pg, vtp, type, trip, 0, 0);
+		enhance(vbi, mag, ext, pg, vtp, type, trip, 0, 0, max_level);
 	}
 
 	return TRUE;
@@ -1619,14 +1620,15 @@ default_object_invocation(struct vbi *vbi, magazine *mag,
 int
 vbi_format_page(struct vbi *vbi,
 	struct fmt_page *pg, struct vt_page *vtp,
-	int display_rows, int navigation)
+	vbi_wst_level max_level, int display_rows, int navigation)
 {
 	char buf[16];
 	magazine *mag;
 	extension *ext;
 	int column, row, i;
 
-	if (vtp->function != PAGE_FUNCTION_LOP)
+	if (vtp->function != PAGE_FUNCTION_LOP &&
+	    vtp->function != PAGE_FUNCTION_ZAP2WEB)
 		return 0;
 
 	printv("\nFormatting page %03x/%04x\n", vtp->pgno, vtp->subno);
@@ -1643,7 +1645,7 @@ vbi_format_page(struct vbi *vbi,
 	pg->dirty.y1 = ROWS - 1;
 	pg->dirty.roll = 0;
 
-	mag = (vbi->vt.max_level <= VBI_LEVEL_1p5) ?
+	mag = (max_level <= VBI_LEVEL_1p5) ?
 		vbi->vt.magazine : vbi->vt.magazine + (vtp->pgno >> 8);
 
 	if (vtp->data.lop.ext)
@@ -1672,7 +1674,8 @@ vbi_format_page(struct vbi *vbi,
 
 	screen_colour(pg, vtp, ext->def_screen_colour);
 
-	pg->colour_map = ext->colour_map;
+	vbi_transp_colourmap(vbi, pg->colour_map, ext->colour_map, 40);
+
 	pg->drcs_clut = ext->drcs_clut;
 
 	/* Opacity */
@@ -1900,7 +1903,7 @@ vbi_format_page(struct vbi *vbi,
 
 	/* Local enhancement data and objects */
 
-	if (vbi->vt.max_level >= VBI_LEVEL_1p5) {
+	if (max_level >= VBI_LEVEL_1p5) {
 		struct fmt_page page;
 		bool success;
 
@@ -1914,13 +1917,14 @@ vbi_format_page(struct vbi *vbi,
 		if (vtp->enh_lines & 1) {
 			printv("enhancement packets %08x\n", vtp->enh_lines);
 			success = enhance(vbi, mag, ext, pg, vtp, LOCAL_ENHANCEMENT_DATA,
-				vtp->data.enh_lop.enh, 0, 0);
+				vtp->data.enh_lop.enh, 0, 0, max_level);
 		} else
-			success = default_object_invocation(vbi, mag, ext, pg, vtp);
+			success = default_object_invocation(vbi, mag, ext, pg, vtp, max_level);
 
-		if (success)
-			post_enhance(pg);
-		else
+		if (success) {
+			if (max_level >= VBI_LEVEL_2p5)
+				post_enhance(pg);
+		} else
 			memcpy(pg, &page, sizeof(struct fmt_page));
 	}
 
@@ -1981,6 +1985,7 @@ vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
 		if (!vtp)
 			return 0;
 
-		return vbi_format_page(vbi, pg, vtp, display_rows, navigation);
+		return vbi_format_page(vbi, pg, vtp,
+			vbi->vt.max_level, display_rows, navigation);
 	}
 }

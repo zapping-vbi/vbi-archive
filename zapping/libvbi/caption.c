@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.22 2001-03-24 10:44:57 mschimek Exp $ */
+/* $Id: caption.c,v 1.23 2001-03-28 07:48:15 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +40,7 @@
 #include "lang.c"
 
 #define XDS_DEBUG 1
-#define ITV_DISABLE 0
+#define ITV_DEBUG 1
 
 #else
 
@@ -301,7 +301,7 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 				vbi->network.id = sum & ((1UL << 31) - 1);
 
 				ev.type = VBI_EVENT_NETWORK;
-				ev.p1 = &vbi->network;
+				ev.p = &vbi->network;
 				vbi_send_event(vbi, &ev);
 
 				vbi->network.cycle = 3;
@@ -530,10 +530,8 @@ xds_separator(struct vbi *vbi, unsigned char *buf)
  *  http://developer.webtv.net
  */
 
-#if ITV_DEBUG
 static char *
-itv_key[] = { "program", "network", "station", "sponsor", "operator", NULL };
-#endif
+itv_key[] = { NULL, "program", "network", "station", "sponsor", "operator" };
 
 static inline int
 itv_chksum(char *s, unsigned int sum)
@@ -551,21 +549,27 @@ itv_chksum(char *s, unsigned int sum)
 }
 
 static void
-itv_decoder(struct caption *cc, char *s1)
+itv_decoder(struct vbi *vbi, struct caption *cc, char *s1)
 {
-#if ITV_DEBUG
 	char *s, *e;
-	char *d, ripped[sizeof(cc->itv_buf)];
-	int type = -1, view = 'w';
-	char *url = NULL, *name = NULL;
-	char *script = NULL, *expires = "29991231T235959";
+	char *d, *dx;
+	int view = 'w';
+	char *expires = "29991231T235959";
 
-	for (s = s1, d = ripped;; s++) {
+	vbi->link[0].type = 0;
+
+	vbi->link[0].name = NULL;
+	vbi->link[0].url = NULL;
+	vbi->link[0].script = NULL;
+
+	dx = &vbi->link[0].scratch[sizeof(vbi->link[0].scratch) - 2];
+
+	for (s = s1, d = vbi->link[0].scratch;; s++) {
 		e = s;
 
 		if (*s == '<') {
-			for (url = d, ++s; *s != '>'; s++)
-				if (*s)
+			for (vbi->link[0].url = d, ++s; *s != '>'; s++)
+				if (*s && d < dx)
 					*d++ = *s;
 				else
 					return;
@@ -575,19 +579,19 @@ itv_decoder(struct caption *cc, char *s1)
 			int i, quote;
 
 			for (attr = d, ++s; *s != ':' && *s != ']'; s++)
-				if (*s)
+				if (*s && d < dx)
 					*d++ = *s;
 				else
 					return;
 			*d++ = 0;
 
-			if (*s == ']') {
-				for (i = 0; itv_key[i]; i++)
+			if (*s != ':') {
+				for (i = 1; i < sizeof(itv_key) / sizeof(itv_key[0]); i++)
 					if (!strcmp(itv_key[i], attr))
 						break;
 
-				if (itv_key[i]) {
-					type = i;
+				if (i < sizeof(itv_key) / sizeof(itv_key[0])) {
+					vbi->link[0].type = i;
 					continue;
 				}
 
@@ -611,7 +615,7 @@ itv_decoder(struct caption *cc, char *s1)
 				if (!itv_key[i])
 					return;
 
-				type = i;
+				vbi->link[0].type = i;
 
 				break;
 
@@ -620,11 +624,11 @@ itv_decoder(struct caption *cc, char *s1)
 				break;
 
 			case 'n':
-				name = d;
+				vbi->link[0].name = d;
 				break;
 
 			case 's':
-				script = d;
+				vbi->link[0].script = d;
 				break;
 
 			case 'e':
@@ -645,18 +649,20 @@ itv_decoder(struct caption *cc, char *s1)
 			return;
 	}
 
-	printf("<i> %s\n URL: %s\n Type: ", name, url);
-	switch (type) {
-	case -1: printf("not given"); break;
-	case 0:	 printf("program related"); break;
-	case 1:	 printf("network related"); break;
-	case 2:	 printf("station related"); break;
-	case 3:	 printf("sponsor"); break;
-	case 4:	 printf("operator"); break;
+#if ITV_DEBUG
+
+	printf("<i> %s\n URL: %s\n Type: ",
+		vbi->link[0].name, vbi->link[0].url);
+	switch (vbi->link[0].type) {
+	case 1:	 printf("program related"); break;
+	case 2:	 printf("network related"); break;
+	case 3:	 printf("station related"); break;
+	case 4:	 printf("sponsor"); break;
+	case 5:	 printf("operator"); break;
 	default: printf("unknown"); break;
 	}
 	printf("; script: %s\n Cached page expires: %s; view: ",
-		script ? script : "none", expires);
+		vbi->link[0].script, expires);
 	switch (view) {
 	case 'w': printf("conventional web page"); break;
 	case 't': printf("tv related, WebTV style"); break;
@@ -666,14 +672,29 @@ itv_decoder(struct caption *cc, char *s1)
 
 #endif /* ITV_DEBUG */
 
+	if (vbi->link[0].url
+	    && vbi->link[0].type > 0 && view == 'w'
+	    && (!vbi->link[1].url
+		|| strcmp(vbi->link[0].url, vbi->link[1].url) != 0)) {
+		vbi_event ev;
+
+		memcpy(&vbi->link[1], &vbi->link[0], sizeof(vbi->link[1]));
+
+		ev.type = VBI_EVENT_WEBLINK;
+		ev.p = &vbi->link[1];
+		vbi_send_event(vbi, &ev);
+	}
 }
 
 static void
-itv_separator(struct caption *cc, char c)
+itv_separator(struct vbi *vbi, struct caption *cc, char c)
 {
+	if (!ITV_DEBUG && !(vbi->event_mask & VBI_EVENT_WEBLINK))
+		return;
+
 	if (c >= 0x20) {
 		if (c == '<') // s4nbc omitted CR
-			itv_separator(cc, 0);
+			itv_separator(vbi, cc, 0);
 		else if (cc->itv_count > sizeof(cc->itv_buf) - 2)
 			cc->itv_count = 0;
 
@@ -685,7 +706,7 @@ itv_separator(struct caption *cc, char c)
 	cc->itv_buf[cc->itv_count] = 0;
 	cc->itv_count = 0;
 
-	itv_decoder(cc,  cc->itv_buf);
+	itv_decoder(vbi, cc, cc->itv_buf);
 }
 
 /* Caption */
@@ -865,7 +886,7 @@ row_mapping[] = {
 // sample stream yet
 
 static inline void
-caption_command(struct caption *cc,
+caption_command(struct vbi *vbi, struct caption *cc,
 	unsigned char c1, unsigned char c2, bool field2)
 {
 	channel *ch;
@@ -1078,7 +1099,7 @@ caption_command(struct caption *cc,
 
 		case 13:	/* Carriage Return		001 c10f  010 1101 */
 			if (ch == cc->channel + 5)
-				itv_separator(cc, 0);
+				itv_separator(vbi, cc, 0);
 
 			if (!ch->mode)
 				return;
@@ -1270,7 +1291,7 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 				break;
 			}
 
-			caption_command(cc, c1, buf[1] & 0x7F, field2);
+			caption_command(vbi, cc, c1, buf[1] & 0x7F, field2);
 
 			if (!field2) {
 				cc->last[0] = buf[0];
@@ -1311,7 +1332,7 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 				continue;
 
 			if (ch == cc->channel + 5) // 'T2'
-				itv_separator(cc, ci);
+				itv_separator(vbi, cc, ci);
 
 			c.glyph = GL_CAPTION + (c.italic * 128) + ci;
 
@@ -1327,6 +1348,23 @@ default_colour_map[8] = {
 	0xFF000000, 0xFF0000FF, 0xFF00FF00, 0xFF00FFFF,	
 	0xFFFF0000, 0xFFFF00FF, 0xFFFFFF00, 0xFFFFFFFF
 };
+
+void
+vbi_caption_colour_level(struct vbi *vbi)
+{
+	int i;
+
+#if TEST
+	memcpy(vbi->cc.channel[0].pg[0].colour_map, default_colour_map,
+		sizeof(default_colour_map));
+#else
+	vbi_transp_colourmap(vbi, vbi->cc.channel[0].pg[0].colour_map, default_colour_map, 8);
+#endif
+	for (i = 1; i < 16; i++)
+		memcpy(vbi->cc.channel[i >> 1].pg[i & 1].colour_map,
+		       vbi->cc.channel[0].pg[0].colour_map,
+		       sizeof(default_colour_map));
+}
 
 void
 vbi_init_caption(struct vbi *vbi)
@@ -1381,8 +1419,6 @@ vbi_init_caption(struct vbi *vbi)
 		ch->pg[0].screen_colour = 0;
 		ch->pg[0].screen_opacity = (i < 4) ? TRANSPARENT_SPACE : OPAQUE;
 
-		ch->pg[0].colour_map = default_colour_map;
-
 		ch->pg[0].font[0] = font_descriptors; /* English */
 		ch->pg[0].font[1] = font_descriptors;
 
@@ -1394,6 +1430,8 @@ vbi_init_caption(struct vbi *vbi)
 
 		memcpy(&ch->pg[1], &ch->pg[0], sizeof(ch->pg[1]));
 	}
+
+	vbi_caption_colour_level(vbi);
 }
 
 #if !TEST

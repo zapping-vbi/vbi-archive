@@ -28,6 +28,7 @@
 #include "../common/types.h"
 
 typedef enum {
+	PAGE_FUNCTION_ZAP2WEB = -3,	/* private */
 	PAGE_FUNCTION_DISCARD = -2,	/* private */
 	PAGE_FUNCTION_UNKNOWN = -1,	/* private */
 	PAGE_FUNCTION_LOP,
@@ -208,19 +209,37 @@ vtp_size(struct vt_page *vtp)
 	return sizeof(*vtp);
 }
 
+/*
+ *  Note:
+ *  0x01 ... 0x51 -> 0x01 (subpages)
+ *  0x70 ... 0x77 -> 0x70 (language)
+ *  0x7B -> 0x7C (subpages)
+ *  0x7E -> 0x7F (subpages)
+ *  0x81 ... 0xD1 -> 0x81 (subpages)
+ *  reserved -> MIP_UNKNOWN
+ *
+ *  0x80 and 0xE0 ... 0xFE are for decoder internal
+ *  use only and have no corresponding VBI_ classification.
+ */
 #define MIP_NO_PAGE		0x00
 #define MIP_NORMAL_PAGE		0x01
 #define MIP_SUBTITLE		0x70
 #define MIP_SUBTITLE_INDEX	0x78
-#define MIP_CLOCK		0x79	/* sort of */
+#define MIP_NONSTD_SUBPAGES	0x79
 #define MIP_WARNING		0x7A
-#define MIP_INFORMATION 	0x7B
+#define MIP_CURRENT_PROGR	0x7C
 #define MIP_NOW_AND_NEXT	0x7D
-#define MIP_TV_INDEX		0x7F
-#define MIP_TV_SCHEDULE		0x81
+#define MIP_PROGR_INDEX		0x7F
+#define MIP_NOT_PUBLIC		0x80
+#define MIP_PROGR_SCHEDULE	0x81
+#define MIP_CA_DATA_BROADCAST	0xE0
+#define MIP_EPG_DATA		0xE3
 #define MIP_SYSTEM_PAGE		0xE7
+#define MIP_DISP_SYSTEM_PAGE	0xF7
+#define MIP_KEYWORD_SEARCH_LIST 0xF9
+#define MIP_ACI			0xFD
 #define MIP_TOP_PAGE		0xFE
-#define MIP_UNKNOWN		0xFF	/* Zapzilla internal code */
+#define MIP_UNKNOWN		0xFF	/* libvbi internal, not for display */
 
 typedef enum {
 	LOCAL_ENHANCEMENT_DATA = 0,
@@ -275,13 +294,15 @@ typedef enum {
 struct teletext {
 	vbi_wst_level		max_level;
 
+	unsigned char		header[32];
+
         pagenum		        initial_page;
 	magazine		magazine[9];		/* 1 ... 8; #0 unmodified level 1.5 default */
 
 	struct {
 		signed char		btt;
 		unsigned char		mip;
-		unsigned short		sub_pages;
+		unsigned short		subpages;
 	}			page_info[0x800];
 
 	pagenum		        btt_link[15];
@@ -304,6 +325,6 @@ extern void		vbi_vps(struct vbi *vbi, unsigned char *p);
 
 /* teletext.c */
 
-extern int		vbi_format_page(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp, int display_rows, int navigation);
+extern int		vbi_format_page(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp, vbi_wst_level max_level, int display_rows, int navigation);
 
 #endif

@@ -142,11 +142,19 @@ on_pal_big_activate		       (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 void
+on_rec601_pal_big_activate	       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
 on_ntsc_big_activate		       (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 void
 on_pal_small_activate		       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
+on_rec601_pal_small_activate	       (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 void

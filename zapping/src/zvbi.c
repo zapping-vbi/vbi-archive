@@ -1094,14 +1094,34 @@ event(vbi_event *ev, void *unused)
 		   ev->subno & 0xFF);
 	  }
       }
+/*
+        {
+	  int classf, subpages;
+	  
+	  classf = vbi_classify_page(vbi, ev->pgno, &subpages);
+	  printf("Received page %x.%04x, class %d, subpages %d\n",
+	    ev->pgno, ev->subno, classf, subpages);
+        }
+*/
 	/* Set the dirty flag on the page */
 	notify_clients(ev->pgno, ev->subno);
 	break;
     case VBI_EVENT_NETWORK:
       pthread_mutex_lock(&network_mutex);
-      memcpy(&current_network, ev->p1, sizeof(vbi_network));
+      memcpy(&current_network, ev->p, sizeof(vbi_network));
       notify_network();
       pthread_mutex_unlock(&network_mutex);
+      break;
+    case VBI_EVENT_WEBLINK:
+      if (0)
+        {
+          vbi_weblink *w;
+
+	  w = (vbi_weblink *) ev->p;
+	  printf("<> name: %s url: %s\n",
+	         w->name ? w->name : "none", w->url);
+	  /* !name ? maybe %30s... of url */
+        }
       break;
 
     default:

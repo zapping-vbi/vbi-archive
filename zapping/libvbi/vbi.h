@@ -26,6 +26,10 @@ struct vbi
 
 
 	vbi_network		network;
+	vbi_weblink		link[2];
+
+	int			brightness;
+	int			contrast;
 
 	struct teletext		vt;
 	struct caption		cc;
@@ -55,5 +59,7 @@ vbi_send_event(struct vbi *vbi, vbi_event *ev)
 
 	pthread_mutex_unlock(&vbi->event_mutex);
 }
+
+extern void		vbi_transp_colourmap(struct vbi *vbi, attr_rgba *d, attr_rgba *s, int entries);
 
 #endif /* VBI_H */

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.28 2001-03-22 08:28:47 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.29 2001-03-28 07:48:15 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -143,7 +143,6 @@ extern void		vbi_draw_cc_page_region(struct fmt_page *pg, uint32_t *canvas,
  *  All strings are ISO 8859-1, local language, and NUL terminated.
  *  Prepare for empty strings. Read only.
  */
-
 typedef struct {
 	unsigned int		id;			/* unique id */
 
@@ -164,17 +163,78 @@ typedef struct {
 } vbi_network;
 
 /*
+ *  Web link, WST based Zap2Web and
+ *  CC based Interactive TV aka. WebTV (conventional content only).
+ *
+ *  All strings are ISO 8859-1, NUL terminated and read only.
+ *  Apart of <url>, prepare to handle NULL pointers if the
+ *  particular information has not been transmitted.
+ *
+ *  Zap2Web is currently always VBI_WEBLINK_UNKNOWN,
+ *  see http://developers.webtv.com for the other types.
+ */
+/* caption.c depends on order */
+typedef enum {
+	VBI_WEBLINK_UNKNOWN = 0,
+	VBI_WEBLINK_PROGRAM_RELATED,
+	VBI_WEBLINK_NETWORK_RELATED,
+	VBI_WEBLINK_STATION_RELATED,
+	VBI_WEBLINK_SPONSOR_MESSAGE,
+	VBI_WEBLINK_OPERATOR,
+} vbi_weblink_type;
+
+typedef struct {
+	vbi_weblink_type	type;
+
+	unsigned char *		name;			/* "Zapping" */
+	unsigned char *		url;			/* "http://zapping.sourceforge.net" */
+	unsigned char *		script;
+
+	/* more */
+
+	/* Private */
+
+	unsigned char		scratch[256];
+} vbi_weblink;
+
+/*
+ *  Page classification
+ */
+
+#define VBI_NO_PAGE		0x00	/* not in transmission */
+#define VBI_NORMAL_PAGE		0x01	/* normal page -> subpages 1++ */
+#define VBI_SUBTITLE_PAGE	0x70	/* subtitle page -> language */
+#define VBI_SUBTITLE_INDEX	0x78	/* subtitle index page */
+#define VBI_NONSTD_SUBPAGES	0x79	/* non-std subpages, eg. clock page */
+#define VBI_PROGR_WARNING	0x7A	/* program related warning */
+#define VBI_CURRENT_PROGR	0x7C	/* current program info -> subpages 1++ */
+#define VBI_NOW_AND_NEXT	0x7D	/* program related */
+#define VBI_PROGR_INDEX		0x7F	/* program index page */
+#define VBI_PROGR_SCHEDULE	0x81	/* program schedule page -> subpages 1++ */
+#define VBI_UNKNOWN_PAGE	0xFF	/* libvbi internal, page not for display */
+
+extern int		vbi_classify_page(struct vbi *vbi, int pgno, int *subpages);
+
+/*
  *  Event (vbi.c)
  */
 
 #define VBI_EVENT_NONE		0
 #define	VBI_EVENT_CLOSE		(1 << 0)
-#define	VBI_EVENT_PAGE		(1 << 1)	// p1:vt_page	i1:query-flag
+#define	VBI_EVENT_PAGE		(1 << 1)
+/*
+ *  Received (and cached) another Teletext page: pgno, subno.
+ *  If the header is suitable for rolling, and actually changed
+ *  including any clear text page number, vbi_event.p1 points
+ *  to a volatile copy of the raw header. Resist the temptation
+ *  to dereference the pointer without good reason.
+ */
+
 #define VBI_EVENT_CAPTION	(1 << 2)
-#define	VBI_EVENT_HEADER	(1 << 3)	// i1:pgno  i2:subno  i3:flags  p1:data
+
 #define	VBI_EVENT_NETWORK	(1 << 4)
 /*
- *  Some station/network identifier has been received, vbi_event.p1 is
+ *  Some station/network identifier has been received, vbi_event.p is
  *  a vbi_network pointer. The event will not repeat*) unless a different
  *  identifier has been received and confirmed.
  *
@@ -189,7 +249,17 @@ typedef struct {
  *     can confuse the logic.
  */
 
-#define VBI_EVENT_IO_ERROR	(1 << 5)
+#define	VBI_EVENT_WEBLINK	(1 << 5)
+/*
+ *  A web link has been received, vbi_event.p is a vbi_weblink pointer.
+ *  The event will not repeat*) unless a different web link has been
+ *  received, usually on the order of 1x to 10x minutes.
+ *
+ *  *) z2w and itv will not combine in real life, sample insertion
+ *     can confuse the logic.
+ */
+
+#define VBI_EVENT_IO_ERROR	(1 << 6)
 /*
  *  A fatal I/O error occured, as reported by the vbi fifo producer.
  *  On return from the event handler the vbi mainloop will terminate
@@ -198,16 +268,11 @@ typedef struct {
  *  (XXX this should include an error code and message) 
  */
 
-#define	VBI_EVENT_XPACKET	(1 << 6)	// i1:mag  i2:pkt  i3:errors  p1:data
-#define	VBI_EVENT_RESET		(1 << 7)	// ./.
-#define	VBI_EVENT_TIMER		(1 << 8)	// ./.
-
 typedef struct {
 	int			type;
 	int			pgno;
 	int			subno;
-
-    void *p1;
+	void *			p;
 } vbi_event;
 
 extern int		vbi_event_handler(struct vbi *vbi, int event_mask, void (* handler)(vbi_event *, void *), void *user_data); 
@@ -218,6 +283,8 @@ struct cache;
 struct vbi *vbi_open(char *vbi_dev_name, struct cache *ca, int given_fd);
 void vbi_close(struct vbi *vbi);
 extern void *	vbi_mainloop(void *p);
+/* Affects vbi_fetch_*_page(), the fmt_page, not export */
+extern void		vbi_set_colour_level(struct vbi *vbi, int brig, int cont);
 
 /*
  *  Export (export.c)

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.12 2001-03-22 08:28:47 mschimek Exp $ */
+/* $Id: search.c,v 1.13 2001-03-28 07:48:15 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -171,7 +171,7 @@ search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 	if (vtp->function != PAGE_FUNCTION_LOP)
 		return 0; // try next
 
-	if (!vbi_format_page(s->vbi, &s->pg, vtp, 25, 1))
+	if (!vbi_format_page(s->vbi, &s->pg, vtp, s->vbi->vt.max_level, 25, 1))
 		return -3; // formatting error, abort
 
 	if (s->progress)
@@ -268,7 +268,7 @@ search_page_rev(struct search *s, struct vt_page *vtp, int wrapped)
 	if (vtp->function != PAGE_FUNCTION_LOP)
 		return 0; // try next page
 
-	if (!vbi_format_page(s->vbi, &s->pg, vtp, 25, 1))
+	if (!vbi_format_page(s->vbi, &s->pg, vtp, s->vbi->vt.max_level, 25, 1))
 		return -3; // formatting error, abort
 
 	if (s->progress)

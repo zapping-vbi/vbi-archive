@@ -1,7 +1,7 @@
 /*
  *  Zapzilla - Teletext / PDC tables
  *
- *  PDC and VPS CNI codes rev. 3, based on TR 101 231 EBU (2000-07)
+ *  PDC and VPS CNI codes rev. 4, based on TR 101 231 EBU (2000-09): www.ebu.ch
  *  Programme type tables (PDC/EPG)
  *
  *  Copyright (C) 1999-2001 Michael H. Schimek
@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.c,v 1.4 2001-03-17 07:44:29 mschimek Exp $ */
+/* $Id: tables.c,v 1.5 2001-03-28 07:48:15 mschimek Exp $ */
 
 /*
     Packet 8/30 f1	Byte 13			Byte 14
@@ -315,7 +315,7 @@ country_names_en[] = {
  *  (Unified to create a unique station address where A.1 and B.1 overlap.)
  */
 struct {
-	short		id;		/* unique id, largest is 376 */
+	short		id;		/* unique id, largest is 378 */
 	short		country;
 	char *		short_name;	/* 8 chars (ISO 8859-1) */
 	char *		long_name;	/* (ISO 8859-1) */
@@ -382,9 +382,9 @@ struct {
 
 	/* Table B.1 */
 
-	{ 51,	DE, "FESTIVAL", "FESTIVAL",			0x0000, 0x0000, 0x0000, 0x0D41 },
-	{ 52,	DE, "MUXX",	"MUXX",				0x0000, 0x0000, 0x0000, 0x0D42 },
-	{ 53,	DE, "EXTRA",	"EXTRA",			0x0000, 0x0000, 0x0000, 0x0D43 },
+	{ 51,	DE, "FESTIVAL", "FESTIVAL",			0x4941, 0x0000, 0x0000, 0x0D41 },
+	{ 52,	DE, "MUXX",	"MUXX",				0x4942, 0x0000, 0x0000, 0x0D42 },
+	{ 53,	DE, "EXTRA",	"EXTRA",			0x4943, 0x0000, 0x0000, 0x0D43 },
 
 	{ 54,	DE, "ONYX-TV",  "ONYX-TV",			0x0000, 0x0000, 0x0000, 0x0D7C },
 	{ 55,	DE, "QVC",	"QVC-Teleshopping",		0x5C49, 0x0000, 0x0000, 0x0D7D },
@@ -392,7 +392,7 @@ struct {
 	{ 57,	DE, "HOT",	"Home Order Television",	0x0000, 0x0000, 0x0000, 0x0D7F },
 
 	{ 58,	DE, "ORB-1",	"ORB-1 Regional",		0x0000, 0x0000, 0x0000, 0x0D81 },
-	{ 59,	DE, "ORB-3",	"ORB-3 Landesweit",		0x0000, 0x0000, 0x0000, 0x0D82 },
+	{ 59,	DE, "ORB-3",	"ORB-3 Landesweit",		0x4982, 0x0000, 0x0000, 0x0D82 },
 	/* not used 0x0D83 */
 	/* not used 0x0D84 */
 	{ 60,	DE, "Arte",	"Arte",				0x490A, 0x0000, 0x3D05, 0x0D85 },
@@ -459,9 +459,9 @@ struct {
 	{ 116,	DE, "Bln-Mix1", "Berlin-Mix-Channel 1",		0x0000, 0x0000, 0x0000, 0x0DBF },
 
 	{ 117,	DE, "ARD",	"ARD",				0x4901, 0x0000, 0x3D41, 0x0DC1 },
-	/* not in TR 101 231: 0x4901, 0x3D41 */
+	/* not in TR 101 231: 0x3D41 */
 	{ 118,	DE, "ZDF",	"ZDF",				0x4902, 0x0000, 0x3D42, 0x0DC2 },
-	/* not in TR 101 231: 0x4902, 0x3D42 */
+	/* not in TR 101 231: 0x3D42 */
 	{ 119,	DE, "ARD/ZDF",  "ARD/ZDF Vormittagsprogramm",	0x0000, 0x0000, 0x0000, 0x0DC3 },
 /*
  *  "NOTE: As this code is used for a time in two networks a distinction
@@ -471,40 +471,40 @@ struct {
 	{ 120,	DE, "ARD *",	"ARD-TV-Sternpunkt",		0x0000, 0x0000, 0x0000, 0x0DC4 },
 	{ 121,	DE, "ARD **",	"ARD-TV-Sternpunkt-Fehler",	0x0000, 0x0000, 0x0000, 0x0DC5 },
 	/* not used 0x0DC6 */
-	{ 122,	DE, "3sat",	"3sat",				0x0000, 0x0000, 0x0000, 0x0DC7 },
+	{ 122,	DE, "3sat",	"3sat",				0x49C7, 0x0000, 0x0000, 0x0DC7 },
 	{ 123,	DE, "Phoenix",  "Phoenix",			0x4908, 0x0000, 0x0000, 0x0DC8 },
-	{ 124,	DE, "KiKa",	"ARD/ZDF Kinderkanal",		0x0000, 0x0000, 0x0000, 0x0DC9 },
+	{ 124,	DE, "KiKa",	"ARD/ZDF Kinderkanal",		0x49C9, 0x0000, 0x0000, 0x0DC9 },
 	{ 125,	DE, "BR-1",	"BR-1 Regional",		0x0000, 0x0000, 0x0000, 0x0DCA },
-	{ 126,	DE, "BR-3",	"BR-3 Landesweit",		0x0000, 0x0000, 0x3D4B, 0x0DCB },
+	{ 126,	DE, "BR-3",	"BR-3 Landesweit",		0x49CB, 0x0000, 0x3D4B, 0x0DCB },
 	/* not in TR 101 231: 0x3D4B */
+	{ 377,	DE, "BR-Alpha",	"BR-Alpha",			0x4944, 0x0000, 0x0000, 0x0000 },
 	{ 127,	DE, "BR-3",	"BR-3 Süd",			0x0000, 0x0000, 0x0000, 0x0DCC },
 	{ 128,	DE, "BR-3",	"BR-3 Nord",			0x0000, 0x0000, 0x0000, 0x0DCD },
 	{ 129,	DE, "HR-1",	"HR-1 Regional",		0x0000, 0x0000, 0x0000, 0x0DCE },
-	{ 130,	DE, "HR-3",	"Hessen 3 Landesweit",		0x0000, 0x0000, 0x0000, 0x0DCF },
+	{ 130,	DE, "HR-3",	"Hessen 3 Landesweit",		0x49FF, 0x0000, 0x0000, 0x0DCF },
 	{ 131,	DE, "NDR-1",	"NDR-1 Dreiländerweit",		0x0000, 0x0000, 0x0000, 0x0DD0 },
 	{ 132,	DE, "NDR-1",	"NDR-1 Hamburg",		0x0000, 0x0000, 0x0000, 0x0DD1 },
 	{ 133,	DE, "NDR-1",	"NDR-1 Niedersachsen",		0x0000, 0x0000, 0x0000, 0x0DD2 },
 	{ 134,	DE, "NDR-1",	"NDR-1 Schleswig-Holstein",	0x0000, 0x0000, 0x0000, 0x0DD3 },
 	{ 135,	DE, "N3",	"Nord-3 (NDR/SFB/RB)",		0x0000, 0x0000, 0x0000, 0x0DD4 },
-	{ 136,	DE, "NDR-3",	"NDR-3 Dreiländerweit",		0x0000, 0x0000, 0x0000, 0x0DD5 },
+	{ 136,	DE, "NDR-3",	"NDR-3 Dreiländerweit",		0x49D4, 0x0000, 0x0000, 0x0DD5 },
 	{ 137,	DE, "NDR-3",	"NDR-3 Hamburg",		0x0000, 0x0000, 0x0000, 0x0DD6 },
 	{ 138,	DE, "NDR-3",	"NDR-3 Niedersachsen",		0x0000, 0x0000, 0x0000, 0x0DD7 },
 	{ 139,	DE, "NDR-3",	"NDR-3 Schleswig-Holstein",	0x0000, 0x0000, 0x0000, 0x0DD8 },
 	{ 140,	DE, "RB-1",	"RB-1 Regional",		0x0000, 0x0000, 0x0000, 0x0DD9 },
-	{ 141,	DE, "RB-3",	"RB-3",				0x0000, 0x0000, 0x0000, 0x0DDA },
+	{ 141,	DE, "RB-3",	"RB-3",				0x49D9, 0x0000, 0x0000, 0x0DDA },
 	{ 142,	DE, "SFB-1",	"SFB-1 Regional",		0x0000, 0x0000, 0x0000, 0x0DDB },
-	{ 143,	DE, "SFB-3",	"SFB-3",			0x0000, 0x0000, 0x0000, 0x0DDC },
+	{ 143,	DE, "SFB-3",	"SFB-3",			0x49DC, 0x0000, 0x0000, 0x0DDC },
 	{ 144,	DE, "SDR/SWF",  "SDR/SWF Baden-Württemb.",	0x0000, 0x0000, 0x0000, 0x0DDD },
 	{ 145,	DE, "SWF-1",	"SWF-1 Rheinland-Pfalz",	0x0000, 0x0000, 0x0000, 0x0DDE },
-	{ 146,	DE, "SR-1",	"SR-1 Regional",		0x0000, 0x0000, 0x0000, 0x0DDF },
+	{ 146,	DE, "SR-1",	"SR-1 Regional",		0x49DF, 0x0000, 0x0000, 0x0DDF },
 	{ 147,	DE, "SW 3",	"Südwest 3 (SDR/SR/SWF)",	0x0000, 0x0000, 0x0000, 0x0DE0 },
 	{ 148,	DE, "SW 3",	"SW 3 Baden-Württemberg",	0x49E1, 0x0000, 0x0000, 0x0DE1 },
-	/* not in TR 101 231: 0x49E1 */
 	{ 149,	DE, "SW 3",	"SW 3 Saarland",		0x0000, 0x0000, 0x0000, 0x0DE2 },
 	{ 150,	DE, "SW 3",	"SW 3 Baden-Württemb. Süd",	0x0000, 0x0000, 0x0000, 0x0DE3 },
-	{ 151,	DE, "SW 3",	"SW 3 Rheinland-Pfalz",		0x0000, 0x0000, 0x0000, 0x0DE4 },
+	{ 151,	DE, "SW 3",	"SW 3 Rheinland-Pfalz",		0x49E4, 0x0000, 0x0000, 0x0DE4 },
 	{ 152,	DE, "WDR-1",	"WDR-1 Regionalprogramm",	0x0000, 0x0000, 0x0000, 0x0DE5 },
-	{ 153,	DE, "WDR-3",	"WDR-3 Landesweit",		0x0000, 0x0000, 0x0000, 0x0DE6 },
+	{ 153,	DE, "WDR-3",	"WDR-3 Landesweit",		0x49E6, 0x0000, 0x0000, 0x0DE6 },
 	{ 154,	DE, "WDR-3",	"WDR-3 Bielefeld",		0x0000, 0x0000, 0x0000, 0x0DE7 },
 	{ 155,	DE, "WDR-3",	"WDR-3 Dortmund",		0x0000, 0x0000, 0x0000, 0x0DE8 },
 	{ 156,	DE, "WDR-3",	"WDR-3 Düsseldorf",		0x0000, 0x0000, 0x0000, 0x0DE9 },
@@ -528,7 +528,7 @@ struct {
 	{ 174,	DE, "MDR-3",	"MDR-3 Thüringen",		0x0000, 0x0000, 0x0000, 0x0DFB },
 	{ 175,	DE, "MDR",	"MDR Erfurt",			0x0000, 0x0000, 0x0000, 0x0DFC },
 	{ 176,	DE, "MDR-1",	"MDR-1 Regional",		0x0000, 0x0000, 0x0000, 0x0DFD },
-	{ 177,	DE, "MDR-3",	"MDR-3 Landesweit",		0x0000, 0x0000, 0x0000, 0x0DFE },
+	{ 177,	DE, "MDR-3",	"MDR-3 Landesweit",		0x49FE, 0x0000, 0x0000, 0x0DFE },
 
 	{ 178,	CH, "TeleZüri", "TeleZüri",			0x0000, 0x0000, 0x0000, 0x0481 },
 	{ 179,	CH, "Teleclub", "Teleclub Abo-Fernsehen",	0x0000, 0x0000, 0x0000, 0x0482 },
@@ -550,8 +550,8 @@ struct {
 	{ 191,	CH, "TSI 2",	"SSR Televis. svizzera TSI 2",	0x4109, 0x24C9, 0x3449, 0x04C9 },
 	{ 192,	CH, "SRG-SAT",  "SRG SSR Sat Access",		0x410A, 0x24CA, 0x344A, 0x04CA },
 
-	{ 193,	AT, "ORF 1",	"ORF 1",			0x0000, 0x0000, 0x0000, 0x0AC1 },
-	{ 194,	AT, "ORF 2",	"ORF 2",			0x0000, 0x0000, 0x0000, 0x0AC2 },
+	{ 193,	AT, "ORF 1",	"ORF 1",			0x4301, 0x0000, 0x0000, 0x0AC1 },
+	{ 194,	AT, "ORF 2",	"ORF 2",			0x4302, 0x0000, 0x0000, 0x0AC2 },
 	{ 195,	AT, "ORF 3",	"ORF 3",			0x0000, 0x0000, 0x0000, 0x0AC3 },
 	{ 196,	AT, "ORF B",	"ORF Burgenland",		0x0000, 0x0000, 0x0000, 0x0ACB },
 	{ 197,	AT, "ORF K",	"ORF Kärnten",			0x0000, 0x0000, 0x0000, 0x0ACC },
