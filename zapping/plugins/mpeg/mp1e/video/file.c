@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.3 2000-09-23 03:57:54 mschimek Exp $ */
+/* $Id: file.c,v 1.4 2000-10-15 21:24:49 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -33,8 +33,6 @@ enum { FREE = 0, BUSY };
 
 static fifo		cap_fifo;
 static int		width0, height0;
-
-extern int		min_cap_buffers;
 
 static int
 ppm_getc(FILE *fi)
@@ -209,11 +207,6 @@ ppm_read(unsigned char *d1, char *name_template, int count)
 	return 1;
 }
 
-static void
-start(void)
-{
-}
-
 static buffer *
 wait_full(fifo *f)
 {
@@ -295,11 +288,11 @@ file_init(void)
 	filter_init(pitch);
 
 	ASSERT("init capture fifo", init_callback_fifo(&cap_fifo,
-		wait_full, send_empty, NULL, NULL, buffer_size, min_cap_buffers));
+		wait_full, send_empty, NULL, NULL, buffer_size,
+		video_look_ahead(gop_sequence)));
 
 	printv(2, "Reading images %d x %d named '%s'\n",
 		width, height, cap_dev);
 
-	video_start = start;
 	video_cap_fifo = &cap_fifo;
 }

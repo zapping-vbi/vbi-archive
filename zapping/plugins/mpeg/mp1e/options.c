@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.9 2000-10-12 14:08:31 garetxe Exp $ */
+/* $Id: options.c,v 1.10 2000-10-15 21:24:48 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,12 +38,6 @@
 #include "audio/audio.h"
 #include "audio/mpeg.h"
 #include "options.h"
-
-/*
- *  NB vid_buffers and aud_buffers occupy physical memory only as fifo
- *  load requires. Consider page swapping delays. cap_buffers occupy
- *  physical memory or device memory permanently.
- */
 
 static const char *mux_options[] = { "", "video", "audio", "video_and_audio" };
 static const char *mux_syn_options[] = { "nirvana", "bypass", "mpeg1", "mpeg2-ps" };

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.6 2000-10-05 19:04:49 garetxe Exp $ */
+/* $Id: v4l.c,v 1.7 2000-10-15 21:24:49 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -83,17 +83,18 @@ wait_full(fifo *f)
 	b = f->buffers + cframe;
 	b->time = tv.tv_sec + tv.tv_usec / 1e6;
 
-	memcpy(b->data, data, b->_size);
+	memcpy(b->data, data, b->size);
 
 	cframe = oldcframe;
 
 	return b;
 }
 
-static void
-capture_on(void)
+static bool
+capture_on(fifo *unused)
 {
 	cframe = 0;
+	return TRUE;
 }
 
 static void
@@ -179,6 +180,8 @@ v4l_init(void)
 	ASSERT("init capture fifo", init_callback_fifo(&cap_fifo,
 		wait_full, NULL, NULL, NULL, 0, buf.frames));
 
+	cap_fifo.start = capture_on;
+
 	cap_fifo.num_buffers = 0;
 	/* malloc() is needed because usually only 2 buffers are available */
 	bufsize = vmmap.width * vmmap.height * 1.5;
@@ -191,7 +194,7 @@ v4l_init(void)
 			cap_fifo.buffers[cap_fifo.num_buffers].allocated =
 			calloc_aligned(bufsize,
 				       bufsize < 4096 ? CACHE_LINE : 4096);
-		cap_fifo.buffers[cap_fifo.num_buffers]._size = bufsize;
+		cap_fifo.buffers[cap_fifo.num_buffers].size = bufsize;
 		ASSERT("allocate mem for the capture buffers",
 		       cap_fifo.buffers[cap_fifo.num_buffers].data);
 	}
@@ -201,5 +204,4 @@ v4l_init(void)
 	       ioctl(fd, VIDIOCMCAPTURE, &vmmap) == 0);
 
 	video_cap_fifo = &cap_fifo;
-	video_start = capture_on;
 }

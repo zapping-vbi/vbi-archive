@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.6 2000-09-23 03:57:54 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.7 2000-10-15 21:24:49 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -47,7 +47,6 @@ static struct v4l2_requestbuffers vrbuf;
 
 static struct v4l2_control	old_mute;
 
-extern int			min_cap_buffers;
 
 #define VIDIOC_PSB _IOW('v', 193, int)
 
@@ -67,12 +66,12 @@ le4cc2str(int n)
 	return buf;
 }
 
-static void
-capture_on(void)
+static bool
+capture_on(fifo *unused)
 {
 	int str_type = V4L2_BUF_TYPE_CAPTURE;
 
-	ASSERT("activate capturing", ioctl(fd, VIDIOC_STREAMON, &str_type) == 0);
+	return ioctl(fd, VIDIOC_STREAMON, &str_type) == 0;
 }
 
 static buffer *
@@ -145,6 +144,7 @@ v4l2_init(void)
 	int aligned_height;
 	unsigned int probed_modes = 0;
 	int mod;
+	int min_cap_buffers = video_look_ahead(gop_sequence);
 
 	ASSERT("open video capture device", (fd = open(cap_dev, O_RDONLY)) != -1);
 	ASSERT("query video capture capabilities", ioctl(fd, VIDIOC_QUERYCAP, &vcap) == 0);
@@ -338,6 +338,8 @@ v4l2_init(void)
 	ASSERT("init capture fifo", init_callback_fifo(&cap_fifo,
 		wait_full, send_empty, NULL, NULL, 0, vrbuf.count));
 
+	cap_fifo.start = capture_on;
+
 	// Map capture buffers
 
 	cap_fifo.num_buffers = 0;
@@ -373,7 +375,6 @@ v4l2_init(void)
 		FAIL("Cannot allocate enough (%d) capture buffers", min_cap_buffers);
 
 	video_cap_fifo = &cap_fifo;
-	video_start = capture_on;
 }
 
 #endif // V4L2

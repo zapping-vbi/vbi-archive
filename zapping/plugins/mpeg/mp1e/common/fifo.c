@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.3 2000-08-12 02:14:37 mschimek Exp $ */
+/* $Id: fifo.c,v 1.4 2000-10-15 21:24:48 mschimek Exp $ */
 
 #include "fifo.h"
 #include "alloc.h"
@@ -31,7 +31,7 @@ uninit_buffer(buffer *b)
 		free_aligned(b->allocated);
 
 	b->allocated = NULL;
-	b->_size = 0;
+	b->size = 0;
 }
 
 bool
@@ -50,7 +50,7 @@ init_buffer(buffer *b, int size)
 		if (!b->allocated)
 			return FALSE;
 
-		b->_size = size;
+		b->size = size;
 	}
 
 	return TRUE;
@@ -60,6 +60,12 @@ static void
 dead_end(fifo *f)
 {
 	FAIL("Invalid fifo %p", f);
+}
+
+static bool
+tv_sucks(fifo *f)
+{
+	return TRUE;
 }
 
 void
@@ -80,6 +86,8 @@ uninit_fifo(fifo * f)
 	f->send_empty = (void (*)(fifo *, buffer *)) dead_end;
 	f->wait_empty = (buffer * (*)(fifo *)) dead_end;
 	f->send_full  = (void (*)(fifo *, buffer *)) dead_end;
+
+	f->start = tv_sucks;
 
 	memset(f, 0, sizeof(fifo));
 }
@@ -115,6 +123,8 @@ init_buffered_fifo(fifo *f, mucon *consumer, int size, int num_buffers)
 	mucon_init(&f->producer);
 	f->consumer = consumer; /* NB the consumer mucon can be shared,
 				   cf. video, audio -> mux */
+
+	f->start = tv_sucks;
 
 	return f->num_buffers = i; // sic
 }
@@ -162,6 +172,8 @@ init_callback_fifo(fifo *f,
 	f->send_empty = send_empty;
 	f->wait_empty = wait_empty;
 	f->send_full  = send_full;
+
+	f->start = tv_sucks;
 
 	return f->num_buffers;
 }

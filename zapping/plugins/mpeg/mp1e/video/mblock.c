@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mblock.c,v 1.3 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: mblock.c,v 1.4 2000-10-15 21:24:49 mschimek Exp $ */
 
 #include "video.h"
 #include "../common/math.h"
@@ -58,4 +58,37 @@ video_coding_size(int width, int height)
 	mb_last_row = mb_height - 1;
 
 	mb_num    = mb_width * mb_height;
+}
+
+/*
+ *  B picture: encode & discard; I or P picture must be encoded ahead of
+ *  all B pictures forward referencing the I or P picture, ie. we will
+ *  stack as many captured pictures as there are B pictures in a row
+ *  plus the following I or P. The capture module may add one or two
+ *  more for double buffering.
+ */
+int
+video_look_ahead(char *gop_sequence)
+{
+	int i;
+	int max = 0;
+	int count = 0;
+
+	for (i = 0; i < 1024; i++)
+		switch (gop_sequence[i]) {
+		case 'I':
+		case 'P':
+			max = MAX(count, max);
+			count = 0;
+			break;
+
+		case 'B':
+			count++;
+			break;
+
+		default:
+			i = 1024;
+		}
+
+	return max + 1;
 }

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.6 2000-10-12 14:08:31 garetxe Exp $ */
+/* $Id: fifo.h,v 1.7 2000-10-15 21:24:48 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -30,10 +30,6 @@
 #include "threads.h"
 #include "log.h"
 #include "alloc.h"
-
-/*
- *  New stuff(tm)
- */
 
 typedef struct {
 	node 			node;
@@ -51,8 +47,8 @@ typedef struct {
 	/* Owner r/o */
 
 	unsigned char *		allocated;	// by init_fifo
-	long			_size;		// bytes
-	// buffer->size != _buffer->size
+	long			size;		// bytes
+
 } buffer;
 
 typedef struct _fifo {
@@ -66,6 +62,8 @@ typedef struct _fifo {
 	void			(* send_empty)(struct _fifo *, buffer *);
 	buffer *		(* wait_empty)(struct _fifo *);
 	void			(* send_full)(struct _fifo *, buffer *);
+
+	bool			(* start)(struct _fifo *);
 
 	buffer *		buffers;
 	int			num_buffers;
@@ -144,8 +142,7 @@ wait_full_buffer(fifo *f)
 }
 
 static inline buffer *
-__recv_full_buffer(fifo *f)
-// recv != recv in 1.1 local
+recv_full_buffer(fifo *f)
 {
 	buffer *b;
 
@@ -194,7 +191,7 @@ wait_empty_buffer(fifo *f)
 }
 
 static inline buffer *
-__recv_empty_buffer(fifo *f)
+recv_empty_buffer(fifo *f)
 {
 	buffer *b;
 

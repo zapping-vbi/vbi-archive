@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: subtitles.c,v 1.1 2000-09-29 17:54:33 mschimek Exp $ */
+/* $Id: subtitles.c,v 1.2 2000-10-15 21:24:49 mschimek Exp $ */
 
 #include <ctype.h>
 #include "vbi.h"
@@ -185,7 +185,6 @@ encode_packet:
 
 	fputc('\n', stderr);
 #endif
-#if 1
 	p[0] = DATA_UNIT_EBU_TELETEXT_NON_SUBTITLE; // ?
 	p[1] = 44;
 	p[2] = fplo_lut[line];
@@ -198,7 +197,6 @@ encode_packet:
 	 *  framing_code [8], magazine_and_packet_address [16],
 	 *  data_block [320]
 	 */
-#endif
 
 	return 46;
 }

@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-/* $Id: rte.c,v 1.27 2000-10-15 09:09:55 garetxe Exp $ */
+/* $Id: rte.c,v 1.28 2000-10-15 21:24:48 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -71,8 +71,9 @@ int			stereo;
 
 fifo *			video_cap_fifo;
 
-int			min_cap_buffers = MIN(NUM_AUDIO_BUFFERS,
-					      NUM_VIDEO_BUFFERS);
+//int			min_cap_buffers = MIN(NUM_AUDIO_BUFFERS,
+//					      NUM_VIDEO_BUFFERS);
+// grep video_look_ahead
 
 /* prototypes for main initialization (mp1e startup) */
 /* fixme: preview support (whew, XV is really nice!) */
@@ -124,7 +125,7 @@ wait_data(rte_context * context, int video)
 			b = wait_empty_buffer(f);
 			
 			ASSERT("size checks",
-			       b->_size == (video ? context->video_bytes :
+			       b->size == (video ? context->video_bytes :
 					    context->audio_bytes));
 
 			(*data_callback)(b->data, &(b->time), video, context,
@@ -710,9 +711,7 @@ int rte_start_encoding (rte_context * context)
 		return 0;
 	}
 
-	/* sync threads */
-	if (popcnt(modules) > 1)
-		synchronize_capture_modules();
+	synchronize_capture_modules(FALSE);
 
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
@@ -1045,6 +1044,7 @@ static void rte_audio_startup(void)
 /* Startup audio parameters */
 static void rte_video_startup(void)
 {
+#if 0 /* obsolete -> video_look_ahead */
 	if (modules & MOD_VIDEO) {
 		char *s = gop_sequence;
 		int count = 0;
@@ -1063,6 +1063,7 @@ static void rte_video_startup(void)
 		
 		min_cap_buffers++;
 	}
+#endif
 }
 
 /* FIXME: Subtitles support (when it gets into the bttv 2 driver?) */

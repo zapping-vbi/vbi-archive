@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.c,v 1.5 2000-09-29 17:54:33 mschimek Exp $ */
+/* $Id: stream.c,v 1.6 2000-10-15 21:24:48 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -99,7 +99,7 @@ stream_sink(void *unused)
 
 	while (num_streams > 0) {
 		for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next)
-			if (str->left && (buf = __recv_full_buffer(&str->fifo)))
+			if (str->left && (buf = recv_full_buffer(&str->fifo)))
 				break;
 
 		if (!str) {
@@ -369,11 +369,20 @@ mpeg_header_name(unsigned int code)
 }
 
 void
-synchronize_capture_modules(void)
+synchronize_capture_modules(bool start)
 {
 	double max_d = 1.5 / frame_rate_value[frame_rate_code];
-	int term = 30;
+	int streams = 0, term = 30;
 	stream *str;
+
+	for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
+		if (start)
+			ASSERT("start capturing", (* str->cap_fifo->start)(str->cap_fifo));
+		streams++;
+	}
+
+	if (streams < 2)
+		return;
 
 	for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
 		str->buf = wait_full_buffer(str->cap_fifo); // XXX should pass b->used == 0 as EOF

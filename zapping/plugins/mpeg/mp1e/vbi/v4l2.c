@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.2 2000-09-30 19:38:45 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.3 2000-10-15 21:24:49 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -46,7 +46,7 @@ static struct v4l2_format	vfmt;
 static struct v4l2_requestbuffers vrbuf;
 static struct v4l2_buffer	vbuf;
 
-#ifndef V4L2_BUF_TYPE_VBI // pending extension
+#ifndef V4L2_BUF_TYPE_VBI // V4L2 0.20 erratum
 #define V4L2_BUF_TYPE_VBI V4L2_BUF_TYPE_CAPTURE;
 #endif
 
@@ -103,7 +103,7 @@ wait_full_read(fifo *f)
 	struct timeval tv;
 	buffer *b = &cap_fifo.buffers[0];
 
-	ASSERT("read from vbi device", b->_size == read(fd, b->data, b->_size));
+	ASSERT("read from vbi device", b->size == read(fd, b->data, b->size));
 
 	gettimeofday(&tv, NULL);
 	b->time = tv.tv_sec + tv.tv_usec / 1e6;
@@ -116,6 +116,14 @@ wait_full_read(fifo *f)
 static void
 send_empty_read(fifo *f, buffer *b)
 {
+}
+
+static bool
+capture_on(fifo *unused)
+{
+	int str_type = V4L2_BUF_TYPE_VBI;
+
+	return ioctl(fd, VIDIOC_STREAMON, &str_type) == 0;
 }
 
 void
@@ -200,6 +208,8 @@ vbi_v4l2_init(void)
 			ASSERT("init vbi capture fifo", init_callback_fifo(vbi_cap_fifo = &cap_fifo,
 				wait_full_stream, send_empty_stream, NULL, NULL, 0, vrbuf.count));
 
+			cap_fifo.start = capture_on;
+
 			// Map capture buffers
 
 			cap_fifo.num_buffers = 0;
@@ -230,9 +240,6 @@ vbi_v4l2_init(void)
 
 				cap_fifo.num_buffers++;
 			}
-			
-			ASSERT("activate vbi capturing", ioctl(fd, VIDIOC_STREAMON, &str_type) == 0);
-			// XXX may drop #vrbuf.count++?
 		} else {
 			printv(2, "Using V4L2 VBI read interface\n");
 

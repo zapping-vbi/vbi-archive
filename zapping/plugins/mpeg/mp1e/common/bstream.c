@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bstream.c,v 1.1 2000-08-09 09:40:14 mschimek Exp $ */
+/* $Id: bstream.c,v 1.2 2000-10-15 21:24:48 mschimek Exp $ */
 
 #include "bstream.h"
 
@@ -30,6 +30,7 @@ binit_write(struct bs_rec *b)
 	b->uq64.uq	= 64ULL;
 }
 
+// XXX #@$! compiler complained about regs again, move into bstream_mmx.s
 /*
  *  Encode rightmost n bits in v, with v < (1 << n) and 0 < n < 32
  */
@@ -68,7 +69,7 @@ bputl(struct bs_rec *b, unsigned int v, int n)
 2:
 	" :: "r" (v), "r" (n + b->n), "r" (64),
 	     "m" (b->n), "m" (b->p), "m" (b->uq64)
-	  : "0", "1", "2", "cc", "memory" FPU_REGS);
+	  : "cc", "memory" FPU_REGS);
 }
 
 /*
@@ -110,7 +111,7 @@ bputq(struct bs_rec *b, int n)
 2:
 	" :: "r" (b->n), "r" (n + b->n), "r" (64),
 	     "m" (b->n), "m" (b->p), "m" (b->uq64)
-	  : "0", "1", "2", "cc", "memory" FPU_REGS);
+	  : "cc", "memory" FPU_REGS);
 }
 
 /*

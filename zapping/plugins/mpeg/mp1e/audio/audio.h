@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.4 2000-08-12 02:14:37 mschimek Exp $ */
+/* $Id: audio.h,v 1.5 2000-10-15 21:24:48 mschimek Exp $ */
 
 #include <pthread.h>
 #include "../common/fifo.h"
@@ -36,6 +36,10 @@ extern void		audio_parameters(int *sampling_freq, int *bit_rate);
 extern void		pcm_init(void);
 extern void		mix_init(void);
 extern char *		mix_sources(void);
+
+/* alsa.c */
+
+extern void		alsa_pcm_init(void);
 
 /* tsp.c */
 

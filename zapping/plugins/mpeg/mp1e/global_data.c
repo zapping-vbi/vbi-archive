@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.1 2000-10-12 14:08:31 garetxe Exp $ */
+/* $Id: global_data.c,v 1.2 2000-10-15 21:24:48 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +47,11 @@ int			modules			= 3;			// 1 = Video, 2 = Audio, 4 = VBI
 int			mux_syn			= 2;			// 0 = null, elementary, MPEG-1, MPEG-2 PS 
 
 char *			cap_dev			= "/dev/video";
+#ifdef HAVE_LIBASOUND
+char *			pcm_dev			= "alsa/0-0";
+#else
 char *			pcm_dev			= "/dev/dsp";
+#endif
 char *			mix_dev			= "/dev/mixer";
 char *			vbi_dev			= "/dev/vbi";
 

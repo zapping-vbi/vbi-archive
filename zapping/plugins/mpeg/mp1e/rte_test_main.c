@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.11 2000-10-15 09:09:55 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.12 2000-10-15 21:24:48 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -44,6 +44,8 @@
 #else
 #include <esd.h>
 #endif
+
+#define TEST_VIDEO_FORMAT RTE_YUV420 /* RTE_YUYV */
 
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
@@ -135,11 +137,18 @@ init_video(const char * cap_dev, int * width, int * height)
 	vfmt.fmt.pix.width = *width;
 	vfmt.fmt.pix.height = *height;
 
-	vfmt.fmt.pix.depth = 12;
-	vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
+	if (TEST_VIDEO_FORMAT == RTE_YUV420) {
+		vfmt.fmt.pix.depth = 12;
+		vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
+	} else if (TEST_VIDEO_FORMAT == RTE_YUYV) {
+		vfmt.fmt.pix.depth = 16;
+		vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+	} else
+		FAIL("Invalid TEST_VIDEO_FORMAT\n");
+
 	vfmt.fmt.pix.flags = V4L2_FMT_FLAG_INTERLACED;
 
-	ASSERT("set capture mode to YUV420", ioctl(fd, VIDIOC_S_FMT,
+	ASSERT("set capture format", ioctl(fd, VIDIOC_S_FMT,
 						   &vfmt) == 0);
 
 	if ((vfmt.fmt.pix.width & 15) || (vfmt.fmt.pix.height & 15))
@@ -497,7 +506,7 @@ int main(int argc, char *argv[])
 	 * audio data callback, video data callback
 	 * user data
 	 */
-	context = rte_context_new(width, height, RTE_YUV420,
+	context = rte_context_new(width, height, TEST_VIDEO_FORMAT,
 				  rate_code, dest_file, NULL,
 				  NULL, data_callback,
 				  (void*)0xdeadbeef);

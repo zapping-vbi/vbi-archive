@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.6 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: video.h,v 1.7 2000-10-15 21:24:49 mschimek Exp $ */
 
 #include "../common/bstream.h"
 #include "../common/fifo.h"
@@ -52,6 +52,7 @@ extern void		v4l2_init(void);
 extern void		file_init(void);
 extern void		filter_init(int pitch);
 extern void		video_coding_size(int width, int height);
+extern int		video_look_ahead(char *gop_sequence);
 
 enum {
 	CM_INVALID,

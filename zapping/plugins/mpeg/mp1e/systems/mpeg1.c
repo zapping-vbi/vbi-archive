@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.8 2000-09-30 19:38:45 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.9 2000-10-15 21:24:48 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -337,10 +337,10 @@ mpeg1_system_mux(void *unused)
 		buf = mux_output(NULL);
 
 		assert(buf
-		       && buf->_size >= 512
-		       && buf->_size <= 32768);
+		       && buf->size >= 512
+		       && buf->size <= 32768);
 
-		packet_size = buf->_size;
+		packet_size = buf->size;
 
 		system_overhead = packet_size / (packet_size
 			- (SYSTEM_HEADER_SIZE(nstreams) + PACK_HEADER_SIZE / PACKETS_PER_PACK));
@@ -369,7 +369,7 @@ mpeg1_system_mux(void *unused)
 
 	for (;;) {
 		p = buf->data;
-		px = p + buf->_size;
+		px = p + buf->size;
 
 		/* Pack header, system header */
 
@@ -462,8 +462,8 @@ reschedule:
 		buf = mux_output(buf);
 
 		assert(buf
-			&& buf->_size >= 512
-			&& buf->_size <= 32768);
+			&& buf->size >= 512
+			&& buf->size <= 32768);
 
 		packet_count++;
 		pack_packet_count++;

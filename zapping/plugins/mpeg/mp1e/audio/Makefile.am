@@ -13,5 +13,5 @@ libaudio_a_SOURCES = \
 	filter.c filter_mmx.s \
 	mp2.c mpeg.h \
 	psycho.c tables.c \
-	audio.h	oss.c tsp.c
+	audio.h	oss.c alsa.c tsp.c
 

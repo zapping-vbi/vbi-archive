@@ -32,7 +32,6 @@ extern int		stereo;
 extern pthread_t	video_thread_id;
 extern fifo *		video_cap_fifo;
 extern void		(* video_start)(void);
-extern int		min_cap_buffers;
 
 extern pthread_t        output_thread_id;
 

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.5 2000-10-15 09:08:44 garetxe Exp $ */
+/* $Id: oss.c,v 1.6 2000-10-15 21:24:48 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -146,7 +146,7 @@ pcm_wait_full(fifo *f)
 	return &buf;
 }
 
-void
+static void
 pcm_send_empty(fifo *f, buffer *b)
 {
 }

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.23 2000-09-30 19:38:44 mschimek Exp $ */
+/* $Id: main.c,v 1.24 2000-10-15 21:24:48 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,7 +65,6 @@ int			stereo;
 pthread_t		video_thread_id;
 fifo *			video_cap_fifo;
 void			(* video_start)(void);
-int			min_cap_buffers;
 
 pthread_t		vbi_thread_id;
 fifo *			vbi_cap_fifo;
@@ -107,14 +106,13 @@ terminate(int signum)
 
 // XXX unsafe? atomic set, once only, potential rc
 
-	printv(1, "\nStop\n");
+	printv(1, "\nStop at %f\n", video_stop_time);
 }
 
 int
 main(int ac, char **av)
 {
 	sigset_t block_mask;
-	struct timeval tv;
 	pthread_t mux_thread; /* Multiplexer thread */
 
 	my_name = av[0];
@@ -151,16 +149,22 @@ main(int ac, char **av)
 
 		stereo = (audio_mode != AUDIO_MODE_MONO);
 
-		ASSERT("probe '%s'", !stat(pcm_dev, &st), pcm_dev);
-
-		if (S_ISCHR(st.st_mode)) {
+		if (!strncmp(pcm_dev, "alsa", 4)) {
 			audio_parameters(&sampling_rate, &audio_bit_rate);
-			mix_init();
-			pcm_init();
+			mix_init(); // XXX OSS
+			alsa_pcm_init();
 		} else {
-			tsp_init();
-			// pick up file parameters
-			audio_parameters(&sampling_rate, &audio_bit_rate);
+			ASSERT("probe '%s'", !stat(pcm_dev, &st), pcm_dev);
+
+			if (S_ISCHR(st.st_mode)) {
+				audio_parameters(&sampling_rate, &audio_bit_rate);
+				mix_init();
+				pcm_init();
+			} else {
+				tsp_init();
+				// pick up file parameters
+				audio_parameters(&sampling_rate, &audio_bit_rate);
+			}
 		}
 
 		if ((audio_bit_rate >> stereo) < 80000 || psy_level >= 1) {
@@ -175,25 +179,6 @@ main(int ac, char **av)
 
 	if (modules & MOD_VIDEO) {
 		struct stat st;
-
-		{
-			char *s = gop_sequence;
-			int count = 0;
-
-			min_cap_buffers = 0;
-
-			do {
-				if (*s == 'B')
-					count++;
-				else {
-					if (count > min_cap_buffers)
-						min_cap_buffers = count;
-					count = 0;
-				}
-			} while (*s++);
-
-			min_cap_buffers++;
-		}
 
 		if (!stat(cap_dev, &st) && S_ISCHR(st.st_mode))
 #ifdef V4L2_MAJOR_VERSION
@@ -246,7 +231,6 @@ main(int ac, char **av)
 		if (preview > 0)
 			preview_init();
 #endif
-		video_start(); // bah. need a start/restart function, prob. start_time
 	}
 
 	if (modules & MOD_SUBTITLES) {
@@ -260,8 +244,7 @@ main(int ac, char **av)
 
 	ASSERT("initialize output routine", init_output_stdout());
 
-	if (popcnt(modules) > 1)
-		synchronize_capture_modules();
+	synchronize_capture_modules(TRUE);
 
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
@@ -295,10 +278,6 @@ main(int ac, char **av)
 		&& mux_syn >= 2)
 		mux_syn = 1; // compatibility
 
-	/*
-	 *  XXX Thread these, not UI.
-	 *  Async completion indicator?? 
-	 */
 	switch (mux_syn) {
 	case 0:
 		ASSERT("create stream nirvana thread",
@@ -323,13 +302,27 @@ main(int ac, char **av)
 		break;
 	}
 
+#if 0
 	// unsafe: numframes, stop_time < mux finish time, cuts off end code
 	/* wait until completition (SIGINT handler) */
 	do {
 		usleep(100000); /* 0.1 s*/
 		gettimeofday(&tv, NULL);
 	} while (audio_stop_time > (tv.tv_sec + tv.tv_usec / 1e6));
+#endif
+/*
+   Suffice to suspend execution until mux_thread terminates.
 
+   #1, still no way to wake up eg. an X11 event loop when
+   num_frames have been done. Only a stop button routine
+   could suspend until termination. fd? For async feedback
+   in general?
+
+   #2, stop_time must be protected by a mutex to guarantee
+   atomic reads. Problem: mutexes & signal handlers don't mix.
+
+   #3, compression from files fakes timestamps, Ctrl-C no workee.
+*/
 	pthread_join(mux_thread, NULL);
 
 	mux_cleanup();
