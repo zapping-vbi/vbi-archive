@@ -146,7 +146,7 @@ do {									\
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gdk-pixbuf/gdk-pixdata.h>
 
-#include <tveng.h>
+#include "tveng.h"
 
 /* With precompiler aid we can print much more useful info */
 /* This shows a non-modal, non-blocking message box */
@@ -506,24 +506,26 @@ z_spinslider_adjustment_changed	(GtkWidget *hbox);
 
 typedef tv_device_node *
 z_device_entry_open_fn		(GtkWidget *		table,
-				 void *			user_data,
 				 tv_device_node *	list,
-				 const gchar *		entered);
+				 const gchar *		entered,
+				 gpointer		user_data);
 typedef void
 z_device_entry_select_fn	(GtkWidget *		table,
-				 void *			user_data,
-				 tv_device_node *	n);
+				 tv_device_node *	n,
+				 gpointer		user_data);
 
 /* ATTN maintains & deletes list */
-GtkWidget *
+extern GtkWidget *
 z_device_entry_new		(const gchar *		prompt,
 				 tv_device_node *	list,
 				 const gchar *		current_device,
 				 z_device_entry_open_fn *open_fn,
 				 z_device_entry_select_fn *select_fn,
-				 void *			user_data);
-tv_device_node *
+				 gpointer		user_data);
+extern tv_device_node *
 z_device_entry_selected		(GtkWidget *		table);
+extern void
+z_device_entry_grab_focus	(GtkWidget *		table);
 
 /* Makes the given entry emit the response to the dialog when
    activated */
@@ -567,5 +569,18 @@ void
 z_label_set_text_printf		(GtkLabel *		label,
 				 const gchar *		format,
 				 ...);
+
+extern gboolean
+z_tree_selection_iter_first	(GtkTreeSelection *	selection,
+				 GtkTreeModel *		model,
+				 GtkTreeIter *		iter);
+extern gboolean
+z_tree_selection_iter_last	(GtkTreeSelection *	selection,
+				 GtkTreeModel *		model,
+				 GtkTreeIter *		iter);
+extern void
+z_tree_view_remove_selected	(GtkTreeView *		tree_view,
+				 GtkTreeSelection *	selection,
+				 GtkTreeModel *		model);
 
 #endif /* __ZMISC_H__ */
