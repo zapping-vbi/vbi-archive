@@ -18,14 +18,16 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.2 2004-09-20 04:36:55 mschimek Exp $ */
+/* $Id: zapping.c,v 1.3 2004-09-22 21:22:29 mschimek Exp $ */
+
+#include "config.h"
 
 #include "audio.h"
 #include "interface.h"
 #include "v4linterface.h"
 #include "plugins.h"
 #include "properties-handler.h"
-#include "ttxview.h"
+#include "subtitle.h"
 #include "zconf.h"
 #include "zmisc.h"
 #include "zvideo.h"
@@ -148,7 +150,7 @@ zconf_hook_subtitles		(const gchar *		key _unused_,
 }
 
 static void
-show_menu_action		(GtkToggleAction *	toggle_action,
+view_menu_action		(GtkToggleAction *	toggle_action,
 				 Zapping *		z)
 {
   BonoboDockItem *dock_item;
@@ -180,7 +182,7 @@ show_menu_action		(GtkToggleAction *	toggle_action,
 }
 
 static void
-show_toolbar_action		(GtkToggleAction *	toggle_action,
+view_toolbar_action		(GtkToggleAction *	toggle_action,
 				 Zapping *		z)
 {
   BonoboDockItem *dock_item;
@@ -227,7 +229,7 @@ py_hide_controls		(PyObject *		self _unused_,
     g_error ("zapping.hide_controls(|i)");
 
   toggle_action = GTK_TOGGLE_ACTION
-    (gtk_action_group_get_action (zapping->generic_action_group, "ShowMenu"));
+    (gtk_action_group_get_action (zapping->generic_action_group, "ViewMenu"));
 
   if (hide > 1)
     hide = !!gtk_toggle_action_get_active (toggle_action);
@@ -236,7 +238,7 @@ py_hide_controls		(PyObject *		self _unused_,
 
   toggle_action = GTK_TOGGLE_ACTION
     (gtk_action_group_get_action (zapping->generic_action_group,
-				  "ShowToolbar"));
+				  "ViewToolbar"));
 
   gtk_toggle_action_set_active (toggle_action, !hide);
 
@@ -320,29 +322,29 @@ controls_action			(GtkAction *		action _unused_,
 
 static const GtkActionEntry
 generic_actions [] = {
-  { "FileMenu", NULL, N_("_File"), NULL, NULL, NULL },
+  { "FileSubmenu", NULL, N_("_File"), NULL, NULL, NULL },
   { "Quit", GTK_STOCK_QUIT, NULL, NULL, NULL, G_CALLBACK (quit_action) },
-  { "EditMenu", NULL, N_("_Edit"), NULL, NULL, NULL },
+  { "EditSubmenu", NULL, N_("_Edit"), NULL, NULL, NULL },
   { "Preferences", GTK_STOCK_PREFERENCES, NULL, NULL,
     NULL, G_CALLBACK (preferences_action) },
-  { "Plugins", GTK_STOCK_CONNECT, N_("P_lugins"), NULL,
+  { "Plugins", NULL, N_("P_lugins"), NULL,
     NULL, G_CALLBACK (plugins_action) },
-  { "ChannelEditor", GTK_STOCK_EDIT, N_("_Channels"), NULL,
+  { "ChannelEditor", NULL /* 2.6 GTK_STOCK_EDIT */, N_("_Channels"), NULL,
     NULL, G_CALLBACK (channel_editor_action) },
-  { "ViewMenu", NULL, N_("_View"), NULL, NULL, NULL },
+  { "ViewSubmenu", NULL, N_("_View"), NULL, NULL, NULL },
   { "Fullscreen", GTK_STOCK_EXECUTE, N_("_Fullscreen"), "<Control>f",
     NULL, G_CALLBACK (fullscreen_action) },
   { "Overlay", GTK_STOCK_EXECUTE, N_("_Overlay mode"), "<Control>o",
     NULL, G_CALLBACK (overlay_action) },
   { "Capture", GTK_STOCK_EXECUTE, N_("_Capture mode"), "<Control>c",
     NULL, G_CALLBACK (capture_action) },
-  { "ChannelsMenu", NULL, N_("_Channels"), NULL, NULL, NULL },
-  { "HelpMenu", NULL, N_("_Help"), NULL, NULL, NULL },
+  { "ChannelsSubmenu", NULL, N_("_Channels"), NULL, NULL, NULL },
+  { "HelpSubmenu", NULL, N_("_Help"), NULL, NULL, NULL },
   { "HelpContents", GTK_STOCK_HELP, N_("_Contents"), "F1",
     NULL, G_CALLBACK (help_contents_action) },
-  { "About", GTK_STOCK_ABOUT, N_("_About"), NULL,
+  { "About", GNOME_STOCK_ABOUT, N_("_About"), NULL,
     NULL, G_CALLBACK (about_action) },
-  { "PopupMenu", NULL, "Dummy", NULL, NULL, NULL },
+  { "PopupSubmenu", NULL, "Dummy", NULL, NULL, NULL },
   { "Appearance", NULL, N_("Appearance"), NULL, NULL, NULL },
   { "ChannelUp", GTK_STOCK_GO_UP, N_("Ch. Up"), NULL,
     N_("Switch to higher channel"), G_CALLBACK (channel_up_action) },
@@ -356,19 +358,19 @@ static const GtkToggleActionEntry
 generic_toggle_actions [] = {
   { "Mute", "zapping-mute", N_("_Mute"), "<Control>a",
     N_("Switch audio on or off"), G_CALLBACK (mute_action), FALSE },
-  { "ShowMenu", NULL, N_("Show menu"), NULL,
-    NULL, G_CALLBACK (show_menu_action), TRUE },
-  { "ShowToolbar", NULL, N_("Show toolbar"), NULL,
-    NULL, G_CALLBACK (show_toolbar_action), TRUE },
+  { "ViewMenu", NULL, N_("Menu"), NULL,
+    NULL, G_CALLBACK (view_menu_action), TRUE },
+  { "ViewToolbar", NULL, N_("Toolbar"), NULL,
+    NULL, G_CALLBACK (view_toolbar_action), TRUE },
   { "KeepWindowOnTop", NULL, N_("Keep window on top"), NULL,
     NULL, G_CALLBACK (keep_window_on_top_action), FALSE },
 };
 
 static const GtkActionEntry
 vbi_actions [] = {
-  { "TeletextMenu", NULL, N_("_Teletext"), NULL, NULL, NULL },
-  { "SubtitlesMenu", NULL, N_("_Subtitles"), NULL, NULL, NULL },
-  { "BookmarksMenu", NULL, N_("_Bookmarks"), NULL, NULL, NULL },
+  { "TeletextSubmenu", NULL, N_("_Teletext"), NULL, NULL, NULL },
+  { "SubtitlesSubmenu", NULL, N_("_Subtitles"), NULL, NULL, NULL },
+  { "BookmarksSubmenu", NULL, N_("_Bookmarks"), NULL, NULL, NULL },
   { "Teletext", "zapping-teletext", N_("_Teletext"), "<Control>t",
     N_("Activate Teletext mode"), G_CALLBACK (teletext_action) },
   { "RestoreVideo", "zapping-video", N_("_Video"), "<Control>v",
@@ -387,15 +389,15 @@ static const char *
 ui_description =
 "<ui>"
 " <menubar name='MainMenu'>"
-"  <menu action='FileMenu'>"
+"  <menu action='FileSubmenu'>"
 "   <menuitem action='Quit'/>"
 "  </menu>"
-"  <menu action='EditMenu'>"
+"  <menu action='EditSubmenu'>"
 "   <menuitem action='Preferences'/>"
 "   <menuitem action='Plugins'/>"
 "   <menuitem action='ChannelEditor'/>"
 "  </menu>"
-"  <menu action='ViewMenu'>"
+"  <menu action='ViewSubmenu'>"
 "   <menuitem action='Fullscreen'/>"
 "   <menuitem action='Overlay'/>"
 "   <menuitem action='Capture'/>"
@@ -407,13 +409,13 @@ ui_description =
 "   <menuitem action='Mute'/>"
 "   <menuitem action='Subtitles'/>"
 "   <separator/>"
-"   <menuitem action='ShowMenu'/>"
-"   <menuitem action='ShowToolbar'/>"
+"   <menuitem action='ViewMenu'/>"
+"   <menuitem action='ViewToolbar'/>"
 "   <menuitem action='KeepWindowOnTop'/>"
 "  </menu>"
-"  <menu action='ChannelsMenu'>"
+"  <menu action='ChannelsSubmenu'>"
 "  </menu>"
-"  <menu action='HelpMenu'>"
+"  <menu action='HelpSubmenu'>"
 "   <menuitem action='HelpContents'/>"
 "   <separator/>"
 "   <menuitem action='About'/>"
@@ -435,22 +437,22 @@ static const char *
 popup_menu_description =
 "<ui>"
 " <menubar name='Popup'>"
-"  <menu action='PopupMenu'>"
+"  <menu action='PopupSubmenu'>"
 "   <menuitem action='Fullscreen'/>"
 "   <menuitem action='Overlay'/>"
 "   <menuitem action='Capture'/>"
 "   <separator/>"
 "   <menuitem action='Teletext'/>"
-"   <menu action='TeletextMenu'>"
+"   <menu action='TeletextSubmenu'>"
 "   </menu>"
-"   <menu action='SubtitlesMenu'>"
+"   <menu action='SubtitlesSubmenu'>"
 "   </menu>"
-"   <menu action='BookmarksMenu'>"
+"   <menu action='BookmarksSubmenu'>"
 "   </menu>"
 "   <separator/>"
 "   <menu action='Appearance'>"
-"    <menuitem action='ShowMenu'/>"
-"    <menuitem action='ShowToolbar'/>"
+"    <menuitem action='ViewMenu'/>"
+"    <menuitem action='ViewToolbar'/>"
 "    <menuitem action='KeepWindowOnTop'/>"
 "   </menu>"
 "   <separator/>"
@@ -458,8 +460,8 @@ popup_menu_description =
 " </menubar>"
 "</ui>";
 
-static void
-create_popup			(Zapping *		z,
+void
+zapping_create_popup		(Zapping *		z,
 				 GdkEventButton *	event)
 {
   GtkUIManager *ui_manager;
@@ -483,7 +485,7 @@ create_popup			(Zapping *		z,
       exit (EXIT_FAILURE);
     }
 
-  widget = gtk_ui_manager_get_widget (ui_manager, "/Popup/PopupMenu");
+  widget = gtk_ui_manager_get_widget (ui_manager, "/Popup/PopupSubmenu");
   popup_menu = gtk_menu_item_get_submenu (GTK_MENU_ITEM (widget));
 
   widget = gtk_separator_menu_item_new ();
@@ -498,11 +500,13 @@ create_popup			(Zapping *		z,
       if (CAPTURE_MODE_TELETEXT == z->info->capture_mode)
 	{
 	  widget = gtk_ui_manager_get_widget
-	    (ui_manager, "/Popup/PopupMenu/TeletextMenu");
+	    (ui_manager, "/Popup/PopupSubmenu/TeletextSubmenu");
 
 	  if (widget)
 	    {
-	      menu = ttxview_popup (GTK_WIDGET (z), event);
+	      menu = NULL;
+	      if (_ttxview_popup)
+                menu = _ttxview_popup (GTK_WIDGET (zapping), event);  
 	      if (menu)
 		gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget), menu);
 	      else
@@ -510,38 +514,45 @@ create_popup			(Zapping *		z,
 	    }
 
 	  widget = gtk_ui_manager_get_widget
-	    (ui_manager, "/Popup/PopupMenu/BookmarksMenu");
+	    (ui_manager, "/Popup/PopupSubmenu/BookmarksSubmenu");
 	  if (widget)
 	    {
-	      menu = ttxview_bookmarks_menu_new (GTK_WIDGET (z));
-	      gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget), menu);
+	      if (_ttxview_bookmarks_menu_new)
+		{
+		  menu = _ttxview_bookmarks_menu_new (GTK_WIDGET (z));
+		  gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget), menu);
+		}
+	      else
+		{
+		  gtk_widget_hide (widget);
+		}
 	    }
 	}
       else
 	{
 	  widget = gtk_ui_manager_get_widget
-	    (ui_manager, "/Popup/PopupMenu/TeletextMenu");
+	    (ui_manager, "/Popup/PopupSubmenu/TeletextSubmenu");
 	  if (widget)
 	    gtk_widget_hide (widget);
 
 	  widget = gtk_ui_manager_get_widget
-	    (ui_manager, "/Popup/PopupMenu/BookmarksMenu");
+	    (ui_manager, "/Popup/PopupSubmenu/BookmarksSubmenu");
 	  if (widget)
 	    gtk_widget_hide (widget);
 	}
 
       widget = gtk_ui_manager_get_widget
-	(ui_manager, "/Popup/PopupMenu/SubtitlesMenu");
+	(ui_manager, "/Popup/PopupSubmenu/SubtitlesSubmenu");
       if (widget)
 	{
-	  if (1 && (menu = ttxview_subtitles_menu_new ()))
+	  if ((menu = subtitles_menu_new ()))
 	    gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget), menu);
 	  else
 	    gtk_widget_hide (widget);
 	}
 
       widget = gtk_ui_manager_get_widget
-	(ui_manager, "/Popup/PopupMenu/BookmarksMenu");
+	(ui_manager, "/Popup/PopupSubmenu/BookmarksSubmenu");
       if (widget)
 	{
 	  gint index;
@@ -549,8 +560,10 @@ create_popup			(Zapping *		z,
 	  index = g_list_index (GTK_MENU_SHELL (popup_menu)->children, widget);
 	  if (index >= 0)
 	    {
-	      ttxview_hotlist_menu_insert (GTK_MENU_SHELL (popup_menu),
-					   /* separator */ FALSE, index + 1);
+	      if (_ttxview_hotlist_menu_insert)
+		_ttxview_hotlist_menu_insert (GTK_MENU_SHELL (popup_menu),
+					      /* separator */ FALSE,
+					      index + 1);
 	    }
 	}
     }
@@ -564,7 +577,7 @@ create_popup			(Zapping *		z,
     }
 
   widget = gtk_ui_manager_get_widget (ui_manager,
-				      "/Popup/PopupMenu/Appearance");
+				      "/Popup/PopupSubmenu/Appearance");
   menu = gtk_menu_item_get_submenu (GTK_MENU_ITEM (widget));
 
   picture_sizes_append_menu (GTK_MENU_SHELL (menu));
@@ -670,7 +683,7 @@ on_video_button_press_event	(GtkWidget *		widget,
       return TRUE; /* handled */
 
     case 3: /* Right button */
-      create_popup (z, event);
+      zapping_create_popup (z, event);
       return TRUE; /* handled */
 
     case 4: /* Another button (XXX wheel?) */
@@ -709,7 +722,7 @@ realize				(GtkWidget *		widget _unused_,
     }
   else
     {
-      gtk_action_set_sensitive (action, FALSE);
+      z_action_set_sensitive (action, FALSE);
     }
 }
 
@@ -725,6 +738,10 @@ instance_init			(GTypeInstance *	instance _unused_,
   GtkWidget *widget;
 
   z->generic_action_group = gtk_action_group_new ("ZappingGenericActions");
+#ifdef ENABLE_NLS
+  gtk_action_group_set_translation_domain (z->generic_action_group,
+					   GETTEXT_PACKAGE);
+#endif					   
   gtk_action_group_add_actions (z->generic_action_group,
 				generic_actions,
 				G_N_ELEMENTS (generic_actions),
@@ -737,10 +754,14 @@ instance_init			(GTypeInstance *	instance _unused_,
   /* We add the submenu ourselves. Make sure the menu item is
      visible despite initially without menu. */
   action = gtk_action_group_get_action (z->generic_action_group,
-					"ChannelsMenu");
+					"ChannelsSubmenu");
   g_object_set (G_OBJECT (action), "hide-if-empty", FALSE, NULL);
 
   z->vbi_action_group = gtk_action_group_new ("ZappingVBIActions");
+#ifdef ENABLE_NLS
+  gtk_action_group_set_translation_domain (z->vbi_action_group,
+					   GETTEXT_PACKAGE);
+#endif					   
   gtk_action_group_add_actions (z->vbi_action_group,
 				vbi_actions, G_N_ELEMENTS (vbi_actions),
 				/* user_data */ z);
@@ -751,7 +772,7 @@ instance_init			(GTypeInstance *	instance _unused_,
 
   /* Mutual exclusive with "Teletext". */
   action = gtk_action_group_get_action (z->vbi_action_group, "RestoreVideo");
-  gtk_action_set_visible (action, FALSE);
+  z_action_set_visible (action, FALSE);
 
   action = gtk_action_group_get_action (z->vbi_action_group, "Subtitles");
   zconf_add_hook ("/zapping/internal/callbacks/closed_caption",
@@ -760,11 +781,14 @@ instance_init			(GTypeInstance *	instance _unused_,
 
   /* We add the submenu ourselves. Make sure the menu item is
      visible despite initially without menu. */
-  action = gtk_action_group_get_action (z->vbi_action_group, "TeletextMenu");
+  action = gtk_action_group_get_action (z->vbi_action_group,
+					"TeletextSubmenu");
   g_object_set (G_OBJECT (action), "hide-if-empty", FALSE, NULL);
-  action = gtk_action_group_get_action (z->vbi_action_group, "SubtitlesMenu");
+  action = gtk_action_group_get_action (z->vbi_action_group,
+					"SubtitlesSubmenu");
   g_object_set (G_OBJECT (action), "hide-if-empty", FALSE, NULL);
-  action = gtk_action_group_get_action (z->vbi_action_group, "BookmarksMenu");
+  action = gtk_action_group_get_action (z->vbi_action_group,
+					"BookmarksSubmenu");
   g_object_set (G_OBJECT (action), "hide-if-empty", FALSE, NULL);
 
   gnome_app_construct (&z->app, "Zapping", "Zapping");
@@ -786,32 +810,34 @@ instance_init			(GTypeInstance *	instance _unused_,
 
   widget = gtk_ui_manager_get_widget (z->ui_manager, "/MainMenu");
   z->menubar = GTK_MENU_BAR (widget);
-  widget = gtk_ui_manager_get_widget (z->ui_manager, "/MainMenu/ChannelsMenu");
+  widget = gtk_ui_manager_get_widget (z->ui_manager,
+				      "/MainMenu/ChannelsSubmenu");
   z->channels_menu = GTK_MENU_ITEM (widget);
   zapping_rebuild_channel_menu (z);
 
   toggle_action = GTK_TOGGLE_ACTION (gtk_action_group_get_action
 				     (z->generic_action_group,
-				      "ShowMenu"));
+				      "ViewMenu"));
   z_toggle_action_connect_gconf_key (toggle_action,
-				     "/apps/zapping/window/show_menu");
+				     "/apps/zapping/window/view_menu");
   /* Adds the menu if necessary. */
-  show_menu_action (toggle_action, z);
+  view_menu_action (toggle_action, z);
 
   widget = gtk_ui_manager_get_widget (z->ui_manager, "/Toolbar");
   z->toolbar = GTK_TOOLBAR (widget);
 
   toggle_action = GTK_TOGGLE_ACTION (gtk_action_group_get_action
 				     (z->generic_action_group,
-				      "ShowToolbar"));
+				      "ViewToolbar"));
   z_toggle_action_connect_gconf_key (toggle_action,
-				     "/apps/zapping/window/show_toolbar");
+				     "/apps/zapping/window/view_toolbar");
   /* Adds the toolbar if necessary. */
-  show_toolbar_action (toggle_action, z);
+  view_toolbar_action (toggle_action, z);
 
   /* Will add appbar on demand, see zapping_enable_appbar(). */
 
   box = gtk_hbox_new (FALSE, 0);
+  z->contents = GTK_BOX (box);
   gtk_widget_show (box);
   gnome_app_set_contents (&z->app, box);
 
