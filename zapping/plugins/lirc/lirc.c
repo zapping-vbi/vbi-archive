@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "plugin_common.h"
+#include "src/plugin_common.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -30,11 +30,11 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include "callbacks.h"
-#include "tveng.h"
-#include "remote.h"
+#include "src/callbacks.h"
+#include "src/tveng.h"
+#include "src/remote.h"
 #include "lirc.h"
-#include "properties.h"
+#include "src/properties.h"
 
 /* This is the description of the plugin, change as appropiate */
 static const gchar str_canonical_name[] = "lirc";
@@ -397,6 +397,8 @@ struct plugin_misc_info * plugin_get_misc_info (void)
   */
   return (&returned_struct);
 }
+
+#warning security issues
 
 static
 void *lirc_thread(void *dummy)

@@ -18,10 +18,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alirc.c,v 1.4.2.3 2003-08-24 23:53:29 mschimek Exp $ */
+/* $Id: alirc.c,v 1.4.2.4 2003-09-24 18:38:31 mschimek Exp $ */
 
-#include "v4linterface.h" /* channel_key_press() */
-#include "plugin_common.h"
+#include "src/v4linterface.h" /* channel_key_press() */
+#include "src/plugin_common.h"
 
 #ifdef HAVE_LIRC
 #include <lirc/lirc_client.h>
