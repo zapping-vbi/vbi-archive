@@ -43,7 +43,8 @@ static PyObject* py_quit (PyObject *self, PyObject *args)
   if (!main_window)
     py_return_false;
 
-  audio_set_mute (1);
+  /* Error ignored */
+  tv_mute_set (main_info, TRUE);
 
   /* Save the currently tuned channel */
   zconf_set_integer (cur_tuned_channel,
