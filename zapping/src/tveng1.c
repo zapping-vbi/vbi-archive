@@ -482,7 +482,7 @@ int tveng1_set_input(struct tveng_enum_input * input,
   if ((input->tuners == 0) || (!(input->flags & TVENG_INPUT_TUNER)))
     if (info->default_standard)
       {
-	int i;
+	int i, j;
 	for (i = 0; i<info->num_inputs;i++)
 	  if ((info->inputs[i].tuners > 0) && (info->inputs[i].flags &
 					       TVENG_INPUT_TUNER))
@@ -495,8 +495,33 @@ int tveng1_set_input(struct tveng_enum_input * input,
 		    "Tunerless input, switching to input #%d to set %s\n",
 		    i, info->default_standard);
 #endif
-	    tveng_set_input(&(info->inputs[i]), info);
-	    tveng_set_standard_by_name(info->default_standard, info);
+	    for (j=0; j<info->num_inputs; j++)
+	      fprintf(stderr, "I %d) [%s]\n", j, info->inputs[j].name);
+	    for (j=0;j<info->num_standards; j++)
+	      fprintf(stderr, "S %d) [%s]\n", j,
+		      info->standards[j].name);
+	    fprintf(stderr, "cur_input: %d cur_standard: %d\n",
+		    info->cur_input, info->cur_standard);
+	    fprintf(stderr, "a) %s) %d\n",
+		    info->inputs[i].name,
+		    tveng_set_input(&(info->inputs[i]), info));
+	    for (j=0; j<info->num_inputs; j++)
+	      fprintf(stderr, "I %d) [%s]\n", j, info->inputs[j].name);
+	    for (j=0;j<info->num_standards; j++)
+	      fprintf(stderr, "S %d) [%s]\n", j,
+		      info->standards[j].name);
+	    fprintf(stderr, "cur_input: %d cur_standard: %d\n",
+		    info->cur_input, info->cur_standard);
+	    fprintf(stderr, "b) %d\n",
+		    tveng_set_standard_by_name(info->default_standard,
+					       info));
+	    for (j=0; j<info->num_inputs; j++)
+	      fprintf(stderr, "I %d) [%s]\n", j, info->inputs[j].name);
+	    for (j=0;j<info->num_standards; j++)
+	      fprintf(stderr, "S %d) [%s]\n", j,
+		      info->standards[j].name);
+	    fprintf(stderr, "cur_input: %d cur_standard: %d\n",
+		    info->cur_input, info->cur_standard);
 	  }
       }
 

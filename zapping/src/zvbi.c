@@ -93,7 +93,7 @@ static GdkPixbuf * scaled_teletext_page = NULL;
 
 /* Open the configured VBI device, FALSE on error */
 gboolean
-zvbi_open_device(void)
+zvbi_open_device(gint newbttv)
 {
   gint finetune;
   gboolean erc;
@@ -115,7 +115,7 @@ zvbi_open_device(void)
 
   fdset_init(fds);
 
-  if (!(vbi = vbi_open(device, cache_open(), finetune, -1)))
+  if (!(vbi = vbi_open(device, cache_open(), finetune, newbttv)))
     {
       g_warning("cannot open %s, vbi services will be disabled",
 		device);

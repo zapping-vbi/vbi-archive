@@ -38,7 +38,7 @@
 
 /* Open the configured VBI device, FALSE on error */
 gboolean
-zvbi_open_device(void);
+zvbi_open_device(gint newbttv);
 
 /* Closes the VBI device */
 void

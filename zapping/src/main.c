@@ -58,6 +58,8 @@ static gboolean disable_vbi = FALSE; /* TRUE for disabling VBI support
 				      */
 static gboolean disable_sound = FALSE; /* Disable audio i/o in Zapping
 					*/
+static gint newbttv = -1; /* Compatibility with old bttv drivers */
+
 void shutdown_zapping(void);
 gboolean startup_zapping(void);
 
@@ -88,6 +90,7 @@ int main(int argc, char * argv[])
   plugin_sample sample; /* The a/v sample passed to the plugins */
   gint x_bpp = -1;
   char *default_norm = NULL;
+  gboolean oldbttv = 0;
 
   const struct poptOption options[] = {
     {
@@ -118,6 +121,15 @@ int main(int argc, char * argv[])
       NULL
     },
     {
+      "old-bttv",
+      0,
+      POPT_ARG_NONE,
+      &oldbttv,
+      0,
+      N_("VBI support for old (<0.5.2) bttv drivers"),
+      NULL
+    },
+    {
       "no-audio",
       0,
       POPT_ARG_NONE,
@@ -139,6 +151,10 @@ int main(int argc, char * argv[])
       NULL,
     } /* end the list */
   };
+
+  if (oldbttv)
+    newbttv = 0;
+
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
   textdomain (PACKAGE);
@@ -662,7 +678,7 @@ gboolean startup_zapping()
 #ifdef HAVE_GDKPIXBUF
   if (disable_vbi)
     zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
-  if ((!zvbi_open_device()) &&
+  if ((!zvbi_open_device(newbttv)) &&
       (zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi")))
     ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
 	    GNOME_MESSAGE_BOX_ERROR, "/dev/vbi", strerror(errno), errno);
