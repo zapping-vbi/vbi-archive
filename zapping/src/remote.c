@@ -184,7 +184,7 @@ cmd_compatibility		(const gchar *		cmd)
 {
   const gchar *s = cmd;
   gchar *d = NULL, *d1;
-  guint i, j;
+  guint i, j, args = 0;
 
   if (!s || *s == 0)
     return g_strdup ("");
@@ -207,9 +207,23 @@ cmd_compatibility		(const gchar *		cmd)
     }
 
   if (i >= G_N_ELEMENTS (cmd_txl_table))
-    goto bad_cmd;
+    {
+      if (0 == strncmp (s, "zapping.volume_incr", 19))
+	goto volume_incr;
+      else
+	goto bad_cmd;
+    }
 
-  d = g_strconcat ("zapping.", cmd_txl_table[i].name, "(", NULL);
+  if (0 == strcmp (cmd_txl_table[i].name, "volume_incr"))
+    {
+    volume_incr:
+      d = g_strdup ("zapping.control_incr('volume'");
+      args = 1;
+    }
+  else
+    {
+      d = g_strconcat ("zapping.", cmd_txl_table[i].name, "(", NULL);
+    }
 
   if (*s)
     {
@@ -238,9 +252,11 @@ cmd_compatibility		(const gchar *		cmd)
       arg = g_strndup (s1, s - s1);
 
       if (cmd_txl_table[i].flags & STRING)
-	d1 = g_strconcat (d, (j > 0) ? ", " : "", "'", arg, "'", NULL);
+	d1 = g_strconcat (d, (args > 0) ? ", " : "", "'", arg, "'", NULL);
       else
-	d1 = g_strconcat (d, (j > 0) ? ", " : "", arg, NULL);
+	d1 = g_strconcat (d, (args > 0) ? ", " : "", arg, NULL);
+
+      args++;
 
       g_free (d);
       d = d1;
