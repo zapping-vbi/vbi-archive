@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.4 2005-02-25 18:14:23 mschimek Exp $ */
+/* $Id: main.c,v 1.5 2005-03-30 21:29:33 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -42,6 +42,14 @@
    all methods at full height. */
 #  define DI_MAIN_HEIGHT_DIV 1
 #endif
+
+/* See windows.h */
+const int64_t vsplat8_m1[2] = { -1, -1 };
+const int64_t vsplat8_1[2] = { 0x0101010101010101LL, 0x0101010101010101LL };
+const int64_t vsplat8_127[2] = { 0x7F7F7F7F7F7F7F7FLL, 0x7F7F7F7F7F7F7F7FLL };
+const int64_t vsplat16_255[2] = { 0x00FF00FF00FF00FFLL, 0x00FF00FF00FF00FFLL };
+const int64_t vsplat32_1[2] = { 0x0000000100000001LL, 0x0000000100000001LL };
+const int64_t vsplat32_2[2] = { 0x0000000200000002LL, 0x0000000200000002LL };
 
 DEINTERLACE_METHOD *		deinterlace_methods[30];
 
@@ -489,7 +497,7 @@ plugin_init			(PluginBridge		bridge _unused_,
   GET (SCALER_BOB, ScalerBob);
   GET (EVEN_ONLY, EvenOnly);
   GET (ODD_ONLY, OddOnly);
-  GET (BLENDED_CLIP, BlendedClip);
+  /* No longer supported  GET (BLENDED_CLIP, BlendedClip); */
   /* To do  GET (ADAPTIVE, Adaptive); */
   GET (VIDEO_GREEDY, Greedy);
   GET (VIDEO_GREEDY2FRAME, Greedy2Frame);

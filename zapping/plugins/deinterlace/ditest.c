@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ditest.c,v 1.2 2005-02-12 13:32:27 mschimek Exp $ */
+/* $Id: ditest.c,v 1.3 2005-03-30 21:29:53 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +27,17 @@
 
 #include "windows.h"
 #include "DS_Deinterlace.h"
+#include "libtv/cpu.h"		/* cpu_features */
 
+/* See macros.h */
+const int64_t vsplat8_m1[2] = { -1, -1 };
+const int64_t vsplat8_1[2] = { 0x0101010101010101LL, 0x0101010101010101LL };
+const int64_t vsplat8_127[2] = { 0x7F7F7F7F7F7F7F7FLL, 0x7F7F7F7F7F7F7F7FLL };
+const int64_t vsplat16_255[2] = { 0x00FF00FF00FF00FFLL, 0x00FF00FF00FF00FFLL };
+const int64_t vsplat32_1[2] = { 0x0000000100000001LL, 0x0000000100000001LL };
+const int64_t vsplat32_2[2] = { 0x0000000200000002LL, 0x0000000200000002LL };
+
+cpu_feature_set			cpu_features;
 static long			cpu_feature_flags;
 
 static DEINTERLACE_METHOD *	method;
@@ -189,6 +199,8 @@ main				(int			argc,
   cpu_feature_flags = (FEATURE_MMX |		/* XXX */
 		       FEATURE_TSC);
 
+  cpu_features = (CPU_FEATURE_MMX);		/* XXX */
+
   assert (5 == argc);
 
   n_frames = strtoul (argv[1], NULL, 0);
@@ -226,12 +238,12 @@ main				(int			argc,
   ELSEIF (ScalerBob)
   ELSEIF (EvenOnly)
   ELSEIF (OddOnly)
-  ELSEIF (BlendedClip)
-  ELSEIF (Adaptive)
+ /* No longer supported. ELSEIF (BlendedClip) */
+ /* ELSEIF (Adaptive) */
   ELSEIF (Greedy)
   ELSEIF (Greedy2Frame)
   ELSEIF (GreedyH)
-  ELSEIF (OldGame)
+ /* ELSEIF (OldGame) */
   ELSEIF (TomsMoComp)
   ELSEIF (MoComp2)
   else
