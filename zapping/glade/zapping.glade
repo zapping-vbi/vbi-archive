@@ -2506,7 +2506,7 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkLabel</class>
 	<name>label82</name>
-	<label>Frequence:</label>
+	<label>Frequency:</label>
 	<justify>GTK_JUSTIFY_CENTER</justify>
 	<wrap>False</wrap>
 	<xalign>0.5</xalign>
