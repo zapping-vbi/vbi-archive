@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.22 2002-05-13 05:38:42 mschimek Exp $ */
+/* $Id: v4l.c,v 1.23 2002-05-30 15:03:40 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -115,8 +115,9 @@ v4l_cap_thread(void *unused)
 
 			gb_frame = (gb_frame+1) % gb_buffers.frames;
 
+			/* mw: rationally EAGAIN should be returned, instead we get EINVAL, grrr */
 			if (IOCTL(fd, VIDIOCSYNC, &gb_frame) < 0)
-				ASSERT("VIDIOCSYNC", errno == EAGAIN);
+				ASSERT("VIDIOCSYNC", errno == EAGAIN || errno == EINVAL);
 
 			b->time = timestamp2(b);
 
