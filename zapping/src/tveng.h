@@ -32,6 +32,7 @@
 #include <sys/mman.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <assert.h>
 
 #ifndef DISABLE_X_EXTENSIONS
 #ifdef HAVE_XV_EXTENSION
@@ -275,6 +276,7 @@ struct tveng_enum_input{
   int tuner_id; /* ad-hoc for v4l25, to be replaced */
 };
 
+typedef struct _tveng_device_info tveng_device_info;
 
 
 typedef int tv_bool;
@@ -288,7 +290,7 @@ typedef struct _tv_callback_node tv_callback_node;
 
 extern tv_callback_node *
 tv_callback_add			(tv_callback_node **	list,
-				 tv_bool		(* notify)(void *object, void *user_data),
+				 void			(* notify)(void *object, void *user_data),
 				 void			(* destroy)(void *object, void *user_data),
 				 void *			user_data);
 extern void
@@ -310,6 +312,55 @@ do {									\
 	statement;							\
 	tv_callback_unblock (cb);					\
 } while (0)
+
+typedef struct _tv_device_node tv_device_node;
+
+struct _tv_device_node {
+	tv_device_node *	next;
+
+	char *			label;		/* localized */
+	char *			bus;		/* localized */
+
+	char *			driver;		/* localized */
+	char *			version;	/* localized */
+
+	char *			device;		/* interface specific, usually "/dev/some" */
+
+	void *			user_data;	/* for tveng clients */
+
+	void			(* destroy)(tv_device_node *, tv_bool restore);
+};
+
+typedef tv_device_node * tv_device_node_filter_fn (const char *name);
+
+tv_device_node *
+tv_device_node_add		(tv_device_node **	list,
+				 tv_device_node *	node);
+tv_device_node *
+tv_device_node_remove		(tv_device_node **	list,
+				 tv_device_node *	node);
+tv_device_node *
+tv_device_node_find		(tv_device_node *	list,
+				 const char *		device);
+void
+tv_device_node_delete		(tv_device_node **	list,
+				 tv_device_node *	node,
+				 tv_bool		restore);
+static __inline__ void
+tv_device_node_delete_list	(tv_device_node **	list)
+{
+	assert (list != NULL);
+
+	while (*list) tv_device_node_delete (list, *list, FALSE);
+}
+
+tv_device_node *
+tv_device_node_new		(const char *		label,
+				 const char *		bus,
+				 const char *		driver,
+				 const char *		version,
+				 const char *		device,
+				 unsigned int		size);
 
 /* The controller we are using for this device */
 enum tveng_controller
@@ -356,22 +407,29 @@ struct _tv_control {
 	tv_control_id		id;
 	tv_control_type		type;
 
-	const char *		label;		/* localized */
+  tv_bool ignore; /* preliminary */
 
-	const char **		menu;		/* localized; last entry NULL */
+	char *			label;		/* localized */
+
+	char **			menu;		/* localized; last entry NULL */
   //	unsigned int		selectable;	/* menu item 1 << n */
 
 	int			minimum;
 	int			maximum;
-  //	int			step;
+	int			step;
 	int			reset;
 
 	int			value;		/* last known, not current value */
+
+	/* private */
+
+	tveng_device_info *	_device;	/* owner */	
+	tv_callback_node *	_callback;
 };
 
 extern tv_callback_node *
 tv_control_callback_add		(tv_control *		control,
-				 tv_bool		(* notify)(tv_control *, void *user_data),
+				 void			(* notify)(tv_control *, void *user_data),
 				 void			(* destroy)(tv_control *, void *user_data),
 				 void *			user_data);
 
@@ -390,7 +448,7 @@ enum tveng_capture_mode
 };
 
 /* The structure used to hold info about a video_device */
-typedef struct
+struct _tveng_device_info
 {
   char * file_name; /* The name used to open() this fd */
   int fd; /* Video device file descriptor */
@@ -431,8 +489,7 @@ typedef struct
   int debug_level; /* 0 for no errors, increase for greater verbosity */
 
   struct tveng_private * priv; /* private stuff */
-}
-tveng_device_info;
+};
 
 /* Starts a tveng_device_info object, returns a pointer to the object
    or NULL on error. Display is the display we are connected to, bpp
@@ -625,19 +682,23 @@ tveng_set_control_by_name(const char * control_name,
 //int tveng_set_control_by_id(int cid, int new_value,
 //			    tveng_device_info * info);
 
-/*
-  Gets the value of the mute property. 1 means mute (no sound) and 0
-  unmute (sound). -1 on error
-*/
-int
-tveng_get_mute(tveng_device_info * info);
+/* Audio interface */
 
-/*
-  Sets the value of the mute property. 0 means unmute (sound) and 1
-  mute (no sound). -1 on error
-*/
-int
-tveng_set_mute(int value, tveng_device_info * info);
+extern void
+tv_quiet_set			(tveng_device_info *	info,
+				 tv_bool		quiet);
+extern int
+tv_mute_get			(tveng_device_info *	info,
+				 tv_bool		update);
+extern int
+tv_mute_set			(tveng_device_info *	info,
+				 tv_bool		mute);
+extern tv_callback_node *
+tv_mute_callback_add		(tveng_device_info *	info,
+				 void			(* notify)(tveng_device_info *, void *user_data),
+				 void			(* destroy)(tveng_device_info *, void *user_data),
+				 void *			user_data);
+
 
 /*
   Tunes the current input to the given freq. Returns -1 on error.
@@ -856,6 +917,8 @@ tveng_stop_window (tveng_device_info * info);
 */
 enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
 					       info);
+extern char *
+tveng_strdup_printf(const char *templ, ...);
 
 /*
   Restarts the given capture mode. See the comments on
@@ -905,12 +968,199 @@ int tveng_is_planar (enum tveng_frame_pixformat fmt);
 */
 int tveng_ov511_get_button_state (tveng_device_info *info);
 
-/* Adquire the (recursive) mutex on the device, TVeng functions already
+/* Aquire the (recursive) mutex on the device, TVeng functions already
    locks it when called. */
 void tveng_mutex_lock(tveng_device_info *info);
 
 /* Releases the mutex */
 void tveng_mutex_unlock(tveng_device_info * info);
+
+/*
+ *  MIXER INTERFACE
+ */
+
+/*
+ *  Machine readable purpose of a mixer line.
+ *  We'll see what's needed.
+ */
+typedef enum {
+	TV_MIXER_LINE_ID_NONE,
+	TV_MIXER_LINE_ID_UNKNOWN = TV_MIXER_LINE_ID_NONE,
+} tv_mixer_line_id;
+
+typedef struct _tv_mixer tv_mixer;
+typedef struct _tv_mixer_line tv_mixer_line;
+typedef struct _tv_mixer_interface tv_mixer_interface;
+
+struct _tv_mixer_line {
+	tv_mixer_line *		next;
+
+	tv_mixer_line_id	id;
+
+	char *			label;		/* localized */
+	unsigned int		hash;		/* config */
+
+	unsigned int		minimum;	/* volume */
+	unsigned int		maximum;
+	unsigned int		step;
+	unsigned int		reset;
+
+	/*
+	 *  A mixer input which can be routed to the ADC.
+	 *  Only these are valid args for set_rec_line().
+	 */
+	unsigned		recordable	: 1;
+
+	unsigned		stereo		: 1;
+
+	/*
+	 *  Last known left (0) and right (1) volume and
+	 *  mute state. Last known because rogue users
+	 *  equipped with evil mixer applications change these
+	 *  settings whenever we don't expect. Use of callback
+	 *  recommended.
+	 */
+	unsigned		muted		: 1;
+	unsigned int		volume[2];
+
+	/* private */
+
+	tv_mixer *		_mixer;
+
+	/*
+	 *  Called by interface when tv_mixer_line.volume
+	 *  or .muted changed.
+	 */
+	tv_callback_node *	_callback;
+};
+
+/*
+ *  Assumptions, for now:
+ *
+ *  A mixer has zero or more analog inputs listed in
+ *  tv_mixer.inputs. All inputs are summed and routed to one or
+ *  more outputs. The volume and mute control affect each input line
+ *  individually before summation and have no effect on recording.
+ *
+ *  Sound devices can have one ADC. If so, of a subset of inputs one
+ *  (tv_mixer.rec_line) can be routed to the only ADC. Optional a
+ *  gain control (tv_mixer.rec_gain) exists on the internal line
+ *  between the input multiplexer and ADC.
+ *
+ *  Sound devices can have one DAC, somehow routed to one or more
+ *  outputs. Optional a gain control (tv_mixer.play_gain) exists
+ *  on the internal line between the DAC and summation or a
+ *  multiplexer connecting to the outputs.
+ *
+ *  Outputs may have volume controls associated with them, but we
+ *  leave them alone, to be changed with a mixer application.
+ *  Likewise we need not care about the routing of inputs and DAC to
+ *  outputs, at least until we have to deal with multichannel sound
+ *  or user complaints. :-)
+ *
+ *  Some mixers can select more than one input for recording.
+ *  We don't need that, but won't interfere if the user insists.
+ *  Except to reset when muted at startup the playback gain should
+ *  be left alone, because hardware or software may sum PCM audio
+ *  before converted by the DAC. Output volume can be easily
+ *  implemented in our codecs.
+ *
+ *  Major flaw remains the assumption of a single ADC and DAC. Some
+ *  devices have more, have digital inputs and outputs, and not all
+ *  of them routed through the mixer.
+ */
+struct _tv_mixer {
+	tv_device_node		node;
+
+	/*
+	 *  Routes from inputs to output sum/mux. Mute/volume
+	 *  does not affect recording.
+	 */
+	tv_mixer_line *		inputs;
+
+	/*
+	 *  Last known recording source, this points to one of the
+	 *  'inputs' or NULL.
+	 *
+	 *  Note the user can select multiple sources with a mixer
+	 *  application, then this is only one of them, usually the
+	 *  one requested with set_rec_line(). Point is this may
+	 *  change asynchronously, use of callback recommended.
+	 */
+	tv_mixer_line *		rec_line;
+
+	/*
+	 *  Route from rec mux to ADC or NULL.
+	 */
+	tv_mixer_line *		rec_gain;
+
+	/*
+	 *  Route from DAC to output sum/mux or NULL.
+	 */
+	tv_mixer_line *		play_gain;
+
+	/* private */
+
+	const tv_mixer_interface *
+				_interface;
+
+	FILE *			_log;		/* if non-zero log all driver i/o */
+
+	/*
+	 *  Called by interface when tv_mixer.rec_line changed.
+	 */
+	tv_callback_node *	_callback;
+};
+
+extern tv_bool
+tv_mixer_line_update		(tv_mixer_line *	line);
+
+extern tv_bool
+tv_mixer_line_get_volume	(tv_mixer_line *	line,
+				 unsigned int *		left,
+				 unsigned int *		right);
+extern tv_bool
+tv_mixer_line_set_volume	(tv_mixer_line *	line,
+				 unsigned int		left,
+				 unsigned int		right);
+extern tv_bool
+tv_mixer_line_get_mute		(tv_mixer_line *	line,
+				 tv_bool *		mute);
+extern tv_bool
+tv_mixer_line_set_mute		(tv_mixer_line *	line,
+				 tv_bool		mute);
+extern tv_bool
+tv_mixer_line_record		(tv_mixer_line *	line,
+				 tv_bool		exclusive);
+extern tv_callback_node *
+tv_mixer_line_callback_add	(tv_mixer_line *	line,
+				 void			(* notify)(tv_mixer_line *, void *user_data),
+				 void			(* destroy)(tv_mixer_line *, void *user_data),
+				 void *			user_data);
+extern tv_bool
+tv_mixer_update			(tv_mixer *		mixer);
+extern tv_callback_node *
+tv_mixer_callback_add		(tv_mixer *		mixer,
+				 void			(* notify)(tv_mixer_line *, void *user_data),
+				 void			(* destroy)(tv_mixer_line *, void *user_data),
+				 void *			user_data);
+extern tv_mixer *
+tv_mixer_open			(FILE *			log,
+				 const char *		device);
+static __inline__ void
+tv_mixer_close			(tv_mixer *		mixer)
+{
+	tv_device_node_delete (NULL, &mixer->node, FALSE);
+}
+extern tv_mixer *
+tv_mixer_scan			(FILE *			log);
+
+/* open, scan? */
+
+extern void
+tveng_attach_mixer_line		(tveng_device_info *	info,
+				 tv_mixer *		mixer,
+				 tv_mixer_line *	line);
 
 /* Sanity checks should use this */
 #define t_assert(condition) if (!(condition)) { \
