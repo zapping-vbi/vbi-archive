@@ -3796,7 +3796,7 @@ tv_pixfmt_bytes_per_pixel	(tv_pixfmt		pixfmt)
 	return 0;
 }
 
-/* XXX check this, esp LE/BE */
+/* XXX check this, esp LE/BE, see also libzvbi */
 tv_bool
 tv_pixfmt_to_pixel_format	(tv_pixel_format *	format,
 				 tv_pixfmt		pixfmt,

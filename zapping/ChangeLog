@@ -2,6 +2,16 @@
 
 	* po/it.po: Updated by Pino Toscano.
 
+2004-01-06    <mschimek@users.sf.net>
+
+	* src/zvbi.c: Fixed browser setting hint. Again.
+	* src/tveng25.c: Reset cropping source as mandated by spec.
+	* plugins/lirc/lirc.c, src/properties.c, src/properties.h:
+	  Translated strings used to create property structs
+	  where we use them as keys.
+	* src/capture.c (request_capture_format_real): Expect
+	  tveng_set_capture_format() changes image size.
+
 2004-01-02    <pinotree@users.sf.net>
 
 	* po/it.po: Updated by Pino Toscano.
