@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.153 2004-09-16 04:09:03 mschimek Exp $
+dnl $Id: configure.in,v 1.154 2004-09-22 21:26:02 mschimek Exp $
 
 AC_INIT(zapping, 0.7.2cvs,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
@@ -372,8 +372,9 @@ fi
 AM_CONDITIONAL(BUILD_GEN_CONV, test "x$ASVERSION" != "x")
 
 GNOME_COMPILE_WARNINGS
+AM_GCONF_SOURCE_2
 
-pkg_modules="libgnomeui-2.0 libglade-2.0 gconf-2.0"
+pkg_modules="gtk+-2.0 >= 2.4 libgnomeui-2.0 libglade-2.0 gconf-2.0"
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
@@ -663,6 +664,7 @@ plugins/Makefile
 plugins/alirc/Makefile
 plugins/mpeg/Makefile
 plugins/screenshot/Makefile
+plugins/teletext/Makefile
 help/Makefile
 help/man/Makefile
 help/C/Makefile
