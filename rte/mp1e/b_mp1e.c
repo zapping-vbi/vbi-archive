@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.27 2001-12-18 18:24:04 garetxe Exp $ */
+/* $Id: b_mp1e.c,v 1.28 2002-01-13 09:53:16 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -171,6 +171,7 @@ static rte_codec * codec_set (rte_context * context,
 
 		if (keyword) {
 			codec = cclass->new();
+			rte_codec_options_reset(codec);
 			priv->video_codec = codec;
 			codec->context = context;
 			priv->codec_set |= (1 << RTE_STREAM_VIDEO);
@@ -185,6 +186,7 @@ static rte_codec * codec_set (rte_context * context,
 
 		if (keyword) {
 			codec = cclass->new();
+			rte_codec_options_reset(codec);
 			priv->audio_codec = codec;
 			codec->context = context;
 			priv->codec_set |= (1 << RTE_STREAM_AUDIO);
@@ -227,6 +229,17 @@ static void context_pause (rte_context *context)
 static rte_bool context_resume (rte_context *context)
 {
 	return FALSE;
+}
+
+void
+packed_preview(unsigned char *buffer, int mb_cols, int mb_rows)
+
+{
+}
+
+void
+preview_init(int *argc, char ***argv)
+{
 }
 
 #define N_(x) x

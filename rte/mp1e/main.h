@@ -41,7 +41,7 @@ extern int		psycho_loops;
 
 extern void options(int ac, char **av);
 
-extern void preview_init(void);
+extern void preview_init(int *acp, char ***avp);
 
 #include "systems/libsystems.h"
 

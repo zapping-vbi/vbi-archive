@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.21 2001-12-16 18:06:31 garetxe Exp $ */
+/* $Id: mp2.c,v 1.22 2002-01-13 09:53:16 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -910,19 +910,19 @@ menu_psycho[] = {
 
 static rte_option_info
 mpeg1_options[] = {
-	RTE_OPTION_MENU_INT_INITIALIZER
+	RTE_OPTION_INT_MENU_INITIALIZER
 	  ("bit_rate", N_("Bit rate"),
 	   4 /* 80000 */,
 	   (int *) &bit_rate_value[MPEG_VERSION_1][1], 14,
 	   N_("Output bit rate, all channels together")),
-	RTE_OPTION_MENU_INT_INITIALIZER
+	RTE_OPTION_INT_MENU_INITIALIZER
 	  ("sampling_rate", N_("Sampling frequency"),
 	   0 /* 44100 */,
 	   (int *) &sampling_freq_value[MPEG_VERSION_1][0], 3, (NULL)),
-	RTE_OPTION_MENU_STRING_INITIALIZER
+	RTE_OPTION_MENU_INITIALIZER
 	  ("audio_mode", N_("Mode"),
 	   0, menu_audio_mode, elements(menu_audio_mode), (NULL)),
-	RTE_OPTION_MENU_STRING_INITIALIZER
+	RTE_OPTION_MENU_INITIALIZER
 	  ("psycho", N_("Psychoacoustic analysis"),
 	   0, menu_psycho, elements(menu_psycho),
 	   N_("Speed/quality tradeoff. Selecting 'Accurate' is recommended "
@@ -1313,9 +1313,9 @@ mp1e_mp2_module_init(int test)
 	memcpy(mpeg2_options, mpeg1_options, sizeof(mpeg2_options));
 
 	mpeg2_options[0].menu.num = (int *) &bit_rate_value[MPEG_VERSION_2][1];
-	mpeg2_options[0].def.idx = 8 /* 80000 */;
+	mpeg2_options[0].def.num = 8 /* 80000 */;
 	mpeg2_options[1].menu.num = (int *) &sampling_freq_value[MPEG_VERSION_2][0];
-	mpeg2_options[1].def.idx = 0 /* 22050 */;
+	mpeg2_options[1].def.num = 0 /* 22050 */;
 
 	mp1e_mp2_subband_filter_init(test);
 	mp1e_mp2_fft_init(test);

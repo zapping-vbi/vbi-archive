@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.21 2001-12-16 18:06:31 garetxe Exp $ */
+/* $Id: mpeg1.c,v 1.22 2002-01-13 09:53:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -70,6 +70,12 @@ int x_bias = 65536 * 31,
 #define QS 1
 
 static mpeg1_context *static_context;
+
+mpeg1_context *
+mp1e_static_context(void)
+{
+	return static_context;
+}
 
 /* main.c */
 extern long long	video_num_frames;
@@ -425,7 +431,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 
 #if TEST_PREVIEW
 	if (preview > 1)
-		memcpy(newref, oldref, 64 * 6 * mb_num);
+		memcpy(newref, mpeg1->oldref, 64 * 6 * mb_num);
 #endif
 
 	rc_picture_start(&mpeg1->rc, P_TYPE, mb_num);
@@ -1217,7 +1223,7 @@ user_data(char *s)
 	}
 }
 
-#define Rvbr (1.0 / 64)
+#define Rvbr (1.0 / 16)
 
 extern int test_mode;
 
@@ -1509,7 +1515,7 @@ encode_stacked_frames(mpeg1_context *mpeg1, buffer *obuf, int stacked, bool pfra
 	return pframe;
 }
 
-char video_do_reset = FALSE;
+int video_do_reset = FALSE;
 
 /* FIXME 0P insertion and skip/fake can overflow GOP count */
 
@@ -1673,18 +1679,22 @@ mpeg1_video_ipb(void *p)
 					if (this->buffer && this->org)
 						send_empty_buffer(&mpeg1->cons, this->buffer);
 
-					if (sp >= 2) {
-						obuf = wait_empty_buffer(&mpeg1->prod);
-						bstart(&video_out, obuf->data);
+					if (sp >= 1) {
+						if (sp >= 2) {
+							int b = sp - 1;
 
-						mpeg1->referenced = TRUE;
+							obuf = wait_empty_buffer(&mpeg1->prod);
+							bstart(&video_out, obuf->data);
 
-						if (encode_stacked_frames(mpeg1, obuf, sp - 1, TRUE))
-							mpeg1->rc.Ep++;
-						else
-							mpeg1->rc.Ei++;
+							mpeg1->referenced = TRUE;
 
-						mpeg1->rc.Eb--;
+							if (encode_stacked_frames(mpeg1, obuf, b, TRUE))
+								mpeg1->rc.Ep += b;
+							else
+								mpeg1->rc.Ei += b;
+
+							mpeg1->rc.Eb -= b;
+						}
 
 						printv(3, "Encoding 0 picture #%lld GOP #%d\n",
 						       video_frame_count, mpeg1->gop_frame_count);
@@ -1735,9 +1745,9 @@ next_frame:
 			/* End of GOP sequence */
 #if TEST_PREVIEW
 if (video_do_reset) {
-	static void video_reset(void);
+	static void video_reset(mpeg1_context *mpeg1);
 
-	video_reset();
+	video_reset(mpeg1);
 	video_do_reset = FALSE;
 
 	bstart(&video_out, obuf->data);
@@ -2233,20 +2243,20 @@ static rte_option_info
 mpeg1_options[] = {
 	/* FILTER omitted, will change, default for now */
 	/* FRAMES_PER_SEQ_HEADER omitted, ancient legacy */
-	RTE_OPTION_INT_INITIALIZER
+	RTE_OPTION_INT_RANGE_INITIALIZER
 	  ("bit_rate", N_("Bit rate"),
 	   2300000, 30000, 8000000, 1000,
 	   N_("Output bit rate")),
-	RTE_OPTION_MENU_REAL_INITIALIZER
+	RTE_OPTION_REAL_MENU_INITIALIZER
 	  ("coded_frame_rate", N_("Coded frame rate"),
 	   2 /* 25.0 */, (double *) &frame_rate_value[1], 8, (NULL)),
-	RTE_OPTION_REAL_INITIALIZER
+	RTE_OPTION_REAL_RANGE_INITIALIZER
 	  ("virtual_frame_rate", N_("Virtual frame rate"),
 	   60.0, 0.0002, 60.0, 1e-3,
 	   N_("MPEG-1 allows only a few discrete values for frames/s, "
 	      "but this codec can skip frames if you wish. Choose the "
 	      "output bit rate accordingly.")),
-	RTE_OPTION_MENU_STRING_INITIALIZER
+	RTE_OPTION_MENU_INITIALIZER
 	  ("skip_method", N_("Virtual frame rate method"),
 	   0, menu_skip_method, elements(menu_skip_method),
 	   N_("The standard compliant method has one major drawback: "
@@ -2339,7 +2349,7 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 
 	if (strcmp(keyword, "bit_rate") == 0) { 
 		int val = va_arg(args, int);
-		if (val < 8000 || val > 12000000)
+		if (val < 30000 || val > 8000000)
 			return 0;
 		mpeg1->bit_rate = val;
  	} else if (strcmp(keyword, "coded_frame_rate") == 0) {
