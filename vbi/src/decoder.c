@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.c,v 1.7.2.2 2003-04-29 05:49:32 mschimek Exp $ */
+/* $Id: decoder.c,v 1.7.2.3 2003-06-16 06:02:35 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <pthread.h>
 
+#include "misc.h"
 #include "decoder.h"
 
 /**
@@ -47,508 +48,325 @@
 #define OVERSAMPLING 4		/* 1, 2, 4, 8 */
 #define THRESH_FRAC 9
 
-static __inline__ unsigned int
-bytes_per_pixel			(vbi_pixfmt		fmt)
-{
-	switch (fmt) {
-	case VBI_PIXFMT_RGBA32_LE:
-	case VBI_PIXFMT_BGRA32_LE:
-	case VBI_PIXFMT_RGBA32_BE:
-	case VBI_PIXFMT_BGRA32_BE:
-		return 4;
-
-	case VBI_PIXFMT_RGB24:
-	case VBI_PIXFMT_BGR24:
-		return 3;
-
-	case VBI_PIXFMT_RGB16_LE:
-	case VBI_PIXFMT_BGR16_LE:
-	case VBI_PIXFMT_RGBA15_LE:
-	case VBI_PIXFMT_BGRA15_LE:
-	case VBI_PIXFMT_ARGB15_LE:
-	case VBI_PIXFMT_ABGR15_LE:
-	case VBI_PIXFMT_RGB16_BE:
-	case VBI_PIXFMT_BGR16_BE:
-	case VBI_PIXFMT_RGBA15_BE:
-	case VBI_PIXFMT_BGRA15_BE:
-	case VBI_PIXFMT_ARGB15_BE:
-	case VBI_PIXFMT_ABGR15_BE:
-	case VBI_PIXFMT_YUYV:
-	case VBI_PIXFMT_YVYU:
-	case VBI_PIXFMT_UYVY:
-	case VBI_PIXFMT_VYUY:
-		return 2;
-
-	case VBI_PIXFMT_YUV420:
-		return 1;
-	}
-}
-
-static __inline__ unsigned int
-green_shift			(vbi_pixfmt		fmt)
-{
-	switch (fmt) {
-	case VBI_PIXFMT_RGBA32_LE:
-	case VBI_PIXFMT_BGRA32_LE:
-	case VBI_PIXFMT_RGB24:
-	case VBI_PIXFMT_BGR24:
-		return 8;
-
-	case VBI_PIXFMT_RGBA32_BE:
-	case VBI_PIXFMT_BGRA32_BE:
-		return 16;
-
-	case VBI_PIXFMT_RGB16_LE:
-	case VBI_PIXFMT_BGR16_LE:
-	case VBI_PIXFMT_RGB16_BE:
-	case VBI_PIXFMT_BGR16_BE:
-	case VBI_PIXFMT_ARGB15_LE:
-	case VBI_PIXFMT_ABGR15_LE:
-	case VBI_PIXFMT_ARGB15_BE:
-	case VBI_PIXFMT_ABGR15_BE:
-		return 5;
-
-	case VBI_PIXFMT_RGBA15_LE:
-	case VBI_PIXFMT_BGRA15_LE:
-	case VBI_PIXFMT_RGBA15_BE:
-	case VBI_PIXFMT_BGRA15_BE:
-		return 6;
-
-	case VBI_PIXFMT_UYVY:
-	case VBI_PIXFMT_VYUY:
-		return 8;
-
-	case VBI_PIXFMT_YUYV:
-	case VBI_PIXFMT_YVYU:
-	case VBI_PIXFMT_YUV420:
-		return 0;
-	}
-}
-
-static __inline__ int
-green				(uint8_t *		raw,
-				 vbi_pixfmt		fmt)
-{
-	switch (fmt) {
-	case VBI_PIXFMT_RGBA15_LE:
-	case VBI_PIXFMT_BGRA15_LE:
-	case VBI_PIXFMT_ARGB15_LE:
-	case VBI_PIXFMT_ABGR15_LE:
-#ifdef __i686__
-		return (*(short *) raw) & (0x1F << green_shift (fmt));
+#ifdef __i386__
+/* Common cpu type, little endian, shorts need not align.
+   Let's save a few cycles. */
+#define GREEN(raw, fmt)							\
+	((fmt == VBI_PIXFMT_RGB16_LE) ?					\
+	 *(const uint16_t *)(raw) & d->green_mask			\
+	 : ((fmt == VBI_PIXFMT_RGB16_BE) ?				\
+	    ((raw)[0] * 256 + (raw)[1]) & d->green_mask 		\
+	    : (raw)[0]))
 #else
-		return (raw[0] + raw[1] * 256) & (0x1F << green_shift (fmt));
+#define GREEN(raw, fmt)							\
+	((fmt == VBI_PIXFMT_RGB16_LE) ?					\
+	 ((raw)[0] + (raw)[1] * 256) & d->green_mask			\
+	 : ((fmt == VBI_PIXFMT_RGB16_BE) ?				\
+	    ((raw)[0] * 256 + (raw)[1])) & d->green_mask		\
+	    : (raw)[0]))
 #endif
 
-	case VBI_PIXFMT_RGBA15_BE:
-	case VBI_PIXFMT_BGRA15_BE:
-	case VBI_PIXFMT_ARGB15_BE:
-	case VBI_PIXFMT_ABGR15_BE:
-		return (raw[0] * 256 + raw[1]) & (0x1F << green_shift (fmt));
+#define SAMPLE(fmt)							\
+	r = raw + (i >> 8) * bpp;					\
+	raw0 = GREEN (r + 0, fmt);					\
+	raw1 = GREEN (r + bpp, fmt);					\
+	raw0 = (int)(raw1 - raw0) * (i & 255) + (raw0 << 8);
 
-	case VBI_PIXFMT_RGB16_LE:
-	case VBI_PIXFMT_BGR16_LE:
-#ifdef __i686__
-		return (*(short *) raw) & (0x3F << 5);
-#else
-		return (raw[0] + raw[1] * 256) & (0x3F << 5); 
-#endif
-
-	case VBI_PIXFMT_RGB16_BE:
-	case VBI_PIXFMT_BGR16_BE:
-		return (raw[0] * 256 + raw[1]) & (0x3F << 5); 
-
-	default:
-		assert (0);
-		return 0;
-	}
-}
-
-/*
- * Subfunction of bit_slicer_tmpl(). Note this is just
- * a template. The code is inlined, with fmt being const.
- *
- * This function translates from the image format to
- * plain bytes, with linear interpolation of samples.
- * Could be further improved with a lowpass filter.
- */
-static __inline__ unsigned int
-sample				(uint8_t *		raw,
-				 int			offs,
-				 vbi_pixfmt		fmt)
-{
-	unsigned char frac = offs; /* offs & 0xFF */
-	int raw0, raw1;
-
-	frac = offs; /* offs & 0xFF */
-	raw += (offs >> 8) * bytes_per_pixel (fmt);
-
-	switch (fmt) {
-	case VBI_PIXFMT_ARGB15_BE:
-	case VBI_PIXFMT_ABGR15_BE:
-	case VBI_PIXFMT_RGBA15_BE:
-	case VBI_PIXFMT_BGRA15_BE:
-	case VBI_PIXFMT_RGB16_BE:
-	case VBI_PIXFMT_BGR16_BE:
-	case VBI_PIXFMT_ARGB15_LE:
-	case VBI_PIXFMT_ABGR15_LE:
-	case VBI_PIXFMT_RGBA15_LE:
-	case VBI_PIXFMT_BGRA15_LE:
-	case VBI_PIXFMT_RGB16_LE:
-	case VBI_PIXFMT_BGR16_LE:
-		raw0 = green (raw + 0, fmt);
-		raw1 = green (raw + 2, fmt);
-		return (raw1 - raw0) * frac + (raw0 << 8);
-
-	default: /* Y or G (intermediate bytes skipped by caller) */
-		return (raw[bytes_per_pixel (fmt)] - raw[0])
-			* frac + (raw[0] << 8);
-	}
-}
-
-/*
- * Subfunction of bit_slicer_tmpl(). Note this is just
- * a template. The code is inlined, with fmt being const.
- *
- * This function verifies the framing code and
- * extracts the payload from the raw vbi data.
- */
-static __inline__ vbi_bool
-payload				(vbi_bit_slicer *	d,
-				 uint8_t *		raw,
-				 uint8_t *		buf,
-				 unsigned int		tr,
-				 vbi_pixfmt		fmt)
-{
-	unsigned int i, j, k;
-	unsigned int c;
-
-	i = d->phase_shift;
-	tr *= 256;
-
-	c = 0;
-
-	for (j = d->frc_bits; j > 0; j--) {
-		c = c * 2 + (sample (raw, i, fmt) >= tr);
-		i += d->step;
-	}
-
-	if (c ^= d->frc)
-		return FALSE;
-
-	switch (d->endian) {
-	case 3: /* bitwise, lsb first */
-		for (j = 0; j < (unsigned int) d->payload; j++) {
-			c >>= 1;
-			c += (sample (raw, i, fmt) >= tr) << 7;
-			i += d->step;
-
-			if ((j & 7) == 7)
-				*buf++ = c;
-		}
-
-		*buf = c >> ((8 - d->payload) & 7);
-		break;
-
-	case 2: /* bitwise, msb first */
-		for (j = 0; j < (unsigned int) d->payload; j++) {
-			c = c * 2 + (sample (raw, i, fmt) >= tr);
-			i += d->step;
-
-			if ((j & 7) == 7)
-				*buf++ = c;
-		}
-
-		*buf = c & ((1 << (d->payload & 7)) - 1);
-		break;
-
-	case 1: /* octets, lsb first */
-		for (j = d->payload; j > 0; j--) {
-			for (k = 0; k < 8; k++) {
-				c >>= 1;
-				c += (sample(raw, i, fmt) >= tr) << 7;
-				i += d->step;
-			}
-
-			*buf++ = c;
-		}
-
-		break;
-
-	case 0: /* octets, msb first */
-		for (j = d->payload; j > 0; j--) {
-			for (k = 0; k < 8; k++) {
-				c = c * 2 + (sample (raw, i, fmt) >= tr);
-				i += d->step;
-			}
-
-			*buf++ = c;
-		}
-
-		break;
-	}
-
-	return TRUE;
-}
-
-/*
- * Note this is just a template. The code is inlined,
- * with fmt being const.
- */
-static __inline__ vbi_bool
-bit_slicer_tmpl			(vbi_bit_slicer *	d,
-				 uint8_t *		raw,
-				 uint8_t *		buf,
-				 vbi_pixfmt		fmt)
-{
-	unsigned int i, j;
-	unsigned int cl = 0, thresh0 = d->thresh, tr;
-	unsigned int c = 0, t;
-	unsigned char b, b1 = 0;
-	int raw0, raw1;
-
-	raw += d->skip;
-
-	for (i = d->cri_bytes; i > 0; raw += bytes_per_pixel (fmt), i--) {
-		tr = d->thresh >> THRESH_FRAC;
-
-		switch (fmt) {
-		case VBI_PIXFMT_ARGB15_LE:
-		case VBI_PIXFMT_ABGR15_LE:
-		case VBI_PIXFMT_RGBA15_LE:
-		case VBI_PIXFMT_BGRA15_LE:
-		case VBI_PIXFMT_ARGB15_BE:
-		case VBI_PIXFMT_ABGR15_BE:
-		case VBI_PIXFMT_RGBA15_BE:
-		case VBI_PIXFMT_BGRA15_BE:
-		case VBI_PIXFMT_RGB16_LE:
-		case VBI_PIXFMT_BGR16_LE:
-		case VBI_PIXFMT_RGB16_BE:
-		case VBI_PIXFMT_BGR16_BE:
-			raw0 = green (raw + 0, fmt);
-			raw1 = green (raw + 2, fmt);
-			d->thresh += ((raw0 - tr) * (int) ABS (raw1 - raw0))
-				>> (8 - green_shift (fmt));
-			t = raw0 * OVERSAMPLING;
-			break;
-
-		default:
-			d->thresh += ((int) raw[0] - tr)
-				* (int) ABS (raw[bytes_per_pixel (fmt)] - raw[0]);
-			t = raw[0] * OVERSAMPLING;
-			break;
-		}
-
-		for (j = OVERSAMPLING; j > 0; j--) {
-			b = ((t + (OVERSAMPLING / 2)) / OVERSAMPLING >= tr);
-
-    			if (b ^ b1) {
-				cl = d->oversampling_rate >> 1;
-			} else {
-				cl += d->cri_rate;
-
-				if (cl >= (unsigned int) d->oversampling_rate) {
-					cl -= d->oversampling_rate;
-
-					c = c * 2 + b;
-
-					if ((c & d->cri_mask) == d->cri)
-						return payload (d, raw, buf, tr, fmt);
-				}
-			}
-
-			b1 = b;
-
-			if (OVERSAMPLING > 1) {
-				switch (fmt) {
-				case VBI_PIXFMT_ARGB15_LE:
-				case VBI_PIXFMT_ABGR15_LE:
-				case VBI_PIXFMT_RGBA15_LE:
-				case VBI_PIXFMT_BGRA15_LE:
-				case VBI_PIXFMT_ARGB15_BE:
-				case VBI_PIXFMT_ABGR15_BE:
-				case VBI_PIXFMT_RGBA15_BE:
-				case VBI_PIXFMT_BGRA15_BE:
-				case VBI_PIXFMT_RGB16_LE:
-				case VBI_PIXFMT_BGR16_LE:
-				case VBI_PIXFMT_RGB16_BE:
-				case VBI_PIXFMT_BGR16_BE:
-					t += raw1;
-					t -= raw0;
-					break;
-
-				default:
-					t += raw[bytes_per_pixel (fmt)];
-					t -= raw[0];
-					break;
-				}
-			}
-		}
-	}
-
-	d->thresh = thresh0;
-
-	return FALSE;
-}
-
-#define BIT_SLICER_IMPL(suffix, fmt)					\
+#define BIT_SLICER(fmt)							\
 static vbi_bool								\
-bit_slicer_##suffix (vbi_bit_slicer *d, uint8_t *raw, uint8_t *buf)	\
+bit_slicer_##fmt		(vbi_bit_slicer *	d,		\
+				 uint8_t *		buf,		\
+				 const uint8_t *	raw)		\
 {									\
-	return bit_slicer_tmpl (d, raw, buf, fmt);			\
+	const unsigned int bpp = VBI_PIXFMT_BPP (VBI_PIXFMT_##fmt);	\
+	const uint8_t *r;						\
+	unsigned int i, j, k;						\
+	unsigned int cl = 0;						\
+	unsigned int thresh0, tr;					\
+	unsigned int c = 0, t;						\
+	unsigned int raw0, raw1;					\
+	unsigned char b, b1 = 0;					\
+									\
+	thresh0 = d->thresh;						\
+	raw += d->skip;							\
+						                        \
+	for (i = d->cri_bytes; i > 0; raw += bpp, --i) {		\
+		tr = d->thresh >> THRESH_FRAC;				\
+									\
+		raw0 = GREEN (raw, VBI_PIXFMT_##fmt);			\
+		raw1 = GREEN (raw + bpp, VBI_PIXFMT_##fmt) - raw0;	\
+		d->thresh += (int)(raw0 - tr) * (int) ABS ((int) raw1);	\
+		t = raw0 * OVERSAMPLING;				\
+								        \
+		for (j = OVERSAMPLING; j > 0; --j) {			\
+			b = ((t + (OVERSAMPLING / 2))			\
+			     / OVERSAMPLING) >= tr;			\
+									\
+    			if (__builtin_expect (b ^ b1, 0)) {		\
+				cl = d->oversampling_rate >> 1;		\
+			} else {					\
+				cl += d->cri_rate;			\
+									\
+				if (cl >= d->oversampling_rate) {	\
+					cl -= d->oversampling_rate;	\
+					c = c * 2 + b;			\
+					if ((c & d->cri_mask)		\
+					    == d->cri)			\
+						goto payload;		\
+				}					\
+			}						\
+									\
+			b1 = b;						\
+									\
+			if (OVERSAMPLING > 1)				\
+				t += raw1;				\
+		}							\
+	}								\
+									\
+	d->thresh = thresh0;						\
+									\
+	return FALSE;							\
+									\
+payload:								\
+	i = d->phase_shift;						\
+	tr *= 256;							\
+	c = 0;								\
+									\
+	for (j = d->frc_bits; j > 0; --j) {				\
+		SAMPLE (VBI_PIXFMT_##fmt);				\
+		c = c * 2 + (raw0 >= tr);				\
+		i += d->step;						\
+	}								\
+									\
+	if (c != d->frc)						\
+		return FALSE;						\
+									\
+	switch (d->endian) {						\
+	case 3: /* bitwise, lsb first */				\
+		for (j = 0; j < d->payload; ++j) {			\
+			SAMPLE (VBI_PIXFMT_##fmt);			\
+			c = (c >> 1) + ((raw0 >= tr) << 7);		\
+			i += d->step;					\
+			if ((j & 7) == 7)				\
+				*buf++ = c;				\
+		}							\
+		*buf = c >> ((8 - d->payload) & 7);			\
+		break;							\
+									\
+	case 2: /* bitwise, msb first */				\
+		for (j = 0; j < d->payload; ++j) {			\
+			SAMPLE (VBI_PIXFMT_##fmt);			\
+			c = c * 2 + (raw0 >= tr);			\
+			i += d->step;					\
+			if ((j & 7) == 7)				\
+				*buf++ = c;				\
+		}							\
+		*buf = c & ((1 << (d->payload & 7)) - 1);		\
+		break;							\
+									\
+	case 1: /* octets, lsb first */					\
+		for (j = d->payload; j > 0; --j) {			\
+			for (k = 0, c = 0; k < 8; ++k) {		\
+				SAMPLE (VBI_PIXFMT_##fmt);		\
+				c += (raw0 >= tr) << k;			\
+				i += d->step;				\
+			}						\
+			*buf++ = c;					\
+		}							\
+		break;							\
+									\
+	default: /* octets, msb first */				\
+		for (j = d->payload; j > 0; --j) {			\
+			for (k = 0; k < 8; ++k) {			\
+				SAMPLE (VBI_PIXFMT_##fmt);		\
+				c = c * 2 + (raw0 >= tr);		\
+				i += d->step;				\
+			}						\
+			*buf++ = c;					\
+		}							\
+		break;							\
+	}								\
+									\
+	return TRUE;							\
 }
 
-BIT_SLICER_IMPL (yuv420,	VBI_PIXFMT_YUV420);
-BIT_SLICER_IMPL (yuyv,		VBI_PIXFMT_YUYV);
-BIT_SLICER_IMPL (rgb24,		VBI_PIXFMT_RGB24);
-BIT_SLICER_IMPL (rgba32_le,	VBI_PIXFMT_RGBA32_LE);
-BIT_SLICER_IMPL (argb15_le,	VBI_PIXFMT_ARGB15_LE);
-BIT_SLICER_IMPL (rgba15_le,	VBI_PIXFMT_RGBA15_LE);
-BIT_SLICER_IMPL (rgb16_le,	VBI_PIXFMT_RGB16_LE);
-BIT_SLICER_IMPL (argb15_be,	VBI_PIXFMT_ARGB15_BE);
-BIT_SLICER_IMPL (rgba15_be,	VBI_PIXFMT_RGBA15_BE);
-BIT_SLICER_IMPL (rgb16_be,	VBI_PIXFMT_RGB16_BE);
+BIT_SLICER (YUV420)
+BIT_SLICER (YUYV)
+BIT_SLICER (RGBA32_LE)
+BIT_SLICER (RGB24)
+BIT_SLICER (RGB16_LE)
+BIT_SLICER (RGB16_BE)
 
 /**
- * @param slicer Pointer to vbi_bit_slicer object to be initialized. 
- * @param raw_samples Number of samples or pixels in one raw vbi line
- *   later passed to vbi_bit_slice(). This limits the number of
- *   bytes read from the sample buffer.
- * @param sampling_rate Raw vbi sampling rate in Hz, that is the number of
- *   samples or pixels sampled per second by the hardware. 
- * @param cri_rate The Clock Run In is a NRZ modulated
- *   sequence of '0' and '1' bits prepending most data transmissions to
- *   synchronize data acquisition circuits. This parameter gives the CRI bit
- *   rate in Hz, that is the number of CRI bits transmitted per second.
- * @param bit_rate The transmission bit rate of all data bits following the CRI
- *   in Hz.
- * @param cri_frc The FRaming Code usually following the CRI is a bit sequence
- *   identifying the data service, and per libzvbi definition modulated
- *   and transmitted at the same bit rate as the payload (however nothing
- *   stops you from counting all nominal CRI and FRC bits as CRI).
- *   The bit slicer compares the bits in this word, lsb last transmitted,
- *   against the transmitted CRI and FRC. Decoding of payload starts
- *   with the next bit after a match.
- * @param cri_mask Of the CRI bits in @c cri_frc, only these bits are
- *   actually significant for a match. For instance it is wise
- *   not to rely on the very first CRI bits transmitted. Note this
- *   mask is not shifted left by @a frc_bits.
- * @param cri_bits 
- * @param frc_bits Number of CRI and FRC bits in @a cri_frc, respectively.
- *   Their sum is limited to 32.
- * @param payload Number of payload <em>bits</em>. Only this data
- *   will be stored in the vbi_bit_slice() output. If this number
- *   is no multiple of eight, the most significant bits of the
- *   last byte are undefined.
- * @param modulation Modulation of the vbi data, see vbi_modulation.
- * @param fmt Format of the raw data, see vbi_pixfmt.
+ * @param slicer Pointer to vbi_bit_slicer object allocated with
+ *   vbi_bit_slicer_new().
+ * @param raw Input data. At least the number of pixels or samples
+ *  given as @a samples_per_line to vbi_bit_slicer_new().
+ * @param buf Output data. The buffer must be large enough to store
+ *   the number of bits given as @a payload to vbi_bit_slicer_init().
  * 
- * Initializes vbi_bit_slicer object. Usually you will not use this
- * function but vbi_raw_decode(), the vbi image decoder which handles
- * all these details.
+ * Decodes one scan line of raw vbi data. Note the bit slicer tries
+ * to adapt to the average signal amplitude, you should avoid
+ * using the same vbi_bit_slicer object for data from different
+ * devices.
+ *
+ * @note As a matter of speed this function does not lock the
+ * @a slicer. When you want to share a vbi_bit_slicer object between
+ * multiple threads you must implement your own locking mechanism.
+ * 
+ * @return
+ * @c FALSE if the raw data does not contain the expected
+ * information, i. e. the CRI/FRC has not been found. This may also
+ * result from a too weak or noisy signal. Error correction must be
+ * implemented at a higher layer.
+ */
+vbi_bool
+vbi_bit_slice			(vbi_bit_slicer *	slicer,
+				 uint8_t *		buf,
+				 const uint8_t *	raw)
+{
+	return slicer->func (slicer, buf, raw);
+}
+
+/**
+ * @internal
+ *
+ * See vbi_bit_slicer_new().
  */
 void
 vbi_bit_slicer_init		(vbi_bit_slicer *	slicer,
-				 int			raw_samples,
-				 int			sampling_rate,
-				 int			cri_rate,
-				 int			bit_rate,
-				 unsigned int		cri_frc,
+				 vbi_pixfmt		sample_format,
+				 unsigned int		sampling_rate,
+				 unsigned int		samples_per_line,
+				 unsigned int		cri,
 				 unsigned int		cri_mask,
-				 int			cri_bits,
-				 int			frc_bits,
-				 int			payload,
-				 vbi_modulation		modulation,
-				 vbi_pixfmt		fmt)
+				 unsigned int		cri_bits,
+				 unsigned int		cri_rate,
+				 unsigned int		frc,
+				 unsigned int		frc_bits,
+				 unsigned int		payload_bits,
+				 unsigned int		payload_rate,
+				 vbi_modulation		modulation)
 {
-	unsigned int c_mask = (unsigned int)(-(cri_bits > 0)) >> (32 - cri_bits);
-	unsigned int f_mask = (unsigned int)(-(frc_bits > 0)) >> (32 - frc_bits);
-	unsigned int gsh;
+	unsigned int c_mask;
+	unsigned int f_mask;
+	unsigned int green_shift;
 
-	switch (fmt) {
+	assert (cri_bits <= 32);
+	assert (frc_bits <= 32);
+
+	c_mask = (cri_bits == 32) ? ~0 : (1 << cri_bits) - 1;
+	f_mask = (frc_bits == 32) ? ~0 : (1 << frc_bits) - 1;
+
+	switch (sample_format) {
 	case VBI_PIXFMT_RGB24:
 	case VBI_PIXFMT_BGR24:
-	        slicer->func = bit_slicer_rgb24;
+	        slicer->func = bit_slicer_RGB24;
+		green_shift = 8;
 		break;
 
 	case VBI_PIXFMT_RGBA32_LE:
 	case VBI_PIXFMT_BGRA32_LE:
+		slicer->func = bit_slicer_RGBA32_LE;
+		green_shift = 8;
+		break;
+
 	case VBI_PIXFMT_RGBA32_BE:
 	case VBI_PIXFMT_BGRA32_BE:
-		slicer->func = bit_slicer_rgba32_le;
+		slicer->func = bit_slicer_RGBA32_LE;
+		green_shift = 16;
 		break;
 
 	case VBI_PIXFMT_RGB16_LE:
 	case VBI_PIXFMT_BGR16_LE:
-		slicer->func = bit_slicer_rgb16_le;
+		slicer->func = bit_slicer_RGB16_LE;
+		slicer->green_mask = 0x07E0;
+		green_shift = 5;
 		break;
 
 	case VBI_PIXFMT_RGBA15_LE:
 	case VBI_PIXFMT_BGRA15_LE:
-		slicer->func = bit_slicer_rgba15_le;
+		slicer->func = bit_slicer_RGB16_LE;
+		slicer->green_mask = 0x03E0;
+		green_shift = 5;
 		break;
 
 	case VBI_PIXFMT_ARGB15_LE:
 	case VBI_PIXFMT_ABGR15_LE:
-		slicer->func = bit_slicer_argb15_le;
+		slicer->func = bit_slicer_RGB16_LE;
+		slicer->green_mask = 0x07C0;
+		green_shift = 6;
 		break;
 
 	case VBI_PIXFMT_RGB16_BE:
 	case VBI_PIXFMT_BGR16_BE:
-		slicer->func = bit_slicer_rgb16_be;
+		slicer->func = bit_slicer_RGB16_BE;
+		slicer->green_mask = 0x07E0;
+		green_shift = 5;
 		break;
 
 	case VBI_PIXFMT_RGBA15_BE:
 	case VBI_PIXFMT_BGRA15_BE:
-		slicer->func = bit_slicer_rgba15_be;
+		slicer->func = bit_slicer_RGB16_BE;
+		slicer->green_mask = 0x03E0;
+		green_shift = 5;
 		break;
 
 	case VBI_PIXFMT_ARGB15_BE:
 	case VBI_PIXFMT_ABGR15_BE:
-		slicer->func = bit_slicer_argb15_be;
+		slicer->func = bit_slicer_RGB16_BE;
+		slicer->green_mask = 0x07C0;
+		green_shift = 6;
 		break;
 
 	case VBI_PIXFMT_YUV420:
-		slicer->func = bit_slicer_yuv420;
+		slicer->func = bit_slicer_YUV420;
+		green_shift = 0;
 		break;
 
 	case VBI_PIXFMT_YUYV:
 	case VBI_PIXFMT_YVYU:
+		slicer->func = bit_slicer_YUYV;
+		green_shift = 0;
+		break;
+
 	case VBI_PIXFMT_UYVY:
 	case VBI_PIXFMT_VYUY:
-		slicer->func = bit_slicer_yuyv;
+		slicer->func = bit_slicer_YUYV;
+		green_shift = 8;
 		break;
 
 	default:
-		fprintf (stderr, "vbi_bit_slicer_init: unknown pixfmt %d\n", fmt);
+		fprintf (stderr, "%s:%d:vbi_bit_slicer_init: unknown pixfmt %d\n",
+			 __FILE__, __LINE__, sample_format);
 		exit (EXIT_FAILURE);
 	}
 
-	gsh = green_shift (fmt);
+	slicer->skip			= green_shift >> 3;
 
-	slicer->skip			= gsh >> 3;
 	slicer->cri_mask		= cri_mask & c_mask;
-	slicer->cri		 	= (cri_frc >> frc_bits) & slicer->cri_mask;
-	/* We stop searching for CRI/FRC when the payload
+	slicer->cri		 	= cri & slicer->cri_mask;
+	/* We stop searching for CRI when the payload
 	   cannot possibly fit anymore. */
-	slicer->cri_bytes		= raw_samples
-		- (sampling_rate * (long long)(payload + frc_bits)) / bit_rate;
+	slicer->cri_bytes		= samples_per_line
+		- ((sampling_rate * (long long)(payload_bits + frc_bits))
+		   / payload_rate);
 	slicer->cri_rate		= cri_rate;
 	/* Raw vbi data is oversampled to account for low sampling rates. */
 	slicer->oversampling_rate	= sampling_rate * OVERSAMPLING;
-	/* 0/1 threshold */
-	slicer->thresh			=
-		105 << (THRESH_FRAC + ((32 - gsh) & 7));
-	slicer->frc			= cri_frc & f_mask;
+	/* 0/1 threshold, starting value */
+	slicer->thresh			= 105 << (THRESH_FRAC + green_shift);
+	slicer->frc			= frc & f_mask;
 	slicer->frc_bits		= frc_bits;
 	/* Payload bit distance in 1/256 raw samples. */
-	slicer->step			= (int)(sampling_rate * 256.0 / bit_rate);
+	slicer->step			= sampling_rate * 256.0 / payload_rate;
 
-	if (payload & 7) {
-		slicer->payload	= payload;
+	if (payload_bits & 7) {
+		slicer->payload	= payload_bits;
 		slicer->endian	= 3;
 	} else {
-		slicer->payload	= payload >> 3;
+		/* Endian 0/1 optimized for octets. */
+		slicer->payload	= payload_bits >> 3;
 		slicer->endian	= 1;
 	}
 
@@ -558,7 +376,7 @@ vbi_bit_slicer_init		(vbi_bit_slicer *	slicer,
 	case VBI_MODULATION_NRZ_LSB:
 		slicer->phase_shift = (int)
 			(sampling_rate * 256.0 / cri_rate * .5
-			 + sampling_rate * 256.0 / bit_rate * .5 + 128);
+			 + sampling_rate * 256.0 / payload_rate * .5 + 128);
 		break;
 
 	case VBI_MODULATION_BIPHASE_MSB:
@@ -568,9 +386,91 @@ vbi_bit_slicer_init		(vbi_bit_slicer *	slicer,
 		   biphase modulated rest */
 		slicer->phase_shift = (int)
 			(sampling_rate * 256.0 / cri_rate * .5
-			 + sampling_rate * 256.0 / bit_rate * .25 + 128);
+			 + sampling_rate * 256.0 / payload_rate * .25 + 128);
 		break;
 	}
+}
+
+/**
+ * @param slicer Pointer to a vbi_bit_slicer object allocated with
+ *   vbi_bit_slicer_new().
+ *
+ * Deletes a vbi_bit_slicer object.
+ */
+void
+vbi_bit_slicer_delete		(vbi_bit_slicer *	slicer)
+{
+	free (slicer);
+}
+
+/**
+ * @param sample_format Format of the raw data, see vbi_pixfmt.
+ * @param sampling_rate Raw vbi sampling rate in Hz, that is the number
+ *   of samples or pixels sampled per second by the hardware.
+ * @param samples_per_line Number of samples or pixels in one raw vbi
+ *   line later passed to vbi_bit_slice(). This limits the number of
+ *   bytes read from the raw data buffer. Do not to confuse the value
+ *   with bytes per line.
+ * @param cri The Clock Run In is a NRZ modulated sequence of '0'
+ *   and '1' bits prepending most data transmissions to synchronize data
+ *   acquisition circuits. The bit slicer compares the bits in this
+ *   word, lsb last transmitted, against the transmitted CRI. Decoding
+ *   of payload starts with the next bit after a CRI and FRC match.
+ * @param cri_mask Of the CRI bits in @a cri, only these bits are
+ *   significant for a match. For instance it is wise not to rely on the
+ *   very first CRI bits transmitted.
+ * @param cri_bits Number of CRI bits, must not exceed 32.
+ * @param cri_rate CRI bit rate in Hz, the number of CRI bits
+ *   transmitted per second.
+ * @param frc The FRaming Code usually following the CRI is a bit
+ *   sequence identifying the data service. There is no mask parameter,
+ *   all bits must match. Unlike CRI we assume FRC has @a modulation
+ *   of the payload at @a payload_rate. Often such a distinction is not
+ *   necessary and FRC bits should be added to CRI, with @a frc_bits
+ *   set to zero.
+ * @param frc_bits Number of FRC bits, must not exceed 32.
+ * @param payload_bits Number of payload bits. Only this data
+ *   will be stored in the vbi_bit_slice() output. If this number
+ *   is no multiple of eight, the most significant bits of the
+ *   last byte are undefined.
+ * @param payload_rate Payload bit rate in Hz, the number of payload
+ *   bits transmitted per second.
+ * @param modulation Modulation of the payload, see vbi_modulation.
+ * 
+ * Allocates and initializes a vbi_bit_slicer object for use with
+ * vbi_bit_slice(). This is a low level function, see also
+ * vbi_raw_decode().
+ *
+ * @returns
+ * NULL when out of memory, otherwise a pointer to an opaque
+ * vbi_bit_slicer object, which must be deleted with
+ * vbi_bit_slicer_delete() when done.
+ */
+vbi_bit_slicer *
+vbi_bit_slicer_new		(vbi_pixfmt		sample_format,
+				 unsigned int		sampling_rate,
+				 unsigned int		samples_per_line,
+				 unsigned int		cri,
+				 unsigned int		cri_mask,
+				 unsigned int		cri_bits,
+				 unsigned int		cri_rate,
+				 unsigned int		frc,
+				 unsigned int		frc_bits,
+				 unsigned int		payload_bits,
+				 unsigned int		payload_rate,
+				 vbi_modulation		modulation)
+{
+	vbi_bit_slicer *slicer;
+
+	if (!(slicer = malloc (sizeof (*slicer))))
+		return NULL;
+
+        vbi_bit_slicer_init (slicer,
+			     sample_format, sampling_rate, samples_per_line,
+			     cri, cri_mask, cri_bits, cri_rate,
+			     frc, frc_bits,
+			     payload_bits, payload_rate, modulation);
+	return slicer;	
 }
 
 /*
@@ -821,8 +721,9 @@ vbi_raw_decode(vbi_raw_decoder *rd, uint8_t *raw, vbi_sliced *out)
 
 			if (j > 0) {
 				job = rd->jobs + (j - 1);
-
-				if (!bit_slicer_yuv420 (&job->slicer, raw + job->offset, out->data))
+// XXX
+				if (!bit_slicer_YUV420 (&job->slicer,
+out->data, raw + job->offset))
 					continue; /* no match, try next data service */
 
 				/* This service has no CRI/FRC but a CRC */
@@ -1166,18 +1067,20 @@ vbi_raw_decoder_add_services(vbi_raw_decoder *rd, unsigned int services, int str
 		job->id |= vbi_services[i].id;
 		job->offset = skip;
 
-		vbi_bit_slicer_init(&job->slicer,
-				    rd->bytes_per_line - skip, /* XXX * bpp? */
-				    rd->sampling_rate,
-				    vbi_services[i].cri_rate,
-				    vbi_services[i].bit_rate,
-				    vbi_services[i].cri_frc,
-				    vbi_services[i].cri_mask,
-				    vbi_services[i].cri_bits,
-				    vbi_services[i].frc_bits,
-				    vbi_services[i].payload,
-				    vbi_services[i].modulation,
-				    rd->sampling_format);
+		vbi_bit_slicer_init
+			(&job->slicer,
+			 rd->sampling_format,
+			 rd->sampling_rate,
+			 rd->bytes_per_line - skip, /* XXX * bpp? */
+			 vbi_services[i].cri_frc >> vbi_services[i].frc_bits,
+			 vbi_services[i].cri_mask,
+			 vbi_services[i].cri_bits,
+			 vbi_services[i].cri_rate,
+			 vbi_services[i].cri_frc & ((1 << vbi_services[i].frc_bits) - 1),
+			 vbi_services[i].frc_bits,
+			 vbi_services[i].payload,
+			 vbi_services[i].bit_rate,
+			 vbi_services[i].modulation);
 
 		if (job >= rd->jobs + rd->num_jobs)
 			rd->num_jobs++;
