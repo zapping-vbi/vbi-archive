@@ -1251,7 +1251,7 @@ x11_screensaver_set		(unsigned int		level)
     {
       if (level == X11_SCREENSAVER_ON)
 	{
-	  if (screensaver_timeout_id != -1)
+	  if (screensaver_timeout_id > 0)
 	    {
 	      g_source_remove (screensaver_timeout_id);
 	      screensaver_timeout_id = -1;

@@ -142,9 +142,6 @@ extern void
 tv_callback_block		(tv_callback *		cb);
 extern void
 tv_callback_unblock		(tv_callback *		cb);
-extern void
-tv_callback_notify		(void *			object,
-				 const tv_callback *	list);
 
 #define TV_CALLBACK_BLOCK(cb, statement)				\
 do {									\
@@ -377,7 +374,7 @@ typedef enum {
 	TV_VIDEOSTD_SECAM_L,
 
 	TV_VIDEOSTD_CUSTOM_BEGIN = 32,
-	TV_VIDEOSTD_CUSTOM_END = 63
+	TV_VIDEOSTD_CUSTOM_END = 64
 } tv_videostd;
 
 #define TV_MAX_VIDEOSTDS 64
@@ -416,7 +413,8 @@ typedef uint64_t tv_videostd_set;
 #define TV_VIDEOSTD_SET_ALL    (+ TV_VIDEOSTD_SET_525_60		\
 				+ TV_VIDEOSTD_SET_625_50)
 
-#define TV_VIDEOSTD_SET_CUSTOM ((~TV_VIDEOSTD_SET_EMPTY) << TV_VIDEOSTD_CUSTOM)
+#define TV_VIDEOSTD_SET_CUSTOM						\
+	((~TV_VIDEOSTD_SET_EMPTY) << TV_VIDEOSTD_CUSTOM_BEGIN)
 
 extern const char *
 tv_videostd_name		(tv_videostd		videostd);
@@ -768,7 +766,6 @@ typedef uint64_t tv_pixfmt_set;
 #define TV_PIXFMT_SET_ALL	 (+ TV_PIXFMT_SET_YUV			\
 				  + TV_PIXFMT_SET_RGB)
 
-/* For further classification see tv_pixel_format. */
 #define TV_PIXFMT_IS_YUV(pixfmt)					\
 	(0 != (TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_YUV))
 #define TV_PIXFMT_IS_RGB(pixfmt)					\
@@ -777,6 +774,24 @@ typedef uint64_t tv_pixfmt_set;
 	(0 != (TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_PLANAR))
 #define TV_PIXFMT_IS_PACKED(pixfmt)					\
 	(0 != (TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_PACKED))
+
+#ifdef __GNUC__
+#define TV_PIXFMT_BYTES_PER_PIXEL(pixfmt)				\
+	(!__builtin_constant_p (pixfmt) ?				\
+	 tv_pixfmt_bytes_per_pixel (pixfmt) :				\
+	 ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_YUVA24) ? 4 :		\
+	  ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGBA24) ? 4 :	\
+	   ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_YUV24) ? 3 :	\
+	    ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGB24) ? 3 :	\
+	     ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_YUV16) ? 2 :	\
+	      ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGB16) ? 2 :	\
+	       ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGB15) ? 2 :	\
+	        ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGB12) ? 2 :	\
+		 1))))))))
+#else
+#define TV_PIXFMT_BYTES_PER_PIXEL(pixfmt)				\
+	(tv_pixfmt_bytes_per_pixel (pixfmt))
+#endif
 
 extern const char *
 tv_pixfmt_name			(tv_pixfmt		pixfmt);

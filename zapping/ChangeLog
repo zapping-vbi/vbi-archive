@@ -1,3 +1,16 @@
+2003-11-15    <mschimek@users.sf.net>
+
+	* pixmaps/Makefile.am: Don't install built-in pixmaps.
+	* src/zvideo.c: g_source_remove id must be > 0.
+
+2003-11-14    <mschimek@users.sf.net>
+
+	* src/tvengxv.c, src/tvengemu.c, src/tvengbktr.c,
+	  src/tveng_private.h, src/tveng25.c, src/tveng2.c,
+	  src/tveng1.c, src/tveng.c: Recursive tveng_device_info->
+	  priv->mutex didn't work, replaced by fast type. Divided
+	  a few tveng_ funcs for internal use without locking.
+
 2003-11-13    <mschimek@users.sf.net>
 
 	* plugins/mpeg/mpeg.c (py_record): Missing check if dialog

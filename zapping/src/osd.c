@@ -877,7 +877,7 @@ osd_render_osd		(void (*timeout_cb)(gboolean),
   zmodel_changed(osd_model);
 
   /* Schedule the destruction of the patch */
-  if (osd_clear_timeout_id > -1)
+  if (osd_clear_timeout_id > 0)
     {
       if (osd_clear_timeout_cb)
 	osd_clear_timeout_cb(FALSE);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.116.2.16 2003-11-13 05:31:01 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.116.2.17 2003-11-15 15:16:15 mschimek Exp $ */
 
 /*
  *  Teletext View
@@ -450,7 +450,7 @@ load_page			(ttxview_data *		data,
       data->deferred.subno = subno;
     }
 
-  if (data->deferred.timeout_id != -1)
+  if (data->deferred.timeout_id > 0)
     g_source_remove (data->deferred.timeout_id);
 
   if (data->deferred_load)
@@ -4755,10 +4755,10 @@ ttxview_delete			(ttxview_data *		data)
 
   g_source_remove (data->zvbi_timeout_id);
 
-  if (data->blink_timeout_id != -1)
+  if (data->blink_timeout_id > 0)
     g_source_remove (data->blink_timeout_id);
 
-  if (data->deferred.timeout_id != -1)
+  if (data->deferred.timeout_id > 0)
     g_source_remove(data->deferred.timeout_id);
 
   unregister_ttx_client (data->zvbi_client_id);

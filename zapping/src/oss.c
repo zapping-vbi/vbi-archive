@@ -516,7 +516,7 @@ struct line {
 
 #define L(l) PARENT (l, struct line, pub)
 
-#define NOTIFY(l) tv_callback_notify (&l->pub, l->pub._callback)
+#define NOTIFY(l) tv_callback_notify (NULL, &l->pub, l->pub._callback)
 
 struct mixer {
 	tv_mixer		pub;
@@ -769,7 +769,7 @@ oss_mixer_update_mixer		(tv_mixer *		mixer)
 			return FALSE;
 
 		if (rec_source_changed (m, set))
-			tv_callback_notify (&m->pub, m->pub._callback);
+			tv_callback_notify (NULL, &m->pub, m->pub._callback);
 	}
 
 	return TRUE;
@@ -807,7 +807,7 @@ oss_mixer_set_rec_line		(tv_mixer *		mixer,
 	/* NB the driver will never return set = 0, it defaults to Mic. */
 
 	if (rec_source_changed (m, set))
-		tv_callback_notify (&m->pub, m->pub._callback);
+		tv_callback_notify (NULL, &m->pub, m->pub._callback);
 
 	return TRUE;
 }

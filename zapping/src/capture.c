@@ -470,7 +470,8 @@ void capture_stop (void)
     }  
 
   /* Stop our marvellous consumer */
-  g_source_remove (idle_id);
+  if (idle_id > 0)
+    g_source_remove (idle_id);
   idle_id = -1;
 
   /* Let the capture thread go to a better place */

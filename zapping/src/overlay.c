@@ -292,7 +292,7 @@ visible_timeout			(gpointer		user_data)
 static void
 stop_timeout			(void)
 {
-  if (tv_info.timeout_id >= 0)
+  if (tv_info.timeout_id > 0)
     g_source_remove (tv_info.timeout_id);
 
   tv_info.timeout_id = -1;

@@ -894,7 +894,7 @@ void z_status_print(const gchar *message, gint timeout)
   gtk_label_set_text (GTK_LABEL (status), message);
   gtk_widget_show(appbar2);
 
-  if (status_hide_timeout_id > -1)
+  if (status_hide_timeout_id > 0)
     g_source_remove (status_hide_timeout_id);
 
   if (timeout > 0)

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.15 2003-11-13 05:19:45 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36.2.16 2003-11-15 15:16:15 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -318,7 +318,7 @@ saving_dialog_status_update		(rte_context *		context)
 static void
 saving_dialog_status_disable		(void)
 {
-  if (update_timeout_id >= 0)
+  if (update_timeout_id > 0)
     {
       g_source_remove (update_timeout_id);
       update_timeout_id = -1;

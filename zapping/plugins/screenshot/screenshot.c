@@ -362,7 +362,7 @@ plugin_close(void)
 {
   screenshot_close_everything = TRUE;
 
-  if (ogb_timeout_id >= 0)
+  if (ogb_timeout_id > 0)
     {
       g_source_remove (ogb_timeout_id);
       ogb_timeout_id = -1;
