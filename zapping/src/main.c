@@ -83,6 +83,8 @@ gboolean		was_fullscreen=FALSE; /* will be TRUE if when
 tveng_tuned_channel	*global_channel_list=NULL;
 gint			console_errors = FALSE;
 
+gboolean		have_wmhooks = FALSE;
+
 /*** END OF GLOBAL STUFF ***/
 
 static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
@@ -463,7 +465,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.162 2002-04-20 06:42:31 mschimek Exp $",
+	 "$Id: main.c,v 1.163 2002-05-30 14:49:38 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -513,6 +515,8 @@ int main(int argc, char * argv[])
 	     GNOME_MESSAGE_BOX_ERROR);
       return 0;
     }
+  D();
+  have_wmhooks = (wm_detect () != -1);
   D();
   main_info = tveng_device_info_new( GDK_DISPLAY(), x_bpp);
   if (!main_info)
@@ -678,6 +682,9 @@ int main(int argc, char * argv[])
 				     (GtkFunction)hide_pointer_timeout,
 				     tv_screen);
 
+  D();
+  window_on_top (main_window, zconf_get_boolean
+		 (NULL, "/zapping/options/main/keep_on_top"));
   D();
   if (!startup_capture(tv_screen))
     {
@@ -1056,6 +1063,7 @@ static gboolean startup_zapping(gboolean load_plugins)
   /* Sets defaults for zconf */
   zcc_bool(TRUE, "Save and restore zapping geometry (non ICCM compliant)", 
 	   "keep_geometry");
+  zcc_bool(FALSE, "Keep main window on top", "keep_on_top");
   zcc_bool(TRUE, "Resize by fixed increments", "fixed_increments");
   zcc_char(tveng_get_country_tune_by_id(0)->name,
 	     "The country you are currently in", "current_country");

@@ -152,4 +152,7 @@ typedef struct {
 			     GdkGC *gc);
 } video_backend;
 
+extern void (* window_on_top)(GtkWidget *widget, gboolean on);
+extern int wm_detect (void);
+
 #endif /* x11stuff.h */
