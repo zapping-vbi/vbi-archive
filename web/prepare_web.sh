@@ -1,5 +1,5 @@
 #!/bin/sh
-#$Id: prepare_web.sh,v 1.19 2004-05-12 00:57:26 mschimek Exp $
+#$Id: prepare_web.sh,v 1.20 2004-07-03 01:39:59 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -93,6 +93,13 @@ for i in images_* screenshots style; do
 done
 # Created by prepare_dox.sh, not in cvs.
 test -e doc && chmod a+rX doc -R
+
+if test -e zvbi-0.3; then
+  chmod a+rX zvbi-0.3
+  chmod a+r zvbi-0.3/networks.xml
+  chmod a+r zvbi-0.3/networks.dtd
+fi
+
 cd -
 
 # Files used by TWiki cgi-bin.
