@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.4.2.5 2004-02-13 02:13:20 mschimek Exp $ */
+/* $Id: format.h,v 1.4.2.6 2004-02-18 07:54:58 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -248,6 +248,28 @@ typedef struct vbi_char {
 	unsigned	unicode		: 16;
 } vbi_char;
 
+/* Private */
+
+static_inline void
+vbi_char_and			(vbi_char *		c1,
+				 const vbi_char *	c2)
+{
+	assert (8 == sizeof (vbi_char));
+
+	*((uint64_t *) &c1) &= *((uint64_t *) &c2);
+}
+
+static_inline void
+vbi_char_xor			(vbi_char *		c1,
+				 const vbi_char *	c2)
+{
+	assert (8 == sizeof (vbi_char));
+
+	*((uint64_t *) &c1) ^= *((uint64_t *) &c2);
+}
+
+/* Public */
+
 /**
  * @ingroup Page
  * @brief Formatted Teletext or Closed Caption page.
@@ -371,12 +393,14 @@ typedef struct vbi_page {
 } vbi_page;
 
 typedef enum {
-	VBI_TABLE		= 1 << 0,
-	VBI_RTL			= 1 << 1,
-	VBI_SCALE		= 1 << 2,
-	VBI_REVEAL		= 1 << 3,
-	VBI_FLASH_OFF		= 1 << 4,
-} vbi_export_flags;
+	VBI_TABLE = 0x32f54a00,
+	VBI_RTL,
+	VBI_SCALE,
+	VBI_REVEAL,
+	VBI_FLASH,
+	VBI_BRIGHTNESS,
+	VBI_CONTRAST,
+} vbi_export_option;
 
 /* Private */
 
