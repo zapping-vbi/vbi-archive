@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.9.2.5 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: caption.c,v 1.9.2.6 2004-04-05 04:42:26 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -875,7 +875,7 @@ vbi_caption_destroy(vbi_decoder *vbi)
 {
 	pthread_mutex_destroy(&vbi->cc.mutex);
 
-	vbi_xds_demux_destroy (&vbi->cc.xds_demux);
+	_vbi_xds_demux_destroy (&vbi->cc.xds_demux);
 }
 
 /**
@@ -926,7 +926,7 @@ vbi_caption_init(vbi_decoder *vbi)
 	cc->transp_space[0].opacity = VBI_TRANSPARENT_SPACE;
 	cc->transp_space[1].opacity = VBI_OPAQUE;
 
-	vbi_xds_demux_init (&vbi->cc.xds_demux, vbi_decode_xds, vbi);
+	_vbi_xds_demux_init (&vbi->cc.xds_demux, _vbi_decode_xds, vbi);
 
 	vbi_caption_channel_switched(vbi);
 

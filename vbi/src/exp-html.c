@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.6.2.5 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.6.2.6 2004-04-05 04:42:26 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -764,7 +764,7 @@ export(vbi_export *e, FILE *fp, const vbi_page *pg)
 			if (html->ascii_art) {
 				unsigned int c;
 
-				c = vbi_teletext_ascii_art (acp->unicode);
+				c = _vbi_teletext_ascii_art (acp->unicode);
 
 				if (vbi_is_print (c))
 					putwc (html, c, TRUE);

@@ -34,18 +34,20 @@ libzvbi_la_SOURCES = \
 	graphics.c graphics.h \
 	hamm.c hamm.h \
 	intl.h intl-priv.h \
+	io.c io.h \
+	io-bktr.c \
+	io-dvb.h \
+	io-sim.c io-sim.h \
+	io-v4l2k.c videodev2k.h \
+	io-v4l2.c videodev2.h \
+	io-v4l.c videodev.h \
 	lang.c lang.h \
 	link.h \
 	macros.h \
 	misc.h \
 	network.c network.h \
-	io.c io.h \
-	io-bktr.c \
-	io-sim.c io-sim.h \
-	io-v4l2k.c videodev2k.h \
-	io-v4l2.c videodev2.h \
-	io-v4l.c videodev.h \
 	packet.c \
+	packet-830.c packet-830.h \
 	pdc.c pdc.h \
 	pfc_demux.c pfc_demux.h \
 	raw_decoder.c raw_decoder.h \
@@ -60,7 +62,8 @@ libzvbi_la_SOURCES = \
 	vps.c vps.h \
 	vt.h \
 	wss.c wss.h \
-	xds.c xds.h
+	xds_demux.c xds_demux.h \
+	xds_decoder.c xds_decoder.h
 
 exp-gfx.c: wstfont2.xbm ccfont3.xbm
 
@@ -93,10 +96,12 @@ LIBZVBI_HDRS = \
 	raw_decoder.h \
 	io.h \
 	io-sim.h \
+	io-dvb.h \
 	conv.h \
 	exp-gfx.h \
 	exp-txt.h \
-	xds.h cc.h vps.h pfc_demux.h packet-830.h vt.h tables.h vbi.h
+	xds_demux.h xds_decoder.h cc.h vps.h pfc_demux.h \
+	packet-830.h vt.h tables.h vbi.h
 
 # Concat the header files in this order and filter out all lines
 #   before "^/* Public", after "^/* Private" and between "^/**"..."**/$"

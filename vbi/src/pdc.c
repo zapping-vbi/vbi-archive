@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.4 2004-04-04 21:45:40 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.5 2004-04-05 04:42:27 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -38,7 +38,7 @@ do {									\
  * @internal
  */
 void
-vbi_pil_dump			(vbi_pil		pil,
+_vbi_pil_dump			(vbi_pil		pil,
 				 FILE *			fp)
 {
 	switch (pil) {
@@ -121,7 +121,7 @@ _vbi_program_id_dump		(const vbi_program_id *	pid,
 		fprintf (fp, "pil=");
 	}
 
-	vbi_pil_dump (pid->pil, fp);
+	_vbi_pil_dump (pid->pil, fp);
 
 	fprintf (fp, " length=%u "
 		 "luf=%u mi=%u prf=%u "

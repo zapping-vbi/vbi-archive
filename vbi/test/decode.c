@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decode.c,v 1.1.2.2 2004-04-04 21:45:49 mschimek Exp $ */
+/* $Id: decode.c,v 1.1.2.3 2004-04-05 04:42:35 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -173,31 +173,14 @@ packet_8302			(const uint8_t		buffer[42],
 	dump_nuid (pi.nuid);
 }
 
-static void
+static vbi_bool
 page_function_clear		(vbi_pfc_demux *	pc,
 				 void *			user_data,
 		                 const vbi_pfc_block *	block)
 {
-	unsigned int i;
+	_vbi_pfc_block_dump (block, stdout, dump_bin);
 
-	printf ("PFC pgno=%x stream=%u id=%u size=%u\n",
-		block->pgno, block->stream,
-		block->application_id,
-		block->block_size);
-
-	if (dump_bin) {
-		fwrite (block->block, sizeof (block->block[0]),
-			block->block_size, stdout);
-	} else {
-		for (i = 0; i < block->block_size; ++i) {
-			putchar (printable (block->block[i]));
-
-			if ((i % 75) == 75)
-				putchar ('\n');
-		}
-
-		putchar ('\n');
-	}
+	return TRUE;
 }
 
 static void

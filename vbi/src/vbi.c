@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.11 2004-04-03 02:04:48 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.12 2004-04-05 04:42:27 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -409,9 +409,9 @@ vbi_decode(vbi_decoder *vbi, vbi_sliced *sliced, int lines, double time)
 			vbi_decode_teletext(vbi, sliced->data);
 		else if (sliced->id & (VBI_SLICED_CAPTION_525 | VBI_SLICED_CAPTION_625))
 			vbi_decode_caption(vbi, sliced->line, sliced->data);
+		/* TODO
 		else if (sliced->id & VBI_SLICED_VPS)
 			vbi_decode_vps(vbi, sliced->data);
-		/* TODO
 		else if (sliced->id & VBI_SLICED_WSS_625)
 			vbi_decode_wss_625(vbi, sliced->data, time);
 		else if (sliced->id & VBI_SLICED_WSS_CPR1204)

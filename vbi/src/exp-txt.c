@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.10.2.5 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.10.2.6 2004-04-05 04:42:26 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -920,7 +920,7 @@ xputwc				(text_instance *	text,
 {
 	if (vbi_is_gfx (c)) {
 		if (text->ascii_art) {
-			c = vbi_teletext_ascii_art (c);
+			c = _vbi_teletext_ascii_art (c);
 
 			if (!vbi_is_print (c))
 				c = text->gfx_chr;

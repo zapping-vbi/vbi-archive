@@ -1,5 +1,5 @@
 /*
- *  libzvbi - Teletext packet decoder, page format clear
+ *  libzvbi - Teletext packet page format clear demultiplexer
  *
  *  Copyright (C) 2003-2004 Michael H. Schimek
  *
@@ -17,16 +17,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-pfc.h,v 1.1.2.1 2004-02-25 17:35:29 mschimek Exp $ */
+/* $Id: pfc_demux.h,v 1.1.2.1 2004-04-05 04:42:27 mschimek Exp $ */
 
-#ifndef PACKET_PFC_H
-#define PACKET_PFC_H
+#ifndef __ZVBI_PFC_DEMUX_H__
+#define __ZVBI_PFC_DEMUX_H__
 
-#include <inttypes.h>
-
-#include "bcd.h"
+#include <inttypes.h>		/* uint8_t */
+#include <stdio.h>		/* FILE */
+#include "macros.h"
+#include "bcd.h"		/* vbi_pgno */
 
 /* Public */
+
+VBI_BEGIN_DECLS
 
 /**
  * @addtogroup PFCDemux
@@ -34,7 +37,7 @@
  */
 
 /**
- * One block of data returned by vbi_pfc_demux_cb().
+ * @brief One block of data returned by vbi_pfc_demux_cb().
  */
 typedef struct {
 	/** Source page as requested with vbi_pfc_demux_new(). */
@@ -61,7 +64,7 @@ typedef struct {
  * Call vbi_pfc_demux_new() to allocate a PFC
  * demultiplexer context.
  */
-typedef struct vbi_pfc_demux vbi_pfc_demux;
+typedef struct _vbi_pfc_demux vbi_pfc_demux;
 
 /**
  * @param pc PFC demultiplexer context returned by
@@ -72,7 +75,7 @@ typedef struct vbi_pfc_demux vbi_pfc_demux;
  * Function called by vbi_pfc_demux_demux() when a
  * new data block is available.
  */
-typedef void
+typedef vbi_bool
 vbi_pfc_demux_cb		(vbi_pfc_demux *	pc,
 				 void *			user_data,
 				 const vbi_pfc_block *	block);
@@ -87,21 +90,17 @@ vbi_pfc_demux_delete		(vbi_pfc_demux *	pc);
 extern vbi_pfc_demux *
 vbi_pfc_demux_new		(vbi_pgno		pgno,
 				 unsigned int		stream,
-				 vbi_pfc_demux_cb *	cb,
-				 void *			user_data);
-/** @} */
+				 vbi_pfc_demux_cb *	callback,
+				 void *			user_data) vbi_alloc;
 
-/* Private */
-
-struct vbi_pfc_demux {
-	vbi_pfc_demux *		next;
-
+/** @internal */
+struct _vbi_pfc_demux {
 	unsigned int		ci;		/* continuity index */
-	unsigned int		packet;
-	unsigned int		n_packets;
+	unsigned int		packet;		/* next packet expected */
+	unsigned int		n_packets;	/* num packets expected */
 
 	unsigned int		bi;		/* block index */
-	unsigned int		left;
+	unsigned int		left;		/* block bytes expected */
 
 	vbi_pfc_demux_cb *	callback;
 	void *			user_data;
@@ -109,4 +108,25 @@ struct vbi_pfc_demux {
 	vbi_pfc_block		block;
 };
 
-#endif /* PACKET_PFC_H */
+extern void
+_vbi_pfc_block_dump		(const vbi_pfc_block *	pb,
+				 FILE *			fp,
+				 vbi_bool		binary);
+extern vbi_bool
+_vbi_pfc_demux_decode		(vbi_pfc_demux *	pc,
+				 const uint8_t		buffer[42]);
+extern void
+_vbi_pfc_demux_destroy		(vbi_pfc_demux *	pc);
+extern vbi_bool
+_vbi_pfc_demux_init		(vbi_pfc_demux *	pc,
+				 vbi_pgno		pgno,
+				 unsigned int		stream,
+				 vbi_pfc_demux_cb *	callback,
+				 void *			user_data);
+/** @} */
+
+VBI_END_DECLS
+
+/* Private */
+
+#endif /* __ZVBI_PFC_DEMUX_H__ */

@@ -17,10 +17,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.c,v 1.1.2.2 2004-04-04 21:45:40 mschimek Exp $ */
+/* $Id: packet-830.c,v 1.1.2.3 2004-04-05 04:42:27 mschimek Exp $ */
 
-#include "bcd.h"
-#include "hamm.h"
+#include "../config.h"
+
+#include <assert.h>
+
+#include "bcd.h"		/* vbi_bcd2dec() */
+#include "hamm.h"		/* vbi_rev16p(), vbi_iham8() */
+#include "network.h"		/* vbi_nuid_from_cni() */
 #include "packet-830.h"
 
 /**
@@ -172,18 +177,18 @@ vbi_decode_teletext_8302_cni	(unsigned int *		cni,
 }
 
 /**
- * @param pi PDC data is stored here.
+ * @param pid PDC data is stored here.
  * @param buffer Teletext packet (last 42 bytes, i. e. without clock
  *   run-in and framing code), as in struct vbi_sliced.
  * 
  * Decodes a Teletext packet 8/30 format 2 according to
- * ETS 300 231, storing PDC recording-control data in @a pi.
+ * ETS 300 231, storing PDC recording-control data in @a pid.
  *
  * @returns
  * @c FALSE if the buffer contained incorrectable data.
  */
 vbi_bool
-vbi_decode_teletext_8302_pdc	(vbi_program_id *	pi,
+vbi_decode_teletext_8302_pdc	(vbi_program_id *	pid,
 				 const uint8_t		buffer[42])
 {
 	uint8_t b[13];
@@ -191,7 +196,7 @@ vbi_decode_teletext_8302_pdc	(vbi_program_id *	pi,
 	int error;
 	unsigned int cni;
 
-	assert (NULL != pi);
+	assert (NULL != pid);
 	assert (NULL != buffer);
 
 	error = vbi_iham8 (buffer[10]);
@@ -214,31 +219,31 @@ vbi_decode_teletext_8302_pdc	(vbi_program_id *	pi,
 	       +  (b[ 8] & 0xC0)
 	       +  (b[11] & 0x3F));
 
-	pi->nuid	= vbi_nuid_from_cni (VBI_CNI_TYPE_8302, cni);
+	pid->nuid	= vbi_nuid_from_cni (VBI_CNI_TYPE_8302, cni);
 
-	pi->channel	= (b[6] >> 2) & 3;
+	pid->channel	= VBI_PID_CHANNEL_LCI_0 + ((b[6] >> 2) & 3);
 
-	pi->luf		= !!(b[6] & 2);
-	pi->prf		= b[6] & 1;
+	pid->luf	= !!(b[6] & 2);
+	pid->prf	= b[6] & 1;
 
-	pi->pcs_audio	= b[7] >> 6;
+	pid->pcs_audio	= b[7] >> 6;
 
-	pi->mi		= !!(b[7] & 0x20);
+	pid->mi		= !!(b[7] & 0x20);
 
-	pi->pil		= (+ ((b[ 8] & 0x3F) << 14)
+	pid->pil	= (+ ((b[ 8] & 0x3F) << 14)
 			   +  (b[ 9] << 6)
 			   +  (b[10] >> 2));
 
-	pi->month	= VBI_PIL_MONTH (pi->pil) - 1; 
-	pi->day		= VBI_PIL_DAY (pi->pil) - 1; 
-	pi->hour	= VBI_PIL_HOUR (pi->pil); 
-	pi->minute	= VBI_PIL_MINUTE (pi->pil); 
+	pid->month	= VBI_PIL_MONTH (pid->pil) - 1; 
+	pid->day	= VBI_PIL_DAY (pid->pil) - 1; 
+	pid->hour	= VBI_PIL_HOUR (pid->pil); 
+	pid->minute	= VBI_PIL_MINUTE (pid->pil); 
 
-	pi->length	= 0; /* unknown */
+	pid->length	= 0; /* unknown */
 
-	pi->pty		= b[12];
+	pid->pty	= b[12];
 
-	pi->tape_delayed = FALSE;
+	pid->tape_delayed = FALSE;
 
 	return TRUE;
 }

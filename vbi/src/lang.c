@@ -17,14 +17,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.4.2.2 2004-02-25 17:31:02 mschimek Exp $ */
+/* $Id: lang.c,v 1.4.2.3 2004-04-05 04:42:27 mschimek Exp $ */
 
 #include "../config.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <assert.h>
-
+#include <inttypes.h>		/* uint8_t, uint16_t */
+#include <stdio.h>		/* FILE */
+#include <stdlib.h>		/* exit() */
+#include "misc.h"		/* N_ELEMENTS() */
 #include "lang.h"
 
 #define UNUSED(n) { n, 0, 0, 0, { NULL, } }
@@ -173,7 +174,7 @@ ascii_art [] = {
 };
 
 unsigned int
-vbi_teletext_ascii_art		(unsigned int		c)
+_vbi_teletext_ascii_art		(unsigned int		c)
 {
 	if (c >= 0xEE00 && c < (0xEE00 + N_ELEMENTS (ascii_art)))
 		if (ascii_art[c - 0xEE00])

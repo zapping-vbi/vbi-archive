@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds.c,v 1.1.2.6 2004-04-04 21:45:40 mschimek Exp $ */
+/* $Id: xds_decoder.c,v 1.1.2.1 2004-04-05 04:42:27 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -29,7 +29,7 @@
 #include "vbi.h"
 
 #include "hamm.h"
-#include "xds.h"
+#include "xds_decoder.h"
 
 /**
  * @addtogroup XDSDecoder Extended Data Service Decoder
@@ -41,13 +41,13 @@
 #define XDS_DECODER_LOG 0
 #endif
 
-#define dec_log(format, args...)					\
+#define log(format, args...)						\
 do {									\
 	if (XDS_DECODER_LOG)						\
 		fprintf (stderr, format , ##args);			\
 } while (0)
 
-vbi_inline void
+static inline void
 caption_send_event(vbi_decoder *vbi, vbi_event *ev)
 {
 	/* Permits calling vbi_fetch_cc_page from handler */
@@ -181,40 +181,36 @@ flush_prog_info(vbi_decoder *vbi, vbi_program_info *pi, vbi_event *e)
 }
 
 vbi_bool
-vbi_decode_xds_aspect_ratio	(vbi_aspect_ratio *	ar,
-				 const uint8_t *	buffer,
-				 unsigned int		buffer_size)
+vbi_decode_xds_aspect_ratio	(vbi_aspect_ratio *	r,
+				 const vbi_xds_packet *	xp)
 {
-	assert (NULL != ar);
-	assert (NULL != buffer);
+	assert (NULL != r);
+	assert (NULL != xp);
 
-	if (buffer_size < 2 || buffer_size > 3)
+	if (xp->buffer_size < 2 || xp->buffer_size > 3)
 		return FALSE;
 
-	ar->start[0] = 22 + (buffer[0] & 63);
-	ar->start[1] = 285 + (buffer[0] & 63);
-	ar->count[0] = 262 - 22 - (buffer[1] & 63);
-	ar->count[1] = ar->count[0];
+	r->start[0] = 22 + (xp->buffer[0] & 63);
+	r->start[1] = 285 + (xp->buffer[0] & 63);
+	r->count[0] = 262 - 22 - (xp->buffer[1] & 63);
+	r->count[1] = r->count[0];
 
-	if (buffer_size >= 3 && (buffer[2] & 1))
-		ar->ratio = 3.0 / 4.0;
+	if (xp->buffer_size >= 3 && (xp->buffer[2] & 1))
+		r->ratio = 3.0 / 4.0;
 	else
-		ar->ratio = 1.0;
+		r->ratio = 1.0;
 
-	ar->film_mode = FALSE;
+	r->film_mode = FALSE;
 
-	ar->open_subtitles = VBI_SUBTITLES_UNKNOWN;
-	ar->closed_subtitles = VBI_SUBTITLES_UNKNOWN;
+	r->open_subtitles = VBI_SUBTITLES_UNKNOWN;
+	r->closed_subtitles = VBI_SUBTITLES_UNKNOWN;
 
 	return TRUE;
 }
 
 static void
 decode_program			(vbi_decoder *		vbi,
-				 vbi_xds_class		sp_class,
-				 vbi_xds_subclass_program sp_subclass,
-				 const uint8_t *	buffer,
-				 unsigned int		buffer_size)
+				 const vbi_xds_packet *	xp)
 {
 	vbi_program_info *pi;
 	vbi_event e;
@@ -223,21 +219,21 @@ decode_program			(vbi_decoder *		vbi,
 	if (!(vbi->event_mask & (VBI_EVENT_ASPECT | VBI_EVENT_PROG_INFO)))
 		return;
 
-	pi = &vbi->prog_info[sp_class];
+	pi = &vbi->prog_info[xp->xds_class];
 	neq = 0;
 
-	switch (sp_subclass) {
+	switch (xp->xds_subclass) {
 	case VBI_XDS_PROGRAM_ID:
 	{
 		int month, day, hour, min;
 
-		if (buffer_size != 4)
+		if (xp->buffer_size != 4)
 			return;
 
-		month = buffer[3] & 15;
-		day = buffer[2] & 31;
-		hour = buffer[1] & 31;
-		min = buffer[0] & 63;
+		month = xp->buffer[3] & 15;
+		day = xp->buffer[2] & 31;
+		hour = xp->buffer[1] & 31;
+		min = xp->buffer[0] & 63;
 
 		XDS_DEBUG(printf("PIN: %d %s %02d:%02d UTC, "
 				 "D=%d L=%d Z=%d T(ape delayed)=%d\n",
@@ -258,7 +254,7 @@ decode_program			(vbi_decoder *		vbi,
 		neq = (pi->month ^ month) | (pi->day ^ day)
 			| (pi->hour ^ hour) | (pi->min ^ min);
 
-		pi->tape_delayed = !!(buffer[3] & 0x10);
+		pi->tape_delayed = !!(xp->buffer[3] & 0x10);
 
 		if (neq) {
 			flush_prog_info(vbi, pi, &e);
@@ -268,7 +264,7 @@ decode_program			(vbi_decoder *		vbi,
 			pi->hour = hour;
 			pi->min = min;
 
-			pi->tape_delayed = !!(buffer[3] & 0x10);
+			pi->tape_delayed = !!(xp->buffer[3] & 0x10);
 		}
 
 		break;
@@ -278,24 +274,24 @@ decode_program			(vbi_decoder *		vbi,
 	{
 		int lhour, lmin, ehour = -1, emin = -1, esec = 0;
 
-		if (buffer_size < 2 || buffer_size > 6)
+		if (xp->buffer_size < 2 || xp->buffer_size > 6)
 			return;
 
-		lhour = buffer[1] & 63;
-		lmin = buffer[0] & 63;
+		lhour = xp->buffer[1] & 63;
+		lmin = xp->buffer[0] & 63;
 
-		if (buffer_size >= 3) {
-			ehour = buffer[3] & 63;
-			emin = buffer[2] & 63;
+		if (xp->buffer_size >= 3) {
+			ehour = xp->buffer[3] & 63;
+			emin = xp->buffer[2] & 63;
 
-			if (buffer_size >= 5)
-				esec = buffer[4] & 63;
+			if (xp->buffer_size >= 5)
+				esec = xp->buffer[4] & 63;
 		}
 
 		XDS_DEBUG(
 			printf("length: %02d:%02d, ", lhour, lmin);
 			printf("elapsed: %02d:%02d", ehour, emin);
-			if (buffer_size >= 5)
+			if (xp->buffer_size >= 5)
 			printf(":%02d", esec);
 			printf("\n");
 			)
@@ -313,7 +309,7 @@ decode_program			(vbi_decoder *		vbi,
 	}
 
 	case VBI_XDS_PROGRAM_NAME:
-		if (buffer_size < 2)
+		if (xp->buffer_size < 2)
 			return;
 
 		XDS_DEBUG(
@@ -323,19 +319,21 @@ decode_program			(vbi_decoder *		vbi,
 			printf("'\n");
 			)
 
-			neq = xds_strfu(pi->title, buffer, buffer_size);
+			neq = xds_strfu(pi->title,
+					xp->buffer, xp->buffer_size);
 
 		if (!neq) { /* no title change */
-			if (!(vbi->cc.info_cycle[sp_class] & (1 << 3)))
+			if (!(vbi->cc.info_cycle[xp->xds_class] & (1 << 3)))
 				break; /* already reported */
 
-			if (!(vbi->cc.info_cycle[sp_class] & (1 << 1))) {
+			if (!(vbi->cc.info_cycle[xp->xds_class] & (1 << 1))) {
 				/* Second occurence without PIN */
 
 				flush_prog_info(vbi, pi, &e);
 
-				xds_strfu(pi->title, buffer, buffer_size);
-				vbi->cc.info_cycle[sp_class] |= 1 << 3;
+				xds_strfu(pi->title, xp->buffer,
+					  xp->buffer_size);
+				vbi->cc.info_cycle[xp->xds_class] |= 1 << 3;
 			}
 		}
 
@@ -357,9 +355,9 @@ decode_program			(vbi_decoder *		vbi,
 			neq = (pi->type_classf != VBI_PROG_CLASSF_EIA_608);
 		pi->type_classf = VBI_PROG_CLASSF_EIA_608;
 
-		for (i = 0; i < buffer_size; i++) {
-			neq |= pi->type_id[i] ^ buffer[i];
-			pi->type_id[i] = buffer[i];
+		for (i = 0; i < xp->buffer_size; i++) {
+			neq |= pi->type_id[i] ^ xp->buffer[i];
+			pi->type_id[i] = xp->buffer[i];
 		}
 
 		neq |= pi->type_id[i];
@@ -373,52 +371,52 @@ decode_program			(vbi_decoder *		vbi,
 		vbi_rating_auth auth;
 		int r, g, dlsv = 0;
 
-		if (buffer_size != 2)
+		if (xp->buffer_size != 2)
 			return;
 
-		r = buffer[0] & 7;
-		g = buffer[1] & 7;
+		r = xp->buffer[0] & 7;
+		g = xp->buffer[1] & 7;
 
-		if (buffer[0] & 0x20)
+		if (xp->buffer[0] & 0x20)
 			dlsv |= VBI_RATING_D;
-		if (buffer[1] & 0x08)
+		if (xp->buffer[1] & 0x08)
 			dlsv |= VBI_RATING_L;
-		if (buffer[1] & 0x10)
+		if (xp->buffer[1] & 0x10)
 			dlsv |= VBI_RATING_S;
-		if (buffer[1] & 0x20)
+		if (xp->buffer[1] & 0x20)
 			dlsv |= VBI_RATING_V;
 
 		XDS_DEBUG(
 			printf("program movie rating: %s, tv rating: ",
 			       vbi_rating_str_by_id(VBI_RATING_AUTH_MPAA, r));
-			if (buffer[0] & 0x10) {
-				if (buffer[0] & 0x20)
+			if (xp->buffer[0] & 0x10) {
+				if (xp->buffer[0] & 0x20)
 					puts(vbi_rating_str_by_id(VBI_RATING_AUTH_TV_CA_FR, g));
 				else
 					puts(vbi_rating_str_by_id(VBI_RATING_AUTH_TV_CA_EN, g));
 			} else {
 				printf("%s; ", vbi_rating_str_by_id(VBI_RATING_AUTH_TV_US, g));
-				if (buffer[1] & 0x20)
+				if (xp->buffer[1] & 0x20)
 					printf("violence; ");
-				if (buffer[1] & 0x10)
+				if (xp->buffer[1] & 0x10)
 					printf("sexual situations; ");
-				if (buffer[1] & 8)
+				if (xp->buffer[1] & 8)
 					printf("indecent language; ");
-				if (buffer[0] & 0x20)
+				if (xp->buffer[0] & 0x20)
 					printf("sexually suggestive dialog");
 				putchar('\n');
 			}
 			)
 
-			if ((buffer[0] & 0x08) == 0) {
+			if ((xp->buffer[0] & 0x08) == 0) {
 				if (r == 0) return;
 				auth = VBI_RATING_AUTH_MPAA;
 				pi->rating_dlsv = dlsv = 0;
-			} else if ((buffer[0] & 0x10) == 0) {
+			} else if ((xp->buffer[0] & 0x10) == 0) {
 				auth = VBI_RATING_AUTH_TV_US;
 				r = g;
-			} else if ((buffer[1] & 0x08) == 0) {
-				if ((buffer[0] & 0x20) == 0) {
+			} else if ((xp->buffer[1] & 0x08) == 0) {
+				if ((xp->buffer[0] & 0x20) == 0) {
 					if ((r = g) > 6) return;
 					auth = VBI_RATING_AUTH_TV_CA_EN;
 				} else {
@@ -464,17 +462,17 @@ decode_program			(vbi_decoder *		vbi,
 			}
 		};
 
-		if (buffer_size != 2)
+		if (xp->buffer_size != 2)
 			return;
 
 		XDS_DEBUG(printf("main audio: %s, %s; "
 				 "second audio program: %s, %s\n",
-				 map_type[buffer[0] & 7], language[(buffer[0] >> 3) & 7],
-				 sap_type[buffer[1] & 7], language[(buffer[1] >> 3) & 7]));
+				 map_type[xp->buffer[0] & 7], language[(xp->buffer[0] >> 3) & 7],
+				 sap_type[xp->buffer[1] & 7], language[(xp->buffer[1] >> 3) & 7]));
 
 		for (i = 0; i < 2; i++) {
-			int l = (buffer[i] >> 3) & 7;
-			vbi_audio_mode m = mode[i][buffer[i] & 7];
+			int l = (xp->buffer[i] >> 3) & 7;
+			vbi_audio_mode m = mode[i][xp->buffer[i] & 7];
 			const char *s = ((1 << l) & 0xC1) ? NULL : language[l];
 
 			if (pi->audio[i].mode != m) {
@@ -492,15 +490,15 @@ decode_program			(vbi_decoder *		vbi,
 	{
 		int services = 0;
 
-		if (buffer_size > 8)
+		if (xp->buffer_size > 8)
 			return;
 
 		for (i = 0; i < 8; i++)
 			pi->caption_lang_code[i] = NULL;
 
-		for (i = 0; i < buffer_size; i++) {
-			int ch = buffer[i] & 7;
-			int l = (buffer[i] >> 3) & 7;
+		for (i = 0; i < xp->buffer_size; i++) {
+			int ch = xp->buffer[i] & 7;
+			int l = (xp->buffer[i] >> 3) & 7;
 			const char *s;
 
 			ch = (ch & 1) * 4 + (ch >> 1);
@@ -512,7 +510,7 @@ decode_program			(vbi_decoder *		vbi,
 				neq = 1; pi->caption_lang_code[ch] = s;
 			}
 
-			if (sp_class == VBI_XDS_CLASS_CURRENT)
+			if (xp->xds_class == VBI_XDS_CLASS_CURRENT)
 				vbi->cc.channel[ch].lang_code[0] =
 					pi->caption_lang_code[ch];
 		}
@@ -521,29 +519,29 @@ decode_program			(vbi_decoder *		vbi,
 
 		XDS_DEBUG(
 			printf("program caption services:\n");
-			for (i = 0; i < buffer_size; i++)
+			for (i = 0; i < xp->buffer_size; i++)
 			printf("Line %3d, channel %d, %s: %s\n",
-			       (buffer[i] & 4) ? 284 : 21,
-			       (buffer[i] & 2) ? 2 : 1,
-			       (buffer[i] & 1) ? "text      " : "captioning",
-			       language[(buffer[i] >> 3) & 7]);
+			       (xp->buffer[i] & 4) ? 284 : 21,
+			       (xp->buffer[i] & 2) ? 2 : 1,
+			       (xp->buffer[i] & 1) ? "text      " : "captioning",
+			       language[(xp->buffer[i] >> 3) & 7]);
 			)
 
 			break;
 	}
 
 	case VBI_XDS_PROGRAM_CGMS:
-		if (buffer_size != 1)
+		if (xp->buffer_size != 1)
 			return;
 
 		XDS_DEBUG(
-			printf("CGMS: %s", cgmsa[(buffer[0] >> 3) & 3]);
-			if (buffer[0] & 0x18)
-			printf("; %s", scrambling[(buffer[0] >> 1) & 3]);
-			printf("; analog source: %d", buffer[0] & 1);
+			printf("CGMS: %s", cgmsa[(xp->buffer[0] >> 3) & 3]);
+			if (xp->buffer[0] & 0x18)
+			printf("; %s", scrambling[(xp->buffer[0] >> 1) & 3]);
+			printf("; analog source: %d", xp->buffer[0] & 1);
 			)
 
-			xds_intfu(pi->cgms_a, buffer[0] & 63);
+			xds_intfu(pi->cgms_a, xp->buffer[0] & 63);
 
 		break;
 
@@ -551,15 +549,14 @@ decode_program			(vbi_decoder *		vbi,
 	{
 		vbi_aspect_ratio *r = &e.ev.aspect;
 
-		dec_log ("ASPECT_RATIO ");
+		log ("ASPECT_RATIO ");
 
-		if (!vbi_decode_xds_aspect_ratio (r, buffer, buffer_size))
+		if (!vbi_decode_xds_aspect_ratio (r, xp))
 			return;
-		/* to do */
 		/*
-		dec_log ("active %u-%u%s\n",
-			 r->first_line, r->last_line,
-			 r->ratio > 1.0 ? " (anamorphic)" : "");
+		log ("active %u-%u%s\n",
+		     r->first_line, r->last_line,
+		     r->ratio > 1.0 ? " (anamorphic)" : "");
 		*/
 		if (0 != memcmp (r, &vbi->prog_info[0].aspect, sizeof(*r))) {
 			vbi->prog_info[0].aspect = *r;
@@ -577,33 +574,35 @@ decode_program			(vbi_decoder *		vbi,
 	case VBI_XDS_PROGRAM_DESCRIPTION_BEGIN ...
 		(VBI_XDS_PROGRAM_DESCRIPTION_END - 1):
 	{
-		unsigned int line = sp_subclass & 7;
+		unsigned int line = xp->xds_subclass & 7;
 
 			XDS_DEBUG(
 				printf("program descr. line %d: >", line + 1);
-				for (i = 0; i < buffer_size; i++)
-				putchar(printable(buffer[i]));
+				for (i = 0; i < xp->buffer_size; i++)
+				putchar(printable(xp->buffer[i]));
 				printf("<\n");
 				)
 
-				neq = xds_strfu(pi->description[line], buffer, buffer_size);
+				neq = xds_strfu(pi->description[line],
+						xp->buffer, xp->buffer_size);
 
 			break;
 		}
 
 	default:
 		XDS_DEBUG(printf("<unknown %d/%02x length %d>\n",
-				 class, type, buffer_size));
+				 class, type, xp->buffer_size));
 		return; /* no event */
 	}
 
 	if (0)
 		printf("[type %d cycle %08x class %d neq %d]\n",
-		       sp_subclass, vbi->cc.info_cycle[sp_class], sp_class, neq);
+		       xp->xds_subclass,
+		       vbi->cc.info_cycle[xp->xds_class], xp->xds_class, neq);
 
 	if (neq) /* first occurence of this type with this data */
-		vbi->cc.info_cycle[sp_class] |= 1 << sp_subclass;
-	else if (vbi->cc.info_cycle[sp_class] & (1 << sp_subclass)) {
+		vbi->cc.info_cycle[xp->xds_class] |= 1 << xp->xds_subclass;
+	else if (vbi->cc.info_cycle[xp->xds_class] & (1 << xp->xds_subclass)) {
 		/* Second occurance of this type with same data */
 
 		e.type = VBI_EVENT_PROG_INFO;
@@ -611,26 +610,26 @@ decode_program			(vbi_decoder *		vbi,
 
 		caption_send_event(vbi, &e);
 
-		vbi->cc.info_cycle[sp_class] = 0; /* all changes reported */
+		vbi->cc.info_cycle[xp->xds_class] = 0;
+		/* all changes reported */
 	}
 }
 
 vbi_bool
 vbi_decode_xds_tape_delay	(unsigned int *		tape_delay,
-				 const uint8_t *	buffer,
-				 unsigned int		buffer_size)
+				 const vbi_xds_packet *	xp)
 {
 	unsigned int hour;
 	unsigned int min;
 
 	assert (NULL != tape_delay);
-	assert (NULL != buffer);
+	assert (NULL != xp);
 
-	if (2 != buffer_size)
+	if (2 != xp->buffer_size)
 		return FALSE;
 
-	min = buffer[0] & 63;
-	hour = buffer[1] & 31;
+	min = xp->buffer[0] & 63;
+	hour = xp->buffer[1] & 31;
 
 	if (min > 60
 	    || hour > 23) {
@@ -644,18 +643,17 @@ vbi_decode_xds_tape_delay	(unsigned int *		tape_delay,
 
 static void
 decode_channel			(vbi_decoder *		vbi,
-				 vbi_xds_subclass_channel sp_subclass,
-				 const uint8_t *	buffer,
-				 unsigned int		buffer_size)
+				 const vbi_xds_packet *	xp)
 {
 	vbi_network *n = &vbi->network.ev.network;
 
-	switch (sp_subclass) {
+	switch (xp->xds_subclass) {
 	case VBI_XDS_CHANNEL_NAME:
-		if (xds_strfu(n->name, buffer, buffer_size)) {
+#if 0 // FIXME
+		if (xds_strfu(n->name, xp->buffer, xp->buffer_size)) {
 			n->cycle = 1;
 		} else if (n->cycle == 1) {
-#if 0 // FIXME
+
 			char *s = n->name;
 			uint32_t sum;
 
@@ -677,7 +675,6 @@ decode_channel			(vbi_decoder *		vbi,
 				caption_send_event(vbi, &vbi->network);
 
 				n->cycle = 3;
-#endif
 			}
 
 			XDS_DEBUG(
@@ -686,8 +683,9 @@ decode_channel			(vbi_decoder *		vbi,
 					putchar(printable(buffer[i]));
 				printf("'\n");
 			)
+#endif
 
-			break;
+				break;
 
 	case VBI_XDS_CHANNEL_CALL_LETTERS:
 #if 0 // FIXME
@@ -711,19 +709,19 @@ decode_channel			(vbi_decoder *		vbi,
 	{
 		unsigned int delay;
 
-		dec_log ("TAPE_DELAY ");
+		log ("TAPE_DELAY ");
 
-		if (!vbi_decode_xds_tape_delay (&delay, buffer, buffer_size))
+		if (!vbi_decode_xds_tape_delay (&delay, xp))
 			return;
 
-		dec_log ("%02d:%02d", delay / 60, delay % 60);
+		log ("%02d:%02d", delay / 60, delay % 60);
 
 		break;
 	}
 
 	default:
-		dec_log ("unknown subclass 0x%x, buffer_size %u",
-			 sp_subclass, buffer_size);
+		log ("unknown subclass 0x%x, buffer_size %u",
+			 xp->xds_subclass, xp->buffer_size);
 		break;
 	}
 }
@@ -756,24 +754,23 @@ fprint_date_flags		(FILE *			fp,
 vbi_bool
 vbi_decode_xds_time_of_day	(struct tm *		tm,
 				 vbi_xds_date_flags *	date_flags,
-				 const uint8_t *	buffer,
-				 unsigned int		buffer_size)
+				 const vbi_xds_packet *	xp)
 {
 	assert (NULL != tm);
-	assert (NULL != buffer);
+	assert (NULL != xp);
 
-	if (6 != buffer_size)
+	if (6 != xp->buffer_size)
 		return FALSE;
 
 	CLEAR (*tm);
 
-	tm->tm_min   = buffer[0] & 63;
-	tm->tm_hour  = buffer[1] & 31;
-	tm->tm_mday  = buffer[2] & 31;
-	tm->tm_mon   = (buffer[3] & 15) - 1;
-	tm->tm_wday  = (buffer[4] & 7) - 1;
-	tm->tm_year  = (buffer[5] & 63) + 90;
-	tm->tm_isdst = !!(buffer[1] & 0x20);
+	tm->tm_min   = xp->buffer[0] & 63;
+	tm->tm_hour  = xp->buffer[1] & 31;
+	tm->tm_mday  = xp->buffer[2] & 31;
+	tm->tm_mon   = (xp->buffer[3] & 15) - 1;
+	tm->tm_wday  = (xp->buffer[4] & 7) - 1;
+	tm->tm_year  = (xp->buffer[5] & 63) + 90;
+	tm->tm_isdst = !!(xp->buffer[1] & 0x20);
 
 	if (tm->tm_min > 59
 	    || tm->tm_hour > 23
@@ -806,25 +803,24 @@ vbi_decode_xds_time_of_day	(struct tm *		tm,
 vbi_bool
 vbi_decode_xds_time_zone	(unsigned int *		hours_west,
 				 vbi_bool *		dso,
-				 const uint8_t *	buffer,
-				 unsigned int		buffer_size)
+				 const vbi_xds_packet *	xp)
 {
 	unsigned int hour;
 
 	assert (NULL != hours_west);
 	assert (NULL != dso);
-	assert (NULL != buffer);
+	assert (NULL != xp);
 
-	if (1 != buffer_size)
+	if (1 != xp->buffer_size)
 		return FALSE;
 
-	hour = buffer[0] & 31;
+	hour = xp->buffer[0] & 31;
 
 	if (hour > 23)
 		return FALSE;
 
 	*hours_west = hour;
-	*dso = !!(buffer[0] & 0x20);
+	*dso = !!(xp->buffer[0] & 0x20);
 
 	return TRUE;
 }
@@ -835,28 +831,27 @@ vbi_decode_xds_time_zone	(unsigned int *		hours_west,
 vbi_bool
 vbi_decode_xds_impulse_capture_id
 				(vbi_program_id *	pid,
-				 const uint8_t *	buffer,
-				 unsigned int		buffer_size)
+				 const vbi_xds_packet *	xp)
 {
 	unsigned int hour;
 	unsigned int min;
 
 	assert (NULL != pid);
-	assert (NULL != buffer);
+	assert (NULL != xp);
 
-	if (6 != buffer_size)
+	if (6 != xp->buffer_size)
 		return FALSE;
 
 	pid->nuid	= VBI_NUID_UNKNOWN;
 
-	pid->channel	= VBI_PID_CHANNEL_XDS; 
+	pid->channel	= VBI_PID_CHANNEL_XDS;
 
 	/* TZ UTC */
 
-	pid->minute	= buffer[0] & 63;
-	pid->hour	= buffer[1] & 31;
-	pid->day		= buffer[2] & 31;
-	pid->month	= buffer[3] & 15;
+	pid->minute	= xp->buffer[0] & 63;
+	pid->hour	= xp->buffer[1] & 31;
+	pid->day	= xp->buffer[2] & 31;
+	pid->month	= xp->buffer[3] & 15;
 
 	if (pid->minute > 59
 	    || pid->hour > 23
@@ -864,43 +859,41 @@ vbi_decode_xds_impulse_capture_id
 	    || pid->month > 11)
 		return FALSE;
 
-	pid->pil = VBI_PIL (pid->day + 1, pid->month + 1, pid->hour, pid->minute);
+	pid->pil = VBI_PIL (pid->day + 1, pid->month + 1,
+			    pid->hour, pid->minute);
 
-	min  = buffer[4] & 63;
-	hour = buffer[5] & 63;
+	min  = xp->buffer[4] & 63;
+	hour = xp->buffer[5] & 63;
 
 	if (min > 59)
 		return FALSE;
 
 	pid->length = hour * 60 + min;
 
-	pid->luf	= FALSE; /* no update, just id */
-	pid->mi 	= FALSE; /* id is not 30 s early */
-	pid->prf	= FALSE; /* prepare to record unknown */
+	pid->luf = FALSE; /* no update, just id */
+	pid->mi  = FALSE; /* id is not 30 s early */
+	pid->prf = FALSE; /* prepare to record unknown */
 
 	pid->pcs_audio = VBI_PCS_AUDIO_UNKNOWN;
-	pid->pty	= 0; /* none / unknown */
+	pid->pty = 0; /* none / unknown */
 
-	pid->tape_delayed = !!(buffer[3] & 0x10);
+	pid->tape_delayed = !!(xp->buffer[3] & 0x10);
 
 	return TRUE;
 }
 
 static void
 decode_misc			(vbi_decoder *		vbi,
-				 vbi_xds_subclass_misc	sp_subclass,
-				 const uint8_t *	buffer,
-				 unsigned int		buffer_size)
+				 const vbi_xds_packet *	xp)
 {
-	switch (sp_subclass) {
+	switch (xp->xds_subclass) {
 	case VBI_XDS_MISC_TIME_OF_DAY:
 	{
 		struct tm tm;
 
-		dec_log ("TIME_OF_DAY ");
+		log ("TIME_OF_DAY ");
 
-		if (!vbi_decode_xds_time_of_day
-		    (&tm, NULL, buffer, buffer_size))
+		if (!vbi_decode_xds_time_of_day (&tm, NULL, xp))
 			return;
 
 		if (XDS_DECODER_LOG) {
@@ -917,7 +910,7 @@ decode_misc			(vbi_decoder *		vbi,
 				 tm.tm_hour,
 				 tm.tm_min);
 
-			fprint_date_flags (stderr, buffer);
+			fprint_date_flags (stderr, xp->buffer);
 		}
 
 		break;
@@ -925,38 +918,37 @@ decode_misc			(vbi_decoder *		vbi,
 
 	case VBI_XDS_MISC_IMPULSE_CAPTURE_ID:
 	{
-		vbi_program_id pid;
+		vbi_program_id pi;
 
-		dec_log ("IMPULSE_CAPTURE_ID ");
+		log ("IMPULSE_CAPTURE_ID ");
 
-		if (!vbi_decode_xds_impulse_capture_id
-		    (&pid, buffer, buffer_size))
+		if (!vbi_decode_xds_impulse_capture_id (&pi, xp))
 			return;
 
-		dec_log ("20XX-%02u-%02u %02u:%02u UTC length %02u:%02u ",
-			 pid.month + 1, pid.day + 1,
-			 pid.hour, pid.minute,
-			 pid.length / 60, pid.length % 60);
+		log ("20XX-%02u-%02u %02u:%02u UTC length %02u:%02u ",
+		     pi.month + 1, pi.day + 1,
+		     pi.hour, pi.minute,
+		     pi.length / 60, pi.length % 60);
 
 		if (XDS_DECODER_LOG)
-			fprint_date_flags (stderr, buffer);
+			fprint_date_flags (stderr, xp->buffer);
 
 		break;
 	}
 
 	case VBI_XDS_MISC_SUPPLEMENTAL_DATA_LOCATION:
 	{
-		dec_log ("SUPPLEMENTAL_DATA_LOCATION ");
+		log ("SUPPLEMENTAL_DATA_LOCATION ");
 
 		if (XDS_DECODER_LOG) {
 			unsigned int i;
 
-			for (i = 0; i < buffer_size; ++i) {
+			for (i = 0; i < xp->buffer_size; ++i) {
 				unsigned int field;
 				unsigned int line;
 
-				field = !!(buffer[i] & 0x20);
-				line = buffer[i] & 31;
+				field = !!(xp->buffer[i] & 0x20);
+				line = xp->buffer[i] & 31;
 
 				fprintf (stderr, "\n[%u] field %u line %u",
 					 i, field, line);
@@ -971,14 +963,14 @@ decode_misc			(vbi_decoder *		vbi,
 	case VBI_XDS_MISC_LOCAL_TIME_ZONE:
 	{
 		unsigned int hour;
+		vbi_bool dso;
 
-		dec_log ("LOCAL_TIME_ZONE ");
+		log ("LOCAL_TIME_ZONE ");
 
-		if (!vbi_decode_xds_time_zone
-		    (&hour, NULL, buffer, buffer_size))
+		if (!vbi_decode_xds_time_zone (&hour, &dso, xp))
 			return;
 
-		dec_log ("UTC - %d h, dst=%u", hour, 0);
+		log ("UTC - %d h, dst=%u", hour, 0);
 
 		break;
 	}
@@ -986,329 +978,48 @@ decode_misc			(vbi_decoder *		vbi,
 	/* What's this out-of-band channel thingy? */
 
 	default:
-		dec_log ("unknown subclass 0x%x, buffer_size %u",
-			 sp_subclass, buffer_size);
+		log ("unknown subclass 0x%x, buffer_size %u",
+		     xp->xds_subclass, xp->buffer_size);
 		break;
 	}
 }
 
 void
-vbi_decode_xds			(vbi_xds_demux *	xd,
+_vbi_decode_xds			(vbi_xds_demux *	xd,
 				 void *			user_data,
-				 vbi_xds_class		sp_class,
-				 vbi_xds_subclass	sp_subclass,
-				 const uint8_t *	buffer,
-				 unsigned int		buffer_size)
+				 const vbi_xds_packet *	xp)
 {
 	vbi_decoder *vbi = user_data;
 
-	assert (buffer_size > 0 && buffer_size <= 32);
+	assert (xp->buffer_size > 0 && xp->buffer_size <= 32);
 
-	switch (sp_class) {
+	switch (xp->xds_class) {
 	case VBI_XDS_CLASS_CURRENT:
-		dec_log ("XDS CURRENT ");
-		decode_program (vbi, sp_class, sp_subclass,
-				buffer, buffer_size);
+		log ("XDS CURRENT ");
+		decode_program (vbi, xp);
 		break;
 
 	case VBI_XDS_CLASS_FUTURE:
-		dec_log ("XDS FUTURE ");
-		decode_program (vbi, sp_class, sp_subclass,
-				buffer, buffer_size);
+		log ("XDS FUTURE ");
+		decode_program (vbi, xp);
 		break;
 
 	case VBI_XDS_CLASS_CHANNEL:
-		dec_log ("XDS CHANNEL ");
-		decode_channel (vbi, sp_subclass, buffer, buffer_size);
+		log ("XDS CHANNEL ");
+		decode_channel (vbi, xp);
 		break;
 
 	case VBI_XDS_CLASS_MISC:
-		dec_log ("XDS MISC ");
-		decode_misc (vbi, sp_subclass, buffer, buffer_size);
+		log ("XDS MISC ");
+		decode_misc (vbi, xp);
 		break;
 
 	default:
-		dec_log ("XDS unknown class 0x%x 0x%x %u",
-			 sp_class, sp_subclass, buffer_size);
+		log ("XDS unknown class 0x%x 0x%x %u",
+		     xp->xds_class, xp->xds_subclass,
+		     xp->buffer_size);
 		break;
 	}
 
-	dec_log ("\n");
-}
-
-/* ------------------------------------------------------------------------- */
-
-/**
- * @addtogroup XDSDemux Extended Data Service Demultiplexer
- * @ingroup LowDec
- * @brief Separating XDS data from a Closed Caption stream
- *   (EIA 608).
- */
-
-#ifndef XDS_DEMUX_LOG
-#define XDS_DEMUX_LOG 0
-#endif
-
-#define dmx_log(format, args...)					\
-do {									\
-	if (XDS_DEMUX_LOG)						\
-		fprintf (stderr, format , ##args);			\
-} while (0)
-
-#define printable(c)							\
-	((((c) & 0x7F) < 0x20 || ((c) & 0x7F) >= 0x7F) ? '.' : (c) & 0x7F)
-
-static void
-fprint_subpacket		(FILE *			fp,
-				 vbi_xds_class		sp_class,
-				 vbi_xds_subclass	sp_subclass,
-				 const uint8_t *	buffer,
-				 unsigned int		buffer_size)
-{
-	unsigned int i;
-
-	fprintf (fp, "XDS packet 0x%x/0x%02x ", sp_class, sp_subclass);
-
-	for (i = 0; i < buffer_size; ++i)
-		fprintf (fp, "%02x ", buffer[i]);
-
-	fputs (" '", fp);
-
-	for (i = 0; i < buffer_size; ++i)
-		fputc (printable (buffer[i]), fp);
-
-	fputs ("'\n", fp);
-}
-
-/**
- * @param xd XDS demultiplexer context allocated with vbi_xds_demux_new().
- * @param buffer Closed Caption character pair, as in struct vbi_sliced.
- *
- * blah
- */
-void
-vbi_xds_demux_demux		(vbi_xds_demux *	xd,
-				 const uint8_t		buffer[2])
-{
-	xds_subpacket *sp;
-	int c1, c2;
-
-	sp = xd->curr_sp;
-
-	dmx_log ("XDS demux %02x %02x\n", buffer[0], buffer[1]);
-
-	c1 = vbi_ipar8 (buffer[0]);
-	c2 = vbi_ipar8 (buffer[1]);
-
-	if ((c1 | c2) < 0) {
-		dmx_log ("XDS tx error, discard current packet\n");
-		goto discard_current_packet;
-	}
-
-	switch (c1) {
-	case 1 ... 14: /* packet header */
-	{
-		vbi_xds_class sp_class;
-		vbi_xds_subclass sp_subclass;
-
-		sp_class = (c1 - 1) >> 1;
-		sp_subclass = c2;
-
-		if (sp_class > VBI_XDS_CLASS_MISC
-		    || sp_subclass > N_ELEMENTS (xd->subpacket[0])) {
-			dmx_log ("XDS ignore packet 0x%x/0x%02x, "
-				 "unknown class or subclass\n",
-				 sp_class, c2);
-			break;
-		}
-
-		sp = &xd->subpacket[sp_class][sp_subclass];
-
-		xd->curr_sp = sp;
-		xd->curr_class = sp_class;
-		xd->curr_subclass = sp_subclass;
-
-		if (c1 & 1) { /* start */
-			sp->checksum = c1 + c2;
-			sp->count = 2;
-		} else { /* continue */
-			if (0 == sp->count) {
-				dmx_log ("XDS can't continue packet "
-					 "0x%x/0x%02x, missed start\n",
-					 xd->curr_class, xd->curr_subclass);
-				break;
-			}
-		}
-
-		goto success;
-	}
-
-	case 15: /* packet terminator */
-		if (!sp) {
-			dmx_log ("XDS can't finish packet, missed start\n");
-			break;
-		}
-
-		sp->checksum += c1 + c2;
-
-		if (0 != (sp->checksum & 0x7F)) {
-			dmx_log ("XDS ignore packet 0x%x/0x%02x, "
-				 "checksum error\n",
-				 xd->curr_class, xd->curr_subclass);
-		} else if (sp->count <= 2) {
-			dmx_log ("XDS ignore empty packet 0x%x/0x%02x\n",
-				 xd->curr_class, xd->curr_subclass);
-		} else {
-			if (XDS_DEMUX_LOG)
-				fprint_subpacket (stderr,
-						  xd->curr_class,
-						  xd->curr_subclass,
-						  sp->buffer, sp->count - 2);
-
-			xd->callback (xd, xd->user_data,
-				      xd->curr_class,
-				      xd->curr_subclass,
-				      sp->buffer, sp->count - 2);
-		}
-
-		break;
-
-	case 0x20 ... 0x7F: /* packet contents */
-		if (!sp) {
-			dmx_log ("XDS can't store packet, missed start\n");
-			break;
-		}
-
-		if (sp->count >= sizeof (sp->buffer) + 2) {
-			dmx_log ("XDS discard packet 0x%x/0x%02x, "
-				 "buffer overflow\n",
-				 xd->curr_class, xd->curr_subclass);
-			break;
-		}
-
-		sp->buffer[sp->count - 2] = c1;
-		sp->buffer[sp->count - 1] = c2;
-
-		sp->checksum += c1 + c2;
-		sp->count += 1 + (0 != c2);
-
-		goto success;
-
-	default:
-		dmx_log ("XDS ignore unrelated data\n");
-
-		goto success;
-	}
-
- discard_current_packet:
-
-	if (sp) {
-		sp->count = 0;
-		sp->checksum = 0;
-	}
-
-	xd->curr_sp = NULL;
-
- success:
-
-	return;
-}
-
-/**
- * @param xd XDS demultiplexer context allocated with vbi_xds_demux_new().
- *
- * Resets the XDS demux context, useful for example after a channel
- * change.
- */
-void
-vbi_xds_demux_reset		(vbi_xds_demux *	xd)
-{
-	unsigned int n;
-	unsigned int i;
-
-	assert (NULL != xd);
-
-	n = sizeof (xd->subpacket) / sizeof (xd->subpacket[0][0]);
-
-	for (i = 0; i < n; ++i)
-		xd->subpacket[0][i].count = 0;
-
-	xd->curr_sp = NULL;
-}
-
-/**
- * @internal
- */
-void
-vbi_xds_demux_destroy		(vbi_xds_demux *	xd)
-{
-	CLEAR (*xd);
-}
-
-/**
- * @internal
- */
-vbi_bool
-vbi_xds_demux_init		(vbi_xds_demux *	xd,
-				 vbi_xds_demux_cb *	cb,
-				 void *			user_data)
-{
-	xd->callback = cb;
-	xd->user_data = user_data;
-
-	vbi_xds_demux_reset (xd);
-
-	return TRUE;
-}
-
-/**
- * @param xd XDS demultiplexer context allocated with
- *   vbi_xds_demux_new(), can be @c NULL.
- *
- * Frees all resources associated with @a xd.
- */
-void
-vbi_xds_demux_delete		(vbi_xds_demux *	xd)
-{
-	if (NULL == xd)
-		return;
-
-	vbi_xds_demux_destroy (xd);
-
-	free (xd);		
-}
-
-/**
- * @param cb Function to be called by vbi_xds_demux_demux() when
- *   a new packet is available.
- * @param user_data User pointer passed through to @a cb function.
- *
- * Allocates a new Extended Data Service (EIA 608)
- * demultiplexer.
- *
- * @returns
- * Pointer to newly allocated XDS demux context which must be
- * freed with vbi_xds_demux_delete() when done. @c NULL on failure
- * (out of memory).
- */
-vbi_xds_demux *
-vbi_xds_demux_new		(vbi_xds_demux_cb *	cb,
-				 void *			user_data)
-{
-	vbi_xds_demux *xd;
-
-	assert (NULL != cb);
-
-	if (!(xd = malloc (sizeof (*xd)))) {
-		vbi_log_printf (__FUNCTION__, "Out of memory");
-		return NULL;
-	}
-
-	if (!vbi_xds_demux_init (xd, cb, user_data)) {
-		vbi_xds_demux_destroy (xd);
-		free (xd);
-		return NULL;
-	}
-
-	return xd;
+	log ("\n");
 }

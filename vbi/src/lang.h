@@ -17,26 +17,31 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.2.2.4 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: lang.h,v 1.2.2.5 2004-04-05 04:42:27 mschimek Exp $ */
 
-#ifndef LANG_H
-#define LANG_H
+#ifndef __ZVBI_LANG_H__
+#define __ZVBI_LANG_H__
 
-#include "misc.h"
-#include "format.h"
+#include "macros.h"
 
 /* Public */
 
+VBI_BEGIN_DECLS
+
 /**
- * Teletext character set code as defined in
- * ETS 300 706, Section 15, Table 33.
+ * @brief Teletext character set code.
  *
+ * A character set code combines one vbi_charset with
+ * a vbi_subset. See vbi_character_set_from_code().
+ *
+ * Defined in EN 300 706, Section 15, Table 33.
  * Valid codes are in range 0 ... 127.
  */
 typedef unsigned int vbi_character_set_code;
 
 /**
- * Teletext character sets defined in ETS 300 706, Section 15.
+ * @brief Teletext character sets.
+ * Defined in EN 300 706, Section 15.
  */
 typedef enum {
 	VBI_CHARSET_NONE,
@@ -56,8 +61,8 @@ typedef enum {
 } vbi_charset;
 
 /**
- * Teletext Latin G0 national option subsets defined in
- * ETS 300 706, Section 15.2 and Section 15.6.2 Table 36.
+ * @brief Teletext Latin G0 national option subsets.
+ * Defined in EN 300 706, Section 15.2 and Section 15.6.2 Table 36.
  */
 typedef enum {
 	VBI_SUBSET_NONE,
@@ -77,8 +82,8 @@ typedef enum {
 } vbi_subset;
 
 /**
- * Teletext character set designation defined in
- * ETS 300 706, Section 15, Table 32, 33 and 34.
+ * @brief Teletext character set designation.
+ * Defined in EN 300 706, Section 15, Table 32, 33 and 34.
  */
 typedef struct {
 	vbi_character_set_code	code;
@@ -88,7 +93,7 @@ typedef struct {
 	/** Character set used for G2 characters (0xA0 ... 0xFF). */
 	vbi_charset		g2;
 	/** National character subset used with VBI_CHARSET_LATIN_G0. */
-	vbi_subset		subset;		/* applies only to LATIN_G0 */
+	vbi_subset		subset;
 	/**
 	 * Languages covered. These are ISO 639 two-character language code
 	 * strings, for example "fr" for French. The array is terminated
@@ -154,9 +159,14 @@ vbi_is_drcs			(unsigned int		unicode)
 /* Private */
 
 extern unsigned int
-vbi_teletext_ascii_art		(unsigned int		c);
+_vbi_teletext_ascii_art		(unsigned int		c);
 extern unsigned int
-vbi_teletext_composed_unicode	(unsigned int		a,
+_vbi_teletext_composed_unicode	(unsigned int		a,
 				 unsigned int		c);
+/* Public */
 
-#endif /* LANG_H */
+VBI_END_DECLS
+
+/* Private */
+
+#endif /* __ZVBI_LANG_H__ */

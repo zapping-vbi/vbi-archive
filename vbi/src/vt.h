@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.12 2004-04-04 21:45:40 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.13 2004-04-05 04:42:27 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
@@ -625,6 +625,9 @@ struct _vbi_teletext_decoder {
 	pagenum			header_page;
 	uint8_t			header[40];
 };
+
+extern void
+_vbi_teletext_decoder_resync	(vbi_teletext_decoder *	td);
 
 /* Public */
 

@@ -17,13 +17,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.1.2.4 2004-04-04 21:45:40 mschimek Exp $ */
+/* $Id: pdc.h,v 1.1.2.5 2004-04-05 04:42:27 mschimek Exp $ */
 
 #ifndef __ZVBI_PDC_H__
 #define __ZVBI_PDC_H__
 
 #include <inttypes.h>		/* uint8_t */
+/* Public */
 #include <stdio.h>		/* FILE */
+/* Private */
 #include <time.h>		/* time_t */
 #include "macros.h"
 #include "network.h"		/* vbi_nuid */
@@ -34,12 +36,13 @@
 VBI_BEGIN_DECLS
 
 /**
- * PDC Programme Identification Label
+ * @brief PDC Programme Identification Label.
  */
 typedef unsigned int vbi_pil;
 
 /**
- * Macro to create a PDC PIL. Note month and day start at 1.
+ * @brief Macro to create a PDC PIL.
+ * Note month and day start at 1.
  */
 #define VBI_PIL(month, day, hour, minute)				\
 	(((day) << 15) | ((month) << 11) | ((hour) << 6) | (minute))
@@ -50,7 +53,7 @@ typedef unsigned int vbi_pil;
 #define VBI_PIL_MINUTE(pil)	((pil) & 63)		/**< 0 ... 59 */
 
 /**
- * PDC PIL Service Codes
+ * @brief PDC PIL Service Codes.
  */
 enum {
 	VBI_PIL_TIMER_CONTROL		= VBI_PIL (15, 0, 31, 63),
@@ -67,6 +70,10 @@ vbi_pil_dump			(vbi_pil		pil,
 /* Public */
 
 /**
+ * A program identification can be transmitted on different logical
+ * channels. The first four channels correspond to the Teletext Packet
+ * 8/30 format 2 Label Channel Identifier.
+ * The remaining two identify VPS and XDS as source.
  */
 typedef enum {
 	VBI_PID_CHANNEL_LCI_0 = 0,
@@ -78,7 +85,7 @@ typedef enum {
 } vbi_pid_channel;
 
 /**
- * PDC Programme Control Status, Audio
+ * @brief PDC Programme Control Status, Audio.
  */
 typedef enum {
 	VBI_PCS_AUDIO_UNKNOWN = 0,
@@ -118,19 +125,29 @@ typedef struct {
 	 */
 	unsigned int		length;
 
-	/** PDC label update flag. */
+	/**
+	 * PDC Label Update flag. When set this label is intented to
+	 * update VCR memory, it does not refer to the current program.
+	 */
 	vbi_bool		luf;
-	/** PDC mode identifier. */
-	vbi_bool		mi;
-	/** PDC prepare-to-record flag. */
-	vbi_bool		prf;
-
-	/** PDC program control status audio. */
-	vbi_pcs_audio		pcs_audio;
 
 	/**
-	 * PDC program type code, 0 if none or unknown.
+	 * PDC Mode Identifier. When set labels are 30 seconds early,
+	 * such that a PID can be transmitted announcing the following
+	 * program before the current program ends.
 	 */
+	vbi_bool		mi;
+
+	/** PDC Prepare-to-Record flag. When set the program this label
+	 * refers to is about to start. A transition to cleared state
+	 * indicates the actual start of the program.
+	 */
+	vbi_bool		prf;
+
+	/** PDC Program Control Status audio. */
+	vbi_pcs_audio		pcs_audio;
+
+	/** PDC program type code, 0 or 0xFF if none or unknown. */
 	unsigned int		pty;
 
 	/**
@@ -139,15 +156,12 @@ typedef struct {
 	vbi_bool		tape_delayed;
 } vbi_program_id;
 
-/* Private */
-
 extern void
 _vbi_program_id_init		(vbi_program_id *	pid,
 				 vbi_pid_channel	channel);
 extern void
 _vbi_program_id_dump		(const vbi_program_id *	pid,
 				 FILE *			fp);
-/* Public */
 
 /**
  * This structure contains PDC data for a program selected

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cc.h,v 1.2.2.3 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: cc.h,v 1.2.2.4 2004-04-05 04:42:26 mschimek Exp $ */
 
 #ifndef CC_H
 #define CC_H
@@ -27,7 +27,7 @@
 
 #include "bcd.h"
 #include "format.h"
-#include "xds.h"
+#include "xds_decoder.h"
 
 #ifndef VBI_DECODER
 #define VBI_DECODER

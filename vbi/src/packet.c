@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet.c,v 1.9.2.11 2004-04-04 21:45:40 mschimek Exp $ */
+/* $Id: packet.c,v 1.9.2.12 2004-04-05 04:42:27 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -40,11 +40,10 @@
 
 typedef void *vbi_cache;
 
-#ifndef FPC
-#define FPC 0
-#endif
 
-#define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
+
+#define printable(c)							\
+	((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
 #ifndef TELETEXT_DECODER_CHSW_TEST
 #define TELETEXT_DECODER_CHSW_TEST 0
@@ -2211,7 +2210,7 @@ decode_packet_0			(vbi_decoder *		vbi,
 	td = &vbi->vt;
 
 	if ((page = vbi_iham16p (buffer + 2)) < 0) {
-//		_vbi_teletext_decoder_desync (td);
+		_vbi_teletext_decoder_resync (td);
 
 		if (HEADER_LOG)
 			fprintf (stderr, "Hamming error in "
@@ -2562,7 +2561,7 @@ decode_packet_26		(vbi_teletext_decoder *	td,
 	case PAGE_FUNCTION_MPT_EX:
 	case PAGE_FUNCTION_TRIGGER:
 		/* Not supposed to have X/26. */
-//		_vbi_teletext_decoder_desync (td);
+		_vbi_teletext_decoder_resync (td);
 		return FALSE;
 
 	case PAGE_FUNCTION_UNKNOWN:
@@ -2637,7 +2636,7 @@ decode_packet_27		(vbi_teletext_decoder *	td,
 	case PAGE_FUNCTION_MPT_EX:
 	case PAGE_FUNCTION_TRIGGER:
 		/* Not supposed to have X/27. */
-//		_vbi_teletext_decoder_desync (td);
+		_vbi_teletext_decoder_resync (td);
 		return FALSE;
 
 	case PAGE_FUNCTION_UNKNOWN:
@@ -3419,6 +3418,26 @@ vbi_decode_teletext(vbi_decoder *vbi,
 	int mag0;
 	int packet;
 
+/*
+	td->timestamp = timestamp;
+
+	if (td->reset_delay > 0) {
+		if (1 == td->reset_delay) {
+			vbi_event e;
+
+			td->virtual_reset (td, vbi_temporary_nuid (), 0);
+
+			e.type		= VBI_EVENT_NETWORK;
+			e.nuid		= td->network->client_nuid;
+			e.timestamp	= td->timestamp;
+
+			_vbi_event_handlers_send (&td->handlers, &e);
+		} else {
+			--td->reset_delay;
+		}
+	}
+*/
+
 	if ((pmag = vbi_iham16p (buffer)) < 0)
 		return FALSE;
 
@@ -3560,36 +3579,95 @@ vbi_decode_teletext(vbi_decoder *vbi,
 	return TRUE;
 }
 
+const vbi_program_id *
+vbi_teletext_decoder_program_id	(vbi_teletext_decoder *	td,
+				 vbi_pid_channel	channel)
+{
+	vt_network *vtn;
 
+	assert (NULL != td);
+	assert ((unsigned int) channel <= VBI_PID_CHANNEL_LCI_3);
 
-
-
+	return &td->network->program_id[channel];
+}
 
 /**
  * @internal
- * @param vbi Initialized vbi decoding context.
- * 
- * This function must be called after desynchronisation
- * has been detected (i. e. vbi data has been lost)
- * to reset the Teletext decoder.
+ */
+void
+_vbi_teletext_decoder_resync	(vbi_teletext_decoder *	td)
+{
+	unsigned int i;
+
+	/* Discard all in progress pages. */
+
+	for (i = 0; i < N_ELEMENTS (td->buffer); ++i)
+		td->buffer[i].function = PAGE_FUNCTION_DISCARD;
+
+	td->current = NULL;
+
+	vbi_pfc_demux_reset (&td->epg_stream[0]);
+	vbi_pfc_demux_reset (&td->epg_stream[1]);
+}
+
+/**
+ * @internal
  */
 void
 vbi_teletext_desync(vbi_decoder *vbi)
 {
-	int i;
-
-	/* Discard all in progress pages */
-
-	for (i = 0; i < 8; i++)
-		vbi->vt.buffer[i].function = PAGE_FUNCTION_DISCARD;
-
-	vbi->vt.current = NULL;
-
-	vbi_pfc_demux_reset (&vbi->vt.epg_stream[0]);
-	vbi_pfc_demux_reset (&vbi->vt.epg_stream[1]);
+	_vbi_teletext_decoder_resync (&vbi->vt);
 }
 
+void
+vt_network_dump			(const vt_network *	vtn,
+				 FILE *			fp)
+{
+	unsigned int i;
 
+	fprintf (fp, "nuid=%llx/%llx pages=%u/%u\n"
+		 "initial_page=",
+		 vtn->client_nuid, vtn->received_nuid,
+		 vtn->n_pages, vtn->max_pages);
+
+	for (i = 0; i < N_ELEMENTS (vtn->program_id); ++i) {
+		fprintf (fp, "\nprogram_id[%u]=", i);
+		_vbi_program_id_dump (&vtn->program_id[i], fp);
+	}
+
+	pagenum_dump (&vtn->initial_page, fp);
+
+	for (i = 0; i < N_ELEMENTS (vtn->btt_link); ++i) {
+		fprintf (fp, "\nbtt_link[%u]=", i);
+		pagenum_dump (vtn->btt_link + i, fp);
+	}
+
+	fputs ("\nstatus=\"", fp);
+
+	for (i = 0; i < N_ELEMENTS (vtn->status); ++i)
+		fputc (printable (vtn->status[i]), fp);
+
+	fputs ("\npage_stat=\n", fp);
+
+	for (i = 0x100; i < 0x8FF; i += 8) {
+		unsigned int j;
+
+		for (j = 0; j < 8; ++j) {
+			page_stat *ps;
+
+			ps = vt_network_page_stat ((vt_network *) vtn, i + j);
+
+			fprintf (fp, "%02x:%02x:%04x:%2u/%2u:%02x-%02x ",
+				 ps->page_type, ps->charset_code, ps->subcode,
+				 ps->n_subpages, ps->max_subpages,
+				 ps->subno_min, ps->subno_max);
+		}
+
+		fputc ('\n', fp);
+	}
+
+	fputc ('\n', fp);
+}
 
 static void
 extension_init			(extension *		ext)
@@ -3685,13 +3763,6 @@ vt_network_init			(vt_network *		vtn)
 void
 vbi_teletext_channel_switched(vbi_decoder *vbi)
 {
-	magazine *mag;
-	extension *ext;
-	vt_network *vtn;
-	int i, j;
-
-	vtn = vbi->vt.network;
-
 	vt_network_init (vbi->vt.network);
 
 	vbi->vt.epg_stream[0].block.pgno = 0;
@@ -3755,7 +3826,7 @@ reset				(vbi_teletext_decoder *	td,
 //	vpn = _vbi_cache_new_network (td->cache, nuid);
 //	assert (NULL != vpn);
 
-vt_network_init (&td->network);
+vt_network_init (td->network);
 
 	td->epg_stream[0].block.pgno = 0;
 	td->epg_stream[1].block.pgno = 0;
@@ -3763,7 +3834,7 @@ vt_network_init (&td->network);
 	td->header_page.pgno = 0;
 	CLEAR (td->header);
 
-//	_vbi_teletext_decoder_resync (td);
+	_vbi_teletext_decoder_resync (td);
 }
 
 void

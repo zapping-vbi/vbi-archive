@@ -1,5 +1,5 @@
 /*
- *  libzvbi - Video Programming System
+ *  libzvbi - Video Program System
  *
  *  Copyright (C) 2000-2004 Michael H. Schimek
  *
@@ -17,16 +17,18 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vps.h,v 1.1.2.2 2004-02-25 17:35:29 mschimek Exp $ */
+/* $Id: vps.h,v 1.1.2.3 2004-04-05 04:42:27 mschimek Exp $ */
 
-#ifndef VPS_H
-#define VPS_H
+#ifndef __ZVBI_VPS_H__
+#define __ZVBI_VPS_H__
 
-#include "misc.h"
-#include "pdc.h"
-#include "vbi.h"
+#include <inttypes.h>		/* uint8_t */
+#include "macros.h"
+#include "pdc.h"		/* vbi_program_id */
 
 /* Public */
+
+VBI_BEGIN_DECLS
 
 /**
  * @addtogroup VPS
@@ -36,14 +38,12 @@ extern vbi_bool
 vbi_decode_vps_cni		(unsigned int *		cni,
 				 const uint8_t		buffer[13]);
 extern vbi_bool
-vbi_decode_vps_pdc		(vbi_program_id *	pi,
+vbi_decode_vps_pdc		(vbi_program_id *	pid,
 				 const uint8_t		buffer[13]);
 /** @} */
 
+VBI_END_DECLS
+
 /* Private */
 
-extern void
-vbi_decode_vps			(vbi_decoder *		vbi,
-				 const uint8_t		buffer[13]);
-
-#endif /* VPS_H */
+#endif /* __ZVBI_VPS_H__ */
