@@ -3,8 +3,8 @@
 The simple theme has everything in one page, use includes for achieving this.
 -->
 <document title="Zapping source code">
-<include>index.xml</include>
 <include>news.xml</include>
+<include>index.xml</include>
 <include>download.xml</include>
 <include>contact.xml</include>
 <include>bugs.xml</include>

@@ -5,6 +5,36 @@ abstract -> short text that describes the page (for themes that support it)
 HTML tags can be used freely in the body.
 -->
 <document title="News page" abstract="News and co.">
+<header>Zapping, mp1e and rte released</header>
+New release of your favourite programs, some of the improvements are:
+<ul>
+<li><b>Zapping</b> 0.6.1
+<ul>
+<li>Added Swedish translation.</li>
+<li>Reported to build and work (using XVideo) under FreeBSD and Solaris.</li>
+<li>Automatic overlaying of subtitle TTX pages.</li>
+<li>Reverted to the old fb depth detection routine.</li>
+<li>Some bugfixes in the mpeg plugin, adapted to use rte 0.3.1's new
+controls api.</li>
+<li>Fixed some bugs with Arabic and Hebrew TTX glyph mapping.</li>
+<li>Usability improvements, especially in the channel editor.</li>
+<li>Updated de, es, fr and pl translations.</li>
+</ul>
+</li>
+<li><b>mp1e</b> 1.9.2
+<ul>
+<li>Many important bugfixes.</li>
+<li>Fixed some audio bugs that could led to extra noise.</li>
+<li>Abort after two seconds if audio and video cannot sync.</li>
+<li>Cleaned up --usage</li>
+</ul>
+</li>
+<li><b>rte</b> 0.3.1
+<ul>
+<li>New controls api, unfinished (code using 0.3's api will still work).</li>
+</ul>
+</li>
+</ul>
 <header>Web page redesigned</header>
 As you can see, the web page has been redesigned, it has new contents and
 support for different themes (works best with cookies enabled). Thanks a lot to
