@@ -21,6 +21,8 @@
 #ifndef __RTE_H__
 #define __RTE_H__
 
+/* Public */
+
 /*
   A nice set of HTML rendered docs can be found here:
   http://zapping.sf.net/docs/rte/index.html
@@ -210,6 +212,11 @@ rte_codec_info_codec(rte_codec *codec);
 rte_codec *
 rte_codec_set(rte_context *context, rte_stream_type stream_type,
 	      int stream_index, const char *codec_keyword);
+
+/* document me */
+void
+rte_codec_remove(rte_context *context, rte_stream_type stream_type,
+		 int stream_index);
 
 /**
  * rte_codec_get:
@@ -514,6 +521,12 @@ rte_codec_option_set(rte_codec *codec, const char *keyword, ...);
 char *
 rte_codec_option_print(rte_codec *codec, const char *keyword, ...);
 
+rte_bool
+rte_codec_option_menu_get(rte_codec *codec, const char *keyword, int *entry);
+
+rte_bool
+rte_codec_option_menu_set(rte_codec *codec, const char *keyword, int entry);
+
 /**
  * rte_context_option_info_enum:
  * @context: Initialized rte_context.
@@ -592,6 +605,12 @@ rte_context_option_set(rte_context *context, const char *keyword, ...);
  **/
 char *
 rte_context_option_print(rte_context *context, const char *keyword, ...);
+
+rte_bool
+rte_context_option_menu_get(rte_context *context, const char *keyword, int *entry);
+
+rte_bool
+rte_context_option_menu_set(rte_context *context, const char *keyword, int entry);
 
 /**
  * rte_context_status_enum:
@@ -709,5 +728,7 @@ rte_resume(rte_context *context);
  **/
 char *
 rte_last_error(rte_context *context);
+
+/* Private */
 
 #endif /* rte.h */
