@@ -4,9 +4,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Zapping 0.6.6\n"
+"Project-Id-Version: Zapping 0.6.7\n"
 "POT-Creation-Date: 2003-05-29 11:52+0200\n"
-"PO-Revision-Date: 2003-02-10 22:00+0100\n"
+"PO-Revision-Date: 2003-10-30 17:30+0100\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <it@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -37,10 +37,12 @@ msgstr "Disabilita supporto estensioni XVideo"
 #: src/main.c:375
 msgid "XVideo port for overlay. Default is first usable"
 msgstr ""
+"Porta XVideo per la sovrapposizione. La porta predefinita è la prima usabile"
 
 #: src/main.c:384
 msgid "X11 display is remote. This basically disables video overlay"
 msgstr ""
+"Il display X11 è remoto. Ciò in pratica disabilita la sovrapposizione video"
 
 #: src/main.c:393
 msgid "Do not call zapping_setup_fb on startup"
