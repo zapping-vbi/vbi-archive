@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.9 2001-05-27 22:21:07 garetxe Exp $ */
+/* $Id: video.h,v 1.10 2001-05-31 19:40:50 mschimek Exp $ */
 
 #include "../common/bstream.h"
 #include "../common/fifo.h"
@@ -53,10 +53,11 @@ extern void		filter_init(int pitch);
 extern void		video_coding_size(int width, int height);
 extern int		video_look_ahead(char *gop_sequence);
 
+/* don't change order */
+/* XXX rethink */
 enum {
 	CM_INVALID,
 	CM_YUV,
-	CM_YVU,
 	CM_YUYV,
 	CM_YUYV_VERTICAL_DECIMATION,
 	CM_YUYV_TEMPORAL_INTERPOLATION,
@@ -66,5 +67,6 @@ enum {
 	CM_YUYV_EXP,
 	CM_YUYV_EXP_VERTICAL_DECIMATION,
 	CM_YUYV_EXP2,
+	CM_YVU,
 	CM_NUM_MODES
 };

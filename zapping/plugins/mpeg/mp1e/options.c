@@ -18,7 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.16 2001-05-15 02:03:33 mschimek Exp $ */
+/* $Id: options.c,v 1.17 2001-05-31 19:40:49 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -109,6 +113,8 @@ usage(FILE *fi)
 
 	exit((fi == stderr) ? EXIT_FAILURE : EXIT_SUCCESS);
 }
+
+#define OPT_STR "2a:b:c:f:g:hi:lm:n:p:r:s:vwx:A:B:F:G:H:I:M:PR:S:T:VX:"
 
 static const struct option
 long_options[] = {
@@ -527,8 +533,7 @@ options(int ac, char **av)
 	if (!isatty(STDIN_FILENO))
 		options_from_file("stdin", FALSE);
 
-	while ((c = getopt_long(ac, av, "2a:b:c:f:g:hi:lm:n:p:r:s:vwx:A:B:F:G:H:I:M:PR:S:T:VX:",
-		long_options, &index)) != -1)
+	while ((c = getopt_long(ac, av, OPT_STR, long_options, &index)) != -1)
 		if (!parse_option(c))
 			usage(stderr);
 

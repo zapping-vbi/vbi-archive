@@ -18,7 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.31 2001-05-24 22:58:42 garetxe Exp $ */
+/* $Id: mpeg1.c,v 1.32 2001-05-31 19:40:50 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#include "site_def.h"
 
 #include <assert.h>
 #include <limits.h>
@@ -120,7 +126,9 @@ extern double		video_stop_time;
 extern int p6_predict_forward_packed(unsigned char *) reg(1);
 extern int p6_predict_forward_planar(unsigned char *) reg(1);
 
+#ifndef REG_TEST
 #define PACKED 1
+#endif
 
 #if PACKED
 #define predict_forward		p6_predict_forward_packed
@@ -1805,6 +1813,7 @@ G0 = Gn;
 	bstart(&video_out, seq_header_template);
 	assert(sequence_header() == 16);
 
+#if !REG_TEST
 	if (banner)
 		free(banner);
 	asprintf(&banner,
@@ -1812,6 +1821,7 @@ G0 = Gn;
 		       "MP1E " VERSION " Test Stream G%dx%d b%2.2f f%2.1f F%d\n",
 		grab_width, grab_height, (double)(video_bit_rate) / 1E6,
 		frame_rate, filter_mode, anno);
+#endif
 }
 
 void

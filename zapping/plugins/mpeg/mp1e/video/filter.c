@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.4 2001-05-27 22:21:07 garetxe Exp $ */
+/* $Id: filter.c,v 1.5 2001-05-31 19:40:50 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -35,14 +35,13 @@ const char *
 filter_labels[] = {
 	"invalid",
 	"YUV 4:2:0 fastest",
-	"YVU 4:2:0 fastest",
 	"YUYV 4:2:2 fastest",
 	"YUYV 4:2:2 w/vertical decimation",
 	"YUYV 4:2:2 w/temporal interpolation",
 	"YUYV 4:2:2 w/vertical interpolation",
 	"YUYV 4:2:2 field progressive 50/60 Hz",
 	"YUYV 4:2:2 50/60 Hz w/temporal interpolation",
-	"",
+	"YVU 4:2:0 fastest",
 	"",
 	"",
 	"",

@@ -56,6 +56,7 @@ typedef	union {
 #define CPU_ATHLON		6	/* MMX, 3DNOW, AMD 3DNOW ext, CMOV, SSE int; K7 core */
 #define CPU_CYRIX_MII		7	/* MMX, CMOV */
 #define CPU_CYRIX_III		8	/* MMX, Cyrix MMX ext, 3DNOW, CMOV */
+/* AMD Palomino? MMX, 3DNOW, AMD 3DNOW ext, CMOV, SSE int, SSE flt; ? */
 /* AMD Hammer family, presumably Athlon + SSE2; K8 core */
 
 extern int cpu_detection(void);

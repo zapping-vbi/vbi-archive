@@ -19,7 +19,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.14 2001-05-05 23:35:09 garetxe Exp $ */
+/* $Id: oss.c,v 1.15 2001-05-31 19:40:49 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>

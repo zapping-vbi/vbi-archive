@@ -19,7 +19,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: afl.c,v 1.7 2001-05-05 23:35:09 garetxe Exp $ */
+/* $Id: afl.c,v 1.8 2001-05-31 19:40:49 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
