@@ -1,31 +1,33 @@
 /*
- *  Zapping (TV viewer for the Gnome Desktop)
+ *  Zapping TV viewer
  *
- * Copyright (C) 2001 Iñaki García Etxebarria
- * Copyright (C) 2003 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002 Iñaki García Etxebarria
+ *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.h,v 1.1 2004-09-22 21:29:07 mschimek Exp $ */
+/* $Id: search.h,v 1.2 2004-11-03 06:46:56 mschimek Exp $ */
 
 #ifndef SEARCH_H
 #define SEARCH_H
 
 #include <gtk/gtk.h>
-#include <libzvbi.h>
+#include "libvbi/bcd.h"		/* vbi3_pgno, vbi3_subno */
+#include "libvbi/search.h"	/* vbi3_search */
+#include "view.h"
 
 G_BEGIN_DECLS
 
@@ -52,20 +54,20 @@ struct _SearchDialog
 
   GtkLabel *		label;
   GtkWidget *		entry;
-  GtkToggleButton *	regexp;
-  GtkToggleButton *	casefold;
   GtkWidget *		back;
   GtkWidget *		forward;
 
-  /*XXX*/
-  void *data;
+  TeletextView *	view;
 
-  vbi_search *		context;
+  vbi3_search *		context;
   gchar *		text;
   gint			direction;
   gboolean		searching;
-  vbi_pgno		start_pgno;
-  vbi_subno		start_subno;
+  vbi3_pgno		start_pgno;
+  vbi3_subno		start_subno;
+  gboolean		regexp;
+  gboolean		casefold;
+  gboolean		all_channels;
 };
 
 struct _SearchDialogClass
@@ -76,7 +78,7 @@ struct _SearchDialogClass
 extern GType
 search_dialog_get_type		(void) G_GNUC_CONST;
 extern GtkWidget *
-search_dialog_new		(void *			data);
+search_dialog_new		(TeletextView *		view);
 
 G_END_DECLS
 
