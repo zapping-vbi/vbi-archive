@@ -1,2 +1,0 @@
-USER=root
-PROGRAM=@prefix@/sbin/zapping_setup_fb
