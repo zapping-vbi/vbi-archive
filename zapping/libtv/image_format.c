@@ -17,13 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.4 2004-12-11 11:46:21 mschimek Exp $ */
+/* $Id: image_format.c,v 1.5 2005-01-08 14:41:05 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
 #include "src/cpu.h"
 #include "mmx/mmx.h"
 #include "sse/sse.h"
+#include "avec/avec.h"
 #include "image_format.h"
 #include "misc.h"
 
@@ -34,12 +35,20 @@ _tv_image_format_dump		(const tv_image_format *format,
 	assert (NULL != format);
 
 	fprintf (fp, "width=%u height=%u "
-		 "bpl=%u,%u offset=%u,%u,%u "
+		 "offset=%u,%u,%u,%u bpl=%u,%u,%u,%u "
 		 "size=%u pixfmt=%s",
-		 format->width, format->height,
-		 format->bytes_per_line, format->uv_bytes_per_line,
-		 format->offset, format->u_offset, format->v_offset,
-		 format->size, tv_pixfmt_name (format->pixfmt));
+		 format->width,
+		 format->height,
+		 format->offset[0],
+		 format->offset[1],
+		 format->offset[2],
+		 format->offset[3],
+		 format->bytes_per_line[0],
+		 format->bytes_per_line[1],
+		 format->bytes_per_line[2],
+		 format->bytes_per_line[3],
+		 format->size,
+		 format->pixel_format->name);
 }
 
 tv_bool
@@ -79,40 +88,48 @@ tv_image_format_init		(tv_image_format *	format,
 
 	min_bpl = (width * pf->bits_per_pixel + 7) >> 3;
 
-	format->bytes_per_line = MAX (bytes_per_line, min_bpl);
+	format->bytes_per_line[0] = MAX (bytes_per_line, min_bpl);
 
-	format->offset = 0;
+	format->offset[0] = 0;
 
 	if (pf->planar) {
+		unsigned int uv_bpl;
 		unsigned int y_size;
 		unsigned int uv_size;
 
 		/* No padding. */
-		format->uv_bytes_per_line =
-			format->bytes_per_line >> pf->uv_hshift;
+		uv_bpl = format->bytes_per_line[0] >> pf->uv_hshift;
+		format->bytes_per_line[1] = uv_bpl;
+		format->bytes_per_line[2] = uv_bpl;
+		format->bytes_per_line[3] = 0;
 
-		y_size = format->bytes_per_line * height;
+		y_size = format->bytes_per_line[0] * height;
 		uv_size = y_size >> (pf->uv_hshift + pf->uv_vshift);
 
 		if (pf->vu_order) {
-			format->v_offset = y_size; 
-			format->u_offset = y_size + uv_size;
+			format->offset[1] = y_size + uv_size;
+			format->offset[2] = y_size; 
 		} else {
-			format->u_offset = y_size; 
-			format->v_offset = y_size + uv_size;
+			format->offset[1] = y_size; 
+			format->offset[2] = y_size + uv_size;
 		}
+
+		format->offset[3] = 0;
 
 		format->size = y_size + uv_size * 2;
 	} else {
-		format->uv_bytes_per_line = 0;
+		format->bytes_per_line[1] = 0;
+		format->bytes_per_line[2] = 0;
+		format->bytes_per_line[3] = 0;
 
-		format->u_offset = 0;
-		format->v_offset = 0;
+		format->offset[1] = 0;
+		format->offset[2] = 0;
+		format->offset[3] = 0;
 
-		format->size = format->bytes_per_line * height;
+		format->size = format->bytes_per_line[0] * height;
 	}
 
-	format->pixfmt = pixfmt;
+	format->pixel_format = tv_pixel_format_from_pixfmt (pixfmt);
 	format->colspc = colspc;
 
 	return TRUE;
@@ -127,8 +144,7 @@ tv_image_format_is_valid	(const tv_image_format *format)
 
 	assert (NULL != format);
 
-	if (!(pf = tv_pixel_format_from_pixfmt (format->pixfmt)))
-		return FALSE;
+	pf = format->pixel_format;
 
 	if (0 == format->width
 	    || 0 == format->height)
@@ -136,17 +152,18 @@ tv_image_format_is_valid	(const tv_image_format *format)
 
 	min_bpl = (format->width * pf->bits_per_pixel + 7) >> 3;
 
-	if (format->bytes_per_line < min_bpl)
+	if (format->bytes_per_line[0] < min_bpl)
 		return FALSE;
 
 	/* We don't enforce bytes_per_line padding on the last
 	   line, in case offset and bytes_per_line were adjusted
 	   for cropping. */
-	min_size = format->bytes_per_line * (format->height - 1) + min_bpl;
+	min_size = format->bytes_per_line[0] * (format->height - 1) + min_bpl;
 
 	if (pf->planar) {
 		unsigned int min_uv_bytes_per_line;
-		unsigned int min_uv_size;
+		unsigned int min_u_size;
+		unsigned int min_v_size;
 		unsigned int p1_offset;
 		unsigned int p2_offset;
 		unsigned int hres;
@@ -160,44 +177,49 @@ tv_image_format_is_valid	(const tv_image_format *format)
 		if (format->height & vres)
 			return FALSE;
 
-		if (format->bytes_per_line & hres)
+		if (format->bytes_per_line[0] & hres)
 			return FALSE;
 
 		/* U and V bits_per_pixel assumed 8. */
 		min_uv_bytes_per_line = format->width >> pf->uv_hshift;
 
-		if (format->uv_bytes_per_line < min_uv_bytes_per_line)
+		if (format->bytes_per_line[1] < min_uv_bytes_per_line
+		    || format->bytes_per_line[2] < min_uv_bytes_per_line)
 			return FALSE;
 
 		/* We don't enforce bytes_per_line padding on the last line. */
-		min_uv_size = format->uv_bytes_per_line
+		min_u_size = format->bytes_per_line[1]
 			* ((format->height >> pf->uv_vshift) - 1)
 			+ min_uv_bytes_per_line;
 
-		if (pf->vu_order != (format->v_offset > format->u_offset))
+		min_v_size = format->bytes_per_line[2]
+			* ((format->height >> pf->uv_vshift) - 1)
+			+ min_uv_bytes_per_line;
+
+		if (pf->vu_order != (format->offset[2] > format->offset[1]))
 			return FALSE;
 
-		if (format->u_offset > format->v_offset) {
-			p1_offset = format->v_offset;
-			p2_offset = format->u_offset;
+		if (format->offset[1] > format->offset[2]) {
+			p1_offset = format->offset[2];
+			p2_offset = format->offset[1];
 		} else {
-			p1_offset = format->u_offset;
-			p2_offset = format->v_offset;
+			p1_offset = format->offset[1];
+			p2_offset = format->offset[2];
 		}
 
 		/* Y before U and V, planes must not overlap. */
-		if (format->offset + min_size >= p1_offset)
+		if (format->offset[0] + min_size >= p1_offset)
 			return FALSE;
 
 		/* U and V planes must not overlap. */
-		if (p1_offset + min_uv_size >= p2_offset)
+		if (p1_offset + min_u_size >= p2_offset)
 			return FALSE;
 
 		/* All planes must fit in buffer. */
-		if (p2_offset + min_uv_size >= format->size)
+		if (p2_offset + min_v_size >= format->size)
 			return FALSE;
 	} else {
-		if (format->offset + min_size >= format->size)
+		if (format->offset[0] + min_size >= format->size)
 			return FALSE;
 	}
 
@@ -319,9 +341,6 @@ tv_clear_image			(void *			image,
 	assert (NULL != image);
 	assert (NULL != format);
 
-	if (!(pf = tv_pixel_format_from_pixfmt (format->pixfmt)))
-		return FALSE;
-
 #ifdef HAVE_ALTIVEC
 	if (0 /* UNTESTED */ &&
 	    0 == ((unsigned long) image | format->bytes_per_line) % 16)
@@ -341,15 +360,17 @@ tv_clear_image			(void *			image,
 #endif	
 		clear_block = clear_block_generic;
 
-	set = TV_PIXFMT_SET (format->pixfmt);
+	pf = format->pixel_format;
+
+	set = TV_PIXFMT_SET (pf->pixfmt);
 
 	data = (uint8_t *) image;
 
 	if (set & TV_PIXFMT_SET_RGB) {
-		clear_block[0] (data + format->offset, 0,
+		clear_block[0] (data + format->offset[0], 0,
 				(format->width * pf->bits_per_pixel) >> 3,
 				format->height,
-				format->bytes_per_line);
+				format->bytes_per_line[0]);
 
 		return TRUE;
 	}
@@ -361,20 +382,20 @@ tv_clear_image			(void *			image,
 		uv_width = format->width >> pf->uv_hshift;
 		uv_height = format->height >> pf->uv_vshift;
 
-		clear_block[0] (data + format->offset, 0x00,
+		clear_block[0] (data + format->offset[0], 0x00,
 				format->width, format->height,
-				format->bytes_per_line);
-		clear_block[0] (data + format->u_offset, 0x80,
+				format->bytes_per_line[0]);
+		clear_block[0] (data + format->offset[1], 0x80,
 				uv_width, uv_height,
-				format->uv_bytes_per_line);
-		clear_block[0] (data + format->v_offset, 0x80,
+				format->bytes_per_line[1]);
+		clear_block[0] (data + format->offset[2], 0x80,
 				uv_width, uv_height,
-				format->uv_bytes_per_line);
+				format->bytes_per_line[2]);
 
 		return TRUE;
 	}
 
-	switch (format->pixfmt) {
+	switch (pf->pixfmt) {
 	case TV_PIXFMT_NONE:
 	case TV_PIXFMT_RESERVED0:
 	case TV_PIXFMT_RESERVED1:
@@ -385,26 +406,26 @@ tv_clear_image			(void *			image,
 	case TV_PIXFMT_YUV24_LE:
 	case TV_PIXFMT_YVU24_LE:
 		/* Note value is always LE: 0xVVUUYY */
-		clear_block[2] (data + format->offset, 0x808000,
+		clear_block[2] (data + format->offset[0], 0x808000,
 				format->width, format->height,
-				format->bytes_per_line);
+				format->bytes_per_line[0]);
 		return TRUE;
 
 	case TV_PIXFMT_YUV24_BE:
 	case TV_PIXFMT_YVU24_BE:
 		/* Note value is always LE: 0xYYUUVV */
-		clear_block[2] (data + format->offset, 0x008080,
+		clear_block[2] (data + format->offset[0], 0x008080,
 				format->width, format->height,
-				format->bytes_per_line);
+				format->bytes_per_line[0]);
 		return TRUE;
 
 	case TV_PIXFMT_YUVA32_LE:
 	case TV_PIXFMT_YUVA32_BE:
 	case TV_PIXFMT_YVUA32_LE:
 	case TV_PIXFMT_YVUA32_BE:
-		clear_block[3] (data + format->offset, 0x00808000,
+		clear_block[3] (data + format->offset[0], 0x00808000,
 				format->width, format->height,
-				format->bytes_per_line);
+				format->bytes_per_line[0]);
 		return TRUE;
 
 	case TV_PIXFMT_YUYV:
@@ -412,9 +433,9 @@ tv_clear_image			(void *			image,
 		if (format->width & 1)
 			return FALSE;
 
-		clear_block[3] (data + format->offset, SWAB32 (0x80008000),
+		clear_block[3] (data + format->offset[0], SWAB32 (0x80008000),
 				format->width >> 1, format->height,
-				format->bytes_per_line);
+				format->bytes_per_line[0]);
 		return TRUE;
 
 	case TV_PIXFMT_UYVY:
@@ -422,15 +443,15 @@ tv_clear_image			(void *			image,
 		if (format->width & 1)
 			return FALSE;
 
-		clear_block[3] (data + format->offset, SWAB32 (0x00800080),
+		clear_block[3] (data + format->offset[0], SWAB32 (0x00800080),
 				format->width >> 1, format->height,
-				format->bytes_per_line);
+				format->bytes_per_line[0]);
 		return TRUE;
 
 	case TV_PIXFMT_Y8:
-		clear_block[0] (data + format->offset, 0x00,
+		clear_block[0] (data + format->offset[0], 0x00,
 				format->width, format->height,
-				format->bytes_per_line);
+				format->bytes_per_line[0]);
 		return TRUE;
 
 	case TV_PIXFMT_YUV444:
@@ -486,12 +507,16 @@ tv_clear_image			(void *			image,
  * Copies @a n_bytes from @a src to @a dst using vector instructions and
  * cache bypassing loads and stores, if available. The function works faster
  * if @a src and @a dst are multiples of 8 or 16.
+ * XXX unchecked
  */
 void
 tv_memcpy			(void *			dst,
 				 const void *		src,
 				 size_t			n_bytes)
 {
+	if (__builtin_expect (dst == src, FALSE))
+		return;
+
 #ifdef HAVE_SSE
 	if (0 /* UNTESTED */ &&
 	    cpu_features & CPU_FEATURE_SSE)
@@ -504,4 +529,136 @@ tv_memcpy			(void *			dst,
 		return memcpy_mmx (dst, src, n_bytes);
 #endif
 	memcpy (dst, src, n_bytes);
+}
+
+static void
+copy_block1_generic		(void *			dst,
+				 const void *		src,
+				 unsigned int		width,
+				 unsigned int		height,
+				 unsigned int		dst_bytes_per_line,
+				 unsigned int		src_bytes_per_line)
+{
+	unsigned int dst_padding;
+	unsigned int src_padding;
+	uint8_t *d;
+	const uint8_t *s;
+
+	dst_padding = dst_bytes_per_line - width * 1;
+	src_padding = src_bytes_per_line - width * 1;
+
+	if (__builtin_expect (0 == (dst_padding | src_padding), TRUE)) {
+		memcpy (dst, src, width * height);
+		return;
+	}
+
+	d = (uint8_t *) dst;
+	s = (const uint8_t *) src;
+
+	for (; height > 0; --height) {
+		memcpy (d, s, width);
+
+		d += dst_padding;
+		s += src_padding;
+	}
+}
+
+/*
+ * XXX unchecked
+ */
+tv_bool
+tv_copy_image			(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format)
+{
+	const tv_pixel_format *pf;
+	copy_block_fn *copy_block;
+	uint8_t *d;
+	const uint8_t *s;
+	unsigned int width;
+	unsigned int height;
+
+	if (NULL == src_image)
+		return tv_clear_image (dst_image, dst_format);
+
+	assert (NULL != dst_image);
+	assert (NULL != dst_format);
+	assert (NULL != src_format);
+
+	assert (dst_format->pixel_format == src_format->pixel_format);
+
+#ifdef HAVE_SSE
+	if (cpu_features & CPU_FEATURE_SSE)
+		copy_block = copy_block1_sse_nt;
+	else
+#endif
+		copy_block = copy_block1_generic;
+
+	d = (uint8_t *) dst_image;
+	s = (const uint8_t *) src_image;
+
+	width = MIN (dst_format->width, src_format->width); 
+	height = MIN (dst_format->height, src_format->height); 
+
+	pf = dst_format->pixel_format;
+
+	if (TV_PIXFMT_IS_PLANAR (pf->pixfmt)) {
+		unsigned int uv_width;
+		unsigned int uv_height;
+
+		uv_width = width >> pf->uv_hshift;
+		uv_height = height >> pf->uv_vshift;
+
+		copy_block (d + dst_format->offset[0],
+			    s + src_format->offset[0],
+			    width, height,
+			    dst_format->bytes_per_line[0],
+			    src_format->bytes_per_line[0]);
+
+		copy_block (d + dst_format->offset[1],
+			    s + src_format->offset[1],
+			    uv_width, uv_height,
+			    dst_format->bytes_per_line[1],
+			    src_format->bytes_per_line[1]);
+
+		copy_block (d + dst_format->offset[2],
+			    s + src_format->offset[2],
+			    uv_width, uv_height,
+			    dst_format->bytes_per_line[2],
+			    src_format->bytes_per_line[2]);
+
+		return TRUE;
+	}
+
+	copy_block (d + dst_format->offset[0],
+		    s + src_format->offset[0],
+		    (width * pf->bits_per_pixel) >> 3,
+		    height,
+		    dst_format->bytes_per_line[0],
+		    src_format->bytes_per_line[0]);
+
+	return TRUE;
+}
+
+void *
+tv_new_image			(const void *		src_image,
+				 const tv_image_format *src_format)
+{
+	void *dst_image;
+
+	assert (NULL != src_format);
+	assert (src_format->size > 0);
+
+	dst_image = malloc (src_format->size);
+
+	if (dst_image && src_image) {
+		if (!tv_copy_image (dst_image, src_format,
+				    src_image, src_format)) {
+			free (dst_image);
+			dst_image = NULL;
+		}
+	}
+
+	return dst_image;
 }
