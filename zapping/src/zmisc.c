@@ -250,9 +250,8 @@ zmisc_stop (tveng_device_info *info)
   switch (info->current_mode)
     {
     case TVENG_CAPTURE_PREVIEW:
-      /* fullscreen overlay */
-      tveng_stop_previewing(info);
-      fullscreen_stop(info);
+      /* overlay fullscreen */
+      stop_fullscreen (info);
       break;
 
     case TVENG_CAPTURE_READ:
@@ -510,8 +509,11 @@ XX();
 	}
       else
 	{
-	  g_warning(info->error);
+	  ShowBox(_("Cannot start video overlay.\n%s"),
+		  GTK_MESSAGE_ERROR, info->error);
 	oops:
+	  zmisc_stop (info);
+
 	  x11_screensaver_set (X11_SCREENSAVER_ON);
           z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 	}
@@ -557,9 +559,13 @@ XX();
 		 info->format.pixformat);
 	}
 
-      if (-1 == (return_value = fullscreen_start (info)))
+      if (!start_fullscreen (info))
 	{
-	  g_warning("couldn't start fullscreen mode");
+	  ShowBox (_("Cannot start fullscreen overlay.\n%s"),
+		   GTK_MESSAGE_ERROR, info->error);
+
+	  zmisc_stop (info);
+
 	  x11_screensaver_set (X11_SCREENSAVER_ON);
           z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 	}
