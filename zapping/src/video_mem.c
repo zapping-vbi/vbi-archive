@@ -59,21 +59,23 @@ planar_image_new (tv_pixfmt pixfmt, gint w, gint h)
       return NULL;
     }
 
-  data = g_malloc (w * h * 3 / 2);
+  data = g_malloc ((w * h * 3) >> 1);
 
   image = zimage_create_object ();
   pimage = image->priv = g_malloc0 (sizeof (*pimage));
   pimage->data = data;
+
   image->fmt.width = w;
   image->fmt.height = h;
   image->fmt.pixfmt = pixfmt;
-  image->fmt.bytesperline = 8 * w;
-  image->fmt.sizeimage = w * h * 1.5;
+  image->fmt.bytesperline = w * 8; /* XXX ? */
+  image->fmt.sizeimage = (w * h * 3) >> 1;
+
   image->data.planar.y = data;
   image->data.planar.y_stride = w;
   image->data.planar.u = data + (w * h);
-  image->data.planar.v = data + ((int)((w * h) * 1.25));
-  image->data.planar.uv_stride = w * 0.25;
+  image->data.planar.v = data + ((w * h * 5) >> 2);
+  image->data.planar.uv_stride = w >> 1;
 
   return image;
 }
