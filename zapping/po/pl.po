@@ -296,7 +296,7 @@ msgstr "(Nieznane pañstwo)"
 
 #: src/frequencies.c:1576
 msgid "(Unknown RF channel)"
-msgstr ""
+msgstr "(Nieznany kana³ RF)"
 
 #: src/v4linterface.c:315
 #, c-format
@@ -1407,7 +1407,7 @@ msgstr "Wed³ug wpisu na li¶cie kana³ów"
 
 #: glade/glade_strings.c:60
 msgid "By RF channel number"
-msgstr ""
+msgstr "Wed³ug numeru czêstotliwo¶ci kana³u"
 
 #: glade/glade_strings.c:61
 msgid "No fixed ratio"
