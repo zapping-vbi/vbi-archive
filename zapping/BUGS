@@ -5,3 +5,5 @@ Known bugs with zapping, don't report them
 ------------------------------------------
 	
 	* Failing to load a widget through create_ should be fatal.
+	! Something leaks horribly every n-milliseconds, memprof says
+	it's x11_add_clips. Weird, but needs fixing.

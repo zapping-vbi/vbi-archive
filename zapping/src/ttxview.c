@@ -51,6 +51,12 @@ typedef struct {
   gint			page; /* page we are entering */
   gint			subpage; /* current subpage */
   gboolean		extra_controls; /* TRUE: Show extra controls */
+  GList			*history; /* Visited pages */
+  GList			*history_stack; /* for back, etc... */
+  gint			history_stack_size; /* items in history_stack */
+  gint			history_sp; /* pointer in the stack */
+  gint			monitored_subpage;
+  gboolean		no_history; /* don't send to history next page */
 } ttxview_data;
 
 static
@@ -74,6 +80,66 @@ void scale_image			(GtkWidget	*wid,
   if (data->scaled)
     render_ttx_page(data->id, data->scaled,
 		    widget->style->white_gc, w, h);
+}
+
+static
+void setup_history_gui	(ttxview_data *data)
+{
+  GtkWidget *prev, *next;
+
+  prev = lookup_widget(data->da, "ttxview_history_prev");
+  next = lookup_widget(data->da, "ttxview_history_next");
+
+  if (data->history_stack_size > (data->history_sp+1))
+    gtk_widget_set_sensitive(next, TRUE);
+  else
+    gtk_widget_set_sensitive(next, FALSE);	
+  
+  if (data->history_sp > 0)
+    gtk_widget_set_sensitive(prev, TRUE);
+  else
+    gtk_widget_set_sensitive(prev, FALSE);	
+}
+
+static
+void append_history	(int page, int subpage, ttxview_data *data)
+{
+  gint page_code, pc_subpage;
+  GtkCList *history_clist;
+  gchar * clist_entry[1];
+  GList *p;
+
+  pc_subpage = (subpage == ANY_SUB) ? 0xffff : (subpage & 0xffff);
+  page_code = (page<<16)+pc_subpage;
+
+  if ((!data->history_stack) ||
+      (GPOINTER_TO_INT(g_list_nth(data->history_stack,
+				  data->history_sp)->data) != page_code))
+    {
+      data->history_stack = g_list_append(data->history_stack,
+					  GINT_TO_POINTER(page_code));
+      data->history_stack_size++;
+      data->history_sp = data->history_stack_size-1;
+      setup_history_gui(data);
+    }
+
+  if (g_list_find(data->history, GINT_TO_POINTER(page)))
+    data->history = g_list_remove(data->history, GINT_TO_POINTER(page));
+
+  data->history = g_list_prepend(data->history, GINT_TO_POINTER(page));
+
+  history_clist = GTK_CLIST(lookup_widget(data->da, "ttxview_history"));
+  gtk_clist_freeze(history_clist);
+  gtk_clist_clear(history_clist);
+  p = g_list_first(data->history);
+  while (p)
+    {
+      clist_entry[0]=g_strdup_printf("%x", GPOINTER_TO_INT(p->data));
+      gtk_clist_append(history_clist, clist_entry);
+      g_free(clist_entry[0]);
+      p = p->next;
+    }
+  gtk_clist_thaw(history_clist);
 }
 
 /* API flaw */
@@ -138,6 +204,10 @@ event_timeout				(ttxview_data	*data)
 	  widget = lookup_widget(data->da, "ttxview_subpage");
 	  buffer = g_strdup_printf("S%d", data->subpage);
 	  gtk_label_set_text(GTK_LABEL(widget), buffer);
+	  if (!data->no_history)
+	    append_history(data->fmt_page->vtp->pgno,
+			   data->monitored_subpage, data);
+	  data->no_history = FALSE;
 	  g_free(buffer);
 	  break;
 	case TTX_BROKEN_PIPE:
@@ -165,6 +235,7 @@ load_page (int page, int subpage, ttxview_data *data)
   g_free(buffer);
 
   data->subpage = subpage;
+  data->monitored_subpage = subpage;
   widget = lookup_widget(data->da, "ttxview_subpage");
   if (subpage != ANY_SUB)
     buffer = g_strdup_printf("S%d", hex2dec(data->subpage));
@@ -225,6 +296,67 @@ void on_ttxview_next_subpage_clicked	(GtkButton	*button,
   if (subpage >= 0x100)
     subpage = 1;
   load_page(data->fmt_page->vtp->pgno, subpage, data);
+}
+
+static
+void on_ttxview_search_clicked		(GtkButton	*button,
+					 ttxview_data	*data)
+{
+  ShowBox("Not done yet", GNOME_MESSAGE_BOX_INFO);
+}
+
+static
+void on_ttxview_history_prev_clicked	(GtkButton	*button,
+					 ttxview_data	*data)
+{
+  gint page, page_code, pc_subpage;
+
+  if (data->history_sp == 0)
+    return;
+
+  data->history_sp--;
+
+  page_code = GPOINTER_TO_INT(g_list_nth(data->history_stack,
+					 data->history_sp)->data);
+  page = page_code >> 16;
+  pc_subpage = (page_code & 0xffff);
+  pc_subpage = (pc_subpage == 0xffff) ? ANY_SUB : pc_subpage;
+
+  data->no_history = TRUE;
+  load_page(page, pc_subpage, data);
+  setup_history_gui(data);
+}
+
+static
+void on_ttxview_history_next_clicked	(GtkButton	*button,
+					 ttxview_data	*data)
+{
+  gint page, page_code, pc_subpage;
+
+  if (data->history_stack_size == (data->history_sp+1))
+    return;
+  data->history_sp++;
+
+  page_code = GPOINTER_TO_INT(g_list_nth(data->history_stack,
+					 data->history_sp)->data);
+  page = page_code >> 16;
+  pc_subpage = (page_code & 0xffff);
+  pc_subpage = (pc_subpage == 0xffff) ? ANY_SUB : pc_subpage;
+
+  data->no_history = TRUE;
+  load_page(page, pc_subpage, data);
+  setup_history_gui(data);
+}
+
+static void
+on_ttxview_history_select_row          (GtkCList        *history_clist,
+					gint             row,
+					gint             column,
+					GdkEventButton  *event,
+					ttxview_data	*data)
+{
+  load_page(GPOINTER_TO_INT(g_list_nth(data->history, row)->data),
+	    ANY_SUB, data);
 }
 
 static
@@ -508,6 +640,21 @@ build_ttxview(void)
   gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview, "ttxview_clone")),
 		     "clicked", GTK_SIGNAL_FUNC(on_ttxview_clone_clicked),
 		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview, "ttxview_search")),
+		     "clicked", GTK_SIGNAL_FUNC(on_ttxview_search_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview,
+		     "ttxview_history_prev")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_history_prev_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview,
+		     "ttxview_history_next")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_history_next_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview,
+		     "ttxview_history")), "select-row",
+		     GTK_SIGNAL_FUNC(on_ttxview_history_select_row),
+		     data);
   gtk_signal_connect(GTK_OBJECT(data->da),
 		     "size-allocate",
 		     GTK_SIGNAL_FUNC(on_ttxview_size_allocate), data);
@@ -528,6 +675,8 @@ build_ttxview(void)
 			  "toolbar2")),	GTK_TOOLBAR_ICONS);
   gtk_toolbar_set_style(GTK_TOOLBAR(lookup_widget(ttxview,
 			  "toolbar3")),	GTK_TOOLBAR_ICONS);
+  gtk_toolbar_set_style(GTK_TOOLBAR(lookup_widget(ttxview,
+			  "toolbar4")),	GTK_TOOLBAR_ICONS);
   gtk_handle_box_set_handle_position(GTK_HANDLE_BOX(lookup_widget(ttxview,
 			    "handlebox1")), GTK_POS_TOP);
   gtk_handle_box_set_snap_edge(GTK_HANDLE_BOX(lookup_widget(ttxview,

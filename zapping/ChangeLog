@@ -1,3 +1,8 @@
+23.12.2000	History done <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: History works now
+	* glade/zapping.glade: Redesigned advanced controls.
+
 22.12.2000	More TTXView work <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: More GUI love, should be ready to start merging

@@ -3055,7 +3055,7 @@ in the next release of this program.</label>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
-	  <fill>False</fill>
+	  <fill>True</fill>
 	</child>
 
 	<widget>
@@ -3063,46 +3063,94 @@ in the next release of this program.</label>
 	  <name>toolbar3</name>
 	  <border_width>2</border_width>
 	  <orientation>GTK_ORIENTATION_VERTICAL</orientation>
-	  <type>GTK_TOOLBAR_ICONS</type>
+	  <type>GTK_TOOLBAR_BOTH</type>
 	  <space_size>0</space_size>
 	  <space_style>GTK_TOOLBAR_SPACE_EMPTY</space_style>
 	  <relief>GTK_RELIEF_NONE</relief>
 	  <tooltips>True</tooltips>
 
 	  <widget>
-	    <class>GtkButton</class>
-	    <child_name>Toolbar:button</child_name>
-	    <name>ttxview_search</name>
-	    <tooltip>Search for a given pattern in the cache</tooltip>
-	    <label>button13</label>
-	    <stock_pixmap>GNOME_STOCK_PIXMAP_SEARCH</stock_pixmap>
+	    <class>GtkToolbar</class>
+	    <name>toolbar4</name>
+	    <orientation>GTK_ORIENTATION_HORIZONTAL</orientation>
+	    <type>GTK_TOOLBAR_ICONS</type>
+	    <space_size>5</space_size>
+	    <space_style>GTK_TOOLBAR_SPACE_EMPTY</space_style>
+	    <relief>GTK_RELIEF_NONE</relief>
+	    <tooltips>True</tooltips>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <child_name>Toolbar:button</child_name>
+	      <name>ttxview_search</name>
+	      <tooltip>Search for a given pattern in the cache</tooltip>
+	      <label>Search</label>
+	      <stock_pixmap>GNOME_STOCK_PIXMAP_SEARCH</stock_pixmap>
+	    </widget>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <child_name>Toolbar:button</child_name>
+	      <name>ttxview_history_prev</name>
+	      <tooltip>Previous page in history</tooltip>
+	      <label>Previous</label>
+	      <stock_pixmap>GNOME_STOCK_PIXMAP_BACK</stock_pixmap>
+	    </widget>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <child_name>Toolbar:button</child_name>
+	      <name>ttxview_history_next</name>
+	      <tooltip>Next page in history</tooltip>
+	      <label>Next</label>
+	      <stock_pixmap>GNOME_STOCK_PIXMAP_FORWARD</stock_pixmap>
+	    </widget>
 	  </widget>
 
 	  <widget>
-	    <class>GtkButton</class>
-	    <child_name>Toolbar:button</child_name>
-	    <name>ttxview_index</name>
-	    <tooltip>See the history</tooltip>
-	    <label>button14</label>
-	    <stock_pixmap>GNOME_STOCK_PIXMAP_INDEX</stock_pixmap>
+	    <class>GtkLabel</class>
+	    <name>label94</name>
+	    <label>Visited pages</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
 	  </widget>
 
 	  <widget>
-	    <class>GtkButton</class>
-	    <child_name>Toolbar:button</child_name>
-	    <name>ttxview_history_prev</name>
-	    <tooltip>Previous page in history</tooltip>
-	    <label>button15</label>
-	    <stock_pixmap>GNOME_STOCK_PIXMAP_BACK</stock_pixmap>
-	  </widget>
+	    <class>GtkScrolledWindow</class>
+	    <name>scrolledwindow12</name>
+	    <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+	    <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+	    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 
-	  <widget>
-	    <class>GtkButton</class>
-	    <child_name>Toolbar:button</child_name>
-	    <name>ttxview_history_next</name>
-	    <tooltip>Next page in history</tooltip>
-	    <label>button16</label>
-	    <stock_pixmap>GNOME_STOCK_PIXMAP_FORWARD</stock_pixmap>
+	    <widget>
+	      <class>GtkCList</class>
+	      <name>ttxview_history</name>
+	      <height>208</height>
+	      <can_focus>True</can_focus>
+	      <columns>1</columns>
+	      <column_widths>80</column_widths>
+	      <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+	      <show_titles>True</show_titles>
+	      <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
+		<name>label95</name>
+		<label>History</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+	    </widget>
 	  </widget>
 	</widget>
       </widget>
