@@ -1,3 +1,11 @@
+26.12.2002	<mschimek@users.sf.net>
+
+	* src/v4linterface.c: Splitted keypad channel number entering
+	  routines for reuse by alirc.
+	* plugins/alirc/alirc.c: Added MUTE, VOL_UP, VOL_DOWN re
+	  zapping-misc@lists.sourceforge.net 23 Dec 2002. Connected
+	  SETCHANNEL to the keypad channel number entering routines.
+
 13.12.2002	<mschimek@users.sf.net>
 
 	* glade/zapping.glade, src/v4linterface.c, src/v4linterface.h,

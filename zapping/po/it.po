@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6.5\n"
-"POT-Creation-Date: 2002-10-04 05:53+0200\n"
+"POT-Creation-Date: 2002-12-25 05:07+0100\n"
 "PO-Revision-Date: 2002-10-27 12:32+0100\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -136,11 +136,11 @@ msgstr ""
 "Impossibile avviare il modo di cattura:\n"
 "%s"
 
-#: src/callbacks.c:501 src/callbacks.c:630 src/main.c:805
+#: src/main.c:805 src/callbacks.c:501 src/callbacks.c:630
 msgid "Show controls"
 msgstr "Mostra controlli"
 
-#: src/callbacks.c:502 src/callbacks.c:631 src/main.c:806
+#: src/main.c:806 src/callbacks.c:502 src/callbacks.c:631
 msgid "Show the menu and the toolbar"
 msgstr "Mostra il menu e la barra degli strumenti"
 
@@ -186,7 +186,7 @@ msgstr "Spiacente, Zapzilla non può creare la configurazione"
 msgid "Mute"
 msgstr "Silenzio"
 
-#: glade/glade_strings.c:24 src/interface.c:236
+#: src/interface.c:236 glade/glade_strings.c:24
 msgid "Switch audio on and off"
 msgstr "Attiva e disattiva l'audio"
 
@@ -255,7 +255,7 @@ msgstr "Giappone cavo"
 msgid "Europe"
 msgstr "Europa"
 
-#: glade/glade_strings.c:125 src/frequencies.c:1233
+#: src/frequencies.c:1233 glade/glade_strings.c:125
 msgid "Eastern Europe"
 msgstr "Europa Orientale"
 
@@ -358,11 +358,11 @@ msgstr "Nessun canale sintonizzato"
 msgid "No Audio"
 msgstr "Senza audio"
 
-#: src/tveng1.c:1018 src/zvbi.c:136
+#: src/zvbi.c:136 src/tveng1.c:1018
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng1.c:1019 src/zvbi.c:137
+#: src/zvbi.c:137 src/tveng1.c:1019
 msgid "Stereo"
 msgstr "Stereo"
 
@@ -432,8 +432,9 @@ msgstr ""
 "Aggiungi al tuo /etc/modules.conf la linea:\n"
 "alias char-major-81-224 bttv (sostituisci bttv con il nome del tuo driver "
 "video)\n"
-"e con mknod crea /dev/vbi0 appropriatamente. Se ciò non funziona, è possibile "
-"disabilitare il VBI in Opzioni/Preferenze/Opzioni VBI/Abilita decodifica VBI."
+"e con mknod crea /dev/vbi0 appropriatamente. Se ciò non funziona, è "
+"possibile disabilitare il VBI in Opzioni/Preferenze/Opzioni VBI/Abilita "
+"decodifica VBI."
 
 #: src/zvbi.c:716
 msgid "Click me"
@@ -483,7 +484,7 @@ msgstr[1] "%d minuti"
 msgid "%d h %d m"
 msgstr "%d h %d m"
 
-#: src/ttxview.c:2545 src/zvbi.c:2151
+#: src/zvbi.c:2151 src/ttxview.c:2545
 msgid "Current program"
 msgstr "Programma corrente"
 
@@ -555,23 +556,23 @@ msgstr "Sottotitolato"
 msgid "Not rated"
 msgstr "Non valutato"
 
-#: src/tveng.c:270
+#: src/tveng.c:288
 msgid "TV"
 msgstr "TV"
 
-#: src/properties-handler.c:122 src/tveng.c:271
+#: src/tveng.c:289 src/properties-handler.c:122
 msgid "Camera"
 msgstr "Camera"
 
-#: src/tveng.c:1544
+#: src/tveng.c:1562
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr "Impossibile trovare zapping_setup_fb, controlla l'installazione"
 
-#: src/tveng.c:2174 src/tveng.c:2192
+#: src/tveng.c:2216 src/tveng.c:2234
 msgid "Filter"
 msgstr "Filtro"
 
-#: src/tveng.c:2210
+#: src/tveng.c:2252
 msgid "Colorkey"
 msgstr "Chiave di colore"
 
@@ -764,7 +765,7 @@ msgstr "Impossibile creare %s: %s"
 msgid "%s is not a directory"
 msgstr "%s non è una directory"
 
-#: glade/glade_strings.c:271 glade/glade_strings.c:272 src/zmisc.c:1484
+#: src/zmisc.c:1484 glade/glade_strings.c:271 glade/glade_strings.c:272
 msgid "Reset"
 msgstr "Ripristina"
 
@@ -772,7 +773,7 @@ msgstr "Ripristina"
 msgid "Zapping Properties"
 msgstr "Proprietà di Zapping"
 
-#: src/keyboard.c:814 src/properties-handler.c:737 src/properties.c:960
+#: src/properties.c:960 src/properties-handler.c:737 src/keyboard.c:814
 msgid "General Options"
 msgstr "Opzioni generali"
 
@@ -839,8 +840,8 @@ msgstr[1] "%s con %d sintonizzatori"
 msgid "VBI Options"
 msgstr "Opzioni VBI"
 
-#: glade/glade_strings.c:180 src/properties-handler.c:443
-#: src/properties-handler.c:732
+#: src/properties-handler.c:443 src/properties-handler.c:732
+#: glade/glade_strings.c:180
 msgid "Interactive TV"
 msgstr "TV interattiva"
 
@@ -848,20 +849,20 @@ msgstr "TV interattiva"
 msgid "Device Info"
 msgstr "Info dispositivo"
 
-#: glade/glade_strings.c:66 src/properties-handler.c:722
+#: src/properties-handler.c:722 glade/glade_strings.c:66
 msgid "Main Window"
 msgstr "Finestra Principale"
 
-#: glade/glade_strings.c:103 src/properties-handler.c:724
+#: src/properties-handler.c:724 glade/glade_strings.c:103
 msgid "OSD"
 msgstr "OSD"
 
-#: glade/glade_strings.c:80 plugins/mpeg/mpeg_strings.c:19
-#: plugins/mpeg/mpeg_strings.c:51 src/properties-handler.c:726
+#: src/properties-handler.c:726 glade/glade_strings.c:80
+#: plugins/mpeg/mpeg_strings.c:19 plugins/mpeg/mpeg_strings.c:51
 msgid "Video"
 msgstr "Video"
 
-#: glade/glade_strings.c:143 src/properties-handler.c:730
+#: src/properties-handler.c:730 glade/glade_strings.c:143
 msgid "General"
 msgstr "Generale"
 
@@ -898,8 +899,9 @@ msgstr ""
 
 #: src/channel_editor.c:1494
 msgid "Your current V4L/V4L2 driver cannot do channel autosearching, sorry"
-msgstr "Il driver V4L/V4L2 corrente non può effettuare la ricerca automatica "
-"dei canali, spiacente"
+msgstr ""
+"Il driver V4L/V4L2 corrente non può effettuare la ricerca automatica dei "
+"canali, spiacente"
 
 #: src/plugin_properties.c:56
 msgid "Sorry, but no plugins have been loaded"
@@ -1016,8 +1018,8 @@ msgstr "Ogni sottopagina"
 msgid "Export %s"
 msgstr "Esporta %s"
 
-#: plugins/mpeg/mpeg_strings.c:36 plugins/screenshot/screenshot_strings.c:19
-#: src/ttxview.c:1993
+#: src/ttxview.c:1993 plugins/screenshot/screenshot_strings.c:19
+#: plugins/mpeg/mpeg_strings.c:36
 msgid "Save as:"
 msgstr "Salva come:"
 
@@ -1173,7 +1175,7 @@ msgstr "Shift"
 msgid "Key table..."
 msgstr "Tabella dei tasti..."
 
-#: glade/glade_strings.c:110 src/keyboard.c:810
+#: src/keyboard.c:810 glade/glade_strings.c:110
 msgid "Keyboard"
 msgstr "Tastiera"
 
@@ -1834,10 +1836,10 @@ msgstr "Ferma il plugin"
 msgid "S_top Plugin"
 msgstr "_Ferma il Plugin"
 
-#: glade/glade_strings.c:188 plugins/lirc/lirc.c:382 plugins/mpeg/mpeg.c:1093
-#: plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184 plugins/mpeg/mpeg.c:2668
-#: plugins/mpeg/mpeg.c:3269 plugins/screenshot/screenshot.c:576
-#: plugins/screenshot/screenshot.c:1423
+#: glade/glade_strings.c:188 plugins/screenshot/screenshot.c:576
+#: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:382
+#: plugins/mpeg/mpeg.c:1096 plugins/mpeg/mpeg.c:1123 plugins/mpeg/mpeg.c:1187
+#: plugins/mpeg/mpeg.c:2734 plugins/mpeg/mpeg.c:3336
 msgid "Plugins"
 msgstr "Plugin"
 
@@ -2145,8 +2147,7 @@ msgstr "Salva i cambiamenti ed esci dalla finestra di dialogo"
 #: glade/glade_strings.c:275
 msgid ""
 "Click this button if you want to leave the dialog discarding the changes"
-msgstr ""
-"Click qui per uscire dalla finestra di dialogo ignorando i cambiamenti"
+msgstr "Click qui per uscire dalla finestra di dialogo ignorando i cambiamenti"
 
 #: glade/glade_strings.c:276
 msgid "This shows some help about this dialog"
@@ -2179,8 +2180,8 @@ msgstr "Ricerca automatica delle _stazioni"
 
 #: glade/glade_strings.c:282
 msgid "Add all channels in the frequency table to the channel list."
-msgstr "Aggiungi tutti i canali della tavola delle frequenze alla lista dei "
-"canali."
+msgstr ""
+"Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
 
 #: glade/glade_strings.c:283
 msgid "Add all _channels"
@@ -2306,6 +2307,34 @@ msgstr "Ritardo del nastro:"
 msgid "Synopsis"
 msgstr "Sintassi"
 
+#: glade/glade_strings.c:319
+#, fuzzy
+msgid "Video Standard"
+msgstr "Standard video:"
+
+#: glade/glade_strings.c:320
+msgid ""
+"The video capture device does not report the correct\n"
+"video standard, please select manually:"
+msgstr ""
+
+#: glade/glade_strings.c:322
+msgid "NTSC"
+msgstr ""
+
+#: glade/glade_strings.c:323
+msgid "PAL"
+msgstr ""
+
+#: glade/glade_strings.c:324
+msgid "SECAM"
+msgstr ""
+
+#: glade/glade_strings.c:325
+#, fuzzy
+msgid "Remember this video standard"
+msgstr "Standard video:"
+
 #: plugins/screenshot/screenshot.c:40
 msgid "Screenshot saver"
 msgstr "Salva istantanee"
@@ -2322,8 +2351,8 @@ msgstr ""
 msgid "This plugin takes screenshots of the video capture."
 msgstr "Questo plugin prende istantanee della cattura video."
 
-#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:134 plugins/mpeg/mpeg.c:142
-#: plugins/mpeg/mpeg.c:3331 plugins/screenshot/screenshot.c:173
+#: plugins/screenshot/screenshot.c:173 plugins/lirc/lirc.c:134
+#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3398
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Controllo errore: \"%s\" nel plugin %s ha hash 0x%x vs. 0x%x"
@@ -2476,16 +2505,16 @@ msgstr "Aggiungi bottone alla barra degli strumenti"
 msgid "Save screenshot"
 msgstr "Salva istantanea"
 
-#: plugins/mpeg/mpeg_strings.c:30 plugins/screenshot/screenshot_strings.c:17
+#: plugins/screenshot/screenshot_strings.c:17 plugins/mpeg/mpeg_strings.c:30
 msgid "Configure the properties for this plugin"
 msgstr "Configura le proprietà di questo plugin"
 
-#: plugins/mpeg/mpeg_strings.c:31 plugins/screenshot/screenshot_strings.c:18
+#: plugins/screenshot/screenshot_strings.c:18 plugins/mpeg/mpeg_strings.c:31
 msgid "Configure"
 msgstr "Configura"
 
-#: plugins/mpeg/mpeg_strings.c:33 plugins/mpeg/mpeg_strings.c:38
-#: plugins/screenshot/screenshot_strings.c:20
+#: plugins/screenshot/screenshot_strings.c:20 plugins/mpeg/mpeg_strings.c:33
+#: plugins/mpeg/mpeg_strings.c:38
 msgid "Destination file"
 msgstr "File di destinazione"
 
@@ -2493,8 +2522,8 @@ msgstr "File di destinazione"
 msgid "Quality:"
 msgstr "Qualità:"
 
-#: plugins/mpeg/mpeg_strings.c:7 plugins/mpeg/mpeg_strings.c:35
-#: plugins/mpeg/mpeg_strings.c:43 plugins/screenshot/screenshot_strings.c:22
+#: plugins/screenshot/screenshot_strings.c:22 plugins/mpeg/mpeg_strings.c:7
+#: plugins/mpeg/mpeg_strings.c:35 plugins/mpeg/mpeg_strings.c:43
 msgid "Format:"
 msgstr "Formato:"
 
@@ -2677,7 +2706,7 @@ msgstr ""
 "I driver V4L2 forniscono una migliore sincronizzazione,\n"
 "puoi provarli se non sei soddisfatto dai risultati."
 
-#: plugins/mpeg/mpeg.c:542
+#: plugins/mpeg/mpeg.c:545
 #, c-format
 msgid ""
 "Cannot create destination dir for clips:\n"
@@ -2688,46 +2717,46 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:611
+#: plugins/mpeg/mpeg.c:614
 #, c-format
 msgid "RTE ID: %s"
 msgstr "ID RTE: %s"
 
-#: plugins/mpeg/mpeg.c:617 plugins/mpeg/mpeg.c:619
+#: plugins/mpeg/mpeg.c:620 plugins/mpeg/mpeg.c:622
 #, c-format
 msgid "Destination: %s"
 msgstr "Destinazione: %s"
 
-#: plugins/mpeg/mpeg.c:627
+#: plugins/mpeg/mpeg.c:630
 msgid "Audio only"
 msgstr "Solo audio"
 
-#: plugins/mpeg/mpeg.c:630
+#: plugins/mpeg/mpeg.c:633
 msgid "Video only"
 msgstr "Solo video"
 
-#: plugins/mpeg/mpeg.c:633
+#: plugins/mpeg/mpeg.c:636
 msgid "Audio and Video"
 msgstr "Audio e Video"
 
-#: plugins/mpeg/mpeg.c:650 plugins/mpeg/mpeg.c:658
+#: plugins/mpeg/mpeg.c:653 plugins/mpeg/mpeg.c:661
 msgid "Output audio kbits per second:"
 msgstr "Kbits al secondo dell'audio generati:"
 
-#: plugins/mpeg/mpeg.c:654 plugins/mpeg/mpeg.c:660
+#: plugins/mpeg/mpeg.c:657 plugins/mpeg/mpeg.c:663
 msgid "Output video Mbits per second:"
 msgstr "Mbits al secondo generati del video:"
 
-#: plugins/mpeg/mpeg.c:667
+#: plugins/mpeg/mpeg.c:670
 msgid "Waiting for frames..."
 msgstr "In attesa di frame..."
 
-#: plugins/mpeg/mpeg.c:1089 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
-#: plugins/mpeg/mpeg.c:1225
+#: plugins/mpeg/mpeg.c:1092 plugins/mpeg/mpeg.c:1123 plugins/mpeg/mpeg.c:1187
+#: plugins/mpeg/mpeg.c:1228
 msgid "MPEG"
 msgstr "MPEG"
 
-#: plugins/mpeg/mpeg.c:1110
+#: plugins/mpeg/mpeg.c:1113
 msgid ""
 "This is the first time you run the plugin,\n"
 "please take a moment to configure it to your tastes.\n"
@@ -2735,24 +2764,25 @@ msgstr ""
 "Questa è la prima volta che esegui il plugin,\n"
 "per favore dedica un momento per configurarlo secondo i tuoi gusti.\n"
 
-#: plugins/mpeg/mpeg.c:1113
+#: plugins/mpeg/mpeg.c:1116
 msgid "Open preferences"
 msgstr "Apri preferenze"
 
-#: plugins/mpeg/mpeg.c:1210
+#: plugins/mpeg/mpeg.c:1213
 msgid "Start recording"
 msgstr "Inizia registrazione"
 
-#: plugins/mpeg/mpeg.c:1261
+#: plugins/mpeg/mpeg.c:1264
 msgid "Record as MPEG"
 msgstr "Registra come MPEG"
 
-#: plugins/mpeg/mpeg.c:1688
+#: plugins/mpeg/mpeg.c:1697
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
-msgstr "Il formato %s è incompleto, per favore configurare il codec video o audio."
+msgstr ""
+"Il formato %s è incompleto, per favore configurare il codec video o audio."
 
-#: plugins/mpeg/mpeg.c:1831
+#: plugins/mpeg/mpeg.c:1883
 #, c-format
 msgid ""
 "Cannot create destination directory:\n"
@@ -2763,34 +2793,34 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:1843
+#: plugins/mpeg/mpeg.c:1895
 #, c-format
 msgid "Cannot create file %s: %s\n"
 msgstr "Impossibile creare il file %s: %s\n"
 
-#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3123 plugins/mpeg/mpeg.c:3147
-#: plugins/mpeg/mpeg.c:3257 plugins/mpeg/mpeg_strings.c:34
+#: plugins/mpeg/mpeg.c:2734 plugins/mpeg/mpeg.c:3190 plugins/mpeg/mpeg.c:3214
+#: plugins/mpeg/mpeg.c:3324 plugins/mpeg/mpeg_strings.c:34
 #: plugins/mpeg/mpeg_strings.c:41
 msgid "Record"
 msgstr "Registra"
 
-#: plugins/mpeg/mpeg.c:2923
+#: plugins/mpeg/mpeg.c:2991
 msgid "Not implemented yet"
 msgstr "Non ancora implementato"
 
-#: plugins/mpeg/mpeg.c:3107
+#: plugins/mpeg/mpeg.c:3174
 msgid "Recording dialog"
 msgstr "Finestra di dialogo di registrazione"
 
-#: plugins/mpeg/mpeg.c:3198
+#: plugins/mpeg/mpeg.c:3265
 msgid "Audio/Video Recorder"
 msgstr "Registratore Audio/Video"
 
-#: plugins/mpeg/mpeg.c:3201
+#: plugins/mpeg/mpeg.c:3268
 msgid "This plugin records video and audio into a file"
 msgstr "Questo plugin registra video e audio in un file"
 
-#: plugins/mpeg/mpeg.c:3204
+#: plugins/mpeg/mpeg.c:3271
 msgid "Record video and audio."
 msgstr "Registra video e audio."
 
@@ -2899,4 +2929,3 @@ msgstr "Nuovo Formato"
 #: plugins/mpeg/mpeg_strings.c:55
 msgid "Format name:"
 msgstr "Nome del Formato:"
-

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.5\n"
-"POT-Creation-Date: 2002-10-22 11:02+0200\n"
+"POT-Creation-Date: 2002-12-25 05:07+0100\n"
 "PO-Revision-Date: 2002-09-27 19:00+0200\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -556,23 +556,23 @@ msgstr "Légende"
 msgid "Not rated"
 msgstr "Non classé"
 
-#: src/tveng.c:270
+#: src/tveng.c:288
 msgid "TV"
 msgstr "TV"
 
-#: src/tveng.c:271 src/properties-handler.c:122
+#: src/tveng.c:289 src/properties-handler.c:122
 msgid "Camera"
 msgstr "Caméra"
 
-#: src/tveng.c:1544
+#: src/tveng.c:1562
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr "Impossible de trouver zapping_setup_fb, vérifié votre installation"
 
-#: src/tveng.c:2174 src/tveng.c:2192
+#: src/tveng.c:2216 src/tveng.c:2234
 msgid "Filter"
 msgstr "Filtre"
 
-#: src/tveng.c:2210
+#: src/tveng.c:2252
 msgid "Colorkey"
 msgstr "Colorkey"
 
@@ -1840,8 +1840,8 @@ msgstr "_Arrêter le greffon"
 
 #: glade/glade_strings.c:188 plugins/screenshot/screenshot.c:576
 #: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:382
-#: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
-#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3269
+#: plugins/mpeg/mpeg.c:1096 plugins/mpeg/mpeg.c:1123 plugins/mpeg/mpeg.c:1187
+#: plugins/mpeg/mpeg.c:2734 plugins/mpeg/mpeg.c:3336
 msgid "Plugins"
 msgstr "Greffons"
 
@@ -2311,6 +2311,34 @@ msgstr "Délai d'enregistrement :"
 msgid "Synopsis"
 msgstr "Synopsis"
 
+#: glade/glade_strings.c:319
+#, fuzzy
+msgid "Video Standard"
+msgstr "Standard vidéo :"
+
+#: glade/glade_strings.c:320
+msgid ""
+"The video capture device does not report the correct\n"
+"video standard, please select manually:"
+msgstr ""
+
+#: glade/glade_strings.c:322
+msgid "NTSC"
+msgstr ""
+
+#: glade/glade_strings.c:323
+msgid "PAL"
+msgstr ""
+
+#: glade/glade_strings.c:324
+msgid "SECAM"
+msgstr ""
+
+#: glade/glade_strings.c:325
+#, fuzzy
+msgid "Remember this video standard"
+msgstr "Standard vidéo :"
+
 #: plugins/screenshot/screenshot.c:40
 msgid "Screenshot saver"
 msgstr "Copie d'écran"
@@ -2328,7 +2356,7 @@ msgid "This plugin takes screenshots of the video capture."
 msgstr "Ce greffon fait des copies d'écran de la capture vidéo"
 
 #: plugins/screenshot/screenshot.c:173 plugins/lirc/lirc.c:134
-#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3331
+#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3398
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Check erreur : \"%s\" du greffon %s has hash 0x%x vs. 0x%x"
@@ -2681,7 +2709,7 @@ msgstr ""
 "vous pouvez les essayer si vous n'êtes pas\n"
 "satisfait du résultat."
 
-#: plugins/mpeg/mpeg.c:542
+#: plugins/mpeg/mpeg.c:545
 #, c-format
 msgid ""
 "Cannot create destination dir for clips:\n"
@@ -2692,46 +2720,46 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:611
+#: plugins/mpeg/mpeg.c:614
 #, c-format
 msgid "RTE ID: %s"
 msgstr "ID RTE : %s"
 
-#: plugins/mpeg/mpeg.c:617 plugins/mpeg/mpeg.c:619
+#: plugins/mpeg/mpeg.c:620 plugins/mpeg/mpeg.c:622
 #, c-format
 msgid "Destination: %s"
 msgstr "Destination : %s"
 
-#: plugins/mpeg/mpeg.c:627
+#: plugins/mpeg/mpeg.c:630
 msgid "Audio only"
 msgstr "Audio seulement"
 
-#: plugins/mpeg/mpeg.c:630
+#: plugins/mpeg/mpeg.c:633
 msgid "Video only"
 msgstr "Vidéo seulement"
 
-#: plugins/mpeg/mpeg.c:633
+#: plugins/mpeg/mpeg.c:636
 msgid "Audio and Video"
 msgstr "Audio et Vidéo"
 
-#: plugins/mpeg/mpeg.c:650 plugins/mpeg/mpeg.c:658
+#: plugins/mpeg/mpeg.c:653 plugins/mpeg/mpeg.c:661
 msgid "Output audio kbits per second:"
 msgstr "Sortie audio Koctets par seconde :"
 
-#: plugins/mpeg/mpeg.c:654 plugins/mpeg/mpeg.c:660
+#: plugins/mpeg/mpeg.c:657 plugins/mpeg/mpeg.c:663
 msgid "Output video Mbits per second:"
 msgstr "Sortie vidéo Moctets par seconde :"
 
-#: plugins/mpeg/mpeg.c:667
+#: plugins/mpeg/mpeg.c:670
 msgid "Waiting for frames..."
 msgstr "Attente des trames..."
 
-#: plugins/mpeg/mpeg.c:1089 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
-#: plugins/mpeg/mpeg.c:1225
+#: plugins/mpeg/mpeg.c:1092 plugins/mpeg/mpeg.c:1123 plugins/mpeg/mpeg.c:1187
+#: plugins/mpeg/mpeg.c:1228
 msgid "MPEG"
 msgstr "MPEG"
 
-#: plugins/mpeg/mpeg.c:1110
+#: plugins/mpeg/mpeg.c:1113
 msgid ""
 "This is the first time you run the plugin,\n"
 "please take a moment to configure it to your tastes.\n"
@@ -2739,24 +2767,24 @@ msgstr ""
 "C'est la première fois que vous utiliser ce greffon,\n"
 "Prenez un moment pour configurer ce greffon selon vos besoins.\n"
 
-#: plugins/mpeg/mpeg.c:1113
+#: plugins/mpeg/mpeg.c:1116
 msgid "Open preferences"
 msgstr "Ouvrir les préférences"
 
-#: plugins/mpeg/mpeg.c:1210
+#: plugins/mpeg/mpeg.c:1213
 msgid "Start recording"
 msgstr "Démarrer l'enregistrement"
 
-#: plugins/mpeg/mpeg.c:1261
+#: plugins/mpeg/mpeg.c:1264
 msgid "Record as MPEG"
 msgstr "Enregistrer en MPEG"
 
-#: plugins/mpeg/mpeg.c:1688
+#: plugins/mpeg/mpeg.c:1697
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
 msgstr "Le format %s est incomplet, configurer le codec video ou audio."
 
-#: plugins/mpeg/mpeg.c:1831
+#: plugins/mpeg/mpeg.c:1883
 #, c-format
 msgid ""
 "Cannot create destination directory:\n"
@@ -2767,34 +2795,34 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:1843
+#: plugins/mpeg/mpeg.c:1895
 #, c-format
 msgid "Cannot create file %s: %s\n"
 msgstr "Ne peut créer le fichier %s : %s\n"
 
-#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3123 plugins/mpeg/mpeg.c:3147
-#: plugins/mpeg/mpeg.c:3257 plugins/mpeg/mpeg_strings.c:34
+#: plugins/mpeg/mpeg.c:2734 plugins/mpeg/mpeg.c:3190 plugins/mpeg/mpeg.c:3214
+#: plugins/mpeg/mpeg.c:3324 plugins/mpeg/mpeg_strings.c:34
 #: plugins/mpeg/mpeg_strings.c:41
 msgid "Record"
 msgstr "Enregistrement"
 
-#: plugins/mpeg/mpeg.c:2923
+#: plugins/mpeg/mpeg.c:2991
 msgid "Not implemented yet"
 msgstr "Pas encore implémenté"
 
-#: plugins/mpeg/mpeg.c:3107
+#: plugins/mpeg/mpeg.c:3174
 msgid "Recording dialog"
 msgstr "Boite d'enregistrement"
 
-#: plugins/mpeg/mpeg.c:3198
+#: plugins/mpeg/mpeg.c:3265
 msgid "Audio/Video Recorder"
 msgstr "Enregistrement Audio/Video"
 
-#: plugins/mpeg/mpeg.c:3201
+#: plugins/mpeg/mpeg.c:3268
 msgid "This plugin records video and audio into a file"
 msgstr "Ce greffon enregistre les flux image et audio dans un fichier"
 
-#: plugins/mpeg/mpeg.c:3204
+#: plugins/mpeg/mpeg.c:3271
 msgid "Record video and audio."
 msgstr "Enregistrer la vidéo et l'audio."
 
