@@ -592,9 +592,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
      all requested pixfmts. If more than one qualifies, we pick
      that which needs the fewest conversions.
 
-     XXX this is too simple. We should take memory bw and
-     conversion costs into account, and make sure we don't
-     convert to higher color depth. */
+     FIXME this is too simple. See TODO. */
 
   for (i=0; i<TV_MAX_PIXFMTS; i++)
     if (available_pixfmts & TV_PIXFMT_SET (i))
@@ -657,31 +655,37 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
 
   /* Request the new format to TVeng (should succeed) [id] */
   memcpy (&prev_fmt, &info->format, sizeof (prev_fmt));
-  info->format.pixfmt = id;
 
   find_request_size (fmt, &req_w, &req_h);
+
+  if (info->format.pixfmt != id
+      || info->format.width != req_w
+      || info->format.height != req_h)
     {
+      info->format.pixfmt = id;
       info->format.width = req_w;
       info->format.height = req_h;
-    }
-  printv ("Setting TVeng mode %s [%d x %d]\n",
-	  tv_pixfmt_name (id), req_w, req_h);
 
-  if (tveng_set_capture_format (info) == -1 ||
-      info->format.width != req_w || info->format.height != req_h)
-    {
-      if (info->tveng_errno)
-	g_warning ("Cannot set new mode: %s", info->error);
-      /* Try to restore previous setup so we can keep working */
-      memcpy (&info->format, &prev_fmt, sizeof (prev_fmt));
+      printv ("Setting TVeng mode %s [%d x %d]\n",
+	      tv_pixfmt_name (id), req_w, req_h);
 
-      if (tveng_set_capture_format (info) != -1)
-	if (info->current_mode == TVENG_NO_CAPTURE
-	    || info->current_mode == TVENG_TELETEXT)
-	  tveng_start_capturing (info);
-      pthread_rwlock_unlock (&size_rwlock);
-      pthread_rwlock_unlock (&fmt_rwlock);
-      return -1;
+      if (tveng_set_capture_format (info) == -1 ||
+	  info->format.width != req_w ||
+	  info->format.height != req_h)
+	{
+	  if (info->tveng_errno)
+	    g_warning ("Cannot set new mode: %s", info->error);
+	  /* Try to restore previous setup so we can keep working */
+	  memcpy (&info->format, &prev_fmt, sizeof (prev_fmt));
+
+	  if (tveng_set_capture_format (info) != -1)
+	    if (info->current_mode == TVENG_NO_CAPTURE
+		|| info->current_mode == TVENG_TELETEXT)
+	      tveng_start_capturing (info);
+	  pthread_rwlock_unlock (&size_rwlock);
+	  pthread_rwlock_unlock (&fmt_rwlock);
+	  return -1;
+	}
     }
 
   pthread_rwlock_unlock (&size_rwlock);
