@@ -920,7 +920,7 @@ tvengxv_get_mute(tveng_device_info * info)
   return !!p_info->muted;
 #else
   if (p_info->mute != None)
-    if (Success != XvGetPortAttribute(info->private->display,
+    if (Success != XvGetPortAttribute(info->priv->display,
 	p_info->port, p_info->mute, &val))
       return -1;
 
@@ -960,6 +960,8 @@ tvengxv_tune_input(uint32_t freq, tveng_device_info *info)
 		       p_info->port,
 		       p_info->freq,
 		       freq*0.016);
+
+  XSync(info->priv->display, False);
 
   return 0;
 }
