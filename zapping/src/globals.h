@@ -1,15 +1,17 @@
 #ifndef __GLOBALS_H__
 #define __GLOBALS_H__
 
-#include <gnome.h>
 #include "tveng.h"
 #include "frequencies.h"
 #include "x11stuff.h"
 #include "mixer.h"
+#include "zapping.h"
 
-extern enum tveng_capture_mode	last_mode;
+extern Zapping *	zapping;
+
+display_mode		last_dmode;
+capture_mode		last_cmode;
 extern GtkWidget		*ChannelWindow;
-extern tveng_device_info	*main_info;
 extern volatile gboolean	flag_exit_program;
 extern GList			*plugin_list;
 /* preview should be disabled */
@@ -27,13 +29,12 @@ extern gint			xv_image_port;
 
 extern gint			disable_overlay;
 
-extern GtkWidget		*main_window;
 /* Will be TRUE if when quitting we were fullscreen */
 extern gboolean			was_fullscreen;
 extern tveng_tuned_channel *	global_channel_list;
+extern tv_screen *		screens;
 extern x11_vidmode_info *	vidmodes;
 extern gboolean			have_wm_hints;
-extern tv_overlay_buffer	dga_param;
 extern int			debug_msg;
 extern int			io_debug_msg;
 extern gint			cur_tuned_channel;
