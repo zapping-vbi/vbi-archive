@@ -492,7 +492,7 @@ gint capture_start (tveng_device_info *info, GtkWidget *window)
 }
 
 static gint
-join (const char *who, pthread_t id, gboolean *ack, gint timeout)
+join (const char *who, pthread_t id, volatile gboolean *ack, gint timeout)
 {
   /* Dirty. Where is pthread_try_join()? */
   for (; (!*ack) && timeout > 0; timeout--) {
