@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <math.h>
 #include <endian.h>
+#include <limits.h>		/* INT_MAX */
 
 #include "common/fifo.h" /* current_time() */
 
@@ -2207,9 +2208,72 @@ set_capture_format		(tveng_device_info *	info,
 			window.flags |= PWC_FPS_SNAPSHOT;
 	}
 
-	/* Ok, now set the video window dimensions */
-	if (-1 == xioctl (info, VIDIOCSWIN, &window))
-		return FALSE;
+	if (-1 == xioctl_may_fail (info, VIDIOCSWIN, &window)) {
+		unsigned int size;
+		int i;
+		int smaller;
+		int larger;
+		int r;
+
+		if (EINVAL != errno) {
+			ioctl_failure (info,
+				       __FILE__,
+				       __PRETTY_FUNCTION__,
+				       __LINE__,
+				       "VIDIOCSWIN");
+			return FALSE;
+		}
+
+		/* May fail due to unsupported capture size (e.g. pwc driver).
+		   Let's try some common values, closest first. */
+
+		size = window.width * window.height;
+
+		for (smaller = -1; smaller < (int) N_ELEMENTS (common_sizes);
+		     ++smaller) {
+			if (size <= (common_sizes[smaller + 1].width
+				     * common_sizes[smaller + 1].height))
+				break;
+		}
+
+		for (larger = N_ELEMENTS (common_sizes);
+		     larger >= 0; --larger) {
+			if (size >= (common_sizes[larger - 1].width
+				     * common_sizes[larger - 1].height))
+				break;
+		}
+
+		for (;;) {
+			if (smaller >= 0) {
+				window.width = common_sizes[smaller].width;
+				window.height = common_sizes[smaller].height;
+
+				if (0 == xioctl_may_fail (info, VIDIOCSWIN,
+							  &window))
+					break;
+
+				--smaller;
+			} else if (larger >= (int) N_ELEMENTS (common_sizes)) {
+				ioctl_failure (info,
+					       __FILE__,
+					       __PRETTY_FUNCTION__,
+					       __LINE__,
+					       "VIDIOCSWIN");
+				return FALSE;
+			}
+
+			if (larger < (int) N_ELEMENTS (common_sizes)) {
+				window.width = common_sizes[larger].width;
+				window.height = common_sizes[larger].height;
+
+				if (0 == xioctl_may_fail (info, VIDIOCSWIN,
+							  &window))
+					break;
+
+				++larger;
+			}
+ 		}
+	}
 
 	/* Actual image size. */
 
@@ -2290,7 +2354,6 @@ static tv_bool
 map_xbuffers			(tveng_device_info *	info)
 {
 	struct private_tveng1_device_info *p_info = P_INFO (info);
-	unsigned int i;
 
 	assert ((void *) -1 == p_info->mmaped_data);
 
@@ -2504,7 +2567,7 @@ p_tveng1_timestamp_init(tveng_device_info *info)
 static sig_atomic_t timeout_alarm;
 
 static void
-alarm_handler			(int			signum)
+alarm_handler			(int			signum _unused_)
 {
 	timeout_alarm = TRUE;
 }
