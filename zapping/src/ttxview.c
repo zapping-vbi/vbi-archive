@@ -51,6 +51,8 @@ extern int zvbi_page;
 
 #define BLINK_CYCLE 300 /* ms */
 
+
+
 /* targets for the clipboard */
 enum
 {
@@ -139,6 +141,8 @@ do { \
 static GList	*bookmarks=NULL;
 static ZModel	*model=NULL; /* for bookmarks */
 static GdkAtom	clipboard_atom = GDK_NONE;
+
+
 
 static void on_ttxview_search_clicked(GtkButton *, ttxview_data *);
 
@@ -1819,6 +1823,73 @@ create_export_dialog (gchar **bpp, ttxview_data *data,
   return dialog;
 }
 
+#define TXCOLOR_DOMAIN "/zapping/options/text/"
+
+static void
+on_color_control			(GtkWidget *w,
+					 gpointer user_data)
+{
+  struct vbi *vbi = zvbi_get_object();
+  gint id = GPOINTER_TO_INT (user_data);
+  gint brig, cont;
+
+  switch (id) {
+  case 0:
+    brig = GTK_ADJUSTMENT(w)->value;
+    zconf_set_integer(brig, TXCOLOR_DOMAIN "brightness");
+    zconf_get_integer(&cont, TXCOLOR_DOMAIN "contrast");
+    break;
+
+  case 1:
+    cont = GTK_ADJUSTMENT(w)->value;
+    zconf_set_integer(cont, TXCOLOR_DOMAIN "contrast");
+    zconf_get_integer(&brig, TXCOLOR_DOMAIN "brightness");
+    break;
+  }
+
+  if (brig < 0) brig = 0;
+  if (brig > 255) brig = 255;
+  if (cont < -128) cont = -128;
+  if (cont > 127) cont = 127;
+
+  vbi_set_colour_level(vbi, brig, cont);
+}
+
+/*
+ *  Teletext text brightness/contrast (in the future possibly
+ *  Caption default colors (overriding std wht on blk))
+ *  XXX needs improvement: zconf defaults != 0, reset,
+ *  prettier dialog
+ */
+static GtkWidget *
+create_color_dialog			(GtkWidget	*widget,
+					 ttxview_data	*data)
+{
+  GtkWidget *dialog = create_widget("color_dialog71");
+  GtkAdjustment *adj;
+  GtkWidget *w;
+  gint value;
+
+  w = lookup_widget(dialog, "hscale71");
+  zconf_get_integer(&value, TXCOLOR_DOMAIN "brightness");
+  adj = GTK_ADJUSTMENT(gtk_adjustment_new(value, 0, 255, 1, 8, 0));
+  gtk_range_set_adjustment(GTK_RANGE(w), adj);
+  gtk_adjustment_set_value(adj, value); /* ugly evil dirty hack */
+  gtk_signal_connect(GTK_OBJECT(adj), "value-changed",
+		     GTK_SIGNAL_FUNC (on_color_control),
+		     GINT_TO_POINTER (0));
+
+  w = lookup_widget(dialog, "hscale72");
+  zconf_get_integer(&value, TXCOLOR_DOMAIN "contrast");
+  adj = GTK_ADJUSTMENT(gtk_adjustment_new(value, -128, 127, 1, 8, 0));
+  gtk_range_set_adjustment(GTK_RANGE(w), adj);
+  gtk_adjustment_set_value(adj, value); /* ugly evil dirty hack */
+  gtk_signal_connect(GTK_OBJECT(adj), "value-changed",
+		     GTK_SIGNAL_FUNC (on_color_control),
+		     GINT_TO_POINTER (1));
+  return dialog;
+}
+
 static
 void export_ttx_page			(GtkWidget	*widget,
 					 ttxview_data	*data,
@@ -2291,6 +2362,10 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 		     "activate",
 		     GTK_SIGNAL_FUNC(on_edit_bookmarks_activated),
 		     data);
+
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup,
+					      "ttx_color_dialog1")),
+		       "activate", GTK_SIGNAL_FUNC(create_color_dialog), data);
 
   /* Bookmark entries */
   if (!p)
@@ -3047,7 +3122,6 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	 struct vbi *vbi = zvbi_get_object();
          static int br = 128;
 
-	 /* experimental */
 	 if (event->keyval == GDK_B)
 	   br = (br > 0) ? (br - 4) : 0;
 	 else
@@ -3402,3 +3476,5 @@ ttxview_detach			(GtkWidget	*parent)
 
   gtk_object_set_data(GTK_OBJECT(parent), "ttxview_data", NULL);
 }
+
+

@@ -1,3 +1,10 @@
+2001-06-04	<mschimek@users.sourceforge.net>
+
+	* Fixed B-frame VLC bug
+	* Fixed B-motion mb skipping bug
+	* Fixed B-motion PMV bug
+	* Fixed MV overflow bug (could be improved)
+
 2001-06-01	<mschimek@users.sourceforge.net>
 
 	* Rewrote configure.in; added config.h
@@ -21,7 +28,9 @@
 
 	* Added MC 3.1, not yet compiled in by default, needs testing.
 	- MC: stream syntax bug, probably large vectors
+	  [-> confirmed, fixed on 2001-06-04]
 	- With MC enabled: P/B block bug (quant?), apparently at scene cuts
+	  [-> source unknown, not observed after 2001-06-04]
 
 2001-05-06	<garetxe@users.sourceforge.net>
 

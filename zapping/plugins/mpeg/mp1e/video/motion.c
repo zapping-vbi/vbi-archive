@@ -1,6 +1,6 @@
 /*
  *  MPEG-1 Real Time Encoder
- *  Motion compensation V3.1.36
+ *  Motion compensation V3.1.37
  *
  *  Copyright (C) 2001 Michael H. Schimek
  *
@@ -17,14 +17,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- *  Reg test: make && ./mp1e -R4,16 -b2.3 -vvvv -m1 -c files/tennis/grab%04u.ppm >rec.mpg; cmp rec.mpg ref.mpg; echo -e "\7Done"
- *  use ref25.mpg after rev. 25 *** dead branch, use ref39.mpg
- *  use ref34.mpg after rev. 34 *** dead branch, use ref40.mpg
- *  Motion test: add -b4, -gIPIP or -gIBIB, set T3RT 0, T3RI 0
  */
 
-/* $Id: motion.c,v 1.5 2001-06-01 20:24:35 mschimek Exp $ */
+/* $Id: motion.c,v 1.6 2001-06-04 16:20:00 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -970,7 +965,198 @@ mmx_load_ref(unsigned char t[16][16])
 }
 
 static inline void
-mmx_psse(char t[16][16], char *p, int pitch)
+mmx_psse_4(char t[16][16], char *p, int pitch)
+{
+	asm volatile ("
+		movq		(%0),%%mm0;
+		movq		(%1),%%mm1;
+		movq		8(%0),%%mm4;
+
+		movq		%%mm0,%%mm2;
+		movq		%%mm1,%%mm3;
+		pcmpgtb		%%mm1,%%mm2;		// 1 < 0
+		psubb		%%mm0,%%mm1;		// 1 = 1 - 0
+		movq		%%mm1,%%mm6;
+		punpcklbw	%%mm2,%%mm6;
+		pmullw		%%mm6,%%mm6;
+		punpckhbw	%%mm2,%%mm1;
+		pmullw		%%mm1,%%mm1;
+		paddusw		%%mm1,%%mm6;
+
+		movq		8(%1),%%mm1;
+
+		psrlq		$32,%%mm0;
+		movq		%%mm4,%%mm2;
+		psllq		$32,%%mm2;
+		por		%%mm2,%%mm0;
+
+		movq		(%0,%2),%%mm5;
+
+		movq		%%mm4,%%mm2;
+		movq		%%mm1,%%mm3;
+		pcmpgtb		%%mm1,%%mm2;
+		psubb		%%mm4,%%mm1;
+		movq		%%mm1,%%mm0;
+		punpcklbw	%%mm2,%%mm0;
+		pmullw		%%mm0,%%mm0;
+		paddusw		%%mm0,%%mm6;
+		movd		16(%0),%%mm0;
+		punpckhbw	%%mm2,%%mm1;
+		pmullw		%%mm1,%%mm1;
+		paddusw		%%mm1,%%mm6;
+
+		movq		16(%1),%%mm1;
+
+		psrlq		$32,%%mm4;
+		psllq		$32,%%mm0;
+		por		%%mm4,%%mm0;
+
+		movq		8(%0,%2),%%mm0;
+
+		movq		%%mm5,%%mm2;
+		movq		%%mm1,%%mm3;
+		pcmpgtb		%%mm1,%%mm2;
+		psubb		%%mm5,%%mm1;
+		movq		%%mm1,%%mm4;
+		punpcklbw	%%mm2,%%mm4;
+		pmullw		%%mm4,%%mm4;
+		paddusw		%%mm4,%%mm6;
+		movq		24(%1),%%mm4;
+		punpckhbw	%%mm2,%%mm1;
+		pmullw		%%mm1,%%mm1;
+		paddusw		%%mm1,%%mm6;
+
+		movd		16(%0,%2),%%mm5;
+
+		movq		%%mm0,%%mm2;
+		movq		%%mm4,%%mm3;
+		pcmpgtb		%%mm4,%%mm2;
+		psubb		%%mm0,%%mm4;
+		movq		%%mm4,%%mm1;
+		punpcklbw	%%mm2,%%mm1;
+		pmullw		%%mm1,%%mm1;
+		paddusw		%%mm1,%%mm6;
+		movq		bbmin,%%mm1;
+		punpckhbw	%%mm2,%%mm4;
+		movq		bbdxy,%%mm2;
+		pmullw		%%mm4,%%mm4;
+
+		psrlq		$32,%%mm0;
+		paddusw		%%mm4,%%mm6;
+		movq		crdxy,%%mm4;
+		psllq		$32,%%mm5;
+		psubw		c1_15w,%%mm6;
+		por		%%mm5,%%mm0;
+		paddb		c4,%%mm4;
+
+		movq		%%mm0,%%mm5;
+		pcmpgtb		%%mm3,%%mm5;
+		psubb		%%mm0,%%mm3;
+		movq		%%mm3,%%mm0;
+		punpcklbw	%%mm5,%%mm0;
+		pmullw		%%mm0,%%mm0;
+		paddusw		%%mm0,%%mm7;
+		punpckhbw	%%mm5,%%mm3;
+		pmullw		%%mm3,%%mm3;
+		paddusw		%%mm3,%%mm7;
+
+		movq		%%mm4,crdxy;
+
+		movq		%%mm4,%%mm5;
+		pxor		%%mm3,%%mm3;
+		pcmpgtb		%%mm4,%%mm3;
+		pxor		%%mm3,%%mm5;
+		psubb		%%mm3,%%mm5;
+
+		movq		%%mm5,%%mm3;
+		psrlw		$8,%%mm5;
+		paddsw		%%mm5,%%mm6;
+		pand		c255,%%mm3;
+		paddsw		%%mm3,%%mm6;
+
+		movq		%%mm1,%%mm5;
+		pcmpgtw		%%mm6,%%mm5;
+		movq		%%mm1,%%mm3;
+		pxor		%%mm6,%%mm3;
+		pand		%%mm5,%%mm3;
+		pxor		%%mm3,%%mm6;
+		pxor		%%mm3,%%mm1;
+		pxor		%%mm4,%%mm2;
+		pand		%%mm2,%%mm5;
+		pxor		%%mm5,%%mm4;
+		pxor		%%mm4,%%mm2;
+
+		movq		%%mm6,%%mm5;
+		psllq		$16,%%mm6;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm6;
+		movq		%%mm4,%%mm5;
+		psllq		$16,%%mm4;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm4;
+
+		movq		%%mm1,%%mm5;
+		pcmpgtw		%%mm6,%%mm5;
+		movq		%%mm1,%%mm3;
+		pxor		%%mm6,%%mm3;
+		pand		%%mm5,%%mm3;
+		pxor		%%mm3,%%mm6;
+		pxor		%%mm3,%%mm1;
+		pxor		%%mm4,%%mm2;
+		pand		%%mm2,%%mm5;
+		pxor		%%mm5,%%mm4;
+		pxor		%%mm4,%%mm2;
+
+		movq		%%mm6,%%mm5;
+		psllq		$16,%%mm6;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm6;
+		movq		%%mm4,%%mm5;
+		psllq		$16,%%mm4;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm4;
+
+		movq		%%mm1,%%mm5;
+		pcmpgtw		%%mm6,%%mm5;
+		movq		%%mm1,%%mm3;
+		pxor		%%mm6,%%mm3;
+		pand		%%mm5,%%mm3;
+		pxor		%%mm3,%%mm6;
+		pxor		%%mm3,%%mm1;
+		pxor		%%mm4,%%mm2;
+		pand		%%mm2,%%mm5;
+		pxor		%%mm5,%%mm4;
+		pxor		%%mm4,%%mm2;
+
+		movq		%%mm6,%%mm5;
+		psllq		$16,%%mm6;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm6;
+		movq		%%mm4,%%mm5;
+		psllq		$16,%%mm4;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm4;
+
+		movq		%%mm1,%%mm5;
+		pcmpgtw		%%mm6,%%mm5;
+		movq		%%mm1,%%mm3;
+		pxor		%%mm6,%%mm3;
+		pand		%%mm5,%%mm3;
+		pxor		%%mm3,%%mm6;
+		pxor		%%mm3,%%mm1;
+		pxor		%%mm4,%%mm2;
+		pand		%%mm2,%%mm5;
+		pxor		%%mm5,%%mm4;
+		pxor		%%mm4,%%mm2;
+
+		movq		%%mm1,bbmin;
+		movq		%%mm2,bbdxy;
+
+	" :: "r" (p), "r" (t), "r" (pitch * 8 /* ch */) : "memory");
+}
+
+static inline void
+mmx_psse_8(char t[16][16], char *p, int pitch)
 {
 	asm volatile ("
 		movq		(%0),%%mm0;
@@ -1763,6 +1949,9 @@ search(int *dhx, int *dhy, unsigned char *from,
 	x0 = x - (hrange >> 1);	y0 = y - (vrange >> 1);
 	x1 = x + (hrange >> 1);	y1 = y + (vrange >> 1);
 
+	hrange = ((range + 15) & -16) >> 2; // XXX
+	vrange >>= 2;
+
 	if (x0 < 0) {
 		x0 = 0;
 		x1 = hrange;
@@ -1778,7 +1967,7 @@ search(int *dhx, int *dhy, unsigned char *from,
 					y0 = y1 - vrange;
 				}
 
-	assert(((x1 - x0) & 7) == 0);
+	assert((x1 - x0) == 4 || ((x1 - x0) & 7) == 0);
 
 	bbmin = MMXRW(0xFFFE - 0x8000);
 	bbdxy = MMXRW(0x0000);
@@ -1792,17 +1981,29 @@ search(int *dhx, int *dhy, unsigned char *from,
 		crdy0.b[k * 2 + 1] = y0 - y - 1;
 	}
 
-	for (j = y0; j < y1; p += mb_address.block[0].pitch, j++) {
-		asm ("
-			movq		crdy0,%mm0;
-			paddb		c256,%mm0;
-			movq		%mm0,crdy0;
-			movq		%mm0,crdxy;
-		");
+	if ((x1 - x0) > 4)
+		for (j = y0; j < y1; p += mb_address.block[0].pitch, j++) {
+			asm ("
+				movq		crdy0,%mm0;
+				paddb		c256,%mm0;
+				movq		%mm0,crdy0;
+				movq		%mm0,crdxy;
+			");
 
-		for (i = x0; i < x1; i += 8)
-			mmx_psse(tbuf, p + i, mb_address.block[0].pitch);
-	}
+			for (i = x0; i < x1; i += 8)
+				mmx_psse_8(tbuf, p + i, mb_address.block[0].pitch);
+		}
+	else
+		for (j = y0; j < y1; p += mb_address.block[0].pitch, j++) {
+			asm ("
+				movq		crdy0,%mm0;
+				paddb		c256,%mm0;
+				movq		%mm0,crdy0;
+				movq		%mm0,crdxy;
+			");
+
+			mmx_psse_4(tbuf, p, mb_address.block[0].pitch);
+		}
 
 	p = from + x + y * mb_address.block[0].pitch;
 
@@ -1828,7 +2029,7 @@ search(int *dhx, int *dhy, unsigned char *from,
 	*dhx = dx * 2;		*dhy = dy * 2;
 
 #if TEST11
-	if (min < (16 * 256) && (nbabs(dx) | nbabs(dy)) < 2) {
+	if (min < (16 * 256) && !(dx | dy)) {
 
 	x *= 2;			y *= 2;
 	dx *= 2;		dy *= 2;

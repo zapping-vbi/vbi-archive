@@ -396,10 +396,10 @@ acknowledge_trigger			(vbi_link	*link)
     case VBI_LINK_HTTP:
     case VBI_LINK_FTP:
     case VBI_LINK_EMAIL:
-      if (link->name)
-        buffer = g_strdup_printf("%s: %s", link->name, link->url);
+      if (link->name[0])
+        buffer = g_strdup_printf(" %s", link->name /* , link->url */);
       else
-        buffer = g_strdup_printf("%s", link->url);
+        buffer = g_strdup_printf(" %s", link->url);
       set_tooltip(button,
 		  _("Open this link with the predetermined Web browser.\n"
 		    "You can configure this in the GNOME Control Center, "
@@ -407,15 +407,15 @@ acknowledge_trigger			(vbi_link	*link)
       break;
     case VBI_LINK_PAGE:
     case VBI_LINK_SUBPAGE:
-      if (link->name)
-        buffer = g_strdup_printf(_("%s: Teletext Page %x"), link->name,
+      if (link->name[0])
+        buffer = g_strdup_printf(_(" %s: Teletext Page %x"), link->name,
 			         link->page);
       else
-        buffer = g_strdup_printf(_("Teletext Page %x"), link->page);
-      set_tooltip(button, _("Open this with Zapzilla"));
+        buffer = g_strdup_printf(_(" Teletext Page %x"), link->page);
+      set_tooltip(button, _("Open this page with Zapzilla"));
       break;
     case VBI_LINK_MESSAGE:
-      buffer = g_strdup(link->name);
+      buffer = g_strdup_printf(" %s", link->name);
       gtk_widget_set_sensitive(button, FALSE);
       break;
     default:

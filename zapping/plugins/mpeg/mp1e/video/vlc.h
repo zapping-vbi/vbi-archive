@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.h,v 1.7 2001-06-01 20:24:35 mschimek Exp $ */
+/* $Id: vlc.h,v 1.8 2001-06-04 16:20:00 mschimek Exp $ */
 
 #ifndef VLC_H
 #define VLC_H
@@ -92,12 +92,6 @@ struct motion {
 };
 
 static inline void
-reset_pmv(struct motion *m)
-{
-	memset(m->PMV, 0, sizeof(m->PMV));
-}
-
-static inline void
 motion_init(struct motion *m, int range)
 {
 	int f;
@@ -112,7 +106,8 @@ motion_init(struct motion *m, int range)
 	m->vlc = motion_vector_component + ((15 << f) & 480);
 	// = motion_vector_component + ((1 << (f - 1)) - 1) * 32;
 
-	reset_pmv(m);
+	m->PMV[0] = 0;
+	m->PMV[1] = 0;
 }
 
 #endif // VLC_H
