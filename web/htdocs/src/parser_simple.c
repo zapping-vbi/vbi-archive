@@ -196,8 +196,8 @@ ALT="ResCD"></a>
 <option value="carsten" <?php if ($theme=="carsten") echo "selected" ?>>Carsten</option>
 <option value="modern" <?php if ($theme=="modern") echo "selected" ?>>Modern</option>
 </select><input type="submit" name="Submit" value="Select Theme">
-</div>
 </form>
+</div>
 </body>
 </html>
 ½
