@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.116.2.17 2003-11-15 15:16:15 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.116.2.18 2003-11-16 10:45:48 mschimek Exp $ */
 
 /*
  *  Teletext View
@@ -241,6 +241,9 @@ ttxview_data_from_widget	(GtkWidget *		widget)
 static void
 inc_ttxview_count		(void)
 {
+  if (!ttxview_zmodel)
+    return;
+
   g_object_set_data (G_OBJECT (ttxview_zmodel), "count",
 		     GINT_TO_POINTER (NUM_TTXVIEWS (ttxview_zmodel)) + 1);
 
@@ -250,6 +253,9 @@ inc_ttxview_count		(void)
 static void
 dec_ttxview_count		(void)
 {
+  if (!ttxview_zmodel)
+    return;
+
   g_object_set_data (G_OBJECT (ttxview_zmodel), "count",
 		     GINT_TO_POINTER (NUM_TTXVIEWS (ttxview_zmodel)) - 1);
 
@@ -3982,9 +3988,10 @@ static void
 on_main_menu_bookmarks_destroy	(GObject *		object,
 				 ttxview_data *		data)
 {
-  g_signal_handlers_disconnect_matched
-    (G_OBJECT (bookmarks_zmodel), G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
-     0, 0, NULL, G_CALLBACK (on_main_menu_bookmarks_changed), data);
+  if (bookmarks_zmodel)
+    g_signal_handlers_disconnect_matched
+      (G_OBJECT (bookmarks_zmodel), G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
+       0, 0, NULL, G_CALLBACK (on_main_menu_bookmarks_changed), data);
 }
 
 static void
@@ -4159,6 +4166,12 @@ on_ttxview_expose_event		(GtkWidget *		widget,
 				 ttxview_data *		data)
 {
   GdkRegion *region;
+
+  /* XXX this prevents a segv, needs probably a fix elsewhere. */
+  scale_image (widget,
+	       widget->allocation.width,
+	       widget->allocation.height,
+	       data);
 
   render_ttx_page (data->zvbi_client_id,
 		   widget->window,
@@ -4788,9 +4801,10 @@ ttxview_delete			(ttxview_data *		data)
     (G_OBJECT (data->vbi_model), G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
      0, 0, NULL, G_CALLBACK (on_vbi_model_changed), data);
 
-  g_signal_handlers_disconnect_matched
-    (G_OBJECT (color_zmodel), G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
-     0, 0, NULL, G_CALLBACK (on_color_zmodel_changed), data);
+  if (color_zmodel)
+    g_signal_handlers_disconnect_matched
+      (G_OBJECT (color_zmodel), G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
+       0, 0, NULL, G_CALLBACK (on_color_zmodel_changed), data);
 
   if (data->app)
     gtk_widget_destroy (GTK_WIDGET (data->app));
@@ -5080,13 +5094,19 @@ ttxview_attach			(GtkWidget *		parent,
 void
 shutdown_ttxview		(void)
 {
+  /* XXX this should destroy all ttx child windows first. */
+
   if (bookmarks_dialog.dialog)
-    gtk_widget_destroy (GTK_WIDGET (bookmarks_dialog.dialog));
+    {
+      gtk_widget_destroy (GTK_WIDGET (bookmarks_dialog.dialog));
+      bookmarks_dialog.dialog = NULL;
+    }
 
   bookmark_save ();
   bookmark_delete_all ();
 
   g_object_unref (G_OBJECT (bookmarks_zmodel));
+  bookmarks_zmodel = NULL;
 
   gdk_cursor_unref (cursor_select);
   gdk_cursor_unref (cursor_link);
@@ -5094,11 +5114,16 @@ shutdown_ttxview		(void)
   gdk_cursor_unref (cursor_busy);
 
   if (color_dialog)
-    gtk_widget_destroy (color_dialog);
+    {
+      gtk_widget_destroy (color_dialog);
+      color_dialog = NULL;
+    }
 
   g_object_unref (G_OBJECT (color_zmodel));
+  color_zmodel = NULL;
 
   g_object_unref (G_OBJECT (ttxview_zmodel));
+  ttxview_zmodel = NULL;
 }
 
 gboolean
