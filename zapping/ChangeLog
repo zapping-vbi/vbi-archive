@@ -1,3 +1,39 @@
+24.12.2002	<mschimek@users.sf.net>
+
+	* src/channel_editor.c, src/channel_editor.h: Rewrote from scratch.
+	  Modify button dropped, text entries change the list directly now.
+	  Add button adds blank channel. Modification of multiple channels
+	  works better. Station search channel name from vbi works better
+	  (for me from ttx/vps, anyway), although it runs a bit slower now.
+	  Station search and add-all does not add already known channels.
+	  Internal the dialog isn't modal and global_channel_list is edited,
+	  so all changes are put into effect immediately (needs more work).
+	  Cancel button or close restores the old list. Added missing
+	  channel_editor.h file.
+	* src/frequencies.c, src/frequencies.h: Rewrote tuned_channel
+	  routines. Cleaner and UTF-8 safe.
+	* src/keyboard.c, src/keyboard.h: Added z_key_entry_entry() and
+	  cleaned up to permit z_key_entry signal callback.
+	* src/keyboard.c: Commands in key bindings loaded from config now
+	  automagically translated from pre-0.7 syntax to Python (e.g.
+	  channel up/dn).
+	* src/remote.c, src/remote.h (cmd_compatibility): Added to
+	  translate pre-0.7 syntax commands.
+	* src/zmisc.c, src/zmisc.h: Spinslider cleanup. Reset button
+	  now cycles between current, previous and reset value.
+	  (z_icon_factory_add_default_files): Added but not used
+	  yet.
+	* src/v4linterface.c (add_channel_entries): Cleanup.
+	* src/options.c, src/v4linterface.c: Spinslider interface changed.
+	* src/main.c, src/v4linterface.c, src/zvbi.c, src/ttxview.c,
+	  plugins/screenshot/screenshot.c: Tuned channel interface changed.
+        * src/zvbi.c (zvbi_get_name): Changed to return UTF-8 string instead
+	  of Latin-1 station name.
+	* src/cmd.c: Added py_keep_on_top function.
+	* src/properties-handler.c, glade/zapping.glade2: Moved
+	  keep-window-on-top option into View menu.
+	* src/interface.c: Initialize keep-window-on-top check menu.
+
 4.12.2002	<mschimek@users.sf.net>
 
 	* src/main.c, src/x11stuff.c (wm_hints_detect): Rewrote to

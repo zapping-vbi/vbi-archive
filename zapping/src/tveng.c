@@ -561,7 +561,7 @@ tveng_set_input_by_index(int index, tveng_device_info * info)
  * The hash is based on the input normalized name.
  */
 struct tveng_enum_input *
-tveng_find_input_by_hash(int hash, tveng_device_info *info)
+tveng_find_input_by_hash(int hash, const tveng_device_info *info)
 {
   int i;
 
@@ -689,7 +689,7 @@ tveng_set_standard_by_index(int index, tveng_device_info * info)
  * The hash is based on the standard normalized name.
  */
 struct tveng_enumstd *
-tveng_find_standard_by_hash(int hash, tveng_device_info *info)
+tveng_find_standard_by_hash(int hash, const tveng_device_info *info)
 {
   int i;
 

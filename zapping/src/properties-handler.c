@@ -167,20 +167,12 @@ di_apply		(GtkWidget	*page)
 static void
 mw_setup		(GtkWidget	*page)
 {
-  extern gboolean have_wm_hints;
   GtkWidget *widget;
 
   /* Save the geometry through sessions */
   widget = lookup_widget(page, "checkbutton2");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean(NULL, "/zapping/options/main/keep_geometry"));
-
-  /* Keep the main window on top */
-  widget = lookup_widget (page, "checkbutton13");
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top"));
-  if (!have_wm_hints)
-    gtk_widget_set_sensitive (widget, FALSE);
 
   /* Show tooltips */
   widget = lookup_widget (page, "checkbutton14");
@@ -221,7 +213,6 @@ mw_setup		(GtkWidget	*page)
 static void
 mw_apply		(GtkWidget	*page)
 {
-  extern GtkWidget *main_window;
   GtkWidget *widget;
   gboolean top;
 
@@ -229,11 +220,6 @@ mw_apply		(GtkWidget	*page)
   zconf_set_boolean(gtk_toggle_button_get_active(
 		 GTK_TOGGLE_BUTTON(widget)),
 		    "/zapping/options/main/keep_geometry");
-
-  widget = lookup_widget(page, "checkbutton13"); /* keep on top */
-  top = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
-  zconf_set_boolean (top, "/zapping/options/main/keep_on_top");
-  window_on_top (GTK_WINDOW (main_window), top);
 
   widget = lookup_widget(page, "checkbutton14"); /* show tooltips */
   top = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));

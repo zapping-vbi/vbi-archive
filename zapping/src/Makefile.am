@@ -72,9 +72,7 @@ zapping_SOURCES = \
 	plugin_properties.c plugin_properties.h \
 	channel_editor.c channel_editor.h
 
-zapping_CFLAGS = @DEFAULT_CFLAGS@
-
 zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(PACKAGE_LIBS) \
 $(PYTHON_LIBS) $(X_LIBS) $(X_DGA_LIBS) $(X_XV_LIBS) $(X_XDPMS_LIBS) \
-$(UNICODE_LIBS) $(CCMALLOC) $(ZVBI_LIB) $(ARTS_LIBS)
+$(UNICODE_LIBS) $(CCMALLOC) $(ZVBI_LIB) $(ARTS_LIBS) $(ESD_LIBS)
 zapping_LDFLAGS = -export-dynamic

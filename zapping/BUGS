@@ -22,6 +22,10 @@ Known bugs with zapping, don't report them
 	* config.h is also full of hardcoded paths.
 	* Tooltips don't work as expected.
 	* Spinslider minimum sizes.
+	* Changing the video standard breaks vbi decoding.
+	* Bad reception breaks vbi decoding: i/o error.
+	* Channel editor: up/down scroll-to doesn't work right,
+	  although this may be a gtk bug.
 	* Closing the main window while recording blocks.
 	  Backtrace:
 	  on_exit2_activate() [now quit_cmd()]

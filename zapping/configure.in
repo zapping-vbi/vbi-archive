@@ -210,6 +210,8 @@ dnl ----------------------------------------------------------------------
 dnl Check for vbi decoding library
 dnl ----------------------------------------------------------------------
 HAVE_ZVBI="yes"
+SAVE_LIBS="$LIBS"
+LIBS="$LIBS -lpng -lpthread"
 dnl check for function and declaration in newest version
 AC_CHECK_LIB(zvbi, vbi_decoder_new,
   AC_EGREP_HEADER(vbi_decoder, libzvbi.h, true, HAVE_ZVBI=no),
@@ -221,6 +223,7 @@ else
   AC_MSG_WARN([*** ZVBI library not found, VBI will be disabled ***])
 fi
 AC_SUBST(ZVBI_LIB)
+LIBS="$SAVE_LIBS"
 
 dnl ----------------------------------------------------------------------
 dnl Check for the existance of ARTS (KDE sound server)

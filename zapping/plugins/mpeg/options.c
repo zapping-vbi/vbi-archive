@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.19.2.2 2002-10-09 14:25:18 mschimek Exp $ */
+/* $Id: options.c,v 1.19.2.3 2002-12-24 15:26:17 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -296,7 +296,7 @@ create_slider (grte_options *opts, rte_option_info *ro, int index)
 	    (double) max, (double) step, (double) big_step, val.dbl);
   adj = gtk_adjustment_new (val.dbl * div, min * div, max * div,
 			    step * div, big_step * div, big_step * div);
-  spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL, s, def * div);
+  spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL, s, def * div, 0);
   g_object_set_data (G_OBJECT (adj), "key", ro->keyword);
   g_object_set_data (G_OBJECT (adj), "spinslider", spinslider);
   g_signal_connect (G_OBJECT (adj), "value-changed",
