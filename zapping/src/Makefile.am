@@ -37,7 +37,6 @@ zmarshalers.c: zmarshalers.list
 zapping_SOURCES = \
 	main.c \
 	interface.c interface.h \
-	callbacks.c callbacks.h \
 	remote.c remote.h \
 	cmd.c cmd.h \
 	tveng.c tveng.h tveng_private.h \

@@ -1,8 +1,6 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
-* Current video input isn't on startup.
-* Zapzilla code.
 * Chance hang in request_capture_format_real at some rwlock,
   in libzvbi-less Zapping, when switching display mode
   (btw overlay and fullscreen IIRC).
@@ -34,6 +32,10 @@ Zapping 0.6 bugs, need verification
 * zsfb.capps conflicts with RPM relocation.
 
 Needs more work later:
+* Select composite, quit, restart, back at "television". Problem: channels
+  have a video input parameter, and selecting composite does not
+  switch the channel, so on restart the channel's input is restored. We
+  could have a "null" channel, but what about e.g. ttx bookmarks?
 * Prefs does not apply screenshot add toolbar option. Seems to be
   another gtk_widget_show/hide toolbar item problem.
 * capture.c/retrieve_frame() fails to convert a previously
@@ -58,8 +60,6 @@ Needs more work later:
    Address 0x0 is not stack'd, malloc'd or free'd
    No recipient addresses found in header
   Program segv'ed before window opened.
-* fprintf_ioctl dereferences uninitialized strings. This is only
-  used for debugging, but I'll sure regret it.
 * 0.7 seems to run slower than 0.6, must profile.
 * Overlay needs a review.
 * Prefs toolbar style menu does not update when config changes
@@ -77,12 +77,12 @@ tvengxv.c
 
 Kernel
 * V4L2 (0.20 and 2.5) RGB pixel formats are incorrectly defined.
-  Gerd Knorr notified, solution pending. Workaround is in place.
+  Docs corrected, workaround is in place.
 
 GTK
 * TTX to video mode switch: "(zapping:14644): Gtk-WARNING
   **: Toolbar position 8 is not a space", separator not removed.
-  This is gtk 2.3 bug #127092, no workaround.
+  This is gtk 2.3 bug #127092, apparently fixed now.
 
 XFree86 stuff
 -------------

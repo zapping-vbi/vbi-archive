@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.3 2003-11-29 19:43:24 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.4 2004-04-19 15:24:16 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -35,7 +35,7 @@
 #include <sys/ioctl.h>
 
 #include "../common/videodev2.h" /* V4L2 header file */
-#include "../common/fprintf_videodev2.h"
+#include "../common/_videodev2.h"
 
 #define v4l2_ioctl(fd, cmd, arg)					\
   (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\

@@ -1671,6 +1671,7 @@ ttx_unfreeze (int id)
 static void
 scan_header(vbi_page *pg)
 {
+#if 0
   gint col, i=0;
   vbi_char *ac;
   ucs2_t ucs2[256];
@@ -1728,6 +1729,7 @@ scan_header(vbi_page *pg)
   free(buf);
 
   station_name_known = TRUE;
+#endif
 }
 
 static void

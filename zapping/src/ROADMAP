@@ -110,7 +110,6 @@ What does each file do?
   libztv.
 * zmisc.c, zmisc.h Miscellaneous helper functions, mostly GUI related.
 * zmarshalers.c, zmarshalers.h, zmarshalers.list
-* callbacks.c, callbacks.h Obsolete
 
 ------------------------------------------------------------------------------
 

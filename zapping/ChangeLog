@@ -1,3 +1,18 @@
+2004-04-19    <mschimek@users.sf.net>
+
+	* common/Makefile.am: Updated structpr hints. Removed obsolete
+	  unicode helper files.
+	* common/device.c, common/device.h, common/structpr_gen.pl:
+	  Added R/W hints, union selector.
+	* common/videodev25.h: Updated.
+	* src/oss.c: common/structpr interface changed.
+	* src/overlay.c: Limit window size to 768, preliminary.
+	* src/remote.h: Python.h 2.3 redefines _POSIX_C_SOURCE.
+	* src/tveng25.c: bttv 0.9.12+ returns EINVAL on improper
+	  v4l2_buffer init.
+	* src/tveng25.c: bttv 0.9.12 returns bpl = width * depth.
+	* src/v4linterface.c: Compile error without libzvbi.
+
 2004-02-11    <pinotree@users.sf.net>
 
 	* po/it.po: Updated by Pino Toscano.

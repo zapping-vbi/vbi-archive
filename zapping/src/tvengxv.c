@@ -1219,10 +1219,18 @@ int tvengxv_attach_device(const char* device_file,
 	info->caps.channels = 0; /* FIXME info->num_inputs;*/
   /* Let's go creative! */
   snprintf(info->caps.name, 32, "XVideo device");
+#if 0
   info->caps.minwidth = 1;
   info->caps.minheight = 1;
   info->caps.maxwidth = 32768;
   info->caps.maxheight = 32768;
+#else
+  /* XXX conservative limits. */
+  info->caps.minwidth = 16;
+  info->caps.minheight = 16;
+  info->caps.maxwidth = 768;
+  info->caps.maxheight = 576;
+#endif
 
   return info -> fd;
 

@@ -55,7 +55,7 @@
  *  Kernel interface
  */
 #include "common/videodev2.h"
-#include "common/fprintf_videodev2.h"
+#include "common/_videodev2.h"
 
 #define v4l2_ioctl(info, cmd, arg)					\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
