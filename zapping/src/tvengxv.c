@@ -221,7 +221,7 @@ int tvengxv_attach_device(const char* device_file,
       info -> fd = p_tvengxv_open_device(info);
       break;
     default:
-      t_error_msg("switch()", "This module only support TVENG_ATTACH_XV",
+      t_error_msg("switch()", "This module only supports TVENG_ATTACH_XV",
 		  info);
       goto error1;
     };

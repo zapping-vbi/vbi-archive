@@ -313,21 +313,33 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   switch (new_mode)
     {
     case TVENG_CAPTURE_READ:
-      tveng_attach_device(zconf_get_string(NULL,
-					   "/zapping/options/main/video_device"), TVENG_ATTACH_READ, info);
+      if (tveng_attach_device(zcg_char(NULL, "video_device"),
+			      TVENG_ATTACH_READ, info)==-1)
+	{
+	  RunBox("%s couldn't be opened\n:%s, aborting",
+		 GNOME_MESSAGE_BOX_ERROR,
+		 zcg_char(NULL, "video_device"), info->error);
+	  exit(1);
+	}
       tveng_set_capture_size(w, h, info);
       return_value = capture_start(tv_screen, info);
       break;
     case TVENG_CAPTURE_WINDOW:
       if (disable_preview) {
 	g_warning("preview has been disabled");
-	tveng_attach_device(zconf_get_string(NULL,
-	 "/zapping/options/main/video_device"), TVENG_ATTACH_READ, info);
+	tveng_attach_device(zcg_char(NULL, "video_device"),
+			    TVENG_ATTACH_READ, info);
 	return -1;
       }
 
-      tveng_attach_device(zconf_get_string(NULL,
-	 "/zapping/options/main/video_device"), TVENG_ATTACH_XV, info);
+      if (tveng_attach_device(zcg_char(NULL, "video_device"),
+			      TVENG_ATTACH_XV, info)==-1)
+	{
+	  RunBox("%s couldn't be opened\n:%s, aborting",
+		 GNOME_MESSAGE_BOX_ERROR,
+		 zcg_char(NULL, "video_device"), info->error);
+	  exit(1);
+	}
 
       format = zmisc_resolve_pixformat(tveng_get_display_depth(info),
 				       x11_get_byte_order());
@@ -354,13 +366,23 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       tveng_set_preview_window(info);
       return_value = tveng_start_window(info);
       if (return_value != -1)
-	overlay_sync(TRUE);
+	{
+	  startup_overlay(tv_screen, main_window, info);
+	  overlay_sync(TRUE);
+	}
       else
 	g_warning(info->error);
       break;
     case TVENG_CAPTURE_PREVIEW:
-      tveng_attach_device(zconf_get_string(NULL,
-	"/zapping/options/main/video_device"), TVENG_ATTACH_READ, info);
+      if (tveng_attach_device(zcg_char(NULL, "video_device"),
+			      TVENG_ATTACH_READ, info)==-1)
+      {
+	RunBox("%s couldn't be opened:\n%s, aborting",
+	       GNOME_MESSAGE_BOX_ERROR,
+	       zcg_char(NULL, "video_device"), info->error);
+	exit(1);
+      }
+
       if (disable_preview) {
 	g_warning("preview has been disabled");
 	return -1;

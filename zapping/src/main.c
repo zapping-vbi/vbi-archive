@@ -246,7 +246,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.74 2001-01-03 19:06:31 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.75 2001-01-05 19:16:13 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -381,14 +381,6 @@ int main(int argc, char * argv[])
       RunBox("The capture couldn't be started", GNOME_MESSAGE_BOX_ERROR);
       tveng_device_info_destroy(main_info);
       return 0;
-    }
-  D();
-  if ((!disable_preview) && (!startup_overlay(FALSE, tv_screen,
-					      main_window, main_info)))
-    {
-      g_warning("The overlay handler couldn't be loaded, overlay will"
-		" be disabled");
-      disable_preview = TRUE;
     }
   D();
   /* Add the plugins to the GUI */

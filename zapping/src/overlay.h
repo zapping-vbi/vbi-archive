@@ -24,15 +24,13 @@
  */
 
 /*
- * Inits the overlay engine. Inits some stuff, and returns FALSE on
- * error
- * use_xv: TRUE if overlay mode should use the Xv extension instead of
- * the V4L interface.
+ * Inits the overlay engine.
  * window: The window we will be overlaying to.
+ * main_window: Its toplevel parent
  */
-gboolean
-startup_overlay(gboolean use_xv, GtkWidget * window, GtkWidget *
-		main_window, tveng_device_info * info);
+void
+startup_overlay(GtkWidget * window, GtkWidget * main_window,
+		tveng_device_info * info);
 
 /*
  * Stops the overlay engine.

@@ -74,8 +74,8 @@ static GList *history_stack=NULL; /* visited pages in order of time (oldest
 static gint history_stack_size=0; /* Number of items in history_stack */
 static gint history_sp=0; /* Pointer in the stack */
 static pthread_t zvbi_thread_id; /* Just a dummy thread to select() */
-static gboolean exit_thread = FALSE; /* just an atomic flag to tell the
-					thread to exit */
+static volatile gboolean exit_thread = FALSE; /* just an atomic flag
+						 to tell the thread to exit */
 
 static gboolean vbi_mode=FALSE; /* VBI mode, default off */
 

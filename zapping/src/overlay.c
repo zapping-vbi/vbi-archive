@@ -93,7 +93,6 @@ static gchar * events[] =
 static struct {
   gint x, y, w, h; /* geometry */
   gboolean visible; /* If it is visible */
-  gboolean use_xv; /* TRUE if we should use Xv instead of V4L */
   gboolean ignore_expose; /* whether we should ignore the next expose
 			     event */
   GtkWidget * window; /* The window we will be overlaying to */
@@ -337,17 +336,14 @@ on_main_overlay_delete_event           (GtkWidget       *widget,
 }
 
 /*
- * Inits the overlay engine. Inits some stuff, and returns FALSE on
- * error
- * use_xv: TRUE if overlay mode should use the Xv extension instead of
- * the V4L interface.
+ * Inits the overlay engine.
  * window: The window we will be overlaying to.
  * main_window: The toplevel window window belongs to. They can be the
  * same.
  */
-gboolean
-startup_overlay(gboolean use_xv, GtkWidget * window, GtkWidget *
-		main_window, tveng_device_info * info)
+void
+startup_overlay(GtkWidget * window, GtkWidget * main_window,
+		tveng_device_info * info)
 {
   GdkEventMask mask; /* The GDK events we want to see */
 
@@ -373,7 +369,6 @@ startup_overlay(gboolean use_xv, GtkWidget * window, GtkWidget *
 
   tv_info.window = window;
   tv_info.main_window = main_window;
-  tv_info.use_xv = use_xv;
   tv_info.info = info;
   tv_info.visible = x11_window_viewable(window->window);
 

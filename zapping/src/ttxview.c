@@ -64,6 +64,7 @@ typedef struct {
   gboolean		hold; /* hold the current subpage */
   gint			pop_pgno, pop_subno; /* for popup */
   gboolean		in_link; /* whether the cursor is over a link */
+  GtkWidget		*parent; /* toplevel window */
 } ttxview_data;
 
 struct bookmark {
@@ -176,14 +177,12 @@ void scale_image			(GtkWidget	*wid,
 					 gint		h,
 					 ttxview_data	*data)
 {
-  GtkWidget *widget = lookup_widget(wid, "ttxview");
-
   if ((data->w != w) ||
       (data->h != h))
     {
       if (data->mask)
 	gdk_bitmap_unref(data->mask);
-      data->mask = gdk_pixmap_new(widget->window, w, h, 1);
+      data->mask = gdk_pixmap_new(data->da->window, w, h, 1);
       g_assert(data->mask != NULL);
       resize_ttx_page(data->id, w, h);
       render_ttx_mask(data->id, data->mask);
@@ -453,8 +452,7 @@ load_page (int page, int subpage, ttxview_data *data)
   if (subpage != ANY_SUB)
     buffer = g_strdup_printf("S%x", data->subpage);
   else
-    buffer = g_strdup(_(" "));
-    // {mhs} "" displayed trash, i18n related?
+    buffer = g_strdup("");
   gtk_label_set_text(GTK_LABEL(widget), buffer);
   g_free(buffer);
 
@@ -593,7 +591,7 @@ void on_ttxview_search_clicked		(GtkButton	*button,
 {
 #if 0
   gchar * regexp =
-    Prompt(lookup_widget(data->da, "ttxview"),
+    Prompt(data->parent,
 	   _("Search"),
 	   _("Enter extended regexp to search for:"), NULL);
   regex_t preg;
@@ -691,9 +689,7 @@ void on_ttxview_clone_clicked		(GtkButton	*button,
   else
     load_page(0x100, ANY_SUB,
 	      (ttxview_data*)gtk_object_get_user_data(GTK_OBJECT(dolly)));
-  gdk_window_get_size(lookup_widget(GTK_WIDGET(button),
-				    "ttxview")->window, &w,
-		      &h);
+  gdk_window_get_size(data->parent->window, &w, &h);
   gtk_widget_realize(dolly);
   while (gtk_events_pending())
     gtk_main_iteration();
@@ -707,8 +703,6 @@ void on_ttxview_size_allocate		(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
   scale_image(widget, allocation->width, allocation->height, data);
-  //  render_ttx_page(data->id, widget->window, widget->style->white_gc,
-  //		  0, 0, 0, 0, allocation->width, allocation->height);
 }
 
 static
@@ -777,7 +771,7 @@ void new_bookmark			(GtkWidget	*widget,
         default_description = g_strdup_printf("%x", page);
     }
 
-  buffer = Prompt(lookup_widget(data->da, "ttxview"),
+  buffer = Prompt(data->parent,
 		  _("New bookmark"),
 		  _("Description:"),
 		  default_description);
@@ -1255,6 +1249,7 @@ build_ttxview(void)
 
   data->da = lookup_widget(ttxview, "drawingarea1");
   data->id = register_ttx_client();
+  data->parent = ttxview;
   data->timeout =
     gtk_timeout_add(50, (GtkFunction)event_timeout, data);
   data->fmt_page = get_ttx_fmt_page(data->id);
