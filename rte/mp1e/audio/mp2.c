@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.33 2002-08-22 22:02:49 mschimek Exp $ */
+/* $Id: mp2.c,v 1.34 2002-09-05 04:19:12 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -94,6 +94,7 @@ next_buffer(mp2_context *mp2, buffer *buf, int channels, double elapsed)
 	extern int test_mode;
 	double period, drift;
 
+get_again:
 	if (!buf || mp2->incr > 1) {
 		if (buf) {
 			send_empty_buffer(&mp2->cons, buf);
@@ -123,23 +124,31 @@ next_buffer(mp2_context *mp2, buffer *buf, int channels, double elapsed)
 	if (mp2->i16 > mp2->e16)
 		mp2->i16 = 0;
 
+	/* FIXME */
 	period = buf->used * mp2->codec.sstr.byte_period;
 	drift = mp1e_sync_drift(&mp2->codec.sstr, buf->time, elapsed);
-	if (drift < period * -0.5) {
-		/* XXX improve me */
-		mp2->incr = 1;
-		mp2->e16 = mp2->i16 -
-			lroundn(drift / (mp2->codec.sstr.byte_period
-					 * mp2->codec.sstr.bytes_per_sample * channels));
-	} else {
-	    mp2->incr = lroundn((period + drift) / period * (double)(1 << 16));
-	}
 
-	if (mp2->incr < 1)
-		mp2->incr = 1;
+	if (test_mode & 256) { /* -t256 clock drift compensation */
+		double p2 = period * 0.5;
 
-	if (!(test_mode & 256)) /* FIXME */
+		if (drift < -p2) {
+			mp2->incr = 1;
+			mp2->e16 = mp2->i16 - /* XXX unsafe: buffer size */
+				lroundn(drift / (mp2->codec.sstr.byte_period
+					* mp2->codec.sstr.bytes_per_sample * channels));
+			printv(2, "\nAudio: underrun\n");
+		} else if (drift > p2) {
+			/* Nikolai proposed, may actually sound better */
+			printv(2, "\nAudio: overrun\n");
+			goto get_again;
+		} else {
+			mp2->incr = lroundn((period + drift) / period * (double)(1 << 16));
+			if (mp2->incr < 1)
+				mp2->incr = 1;
+		}
+	} else { /* mp1e 1.8 behaviour */
 		mp2->incr = 0x10000;
+	}
 
 	return buf;
 }
