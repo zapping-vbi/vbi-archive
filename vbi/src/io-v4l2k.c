@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2k.c,v 1.14.2.2 2004-01-27 22:22:13 tomzo Exp $";
+static char rcsid[] = "$Id: io-v4l2k.c,v 1.14.2.3 2004-04-09 05:21:17 mschimek Exp $";
 
 /*
  *  Around Oct-Nov 2002 the V4L2 API was revised for inclusion into
@@ -143,7 +143,9 @@ v4l2_stream_alloc(vbi_capture_v4l2 *v, char ** errorstr)
 	assert(v->raw_buffer == NULL);
 	printv("Requesting streaming i/o buffers\n");
 
+	memset(&vbuf, 0, sizeof(vbuf));
 	memset(&vrbuf, 0, sizeof(vrbuf));
+
 	vrbuf.type = v->btype;
 	vrbuf.count = v->buf_req_count;
 	vrbuf.memory = V4L2_MEMORY_MMAP;
@@ -179,6 +181,7 @@ v4l2_stream_alloc(vbi_capture_v4l2 *v, char ** errorstr)
 		uint8_t *p;
 
 		vbuf.type = v->btype;
+		vbuf.memory = V4L2_MEMORY_MMAP;
 		vbuf.index = v->num_raw_buffers;
 
 		if (IOCTL(v->fd, VIDIOC_QUERYBUF, &vbuf) == -1) {
@@ -268,11 +271,14 @@ v4l2_stream(vbi_capture *vc, vbi_capture_buffer **raw,
 		return -1;
 	}
 
+	memset (&vbuf, 0, sizeof (vbuf));
+
 	if (v->enqueue == ENQUEUE_STREAM_OFF) {
 		if (IOCTL(v->fd, VIDIOC_STREAMON, &v->btype) == -1)
 			return -1;
 	} else if (ENQUEUE_IS_UNQUEUED(v->enqueue)) {
 		vbuf.type = v->btype;
+		vbuf.memory = V4L2_MEMORY_MMAP;
 		vbuf.index = v->enqueue;
 
 		if (IOCTL(v->fd, VIDIOC_QBUF, &vbuf) == -1)
@@ -370,8 +376,11 @@ v4l2_stream_flush(vbi_capture *vc)
 	     (v->enqueue == ENQUEUE_STREAM_OFF) )
 		return;
 
+	memset (&vbuf, 0, sizeof (vbuf));
+
 	if (ENQUEUE_IS_UNQUEUED(v->enqueue)) {
 		vbuf.type = v->btype;
+		vbuf.memory = V4L2_MEMORY_MMAP;
 		vbuf.index = v->enqueue;
 
 		if (IOCTL(v->fd, VIDIOC_QBUF, &vbuf) == -1) {

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2.c,v 1.22.2.1 2004-01-27 21:05:53 tomzo Exp $";
+static char rcsid[] = "$Id: io-v4l2.c,v 1.22.2.2 2004-04-09 05:21:17 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -962,10 +962,11 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 	printv("Opened %s\n", dev_name);
 
 	if (IOCTL(v->fd, VIDIOC_QUERYCAP, &v->vcap) == -1) {
+/*
 		vbi_asprintf(errorstr, _("Cannot identify '%s': %d, %s."),
 			     dev_name, errno, strerror(errno));
 		guess = _("Probably not a v4l2 device.");
-/*
+
 		goto io_error;
 */
 		v4l2_delete (&v->capture);
