@@ -766,8 +766,7 @@ z_switch_channel	(tveng_tuned_channel	*channel,
       if (!first_switch)
 	{
 	  g_free(tc->controls);
-	  if (channel->num_controls &&
-	      zcg_bool(NULL, "save_controls"))
+	  if (zcg_bool(NULL, "save_controls"))
 	    store_control_values(&tc->num_controls, &tc->controls,
 				 info);
 	  else

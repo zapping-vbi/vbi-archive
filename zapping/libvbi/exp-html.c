@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.25 2001-09-11 07:13:41 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.26 2001-10-18 18:36:18 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -163,7 +163,8 @@ escaped_fputs(FILE *fp, char *s)
 static const char *	html_underline[]	= { "</u>", "<u>" };
 static const char *	html_bold[]		= { "</b>", "<b>" };
 static const char *	html_italic[]		= { "</i>", "<i>" };
-static const char *	html_flash[]		= { "</blink>", "<blink>" };
+static const char *	html_flash[]		=
+		{ "<div style=\"text-decoration: blink; \">", "</div>" };
 
 static void
 write_error(vbi_export *e)

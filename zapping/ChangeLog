@@ -1,3 +1,9 @@
+18.10.2001	Easy stuff <garetxe@users.sf.net>
+
+	* v4linterface.c: Fixed an stupid bug in control saving, appears
+	to work nicely now.
+	* exp-html.c: Replaced <blink> by text-decoration: blink;
+
 17.10.2001	Video output abstraction <garetxe@users.sf.net>
 
 	* x11stuff.c, video_xv.c: Virtualized all xvz_ operations,
