@@ -1,0 +1,18 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:DEF{"titleaction"}%(oops)%TMPL:END%
+%TMPL:DEF{"webaction"}% *Attention* %TMPL:END%
+%TMPL:DEF{"heading"}%Inproper use of the <code>save</code> script%TMPL:END%
+%TMPL:DEF{"message"}%
+You cannot call this script directly, %WIKITOOLNAME% uses it internally.
+
+Some browser configurations occasionally send undefined data to the
+server. Don't worry, your changes are not lost. Just click the Back 
+button on your browser and then try Save again.
+
+The other possibility is an internal error in %WIKITOOLNAME% 
+configuration, or that you did not have write access to the 
+directory or file that was being edited.
+
+Please go back in your browser and save the topic. %TMPL:END%
+%TMPL:DEF{"topicaction"}% [[%WEB%.%TOPIC%][OK]] %TMPL:END%
+%TMPL:P{"oops"}%

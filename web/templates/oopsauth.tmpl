@@ -1,0 +1,21 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:DEF{"titleaction"}%(oops)%TMPL:END%
+%TMPL:DEF{"webaction"}% *Attention* %TMPL:END%
+%TMPL:DEF{"heading"}%Either you need to register or the authentication failed%TMPL:END%
+%TMPL:DEF{"message"}%
+To edit topics on this %WIKITOOLNAME% collaborative web, you must be registered as a user.
+
+---+++ If you expected to be logged in at this point:
+
+   * Did you type in your login name and password correctly? Remeber, both are case sensitive.
+   * If you want to try again, back arrow and hit edit again. 
+   * Registered users can %TWIKIWEB%.ChangePasswords and %TWIKIWEB%.ResetPasswords.
+   * __Note:__ You can also login anonymously as user *TWikiGuest* with password *guest*.
+
+---+++ To register as a new user:
+
+   * Simply fill out the *[[%TWIKIWEB%.TWikiRegistration][TWikiRegistration]]* form. It only takes a minute. %TMPL:END%
+%TMPL:DEF{"topicaction"}%
+  [[%WEB%.%TOPIC%][OK]] %TMPL:P{"sep"}%
+  [[%TWIKIWEB%.TWikiRegistration][Register]] %TMPL:END%
+%TMPL:P{"oops"}%

@@ -1,0 +1,17 @@
+%TMPL:INCLUDE{"renamebase"}%
+%TMPL:DEF{"titleaction"}%(rename)%TMPL:END%
+%TMPL:DEF{"webaction"}%Rename%TMPL:END%
+%TMPL:DEF{"newtopic"}%<input name="newtopic" value="%TOPIC%" size="36" />%TMPL:END%
+%TMPL:DEF{"newweb"}%<select name="newweb">%WEBLIST{"<option $marker value=$qname>$name</option>" webs="Trash,public" selection="%WEB%" separator=" "}%</select>%TMPL:END%
+%TMPL:DEF{"notes"}%
+<br />
+<input type="checkbox" name="nonwikiword" />
+Allow non <nop>WikiWord for the new topic name. <br />
+__Note:__ It's usually best to chose a 
+<a target="WikiWord" onClick="return launchWindow('%TWIKIWEB%','WikiWord')" href="%SCRIPTURLPATH%/view%SCRIPTSUFFIX%/%TWIKIWEB%/WikiWord">WikiWord</a> 
+for the new topic name, otherwise automatic linking may not work.  Characters not 
+allowed in topic names, such as spaces will automatically be removed.%TMPL:END%
+%TMPL:DEF{"topicaction"}%
+ <input type="submit" value="Rename/Move" />
+ %TMPL:P{"sep"}% [[%WEB%.%TOPIC%][Cancel]] %TMPL:END%
+%TMPL:P{"rename"}%

@@ -1,0 +1,39 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:P{"htmldoctype"}%
+<head>
+ <title> %WIKITOOLNAME% . %WEB% . %TOPIC% %TMPL:P{"titleaction"}%</title>
+ <meta http-equiv="Content-Type" content="text/html; charset=%CHARSET%" /> <meta name="robots" content="noindex" /> %HTTP_EQUIV_ON_VIEW%
+ <base href="%SCRIPTURL%/view%SCRIPTSUFFIX%/%WEB%/%TOPIC%" />
+</head>
+<body bgcolor="#ffffff">
+#PageTop
+<form name="main" action="%SCRIPTURLPATH%/view%SCRIPTSUFFIX%/%WEB%/%TOPIC%"> %BROADCASTMESSAGE%
+%TMPL:DEF{"titleaction"}% %REVTITLE% %TMPL:END%
+%TMPL:DEF{"webaction"}% %WEBTOPICLIST% %TMPL:END%
+%TMPL:P{"standardheader"}%
+</form>
+%TEXT%
+%META{"form"}%
+%META{"attachments"}%
+%TMPL:DEF{"topicaction"}%
+  %EDITTOPIC%
+  %TMPL:P{"sep"}% <a href="%SCRIPTURLPATH%/attach%SCRIPTSUFFIX%/%WEB%/%TOPIC%">Attach</a>
+  %TMPL:P{"sep"}% <a href="%SCRIPTURLPATH%/search%SCRIPTSUFFIX%/%WEB%/SearchResult?scope=text&amp;regex=on&amp;search=%SPACEDTOPIC%%5B%5EA-Za-z%5D">Ref-By</a>
+  %TMPL:P{"sep"}% <a href="%SCRIPTURLPATH%/view%SCRIPTSUFFIX%/%WEB%/%TOPIC%?skin=print%REVARG%">Printable</a>
+  %TMPL:P{"sep"}% <a href="%SCRIPTURLPATH%/rdiff%SCRIPTSUFFIX%/%WEB%/%TOPIC%">Diffs</a> %REVISIONS%
+  %TMPL:P{"sep"}% <a href="%SCRIPTURLPATH%/oops%SCRIPTSUFFIX%/%WEB%/%TOPIC%?template=oopsmore&amp;param1=%MAXREV%&amp;param2=%CURRREV%">More</a> %TMPL:END%
+%TMPL:P{"standardfooter"}%
+<table width="100%" border="0" cellpadding="3" cellspacing="0">
+ <tr>
+  <td valign="top">
+   Revision %REVINFO% %META{"parent" prefix="<br />Parents: "}%
+  </td>
+  <td width="40%" valign="top">
+   %WEBCOPYRIGHT%
+  </td>
+ </tr>
+ <tr><td colspan="2"> %META{"moved"}% </td></tr>
+</table>
+#PageBottom
+</body>
+</html>

@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: prepare_dox.sh,v 1.6 2004-04-17 07:48:57 mschimek Exp $
+# $Id: prepare_dox.sh,v 1.7 2004-04-17 08:12:09 mschimek Exp $
 #
 # This checks out a copy of the module, runs doxygen, puts
 # the generated files online and cleans up.

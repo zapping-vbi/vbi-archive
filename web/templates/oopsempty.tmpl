@@ -1,0 +1,15 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:DEF{"titleaction"}%(oops)%TMPL:END%
+%TMPL:DEF{"webaction"}% *Attention* %TMPL:END%
+%TMPL:DEF{"heading"}%Topic must not be empty%TMPL:END%
+%TMPL:DEF{"message"}%
+You cannot save a topic with no text entered. Please try again.
+
+Some browser configurations occasionally send undefined data to the
+server. Don't worry, your changes are not lost. Just click the Back 
+button on your browser and try again.
+
+The other possibility is that someone sent you the preview URL of 
+%WEB%.%TOPIC% instead of the view URL. %TMPL:END%
+%TMPL:DEF{"topicaction"}% [[%WEB%.%TOPIC%][OK]] %TMPL:END%
+%TMPL:P{"oops"}%

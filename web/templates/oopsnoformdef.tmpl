@@ -1,0 +1,30 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:DEF{"titleaction"}%(oops)%TMPL:END%
+%TMPL:DEF{"webaction"}% *Attention* %TMPL:END%
+%TMPL:DEF{"heading"}%Form Definition missing%TMPL:END%
+%TMPL:DEF{"message"}%
+See %TWIKIWEB%.TWikiForms for information about Form Definitions.
+
+Problem could be for two reasons:
+
+---++ 1. Form definition missing
+
+   * [[%SCRIPTURL%/view%SCRIPTSUFFIX%/%WEB%/%TOPIC%?raw=on][View raw topic text]]
+   * There should be a line that includes =META:FORM=, look for name="&lt;formName&gt;"
+      * If this line isn't present see _upgrade_ section below
+   * There should be a topic &lt;formName&gt;
+   * If this is missing create it, otherwise check it for errors
+
+---++ 2. Topic can not be upgraded from old style category table
+
+This requires the form definition to be present.
+
+This can be automatically upgraded by:
+
+   * Creating a suitable Form Definition topic
+   * Adding a =WEBFORMS= variable in WebPreferences
+
+Please ask your administrator, %WIKIWEBMASTER%, to do this. %TMPL:END%
+%TMPL:DEF{"topicaction"}% 
+  [[%SCRIPTURL%/view%SCRIPTSUFFIX%/%WEB%/%TOPIC%?raw=on][View raw topic text]] %TMPL:END%
+%TMPL:P{"oops"}%

@@ -1,0 +1,39 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:P{"htmldoctype"}%
+<head>
+ <title> %WIKITOOLNAME% . %WEB% . %TOPIC% %TMPL:P{"titleaction"}%</title>
+ <meta http-equiv="Content-Type" content="text/html; charset=%CHARSET%" /> <meta name="robots" content="noindex" /> %HTTP_EQUIV_ON_EDIT%
+ <base href="%SCRIPTURL%/view%SCRIPTSUFFIX%/%WEB%/%TOPIC%" />
+</head>
+<body bgcolor="#ffffff">
+#PageTop
+%TMPL:DEF{"titleaction"}%(change form)%TMPL:END%
+%TMPL:DEF{"webaction"}% *Action* %TMPL:END%
+%TMPL:P{"simpleheader"}%
+<form name="main" action="%EDITURL%" method="post">
+---++ Choose a new form template
+
+<table border="0" cellspacing="0" cellpadding="0">
+<tr><td valign="top">
+---+++ Possible form templates:
+  <ul>
+  %FORMLIST%
+  </ul>
+</td><td>
+  &nbsp; &nbsp;
+</td><td valign="top">
+---+++ _Notes:_
+   * <font color="red">Existing form data will be lost! (still available in old version)</font>
+   * Any change you made to topic before coming to this page are preserved.
+</td></tr>
+</table>
+<br />
+<input type="hidden" name="text" value="%TEXT%" />
+<input type="hidden" name="topicparent" value="%TOPICPARENT%" />
+%TMPL:DEF{"topicaction"}% <input type="submit" name="submit" value=" &nbsp; Change form &nbsp; " /> %TMPL:END%
+%TMPL:P{"standardfooter"}%
+%WEBCOPYRIGHT%
+</form>
+#PageBottom
+</body>
+</html>

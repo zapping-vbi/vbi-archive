@@ -1,0 +1,10 @@
+%TMPL:INCLUDE{"renamebase"}%
+%TMPL:DEF{"titleaction"}%(rename - change refs)%TMPL:END%
+%TMPL:DEF{"webaction"}% Change references (post rename) %TMPL:END%
+%TMPL:DEF{"newtopic"}%<input type="hidden" name="newtopic" value="%NEW_TOPIC%" />%NEW_TOPIC%%TMPL:END%
+%TMPL:DEF{"newweb"}%<input type="hidden" name="newweb" value="%NEW_WEB%" />%NEW_WEB%%TMPL:END%
+%TMPL:DEF{"hidden"}% <input type="hidden" name="changeRefs" value="on" /> %TMPL:END%
+%TMPL:DEF{"topicaction"}%
+ <input type="submit" value="Change references" />
+ %TMPL:P{"sep"}% [[%NEW_WEB%.%NEW_TOPIC%][Cancel]] %TMPL:END%
+%TMPL:P{"rename"}%

@@ -1,0 +1,14 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:DEF{"titleaction"}%(oops)%TMPL:END%
+%TMPL:DEF{"webaction"}% *Attention* %TMPL:END%
+%TMPL:DEF{"heading"}%Create Web Access Denied%TMPL:END%
+%TMPL:DEF{"message"}%
+You do not have permission to create new TWiki webs.
+
+Contact
+<a href="mailto:%WIKIWEBMASTER%?subject=Create&#32;Web&#32;Access&#32;Denied&#32;for&#32;'%WEB%.%TOPIC%'">%WIKIWEBMASTER%</a>
+if you have any questions.
+
+__Related topics:__ %MAINWEB%.TWikiGroups, %TWIKIWEB%.TWikiAccessControl, %TWIKIWEB%.%WIKIPREFSTOPIC% %TMPL:END%
+%TMPL:DEF{"topicaction"}% [[%WEB%.%TOPIC%][OK]] %TMPL:END%
+%TMPL:P{"oops"}%

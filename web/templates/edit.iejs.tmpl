@@ -1,0 +1,391 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:P{"htmldoctype"}%
+<head>
+ <title> %WIKITOOLNAME% . %WEB% . %TOPIC% %TMPL:P{"titleaction"}%</title>
+ <meta http-equiv="Content-Type" content="text/html; charset=%CHARSET%" />
+ <base href="%SCRIPTURL%/view%SCRIPTSUFFIX%/%WEB%/%TOPIC%" /> <meta name="robots" content="noindex" /> %HTTP_EQUIV_ON_EDIT%
+<style>
+A.editButton:link {
+  text-decoration:none;
+  color:black;
+  font-size:9pt
+}
+A.editButton:active {
+  text-decoration:none;
+  color:blue
+}
+A.editButton:hover {
+  text-decoration:none;
+  color:blue
+}
+A.editButton:visited {
+  text-decoration:none;
+  color:black;
+  font-size:9pt
+}
+.editDropdown {
+  background-color:ivory;
+  font-size:7pt
+}
+</style>
+<script language="JavaScript">
+<!--HIDE
+// =================
+function initForm()
+{
+  document.main.text.focus();
+}
+// =================
+function checkAll( theButton, theButtonOffset, theNum, theCheck )
+{
+  // find button element index
+  var j = 0
+  for( var i = 0; i <= document.main.length; i++ ) {
+    if( theButton == document.main.elements[i] ) {
+      j = i
+      break
+    }
+  }
+  // set/clear all checkboxes
+  var last = j+theButtonOffset+theNum
+  for( i = last-theNum; i < last; i++ ) {
+    document.main.elements[i].checked = theCheck
+  }
+}
+// =================
+function launchWindow( theWeb, theTopic, theAnchor ) {
+  if( ! theAnchor ) {
+    theAnchor = "";
+  }
+  win = open( "%SCRIPTURLPATH%/view%SCRIPTSUFFIX%/" + theWeb + "/" + theTopic + "?skin=plain" + theAnchor,
+              theTopic, "titlebar=0,width=500,height=480,resizable,scrollbars");
+  if( win ) {
+    win.focus();
+  }
+  return false;
+}
+// =================
+var fancyEdit = false;
+var fancyInit = false;
+// =================
+function doFancyEdit()
+{
+  if( fancyInit ) {
+    return( fancyEdit );
+  }
+  var major = "";
+  var minor = "";
+  for( var i = 0; navigator.appVersion.charAt(i) != "."; i++) {
+    major += navigator.appVersion.charAt(i);
+  }
+  for( i++; navigator.appVersion.charAt(i) != " "; i++) {
+    minor += navigator.appVersion.charAt(i);
+  }
+  if(  ( navigator.appName == "Microsoft Internet Explorer" )
+    && ( major >= 4 ) ) {
+    fancyEdit = true;
+  }
+  return( fancyEdit );
+}
+// =================
+function inTextarea() {
+  return( document.all.text.caretPos != null );
+}
+// =================
+function surround( extra )
+{
+  // Put extra text around selection
+  if( extra == "" || ! inTextarea() ) {
+    return;
+  }
+  var selection;
+  selection = document.selection.createRange();
+  if( selection != null && selection.text != "" ) {
+    var selText;
+    selText = selection.text;
+    if( selText.charAt( selText.length - 1 ) == " " ) {
+      selText = selText.substring( 0, ( selText.length - 1 ) );
+      selection.text = extra + selText + extra + " ";
+    } else {
+      selection.text = extra + selText + extra;
+    }
+    selection.parentElement().focus();
+  }
+}
+// =================
+function insertStartLine( text )
+{
+  if( text == "" || ! inTextarea() ) {
+    return;
+  }
+
+  var range;
+  range = document.all.text.createTextRange();
+  if( range != null ) {
+    range.moveToPoint( range.offsetLeft, document.all.text.caretPos.offsetTop );
+    done              = sub( range, "   * ", text );
+    if( ! done ) done = sub( range, "      * ", text );
+    if( ! done ) done = sub( range, "         * ", text );
+    if( ! done ) done = sub( range, "---+++ ", text );
+    if( ! done ) done = sub( range, "---++ ", text );
+    if( ! done ) done = sub( range, "---+ ", text );
+    if( ! done ) {
+       range.moveToPoint( range.offsetLeft, document.all.text.caretPos.offsetTop );
+       sub( range, "", text );
+    }
+    /*range.text = text;
+    range.parentElement().focus();*/
+  }
+}
+// =================
+function insert( text )
+{
+  // insert at cursor
+  if (text == "" || ! inTextarea() ) {
+    return( false );
+  }
+  document.all.text.caretPos.text = text;
+  document.all.text.caretPos.parentElement().focus();
+}
+// =================
+function insertVariable( variable )
+{
+  if( variable == "" || ! inTextarea() ) {
+    return;
+  }
+  extra = "";
+  if( variable == "DRAWING" ) {
+    name = prompt( "Name of drawing (optional)", "" );
+    if( ! name ) return;
+    if( name.length > 0 ) {
+      extra = '{"' + name + '"}';
+    }
+  } else if( variable == "INCLUDE" ) {
+    // Could change to pop up window
+    name = prompt( "Name of topic to include (leave blank to add later)", "" );
+    if( ! name ) return;
+    if( name.length == 0 ) {
+      name = "topic";
+    }
+    extra = '{"' + name + '"}';
+  } else if( variable == "GMTIME" ) {
+    format = prompt( "Current date/time, optional format using ($seconds, $minutes, $hours, $day, $month, $mo, $year, $ye)", "" );
+    if( ! format ) return;
+    if( format.length > 0 ) {
+      extra = '{"' + format + '"}';
+    }
+  } else if( variable == "SEARCH" ) {
+    what = prompt( "Common options, delete/alter as required", 'search="searchterm" web="all or webname" nosearch="on" regex="on"' );
+    if( ! what ) return;
+    extra = '{' + what + '}';
+  }
+  insert( "%" + variable + extra + "%" );
+}
+// =================
+function sub( range, old, newt )
+{
+  res = "";
+  var r = range;
+  len = old.length;
+  r.moveEnd( "character", len );
+  if( r.text.substr( 0, len ) == old ) {
+    r.text = newt + r.text.substr( len );
+    nlen = r.text.length - old.length;
+    r.moveEnd( "character", -len ); // put cursor in correct place
+    r.parentElement().focus();
+    changedCaret( r );
+    res = old;
+  }
+  return res;
+}
+// =================
+function toRight()
+{
+  if( ! inTextarea() ) {
+    return;
+  }
+  var range;
+  range = document.all.text.createTextRange();
+  text = "";
+  if( range != null ) {
+    range.moveToPoint( range.offsetLeft, document.all.text.caretPos.offsetTop );
+    done = sub( range, "   * ", "      * " );
+    if( ! done ) done = sub( range, "      * ", "         * " );
+    if( ! done ) done = sub( range, "---+ ", "---++ " );
+    if( ! done ) done = sub( range, "---++ ", "---+++ " );
+  }
+}
+// =================
+function toLeft()
+{
+  // move bullet heading etc to left
+  if( ! inTextarea() ) {
+    return;
+  }
+  var range;
+  range = document.all.text.createTextRange();
+  text = "";
+  if( range != null ) {
+    range.moveToPoint( range.offsetLeft, document.all.text.caretPos.offsetTop );
+    done = sub( range, "   * ", "" );
+    if( ! done ) done = sub( range, "      * ", "   * " );
+    if( ! done ) done = sub( range, "         * ", "      * " );
+    if( done ) done = sub( range, "---+++ ", "---++ " );
+    if( done ) done = sub( range, "---++ ", "---+ " );
+    if( done ) done = sub( range, "---+ ", "" );
+  }
+}
+// =================
+function storeCaret( textarea )
+{
+  // always need to know where cursor (caret) position is
+  if( ! doFancyEdit() ) {
+    return;
+  }
+  if( textarea.createTextRange ) {
+    textarea.caretPos = document.selection.createRange().duplicate();
+  }
+}
+// =================
+function changedCaret( range )
+{
+  document.all.text.caretPos = range.duplicate();
+}
+// =================
+function writeToolbar( thisToolbarType )
+{
+  var configToolbarType = "%IEJS_TOOLBAR%";	// 'top', 'bottom' or 'both'
+  			// FIXME: security hole - anyone can insert arbitrary
+			// Javascript code here - need Perl code to sanitise
+			// variables for use by JavaScript, perhaps...
+			// Actually, this applies almost anywhere in a TWiki
+			// template that a %-variable is used, not just here.
+  if( ! doFancyEdit() ) {
+    return;
+  }
+  if( ! ( configToolbarType == "top" || 	// Check if set wrongly or unset
+      configToolbarType == "bottom" ||     
+      configToolbarType == "both" ) ) {    
+    configToolbarType = "both";			// Default to current behaviour
+  }
+  if( thisToolbarType != configToolbarType &&
+  	configToolbarType != "both" ) {
+    return;					// Display only if required here
+  }
+  var toolbar =
+  '<table border="1" cellpadding="1" bgcolor="gainsboro" style="border-color:black">\n' +
+  '<tr>\n' +
+  '<td title="Bold"><a href="javascript:surround(' + "'*'" + ');" class="editButton">&nbsp;&nbsp; <b>B</b> &nbsp;&nbsp;</a></td>\n' +
+  '<td title="Italic"><a href="javascript:surround(' + "'_'" + ');" class="editButton">&nbsp;&nbsp; <i>I</i> &nbsp;&nbsp;</a></td>\n' +
+  '<td title="Format as code"><a href="javascript:surround(' + "'='" + ');"  class="editButton">&nbsp;&nbsp; <code>C</code> &nbsp;&nbsp;</a></td>\n' +
+  '<td title="Bullet"><a href="javascript:insertStartLine(' + "'   * '" + ');" class="editButton">&nbsp;&nbsp;&bull;&nbsp;&nbsp;</a></td>\n' +
+  '<td title="Bullet to left or heading down one"><a href="javascript:toLeft();" class="editButton">&nbsp;&nbsp;<b>&lt;</b>&nbsp;&nbsp;</a></td>\n' +
+  '<td title="Bullet to right or heading up one"><a href="javascript:toRight();" class="editButton">&nbsp;&nbsp;<b>&gt;</b>&nbsp;&nbsp;</a></td>\n' +
+  '<td title="Insert short signature"><a href="javascript:insert(' + "'[ %WIKIUSERNAME% %DATE% ]'" + ');" class="editButton">&nbsp;&nbsp;<i>Sig</i>&nbsp;&nbsp;</a></td>\n' +
+  '<td title="Insert signature"><a href="javascript:insert(' + "'-- %WIKIUSERNAME% - %DATE%'" + ');" class="editButton"><i>&nbsp;&nbsp;Signature&nbsp;&nbsp;</i></a></td>\n' +
+  '<td><select name="variables" onchange="javascript:insertVariable(this.options [this.selectedIndex].value);this.options [0].selected = true;" class="editDropdown">\n' +
+  '<option value="">Variables ...</option>\n' +
+  '<option value="DRAWING">%<nop>DRAWING%</option>\n' +
+  '<option value="INCLUDE">%<nop>INCLUDE%</option>\n' +
+  '<option value="GMTIME">%<nop>GMTIME%</option>\n' +
+  '<option value="TOC">%<nop>TOC%</option>\n' +
+  '<option value="SEARCH">%<nop>SEARCH%</option>\n' +
+  '</select></td>\n' +
+  '<td title="Headings, horizontal rule, ...">\n' +
+  '<select name="other" onchange="insertStartLine(this.options [this.selectedIndex].value);this.options [0].selected = true" class="editDropdown">\n' +
+  '<option value="">Other ...</option>\n' +
+  '<option value="---+ ">h1</option>\n' +
+  '<option value="---++ ">h2</option>\n' +
+  '<option value="---+++ ">h3</option>\n' +
+  '<option value="---++++ ">h4</option>\n' +
+  '<option value="--- ">hr</option>\n' +
+  '</select>\n' +
+  '</td>\n' +
+  '<td>\n' +
+  '<select name="topic" onchange="insert(this.options [this.selectedIndex].value);this.options [0].selected = true" class="editDropdown">\n' +
+  '<option value="">Topic ...</option>\n' +
+  '%TOPICLIST{"<option value=$qname>$name</option>" separator=" "}%\n' +
+  '</select>\n' +
+  '</td>\n' +
+  '</tr>\n' +
+  '</table>\n';
+  document.write( toolbar );
+  return;
+}
+// =================
+function writeJavaScriptNote()
+{
+  if( doFancyEdit() ) {
+    return;
+  }
+  document.write("<br /><i>Note:</i> An advanced <nop>JavaScript editor is available for Microsoft Internet Explorer 4.0 and later");
+  return;
+}
+// =================
+//STOP HIDING-->
+</script>
+</head>
+<body bgcolor="#ffffff" onLoad="initForm()">
+#PageTop
+<form name="main" action="%SCRIPTURLPATH%/preview%SCRIPTSUFFIX%/%WEB%/%TOPIC%" method="post">
+%TMPL:DEF{"titleaction"}%(edit)%TMPL:END%
+%TMPL:DEF{"webaction"}%Change topic%TMPL:END%
+%TMPL:P{"simpleheader"}%
+<script language="JavaScript">
+<!--HIDE
+writeToolbar("top");
+//STOP HIDING-->
+</script>
+<textarea name="text" id="text" wrap="virtual" rows="%EDITBOXHEIGHT%" cols="%EDITBOXWIDTH%" style="%EDITBOXSTYLE%" onclick="storeCaret(this)" onKeyUp="storeCaret(this)" onselect="storeCaret(this)">%TEXT%</textarea>
+<script language="JavaScript">
+<!--HIDE
+writeToolbar("bottom");
+//STOP HIDING-->
+</script>
+<input type="hidden" name="formtemplate" value="%FORMTEMPLATE%" />
+<input type="hidden" name="topicparent" value="%TOPICPARENT%" />
+<input type="hidden" name="cmd" value="%CMD%" />
+See below for help in editing this page.
+<script language="JavaScript">
+<!--HIDE
+// Uncomment the next line if you really want to warn non-IE users that they 
+// could use this template's editor in IE.
+// writeJavaScriptNote();
+//STOP HIDING-->
+</script>
+<table border="0" cellpadding="2" cellspacing="0">
+ <tr>
+  <td><b>-- <nop>%WIKIUSERNAME% - %DATE%</b></td>
+  <td> &nbsp;&nbsp; <code>&lt;==</code> Your signature for easy copy and paste (triple click to select)</td>
+ </tr><tr>
+  <td><b>-- %INITIALS%</b></td>
+  <td> &nbsp;&nbsp; <code>&lt;==</code> Your initials, for signing small comments
+  (<a target="GoodStyle" onClick="return launchWindow('%TWIKIWEB%','GoodStyle','#SignAndDate')" href="%SCRIPTURLPATH%/view%SCRIPTSUFFIX%/%TWIKIWEB%/GoodStyle#SignAndDate">help</a>)</td>
+ </tr>
+</table>
+%FORMFIELDS%
+%TMPL:DEF{"topicaction"}% <input type="submit" value=" &nbsp; Preview Changes &nbsp; " />
+  %SEP% <a class="footerlink" href="%SCRIPTURLPATH%/view%SCRIPTSUFFIX%/%WEB%/%TOPIC%?unlock=on">Cancel</a> edit %TMPL:END%
+%TMPL:P{"standardfooter"}%
+<table width="100%" border="0" cellpadding="10" cellspacing="0" bgcolor="#EEEEEE">
+ <tr>
+  <td>
+<font color="#333333" size="-1">
+%INCLUDE{"%TWIKIWEB%.WikiSyntaxSummary"}%
+</font>
+  </td>
+ </tr>
+</table>
+<table width="100%" border="0" cellpadding="3" cellspacing="0">
+ <tr>
+  <td width="50%" valign="top">
+  </td>
+  <td width="50%" valign="top">
+   %WEBCOPYRIGHT%
+  </td>
+ </tr>
+</table>
+</form>
+#PageBottom
+</body>
+</html>

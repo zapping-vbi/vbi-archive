@@ -1,0 +1,62 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:DEF{"rename"}%
+%TMPL:P{"htmldoctype"}%
+<head>
+ <title> %WIKITOOLNAME% . %WEB% . %TOPIC% %TMPL:P{"titleaction"}%</title>
+ <meta http-equiv="Content-Type" content="text/html; charset=%CHARSET%" />
+ <meta name="robots" content="noindex" /> %HTTP_EQUIV_ON_VIEW%
+ <base href="%SCRIPTURL%/view%SCRIPTSUFFIX%/%WEB%/%TOPIC%" />
+ <script language="JavaScript">
+ <!--HIDE
+  function launchWindow( theWeb, theTopic ) {
+    win = open("%SCRIPTURLPATH%/view%SCRIPTSUFFIX%/" + theWeb + "/" + theTopic + "?skin=plain", theTopic, "titlebar=0,width=500,height=480,resizable,scrollbars");
+    if( win ) {
+      win.focus();
+    }
+    return false;
+ }
+
+ function checkAll( theCheck )
+ {
+   // find button element index
+   var j = 0;
+   for( var i = 0; i < document.rename.length; i++ ) {
+     document.rename.elements[i].checked = theCheck;
+   }
+ }
+ //STOP HIDING-->
+ </script>
+</head>
+<body bgcolor="#ffffff">
+#PageTop
+<form method="POST" name="rename" action="%SCRIPTURLPATH%/rename%SCRIPTSUFFIX%/%WEB%/%TOPIC%">
+%TMPL:P{"simpleheader"}%
+---+ %TMPL:P{"webaction"}% <code>%TOPIC%</code>
+
+| |  *Web:* | *&nbsp;Topic:* |
+|  *From:* |    <nop>%WEB%. | &nbsp;%TOPIC% |
+|  *To:* |  %TMPL:P{"newweb"}%. | %TMPL:P{"newtopic"}% |
+%TMPL:P{"notes"}%
+
+---++ Change links in topics that refer to <nop>%TOPIC% in the <nop>%WEB% Web:
+
+%RESEARCH{ "%TOPIC%" web="%WEB%" noempty="on" showlock="on" nototal="on" regex="on" nosearch="on" order="modified" reverse="on" nosummary="on" showlock="on" renameview="local"}%
+
+---++ Change links in topics that refer to <nop>%WEB%.<nop>%TOPIC% in any Web:
+
+%RESEARCH{ "%WEB%\.%TOPIC%" web="all" noempty="on" showlock="on" nototal="on" regex="on" nosearch="on" order="modified" reverse="on" nosummary="on" showlock="on" renameview="global"}%
+
+<input type="button" value="Clear all checkboxes" onClick="checkAll(false);" />
+
+__Note:__
+   * Get help on
+     <a target="ManagingTopics" onClick="return launchWindow('%TWIKIWEB%','ManagingTopics')" href="%SCRIPTURLPATH%/view%SCRIPTSUFFIX%/%TWIKIWEB%/ManagingTopics">Renaming and moving topics</a>.
+   * Select the Trash Web to delete the topic.
+   * The checkmarked topics will be updated (another form will appear which will _eventually_ allow you to rename any topics that were locked)
+
+%TMPL:P{"hidden"}%
+%TMPL:P{"standardfooter"}%
+#PageBottom
+</form>
+</body>
+</html>%TMPL:END%

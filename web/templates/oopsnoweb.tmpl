@@ -1,0 +1,38 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:DEF{"titleaction"}%(oops, web doesn't exist)%TMPL:END%
+%TMPL:DEF{"webaction"}% *Attention* %TMPL:END%
+%TMPL:DEF{"heading"}%The "%WEB%" web does not exist%TMPL:END%
+%TMPL:DEF{"message"}%
+A %TWIKIWEB%.TWikiSite is divided into webs; each one represents one
+subject, one area of collaboration. You are trying to access a web
+that does not exist.
+
+---+++ If you came here by clicking on a question mark link:
+<blockquote>
+A link to a topic located in another web is are written like *Otherweb.<nop>TopicName*.
+Make sure that the name of the web is not misspelled on the previous page; fix the 
+link if necessary.
+</blockquote>
+
+---+++ If you would like to create this web:
+<blockquote>
+You can 
+[[%SCRIPTURL%/view%SCRIPTSUFFIX%/%TWIKIWEB%/ManagingWebs?newweb=%WEB%&amp;newtopic=%TOPIC%#CreateNewWeb][create a new web]] 
+if you have the permission. Contact %WIKIWEBMASTER% if you have any questions.
+</blockquote>
+
+---+++ If you intend to do a full text search:
+
+<blockquote>
+<form name="search" action="%SCRIPTURLPATH%/search%SCRIPTSUFFIX%/%MAINWEB%/">
+<input type="text" name="search" size="32" value="%WEB%.%TOPIC%">
+<input type="submit" value="Search">
+<input type="hidden" name="web" value="all">
+<input type="hidden" name="scope" value="text">
+<input type="hidden" name="ignorecase" value="on">
+&nbsp;&nbsp; (More options in %MAINWEB%.WebSearch)
+</form>
+</blockquote>
+ %TMPL:END%
+%TMPL:DEF{"topicaction"}% [[%MAINWEB%.%HOMETOPIC%][OK]] %TMPL:END%
+%TMPL:P{"oops"}%

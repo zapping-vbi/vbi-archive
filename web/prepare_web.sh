@@ -1,5 +1,5 @@
 #!/bin/sh
-#$Id: prepare_web.sh,v 1.11 2004-04-17 07:54:53 mschimek Exp $
+#$Id: prepare_web.sh,v 1.12 2004-04-17 08:12:09 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -31,5 +31,10 @@ done
 chmod a+rX doc -R
 cd -
 
+# Files used by TWiki cgi-bin
+
 chmod a+rX lib
 find lib -name "CVS" -prune -o -exec chmod a+rX '{}' ';'
+
+chmod a+rX templates
+chmod a+rX templates/*.tmpl

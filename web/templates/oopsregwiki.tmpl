@@ -1,0 +1,18 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:DEF{"titleaction"}%(oops)%TMPL:END%
+%TMPL:DEF{"webaction"}% *Attention* %TMPL:END%
+%TMPL:DEF{"heading"}%Incorrect <nop>WikiName%TMPL:END%
+%TMPL:DEF{"message"}%
+The %TWIKIWEB%.WikiName field must be your first and lastname in 
+%TWIKIWEB%.WikiNotation, e.g. your capitalized first and lastname 
+with spaces removed.
+
+| *Good examples:* | *Incorrect <nop>WikiNames:* |
+| =JohnSmith= | =John M. Smith= |
+| =RjMiller= | =RJ Miller= |
+| =RickO= | =Rick O= (single character last name) |
+| =KellerF= | =FKeller= (single character first name) |
+
+Please go back in your browser and try again. %TMPL:END%
+%TMPL:DEF{"topicaction"}% %TMPL:END%
+%TMPL:P{"oops"}%

@@ -1,0 +1,46 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:DEF{"titleaction"}%(more)%TMPL:END%
+%TMPL:DEF{"webaction"}% *Topic actions* %TMPL:END%
+%TMPL:DEF{"heading"}%More Actions on Topic %TOPIC%%TMPL:END%
+%TMPL:DEF{"message"}%
+
+   * *Rename, move or delete <nop>%TOPIC%:*
+      * <a href="%SCRIPTURLPATH%/rename%SCRIPTSUFFIX%/%WEB%/%TOPIC%?currentwebonly=on">Rename/move topic</a>,
+        looking for references in __%WEB% web__ only.
+      * *<a href="%SCRIPTURLPATH%/rename%SCRIPTSUFFIX%/%WEB%/%TOPIC%">Rename/move topic</a>*,
+        looking for references in __all public webs__. *(recommended)*
+
+   * *Ref-By:*
+      * <a href="%SCRIPTURLPATH%/search%SCRIPTSUFFIX%/%WEB%/SearchResult?scope=text&amp;regex=on&amp;search=%SPACEDTOPIC%%5B%5EA-Za-z%5D">Find topics</a>
+        in __%WEB% web__ that link to <nop>%TOPIC%.
+      * <a href="%SCRIPTURLPATH%/search%SCRIPTSUFFIX%/%WEB%/SearchResult?scope=text&amp;web=all;&amp;regex=on&amp;search=%SPACEDTOPIC%%5B%5EA-Za-z%5D">Find topics</a>
+        in __all public webs__ that link to <nop>%TOPIC%.
+      * Child topics in __%WEB% Web__: %METASEARCH{type="parent" web="%WEB%" topic="%TOPIC%" title=""}%
+
+<form name="main" action="%EDITURL%">
+   * *Set new topic parent:*
+      * Step 1: Select topic parent: %BR%
+        <select name="topicparent" size="10">
+        <option value="none">none (remove topic parent)</option>
+        %TOPICLIST{"<option value=$qname>$name</option>" separator=" "}%
+        </select>
+      * Step 2: Continue to <input type="submit" value="Edit" /> and save <nop>%TOPIC% to activate the new parent
+        <input type="hidden" name="t" value="%SERVERTIME{$hour$min$sec}%">
+</form>
+
+<form name="main" action="%SCRIPTURLPATH%/view%SCRIPTSUFFIX%/%WEB%/%TOPIC%">
+   * *View previous topic revision:*
+      * Revision: <input type="text" name="rev" size="6" value="%PARAM2%" />
+        in <input type="checkbox" name="raw" /> raw text format
+        <input type="submit" value="View revision" />
+      * Revisions: 1.1 ... %PARAM1%
+</form>
+
+<form name="main" action="%SCRIPTURLPATH%/rdiff%SCRIPTSUFFIX%/%WEB%/%TOPIC%">
+   * *Compare revisions:*
+      * Older revision:&nbsp;&nbsp; <input type="text" name="rev2" size="6" value="1.1" />
+      * Newer revision: <input type="text" name="rev1" size="6" value="%PARAM1%" />
+        <input type="submit" value="View difference" />
+</form> %TMPL:END%
+%TMPL:DEF{"topicaction"}% [[%WEB%.%TOPIC%][Cancel]] %TMPL:END%
+%TMPL:P{"oops"}%

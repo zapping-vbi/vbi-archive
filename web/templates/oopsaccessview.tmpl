@@ -1,0 +1,14 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:DEF{"titleaction"}%(oops)%TMPL:END%
+%TMPL:DEF{"webaction"}% *Attention* %TMPL:END%
+%TMPL:DEF{"heading"}%View Access Denied%TMPL:END%
+%TMPL:DEF{"message"}%
+You do not have permission to view topic <nop>%WEB%.<nop>%TOPIC%.
+
+Contact 
+<a href="mailto:%WIKIWEBMASTER%?subject=View&#32;Access&#32;Denied&#32;for&#32;'%WEB%.%TOPIC%'">%WIKIWEBMASTER%</a>
+if you have any questions.
+
+__Related topics:__ %MAINWEB%.TWikiGroups, %TWIKIWEB%.TWikiAccessControl %TMPL:END%
+%TMPL:DEF{"topicaction"}% [[%MAINWEB%.%HOMETOPIC%][OK]] %TMPL:END%
+%TMPL:P{"oops"}%

@@ -1,0 +1,72 @@
+%TMPL:DEF{"sep"}% | %TMPL:END%
+%TMPL:DEF{"htmldoctype"}%
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="%LANG%" lang="%LANG%"> %TMPL:END%
+%TMPL:DEF{"standardheader"}%
+<table width="100%" border="0" cellpadding="3" cellspacing="0">
+ <tr>
+  <td bgcolor="%WEBBGCOLOR%" rowspan="2" valign="top" width="1%">
+   <noautolink>
+   <a href="%WIKILOGOURL%"><img src="%WIKILOGOIMG%" border="0" alt="%WIKILOGOALT%" /></a>
+   </noautolink>
+  </td><td>
+   <a href="%SCRIPTURL%/view%SCRIPTSUFFIX%/%MAINWEB%/%HOMETOPIC%">%WIKITOOLNAME%</a>
+   &gt; <a href="%SCRIPTURL%/view%SCRIPTSUFFIX%/%WEB%/%HOMETOPIC%">%WEB%</a>
+   &gt; %META{"parent" nowebhome="on" suffix=" &gt;"}%
+   <font size="+1"><b>%TOPIC%</b> %TMPL:P{"titleaction"}%</font>
+  </td><td align="right">
+   <font size="-2">%WIKITOOLNAME% webs: <br />
+   %WIKIWEBLIST% </font>
+  </td>
+ </tr>
+ <tr bgcolor="%WEBBGCOLOR%">
+  <td colspan="2">
+   <nop>%WEB% . { %TMPL:P{"webaction"}% }
+  </td>
+ </tr>
+</table> %TMPL:END%
+%TMPL:DEF{"simpleheader"}%
+<table width="100%" border="0" cellpadding="3" cellspacing="0">
+ <tr>
+  <td bgcolor="%WEBBGCOLOR%" rowspan="2" valign="top" width="1%">
+   <noautolink>
+   <img src="%WIKILOGOIMG%" border="0" alt="%WIKILOGOALT%" />
+   </noautolink>
+  </td><td>
+   <b>%WIKITOOLNAME% .&nbsp;%WEB% .&nbsp;</b><font size="+2"><b>%TOPIC%</b> %TMPL:P{"titleaction"}%</font>
+  </td><td> %TMPL:P{"headerhelp"}%
+  </td>
+ </tr>
+ <tr bgcolor="%WEBBGCOLOR%">
+  <td colspan="2">
+   %TMPL:P{"webaction"}%
+  </td>
+ </tr>
+</table> %TMPL:END%
+%TMPL:DEF{"standardfooter"}%
+<table width="100%" border="0" cellpadding="3" cellspacing="0">
+ <tr bgcolor="%WEBBGCOLOR%">
+  <td valign="top">
+   Topic <b>%TOPIC%</b> . { %TMPL:P{"topicaction"}%
+   }
+  </td>
+ </tr>
+</table> %TMPL:END%
+%TMPL:DEF{"oops"}%
+%TMPL:P{"htmldoctype"}%
+<head>
+ <title> %WIKITOOLNAME% . %WEB% . %TOPIC% %TMPL:P{"titleaction"}%</title>
+ <meta http-equiv="Content-Type" content="text/html; charset=%CHARSET%" />
+ <meta name="robots" content="noindex" /> %HTTP_EQUIV_ON_VIEW%
+ <base href="%SCRIPTURL%/view%SCRIPTSUFFIX%/%WEB%/%TOPIC%" />
+</head>
+<body bgcolor="#ffffff">
+#PageTop
+%TMPL:P{"simpleheader"}%
+---+ %TMPL:P{"heading"}%
+%TMPL:P{"message"}%
+<p />
+%TMPL:P{"standardfooter"}%
+#PageBottom
+</body>
+</html> %TMPL:END%

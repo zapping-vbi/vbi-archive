@@ -1,0 +1,11 @@
+%TMPL:INCLUDE{"twiki"}%
+%TMPL:DEF{"titleaction"}%(note)%TMPL:END%
+%TMPL:DEF{"webaction"}% *Note* %TMPL:END%
+%TMPL:DEF{"heading"}%How to reset your TWiki password%TMPL:END%
+%TMPL:DEF{"message"}%
+The following *bold* string is your encrypted password entry: *%PARAM1%*
+
+Please copy this information into a friendly e-mail to 
+<a href="mailto:%WIKIWEBMASTER%?subject=%WIKITOOLNAME%&#32;Reset&#32;Password&amp;body=%PARAM1%">%WIKIWEBMASTER%</a> %TMPL:END%
+%TMPL:DEF{"topicaction"}% %TMPL:END%
+%TMPL:P{"oops"}%
