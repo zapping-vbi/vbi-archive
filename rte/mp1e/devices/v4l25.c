@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.1 2003-01-15 23:33:21 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.2 2003-03-09 00:33:04 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -295,6 +295,19 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 				break;
 		}
 
+		if (vfmt.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV) {
+			/* Maybe this works. */
+			vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
+
+			if (IOCTL(fd, VIDIOC_S_FMT, &vfmt) == 0) {
+				if (!DECIMATING(filter_mode))
+					break;
+				if (vfmt.fmt.pix.height > par->height * 0.7
+				    && vfmt.fmt.pix.width > par->width * 0.7)
+					break;
+			}
+		}
+
 		if (filter_mode == CM_YUYV) {
 			new_mode = CM_YUV;
 			new_width = par->width;
@@ -332,7 +345,13 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 		par->height = new_height;
 	}
 
-	par->pixfmt = YUV420(filter_mode) ? RTE_PIXFMT_YUV420 : RTE_PIXFMT_YUYV;
+	if (vfmt.fmt.pix.pixelformat == V4L2_PIX_FMT_YUV420) {
+		par->pixfmt = RTE_PIXFMT_YUV420;
+	} else if (vfmt.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV) {
+		par->pixfmt = RTE_PIXFMT_YUYV;
+	} else {
+		par->pixfmt = RTE_PIXFMT_UYVY;
+	}
 
 	vmod = DECIMATING_VERT(filter_mode) ? 32 : 16;
 	hmod = DECIMATING_HOR(filter_mode) ? 32 : 16;
@@ -380,6 +399,11 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 	par->sample_aspect = video_sampling_aspect (par->frame_rate,
 			  par->width >> !!DECIMATING_HOR (filter_mode),
 			  par->height >> !!DECIMATING_VERT (filter_mode));
+
+	if (vfmt.fmt.pix.pixelformat == V4L2_PIX_FMT_UYVY) {
+		/* switch to UYVY modes (yeah, an ugly hack) */
+		filter_mode += CM_UYVY - CM_YUYV;
+	}
 
 	filter_init(par, fp);
 

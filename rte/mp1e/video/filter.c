@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.11 2002-10-02 02:13:48 mschimek Exp $ */
+/* $Id: filter.c,v 1.12 2003-03-09 00:32:47 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -40,6 +40,16 @@ filter_labels[] = {
 	"YUYV 4:2:2 w/horizontal decimation",
 	"YUYV 4:2:2 with 4:1 decimation",
 	"YVU 4:2:0 fastest",
+	"huh?",
+	"UYVY 4:2:2 fastest",
+	"UYVY 4:2:2 w/vertical decimation",
+	"UYVY 4:2:2 w/temporal interpolation", /* REMOVED */
+	"UYVY 4:2:2 w/vertical interpolation",
+	"UYVY 4:2:2 field progressive 50/60 Hz",
+	"UYVY 4:2:2 50/60 Hz w/temporal interpolation", /* REMOVED */
+	"huh?",
+	"UYVY 4:2:2 w/horizontal decimation",
+	"UYVY 4:2:2 with 4:1 decimation",
 };
 
 extern filter_fn	pmmx_YUV420_0;
@@ -54,6 +64,11 @@ extern filter_fn	pmmx_YUYV_6;
 extern filter_fn	sse_YUYV_0;
 extern filter_fn	sse_YUYV_2;
 extern filter_fn	sse_YUYV_6;
+extern filter_fn	pmmx_UYVY_0;
+extern filter_fn	pmmx_UYVY_1;
+extern filter_fn	pmmx_UYVY_2;
+extern filter_fn	pmmx_UYVY_3;
+extern filter_fn	pmmx_UYVY_6;
 
 #if 0 /* rewrite */
 
@@ -156,6 +171,12 @@ filter_init(rte_video_stream_params *par, struct filter_param *fp)
 		fp->func = sse ? sse_YUYV_0 : pmmx_YUYV_0;
 		break;
 
+	case CM_UYVY:
+	case CM_UYVY_PROGRESSIVE:
+fprintf(stderr, "******UYVY\n");
+		fp->func = pmmx_UYVY_0;
+		break;
+
 /* removed	case CM_YUYV_EXP2: */
 /* removed	case CM_YUYV_EXP_VERTICAL_DECIMATION: */
 		FAIL("Sorry, the selected filter mode was experimental and is no longer available.\n");
@@ -166,8 +187,18 @@ filter_init(rte_video_stream_params *par, struct filter_param *fp)
 		scale_y = 2;
 		break;
 
+	case CM_UYVY_VERTICAL_DECIMATION:
+		fp->func = pmmx_UYVY_2;
+		scale_y = 2;
+		break;
+
 	case CM_YUYV_HORIZONTAL_DECIMATION:
 		fp->func = pmmx_YUYV_1;
+		scale_x = 2;
+		break;
+
+	case CM_UYVY_HORIZONTAL_DECIMATION:
+		fp->func = pmmx_UYVY_1;
 		scale_x = 2;
 		break;
 
@@ -177,8 +208,18 @@ filter_init(rte_video_stream_params *par, struct filter_param *fp)
 		scale_y = 2;
 		break;
 
+	case CM_UYVY_QUAD_DECIMATION:
+		fp->func = pmmx_UYVY_3;
+		scale_x = 2;
+		scale_y = 2;
+		break;
+
 	case CM_YUYV_VERTICAL_INTERPOLATION:
 		fp->func = sse ? sse_YUYV_6 : pmmx_YUYV_6;
+		break;
+
+	case CM_UYVY_VERTICAL_INTERPOLATION:
+		fp->func = pmmx_UYVY_6;
 		break;
 
 	case CM_YUYV_TEMPORAL_INTERPOLATION:

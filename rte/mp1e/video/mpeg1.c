@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.42 2002-12-14 00:43:44 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.43 2003-03-09 00:32:23 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -2343,6 +2343,7 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 {
 	extern filter_fn pmmx_YUV420_0, sse_YUV420_0;
 	extern filter_fn pmmx_YUYV_6, sse_YUYV_6;
+	extern filter_fn pmmx_UYVY_6;
 	extern int filter_mode;
 	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
 	rte_bool packed = TRUE;
@@ -2439,6 +2440,7 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 		break;
 
 	case RTE_PIXFMT_YUYV:
+	case RTE_PIXFMT_UYVY:
 		if (rsp->video.stride == 0)
 			rsp->video.stride = rsp->video.width * 2;
 
@@ -2448,7 +2450,11 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 		mpeg1->filter_param[0].dest = (void *) &mblock[0];
 		mpeg1->filter_param[0].offset = rsp->video.offset;
 		mpeg1->filter_param[0].stride = rsp->video.stride;
-		mpeg1->filter_param[0].func = sse ? sse_YUYV_6 : pmmx_YUYV_6;
+
+		if (rsp->video.pixfmt == RTE_PIXFMT_UYVY)
+			mpeg1->filter_param[0].func = pmmx_UYVY_6;
+		else
+			mpeg1->filter_param[0].func = sse ? sse_YUYV_6 : pmmx_YUYV_6;
 
 		break;
 
