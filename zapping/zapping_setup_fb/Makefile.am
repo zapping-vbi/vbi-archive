@@ -11,7 +11,6 @@ EXTRA_DIST = zapping_setup_fb.pam zapping_fix_overlay.in
 DISTCLEANFILES = zsfb.capps
 
 install-binPROGRAMS: $(bin_PROGRAMS) zsfb.capps
-if NEED_ZSFB
 if SUID_ZSFB
 	$(mkinstalldirs) $(DESTDIR)$(bindir)
 	$(mkinstalldirs) $(DESTDIR)$(sbindir)
@@ -32,10 +31,8 @@ else
 	fi
 	cp zsfb.capps $(DESTDIR)/etc/security/console.apps/zapping_setup_fb
 endif
-endif
 
 uninstall-binPROGRAMS:
-if NEED_ZSFB
 if SUID_ZSFB
 	rm -f $(DESTDIR)$(bindir)/zapping_setup_fb
 else
@@ -45,7 +42,6 @@ else
 ## Should we really remove this file? The administrator might have
 ## changed it...
 	rm -f $(DESTDIR)/etc/pam.d/zapping_setup_fb
-endif
 endif
 
 zapping_setup_fb_SOURCES = \
