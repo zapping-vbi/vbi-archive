@@ -84,7 +84,7 @@ zapping_SOURCES = \
 	vdr.c vdr.h
 
 zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(PACKAGE_LIBS) $(PYTHON_LIBS) \
-  $(X_LIBS) $(X_DPMS_LIBS) \
+  $(X_LIBS) -lX11 $(X_DPMS_LIBS) \
   $(X_XF86DGA_LIBS) $(X_XF86VMODE_LIBS) $(X_XV_LIBS) \
   $(CCMALLOC) $(ZVBI_LIB) $(ARTS_LIBS) $(ESD_LIBS) $(LIBXML_LIBS)
 zapping_LDFLAGS = -export-dynamic
