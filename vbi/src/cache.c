@@ -342,7 +342,7 @@ cache_page_dump			(const cache_page *	cp,
 		const page_stat *ps = cs->pages + cp->page.pgno - 0x100;
 
 		fprintf (stderr, "nuid=%08x/%08x C%u/L%u/S%04x sub %u/%u (%u-%u) ",
-			 cs->temp_nuid, cs->real_nuid,
+			 cs->client_nuid, cs->received_nuid,
 			 ps->code, ps->language, ps->subcode,
 			 ps->num_pages, ps->max_pages,
 			 ps->subno_min, ps->subno_max);
@@ -363,7 +363,7 @@ cache_stat_dump			(const cache_stat *	cs,
 	if (cs)
 		fprintf (stderr, "cache_stat nuid=%08x/%08x "
 			 "pages=%u/%u locked=%u ref=%u%c",
-			 cs->temp_nuid, cs->real_nuid,
+			 cs->client_nuid, cs->received_nuid,
 			 cs->num_pages, cs->max_pages,
 			 cs->locked_pages,
 			 cs->ref_count,
@@ -962,7 +962,7 @@ cache_stat_create		(cache *		ca,
 		cs->locked_pages = 0;
 		cs->ref_count = 0;
 
-		CLEAR (&cs->pages);
+		CLEAR (cs->pages);
 
 		unlink_node (&cs->node);
 	} else {

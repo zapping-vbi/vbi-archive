@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.4 2003-09-24 18:49:56 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.5 2003-10-16 18:15:08 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -32,10 +32,10 @@
 /**
  * @addtogroup Basic Types
  *
- * Apart of redefining TRUE and FALSE libzvbi reserves all type,
- * function, variable and constant names, and preprocessor symbols
- * starting with vbi_ or VBI_. In the future it may also reserve
- * the C++ namespace vbi.
+ * Apart of redefining TRUE and FALSE libzvbi reserves all
+ * preprocessor symbols and all type, function, variable and
+ * constant names starting with vbi_ or VBI_, and the C++
+ * namespace vbi.
  */
 
 #ifndef DOXYGEN_SHOULD_IGNORE_THIS
@@ -112,7 +112,7 @@ typedef unsigned int vbi_nuid;
    safer than &x == (struct tm *) &x.tm_min */
 #undef PARENT
 #define PARENT(_ptr, _type, _member) ({					\
-	__typeof__ (&((const _type *) 0)->_member) _p = (_ptr);		\
+	__typeof__ (&((_type *) 0)->_member) _p = (_ptr);		\
 	(_p != 0) ? (_type *)(((char *) _p) - offsetof (_type,		\
 	  _member)) : (_type *) 0;					\
 })

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2.c,v 1.12.2.3 2003-05-02 11:16:12 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l2.c,v 1.12.2.4 2003-10-16 18:15:07 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -285,7 +285,7 @@ v4l2_fd(vbi_capture *vc)
 }
 
 static void
-print_vfmt(char *s, struct v4l2_format *vfmt)
+print_vfmt(char *s, const struct v4l2_format *vfmt)
 {
 	fprintf(stderr, "%s%d Hz, %d bpl, offs %d, "
 		"F1 %d+%d, F2 %d+%d, flags %08x\n", s,
@@ -307,7 +307,7 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 	struct v4l2_requestbuffers vrbuf;
 	struct v4l2_buffer vbuf;
 	struct v4l2_standard vstd;
-	char *guess = "";
+	const char *guess = "";
 	vbi_capture_v4l2 *v;
 	int max_rate, g_fmt;
 
@@ -611,11 +611,11 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 			p = mmap(NULL, vbuf.length, PROT_READ | PROT_WRITE,
 				 MAP_SHARED, v->fd, vbuf.offset); /* MAP_PRIVATE ? */
 
-			if ((int) p == -1)
+			if (p == MAP_FAILED)
 			  p = mmap(NULL, vbuf.length, PROT_READ,
 				   MAP_SHARED, v->fd, vbuf.offset); /* MAP_PRIVATE ? */
 
-			if ((int) p == -1) {
+			if (p == MAP_FAILED) {
 				if (errno == ENOMEM && v->num_raw_buffers >= 2) {
 					printv("Memory mapping buffer #%d failed: %d, %s (ignored).",
 					       v->num_raw_buffers, errno, strerror(errno));

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-bktr.c,v 1.2 2002-11-30 02:37:18 mschimek Exp $";
+static char rcsid[] = "$Id: io-bktr.c,v 1.2.2.1 2003-10-16 18:15:07 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -340,7 +340,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 {
 	pthread_once (&vbi_init_once, vbi_init);
 
-	vbi_asprintf(errstr, _("bktr interface not compiled."));
+	vbi_asprintf(errstr, _("BKTR interface not compiled."));
 
 	return NULL;
 }

@@ -1,3 +1,14 @@
+2003-10-13      <mschimek@users.sf.net>
+
+	* src/bcd.c, src/bcd.h: Added bcd.c for full precision
+	  binary <-> bcd conversion.
+
+2003-10-09      <mschimek@users.sf.net>
+
+	* src/exp-txt.c, src/io-v4l2.c, src/io-v4l2k.c:
+	  x86-64 fixes by Gwenole Beauchesne, submitted by
+	  Thierry Vignaud of MandrakeSoft.
+
 2003-06-13	<mschimek@users.sf.net>
 
 	* src/teletext.c, src/vt.h: Broke up various large functions

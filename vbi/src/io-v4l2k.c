@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2k.c,v 1.2.2.3 2003-05-02 11:16:12 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l2k.c,v 1.2.2.4 2003-10-16 18:15:08 mschimek Exp $";
 
 /*
  *  Around Oct-Nov 2002 the V4L2 API was revised for inclusion into
@@ -317,7 +317,7 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 	struct v4l2_buffer vbuf;
 	struct v4l2_standard vstd;
 	v4l2_std_id stdid;
-	char *guess = "";
+	const char *guess = "";
 	vbi_capture_v4l2 *v;
 	int max_rate, g_fmt;
 	int r;
@@ -614,11 +614,11 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 			p = mmap(NULL, vbuf.length, PROT_READ | PROT_WRITE,
 				 MAP_SHARED, v->fd, vbuf.m.offset); /* MAP_PRIVATE ? */
 
-			if ((int) p == -1)
+			if (p == MAP_FAILED)
 			  p = mmap(NULL, vbuf.length, PROT_READ,
 				   MAP_SHARED, v->fd, vbuf.m.offset); /* MAP_PRIVATE ? */
 
-			if ((int) p == -1) {
+			if (p == MAP_FAILED) {
 				if (errno == ENOMEM && v->num_raw_buffers >= 2) {
 					printv("Memory mapping buffer #%d failed: %d, %s (ignored).",
 					       v->num_raw_buffers, errno, strerror(errno));

@@ -3,7 +3,7 @@
  *  Copyright (C) 2003 Michael H. Schimek
  */
 
-/* $Id: test-bcd.cc,v 1.1.2.1 2003-06-16 06:05:24 mschimek Exp $ */
+/* $Id: test-bcd.cc,v 1.1.2.2 2003-10-16 18:15:08 mschimek Exp $ */
 
 #include <iostream>
 #include <iomanip>
@@ -101,6 +101,8 @@ main				(void)
 	assert (d == 0x1234);
 
 	for (x = 0; x < 10000; ++x) {
+#warning add test for full precision conversion
+#warning add test of limit constants
 		y = vbi_dec2bcd (x);
 		z = vbi_bcd2dec (y);
 		assert (x == z);
@@ -159,6 +161,7 @@ main				(void)
 	}
 
 #warning vbi_bcd_limit untested
+#warning test SUBNO constants
 
 	return 0;
 }

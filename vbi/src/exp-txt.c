@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.10.2.2 2003-06-16 06:05:24 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.10.2.3 2003-10-16 18:15:07 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -590,9 +590,16 @@ print_char			(text_instance *	text,
 
 	if (text->term != TERMINAL_NONE) {
 		assert (sizeof (vbi_char) == 8);
+ 		union {
+			vbi_char		c;
+			uint64_t		i;
+		} u_old, u_tmp, u_this;
 
-		*((uint64_t *) &chg) = *((uint64_t *) &old) ^ *((uint64_t *) &this);
-		*((uint64_t *) &off) = *((uint64_t *) &chg) & ~*((uint64_t *) &this);
+ 		u_old.c = old;
+ 		u_this.c = this;
+  
+ 		u_tmp.i = u_old.i ^ u_this.i; chg = u_tmp.c;
+ 		u_tmp.i = u_tmp.i &~u_this.i; off = u_tmp.c;
 
 		/* Control sequences based on ECMA-48,
 		   http://www.ecma-international.org/ */
