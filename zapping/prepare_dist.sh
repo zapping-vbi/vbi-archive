@@ -59,7 +59,7 @@ elif [ -d ~/LnxZip/RPM ]; then
 elif [ -d /usr/src/packages ]; then
     RPM_DIR=/usr/src/packages
 ## Mandrake
-elif [ -d /usr/src/RPM]; then
+elif [ -d /usr/src/RPM ]; then
     RPM_DIR=/usr/src/RPM
 fi
 if ! test "x$RPM_DIR" = "x"; then
