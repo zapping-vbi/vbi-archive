@@ -43,8 +43,26 @@
 #include "csconvert.h"
 #include "globals.h"
 
-#define _pthread_rwlock_rdlock pthread_rwlock_rdlock 
-#define _pthread_rwlock_wrlock pthread_rwlock_wrlock 
+#include <sched.h>
+
+#define _pthread_rwlock_rdlock(l)					\
+do {									\
+	sched_yield (); \
+/*	fprintf (stderr, "%u rdlock " #l " %p\n", __LINE__, l);	*/	\
+	pthread_rwlock_rdlock (l);					\
+} while (0)
+#define _pthread_rwlock_wrlock(l)					\
+do {									\
+	sched_yield (); \
+/*	fprintf (stderr, "%u wrlock " #l " %p\n", __LINE__, l);	*/	\
+	pthread_rwlock_wrlock (l);					\
+} while (0)
+#define _pthread_rwlock_unlock(l)					\
+do {									\
+	sched_yield (); \
+/*	fprintf (stderr, "%u unlock " #l " %p\n", __LINE__, l);	*/	\
+	pthread_rwlock_unlock (l);					\
+} while (0)
 
 /* The capture fifo */
 #define NUM_BUNDLES 6 /* in capture_fifo */
@@ -173,7 +191,7 @@ compatible (producer_buffer *p, tveng_device_info *info)
       retvalue = !!((avail_mask | build_mask (FALSE)) == avail_mask);
     }
 
-  pthread_rwlock_unlock (&fmt_rwlock);
+  _pthread_rwlock_unlock (&fmt_rwlock);
 
   return retvalue;
 }
@@ -208,7 +226,7 @@ capture_thread (void *data)
 	  /* schedule for rebuilding in the main thread */
 	  p->frame.b.used = 1; /* used==0 indicates eof */
 	  zf_send_full_buffer(&prod, &p->frame.b);
-	  pthread_rwlock_unlock (&size_rwlock);
+	  _pthread_rwlock_unlock (&size_rwlock);
 	  continue;
 	}
 
@@ -217,7 +235,7 @@ capture_thread (void *data)
       while (0 != fill_bundle_tveng(p, info))
 	;
 
-      pthread_rwlock_unlock (&size_rwlock);
+      _pthread_rwlock_unlock (&size_rwlock);
 
       /* FIXME something is wrong here with timestamps.
 	 We start capturing, then get_timestamp() before
@@ -605,7 +623,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
 	  (formats[i].fmt.width != fmt->width ||
 	   formats[i].fmt.height != fmt->height))
 	{
-	  pthread_rwlock_unlock (&fmt_rwlock);
+	  _pthread_rwlock_unlock (&fmt_rwlock);
 	  return -1;
 	}
 
@@ -670,11 +688,11 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
     {
       if (!allow_suggested)
 	{
-	  pthread_rwlock_unlock (&fmt_rwlock);
+	  _pthread_rwlock_unlock (&fmt_rwlock);
 	  return -1; /* No way, we were already checking without
 			suggested modes */
 	}
-      pthread_rwlock_unlock (&fmt_rwlock);
+      _pthread_rwlock_unlock (&fmt_rwlock);
       return request_capture_format_real (fmt, required, FALSE, info);
     }
 
@@ -715,13 +733,13 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
 	    if (info->current_mode == TVENG_NO_CAPTURE
 		|| info->current_mode == TVENG_TELETEXT)
 	      tveng_start_capturing (info);
-	  pthread_rwlock_unlock (&size_rwlock);
-	  pthread_rwlock_unlock (&fmt_rwlock);
+	  _pthread_rwlock_unlock (&size_rwlock);
+	  _pthread_rwlock_unlock (&fmt_rwlock);
 	  return -1;
 	}
     }
 
-  pthread_rwlock_unlock (&size_rwlock);
+  _pthread_rwlock_unlock (&size_rwlock);
 
   /* Flags that the request list *might* have changed */
   request_id ++;
@@ -734,7 +752,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
       formats[num_formats].required = required;
       memcpy (&formats[num_formats].fmt, fmt, sizeof(*fmt));
       num_formats++;
-      pthread_rwlock_unlock (&fmt_rwlock);
+      _pthread_rwlock_unlock (&fmt_rwlock);
       printv ("Format %s accepted [%s]\n",
 	      tv_pixfmt_name (fmt->pixfmt),
 	      tv_pixfmt_name (info->format.pixfmt));
@@ -742,7 +760,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
       return formats[num_formats-1].id;
     }
 
-  pthread_rwlock_unlock (&fmt_rwlock);
+  _pthread_rwlock_unlock (&fmt_rwlock);
   return 0;
 }
 
@@ -794,7 +812,7 @@ void release_capture_format (gint id)
     memmove (&formats[index], &formats[index+1],
 	    (num_formats - index) * sizeof (formats[0]));
 
-  pthread_rwlock_unlock (&fmt_rwlock);
+  _pthread_rwlock_unlock (&fmt_rwlock);
 
   request_capture_format_real (NULL, FALSE, TRUE, main_info);
 }
@@ -811,7 +829,7 @@ get_request_formats (capture_fmt **fmt, gint *num_fmts)
     memcpy (&fmt[i], &formats[i].fmt, sizeof (capture_fmt));
 
   *num_fmts = num_formats;
-  pthread_rwlock_unlock (&fmt_rwlock);
+  _pthread_rwlock_unlock (&fmt_rwlock);
 }
 
 gint

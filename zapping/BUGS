@@ -3,37 +3,33 @@ Known bugs in Zapping, don't report them
 
 * Doesn't always reset hue on startup.
 * Mute button is on after unmute, quit, restart. Seems to be a driver effect.
-* Chance hang in request_capture_format_real at some rwlock,
-  in libzvbi-less Zapping, when switching display mode
-  (btw overlay and fullscreen IIRC).
 * Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
-* Video size isn't always right on startup.
 * Wrong window stacking layer of overlay window when
   Zapping restores no-xv fullscreen at startup.
 * Station search doesn't work in overlay mode
   (Xv/v4l no signal strength), need check/switch.
 * Need better no-overlay-present handling.
-* Capture won't work under PPC (endianess)
-* Look for endianness problems.
-* vbi eats too much CPU, investigate.
-~ Zapzilla: Calls fetch_page more often than necessary,
-  investigate.
-* Zapzilla: what's v4lx doing on standard change?
-  Changing the video standard breaks vbi decoding.
-* Overlay (no XVideo) under E is broken, shading the window
-  isn't correctly detected.
-* Do not assert on ESD timeout
-* Bug in save window geometry, reported by Pawel.
-* Spinslider minimum sizes.
 * "drose": Under mdk 9.1 the video capture stops for no reason.
   Start recording to a file -- come back in ten minutes, 1 - 3 minutes
   of video are stored and zapping wasn't running.
 
-Zapping 0.6 bugs, need verification
+Zapping 0.6 bugs, need verification:
 * RPM creates incorrect zsfb.capps 
 * zsfb.capps conflicts with RPM relocation.
+* Look for endianness problems.
+* vbi eats too much CPU, investigate.
+* Overlay (no XVideo) under E is broken, shading the window
+  isn't correctly detected.
+* Do not assert on ESD timeout
+* Bug in save window geometry, reported by Pawel.
 
 Needs more work later:
+* Video size isn't always right on startup.
+* Spinslider minimum sizes.
+* Chance hang in request_capture_format_real at some rwlock, probably
+  a race condition.
+* Zapzilla: what's v4lx doing on standard change?
+  Changing the video standard breaks vbi decoding.
 * Select composite, quit, restart, back at "television". Problem: channels
   have a video input parameter, and selecting composite does not
   switch the channel, so on restart the channel's input is restored. We

@@ -1,3 +1,18 @@
+2004-05-15    <mschimek@users.sf.net>
+
+	* src/Makefile.am, src/zremote.c: New experimental zremote tool.
+	* src/tveng1.c: Must not include linux/kernel.k, fs.h.
+	* src/eggcellrendererkeys.c (egg_cell_renderer_keys_get_accelerator):
+	  GCC 3.4 warnings.
+	* src/xawtv.c, src/xawtv.h,
+	  src/v4linterface.c (z_switch_channel), src/main.c (main):
+	  Added Xawtv compatible IPC.
+
+2004-05-14    <mschimek@users.sf.net>
+
+	* src/tveng.h, src/tveng.c (tv_clip_vector_add_clip_xy):
+	  Fix after gcc warning about MIN() on bitfield.
+
 2004-04-21    <mschimek@users.sf.net>
 
 	* po/sv.po, po/pl.po, po/nl.po, po/it.po, po/fr.po, po/es.po,

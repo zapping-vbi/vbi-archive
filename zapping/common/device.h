@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.h,v 1.3 2004-04-19 15:19:15 mschimek Exp $ */
+/* $Id: device.h,v 1.4 2004-05-16 11:43:17 mschimek Exp $ */
 
 #ifndef DEVICE_H
 #define DEVICE_H
@@ -58,12 +58,12 @@ typedef void (ioctl_log_fn)	(FILE *			fp,
 				 int			rw,
 				 void *			arg);
 extern void
-fprintf_symbolic		(FILE *			fp,
+fprint_symbolic			(FILE *			fp,
 				 int			mode,
 				 unsigned long		value,
 				 ...);
 extern void
-fprintf_unknown_cmd		(FILE *			fp,
+fprint_unknown_ioctl		(FILE *			fp,
 				 unsigned int		cmd,
 				 void *			arg);
 extern int

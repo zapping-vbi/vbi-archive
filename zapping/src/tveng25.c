@@ -63,14 +63,14 @@
 
 #define v4l25_ioctl(info, cmd, arg)					\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- ((0 == device_ioctl ((info)->log_fp, fprintf_ioctl_arg,		\
+ ((0 == device_ioctl ((info)->log_fp, fprint_ioctl_arg,			\
 		      (info)->fd, cmd, (void *)(arg))) ?		\
   0 : (ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,		\
 		      __LINE__, # cmd), -1)))
 
 #define v4l25_ioctl_nf(info, cmd, arg)					\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- device_ioctl ((info)->log_fp, fprintf_ioctl_arg,			\
+ device_ioctl ((info)->log_fp, fprint_ioctl_arg,			\
 		      (info)->fd, cmd, (void *)(arg)))
 
 struct video_input {
@@ -1245,6 +1245,7 @@ int tveng25_attach_device(const char* device_file,
       break;
 
     case TVENG_ATTACH_READ:
+      /* NB must be RDWR since client may write mmapped buffers. */
       info -> fd = p_tveng25_open_device_file(O_RDWR, info);
       break;
     default:
@@ -1698,7 +1699,8 @@ tveng25_start_capturing(tveng_device_info * info)
 			     &p_info->buffers[i].vidbuf))
 	  return -1;
 
-      /* bttv 0.8.x wants PROT_WRITE although AFAIK we don't. */
+      /* NB PROT_WRITE required since bttv 0.8,
+         client may write mmapped buffers too. */
       p_info->buffers[i].vmem =
 	mmap (0, p_info->buffers[i].vidbuf.length,
 	      PROT_READ | PROT_WRITE,

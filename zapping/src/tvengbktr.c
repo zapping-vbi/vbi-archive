@@ -44,14 +44,14 @@ struct private_tvengbktr_device_info
 
 #define bktr_ioctl(info, cmd, arg)					\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- ((0 == device_ioctl ((info)->log_fp, fprintf_ioctl_arg,		\
+ ((0 == device_ioctl ((info)->log_fp, fprint_ioctl_arg,			\
 		      (info)->fd, cmd, (void *)(arg))) ?		\
   0 : (ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,		\
 		      __LINE__, # cmd), -1)))
 
 #define bktr_ioctl_nf(info, cmd, arg)					\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- device_ioctl ((info)->log_fp, fprintf_ioctl_arg,			\
+ device_ioctl ((info)->log_fp, fprint_ioctl_arg,			\
 	       (info)->fd, cmd, (void *)(arg)))
 
 struct control {

@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.c,v 1.3 2004-04-19 15:18:52 mschimek Exp $ */
+/* $Id: device.c,v 1.4 2004-05-16 11:43:17 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -33,7 +33,7 @@
 #include "device.h"
 
 void
-fprintf_symbolic		(FILE *			fp,
+fprint_symbolic			(FILE *			fp,
 				 int			mode,
 				 unsigned long		value,
 				 ...)
@@ -79,7 +79,7 @@ fprintf_symbolic		(FILE *			fp,
 }
 
 void
-fprintf_unknown_cmd		(FILE *			fp,
+fprint_unknown_ioctl		(FILE *			fp,
 				 unsigned int		cmd,
 				 void *			arg)
 {
@@ -106,16 +106,16 @@ device_open			(FILE *			fp,
       saved_errno = errno;
 
       fprintf (fp, "%d = open (\"%s\", ", fd, pathname);
-      fprintf_symbolic (fp, 2, flags,
-			"RDONLY", O_RDONLY,
-			"WRONLY", O_WRONLY,
-			"RDWR", O_RDWR,
-			"CREAT", O_CREAT,
-			"EXCL", O_EXCL,
-			"TRUNC", O_TRUNC,
-			"APPEND", O_APPEND,
-			"NONBLOCK", O_NONBLOCK,
-			0);
+      fprint_symbolic (fp, 2, flags,
+		       "RDONLY", O_RDONLY,
+		       "WRONLY", O_WRONLY,
+		       "RDWR", O_RDWR,
+		       "CREAT", O_CREAT,
+		       "EXCL", O_EXCL,
+		       "TRUNC", O_TRUNC,
+		       "APPEND", O_APPEND,
+		       "NONBLOCK", O_NONBLOCK,
+		       0);
       fprintf (fp, ", 0%o)", mode);
 
       if (-1 == fd)

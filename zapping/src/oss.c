@@ -491,7 +491,7 @@ fprintf_ioctl_arg		(FILE *			fp,
 		line = IOCTL_NUMBER (cmd);
 
 		if (line >= SOUND_MIXER_NRDEVICES) {
-			fprintf_unknown_cmd (fp, cmd, arg);
+			fprint_unknown_ioctl (fp, cmd, arg);
 			break;
 		}
 
