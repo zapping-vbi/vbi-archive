@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.13 2001-10-16 11:18:10 mschimek Exp $ */
+/* $Id: rte.c,v 1.14 2001-10-17 05:07:05 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -250,8 +250,10 @@ rte_context * rte_context_new (int width, int height,
 	rte_context * context;
 	int priv_bytes=0, i;
 
+
 fprintf(stderr, "rte out of order\n");
 abort();
+
 
 	context = malloc(sizeof(rte_context));
 
@@ -1108,6 +1110,26 @@ rte_option_enum(rte_codec *codec, int index)
 	return BACKEND->enum_option(codec, index);
 }
 
+rte_option *
+rte_option_by_keyword(rte_codec *codec, char *keyword)
+{
+	rte_context *context = NULL;
+	rte_option *ro;
+	int i;
+
+	nullcheck(codec, return 0);
+	nullcheck((context = codec->context), return 0);
+
+	if (!BACKEND->enum_option)
+		return NULL;
+
+	for (i = 0;; i++)
+	        if (!(ro = BACKEND->enum_option(codec, i))
+		    || strcmp(keyword, ro->keyword) == 0)
+			break;
+	return ro;
+}
+
 int
 rte_option_get(rte_codec *codec, char *keyword, rte_option_value *v)
 {
@@ -1166,12 +1188,13 @@ rte_option_get_menu(rte_codec *codec, char *keyword, int *entry)
 	    || !rte_option_get(codec, keyword, &val))
 		return 0;
 
-	r = 0;
-
 	if (option->type == RTE_OPTION_MENU) {
 		*entry = val.num;
+		r = 1;
 	} else {
-		for (i = 0; !r && i < option->entries; i++) {
+		r = 0;
+
+		for (i = 0; i < option->entries; i++) {
 			switch (option->type) {
 			case RTE_OPTION_BOOL:
 			case RTE_OPTION_INT:
@@ -1192,10 +1215,12 @@ rte_option_get_menu(rte_codec *codec, char *keyword, int *entry)
 			default:
 				break;
 			}
-		}
 
-		if (r)
-			*entry = i;
+			if (r) {
+				*entry = i;
+				break;
+			}
+		}
 	}
 
 	if (option->type == RTE_OPTION_STRING)

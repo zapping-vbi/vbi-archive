@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.16 2001-10-16 11:18:12 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.17 2001-10-17 05:07:05 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -72,8 +72,8 @@ static int rte_fake_options(rte_context * context);
 /* These routines are called in this order, they come from mp1e's main.c */
 static void rte_audio_startup(void); /* Startup video parameters */
 /* init routines */
-static void rte_audio_init(backend_private *priv); /* init audio capture */
-static void rte_video_init(backend_private *priv); /* init video capture */
+static void rte_audio_init(rte_context *context, backend_private *priv); /* init audio capture */
+static void rte_video_init(rte_context *context, backend_private *priv); /* init video capture */
 
 /*
  * Global options from rte.
@@ -164,8 +164,8 @@ init_context			(rte_context	*context)
 
 	rte_audio_startup();
 
-	rte_audio_init(priv);
-	rte_video_init(priv);
+	rte_audio_init(context, priv);
+	rte_video_init(context, priv);
 
 	if (!output_init())
 	{
@@ -343,9 +343,6 @@ static int rte_fake_options(rte_context * context)
 		context->video_rate = RTE_RATE_3; /* default to PAL */
 	}
 
-//	vseg.frame_rate_code = context->video_rate;
-#warning
-
 	switch (context->video_format) {
 	case RTE_YUYV_PROGRESSIVE:
 	case RTE_YUYV_PROGRESSIVE_TEMPORAL:
@@ -439,14 +436,14 @@ static void rte_audio_startup(void)
 
 /* FIXME: Subtitles support */
 
-static void rte_audio_init(backend_private *priv) /* init audio capture */
+static void rte_audio_init(rte_context *context, backend_private *priv)
+/* init audio capture */
 {
 	if (modules & MOD_AUDIO) {
-#warning
 		if (modules & MOD_VIDEO)
-//			audio_num_frames = llroundn(((double) video_num_frames /
-//						     frame_rate_value[vseg.frame_rate_code])
-//						    / (1152.0 / sampling_rate));
+			audio_num_frames = llroundn(((double) video_num_frames /
+						     frame_rate_value[context->video_rate])
+						    / (1152.0 / sampling_rate));
 		/* preliminary */
 
 		if (!priv->audio_codec) {
@@ -466,13 +463,14 @@ static void rte_audio_init(backend_private *priv) /* init audio capture */
 	}
 }
 
-static void rte_video_init(backend_private *priv) /* init video capture */
+static void rte_video_init(rte_context *context, backend_private *priv)
+/* init video capture */
 {
 	if (modules & MOD_VIDEO) {
 		video_coding_size(width, height);
-#warning
-//		if (frame_rate > frame_rate_value[vseg.frame_rate_code])
-//			frame_rate = frame_rate_value[vseg.frame_rate_code];
+
+		if (frame_rate > frame_rate_value[context->video_rate])
+			frame_rate = frame_rate_value[context->video_rate];
 
 		/* preliminary */
 

@@ -16,13 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.3 2001-10-16 11:17:08 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.4 2001-10-17 05:05:45 mschimek Exp $ */
 
-extern GtkWidget *grte_options_create (rte_context *context, rte_codec *codec, gchar *zc_domain);
+extern GtkWidget *grte_options_create (rte_context *context, rte_codec *codec);
 extern gboolean grte_options_load (rte_codec *codec, gchar *zc_domain);
 extern gboolean grte_options_save (rte_codec *codec, gchar *zc_domain);
-/*
-extern void mpeg_plugin_read_audio_oss(void *data, double *time, rte_context *context);
-extern int mpeg_plugin_open_pcm_oss(char *dev_name, int sampling_rate, int stereo, rte_context *context);
-extern void mpeg_plugin_close_pcm_oss(rte_context *context);
-*/

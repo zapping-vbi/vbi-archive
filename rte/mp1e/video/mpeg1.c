@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.13 2001-10-16 11:18:18 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.14 2001-10-17 05:07:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1154,6 +1154,7 @@ sequence_header(mpeg1_context *mpeg1)
 	case 4: // CCIR 601, 525 line 29.97 Hz
 	case 5: // CCIR 601, 525 line 30 Hz
 	case 7: // CCIR 601, 525 line 59.94 Hz
+	case 8: // CCIR 601, 525 line 60 Hz
 		aspect = 9;
 		break;
 
@@ -2159,19 +2160,15 @@ menu_skip_method[] = {
 
 static rte_option
 mpeg1_options[] = {
-		/*
-		 *  type, unique keyword (for command line etc), label,
-		 *  default (union), minimum, maximum, menu (union), tooltip
-		 */
 	/* FILTER omitted, will change, default for now */
 	/* FRAMES_PER_SEQ_HEADER omitted, ancient legacy */
 	RTE_OPTION_INT_INITIALIZER
 	  ("bit_rate", N_("Bit rate"),
-	   2300000, 25000, 12000000, 25000,
+	   2300000, 30000, 8000000, 1000,
 	   NULL, 0, N_("Output bit rate")),
 	RTE_OPTION_REAL_INITIALIZER
 	  ("coded_frame_rate", N_("Coded frame rate"),
-	   60.0, 24000.0 / 1001, 60.0, 1e-3,
+	   25.0, 24000.0 / 1001, 60.0, 1e-3,
 	   (double *) &frame_rate_value[1], 8, (NULL)),
 	RTE_OPTION_REAL_INITIALIZER
 	  ("virtual_frame_rate", N_("Virtual frame rate"),

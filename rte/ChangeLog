@@ -2,6 +2,8 @@
 
 	* Added new rte_set_parameters, codec status (private).
 	* Added -lm to rte_test_LDADD.
+	* Fixed bugged rte_option_get_menu.
+	* Added rte_option(enum)_by_keyword.
 
 2001-09-23	New api <mschimek@users.sf.net>
 

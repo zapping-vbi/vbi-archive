@@ -36,7 +36,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.12 2001-10-16 11:18:10 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.13 2001-10-17 05:07:05 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -599,6 +599,7 @@ typedef struct rte_option {
 } rte_option;
 
 extern rte_option *rte_option_enum(rte_codec *, int);
+extern rte_option *rte_option_by_keyword(rte_codec *, char *);
 /*** 'set' copies string values, 'get' and 'print' strings must be free()ed */
 extern int rte_option_get(rte_codec *, char *, rte_option_value *);
 extern int rte_option_set(rte_codec *, char *, ...);

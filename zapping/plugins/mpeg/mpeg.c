@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.15 2001-10-16 11:17:05 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.16 2001-10-17 05:05:45 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -26,8 +26,8 @@
 
 #include <glade/glade.h>
 #include <rte.h>
-#include <esd.h>
 
+#include "audio.h"
 #include "mpeg.h"
 
 /*
@@ -77,12 +77,18 @@ static gboolean motion_comp; /* bool */
 static gint audio_input_mode; /* 0:esd, 1:oss */
 static gchar *audio_input_file;
 
-static rte_codec *audio_codec;
+/*
+ *  This context instance is the properties dialog sandbox.
+ *  The GUI displays options as reported by this context and
+ *  all changes the user makes are stored here. For encoding
+ *  we'll have a separate active instance the user can't mess
+ *  with and the configuration is copied via zconf. 
+ */
+static rte_context *context_prop;
+static rte_codec *audio_codec_prop;
 static GtkWidget *audio_options;
-
-static rte_codec *video_codec;
+static rte_codec *video_codec_prop;
 static GtkWidget *video_options;
-
 
 
 static gboolean on_delete_event(GtkWidget *widget, GdkEvent
@@ -234,107 +240,8 @@ void plugin_close(void)
 /*
  * Audio capture
  */
-static int		esd_recording_socket = -1;
 
-static void
-read_audio(void * data, double * time, rte_context * context)
-{
-	int stereo = (context->audio_mode == RTE_AUDIO_MODE_STEREO) ? 1
-		: 0;
-	struct timeval tv;
-	int sampling_rate = context->audio_rate;
-	ssize_t r, n = context->audio_bytes;
-
-	while (n > 0) {
-		fd_set rdset;
-		int err;
-		
-		FD_ZERO(&rdset);
-		FD_SET(esd_recording_socket, &rdset);
-		tv.tv_sec = 1;
-		tv.tv_usec = 0;
-		err = select(esd_recording_socket+1, &rdset,
-			     NULL, NULL, &tv);
-
-		if (!err)
-		  {
-		    memset(data, 0, n);
-		    g_warning("ESD select timeout!");
-		    break;
-		  }
-
-		g_assert(err > 0 && "Select on ESD descriptor");
-		
-		r = read(esd_recording_socket, data, n);
-		
-		if (r < 0 && errno == EINTR)
-			continue;
-		
-		if (r == 0) {
-			memset(data, 0, n);
-			break;
-		}
-		
-		g_assert(r > 0);
-		
-		(char *) data += r;
-		n -= r;
-	}
-
-	*time = current_time();
-	*time -= (((context->audio_bytes - n)/sizeof(short))>>stereo)
-		/ (double) sampling_rate;
-}
-
-/* Preliminary */
-
-#if USE_OSS
-
-#include <linux/soundcard.h>
-
-static int		oss_fd = -1;
-
-/* TFR repeats the ioctl when interrupted (EINTR) */
-#define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
-
-static void
-read_audio_oss(void * data, double * time, rte_context * context)
-{
-  int stereo = (context->audio_mode == RTE_AUDIO_MODE_STEREO);
-  int sampling_rate = context->audio_rate;
-  ssize_t r, n = context->audio_bytes;
-  struct audio_buf_info info;
-
-  while (n > 0)
-    {
-      r = read(oss_fd, data, n);
-		
-      if (r < 0 && errno == EINTR)
-	continue;
-
-      if (r == 0)
-        {
-	  memset(data, 0, n);
-	  break;
-	}
-	
-      g_assert(r > 0 && "OSS read failed");
-
-      data = (char *) data + r;
-      n -= r;
-    }
-
-  *time = current_time();
-
-  if (IOCTL(oss_fd, SNDCTL_DSP_GETISPACE, &info) == -1)
-    g_assert(!"SNDCTL_DSP_GETISPACE failed");
-
-  *time -= (((context->audio_bytes -
-	    (n+info.bytes))/sizeof(short))>>stereo) / (double)
-		sampling_rate;
-}
-
-#endif /* USE_OSS */
+static gpointer audio_handle;
 
 static void
 audio_data_callback(rte_context * context, void * data, double * time, enum
@@ -344,81 +251,22 @@ audio_data_callback(rte_context * context, void * data, double * time, enum
 
   g_assert (stream == RTE_AUDIO);
 
-  if (esd_recording_socket != -1)
-    read_audio(data, time, context);
-#ifdef USE_OSS
-  else if (oss_fd != -1)
-//    read_audio_oss(data, time, context);
-      mpeg_plugin_read_audio_oss(data, time, context);
-#endif
-  else
-    g_assert_not_reached();  
+  read_audio_data (audio_handle, data, context->audio_bytes, time);
 }
 
 static gboolean
 init_audio(gint rate, gboolean stereo)
 {
-#ifdef USE_OSS
-  if (audio_input_mode == 1)
-    {
-      if (!mpeg_plugin_open_pcm_oss(audio_input_file, 44100, stereo, context))
-        return FALSE;
-      oss_fd = 1000;
-      return TRUE;
-#if 0
-      int Format = AFMT_S16_LE;
-      int Stereo = !!stereo;
-      int Speed = rate;
+  audio_handle = open_audio_device (stereo, rate, AUDIO_FORMAT_S16_LE);
 
-      if ((oss_fd = open(audio_input_file, O_RDONLY)) == -1)
-        return FALSE;
-
-      if ((IOCTL(oss_fd, SNDCTL_DSP_SETFMT, &Format) == -1))
-        goto failed;
-      if ((IOCTL(oss_fd, SNDCTL_DSP_STEREO, &Stereo) == -1))
-        goto failed;
-      if ((IOCTL(oss_fd, SNDCTL_DSP_SPEED, &Speed) == -1))
-        goto failed;
-
-      return TRUE;
-
- failed:
-      close(oss_fd);
-      oss_fd = -1;
-      return FALSE;
-#endif
-    }
-  else
-#endif /* USE_OSS */
-    {
-      esd_format_t format = ESD_STREAM | ESD_RECORD | ESD_BITS16;
-
-      format |= stereo ? ESD_STEREO : ESD_MONO;
-
-      esd_recording_socket =
-        esd_record_stream_fallback(format, rate, NULL, NULL);
-
-      if (esd_recording_socket >= 0)
-        return TRUE;
-
-      esd_recording_socket = -1;
-    }
-
-  return FALSE;
+  return audio_handle != NULL;
 }
 
 static void
 close_audio(void)
 {
-  if (esd_recording_socket != -1)
-    close(esd_recording_socket);
-  esd_recording_socket = -1;
-#if USE_OSS
-  if (oss_fd != -1)
-    mpeg_plugin_close_pcm_oss(context);
-//    close(oss_fd);
-  oss_fd = -1;
-#endif
+  if (audio_handle)
+    close_audio_device (audio_handle);
 }
 
 /* Called when compressed data is ready */
@@ -648,7 +496,7 @@ gboolean plugin_start (void)
       gchar *zc_domain;
 
       /* FIXME */
-      if (!(audio_codec =
+      if (!(audio_codec_prop =
 	    rte_codec_set(context, RTE_STREAM_AUDIO, 0, keyword)))
 	{
 	  ShowBox("Couldn't open the audio codec",
@@ -658,7 +506,7 @@ gboolean plugin_start (void)
 
       zc_domain = g_strdup_printf("/zapping/test/%s", keyword);
 
-      if (!grte_options_load(audio_codec, zc_domain))
+      if (!grte_options_load(audio_codec_prop, zc_domain))
 	{
 	  ShowBox("Couldn't initialize the audio codec",
 		  GNOME_MESSAGE_BOX_ERROR);
@@ -668,7 +516,7 @@ gboolean plugin_start (void)
       g_free(zc_domain);
 
       memset(&params, 0, sizeof(params));
-      g_assert(rte_set_parameters(audio_codec, &params));
+      g_assert(rte_set_parameters(audio_codec_prop, &params));
 
       if (!init_audio(params.str.audio.sampling_freq,
 		      params.str.audio.channels > 1))
@@ -1070,21 +918,16 @@ gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
   return FALSE; /* Nothing exported */
 }
 
+/*
+ *  Property GUI
+ */
+
 static void
 on_property_item_changed              (GtkWidget * changed_widget,
 				       GnomePropertyBox *propertybox)
 {
   gnome_property_box_changed (propertybox);
 }
-
-
-
-
-
-
-/*
- *  Audio GUI
- */
 
 static GtkWidget *
 mpeg_prop_from_gpb (GnomePropertyBox *propertybox)
@@ -1103,96 +946,69 @@ mpeg_prop_from_gpb (GnomePropertyBox *propertybox)
   return mpeg_properties;
 }
 
-static void
-on_audio_input_changed                (GtkWidget * changed_widget,
-				       GnomePropertyBox *propertybox)
-{
-  switch (z_option_menu_get_active(lookup_widget(changed_widget,
-						 "optionmenu3")))
-    {
-    case 1: /* OSS */
-      gtk_widget_set_sensitive(lookup_widget(changed_widget,
-					     "fileentry2"), TRUE);
-      break;
-    default: /* ESD */
-      gtk_widget_set_sensitive(lookup_widget(changed_widget,
-					     "fileentry2"), FALSE);
-      break;
-    }
-
-  gnome_property_box_changed (propertybox);
-}
-
-static void
-audio_source_sensitive (GtkWidget *mpeg_properties, gboolean state)
-{
-  gtk_widget_set_sensitive (lookup_widget
-    (mpeg_properties, "optionmenu3"), state);
-
-  gtk_widget_set_sensitive (lookup_widget
-    (mpeg_properties, "fileentry2"), state);
-}
-
 static void nullify (void **p)
 {
   *p = NULL;
 }
 
 static void
-set_audio_codec (GtkWidget *mpeg_properties, GtkWidget *menu)
+select_codec (GtkWidget *mpeg_properties, GtkWidget *menu,
+	      rte_stream_type stream_type)
 {
-  GtkWidget *table = lookup_widget (mpeg_properties, "table1");
   GtkWidget *menu_item = gtk_menu_get_active (GTK_MENU (menu));
+  GtkWidget *table = 0;
+  GtkWidget **optionspp = 0;
+  rte_codec **codecpp = 0;
   char *keyword;
+
+  switch (stream_type)
+    {
+      case RTE_STREAM_AUDIO:
+	table = lookup_widget (mpeg_properties, "table1");
+	optionspp = &audio_options;
+	codecpp = &audio_codec_prop;
+	break;
+      case RTE_STREAM_VIDEO:
+	table = lookup_widget (mpeg_properties, "table2");
+	optionspp = &video_options;
+	codecpp = &video_codec_prop;
+	break;
+      default:
+	g_assert_not_reached ();
+    }
 
   g_assert (table && menu_item);
 
-  keyword = gtk_object_get_data (GTK_OBJECT (menu_item), "keyword");
+  destroy_options (optionspp);
 
-  destroy_options(&audio_options);
+  keyword = gtk_object_get_data (GTK_OBJECT (menu_item), "keyword");
 
   if (keyword)
     {
-      g_assert((audio_codec =
-                rte_codec_set(context, RTE_STREAM_AUDIO, 0, keyword)));
+      *codecpp = rte_codec_set (context, stream_type, 0, keyword);
+      g_assert (*codecpp);
     }
   else
     {
-      rte_codec_set(context, RTE_STREAM_AUDIO, 0, NULL);
-      audio_codec = NULL;
+      rte_codec_set(context, stream_type, 0, NULL);
+      *codecpp = NULL;
     }
 
-  if (audio_codec)
+  if (*codecpp)
     {
-      gchar *zc_domain = g_strdup_printf("/zapping/test/%s", keyword);
+      *optionspp = grte_options_create (context, *codecpp);
 
-      audio_source_sensitive (mpeg_properties, TRUE);
-
-      // XXX
-      zconf_create_string(keyword, "preliminary", "/zapping/test/audio_codec");
-
-      audio_options = grte_options_create (context, audio_codec, zc_domain);
-
-      if (audio_options)
+      if (*optionspp)
         {
-          gtk_widget_show (audio_options);
-          gtk_table_attach (GTK_TABLE (table), audio_options, 0, 2, 3, 4,
+          gtk_widget_show (*optionspp);
+          gtk_table_attach (GTK_TABLE (table), *optionspp, 0, 2, 3, 4,
 			    (GtkAttachOptions) (GTK_FILL),
 			    (GtkAttachOptions) (0), 3, 3);
 
-	  gtk_signal_connect_object (GTK_OBJECT(audio_options), "destroy",
+	  gtk_signal_connect_object (GTK_OBJECT(*optionspp), "destroy",
 				     GTK_SIGNAL_FUNC (nullify),
-				     (GtkObject*)(&audio_options));
+				     (GtkObject *) optionspp);
 	}
-
-      g_free (zc_domain);
-    }
-  else
-    {
-      audio_source_sensitive (mpeg_properties, FALSE);
-
-      // XXX
-      zconf_create_string("", "preliminary", "/zapping/test/audio_codec");
     }
 }
 
@@ -1202,101 +1018,8 @@ on_audio_codec_changed                (GtkWidget * changed_widget,
 {
   GtkWidget *mpeg_properties = mpeg_prop_from_gpb (propertybox);
 
-  set_audio_codec (mpeg_properties, changed_widget);
+  select_codec (mpeg_properties, changed_widget, RTE_STREAM_AUDIO);
   gnome_property_box_changed (propertybox);
-}
-
-static gint
-create_audio_menu (GtkWidget *menu, gint *default_item)
-{
-  GtkWidget *menu_item;
-  rte_codec_info *info;
-  gint items = 0;
-  int i;
-
-  menu_item = gtk_menu_item_new_with_label (_("None"));
-  if (!1) /* "None" permitted? */
-    {
-       gtk_widget_set_sensitive (menu_item, FALSE);
-    }
-  gtk_widget_show (menu_item);
-  gtk_menu_append (GTK_MENU (menu), menu_item);
-
-  for (i = 0; (info = rte_codec_enum (context, i)); i++)
-    {
-      if (info->stream_type != RTE_STREAM_AUDIO)
-        continue;
-
-      menu_item = gtk_menu_item_new_with_label (_(info->label));
-      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword", info->keyword);
-      set_tooltip (menu_item, _(info->tooltip));
-      gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
-
-      items++;
-    }
-
-  *default_item = 1;
-
-  return items;
-}
-
-/*
- *  Video GUI (merge with audio later)
- */
-
-static void
-set_video_codec (GtkWidget *mpeg_properties, GtkWidget *menu)
-{
-  GtkWidget *table = lookup_widget (mpeg_properties, "table2");
-  GtkWidget *menu_item = gtk_menu_get_active (GTK_MENU (menu));
-  char *keyword;
-
-  g_assert (table && menu_item);
-
-  keyword = gtk_object_get_data (GTK_OBJECT (menu_item), "keyword");
-
-  destroy_options(&video_options);
-
-  if (keyword)
-    {
-      g_assert((video_codec =
-                rte_codec_set(context, RTE_STREAM_VIDEO, 0, keyword)));
-    }
-  else
-    {
-      rte_codec_set(context, RTE_STREAM_VIDEO, 0, NULL);
-      video_codec = NULL;
-    }
-
-  if (video_codec)
-    {
-      gchar *zc_domain = g_strdup_printf("/zapping/test/%s", keyword);
-
-      // XXX
-      zconf_create_string(keyword, "preliminary", "/zapping/test/video_codec");
-
-      video_options = grte_options_create (context, video_codec, zc_domain);
-
-      if (video_options)
-        {
-          gtk_widget_show (video_options);
-          gtk_table_attach (GTK_TABLE (table), video_options, 0, 2, 3, 4,
-			    (GtkAttachOptions) (GTK_FILL),
-			    (GtkAttachOptions) (0), 3, 3);
-
-	  gtk_signal_connect_object (GTK_OBJECT(video_options), "destroy",
-				     GTK_SIGNAL_FUNC (nullify),
-				     (GtkObject*)(&video_options));
-	}
-
-      g_free (zc_domain);
-    }
-  else
-    {
-      // XXX
-      zconf_create_string("", "preliminary", "/zapping/test/video_codec");
-    }
 }
 
 static void
@@ -1305,12 +1028,13 @@ on_video_codec_changed                (GtkWidget * changed_widget,
 {
   GtkWidget *mpeg_properties = mpeg_prop_from_gpb (propertybox);
 
-  set_video_codec (mpeg_properties, changed_widget);
+  select_codec (mpeg_properties, changed_widget, RTE_STREAM_VIDEO);
   gnome_property_box_changed (propertybox);
 }
 
 static gint
-create_video_menu (GtkWidget *menu, gint *default_item)
+create_codec_menu (GtkWidget *menu, gint *default_item,
+		   rte_stream_type stream_type)
 {
   GtkWidget *menu_item;
   rte_codec_info *info;
@@ -1329,7 +1053,7 @@ create_video_menu (GtkWidget *menu, gint *default_item)
   // really no choice
   for (i = 0; (info = rte_codec_enum (context, i)); i++)
     {
-      if (info->stream_type != RTE_STREAM_VIDEO)
+      if (info->stream_type != stream_type)
         continue;
 
       menu_item = gtk_menu_item_new_with_label (_(info->label));
@@ -1346,13 +1070,11 @@ create_video_menu (GtkWidget *menu, gint *default_item)
   return items;
 }
 
-/* End of audio/video GUI */
-
 static void
 on_filename_changed                (GtkWidget * changed_widget,
 				    GnomePropertyBox *propertybox)
 {
-  //  z_on_electric_filename (changed_widget, NULL);
+  // z_on_electric_filename (changed_widget, NULL);
   gnome_property_box_changed (propertybox);
 }
 
@@ -1377,7 +1099,7 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
   widget = lookup_widget(mpeg_properties, "fileentry1");
   widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
   gtk_entry_set_text(GTK_ENTRY(widget), save_dir);
-  // XXX basen.ame
+  // XXX basen.ame and auto-increment, no clips dir.
   gtk_object_set_data (GTK_OBJECT (widget), "basename", (gpointer) ".mpg");
   gtk_signal_connect(GTK_OBJECT(widget), "changed",
 		     on_filename_changed, gpb);
@@ -1387,41 +1109,12 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
   gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu),
 		     "deactivate", on_property_item_changed, gpb);
 
-  widget = lookup_widget(mpeg_properties, "optionmenu3");
-  if ((menu = gtk_option_menu_get_menu (GTK_OPTION_MENU(widget))))
-    gtk_widget_destroy(menu);
-  menu = gtk_menu_new();
-  menu_item = gtk_menu_item_new_with_label("ESD");
-  gtk_widget_show(menu_item);
-  gtk_menu_append(GTK_MENU(menu), menu_item);
-#ifdef USE_OSS
-  menu_item = gtk_menu_item_new_with_label("OSS");
-  gtk_widget_show(menu_item);
-  gtk_menu_append(GTK_MENU(menu), menu_item);
-#endif
-  gtk_option_menu_set_menu (GTK_OPTION_MENU(widget), menu);
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget), audio_input_mode);
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu),
-		     "deactivate", on_audio_input_changed, gpb);
-
-  widget = lookup_widget(mpeg_properties, "fileentry2");
-  gtk_widget_set_sensitive(widget, audio_input_mode);
-  widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
-  gtk_entry_set_text(GTK_ENTRY(widget), audio_input_file);
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     on_property_item_changed, gpb);
-
-  widget = lookup_widget(mpeg_properties, "checkmotion");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), motion_comp);
-  gtk_signal_connect(GTK_OBJECT(widget),
-		     "toggled", on_property_item_changed, gpb);
-
-  widget = lookup_widget(mpeg_properties, "spinbutton3");
+  widget = lookup_widget(mpeg_properties, "spinbutton5");
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget), capture_w);
   gtk_signal_connect(GTK_OBJECT(widget), "changed",
 		     on_property_item_changed, gpb);
 
-  widget = lookup_widget(mpeg_properties, "spinbutton4");
+  widget = lookup_widget(mpeg_properties, "spinbutton6");
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget), capture_h);
   gtk_signal_connect(GTK_OBJECT(widget), "changed",
 		     on_property_item_changed, gpb);
@@ -1436,12 +1129,6 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
   gtk_signal_connect(GTK_OBJECT(widget), "changed",
 		     on_property_item_changed, gpb);
 
-  widget = lookup_widget(mpeg_properties, "hscale1");
-  adj = gtk_range_get_adjustment(GTK_RANGE(widget));
-  gtk_adjustment_set_value(adj, output_video_bits);
-  gtk_signal_connect(GTK_OBJECT(adj), "value-changed",
-		     on_property_item_changed, gpb);
-
   {
     gint default_item;
 
@@ -1451,14 +1138,14 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
       gtk_widget_destroy(menu);
     menu = gtk_menu_new();
 
-    create_audio_menu (menu, &default_item);
+    create_codec_menu (menu, &default_item, RTE_STREAM_AUDIO);
 
     gtk_option_menu_set_menu (GTK_OPTION_MENU(widget), menu);
     gtk_option_menu_set_history (GTK_OPTION_MENU(widget), default_item);
     gtk_signal_connect (GTK_OBJECT(GTK_OPTION_MENU(widget)->menu),
 		        "deactivate", on_audio_codec_changed, gpb);
 
-    set_audio_codec (mpeg_properties, menu);
+    select_codec (mpeg_properties, menu, RTE_STREAM_AUDIO);
 
     /**/
 
@@ -1468,14 +1155,14 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
       gtk_widget_destroy(menu);
     menu = gtk_menu_new();
 
-    create_video_menu (menu, &default_item);
+    create_codec_menu (menu, &default_item, RTE_STREAM_VIDEO);
 
     gtk_option_menu_set_menu (GTK_OPTION_MENU(widget), menu);
     gtk_option_menu_set_history (GTK_OPTION_MENU(widget), default_item);
     gtk_signal_connect (GTK_OBJECT(GTK_OPTION_MENU(widget)->menu),
 		        "deactivate", on_video_codec_changed, gpb);
 
-    set_video_codec (mpeg_properties, menu);
+    select_codec (mpeg_properties, menu, RTE_STREAM_VIDEO);
   }
 
   gtk_widget_show(mpeg_properties);
@@ -1512,20 +1199,6 @@ gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
       mux_mode = g_list_index(GTK_MENU_SHELL(widget)->children,
 			      gtk_menu_get_active(GTK_MENU(widget)));
 
-      widget = lookup_widget(mpeg_properties, "optionmenu3");
-      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
-      audio_input_mode = g_list_index(GTK_MENU_SHELL(widget)->children,
-				      gtk_menu_get_active(GTK_MENU(widget)));
-
-      widget = lookup_widget(mpeg_properties, "fileentry2");
-      g_free(audio_input_file);
-      audio_input_file =
-	gnome_file_entry_get_full_path(GNOME_FILE_ENTRY(widget),
-				       FALSE);
-
-      widget = lookup_widget(mpeg_properties, "checkmotion");
-      motion_comp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
-
       widget = lookup_widget(mpeg_properties, "optionmenu1");
       widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
       output_mode = g_list_index(GTK_MENU_SHELL(widget)->children,
@@ -1535,19 +1208,28 @@ gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
       engine_verbosity =
 	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget));
 
-      widget = lookup_widget(mpeg_properties, "spinbutton3");
+      widget = lookup_widget(mpeg_properties, "spinbutton5");
       capture_w =
 	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget));
       capture_w &= ~15;
 
-      widget = lookup_widget(mpeg_properties, "spinbutton4");
+      widget = lookup_widget(mpeg_properties, "spinbutton6");
       capture_h =
 	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget));
       capture_h &= ~15;
-      
-      widget = lookup_widget(mpeg_properties, "hscale1");
-      adj = gtk_range_get_adjustment(GTK_RANGE(widget));
-      output_video_bits = adj->value;;
+
+      /* new */
+
+      if (audio_codec_prop)
+	{
+	  zconf_create_string("foobar", NULL, "/zapping/test2/audio_codec");
+	  grte_options_save(audio_codec_prop, "/zapping/test2/foobar");
+	}
+      if (video_codec_prop)
+	{
+	  zconf_create_string("barfoo", NULL, "/zapping/test2/video_codec");
+	  grte_options_save(video_codec_prop, "/zapping/test2/barfoo");
+	}
 
       return TRUE;
     }

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.12 2001-10-16 11:18:13 mschimek Exp $ */
+/* $Id: mp2.c,v 1.13 2001-10-17 05:07:05 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -1061,6 +1061,43 @@ option_print(rte_codec *codec, char *keyword, va_list args)
 		return 0;
 
 	return strdup(buf);
+}
+
+// XXX RETHINK
+static int
+codec_parameters(rte_codec *codec, rte_stream_parameters *rsp)
+{
+	static const rte_sndfmt valid_format[] = {
+		RTE_SNDFMT_S16LE,
+		RTE_SNDFMT_U16LE,
+		RTE_SNDFMT_S8,
+		RTE_SNDFMT_U8,
+	};
+	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
+	int fragment_size;
+	int i;
+
+	for (i = 0; i < elements(valid_format); i++)
+		if (rsp->str.audio.sndfmt == valid_format[i])
+			break;
+
+	if (i >= elements(valid_format))
+		rsp->str.audio.sndfmt = valid_format[0];
+
+	rsp->str.audio.sampling_freq =
+		sampling_freq_value[mp2->mpeg_version][mp2->sampling_freq_code];
+
+	rsp->str.audio.channels =
+		(mp2->audio_mode == AUDIO_MODE_MONO) ? 1 : 2;
+
+	fragment_size = 2048 * sizeof(short) * rsp->str.audio.channels;
+
+	rsp->str.audio.fragment_size =
+		MAX(rsp->str.audio.fragment_size, fragment_size);
+
+	mp2->codec.status = RTE_STATUS_READY; /* not ready */
+
+	return 1;
 }
 
 static void
