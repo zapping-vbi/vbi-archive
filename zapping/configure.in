@@ -1,11 +1,9 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.123 2002-04-09 12:28:29 mschimek Exp $
+dnl $Id: configure.in,v 1.124 2002-04-20 06:38:03 mschimek Exp $
 
 AC_INIT(src/callbacks.c)
 AM_INIT_AUTOMAKE(zapping, 0.6.4)
 AM_CONFIG_HEADER(config.h)
-
-REQUIRED_RTE_VERSION="0.4"
 
 CFLAGS="-D_GNU_SOURCE -O0 -g -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations"
 
@@ -181,17 +179,29 @@ AC_SUBST(ZVBI_LIB)
 dnl ----------------------------------------------------------------------
 dnl Check for RTE, the MPEG encoder
 dnl ----------------------------------------------------------------------
-HAVE_RTE="yes"
-AC_CHECK_LIB(rte-$REQUIRED_RTE_VERSION, rte_start_encoding,
-  AC_EGREP_HEADER(rte_start_encoding, rte.h, true, HAVE_RTE=no),
+HAVE_RTE="0.5"
+AC_CHECK_LIB(rte, rte_codec_parameters_set,
+  AC_EGREP_HEADER(rte_codec_parameters_set, librte.h, true, HAVE_RTE=no),
     HAVE_RTE=no,)
 dnl The mpeg plugin requires RTE
-if test "$HAVE_RTE" = "yes"; then
+if test "$HAVE_RTE" != "no"; then
   PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD mpeg"
-  AC_DEFINE(HAVE_LIBRTE, 1, [Define if RTE lib is present])
+  AC_DEFINE(HAVE_LIBRTE5, 1, [Define if RTE lib 0.5 is present])
   RTE_LIB="-lrte"
+  AC_MSG_WARN([*** Warning: RTE 0.5 support is experimental ***])
 else
-  AC_MSG_WARN([*** RTE not found, MPEG capture will be disabled ***])
+  HAVE_RTE="0.4"
+  AC_CHECK_LIB(rte-0.4, rte_option_set_menu,
+    AC_EGREP_HEADER(rte_option_set_menu, rte.h, true, HAVE_RTE=no),
+      HAVE_RTE=no,)
+  dnl The mpeg plugin requires RTE
+  if test "$HAVE_RTE" != "no"; then
+    PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD mpeg"
+    AC_DEFINE(HAVE_LIBRTE4, 1, [Define if RTE lib 0.4 is present])
+    RTE_LIB="-lrte-0.4"
+  else
+    AC_MSG_WARN([*** RTE not found, MPEG capture will be disabled ***])
+  fi
 fi
 AC_SUBST(RTE_LIB)
 
@@ -522,17 +532,17 @@ if test ! -r po/Makefile; then
 fi
 
 echo "
-	Optional package		Found
-	----------------		-----
-	VBI lib				$HAVE_ZVBI
-	JPEG lib			$HAVE_JPEG
-	PNG lib				$HAVE_PNG
-	MMX				$HAVE_MMX
-	XVideo				$XV_PRESENT
-	MPEG encoder			$HAVE_RTE
-	Lirc client			$HAVE_LIRC
-	PAM				$HAVE_PAM
-	ARTS				$HAVE_ARTS_TEXT
+	Optional package                Found
+	----------------                -----
+	VBI lib                         $HAVE_ZVBI
+	JPEG lib                        $HAVE_JPEG
+	PNG lib                         $HAVE_PNG
+	MMX                             $HAVE_MMX
+	XVideo                          $XV_PRESENT
+	RTE                             $HAVE_RTE
+	Lirc client                     $HAVE_LIRC
+	PAM                             $HAVE_PAM
+	ARTS                            $HAVE_ARTS_TEXT
 
 	Plugins to build
 	----------------"
@@ -540,4 +550,3 @@ echo "
 for x in $PLUGINS_TO_BUILD; do
   echo "        "$x
 done
-
