@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.c,v 1.9 2002-03-19 19:26:29 mschimek Exp $ */
+/* $Id: systems.c,v 1.10 2002-05-07 06:39:23 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -214,9 +214,14 @@ stream_sink(void *muxp)
 			buf = wait_full_buffer(&str->cons);
 
 			if (buf->used <= 0) {
-				/* XXX EOF/error */
-				str->left = 0;
-				num_streams--;
+				extern int split_sequence;
+
+				if (!split_sequence || buf->error == 0xE0F) {
+					str->left = 0;
+					num_streams--;
+				}
+
+				send_empty_buffer(&str->cons, buf);
 				continue;
 			}
 
@@ -256,7 +261,9 @@ elementary_stream_bypass(void *muxp)
 	double system_load;
 	stream *str;
 
-	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock, (void *) &mux->streams.rwlock);
+	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock,
+			     (void *) &mux->streams.rwlock);
+
 	assert(pthread_rwlock_rdlock(&mux->streams.rwlock) == 0);
 
 	assert(list_members((list *) &mux->streams) == 1);
@@ -268,8 +275,19 @@ elementary_stream_bypass(void *muxp)
 
 		buf = wait_full_buffer(&str->cons);
 
-		if (buf->used <= 0) // EOF / error
-			break;
+		if (buf->used <= 0) {
+			extern int split_sequence;
+			extern void break_sequence(void);
+
+			if (!split_sequence || buf->error == 0xE0F)
+				break;
+
+			send_empty_buffer(&str->cons, buf);
+
+			break_sequence();
+
+			continue;
+		}
 
 		frame_count++;
 		bytes_out += buf->used;

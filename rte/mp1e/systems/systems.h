@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.9 2002-03-19 19:26:29 mschimek Exp $ */
+/* $Id: systems.h,v 1.10 2002-05-07 06:39:37 mschimek Exp $ */
 
 #include "libsystems.h"
 
@@ -59,6 +59,7 @@ struct stream {
 	int			left;
 
 	double			dts_old;
+	double			dts_end;
 	double			pts_offset;
 
 	double			eff_bit_rate;

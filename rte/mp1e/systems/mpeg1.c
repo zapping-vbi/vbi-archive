@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.10 2002-03-19 19:26:29 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.11 2002-05-07 06:39:30 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -178,8 +178,10 @@ static FILE *cdlog;
 #define TPF 3600.0
 
 static inline bool
-next_access_unit(stream *str, double *ppts, unsigned char **pph)
+next_access_unit(stream *str, double *ppts,
+		 unsigned char **pph, rte_bool *eof)
 {
+	extern int split_sequence;
 	buffer *buf;
 	unsigned char *ph;
 
@@ -189,7 +191,13 @@ next_access_unit(stream *str, double *ppts, unsigned char **pph)
 	str->left = buf->used;
 
 	if (buf->used <= 0) {
+		if (!split_sequence || buf->error == 0xE0F)
+			*eof = TRUE;
+
+		send_empty_buffer(&str->cons, buf);
+
 		str->left = 0; /* XXX */
+
 		return FALSE;
 	}
 
@@ -293,20 +301,106 @@ schedule(multiplexer *mux)
 	return str;
 }
 
+static void
+prolog(multiplexer *mux, buffer **obufp,
+       double *system_overhead, double *system_rate,
+       double *system_rate_bound, double *scr,
+       double *ticks_per_pack, rte_bool restarted)
+{
+	stream *str;
+	buffer *obuf;
+	double preload_delay;
+	double video_frame_rate = DBL_MAX;
+	double max_dts_end = 0.0;
+	int nstreams = 0;
+	int preload = 0;
+	int bit_rate = 0;
+
+	for_all_nodes (str, &mux->streams, fifo.node) {
+		buffer *ibuf;
+
+		str->buf = NULL;
+		bit_rate += str->bit_rate;
+		str->eff_bit_rate = str->bit_rate;
+		str->ticks_per_frame = (double) SYSTEM_TICKS / str->frame_rate;
+
+		if (IS_VIDEO_STREAM(str->stream_id)
+		    && str->frame_rate < video_frame_rate)
+			video_frame_rate = frame_rate;
+
+		if (str->dts_end > max_dts_end)
+			max_dts_end = str->dts_end;
+
+		ibuf = wait_full_buffer(&str->cons);
+
+		if (ibuf->used <= 0) // XXX
+			FAIL("Premature end of file / error");
+
+		str->cap_t0 = ibuf->time;
+		preload += ibuf->used;
+
+		unget_full_buffer(&str->cons, ibuf);
+
+		nstreams++;
+	}
+
+	if (!(obuf = *obufp))
+		*obufp = obuf = mux->mux_output(mux, NULL);
+
+	assert(obuf && obuf->size >= 512
+	       && obuf->size <= 32768);
+
+	*system_overhead = mux->packet_size / (mux->packet_size
+		- (SYSTEM_HEADER_SIZE(nstreams)
+		+ PACK_HEADER_SIZE / PACKETS_PER_PACK));
+
+	*system_rate = *system_rate_bound = bit_rate * *system_overhead / 8;
+
+	/* Frames must arrive completely before decoding starts */
+	preload_delay = (preload * *system_overhead + PACK_HEADER_SIZE)
+		/ *system_rate_bound * SYSTEM_TICKS;
+
+	*scr = SCR_offset / *system_rate_bound * SYSTEM_TICKS;
+	*ticks_per_pack = (mux->packet_size * PACKETS_PER_PACK)
+		/ *system_rate_bound * SYSTEM_TICKS;
+
+	for_all_nodes (str, &mux->streams, fifo.node) {
+		if (restarted) {
+			double shift = max_dts_end - str->dts_end;
+
+			// fprintf(stderr, "SH %02x %f\n", str->stream_id, shift);
+			/* Carry over relative sampling instant shift */
+			str->dts_old = preload_delay + shift;
+		} else {
+			/* Video PTS is delayed by one frame */
+			if (!IS_VIDEO_STREAM(str->stream_id)) {
+				str->pts_offset = (double) SYSTEM_TICKS
+					/ (video_frame_rate * 1.0);
+
+				/* + 0.00001 to schedule video frames first */
+				str->dts_old = preload_delay + 0.00001;
+			} else
+				str->dts_old = preload_delay;
+		}
+	}
+}
+
 void *
 mpeg1_system_mux(void *muxp)
 {
+	extern int split_sequence;
 	multiplexer *mux = muxp;
 	unsigned char *p, *ph, *ps, *pl, *px;
 	unsigned long bytes_out = 0;
-	unsigned int pack_packet_count = PACKETS_PER_PACK;
-	unsigned int packet_count = 0;
-	unsigned int pack_count = 0;
+	unsigned int pack_packet_count;
+	unsigned int packet_count;
+	unsigned int pack_count;
 	double system_rate, system_rate_bound;
 	double system_overhead;
 	double ticks_per_pack;
 	double scr, pts, front_pts = 0.0;
-	buffer *buf;
+	rte_bool eof = FALSE;
+	buffer *obuf = NULL;
 	stream *str;
 
 	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock, (void *) &mux->streams.rwlock);
@@ -318,68 +412,20 @@ mpeg1_system_mux(void *muxp)
 	}
 #endif
 
-	{
-		double preload_delay;
-		double video_frame_rate = DBL_MAX;
-		int nstreams = 0;
-		int preload = 0;
-		int bit_rate = 0;
-
-		for_all_nodes (str, &mux->streams, fifo.node) {
-			str->buf = NULL;
-			bit_rate += str->bit_rate;
-			str->eff_bit_rate = str->bit_rate;
-			str->ticks_per_frame = (double) SYSTEM_TICKS / str->frame_rate;
-
-			if (IS_VIDEO_STREAM(str->stream_id) && str->frame_rate < video_frame_rate)
-				video_frame_rate = frame_rate;
-
-			buf = wait_full_buffer(&str->cons);
-
-			if (buf->used <= 0) // XXX
-				FAIL("Premature end of file / error");
-
-			str->cap_t0 = buf->time;
-	    		preload += buf->used;
-
-			unget_full_buffer(&str->cons, buf);
-
-			nstreams++;
-		}
-
-		buf = mux->mux_output(mux, NULL);
-
-		assert(buf && buf->size >= 512
-		           && buf->size <= 32768);
-
-		system_overhead = mux->packet_size / (mux->packet_size
-			- (SYSTEM_HEADER_SIZE(nstreams) + PACK_HEADER_SIZE / PACKETS_PER_PACK));
-
-		system_rate = system_rate_bound = bit_rate * system_overhead / 8;
-
-		/* Frames must arrive completely before decoding starts */
-		preload_delay = (preload * system_overhead + PACK_HEADER_SIZE)
-			/ system_rate_bound * SYSTEM_TICKS;
-
-		scr = SCR_offset / system_rate_bound * SYSTEM_TICKS;
-		ticks_per_pack = (mux->packet_size * PACKETS_PER_PACK) / system_rate_bound * SYSTEM_TICKS;
-
-		for_all_nodes (str, &mux->streams, fifo.node) {
-			/* Video PTS is delayed by one frame */
-			if (!IS_VIDEO_STREAM(str->stream_id)) {
-				str->pts_offset = (double) SYSTEM_TICKS / (video_frame_rate * 1.0);
-				/* + 0.1 to schedule video frames first */
-				str->dts_old = preload_delay + 0.1;
-			} else
-				str->dts_old = preload_delay;
-		}
-	}
+	prolog(mux, &obuf, &system_overhead,
+	       &system_rate, &system_rate_bound,
+	       &scr, &ticks_per_pack, FALSE);
 
 	/* Packet loop */
 
+restart:
+	pack_packet_count = PACKETS_PER_PACK;
+	packet_count = 0;
+	pack_count = 0;
+
 	for (;;) {
-		p = buf->data;
-		px = p + buf->size;
+		p = obuf->data;
+		px = p + obuf->size;
 
 		/* Pack header, system header */
 
@@ -398,7 +444,8 @@ mpeg1_system_mux(void *muxp)
 					bit_rate += str->eff_bit_rate;
 
 				system_rate = bit_rate * system_overhead / 8;
-				scr += (mux->packet_size * PACKETS_PER_PACK) / system_rate * SYSTEM_TICKS;
+				scr += (mux->packet_size * PACKETS_PER_PACK)
+					/ system_rate * SYSTEM_TICKS;
 			}
 
 			pack_packet_count = 0;
@@ -424,8 +471,10 @@ reschedule:
 			int n;
 
 			if (str->left == 0) {
-				if (!next_access_unit(str, &pts, &ph)) {
-					str->dts_old = LARGE_DTS * 2.0; // don't schedule stream
+				if (!next_access_unit(str, &pts, &ph, &eof)) {
+					str->dts_end = str->dts_old;
+					/* stream ended, don't schedule */
+					str->dts_old = LARGE_DTS * 2.0;
 
 					if (pl == p) {
 						/* no payload */
@@ -465,12 +514,12 @@ reschedule:
 
 		((unsigned short *) ps)[2] = swab16(p - ps - 6);
 
-		bytes_out += buf->used = p - buf->data;
+		bytes_out += obuf->used = p - obuf->data;
 
-		buf = mux->mux_output(mux, buf);
+		obuf = mux->mux_output(mux, obuf);
 
-		assert(buf && buf->size >= 512
-			   && buf->size <= 32768);
+		assert(obuf && obuf->size >= 512
+			   && obuf->size <= 32768);
 
 		packet_count++;
 		pack_packet_count++;
@@ -505,21 +554,33 @@ reschedule:
 		}
 	}
 
-	p = buf->data;
+	p = obuf->data;
 
 	*((unsigned int *) p) = swab32(ISO_END_CODE);
 
 	if (PAD_PACKETS) {
-		memset(p + 4, 0, buf->size - 4);
-		buf->used = buf->size;
+		memset(p + 4, 0, obuf->size - 4);
+		obuf->used = obuf->size;
 	} else
-		buf->used = 4;
+		obuf->used = 4;
 
-	mux->mux_output(mux, buf);
+	mux->mux_output(mux, obuf);
 
-	buf->used = 0; /* EOF */
+	if (split_sequence && !eof) {
+		extern void break_sequence(void);
 
-	mux->mux_output(mux, buf);
+		break_sequence();
+
+		prolog(mux, &obuf, &system_overhead,
+		       &system_rate, &system_rate_bound,
+		       &scr, &ticks_per_pack, TRUE);
+
+		goto restart;
+	}
+
+	obuf->used = 0; /* EOF */
+
+	mux->mux_output(mux, obuf);
 
 	pthread_cleanup_pop(1);
 
