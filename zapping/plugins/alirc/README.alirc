@@ -40,9 +40,13 @@ commands are understood:
   CHANDOWN  ->  One Channel down 
   QUIT      -> Quit zapping
   ZOOM      -> switch between full screen and windowed mode
-  SETCHANNEL <int> -> set the channel to <int> (the first channel is 0!!)
+  SETCHANNEL <int> -> set the channel to <int> (the first channel is 1!!)
 
-So for example, entries in you .lircrc look like this:
+When using SETCHANNEL two times within 1500ms, it will set the channel the way
+your used to of your television set (probably). e.g. SETCHANNEL 1, SETCHANNEL
+3 within 1500ms will set the channel to 13. 
+
+So for example, entries in you .lircrc could look like this:
 
  # Switch between fullscreen/windowed mode
  begin
@@ -61,9 +65,8 @@ So for example, entries in you .lircrc look like this:
     repeat = 0
   end
 
-What is there left to do?:
-  Well, the lirc plugin can use button 1 and 2 to turn on channel 12, what
-  is probably a feature alirc should have too. And ofcourse hunt down the
-bugs in it ;0
+What's left todo?:
+It would be great is we could show what channel is being set in the upper
+right corner.
 
 Send comments/feature requests/bug report to me <sjoerd@luon.net>

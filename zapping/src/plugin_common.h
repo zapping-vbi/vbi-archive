@@ -34,6 +34,7 @@
 #include "remote.h"
 #include "x11stuff.h"
 #include "common/fifo.h"
+#include "libvbi/libvbi.h"
 #include "capture.h"
 #include "frequencies.h"
 
@@ -143,7 +144,7 @@ static
 gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
 				 symbol, gchar ** description, gchar **
 				 type, gint * hash) __attribute__ ((unused)) ;
-static void plugin_add_properties ( GnomePropertyBox * gpb ) __attribute__ ((unused)) ;
+static gboolean plugin_add_properties ( GnomePropertyBox * gpb ) __attribute__ ((unused)) ;
 static
 gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page ) __attribute__ ((unused)) ;
 static

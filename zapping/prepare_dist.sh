@@ -36,15 +36,19 @@ clear && echo "Building the RPM"
 rpm -ta --clean $PACKAGE-$VER.tar.gz || exit 1
 
 clear
-echo "Putting everything under $VER-release"
-echo "-------------------------------------" && echo
-if ! [ -d $VER-release ]; then
-echo "$VER-release doesn't exist, creating it" && echo
-mkdir $VER-release
+echo "Putting everything under releases/$VER"
+echo "----------------------------------------" && echo
+if ! [ -d releases ]; then
+echo "releases/ doesn't exist, creating it" && echo
+mkdir releases
 fi
-mv /usr/src/redhat/RPMS/i386/$PACKAGE-$VER-1.* $VER-release
-mv /usr/src/redhat/SRPMS/$PACKAGE-$VER-1.* $VER-release
-mv $PACKAGE-$VER.tar.gz $VER-release
-mv $PACKAGE-$VER.tar.bz2 $VER-release
+if ! [ -d releases/$VER ]; then
+echo "releases/$VER doesn't exist, creating it" && echo
+mkdir releases/$VER
+fi
+mv /usr/src/redhat/RPMS/i386/$PACKAGE-$VER-1.* releases/$VER
+mv /usr/src/redhat/SRPMS/$PACKAGE-$VER-1.* releases/$VER
+mv $PACKAGE-$VER.tar.gz releases/$VER
+mv $PACKAGE-$VER.tar.bz2 releases/$VER
 
 echo "Done. Remember to commit the project to CVS if neccesary."

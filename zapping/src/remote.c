@@ -191,5 +191,19 @@ gpointer remote_command(gchar *command, gpointer arg)
       else
 	ttxview_detach(main_window);
     }
+  else if (!strcasecmp(command, "load_page"))
+    {
+      gint page, subpage;
+
+      zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
+
+      page = GPOINTER_TO_INT(arg)>>16;
+      page = dec2bcd(page);
+      subpage = GPOINTER_TO_INT(arg)&0xfff;
+      subpage = dec2bcd(subpage);
+      
+      open_in_ttxview(main_window, page, subpage);
+    }
+
   return NULL;
 }

@@ -88,6 +88,15 @@ on_plugins1_activate                   (GtkMenuItem     *menuitem,
   gtk_widget_show(plugin_properties);
 }
 
+static gboolean
+has_config				(struct plugin_info	*info)
+{
+  if (!info->plugin_help_properties)
+    return FALSE;
+
+  return plugin_add_properties(NULL, info);
+}
+
 
 void
 on_plugin_list_select_row                   (GtkCList        *clist,
@@ -191,14 +200,10 @@ on_plugin_list_select_row                   (GtkCList        *clist,
       gtk_object_set_user_data(GTK_OBJECT(plugin_start_w), info);
     }
 
+  gtk_object_set_user_data(GTK_OBJECT(plugin_configure_w), info);
+
   /* Enable the configure button if the plugin is configurable */
-  if (info->plugin_help_properties)
-    {
-      gtk_widget_set_sensitive(plugin_configure_w, TRUE);
-      gtk_object_set_user_data(GTK_OBJECT(plugin_configure_w), info);
-    }
-  else
-    gtk_widget_set_sensitive(plugin_configure_w, FALSE);
+  gtk_widget_set_sensitive(plugin_configure_w, has_config(info));
 
   /* Add the items to the public symbols list if neccesary */
   if (info->num_exported_symbols == 0)
@@ -286,6 +291,8 @@ on_plugin_start_clicked                (GtkButton       *button,
     lookup_widget(GTK_WIDGET(button), "plugin_stop");
   GtkWidget * plugin_start_w =
     lookup_widget(GTK_WIDGET(button), "plugin_start");
+  GtkWidget * plugin_configure_w =
+    lookup_widget(GTK_WIDGET(button), "plugin_help");
 
   if (!plugin_start(info))
     ShowBox(_("Sorry, but the plugin couldn't be started"),
@@ -302,7 +309,10 @@ on_plugin_start_clicked                (GtkButton       *button,
       gtk_widget_set_sensitive(plugin_start_w, TRUE);
       gtk_widget_set_sensitive(plugin_stop_w, FALSE);
       gtk_object_set_user_data(GTK_OBJECT(plugin_start_w), info);
-    }  
+    }
+
+  gtk_widget_set_sensitive(plugin_configure_w,
+			   has_config(info));
 }
 
 void
@@ -343,7 +353,8 @@ on_plugin_help_clicked                 (GtkButton       *button,
   gtk_window_set_title(GTK_WINDOW(property_box), plugin_get_name
 		       (info));
 
-  plugin_add_properties(GNOME_PROPERTY_BOX(property_box), info);
+  if (!plugin_add_properties(GNOME_PROPERTY_BOX(property_box), info))
+    g_assert_not_reached();
 
   gtk_signal_connect(GTK_OBJECT(property_box), "apply",
 		     (GtkSignalFunc)on_plugin_properties_apply,

@@ -206,9 +206,9 @@ startup_ttxview (void)
   zcc_bool(TRUE, "Reveal hidden characters", "reveal");
   zcc_bool(FALSE, "Selecting a bookmark switchs the current channel",
 	   "bookmark_switch");
-  zconf_create_integer(127, "Brightness",
+  zconf_create_integer(128, "Brightness",
 		       TXCOLOR_DOMAIN "brightness");
-  zconf_create_integer(127, "Contrast", TXCOLOR_DOMAIN "contrast");
+  zconf_create_integer(64, "Contrast", TXCOLOR_DOMAIN "contrast");
 
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "bookmarks"))
     {
@@ -1342,6 +1342,20 @@ open_in_new_ttxview			(gint		page,
 		NULL);
       gtk_widget_show(dolly);
     }
+}
+
+void
+open_in_ttxview				(GtkWidget	*view,
+					 gint		page,
+					 gint		subpage)
+{
+  ttxview_data *data = (ttxview_data*)
+    gtk_object_get_data(GTK_OBJECT(view), "ttxview_data");
+
+  if (!data)
+    return;
+
+  load_page(page, subpage, data, NULL);
 }
 
 static

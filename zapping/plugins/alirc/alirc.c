@@ -21,20 +21,36 @@
 
 #ifdef HAVE_LIRC
 #include <lirc/lirc_client.h>
+#include <time.h>
 
 /* This is the description of the plugin, change as appropiate */
 static const gchar str_canonical_name[] = "alirc";
 static const gchar str_descriptive_name[] =
 N_("Another lirc plugin");
 static const gchar str_description[] =
-N_("Another plugin to control zapping through lirc");
+N_("Another plugin to control zapping through lirc\n\n\
+See the lirc documentation for information about the .lircrc file. The plugin \
+will register itself under the name 'zapping_lirc' and you can use the \
+following commands:\n\
+  CHANUP:  One Channel up\n\
+  CHANDOWN:  One Channel down\n\
+  ZOOM: switch between full screen and windowed mode\n\
+  SETCHANNEL <int>: set the channel to <int> (the first channel is 0!!)\n\
+  QUIT: Quit zapping\n\
+  \n\
+Note: when using SETCHANNEL two times within 1500 ms, it will react the same\n\
+as you would expect from a television set. e.g SETCHANNEL 1, SETCHANNEL 3 \
+will set the channel to 13\n\
+The README.alirc file has some more information about the plugin.\
+");
+
 static const gchar str_short_description[] = 
-N_("Let you control zapping through lirc");
+N_("Lets you control zapping through lirc");
 static const gchar str_author[] = "Sjoerd Simons";
 /* The format of the version string must be
    %d[[.%d[.%d]][other_things]], where the things between [] aren't
    needed, and if not present, 0 will be assumed */
-static const gchar str_version[] = "1.0gamma";
+static const gchar str_version[] = "1.0";
 
 /* Active status of the plugin */
 static gboolean active = FALSE;
@@ -45,6 +61,12 @@ static struct lirc_config *config = NULL;
 static int lirc_iotag;
 /* our link to the device struct */
 static tveng_device_info *tveng_info;
+/* when comming out of fullscreen, goto this mode */
+/* in case we start in fullscreen give it some sane return mode */
+static enum tveng_capture_mode windowedmode = TVENG_CAPTURE_READ;
+/* last channel set to and the timestamp it has */
+static unsigned long setchan_time;
+static int setchan;
 
 static void
 lirc_channel_up(char *args) {
@@ -64,8 +86,9 @@ lirc_quit(char *args) {
 static void
 lirc_zoom(char *args) {
   if (tveng_info->current_mode == TVENG_CAPTURE_PREVIEW) {
-    remote_command("switch_mode",GINT_TO_POINTER(TVENG_CAPTURE_WINDOW));
+    remote_command("switch_mode",GINT_TO_POINTER(windowedmode));
   } else {
+    windowedmode = tveng_info->current_mode;
     remote_command("switch_mode",GINT_TO_POINTER(TVENG_CAPTURE_PREVIEW));
   }
 }
@@ -73,11 +96,34 @@ lirc_zoom(char *args) {
 static void
 lirc_setchannel(char *args) {
   int channel,nchannels;
+  struct timeval time;
+  unsigned long timestamp;
 
   GINT_TO_POINTER(nchannels) = remote_command("get_num_channels",NULL);
   if (args == NULL) return;
+
+  gettimeofday(&time,NULL);
+  /* save timestamp in ms */
+  timestamp = time.tv_sec * 1000 + time.tv_usec / 1000;
+
   channel = atoi(args);
-  if (channel < 0 && channel >= nchannels ) channel = 0;
+
+  if (timestamp - setchan_time < 1500) { 
+    channel += (setchan*10);
+    setchan = 0; /* Go back to default mode.. this is the most sane thing to do
+                 \   except when people have more then 99 channels */ 
+  } else setchan = channel;
+
+  setchan_time = timestamp;
+   
+  /* zapping starts counting channels at 0, we start counting channels at 1 
+   | IMHO this is more sane, as zapping doesn't allow to give a channels a 
+   \ custom number */ 
+  channel--;
+
+  if (channel < 0 || channel >= nchannels ) channel = 0;
+
+  printv("alirc plugin: Setting channel to %d\n",channel);
   remote_command("set_channel",GINT_TO_POINTER(channel));
 }
 
@@ -229,9 +275,8 @@ void plugin_get_info (const gchar ** canonical_name,
     *version = _(str_version);
 }
 
-static
-gboolean plugin_init (PluginBridge bridge, tveng_device_info * info)
-{
+static gboolean 
+plugin_init (PluginBridge bridge, tveng_device_info * info) {
   /* Do any startup you need here, and return FALSE on error */
   printv("alirc plugin: init\n");
   tveng_info = info;
@@ -245,9 +290,8 @@ gboolean plugin_init (PluginBridge bridge, tveng_device_info * info)
   return TRUE;
 }
 
-static
-void plugin_close(void)
-{
+static void 
+plugin_close(void) {
   /* If we were working, stop the work */
   if (active)
     plugin_stop();
@@ -255,9 +299,8 @@ void plugin_close(void)
   /* Any cleanups would go here (closing fd's and so on) */
 }
 
-static
-gboolean plugin_start (void)
-{
+static gboolean 
+plugin_start (void) {
   /* In most plugins, you don't want to be started twice */
   int fd; 
   if (active)
@@ -282,9 +325,8 @@ gboolean plugin_start (void)
   return TRUE;
 }
 
-static
-void plugin_stop(void)
-{
+static void 
+plugin_stop(void) {
   /* Most times we cannot be stopped while we are stopped */
   if (!active)
     return;
@@ -298,9 +340,8 @@ void plugin_stop(void)
   active = FALSE;
 }
 
-static
-void plugin_load_config (gchar * root_key)
-{
+static void 
+plugin_load_config (gchar * root_key) {
   gchar * buffer;
 
   /* The autostart config value is compulsory, you shouldn't need to
@@ -317,9 +358,8 @@ void plugin_load_config (gchar * root_key)
   /* Load here any other config key */
 }
 
-static
-void plugin_save_config (gchar * root_key)
-{
+static void 
+plugin_save_config (gchar * root_key) {
   gchar * buffer;
 
   /* This one is compulsory, you won't need to change it */
@@ -330,9 +370,8 @@ void plugin_save_config (gchar * root_key)
   /* Save here any other config keys you need to save */
 }
 
-static
-struct plugin_misc_info * plugin_get_misc_info (void)
-{
+static struct 
+plugin_misc_info * plugin_get_misc_info (void) {
   static struct plugin_misc_info returned_struct =
   {
     sizeof(struct plugin_misc_info), /* size of this struct */
@@ -346,4 +385,5 @@ struct plugin_misc_info * plugin_get_misc_info (void)
   */
   return (&returned_struct);
 }
-#endif
+
+#endif /* ifdef HAVE_LIRC */

@@ -1,3 +1,10 @@
+15.06.2001	alirc, plugin properties <garetxe@users.sf.net>
+
+	* src/plugin_common.h: Made plugin_add_properties a gboolean,
+	returns TRUE if the plugins will add anything. gpb arg can be NULL.
+	* plugins/alirc: integrated patch by Sjoerd Simons.
+	* src/remote.c: Added load_page.
+
 8.06.2001	color dialog <garetxe@users.sf.net>
 
 	* glade/zapping.glade: Beautified ttx color dialog a bit.

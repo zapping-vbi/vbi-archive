@@ -93,7 +93,7 @@ struct plugin_info{
 				       gchar ** description,
 				       gchar ** type, gint * hash );
   /* Add a property page to the properties dialog */
-  void (*plugin_add_properties) ( GnomePropertyBox * gpb );
+  gboolean (*plugin_add_properties) ( GnomePropertyBox * gpb );
   /* Called when the OK or Apply buttons are pressed */
   gboolean (*plugin_activate_properties) ( GnomePropertyBox * gpb, gint
 					   page );
@@ -167,7 +167,7 @@ void plugin_process_bundle (capture_bundle * bundle, struct plugin_info
 
 void plugin_capture_stop ( struct plugin_info * info);
 
-void plugin_add_properties (GnomePropertyBox * gpb, struct plugin_info
+gboolean plugin_add_properties (GnomePropertyBox * gpb, struct plugin_info
 			    * info);
 
 gboolean plugin_activate_properties (GnomePropertyBox * gpb, gint

@@ -71,4 +71,12 @@ void
 open_in_new_ttxview			(gint		page,
 					 gint		subpage);
 
+/**
+ * If the given window is a TTXView, the given page is opened on it.
+ */
+void
+open_in_ttxview				(GtkWidget	*view,
+					 gint		page,
+					 gint		subpage);
+
 #endif

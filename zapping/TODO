@@ -13,6 +13,7 @@ Outstanding issues for the next release (0.6.0)
 	window (set_usize??)
 
 > 0.6.1
+	+ extend OSD to allow arbitrary strings, not just CC and ttx.
 	+ Add some remote control applet (or sth like that).
 	+ Have a copy of the stuff in the "quick bar" in the main menu
 	(for keyb navigation)

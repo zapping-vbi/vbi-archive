@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.5.8cvs\n"
-"POT-Creation-Date: 2001-06-02 00:42+0200\n"
+"POT-Creation-Date: 2001-06-14 21:20+0200\n"
 "PO-Revision-Date: 2000-11-18 17:00+0300\n"
 "Last-Translator: Sergey Nikulin <sergey-nikulin@mail.ru>\n"
 "Language-Team: LANGUAGE <ru@li.org>\n"
@@ -298,32 +298,32 @@ msgid ""
 msgstr "Извините, но %s не может быть открыт:%s (%d)"
 
 #. pixmaps not installed
-#: src/zvbi.c:370
+#: src/zvbi.c:372
 msgid "Click me"
 msgstr ""
 
-#: src/zvbi.c:404
+#: src/zvbi.c:406
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
 "Navigator"
 msgstr ""
 
-#: src/zvbi.c:411
+#: src/zvbi.c:413
 #, fuzzy, c-format
-msgid "%s: Teletext Page %x"
+msgid " %s: Teletext Page %x"
 msgstr "_Телетекст"
 
-#: src/zvbi.c:414
+#: src/zvbi.c:416
 #, fuzzy, c-format
-msgid "Teletext Page %x"
+msgid " Teletext Page %x"
 msgstr "_Телетекст"
 
-#: src/zvbi.c:415
-msgid "Open this with Zapzilla"
+#: src/zvbi.c:417
+msgid "Open this page with Zapzilla"
 msgstr ""
 
-#: src/zvbi.c:541
+#: src/zvbi.c:543
 #, c-format
 msgid ""
 "VBI: %s couldn't be opened: %d, %s\n"
@@ -335,21 +335,21 @@ msgid ""
 "in Settings/Preferences/VBI options/Enable VBI decoding."
 msgstr ""
 
-#: src/zvbi.c:1573
+#: src/zvbi.c:1575
 #, c-format
 msgid "%d %s"
 msgstr ""
 
-#: src/zvbi.c:1574
+#: src/zvbi.c:1576
 #, fuzzy
 msgid "minute"
 msgstr "Отключить звук"
 
-#: src/zvbi.c:1574
+#: src/zvbi.c:1576
 msgid "minutes"
 msgstr ""
 
-#: src/zvbi.c:1576
+#: src/zvbi.c:1578
 #, c-format
 msgid "%d h %d m"
 msgstr ""
@@ -741,195 +741,195 @@ msgstr "Извините, но плагин не может быть запущен"
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Извините, плагин не предоставляет справки для этого"
 
-#: src/ttxview.c:498
-#, c-format
-msgid "Text export failed: %s"
-msgstr ""
-
-#: src/ttxview.c:506
-#, c-format
-msgid "Selection failed: %s"
-msgstr ""
-
-#: src/ttxview.c:582
-#, fuzzy, c-format
-msgid " Page %d"
-msgstr "Страница"
-
-#: src/ttxview.c:586
-#, c-format
-msgid " Subpage %d"
-msgstr ""
-
-#: src/ttxview.c:663 src/ttxview.c:772
-msgid "Warning: Page not valid"
-msgstr ""
-
-#: src/ttxview.c:766
+#: src/ttxview.c:488
 #, c-format
 msgid "Loading page %x..."
 msgstr ""
 
-#: src/ttxview.c:768
+#: src/ttxview.c:490
 #, c-format
 msgid "Loading subpage %x..."
 msgstr ""
 
-#: src/ttxview.c:844 src/ttxview.c:881
+#: src/ttxview.c:494 src/ttxview.c:788
+msgid "Warning: Page not valid"
+msgstr ""
+
+#: src/ttxview.c:623
+#, c-format
+msgid "Text export failed: %s"
+msgstr ""
+
+#: src/ttxview.c:631
+#, c-format
+msgid "Selection failed: %s"
+msgstr ""
+
+#: src/ttxview.c:707
+#, fuzzy, c-format
+msgid " Page %d"
+msgstr "Страница"
+
+#: src/ttxview.c:711
+#, c-format
+msgid " Subpage %d"
+msgstr ""
+
+#: src/ttxview.c:867 src/ttxview.c:904
 msgid "No cache"
 msgstr ""
 
-#: src/ttxview.c:854 src/ttxview.c:890
+#: src/ttxview.c:877 src/ttxview.c:913
 msgid "No other subpage in the cache"
 msgstr ""
 
-#: src/ttxview.c:962
+#: src/ttxview.c:985
 msgid "Found"
 msgstr ""
 
-#: src/ttxview.c:981
+#: src/ttxview.c:1004
 msgid "Not found"
 msgstr ""
 
-#: src/ttxview.c:1105
+#: src/ttxview.c:1128
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr ""
 
-#: src/ttxview.c:1147
+#: src/ttxview.c:1170
 #, fuzzy
 msgid "VBI has been disabled"
 msgstr "VBI был отключен или не работает."
 
-#: src/ttxview.c:1401
+#: src/ttxview.c:1424
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr ""
 
-#: src/ttxview.c:1464
+#: src/ttxview.c:1487
 msgid "Any subpage"
 msgstr ""
 
-#: src/ttxview.c:1771
+#: src/ttxview.c:1794
 #, fuzzy, c-format
 msgid "Export %s"
 msgstr "Экспозиция"
 
-#: src/ttxview.c:1785
+#: src/ttxview.c:1808
 msgid "Save as:"
 msgstr ""
 
-#: src/ttxview.c:1790
+#: src/ttxview.c:1813
 #, fuzzy
 msgid "Select file you'll be exporting to"
 msgstr "Выберите дирректорию для сохранения скриншотов"
 
-#: src/ttxview.c:1804
+#: src/ttxview.c:1827
 #, fuzzy
 msgid "Options"
 msgstr "VBI опции"
 
-#: src/ttxview.c:1842
+#: src/ttxview.c:2017
 msgid "You must first set the destination dir in the properties dialog"
 msgstr ""
 
-#: src/ttxview.c:1851 src/ttxview.c:2615
+#: src/ttxview.c:2026 src/ttxview.c:2794
 msgid "No page loaded"
 msgstr ""
 
-#: glade/glade_strings.c:243 src/ttxview.c:1857
+#: glade/glade_strings.c:243 src/ttxview.c:2032
 msgid "Zapzilla"
 msgstr ""
 
-#: src/ttxview.c:1886
+#: src/ttxview.c:2061
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr ""
 
-#: src/ttxview.c:1895
+#: src/ttxview.c:2070
 #, c-format
 msgid "%s saved"
 msgstr ""
 
-#: src/ttxview.c:1906
+#: src/ttxview.c:2081
 #, c-format
 msgid "Export failed: %s"
 msgstr ""
 
-#: src/ttxview.c:2074
+#: src/ttxview.c:2249
 #, c-format
 msgid "Caption %x - %s"
 msgstr ""
 
-#: src/ttxview.c:2076
+#: src/ttxview.c:2251
 #, c-format
 msgid "Text %x - %s"
 msgstr ""
 
-#: src/ttxview.c:2080
+#: src/ttxview.c:2255
 #, c-format
 msgid "Caption %x"
 msgstr ""
 
-#: src/ttxview.c:2082
+#: src/ttxview.c:2257
 #, c-format
 msgid "Text %x"
 msgstr ""
 
-#: src/ttxview.c:2108
+#: src/ttxview.c:2283
 #, c-format
 msgid "%x: Unknown language"
 msgstr ""
 
-#: src/ttxview.c:2121 src/ttxview.c:2136 src/ttxview.c:2160 src/ttxview.c:2176
-#: src/ttxview.c:2192 src/ttxview.c:2208 src/ttxview.c:2224
+#: src/ttxview.c:2296 src/ttxview.c:2311 src/ttxview.c:2335 src/ttxview.c:2351
+#: src/ttxview.c:2367 src/ttxview.c:2383 src/ttxview.c:2399
 #, fuzzy, c-format
 msgid "Page %x"
 msgstr "Страница"
 
-#: src/ttxview.c:2130
+#: src/ttxview.c:2305
 msgid "Index"
 msgstr ""
 
-#: src/ttxview.c:2154
+#: src/ttxview.c:2329
 msgid "Now and Next"
 msgstr ""
 
-#: src/ttxview.c:2170
+#: src/ttxview.c:2345
 #, fuzzy
 msgid "Current program"
 msgstr "Текущий контроллер:"
 
-#: src/ttxview.c:2186
+#: src/ttxview.c:2361
 msgid "Program Index"
 msgstr ""
 
-#: src/ttxview.c:2202
+#: src/ttxview.c:2377
 msgid "Program Schedule"
 msgstr ""
 
-#: src/ttxview.c:2218
+#: src/ttxview.c:2393
 msgid "Program Warning"
 msgstr ""
 
-#: src/ttxview.c:2238
+#: src/ttxview.c:2413
 msgid "Subtitles"
 msgstr ""
 
-#: src/ttxview.c:2240
+#: src/ttxview.c:2415
 msgid "Select subtitles page"
 msgstr ""
 
-#: src/ttxview.c:2309
+#: src/ttxview.c:2488
 #, c-format
 msgid "%s in %s"
 msgstr ""
 
-#: src/ttxview.c:2624
+#: src/ttxview.c:2803
 msgid "Selecting - hold Shift for table mode"
 msgstr ""
 
-#: src/ttxview.c:2738
+#: src/ttxview.c:2917
 msgid "Selection copied to clipboard"
 msgstr ""
 
@@ -1576,7 +1576,7 @@ msgid "..."
 msgstr ""
 
 #: glade/glade_strings.c:181 glade/glade_strings.c:187
-#: glade/glade_strings.c:287
+#: glade/glade_strings.c:289
 msgid "Click here when you are done"
 msgstr "Щелкните здесь когда закончите"
 
@@ -1769,7 +1769,7 @@ msgstr ""
 msgid "Searching..."
 msgstr "Поиск..."
 
-#: glade/glade_strings.c:242 glade/glade_strings.c:298
+#: glade/glade_strings.c:242 glade/glade_strings.c:300
 msgid "%P %%"
 msgstr ""
 
@@ -1814,7 +1814,7 @@ msgstr ""
 msgid "Search for a given pattern in the cache"
 msgstr ""
 
-#: glade/glade_strings.c:253 glade/glade_strings.c:288
+#: glade/glade_strings.c:253 glade/glade_strings.c:290
 #, fuzzy
 msgid "Search"
 msgstr "Поиск..."
@@ -1928,154 +1928,171 @@ msgid "_Edit Bookmarks..."
 msgstr ""
 
 #: glade/glade_strings.c:281
-msgid "Edit Bookmarks"
+msgid "Foo"
 msgstr ""
 
 #: glade/glade_strings.c:282
-msgid "Page"
-msgstr "Страница"
+#, fuzzy
+msgid "_Colors"
+msgstr "Цвет"
 
 #: glade/glade_strings.c:283
-msgid "Subpage"
+msgid "Edit Bookmarks"
 msgstr ""
 
 #: glade/glade_strings.c:284
+msgid "Page"
+msgstr "Страница"
+
+#: glade/glade_strings.c:285
+msgid "Subpage"
+msgstr ""
+
+#: glade/glade_strings.c:286
 #, fuzzy
 msgid "Description"
 msgstr "Точка назначения"
 
-#: glade/glade_strings.c:285
+#: glade/glade_strings.c:287
 msgid "Remove the currently selected bookmark"
 msgstr ""
 
-#: glade/glade_strings.c:286
+#: glade/glade_strings.c:288
 msgid "Remove Bookmark"
 msgstr ""
 
-#: glade/glade_strings.c:289
+#: glade/glade_strings.c:291
 msgid "Regular Expression:"
 msgstr ""
 
-#: glade/glade_strings.c:290
+#: glade/glade_strings.c:292
 msgid "Search case insensitive"
 msgstr ""
 
-#: glade/glade_strings.c:291
+#: glade/glade_strings.c:293
 msgid "Search backwards"
 msgstr ""
 
-#: glade/glade_strings.c:292
+#: glade/glade_strings.c:294
 #, fuzzy
 msgid "Search in progress..."
 msgstr "Поиск..."
 
-#: glade/glade_strings.c:293
+#: glade/glade_strings.c:295
 msgid "Cancel the current search"
 msgstr ""
 
-#: glade/glade_strings.c:294
+#: glade/glade_strings.c:296
 msgid "Search forwards for the next match"
 msgstr ""
 
-#: glade/glade_strings.c:295
+#: glade/glade_strings.c:297
 msgid "Search backwards for the previous match"
 msgstr ""
 
-#: glade/glade_strings.c:296
+#: glade/glade_strings.c:298
 msgid "Start a new search"
 msgstr ""
 
-#: glade/glade_strings.c:297
+#: glade/glade_strings.c:299
 msgid "New"
 msgstr ""
 
-#: glade/glade_strings.c:299
+#: glade/glade_strings.c:301
 msgid "Zapping error console"
 msgstr ""
 
-#: glade/glade_strings.c:300
+#: glade/glade_strings.c:302
 msgid "OK, let's go on"
 msgstr ""
 
-#: glade/glade_strings.c:301
+#: glade/glade_strings.c:303
 msgid "Remove all this mess"
 msgstr ""
 
-#: glade/glade_strings.c:302
+#: glade/glade_strings.c:304
 #, fuzzy
 msgid "Clean console"
 msgstr "Текущий контроллер:"
 
-#: glade/glade_strings.c:303
+#: glade/glade_strings.c:305
 #, fuzzy
 msgid "VBI info"
 msgstr "VBI опции"
 
-#: glade/glade_strings.c:304
+#: glade/glade_strings.c:306
 msgid "My curiosity has been fullfilled"
 msgstr ""
 
-#: glade/glade_strings.c:305
+#: glade/glade_strings.c:307
 msgid "Network info"
 msgstr ""
 
-#: glade/glade_strings.c:306
+#: glade/glade_strings.c:308
 msgid "Name:"
 msgstr ""
 
-#: glade/glade_strings.c:307
+#: glade/glade_strings.c:309
 msgid "Short Name:"
 msgstr ""
 
-#: glade/glade_strings.c:308
+#: glade/glade_strings.c:310
 msgid "Network call letters:"
 msgstr ""
 
-#: glade/glade_strings.c:309
+#: glade/glade_strings.c:311
 msgid "label204"
 msgstr ""
 
-#: glade/glade_strings.c:310
+#: glade/glade_strings.c:312
 msgid "label205"
 msgstr ""
 
-#: glade/glade_strings.c:311
+#: glade/glade_strings.c:313
 msgid "label206"
 msgstr ""
 
-#: glade/glade_strings.c:312
+#: glade/glade_strings.c:314
 msgid "Tape delay"
 msgstr ""
 
-#: glade/glade_strings.c:313
+#: glade/glade_strings.c:315
 msgid "label207"
 msgstr ""
 
-#: glade/glade_strings.c:314
+#: glade/glade_strings.c:316
 msgid "Known key names"
 msgstr ""
 
-#: glade/glade_strings.c:315
+#: glade/glade_strings.c:317
 msgid "Keys"
 msgstr ""
 
-#: glade/glade_strings.c:316
+#: glade/glade_strings.c:318
 msgid "New bookmark:"
 msgstr ""
 
-#: glade/glade_strings.c:317
+#: glade/glade_strings.c:319
 #, fuzzy
 msgid "Description:"
 msgstr "Точка назначения"
 
-#: glade/glade_strings.c:318
+#: glade/glade_strings.c:320
 msgid ""
 "If checked, the current channel will be automatically selected when the "
 "bookmark is selected"
 msgstr ""
 
-#: glade/glade_strings.c:319
+#: glade/glade_strings.c:321
 msgid "Switch to the current channel when the bookmark is selected"
+msgstr ""
+
+#: glade/glade_strings.c:322
+msgid "Text colors"
+msgstr ""
+
+#: glade/glade_strings.c:323 glade/glade_strings.c:324
+msgid "Reset"
 msgstr ""
 
 #: plugins/screenshot/screenshot.c:35

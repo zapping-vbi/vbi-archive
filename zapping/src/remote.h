@@ -80,6 +80,12 @@ void run_command(const gchar *command);
   TRUE, then teletext is started. Please note that if you stop
   Teletext, it doesn't restore the previous capture mode, you need to
   do that by hand.
+
+  - command="load_page", arg=GINT_TO_POINTER((page<<16)+subpage)
+  Loads the given page in the main window, tries to start TTX if it
+  isn't already on (i.e., if info->current_mode != TVENG_CAPTURE_NONE).
+  Loading all subpages of a page is done by giving the value
+  ANY_SUB to subpage. Example: load_page((100<<16)+ANY_SUB)
 */
 
 #endif /* remote.h */

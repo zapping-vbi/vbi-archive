@@ -837,14 +837,20 @@ on_property_item_changed              (GtkWidget * changed_widget,
 }
 
 static
-void plugin_add_properties ( GnomePropertyBox * gpb )
+gboolean plugin_add_properties ( GnomePropertyBox * gpb )
 {
-  GtkWidget *mpeg_properties =
-    build_widget("notebook1", PACKAGE_DATA_DIR "/mpeg_properties.glade");
-  GtkWidget * label = gtk_label_new(_("MPEG"));
+  GtkWidget *mpeg_properties;
+  GtkWidget *label;
   GtkWidget * widget;
   GtkAdjustment * adj;
   gint page;
+
+  if (!gpb)
+    return TRUE;
+
+  mpeg_properties =
+    build_widget("notebook1", PACKAGE_DATA_DIR "/mpeg_properties.glade");
+  label = gtk_label_new(_("MPEG"));
 
   /* Set current values and connect callbacks */
   widget = lookup_widget(mpeg_properties, "fileentry1");
@@ -896,6 +902,8 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
   page = gnome_property_box_append_page(gpb, mpeg_properties, label);
 
   gtk_object_set_data(GTK_OBJECT(gpb), "mpeg_page", GINT_TO_POINTER (page));
+
+  return TRUE;
 }
 
 static

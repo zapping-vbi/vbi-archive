@@ -394,18 +394,26 @@ gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
 }
 
 static
-void plugin_add_properties ( GnomePropertyBox * gpb )
+gboolean plugin_add_properties ( GnomePropertyBox * gpb )
 {
-  GtkWidget *vbox1 =
-    build_widget("vbox1", PACKAGE_DATA_DIR "/screenshot.glade");
-  GtkWidget *screenshot_quality =
-    lookup_widget(vbox1, "screenshot_quality");
-  GtkWidget *screenshot_dir =
-    lookup_widget(vbox1, "screenshot_dir");
-  GtkWidget *combo_entry1 = lookup_widget(vbox1, "combo-entry1");
+  GtkWidget *vbox1;
+  GtkWidget *screenshot_quality;
+  GtkWidget *screenshot_dir;
+  GtkWidget *combo_entry1;
   GtkObject *adj;
   GtkWidget *label;
   gint page;
+
+  if (!gpb)
+    return TRUE;
+
+  vbox1 =
+    build_widget("vbox1", PACKAGE_DATA_DIR "/screenshot.glade");
+  screenshot_quality =
+    lookup_widget(vbox1, "screenshot_quality");
+  screenshot_dir =
+    lookup_widget(vbox1, "screenshot_dir");
+  combo_entry1 = lookup_widget(vbox1, "combo-entry1");
 
   gtk_object_set_data(GTK_OBJECT(gpb), "screenshot_save_dir", screenshot_dir);
   gnome_file_entry_set_default_path(GNOME_FILE_ENTRY(screenshot_dir),
@@ -430,6 +438,8 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
 
   gtk_object_set_data(GTK_OBJECT(gpb), "screenshot_page",
 		      GINT_TO_POINTER( page ));
+
+  return TRUE;
 }
 
 static

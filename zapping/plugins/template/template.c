@@ -278,10 +278,14 @@ gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
 }
 
 static
-void plugin_add_properties ( GnomePropertyBox * gpb )
+gboolean plugin_add_properties ( GnomePropertyBox * gpb )
 {
   /* Here you would add a page to the property box. Define this
      function only if you are going to add something to the box */
+  /* if gpb == NULL, then Z is asking whether the plugin will add
+     anything to the box */
+  /* return TRUE if you [have added | will add] a page to the dialog */
+  return FALSE;
 }
 
 static

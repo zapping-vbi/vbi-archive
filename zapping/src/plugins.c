@@ -519,13 +519,15 @@ void plugin_capture_stop (struct plugin_info * info)
     (*info->plugin_capture_stop)();
 }
 
-void plugin_add_properties (GnomePropertyBox * gpb, struct plugin_info
+gboolean plugin_add_properties (GnomePropertyBox * gpb, struct plugin_info
 				   * info)
 {
   g_assert(info != NULL);
-  g_assert(gpb != NULL);
+
   if (info -> plugin_add_properties)
-    ((*info->plugin_add_properties)(gpb));
+    return ((*info->plugin_add_properties)(gpb));
+  else
+    return FALSE;
 }
 
 gboolean plugin_activate_properties (GnomePropertyBox * gpb, gint

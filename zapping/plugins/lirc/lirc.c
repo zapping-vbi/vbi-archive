@@ -298,10 +298,16 @@ void plugin_save_config (gchar * root_key)
 }
 
 static
-void plugin_add_properties ( GnomePropertyBox * gpb )
+gboolean plugin_add_properties ( GnomePropertyBox * gpb )
 {
   GtkWidget * label;
   GtkBox * vbox; /* the page added to the notebook */
+
+  if (!active)
+    return FALSE;
+
+  if (!gpb)
+    return TRUE;
 
   printv("lirc plugin: adding properties\n");
 
@@ -317,6 +323,8 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
   lirc_page = gnome_property_box_append_page(gpb, GTK_WIDGET(vbox), label);
 
   gtk_object_set_data(GTK_OBJECT(gpb), "lirc_page", GINT_TO_POINTER(lirc_page));
+
+  return TRUE;
 }
 
 static
