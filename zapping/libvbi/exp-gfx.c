@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.44 2004-11-03 06:49:29 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.45 2004-11-08 16:23:35 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -552,7 +552,7 @@ do {									\
 		s += (cpl) * (cw) / 8 * (ch) / 2;			\
 		under1 >>= (ch) / 2;					\
 									\
-	case VBI3_DOUBLE_HEIGHT:						\
+	case VBI3_DOUBLE_HEIGHT:					\
 	case VBI3_DOUBLE_SIZE: 						\
 		ch1 >>= 1;						\
 									\
@@ -577,7 +577,7 @@ do {									\
 			d += bpl;					\
 			break;						\
 									\
-		case VBI3_DOUBLE_HEIGHT:					\
+		case VBI3_DOUBLE_HEIGHT:				\
 		case VBI3_DOUBLE_HEIGHT2:				\
 			for (x = 0; x < (cw); bits >>= 1, ++x) {	\
 				PIXEL (d, x, pen, bits & 1);		\
@@ -591,7 +591,7 @@ do {									\
 				PIXEL (d, x, pen, bits & 1);		\
 				PIXEL (d, x + 1, pen, bits & 1);	\
 			}						\
-			d += bpl * 2;					\
+			d += bpl;					\
 			break;						\
 									\
 		case VBI3_DOUBLE_SIZE:					\
@@ -641,7 +641,7 @@ do {									\
 	case VBI3_DOUBLE_HEIGHT2:					\
 		s += 30;						\
 									\
-	case VBI3_DOUBLE_HEIGHT:						\
+	case VBI3_DOUBLE_HEIGHT:					\
 		for (y = 0; y < TCH / 2; d += bpl * 2, ++y)		\
 			for (x = 0; x < 12; ++s, x += 2) {		\
 				col = *s & 15;				\
@@ -1068,8 +1068,8 @@ do {									\
 				   bytes_per_line, pen,			\
 				   wstfont2_bits, TCPL, TCW, TCH,	\
 				   unicode_wstfont2 (unicode,		\
-						ac->attr & VBI3_ITALIC),	\
-				   ac->attr & VBI3_BOLD,			\
+					ac->attr & VBI3_ITALIC),	\
+				   ac->attr & VBI3_BOLD,		\
 				   (!!(ac->attr & VBI3_UNDERLINE)) << 9	\
 					/* cell row 9 */,		\
 				   ac->size);				\
