@@ -4,8 +4,7 @@
 EXTRA_DIST = gen_conv.s zmarshalers.list 
 
 INCLUDES = -I$(top_srcdir) @DEFAULT_CFLAGS@ @COMMON_INCLUDES@ \
-	$(LIBXML_CFLAGS) \
-	-DZSFB_DIR="\"$(DESTDIR)$(sbindir)\""
+	$(LIBXML_CFLAGS)
 
 bin_PROGRAMS = zapping
 
