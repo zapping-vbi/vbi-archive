@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.5 2004-05-17 23:36:37 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.6 2004-05-20 05:21:26 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
@@ -84,7 +84,7 @@ config = {
   .char_2_token = TRUE,
   .symbol_2_token = FALSE,
   .scope_0_fallback = FALSE,
-  .store_int64 = FALSE,
+  /* XXX unknown?  .store_int64 = FALSE, */
 };
 
 typedef enum {
