@@ -788,6 +788,15 @@ colors_action			(GtkAction *		action _unused_,
     }
 }
 
+static PyObject *
+py_ttx_color			(PyObject *		self _unused_,
+				 PyObject *		args _unused_)
+{
+  colors_action (NULL, NULL);
+
+  py_return_true;
+}
+
 static void
 preferences_action		(GtkAction *		action _unused_,
 				 gpointer		user_data _unused_)
@@ -860,6 +869,8 @@ plugin_init			(PluginBridge		bridge _unused_,
 
   cmd_register ("ttx_open_new", py_ttx_open_new, METH_VARARGS,
 		("Open new Teletext window"), "zapping.ttx_open_new()");
+  cmd_register ("ttx_color", py_ttx_color, METH_VARARGS,
+		("Open Teletext color dialog"), "zapping.ttx_color()");
 
   return TRUE;
 }
