@@ -47,6 +47,7 @@ extern tveng_tuned_channel * global_channel_list;
 extern tveng_device_info * main_info; /* About the device we are using */
 extern gint disable_preview; /* TRUE if preview (fullscreen)
 				    doesn't work */
+extern gint zvbi_page;
 
 int cur_tuned_channel = 0; /* Currently tuned channel */
 
@@ -266,8 +267,26 @@ void
 on_videotext1_activate                 (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  /* Stop any current capture mode, and start TTX */
-  zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
+  GtkWidget *closed_caption1;
+
+  /* Switch from TTX to Subtitles overlay, and viceversa */
+  if (main_info->current_mode == TVENG_NO_CAPTURE)
+    {
+      if (get_ttxview_page(main_window, &zvbi_page, NULL))
+	{
+	  zcs_bool(TRUE, "closed_caption");
+	  zcs_int(zvbi_page, "zvbi_page");
+	  osd_clear();
+	  closed_caption1 =
+	    lookup_widget(main_window, "closed_caption1");
+	  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
+					 TRUE);
+	}
+
+      zmisc_restore_previous_mode(main_info);
+    }
+  else
+    zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
 }
 
 void
@@ -339,6 +358,15 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	    widget = lookup_widget(GTK_WIDGET(menu), "new_ttxview2");
 	    gtk_widget_set_sensitive(widget, FALSE);
 	    gtk_widget_hide(widget);
+	  }
+	else if (main_info->current_mode == TVENG_NO_CAPTURE)
+	  {
+	    widget = lookup_widget(GTK_WIDGET(menu), "videotext2");
+	    z_change_menuitem(widget,
+			      GNOME_STOCK_PIXMAP_TABLE_FILL,
+			      _("Overlay this page"),
+			      _("Return to windowed mode and use the current "
+				"page as subtitles"));
 	  }
 	/* Remove capturing item if it's redundant */
 	if ((!zvbi_get_object()) && (disable_preview))

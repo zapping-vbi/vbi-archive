@@ -500,12 +500,7 @@ load_page (int page, int subpage, ttxview_data *data,
 {
   GtkWidget *ttxview_url = lookup_widget(data->toolbar, "ttxview_url");
   GtkWidget *ttxview_hold = lookup_widget(data->toolbar, "ttxview_hold");
-  GtkWidget *widget;
   gchar *buffer;
-
-  buffer = g_strdup_printf("%d", bcd2dec(page));
-  gtk_label_set_text(GTK_LABEL(ttxview_url), buffer);
-  g_free(buffer);
 
   data->hold = (subpage != ANY_SUB)?TRUE:FALSE;
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_hold),
@@ -514,12 +509,11 @@ load_page (int page, int subpage, ttxview_data *data,
   data->subpage = subpage;
   data->page = page;
   data->monitored_subpage = subpage;
-  widget = lookup_widget(data->toolbar, "ttxview_subpage");
-  if (subpage != ANY_SUB)
-    buffer = g_strdup_printf("S%x", data->subpage);
+  if (subpage != ANY_SUB && subpage)
+    buffer = g_strdup_printf("%d.%d", bcd2dec(page), bcd2dec(subpage));
   else
-    buffer = g_strdup("");
-  gtk_label_set_text(GTK_LABEL(widget), buffer);
+    buffer = g_strdup_printf("%d", bcd2dec(page));
+  gtk_label_set_text(GTK_LABEL(ttxview_url), buffer);
   g_free(buffer);
 
   if ((page >= 0x100) && (page <= 0x900))
@@ -803,8 +797,12 @@ event_timeout				(ttxview_data	*data)
 	  gdk_window_get_size(data->da->window, &w, &h);
 	  gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
 	  data->subpage = data->fmt_page->subno;
-	  widget = lookup_widget(data->toolbar, "ttxview_subpage");
-	  buffer = g_strdup_printf("S%x", data->subpage);
+	  widget = lookup_widget(data->toolbar, "ttxview_url");
+	  if (data->subpage)
+	    buffer = g_strdup_printf("%x.%x", data->fmt_page->pgno,
+				     data->subpage);
+	  else
+	    buffer = g_strdup_printf("%x", data->fmt_page->pgno);
 	  gtk_label_set_text(GTK_LABEL(widget), buffer);
 	  if (!data->no_history)
 	    append_history(data->fmt_page->pgno,
@@ -1408,6 +1406,25 @@ open_in_ttxview				(GtkWidget	*view,
     return;
 
   load_page(page, subpage, data, NULL);
+}
+
+gboolean
+get_ttxview_page			(GtkWidget	*view,
+					 gint		*page,
+					 gint		*subpage)
+{
+  ttxview_data *data = (ttxview_data*)
+    gtk_object_get_data(GTK_OBJECT(view), "ttxview_data");
+
+  if (!data)
+    return FALSE;
+
+  if (page)
+    *page = data->fmt_page->pgno;
+  if (subpage)
+    *subpage = data->monitored_subpage;
+
+  return TRUE;
 }
 
 static
@@ -3236,6 +3253,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
   GtkWidget * ttxview_reveal =
     lookup_widget(data->toolbar, "ttxview_reveal");
   gboolean active;
+  gint jump;
 
   if ((abs(data->last_time - event->time) < 100) ||
       (event->length > 1))
@@ -3246,6 +3264,13 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
   switch (event->keyval)
     {
     case GDK_0 ... GDK_9:
+      if (event->state & GDK_SHIFT_MASK)
+	{	
+	  if (event->keyval - GDK_0)
+	    load_page(dec2bcd((event->keyval - GDK_0)*100), ANY_SUB,
+		      data, NULL);
+	  break;
+	}
       if (data->page >= 0x100)
 	data->page = 0;
       data->page = (data->page<<4)+event->keyval-GDK_0;
@@ -3257,6 +3282,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	load_page(data->page, ANY_SUB, data, NULL);
       else
 	{
+	  ttx_freeze(data->id);
 	  buffer = g_strdup_printf("%d", bcd2dec(data->page));
 	  gtk_label_set_text(GTK_LABEL(lookup_widget(data->toolbar,
 			     "ttxview_url")), buffer);
@@ -3264,6 +3290,13 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	}
       break;
     case GDK_KP_0 ... GDK_KP_9:
+      if (event->state & GDK_SHIFT_MASK)
+	{	
+	  if (event->keyval - GDK_KP_0)
+	    load_page(dec2bcd((event->keyval - GDK_KP_0)*100),
+		      ANY_SUB, data, NULL);
+	  break;
+	}
       if (data->page >= 0x100)
 	data->page = 0;
       data->page = (data->page<<4)+event->keyval-GDK_KP_0;
@@ -3279,42 +3312,24 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	  g_free(buffer);
 	}
       break;
-    case GDK_Page_Up:
-    case GDK_KP_Page_Up:
-      if (data->page < 0x100)
-	data->page = add_bcd(data->fmt_page->pgno, 0x010);
-      else
-	data->page = add_bcd(data->page, 0x010);
-      if (data->page > 0x899)
-	data->page = 0x100;
-      load_page(data->page, ANY_SUB, data, NULL);
-      break;
-    case GDK_Page_Down:
-    case GDK_KP_Page_Down:
-      if (data->page < 0x100)
-	data->page = add_bcd(data->fmt_page->pgno, 0x990);
-      else
-	data->page = add_bcd(data->page, 0x990);
-      if (data->page < 0x100)
-	data->page = 0x899;
-      load_page(data->page, ANY_SUB, data, NULL);
-      break;
     case GDK_KP_Down:
     case GDK_Down:
+      jump = (event->state & GDK_SHIFT_MASK) ? 0x990 : 0x999;
       if (data->page < 0x100)
-	data->page = add_bcd(data->fmt_page->pgno, 0x999);
+	data->page = add_bcd(data->fmt_page->pgno, jump);
       else
-	data->page = add_bcd(data->page, 0x999);
+	data->page = add_bcd(data->page, jump);
       if (data->page < 0x100)
 	data->page = 0x899;
       load_page(data->page, ANY_SUB, data, NULL);
       break;
     case GDK_KP_Up:
     case GDK_Up:
+      jump = (event->state & GDK_SHIFT_MASK) ? 0x010 : 0x001;
       if (data->page < 0x100)
-	data->page = add_bcd(data->fmt_page->pgno, 0x001);
+	data->page = add_bcd(data->fmt_page->pgno, jump);
       else
-	data->page = add_bcd(data->page, 0x001);
+	data->page = add_bcd(data->page, jump);
       if (data->page > 0x899)
 	data->page = 0x100;
       load_page(data->page, ANY_SUB, data, NULL);
@@ -3393,16 +3408,35 @@ ttxview_blink			(gpointer	p)
   return TRUE;
 }
 
+static GtkWidget *
+pixmap_from_file			(const char	*file)
+{
+  GdkBitmap *mask;
+  GdkPixmap *pixmap;
+  GdkPixbuf *pb;
+  GtkWidget *pix;
+
+  pb = gdk_pixbuf_new_from_file(file);
+  if (!pb)
+    return NULL;
+
+  gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
+  pix = gtk_pixmap_new(pixmap, mask);
+  gtk_widget_show(pix);
+  gdk_bitmap_unref(mask);
+  gdk_bitmap_unref(pixmap);
+  gdk_pixbuf_unref(pb);
+
+  return pix;
+}
+
 GtkWidget*
 build_ttxview(void)
 {
   GtkWidget *ttxview = create_ttxview();
   GtkWidget *ttxview_reveal;
-  GdkBitmap *mask;
-  GdkPixmap *pixmap;
-  GdkPixbuf *pb;
-  GtkWidget *pix;
   ttxview_data *data;
+  GtkWidget *widget;
 
   if (!zvbi_get_object())
     {
@@ -3527,41 +3561,50 @@ build_ttxview(void)
 
   inc_model_count();
 
-  pb = gdk_pixbuf_new_from_file(PACKAGE_PIXMAPS_DIR "/left.png");
-  if (pb)
+  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/left.png");
+  if (!widget)
     {
-      gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
-      pix = gtk_pixmap_new(pixmap, mask);
-      gtk_widget_show(pix);
-      gdk_bitmap_unref(mask);
-      gdk_bitmap_unref(pixmap);
-      gdk_pixbuf_unref(pb);
-    }
-  else
-    {
-      pix = gtk_label_new("<");;
-      gtk_widget_show(pix);
+      widget = gtk_label_new("<");
+      gtk_widget_show(widget);
     }
   gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_prev_subpage")), pix);
+				  "ttxview_prev_subpage")), widget);
 
-  pb = gdk_pixbuf_new_from_file(PACKAGE_PIXMAPS_DIR "/right.png");
-  if (pb)
+  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/down.png");
+  if (!widget)
     {
-      gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
-      pix = gtk_pixmap_new(pixmap, mask);
-      gtk_widget_show(pix);
-      gdk_bitmap_unref(mask);
-      gdk_bitmap_unref(pixmap);
-      gdk_pixbuf_unref(pb);
-    }
-  else
-    {
-      pix = gtk_label_new(">");;
-      gtk_widget_show(pix);
+      widget = gtk_label_new("v");
+      gtk_widget_show(widget);
     }
   gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_next_subpage")), pix);
+				  "ttxview_prev_page")), widget);
+
+  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/up.png");
+  if (!widget)
+    {
+      widget = gtk_label_new("^");
+      gtk_widget_show(widget);
+    }
+  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
+				  "ttxview_next_page")), widget);
+
+  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/right.png");
+  if (!widget)
+    {
+      widget = gtk_label_new(">");
+      gtk_widget_show(widget);
+    }
+  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
+				  "ttxview_next_subpage")), widget);
+
+  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/reveal.png");
+  if (!widget)
+    {
+      widget = gtk_label_new("?");
+      gtk_widget_show(widget);
+    }
+  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
+				  "ttxview_reveal")), widget);
 
   return (ttxview);
 }
@@ -3575,10 +3618,7 @@ ttxview_attach			(GtkWidget	*parent,
   ttxview_data *data =
     gtk_object_get_data(GTK_OBJECT(parent), "ttxview_data");
   GtkWidget *ttxview_reveal;
-  GdkBitmap *mask;
-  GdkPixmap *pixmap;
-  GdkPixbuf *pb;
-  GtkWidget *pix;
+  GtkWidget *widget;
   gint w, h;
 
   if (!zvbi_get_object())
@@ -3723,41 +3763,50 @@ ttxview_attach			(GtkWidget	*parent,
 
   setup_history_gui(data);
 
-  pb = gdk_pixbuf_new_from_file(PACKAGE_PIXMAPS_DIR "/left.png");
-  if (pb)
+  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/left.png");
+  if (!widget)
     {
-      gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
-      pix = gtk_pixmap_new(pixmap, mask);
-      gtk_widget_show(pix);
-      gdk_bitmap_unref(mask);
-      gdk_bitmap_unref(pixmap);
-      gdk_pixbuf_unref(pb);
-    }
-  else
-    {
-      pix = gtk_label_new("<");;
-      gtk_widget_show(pix);
+      widget = gtk_label_new("<");
+      gtk_widget_show(widget);
     }
   gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_prev_subpage")), pix);
+				  "ttxview_prev_subpage")), widget);
 
-  pb = gdk_pixbuf_new_from_file(PACKAGE_PIXMAPS_DIR "/right.png");
-  if (pb)
+  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/down.png");
+  if (!widget)
     {
-      gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
-      pix = gtk_pixmap_new(pixmap, mask);
-      gtk_widget_show(pix);
-      gdk_bitmap_unref(mask);
-      gdk_bitmap_unref(pixmap);
-      gdk_pixbuf_unref(pb);
-    }
-  else
-    {
-      pix = gtk_label_new(">");;
-      gtk_widget_show(pix);
+      widget = gtk_label_new("v");
+      gtk_widget_show(widget);
     }
   gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
-				  "ttxview_next_subpage")), pix);
+				  "ttxview_prev_page")), widget);
+
+  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/up.png");
+  if (!widget)
+    {
+      widget = gtk_label_new("^");
+      gtk_widget_show(widget);
+    }
+  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
+				  "ttxview_next_page")), widget);
+
+  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/right.png");
+  if (!widget)
+    {
+      widget = gtk_label_new(">");
+      gtk_widget_show(widget);
+    }
+  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
+				  "ttxview_next_subpage")), widget);
+
+  widget = pixmap_from_file(PACKAGE_PIXMAPS_DIR "/reveal.png");
+  if (!widget)
+    {
+      widget = gtk_label_new("?");
+      gtk_widget_show(widget);
+    }
+  gtk_container_add(GTK_CONTAINER(lookup_widget(data->toolbar,
+				  "ttxview_reveal")), widget);
 
   inc_model_count();
 }

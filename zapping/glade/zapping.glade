@@ -502,7 +502,6 @@
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
 	  <name>videotext3</name>
-	  <tooltip>Use Zapping as a Teletext navigator [Ctrl+Alt+T]</tooltip>
 	  <signal>
 	    <name>clicked</name>
 	    <handler>on_videotext1_activate</handler>
@@ -2716,7 +2715,7 @@ adding the table if possible, for inclusion in the next release of this program.
       <widget>
 	<class>GtkButton</class>
 	<name>channels_done</name>
-	<tooltip>Leave the dialog</tooltip>
+	<tooltip>Save the changes and leave the dialog</tooltip>
 	<can_focus>True</can_focus>
 	<signal>
 	  <name>clicked</name>
@@ -2735,7 +2734,7 @@ adding the table if possible, for inclusion in the next release of this program.
       <widget>
 	<class>GtkButton</class>
 	<name>button11</name>
-	<tooltip>Click this button if you want to discard current changes</tooltip>
+	<tooltip>Click this button if you want to leave the dialog discarding the changes</tooltip>
 	<can_focus>True</can_focus>
 	<signal>
 	  <name>clicked</name>
@@ -2754,7 +2753,7 @@ adding the table if possible, for inclusion in the next release of this program.
       <widget>
 	<class>GtkButton</class>
 	<name>add_channel</name>
-	<tooltip>Click here to add current channel</tooltip>
+	<tooltip>Click here to add the current channel</tooltip>
 	<can_focus>True</can_focus>
 	<signal>
 	  <name>clicked</name>
@@ -3753,7 +3752,7 @@ adding the table if possible, for inclusion in the next release of this program.
       <placement>GNOME_DOCK_TOP</placement>
       <band>0</band>
       <position>0</position>
-      <offset>60</offset>
+      <offset>2</offset>
       <locked>False</locked>
       <exclusive>True</exclusive>
       <never_floating>False</never_floating>
@@ -3818,27 +3817,8 @@ adding the table if possible, for inclusion in the next release of this program.
 	</widget>
 
 	<widget>
-	  <class>GtkFrame</class>
-	  <name>frame2</name>
-	  <label_xalign>0</label_xalign>
-	  <shadow_type>GTK_SHADOW_ETCHED_OUT</shadow_type>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <name>ttxview_url</name>
-	    <label>100</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	  </widget>
-	</widget>
-
-	<widget>
 	  <class>GtkHBox</class>
-	  <name>hbox36</name>
+	  <name>hbox37</name>
 	  <homogeneous>False</homogeneous>
 	  <spacing>0</spacing>
 
@@ -3856,7 +3836,7 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <key>GDK_minus</key>
 	      <signal>clicked</signal>
 	    </accelerator>
-	    <relief>GTK_RELIEF_NORMAL</relief>
+	    <relief>GTK_RELIEF_NONE</relief>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
@@ -3869,11 +3849,11 @@ adding the table if possible, for inclusion in the next release of this program.
 	  </widget>
 
 	  <widget>
-	    <class>GtkToggleButton</class>
-	    <name>ttxview_hold</name>
-	    <tooltip>Hold the current subpage [H]</tooltip>
-	    <relief>GTK_RELIEF_NORMAL</relief>
-	    <active>False</active>
+	    <class>GtkButton</class>
+	    <name>ttxview_prev_page</name>
+	    <tooltip>Go to the previous page [Down]</tooltip>
+	    <can_focus>True</can_focus>
+	    <relief>GTK_RELIEF_NONE</relief>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
@@ -3881,22 +3861,58 @@ adding the table if possible, for inclusion in the next release of this program.
 	    </child>
 
 	    <widget>
-	      <class>GtkFrame</class>
-	      <name>frame3</name>
-	      <label_xalign>0</label_xalign>
-	      <shadow_type>GTK_SHADOW_IN</shadow_type>
+	      <class>Placeholder</class>
+	    </widget>
+	  </widget>
+	</widget>
 
-	      <widget>
-		<class>GtkLabel</class>
-		<name>ttxview_subpage</name>
-		<label>S0</label>
-		<justify>GTK_JUSTIFY_CENTER</justify>
-		<wrap>False</wrap>
-		<xalign>0.5</xalign>
-		<yalign>0.5</yalign>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-	      </widget>
+	<widget>
+	  <class>GtkToggleButton</class>
+	  <name>ttxview_hold</name>
+	  <tooltip>Hold the current subpage [H]</tooltip>
+	  <relief>GTK_RELIEF_NORMAL</relief>
+	  <active>False</active>
+
+	  <widget>
+	    <class>GtkFrame</class>
+	    <name>frame3</name>
+	    <label_xalign>0</label_xalign>
+	    <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>ttxview_url</name>
+	      <label>100</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	    </widget>
+	  </widget>
+	</widget>
+
+	<widget>
+	  <class>GtkHBox</class>
+	  <name>hbox38</name>
+	  <homogeneous>False</homogeneous>
+	  <spacing>0</spacing>
+
+	  <widget>
+	    <class>GtkButton</class>
+	    <name>ttxview_next_page</name>
+	    <tooltip>Go to the next page [Up]</tooltip>
+	    <can_focus>True</can_focus>
+	    <relief>GTK_RELIEF_NONE</relief>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+
+	    <widget>
+	      <class>Placeholder</class>
 	    </widget>
 	  </widget>
 
@@ -3914,7 +3930,7 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <key>GDK_plus</key>
 	      <signal>clicked</signal>
 	    </accelerator>
-	    <relief>GTK_RELIEF_NORMAL</relief>
+	    <relief>GTK_RELIEF_NONE</relief>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
@@ -3933,9 +3949,12 @@ adding the table if possible, for inclusion in the next release of this program.
 	  <border_width>4</border_width>
 	  <tooltip>Reveal hidden characters [R]</tooltip>
 	  <can_focus>True</can_focus>
-	  <label>R</label>
-	  <relief>GTK_RELIEF_NORMAL</relief>
+	  <relief>GTK_RELIEF_NONE</relief>
 	  <active>True</active>
+
+	  <widget>
+	    <class>Placeholder</class>
+	  </widget>
 	</widget>
 
 	<widget>
@@ -3945,17 +3964,6 @@ adding the table if possible, for inclusion in the next release of this program.
 	  <tooltip>Exit TTX mode [Esc]</tooltip>
 	  <label></label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_STOP</stock_pixmap>
-	</widget>
-
-	<widget>
-	  <class>GtkHButtonBox</class>
-	  <name>hbuttonbox1</name>
-	  <layout_style>GTK_BUTTONBOX_DEFAULT_STYLE</layout_style>
-	  <spacing>30</spacing>
-	  <child_min_width>85</child_min_width>
-	  <child_min_height>27</child_min_height>
-	  <child_ipad_x>7</child_ipad_x>
-	  <child_ipad_y>0</child_ipad_y>
 	</widget>
       </widget>
     </widget>

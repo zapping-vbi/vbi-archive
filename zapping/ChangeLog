@@ -1,3 +1,10 @@
+22.08.2001	Overlay this page <garetxe@users.sf.net>
+
+	* TTX mode: added the option to "overlay" the current page when
+	the main window is in TTX mode.
+	* ttxview: improved page selection as discussed, use the new
+	pixmaps.
+	
 21.08.2001	es updated <garetxe@users.sf.net>
 
 	* es.po: Up to date, preparation for 0.6.0 release.

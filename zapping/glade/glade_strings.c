@@ -35,7 +35,6 @@ gchar *s = N_("Select the next station in the channel list [Page Down]");
 gchar *s = N_("Down");
 gchar *s = N_("Configure capture [Ctrl+C]");
 gchar *s = N_("Controls");
-gchar *s = N_("Use Zapping as a Teletext navigator [Ctrl+Alt+T]");
 gchar *s = N_("Teletext");
 gchar *s = N_("Video device capabilities");
 gchar *s = N_("Device name:");
@@ -139,9 +138,9 @@ gchar *s = N_("Interactive TV");
 gchar *s = N_("VBI options");
 gchar *s = N_("Channel choosing");
 gchar *s = N_("With this dialog you can edit the channel list.\n"
-"To begin, please choose the frequency table used in your country.\n"
-"When your country or the required table is not present please notify the author,\n"
-"adding the table if possible, for inclusion in the next release of this program.");
+              "To begin, please choose the frequency table used in your country.\n"
+              "When your country or the required table is not present please notify the author,\n"
+              "adding the table if possible, for inclusion in the next release of this program.");
 gchar *s = N_("Select here the frequency table used in your country");
 gchar *s = N_("No tables");
 gchar *s = N_("Select here the channel you want to tune");
@@ -174,9 +173,9 @@ gchar *s = N_("Alt");
 gchar *s = N_("Enter here the key you want to attach to this channel");
 gchar *s = N_("Open the list of known keys");
 gchar *s = N_("...");
-gchar *s = N_("Leave the dialog");
-gchar *s = N_("Click this button if you want to discard current changes");
-gchar *s = N_("Click here to add current channel");
+gchar *s = N_("Save the changes and leave the dialog");
+gchar *s = N_("Click this button if you want to leave the dialog discarding the changes");
+gchar *s = N_("Click here to add the current channel");
 gchar *s = N_("_Add");
 gchar *s = N_("This shows some help about this dialog");
 gchar *s = N_("Plugin properties");
@@ -232,13 +231,13 @@ gchar *s = N_("Home");
 gchar *s = N_("Clone the current Teletext window");
 gchar *s = N_("Search for a given pattern in the cache");
 gchar *s = N_("Search");
-gchar *s = N_("100");
 gchar *s = N_("Previous subpage [-]");
+gchar *s = N_("Go to the previous page [Down]");
 gchar *s = N_("Hold the current subpage [H]");
-gchar *s = N_("S0");
+gchar *s = N_("100");
+gchar *s = N_("Go to the next page [Up]");
 gchar *s = N_("Next subpage [+]");
 gchar *s = N_("Reveal hidden characters [R]");
-gchar *s = N_("R");
 gchar *s = N_("Exit TTX mode [Esc]");
 gchar *s = N_("Open this link in a new window");
 gchar *s = N_("_Open in new window");

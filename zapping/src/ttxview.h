@@ -88,4 +88,14 @@ open_in_ttxview				(GtkWidget	*view,
 					 gint		page,
 					 gint		subpage);
 
+/**
+ * If the given window is a TTXView, stores in page, subpage the page
+ * currently rendered. Returns FALSE on error.
+ * page, subpage can be NULL.
+ */
+gboolean
+get_ttxview_page			(GtkWidget	*view,
+					 gint		*page,
+					 gint		*subpage);
+
 #endif
