@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.17 2004-05-22 04:58:38 mschimek Exp $ */
+/* $Id: b_ffmpeg.c,v 1.18 2005-02-25 18:19:12 mschimek Exp $ */
 
 #include <limits.h>
 #include "b_ffmpeg.h"
@@ -340,16 +340,16 @@ mainloop			(void *			p)
 
 			switch (fd->codec.params.video.pixfmt) {
 			case RTE_PIXFMT_YUV420:
-				pict.data[0] = rb.data + fd->codec.params.video.offset;
-				pict.data[1] = rb.data + fd->codec.params.video.u_offset;
-				pict.data[2] = rb.data + fd->codec.params.video.v_offset;
+				pict.data[0] = (char *) rb.data + fd->codec.params.video.offset;
+				pict.data[1] = (char *) rb.data + fd->codec.params.video.u_offset;
+				pict.data[2] = (char *) rb.data + fd->codec.params.video.v_offset;
 				pict.linesize[0] = fd->codec.params.video.stride;
 				pict.linesize[1] = fd->codec.params.video.uv_stride;
 				pict.linesize[2] = fd->codec.params.video.uv_stride;
 				break;
 
 			case RTE_PIXFMT_YUYV:
-				pict.data[0] = rb.data + fd->codec.params.video.offset;
+				pict.data[0] = (char *) rb.data + fd->codec.params.video.offset;
 				pict.data[1] = 0;
 				pict.data[2] = 0;
 				pict.linesize[0] = fd->codec.params.video.stride;
@@ -388,6 +388,8 @@ mainloop			(void *			p)
 
 	return NULL;
 }
+
+static rte_bool parameters_set (rte_codec *, rte_stream_parameters *);
 
 static rte_bool
 stop				(rte_context *		context,
@@ -429,7 +431,6 @@ stop				(rte_context *		context,
 	pthread_join (fx->thread_id, NULL);
 
 	for (codec = fx->codecs; codec; codec = codec->next) {
-		static rte_bool parameters_set (rte_codec *, rte_stream_parameters *);
 		ffmpeg_codec *fd = FD (codec);
 
 		fd->codec.state = RTE_STATE_READY;
@@ -568,7 +569,7 @@ set_output			(rte_context *		context,
 		if (count < fxc->rte._public->min_elementary[i]) {
 			rte_error_printf (&fx->context, "Not enough elementary streams of rte stream type %d "
 					  "for context %s. %d required, %d allocated.",
-					  fxc->rte._public->keyword,
+					  i, fxc->rte._public->keyword,
 					  fxc->rte._public->min_elementary[i], count);
 			return FALSE;
 		}
@@ -1588,10 +1589,7 @@ codec_enum			(rte_context *		context,
 				 unsigned int		index)
 {
 	ffmpeg_context_class *fxc = FXC(context->_class);
-	int i;
-
-	if (index < 0)
-		return NULL;
+	unsigned int i;
 
 	for (i = 0;; i++)
 		if (fxc->codecs[i] == NULL)
@@ -1899,7 +1897,7 @@ static rte_context_class *
 context_enum			(unsigned int		index,
 				 char **		errstr)
 {
-	if (index < 0 || index >= num_contexts)
+	if (index >= num_contexts)
 		return NULL;
 
 	return &context_table[index]->rte;
