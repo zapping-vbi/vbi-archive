@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Teletext page cache search functions
  *
- *  Copyright (C) 2000, 2001, 2002 Michael H. Schimek
+ *  Copyright (C) 2000-2004 Michael H. Schimek
  *  Copyright (C) 2000, 2001 Iñaki G. Etxebarria
  *
  *  Based on code from AleVT 1.5.1
@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.6.2.3 2004-02-13 02:11:30 mschimek Exp $ */
+/* $Id: search.c,v 1.6.2.4 2004-02-25 17:28:22 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -36,6 +36,7 @@
 #include "cache.h"
 #include "search.h"
 #include "ure.h"
+#include "conv.h"
 #include "vbi.h"
 
 /**
@@ -57,9 +58,12 @@ struct vbi_search {
 
 	int			dir;
 
-	vbi_bool		(* progress)(vbi_page *pg);
+	vbi_search_progress_cb *progress;
+	void *			user_data;
 
 	vbi_page_private	pgp;
+
+	va_list			format_options;
 
 	ure_buffer_t		ub;
 	ure_dfa_t		ud;
@@ -162,7 +166,9 @@ highlight(struct vbi_search *s, const vt_page *vtp,
 }
 
 static int
-search_page_fwd(void *p, const vt_page *vtp, vbi_bool wrapped)
+search_page_fwd			(void *			p,
+				 const vt_page *	vtp,
+				 vbi_bool		wrapped)
 {
 	vbi_search *s = p;
 	vbi_char *acp;
@@ -184,13 +190,12 @@ search_page_fwd(void *p, const vt_page *vtp, vbi_bool wrapped)
 	if (vtp->function != PAGE_FUNCTION_LOP)
 		return 0; /* try next */
 
-	if (!vbi_format_vt_page (s->vbi,&s->pgp, vtp,
-				 VBI_WST_LEVEL, s->vbi->vt.max_level,
-				 VBI_END))
+	if (!vbi_format_vt_page_va_list (s->vbi, &s->pgp,
+					 vtp, s->format_options))
 		return -3; /* formatting error, abort */
 
 	if (s->progress)
-		if (!s->progress(&s->pgp.pg)) {
+		if (!s->progress (s, &s->pgp.pg, s->user_data)) {
 			if (_this != start) {
 				s->start_pgno = vtp->pgno;
 				s->start_subno = vtp->subno;
@@ -261,7 +266,9 @@ fprintf(stderr, "exec: %x/%x; start %d,%d; %c%c%c...\n",
 }
 
 static int
-search_page_rev(void *p, const vt_page *vtp, vbi_bool wrapped)
+search_page_rev			(void *			p,
+				 const vt_page *	vtp,
+				 vbi_bool		wrapped)
 {
 	vbi_search *s = p;
 	vbi_char *acp;
@@ -283,13 +290,12 @@ search_page_rev(void *p, const vt_page *vtp, vbi_bool wrapped)
 	if (vtp->function != PAGE_FUNCTION_LOP)
 		return 0; /* try next page */
 
-	if (!vbi_format_vt_page (s->vbi,&s->pgp, vtp,
-				 VBI_WST_LEVEL, s->vbi->vt.max_level,
-				 VBI_END))
+	if (!vbi_format_vt_page_va_list (s->vbi,&s->pgp, vtp,
+					 s->format_options))
 		return -3; /* formatting error, abort */
 
 	if (s->progress)
-		if (!s->progress(&s->pgp.pg)) {
+		if (!s->progress (s, &s->pgp.pg, s->user_data)) {
 			if (this != start) {
 				s->start_pgno = vtp->pgno;
 				s->start_subno = vtp->subno;
@@ -372,12 +378,108 @@ fprintf(stderr, "exec: %x/%x; %d, %d; '%c%c%c...'\n",
 }
 
 /**
+ * @param search Initialized search context.
+ * @param pg Place to store the formatted (as with vbi_fetch_vt_page())
+ *   Teletext page containing the found pattern. Do <em>not</em>
+ *   call vbi_unref_page() for this page. Also the page must not
+ *   be modified. See vbi_search_status for semantics.
+ * @param dir Search direction +1 forward or -1 backward.
+ * @param format_options blah
+ *
+ * Find the next occurence of the search pattern.
+ *
+ * @return
+ * vbi_search_status.
+ */
+vbi_search_status
+vbi_search_next_va_list		(vbi_search *		search,
+				 vbi_page **		pg,
+				 int			dir,
+				 va_list		format_options)
+{
+	*pg = NULL;
+	dir = (dir > 0) ? +1 : -1;
+
+	if (!search->dir) {
+		search->dir = dir;
+
+		if (dir > 0) {
+			search->start_pgno = search->stop_pgno[0];
+			search->start_subno = search->stop_subno[0];
+		} else {
+			search->start_pgno = search->stop_pgno[1];
+			search->start_subno = search->stop_subno[1];
+		}
+
+		search->row[0] = FIRST_ROW;
+		search->row[1] = LAST_ROW + 1;
+		search->col[0] = search->col[1] = 0;
+	} else if (dir != search->dir) {
+		search->dir = dir;
+
+		search->stop_pgno[0] = search->start_pgno;
+		search->stop_subno[0] = (search->start_subno == VBI_ANY_SUBNO) ?
+			0 : search->start_subno;
+		search->stop_pgno[1] = search->start_pgno;
+		search->stop_subno[1] = search->start_subno;
+	}
+
+#ifdef __va_copy
+	__va_copy (search->format_options, format_options);
+#else
+	search->format_options = format_options;
+#endif
+
+	switch (vbi_cache_foreach (search->vbi, NUID0,
+				   search->start_pgno,
+				   search->start_subno,
+				   dir,
+				   (dir > 0) ? search_page_fwd
+				   : search_page_rev, search)) {
+	case 1:
+		*pg = &search->pgp.pg;
+		return VBI_SEARCH_SUCCESS;
+
+	case 0:
+		return VBI_SEARCH_CACHE_EMPTY;
+
+	case -1:
+		search->dir = 0;
+		return VBI_SEARCH_NOT_FOUND;
+
+	case -2:
+		return VBI_SEARCH_ABORTED;
+
+	default:
+		break;
+	}
+
+	return VBI_SEARCH_ERROR;
+}
+
+vbi_search_status
+vbi_search_next			(vbi_search *		search,
+				 vbi_page **		pg,
+				 int			dir,
+				 ...)
+{
+	vbi_search_status s;
+	va_list format_options;
+
+	va_start (format_options, dir);
+	s = vbi_search_next_va_list (search, pg, dir, format_options);
+	va_end (format_options);
+
+	return s;
+}
+
+/**
  * @param search vbi_search context.
  * 
  * Delete the search context created by vbi_search_new().
  */
 void
-vbi_search_delete(vbi_search *search)
+vbi_search_delete		(vbi_search *		search)
 {
 	if (!search)
 		return;
@@ -392,18 +494,19 @@ vbi_search_delete(vbi_search *search)
 }
 
 static size_t
-ucs2_strlen(const void *string)
+ucs2_strlen			(const uint16_t *	s)
 {
-	const ucs2_t *p = (const ucs2_t *) string;
-	size_t i = 0;
+	const uint16_t *s1;
 
-	if (!string)
+	if (!s)
 		return 0;
 
-	for (i = 0; *p; i++)
-		p++;
+	s1 = s;
 
-	return i;
+	while (*s)
+		++s;
+
+	return s - s1;
 }
 
 /**
@@ -411,15 +514,17 @@ ucs2_strlen(const void *string)
  * @param pgno 
  * @param subno Page and subpage number of the first (forward) or
  *   last (backward) page to visit. Optional @c VBI_ANY_SUBNO. 
- * @param pattern The Unicode (UCS-2, <em>not</em> UTF-16) search
- *   pattern, a 0-terminated string.
+ * @param pattern Unicode (UCS-2) search pattern.
+ * @param pattern_size Number of characters (not bytes) in the pattern
+ *   buffer.
  * @param casefold Boolean, search case insensitive.
  * @param regexp Boolean, the search pattern is a regular expression.
  * @param progress A function called for each page scanned, can be
  *   \c NULL. Shall return @c FALSE to abort the search. @a pg is valid
  *   for display (e. g. @a pg->pgno), do <em>not</em> call
  *   vbi_unref_page() or modify this page.
- * 
+ * @param user_data blah.
+ *
  * Allocate a vbi_search context and prepare for searching
  * the Teletext page cache. The context must be freed with
  * vbi_search_delete().
@@ -478,53 +583,70 @@ ucs2_strlen(const void *string)
  * A vbi_search context or @c NULL on error.
  */
 vbi_search *
-vbi_search_new(vbi_decoder *vbi,
-	       vbi_pgno pgno, vbi_subno subno,
-	       uint16_t *pattern,
-	       vbi_bool casefold, vbi_bool regexp,
-	       int (* progress)(vbi_page *pg))
+vbi_search_new_ucs2		(vbi_decoder *		vbi,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 const uint16_t *	pattern,
+				 unsigned int		pattern_size,
+				 vbi_bool		casefold,
+				 vbi_bool		regexp,
+				 vbi_search_progress_cb *progress,
+				 void *			user_data)
 {
 	vbi_search *s;
-	ucs2_t *esc_pat = NULL;
-	int i, j, pat_len = ucs2_strlen(pattern);
+	uint16_t *esc_pattern;
 
-	if (pat_len <= 0)
+	if (!pattern || 0 == pattern_size)
 		return NULL;
 
-	if (!(s = calloc(1, sizeof(*s))))
+	if (!(s = calloc (1, sizeof (*s))))
 		return NULL;
+
+	s->vbi = vbi;
+	s->progress = progress;
+	s->user_data = user_data;
 
 	if (!regexp) {
-		if (!(esc_pat = malloc(sizeof(ucs2_t) * pat_len * 2))) {
-			free(s);
+		unsigned int size;
+		unsigned int i;
+		unsigned int j;
+
+		size = pattern_size * 2 * sizeof (*esc_pattern);
+		if (!(esc_pattern = malloc (size))) {
+			free (s);
 			return NULL;
 		}
 
-		for (i = j = 0; i < pat_len; i++) {
-			if (strchr("!\"#$%&()*+,-./:;=?@[\\]^_{|}~", pattern[i]))
-				esc_pat[j++] = '\\';
-			esc_pat[j++] = pattern[i];
+		j = 0;
+
+		for (i = 0; i < pattern_size; ++i) {
+			if (strchr ("!\"#$%&()*+,-./:;=?@[\\]^_{|}~",
+				    pattern[i]))
+				esc_pattern[j++] = '\\';
+
+			esc_pattern[j++] = pattern[i];
 		}
 
-		pattern = esc_pat;
-		pat_len = j;
+		pattern = esc_pattern;
+		pattern_size = j;
 	}
 
-	if (!(s->ub = ure_buffer_create()))
+	if (!(s->ub = ure_buffer_create ()))
 		goto abort;
 
-	if (!(s->ud = ure_compile(pattern, pat_len, casefold, s->ub))) {
+	if (!(s->ud = ure_compile (pattern, pattern_size,
+				   casefold, s->ub))) {
 abort:
-		vbi_search_delete(s);
+		vbi_search_delete (s);
 
 		if (!regexp)
-			free(esc_pat);
+			free (esc_pattern);
 
 		return NULL;
 	}
 
 	if (!regexp)
-		free(esc_pat);
+		free (esc_pattern);
 
 	s->stop_pgno[0] = pgno;
 	s->stop_subno[0] = (subno == VBI_ANY_SUBNO) ? 0 : subno;
@@ -541,106 +663,88 @@ abort:
 			s->stop_subno[1] = subno - 1;
 	}
 
-	s->vbi = vbi;
-	s->progress = progress;
+	return s;
+}
+
+vbi_search *
+vbi_search_new_utf8		(vbi_decoder *		vbi,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 const char *		pattern,
+				 vbi_bool		casefold,
+				 vbi_bool		regexp,
+				 vbi_search_progress_cb *progress,
+				 void *			user_data)
+{
+	uint16_t *ucs2_pattern;
+	vbi_search *s;
+
+	if (!pattern)
+		return NULL;
+
+	ucs2_pattern = vbi_strdup_ucs2_utf8 (pattern);
+
+	if (!ucs2_pattern)
+		return NULL;
+
+	s = vbi_search_new_ucs2 (vbi, pgno, subno,
+				 ucs2_pattern, ucs2_strlen (ucs2_pattern),
+				 casefold, regexp, progress, user_data);
+
+	free (ucs2_pattern);
 
 	return s;
 }
 
-/**
- * @param search Initialized search context.
- * @param pg Place to store the formatted (as with vbi_fetch_vt_page())
- *   Teletext page containing the found pattern. Do <em>not</em>
- *   call vbi_unref_page() for this page. Also the page must not
- *   be modified. See vbi_search_status for semantics.
- * @param dir Search direction +1 forward or -1 backward.
- *
- * Find the next occurence of the search pattern.
- *
- * @return
- * vbi_search_status.
- */
-/* XXX fix return type */
-int
-vbi_search_next(vbi_search *search, vbi_page **pg, int dir)
+#else /* !HAVE_GLIBC21 && !HAVE_LIBUNICODE */
+
+vbi_search_status
+vbi_search_next_va_list		(vbi_search *		search,
+				 vbi_page **		pg,
+				 int			dir,
+				 va_list		format_options)
 {
-	*pg = NULL;
-	dir = (dir > 0) ? +1 : -1;
-
-	if (!search->dir) {
-		search->dir = dir;
-
-		if (dir > 0) {
-			search->start_pgno = search->stop_pgno[0];
-			search->start_subno = search->stop_subno[0];
-		} else {
-			search->start_pgno = search->stop_pgno[1];
-			search->start_subno = search->stop_subno[1];
-		}
-
-		search->row[0] = FIRST_ROW;
-		search->row[1] = LAST_ROW + 1;
-		search->col[0] = search->col[1] = 0;
-	}
-#if 1 /* should switch to a 'two frontiers meet' model, but ok for now */
-	else if (dir != search->dir) {
-		search->dir = dir;
-
-		search->stop_pgno[0] = search->start_pgno;
-		search->stop_subno[0] = (search->start_subno == VBI_ANY_SUBNO) ?
-			0 : search->start_subno;
-		search->stop_pgno[1] = search->start_pgno;
-		search->stop_subno[1] = search->start_subno;
-	}
-#endif
-	switch (vbi_cache_foreach (search->vbi, NUID0,
-				   search->start_pgno,
-				   search->start_subno,
-				   dir,
-				   (dir > 0) ? search_page_fwd
-				   : search_page_rev, search)) {
-	case 1:
-		*pg = &search->pgp.pg;
-		return VBI_SEARCH_SUCCESS;
-
-	case 0:
-		return VBI_SEARCH_CACHE_EMPTY;
-
-	case -1:
-		search->dir = 0;
-		return VBI_SEARCH_NOT_FOUND;
-
-	case -2:
-		return VBI_SEARCH_CANCELED;
-
-	default:
-		break;
-	}
-
 	return VBI_SEARCH_ERROR;
 }
 
-#else /* !HAVE_GLIBC21 && !HAVE_LIBUNICODE */
-
-vbi_search *
-vbi_search_new(vbi_decoder *vbi,
-	       vbi_pgno pgno, vbi_subno subno,
-	       uint16_t *pattern,
-	       vbi_bool casefold, vbi_bool regexp,
-	       int (* progress)(vbi_page *pg))
-{
-	return NULL;
-}
-
-int
-vbi_search_next(vbi_search *search, vbi_page **pg, int dir)
+vbi_search_status
+vbi_search_next			(vbi_search *		search,
+				 vbi_page **		pg,
+				 int			dir,
+				 ...)
 {
 	return VBI_SEARCH_ERROR;
 }
 
 void
-vbi_search_delete(vbi_search *search)
+vbi_search_delete		(vbi_search *		search)
 {
+}
+
+vbi_search *
+vbi_search_new_ucs2		(vbi_decoder *		vbi,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 const uint16_t *	pattern,
+				 vbi_bool		casefold,
+				 vbi_bool		regexp,
+				 vbi_search_progress_cb *progress,
+				 void *			user_data)
+{
+	return NULL;
+}
+
+vbi_search *
+vbi_search_new_utf8		(vbi_decoder *		vbi,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 const char *		pattern,
+				 vbi_bool		casefold,
+				 vbi_bool		regexp,
+				 vbi_search_progress_cb *progress,
+				 void *			user_data)
+{
+	return NULL;
 }
 
 #endif /* !HAVE_GLIBC21 && !HAVE_LIBUNICODE */
