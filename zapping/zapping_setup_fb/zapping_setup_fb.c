@@ -192,7 +192,7 @@ int check_dga(Display * display, int screen)
     pf = XListPixmapFormats(display,&n);
     for (i = 0; i < n; i++) {
       if (pf[i].depth == info[v].depth) {
-	bpp   = pf[i].depth;
+	bpp   = pf[i].bits_per_pixel;
 	break;
       }
     }

@@ -37,11 +37,6 @@ Outstanding issues for the next release (0.6.0)
 	  dump: VTX.
 	+ zapzilla: channel selector, properties.
 	+ libvbi: SGML error reporting.
-	+ Many channels: make channel editor usable (scrolls up when
-	modifying) and let change channels with the keyb.
-	+ Do not tune channels when selecting a lot of them in the
-	channel editor.
-	+ Smart Modify/Add default selection in the channel editor.
 
 > Somewhen...
 	+ Do realtime effects to the image, plainly wonderful, see

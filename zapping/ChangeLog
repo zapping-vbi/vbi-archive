@@ -1,3 +1,13 @@
+31.08.2001	Channel editor usability <garetxe@users.sf.net>
+
+	* src/channel_editor: Do not tune all channels when there are
+	many of them selected, smarter modify/add when activating the
+	channel name GtkEntry, keep selection et al when modifying.
+	* zapping_setup_fb: Reverted to the old bpp detection.
+	* configure.in: require ngettext in AM_GNU_GETTEXT (i18ed
+			plural forms).
+	* fr.po: Updated translation (Christian).
+
 30.08.2001	Select audio device <garetxe@users.sf.net>
 
 	* plugins/mpeg/mpeg.c: Added audio input device selection.
