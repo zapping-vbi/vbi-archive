@@ -1,10 +1,13 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
+* Screenshot add toolbar button option doesn't work right.
+* Mute on exit option doesn't work, mutes always.
 * Screenshot: file selection dialog doesn't focus.
 * Switching to fullscreen and back doesn't work quite right.
-* Recording: on start hangs and/or causes xlib error.
-* Recording: stop hangs.
+* Recording: audio ok, video doesn't start and stop (no data).
+* TTX to video mode switch: "(zapping:14644): Gtk-WARNING
+  **: Toolbar position 8 is not a space", separator not removed.
 * TTX mode, channel switch in ch editor,
   SEGV in vbi_draw_vt_page_region
 * Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
@@ -56,6 +59,7 @@ tvengxv.c
   (XFree86-only?) extension of the XVideo API. It already defines
   some attribute names and ranges, and XvGetPortAttribute() will tell
   if they are implemented by the driver.
+* configure.in must check for different versions of xv.
 
 * Closing the main window while recording blocks.
   Backtrace:

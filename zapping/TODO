@@ -1,6 +1,13 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Xawtv import considers ~/.xawtv but not /etc/X11/xawtvrc, see
+  man xawtvrc.
+* Examine interaction with change display from gtk-demo.
+* Widget indentation needs improvement, use
+  gtk_alignment_set_padding() (gtk 2.4).
+* tv_set_overlay_buffer: Check DGA presence before calling
+  zsfb. Test with Xnest.
 * Fullscreen: When the user preselected a vidmode Z should not try
   to overlay the whole screen.
 * Keyboard preferences: Python commands should not be visible,

@@ -293,7 +293,7 @@ static void
 stop_timeout			(void)
 {
   if (tv_info.timeout_id >= 0)
-    gtk_timeout_remove (tv_info.timeout_id);
+    g_source_remove (tv_info.timeout_id);
 
   tv_info.timeout_id = -1;
 }
@@ -310,10 +310,12 @@ restart_timeout			(void)
 
   if (tv_info.visibility == GDK_VISIBILITY_FULLY_OBSCURED)
     tv_info.timeout_id =
-      gtk_timeout_add (CLEAR_TIMEOUT, obscured_timeout, &tv_info);
+      g_timeout_add (CLEAR_TIMEOUT,
+		     (GSourceFunc) obscured_timeout, &tv_info);
   else
     tv_info.timeout_id =
-      gtk_timeout_add (CLEAR_TIMEOUT, visible_timeout, &tv_info);
+      g_timeout_add (CLEAR_TIMEOUT,
+		     (GSourceFunc) visible_timeout, &tv_info);
 }
 
 static __inline__ void

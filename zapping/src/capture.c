@@ -427,7 +427,7 @@ gint capture_start (tveng_device_info *info)
 
   available_pixfmts = scan_device (main_info);
 
-  idle_id = gtk_idle_add (idle_handler, info);
+  idle_id = g_idle_add ((GSourceFunc) idle_handler, info);
 
   /* XXX */
   g_signal_connect (G_OBJECT (lookup_widget (main_window, "tv-screen")),
@@ -459,7 +459,7 @@ void capture_stop (void)
     }  
 
   /* Stop our marvellous consumer */
-  gtk_idle_remove (idle_id);
+  g_source_remove (idle_id);
   idle_id = -1;
 
   /* Let the capture thread go to a better place */

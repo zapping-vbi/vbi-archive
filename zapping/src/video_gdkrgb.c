@@ -105,13 +105,13 @@ image_put (zimage *image, gint w, gint h)
   clear_canvas (window, w, h, iw, ih);
   switch (image->fmt.pixfmt)
     {
-    case TV_PIXFMT_BGR24_LE:
+    case TV_PIXFMT_RGB24_LE:
       gdk_draw_rgb_image (window, gc,
 			  (w - iw)/2, (h - ih)/2, iw, ih,
 			  GDK_RGB_DITHER_NORMAL, pimage->data,
 			  image->data.linear.stride);
       break;
-    case TV_PIXFMT_BGRA24_LE:
+    case TV_PIXFMT_RGBA24_LE:
       gdk_draw_rgb_32_image (window, gc,
 			     (w - iw)/2, (h - ih)/2, iw, ih,
 			     GDK_RGB_DITHER_NORMAL, pimage->data,
@@ -171,8 +171,8 @@ unset_destination(tveng_device_info *info)
 }
 
 static tv_pixfmt pixfmts[] = {
-  TV_PIXFMT_BGR24_LE,
-  TV_PIXFMT_BGRA24_LE
+  TV_PIXFMT_RGB24_LE,
+  TV_PIXFMT_RGBA24_LE
 };
 
 static gboolean

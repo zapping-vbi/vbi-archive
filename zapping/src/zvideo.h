@@ -54,7 +54,7 @@ struct _ZVideo
   gfloat		ratio;
 
   guint			blank_cursor_timeout;
-  guint			blank_cursor_timeout_handle;
+  guint			blank_cursor_timeout_id;
   GdkCursorType		blanked_cursor_type;
 
   GtkAllocation		window_alloc;

@@ -22,6 +22,9 @@
  * Libvbi, written by Michael Schimek, is used.
  */
 
+/* XXX gdk_pixbuf_render_to_drawable -> gdk_draw_pixbuf() */
+#undef GDK_DISABLE_DEPRECATED
+
 #include <site_def.h>
 
 #ifdef HAVE_CONFIG_H

@@ -244,7 +244,10 @@ p_tvengxv_open_device(tveng_device_info *info)
     }
 
   if (nAdaptors <= 0)
-    goto failure;
+    {
+      printv ("No XVideo adaptors\n");
+      goto failure;
+    }
 
   p_info->port = grab_port (display, pAdaptors, nAdaptors, xv_video_port);
 

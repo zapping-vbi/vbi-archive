@@ -28,6 +28,7 @@
 #include "zimage.h"
 #include "globals.h"
 #include "capture.h"
+#include "zmisc.h"
 
 static struct {
   video_backend		backend;
@@ -74,8 +75,13 @@ zimage *zimage_new (tv_pixfmt pixfmt,
 	if (zimage)
 	  {
 	    private_zimage *pz = (private_zimage*)zimage;
+
+	    printv ("zimage_new using video backend %s\n",
+		    backends[i].backend.name);
+
 	    pz->refcount = 1;
 	    pz->backend = i;
+
 	    return zimage;
 	  }
       }

@@ -20,11 +20,16 @@
  * OSD routines.
  */
 
+/* XXX gtk+ 2.3 GtkOptionMenu, Gnome font picker, color picker */
+/* gdk_input_add/remove */
+#undef GTK_DISABLE_DEPRECATED
+#undef GNOME_DISABLE_DEPRECATED
+#undef GDK_DISABLE_DEPRECATED
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#undef GDK_DISABLE_DEPRECATED
 #include <gnome.h>
 
 #define ZCONF_DOMAIN "/zapping/options/osd/"
@@ -675,7 +680,7 @@ osd_event		(gpointer	   data,
 
 #include <libxml/parser.h>
 
-static gint osd_clear_timeout_id = -1;
+static guint osd_clear_timeout_id = -1;
 static void (* osd_clear_timeout_cb)(gboolean);
 
 #define OSD_ROW (MAX_ROWS - 1)
@@ -784,7 +789,7 @@ osd_render_osd		(void (*timeout_cb)(gboolean),
   PangoLayout *layout = pango_layout_new (context);
   PangoFontDescription *pfd = NULL;
   GdkGC *gc = gdk_gc_new (patch->window);
-  GdkColormap *cmap = gdk_window_get_colormap (patch->window);
+  GdkColormap *cmap = gdk_drawable_get_colormap (patch->window);
   const gchar *fname = zcg_char (NULL, "font");
   PangoRectangle logical, ink;
   GdkColor *bg;
@@ -877,12 +882,12 @@ osd_render_osd		(void (*timeout_cb)(gboolean),
       if (osd_clear_timeout_cb)
 	osd_clear_timeout_cb(FALSE);
 
-      gtk_timeout_remove(osd_clear_timeout_id);
+      g_source_remove (osd_clear_timeout_id);
     }
 
   osd_clear_timeout_id =
-    gtk_timeout_add(zcg_float(NULL, "timeout")*1000,
-		    osd_clear_timeout, NULL);
+    g_timeout_add (zcg_float (NULL, "timeout") * 1000,
+		   (GSourceFunc) osd_clear_timeout, NULL);
 
   osd_clear_timeout_cb = timeout_cb;
 
@@ -1058,7 +1063,7 @@ osd_set_window(GtkWidget *dest_window)
   gtk_widget_realize(dest_window);
 
   cx = cy = 0;
-  gdk_window_get_size(dest_window->window, &cw, &ch);
+  gdk_drawable_get_size(dest_window->window, &cw, &ch);
   
   set_window(dest_window, FALSE);
 }

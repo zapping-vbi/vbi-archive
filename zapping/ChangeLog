@@ -1,3 +1,35 @@
+2003-11-04    <mschimek@users.sf.net>
+
+	* src/interface.c (zapping_popup_menu_new): Show toolbar and
+	  keep on top didn't work.
+
+2003-11-03    <mschimek@users.sf.net>
+
+	* src/ttxview.c (on_search_dialog_destroy, search_dialog_continue),
+	  src/capture.c (capture_start, capture_stop): Replaced
+	  deprecated gtk_idle by g_idle.
+	* src/osd.c (osd_render_osd, osd_set_window): Replaced
+	  deprecated gdk_window... by gdk_drawable... functions.
+	* src/zvideo.c (z_video_set_cursor, z_video_blank_cursor),
+	  src/overlay.c (stop_timeout, restart_timeout),
+	  src/audio.c (reset_quiet), src/ttxview.c,
+	  src/osd.c (osd_render_osd), src/zmisc.c (z_status_print),
+	  src/x11stuff.c (x11_screensaver_set), src/main.c (main),
+	  plugins/screenshot/screenshot.c (plugin_init, plugin_close),
+	  plugins/mpeg/mpeg.c (saving_dialog_status_disable,
+	  saving_dialog_status_enable): Replaced deprecated gtk_timeout
+	  by g_timeout.
+
+2003-11-02    <mschimek@users.sf.net>
+
+	* configure.in: Added Xinerama check.
+	* plugins/mpeg/options.c (create_slider): Calculation of decimal
+	  digits no longer in spinslider.
+	* src/video_gdkrgb.c: Correct red/blue order.
+	* src/video_x11.c (add_backend_x11): Expect DGA not present
+	  (Xnest, remote display).
+	* plugins/mpeg/mpeg.c (saving_dialog_new): Didn't show pixmaps.
+
 2003-10-31    <mschimek@users.sf.net>
 
 	* plugins/mpeg/mpeg.c (saving_dialog_attach_formats),

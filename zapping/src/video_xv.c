@@ -627,7 +627,10 @@ void add_backend_xv (void)
     }
 
   if (nAdaptors <= 0)
-    return;
+    {
+      printv ("No XVideo adaptors\n");
+      return;
+    }
 
   for (i = 0; i < nAdaptors; ++i)
     {

@@ -20,6 +20,11 @@
  * you can think of this code as the "model" for the properties
  * structure, while properties.c is the "view". Buzzwords, ya know :-)
  */
+
+/* XXX gtk+ 2.3 GtkOptionMenu, Gnome entry */
+#undef GTK_DISABLE_DEPRECATED
+#undef GNOME_DISABLE_DEPRECATED
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif

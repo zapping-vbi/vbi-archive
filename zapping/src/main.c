@@ -403,7 +403,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.25 2003-10-31 19:08:41 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.26 2003-11-04 21:09:21 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -818,7 +818,7 @@ int main(int argc, char * argv[])
 #endif
       /* Sets the coords to the previous values, if the users wants to */
       if (zcg_bool(NULL, "keep_geometry"))
-	gtk_timeout_add(500, resize_timeout, NULL);
+	g_timeout_add (500, (GSourceFunc) resize_timeout, NULL);
       D(); printv("going into main loop...\n");
       gtk_main();
     }

@@ -19,7 +19,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.19.2.8 2003-10-31 19:08:20 mschimek Exp $ */
+/* $Id: options.c,v 1.19.2.9 2003-11-04 21:09:21 mschimek Exp $ */
+
+/* XXX gtk+ 2.3 GtkOptionMenu -> ? */
+#undef GTK_DISABLE_DEPRECATED
 
 #include "src/plugin_common.h"
 
@@ -278,6 +281,7 @@ create_slider (grte_options *opts, rte_option_info *ro, int index)
   gdouble def, min, max, step, big_step, div, maxp;
   rte_option_value val;
   char *s;
+  gint digits = 0;
 
   label = ro_label_new (ro);
   s = rte_codec_option_print (opts->codec, ro->keyword, ro->max);
@@ -305,7 +309,12 @@ create_slider (grte_options *opts, rte_option_info *ro, int index)
 	    (double) max, (double) step, (double) big_step, val.dbl);
   adj = gtk_adjustment_new (val.dbl * div, min * div, max * div,
 			    step * div, big_step * div, big_step * div);
-  spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL, s, def * div, 0);
+  /* Set decimal digits so that step increments < 1.0 become visible */
+  if (GTK_ADJUSTMENT (adj)->step_increment == 0.0
+      || (digits = floor (log10 (GTK_ADJUSTMENT (adj)->step_increment))) > 0)
+    digits = 0;
+  spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL,
+				 s, def * div, -digits);
   g_object_set_data (G_OBJECT (adj), "key", ro->keyword);
   g_object_set_data (G_OBJECT (adj), "spinslider", spinslider);
   g_signal_connect (G_OBJECT (adj), "value-changed",

@@ -1118,7 +1118,7 @@ static Atom _XA_DEACTIVATE;
 static gboolean		screensaver_enabled;
 static unsigned int	screensaver_level;
 static gboolean		dpms_usable;
-static gint		gtimeout;
+static guint		screensaver_timeout_id;
 
 static gboolean
 find_xscreensaver_window	(Display *		display,
@@ -1251,10 +1251,10 @@ x11_screensaver_set		(unsigned int		level)
     {
       if (level == X11_SCREENSAVER_ON)
 	{
-	  if (gtimeout != -1)
+	  if (screensaver_timeout_id != -1)
 	    {
-	      gtk_timeout_remove (gtimeout);
-	      gtimeout = -1;
+	      g_source_remove (screensaver_timeout_id);
+	      screensaver_timeout_id = -1;
 	    }
 	}
       else
@@ -1266,13 +1266,16 @@ x11_screensaver_set		(unsigned int		level)
 	  
 	  if (level & X11_SCREENSAVER_DISPLAY_ACTIVE)
 	    {
-	      if (gtimeout == -1)
+	      if (screensaver_timeout_id == -1)
 		{
 		  /* Make sure the display is on now. */
 		  screensaver_timeout (NULL);	      
 		  XSync (display, False);
 		  
-		  gtimeout = gtk_timeout_add (5432 /* ms */, screensaver_timeout, NULL);
+		  screensaver_timeout_id =
+		    g_timeout_add (5432 /* ms */,
+				   (GSourceFunc) screensaver_timeout,
+				   NULL);
 		}
 	    }
 	}
@@ -1320,7 +1323,7 @@ x11_screensaver_init		(void)
   screensaver_enabled	  = FALSE;
   screensaver_level	  = X11_SCREENSAVER_ON;
   dpms_usable		  = FALSE;
-  gtimeout		  = -1;
+  screensaver_timeout_id  = -1;
 
 #ifdef HAVE_DPMS_EXTENSION
 
@@ -1842,6 +1845,11 @@ xv_adaptor_dump			(Display *		display,
 
 	xv_adaptor_info_dump (adaptor, index);
 
+	if (0 == adaptor->num_ports) {
+		fprintf (stderr, "  No ports\n");
+		return;
+	}
+
 	CLEAR (nImageFormats);
 
 	for (i = 0; i < adaptor->num_ports; ++i) {
@@ -1867,8 +1875,12 @@ xv_adaptor_dump			(Display *		display,
 		} else {
 			int i;
 
-			for (i = 0; i < nImageFormats[1]; ++i)
-				xv_image_format_dump (pImageFormats[1] + i, i);
+			if (0 == nImageFormats[1])
+				fprintf (stderr, "    No image formats\n");
+			else
+				for (i = 0; i < nImageFormats[1]; ++i)
+					xv_image_format_dump
+						(pImageFormats[1] + i, i);
 		}
 
 		if (nImageFormats[0] > 0)
@@ -1926,11 +1938,17 @@ x11_xvideo_dump			(void)
       return;
     }
 
-  for (i = 0; i < nAdaptors; ++i)
-    xv_adaptor_dump (display, pAdaptors + i, i);
-
   if (nAdaptors > 0)
-    XvFreeAdaptorInfo (pAdaptors);
+    {
+      for (i = 0; i < nAdaptors; ++i)
+	xv_adaptor_dump (display, pAdaptors + i, i);
+
+      XvFreeAdaptorInfo (pAdaptors);
+    }
+  else
+    {
+      printv ("No XVideo adaptors\n");
+    }
 }
 
 #else /* !HAVE_XV_EXTENSION */

@@ -16,6 +16,11 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/* XXX gtk+ 2.3 GtkOptionMenu, GtkCombo, toolbar changes */
+/* gdk_pixbuf_render_to_drawable -> gdk_draw_pixbuf() */
+#undef GTK_DISABLE_DEPRECATED
+#undef GDK_DISABLE_DEPRECATED
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -864,7 +869,7 @@ add_hide(GtkWidget *appbar)
   g_object_set_data(G_OBJECT(appbar), "hide_button", widget);
 }
 
-static gint status_hide_timeout_id = -1;
+static guint status_hide_timeout_id = -1;
 
 static gint
 status_hide_timeout	(void		*ignored)
@@ -890,11 +895,11 @@ void z_status_print(const gchar *message, gint timeout)
   gtk_widget_show(appbar2);
 
   if (status_hide_timeout_id > -1)
-    gtk_timeout_remove(status_hide_timeout_id);
+    g_source_remove (status_hide_timeout_id);
 
   if (timeout > 0)
     status_hide_timeout_id =
-      gtk_timeout_add(timeout, status_hide_timeout, NULL);
+      g_timeout_add (timeout, (GSourceFunc) status_hide_timeout, NULL);
   else
     status_hide_timeout_id = -1;
 }
@@ -1179,7 +1184,10 @@ z_electric_replace_extension	(GtkWidget *		w,
   gchar *new_name;
 
   old_base = (gchar *) g_object_get_data (G_OBJECT (w), "basename");
-  g_assert (NULL != old_base);
+
+  if (NULL == old_base)
+    return; /* has no extension */
+
   new_name = z_replace_filename_extension (old_base, ext);
   z_electric_set_basename (w, new_name);
 
@@ -1193,6 +1201,7 @@ z_electric_replace_extension	(GtkWidget *		w,
 
   g_signal_handlers_unblock_matched (G_OBJECT (w), G_SIGNAL_MATCH_FUNC,
 				     0, 0, 0, z_on_electric_filename, 0);
+
   g_free (new_name);
 }
 
@@ -1608,13 +1617,11 @@ z_spinslider_new		(GtkAdjustment *	spin_adj,
   g_object_set_data_full (G_OBJECT (sp->hbox), "z_spinslider", sp,
 			  (GDestroyNotify) g_free);
 
-  /*
-    fprintf(stderr, "zss_new %f %f...%f  %f %f  %f  %d\n",
-    spin_adj->value,
-    spin_adj->lower, spin_adj->upper,
-    spin_adj->step_increment, spin_adj->page_increment,
-    spin_adj->page_size, digits);
-  */
+  if (0)
+    fprintf (stderr, "zss_new %f %f...%f  %f %f  %f  %d\n",
+	     spin_adj->value, spin_adj->lower, spin_adj->upper,
+	     spin_adj->step_increment, spin_adj->page_increment,
+	     spin_adj->page_size, digits);
 
   /* Spin button */
 

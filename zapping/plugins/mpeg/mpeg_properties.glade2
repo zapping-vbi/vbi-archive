@@ -37,8 +37,8 @@
 	      <child>
 		<widget class="GtkLabel" id="label37">
 		  <property name="visible">True</property>
-		  <property name="label" translatable="yes">Format:</property>
-		  <property name="use_underline">False</property>
+		  <property name="label" translatable="yes">_Format:</property>
+		  <property name="use_underline">True</property>
 		  <property name="use_markup">False</property>
 		  <property name="justify">GTK_JUSTIFY_CENTER</property>
 		  <property name="wrap">False</property>
@@ -61,8 +61,8 @@
 	      <child>
 		<widget class="GtkLabel" id="label38">
 		  <property name="visible">True</property>
-		  <property name="label" translatable="yes">Save as:</property>
-		  <property name="use_underline">False</property>
+		  <property name="label" translatable="yes">Save _as:</property>
+		  <property name="use_underline">True</property>
 		  <property name="use_markup">False</property>
 		  <property name="justify">GTK_JUSTIFY_CENTER</property>
 		  <property name="wrap">False</property>
@@ -71,6 +71,7 @@
 		  <property name="yalign">0.5</property>
 		  <property name="xpad">3</property>
 		  <property name="ypad">3</property>
+		  <property name="mnemonic_widget">entry1</property>
 		</widget>
 		<packing>
 		  <property name="left_attach">0</property>
@@ -112,7 +113,7 @@
 		      <property name="border_width">1</property>
 		      <property name="visible">True</property>
 		      <property name="can_focus">True</property>
-		      <property name="label" translatable="yes">Configure...</property>
+		      <property name="label" translatable="yes">_Configure...</property>
 		      <property name="use_underline">True</property>
 		      <property name="relief">GTK_RELIEF_NORMAL</property>
 		    </widget>
@@ -394,8 +395,8 @@
 			  <child>
 			    <widget class="GtkLabel" id="label46">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Stop</property>
-			      <property name="use_underline">False</property>
+			      <property name="label" translatable="yes">_Stop</property>
+			      <property name="use_underline">True</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_CENTER</property>
 			      <property name="wrap">False</property>
@@ -457,8 +458,8 @@
 			  <child>
 			    <widget class="GtkLabel" id="label44">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Record</property>
-			      <property name="use_underline">False</property>
+			      <property name="label" translatable="yes">_Record</property>
+			      <property name="use_underline">True</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_CENTER</property>
 			      <property name="wrap">False</property>
@@ -519,8 +520,8 @@
 			  <child>
 			    <widget class="GtkLabel" id="label45">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Pause</property>
-			      <property name="use_underline">False</property>
+			      <property name="label" translatable="yes">_Pause</property>
+			      <property name="use_underline">True</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_CENTER</property>
 			      <property name="wrap">False</property>
@@ -599,8 +600,8 @@
 	  <child>
 	    <widget class="GtkLabel" id="label54">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">Format:</property>
-	      <property name="use_underline">False</property>
+	      <property name="label" translatable="yes">_Format:</property>
+	      <property name="use_underline">True</property>
 	      <property name="use_markup">False</property>
 	      <property name="justify">GTK_JUSTIFY_CENTER</property>
 	      <property name="wrap">False</property>
@@ -609,6 +610,7 @@
 	      <property name="yalign">0.5</property>
 	      <property name="xpad">3</property>
 	      <property name="ypad">0</property>
+	      <property name="mnemonic_widget">optionmenu15</property>
 	    </widget>
 	    <packing>
 	      <property name="left_attach">0</property>
@@ -625,7 +627,7 @@
 	      <property name="border_width">1</property>
 	      <property name="visible">True</property>
 	      <property name="can_focus">True</property>
-	      <property name="label" translatable="yes">New</property>
+	      <property name="label" translatable="yes">_New</property>
 	      <property name="use_underline">True</property>
 	      <property name="relief">GTK_RELIEF_NORMAL</property>
 	    </widget>
@@ -644,7 +646,7 @@
 	      <property name="border_width">1</property>
 	      <property name="visible">True</property>
 	      <property name="can_focus">True</property>
-	      <property name="label" translatable="yes">Delete</property>
+	      <property name="label" translatable="yes">_Delete</property>
 	      <property name="use_underline">True</property>
 	      <property name="relief">GTK_RELIEF_NORMAL</property>
 	    </widget>
@@ -712,8 +714,8 @@
 		  <child>
 		    <widget class="GtkLabel" id="label65">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">Codec:</property>
-		      <property name="use_underline">False</property>
+		      <property name="label" translatable="yes">_Codec:</property>
+		      <property name="use_underline">True</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_CENTER</property>
 		      <property name="wrap">False</property>
@@ -722,6 +724,7 @@
 		      <property name="yalign">0.5</property>
 		      <property name="xpad">3</property>
 		      <property name="ypad">0</property>
+		      <property name="mnemonic_widget">context</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
@@ -769,8 +772,8 @@
 	  <child>
 	    <widget class="GtkLabel" id="label58">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">File format</property>
-	      <property name="use_underline">False</property>
+	      <property name="label" translatable="yes">Fil_e format</property>
+	      <property name="use_underline">True</property>
 	      <property name="use_markup">False</property>
 	      <property name="justify">GTK_JUSTIFY_CENTER</property>
 	      <property name="wrap">False</property>
@@ -800,8 +803,8 @@
 		  <child>
 		    <widget class="GtkLabel" id="label59">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">Codec:</property>
-		      <property name="use_underline">False</property>
+		      <property name="label" translatable="yes">_Codec:</property>
+		      <property name="use_underline">True</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_CENTER</property>
 		      <property name="wrap">False</property>
@@ -810,6 +813,7 @@
 		      <property name="yalign">0.5</property>
 		      <property name="xpad">3</property>
 		      <property name="ypad">0</property>
+		      <property name="mnemonic_widget">optionmenu11</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
@@ -853,8 +857,8 @@
 		  <child>
 		    <widget class="GtkLabel" id="label60">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">Capture Width:</property>
-		      <property name="use_underline">False</property>
+		      <property name="label" translatable="yes">Capture _width:</property>
+		      <property name="use_underline">True</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
 		      <property name="wrap">False</property>
@@ -863,6 +867,7 @@
 		      <property name="yalign">0.5</property>
 		      <property name="xpad">0</property>
 		      <property name="ypad">0</property>
+		      <property name="mnemonic_widget">spinbutton9</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">3</property>
@@ -893,8 +898,8 @@
 		  <child>
 		    <widget class="GtkLabel" id="label61">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">Capture Height:</property>
-		      <property name="use_underline">False</property>
+		      <property name="label" translatable="yes">Capture _height:</property>
+		      <property name="use_underline">True</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
 		      <property name="wrap">False</property>
@@ -903,6 +908,7 @@
 		      <property name="yalign">0.5</property>
 		      <property name="xpad">0</property>
 		      <property name="ypad">0</property>
+		      <property name="mnemonic_widget">spinbutton10</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">3</property>
@@ -950,8 +956,8 @@
 	  <child>
 	    <widget class="GtkLabel" id="label62">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">Video</property>
-	      <property name="use_underline">False</property>
+	      <property name="label" translatable="yes">_Video</property>
+	      <property name="use_underline">True</property>
 	      <property name="use_markup">False</property>
 	      <property name="justify">GTK_JUSTIFY_CENTER</property>
 	      <property name="wrap">False</property>
@@ -981,8 +987,8 @@
 		  <child>
 		    <widget class="GtkLabel" id="label63">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">Codec:</property>
-		      <property name="use_underline">False</property>
+		      <property name="label" translatable="yes">_Codec:</property>
+		      <property name="use_underline">True</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_CENTER</property>
 		      <property name="wrap">False</property>
@@ -991,6 +997,7 @@
 		      <property name="yalign">0.5</property>
 		      <property name="xpad">3</property>
 		      <property name="ypad">0</property>
+		      <property name="mnemonic_widget">optionmenu12</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
@@ -1038,8 +1045,8 @@
 	  <child>
 	    <widget class="GtkLabel" id="label64">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">Audio</property>
-	      <property name="use_underline">False</property>
+	      <property name="label" translatable="yes">_Audio</property>
+	      <property name="use_underline">True</property>
 	      <property name="use_markup">False</property>
 	      <property name="justify">GTK_JUSTIFY_CENTER</property>
 	      <property name="wrap">False</property>

@@ -19,7 +19,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.13 2003-10-31 19:07:05 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36.2.14 2003-11-04 21:09:20 mschimek Exp $ */
+
+/* XXX gtk+ 2.3 GtkOptionMenu -> ? */
+#undef GTK_DISABLE_DEPRECATED
 
 #include "src/plugin_common.h"
 
@@ -97,7 +100,7 @@ static rte_codec *		video_codec;
 static rte_stream_parameters	audio_params;
 static rte_stream_parameters	video_params;
 
-static gint			update_timeout_id = -1;
+static guint			update_timeout_id = -1;
 
 static gpointer			audio_handle;
 static void *			audio_buf;	/* preliminary */
@@ -106,7 +109,7 @@ static int			audio_size;
 static tveng_device_info *	zapping_info;
 static zf_consumer		mpeg_consumer;
 
-void
+static void
 saving_dialog_attach_formats	(void);
 
 /*
@@ -134,12 +137,18 @@ video_callback			(rte_context *		context,
   zf_buffer *b;
   struct tveng_frame_format *fmt;
 
+fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
+
 #if 1
   for (;;) {
+fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
     b = zf_wait_full_buffer (&mpeg_consumer);
+fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
     if (b->data)
       break;
+fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
     zf_send_empty_buffer (&mpeg_consumer, b);
+fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
   }
 #else
   for (;;) {
@@ -158,12 +167,12 @@ video_callback			(rte_context *		context,
     zf_send_empty_buffer (&mpeg_consumer, b);
   }
 #endif
-
+fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
   rb->timestamp = b->time;
   rb->data = b->data;
   rb->size = 1; /* XXX don't care 4 now */
   rb->user_data = b;
-
+fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
   return TRUE;
 }
 
@@ -320,7 +329,7 @@ saving_dialog_status_disable		(void)
 {
   if (update_timeout_id >= 0)
     {
-      gtk_timeout_remove (update_timeout_id);
+      g_source_remove (update_timeout_id);
       update_timeout_id = -1;
     }
 }
@@ -338,12 +347,14 @@ saving_dialog_status_enable	(rte_context *		context)
 			  NULL);
 
       update_timeout_id =
-	gtk_timeout_add (1000 / 8, (GtkFunction) saving_dialog_status_update, context);
+	g_timeout_add (1000 / 8, (GSourceFunc)
+		       saving_dialog_status_update, context);
     }
   else
     {
       update_timeout_id =
-	gtk_timeout_add (1000 / 2, (GtkFunction) saving_dialog_status_update, context);
+	g_timeout_add (1000 / 2, (GSourceFunc)
+		       saving_dialog_status_update, context);
     }
 }
 
@@ -1580,6 +1591,42 @@ saving_dialog_delete		(void)
 }
 
 static void
+saving_dialog_new_pixmap_table	(const GdkPixdata *	pixdata,
+				 const gchar *		table_name)
+{
+  GtkWidget *pixmap;
+
+  pixmap = z_gtk_image_new_from_pixdata (pixdata);
+
+  if (pixmap)
+    {
+      GtkWidget *table;
+
+      table = lookup_widget (saving_dialog, table_name);
+      gtk_widget_show (pixmap);
+      gtk_table_attach (GTK_TABLE (table), pixmap, 0, 1, 0, 1, 0, 0, 3, 0);
+    }
+}
+
+static void
+saving_dialog_new_pixmap_box	(const GdkPixdata *	pixdata,
+				 const gchar *		box_name)
+{
+  GtkWidget *pixmap;
+
+  pixmap = z_gtk_image_new_from_pixdata (pixdata);
+
+  if (pixmap)
+    {
+      GtkWidget *box;
+
+      box = lookup_widget (saving_dialog, box_name);
+      gtk_widget_show (pixmap);
+      gtk_box_pack_start (GTK_BOX (box), pixmap, FALSE, FALSE, 0);
+    }
+}
+
+static void
 saving_dialog_new		(gboolean		recording)
 {
   GtkWidget *widget, *pixmap;
@@ -1593,28 +1640,14 @@ saving_dialog_new		(gboolean		recording)
 
   saving_dialog = build_widget ("window3", "mpeg_properties.glade2");
 
-  if ((pixmap = z_gtk_image_new_from_pixdata (&time_png)))
-    gtk_table_attach (GTK_TABLE (lookup_widget (saving_dialog, "table4")),
-		      pixmap, 0, 1, 0, 1, 0, 0, 3, 0);
-  if ((pixmap = z_gtk_image_new_from_pixdata (&drop_png)))
-    gtk_table_attach (GTK_TABLE (lookup_widget (saving_dialog, "table5")),
-		      pixmap, 0, 1, 0, 1, 0, 0, 3, 0);
-  if ((pixmap = z_gtk_image_new_from_pixdata (&disk_empty_png)))
-    gtk_table_attach (GTK_TABLE (lookup_widget (saving_dialog, "table7")),
-		      pixmap, 0, 1, 0, 1, 0, 0, 3, 0);
-  if ((pixmap = z_gtk_image_new_from_pixdata (&volume_png)))
-    gtk_table_attach (GTK_TABLE (lookup_widget (saving_dialog, "table8")),
-		      pixmap, 0, 1, 0, 1, 0, 0, 3, 0);
+  saving_dialog_new_pixmap_table (&time_png, "table4");
+  saving_dialog_new_pixmap_table (&drop_png, "table5");
+  saving_dialog_new_pixmap_table (&disk_empty_png, "table7");
+  saving_dialog_new_pixmap_table (&volume_png, "table8");
 
-  if ((pixmap = z_gtk_image_new_from_pixdata (&record_png)))
-   gtk_box_pack_start (GTK_BOX (lookup_widget (saving_dialog, "hbox20")),
-		       pixmap, FALSE, FALSE, 0);
-  if ((pixmap = z_gtk_image_new_from_pixdata (&pause_png)))
-   gtk_box_pack_start (GTK_BOX (lookup_widget (saving_dialog, "hbox22")),
-		       pixmap, FALSE, FALSE, 0);
-  if ((pixmap = z_gtk_image_new_from_pixdata (&stop_png)))
-   gtk_box_pack_start (GTK_BOX (lookup_widget (saving_dialog, "hbox24")),
-		       pixmap, FALSE, FALSE, 0);
+  saving_dialog_new_pixmap_box (&record_png, "hbox20");
+  saving_dialog_new_pixmap_box (&pause_png, "hbox22");
+  saving_dialog_new_pixmap_box (&stop_png, "hbox24");
 
   saving_dialog_attach_formats ();
   /*

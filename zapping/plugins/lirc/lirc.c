@@ -16,6 +16,9 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/* XXX gtk+ 2.3 GtkCombo -> GtkComboBox */
+#undef GTK_DISABLE_DEPRECATED
+
 #include "src/plugin_common.h"
 
 #include <stdio.h>

@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zvideo.c,v 1.1.2.5 2003-10-07 18:38:15 mschimek Exp $ */
+/* $Id: zvideo.c,v 1.1.2.6 2003-11-04 21:09:22 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -57,7 +57,7 @@ blank_cursor_timeout		(gpointer		p)
 
   g_signal_emit (video, signals[CURSOR_BLANKED], 0);
 
-  video->blank_cursor_timeout_handle = 0;
+  video->blank_cursor_timeout_id = -1;
 
   return FALSE; /* don't call again */
 }
@@ -85,15 +85,15 @@ z_video_set_cursor		(ZVideo *		video,
 
       video->blanked_cursor_type = cursor_type;
 
-      if (video->blank_cursor_timeout_handle != 0)
-	gtk_timeout_remove (video->blank_cursor_timeout_handle);
+      if (video->blank_cursor_timeout_id != -1)
+	g_source_remove (video->blank_cursor_timeout_id);
 
       if (video->blank_cursor_timeout > 0)
-	video->blank_cursor_timeout_handle =
-	  gtk_timeout_add (video->blank_cursor_timeout,
-			   blank_cursor_timeout, video);
+	video->blank_cursor_timeout_id =
+	  g_timeout_add (video->blank_cursor_timeout,
+			 (GSourceFunc) blank_cursor_timeout, video);
       else
-	video->blank_cursor_timeout_handle = 0;
+	video->blank_cursor_timeout_id = -1;
 
       return TRUE;
     }
@@ -121,9 +121,9 @@ z_video_blank_cursor		(ZVideo *		video,
   video->blank_cursor_timeout = timeout;
 
   if (timeout > 0)
-    video->blank_cursor_timeout_handle =
-      gtk_timeout_add (video->blank_cursor_timeout,
-		       blank_cursor_timeout, video);
+    video->blank_cursor_timeout_id =
+      g_timeout_add (video->blank_cursor_timeout,
+		     (GSourceFunc) blank_cursor_timeout, video);
   else
     z_video_set_cursor (video, video->blanked_cursor_type);
 }
@@ -588,8 +588,8 @@ destroy				(GtkObject *		object)
   ZVideo *video = (ZVideo *) object;
   GtkWidget *toplevel;
 
-  if (video->blank_cursor_timeout_handle != 0)
-    gtk_timeout_remove (video->blank_cursor_timeout_handle);
+  if (video->blank_cursor_timeout_id != -1)
+    g_source_remove (video->blank_cursor_timeout_id);
 
   if ((toplevel = get_toplevel_window (video)))
     g_signal_handlers_disconnect_by_func

@@ -16,6 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/* XXX gtk+ 2.3 GtkOptionMenu, GnomeColorPicker */
+#undef GTK_DISABLE_DEPRECATED
+#undef GNOME_DISABLE_DEPRECATED
+
 #include "site_def.h"
 
 #ifdef HAVE_CONFIG_H

@@ -19,11 +19,17 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.116.2.14 2003-10-31 19:07:34 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.116.2.15 2003-11-04 21:09:21 mschimek Exp $ */
 
 /*
  *  Teletext View
  */
+
+/* XXX gtk+ 2.3 GtkOptionMenu, Gnome entry, toolbar changes */
+/* gdk_pixbuf_render_to_drawable */
+#undef GTK_DISABLE_DEPRECATED
+#undef GNOME_DISABLE_DEPRECATED
+#undef GDK_DISABLE_DEPRECATED
 
 #include "config.h"
 
@@ -445,12 +451,12 @@ load_page			(ttxview_data *		data,
     }
 
   if (data->deferred.timeout_id != -1)
-    gtk_timeout_remove (data->deferred.timeout_id);
+    g_source_remove (data->deferred.timeout_id);
 
   if (data->deferred_load)
     {
       data->deferred.timeout_id =
-	gtk_timeout_add (300, deferred_load_timeout, data);
+	g_timeout_add (300, (GSourceFunc) deferred_load_timeout, data);
     }
   else
     {
@@ -2994,7 +3000,7 @@ on_search_dialog_destroy	(GObject *		object,
 				 search_dialog *	sp)
 {
   if (sp->searching)
-    gtk_idle_remove_by_data (sp);
+    g_idle_remove_by_data (sp);
 
   if (sp->context)
     vbi_search_delete (sp->context);
@@ -3071,7 +3077,7 @@ search_dialog_continue		(search_dialog *	sp,
 
   sp->direction = direction;
 
-  gtk_idle_add (search_dialog_idle, sp);
+  g_idle_add (search_dialog_idle, sp);
 
   sp->searching = TRUE;
 }
@@ -4744,13 +4750,13 @@ ttxview_delete			(ttxview_data *		data)
   if (data->search_dialog)
     on_search_dialog_cancel_clicked (NULL, data->search_dialog);
 
-  gtk_timeout_remove (data->zvbi_timeout_id);
+  g_source_remove (data->zvbi_timeout_id);
 
   if (data->blink_timeout_id != -1)
-    gtk_timeout_remove (data->blink_timeout_id);
+    g_source_remove (data->blink_timeout_id);
 
   if (data->deferred.timeout_id != -1)
-    gtk_timeout_remove(data->deferred.timeout_id);
+    g_source_remove(data->deferred.timeout_id);
 
   unregister_ttx_client (data->zvbi_client_id);
 
@@ -4883,7 +4889,8 @@ ttxview_new			(void)
   }
 
   data->zvbi_client_id = register_ttx_client ();
-  data->zvbi_timeout_id = gtk_timeout_add (100, zvbi_timeout, data);
+  data->zvbi_timeout_id = g_timeout_add (100, (GSourceFunc)
+					 zvbi_timeout, data);
 
   data->fmt_page = get_ttx_fmt_page (data->zvbi_client_id);
 
@@ -4900,7 +4907,7 @@ ttxview_new			(void)
 		    data);
 
   data->blink_timeout_id =
-    gtk_timeout_add (BLINK_CYCLE / 4, blink_timeout, data);
+    g_timeout_add (BLINK_CYCLE / 4, (GSourceFunc) blink_timeout, data);
 
   set_ttx_parameters(data->zvbi_client_id, data->reveal);
 
@@ -5023,7 +5030,8 @@ ttxview_attach			(GtkWidget *		parent,
   data->appbar = GNOME_APPBAR (appbar);
 
   data->zvbi_client_id = register_ttx_client ();
-  data->zvbi_timeout_id = gtk_timeout_add (100, zvbi_timeout, data);
+  data->zvbi_timeout_id = g_timeout_add (100, (GSourceFunc)
+					 zvbi_timeout, data);
 
   data->fmt_page = get_ttx_fmt_page (data->zvbi_client_id);
 
@@ -5040,7 +5048,7 @@ ttxview_attach			(GtkWidget *		parent,
 		    data);
 
   data->blink_timeout_id =
-    gtk_timeout_add (BLINK_CYCLE / 4, blink_timeout, data);
+    g_timeout_add (BLINK_CYCLE / 4, (GSourceFunc) blink_timeout, data);
 
   {
     gint width;

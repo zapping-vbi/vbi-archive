@@ -34,6 +34,11 @@
  *	- Similarly for help and cancel.
  *	- The rest of the housekeeping is left to the handlers.
  */
+
+/* XXX gtk+ 2.3 GtkOptionMenu, Gnome entry, font picker, color picker */
+#undef GTK_DISABLE_DEPRECATED
+#undef GNOME_DISABLE_DEPRECATED
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif

@@ -191,6 +191,9 @@ static video_backend x11 = {
 void add_backend_x11 (void);
 void add_backend_x11 (void)
 {
+  if (!x11_dga_present (&dga_param))
+    return;
+
   x11_pixfmt = dga_param.pixfmt;
 
   g_assert (TV_PIXFMT_UNKNOWN != x11_pixfmt);

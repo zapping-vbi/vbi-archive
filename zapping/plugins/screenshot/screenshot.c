@@ -17,6 +17,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+
+/* XXX gtk+ 2.3 GtkTimeout -> ?; GtkOptionMenu -> ? */
+/* gdk_pixbuf_render_to_drawable */
+#undef GTK_DISABLE_DEPRECATED
+#undef GDK_DISABLE_DEPRECATED
+
 #include "screenshot.h"
 #include "src/yuv2rgb.h"
 #include "src/ttxview.h"
@@ -200,7 +206,7 @@ plugin_get_info (const gchar ** canonical_name,
  *  (nothing fancy, just a gboolean) and calls plugin_start.
  */
 
-static gint ogb_timeout_id = -1;
+static guint ogb_timeout_id = -1;
 static volatile gboolean ov511_clicked = FALSE;
 static volatile gboolean ov511_poll_quit = FALSE;
 static gboolean have_ov511_poll_thread = FALSE;
@@ -227,7 +233,7 @@ ov511_poll_thread (void *unused)
 }
 
 static gint
-ov511_grab_button_timeout (gint *timeout_id)
+ov511_grab_button_timeout (guint *timeout_id)
 {
   static gboolean first_run = TRUE;
   /* Startup. This has two uses. First we check that the ov511
@@ -335,9 +341,9 @@ plugin_init ( PluginBridge bridge, tveng_device_info * info )
   append_property_handler(&screenshot_handler);
 
   ogb_timeout_id =
-    gtk_timeout_add (100 /* ms */,
-		     (GtkFunction) ov511_grab_button_timeout,
-		     &ogb_timeout_id);
+    g_timeout_add (100 /* ms */,
+		   (GSourceFunc) ov511_grab_button_timeout,
+		   &ogb_timeout_id);
 
   zapping_info = info;
 
@@ -358,7 +364,7 @@ plugin_close(void)
 
   if (ogb_timeout_id >= 0)
     {
-      gtk_timeout_remove (ogb_timeout_id);
+      g_source_remove (ogb_timeout_id);
       ogb_timeout_id = -1;
     }
 

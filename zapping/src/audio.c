@@ -16,15 +16,15 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.12.2.12 2003-09-29 07:09:04 mschimek Exp $ */
+/* $Id: audio.c,v 1.12.2.13 2003-11-04 21:09:21 mschimek Exp $ */
+
+/* XXX gtk+ 2.3 GtkOptionMenu */
+#undef GTK_DISABLE_DEPRECATED
 
 #include "site_def.h"
 #include "config.h"
 
 #include <gnome.h>
-//#include "common/fifo.h" // current_time()
-//#include <math.h>
-//#include <unistd.h>
 
 #include "audio.h"
 #define ZCONF_DOMAIN "/zapping/options/audio/"
@@ -529,7 +529,7 @@ properties_add			(GtkDialog *		dialog)
  *  Mute stuff
  */
 
-static guint		quiet_timeout_handle = 0;
+static guint		quiet_timeout_id = -1;
 
 static gboolean
 quiet_timeout			(gpointer		user_data)
@@ -542,13 +542,13 @@ void
 reset_quiet			(tveng_device_info *	info,
 				 guint			delay)
 {
-  if (quiet_timeout_handle)
-    gtk_timeout_remove (quiet_timeout_handle);
+  if (-1 != quiet_timeout_id)
+    g_source_remove (quiet_timeout_id);
 
   if (delay > 0)
     {
-      quiet_timeout_handle =
-	gtk_timeout_add (delay /* ms */, quiet_timeout, NULL);
+      quiet_timeout_id =
+	g_timeout_add (delay /* ms */, (GSourceFunc) quiet_timeout, NULL);
     }
   else
     {
