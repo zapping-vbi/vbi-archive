@@ -65,7 +65,7 @@ make prefix=$RPM_BUILD_ROOT%{prefix} install
 %{prefix}/share/locale/*/*/*
 
 %defattr (0444, root, root, 0555)
-%doc AUTHORS THANKS ChangeLog README README.plugins COPYING TODO BUGS po/zapping.pot
+%doc AUTHORS THANKS ChangeLog README README.plugins COPYING TODO BUGS po/zapping.pot NEWS
 
 %changelog
 * Thu Sep 12 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>

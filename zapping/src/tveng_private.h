@@ -99,7 +99,6 @@ struct tveng_private {
 #endif
 };
 
-#ifdef USE_XV
 static int
 p_tveng_append_control(struct tveng_control * new_control, 
 		       tveng_device_info * info) __attribute__ ((unused));
@@ -125,7 +124,6 @@ p_tveng_append_control(struct tveng_control * new_control,
   info->num_controls++;
   return 0;
 }
-#endif
 
 #ifndef MAX
 #define MAX(X, Y) (((X) < (Y)) ? (Y) : (X))

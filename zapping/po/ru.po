@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.5.8cvs\n"
-"POT-Creation-Date: 2000-11-29 22:22+0100\n"
+"POT-Creation-Date: 2000-12-02 23:49+0100\n"
 "PO-Revision-Date: 2000-11-18 17:00+0300\n"
 "Last-Translator: Sergey Nikulin <sergey-nikulin@mail.ru>\n"
 "Language-Team: LANGUAGE <ru@li.org>\n"
@@ -11,62 +11,62 @@ msgstr ""
 "Content-Type: text/plain; charset=koi8-r\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:92
+#: src/main.c:91
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
 "%s (%d)"
 msgstr "Извините, но %s не может быть открыт:%s (%d)"
 
-#: src/main.c:96
+#: src/main.c:95
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr "Нет поддержки GdkPizbuf, VBI будет отключен"
 
-#: src/main.c:184
+#: src/main.c:183
 msgid "Give the XImage bpp"
 msgstr ""
 
-#: src/main.c:185 src/main.c:194
+#: src/main.c:184 src/main.c:193
 msgid "BPP"
 msgstr ""
 
-#: src/main.c:193
+#: src/main.c:192
 msgid "Color depth of the X display"
 msgstr "Глубина цвета Х-дисплея"
 
-#: src/main.c:202
+#: src/main.c:201
 msgid "Set debug messages on"
 msgstr "Устнановить отладлчные сообщения на"
 
-#: src/main.c:211
+#: src/main.c:210
 msgid "Disable VBI support"
 msgstr "Отключить поддержку VBI"
 
-#: src/main.c:220
+#: src/main.c:219
 msgid "VBI support for old (<0.5.2) bttv drivers"
 msgstr "Поддержка VBI для старых (<0.5.2) bttv драйверов"
 
-#: src/main.c:229
+#: src/main.c:228
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr "Установить стандарт/норму по умолчанию для входов без тюнера"
 
-#: src/main.c:230
+#: src/main.c:229
 msgid "NORM"
 msgstr "НОРМА"
 
-#: src/main.c:272
+#: src/main.c:271
 msgid "Sorry, but there is no module support"
 msgstr "Извините, нет поддержки модулей"
 
-#: src/main.c:280
+#: src/main.c:279
 msgid "Cannot get device info struct"
 msgstr "Не могу получить информацию об устройстве"
 
-#: src/main.c:287
+#: src/main.c:286
 msgid "Zapping couldn't be started"
 msgstr "Zapping не может стартовать"
 
-#: src/main.c:328
+#: src/main.c:324
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
@@ -74,14 +74,14 @@ msgstr ""
 "Указанное устройство не \"/dev/video\"\n"
 "Попробывать его?"
 
-#: src/main.c:349
+#: src/main.c:345
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr "Извините, но \"%s\" не может быть открыт:%s"
 
-#: src/main.c:476
+#: src/main.c:468
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -90,11 +90,11 @@ msgstr ""
 "Не могу восстановить предыдущий режим%s:\n"
 "%s"
 
-#: src/main.c:479
+#: src/main.c:471
 msgid ", I will try starting capture mode"
 msgstr ", я попробую запустить режим захвата"
 
-#: src/main.c:483
+#: src/main.c:475
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -103,7 +103,7 @@ msgstr ""
 "Режим захвата не может быть запущен из-за:\n"
 "%s"
 
-#: src/main.c:496
+#: src/main.c:488
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -112,7 +112,7 @@ msgstr ""
 "Режим захвата не может быть запущен:\n"
 "%s"
 
-#: src/main.c:644
+#: src/main.c:640
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -132,7 +132,7 @@ msgstr ""
 "   - или, что более вероятно, вы нашли баг в\n"
 "     Zapping. Пожалуйста свяжитесь с автором.\n"
 
-#: src/main.c:679
+#: src/main.c:675
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Извините, Zapping не может создать конфигурационное дерево"
 
@@ -169,7 +169,7 @@ msgstr "Не могу настроиться на указанный канал %d (нет такого канала)\n"
 msgid "Cannot tune input"
 msgstr "Не могу настроить вход"
 
-#: src/callbacks.c:387
+#: src/callbacks.c:336
 msgid ""
 "The teletext decoder needs GdkPixbuf, and\n"
 "configure didn't find it."
@@ -177,15 +177,15 @@ msgstr ""
 "Декодеру телетекста нужен GdkPixbuf, и\n"
 "configure не нашел его."
 
-#: src/callbacks.c:393
+#: src/callbacks.c:342
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI был отключен или не работает."
 
-#: src/callbacks.c:540 src/v4linterface.c:162
+#: src/callbacks.c:489 src/v4linterface.c:162
 msgid "No tuner"
 msgstr "Нет тюнера"
 
-#: src/callbacks.c:548 src/v4linterface.c:164
+#: src/callbacks.c:497 src/v4linterface.c:164
 msgid "No tuned channels"
 msgstr "Нет настроенных каналов"
 
@@ -261,53 +261,67 @@ msgstr "Нет доступных стандартов"
 msgid "Cannot tune the device"
 msgstr "Не могу настроить устройство"
 
-#: src/v4linterface.c:339
+#: src/v4linterface.c:405
+#, c-format
+msgid "Adjust %s"
+msgstr ""
+
+#: src/v4linterface.c:440
 msgid "Tveng critical error, zapping will exit NOW."
 msgstr "Непоправимая ошибка Tveng, zapping выйдет немедленно."
 
 #. for sanity purpouses
-#: src/v4linterface.c:366
+#: src/v4linterface.c:470
 #, c-format
 msgid "Type %d of control %s is not supported"
 msgstr "Тип %d управления %s не поддерживается"
 
-#: src/v4linterface.c:377
+#: src/v4linterface.c:481
 #, c-format
 msgid "Error adding %s"
 msgstr "Ошибка добавления %s"
 
-#: src/v4linterface.c:387
+#: src/v4linterface.c:491
 msgid "Available controls"
 msgstr "Доступные настройки"
 
-#: src/tveng.c:227
+#: src/tveng.c:233
 msgid "TV"
 msgstr ""
 
 #: src/properties.c:141 src/properties.c:148 src/properties.c:155
-#: src/tveng.c:228
+#: src/tveng.c:234
 msgid "Camera"
 msgstr "Камера"
 
-#: src/tveng.c:1143
+#: src/tveng.c:1273
 msgid "zapping_setup_fb exited abnormally, check stderr"
 msgstr "zapping_setup_fb вышел некорректно, проверте stderr"
 
-#: src/tveng.c:1153
+#: src/tveng.c:1283
 msgid "zapping_setup_fb failed to set up the video"
 msgstr "zapping_setup_fb не смог установить видео"
 
-#: src/tveng.c:1158
+#: src/tveng.c:1288
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr "Не могу найти zapping_setup_fb, проверте инсталляцию"
 
-#: src/tveng.c:1202
+#: src/tveng.c:1332
 msgid "Cannot find an appropiate visual"
 msgstr ""
 
-#: src/tveng.c:1222
+#: src/tveng.c:1352
 msgid "Cannot figure out X depth"
 msgstr "Не могу определить число цветов X дисплея"
+
+#: src/tveng.c:1829
+msgid "Filter"
+msgstr ""
+
+#: src/tveng.c:1844
+#, fuzzy
+msgid "Colorkey"
+msgstr "Цвет"
 
 #: src/tveng1.c:125 src/tveng2.c:119
 #, c-format
@@ -318,123 +332,114 @@ msgstr "%s не похоже на корректное устройства захвата"
 msgid "No inputs for this device"
 msgstr "Нет входов для этого устройства"
 
-#: src/tveng1.c:352 src/tveng2.c:332
+#: src/tveng1.c:348 src/tveng2.c:332
 msgid "Cannot find appropiate palette for current display"
 msgstr "Не могу найти подходящую палитру для текущего дисплея"
 
-#: src/tveng1.c:799 src/tveng2.c:736
+#: src/tveng1.c:795 src/tveng2.c:730
 msgid "Cannot understand the actual palette"
 msgstr "Не могу понять настоящую палитру"
 
 #. unknown
-#: src/tveng1.c:883 src/tveng2.c:811
+#: src/tveng1.c:879 src/tveng2.c:813
 msgid "Cannot understand the given palette"
 msgstr "Не могу понять данную палитру"
 
-#: src/tveng1.c:965
+#: src/tveng1.c:961
 msgid "Mono"
 msgstr "Моно"
 
-#: src/tveng1.c:966
+#: src/tveng1.c:962
 msgid "Stereo"
 msgstr "Стерео"
 
-#: src/tveng1.c:967
+#: src/tveng1.c:963
 msgid "Alternate 1"
 msgstr ""
 
-#: src/tveng1.c:968
+#: src/tveng1.c:964
 msgid "Alternate 2"
 msgstr ""
 
-#: src/tveng1.c:1117 src/tveng1.c:1475 src/tveng1.c:1488 src/tveng2.c:923
-msgid "Mute"
-msgstr "Отключить звук"
-
-#: src/tveng1.c:1128 src/tveng2.c:922
-msgid "Volume"
-msgstr "Громкость"
-
-#: src/tveng1.c:1139 src/tveng2.c:929
-msgid "Bass"
-msgstr "Низкие"
-
-#: src/tveng1.c:1150 src/tveng2.c:927
-msgid "Treble"
-msgstr "Высокие"
-
-#: src/tveng1.c:1164 src/tveng2.c:925
-msgid "Balance"
-msgstr "Баланс"
-
-#: src/tveng1.c:1176
-msgid "Audio Decoding"
-msgstr "Авто декодирование"
-
-#: src/tveng1.c:1190 src/tveng2.c:904
+#: src/tveng1.c:1075 src/tveng2.c:865
 msgid "Brightness"
 msgstr "Яркость"
 
-#: src/tveng1.c:1199 src/tveng2.c:907
+#: src/tveng1.c:1085 src/tveng2.c:868
 msgid "Hue"
 msgstr "Тон"
 
-#: src/tveng1.c:1208
+#: src/tveng1.c:1095
 msgid "Colour"
 msgstr "Цвет"
 
-#: src/tveng1.c:1217 src/tveng2.c:905
+#: src/tveng1.c:1105 src/tveng2.c:866
 msgid "Contrast"
 msgstr "Контраст"
 
-#: src/tveng1.c:1306
-msgid "Unknown decoding mode"
-msgstr "Неизвестный режим декодирования"
+#: src/tveng1.c:1118 src/tveng1.c:1447 src/tveng1.c:1460 src/tveng2.c:884
+msgid "Mute"
+msgstr "Отключить звук"
 
-#: src/tveng1.c:1328
-#, c-format
-msgid "Unknown control: %s (%d)"
-msgstr "Неизвестная настройка: %s (%d)"
+#: src/tveng1.c:1130 src/tveng2.c:883
+msgid "Volume"
+msgstr "Громкость"
 
-#: src/tveng1.c:1412
+#: src/tveng1.c:1142 src/tveng2.c:890
+msgid "Bass"
+msgstr "Низкие"
+
+#: src/tveng1.c:1154 src/tveng2.c:888
+msgid "Treble"
+msgstr "Высокие"
+
+#: src/tveng1.c:1169 src/tveng2.c:886
+msgid "Balance"
+msgstr "Баланс"
+
+#: src/tveng1.c:1182
+msgid "Audio Decoding"
+msgstr "Авто декодирование"
+
+#: src/tveng1.c:1384
 #, c-format
 msgid "Unknown audio control: %s (%d)"
 msgstr "Неизвестная аудио настройка: %s (%d)"
 
-#: src/tveng1.c:1450
+#: src/tveng1.c:1422
 #, c-format
 msgid "Unknown video control: %s (%d)"
 msgstr "Неизвестная видео настройка: %s (%d)"
 
-#: src/tveng1.c:1611
+#: src/tveng1.c:1583
 msgid "There are no tuners for the active input"
 msgstr "Нет тюнеров для активного входа"
 
-#: src/tveng1.c:1760 src/tveng2.c:1440
+#: src/tveng1.c:1732 src/tveng2.c:1415
 msgid "Warning: trying to stop capture with no capture active\n"
 msgstr ""
 
-#: src/tveng1.c:1820 src/tveng1.c:1891
+#: src/tveng1.c:1792 src/tveng1.c:1863
 msgid "Cannot understand actual palette"
 msgstr "Не могу понять настоящую палитру"
 
-#: src/tveng1.c:1833
+#: src/tveng1.c:1805
 msgid "Grabber chip can't sync (no station tuned in?)"
 msgstr "Чмп захвата не может синхронизироваться (нет настроенных станций?)"
 
-#: src/tveng1.c:1945 src/tveng2.c:1503
+#: src/tveng1.c:1917 src/tveng2.c:1478
 msgid "Current capture mode is not READ"
 msgstr ""
 
-#: src/tveng1.c:1954 src/tveng2.c:1512
+#: src/tveng1.c:1926 src/tveng2.c:1487
 msgid "Size check failed, quitting to avoid segfault"
 msgstr "Проверка размера неудачна, выхожу во избежание segfault"
 
-#: src/tveng1.c:2062 src/tveng2.c:1649
+#: src/tveng1.c:2034 src/tveng2.c:1624
 msgid "The capability field says that there is no overlay"
 msgstr "Поле возможностей говорит, что нет поддержки overlay"
 
-#: src/tveng1.c:2280 src/tveng2.c:1850
+#: src/tveng1.c:2252 src/tveng2.c:1825
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
@@ -448,88 +453,88 @@ msgstr ""
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr ""
 
-#: src/tveng2.c:906
+#: src/tveng2.c:867
 msgid "Saturation"
 msgstr "Насыщенность"
 
-#: src/tveng2.c:908
+#: src/tveng2.c:869
 msgid "Whiteness"
 msgstr "Уровень белого"
 
-#: src/tveng2.c:909
+#: src/tveng2.c:870
 msgid "Black level"
 msgstr "Уровень черного"
 
-#: src/tveng2.c:910
+#: src/tveng2.c:871
 msgid "White balance"
 msgstr "Баланс белого"
 
-#: src/tveng2.c:911
+#: src/tveng2.c:872
 msgid "Do white balance"
 msgstr ""
 
-#: src/tveng2.c:912
+#: src/tveng2.c:873
 msgid "Red balance"
 msgstr "Баланс красного"
 
-#: src/tveng2.c:913
+#: src/tveng2.c:874
 msgid "Blue balance"
 msgstr "Баланс синего"
 
-#: src/tveng2.c:914
+#: src/tveng2.c:875
 msgid "Gamma"
 msgstr "Гамма"
 
-#: src/tveng2.c:915
+#: src/tveng2.c:876
 msgid "Exposure"
 msgstr "Экспозиция"
 
-#: src/tveng2.c:916
+#: src/tveng2.c:877
 msgid "Auto gain"
 msgstr ""
 
-#: src/tveng2.c:917
+#: src/tveng2.c:878
 msgid "Gain"
 msgstr ""
 
-#: src/tveng2.c:918
+#: src/tveng2.c:879
 msgid "HCenter"
 msgstr ""
 
-#: src/tveng2.c:919
+#: src/tveng2.c:880
 msgid "VCenter"
 msgstr ""
 
-#: src/tveng2.c:920
+#: src/tveng2.c:881
 msgid "Horizontal flipping"
 msgstr ""
 
-#: src/tveng2.c:921
+#: src/tveng2.c:882
 msgid "Vertical flipping"
 msgstr ""
 
-#: src/tveng2.c:924
+#: src/tveng2.c:885
 msgid "Audio Mute"
 msgstr "Отключить звук"
 
-#: src/tveng2.c:926
+#: src/tveng2.c:887
 msgid "Audio Balance"
 msgstr "Аудио Баланс"
 
-#: src/tveng2.c:928
+#: src/tveng2.c:889
 msgid "Loudness"
 msgstr "Громче"
 
-#: src/tveng2.c:980
+#: src/tveng2.c:953
 msgid "<Broken menu entry>"
 msgstr "<Неверная строка меню>"
 
-#: src/tveng2.c:990
+#: src/tveng2.c:963
 #, c-format
 msgid "V4L2: Unknown control type 0x%x (%s)\n"
 msgstr "V4L2: Неизвестная настройка типа 0x%x (%s)\n"
 
-#: src/tveng2.c:1377
+#: src/tveng2.c:1352
 msgid "Not enough buffers"
 msgstr "Недостаточно буфферов"
 
@@ -806,7 +811,7 @@ msgstr "Канал %s не найден в этой стране"
 msgid "Returned channel id (%d) is not valid"
 msgstr "Возвращенный id канала (%d) неверен"
 
-#: src/channel_editor.c:748
+#: src/channel_editor.c:747
 msgid ""
 "Channel autosearching won't work with XVideo.\n"
 "Please switch to another controller by starting\n"
@@ -1391,7 +1396,7 @@ msgstr "Этот плагин позволяет делать скриншоты."
 
 #. hash collision code
 #. Warn
-#: plugins/mpeg/plugin.c:112 plugins/screenshot/screenshot.c:185
+#: plugins/screenshot/screenshot.c:185
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
@@ -1474,146 +1479,90 @@ msgstr "Извините, недостаточно ресурсов для создания новой нити"
 msgid "There are too many threads"
 msgstr "Слишком много нитей"
 
-#: plugins/mpeg/plugin.c:33
-msgid "MPEG encoder"
-msgstr "MPEG энкодер"
+#~ msgid "MPEG encoder"
+#~ msgstr "MPEG энкодер"
 
-#: plugins/mpeg/plugin.c:35
-msgid "This plugin encodes the image and audio stream into a MPEG file"
-msgstr "Этот плагин сжимает картинку и аудио поток в MPEG файл"
+#~ msgid "This plugin encodes the image and audio stream into a MPEG file"
+#~ msgstr "Этот плагин сжимает картинку и аудио поток в MPEG файл"
 
-#: plugins/mpeg/plugin.c:37
-msgid "Encode the stream as MPEG."
-msgstr "Сжать поток в MPEG"
+#~ msgid "Encode the stream as MPEG."
+#~ msgstr "Сжать поток в MPEG"
 
-#: plugins/mpeg/plugin.c:393
-msgid "The only supported pixformats are YUYV and YUV420"
-msgstr "Поддерживаются только форматы YUYV и YUV420"
+#~ msgid "The only supported pixformats are YUYV and YUV420"
+#~ msgstr "Поддерживаются только форматы YUYV и YUV420"
 
-#: plugins/mpeg/plugin.c:496
-#, c-format
-msgid "RTE ID: %s"
-msgstr ""
+#~ msgid "Destination: %s"
+#~ msgstr "Точка назначения: %s"
 
-#: plugins/mpeg/plugin.c:501
-#, c-format
-msgid "Destination: %s"
-msgstr "Точка назначения: %s"
+#~ msgid "Audio only"
+#~ msgstr "Только Аудио"
 
-#: plugins/mpeg/plugin.c:509
-msgid "Audio only"
-msgstr "Только Аудио"
+#~ msgid "Video only"
+#~ msgstr "Только Видео"
 
-#: plugins/mpeg/plugin.c:512
-msgid "Video only"
-msgstr "Только Видео"
+#~ msgid "Audio and Video"
+#~ msgstr "Аудио и Видео"
 
-#: plugins/mpeg/plugin.c:515
-msgid "Audio and Video"
-msgstr "Аудио и Видео"
+#~ msgid "Output video Mbits per second:"
+#~ msgstr "Выходящее видео Мбит в секунду:"
 
-#: plugins/mpeg/mpeg_strings.c:21 plugins/mpeg/plugin.c:523
-msgid "Output video Mbits per second:"
-msgstr "Выходящее видео Мбит в секунду:"
+#~ msgid "Output audio Kbits per second:"
+#~ msgstr "Выходящее аудиб Кбит в секунду:"
 
-#: plugins/mpeg/mpeg_strings.c:22 plugins/mpeg/plugin.c:525
-msgid "Output audio Kbits per second:"
-msgstr "Выходящее аудиб Кбит в секунду:"
+#~ msgid "Store the data as MPEG"
+#~ msgstr "Сохранить данные как MPEG"
 
-#: plugins/mpeg/plugin.c:675 plugins/mpeg/plugin.c:812
-msgid "MPEG"
-msgstr ""
+#~ msgid "What to do with the compressed stream"
+#~ msgstr "Что сделать со сжатым потоком"
 
-#: plugins/mpeg/plugin.c:813
-msgid "Store the data as MPEG"
-msgstr "Сохранить данные как MPEG"
+#~ msgid ""
+#~ "Save to file\n"
+#~ "/dev/null\n"
+#~ msgstr ""
+#~ "Сохранить в файл\n"
+#~ "/dev/null\n"
 
-#.
-#. * Translatable strings file generated by Glade.
-#. * Add this file to your project's POTFILES.in.
-#. * DO NOT compile it as part of your application.
-#.
-#: plugins/mpeg/mpeg_strings.c:7
-msgid "window1"
-msgstr ""
+#~ msgid "Whether to encode audio and/or video"
+#~ msgstr "Что декодировать аудио и/или видео"
 
-#: plugins/mpeg/mpeg_strings.c:8
-msgid "What to do with the compressed stream"
-msgstr "Что сделать со сжатым потоком"
+#~ msgid ""
+#~ "Audio only\n"
+#~ "Video only\n"
+#~ "Audio and Video\n"
+#~ msgstr ""
+#~ "только Аудио\n"
+#~ "только Видео\n"
+#~ "Аудио и Видео\n"
 
-#: plugins/mpeg/mpeg_strings.c:9
-msgid ""
-"Save to file\n"
-"/dev/null\n"
-msgstr ""
-"Сохранить в файл\n"
-"/dev/null\n"
+#~ msgid "Write the encoded stream to:"
+#~ msgstr "Записать сжатый поток в:"
 
-#: plugins/mpeg/mpeg_strings.c:12
-msgid "Whether to encode audio and/or video"
-msgstr "Что декодировать аудио и/или видео"
+#~ msgid "Sets the dir where the encoded clips will be written to"
+#~ msgstr "Устанавливает дирректорию куда полученные клипы будут записаны"
 
-#: plugins/mpeg/mpeg_strings.c:13
-msgid ""
-"Audio only\n"
-"Video only\n"
-"Audio and Video\n"
-msgstr ""
-"только Аудио\n"
-"только Видео\n"
-"Аудио и Видео\n"
+#~ msgid "Input / output"
+#~ msgstr "Вход / Выход"
 
-#: plugins/mpeg/mpeg_strings.c:17
-msgid "Write the encoded stream to:"
-msgstr "Записать сжатый поток в:"
+#~ msgid "Compression parameters"
+#~ msgstr "Параметры сжатия"
 
-#: plugins/mpeg/mpeg_strings.c:18
-msgid "MPEG file destination"
-msgstr ""
+#~ msgid "Press this when you are done"
+#~ msgstr "Нажмите здесь когда закончите"
 
-#: plugins/mpeg/mpeg_strings.c:19
-msgid "Sets the dir where the encoded clips will be written to"
-msgstr "Устанавливает дирректорию куда полученные клипы будут записаны"
+#~ msgid "RTE id (for debugging)"
+#~ msgstr "RTE id (для отладки)"
 
-#: plugins/mpeg/mpeg_strings.c:20
-msgid "Input / output"
-msgstr "Вход / Выход"
+#~ msgid "Destination"
+#~ msgstr "Точка назначения"
 
-#: plugins/mpeg/mpeg_strings.c:23
-msgid "Engine verbosity (output goes to stderr):"
-msgstr ""
+#~ msgid "Some more info: bit rates"
+#~ msgstr "Некоторая дополнительная информация: bit rates"
 
-#: plugins/mpeg/mpeg_strings.c:24
-msgid "Compression parameters"
-msgstr "Параметры сжатия"
+#~ msgid "Unknown decoding mode"
+#~ msgstr "Неизвестный режим декодирования"
 
-#: plugins/mpeg/mpeg_strings.c:25
-msgid "Saving MPEG"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:26
-msgid "Press this when you are done"
-msgstr "Нажмите здесь когда закончите"
-
-#: plugins/mpeg/mpeg_strings.c:27
-msgid "RTE id (for debugging)"
-msgstr "RTE id (для отладки)"
-
-#: plugins/mpeg/mpeg_strings.c:28
-msgid "Destination"
-msgstr "Точка назначения"
-
-#: plugins/mpeg/mpeg_strings.c:29
-msgid "Mux mode"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:30
-msgid "Some more info: bit rates"
-msgstr "Некоторая дополнительная информация: bit rates"
-
-#: plugins/mpeg/mpeg_strings.c:31
-msgid "Dinamic stats (dropped, output M's, etc)"
-msgstr ""
+#~ msgid "Unknown control: %s (%d)"
+#~ msgstr "Неизвестная настройка: %s (%d)"
 
 #~ msgid "tveng critical: %s"
 #~ msgstr "tveng критикал: %s"

@@ -19,5 +19,5 @@ src/txtcontrols.c
 # zapping_setup_fb/zapping_setup_fb.c
 glade/glade_strings.c
 plugins/screenshot/screenshot.c
-plugins/mpeg/plugin.c
-plugins/mpeg/mpeg_strings.c
+# plugins/mpeg/plugin.c
+# plugins/mpeg/mpeg_strings.c

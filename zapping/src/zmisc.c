@@ -285,8 +285,9 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   switch (new_mode)
     {
     case TVENG_CAPTURE_READ:
-      if (-1 == tveng_attach_device(zconf_get_string(NULL,
-						     "/zapping/options/main/video_device"), TVENG_ATTACH_READ, info));
+      tveng_attach_device(zconf_get_string(NULL,
+					   "/zapping/options/main/video_device"), TVENG_ATTACH_READ, info);
+      tveng_set_capture_size(w, h, info);
       return_value = capture_start(tv_screen, info);
       break;
     case TVENG_CAPTURE_WINDOW:

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.5.4\n"
-"POT-Creation-Date: 2000-11-29 22:22+0100\n"
+"POT-Creation-Date: 2000-12-02 23:49+0100\n"
 "PO-Revision-Date: 2000-09-17 11:11+02:00\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Type: text/plain; charset=iso-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:92
+#: src/main.c:91
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
@@ -21,56 +21,56 @@ msgstr ""
 "Désolé, mais %s ne peut pas être ouvert :\n"
 "%s (%d)"
 
-#: src/main.c:96
+#: src/main.c:95
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr "Il n'y a pas de GdkPixbuf support, le VBI a été déactivé"
 
-#: src/main.c:184
+#: src/main.c:183
 msgid "Give the XImage bpp"
 msgstr ""
 
-#: src/main.c:185 src/main.c:194
+#: src/main.c:184 src/main.c:193
 msgid "BPP"
 msgstr "BPP"
 
-#: src/main.c:193
+#: src/main.c:192
 msgid "Color depth of the X display"
 msgstr "Nombres de couleurs du display X"
 
-#: src/main.c:202
+#: src/main.c:201
 msgid "Set debug messages on"
 msgstr "Activer le débuguage"
 
-#: src/main.c:211
+#: src/main.c:210
 msgid "Disable VBI support"
 msgstr "Déactiver le support VBI"
 
-#: src/main.c:220
+#: src/main.c:219
 msgid "VBI support for old (<0.5.2) bttv drivers"
 msgstr ""
 
-#: src/main.c:229
+#: src/main.c:228
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr ""
 "Selectionner par défaut standard/norm pour un tuner ayant une faible entrée"
 
-#: src/main.c:230
+#: src/main.c:229
 msgid "NORM"
 msgstr "NORM"
 
-#: src/main.c:272
+#: src/main.c:271
 msgid "Sorry, but there is no module support"
 msgstr "Désolé, mais il n'y a pas le support des modules"
 
-#: src/main.c:280
+#: src/main.c:279
 msgid "Cannot get device info struct"
 msgstr "Impossible d'obtenir les infos du device"
 
-#: src/main.c:287
+#: src/main.c:286
 msgid "Zapping couldn't be started"
 msgstr "Zapping ne peut pas démarrer."
 
-#: src/main.c:328
+#: src/main.c:324
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
@@ -78,7 +78,7 @@ msgstr ""
 "Le device spécifié n'est pas \"/dev/video\".\n"
 "Essayer quand même ?"
 
-#: src/main.c:349
+#: src/main.c:345
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -87,7 +87,7 @@ msgstr ""
 "Désolé, mais \"%s\" ne peut pas être ouvert :\n"
 "%s"
 
-#: src/main.c:476
+#: src/main.c:468
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -96,11 +96,11 @@ msgstr ""
 "Impossible de restorer le précédent mode%s:\n"
 "%s"
 
-#: src/main.c:479
+#: src/main.c:471
 msgid ", I will try starting capture mode"
 msgstr ", je vais essayer de démarrer la capture de fenêtre"
 
-#: src/main.c:483
+#: src/main.c:475
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -109,7 +109,7 @@ msgstr ""
 "La capture ne peut pas être faites :\n"
 "%s"
 
-#: src/main.c:496
+#: src/main.c:488
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -118,7 +118,7 @@ msgstr ""
 "La capture d'écran ne peut être démarrée :\n"
 "%s"
 
-#: src/main.c:644
+#: src/main.c:640
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -138,7 +138,7 @@ msgstr ""
 "   - ou, plus sûrement, vous venez de trouver un bug dans\n"
 "     Zapping. Contacter l'auteur SVP.\n"
 
-#: src/main.c:679
+#: src/main.c:675
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Désolé, Zapping n'est pas capable de créer la configuration"
 
@@ -175,7 +175,7 @@ msgstr "Impossible d'accorder la chaîne %d (aucune chaîne)\n"
 msgid "Cannot tune input"
 msgstr "Impossible d'accorder l'entrée"
 
-#: src/callbacks.c:387
+#: src/callbacks.c:336
 #, fuzzy
 msgid ""
 "The teletext decoder needs GdkPixbuf, and\n"
@@ -184,15 +184,15 @@ msgstr ""
 "Le décodeur videotext a besoin de GdkPixbuf, et\n"
 "configure ne le trouve pas."
 
-#: src/callbacks.c:393
+#: src/callbacks.c:342
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI n'a pas été activé, ou il ne marche pas."
 
-#: src/callbacks.c:540 src/v4linterface.c:162
+#: src/callbacks.c:489 src/v4linterface.c:162
 msgid "No tuner"
 msgstr "Pas de tuner"
 
-#: src/callbacks.c:548 src/v4linterface.c:164
+#: src/callbacks.c:497 src/v4linterface.c:164
 msgid "No tuned channels"
 msgstr "Pas de chaîne accordées"
 
@@ -268,53 +268,67 @@ msgstr "Pas de standards valable"
 msgid "Cannot tune the device"
 msgstr "Impossible d'accorder le device"
 
-#: src/v4linterface.c:339
+#: src/v4linterface.c:405
+#, c-format
+msgid "Adjust %s"
+msgstr ""
+
+#: src/v4linterface.c:440
 msgid "Tveng critical error, zapping will exit NOW."
 msgstr "Erreur critique de Tveng, Zapping doit terminer MAINTENANT."
 
 #. for sanity purpouses
-#: src/v4linterface.c:366
+#: src/v4linterface.c:470
 #, c-format
 msgid "Type %d of control %s is not supported"
 msgstr "Le type %d du control %s n'est pas supporté"
 
-#: src/v4linterface.c:377
+#: src/v4linterface.c:481
 #, c-format
 msgid "Error adding %s"
 msgstr "Erreur en ajoutant %s"
 
-#: src/v4linterface.c:387
+#: src/v4linterface.c:491
 msgid "Available controls"
 msgstr "Controls valable"
 
-#: src/tveng.c:227
+#: src/tveng.c:233
 msgid "TV"
 msgstr "TV"
 
 #: src/properties.c:141 src/properties.c:148 src/properties.c:155
-#: src/tveng.c:228
+#: src/tveng.c:234
 msgid "Camera"
 msgstr "Caméra"
 
-#: src/tveng.c:1143
+#: src/tveng.c:1273
 msgid "zapping_setup_fb exited abnormally, check stderr"
 msgstr "zapping_setup_fb quitté anormalement, voir la sortie d'erreurs"
 
-#: src/tveng.c:1153
+#: src/tveng.c:1283
 msgid "zapping_setup_fb failed to set up the video"
 msgstr "zapping_setup_fb n'a pas pu configurer la vidéo"
 
-#: src/tveng.c:1158
+#: src/tveng.c:1288
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr "Impossible de trouver zapping_setup_fb, vérifié votre installation"
 
-#: src/tveng.c:1202
+#: src/tveng.c:1332
 msgid "Cannot find an appropiate visual"
 msgstr "Impossible de trouver un visuel"
 
-#: src/tveng.c:1222
+#: src/tveng.c:1352
 msgid "Cannot figure out X depth"
 msgstr "Impossible de déterminer le nombre de couleurs"
+
+#: src/tveng.c:1829
+msgid "Filter"
+msgstr ""
+
+#: src/tveng.c:1844
+#, fuzzy
+msgid "Colorkey"
+msgstr "Couleur"
 
 #: src/tveng1.c:125 src/tveng2.c:119
 #, c-format
@@ -325,124 +339,115 @@ msgstr "%s n'est pas un device de capture valable"
 msgid "No inputs for this device"
 msgstr "Pas d'entrée pour ce device"
 
-#: src/tveng1.c:352 src/tveng2.c:332
+#: src/tveng1.c:348 src/tveng2.c:332
 msgid "Cannot find appropiate palette for current display"
 msgstr "Impossible de trouver une palette pour cet écran"
 
-#: src/tveng1.c:799 src/tveng2.c:736
+#: src/tveng1.c:795 src/tveng2.c:730
 msgid "Cannot understand the actual palette"
 msgstr "Impossible d'utiliser la palette courante"
 
 #. unknown
-#: src/tveng1.c:883 src/tveng2.c:811
+#: src/tveng1.c:879 src/tveng2.c:813
 msgid "Cannot understand the given palette"
 msgstr "Impossible de comprendre la palette donnée"
 
-#: src/tveng1.c:965
+#: src/tveng1.c:961
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng1.c:966
+#: src/tveng1.c:962
 msgid "Stereo"
 msgstr "Stéréo"
 
-#: src/tveng1.c:967
+#: src/tveng1.c:963
 msgid "Alternate 1"
 msgstr "Alternate 1"
 
-#: src/tveng1.c:968
+#: src/tveng1.c:964
 msgid "Alternate 2"
 msgstr "Alternate 2"
 
-#: src/tveng1.c:1117 src/tveng1.c:1475 src/tveng1.c:1488 src/tveng2.c:923
-msgid "Mute"
-msgstr "Sourdine"
-
-#: src/tveng1.c:1128 src/tveng2.c:922
-msgid "Volume"
-msgstr "Volume"
-
-#: src/tveng1.c:1139 src/tveng2.c:929
-msgid "Bass"
-msgstr "Grave"
-
-#: src/tveng1.c:1150 src/tveng2.c:927
-msgid "Treble"
-msgstr "Aigu"
-
-#: src/tveng1.c:1164 src/tveng2.c:925
-msgid "Balance"
-msgstr "Balance"
-
-#: src/tveng1.c:1176
-msgid "Audio Decoding"
-msgstr "Décodage Audio"
-
-#: src/tveng1.c:1190 src/tveng2.c:904
+#: src/tveng1.c:1075 src/tveng2.c:865
 msgid "Brightness"
 msgstr "Luminosité"
 
-#: src/tveng1.c:1199 src/tveng2.c:907
+#: src/tveng1.c:1085 src/tveng2.c:868
 msgid "Hue"
 msgstr "Hue"
 
-#: src/tveng1.c:1208
+#: src/tveng1.c:1095
 msgid "Colour"
 msgstr "Couleur"
 
-#: src/tveng1.c:1217 src/tveng2.c:905
+#: src/tveng1.c:1105 src/tveng2.c:866
 msgid "Contrast"
 msgstr "Contraste"
 
-#: src/tveng1.c:1306
-msgid "Unknown decoding mode"
-msgstr "Mode de décodage inconnu"
+#: src/tveng1.c:1118 src/tveng1.c:1447 src/tveng1.c:1460 src/tveng2.c:884
+msgid "Mute"
+msgstr "Sourdine"
 
-#: src/tveng1.c:1328
-#, c-format
-msgid "Unknown control: %s (%d)"
-msgstr "Contrôleur inconnu : %s (%d)"
+#: src/tveng1.c:1130 src/tveng2.c:883
+msgid "Volume"
+msgstr "Volume"
 
-#: src/tveng1.c:1412
+#: src/tveng1.c:1142 src/tveng2.c:890
+msgid "Bass"
+msgstr "Grave"
+
+#: src/tveng1.c:1154 src/tveng2.c:888
+msgid "Treble"
+msgstr "Aigu"
+
+#: src/tveng1.c:1169 src/tveng2.c:886
+msgid "Balance"
+msgstr "Balance"
+
+#: src/tveng1.c:1182
+msgid "Audio Decoding"
+msgstr "Décodage Audio"
+
+#: src/tveng1.c:1384
 #, c-format
 msgid "Unknown audio control: %s (%d)"
 msgstr "Contrôleur audio inconnu : %s (%d)"
 
-#: src/tveng1.c:1450
+#: src/tveng1.c:1422
 #, c-format
 msgid "Unknown video control: %s (%d)"
 msgstr "Contrôleur vidéo inconnu : %s (%d)"
 
-#: src/tveng1.c:1611
+#: src/tveng1.c:1583
 msgid "There are no tuners for the active input"
 msgstr "Il n'y a pas de tuner pour l'entrée active"
 
-#: src/tveng1.c:1760 src/tveng2.c:1440
+#: src/tveng1.c:1732 src/tveng2.c:1415
 msgid "Warning: trying to stop capture with no capture active\n"
 msgstr "Attention: essai d'arrêter la capture sans quelle soit active\n"
 
-#: src/tveng1.c:1820 src/tveng1.c:1891
+#: src/tveng1.c:1792 src/tveng1.c:1863
 msgid "Cannot understand actual palette"
 msgstr "Impossible de comprendre la palette actuelle"
 
-#: src/tveng1.c:1833
+#: src/tveng1.c:1805
 msgid "Grabber chip can't sync (no station tuned in?)"
 msgstr ""
 "Impossible de synchroniser la capture de l'écran (pas de station accordée ?)"
 
-#: src/tveng1.c:1945 src/tveng2.c:1503
+#: src/tveng1.c:1917 src/tveng2.c:1478
 msgid "Current capture mode is not READ"
 msgstr "Le mode de capture courant n'a pas été lu"
 
-#: src/tveng1.c:1954 src/tveng2.c:1512
+#: src/tveng1.c:1926 src/tveng2.c:1487
 msgid "Size check failed, quitting to avoid segfault"
 msgstr "Le contrôle de la taille à échoué, quitter avant un plantage"
 
-#: src/tveng1.c:2062 src/tveng2.c:1649
+#: src/tveng1.c:2034 src/tveng2.c:1624
 msgid "The capability field says that there is no overlay"
 msgstr "Le champ de capacité qu'il n'y a pas d'overlay"
 
-#: src/tveng1.c:2280 src/tveng2.c:1850
+#: src/tveng1.c:2252 src/tveng2.c:1825
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 "Attention: essai de stopper la pré-visualisation sans la capture active\n"
@@ -457,89 +462,89 @@ msgstr "Désolé, mais \"%s\" ne peu pas faire du streaming"
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr "Désolé, mais \"%s\" ne peu sélectionné le descripteur de fichier"
 
-#: src/tveng2.c:906
+#: src/tveng2.c:867
 msgid "Saturation"
 msgstr "Saturation"
 
-#: src/tveng2.c:908
+#: src/tveng2.c:869
 msgid "Whiteness"
 msgstr "Blancheur"
 
-#: src/tveng2.c:909
+#: src/tveng2.c:870
 msgid "Black level"
 msgstr "Niveau de noir"
 
-#: src/tveng2.c:910
+#: src/tveng2.c:871
 msgid "White balance"
 msgstr "Balance du blanc"
 
-#: src/tveng2.c:911
+#: src/tveng2.c:872
 msgid "Do white balance"
 msgstr "Faire balance blanche"
 
-#: src/tveng2.c:912
+#: src/tveng2.c:873
 msgid "Red balance"
 msgstr "Balance rouge"
 
-#: src/tveng2.c:913
+#: src/tveng2.c:874
 msgid "Blue balance"
 msgstr "Balance Bleu"
 
-#: src/tveng2.c:914
+#: src/tveng2.c:875
 msgid "Gamma"
 msgstr "Gamma"
 
-#: src/tveng2.c:915
+#: src/tveng2.c:876
 msgid "Exposure"
 msgstr "Exposition"
 
-#: src/tveng2.c:916
+#: src/tveng2.c:877
 msgid "Auto gain"
 msgstr ""
 
-#: src/tveng2.c:917
+#: src/tveng2.c:878
 msgid "Gain"
 msgstr "Gain"
 
-#: src/tveng2.c:918
+#: src/tveng2.c:879
 msgid "HCenter"
 msgstr "Hcentre"
 
-#: src/tveng2.c:919
+#: src/tveng2.c:880
 msgid "VCenter"
 msgstr "Vcentre"
 
-#: src/tveng2.c:920
+#: src/tveng2.c:881
 msgid "Horizontal flipping"
 msgstr "Retournement Horizontale"
 
-#: src/tveng2.c:921
+#: src/tveng2.c:882
 msgid "Vertical flipping"
 msgstr "Retournement verticale"
 
-#: src/tveng2.c:924
+#: src/tveng2.c:885
 msgid "Audio Mute"
 msgstr ""
 
-#: src/tveng2.c:926
+#: src/tveng2.c:887
 #, fuzzy
 msgid "Audio Balance"
 msgstr "Balance"
 
-#: src/tveng2.c:928
+#: src/tveng2.c:889
 msgid "Loudness"
 msgstr "Loudness"
 
-#: src/tveng2.c:980
+#: src/tveng2.c:953
 msgid "<Broken menu entry>"
 msgstr "<Entrée du menu défectueuse>"
 
-#: src/tveng2.c:990
+#: src/tveng2.c:963
 #, c-format
 msgid "V4L2: Unknown control type 0x%x (%s)\n"
 msgstr "V4L2: Control inconnu de type 0x%x (%s)\n"
 
-#: src/tveng2.c:1377
+#: src/tveng2.c:1352
 msgid "Not enough buffers"
 msgstr "Plus de buffer"
 
@@ -818,7 +823,7 @@ msgstr "La chaîne %s na pas été trouvée dans le pays : %s"
 msgid "Returned channel id (%d) is not valid"
 msgstr "La chaîne id '%d) n'est pas valide"
 
-#: src/channel_editor.c:748
+#: src/channel_editor.c:747
 msgid ""
 "Channel autosearching won't work with XVideo.\n"
 "Please switch to another controller by starting\n"
@@ -1398,7 +1403,7 @@ msgstr "Ce plu-gin fait des copies d'écran de la fenêtre"
 
 #. hash collision code
 #. Warn
-#: plugins/mpeg/plugin.c:112 plugins/screenshot/screenshot.c:185
+#: plugins/screenshot/screenshot.c:185
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Check erreur : \"%s\" du plu-gin %s has hash 0x%x vs. 0x%x"
@@ -1483,146 +1488,31 @@ msgstr "Désolé, plus de ressource pour créer un nouveau thread"
 msgid "There are too many threads"
 msgstr "Il y a trop de thread"
 
-#: plugins/mpeg/plugin.c:33
-msgid "MPEG encoder"
-msgstr ""
-
-#: plugins/mpeg/plugin.c:35
-msgid "This plugin encodes the image and audio stream into a MPEG file"
-msgstr ""
-
-#: plugins/mpeg/plugin.c:37
-msgid "Encode the stream as MPEG."
-msgstr ""
-
-#: plugins/mpeg/plugin.c:393
-msgid "The only supported pixformats are YUYV and YUV420"
-msgstr ""
-
-#: plugins/mpeg/plugin.c:496
-#, c-format
-msgid "RTE ID: %s"
-msgstr ""
-
-#: plugins/mpeg/plugin.c:501
-#, c-format
-msgid "Destination: %s"
-msgstr ""
-
-#: plugins/mpeg/plugin.c:509
 #, fuzzy
-msgid "Audio only"
-msgstr "Décodage Audio"
+#~ msgid "Audio only"
+#~ msgstr "Décodage Audio"
 
-#: plugins/mpeg/plugin.c:512
-msgid "Video only"
-msgstr ""
-
-#: plugins/mpeg/plugin.c:515
 #, fuzzy
-msgid "Audio and Video"
-msgstr "Balance"
+#~ msgid "Audio and Video"
+#~ msgstr "Balance"
 
-#: plugins/mpeg/mpeg_strings.c:21 plugins/mpeg/plugin.c:523
-msgid "Output video Mbits per second:"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:22 plugins/mpeg/plugin.c:525
-msgid "Output audio Kbits per second:"
-msgstr ""
-
-#: plugins/mpeg/plugin.c:675 plugins/mpeg/plugin.c:812
-msgid "MPEG"
-msgstr ""
-
-#: plugins/mpeg/plugin.c:813
-msgid "Store the data as MPEG"
-msgstr ""
-
-#.
-#. * Translatable strings file generated by Glade.
-#. * Add this file to your project's POTFILES.in.
-#. * DO NOT compile it as part of your application.
-#.
-#: plugins/mpeg/mpeg_strings.c:7
-msgid "window1"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:8
 #, fuzzy
-msgid "What to do with the compressed stream"
-msgstr "Qualité de la compression d'image :"
+#~ msgid "What to do with the compressed stream"
+#~ msgstr "Qualité de la compression d'image :"
 
-#: plugins/mpeg/mpeg_strings.c:9
-msgid ""
-"Save to file\n"
-"/dev/null\n"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:12
-msgid "Whether to encode audio and/or video"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:13
-msgid ""
-"Audio only\n"
-"Video only\n"
-"Audio and Video\n"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:17
-msgid "Write the encoded stream to:"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:18
-msgid "MPEG file destination"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:19
-msgid "Sets the dir where the encoded clips will be written to"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:20
-msgid "Input / output"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:23
-msgid "Engine verbosity (output goes to stderr):"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:24
-msgid "Compression parameters"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:25
 #, fuzzy
-msgid "Saving MPEG"
-msgstr "Sauvegarde..."
+#~ msgid "Saving MPEG"
+#~ msgstr "Sauvegarde..."
 
-#: plugins/mpeg/mpeg_strings.c:26
 #, fuzzy
-msgid "Press this when you are done"
-msgstr "Cliquez ici une fois fini"
+#~ msgid "Press this when you are done"
+#~ msgstr "Cliquez ici une fois fini"
 
-#: plugins/mpeg/mpeg_strings.c:27
-msgid "RTE id (for debugging)"
-msgstr ""
+#~ msgid "Unknown decoding mode"
+#~ msgstr "Mode de décodage inconnu"
 
-#: plugins/mpeg/mpeg_strings.c:28
-msgid "Destination"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:29
-msgid "Mux mode"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:30
-msgid "Some more info: bit rates"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:31
-msgid "Dinamic stats (dropped, output M's, etc)"
-msgstr ""
+#~ msgid "Unknown control: %s (%d)"
+#~ msgstr "Contrôleur inconnu : %s (%d)"
 
 #~ msgid "tveng critical: %s"
 #~ msgstr "Erreur critique tveng : %s"

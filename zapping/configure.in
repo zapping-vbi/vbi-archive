@@ -74,15 +74,14 @@ AC_SUBST(JPEG_LIB)
 dnl ----------------------------------------------------------------------
 dnl Check for RTE, the MPEG encoder
 dnl ----------------------------------------------------------------------
-HAVE_RTE=""
-AC_CHECK_LIB(rte, rte_start_encoding, HAVE_RTE="yes", HAVE_RTE="no")
+dnl HAVE_RTE=""
+dnl AC_CHECK_LIB(rte, rte_start_encoding, HAVE_RTE="yes", HAVE_RTE="no")
 dnl The mpeg plugin requires RTE
-if test "$HAVE_RTE" = "yes"; then
-	PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD mpeg"
-else
-	AC_MSG_WARN([*** RTE not found, MPEG capture will be disabled ***])
-fi
-AC_SUBST(JPEG_LIB)
+dnl if test "$HAVE_RTE" = "yes"; then
+dnl	PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD mpeg"
+dnl else
+dnl 	AC_MSG_WARN([*** RTE not found, MPEG capture will be disabled ***])
+dnl fi
 
 GNOME_COMPILE_WARNINGS
 GNOME_X_CHECKS
@@ -225,7 +224,6 @@ plugins/Makefile
 zapping_setup_fb/Makefile
 plugins/template/Makefile
 plugins/screenshot/Makefile
-plugins/mpeg/Makefile
 ])
 
 echo "
@@ -235,7 +233,6 @@ echo "
 	JPEG lib			$HAVE_JPEG
 	MMX support			$HAVE_MMX
 	XVideo support			$XV_PRESENT
-	MPEG encoder			$HAVE_RTE
 
 	Plugins to build
 	----------------
