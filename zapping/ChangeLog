@@ -1,3 +1,20 @@
+2003-10-10    <mschimek@users.sf.net>
+
+	* plugins/screenshot/screenshot.c,
+	  plugins/screenshot/screenshot.glade: Brushed up the dialogs.
+
+2003-10-09    <mschimek@users.sf.net>
+
+	* src/video_x11.c (image_new): Incorrect pixfmt assertion.
+	* src/frequencies.c (tveng_tuned_channel_copy): Function
+	  decomposed characters with diacritical marks, solution
+	  s/G_NORMALIZE_DEFAULT/G_NORMALIZE_DEFAULT_COMPOSE.
+	* src/xawtv.c (xawtv_import_config): Handle non-ASCII
+	  channel names.
+	* src/zmisc.c, src/zmisc.h: Added z_set_window_bg().
+	* src/zmisc.c, src/overlay.c, src/fullscreen.c: Setting window
+	  background did not, or not immediately, show.
+	
 2003-10-07    <mschimek@users.sf.net>
 
 	* src/frequencies.c (tv_rf_channel_next): Still didn't work

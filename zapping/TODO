@@ -114,29 +114,45 @@ Outstanding issues for future releases
   <!DOCTYPE frequency_tables [
     <!ELEMENT frequency_tables (table+)>
     <!ELEMENT table (name,domain?,country+,videostandard+,range+)>
-    <!ELEMENT name (#PCDATA)> <!-- (0-9|a-z|A-Z|_)+ -->
-    <!ELEMENT domain (#PCDATA)>
-    <!ELEMENT country (#PCDATA)> <!-- RFC 1766 / ISO 3166 alpha-2 -->
-    <!ELEMENT videostandard (#PCDATA)> <!-- ??? -->
+    <!ELEMENT name (#PCDATA)
+      -- table name for configuration file: (0-9|a-z|A-Z|_)+ -->
+    <!ELEMENT domain (#PCDATA)
+      -- distinguish tables used in same country, for user -->
+    <!ELEMENT country (#PCDATA)
+      -- country using this table: RFC 1766 / ISO 3166 alpha-2 -->
+    <!ELEMENT videostandard (#PCDATA)
+      -- video standard used with this table:
+         PAL_B | PAL_B1 | PAL_G | PAL_H | PAL_I | PAL_D | PAL_D1 |
+         PAL_K | PAL_M | PAL_N | PAL_NC | NTSC_M | NTSC_M_JP | SECAM_B |
+         SECAM_D | SECAM_G | SECAM_H | SECAM_K | SECAM_K1 | SECAM_L -->
     <!ELEMENT range (prefix,first,last?,frequency,bandwidth)>
-    <!ELEMENT prefix (#PCDATA)>
-    <!ELEMENT first (#PCDATA)> <!-- (0|(1-9)(0-9)+)|a-z|A-Z -->
-    <!ELEMENT last (#PCDATA)> <!-- same as first -->
-    <!ELEMENT frequency (#PCDATA)> <!-- Hz -->
-    <!ELEMENT bandwidth (#PCDATA)> <!-- Hz -->
+    <!ELEMENT first (#PCDATA)
+      -- name of first channel in range:
+         (a-z|A-Z)*(0|(1-9)(0-9)+)|a-z|A-Z -->
+    <!ELEMENT last (#PCDATA)
+      -- name of last channel in range, same syntax as first,
+         can be omitted if first and last are identical -->
+    <!ELEMENT frequency (#PCDATA)
+       -- video carrier frequency of first channel in range, Hz -->
+    <!ELEMENT bandwidth (#PCDATA)
+       -- channel distance in Hz -->
+    <!ENTITY %context "context (qtvision|xawtv|zapping) #IMPLIED"
+       -- element is specific to this application -->
+    <!ATTLIST name %context;>
+    <!ATTLIST range %context;>
     <!ATTLIST domain xml:lang NMTOKEN "en">
     <!ENTITY ccir_uhf "<range...>">
   ]>
   <frequency_tables>
    <table>
     <name>foobar</name>
+    <name context="xawtv">foofoo</name>
     <domain xml:lang="fr">cable</domain>
     <country>US</country>
     <country>CA</country>
     <videostandard>NTSC_M</videostandard>
     <range>
-     <prefix>SE</prefix>
-     <first>1</first><last>10</last>
+     <first>SE1</first><last>SE10</last>
      <frequency>55250000</frequency>
      <bandwidth>6000000</bandwidth>
     </range>

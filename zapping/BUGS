@@ -7,8 +7,8 @@ Known bugs in Zapping, don't report them
   Gerd Knorr notified, solution pending. Workaround is in place.
 * tvengxv (pm2, not v4l) lists no standards and inputs.
 * Pointer does not properly reappear in windowed mode.
-* Xawtv import skips channel when name contains non-ascii.
 * zvbi error messages need locale to UTF-8 conversion.
+* Screenshot toolbutton does not open dialog in --no-xv capture mode.
 * Screenshot plugin temporarily switches format without need.
 * Go Fullscreen w/automatic vidmode hangs on RH
 * Crashed in/after screenshot
@@ -28,15 +28,11 @@ Known bugs in Zapping, don't report them
 * Station search doesn't work in overlay mode
   (Xv/v4l no signal strength), need check/switch.
 - In capture mode window resizing flickers.
-! bttv 0.9.5 seems to crash the X server whenever
-  XvPutImage is called (field ANY not handled?).
-  Gerd notified, promised fix in 0.9.6.
 * fprintf_ioctl dereferences uninitialized strings.
 * Need to handle BadAtom errors resulting from Xv out
   of video memory (or no v4l device?). Currently gdk
   just aborts the app.
 * Need better no-overlay-present handling.
-* Capture with --no-xv doesn't work?
 * Capture won't work under PPC (endianess)
 * Look for endianness problems.
 * vbi eats too much CPU, investigate.
@@ -52,10 +48,6 @@ Known bugs in Zapping, don't report them
 * config.h is also full of hardcoded paths.
 * Spinslider minimum sizes.
 * Bad reception breaks vbi decoding: i/o error.
-* Channel editor: up/down scroll-to doesn't work right,
-  although this may be a gtk bug. Perhaps related:
-  gtk-app-devel-list digest, Vol 1 #1367,
-  Subject: scrolling windows
 * Closing the main window while recording blocks.
   Backtrace:
   on_exit2_activate() [now quit_cmd()]
