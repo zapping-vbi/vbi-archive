@@ -1,0 +1,15 @@
+<!doctype book PUBLIC "-//Davenport//DTD DocBook V3.0//EN" [
+<!ENTITY rte-rte SYSTEM "sgml/rte.sgml">
+<!ENTITY rte-rte-enums SYSTEM "sgml/enums.sgml">
+]>
+<book id="index">
+  <bookinfo>
+    <title>RTE Reference Manual</title>
+  </bookinfo>
+
+  <chapter>
+    <title>RTE</title>
+    &rte-rte;
+    &rte-rte-enums;
+  </chapter>
+</book>

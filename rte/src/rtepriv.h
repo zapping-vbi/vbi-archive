@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.13 2001-11-22 17:51:07 mschimek Exp $
+ * $Id: rtepriv.h,v 1.1 2001-12-09 22:10:52 garetxe Exp $
  * Private stuff in the context.
  */
 
@@ -31,6 +31,8 @@
 
 #define BLANK_BUFFER	1 /* the buffer was created by blank_callback,
 			     do not unref_callback it */
+
+typedef struct _rte_context_private rte_context_private;
 
 typedef void (*_rte_filter)(const char * src, char * dest, int width,
 			    int height);
@@ -44,6 +46,34 @@ typedef void (*_wait_data)(rte_context *context, int video);
 
 
 /* Experimental */
+
+#define RTE_OPTION_BOUNDS_INITIALIZER_(type_, def_, min_, max_, step_)	\
+  { type_ = def_ }, { type_ = min_ }, { type_ = max_ }, { type_ = step_ }
+
+#define RTE_OPTION_BOOL_INITIALIZER(key_, label_, def_, tip_)		\
+  { RTE_OPTION_BOOL, key_, label_,					\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, 1, 1),		\
+    { .num = NULL }, 0, tip_ }
+
+#define RTE_OPTION_INT_INITIALIZER(key_, label_, def_, min_, max_,	\
+  step_, menu_, entries_, tip_) { RTE_OPTION_INT, key_, label_,		\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, min_, max_, step_),	\
+    { .num = menu_ }, entries_, tip_ }
+
+#define RTE_OPTION_REAL_INITIALIZER(key_, label_, def_, min_, max_,	\
+  step_, menu_, entries_, tip_) { RTE_OPTION_REAL, key_, label_,	\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.dbl, def_, min_, max_, step_),	\
+    { .dbl = menu_ }, entries_, tip_ }
+
+#define RTE_OPTION_STRING_INITIALIZER(key_, label_, def_, menu_,	\
+  entries_, tip_) { RTE_OPTION_STRING, key_, label_,			\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.str, def_, NULL, NULL, NULL),	\
+    { .str = menu_ }, entries_, tip_ }
+
+#define RTE_OPTION_MENU_INITIALIZER(key_, label_, def_, menu_,		\
+  entries_, tip_) { RTE_OPTION_MENU, key_, label_,			\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
+    { .str = menu_ }, entries_, tip_ }
 
 /* maybe one should add this stuff under a #ifdef RTE_BACKEND to rte.h? */
 

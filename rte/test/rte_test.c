@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.11 2001-11-22 17:51:07 mschimek Exp $
+ * $Id: rte_test.c,v 1.1 2001-12-09 22:10:52 garetxe Exp $
  * This is a simple RTE test.
  */
 
@@ -26,7 +26,8 @@
 #include <config.h>
 #endif
 
-#if defined(USE_ESD) || defined(OSS)
+//#if defined(USE_ESD) || defined(OSS)
+#if 0 /* work in progress */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -686,7 +687,9 @@ int main(int argc, char *argv[])
 }
 
 #else
-int main(int argc, char *argv)
+#include <stdio.h>
+
+int main(int argc, char *argv[])
 {
 	fprintf(stderr, "ESD or OSS required for this test\n");
 

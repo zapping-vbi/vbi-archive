@@ -1,9 +1,17 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.8 2001-11-22 17:51:07 mschimek Exp $
+dnl $Id: configure.in,v 1.9 2001-12-09 22:10:51 garetxe Exp $
 
 AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(rte, 0.4cvs)
+RTE_VERSION_MAJOR=0
+RTE_VERSION_MINOR=5
+RTE_VERSION_MICRO=0
+AC_SUBST(RTE_VERSION_MAJOR)
+AC_SUBST(RTE_VERSION_MINOR)
+AC_SUBST(RTE_VERSION_MICRO)
+AM_INIT_AUTOMAKE(rte, $RTE_VERSION_MAJOR.$RTE_VERSION_MINOR.$RTE_VERSION_MICRO)
 AM_CONFIG_HEADER(config.h)
+
+AM_ACLOCAL_INCLUDE(macros)
 
 AC_PROG_CC
 
@@ -43,23 +51,34 @@ else
 	AC_MSG_RESULT([no, ESD won't be used])
 fi
 
+dnl Build docs from the sources automagically if gtkdoc is available.
+GTK_DOC_CHECK
+
+dnl Short term plan is to have these three available
+BACKEND_FFMPEG=no
+BACKEND_MP1E=no
+BACKEND_DIVX4LINUX=no
+
+AM_CONDITIONAL(BACKEND_FFMPEG, test "x$BACKEND_FFMPEG" = "xyes")
+AM_CONDITIONAL(BACKEND_MP1E, test "x$BACKEND_MP1E" = "xyes")
+AM_CONDITIONAL(BACKEND_DIVX4LINUX, test "x$BACKEND_DIVX4LINUX" = "xyes")
+
 dnl Check whether program_invocation_name exists, GNU extension
 AC_CHECK_FUNCS(program_invocation_name)
 
 AC_OUTPUT([
 Makefile
-dnl ffmpeg/Makefile
-dnl ffmpeg/libav/Makefile
-dnl ffmpeg/libavcodec/Makefile
-dnl ffmpeg/libavcodec/i386/Makefile
-dnl ffmpeg/libavcodec/mpglib/Makefile
-dnl ffmpeg/libavcodec/libac3/Makefile
+docs/Makefile
+src/Makefile
+src/rte-version.h
+test/Makefile
 rte.spec
 ])
 
-dnl Finish the config
-cd mp1e
-./configure
-echo "Type 'make' to compile rte. You can run './configure' under "
-echo "the 'mp1e' dir to pass any special options to the mp1e "
-echo "backend."
+echo "
+	Backend			Build		
+	-------			-----
+	mp1e			$BACKEND_MP1E
+	ffmpeg			$BACKEND_FFMPEG
+	divx4linux		$BACKEND_DIVX4LINUX
+"

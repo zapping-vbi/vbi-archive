@@ -19,8 +19,8 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.19 2001-11-22 17:51:07 mschimek Exp $ */
-
+/* $Id: rte.c,v 1.1 2001-12-09 22:10:52 garetxe Exp $ */
+#if 0
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -490,7 +490,7 @@ int rte_set_audio_parameters (rte_context * context,
 			      enum rte_audio_mode audio_mode,
 			      ssize_t output_audio_bits)
 {
-	nullcheck(context, return 0);
+nullcheck(context, return 0);
 
 	if (context->private->inited)
 	{
@@ -858,6 +858,8 @@ void rte_push_video_buffer ( rte_context * context,
 
 	b = wait_empty_buffer(&(context->private->vid_prod));
 
+#error "Still working on the API, please be patient ;-)"
+
 	b->time = rbuf->time;
 	b->data = rbuf->data;
 	b->used = context->video_bytes;
@@ -1004,8 +1006,8 @@ void rte_get_status ( rte_context * context,
  * session to session.
  *
  * Return value:
- * Pointer to a &rte_context_info structure, %NULL if the index is out of
- * bounds.
+ * Pointer to a &rte_context_info structure (note: static pointer, no
+ * need to be freed), %NULL if the index is out of bounds.
  **/
 rte_context_info *
 rte_context_info_enum(int index)
@@ -1443,3 +1445,4 @@ rte_set_parameters(rte_codec *codec, rte_stream_parameters *rsp)
 
 	return BACKEND->parameters(codec, rsp);
 }
+#endif
