@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.17 2003-11-29 19:43:23 mschimek Exp $ */
+/* $Id: audio.c,v 1.18 2003-12-01 04:28:51 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -627,11 +627,17 @@ set_mute				(gint	        mode,
 	dock_item = gnome_app_get_dock_item_by_name
 	  (GNOME_APP (main_window), GNOME_APP_TOOLBAR_NAME);
 
-	if (main_info->current_mode == TVENG_CAPTURE_PREVIEW ||
-	    !GTK_WIDGET_VISIBLE (GTK_WIDGET (dock_item)))
+	if (main_info->current_mode == TVENG_CAPTURE_PREVIEW
+	    || !GTK_WIDGET_VISIBLE (GTK_WIDGET (dock_item)))
 	  osd_render_markup (NULL, mute ?
-			   _("<blue>Audio off</blue>") :
-			   _("<yellow>Audio on</yellow>"));
+#warning FIXME before 0.7 release
+#if 1 /* wrong */
+			     _("<blue>Audio off</blue>") :
+			     _("<yellow>Audio on</yellow>"));
+#else /* right */
+			     _("<span foreground=\"blue\">Audio off</span>") :
+			     _("<span foreground=\"yellow\">Audio on</span>"));
+#endif
       }
   }
 
