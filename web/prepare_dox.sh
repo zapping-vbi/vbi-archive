@@ -1,5 +1,5 @@
 #!/bin/sh
-#$Id: prepare_dox.sh,v 1.1 2002-07-16 02:31:30 mschimek Exp $
+#$Id: prepare_dox.sh,v 1.2 2002-07-16 02:40:04 mschimek Exp $
 
 umask 002
 cvs -z3 -d:pserver:anonymous@cvs.zapping.sourceforge.net:/cvsroot/zapping co $1
@@ -13,6 +13,7 @@ cp $1/doc/html/*search.cgi cgi-bin/
 test -e htdocs/doc || mkdir htdocs/doc
 rm -rf htdocs/doc/$2
 cp -r $1/doc/html htdocs/doc/$2
+chmod a-x htdocs/doc/$2/*
 cd htdocs/doc/$2
 doxytag -s search.idx
 cd -
