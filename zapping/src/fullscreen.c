@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.5 2001-04-03 22:10:05 garetxe Exp $
+ * $Id: fullscreen.c,v 1.6 2001-04-04 21:29:23 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -249,8 +249,11 @@ fullscreen_start(tveng_device_info * info)
 		     GTK_SIGNAL_FUNC(on_fullscreen_event),
   		     main_window);
 
-  osd_set_coords(info->window.x, info->window.y, info->window.width,
-  		 info->window.height);
+  if (info->current_controller != TVENG_CONTROLLER_XV)
+    osd_set_coords(info->window.x, info->window.y, info->window.width,
+		   info->window.height);
+  else
+    osd_set_coords(0, 0, info->window.width, info->window.height);
 
   gtk_signal_connect(GTK_OBJECT(osd_model), "changed",
 		     GTK_SIGNAL_FUNC(osd_model_changed), info);

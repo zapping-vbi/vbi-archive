@@ -282,17 +282,22 @@ gboolean on_osd_event			(GtkWidget	*widget,
 static void
 osd_unset_window(void)
 {
-  if (!osd_window || !osd_parent_window || osd_status)
+  if (!osd_window && !osd_parent_window)
     return;
 
-  gtk_signal_disconnect_by_func(GTK_OBJECT(osd_window),
-				GTK_SIGNAL_FUNC(on_osd_screen_size_allocate),
-				NULL);
-  gtk_signal_disconnect_by_func(GTK_OBJECT(osd_parent_window),
-				GTK_SIGNAL_FUNC(on_osd_screen_configure),
-				NULL);
-  gtk_signal_disconnect_by_func(GTK_OBJECT(osd_parent_window),
-				GTK_SIGNAL_FUNC(on_osd_event), NULL);
+  if (osd_window)
+    gtk_signal_disconnect_by_func(GTK_OBJECT(osd_window),
+				  GTK_SIGNAL_FUNC(on_osd_screen_size_allocate),
+				  NULL);
+
+  if (osd_parent_window) {
+    gtk_signal_disconnect_by_func(GTK_OBJECT(osd_parent_window),
+				  GTK_SIGNAL_FUNC(on_osd_screen_configure),
+				  NULL);
+    gtk_signal_disconnect_by_func(GTK_OBJECT(osd_parent_window),
+				  GTK_SIGNAL_FUNC(on_osd_event),
+				  NULL);
+  }
 
   osd_window = osd_parent_window = NULL;
   osd_geometry_update(FALSE);
@@ -303,8 +308,11 @@ osd_set_window(GtkWidget *dest_window, GtkWidget *parent)
 {
   g_assert(osd_started == TRUE);
 
-  if (osd_window)
+  if (osd_window || osd_parent_window)
     osd_unset_window();
+
+  g_assert(osd_window == NULL);
+  g_assert(osd_parent_window == NULL);
 
   ch = cw = -1;
 
@@ -326,8 +334,11 @@ osd_set_window(GtkWidget *dest_window, GtkWidget *parent)
 void
 osd_set_coords(gint x, gint y, gint w, gint h)
 {
-  if (osd_window)
+  if (osd_window || osd_parent_window)
     osd_unset_window();
+
+  g_assert(osd_window == NULL);
+  g_assert(osd_parent_window == NULL);
 
   cx = x;
   cy = y;
@@ -409,8 +420,9 @@ get_window(void)
 
   gdk_window_set_decorations(window->window, 0);
 
-  gtk_window_set_transient_for(GTK_WINDOW(window),
-			       GTK_WINDOW(osd_parent_window));
+  if (osd_parent_window)
+    gtk_window_set_transient_for(GTK_WINDOW(window),
+				 GTK_WINDOW(osd_parent_window));
 
   gtk_widget_add_events(da, GDK_EXPOSURE_MASK);
 
