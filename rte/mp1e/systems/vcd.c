@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.8 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: vcd.c,v 1.9 2002-02-25 06:22:19 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -212,7 +212,7 @@ fill_packet(uint8_t *p, uint8_t *ph, uint8_t *px,
 	while (p < px) {
 		int n;
 
-		if (str->left <= 0) {
+		if (str->left == 0) {
 			buffer *buf;
 
 			/* Frame buffer empty */
@@ -243,7 +243,7 @@ fill_packet(uint8_t *p, uint8_t *ph, uint8_t *px,
 				if (0)
 					fprintf(stderr, "fill_packet end of stream %x\n",
 						str->stream_id);
-				str->left = 0;
+				str->left = -1;
 				break;
 			}
 
@@ -414,7 +414,7 @@ vcd_system_mux(void *muxp)
 			/* Bn size in system clock ticks */
 			inbuft = str->inbuf_free * (tstamp)(SYSTEM_TICKS * 8) / str->bit_rate;
 
-			fspace = MAX(fspace, inbuft);
+			fspace = MAX(fspace, inbuft); // XXX correct?
 			preload_delay = MIN(preload_delay, inbuft * 4/5);
 
 			nstreams++;
@@ -541,7 +541,7 @@ reschedule:
 
 				p = fill_packet(pp, ph, px, str, scr + fspace, &pts);
 
-				if (str->left <= 0) {
+				if (str->left == -1) {
 					str->dts = TSTAMP_MAX; /* don't schedule anymore */
 					nstreams--;
 

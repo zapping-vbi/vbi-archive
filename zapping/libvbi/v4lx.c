@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.38 2001-11-23 00:52:00 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.39 2002-02-25 06:24:40 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -76,7 +76,6 @@ do {									\
 #include "decoder.h"
 #include "../common/math.h"
 #include "../common/fifo.h"
-#include "../common/errstr.h"
 #include "../common/videodev2.h"
 
 #define IOCTL(fd, cmd, data)						\

@@ -1,8 +1,8 @@
 <!-- ##### SECTION Title ##### -->
-Creating encoding contexts
+Contexts
 
 <!-- ##### SECTION Short_Description ##### -->
-Enumeration and allocation of file formats and encoding instances.
+
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -53,12 +53,9 @@ Enumeration and allocation of file formats and encoding instances.
 </para>
 
 @keyword: 
-@errstr: 
 @user_data: 
+@errstr: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@format: 
-@backend: 
 
 
 <!-- ##### FUNCTION rte_context_delete ##### -->
@@ -77,17 +74,82 @@ Enumeration and allocation of file formats and encoding instances.
 @context: 
 
 
-<!-- ##### FUNCTION rte_error_printf ##### -->
+<!-- ##### FUNCTION rte_context_option_info_enum ##### -->
 <para>
 
 </para>
 
 @context: 
-@templ: 
+@index: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_context_option_info_keyword ##### -->
+<para>
+
+</para>
+
+@context: 
+@keyword: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_context_option_set ##### -->
+<para>
+
+</para>
+
+@context: 
+@keyword: 
 @Varargs: 
+@Returns: 
 
 
-<!-- ##### FUNCTION rte_errstr ##### -->
+<!-- ##### FUNCTION rte_context_option_get ##### -->
+<para>
+
+</para>
+
+@context: 
+@keyword: 
+@value: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_context_option_menu_set ##### -->
+<para>
+
+</para>
+
+@context: 
+@keyword: 
+@entry: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_context_option_menu_get ##### -->
+<para>
+
+</para>
+
+@context: 
+@keyword: 
+@entry: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_context_option_print ##### -->
+<para>
+
+</para>
+
+@context: 
+@keyword: 
+@Varargs: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_context_options_reset ##### -->
 <para>
 
 </para>

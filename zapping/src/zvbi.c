@@ -327,11 +327,12 @@ capturing_thread (void *x)
 static gint
 join (pthread_t id, gboolean *ack, gint timeout)
 {
-  vbi_quit = TRUE;
+//  vbi_quit = TRUE;
 
   /* Dirty. Where is pthread_try_join()? */
-  for (; !*ack && timeout > 0; timeout--)
-    usleep (1000);
+  for (; !*ack && timeout > 0; timeout--) {
+    usleep (100000);
+  }
 
   /* Ok, you asked for it */
   if (timeout == 0) {
@@ -441,7 +442,7 @@ threads_init (gchar *dev_name, int given_fd)
   if (pthread_create (&capturer_id, NULL, capturing_thread, NULL))
     {
       ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, thread);
-      join (decoder_id, &decoder_quit_ack, 1500);
+      join (decoder_id, &decoder_quit_ack, 15);
       destroy_fifo (&sliced_fifo);
       vbi_capture_delete (capture);
       vbi_decoder_delete (vbi);
@@ -464,7 +465,7 @@ threads_destroy (void)
       D();
 
       join (decoder_id, &decoder_quit_ack,
-	    join (capturer_id, &capturer_quit_ack, 1500));
+	    join (capturer_id, &capturer_quit_ack, 15));
 
       destroy_fifo (&sliced_fifo);
 

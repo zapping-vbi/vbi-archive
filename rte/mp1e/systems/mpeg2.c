@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.8 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.9 2002-02-25 06:22:19 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -248,7 +248,7 @@ next_access_unit(stream *str, double *ppts, unsigned char **pph)
 				*ppts = str->dts_old;
 				ph[7] |= MARKER_PTS << 6;
 				time_stamp(ph +  9, MARKER_PTS_ONLY, *ppts);
-				/* time_stamp(ph + 14, MARKER_DTS, str->dts); */
+				time_stamp(ph + 14, MARKER_DTS, str->dts);
 				*pph = NULL;
 				break;
 

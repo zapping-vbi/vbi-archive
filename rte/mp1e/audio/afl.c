@@ -2,7 +2,7 @@
  *  MPEG-1 Real Time Encoder
  *  SGI Audio File Library (libaudiofile) interface
  *
- *  Copyright (C) 2000-2001 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: afl.c,v 1.9 2002-02-12 00:18:14 mschimek Exp $ */
+/* $Id: afl.c,v 1.10 2002-02-25 06:22:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -185,6 +185,3 @@ open_pcm_afl(char *name, int ignored1, bool ignored2, fifo **f)
 }
 
 #endif /* !HAVE_LIBAUDIOFILE */
-
-
-

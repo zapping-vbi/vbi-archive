@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.18 2002-02-05 05:28:31 mschimek Exp $
+ * $Id: fullscreen.c,v 1.19 2002-02-25 06:24:40 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,6 +37,7 @@
 #include "callbacks.h"
 #include "v4linterface.h"
 #include "fullscreen.h"
+#include "audio.h"
 
 static GtkWidget * black_window = NULL; /* The black window when you go
 					   fullscreen */
@@ -94,7 +95,7 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
 	    set_mute1(2, TRUE, TRUE);
 	  break;
 	default:
-	  return z_select_channel_by_key(kevent);
+          return z_volume_change(kevent) || z_select_channel_by_key(kevent);
 	}
       return TRUE; /* Event processing done */
     }

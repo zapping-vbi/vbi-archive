@@ -296,16 +296,6 @@ z_pixbuf_scale_simple		(GdkPixbuf	*source,
 }
 
 /**
- * Like gtk_widget_add_accelerator but takes care of creating the
- * accel group.
- */
-void
-z_widget_add_accelerator	(GtkWidget	*widget,
-				 const gchar	*accel_signal,
-				 guint		accel_key,
-				 guint		accel_mods);
-
-/**
  * Builds the given path if it doesn't exist and checks that it's a
  * valid dir.
  * On error returns FALSE and fills in error_description with a newly
@@ -391,4 +381,42 @@ z_spinslider_set_reset_value	(GtkWidget *hbox,
 void
 z_spinslider_adjustment_changed	(GtkWidget *hbox);
 
-#endif /* ZMISC.H */
+/* Accelerator helpers */
+
+typedef struct z_key {
+  guint				key;
+  guint				mask;
+} z_key;
+
+extern gchar *			z_key_name				(z_key key);
+extern z_key			z_key_from_name				(gchar *name);
+
+static inline gboolean
+z_key_compare				(GdkEventKey *	event,
+					 z_key		key)
+{
+  const guint mask = GDK_CONTROL_MASK | GDK_MOD1_MASK | GDK_SHIFT_MASK;
+
+  return (event->keyval == key.key && (event->state & mask) == key.mask);
+}
+
+static inline gboolean
+z_key_is_void				(z_key		key)
+{
+  return key.key == GDK_VoidSymbol;
+}
+
+extern void			zconf_create_z_key			(z_key		key,
+									 const gchar * 	desc,
+									 const gchar *	path);
+extern void			zconf_set_z_key				(z_key		key,
+									 const gchar *	path);
+extern z_key			zconf_get_z_key				(z_key *	keyp,
+									 const gchar *	path);
+extern GtkWidget *		z_key_entry_new				(z_key *	keyp);
+extern void			z_widget_add_accelerator		(GtkWidget	*widget,
+									 const gchar	*accel_signal,
+									 guint		accel_key,
+									 guint		accel_mods);
+
+#endif /* __ZMISC_H__ */

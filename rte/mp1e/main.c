@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999-2001 Michael H. Schimek
+ *  Copyright (C) 1999, 2000, 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.24 2002-02-08 15:03:10 mschimek Exp $ */
+/* $Id: main.c,v 1.25 2002-02-25 06:22:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -41,6 +41,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <asm/types.h>
+
 #include "common/videodev2.h"
 #include "audio/libaudio.h"
 #include "audio/mpeg.h"
@@ -54,7 +55,6 @@
 #include "common/log.h"
 #include "common/mmx.h"
 #include "common/bstream.h"
-//#include "common/errstr.h"
 #include "options.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
@@ -70,7 +70,6 @@ static rte_codec *	audio_codec;
 static int		stereo;
 
 pthread_t		video_thread_id;
-static fifo *		video_cap_fifo;
 void			(* video_start)(void);
 static rte_codec *	video_codec;
 
@@ -85,11 +84,19 @@ extern void *		gtk_main_thread(void *);
 
 extern int		psycho_loops;
 
+static mp1e_context		context;
+
+//static rte_stream_parameters	audio_params;
+static rte_stream_parameters	video_params;
+static fifo *			afifo;
+static fifo *			vfifo;
+
 extern void options(int ac, char **av);
 
 extern void preview_init(int *argc, char ***argv);
 
-fifo *			afifo;
+
+
 
 /*
  *  These are functions needed to link without the rte frontend.
@@ -193,7 +200,53 @@ reset_options(rte_codec *codec)
 	}
 }
 
+/* Historic audio option */
+void
+audio_parameters(int *sampling_freq, int *bit_rate)
+{
+	int i, imin;
+	unsigned int dmin;
+	int mpeg_version;
 
+	imin = 0;
+        dmin = UINT_MAX;
+
+	for (i = 0; i < 16; i++)
+		if (sampling_freq_value[0][i] > 0)
+		{
+			unsigned int d = nbabs(*sampling_freq - sampling_freq_value[0][i]);
+
+			if (d < dmin) {	    
+				if (i / 4 == MPEG_VERSION_2_5)
+					continue; // not supported
+
+				dmin = d;
+	    			imin = i;
+			}
+		}
+
+	mpeg_version = imin / 4;
+
+	*sampling_freq = sampling_freq_value[0][imin];
+
+	imin = 0;
+        dmin = UINT_MAX;
+
+	// total bit_rate, not per channel
+
+	for (i = 0; i < 16; i++)
+		if (bit_rate_value[mpeg_version][i] > 0)
+		{
+			unsigned int d = nbabs(*bit_rate - bit_rate_value[mpeg_version][i]);
+
+			if (d < dmin) {
+				dmin = d;
+			        imin = i;
+			}
+		}
+
+	*bit_rate = bit_rate_value[mpeg_version][imin];
+}
 
 static void
 terminate(int signum)
@@ -207,11 +260,11 @@ terminate(int signum)
 	now = current_time();
 
 	if (1)
-		mp1e_sync_stop(0.0); // past times: stop asap
+		mp1e_sync_stop(&context.sync, 0.0); // past times: stop asap
 		// XXX NOT SAFE mutexes and signals don't mix
 	else {
 		printv(0, "Deferred stop in 3 seconds\n");
-		mp1e_sync_stop(now + 3.0);
+		mp1e_sync_stop(&context.sync, now + 3.0);
 		// XXX allow cancelling
 	}
 
@@ -225,7 +278,6 @@ main(int ac, char **av)
 	sigset_t block_mask, endm;
 	/* XXX encapsulation */
 	struct pcm_context *pcm = 0;
-	double c_frame_rate;
 	char *errstr = NULL;
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
@@ -293,7 +345,7 @@ main(int ac, char **av)
 	action.sa_mask = endm;
 	action.sa_flags = 0;
 	action.sa_handler = terminate;
-	sigaction( SIGUSR1, &action, NULL );
+	sigaction(SIGUSR1, &action, NULL);
 
 	ASSERT("install termination handler", signal(SIGINT, terminate) != SIG_ERR);
 
@@ -365,17 +417,22 @@ main(int ac, char **av)
 	if (modules & MOD_VIDEO) {
 		struct stat st;
 
+		video_params.video.width = grab_width;
+		video_params.video.height = grab_height;
+
 		if (!stat(cap_dev, &st) && S_ISCHR(st.st_mode)) {
-			if (!(video_cap_fifo = v4l2_init(&c_frame_rate)))
-				video_cap_fifo = v4l_init(&c_frame_rate);
+			if (!(vfifo = v4l2_init(&video_params.video)))
+				vfifo = v4l_init(&video_params.video);
 		} else if (!strncmp(cap_dev, "raw:", 4)) {
-			video_cap_fifo = raw_init(&c_frame_rate);
+			vfifo = raw_init(&video_params.video);
 		} else {
-			video_cap_fifo = file_init(&c_frame_rate);
+			vfifo = file_init(&video_params.video);
 		}
 	}
- 
+
 	if (modules & MOD_SUBTITLES) {
+		FAIL("vbi broken, sorry.");
+#if 0
 		vbi_cap_fifo = vbi_open_v4lx(vbi_dev, -1, FALSE, 30);
 
 		if (vbi_cap_fifo == NULL) {
@@ -384,6 +441,7 @@ main(int ac, char **av)
 			else
 				FAIL("Failed to access vbi device: Cause unknown\n");
 		}
+#endif
 	}
 
 	/* Compression init */
@@ -392,12 +450,12 @@ main(int ac, char **av)
 
 	if (audio_num_secs < (audio_num_frames * sampling_rate / 1152.0))
 		audio_num_frames = llroundn(audio_num_secs * sampling_rate / 1152.0);
-	if (video_num_secs < (video_num_frames * c_frame_rate))
-		video_num_frames = video_num_secs * c_frame_rate;
+	if (video_num_secs < (video_num_frames * video_params.video.frame_rate))
+		video_num_frames = video_num_secs * video_params.video.frame_rate;
 
 	if (modules & MOD_AUDIO) {
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
-		long long n = llroundn(((double) video_num_frames / c_frame_rate)
+		long long n = llroundn(((double) video_num_frames / video_params.video.frame_rate)
 				       / (1152.0 / sampling_rate));
 		rte_stream_parameters rsp;
 
@@ -417,12 +475,15 @@ main(int ac, char **av)
 
 		ASSERT("create audio context: %s", audio_codec, errstr);
 
+		audio_codec->context = &context.context;
+
 		reset_options(audio_codec);
 
 		set_option(audio_codec, "sampling_freq", sampling_rate);
 		set_option(audio_codec, "bit_rate", audio_bit_rate);
 		set_option(audio_codec, "audio_mode", (int) "\1\3\2\0"[audio_mode]);
 		set_option(audio_codec, "psycho", psycho_loops);
+		set_option(audio_codec, "num_frames", audio_num_frames);
 
 		memset(&rsp, 0, sizeof(rsp));
 		rsp.audio.sndfmt = pcm->format;
@@ -441,17 +502,16 @@ main(int ac, char **av)
 						     buffer_size, aud_buffers,
 						     meta->output_frame_rate,
 						     meta->output_bit_rate);
-#warning
 			meta->input = afifo;
-			meta->codec.status = RTE_STATUS_READY;
+			meta->codec.status = RTE_STATUS_RUNNING;
 		}
 	}
 
 	if (modules & MOD_VIDEO) {
 		video_coding_size(width, height);
 
-		if (frame_rate > c_frame_rate)
-			frame_rate = c_frame_rate;
+		if (frame_rate > video_params.video.frame_rate)
+			frame_rate = video_params.video.frame_rate;
 
 		printv(2, "Macroblocks %d x %d\n", mb_width, mb_height);
 
@@ -470,22 +530,36 @@ main(int ac, char **av)
 
 		ASSERT("create video context: %s", video_codec, errstr);
 
+		video_codec->context = &context.context;
+
 		reset_options(video_codec);
 
 		set_option(video_codec, "bit_rate", video_bit_rate);
-		set_option(video_codec, "coded_frame_rate", c_frame_rate);
-		set_option(video_codec, "virtual_frame_rate",
-					 frame_rate);
+		set_option(video_codec, "coded_frame_rate", video_params.video.frame_rate);
+		set_option(video_codec, "virtual_frame_rate", frame_rate);
 		set_option(video_codec, "skip_method", skip_method);
 		set_option(video_codec, "gop_sequence", gop_sequence);
-//	        set_option(video_codec, "motion_compensation",
-//					 motion_min > 0 && motion_max > 0);
+//	        set_option(video_codec, "motion_compensation", motion_min > 0 && motion_max > 0);
 //		set_option(video_codec, "desaturate", !!luma_only);
 		set_option(video_codec, "anno", anno);
+		set_option(video_codec, "num_frames", video_num_frames);
 
-		mp1e_mpeg1_init(video_codec, cpu_type, width, height,
-				motion_min, motion_max,
-				video_cap_fifo, MOD_VIDEO, mux);
+		ASSERT("set video parameters",
+		       video_codec->class->parameters_set(video_codec, &video_params));
+
+		/* preliminary */
+		{
+			mp1e_codec *meta = PARENT(video_codec, mp1e_codec, codec);
+
+			meta->sstr.this_module = MOD_VIDEO;
+			meta->output =
+				mux_add_input_stream(mux, VIDEO_STREAM, "video-mpeg1",
+						     meta->output_buffer_size, vid_buffers,
+						     meta->output_frame_rate,
+						     meta->output_bit_rate);
+			meta->input = vfifo;
+			meta->codec.status = RTE_STATUS_RUNNING;
+		}
 
 #if TEST_PREVIEW
 		if (preview > 0) {
@@ -512,15 +586,15 @@ main(int ac, char **av)
 	// pause loop? >>
 
 #if 0 /* TEST */
-	mp1e_sync_init(modules, 0); /* TOD reference */
+	mp1e_sync_init(&context.sync, modules, 0); /* TOD reference */
 #else
 	if (modules & MOD_VIDEO)
 		/* Use video as time base (broadcast and v4l2 assumed) */
-		mp1e_sync_init(modules, MOD_VIDEO);
+		mp1e_sync_init(&context.sync, modules, MOD_VIDEO);
 	else if (modules & MOD_SUBTITLES)
-		mp1e_sync_init(modules, MOD_SUBTITLES);
+		mp1e_sync_init(&context.sync, modules, MOD_SUBTITLES);
 	else
-		mp1e_sync_init(modules, MOD_AUDIO);
+		mp1e_sync_init(&context.sync, modules, MOD_AUDIO);
 #endif
 
 	if (modules & MOD_AUDIO) {
@@ -553,7 +627,7 @@ main(int ac, char **av)
 	if ((modules == MOD_VIDEO || modules == MOD_AUDIO) && mux_syn >= 2)
 		mux_syn = 1; // compatibility
 
-	mp1e_sync_start(0.0);
+	mp1e_sync_start(&context.sync, 0.0);
 
 	switch (mux_syn) {
 	case 0:
@@ -568,6 +642,7 @@ main(int ac, char **av)
 		mpeg1_system_mux(mux);
 		break;
 	case 3:
+		FAIL("MPEG-2 mux out of order, sorry.\n");
 		printv(1, "MPEG-2 Program Stream\n");
 		mpeg2_program_stream_mux(mux);
 		break;

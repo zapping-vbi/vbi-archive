@@ -20,6 +20,9 @@ Starting and stopping.
 </para>
 
 @context: 
+@timestamp: 
+@sync_ref: 
+@async: 
 @Returns: 
 
 
@@ -29,22 +32,7 @@ Starting and stopping.
 </para>
 
 @context: 
-
-
-<!-- ##### FUNCTION rte_pause ##### -->
-<para>
-
-</para>
-
-@context: 
-
-
-<!-- ##### FUNCTION rte_resume ##### -->
-<para>
-
-</para>
-
-@context: 
+@timestamp: 
 @Returns: 
 
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mblock.c,v 1.3 2001-09-25 09:29:13 mschimek Exp $ */
+/* $Id: mblock.c,v 1.4 2002-02-25 06:22:19 mschimek Exp $ */
 
 #include "video.h"
 #include "../common/math.h"
@@ -89,5 +89,10 @@ video_look_ahead(char *gop_sequence)
 			i = 1024;
 		}
 
-	return max + 1;
+	return MAX(count, max) + 1;
 }
+
+
+
+
+

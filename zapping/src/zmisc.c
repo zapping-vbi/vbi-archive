@@ -627,27 +627,6 @@ z_option_menu_set_active	(GtkWidget	*option_menu,
 
 static GtkAccelGroup *accel_group = NULL;
 
-/**
- * Like gtk_widget_add_accelerator but takes care of creating the
- * accel group.
- */
-void
-z_widget_add_accelerator	(GtkWidget	*widget,
-				 const gchar	*accel_signal,
-				 guint		accel_key,
-				 guint		accel_mods)
-{
-  if (!accel_group)
-    {
-      accel_group = gtk_accel_group_new();
-      gtk_window_add_accel_group(GTK_WINDOW(main_window),
-				 accel_group);
-    }
-
-  gtk_widget_add_accelerator(widget, accel_signal, accel_group,
-			     accel_key, accel_mods, GTK_ACCEL_VISIBLE);
-}
-
 static void
 change_pixmenuitem_label		(GtkWidget	*menuitem,
 					 const gchar	*new_label)
@@ -1359,4 +1338,368 @@ z_spinslider_new			(GtkAdjustment * spin_adj,
 		      GTK_SIGNAL_FUNC (on_z_spinslider_reset), hbox);
 
   return hbox;
+}
+
+/*
+ *  Accelerator helpers
+ */
+
+/**
+ * z_key_name:
+ * @key: 
+ * 
+ * Similar to gdk_keyval_name(), including key modifiers.
+ * 
+ * Return value: 
+ **/
+gchar *
+z_key_name				(z_key key)
+{
+  gchar *name;
+
+  name = gdk_keyval_name(key.key);
+
+  if (!name)
+    return NULL;
+
+  return g_strdup_printf("%s%s%s%s",
+			 (key.mask & GDK_CONTROL_MASK) ? "Ctrl+" : "",
+			 (key.mask & GDK_MOD1_MASK) ? "Alt+" : "",
+			 (key.mask & GDK_SHIFT_MASK) ? "Shift+" : "",
+			 name);
+}
+
+/**
+ * z_key_from_name:
+ * @name: 
+ * 
+ * Similar to gdk_keyval_from_name(), including key modifiers.
+ * Resist the temptation to create a z_key yourself, the type
+ * is only public for speed. Use this function instead.
+ * 
+ * Return value: 
+ * A z_key, representing GDK_VoidSymbol if the name is invalid.
+ **/
+z_key
+z_key_from_name				(gchar *name)
+{
+  z_key key;
+
+  key.mask = 0;
+
+  for (;;)
+    {
+      if (g_strncasecmp(name, "Ctrl+", 5) == 0)
+	{
+	  key.mask |= GDK_CONTROL_MASK;
+	  name += 5;
+	}
+      else if (g_strncasecmp(name, "Alt+", 4) == 0)
+	{
+	  key.mask |= GDK_MOD1_MASK;
+	  name += 4;
+	}
+      else if (g_strncasecmp(name, "Shift+", 6) == 0)
+	{
+	  key.mask |= GDK_SHIFT_MASK;
+	  name += 6;
+	}
+      else
+	break;
+    }
+
+  key.key = gdk_keyval_from_name(name);
+
+  if (key.key == GDK_VoidSymbol)
+    key.mask = 0;
+
+  return key;
+}
+
+/* Configuration */
+
+/**
+ * zconf_create_z_key:
+ * @key: 
+ * @desc: 
+ * @path: 
+ * 
+ * Similar to other zconf_create_.. functions for z_key types.
+ * Give a path like ZCONF_DOMAIN "/foo/bar/accel", this
+ * function appends "_key" and "_mask".
+ **/
+void
+zconf_create_z_key			(z_key		key,
+					 const gchar * 	desc,
+					 const gchar *	path)
+{
+  gchar *s;
+
+  g_assert(path != NULL);
+
+  s = g_strjoin (NULL, path, "_key", NULL);
+  zconf_create_integer ((gint) key.key, desc, s);
+  g_free (s);
+
+  if (zconf_error())
+    return;
+
+  s = g_strjoin (NULL, path, "_mask", NULL);
+  zconf_create_integer ((gint) key.mask, NULL, s);
+  g_free (s);
+}
+
+/**
+ * zconf_set_z_key:
+ * @key: 
+ * @path: 
+ **/
+void
+zconf_set_z_key				(z_key		key,
+					 const gchar *	path)
+{
+  gchar *s;
+
+  g_assert(path != NULL);
+
+  s = g_strjoin (NULL, path, "_key", NULL);
+  zconf_set_integer ((gint) key.key, s);
+  g_free (s);
+
+  if (zconf_error())
+    return;
+
+  s = g_strjoin (NULL, path, "_mask", NULL);
+  zconf_set_integer ((gint) key.mask, s);
+  g_free (s);
+}
+
+z_key
+zconf_get_z_key				(z_key *	keyp,
+					 const gchar *	path)
+{
+  z_key key;
+  gchar *s;
+
+  g_assert(path != NULL);
+
+  s = g_strjoin (NULL, path, "_key", NULL);
+  zconf_get_integer ((gint *) &key.key, s);
+  g_free (s);
+
+  if (!zconf_error())
+    {
+      s = g_strjoin (NULL, path, "_mask", NULL);
+      zconf_get_integer ((gint *) &key.mask, s);
+      g_free (s);
+    }
+
+  if (zconf_error())
+    {
+      key.key = GDK_VoidSymbol;
+      key.mask = 0;
+    }
+  else if (keyp)
+    *keyp = key;
+
+  return key;
+}
+
+/* Key entry dialog */
+
+struct z_key_entry {
+  GtkWidget *			ctrl;
+  GtkWidget *			alt;
+  GtkWidget *			shift;
+  GtkWidget *			entry;
+  z_key	*			keyp;
+  guint				mask;
+};
+
+static void
+on_mask_toggled				(GtkWidget	*w,
+					 gpointer	user_data)
+{
+  struct z_key_entry *ke = user_data;
+  guint mask;
+
+  if (w == ke->ctrl)
+    mask = GDK_CONTROL_MASK;
+  else if (w == ke->alt)
+    mask = GDK_MOD1_MASK;
+  else if (w == ke->shift)
+    mask = GDK_SHIFT_MASK;
+  else
+    mask = 0;
+
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (w)))
+    ke->mask |= mask;
+  else
+    ke->mask &= ~mask;
+
+  if (ke->keyp->key != GDK_VoidSymbol)
+    ke->keyp->mask = ke->mask;
+}
+
+static void
+on_keyval_changed			(GtkWidget *	w,
+					 gpointer	user_data)
+{
+  struct z_key_entry *ke = user_data;
+  gchar *name = gtk_entry_get_text (GTK_ENTRY (w));
+
+  ke->keyp->key = gdk_keyval_from_name(name);
+
+  if (ke->keyp->key == GDK_VoidSymbol)
+    ke->keyp->mask = 0;
+  else
+    ke->keyp->mask = ke->mask;
+}
+
+#include "keysyms.h"
+
+static void
+on_key_table_clicked			(GtkWidget *	w,
+					 gpointer	user_data)
+{
+  struct z_key_entry *ke = user_data;
+  GtkWidget *dialog = create_widget("choose_key");
+  GtkWidget *key_clist = lookup_widget(dialog, "key_clist");
+  gchar *name, *tmp[1];
+  gint i, selected = -1;
+
+  name = gtk_entry_get_text (GTK_ENTRY (ke->entry));
+
+  /* XXX Can we display a keyboard? */
+  /* XXX Can we enum names using GDK? */
+
+  for (i = 0; i < num_keysyms; i++)
+    {
+      tmp[0] = keysyms[i];
+      gtk_clist_append (GTK_CLIST (key_clist), tmp);
+      if (name && !strcasecmp (name, keysyms[i]))
+	selected = i;
+    }
+
+  if (selected >= 0)
+    {
+      gtk_clist_moveto (GTK_CLIST (key_clist), selected, 0, 0.5, 0.5);
+      gtk_clist_select_row (GTK_CLIST (key_clist), selected, 0);
+    }
+
+  if (!gnome_dialog_run_and_close (GNOME_DIALOG (dialog)))
+    {
+      GList *ptr;
+
+      ptr = GTK_CLIST (key_clist)->row_list;
+      i = 0;
+
+      /* get first selected row */
+      while (ptr)
+	{
+	  if (GTK_CLIST_ROW (ptr)->state == GTK_STATE_SELECTED)
+	    break;
+
+	  ptr = ptr->next;
+	  i++;
+	}
+
+      if (ptr)
+	gtk_entry_set_text (GTK_ENTRY (ke->entry), keysyms[i]);
+    }
+
+  gtk_widget_destroy(dialog);
+}
+
+/**
+ * z_key_entry_new:
+ * @keyp: 
+ * 
+ * Creates a "key entry" widget, initial settings taken from
+ * @keyp, all changes stored in @keyp. You can initialize
+ * @keyp with zconf_get_z_key() or z_key_from_name().
+ * 
+ * Return value: 
+ * GtkWidget pointer, gtk_destroy as usual.
+ **/
+GtkWidget *
+z_key_entry_new				(z_key *	keyp)
+{
+  GtkWidget *hbox;
+  GtkWidget *button;
+  struct z_key_entry *ke;
+
+  g_assert(keyp != NULL);
+
+  ke = g_malloc (sizeof(*ke));
+  ke->keyp = keyp;
+  ke->mask = (keyp->key == GDK_VoidSymbol) ? 0 : keyp->mask;
+
+  hbox = gtk_hbox_new (FALSE, 0);
+  gtk_object_set_data_full (GTK_OBJECT (hbox), "z_key_entry", ke,
+			    (GtkDestroyNotify) g_free);
+
+  ke->ctrl = gtk_check_button_new_with_label (("Ctrl"));
+  gtk_box_pack_start (GTK_BOX (hbox), ke->ctrl, FALSE, FALSE, 3);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ke->ctrl),
+				!!(ke->mask & GDK_CONTROL_MASK));
+  gtk_signal_connect (GTK_OBJECT (ke->ctrl), "toggled",
+		      GTK_SIGNAL_FUNC (on_mask_toggled), ke);
+
+  ke->alt = gtk_check_button_new_with_label (("Alt"));
+  gtk_box_pack_start (GTK_BOX (hbox), ke->alt, FALSE, FALSE, 3);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ke->alt),
+				!!(ke->mask & GDK_MOD1_MASK));
+  gtk_signal_connect (GTK_OBJECT (ke->alt), "toggled",
+		      GTK_SIGNAL_FUNC (on_mask_toggled), ke);
+
+  ke->shift = gtk_check_button_new_with_label (("Shift"));
+  gtk_box_pack_start (GTK_BOX (hbox), ke->shift, FALSE, FALSE, 3);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ke->shift),
+				!!(ke->mask & GDK_SHIFT_MASK));
+  gtk_signal_connect (GTK_OBJECT (ke->shift), "toggled",
+		      GTK_SIGNAL_FUNC (on_mask_toggled), ke);
+
+  ke->entry = gtk_entry_new();
+  gtk_box_pack_start (GTK_BOX (hbox), ke->entry, TRUE, TRUE, 3);
+  gtk_entry_set_text (GTK_ENTRY (ke->entry),
+		      gdk_keyval_name(keyp->key) ?: "");
+  gtk_signal_connect (GTK_OBJECT (ke->entry), "changed",
+		      GTK_SIGNAL_FUNC (on_keyval_changed), ke);
+
+  button = gtk_button_new_with_label (("Key table"));
+  gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 3);
+  gtk_signal_connect (GTK_OBJECT (button), "clicked",
+		      GTK_SIGNAL_FUNC (on_key_table_clicked), ke);
+
+  return hbox;
+}
+
+/* Accelerators */
+
+/**
+ * z_widget_add_accelerator:
+ * @widget: 
+ * @accel_signal: 
+ * @accel_key: 
+ * @accel_mods: 
+ * 
+ * Like gtk_widget_add_accelerator() but takes care of creating the
+ * accel group.
+ **/
+void
+z_widget_add_accelerator	(GtkWidget	*widget,
+				 const gchar	*accel_signal,
+				 guint		accel_key,
+				 guint		accel_mods)
+{
+  if (!accel_group)
+    {
+      accel_group = gtk_accel_group_new();
+      gtk_window_add_accel_group(GTK_WINDOW(main_window),
+				 accel_group);
+    }
+
+  gtk_widget_add_accelerator(widget, accel_signal, accel_group,
+			     accel_key, accel_mods, GTK_ACCEL_VISIBLE);
 }

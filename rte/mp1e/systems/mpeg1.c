@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.8 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.9 2002-02-25 06:22:19 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -232,16 +232,15 @@ next_access_unit(stream *str, double *ppts, unsigned char **pph)
 			switch (buf->type) {
 			case I_TYPE:
 			case P_TYPE:
-				*ppts = str->dts_old + str->ticks_per_frame * (buf->offset + 1); // reorder delay
+				*ppts = str->dts_old + str->ticks_per_frame * (buf->offset + 1); /* reorder delay */
 				time_stamp(ph +  6, MARKER_PTS, *ppts);
 				time_stamp(ph + 11, MARKER_DTS, str->dts_old);
 				*pph = NULL;
 				break;
 
 			case B_TYPE:
-				*ppts = str->dts_old; // delay always 0
-				time_stamp(ph +  6, MARKER_PTS_ONLY, *ppts);
-				/* time_stamp(ph + 11, MARKER_DTS, str->dts); */
+				*ppts = str->dts_old; /* delay always 0 */
+				time_stamp(ph + 11, MARKER_PTS_ONLY, *ppts);
 				*pph = NULL;
 				break;
 

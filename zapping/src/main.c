@@ -207,7 +207,7 @@ gboolean on_zapping_key_press		(GtkWidget	*widget,
 					 GdkEventKey	*event,
 					 gpointer	*ignored)
 {
-  return z_select_channel_by_key(event);
+  return z_volume_change(event) || z_select_channel_by_key(event);
 }
 
 static gint hide_pointer_tid = -1;
@@ -456,7 +456,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.155 2002-02-10 11:53:15 mschimek Exp $",
+	 "$Id: main.c,v 1.156 2002-02-25 06:24:40 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -823,6 +823,19 @@ static void shutdown_zapping(void)
   plugin_unload_plugins(plugin_list);
   plugin_list = NULL;
 
+/* Temporarily moved up here for a test */
+#ifdef HAVE_LIBZVBI
+  /*
+   * Shuts down the teletext view
+   */
+  printv(" ttxview");
+  shutdown_ttxview();
+
+  /* Shut down vbi */
+  printv(" vbi\n");
+  shutdown_zvbi();
+#endif
+
   /* Write the currently tuned channels */
   printv(" channels");
   zconf_delete(ZCONF_DOMAIN "tuned_channels");
@@ -922,17 +935,7 @@ static void shutdown_zapping(void)
   printv(" callbacks");
   shutdown_callbacks();
 
-#ifdef HAVE_LIBZVBI
-  /*
-   * Shuts down the teletext view
-   */
-  printv(" ttxview");
-  shutdown_ttxview();
-
-  /* Shut down vbi */
-  printv(" vbi\n");
-  shutdown_zvbi();
-#endif
+    /* vbi */
 
   /* inputs, standards handling */
   printv("\n v4linterface");

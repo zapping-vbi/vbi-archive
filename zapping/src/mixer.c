@@ -27,6 +27,7 @@
 #  include <config.h>
 #endif
 
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include "mixer.h"
@@ -325,7 +326,7 @@ add_dev_mixer_devices		(void)
 	if ((recmask) & (1<<j))
 	  {
 	    line_entry *line;
-	    char *labels[] = SOUND_DEVICE_LABELS; /* soundcard.h */
+	    const char *labels[] = SOUND_DEVICE_LABELS; /* soundcard.h */
 
 	    if (!d)
 	      d = add_device_entry();

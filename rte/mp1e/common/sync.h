@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sync.h,v 1.8 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: sync.h,v 1.9 2002-02-25 06:22:19 mschimek Exp $ */
 
 #ifndef SYNC_H
 #define SYNC_H
@@ -28,24 +28,25 @@
 #include "fifo.h"
 #include "log.h"
 
-typedef unsigned int sync_module;
+typedef unsigned int sync_set;
 
-struct synchr {
+typedef struct {
 	mucon			mucon;
 
 	double			start_time;
 	double			stop_time;
 	double			front_time;
 
-	sync_module		modules;
-	sync_module		vote;
+	sync_set		modules;
+	sync_set		vote;
 
 	double			ref_warp;
-	sync_module		time_base;
-};
+	sync_set		time_base;
+} sync_main;
 
-typedef struct synchr_stream {
-	sync_module		this_module;
+typedef struct {
+	sync_main *		main;
+	sync_set		this_module;
 
 	double			start_ref;
 
@@ -53,62 +54,62 @@ typedef struct synchr_stream {
 	double			frame_period;
 
 	int			bytes_per_sample;	/* power of 2 */
-} synchr_stream;
+} sync_stream;
 
-/* GGG */
-extern struct synchr synchr;
-
-extern void	mp1e_sync_init(unsigned int modules, unsigned int time_base);
-extern bool	mp1e_sync_start(double time);
-extern bool	mp1e_sync_stop(double time);
-extern bool	mp1e_sync_run_in(synchr_stream *str, consumer *c, int *frame_frac);
+extern void mp1e_sync_init(sync_main *, sync_set modules, sync_set time_base);
+extern bool mp1e_sync_start(sync_main *, double time);
+extern bool mp1e_sync_stop(sync_main *, double time);
+extern bool mp1e_sync_run_in(sync_main *, sync_stream *, consumer *, int *frame_frac);
 
 static inline int
-mp1e_sync_break(synchr_stream *str, double time)
+mp1e_sync_break(sync_stream *str, double time)
 {
-	pthread_mutex_lock(&synchr.mucon.mutex);
+	sync_main *mn = str->main;
 
-	if (time >= synchr.stop_time) {
-		pthread_mutex_unlock(&synchr.mucon.mutex);
+	pthread_mutex_lock(&mn->mucon.mutex);
+
+	if (time >= str->main->stop_time) {
+		pthread_mutex_unlock(&mn->mucon.mutex);
 
 		printv(4, "sync_break %08x, %f, stop_time %f\n",
-		       str->this_module, time, synchr.stop_time);
+		       str->this_module, time, mn->stop_time);
 
 		return TRUE;
 	}
 
-	if (time > synchr.front_time)
-		synchr.front_time = time;
+	if (time > mn->front_time)
+		mn->front_time = time;
 
-	pthread_mutex_unlock(&synchr.mucon.mutex);
+	pthread_mutex_unlock(&mn->mucon.mutex);
 
 	return FALSE;
 }
 
 static inline double
-mp1e_sync_drift(synchr_stream *str, double time, double elapsed)
+mp1e_sync_drift(sync_stream *str, double time, double elapsed)
 {
+	sync_main *mn = str->main;
 	double drift;
 
-	pthread_mutex_lock(&synchr.mucon.mutex);
+	pthread_mutex_lock(&mn->mucon.mutex);
 
 	printv(4, "SD%02d %f i%f o%f d%f\n", str->this_module,
 	       time, (time - str->start_ref), elapsed,
 	       (time - str->start_ref) - elapsed);
 
-	if (str->this_module == synchr.time_base) {
+	if (str->this_module == mn->time_base) {
 		if (elapsed >= 0.5) {
 			double warp = (time - str->start_ref) / elapsed;
-			synchr.ref_warp += (warp - synchr.ref_warp) * 0.1;
+			mn->ref_warp += (warp - mn->ref_warp) * 0.1;
 		}
 
 		drift = 0.0;
 
 		printv(4, "SD%02d ref_warp %f, %f s\n",
-		       str->this_module, synchr.ref_warp,
+		       str->this_module, mn->ref_warp,
 		       (time - str->start_ref) - elapsed);
 	} else {
-		double ref_time = (time - str->start_ref) * synchr.ref_warp;
+		double ref_time = (time - str->start_ref) * mn->ref_warp;
 
 		drift = elapsed - ref_time;
 
@@ -119,7 +120,7 @@ mp1e_sync_drift(synchr_stream *str, double time, double elapsed)
 		       drift / (str->frame_period + str->byte_period));
 	}
 
-	pthread_mutex_unlock(&synchr.mucon.mutex);
+	pthread_mutex_unlock(&mn->mucon.mutex);
 
 	return drift;
 }

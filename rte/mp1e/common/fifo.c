@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 1999-2001 Michael H. Schimek
+ *  Copyright (C) 1999, 2000, 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.36 2002-02-25 06:24:40 mschimek Exp $ */
+/* $Id: fifo.c,v 1.1 2002-02-25 06:22:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -500,6 +500,7 @@ wait_empty_buffer(producer *p)
 
 		_pthread_mutex_unlock(&f->consumer->mutex);
  wait:
+
 		if (f->p_reentry++ || !f->wait_empty) {
 			/* Free resources which may block other producers */
 			pthread_cleanup_push((void (*)(void *))

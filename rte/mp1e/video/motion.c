@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.7 2001-11-22 17:51:07 mschimek Exp $ */
+/* $Id: motion.c,v 1.8 2002-02-25 06:22:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -60,6 +60,74 @@ half_weight[4][4] = {
 	{ 16 + 5,  16 + 3, 16 + 5, 16 + 3 },
 	{ 16 + 3,  16 + 0, 16 + 3, 16 + 0 }
 };
+ */
+
+/*
+ *  Candidate mblock caches.
+ *
+ *  Verbatim copy temp11 rationale: parallel 9 * SAD needs way more regs than
+ *  available and frequent access to the unaligned cand mblock samples
+ *  incurs a significant DCU split penalty. Column 16 is transposed
+ *  as a cache size (18x32) vs. execution time trade-off, and provides for
+ *  subsequent advantage by vectorizing these bytes in a row. Cache row 17 is
+ *  unused to allow unaligned access to the transposed column without penalty.
+ *  In byte order: sample[0..16][0..15], unused[16], sample[0..15,16],
+ *  sample[16,16], unused[15].
+ *
+ *  Interpolated copy temp2h/v rationale: accurate unsigned interpolation
+ *  (a+b+1)/2 with MMX is time consuming*) and on the fly interpolation needs
+ *  way more regs than available. -.5,+.5 SAD needs 2*16*16 interpolated samples,
+ *  2*15*16 of which are identical, so 17 rows/columns are computed at once. The
+ *  code is interleaved with temp11 building, thus we need only one cand sample
+ *  read, no temp11 read and no 18th temp11 row and column. Data stored similar to
+ *  temp11, where sample[0..16][0..16] is interp(cand[0..16][0..16], cand[0..16][1..17])
+ *  or sample[0..16][0..16] is interp(cand[0..16][0..16], cand[1..17][0..16]).
+ *  Additionally this takes advantage of column 16 vectorized for temp11.
+ *
+ *  Interpolated copy temp22 rationale: accurate unsigned interpolation of
+ *  temp2h/v (a+b+c+d+2)/4 with MMX is yet more complicated (10 bit precision),
+ *  and inlining needs way more regs than available. X half sample SAD
+ *  needs 4*16*16 interpolated samples, 4*15*15 of which are identical, so
+ *  17 rows and columns are computed at once. The code is interleaved with
+ *  temp11/2h/2v building, thus we need only one cand sample read, no temp11/2h/2v
+ *  read, no 18th temp11/2h/2v row and column, no 9 bit 2h/v, and take advantage
+ *  of temp2h/v intermediate results. Data stored similar to temp11, where
+ *  sample[0..16][0..16] is interp(cand[0..16][0..16], cand[0..16][1..17],
+ *  cand[1..17][0..16], cand[1..17][1..17]). Additionally this takes advantage
+ *  of column 16 vectorized for temp11.
+ *
+ *  2x interpolation: (a >> 1) + (b >> 1) + (a & b & 1), this preserves 9 bit
+ *  accuracy with 8 bit vectors. 4x interpolation: (ab >> 1) + (cd >> 1)
+ *  + (1 & ((ab & cd) ^ ((ab ^ cd) & ~((a ^ b) | (c ^ d))))). Note: &~ is
+ *  one instr (pandn), 2x interpolation ab and cd can be replaced by pavgb,
+ *  and 8 * 8 bit const 1 is reused since MMX has no byte shift operations:
+ *  (a[0..7] >> 1) + (b[0..7] >> 1) = ((a | 0x01..01) >> 1) + ((b | ..) ..),
+ *  where msb 1+1 cancel out. This needs less regs and ops than 16 bit
+ *  expansion w/punpck. Rationale for accurate interpolation: One could
+ *  truncate to get an approximated SAD, but the result is also used for
+ *  further processing (FDCT etc) so we save another cand sample read and
+ *  recalculation of 2x or even 4x interpolation.
+ *
+ *  +-----------------------------+
+ *  vvv                           |||
+ *  a B B B B b b b b C C C C c c c c D
+ *   . . . . + + + + . . . . + + + + .
+ *   ^^^                           |||
+ *  Result:
+ *     hor (a ... c | aB ... cc | B ... D | BB ... cD)
+ *  x vert (a ... c | aB ... cc | B ... D | BB ... cD)
+ *
+ *  Rationale for 4x4 matrix instead of 3x3: typically we refine starting
+ *  from an integer mv, ie. dx-.5|+0|+.5,dy-.5|+0|+.5, but there are
+ *  vector bounds requiring a half sample shift, giving for example
+ *  dx+0,+.5,+1,dy+0,+.5,+1. This can be easily accomplished by swapping the
+ *  arrays. Example cand 0,0 w/best match 0,0 could otherwise test only
+ *  0.5 to 1.5, resulting in a suboptimal match.
+ *
+ *  *) One should examine if the register saving pavgb permits calculation
+ *     of temp2h/v on the fly.
+ *
+ *  XXX optimize ecx (fschking asm()...)
  */
 
 // XXX alias mblock
@@ -1067,6 +1135,30 @@ _3dn_load_interp(unsigned char *p, int pitch, int dx, int dy)
 	:: "S" (p1 + y * pitch), "c" (y * 16), "r" (y) : "memory");
 }
 
+/*
+ *  16x16 sum of absolute differences (part of 3x3 half sample refinement)
+ *
+ *  These two functions compare a reference against two 16x16
+ *  candidate macroblocks which are either horizontal or vertical
+ *  1.0 sample apart, using SAD (sum |a - b|). Input is any
+ *  of the interpolation caches above. Rationale: typically the center
+ *  candidate is already tested, leaving four pairs to be examined.
+ *  MMX SAD is complicated*), but we have enough regs to
+ *  calculate two mblocks in parallel allowing better scheduling,
+ *  removing one loop, call, and numerous memory accesses since the
+ *  two candidate mblocks overlap by 15/16 and the reference is
+ *  the same. Note at this stage all data is L1 cache line aligned
+ *  but loads are still more expensive, requiring an extra uop.
+ *
+ *  sad2h (preferred) compares against
+ *  cache[0..15 + hy][0..15] and cache[0..15 + hy][1..16]. sad2v against
+ *  cache[0..15][0..15 + hx] and cache[1..16][0..15 + hx]. SAD kernel
+ *  is the MMX version is the common psubusb sequence.
+ *
+ *  *) Using the register saving psadbw it may be possible to test
+ *     all eight candidates in a single loop.
+ */
+
 static unsigned int
 mmx_sad2h(unsigned char ref[16][16], typeof(temp22) temp, int hy, int *r2)
 {
@@ -1455,6 +1547,8 @@ mmx_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 	return y; // left, r2 = right
 }
 
+// XXX inefficient
+
 static unsigned int
 sse_sad2h(unsigned char ref[16][16], typeof(temp22) temp, int hy, int *r2)
 {
@@ -1525,6 +1619,11 @@ sse_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 		" pxor		%%mm7,%%mm7;\n"
 	:: "r" (s), "r" (t), "r" (l));
 
+		/*
+		 *  Unrolled 5 * 3 + 1 because the P3 Yeh-Patt
+		 *  branch prediction remembers only patterns of
+		 *  length 1-6. (P4 16, Athlon ?)
+		 */
 		for (y = 0; y < 5; y++) {
 	asm volatile (
 		" movq		%%mm1,%%mm2;\n"
@@ -2480,7 +2579,7 @@ sse_psse_8(char t[16][16], char *p, int pitch)
 		" paddsw	%%mm3,%%mm6;\n"
 /*
 	movq, pminsw, pmaxsw, pcmpeqw
-	pxor, pand, pxor, pxor
+	pxor, pand, pxor, pxor -- verfication required
 */
 		" movq		%%mm1,%%mm5;\n"
 		" pcmpgtw	%%mm6,%%mm5;\n"

@@ -2,8 +2,8 @@
  *  Real Time Encoder lib
  *  mp1e backend
  *
- *  Copyright (C) 2000-2001 Iñaki García Etxebarria
- *  Modified 2001 Michael H. Schimek
+ *  Copyright (C) 2000, 2001 Iñaki García Etxebarria
+ *  Copyright (C) 2000, 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.29 2002-02-08 15:03:10 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.30 2002-02-25 06:22:19 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -41,113 +41,221 @@
 #include "common/log.h"
 #include "common/mmx.h"
 #include "common/bstream.h"
-#include "main.h"
 
-/* Globals required by mp1e */
-int verbose = 0;
+static int			cpu_type;
 
-static int		cpu_type;
+static rte_option_info *	vcd_mpeg1_options;
+static rte_option_info *	vcd_layer2_options;
 
-static rte_option_info *vcd_mpeg1_options;
-static rte_option_info *vcd_layer2_options;
+static int			vcd_mpeg1_num_options;
+static int			vcd_layer2_num_options;
 
-static int		vcd_mpeg1_num_options;
-static int		vcd_layer2_num_options;
+extern rte_context_class	mp1e_mpeg1_ps_context;
+extern rte_context_class	mp1e_mpeg1_vcd_context;
+extern rte_context_class	mp1e_mpeg1_video_context;
+extern rte_context_class	mp1e_mpeg1_audio_context;
 
-extern rte_context_class mp1e_mpeg1_ps_context;
-extern rte_context_class mp1e_mpeg1_vcd_context;
-extern rte_context_class mp1e_mpeg1_video_context;
-extern rte_context_class mp1e_mpeg1_audio_context;
+/* Legacy */
 
+int				verbose = 0;
+// int				filter_mode = 0;
+void packed_preview(unsigned char *buffer, int mb_cols, int mb_rows) { }
+void preview_init(int *argc, char ***argv) { }
 
+/* Start / Stop */
 
+/* forward */ static void reset_output(rte_context *context);
+/* forward */ static void reset_input(rte_codec *codec);
 
-
-
-
-
-
-/* Start recording */
-static rte_bool context_start (rte_context *context)
+static rte_bool
+context_stop(rte_context *context, double timestamp)
 {
-	return FALSE;
+	mp1e_context *mx = PARENT(context, mp1e_context, context);
+	rte_context_class *xc = context->class;
+
+	if (context->status != RTE_STATUS_RUNNING) {
+		rte_error_printf(context, "Context %s not running.",
+				 xc->public.keyword);
+		return FALSE;
+	}
+
+	if (xc == &mp1e_mpeg1_video_context
+	    || xc == &mp1e_mpeg1_audio_context) {
+		mp1e_codec *md = PARENT(mx->codecs, mp1e_codec, codec);
+		rte_codec_class *dc = md->codec.class;
+
+		mp1e_sync_stop(&mx->sync, timestamp);
+
+		// XXX timeout && force
+		pthread_join(md->thread_id, NULL);
+
+		md->codec.status = RTE_STATUS_READY;
+
+		/* Destroy input, reset codec, -> RTE_STATUS_PARAM */
+
+		reset_input(&md->codec);
+
+		dc->parameters_set(&md->codec, &md->codec.params);
+	} else {
+		assert(0); /* FIXME */
+	}
+
+	reset_output(context);
+
+	context->status = RTE_STATUS_NEW;
+
+	return TRUE;
 }
 
-static void context_stop (rte_context *context)
+static rte_bool
+context_start(rte_context *context, double timestamp,
+	      rte_codec *time_ref, rte_bool async)
 {
+	mp1e_context *mx = PARENT(context, mp1e_context, context);
+	rte_context_class *xc = context->class;
+	int error;
+
+	switch (context->status) {
+	case RTE_STATUS_READY:
+		break;
+
+	case RTE_STATUS_RUNNING:
+		rte_error_printf(context, "Context %s already running.",
+				 xc->public.keyword);
+		return FALSE;
+
+	default:
+		rte_error_printf(context, "Cannot start context %s, initialization unfinished.",
+				 xc->public.keyword);
+		return FALSE;
+	}
+
+	if (xc == &mp1e_mpeg1_video_context) {
+		mp1e_codec *md = PARENT(mx->codecs, mp1e_codec, codec);
+
+		md->codec.status = RTE_STATUS_RUNNING;
+
+		error = pthread_create(&md->thread_id, NULL, mp1e_mpeg1, &md->codec);
+
+		if (error != 0) {
+			md->codec.status = RTE_STATUS_READY;
+			rte_error_printf(context, _("Insufficient resources to start "
+						    "video encoding thread.\n"));
+			return FALSE;
+		}
+	} else if (xc == &mp1e_mpeg1_audio_context) {
+		mp1e_codec *md = PARENT(mx->codecs, mp1e_codec, codec);
+
+		md->codec.status = RTE_STATUS_RUNNING;
+
+		error = pthread_create(&md->thread_id, NULL, mp1e_mp2, &md->codec);
+
+		if (error != 0) {
+			md->codec.status = RTE_STATUS_READY;
+			rte_error_printf(context, _("Insufficient resources to start "
+						    "audio encoding thread.\n"));
+			return FALSE;
+		}
+	} else {
+		assert(0); /* FIXME */
+	}
+
+	mp1e_sync_start(&mx->sync, timestamp);
+
+	context->status = RTE_STATUS_RUNNING;
+
+	return TRUE;
 }
 
-static void context_pause (rte_context *context)
-{
-}
-
-static rte_bool context_resume (rte_context *context)
-{
-	return FALSE;
-}
-
-void
-packed_preview(unsigned char *buffer, int mb_cols, int mb_rows)
-
-{
-}
-
-void
-preview_init(int *argc, char ***argv)
-{
-}
-
-
-
-
-
+/* Input / Output */
 
 static void
-wait_empty_cp(fifo *f)
+send_full_cp(producer *p, buffer *b)
 {
-	mp1e_codec *meta = f->user_data;
-	buffer *b = wait_full_buffer(&meta->cons);
+	mp1e_codec *md = p->fifo->user_data;
 	rte_buffer wb;
 
 	if (b->used != 0) {
 		wb.data = b->data;
 		wb.size = b->used;
 
-		if (!meta->write_cb(meta->codec.context, &meta->codec, &wb)) {
+		if (!md->write_cb(md->codec.context, &md->codec, &wb)) {
 			/* XXX what now? */
 		}
 	} else { /* EOF */
-		meta->write_cb(meta->codec.context, &meta->codec, NULL); 
+		md->write_cb(md->codec.context, &md->codec, NULL);
 	}
 
-	send_empty_buffer(&meta->cons, b);
+	add_head(&p->fifo->empty, &b->node);
+}
+
+static void
+reset_output(rte_context *context)
+{
+	mp1e_context *mx = PARENT(context, mp1e_context, context);
+	rte_context_class *xc = context->class;
+
+	if (xc == &mp1e_mpeg1_video_context
+	    || xc == &mp1e_mpeg1_audio_context) {
+		mp1e_codec *md = PARENT(mx->codecs, mp1e_codec, codec);
+
+		rem_consumer(&md->cons);
+		destroy_fifo(md->output);
+	} else {
+		assert(0); /* FIXME */
+	}
+
+	context->status = RTE_STATUS_NEW;
 }
 
 static rte_bool
 set_output(rte_context *context,
 	   rte_buffer_callback write_cb, rte_seek_callback seek_cb)
 {
-	mp1e_context *priv = PARENT(context, mp1e_context, context);	
+	mp1e_context *mx = PARENT(context, mp1e_context, context);
 	rte_context_class *xc = context->class;
+	sync_set modules = 0;
 	char buf[256];
-	int queue, i;
+	int queue, i, j;
 
-	for (i = 0; i <= RTE_STREAM_MAX; i++) {
+	switch (context->status) {
+	case RTE_STATUS_NEW:
+		break;
+
+	case RTE_STATUS_READY:
+		reset_output(context);
+		break;
+
+	default:
+		rte_error_printf(context, "Cannot change %s output, context is busy.",
+				 xc->public.keyword);
+		break;
+	}
+
+	if (!mx->codecs) {
+		rte_error_printf(context, "No codec allocated for context %s.",
+				 xc->public.keyword);
+		return FALSE;
+	}
+
+	for (i = 0, j = 0; i <= RTE_STREAM_MAX; i++) {
 		rte_codec *codec;
 		int count = 0;
 
-		for (codec = priv->codecs; codec; codec = codec->next) {
+		for (codec = mx->codecs; codec; codec = codec->next) {
 			rte_codec_class *dc = codec->class;
-			char *cname = dc->public.label ? _(dc->public.label) : dc->public.keyword;
 
 			if (dc->public.stream_type != i)
 				continue;
 
 			if (codec->status != RTE_STATUS_READY) {
-				rte_error_printf(context, "Codec %s, elementary stream #%d, not ready.",
-						 cname, codec->stream_index);
+				rte_error_printf(context, "Codec %s, elementary stream #%d, "
+						 "initialization unfinished.",
+						 dc->public.keyword, codec->stream_index);
 				return FALSE;
 			}
+
+			modules |= PARENT(codec, mp1e_codec, codec)->sstr.this_module = 1 << j++;
 
 			count++;
 		}
@@ -161,26 +269,30 @@ set_output(rte_context *context,
 	}
 
 	if (xc == &mp1e_mpeg1_video_context || xc == &mp1e_mpeg1_audio_context) {
-		mp1e_codec *meta = PARENT(priv->codecs, mp1e_codec, codec);
-		rte_codec_class *dc = meta->codec.class;
+		mp1e_codec *md = PARENT(mx->codecs, mp1e_codec, codec);
+		rte_codec_class *dc = md->codec.class;
 
 		snprintf(buf, sizeof(buf) - 1, "%s-output-cp", dc->public.keyword);
-		queue = init_callback_fifo(&meta->out_fifo, buf,
-					   wait_empty_cp, NULL, NULL, NULL,
-					   1, meta->output_buffer_size);
-		if (queue < 1) {
+		queue = init_callback_fifo(&md->out_fifo, buf,
+					   NULL, send_full_cp, NULL, NULL,
+					   md->io_stack_size,
+					   md->output_buffer_size);
+
+		if (queue < md->io_stack_size) {
 			rte_error_printf(context, _("Out of memory."));
 			return FALSE;
 		}
 
-		meta->output = &meta->out_fifo;
-		meta->out_fifo.user_data = meta;
+		md->output = &md->out_fifo;
+		md->out_fifo.user_data = md;
 
-		assert(add_consumer(&meta->out_fifo, &meta->cons));
+		add_consumer(&md->out_fifo, &md->cons);
 
-		meta->write_cb = write_cb;
+		md->write_cb = write_cb;
+
+		mp1e_sync_init(&mx->sync, modules, modules);
        	} else {
-		/* FIXME */
+		assert(0); /* FIXME */
 	}
 
 	context->status = RTE_STATUS_READY;
@@ -191,14 +303,16 @@ set_output(rte_context *context,
 static void
 wait_full_ca(fifo *f)
 {
-	mp1e_codec *meta = f->user_data;
+	mp1e_codec *md = f->user_data;
 	buffer *b = PARENT(rem_head(&f->empty), buffer, node);
 	rte_buffer rb;
+
+	assert(b != NULL);
 
 	rb.data = NULL;
 	rb.size = 0;
 
-	if (meta->read_cb(meta->codec.context, &meta->codec, &rb)) {
+	if (md->read_cb(md->codec.context, &md->codec, &rb)) {
 		assert(rb.data != NULL && rb.size > 0);
 
 		b->data = rb.data;
@@ -209,39 +323,41 @@ wait_full_ca(fifo *f)
 		b->used = 0; /* EOF */
 	}
 
-	send_full_buffer(&meta->prod, b);
+	add_tail(&f->full, &b->node);
+	PARENT(f->consumers.head, consumer, node)->next_buffer = b;
 }
 
 static void
 send_empty_ca(consumer *c, buffer *b)
 {
-	mp1e_codec *meta = c->fifo->user_data;
+	mp1e_codec *md = c->fifo->user_data;
 
-	if (meta->unref_cb) {
+	if (md->unref_cb) {
 		rte_buffer rb;
 
 		rb.data = b->data;
 		rb.size = b->used;
 		rb.user_data = b->user_data;
 
-		meta->unref_cb(meta->codec.context, &meta->codec, &rb);
+		md->unref_cb(md->codec.context, &md->codec, &rb);
 	}
 
+	unlink_node(&c->fifo->full, &b->node);
 	add_head(&c->fifo->empty, &b->node);
 }
 
 static void
 wait_full_cp(fifo *f)
 {
-	mp1e_codec *meta = f->user_data;
+	mp1e_codec *md = f->user_data;
 	buffer *b = PARENT(rem_head(&f->empty), buffer, node);
 	rte_buffer rb;
 
 	rb.data = b->data;
 	rb.size = b->size;
 
-	if (meta->read_cb(meta->codec.context, &meta->codec, &rb)) {
-		assert(rb.data == b->data && rb.size < b->size);
+	if (md->read_cb(md->codec.context, &md->codec, &rb)) {
+		assert(rb.data == b->data && rb.size <= b->size);
 
 		b->used = rb.size;
 		b->time = rb.timestamp;
@@ -250,38 +366,40 @@ wait_full_cp(fifo *f)
 		b->used = 0; /* EOF */
 	}
 
-	send_full_buffer(&meta->prod, b);
+	send_full_buffer(&md->prod, b);
 }
 
 static rte_bool
 push_buffer(rte_codec *codec, rte_buffer *wb, rte_bool blocking)
 {
-	mp1e_codec *meta = PARENT(codec, mp1e_codec, codec);
-	buffer *b;
+	mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
+	buffer *b = NULL;
 
-	pthread_mutex_lock(&meta->codec.mutex);
-
-	if (meta->codec.status != RTE_STATUS_RUNNING) {
+	if (md->codec.status != RTE_STATUS_RUNNING) {
+		rte_error_printf(codec->context, "Codec %s not running.",
+				 codec->class->public.keyword);
 		return FALSE;
 	}
 
 	if (!wb || wb->data) {
 		if (blocking)
-			b = wait_empty_buffer(&meta->prod);
+			b = wait_empty_buffer(&md->prod);
 		else {
-			if (!(b = recv_empty_buffer(&meta->prod)))
+			if (!(b = recv_empty_buffer(&md->prod))) {
+				errno = EAGAIN;
 				return FALSE;
+			}
 		}
 
 		/* FIXME out-of-order */
-		if (meta->unref_cb && b->used) {
+		if (md->unref_cb && b->data && b->used) {
 			rte_buffer rb;
 
 			rb.data = b->data;
 			rb.size = b->used;
 			rb.user_data = b->user_data;
 
-			meta->unref_cb(meta->codec.context, &meta->codec, &rb);
+			md->unref_cb(md->codec.context, &md->codec, &rb);
 		}
 	}
 
@@ -296,10 +414,11 @@ push_buffer(rte_codec *codec, rte_buffer *wb, rte_bool blocking)
 			b->time = wb->timestamp;
 			b->user_data = wb->user_data;
 
-			send_full_buffer(&meta->prod, b);
+			send_full_buffer(&md->prod, b);
 		}
 
-		if (meta->input_mode == RTE_INPUT_PP) {
+		if (md->input_method == RTE_PUSH_PULL_PASSIVE) {
+			/* FIXME */
 			wb->data = b->allocated;
 			wb->size = b->size;
 			wb->user_data = b->user_data;
@@ -307,10 +426,8 @@ push_buffer(rte_codec *codec, rte_buffer *wb, rte_bool blocking)
 	} else {
 		b->used = 0; /* EOF */
 
-		send_full_buffer(&meta->prod, b);
+		send_full_buffer(&md->prod, b);
 	}
-
-	pthread_mutex_unlock(&meta->codec.mutex);
 
 	return TRUE;
 }
@@ -318,106 +435,125 @@ push_buffer(rte_codec *codec, rte_buffer *wb, rte_bool blocking)
 static void
 reset_input(rte_codec *codec)
 {
-	mp1e_codec *meta = PARENT(codec, mp1e_codec, codec);
+	mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
 
-	rem_producer(&meta->prod);
-	destroy_fifo(meta->input);
+	rem_producer(&md->prod);
+	destroy_fifo(md->input);
 
 	codec->status = RTE_STATUS_PARAM;
 }
 
 static rte_bool
-set_input(rte_codec *codec, rte_input input_mode,
+set_input(rte_codec *codec, rte_io_method input_method,
 	  rte_buffer_callback read_cb, rte_buffer_callback unref_cb, int *queue_length)
 {
-	mp1e_codec *meta = PARENT(codec, mp1e_codec, codec);
+	mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
 	rte_codec_class *dc = codec->class;
 	rte_context *context = codec->context;
 	char buf[256];
 	int queue;
 
-	pthread_mutex_lock(&codec->mutex);
-
 	switch (codec->status) {
+	case RTE_STATUS_NEW:
+		rte_error_printf(context, "Attempt to select input method with "
+					  "uninitialized sample parameters.");
+		return FALSE;
+
 	case RTE_STATUS_PARAM:
 		break;
+
 	case RTE_STATUS_READY:
 		reset_input(codec);
 		break;
+
 	default:
-		rte_error_printf(context, "Attempt to select input method with "
-					  "uninitialized sample parameters.");
-		goto failed;
+		rte_error_printf(context, "Cannot change %s input, codec is busy.",
+				 dc->public.keyword);
+		break;
 	}
 
-	queue = MAX(*queue_length, meta->input_stack_size);
+	if (input_method != RTE_CALLBACK_ACTIVE) {
+		rte_error_printf(context, "Input method not supported (broken).");
+		return FALSE;
+	}
 
-	switch (input_mode) {
-	case RTE_INPUT_CA:
+	/* FIXME broken */
+
+	switch (input_method) {
+	case RTE_CALLBACK_ACTIVE:
+		queue = MAX(*queue_length, md->io_stack_size);
 		snprintf(buf, sizeof(buf) - 1, "%s-input-ca", dc->public.keyword);
-		queue = init_callback_fifo(&meta->in_fifo, buf, NULL, NULL,
+		queue = init_callback_fifo(&md->in_fifo, buf, NULL, NULL,
 					   wait_full_ca, send_empty_ca,
-					   meta->input_stack_size, 0);
+					   md->io_stack_size, 0);
 		break;
 
-	case RTE_INPUT_CP:
+	case RTE_CALLBACK_PASSIVE:
+		queue = MAX(*queue_length, md->io_stack_size);
 		snprintf(buf, sizeof(buf) - 1, "%s-input-cp", dc->public.keyword);
-		queue = init_callback_fifo(&meta->in_fifo, buf, NULL, NULL,
+		queue = init_callback_fifo(&md->in_fifo, buf, NULL, NULL,
 					   wait_full_cp, NULL, queue,
-					   meta->input_buffer_size);
+					   md->input_buffer_size);
 		break;
 
-	case RTE_INPUT_PA:
+	case RTE_PUSH_PULL_ACTIVE:
+		queue = MAX(*queue_length, md->io_stack_size + 1);
 		snprintf(buf, sizeof(buf) - 1, "%s-input-pa", dc->public.keyword);
-		queue = init_buffered_fifo(&meta->in_fifo, buf, queue, 0);
+		queue = init_buffered_fifo(&md->in_fifo, buf, queue, 0);
 		break;
 
-	case RTE_INPUT_PP:
+	case RTE_PUSH_PULL_PASSIVE:
+		queue = MAX(*queue_length, md->io_stack_size);
 		snprintf(buf, sizeof(buf) - 1, "%s-input-pp", dc->public.keyword);
-		queue = init_buffered_fifo(&meta->in_fifo, buf,
-					   queue, meta->input_buffer_size);
+		queue = init_buffered_fifo(&md->in_fifo, buf,
+					   queue, md->input_buffer_size);
 		unref_cb = NULL;
 		break;
 
 	default:
-		goto failed;
+		assert(!"rte bug");
 	}
 
-	if (queue < meta->input_stack_size) {
-		destroy_fifo(&meta->in_fifo);
-		goto failed;
+	if (queue < md->io_stack_size) {
+		destroy_fifo(&md->in_fifo);
+		return FALSE;
 	}
 
-	meta->input = &meta->in_fifo;
-	meta->in_fifo.user_data = meta;
+	md->input = &md->in_fifo;
+	md->in_fifo.user_data = md;
 
-	assert(add_producer(&meta->in_fifo, &meta->prod));
+	add_producer(&md->in_fifo, &md->prod);
 
 	*queue_length = queue;
 
-	meta->input_mode = input_mode;
-	meta->read_cb = read_cb;
-	meta->unref_cb = unref_cb;
+	md->input_method = input_method;
+	md->read_cb = read_cb;
+	md->unref_cb = unref_cb;
 
-	pthread_mutex_unlock(&codec->mutex);
+	codec->status = RTE_STATUS_READY;
+
 	return TRUE;
-
- failed:
-	pthread_mutex_unlock(&codec->mutex);
-	return FALSE;
 }
+
+/* Sampling parameters */
 
 static rte_bool
 parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 {
 	rte_codec_class *dc = codec->class;
 
-	pthread_mutex_lock(&codec->mutex);
-
-	if (codec->status == RTE_STATUS_READY)
+	switch (codec->status) {
+	case RTE_STATUS_NEW:
+	case RTE_STATUS_PARAM:
+		break;
+	case RTE_STATUS_READY:
 		reset_input(codec);
-
-	pthread_mutex_unlock(&codec->mutex);
+		break;
+	default:
+		rte_error_printf(codec->context, "Cannot change %s parameters, codec is busy.",
+				 dc->public.keyword);
+		return FALSE;
+	}
 
 	if (codec->context->class == &mp1e_mpeg1_vcd_context) {
 		if (dc == &mp1e_mpeg1_video_codec) {
@@ -454,6 +590,8 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	return dc->parameters_set(codec, rsp);
 }
 
+/* Codec options */
+
 static rte_bool
 option_set(rte_codec *codec, const char *keyword, va_list args)
 {
@@ -483,6 +621,8 @@ option_enum(rte_codec *codec, int index)
 	return dc->option_enum ? dc->option_enum(codec, index) : NULL;
 }
 
+/* Codec allocation */
+
 static rte_codec_class *
 codec_table[] = {
 	&mp1e_mpeg1_video_codec,
@@ -495,10 +635,10 @@ static const int num_codecs = sizeof(codec_table) / sizeof(codec_table[0]);
 static rte_codec *
 codec_get(rte_context *context, rte_stream_type stream_type, int stream_index)
 {
-	mp1e_context *priv = PARENT(context, mp1e_context, context);
+	mp1e_context *mx = PARENT(context, mp1e_context, context);
 	rte_codec *codec;
 
-	for (codec = priv->codecs; codec; codec = codec->next)
+	for (codec = mx->codecs; codec; codec = codec->next)
 		if (codec->class->public.stream_type == stream_type
 		    && codec->stream_index == stream_index)
 			return codec;
@@ -510,13 +650,13 @@ static rte_codec *
 codec_set(rte_context *context, const char *keyword,
 	  rte_stream_type stream_type, int stream_index)
 {
-	mp1e_context *priv = PARENT(context, mp1e_context, context);
+	mp1e_context *mx = PARENT(context, mp1e_context, context);
 	rte_context_class *xc = context->class;
 	rte_codec_class *dc;
 	rte_codec *old, **oldpp, *codec = NULL;
 	int i;
 
-	for (oldpp = &priv->codecs; (old = *oldpp); oldpp = &old->next) {
+	for (oldpp = &mx->codecs; (old = *oldpp); oldpp = &old->next) {
 		dc = old->class;
 
 		if (keyword) {
@@ -561,9 +701,9 @@ codec_set(rte_context *context, const char *keyword,
 			return NULL;
 		}
 
-		if (!old && priv->num_codecs >= 32) {
-			rte_error_printf(context, "Limit of %s codecs (32) reached.",
-					 xc->public.keyword);
+		if (!old && mx->num_codecs >= MAX_ELEMENTARY_STREAMS) {
+			rte_error_printf(context, "Limit of %s codecs (%d) reached.",
+					 xc->public.keyword, MAX_ELEMENTARY_STREAMS);
 			return NULL;
 		}
 
@@ -597,13 +737,13 @@ codec_set(rte_context *context, const char *keyword,
 			reset_input(old);
 
 		old->class->delete(old);
-		priv->num_codecs--;
+		mx->num_codecs--;
 	}
 
 	if (codec) {
-		codec->next = priv->codecs;
-		priv->codecs = codec;
-		priv->num_codecs++;
+		codec->next = mx->codecs;
+		mx->codecs = codec;
+		mx->num_codecs++;
 	}
 
 	return codec;
@@ -632,6 +772,8 @@ codec_enum(rte_context *context, int index)
 
 	return NULL;
 }
+
+/* Context allocation */
 
 static rte_context_class
 mp1e_mpeg1_ps_context = {
@@ -683,8 +825,8 @@ mp1e_mpeg1_audio_context = {
 
 static rte_context_class *
 context_table[] = {
-	&mp1e_mpeg1_ps_context,
-	&mp1e_mpeg1_vcd_context,
+//	&mp1e_mpeg1_ps_context,
+//	&mp1e_mpeg1_vcd_context,
 	&mp1e_mpeg1_video_context,
 	&mp1e_mpeg1_audio_context,
 };
@@ -694,40 +836,48 @@ static const int num_contexts = sizeof(context_table) / sizeof(context_table[0])
 static void
 context_delete(rte_context *context)
 {
-	mp1e_context *priv = PARENT(context, mp1e_context, context);
-
-	pthread_mutex_lock(&context->mutex);
+	mp1e_context *mx = PARENT(context, mp1e_context, context);
 
 	switch (context->status) {
 	case RTE_STATUS_RUNNING:
-		fprintf(stderr, "mp1e bug warning: attempt to delete "
-			"running %s context ignored\n", context->class->public.keyword);
-		pthread_mutex_unlock(&context->mutex);
-		return;
+	case RTE_STATUS_PAUSED:
+		assert(!"reached");
+
+	case RTE_STATUS_READY:
+		reset_output(context);
+		break;
+
 	default:
 		break;
 	}
 
-#warning free codecs
+	/* Delete codecs */
 
-	pthread_mutex_unlock(&context->mutex);
+	while (mx->codecs) {
+		rte_codec *codec = mx->codecs;
+
+		codec_set(context, NULL,
+			  codec->class->public.stream_type,
+			  codec->stream_index);
+	}
+
 	pthread_mutex_destroy(&context->mutex);
 
-	free(priv);
+	free(mx);
 }
 
 static rte_context *
 context_new(rte_context_class *xc, char **errstr)
 {
-	mp1e_context *priv;
+	mp1e_context *mx;
 	rte_context *context;
 
-	if (!(priv = calloc(1, sizeof(*priv)))) {
+	if (!(mx = calloc(1, sizeof(*mx)))) {
 		rte_asprintf(errstr, _("Out of memory."));
 		return NULL;
 	}
 
-	context = &priv->context;
+	context = &mx->context;
 
 	context->class = xc;
 
@@ -737,6 +887,8 @@ context_new(rte_context_class *xc, char **errstr)
 
 	return context;
 }
+
+/* Backend initialization */
 
 static rte_option_info *
 clone_option(rte_codec *codec, int index, rte_option_info **options, int *num)
@@ -798,12 +950,9 @@ backend_init(void)
 		context_table[i]->push_buffer = push_buffer;
 
 		context_table[i]->set_output = set_output;
-// <<
 
 		context_table[i]->start = context_start;
 		context_table[i]->stop = context_stop;
-		context_table[i]->pause = context_pause;
-		context_table[i]->resume = context_resume;
 	}
 
 	mp1e_mpeg1_vcd_context.codec_option_enum = option_enum;
@@ -831,6 +980,8 @@ backend_init(void)
 			oi->def.num = oi->min.num = oi->max.num = 1; /* stereo */
 		}
 	}
+
+	filter_mode = -1;
 }
 
 static rte_context_class *

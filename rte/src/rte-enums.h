@@ -7,7 +7,6 @@ typedef enum {
   RTE_STREAM_AUDIO,	 /* input/output distinction? */
   RTE_STREAM_RAW_VBI,
   RTE_STREAM_SLICED_VBI,
-  /* ... */
   RTE_STREAM_MAX = 15
 } rte_stream_type;
 

@@ -19,31 +19,39 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.h,v 1.1 2002-02-08 15:03:10 mschimek Exp $ */
+/* $Id: b_mp1e.h,v 1.2 2002-02-25 06:22:19 mschimek Exp $ */
 
-#ifndef MP1E_H
-#define MP1E_H
+#ifndef B_MP1E_H
+#define B_MP1E_H
 
 #include "../src/rtepriv.h"
 #include "common/sync.h"
+
+#define MAX_ELEMENTARY_STREAMS ((sizeof(sync_set) * 8) - 1)
 
 /* Backend specific rte_codec and rte_context extensions */
 
 typedef struct {
 	rte_codec		codec;
-	synchr_stream 		sstr;
 
-	int			input_stack_size;
+	sync_stream 		sstr;
+
+	/* I/O parameters reported by codec */
+
+	int			io_stack_size;
 	int			input_buffer_size;
-
 	int			output_buffer_size;	/* maximum */
 	int			output_bit_rate;	/* maximum */
 	double			output_frame_rate;	/* exact */
 
+	/* I/O fifos */
+
 	fifo *			input;
 	fifo *			output;
 
-	/***/
+	/* Backend side I/O stuff */
+
+	pthread_t		thread_id;
 
 	fifo			in_fifo;
 	fifo			out_fifo;
@@ -51,7 +59,7 @@ typedef struct {
 	producer		prod;
 	consumer		cons;
 
-	rte_input		input_mode;
+	rte_io_method		input_method;
 
 	rte_buffer_callback	read_cb;
 	rte_buffer_callback	write_cb;
@@ -61,44 +69,15 @@ typedef struct {
 typedef struct {
 	rte_context		context;
 
+	sync_main		sync;
+
 	rte_codec *		codecs;
 
 	int			num_codecs;
 
 //	multiplexer *mux;
-	rte_buffer_callback	write_cb;
 
+	rte_buffer_callback	write_cb;
 } mp1e_context;
 
-
-
-
-/* From main.h, to be removed. */
-/*
-extern double		video_stop_time;
-extern double		audio_stop_time;
-
-extern pthread_t	audio_thread_id;
-extern int		stereo;
-
-extern pthread_t	video_thread_id;
-extern void		(* video_start)(void);
-
-extern pthread_t        output_thread_id;
-
-extern pthread_t	tk_main_id;
-extern void *		tk_main(void *);
-
-extern int		mux_mode;
-extern int		psycho_loops;
-
-extern void options(int ac, char **av);
-
-extern void preview_init(int *acp, char ***avp);
-
-#include "systems/libsystems.h"
-
-extern volatile int program_shutdown;
-*/
-#endif /* MP1E_H */
-
+#endif /* B_MP1E_H */

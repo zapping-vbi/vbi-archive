@@ -19,11 +19,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.3 2001-10-16 11:18:12 mschimek Exp $ */
+/* $Id: b_ffmpeg.c,v 1.4 2002-02-25 06:22:19 mschimek Exp $ */
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 #include <errno.h>
+
+#if 0
 
 #include "../mp1e/common/fifo.h"
 #include "libav/avformat.h"
@@ -495,3 +497,5 @@ rte_backend_info b_ffmpeg_info =
 	query_format,
 	status
 };
+
+#endif /* 0 */

@@ -42,8 +42,6 @@ Querying status.
 @codec: 
 @n: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@context: 
 
 
 <!-- ##### FUNCTION rte_codec_status_keyword ##### -->

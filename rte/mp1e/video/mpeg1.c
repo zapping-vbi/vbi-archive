@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999-2001 Michael H. Schimek
+ *  Copyright (C) 1999, 2000, 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.23 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.24 2002-02-25 06:22:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -38,7 +38,6 @@
 #include "../common/bstream.h"
 #include "../common/fifo.h"
 #include "../common/alloc.h"
-//#include "../common/errstr.h"
 #include "../systems/mpeg.h"
 #include "../systems/systems.h"
 #include "vlc.h"
@@ -65,9 +64,12 @@ int			mm_buf_offs;
 unsigned int p_inter_bias = 65536 * 48,
              b_inter_bias = 65536 * 96;
 int x_bias = 65536 * 31,
-    quant_max = 31;
+	quant_max = 31;
 
 #define QS 1
+
+#define TEST34 0
+#define T34VMC 1500000
 
 #define NO_VBV 0xFFFF
 
@@ -78,9 +80,6 @@ mp1e_static_context(void)
 {
 	return static_context;
 }
-
-/* main.c */
-extern long long	video_num_frames;
 
 #define fdct_intra mp1e_mmx_fdct_intra
 #define fdct_inter mp1e_mmx_fdct_inter
@@ -96,8 +95,6 @@ quant_res_intra[32] __attribute__ ((SECTION("video_tables") aligned (CACHE_LINE)
 	16, 16, 18, 18, 20, 20, 22, 22,	24, 24, 26, 26, 28, 28, 30, 30
 };
 
-extern bool		temporal_interpolation;
-
 extern int		preview;
 extern void		packed_preview(unsigned char *buffer,
 				       int mb_cols, int mb_rows);
@@ -110,6 +107,8 @@ extern void		packed_preview(unsigned char *buffer,
 #ifndef T3RI
 #define T3RI 1
 #endif
+
+#define TEST12 0
 
 #define VARQ 65536.0
 
@@ -125,7 +124,7 @@ do { int i, j, n;					\
 	/* if (var < LOWVAR / 5) n = 64 - 3; else */	\
 	if (var < LOWVAR) n = 64 - 8; else n = 0;	\
 	for (i = 0; i < n; i++) {			\
-		j = 63 - iscan[0][(i - 1) & 63];	\
+		j = 63 - mp1e_iscan[0][(i - 1) & 63];	\
 		mb[0][0][j] = 0;			\
 		mb[1][0][j] = 0;			\
 		mb[2][0][j] = 0;			\
@@ -480,6 +479,8 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 		}
 
 		for (mb_col = 0; mb_col < mb_width; mb_col++) {
+			unsigned int cbp;
+			int dmv[1][2];
 
 			/* Read macroblock (MMX state) */
 
@@ -511,6 +512,44 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 
 			/* Encode macroblock */
 
+#if TEST34
+			//fprintf(stderr, "%2d,%2d %8d %8d\n", mb_row, mb_col, var, vmc);
+
+			while (motion && vmc < T34VMC && (mb_row | mb_col) > 0) {
+				unsigned int x, s2 = 0;
+				int n;
+
+				// fprintf(stderr, "*");
+
+				/* chroma var */
+
+				for (x = 4 * 64; x < 6 * 64; x++) {
+					n = mblock[1][0][0][x];
+					s2 += n * n;
+				}
+
+				if (s2 * 256 * 2 >= T34VMC) {
+					// fprintf(stderr, "\\");
+					break;
+				}
+
+				quant = prev_quant;
+
+				if (motion) {
+					dmv[0][0] = (M[0].MV[0] - M[0].PMV[0]) & M[0].f_mask;
+					dmv[0][1] = (M[0].MV[1] - M[0].PMV[1]) & M[0].f_mask;
+
+					M[0].PMV[0] = M[0].MV[0];
+					M[0].PMV[1] = M[0].MV[1];
+				}
+
+				brewind(&mark, &video_out);
+
+				vmc = 0;
+				cbp = 0;
+				goto l1;
+			}
+#endif
 			if (T3RI
 			    && ((TEST12
 				 && motion
@@ -557,8 +596,8 @@ ZMB1(var);
 						zero_forward_motion();
 				}
 			} else {
-				unsigned int code, cbp;
-				int dmv[1][2], len, length, i;
+				unsigned int code;
+				int len, length, i;
 
 				/* Calculate quantization factor */
 
@@ -581,11 +620,13 @@ if (!T3RT) quant = 2;
 				brewind(&mark, &video_out);
 
 				for (;;) {
-					i = mb_skipped;
-
 					pr_start(26, "FDCT inter");
 					cbp = fdct_inter(mblock[1], quant); // mblock[1] -> mblock[0]
 					pr_end(26);
+#if TEST34
+				l1:
+#endif
+					i = mb_skipped;
 
 					if (cbp == 0 && mb_count > 1 && mb_count < mb_num &&
 						(!motion || (M[0].MV[0] | M[0].MV[1]) == 0)) {
@@ -787,6 +828,8 @@ tmp_picture_b(mpeg1_context *mpeg1, unsigned char *org,
 
 	for (mb_row = 0; mb_row < mb_height; mb_row++) {
 		for (mb_col = 0; mb_col < mb_width; mb_col++) {
+			unsigned int cbp;
+			int dmv[2][2];
 
 			/* Read macroblock (MMX state) */
 
@@ -854,6 +897,41 @@ skip_pred:
 
 			/* Encode macroblock */
 
+#if TEST34
+			while (motion && vmc < T34VMC && (mb_row || mb_col) > 0) {
+				unsigned int x, s2 = 0;
+				int n;
+
+				// fprintf(stderr, "+");
+
+				/* chroma var */
+
+				for (x = 4 * 64; x < 6 * 64; x++) {
+					n = (*iblock)[0][0][x];
+					s2 += n * n;
+				}
+
+				if (s2 * 256 * 2 >= T34VMC) {
+					// fprintf(stderr, "\\");
+					break;
+				}
+
+				quant = prev_quant; 
+
+				if (motion) {
+					dmv[0][0] = (M[0].MV[0] - M[0].PMV[0]) & M[0].f_mask;
+					dmv[0][1] = (M[0].MV[1] - M[0].PMV[1]) & M[0].f_mask;
+					dmv[1][0] = (M[1].MV[0] - M[1].PMV[0]) & M[1].f_mask;
+					dmv[1][1] = (M[1].MV[1] - M[1].PMV[1]) & M[1].f_mask;
+				}
+
+				brewind(&mark, &video_out);
+
+				vmc = 0;
+				cbp = 0;
+				goto l2;
+			}
+#endif
 			if (T3RI
 			    && ((TEST12
 				 && motion
@@ -891,8 +969,8 @@ ZMB1(var);
 					M[1].PMV[1] = 0;
 				}
 			} else {
-				unsigned int code, cbp;
-				int dmv[2][2], len, length, i;
+				unsigned int code;
+				int len, length, i;
 
 				/* Calculate quantization factor */
 
@@ -919,12 +997,13 @@ if (!T3RT) quant = 2;
 				brewind(&mark, &video_out);
 
 				for (;;) {
-	i = mb_skipped;
-
 	pr_start(26, "FDCT inter");
 	cbp = fdct_inter(*iblock, quant); // mblock[1|2|3] -> mblock[0]
 	pr_end(26);
-
+#if TEST34
+l2:
+#endif
+	i = mb_skipped;
 
 	if (cbp == 0
 	    && macroblock_type == mb_type_last /* -> not first of slice */
@@ -1581,7 +1660,27 @@ mp1e_mpeg1(void *codec)
 
 	printv(3, "Video compression thread\n");
 
-	assert(mpeg1->codec.status == RTE_STATUS_READY);
+	assert(mpeg1->codec.codec.status == RTE_STATUS_RUNNING);
+
+	/* XXX this function isn't reentrant. yet. */
+	assert(static_context == mpeg1);
+
+	if (!add_consumer(mpeg1->codec.input, &mpeg1->cons))
+		return (void *) -1;
+	// XXX need better exit method
+
+	if (!add_producer(mpeg1->codec.output, &mpeg1->prod)) {
+		rem_consumer(&mpeg1->cons);
+		return (void *) -1;
+	}
+
+	if (!mp1e_sync_run_in(&PARENT(mpeg1->codec.codec.context,
+				      mp1e_context, context)->sync,
+			      &mpeg1->codec.sstr, &mpeg1->cons, NULL)) {
+		rem_consumer(&mpeg1->cons);
+		rem_producer(&mpeg1->prod);
+		return (void *) -1;
+	}
 
 #if TEST21
 {
@@ -1606,11 +1705,6 @@ mp1e_mpeg1(void *codec)
 		assert(0);	
 }
 #endif
-
-	/* XXX this function isn't reentrant. yet. */
-	assert(static_context == mpeg1);
-
-	mp1e_sync_run_in(&mpeg1->sstr, &mpeg1->cons, NULL);
 
 	while (!done) {
 		stacked_frame *this = NULL;
@@ -1661,13 +1755,13 @@ mp1e_mpeg1(void *codec)
 
 			sp++;
 
-			mp1e_sync_drift(&mpeg1->sstr, this->time, mpeg1->coded_elapsed);
+			mp1e_sync_drift(&mpeg1->codec.sstr, this->time, mpeg1->coded_elapsed);
 
 			mpeg1->coded_elapsed += mpeg1->coded_frame_period;
 
 			if (!this->buffer /* eof */
-			    || mp1e_sync_break(&mpeg1->sstr, this->time)
-			    || video_frame_count + sp > video_num_frames) {
+			    || mp1e_sync_break(&mpeg1->codec.sstr, this->time)
+			    || video_frame_count + sp > mpeg1->num_frames) {
 				printv(2, "Video: End of file\n");
 
 				if (this->buffer && this->org)
@@ -1856,6 +1950,7 @@ finish:
 	_send_full_buffer(mpeg1, obuf);
 
 	rem_consumer(&mpeg1->cons);
+	rem_producer(&mpeg1->prod);
 
 	static_context = NULL;
 
@@ -1892,6 +1987,7 @@ video_reset(mpeg1_context *mpeg1)
 
 	mpeg1->skip_rate_acc = mpeg1->nominal_frame_rate
 		- mpeg1->virtual_frame_rate + mpeg1->nominal_frame_rate / 2.0;
+
 	mpeg1->drop_timeout = mpeg1->nominal_frame_period * 1.5;
 	mpeg1->coded_time_elapsed = 0.0;
 
@@ -1956,14 +2052,14 @@ gop_validation(mpeg1_context *mpeg1, char *gop_sequence)
 	if (!gop_sequence
 	    || gop_sequence[0] != 'I'
 	    || strspn(gop_sequence, "IPB") != strlen(gop_sequence)) {
-		rte_error_printf(mpeg1->codec.context,
+		rte_error_printf(mpeg1->codec.codec.context,
 				 _("Invalid group of pictures sequence: \"%s\".\n"
 				   GOP_RULE), gop_sequence);
 		return FALSE;
 	}
 
 	if (strlen(gop_sequence) > 1024) {
-		rte_error_printf(mpeg1->codec.context,
+		rte_error_printf(mpeg1->codec.codec.context,
 				 _("Invalid group of pictures sequence: \"%s\", length %d.\n"
 				   "The number of pictures in a GOP is limited to 1024."),
 				 gop_sequence, strlen(gop_sequence));
@@ -2016,7 +2112,7 @@ gop_validation(mpeg1_context *mpeg1, char *gop_sequence)
 	 *  One position used by I or P.
 	 */
 	if (bmax >= elements(mpeg1->stack)) {
-		rte_error_printf(mpeg1->codec.context,
+		rte_error_printf(mpeg1->codec.codec.context,
 				 _("Invalid group of pictures sequence: \"%s\".\n"
 				   "The number of successive 'B' bidirectionally predicted "
 				   "pictures is limited to %u."),
@@ -2036,32 +2132,10 @@ do_free(void **pp)
 	}
 }
 
-void
-mp1e_mpeg1_uninit(rte_codec *codec)
+static void
+uninit(rte_codec *codec)
 {
 	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
-	int was_locked;
-
-	was_locked = pthread_mutex_lock(&mpeg1->codec.mutex);
-	assert(was_locked == 0 || was_locked == EBUSY);
-
-	switch (mpeg1->codec.status) {
-	case RTE_STATUS_NEW:
-	case RTE_STATUS_PARAM:
-		return;
-	case RTE_STATUS_READY:
-		break;
-	default:
-		assert(!"reached");
-	}
-
-	rem_consumer(&mpeg1->cons);
-	rem_producer(&mpeg1->prod);
-
-	if (mpeg1->fifo) {
-		mux_rem_input_stream(mpeg1->fifo);
-		mpeg1->fifo = NULL;
-	}
 
 	/* 0P */
 	do_free((void **) &mpeg1->zerop_template);
@@ -2073,52 +2147,185 @@ mp1e_mpeg1_uninit(rte_codec *codec)
 
 	do_free((void **) &mpeg1->banner);
 
-	/* XXX unsafe */
 	if (static_context == mpeg1)
 		static_context = NULL;
-
-	mpeg1->codec.status = RTE_STATUS_PARAM;
-
-	if (!was_locked)
-		pthread_mutex_unlock(&mpeg1->codec.mutex);	
 }
 
-void
-mp1e_mpeg1_init(rte_codec *codec, int cpu_type,
-		int coded_width, int coded_height,
-		int motion_min, int motion_max,
-		fifo *capture_fifo,
-		unsigned int module, multiplexer *mux)
+static int
+dvec_imin(const double *vec, int size, double val)
 {
-	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
-	bool packed = TRUE;
-	int was_locked, i;
+	int i, imin = 0;
+	double d, dmin = DBL_MAX;
 
-	was_locked = pthread_mutex_lock(&mpeg1->codec.mutex);
-	assert(was_locked == 0 || was_locked == EBUSY);
+	assert(size > 0);
 
-	if (!mpeg1->coded_width) { // XXX mp1e frontend
-		mpeg1->codec.status = RTE_STATUS_PARAM;
+	for (i = 0; i < size; i++) {
+		d = fabs(val - vec[i]);
+
+		if (d < dmin) {
+			dmin = d;
+		        imin = i;
+		}
 	}
 
-	switch (mpeg1->codec.status) {
-	case RTE_STATUS_PARAM:
+	return imin;
+}
+
+static rte_bool
+parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
+{
+	extern int filter_y_offs, filter_u_offs, filter_v_offs, filter_y_pitch;
+	extern int (* filter)(unsigned char *, unsigned char *);
+	extern int pmmx_YUV420_0(filter_param *, int, int) __attribute__ ((regparm (3)));
+	extern int pmmx_YUYV_0(filter_param *, int, int) __attribute__ ((regparm (3)));
+	extern int mmx_YUV_420(unsigned char *, unsigned char *);
+	extern int mmx_YUYV_422_vi(unsigned char *, unsigned char *);
+	extern int filter_mode;
+	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
+	rte_bool packed = TRUE;
+	int size;
+
+	switch (codec->status) {
+	case RTE_STATUS_NEW:
 		break;
+
+	case RTE_STATUS_PARAM:
+		uninit(codec);
+		break;
+
 	default:
 		assert(!"reached");
 	}
 
-	/* XXX this function isn't reentrant, check is unsafe */
-	if (!static_context) static_context = mpeg1;
+	if (rsp->video.width <= 0 || rsp->video.height <= 0)
+		goto reject;
+
+	// XXX relax
+	rsp->video.width = (saturate(rsp->video.width, 16, MAX_WIDTH) + 8) & -16;
+	rsp->video.height = (saturate(rsp->video.height, 16, MAX_HEIGHT) + 8) & -16;
+
+	mpeg1->coded_width = rsp->video.width;
+	mpeg1->coded_height = rsp->video.height;
+
+	video_coding_size(mpeg1->coded_width, mpeg1->coded_height);
+
+	if (filter_mode != -1) { // XXX mp1e frontend
+		extern int motion_min, motion_max;
+		extern int width, height;
+
+		mpeg1->coded_width = width;
+		mpeg1->coded_height = height;
+
+		video_coding_size(mpeg1->coded_width, mpeg1->coded_height);
+
+		mpeg1->motion_min = motion_min; // option
+		mpeg1->motion_max = motion_max;
+	} else {
+	// XXX relax
+	rsp->video.width = (saturate(rsp->video.width, 16, MAX_WIDTH) + 8) & -16;
+	rsp->video.height = (saturate(rsp->video.height, 16, MAX_HEIGHT) + 8) & -16;
+
+	mpeg1->coded_width = rsp->video.width;
+	mpeg1->coded_height = rsp->video.height;
+
+	video_coding_size(mpeg1->coded_width, mpeg1->coded_height);
+
+	switch (rsp->video.pixfmt) {
+	case RTE_PIXFMT_YUV420:
+		if (rsp->video.stride == 0)
+			rsp->video.stride = rsp->video.width;
+		if (rsp->video.uv_stride == 0)
+			rsp->video.uv_stride = rsp->video.width >> 1;
+		if (rsp->video.u_offset == 0 || rsp->video.v_offset == 0) {
+			rsp->video.u_offset = rsp->video.height * rsp->video.stride;
+			rsp->video.v_offset += (rsp->video.height >> 1) * rsp->video.uv_stride;
+		}
+
+		mpeg1->codec.input_buffer_size =
+			MAX(rsp->video.offset + rsp->video.stride * rsp->video.height,
+			    MAX(rsp->video.u_offset, rsp->video.v_offset)
+			    + rsp->video.uv_stride * (rsp->video.height >> 1));
+
+#if 1 /* old */
+		filter_y_offs = rsp->video.offset;
+		filter_u_offs = rsp->video.u_offset;
+		filter_v_offs = rsp->video.v_offset;
+		filter_y_pitch = rsp->video.stride;
+		/* uv_pitch assumed y_pitch / 2 */
+		filter = mmx_YUV_420;
+#else /* new */
+		mpeg1->filter_param[0].dest = &mblock[0];
+		mpeg1->filter_param[0].offset = rsp->video.offset;
+		mpeg1->filter_param[0].u_offset = rsp->video.u_offset;
+		mpeg1->filter_param[0].v_offset = rsp->video.v_offset;
+		mpeg1->filter_param[0].stride = rsp->video.stride;
+		mpeg1->filter_param[0].uv_stride = rsp->video.uv_stride;
+		mpeg1->filter_param[0].func = pmmx_YUV420_0;
+#endif
+		break;
+
+	case RTE_PIXFMT_YUYV:
+		if (rsp->video.stride == 0)
+			rsp->video.stride = rsp->video.width * 2;
+
+		mpeg1->codec.input_buffer_size =
+			rsp->video.offset + rsp->video.stride * rsp->video.height;
+
+#if 1 /* old */
+		filter_y_offs = rsp->video.offset;
+		filter_y_pitch = rsp->video.stride;
+		filter = mmx_YUYV_422_vi;
+#else /* new */
+		mpeg1->filter_param[0].dest = &mblock[0];
+		mpeg1->filter_param[0].offset = rsp->video.offset;
+		mpeg1->filter_param[0].stride = rsp->video.stride;
+		mpeg1->filter_param[0].func = pmmx_YUYV_0;
+#endif
+		break;
+
+	default:
+		goto reject;
+	}
+	}
+
+	if (rsp->video.frame_rate <= 24.0)
+		rsp->video.frame_rate = 24.0;
+
+	mpeg1->nominal_frame_rate = rsp->video.frame_rate;
+
+	if (!rsp->video.pixel_aspect)
+		rsp->video.pixel_aspect = 1.0;
+
+	mpeg1->aspect_ratio_code = dvec_imin(&aspect_ratio_value[1], 14,
+					     rsp->video.pixel_aspect); 
+
+	rsp->video.pixel_aspect = aspect_ratio_value[mpeg1->aspect_ratio_code];
+
+	memcpy(&codec->params, rsp, sizeof(codec->params));
+
+
+
+	/* XXX this codec isn't reentrant */
+	if (!static_context)
+		static_context = mpeg1;
 	assert(static_context == mpeg1);
 
-	if (!mpeg1->coded_width) { // XXX mp1e frontend
-		mpeg1->coded_width = coded_width;
-		mpeg1->coded_height = coded_height;
-		mpeg1->motion_min = motion_min;
-		mpeg1->motion_max = motion_max;
-	}
+
+	memset(&mpeg1->codec.sstr, 0, sizeof(mpeg1->codec.sstr));
+
+	mpeg1->codec.sstr.frame_period = mpeg1->nominal_frame_period;
+
+
+	assert(gop_validation(mpeg1, mpeg1->gop_sequence));
+
 	mpeg1->frames_per_seqhdr = 12;
+
+
+	video_frames_dropped = 0;
+	video_frame_count = 0;
+
+
+	/* Init motion compensation */
 
 	/* XXX */
 	if (mpeg1->motion_compensation) {
@@ -2126,32 +2333,28 @@ mp1e_mpeg1_init(rte_codec *codec, int cpu_type,
 		mpeg1->motion_max = 24;
 	}
 
-	switch (cpu_type) {
-	case CPU_K6_2:
-	case CPU_CYRIX_III:
-		search = _3dn_search;
-		break;
-
-	case CPU_PENTIUM_4:
-#if USE_SSE2
-		search = sse2_search;
-		break;
-#endif
-
-	case CPU_PENTIUM_III:
-	case CPU_ATHLON:
-		search = sse_search;
-		break;
-
-	default:
-		search = mmx_search;
-		break;
-	}
-
-	assert(gop_validation(mpeg1, mpeg1->gop_sequence));
-
 	if (mpeg1->motion_min && mpeg1->motion_max
 	    && mpeg1->rc.np > 0 && mpeg1->rc.nb > 0) {
+		switch (cpu_detection()) {
+		case CPU_K6_2:
+		case CPU_CYRIX_III:
+			search = _3dn_search;
+			break;
+
+		case CPU_PENTIUM_4:
+#if USE_SSE2
+			search = sse2_search;
+			break;
+#endif
+		case CPU_PENTIUM_III:
+		case CPU_ATHLON:
+			search = sse_search;
+			break;
+
+		default:
+			search = mmx_search;
+			break;
+		}
 #if REG_TEST
 		motion = (mpeg1->motion_min + mpeg1->motion_max) << 7;
 #else
@@ -2165,6 +2368,14 @@ mp1e_mpeg1_init(rte_codec *codec, int cpu_type,
 		mpeg1->picture_i = picture_i_mc;
 		mpeg1->picture_p = picture_p_mc;
 		mpeg1->picture_b = picture_b_mc;
+
+		mm_buf_offs = 6 * 64 * mb_num;
+		mm_mbrow = calloc_aligned(mb_width * (16 * 8) * sizeof(short), 4096);
+
+		if (!mm_mbrow) {
+			rte_error_printf(codec->context, _("Out of memory for mc buffer."));
+			goto reject;
+		}
 	} else {
 		motion = 0;
 
@@ -2173,7 +2384,37 @@ mp1e_mpeg1_init(rte_codec *codec, int cpu_type,
 		mpeg1->picture_b = picture_b_nomc;
 	}
 
+	/* Init buffers */
+
+	// XXX too big. Interleave.
+
+	size = (motion ? 10 * 64 : 6 * 64) * mb_num;
+
+	if (!(mpeg1->oldref = calloc_aligned(size, 4096))) {
+		rte_error_printf(codec->context, _("Out of memory for video buffer."));
+		goto reject;
+	}
+
+	if (!(newref = calloc_aligned(size, 4096))) {
+		rte_error_printf(codec->context, _("Out of memory for video buffer."));
+		goto reject;
+	}
+
+	binit_write(&video_out);
+	bstart(&video_out, mpeg1->oldref);
+	mpeg1->Sz = picture_zero(mpeg1);
+
+	if (!(mpeg1->zerop_template =
+	      calloc_aligned(mpeg1->Sz * sizeof(unsigned char), CACHE_LINE))) {
+		rte_error_printf(codec->context, _("Out of memory."));
+		goto reject;
+	}
+
+	memcpy(mpeg1->zerop_template, mpeg1->oldref, mpeg1->Sz);
+
 	if (packed) {
+		int i;
+
 		for (i = 0; i < 6; i++) {
 			mb_address.block[i].offset	= 64;
 			mb_address.block[i].pitch	= 8;
@@ -2191,6 +2432,8 @@ mp1e_mpeg1_init(rte_codec *codec, int cpu_type,
 // 		predict_forward = predict_forward_packed;
 // 		predict_bidirectional = predict_bidirectional_packed;
 	} else {
+		int i;
+
 		for (i = 0; i < 6; i++)
 			mb_address.block[i].pitch = mb_width * ((i >= 4) ? 8 : 16);
 
@@ -2210,43 +2453,11 @@ mp1e_mpeg1_init(rte_codec *codec, int cpu_type,
 		mpeg1->predict_bidirectional = predict_bidirectional_planar; // no MMX equv
 	}
 
-	/**/
-
-	binit_write(&video_out);
-
-	{
-		int size = (motion ? 10 * 64 : 6 * 64) * mb_num;
-
-		mm_buf_offs = 6 * 64 * mb_num;
-
-		ASSERT("allocate forward reference buffer",
-		       (mpeg1->oldref = calloc_aligned(size, 4096)) != NULL);
-
-		ASSERT("allocate backward reference buffer",
-		       (newref = calloc_aligned(size, 4096)) != NULL);
-
-		if (motion)
-			ASSERT("allocate mb_sum buffer",
-			       (mm_mbrow = calloc_aligned(mb_width
-			  * (16 * 8) * sizeof(short), 4096)) != NULL);
-	}
-
-	bstart(&video_out, mpeg1->oldref);
-	mpeg1->Sz = picture_zero(mpeg1);
-
-	ASSERT("allocate 0P template, %d bytes",
-		(mpeg1->zerop_template =
-		 calloc_aligned(mpeg1->Sz * sizeof(unsigned char),
-				CACHE_LINE)) != NULL, mpeg1->Sz);
-
-	memcpy(mpeg1->zerop_template, mpeg1->oldref, mpeg1->Sz);
+	/* Misc */
 
 	mpeg1->last.org = NULL;
 	mpeg1->last.time = 0;
 	mpeg1->p_succ = 0;
-
-	video_frames_dropped = 0;
-	video_frame_count = 0;
 
 	{
 		mpeg1->mb_cx_row = mb_height;
@@ -2261,28 +2472,26 @@ mp1e_mpeg1_init(rte_codec *codec, int cpu_type,
 
 	video_reset(mpeg1);
 
-	{
-		extern int vid_buffers;
+	/* I/O */
 
-		mpeg1->fifo = mux_add_input_stream(mux,
-			VIDEO_STREAM, "video-mpeg1",
-			mb_num * 384 * 4, vid_buffers,
-			mpeg1->coded_frame_rate, mpeg1->bit_rate);
+	mpeg1->codec.sstr.frame_period = 1.0 / mpeg1->nominal_frame_rate;
 
-		add_producer(mpeg1->fifo, &mpeg1->prod);
-	}
+	mpeg1->codec.io_stack_size = video_look_ahead(mpeg1->gop_sequence);
 
-	memset(&mpeg1->sstr, 0, sizeof(mpeg1->sstr));
-	mpeg1->sstr.this_module = module;
-	mpeg1->sstr.frame_period = mpeg1->nominal_frame_period;
+	mpeg1->codec.output_buffer_size = mb_num * 384 * 4;
+	mpeg1->codec.output_bit_rate = mpeg1->bit_rate;
+	mpeg1->codec.output_frame_rate = mpeg1->coded_frame_rate;
 
-	ASSERT("add video cons",
-		add_consumer(capture_fifo, &mpeg1->cons));
+	codec->status = RTE_STATUS_PARAM;
 
-	mpeg1->codec.status = RTE_STATUS_READY;
+	return TRUE;
 
-	if (!was_locked)
-		pthread_mutex_unlock(&mpeg1->codec.mutex);	
+reject:
+	uninit(codec);
+
+	codec->status = RTE_STATUS_NEW;
+
+	return FALSE;
 }
 
 /*
@@ -2341,9 +2550,43 @@ XXX
 	   N_("Add an annotation in the user data field shortly after "
 	      "the video stream start. This is an mp1e extension, "
 	      "players will ignore it.")),
+	RTE_OPTION_INT_RANGE_INITIALIZER
+	  ("num_frames", NULL, INT_MAX, 1, INT_MAX, 1, NULL),
 };
 
 #define KEYWORD(name) strcmp(keyword, name) == 0
+
+static char *
+option_print(rte_codec *codec, const char *keyword, va_list args)
+{
+	char buf[80];
+	rte_context *context = codec->context;
+
+	if (KEYWORD("bit_rate")) {
+	        snprintf(buf, sizeof(buf), _("%5.3f Mbit/s"), va_arg(args, int) / 1e6);
+	} else if (KEYWORD("coded_frame_rate")) {
+		snprintf(buf, sizeof(buf), _("%4.2f frames/s"),
+			 frame_rate_value[dvec_imin(
+				  &frame_rate_value[1], 8,
+				  va_arg(args, double)) + 1]);
+	} else if (KEYWORD("virtual_frame_rate")) {
+		snprintf(buf, sizeof(buf), _("%5.3f frames/s"), va_arg(args, double));
+	} else if (KEYWORD("skip_method")) {
+		return rte_strdup(context, NULL, menu_skip_method[
+			RTE_OPTION_ARG_MENU(menu_skip_method)]);
+	} else if (KEYWORD("gop_sequence") || KEYWORD("anno")) {
+		return rte_strdup(context, NULL, va_arg(args, char *));
+	} else if (KEYWORD("motion_compensation") || KEYWORD("monochrome")) {
+		return rte_strdup(context, NULL, va_arg(args, int) ?
+				  _("on") : _("off"));
+	} else {
+		rte_unknown_option(context, codec, keyword);
+	failed:
+		return NULL;
+	}
+
+	return rte_strdup(context, NULL, buf);
+}
 
 static rte_bool
 option_get(rte_codec *codec, const char *keyword, rte_option_value *v)
@@ -2369,32 +2612,14 @@ option_get(rte_codec *codec, const char *keyword, rte_option_value *v)
 	} else if (KEYWORD("anno")) {
 		if (!(v->str = rte_strdup(context, NULL, mpeg1->anno)))
 			return FALSE;
+	} else if (KEYWORD("num_frames")) {
+		v->num = mpeg1->num_frames;
 	} else {
 		rte_unknown_option(context, codec, keyword);
 		return FALSE;
 	}
 
 	return TRUE;
-}
-
-static int
-dvec_imin(const double *vec, int size, double val)
-{
-	int i, imin = 0;
-	double d, dmin = DBL_MAX;
-
-	assert(size > 0);
-
-	for (i = 0; i < size; i++) {
-		d = fabs(val - vec[i]);
-
-		if (d < dmin) {
-			dmin = d;
-		        imin = i;
-		}
-	}
-
-	return imin;
 }
 
 static rte_bool
@@ -2413,13 +2638,17 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 
 	/* Preview runtime changes here */
 
-	switch (mpeg1->codec.status) {
+	switch (codec->status) {
 	case RTE_STATUS_NEW:
+		break;
+
 	case RTE_STATUS_PARAM:
+		uninit(codec);
 		break;
+
 	case RTE_STATUS_READY:
-		mp1e_mpeg1_uninit(&mpeg1->codec);
-		break;
+		assert(!"reached");
+
 	default:
 		rte_error_printf(codec->context, "Cannot set %s options, codec is busy.",
 				 codec->class->public.keyword);
@@ -2463,47 +2692,17 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 	} else if (KEYWORD("anno")) {
 		if (!rte_strdup(context, &mpeg1->anno, va_arg(args, char *)))
 			return FALSE;
+	} else if (KEYWORD("num_frames")) {
+		mpeg1->num_frames = va_arg(args, int);
 	} else {
 		rte_unknown_option(context, codec, keyword);
 	failed:
 		return FALSE;
 	}
 
-	mpeg1->codec.status = RTE_STATUS_NEW;
+	codec->status = RTE_STATUS_NEW;
 
 	return TRUE;
-}
-
-static char *
-option_print(rte_codec *codec, const char *keyword, va_list args)
-{
-	char buf[80];
-	rte_context *context = codec->context;
-
-	if (KEYWORD("bit_rate")) {
-	        snprintf(buf, sizeof(buf), _("%5.3f Mbit/s"), va_arg(args, int) / 1e6);
-	} else if (KEYWORD("coded_frame_rate")) {
-		snprintf(buf, sizeof(buf), _("%4.2f frames/s"),
-			 frame_rate_value[dvec_imin(
-				  &frame_rate_value[1], 8,
-				  va_arg(args, double)) + 1]);
-	} else if (KEYWORD("virtual_frame_rate")) {
-		snprintf(buf, sizeof(buf), _("%5.3f frames/s"), va_arg(args, double));
-	} else if (KEYWORD("skip_method")) {
-		return rte_strdup(context, NULL, menu_skip_method[
-			RTE_OPTION_ARG_MENU(menu_skip_method)]);
-	} else if (KEYWORD("gop_sequence") || KEYWORD("anno")) {
-		return rte_strdup(context, NULL, va_arg(args, char *));
-	} else if (KEYWORD("motion_compensation") || KEYWORD("monochrome")) {
-		return rte_strdup(context, NULL, va_arg(args, int) ?
-				  _("on") : _("off"));
-	} else {
-		rte_unknown_option(context, codec, keyword);
-	failed:
-		return NULL;
-	}
-
-	return rte_strdup(context, NULL, buf);
 }
 
 static rte_option_info *
@@ -2517,134 +2716,26 @@ option_enum(rte_codec *codec, int index)
 	return mpeg1_options + index;
 }
 
-static rte_bool
-parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
-{
-	extern int filter_y_offs, filter_u_offs, filter_v_offs, filter_y_pitch;
-	extern int (* filter)(unsigned char *, unsigned char *);
-	extern int pmmx_YUV420_0(filter_param *, int, int) __attribute__ ((regparm (3)));
-	extern int pmmx_YUYV_0(filter_param *, int, int) __attribute__ ((regparm (3)));
-	extern int mmx_YUV_420(unsigned char *, unsigned char *);
-	extern int mmx_YUYV_422_vi(unsigned char *, unsigned char *);
-	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
-	rte_codec_class *dc = codec->class;
-
-	pthread_mutex_lock(&mpeg1->codec.mutex);
-
-	switch (mpeg1->codec.status) {
-	case RTE_STATUS_NEW:
-	case RTE_STATUS_PARAM:
-		break;
-	case RTE_STATUS_READY:
-		mp1e_mpeg1_uninit(&mpeg1->codec);
-		break;
-	default:
-		rte_error_printf(codec->context, _("Cannot change %s parameters, codec is busy."),
-				 dc->public.label ? _(dc->public.label) : dc->public.keyword);
-		goto reject;
-	}
-
-	if (rsp->video.width <= 0 || rsp->video.height <= 0)
-		goto reject;
-
-	// XXX relax
-	rsp->video.width = (rsp->video.width + 8) % 16;
-	rsp->video.height = (rsp->video.height + 8) % 16;
-
-	mpeg1->coded_width = rsp->video.width;
-	mpeg1->coded_height = rsp->video.height;
-
-	video_coding_size(mpeg1->coded_width, mpeg1->coded_height);
-
-	switch (rsp->video.pixfmt) {
-	case RTE_PIXFMT_YUV420:
-		if (rsp->video.stride == 0)
-			rsp->video.stride = rsp->video.width;
-		if (rsp->video.uv_stride == 0)
-			rsp->video.uv_stride = rsp->video.width >> 1;
-		if (rsp->video.u_offset == 0 || rsp->video.v_offset == 0) {
-			rsp->video.u_offset = rsp->video.height * rsp->video.stride;
-			rsp->video.v_offset += (rsp->video.height >> 1) * rsp->video.uv_stride;
-		}
-#if 1 /* old */
-		filter_y_offs = rsp->video.offset;
-		filter_u_offs = rsp->video.u_offset;
-		filter_v_offs = rsp->video.v_offset;
-		filter_y_pitch = rsp->video.stride;
-		/* uv_pitch assumed y_pitch / 2 */
-		filter = mmx_YUV_420;
-#else /* new */
-		mpeg1->filter_param[0].dest = &mblock[0];
-		mpeg1->filter_param[0].offset = rsp->video.offset;
-		mpeg1->filter_param[0].u_offset = rsp->video.u_offset;
-		mpeg1->filter_param[0].v_offset = rsp->video.v_offset;
-		mpeg1->filter_param[0].stride = rsp->video.stride;
-		mpeg1->filter_param[0].uv_stride = rsp->video.uv_stride;
-		mpeg1->filter_param[0].func = pmmx_YUV420_0;
-#endif
-		break;
-
-	case RTE_PIXFMT_YUYV:
-		if (rsp->video.stride == 0)
-			rsp->video.stride = rsp->video.width * 2;
-#if 1 /* old */
-		filter_y_offs = rsp->video.offset;
-		filter_y_pitch = rsp->video.stride;
-		filter = mmx_YUYV_422_vi;
-#else /* new */
-		mpeg1->filter_param[0].dest = &mblock[0];
-		mpeg1->filter_param[0].offset = rsp->video.offset;
-		mpeg1->filter_param[0].stride = rsp->video.stride;
-		mpeg1->filter_param[0].func = pmmx_YUYV_0;
-#endif
-		break;
-
-	default:
-		goto reject;
-	}
-
-	if (rsp->video.frame_rate <= 24.0)
-		rsp->video.frame_rate = 24.0;
-
-	mpeg1->nominal_frame_rate = rsp->video.frame_rate;
-
-	if (!rsp->video.pixel_aspect)
-		rsp->video.pixel_aspect = 1.0;
-
-	mpeg1->aspect_ratio_code = dvec_imin(&aspect_ratio_value[1], 14,
-					     rsp->video.pixel_aspect); 
-
-	rsp->video.pixel_aspect = aspect_ratio_value[mpeg1->aspect_ratio_code];
-
-	memcpy(&mpeg1->codec.params, rsp, sizeof(mpeg1->codec.params));
-	mpeg1->codec.status = RTE_STATUS_PARAM;
-
-	pthread_mutex_unlock(&mpeg1->codec.mutex);
-	return TRUE;
-
-reject:
-	mpeg1->codec.status = RTE_STATUS_NEW;
-
-	pthread_mutex_unlock(&mpeg1->codec.mutex);
-	return FALSE;
-}
-
 static void
 codec_delete(rte_codec *codec)
 {
 	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
 
-	pthread_mutex_lock(&mpeg1->codec.mutex);
-
-	switch (mpeg1->codec.status) {
-	case RTE_STATUS_READY:
-		mp1e_mpeg1_uninit(&mpeg1->codec);
+	switch (codec->status) {
+	case RTE_STATUS_PARAM:
+		uninit(codec);
 		break;
+
+	case RTE_STATUS_READY:
+		assert(!"reached");
+		break;
+
 	case RTE_STATUS_RUNNING:
+	case RTE_STATUS_PAUSED:
 		fprintf(stderr, "mp1e bug warning: attempt to delete "
 			"running mpeg1 codec ignored\n");
-		pthread_mutex_unlock(&mpeg1->codec.mutex);
 		return;
+
 	default:
 		break;
 	}
@@ -2657,8 +2748,7 @@ codec_delete(rte_codec *codec)
 	if (mpeg1->anno)
 		free(mpeg1->anno);
 
-	pthread_mutex_unlock(&mpeg1->codec.mutex);
-	pthread_mutex_destroy(&mpeg1->codec.mutex);
+	pthread_mutex_destroy(&codec->mutex);
 
 	free_aligned(mpeg1);
 }
@@ -2667,19 +2757,21 @@ static rte_codec *
 codec_new(rte_codec_class *cc, char **errstr)
 {
 	mpeg1_context *mpeg1;
+	rte_codec *codec;
 
 	if (!(mpeg1 = calloc_aligned(sizeof(*mpeg1), 8192))) {
 		rte_asprintf(errstr, _("Out of memory."));
 		return NULL;
 	}
 
-	mpeg1->codec.class = cc;
+	codec = &mpeg1->codec.codec;
+	codec->class = cc;
 
-	pthread_mutex_init(&mpeg1->codec.mutex, NULL);
+	pthread_mutex_init(&codec->mutex, NULL);
 
-	mpeg1->codec.status = RTE_STATUS_NEW;
+	codec->status = RTE_STATUS_NEW;
 
-	return &mpeg1->codec;
+	return codec;
 }
 
 rte_codec_class

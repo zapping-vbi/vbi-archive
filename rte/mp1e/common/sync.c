@@ -17,32 +17,30 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sync.c,v 1.5 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: sync.c,v 1.6 2002-02-25 06:22:19 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "sync.h"
 #include "math.h"
 
-struct synchr synchr;
-
 void
-mp1e_sync_init(unsigned int modules, unsigned int time_base)
+mp1e_sync_init(sync_main *mn, sync_set modules, sync_set time_base)
 {
-	mucon_init(&synchr.mucon);
+	mucon_init(&mn->mucon);
 
-	synchr.start_time = DBL_MAX;
-	synchr.stop_time = DBL_MAX;
+	mn->start_time = DBL_MAX;
+	mn->stop_time = DBL_MAX;
 
-	synchr.front_time = -1;
+	mn->front_time = -1;
 
-	synchr.modules = modules;
-	synchr.vote = 0;
+	mn->modules = modules;
+	mn->vote = 0;
 
 	assert(popcnt(time_base) <= 1);
 
-	synchr.time_base = time_base;
+	mn->time_base = time_base;
 
-	synchr.ref_warp = 1.0;
+	mn->ref_warp = 1.0;
 }
 
 /**
@@ -54,20 +52,19 @@ mp1e_sync_init(unsigned int modules, unsigned int time_base)
  * Return value: 
  **/
 bool
-mp1e_sync_start(double time)
+mp1e_sync_start(sync_main *mn, double time)
 {
-	pthread_mutex_lock(&synchr.mucon.mutex);
+	pthread_mutex_lock(&mn->mucon.mutex);
 
-	if (synchr.modules == synchr.vote) {
-		pthread_mutex_unlock(&synchr.mucon.mutex);
+	if (mn->modules == mn->vote) {
+		pthread_mutex_unlock(&mn->mucon.mutex);
 		return FALSE;
 	}
 
-	synchr.start_time = time;
+	mn->start_time = time;
 
-	pthread_cond_broadcast(&synchr.mucon.cond);
-
-	pthread_mutex_unlock(&synchr.mucon.mutex);
+	pthread_cond_broadcast(&mn->mucon.cond);
+	pthread_mutex_unlock(&mn->mucon.mutex);
 
 	return TRUE;
 }
@@ -81,24 +78,26 @@ mp1e_sync_start(double time)
  * Return value: 
  **/
 bool
-mp1e_sync_stop(double time)
+mp1e_sync_stop(sync_main *mn, double time)
 {
-	pthread_mutex_lock(&synchr.mucon.mutex);
+	pthread_mutex_lock(&mn->mucon.mutex);
 
-	if (synchr.modules != synchr.vote ||
-	    synchr.stop_time < DBL_MAX) {
-		pthread_mutex_unlock(&synchr.mucon.mutex);
+	if (mn->modules != mn->vote ||
+	    mn->stop_time < DBL_MAX) {
+		pthread_mutex_unlock(&mn->mucon.mutex);
 		return FALSE;
 	}
 
-	synchr.stop_time = MAX(time, synchr.front_time);
+	mn->stop_time = MAX(time, mn->front_time);
 
-	printv(4, "sync_stop at %f\n", synchr.stop_time);
+	printv(4, "sync_stop at %f\n", mn->stop_time);
 
-	pthread_mutex_unlock(&synchr.mucon.mutex);
+	pthread_mutex_unlock(&mn->mucon.mutex);
 
 	return TRUE;
 }
+
+#define VT(d) (((d) > DBL_MAX / 2.0) ? -1 : (d))
 
 /**
  * mp1e_sync_run_in:
@@ -111,11 +110,13 @@ mp1e_sync_stop(double time)
  * Return value: 
  **/
 bool
-mp1e_sync_run_in(synchr_stream *str, consumer *c, int *frame_frac)
+mp1e_sync_run_in(sync_main *mn, sync_stream *str, consumer *c, int *frame_frac)
 {
 	double first_time, last_time = -1;
 	double frame_period;
 	buffer *b;
+
+	str->main = mn;
 
 	c->fifo->start(c->fifo);
 
@@ -124,7 +125,12 @@ mp1e_sync_run_in(synchr_stream *str, consumer *c, int *frame_frac)
 	if (b->used <= 0)
 		FAIL("Premature end of file (%s)", c->fifo->name);
 
-	pthread_mutex_lock(&synchr.mucon.mutex);
+	pthread_mutex_lock(&mn->mucon.mutex);
+
+	printv(4, "SRI0 %02x: %f %f %f %d\n",
+	       str->this_module, str->start_ref,
+	       str->byte_period, str->frame_period,
+	       str->bytes_per_sample);
 
 	first_time = b->time;
 
@@ -133,50 +139,49 @@ mp1e_sync_run_in(synchr_stream *str, consumer *c, int *frame_frac)
 
 	for (;;) {
 		if (b->time == 0.0) { // offline
-			if (synchr.start_time < DBL_MAX) {
+			if (mn->start_time < DBL_MAX) {
 				printv(4, "SRI %02x: accept start_time %f for %f, voted %02x/%02x\n",
-					str->this_module, synchr.start_time, b->time,
-					synchr.vote, synchr.modules);
-				if ((synchr.vote |= str->this_module) == synchr.modules)
+				       str->this_module, VT(mn->start_time), b->time, mn->vote, mn->modules);
+				if ((mn->vote |= str->this_module) == mn->modules)
 					break;
-				pthread_cond_broadcast(&synchr.mucon.cond);
+				pthread_cond_broadcast(&mn->mucon.cond);
 			}
-			pthread_cond_wait(&synchr.mucon.cond, &synchr.mucon.mutex);
+			pthread_cond_wait(&mn->mucon.cond, &mn->mucon.mutex);
 			continue;
 		}
 
-		// XXX return FALSE
+		/* FIXME must not FAIL */
 		if (0) // because rte sends in duplicate b->time, but that's ok.
 		if (b->time <= last_time)
 			FAIL("Invalid timestamps from %s: ..., %f, %f\n",
 				c->fifo->name, last_time, b->time);
-		if ((b->time - first_time) > 2.0)
+		if ((b->time - first_time) > 2.0) {
 			FAIL("Unable to sync %s after %f secs\n",
-				c->fifo->name, b->time - first_time);
+				c->fifo->name, VT(b->time - first_time));
+		}
 
 		last_time = b->time;
 
-		if (synchr.start_time < b->time) {
+		if (mn->start_time < b->time) {
 			printv(4, "SRI %02x: propose start_time %f, was %f\n",
-				str->this_module, b->time, synchr.start_time);
-			synchr.start_time = b->time;
-			synchr.vote = str->this_module;
-			if (str->this_module == synchr.modules)
+				str->this_module, b->time, VT(mn->start_time));
+			mn->start_time = b->time;
+			mn->vote = str->this_module;
+			if (str->this_module == mn->modules)
 				break;
-			pthread_cond_broadcast(&synchr.mucon.cond);
-			pthread_cond_wait(&synchr.mucon.cond, &synchr.mucon.mutex);
+			pthread_cond_broadcast(&mn->mucon.cond);
+			pthread_cond_wait(&mn->mucon.cond, &mn->mucon.mutex);
 			continue;
 		}
 
 		frame_period = str->frame_period + b->used * str->byte_period;
 
-		if (synchr.start_time < b->time + frame_period) {
+		if (mn->start_time < b->time + frame_period) {
 			printv(4, "SRI %02x: accept start_time %f for %f, voted %02x/%02x\n",
-				str->this_module, synchr.start_time, b->time,
-				synchr.vote, synchr.modules);
-			if ((synchr.vote |= str->this_module) == synchr.modules) {
+				str->this_module, VT(mn->start_time), b->time, mn->vote, mn->modules);
+			if ((mn->vote |= str->this_module) == mn->modules) {
 				if (frame_frac && str->byte_period > 0.0) {
-					double tfrac = synchr.start_time - b->time;
+					double tfrac = mn->start_time - b->time;
 					int sfrac = tfrac / str->byte_period;
 
 					*frame_frac = saturate(sfrac & -str->bytes_per_sample, 0, b->used - 1);
@@ -187,11 +192,11 @@ mp1e_sync_run_in(synchr_stream *str, consumer *c, int *frame_frac)
 		}
 
 		printv(4, "SRI %02x: disagree start_time %f, discard %f\n",
-			str->this_module, synchr.start_time, b->time);
+			str->this_module, VT(mn->start_time), b->time);
 
-		synchr.vote &= ~str->this_module;
+		mn->vote &= ~str->this_module;
 
-		pthread_mutex_unlock(&synchr.mucon.mutex);
+		pthread_mutex_unlock(&mn->mucon.mutex);
 
 		send_empty_buffer(c, b);
 
@@ -200,13 +205,13 @@ mp1e_sync_run_in(synchr_stream *str, consumer *c, int *frame_frac)
 		if (b->used <= 0)
 			FAIL("Capture failure");
 
-		pthread_mutex_lock(&synchr.mucon.mutex);
+		pthread_mutex_lock(&mn->mucon.mutex);
 	}
 
 	str->start_ref = b->time;
 
-	pthread_mutex_unlock(&synchr.mucon.mutex);
-	pthread_cond_broadcast(&synchr.mucon.cond);
+	pthread_mutex_unlock(&mn->mucon.mutex);
+	pthread_cond_broadcast(&mn->mucon.cond);
 
 	unget_full_buffer(c, b);
 

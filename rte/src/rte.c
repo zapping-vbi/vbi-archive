@@ -1,8 +1,8 @@
 /*
  *  Real Time Encoder
  *
- *  Copyright (C) 2000-2001 Iñaki García Etxebarria
- *  Modified 2001 Michael H. Schimek
+ *  Copyright (C) 2000, 2001 Iñaki García Etxebarria
+ *  Copyright (C) 2000, 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,15 +18,16 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+
+/* $Id: rte.c,v 1.11 2002-02-25 06:22:20 mschimek Exp $ */
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "rtepriv.h"
 
@@ -40,6 +41,7 @@
   * Sliced vbi.
   * Finish b_mp1e, write b_divx4linux and b_ffmpeg.
   * i18n support.
+  * Document start/stop.
 */
 
 /*
@@ -66,30 +68,6 @@ delete
 
 #define xc context->class
 #define dc codec->class
-
-/* Private flag for fifos */
-#define BLANK_BUFFER 1
-
-/* one function to iterate them all */
-static rte_bool codec_forall(rte_context *context,
-			     rte_bool (*func)(rte_codec*, rte_pointer),
-			     rte_pointer udata)
-{
-	int i;
-	int j;
-
-	/* FIXME: Should this use codec->next instead?? */
-
-	for (i=0; i<RTE_STREAM_MAX; i++)
-#warning
-		for (j=0; j<xc->public.max_elementary[i]; j++) {
-			rte_codec *codec = rte_codec_get(context, i, j);
-			if (codec && !func(codec, udata))
-				return FALSE;
-		}
-
-	return TRUE;
-}
 
 /**
  * rte_set_input_callback_active:
@@ -140,7 +118,8 @@ rte_set_input_callback_active(rte_codec *codec,
 			      rte_buffer_callback unref_cb,
 			      int *queue_length)
 {
-	rte_context *context;
+	rte_context *context = NULL;
+	rte_bool r = FALSE;
 	int ql = 0;
 
 	nullcheck(codec, return FALSE);
@@ -154,16 +133,20 @@ rte_set_input_callback_active(rte_codec *codec,
 		queue_length = &ql;
 
 	if (xc->set_input)
-		return xc->set_input(codec, RTE_INPUT_CA,
-				     read_cb, unref_cb, queue_length);
-	else if (dc->option_enum)
-		return dc->set_input(codec, RTE_INPUT_CA,
-				     read_cb, unref_cb, queue_length);
+		r = xc->set_input(codec, RTE_CALLBACK_ACTIVE,
+				  read_cb, unref_cb, queue_length);
+	else if (dc->set_input)
+		r = dc->set_input(codec, RTE_CALLBACK_ACTIVE,
+				  read_cb, unref_cb, queue_length);
+	else
+		assert(!"codec bug");
 
-	fprintf(stderr, "rte: context %s and codec %s lack mandatory "
-		"set_input function\n", xc->public.keyword, dc->public.keyword);
+	if (r) {
+		codec->input_method = RTE_CALLBACK_ACTIVE;
+		codec->input_fd = -1;
+	}
 
-	exit(EXIT_FAILURE);
+	return r;
 }
 
 /**
@@ -197,7 +180,8 @@ rte_bool
 rte_set_input_callback_passive(rte_codec *codec,
 			       rte_buffer_callback read_cb)
 {
-	rte_context *context;
+	rte_context *context = NULL;
+	rte_bool r = FALSE;
 	int ql = 0;
 
 	nullcheck(codec, return FALSE);
@@ -208,14 +192,18 @@ rte_set_input_callback_passive(rte_codec *codec,
 	nullcheck(read_cb, return FALSE);
 
 	if (xc->set_input)
-		return xc->set_input(codec, RTE_INPUT_CP, read_cb, NULL, &ql);
-	else if (dc->option_enum)
-		return dc->set_input(codec, RTE_INPUT_CP, read_cb, NULL, &ql);
+		r = xc->set_input(codec, RTE_CALLBACK_PASSIVE, read_cb, NULL, &ql);
+	else if (dc->set_input)
+		r = dc->set_input(codec, RTE_CALLBACK_PASSIVE, read_cb, NULL, &ql);
+	else
+		assert(!"codec bug");
 
-	fprintf(stderr, "rte: context %s and codec %s lack mandatory "
-		"set_input function\n", xc->public.keyword, dc->public.keyword);
+	if (r) {
+		codec->input_method = RTE_CALLBACK_PASSIVE;
+		codec->input_fd = -1;
+	}
 
-	exit(EXIT_FAILURE);
+	return r;
 }
 
 /**
@@ -249,11 +237,11 @@ rte_set_input_callback_passive(rte_codec *codec,
  * while (have_data) {
  * &nbsp;    rte_buffer buffer;
  * &nbsp;
- * &nbsp;    buffer->data = malloc();
- * &nbsp;    read(buffer->data, &amp;buffer->timestamp);
+ * &nbsp;    buffer.data = malloc();
+ * &nbsp;    read(buffer.data, &amp;buffer.timestamp);
  * &nbsp;    if (!rte_push_buffer(codec, &amp;buffer, FALSE)) {
  * &nbsp;        // The codec is not fast enough, we drop the frame.
- * &nbsp;        free(buffer->data);
+ * &nbsp;        free(buffer.data);
  * &nbsp;    }
  * }
  * </programlisting></example>
@@ -270,7 +258,8 @@ rte_set_input_push_active(rte_codec *codec,
 			  rte_buffer_callback unref_cb,
 			  int queue_request, int *queue_length)
 {
-	rte_context *context;
+	rte_context *context = NULL;
+	rte_bool r = FALSE;
 
 	nullcheck(codec, return FALSE);
 
@@ -283,16 +272,20 @@ rte_set_input_push_active(rte_codec *codec,
 		*queue_length = queue_request;
 
 	if (xc->set_input)
-		return xc->set_input(codec, RTE_INPUT_PA,
-				     NULL, unref_cb, queue_length);
-	else if (dc->option_enum)
-		return dc->set_input(codec, RTE_INPUT_PA,
-				     NULL, unref_cb, queue_length);
+		r = xc->set_input(codec, RTE_PUSH_PULL_ACTIVE,
+				  NULL, unref_cb, queue_length);
+	else if (dc->set_input)
+		r = dc->set_input(codec, RTE_PUSH_PULL_ACTIVE,
+				  NULL, unref_cb, queue_length);
+	else
+		assert(!"codec bug");
 
-	fprintf(stderr, "rte: context %s and codec %s lack mandatory "
-		"set_input function\n", xc->public.keyword, dc->public.keyword);
+	if (r) {
+		codec->input_method = RTE_PUSH_PULL_ACTIVE;
+		codec->input_fd = -1;
+	}
 
-	exit(EXIT_FAILURE);
+	return r;
 }
 
 /**
@@ -317,7 +310,7 @@ rte_set_input_push_active(rte_codec *codec,
  * rte_push_buffer(codec, &amp;buffer, FALSE); // cannot fail
  * &nbsp;
  * while (have_data) {
- * &nbsp;    read(buffer->data, &amp;buffer->timestamp);
+ * &nbsp;    read(buffer.data, &amp;buffer.timestamp);
  * &nbsp;    if (!rte_push_buffer(codec, &amp;buffer, FALSE)) {
  * &nbsp;         // The codec is not fast enough, we drop the frame.
  * &nbsp;    }
@@ -332,10 +325,10 @@ rte_set_input_push_active(rte_codec *codec,
  * also fail when the codec does not support this input method.
  **/
 rte_bool
-rte_set_input_push_data(rte_codec *codec,
-			int queue_request, int *queue_length)
+rte_set_input_push_passive(rte_codec *codec, int queue_request, int *queue_length)
 {
-	rte_context *context;
+	rte_context *context = NULL;
+	rte_bool r = FALSE;
 
 	nullcheck(codec, return FALSE);
 
@@ -348,14 +341,20 @@ rte_set_input_push_data(rte_codec *codec,
 		*queue_length = queue_request;
 
 	if (xc->set_input)
-		return xc->set_input(codec, RTE_INPUT_PP, NULL, NULL, queue_length);
-	else if (dc->option_enum)
-		return dc->set_input(codec, RTE_INPUT_PP, NULL, NULL, queue_length);
+		r = xc->set_input(codec, RTE_PUSH_PULL_PASSIVE,
+				  NULL, NULL, queue_length);
+	else if (dc->set_input)
+		r = dc->set_input(codec, RTE_PUSH_PULL_PASSIVE,
+				  NULL, NULL, queue_length);
+	else
+		assert(!"codec bug");
 
-	fprintf(stderr, "rte: context %s and codec %s lack mandatory "
-		"set_input function\n", xc->public.keyword, dc->public.keyword);
+	if (r) {
+		codec->input_method = RTE_PUSH_PULL_PASSIVE;
+		codec->input_fd = -1;
+	}
 
-	exit(EXIT_FAILURE);
+	return r;
 }
 
 /**
@@ -379,7 +378,7 @@ rte_set_input_push_data(rte_codec *codec,
 rte_bool
 rte_push_buffer(rte_codec *codec, rte_buffer *buffer, rte_bool blocking)
 {
-	rte_context *context;
+	rte_context *context = NULL;
 
 	nullcheck(codec, return FALSE);
 
@@ -397,8 +396,9 @@ rte_push_buffer(rte_codec *codec, rte_buffer *buffer, rte_bool blocking)
 /**
  * rte_set_output_callback_passive:
  * @context: Initialized #rte_context as returned by rte_context_new().
- * @write_cb: Function called by the codec to write encoded data.
- * @seek_cb: Optional function called by the codec to move the output
+ * @write_cb: Function called by the context to write encoded data.
+ *   The codec parameter of the callback is not used (%NULL).
+ * @seek_cb: Optional function called by the context to move the output
  *  file pointer, for example to complete a header.
  *
  * Sets the output mode for the context and makes the context ready
@@ -413,6 +413,9 @@ rte_push_buffer(rte_codec *codec, rte_buffer *buffer, rte_bool blocking)
  * {
  * &nbsp;    ssize_t actual;
  * &nbsp;
+ * &nbsp;    if (!buffer) // EOF
+ * &nbsp;        return TRUE;
+ * &nbsp;
  * &nbsp;    do actual = write(STDOUT_FILENO, buffer->data, buffer->size);
  * &nbsp;    while (actual == -1 && errno == EINTR);
  * &nbsp;
@@ -420,7 +423,7 @@ rte_push_buffer(rte_codec *codec, rte_buffer *buffer, rte_bool blocking)
  * }
  * &nbsp;
  * rte_bool
- * my_seek_cb(rte_context *context, rte_codec *codec, off64_t offset, int whence)
+ * my_seek_cb(rte_context *context, off64_t offset, int whence)
  * {
  * &nbsp;    return lseek64(STDOUT_FILENO, offset, whence) != (off64_t) -1;
  * }
@@ -437,375 +440,230 @@ rte_set_output_callback_passive(rte_context *context,
 				rte_buffer_callback write_cb,
 				rte_seek_callback seek_cb)
 {
+	rte_bool r;
+
 	nullcheck(context, return FALSE);
 
 	rte_error_reset(context);
 
 	nullcheck(write_cb, return FALSE);
 
-	if (xc->set_output)
-		return xc->set_output(context, write_cb, seek_cb);
+	r = xc->set_output(context, write_cb, seek_cb);
 
-	fprintf(stderr, "rte: context %s lacks mandatory "
-		"set_output function\n", xc->public.keyword);
+	if (r) {
+		context->output_method = RTE_CALLBACK_PASSIVE;
+		context->output_fd = -1;
+	}
 
-	exit(EXIT_FAILURE);
+	return r;
 }
 
+static rte_bool
+write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
+{
+	ssize_t actual;
 
+	if (!buffer) /* EOF */
+		return TRUE;
 
+	do actual = write(context->output_fd, buffer->data, buffer->size);
+	while (actual == -1 && errno == EINTR);
 
+	// XXX error propagation?
+	// Aborting encoding is bad for Zapping. It should a)
+	// activate its backup plan and b) notify the user before
+	// data is lost. Have to use private callback.
 
+	return actual == buffer->size; /* no error */
+}
 
+static rte_bool
+seek_cb(rte_context *context, off64_t offset, int whence)
+{
+	// XXX error propagation?
+	return lseek64(context->output_fd, offset, whence) != (off64_t) -1;
+}
+
+static void
+new_output_fd(rte_context *context, rte_io_method new_method, int new_fd)
+{
+	switch (context->output_method) {
+	case RTE_FILE:
+		// XXX can fail
+		close(context->output_fd);
+		break;
+
+	default:
+		break;
+	}
+
+	context->output_method = new_method;
+	context->output_fd = new_fd;
+}
+
+/**
+ * rte_set_output_stdio:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ * @file_name: File descriptor to write to.
+ *
+ * Sets the output mode for the context and makes the context ready
+ * to start encoding. All output of the codec will be written into the
+ * given file. Use 64 bit mode when opening the file, it must be
+ * seek()able too.
+ *
+ * Return value:
+ * Before selecting an output method you must select input methods for all
+ * codecs, else this function fails with a return value of %FALSE. Setting
+ * context options or selecting or removing codecs cancels the output method
+ * selection.
+ **/
+rte_bool
+rte_set_output_stdio(rte_context *context, int fd)
+{
+	nullcheck(context, return FALSE);
+
+	rte_error_reset(context);
+
+	if (fd < 0)
+		return FALSE;
+
+	if (rte_set_output_callback_passive(context, write_cb, seek_cb)) {
+		new_output_fd(context, RTE_STDIO, fd);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * rte_set_output_file:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ * @filename: Name of the file to create.
+ *
+ * Sets the output mode for the context and makes the context ready
+ * to start encoding. This function creates a file where all output
+ * of the codec will be written to.
+ *
+ * Return value:
+ * Before selecting an output method you must select input methods for all
+ * codecs, else this function fails with a return value of %FALSE. Setting
+ * context options or selecting or removing codecs cancels the output method
+ * selection. When the file could not be created this function also returns
+ * %FALSE.
+ **/
+rte_bool
+rte_set_output_file(rte_context *context, const char *filename)
+{
+	int fd;
+
+	nullcheck(context, return FALSE);
+
+	rte_error_reset(context);
+
+	fd = open(filename,
+		  O_CREAT | O_WRONLY | O_TRUNC | O_LARGEFILE,
+		  S_IRUSR | S_IWUSR |
+		  S_IRGRP | S_IWGRP |
+		  S_IROTH | S_IWOTH);
+
+	if (fd == -1) {
+		rte_error_printf(context, "Cannot create file '%s': %s.",
+				 filename, strerror(errno));
+		return FALSE;
+	}
+
+	if (rte_set_output_callback_passive(context, write_cb, seek_cb)) {
+		new_output_fd(context, RTE_FILE, fd);
+		return TRUE;
+	} else {
+		close(fd);
+		unlink(filename);
+		return FALSE;
+	}
+}
+
+/*
+ *  Start / Stop
+ */
+
+/**
+ * rte_start:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ * @timestamp: Start instance.
+ * @sync_ref: Pass %NULL.
+ * @async: Pass %TRUE.
+ *
+ * XXX describe me
+ *
+ * Return value:
+ * %FALSE on error.
+ **/
+rte_bool
+rte_start(rte_context *context, double timestamp, rte_codec *sync_ref, rte_bool async)
+{
+	rte_bool r;
+
+	nullcheck(context, return FALSE);
+	rte_error_reset(context);
+
+	if (!async)
+		return FALSE;
+
+	r = xc->start(context, timestamp, sync_ref, async);
+
+	return r;
+}
+
+/**
+ * rte_stop:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ * @timestamp: Start instance.
+ * 
+ * XXX describe me
+ *
+ * Do not call this from a signal handler.
+ *
+ * Return value:
+ * %FALSE on error.
+ **/
+rte_bool
+rte_stop(rte_context *context, double timestamp)
+{
+	rte_bool r;
+
+	nullcheck(context, return FALSE);
+	rte_error_reset(context);
+
+	r = xc->stop(context, timestamp);
+
+	if (r)
+		switch (context->output_method) {
+		case RTE_FILE:
+			// XXX this can fail, notify caller
+			new_output_fd(context, 0, -1); /* close */
+			break;
+
+		default:
+			break;
+		}
+
+	return r;
+}
+
+/* rte_pause() TODO */
+/* rte_resume() TODO */
 
 void
 rte_status_free(rte_status_info *status)
 {
+	rte_context *context = NULL;
+
 	nullcheck(status, return);
 
 	if (status->type == RTE_STRING)
-	  free(status->val.str);
+		free(status->val.str);
 
 	free(status);
-}
-
-/* uninit all the codecs in the given context */
-static void
-codecs_uninit(rte_context *context)
-{
-#warning
-#if 0
-	static rte_bool uninit_codec(rte_codec *codec,
-				     rte_pointer udata) {
-		switch (codec->input_mode) {
-		case RTE_INPUT_PD:
-		{
-			/* flush */
-			buffer *b = codec->input.pd.last_buffer;
-			if (b) {
-				b->used = 0; /* EOF */
-				send_full_buffer(&codec->prod, b);
-			}
-		}
-			break;
-		default:
-			break;
-		}
-		dc->uninit(codec);
-
-		rem_producer(&codec->prod);
-		destroy_fifo(&codec->f);
-
-		memset(&codec->input, 0, sizeof(codec->input));
-
-		return TRUE;
-	}
-
-	codec_forall(context, uninit_codec, NULL);
-	xc->uninit(context);
-#endif
-}
-
-#if 0
-
-/* Returns the required buffer size for the codec */
-static int
-buffer_size (rte_codec *codec)
-{
-	rte_stream_parameters par;
-	rte_video_stream_params *vid = (rte_video_stream_params *) &par;
-
-	rte_codec_parameters_get(codec, &par);
-
-	if (dc->public.stream_type == RTE_STREAM_AUDIO)
-		return par.audio.fragment_size;
-	else if (dc->public.stream_type == RTE_STREAM_SLICED_VBI)
-		return 0; /* FIXME */
-#warning
-	/* video */
-	switch (vid->pixfmt) {
-	case RTE_PIXFMT_YUV420:
-		/* Assumes that there's no padding between Y, U, V
-		   fields */
-		/* FIXME */
-		return vid->stride * vid->height +
-			vid->uv_stride * vid->height * 2;
-	default:
-		return vid->stride * vid->height;
-	}
-}
-
-/* Wait a buffer in callback buffered mode */
-static inline void
-rte_wait_cb(rte_codec *codec)
-{
-	producer *p = &(codec->prod);
-	rte_buffer rbuf;
-	buffer *b;
-
-	codec->input.cb.get(codec->context, codec, &rbuf);
-
-	b = wait_empty_buffer(p);
-	b->data = rbuf.data;
-	b->used = codec->bsize;
-	b->time = rbuf.timestamp;
-	b->user_data = rbuf.user_data;
-	b->rte_flags |= ~BLANK_BUFFER;
-
-	send_full_buffer(p, b);
-}
-
-/* callback data mode */
-static inline void
-rte_wait_cd(rte_codec *codec)
-{
-	producer *p = &(codec->prod);
-	buffer *b;
-
-	b = wait_empty_buffer(p);
-	codec->input.cd.get(codec->context, codec, b->data, &(b->time));
-	b->rte_flags |= ~BLANK_BUFFER;
-	b->used = codec->bsize;
-
-	send_full_buffer(p, b);
-}
-
-/* push (buffer or data, it's the same at this point) */
-static inline void
-rte_wait_push(rte_codec *codec)
-{
-	/* FIXME: To do */
-	/*
-	  Callback modes can be joined (in stop()) without problems
-	  since callbacks will get the needed data for the codecs to
-	  complete.
-	  In push modes, when stop() is called, no more data might reach
-	  the codec, so we should fake a few frames for the codec to
-	  finish. We mark these as BLANK_BUFFER, indicating that
-	  they shouldn't be unref'ed.
-	 */
-}
-
-static void
-rte_wait_full (fifo *f)
-{
-	rte_codec *codec = (rte_codec*)f->user_data;
-
-	switch (codec->input_mode) {
-	case RTE_INPUT_CB:
-		rte_wait_cb(codec);
-		break;
-	case RTE_INPUT_CD:
-		rte_wait_cd(codec);
-		break;
-	case RTE_INPUT_PB:
-	case RTE_INPUT_PD:
-		rte_wait_push(codec);
-		break;
-	default:
-		assert(!"reached");
-		break;
-	}
-}
-
-static void
-rte_send_empty (consumer *c, buffer *b)
-{
-	rte_codec *codec = (rte_codec*)c->fifo->user_data;
-	rte_buffer rbuf;
-
-	if (!(b->rte_flags & BLANK_BUFFER)) {
-		rbuf.data = b->data;
-		rbuf.timestamp = b->time;
-		rbuf.user_data = b->user_data;
-
-		switch (codec->input_mode) {
-		case RTE_INPUT_PB:
-			codec->input.pb.unref(codec->context, codec,
-					      &rbuf);
-			break;
-		case RTE_INPUT_CB:
-			codec->input.cb.unref(codec->context, codec,
-					      &rbuf);
-			break;
-		default:
-			/* Nothing to be done for unbuffered modes */
-			break;
-		}
-	}
-
-	/* XXX temporary hack */
-	send_empty_buffered(c, b);
-}
-
-#endif
-
-/* init one codec */
-static rte_bool
-init_codec (rte_codec *codec, rte_pointer udata)
-{
-#warning
-#if 0
-	rte_context *context = (rte_context*)udata;
-	int buffers;
-	int alloc_bytes = 0;
-	int bsize = codec->bsize = buffer_size(codec);
-	rte_bool retval = dc->pre_init(codec, &buffers);
-	
-	if (!retval) {
-		rte_error(context, "Cannot pre_init %s",
-			  dc->public.keyword);
-		return FALSE;
-	}
-	
-	switch (codec->input_mode) {
-	case RTE_INPUT_PD:
-		codec->input.pd.last_buffer = NULL;
-	case RTE_INPUT_CD:
-		alloc_bytes = bsize;
-		break;
-	default:
-		alloc_bytes = 0;
-		break;
-	}
-
-	if (buffers != init_callback_fifo
-	    (&codec->f, dc->public.keyword, NULL, NULL,
-	     rte_wait_full, rte_send_empty, buffers,
-	     alloc_bytes)) {
-		rte_error(context, "not enough mem");
-		return FALSE;
-	}
-
-	codec->f.user_data = codec;
-
-	retval = dc->post_init(codec);
-
-	assert(add_producer(&codec->f, &codec->prod));
-
-	if (!retval) {
-		rem_producer(&codec->prod);
-		destroy_fifo(&codec->f);
-		rte_error(context, "Cannot post_init %s",
-			  dc->public.keyword);
-		return FALSE;
-	}
-
-	return retval;
-#endif
-
-	return 0;
-}
-
-rte_bool
-rte_start(rte_context *context)
-{
-#warning
-#if 0
-	rte_bool result;
-	int num_codecs = 0;
-	char *failed_codec = NULL;
-
-	/* check that all selected codecs are in ready state and count
-	 selected codecs */
-	static rte_bool check_ready (rte_codec *codec, rte_pointer udata) {
-		if (codec->status != RTE_STATUS_READY) {
-			failed_codec = dc->public.keyword;
-			return FALSE; /* Stop forall */
-		}
-		num_codecs++;
-		return TRUE;
-	}
-
-	nullcheck(context, return FALSE);
-
-	if (context->status != RTE_STATUS_READY) {
-		if (context->status == RTE_STATUS_RUNNING)
-			rte_error(context, "Already encoding!");
-		else if (context->status == RTE_STATUS_PAUSED)
-			rte_error(context, "Paused, use rte_resume");
-		else
-			rte_error(context,
-				  "You must context_set_output first");
-		return FALSE;
-	}
-
-	if (!codec_forall(context, check_ready, NULL)) {
-		rte_error(context, "Codec %s isn't ready to encode",
-			  failed_codec);
-		return FALSE;
-	}
-
-	if (!num_codecs) {
-		rte_error(context, "No codecs set");
-		return FALSE;
-	}
-
-	if (!xc->pre_init(context))
-		return FALSE;
-
-	if (!codec_forall(context, init_codec, NULL))
-		return FALSE;
-
-	result = xc->start(context);
-
-	if (result)
-		context->status = RTE_STATUS_RUNNING;
-	else
-		codecs_uninit(context);
-
-	return result;
-#endif
-	return 0;
-}
-
-void
-rte_stop(rte_context *context)
-{
-	nullcheck(context, return);
-
-	if (context->status < RTE_STATUS_RUNNING) {
-		rte_error(context, "Not running!!");
-		return;
-	}
-
-	xc->stop(context);
-
-	codecs_uninit(context);
-
-	context->status = RTE_STATUS_READY;
-}
-
-void
-rte_pause(rte_context *context)
-{
-	nullcheck(context, return);
-
-	if (context->status != RTE_STATUS_RUNNING) {
-		rte_error(context, "Not running!!");
-		return;
-	}
-
-	/* FIXME: to do */
-
-	context->status = RTE_STATUS_PAUSED;
-}
-
-rte_bool
-rte_resume(rte_context *context)
-{
-	nullcheck(context, return FALSE);
-
-	if (context->status != RTE_STATUS_PAUSED) {
-		rte_error(context, "Not paused!!");
-		return FALSE;
-	}
-
-	/* FIXME: to do */
-
-	context->status = RTE_STATUS_RUNNING;
-
-	return TRUE;
 }
 
 /**
@@ -837,11 +695,6 @@ rte_option_string(rte_context *context, rte_codec *codec, const char *optstr)
 		rte_error_printf(context, _("Out of memory."));
 		return FALSE;
 	}
-
-	if (codec)
-		pthread_mutex_lock(&codec->mutex);
-	else
-		pthread_mutex_lock(&context->mutex);
 
 	do {
 		while (isspace(*s))
@@ -930,11 +783,6 @@ rte_option_string(rte_context *context, rte_codec *codec, const char *optstr)
 
 	} while (r);
 
-	if (codec)
-		pthread_mutex_unlock(&codec->mutex);
-	else
-		pthread_mutex_unlock(&context->mutex);
-
 	free(s1);
 
 	return r;
@@ -946,11 +794,13 @@ rte_option_string(rte_context *context, rte_codec *codec, const char *optstr)
 
 /**
  * rte_asprintf:
- * @errstr: 
+ * @errstr: Place to store the allocated string or %NULL.
  * @templ: See printf().
  * @Varargs: See printf(). 
  * 
  * RTE internal helper function.
+ *
+ * Identical to GNU or BSD libc asprintf().
  **/
 void
 rte_asprintf(char **errstr, const char *templ, ...)
@@ -982,11 +832,6 @@ rte_asprintf(char **errstr, const char *templ, ...)
  * When a RTE function failed you can use this function to get a
  * verbose description of the failure cause, if available.
  *
- * Attention: This function is not thread safe. Never use it when
- * another thread may call a RTE function between the failed function
- * and the time you evaluated the error string.
- * <!-- This could be fixed by using thread keys. -->
- *
  * Return value:
  * Static pointer, string not to be freed, describing the error. The pointer
  * remains valid until the next call of a RTE function for this context
@@ -1011,10 +856,9 @@ rte_errstr(rte_context *context)
  * @Varargs: See printf().
  * 
  * Store an error description in the @context which can be retrieved
- * with rte_errstr(). You can also include the current error description.
- *
- * FIXME: This function is not thread safe.
+ * with rte_errstr().
  **/
+/* XXX Methinks in the long run we'll need an error handler. */
 void
 rte_error_printf(rte_context *context, const char *templ, ...)
 {
@@ -1065,6 +909,17 @@ whois(rte_context *context, rte_codec *codec)
 	return strdup(name);
 }
 
+/**
+ * rte_unknown_option:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ * @codec: Pointer to #rte_codec if this refers to a codec option,
+ *  %NULL if context option.
+ * @keyword: Keyword of the option, can be %NULL or "".
+ * 
+ * RTE internal helper function.
+ *
+ * Sets the @context error string.
+ **/
 void
 rte_unknown_option(rte_context *context, rte_codec *codec, const char *keyword)
 {
@@ -1081,11 +936,26 @@ rte_unknown_option(rte_context *context, rte_codec *codec, const char *keyword)
 	free(name);
 }
 
+/**
+ * rte_invalid_option:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ * @codec: Pointer to #rte_codec if this refers to a codec option,
+ *  %NULL if context option.
+ * @keyword: Keyword of the option, can be %NULL or "".
+ * @Varargs: If the option is known, the invalid data (int, double, char *).
+ * 
+ * RTE internal helper function.
+ *
+ * Sets the @context error string.
+ **/
 void
 rte_invalid_option(rte_context *context, rte_codec *codec, const char *keyword, ...)
 {
 	char buf[256], *name = whois(context, codec);
 	rte_option_info *oi;
+
+	if (!keyword || !keyword[0])
+		return rte_unknown_option(context, codec, keyword);
 
 	if (!name)
 		return;
@@ -1126,13 +996,28 @@ rte_invalid_option(rte_context *context, rte_codec *codec, const char *keyword, 
 
 		va_end(args);
 	} else
-		buf[0] = 0;
+		strncpy(buf, "??", 2);
 
 	rte_error_printf(context, "Invalid argument %s for option %s of %s.",
 			 buf, keyword, name);
 	free(name);
 }
 
+/**
+ * rte_strdup:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ * @d: If non-zero, store pointer to allocated string here. When *d
+ *   is non-zero, free(*d) the old string first.
+ * @s: String to be duplicated.
+ * 
+ * RTE internal helper function.
+ *
+ * Same as the libc strdup(), except for @d argument and setting
+ * the @context error string on failure.
+ * 
+ * Return value: 
+ * %NULL on failure, pointer to malloc()ated string otherwise.
+ **/
 char *
 rte_strdup(rte_context *context, char **d, const char *s)
 {

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw.c,v 1.1 2001-12-05 07:22:46 mschimek Exp $ */
+/* $Id: raw.c,v 1.2 2002-02-25 06:22:20 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -27,6 +27,7 @@
 #include "../common/log.h"
 #include "../common/fifo.h"
 #include "../options.h"
+#include "../b_mp1e.h"
 #include "../common/math.h"
 #include "video.h"
 #include "mpeg.h"
@@ -122,41 +123,40 @@ static void parse_param()
 }
 
 fifo *
-raw_init(double *frame_rate)
+raw_init(rte_video_stream_params *par)
 {
-	int pitch;
-
 	/* get format, with, height, and framerate */
 	parse_param();
 
-	*frame_rate = input_frame_rate;
-
 	if (width < 1 || height < 1 ||
-	    width > MAX_WIDTH ||
-	    height > MAX_HEIGHT)
+	    width > MAX_WIDTH || height > MAX_HEIGHT)
 		FAIL("Images '%s' too big", cap_dev);
-	
+
 	if (width % 16)
 		FAIL("Width %d not a multiple of 16\n", width);
 	if (height % 16)
 		FAIL("Height %d not a multiple of 16\n", height);
 
+	par->frame_rate = input_frame_rate;
+	par->width = width;
+	par->height = height;
+
 	switch (filter_mode) {
 	case CM_YUV:
-		buffer_size = height * width * 3 / 2;
-		pitch = width; 
+		par->pixfmt = RTE_PIXFMT_YUV420;
+		buffer_size = par->height * par->width * 3 / 2;
 		break;
 
 	case CM_YUYV:
-		buffer_size = height * width * 2;
-		pitch = width * 2;
+		par->pixfmt = RTE_PIXFMT_YUYV;
+		buffer_size = par->height * par->width * 2;
 		break;
 
 	default:
 		FAIL("Filter '%s' not supported", filter_labels[filter_mode]);
 	}
 
-	filter_init(pitch);
+	filter_init(par);
 
 	ASSERT("init capture fifo", init_callback_fifo(
 		&cap_fifo, "video-raw",
@@ -167,7 +167,7 @@ raw_init(double *frame_rate)
 		add_producer(&cap_fifo, &cap_prod));
 
 	printv(2, "Reading raw input %d x %d format '%s'\n",
-		width, height, filter_labels[filter_mode]);
+		par->width, par->height, filter_labels[filter_mode]);
 
 	return &cap_fifo;
 }

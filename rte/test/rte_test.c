@@ -1,4 +1,6 @@
 /*
+ *  OBSOLETE
+ *
  *  Test program for RTE (real time encoder)
  *
  *  Copyright (C) 2000-2001 Iñaki García Etxebarria
@@ -18,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test.c,v 1.1 2001-12-09 22:10:52 garetxe Exp $
+ * $Id: rte_test.c,v 1.2 2002-02-25 06:22:20 mschimek Exp $
  * This is a simple RTE test.
  */
 

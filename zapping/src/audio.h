@@ -39,6 +39,9 @@ read_audio_data (gpointer handle, gpointer dest, gint num_bytes,
 void startup_audio (void);
 void shutdown_audio (void);
 
+gboolean
+z_volume_change (GdkEventKey *event);
+
 
 typedef struct {
   char		*name;

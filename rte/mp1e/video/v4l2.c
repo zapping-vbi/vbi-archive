@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.12 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.13 2002-02-25 06:22:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -38,6 +38,7 @@
 #include "../common/fifo.h"
 #include "../common/math.h"
 #include "../options.h"
+#include "../b_mp1e.h"
 #include "video.h"
 
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
@@ -331,14 +332,11 @@ mute_restore(void)
 			   mode == CM_YUYV_PROGRESSIVE_TEMPORAL)
 
 fifo *
-v4l2_init(double *frame_rate)
+v4l2_init(rte_video_stream_params *par)
 {
-	int aligned_width;
-	int aligned_height;
 	unsigned int probed_modes = 0;
-	int mod;
 	int min_cap_buffers = video_look_ahead(gop_sequence);
-	int i;
+	int mod, i, height1;
 
 	ASSERT("open video capture device",
 	       (fd = open(cap_dev, O_RDWR)) != -1);
@@ -364,14 +362,13 @@ v4l2_init(double *frame_rate)
 	ASSERT("query current video standard",
 		IOCTL(fd, VIDIOC_G_STD, &vstd) == 0);
 
-	*frame_rate = (double) vstd.framerate.denominator /
-				vstd.framerate.numerator;
-	mp1e_timestamp_init(&tfmem, 1.0 / *frame_rate);
+	par->frame_rate = (double) vstd.framerate.denominator / vstd.framerate.numerator;
+	mp1e_timestamp_init(&tfmem, 1.0 / par->frame_rate);
 
-	if (*frame_rate > 29.0 && grab_height == 288)
-		grab_height = 240;
-	if (*frame_rate > 29.0 && grab_height == 576)
-		grab_height = 480;
+	if (par->frame_rate > 29.0 && par->height == 288)
+		par->height = 240;
+	if (par->frame_rate > 29.0 && par->height == 576)
+		par->height = 480;
 
 	if (PROGRESSIVE(filter_mode)) {
 		FAIL("Sorry, progressive mode out of order\n");
@@ -379,7 +376,7 @@ v4l2_init(double *frame_rate)
 	}
 
 	printv(2, "Video standard is '%s' (%5.2f Hz)\n",
-		vstd.name, *frame_rate);
+		vstd.name, par->frame_rate);
 
 	if (mute != 2) {
 		old_mute.id = V4L2_CID_AUDIO_MUTE;
@@ -405,15 +402,17 @@ v4l2_init(double *frame_rate)
 	}
 
 
-	grab_width = saturate(grab_width, 1, MAX_WIDTH);
-	grab_height = saturate(grab_height, 1, MAX_HEIGHT);
+	par->width = saturate(par->width, 1, MAX_WIDTH);
+	par->height = saturate(par->height, 1, MAX_HEIGHT);
+
+	height1 = par->height;
+
+	par->width  = (par->width + 15) & -16;
 
 	if (DECIMATING(filter_mode))
-		aligned_height = (grab_height * 2 + 15) & -16;
+		par->height = (height1 * 2 + 15) & -16;
 	else
-		aligned_height = (grab_height + 15) & -16;
-
-	aligned_width  = (grab_width + 15) & -16;
+		par->height = (height1 + 15) & -16;
 
 	for (;;) {
 		int new_mode, new_height;
@@ -421,13 +420,13 @@ v4l2_init(double *frame_rate)
 		probed_modes |= 1 << filter_mode;
 
 		vfmt.type = V4L2_BUF_TYPE_CAPTURE;
-		vfmt.fmt.pix.width = aligned_width;
-		vfmt.fmt.pix.height = aligned_height;
+		vfmt.fmt.pix.width = par->width;
+		vfmt.fmt.pix.height = par->height;
 
 		if (filter_mode == CM_YUV) {
 			vfmt.fmt.pix.depth = 12;
 			vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
-		} else {
+ 		} else {
 			vfmt.fmt.pix.depth = 16;
 			vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
 		}
@@ -441,33 +440,35 @@ v4l2_init(double *frame_rate)
 		if (IOCTL(fd, VIDIOC_S_FMT, &vfmt) == 0) {
 			if (!DECIMATING(filter_mode))
 				break;
-			if (vfmt.fmt.pix.height > aligned_height * 0.7)
+			if (vfmt.fmt.pix.height > par->height * 0.7)
 				break;
 		}
 
-		new_height = aligned_height;
-
-		if (filter_mode == CM_YUYV)
+		if (filter_mode == CM_YUYV) {
 			new_mode = CM_YUV;
-		else if (filter_mode == CM_YUYV_VERTICAL_DECIMATION) {
+			new_height = par->height;
+		} else if (filter_mode == CM_YUYV_VERTICAL_DECIMATION) {
 			new_mode = CM_YUYV_VERTICAL_INTERPOLATION;
-			new_height = (grab_height + 15) & -16;
-		} else
+			new_height = (height1 + 15) & -16;
+		} else {
 			new_mode = CM_YUYV;
+			new_height = par->height;
+		}
 
 		if (probed_modes & (1 << new_mode)) {
 			FAIL("%s ('%s') does not support the requested format at size %d x %d",
-				cap_dev, vcap.name, aligned_width, aligned_height);
+				cap_dev, vcap.name, par->width, par->height);
 		}
 
 		printv(3, "Format '%s' %d x %d not accepted,\ntrying '%s'\n",
-			filter_labels[filter_mode],
-			aligned_width, aligned_height,
+			filter_labels[filter_mode], par->width, par->height,
 			filter_labels[new_mode]);
 
 		filter_mode = new_mode;
-		aligned_height = new_height;
+		par->height = new_height;
 	}
+
+	par->pixfmt = (filter_mode == CM_YUV) ? RTE_PIXFMT_YUV420 : RTE_PIXFMT_YUYV;
 
 	mod = DECIMATING(filter_mode) ? 32 : 16;
 
@@ -484,8 +485,8 @@ v4l2_init(double *frame_rate)
 		}
 	}
 
-	if (vfmt.fmt.pix.width != aligned_width ||
-	    vfmt.fmt.pix.height != aligned_height) {
+	if (vfmt.fmt.pix.width != par->width ||
+	    vfmt.fmt.pix.height != par->height) {
 		if (verbose > 0) {
 			char str[256];
 
@@ -502,27 +503,28 @@ v4l2_init(double *frame_rate)
 			FAIL("Requested grab size not available");
 	}
 
-	grab_width = vfmt.fmt.pix.width & -16;
-	grab_height = vfmt.fmt.pix.height & -mod;
+	par->width = vfmt.fmt.pix.width & -16;
+        par->height = vfmt.fmt.pix.height & -mod;
 
-	if (width > grab_width)
-		width = grab_width;
-	if (height > grab_height)
-		height = grab_height;
+	if (width > par->width)
+		width = par->width;
+	if (height > par->height)
+		height = par->height;
 
-	filter_init(
-		vfmt.fmt.pix.pixelformat == V4L2_PIX_FMT_YUV420 ?
-		vfmt.fmt.pix.width : vfmt.fmt.pix.width * 2);
+	filter_init(par);
 
 	printv(2, "Image format '%s' %d x %d granted\n",
-		le4cc2str(vfmt.fmt.pix.pixelformat), vfmt.fmt.pix.width, vfmt.fmt.pix.height);
+		le4cc2str(vfmt.fmt.pix.pixelformat),
+	       vfmt.fmt.pix.width, vfmt.fmt.pix.height);
+
+	/* Phase 2, i/o setup */
 
 #if USE_PSB
 
-	if (grab_width * grab_height < 128000) {
+	if (par->width * par->height < 128000) {
 		int b = 12;
 		IOCTL(fd, VIDIOC_PSB, &b);
-	} else if (grab_width * grab_height < 256000) {
+	} else if (par->width * par->height < 256000) {
 		int b = 6;
 		IOCTL(fd, VIDIOC_PSB, &b);
 	} else {

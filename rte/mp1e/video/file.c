@@ -17,13 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.6 2001-10-16 11:18:17 mschimek Exp $ */
+/* $Id: file.c,v 1.7 2002-02-25 06:22:19 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
 #include "../common/log.h"
 #include "../common/fifo.h"
 #include "../options.h"
+#include "../b_mp1e.h"
 #include "../common/math.h"
 #include "video.h"
 
@@ -244,12 +245,9 @@ wait_full(fifo *f)
 }
 
 fifo *
-file_init(double *frame_rate)
+file_init(rte_video_stream_params *par)
 {
 	int len = strlen(cap_dev);
-	int aligned_width;
-	int aligned_height;
-	int pitch;
 
 	if (len < 4 || strcmp(cap_dev + len - 4, ".ppm"))
 		FAIL("Unknown file type '%s'", cap_dev);
@@ -258,22 +256,24 @@ file_init(double *frame_rate)
 		exit(EXIT_FAILURE);
 
 	if (width < 1 || height < 1 ||
-	    width > MAX_WIDTH ||
-	    height > MAX_HEIGHT)
+	    width > MAX_WIDTH || height > MAX_HEIGHT)
 		FAIL("Images '%s' too big", cap_dev);
 
-	aligned_width  = (width + 15) & -16;
-	aligned_height = (height + 15) & -16;
+	par->frame_rate = 24.0;
+	par->width  = (grab_width + 15) & -16;
+	par->height = (grab_height + 15) & -16;
 
 	switch (filter_mode = FILTER_MODE) {
 	case CM_YUV:
-		buffer_size = aligned_height * aligned_width * 3 / 2;
-		pitch = aligned_width;
+		par->pixfmt = RTE_PIXFMT_YUV420;
+		buffer_size = par->height * par->width * 3 / 2;
+		par->stride = par->width;
 		break;
 
 	case CM_YUYV:
-		buffer_size = aligned_height * aligned_width * 2;
-		pitch = aligned_width * 2;
+		par->pixfmt = RTE_PIXFMT_YUYV;
+		buffer_size = par->height * par->width * 2;
+		par->stride = par->width * 2;
 		break;
 
 	default:
@@ -281,10 +281,7 @@ file_init(double *frame_rate)
 			filter_labels[filter_mode]);
 	}
 
-	*frame_rate = 24.0;
-	//vseg.frame_rate_code = 3; // 24 Hz
-
-	filter_init(pitch);
+	filter_init(par);
 
 	ASSERT("init capture fifo", init_callback_fifo(
 		&cap_fifo, "video-ppm",
@@ -295,7 +292,7 @@ file_init(double *frame_rate)
 		add_producer(&cap_fifo, &cap_prod));
 
 	printv(2, "Reading images %d x %d named '%s'\n",
-		width, height, cap_dev);
+		par->width, par->height, cap_dev);
 
 	return &cap_fifo;
 }

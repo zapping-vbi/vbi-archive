@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.13 2002-02-20 19:58:31 garetxe Exp $
+dnl $Id: configure.in,v 1.14 2002-02-25 06:22:19 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(mp1e, 1.9.2)
@@ -42,9 +42,7 @@ create_links () {
 }
 
 create_links ../../zapping/common common \
-"list.h fifo.h fifo.c threads.h errstr.h errstr.c videodev.h videodev2.h"
-create_links ../../zapping/libvbi vbi \
-"decoder.h decoder.c hamm.h hamm.c sliced.h tables.h tables.c v4lx.h v4lx.c"
+"list.h fifo.h threads.h videodev.h videodev2.h"
 create_links ../src . "rte.h rtepriv.h rte-enums.h rte-types.h rte-version.h"
 
 AC_ARG_ENABLE(debugging, [  --enable-debugging      add debugging info],

@@ -44,12 +44,12 @@ static buffer *
 output(struct multiplexer *mux,
        buffer *mbuf)
 {
-	rte_context *context = (rte_context*) mux->user_data;
+//	rte_context *context = (rte_context*) mux->user_data;
 
-	if (!mbuf)
-		return &mux_buffer;
+//	if (!mbuf)
+//		return &mux_buffer;
 
-#warning FIXME NOW
+#warning FIXME
 //	if (mbuf->used && mbuf->data)
 //		context->write(context, mbuf->data, mbuf->used);
 

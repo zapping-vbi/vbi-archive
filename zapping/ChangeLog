@@ -1,3 +1,11 @@
+25.02.2002	zapping_setup_fb patch <mschimek@users.sf.net>
+
+	* zapping_setup_fb/zapping_setup_fb.c: Patch by David Fries.
+	  zapping_setup_fb won't run because the .Xauthority is on a nfs mounted
+	  directory with the server doing root squash so it can't contact the X
+	  server. This patch drops the root privileges when connecting to the X
+	  server.
+
 08.02.2002	Fixes <mschimek@users.sf.net>
 
 	* src/zvbi.c: Made threads_destroy() block-proof, fixed a td == 0

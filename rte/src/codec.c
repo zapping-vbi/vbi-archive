@@ -19,15 +19,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.c,v 1.1 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: codec.c,v 1.2 2002-02-25 06:22:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 
 #include "rtepriv.h"
 
@@ -77,7 +73,7 @@ rte_codec_info *
 rte_codec_info_keyword(rte_context *context,
 		       const char *keyword)
 {
-	rte_codec_info *rci;
+	rte_codec_info *ci;
 	int i;
 
 	nullcheck(context, return NULL);
@@ -89,11 +85,10 @@ rte_codec_info_keyword(rte_context *context,
 		return NULL;
 
 	for (i = 0;; i++)
-	        if (!(rci = xc->codec_enum(context, i))
-		    || strcmp(keyword, rci->keyword) == 0)
+	        if (!(ci = xc->codec_enum(context, i))
+		    || strcmp(keyword, ci->keyword) == 0)
 			break;
-
-	return rci;
+	return ci;
 }
 
 /**
@@ -109,6 +104,8 @@ rte_codec_info_keyword(rte_context *context,
 rte_codec_info *
 rte_codec_info_codec(rte_codec *codec)
 {
+	rte_context *context = NULL;
+
 	nullcheck(codec, return NULL);
 
 	return &dc->public;
@@ -133,10 +130,10 @@ rte_codec_info_codec(rte_codec *codec)
  *
  * <example><title>Possible mp1e backend initialization (error checks omitted)
  * </title><programlisting>
- * context = rte_context_new("mp1e_mpeg1_ps", NULL);  // MPEG-1 Program stream
- * rte_codec_set(context, "mp1e_mpeg1_video", 0);     // MPEG-1 Video (first elementary)
- * rte_codec_set(context, "mp1e_mpeg2_layer2", 0);    // MPEG-2 Audio (first elementary)
- * rte_codec_set(context, "mp1e_mpeg1_layer2", 1);    // MPEG-1 Audio (second elementary)
+ * context = rte_context_new("mp1e_mpeg1_ps", NULL, NULL);  // MPEG-1 Program stream
+ * rte_codec_set(context, "mp1e_mpeg1_video", 0, NULL);     // MPEG-1 Video (first elementary)
+ * rte_codec_set(context, "mp1e_mpeg2_layer2", 0, NULL);    // MPEG-2 Audio (first elementary)
+ * rte_codec_set(context, "mp1e_mpeg1_layer2", 1, NULL);    // MPEG-1 Audio (second elementary)
  * </programlisting></example>
  * 
  * As a special service you can set <emphasis>codec</> options
@@ -156,22 +153,35 @@ rte_codec *
 rte_codec_set(rte_context *context, const char *keyword,
 	      int stream_index, void *user_data)
 {
+	char key[256];
+	rte_codec *codec;
+	int keylen;
+
 	nullcheck(context, return NULL);
 	rte_error_reset(context);
-	rte_codec *codec;
 
 	nullcheck(keyword, return NULL);
 
+	for (keylen = 0; keyword[keylen] && keylen < (sizeof(key) - 1)
+	     && keyword[keylen] != ';' && keyword[keylen] != ','; keylen++)
+	     key[keylen] = keyword[keylen];
+	key[keylen] = 0;
+
 	assert(xc->codec_set != NULL);
 
-	pthread_mutex_lock(&context->mutex);
+	codec = xc->codec_set(context, key, 0, stream_index);
 
-	codec = xc->codec_set(context, keyword, 0, stream_index);
-
-	if (codec)
+	if (codec) {
 		codec->user_data = user_data;
 
-	pthread_mutex_unlock(&context->mutex);
+		if (keyword[keylen] && !rte_option_string(
+			context, codec, keyword + keylen + 1)) {
+			xc->codec_set(context, NULL,
+				      codec->class->public.stream_type,
+				      codec->stream_index);
+			codec = NULL;
+		}
+	}
 
 	return codec;
 }
@@ -179,22 +189,24 @@ rte_codec_set(rte_context *context, const char *keyword,
 /*
  *  Removed rte_codec_set_user_data because when we set only
  *  at rte_codec_set() we can save codec->mutex locking on
- *  every access.
+ *  every access. Then again this whole locking business
+ *  sucks, removed.
  */
 
 /**
  * rte_codec_user_data:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or
- *	   rte_codec_set().
- *
+ * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
+ * 
  * Retrieves the pointer stored in the user data field of the codec.
- *
+ * 
  * Return value:
- * Pointer.
+ * User pointer.
  **/
 void *
 rte_codec_user_data(rte_codec *codec)
 {
+	rte_context *context = NULL;
+
 	nullcheck(codec, return NULL);
 
 	return codec->user_data;
@@ -219,11 +231,7 @@ rte_codec_remove(rte_context *context,
 
 	assert(xc->codec_set != NULL);
 
-	pthread_mutex_lock(&context->mutex);
-
 	xc->codec_set(context, NULL, stream_type, stream_index);
-
-	pthread_mutex_unlock(&context->mutex);
 }
 
 /**
@@ -236,7 +244,7 @@ rte_codec_remove(rte_context *context,
 void
 rte_codec_remove_codec(rte_codec *codec)
 {
-	rte_context *context;
+	rte_context *context = NULL;
 
 	nullcheck(codec, return);
 
@@ -245,13 +253,9 @@ rte_codec_remove_codec(rte_codec *codec)
 
 	assert(xc->codec_set != NULL);
 
-	pthread_mutex_lock(&context->mutex);
-
 	xc->codec_set(context, NULL,
 		      codec->class->public.stream_type,
 		      codec->stream_index);
-
-	pthread_mutex_unlock(&context->mutex);
 }
 
 /**
@@ -274,17 +278,14 @@ rte_codec_get(rte_context *context,
 	      rte_stream_type stream_type,
 	      int stream_index)
 {
+	rte_codec *codec;
+
 	nullcheck(context, return NULL);
 	rte_error_reset(context);
-	rte_codec *codec;
 
 	assert(xc->codec_get != NULL);
 
-	pthread_mutex_lock(&context->mutex);
-
 	codec = xc->codec_get(context, stream_type, stream_index);
-
-	pthread_mutex_unlock(&context->mutex);
 
 	return codec;
 }
@@ -308,7 +309,7 @@ rte_codec_get(rte_context *context,
 rte_option_info *
 rte_codec_option_info_enum(rte_codec *codec, int index)
 {
-	rte_context *context;
+	rte_context *context = NULL;
 
 	nullcheck(codec, return 0);
 
@@ -338,9 +339,9 @@ rte_codec_option_info_enum(rte_codec *codec, int index)
 rte_option_info *
 rte_codec_option_info_keyword(rte_codec *codec, const char *keyword)
 {
-	rte_context *context;
+	rte_context *context = NULL;
 	rte_option_info *(* enumerate)(rte_codec *, int);
-	rte_option_info *roi;
+	rte_option_info *oi;
 	int i;
 
 	nullcheck(codec, return NULL);
@@ -358,10 +359,10 @@ rte_codec_option_info_keyword(rte_codec *codec, const char *keyword)
 		return NULL;
 
 	for (i = 0;; i++)
-	        if (!(roi = enumerate(codec, i))
-		    || strcmp(keyword, roi->keyword) == 0)
+	        if (!(oi = enumerate(codec, i))
+		    || strcmp(keyword, oi->keyword) == 0)
 			break;
-	return roi;
+	return oi;
 }
 
 /**
@@ -381,7 +382,7 @@ rte_bool
 rte_codec_option_get(rte_codec *codec, const char *keyword,
 		     rte_option_value *value)
 {
-	rte_context *context;
+	rte_context *context = NULL;
 	rte_bool r;
 
 	nullcheck(codec, return FALSE);
@@ -396,8 +397,6 @@ rte_codec_option_get(rte_codec *codec, const char *keyword,
 		return FALSE;
 	}
 
-	pthread_mutex_lock(&codec->mutex);
-
 	if (xc->codec_option_get) {
 		r = xc->codec_option_get(codec, keyword, value);
 	} else if (dc->option_get) {
@@ -406,8 +405,6 @@ rte_codec_option_get(rte_codec *codec, const char *keyword,
 		rte_unknown_option(context, codec, keyword);
 		r = FALSE;
 	}
-
-	pthread_mutex_unlock(&codec->mutex);
 
 	return r;
 }
@@ -436,7 +433,7 @@ rte_codec_option_get(rte_codec *codec, const char *keyword,
 rte_bool
 rte_codec_option_set(rte_codec *codec, const char *keyword, ...)
 {
-	rte_context *context;
+	rte_context *context = NULL;
 	va_list args;
 	rte_bool r;
 
@@ -452,18 +449,14 @@ rte_codec_option_set(rte_codec *codec, const char *keyword, ...)
 
 	va_start(args, keyword);
 
-	pthread_mutex_lock(&codec->mutex);
-
 	if (xc->codec_option_set) {
-		r = xc->codec_option_get(codec, keyword, args);
+		r = xc->codec_option_set(codec, keyword, args);
 	} else if (dc->option_set) {
 		r = dc->option_set(codec, keyword, args);
 	} else {
 		rte_unknown_option(context, codec, keyword);
 		r = FALSE;
 	}
-
-	pthread_mutex_unlock(&codec->mutex);
 
 	va_end(args);
 
@@ -488,7 +481,7 @@ rte_codec_option_set(rte_codec *codec, const char *keyword, ...)
 char *
 rte_codec_option_print(rte_codec *codec, const char *keyword, ...)
 {
-	rte_context *context;
+	rte_context *context = NULL;
 	va_list args;
 	char *r;
 
@@ -535,12 +528,17 @@ rte_codec_option_print(rte_codec *codec, const char *keyword, ...)
 rte_bool
 rte_codec_option_menu_get(rte_codec *codec, const char *keyword, int *entry)
 {
+	rte_context *context = NULL;
 	rte_option_info *oi;
 	rte_option_value val;
 	rte_bool r;
 	int i;
 
 	nullcheck(codec, return FALSE);
+
+	context = codec->context;
+	rte_error_reset(context);
+
 	nullcheck(entry, return FALSE);
 
 	if (!(oi = rte_codec_option_info_keyword(codec, keyword)))
@@ -606,6 +604,7 @@ rte_codec_option_menu_get(rte_codec *codec, const char *keyword, int *entry)
 rte_bool
 rte_codec_option_menu_set(rte_codec *codec, const char *keyword, int entry)
 {
+	rte_context *context = NULL;
 	rte_option_info *oi;
 
 	nullcheck(codec, return FALSE);
@@ -653,13 +652,12 @@ rte_codec_option_menu_set(rte_codec *codec, const char *keyword, int entry)
 rte_bool
 rte_codec_options_reset(rte_codec *codec)
 {
+	rte_context *context = NULL;
 	rte_option_info *oi;
 	rte_bool r = TRUE;
 	int i;
 
 	nullcheck(codec, return FALSE);
-
-	pthread_mutex_lock(&codec->mutex);
 
 	for (i = 0; r && (oi = rte_codec_option_info_enum(codec, i)); i++) {
 		switch (oi->type) {
@@ -701,8 +699,6 @@ rte_codec_options_reset(rte_codec *codec)
 			exit(EXIT_FAILURE);
 		}
 	}
-
-	pthread_mutex_unlock(&codec->mutex);
 
 	return r;
 }
@@ -761,12 +757,6 @@ rte_codec_options_reset(rte_codec *codec)
  * params.video.width  = source_x1 - source_x0 + 1;
  * params.video.height = source_y1 - source_y0 + 1;
  * </programlisting></example> 
- * <example><title>Video resampling</title>
- * <programlisting>
- * rte_codec_option_set(video_codec, "coded_frame_rate", 24.0);
- * &nbsp;
- * params.video.frame_rate = 25.0;
- * </programlisting></example> 
  * <example><title>Audio resampling</title>
  * <programlisting>
  * rte_codec_option_set(audio_codec, "sampling_rate", 44100.0);
@@ -780,7 +770,8 @@ rte_codec_options_reset(rte_codec *codec)
 rte_bool
 rte_codec_parameters_set(rte_codec *codec, rte_stream_parameters *params)
 {
-	rte_context *context;
+	rte_context *context = NULL;
+	rte_bool r = FALSE;
 
 	nullcheck(codec, return FALSE);
 
@@ -790,14 +781,13 @@ rte_codec_parameters_set(rte_codec *codec, rte_stream_parameters *params)
 	nullcheck(params, return FALSE);
 
 	if (xc->parameters_set)
-		return xc->parameters_set(codec, params);
+		r = xc->parameters_set(codec, params);
 	else if (dc->parameters_set)
-		return dc->parameters_set(codec, params);
+		r = dc->parameters_set(codec, params);
+	else
+		assert(!"rte bug");
 
-	fprintf(stderr, "rte: codec %s lacks mandatory "
-		"parameters_set function\n", dc->public.keyword);
-
-	exit(EXIT_FAILURE);
+	return r;
 }
 
 /**
@@ -813,7 +803,8 @@ rte_codec_parameters_set(rte_codec *codec, rte_stream_parameters *params)
 rte_bool
 rte_codec_parameters_get(rte_codec *codec, rte_stream_parameters *params)
 {
-	rte_context *context;
+	rte_context *context = NULL;
+	rte_bool r;
 
 	nullcheck(codec, return FALSE);
 
@@ -823,23 +814,19 @@ rte_codec_parameters_get(rte_codec *codec, rte_stream_parameters *params)
 	nullcheck(params, return FALSE);
 
 	if (xc->parameters_get)
-		return xc->parameters_get(codec, params);
+		r = xc->parameters_get(codec, params);
 	else if (dc->parameters_get)
-		return dc->parameters_get(codec, params);
+		r = dc->parameters_get(codec, params);
 	else {
-		pthread_mutex_lock(&codec->mutex);
-
 		if (codec->status == RTE_STATUS_NEW) {
-			pthread_mutex_unlock(&codec->mutex);
-			return FALSE;
+			r = FALSE;
+		} else {
+			memcpy(params, &codec->params, sizeof(*params));
+			r = TRUE;
 		}
-
-		memcpy(params, &codec->params, sizeof(*params));
-
-		pthread_mutex_unlock(&codec->mutex);
-
-		return TRUE;
 	}
+
+	return r;
 }
 
 /*
@@ -860,8 +847,12 @@ rte_codec_parameters_get(rte_codec *codec, rte_stream_parameters *params)
 rte_status_info *
 rte_codec_status_enum(rte_codec *codec, int n)
 {
+	rte_context *context = NULL;
+
 	nullcheck(codec, return NULL);
-	rte_error_reset(codec->context);
+
+	context = codec->context;
+	rte_error_reset(context);
 
 	nullcheck(dc->status_enum, return NULL);
 
@@ -881,11 +872,14 @@ rte_codec_status_enum(rte_codec *codec, int n)
 rte_status_info *
 rte_codec_status_keyword(rte_codec *codec, const char *keyword)
 {
+	rte_context *context = NULL;
 	rte_status_info *si;
 	int i;
 
 	nullcheck(codec, return NULL);
-	rte_error_reset(codec->context);
+
+	context = codec->context;
+	rte_error_reset(context);
 
 	nullcheck(dc->status_enum, return NULL);
 
@@ -896,11 +890,3 @@ rte_codec_status_keyword(rte_codec *codec, const char *keyword)
 
 	return si;
 }
-
-
-
-
-
-
-
-

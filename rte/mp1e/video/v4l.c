@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.17 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: v4l.c,v 1.18 2002-02-25 06:22:20 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -177,7 +177,7 @@ restore_audio(void)
 			  mode == CM_YUYV_EXP_VERTICAL_DECIMATION)
 
 fifo *
-v4l_init(double *frame_rate)
+v4l_init(rte_video_stream_params *par)
 {
 	struct video_capability vcap;
 	struct video_tuner vtuner;
@@ -185,10 +185,9 @@ v4l_init(double *frame_rate)
 	/* struct video_window vwin; */
 	/* struct video_picture vpict; */
 	int min_cap_buffers = video_look_ahead(gop_sequence);
-	int aligned_width, aligned_height;
 	unsigned long buf_size;
+	int max_height, height1;
 	int buf_count;
-	int max_height;
 	int retry;
 
 	ASSERT("open capture device",
@@ -247,20 +246,20 @@ v4l_init(double *frame_rate)
 	case VIDEO_MODE_PAL:
 	case VIDEO_MODE_SECAM:
 		printv(2, "Video standard is PAL/SECAM\n");
-		*frame_rate = 25.0;
+		par->frame_rate = 25.0;
 		mp1e_timestamp_init(&tfmem, 1 / 25.0);
 		max_height = 576;
 		break;
 
 	case VIDEO_MODE_NTSC:
 		printv(2, "Video standard is NTSC\n");
-		*frame_rate = 30000 / 1001.0;
+		par->frame_rate = 30000 / 1001.0;
 		mp1e_timestamp_init(&tfmem, 1001 / 30000.0);
 		max_height = 480;
-		if (grab_height == 288) /* that's the default, assuming PAL */
-			grab_height = 240;
-		if (grab_height == 576)
-			grab_height = 480;
+		if (par->height == 288) /* that's the default, assuming PAL */
+			par->height = 240;
+		if (par->height == 576)
+			par->height = 480;
 		break;
 
 	default:
@@ -268,27 +267,26 @@ v4l_init(double *frame_rate)
 		break;
 	}
 
+	par->width = saturate(par->width, 1, MAX_WIDTH);
+	par->height = saturate(par->height, 1, MAX_HEIGHT);
 
+	height1 = par->height;
 
-	grab_width = saturate(grab_width, 1, MAX_WIDTH);
-	grab_height = saturate(grab_height, 1, MAX_HEIGHT);
+	par->width  = (par->width + 15) & -16;
 
 	if (DECIMATING(filter_mode))
-		aligned_height = (grab_height * 2 + 15) & -16;
+		par->height = (par->height * 2 + 15) & -16;
 	else
-		aligned_height = (grab_height + 15) & -16;
-
-	aligned_width  = (grab_width + 15) & -16;
+		par->height = (par->height + 15) & -16;
 
 	buf_count = MAX(cap_buffers, min_cap_buffers);
 
-
-	while (aligned_height > max_height) {
+	while (par->height > max_height) {
 		if (DECIMATING(filter_mode)) {
 			filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
-			aligned_height = (grab_height + 15) & -16;
+			par->height = (height1 + 15) & -16;
 		} else {
-			aligned_height = max_height;
+			par->height = max_height;
 		}
 	}
 
@@ -327,14 +325,14 @@ v4l_init(double *frame_rate)
 		} else {
 			filter_mode = CM_YUV;
 			pict.palette = VIDEO_PALETTE_YUV420P;
-			aligned_height = (grab_height + 15) & -16;
+			par->height = (height1 + 15) & -16;
 		}
 	}
 
 	for (;;) {
 		CLEAR(&win);
-		vwin.width = aligned_width;
-		vwin.height = aligned_height;
+		vwin.width = par->width;
+		vwin.height = par->height;
 		vwin.chromakey = -1;
 
 		if (IOCTL(fd, VIDIOCSWIN, &vwin) == 0)
@@ -346,11 +344,11 @@ v4l_init(double *frame_rate)
 		       cap_dev, vwin.width, vwin.height);
 
 		filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
-		aligned_height = (grab_height + 15) & -16;
+		par->height = (height1 + 15) & -16;
 	}
 
-	aligned_width = vwin.width;
-	aligned_height = vwin.height;
+	par->width = vwin.width;
+	par->height = vwin.height;
 
 #endif
 
@@ -390,8 +388,8 @@ v4l_init(double *frame_rate)
 
 		CLEAR(&gb_buf);
 		gb_buf.frame = (gb_frame+1) % gb_buffers.frames;
-		gb_buf.width = aligned_width;
-		gb_buf.height = aligned_height;
+		gb_buf.width = par->width;
+		gb_buf.height = par->height;
 
 		if (filter_mode == CM_YUV || filter_mode == CM_YVU)
 			gb_buf.format = VIDEO_PALETTE_YUV420P;
@@ -417,12 +415,10 @@ v4l_init(double *frame_rate)
 				gb_buf.format = VIDEO_PALETTE_YUYV;
 			} else {
 				filter_mode = CM_YUV;
+				par->height = (height1 + 15) & -16;
 
-				if (DECIMATING(filter_mode))
-					aligned_height = (grab_height + 15) & -16;
-
-				gb_buf.width = aligned_width;
-				gb_buf.height = aligned_height;
+				gb_buf.width = par->width;
+				gb_buf.height = par->height;
 
 				gb_buf.format = VIDEO_PALETTE_YUV420P;
 			}
@@ -437,19 +433,21 @@ v4l_init(double *frame_rate)
 		       r >= 0,
 		       cap_dev, gb_buf.width, gb_buf.height);
 
-		grab_width = gb_buf.width;
-		grab_height = gb_buf.height;
+		par->width = gb_buf.width;
+		par->height = gb_buf.height;
 
-		if (width > grab_width)
-			width = grab_width;
-		if (height > grab_height)
-			height = grab_height;
+		if (width > par->width)
+			width = par->width;
+		if (height > par->height)
+			height = par->height;
 
 		if (filter_mode == CM_YUV || filter_mode == CM_YVU) {
-	    		filter_init(gb_buf.width); /* line stride in bytes */
+			par->stride = par->width;
+	    		filter_init(par); /* line stride in bytes */
 			buf_size = gb_buf.width * gb_buf.height * 3 / 2;
 		} else {
-	    		filter_init(gb_buf.width * 2);
+			par->stride = par->width * 2;
+	    		filter_init(par);
 			buf_size = gb_buf.width * gb_buf.height * 2;
 		}
         }

@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999, 2000, 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.5 2001-12-07 06:50:24 mschimek Exp $ */
+/* $Id: filter.c,v 1.6 2002-02-25 06:22:19 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -57,41 +57,7 @@ extern int		mmx_YUYV_422_2v(unsigned char *, unsigned char *);
 extern int		mmx_YUYV_422_ti(unsigned char *, unsigned char *);
 extern int		mmx_YUYV_422_vi(unsigned char *, unsigned char *);
 
-/* Reference */
-
-int
-YUYV_422(unsigned char *buffer, unsigned char *unused)
-{
-	int y, x;
-	unsigned int n, s = 0, s2 = 0;
-
-	buffer += filter_y_pitch * mb_row * 16 + mb_col * 16 * 2 + filter_y_offs;
-
-	for (y = 0; y < 16; y++)
-		for (x = 0; x < 8; x++) {
-			// Note block order Y0 Y2 Y1 Y3
-			mblock[0][0][y][x] = (short) buffer[y * filter_y_pitch + x * 2 + 0];
-			mblock[0][2][y][x] = (short) buffer[y * filter_y_pitch + x * 2 + 16];
-		}
-
-	for (y = 0; y < 8; y++)
-		for (x = 0; x < 8; x++) {
-			mblock[0][4][y][x] = (short) buffer[y * filter_y_pitch * 2 + x * 4 + 1];
-			mblock[0][5][y][x] = (short) buffer[y * filter_y_pitch * 2 + x * 4 + 3];
-		}
-
-	for (x = 0; x < 4 * 64; x++) {
-		n = mblock[0][0][0][x];
-		s += n;
-		s2 += n * n;
-	}
-
-	return s2 * 256 - (s * s); // luma spatial activity
-}
-
 static int (* color_pred)(unsigned char *, unsigned char *);
-
-/* Hum. Could add rendered subpictures. */
 
 static int
 color_trap(unsigned char *buffer1, unsigned char *buffer2)
@@ -333,74 +299,20 @@ YUYV_422_exp3(unsigned char *buffer, unsigned char *buffer2)
 	return s2 * 256 - (s * s);
 }
 
-/* Experimental ??? filter */
-
-int
-YUYV_422_exp4(unsigned char *buffer, unsigned char *unused)
-{
-	unsigned int n, c, d, r, s = 0, s2 = 0;
-	int y, x, i, j;
-
-	buffer += filter_y_pitch * mb_row * 16 + mb_col * 16 * 2 + filter_y_offs;
-
-	for (y = 0; y < 16; y++)
-		for (x = 0; x < 8; x++) {
-			n = c = 0;
-			r = buffer[(y) * filter_y_pitch + (x) * 2];
-			for (j = -2; j < +2; j++)
-				for (i = -2; i < +2; i++) {
-					d = buffer[(y + j) * filter_y_pitch + (x + i) * 2];
-					if (40 >= nbabs(d - r)) {
-						n += d;
-						c++;
-					}
-				}
-			mblock[0][0][y][x] = (n + (c >> 1)) / c;
-			n = c = 0;
-			r = buffer[(y) * filter_y_pitch + (x) * 2 + 16];
-			for (j = -2; j < +2; j++)
-				for (i = -2; i < +2; i++) {
-					d = buffer[(y + j) * filter_y_pitch + (x + i) * 2 + 16];
-					if (40 >= nbabs(d - r)) {
-						n += d;
-						c++;
-					}
-				}
-			mblock[0][2][y][x] = (n + (c >> 1)) / c;
-		}
-
-	for (y = 0; y < 8; y++)
-		for (x = 0; x < 8; x++) {
-			mblock[0][4][y][x] = (short) buffer[y * filter_y_pitch * 2 + x * 4 + 1];
-			mblock[0][5][y][x] = (short) buffer[y * filter_y_pitch * 2 + x * 4 + 3];
-		}
-
-	for (x = 0; x < 4 * 64; x++) {
-		n = mblock[0][0][0][x];
-		s += n;
-		s2 += n * n;
-	}
-
-	return s2 * 256 - (s * s);
-}
-
 /*
+ *  Legacy mp1e code, not used with rte
+ *
  *  Input:
- *  grab_width, grab_height (pixels)
+ *  par->width, par->height (grab size, pixels)
  *  [encoded image] width, height (pixels)
  *  pitch (line distance, Y or YUYV, bytes)
- *
- *  Assumed:
- *  Y plane size = pitch * grab_height,
- *  U,V or V,U - Y distance = 4,5 * Y plane size / 4
- *  U,V pitch = pitch / 2
  *
  *  Output:
  *  width, height (pixels)
  *  filter initialized
  */
 void
-filter_init(int pitch)
+filter_init(rte_video_stream_params *par)
 {
 	int padded_width, padded_height;
 	int y_bpp = 2, scale_x = 1, scale_y = 1;
@@ -408,42 +320,29 @@ filter_init(int pitch)
 	int uv_size = 0;
 	int u = 4, v = 5;
 
-//	temporal_interpolation = FALSE;
+	par->stride = par->width * 2;
 
 	switch (filter_mode) {
 	case CM_YVU:
 		u = 5; v = 4;
 	case CM_YUV:
 		filter = mmx_YUV_420;
-		uv_size = pitch * grab_height / 4;
+		assert((par->width % 2) == 0);
+		par->stride = par->width;
+		par->uv_stride = par->width >> 1;
+		uv_size = par->uv_stride * par->height / 4;
 		y_bpp = 1;
 		break;
+
 	case CM_YUYV:
 	case CM_YUYV_PROGRESSIVE:
 		filter = mmx_YUYV_422;
 		break;
 
 	case CM_YUYV_EXP:
-		filter = YUYV_422_exp2;
-//		temporal_interpolation = FALSE;
-		width = saturate(grab_width, 1, grab_width - 16);
-		height = saturate(grab_height, 1, grab_height - 16);
-		break;
-
 	case CM_YUYV_EXP2:
-		filter = YUYV_422_exp4;
-//		temporal_interpolation = FALSE;
-		width = saturate(grab_width, 1, grab_width - 16);
-		height = saturate(grab_height, 1, grab_height - 16);
-		break;
-
 	case CM_YUYV_EXP_VERTICAL_DECIMATION:
 		FAIL("Sorry, the selected filter mode was experimental and is no longer available.\n");
-		filter = YUYV_422_exp3;
-//		temporal_interpolation = TRUE;
-		scale_y = 2;
-		width = saturate(grab_width, 1, grab_width - 16);
-		height = saturate(grab_height / 2, 1, grab_height / 2 - 16);
 		break;
 
 	case CM_YUYV_VERTICAL_DECIMATION:
@@ -458,8 +357,6 @@ filter_init(int pitch)
 	case CM_YUYV_TEMPORAL_INTERPOLATION:
 	case CM_YUYV_PROGRESSIVE_TEMPORAL:
 		FAIL("Sorry, the selected filter mode (temporal interpolation) is no longer available.\n");
-		filter = mmx_YUYV_422_ti;
-//		temporal_interpolation = TRUE;
 		break;
 	
 	default:
@@ -477,27 +374,27 @@ filter_init(int pitch)
 	padded_width = ((width + 15) & -16) * scale_x;
 	padded_height = ((height + 15) & -16) * scale_y;
 
-	if (padded_width > grab_width) {
-		width = (grab_width / scale_x) & -16;
+	if (padded_width > par->width) {
+		width = (par->width / scale_x) & -16;
 		padded_width = width * scale_x;
 	}
-	if (padded_height > grab_height) {
-		height = (grab_height / scale_y) & -16;
+	if (padded_height > par->height) {
+		height = (par->height / scale_y) & -16;
 		padded_height = height * scale_y;
 	}
 
 	/* Center the encoding window */
-	off_x = (grab_width - width * scale_x + 1) >> 1;
-	off_y = (grab_height - height * scale_y + 1) >> 1;
+	off_x = (par->width - width * scale_x + 1) >> 1;
+	off_y = (par->height - height * scale_y + 1) >> 1;
 
-	if (off_x + padded_width > grab_width)
-		off_x = grab_width - padded_width;
-	if (off_y + padded_height > grab_height)
-		off_y = grab_height - padded_height;
+	if (off_x + padded_width > par->width)
+		off_x = par->width - padded_width;
+	if (off_y + padded_height > par->height)
+		off_y = par->height - padded_height;
 
-	filter_y_pitch = pitch;
+	filter_y_pitch = par->stride;
 
-	filter_y_offs = pitch * off_y + off_x * y_bpp;
+	filter_y_offs = par->stride * off_y + off_x * y_bpp;
 	filter_u_offs = uv_size * u + (filter_y_offs >> 2);
 	filter_v_offs = uv_size * v + (filter_y_offs >> 2);
 

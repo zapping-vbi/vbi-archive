@@ -19,15 +19,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.1 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: context.c,v 1.2 2002-02-25 06:22:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 
 #include "rtepriv.h"
 
@@ -35,6 +31,7 @@
 
 extern const rte_backend_class rte_backend_mp1e;
 extern const rte_backend_class rte_backend_ffmpeg;
+extern const rte_backend_class rte_backend_divx4linux;
 
 static const rte_backend_class *
 backends[] = {
@@ -44,26 +41,24 @@ backends[] = {
 #ifdef FFMPEG
 	&rte_backend_ffmpeg,
 #endif
+#ifdef DIVX4LINUX
+	&rte_backend_divx4linux,
+#endif
 	/* more */
 };
 
 static const int num_backends = sizeof(backends) / sizeof(backends[0]);
 
-/* XXX this function has no reentrance protection */
+static pthread_once_t init_once = PTHREAD_ONCE_INIT;
+
 static void
 init_backends(void)
 {
-	static rte_bool inited = FALSE;
+	int i;
 
-	if (!inited) {
-		int i;
-
-		for (i = 0; i < num_backends; i++)
-			if (backends[i]->backend_init)
-				backends[i]->backend_init();
-
-		inited = TRUE;
-	}
+	for (i = 0; i < num_backends; i++)
+		if (backends[i]->backend_init)
+			backends[i]->backend_init();
 }
 
 /**
@@ -87,7 +82,7 @@ rte_context_info_enum(int index)
 	rte_context_class *rxc;
 	int i, j;
 
-	init_backends();
+	pthread_once(&init_once, init_backends);
 
 	for (j = 0; j < num_backends; j++)
 		if (backends[j]->context_enum)
@@ -116,7 +111,7 @@ rte_context_info_keyword(const char *keyword)
 	rte_context_class *rxc;
 	int i, j;
 
-	init_backends();
+	pthread_once(&init_once, init_backends);
 
 	if (!keyword)
 		return NULL;
@@ -151,20 +146,27 @@ rte_context_info_context(rte_context *context)
 /**
  * rte_context_new:
  * @keyword: Context format identifier as in #rte_context_info.
+ * @user_data: Pointer stored in the context, can be retrieved
+ *   with rte_context_user_data().
  * @errstr: If non-zero and the function fails, a pointer to
  *   an error description will be stored here. You must free()
  *   this string when no longer needed.
- * @user_data: Pointer stored in the context, can be retrieved
- *   with rte_context_user_data().
  * 
  * Creates a new rte context, encoding files in the specified format.
  * As a special service you can initialize <emphasis>context</>
  * options by appending to the @keyword like this:
  * 
  * <informalexample><programlisting>
- * rte_context_new("keyword; quality=75.5, comment=\"example\"", NULL);  
+ * rte_context_new("keyword; quality=75.5, comment=\"example\"", NULL, NULL);  
  * </programlisting></informalexample>
  * 
+ * RTE is thread aware: Multiple threads can allocate contexts but
+ * sharing the same context between threads is not safe unless you
+ * implement your own mutual exclusion mechanism. <!-- Removed
+ * because once started this locking business gets out of hand,
+ * while a thread safe api is rather useless for most apps.
+ * Better an exception to this rule where it really matters. -->
+ *
  * Return value:
  * Pointer to a newly allocated #rte_context structure, which must be
  * freed by calling rte_context_delete(). %NULL is returned when the
@@ -173,7 +175,7 @@ rte_context_info_context(rte_context *context)
  * rte_errstr().
  **/
 rte_context *
-rte_context_new(const char *keyword, char **errstr, void *user_data)
+rte_context_new(const char *keyword, void *user_data, char **errstr)
 {
 	char key[256], *error;
 	rte_context_class *rxc = NULL;
@@ -188,7 +190,7 @@ rte_context_new(const char *keyword, char **errstr, void *user_data)
 		nullcheck(keyword, return NULL);
 	}
 
-	init_backends();
+	pthread_once(&init_once, init_backends);
 
 	for (keylen = 0; keyword[keylen] && keylen < (sizeof(key) - 1)
 	     && keyword[keylen] != ';' && keyword[keylen] != ','; keylen++)
@@ -210,7 +212,7 @@ rte_context_new(const char *keyword, char **errstr, void *user_data)
 			}
 
 	if (!rxc) {
-		rte_asprintf(errstr, _("No such encoder: '%s'."), key);
+		rte_asprintf(errstr, _("No such encoder '%s'."), key);
 		assert(error == NULL);
 		return NULL;
 	} else if (!rxc->new || error) {
@@ -264,8 +266,8 @@ rte_context_new(const char *keyword, char **errstr, void *user_data)
 
 /*
  *  Removed rte_context_set_user_data because when we set only
- *  at rte_context_new() we can save context->mutex locking on
- *  every access.
+ *  once at rte_context_new() we can save context->mutex locking
+ *  on every access.
  */
 
 /**
@@ -275,7 +277,7 @@ rte_context_new(const char *keyword, char **errstr, void *user_data)
  * Retrieves the pointer stored in the user data field of the context.
  *
  * Return value:
- * Pointer.
+ * User pointer.
  **/
 void *
 rte_context_user_data(rte_context *context)
@@ -299,10 +301,15 @@ rte_context_delete(rte_context *context)
 	if (context == NULL)
 		return;
 
-	if (context->status == RTE_STATUS_RUNNING)
-		rte_stop(context);
-	else if (context->status == RTE_STATUS_PAUSED)
-		/* FIXME */;
+	switch (context->status) {
+	case RTE_STATUS_RUNNING:
+	case RTE_STATUS_PAUSED:
+		rte_stop(context, 0.0 /* immediate */);
+		break;
+
+	default:
+		break;
+	}
 
 	if (context->error) {
 		free(context->error);
@@ -355,7 +362,7 @@ rte_context_option_info_enum(rte_context *context, int index)
 rte_option_info *
 rte_context_option_info_keyword(rte_context *context, const char *keyword)
 {
-	rte_option_info *roi;
+	rte_option_info *oi;
 	int i;
 
 	nullcheck(context, return NULL);
@@ -365,10 +372,10 @@ rte_context_option_info_keyword(rte_context *context, const char *keyword)
 		return NULL;
 
 	for (i = 0;; i++)
-	        if (!(roi = xc->context_option_enum(context, i))
-		    || strcmp(keyword, roi->keyword) == 0)
+	        if (!(oi = xc->context_option_enum(context, i))
+		    || strcmp(keyword, oi->keyword) == 0)
 			break;
-	return roi;
+	return oi;
 }
 
 /**
@@ -388,9 +395,10 @@ rte_bool
 rte_context_option_get(rte_context *context, const char *keyword,
 		       rte_option_value *value)
 {
+	rte_bool r;
+
 	nullcheck(context, return FALSE);
 	rte_error_reset(context);
-	rte_bool r;
 
 	nullcheck(value, return FALSE);
 
@@ -399,11 +407,7 @@ rte_context_option_get(rte_context *context, const char *keyword,
 		return FALSE;
 	}
 
-	pthread_mutex_lock(&context->mutex);
-
 	r = xc->context_option_get(context, keyword, value);
-
-	pthread_mutex_unlock(&context->mutex);
 
 	return r;
 }
@@ -441,11 +445,7 @@ rte_context_option_set(rte_context *context, const char *keyword, ...)
 
 	va_start(args, keyword);
 
-	pthread_mutex_lock(&context->mutex);
-
 	r = xc->context_option_set(context, keyword, args);
-
-	pthread_mutex_unlock(&context->mutex);
 
 	va_end(args);
 
@@ -629,8 +629,6 @@ rte_context_options_reset(rte_context *context)
 
 	nullcheck(context, return FALSE);
 
-	pthread_mutex_lock(&context->mutex);
-
 	for (i = 0; r && (oi = rte_context_option_info_enum(context, i)); i++) {
 		switch (oi->type) {
 		case RTE_OPTION_BOOL:
@@ -673,13 +671,11 @@ rte_context_options_reset(rte_context *context)
 		}
 	}
 
-	pthread_mutex_unlock(&context->mutex);
-
 	return r;
 }
 
 /*
- *  Status (keep? change?)
+ *  Status
  */
 
 /**

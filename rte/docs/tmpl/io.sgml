@@ -1,5 +1,5 @@
 <!-- ##### SECTION Title ##### -->
-Selecting Input/output interface.
+Input/output interfaces
 
 <!-- ##### SECTION Short_Description ##### -->
 
@@ -14,6 +14,23 @@ Selecting Input/output interface.
 
 </para>
 
+<!-- ##### TYPEDEF rte_buffer ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### USER_FUNCTION rte_buffer_callback ##### -->
+<para>
+
+</para>
+
+@context: 
+@codec: 
+@buffer: 
+@Returns: 
+
+
 <!-- ##### FUNCTION rte_set_input_callback_active ##### -->
 <para>
 
@@ -24,8 +41,6 @@ Selecting Input/output interface.
 @unref_cb: 
 @queue_length: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@get_cb: 
 
 
 <!-- ##### FUNCTION rte_set_input_callback_passive ##### -->
@@ -36,9 +51,6 @@ Selecting Input/output interface.
 @codec: 
 @read_cb: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@queue_length: 
-@data_cb: 
 
 
 <!-- ##### FUNCTION rte_set_input_push_active ##### -->
@@ -72,6 +84,28 @@ Selecting Input/output interface.
 @codec: 
 @buffer: 
 @blocking: 
+@Returns: 
+
+
+<!-- ##### USER_FUNCTION rte_seek_callback ##### -->
+<para>
+
+</para>
+
+@context: 
+@offset: 
+@whence: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_set_output_callback_passive ##### -->
+<para>
+
+</para>
+
+@context: 
+@write_cb: 
+@seek_cb: 
 @Returns: 
 
 

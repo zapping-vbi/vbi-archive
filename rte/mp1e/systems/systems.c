@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.c,v 1.7 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: systems.c,v 1.8 2002-02-25 06:22:19 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,6 +91,9 @@ stream_pri(int stream_id)
  *  buffers	1++
  *  frame_rate	24 Hz
  *  bit_rate	upper bound
+ *
+ *  XXX must calculate #buffers based on demux buffer size and bit rate
+ *  plus write space in secs.
  */
 fifo *
 mux_add_input_stream(multiplexer *mux, int stream_id, char *name,

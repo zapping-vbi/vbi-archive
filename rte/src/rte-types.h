@@ -110,7 +110,7 @@ typedef enum {
 	RTE_OPTION_INT,
 	RTE_OPTION_REAL,
 	RTE_OPTION_STRING,
-	RTE_OPTION_MENU,
+	RTE_OPTION_MENU
 } rte_option_type;
 
 typedef union rte_option_value {
@@ -215,7 +215,7 @@ typedef struct {
 } rte_codec_info;
 
 /**
- * rte_context:
+ * rte_codec:
  *
  * Opaque rte_codec object. You can allocate an rte_codec with
  * rte_codec_set().
@@ -311,7 +311,7 @@ typedef union {
  *
  * This structure holds information about data packets exchanged
  * with the codec, for example one video frame or one block of audio
- * samples as defined with rte_parameters_set().
+ * samples as defined with rte_codec_parameters_set().
  *
  * Depending on data direction @data points to the data and @size
  * is the size of the data in bytes, or @data points to buffer space
@@ -357,7 +357,8 @@ typedef struct {
  *
  * When a function of this type is called to write data,
  * @codec is NULL and the @buffer fields .data and .size
- * are initialized.
+ * are initialized. @buffer can be %NULL to indicate the
+ * end of the stream.
  *
  * Do <emphasis>not</> depend on the value of the @buffer
  * pointer, use buffer.user_data instead.
@@ -377,12 +378,14 @@ typedef rte_bool (* rte_buffer_callback)(rte_context *context,
 /**
  * rte_seek_callback:
  * @context: #rte_context this operation refers to.
- * @codec: #rte_codec this operation refers to (if any).
  * @offset: Position to seek to.
  * @whence: SEEK_SET..., see man lseek.
  *
  * The context requests to seek to the given resulting stream
  * position. @offset and @whence follow lseek semantics.
+ *
+ * Return value:
+ * %FALSE on error.
  **/
 typedef rte_bool (*rte_seek_callback)(rte_context *context,
 				      off64_t offset,
@@ -396,6 +399,3 @@ typedef struct {
 } rte_status_info;
 
 #endif /* rte-types.h */
-
-
-

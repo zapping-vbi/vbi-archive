@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.29 2002-02-03 13:19:20 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.30 2002-02-25 06:24:40 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -288,11 +288,11 @@ update_timeout (rte_context *context)
 
   widget = lookup_widget (saving_dialog, "label12");
   /* NB *_frames display will wrap after two years. */
-  dropbuf = g_strdup_printf (ngettext ("%d frame dropped",
+  dropbuf = g_strdup_printf ((char *) ngettext ("%d frame dropped",
 				     "%d frames dropped",
 				     status.dropped_frames),
 			    status.dropped_frames);
-  procbuf = g_strdup_printf (ngettext ("%d frame processed",
+  procbuf = g_strdup_printf ((char *) ngettext ("%d frame processed",
 				     "%d frames processed",
 				     status.processed_frames),
 			    status.processed_frames);

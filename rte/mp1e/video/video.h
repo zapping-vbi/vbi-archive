@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.14 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: video.h,v 1.15 2002-02-25 06:22:20 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -33,6 +33,8 @@
 
 #include "libvideo.h"
 #include "mpeg.h"
+
+#include "../b_mp1e.h"
 
 #define MAX_WIDTH 1024			/* 1 ... 4096 */
 #define MAX_HEIGHT 1024			/* 1 ... 2800 */
@@ -295,7 +297,7 @@ struct mpeg1_context {
 
 	/* input */
 
-	synchr_stream	sstr;
+//	sync_stream	sstr;
 	double		coded_elapsed;
 	double		nominal_frame_rate;
 	double		nominal_frame_period;
@@ -310,7 +312,7 @@ struct mpeg1_context {
 
 	/* Options */
 
-	rte_codec	codec;
+	mp1e_codec	codec;
 
 	int		bit_rate;
 	int		frame_rate_code;
@@ -320,6 +322,7 @@ struct mpeg1_context {
 	bool		motion_compensation;
 	bool		monochrome;
 	char *		anno;
+	int		num_frames; // XXX max two years
 };
 
 extern uint8_t * newref;	/* future reference frame buffer */
@@ -386,11 +389,7 @@ extern long long	video_frames_dropped;
 extern void *		mpeg1_video_ipb(void *capture_fifo);
 
 extern void		conv_init(int);
-extern fifo *		v4l_init(double *frame_rate);
-extern fifo *		v4l2_init(double *frame_rate);
-extern fifo *		file_init(double *frame_rate);
-extern fifo *		raw_init(double *frame_rate);
-extern void		filter_init(int pitch);
+extern void		filter_init(rte_video_stream_params *par);
 extern void		video_coding_size(int width, int height);
 extern int		video_look_ahead(char *gop_sequence);
 

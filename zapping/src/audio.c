@@ -32,6 +32,7 @@
 #include "interface.h"
 #include "zmisc.h"
 #include "mixer.h"
+#include "osd.h"
 
 extern audio_backend_info esd_backend;
 #if USE_OSS
@@ -65,6 +66,8 @@ static void mixer_setup ( void )
 
   if (!cur_line)
     return; /* Use system settings */
+
+  cur_line--;
 
   mixer_set_recording_line(cur_line);
   mixer_set_volume(cur_line, zcg_int(NULL, "record_volume"));
@@ -304,6 +307,71 @@ add				(GnomeDialog	*dialog)
 
   standard_properties_add(dialog, groups, acount(groups),
 			  PACKAGE_DATA_DIR "/zapping.glade");
+}
+
+static gboolean
+climb (gint dir)
+{
+  int cur_line = zcg_int (NULL, "record_source");
+  int min, max, range, step, cur;
+
+  if (!cur_line)
+    return FALSE;
+
+  cur_line--; /* 0 is "system setting" */
+
+  if (mixer_get_bounds (cur_line, &min, &max) == -1)
+    return FALSE;
+
+  range = max - min + 1;
+  step = range / 100;
+  if (step < 1)
+    step = 1;
+
+  cur = zcg_int(NULL, "record_volume");
+
+  if (dir > 0)
+    {
+      cur += step;
+      if (cur > max)
+        cur = max;
+    }
+  else
+    {
+      cur -= step;
+      if (cur < min)
+        cur = min;
+    }
+
+  if (mixer_set_volume(cur_line, cur) == -1)
+    return FALSE;
+
+  zcs_int(cur, "record_volume");
+
+  /* NLS: Record volume */
+  osd_render_sgml(NULL, _("<blue>%3d %%</blue>"),
+		  (cur - min) * 100 / range);
+
+  return TRUE;
+}
+
+/* preliminary */
+gboolean
+z_volume_change (GdkEventKey *event)
+{
+  switch (event->keyval)
+    {
+      case GDK_plus:
+        return climb(+1);
+
+      case GDK_minus:
+        return climb(-1);
+
+      default:
+        return FALSE; /* not for us, pass on */
+    }
+
+  return TRUE;
 }
 
 void startup_audio ( void )

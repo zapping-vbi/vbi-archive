@@ -1,3 +1,10 @@
+2002-02-13	<mschimek@users.sf.net>
+
+	* Modified the i/o functions, added context stdio and file output,
+	  moved most of the i/o handling into backend.
+	* Modified start()/stop() parameters.
+	* test/io.c: Added, unfinished.
+
 2002-02-05	<mschimek@users.sf.net>
 
 	* src/rte.c: Added option strings from vbi export. Moved
