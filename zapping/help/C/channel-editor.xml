@@ -124,6 +124,7 @@ Local Variables:
 mode: sgml
 coding: utf-8
 sgml-parent-document: "zapping.xml"
+comment-auto-fill-only-comments: t
 indent-tabs-mode: nil
 End:
   -->

@@ -21,91 +21,92 @@
 .SH NAME
 zapping \- a TV viewer for the Gnome environment
 .SH "SYNOPSIS"
-
-.nf
-\fBzapping\fR [-b, --bpp \fINUMBER\fR] [-c, --command \fISTRING\fR] [--console-errors]
-        [-d, --debug] [--device \fIFILENAME\fR] [--dword-align] [-n, --tunerless-norm
-        \fISTRING\fR] [--no-overlay, --remote] [--no-plugins] [--no-vbi] [--no-xv-image]
-        [--no-xv-video] [-v, --no-xv] [--xv-image-port \fINUMBER\fR] [--xv-port
-        \fINUMBER\fR, --xv-video-port \fINUMBER\fR] [-y, --yuv-format \fISTRING\fR]
-        [-z, --no-zsfb]
-.fi
+.ad l
+.hy 0
+.HP 8
+\fBzapping\fR [\-b,\ \-\-bpp\ \fINUMBER\fR] [\-c,\ \-\-command\ \fISTRING\fR] [\-\-console\-errors] [\-d,\ \-\-debug] [\-\-device\ \fIFILENAME\fR] [\-\-dword\-align] [\-n,\ \-\-tunerless\-norm\ \fISTRING\fR] [\-\-no\-overlay,\ \-\-remote] [\-\-no\-plugins] [\-\-no\-vbi] [\-\-no\-xv\-image] [\-\-no\-xv\-video] [\-v,\ \-\-no\-xv] [\-\-xv\-image\-port\ \fINUMBER\fR] [\-\-xv\-port\ \fINUMBER\fR,\ \-\-xv\-video\-port\ \fINUMBER\fR] [\-y,\ \-\-yuv\-format\ \fISTRING\fR] [\-z,\ \-\-no\-zsfb]
+.ad
+.hy
 
 .SH "DESCRIPTION"
 
 .PP
-Zapping is a program to watch TV on a computer, within the Gnome environment\&. You can take screenshots and record video and audio\&. Zapping has a Teletext viewer built in and supports Closed Caption and Teletext subtitles\&. It is extensible through plugins\&. For more information open the Gnome help and choose Applications -> Sound and Video -> Zapping\&.
+Zapping is a program to watch TV on a computer, within the Gnome environment\&. You can take screenshots and record video and audio\&. Zapping has a Teletext viewer built in and supports Closed Caption and Teletext subtitles\&. It is extensible through plugins\&. For more information open the Gnome help and choose Applications \-> Sound and Video \-> Zapping\&.
 
 .SH "OPTIONS"
 
 .TP
-\fB-b, --bpp \fINUMBER\fR\fR
+\fB\-b, \-\-bpp \fINUMBER\fR\fR
 Color depth of the X display\&. In TrueColor mode (24 or 32 bits per pixel) you might get a very distorted image that spreads all around the desktop\&. This usually means Zapping could not correctly determine the color depth, which can be given here\&.
 
 .TP
-\fB-c, --command \fICOMMAND\fR\fR
+\fB\-c, \-\-command \fICOMMAND\fR\fR
 Execute the given command and exit\&. This was intended to create a sort of batch mode\&. Currently only one command is implemented\&. In the future this option will probably be replaced by a lightweight tool to control Zapping remotely\&. The \fBset_channel\fR command allows to change the channel by giving the channel name or RF channel number, for example:
 
-zapping -c "set_channel BBC"
+.nf
+
+zapping \-c "set_channel BBC"
+
+.fi
 
 .TP
-\fB--console-errors\fR
+\fB\-\-console\-errors\fR
 Redirect the error messages to the console, useful for bug reports\&.
 
 .TP
-\fB-d, --debug\fR
+\fB\-d, \-\-debug\fR
 Print debug messages on standard output\&. You should include this information when submitting a bug report, as it can help to trace the problem\&.
 
 .TP
-\fB--device \fIFILENAME\fR\fR
+\fB\-\-device \fIFILENAME\fR\fR
 Kernel video device to use, usually \fI/dev/video\fR\&.
 
 .TP
-\fB--dword-align\fR
+\fB\-\-dword\-align\fR
 Forces doubleword alignment of the video in overlay mode\&. Can help when the image is distorted at certain sizes but looks fine at others\&.
 
 .TP
-\fB-n, --tunerless-norm \fISTRING\fR\fR
+\fB\-n, \-\-tunerless\-norm \fISTRING\fR\fR
 This option has no function but is recognized for compatibility with earlier versions of Zapping\&. It determined the video standard to be used when your TV card has no tuner, one of NTSC, PAL or SECAM\&.
 
 .TP
-\fB--no-overlay, --remote\fR
-Do not overlay video\&. The \fB--remote\fR option refers to the X display\&. Overlay is only possible if the graphics card connects to the same bus as the TV card\&.
+\fB\-\-no\-overlay, \-\-remote\fR
+Do not overlay video\&. The \fB\-\-remote\fR option refers to the X display\&. Overlay is only possible if the graphics card connects to the same bus as the TV card\&.
 
 .TP
-\fB--no-plugins\fR
+\fB\-\-no\-plugins\fR
 Do not use any plugins, usually for testing purposes\&.
 
 .TP
-\fB--no-vbi\fR
+\fB\-\-no\-vbi\fR
 Do not capture and decode VBI data, i\&.e\&. Teletext, Subtitles, Closed Caption and station names\&.
 
 .TP
-\fB--no-xv-video\fR
+\fB\-\-no\-xv\-video\fR
 Do not use the XVideo extension for video overlay\&.
 
 .TP
-\fB--no-xv-image\fR
+\fB\-\-no\-xv\-image\fR
 Do not use the XVideo extension for hardware image scaling\&.
 
 .TP
-\fB-v, --no-xv\fR
+\fB\-v, \-\-no\-xv\fR
 Do not use the XVideo extension for video overlay or hardware image scaling\&.
 
 .TP
-\fB--xv-image-port \fINUMBER\fR\fR
+\fB\-\-xv\-image\-port \fINUMBER\fR\fR
 Number of the XVideo port to use for hardware image scaling\&.
 
 .TP
-\fB--xv-port \fINUMBER\fR, --xv-video-port \fINUMBER\fR\fR
+\fB\-\-xv\-port \fINUMBER\fR, \-\-xv\-video\-port \fINUMBER\fR\fR
 Number of the XVideo port (similar to a device) to use for video overlay\&.
 
 .TP
-\fB-y, --yuv-format \fISTRING\fR\fR
+\fB\-y, \-\-yuv\-format \fISTRING\fR\fR
 This option has no function but is recognized for compatibility with earlier versions of Zapping\&. It determined the pixel format in capture mode when XVideo hardware image scaling was available, either YUYV or YVU420\&.
 
 .TP
-\fB-z, --no-zsfb\fR
+\fB\-z, \-\-no\-zsfb\fR
 This option has no function but is recognized for compatibility with earlier versions of Zapping\&. It used to prevent execution of \fBzapping_setup_fb\fR(1) on startup\&.
 
 .SH "SEE ALSO"
@@ -127,5 +128,5 @@ This manual page was written by Michael H\&. Schimek based on work by Christian 
 Zapping homepage: http://zapping\&.sourceforge\&.net
 
 .PP
-Please report bugs with the Zapping bug tracker http://sourceforge\&.net/tracker/?group_id=2599 or mail us at zapping-misc@lists\&.sourceforge\&.net \&. Patches are even more appreciated\&.
+Please report bugs with the Zapping bug tracker http://sourceforge\&.net/tracker/?group_id=2599 or mail us at zapping\-misc@lists\&.sourceforge\&.net \&. Patches are even more appreciated\&.
 

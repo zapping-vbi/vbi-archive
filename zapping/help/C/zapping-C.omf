@@ -2,7 +2,7 @@
 <omf>
     <resource>
         <creator>Michael Schimek</creator>
-        <title>Zapping</title>
+        <title>Zapping TV and Teletext Viewer</title>
         <date>2003-12-06</date>
         <version identifier="0.1" date="2003-12-06"/>
         <subject category="GNOME|Applications|Sound and Video"/>

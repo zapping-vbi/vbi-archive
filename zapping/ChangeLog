@@ -1,8 +1,28 @@
+2005-02-20    <mschimek@users.sf.net>
+
+	* Release 0.9.1.
+
+2005-02-19    <mschimek@users.sf.net>
+
+	* configure.in: Bumped version number to 0.9.1.
+	* help/xmldocs.make (uninstall-local-doc),
+	  help/omf.make (uninstall-local-omf): Missing DESTDIR prefix.
+	* help/C/Makefile.am: Missing DISTCLEANFILES.
+	* Makefile.am: Make distuninstallcheck shall ignore files left by
+	  scrollkeeper, make distcleancheck shall ignore site_def.h. Added
+	  missing DISTCLEANFILES.
+	* help/C/zapzilla.xml: s/&#136/Eacute.
+
 2005-02-18    <mschimek@users.sf.net>
 
-	* help/C/zapping.xml: Updated appversion, manrevision, date.
-	* help/C/settings.xml: s/&/&amp;.
 	* po/fr.po: Updated by Christian Marillat.
+	* help/Makefile.am: Added recursive xmlcheck target.
+	* help/man/Makefile.am: Didn't work with !BUILD_MANS.
+	(xmlcheck): Added to check man pages.
+	* help/C/Makefile.am (xmlcheck): Updated.
+	* help/C/zapping.xml: Updated appversion, manrevision, date. Various
+	  improvements.
+	* help/C/settings.xml: s/&/&amp;, s/&#151/&times.
 
 2005-02-17    <mschimek@users.sf.net>
 

@@ -21,11 +21,12 @@
 .SH NAME
 zapping_setup_fb \- sets up the Framebuffer for Zapping
 .SH "SYNOPSIS"
-
-.nf
-\fBzapping_setup_fb\fR [-?, --help] [--bpp \fINUMBER\fR] [--device \fIFILENAME\fR] [--display \fINAME\fR] [--quiet] [--usage] [--verbose] [--version]
-                
-.fi
+.ad l
+.hy 0
+.HP 17
+\fBzapping_setup_fb\fR [\-?,\ \-\-help] [\-\-bpp\ \fINUMBER\fR] [\-\-device\ \fIFILENAME\fR] [\-\-display\ \fINAME\fR] [\-\-quiet] [\-\-usage] [\-\-verbose] [\-\-version]
+.ad
+.hy
 
 .SH "DESCRIPTION"
 
@@ -40,31 +41,31 @@ Overlaying TV in the video ram requires the driver to know the destination addre
 .SH "OPTIONS"
 
 .TP
-\fB-?, --help, --usage\fR
+\fB\-?, \-\-help, \-\-usage\fR
 Print usage information\&.
 
 .TP
-\fB--bpp \fINUMBER\fR\fR
+\fB\-\-bpp \fINUMBER\fR\fR
 Current X bpp\&.
 
 .TP
-\fB--device \fIFILENAME\fR\fR
+\fB\-\-device \fIFILENAME\fR\fR
 The video device to open, \fI/dev/video0\fR by default\&.
 
 .TP
-\fB--display \fINAME\fR\fR
+\fB\-\-display \fINAME\fR\fR
 The X display to use\&.
 
 .TP
-\fB--quiet\fR
+\fB\-\-quiet\fR
 Decrements the verbosity level\&.
 
 .TP
-\fB--verbose\fR
+\fB\-\-verbose\fR
 Increments the verbosity level\&.
 
 .TP
-\fB--version\fR
+\fB\-\-version\fR
 Shows the program version\&.
 
 .SH "BUGS"

@@ -1,7 +1,7 @@
-<appendix id="zapping-commands">
+<sect1 id="zapping-commands">
   <title>Commands</title>
 
-  <sect1 id="zapping-commands-cli">
+  <sect2 id="zapping-commands-cli">
     <title>Command Line</title>
 
     <para>Commands can be given on the command line when Zapping starts. This was intended to change video device properties, the program terminates after executing the command.</para>
@@ -17,9 +17,9 @@
     </variablelist>
 
     <para>Starting with version 0.7 these commands are superseded by the new Python command set, see below.</para>
-  </sect1>
+  </sect2>
 
-  <sect1 id="zapping-commands-kbd">
+  <sect2 id="zapping-commands-kbd">
     <title>Keyboard Customization</title>
 
     <para>Commands can be assigned to keyboard keys in the preferences. Starting with version 0.7 we use the new Python command set, see below.</para>
@@ -41,9 +41,9 @@
       <listitem><para>screenshot [format]</para></listitem>
       <listitem><para>quickshot [format]</para></listitem>
     </itemizedlist>
-  </sect1>
+  </sect2>
 
-  <sect1 id="zapping-commands-lirc">
+  <sect2 id="zapping-commands-lirc">
     <title>LIRC/ALIRC Plugin</title>
 
     <para>These commands are mostly superseded by the new Python command set, see below. They are still supported for compatibility with older versions of Zapping.</para>
@@ -85,14 +85,14 @@
         <listitem><para>Decrease the audio volume.</para></listitem>
       </varlistentry>
     </variablelist>
-  </sect1>
+  </sect2>
 
-  <sect1 id="zapping-commands-python">
+  <sect2 id="zapping-commands-python">
     <title>Python commands</title>
 
     <para>Parameters in [square brackets] are optional. Parameters in 'single quotes' are strings, otherwise they are numbers. A toggle parameter can be zero to switch the property off, non-zero to switch it on, or it can be omitted to invert the current setting.</para>
 
-    <sect2 id="zapping-commands-python-general">
+    <sect3 id="zapping-commands-python-general">
       <title>General</title>
 
       <variablelist>
@@ -176,9 +176,9 @@
           <listitem><para>Whether to keep the main window on top of all other windows (if this is supported by the window manager).</para></listitem>
         </varlistentry>
       </variablelist>
-    </sect2>
+    </sect3>
 
-    <sect2 id="zapping-commands-python-dialogs">
+    <sect3 id="zapping-commands-python-dialogs">
       <title>Dialogs</title>
 
       <variablelist>
@@ -217,9 +217,9 @@
           <listitem><para>Open the Zapping documentation.</para></listitem>
         </varlistentry>
       </variablelist>
-    </sect2>
+    </sect3>
 
-    <sect2 id="zapping-commands-python-teletext">
+    <sect3 id="zapping-commands-python-teletext">
       <title>Teletext</title>
 
       <variablelist>
@@ -256,9 +256,9 @@
           <listitem><para>Whether to reveal concealed characters on the displayed Teletext page.</para></listitem>
         </varlistentry>
       </variablelist>
-    </sect2>
+    </sect3>
 
-    <sect2 id="zapping-commands-python-caption">
+    <sect3 id="zapping-commands-python-caption">
       <title>Caption / Subtitles</title>
 
       <variablelist>
@@ -275,9 +275,9 @@
           <listitem><para>Display text superimposed onto the picture.</para></listitem>
         </varlistentry>
       </variablelist>
-    </sect2>
+    </sect3>
 
-    <sect2 id="zapping-commands-python-audio">
+    <sect3 id="zapping-commands-python-audio">
       <title>Audio</title>
 
       <variablelist>
@@ -291,9 +291,9 @@
           <para>As a replacement use zapping.control_incr('volume'[, n]) to change the soundcard mixer or video device volume as configured in the preferences dialog. Note that changing the volume does not unmute.</para></listitem>
         </varlistentry>
       </variablelist>
-    </sect2>
+    </sect3>
 
-    <sect2 id="zapping-commands-python-controls">
+    <sect3 id="zapping-commands-python-controls">
       <title>Controls</title>
 
       <variablelist>
@@ -333,9 +333,9 @@
           </listitem>
         </varlistentry>
       </variablelist>
-    </sect2>
+    </sect3>
    
-    <sect2 id="zapping-commands-python-plugins">
+    <sect3 id="zapping-commands-python-plugins">
       <title>Plugins</title>
 
       <variablelist>
@@ -360,14 +360,15 @@
           <listitem><para>Stop recording.</para></listitem>
         </varlistentry>
       </variablelist>
-    </sect2>
-  </sect1>
-</appendix>
+    </sect3>
+  </sect2>
+</sect1>
 
 <!--
 Local Variables:
 mode: sgml
 sgml-parent-document: "zapping.xml"
+comment-auto-fill-only-comments: t
 indent-tabs-mode: nil
 End:
 -->
