@@ -122,10 +122,8 @@ int tveng_attach_device(const char* device_file,
 			enum tveng_attach_mode attach_mode,
 			tveng_device_info * info)
 {
-#ifdef TVENG_DEBUG
   int i, j;
   char *long_str, *short_str;
-#endif
 
   t_assert(device_file != NULL);
   t_assert(info != NULL);
@@ -172,68 +170,70 @@ int tveng_attach_device(const char* device_file,
 
  success:
 
-#ifdef TVENG_DEBUG
-  fprintf(stderr, "[TVeng] - Info about the video device\n");
-  fprintf(stderr, "-------------------------------------\n");
-  tveng_describe_controller(&short_str, &long_str, info);
-  fprintf(stderr, "Device: %s [%s - %s]\n", info->file_name,
-	  short_str, long_str);
-  if (info->default_standard)
-    fprintf(stderr, "On tunerless inputs, the norm defaults to %s\n",
-	    info->default_standard);
-  fprintf(stderr, "Current capture format:\n");
-  fprintf(stderr, "  Dimensions: %dx%d  BytesPerLine: %d  Depth: %d "
-	  "Size: %d K\n", info->format.width,
-	  info->format.height, info->format.bytesperline,
-	  info->format.depth, info->format.sizeimage/1024);
-  fprintf(stderr, "Current overlay window struct:\n");
-  fprintf(stderr, "  Coords: %dx%d-%dx%d   Chroma: 0x%x  Clips: %d\n",
-	  info->window.x, info->window.y, info->window.width,
-	  info->window.height, info->window.chromakey,
-	  info->window.clipcount);
-  fprintf(stderr, "Detected standards:\n");
-  for (i=0;i<info->num_standards;i++)
-    fprintf(stderr, "  %d) [%s] ID: %d\n", i,
-	    info->standards[i].name, info->standards[i].id);
-  fprintf(stderr, "Detected inputs:\n");
-  for (i=0;i<info->num_inputs;i++)
+  if (info->debug_level>0)
     {
-      fprintf(stderr, "  %d) [%s] ID: %d\n", i, info->inputs[i].name,
-	      info->inputs[i].id);
-      fprintf(stderr, "      Type: %s  Tuners: %d  Flags: 0x%x\n",
-	      (info->inputs[i].type == TVENG_INPUT_TYPE_TV) ? _("TV")
-	      : _("Camera"), info->inputs[i].tuners, info->inputs[i].flags);
-    }
-  fprintf(stderr, "Available controls:\n");
-  for (i=0;i<info->num_controls;i++)
-    {
-      fprintf(stderr, "  %d) [%s] ID: %d  Range: (%d, %d)  Value: %d ",
-	      i, info->controls[i].name, info->controls[i].id,
-	      info->controls[i].min, info->controls[i].max,
-	      info->controls[i].cur_value);
-      switch (info->controls[i].type)
+      fprintf(stderr, "[TVeng] - Info about the video device\n");
+      fprintf(stderr, "-------------------------------------\n");
+      tveng_describe_controller(&short_str, &long_str, info);
+      fprintf(stderr, "Device: %s [%s - %s]\n", info->file_name,
+	      short_str, long_str);
+      if (info->default_standard)
+	fprintf(stderr, "On tunerless inputs, the norm defaults to %s\n",
+		info->default_standard);
+      fprintf(stderr, "Current capture format:\n");
+      fprintf(stderr, "  Dimensions: %dx%d  BytesPerLine: %d  Depth: %d "
+	      "Size: %d K\n", info->format.width,
+	      info->format.height, info->format.bytesperline,
+	      info->format.depth, info->format.sizeimage/1024);
+      fprintf(stderr, "Current overlay window struct:\n");
+      fprintf(stderr, "  Coords: %dx%d-%dx%d   Chroma: 0x%x  Clips: %d\n",
+	      info->window.x, info->window.y, info->window.width,
+	      info->window.height, info->window.chromakey,
+	      info->window.clipcount);
+      fprintf(stderr, "Detected standards:\n");
+      for (i=0;i<info->num_standards;i++)
+	fprintf(stderr, "  %d) [%s] ID: %d\n", i,
+		info->standards[i].name, info->standards[i].id);
+      fprintf(stderr, "Detected inputs:\n");
+      for (i=0;i<info->num_inputs;i++)
 	{
-	case TVENG_CONTROL_SLIDER:
-	  fprintf(stderr, " <Slider>\n");
-	  break;
-	case TVENG_CONTROL_CHECKBOX:
-	  fprintf(stderr, " <Checkbox>\n");
-	  break;
-	case TVENG_CONTROL_MENU:
-	  fprintf(stderr, " <Menu>\n");
-	  for (j=0; info->controls[i].data[j]; j++)
-	    fprintf(stderr, " %d.%d) [%s] <Menu entry>\n", i, j,
-		    info->controls[i].data[j]);
-	  break;
-	case TVENG_CONTROL_BUTTON:
-	  fprintf(stderr, " <Button>\n");
-	  break;
-	default:
-	  fprintf(stderr, " <Unknown type>\n");
-	  break;
+	  fprintf(stderr, "  %d) [%s] ID: %d\n", i, info->inputs[i].name,
+		  info->inputs[i].id);
+	  fprintf(stderr, "      Type: %s  Tuners: %d  Flags: 0x%x\n",
+		  (info->inputs[i].type == TVENG_INPUT_TYPE_TV) ? _("TV")
+		  : _("Camera"), info->inputs[i].tuners,
+		  info->inputs[i].flags);
+	}
+      fprintf(stderr, "Available controls:\n");
+      for (i=0;i<info->num_controls;i++)
+	{
+	  fprintf(stderr, "  %d) [%s] ID: %d  Range: (%d, %d)  Value: %d ",
+		  i, info->controls[i].name, info->controls[i].id,
+		  info->controls[i].min, info->controls[i].max,
+		  info->controls[i].cur_value);
+	  switch (info->controls[i].type)
+	    {
+	    case TVENG_CONTROL_SLIDER:
+	      fprintf(stderr, " <Slider>\n");
+	      break;
+	    case TVENG_CONTROL_CHECKBOX:
+	      fprintf(stderr, " <Checkbox>\n");
+	      break;
+	    case TVENG_CONTROL_MENU:
+	      fprintf(stderr, " <Menu>\n");
+	      for (j=0; info->controls[i].data[j]; j++)
+		fprintf(stderr, " %d.%d) [%s] <Menu entry>\n", i, j,
+			info->controls[i].data[j]);
+	      break;
+	    case TVENG_CONTROL_BUTTON:
+	      fprintf(stderr, " <Button>\n");
+	      break;
+	    default:
+	      fprintf(stderr, " <Unknown type>\n");
+	      break;
+	    }
 	}
     }
-#endif /* TVENG_DEBUG */
 
   return info->fd;
 }
@@ -1131,9 +1131,7 @@ tveng_detect_XF86DGA(tveng_device_info * info)
   int event_base, error_base;
   int major_version, minor_version;
   int flags;
-#ifdef TVENG_DEBUG
   static int info_printed = 0; /* Print the info just once */
-#endif
 
   Display * display = info->display;
 
@@ -1164,8 +1162,7 @@ tveng_detect_XF86DGA(tveng_device_info * info)
     }
 
   /* Print collected info if we are in debug mode */
-#ifdef TVENG_DEBUG
-  if (!info_printed)
+  if ((info->debug_level > 0) && (!info_printed))
     {
       info_printed = 1;
       fprintf(stderr, "DGA info:\n");
@@ -1176,7 +1173,6 @@ tveng_detect_XF86DGA(tveng_device_info * info)
       fprintf(stderr, "  - Supported features    :%s\n",
 	      (flags & XF86DGADirectPresent) ? " DirectVideo" : "");
     }
-#endif
 
   return 1; /* Everything correct */
 #else
@@ -1503,9 +1499,7 @@ tveng_start_previewing (tveng_device_info * info)
   int distance=-1; /* Distance of the best video mode to a valid size */
   int temp; /* Temporal value */
   int bigger=0; /* Allow choosing bigger screen depths */
-#ifdef TVENG_DEBUG
   static int info_printed = 0; /* do not print the modes every time */
-#endif
 #endif
 
   t_assert(info != NULL);
@@ -1545,8 +1539,7 @@ tveng_start_previewing (tveng_device_info * info)
 
   if (info -> xf86vm_enabled)
     {
-#ifdef TVENG_DEBUG
-      if (!info_printed)
+      if ((info->debug_level > 0) && (!info_printed))
 	{
 	  fprintf(stderr, "XF86VidMode info:\n");
 	  fprintf(stderr, "  - event and error base  : %d, %d\n", event_base,
@@ -1556,17 +1549,16 @@ tveng_start_previewing (tveng_device_info * info)
 	  fprintf(stderr, "  - Available video modes : %d\n",
 		  modecount);
 	}
-#endif
 
     loop_point:
       for (i = 0; i<modecount; i++)
 	{
-#ifdef TVENG_DEBUG
-  	  if ((!bigger) && (!info_printed)) /* print only once */
-	    fprintf(stderr, "      %d) %dx%d @ %d Hz\n", i, (int)
-		    modesinfo[i]->hdisplay, (int) modesinfo[i]->vdisplay,
-		    (int) modesinfo[i]->dotclock);
-#endif
+	  if (info->debug_level > 0)
+	    if ((!bigger) && (!info_printed)) /* print only once */
+	      fprintf(stderr, "      %d) %dx%d @ %d Hz\n", i, (int)
+		      modesinfo[i]->hdisplay, (int) modesinfo[i]->vdisplay,
+		      (int) modesinfo[i]->dotclock);
+
 	  /* Check whether this is a good value */
 	  temp = ((int)modesinfo[i]->hdisplay) - info->caps.maxwidth;
 	  temp *= temp;
@@ -1593,13 +1585,11 @@ tveng_start_previewing (tveng_device_info * info)
 	  goto loop_point;
 	}
       
-#ifdef TVENG_DEBUG
-      if (!info_printed)
+      if ((info->debug_level > 0) && (!info_printed))
 	{
 	  info_printed = 1;
 	  fprintf(stderr, "      Mode # %d chosen\n", chosen_mode);
 	}
-#endif
       
       /* If the chosen mode isn't the actual one, choose it, but
 	 place the viewport correctly first */
@@ -1826,4 +1816,18 @@ int tveng_restart_everything (enum tveng_capture_mode mode,
 void tveng_start_timer(tveng_device_info * info)
 {
   gettimeofday(&(info->tv_init), NULL);
+}
+
+int tveng_get_debug_level(tveng_device_info * info)
+{
+  t_assert(info != NULL);
+
+  return (info->debug_level);
+}
+
+void tveng_set_debug_level(tveng_device_info * info, int level)
+{
+  t_assert(info != NULL);
+
+  info->debug_level = level;
 }

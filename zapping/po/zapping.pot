@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-10-25 00:04+0200\n"
+"POT-Creation-Date: 2000-10-25 22:11+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -141,11 +141,11 @@ msgstr ""
 msgid "Widget not found: %s"
 msgstr ""
 
-#: src/interface.c:128
+#: src/interface.c:127
 msgid "(C) Iñaki García Etxebarria"
 msgstr ""
 
-#: src/interface.c:130
+#: src/interface.c:129
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr ""
 
@@ -1556,15 +1556,15 @@ msgstr ""
 msgid "Encode the stream as MPEG."
 msgstr ""
 
-#: plugins/mpeg/plugin.c:178 plugins/mpeg/plugin.c:245
+#: plugins/mpeg/plugin.c:177 plugins/mpeg/plugin.c:246
 msgid "MPEG"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:230
+#: plugins/mpeg/plugin.c:231
 msgid "Not done yet!"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:246
+#: plugins/mpeg/plugin.c:247
 msgid "Store the data as MPEG"
 msgstr ""
 

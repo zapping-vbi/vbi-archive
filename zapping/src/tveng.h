@@ -685,7 +685,7 @@ void tveng_start_timer(tveng_device_info * info);
 int tveng_get_debug_level(tveng_device_info * info);
 
 /* set the debug level. The value will be clipped to valid values */
-void tveng_set_debug_level(tveng_device_info * info);
+void tveng_set_debug_level(tveng_device_info * info, int level);
 
 /* Sanity checks should use this */
 #define t_assert(condition) if (!(condition)) { \
@@ -701,6 +701,7 @@ t_error_msg(str_error, strerror(info->tveng_errno), info);
 #define t_error_msg(str_error, msg_error, info) do { \
 snprintf(info->error, 256, _("[%s] %s (line %d)\n%s failed: %s"), \
 __FILE__, __PRETTY_FUNCTION__, __LINE__, str_error, msg_error); \
+if (info->debug_level>0) \
 fprintf(stderr, "[TVeng] %s\n", info->error); \
 } while (0)
 

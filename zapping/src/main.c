@@ -68,18 +68,6 @@ static gint newbttv = -1; /* Compatibility with old bttv drivers */
 void shutdown_zapping(void);
 gboolean startup_zapping(void);
 
-/*
-static gboolean
-delete_event                (GtkWidget       *widget,
-			     GdkEvent        *event,
-			     gpointer         user_data)
-{
-  flag_exit_program = TRUE;
-  
-  return FALSE;
-}
-*/
-
 static void
 print_visual_info(GdkVisual * visual, const char * name)
 {
@@ -276,12 +264,12 @@ int main(int argc, char * argv[])
     }
   D();
   main_info = tveng_device_info_new( GDK_DISPLAY(), x_bpp, default_norm);
-
   if (!main_info)
     {
       g_error(_("Cannot get device info struct"));
       return -1;
     }
+  tveng_set_debug_level(main_info, debug_msg);
   D();
   if (!startup_zapping())
     {
@@ -415,7 +403,7 @@ int main(int argc, char * argv[])
   /* disable VBI if needed */
   if (!zvbi_get_object())
     {
-      g_message("VBI disabled, removing GUI items");
+      printv("VBI disabled, removing GUI items");
       gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "separador5"));
@@ -840,7 +828,7 @@ gboolean startup_zapping()
   else
     {
       disable_sound = TRUE; /* Just a flag that sound isn't present */
-      g_message("Sound (ESD) support has been disabled");
+      printv("Sound (ESD) support has been disabled");
     }
   tveng_start_timer(main_info);
   D();

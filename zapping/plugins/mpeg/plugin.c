@@ -177,8 +177,6 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
   GtkWidget * label = gtk_label_new(_("MPEG"));
   gint page;
 
-  g_message("mpeg_properties is %p", mpeg_properties);
-
   if (!mpeg_properties)
     {
       ShowBox("mpeg_properties.glade couldn't be found,\n"
@@ -202,7 +200,7 @@ gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
 
   if (GPOINTER_TO_INT(data) == page)
     {
-      g_message("activate mpeg properties");
+      g_message("FIXME: activate mpeg properties");
       return TRUE;
     }
   else
@@ -216,7 +214,7 @@ gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page )
 
   if (GPOINTER_TO_INT(data) == page)
     {
-      g_message("help about mpeg properties");
+      g_message("FIXME: help about mpeg properties");
       return TRUE;
     }
   else
