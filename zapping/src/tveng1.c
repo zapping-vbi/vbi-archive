@@ -45,7 +45,7 @@
 #include <math.h>
 #include <endian.h>
 
-#include "../common/fifo.h" /* current_time() */
+#include "common/fifo.h" /* current_time() */
 
 /* 
    This works around a bug bttv appears to have with the mute
@@ -59,8 +59,8 @@
 /*
  *  Kernel interface
  */
-#include "../common/videodev.h"
-#include "../common/fprintf_videodev.h"
+#include "common/videodev.h"
+#include "common/fprintf_videodev.h"
 
 #define BTTV_VERSION _IOR ('v' , BASE_VIDIOCPRIVATE + 6, int)
 static __inline__ void IOCTL_ARG_TYPE_CHECK_BTTV_VERSION (int *arg) {}
