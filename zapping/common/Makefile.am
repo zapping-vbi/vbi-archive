@@ -1,18 +1,34 @@
 noinst_LIBRARIES = libcommon.a
 
-EXTRA_DIST = README \
+libcommon_a_SOURCES = \
+	device.c device.h \
+	fifo.h fifo.c \
+	alloc.h alloc.c \
+	threads.h \
+	list.h \
+	types.h \
+	math.h \
+	videodev.h videodev2.h videodev25.h \
+	ioctl_meteor.h ioctl_bt848.h
+
+structpr = structpr_gen.pl
+
+BUILT_SOURCES = \
 	_videodev.h \
 	_videodev2.h \
 	_videodev25.h \
 	_bktr.h
 
+EXTRA_DIST = \
+	README \
+	$(structpr) \
+	$(BUILT_SOURCES)
+
 INCLUDES = $(DEFAULT_CFLAGS) $(UNICODE_CFLAGS) @COMMON_INCLUDES@
 	-I$(srcdir)
 
-BUILT_SOURCES = _videodev.h _videodev2.h _videodev25.h _bktr.h
-
-_videodev.h: Makefile.am structpr_gen.pl videodev.h
-	$(srcdir)/structpr_gen.pl <$(srcdir)/videodev.h \
+_videodev.h: Makefile.am $(structpr) videodev.h
+	$(srcdir)/$(structpr) <$(srcdir)/videodev.h \
 	video_device.type=VFL_TYPE_ \
 	video_device.hardware=VID_HARDWARE_ \
 	video_capability.type=VID_TYPE_ \
@@ -36,8 +52,8 @@ _videodev.h: Makefile.am structpr_gen.pl videodev.h
 # XXX v4l2_pix_format.flags has V4L2_FMT_CS_field subset.
 # XXX v4l2_timecode.flags has V4L2_TC_USERBITS_field subset.
 # XXX v4l2_buffer.flags has V4L2_BUF_FLAG_, V4L2_BUF_ATTR_, V4L2_BUF_REQ_.
-_videodev2.h: Makefile.am structpr_gen.pl videodev2.h
-	$(srcdir)/structpr_gen.pl <$(srcdir)/videodev2.h \
+_videodev2.h: Makefile.am $(structpr) videodev2.h
+	$(srcdir)/$(structpr) <$(srcdir)/videodev2.h \
 	v4l2_capability.type=V4L2_TYPE_ \
 	v4l2_capability.flags=V4L2_FLAG_ \
 	v4l2_pix_format.pixelformat=V4L2_PIX_FMT_ \
@@ -78,8 +94,7 @@ _videodev2.h: Makefile.am structpr_gen.pl videodev2.h
 	v4l2_output.index=WR \
 	v4l2_output.type=V4L2_OUTPUT_TYPE_ \
 	v4l2_output.capability=V4L2_OUTPUT_CAP_ \
-	v4l2_control=R \
-	v4l2_control.id=WR,V4L2_CID_ \
+	v4l2_control.id=V4L2_CID_ \
 	v4l2_queryctrl=R \
 	v4l2_queryctrl.id=WR,V4L2_CID_ \
 	v4l2_queryctrl.type=V4L2_CTRL_TYPE_ \
@@ -89,8 +104,7 @@ _videodev2.h: Makefile.am structpr_gen.pl videodev2.h
 	v4l2_querymenu=R \
 	v4l2_querymenu.id=WR,V4L2_CID_ \
 	v4l2_querymenu.index=WR \
-	v4l2_fxcontrol=R \
-	v4l2_fxcontrol.id=WR,V4L2_CID_ \
+	v4l2_fxcontrol.id=V4L2_CID_ \
 	v4l2_tuner=R \
 	v4l2_tuner.input=WR \
 	v4l2_tuner.capability=V4L2_TUNER_CAP_ \
@@ -119,8 +133,8 @@ _videodev2.h: Makefile.am structpr_gen.pl videodev2.h
 	> $@
 
 # XXX v4l2_timecode.flags has V4L2_TC_USERBITS_field subset.
-_videodev25.h: Makefile.am structpr_gen.pl videodev25.h
-	$(srcdir)/structpr_gen.pl <$(srcdir)/videodev25.h \
+_videodev25.h: Makefile.am $(structpr) videodev25.h
+	$(srcdir)/$(structpr) <$(srcdir)/videodev25.h \
 	"v4l2_fract={ fprintf (fp, \"%u/%u\", t->numerator, t->denominator); }" \
 	v4l2_capability.driver=string \
 	v4l2_capability.card=string \
@@ -136,7 +150,6 @@ _videodev25.h: Makefile.am structpr_gen.pl videodev25.h
 	v4l2_timecode.type=V4L2_TC_TYPE_ \
 	v4l2_timecode.flags=V4L2_TC_FLAG_ \
 	v4l2_jpegcompression.jpeg_markers=V4L2_JPEG_MARKER_ \
-	v4l2_requestbuffers=WR \
 	v4l2_buffer=R \
 	v4l2_buffer.index=WR \
 	v4l2_buffer.type=WR \
@@ -157,8 +170,7 @@ _videodev25.h: Makefile.am structpr_gen.pl videodev25.h
 	v4l2_output=R \
 	v4l2_output.index=WR \
 	v4l2_output.type=V4L2_OUTPUT_TYPE_ \
-	v4l2_control=R \
-	v4l2_control.id=WR,V4L2_CID_ \
+	v4l2_control.id=V4L2_CID_ \
 	v4l2_queryctrl=R \
 	v4l2_queryctrl.id=WR,V4L2_CID_ \
 	v4l2_queryctrl.flags=V4L2_CTRL_FLAG_ \
@@ -174,8 +186,6 @@ _videodev25.h: Makefile.am structpr_gen.pl videodev25.h
 	v4l2_modulator.index=WR \
 	v4l2_modulator.capability=V4L2_TUNER_CAP_ \
 	v4l2_modulator.txsubchans=V4L2_TUNER_SUB_ \
-	v4l2_frequency=R \
-	v4l2_frequency.tuner=WR \
 	v4l2_audio=R \
 	v4l2_audio.index=WR \
 	v4l2_audio.capability=V4L2_AUDCAP_ \
@@ -189,18 +199,7 @@ _videodev25.h: Makefile.am structpr_gen.pl videodev25.h
 			 V4L2_BUF_TYPE_VBI_CAPTURE:fmt.vbi \
 	> $@
 
-_bktr.h: Makefile.am structpr_gen.pl ioctl_bt848.h ioctl_meteor.h
+_bktr.h: Makefile.am $(structpr) ioctl_bt848.h ioctl_meteor.h
 	cat $(srcdir)/ioctl_bt848.h $(srcdir)/ioctl_meteor.h | \
-	$(srcdir)/structpr_gen.pl \
+	$(srcdir)/$(structpr) \
 	> $@
-
-libcommon_a_SOURCES = \
-	device.c device.h \
-	fifo.h fifo.c \
-	alloc.h alloc.c \
-	threads.h \
-	list.h \
-	types.h \
-	math.h \
-	videodev.h videodev2.h videodev25.h \
-	ioctl_meteor.h ioctl_bt848.h
