@@ -1,3 +1,8 @@
+2003-10-30    <mschimek@users.sf.net>
+
+	* src/Makefile.am: Added rte.sym to dist in response to
+	  zapping-misc 2003-10-25.
+
 2002-12-25	<mschimek@users.sf.net>
 
 	* Release 0.5.1.
