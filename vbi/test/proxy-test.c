@@ -25,6 +25,11 @@
  *    for a list of possible options.
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.6  2003/06/01 19:36:42  tomzo
+ *  Added tests for TV channel switching
+ *  - added new command line options -channel, -freq, -chnprio
+ *  - use new func vbi_capture_channel_change()
+ *
  *  Revision 1.5  2003/05/24 12:19:57  tomzo
  *  - added dynamic service switch to test add_service() interface: new function
  *    read_service_string() reads service requests from stdin
@@ -42,7 +47,7 @@
  *
  */
 
-static const char rcsid[] = "$Id: proxy-test.c,v 1.6 2003-06-01 19:36:42 tomzo Exp $";
+static const char rcsid[] = "$Id: proxy-test.c,v 1.7 2003-06-07 09:43:23 tomzo Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -507,6 +512,15 @@ int main ( int argc, char ** argv )
 
          while(1)
          {
+            #if 0 /* can be used to test proxy client with zero timeout */
+            fd_set rd;
+            int vbi_fd = vbi_capture_get_poll_fd(pVbiCapt);
+            FD_ZERO(&rd);
+            FD_SET(vbi_fd, &rd);
+            FD_SET(0, &rd);
+            select(vbi_fd + 1, &rd, NULL, NULL, NULL);
+            #endif
+
             new_services = read_service_string();
             if (new_services != opt_services)
             {
