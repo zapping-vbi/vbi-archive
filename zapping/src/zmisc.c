@@ -60,6 +60,17 @@ extern tveng_device_info * main_info;
 extern volatile gboolean flag_exit_program;
 extern gboolean xv_present;
 
+GQuark
+z_misc_error_quark		(void)
+{
+  static GQuark quark;
+
+  if (!quark)
+    quark = g_quark_from_static_string ("Z_MISC_ERROR");
+
+  return quark;
+}
+
 gchar*
 Prompt (GtkWidget *main_window, const gchar *title,
 	const gchar *prompt,  const gchar *default_text)
@@ -243,19 +254,15 @@ on_zapping_key_press            (GtkWidget *            widget,
                                  GdkEventKey *          event,
                                  gpointer *             user_data);
 
-#ifdef HAVE_LIBZVBI
-
 static gboolean
 on_key_press                    (GtkWidget *            widget,
                                  GdkEventKey *          event,
                                  TeletextView *         view)
 {
-  return (_teletext_view_on_key_press (widget, event, view)
-	  || on_user_key_press (widget, event, NULL)
+  return (view->key_press (view, event)
+          || on_user_key_press (widget, event, NULL)
           || on_picture_size_key_press (widget, event, NULL));
 }
-
-#endif
 
 static gboolean
 on_button_press			(GtkWidget *		widget _unused_,
@@ -328,7 +335,7 @@ start_teletext			(void)
     return FALSE;
 
   /* Bktr driver needs special programming for VBI-only mode. */
-  if (zapping->info->current_controller != TVENG_CONTROLLER_NONE)
+  if (tv_get_controller (zapping->info) != TVENG_CONTROLLER_NONE)
     tveng_close_device (zapping->info);
   if (-1 == tveng_attach_device (zcg_char (NULL, "video_device"),
 				 GDK_WINDOW_XWINDOW
@@ -393,13 +400,7 @@ start_teletext			(void)
 			   /* depth */ NULL);
 	  
   if (width > 10 && height > 10)
-    {
-      resize_ttx_page (view->zvbi_client_id, width, height);
-      render_ttx_page (view->zvbi_client_id,
-		       GTK_WIDGET (view)->window,
-		       GTK_WIDGET (view)->style->white_gc,
-		       0, 0, 0, 0, width, height);
-    }
+    view->client_redraw (view, width, height);
 
   return TRUE;
 
@@ -443,11 +444,11 @@ zmisc_restore_previous_mode(tveng_device_info * info)
 void
 zmisc_stop (tveng_device_info *info)
 {
-  if (CAPTURE_MODE_NONE == info->capture_mode)
+  if (CAPTURE_MODE_NONE == tv_get_controller (info))
     return;
 
   /* Stop current capture mode */
-  switch (((int) zapping->display_mode) | (int) info->capture_mode)
+  switch (((int) zapping->display_mode) | (int) tv_get_capture_mode (info))
     {
     case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_READ:
     case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_OVERLAY:
@@ -470,7 +471,7 @@ zmisc_stop (tveng_device_info *info)
 
     case DISPLAY_MODE_WINDOW | CAPTURE_MODE_TELETEXT:
       stop_teletext ();
-      zapping->info->capture_mode = CAPTURE_MODE_NONE; /* ugh */
+      tv_set_capture_mode (zapping->info, CAPTURE_MODE_NONE); /* ugh */
       break;
 
     default:
@@ -513,14 +514,14 @@ zmisc_switch_mode(display_mode new_dmode,
   if (0)
     fprintf (stderr, "%s: %d %d -> %d %d\n",
 	     __FUNCTION__,
-	     zapping->display_mode, info->capture_mode,
+	     zapping->display_mode, tv_get_capture_mode (info),
 	     new_dmode, new_cmode);
 
-  timeout = 1500; /* ms */
+  timeout = 0; /* disabled */
   z_gconf_get_int (&timeout, "/apps/zapping/blank_cursor_timeout");
 
   if (zapping->display_mode == new_dmode
-      && info->capture_mode == new_cmode)
+      && tv_get_capture_mode (info) == new_cmode)
     switch (new_cmode)
       {
       case CAPTURE_MODE_NONE:
@@ -533,10 +534,10 @@ zmisc_switch_mode(display_mode new_dmode,
       }
 
   /* save this input name for later retrieval */
-  if (info->cur_video_input)
-    old_input = g_strdup (info->cur_video_input->label);
-  if (info->cur_video_standard)
-    old_standard = g_strdup(info->cur_video_standard->label);
+  if (tv_cur_video_input (info))
+    old_input = g_strdup (tv_cur_video_input (info)->label);
+  if (tv_cur_video_standard (info))
+    old_standard = g_strdup(tv_cur_video_standard (info)->label);
 
   {
     GdkWindow *window;
@@ -556,7 +557,7 @@ zmisc_switch_mode(display_mode new_dmode,
 #endif
 
   old_dmode = zapping->display_mode;
-  old_cmode = info->capture_mode;
+  old_cmode = tv_get_capture_mode (info);
 
   zmisc_stop (info);
 
@@ -606,12 +607,12 @@ zmisc_switch_mode(display_mode new_dmode,
   switch (((int) new_dmode) | (int) new_cmode)
     {
     case DISPLAY_MODE_WINDOW | CAPTURE_MODE_READ:
-      if (info->attach_mode == TVENG_ATTACH_VBI ||
-	  info->attach_mode == TVENG_ATTACH_CONTROL ||
-	  info->current_controller == TVENG_CONTROLLER_XV ||
-	  info->current_controller == TVENG_CONTROLLER_NONE)
+      if (tv_get_attach_mode (info) == TVENG_ATTACH_VBI ||
+	  tv_get_attach_mode (info) == TVENG_ATTACH_CONTROL ||
+	  tv_get_controller (info) == TVENG_CONTROLLER_XV ||
+	  tv_get_controller (info) == TVENG_CONTROLLER_NONE)
 	{
-	  if (info->current_controller != TVENG_CONTROLLER_NONE)
+	  if (tv_get_controller (info) != TVENG_CONTROLLER_NONE)
 	    tveng_close_device(info);
 	  if (-1 == tveng_attach_device
 	      (zcg_char(NULL, "video_device"),
@@ -625,7 +626,7 @@ zmisc_switch_mode(display_mode new_dmode,
 		 TVENG_ATTACH_XV, info);
 
 	      ShowBox("Capture mode not available:\n%s",
-		      GTK_MESSAGE_ERROR, info->error);
+		      GTK_MESSAGE_ERROR, tv_get_errstr (info));
 
 	      goto failure;
 	    }
@@ -656,7 +657,7 @@ zmisc_switch_mode(display_mode new_dmode,
       else
 	{
 	  ShowBox (_("Cannot start video overlay.\n%s"),
-		   GTK_MESSAGE_ERROR, info->error);
+		   GTK_MESSAGE_ERROR, tv_get_errstr (info));
 	  zmisc_stop (info);
 	  goto failure;
 	}
@@ -674,7 +675,7 @@ zmisc_switch_mode(display_mode new_dmode,
 	  goto failure;
 	}
 
-      zapping->info->capture_mode = CAPTURE_MODE_TELETEXT; /* ugh */
+      tv_set_capture_mode (zapping->info, CAPTURE_MODE_TELETEXT); /* ugh */
 
       break;
 
@@ -703,7 +704,7 @@ zmisc_switch_mode(display_mode new_dmode,
       else
 	{
 	  ShowBox (_("Cannot start fullscreen overlay.\n%s"),
-		   GTK_MESSAGE_ERROR, info->error);
+		   GTK_MESSAGE_ERROR, tv_get_errstr (info));
 	  /* XXX s/overlay//. */
 	  zmisc_stop (info);
 	  goto failure;
@@ -1067,54 +1068,178 @@ void z_status_set_widget(GtkWidget * widget)
   g_object_set_data(G_OBJECT(zapping->appbar), "old_widget", widget);
 }
 
-/* XXX should use GError */
-gboolean
-z_build_path(const gchar *path, gchar **error_description)
+static GtkWidget *
+z_message_dialog_new_va_list	(GtkWindow *		parent,
+				 GtkDialogFlags		flags,
+				 GtkMessageType		type,
+				 GtkButtonsType		buttons,
+				 const gchar *		primary,
+				 const gchar *		secondary,
+				 va_list		args)
 {
+  GtkWidget *dialog;
+  gchar *template;
+  gchar *markup;
+
+  g_assert (NULL != primary);
+
+  template = g_strconcat ("<span weight=\"bold\" size=\"larger\">",
+			  primary,
+			  "</span>\n\n",
+			  secondary,
+			  NULL);
+
+  markup = g_strdup_vprintf (template, args);
+
+  g_free (template);
+
+  dialog = gtk_message_dialog_new_with_markup (parent, flags, type, buttons,
+					       NULL);
+
+  gtk_message_dialog_set_markup (GTK_MESSAGE_DIALOG (dialog), markup);
+
+  g_free (markup);
+
+  return dialog;
+}
+
+static GtkWidget *
+z_message_dialog_new		(GtkWindow *		parent,
+				 GtkDialogFlags		flags,
+				 GtkMessageType		type,
+				 GtkButtonsType		buttons,
+				 const gchar *		primary,
+				 const gchar *		secondary,
+				 ...)
+{
+  GtkWidget *dialog;
+  va_list args;
+
+  va_start (args, secondary);
+
+  dialog = z_message_dialog_new_va_list
+    (parent, flags, type, buttons, primary, secondary, args);
+
+  va_end (args);
+
+  return dialog;
+}
+
+void
+z_show_non_modal_message_dialog	(GtkWindow *		parent,
+				 GtkMessageType		type,
+				 const gchar *		primary,
+				 const gchar *		secondary,
+				 ...)
+{
+  GtkWidget *dialog;
+  va_list args;
+
+  va_start (args, secondary);
+
+  dialog = z_message_dialog_new_va_list (parent,
+					 GTK_DIALOG_DESTROY_WITH_PARENT,
+					 type,
+					 GTK_BUTTONS_OK,
+					 primary,
+					 secondary,
+					 args);
+  va_end (args);
+
+  /* Destroy the dialog when the user responds to it
+     (e.g. clicks a button) */
+  g_signal_connect_swapped (G_OBJECT (dialog), "response",
+			    G_CALLBACK (gtk_widget_destroy), dialog);
+
+  gtk_widget_show (dialog);
+}
+
+gboolean
+z_build_path			(const gchar *		path,
+				 GError **		error)
+{
+  int saved_errno;
   struct stat sb;
   gchar *b;
   guint i;
 
-  if (!path || *path != '/')
+  g_assert (NULL != path);
+  g_assert ('/' == path[0]);
+
+  b = NULL;
+  i = 1;
+
+  do
     {
-      /* FIXME */
-      if (error_description)
-	*error_description =
-	  g_strdup(_("The path must start with /"));
+      if ('/' == path[i] || 0 == path[i])
+	{
+	  b = g_strndup (path, i);
+
+	  if (-1 == stat (b, &sb))
+	    {
+	      if (ENOENT != errno && ENOTDIR != errno)
+		goto failure;
+
+	      if (-1 == mkdir (b, S_IRUSR | S_IWUSR | S_IXUSR))
+		goto failure;
+	    }
+	  else
+	    {
+	      if (!S_ISDIR (sb.st_mode))
+		{
+		  g_set_error (error,
+			       Z_MISC_ERROR,
+			       Z_MISC_ERROR_MKDIR,
+			       _("%s is not a directory."),
+			       b);
+		  g_free (b);
+		  errno = ENOTDIR;
+		  return FALSE;
+		}
+	    }
+
+	  g_free (b);
+	  b = NULL;
+	}
+    }
+  while (0 != path[i++]);
+
+  return TRUE;
+
+ failure:
+  saved_errno = errno;
+
+  g_set_error (error,
+	       Z_MISC_ERROR,
+	       Z_MISC_ERROR_MKDIR,
+	       "%s.",
+	       g_strerror (saved_errno));
+
+  g_free (b);
+
+  errno = saved_errno;
+
+  return FALSE;
+}
+
+gboolean
+z_build_path_with_alert		(GtkWindow *		parent,
+				 const gchar *		path)
+{
+  GError *error = NULL;
+
+  if (!z_build_path (path, &error))
+    {
+      z_show_non_modal_message_dialog
+	(parent, GTK_MESSAGE_ERROR,
+	 _("Could not create directory %s"), "%s",
+	 path, error->message);
+
+      g_error_free (error);
+      error = NULL;
+
       return FALSE;
     }
-    
-  for (i=1; path[i]; i++)
-    if (path[i] == '/' || !path[i+1])
-      {
-	b = g_strndup(path, i+1);
-
-	if (stat(b, &sb) < 0)
-	  {
-	    if (mkdir(b, S_IRUSR | S_IWUSR | S_IXUSR) < 0)
-	      {
-		if (error_description)
-		  *error_description =
-		    g_strdup_printf(_("Cannot create %s: %s"), b,
-				    strerror(errno));
-		g_free(b);
-		return FALSE;
-	      }
-	    else
-	      g_assert(stat(b, &sb) >= 0);
-	  }
-
-	if (!S_ISDIR(sb.st_mode))
-	  {
-	    if (error_description)
-	      *error_description =
-		g_strdup_printf(_("%s is not a directory"), b);
-	    g_free(b);
-	    return FALSE;
-	  }
-
-	g_free(b);
-      }
 
   return TRUE;
 }
@@ -2192,28 +2317,29 @@ gboolean
 z_icon_factory_add_file		(const gchar *		stock_id,
 				 const gchar *		filename)
 {
+  GError *error = NULL;
   GtkIconSet *icon_set;
   GdkPixbuf *pixbuf;
-  GError *err;
   gchar *path;
  
   path = g_strconcat (PACKAGE_PIXMAPS_DIR "/", filename, NULL);
 
-  err = NULL;
-
-  pixbuf = gdk_pixbuf_new_from_file (path, &err);
+  pixbuf = gdk_pixbuf_new_from_file (path, &error);
 
   g_free (path);
 
-  if (!pixbuf)
+  if (!pixbuf || error)
     {
-      if (err)
+      g_assert (!pixbuf);
+
+      if (error)
 	{
 #ifdef ZMISC_DEBUG_STOCK /* FIXME */
 	  fprintf (stderr, "Cannot read image file '%s':\n%s\n",
-		   err->message);
+		   error->message);
 #endif
-	  g_error_free (err);
+	  g_error_free (error);
+	  error = NULL;
 	}
 
       return FALSE;
@@ -2232,22 +2358,23 @@ gboolean
 z_icon_factory_add_pixdata	(const gchar *		stock_id,
 				 const GdkPixdata *	pixdata)
 {
+  GError *error = NULL;
   GtkIconSet *icon_set;
   GdkPixbuf *pixbuf;
-  GError *err;
 
-  err = NULL;
+  pixbuf = gdk_pixbuf_from_pixdata (pixdata, /* copy_pixels */ FALSE, &error);
 
-  pixbuf = gdk_pixbuf_from_pixdata (pixdata, /* copy_pixels */ FALSE, &err);
-
-  if (!pixbuf)
+  if (!pixbuf || error)
     {
-      if (err)
+      g_assert (!pixbuf);
+
+      if (error)
 	{
 #ifdef ZMISC_DEBUG_STOCK /* FIXME */
-	  fprintf (stderr, "Cannot read pixdata:\n%s\n", err->message);
+	  fprintf (stderr, "Cannot read pixdata:\n%s\n", error->message);
 #endif
-	  g_error_free (err);
+	  g_error_free (error);
+	  error = NULL;
 	}
 
       return FALSE;
@@ -2405,12 +2532,14 @@ z_tree_view_remove_selected	(GtkTreeView *		tree_view,
 }
 
 gboolean
-z_overwrite_file		(GtkWindow *		parent,
+z_overwrite_file_dialog		(GtkWindow *		parent,
+				 const gchar *		primary,
 				 const gchar *		filename)
 {
   struct stat st;
   GtkWidget *dialog;
   gchar *name;
+  gint result;
 
   if (-1 == stat (filename, &st))
     {
@@ -2418,19 +2547,19 @@ z_overwrite_file		(GtkWindow *		parent,
       return TRUE;
     }
 
-  name = g_filename_to_utf8 (filename, -1, NULL, NULL, NULL);
+  name = g_filename_to_utf8 (filename, NUL_TERMINATED, NULL, NULL, NULL);
   if (!name)
     return FALSE; 
 
   if (S_ISREG (st.st_mode) || S_ISLNK (st.st_mode))
     {
-      dialog = gtk_message_dialog_new (parent,
-				       (GTK_DIALOG_MODAL |
-					GTK_DIALOG_DESTROY_WITH_PARENT),
-				       GTK_MESSAGE_QUESTION,
-				       GTK_BUTTONS_NONE,
-				       _("%s exists."),
-				       name);
+      dialog = z_message_dialog_new (parent,
+				     (GTK_DIALOG_MODAL |
+				      GTK_DIALOG_DESTROY_WITH_PARENT),
+				     GTK_MESSAGE_WARNING,
+				     GTK_BUTTONS_NONE,
+				     _("Overwrite %s?"), NULL,
+				     name);
 
       gtk_dialog_add_buttons (GTK_DIALOG (dialog),
 			      GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
@@ -2439,21 +2568,26 @@ z_overwrite_file		(GtkWindow *		parent,
     }
   else if (S_ISDIR (st.st_mode))
     {
-      ShowBox (_("%s is a directory."), GTK_MESSAGE_ERROR, name);
+      z_show_non_modal_message_dialog
+	(parent, GTK_MESSAGE_ERROR,
+	 primary,
+	 _("%s is a directory."),
+	 name);
+
       g_free (name);
+
       return FALSE;
     }
   else
     {
-      dialog = gtk_message_dialog_new (parent,
-				       (GTK_DIALOG_MODAL |
-					GTK_DIALOG_DESTROY_WITH_PARENT),
-				       GTK_MESSAGE_QUESTION,
-				       GTK_BUTTONS_NONE,
-				       /* TRANSLATORS: device file, pipe,
-					  socket etc. */
-				       _("%s is a special file."),
-				       name);
+      dialog = z_message_dialog_new
+	(parent,
+	 (GTK_DIALOG_MODAL |
+	  GTK_DIALOG_DESTROY_WITH_PARENT),
+	 GTK_MESSAGE_WARNING,
+	 GTK_BUTTONS_NONE,
+	 _("%s is a special file"), NULL,
+	 name);
 
       gtk_dialog_add_buttons (GTK_DIALOG (dialog),
 			      _("Continue"), GTK_RESPONSE_ACCEPT,
@@ -2463,7 +2597,11 @@ z_overwrite_file		(GtkWindow *		parent,
 
   g_free (name);
 
-  return (GTK_RESPONSE_ACCEPT == gtk_dialog_run (GTK_DIALOG (dialog)));
+  result = gtk_dialog_run (GTK_DIALOG (dialog));
+
+  gtk_widget_destroy (dialog);
+
+  return (GTK_RESPONSE_ACCEPT == result);
 }
 
 void
@@ -2688,10 +2826,8 @@ z_gconf_get_error		(const gchar *		key,
     }
   else if (!warned)
     {
-      /* If ./configure --prefix is unusual consider
-	 --with-gconf-source=xml::$HOME/.gconf */
-      g_warning ("GConf key '%s' is unset and has no default. Schemas\n"
-		 "incomplete or not installed?\n",
+      g_warning ("GConf key '%s' is unset and has no default. "
+		 "Schemas incomplete or not installed?\n",
 		 key);
 
       warned = TRUE;
@@ -2822,7 +2958,7 @@ z_gconf_notify_add		(const gchar *		key,
 
   /* Initial value. */
 
-  entry.key = (gchar *) key;
+  entry.key = key;
 
   if ((entry.value = gconf_client_get (gconf_client, key, &error)))
     {
@@ -2877,8 +3013,9 @@ z_gconf_auto_update		(gpointer		var,
 
 typedef struct {
   gchar *		key;
-  //  GConfValueType	type;  
+  GConfValueType	type;
   guint			cnxn;
+  GObject *		object;
 } gc_notify;
 
 static void
@@ -2894,19 +3031,20 @@ gc_notify_destroy		(gc_notify *		g)
 
 static void
 gc_notify_add			(gc_notify *		g,
-				 const char *		gconf_key,
+				 const char *		key,
 				 GConfClientNotifyFunc	func)
 {
   GError *error = NULL;
 
-  g->key = g_strdup (gconf_key);
+  g->key = g_strdup (key);
 
-  g->cnxn = gconf_client_notify_add (gconf_client, gconf_key,
+  g->cnxn = gconf_client_notify_add (gconf_client, key,
 				     func, g, /* destroy */ NULL, &error);
   if (error)
     {
       g_message ("GConf notification '%s' error:\n%s\n",
-		 gconf_key, error->message);
+		 key, error->message);
+
       g_error_free (error);
       error = NULL;
 
@@ -2914,52 +3052,49 @@ gc_notify_add			(gc_notify *		g,
     }
 }
 
-typedef struct {
-  gc_notify		gcn;
-  GtkToggleAction *	toggle_action;
-} gc_toggle_action;
-
 static void
 gc_toggle_action_notify		(GConfClient *		client _unused_,
 				 guint			cnxn_id _unused_,
 				 GConfEntry *		entry,
-				 gc_toggle_action *	g)
+				 gc_notify *		g)
 {
+  GtkToggleAction *action;
   gboolean active;
 
   if (!entry->value)
     return; /* unset */
 
   active = gconf_value_get_bool (entry->value);
+  action = GTK_TOGGLE_ACTION (g->object);
 
-  if (active == gtk_toggle_action_get_active (g->toggle_action))
+  if (active == gtk_toggle_action_get_active (action))
     return;
 
-  gtk_toggle_action_set_active (g->toggle_action, active);
+  gtk_toggle_action_set_active (action, active);
 }
 
 static void
 gc_toggle_action_toggled	(GtkToggleAction *	toggle_action,
-				 gc_toggle_action *	g)
+				 gc_notify *		g)
 {
   gboolean active;
 
   active = gtk_toggle_action_get_active (toggle_action);
 
   /* Error ignored. */
-  z_gconf_set_bool (g->gcn.key, active);
+  z_gconf_set_bool (g->key, active);
 }
 
 void
 z_toggle_action_connect_gconf_key
 				(GtkToggleAction *	toggle_action,
-				 const gchar *		gconf_key)
+				 const gchar *		key)
 {
   GError *error = NULL;
-  gc_toggle_action *g;
+  gc_notify *g;
   GConfValue *value;
 
-  if ((value = gconf_client_get (gconf_client, gconf_key, &error)))
+  if ((value = gconf_client_get (gconf_client, key, &error)))
     {
       gboolean active;
 
@@ -2976,18 +3111,16 @@ z_toggle_action_connect_gconf_key
 
       if (error)
 	{
-	  printv ("GConf get '%s' error:\n%s\n", gconf_key, error->message);
+	  printv ("GConf get '%s' error:\n%s\n", key, error->message);
 	  g_error_free (error);
 	  error = NULL;
 	}
     }
 
   g = g_malloc0 (sizeof (*g));
+  g->object = G_OBJECT (toggle_action);
 
-  g->toggle_action = toggle_action;
-
-  gc_notify_add (&g->gcn, gconf_key,
-		 (GConfClientNotifyFunc) gc_toggle_action_notify);
+  gc_notify_add (g, key, (GConfClientNotifyFunc) gc_toggle_action_notify);
 
   g_signal_connect_data (G_OBJECT (toggle_action), "toggled",
 			 G_CALLBACK (gc_toggle_action_toggled), g,
@@ -2995,9 +3128,67 @@ z_toggle_action_connect_gconf_key
 			 /* connect_flags */ 0);
 }
 
+static void
+gc_toggle_button_notify		(GConfClient *		client _unused_,
+				 guint			cnxn_id _unused_,
+				 GConfEntry *		entry,
+				 gc_notify *		g)
+{
+  GtkToggleButton *button;
+  gboolean active;
+
+  if (!entry->value)
+    return; /* unset */
+
+  active = gconf_value_get_bool (entry->value);
+  button = GTK_TOGGLE_BUTTON (g->object);
+
+  if (active == gtk_toggle_button_get_active (button))
+    return;
+
+  gtk_toggle_button_set_active (button, active);
+}
+
+static void
+gc_toggle_button_toggled	(GtkToggleButton *	toggle_button,
+				 gc_notify *		g)
+{
+  gboolean active;
+
+  active = gtk_toggle_button_get_active (toggle_button);
+
+  /* Error ignored. */
+  z_gconf_set_bool (g->key, active);
+}
+
+GtkWidget *
+z_gconf_check_button_new	(const gchar *		label,
+				 const gchar *		key,
+				 gboolean		active)
+{
+  gc_notify *g;
+
+  g = g_malloc0 (sizeof (*g));
+  g->object = G_OBJECT (gtk_check_button_new_with_mnemonic (label));
+
+  /* Error ignored. */
+  z_gconf_get_bool (&active, key);
+
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (g->object), active);
+
+  gc_notify_add (g, key,
+		 (GConfClientNotifyFunc) gc_toggle_button_notify);
+
+  g_signal_connect_data (g->object, "toggled",
+			 G_CALLBACK (gc_toggle_button_toggled), g,
+			 (GClosureNotify) gc_notify_destroy,
+			 /* connect_flags */ 0);
+
+  return GTK_WIDGET (g->object);
+}
+
 typedef struct {
   gc_notify		gcn;
-  GtkComboBox *		combo_box;
   const GConfEnumStringPair *lookup_table;
 } gc_combo_box;
 
@@ -3007,6 +3198,10 @@ gc_combo_box_notify		(GConfClient *		client _unused_,
 				 GConfEntry *		entry,
 				 gc_combo_box *		g)
 {
+  GtkComboBox *combo_box;
+
+  combo_box = GTK_COMBO_BOX (g->gcn.object);
+
   if (entry->value)
     {
       const gchar *s;
@@ -3022,9 +3217,9 @@ gc_combo_box_notify		(GConfClient *		client _unused_,
 		{
 		  gint index;
 
-		  index = gtk_combo_box_get_active (g->combo_box);
+		  index = gtk_combo_box_get_active (combo_box);
 		  if ((gint) i != index)
-		    gtk_combo_box_set_active (g->combo_box, (gint) i);
+		    gtk_combo_box_set_active (combo_box, (gint) i);
 
 		  return;
 		}
@@ -3032,7 +3227,7 @@ gc_combo_box_notify		(GConfClient *		client _unused_,
 	}
     }
 
-  gtk_combo_box_set_active (g->combo_box, -1 /* unset */);
+  gtk_combo_box_set_active (combo_box, -1 /* unset */);
 }
 
 static void
@@ -3054,17 +3249,17 @@ z_gconf_combo_box_new		(const gchar **		option_menu,
 {
   GError *error = NULL;
   gc_combo_box *g;
-  GtkWidget *widget;
+  GtkComboBox *combo_box;
   guint i;
   gchar *s;
 
   g = g_malloc0 (sizeof (*g));
 
-  widget = gtk_combo_box_new_text ();
-  g->combo_box = GTK_COMBO_BOX (widget);
+  g->gcn.object = G_OBJECT (gtk_combo_box_new_text ());
+  combo_box = GTK_COMBO_BOX (g->gcn.object);
 
   for (i = 0; option_menu[i]; ++i)
-    gtk_combo_box_append_text (g->combo_box, _(option_menu[i]));
+    gtk_combo_box_append_text (combo_box, _(option_menu[i]));
 
   if ((s = gconf_client_get_string (gconf_client, gconf_key, &error)))
     {
@@ -3072,14 +3267,14 @@ z_gconf_combo_box_new		(const gchar **		option_menu,
 	{
 	  if (0 == strcmp (s, lookup_table[i].str))
 	    {
-	      gtk_combo_box_set_active (g->combo_box, (int) i);
+	      gtk_combo_box_set_active (combo_box, (int) i);
 	      break;
 	    }
 	}
     }
   else
     {
-      gtk_combo_box_set_active (g->combo_box, 0);
+      gtk_combo_box_set_active (combo_box, 0);
 
       if (error)
 	{
@@ -3094,13 +3289,13 @@ z_gconf_combo_box_new		(const gchar **		option_menu,
   gc_notify_add (&g->gcn, gconf_key,
 		 (GConfClientNotifyFunc) gc_combo_box_notify);
 
-  g_signal_connect (G_OBJECT (widget), "changed",
+  g_signal_connect (g->gcn.object, "changed",
 		    G_CALLBACK (gc_combo_box_changed), g);
 
-  g_signal_connect_swapped (G_OBJECT (widget), "destroy",
+  g_signal_connect_swapped (g->gcn.object, "destroy",
 			    G_CALLBACK (gc_notify_destroy), g);
 
-  return widget;
+  return GTK_WIDGET (g->gcn.object);
 }
 
 /* Not available until Gtk+ 2.6 */
@@ -3124,6 +3319,20 @@ z_action_set_visible		(GtkAction *		action,
 }
 
 void
+z_show_empty_submenu		(GtkActionGroup *	action_group,
+				 const gchar *		action_name)
+{
+  GtkAction *action;
+
+  action = gtk_action_group_get_action (action_group, action_name);
+
+  if (!action)
+    return; /* assume menus have been edited */
+
+  g_object_set (G_OBJECT (action), "hide-if-empty", FALSE, NULL);
+}
+
+void
 z_menu_shell_chop_off		(GtkMenuShell *		menu_shell,
 				 GtkMenuItem *		menu_item)
 {
@@ -3131,7 +3340,9 @@ z_menu_shell_chop_off		(GtkMenuShell *		menu_shell,
   GList *list;
 
   g_assert (GTK_IS_MENU_SHELL (menu_shell));
-  g_assert (GTK_IS_MENU_ITEM (menu_item));
+
+  if (menu_item)
+    g_assert (GTK_IS_MENU_ITEM (menu_item));
 
   container = GTK_CONTAINER (menu_shell);
 
@@ -3139,9 +3350,10 @@ z_menu_shell_chop_off		(GtkMenuShell *		menu_shell,
     {
       list = gtk_container_get_children (container);
 
-      for (; list; list = list->next)
-	if (list->data == menu_item)
-	  break;
+      if (menu_item)
+	for (; list; list = list->next)
+	  if (list->data == menu_item)
+	    break;
 
       if (!list || !list->next)
 	break;
@@ -3151,4 +3363,106 @@ z_menu_shell_chop_off		(GtkMenuShell *		menu_shell,
 
   if (list)
     gtk_container_remove (container, GTK_WIDGET (list->data));
+}
+
+gchar *
+z_strappend			(gchar *		string1,
+				 const gchar *		string2,
+				 ...)
+{
+  gsize l;
+  va_list args;
+  gchar *s;
+  gchar *concat;
+  gchar *ptr;
+
+  g_return_val_if_fail (string1 != NULL, NULL);
+
+  if (!string2)
+    return string1;
+
+  l = 1 + strlen (string1) + strlen (string2);
+
+  va_start (args, string2);
+  while ((s = va_arg (args, gchar *)))
+    l += strlen (s);
+  va_end (args);
+
+  ptr = concat = g_new (gchar, l);
+  ptr = g_stpcpy (ptr, string1);
+  ptr = g_stpcpy (ptr, string2);
+
+  va_start (args, string2);
+  while ((s = va_arg (args, gchar *)))
+    ptr = g_stpcpy (ptr, s);
+  va_end (args);
+
+  g_free (string1);
+
+  return concat;
+}
+
+void
+z_help_display			(GtkWindow *		parent,
+				 const gchar *		filename,
+				 const gchar *		link_id)
+{
+  GError *error = NULL;
+
+  if (DISPLAY_MODE_FULLSCREEN == zapping->display_mode)
+    {
+      /* Error ignored. */
+      zmisc_switch_mode (DISPLAY_MODE_WINDOW,
+			 tv_get_capture_mode (zapping->info),
+			 zapping->info);
+    }
+
+  if (!gnome_help_display (filename, link_id, &error))
+    {
+      if (error)
+	{
+	  if (NULL == parent)
+	    parent = GTK_WINDOW (zapping);
+
+	  z_show_non_modal_message_dialog
+	    (parent, GTK_MESSAGE_ERROR,
+	     _("Could not open help file"), "%s",
+	     error->message);
+
+	  g_error_free (error);
+	  error = NULL;
+	}
+    }
+}
+
+void
+z_url_show			(GtkWindow *		parent,
+				 const gchar *		url)
+{
+  GError *error = NULL;
+
+  if (DISPLAY_MODE_FULLSCREEN == zapping->display_mode)
+    {
+      /* Error ignored. */
+      zmisc_switch_mode (DISPLAY_MODE_WINDOW,
+			 tv_get_capture_mode (zapping->info),
+			 zapping->info);
+    }
+
+  if (!gnome_url_show (url, &error))
+    {
+      if (error)
+	{
+	  if (NULL == parent)
+	    parent = GTK_WINDOW (zapping);
+
+	  z_show_non_modal_message_dialog
+	    (parent, GTK_MESSAGE_ERROR,
+	     _("Could not open URL"), "%s",
+	     error->message);
+
+	  g_error_free (error);
+	  error = NULL;
+	}
+    }
 }
