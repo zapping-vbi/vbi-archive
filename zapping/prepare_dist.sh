@@ -74,7 +74,7 @@ if ! test "x$RPM_DIR" = "x"; then
 	    mv $i $VER-release
 	fi
     done
-    mv $RPM_DIR/SRPMS/$PACKAGE-$VER-1.* $VER-release
+    mv $RPM_DIR/SRPMS/$PACKAGE-$VER-* $VER-release
 else
     echo "The RPM dir couldn't be found, packages not built"
 fi
