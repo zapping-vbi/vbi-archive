@@ -195,7 +195,7 @@ int test_pipe[2];
 void
 startup_zvbi(void)
 {
-  zcc_bool(FALSE, "Enable VBI decoding", "enable_vbi");
+  zcc_bool(TRUE, "Enable VBI decoding", "enable_vbi");
   zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
   zcc_char("/dev/vbi0", "VBI device", "vbi_device");
   zcc_int(0, "Default TTX region", "default_region");

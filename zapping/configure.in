@@ -258,6 +258,14 @@ AC_DEFINE(HAVE_LIBXDPMS)
 X_XDPMS_LIBS="-lXdpms"
 AC_SUBST(X_XDPMS_LIBS)
 fi
+if test "x$DPMS_PRESENT" = "x"; then
+AC_CHECK_LIB(Xext, DPMSQueryExtension, DPMS_PRESENT="yes",, $GTK_LIBS)
+if test "x$DPMS_PRESENT" = "xyes"; then
+AC_DEFINE(HAVE_LIBXDPMS)
+X_XDPMS_LIBS="-lXext"
+AC_SUBST(X_XDPMS_LIBS)
+fi
+fi
 
 dnl Subst PACKAGE_PIXMAPS_DIR.
 PACKAGE_PIXMAPS_DIR="${datadir}/pixmaps/${PACKAGE}"
