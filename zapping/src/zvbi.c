@@ -656,10 +656,15 @@ acknowledge_trigger			(vbi_link	*link)
       on_trigger_clicked(NULL, link);
       return;
     }
+#warning
+  //  pix = gtk_image_new_from_stock (link->eacem ?
+  //				  "zapping-eacem-icon" : "zapping-atvef-icon",
+  //				  GTK_ICON_SIZE_BUTTON);
+  pix=0;
 
-  if ((pix = z_load_pixmap (link->eacem ?
-			    "eacem_icon.png" : "atvef_icon.png")))
+  if (pix)
     {
+      gtk_widget_show (pix);
       button = gtk_button_new ();
       gtk_container_add (GTK_CONTAINER (button), pix);
     }
@@ -1197,10 +1202,10 @@ add_patch(struct ttx_client *client, int col, int row,
       break;
     }
 
-  sw = rint(((double) client->w * (patch.width * CW + 10))
-	    / gdk_pixbuf_get_width(client->unscaled_on));
-  sh = rint(((double) client->h * (patch.height * CH + 10))
-	    / gdk_pixbuf_get_height(client->unscaled_on));
+  sw = (((double) client->w * (patch.width * CW + 10))
+	/ gdk_pixbuf_get_width(client->unscaled_on));
+  sh = (((double) client->h * (patch.height * CH + 10))
+	/ gdk_pixbuf_get_height(client->unscaled_on));
 
   patch.unscaled_on = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
 				     patch.width*CW+10, patch.height*CH+10);
@@ -1249,9 +1254,9 @@ resize_patches(struct ttx_client *client)
 
   for (i=0; i<client->num_patches; i++)
     {
-      sw = rint(((double)client->w*(client->patches[i].width*CW+10))/
+      sw = (((double)client->w*(client->patches[i].width*CW+10))/
 	gdk_pixbuf_get_width(client->unscaled_on));
-      sh = rint(((double)client->h*(client->patches[i].height*CH+10))/
+      sh = (((double)client->h*(client->patches[i].height*CH+10))/
 	gdk_pixbuf_get_height(client->unscaled_on));
 
       if (client->patches[i].scaled_on)
@@ -1340,23 +1345,23 @@ refresh_ttx_page_intern(struct ttx_client *client, GtkWidget *drawable)
       if ((scaled) && (client->scaled) && (client->w > 0)
 	  && (client->h > 0))
 	{
-	  x = rint(((double)client->w*p->col)/client->fp.columns);
-	  y = rint(((double)client->h*p->row)/client->fp.rows);
+	  x = (((double)client->w*p->col)/client->fp.columns);
+	  y = (((double)client->h*p->row)/client->fp.rows);
 	  sx = ((double)gdk_pixbuf_get_width(scaled)/
 	    gdk_pixbuf_get_width(p->unscaled_on))*5.0;
 	  sy = ((double)gdk_pixbuf_get_height(scaled)/
 	    gdk_pixbuf_get_height(p->unscaled_on))*5.0;
 	  
-	  z_pixbuf_copy_area(scaled, rint(sx), rint(sy),
-			     rint(gdk_pixbuf_get_width(scaled)-sx*2),
-			     rint(gdk_pixbuf_get_height(scaled)-sy*2),
+	  z_pixbuf_copy_area(scaled, (int)(sx), (int)(sy),
+			     (int)(gdk_pixbuf_get_width(scaled)-sx*2),
+			     (int)(gdk_pixbuf_get_height(scaled)-sy*2),
 			     client->scaled,
 			     x, y);
 	  
 	  if (drawable)
 	    gdk_window_clear_area_e(drawable->window, x, y,
-				    rint(gdk_pixbuf_get_width(scaled)-sx*2),
-				    rint(gdk_pixbuf_get_height(scaled)-sy*2));
+				    (int)(gdk_pixbuf_get_width(scaled)-sx*2),
+				    (int)(gdk_pixbuf_get_height(scaled)-sy*2));
 	}
     }
 }
