@@ -215,6 +215,9 @@ struct xbuffer {
 
 	int			frame_number;
 
+	struct timeval		sample_time;
+	int64_t			stream_time;
+
 	/** Queued with VIDIOCMCAPTURE. */
 	tv_bool			queued;
 
@@ -241,12 +244,6 @@ struct private_tveng1_device_info
 #endif
 #endif
   int audio_mode; /* auto, mono, stereo, ... */
-
-  double last_timestamp; /* Timestamp of the last frame captured */
-
-  double capture_time;
-  double frame_period_near;
-  double frame_period_far;
 
   uint32_t chroma; /* Pixel value for the chromakey */
   uint32_t r, g, b; /* 0-65535 components for the chroma */
@@ -2363,51 +2360,6 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 	return pixfmt_set;
 }
 
-/*
- *  From rte/mp1e since it now needs much more stable
- *  time stamps than v4l/gettimeofday can provide. 
- */
-static inline double
-p_tveng1_timestamp(struct private_tveng1_device_info *p_info)
-{
-  double now = zf_current_time();
-  double stamp;
-
-  if (p_info->capture_time > 0) {
-    double dt = now - p_info->capture_time;
-    double ddt = p_info->frame_period_far - dt;
-
-    if (fabs(p_info->frame_period_near)
-	< p_info->frame_period_far * 1.5) {
-      p_info->frame_period_near =
-	(p_info->frame_period_near - dt) * 0.8 + dt;
-      p_info->frame_period_far = ddt * 0.9999 + dt;
-      stamp = p_info->capture_time += p_info->frame_period_far;
-    } else {
-      /* Frame dropping detected & confirmed */
-      p_info->frame_period_near = p_info->frame_period_far;
-      stamp = p_info->capture_time = now;
-    }
-  } else {
-    /* First iteration */
-    stamp = p_info->capture_time = now;
-  }
-
-  return stamp;
-}
-
-static void
-p_tveng1_timestamp_init(tveng_device_info *info)
-{
-  struct private_tveng1_device_info *p_info =
-    (struct private_tveng1_device_info *) info;
-  double rate = info->panel.cur_video_standard ?
-	  info->panel.cur_video_standard->frame_rate : 25; /* XXX*/
-
-  p_info->capture_time = 0.0;
-  p_info->frame_period_near = p_info->frame_period_far = 1.0 / rate;
-}
-
 static sig_atomic_t timeout_alarm;
 
 static void
@@ -2424,6 +2376,7 @@ dequeue_xbuffer			(tveng_device_info *	info,
 	struct private_tveng1_device_info *p_info = P_INFO (info);
 	struct xbuffer *b;
 	int frame;
+	int r;
 
 	*buffer = NULL;
 
@@ -2477,8 +2430,11 @@ dequeue_xbuffer			(tveng_device_info *	info,
 		}
 	}
 
-  p_info->last_timestamp = p_tveng1_timestamp(p_info);
+	r = gettimeofday (&b->sample_time, /* timezone */ NULL);
+	assert (0 == r);
 
+	b->stream_time = 0; /* FIXME */
+	
 	if (timeout) {
 		struct itimerval iv;
 
@@ -2660,8 +2616,6 @@ map_xbuffers			(tveng_device_info *	info)
 	return TRUE;
 }
 
-static void p_tveng1_timestamp_init(tveng_device_info *info);
-
 /*
   Sets up the capture device so any read() call after this one
   succeeds. Returns -1 on error.
@@ -2675,8 +2629,6 @@ tveng1_start_capturing(tveng_device_info * info)
 
   p_tveng_stop_everything(info, &dummy);
   assert (CAPTURE_MODE_NONE == info -> capture_mode);
-
-  p_tveng1_timestamp_init(info);
 
 	if (!map_xbuffers (info)) {
 		return -1;
@@ -2786,6 +2738,9 @@ read_frame			(tveng_device_info *	info,
 
 		tv_copy_image (buffer->data, dst_format,
 			       b->data, &info->capture.format);
+
+		buffer->sample_time = b->sample_time;
+		buffer->stream_time = b->stream_time;
 	}
 
 	if (!queue_xbuffer (info, b))
