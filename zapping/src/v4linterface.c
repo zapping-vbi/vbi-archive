@@ -35,6 +35,7 @@
 #include "interface.h"
 #include "zvbi.h"
 #include "osd.h"
+#include "remote.h"
 
 extern tveng_tuned_channel * global_channel_list;
 extern tveng_device_info *main_info;
@@ -618,7 +619,7 @@ void load_control_values(gint num_controls,
   Valid search keywords:
   $(alias) -> tc->name
   $(index) -> tc->index
-  $(id) -> tc->real_name
+  $(id) -> tc->rf_name
 */
 static
 gchar *substitute_keywords	(gchar		*string,
@@ -665,8 +666,8 @@ gchar *substitute_keywords	(gchar		*string,
 	   buffer = g_strdup_printf("%d", tc->index+1);
 	   break;
 	 case 2:
-	   if (tc->real_name)
-	     buffer = g_strdup(tc->real_name);
+	   if (tc->rf_name)
+	     buffer = g_strdup(tc->rf_name);
 	   else
 	     buffer = g_strdup(_("No id"));
 	   break;
@@ -831,8 +832,8 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 #endif
 }
 
-void
-z_select_channel			(gint num_channel)
+static void
+select_channel (gint num_channel)
 {
   tveng_tuned_channel * channel =
     tveng_retrieve_tuned_channel_by_index(num_channel, global_channel_list);
@@ -847,169 +848,222 @@ z_select_channel			(gint num_channel)
   z_switch_channel(channel, main_info);
 }
 
-void
-z_select_rf_channel			(gchar *name)
-{
-  tveng_tuned_channel *tc;
-  gint num_channels;
-  gint i;
-
-  if (!name || !name[0])
-    return;
-
-  if (0)
-    fprintf(stderr, "z_select_rf_channel(\"%s\")\n", name);
-
-  switch (zconf_get_integer(NULL, "/zapping/options/main/channel_txl"))
-    {
-    case 0: /* channel list */
-      i = strtol(name, NULL, 0);
-
-      num_channels = tveng_tuned_channel_num(global_channel_list);
-
-      /* IMHO it's wrong to start at 0, but compatibility rules. */
-      if (i >= 0 || i < num_channels)
-	z_select_channel(i);
-
-      break;
-
-    case 1: /* RF channel name */
-      for (i = 0; (tc = tveng_retrieve_tuned_channel_by_index
-		   (i, global_channel_list)); i++)
-	if (strcasecmp(name, tc->real_name) == 0)
-	  {
-	    z_switch_channel(tc, main_info);
-	    return;
-	  }
-
-      break;
-    }
-}
-
-static gchar kp_chsel_buf[4];
-
-static void
-kp_timeout				(gboolean timer)
-{
-  if (timer)
-    z_select_rf_channel(kp_chsel_buf);
-
-  kp_chsel_buf[0] = 0;
-}
-
 gboolean
-z_select_channel_by_key			(GdkEventKey	*event)
-{
-  tveng_tuned_channel * tc;
-  gchar c;
-  int i;
-
-  switch (event->keyval)
-    {
-#ifdef HAVE_LIBZVBI
-
-    case GDK_KP_0 ... GDK_KP_9:
-      i = strlen(kp_chsel_buf);
-
-      if (i >= sizeof(kp_chsel_buf) - 1)
-	memcpy(kp_chsel_buf, kp_chsel_buf + 1, i--);
-
-      kp_chsel_buf[i] = event->keyval - GDK_KP_0 + '0';
-      kp_chsel_buf[i + 1] = 0;
-
-    show:
-      c = kp_chsel_buf[0];
-
-      /* NLS: Channel name being entered on numeric keypad */
-      osd_render_sgml(kp_timeout, _("<green>%s</green>"), kp_chsel_buf);
-
-      kp_chsel_buf[0] = c;
-
-      break;
-
-    case GDK_KP_Add:
-      strncpy(kp_chsel_buf, "T", sizeof(kp_chsel_buf) - 1);
-      goto show;
-
-    case GDK_KP_Delete:
-    case GDK_KP_Decimal:
-    case GDK_KP_Subtract:
-      osd_render_sgml(kp_timeout, "<black>/</black>");
-      kp_chsel_buf[0] = 0;
-      break;
-
-    case GDK_KP_Enter:
-      z_select_rf_channel(kp_chsel_buf);
-      kp_chsel_buf[0] = 0;
-      break;
-
-#endif /* HAVE_LIBZVBI */
-
-    default:
-        for (i = 0; (tc = tveng_retrieve_tuned_channel_by_index(i, global_channel_list)); i++)
-	  if (event->keyval == tc->accel_key
-	      && (event->state & tc->accel_mask) == tc->accel_mask)
-	    {
-	      z_select_channel(tc->index);
-	      return TRUE;
-	    }
-
-	return FALSE; /* not for us, pass it on */
-    }
-
-  return TRUE;
-}
-
-static void
-real_channel_up				(void)
+channel_up_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data)
 {
   gint num_channels = tveng_tuned_channel_num(global_channel_list);
   gint new_channel;
 
   if (num_channels == 0) /* If there are no tuned channels stop
 			    processing */
-    return;
-
-  new_channel = cur_tuned_channel - 1;
-  if (new_channel < 0)
-    new_channel = num_channels - 1;
-  
-  z_select_channel(new_channel);
-}
-
-static void
-real_channel_down			(void)
-{
-  gint num_channels = tveng_tuned_channel_num(global_channel_list);
-  gint new_channel;
-
-  if (num_channels == 0) /* If there are no tuned channels stop
-			    processing */
-    return;
+    return TRUE;
 
   new_channel = cur_tuned_channel + 1;
   if (new_channel >= num_channels)
     new_channel = 0;
 
-  z_select_channel(new_channel);
+  select_channel(new_channel);
+
+  return TRUE;
 }
 
-void
-z_channel_up				(void)
+gboolean
+channel_down_cmd			(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data)
 {
-  if (zcg_bool(NULL, "swap_up_down"))
-    real_channel_down();
-  else
-    real_channel_up();
+  gint num_channels = tveng_tuned_channel_num(global_channel_list);
+  gint new_channel;
+
+  if (num_channels == 0) /* If there are no tuned channels stop
+			    processing */
+    return TRUE;
+
+  new_channel = cur_tuned_channel - 1;
+  if (new_channel < 0)
+    new_channel = num_channels - 1;
+  
+  select_channel(new_channel);
+
+  return TRUE;
 }
 
-void
-z_channel_down				(void)
+/*
+ *  Select a channel by index into the the channel list.
+ */
+static gboolean
+set_channel_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data)
 {
-  if (zcg_bool(NULL, "swap_up_down"))
-    real_channel_up();
-  else
-    real_channel_down();
+  gint num_channels;
+  gint i;
+
+  if (argc < 2 || !argv[1][0])
+    return FALSE;
+
+  i = strtol(argv[1], NULL, 0);
+
+  num_channels = tveng_tuned_channel_num(global_channel_list);
+
+  /* IMHO it's wrong to start at 0, but compatibility rules. */
+  if (i >= 0 && i < num_channels)
+    {
+      select_channel(i);
+      return TRUE;
+    }
+
+  return FALSE;
+}
+
+/*
+ *  Select a channel by station name ("MSNBCBS", "Linux TV", ...),
+ *  when not found by channel name ("5", "S7", ...)
+ */
+static gboolean
+lookup_channel_cmd			(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data)
+{
+  tveng_tuned_channel *tc;
+  gint i;
+
+  if (argc < 2 || !argv[1][0])
+    return FALSE;
+
+  for (i = 0; (tc = tveng_retrieve_tuned_channel_by_index
+	       (i, global_channel_list)); i++)
+    if (strcasecmp(argv[1], tc->name) == 0)
+      {
+	z_switch_channel(tc, main_info);
+	return TRUE;
+      }
+
+  for (i = 0; (tc = tveng_retrieve_tuned_channel_by_index
+	       (i, global_channel_list)); i++)
+    if (strcasecmp(argv[1], tc->rf_name) == 0)
+      {
+	z_switch_channel(tc, main_info);
+	return TRUE;
+      }
+
+  return FALSE;
+}
+
+static gchar			kp_chsel_buf[5];
+static gint			kp_chsel_prefix;
+static gboolean			kp_clear;
+
+static void
+kp_timeout				(gboolean timer)
+{
+  gchar *vec[2] = { 0, kp_chsel_buf };
+
+  if (timer)
+    {
+      if (!isdigit(kp_chsel_buf[0])
+	  || zconf_get_integer (NULL, "/zapping/options/main/channel_txl"))
+	lookup_channel_cmd (NULL, 2, vec, NULL);
+      else
+	set_channel_cmd (NULL, 2, vec, NULL);
+    }
+
+  if (kp_clear)
+    {
+      kp_chsel_buf[0] = 0;
+      kp_chsel_prefix = 0;
+    }
+}
+
+gboolean
+on_channel_key_press			(GtkWidget *	widget,
+					 GdkEventKey *	event,
+					 gpointer	user_data)
+{
+  extern tveng_rf_table *current_country; /* Currently selected contry */
+  gchar *vec[2] = { 0, kp_chsel_buf };
+  tveng_tuned_channel *tc;
+  const gchar *prefix;
+  z_key key;
+  int i;
+
+  switch (event->keyval)
+    {
+#ifdef HAVE_LIBZVBI
+    case GDK_KP_0 ... GDK_KP_9:
+      i = strlen (kp_chsel_buf);
+
+      if (i >= sizeof (kp_chsel_buf) - 1)
+	memcpy (kp_chsel_buf, kp_chsel_buf + 1, i--);
+
+      kp_chsel_buf[i] = event->keyval - GDK_KP_0 + '0';
+      kp_chsel_buf[i + 1] = 0;
+
+    show:
+      kp_clear = FALSE;
+      /* NLS: Channel name being entered on numeric keypad */
+      osd_render_sgml (kp_timeout, _("<green>%s</green>"), kp_chsel_buf);
+      kp_clear = TRUE;
+
+      return TRUE;
+
+    case GDK_KP_Decimal:
+      /* Run through all RF channel prefixes incl. nil (== clear) */
+
+      prefix = current_country->prefixes[kp_chsel_prefix];
+
+      if (prefix)
+	{
+	  strncpy (kp_chsel_buf, prefix, sizeof (kp_chsel_buf) - 1);
+	  kp_chsel_prefix++;
+	  goto show;
+	}
+      else
+	{
+	  kp_clear = TRUE;
+	  osd_render_sgml (kp_timeout, "<black>/</black>");
+	}
+
+      return TRUE;
+
+    case GDK_KP_Enter:
+      if (!isdigit (kp_chsel_buf[0])
+	  || zconf_get_integer (NULL, "/zapping/options/main/channel_txl"))
+	lookup_channel_cmd (NULL, 2, vec, NULL);
+      else
+	set_channel_cmd (NULL, 2, vec, NULL);
+
+      kp_chsel_buf[0] = 0;
+      kp_chsel_prefix = 0;
+
+      return TRUE;
+
+#endif /* HAVE_LIBZVBI */
+
+    default:
+      break;
+    }
+
+  /* Channel accelerators */
+
+  key.key = gdk_keyval_to_lower (event->keyval);
+  key.mask = event->state;
+
+  for (i = 0; (tc = tveng_retrieve_tuned_channel_by_index
+	       (i, global_channel_list)); i++)
+    if (z_key_equal (tc->accel, key))
+      {
+	select_channel (tc->index);
+	return TRUE;
+      }
+
+  return FALSE; /* not for us, pass it on */
 }
 
 void store_control_values(gint *num_controls,
@@ -1065,32 +1119,6 @@ void on_standard_activate              (GtkMenuItem     *menuitem,
 #endif
 }
 
-/**
- * Builds a suitable tooltip for the given channel, or NULL
- */
-/* the returned string needs to be g_free'ed */
-static gchar *
-build_channel_tooltip(tveng_tuned_channel * tuned_channel)
-{
-  gchar * buffer;
-
-  if ((!tuned_channel) || (!tuned_channel->accel_key) ||
-      (tuned_channel->accel_key == GDK_VoidSymbol))
-    return NULL;
-
-  buffer = gdk_keyval_name(tuned_channel->accel_key);
-
-  if (!buffer)
-    return NULL;
-
-  return g_strdup_printf("%s%s%s%s",
-        	 (tuned_channel->accel_mask&GDK_CONTROL_MASK)?"Ctl+":"",
-	       (tuned_channel->accel_mask&GDK_MOD1_MASK)?"Alt+":"",
-	       (tuned_channel->accel_mask&GDK_SHIFT_MASK)?"Shift+":"",
-	       buffer);
-
-}
-
 static inline void
 insert_one_channel			(GtkMenu *menu,
 					 gint index,
@@ -1103,14 +1131,15 @@ insert_one_channel			(GtkMenu *menu,
     z_gtk_pixmap_menu_item_new(tuned->name,
 			       GNOME_STOCK_PIXMAP_PROPERTIES);
   gtk_signal_connect_object(GTK_OBJECT(menu_item), "activate",
-			    GTK_SIGNAL_FUNC(z_select_channel),
+			    GTK_SIGNAL_FUNC(select_channel),
 			    (GtkObject*)GINT_TO_POINTER(index));
-  tooltip = build_channel_tooltip(tuned);
-  if (tooltip)
+
+  if ((tooltip = z_key_name (tuned->accel)))
     {
-      set_tooltip(menu_item, tooltip);
-      g_free(tooltip);
+      set_tooltip (menu_item, tooltip);
+      g_free (tooltip);
     }
+
   gtk_widget_show(menu_item);
   gtk_menu_insert(menu, menu_item, pos);
 }
@@ -1248,6 +1277,8 @@ add_channel_entries			(GtkMenu *menu,
   return sth;
 }
 
+#define CMD_REG(_name) cmd_register (#_name, _name##_cmd, NULL)
+
 void
 startup_v4linterface(tveng_device_info *info)
 {
@@ -1257,8 +1288,17 @@ startup_v4linterface(tveng_device_info *info)
 		     GTK_SIGNAL_FUNC(update_bundle),
 		     info);
 
+  CMD_REG (channel_up);
+  CMD_REG (channel_down);
+  CMD_REG (set_channel);
+  CMD_REG (lookup_channel);
+
   zcc_char("Zapping: $(alias)", "Title format Z will use", "title_format");
   zcc_bool(FALSE, "Swap the page Up/Down bindings", "swap_up_down");
+/*
+  zcc_zkey (zkey_from_name ("Page_Up"), "Channel up key", "acc_channel_up");
+  zcc_zkey (zkey_from_name ("Page_Down"), "Channel down key", "acc_channel_down");
+*/
 }
 
 void
