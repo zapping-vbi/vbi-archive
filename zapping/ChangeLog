@@ -1,3 +1,8 @@
+02.04.2002	tveng_detect_xv_overlay <garetxe@users.sf.net>
+
+	* src/tveng.c: Do not run zsfb if XV overlay will be used, bttv
+	and v4l driver in XFree do weird things otherwise.
+
 01.04.2002	Release 0.6.4 <mschimek@users.sf.net>
 
 	* po/es.po: Updated by Iñaki G. Etxebarria.

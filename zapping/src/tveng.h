@@ -734,6 +734,9 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info);
 void tveng_unset_xv_port(tveng_device_info *info);
 #endif
 
+/* Returns 1 if XVideo can be used for overlaying */
+int tveng_detect_xv_overlay(tveng_device_info *info);
+
 /* Assume destination buffer is YVU instead of YUV in the next
    read_frame's. Only has effect if the mode is PIX_YUV420 and the
    controller is V4L1. assume is by default 0 */

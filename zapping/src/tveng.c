@@ -2231,6 +2231,102 @@ void tveng_unset_xv_port(tveng_device_info * info)
   info->private->port = None;
   info->private->filter = info->private->colorkey = None;
 }
+
+int tveng_detect_xv_overlay(tveng_device_info * info)
+{
+  Display *dpy = info->private->display;
+  Window root_window = DefaultRootWindow(dpy);
+  unsigned int version, revision, major_opcode, event_base,
+    error_base;
+  int nAdaptors;
+  int i,j;
+  XvAttribute *at;
+  int attributes;
+  XvAdaptorInfo *pAdaptors, *pAdaptor;
+  XvPortID port; /* port id */
+  XvEncodingInfo *ei; /* list of encodings, for reference */
+  int encodings; /* number of encodings */
+
+  if (info->private->disable_xv)
+    return 0;
+
+  if (Success != XvQueryExtension(dpy, &version, &revision,
+				  &major_opcode, &event_base,
+				  &error_base))
+    goto error1;
+
+  if (info->debug_level > 0)
+    fprintf(stderr, "tvengxv.c: XVideo major_opcode: %d\n",
+	    major_opcode);
+
+  if (version < 2 || (version == 2 && revision < 2))
+    goto error1;
+
+  if (Success != XvQueryAdaptors(dpy, root_window, &nAdaptors,
+				 &pAdaptors))
+    goto error1;
+
+  if (nAdaptors <= 0)
+    goto error1;
+
+  for (i=0; i<nAdaptors; i++)
+    {
+      pAdaptor = pAdaptors + i;
+      if ((pAdaptor->type & XvInputMask) &&
+	  (pAdaptor->type & XvVideoMask))
+	{ /* available port found */
+	  for (j=0; j<pAdaptor->num_ports; j++)
+	    {
+	      port = pAdaptor->base_id + j;
+
+	      if (Success == XvGrabPort(dpy, port, CurrentTime))
+		goto adaptor_found;
+	    }
+	}
+    }
+
+  goto error2; /* no adaptors found */
+
+  /* success */
+ adaptor_found:
+  /* Check that it supports querying controls and encodings */
+  if (Success != XvQueryEncodings(dpy, port,
+				  &encodings, &ei))
+    goto error3;
+
+  if (encodings <= 0)
+    {
+      info->tveng_errno = -1;
+      t_error_msg("encodings",
+		  "You have no encodings available",
+		  info);
+      goto error3;
+    }
+
+  if (ei)
+    XvFreeEncodingInfo(ei);
+
+  /* create the atom that handles the encoding */
+  at = XvQueryPortAttributes(dpy, port, &attributes);
+  if ((!at) && (attributes <= 0))
+    goto error3;
+
+  XvFreeAdaptorInfo(pAdaptors);
+  XvUngrabPort(dpy, port, CurrentTime);
+  return 1; /* the port seems to work ok, success */
+
+ error3:
+  XvUngrabPort(dpy, port, CurrentTime);
+ error2:
+  XvFreeAdaptorInfo(pAdaptors);
+ error1:
+  return 0; /* failure */
+}
+#else
+int tveng_detect_xv_overlay(tveng_device_info * info)
+{
+  return 0; /* XV not built, no overlaying possible */
+}
 #endif
 
 int

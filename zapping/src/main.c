@@ -307,6 +307,7 @@ int main(int argc, char * argv[])
   char *video_device = NULL;
   char *command = NULL;
   char *yuv_format = NULL;
+  gboolean xv_detected;
   /* Some other common options in case the standard one fails */
   char *fallback_devices[] =
   {
@@ -462,7 +463,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.160 2002-03-21 18:08:24 mschimek Exp $",
+	 "$Id: main.c,v 1.161 2002-04-02 21:06:31 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -565,8 +566,12 @@ int main(int argc, char * argv[])
     }
   D();
 
+  xv_detected = tveng_detect_xv_overlay (main_info);
+  printv("XV overlay detection: %s\n", xv_detected ? "OK" : "Failed");
+
   /* try to run the auxiliary suid program */
   if (!disable_zsfb &&
+      !xv_detected &&
       tveng_run_zapping_setup_fb(main_info) == -1)
     g_message("Error while executing zapping_setup_fb,\n"
 	      "Previewing might not work:\n%s", main_info->error);
