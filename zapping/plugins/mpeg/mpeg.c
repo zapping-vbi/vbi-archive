@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.4 2003-02-21 19:07:55 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36.2.5 2003-03-06 21:57:00 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -32,6 +32,8 @@
 #include "audio.h"
 #include "mpeg.h"
 #include "properties.h"
+
+#include "../../src/v4linterface.h" /* videostd_inquiry; preliminary */
 
 /*
   TODO:
@@ -369,7 +371,6 @@ do_stop				(void)
     free (audio_buf);
   audio_buf = NULL;
 
-#warning
   //  capture_unlock ();
 }
 
@@ -626,7 +627,6 @@ do_start			(const gchar *		file_name)
   active = TRUE;
 
   /* don't let anyone mess with our settings from now on */
-#warning
   //  capture_lock ();
 
   if (video_codec)
@@ -637,7 +637,6 @@ do_start			(const gchar *		file_name)
       ShowBox ("Cannot start encoding: %s", GTK_MESSAGE_ERROR,
 	       rte_errstr (context));
       rem_consumer (&mpeg_consumer);
-#warning
       //      capture_unlock ();
       active = FALSE;
       goto failed;

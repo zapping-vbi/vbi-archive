@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.19.2.4 2003-02-21 19:07:57 mschimek Exp $ */
+/* $Id: options.c,v 1.19.2.5 2003-03-06 21:57:23 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -496,7 +496,7 @@ grte_options_load		(rte_codec *		codec,
 	    val.dbl = zconf_get_float (NULL, zcname);
 	    break;
           case RTE_OPTION_STRING:
-	    val.str = zconf_get_string (NULL, zcname);
+	    val.str = (char *) zconf_get_string (NULL, zcname);
 	    break;
           default:
 	    g_warning ("Unknown option keyword %d in grte_load_options", ro->type);
@@ -634,7 +634,7 @@ grte_codec_create_menu		(rte_context *		context,
     {
       zcname = g_strconcat (zc_root, CONFIGS, zc_conf, "/",
 			    codec_type_string[stream_type], NULL);
-      keyword = zconf_get_string (NULL, zcname);
+      keyword = (char *) zconf_get_string (NULL, zcname);
       g_free (zcname);
 
       if (!keyword || !keyword[0])
@@ -851,7 +851,7 @@ grte_context_create_menu	(const gchar *		zc_root,
   if (default_item)
     {
       zcname = g_strconcat (zc_root, CONFIGS, zc_conf, "/format", NULL);
-      keyword = zconf_get_string (NULL, zcname);
+      keyword = (char *) zconf_get_string (NULL, zcname);
       g_free (zcname);
 
       if (!keyword || !keyword[0])
