@@ -598,7 +598,9 @@ zmisc_switch_mode(display_mode new_dmode,
   if (CAPTURE_MODE_NONE == new_cmode
       || CAPTURE_MODE_TELETEXT == new_cmode)
     {
+#ifdef HAVE_LIBZVBI
       python_command_printf (GTK_WIDGET (zapping), "zapping.closed_caption(0)");
+#endif
       osd_clear();
       osd_unset_window();
     }
@@ -635,8 +637,6 @@ zmisc_switch_mode(display_mode new_dmode,
 	    }
 	}
 
-      /* XXX error? */
-      tveng_set_capture_size((guint)w, (guint)h, info);
       return_value = capture_start(info, GTK_WIDGET (zapping->video));
       video_init (GTK_WIDGET (zapping->video),
 		  GTK_WIDGET (zapping->video)->style->black_gc);
