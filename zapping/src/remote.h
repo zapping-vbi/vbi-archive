@@ -28,6 +28,14 @@
    function you call. The command checking isn't case sensitive */
 gpointer remote_command(gchar *command, gpointer arg);
 
+/**
+ * Parses the given command and calls remote_command appropiately.
+ * Command is a set of lines containing a single command each, or many
+ * commands separated by ";"
+ * Example > set_channel 5;
+ */
+void run_command(const gchar *command);
+
 /*
   Implemented commands and description
   ------------------------------------

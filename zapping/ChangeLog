@@ -1,3 +1,8 @@
+25.4.2001	--command switch <garetxe@users.sourceforge.net>
+
+	* src/remote.c, src/main.c: Added --command line switch, currently
+	just "set_channel". Use with 'zapping -c "set_channel BBC"'
+
 24.4.2001	trigger gui <garetxe@users.sourceforge.net>
 
 	* zvbi.c, properties, .glade: Started trigger gui.

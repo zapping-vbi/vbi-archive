@@ -40,6 +40,85 @@ extern GtkWidget * main_window;
 extern tveng_device_info * main_info;
 extern tveng_tuned_channel * global_channel_list;
 
+static void parse_single_command(const gchar *command)
+{
+  gint t;
+  gchar *p = g_strdup(command);
+  gchar *b;
+  tveng_tuned_channel *tc;
+
+  *p = 0;
+
+  if (strstr(command, "set_channel"))
+    {
+      if ((sscanf(command, "set_channel %d", &t) != 1) &&
+	  (sscanf(command, "set_channel %s", p) != 1))
+	g_warning("Wrong number of parameters to set_channel,"
+		  " syntax is\n\tset_channel [channel_num:integer |"
+		  " channel_name:string]");
+      else
+	{
+	  if (! *p)
+	    {
+	      g_message("Command: set_channel by index: %d", t);
+	      remote_command("set_channel", GINT_TO_POINTER(t));
+	    }
+	  else
+	    {
+	      g_assert((b = strstr(command, p)) != NULL);
+	      g_message("Command: set_channel by name: %s", b);
+	      tc =
+		tveng_retrieve_tuned_channel_by_name(b, 0,
+						     global_channel_list);
+	      if (tc)
+		remote_command("set_channel",
+			       GINT_TO_POINTER(tc->index));
+	      else
+		g_warning("Channel not found: \"%s\"", b);
+	    }
+	}
+    }
+  else /* a bit sparse right now, will get bigger */
+    {
+      g_message("Unknown command \"%s\", ignored", command);
+    }
+
+  g_free(p);
+}
+
+void run_command(const gchar *command)
+{
+  gchar *buffer = g_strdup(command);
+  gint i = 0;
+
+  while (*command)
+    {
+      if (!i && *command == ' ')
+	{
+	  command++;
+	  continue;
+	}
+
+      if (*command == '\n' || *command == ';')
+	{
+	  buffer[i] = 0;
+	  parse_single_command(buffer);
+	  i = 0;
+	}
+      else
+	buffer[i++] = *command;
+      command++;
+    }
+
+  if (i)
+    {
+      buffer[i] = 0;
+      parse_single_command(buffer);
+    }
+
+  g_free(buffer);
+}
+
 /* The meaning of arg and the returned gpointer value depend on the
    function you call. The command checking isn't case sensitive */
 gpointer remote_command(gchar *command, gpointer arg)

@@ -42,6 +42,7 @@
 #include "ttxview.h"
 #include "yuv2rgb.h"
 #include "osd.h"
+#include "remote.h"
 
 /* This comes from callbacks.c */
 extern enum tveng_capture_mode restore_mode; /* the mode set when we went
@@ -205,6 +206,7 @@ int main(int argc, char * argv[])
   gint dword_align = FALSE;
   char *default_norm = NULL;
   char *video_device = NULL;
+  char *command = NULL;
   /* Some other common options in case the standard one fails */
   char *fallback_devices[] =
   {
@@ -286,6 +288,15 @@ int main(int argc, char * argv[])
       NULL
     },
     {
+      "command",
+      'c',
+      POPT_ARG_STRING,
+      &command,
+      0,
+      N_("Execute the given command and exit"),
+      NULL
+    },
+    {
       NULL,
     } /* end the list */
   };
@@ -299,7 +310,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.101 2001-04-02 22:39:49 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.102 2001-04-24 23:38:46 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -453,7 +464,8 @@ int main(int argc, char * argv[])
   /* set periodically the geometry flags on the main window */
   gtk_timeout_add(100, (GtkFunction)timeout_handler, NULL);
   /* ensure that the main window is realized */
-  gtk_widget_show(main_window);
+  gtk_widget_realize(main_window);
+  gtk_widget_realize(tv_screen);
   while (!tv_screen->window)
     z_update_gui();
   D();
@@ -594,9 +606,17 @@ int main(int argc, char * argv[])
   D();
   if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"), main_info))
     printv("%s\n", main_info->error);
-  D(); printv("going into main loop...\n");
-  /* That's it, now go to the main loop */
-  gtk_main();
+  if (!command)
+    {
+      D(); printv("going into main loop...\n");
+      gtk_widget_show(main_window);
+      gtk_main();
+    }
+  else
+    {
+      D(); printv("running command \"%s\"\n", command);
+      run_command(command);
+    }
   /* Closes all fd's, writes the config to HD, and that kind of things
    */
   shutdown_zapping();
