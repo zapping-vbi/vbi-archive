@@ -16,18 +16,15 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.12.2.10 2003-08-24 23:51:43 mschimek Exp $ */
+/* $Id: audio.c,v 1.12.2.11 2003-09-24 18:37:51 mschimek Exp $ */
 
-#include "../site_def.h"
-
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "site_def.h"
+#include "config.h"
 
 #include <gnome.h>
-#include "../common/fifo.h" // current_time()
-#include <math.h>
-#include <unistd.h>
+//#include "common/fifo.h" // current_time()
+//#include <math.h>
+//#include <unistd.h>
 
 #include "audio.h"
 #define ZCONF_DOMAIN "/zapping/options/audio/"
@@ -42,31 +39,17 @@
 #include "globals.h"
 #include "v4linterface.h"
 
-
 extern audio_backend_info esd_backend;
-#if USE_OSS
-extern audio_backend_info oss_backend;
-#endif
-#if HAVE_ARTS
+#ifdef HAVE_ARTS
 extern audio_backend_info arts_backend;
 #endif
-
-static audio_backend_info *backends [] =
-{
-  &esd_backend,
-#if USE_OSS
-  &oss_backend,
+#ifdef HAVE_OSS
+extern audio_backend_info oss_backend;
 #endif
-#if HAVE_ARTS
-  &arts_backend
-#endif
-};
 
-#define num_backends (sizeof(backends)/sizeof(backends[0]))
-
-typedef struct mhandle {
-  gint		owner; /* backend owning this handle */
-  gpointer	handle; /* for the backend */
+typedef struct {
+  gpointer		handle; /* for the backend */
+  audio_backend_info *	backend;
 } mhandle;
 
 void mixer_setup ( void )
@@ -83,14 +66,36 @@ void mixer_setup ( void )
     }
 }
 
-/* Generic stuff */
 gpointer
 open_audio_device (gboolean stereo, gint rate, enum audio_format
 		   format)
 {
-  gint cur_backend = zcg_int(NULL, "backend");
-  gpointer handle = backends[cur_backend]->open(stereo, rate, format);
-  mhandle *mhandle;
+  const gchar *audio_source;
+  audio_backend_info *backend;
+  gpointer handle;
+  mhandle *mh;
+
+  audio_source = zcg_char (NULL, "audio_source");
+  if (!audio_source)
+    audio_source = "";
+
+  backend = NULL;
+
+  if (0 == strcmp (audio_source, "esd"))
+    backend = &esd_backend;
+#ifdef HAVE_ARTS
+  else if (0 == strcmp (audio_source, "arts"))
+    backend = &arts_backend;
+#endif
+#ifdef HAVE_OSS
+  else if (0 == strcmp (audio_source, "kernel"))
+    backend = &oss_backend;
+#endif
+
+  handle = NULL;
+
+  if (backend)
+    handle = backend->open (stereo, rate, format);
 
   if (!handle)
     {
@@ -101,105 +106,38 @@ open_audio_device (gboolean stereo, gint rate, enum audio_format
       return NULL;
     }
 
-  mhandle = (struct mhandle *) g_malloc0(sizeof(*mhandle));
-  mhandle->handle = handle;
-  mhandle->owner = cur_backend;
+  mh = g_malloc0 (sizeof (*mh));
+  mh->handle = handle;
+  mh->backend = backend;
 
-  /* make sure we record from the appropiate source */
+  /* Make sure we record from the appropiate source. */
   mixer_setup();
 
-  return mhandle;
+  return mh;
 }
 
 void
 close_audio_device (gpointer handle)
 {
-  mhandle *mhandle = (struct mhandle *) handle;
+  mhandle *mh = handle;
 
-  backends[mhandle->owner]->close(mhandle->handle);
+  mh->backend->close (mh->handle);
 
-  g_free(mhandle);
+  g_free (mh);
 }
 
 void
 read_audio_data (gpointer handle, gpointer dest, gint num_bytes,
 		 double *timestamp)
 {
-  mhandle *mhandle = (struct mhandle *) handle;
+  mhandle *mh = handle;
 
-  backends[mhandle->owner]->read(mhandle->handle, dest, num_bytes,
-				timestamp);
+  mh->backend->read (mh->handle,
+		     dest, num_bytes, timestamp);
 }
-
-static void
-on_backend_activate	(GObject		*menuitem,
-			 gpointer		pindex)
-{
-  gint index = GPOINTER_TO_INT(pindex);
-  GObject * audio_backends =
-    G_OBJECT(g_object_get_data(menuitem, "user-data"));
-  gint cur_sel =
-    GPOINTER_TO_INT(g_object_get_data(audio_backends, "cur_sel"));
-  GtkWidget **boxes =
-    (GtkWidget**)g_object_get_data(audio_backends, "boxes");
-
-  if (cur_sel == index)
-    return;
-
-  g_object_set_data(audio_backends, "cur_sel", pindex);
-  gtk_widget_hide(boxes[cur_sel]);
-  gtk_widget_set_sensitive(boxes[cur_sel], FALSE);
-
-  gtk_widget_show(boxes[index]);
-  gtk_widget_set_sensitive(boxes[index], TRUE);
-}
-
-#if 0
-static void
-build_mixer_lines		(GtkWidget	*optionmenu)
-{
-  GtkMenuShell *menu = GTK_MENU_SHELL
-    (gtk_option_menu_get_menu(GTK_OPTION_MENU(optionmenu)));
-  GtkWidget *menuitem;
-  gchar *label;
-  gint i;
-
-  for (i=0;(label = mixer_get_description(i));i++)
-    {
-      menuitem = gtk_menu_item_new_with_label(label);
-      free(label);
-      gtk_widget_show(menuitem);
-      gtk_menu_shell_append(menu, menuitem);
-    }
-}
-
-static void
-on_record_source_changed	(GtkOptionMenu	*optionmenu,
-				 GtkRange	*hscale)
-{
-  int min, max;
-  GtkAdjustment *adj;
-  gint cur_sel = z_option_menu_get_active (GTK_WIDGET (optionmenu));
-
-  gtk_widget_set_sensitive(GTK_WIDGET(hscale), cur_sel);
-
-  if (!cur_sel)
-    return;
-
-  /* note that it's cur_sel-1, the 0 entry is "Use system settings" */
-  g_assert(!mixer_get_bounds(cur_sel-1, &min, &max));
-  
-  adj = gtk_range_get_adjustment(hscale);
-
-  adj -> lower = min;
-  adj -> upper = max;
-
-  gtk_adjustment_changed(adj);
-}
-#endif
 
 /*
- *  Soundcard mixer selection
+ *  Audio preferences
  */
 
 #ifndef AUDIO_MIXER_LOG_FP
@@ -207,20 +145,217 @@ on_record_source_changed	(GtkOptionMenu	*optionmenu,
 #endif
 
 static void
-on_mixer_enable_toggled		(GtkToggleButton *	togglebutton,
-				 gpointer		user_data)
+general_audio_apply		(GtkWidget *		page)
 {
-  GtkWidget *table = user_data;
+  GtkWidget *widget;
   gboolean active;
 
-  active = gtk_toggle_button_get_active (togglebutton);
-  gtk_widget_set_sensitive (table, active);
+  widget = lookup_widget (page, "general-audio-start-muted");
+  active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  zconf_set_boolean (active, "/zapping/options/main/start_muted");
+
+  widget = lookup_widget (page, "general-audio-quit-muted");
+  active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  zconf_set_boolean (active, "/zapping/options/main/quit_muted");
 }
 
 static void
-mixer_select			(GtkWidget *		table,
-				 void *			user_data,
-				 tv_device_node *	n)
+general_audio_setup		(GtkWidget *		page)
+{
+  GtkWidget *widget;
+  gboolean active;
+
+  zconf_get_boolean (&active, "/zapping/options/main/start_muted");
+  widget = lookup_widget (page, "general-audio-start-muted");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), active);
+
+  zconf_get_boolean (&active, "/zapping/options/main/quit_muted");
+  widget = lookup_widget (page, "general-audio-quit-muted");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), active);
+}
+
+static void
+devices_audio_source_apply	(GtkWidget *		page)
+{
+  GtkWidget *widget;
+  const gchar *audio_source;
+  tv_device_node *n;
+
+  audio_source = "none";
+
+  widget = lookup_widget (page, "devices-audio-gnome");
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget)))
+    {
+      audio_source = "esd";
+    }
+  else
+    {
+#ifdef HAVE_ARTS
+      widget = lookup_widget (page, "devices-audio-kde");
+      if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget)))
+	{
+	  audio_source = "arts";
+	}
+      else
+#endif
+	{
+#ifdef HAVE_OSS
+	  widget = lookup_widget (page, "devices-audio-kernel");
+	  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget)))
+	    audio_source = "kernel";
+#endif
+	}
+    }
+
+  zcs_char (audio_source, "audio_source");
+
+  widget = lookup_widget (page, "devices-audio-kernel-table");
+  if ((n = z_device_entry_selected (widget)))
+    zcs_char (n->device, "pcm_device");
+}
+
+static void
+devices_audio_mixer_apply	(GtkWidget *		page)
+{
+  GtkWidget *widget;
+  gboolean active;
+  tv_device_node *n;
+
+  widget = lookup_widget (page, "devices-audio-mixer");
+  active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  zconf_set_boolean (active, "/zapping/options/audio/force_mixer");
+
+  widget = lookup_widget (page, "devices-audio-mixer-table");
+
+  if ((n = z_device_entry_selected (widget)))
+    {
+      tv_audio_line *l;
+      gint index;
+
+      zcs_char (n->device, "mixer_device");
+
+      widget = g_object_get_data (G_OBJECT (widget), "mixer_lines");
+
+      if (widget)
+	{
+	  index = z_option_menu_get_active (widget);
+
+	  for (l = PARENT (n, tv_mixer, node)->inputs; l; l = l->_next)
+	    if (0 == index--)
+	      {
+		zcs_int (l->hash, "mixer_input");
+		break;
+	      }
+	}
+    }
+}
+
+static void
+devices_audio_apply		(GtkWidget *		page)
+{
+  tveng_tc_control *tcc;
+  guint num_controls;
+
+  devices_audio_source_apply (page);
+  devices_audio_mixer_apply (page);
+
+  store_control_values (main_info, &tcc, &num_controls);
+  startup_mixer ();
+  update_control_box (main_info);
+  load_control_values (main_info, tcc, num_controls, FALSE);
+}
+
+static void
+on_enable_device_entry_toggled	(GtkToggleButton *	toggle_button,
+				 GtkWidget *		widget)
+{
+  gboolean active;
+
+  active = gtk_toggle_button_get_active (toggle_button);
+
+  gtk_widget_set_sensitive (widget, active);
+
+  if (active)
+    z_device_entry_grab_focus (widget);
+}
+
+static tv_device_node *
+devices_audio_kernel_open	(GtkWidget *		table,
+				 tv_device_node *	list,
+				 const char *		name,
+				 gpointer		user_data)
+{
+  tv_device_node *n;
+
+  if ((n = tv_device_node_find (list, name)))
+    return n;
+
+  /* FIXME report errors */
+  if ((n = oss_pcm_open (NULL, NULL, name)))
+    return n;
+
+  return NULL;
+}
+
+static void
+devices_audio_source_setup	(GtkWidget *		page)
+{
+  GtkWidget *alignment;
+  GtkWidget *table;
+  GtkWidget *widget;
+  tv_device_node *list;
+  const gchar *audio_source;
+
+  audio_source = zcg_char (NULL, "audio_source");
+  if (!audio_source)
+    audio_source = "";
+
+  widget = lookup_widget (page, "devices-audio-none");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), TRUE);
+
+  widget = lookup_widget (page, "devices-audio-gnome");
+  if (0 == strcmp (audio_source, "esd"))
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), TRUE);
+
+  widget = lookup_widget (page, "devices-audio-kde");
+#ifdef HAVE_ARTS
+  if (0 == strcmp (audio_source, "arts"))
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), TRUE);
+#else
+  gtk_widget_set_sensitive (widget, FALSE);
+#endif
+
+  widget = lookup_widget (page, "devices-audio-kernel");
+#ifdef HAVE_OSS
+  if (0 == strcmp (audio_source, "kernel"))
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), TRUE);
+
+  /* XXX "oss"? */
+  list = oss_pcm_scan (NULL, NULL);
+
+  alignment = lookup_widget (page, "devices-audio-kernel-alignment");
+  
+  table = z_device_entry_new (/* prompt */ NULL,
+			      list,
+			      zcg_char (NULL, "pcm_device"),
+			      devices_audio_kernel_open, NULL,
+			      /* user_data */ NULL);
+  gtk_widget_show (table);
+  gtk_container_add (GTK_CONTAINER (alignment), table);
+  register_widget (NULL, table, "devices-audio-kernel-table");
+
+  g_signal_connect (G_OBJECT (widget), "toggled",
+		    G_CALLBACK (on_enable_device_entry_toggled), table);
+  on_enable_device_entry_toggled (GTK_TOGGLE_BUTTON (widget), table);
+#else /* !HAVE_OSS */
+  gtk_widget_set_sensitive (widget, FALSE);
+#endif
+}
+
+static void
+devices_audio_mixer_select	(GtkWidget *		table,
+				 tv_device_node *	n,
+				 gpointer		user_data)
 {
   GtkWidget *menu;
   GtkWidget *optionmenu;
@@ -278,10 +413,10 @@ mixer_select			(GtkWidget *		table,
 }
 
 static tv_device_node *
-mixer_open			(GtkWidget *		table,
-				 void *			user_data,
+devices_audio_mixer_open	(GtkWidget *		table,
 				 tv_device_node *	list,
-				 const char *		name)
+				 const char *		name,
+				 gpointer		user_data)
 {
   tv_mixer *m;
   tv_device_node *n;
@@ -301,80 +436,28 @@ mixer_open			(GtkWidget *		table,
   return NULL;
 }
 
-/* Audio */
 static void
-audio_setup		(GtkWidget	*page)
+devices_audio_mixer_setup	(GtkWidget *		page)
 {
-  GtkWidget *widget;
-  GtkWidget *audio_backends =
-    lookup_widget(page, "audio_backends");
-  GtkWidget **boxes = (GtkWidget**)g_malloc0(num_backends*sizeof(boxes[0]));
-  GtkWidget *vbox39 = lookup_widget(page, "vbox39");
-  GtkWidget *menuitem;
-  GtkWidget *menu = gtk_menu_new();
-  guint cur_backend = zcg_int(NULL, "backend");
-  guint i;
+  tv_mixer *m;
+  tv_device_node *list, *n;
+  GtkWidget *checkbutton;
+  GtkWidget *alignment;
+  GtkWidget *table;
+  GtkWidget *label;
 
-  /* Hook on dialog destruction so there's no mem leak */
-  g_object_set_data_full(G_OBJECT (audio_backends), "boxes", boxes,
-			   (GtkDestroyNotify)g_free);
+  m = tv_mixer_scan (AUDIO_MIXER_LOG_FP);
+  list = m ? &m->node : NULL;
 
-  for (i=0; i<num_backends; i++)
+  /* Remove tv card mixer interfaces, these are special
+     and we fall back to them automatically. */
+  for (n = list; n;)
     {
-      menuitem = gtk_menu_item_new_with_label(_(backends[i]->name));
-      g_signal_connect(G_OBJECT(menuitem), "activate",
-			 G_CALLBACK(on_backend_activate),
-			 GINT_TO_POINTER(i));
-      gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
-      g_object_set_data(G_OBJECT(menuitem), "user-data",
-			audio_backends);
-      gtk_widget_show(menuitem);
-
-      boxes[i] = gtk_vbox_new(FALSE, 3);
-      if (backends[i]->add_props)
-	backends[i]->add_props(GTK_BOX(boxes[i]));
-      gtk_box_pack_start(GTK_BOX(vbox39), boxes[i], FALSE, FALSE, 0);
-      if (i == cur_backend)
-	gtk_widget_show(boxes[i]);
-      else
-	gtk_widget_set_sensitive(boxes[i], FALSE);
-    }
-
-  gtk_option_menu_set_menu(GTK_OPTION_MENU (audio_backends), menu);
-  gtk_option_menu_set_history(GTK_OPTION_MENU (audio_backends),
-			      cur_backend);
-  g_object_set_data(G_OBJECT (audio_backends), "cur_sel",
-		      GINT_TO_POINTER(cur_backend));
-
-  /* Avoid noise while changing channels */
-  widget = lookup_widget(page, "checkbutton1");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"));
-
-  /* Start zapping muted */
-  widget = lookup_widget(page, "checkbutton3");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/start_muted"));
-
-  {
-    tv_mixer *m;
-    tv_device_node *list, *n;
-    GtkWidget *checkbutton;
-    GtkWidget *alignment;
-    GtkWidget *table;
-    GtkWidget *label;
-
-    /* Mixer selection */
-
-    /* FIXME use abstract mixer */
-    m = tv_mixer_scan (AUDIO_MIXER_LOG_FP);
-    list = m ? &m->node : NULL;
-
-    /* Only real soundcards. We have to handle video devices differently. */
-    for (n = list; n;)
       if (PARENT (n, tv_mixer, node)->inputs == NULL)
 	{
-	  tv_device_node *next = n->next;
+	  tv_device_node *next;
+	  
+	  next = n->next;
 	  tv_device_node_delete (&list, n, FALSE);
 	  n = next;
 	}
@@ -382,111 +465,71 @@ audio_setup		(GtkWidget	*page)
 	{
 	  n = n->next;
 	}
-
-    alignment = lookup_widget (page, "mixer_table_alignment");
-    table = z_device_entry_new (NULL, list, zcg_char (NULL, "mixer_device"),
-				mixer_open, mixer_select, NULL);
-    gtk_widget_show (table);
-    gtk_container_add (GTK_CONTAINER (alignment), table);
-    register_widget (NULL, table, "mixer_table");
-
-    label = gtk_label_new (_("Input:"));
-    gtk_widget_show (label);
-    gtk_label_set_justify (GTK_LABEL (label), GTK_JUSTIFY_LEFT);
-    gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
-    gtk_misc_set_padding (GTK_MISC (label), 3, 3);
-    gtk_table_attach (GTK_TABLE (table), label,
-		      0, 1, 3, 3 + 1, GTK_FILL, 0, 0, 0);
-
-    checkbutton = lookup_widget (page, "force_mixer");
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton),
-				  zcg_bool (NULL, "force_mixer"));
-    on_mixer_enable_toggled (GTK_TOGGLE_BUTTON (checkbutton), table);
-    g_signal_connect (G_OBJECT (checkbutton), "toggled",
-		      G_CALLBACK (on_mixer_enable_toggled), table);
-  }
-}
-
-static void
-audio_apply		(GtkWidget	*page)
-{
-  GtkWidget *widget;
-  GtkWidget *audio_backends;
-  gint selected;
-  GtkWidget **boxes;
-  tv_device_node *n;  
-
-  widget = lookup_widget(page, "checkbutton1"); /* avoid noise */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/avoid_noise");
-
-  widget = lookup_widget(page, "force_mixer");
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/audio/force_mixer");
-
-  widget = lookup_widget (page, "mixer_table");
-  if ((n = z_device_entry_selected (widget)))
-    {
-      tv_audio_line *l;
-      gint index;
-
-      zcs_char (n->device, "mixer_device");
-      widget = g_object_get_data (G_OBJECT (widget), "mixer_lines");
-      index = z_option_menu_get_active (widget);
-
-      for (l = PARENT (n, tv_mixer, node)->inputs; l; l = l->_next)
-	if (index-- == 0)
-	  {
-	    zcs_int (l->hash, "mixer_input");
-	    break;
-	  }
     }
-  {
-    tveng_tc_control *tcc;
-    guint num_controls;
 
-    store_control_values (main_info, &tcc, &num_controls);
-    startup_mixer ();
-    update_control_box (main_info);
-    load_control_values (main_info, tcc, num_controls, FALSE);
-  }
+  checkbutton = lookup_widget (page, "devices-audio-mixer");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton),
+				zcg_bool (NULL, "force_mixer"));
 
-  widget = lookup_widget(page, "checkbutton3"); /* start muted */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/start_muted");  
+  alignment = lookup_widget (page, "devices-audio-mixer-alignment");
 
-  /* Apply the properties */
-  audio_backends = lookup_widget(page, "audio_backends");
-  selected = z_option_menu_get_active(audio_backends);
-  boxes = (GtkWidget**)g_object_get_data(G_OBJECT(audio_backends),
-					   "boxes");
+  table = z_device_entry_new (/* prompt */ NULL,
+			      list,
+			      zcg_char (NULL, "mixer_device"),
+			      devices_audio_mixer_open,
+			      devices_audio_mixer_select,
+			      /* user_data */ NULL);
+  gtk_widget_show (table);
+  gtk_container_add (GTK_CONTAINER (alignment), table);
+  register_widget (NULL, table, "devices-audio-mixer-table");
 
-  if (backends[selected]->apply_props)
-    backends[selected]->apply_props(GTK_BOX(boxes[selected]));
+  g_signal_connect (G_OBJECT (checkbutton), "toggled",
+		    G_CALLBACK (on_enable_device_entry_toggled), table);
+  on_enable_device_entry_toggled (GTK_TOGGLE_BUTTON (checkbutton), table);
 
-  zcs_int(selected, "backend");
+  label = gtk_label_new (_("Input:"));
+  gtk_widget_show (label);
+  gtk_label_set_justify (GTK_LABEL (label), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label), 3, 3);
+  gtk_table_attach (GTK_TABLE (table), label,
+		    0, 0 + 1,
+		    3, 3 + 1,
+		    GTK_FILL, 0, 0, 0);
 }
 
 static void
-add				(GtkDialog	*dialog)
+devices_audio_setup		(GtkWidget *		page)
 {
-  SidebarEntry general_options[] = {
-    { N_("Audio"), "gnome-grecord.png", "vbox39",
-      audio_setup, audio_apply }
-  };
-  SidebarGroup groups[] = {
-    { N_("General Options"), general_options, acount(general_options) }
-  };
-
-  standard_properties_add(dialog, groups, acount(groups), "zapping.glade2");
+  devices_audio_source_setup (page);
+  devices_audio_mixer_setup (page);
 }
 
+static void
+properties_add			(GtkDialog *		dialog)
+{
+  SidebarEntry devices [] = {
+    { N_("Audio"), "gnome-grecord.png", "vbox53",
+      devices_audio_setup, devices_audio_apply }
+  };
+  SidebarEntry general [] = {
+    { N_("Audio"), "gnome-grecord.png", "vbox39",
+      general_audio_setup, general_audio_apply }
+  };
+  SidebarGroup groups [] = {
+    { N_("Devices"),	     devices, G_N_ELEMENTS (devices) },
+    { N_("General Options"), general, G_N_ELEMENTS (general) }
+  };
 
+  standard_properties_add (dialog, groups, G_N_ELEMENTS (groups),
+			   "zapping.glade2");
+}
 
+/*
+ *  Mute stuff
+ */
 
-
-
-static guint			quiet_timeout_handle = 0;
+static guint		quiet_timeout_handle = 0;
 
 static gboolean
 quiet_timeout			(gpointer		user_data)
@@ -502,17 +545,16 @@ reset_quiet			(tveng_device_info *	info,
   if (quiet_timeout_handle)
     gtk_timeout_remove (quiet_timeout_handle);
 
-  quiet_timeout_handle =
-    gtk_timeout_add (delay /* ms */, quiet_timeout, NULL);
+  if (delay > 0)
+    {
+      quiet_timeout_handle =
+	gtk_timeout_add (delay /* ms */, quiet_timeout, NULL);
+    }
+  else
+    {
+      tv_quiet_set (main_info, FALSE);
+    }
 }
-
-
-
-
-
-
-
-
 
 /*
  *  Global mute function. XXX switch to callbacks.
@@ -604,12 +646,13 @@ set_mute				(gint	        mode,
   return FALSE;
 }
 
-static PyObject* py_mute (PyObject *self, PyObject *args)
+static PyObject *
+py_mute				(PyObject *		self,
+				 PyObject *		args)
 {
   int value = 2; /* toggle by default */
-  int ok = PyArg_ParseTuple (args, "|i", &value);
 
-  if (!ok)
+  if (!PyArg_ParseTuple (args, "|i", &value))
     {
       g_warning ("zapping.mute(|i)");
       py_return_false;
@@ -622,32 +665,48 @@ static PyObject* py_mute (PyObject *self, PyObject *args)
 
 void startup_audio ( void )
 {
-  guint i;
-
-  property_handler audio_handler =
-  {
-    add: add
+  static const property_handler audio_handler = {
+    .add = properties_add,
   };
 
-  prepend_property_handler(&audio_handler);
+  prepend_property_handler (&audio_handler);
 
-  zcc_int(0, "Default audio backend", "backend");
+  zcc_char ("kernel", "PCM recording source", "audio_source");
+  zcc_char ("/dev/dsp", "PCM recording kernel device", "pcm_device");
+
   zcc_char ("", "Mixer device", "mixer_device");
   zcc_int (-1, "Mixer input line (hash)", "mixer_input");
 
-  for (i=0; i<num_backends; i++)
-    if (backends[i]->init)
-      backends[i]->init();
+  zcc_bool (FALSE, "Mute when Zapping is started", "start_muted");
+  zcc_bool (TRUE, "Mute on exit", "quit_muted");
+
+  if (esd_backend.init)
+    esd_backend.init ();
+#ifdef HAVE_ARTS
+  if (arts_backend.init)
+    arts_backend.init ();
+#endif
+#ifdef HAVE_OSS
+  if (oss_backend.init)
+    oss_backend.init ();
+#endif
 
   cmd_register ("mute", py_mute, METH_VARARGS,
-		"Toggles the mute state", "zapping.mute([new_state])");
+		("Mute/unmute"), "zapping.mute()",
+		("Mute"), "zapping.mute(1)",
+		("Unmute"), "zapping.mute(0)");
 }
 
 void shutdown_audio ( void )
 {
-  guint i;
-
-  for (i=0; i<num_backends; i++)
-    if (backends[i]->shutdown)
-      backends[i]->shutdown();
+  if (esd_backend.shutdown)
+    esd_backend.shutdown ();
+#ifdef HAVE_ARTS
+  if (arts_backend.shutdown)
+    arts_backend.shutdown ();
+#endif
+#ifdef HAVE_OSS
+  if (oss_backend.shutdown)
+    oss_backend.shutdown ();
+#endif
 }
