@@ -1,16 +1,24 @@
 ## Process this file with automake to produce Makefile.in
 
-TESTS = test-bcd test-hamm test-raw_decoder
-# exoptest
+TESTS = test-bcd test-hamm test-raw_decoder test-explist
 
-noinst_PROGRAMS = unicode glyph explist caption export osc capture \
-	test-bcd test-hamm test-raw_decoder
+noinst_PROGRAMS = \
+	capture \
+	decode \
+	explist \
+	export \
+	glyph \
+	osc \
+	test-bcd \
+	test-hamm \
+	test-raw_decoder \
+	unicode
 
 test_bcd_SOURCES = test-bcd.cc
 test_hamm_SOURCES = test-hamm.cc
 test_raw_decoder_SOURCES = test-raw_decoder.cc
 
-EXTRA_DIST = $(TESTS) README uclist sim.c
+EXTRA_DIST = test-explist README uclist sim.c
 
 AM_CFLAGS = \
 	-I$(top_srcdir)/src $(COMMON_INCLUDES) $(X_CFLAGS) \
