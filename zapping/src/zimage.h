@@ -14,7 +14,8 @@ typedef struct _zimage_private zimage_private;
 
 typedef struct {
   tv_image_format fmt;
-  tveng_image_data	data;
+  void *img;
+  //  tveng_image_data	data;
 
   /* Video backend dependant */
   zimage_private *priv;
@@ -53,8 +54,8 @@ typedef struct {
      height are the current dimensions of the destination, can be
      ignored if not appropiate. */
   void		(*image_put)(zimage *image, guint width, guint height);
-  /* Suggest a blittable format, return TRUE if granted */
-  gboolean	(*suggest_format)(void);
+  /* Return supported image formats. */
+  tv_pixfmt_set	(*supported_formats)(void);
 } video_backend;
 
 /* Registers a zimage backend. Returns FALSE if already registered. */
@@ -85,9 +86,6 @@ void video_init (GtkWidget *widget, GdkGC *gc);
 
 /* Unsets any previously set destination window */
 void video_uninit (void);
-
-/* Suggests a blittable format */
-void video_suggest_format (void);
 
 /* Tries to blit some image contained in the frame */
 void video_blit_frame (capture_frame* f);
