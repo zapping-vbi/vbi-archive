@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6.1\n"
-"POT-Creation-Date: 2002-06-25 06:11+0200\n"
+"POT-Creation-Date: 2002-08-31 05:38+0200\n"
 "PO-Revision-Date: 2001-10-05 22:28+02:00\n"
 "Last-Translator: Ime Smits <ime@iae.nl>\n"
 "Language-Team: Dutch <ime@iae.nl>\n"
@@ -14,90 +14,90 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/main.c:336
+#: src/main.c:337
 msgid "Video device to use"
 msgstr "Video-apparaat"
 
-#: src/main.c:337 src/zapzilla.c:88
+#: src/main.c:338 src/zapzilla.c:88
 msgid "DEVICE"
 msgstr "DEVICE"
 
-#: src/main.c:345
+#: src/main.c:346
 msgid "Disable plugins support"
 msgstr "Pluginsupport uitschakelen"
 
-#: src/main.c:354
+#: src/main.c:355
 msgid "Disable VBI support"
 msgstr "VBI-ondersteuning uitschakelen"
 
-#: src/main.c:363
+#: src/main.c:364
 msgid "Disable XVideo extension support"
 msgstr "XVideo-extensies uitschakelen"
 
-#: src/main.c:372
+#: src/main.c:373
 msgid "Do not call zapping_setup_fb on startup"
 msgstr "Aanroep van zapping_setup_fb uitschakelen"
 
-#: src/main.c:381
+#: src/main.c:382
 msgid "Color depth of the X display"
 msgstr "Kleurendiepte beeld"
 
-#: src/main.c:382
+#: src/main.c:383
 msgid "BPP"
 msgstr "BPP"
 
-#: src/main.c:390 src/zapzilla.c:78
+#: src/main.c:391 src/zapzilla.c:78
 msgid "Set debug messages on"
 msgstr "Debugberichten activeren"
 
-#: src/main.c:399
+#: src/main.c:400
 msgid "Force dword aligning of the overlay window"
 msgstr "Forceer dword layout van overlayvenster"
 
-#: src/main.c:408
+#: src/main.c:409
 msgid "Execute the given command and exit"
 msgstr "Voer commando uit en verlaat programma"
 
-#: src/main.c:409
+#: src/main.c:410
 msgid "CMD"
 msgstr "CMD"
 
-#: src/main.c:417
+#: src/main.c:418
 msgid "Pixformat for XVideo capture mode [YUYV | YVU420]"
 msgstr "Formaat voor XVideo-capturemodus [YUYV | YVU420]"
 
-#: src/main.c:418
+#: src/main.c:419
 msgid "PIXFORMAT"
 msgstr "PIXFORMAT"
 
-#: src/main.c:426 src/zapzilla.c:96
+#: src/main.c:427 src/zapzilla.c:96
 msgid "Redirect the error messages to the console"
 msgstr "Foutmeldingen omleiden naar venster"
 
-#: src/main.c:514
+#: src/main.c:515
 msgid "Sorry, but there is no module support in GLib"
 msgstr "GLib heeft geen modulesupport"
 
 # src/callbacks.c:320 src/v4l2interface.c:89
-#: src/main.c:524
+#: src/main.c:525
 msgid "Cannot get device info struct"
 msgstr "Kan apparaatinformatie niet opvragen"
 
-#: src/main.c:533
+#: src/main.c:534
 msgid "Zapping couldn't be started"
 msgstr "Zapping kan niet gestart worden"
 
-#: src/main.c:594
+#: src/main.c:595
 #, c-format
 msgid "Couldn't open %s, should I try some common options?"
 msgstr "Kan %s niet openen, andere opties proberen?"
 
-#: src/main.c:628
+#: src/main.c:629
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "%s succesvol, opgeslagen als nieuwe standaardwaarde"
 
-#: src/main.c:637
+#: src/main.c:638
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -106,7 +106,7 @@ msgstr ""
 "\"%s\" kon niet worden geopend:\n"
 "%s"
 
-#: src/main.c:752
+#: src/main.c:755
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -115,11 +115,11 @@ msgstr ""
 "Herstellen van modus %s mislukt:\n"
 "%s"
 
-#: src/main.c:755
+#: src/main.c:758
 msgid ", I will try starting capture mode"
 msgstr ", ik zal proberen om op te starten in opnamemodus"
 
-#: src/main.c:759
+#: src/main.c:762
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -128,7 +128,7 @@ msgstr ""
 "Opnamemodus kon ook niet gestart worden:\n"
 "%s"
 
-#: src/main.c:772
+#: src/main.c:775
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -138,15 +138,15 @@ msgstr ""
 "%s"
 
 # src/interface.c:247
-#: src/main.c:802 src/callbacks.c:501 src/callbacks.c:630
+#: src/main.c:805 src/callbacks.c:501 src/callbacks.c:630
 msgid "Show controls"
 msgstr "Regelpaneel"
 
-#: src/main.c:803 src/callbacks.c:502 src/callbacks.c:631
+#: src/main.c:806 src/callbacks.c:502 src/callbacks.c:631
 msgid "Show the menu and the toolbar"
 msgstr "Toon menu en knoppenbalk"
 
-#: src/main.c:998 src/zapzilla.c:175
+#: src/main.c:1001 src/zapzilla.c:175
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -166,7 +166,7 @@ msgstr ""
 "   - of, waarschijnlijker, je hebt een fout in\n"
 "     %s gevonden. Neem contact op met de auteur.\n"
 
-#: src/main.c:1035
+#: src/main.c:1038
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Zapping kon het configuratiebestand niet aanmaken"
 
@@ -1922,7 +1922,7 @@ msgid "S_top Plugin"
 msgstr "Plugin s_toppen"
 
 #: glade/glade_strings.c:188 plugins/screenshot/screenshot.c:576
-#: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:383
+#: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:382
 #: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
 #: plugins/mpeg/mpeg.c:2666 plugins/mpeg/mpeg.c:3241
 msgid "Plugins"
@@ -2671,54 +2671,54 @@ msgstr ""
 msgid "This plugin enables the usage of LIRC."
 msgstr "Deze plugin biedt ondersteuning van LIRC"
 
-#: plugins/lirc/lirc.c:379
+#: plugins/lirc/lirc.c:378
 msgid "LIRC"
 msgstr "LIRC"
 
-#: plugins/lirc/lirc.c:549
+#: plugins/lirc/lirc.c:548
 msgid "Button"
 msgstr "Toets"
 
-#: plugins/lirc/lirc.c:556
+#: plugins/lirc/lirc.c:555
 msgid "Action"
 msgstr "Aktie"
 
-#: plugins/lirc/lirc.c:573
+#: plugins/lirc/lirc.c:572
 msgid "Button:"
 msgstr "Toets:"
 
-#: plugins/lirc/lirc.c:584
+#: plugins/lirc/lirc.c:583
 msgid "Action:"
 msgstr "Aktie:"
 
 # src/interface.c:362
-#: plugins/lirc/lirc.c:612 plugins/lirc/lirc.c:624
+#: plugins/lirc/lirc.c:611 plugins/lirc/lirc.c:623
 msgid "channel up"
 msgstr "Volgende kanaal "
 
 # src/interface.c:405
-#: plugins/lirc/lirc.c:613
+#: plugins/lirc/lirc.c:612
 msgid "channel down"
 msgstr "Vorige kanaal"
 
 # src/interface.c:362
-#: plugins/lirc/lirc.c:614
+#: plugins/lirc/lirc.c:613
 msgid "set channel"
 msgstr "Kies kanaal"
 
-#: plugins/lirc/lirc.c:615
+#: plugins/lirc/lirc.c:614
 msgid "power off"
 msgstr "Uit"
 
-#: plugins/lirc/lirc.c:658
+#: plugins/lirc/lirc.c:657
 msgid "1"
 msgstr "1"
 
-#: plugins/lirc/lirc.c:667
+#: plugins/lirc/lirc.c:666
 msgid "Add"
 msgstr "Toevoegen"
 
-#: plugins/lirc/lirc.c:676 plugins/mpeg/mpeg_strings.c:45
+#: plugins/lirc/lirc.c:675 plugins/mpeg/mpeg_strings.c:45
 msgid "Delete"
 msgstr "Verwijderen"
 
