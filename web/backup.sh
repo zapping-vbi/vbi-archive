@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: backup.sh,v 1.4 2004-05-02 04:35:57 mschimek Exp $
+# $Id: backup.sh,v 1.5 2004-05-02 04:44:45 mschimek Exp $
 #
 # Back up TWiki runtime data, supposed to be executed daily.
 
@@ -9,7 +9,7 @@ send_backups_to=mschimek@users.sourceforge.net
 set -x
 
 # Backups are not world accessible.
-umask 007 || exit 1
+umask 077 || exit 1
 
 here=`pwd`
 if test x$HOSTNAME != xlocalhost; then
