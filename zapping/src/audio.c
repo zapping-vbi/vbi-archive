@@ -57,7 +57,7 @@ static audio_backend_info *backends [] =
 
 #define num_backends (sizeof(backends)/sizeof(backends[0]))
 
-typedef struct {
+typedef struct mhandle {
   gint		owner; /* backend owning this handle */
   gpointer	handle; /* for the backend */
 } mhandle;
@@ -93,7 +93,7 @@ open_audio_device (gboolean stereo, gint rate, enum audio_format
       return NULL;
     }
 
-  mhandle = g_malloc0(sizeof(*mhandle));
+  mhandle = (struct mhandle *) g_malloc0(sizeof(*mhandle));
   mhandle->handle = handle;
   mhandle->owner = cur_backend;
 
@@ -106,7 +106,7 @@ open_audio_device (gboolean stereo, gint rate, enum audio_format
 void
 close_audio_device (gpointer handle)
 {
-  mhandle *mhandle = handle;
+  mhandle *mhandle = (struct mhandle *) handle;
 
   backends[mhandle->owner]->close(mhandle->handle);
 
@@ -117,7 +117,7 @@ void
 read_audio_data (gpointer handle, gpointer dest, gint num_bytes,
 		 double *timestamp)
 {
-  mhandle *mhandle = handle;
+  mhandle *mhandle = (struct mhandle *) handle;
 
   backends[mhandle->owner]->read(mhandle->handle, dest, num_bytes,
 				timestamp);
@@ -199,11 +199,11 @@ audio_setup		(GtkWidget	*page)
   GtkWidget *vbox39 = lookup_widget(page, "vbox39");
   GtkWidget *menuitem;
   GtkWidget *menu = gtk_menu_new();
-  gint cur_backend = zcg_int(NULL, "backend");
+  guint cur_backend = zcg_int(NULL, "backend");
   GtkWidget *record_source = lookup_widget(page, "record_source");
   gint cur_input = zcg_int(NULL, "record_source");
   GtkWidget *record_volume = lookup_widget(page, "record_volume");
-  gint i;
+  guint i;
 
   /* Hook on dialog destruction so there's no mem leak */
   gtk_object_set_data_full(GTK_OBJECT (audio_backends), "boxes", boxes,
@@ -292,7 +292,7 @@ audio_apply		(GtkWidget	*page)
   zcs_int(z_option_menu_get_active(record_source), "record_source");
 
   record_volume = lookup_widget(page, "record_volume");
-  zcs_int(gtk_range_get_adjustment(GTK_RANGE(record_volume))->value,
+  zcs_int((int) gtk_range_get_adjustment(GTK_RANGE(record_volume))->value,
 	  "record_volume");
 }
 
@@ -364,7 +364,7 @@ volume_incr_cmd				(GtkWidget *	widget,
 
 void startup_audio ( void )
 {
-  gint i;
+  guint i;
 
   property_handler audio_handler =
   {
@@ -387,7 +387,7 @@ void startup_audio ( void )
 
 void shutdown_audio ( void )
 {
-  gint i;
+  guint i;
 
   for (i=0; i<num_backends; i++)
     if (backends[i]->shutdown)

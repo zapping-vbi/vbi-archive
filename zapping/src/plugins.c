@@ -701,7 +701,8 @@ GList * plugin_load_plugins ( void )
       g_free(plugin_path);
       if (fd)
 	{
-	  buffer = g_malloc0(1024);
+	  buffer = (gchar *) g_malloc0(1024);
+
 	  while (fgets(buffer, 1023, fd))
 	    {
 	      plugin_path = buffer;

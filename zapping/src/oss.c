@@ -74,7 +74,7 @@ oss_open (gboolean stereo, gint rate, enum audio_format format)
   if ((IOCTL(oss_fd, SNDCTL_DSP_SPEED, &Speed) == -1))
     goto failed;
 
-  h = g_malloc0(sizeof(*h));
+  h = (oss_handle *) g_malloc0(sizeof(*h));
   h->fd = oss_fd;
   h->stereo = stereo;
   h->sampling_rate = rate;
@@ -101,10 +101,10 @@ static void
 oss_read (gpointer handle, gpointer dest, gint num_bytes,
 	  double *timestamp)
 {
-  oss_handle *h = handle;
+  oss_handle *h = (oss_handle *) handle;
   ssize_t r, n = num_bytes;
   struct audio_buf_info info;
-  char *data = dest;
+  char *data = (char *) dest;
   struct timeval tv1, tv2;
   double now;
 
@@ -227,7 +227,7 @@ const audio_backend_info oss_backend =
   init:		oss_init,
   
   add_props:	oss_add_props,
-  apply_props:	oss_apply_props,
+  apply_props:	oss_apply_props
 };
 
 #endif /* OSS backend */

@@ -287,7 +287,7 @@ typedef struct
   char * error; /* points to the last error message */
   int debug_level; /* 0 for no errors, increase for greater verbosity */
 
-  struct tveng_private * private; /* private stuff */
+  struct tveng_private * priv; /* private stuff */
 }
 tveng_device_info;
 

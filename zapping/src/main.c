@@ -124,7 +124,7 @@ on_tv_screen_size_allocate	(GtkWidget	*widget,
 static gint timeout_handler(gpointer unused)
 {
   GdkGeometry geometry;
-  GdkWindowHints hints=0;
+  GdkWindowHints hints = (GdkWindowHints) 0;
   GtkWidget *tv_screen;
   gint tvs_w, tvs_h, mw_w, mw_h = 0;
   double rw = 0, rh=0;
@@ -139,7 +139,7 @@ static gint timeout_handler(gpointer unused)
 	{
 	  geometry.width_inc = 64;
 	  geometry.height_inc = 48;
-	  hints |= GDK_HINT_RESIZE_INC;
+	  hints |= (GdkWindowHints) GDK_HINT_RESIZE_INC;
 	}
       
       switch (zcg_int(NULL, "ratio")) {
@@ -167,7 +167,7 @@ static gint timeout_handler(gpointer unused)
 
       if (rw)
 	{
-	  hints |= GDK_HINT_ASPECT;
+	  hints |= (GdkWindowHints) GDK_HINT_ASPECT;
 
 	  /* toolbars correction */
 	  tv_screen = lookup_widget(main_window, "tv_screen");
@@ -195,7 +195,7 @@ static gint timeout_handler(gpointer unused)
 	    /* ug, ugly */
 	    gdk_window_get_size(main_window->window, &mw_w, &mw_h);
 	    gdk_window_resize(main_window->window,
-			      mw_h*geometry.min_aspect, mw_h);
+			      (int)(mw_h * geometry.min_aspect), mw_h);
 	    old_ratio = zvbi_ratio;
 	  }
       }
@@ -465,7 +465,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.164 2002-06-19 08:14:51 mschimek Exp $",
+	 "$Id: main.c,v 1.165 2002-06-25 04:34:09 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -745,7 +745,8 @@ int main(int argc, char * argv[])
   /* Start the capture in the last mode */
   if (!disable_preview)
     {
-      if (zmisc_switch_mode(zcg_int(NULL, "capture_mode"), main_info)
+      if (zmisc_switch_mode((enum tveng_capture_mode)
+			    zcg_int(NULL, "capture_mode"), main_info)
 	  == -1)
 	{
 	  ShowBox(_("Cannot restore previous mode%s:\n%s"),
@@ -1126,9 +1127,9 @@ static gboolean startup_zapping(gboolean load_plugins)
 
       buffer2 = g_strconcat(buffer, "/controls", NULL);
       if (new_channel.num_controls)
-	new_channel.controls =
-	  g_malloc0(sizeof(tveng_tc_control) *
-		    new_channel.num_controls);
+	new_channel.controls = (tveng_tc_control *)
+	  g_malloc0(sizeof(tveng_tc_control)
+		    * new_channel.num_controls);
       for (j = 0; j<new_channel.num_controls; j++)
 	{
 	  if (!zconf_get_nth(j, &buffer3, buffer2))

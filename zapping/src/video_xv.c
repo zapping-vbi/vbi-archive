@@ -76,7 +76,7 @@ static xvzImage *
 image_new(enum tveng_frame_pixformat pixformat, gint w, gint h)
 {
   xvzImage *new_image = g_malloc0(sizeof(xvzImage));
-  struct _xvzImagePrivate * pimage = new_image->private =
+  struct _xvzImagePrivate * pimage = new_image->priv =
     g_malloc0(sizeof(struct _xvzImagePrivate));
   void * image_data = NULL;
   unsigned int xvmode = (pixformat == TVENG_PIX_YUYV) ? YUY2 : YV12;
@@ -146,10 +146,10 @@ image_new(enum tveng_frame_pixformat pixformat, gint w, gint h)
         goto error2;
     }
 
-  new_image->w = new_image->private->image->width;
-  new_image->h = new_image->private->image->height;
-  new_image->data = new_image->private->image->data;
-  new_image->data_size = new_image->private->image->data_size;
+  new_image->w = new_image->priv->image->width;
+  new_image->h = new_image->priv->image->height;
+  new_image->data = new_image->priv->image->data;
+  new_image->data_size = new_image->priv->image->data_size;
 
   return new_image;
 
@@ -158,7 +158,7 @@ image_new(enum tveng_frame_pixformat pixformat, gint w, gint h)
     free(image_data);
 
  error1:
-  g_free(new_image->private);
+  g_free(new_image->priv);
   g_free(new_image);
 
   return NULL;
@@ -171,7 +171,7 @@ static void
 image_put(xvzImage *image, GdkWindow *window, GdkGC *gc)
 {
   gint w, h;
-  struct _xvzImagePrivate *pimage = image->private;
+  struct _xvzImagePrivate *pimage = image->priv;
 
   g_assert(window != NULL);
 
@@ -207,7 +207,7 @@ image_put(xvzImage *image, GdkWindow *window, GdkGC *gc)
 static void
 image_destroy(xvzImage *image)
 {
-  struct _xvzImagePrivate *pimage = image->private;
+  struct _xvzImagePrivate *pimage = image->priv;
 
   g_assert(image != NULL);
 
@@ -226,7 +226,7 @@ image_destroy(xvzImage *image)
     g_assert(shmdt(pimage->shminfo.shmaddr) != -1);
 #endif
 
-  g_free(image->private);
+  g_free(image->priv);
   g_free(image);
 }
 

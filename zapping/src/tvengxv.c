@@ -77,7 +77,7 @@ p_tvengxv_build_controls(tveng_device_info * info);
 static int
 p_tvengxv_open_device(tveng_device_info *info)
 {
-  Display *dpy = info->private->display;
+  Display *dpy = info->priv->display;
   Window root_window = DefaultRootWindow(dpy);
   unsigned int version, revision, major_opcode, event_base,
     error_base;
@@ -189,7 +189,7 @@ int tvengxv_attach_device(const char* device_file,
 
   t_assert(info != NULL);
 
-  if (info->private->disable_xv)
+  if (info->priv->disable_xv)
     {
       info->tveng_errno = -1;
       t_error_msg("disable_xv",
@@ -197,7 +197,7 @@ int tvengxv_attach_device(const char* device_file,
       return -1;
     }
 
-  dpy = info->private->display;;
+  dpy = info->priv->display;;
 
   if (info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
@@ -477,7 +477,7 @@ tvengxv_get_inputs(tveng_device_info *info)
 
   t_assert(info != NULL);
 
-  dpy = info->private->display;
+  dpy = info->priv->display;
 
   norm[63] = input[63] = 0;
 
@@ -536,7 +536,7 @@ tvengxv_get_inputs(tveng_device_info *info)
   val = 0;
   if ((p_info->encoding != None) &&
       (p_info->encoding_gettable))
-    XvGetPortAttribute(info->private->display, p_info->port,
+    XvGetPortAttribute(info->priv->display, p_info->port,
 		       p_info->encoding, &val);
 
   if (p_info->ei)
@@ -598,7 +598,7 @@ tvengxv_set_input(struct tveng_enum_input * input,
     }
 
   if (p_info->encoding != None)
-    XvSetPortAttribute(info->private->display, p_info->port,
+    XvSetPortAttribute(info->priv->display, p_info->port,
 		       p_info->encoding, i);
 
   info->cur_input = input->index;
@@ -631,7 +631,7 @@ tvengxv_get_standards(tveng_device_info *info)
 
   t_assert(info != NULL);
 
-  dpy = info->private->display;
+  dpy = info->priv->display;
 
   norm[63] = input[63] = 0;
 
@@ -677,7 +677,7 @@ tvengxv_get_standards(tveng_device_info *info)
   val = 0;
   if ((p_info->encoding != None) &&
       (p_info->encoding_gettable))
-    XvGetPortAttribute(info->private->display, p_info->port,
+    XvGetPortAttribute(info->priv->display, p_info->port,
 		       p_info->encoding, &val);
 
   if (p_info->ei)
@@ -715,7 +715,7 @@ tvengxv_set_standard(struct tveng_enumstd * standard,
     }
 
   if (p_info->encoding != None)
-    XvSetPortAttribute(info->private->display, p_info->port,
+    XvSetPortAttribute(info->priv->display, p_info->port,
 		       p_info->encoding, i);
 
   info->cur_standard = standard->index;
@@ -874,7 +874,7 @@ tvengxv_update_controls(tveng_device_info *info)
       if (id == (int)p_info->mute)
 	info->controls[i].cur_value = p_info->muted;
       else
-	XvGetPortAttribute(info->private->display,
+	XvGetPortAttribute(info->priv->display,
 			   p_info->port,
 			   (Atom)id,
 			   &(info->controls[i].cur_value));
@@ -899,7 +899,7 @@ tvengxv_set_control(struct tveng_control * control, int value,
   if (control->id == (int)p_info->mute)
     p_info->muted = value;
 
-  XvSetPortAttribute(info->private->display,
+  XvSetPortAttribute(info->priv->display,
 		     p_info->port,
 		     (Atom)control->id,
 		     value);
@@ -938,7 +938,7 @@ tvengxv_set_mute(int value, tveng_device_info * info)
   value = !!value;
 
   if (p_info->mute != None)
-    if (Success != XvSetPortAttribute(info->private->display,
+    if (Success != XvSetPortAttribute(info->priv->display,
 	p_info->port, p_info->mute, value))
       return -1;
 
@@ -956,7 +956,7 @@ tvengxv_tune_input(uint32_t freq, tveng_device_info *info)
   t_assert(info != NULL);
 
   if (p_info->freq != None)
-    XvSetPortAttribute(info->private->display,
+    XvSetPortAttribute(info->priv->display,
 		       p_info->port,
 		       p_info->freq,
 		       freq*0.016);
@@ -981,7 +981,7 @@ tvengxv_get_signal_strength(int *strength, int *afc,
     }
 
   if (strength)
-    XvGetPortAttribute(info->private->display,
+    XvGetPortAttribute(info->priv->display,
 		       p_info->port,
 		       p_info->signal_strength,
 		       strength);
@@ -1001,7 +1001,7 @@ tvengxv_get_tune(uint32_t * freq, tveng_device_info *info)
   if (!freq || p_info->freq == None)
     return 0;
 
-  XvGetPortAttribute(info->private->display,
+  XvGetPortAttribute(info->priv->display,
 		     p_info->port,
 		     p_info->freq,
 		     (int*)(freq));
@@ -1084,18 +1084,18 @@ tvengxv_set_preview(int on, tveng_device_info * info)
       return -1;
     }
 
-  XGetGeometry(info->private->display, info->window.win, &win_ignore,
+  XGetGeometry(info->priv->display, info->window.win, &win_ignore,
 	       &dummy, &dummy, &width, &height, &dummy, &dummy);
 
   val = 0;
   if ((p_info->encoding != None) &&
       (p_info->encoding_gettable))
-    XvGetPortAttribute(info->private->display, p_info->port,
+    XvGetPortAttribute(info->priv->display, p_info->port,
 		       p_info->encoding, &val);
 
   if (on)
     {
-      XvPutVideo(info->private->display, p_info->port, info->window.win,
+      XvPutVideo(info->priv->display, p_info->port, info->window.win,
 		 info->window.gc,
 		 0, 0, p_info->ei[val].width, p_info->ei[val].height, /* src */
 		 0, 0, width, height);
@@ -1103,11 +1103,11 @@ tvengxv_set_preview(int on, tveng_device_info * info)
     }
   else
     {
-      XvStopVideo(info->private->display, p_info->port,
+      XvStopVideo(info->priv->display, p_info->port,
 		  info->window.win);
       info->current_mode = TVENG_NO_CAPTURE;
     }
-  XSync(info->private->display, False);
+  XSync(info->priv->display, False);
 
   return 0;
 }
@@ -1122,7 +1122,7 @@ tvengxv_start_previewing (tveng_device_info * info)
 
   t_assert(info -> current_mode == TVENG_NO_CAPTURE);
 
-  XGetGeometry(info->private->display, info->window.win, &win_ignore,
+  XGetGeometry(info->priv->display, info->window.win, &win_ignore,
 	       &dummy, &dummy, &info->window.width,
 	       &info->window.height, &dummy, &dummy);
 
@@ -1140,9 +1140,9 @@ tvengxv_stop_previewing (tveng_device_info * info)
   struct private_tvengxv_device_info * p_info =
     (struct private_tvengxv_device_info *)info;
 
-  XvStopVideo(info->private->display, p_info->port,
+  XvStopVideo(info->priv->display, p_info->port,
 	      info->window.win);
-  XSync(info->private->display, False);
+  XSync(info->priv->display, False);
 
   info->current_mode = TVENG_NO_CAPTURE;
 

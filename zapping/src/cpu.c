@@ -44,7 +44,7 @@
  */
 
 typedef union {
-	unsigned char		s[16];
+	char			s[16];
 	struct {
 		unsigned int		eax;
 		unsigned int		ebx;

@@ -47,12 +47,12 @@
 #define TVLOCK								\
 ({									\
   /* fprintf (stderr, "TVLOCK   in " __PRETTY_FUNCTION__ "\n"); */	\
-  pthread_mutex_lock(&(info->private->mutex));				\
+  pthread_mutex_lock(&(info->priv->mutex));				\
 })
 #define UNTVLOCK							\
 ({									\
   /* fprintf (stderr, "UNTVLOCK in " __PRETTY_FUNCTION__ "\n"); */	\
-  pthread_mutex_unlock(&(info->private->mutex));			\
+  pthread_mutex_unlock(&(info->priv->mutex));				\
 })
 
 #define RETURN_UNTVLOCK(X)						\
@@ -104,42 +104,42 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp)
   /* fill the struct with 0's */
   memset(new_object, 0, needed_mem);
 
-  new_object -> private = malloc(sizeof(struct tveng_private));
+  new_object -> priv = malloc(sizeof(struct tveng_private));
 
-  if (!new_object->private)
+  if (!new_object->priv)
     {
       free(new_object);
       return NULL;
     }
 
-  memset(new_object->private, 0, sizeof(struct tveng_private));
+  memset(new_object->priv, 0, sizeof(struct tveng_private));
 
   /* Allocate some space for the error string */
   new_object -> error = (char*) malloc(256);
 
   if (!new_object->error)
     {
-      free(new_object->private);
+      free(new_object->priv);
       free(new_object);
       perror("malloc");
       return NULL;
     }
 
-  new_object->private->display = display;
-  new_object->private->bpp = bpp;
+  new_object->priv->display = display;
+  new_object->priv->bpp = bpp;
 
-  new_object->private->zapping_setup_fb_verbosity = 0; /* No output by
+  new_object->priv->zapping_setup_fb_verbosity = 0; /* No output by
 							  default */
 #ifdef USE_XV
-  new_object->private->port = None;
-  new_object->private->filter = None;
-  new_object->private->colorkey = None;
-  new_object->private->double_buffer = None;
+  new_object->priv->port = None;
+  new_object->priv->filter = None;
+  new_object->priv->colorkey = None;
+  new_object->priv->double_buffer = None;
 #endif
 
   pthread_mutexattr_init(&attr);
   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-  pthread_mutex_init(&(new_object->private->mutex), &attr);
+  pthread_mutex_init(&(new_object->priv->mutex), &attr);
   pthread_mutexattr_destroy(&attr);
 
   new_object->current_controller = TVENG_CONTROLLER_NONE;
@@ -159,9 +159,9 @@ void tveng_device_info_destroy(tveng_device_info * info)
   if (info -> error)
     free(info -> error);
 
-  pthread_mutex_destroy(&(info->private->mutex));
+  pthread_mutex_destroy(&(info->priv->mutex));
 
-  free(info->private);
+  free(info->priv);
   free(info);
 }
 
@@ -196,8 +196,8 @@ int tveng_attach_device(const char* device_file,
   /*
     Check that the current private->display depth is one of the supported ones
   */
-  info->private->current_bpp = tveng_get_display_depth(info);
-  switch (info->private->current_bpp)
+  info->priv->current_bpp = tveng_get_display_depth(info);
+  switch (info->priv->current_bpp)
     {
     case 15:
     case 16:
@@ -217,10 +217,10 @@ int tveng_attach_device(const char* device_file,
        i++)
     {
       info -> fd = 0;
-      tveng_controllers[i](&(info->private->module));
-      if (!info->private->module.attach_device)
+      tveng_controllers[i](&(info->priv->module));
+      if (!info->priv->module.attach_device)
 	continue;
-      if (-1 != info->private->module.attach_device(device_file, attach_mode,
+      if (-1 != info->priv->module.attach_device(device_file, attach_mode,
 						    info))
 	goto success;
     }
@@ -230,7 +230,7 @@ int tveng_attach_device(const char* device_file,
   t_error_msg("check()",
 	      "The device cannot be attached to any controller",
 	      info);
-  memset(&(info->private->module), 0, sizeof(info->private->module));
+  memset(&(info->priv->module), 0, sizeof(info->priv->module));
   UNTVLOCK;
   return -1;
 
@@ -325,8 +325,8 @@ tveng_describe_controller(char ** short_str, char ** long_str,
 
   TVLOCK;
 
-  if (info->private->module.describe_controller)
-    info->private->module.describe_controller(short_str, long_str,
+  if (info->priv->module.describe_controller)
+    info->priv->module.describe_controller(short_str, long_str,
 					      info);
   else /* function not supported by the module */
     {
@@ -351,8 +351,8 @@ void tveng_close_device(tveng_device_info * info)
 
   tveng_stop_everything(info);
 
-  if (info->private->module.close_device)
-    info->private->module.close_device(info);
+  if (info->priv->module.close_device)
+    info->priv->module.close_device(info);
 
   UNTVLOCK;
 }
@@ -373,8 +373,8 @@ int tveng_get_inputs(tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.get_inputs)
-    RETURN_UNTVLOCK(info->private->module.get_inputs(info));
+  if (info->priv->module.get_inputs)
+    RETURN_UNTVLOCK(info->priv->module.get_inputs(info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -458,8 +458,8 @@ int tveng_set_input(struct tveng_enum_input * input,
 
   TVLOCK;
 
-  if (info->private->module.set_input)
-    RETURN_UNTVLOCK(info->private->module.set_input(input, info));
+  if (info->priv->module.set_input)
+    RETURN_UNTVLOCK(info->priv->module.set_input(input, info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -569,8 +569,8 @@ int tveng_get_standards(tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.get_standards)
-    RETURN_UNTVLOCK(info->private->module.get_standards(info));
+  if (info->priv->module.get_standards)
+    RETURN_UNTVLOCK(info->priv->module.get_standards(info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -589,8 +589,8 @@ int tveng_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.set_standard)
-    RETURN_UNTVLOCK(info->private->module.set_standard(std, info));
+  if (info->priv->module.set_standard)
+    RETURN_UNTVLOCK(info->priv->module.set_standard(std, info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -693,8 +693,8 @@ tveng_update_capture_format(tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.update_capture_format)
-    RETURN_UNTVLOCK(info->private->module.update_capture_format(info));
+  if (info->priv->module.update_capture_format)
+    RETURN_UNTVLOCK(info->priv->module.update_capture_format(info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -721,7 +721,7 @@ tveng_set_capture_format(tveng_device_info * info)
     info->format.width = info->caps.maxwidth;
 
   /* force dword aligning of width if requested */
-  if (info->private->dword_align)
+  if (info->priv->dword_align)
     info->format.width = (info->format.width+3) & ~3;
 
   /* force dword-aligning of data */
@@ -743,8 +743,8 @@ tveng_set_capture_format(tveng_device_info * info)
       break;
     }
 
-  if (info->private->module.set_capture_format)
-    RETURN_UNTVLOCK(info->private->module.set_capture_format(info));
+  if (info->priv->module.set_capture_format)
+    RETURN_UNTVLOCK(info->priv->module.set_capture_format(info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -774,37 +774,37 @@ tveng_update_controls(tveng_device_info * info)
       if (control->controller != TVENG_CONTROLLER_MOTHER)
 	continue; /* not created by us */
 #ifdef USE_XV
-      if ((control->id == (int)info->private->filter) &&
-	  (info->private->port != None))
+      if ((control->id == (int)info->priv->filter) &&
+	  (info->priv->port != None))
 	{
-	  XvGetPortAttribute(info->private->display,
-			     info->private->port,
-			     info->private->filter,
+	  XvGetPortAttribute(info->priv->display,
+			     info->priv->port,
+			     info->priv->filter,
 			     &(info->controls[i].cur_value));
 	  UNTVLOCK;
 	  return 0;
 	}
-      else if ((control->id == (int)info->private->double_buffer) &&
-	       (info->private->port))
+      else if ((control->id == (int)info->priv->double_buffer) &&
+	       (info->priv->port))
 	{
-	  XvGetPortAttribute(info->private->display,
-			     info->private->port,
-			     info->private->double_buffer,
+	  XvGetPortAttribute(info->priv->display,
+			     info->priv->port,
+			     info->priv->double_buffer,
 			     &(info->controls[i].cur_value));
 	  UNTVLOCK;
 	  return 0;
 	}
-      else if ((control->id == (int)info->private->colorkey) &&
-	       (info->private->port != None))
+      else if ((control->id == (int)info->priv->colorkey) &&
+	       (info->priv->port != None))
 	{
 	  int r,g,b, val;
 	  int rm=0xff, gm=0xff, bm=0xff, rs=16, gs=8, bs=0; /* masks, shifts */
-	  XvGetPortAttribute(info->private->display,
-			     info->private->port,
-			     info->private->colorkey,
+	  XvGetPortAttribute(info->priv->display,
+			     info->priv->port,
+			     info->priv->colorkey,
 			     &(val));
 	  /* Adjust colorkey to the current pixformat */
-	  switch (info->private->current_bpp)
+	  switch (info->priv->current_bpp)
 	    {
 	    case 15:
 	      rm = gm = bm = 0xf8;
@@ -839,8 +839,8 @@ tveng_update_controls(tveng_device_info * info)
 #endif
     }
 
-  if (info->private->module.update_controls)
-    RETURN_UNTVLOCK(info->private->module.update_controls(info));
+  if (info->priv->module.update_controls)
+    RETURN_UNTVLOCK(info->priv->module.update_controls(info));
 
   TVUNSUPPORTED;
   TVLOCK;
@@ -864,33 +864,33 @@ tveng_set_control(struct tveng_control * control, int value,
   if (control->controller == TVENG_CONTROLLER_MOTHER)
     {
 #ifdef USE_XV
-      if ((control->id == (int)info->private->filter) &&
-	  (info->private->port != None))
+      if ((control->id == (int)info->priv->filter) &&
+	  (info->priv->port != None))
 	{
-	  XvSetPortAttribute(info->private->display,
-			     info->private->port,
-			     info->private->filter,
+	  XvSetPortAttribute(info->priv->display,
+			     info->priv->port,
+			     info->priv->filter,
 			     value);
 	  UNTVLOCK;
 	  return 0;
 	}
-      else if ((control->id == (int)info->private->double_buffer) &&
-	       (info->private->port != None))
+      else if ((control->id == (int)info->priv->double_buffer) &&
+	       (info->priv->port != None))
 	{
-	  XvSetPortAttribute(info->private->display,
-			     info->private->port,
-			     info->private->double_buffer,
+	  XvSetPortAttribute(info->priv->display,
+			     info->priv->port,
+			     info->priv->double_buffer,
 			     value);
 	  UNTVLOCK;
 	  return 0;
 	}
-      else if ((control->id == (int)info->private->colorkey) &&
-	       (info->private->port != None))
+      else if ((control->id == (int)info->priv->colorkey) &&
+	       (info->priv->port != None))
 	{
 	  int r, g, b;
 	  int rm=0xff, gm=0xff, bm=0xff, rs=16, gs=8, bs=0; /* masks, shifts */
 	  /* Adjust colorkey to the current pixformat */
-	  switch (info->private->current_bpp)
+	  switch (info->priv->current_bpp)
 	    {
 	    case 15:
 	      rm = gm = bm = 0xf8;
@@ -919,9 +919,9 @@ tveng_set_control(struct tveng_control * control, int value,
 	  else
 	    b >>= -bs;
 	  value = r+g+b;
-	  XvSetPortAttribute(info->private->display,
-			     info->private->port,
-			     info->private->colorkey,
+	  XvSetPortAttribute(info->priv->display,
+			     info->priv->port,
+			     info->priv->colorkey,
 			     value);
 	  UNTVLOCK;
 	  return 0;
@@ -936,8 +936,8 @@ tveng_set_control(struct tveng_control * control, int value,
 	  return -1;
 	}
     }
-  else if (info->private->module.set_control)
-    RETURN_UNTVLOCK(info->private->module.set_control(control, value, info));
+  else if (info->priv->module.set_control)
+    RETURN_UNTVLOCK(info->priv->module.set_control(control, value, info));
   
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1108,8 +1108,8 @@ tveng_get_mute(tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.get_mute)
-    RETURN_UNTVLOCK(info->private->module.get_mute(info));
+  if (info->priv->module.get_mute)
+    RETURN_UNTVLOCK(info->priv->module.get_mute(info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1128,8 +1128,8 @@ tveng_set_mute(int value, tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.set_mute)
-    RETURN_UNTVLOCK(info->private->module.set_mute(value, info));
+  if (info->priv->module.set_mute)
+    RETURN_UNTVLOCK(info->priv->module.set_mute(value, info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1147,8 +1147,8 @@ tveng_tune_input(uint32_t freq, tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.tune_input)
-    RETURN_UNTVLOCK(info->private->module.tune_input(freq, info));
+  if (info->priv->module.tune_input)
+    RETURN_UNTVLOCK(info->priv->module.tune_input(freq, info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1171,8 +1171,8 @@ tveng_get_signal_strength (int *strength, int * afc,
 
   TVLOCK;
 
-  if (info->private->module.get_signal_strength)
-    RETURN_UNTVLOCK(info->private->module.get_signal_strength(strength,
+  if (info->priv->module.get_signal_strength)
+    RETURN_UNTVLOCK(info->priv->module.get_signal_strength(strength,
 							    afc,
 							    info));
 
@@ -1193,8 +1193,8 @@ tveng_get_tune(uint32_t * freq, tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.get_tune)
-    RETURN_UNTVLOCK(info->private->module.get_tune(freq, info));
+  if (info->priv->module.get_tune)
+    RETURN_UNTVLOCK(info->priv->module.get_tune(freq, info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1215,8 +1215,8 @@ tveng_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
 
   TVLOCK;
 
-  if (info->private->module.get_tuner_bounds)
-    RETURN_UNTVLOCK(info->private->module.get_tuner_bounds(min, max,
+  if (info->priv->module.get_tuner_bounds)
+    RETURN_UNTVLOCK(info->priv->module.get_tuner_bounds(min, max,
 							 info));
 
   TVUNSUPPORTED;
@@ -1236,8 +1236,8 @@ tveng_start_capturing(tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.start_capturing)
-    RETURN_UNTVLOCK(info->private->module.start_capturing(info));
+  if (info->priv->module.start_capturing)
+    RETURN_UNTVLOCK(info->priv->module.start_capturing(info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1253,8 +1253,8 @@ tveng_stop_capturing(tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.stop_capturing)
-    RETURN_UNTVLOCK(info->private->module.stop_capturing(info));
+  if (info->priv->module.stop_capturing)
+    RETURN_UNTVLOCK(info->priv->module.stop_capturing(info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1276,8 +1276,8 @@ int tveng_read_frame(void * dest, unsigned int bpl,
 
   TVLOCK;
 
-  if (info->private->module.read_frame)
-    RETURN_UNTVLOCK(info->private->module.read_frame(dest, bpl, time,
+  if (info->priv->module.read_frame)
+    RETURN_UNTVLOCK(info->priv->module.read_frame(dest, bpl, time,
 						   info));
 
   TVUNSUPPORTED;
@@ -1295,8 +1295,8 @@ double tveng_get_timestamp(tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.get_timestamp)
-    RETURN_UNTVLOCK(info->private->module.get_timestamp(info));
+  if (info->priv->module.get_timestamp)
+    RETURN_UNTVLOCK(info->priv->module.get_timestamp(info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1315,7 +1315,7 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->dword_align)
+  if (info->priv->dword_align)
     width = (width & ~3);
   if (width < info->caps.minwidth)
     width = info->caps.minwidth;
@@ -1326,8 +1326,8 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
   if (height > info->caps.maxheight)
     height = info->caps.maxheight;
 
-  if (info->private->module.set_capture_size)
-    RETURN_UNTVLOCK(info->private->module.set_capture_size(width,
+  if (info->priv->module.set_capture_size)
+    RETURN_UNTVLOCK(info->priv->module.set_capture_size(width,
 							 height,
 							 info));
 
@@ -1349,8 +1349,8 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.get_capture_size)
-    RETURN_UNTVLOCK(info->private->module.get_capture_size(width,
+  if (info->priv->module.get_capture_size)
+    RETURN_UNTVLOCK(info->priv->module.get_capture_size(width,
 							 height,
 							 info));
 
@@ -1365,7 +1365,7 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
    1 if the program should continue (Frame Buffer present,
    available and suitable)
    0 if the framebuffer shouldn't be used.
-   private->display: The private->display we are connected to (gdk_private->display)
+   priv->display: The priv->display we are connected to (gdk_private->display)
    info: Its fb member is filled in
 */
 int
@@ -1377,7 +1377,7 @@ tveng_detect_XF86DGA(tveng_device_info * info)
   int flags;
   static int info_printed = 0; /* Print the info just once */
 
-  Display * dpy = info->private->display;
+  Display * dpy = info->priv->display;
 
   TVLOCK;
 
@@ -1443,8 +1443,8 @@ tveng_detect_preview (tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.detect_preview)
-    RETURN_UNTVLOCK(info->private->module.detect_preview(info));
+  if (info->priv->module.detect_preview)
+    RETURN_UNTVLOCK(info->priv->module.detect_preview(info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1464,7 +1464,7 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
   pid_t pid; /* New child's pid as returned by fork() */
   int status; /* zapping_setup_fb returned status */
   int i=0;
-  int verbosity = info->private->zapping_setup_fb_verbosity;
+  int verbosity = info->priv->zapping_setup_fb_verbosity;
   char buffer[256]; /* A temporary buffer */
 
   TVLOCK;
@@ -1481,9 +1481,9 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
     verbosity = 2;
   for (; verbosity > 0; verbosity --)
     argv[i++] = "--verbose";
-  if (info->private->bpp != -1)
+  if (info->priv->bpp != -1)
     {
-      snprintf(buffer, 255, "%d", info->private->bpp);
+      snprintf(buffer, 255, "%d", info->priv->bpp);
       buffer[255] = 0;
       argv[i++] = "--bpp";
       argv[i++] = buffer;
@@ -1554,11 +1554,11 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
 
 /* 
    This is a convenience function, it returns the real screen depth in
-   PRIVATE->BPP (bits per pixel). This one is quite important for 24 and 32 bit
+   PRIV->BPP (bits per pixel). This one is quite important for 24 and 32 bit
    modes, since the default X visual may be 24 bit and the real screen
    depth 32, thus an expensive RGB -> RGBA conversion must be
    performed for each frame.
-   private->display: the private->display we want to know its real depth (can be
+   priv->display: the priv->display we want to know its real depth (can be
    accessed through gdk_private->display)
 */
 int
@@ -1568,14 +1568,14 @@ tveng_get_display_depth(tveng_device_info * info)
      well, but they seem to work OK */
   XVisualInfo * visual_info, template;
   XPixmapFormatValues * pf;
-  Display * dpy = info->private->display;
+  Display * dpy = info->priv->display;
   int found, v, i, n;
   int bpp = 0;
 
   TVLOCK;
 
-  if (info->private->bpp != -1)
-    RETURN_UNTVLOCK(info->private->bpp);
+  if (info->priv->bpp != -1)
+    RETURN_UNTVLOCK(info->priv->bpp);
 
   /* Use the first screen, should give no problems assuming this */
   template.screen = 0;
@@ -1641,7 +1641,7 @@ tveng_set_preview_window(tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->dword_align)
+  if (info->priv->dword_align)
     {
       info->window.x = (info->window.x+3) & ~3;
       info->window.width = (info->window.width+3) & ~3;
@@ -1655,8 +1655,8 @@ tveng_set_preview_window(tveng_device_info * info)
   if (info->window.width > info->caps.maxwidth)
     info->window.width = info->caps.maxwidth;
 
-  if (info->private->module.set_preview_window)
-    RETURN_UNTVLOCK(info->private->module.set_preview_window(info));
+  if (info->priv->module.set_preview_window)
+    RETURN_UNTVLOCK(info->priv->module.set_preview_window(info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1676,8 +1676,8 @@ tveng_get_preview_window(tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.get_preview_window)
-    RETURN_UNTVLOCK(info->private->module.get_preview_window(info));
+  if (info->priv->module.get_preview_window)
+    RETURN_UNTVLOCK(info->priv->module.get_preview_window(info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1698,8 +1698,8 @@ tveng_set_preview (int on, tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.set_preview)
-    RETURN_UNTVLOCK(info->private->module.set_preview(on, info));
+  if (info->priv->module.set_preview)
+    RETURN_UNTVLOCK(info->priv->module.set_preview(on, info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1718,26 +1718,26 @@ tveng_set_zapping_setup_fb_verbosity(int level, tveng_device_info *
     level = 2;
   else if (level < 0)
     level = 0;
-  info->private->zapping_setup_fb_verbosity = level;
+  info->priv->zapping_setup_fb_verbosity = level;
 }
 
 /* Sets the chromakey */
 void tveng_set_chromakey(int r, int g, int b, tveng_device_info *info)
 {
-  info->private->chromakey = ((r&0xff)<<16) + ((g&0xff)<<8) + (b&0xff);
+  info->priv->chromakey = ((r&0xff)<<16) + ((g&0xff)<<8) + (b&0xff);
 }
 
 /* Sets the dword align flag */
 void tveng_set_dword_align(int dword_align, tveng_device_info *info)
 {
-  info->private->dword_align = dword_align;
+  info->priv->dword_align = dword_align;
 }
 
 /* Returns the current verbosity value passed to zapping_setup_fb */
 int
 tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info)
 {
-  return (info->private->zapping_setup_fb_verbosity);
+  return (info->priv->zapping_setup_fb_verbosity);
 }
 
 /* 
@@ -1783,44 +1783,44 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
   /* special code, used only inside tveng, means remember from last
      time */
   if (change_mode == -1)
-    change_mode = info->private->change_mode;
+    change_mode = info->priv->change_mode;
   else
-    info->private->change_mode = change_mode;
+    info->priv->change_mode = change_mode;
 
 #ifndef DISABLE_X_EXTENSIONS
-  info -> private->xf86vm_enabled = 1;
+  info -> priv->xf86vm_enabled = 1;
 
-  if (!XF86VidModeQueryExtension(info->private->display, &event_base,
+  if (!XF86VidModeQueryExtension(info->priv->display, &event_base,
 				 &error_base))
     {
       info->tveng_errno = -1;
       t_error_msg("XF86VidModeQueryExtension",
 		  "No vidmode extension supported", info);
-      info->private->xf86vm_enabled = 0;
+      info->priv->xf86vm_enabled = 0;
     }
 
-  if ((info->private->xf86vm_enabled) &&
-      (!XF86VidModeQueryVersion(info->private->display, &major_version,
+  if ((info->priv->xf86vm_enabled) &&
+      (!XF86VidModeQueryVersion(info->priv->display, &major_version,
 				&minor_version)))
     {
       info->tveng_errno = -1;
       t_error_msg("XF86VidModeQueryVersion",
 		  "No vidmode extension supported", info);
-      info->private->xf86vm_enabled = 0;      
+      info->priv->xf86vm_enabled = 0;      
     }
 
-  if ((info->private->xf86vm_enabled) &&
-      (!XF86VidModeGetAllModeLines(info->private->display, 
-				   DefaultScreen(info->private->display),
+  if ((info->priv->xf86vm_enabled) &&
+      (!XF86VidModeGetAllModeLines(info->priv->display, 
+				   DefaultScreen(info->priv->display),
 				   &modecount, &modesinfo)))
     {
       info->tveng_errno = -1;
       t_error_msg("XF86VidModeGetAllModeLines",
 		  "No vidmode extension supported", info);
-      info->private->xf86vm_enabled = 0;
+      info->priv->xf86vm_enabled = 0;
     }
 
-  if (info -> private->xf86vm_enabled)
+  if (info -> priv->xf86vm_enabled)
     {
       if ((info->debug_level > 0) && (!info_printed))
 	{
@@ -1877,40 +1877,40 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
       /* If the chosen mode isn't the actual one, choose it, but
 	 place the viewport correctly first */
       /* get the current viewport pos for restoring later */
-      XF86VidModeGetViewPort(info->private->display,
-			     DefaultScreen(info->private->display),
-			     &(info->private->save_x), &(info->private->save_y));
+      XF86VidModeGetViewPort(info->priv->display,
+			     DefaultScreen(info->priv->display),
+			     &(info->priv->save_x), &(info->priv->save_y));
 
       if (change_mode == 0)
 	chosen_mode = 0;
 
       if (chosen_mode == 0)
 	{
-	  info->private->restore_mode = 0;
-	  XF86VidModeSetViewPort(info->private->display,
-				 DefaultScreen(info->private->display), 0, 0);
+	  info->priv->restore_mode = 0;
+	  XF86VidModeSetViewPort(info->priv->display,
+				 DefaultScreen(info->priv->display), 0, 0);
 	}
       else
 	{
-	  info->private->restore_mode = 1;
-	  info->private->modeinfo.privsize = 0;
-	  XF86VidModeGetModeLine(info->private->display,
-				 DefaultScreen(info->private->display),
-				 &(info->private->modeinfo.dotclock),
+	  info->priv->restore_mode = 1;
+	  info->priv->modeinfo.privsize = 0;
+	  XF86VidModeGetModeLine(info->priv->display,
+				 DefaultScreen(info->priv->display),
+				 &(info->priv->modeinfo.dotclock),
 				 /* this is kinda broken, but it
 				    will probably always work */
 				 (XF86VidModeModeLine*)
-				 &(info->private->modeinfo.hdisplay));
+				 &(info->priv->modeinfo.hdisplay));
 
-	  if (!XF86VidModeSwitchToMode(info->private->display,
-				       DefaultScreen(info->private->display),
+	  if (!XF86VidModeSwitchToMode(info->priv->display,
+				       DefaultScreen(info->priv->display),
 				       modesinfo[chosen_mode]))
-	    info -> private->xf86vm_enabled = 0;
+	    info -> priv->xf86vm_enabled = 0;
 
 	  /* Place the viewport again */
-	  if (info -> private->xf86vm_enabled)
-	    XF86VidModeSetViewPort(info->private->display,
-				   DefaultScreen(info->private->display), 0, 0);
+	  if (info -> priv->xf86vm_enabled)
+	    XF86VidModeSetViewPort(info->priv->display,
+				   DefaultScreen(info->priv->display), 0, 0);
 	}
 
       for (i=0; i<modecount; i++)
@@ -1919,14 +1919,14 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
       
       XFree(modesinfo);
     }
-  else /* info -> private->xf86vm_enabled */
+  else /* info -> priv->xf86vm_enabled */
     {
       fprintf(stderr, "XF86VidMode not enabled: %s\n", info -> error);
     }
 #endif /* DISABLE_X_EXTENSIONS */
 
-  if (info->private->module.start_previewing)
-    RETURN_UNTVLOCK(info->private->module.start_previewing(info));
+  if (info->priv->module.start_previewing)
+    RETURN_UNTVLOCK(info->priv->module.start_previewing(info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1945,23 +1945,23 @@ tveng_stop_previewing(tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->module.stop_previewing)
-    return_code = info->private->module.stop_previewing(info);
+  if (info->priv->module.stop_previewing)
+    return_code = info->priv->module.stop_previewing(info);
 
 #ifndef DISABLE_X_EXTENSIONS
-  if (info->private->xf86vm_enabled)
+  if (info->priv->xf86vm_enabled)
     {
-      if (info->private->restore_mode)
+      if (info->priv->restore_mode)
 	{
-	  XF86VidModeSwitchToMode(info->private->display,
-				  DefaultScreen(info->private->display),
-				  &(info->private->modeinfo));
-	  if (info->private->modeinfo.privsize > 0)
-	    XFree(info->private->modeinfo.private);
+	  XF86VidModeSwitchToMode(info->priv->display,
+				  DefaultScreen(info->priv->display),
+				  &(info->priv->modeinfo));
+	  if (info->priv->modeinfo.privsize > 0)
+	    XFree(info->priv->modeinfo.private);
 	}
-      XF86VidModeSetViewPort(info->private->display,
-			     DefaultScreen(info->private->display),
-			     info->private->save_x, info->private->save_y);
+      XF86VidModeSetViewPort(info->priv->display,
+			     DefaultScreen(info->priv->display),
+			     info->priv->save_x, info->priv->save_y);
     }
 #endif
 
@@ -2125,14 +2125,14 @@ void tveng_set_xv_support(int disabled, tveng_device_info * info)
 {
   t_assert(info != NULL);
 
-  info->private->disable_xv = disabled;
+  info->priv->disable_xv = disabled;
 }
 
 void tveng_assume_yvu(int assume, tveng_device_info * info)
 {
   t_assert(info != NULL);
 
-  info->private->assume_yvu = assume;
+  info->priv->assume_yvu = assume;
 }
 
 #ifdef USE_XV
@@ -2145,10 +2145,10 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 
   TVLOCK;
 
-  info->private->port = port;
-  dpy = info->private->display;
-  info->private->filter = info->private->colorkey =
-    info->private->double_buffer = None;
+  info->priv->port = port;
+  dpy = info->priv->display;
+  info->priv->filter = info->priv->colorkey =
+    info->priv->double_buffer = None;
 
   /* Add the controls in this port to the struct of controls */
   at = XvQueryPortAttributes(dpy, port, &attributes);
@@ -2168,9 +2168,9 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 
       if (!strcmp("XV_FILTER", at[i].name))
 	  {
-	    info->private->filter = XInternAtom(dpy, "XV_FILTER",
+	    info->priv->filter = XInternAtom(dpy, "XV_FILTER",
 						False);
-	    control.id = (int)info->private->filter;
+	    control.id = (int)info->priv->filter;
 	    snprintf(control.name, 32, _("Filter"));
 	    control.min = at[i].min_value;
 	    control.max = at[i].max_value;
@@ -2186,9 +2186,9 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 
       else if (!strcmp("XV_DOUBLE_BUFFER", at[i].name))
 	  {
-	    info->private->double_buffer = XInternAtom(dpy, "XV_DOUBLE_BUFFER",
+	    info->priv->double_buffer = XInternAtom(dpy, "XV_DOUBLE_BUFFER",
 						       False);
-	    control.id = (int)info->private->double_buffer;
+	    control.id = (int)info->priv->double_buffer;
 	    snprintf(control.name, 32, _("Filter"));
 	    control.min = at[i].min_value;
 	    control.max = at[i].max_value;
@@ -2204,9 +2204,9 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 
       else if (!strcmp("XV_COLORKEY", at[i].name))
 	  {
-	    info->private->colorkey = XInternAtom(dpy, "XV_COLORKEY",
+	    info->priv->colorkey = XInternAtom(dpy, "XV_COLORKEY",
 						False);
-	    control.id = (int)info->private->colorkey;
+	    control.id = (int)info->priv->colorkey;
 	    snprintf(control.name, 32, _("Colorkey"));
 	    control.min = at[i].min_value;
 	    control.max = at[i].max_value;
@@ -2228,13 +2228,13 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 
 void tveng_unset_xv_port(tveng_device_info * info)
 {
-  info->private->port = None;
-  info->private->filter = info->private->colorkey = None;
+  info->priv->port = None;
+  info->priv->filter = info->priv->colorkey = None;
 }
 
 int tveng_detect_xv_overlay(tveng_device_info * info)
 {
-  Display *dpy = info->private->display;
+  Display *dpy = info->priv->display;
   Window root_window = DefaultRootWindow(dpy);
   unsigned int version, revision, major_opcode, event_base,
     error_base;
@@ -2247,7 +2247,7 @@ int tveng_detect_xv_overlay(tveng_device_info * info)
   XvEncodingInfo *ei; /* list of encodings, for reference */
   int encodings; /* number of encodings */
 
-  if (info->private->disable_xv)
+  if (info->priv->disable_xv)
     return 0;
 
   if (Success != XvQueryExtension(dpy, &version, &revision,
@@ -2339,8 +2339,8 @@ tveng_ov511_get_button_state (tveng_device_info *info)
 
   TVLOCK;
 
-  if (info->private->module.ov511_get_button_state)
-    RETURN_UNTVLOCK(info->private->module.ov511_get_button_state(info));
+  if (info->priv->module.ov511_get_button_state)
+    RETURN_UNTVLOCK(info->priv->module.ov511_get_button_state(info));
 
   TVUNSUPPORTED;
   UNTVLOCK;

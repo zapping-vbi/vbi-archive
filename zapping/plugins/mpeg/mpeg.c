@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.35 2002-06-19 08:16:26 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36 2002-06-25 04:34:25 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -2271,14 +2271,23 @@ select_file_format		(GtkWidget *		mpeg_properties,
 				 const gchar *		conf_name,
 				 const char *		keyword)
 {
+  rte_context *context;
+
   g_assert (mpeg_properties != NULL);
   g_assert (conf_name && conf_name[0]);
+
+  if (!keyword)
+    return;
+
+  context = rte_context_new (keyword, NULL, NULL);
+
+  if (!context)
+    return;
 
   if (context_prop)
     rte_context_delete (context_prop);
 
-  // XXX err -> ?
-  context_prop = rte_context_new (keyword, NULL, NULL);
+  context_prop = context;
 
   attach_codec_menu (mpeg_properties, 2, "optionmenu12", conf_name, RTE_STREAM_AUDIO);
   attach_codec_menu (mpeg_properties, 1, "optionmenu11", conf_name, RTE_STREAM_VIDEO);
@@ -2309,7 +2318,6 @@ rebuild_config_dialog		(GtkWidget *		mpeg_properties,
   GtkWidget *menu, *menu_item;
   GtkWidget *widget;
   gint default_item;
-  char *keyword;
 
   g_assert (mpeg_properties != NULL);
 
@@ -2331,9 +2339,15 @@ rebuild_config_dialog		(GtkWidget *		mpeg_properties,
 		      on_file_format_changed, mpeg_properties);
 
   widget = gtk_menu_get_active (GTK_MENU (GTK_OPTION_MENU (widget)->menu));
-  keyword = gtk_object_get_data (GTK_OBJECT (widget), "keyword");
 
-  select_file_format (mpeg_properties, conf_name, keyword);
+  if (widget)
+    {
+      char *keyword;
+
+      keyword = gtk_object_get_data (GTK_OBJECT (widget), "keyword");
+  
+      select_file_format (mpeg_properties, conf_name, keyword);
+    }
 
   /* preliminary */
   {
@@ -2462,14 +2476,15 @@ on_config_new_clicked			(GtkButton *		button,
       if (!name || !name[0])
 	break;
 
-       name = escape_string (name);
+      name = escape_string (name);
 
       if (record_config_zconf_find (zconf_root_temp, name) >= 0)
 	{
-	  if (strcmp (name, record_config_name) != 0) {
-	    /* Rebuild configs menu, select new and save current */
-	    pref_rebuild_configs (page, name);
-	  }
+	  if (strcmp (name, record_config_name) != 0)
+	    {
+	      /* Rebuild configs menu, select new and save current */
+	      pref_rebuild_configs (page, name);
+	    }
 	}
       else
 	{
@@ -2480,8 +2495,9 @@ on_config_new_clicked			(GtkButton *		button,
 	  if (!context_prop)
 	    rebuild_config_dialog (page, name);
 
-	  grte_context_save (context_prop, zconf_root_temp, name,
-			     capture_w, capture_h);
+	  if (context_prop)
+	    grte_context_save (context_prop, zconf_root_temp, name,
+			       capture_w, capture_h);
 
 	  pref_rebuild_configs (page, name);
 

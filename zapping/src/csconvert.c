@@ -119,7 +119,7 @@ static struct {
 int lookup_csconvert(enum tveng_frame_pixformat src_fmt,
 		     enum tveng_frame_pixformat dest_fmt)
 {
-  int i;
+  unsigned int i;
 
   for (i=0; i<num_filters; i++)
     if (filters[i].src == src_fmt &&

@@ -120,18 +120,18 @@ set_piece_geometry		(piece		*p)
   if (p->position)
     {
       p->position(p);
-      dest_x = p->x;
-      dest_y = p->y;
-      dest_w = p->w;
-      dest_h = p->h;
-      dest_sw = p->sw;
+      dest_x = (gint) p->x;
+      dest_y = (gint) p->y;
+      dest_w = (gint) p->w;
+      dest_h = (gint) p->h;
+      dest_sw = (gint) p->sw;
     }
   else
     {
-      dest_x = cx + p->x * cw;
-      dest_y = cy + p->y * ch;
-      dest_sw = dest_w = p->w * cw;
-      dest_h = p->h * ch;
+      dest_x = (gint)(cx + p->x * cw);
+      dest_y = (gint)(cy + p->y * ch);
+      dest_sw = dest_w = (gint)(p->w * cw);
+      dest_h =(gint)(p->h * ch);
     }
 
   if (osd_window && ((!p->scaled)  ||
@@ -511,8 +511,8 @@ cc_position		(piece		*p)
 
   p->num_double_columns = MIN(MAX(0, extra - p->column), p->width);
   if (p->num_double_columns)
-    p->double_columns = g_malloc(p->num_double_columns *
-				 sizeof(p->double_columns[0]));
+    p->double_columns = (int *)
+      g_malloc(p->num_double_columns * sizeof(p->double_columns[0]));
 
   p->w = 0;
   p->x = x;
@@ -717,7 +717,7 @@ static void
 my_startElement (void *ptr,
 		 const xmlChar *name, const xmlChar **atts)
 {
-  sax_context *ctx = ptr;
+  sax_context *ctx = (sax_context *) ptr;
 
   if (!strcasecmp(name, "i"))
     ctx->italic ++;
@@ -750,7 +750,7 @@ ctx->entry_sp--
 static void my_endElement (void *ptr,
 			   const xmlChar *name)
 {
-  sax_context *ctx = ptr;
+  sax_context *ctx = (sax_context *) ptr;
 
   if (!strcasecmp(name, "i") && ctx->italic)
     ctx->italic--;

@@ -303,7 +303,7 @@ int tveng1_attach_device(const char* device_file,
 #endif
 
   /* Set up the palette according to the one present in the system */
-  error = info->private->current_bpp;
+  error = info->priv->current_bpp;
 
   if (error == -1)
     {
@@ -2017,7 +2017,7 @@ static int p_tveng1_dequeue(unsigned char * where, tveng_device_info *
   if (where)
     {
       if (info->format.pixformat != TVENG_PIX_YUV420 ||
-	  !info->private->assume_yvu)
+	  !info->priv->assume_yvu)
 	{
 	  if (bpl == info->format.bytesperline ||
 	      info->format.pixformat == TVENG_PIX_YUV420 ||
@@ -2256,7 +2256,7 @@ tveng1_set_preview_window(tveng_device_info * info)
   v4l_window.height = info->window.height;
   v4l_window.clipcount = info->window.clipcount;
   v4l_window.clips = NULL;
-  v4l_window.chromakey = info->private->chromakey;
+  v4l_window.chromakey = info->priv->chromakey;
   if (v4l_window.clipcount)
     {
       clips = (struct video_clip*)malloc(v4l_window.clipcount* 
@@ -2348,7 +2348,7 @@ static int
 tveng1_start_previewing (tveng_device_info * info)
 {
 #ifndef DISABLE_X_EXTENSIONS
-  Display * display = info->private->display;
+  Display * display = info->priv->display;
   int width, height;
   int dwidth, dheight; /* Width and height of the display */
 

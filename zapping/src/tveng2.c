@@ -293,7 +293,7 @@ int tveng2_attach_device(const char* device_file,
       return -1;
 
   /* Set up the palette according to the one present in the system */
-  error = info->private->current_bpp;
+  error = info->priv->current_bpp;
 
   if (error == -1)
     {
@@ -1861,7 +1861,7 @@ tveng2_set_preview_window(tveng_device_info * info)
   window.width = info->window.width;
   window.height = info->window.height;
   window.clipcount = info->window.clipcount;
-  window.chromakey = info->private->chromakey;
+  window.chromakey = info->priv->chromakey;
   if (window.clipcount == 0)
     window.clips = NULL;
   else
@@ -1944,7 +1944,7 @@ static int
 tveng2_start_previewing (tveng_device_info * info)
 {
 #ifndef DISABLE_X_EXTENSIONS
-  Display * dpy = info->private->display;
+  Display * dpy = info->priv->display;
   int width, height;
   int dwidth, dheight; /* Width and height of the display */
 

@@ -112,7 +112,7 @@ extern GList *			cmd_list		(void);
 extern gboolean			cmd_execute		(GtkWidget *	widget,
 							 const gchar *	command_string);
 extern gboolean			cmd_execute_printf	(GtkWidget *	widget,
-							 const gchar *	template,
+							 const gchar *	templ,
 							 ...);
 extern void			on_remote_command1	(GtkWidget *	widget,
 							 gpointer	user_data);

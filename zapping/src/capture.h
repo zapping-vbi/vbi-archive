@@ -55,7 +55,7 @@ typedef struct {
   double			timestamp;
 
   /* Who produced this bundle (read/only) */
-  producer			*producer;
+  struct producer		*producer;
 } capture_bundle;
 
 /*

@@ -56,7 +56,7 @@ esd_open (gboolean stereo, gint rate, enum audio_format format)
       return NULL;
     }
 
-  h = g_malloc0(sizeof(esd_handle));
+  h = (esd_handle *) g_malloc0(sizeof(esd_handle));
 
   fmt = ESD_STREAM | ESD_RECORD | ESD_BITS16
     | (stereo ? ESD_STEREO : ESD_MONO);
@@ -80,7 +80,7 @@ esd_open (gboolean stereo, gint rate, enum audio_format format)
 static void
 _esd_close (gpointer handle)
 {
-  esd_handle *h = handle;
+  esd_handle *h = (esd_handle *) handle;
 
   close(h->socket);
 
@@ -91,13 +91,13 @@ static void
 esd_read (gpointer handle, gpointer dest, gint num_bytes,
 	  double *timestamp)
 {
-  esd_handle *h = handle;
+  esd_handle *h = (esd_handle *) handle;
   struct timeval tv;
   unsigned char *p;
   ssize_t r, n;
   double now;
 
-  for (p = dest, n = num_bytes; n > 0;)
+  for (p = (unsigned char *) dest, n = num_bytes; n > 0;)
     {
       fd_set rdset;
       

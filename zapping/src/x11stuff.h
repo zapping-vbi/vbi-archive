@@ -82,7 +82,7 @@ typedef struct {
   gint			w, h;
   gpointer		data;
   gint			data_size; /* in bytes */
-  struct _xvzImagePrivate *private; /* X-related data, not interesting */
+  struct _xvzImagePrivate *priv; /* X-related data, not interesting */
 } xvzImage;
 
 /**
