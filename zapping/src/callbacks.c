@@ -253,6 +253,9 @@ subtitle_overlay_cmd			(GtkWidget *	widget,
 					 gchar **	argv,
 					 gpointer	user_data)
 {
+
+#ifdef HAVE_LIBZVBI
+
   if (argc > 1)
     return FALSE; /* page number todo */
 
@@ -269,6 +272,8 @@ subtitle_overlay_cmd			(GtkWidget *	widget,
       zmisc_overlay_subtitles(zvbi_page);
       return TRUE;
     }
+
+#endif
 
   return FALSE;
 }

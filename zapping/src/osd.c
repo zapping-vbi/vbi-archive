@@ -1469,13 +1469,16 @@ shutdown_osd(void)
 
 #else /* !HAVE_LIBZVBI */
 
+#include <gnome.h>
+#include "osd.h"
+
 /* just in case */
 void
 osd_render_sgml		(void (*timeout_cb)(gboolean),
 			 const char *string, ...)
 {
   if (timeout_cb)
-    timeout_cb(FALSE);
+    timeout_cb(0);
 }
 
 #endif /* !HAVE_LIBZVBI */
