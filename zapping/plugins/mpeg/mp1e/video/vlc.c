@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.c,v 1.6 2001-03-22 08:28:47 mschimek Exp $ */
+/* $Id: vlc.c,v 1.7 2001-06-05 17:52:08 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -289,7 +289,7 @@ mpeg1_encode_intra(void)
 			/*
 			 *  Find first set bit, starting at msb with 0 -> 0.
 			 */
-			asm("
+			asm volatile ("
 				bsrl		%1,%0
 				jnz		1f
 				movl		$-1,%0

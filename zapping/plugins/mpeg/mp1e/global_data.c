@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.8 2001-05-15 02:03:33 mschimek Exp $ */
+/* $Id: global_data.c,v 1.9 2001-06-05 17:52:08 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,17 +60,19 @@ int			width			= 352;
 int			height			= 288;
 int			grab_width		= 352;
 int			grab_height		= 288;
+// defaults to width/height if given
 int			video_bit_rate		= 2300000;
 int			video_num_frames	= INT_MAX;
 char *			gop_sequence		= "IBBPBBPBBPBB";
 int			frames_per_seqhdr	= INT_MAX;
-int			filter_mode		= 5;			// CM_YUV
+int			filter_mode		= CM_YUYV_VERTICAL_DECIMATION; // CM_YUV
+// defaults to _VERT_INTERP in motion mode
 double			frame_rate		= 1000.0;
 int			preview			= 0;			// 0 = none, XvImage/GTK, progressive
 char *			anno			= NULL;
 int			luma_only		= 0;			// boolean
-int			motion_min		= 4;
-int			motion_max		= 16;
+int			motion_min		= 0;
+int			motion_max		= 0;
 int			hack2			= 0;
 
 int			audio_bit_rate		= 80000;

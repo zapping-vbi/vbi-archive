@@ -18,13 +18,13 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: motion_mmx.s,v 1.5 2001-05-24 01:11:36 mschimek Exp $
+# $Id: motion_mmx.s,v 1.6 2001-06-05 17:52:08 mschimek Exp $
 
 		.text
 		.align		16
-		.globl		p6_predict_forward_packed
+		.globl		mmx_predict_forward_packed
 
-p6_predict_forward_packed:
+mmx_predict_forward_packed:
 
 		pushl		%ecx
 		pxor		%mm5,%mm5;
@@ -152,9 +152,9 @@ p6_predict_forward_packed:
 
 		.text
 		.align		16
-		.globl		p6_predict_forward_planar
+		.globl		mmx_predict_forward_planar
 
-p6_predict_forward_planar:
+mmx_predict_forward_planar:
 
 		movq		(%eax),%mm0;
 		pxor		%mm5,%mm5;
@@ -619,8 +619,10 @@ mmx_mbsum:
 		pushl		%esi
 		addl		%edx,%eax;
 		movq		c1b,%mm7;
+		pushl		%ebp
 		movq		%mm7,%mm6;
 		pushl		%ebx
+		movl		mb_address+4,%ebp
 		psllq		$7,%mm7;
 		movl		mb_col,%esi
 		psrlw		$8-4,%mm6;
@@ -629,7 +631,8 @@ mmx_mbsum:
 
 		movl		$mblock+3072,%edx
 		sall		$5,%esi
-		addl		$mm_row-32,%esi
+		addl		mm_mbrow,%esi
+		subl		$32,%esi
 		movq		(%edx),%mm0;		// mblock[0][0][0][0]
 		movq		8(%edx),%mm1;
 		movq		256+0(%edx),%mm3;
@@ -672,12 +675,13 @@ mmx_mbsum:
 		movl		$mblock+3088,%edx
 		movl		mb_col,%ebx
 		sall		$5,%ebx
-		addl		$mm_mbrow-32,%ebx
+		addl		mm_mbrow,%ebx;
+		leal		-32(%ebx,%ebp,2),%ebx;
+
 		movl		mb_row,%edi
 		sall		$4,%edi
 		addl		$9-16,%edi
-		movl		mb_address+4,%ecx
-		imull		%ecx,%edi
+		imull		%ebp,%edi
 		addl		%eax,%edi
 		movl		$7,%ecx
 
@@ -724,7 +728,7 @@ mmx_mbsum:
 		packuswb	%mm1,%mm0;
 		pxor		%mm7,%mm0;
 		movq		%mm0,-16+8(%edi);
-		addl		mb_address+4,%edi
+		addl		%ebp,%edi
 		movq		(%esi),%mm0;
 		psubw		(%ebx),%mm0;
 		movq		8(%esi),%mm1;
@@ -733,7 +737,7 @@ mmx_mbsum:
 		decl		%ecx
 		psubw		24(%ebx),%mm4;
 		psubw		32(%ebx),%mm5;
-		leal		704(%ebx),%ebx
+		leal		(%ebx,%ebp,2),%ebx
 		paddw		(%edx),%mm0;
 		movq		%mm0,(%esi);
 		paddw		8(%edx),%mm1;
@@ -748,8 +752,7 @@ mmx_mbsum:
 .L906:
 		movl		mb_row,%edi
 		sall		$4,%edi
-		movl		mb_address+4,%ecx
-		imull		%ecx,%edi
+		imull		%ebp,%edi
 		addl		%eax,%edi
 		movl		$mblock+3072,%ebx
 		movl		$8,%ecx
@@ -802,7 +805,7 @@ mmx_mbsum:
 		movq		8(%esi),%mm1;
 		psubw		8(%ebx),%mm1;
 		psubw		256+0(%ebx),%mm3;
-		addl		mb_address+4,%edi
+		addl		%ebp,%edi
 		psubw		256+8(%ebx),%mm4;
 		paddw		128(%ebx),%mm0;		// mblock[4][0][y+8][0]
 		movq		%mm0,(%esi);
@@ -822,8 +825,7 @@ mmx_mbsum:
 		movl		mb_row,%edi
 		sall		$4,%edi
 		addl		$8,%edi
-		movl		mb_address+4,%edx
-		imull		%edx,%edi
+		imull		%ebp,%edi
 		addl		%eax,%edi
 		movl		$mblock+3200,%edx
 
@@ -883,7 +885,8 @@ mmx_mbsum:
 
 		movl		$mblock,%edx
 		movq		(%edx),%mm2;
-		movl		$mm_row+672,%esi
+		movl		mm_mbrow,%esi;
+		leal		-32(%esi,%ebp,2),%esi;
 		movq		8(%edx),%mm3;
 		movq		256+0(%edx),%mm4;
 		movq		256+8(%edx),%mm5;
@@ -922,12 +925,13 @@ mmx_mbsum:
 
 		sall		$4,%edi
 		addl		$9-16,%edi
-		movl		mb_address+4,%ecx
-		imull		%ecx,%edi
-		addl		%eax,%edi
+		imull		%ebp,%edi
 		movl		mb_col,%edx
+		addl		%eax,%edi
 		sall		$5,%edx
-		addl		$mm_mbrow,%edx;
+		addl		mm_mbrow,%edx
+		leal		(%edx,%ebp,2),%edx;
+
 		movl		$mblock+16,%ebx
 		movl		$7,%ecx
 
@@ -971,9 +975,9 @@ mmx_mbsum:
 		psubw		(%edx),%mm0;
 		psubw		8(%edx),%mm3;
 		psubw		16(%edx),%mm4;
-		addl		mb_address+4,%edi
+		addl		%ebp,%edi
 		psubw		24(%edx),%mm5;
-		addl		$704,%edx
+		leal		(%edx,%ebp,2),%edx
 		paddw		(%ebx),%mm0;
 		movq		%mm0,(%esi);
 		paddw		8(%ebx),%mm3;
@@ -988,8 +992,7 @@ mmx_mbsum:
 .L924:
 		movl		mb_row,%edi
 		sall		$4,%edi
-		movl		mb_address+4,%ecx
-		imull		mb_address+4,%edi
+		imull		%ebp,%edi
 		addl		%eax,%edi
 		movl		$mblock,%ebx
 		movl		$8,%ecx
@@ -1096,7 +1099,8 @@ mmx_mbsum:
 
 		movl		mb_col,%ebx
 		sall		$5,%ebx
-		addl		$mm_mbrow,%ebx
+		addl		mm_mbrow,%ebx;
+		leal		(%ebx,%ebp,2),%ebx;
 
 		.p2align 4,,7
 .L938:
@@ -1109,7 +1113,7 @@ mmx_mbsum:
 		movq		256+8(%edx),%mm1;
 		addl		$16,%edx
 		movq		%mm1,24(%ebx);
-		addl		$704,%ebx
+		leal		(%ebx,%ebp,2),%ebx;
 		decl		%ecx
 		jne		.L938
 .L917:
@@ -1119,7 +1123,8 @@ mmx_mbsum:
 
 		movl		$mblock+3216,%edx
 		sall		$5,%ebx
-		addl		$mm_mbrow-32,%ebx
+		addl		mm_mbrow,%ebx
+		leal		-32(%ebx,%ebp,2),%ebx;
 		movl		$7,%ecx
 
 		.p2align 4,,7
@@ -1133,7 +1138,7 @@ mmx_mbsum:
 		movq		256+8(%edx),%mm1;
 		addl		$16,%edx
 		movq		%mm1,24(%ebx);
-		addl		$704,%ebx
+		leal		(%ebx,%ebp,2),%ebx
 		decl		%ecx
 		jne		.L944
 .L940:
@@ -1161,6 +1166,7 @@ mmx_mbsum:
 //		rep movsb	// WA or WT?
 
 		popl %ebx
+		popl %ebp
 		popl %esi
 		popl %edi
 		ret

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.9 2001-05-05 23:35:09 garetxe Exp $ */
+/* $Id: file.c,v 1.10 2001-06-05 17:52:08 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -231,6 +231,7 @@ wait_full(fifo *f)
 
 	case -1:
 		return NULL; // End of file
+// XXX wrong & incompatible with mc-fifo routines
 	}
 
 	time += 1.0 / 24.0;

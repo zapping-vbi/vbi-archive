@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.6 2001-06-04 16:20:00 mschimek Exp $ */
+/* $Id: motion.c,v 1.7 2001-06-05 17:52:08 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -41,26 +41,28 @@
 #define T3RT 1
 #endif
 
-// XXX alias mblock
-unsigned char tbuf[16][16] __attribute__ ((aligned (32)));
+/*
+ *  16 x 16 signed/unsigned bytes, no padding
+ *  Attention this is aliased on mblock written by search():
+ *  mblock[1], [3] in forward; [1], [3] then [2], [4] in bidi,
+ *  thus only valid in search() before predict().
+ */
+#define tbuf ((void *) &mblock[2])
 
 mmx_t bbmin, bbdxy, crdxy, crdy0;
 
 /*
-    vvv                           |||
-    a B B B B b b b b C C C C c c c c D
-     . . . . + + + + . . . . + + + + .
-     ^^^                           |||
-*/
+ *  vvv                           |||
+ *  a B B B B b b b b C C C C c c c c D
+ *   . . . . + + + + . . . . + + + + .
+ *   ^^^                           |||
+ */
 
 // XXX alias mblock
 unsigned char temp22[20][16] __attribute__ ((aligned (32)));
 unsigned char temp2h[20][16] __attribute__ ((aligned (32)));
 unsigned char temp2v[20][16] __attribute__ ((aligned (32)));
 unsigned char temp11[20][16] __attribute__ ((aligned (32)));
-
-short mm_row[352] __attribute__ ((aligned (32)));
-short mm_mbrow[7][352] __attribute__ ((aligned (32)));
 
 static inline void
 mmx_load_interp(unsigned char *p, int pitch, int dx, int dy)
@@ -471,8 +473,6 @@ mmx_load_interp(unsigned char *p, int pitch, int dx, int dy)
 	" :: "S" (p1 + y * pitch), "c" (y * 16), "r" (y) : "memory");
 }
 
-mmx_t m1; // XXX
-
 static unsigned int
 mmx_sad2h(unsigned char ref[16][16], typeof(temp22) temp, int hy, int *r2)
 {
@@ -481,7 +481,7 @@ mmx_sad2h(unsigned char ref[16][16], typeof(temp22) temp, int hy, int *r2)
 	unsigned char *l = &temp[18][hy];
 	int y;
 
-	asm ("
+	asm volatile ("
 		movq		(%0),%%mm0;
 		movq		(%1),%%mm1;
 		pxor		%%mm5,%%mm5;
@@ -491,7 +491,7 @@ mmx_sad2h(unsigned char ref[16][16], typeof(temp22) temp, int hy, int *r2)
 	" :: "r" (s), "r" (t), "r" (l));
 
 	for (y = 0; y < 15; y++) {
-	asm ("
+	asm volatile ("
 		movq		1(%0),%%mm3;
 		movq		%%mm0,%%mm2;
 		movq		%%mm1,%%mm4;
@@ -550,7 +550,7 @@ mmx_sad2h(unsigned char ref[16][16], typeof(temp22) temp, int hy, int *r2)
 		l += 1;
 	}
 
-	asm ("
+	asm volatile ("
 		movq		1(%0),%%mm3;
 		movq		%%mm0,%%mm2;
 		movq		%%mm1,%%mm4;
@@ -602,21 +602,23 @@ mmx_sad2h(unsigned char ref[16][16], typeof(temp22) temp, int hy, int *r2)
 
 	" :: "r" (s), "r" (t), "r" (l));
 
-	asm ("
-		movq		%mm7,%mm0;
-		punpcklwd	%mm6,%mm0;
-		punpckhwd	%mm6,%mm7;
-		paddw		%mm0,%mm7;
+	// XXX this is supposed to sort
+	asm volatile ("
+		movq		%%mm7,%%mm0;
+		punpcklwd	%%mm6,%%mm0;
+		punpckhwd	%%mm6,%%mm7;
+		paddw		%%mm0,%%mm7;
 
-		movq		%mm7,%mm0;
-		psrlq		$32,%mm0;
-		paddw		%mm0,%mm7;
-		movq		%mm7,m1;
-	");
+		movq		%%mm7,%%mm0;
+		psrlq		$32,%%mm0;
+		paddw		%%mm0,%%mm7;
+		movd		%%mm7,%0;
+		punpcklwd	%%mm5,%%mm7;
+		movd		%%mm7,(%1);
+		shrl		$16,%0;
+	" : "=&a" (y) : "r" (r2));
 
-	*r2 = m1.uw[0]; // right
-
-	return m1.uw[1]; // left
+	return y; // left, r2 = right
 }
 
 static unsigned int
@@ -628,7 +630,7 @@ mmx_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 	int y;
 
 	if (hx == 0) {
-	asm ("
+	asm volatile ("
 		movq		(%0),%%mm3;	
 		movq		8(%0),%%mm4;
 		movq		(%1),%%mm1;
@@ -640,7 +642,7 @@ mmx_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 	" :: "r" (s), "r" (t), "r" (l));
 
 		for (y = 0; y < 15; y++) {
-	asm ("
+	asm volatile ("
 		movq		%%mm1,%%mm2;
 		psubusb		%%mm3,%%mm1;
 		psubusb		%%mm2,%%mm3;
@@ -691,7 +693,7 @@ mmx_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 			t += 16;
 		}
 
-	asm ("
+	asm volatile ("
 		movq		%%mm1,%%mm2;
 		psubusb		%%mm3,%%mm1;
 		psubusb		%%mm2,%%mm3;
@@ -716,7 +718,7 @@ mmx_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 
 	} else {
 
-	asm ("
+	asm volatile ("
 		movq		8(%0),%%mm4;
 		psrlq		$8,%%mm4;
 		movq		(%2),%%mm2;
@@ -734,7 +736,7 @@ mmx_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 	" :: "r" (s), "r" (t), "r" (l));
 
 		for (y = 0; y < 15; y++) {
-	asm ("
+	asm volatile ("
 		movq		%%mm1,%%mm2;
 		psubusb		%%mm3,%%mm1;
 		psubusb		%%mm2,%%mm3;
@@ -790,7 +792,7 @@ mmx_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 			l += 1;
 		}
 
-	asm ("
+	asm volatile ("
 		movq		%%mm1,%%mm2;
 		psubusb		%%mm3,%%mm1;
 		psubusb		%%mm2,%%mm3;
@@ -820,7 +822,7 @@ mmx_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 
 	}
 
-	asm ("
+	asm volatile ("
 		punpckhbw	%mm5,%mm2;
 		paddw		%mm2,%mm7;
 
@@ -844,26 +846,31 @@ mmx_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 		punpckhbw	%mm5,%mm2;
 		paddw		%mm2,%mm7;
 
+	// XXX this is supposed to sort
+
 		movq		%mm7,%mm0;
 		punpcklwd	%mm6,%mm0;
 		punpckhwd	%mm6,%mm7;
 		paddw		%mm0,%mm7;
-
-		movq		%mm7,%mm0;
-		psrlq		$32,%mm0;
-		paddw		%mm0,%mm7;
-		movq		%mm7,m1;
 	");
 
-	*r2 = m1.uw[0]; // bottom
+	asm volatile ("
+		movq		%%mm7,%%mm0;
+		psrlq		$32,%%mm0;
+		paddw		%%mm0,%%mm7;
+		movd		%%mm7,%0;
+		punpcklwd	%%mm5,%%mm7;
+		movd		%%mm7,(%1);
+		shrl		$16,%0;
+	" : "=&a" (y) : "r" (r2));
 
-	return m1.uw[1]; // top
+	return y; // left, r2 = right
 }
 
 static inline void
 mmx_load_ref(unsigned char t[16][16])
 {
-	asm ("
+	asm volatile ("
 		movq		0*16+0(%0),%%mm0;
 		packuswb	0*16+8(%0),%%mm0;
 		movq		1*16+0(%0),%%mm2;
@@ -1609,7 +1616,7 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 
 	pr_start(53, "forward fetch");
 
-	asm ("
+	asm volatile ("
 		pxor		%mm5,%mm5;
 		pxor		%mm6,%mm6;
 		pxor		%mm7,%mm7;
@@ -1617,7 +1624,7 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 
 	if (iright) {
 	for (i = 0; i < 16; i++) {
-		asm ("
+		asm volatile ("
 			movq		1(%0),%%mm0;
 			movq		%%mm0,%%mm1;
 			punpcklbw	%%mm5,%%mm0;
@@ -1667,7 +1674,7 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 	}
 	} else {
 	for (i = 0; i < 16; i++) {
-		asm ("
+		asm volatile ("
 			movq		(%0),%%mm0;
 			movq		%%mm0,%%mm1;
 			punpcklbw	%%mm5,%%mm0;
@@ -1712,7 +1719,7 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 	}
 	}
 
-	asm ("
+	asm volatile ("
 		pmaddwd		c1,%%mm6;
 		movq		%%mm7,%%mm0;
 		psrlq		$32,%%mm7;
@@ -1738,11 +1745,11 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 
 	if (mx & 2) {
 		q = p + mb_address.block[5].offset;
-	asm ("
+	asm volatile ("
 		movq		c2,%mm7;
 	");
 		for (i = 0; i < 8; i++) {
-			asm ("
+			asm volatile ("
 				pushl		%1
 				movzxb		(%0),%1;
 				movd		%1,%%mm1;
@@ -1845,7 +1852,7 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 		q += mb_address.block[4].pitch;
 	}
 	} else {
-	asm ("
+	asm volatile ("
 		movq		(%0),%%mm3;
 		movq		(%0,%1),%%mm4;
 		movq		c1b,%%mm7;
@@ -1855,13 +1862,13 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 
 	p += hy;
 
-	if (hy)
-		asm ("
+	if (hy) // XXX
+		asm volatile ("
 			pcmpeqb		%mm6,%mm6;
 		");
 
 	for (i = 0; i < 8; i++) {
-		asm ("
+		asm volatile ("
 			movq		(%0),%%mm2;
 			movq		%%mm3,%%mm1;
 			pxor		%%mm2,%%mm1;	
@@ -1983,7 +1990,7 @@ search(int *dhx, int *dhy, unsigned char *from,
 
 	if ((x1 - x0) > 4)
 		for (j = y0; j < y1; p += mb_address.block[0].pitch, j++) {
-			asm ("
+			asm volatile ("
 				movq		crdy0,%mm0;
 				paddb		c256,%mm0;
 				movq		%mm0,crdy0;
@@ -1995,7 +2002,7 @@ search(int *dhx, int *dhy, unsigned char *from,
 		}
 	else
 		for (j = y0; j < y1; p += mb_address.block[0].pitch, j++) {
-			asm ("
+			asm volatile ("
 				movq		crdy0,%mm0;
 				paddb		c256,%mm0;
 				movq		%mm0,crdy0;
@@ -2216,6 +2223,11 @@ t4_edu(unsigned char *ref, int *dxp, int *dyp, int sx, int sy,
 static double qmsum = 0.0;
 static int qmcount = 0;
 
+/*
+ * XXX modulate by cap_fifo load, ie. reduce
+ * search efforts before frames drop.
+ */
+
 void
 t7(int range, int dist)
 {
@@ -2240,6 +2252,7 @@ t7(int range, int dist)
 		motion = q * 256;
 }
 
+// XXX experimental, don't care
 static int pdx[18][22];
 static int pdy[18][22];
 static int pdist;
@@ -2329,14 +2342,14 @@ predict_bidirectional_motion(struct motion *M,
 		);
 	}
 
-	asm ("
+	asm volatile ("
 		movq		c1,%mm5;
 		pxor		%mm6,%mm6;	
 		pxor		%mm7,%mm7;
 	");	
 
 	for (j = i = 0; j < 16 * 16; j += 16, i += 4) {
-		asm ("
+		asm volatile ("
 			movq		3*768+0*128+0(%0),%%mm0;
 			paddw		4*768+0*128+0(%0),%%mm0;
 			paddw		%%mm5,%%mm0;
@@ -2400,7 +2413,7 @@ predict_bidirectional_motion(struct motion *M,
 		" :: "r" (&mblock[0][0][0][j]), "r" (&mblock[0][0][0][i]));
 	}
 
-	asm ("
+	asm volatile ("
 		pmaddwd		%%mm5,%%mm6;
 		movq		%%mm7,%%mm0;
 		psrlq		$32,%%mm7;
@@ -2424,6 +2437,181 @@ predict_bidirectional_motion(struct motion *M,
 			mblock[1][0][0][i] = 
 			mblock[2][0][0][i] = 
 			mblock[3][0][0][i] = 0;
+
+	return si;
+}
+
+/*
+ *  Zero motion reference
+ */
+
+/*
+ *  Forward prediction (P frames only)
+ *
+ *  mblock[1] = org - old_ref;
+ *  mblock[3] = old_ref; 	// for reconstruction by idct_inter
+ */
+int
+predict_forward_packed(unsigned char *from)
+{
+	int i, n, s = 0, s2 = 0;
+
+	for (i = 0; i < 4 * 64; i++) {
+		mblock[1][0][0][i] = n = mblock[0][0][0][i] - from[i];
+		mblock[3][0][0][i] = from[i];
+		s += n;
+		s2 += n * n;
+	}
+
+	for (; i < 6 * 64; i++) {
+		mblock[1][0][0][i] = mblock[0][0][0][i] - from[i];
+		mblock[3][0][0][i] = from[i];
+	}
+
+	return s2 * 256 - (s * s);
+}
+
+int
+predict_forward_planar(unsigned char *from)
+{
+	int i, j, n, s = 0, s2 = 0;
+	unsigned char *p;
+
+	p = from;
+
+	for (i = 0; i < 16; i++) {
+		for (j = 0; j < 8; j++) {
+			mblock[1][0][i][j] = n = mblock[0][0][i][j] - p[j];
+			mblock[3][0][i][j] = p[j];
+			s += n;
+			s2 += n * n;
+			mblock[1][0][i + 16][j] = n = mblock[0][0][i + 16][j] - p[j + 8];
+			mblock[3][0][i + 16][j] = p[j + 8];
+			s += n;
+			s2 += n * n;
+		}
+
+		p += mb_address.block[0].pitch;
+	}
+
+	p = from + (mb_address.block[0].pitch + 1) * 8 + mb_address.block[4].offset;
+
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < 8; j++) {
+			mblock[1][4][i][j] = mblock[0][4][i][j] - p[j];
+			mblock[3][4][i][j] = p[j];
+			mblock[1][5][i][j] = mblock[0][5][i][j] - p[j + mb_address.block[5].offset];
+			mblock[3][5][i][j] = p[j + mb_address.block[5].offset];
+		}
+
+		p += mb_address.block[4].pitch;
+	}
+
+	return s2 * 256 - (s * s);
+}
+
+/*
+ *  Backward prediction (B frames only, no reconstruction)
+ *
+ *  mblock[1] = org - new_ref;
+ */
+int
+predict_backward_packed(unsigned char *from)
+{
+	int i, n, s = 0;
+
+	for (i = 0; i < 4 * 64; i++) {
+		mblock[1][0][0][i] = n = mblock[0][0][0][i] - from[i];
+		s += n * n;
+	}
+
+	for (; i < 6 * 64; i++)
+		mblock[1][0][0][i] = mblock[0][0][0][i] - from[i];
+
+	return s;
+}
+
+/*
+ *  Bidirectional prediction (B frames only, no reconstruction)
+ *
+ *  mblock[1] = org - old_ref;
+ *  mblock[2] = org - new_ref;
+ *  mblock[3] = org - linear_interpolation(old_ref, new_ref);
+ */
+int
+predict_bidirectional_packed(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2)
+{
+	int i, n, si = 0, sf = 0, sb = 0;
+
+	for (i = 0; i < 4 * 64; i++) {
+		mblock[1][0][0][i] = n = mblock[0][0][0][i] - from1[i];
+		sf += n * n; // forward
+		mblock[2][0][0][i] = n = mblock[0][0][0][i] - from2[i];
+		sb += n * n; // backward
+		mblock[3][0][0][i] = n = mblock[0][0][0][i] - ((from1[i] + from2[i] + 1) >> 1);
+		si += n * n; // interpolated	                   unsigned -> pavgb
+	}
+
+	for (; i < 6 * 64; i++) {
+		mblock[1][0][0][i] = mblock[0][0][0][i] - from1[i];
+		mblock[2][0][0][i] = mblock[0][0][0][i] - from2[i];
+		mblock[3][0][0][i] = mblock[0][0][0][i] - ((from1[i] + from2[i] + 1) >> 1);
+	}
+
+	*vmc1 = sf;
+	*vmc2 = sb;
+
+	return si;
+}
+
+int
+predict_bidirectional_planar(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2)
+{
+	int i, j, n, si = 0, sf = 0, sb = 0;
+	unsigned char *p1, *p2;
+
+	p1 = from1;
+	p2 = from2;
+
+	for (i = 0; i < 16; i++) {
+		for (j = 0; j < 8; j++) {
+			mblock[1][0][i][j] = n = mblock[0][0][i][j] - p1[j];
+			sf += n * n; // forward
+			mblock[2][0][i][j] = n = mblock[0][0][i][j] - p2[j];
+			sb += n * n; // backward
+			mblock[3][0][i][j] = n = mblock[0][0][i][j] - ((p1[j] + p2[j] + 1) >> 1);
+			si += n * n; // interpolated	                   unsigned -> pavgb
+			mblock[1][0][i + 16][j] = n = mblock[0][0][i + 16][j] - p1[j + 8];
+			sf += n * n; // forward
+			mblock[2][0][i + 16][j] = n = mblock[0][0][i + 16][j] - p2[j + 8];
+			sb += n * n; // backward
+			mblock[3][0][i + 16][j] = n = mblock[0][0][i + 16][j] - ((p1[j + 8] + p2[j + 8] + 1) >> 1);
+			si += n * n; // interpolated	                   unsigned -> pavgb
+		}
+
+		p1 += mb_address.block[0].pitch;
+		p2 += mb_address.block[0].pitch;
+	}
+
+	p1 = from1 + (mb_address.block[0].pitch + 1) * 8 + mb_address.block[4].offset;
+	p2 = from2 + (mb_address.block[0].pitch + 1) * 8 + mb_address.block[4].offset;
+
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < 8; j++) {
+			mblock[1][4][i][j] = mblock[0][4][i][j] - p1[j];
+			mblock[2][4][i][j] = mblock[0][4][i][j] - p2[j];
+			mblock[3][4][i][j] = mblock[0][4][i][j] - ((p1[j] + p2[j] + 1) >> 1);
+			mblock[1][5][i][j] = mblock[0][5][i][j] - p1[j + mb_address.block[5].offset];
+			mblock[2][5][i][j] = mblock[0][5][i][j] - p2[j + mb_address.block[5].offset];
+			mblock[3][5][i][j] = mblock[0][5][i][j] - ((p1[j + mb_address.block[5].offset] + p2[j + mb_address.block[5].offset] + 1) >> 1);
+		}
+
+		p1 += mb_address.block[4].pitch;
+		p2 += mb_address.block[4].pitch;
+	}
+
+	*vmc1 = sf;
+	*vmc2 = sb;
 
 	return si;
 }

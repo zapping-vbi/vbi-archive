@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.5 2001-05-31 19:40:50 mschimek Exp $ */
+/* $Id: filter.c,v 1.6 2001-06-05 17:52:08 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -99,7 +99,7 @@ color_trap(unsigned char *buffer1, unsigned char *buffer2)
 {
 	int r = color_pred(buffer1, buffer2);
 
-	asm ("
+	asm volatile ("
 		movq	c128,%%mm0;
 		movq	%%mm0,(%0);	movq	%%mm0,1*8(%0);
 		movq	%%mm0,2*8(%0);	movq	%%mm0,3*8(%0);

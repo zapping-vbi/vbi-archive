@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.17 2001-05-31 19:40:49 mschimek Exp $ */
+/* $Id: options.c,v 1.18 2001-06-05 17:52:08 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -245,6 +245,7 @@ static bool have_audio_bit_rate = FALSE;
 static bool have_image_size = FALSE;
 static bool have_grab_size = FALSE;
 static bool have_letterbox = FALSE;
+static bool have_filter = FALSE;
 
 static bool
 parse_option(int c)
@@ -393,6 +394,7 @@ parse_option(int c)
 			if (filter_mode <= 0 ||
 			    filter_mode >= CM_NUM_MODES)
 				return FALSE;
+			have_filter = TRUE;
 			break;
 
 	        case 'G':
@@ -433,6 +435,8 @@ parse_option(int c)
 				motion_max = motion_min;
 			if (!motion_min)
 				break;
+			if (!have_filter)
+				filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
 			for (i = 0; i < 2; i++) {
 				if (motion_min > motion_max)
 					swap(motion_min, motion_max);

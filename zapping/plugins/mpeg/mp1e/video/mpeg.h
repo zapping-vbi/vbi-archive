@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.2 2001-06-05 17:52:08 mschimek Exp $ */
 
 #define PICTURE_START_CODE		0x00000100L
 #define SLICE_START_CODE		0x00000101L
@@ -43,6 +43,13 @@
 #define PICTURE_CODING_EXTENSION_ID		8
 #define PICTURE_SPATIAL_SCALABLE_EXTENSION_ID	9
 #define PICTURE_TEMPORAL_SCALABLE_EXTENSION_ID	10
+
+typedef enum {
+	MB_INTRA,
+	MB_FORWARD,
+	MB_BACKWARD,
+	MB_INTERP
+} mb_type;
 
 /* tables.c */
 
