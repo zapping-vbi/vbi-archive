@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.2 2003-05-02 10:44:02 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.3 2003-06-16 06:03:36 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -68,7 +68,6 @@
  * Zapzilla Teletext browser</a>.
  */
 
-/** @defgroup Basic Basic types */
 /** @defgroup Raw Raw VBI */
 /** @defgroup Service Data Service Decoder */
 
@@ -589,15 +588,65 @@ vbi_set_contrast(vbi_decoder *vbi, int contrast)
 	vbi_caption_color_level(vbi);
 }
 
+/*
+ *  Cache queries
+ */
+
+/**
+ * @param vbi Initialized vbi decoding context.
+ * @param pgno Teletext or Closed Caption page to examine, see vbi_pgno.
+ *
+ * This function returns the language (or languages) a page is written
+ * in. Languages are identified by their ISO 639 two-character code,
+ * for example French by the string "fr".
+ *
+ * The function returns a NULL-terminated string vector. The vector can
+ * be empty if the language is not known to the decoder, for example
+ * when the page has not been received yet. It can contain more than
+ * one language code if the page is multilingual or the available
+ * information is ambiguous. In fact the language code or codes may
+ * be misleading.
+ *
+ * @note The results of this function are volatile: As more information
+ * becomes available and pages are edited (e. g. activation of subtitles)
+ * languages can change.
+ *
+ * @return
+ * Pointer to a string vector. The function returns a @c NULL pointer
+ * when @a pgno is invalid.
+ */
+const char **
+vbi_cache_page_language		(vbi_decoder *		vbi,
+				 vbi_pgno		pgno)
+{
+	static const char *nil = NULL;
+
+	if (pgno <= 8 && pgno >= 1) {
+		return vbi->cc.channel[pgno - 1].lang_code;
+	} else if (pgno >= 0x100 && pgno <= 0x8FF) {
+		struct page_info *pi;
+		int code;
+
+		pi = vbi->vt.page_info + pgno - 0x100;
+		code = pi->code;
+		if (code != VBI_UNKNOWN_PAGE) {
+/* FIXME normal pages */		
+			if (code == VBI_SUBTITLE_PAGE) {
+				if (pi->language != 0xFF)
+					return vbi_font_descriptors
+						[pi->language].lang_code;
+			}
+		}
+	}
+
+	return &nil;
+}
+
 /**
  * @param vbi Initialized vbi decoding context.
  * @param pgno Teletext or Closed Caption page to examine, see vbi_pgno.
  * @param subno The highest subpage number of this page will be
  *   stored here. @a subno can be @c NULL.
- * @param language If it is possible to determine the language a page
- *   is written in, a pointer to the language name (Latin-1) will
- *   be stored here, @c NULL if the language is unknown. @a language
- *   can be @c NULL if this information is not needed.
  * 
  * Returns information about the page.
  * 
@@ -656,20 +705,19 @@ vbi_set_contrast(vbi_decoder *vbi, int contrast)
  * Page type.
  */
 vbi_page_type
-vbi_classify_page(vbi_decoder *vbi, vbi_pgno pgno,
-		  vbi_subno *subno, const char **language)
+vbi_classify_page(vbi_decoder *vbi, vbi_pgno pgno, vbi_subno *subno)
 {
 	struct page_info *pi;
 	int code, subc;
-	char *lang;
+//	char *lang;
 
 	if (!subno)
 		subno = &subc;
-	if (!language)
-		language = &lang;
+//	if (!language)
+//		language = &lang;
 
 	*subno = 0;
-	*language = NULL;
+	//	*language = NULL;
 
 	if (pgno < 1) {
 		return VBI_UNKNOWN_PAGE;
@@ -677,7 +725,7 @@ vbi_classify_page(vbi_decoder *vbi, vbi_pgno pgno,
 		if ((current_time() - vbi->cc.channel[pgno - 1].time) > 20)
 			return VBI_NO_PAGE;
 
-		*language = vbi->cc.channel[pgno - 1].language;
+		//		*language = vbi->cc.channel[pgno - 1].language;
 
 		return (pgno <= 4) ? VBI_SUBTITLE_PAGE : VBI_NORMAL_PAGE;
 	} else if (pgno < 0x100 || pgno > 0x8FF) {
@@ -690,7 +738,8 @@ vbi_classify_page(vbi_decoder *vbi, vbi_pgno pgno,
 	if (code != VBI_UNKNOWN_PAGE) {
 		if (code == VBI_SUBTITLE_PAGE) {
 			if (pi->language != 0xFF)
-				*language = vbi_font_descriptors[pi->language].label;
+				;
+	//		*language = vbi_font_descriptors[pi->language].label;
 		} else if (code == VBI_TOP_BLOCK || code == VBI_TOP_GROUP)
 			code = VBI_NORMAL_PAGE;
 		else if (code == VBI_NOT_PUBLIC || code > 0xE0)
@@ -708,6 +757,13 @@ vbi_classify_page(vbi_decoder *vbi, vbi_pgno pgno,
 
 	return VBI_UNKNOWN_PAGE;
 }
+
+
+
+
+
+
+
 
 /**
  * @param pi 
@@ -740,13 +796,13 @@ vbi_reset_prog_info(vbi_program_info *pi)
 	pi->rating_auth = VBI_RATING_AUTH_NONE;
 	/* PAS */
 	pi->audio[0].mode = VBI_AUDIO_MODE_UNKNOWN;
-	pi->audio[0].language = NULL;
+	pi->audio[0].lang_code = NULL;
 	pi->audio[1].mode = VBI_AUDIO_MODE_UNKNOWN;
-	pi->audio[1].language = NULL;
+	pi->audio[1].lang_code = NULL;
 	/* PCS */
 	pi->caption_services = -1;
 	for (i = 0; i < 8; i++)
-		pi->caption_language[i] = NULL;
+		pi->caption_lang_code[i] = NULL;
 	/* CGMS */
 	pi->cgms_a = -1;
 	/* AR */
