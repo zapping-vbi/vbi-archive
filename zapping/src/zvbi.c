@@ -562,6 +562,7 @@ static vbi_capture *		capture;
 static vbi_proxy_client *	proxy_client;
 static GSource *		source;
 static GIOChannel *		channel;
+static guint			channel_id = NO_SOURCE_ID;
 static zf_consumer		channel_consumer;
 static int			pes_fd = -1;
 static uint8_t			pes_buffer[8192];
@@ -1040,10 +1041,13 @@ destroy_threads			(void)
       D();
 
 	{
-	  zf_rem_consumer (&channel_consumer);
+	  /* Undo g_io_add_watch(). */
+	  g_source_remove (channel_id);
 
 	  g_io_channel_unref (channel);
 	  channel = NULL;
+
+	  zf_rem_consumer (&channel_consumer);
 	}
 
       D();
@@ -1297,7 +1301,8 @@ init_threads			(const gchar *		dev_name,
 
   channel = g_io_channel_unix_new (ttx_pipe[0]);
 
-  g_io_add_watch (channel, G_IO_IN, decoder_giofunc, /* user_data */ NULL);
+  channel_id =
+    g_io_add_watch (channel, G_IO_IN, decoder_giofunc, /* user_data */ NULL);
 
   D();
 
