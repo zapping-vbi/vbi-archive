@@ -395,7 +395,7 @@ on_properties_help_clicked	(GtkWidget	*button,
 
 static gint
 on_properties_close		(GtkWidget	*dialog,
-				 GtkWidget	*menuitem)
+				 gpointer	unused)
 {
   gint cur_group, cur_item;
   gchar *group_name = NULL;
@@ -407,8 +407,6 @@ on_properties_close		(GtkWidget	*dialog,
       (group_name = gtk_object_get_data(GTK_OBJECT
 		(nth_group_contents(dialog, cur_group)), "group-name")))
     zcs_char(group_name, "last_group");
-
-  gtk_widget_set_sensitive(menuitem, TRUE);
 
   PropertiesDialog = NULL;
 
@@ -566,9 +564,8 @@ build_properties_contents	(GnomeDialog	*dialog)
     }
 }
 
-void
-on_propiedades1_activate               (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
+GtkWidget*
+build_properties_dialog			(void)
 {
   GnomeDialog *dialog;
   GtkWidget *apply_button;
@@ -576,7 +573,11 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
     OK_ID, APPLY_ID, CANCEL_ID, HELP_ID
   };
 
-  g_assert(PropertiesDialog == NULL);
+  if (PropertiesDialog)
+    {
+      gdk_window_raise(GTK_WIDGET(PropertiesDialog)->window);
+      return GTK_WIDGET(PropertiesDialog);
+    }
 
   dialog = GNOME_DIALOG(gnome_dialog_new(_("Zapping Properties"),
 					 GNOME_STOCK_BUTTON_OK,
@@ -599,10 +600,9 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
   gnome_dialog_set_close(dialog, FALSE);
 
   /* Connect the appropiate callbacks */
-  gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
   gtk_signal_connect(GTK_OBJECT(dialog), "close",
 		     GTK_SIGNAL_FUNC(on_properties_close),
-		     menuitem);
+		     NULL);
   gnome_dialog_button_connect(dialog, OK_ID,
 			      GTK_SIGNAL_FUNC(on_properties_ok_clicked),
 			      dialog);
@@ -624,7 +624,7 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
   /* Open the last selected group */
   open_properties_group(GTK_WIDGET(dialog), zcg_char(NULL, "last_group"));
 
-  gnome_dialog_run(dialog);
+  return GTK_WIDGET(dialog);
 }
 
 void
@@ -711,6 +711,10 @@ append_properties_page		(GnomeDialog	*dialog,
   buf = g_strdup_printf("group-%s-item-%s", group, label);
   register_widget(page, buf);
   g_free(buf);
+
+  buf = g_strdup_printf("group-%s-item-%s-radio", group, label);
+  register_widget(radio, buf);
+  g_free(buf);
 }
 
 static void
@@ -752,6 +756,27 @@ open_properties_group		(GtkWidget	*dialog,
 			  contents);
 
   g_free(buf);
+}
+
+void
+open_properties_page		(GtkWidget	*dialog,
+				 const gchar	*group,
+				 const gchar	*item)
+{
+  gchar *buf = g_strdup_printf("group-%s-item-%s-radio", group, item);
+  GtkWidget *toggle = lookup_widget(GTK_WIDGET(dialog), buf);
+
+  g_free(buf);
+
+  if (!toggle)
+    {
+      g_warning("{%s, %s} not found in the properties", group, item);
+      return;
+    }
+
+  open_properties_group(dialog, group);
+
+  gtk_button_clicked(GTK_BUTTON(toggle));
 }
 
 void
@@ -863,6 +888,21 @@ void append_property_handler (property_handler *p)
     handlers[num_handlers].help = help;
 
   num_handlers++;
+}
+
+void
+on_propiedades1_activate               (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  GtkWidget *properties = build_properties_dialog();
+
+  gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
+
+  gtk_signal_connect_object(GTK_OBJECT(properties), "close",
+			    GTK_SIGNAL_FUNC(gtk_widget_set_sensitive),
+			    GTK_OBJECT(menuitem));
+
+  gnome_dialog_run(GNOME_DIALOG(properties));
 }
 
 void

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.22 2001-11-12 22:38:39 garetxe Exp $ */
+/* $Id: mpeg.c,v 1.23 2001-11-16 22:30:50 garetxe Exp $ */
 
 #include "plugin_common.h"
 
@@ -1093,10 +1093,38 @@ static void
 on_mpeg_button_clicked          (GtkButton       *button,
 				 gpointer         user_data)
 {
+  /* Normal invocation, configure and start */
+  GtkWidget *dialog, *toggle;
+
+  dialog = gnome_dialog_new ("FIXME: Make me",
+			     GNOME_STOCK_BUTTON_OK,
+			     GNOME_STOCK_BUTTON_CANCEL,
+			     NULL);
+
+  toggle =
+    gtk_toggle_button_new_with_label ("Toggle me tender, toggle me true");
+  gtk_widget_show(toggle);
+  gtk_box_pack_start_defaults (GTK_BOX (GNOME_DIALOG (dialog)->vbox), toggle);
+  gnome_dialog_set_parent(GNOME_DIALOG(dialog), z_main_window());
+  gnome_dialog_set_default(GNOME_DIALOG(dialog), 0);
+
+  /*
+   * -1 or 1 if cancelled.
+   */
+  if (gnome_dialog_run_and_close (GNOME_DIALOG (dialog)) == 0)
+    {
+      plugin_start ();
+    }
+}
+
+static void
+on_mpeg_button_fast_clicked	(GtkButton	*button,
+				 gpointer	user_data)
+{
   plugin_start ();
 }
 
-static const gchar *tooltip = N_("Start recording [Ctrl+r]");
+static const gchar *tooltip = N_("Start recording [r, Ctrl+r]");
 
 static
 void plugin_add_gui (GnomeApp * app)
@@ -1104,6 +1132,7 @@ void plugin_add_gui (GnomeApp * app)
   GtkWidget * toolbar1 = lookup_widget (GTK_WIDGET (app), "toolbar1");
   GtkWidget * button; /* The button to add */
   GtkWidget * tmp_toolbar_icon;
+  gint sig_id;
 
   tmp_toolbar_icon =
     gnome_stock_pixmap_widget (GTK_WIDGET (app),
@@ -1115,8 +1144,13 @@ void plugin_add_gui (GnomeApp * app)
 				      NULL, tmp_toolbar_icon,
 				      on_mpeg_button_clicked,
 				      NULL);
+  /* Ctrl variants, start recording without configuring */
+  gtk_signal_connect (GTK_OBJECT(button), "fast-clicked",
+		      GTK_SIGNAL_FUNC(on_mpeg_button_fast_clicked),
+		      NULL);
 
-  z_widget_add_accelerator (button, "clicked", GDK_r, GDK_CONTROL_MASK);
+  z_widget_add_accelerator (button, "fast-clicked", GDK_r, GDK_CONTROL_MASK);
+  z_widget_add_accelerator (button, "clicked", GDK_r, 0);
 
   /* Set up the widget so we can find it later */
   gtk_object_set_data (GTK_OBJECT (app), "mpeg_button",

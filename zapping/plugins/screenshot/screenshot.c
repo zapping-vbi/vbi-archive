@@ -26,6 +26,9 @@
 #undef HAVE_STDLIB_H
 #undef HAVE_STDDEF_H
 #include <jpeglib.h> /* jpeg compression */
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <libgen.h> /* for dirname(), portability? */
 
 /*
   This plugin was built from the template one. It does some thing
@@ -66,6 +69,8 @@ static gint quality; /* Quality of the compressed image */
 
 static tveng_device_info * zapping_info = NULL; /* Info about the
 						   video device */
+static gchar *save_screenshot_file_name = NULL; /* file name to save
+						   (tmp. loc.) */
 
 /* Properties handling code */
 static void
@@ -80,10 +85,14 @@ static gint save_screenshot = 0;
 static void
 on_screenshot_button_clicked          (GtkButton       *button,
 				       gpointer         user_data);
+static void
+on_screenshot_button_fast_clicked	(GtkButton       *button,
+					 gpointer         user_data);
 
 /* This one starts a new thread that saves the current screenshot */
 static void
 start_saving_screenshot (gpointer data_to_save,
+			 const gchar *path,
 			 struct tveng_frame_format * format);
 
 /* This struct is shared between the main and the saving thread */
@@ -259,14 +268,42 @@ void plugin_close(void)
     }
 }
 
-static
-gboolean plugin_start (void)
+/* Find an unused file name, the returned value must be g_free'd */
+static gchar*
+find_no_file			(const gchar	*dir,
+				 const gchar	*prefix)
+{
+  gchar *buffer = NULL;
+  gint index = 0;
+  struct stat sb;
+
+  while (TRUE)
+    {
+      /* Add a slash if needed */
+      if ((!*dir) || (dir[strlen(dir)-1] != '/'))
+	buffer = g_strdup_printf("%s/%s%d.jpeg", dir, prefix, index++);
+      else
+	buffer = g_strdup_printf("%s%s%d.jpeg", dir, prefix, index++);
+
+      /* Try to query file availability */
+      /*
+       * Note: This is easy to break, but since there's no good(tm)
+       * way to predict an available file name, just do the simple thing.
+       */
+      if (stat(buffer, &sb))
+	break;
+
+      g_free(buffer);
+    };
+
+  return buffer;
+}
+
+static gboolean
+real_plugin_start	(const gchar	*dest_path)
 {
   struct tveng_frame_format format;
   GdkPixbuf	*pixbuf;
-  /* FIXME: There should be a cleaner way to do these things from
-     plugins */
-  extern GtkWidget	*main_window;
 
   /*
    * Switch to capture mode if we aren't viewing Teletext (associated
@@ -280,7 +317,8 @@ gboolean plugin_start (void)
 	return FALSE; /* unable to set the mode */
     }
   /* request TTX render */
-  else if ((pixbuf = ttxview_get_scaled_ttx_page(main_window)))
+  else if ((pixbuf =
+	    ttxview_get_scaled_ttx_page(GTK_WIDGET(z_main_window()))))
     {
       format.width = gdk_pixbuf_get_width(pixbuf);
       format.height = gdk_pixbuf_get_height(pixbuf);
@@ -289,6 +327,7 @@ gboolean plugin_start (void)
       format.pixformat = TVENG_PIX_RGB32;
       format.bytesperline = gdk_pixbuf_get_rowstride(pixbuf);
       start_saving_screenshot(gdk_pixbuf_get_pixels(pixbuf),
+			      dest_path,
 			      &format);
       return TRUE;
     }
@@ -297,9 +336,21 @@ gboolean plugin_start (void)
 
   save_screenshot = 2;
 
+  save_screenshot_file_name = g_strdup(dest_path);
+
   /* If everything has been ok, set the active flags and return TRUE
    */
   return TRUE;
+}
+
+static
+gboolean plugin_start (void)
+{
+  gchar *filename = find_no_file(save_dir, "shot");
+  gint result = real_plugin_start(filename);
+  g_free(filename);
+
+  return result;
 }
 
 static
@@ -363,7 +414,13 @@ void plugin_read_bundle ( capture_bundle * bundle )
     return;
   else if (save_screenshot == 1)
     {
-      start_saving_screenshot(bundle->data, &(bundle->format));
+      if (save_screenshot_file_name)
+	start_saving_screenshot(bundle->data,
+				save_screenshot_file_name,
+				&(bundle->format));
+      g_free(save_screenshot_file_name);
+      save_screenshot_file_name = NULL;
+      
       save_screenshot = 0;
     }
   else
@@ -511,22 +568,22 @@ void plugin_add_gui (GnomeApp * app)
   button = gtk_toolbar_append_element(GTK_TOOLBAR(toolbar1),
 				      GTK_TOOLBAR_CHILD_BUTTON, NULL,
 				      _("Screenshot"),
-				      _("Take a JPEG screenshot [Ctrl+S]"),
+				      _("Take a JPEG screenshot [s, Ctrl+s]"),
 				      NULL, tmp_toolbar_icon,
 				      on_screenshot_button_clicked,
 				      NULL);
 
-  gtk_accel_group_add(gtk_accel_group_get_default(), GDK_s,
-		      GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE |
-		      GTK_ACCEL_SIGNAL_VISIBLE, GTK_OBJECT(button),
-		      "clicked");
+  /* Ctrl variants, start recording without configuring */
+  gtk_signal_connect (GTK_OBJECT(button), "fast-clicked",
+		      GTK_SIGNAL_FUNC(on_screenshot_button_fast_clicked),
+		      NULL);
 
-  gtk_widget_ref (button);
+  z_widget_add_accelerator (button, "fast-clicked", GDK_s, GDK_CONTROL_MASK);
+  z_widget_add_accelerator (button, "clicked", GDK_s, 0);
 
   /* Set up the widget so we can find it later */
-  gtk_object_set_data_full (GTK_OBJECT(app), "screenshot_button",
-			    button, (GtkDestroyNotify)
-			    gtk_widget_unref);
+  gtk_object_set_data (GTK_OBJECT(app), "screenshot_button",
+		       button);
 
   gtk_widget_show(button);
 }
@@ -565,8 +622,71 @@ struct plugin_misc_info * plugin_get_misc_info (void)
 
 /* User defined functions */
 static void
-on_screenshot_button_clicked          (GtkButton       *button,
-				       gpointer         user_data)
+on_screenshot_button_clicked		(GtkButton       *button,
+					 gpointer         user_data)
+{
+  /* Normal invocation, configure and start */
+  GtkWidget *dialog;
+  GtkWidget *label;
+  GtkWidget *fentry;
+  GtkEntry *entry;
+  gchar *filename;
+  GtkWidget *properties;
+
+  dialog = gnome_dialog_new (_("Save screenshot"),
+			     GNOME_STOCK_BUTTON_OK,
+			     GNOME_STOCK_BUTTON_CANCEL,
+			     _("Configure plugin"),
+			     NULL);
+
+  label = gtk_label_new(_("Destination file:"));
+  gtk_widget_show(label);
+  gtk_box_pack_start_defaults (GTK_BOX (GNOME_DIALOG (dialog)->vbox), label);
+
+  fentry = gnome_file_entry_new("screenshot_dest_file_history",
+				_("Destination file"));
+  entry = GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fentry)));
+  gtk_widget_show(fentry);
+  gtk_box_pack_start_defaults (GTK_BOX (GNOME_DIALOG (dialog)->vbox), fentry);
+
+  gnome_dialog_editable_enters(GNOME_DIALOG(dialog), GTK_EDITABLE (entry));
+  gtk_widget_grab_focus(GTK_WIDGET(entry));
+  filename = find_no_file(save_dir, "shot");
+  gtk_entry_set_text(entry, filename);
+  g_free(filename);
+  gtk_entry_select_region(entry, 0, -1);
+
+  gnome_dialog_set_parent(GNOME_DIALOG(dialog), z_main_window());
+  gnome_dialog_set_default(GNOME_DIALOG(dialog), 0);
+  gnome_dialog_close_hides (GNOME_DIALOG(dialog), TRUE);
+
+  /*
+   * -1 or 1 if cancelled.
+   */
+  switch (gnome_dialog_run_and_close (GNOME_DIALOG (dialog)))
+    {
+    case 0: /* OK */
+      filename = g_strdup(gtk_entry_get_text(entry));
+      if (filename)
+	real_plugin_start (filename);
+      g_free(filename);
+      break;
+    case 2: /* Configure */
+      properties = build_properties_dialog();
+      open_properties_page(properties,
+			   _("Plugins"), _("Screenshot"));
+      gnome_dialog_run(GNOME_DIALOG(properties));
+      break;
+    default: /* Cancel */
+      break;
+    }
+
+  gtk_widget_destroy(GTK_WIDGET(dialog));
+}
+
+static void
+on_screenshot_button_fast_clicked	(GtkButton       *button,
+					 gpointer         user_data)
 {
   plugin_start ();
 }
@@ -574,6 +694,7 @@ on_screenshot_button_clicked          (GtkButton       *button,
 /* This one starts a new thread that saves the current screenshot */
 static void
 start_saving_screenshot (gpointer data_to_save,
+			 const gchar *path,
 			 struct tveng_frame_format * format)
 {
   struct screenshot_data * data = (struct screenshot_data*)
@@ -583,19 +704,17 @@ start_saving_screenshot (gpointer data_to_save,
   GtkWidget * label;
   GtkWidget * progressbar;
   uint8_t *y, *u, *v, *t;
-  gchar *b;
+  gchar *b, *buffer = g_strdup(path);
 
-  gchar * window_title;
-  gchar * buffer = NULL;
-  gint image_index = 1; /* Start by save_dir/shot1.jpeg */
-
-  if (!z_build_path(save_dir, &b))
+  if (!z_build_path(dirname(buffer), &b))
     {
       ShowBox(_("Cannot create destination dir for screenshots:\n%s\n%s"),
-	      GNOME_MESSAGE_BOX_WARNING, save_dir, b);
+	      GNOME_MESSAGE_BOX_WARNING, dirname(buffer), b);
       g_free(b);
+      g_free(buffer);
       return;
     }
+  g_free(buffer);
 
   if (format->pixformat == TVENG_PIX_YVU420 ||
       format->pixformat == TVENG_PIX_YUV420)
@@ -636,30 +755,13 @@ start_saving_screenshot (gpointer data_to_save,
 	     format->height);
     }
 
-  /* Find a suitable file name to save */
-  data -> handle = NULL;
-  do
-    {
-      if (data->handle)
-	fclose(data->handle);
-
-      g_free(buffer);
-
-      /* Add a slash if needed */
-      if ((!*save_dir) || (save_dir[strlen(save_dir)-1] != '/'))
-	buffer = g_strdup_printf("%s/shot%d.jpeg", save_dir, image_index++);
-      else
-	buffer = g_strdup_printf("%sshot%d.jpeg", save_dir, image_index++);
-
-      /* Open this file  */
-      data->handle = fopen(buffer, "rb");
-    } while (data->handle);
-
   /* Create this file */
-  if (!(data->handle = fopen(buffer, "wb")))
+  if (!(data->handle = fopen(path, "wb")))
     {
+      gchar * window_title;
+
       window_title = g_strconcat(_("Sorry, but I cannot write\n"),
-				 buffer,
+				 path,
 				 _("\nThe image won't be saved.\n"),
 				 strerror(errno),
 				 NULL);
@@ -667,7 +769,6 @@ start_saving_screenshot (gpointer data_to_save,
       ShowBox(window_title,
 	      GNOME_MESSAGE_BOX_ERROR);
 
-      g_free(buffer);
       g_free(window_title);
       g_free(data->line_data);
       g_free(data->data);
@@ -706,7 +807,6 @@ start_saving_screenshot (gpointer data_to_save,
       ShowBox("The current pixformat isn't supported",
 	      GNOME_MESSAGE_BOX_ERROR);
 
-      g_free(buffer);
       fclose(data->handle);
       g_free(data->line_data);
       g_free(data->data);
@@ -734,8 +834,8 @@ start_saving_screenshot (gpointer data_to_save,
 					10, 10)));
   gtk_widget_show(progressbar);
   vbox = gtk_vbox_new (FALSE, 0);
-  label = gtk_label_new(buffer);
-  data->path = buffer;
+  label = gtk_label_new(path);
+  data->path = g_strdup(path);
   gtk_widget_show(label);
   gtk_box_pack_start_defaults(GTK_BOX(vbox),label);
   gtk_box_pack_start_defaults(GTK_BOX(vbox), progressbar);

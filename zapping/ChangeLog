@@ -1,3 +1,10 @@
+16.11.2001	Fast variants of screenshot and mpeg <garetxe@users.sf.net>
+
+	* screenshot, mpeg: Added fast (Ctrl, no configuration) distinction.
+	* main.c: GtkButtons in Z now have a "fast-clicked" signal in
+	their class.
+	* nl.po: Update by Ime Smits.
+	
 15.11.2001	nl.po <garetxe@users.sf.net>
 
 	* nl.po: Added, contributed by Ime Smits and Reinout van Schouwen.

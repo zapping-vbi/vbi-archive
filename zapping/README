@@ -5,7 +5,7 @@ Zapping - A GNOME TV viewer
 box there were only a few TV viewing programs, and none of them for
 Gnome. So I built a TV viewer following V4L2 spec (not compiled into
 the Kernel by default) from scratch, but trying to make it as complete
-as possible. This is the last version of that software.
+as possible. This is the latest version of that software.
 
 INSTALLING
 ----------
@@ -26,11 +26,11 @@ won't work with XF4.0, because DGA doesn't work by default with some
 drivers. This is usually fixed with XF4.0.1 (at least it fixed it for me).
 	The fullscreen mode uses framebuffer access. For using it,
 root privileges are needed. I created a small SUID program that sets
-up everything and returns. There is a potential secutiry flaw here (i
+up everything and returns. There is a potential security flaw here (i
 tried to make it secure, but don't trust it very much), so if you
 really care about security, you may:
 	a) Uninstall the program (check its location with 
-		'whereis zapping_setup_fb').
+		'which zapping_setup_fb').
 	    You won't have fullscreen mode then, but there would be no
 	    security flaw.
 	b) Check the suid's sources and locate the security flaws.
@@ -68,7 +68,7 @@ NTSC/SECAM/..., and the image appears horribly distorted/colorless/...
 	might switch to V4L2, since it doesn't have this limitation.
 
 *) It crashes when loading the program, complaining about a Gdk-Error,
-request_code 14?, but it didn't happen before (Zapping < 0.5.8).
+request_code 14x, but it didn't happen before (Zapping < 0.5.8).
 	That appears to be a bug with XV support (either the X driver
 	or Zapping itself). The --no-xv option might help, but please
 	contact me (garetxe@users.sourceforge.net), maybe i can fix

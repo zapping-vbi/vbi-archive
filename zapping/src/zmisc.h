@@ -340,4 +340,8 @@ z_set_cursor			(GdkWindow	*window,
 GtkWidget *
 z_pixmap_new_from_file		(const gchar	*file);
 
+/* Pointer to the main window */
+GtkWindow *
+z_main_window			(void);
+
 #endif /* ZMISC.H */

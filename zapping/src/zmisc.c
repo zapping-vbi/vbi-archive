@@ -1017,3 +1017,9 @@ z_pixmap_new_from_file		(const gchar	*file)
 
   return pix;
 }
+
+GtkWindow *
+z_main_window		(void)
+{
+  return GTK_WINDOW(main_window);
+}

@@ -418,7 +418,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.145 2001-11-15 23:07:03 garetxe Exp $",
+	 "$Id: main.c,v 1.146 2001-11-16 22:30:51 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -966,6 +966,7 @@ static gboolean startup_zapping(gboolean load_plugins)
   gchar * buffer4 = NULL;
   tveng_tuned_channel new_channel;
   GList * p;
+  GtkObjectClass *button_class;
   D();
   /* Starts the configuration engine */
   if (!zconf_init("zapping"))
@@ -975,6 +976,18 @@ static gboolean startup_zapping(gboolean load_plugins)
     }
   D();
   startup_properties();
+  D();
+  /*
+   * Adds a new signal type to buttons, "fast-clicked".
+   * Used for recording buttons et al, means "do it now!"
+   * The prototype is the same as "clicked":
+   * void callback(GtkWidget *button, gpointer data)
+   */
+  button_class = gtk_type_class (GTK_TYPE_BUTTON);
+  gtk_object_class_user_signal_new (button_class, "fast-clicked",
+				    GTK_RUN_FIRST | GTK_RUN_ACTION,
+				    gtk_marshal_NONE__NONE,
+				    GTK_TYPE_NONE, 0);
   D();
   /* Sets defaults for zconf */
   zcc_bool(TRUE, "Save and restore zapping geometry (non ICCM compliant)", 

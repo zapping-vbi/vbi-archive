@@ -27,12 +27,26 @@ append_properties_group		(GnomeDialog	*dialog,
 				 const gchar	*group);
 
 /**
+ * Sets up a properties dialog.
+ */
+GtkWidget *
+build_properties_dialog		(void);
+
+/**
  * Opens a created group.
  * @group: Name you gave the group when creating it.
  */
 void
 open_properties_group		(GtkWidget	*dialog,
 				 const gchar	*group);
+
+/**
+ * Opens the given property page.
+ */
+void
+open_properties_page		(GtkWidget	*dialog,
+				 const gchar	*group,
+				 const gchar	*item);
 
 /**
  * Appends to the dialog group the given page.

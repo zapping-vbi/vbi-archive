@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6.1\n"
-"POT-Creation-Date: 2001-09-18 01:27+0200\n"
+"POT-Creation-Date: 2001-10-03 18:21+0200\n"
 "PO-Revision-Date: 2001-10-05 22:28+02:00\n"
 "Last-Translator: Ime Smits <ime@iae.nl>\n"
 "Language-Team: Dutch <ime@iae.nl>\n"
@@ -168,7 +168,8 @@ msgstr ""
 "ZConf kon niet worden opgeslagen, de huidige\n"
 "configuratie zal verloren gaan.\n"
 "Mogelijke oorzaken:\n"
-"   - Onvoldoende geheugen   - $HOME/.zapping is niet schrijfbaar\n"
+"   - Onvoldoende geheugen"
+"   - $HOME/.zapping is niet schrijfbaar\n"
 "   - libxml functioneert niet (?)\n"
 "   - of, waarschijnlijker, je hebt een fout in\n"
 "     %s gevonden. Neem contact op met de auteur.\n"
@@ -217,7 +218,8 @@ msgstr "Maak doorschijnend"
 
 #: src/callbacks.c:356 src/zmisc.c:279
 msgid "Return to windowed mode and use the current page as subtitles"
-msgstr "Terug naar venstermodus en huidige pagina als ondertiteling gebruiken"
+msgstr ""
+"Terug naar venstermodus en huidige pagina als ondertiteling gebruiken"
 
 # src/frequencies.c:816
 #: src/frequencies.c:1057
@@ -387,12 +389,13 @@ msgid ""
 "and with mknod create /dev/vbi0 appropriately. If this doesn't work, you can "
 "disable VBI in Settings/Preferences/VBI options/Enable VBI decoding."
 msgstr ""
-"Dit betekent hoogstwaarschijnlijk dat de benodigde driver niet geladen is. "
-"Voeg de volende regel toe aan /etc/modules.conf:\n"
-"alias char-major-81-224 bttv(vervang 'bttv' door de naam van de driver, "
-"daarna kan /dev/vbi0aangemaakt worden met het mknod commando. Als ook dat "
-"niet functioneert, schakel dan VBI ondersteuning uit onder Voorkeuzen/"
-"Instellingen/VBI ondersteuning inschakelen"
+"Dit betekent hoogstwaarschijnlijk dat de benodigde driver niet "
+"geladen is. Voeg de volende regel toe aan /etc/modules.conf:\n"
+"alias char-major-81-224 bttv"
+"(vervang 'bttv' door de naam van de driver, daarna kan /dev/vbi0"
+"aangemaakt worden met het mknod commando. Als ook dat niet functioneert, "
+"schakel dan VBI ondersteuning uit onder Voorkeuzen/Instellingen/"
+"VBI ondersteuning inschakelen"
 
 #: src/zvbi.c:551
 #, c-format
@@ -434,7 +437,8 @@ msgstr "Camera"
 #: src/tveng.c:1546
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr ""
-"Kan zapping_setup_fb niet vinden, controleer of Zapping goed geïnstalleerd is"
+"Kan zapping_setup_fb niet vinden, controleer of Zapping "
+"goed geïnstalleerd is"
 
 #: src/tveng.c:2176 src/tveng.c:2194
 msgid "Filter"
@@ -606,8 +610,8 @@ msgid ""
 "loaded."
 msgstr ""
 "Beim Laden von %s\n"
-"De plugin gebruikt protocol %d, het huidige protocol is %d, de plugin kan "
-"niet worden geladen."
+"De plugin gebruikt protocol %d, het huidige protocol is %d, de plugin kan niet "
+"worden geladen."
 
 #: src/plugins.c:95
 #, c-format
@@ -653,8 +657,8 @@ msgid ""
 "Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
 "Hashes are 0x%x vs. 0x%x"
 msgstr ""
-"Controlefout: \"%s\" in plugin %s moet \"%s\" zijn maar is: \"%s\". "
-"Controlegetallen zijn 0x%x vs. 0x%x"
+"Controlefout: \"%s\" in plugin %s moet \"%s\" zijn maar is: \"%s\". Controlegetallen "
+"zijn 0x%x vs. 0x%x"
 
 #: src/zmisc.c:272
 msgid "Use Zapping as a Teletext navigator [Ctrl+Alt+T]"
@@ -794,7 +798,8 @@ msgstr ""
 
 #: src/channel_editor.c:1386
 msgid "Your current V4L/V4L2 driver cannot do channel autosearching, sorry"
-msgstr "De huidige Video4Linux-driver heeft geen ondersteuning voor scannen"
+msgstr ""
+"De huidige Video4Linux-driver heeft geen ondersteuning voor scannen"
 
 #: src/plugin_properties.c:56
 msgid "Sorry, but no plugins have been loaded"
@@ -1077,7 +1082,9 @@ msgstr "Stilte aan/uit"
 
 #: glade/glade_strings.c:13
 msgid "Use this to go fullscreen. Press ESC to return to Windowed mode"
-msgstr "Voor beeldvullend - ESC om terug te keren naar venstermodus"
+msgstr ""
+"Voor beeldvullend - ESC om terug te keren naar venstermodus"
+""
 
 #: glade/glade_strings.c:14 glade/glade_strings.c:222
 msgid "Go _Fullscreen"
@@ -1206,8 +1213,7 @@ msgstr "Apparaatinfo"
 
 #: glade/glade_strings.c:47
 msgid "Save window geometry (some WM's don't like it)"
-msgstr ""
-"Venstergrootte onthouden (sommige window managers hebben hier problemen mee)"
+msgstr "Venstergrootte onthouden (sommige window managers hebben hier problemen mee)"
 
 #: glade/glade_strings.c:48
 msgid "Resize using fixed increments"
@@ -1253,6 +1259,7 @@ msgid ""
 msgstr ""
 "Indien de XVideo uitbreiding beschikbaar is, kan de opnamebuffer "
 "hardwarematig geschaald worden. Selecteer voor dat geval hier de grootte "
+""          
 
 #: glade/glade_strings.c:59
 msgid "Biggest noninterlaced (autodetect)"
@@ -1301,8 +1308,8 @@ msgstr "Zapping opstarten zonder geluid"
 msgid ""
 "Avoid some flicker in preview mode (leaves artifacts in the main window)"
 msgstr ""
-"Onderdruk flikkeren in previewmodus (kan storing in hoofdvenster niet "
-"verhinderen)"
+"Onderdruk flikkeren in previewmodus (kan storing in hoofdvenster "
+"niet verhinderen)"
 
 #: glade/glade_strings.c:68
 msgid ""
@@ -1322,7 +1329,8 @@ msgstr "zapping__setup__fb informatie:"
 
 #: glade/glade_strings.c:71
 msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
-msgstr "Hoe groter de waarde, hoe informatiever zapping_setup_fb zal zijn"
+msgstr ""
+"Hoe groter de waarde, hoe informatiever zapping_setup_fb zal zijn"
 
 # src/v4l2interface.c:344
 #: glade/glade_strings.c:72
@@ -1338,9 +1346,7 @@ msgstr "Extra informatie tonen:"
 msgid ""
 "Extra information, such as notifying of channel changes, can be reported in "
 "many different ways. Select here the variant you like most."
-msgstr ""
-"Extra informatie zoals kanaalwijzigingen kunnen op verscheidene manieren "
-"gemeld worden. Selecteer hier de gewenste variant."
+msgstr "Extra informatie zoals kanaalwijzigingen kunnen op verscheidene manieren gemeld worden. Selecteer hier de gewenste variant."
 
 #: glade/glade_strings.c:75
 msgid "On Screen Display (OSD)"
@@ -1402,10 +1408,7 @@ msgstr "Zendernamen via VBI"
 msgid ""
 "If you select this option, TTX pages marked as subtitles and opened in the "
 "main window will automagically switch to TV mode and overlay themselves."
-msgstr ""
-"Indien voor deze optie gekozen wordt en teletekstpaginas met ondertiteling "
-"voorhanden zijn, zal het hoofdvenster automagisch TV met doorschijnend "
-"teletekst tonen"
+msgstr "Indien voor deze optie gekozen wordt en teletekstpaginas met ondertiteling voorhanden zijn, zal het hoofdvenster automagisch TV met doorschijnend teletekst tonen"
 
 #: glade/glade_strings.c:91
 msgid "Overlay subtitle pages automatically"
@@ -1441,9 +1444,9 @@ msgid ""
 "Teletext viewer may not display the correct font or national characters. You "
 "can select your geographical region here as an additional hint."
 msgstr ""
-"Sommige zenders geven geen volledige taalcode mee, waardoor het mogelijk is "
-"dat teletekst niet de juiste lettertypen of vreemde tekens toont. Voer hier "
-"de geografische regio in om te gebruiken als extra hint."
+"Sommige zenders geven geen volledige taalcode mee, waardoor het mogelijk "
+"is dat teletekst niet de juiste lettertypen of vreemde tekens toont. Voer "
+"hier de geografische regio in om te gebruiken als extra hint."
 
 #: glade/glade_strings.c:100
 msgid "Western and Central Europe"
@@ -1483,8 +1486,8 @@ msgid ""
 "Zapping supports several levels of Teletext extensions, you can disable "
 "higher levels if you dislike the appearance."
 msgstr ""
-"Zapping ondersteunt verscheidene teletekstextensies die hier "
-"gedeactiveerd    kunnen worden als deze u niet bevallen."
+"Zapping ondersteunt verscheidene teletekstextensies die hier gedeactiveerd    "
+"kunnen worden als deze u niet bevallen."
 
 #: glade/glade_strings.c:109
 msgid "Level 1.0"
@@ -1508,7 +1511,8 @@ msgstr "Interpolatie type:"
 
 #: glade/glade_strings.c:114
 msgid "Quality/speed tradeoff when scaling and antialing the page."
-msgstr "Kwaliteit/snelheid verhouding bij het schalen."
+msgstr ""
+"Kwaliteit/snelheid verhouding bij het schalen."
 
 #: glade/glade_strings.c:115
 msgid "Nearest (fast, looks ugly when scaled)"
@@ -1600,7 +1604,7 @@ msgstr "Middel- en hoge prioriteit"
 
 #: glade/glade_strings.c:150
 msgid "All messages"
-msgstr "Alle berichten"
+msgstr "Alle berichten"  
 
 #: glade/glade_strings.c:151
 msgid "Default action:"
@@ -1636,8 +1640,9 @@ msgstr ""
 "Hier kan de kanaallijst wordden gewijzigd.\n"
 "Als uw land of benodigde tabel niet aanwezig is, neemt u dan contact op\n"
 "met de auteur, met zo mogelijk de frequentietabel erbij, opdat dit in\n"
-"een volgende editie kan worden opgenomen.Frequenties van kabelproviders in "
-"Nederland kunnen worden opgevraagd op http://www.guru4hire.nl/rtvdb."
+"een volgende editie kan worden opgenomen."
+"Frequenties van kabelproviders in Nederland kunnen worden opgevraagd "
+"op http://www.guru4hire.nl/rtvdb."
 
 # src/interface.c:336
 #: glade/glade_strings.c:163
@@ -1718,8 +1723,8 @@ msgid "Select here the input to be attached to this channel"
 msgstr "Selecteer de input voor dit kanaal"
 
 # src/v4l2interface.c:344
-# wat is de juiste vertaling hiervan?
 #: glade/glade_strings.c:182
+# wat is de juiste vertaling hiervan?
 msgid "Magical input"
 msgstr "Onbekende input"
 
@@ -1737,9 +1742,9 @@ msgid ""
 "Select a suitable frequency table, then click here to search through all "
 "channels in the table and add the received stations to the channel list."
 msgstr ""
-"Gelieve een passende frequentietabel te selecteren en daarna hier te klikken "
-"om alle kanalen in de tabel af te zoeken en de gevonden stations toe te "
-"voegen aan het kanaal-overzicht."
+"Gelieve een passende frequentietabel te selecteren en daarna hier te "
+"klikken om alle kanalen in de tabel af te zoeken en de gevonden "
+"stations toe te voegen aan het kanaal-overzicht."
 
 #: glade/glade_strings.c:186
 msgid "Automatic station _search"
@@ -1787,7 +1792,8 @@ msgstr "Wijzigen opslaan en dialoog sluiten"
 #: glade/glade_strings.c:196
 msgid ""
 "Click this button if you want to leave the dialog discarding the changes"
-msgstr "Klik hier om wijzigigen te annuleren en dialoog te sluiten"
+msgstr ""
+"Klik hier om wijzigigen te annuleren en dialoog te sluiten"
 
 # src/interface.c:432
 #: glade/glade_strings.c:197
@@ -2131,7 +2137,7 @@ msgstr "Verwijder deze troep"
 
 #: glade/glade_strings.c:296
 msgid "Clean console"
-msgstr "Scherm leeg"
+msgstr "Wis scherm"
 
 #: glade/glade_strings.c:297
 msgid "VBI info"
@@ -2163,7 +2169,7 @@ msgstr "Tijdverschuiving"
 
 #: glade/glade_strings.c:304
 msgid "Known key names"
-msgstr "Bekende toetsnamen"
+msgstr "Bekende toetsen"
 
 #: glade/glade_strings.c:305
 msgid "Keys"
@@ -2179,7 +2185,7 @@ msgstr "Beschrijving:"
 
 #: glade/glade_strings.c:308
 msgid "Switch to the current channel when the bookmark is selected"
-msgstr "Omschakelen naar huidige kanaal bij selecteren van deze bladwijzer"
+msgstr "Schakel naar het huidige kanaal na het selecteren van deze bladwijzer"
 
 #: glade/glade_strings.c:309
 msgid "Text colors"
@@ -2315,7 +2321,7 @@ msgstr "Kies de map voor screenshots"
 
 #: plugins/screenshot/screenshot_strings.c:9
 msgid "Quality of the compressed image:"
-msgstr "Compressiekwaliteit:"
+msgstr "Kwaliteit van gecomprimeerd beeld:"
 
 #: plugins/screenshot/screenshot_strings.c:10
 msgid "After saving the screenshot, run the command:"
@@ -2325,8 +2331,7 @@ msgstr "Na het opslaan het volgende commando uitvoeren:"
 msgid ""
 "If this entry isn't empty, Zapping will try to run the given command each "
 "time you save a screenshot."
-msgstr ""
-"Indien ingevuld zal Zapping na het opslaan telkens dit commando uitvoeren."
+msgstr "Indien ingevuld zal Zapping na het opslaan van een screenshot steeds dit commando uitvoeren."
 
 #: plugins/lirc/lirc.c:39
 msgid "LIRC plugin"
@@ -2336,8 +2341,7 @@ msgstr "LIRC plugin"
 msgid ""
 "This plugin enables the usage of LIRC, the Linux Infrared Remote Control."
 msgstr ""
-"Deze plugin maakt het mogelijk om een infra-rood afstandsbediening via LIRC "
-"te gebruiken."
+"Deze plugin maakt het mogelijk om een infra-rood afstandsbediening via LIRC te gebruiken."
 
 #: plugins/lirc/lirc.c:41
 msgid "This plugin enables the usage of LIRC."
@@ -2420,7 +2424,7 @@ msgstr ""
 "Een andere plugin om Zapping met LIRC aan te sturen\n"
 "\n"
 "Het .lircrc wordt uitvoerig in de LIRC documentatie beschreven.. De plugin "
-"meldt zich als \"zapping_lirc\" en kent de volgende commandos:\n"
+"meldt zich als zapping_lirc en kent de volgende commandos:\n"
 "  CHANUP: Volgende kanaal\n"
 "  CHANDOWN: Vorig kanaal\n"
 "  ZOOM: Omschakelen tussen venster- en fullscreenmodus\n"
@@ -2428,8 +2432,8 @@ msgstr ""
 "  QUIT: Zapping afsluiten\n"
 "\n"
 "N.B.: Als het SETCHANNEL commando tweemaal binnen anderhalve seconde "
-"gezonden wordt, dan zal Zapping reageren zoals je gewend bent van een echte "
-"televisie. SETCHANNEL 1 gevolgd door SETCHANNEL 3 zal kanaal\n"
+"gezonden wordt, dan zal Zapping reageren zoals je gewend bent van een "
+"echte televisie. SETCHANNEL 1 gevolgd door SETCHANNEL 3 zal kanaal\n"
 "13 selectren. Meer informatie over deze plugin staat in README.alirc."
 
 #: plugins/alirc/alirc.c:48
@@ -2501,7 +2505,7 @@ msgstr ""
 "Er wordt gebruik gemaakt van de V4L1 driver\n"
 "waardoor synchronisatie van beeld en geluid te wensen\n"
 "over laat. Er wordt aangeraden V4L2 drivers te \n"
-"gebruiken indien het resultaat niet tevreden stelt"
+"gebruiken indien het resultaat niet tevreden stelt."
 
 #: plugins/mpeg/mpeg.c:762
 #, c-format
@@ -2589,7 +2593,7 @@ msgstr "Opslaan in MPEG-formaat als:"
 
 #: plugins/mpeg/mpeg_strings.c:17
 msgid "MPEG file destination"
-msgstr "MPEG doelfolder"
+msgstr "MPEG doelbestand"
 
 #: plugins/mpeg/mpeg_strings.c:18
 msgid "Sets the dir where the encoded clips will be written to"
@@ -2673,7 +2677,7 @@ msgstr "Overige informatie: bitrates"
 #: plugins/mpeg/mpeg_strings.c:37
 #, fuzzy
 msgid "Dynamic stats (dropped, output M's, etc)"
-msgstr "Real-time statistische gegevens..."
+msgstr "Dynamische statistieken"
 
 #: plugins/parrot/parrot.c:22
 msgid "Parrot buffer plugin"
@@ -2684,8 +2688,8 @@ msgid ""
 "This plugin stores the last frames of video and repeats them upon request, "
 "so you can see again and again and again that sequence you liked so much."
 msgstr ""
-"Deze plugin onthoudt de laatste videobeelden en herhaalt de scene die je "
-"leukvindt over en over en nog een keer."
+"Deze plugin onthoudt de laatste videobeelden en herhaalt de scene die je leuk"
+"vindt over en over en nog een keer."
 
 #: plugins/parrot/parrot.c:28
 msgid "Superb parrot landing observatory."
@@ -2708,7 +2712,7 @@ msgstr "%.3g kB"
 
 #: plugins/parrot/parrot.c:72
 msgid "n/a (capture mode not active)"
-msgstr "-- (Capture-modus gedeactivieerd)"
+msgstr "-- (Capturemodus niet actief)"
 
 #: plugins/parrot/parrot.c:73
 #, c-format
@@ -2743,8 +2747,8 @@ msgid ""
 "size, screen depth, etc) can make this number change significantly."
 msgstr ""
 "Deze waarde wordt afgeleid van de huidige captureparameters en dient alleen "
-"als schatting. Veranderingen in de parameters (venstergrootte, aantal "
-"kleuren enz.) heeft grote invloed op deze cijfers."
+"als schatting. Veranderingen in de parameters (venstergrootte, aantal kleuren "
+"enz.) heeft grote invloed op deze cijfers."
 
 #: libvbi/exp-gfx.c:473
 msgid "Correct aspect ratio"
@@ -2755,8 +2759,8 @@ msgid ""
 "Approach an image aspect ratio similar to a real TV, this will add redundant "
 "information"
 msgstr ""
-"Een standaard TV (4:3) verhouding benaderen, hiermee wordt redundante "
-"informatie opgeslagen"
+"Een standaard TV (4:3) verhouding benaderen, hierdoor wordt overbodige "
+"beeldinformatie toegevoegd"
 
 #: libvbi/exp-gfx.c:507 libvbi/exp-gfx.c:771
 #, c-format
@@ -2805,8 +2809,8 @@ msgid ""
 "Replacement for block graphic characters: a single character or decimal (32) "
 "or hex (0x20) code"
 msgstr ""
-"Vervanging voor blokgrafiektekens: een enkel teken of een decimale (32) "
-"ofhexadecimale (0x20) code"
+"Vervangingsteken voor blokgrafiektekens: een enkel teken of een decimale (32) of"
+"hexadecimale (0x20) code"
 
 #: libvbi/exp-html.c:104
 msgid "Color (CSS)"
@@ -2818,11 +2822,11 @@ msgstr "De tekstkleur als stylesheet opslaan"
 
 #: libvbi/exp-html.c:107
 msgid "HTML header"
-msgstr "HTML kop"
+msgstr "HTML-kop"
 
 #: libvbi/exp-html.c:108
 msgid "Include HTML page header"
-msgstr "HTML kop invoegen"
+msgstr "HTML-kop invoegen"
 
 #.
 #. *  "lang=\"en\" refers to the page title "Teletext Page..."
@@ -2900,11 +2904,11 @@ msgstr "Aangenomen achtergrondkleur van terminal"
 
 #: libvbi/exp-txt.c:60
 msgid "ANSI colors"
-msgstr "ANSI kleurcodes"
+msgstr "ANSI-kleurcodes"
 
 #: libvbi/exp-txt.c:61
 msgid "Insert ANSI color escape codes"
-msgstr "ANSI kleurcodes invoegen"
+msgstr "ANSI-kleurcodes invoegen"
 
 #: libvbi/exp-txt.c:125
 msgid "ASCII"
@@ -2942,13 +2946,12 @@ msgstr "_VTX"
 msgid ""
 "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 msgstr ""
-"Deze pagina als VTX-bestand exporteren, het formaat dat gebruikt wordt door "
-"VideoteXt en vbidecode"
+"Deze pagina als VTX-bestand exporteren, het formaat dat gebruikt wordt door VideoteXt en vbidecode"
 
 #: libvbi/v4lx.c:132
 msgid "Please contact the Zapzilla maintainers at <http://zapping.sf.net>."
 msgstr ""
-"Neem aub contact op met de Zapzilla maintainers via <http://zapping.sf.net>."
+"Neem a.u.b. contact op met de Zapzilla maintainers via <http://zapping.sf.net>."
 
 #: libvbi/v4lx.c:164 libvbi/v4lx.c:229
 msgid "V4L/V4L2 VBI interface: Failed to read from the device"
@@ -2999,13 +3002,14 @@ msgstr "%s (%s) biedt een onbekend VBI-formaat #%d aan. %s"
 #: libvbi/v4lx.c:728
 #, c-format
 msgid "Cannot capture with %s (%s), has no standard vbi interface.\n"
-msgstr ""
-"Kan geen gebruik maken van %s (%s) omdat standaard VBI-interface ontbreekt.\n"
+msgstr "Kan geen gebruik maken van %s (%s) omdat standaard VBI-interface ontbreekt.\n"
 
 #: libvbi/v4lx.c:736 libvbi/v4lx.c:802
 #, c-format
 msgid "Cannot set or determine current videostandard of %s (%s).\n"
-msgstr "Kan de huidige videostandaard van %s (%s) niet uitlezen ofactiveren.\n"
+msgstr ""
+"Kan de huidige videostandaard van %s (%s) niet uitlezen of"
+"activeren.\n"
 
 #: libvbi/v4lx.c:773
 #, c-format
@@ -3023,15 +3027,14 @@ msgid ""
 "Cannot capture the requested data services with %s (%s), the sampling "
 "frequency is too low.\n"
 msgstr ""
-"Kan de gewenste datadienst niet ontvangen met %s (%s), de samplingfrequentie "
-"is te laag.\n"
+"Kan de gewenste datadienst niet ontvangen met %s (%s), de "
+"samplingfrequentie is te laag.\n"
 
 #: libvbi/v4lx.c:851 libvbi/v4lx.c:859 libvbi/v4lx.c:1256 libvbi/v4lx.c:1264
 #: libvbi/v4lx.c:1361 libvbi/v4lx.c:1369
 #, c-format
 msgid "Not enough memory to allocate vbi data buffers (%d KB).\n"
-msgstr ""
-"Niet genoeg geheuggen voor het reserveren van VBI-databuffers (%d kB).\n"
+msgstr "Niet genoeg geheuggen voor het reserveren van VBI-databuffers (%d kB).\n"
 
 #: libvbi/v4lx.c:872 libvbi/v4lx.c:1384
 #, c-format
@@ -3049,8 +3052,8 @@ msgstr "V4L2 VBI-interface: Leesfout"
 #: libvbi/v4lx.c:969
 msgid "V4L2 VBI interface: Cannot dequeue buffer, driver or application bug?"
 msgstr ""
-"V4L2 VBI-interface: Kan de capturebuffer niet uitlezen, bug in driver of "
-"applicatie?"
+"V4L2 VBI-interface: Kan de capturebuffer niet uitlezen, bug in driver "
+"of applicatie?"
 
 #: libvbi/v4lx.c:990
 msgid "V4L2 VBI interface: Cannot enqueue buffer, driver or application bug?"
@@ -3071,40 +3074,44 @@ msgstr ""
 #: libvbi/v4lx.c:1140
 #, c-format
 msgid "Cannot query current vbi parameters of %s (%s): %d, %s.\n"
-msgstr "Kan de huidige VBI-parameters van %s (%s) niet uitlezen: %d, %s.\n"
+msgstr ""
+"Kan de huidige VBI-parameters van %s (%s) niet uitlezen: %d, %s.\n"
 
 #: libvbi/v4lx.c:1280
 #, c-format
 msgid ""
 "Cannot request streaming i/o buffers from %s (%s): %d, %s. Driver bug?\n"
 msgstr ""
-"Fout bij opvragen van de streaming I/O-buffers van %s (%s): %d, %s. "
-"Driverbug?\n"
+"Fout bij opvragen van de streaming I/O-buffers van %s (%s): %d, %s. Driverbug?"
+"\n"
 
 #: libvbi/v4lx.c:1286
 #, c-format
 msgid "%s (%s) granted no streaming i/o buffers, physical memory exhausted?\n"
 msgstr ""
-"%s (%s) stelde geen streaming I/O-buffers ter beschikking, geen fysiek "
-"geheugenmeer?\n"
+"%s (%s) stelde geen streaming I/O-buffers ter beschikking, geen fysiek geheugen"
+"meer?\n"
 
 #: libvbi/v4lx.c:1303
 #, c-format
 msgid "Querying streaming i/o buffer #%d from %s (%s) failed: %d, %s.\n"
-msgstr "Fout bij opvragen van streaming I/O-buffer #%d van %s (%s): %d, %s.\n"
+msgstr ""
+"Fout bij opvragen van streaming I/O-buffer #%d van %s (%s): %d, %s.\n"
 
 #: libvbi/v4lx.c:1317
 #, c-format
 msgid "Memory mapping streaming i/o buffer #%d from %s (%s) failed: %d, %s.\n"
-msgstr "mmap() van streaming I/O buffer #%d van %s (%s) mislukt: %d, %s.\n"
+msgstr ""
+"mmap() van streaming I/O buffer #%d van %s (%s) mislukt: %"
+"d, %s.\n"
 
 #: libvbi/v4lx.c:1341
 #, c-format
 msgid ""
 "Cannot enqueue streaming i/o buffer #%d to %s (%s): %d, %s. Driver bug?\n"
 msgstr ""
-"Kan streaming I/O buffer #%d van %s (%s) niet in de wachtrij plaatsen: %d, %"
-"s. Driver bug?\n"
+"Kan streaming I/O buffer #%d van %s (%s) niet in de wachtrij plaatsen: %d, %s. "
+"Driver bug?\n"
 
 #: libvbi/v4lx.c:1394
 #, c-format
@@ -3112,8 +3119,8 @@ msgid ""
 "%s (%s) lacks a vbi read interface, possibly an output only device or a "
 "driver bug. %s\n"
 msgstr ""
-"%s (%s) ontbeert een VBI-leesinterface, driver bug of apparaat is "
-"mogelijkalleen geschikt voor output. %s\n"
+"%s (%s) ontbeert een VBI-leesinterface, driver bug of apparaat is mogelijk"
+"alleen geschikt voor output. %s\n"
 
 #~ msgid "Verbosity value given to zapping__setup__fb:"
 #~ msgstr "Graad van debugberichten van zapping__setup__fb:"
