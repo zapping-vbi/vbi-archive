@@ -68,10 +68,18 @@
   0 : (ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,		\
 		      __LINE__, # cmd), -1)))
 
+#define v4l25_ioctl_nf(info, cmd, arg)					\
+(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
+ device_ioctl ((info)->log_fp, fprintf_ioctl_arg,			\
+		      (info)->fd, cmd, (void *)(arg)))
+
 struct video_input {
 	tv_video_line		pub;
+
 	unsigned int		index;		/* struct v4l2_input */
 	unsigned int		tuner;		/* struct v4l2_tuner */
+
+	unsigned int		step_shift;
 };
 
 #define VI(l) PARENT (l, struct video_input, pub)
@@ -111,50 +119,8 @@ struct private_tveng25_device_info
  *  Controls
  */
 
-static const struct {
-	unsigned int		cid;
-	const char *		label;
-	tv_control_id		id;
-} controls [] = {
-	{ V4L2_CID_BRIGHTNESS,		N_("Brightness"),	TV_CONTROL_ID_BRIGHTNESS },
-	{ V4L2_CID_CONTRAST,		N_("Contrast"),		TV_CONTROL_ID_CONTRAST },
-	{ V4L2_CID_SATURATION,		N_("Saturation"),	TV_CONTROL_ID_SATURATION },
-	{ V4L2_CID_HUE,			N_("Hue"),		TV_CONTROL_ID_HUE },
-	{ V4L2_CID_WHITENESS,		N_("Whiteness"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_BLACK_LEVEL,		N_("Black level"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUTO_WHITE_BALANCE,	N_("White balance"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_DO_WHITE_BALANCE,	N_("White balance"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_RED_BALANCE,		N_("Red balance"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_BLUE_BALANCE,	N_("Blue balance"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_GAMMA,		N_("Gamma"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_EXPOSURE,		N_("Exposure"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUTOGAIN,		N_("Auto gain"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_GAIN,		N_("Gain"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_HCENTER,		N_("HCenter"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_VCENTER,		N_("VCenter"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_HFLIP,		N_("Hor. flipping"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_VFLIP,		N_("Vert. flipping"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUDIO_VOLUME,	N_("Volume"),		TV_CONTROL_ID_VOLUME },
-	{ V4L2_CID_AUDIO_MUTE,		N_("Mute"),		TV_CONTROL_ID_MUTE },
-	{ V4L2_CID_AUDIO_MUTE,		N_("Audio Mute"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUDIO_BALANCE,	N_("Balance"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUDIO_BALANCE,	N_("Audio Balance"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUDIO_TREBLE,	N_("Treble"),		TV_CONTROL_ID_TREBLE },
-	{ V4L2_CID_AUDIO_LOUDNESS, 	N_("Loudness"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUDIO_BASS,		N_("Bass"),		TV_CONTROL_ID_BASS },
-};
-
 /* Preliminary */
 #define TVENG25_AUDIO_MAGIC 0x1234
-
-static const char *
-audio_decoding_modes [] = {
-	N_("Automatic"),
-	N_("Mono"),
-	N_("Stereo"),
-	N_("Alternate 1"),
-	N_("Alternate 2"),
-};
 
 static tv_bool
 do_update_control		(struct private_tveng25_device_info *p_info,
@@ -167,10 +133,8 @@ do_update_control		(struct private_tveng25_device_info *p_info,
 		c->pub.value = p_info->audio_mode;
 		return TRUE;
 	} else if (c->id == V4L2_CID_AUDIO_MUTE) {
-		/*
-		  Doesn't seem to work with bttv.
-		  FIXME we should check at runtime.
-		*/
+		/* Doesn't seem to work with bttv.
+		   FIXME we should check at runtime. */
 		return TRUE;
 	}
 
@@ -189,16 +153,16 @@ do_update_control		(struct private_tveng25_device_info *p_info,
 
 static tv_bool
 update_control			(tveng_device_info *	info,
-				 tv_control *		tc)
+				 tv_control *		c)
 {
-	struct private_tveng25_device_info * p_info = P_INFO (info);
+	struct private_tveng25_device_info *p_info = P_INFO (info);
 
-	if (tc)
-		return do_update_control (p_info, C(tc));
+	if (c)
+		return do_update_control (p_info, C(c));
 
-	for (tc = p_info->info.controls; tc; tc = tc->_next)
-		if (tc->_parent == info)
-			if (!do_update_control (p_info, C(tc)))
+	for_all (c, p_info->info.controls)
+		if (c->_parent == info)
+			if (!do_update_control (p_info, C(c)))
 				return FALSE;
 
 	return TRUE;
@@ -213,7 +177,7 @@ set_control			(tveng_device_info *	info,
 	struct v4l2_control ctrl;
 
 	if (C(tc)->id == TVENG25_AUDIO_MAGIC) {
-		if (TUNER_LINE (info->cur_video_input)) {
+		if (IS_TUNER_LINE (info->cur_video_input)) {
 			struct v4l2_tuner tuner;
 
 			memset(&tuner, 0, sizeof(tuner));
@@ -264,6 +228,48 @@ set_control			(tveng_device_info *	info,
 	}
 }
 
+static const struct {
+	unsigned int		cid;
+	const char *		label;
+	tv_control_id		id;
+} controls [] = {
+	{ V4L2_CID_BRIGHTNESS,		N_("Brightness"),	TV_CONTROL_ID_BRIGHTNESS },
+	{ V4L2_CID_CONTRAST,		N_("Contrast"),		TV_CONTROL_ID_CONTRAST },
+	{ V4L2_CID_SATURATION,		N_("Saturation"),	TV_CONTROL_ID_SATURATION },
+	{ V4L2_CID_HUE,			N_("Hue"),		TV_CONTROL_ID_HUE },
+	{ V4L2_CID_WHITENESS,		N_("Whiteness"),	TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_BLACK_LEVEL,		N_("Black level"),	TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_AUTO_WHITE_BALANCE,	N_("White balance"),	TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_DO_WHITE_BALANCE,	N_("White balance"),	TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_RED_BALANCE,		N_("Red balance"),	TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_BLUE_BALANCE,	N_("Blue balance"),	TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_GAMMA,		N_("Gamma"),		TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_EXPOSURE,		N_("Exposure"),		TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_AUTOGAIN,		N_("Auto gain"),	TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_GAIN,		N_("Gain"),		TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_HCENTER,		N_("HCenter"),		TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_VCENTER,		N_("VCenter"),		TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_HFLIP,		N_("Hor. flipping"),	TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_VFLIP,		N_("Vert. flipping"),	TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_AUDIO_VOLUME,	N_("Volume"),		TV_CONTROL_ID_VOLUME },
+	{ V4L2_CID_AUDIO_MUTE,		N_("Mute"),		TV_CONTROL_ID_MUTE },
+	{ V4L2_CID_AUDIO_MUTE,		N_("Audio Mute"),	TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_AUDIO_BALANCE,	N_("Balance"),		TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_AUDIO_BALANCE,	N_("Audio Balance"),	TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_AUDIO_TREBLE,	N_("Treble"),		TV_CONTROL_ID_TREBLE },
+	{ V4L2_CID_AUDIO_LOUDNESS, 	N_("Loudness"),		TV_CONTROL_ID_UNKNOWN },
+	{ V4L2_CID_AUDIO_BASS,		N_("Bass"),		TV_CONTROL_ID_BASS },
+};
+
+static const char *
+audio_decoding_modes [] = {
+	N_("Automatic"),
+	N_("Mono"),
+	N_("Stereo"),
+	N_("Alternate 1"),
+	N_("Alternate 2"),
+};
+
 static tv_bool
 add_control			(tveng_device_info *	info,
 				 unsigned int		id)
@@ -280,8 +286,12 @@ add_control			(tveng_device_info *	info,
 	qc.id = id;
 
 	/* XXX */
-	if (-1 == v4l25_ioctl (info, VIDIOC_QUERYCTRL, &qc))
+	if (-1 == v4l25_ioctl_nf (info, VIDIOC_QUERYCTRL, &qc)) {
+		if (EINVAL != errno) 
+			ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,
+				       __LINE__, "VIDIOC_QUERYCTRL");
 		return FALSE;
+	}
 
 	if (qc.flags & (V4L2_CTRL_FLAG_DISABLED | V4L2_CTRL_FLAG_GRABBED))
 		return TRUE;
@@ -311,9 +321,25 @@ add_control			(tveng_device_info *	info,
 	c->id		= qc.id;
 
 	switch (qc.type) {
-	case V4L2_CTRL_TYPE_INTEGER:	c->pub.type = TV_CONTROL_TYPE_INTEGER; break;
-	case V4L2_CTRL_TYPE_BOOLEAN:	c->pub.type = TV_CONTROL_TYPE_BOOLEAN; break;
-	case V4L2_CTRL_TYPE_BUTTON:	c->pub.type = TV_CONTROL_TYPE_ACTION; break;
+	case V4L2_CTRL_TYPE_INTEGER:
+		c->pub.type = TV_CONTROL_TYPE_INTEGER;
+		break;
+
+	case V4L2_CTRL_TYPE_BOOLEAN:
+		c->pub.type = TV_CONTROL_TYPE_BOOLEAN;
+		/* Yeah, some drivers suck. */
+		c->pub.minimum	= 0;
+		c->pub.maximum	= 1;
+		c->pub.step	= 1;
+		break;
+
+	case V4L2_CTRL_TYPE_BUTTON:
+		c->pub.type = TV_CONTROL_TYPE_ACTION;
+		c->pub.minimum	= INT_MIN;
+		c->pub.maximum	= INT_MAX;
+		c->pub.step	= 0;
+		c->pub.reset	= 0;
+		break;
 
 	case V4L2_CTRL_TYPE_MENU:
 		c->pub.type = TV_CONTROL_TYPE_CHOICE;
@@ -355,21 +381,21 @@ add_control			(tveng_device_info *	info,
 	return TRUE;
 }
 
-/* Private, builds the controls structure */
-static int
-p_tveng25_build_controls(tveng_device_info * info)
+static tv_bool
+update_control_list		(tveng_device_info *	info)
 {
 	unsigned int cid;
 
-	for (cid = V4L2_CID_BASE;
-	     cid < V4L2_CID_LASTP1; cid++) {
+	free_controls (info);
+
+	for (cid = V4L2_CID_BASE; cid < V4L2_CID_LASTP1; ++cid) {
 		/* EINVAL ignored */
 		add_control (info, cid);
 	}
 
 	/* Artificial control (preliminary) */
 
-	if (TUNER_LINE (info->cur_video_input)) {
+	if (IS_TUNER_LINE (info->cur_video_input)) {
 		struct v4l2_tuner tuner;
 
 		memset(&tuner, 0, sizeof(tuner));
@@ -413,12 +439,12 @@ p_tveng25_build_controls(tveng_device_info * info)
 	}
 
 	for (cid = V4L2_CID_PRIVATE_BASE;
-	     cid < V4L2_CID_PRIVATE_BASE + 100; cid++) {
+	     cid < V4L2_CID_PRIVATE_BASE + 100; ++cid) {
 		if (!add_control (info, cid))
 			break; /* end of enumeration */
 	}
 
-	return 0;
+	return TRUE;
 }
 
 /*
@@ -426,87 +452,43 @@ p_tveng25_build_controls(tveng_device_info * info)
  */
 
 static tv_bool
-update_standard_list		(tveng_device_info *	info)
-{
-	unsigned int i;
-
-	free_video_standards (info);
-
-	for (i = 0;; ++i) {
-		struct v4l2_standard standard;
-		tv_video_standard *ts;
-
-		CLEAR (standard);
-
-		standard.index = i;
-
-		if (-1 == v4l25_ioctl (info, VIDIOC_ENUMSTD, &standard)) {
-			if (errno == EINVAL && i > 0)
-				break; /* end of enumeration */
-
-			free_video_standard_list (&info->video_standards);
-			return FALSE;
-		}
-
-		/* FIXME check the standard is supported by the current input */
-
-		ts = append_video_standard (&info->video_standards,
-					    standard.id,
-					    standard.name,
-					    standard.name,
-					    sizeof (*ts));
-		if (!ts) {
-			free_video_standard_list (&info->video_standards);
-			return FALSE;
-		}
-
-		ts->frame_rate =
-			standard.frameperiod.denominator
-			/ (double) standard.frameperiod.numerator;
-	}
-
-	return TRUE;
-}
-
-static tv_bool
-update_current_standard		(tveng_device_info *	info)
+update_standard			(tveng_device_info *	info)
 {
 	v4l2_std_id std_id;
-	tv_video_standard *ts;
+	tv_video_standard *s;
+
+	if (!info->video_standards)
+		return TRUE;
 
 	if (-1 == v4l25_ioctl (info, VIDIOC_G_STD, &std_id))
 		return FALSE;
 
-	for (ts = info->video_standards; ts; ts = ts->_next)
-		if (ts->id == std_id)
+	for_all (s, info->video_standards)
+		if (s->id == std_id)
 			break;
 
-	/* ts = NULL = unknown. */
+	/* s = NULL = unknown. */
 
-	set_cur_video_standard (info, ts);
+	store_cur_video_standard (info, s);
 
 	return TRUE;
 }
 
 static tv_bool
 set_standard			(tveng_device_info *	info,
-				 const tv_video_standard *	ts)
+				 const tv_video_standard *s)
 {
   enum tveng_capture_mode current_mode;
   enum tveng_frame_pixformat pixformat;
   int r;
 
-  t_assert(info != NULL);
-  t_assert(ts != NULL);
-
   pixformat = info->format.pixformat;
   current_mode = tveng_stop_everything(info);
 
-	r = v4l25_ioctl (info, VIDIOC_S_STD, &ts->id);
+	r = v4l25_ioctl (info, VIDIOC_S_STD, &s->id);
 
 	if (0 == r)
-		set_cur_video_standard (info, ts);
-
+		store_cur_video_standard (info, s);
 
 // XXX bad idea
   info->format.pixformat = pixformat;
@@ -516,9 +498,222 @@ set_standard			(tveng_device_info *	info,
   return (0 == r);
 }
 
+static tv_bool
+update_standard_list		(tveng_device_info *	info)
+{
+	unsigned int i;
+
+	free_video_standards (info);
+
+	if (!info->cur_video_input)
+		return TRUE;
+
+	for (i = 0;; ++i) {
+		struct v4l2_standard standard;
+		tv_video_standard *s;
+
+		CLEAR (standard);
+
+		standard.index = i;
+
+		if (-1 == v4l25_ioctl (info, VIDIOC_ENUMSTD, &standard)) {
+			if (errno == EINVAL && i > 0)
+				break; /* end of enumeration */
+
+			ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,
+				       __LINE__, "VIDIOC_ENUMSTD");
+
+			goto failure;
+		}
+
+		/* FIXME check if the standard is supported by the current input */
+
+		if (!(s = append_video_standard (&info->video_standards,
+						 standard.id,
+						 standard.name,
+						 standard.name,
+						 sizeof (*s))))
+			goto failure;
+
+		s->frame_rate =
+			standard.frameperiod.denominator
+			/ (double) standard.frameperiod.numerator;
+	}
+
+	if (update_standard (info))
+		return TRUE;
+
+ failure:
+	free_video_standard_list (&info->video_standards);
+	return FALSE;
+}
+
 /*
  *  Video inputs
  */
+
+#define SCALE_FREQUENCY(vi, freq)					\
+	((((freq) & ~ (unsigned long) vi->step_shift)			\
+	   * vi->pub.u.tuner.step) >> vi->step_shift)
+
+static void
+store_frequency			(struct video_input *	vi,
+				 unsigned long		freq)
+{
+	unsigned int frequency = SCALE_FREQUENCY (vi, freq);
+
+	if (vi->pub.u.tuner.frequency != frequency) {
+		vi->pub.u.tuner.frequency = frequency;
+		tv_callback_notify (&vi->pub, vi->pub._callback);
+	}
+}
+
+static tv_bool
+update_tuner_frequency		(tveng_device_info *	info,
+				 tv_video_line *	l)
+{
+	struct v4l2_frequency vfreq;
+
+	vfreq.tuner = VI (l)->tuner;
+	vfreq.type = V4L2_TUNER_ANALOG_TV;
+
+	if (-1 == v4l25_ioctl (info, VIDIOC_G_FREQUENCY, &vfreq))
+		return FALSE;
+
+	store_frequency (VI (l), vfreq.frequency);
+
+	return TRUE;
+}
+
+static tv_bool
+set_tuner_frequency		(tveng_device_info *	info,
+				 tv_video_line *	l,
+				 unsigned int		frequency)
+{
+	struct video_input *vi = VI (l);
+	struct v4l2_frequency vfreq;
+
+	CLEAR (vfreq);
+
+	vfreq.tuner = vi->tuner;
+	vfreq.type = V4L2_TUNER_ANALOG_TV;
+
+	vfreq.frequency = (frequency << vi->step_shift) / vi->pub.u.tuner.step;
+
+	if (-1 == v4l25_ioctl (info, VIDIOC_S_FREQUENCY, &vfreq))
+		return FALSE;
+
+	store_frequency (vi, vfreq.frequency);
+
+	return TRUE;
+}
+
+static tv_bool
+update_video_input		(tveng_device_info *	info)
+{
+	tv_video_line *l;
+
+	if (info->video_inputs) {
+		int index;
+
+		if (-1 == v4l25_ioctl (info, VIDIOC_G_INPUT, &index))
+			return FALSE;
+
+		if (info->cur_video_input)
+			if (VI (info->cur_video_input)->index == index)
+				return TRUE;
+
+		for_all (l, info->video_inputs)
+			if (VI (l)->index == index)
+				break;
+	} else {
+		l = NULL;
+
+		if (info->cur_video_input == NULL)
+			return TRUE;
+	}
+
+	info->cur_video_input = l;
+	tv_callback_notify (info, info->priv->video_input_callback);
+
+	if (l)
+		update_standard_list (info);
+	else
+		free_video_standards (info);
+
+	return TRUE;
+}
+
+static tv_bool
+set_video_input			(tveng_device_info *	info,
+				 const tv_video_line *	l)
+{
+	enum tveng_capture_mode current_mode;
+	enum tveng_frame_pixformat pixformat;
+
+	if (info->cur_video_input) {
+		int index;
+
+		if (0 == v4l25_ioctl (info, VIDIOC_G_INPUT, &index))
+			if (VI (l)->index == index)
+				return TRUE;
+	}
+
+	pixformat = info->format.pixformat;
+	current_mode = tveng_stop_everything(info);
+
+	if (-1 == v4l25_ioctl (info, VIDIOC_S_INPUT, &VI (l)->index))
+		return FALSE;
+
+	store_cur_video_input (info, l);
+
+	// XXX error?
+	update_standard_list (info);
+
+	info->format.pixformat = pixformat;
+	tveng_set_capture_format(info);
+
+	/* XXX Start capturing again as if nothing had happened */
+	tveng_restart_everything (current_mode, info);
+
+	return TRUE;
+}
+
+static tv_bool
+tuner_bounds			(tveng_device_info *	info,
+				 struct video_input *	vi)
+{
+	struct v4l2_tuner tuner;
+
+	tuner.index = vi->tuner;
+
+	if (-1 == v4l25_ioctl (info, VIDIOC_G_TUNER, &tuner))
+		return FALSE;
+
+	t_assert (tuner.rangelow <= tuner.rangehigh);
+
+	if (tuner.capability & V4L2_TUNER_CAP_LOW) {
+		/* Actually step is 62.5 Hz, but why
+		   unecessarily complicate things. */
+		vi->pub.u.tuner.step = 125;
+		vi->step_shift = 1;
+
+		/* A check won't do, some drivers report (0, INT_MAX). */
+		tuner.rangelow = MIN (tuner.rangelow, UINT_MAX / 125);
+		tuner.rangehigh = MIN (tuner.rangehigh, UINT_MAX / 125);
+	} else {
+		vi->pub.u.tuner.step = 62500;
+		vi->step_shift = 0;
+
+		tuner.rangelow = MIN (tuner.rangelow, UINT_MAX / 62500);
+		tuner.rangehigh = MIN (tuner.rangehigh, UINT_MAX / 62500);
+	}
+
+	vi->pub.u.tuner.minimum = SCALE_FREQUENCY (vi, tuner.rangelow);
+	vi->pub.u.tuner.maximum = SCALE_FREQUENCY (vi, tuner.rangehigh);
+
+	return update_tuner_frequency (info, &vi->pub);
+}
 
 static tv_bool
 update_video_input_list		(tveng_device_info *	info)
@@ -541,7 +736,11 @@ update_video_input_list		(tveng_device_info *	info)
 			if (errno == EINVAL && i > 0)
 				break; /* end of enumeration */
 
+			ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,
+				       __LINE__, "VIDIOC_ENUMINPUT");
+
 			free_video_line_list (&info->video_inputs);
+
 			return FALSE;
 		}
 
@@ -553,97 +752,34 @@ update_video_input_list		(tveng_device_info *	info)
 		else
 			type = TV_VIDEO_LINE_TYPE_BASEBAND;
 
-		vi = VI(append_video_line (&info->video_inputs,
-					   type, buf, buf,
-					   sizeof (*vi)));
-		if (!vi) {
-			free_video_line_list (&info->video_inputs);
-			return FALSE;
-		}
+		if (!(vi = VI(append_video_line (&info->video_inputs,
+						 type, buf, buf,
+						 sizeof (*vi)))))
+			goto failure;
+
+		vi->pub._parent = info;
 
 		vi->index = input.index;
 		vi->tuner = input.tuner;
+
+		if (input.type & V4L2_INPUT_TYPE_TUNER)
+			if (!tuner_bounds (info, vi))
+				goto failure;
 	}
 
+	update_video_input (info);
+
 	return TRUE;
+
+ failure:
+	free_video_line_list (&info->video_inputs);
+	return FALSE;
 }
 
 #if 0
 if (input.audioset != 0)
 info->inputs[i].flags |= TVENG_INPUT_AUDIO;
 #endif
-
-static tv_bool
-update_current_video_input	(tveng_device_info *	info)
-{
-	tv_video_line *l;
-	tv_video_line *old;
-	int index;
-
-	l = NULL;
-
-	if (!info->video_inputs)
-		goto finish;
-
-	if (-1 == v4l25_ioctl (info, VIDIOC_G_INPUT, &index)) {
-		return FALSE;
-	}
-
-	for_all (l, info->video_inputs)
-		if (VI(l)->index == index)
-			break;
-
- finish:
-	old = info->cur_video_input;
-
-	set_cur_video_input (info, l);
-
-	if (l) {
-		if (old != l)
-			if (update_standard_list (info))
-				update_current_standard (info);
-	} else {
-		free_video_standards (info);
-	}
-
-	return TRUE;
-}
-
-static tv_bool
-set_video_input			(tveng_device_info *	info,
-				 const tv_video_line *	l)
-{
-	enum tveng_capture_mode current_mode;
-	enum tveng_frame_pixformat pixformat;
-
-	if (info->cur_video_input) {
-		int index;
-
-		if (0 == v4l25_ioctl (info, VIDIOC_G_INPUT, &index))
-			if (VI(l)->index == index)
-				return TRUE;
-	}
-
-	pixformat = info->format.pixformat;
-	current_mode = tveng_stop_everything(info);
-
-	if (-1 == v4l25_ioctl (info, VIDIOC_S_INPUT, &VI(l)->index))
-		return FALSE;
-
-	set_cur_video_input (info, l);
-
-	// XXX error?
-	if (update_standard_list (info))
-		update_current_standard (info);
-
-	info->format.pixformat = pixformat;
-	tveng_set_capture_format(info);
-
-	/* XXX Start capturing again as if nothing had happened */
-	tveng_restart_everything (current_mode, info);
-
-	return TRUE;
-}
 
 /*
  *  Overlay
@@ -1038,20 +1174,15 @@ int tveng25_attach_device(const char* device_file,
 	info->video_inputs = NULL;
 	info->cur_video_input = NULL;
 
-	// XXX error
-	update_video_input_list (info);
-
 	info->video_standards = NULL;
 	info->cur_video_standard = NULL;
 
 	// XXX error
-	update_current_video_input (info);
-
+	update_video_input_list (info);
 
   /* Query present controls */
   info->controls = NULL;
-  error = p_tveng25_build_controls(info);
-  if (error == -1)
+  if (!update_control_list (info))
       return -1;
 
   /* Set up the palette according to the one present in the system */
@@ -1401,51 +1532,6 @@ tveng25_set_capture_format(tveng_device_info * info)
 
 
 /*
-  Tunes the current input to the given freq. Returns -1 on error.
-*/
-static int
-tveng25_tune_input(uint32_t _freq, tveng_device_info * info)
-{
-  struct v4l2_tuner tuner;
-  struct v4l2_frequency freq;
-
-  t_assert(info != NULL);
-
-  if (!TUNER_LINE (info->cur_video_input))
-    return 0; /* Success (we shouldn't be tuning, anyway) */
-
-  /* Get more info about this tuner */
-
-  CLEAR (tuner);
-
-  tuner.index = VI(info->cur_video_input)->tuner;
-
-  if (-1 == v4l25_ioctl (info, VIDIOC_G_TUNER, &tuner))
-      return -1;
-
-  CLEAR (freq);
-
-  freq.tuner = tuner.index;
-  freq.type = V4L2_TUNER_ANALOG_TV;
-  
-  if (tuner.capability & V4L2_TUNER_CAP_LOW)
-    freq.frequency = _freq / 0.0625; /* kHz -> 62.5 Hz */
-  else
-    freq.frequency = _freq / 62.5; /* kHz -> 62.5 kHz */
-
-  if (freq.frequency > tuner.rangehigh)
-    freq.frequency = tuner.rangehigh;
-  if (freq.frequency < tuner.rangelow)
-    freq.frequency = tuner.rangelow;
-  
-  /* OK, everything is set up, try to tune it */
-  if (-1 == v4l25_ioctl (info, VIDIOC_S_FREQUENCY, &freq))
-      return -1;
-
-  return 0; /* Success */
-}
-
-/*
   Gets the signal strength and the afc code. The afc code indicates
   how to get a better signal, if negative, tune higher, if negative,
   tune lower. 0 means no idea or feature not present in the current
@@ -1460,7 +1546,7 @@ tveng25_get_signal_strength (int *strength, int * afc,
 
   t_assert(info != NULL);
 
-  if (!TUNER_LINE (info->cur_video_input))
+  if (!IS_TUNER_LINE (info->cur_video_input))
     return -1;
 
   tuner.index = VI(info->cur_video_input)->tuner;
@@ -1498,97 +1584,6 @@ tveng25_get_signal_strength (int *strength, int * afc,
   return 0; /* Success */
 }
 
-/*
-  Stores in freq the currently tuned freq. Returns -1 on error.
-*/
-static int
-tveng25_get_tune(uint32_t * freq, tveng_device_info * info)
-{
-  struct v4l2_tuner tuner;
-  struct v4l2_frequency vfreq;
-
-  t_assert(info != NULL);
-  t_assert(freq != NULL);
-
-  if (!TUNER_LINE (info->cur_video_input))
-    {
-      if (freq)
-	*freq = 0;
-      info->tveng_errno = -1;
-      t_error_msg("tuners check",
-		  "There are no tuners for the active input",
-		  info);
-      return -1;
-    }
-
-  CLEAR (vfreq);
-
-  vfreq.tuner = VI(info->cur_video_input)->tuner;
-  vfreq.type = V4L2_TUNER_ANALOG_TV;
-
-  if (-1 == v4l25_ioctl (info, VIDIOC_G_FREQUENCY, &vfreq))
-      return -1;
-
-  /* Get more info about this tuner */
-  CLEAR (tuner);
-
-  tuner.index = VI(info->cur_video_input)->tuner;
-
-  if (-1 == v4l25_ioctl (info, VIDIOC_G_TUNER, &tuner))
-      return -1;
-
-  if (tuner.capability & V4L2_TUNER_CAP_LOW)
-    *freq = vfreq.frequency * 0.0625;
-  else
-    *freq = vfreq.frequency * 62.5;
-
-  return 0;
-}
-
-/*
-  Gets the minimum and maximum freq that the current input can
-  tune. If there is no tuner in this input, -1 will be returned.
-  If any of the pointers is NULL, its value will not be filled.
-*/
-static int
-tveng25_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
-			info)
-{
-  struct v4l2_tuner tuner;
-
-  t_assert(info != NULL);
-
-  if (!TUNER_LINE (info->cur_video_input))
-    return -1;
-
-  /* Get info about the current tuner */
-  CLEAR (tuner);
-  tuner.index = VI(info->cur_video_input)->tuner;
-  if (-1 == v4l25_ioctl (info, VIDIOC_G_TUNER, &tuner))
-      return -1;
-
-  if (min)
-    *min = tuner.rangelow;
-  if (max)
-    *max = tuner.rangehigh;
-
-  if (tuner.capability & V4L2_TUNER_CAP_LOW)
-    {
-      if (min)
-	*min *= 0.0625;
-      if (max)
-	*max *= 0.0625;
-    }
-  else
-    {
-      if (min)
-	*min *= 62.5;
-      if (max)
-	*max *= 62.5;
-    }
-
-  return 0; /* Success */
-}
 
 /* Some private functions */
 /* Queues an specific buffer. -1 on error */
@@ -1916,18 +1911,17 @@ static struct tveng_module_info tveng25_module_info = {
   .attach_device =		tveng25_attach_device,
   .describe_controller =	tveng25_describe_controller,
   .close_device =		tveng25_close_device,
-  .update_video_input		= update_current_video_input,
   .set_video_input		= set_video_input,
-  .update_standard		= update_current_standard,
+  .update_video_input		= update_video_input,
+  .set_tuner_frequency		= set_tuner_frequency,
+  .update_tuner_frequency	= update_tuner_frequency,
   .set_standard			= set_standard,
+  .update_standard		= update_standard,
   .update_capture_format =	tveng25_update_capture_format,
   .set_capture_format =		tveng25_set_capture_format,
   .update_control		= update_control,
   .set_control			= set_control,
-  .tune_input =			tveng25_tune_input,
   .get_signal_strength =	tveng25_get_signal_strength,
-  .get_tune =			tveng25_get_tune,
-  .get_tuner_bounds =		tveng25_get_tuner_bounds,
   .start_capturing =		tveng25_start_capturing,
   .stop_capturing =		tveng25_stop_capturing,
   .read_frame =			tveng25_read_frame,
