@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.5 2000-08-12 02:14:37 mschimek Exp $ */
+/* $Id: mp2.c,v 1.6 2000-09-29 17:54:33 mschimek Exp $ */
 
 #include <limits.h>
 #include "../options.h"
@@ -329,7 +329,7 @@ audio_init(void)
 
 	audio_fifo = mux_add_input_stream(AUDIO_STREAM,
 		2048 << stereo, aud_buffers,
-		sampling_freq / (double) SAMPLES_PER_FRAME, bit_rate);
+		sampling_freq / (double) SAMPLES_PER_FRAME, bit_rate, audio_cap_fifo);
 }
 
 static void

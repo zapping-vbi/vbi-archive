@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.21 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: main.c,v 1.22 2000-09-29 17:54:31 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,27 +51,12 @@
 #include "common/bstream.h"
 #include "options.h"
 
-/* 
- * The code to test RTE has moved to rtemain.c (builds rte_test), mp1e
- * will be built from this file.
- * fixme: The RTE-related code should be removed, this is becoming a
- * bit of a mess. Probably it won't work with the current rte code
- * anyway.
- */
-#define RTE 0
-
-#if RTE
-
-#include "rtepriv.h"
-#include "main.h"
-
-#endif // RTE
-
 char *			my_name;
 int			verbose;
 
 double			video_stop_time = 1e30;
 double			audio_stop_time = 1e30;
+double			vbi_stop_time = 1e30;
 
 pthread_t		audio_thread_id;
 fifo *			audio_cap_fifo;
@@ -82,12 +67,17 @@ fifo *			video_cap_fifo;
 void			(* video_start)(void);
 int			min_cap_buffers;
 
+pthread_t		vbi_thread_id;
+fifo *			vbi_cap_fifo;
+extern void		vbi_v4l2_init(void);
+extern void		vbi_init(void);
+extern void *		vbi_thread(void *);
+
 pthread_t               output_thread_id;
 
 pthread_t		tk_main_id;
 extern void *		tk_main(void *);
 
-extern int		mux_mode;
 extern int		psycho_loops;
 extern int		audio_num_frames;
 extern int		video_num_frames;
@@ -99,175 +89,6 @@ extern void preview_init(void);
 extern void audio_init(void);
 extern void video_init(void);
 
-#if RTE
-
-volatile int program_shutdown = 0;
-
-pthread_t video_emulation_thread_id;
-pthread_t audio_emulation_thread_id;
-pthread_mutex_t video_device_mutex=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t audio_device_mutex=PTHREAD_MUTEX_INITIALIZER;
-
-fifo *			ye_olde_audio_cap_fifo;
-
-// obsolete
-unsigned char *		(* ye_olde_wait_frame)(double *, int *);
-void			(* ye_olde_frame_done)(int);
-
-void emulation_data_callback(void * data, double * time, int video,
-			     rte_context * context, void * user_data)
-{
-	int frame;
-	void * misc_data;
-	buffer *b;
-
-	if (video) {
-		pthread_mutex_lock(&video_device_mutex);
-		misc_data = ye_olde_wait_frame(time, &frame);
-		pthread_mutex_unlock(&video_device_mutex);
-		memcpy(data, misc_data, context->video_bytes);
-		ye_olde_frame_done(frame);
-	}
-	else {
-		pthread_mutex_lock(&audio_device_mutex);
-		b = wait_full_buffer(ye_olde_audio_cap_fifo);
-		misc_data = b->data;
-		*time = b->time;
-		pthread_mutex_unlock(&audio_device_mutex);
-		memcpy(data, misc_data, context->audio_bytes);
-		send_empty_buffer(ye_olde_audio_cap_fifo, b);
-	}
-}
-
-void * video_emulation_thread (void * ptr)
-{
-	int frame;
-	double timestamp;
-	unsigned char * data;
-	void * video_data;
-	rte_context * context = (rte_context *)ptr;
-
-	data = rte_push_video_data(context, NULL, 0);
-	for (;data;) {
-		pthread_mutex_lock(&video_device_mutex);
-		video_data = ye_olde_wait_frame(&timestamp, &frame);
-		pthread_mutex_unlock(&video_device_mutex);
-		memcpy(data, video_data, context->video_bytes);
-		data = rte_push_video_data(context, data, timestamp);
-		ye_olde_frame_done(frame);
-	}
-	fprintf(stderr, "video emulation: %s\n", context->error);
-
-	return NULL;
-}
-
-void * audio_emulation_thread (void * ptr)
-{
-	double timestamp;
-	short * data;
-	short * audio_data;
-	rte_context * context = (rte_context *)ptr;
-	buffer *b;
-
-	data = rte_push_audio_data(context, NULL, 0);
-	for (;data;) {
-		pthread_mutex_lock(&audio_device_mutex);
-		b = wait_full_buffer(ye_olde_audio_cap_fifo);
-		audio_data = (short *) b->data;
-		timestamp = b->time;
-		pthread_mutex_unlock(&audio_device_mutex);
-		memcpy(data, audio_data, context->audio_bytes);
-		data = rte_push_audio_data(context, data, timestamp);
-		send_empty_buffer(ye_olde_audio_cap_fifo, b);
-	}
-	fprintf(stderr, "audio emulation: %s\n", context->error);
-	return NULL;
-}
-
-/*
-  This is just for a preliminary testing, loads of things need to be
-  done before this gets really functional.
-  push + callbacks don't work together yet, but separately they
-  do. Does anybody really want to use them together?
-  The push interface works great, not much more CPU usage and nearly
-  no lost frames; the callbacks one needs a bit more CPU, and drops
-  some more frames, but works fine too.
-*/
-int emulation_thread_init ( void )
-{
-	rte_context * context;
-	int do_test = 1; /* 1 == push, 2 == callbacks, 3 == both */
-	rteDataCallback callback;
-	enum rte_pixformat format;
-
-	ye_olde_wait_frame = video_wait_frame;
-	ye_olde_frame_done = video_frame_done;
-
-	ye_olde_audio_cap_fifo = audio_cap_fifo;
-
-	if (!rte_init())
-		return 0;
-
-	if (do_test & 2)
-		callback = RTE_DATA_CALLBACK(emulation_data_callback);
-	else
-		callback = NULL;
-
-	context = rte_context_new("temp.mpeg", width, height, RTE_RATE_3,
-				  NULL, callback, (void*)0xdeadbeef);
-
-	if (!context) {
-		fprintf(stderr, "%s\n", context->error);
-		return 0;
-	}
-
-	switch (filter_mode) {
-	case CM_YUYV:
-		format = RTE_YUYV;
-		break;
-	case CM_YUV:
-		format = RTE_YUV420;
-		break;
-	case CM_YUYV_VERTICAL_DECIMATION:
-	case CM_YUYV_TEMPORAL_INTERPOLATION:
-	case CM_YUYV_VERTICAL_INTERPOLATION:
-	case CM_YUYV_PROGRESSIVE:
-	case CM_YUYV_PROGRESSIVE_TEMPORAL:
-	case CM_YUYV_EXP:
-	case CM_YUYV_EXP_VERTICAL_DECIMATION:
-	case CM_YUYV_EXP2:
-		format = (filter_mode-CM_YUYV_VERTICAL_DECIMATION) + 
-			RTE_YUYV_VERTICAL_DECIMATION;
-		break;
-	default:
-		printv(1, "filter mode not supported: %d\nfalling back "
-		       "to YUYV mode\n", filter_mode);
-		format = RTE_YUYV;
-		break;
-	}
-
-	rte_set_video_parameters(context, format, context->width,
-				 context->height, context->video_rate,
-				 context->output_video_bits);
-
-	if (!rte_start(context))
-	{
-		fprintf(stderr, "%s\n", context->error);
-		rte_context_destroy(context);
-		return 0;
-	}
-
-	if (do_test & 1) {
-		pthread_create(&video_emulation_thread_id, NULL,
-			       video_emulation_thread, context);
-		pthread_create(&audio_emulation_thread_id, NULL,
-			       audio_emulation_thread, context);
-	}
-
-	return 1;
-}
-
-#endif // RTE
 
 static void
 terminate(int signum)
@@ -281,6 +102,7 @@ terminate(int signum)
 	gettimeofday(&tv, NULL);
 
 	video_stop_time =
+	vbi_stop_time =
 	audio_stop_time = tv.tv_sec + tv.tv_usec / 1e6;
 
 // XXX unsafe? atomic set, once only, potential rc
@@ -302,6 +124,10 @@ main(int ac, char **av)
 
 	options(ac, av);
 
+	if ((modules & MOD_SUBTITLES) && mux_syn >= 2)
+		FAIL("VBI multiplex not ready; use -X0 or -X1\n");
+	// XXX disable vbi if subtitle_pages == NULL (currently ignored for tests) 
+
 	sigemptyset(&block_mask);
 	sigaddset(&block_mask, SIGINT);
 	sigprocmask(SIG_BLOCK, &block_mask, NULL);
@@ -316,7 +142,7 @@ main(int ac, char **av)
 
 	/* Capture init */
 
-	if (mux_mode & 2) {
+	if (modules & MOD_AUDIO) {
 		struct stat st;
 		int psy_level = audio_mode / 10;
 
@@ -346,7 +172,7 @@ main(int ac, char **av)
 		}
 	}
 
-	if (mux_mode & 1) {
+	if (modules & MOD_VIDEO) {
 		struct stat st;
 
 		{
@@ -378,11 +204,15 @@ main(int ac, char **av)
 			file_init();
 	}
 
+	if (modules & MOD_SUBTITLES) {
+		vbi_v4l2_init();
+	}
+
 	/* Compression init */
 
 	mucon_init(&mux_mucon);
 
-	if (mux_mode & 2) {
+	if (modules & MOD_AUDIO) {
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
 		long long n = llroundn(((double) video_num_frames / frame_rate_value[frame_rate_code])
 			/ (1152.0 / sampling_rate));
@@ -391,13 +221,13 @@ main(int ac, char **av)
 			sampling_rate / (double) 1000, sampling_rate < 32000 ? " (MPEG-2)" : "", modes[audio_mode],
 			audio_bit_rate / 1000, (double) sampling_rate * (16 << stereo) / audio_bit_rate);
 
-		if (mux_mode & 1)
+		if (modules & MOD_VIDEO)
 			audio_num_frames = MIN(n, (long long) INT_MAX);
 
 		audio_init();
 	}
 
-	if (mux_mode & 1) {
+	if (modules & MOD_VIDEO) {
 		video_coding_size(width, height);
 
 		if (frame_rate > frame_rate_value[frame_rate_code])
@@ -418,28 +248,16 @@ main(int ac, char **av)
 		video_start(); // bah. need a start/restart function, prob. start_time
 	}
 
-#if RTE
-
-	if (!emulation_thread_init())
-		return 0;
-
-	ASSERT("open output files", output_init() >= 0);
-
-	ASSERT("create output thread",
-	       !pthread_create(&output_thread_id, NULL, output_thread, NULL));
-
-	printv(2, "Output thread launched\n");
-
-#else // !RTE
+	if (modules & MOD_SUBTITLES) {
+		vbi_init();
+	}
 
 	ASSERT("initialize output routine", init_output_stdout());
 
-#endif // !RTE
-
-	if ((mux_mode & 3) == 3)
+	if (popcnt(modules) > 1)
 		synchronize_capture_modules();
 
-	if (mux_mode & 2) {
+	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
 			!pthread_create(&audio_thread_id, NULL,
 			stereo ? mpeg_audio_layer_ii_stereo :
@@ -448,7 +266,7 @@ main(int ac, char **av)
 		printv(2, "Audio compression thread launched\n");
 	}
 
-	if (mux_mode & 1) {
+	if (modules & MOD_VIDEO) {
 		ASSERT("create video compression thread",
 			!pthread_create(&video_thread_id, NULL,
 				mpeg1_video_ipb, NULL));
@@ -456,10 +274,19 @@ main(int ac, char **av)
 		printv(2, "Video compression thread launched\n");
 	}
 
+	if (modules & MOD_SUBTITLES) {
+		ASSERT("create vbi thread",
+			!pthread_create(&vbi_thread_id, NULL,
+				vbi_thread, NULL));
+
+		printv(2, "VBI thread launched\n");
+	}
+
 	sigprocmask(SIG_UNBLOCK, &block_mask, NULL);
 	// Unblock only in main thread
 
-	if ((mux_mode & 3) != 3 && mux_syn >= 2)
+	if ((modules & (MOD_VIDEO | MOD_AUDIO)) != (MOD_VIDEO | MOD_AUDIO)
+		&& mux_syn >= 2)
 		mux_syn = 1; // compatibility
 
 	/*
@@ -496,41 +323,12 @@ main(int ac, char **av)
 		usleep(100000); /* 0.1 s*/
 		gettimeofday(&tv, NULL);
 	} while (audio_stop_time > (tv.tv_sec + tv.tv_usec / 1e6));
-	
+
 	pthread_join(mux_thread, NULL);
 
 	mux_cleanup();
 
 	printv(1, "\n%s: Done.\n", my_name);
-
-#if RTE
-
-	printv(2, "Doing cleanup\n");
-
-	program_shutdown = 1;
-
-	if (mux_mode & 1) {
-		printv(3, "\nvideo thread... ");
-		pthread_cancel(video_thread_id);
-		pthread_join(video_thread_id, NULL);
-		printv(3, "done\n");
-	}
-
-	if (mux_mode & 2) {
-		printv(3, "\naudio thread... ");
-		pthread_cancel(audio_thread_id);
-		pthread_join(audio_thread_id, NULL);
-		printv(3, "done\n");
-	}
-
-	printv(3, "\noutput thread... ");
-
-	output_end();
-	printv(3, "done\n");
-
-	printv(2, "\nCleanup done, bye...\n");
-
-#endif // RTE
 
 	pr_report();
 

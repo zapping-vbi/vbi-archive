@@ -100,7 +100,7 @@ int
 output_init( void )
 {
 	/* we need this later for the size check */
-	switch (mux_mode & 3) {
+	switch (modules & (MOD_VIDEO | MOD_AUDIO)) {
 	case 1:
 		out_buffer_size = mb_num * 384 * 4;
 		break;

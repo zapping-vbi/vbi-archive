@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.2 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.3 2000-09-29 17:54:33 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -304,6 +304,7 @@ mpeg2_program_stream_mux(void *unused)
 		int bit_rate = 0;
 
 		for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
+			str->buf = NULL;
 			bit_rate += str->bit_rate;
 			str->eff_bit_rate = str->bit_rate;
 			str->ticks_per_frame = (double) SYSTEM_TICKS / str->frame_rate;

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.8 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.9 2000-09-29 17:54:33 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -108,7 +108,6 @@ extern int		frames_per_seqhdr;
 extern int		video_num_frames;
 extern double		video_stop_time;
 
-#define new_intra_quant mmx_new_intra_quant
 #define new_inter_quant mmx_new_inter_quant
 #define fdct_intra mmx_fdct_intra
 #define fdct_inter mmx_fdct_inter
@@ -192,10 +191,8 @@ do {									\
 	brewind(&mark, &video_out);					\
 									\
 	for (;;) {							\
-		new_intra_quant(quant);					\
-									\
 		pr_start(22, "FDCT intra");				\
-		fdct_intra(); /* mblock[0] -> mblock[1] */		\
+		fdct_intra(quant); /* mblock[0] -> mblock[1] */		\
 		pr_end(22);						\
 									\
 		bepilog(&video_out);					\
@@ -278,7 +275,7 @@ do {									\
 									\
 			if (ref) {					\
 				pr_start(23, "IDCT intra");		\
-				mpeg1_idct_intra();			\
+				mpeg1_idct_intra(quant);		\
 				pr_end(23);				\
 									\
 				mba_col();				\
@@ -383,10 +380,8 @@ picture_i(unsigned char *org0, unsigned char *org1)
 			brewind(&mark, &video_out);
 
 			for (;;) {
-				new_intra_quant(quant);
-
 				pr_start(22, "FDCT intra");
-				fdct_intra(); // mblock[0] -> mblock[1]
+				fdct_intra(quant); // mblock[0] -> mblock[1]
 				pr_end(22);
 
 				bepilog(&video_out);
@@ -432,7 +427,7 @@ picture_i(unsigned char *org0, unsigned char *org1)
 
 			if (referenced) {
 				pr_start(23, "IDCT intra");
-				mpeg1_idct_intra();		// mblock[1] -> newref
+				mpeg1_idct_intra(quant);	// mblock[1] -> newref
 				pr_end(23);
 
 				mba_col();
@@ -617,7 +612,7 @@ quant = quant_res_intra[saturate(quant >> 1, 1, quant_max)];
 
 				if (referenced) {
 					pr_start(23, "IDCT intra");
-					mpeg1_idct_intra(); // mblock[0] -> new
+					mpeg1_idct_intra(quant); // mblock[0] -> new
 					pr_end(23);
 				}
 			} else {
@@ -1870,5 +1865,5 @@ video_init(void)
 
 	video_fifo = mux_add_input_stream(VIDEO_STREAM,
 		mb_num * 384 * 4, vid_buffers,
-		frames_per_sec, video_bit_rate);
+		frames_per_sec, video_bit_rate, video_cap_fifo);
 }

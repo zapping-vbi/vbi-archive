@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.5 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: systems.h,v 1.6 2000-09-29 17:54:33 mschimek Exp $ */
 
 #ifndef __SYSTEMS_H__
 #define __SYSTEMS_H__
@@ -45,6 +45,6 @@ extern list			mux_input_streams;
 extern void			mux_cleanup(void);
 extern fifo *			mux_add_input_stream(int stream_id,
 					int max_size, int buffers,
-					double frame_rate, int bit_rate);
+					double frame_rate, int bit_rate, fifo *);
 
 #endif

@@ -644,7 +644,7 @@ int rte_start ( rte_context * context )
 	rte_compression_startup();
 
 	/* fixme: clean this up */
-	if (mux_mode & 2) {
+	if (modules & 2) {
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
 		long long n = llroundn(((double) video_num_frames / frame_rate_value[frame_rate_code])
 			/ (1152.0 / sampling_rate));
@@ -653,13 +653,13 @@ int rte_start ( rte_context * context )
 			sampling_rate / (double) 1000, sampling_rate < 32000 ? " (MPEG-2)" : "", modes[audio_mode],
 			audio_bit_rate / 1000, (double) sampling_rate * (16 << stereo) / audio_bit_rate);
 
-		if (mux_mode & 1)
+		if (modules & 1)
 			audio_num_frames = MIN(n, (long long) INT_MAX);
 
 		audio_init();
 	}
 
-	if (mux_mode & 1) {
+	if (modules & 1) {
 		video_coding_size(width, height);
 
 		if (frame_rate > frame_rate_value[frame_rate_code])
@@ -768,12 +768,12 @@ int rte_start ( rte_context * context )
 	ASSERT("create output thread",
 	       !pthread_create(&output_thread_id, NULL, output_thread, NULL));
 
-//	if ((mux_mode & 3) == 3)
+//	if ((modules & 3) == 3)
 //		synchronize_capture_modules();
 
-	printv(3, "\nWir sind jetz hier.\n");
+	printv(3, "\nWir sind jetzt hier.\n");
 
-	if (mux_mode & 2) {
+	if (modules & 2) {
 		ASSERT("create audio compression thread",
 			!pthread_create(&audio_thread_id, NULL,
 			stereo ? mpeg_audio_layer_ii_stereo :
@@ -782,7 +782,7 @@ int rte_start ( rte_context * context )
 		printv(2, "Audio compression thread launched\n");
 	}
 
-	if (mux_mode & 1) {
+	if (modules & 1) {
 		ASSERT("create video compression thread",
 			!pthread_create(&video_thread_id, NULL,
 				mpeg1_video_ipb, NULL));
@@ -790,7 +790,7 @@ int rte_start ( rte_context * context )
 		printv(2, "Video compression thread launched\n");
 	}
 
-	if ((mux_mode & 3) != 3)
+	if ((modules & 3) != 3)
 		mux_syn = 0;
 
 	/*
@@ -1163,7 +1163,7 @@ static int rte_fake_options(rte_context * context)
 
 	ASSERT("guiroppaaaaa!\n", context != NULL);
 
-	mux_mode = context->mode;
+	modules = context->mode;
 	grab_width = saturate(context->width, 1, MAX_WIDTH);
 	grab_height = saturate(context->height, 1, MAX_HEIGHT);
 	if ((context->video_rate == RTE_RATE_NORATE) ||
@@ -1232,7 +1232,7 @@ static int rte_fake_options(rte_context * context)
 /* Startup video parameters */
 static void rte_audio_startup(void)
 {
-	if (mux_mode & 2) {
+	if (modules & 2) {
 		struct stat st;
 		int psy_level = audio_mode / 10;
 		
@@ -1255,7 +1255,7 @@ static void rte_audio_startup(void)
 /* Startup audio parameters */
 static void rte_video_startup(void)
 {
-	if (mux_mode & 1) {
+	if (modules & 1) {
 		struct stat st;
 		{
 			char *s = gop_sequence;

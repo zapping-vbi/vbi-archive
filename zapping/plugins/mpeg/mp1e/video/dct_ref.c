@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct_ref.c,v 1.3 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: dct_ref.c,v 1.4 2000-09-29 17:54:33 mschimek Exp $ */
 
 #include "dct.h"
 #include "mpeg.h"
@@ -31,7 +31,6 @@
 static FLOAT		aan_fwd_lut[8][8];
 static FLOAT		aan_inv_lut[8][8];
 
-int			intra_quant_scale;
 int			inter_quant_scale;
 
 static void aan_lut_init(void) __attribute__ ((constructor));
@@ -162,7 +161,7 @@ aan_double_1d_idct(FLOAT *in, FLOAT *out)
  */
 
 void
-fdct_intra(void)
+fdct_intra(int quant_scale)
 {
 	int i, j, v, u, val, div;
 
@@ -190,7 +189,7 @@ fdct_intra(void)
 
 		for (j = 1; j < 64; j++) {
 			val = lroundn(F[0][j] * aan_fwd_lut[0][j]);
-			div = default_intra_quant_matrix[0][j] * intra_quant_scale;
+			div = default_intra_quant_matrix[0][j] * quant_scale;
 
 			mblock[1][i][0][j] = SATURATE((8 * val + sign(val) * (div >> 1)) / div, -255, +255);
 		}
@@ -236,7 +235,7 @@ fdct_inter(short iblock[6][8][8])
 }
 
 void
-mpeg1_idct_intra(void)
+mpeg1_idct_intra(int quant_scale)
 {
 	int i, j, k, val;
 	unsigned char *p, *new = newref;
@@ -254,7 +253,7 @@ mpeg1_idct_intra(void)
 
 		for (j = 1; j < 64; j++) {
 			val = (int)(mblock[1][i][0][j] * 
-				default_intra_quant_matrix[0][j] * intra_quant_scale) / 8;
+				default_intra_quant_matrix[0][j] * quant_scale) / 8;
 
 			/* mismatch control */
 
@@ -342,7 +341,7 @@ mpeg1_idct_inter(unsigned int cbp)
 }
 
 void
-mpeg2_idct_intra(void)
+mpeg2_idct_intra(int quant_scale)
 {
 	int i, j, k, val, sum;
 	unsigned char *p, *new = newref;
@@ -360,7 +359,7 @@ mpeg2_idct_intra(void)
 
 		for (j = 1; j < 64; j++) {
 			val = (int)(mblock[1][i][0][j] * 
-				default_intra_quant_matrix[0][j] * intra_quant_scale) / 8;
+				default_intra_quant_matrix[0][j] * quant_scale) / 8;
 
 			sum += val = saturate(val, -2048, 2047);
 
@@ -447,12 +446,6 @@ mpeg2_idct_inter(unsigned int cbp)
 			}
 		}
 	}
-}
-
-void
-new_intra_quant(int quant_scale)
-{
-	intra_quant_scale = quant_scale;
 }
 
 void

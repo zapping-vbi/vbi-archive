@@ -18,11 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.h,v 1.6 2000-08-27 21:40:08 garetxe Exp $ */
+/* $Id: options.h,v 1.7 2000-09-29 17:54:31 mschimek Exp $ */
 
 extern char *		cap_dev;
 extern char *		pcm_dev;
 extern char *		mix_dev;
+extern char *		vbi_dev;
 
 /* Video */
 
@@ -52,9 +53,17 @@ extern int		audio_mode;
 extern int		psycho_loops;
 extern int		mute; // bttv specific
 
+/* VBI */
+
+extern char *		subtitle_pages;
+
 /* Multiplexer */
 
-extern int		mux_mode;
+#define MOD_VIDEO	0x01
+#define MOD_AUDIO	0x02
+#define MOD_SUBTITLES	0x04
+
+extern int		modules;
 extern int		mux_syn;
 
 extern int		cap_buffers;

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct.c,v 1.5 2000-09-28 07:25:41 mschimek Exp $ */
+/* $Id: dct.c,v 1.6 2000-09-29 17:54:33 mschimek Exp $ */
 
 #include <assert.h>
 #include "../common/math.h"
@@ -75,8 +75,9 @@ mmx_t cC2626_15 align(8);
 mmx_t cC6262_15 align(8);
 mmx_t mm8, mm9;
 
-static char mmx_q_fdct_intra_sh[32] align(CACHE_LINE);
-static short mmx_q_fdct_intra_q_lut[8][8][8] align(CACHE_LINE);
+char			mmx_q_fdct_intra_sh[32] align(MIN(CACHE_LINE,32));
+short			mmx_q_fdct_intra_q_lut[8][8][8] align(CACHE_LINE);
+
 short mmx_q_fdct_inter_lut[6][8][2] align(CACHE_LINE);
 short mmx_q_fdct_inter_lut0[8][1] align(CACHE_LINE);
 short mmx_q_fdct_inter_q[32] align(CACHE_LINE);
@@ -244,27 +245,6 @@ init_dct(void)
 		mmx_q_fdct_inter_q[q] = lroundn(S15 / q / 2.0);
 }
 
-void
-mmx_new_intra_quant(int quant_scale)
-{
-	int sh, rnd;
-	int ltsi = lts[quant_scale];
-	int ltpi = ltp[quant_scale];
-
-	intra_quant_scale = quant_scale;
-	
-	c3a.uq = 16 /* pmulh */ + 5 /* scale */ + ltsi - sh1[ltpi];
-	lut1p = &LUT1[ltpi][0][0];
-
-	sh = mmx_q_fdct_intra_sh[intra_quant_scale];
-	rnd = 1 << (sh - 1);
-	csh.uq = sh;
-	rnd |= rnd << 16;
-	crnd.ud[0] = rnd;
-	crnd.ud[1] = rnd;
-	qfiql = &mmx_q_fdct_intra_q_lut[ltpi][0][0];
-}
-
 
 void
 mmx_new_inter_quant(int quant_scale)
@@ -287,10 +267,15 @@ mmx_new_inter_quant(int quant_scale)
 /* preliminary */
 
 void
-mmx_mpeg1_idct_intra(void)
+mmx_mpeg1_idct_intra(int quant_scale)
 {
 	unsigned char *new = newref;
+	int ltsi = lts[quant_scale];
+	int ltpi = ltp[quant_scale];
 	int i;
+
+	c3a.uq = 16 /* pmulh */ + 5 /* scale */ + ltsi - sh1[ltpi];
+	lut1p = &LUT1[ltpi][0][0];
 
 	for (i = 0; i < 6; i++) {
 		new += mb_address.block[i].offset;
@@ -663,7 +648,7 @@ asm("
 
 /* preliminary */
 
-static short t1s[8][8] __attribute__ ((aligned (32)));
+short t1s[8][8] __attribute__ ((aligned (32)));
 
 void
 mmx_mpeg1_idct_inter(unsigned int cbp)

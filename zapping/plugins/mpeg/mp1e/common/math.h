@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: math.h,v 1.2 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: math.h,v 1.3 2000-09-29 17:54:33 mschimek Exp $ */
 
 #ifndef MATH_H
 #define MATH_H
@@ -106,6 +106,19 @@ ffsr(unsigned int n)
 	asm volatile ("\tbsrl %1,%0\n": "=r" (r) : "r" (n));
 
 	return r;
+}
+
+/*
+ *  Number of set bits
+ */
+static inline unsigned int
+popcnt(unsigned int v)
+{
+	v -= ((v >> 1) & 0x55555555);
+	v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
+	v = (v + (v >> 4)) & 0x0F0F0F0F;
+
+	return (v * 0x01010101) >> 24;
 }
 
 #endif // MATH_H

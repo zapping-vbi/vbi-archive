@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.6 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: options.c,v 1.7 2000-09-29 17:54:31 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,12 +42,13 @@
  *  Factory defaults, use system wide configuration file to customize
  */
 
-int			mux_mode		= 3;			// 1 = Video, Audio, Both
+int			modules			= 3;			// 1 = Video, 2 = Audio, 4 = VBI
 int			mux_syn			= 2;			// 0 = null, elementary, MPEG-1, MPEG-2 PS 
 
 char *			cap_dev			= "/dev/video";
 char *			pcm_dev			= "/dev/dsp";
 char *			mix_dev			= "/dev/mixer";
+char *			vbi_dev			= "/dev/vbi";
 
 int			width			= 352;
 int			height			= 288;
@@ -72,6 +73,8 @@ int			mix_volume		= 80;			// 0 <= n <= 100
 int			audio_mode		= AUDIO_MODE_MONO;
 int			psycho_loops		= 0;			// 0 = static, low, hi quality
 int			mute			= 0;			// bttv specific, boolean
+
+char *			subtitle_pages		= NULL;
 
 int			cap_buffers		= 12;			// capture -> video compression
 int			vid_buffers		= 8;			// video compression -> mux
@@ -138,7 +141,7 @@ usage(FILE *fi)
 		"A configuration file can be piped in from standard input,\n"
 		"the compressed stream will be sent to standard output.\n",
 
-		my_name, mux_options[mux_mode], (double) video_bit_rate / 1e6,
+		my_name, mux_options[modules], (double) video_bit_rate / 1e6,
 		cap_dev, gop_sequence, width, height, grab_width, grab_height,
 
 		audio_options[audio_mode], pcm_dev, audio_bit_rate / 1000, sampling_rate / 1e3,
@@ -156,6 +159,7 @@ long_options[] = {
 	{ "frame_rate",			required_argument, NULL, 'f' },
 	{ "gop_sequence",		required_argument, NULL, 'g' },
 	{ "mux_mode",			required_argument, NULL, 'm' },
+	{ "modules",			required_argument, NULL, 'm' },
 	{ "num_frames",			required_argument, NULL, 'n' },
 	{ "help",			no_argument,	   NULL, 'h' },
 	{ "config",			required_argument, NULL, 'i' },
@@ -171,9 +175,11 @@ long_options[] = {
 	{ "filter",			required_argument, NULL, 'F' },
 	{ "grab_size",			required_argument, NULL, 'G' },
 	{ "frames_per_seq_header",	required_argument, NULL, 'H' },
+	{ "vbi_device",			required_argument, NULL, 'I' },
 	{ "mute",			required_argument, NULL, 'M' },
 	{ "preview",			required_argument, NULL, 'P' },
 	{ "sampling_rate",		required_argument, NULL, 'S' },
+	{ "subtitle_pages",		required_argument, NULL, 'T' },
 	{ "version",			no_argument,	   NULL, 'V' },
 	{ "mux",			required_argument, NULL, 'X' },
 	{ NULL }
@@ -335,8 +341,8 @@ parse_option(int c)
 		}
 
 		case 'm':
-			mux_mode = suboption(mux_options, 4, mux_mode);
-			if (mux_mode <= 0 || mux_mode > 3)
+			modules = suboption(mux_options, 4, modules);
+			if (modules <= 0 || modules > 7)
 				return FALSE;
 			break;
 
@@ -430,6 +436,10 @@ parse_option(int c)
 				return FALSE;
 			break;
 
+		case 'I':
+			vbi_dev = strdup(optarg);
+			break;
+
 		case 'M':
 			mute = suboption(mute_options, 3, mute);
 			if (mute < 0 || mute > 2)
@@ -454,6 +464,10 @@ parse_option(int c)
 
 			break;
 		}
+
+		case 'T':
+			subtitle_pages = strdup(optarg);
+			break;
 
 		case 'V':
 			puts("mp1e" " " VERSION);

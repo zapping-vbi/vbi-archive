@@ -36,7 +36,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <asm/types.h>
-#include <linux/videodev.h>
+#include "videodev2.h"
 #include "audio/mpeg.h"
 #include "video/mpeg.h"
 #include "video/video.h"
@@ -71,7 +71,6 @@ pthread_t               output_thread_id;
 pthread_t		tk_main_id;
 extern void *		tk_main(void *);
 
-extern int		mux_mode;
 extern int		psycho_loops;
 extern int		audio_num_frames;
 extern int		video_num_frames;
@@ -240,11 +239,7 @@ main(int ac, char **av)
 	mix_init();
 	pcm_init();
 
-#ifdef V4L2_MAJOR_VERSION
 	v4l2_init();
-#else
-	v4l_init();
-#endif
 	video_start();
 
 	printv(3, "\nstarting emulation... ");
@@ -256,14 +251,14 @@ main(int ac, char **av)
 
 	program_shutdown = 1;
 
-	if (mux_mode & 1) {
+	if (modules & 1) {
 		printv(3, "\nvideo thread... ");
 		pthread_cancel(video_thread_id);
 		pthread_join(video_thread_id, NULL);
 		printv(3, "done\n");
 	}
 
-	if (mux_mode & 2) {
+	if (modules & 2) {
 		printv(3, "\naudio thread... ");
 		pthread_cancel(audio_thread_id);
 		pthread_join(audio_thread_id, NULL);

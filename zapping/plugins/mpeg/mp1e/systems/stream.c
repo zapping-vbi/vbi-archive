@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.c,v 1.4 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: stream.c,v 1.5 2000-09-29 17:54:33 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,7 +60,7 @@ mux_cleanup(void)
 
 fifo *
 mux_add_input_stream(int stream_id, int max_size, int buffers,
-	double frame_rate, int bit_rate)
+	double frame_rate, int bit_rate, fifo *cap_fifo)
 {
 	stream *str;
 
@@ -70,6 +70,7 @@ mux_add_input_stream(int stream_id, int max_size, int buffers,
 	str->stream_id = stream_id;
 	str->frame_rate = frame_rate;
 	str->bit_rate = bit_rate;
+	str->cap_fifo = cap_fifo;
 
 	buffers = init_buffered_fifo(&str->fifo, &mux_mucon, max_size, buffers);
 
@@ -88,6 +89,7 @@ stream_sink(void *unused)
 {
 	unsigned long long bytes_out = 0;
 	int num_streams = 0;
+	buffer *buf = NULL;
 	stream *str;
 
 	for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
@@ -96,8 +98,6 @@ stream_sink(void *unused)
 	}
 
 	while (num_streams > 0) {
-		buffer *buf;
-
 		for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next)
 			if (str->left && (buf = __recv_full_buffer(&str->fifo)))
 				break;
@@ -122,7 +122,7 @@ stream_sink(void *unused)
 
 			printv(1, "%.3f MB >0, %.2f %% dropped, system load %.1f %%  %c",
 				bytes_out / (double)(1 << 20),
-				100.0 * video_frames_dropped / video_frame_count,
+				video_frame_count ? 100.0 * video_frames_dropped / video_frame_count : 0.0,
 				100.0 * system_load, (verbose > 3) ? '\n' : '\r');
 
 			fflush(stderr);
@@ -132,6 +132,10 @@ stream_sink(void *unused)
 	return NULL;
 }
 
+/*
+ *  NB Use MPEG-2 mux to create an elementary VBI stream.
+ */
+
 void *
 elementary_stream_bypass(void *unused)
 {
@@ -140,8 +144,10 @@ elementary_stream_bypass(void *unused)
 	double system_load;
 	stream *str;
 
-	if (!(str = (stream *) mux_input_streams.head))
-		FAIL("No stream for output");
+	if (!(str = (stream *) mux_input_streams.head)) {
+		printv(1, "No elementary stream");
+		return NULL;
+	}
 
 	for (;;) {
 		buffer *buf;
@@ -365,37 +371,49 @@ mpeg_header_name(unsigned int code)
 void
 synchronize_capture_modules(void)
 {
-	buffer *vb = NULL;
-	buffer *ab = NULL;
-	double d, max_d = 0.75 / frame_rate_value[frame_rate_code];
+	double max_d = 1.5 / frame_rate_value[frame_rate_code];
+	int term = 30;
+	stream *str;
 
-	for (;;) {
-		if (!ab)
-			ab = wait_full_buffer(audio_cap_fifo);
-		if (!vb)
-			vb = wait_full_buffer(video_cap_fifo);
-
-		// XXX should pass b->used == 0 as EOF
-		if (!ab || !vb)
+	for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
+		str->buf = wait_full_buffer(str->cap_fifo); // XXX should pass b->used == 0 as EOF
+		if (!str->buf)
 			FAIL("Premature end of file");
-
-		printv(3, "Sync vtime=%f, atime=%f\n", vb->time, ab->time);
-
-		d = vb->time - ab->time;
-
-		if (fabs(d) <= max_d) {
-			break;
-		}
-
-		if (d < 0) {
-			send_empty_buffer(video_cap_fifo, vb);
-			vb = NULL;
-		} else {
-			send_empty_buffer(audio_cap_fifo, ab);
-			ab = NULL;
-		}
 	}
 
-	unget_full_buffer(video_cap_fifo, vb);
-	unget_full_buffer(audio_cap_fifo, ab);
+	while (term--) {
+		double tmin = +1e30, tmax = -1e30;
+		stream *smin = NULL;
+
+		for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
+			buffer *b = str->buf;
+
+			if (b->time > tmax)
+				tmax = b->time;  
+			if (b->time < tmin) {
+				tmin = b->time;
+				smin = str;
+			}
+		}
+
+		printv(3, "Sync window %f ... %f\n", tmin, tmax);
+
+		if ((tmax - tmin) <= max_d)
+			break;
+
+		if (!smin)
+			FAIL("Sync failure, no stream");
+
+		/* Skip frame */
+		send_empty_buffer(smin->cap_fifo, smin->buf);
+		smin->buf = wait_full_buffer(smin->cap_fifo);
+		if (!smin->buf)
+			FAIL("Premature end of file");
+	}
+
+	if (!term)
+		FAIL("Cannot sync, d=%f s", max_d);
+
+	for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next)
+		unget_full_buffer(str->cap_fifo, str->buf);
 }
