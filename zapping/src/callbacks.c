@@ -40,8 +40,9 @@
 /* set this flag to TRUE to exit the program */
 extern volatile gboolean flag_exit_program;
 extern GtkWidget *ToolBox; /* Control box, if any */
-/* the mode set when we went fullscreen (used by main.c too) */
-enum tveng_capture_mode restore_mode;
+
+/* previously selected mode (vs. current mode) */
+enum tveng_capture_mode last_mode = -1;
 
 extern tveng_tuned_channel * global_channel_list;
 extern tveng_device_info * main_info; /* About the device we are using */
@@ -80,6 +81,10 @@ void shutdown_callbacks(void)
 static void UpdateCoords(GdkWindow * window)
 {
   int x, y, w, h;
+
+  if (!window)
+    return;
+
   gdk_window_get_origin(window, &x, &y);
   gdk_window_get_size(window, &w, &h);
   
@@ -87,37 +92,103 @@ static void UpdateCoords(GdkWindow * window)
   zcs_int(y, "y");
   zcs_int(w, "w");
   zcs_int(h, "h");
+
   zconf_set_integer(main_info->current_mode,
 		    "/zapping/options/main/capture_mode");
+
   zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
 }
 
+/* NB this isn't used by zapzilla frontend */
 gboolean
 quit_cmd				(GtkWidget *	widget,
 					 gint		argc,
 					 gchar **	argv,
 					 gpointer	user_data)
 {
-  GtkWidget *zapping = find_widget (GTK_WIDGET (widget), "zapping");
   GList *p;
 
-  if (!zapping)
-    return FALSE; /* XXX ttxview */
+  if (!main_window)
+    return FALSE;
 
   flag_exit_program = TRUE;
 
-  UpdateCoords (widget->window);
+  UpdateCoords (main_window->window);
 
   /* Tell the widget that the GUI is going to be closed */
   p = g_list_first(plugin_list);
   while (p)
     {
-      plugin_remove_gui (GNOME_APP (zapping), 
+      plugin_remove_gui (GNOME_APP (main_window), 
 			 (struct plugin_info *) p->data);
       p = p->next;
     }
 
   gtk_main_quit();
+
+  return TRUE;
+}
+
+static gboolean
+switch_mode				(enum tveng_capture_mode mode)
+{
+  switch (mode)
+    {
+    case TVENG_CAPTURE_PREVIEW:
+      zmisc_switch_mode (TVENG_CAPTURE_PREVIEW, main_info);
+      break;
+
+    case TVENG_CAPTURE_WINDOW:
+      if (zmisc_switch_mode (TVENG_CAPTURE_WINDOW, main_info) == -1)
+	ShowBox(_("%s:\n"
+		  "Try running as root \"zapping_fix_overlay\" in a console"),
+		GNOME_MESSAGE_BOX_ERROR, main_info->error);
+      break;
+
+    case TVENG_CAPTURE_READ:
+      if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
+	ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
+      break;
+
+#ifdef HAVE_LIBZVBI
+    case TVENG_NO_CAPTURE:
+      /* Switch from TTX to Subtitles overlay, and vice versa */
+#if 0 /* needs some other solution */
+      if (main_info->current_mode == TVENG_NO_CAPTURE)
+	{
+	  /* implicit switch to previous_mode */
+	  if (get_ttxview_page(main_window, &zvbi_page, NULL))
+	    zmisc_overlay_subtitles(zvbi_page);
+	}
+      else
+#endif
+	zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
+
+      break;
+#endif
+
+    default:
+      return FALSE;
+    }
+
+  return TRUE;
+}
+
+static enum tveng_capture_mode
+str2tcm					(gchar *	s)
+{
+  if (!s || !*s)
+    return -1;
+  else if (strcmp (s, "fullscreen") == 0)
+    return TVENG_CAPTURE_PREVIEW;
+  else if (strcmp (s, "preview") == 0)
+    return TVENG_CAPTURE_WINDOW;
+  else if (strcmp (s, "capture") == 0)
+    return TVENG_CAPTURE_READ;
+  else if (strcmp (s, "teletext") == 0)
+    return TVENG_NO_CAPTURE;
+  else
+    return -1;
 }
 
 gboolean
@@ -126,58 +197,91 @@ switch_mode_cmd				(GtkWidget *	widget,
 					 gchar **	argv,
 					 gpointer	user_data)
 {
+  enum tveng_capture_mode old_mode = main_info->current_mode;
+
   if (argc < 2)
     return FALSE;
 
-  if (strcmp (argv[1], "fullscreen") == 0)
-    {
-      restore_mode = main_info->current_mode;
-
-      zmisc_switch_mode (TVENG_CAPTURE_PREVIEW, main_info);
-    }
-  else if (strcmp (argv[1], "preview") == 0)
-    {
-      if (zmisc_switch_mode (TVENG_CAPTURE_WINDOW, main_info) == -1)
-	ShowBox(_("%s:\n"
-		  "Try running as root \"zapping_fix_overlay\" in a console"),
-		GNOME_MESSAGE_BOX_ERROR, main_info->error);
-    }
-  else if (strcmp (argv[1], "capture") == 0)
-    {
-      if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
-	ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
-    }
-  else if (strcmp (argv[1], "teletext") == 0)
-    {
-#ifdef HAVE_LIBZVBI
-      /* Switch from TTX to Subtitles overlay, and vice versa */
-      if (main_info->current_mode == TVENG_NO_CAPTURE)
-	{
-	  if (get_ttxview_page(main_window, &zvbi_page, NULL))
-	    zmisc_overlay_subtitles(zvbi_page);
-	}
-      else
-	zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
-#else
-      return FALSE;
-#endif
-    }
-  else
+  if (!switch_mode (str2tcm (argv[1])))
     return FALSE;
+
+  if (old_mode != main_info->current_mode)
+    last_mode = old_mode;
 
   return TRUE;
 }
 
 gboolean
-restore_mode_cmd			(GtkWidget *	widget,
+toggle_mode_cmd				(GtkWidget *	widget,
 					 gint		argc,
 					 gchar **	argv,
 					 gpointer	user_data)
 {
-  if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
-    zmisc_switch_mode(restore_mode, main_info);
+  enum tveng_capture_mode mode, curr_mode = main_info->current_mode;
+
+  if (argc >= 2)
+    mode = str2tcm (argv[1]);
+  else
+    mode = curr_mode;
+
+  if (curr_mode == mode && mode != TVENG_NO_CAPTURE)
+    {
+      /* swap requested (current) mode and last mode */
+
+      if (!switch_mode (last_mode))
+        return FALSE;
+
+      last_mode = mode;
+    }
+  else
+    {
+      /* switch to requested mode */
+
+      if (!switch_mode (mode))
+        return FALSE;
+
+      last_mode = curr_mode;
+    }
 
   return TRUE;
+}
+
+/* XXX improve me */
+gboolean
+subtitle_overlay_cmd			(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data)
+{
+  if (argc > 1)
+    return FALSE; /* page number todo */
+
+  if (main_info->current_mode == TVENG_NO_CAPTURE)
+    {
+      if (!switch_mode (last_mode))
+        return FALSE;
+
+      last_mode = TVENG_NO_CAPTURE;
+    }
+
+  if (get_ttxview_page(main_window, &zvbi_page, NULL))
+    {
+      zmisc_overlay_subtitles(zvbi_page);
+      return TRUE;
+    }
+
+  return FALSE;
+}
+
+void
+on_videotext3_pressed			(GtkWidget	*w,
+					 gpointer	user_data)
+{
+  /* Can't swap commands here. D'oh! */
+  if (main_info->current_mode == TVENG_NO_CAPTURE)
+    cmd_execute (w, "subtitle_overlay");
+  else
+    cmd_execute (w, "switch_mode teletext");
 }
 
 static gboolean mute_controls = TRUE;
