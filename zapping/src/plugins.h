@@ -40,8 +40,6 @@
 /* Configuration saving and restoring */
 #include "zconf.h"
 
-/* Some definitions of exported functions are here */
-#include "callbacks.h"
 
 /* For the tveng structures */
 #include "tveng.h"

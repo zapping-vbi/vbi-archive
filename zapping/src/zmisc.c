@@ -41,7 +41,6 @@
 #include "zconf.h"
 #include "tveng.h"
 #include "interface.h"
-#include "callbacks.h"
 #include "x11stuff.h"
 #include "overlay.h"
 #include "capture.h"

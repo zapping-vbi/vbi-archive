@@ -38,7 +38,6 @@
 #include <time.h>
 #include <pthread.h>
 #include <math.h>
-#include "common/ucs-2.h"
 
 #include "tveng.h"
 /* Manages config values for zconf (it saves me some typing) */
@@ -50,7 +49,6 @@
 #include "v4linterface.h"
 #include "ttxview.h"
 #include "osd.h"
-#include "callbacks.h"
 #include "remote.h"
 #include "globals.h"
 

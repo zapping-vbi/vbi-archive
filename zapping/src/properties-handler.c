@@ -31,7 +31,6 @@
 
 #include <gnome.h>
 
-#include "callbacks.h"
 #include "interface.h"
 #include "properties.h"
 #include "properties-handler.h"

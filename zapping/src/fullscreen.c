@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.22 2003-11-29 19:43:24 mschimek Exp $
+ * $Id: fullscreen.c,v 1.23 2004-04-19 16:51:26 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,7 +34,6 @@
 #include "zmisc.h"
 #include "zconf.h"
 #include "interface.h"
-#include "callbacks.h"
 #include "v4linterface.h"
 #include "fullscreen.h"
 #include "audio.h"

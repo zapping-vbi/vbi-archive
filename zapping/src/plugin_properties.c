@@ -24,7 +24,6 @@
 
 #include <gnome.h>
 
-#include "callbacks.h"
 #include "interface.h"
 #include "zmisc.h"
 #include "plugins.h"

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.124 2004-03-30 11:34:11 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.125 2004-04-19 16:51:27 mschimek Exp $ */
 
 /*
  *  Teletext View
@@ -59,7 +59,6 @@
 #include "zmisc.h"
 #include "zmodel.h"
 #include "common/fifo.h"
-#include "common/ucs-2.h"
 #include "osd.h"
 #include "remote.h"
 #include "properties-handler.h"

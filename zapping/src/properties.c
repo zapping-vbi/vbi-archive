@@ -47,7 +47,6 @@
 
 #define ZCONF_DOMAIN "/zapping/internal/properties/"
 #include "zconf.h"
-#include "callbacks.h"
 #include "interface.h"
 #include "properties.h"
 #include "zmisc.h"
