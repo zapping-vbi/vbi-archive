@@ -44,7 +44,13 @@ libzvbiinclude_HEADERS = libzvbi.h
 libzvbi_la_LIBADD = $(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS)
 libzvbi_la_LDFLAGS = -version-info $(LIBZVBI_SO_VERSION)
 
-BUILT_SOURCES = libzvbi.h
+BUILT_SOURCES = version.h libzvbi.h
+
+version.h:
+	echo -e "\n#define VBI_VERSION_MAJOR" `echo @VERSION@ \
+	 | sed "s/[^0-9.]//g" \
+	 | sed "s/\./\\\\\n#define VBI_VERSION_MINOR /" \
+	 | sed "s/\./\\\\\n#define VBI_VERSION_MICRO /"` >> $@
 
 LIBZVBI_HDRS = misc.h bcd.h event.h format.h lang.h export.h cache.h search.h \
 	   sliced.h decoder.h io.h exp-gfx.h exp-txt.h cc.h vt.h tables.h \
@@ -56,9 +62,7 @@ libzvbi.h: $(LIBZVBI_HDRS)
 	sed -ne "1,/\*\//p" $(srcdir)/vbi.h > $@
 	echo -e "\n/* Generated file, do not edit! */" >> $@
 	echo -e "\n#ifndef __LIBZVBI_H__\n#define __LIBZVBI_H__" >> $@
-	echo -e "\n#define VBI_VERSION_MAJOR" `echo @VERSION@ \
-	 | sed "s/\./\\\\\n#define VBI_VERSION_MINOR /" \
-	 | sed "s/\./\\\\\n#define VBI_VERSION_MICRO /"` >> $@
+	cat version.h >> $@
 	echo -e "\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n" >> $@
 	echo -e "\ntypedef struct vbi_decoder vbi_decoder;\n" >> $@
 	for fi in $(LIBZVBI_HDRS); do \
