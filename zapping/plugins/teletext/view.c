@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.5 2004-11-03 17:05:59 mschimek Exp $ */
+/* $Id: view.c,v 1.6 2004-11-08 16:24:57 mschimek Exp $ */
 
 /*
  *  Zapping (TV viewer for the Gnome Desktop)
@@ -42,7 +42,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.5 2004-11-03 17:05:59 mschimek Exp $ */
+/* $Id: view.c,v 1.6 2004-11-08 16:24:57 mschimek Exp $ */
 
 #include "config.h"
 
@@ -151,6 +151,8 @@ draw_scaled_page_image		(TeletextView *		view,
 static void
 destroy_patch			(struct ttx_patch *	p)
 {
+  g_assert (NULL != p);
+
   if (p->scaled_on)
     g_object_unref (G_OBJECT (p->scaled_on));
 
@@ -182,6 +184,8 @@ scale_patch			(struct ttx_patch *	p,
   guint dstw;
   guint dsth;
   gint n;
+
+  g_assert (NULL != p);
 
   if (p->scaled_on)
     {
@@ -315,6 +319,11 @@ scale_patches			(TeletextView *		view)
   guint uw;
   guint uh;
 
+  if (!view->scaled_on)
+    return;
+
+  g_assert (NULL != view->unscaled_on);
+
   sw = gdk_pixbuf_get_width (view->scaled_on);
   sh = gdk_pixbuf_get_height (view->scaled_on);
 
@@ -340,6 +349,9 @@ add_patch			(TeletextView *		view,
   gint pw, ph;
   gint ux, uy;
   guint endcol;
+
+  g_assert (NULL != view->unscaled_on);
+  g_assert (NULL != view->unscaled_off);
 
   end = view->patches + view->n_patches;
 
@@ -406,7 +418,7 @@ add_patch			(TeletextView *		view,
   ph = p->height * CH + 10;
 
   p->unscaled_on = gdk_pixbuf_new (GDK_COLORSPACE_RGB, TRUE, 8, pw, ph);
-  g_assert (p->unscaled_on != NULL);
+  g_assert (NULL != p->unscaled_on);
   z_pixbuf_copy_area (/* src */ view->unscaled_on, ux, uy, pw, ph,
 		      /* dst */ p->unscaled_on, 0, 0);
 
@@ -441,7 +453,8 @@ build_patches			(TeletextView *		view)
 
   delete_patches (view);
 
-  g_assert (NULL != view->pg);
+  if (!view->pg)
+    return;
 
   cp = view->pg->text;
 
@@ -476,46 +489,6 @@ build_patches			(TeletextView *		view)
 }
 
 static gboolean
-resize_scaled_page_image	(TeletextView *		view,
-				 gint			width,
-				 gint			height)
-{
-  if (width <= 0 || height <= 0)
-    return FALSE;
-
-  if (!view->unscaled_on)
-    return FALSE;
-
-  if (!view->scaled_on
-      || width != gdk_pixbuf_get_width (view->scaled_on)
-      || height != gdk_pixbuf_get_height (view->scaled_on))
-    {
-      double sx;
-      double sy;
-
-      if (view->scaled_on)
-	g_object_unref (G_OBJECT (view->scaled_on));
-
-      view->scaled_on =
-	gdk_pixbuf_new (GDK_COLORSPACE_RGB, TRUE, 8, width, height);
-      g_assert (NULL != view->scaled_on);
-
-      sx = width / (double) gdk_pixbuf_get_width (view->unscaled_on);
-      sy = height / (double) gdk_pixbuf_get_height (view->unscaled_on);
-
-      gdk_pixbuf_scale (/* src */ view->unscaled_on,
-			/* dst */ view->scaled_on, 0, 0, width, height,
-			/* offset */ 0.0, 0.0,
-			/* scale */ sx, sy,
-			interp_type);
-
-      scale_patches (view);
-    }
-
-  return TRUE;
-}
-
-static gboolean
 vbi3_page_has_flash		(const vbi3_page *	pg)
 {
   const vbi3_char *cp;
@@ -532,113 +505,167 @@ vbi3_page_has_flash		(const vbi3_page *	pg)
 }
 
 static void
+create_empty_image		(TeletextView *		view)
+{
+  gchar *filename;
+  GdkPixbuf *pixbuf;
+  gint sw;
+  gint sh;
+  double sx;
+  double sy;
+
+  if (!view->scaled_on)
+    return;
+
+  filename = g_strdup_printf ("%s/vt_loading%d.jpeg",
+			      PACKAGE_PIXMAPS_DIR,
+			      (rand () & 1) + 1);
+
+  pixbuf = gdk_pixbuf_new_from_file (filename, NULL);
+
+  g_free (filename);
+
+  if (!pixbuf)
+    return;
+
+  sw = gdk_pixbuf_get_width (view->scaled_on);
+  sh = gdk_pixbuf_get_height (view->scaled_on);
+
+  sx = sw / (double) gdk_pixbuf_get_width (pixbuf);
+  sy = sh / (double) gdk_pixbuf_get_height (pixbuf);
+
+  gdk_pixbuf_scale (/* src */ pixbuf,
+		    /* dst */ view->scaled_on, 0, 0, sw, sh,
+		    /* offset */ 0.0, 0.0,
+		    /* scale */ sx, sy,
+		    interp_type);
+
+  g_object_unref (G_OBJECT (pixbuf));
+
+  delete_patches (view);
+}
+
+static void
 create_page_images_from_pg	(TeletextView *		view)
 {
-  if (view->pg)
+  vbi3_image_format format;
+  vbi3_bool success;
+
+  if (!view->pg)
     {
-      vbi3_image_format format;
-      vbi3_bool success;
-
-      CLEAR (format);
-
-      format.width = gdk_pixbuf_get_width (view->unscaled_on);
-      format.height = gdk_pixbuf_get_height (view->unscaled_on);
-      format.pixfmt = VBI3_PIXFMT_RGBA24_LE;
-      format.bytes_per_line = gdk_pixbuf_get_rowstride (view->unscaled_on);
-      format.size = format.width * format.height * 4;
-
-      success = vbi3_page_draw_teletext
-	(view->pg,
-	 gdk_pixbuf_get_pixels (view->unscaled_on),
-	 &format,
-	 VBI3_BRIGHTNESS, brightness,
-	 VBI3_CONTRAST, contrast,
-	 VBI3_REVEAL, (vbi3_bool) view->reveal,
-	 VBI3_FLASH_ON, TRUE,
-	 0);
-
-      g_assert (success);
-
-      if (view->scaled_on)
-	{
-	  gint sw;
-	  gint sh;
-	  double sx;
-	  double sy;
-
-	  sw = gdk_pixbuf_get_width (view->scaled_on);
-	  sh = gdk_pixbuf_get_height (view->scaled_on);
-  
-	  sx = sw / (double) format.width;
-	  sy = sh / (double) format.height;
- 
-	  gdk_pixbuf_scale (/* src */ view->unscaled_on,
-			    /* dst */ view->scaled_on, 0, 0, sw, sh,
-			    /* offset */ 0.0, 0.0,
-			    /* scale */ sx, sy,
-			    interp_type);
-	}
-
-      if (vbi3_page_has_flash (view->pg))
-	{
-	  success = vbi3_page_draw_teletext
-	    (view->pg,
-	     gdk_pixbuf_get_pixels (view->unscaled_off),
-	     &format,
-	     VBI3_BRIGHTNESS, brightness,
-	     VBI3_CONTRAST, contrast,
-	     VBI3_REVEAL, (vbi3_bool) view->reveal,
-	     VBI3_FLASH_ON, FALSE,
-	     0);
-
-	  g_assert (success);
-
-	  build_patches (view);
-	}
-      else
-	{
-	  delete_patches (view);
-	}
+      create_empty_image (view);
+      return;
     }
-  else
+
+  g_assert (NULL != view->unscaled_on);
+
+  CLEAR (format);
+
+  format.width = gdk_pixbuf_get_width (view->unscaled_on);
+  format.height = gdk_pixbuf_get_height (view->unscaled_on);
+  format.pixfmt = VBI3_PIXFMT_RGBA24_LE;
+  format.bytes_per_line = gdk_pixbuf_get_rowstride (view->unscaled_on);
+  format.size = format.width * format.height * 4;
+
+  success = vbi3_page_draw_teletext
+    (view->pg,
+     gdk_pixbuf_get_pixels (view->unscaled_on),
+     &format,
+     VBI3_BRIGHTNESS, brightness,
+     VBI3_CONTRAST, contrast,
+     VBI3_REVEAL, (vbi3_bool) view->reveal,
+     VBI3_FLASH_ON, TRUE,
+     0);
+
+  g_assert (success);
+
+  if (view->scaled_on)
     {
-      gchar *filename;
-      GdkPixbuf *pixbuf;
       gint sw;
       gint sh;
       double sx;
       double sy;
 
-      if (!view->scaled_on)
-	return;
-
-      filename = g_strdup_printf ("%s/vt_loading%d.jpeg",
-				  PACKAGE_PIXMAPS_DIR,
-				  (rand () & 1) + 1);
-
-      pixbuf = gdk_pixbuf_new_from_file (filename, NULL);
-
-      g_free (filename);
-
-      if (!pixbuf)
-	return;
-
       sw = gdk_pixbuf_get_width (view->scaled_on);
       sh = gdk_pixbuf_get_height (view->scaled_on);
-
-      sx = sw / (double) gdk_pixbuf_get_width (pixbuf);
-      sy = sh / (double) gdk_pixbuf_get_height (pixbuf);
-
-      gdk_pixbuf_scale (/* src */ pixbuf,
+  
+      sx = sw / (double) format.width;
+      sy = sh / (double) format.height;
+ 
+      gdk_pixbuf_scale (/* src */ view->unscaled_on,
 			/* dst */ view->scaled_on, 0, 0, sw, sh,
 			/* offset */ 0.0, 0.0,
 			/* scale */ sx, sy,
 			interp_type);
+    }
 
-      g_object_unref (G_OBJECT (pixbuf));
+  if (vbi3_page_has_flash (view->pg))
+    {
+      success = vbi3_page_draw_teletext
+	(view->pg,
+	 gdk_pixbuf_get_pixels (view->unscaled_off),
+	 &format,
+	 VBI3_BRIGHTNESS, brightness,
+	 VBI3_CONTRAST, contrast,
+	 VBI3_REVEAL, (vbi3_bool) view->reveal,
+	 VBI3_FLASH_ON, FALSE,
+	 0);
 
+      g_assert (success);
+
+      build_patches (view);
+    }
+  else
+    {
       delete_patches (view);
     }
+}
+
+static gboolean
+resize_scaled_page_image	(TeletextView *		view,
+				 gint			width,
+				 gint			height)
+{
+  if (width <= 0 || height <= 0)
+    return FALSE;
+
+  if (!view->scaled_on
+      || width != gdk_pixbuf_get_width (view->scaled_on)
+      || height != gdk_pixbuf_get_height (view->scaled_on))
+    {
+      double sx;
+      double sy;
+
+      g_assert (NULL != view->unscaled_on);
+
+      if (view->scaled_on)
+	g_object_unref (G_OBJECT (view->scaled_on));
+
+      view->scaled_on =
+	gdk_pixbuf_new (GDK_COLORSPACE_RGB, TRUE, 8, width, height);
+      g_assert (NULL != view->scaled_on);
+
+      if (view->pg)
+	{
+	  sx = width / (double) gdk_pixbuf_get_width (view->unscaled_on);
+	  sy = height / (double) gdk_pixbuf_get_height (view->unscaled_on);
+
+	  gdk_pixbuf_scale (/* src */ view->unscaled_on,
+			    /* dst */ view->scaled_on, 0, 0, width, height,
+			    /* offset */ 0.0, 0.0,
+			    /* scale */ sx, sy,
+			    interp_type);
+
+	  scale_patches (view);
+	}
+      else
+	{
+	  /* Renders "loading" directly into view->scaled_on. */
+	  create_empty_image (view);
+	}
+    }
+
+  return TRUE;
 }
 
 /*
@@ -897,12 +924,12 @@ redraw_view			(TeletextView *		view)
   if (view->selecting)
     return FALSE;
 
-  if (!(window = GTK_WIDGET (view)->window))
-    return FALSE;
-
   create_page_images_from_pg (view);
 
   apply_patches (view, /* draw */ FALSE);
+
+  if (!(window = GTK_WIDGET (view)->window))
+    return FALSE;
 
   gdk_window_get_geometry (window,
 			   /* x */ NULL,
@@ -917,7 +944,16 @@ redraw_view			(TeletextView *		view)
   if ((pg = view->pg))
     {
       if (view->toolbar)
-	teletext_toolbar_set_url (view->toolbar, pg->pgno, pg->subno);
+	{
+	  if (view->freezed)
+	    teletext_toolbar_set_url (view->toolbar,
+				      pg->pgno,
+				      pg->subno);
+	  else
+	    teletext_toolbar_set_url (view->toolbar,
+				      view->req.pgno,
+				      view->req.subno);
+	}
 
       /* Note does nothing if this page is already at TOS. */ 
       history_push (view, pg->network, pg->pgno, pg->subno);
@@ -1135,6 +1171,46 @@ view_vbi3_event_handler		(const vbi3_event *	ev,
   GList *p;
 
   switch (ev->type) {
+  case VBI3_EVENT_NETWORK:
+    for (p = g_list_first (teletext_views); p; p = p->next)
+      {
+	TeletextView *view;
+
+	view = (TeletextView *) p->data;
+
+	if (!vbi3_network_is_anonymous (&view->req.network))
+	  continue;
+
+	if (-1 != view->charset)
+	  {
+	    /* XXX should use default charset of the new network
+	       from config if one exists. */
+	    view->charset = -1;
+
+	    g_signal_emit (view, signals[CHARSET_CHANGED], 0);
+	  }
+
+	if (view->selecting)
+	  continue;
+
+	if (view->freezed)
+	  continue;
+
+	vbi3_page_unref (view->pg);
+
+	/* Change to view of same page of the new network, such that
+	   header updates match the rest of the page.  When the page
+	   is not cached redraw_view() displays "loading". */
+	view->pg = get_page (ev->network,
+			     view->req.pgno,
+			     view->req.subno,
+			     view->charset);
+
+	redraw_view (view);
+      }
+
+    break;
+
   case VBI3_EVENT_TTX_PAGE:
     for (p = g_list_first (teletext_views); p; p = p->next)
       {
@@ -1234,9 +1310,9 @@ monitor_pgno			(TeletextView *		view,
     {
       vbi3_page_unref (view->pg);
       view->pg = pg; /* can be NULL */
-
-      redraw_view (view);
     }
+
+  redraw_view (view);
 }
 
 static gboolean
@@ -1266,15 +1342,18 @@ teletext_view_load_page		(TeletextView *		view,
   view->hold = (VBI3_ANY_SUBNO != subno);
   set_hold (view, view->hold);
 
-  if ((int) view->charset >= 0)
-    {
-      /* XXX actually we should query config for a
-	 network-pgno-subno - charset pair, reset to default
-	 only if none exists. */
-      view->charset = -1;
-
-      g_signal_emit (view, signals[CHARSET_CHANGED], 0);
-    }
+  /* XXX this was intended to override a subtitle page character set
+     code, but on a second thought resetting on page change is strange. */
+  if (0)
+    if ((int) view->charset >= 0)
+      {
+	/* XXX actually we should query config for a
+	   network-pgno-subno - charset pair, reset to default
+	   only if none exists. */
+	view->charset = -1;
+	
+	g_signal_emit (view, signals[CHARSET_CHANGED], 0);
+      }
 
   if (view->toolbar)
     teletext_toolbar_set_url (view->toolbar, pgno, subno);
@@ -1435,7 +1514,8 @@ start_zvbi			(void)
   /* Send all events to our main event handler */
   success = vbi3_teletext_decoder_add_event_handler
     (td,
-     VBI3_EVENT_TTX_PAGE,
+     (VBI3_EVENT_NETWORK |
+      VBI3_EVENT_TTX_PAGE),
      view_vbi3_event_handler, /* user_data */ NULL);
   g_assert (success);
 
@@ -1773,6 +1853,13 @@ gboolean
 teletext_view_switch_network	(TeletextView *		view,
 				 const vbi3_network *	nk)
 {
+  if (-1 != view->charset)
+    {
+      view->charset = -1;
+
+      g_signal_emit (view, signals[CHARSET_CHANGED], 0);
+    }
+
   teletext_view_load_page (view, nk, default_home_pgno (), VBI3_ANY_SUBNO);
 
   return TRUE;
@@ -1784,7 +1871,7 @@ teletext_view_set_charset	(TeletextView *		view,
 {
   if (view->charset != code)
     {
-      view->charset = code; /* -1 for default */
+      view->charset = code;
 
       g_signal_emit (view, signals[CHARSET_CHANGED], 0);
 
@@ -2798,17 +2885,13 @@ expose_event			(GtkWidget *		widget,
   TeletextView *view = TELETEXT_VIEW (widget);
   GdkRegion *region;
 
-  resize_scaled_page_image (view,
-	       widget->allocation.width,
-	       widget->allocation.height);
-
   draw_scaled_page_image (view,
-	       widget->window,
-	       widget->style->white_gc,
-	       /* src */ event->area.x, event->area.y,
-	       /* dst */ event->area.x, event->area.y,
-	       event->area.width,
-	       event->area.height);
+			  widget->window,
+			  widget->style->white_gc,
+			  /* src */ event->area.x, event->area.y,
+			  /* dst */ event->area.x, event->area.y,
+			  event->area.width,
+			  event->area.height);
 
   if (view->selecting
       && view->select.last_x != -1)
@@ -3187,8 +3270,6 @@ instance_init			(GTypeInstance *	instance,
   GtkWidget *widget;
   gint uw, uh;
 
-  vbi3_network_init (&view->req.network);
-
   view->action_group = gtk_action_group_new ("TeletextViewActions");
 #ifdef ENABLE_NLS
   gtk_action_group_set_translation_domain (view->action_group,
@@ -3199,6 +3280,10 @@ instance_init			(GTypeInstance *	instance,
 
   action = gtk_action_group_get_action (view->action_group, "Export");
   z_action_set_sensitive (action, NULL != vbi3_export_info_enum (0));
+
+  vbi3_network_init (&view->req.network);
+
+  view->charset = -1; /* automatic */
 
   history_update_gui (view);
 

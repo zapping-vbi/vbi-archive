@@ -1,5 +1,32 @@
+2004-11-08    <mschimek@users.sf.net>
+
+	* libvbi/exp-gfx.c (DRAW_CHAR): Double width bpl fix.
+	* libvbi/teletext.c (level_one_row): Wide char fix.
+
+2004-11-07    <mschimek@users.sf.net>
+
+	* libvbi/teletext.c: Fixed TOP navigation.
+	(vbi3_page_get_teletext_link): Fixed.
+	* libvbi/teletext_decoder.c (top_page_stat): Must override
+	  guessed normal page type.
+	* plugins/teletext/main.c (py_ttx_open_new): Default to GConf
+	  home_page instead of 100.
+	* plugins/teletext/view.c (redraw_view): Make sure we have
+	  a page image even before the window was realized, prevents
+	  display of only header patch. While scanning show requested
+	  not current pgno in toolbar.
+	(expose_event): No resize_scaled_page_image() needed here.
+	(monitor_pgno): Draw "loading" image if we have no page.	  
+	(resize_scaled_page_image): Redraw "loading" image if we have
+	  no page.
+	(teletext_view_load_page, view_vbi3_event_handler,
+	  teletext_view_switch_network): Reset view charset only on
+	  network changes.
+
 2004-11-03    <mschimek@users.sf.net>
 
+	* libvbi/teletext_decoder.c (decode_packet_0): Parallel
+	  transmission fix.
 	* plugins/teletext/view.c (class_init): live_clock key name fixed.
 
 2004-11-02    <mschimek@users.sf.net>

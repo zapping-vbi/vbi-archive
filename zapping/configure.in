@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.159 2004-11-03 06:35:36 mschimek Exp $
+dnl $Id: configure.in,v 1.160 2004-11-08 16:24:56 mschimek Exp $
 
 AC_INIT(zapping, 0.8cvs,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
@@ -594,8 +594,8 @@ dnl ---------------------------------------------------------------------------
 GETTEXT_PACKAGE=AC_PACKAGE_NAME
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [Package name])
-ALL_LINGUAS="de es fr it nl sv"
-dnl da, pl need update
+ALL_LINGUAS="de es fr it nl"
+dnl da, pl, sv need update
 AM_GLIB_GNU_GETTEXT
 
 dnl ---------------------------------------------------------------------------

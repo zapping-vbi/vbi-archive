@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.6 2004-11-03 06:45:46 mschimek Exp $ */
+/* $Id: main.c,v 1.7 2004-11-08 16:24:57 mschimek Exp $ */
 
 #include "config.h"
 
@@ -33,6 +33,8 @@
 #include "window.h"
 #include "preferences.h"
 #include "main.h"
+
+#define GCONF_DIR "/apps/zapping/plugins/teletext"
 
 vbi3_teletext_decoder *		td;
 
@@ -100,7 +102,13 @@ py_ttx_open_new			(PyObject *		self _unused_,
     }
   else
     {
-      page = 100;
+      gint value;
+
+      value = 100;
+      if (z_gconf_get_int (&value, GCONF_DIR "/home_page"))
+	value = SATURATE (value, 100, 899);
+
+      page = value;
       subpage = -1;
     }
 

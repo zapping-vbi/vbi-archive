@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.2 2004-11-03 17:06:49 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.3 2004-11-08 16:24:57 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -786,18 +786,35 @@ top_page_stat			(cache_network *	cn,
 	unsigned int subcode;
 	vbi3_bool changed;
 
+	ps = cache_network_page_stat (cn, pgno);
+
 	subcode = SUBCODE_SINGLE_PAGE;
+
+	changed = FALSE;
 
 	switch (btt_type) {
 	case BTT_NO_PAGE:
 		page_type = VBI3_NO_PAGE;
 		subcode = SUBCODE_UNKNOWN;
+
+		if (VBI3_UNKNOWN_PAGE == ps->page_type
+		    || VBI3_SUBTITLE_PAGE == ps->page_type) {
+			ps->page_type = VBI3_NO_PAGE;
+			changed = TRUE;
+		}
+
 		break;
 
 		/* Observation: BTT_SUBTITLE only when the page is
 		   transmitted, otherwise BTT_NO_PAGE. */
 	case BTT_SUBTITLE:
 		page_type = VBI3_SUBTITLE_PAGE;
+
+		if (VBI3_SUBTITLE_PAGE != ps->page_type) {
+			ps->page_type = VBI3_SUBTITLE_PAGE;
+			changed = TRUE;
+		}
+
 		break;
 
 	case BTT_PROGR_INDEX_M:
@@ -807,7 +824,7 @@ top_page_stat			(cache_network *	cn,
 	case BTT_PROGR_INDEX_S:
 		/* Usually _SCHEDULE, not _INDEX. */
 		page_type = VBI3_PROGR_SCHEDULE;
-		break;
+		goto normal;
 
 	case BTT_BLOCK_M:
 		subcode = SUBCODE_MULTI_PAGE;
@@ -815,7 +832,7 @@ top_page_stat			(cache_network *	cn,
 
 	case BTT_BLOCK_S:
 		page_type = VBI3_TOP_BLOCK;
-		break;
+		goto normal;
 
 	case BTT_GROUP_M:
 		subcode = SUBCODE_MULTI_PAGE;
@@ -823,7 +840,7 @@ top_page_stat			(cache_network *	cn,
 
 	case BTT_GROUP_S:
 		page_type = VBI3_TOP_GROUP;
-		break;
+		goto normal;
 
 	case BTT_NORMAL_M:
 	case BTT_NORMAL_11:	/* ? */
@@ -833,6 +850,16 @@ top_page_stat			(cache_network *	cn,
 	case BTT_NORMAL_S:
 	case BTT_NORMAL_9:	/* ? */
 		page_type = VBI3_NORMAL_PAGE;
+		/* fall through */
+
+	normal:
+		if (ps->page_type != page_type
+		    && (VBI3_UNKNOWN_PAGE == ps->page_type
+			|| VBI3_NORMAL_PAGE == ps->page_type)) {
+			ps->page_type = page_type;
+			changed = TRUE;
+		}
+
 		break;
 
 	default:
@@ -844,18 +871,6 @@ top_page_stat			(cache_network *	cn,
 	log ("BTT %04x: %2u %04x %s\n",
 	     pgno, btt_type, subcode,
 	     vbi3_ttx_page_type_name (page_type));
-
-	ps = cache_network_page_stat (cn, pgno);
-
-	changed = FALSE;
-
-	if (ps->page_type != page_type
-	    && (VBI3_UNKNOWN_PAGE == ps->page_type
-		|| VBI3_SUBTITLE_PAGE == ps->page_type
-		|| VBI3_SUBTITLE_PAGE == page_type)) {
-		ps->page_type = page_type;
-		changed = TRUE;
-	}
 
 	/* We only ever increase the subcode, such that the table
 	   is consistent when BTT, MIP and the number of received
@@ -2351,7 +2366,7 @@ decode_packet_0			(vbi3_teletext_decoder *	td,
 		} else {
 			/* A new pgno terminates the most recently
 			   received page of the same magazine. */
-			if (0 == ((cp->pgno ^ pgno) & 0xFF)) {
+			if (0 != ((cp->pgno ^ pgno) & 0xFF)) {
 				store_page (td, cp);
 				cp->function = PAGE_FUNCTION_DISCARD;
 			}
@@ -3807,7 +3822,7 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 
 	cp = &td->buffer[mag0];
 
-	if (0) {
+	if (TELETEXT_DECODER_LOG) {
 		unsigned int i;
 
 		fprintf (stderr, "packet %xxx %d >",
