@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.10 2000-12-11 22:19:40 garetxe Exp $ */
+/* $Id: fifo.h,v 1.11 2000-12-12 19:05:44 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -61,8 +61,8 @@ typedef struct _fifo {
 	mucon			producer;
 	mucon *			consumer;
 
-	list			fulla;		// FIFO
-	list			emptya;		// LIFO
+	list			full;		// FIFO
+	list			empty;		// LIFO
 
 	buffer *		(* wait_full)(struct _fifo *);
 	void			(* send_empty)(struct _fifo *, buffer *);
