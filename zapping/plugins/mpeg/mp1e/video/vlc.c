@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.c,v 1.4 2001-01-30 23:27:16 mschimek Exp $ */
+/* $Id: vlc.c,v 1.5 2001-03-17 07:44:29 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -30,7 +30,6 @@
 #define vlc_align(n) __attribute__ ((SECTION("VLC_TABLES") aligned (n)))
 
 int			dc_dct_pred[2][3];
-int			PMV[2][2];
 
 /*
  *  Tables
@@ -38,7 +37,7 @@ int			PMV[2][2];
 
 VLC2			coded_block_pattern[64]			vlc_align(CACHE_LINE);
 VLC2			macroblock_address_increment[33]	vlc_align(CACHE_LINE);
-VLC2			motion_vector_component[32 + 64 + 128]	vlc_align(CACHE_LINE);
+VLC2			motion_vector_component[224]		vlc_align(CACHE_LINE);
 
 /* ISO/IEC 13818-2 Table B-2  Variable length codes for macroblock_type in I-pictures */
 
@@ -186,7 +185,7 @@ vlc_init(void)
 				length += r_size;
 			}
 
-			assert(code <= UCHAR_MAX);
+			assert(code < (1 << 8) && length < 16);
 
 			motion_vector_component[f1 * 32 + i].code = code;
 			motion_vector_component[f1 * 32 + i].length = length;

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.13 2001-01-24 22:48:52 mschimek Exp $ */
+/* $Id: options.c,v 1.14 2001-03-17 07:44:29 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +32,7 @@
 #include <linux/videodev.h>
 #include <linux/soundcard.h>
 #include "common/types.h"
+#include "common/math.h"
 #include "common/log.h"
 #include "common/fifo.h"
 #include "video/video.h"
@@ -116,12 +117,12 @@ long_options[] = {
 	{ "capture_device",		required_argument, NULL, 'c' },
 	{ "frame_rate",			required_argument, NULL, 'f' },
 	{ "gop_sequence",		required_argument, NULL, 'g' },
-	{ "mux_mode",			required_argument, NULL, 'm' },
-	{ "modules",			required_argument, NULL, 'm' },
-	{ "num_frames",			required_argument, NULL, 'n' },
 	{ "help",			no_argument,	   NULL, 'h' },
 	{ "config",			required_argument, NULL, 'i' },
 	{ "letterbox",			no_argument,	   NULL, 'l' },
+	{ "mux_mode",			required_argument, NULL, 'm' },
+	{ "modules",			required_argument, NULL, 'm' }, /* alias */
+	{ "num_frames",			required_argument, NULL, 'n' },
 	{ "pcm_device",			required_argument, NULL, 'p' },
 	{ "rec_source",			required_argument, NULL, 'r' },
 	{ "image_size",			required_argument, NULL, 's' },
@@ -136,6 +137,7 @@ long_options[] = {
 	{ "vbi_device",			required_argument, NULL, 'I' },
 	{ "mute",			required_argument, NULL, 'M' },
 	{ "preview",			required_argument, NULL, 'P' },
+	{ "motion",			required_argument, NULL, 'R' },
 	{ "sampling_rate",		required_argument, NULL, 'S' },
 	{ "subtitle_pages",		required_argument, NULL, 'T' },
 	{ "version",			no_argument,	   NULL, 'V' },
@@ -240,6 +242,8 @@ static bool have_letterbox = FALSE;
 static bool
 parse_option(int c)
 {
+	int i;
+
 	switch (c) {
 		case 'a':
 			if ((audio_mode = suboption(audio_options, 4, audio_mode)) < 0)
@@ -411,6 +415,23 @@ parse_option(int c)
 			preview++;
 			break;
 
+		case 'R':
+			motion_max = 0;
+			sscanf(optarg, "%d,%d", &motion_min, &motion_max);
+			if (!motion_max)
+				motion_max = motion_min;
+			if (!motion_min)
+				break;
+			for (i = 0; i < 2; i++) {
+				if (motion_min > motion_max)
+					swap(motion_min, motion_max);
+				if (motion_min < 4)
+					motion_min = 4;
+				if (motion_max > 32)
+					motion_max = 32;
+			}
+			break;
+
 		case 'S': // audio sampling rate (Hz or kHz)
 		{
 			double rate = strtod(optarg, NULL);
@@ -501,7 +522,7 @@ options(int ac, char **av)
 	if (!isatty(STDIN_FILENO))
 		options_from_file("stdin", FALSE);
 
-	while ((c = getopt_long(ac, av, "a:b:c:f:g:hi:lm:n:p:r:s:vwx:A:B:F:G:H:I:M:PS:T:VX:",
+	while ((c = getopt_long(ac, av, "a:b:c:f:g:hi:lm:n:p:r:s:vwx:A:B:F:G:H:I:M:PR:S:T:VX:",
 		long_options, &index)) != -1)
 		if (!parse_option(c))
 			usage(stderr);

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.12 2001-03-03 15:16:29 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.13 2001-03-17 07:44:29 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -45,6 +45,10 @@
 /* future */
 #undef _
 #define _(String) (String)
+#undef N_
+#define N_(String) (String)
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 typedef struct style {
 	struct style *		next;
@@ -55,7 +59,7 @@ typedef struct style {
 
 typedef struct html_data	// private data in struct export
 {
-  unsigned char gfx_chr;
+  unsigned int gfx_chr;
   unsigned char headerless;
 
 	char *			name;
@@ -91,29 +95,32 @@ html_open(struct export *e)
 }
 
 static int
-html_option(struct export *e, int opt, char *arg)
+html_option(struct export *e, int opt, char *str_arg, int num_arg)
 {
-  switch (opt)
-    {
-    case 1: // gfx-chr=
-	/* Supposed to be ASCII */
-	if (*arg < 0x20 || *arg > 0x7E)
-		D->gfx_chr = 0x20;
-	else
-	  D->gfx_chr = *arg;
-      break;
-    case 2: // bare (no headers)
-      D->headerless=1;
-      break;
-    }
-  return 0;
+	switch (opt) {
+	case 0: /* gfx-chr */
+		if (strlen(str_arg) == 1)
+			num_arg = *str_arg;
+		D->gfx_chr = MAX(num_arg, 0x20);
+		break;
+	case 1: /* header */
+		D->headerless = !num_arg;
+		break;
+	}
+
+	return 0;
 }
 
-static char *html_opts[] =	// module options
-{
-  "gfx-chr=<char>",             // substitute <char> for gfx-symbols
-  "bare",                     // no headers  
-   0                      
+static vbi_export_option html_opts[] = {
+	{
+		VBI_EXPORT_STRING,	"gfx-chr",	N_("Graphics char"),
+		{ .str = "#" }, 0, 0, NULL, N_("Replacement for block graphic characters: a single character or decimal (32) or hex (0x20) unicode")
+	}, {
+		VBI_EXPORT_BOOL,	"header",	N_("HTML header"),
+		{ .num = TRUE }, FALSE, TRUE, NULL, N_("Include HTML page header")
+	}, {
+		0
+	}
 };
 
 #define TEST 0

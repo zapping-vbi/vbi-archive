@@ -729,14 +729,14 @@ typedef enum {
 	CNI_X26		/* Teletext packet X/26 local enhancement */
 } vbi_cni_type;
 
-static void *
+static unsigned int
 station_lookup(vbi_cni_type type, int cni,
 	char **country, char **short_name, char **long_name)
 {
 	struct pdc_vps_entry *p;
 
 	if (!cni)
-		return FALSE;
+		return 0;
 
 	switch (type) {
 	case CNI_8301:
@@ -745,7 +745,7 @@ station_lookup(vbi_cni_type type, int cni,
 				*country = country_names_en[p->country];
 				*short_name = p->short_name;
 				*long_name = p->long_name;
-				return p;
+				return p->id;
 			}
 		break;
 
@@ -755,7 +755,7 @@ station_lookup(vbi_cni_type type, int cni,
 				*country = country_names_en[p->country];
 				*short_name = p->short_name;
 				*long_name = p->long_name;
-				return p;
+				return p->id;
 			}
 
 		cni &= 0x0FFF;
@@ -771,7 +771,7 @@ station_lookup(vbi_cni_type type, int cni,
 				*country = country_names_en[p->country];
 				*short_name = p->short_name;
 				*long_name = p->long_name;
-				return p;
+				return p->id;
 			}
 		break;
 
@@ -781,7 +781,7 @@ station_lookup(vbi_cni_type type, int cni,
 				*country = country_names_en[p->country];
 				*short_name = p->short_name;
 				*long_name = p->long_name;
-				return p;
+				return p->id;
 			}
 
 		/* try code | 0x0080 & 0x0FFF -> VPS ? */
@@ -791,7 +791,7 @@ station_lookup(vbi_cni_type type, int cni,
 	default:
 	}
 
-	return NULL;
+	return 0;
 }
 
 #define BSD_TEST 0
@@ -874,18 +874,19 @@ vbi_vps(struct vbi *vbi, unsigned char *buf)
 		vbi->network.cni_vps = cni;
 		vbi->network.cycle = 1;
 	} else if (vbi->network.cycle == 1) {
-		void *p = station_lookup(CNI_VPS, cni, &country, &short_name, &long_name);
+		unsigned int id = station_lookup(CNI_VPS, cni, &country, &short_name, &long_name);
 
-		if (!p) {
+		if (!id) {
 			vbi->network.name[0] = 0;
 			vbi->network.label[0] = 0;
-		} else if (p != vbi->network.unique) {
+		} else if (id != vbi->network.id) {
+			vbi->network.id = id;
 			strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
 			strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
 			vbi_send(vbi, VBI_EVENT_NETWORK, 0, 0, 0, 0, 0, &vbi->network);
 		}
 
-		vbi->network.unique = p;
+		vbi->network.id = id;
 		vbi->network.cycle = 2;
 	}
 
@@ -1055,18 +1056,19 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 				vbi->network.cni_8301 = cni;
 				vbi->network.cycle = 1;
 			} else if (vbi->network.cycle == 1) {
-				void *p = station_lookup(CNI_8301, cni, &country, &short_name, &long_name);
+				unsigned int id = station_lookup(CNI_8301, cni, &country, &short_name, &long_name);
 
-				if (!p) {
+				if (!id) {
 					vbi->network.name[0] = 0;
 					vbi->network.label[0] = 0;
-				} else if (p != vbi->network.unique) {
+				} else if (id != vbi->network.id) {
+					vbi->network.id = id;
 					strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
 					strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
 					vbi_send(vbi, VBI_EVENT_NETWORK, 0, 0, 0, 0, 0, &vbi->network);
 				}
 
-				vbi->network.unique = p;
+				vbi->network.id = id;
 				vbi->network.cycle = 2;
 			}
 #if BSD_TEST
@@ -1132,18 +1134,19 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 				vbi->network.cni_8302 = cni;
 				vbi->network.cycle = 1;
 			} else if (vbi->network.cycle == 1) {
-				void *p = station_lookup(CNI_8302, cni, &country, &short_name, &long_name);
+				unsigned int id = station_lookup(CNI_8302, cni, &country, &short_name, &long_name);
 
-				if (!p) {
+				if (!id) {
 					vbi->network.name[0] = 0;
 					vbi->network.label[0] = 0;
-				} else if (p != vbi->network.unique) {
+				} else if (id != vbi->network.id) {
+					vbi->network.id = id;
 					strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
 					strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
 					vbi_send(vbi, VBI_EVENT_NETWORK, 0, 0, 0, 0, 0, &vbi->network);
 				}
 
-				vbi->network.unique = p;
+				vbi->network.id = id;
 				vbi->network.cycle = 2;
 			}
 

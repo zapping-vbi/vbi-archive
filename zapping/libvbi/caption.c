@@ -20,10 +20,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.19 2001-03-09 17:39:01 mschimek Exp $ */
+/* $Id: caption.c,v 1.20 2001-03-17 07:44:29 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <stdint.h>
+
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
@@ -108,6 +111,25 @@ day_names[] = {
 };
 
 #endif /* XDS_DEBUG */
+
+static uint32_t hcrc[128];
+
+static void init_hcrc(void) __attribute__ ((constructor));
+
+static void
+init_hcrc(void)
+{
+	unsigned int sum;
+	int i, j;
+
+	for (i = 0; i < 128; i++) {
+		sum = 0;
+		for (j = 7 - 1; j >= 0; j--)
+			if (i & (1 << j))
+				sum ^= 0x48000000L >> j;
+		hcrc[i] = sum;
+	}
+}
 
 static int
 xds_strfu(char *d, char *s, int len)
@@ -266,7 +288,17 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 			if (xds_strfu(vbi->network.name, buffer, length)) {
 				vbi->network.cycle = 1;
 			} else if (vbi->network.cycle == 1) {
+				char *s = vbi->network.name;
+				uint32_t sum;
 				vbi_event ev;
+
+				if (vbi->network.call[0])
+					s = vbi->network.call;
+
+				for (sum = 0; *s; s++)
+					sum = (sum >> 7) ^ hcrc[(sum ^ *s) & 0x7F];
+
+				vbi->network.id = sum & ((1UL << 31) - 1);
 
 				ev.type = VBI_EVENT_NETWORK;
 				ev.p1 = &vbi->network;

@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.28 2001-03-03 15:16:29 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.29 2001-03-17 07:44:29 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -48,6 +48,8 @@
 /* future */
 #undef _
 #define _(String) (String)
+#undef N_
+#define N_(String) (String)
 
 /* Character cell dimensions - hardcoded (DRCS) */
 
@@ -437,24 +439,26 @@ gfx_open(struct export *e)
 }
 
 static int
-gfx_option(struct export *e, int opt, char *arg)
+gfx_option(struct export *e, int opt, char *str_arg, int num_arg)
 {
 	gfx_data *d = (gfx_data *) e->data;
 
 	switch (opt) {
-	case 1: // aspect
-		d->double_height = !d->double_height;
+	case 0: // aspect
+		d->double_height = !!num_arg;
 		break;
 	}
 
 	return 0;
 }
 
-static char *
-gfx_opts[] =
-{
-	"aspect",	// line doubling
-	0
+static vbi_export_option gfx_opts[] = {
+	{
+		VBI_EXPORT_BOOL,	"aspect",	N_("Correct aspect ratio"),
+		{ .num = TRUE }, FALSE, TRUE, NULL, "Approximate an image aspect ratio similar to a real TV, however this will add redundant information"
+	}, {
+		0
+	}
 };
 
 /*
@@ -593,18 +597,14 @@ write_error:
 }
 
 struct export_module
-export_ppm[1] =			// exported module definition
-{
-    {
-	"ppm",			// id
-	"ppm",			// extension
-	gfx_opts,		// options
-	sizeof(gfx_data),	// size
-	gfx_open,		// open
-	0,			// close
-	gfx_option,		// option
-	ppm_output		// output
-    }
+export_ppm = {
+	.fmt_name		= "ppm",
+	.extension		= "ppm",
+	.options		= gfx_opts,
+	.local_size		= sizeof(gfx_data),
+	.open			= gfx_open,
+	.option			= gfx_option,
+	.output			= ppm_output
 };
 
 /*
@@ -860,18 +860,14 @@ unknown_error:
 }
 
 struct export_module
-export_png[1] =			// exported module definition
-{
-    {
-	"png",			// id
-	"png",			// extension
-	gfx_opts,		// options
-	sizeof(gfx_data),	// size
-	gfx_open,		// open
-	0,			// close
-	gfx_option,		// option
-	png_output		// output
-    }
+export_png = {
+	.fmt_name		= "png",
+	.extension		= "png",
+	.options		= gfx_opts,
+	.local_size		= sizeof(gfx_data),
+	.open			= gfx_open,
+	.option			= gfx_option,
+	.output			= png_output
 };
 
 #endif /* HAVE_LIBPNG */

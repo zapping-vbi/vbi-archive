@@ -1344,6 +1344,280 @@ void on_delete_bookmarks_activated	(GtkWidget	*widget,
   gtk_widget_show(be);
 }
 
+
+
+
+
+
+static void
+on_export_control			(GtkWidget *w,
+					 gpointer user_data)
+{
+  gint id = GPOINTER_TO_INT (user_data);
+  struct export *exp =
+    (struct export *) gtk_object_get_data (GTK_OBJECT (w), "exp");
+
+  g_assert(exp != NULL);
+
+  switch (exp->mod->options[id].type)
+    {
+      case VBI_EXPORT_BOOL:
+        vbi_export_set_option (exp, id,
+	  (int) gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (w)));
+	break;
+      case VBI_EXPORT_INT:
+        vbi_export_set_option (exp, id,
+	  (int) GTK_ADJUSTMENT (w)->value);
+	break;
+      case VBI_EXPORT_MENU:
+        {
+	  int value = (int) gtk_object_get_data (GTK_OBJECT (w),
+						"value");
+	  vbi_export_set_option (exp, id, value);
+	  break;
+	}
+      case VBI_EXPORT_STRING:
+        vbi_export_set_option (exp, id,
+	  (char *) gtk_entry_get_text (GTK_ENTRY (w)));
+	break;
+
+      default:
+	g_warning ("Miracle of type %d in on_export_control",
+		  exp->mod->options[id].type);
+    }
+}
+
+static void
+create_export_entry (GtkWidget *table, vbi_export_option *xo,
+		    int index, struct export *exp)
+{ 
+  GtkWidget *label;
+  GtkWidget *entry;
+
+  label = gtk_label_new (_(xo->label));
+  gtk_widget_show (label);
+
+  entry = gtk_entry_new ();
+  set_tooltip (entry, _(xo->tooltip));
+  gtk_widget_show (entry);
+  gtk_entry_set_text (GTK_ENTRY (entry), _(xo->def.str));
+
+  gtk_object_set_data (GTK_OBJECT (entry), "exp", (gpointer) exp);
+  gtk_signal_connect (GTK_OBJECT (entry), "changed", 
+		     GTK_SIGNAL_FUNC (on_export_control),
+		     GINT_TO_POINTER (index));
+
+  gtk_table_resize (GTK_TABLE (table), index + 1, 2);
+  gtk_table_attach (GTK_TABLE (table), label, 0, 1, index, index + 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 3, 3);
+  gtk_table_attach (GTK_TABLE (table), entry, 1, 2, index, index + 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 3, 3);
+}
+
+static void
+create_export_menu (GtkWidget *table, vbi_export_option *xo,
+		   int index, struct export *exp)
+{
+  GtkWidget *label; /* This shows what the menu is for */
+  GtkWidget *option_menu; /* The option menu */
+  GtkWidget *menu; /* The menu displayed */
+  GtkWidget *menu_item; /* Each of the menu items */
+  int i;
+
+  label = gtk_label_new (_(xo->label));
+  gtk_widget_show (label);
+
+  option_menu = gtk_option_menu_new();
+  menu = gtk_menu_new ();
+
+  for (i = xo->min; i <= xo->max; i++)
+    {
+      menu_item = gtk_menu_item_new_with_label (_(xo->menu[i - xo->min]));
+
+      gtk_object_set_data (GTK_OBJECT (menu_item), "exp", (gpointer) exp);
+      gtk_object_set_data (GTK_OBJECT (menu_item), "value", 
+			  GINT_TO_POINTER (i));
+      gtk_signal_connect (GTK_OBJECT (menu_item), "activate",
+			 GTK_SIGNAL_FUNC (on_export_control),
+			 GINT_TO_POINTER (index));
+
+      gtk_widget_show (menu_item);
+      gtk_menu_append (GTK_MENU (menu), menu_item);
+    }
+
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
+  gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu),
+			       xo->def.num);
+  gtk_widget_show (menu);
+  set_tooltip (option_menu, _(xo->tooltip));
+  gtk_widget_show (option_menu);
+
+  gtk_table_resize (GTK_TABLE (table), index + 1, 2);
+  gtk_table_attach (GTK_TABLE (table), label, 0, 1, index, index + 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 3, 3);
+  gtk_table_attach (GTK_TABLE (table), option_menu, 1, 2,
+                    index, index + 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 3, 3);
+}
+
+static void
+create_export_slider (GtkWidget *table, vbi_export_option *xo,
+		     int index, struct export *exp)
+{ 
+  GtkWidget *label;
+  GtkWidget *hscale;
+  GtkObject *adj; /* Adjustment object for the slider */
+
+  label = gtk_label_new (_(xo->label));
+  gtk_widget_show (label);
+
+  adj = gtk_adjustment_new (xo->def.num, xo->min, xo->max, 1, 10, 10);
+  gtk_adjustment_set_value (GTK_ADJUSTMENT (adj), xo->def.num);
+
+  gtk_object_set_data (GTK_OBJECT (adj), "exp", (gpointer) exp);
+  gtk_signal_connect (adj, "value-changed", 
+		     GTK_SIGNAL_FUNC (on_export_control),
+		     GINT_TO_POINTER (index));
+
+  hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
+  gtk_scale_set_value_pos (GTK_SCALE (hscale), GTK_POS_LEFT);
+  gtk_scale_set_digits (GTK_SCALE (hscale), 0);
+  set_tooltip (hscale, _(xo->tooltip));
+  gtk_widget_show (hscale);
+
+  gtk_table_resize (GTK_TABLE (table), index + 1, 2);
+  gtk_table_attach (GTK_TABLE (table), label, 0, 1, index, index + 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 3, 3);
+  gtk_table_attach (GTK_TABLE (table), hscale, 1, 2,
+                    index, index + 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 3, 3);
+}
+
+static void
+create_export_checkbutton (GtkWidget *table, vbi_export_option *xo,
+			  int index, struct export *exp)
+{
+  GtkWidget *cb;
+
+  cb = gtk_check_button_new_with_label (_(xo->label));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cb), xo->def.num);
+  gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (cb), FALSE);
+  set_tooltip (cb, _(xo->tooltip));
+  gtk_widget_show (cb);
+
+  gtk_object_set_data (GTK_OBJECT (cb), "exp", (gpointer) exp);
+  gtk_signal_connect (GTK_OBJECT (cb), "toggled",
+		     GTK_SIGNAL_FUNC (on_export_control),
+		     GINT_TO_POINTER (index));
+
+  gtk_table_resize (GTK_TABLE (table), index + 1, 2);
+  gtk_table_attach (GTK_TABLE (table), cb, 1, 2, index, index + 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 3, 3);
+}
+
+static void
+create_export_options (GtkWidget *table, struct export *exp)
+{
+  vbi_export_option *xo;
+  int i;
+
+  xo = exp->mod->options;
+
+  for (i = 0; xo->type; xo++, i++)
+    {
+      switch (xo->type)
+	{
+	case VBI_EXPORT_BOOL:
+	  create_export_checkbutton (table, xo, i, exp);
+	  break;
+	case VBI_EXPORT_INT:
+	  create_export_slider (table, xo, i, exp);
+	  break;
+	case VBI_EXPORT_MENU:
+	  create_export_menu (table, xo, i, exp);
+	  break;
+	case VBI_EXPORT_STRING:
+	  create_export_entry (table, xo, i, exp);
+	  break;
+
+	default:
+	  g_warning ("Type %d of export option %s is not supported",
+		    xo->type, xo->keyword);
+	  continue;
+	}
+    }
+}
+
+static void
+on_export_filename			(GtkWidget *w,
+					 gpointer user_data)
+{
+  gchar **bpp = (gchar **) user_data;
+
+  g_assert(bpp != NULL);
+
+  g_free(*bpp);
+  *bpp = g_strdup(gtk_entry_get_text (GTK_ENTRY (w)));
+}
+
+static GtkWidget *
+create_export_dialog (gchar **bpp, ttxview_data *data,
+		      struct export *exp)
+{
+  GtkWidget *dialog;
+  GtkWidget *table;
+  GtkWidget *vbox;
+  GtkWidget *w;
+
+  dialog = gnome_dialog_new ("Title",
+			     GNOME_STOCK_BUTTON_OK,
+			     GNOME_STOCK_BUTTON_CANCEL,
+			     NULL);
+  gnome_dialog_set_parent (GNOME_DIALOG (dialog), GTK_WINDOW (data->parent));
+
+  vbox = gtk_vbox_new (FALSE, 3);
+  gtk_widget_show (vbox);
+
+  w = gtk_label_new (_("Save as:"));
+  gtk_widget_show (w);
+  gtk_box_pack_start_defaults (GTK_BOX (vbox), w);
+
+  w = gtk_entry_new ();
+  gtk_entry_set_text (GTK_ENTRY (w), *bpp);
+  gtk_widget_show (w);
+  gtk_box_pack_start_defaults (GTK_BOX (vbox), w);
+
+  gtk_signal_connect (GTK_OBJECT (w), "changed",
+		      GTK_SIGNAL_FUNC (on_export_filename),
+		      (gpointer) bpp);
+
+  if (exp->mod->options)
+    {
+      w = gtk_frame_new (_("Options"));
+      gtk_widget_show (w);
+      gtk_box_pack_start_defaults (GTK_BOX (vbox), w);
+
+      table = gtk_table_new (1, 2, FALSE);
+      gtk_widget_show (table);
+
+      create_export_options (table, exp);
+
+      gtk_widget_show (table);
+      gtk_container_add (GTK_CONTAINER (w), table);
+    }
+
+  gtk_box_pack_start_defaults (GTK_BOX (GNOME_DIALOG (dialog)->vbox), vbox);
+
+  return dialog;
+}
+
 static
 void export_ttx_page			(GtkWidget	*widget,
 					 ttxview_data	*data,
@@ -1352,6 +1626,7 @@ void export_ttx_page			(GtkWidget	*widget,
   struct export *exp;
   gchar *buffer, *buffer2;
   char *filename;
+  GtkWidget * dialog;
 
   buffer = zcg_char(NULL, "exportdir");
 
@@ -1376,37 +1651,7 @@ void export_ttx_page			(GtkWidget	*widget,
   if ((exp = export_open(fmt)))
     {
       /* Configure */
-      gchar *prompt;
-      if (exp->mod->options)
-	buffer = g_strjoinv(",", exp->mod->options);
-      else
-	buffer = g_strdup(_("[none]"));
-      prompt = g_strdup_printf(_("Global options: %s\n"
-				 "Options for %s filter: %s"),
-			       "reveal,hide",
-			       fmt,
-			       buffer);
-      buffer2 = g_strconcat(ZCONF_DOMAIN, fmt, "_options", NULL);
-      zconf_create_string("", "export_options", buffer2);
-      g_free(buffer);
-      buffer = Prompt(data->parent, _("Export options"),
-		      prompt, zconf_get_string(NULL, buffer2));
-      if (buffer)
-	{
-	  zconf_set_string(buffer, buffer2);
-	  g_free(buffer2);
-	  export_close(exp);
-	  buffer2 = g_strconcat(fmt, ",", buffer, NULL);
-	  if (!(exp = export_open(buffer2)))
-	    {
-	      ShowBox("Options not valid, using defaults",
-		      GNOME_MESSAGE_BOX_WARNING);
-	      g_assert((exp = export_open(fmt)));
-	    }
-	}
-      g_free(buffer2);
-      g_free(buffer);
-      g_free(prompt);
+      gint result;
 
       filename =
 	export_mkname(exp, "Zapzilla-%p.%e",
@@ -1421,6 +1666,12 @@ void export_ttx_page			(GtkWidget	*widget,
       zcs_char(buffer2, "exportdir");
       buffer = g_strconcat(buffer2, filename, NULL);
       g_free(buffer2);
+
+      dialog = create_export_dialog(&buffer, data, exp);
+      result = gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
+      if (result != 0)
+        return;
+
       if (export(exp, data->fmt_page, buffer))
 	{
 	  buffer2 = g_strdup_printf("Export to %s failed: %s", buffer,

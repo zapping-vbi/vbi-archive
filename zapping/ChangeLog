@@ -1,3 +1,10 @@
+16.3.2001	TTX export <mschimek@users.sourceforge.net>
+
+	* Export options interface now tveng controls style.
+	* Rewrote export dialog. Not completely satisfied, but well.
+	* Added email keywords (a), (at).
+	* Added vbi_network XDS/CNI unique id.
+
 16.3.2001	pam workarounds <garetxe@users.sourceforge.net>
 
 	* configure.in: Added --disable-pam option, apparently some pam

@@ -453,18 +453,16 @@ keyword(vbi_link *ld, unsigned char *p, int column,
 		strcpy(ld->text, "http://");
 	} else if (!strncasecmp(s, "ftp://", i = 6)) {
 		ld->type = VBI_LINK_FTP;
-	/*
-	 *  A few German networks invented this format since Latin1/German
-	 *  replaced the at sign with a paragraph sign and they apparently
-	 *  can't afford a level 1.5 generator.
-	 *
-	 *  XXX 2do: xxx(a)yyy, xxx(at)yyy
-	 */
-	} else if (*s == '@' || *s == 167) {
+	} else if (*s == '@' || *s == 167 /* paragraph sign */) {
 		ld->type = VBI_LINK_EMAIL;
 		strcpy(ld->text, "mailto:");
-		*s = '@';
 		i = 1;
+	} else if (!strncasecmp(s, "(at)", i = 4)) {
+		ld->type = VBI_LINK_EMAIL;
+		strcpy(ld->text, "mailto:");
+	} else if (!strncasecmp(s, "(a)", i = 3)) {
+		ld->type = VBI_LINK_EMAIL;
+		strcpy(ld->text, "mailto:");
 	} else
 		return 1;
 
@@ -501,9 +499,12 @@ keyword(vbi_link *ld, unsigned char *p, int column,
 		}
 
 		*back = k;
-	}
 
-	strncat(ld->text, s + k, i + j - k);
+		strncat(ld->text, s + k, -k);
+		strcat(ld->text, "@");
+		strncat(ld->text, s + i, j);
+	} else
+		strncat(ld->text, s + k, i + j - k);
 
 	return i + j;
 }
@@ -581,9 +582,16 @@ vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link *ld)
 
 		buffer[j + 1] = glyph2latin(acp[i].glyph);
 
-		if ((buffer[j + 1] == '@' ||
-		     buffer[j + 1] == 167) && b <= 0)
-			b = j;
+		if (b <= 0) {
+			if (buffer[j + 1] == ')' && j > 2) {
+				if (!strncasecmp(buffer + j + 1 - 3, "(at", 3))
+					b = j - 3;
+				else if (!strncasecmp(buffer + j + 1 - 2, "(a", 2))
+					b = j - 2;
+			} else if (buffer[j + 1] == '@' || buffer[j + 1] == 167)
+				b = j;
+		}
+
 		j++;
 	}
 
@@ -594,8 +602,7 @@ vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link *ld)
 	keyword(ld, buffer, 1, pg->pgno, pg->subno, &i);
 
 	if (ld->type == VBI_LINK_NONE)
-		keyword(ld, buffer, b + 1,
-			pg->pgno, pg->subno, &i);
+		keyword(ld, buffer, b + 1, pg->pgno, pg->subno, &i);
 }
 
 void
@@ -1507,7 +1514,7 @@ post_enhance(struct fmt_page *pg)
 
 	for (row = 0; row < ROWS - 1; row++) {
 		for (column = 0; column < COLUMNS; acp++, column++) {
-//			printv("%d ", acp->size);
+			printv("%d", acp->flash);
 
 			if (acp->opacity == TRANSPARENT_SPACE
 			    || (acp->foreground == TRANSPARENT_BLACK
@@ -1559,7 +1566,7 @@ post_enhance(struct fmt_page *pg)
 			}
 		}
 
-//		printv("\n");
+		printv("\n");
 	}
 }
 

@@ -22,8 +22,8 @@ extern struct export_module export_txt[1];
 extern struct export_module export_ansi[1];
 extern struct export_module export_string[1];
 extern struct export_module export_html[1];
-extern struct export_module export_png[1];
-extern struct export_module export_ppm[1];
+extern struct export_module export_png;
+extern struct export_module export_ppm;
 extern struct export_module export_vtx[1];
 
 struct export_module *modules[] =
@@ -32,20 +32,14 @@ struct export_module *modules[] =
     export_ansi,
     export_string,
     export_html,
-    export_ppm,
+    &export_ppm,
 #ifdef HAVE_LIBPNG
-    export_png,
+    &export_png,
 #endif
     export_vtx,
     0
 };
 
-static char *glbl_opts[] =
-{
-    "reveal",		// show hidden text
-    "hide",		// don't show hidden text (default)
-    0
-};
 
 void
 export_error(struct export *e, char *str, ...)
@@ -93,6 +87,51 @@ find_opt(char **opts, char *opt, char *arg)
     return err;
 }
 
+static int
+find_option(vbi_export_option *xo1, char *key, char *arg)
+{
+	vbi_export_option *xo;
+
+	for (xo = xo1; xo && xo->type; xo++) {
+		if (strcasecmp(xo->keyword, key) == 0) {
+			if ((xo->type == VBI_EXPORT_BOOL) == (arg == 0))
+				return xo - xo1;
+			else
+				return -1;
+		}
+	}
+
+	return -1;
+}
+
+int
+vbi_export_set_option(struct export *exp, int index, ...)
+{
+	vbi_export_option *xo = exp->mod->options + index;
+	va_list args;
+	int r;
+
+	va_start(args, index);
+
+	if (xo->type == VBI_EXPORT_STRING) {
+		char *s = va_arg(args, char *);
+
+		r = exp->mod->option(exp, index, s, strtol(s, NULL, 0));
+	} else {
+		int n = va_arg(args, int);
+
+		if (n < xo->min)
+			n = xo->min;
+		else if (n > xo->max)
+			n = xo->max;
+
+		r = exp->mod->option(exp, index, "", n);
+	}
+
+	va_end(args);
+
+	return r;
+}
 
 struct export *
 export_open(char *fmt)
@@ -127,17 +166,16 @@ export_open(char *fmt)
 			    continue;
 			if ((optarg = strchr(opt, '=')))
 			    *optarg++ = 0;
-			if ((opti = find_opt(glbl_opts, opt, optarg)) > 0)
+			if ((opti = find_option(em->options, opt, optarg)) > 0)
 			{
-			    if (opti == 1) // reveal
-				e->reveal = 1;
-			    else if (opti == 2) // hide
-				e->reveal = 0;
-			}
-			else if (opti == 0 &&
-				(opti = find_opt(em->options, opt, optarg)) > 0)
-			{
-			    if (em->option(e, opti, optarg))
+			    int n = strtol(optarg, NULL, 0);
+
+			    if (n < em->options[opti].min)
+				n = em->options[opti].min;
+			    else if (n > em->options[opti].max)
+				n = em->options[opti].max;
+			
+			    if (em->option(e, opti, optarg, n))
 				break;
 			}
 			else

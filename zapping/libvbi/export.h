@@ -11,6 +11,33 @@
 extern int		vbi_format_page(struct vbi *vbi, struct fmt_page *pg,
 					struct vt_page *vtp, int display_rows, int navigation);
 
+typedef enum {
+	VBI_EXPORT_BOOL = 1,	/* TRUE (1) or FALSE (0), def.num */
+	VBI_EXPORT_INT,		/* Integer min - max, def.num */
+	VBI_EXPORT_MENU,	/* Index of menu[], min - max, def.num */
+	VBI_EXPORT_STRING,	/* String, def.str */
+} vbi_export_option_type;
+
+typedef struct {
+	vbi_export_option_type	type;
+	char *			keyword;
+	char *			label;		/* i18n */
+	union {
+		char *			str;	/* i18n */
+		int			num;
+	}			def;
+	int			min, max;
+	char **			menu;		/* max - min + 1 entries, i18n */
+	char *			tooltip;	/* or NULL, i18n */
+} vbi_export_option;
+
+
+
+
+
+
+
+
 
 struct export
 {
@@ -27,11 +54,11 @@ struct export_module
 {
     char *fmt_name;		// the format type name (ASCII/HTML/PNG/...)
     char *extension;		// the default file name extension
-    char **options;		// module options
+	vbi_export_option *	options;
     int local_size;
     int (*open)(struct export *fmt);
     void (*close)(struct export *fmt);
-    int (*option)(struct export *fmt, int opt, char *arg);
+    int (*option)(struct export *fmt, int opt, char *str_arg, int num_arg);
     int (*output)(struct export *fmt, char *name, struct fmt_page *pg);
 };
 
@@ -46,6 +73,7 @@ void export_close(struct export *e);
 int export(struct export *e, struct fmt_page *pg, char *user_str);
 
 
+extern int		vbi_export_set_option(struct export *exp, int index, ...);
 
 
 void vbi_get_rendered_size(int *w, int *h);

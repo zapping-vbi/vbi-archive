@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bstream.h,v 1.1 2000-08-09 09:40:14 mschimek Exp $ */
+/* $Id: bstream.h,v 1.2 2001-03-17 07:44:29 mschimek Exp $ */
 
 #ifndef BITSTREAM_H
 #define BITSTREAM_H
@@ -62,14 +62,19 @@ do {									\
 			/* never m but suppress warning */		\
 	else								\
 		asm volatile (						\
-			"\tmovd	%0,%%mm2;\n"				\
+			"\tmovd %0,%%mm2;\n"				\
 			"\tpsllq %%mm2,%%mm0;\n"			\
 			:: "rm" ((unsigned int)(n)) : "cc" FPU_REGS);	\
 									\
-	asm volatile (							\
-		"\tmovd	%0,%%mm1;\n"					\
-		"\tpor %%mm1,%%mm0;\n"					\
-		:: "rm" ((unsigned int)(v)) : "cc" FPU_REGS);		\
+	if (0&&__builtin_constant_p(v))					\
+		asm volatile ("\tpor %0,%%mm0;\n"			\
+			:: "m" ((unsigned long long)(v))		\
+			: "cc" FPU_REGS);				\
+	else								\
+		asm volatile (						\
+			"\tmovd %0,%%mm1;\n"				\
+			"\tpor %%mm1,%%mm0;\n"				\
+			:: "rm" ((unsigned int)(v)) : "cc" FPU_REGS);	\
 } while (0)
 
 #endif // BITSTREAM_H

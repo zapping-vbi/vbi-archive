@@ -18,7 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.h,v 1.3 2001-01-30 23:27:16 mschimek Exp $ */
+/* $Id: vlc.h,v 1.4 2001-03-17 07:44:29 mschimek Exp $ */
+
+#include "../common/math.h"
+#include "../options.h"
 
 typedef struct {
 	unsigned char		code;
@@ -36,11 +39,10 @@ typedef struct {
 } VLC8;
 
 extern int		dc_dct_pred[2][3];
-extern int		PMV[2][2];
 
 extern VLC2		coded_block_pattern[64];
 extern VLC2		macroblock_address_increment[33];
-extern VLC2		motion_vector_component[32 + 64 + 128];
+extern VLC2		motion_vector_component[224];
 extern VLC4		macroblock_type_b_nomc_quant[4];
 extern VLC2		macroblock_type_b_nomc[4];
 extern VLC2		macroblock_type_b_nomc_notc[4];
@@ -71,9 +73,34 @@ void reset_dct_pred(void)
 #define F_CODE_MIN 1
 #define F_CODE_MAX 3
 
-static inline VLC2 *
-motion_vlc_table(int f_code)
+struct motion {
+	VLC2 *			vlc;
+	int			f_code;
+	int			f_mask;
+	int			range;
+
+	int			PMV[2], MV[2];
+};
+
+static inline void
+reset_pmv(struct motion *m)
 {
-	// return motion_vector_component + ((1 << (f_code - 1)) - 1) * 32;
-	return motion_vector_component + ((15 << f_code) & 224);
+	memset(m->PMV, 0, sizeof(m->PMV));
+}
+
+static inline void
+motion_init(struct motion *m, int range)
+{
+	int f;
+
+	range = saturate(range, motion_min, motion_max);
+	f = saturate(ffsr(range - 1) - 1, F_CODE_MIN, F_CODE_MAX);
+	m->range = saturate(range, 4, 4 << f);
+	m->f_mask = 0x7F >> (3 - f);
+	m->f_code = f;
+
+	m->vlc = motion_vector_component + ((15 << f) & 224);
+	// = motion_vector_component + ((1 << (f - 1)) - 1) * 32;
+
+	reset_pmv(m);
 }

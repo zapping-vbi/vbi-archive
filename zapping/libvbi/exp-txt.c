@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.10 2001-02-19 07:23:02 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.11 2001-03-17 07:44:29 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,27 +31,74 @@
 #include "export.h"
 
 static int txt_open(struct export *e);
-static int txt_option(struct export *e, int opt, char *arg);
+static int txt_option(struct export *e, int opt, char *str_arg, int num_arg);
 static int txt_output(struct export *e, char *name, struct fmt_page *pg);
-static int string_option(struct export *e, int opt, char *arg);
+static int string_option(struct export *e, int opt, char *str_arg, int num_arg);
 static int string_output(struct export *e, char *name, struct fmt_page *pg);
 
-static char *txt_opts[] =	// module options
-{
-    "color",			// generate ansi color codes (and attributes)
-    "gfx-chr=<char>",		// substitute <char> for gfx-symbols
-    "fg=<0-7|none>",		// assume term has <x> as foreground color
-    "bg=<0-7|none>",		// assume term has <x> as background color
-    0
+/* future */
+#undef _
+#define _(String) (String)
+#undef N_
+#define N_(String) (String)
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+static char *
+colour_names[] = {
+	N_("Black"), N_("Red"), N_("Green"), N_("Yellow"),
+	N_("Blue"), N_("Magenta"), N_("Cyan"), N_("White"),
+	N_("Any")
 };
 
-static char *string_opts[] =	// module options
-{
-	"col=<0-39>",
-	"row=<0-24>",
-	"width=<int>",
-	"height=<int>",
-    0
+static vbi_export_option txt_opts[] = {
+	{
+		VBI_EXPORT_STRING,	"gfx-chr",	N_("Graphics char"),
+		{ .str = "#" }, 0, 0, NULL, N_("Replacement for block graphic characters: a single character or decimal (32) or hex (0x20) code")
+	}, {
+		VBI_EXPORT_MENU,	"fg",		N_("Foreground"),
+		{ .num = 8 }, 0, 8, colour_names, N_("Assumed terminal foreground color")
+	}, {
+		VBI_EXPORT_MENU,	"bg",		N_("Background"),
+		{ .num = 8 }, 0, 8, colour_names, N_("Assumed terminal background color")
+	}, {
+		VBI_EXPORT_BOOL,	"color",	N_("ANSI colors"),
+		{ .num = FALSE }, FALSE, TRUE, NULL, N_("Insert ANSI color escape codes")
+	}, {
+		0
+	}
+};
+
+static vbi_export_option ansi_opts[] = {
+	{
+		VBI_EXPORT_STRING,	"gfx-chr",	N_("Graphics char"),
+		{ .str = "#" }, 0, 0, NULL, N_("Replacement for block graphic characters: a single character or decimal (32) or hex (0x20) code")
+	}, {
+		VBI_EXPORT_MENU,	"fg",		N_("Foreground"),
+		{ .num = 8 }, 0, 8, colour_names, N_("Assumed terminal foreground color")
+	}, {
+		VBI_EXPORT_MENU,	"bg",		N_("Background"),
+		{ .num = 8 }, 0, 8, colour_names, N_("Assumed terminal background color")
+	}, {
+		0
+	}
+};
+
+/*
+ *  For internal use only.
+ */
+static vbi_export_option string_opts[] = {
+	{
+		VBI_EXPORT_INT,	"col",	  "col",	{ .num = 0 }, 0, 39, NULL, NULL
+	}, {
+		VBI_EXPORT_INT,	"row",	  "row",	{ .num = 0 }, 0, 24, NULL, NULL
+	}, {
+		VBI_EXPORT_INT,	"width",  "width",	{ .num = 40 }, 1, 40, NULL, NULL
+	}, {
+		VBI_EXPORT_INT,	"height", "height",	{ .num = 25 }, 1, 25, NULL, NULL
+	}, {
+		0
+	}
 };
 
 struct txt_data			// private data in struct export
@@ -91,7 +138,7 @@ struct export_module export_ansi[1] =	// exported module definition
   {
     "ansi",			// id
     "txt",			// extension
-    txt_opts,			// options
+    ansi_opts,			// options
     sizeof(struct txt_data),	// data size
     txt_open,			// open
     0,				// close
@@ -152,42 +199,46 @@ static int number(const char *arg)
 }
 
 static int
-txt_option(struct export *e, int opt, char *arg)
+txt_option(struct export *e, int opt, char *str_arg, int num_arg)
 {
     switch (opt)
     {
-	case 1: // color
-	    D->color = 1;
+	case 0: /* gfx-chr */
+		if (strlen(str_arg) == 1)
+			num_arg = *str_arg;
+		if (num_arg >= 0x100)
+			num_arg = '#';
+		D->gfx_chr = MAX(num_arg, 0x20);
+		break;
+	case 1: // fg=
+	    D->def_fg = (num_arg < 0) ? -1 : (num_arg > 7) ? -1 : num_arg;
 	    break;
-	case 2: // gfx-chr=
-	    D->gfx_chr = *arg ?: ' ';
+	case 2: // bg=
+	    D->def_bg = (num_arg < 0) ? -1 : (num_arg > 7) ? -1 : num_arg;
 	    break;
-	case 3: // fg=
-	    D->def_fg = *arg - '0';
-	    break;
-	case 4: // bg=
-	    D->def_bg = *arg - '0';
+	case 3: // color
+	    D->color = !!num_arg;
 	    break;
     }
     return 0;
 }
 
 static int
-string_option(struct export *e, int opt, char *arg)
+string_option(struct export *e, int opt, char *str_arg, int num_arg)
 {
     switch (opt)
     {
-	case 1: // color
-	    S->col = number(arg);
+	case 1: // column
+	    S->col = num_arg;
 	    break;
 	case 2: // row
-	    S->row = number(arg);
+	    S->row = num_arg;
 	    break;
 	case 3: // width
-	    S->width = number(arg);
+	    S->width = num_arg;
 	    break;
 	case 4: // height
-	    S->height = number(arg);
+	    S->height = num_arg;
 	    break;
     }
     return 0;

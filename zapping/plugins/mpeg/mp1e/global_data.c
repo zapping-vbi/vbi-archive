@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.6 2000-11-11 02:32:21 mschimek Exp $ */
+/* $Id: global_data.c,v 1.7 2001-03-17 07:44:29 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,6 +69,8 @@ double			frame_rate		= 1000.0;
 int			preview			= 0;			// 0 = none, XvImage/GTK, progressive
 char *			anno			= NULL;
 int			luma_only		= 0;			// boolean
+int			motion_min		= 4;
+int			motion_max		= 16;
 
 int			audio_bit_rate		= 80000;
 int			audio_bit_rate_stereo	= 160000;

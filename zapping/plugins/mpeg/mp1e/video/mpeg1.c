@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.20 2001-03-09 17:39:01 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.21 2001-03-17 07:44:29 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -91,7 +91,7 @@ static double		d0i, d0p, d0b;			// virtual buffer fullness
 static double		r31;				// reaction parameter
 static double		avg_acti;			// average spatial activity
 static double		avg_actp;
-static int		p_succ;
+static int		p_succ, p_dist;
 
 static unsigned char 	seq_header_template[32] __attribute__ ((aligned (CACHE_LINE)));
 							// precompressed sequence header
@@ -144,13 +144,12 @@ extern bool		temporal_interpolation;
 extern int		preview;
 extern void		packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
 
-int p_inter_bias = PACKED ? 65536 * 48 : 65536 * 100,
-    b_inter_bias = PACKED ? 65536 * 96 : 65536 * 200,
+int p_inter_bias = 65536 * 48,
+    b_inter_bias = 65536 * 96,
     x_bias = 65536 * 31,
     quant_max = 31;
 
 #define QS 1
-#define F_PLUS 2 // XXX insufficient, use log2
 
 fifo *			video_fifo;
 
@@ -164,6 +163,7 @@ fifo *			video_fifo;
 
 #define macroblock_address(skipped)					\
 do {									\
+	/* this isn't really justified, better limit mb_skipped */	\
 	for (i = (skipped); i >= 33; i -= 33)				\
 		bputl(&video_out, 0x008, 11); /* mb addr escape */	\
 									\
@@ -171,25 +171,35 @@ do {									\
 	length = macroblock_address_increment[i].length; /* 1...11 */	\
 } while (0)
 
-#define motion_vector(table, dmv)					\
+#define motion_vector(m, dmv)						\
 do {									\
-	int l0 = table[dmv[0]].length;					\
-	int l1 = table[dmv[1]].length;					\
+	int l0, l1;							\
 									\
-	bcatq(table[dmv[0]].code, l0);					\
-	bcatq(table[dmv[1]].code, l1);					\
+	l0 = (m)->vlc[dmv[0]].length;					\
+	bcatq((m)->vlc[dmv[0]].code, l0);				\
+	l1 = (m)->vlc[dmv[1]].length;					\
+	bcatq((m)->vlc[dmv[1]].code, l1);				\
 	length += l0 + l1; /* 2...26 (f_code == 3) */			\
 } while (0)
 
+static inline void
+motion_dmv(struct motion *m, int dmv[2])
+{
+	dmv[0] = (m->MV[0] - m->PMV[0]) & m->f_mask;
+	dmv[1] = (m->MV[1] - m->PMV[1]) & m->f_mask;
 
-static const int motion = !PACKED;
-static int MV[2][2] = {
-	{ 0, 0 },
-	{ 0, 0 }
-};
+	m->PMV[0] = m->MV[0];
+	m->PMV[1] = m->MV[1];
+}
 
+#if PACKED
 #define T3RT 1
-// #include "test-3p1.c"
+#define T3RI 1
+static const int motion = 0;
+#else
+static int motion = 8 * 256;
+#include "test-3p1.c"
+#endif
 
 static int
 picture_i(unsigned char *org0, unsigned char *org1)
@@ -250,7 +260,7 @@ picture_i(unsigned char *org0, unsigned char *org1)
 
 	for (mb_row = 0; mb_row < mb_height; mb_row++) {
 		for (mb_col = 0; mb_col < mb_width; mb_col++) {
-	
+
 			/* Read macroblock (MMX state) */
 
 			pr_start(41, "Filter");
@@ -265,7 +275,8 @@ picture_i(unsigned char *org0, unsigned char *org1)
 
 			act_sum += act = var / 65536.0 + 1;
 			act = (2.0 * act + avg_acti) / (act + 2.0 * avg_acti);
-			quant = quant_res_intra[saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max)];
+			quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
+			quant = quant_res_intra[quant];
 			/*
 			 *  quant_res_intra halves the quantization factor resolution above 16 to
 			 *  reduce lookup table size (MMX DCT). Quality is already poor at 16,
@@ -369,7 +380,6 @@ picture_i(unsigned char *org0, unsigned char *org1)
 		packed_preview(newref, mb_width, mb_height);
 #endif
 
-
 	return S >> 3;
 }
 
@@ -442,23 +452,28 @@ do {									\
 #define HOT_AIR 0
 
 static int
-picture_p(unsigned char *org0, unsigned char *org1,
-	int forward_f_code)
+picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_motion)
 {
 	double act, act_sumi, act_sump;
 	int quant_sum;
 	int S, T, quant, prev_quant, quant1 = 1;
 	struct bs_rec mark;
+	struct motion M;
 	unsigned char *q1p;
 	int var, vmc;
 	int mb_skipped, mb_count;
-	VLC2 *mv_vlc = motion_vlc_table(forward_f_code);
-	int f_mask = 0x7F >> (3 - forward_f_code);
 	int intra_count = 0;
 
-	printv(3, "Encoding P picture #%d GOP #%d, ref=%c, f_code=%d\n",
+	if (motion)
+		motion_init(&M, (dist * forward_motion) >> 8);
+	else {
+		M.f_code = 1;
+		M.range = 0;
+	}
+
+	printv(3, "Encoding P picture #%d GOP #%d, ref=%c, f_code=%d (%d)\n",
 		video_frame_count, gop_frame_count, "FT"[referenced],
-		forward_f_code);
+		M.f_code, M.range);
 
 	pr_start(24, "Picture P");
 
@@ -490,10 +505,6 @@ picture_p(unsigned char *org0, unsigned char *org1,
 
 	reset_dct_pred();
 	
-	if (motion) {
-		PMV[0][0] = 0;
-		PMV[0][1] = 0;
-	}
 
 	prev_quant = -100;
 	mb_count = 1;
@@ -506,7 +517,7 @@ picture_p(unsigned char *org0, unsigned char *org1,
 	bputl(&video_out, PICTURE_START_CODE, 32);
 
 	bputl(&video_out, ((gop_frame_count & 1023) << 19) + (P_TYPE << 16) + 0, 29);
-	bputl(&video_out, (0 << 10) + (forward_f_code << 7) + (0 << 6), 11);
+	bputl(&video_out, (0 << 10) + (M.f_code << 7) + (0 << 6), 11);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
 	 *  full_pel_forward_vector '0', forward_f_code,
@@ -543,13 +554,14 @@ picture_p(unsigned char *org0, unsigned char *org1,
 			pr_start(51, "Predict forward");
 
 #if TEST3p1
-			if (motion)
-				vmc = predict_forward_motion(oldref, &MV[0][0], &MV[0][1]);
-			else
+			if (motion) {
+				vmc = predict_forward_motion(&M, oldref);
+			} else
 #endif
 				vmc = predict_forward(oldref + mb_address.block[0].offset);
 
 			pr_end(51);
+
 
 			emms();
 
@@ -557,7 +569,7 @@ picture_p(unsigned char *org0, unsigned char *org1,
 
 			/* Encode macroblock */
 
-			if (T3RT && vmc > p_inter_bias) {
+			if (T3RI && vmc > p_inter_bias) {
 //			if (vmc > var || vmc > p_inter_bias) {
 				int length, i;
 
@@ -567,7 +579,8 @@ picture_p(unsigned char *org0, unsigned char *org1,
 				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
 
 				quant = lroundn((bwritten(&video_out) - Ti) * r31 * act);
-				quant = quant_res_intra[saturate(quant >> QS, 1, quant_max)];
+				quant = saturate(quant >> QS, 1, quant_max);
+				quant = quant_res_intra[quant];
 
 //				if (quant >= 4 && abs(quant - prev_quant) <= 2)
 //					quant = prev_quant;
@@ -586,10 +599,8 @@ picture_p(unsigned char *org0, unsigned char *org1,
 
 				mb_skipped = 0;
 
-				if (motion) {
-					PMV[0][0] = 0;
-					PMV[0][1] = 0;
-				}
+				if (motion)
+					reset_pmv(&M);
 
 				if (referenced) {
 					pr_start(23, "IDCT intra");
@@ -607,6 +618,8 @@ picture_p(unsigned char *org0, unsigned char *org1,
 
 				quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
 
+if (!T3RT) quant = 2;
+
 //				if (quant >= 4 && abs(quant - prev_quant) <= 2)
 //					quant = prev_quant;
 
@@ -616,16 +629,12 @@ picture_p(unsigned char *org0, unsigned char *org1,
 #if HOT_AIR
  					if (mb_row > 0 && mb_row < (mb_height - 1) &&
  					    mb_col > 0 && mb_col < (mb_width - 1)) {
- 						MV[0][0] = (rand() & 3) - 2;
- 						MV[0][1] = (rand() & 3) - 2;
+ 						M.MV[0] = (rand() & 3) - 2;
+ 						M.MV[1] = (rand() & 3) - 2;
  					} else
- 						memset(MV, 0, sizeof MV);
+ 						memset(M.MV, 0, sizeof M.MV);
 #endif
-					dmv[0] = (MV[0][0] - PMV[0][0]) & f_mask;
-					dmv[1] = (MV[0][1] - PMV[0][1]) & f_mask;
- 
- 					PMV[0][0] = MV[0][0];
- 					PMV[0][1] = MV[0][1];
+					motion_dmv(&M, dmv);
 				}
 
 				brewind(&mark, &video_out);
@@ -639,20 +648,10 @@ picture_p(unsigned char *org0, unsigned char *org1,
 					cbp = fdct_inter(mblock[1]); // mblock[1] -> mblock[0]
 					pr_end(26);
 
-					if (cbp == 0 && mb_count > 1 && mb_count < mb_num &&
-						(!motion 
-					// XXX ? || (dmv[0] | dmv[1]) == 0
-						)) {
-						mmx_copy_refblock();
-
-						// XXX ?
-						if (motion) {
-							PMV[0][0] = 0;
-							PMV[0][1] = 0;
-						}
-
+					// something is wrong here - but what?
+					if (0 && cbp == 0 && mb_count > 1 && mb_count < mb_num &&
+						(!motion || (M.MV[0] | M.MV[1]) == 0)) {
 						i++;
-
 						break;
 					} else {
 						bepilog(&video_out);
@@ -664,7 +663,7 @@ picture_p(unsigned char *org0, unsigned char *org1,
 						if (cbp == 0) {
 							if (motion) {
 								bcatq(1, 3);
-								motion_vector(mv_vlc, dmv);
+								motion_vector(&M, dmv);
 								bputq(&video_out, length + 3);
 								/* macroblock_type '001' (P MC, Not Coded) */
 							} else {
@@ -677,7 +676,7 @@ picture_p(unsigned char *org0, unsigned char *org1,
 							mmx_copy_refblock();
 							break;
 						} else {
-							if (motion && (MV[0][0] | MV[0][1])) {
+							if (motion && (M.MV[0] | M.MV[1])) {
 								if (prev_quant != quant) {
 									bcatq((2 << 5) + quant, 10);
 									length += 10;
@@ -688,7 +687,7 @@ picture_p(unsigned char *org0, unsigned char *org1,
 									/* macroblock_type '1' (P MC, Coded) */
 								}
 
-								motion_vector(mv_vlc, dmv);
+								motion_vector(&M, dmv);
 								len = coded_block_pattern[cbp].length; // 3..9
 								bcatq(coded_block_pattern[cbp].code, len);
 								bputq(&video_out, length + len);
@@ -762,6 +761,7 @@ picture_p(unsigned char *org0, unsigned char *org1,
 
 #if TEST3p1
 	t2();
+	t7(M.range, dist);
 #endif
 
 	/* Rate control */
@@ -788,8 +788,7 @@ picture_p(unsigned char *org0, unsigned char *org1,
 }
 
 static int
-picture_b(unsigned char *org0, unsigned char *org1,
-	int forward_f_code, int backward_f_code)
+picture_b(unsigned char *org0, unsigned char *org1, int forward_motion, int backward_motion)
 {
 	double act, act_sum;
 	short (* iblock)[6][8][8];
@@ -800,12 +799,19 @@ picture_b(unsigned char *org0, unsigned char *org1,
 	int var, vmc, vmcf, vmcb;
 	int macroblock_type, mb_type_last;
 	int mb_skipped, mb_count;
-	VLC2 *mv_vlc[2];
-	int f_mask[2];
+	struct motion M[2];
 
-	printv(3, "Encoding B picture #%d GOP #%d, fwd=%c, f_code=%d,%d\n",
+	if (motion) {
+		motion_init(&M[0], forward_motion >> 8);
+		motion_init(&M[1], backward_motion >> 8);
+	} else {
+		M[0].f_code = 1; M[1].f_code = 1;
+		M[0].range = 0;	M[1].range = 0;
+	}
+
+	printv(3, "Encoding B picture #%d GOP #%d, fwd=%c, f_code=%d (%d), %d (%d)\n",
 		video_frame_count, gop_frame_count, "FT"[!closed_gop],
-		forward_f_code, backward_f_code);
+		M[0].f_code, M[0].range, M[1].f_code, M[1].range);
 
 	pr_start(25, "Picture B");
 
@@ -832,18 +838,6 @@ picture_b(unsigned char *org0, unsigned char *org1,
 
 	reset_dct_pred();
 
-	if (motion) {
-		PMV[0][0] = 0;
-		PMV[0][1] = 0;
-		PMV[1][0] = 0;
-		PMV[1][1] = 0;
-
-		mv_vlc[0] = motion_vlc_table(forward_f_code);
-		mv_vlc[1] = motion_vlc_table(backward_f_code);
-
-		f_mask[0] = 0x7F >> (3 - forward_f_code);
-		f_mask[1] = 0x7F >> (3 - backward_f_code);
-	}
 
 	prev_quant = -100;
 
@@ -858,8 +852,8 @@ picture_b(unsigned char *org0, unsigned char *org1,
 	bputl(&video_out, PICTURE_START_CODE, 32);
 
 	bputl(&video_out, ((gop_frame_count & 1023) << 19) + (B_TYPE << 16) + 0, 29);
-	bputl(&video_out, (0 << 10) + (forward_f_code << 7) + (0 << 6)
-			            + (backward_f_code << 3) + (0 << 2), 11);
+	bputl(&video_out, (0 << 10) + (M[0].f_code << 7) + (0 << 6)
+			            + (M[1].f_code << 3) + (0 << 2), 11);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
 	 *  full_pel_forward_vector '0', forward_f_code,
@@ -889,8 +883,7 @@ picture_b(unsigned char *org0, unsigned char *org1,
 				pr_start(52, "Predict bidirectional");
 #if TEST3p1
 				if (motion)
-					vmc = predict_bidirectional_motion(oldref, newref,
-						&MV[0][0], &MV[0][1], &MV[1][0], &MV[1][1],
+					vmc = predict_bidirectional_motion(M, oldref, newref,
 						&vmcf, &vmcb);
 				else
 #endif
@@ -945,7 +938,7 @@ if (!TEST3)
 
 			/* Encode macroblock */
 
-			if (T3RT && vmc > b_inter_bias) {
+			if (T3RI && vmc > b_inter_bias) {
 //			if (vmc > var || vmc > b_inter_bias) {
 				int length;
 				int i;
@@ -956,7 +949,8 @@ if (!TEST3)
 				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
 
 				quant = lroundn((bwritten(&video_out) - Ti) * r31 * act);
-				quant = quant_res_intra[saturate(quant >> QS, 1, quant_max)];
+				quant = saturate(quant >> QS, 1, quant_max);
+				quant = quant_res_intra[quant];
 
 				Ti += Tmb;
 
@@ -973,10 +967,8 @@ if (!TEST3)
 				mb_skipped = 0;
 
 				if (motion) {
-					PMV[0][0] = 0;
-					PMV[0][1] = 0;
-					PMV[1][0] = 0;
-					PMV[1][1] = 0;
+					reset_pmv(&M[0]);
+					reset_pmv(&M[1]);
 				}
 			} else {
 				unsigned int cbp;
@@ -988,6 +980,7 @@ if (!TEST3)
 				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
 
 				quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
+if (!T3RT) quant = 2;
 
 				Ti += Tmb;
 
@@ -995,26 +988,20 @@ if (!TEST3)
 #if HOT_AIR				
 					if (mb_row > 0 && mb_row < (mb_height - 1) &&
 					    mb_col > 0 && mb_col < (mb_width - 1)) {
-						MV[0][0] = (rand() & 3) - 2;
-						MV[0][1] = (rand() & 3) - 2;
-						MV[1][0] = (rand() & 3) - 2;
-						MV[1][1] = (rand() & 3) - 2;
-					} else
-						memset(MV, 0, sizeof MV);
-#endif
-					if (macroblock_type & MB_FORWARD) {
-						dmv[0][0] = (MV[0][0] - PMV[0][0]) & f_mask[0];
-						dmv[0][1] = (MV[0][1] - PMV[0][1]) & f_mask[0];
- 						PMV[0][0] = MV[0][0];
- 						PMV[0][1] = MV[0][1];
+						M[0].MV[0] = (rand() & 3) - 2;
+						M[0].MV[1] = (rand() & 3) - 2;
+						M[1].MV[0] = (rand() & 3) - 2;
+						M[1].MV[1] = (rand() & 3) - 2;
+					} else {
+						memset(M[0].MV, 0, sizeof M[0].MV);
+						memset(M[1].MV, 0, sizeof M[1].MV);
 					}
+#endif
+					if (macroblock_type & MB_FORWARD)
+						motion_dmv(&M[0], dmv[0]);
 
-					if (macroblock_type & MB_BACKWARD) {
-						dmv[1][0] = (MV[1][0] - PMV[1][0]) & f_mask[1];
-						dmv[1][1] = (MV[1][1] - PMV[1][1]) & f_mask[1];
- 						PMV[1][0] = MV[1][0];
- 						PMV[1][1] = MV[1][1];
- 					}
+					if (macroblock_type & MB_BACKWARD)
+						motion_dmv(&M[1], dmv[1]);
 				}
 
 				brewind(&mark, &video_out);
@@ -1050,9 +1037,9 @@ if (!TEST3)
 				/* macroblock_type (B Not Coded, see vlc.c) */
 
 				if (macroblock_type & MB_FORWARD)
-					motion_vector(mv_vlc[0], dmv[0]);
+					motion_vector(&M[0], dmv[0]);
 				if (macroblock_type & MB_BACKWARD)
-					motion_vector(mv_vlc[1], dmv[1]);
+					motion_vector(&M[1], dmv[1]);
 			} else {
 				len = macroblock_type_b_nomc_notc[macroblock_type].length; // 5..6
 				bcatq(macroblock_type_b_nomc_notc[macroblock_type].code, len);
@@ -1077,9 +1064,9 @@ if (!TEST3)
 				length += len;
 
 				if (macroblock_type & MB_FORWARD)
-					motion_vector(mv_vlc[0], dmv[0]);
+					motion_vector(&M[0], dmv[0]);
 				if (macroblock_type & MB_BACKWARD)
-					motion_vector(mv_vlc[1], dmv[1]);
+					motion_vector(&M[1], dmv[1]);
 			} else {
 				if (prev_quant != quant) {
 					len = macroblock_type_b_nomc_quant[macroblock_type].length; // 13..14
@@ -1308,10 +1295,10 @@ promote(int n)
 
 		if (p_succ < MAX_P_SUCC) {
 			bstart(&video_out, obuf->data);
-			if ((obuf->used = picture_p(stack[i].org[0], stack[i].org[1],
-				saturate(1 + F_PLUS, F_CODE_MIN, F_CODE_MAX)))) {
+			if ((obuf->used = picture_p(stack[i].org[0], stack[i].org[1], 1, motion))) {
 				obuf->type = P_TYPE;
 				p_succ++;
+				p_dist = 0;
 			}
 		}
 
@@ -1321,6 +1308,7 @@ promote(int n)
 			obuf->used = picture_i(stack[i].org[0], stack[i].org[1]);
 			obuf->type = I_TYPE;
 			p_succ = 0;
+			p_dist = 0;
 		}
 
 		if (stack[i].buffer)
@@ -1345,6 +1333,7 @@ resume(int n)
 
 	referenced = FALSE;
 	p_succ = 0;
+	p_dist = 0;
 
 	for (i = 0; i < n; i++) {
 		if (!stack[i].org[0]) {
@@ -1371,8 +1360,7 @@ resume(int n)
 			obuf = wait_empty_buffer(video_fifo);
 			bstart(&video_out, obuf->data);
 			obuf->used = picture_b(stack[i].org[0], stack[i].org[1],
-				saturate(i + 1 + F_PLUS, F_CODE_MIN, F_CODE_MAX),
-				saturate(n - i + F_PLUS, F_CODE_MIN, F_CODE_MAX));
+				(i + 1) * motion, (n - i) * motion);
 
 			if (stack[i].buffer)
 				send_empty_buffer(video_cap_fifo, stack[i].buffer);
@@ -1541,6 +1529,7 @@ mpeg1_video_ipb(void *unused)
 
 				video_frame_count++;
 				gop_frame_count++;
+				p_dist++;
 
 				sp = 0;
 				continue;
@@ -1642,17 +1631,17 @@ gop_count++;
 
 			brewind(&mark, &video_out);
 
-			if ((obuf->used = picture_p(this->org[0], this->org[1],
-				saturate(sp + F_PLUS, F_CODE_MIN, F_CODE_MAX)))) {
-				/* 1...n -> 1,2,3,4,4,5,... -> 8,16,32,32,64,64,64,64,128,... */
+			if ((obuf->used = picture_p(this->org[0], this->org[1], sp + p_dist, motion))) {
 				obuf->type = P_TYPE;
 				p_succ++;
+				p_dist = 0;
 			} else {
 				brewind(&video_out, &mark); // headers
 
 				obuf->used = picture_i(this->org[0], this->org[1]);
 				obuf->type = I_TYPE;
 				p_succ = 0;
+				p_dist = 0;
 			}
 		} else {
 			obuf->used = picture_i(this->org[0], this->org[1]);
@@ -1835,7 +1824,7 @@ video_init(void)
 		FAIL("Too many successive B pictures");
 
 
-	if (PACKED) {
+#if PACKED
 		for (i = 0; i < 6; i++) {
 			mb_address.block[i].offset	= 64;
 			mb_address.block[i].pitch	= 8;
@@ -1846,7 +1835,7 @@ video_init(void)
 		mb_address.row.lum	= 0;
 		mb_address.row.chrom	= 0;
 		mb_address.chrom_0	= mb_address.block[4].offset;
-	} else {
+#else
 		for (i = 0; i < 6; i++)
 			mb_address.block[i].pitch = mb_width * ((i >= 4) ? 8 : 16);
 
@@ -1861,7 +1850,12 @@ video_init(void)
 		mb_address.row.lum	= mb_width * 16 * 15;
 		mb_address.row.chrom	= mb_width * (8 * 7 - 16 * 15);
 		mb_address.chrom_0	= mb_address.block[4].offset;
-	}
+
+		motion = (motion_min + motion_max) << 7;
+
+		p_inter_bias *= 2;
+		b_inter_bias *= 2;
+#endif
 
 	mb_cx_row = mb_height;
 	mb_cx_thresh = 100000;

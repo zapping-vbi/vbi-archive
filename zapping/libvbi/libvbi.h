@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.25 2001-03-09 17:39:01 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.26 2001-03-17 07:44:29 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -150,6 +150,8 @@ extern void		vbi_draw_cc_page_region(struct fmt_page *pg, uint32_t *canvas,
  */
 
 typedef struct {
+	unsigned int		id;			/* unique id */
+
 	char			name[33];		/* descriptive name */
 	char			label[9];		/* short name (TTX/VPS) */
 	char			call[33];		/* network call letters (XDS) */
@@ -158,7 +160,6 @@ typedef struct {
 
 	/* Private */
 
-	void *			unique;
 	int			cni_vps;
 	int			cni_8301;
 	int			cni_8302;
