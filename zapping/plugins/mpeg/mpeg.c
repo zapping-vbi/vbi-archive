@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.37 2002-09-26 20:35:33 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.38 2002-09-27 23:55:29 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -1146,6 +1146,8 @@ record_cmd				(GtkWidget *	widget,
   gchar *filename;
   GtkWidget *properties;
 
+fprintf(stderr, "###4\n");
+
   if (!mpeg_configured())
     return FALSE;
 
@@ -1680,6 +1682,7 @@ do_start			(const gchar *		file_name)
     {
       ShowBox ("Couldn't create the encoding context",
 	       GNOME_MESSAGE_BOX_ERROR);
+fprintf(stderr, "##1\n");
       return FALSE;
     }
 
@@ -1689,6 +1692,7 @@ do_start			(const gchar *		file_name)
 	       GNOME_MESSAGE_BOX_ERROR,
 	       record_config_name);
       rte_context_delete (context);
+fprintf(stderr, "##2\n");
       return FALSE;
     }
 
@@ -1714,6 +1718,7 @@ do_start			(const gchar *		file_name)
 	  ShowBox ("This plugin needs to run in Capture mode, but"
 		   " couldn't switch to that mode:\n%s",
 		   GNOME_MESSAGE_BOX_INFO, zapping_info->error);
+fprintf(stderr, "##3\n");
 	  return FALSE;
 	}
 
@@ -1729,6 +1734,7 @@ do_start			(const gchar *		file_name)
 		   GNOME_MESSAGE_BOX_ERROR,
 		   (tveng_pixformat == TVENG_PIX_YVU420) ?
 		   "YUV 4:2:0" : "YUV 4:2:2");
+fprintf(stderr, "##4\n");
 	  return FALSE;
 	}
 
@@ -1758,6 +1764,7 @@ do_start			(const gchar *		file_name)
 
 	  ShowBox ("Unable to determine current video standard",
 		   GNOME_MESSAGE_BOX_ERROR);
+fprintf(stderr, "##5\n");
 	  return FALSE; 
 	}
 
@@ -1778,6 +1785,7 @@ do_start			(const gchar *		file_name)
 
 	  ShowBox ("Oops, catched a bug.",
 		   GNOME_MESSAGE_BOX_ERROR);
+fprintf(stderr, "##6\n");
 	  return FALSE; 
 	}
     }
@@ -1799,6 +1807,7 @@ do_start			(const gchar *		file_name)
 	{
 	  ShowBox ("Couldn't open the audio device",
 		   GNOME_MESSAGE_BOX_ERROR);
+fprintf(stderr, "##7\n");
 	  goto failed;
 	}
 
@@ -1806,6 +1815,7 @@ do_start			(const gchar *		file_name)
 	{
 	  ShowBox ("Couldn't open the audio device",
 		   GNOME_MESSAGE_BOX_ERROR);
+fprintf(stderr, "##8\n");
 	  goto failed;
 	}
     }
@@ -1832,6 +1842,7 @@ do_start			(const gchar *		file_name)
 		   GNOME_MESSAGE_BOX_WARNING, dir, error_msg);
 	  g_free (error_msg);
 	  g_free (dir);
+fprintf(stderr, "##9\n");
 	  goto failed;
 	}
 
@@ -1843,6 +1854,7 @@ do_start			(const gchar *		file_name)
 	  ShowBox (_("Cannot create file %s: %s\n"),
 		   GNOME_MESSAGE_BOX_WARNING,
 		   file_name, rte_errstr (context));
+fprintf(stderr, "##10\n");
 	  goto failed;
 	}
     }
@@ -1865,6 +1877,7 @@ do_start			(const gchar *		file_name)
       rem_consumer (&mpeg_consumer);
       capture_unlock ();
       active = FALSE;
+fprintf(stderr, "##11\n");
       goto failed;
     }
 
@@ -1884,6 +1897,7 @@ do_start			(const gchar *		file_name)
   if (audio_handle)
     close_audio_device (audio_handle);
   audio_handle = NULL;
+fprintf(stderr, "##12\n");
 
   return FALSE;
 }
@@ -2715,8 +2729,12 @@ on_saving_record_clicked	(GtkButton *		button,
   GtkToggleButton *record;
   GtkWidget *widget;
   const gchar *buffer;
+fprintf(stderr, "GGGGG\n");
 
   g_assert (saving_dialog != NULL);
+
+  if (active)
+    return;
 
   record = GTK_TOGGLE_BUTTON (lookup_widget (saving_dialog, "record"));
 
@@ -2846,10 +2864,11 @@ saving_dialog_delete		(void)
 }
 
 static void
-saving_dialog_new		(void)
+saving_dialog_new		(gboolean		recording)
 {
   GtkWidget *widget, *pixmap;
   GtkWidget *dialog, *label;
+  GtkWidget *record, *stop;
   gchar *buffer, *filename;
   gint nformats;
 
@@ -2900,18 +2919,29 @@ saving_dialog_new		(void)
   gtk_signal_connect (GTK_OBJECT (lookup_widget (saving_dialog, "entry1")),
 		      "changed",
 		      GTK_SIGNAL_FUNC (on_saving_filename_changed), NULL);
-  gtk_signal_connect (GTK_OBJECT (lookup_widget (saving_dialog, "record")),
-		      "clicked",
+
+  record = lookup_widget (saving_dialog, "record");
+  if (recording) {
+    gtk_toggle_button_set_active (record, TRUE);
+    gtk_widget_set_sensitive (record, FALSE);
+  }
+  gtk_signal_connect (GTK_OBJECT (record), "clicked",
 		      GTK_SIGNAL_FUNC (on_saving_record_clicked), NULL);
-  gtk_signal_connect (GTK_OBJECT (lookup_widget (saving_dialog, "stop")),
-		      "clicked",
+
+  stop = lookup_widget (saving_dialog, "stop");
+  gtk_signal_connect (GTK_OBJECT (stop), "clicked",
 		      GTK_SIGNAL_FUNC (on_saving_stop_clicked), NULL);
+  gtk_widget_set_sensitive (stop, recording);
 
   widget = lookup_widget (saving_dialog, "pause");
   gtk_widget_set_sensitive (widget, FALSE);
   z_tooltip_set (widget, _("Not implemented yet"));
 
-  gtk_widget_set_sensitive (lookup_widget (saving_dialog, "stop"), FALSE);
+  if (recording) {
+    z_set_sensitive_with_tooltip (lookup_widget (saving_dialog, "optionmenu14"),
+				  FALSE, NULL, NULL);
+    gtk_widget_set_sensitive (lookup_widget (saving_dialog, "fileentry3"), FALSE);
+  }
 
   gtk_widget_show (saving_dialog);
 }
@@ -2968,9 +2998,18 @@ quickrec_cmd			(GtkWidget *		widget,
   ext = file_format_ext (record_config_name);
   name = find_unused_name (NULL, record_option_filename, ext);
 
-  saving_dialog_new ();
+  saving_dialog_new (TRUE);
 
   success = do_start (name);
+
+  if (success) {
+    GtkToggleButton *record;
+
+    record = GTK_TOGGLE_BUTTON (lookup_widget (saving_dialog, "record"));
+
+  } else {
+    saving_dialog_delete ();
+  }
 
   g_free (name);
   g_free (ext);
@@ -2984,7 +3023,9 @@ record_cmd			(GtkWidget *		widget,
 				 gchar **		argv,
 				 gpointer		user_data)
 {
-  saving_dialog_new ();
+fprintf(stderr, "EEEE\n");
+
+  saving_dialog_new (FALSE);
 
   return TRUE;
 }
@@ -3065,7 +3106,7 @@ plugin_capture_stop		(void)
 static gboolean
 plugin_start			(void)
 {
-  saving_dialog_new ();
+  saving_dialog_new (FALSE);
 
   return TRUE;
 }
