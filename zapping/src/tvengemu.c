@@ -152,10 +152,10 @@ set_standard			(tveng_device_info *	info,
 static void
 add_standards			(tveng_device_info *	info)
 {
-	append_video_standard (&info->video_standards, TV_VIDEOSTD_PAL,
+	append_video_standard (&info->video_standards, TV_VIDEOSTD_SET_PAL,
 			       "PAL", "PAL", sizeof (tv_video_standard));
 
-	append_video_standard (&info->video_standards, TV_VIDEOSTD_NTSC,
+	append_video_standard (&info->video_standards, TV_VIDEOSTD_SET_NTSC,
 			       "NTSC", "NTSC", sizeof (tv_video_standard));
 
 	info->cur_video_standard = info->video_standards;
@@ -258,7 +258,7 @@ int tvengemu_attach_device(const char* device_file,
   /* Set up some capture parameters */
   info->format.width = info->cur_video_standard->frame_width / 2;
   info->format.height = info->cur_video_standard->frame_height / 2;
-  info->format.pixformat = TVENG_PIX_YVU420;
+  info->format.pixfmt = TV_PIXFMT_YVU420;
   tvengemu_update_capture_format (info);
 
   /* Overlay window setup */
@@ -330,46 +330,19 @@ static void tvengemu_close_device(tveng_device_info * info)
 static int
 tvengemu_update_capture_format (tveng_device_info *info)
 {
-  t_assert (info != NULL);
+  tv_pixel_format format;
 
-  switch (info->format.pixformat)
-    {
-    case TVENG_PIX_RGB555:
-      info->format.bpp = 2;
-      info->format.depth = 15;
-      break;
-    case TVENG_PIX_RGB565:
-    case TVENG_PIX_YUYV:
-    case TVENG_PIX_UYVY:
-      info->format.bpp = 2;
-      info->format.depth = 16;
-      break;
-    case TVENG_PIX_YVU420:
-    case TVENG_PIX_YUV420:
-      info->format.bpp = 1.5;
-      info->format.depth = 12;
-      break;
-    case TVENG_PIX_GREY:
-      info->format.bpp = 1;
-      info->format.depth = 8;
-      break;
-    case TVENG_PIX_RGB24:
-    case TVENG_PIX_BGR24:
-      info->format.bpp = 3;
-      info->format.depth = 24;
-      break;
-    case TVENG_PIX_RGB32:
-    case TVENG_PIX_BGR32:
-      info->format.bpp = 4;
-      info->format.depth = 32;
-      break;
-    default:
-      t_assert_not_reached ();
-      break;
-    }
+  tv_pixfmt_to_pixel_format (&format, info->format.pixfmt, 0);
 
-  info->format.bytesperline = info->format.width * info->format.bpp;
-  info->format.sizeimage = info->format.height * info->format.bytesperline;
+  info->format.bytesperline =
+    (info->format.width * format.bits_per_pixel) >> 3;
+
+  if (format.planar)
+    info->format.sizeimage =
+      (info->format.width * info->format.height * format.color_depth) >> 3;
+  else
+    info->format.sizeimage =
+      info->format.height * info->format.bytesperline;
 
   return 0;
 }

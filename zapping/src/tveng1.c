@@ -177,6 +177,67 @@ struct private_tveng1_device_info
 
 #define P_INFO(p) PARENT (p, struct private_tveng1_device_info, info)
 
+static tv_pixfmt
+palette_to_pixfmt		(unsigned int		palette)
+{
+	switch (palette) {
+	case VIDEO_PALETTE_GREY:	return TV_PIXFMT_Y8;
+	case VIDEO_PALETTE_HI240:	return TV_PIXFMT_UNKNOWN;
+
+#if BYTE_ORDER == BIG_ENDIAN
+	case VIDEO_PALETTE_RGB565:	return TV_PIXFMT_BGR16_BE;
+	case VIDEO_PALETTE_RGB24:	return TV_PIXFMT_BGR24_BE;
+	case VIDEO_PALETTE_RGB32:	return TV_PIXFMT_BGRA24_BE;
+	case VIDEO_PALETTE_RGB555:	return TV_PIXFMT_BGRA15_BE;
+#else
+	case VIDEO_PALETTE_RGB565:	return TV_PIXFMT_BGR16_LE;
+	case VIDEO_PALETTE_RGB24:	return TV_PIXFMT_BGR24_LE;
+	case VIDEO_PALETTE_RGB32:	return TV_PIXFMT_BGRA24_LE;
+	case VIDEO_PALETTE_RGB555:	return TV_PIXFMT_BGRA15_LE;
+#endif
+	case VIDEO_PALETTE_YUV422:	return TV_PIXFMT_YUYV;
+	case VIDEO_PALETTE_YUYV:	return TV_PIXFMT_YUYV;
+	case VIDEO_PALETTE_UYVY:	return TV_PIXFMT_UYVY;
+
+	case VIDEO_PALETTE_YUV420:	return TV_PIXFMT_UNKNOWN;
+	case VIDEO_PALETTE_YUV411:	return TV_PIXFMT_UNKNOWN;
+	case VIDEO_PALETTE_RAW:		return TV_PIXFMT_UNKNOWN;
+
+	case VIDEO_PALETTE_YUV422P:	return TV_PIXFMT_YUV422;
+	case VIDEO_PALETTE_YUV411P:	return TV_PIXFMT_YUV411;
+	case VIDEO_PALETTE_YUV420P:	return TV_PIXFMT_YUV420;
+	case VIDEO_PALETTE_YUV410P:	return TV_PIXFMT_YUV410;
+
+	default:			return TV_PIXFMT_UNKNOWN;
+	}
+}
+
+static unsigned int
+pixfmt_to_palette		(tv_pixfmt		pixfmt)
+{
+	switch (pixfmt) {
+	case TV_PIXFMT_Y8:		return VIDEO_PALETTE_GREY;
+
+	case TV_PIXFMT_BGR16_LE:	return VIDEO_PALETTE_RGB565;
+	case TV_PIXFMT_BGR24_LE:	return VIDEO_PALETTE_RGB24;
+	case TV_PIXFMT_BGRA24_LE:	return VIDEO_PALETTE_RGB32;
+	case TV_PIXFMT_BGRA15_LE:	return VIDEO_PALETTE_RGB555;
+
+	/* Synonyms. May have to try both. */
+	case TV_PIXFMT_YUYV:		return VIDEO_PALETTE_YUYV;
+     /* case TV_PIXFMT_YUYV:		return VIDEO_PALETTE_YUV422; */
+
+	case TV_PIXFMT_UYVY:		return VIDEO_PALETTE_UYVY;
+
+	case TV_PIXFMT_YUV422:		return VIDEO_PALETTE_YUV422P;
+	case TV_PIXFMT_YUV411:		return VIDEO_PALETTE_YUV411P;
+	case TV_PIXFMT_YUV420:		return VIDEO_PALETTE_YUV420P;
+	case TV_PIXFMT_YUV410:		return VIDEO_PALETTE_YUV410P;
+
+	default:			return 0;
+	}
+}
+
 /* V4L prohibits multiple opens. In panel mode (no i/o, access to
    controls only) this code is supposed to temporarily open the
    device for the access, or to return an error if the device
@@ -1008,7 +1069,7 @@ set_standard			(tveng_device_info *	info,
 
 struct standard_bridge {
 	const char *		label;
-	tv_video_standard_id	id;
+	tv_videostd_set		set;
 };
 
 /* Standards defined by V4L, VIDEO_MODE_ order. */
@@ -1016,11 +1077,11 @@ static const struct standard_bridge
 v4l_standards [] = {
 	/* We don't really know what exactly these videostandards are,
 	   it depends on the hardware and driver configuration. */
-	{ "PAL",	TV_VIDEOSTD_PAL	},
-	{ "NTSC",	TV_VIDEOSTD_NTSC },
-	{ "SECAM",	TV_VIDEOSTD_SECAM },
+	{ "PAL",	TV_VIDEOSTD_SET_PAL },
+	{ "NTSC",	TV_VIDEOSTD_SET_NTSC },
+	{ "SECAM",	TV_VIDEOSTD_SET_SECAM },
 #if 0
-	{ "AUTO",	TV_VIDEOSTD_UNKNOWN },
+	{ "AUTO",	TV_VIDEOSTD_SET_UNKNOWN },
 #endif
 	{ NULL,		0 }
 };
@@ -1028,13 +1089,13 @@ v4l_standards [] = {
 /* Standards defined by bttv driver. */
 static const struct standard_bridge
 bttv_standards [] = {
-	{ "PAL",	TV_VIDEOSTD_PAL },
-	{ "NTSC",	TV_VIDEOSTD_NTSC_M },
-	{ "SECAM",	TV_VIDEOSTD_SECAM },
-	{ "PAL-NC",	TV_VIDEOSTD_PAL_NC },
-	{ "PAL-M",	TV_VIDEOSTD_PAL_M },
-	{ "PAL-N",	TV_VIDEOSTD_PAL_N },
-	{ "NTSC-JP",	TV_VIDEOSTD_NTSC_M_JP },
+	{ "PAL",	TV_VIDEOSTD_SET_PAL },
+	{ "NTSC",	TV_VIDEOSTD_SET (TV_VIDEOSTD_NTSC_M) },
+	{ "SECAM",	TV_VIDEOSTD_SET_SECAM },
+	{ "PAL-NC",	TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_NC) },
+	{ "PAL-M",	TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_M) },
+	{ "PAL-N",	TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_N) },
+	{ "NTSC-JP",	TV_VIDEOSTD_SET (TV_VIDEOSTD_NTSC_M_JP) },
 	{ NULL,		0 }
 };
 
@@ -1084,7 +1145,7 @@ update_standard_list		(tveng_device_info *	info)
 			continue; /* unsupported standard */
 
 		if (!(s = S(append_video_standard (&info->video_standards,
-						   table[i].id,
+						   table[i].set,
 						   table[i].label,
 						   table[i].label,
 						   sizeof (*s)))))
@@ -1400,21 +1461,9 @@ get_overlay_buffer		(tveng_device_info *	info,
 	t->width		= buffer.width;
 	t->height		= buffer.height;
 
-	switch (buffer.depth) {
-		/* FIXME what is this really? */
-	case 15:
-		t->pixfmt = TVENG_PIX_RGB555;
-		break;
-	case 16:
-		t->pixfmt = TVENG_PIX_RGB565;
-		break;
-	case 24:
-		t->pixfmt = TVENG_PIX_BGR24;
-		break;
-	case 32:
-		t->pixfmt = TVENG_PIX_BGR32;
-		break;
-	default:
+	t->pixfmt		= pig_depth_to_pixfmt (buffer.depth);
+
+	if (TV_PIXFMT_UNKNOWN == t->pixfmt) {
 		CLEAR (*t);
 		return FALSE;
 	}
@@ -1537,7 +1586,7 @@ tveng1_get_preview_window(tveng_device_info * info)
 {
   /* Updates the entire capture format, since in V4L there is no
      difference */
-XX();
+
   return (tveng1_update_capture_format(info));
 }
 
@@ -1818,34 +1867,23 @@ int tveng1_attach_device(const char* device_file,
       return -1;
     }
 
-  switch(error)
-    {
-    case 15:
-      info->format.pixformat = TVENG_PIX_RGB555;
-      break;
-    case 16:
-      info->format.pixformat = TVENG_PIX_RGB565;
-      break;
-    case 24:
-      info->format.pixformat = TVENG_PIX_BGR24;
-      break;
-    case 32:
-      info->format.pixformat = TVENG_PIX_BGR32;
-      break;
-    default:
-      info -> tveng_errno = -1;
-      t_error_msg("switch()", 
-		  "Cannot find appropiate palette for current display",
-		  info);
-      tveng1_close_device(info);
-      return -1;
-    }
-XX();
+  info->format.pixfmt = pig_depth_to_pixfmt (error);
+
+  if (TV_PIXFMT_UNKNOWN == info->format.pixfmt) {
+    info -> tveng_errno = -1;
+    t_error_msg("switch()", 
+		"Cannot find appropiate palette for current display",
+		info);
+    tveng1_close_device(info);
+    return -1;
+  }
+
+
   /* Set our desired size, make it halfway */
   info -> format.width = (info->caps.minwidth + info->caps.maxwidth)/2;
   info -> format.height = (info->caps.minheight +
 			   info->caps.maxheight)/2;
-XX();
+
   tveng1_set_capture_format(info);
 
   /* init the private struct */
@@ -1964,6 +2002,7 @@ tveng1_update_capture_format(tveng_device_info * info)
 {
   struct video_picture pict;
   struct video_window window;
+  tv_pixel_format format;
 
   t_assert(info != NULL);
 
@@ -1972,54 +2011,31 @@ tveng1_update_capture_format(tveng_device_info * info)
   if (v4l_ioctl(info, VIDIOCGPICT, &pict))
       return -1;
 
-  /* Transform the palette value into a tveng value */
-  switch(pict.palette)
-    {
-    case VIDEO_PALETTE_RGB555:
-      info->format.depth = 15;
-      info->format.pixformat = TVENG_PIX_RGB555;
-      break;
-    case VIDEO_PALETTE_RGB565:
-      info->format.depth = 16;
-      info->format.pixformat = TVENG_PIX_RGB565;
-      break;
-    case VIDEO_PALETTE_RGB24:
-      info->format.depth = 24;
-      info->format.pixformat = TVENG_PIX_BGR24;
-      break;
-    case VIDEO_PALETTE_RGB32:
-      info->format.depth = 32;
-      info->format.pixformat = TVENG_PIX_BGR32;
-      break;
-    case VIDEO_PALETTE_YUV420P:
-      info->format.depth = 12;
-      info->format.pixformat = TVENG_PIX_YUV420;
-      break;
-    case VIDEO_PALETTE_YUV422:
-      info->format.depth = 16;
-      info->format.pixformat = TVENG_PIX_YUYV;
-      break;
-    case VIDEO_PALETTE_YUYV:
-      info->format.depth = 16;
-      info->format.pixformat = TVENG_PIX_YUYV;
-      break;
-    default:
+  info->format.pixfmt = palette_to_pixfmt (pict.palette);
+
+  if (TV_PIXFMT_UNKNOWN == info->format.pixfmt) {
       info->tveng_errno = -1; /* unknown */
       t_error_msg("switch()",
 		  "Cannot understand the actual palette", info);
       return -1;
     }
 
+  tv_pixfmt_to_pixel_format (&format, info->format.pixfmt, 0);
+
   /* Ok, now get the video window dimensions */
   if (v4l_ioctl(info, VIDIOCGWIN, &window))
       return -1;
 
   /* Fill in the format structure (except for the data field) */
-  info->format.bpp = ((double)info->format.depth)/8;
   info->format.width = window.width;
   info->format.height = window.height;
-  info->format.bytesperline = window.width * info->format.bpp;
-  info->format.sizeimage = info->format.height* info->format.bytesperline;
+  info->format.bytesperline = (window.width * format.bits_per_pixel) >> 3;
+
+  if (format.planar)
+    info->format.sizeimage = (window.width * window.height
+			      * format.color_depth) >> 3;
+  else
+    info->format.sizeimage = window.height * info->format.bytesperline;
 
   info->overlay_window.x = window.x;
   info->overlay_window.y = window.y;
@@ -2028,7 +2044,7 @@ tveng1_update_capture_format(tveng_device_info * info)
   /* These two are write-only */
 // tv_clip_vector_clear (&info->overlay_window.clip_vector);
 
-XX();
+
 
   return 0;
 }
@@ -2041,11 +2057,10 @@ tveng1_set_capture_format(tveng_device_info * info)
   struct video_picture pict;
   struct video_window window;
   enum tveng_capture_mode mode;
+  int r;
 
   CLEAR (pict);
   CLEAR (window);
-
-XX();
 
   t_assert(info != NULL);
 
@@ -2057,39 +2072,10 @@ XX();
       return -1;
     }
 
-  /* Transform the given palette value into a V4L value */
-  switch(info->format.pixformat)
-    {
-    case TVENG_PIX_RGB555:
-      pict.palette = VIDEO_PALETTE_RGB555;
-      pict.depth = 15;
-      break;
-    case TVENG_PIX_RGB565:
-      pict.palette = VIDEO_PALETTE_RGB565;
-      pict.depth = 16;
-      break;
-    case TVENG_PIX_RGB24:
-    case TVENG_PIX_BGR24: /* No way to distinguish these two in V4L */
-      pict.palette = VIDEO_PALETTE_RGB24;
-      pict.depth = 24;
-      break;
-    case TVENG_PIX_RGB32:
-    case TVENG_PIX_BGR32:
-      pict.palette = VIDEO_PALETTE_RGB32;
-      pict.depth = 32;
-      break;
-    case TVENG_PIX_YUYV:
-    case TVENG_PIX_UYVY:
-      pict.palette = VIDEO_PALETTE_YUV422;
-      pict.depth = 16;
-      break;
-    case TVENG_PIX_YUV420:
-    case TVENG_PIX_YVU420:
-      pict.palette = VIDEO_PALETTE_YUV420P;
-      pict.depth = 12;
-      break;
-    default:
-      info->tveng_errno = -1; /* unknown */
+  pict.palette = pixfmt_to_palette (info->format.pixfmt);
+  
+  if (0 == pict.palette) {
+        info->tveng_errno = -1; /* unknown */
       t_error_msg("switch()", "Cannot understand the given palette",
 		  info);
       tveng_restart_everything(mode, info);
@@ -2097,7 +2083,19 @@ XX();
     }
 
   /* Set this values for the picture properties */
-  if (v4l_ioctl(info, VIDIOCSPICT, &pict))
+  r = v4l_ioctl (info, VIDIOCSPICT, &pict);
+
+  if (-1 == r
+      && EINVAL == errno 
+      && VIDEO_PALETTE_YUYV == pict.palette)
+    {
+      /* These are synonyms, some drivers understand only one. */
+      pict.palette = VIDEO_PALETTE_YUV422;
+
+      r = v4l_ioctl (info, VIDIOCSPICT, &pict);
+    }
+
+  if (-1 == r)
     {
       tveng_restart_everything(mode, info);
       return -1;
@@ -2118,8 +2116,6 @@ XX();
   window.clips = NULL;
   window.clipcount = 0;
 
-XX();
-
   /* Ok, now set the video window dimensions */
   if (v4l_ioctl(info, VIDIOCSWIN, &window))
     {
@@ -2131,7 +2127,7 @@ XX();
 
   /* Check fill in info with the current values (may not be the ones
      asked for) */
-XX();
+
   if (tveng1_update_capture_format(info) == -1)
     return -1; /* error */
 
@@ -2429,39 +2425,18 @@ static int p_tveng1_queue(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info -> current_mode == TVENG_CAPTURE_READ);
 
-  /* Fill in the mmaped_buffer struct */
-  memset(&bm, 0, sizeof(struct video_mmap));
-
-  switch(info->format.pixformat)
-    {
-    case TVENG_PIX_RGB555:
-      bm.format = VIDEO_PALETTE_RGB555;
-      break;
-    case TVENG_PIX_RGB565:
-      bm.format = VIDEO_PALETTE_RGB565;
-      break;
-    case TVENG_PIX_RGB24:
-    case TVENG_PIX_BGR24:
-      bm.format = VIDEO_PALETTE_RGB24;
-      break;
-    case TVENG_PIX_BGR32:
-    case TVENG_PIX_RGB32:
-      bm.format = VIDEO_PALETTE_RGB32;
-      break;
-    case TVENG_PIX_YUYV:
-    case TVENG_PIX_UYVY:
-      bm.format = VIDEO_PALETTE_YUV422;
-      break;
-    case TVENG_PIX_YUV420:
-    case TVENG_PIX_YVU420:
-      bm.format = VIDEO_PALETTE_YUV420P;
-      break;
-    default:
+  CLEAR (bm);
+  
+  /* XXX we may have to address YUYV, YUV422 synonyms. */
+  bm.format = pixfmt_to_palette (info->format.pixfmt);
+  
+  if (0 == bm.format) {
       info -> tveng_errno = -1;
       t_error_msg("switch()", "Cannot understand actual palette",
 		  info);
       return -1;
     }
+
   bm.frame = (p_info -> queued) % p_info->mmbuf.frames;
   bm.width = info -> format.width;
   bm.height = info -> format.height;
@@ -2539,27 +2514,6 @@ static int p_tveng1_dequeue(tveng_image_data * where,
   if (p_info -> dequeued == p_info -> queued)
     return 0; /* All queued frames have been dequeued */
 
-  if (0)
-  switch(info->format.pixformat)
-    {
-    case TVENG_PIX_RGB555:
-    case TVENG_PIX_RGB565:
-    case TVENG_PIX_RGB24:
-    case TVENG_PIX_BGR24:
-    case TVENG_PIX_BGR32:
-    case TVENG_PIX_RGB32:
-    case TVENG_PIX_YUYV:
-    case TVENG_PIX_UYVY:
-    case TVENG_PIX_YUV420:
-    case TVENG_PIX_YVU420:
-      break;
-    default:
-      info -> tveng_errno = -1;
-      t_error_msg("switch()", "Cannot understand actual palette",
-		  info);
-      return -1;
-    }
-
   frame = p_info->dequeued % p_info->mmbuf.frames;
 
   while (-1 == v4l_ioctl(info, VIDIOCSYNC, &frame))
@@ -2614,9 +2568,11 @@ int tveng1_read_frame(tveng_image_data *where,
 
   /* Dequeue previously queued frame */
   /* Sets the timer to expire (SIGALARM) in the given time */
-  iv.it_interval.tv_sec = iv.it_interval.tv_usec = iv.it_value.tv_sec
-    = 0;
+  iv.it_interval.tv_sec = 0;
+  iv.it_interval.tv_usec = 0;
+  iv.it_value.tv_sec = 0;
   iv.it_value.tv_usec = time;
+
   if (setitimer(ITIMER_REAL, &iv, NULL) == -1)
     {
       info->tveng_errno = errno;
@@ -2656,7 +2612,7 @@ int tveng1_set_capture_size(int width, int height, tveng_device_info * info)
   t_assert(width > 0);
   t_assert(height > 0);
 
-XX();
+
 
   current_mode = tveng_stop_everything(info);
 
@@ -2672,7 +2628,7 @@ XX();
   info -> format.width = width;
   info -> format.height = height;
 
-XX();
+
 
   if (tveng1_set_capture_format(info) == -1)
     return -1;
@@ -2689,7 +2645,7 @@ static
 int tveng1_get_capture_size(int *width, int *height, tveng_device_info * info)
 {
   t_assert(info != NULL);
-XX();
+
 
   if (tveng1_update_capture_format(info))
     return -1;
@@ -2772,7 +2728,7 @@ void tveng1_init_module(struct tveng_module_info *module_info)
 {
   t_assert(module_info != NULL);
 
-  memset(module_info, 0, sizeof(struct tveng_module_info));
+  CLEAR (*module_info);
 }
 
 #endif /* ENABLE_V4L */

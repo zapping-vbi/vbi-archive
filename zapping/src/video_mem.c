@@ -44,14 +44,14 @@ struct _zimage_private {
 };
 
 static zimage*
-planar_image_new (enum tveng_frame_pixformat fmt, gint w, gint h)
+planar_image_new (tv_pixfmt pixfmt, gint w, gint h)
 {
   guchar *data;
   zimage *image;
   zimage_private *pimage;
 
-  g_assert (fmt == TVENG_PIX_YUV420 ||
-	    fmt == TVENG_PIX_YVU420);
+  g_assert (pixfmt == TV_PIXFMT_YUV420 ||
+	    pixfmt == TV_PIXFMT_YVU420);
 
   if ((w | h) & 1)
     {
@@ -66,10 +66,8 @@ planar_image_new (enum tveng_frame_pixformat fmt, gint w, gint h)
   pimage->data = data;
   image->fmt.width = w;
   image->fmt.height = h;
-  image->fmt.pixformat = fmt;
-  image->fmt.bpp = 1.5;
-  image->fmt.depth = 12;
-  image->fmt.bytesperline = image->fmt.bpp * w;
+  image->fmt.pixfmt = pixfmt;
+  image->fmt.bytesperline = 8 * w;
   image->fmt.sizeimage = w * h * 1.5;
   image->data.planar.y = data;
   image->data.planar.y_stride = w;
@@ -81,18 +79,18 @@ planar_image_new (enum tveng_frame_pixformat fmt, gint w, gint h)
 }
 
 static zimage*
-image_new (enum tveng_frame_pixformat fmt, gint w, gint h)
+image_new (tv_pixfmt pixfmt, gint w, gint h)
 {
   guchar *data;
   zimage *image;
   zimage_private *pimage;
   tv_pixel_format format;
-  guint bpp, bpl, size;
+  guint bpl, size;
 
-  tv_pixfmt_to_pixel_format (&format, fmt, 0);
+  tv_pixfmt_to_pixel_format (&format, pixfmt, 0);
 
-  if (format.bits_per_pixel == 12)
-    return planar_image_new (fmt, w, h);
+  if (format.planar)
+    return planar_image_new (pixfmt, w, h);
 
   bpl = (w * format.bits_per_pixel) >> 3;
   size = h * bpl;
@@ -103,9 +101,7 @@ image_new (enum tveng_frame_pixformat fmt, gint w, gint h)
   pimage->data = data;
   image->fmt.width = w;
   image->fmt.height = h;
-  image->fmt.pixformat = fmt;
-  image->fmt.bpp = bpp >> 3;
-  image->fmt.depth = bpp;
+  image->fmt.pixfmt = pixfmt;
   image->fmt.bytesperline = bpl;
   image->fmt.sizeimage = size;
 
@@ -133,7 +129,9 @@ static video_backend mem = {
 void add_backend_mem (void);
 void add_backend_mem (void)
 {
-  int i;
-  for (i=0; i<TVENG_PIX_LAST; i++)
-    register_video_backend (i, &mem);
+  tv_pixfmt pixfmt;
+
+  for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; ++pixfmt)
+    if (TV_PIXFMT_SET_ALL & TV_PIXFMT_SET (pixfmt))
+      register_video_backend (pixfmt, &mem);
 }

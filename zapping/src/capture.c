@@ -78,35 +78,33 @@ typedef struct {
      rebuilding */
   gint			tag;
   /* Images we can build for this buffer */
+
   gint			num_images;
-  zimage		*images[TVENG_PIX_LAST];
-  gboolean		converted[TVENG_PIX_LAST];
+  zimage		*images[TV_MAX_PIXFMTS];
+  gboolean		converted[TV_MAX_PIXFMTS];
   /* The source image and its index in images */
   zimage		*src_image;
   gint			src_index;
 } producer_buffer;
-/* Available video formats in the video device (bitmask) */
-static int		available_formats = 0;
 
-/* For debugging */
-static const char *mode2str (enum tveng_frame_pixformat fmt)
-     __attribute__ ((unused));
+/* Available video formats in the video device */
+static tv_pixfmt_set	available_pixfmts = 0;
 
 static void broadcast (capture_event event)
 {
   gint i;
 
-  for (i=0; i<num_handlers; i++)
+  for (i = 0; i < num_handlers; i++)
     handlers[i].notify (event, handlers[i].user_data);
 }
 
 static void
 free_bundle (buffer *b)
 {
-  producer_buffer *pb = (producer_buffer*)b;
+  producer_buffer *pb = (producer_buffer *) b;
   gint i;
 
-  for (i=0; i<pb->num_images; i++)
+  for (i = 0; i < pb->num_images; i++)
     zimage_unref (pb->images[i]);
 
   g_free (b);
@@ -117,21 +115,24 @@ fill_bundle_tveng (producer_buffer *p, tveng_device_info *info)
 {
   if (p->src_image)
     tveng_read_frame (&p->src_image->data, 50, info);
-  else
+  else /* read & discard */
     tveng_read_frame (NULL, 50, info);
+
   p->frame.timestamp = tveng_get_timestamp (info);
 
-  memset (&p->converted, 0, sizeof (p->converted));
+  CLEAR (p->converted);
   p->converted[p->src_index] = TRUE;
 }
 
-static gint build_mask (gboolean allow_suggested)
+static tv_pixfmt_set
+build_mask (gboolean allow_suggested)
 {
-  gint mask = 0;
+  tv_pixfmt_set mask = 0;
   gint i;
-  for (i=0; i<num_formats; i++)
+
+  for (i = 0; i < num_formats; i++)
     if (allow_suggested || formats[i].required)
-      mask |= 1<<formats[i].fmt.fmt;
+      mask |= TV_PIXFMT_SET (formats[i].fmt.pixfmt);
 
   return mask;
 }
@@ -140,24 +141,30 @@ static gint build_mask (gboolean allow_suggested)
 static gboolean
 compatible (producer_buffer *p, tveng_device_info *info)
 {
-  gint i, avail_mask = 0, retvalue;
+  gint i;
+  tv_pixfmt_set avail_mask = 0;
+  gint retvalue;
 
   /* No images, it's always failure */
   if (!p->num_images)
     return FALSE;
 
   _pthread_rwlock_rdlock (&fmt_rwlock);
+
   /* first check whether the size is right */
   if (info->format.width != p->images[0]->fmt.width ||
       info->format.height != p->images[0]->fmt.height)
-    retvalue = FALSE;
+    {
+      retvalue = FALSE;
+    }
   else /* size is ok, check pixformat */
     {
-      for (i=0; i<p->num_images; i++)
-	avail_mask |= 1<<p->images[i]->fmt.pixformat;
+      for (i = 0; i < p->num_images; i++)
+	avail_mask |= TV_PIXFMT_SET (p->images[i]->fmt.pixfmt);
 
       retvalue = !!((avail_mask | build_mask (FALSE)) == avail_mask);
     }
+
   pthread_rwlock_unlock (&fmt_rwlock);
 
   return retvalue;
@@ -221,52 +228,65 @@ capture_thread (void *data)
   loaded from the configuration.
   Returns a bitmask indicating which modes are available.
 */
-static uint32_t
+static tv_pixfmt_set
 scan_device		(tveng_device_info	*info)
 {
-  gchar *key;
-  int values = 0, fmt;
-  enum tveng_frame_pixformat old_fmt;
+  /*  gchar *key;
+  gchar *s;
+  */
+  tv_pixfmt pixfmt;
+  tv_pixfmt old_pixfmt;
+  tv_pixfmt_set supported;
 
+  /*
   key = g_strdup_printf (ZCONF_DOMAIN "%x/scanned", info->signature);
   if (zconf_get_boolean (NULL, key))
     {
       g_free (key);
       key = g_strdup_printf (ZCONF_DOMAIN "%x/available_formats",
 			     info->signature);
-      zconf_get_integer (&values, key);
+      zconf_get_integer (&supported, key);
+      // zconf_get_string (&s, key);
       g_free (key);
-      return values;
+      // supported = atoll (s); !!
+      // g_free (s);
+      return supported;
     }
+  */
 
-  old_fmt = info->format.pixformat;
+  old_pixfmt = info->format.pixfmt;
+
+  supported = 0;
 
   /* Things are simpler this way. */
-  g_assert (TVENG_PIX_FIRST == 0);
-  g_assert (TVENG_PIX_LAST < (sizeof (int)*8));
-  for (fmt = TVENG_PIX_FIRST; fmt <= TVENG_PIX_LAST; fmt++)
-    {
-      if (fmt == TVENG_PIX_GREY)
-	continue;
-      info->format.pixformat = fmt;
-      if (!tveng_set_capture_format (info))
-	values += 1<<fmt;
-    }
 
-  info->format.pixformat = old_fmt;
+  for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; pixfmt++)
+    if (TV_PIXFMT_SET_ALL & TV_PIXFMT_SET (pixfmt))
+      {
+	info->format.pixfmt = pixfmt;
+
+	if (0 == tveng_set_capture_format (info))
+	  supported |= TV_PIXFMT_SET (pixfmt);
+      }
+
+  info->format.pixfmt = old_pixfmt;
   tveng_set_capture_format (info);
 
-  zconf_create_boolean (TRUE,
-			"Whether this device has been already scanned",
-			key);
-  g_free (key);
+  /*
+  zconf_create_boolean
+    (TRUE, "Whether this device has been already scanned", key);
 
+  g_free (key);
   key = g_strdup_printf (ZCONF_DOMAIN "%x/available_formats",
 			 info->signature);
-  zconf_create_integer (values, "Bitmaps of available pixformats", key);
+  zconf_create_integer (supported, "Bitmaps of available pixformats", key);
+  // s = g_strdup_printf ("%llu", supported);
+  // zconf_create_string (s, "Bitmaps of available pixfmts", key);
+  // g_free (s);
   g_free (key);
+  */
 
-  return values;
+  return supported;
 }
 
 /*
@@ -313,6 +333,7 @@ static gint idle_handler(gpointer _info)
     {
       capture_frame *cf = (capture_frame*)pb;
       GList *p = plugin_list;
+
       /* Draw the image */
       video_blit_frame (cf);
       
@@ -325,30 +346,33 @@ static gint idle_handler(gpointer _info)
     }
   else /* Rebuild time */
     {
-      int mask = build_mask (TRUE);
+      tv_pixfmt_set mask = build_mask (TRUE);
       int i;
 
       /* Remove items in the current array */
-      for (i=0; i<pb->num_images; i++)
+      for (i = 0; i < pb->num_images; i++)
 	zimage_unref (pb->images[i]);
 
       pb->src_image = NULL;
+      pb->num_images = 0;
 
       /* Get number of requested modes */
-      for (i=0, pb->num_images=0; i<TVENG_PIX_LAST; i++)
-	if ((1<<i) & (mask | (1<<info->format.pixformat)))
+      for (i = 0; i < TV_MAX_PIXFMTS; i++)
+	if (TV_PIXFMT_SET (i) & (mask | TV_PIXFMT_SET (info->format.pixfmt)))
 	  {
 	    pb->images[pb->num_images] =
 	      zimage_new (i, info->format.width,
 			  info->format.height);
 
-	    if (info->format.pixformat == i)
+	    if (info->format.pixfmt == i)
 	      {
 		pb->src_index = pb->num_images;
 		pb->src_image = pb->images[pb->num_images];
 	      }
+
 	    pb->num_images++;
 	  }
+
       g_assert (pb->src_image != NULL);
       pb->tag = request_id; /* Done */
     }
@@ -365,9 +389,9 @@ on_capture_canvas_allocate             (GtkWidget       *widget,
 {
   capture_fmt fmt;
 
-  memset (&fmt, 0, sizeof (fmt));
+  CLEAR (fmt);
 
-  fmt.fmt = info->format.pixformat;
+  fmt.pixfmt = info->format.pixfmt;
   fmt.width = allocation->width;
   fmt.height = allocation->height;
 
@@ -401,7 +425,7 @@ gint capture_start (tveng_device_info *info)
   g_assert (!pthread_create (&capture_thread_id, NULL, capture_thread,
 			     main_info));
 
-  available_formats = scan_device (main_info);
+  available_pixfmts = scan_device (main_info);
 
   idle_id = gtk_idle_add (idle_handler, info);
 
@@ -522,20 +546,25 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
 			     gboolean allow_suggested,
 			     tveng_device_info *info)
 {
-  gint mask;
-  gint req_mask = fmt ? 1<<fmt->fmt : 0;
-  gint i, id=0, k;
+  tv_pixfmt_set prev_mask;
+  tv_pixfmt_set req_mask;
+  gint i;
+  tv_pixfmt id=0;
+  gint k;
   static gint counter = 0;
   gint conversions = 999;
   struct tveng_frame_format prev_fmt;
   gint req_w, req_h;
+
+  req_mask = fmt ? TV_PIXFMT_SET (fmt->pixfmt) : TV_PIXFMT_SET_EMPTY;
 
   if (fmt)
     _pthread_rwlock_wrlock (&fmt_rwlock);
   else
     _pthread_rwlock_rdlock (&fmt_rwlock);
 
-  mask = build_mask (allow_suggested);
+  /* Previously requested formats */
+  prev_mask = build_mask (allow_suggested);
 
   /* First do the easy check, whether the req size is available */
   /* Note that we assume that formats is valid [should be, since it's
@@ -551,42 +580,57 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
 	  return -1;
 	}
 
-  /* Size is OK, try cs matching. First check whether the pixmode is
-     available in the already requested mode. */
-  if (mask & req_mask)
+  /* Check if we already convert to the requested pixfmt. */
+  if (prev_mask & req_mask)
     {
-      /* Keep the current format */
-      id = info->format.pixformat;
+      /* Keep the current capture pixfmt. */
+      id = info->format.pixfmt;
       goto req_ok;
     }
 
-  /* Not so simple :-) The following is a bit slow, but at least we
-     won't give false negatives. */
-  for (i=0; i<TVENG_PIX_LAST; i++)
-    if (available_formats & (1<<i))
+  /* This searches for a capture pixfmt which can be converted to
+     all requested pixfmts. If more than one qualifies, we pick
+     that which needs the fewest conversions.
+
+     XXX this is too simple. We should take memory bw and
+     conversion costs into account, and make sure we don't
+     convert to higher color depth. */
+
+  for (i=0; i<TV_MAX_PIXFMTS; i++)
+    if (available_pixfmts & TV_PIXFMT_SET (i))
       {
 	gint num_conversions = 0;
+
 	/* See what would happen if we set mode i, which is supported
 	   by the video hw */
-	for (k=0; k<TVENG_PIX_LAST; k++)
-	  if ((req_mask|mask) & (1<<k))
+
+	for (k=0; k < TV_MAX_PIXFMTS; k++)
+	  if ((req_mask | prev_mask) & TV_PIXFMT_SET (k))
 	    {
-	      /* Mode k has been requested */
-	      if ((i != k) && (!(lookup_csconvert (i, k))))
-		/* For simplicity we don't allow converting a
-		   converted image. Ain't that difficult to support,
-		   but i think it's better just to fail than doing too
-		   many cs conversions. */
-		break; /* breaks the for (k=0; ...) */
-	      else if (i != k)
-		/* Available through a cs conversion */
-		num_conversions ++;
+	      /* Mode i supported, k requested */
+	      if (i != k)
+		{
+		  if (lookup_csconvert (i, k))
+		    {
+		      /* Available through a cs conversion */
+		      num_conversions++;
+		    }
+		  else
+		    {
+		      /* For simplicity we don't allow converting a
+			 converted image. Ain't that difficult to support,
+			 but i think it's better just to fail than doing too
+			 many cs conversions. */
+		      /* Cannot convert to k, so i is out of choice. */
+		      num_conversions = 999; /* like infinite */
+		      break;
+		    }
+		}
 	    }
 
 	/* Candidate found, record it if it requires less conversions
 	   than our last candidate */
-	if ((num_conversions < conversions) &&
-	    (k == TVENG_PIX_LAST))
+	if (num_conversions < conversions)
 	  {
 	    conversions = num_conversions;
 	    id = i;
@@ -613,15 +657,15 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
 
   /* Request the new format to TVeng (should succeed) [id] */
   memcpy (&prev_fmt, &info->format, sizeof (prev_fmt));
-  info->format.pixformat = id;
-#warning
+  info->format.pixfmt = id;
 
   find_request_size (fmt, &req_w, &req_h);
     {
       info->format.width = req_w;
       info->format.height = req_h;
     }
-  printv ("Setting TVeng mode %s [%d x %d]\n", mode2str(id), req_w, req_h);
+  printv ("Setting TVeng mode %s [%d x %d]\n",
+	  tv_pixfmt_name (id), req_w, req_h);
 
   if (tveng_set_capture_format (info) == -1 ||
       info->format.width != req_w || info->format.height != req_h)
@@ -654,8 +698,9 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
       memcpy (&formats[num_formats].fmt, fmt, sizeof(*fmt));
       num_formats++;
       pthread_rwlock_unlock (&fmt_rwlock);
-      printv ("Format %s accepted [%s]\n", mode2str(fmt->fmt),
-	      mode2str(info->format.pixformat));
+      printv ("Format %s accepted [%s]\n",
+	      tv_pixfmt_name (fmt->pixfmt),
+	      tv_pixfmt_name (info->format.pixfmt));
       /* Safe because we only modify in one thread */
       return formats[num_formats-1].id;
     }
@@ -668,7 +713,7 @@ gint request_capture_format (capture_fmt *fmt)
 {
   g_assert (fmt != NULL);
 
-  printv ("%s requested\n", mode2str (fmt->fmt));
+  printv ("%s requested\n", tv_pixfmt_name (fmt->pixfmt));
 
   return request_capture_format_real (fmt, TRUE, TRUE, main_info);
 }
@@ -677,7 +722,7 @@ gint suggest_capture_format (capture_fmt *fmt)
 {
   g_assert (fmt != NULL);
 
-  printv ("%s suggested\n", mode2str (fmt->fmt));
+  printv ("%s suggested\n", tv_pixfmt_name (fmt->pixfmt));
 
   return request_capture_format_real (fmt, FALSE, TRUE, main_info);
 }
@@ -755,19 +800,20 @@ remove_capture_handler (gint id)
 
 zimage*
 retrieve_frame (capture_frame *frame,
-		enum tveng_frame_pixformat fmt)
+		tv_pixfmt pixfmt)
 {
   gint i;
   producer_buffer *pb = (producer_buffer*)frame;
 
   for (i=0; i<pb->num_images; i++)
-    if (pb->images[i]->fmt.pixformat == fmt)
+    if (pb->images[i]->fmt.pixfmt == pixfmt)
       {
 	if (!pb->converted[i])
 	  {
 	    zimage *src = pb->src_image;
 	    zimage *dest = pb->images[i];
-	    int id = lookup_csconvert (src->fmt.pixformat, fmt);
+	    int id = lookup_csconvert (src->fmt.pixfmt, pixfmt);
+
 	    if (id == -1)
 	      return NULL;
 
@@ -793,15 +839,4 @@ shutdown_capture (void)
 {
   pthread_rwlock_destroy (&size_rwlock);
   pthread_rwlock_destroy (&fmt_rwlock);
-}
-
-static const char *mode2str (enum tveng_frame_pixformat fmt)
-{
-  char *modes[] = {
-    "RGB555", "RGB565", "RGB24", "BGR24",
-    "RGB32", "BGR32", "YVU420", "YUV420", "YUYV", "UYVY",
-    "GREY"
-  };
-
-  return modes[fmt];
 }

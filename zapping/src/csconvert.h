@@ -7,23 +7,25 @@
 
 #include "tveng.h"
 
-typedef void (*CSConverter) (tveng_image_data *src, tveng_image_data *dest,
-			     int width, int height,
-			     gpointer user_data);
+typedef void (CSConverter_fn)	(tveng_image_data *	src,
+				 tveng_image_data *	dest,
+				 int			width,
+				 int			height,
+				 gpointer		user_data);
 
 typedef struct {
-  enum tveng_frame_pixformat	src;
-  enum tveng_frame_pixformat	dest;
-  CSConverter	convert;
-  gpointer	user_data;
+  tv_pixfmt		src_pixfmt;
+  tv_pixfmt		dst_pixfmt;
+  CSConverter_fn *	convert;
+  gpointer		user_data;
 } CSFilter;
 
 /**
  * Try to find an available converter, returns -1 on error or the
  * converter id on success.
  */
-int lookup_csconvert(enum tveng_frame_pixformat src_fmt,
-		     enum tveng_frame_pixformat dest_fmt);
+int lookup_csconvert(tv_pixfmt src_pixfmt,
+		     tv_pixfmt dst_pixfmt);
 
 /**
  * Converts from src to dest.
@@ -37,9 +39,9 @@ void csconvert(int id, tveng_image_data *src,
  * already a converter for the given pair, something else on success.
  * User data will be passed to the converter each time it's called.
  */
-int register_converter (enum tveng_frame_pixformat src,
-			enum tveng_frame_pixformat dest,
-			CSConverter	converter,
+int register_converter (tv_pixfmt src_pixfmt,
+			tv_pixfmt dst_pixfmt,
+			CSConverter_fn *converter,
 			gpointer	user_data);
 
 /*

@@ -33,7 +33,7 @@ void shutdown_capture (void);
 typedef struct {
   gboolean	locked; /* TRUE if we need a fixed size */
   gint		width, height; /* Frame size, only applies if locked */
-  enum tveng_frame_pixformat fmt; /* The actual format */
+  tv_pixfmt pixfmt; /* The actual format */
 } capture_fmt;
 
 /*
@@ -124,6 +124,6 @@ extern fifo *capture_fifo;
  * reference to an static object.
  */
 zimage *retrieve_frame (capture_frame *frame,
-			enum tveng_frame_pixformat fmt);
+			tv_pixfmt pixfmt);
 
 #endif

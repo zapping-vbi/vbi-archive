@@ -28,45 +28,46 @@
 #include <glib.h>
 #include "csconvert.h"
 #include "yuv2rgb.h"
+#include "zmisc.h"
 
 static struct {
-  CSConverter		convert;
+  CSConverter_fn *	convert;
   gpointer		user_data;
-} filters[TVENG_PIX_LAST][TVENG_PIX_LAST];
+} filters[TV_MAX_PIXFMTS][TV_MAX_PIXFMTS];
 
-int lookup_csconvert(enum tveng_frame_pixformat src_fmt,
-		     enum tveng_frame_pixformat dest_fmt)
+int lookup_csconvert(tv_pixfmt src_pixfmt,
+		     tv_pixfmt dst_pixfmt)
 {
-  if (filters[src_fmt][dest_fmt].convert == NULL)
+  if (filters[src_pixfmt][dst_pixfmt].convert == NULL)
     return -1;
 
-  return (((int)src_fmt)<<16) + dest_fmt;
+  return (((int)src_pixfmt)<<16) + dst_pixfmt;
 }
 
 void csconvert(int id, tveng_image_data *src, tveng_image_data *dest,
 	       int width, int height)
 {
-  enum tveng_frame_pixformat src_fmt, dest_fmt;
+  tv_pixfmt src_pixfmt, dst_pixfmt;
 
-  src_fmt = id>>16;
-  dest_fmt = id&0xffff;
+  src_pixfmt = id>>16;
+  dst_pixfmt = id&0xffff;
 
-  g_assert (filters[src_fmt][dest_fmt].convert != NULL);
+  g_assert (filters[src_pixfmt][dst_pixfmt].convert != NULL);
 
-  filters[src_fmt][dest_fmt].convert
-    (src, dest, width, height, filters[src_fmt][dest_fmt].user_data);
+  filters[src_pixfmt][dst_pixfmt].convert
+    (src, dest, width, height, filters[src_pixfmt][dst_pixfmt].user_data);
 }
 
-int register_converter (enum tveng_frame_pixformat src,
-			enum tveng_frame_pixformat dest,
-			CSConverter	converter,
+int register_converter (tv_pixfmt src_pixfmt,
+			tv_pixfmt dst_pixfmt,
+			CSConverter_fn *	converter,
 			gpointer	user_data)
 {
-  if (lookup_csconvert (src, dest) > -1)
+  if (lookup_csconvert (src_pixfmt, dst_pixfmt) > -1)
     return -1;
   
-  filters[src][dest].convert = converter;
-  filters[src][dest].user_data = user_data;
+  filters[src_pixfmt][dst_pixfmt].convert = converter;
+  filters[src_pixfmt][dst_pixfmt].user_data = user_data;
 
   return 0;
 }
@@ -77,12 +78,14 @@ int register_converters (CSFilter	*converters,
   int i, count=0;
 
   for (i=0; i<num_converters; i++)
-    if (lookup_csconvert (converters[i].src, converters[i].dest) == -1)
+    if (lookup_csconvert (converters[i].src_pixfmt, converters[i].dst_pixfmt) == -1)
       {
-	enum tveng_frame_pixformat src = converters[i].src,
-	  dest = converters[i].dest;
-	filters[src][dest].convert = converters[i].convert;
-	filters[src][dest].user_data = converters[i].user_data;
+	tv_pixfmt src_pixfmt = converters[i].src_pixfmt;
+	tv_pixfmt dst_pixfmt = converters[i].dst_pixfmt;
+
+	filters[src_pixfmt][dst_pixfmt].convert = converters[i].convert;
+	filters[src_pixfmt][dst_pixfmt].user_data = converters[i].user_data;
+
 	count ++;
       }
 
@@ -298,35 +301,34 @@ void startup_csconvert(void)
   CSFilter rgb_filters [] = {
     /* We lack rgb5.5 -> rgb.* filters, but those are easy too in case
        we need them. They are rarely used, tho. */
-    { TVENG_PIX_RGB24, TVENG_PIX_RGB555, rgb_rgb555, "rgb" },
-    { TVENG_PIX_BGR24, TVENG_PIX_RGB555, rgb_rgb555, "bgr" },
-    { TVENG_PIX_RGB32, TVENG_PIX_RGB555, rgb_rgb555, "rgba" },
-    { TVENG_PIX_BGR32, TVENG_PIX_RGB555, rgb_rgb555, "bgra" },
+    { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGRA15_LE, rgb_rgb555, "rgb" },
+    { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGRA15_LE, rgb_rgb555, "bgr" },
+    { TV_PIXFMT_BGRA24_LE, TV_PIXFMT_BGRA15_LE, rgb_rgb555, "rgba" },
+    { TV_PIXFMT_BGRA24_BE, TV_PIXFMT_BGRA15_LE, rgb_rgb555, "bgra" },
     
-    { TVENG_PIX_RGB24, TVENG_PIX_RGB565, rgb_rgb565, "rgb" },
-    { TVENG_PIX_BGR24, TVENG_PIX_RGB565, rgb_rgb565, "bgr" },
-    { TVENG_PIX_RGB32, TVENG_PIX_RGB565, rgb_rgb565, "rgba" },
-    { TVENG_PIX_BGR32, TVENG_PIX_RGB565, rgb_rgb565, "bgra" },
-    
-    { TVENG_PIX_RGB24, TVENG_PIX_BGR24, rgb_bgr, "rgb<->bgr" },
-    { TVENG_PIX_RGB24, TVENG_PIX_BGR32, rgb_bgr, "rgb->bgra" },
-    { TVENG_PIX_BGR24, TVENG_PIX_RGB24, rgb_bgr, "rgb<->bgr" },
-    { TVENG_PIX_BGR24, TVENG_PIX_RGB32, rgb_bgr, "rgb->bgra" },
-    { TVENG_PIX_RGB32, TVENG_PIX_BGR24, rgb_bgr, "bgra->rgb" },
-    { TVENG_PIX_RGB32, TVENG_PIX_BGR32, rgb_bgr, "bgra<->rgba" },
-    { TVENG_PIX_BGR32, TVENG_PIX_RGB24, rgb_bgr, "bgra->rgb" },
-    { TVENG_PIX_BGR32, TVENG_PIX_RGB32, rgb_bgr, "bgra<->rgba" },
-    
-    { TVENG_PIX_RGB24, TVENG_PIX_RGB32, bgra_bgr, "bgr->bgra" },
-    { TVENG_PIX_BGR24, TVENG_PIX_BGR32, bgra_bgr, "bgr->bgra" },
-    { TVENG_PIX_RGB32, TVENG_PIX_RGB24, bgra_bgr, "bgra->bgr" },
-    { TVENG_PIX_BGR32, TVENG_PIX_BGR32, bgra_bgr, "bgra->bgr" }
+    { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGR16_LE,  rgb_rgb565, "rgb" },
+    { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGR16_LE,  rgb_rgb565, "bgr" },
+    { TV_PIXFMT_BGRA24_LE, TV_PIXFMT_BGR16_LE,  rgb_rgb565, "rgba" },
+    { TV_PIXFMT_BGRA24_BE, TV_PIXFMT_BGR16_LE,  rgb_rgb565, "bgra" },
+
+    { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGR24_BE,  rgb_bgr, "rgb<->bgr" },
+    { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGRA24_BE, rgb_bgr, "rgb->bgra" },
+    { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGR24_LE,  rgb_bgr, "rgb<->bgr" },
+    { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGRA24_LE, rgb_bgr, "rgb->bgra" },
+    { TV_PIXFMT_BGRA24_LE, TV_PIXFMT_BGR24_BE,  rgb_bgr, "bgra->rgb" },
+    { TV_PIXFMT_BGRA24_LE, TV_PIXFMT_BGRA24_BE, rgb_bgr, "bgra<->rgba" },
+    { TV_PIXFMT_BGRA24_BE, TV_PIXFMT_BGR24_LE,  rgb_bgr, "bgra->rgb" },
+    { TV_PIXFMT_BGRA24_BE, TV_PIXFMT_BGRA24_LE, rgb_bgr, "bgra<->rgba" },
+
+    { TV_PIXFMT_BGR24_LE,  TV_PIXFMT_BGRA24_LE, bgra_bgr, "bgr->bgra" },
+    { TV_PIXFMT_BGR24_BE,  TV_PIXFMT_BGRA24_BE, bgra_bgr, "bgr->bgra" },
+    { TV_PIXFMT_BGRA24_LE, TV_PIXFMT_BGR24_LE,  bgra_bgr, "bgra->bgr" },
+    { TV_PIXFMT_BGRA24_BE, TV_PIXFMT_BGR24_BE,  bgra_bgr, "bgra->bgr" }
   };
-  int num_filters = sizeof (rgb_filters) / sizeof(rgb_filters[0]);
 
-  memset (filters, 0, sizeof (filters));
+  CLEAR (filters);
 
-  register_converters (rgb_filters, num_filters);
+  register_converters (rgb_filters, N_ELEMENTS (rgb_filters));
 
   /* Load the YUV <-> RGB filters */
   startup_yuv2rgb ();
@@ -336,5 +338,5 @@ void shutdown_csconvert(void)
 {
   shutdown_yuv2rgb ();
 
-  memset (filters, 0, sizeof (filters));
+  CLEAR (filters);
 }

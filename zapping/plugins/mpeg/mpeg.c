@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.10 2003-09-24 18:38:54 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36.2.11 2003-10-07 18:33:38 mschimek Exp $ */
 
 #include "src/plugin_common.h"
 
@@ -421,10 +421,10 @@ do_start			(const gchar *		file_name)
 
   if (video_codec)
     {
-      enum tveng_frame_pixformat tveng_pixformat;
+      tv_pixfmt pixfmt;
       rte_video_stream_params *par = &video_params.video;
 
-      memset (par, 0, sizeof (*par));
+      CLEAR (*par);
 
       if (zmisc_switch_mode (TVENG_CAPTURE_READ, zapping_info))
 	{
@@ -437,8 +437,17 @@ do_start			(const gchar *		file_name)
 	  return FALSE;
 	}
 
-      tveng_pixformat =
-	zconf_get_integer (NULL, "/zapping/options/main/yuv_format");
+      {
+	gint n;
+
+	n = zconf_get_integer (NULL, "/zapping/options/main/yuv_format");
+
+	if      (n == 6) pixfmt = TV_PIXFMT_YVU420;
+	else if (n == 7) pixfmt = TV_PIXFMT_YUV420;
+	else if (n == 8) pixfmt = TV_PIXFMT_YUYV;
+	else if (n == 9) pixfmt = TV_PIXFMT_UYVY;
+	else		 pixfmt = TV_PIXFMT_YVU420;
+      }
 
       for (retry = 0;; retry++)
         {
@@ -452,10 +461,10 @@ do_start			(const gchar *		file_name)
 #if 0
 	  if (!request_bundle_format (tveng_pixformat, width, height))
 #else
-	  memset (&fmt, 0, sizeof(fmt));
+	  CLEAR (fmt);
 	  fmt.width = width;
 	  fmt.height = height;
-	  fmt.fmt = tveng_pixformat;
+	  fmt.pixfmt = pixfmt;
 
 	  if (-1 == request_capture_format (&fmt))
 #endif
@@ -465,7 +474,7 @@ do_start			(const gchar *		file_name)
 
 	      ShowBox ("Cannot switch to %s capture format",
 		       GTK_MESSAGE_ERROR,
-		       (tveng_pixformat == TVENG_PIX_YVU420) ?
+		       (pixfmt == TV_PIXFMT_YVU420) ?
 		       "YUV 4:2:0" : "YUV 4:2:2");
 	      return FALSE;
 	    }
@@ -473,7 +482,7 @@ do_start			(const gchar *		file_name)
 	  par->width = zapping_info->format.width;
 	  par->height = zapping_info->format.height;
 
-	  if (tveng_pixformat == TVENG_PIX_YVU420)
+	  if (pixfmt == TV_PIXFMT_YVU420)
 	    {
 	      par->pixfmt = RTE_PIXFMT_YUV420;
 	      par->stride = par->width;
@@ -531,23 +540,23 @@ do_start			(const gchar *		file_name)
 	    }
 	  else if (par->pixfmt == RTE_PIXFMT_YUV420)
 	    {
-	      if (tveng_pixformat != TVENG_PIX_YVU420)
+	      if (pixfmt != TV_PIXFMT_YVU420)
 		{
-		  tveng_pixformat = TVENG_PIX_YVU420;
+		  pixfmt = TV_PIXFMT_YVU420;
 		  continue;
 		}
 	    }
 	  else if (par->pixfmt == RTE_PIXFMT_YUYV)
 	    {
-	      if (tveng_pixformat != TVENG_PIX_YUYV)
+	      if (pixfmt != TV_PIXFMT_YUYV)
 		{
-		  tveng_pixformat = TVENG_PIX_YUYV;
+		  pixfmt = TV_PIXFMT_YUYV;
 		  continue;
 		}
 	    }
 	  else
 	    {
-	      tveng_pixformat = TVENG_PIX_YUYV;
+	      pixfmt = TV_PIXFMT_YUYV;
 	      continue;
 	    }
 

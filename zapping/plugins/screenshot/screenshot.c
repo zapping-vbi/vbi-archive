@@ -977,6 +977,7 @@ preview (screenshot_data *data)
 {
   tveng_image_data old_data;
   struct tveng_frame_format old_format;
+  tv_pixel_format pixel_format;
 
   if (!data || !data->drawingarea || !data->pixbuf)
     return;
@@ -984,9 +985,11 @@ preview (screenshot_data *data)
   old_data = data->data;
   old_format = data->format;
 
+  tv_pixfmt_to_pixel_format (&pixel_format, data->format.pixfmt, 0);
+
   data->data.linear.data += (int)
-    (((data->format.width - PREVIEW_WIDTH) >> 1)
-     * data->format.bpp
+    (((((data->format.width - PREVIEW_WIDTH) >> 1)
+       * pixel_format.bits_per_pixel) >> 3)
      + (((data->format.height - PREVIEW_HEIGHT) >> 1)
 	& -1) /* top field first */
      * data->data.linear.stride);
@@ -1491,7 +1494,7 @@ screenshot_timeout (screenshot_data *data)
 static gboolean
 copy_image (screenshot_data *data, capture_frame *frame)
 {
-  zimage *image = retrieve_frame (frame, TVENG_PIX_RGB24);
+  zimage *image = retrieve_frame (frame, TV_PIXFMT_RGB24_LE);
 
   if (!image)
     return FALSE;
@@ -1556,7 +1559,7 @@ screenshot_grab (gint dialog)
 
       /* Request a RGB type capture */
       fmt.locked = FALSE;
-      fmt.fmt = TVENG_PIX_RGB24;
+      fmt.pixfmt = TV_PIXFMT_RGB24_LE;
       format_request = request_capture_format (&fmt);
       if (format_request == -1)
 	{

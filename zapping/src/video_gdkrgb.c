@@ -48,38 +48,25 @@ struct _zimage_private {
 
 
 static zimage*
-image_new (enum tveng_frame_pixformat fmt, gint w, gint h)
+image_new (tv_pixfmt pixfmt, gint w, gint h)
 {
   zimage *image = zimage_create_object ();
   zimage_private *pimage = image->priv =
     g_malloc0 (sizeof (zimage_private));
-  gint bpp = 0xdeadbeef;
+  tv_pixel_format format;
 
-  switch (fmt)
-    {
-    case TVENG_PIX_RGB24:
-      bpp = 3;
-      break;
-    case TVENG_PIX_RGB32:
-      bpp = 4;
-      break;
-    default:
-      g_assert_not_reached ();
-      break;
-    }
-
-  pimage->data = g_malloc (bpp * w * h);
+  tv_pixfmt_to_pixel_format (&format, pixfmt, 0);
 
   image->fmt.width = w;
   image->fmt.height = h;
-  image->fmt.pixformat = fmt;
-  image->fmt.bytesperline = w * bpp;
-  image->fmt.bpp = bpp;
-  image->fmt.depth = bpp*8;
-  image->fmt.sizeimage = w * h * bpp;
+  image->fmt.pixfmt = pixfmt;
+  image->fmt.bytesperline = (w * format.bits_per_pixel) >> 3;
+  image->fmt.sizeimage = image->fmt.bytesperline * h;
+
+  pimage->data = g_malloc (image->fmt.sizeimage);
 
   image->data.linear.data = pimage->data;
-  image->data.linear.stride = w * bpp;
+  image->data.linear.stride = image->fmt.bytesperline;
 
   return image;
 }
@@ -116,15 +103,15 @@ image_put (zimage *image, gint w, gint h)
   g_assert (window != NULL);
 
   clear_canvas (window, w, h, iw, ih);
-  switch (image->fmt.pixformat)
+  switch (image->fmt.pixfmt)
     {
-    case TVENG_PIX_RGB24:
+    case TV_PIXFMT_RGB24_LE:
       gdk_draw_rgb_image (window, gc,
 			  (w - iw)/2, (h - ih)/2, iw, ih,
 			  GDK_RGB_DITHER_NORMAL, pimage->data,
 			  image->data.linear.stride);
       break;
-    case TVENG_PIX_RGB32:
+    case TV_PIXFMT_ARGB24_LE:
       gdk_draw_rgb_32_image (window, gc,
 			     (w - iw)/2, (h - ih)/2, iw, ih,
 			     GDK_RGB_DITHER_NORMAL, pimage->data,
@@ -183,9 +170,9 @@ unset_destination(tveng_device_info *info)
   black_gc = NULL;
 }
 
-static enum tveng_frame_pixformat fmts[] = {
-  TVENG_PIX_RGB24,
-  TVENG_PIX_RGB32
+static tv_pixfmt pixfmts[] = {
+  TV_PIXFMT_BGR24_LE,
+  TV_PIXFMT_BGRA24_LE
 };
 
 static gboolean
@@ -194,9 +181,9 @@ suggest_format (void)
   capture_fmt fmt;
   int i;
 
-  for (i=0; i<acount (fmts); i++)
+  for (i=0; i<G_N_ELEMENTS (pixfmts); i++)
     {
-      fmt.fmt = fmts[i];
+      fmt.pixfmt = pixfmts[i];
       fmt.locked = FALSE;
       if (suggest_capture_format (&fmt) != -1)
 	return TRUE;
@@ -219,6 +206,6 @@ void add_backend_gdkrgb (void);
 void add_backend_gdkrgb (void)
 {
   int i;
-  for (i=0; i<acount (fmts); i++)
-    register_video_backend (fmts[i], &gdkrgb);
+  for (i=0; i<G_N_ELEMENTS (pixfmts); i++)
+    register_video_backend (pixfmts[i], &gdkrgb);
 }
