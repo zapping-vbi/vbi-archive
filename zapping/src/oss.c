@@ -31,7 +31,7 @@
 #include <math.h>
 #include <unistd.h>
 
-#include "common/fifo.h" // current_time()
+#include "common/fifo.h" /* current_time() */
 
 #include "audio.h"
 #define ZCONF_DOMAIN "/zapping/options/audio/"

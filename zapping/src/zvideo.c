@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zvideo.c,v 1.1.2.7 2003-11-15 15:12:27 mschimek Exp $ */
+/* $Id: zvideo.c,v 1.1.2.8 2003-11-26 07:17:39 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -165,8 +165,8 @@ size_allocate			(GtkWidget *		widget,
      gdk_window_resize(main_window->window, 0, 0);
      How's that possible despite proper minimum
      size_requisition and geometry hints? */
-  //  g_assert (allocation->width >= video->min_width);
-  //  g_assert (allocation->height >= video->min_height);
+  /*  g_assert (allocation->width >= video->min_width);*/
+  /*  g_assert (allocation->height >= video->min_height);*/
 
   toplevel = get_toplevel_window (video);
 

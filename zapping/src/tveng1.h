@@ -114,7 +114,7 @@ tveng1_stop_capturing(tveng_device_info * info);
    info->format.data
    time: time to wait using select() in miliseconds
    info: pointer to the video device info structure
-   Returns -1 on error, anything else on success.
+   Returns -1 on error, 1 on timeout, 0 on success.
    Note: if you want this call to be non-blocking, call it with time=0
 */
 static int tveng1_read_frame(tveng_image_data *where,

@@ -174,7 +174,7 @@ obscured_timeout		(gpointer		user_data)
     }
 
   tv_clip_vector_clear (&tv_info.window.clip_vector);
-  // XXX error ignored
+  /* XXX error ignored */
   tv_clip_vector_add_clip_xy (&tv_info.window.clip_vector,
 			      0, 0, window->width, window->height);
 
@@ -198,7 +198,7 @@ visible_timeout			(gpointer		user_data)
      c) possible clip vector change while partially obscured
   */
 
-  // XXX error
+  /* XXX error */
   get_clips (&tv_info.tmp_vector);
 
   if (!tv_clip_vector_equal (&tv_info.window.clip_vector,
@@ -252,9 +252,9 @@ visible_timeout			(gpointer		user_data)
       for (;;)
 	{
 	  if (retry_count-- == 0)
-	    goto finish; // XXX
+	    goto finish; /* XXX */
 
-	  // XXX error
+	  /* XXX error */
 	  set_window ();
 
 	  if (tv_window_equal (&tv_info.window, &tv_info.info->overlay_window))
@@ -268,7 +268,7 @@ visible_timeout			(gpointer		user_data)
 	  tv_info.window.width  = tv_info.info->overlay_window.width;
 	  tv_info.window.height = tv_info.info->overlay_window.height;
 
-	  // XXX error
+	  /* XXX error */
 	  get_clips (&tv_info.tmp_vector);
 	}
     }
@@ -280,7 +280,7 @@ visible_timeout			(gpointer		user_data)
 
   if (!OVERLAY_CHROMA_TEST)
     {
-      // XXX error ignored
+      /* XXX error ignored */
       tveng_set_preview_on (tv_info.info);
     }
 
@@ -371,8 +371,8 @@ on_video_window_event		(GtkWidget *		widget,
 
 	  if (!OVERLAY_CHROMA_TEST)
 	    {
-	      // XXX error
-	      // XXX off/on is inefficient, XVideo does this automatically.
+	      /* XXX error
+	         XXX off/on is inefficient, XVideo does this automatically. */
 	      tveng_set_preview_on (tv_info.info);
 	    }
 	}
@@ -749,7 +749,7 @@ start_overlay			(GtkWidget *		main_window,
 
       if (!OVERLAY_CHROMA_TEST)
 	{
-	  // XXX error ignored
+	  /* XXX error ignored */
 	  tveng_set_preview_on (tv_info.info);
 	}
     }

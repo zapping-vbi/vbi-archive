@@ -27,6 +27,7 @@
 #ifdef HAVE_LIBZVBI
 
 #include "zmodel.h"
+#include "zvbi.h"
 
 /* Signals creation or destruction of a view. */
 extern ZModel *		ttxview_zmodel;
@@ -48,10 +49,9 @@ ttxview_get_scaled_ttx_page	(GtkWidget	*parent);
  * page, subpage can be NULL.
  */
 gboolean
-get_ttxview_page			(GtkWidget	*view,
-					 gint		*page,
-					 gint		*subpage);
-
+get_ttxview_page		(GtkWidget *		view,
+				 vbi_pgno *		pgno,
+				 vbi_subno *		subno);
 extern GtkWidget *
 ttxview_popup			(GtkWidget *		widget,
 				 GdkEventButton *	event);

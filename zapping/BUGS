@@ -1,13 +1,17 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
+* Overlay broken?
+* Won't compile without libzvbi, some #ifdefs missing.
+* Must check if "no audio recording" works.
+* Context menu subtitles not disabled when vbi is.
+* Context menu toggle items don't show current state.
 * Heisencrash in capture mode after enabling vbi decoding in prefs.
 * Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
 * Pointer does not properly reappear in windowed mode.
 * Go Fullscreen w/automatic vidmode hangs on RH
 * ** (zapping:14562): WARNING **: Group Allgemeine Optionen not found
   in the properties
-* Subtitle overlay must be restored.
 * Video size isn't always right on startup.
 * TTX search: on the fly case and regex change doesnt work.
 * Wrong window stacking layer of overlay window when
@@ -35,6 +39,9 @@ Known bugs in Zapping, don't report them
 * config.h is also full of hardcoded paths.
 * Spinslider minimum sizes.
 * Bad reception breaks vbi decoding: i/o error.
+* "drose": Under mdk 9.1 the video capture stops for no reason.
+  Start recording to a file -- come back in ten minutes, 1 - 3 minutes
+  of video are stored and zapping wasn't running.
 
 Needs more work later:
 * Prefs does not apply screenshot add toolbar option. Seems to be

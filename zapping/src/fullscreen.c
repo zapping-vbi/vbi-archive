@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.13 2003-11-13 05:29:46 mschimek Exp $
+ * $Id: fullscreen.c,v 1.21.2.14 2003-11-26 07:17:39 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -323,7 +323,7 @@ start_fullscreen		(tveng_device_info *	info)
       x11_vidmode_clear_state (&old_vidmode);
     }
 
-  // XXX
+  /* XXX */
   if (info->current_controller == TVENG_CONTROLLER_XV)
     {
       if (!tv_set_overlay_xwindow (info, info->overlay_window.win,

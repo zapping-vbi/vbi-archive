@@ -58,8 +58,7 @@ typedef struct {
 #endif
 } ttx_message_data;
 
-extern vbi_pgno zvbi_page; /* page, subpage for subtitles */
-extern vbi_subno zvbi_subpage;
+extern vbi_pgno zvbi_caption_pgno; /* page for subtitles */
 
 /*
  * Register a client as TTX receiver, and returns the id that the

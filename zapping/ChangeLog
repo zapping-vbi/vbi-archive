@@ -1,3 +1,46 @@
+2003-11-26    <mschimek@users.sf.net>
+
+	* src/zvbi.c: Removed unused zvbi_(caption_)subpage.
+	  (py_closed_caption): Rewrote.
+	* src/zmisc.h: New SIGNAL_BLOCK macro.
+	* src/zmisc.c, src/zmisc.h: Removed zmisc_overlay_subtitles(page).
+	* src/zconf.c, src/zconf.h: Added zconf_hook_check_menu.
+	* src/v4linterface.c (z_switch_channel): Change caption
+	  page on channel switch.
+	* src/tveng2.c, src/tveng25.c: Clear image buffers on tuner
+	  freq change and capture start. Proper info->format
+	  initialization in update_capture_format. Report timeout
+	  in read_frame.
+	* src/tveng1.c (set_tuner_frequency): Clear image buffers on tuner
+	  freq change.
+	* src/tveng.c, src/tveng.h: Added tv_clear_image(). 
+	  (tv_image_format_is_valid): Added optional bytes_per_line parameter.
+	* src/ttxview.c (get_ttxview_page): Improper parameter declaration. 
+	  (ttxview_subtitles_menu_new): Added disable item.
+	* src/osd.c (osd_event): Bail out if invalid caption pgno, no
+	  more caption subno.
+	* src/main.c (init_zapping_stock): New subtitle icon.
+	  (main): Moved startup_zvbi() up, is needed to create_zapping()
+	  with bindings to caption functions. Removed obsolete caption
+	  initialization.
+	  (shutdown_zapping): Save per-channel caption page.
+	  (startup_zapping): Load per-channel caption page from config.
+	* src/interface.c: Restored subtitle menu, added subtitle
+	  toolbar button. Some minor improvements.
+	* src/frequencies.c, src/frequencies.h: Caption pgno
+	  now remembered per channel.
+	* src/channel_editor.c (station_search_timeout): Always use
+	  vbi to determine station names, option gone.
+	* src/capture.c (fill_bundle_tveng): Ignored tveng_read_frame()
+	  success.
+	  (capture_thread): Ignored fill_bundle_tveng() success, especially
+	  timeout, sending out old frames.
+	* glade/zapping.glade2, src/properties-handler.c: Removed vbi
+	  options: use vbi for getting station names (yes), auto overlay
+	  subtitle pages (no), subtitle page (now per channel).
+	* src/audio.c: s/SIGNAL_HANDLER_BLOCK/SIGNAL_BLOCK due to
+	  changes in src/interface.c.
+
 2003-11-20    <mschimek@users.sf.net>
 
 	* pixmaps/Makefile.am: Added subtitle.png. 

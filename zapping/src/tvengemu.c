@@ -274,10 +274,10 @@ int tvengemu_attach_device(const char* device_file,
   info->overlay_buffer.base = 0;
   info->overlay_buffer.format.width = info->caps.maxwidth;
   info->overlay_buffer.format.height = info->caps.maxheight;
-  //  info->overlay_buffer.depth = 17;
-  //  info->overlay_buffer.bytes_per_line = (info->overlay_buffer.depth+7)/8 *
-  //    info->overlay_buffer.width;
-
+  /*  info->overlay_buffer.depth = 17;
+    info->overlay_buffer.bytes_per_line = (info->overlay_buffer.depth+7)/8 *
+      info->overlay_buffer.width;
+  */
   /* Tuner bounds */
   p_info -> freq_min = 1000;
   p_info -> freq_max = 1000000;

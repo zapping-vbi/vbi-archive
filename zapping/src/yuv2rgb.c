@@ -599,7 +599,7 @@ static void yuv2rgb_c_32 (uint8_t * py_1, uint8_t * py_2,
     }
 }
 
-// This is very near from the yuv2rgb_c_32 code
+/* This is very near from the yuv2rgb_c_32 code*/
 static void yuv2rgb_c_24_rgb (uint8_t * py_1, uint8_t * py_2,
 			      uint8_t * pu, uint8_t * pv,
 			      void * _dst_1, void * _dst_2, int h_size)
@@ -650,7 +650,7 @@ static void yuv2rgb_c_24_rgb (uint8_t * py_1, uint8_t * py_2,
     }
 }
 
-// only trivial mods from yuv2rgb_c_24_rgb
+/* only trivial mods from yuv2rgb_c_24_rgb*/
 static void yuv2rgb_c_24_bgr (uint8_t * py_1, uint8_t * py_2,
 			      uint8_t * pu, uint8_t * pv,
 			      void * _dst_1, void * _dst_2, int h_size)
@@ -701,8 +701,8 @@ static void yuv2rgb_c_24_bgr (uint8_t * py_1, uint8_t * py_2,
     }
 }
 
-// This is exactly the same code as yuv2rgb_c_32 except for the types of
-// r, g, b, dst_1, dst_2
+/* This is exactly the same code as yuv2rgb_c_32 except for the types of
+   r, g, b, dst_1, dst_2 */
 static void yuv2rgb_c_16 (uint8_t * py_1, uint8_t * py_2,
 			  uint8_t * pu, uint8_t * pv,
 			  void * _dst_1, void * _dst_2, int h_size)

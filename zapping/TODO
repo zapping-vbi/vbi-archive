@@ -1,6 +1,9 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Still need ure?
+* Suppress mute function of keypad enter when entering
+  channel number.
 * Xawtv import considers ~/.xawtv but not /etc/X11/xawtvrc, see
   man xawtvrc.
 * Examine interaction with change display from gtk-demo.
@@ -37,7 +40,10 @@ Outstanding issues for future releases
 * configure.in: esd, oss etc checks
 * Improve documentation.
 * Check compilation works without optional libs
-* Switching subtitles on/off needs improvement.
+* Switching subtitles on/off needs improvement:
+  Make widgets insensitive if we have no previous page
+  and cannot lookup. Unselect and sensitive in
+  Teletext mode.
 * Fullscreen integrates badly into desktop, eg. context menu.
 * vbi: add toggle button to disable CC/TTX decoding
   (independent of station name decoding, that is). Mind

@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.130.2.23 2003-11-20 19:59:57 mschimek Exp $
+dnl $Id: configure.in,v 1.130.2.24 2003-11-26 07:17:38 mschimek Exp $
 
 AC_INIT(zapping, 0.7cvs4,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
@@ -42,6 +42,7 @@ test -e site_def.h || cat <<EOF >site_def.h
 /* #define XAWTV_CONFIG_TEST 1 */
 /* #define OVERLAY_LOG_FP stderr */
 /* #define OVERLAY_CHROMA_TEST 1 */
+/* #define ZVBI_CAPTION_DEBUG 1 */
 #endif
 EOF
 

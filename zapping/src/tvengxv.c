@@ -454,7 +454,7 @@ do_update_control		(struct private_tvengxv_device_info *p_info,
 {
 	int value;
 
-	// XXX check at runtime
+	/* XXX check at runtime */
 	if (c->atom == p_info->xa_mute)
 		return TRUE; /* no read-back (bttv bug) */
 	else
@@ -1193,7 +1193,7 @@ int tvengxv_attach_device(const char* device_file,
     }
 
       /* Set the mute control to OFF (workaround for BTTV bug) */
-//      tveng_set_control(&control, 0, info);
+      /* tveng_set_control(&control, 0, info); */
 
   /* fill in with the proper values */
   update_control (info, NULL /* all */);
@@ -1210,10 +1210,10 @@ int tvengxv_attach_device(const char* device_file,
 	info->cur_video_standard = NULL;
 
 	if (!update_video_input_list (info))
-		goto error1; // XXX
+	  goto error1; /* XXX*/
 
   /* fill in capabilities info */
-	info->caps.channels = 0; // FIXME info->num_inputs;
+	info->caps.channels = 0; /* FIXME info->num_inputs;*/
   /* Let's go creative! */
   snprintf(info->caps.name, 32, "XVideo device");
   info->caps.minwidth = 1;

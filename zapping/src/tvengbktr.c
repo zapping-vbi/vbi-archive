@@ -1061,9 +1061,9 @@ static struct tveng_module_info tvengbktr_module_info = {
   .update_standard		= get_standard,
   .set_control			= set_control,
   .update_control		= get_control,
-//  .set_preview_window =		tvengbktr_set_preview_window,
-//  .get_preview_window =		tvengbktr_get_preview_window,
-//  .set_preview =		tvengbktr_set_preview,
+  /* .set_preview_window =		tvengbktr_set_preview_window, */
+     /*  .get_preview_window =		tvengbktr_get_preview_window, */
+     /*  .set_preview =		tvengbktr_set_preview, */
 
   .private_size			= sizeof (struct private_tvengbktr_device_info)
 };

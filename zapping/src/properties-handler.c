@@ -132,14 +132,6 @@ di_setup		(GtkWidget	*page)
 	else
 	  type_str = _("Camera");
 
-#if 0 // obsolete
-	if (main_info->inputs[i].tuners)
-	  buffer = g_strdup_printf (ngettext ("%s with %d tuner",
-	                                      "%s with %d tuners",
-			                      main_info->inputs[i].tuners),
-				    type_str, main_info->inputs[i].tuners);
-	else
-#endif
           buffer = g_strdup_printf ("%s", type_str);
 
 	nb_body = gtk_label_new (buffer);
@@ -970,12 +962,6 @@ mw_apply		(GtkWidget	*page)
   x11_screensaver_control (top);
 
 
-/*
-  widget = lookup_widget(page, "checkbutton13"); // swap chan up/down
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/swap_up_down");  
-*/
-
   widget = lookup_widget(page, "title_format"); /* title format */
   widget = gnome_entry_gtk_entry(GNOME_ENTRY(widget));
   zconf_set_string(gtk_entry_get_text(GTK_ENTRY(widget)),
@@ -1182,16 +1168,6 @@ vbi_general_setup	(GtkWidget	*page)
 		   G_CALLBACK(on_enable_vbi_toggled),
 		   page);
 
-  /* use VBI for getting station names */
-  widget = lookup_widget(page, "checkbutton7");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi"));
-
-  /* overlay subtitle pages automagically */
-  widget = lookup_widget(page, "checkbutton12");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/vbi/auto_overlay"));
-
   /* VBI device */
   widget = lookup_widget(page, "fileentry2");
   widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
@@ -1216,12 +1192,6 @@ vbi_general_setup	(GtkWidget	*page)
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
     zconf_get_integer(NULL,
 		      "/zapping/options/vbi/qstradeoff"));
-#ifdef HAVE_LIBZVBI
-  /* Default subtitle page */
-  widget = lookup_widget(page, "subtitle_page");
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
-			    vbi_bcd2dec(zcg_int(NULL, "zvbi_page")));
-#endif
 }
 
 typedef enum {
@@ -1254,7 +1224,7 @@ static void
 vbi_general_apply	(GtkWidget	*page)
 {
 #ifdef HAVE_LIBZVBI
-  togglean enable_vbi, use_vbi;
+  togglean enable_vbi;
   GtkWidget *widget;
   gchar *text;
   gint index;
@@ -1273,10 +1243,6 @@ vbi_general_apply	(GtkWidget	*page)
   /* enable VBI decoding */
   enable_vbi = set_toggle (page, "checkbutton6",
 			   "/zapping/options/vbi/enable_vbi");
-  /* Use VBI station names */
-  use_vbi = set_toggle (page, "checkbutton7",
-			"/zapping/options/vbi/use_vbi");
-
   if (enable_vbi == TOGGLE_TO_FALSE)
     {
       /* XXX bad design */
@@ -1285,16 +1251,14 @@ vbi_general_apply	(GtkWidget	*page)
       zvbi_reset_network_info ();
 #endif
     }
+#if 0 /* always */
   else if (use_vbi == TOGGLE_TO_FALSE)
     {
 #if 0 /* Temporarily removed */
       zvbi_reset_network_info ();
 #endif
     }
-
-  /* Overlay TTX pages automagically */
-  set_toggle (page, "checkbutton12",
-	      "/zapping/options/vbi/auto_overlay");
+#endif
 
   widget = lookup_widget(page, "fileentry2"); /* VBI device entry */
   text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
@@ -1336,15 +1300,6 @@ vbi_general_apply	(GtkWidget	*page)
     index = 3;
   zconf_set_integer(index, "/zapping/options/vbi/qstradeoff");
 
-  widget = lookup_widget(page, "subtitle_page"); /* subtitle page */
-  index =
-    vbi_dec2bcd(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)));
-  if (index != zvbi_page)
-    {
-      zvbi_page = index;
-      zcs_int(zvbi_page, "zvbi_page");
-      osd_clear();
-    }
 #endif /* HAVE_LIBZVBI */
 }
 
