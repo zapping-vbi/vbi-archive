@@ -12,6 +12,7 @@
 
 #include "interface.h"
 #include "zmisc.h"
+#include "zconf.h"
 #include "remote.h"
 
 /**
@@ -141,6 +142,31 @@ build_widget(const char* name, const char* glade_file)
   return widget;
 }
 
+void
+change_toolbar_style (GtkWidget *widget, int style)
+{
+  extern GtkWidget *main_window;
+  static GtkToolbarStyle gts[] = {
+    GTK_TOOLBAR_ICONS,
+    GTK_TOOLBAR_TEXT,
+    GTK_TOOLBAR_BOTH
+  };
+
+  if (!widget)
+    widget = main_window;
+
+  if (!widget || style < 0 || style > 2)
+    return;
+
+  widget = lookup_widget (widget, "dockitem2"); /* main window */
+  widget = gnome_dock_item_get_child (GNOME_DOCK_ITEM (widget));
+
+  if (!widget)
+    return;
+
+  gtk_toolbar_set_style (GTK_TOOLBAR (widget), gts[style]);
+}
+
 #define MENU_CMD(_name, _cmd)						\
   w = lookup_widget (widget, #_name);					\
   gtk_signal_connect (GTK_OBJECT (w), "activate",			\
@@ -151,7 +177,9 @@ GtkWidget*
 create_zapping (void)
 {
   GtkWidget *widget;
+  GtkWidget *pixmap;
   GtkWidget *w;
+  gchar *name;
 
   widget = build_widget("zapping", PACKAGE_DATA_DIR "/zapping.glade");
 
@@ -169,6 +197,31 @@ create_zapping (void)
   MENU_CMD (videotext1,		"switch_mode teletext");
   MENU_CMD (new_ttxview,	"ttx_open_new");
   MENU_CMD (mute2,		"mute");
+
+  /* Custom toolbar button pixmap, ditto */
+  name = g_strdup_printf ("%s/%s", PACKAGE_PIXMAPS_DIR, "mute.png");
+  pixmap = z_pixmap_new_from_file (name);
+  g_free (name);
+  gtk_widget_show (pixmap);
+  w = gtk_toolbar_insert_element (GTK_TOOLBAR (lookup_widget (widget, "toolbar1")),
+                                  GTK_TOOLBAR_CHILD_TOGGLEBUTTON,
+                                  NULL,
+                                  _("Mute"),
+                                  _("Switch audio on and off"),
+				  NULL,
+                                  pixmap, NULL, NULL, 3);
+  gtk_object_set_data (GTK_OBJECT (widget), "registered-widget-tb-mute", w);
+  gtk_widget_show (w);
+  gtk_signal_connect (GTK_OBJECT (w), "toggled",
+		      (GtkSignalFunc) on_remote_command1,
+		      (gpointer)((const gchar *) "mute"));
+
+  propagate_toolbar_changes (lookup_widget (widget, "toolbar1"));
+
+  zconf_create_integer (2, "Display icons, text or both",
+		        "/zapping/options/main/toolbar_style");
+  change_toolbar_style (widget, zconf_get_integer (NULL,
+		        "/zapping/options/main/toolbar_style"));
 
   return widget;
 }
