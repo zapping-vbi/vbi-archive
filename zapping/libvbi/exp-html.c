@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.10 2001-02-19 07:23:02 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.11 2001-02-20 07:33:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -191,10 +191,10 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 	flash      = FALSE;
 #endif
 
-	for (acp = pg.text, i = 0; i < 25; acp += pg.columns, i++) {
+	for (acp = pg.text, i = 0; i < pg.rows; acp += pg.columns, i++) {
 		int blank = 0;
 
-		for (j = 0; j < 40; j++) {
+		for (j = 0; j < pg.columns; j++) {
 			int glyph = (acp[j].conceal && !e->reveal) ? GL_SPACE : acp[j].glyph;
 #if TEST
 			acp[j].underline = underline;
@@ -238,8 +238,8 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 		if (blank > 0) {
 			attr_char ac;
 
-			if (blank < 40)
-				ac = acp[39 - blank];
+			if (blank < pg.columns)
+				ac = acp[pg.columns - 1 - blank];
 			else {
 				memset(&ac, 0, sizeof(ac));
 				ac.foreground = 7;
@@ -248,8 +248,8 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 			ac.glyph = 0x20;
 
 			while (blank > 0) {
-				ac.background = acp[40 - blank].background;
-				acp[40 - blank] = ac;
+				ac.background = acp[pg.columns - blank].background;
+				acp[pg.columns - blank] = ac;
 				blank--;
 			}
 		}
@@ -289,8 +289,8 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 	span	   = FALSE;
 
 	/* XXX this can get extremely large and ugly, should be improved. */
-	for (acp = pg.text, i = 0; i < 25; acp += pg.columns, i++) {
-		for (j = 0; j < 40; j++) {
+	for (acp = pg.text, i = 0; i < pg.rows; acp += pg.columns, i++) {
+		for (j = 0; j < pg.columns; j++) {
 			int code;
 
 			if (acp[j].foreground != foreground
@@ -413,20 +413,28 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 
 	iconv_close(cd);
 
-	fclose(fp);
+	if (ferror(fp))
+		goto write_error;
 
-	if (ferror(fp)) {
-		export_error(e, errno ?
-			_("error while writing file '%s': %s") :
-			_("error while writing file '%s'"), name, strerror(errno));
-
-		if (!stat(name, &st) && S_ISREG(st.st_mode))
-			remove(name);
-
-		return -1;
+	if (fclose(fp)) {
+		fp = NULL;
+		goto write_error;
 	}
 
 	return 0;
+
+write_error:
+	export_error(e, errno ?
+		_("error while writing file '%s': %s") :
+		_("error while writing file '%s'"), name, strerror(errno));
+
+	if (fp)
+		fclose(fp);
+
+	if (!stat(name, &st) && S_ISREG(st.st_mode))
+		remove(name);
+
+	return -1;
 }
 
 static char *html_opts[] =	// module options

@@ -1,3 +1,9 @@
+20.2.2001	caption <mschimek@users.sourceforge.net>
+
+	* Fixed 'double height acute vowels' bug.
+	* Caption decoder is online, minor tweaks here and there.
+	* lang.c: translates caption glyphs.
+
 19.2.2001	blink <mschimek@users.sourceforge.net>
 
         * Modified phase from 50:50 to 75:25, is easier to read,

@@ -18,12 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.2 2001-02-18 07:37:26 mschimek Exp $ */
+/* $Id: format.h,v 1.3 2001-02-20 07:33:20 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
-
-#include "lang.h"
 
 /*
  *  WST/CC base palette, actual number of entries in WST mode
@@ -121,11 +119,12 @@ typedef struct {
 	unsigned	glyph		: 32;	/* see lang.c for details */
 } attr_char;
 
-#define attr_char_op(op, s1, s2) /* tbd */
 
 #ifndef ANY_SUB
 #define ANY_SUB		0x3F7F
 #endif
+
+struct vbi_font_descr; /* lang.h */
 
 struct fmt_page
 {
@@ -165,7 +164,7 @@ struct fmt_page
 	}			nav_link[6];
 	char			nav_index[64];
 
-	font_descriptor	*	font[2];
+	struct vbi_font_descr *	font[2];
 	unsigned int		double_height_lower;	/* legacy */
 
 	attr_opacity		page_opacity[2];

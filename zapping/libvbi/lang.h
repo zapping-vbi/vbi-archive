@@ -1,7 +1,7 @@
 /*
- *  Zapzilla - Teletext character set
+ *  Zapzilla - Teletext and Closed Caption character set
  *
- *  Copyright (C) 2000 Michael H. Schimek
+ *  Copyright (C) 2000-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.6 2001-01-30 23:27:16 mschimek Exp $ */
+/* $Id: lang.h,v 1.7 2001-02-20 07:33:20 mschimek Exp $ */
 
 #ifndef LANG_H
 #define LANG_H
@@ -58,14 +58,14 @@ typedef enum {
 	TURKISH
 } national_subset;
 
-typedef struct {
+struct vbi_font_descr {
 	character_set		G0;
 	character_set		G2;	
 	national_subset		subset;		/* applies only to LATIN_G0 */
 	char *			label;		/* Latin-1 (ISO 8859-1) */
-} font_descriptor;
+};
 
-extern font_descriptor	font_descriptors[88];
+extern struct vbi_font_descr	font_descriptors[88];
 
 #define VALID_CHARACTER_SET(n) ((n) < 88 && font_descriptors[n].G0)
 
@@ -83,6 +83,7 @@ extern font_descriptor	font_descriptors[88];
 #define GL_SEPARATED_BLOCK_MOSAIC_G1		(0x0220 - 0x20)	/* interleaved 2-2-6-6 */
 #define GL_SMOOTH_MOSAIC_G3			(0x0280 - 0x20)
 #define GL_ITALICS				(0x02E0)	/* repeats glyphs 0x0000 ... 0x017F (not coded, -> attr_char.italic) */
+#define GL_CAPTION				(0x0800)
 #define GL_DRCS					(0x8000)	/* vector 0 .. n << 8, char 0 ... 47, not in the font file */
 
 #define GL_SPACE				(GL_LATIN_G0 + ' ')
@@ -98,8 +99,8 @@ gl_isalnum(int glyph)
 		return 1;
 	if (glyph >= GL_GRAPHICS)
 		return 0;
-
-	return 1;
+	else
+		return 1;
 }
 
 static inline int
@@ -114,14 +115,19 @@ gl_isg1(int glyph)
  *    Regular:	0 ... 15 << 20, diacritical mark from G2 0x40 ... 0x4F,
  *              1 << 19 'uppercase', 1 << 18 'centered' (just for aesthetical purposes)
  *    DRCS:	0 ... 63 << 16, DRCS colour lut offset
+ *
+ *  Closed caption characters have no diacritical marks, and there are no
+ *  DRCS in CC fmt_pages.
  */
 
-/* Translate raw character code c = 32 ... 127 to glyph code */
+/* Translate raw Teletext character code c = 32 ... 127 to glyph code */
 
 extern int		glyph_lookup(character_set s, national_subset n, int c);
 
-/* Compose a new glyph from base glyph code and diacritical mark = 0 ... 15 */
-
+/* 
+ *  Compose a new glyph from base glyph code and diacritical
+ *  mark = 0 ... 15 (Teletext only)
+ */
 extern int		compose_glyph(int glyph, int mark);
 
 /* Translate glyph code to Unicode (0 == no mapping) */

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.8 2001-01-09 06:27:42 mschimek Exp $ */
+/* $Id: lang.c,v 1.9 2001-02-20 07:33:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -30,7 +30,7 @@
 /* 
  *  ETS 300 706 Table 32, 33, 34
  */
-font_descriptor
+struct vbi_font_descr
 font_descriptors[88] = {
 	/* 0 - Western and Central Europe */
 	{ LATIN_G0, LATIN_G2, ENGLISH,		"English" },
@@ -402,7 +402,7 @@ compose_glyph(int glyph, int mark)
 static const unsigned short
 unicode_forward[] = {
 	/* Reserved 0x00 ... 0x1F */
-	/* 0x1F (Turkish national subset 2/3, currency sign) Unicode? */
+	/* 0x1F (Turkish national subset 2/3, currency sign) has no Unicode */
 	0x0000, 0x0041, 0x0041, 0x0043, 0x00E4, 0x0045, 0x0049, 0x0047,
 	0x0048, 0x0049, 0x004A, 0x004B, 0x004C, 0x00EF, 0x004E, 0x004F,
 	0x00CF, 0x0000, 0x0052, 0x0053, 0x0054, 0x0055, 0x0165, 0x00C5,
@@ -543,6 +543,30 @@ unicode_reverse[] = {
 	0x8019, 0x201A, 0x207A, 0x701A,	0x707A, 0xF01A, 0xF07A, 0x0000,
 };
 
+static const unsigned short
+caption_unicode_forward[128] = {
+	0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+	0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+	0x00AE, 0x00B0, 0x00BD, 0x00BF, 0x2122, 0x00A2, 0x00A3, 0x266B,
+	0x00E0, 0x0000, 0x00E8, 0x00E2, 0x00EA, 0x00EE, 0x00F4, 0x00FB,
+
+	0x0020, 0x0021, 0x0022, 0x0023, 0x0024, 0x0025, 0x0026, 0x0027,
+	0x0028, 0x0029, 0x00E1, 0x002B, 0x002C, 0x002D, 0x002E, 0x002F,
+	0x0030, 0x0031, 0x0032, 0x0033, 0x0034, 0x0035, 0x0036, 0x0037,
+	0x0038, 0x0039, 0x003A, 0x003B, 0x003C, 0x003D, 0x003E, 0x003F,
+
+	0x0040, 0x0041, 0x0042, 0x0043, 0x0044, 0x0045, 0x0046, 0x0047,
+	0x0048, 0x0049, 0x004A, 0x004B, 0x004C, 0x004D, 0x004E, 0x004F,
+	0x0050, 0x0051, 0x0052, 0x0053, 0x0054, 0x0055, 0x0056, 0x0057,
+	0x0058, 0x0059, 0x005A, 0x005B, 0x00E9, 0x005D, 0x00ED, 0x00F3,
+
+	0x00FA, 0x0061, 0x0062, 0x0063, 0x0064, 0x0065, 0x0066, 0x0067,
+	0x0068, 0x0069, 0x006A, 0x006B, 0x006C, 0x006D, 0x006E, 0x006F,
+	0x0070, 0x0071, 0x0072, 0x0073, 0x0074, 0x0075, 0x0076, 0x0077,
+	0x0078, 0x0079, 0x007A, 0x00E7, 0x00F7, 0x00D1, 0x00F1, block
+};
+
+
 /*
  *  These characters mimic a few common block mosaic, smooth mosaic
  *  or line drawing character patterns, eg. horizontal bars
@@ -581,6 +605,9 @@ glyph2unicode(int glyph)
 	if (glyph < GL_ITALICS)
 		return 0x0020; /* block mosaic, smooth mosaic, line drawing character */
 
+	if ((glyph & 0xFF00) == GL_CAPTION)
+		return caption_unicode_forward[glyph & 0x7F];
+
 	glyph = (glyph & 0x3FF) + ((glyph >> 8) & 0xF000);
 
 	for (i = 0; i < sizeof(unicode_reverse) / sizeof(unicode_reverse[0]); i++)
@@ -610,6 +637,11 @@ glyph2latin(int glyph)
 
 	if (glyph < GL_ITALICS)	/* block mosaic, smooth mosaic, line drawing character */
 		return gfx_transcript[glyph - GL_GRAPHICS] ? : 0x20;
+
+	if ((glyph & 0xFF00) == GL_CAPTION) {
+		c = caption_unicode_forward[glyph & 0x7F];
+		return (c && c < 0x0100) ? c : 0x20;
+	}
 
 	glyph = (glyph & 0x3FF) + ((glyph >> 8) & 0xF000);
 
@@ -650,6 +682,21 @@ glyph_iconv(iconv_t cd, int glyph, int gfx_substitute)
 
 	if (glyph < GL_ITALICS)	/* block mosaic, smooth mosaic, line drawing character */
 		return gfx_transcript[glyph - GL_GRAPHICS] ? : gfx_substitute;
+
+	if ((glyph & 0xFF00) == GL_CAPTION) {
+		if (!(u = caption_unicode_forward[glyph & 0x7F]))
+			return 0x20;
+		else if (u == '@')
+			return '@';
+
+		uc[0] = u >> 8; /* network order */
+		uc[1] = u;
+
+		if (iconv(cd, (const char **) &up, &in, (char **) &cp, &out) < 1 || c == '@')
+			return -u;
+		else
+			return c;
+	}
 
 	glyph = (glyph & 0x3FF) + ((glyph >> 8) & 0xF000);
 

@@ -18,12 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cc.h,v 1.1 2001-02-19 07:23:02 mschimek Exp $ */
+/* $Id: cc.h,v 1.2 2001-02-20 07:33:20 mschimek Exp $ */
 
 #ifndef CC_H
 #define CC_H
 
 #include "format.h"
+#include "../common/types.h"
 
 typedef struct {
 	int			count;
@@ -53,7 +54,6 @@ typedef struct {
 // XXX should be 'silence count'
 
 	bool			redraw_all;
-	bool			italic;
 
 	attr_char		attr;
 	attr_char *		line;
@@ -77,5 +77,6 @@ struct caption {
 };
 
 extern void		vbi_init_caption(struct caption *cc);
+extern void		vbi_caption_dispatcher(struct caption *cc, int line, unsigned char *buf);
 
 #endif /* CC_H */

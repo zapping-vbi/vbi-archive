@@ -28,7 +28,6 @@
 #endif
 
 /*
-    XXX t2-br p. 490 
     XXX 3sat p. 888
  */
 
@@ -124,7 +123,7 @@ flof_links(struct fmt_page *pg, struct vt_page *vtp)
  */
 
 static bool
-top_label(struct vbi *vbi, struct fmt_page *pg, font_descriptor *font,
+top_label(struct vbi *vbi, struct fmt_page *pg, struct vbi_font_descr *font,
 	  int index, int pgno, int foreground, int ff)
 {
 	int column = index * 13 + 1;
@@ -141,7 +140,7 @@ top_label(struct vbi *vbi, struct fmt_page *pg, font_descriptor *font,
 				vbi->vt.btt_link[i].pgno, vbi->vt.btt_link[i].subno, 0x3f7f);
 
 			if (!vtp) {
-				printv("top ait page %x not cached\n", vbi->btt_link[i].pgno);
+				printv("top ait page %x not cached\n", vbi->vt.btt_link[i].pgno);
 				continue;
 			} else if (vtp->function != PAGE_FUNCTION_AIT) {
 				printv("no ait page %x\n", vtp->pgno);
@@ -202,7 +201,7 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg,
 	attr_char ac;
 	int i, got;
 
-	printv("PAGE BTT: %d\n", vbi->page_info[vtp->pgno - 0x100].btt);
+	printv("PAGE BTT: %d\n", vbi->vt.page_info[vtp->pgno - 0x100].btt);
 
 	memset(&ac, 0, sizeof(ac));
 
@@ -219,7 +218,7 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg,
 
 	if (0 && DEBUG)
 		for (i = 0x100; i < 0x8FF; i++) {
-			printv("%x ", vbi->page_info[i - 0x100].btt & 15);
+			printv("%x ", vbi->vt.page_info[i - 0x100].btt & 15);
 			if ((i & 0x3F) == 0x3F) putchar('\n');
 		}
 
@@ -271,7 +270,7 @@ next_ait(struct vbi *vbi, int pgno, int subno)
 				vbi->vt.btt_link[i].pgno, vbi->vt.btt_link[i].subno, 0x3f7f);
 
 			if (!vtp) {
-				printv("top ait page %x not cached\n", vbi->btt_link[i].pgno);
+				printv("top ait page %x not cached\n", vbi->vt.btt_link[i].pgno);
 				continue;
 			} else if (vtp->function != PAGE_FUNCTION_AIT) {
 				printv("no ait page %x\n", vtp->pgno);
@@ -603,7 +602,7 @@ vbi_resolve_home(struct fmt_page *pg, vbi_link *ld)
 int
 vbi_page_title(struct vbi *vbi, int pgno, int subno, char *buf)
 {
-	font_descriptor *font;
+	struct vbi_font_descr *font;
 	struct vt_page *vtp;
 	ait_entry *ait;
 	int i, j;
@@ -615,7 +614,7 @@ vbi_page_title(struct vbi *vbi, int pgno, int subno, char *buf)
 					vbi->vt.btt_link[i].pgno, vbi->vt.btt_link[i].subno, 0x3f7f);
 
 				if (!vtp) {
-					printv("p/t top ait page %x not cached\n", vbi->btt_link[i].pgno);
+					printv("p/t top ait page %x not cached\n", vbi->vt.btt_link[i].pgno);
 					continue;
 				} else if (vtp->function != PAGE_FUNCTION_AIT) {
 					printv("p/t no ait page %x\n", vtp->pgno);
@@ -745,7 +744,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 	int active_column, active_row;
 	int offset_column, offset_row;
 	int row_colour, next_row_colour;
-	font_descriptor *font;
+	struct vbi_font_descr *font;
 	int invert;
 	int drcs_s1[2];
 
@@ -818,7 +817,8 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				c.glyph = ac.glyph;
 				mac.glyph = 0;
 
-				c.size = ac.size;
+				if (mac.size)
+					c.size = ac.size;
 			}
 
 			acp[i] = c;
@@ -1075,12 +1075,11 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				else /* global / public */
 				{
 					page_function function;
-					int pgno, i;
+					int pgno, i = 0;
 
 					if (source == 3) {
 						function = PAGE_FUNCTION_GPOP;
 						pgno = vtp->data.lop.link[24].pgno;
-						i = 0;
 
 						if (NO_PAGE(pgno)) {
 							if (vbi->vt.max_level < VBI_LEVEL_3p5
@@ -1314,7 +1313,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				int offset = p->data & 0x3F;
 				struct vt_page *dvtp;
 				page_function function;
-				int pgno, page, i;
+				int pgno, page, i = 0;
 
 				if (vbi->vt.max_level < VBI_LEVEL_2p5)
 					break;
@@ -1333,7 +1332,6 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 					if (!normal) {
 						function = PAGE_FUNCTION_GDRCS;
 						pgno = vtp->data.lop.link[26].pgno;
-						i = 0;
 
 						if (NO_PAGE(pgno)) {
 							if (vbi->vt.max_level < VBI_LEVEL_3p5
@@ -1676,7 +1674,7 @@ vbi_format_page(struct vbi *vbi,
 	pg->double_height_lower = 0;
 
 	for (row = 0; row < display_rows; row++) {
-		font_descriptor *font;
+		struct vbi_font_descr *font;
 		int mosaic_glyphs;
 		int held_mosaic_glyph;
 		bool hold, mosaic;

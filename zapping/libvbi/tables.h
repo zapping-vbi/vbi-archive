@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.h,v 1.1 2000-12-29 00:38:30 mschimek Exp $ */
+/* $Id: tables.h,v 1.2 2001-02-20 07:33:20 mschimek Exp $ */
 
 #ifndef TABLES_H
 #define TABLES_H
@@ -46,5 +46,7 @@ extern struct {
 
 extern char *		program_class[16];
 extern char *		program_type[8][16];
+
+extern char *		eia608_program_type[96];
 
 #endif /* TABLES_H */

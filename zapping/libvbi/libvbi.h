@@ -12,6 +12,13 @@
 #include <export.h>
 
 /*
+    public interface:
+	libvbi.h: bcd stuff, struct vbi, vbi_*
+	format.h: attr_*, struct fmt_page
+	export.h: 2do
+ */
+
+/*
  *  BCD arithmetic for page numbers
  */
 

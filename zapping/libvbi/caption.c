@@ -1,7 +1,7 @@
 /*
- *  Closed Caption Decoder  DRAFT
+ *  Closed Caption decoder
  *
- *  gcc -g -ocaption caption.c -L/usr/X11R6/lib -lX11
+ *  gcc -g -ocaption caption.c -L/usr/X11R6/lib -lX11 -DTEST=1
  *
  *  Copyright (C) 2000-2001 Michael H. Schimek
  *
@@ -20,22 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.12 2001-02-19 07:23:02 mschimek Exp $ */
-
-#define TEST 1
-
-/*
-    TODO:
-    - test test test
-
-    DONE:
-    - traced pop-on mode (s1), seems to work fine now
-      ** added render function clear()
-    - traced text mode (s1), need automatic line breaking?
-    - traced roll-up mode (s2), outlook good, but too short
-    - parse xds
-    - branch out itv (Text 2)
- */
+/* $Id: caption.c,v 1.13 2001-02-20 07:33:20 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,29 +28,24 @@
 #include <string.h>
 #include <assert.h>
 
+#if TEST
 #include "hamm.c"
 #include "tables.c"
 #include "lang.c"
+#else
+
+#include "hamm.h"
+#include "tables.h"
+#include "lang.h"
+
+#define XDS_DISABLE 0
+#define ITV_DISABLE 0
+
+#endif
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
-typedef char bool;
-enum { FALSE, TRUE };
-
 #include "cc.h"
-
-unsigned char
-odd_parity[256] =
-{
-	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
-	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
-	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
-	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
-	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
-	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
-	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
-	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0
-};
 
 /*
  *  XDS (Extended Data Service)
@@ -81,38 +61,42 @@ odd_parity[256] =
 
 #define XDS_END			15
 
-char *mpaa_rating[8]	= { "n/a", "G", "PG", "PG-13", "R", "NC-17", "X", "not rated" };
-char *us_tv_rating[8]	= { "not rated", "TV-Y", "TV-Y7", "TV-G", "TV-PG", "TV-14", "TV-MA", "not rated" };
-char *cdn_en_rating[8]	= { "exempt", "C", "C8+", "G", "PG", "14+", "18+", "-" };
-char *cdn_fr_rating[8]	= { "exempt", "G", "8 ans +", "13 ans +", "16 ans +", "18 ans +", "-", "-" };
-char *map_type[8]	= { "unknown", "mono", "simulated stereo", "stereo", "stereo surround", "data service", "unknown", "none" };
-char *sap_type[8]	= { "unknown", "mono", "video descriptions", "non-program audio", "special effects", "data service", "unknown", "none" };
-char *language[8]	= { "unknown", "english", "spanish", "french", "german", "italian", "unknown", "none" };
+static char *mpaa_rating[8]	= { "n/a", "G", "PG", "PG-13", "R", "NC-17", "X", "not rated" };
+static char *us_tv_rating[8]	= { "not rated", "TV-Y", "TV-Y7", "TV-G", "TV-PG", "TV-14", "TV-MA", "not rated" };
+static char *cdn_en_rating[8]	= { "exempt", "C", "C8+", "G", "PG", "14+", "18+", "-" };
+static char *cdn_fr_rating[8]	= { "exempt", "G", "8 ans +", "13 ans +", "16 ans +", "18 ans +", "-", "-" };
+static char *map_type[8]	= { "unknown", "mono", "simulated stereo", "stereo", "stereo surround", "data service", "unknown", "none" };
+static char *sap_type[8]	= { "unknown", "mono", "video descriptions", "non-program audio", "special effects", "data service", "unknown", "none" };
+static char *language[8]	= { "unknown", "english", "spanish", "french", "german", "italian", "unknown", "none" };
 
-char *cgmsa[4] = {
+static char *
+cgmsa[4] = {
 	"copying permitted",
 	"-",
 	"one generation copy allowed",
 	"no copying permitted"
 };
 
-char *scrambling[4] = {
+static char *
+scrambling[4] = {
 	"no pseudo-sync pulse",
 	"pseudo-sync pulse on; color striping off",
 	"pseudo-sync pulse on; 2-line color striping on",
 	"pseudo-sync pulse on; 4-line color striping on"
 };
 
-static const char *month_names[] = {
+static const char *
+month_names[] = {
 	"0?", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
 	"Sep", "Oct", "Nov", "Dec", "13?", "14?", "15?"
 };
 
-static const char *day_names[] = {
+static const char *
+day_names[] = {
 	"0?", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 };
 
-static inline
+static inline void
 xds_decoder(int class, int type, char *buffer, int length)
 {
 	int i;
@@ -335,14 +319,18 @@ xds_decoder(int class, int type, char *buffer, int length)
 	}
 }
 
-void
+static void
 xds_separator(struct caption *cc, unsigned char *buf)
 {
 	xds_sub_packet *sp = cc->curr_sp;
 	int c1 = parity(buf[0]);
 	int c2 = parity(buf[1]);
 	int class, type;
-	int i;
+
+#if XDS_DISABLE
+	return;
+#endif
+
 
 //	printf("XDS %02x %02x\n", buf[0], buf[1]);
 
@@ -446,7 +434,8 @@ xds_separator(struct caption *cc, unsigned char *buf)
  *  http://developer.webtv.net
  */
 
-char *itv_key[] = { "program", "network", "station", "sponsor", "operator", NULL };
+static char *
+itv_key[] = { "program", "network", "station", "sponsor", "operator", NULL };
 
 static inline int
 itv_chksum(char *s, unsigned int sum)
@@ -471,6 +460,10 @@ itv_decoder(struct caption *cc, char *s1)
 	int type = -1, view = 'w';
 	char *url = NULL, *name = NULL;
 	char *script = NULL, *expires = "29991231T235959";
+
+#if ITV_DISABLE
+	return;
+#endif
 
 	for (s = s1, d = ripped;; s++) {
 		e = s;
@@ -577,7 +570,7 @@ itv_decoder(struct caption *cc, char *s1)
 	putchar('\n');
 }
 
-void
+static void
 itv_separator(struct caption *cc, char c)
 {
 	if (c >= 0x20) {
@@ -599,7 +592,6 @@ itv_separator(struct caption *cc, char c)
 
 /* Caption */
 
-#include "ccfont.xbm"
 #include "format.h"
 
 #define ROWS			15
@@ -636,7 +628,7 @@ itv_separator(struct caption *cc, char c)
  *  If the same render() is used for WST we may need a bool indicating
  *  the required layout.
  */
-extern void render(struct fmt_page *pg, int row);
+void render(struct fmt_page *pg, int row);
 
 /*
  *  Another render() shortcut, set all cols and rows to
@@ -644,7 +636,7 @@ extern void render(struct fmt_page *pg, int row);
  *  mode because we don't have the buffer to render() and erasing
  *  all data at once will be faster than scanning the buffer anyway.
  */
-extern void clear(int pgno);
+void clear(int pgno);
 
 /*
  *  Start soft scrolling, move <first_row> + 1 ... <last_row> (inclusive)
@@ -656,22 +648,7 @@ extern void clear(int pgno);
  *  returning. Soft scrolling finished or not, render() can be called
  *  any time later, any row, so prepare.
  */
-extern void roll_up(struct fmt_page *pg, int first_row, int last_row);
-
-/*
- *
- */
-
-
-//#define CODE_PAGE	(8 * 256)
-/*
- *  Any, refers to the 256 glyphs in ccfont.xbm.
- *  The character cell is 16 x 26 pixels matching a
- *  square pixel 640 x 480 display, text area at
- *  (48, 45) - (591, 434), display video outside.
- *  Must scale text for other aspects accordingly.
- */
-
+void roll_up(struct fmt_page *pg, int first_row, int last_row);
 
 static void
 word_break(struct caption *cc, channel *ch)
@@ -758,11 +735,13 @@ erase_memory(struct caption *cc, channel *ch)
 		ch->pg.text[i] = c;
 }
 
-static const attr_colours palette_mapping[8] = {
+static const attr_colours
+palette_mapping[8] = {
 	WHITE, GREEN, BLUE, CYAN, RED, YELLOW, MAGENTA, BLACK
 };
 
-static int row_mapping[] = {
+static int
+row_mapping[] = {
 	10, -1,  0, 1, 2, 3,  11, 12, 13, 14,  4, 5, 6, 7, 8, 9
 };
 
@@ -839,17 +818,17 @@ caption_command(struct caption *cc,
 			if (col > ch->col)
 				ch->col = ch->col1 = col;
 
-			ch->italic = FALSE;
+			ch->attr.italic = FALSE;
 			ch->attr.foreground = WHITE;
 		} else {
 // not verified
 			c2 = (c2 >> 1) & 7;
 
 			if (c2 < 7) {
-				ch->italic = FALSE;
+				ch->attr.italic = FALSE;
 				ch->attr.foreground = palette_mapping[c2];
 			} else {
-				ch->italic = TRUE;
+				ch->attr.italic = TRUE;
 				ch->attr.foreground = WHITE;
 			}
 		}
@@ -879,7 +858,7 @@ caption_command(struct caption *cc,
 			} else {
 				attr_char c = ch->attr;
 
-				c.glyph = CODE_PAGE + 16 + (ch->italic * 128) + (c2 & 15);
+				c.glyph = GL_CAPTION + 16 + (c.italic * 128) + (c2 & 15);
 
 				put_char(cc, ch, c);
 			}
@@ -891,10 +870,10 @@ caption_command(struct caption *cc,
 			c2 = (c2 >> 1) & 7;
 
 			if (c2 < 7) {
-				ch->italic = FALSE;
+				ch->attr.italic = FALSE;
 				ch->attr.foreground = palette_mapping[c2];
 			} else {
-				ch->italic = TRUE;
+				ch->attr.italic = TRUE;
 				ch->attr.foreground = WHITE;
 			}
 		}
@@ -1080,7 +1059,7 @@ caption_command(struct caption *cc,
 // not verified
 			col = ch->col;
 
-			for (i = c2 & 3; i > 0 && col < ROWS - 1; i--)
+			for (i = c2 & 3; i > 0 && col < COLUMNS - 1; i--)
 				ch->line[col++] = cc->transp_space[chan >> 2];
 
 			if (col > ch->col)
@@ -1109,21 +1088,29 @@ caption_command(struct caption *cc,
 		if (ch->col > 1 && (ch->line[ch->col - 1].glyph & 0x7F) == 0x20) {
 			attr_char c = ch->attr;
 
-			c.glyph = CODE_PAGE + 0x20 + (ch->italic * 128);
+			c.glyph = GL_CAPTION + 0x20 + (c.italic * 128);
 			ch->line[ch->col - 1] = c;
 		}
 	}
 }
 
-
 void
-dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
+vbi_caption_dispatcher(struct caption *cc, int line, unsigned char *buf)
 {
 	char c1 = buf[0] & 0x7F;
-	int i;
+	int field2 = 1, i;
 
-	if (field2) {
-		if (odd_parity[buf[0]]) {
+	switch (line) {
+	case 21:	/* NTSC */
+	case 22:	/* PAL */
+		field2 = 0;
+		break;
+
+	case 335:	/* PAL, hardly XDS */
+		break;
+
+	case 284:	/* NTSC */
+		if (parity(buf[0]) >= 0) {
 			if (c1 == 0)
 				return;
 			else if (c1 <= 0x0F) {
@@ -1140,11 +1127,17 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 			xds_separator(cc, buf);
 			return;
 		}
+		
+		break;
+
+	default:
+		return;
 	}
 
-	if (!odd_parity[buf[0]]) {
-		buf[0] = 127; /* traditional 'bad' glyph, ccfont has */
-		buf[1] = 127; /*  room, design a special glyph? */
+	if (parity(buf[0]) < 0) {
+		c1 = 127;
+		buf[0] = c1; /* traditional 'bad' glyph, ccfont has */
+		buf[1] = c1; /*  room, design a special glyph? */
 	}
 
 	switch (c1) {
@@ -1157,7 +1150,7 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 		return; /* XDS field 1?? */
 
 	case 0x10 ... 0x1F:
-		if (odd_parity[buf[1]]) {
+		if (parity(buf[1]) >= 0) {
 			if (!field2
 			    && buf[0] == cc->last[0]
 			    && buf[1] == cc->last[1]) {
@@ -1201,7 +1194,7 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 		c = ch->attr;
 
 		for (i = 0; i < 2; i++) {
-			char ci = odd_parity[buf[i]] ? (buf[i] & 0x7F) : 127;
+			char ci = parity(buf[i]) & 0x7F; /* 127 if bad */
 
 			if (ci == 0)
 				continue;
@@ -1209,7 +1202,7 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 			if (ch == cc->channel + 5) // 'T2'
 				itv_separator(cc, ci);
 
-			c.glyph = CODE_PAGE + (ch->italic * 128) + ci;
+			c.glyph = GL_CAPTION + (c.italic * 128) + ci;
 
 			put_char(cc, ch, c);
 		}
@@ -1233,7 +1226,7 @@ vbi_init_caption(struct caption *cc)
 	for (i = 0; i < 2; i++) {
 		cc->transp_space[i].foreground = WHITE;
 		cc->transp_space[i].background = BLACK;
-		cc->transp_space[i].glyph = CODE_PAGE + 0x20;
+		cc->transp_space[i].glyph = GL_CAPTION + 0x20;
 	}
 
 	cc->transp_space[0].opacity = TRANSPARENT_SPACE;
@@ -1244,13 +1237,11 @@ vbi_init_caption(struct caption *cc)
 
 		if (i < 4) {
 			ch->mode = MODE_NONE; // MODE_ROLL_UP;
-			ch->col1 = ch->col = 1;
 			ch->row = ROWS - 1;
 			ch->row1 = ROWS - 3;
 			ch->roll = 3;
 		} else {
 			ch->mode = MODE_TEXT;
-			ch->col1 = ch->col = 1;
 			ch->row1 = ch->row = 0;
 			ch->roll = ROWS;
 		}
@@ -1259,7 +1250,7 @@ vbi_init_caption(struct caption *cc)
 		ch->attr.foreground = WHITE;
 		ch->attr.background = BLACK;
 
-		ch->line = ch->pg.text + ch->row * ROWS;
+		set_cursor(ch, 1, ch->row);
 
 		ch->pg.pgno = CC_PAGE_BASE + i;
 		ch->pg.subno = ANY_SUB;
@@ -1279,12 +1270,31 @@ vbi_init_caption(struct caption *cc)
 	}
 }
 
+#if !TEST
+
+void
+render(struct fmt_page *pg, int row)
+{
+}
+
+void
+clear(int pgno)
+{
+}
+
+void
+roll_up(struct fmt_page *pg, int first_row, int last_row)
+{
+}
+
+#else /* TEST */
+
 /*
  *  Preliminary render code, for testing the decoder only
  *  ATTN: colour depth 5:6:5 only, code may be x86 specific
  */
 
-#if TEST
+#include "ccfont.xbm"
 
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
@@ -1369,7 +1379,7 @@ draw_row(ushort *canvas, attr_char *line)
 	int i, num_tspaces = 0;
 	ushort pen[2];
 
-	for (i = 0; i < ROWS; i++) {
+	for (i = 0; i < COLUMNS; i++) {
 		if (line[i].opacity == TRANSPARENT_SPACE) {
 			num_tspaces++;
 			continue;
@@ -1441,7 +1451,7 @@ render(struct fmt_page *pg, int row)
 	}
 
 	if (row < 0)
-		for (i = 0; i < COLUMNS; i++)
+		for (i = 0; i < ROWS; i++)
 			draw_row(ximgdata + 48 + (45 + i * CELL_HEIGHT)
 				 * DISP_WIDTH, pg->text + i * COLUMNS);
 	else
@@ -1926,7 +1936,7 @@ main(int ac, char **av)
 	if (!init_window(ac, av))
 		exit(EXIT_FAILURE);
 
-	vbi_reset_caption(&caption);
+	vbi_init_caption(&caption);
 
 	if (isatty(STDIN_FILENO))
 		hello_world();
