@@ -3,7 +3,7 @@
  *  Copyright (C) 2003 Michael H. Schimek
  */
 
-/* $Id: test-bcd.cc,v 1.1.2.2 2003-10-16 18:15:08 mschimek Exp $ */
+/* $Id: test-bcd.cc,v 1.1.2.3 2003-12-28 15:24:32 mschimek Exp $ */
 
 #include <iostream>
 #include <iomanip>
@@ -11,6 +11,8 @@
 #include <assert.h>
 
 #include "libzvbi.h"
+
+#define INT_BITS (sizeof (int) * 8)
 
 namespace vbi {
   class Bcd {
@@ -83,26 +85,76 @@ namespace vbi {
 };
 
 static int
-mod				(int			n)
+modulo				(int			n)
 {
-	if (n < 0)
-		return (10000 + n) % 10000;
+	static const int m = -VBI_BCD_DEC_MIN;
+
+	if (n == VBI_BCD_DEC_MIN)
+		return n;
+	else if (n < 0)
+		return -((-n) % m);
 	else
-		return n % 10000;
+		return n % m;
+}
+
+static int
+long_random			()
+{
+	int r = mrand48 ();
+
+	if (INT_BITS > 32)
+		r ^= mrand48 () << (INT_BITS - 32);
+
+	return r;
+}
+
+static vbi_bool
+vec_greater			(unsigned int		a,
+				 unsigned int		b)
+{
+	unsigned int j;
+	for (j = 0; j < (INT_BITS - 4); j += 4)
+		if (((a >> j) & 0xF) > ((b >> j) & 0xF))
+			return TRUE;
+
+	return FALSE;
 }
 
 int
 main				(void)
 {
+	int i;
 	int x, y, z;
 	vbi::Bcd a, b, c;
-	vbi::Bcd d(0x1234);
+	vbi::Bcd d (0x1234);
 
-	assert (d == 0x1234);
+	assert (0x1234 == d);
 
-	for (x = 0; x < 10000; ++x) {
-#warning add test for full precision conversion
-#warning add test of limit constants
+	assert (0x3F7F == vbi::any_subno);
+	assert (0x3F7F == vbi::no_subno);
+
+	assert (VBI_BCD_DEC_MIN == vbi_bcd2dec (VBI_BCD_MIN));
+	assert (VBI_BCD_DEC_MAX == vbi_bcd2dec (VBI_BCD_MAX));
+
+	for (i = -70000; i < 110000; ++i) {
+		switch (i / 10000) {
+		case 7:
+			x = VBI_BCD_DEC_MAX;
+			break;
+		case 8:
+			x = 0;
+			break;
+		case 9:
+			x = VBI_BCD_DEC_MIN;
+			break;
+		case 10:
+			x = modulo (long_random ());
+			break;
+		default:
+			x = i;
+			break;
+		}
+
 		y = vbi_dec2bcd (x);
 		z = vbi_bcd2dec (y);
 		assert (x == z);
@@ -120,22 +172,35 @@ main				(void)
 
 		b = -a;
 		c = -b;
-		assert (mod (-x) == b.dec ());
-		assert (mod (x) == c.dec ());
+		assert (modulo (-x) == b.dec ());
+		assert (modulo (x) == c.dec ());
 
-		y = rand () % 10000;
+		switch (i & 0xF00) {
+		case 0x200:
+			y = VBI_BCD_DEC_MAX;
+			break;
+		case 0x700:
+			y = 0;
+			break;
+		case 0xB00:
+			y = VBI_BCD_DEC_MIN;
+			break;
+		default:
+			y = modulo (long_random ());
+			break;
+		}
 
 		a.bcd (x);
 		b.bcd (y);
 		c = a; c += b;
-		assert (mod (x + y) == c.dec ());
+		assert (modulo (x + y) == c.dec ());
 		c = a + b;
-		assert (mod (x + y) == c.dec ());
+		assert (modulo (x + y) == c.dec ());
 		c = a; ++c;
-		assert (mod (x + 1) == c.dec ());
+		assert (modulo (x + 1) == c.dec ());
 		c = a++;
-		assert (mod (x + 0) == c.dec ());
-		assert (mod (x + 1) == a.dec ());
+		assert (modulo (x + 0) == c.dec ());
+		assert (modulo (x + 1) == a.dec ());
 
 		assert (a != c);
 		assert (a == a);
@@ -143,25 +208,37 @@ main				(void)
 		a.bcd (x);
 		b.bcd (y);
 		c = a; c -= b;
-		assert (mod (x - y) == c.dec ());
+		assert (modulo (x - y) == c.dec ());
 		c = a - b;
-		assert (mod (x - y) == c.dec ());
+		assert (modulo (x - y) == c.dec ());
 		c = a; --c;
-		assert (mod (x - 1) == c.dec ());
+		assert (modulo (x - 1) == c.dec ());
 		c = a--;
-		assert (mod (x - 0) == c.dec ());
-		assert (mod (x - 1) == a.dec ());
+		assert (modulo (x - 0) == c.dec ());
+		assert (modulo (x - 1) == a.dec ());
 
 		a.bcd (x);
 		b.bcd (y);
 		c = a + (-b);
-		assert (mod (x - y) == c.dec ());
+		assert (modulo (x - y) == c.dec ());
 		c = a - (-b);
-		assert (mod (x + y) == c.dec ());
-	}
+		assert (modulo (x + y) == c.dec ());
 
-#warning vbi_bcd_limit untested
-#warning test SUBNO constants
+		if (x > 0) {
+			const unsigned int d = (1 << (INT_BITS - 4)) - 1;
+
+			a.bcd (x);
+			b.bcd (y);
+
+			assert (vec_greater (d & (int) b, (int) a)
+				== vbi_bcd_vec_greater (d & (int) b, (int) a));
+
+			y = d & random();
+
+			assert (vec_greater (y, (int) a)
+				== vbi_bcd_vec_greater (y, (int) a));
+		}
+	}
 
 	return 0;
 }

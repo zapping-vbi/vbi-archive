@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
-TESTS = exoptest test-bcd test-hamm
+TESTS = test-bcd test-hamm
+# exoptest
 # test-bitslicer
 
 noinst_PROGRAMS = unicode glyph explist caption export osc capture \
@@ -22,8 +23,4 @@ AM_CXXFLAGS = \
 	-Wall -Wunused -Wmissing-prototypes
 
 LDADD = $(top_builddir)/src/.libs/libzvbi.a \
-	$(PTHREAD_LIB) -lm $(PNG_LIB) $(X_LIBS)
-
-test_hamm_LDADD = \
-	$(top_builddir)/src/.libs/libzvbi.a \
 	$(PTHREAD_LIB) -lm $(PNG_LIB) $(X_LIBS)

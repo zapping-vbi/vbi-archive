@@ -3,7 +3,7 @@
  *  Copyright (C) 2003 Michael H. Schimek
  */
 
-/* $Id: test-hamm.cc,v 1.1.2.1 2003-06-16 06:05:24 mschimek Exp $ */
+/* $Id: test-hamm.cc,v 1.1.2.2 2003-12-28 15:24:32 mschimek Exp $ */
 
 #include <iostream>
 #include <iomanip>
@@ -15,35 +15,44 @@
 namespace vbi {
   static inline unsigned int rev8 (uint8_t c)
     { return vbi_rev8 (c); };
+  static inline unsigned int rev8 (const uint8_t* p)
+    { return vbi_rev8 (*p); };
   static inline unsigned int rev16 (uint16_t c)
-    { return vbi_bit_reverse[c & 255] * 256
-	+ vbi_bit_reverse[c >> 8]; }
-  static inline unsigned int rev16 (uint8_t* p)
-    { return vbi_rev16 (p); };
+    { return vbi_rev16 (c); }
+  static inline unsigned int rev16 (const uint8_t* p)
+    { return vbi_rev16p (p); };
 
-  static inline int ipar8 (uint8_t c)
-    { return vbi_ipar8 (c); };
-
+  static inline unsigned int fpar8 (uint8_t c)
+    { return vbi_fpar8 (c); };
   static inline void fpar (uint8_t* p, unsigned int n)
     { vbi_fpar (p, n); };
   static inline void fpar (uint8_t* begin, uint8_t* end)
     { vbi_fpar (begin, end - begin); };
+
+  static inline int ipar8 (uint8_t c)
+    { return vbi_ipar8 (c); };
   static inline int ipar (uint8_t* p, unsigned int n)
     { return vbi_ipar (p, n); };
   static inline int ipar (uint8_t* begin, uint8_t* end)
     { return vbi_ipar (begin, end - begin); };
 
-  static inline unsigned int fham8 (uint8_t c)
+  static inline unsigned int fham8 (unsigned int c)
     { return vbi_fham8 (c); };
+  static inline void fham16 (uint8_t* p, uint8_t c)
+    {
+      p[0] = vbi_fham8 (c);
+      p[1] = vbi_fham8 (c >> 4);
+    }
+
   static inline int iham8 (uint8_t c)
     { return vbi_iham8 (c); };
   static inline int iham16 (uint16_t c)
     { return ((int) vbi_hamm8_inv[c & 255])
 	| ((int) vbi_hamm8_inv[c >> 8] << 4); };
   static inline int iham16 (uint8_t* p)
-    { return vbi_iham16 (p); };
+    { return vbi_iham16p (p); };
   static inline int iham24 (uint8_t* p)
-    { return vbi_iham24 (p); };
+    { return vbi_iham24p (p); };
 };
 
 static unsigned int
@@ -57,16 +66,16 @@ parity				(unsigned int		n)
 	return n & 1;
 }
 
-#define BC(n) ((unsigned int)((n) * 0x0101010101010101U))
+#define BC(n) ((n) * (unsigned int) 0x0101010101010101ULL)
 
 static unsigned int
 population_count		(unsigned int		n)
 {
-	n -= (n >> 1) & BC(0x55);
-	n = (n & BC(0x33)) + ((n >> 2) & BC(0x33));
-	n = (n + (n >> 4)) & BC(0x0F);
+	n -= (n >> 1) & BC (0x55);
+	n = (n & BC (0x33)) + ((n >> 2) & BC (0x33));
+	n = (n + (n >> 4)) & BC (0x0F);
 
-	return (n * BC(0x01)) >> (sizeof (unsigned int) * 8 - 8);
+	return (n * BC (0x01)) >> (sizeof (unsigned int) * 8 - 8);
 }
 
 unsigned int
@@ -83,16 +92,33 @@ main				(int			argc,
 	unsigned int i;
 
 	for (i = 0; i < 10000; ++i) {
-		unsigned int n = (i < 256) ? i : rand ();
+		unsigned int n = (i < 256) ? i : mrand48 ();
+		uint8_t buf[4] = { n, n >> 8, n >> 16 };
+		unsigned int r;
+		unsigned int j;
+
+		for (r = 0, j = 0; j < 8; ++j)
+			if (n & (0x01 << j))
+				r |= 0x80 >> j;
+
+		assert (r == vbi::rev8 (n));
+		assert (vbi::rev8 (n) == vbi::rev8 (buf));
+		assert (vbi::rev16 (n) == vbi::rev16 (buf));
 
 		if (parity (n & 0xFF))
 			assert (vbi::ipar8 (n) == (int)(n & 127));
 		else
 			assert (vbi::ipar8 (n) == -1);
+
+		assert (vbi::ipar8 (vbi::fpar8 (n)) >= 0);
+
+		vbi::fpar (buf, sizeof (buf));
+		assert (vbi::ipar (buf, sizeof (buf)) >= 0);
 	}
 
 	for (i = 0; i < 10000; ++i) {
-		unsigned int n = (i < 256) ? i : rand ();
+		unsigned int n = (i < 256) ? i : mrand48 ();
+		uint8_t buf[4] = { n, n >> 8, n >> 16 };
 		unsigned int A, B, C, D;
 		int d;
 
@@ -119,15 +145,19 @@ main				(int			argc,
 
 			dd = vbi::iham8 (n);
 			assert (dd >= 0 && dd <= 15);
+
 			nn = vbi::fham8 (dd);
 			assert (hamming_distance (n & 255, nn) == 1);
 		} else {
 			assert (vbi::iham8 (n) == -1);
 		}
+
+		vbi::fham16 (buf, n);
+		assert (vbi::iham16 (buf) == (int)(n & 255));
 	}
 
 	for (i = 0; i < (1 << 24); ++i) {
-		uint8_t buf[3] = { i, i >> 8, i >> 16 };
+		uint8_t buf[4] = { i, i >> 8, i >> 16 };
 		unsigned int A, B, C, D, E, F;
 		int d;
 
