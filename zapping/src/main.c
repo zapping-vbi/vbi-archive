@@ -124,7 +124,7 @@ static gint timeout_handler(gpointer unused)
   GdkGeometry geometry;
   GdkWindowHints hints=0;
   GtkWidget *tv_screen;
-  gint tvs_w, tvs_h, mw_w, mw_h;
+  gint tvs_w, tvs_h, mw_w, mw_h = 0;
   double rw = 0, rh=0;
 
   if ((flag_exit_program) || (!main_window->window))
@@ -162,6 +162,8 @@ static gint timeout_handler(gpointer unused)
       default:
 	break;
       }
+
+fprintf(stderr, "#1\n");
 
       if (rw)
 	{
@@ -462,7 +464,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.157 2002-03-06 00:53:49 mschimek Exp $",
+	 "$Id: main.c,v 1.158 2002-03-16 16:30:00 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -569,7 +571,7 @@ int main(int argc, char * argv[])
   if (!disable_zsfb &&
       tveng_run_zapping_setup_fb(main_info) == -1)
     g_message("Error while executing zapping_setup_fb,\n"
-	      "Overlay might not work:\n%s", main_info->error);
+	      "Previewing might not work:\n%s", main_info->error);
   D();
   free(main_info -> file_name);
 
@@ -607,7 +609,7 @@ int main(int argc, char * argv[])
 	      /* try to run the auxiliary suid program */
 	      if (tveng_run_zapping_setup_fb(main_info) == -1)
 		g_message("Error while executing zapping_setup_fb,\n"
-			  "Overlay might not work:\n%s", main_info->error);
+			  "Previewing might not work:\n%s", main_info->error);
 	      D();
 	      free(main_info -> file_name);
 
