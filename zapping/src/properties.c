@@ -567,14 +567,14 @@ build_properties_contents	(GtkDialog	*dialog)
 }
 
 static void
-on_properties_destroy		(GtkObject *		object,
-				 gpointer		user_data)
+on_properties_destroy		(GtkObject *		object _unused_,
+				 gpointer		user_data _unused_)
 {
   GtkAction *action;
 
   action = gtk_action_group_get_action (zapping->generic_action_group,
 					"Preferences");
-  gtk_action_set_sensitive (action, TRUE);
+  z_action_set_sensitive (action, TRUE);
 
   PropertiesDialog = NULL;
 }
@@ -583,7 +583,6 @@ GtkWidget*
 build_properties_dialog			(void)
 {
   GtkDialog *dialog;
-  GtkWidget *menuitem;
 
   if (PropertiesDialog)
     {
@@ -607,7 +606,7 @@ build_properties_dialog			(void)
 
       action = gtk_action_group_get_action (zapping->generic_action_group,
 					    "Preferences");
-      gtk_action_set_sensitive (action, FALSE);
+      z_action_set_sensitive (action, FALSE);
       g_signal_connect (G_OBJECT (dialog), "destroy",
 			G_CALLBACK (on_properties_destroy), NULL);
     }
@@ -804,7 +803,10 @@ standard_properties_add		(GtkDialog	*dialog,
 
 	  pixmap = z_load_pixmap (groups[i].items[j].icon_name);
 
-	  page = build_widget(groups[i].items[j].widget, glade_file);
+	  if (groups[i].items[j].create)
+	    page = groups[i].items[j].create ();
+	  else
+	    page = build_widget(groups[i].items[j].widget, glade_file);
 
 	  g_object_set_data(G_OBJECT(page), "apply",
 			    groups[i].items[j].apply);
@@ -819,7 +821,8 @@ standard_properties_add		(GtkDialog	*dialog,
 				 _(groups[i].items[j].label),
 				 pixmap, page);
 
-	  groups[i].items[j].setup(page);
+	  if (groups[i].items[j].setup)
+	    groups[i].items[j].setup(page);
 	}
     }
 }
@@ -831,9 +834,8 @@ apply				(GtkDialog	*dialog _unused_,
   void (*page_apply)(GtkWidget *page) =
     g_object_get_data(G_OBJECT(page), "apply");
 
-  g_assert(page_apply != NULL);
-
-  page_apply(page);
+  if (page_apply)
+    page_apply(page);
 }
 
 static void
