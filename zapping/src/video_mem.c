@@ -86,14 +86,15 @@ image_new (enum tveng_frame_pixformat fmt, gint w, gint h)
   guchar *data;
   zimage *image;
   zimage_private *pimage;
+  tv_pixel_format format;
   guint bpp, bpl, size;
 
-  bpp = tveng_pixformat_bits_per_pixel (fmt);
+  tv_pixfmt_to_pixel_format (&format, fmt, 0);
 
-  if (bpp == 12)
+  if (format.bits_per_pixel == 12)
     return planar_image_new (fmt, w, h);
 
-  bpl = (w * bpp) >> 3;
+  bpl = (w * format.bits_per_pixel) >> 3;
   size = h * bpl;
 
   data = g_malloc (size);
