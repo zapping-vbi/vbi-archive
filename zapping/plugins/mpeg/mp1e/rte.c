@@ -28,6 +28,16 @@
 #include "fifo.h"
 #include "mmx.h"
 #include "rte.h"
+#include "video/video.h" /* fixme: video_unget_frame and friends */
+
+/*
+  TODO:
+      . Calculate video_bytes and audio_bytes
+      . Audio interface with the core mp1e
+      . Setters and getters
+*/
+
+static rte_context * global_context = NULL;
 
 /*
   Private things we don't want people to see, we can play with this
@@ -43,11 +53,22 @@ struct _rte_context_private {
 	char * error; /* last error */
 	void * user_data; /* user data given to the callback */
 	fifo aud, vid; /* fifos for pushing */
+	int v_ubuffer; /* for unget() */
 	int depth; /* video bit depth (bytes per pixel, includes
 		      packing) */
 	buffer * last_video_buffer; /* video buffer the app should be
 				       encoding to */
 	buffer * last_audio_buffer; /* audio buffer */
+	/* video fetcher (callbacks) */
+	int video_pending; /* Pending video frames */
+	pthread_t video_fetcher_id; /* id of the video fetcher thread */
+	pthread_mutex_t video_mutex; /* mutex for the fetcher */
+	pthread_cond_t video_cond; /* cond for the fetcher */
+	/* audio fetcher (callbacks) */
+	int audio_pending; /* Pending video frames */
+	pthread_t audio_fetcher_id; /* id of the video fetcher thread */
+	pthread_mutex_t audio_mutex; /* mutex for the fetcher */
+	pthread_cond_t audio_cond; /* cond for the fetcher */
 };
 
 #define RC(X)  ((rte_context*)X)
@@ -89,6 +110,76 @@ fetch_data(rte_context * context, int video)
 	send_out_buffer(f, buf);
 }
 
+/* Tells the video fetcher thread to fetch a new frame */
+static inline void
+schedule_video_fetch(rte_context * context)
+{
+	if (context->private->video_pending < 5) {
+		pthread_mutex_lock(&(context->private->video_mutex));
+		context->private->video_pending ++;
+		if (context->private->video_pending == 1)
+			context->private->video_pending ++;
+		pthread_cond_broadcast(&(context->private->video_cond));
+		pthread_mutex_unlock(&(context->private->video_mutex));
+	}
+}
+
+static inline void
+schedule_audio_fetch(rte_context * context)
+{
+	if (context->private->audio_pending < 5) {
+		pthread_mutex_lock(&(context->private->audio_mutex));
+		context->private->audio_pending ++;
+		if (context->private->audio_pending == 1)
+			context->private->audio_pending ++;
+		pthread_cond_broadcast(&(context->private->audio_cond));
+		pthread_mutex_unlock(&(context->private->audio_mutex));
+	}
+}
+
+static void *
+video_input_thread ( void * ptr )
+{
+	rte_context * context = ptr;
+	rte_context_private * priv = context->private;
+
+	while (priv->encoding) {
+		pthread_mutex_lock(&(priv->video_mutex));
+		while (priv->video_pending == 0)
+			pthread_cond_wait(&(priv->video_cond),
+					  &(priv->video_mutex));
+		/* < 0 means exit thread */
+		while (priv->video_pending > 0) {
+			fetch_data(context, 1);
+			priv->video_pending --;
+		}
+		pthread_mutex_unlock(&(priv->video_mutex));
+	}
+	return NULL;
+}
+
+static void *
+audio_input_thread ( void * ptr )
+{
+	rte_context * context = ptr;
+	rte_context_private * priv = context->private;
+
+	while (priv->encoding) {
+		pthread_mutex_lock(&(priv->audio_mutex));
+		while (priv->audio_pending == 0)
+			pthread_cond_wait(&(priv->audio_cond),
+					  &(priv->audio_mutex));
+
+		/* < 0 means exit thread */
+		while (priv->audio_pending > 0) {
+			fetch_data(context, 0);
+			priv->audio_pending --;
+		}
+		pthread_mutex_unlock(&(priv->audio_mutex));
+	}
+	return NULL;
+}
+
 /* The default write data callback */
 static void default_write_callback ( void * data, size_t size,
 				     rte_context * context,
@@ -110,14 +201,6 @@ static void default_write_callback ( void * data, size_t size,
 		(char *) data += r;
 		size -= r;
 	}
-}
-
-int rte_init ( void )
-{
-	if (!cpu_id(ARCH_PENTIUM_MMX))
-		return 0;
-
-	return 1;
 }
 
 rte_context * rte_context_new (char * file,
@@ -273,19 +356,39 @@ int rte_start ( rte_context * context )
 		return 0;
 	}
 
+	context->private->v_ubuffer = -1;
+
 	/* Hopefully 8 frames is more than enough (we should only go
 	   2-3 frames ahead) */
 	if (context->mode & 1)
 	{
 		init_fifo(&(context->private->vid), "video input",
 			  context->video_bytes, 8);
-		fetch_data(context, 1);
+		context->private->video_pending = 0;
+		if (context->private->data_callback) {
+			pthread_mutex_init(&(context->private->video_mutex),
+					   NULL);
+			pthread_cond_init(&(context->private->video_cond),
+					  NULL);
+			pthread_create(&(context->private->video_fetcher_id),
+				       NULL, video_input_thread, context);
+			schedule_video_fetch(context);
+		}
 	}
-	if (context->mode & 2)
-	{
+
+	if (context->mode & 2) {
 		init_fifo(&(context->private->aud), "audio input",
 			  context->audio_bytes, 8);
-		fetch_data(context, 0);
+		context->private->audio_pending = 0;
+		if (context->private->data_callback) {
+			pthread_mutex_init(&(context->private->audio_mutex),
+					   NULL);
+			pthread_cond_init(&(context->private->audio_cond),
+					  NULL);
+			pthread_create(&(context->private->audio_fetcher_id),
+				       NULL, audio_input_thread, context);
+			schedule_audio_fetch(context);
+		}
 	}
 
 	context->private->encoding = 1;
@@ -300,13 +403,34 @@ void rte_stop ( rte_context * context )
 		return;
 	}
 
-	/* Free the mem in the fifos */
-	if (context->mode & 1)
-		free_fifo(&(context->private->vid));
-	if (context->mode & 2)
-		free_fifo(&(context->private->aud));
-
 	context->private->encoding = 0;
+
+	/* Free the mem in the fifos */
+	if (context->mode & 1) {
+		if (context->private->data_callback) {
+			pthread_mutex_lock(&(context->private->video_mutex));
+			context->private->video_pending = -10000;
+			pthread_cond_broadcast(&(context->private->video_cond));
+			pthread_mutex_unlock(&(context->private->video_mutex));
+			pthread_join(context->private->video_fetcher_id, NULL);
+			pthread_cond_destroy(&(context->private->video_cond));
+			pthread_mutex_destroy(&(context->private->video_mutex));
+		}
+		free_fifo(&(context->private->vid));
+	}
+
+	if (context->mode & 2) {
+		if (context->private->data_callback) {
+			pthread_mutex_lock(&(context->private->audio_mutex));
+			context->private->audio_pending = -10000;
+			pthread_cond_broadcast(&(context->private->audio_cond));
+			pthread_mutex_unlock(&(context->private->audio_mutex));
+			pthread_join(context->private->audio_fetcher_id, NULL);
+			pthread_cond_destroy(&(context->private->audio_cond));
+			pthread_mutex_destroy(&(context->private->audio_mutex));
+		}
+		free_fifo(&(context->private->aud));
+	}
 }
 
 /* Input handling functions */
@@ -345,6 +469,13 @@ void * rte_push_video_data ( rte_context * context, void * data,
 	}
 
 	context->private->last_video_buffer = buf;
+
+	if (context->private->data_callback) {
+		pthread_mutex_lock(&(context->private->video_mutex));
+		if (context->private->video_pending > 0)
+			context->private->video_pending --;
+		pthread_mutex_unlock(&(context->private->video_mutex));
+	}
 
 	return buf->data;
 }
@@ -385,6 +516,13 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 
 	context->private->last_audio_buffer = buf;
 
+	if (context->private->data_callback) {
+		pthread_mutex_lock(&(context->private->audio_mutex));
+		if (context->private->audio_pending > 0)
+			context->private->audio_pending --;
+		pthread_mutex_unlock(&(context->private->audio_mutex));
+	}
+
 	return buf->data;
 }
 
@@ -397,12 +535,89 @@ char * rte_last_error ( rte_context * context )
 static void
 video_input_start ( void )
 {
-	/* Nothing needs to be done here, it will be removed */
+	/* FIXME: Nothing needs to be done here, it will probably be
+	   removed in the future */
 }
 
 /* video_wait_frame = video_input_wait_frame */
 static unsigned char *
 video_input_wait_frame (double *ftime, int *buf_index)
 {
-	return NULL;
+	rte_context * context = global_context; /* FIXME: this shoudn't be global */
+	buffer * b;
+	fifo * f;
+
+	if (context->private->v_ubuffer > -1) {
+		*buf_index = context->private->v_ubuffer;
+		ASSERT("Checking that i'm sane\n",
+		       context->private->vid.num_buffers > *buf_index);
+
+		b = &(context->private->vid.buffer[*buf_index]);
+		*ftime = b->time;
+		context->private->v_ubuffer = -1;
+
+		return (b->data);
+	}
+
+	f = &(context->private->vid);
+
+	pthread_mutex_lock(&f->mutex);
+
+	b = (buffer*) rem_head(&f->full);
+	
+	pthread_mutex_unlock(&(f->mutex));
+	
+	schedule_video_fetch(context);
+
+	if (!b) {
+		pthread_mutex_lock(&f->mutex);
+		
+		while (!(b = (buffer*) rem_head(&f->full)))
+			pthread_cond_wait(&(f->cond), &(f->mutex));
+		
+		pthread_mutex_unlock(&(f->mutex));
+	}
+
+	*buf_index = b->index;
+	*ftime = b->time;
+
+	return b->data;
+}
+
+/* video_frame_done = video_input_frame_done */
+static void
+video_input_frame_done(int buf_index)
+{
+	rte_context * context = global_context; /* fixme: avoid global */
+
+	ASSERT("Checking that i'm sane\n",
+	       context->private->vid.num_buffers > buf_index);
+
+	empty_buffer(&(context->private->vid),
+		     &(context->private->vid.buffer[buf_index]));
+}
+
+/* video_unget_frame = video_input_unget_frame */
+static void
+video_input_unget_frame(int buf_index)
+{
+	rte_context * context = global_context; /* fixme: avoid global */
+
+	ASSERT("You shouldn't unget() twice, core!\n",
+	       context->private->v_ubuffer < 0);
+
+	context->private->v_ubuffer = buf_index;
+}
+
+int rte_init ( void )
+{
+	if (!cpu_id(ARCH_PENTIUM_MMX))
+		return 0;
+
+	video_start = video_input_start;
+	video_wait_frame = video_input_wait_frame;
+	video_frame_done = video_input_frame_done;
+	video_unget_frame = video_input_unget_frame;
+
+	return 1;
 }

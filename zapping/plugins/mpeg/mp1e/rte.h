@@ -19,7 +19,7 @@
  */
 
 /* FIXME: We need declaring things as const */
-/* FIXME: This is only a draft, i don't like the input code */
+/* FIXME: global_context must disappear */
 
 #ifndef __RTELIB_H__
 #define __RTELIB_H__
@@ -260,5 +260,7 @@ void * rte_push_audio_data ( rte_context * context, void * data,
   statically allocated (and it can be NULL), you don't need to free it.
 */
 char * rte_last_error ( rte_context * context );
+
+extern rte_context * global_context;
 
 #endif /* rtelib.h */

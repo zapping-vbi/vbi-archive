@@ -61,7 +61,7 @@ extern int cpu_id(cpu_architecture arch);
 #elif __GNUC_MINOR__ < 90 /* gcc [2.7.2.3] */
 
 #define FPU_REGS
-#define SECTION(x)
+#define SECTION(x) 
 #define emms() asm("\temms\n")
 
 #elif __GNUC_MINOR__ < 95 /* egcs [2.91.66] */
