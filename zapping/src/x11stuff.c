@@ -57,10 +57,16 @@ x11_get_byte_order(void)
 gint
 x11_get_bpp(void)
 {
-  GdkImage * tmp_image = gdk_image_new(GDK_IMAGE_FASTEST,
-				       gdk_visual_get_system(),
-				       16, 16);
+  extern int forced_bpp;
+  GdkImage * tmp_image;
   gint result;
+
+  if (forced_bpp > 0)
+    return forced_bpp;
+
+  tmp_image = gdk_image_new(GDK_IMAGE_FASTEST,
+			    gdk_visual_get_system(),
+			    16, 16);
 
   if (!tmp_image)
     return -1;
@@ -142,7 +148,8 @@ x11_get_clips(GdkWindow *win, gint x, gint y, gint w, gint h,
   me=GDK_WINDOW_XWINDOW(win);
   for (;;) {
     XQueryTree(dpy, me, &rroot, &parent, &children, &nchildren);
-    XFree((char *) children);
+    if (children)
+      XFree((char *) children);
     if (root == parent)
       break;
     me = parent;
@@ -173,9 +180,11 @@ x11_get_clips(GdkWindow *win, gint x, gint y, gint w, gint h,
     if (y2>(int)wheight) y2=wheight;
     x11_add_clip(x1, y1, x2, y2, &clips, &num_clips);
   }
-  XFree((char *) children);
   XSetErrorHandler(olderror);
   /* leave error-ignore mode */
+
+  if (children)
+    XFree((char *) children);
 
   *return_num_clips = num_clips;
   return clips;

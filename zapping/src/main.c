@@ -43,6 +43,9 @@
 extern enum tveng_capture_mode restore_mode; /* the mode set when we went
 						fullscreen */
 
+/* fixme: hack, remove */
+int forced_bpp=-1;
+
 /* These are accessed by callbacks.c as extern variables */
 tveng_device_info * main_info;
 gboolean flag_exit_program = FALSE;
@@ -93,6 +96,15 @@ int main(int argc, char * argv[])
   gboolean oldbttv = FALSE;
 
   const struct poptOption options[] = {
+    {
+      "forced-bpp",
+      'f',
+      POPT_ARG_INT,
+      &forced_bpp,
+      0,
+      N_("Give the XImage bpp"),
+      N_("BPP")
+    },
     {
       "bpp",
       'b',
@@ -420,9 +432,9 @@ int main(int argc, char * argv[])
 	  hints = GDK_HINT_MIN_SIZE;
 	  geometry.min_width = main_info->caps.minwidth;
 	  geometry.min_height = main_info->caps.minheight;
-      	  
+	  
 	  /* Set the geometry flags if needed */
-      	  if (zcg_bool(NULL, "fixed_increments"))
+	  if (zcg_bool(NULL, "fixed_increments"))
 	    {
 	      geometry.width_inc = 64;
 	      geometry.height_inc = 48;
