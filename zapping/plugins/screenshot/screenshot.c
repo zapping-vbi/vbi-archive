@@ -223,7 +223,8 @@ plugin_get_info (const gchar ** canonical_name,
 static gint ogb_timeout_id = -1;
 static volatile gboolean ov511_clicked = FALSE;
 static volatile gboolean ov511_poll_quit = FALSE;
-static pthread_t ov511_poll_thread_id = -1;
+static gboolean have_ov511_poll_thread = FALSE;
+static pthread_t ov511_poll_thread_id;
 
 static void *
 ov511_poll_thread (void *unused)
@@ -259,7 +260,9 @@ ov511_grab_button_timeout (gint *timeout_id)
 	  *timeout_id = -1;
 	  return FALSE;
 	}
-      pthread_create(&ov511_poll_thread_id, NULL, ov511_poll_thread, NULL);
+      have_ov511_poll_thread =
+        (0 == pthread_create(&ov511_poll_thread_id, NULL,
+	    ov511_poll_thread, NULL));
       first_run = FALSE;
     }
 
@@ -352,11 +355,11 @@ plugin_close(void)
       ogb_timeout_id = -1;
     }
 
-  if (ov511_poll_thread_id >= 0)
+  if (have_ov511_poll_thread)
     {
       ov511_poll_quit = TRUE;
       pthread_join(ov511_poll_thread_id, NULL);
-      ov511_poll_thread_id = -1;
+      have_ov511_poll_thread = FALSE;
     }
 
   while (num_threads) /* Wait until all threads exit cleanly */
