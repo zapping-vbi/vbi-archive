@@ -87,6 +87,8 @@ static PyObject* py_quit (PyObject *self _unused_,
       p = p->next;
     }
 
+  gtk_object_destroy (GTK_OBJECT (zapping));
+
   gtk_main_quit ();
 
   py_return_true;
