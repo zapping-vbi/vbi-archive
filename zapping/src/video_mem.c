@@ -44,22 +44,23 @@ struct _zimage_private {
 };
 
 static zimage*
-planar_image_new (tv_pixfmt pixfmt, gint w, gint h)
+planar_image_new (tv_pixel_format *pf, gint w, gint h)
 {
   guchar *data;
   zimage *image;
   zimage_private *pimage;
+  unsigned int y_size;
+  unsigned int uv_size;
 
-  g_assert (pixfmt == TV_PIXFMT_YUV420 ||
-	    pixfmt == TV_PIXFMT_YVU420);
-
-  if ((w | h) & 1)
+  if (0 != (w % pf->uv_hscale) || 0 != (h % pf->uv_vscale))
     {
       g_warning ("YUV420 formats require even dimensions");
       return NULL;
     }
 
-  data = g_malloc ((w * h * 3) >> 1);
+  y_size = w * h;
+  uv_size = y_size / (pf->uv_hscale * pf->uv_vscale);
+  data = g_malloc (y_size + uv_size * 2);
 
   image = zimage_create_object ();
   pimage = image->priv = g_malloc0 (sizeof (*pimage));
@@ -67,15 +68,15 @@ planar_image_new (tv_pixfmt pixfmt, gint w, gint h)
 
   image->fmt.width = w;
   image->fmt.height = h;
-  image->fmt.pixfmt = pixfmt;
-  image->fmt.bytes_per_line = w * 8; /* XXX ? */
-  image->fmt.size = (w * h * 3) >> 1;
+  image->fmt.pixfmt = pf->pixfmt;
+  image->fmt.bytes_per_line = w;
+  image->fmt.size = y_size + uv_size * 2;
 
   image->data.planar.y = data;
   image->data.planar.y_stride = w;
-  image->data.planar.u = data + (w * h);
-  image->data.planar.v = data + ((w * h * 5) >> 2);
-  image->data.planar.uv_stride = w >> 1;
+  image->data.planar.u = data + y_size + pf->vu_order * uv_size;
+  image->data.planar.v = data + y_size + (pf->vu_order ^ 1) * uv_size;
+  image->data.planar.uv_stride = w / pf->uv_hscale;
 
   return image;
 }
@@ -92,7 +93,7 @@ image_new (tv_pixfmt pixfmt, gint w, gint h)
   tv_pixfmt_to_pixel_format (&format, pixfmt, 0);
 
   if (format.planar)
-    return planar_image_new (pixfmt, w, h);
+    return planar_image_new (&format, w, h);
 
   bpl = (w * format.bits_per_pixel) >> 3;
   size = h * bpl;
