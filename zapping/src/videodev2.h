@@ -6,9 +6,10 @@
  *	Author: Bill Dirks <bdirks@pacbell.net>
  */
 
-/* This tweak is for compatibility with the V4L1 driver */
-#ifndef __LINUX_VIDEODEV2_H
-#define __LINUX_VIDEODEV2_H
+#ifndef __LINUX_VIDEODEV_H
+#define __LINUX_VIDEODEV_H
+
+#include <linux/poll.h>
 
 #define V4L2_MAJOR_VERSION	0
 #define V4L2_MINOR_VERSION	20
@@ -114,12 +115,14 @@ struct v4l2_pix_format
 /*  Flags */
 #define V4L2_FMT_FLAG_COMPRESSED	0x0001	/* Compressed format */
 #define V4L2_FMT_FLAG_BYTESPERLINE	0x0002	/* bytesperline field valid */
+#define V4L2_FMT_FLAG_NOT_INTERLACED	0x0000
 #define V4L2_FMT_FLAG_INTERLACED	0x0004	/* Image is interlaced */
 #define V4L2_FMT_FLAG_TOPFIELD		0x0008	/* is a top field only */
 #define V4L2_FMT_FLAG_BOTFIELD		0x0010	/* is a bottom field only */
 #define V4L2_FMT_FLAG_ODDFIELD		V4L2_FMT_FLAG_TOPFIELD
 #define V4L2_FMT_FLAG_EVENFIELD		V4L2_FMT_FLAG_BOTFIELD
 #define V4L2_FMT_FLAG_COMBINED		V4L2_FMT_FLAG_INTERLACED
+#define V4L2_FMT_FLAG_FIELD_field	0x001C
 #define V4L2_FMT_CS_field		0xF000	/* Color space field mask */
 #define V4L2_FMT_CS_601YUV		0x1000	/* ITU YCrCb color space */
 #define V4L2_FMT_FLAG_SWCONVERSION	0x0800	/* used only in format enum. */
@@ -688,12 +691,14 @@ struct v4l2_audioout
 
 /*
  *	D A T A   S E R V I C E S   ( V B I )
+ *
+ *	Data services API by Michael Schimek
  */
 
 struct v4l2_vbi_format
 {
 	__u32	sampling_rate;		/* in 1 Hz */
-	__u32	reserved1;		/* must be zero */
+	__u32	offset;
 	__u32	samples_per_line;
 	__u32	sample_format;		/* V4L2_VBI_SF_* */
 	__s32	start[2];
@@ -826,7 +831,11 @@ extern int v4l2_major_number(void);
 
 /*  Memory management  */
 extern unsigned long v4l2_vmalloc_to_bus(void *virt);
+#if  LINUX_VERSION_CODE > KERNEL_VERSION(2,3,0)
+extern struct page *v4l2_vmalloc_to_page(void *virt);
+#else
 extern unsigned long v4l2_vmalloc_to_page(void *virt);
+#endif
 
 /*  Simple queue management  */
 struct v4l2_q_node
@@ -846,6 +855,7 @@ extern void *v4l2_q_del_tail(struct v4l2_queue *q);
 extern void *v4l2_q_peek_head(struct v4l2_queue *q);
 extern void *v4l2_q_peek_tail(struct v4l2_queue *q);
 extern void *v4l2_q_yank_node(struct v4l2_queue *q, struct v4l2_q_node *node);
+extern int   v4l2_q_last(struct v4l2_queue *q);
 
 /*  Math functions  */
 extern u32 v4l2_math_div6432(u64 a, u32 d, u32 *r);
@@ -929,7 +939,6 @@ extern void *v4l2_openid_from_file(struct file *file);
 
 #endif/*ifdef __KERNEL__ */
 
-#if V4L1
 
 /*----------------------------------------------------------------------
        Old Video for Linux backward compatibility below this line. 
@@ -1153,6 +1162,72 @@ struct video_unit
 #define VIDIOCSCAPTURE		_IOW('v',23, struct video_capture)	/* Set frame buffer - root only */
 #define BASE_VIDIOCPRIVATE	192		/* 192-255 are private */
 
-#endif /* V4L1 */
+/* v4l1 stuff */
+
+
+struct video_init
+{
+	char *name;
+	int (*init)(struct video_init *);
+};
+
+struct video_device
+{
+	char name[32];
+	int type;
+	int hardware;
+	int (*open)(struct video_device *, int mode);
+	void (*close)(struct video_device *);
+	long (*read)(struct video_device *, char *, unsigned long, int noblock);
+	/* Do we need a write method ? */
+	long (*write)(struct video_device *, const char *, unsigned long, int noblock);
+#if LINUX_VERSION_CODE >= 0x020100
+	unsigned int (*poll)(struct video_device *, struct file *, poll_table *);
+#endif
+	int (*ioctl)(struct video_device *, unsigned int , void *);
+	int (*mmap)(struct video_device *, const char *, unsigned long);
+	int (*initialize)(struct video_device *);       
+	void *priv;             /* Used to be 'private' but that upsets C++ */
+	int busy;
+	int minor;
+};
+                                                                                                                                        
+#ifdef __KERNEL__
+
+extern int video_register_device(struct video_device *, int type);
+extern void video_unregister_device(struct video_device *);
+
+#endif
+
+
+#define VIDEO_MAJOR     81
+#define VFL_TYPE_GRABBER        0
+#define VFL_TYPE_VBI            1
+#define VFL_TYPE_RADIO          2
+#define VFL_TYPE_VTX            3
+
+#define VID_HARDWARE_BT848      1
+#define VID_HARDWARE_QCAM_BW    2
+#define VID_HARDWARE_PMS        3
+#define VID_HARDWARE_QCAM_C     4
+#define VID_HARDWARE_PSEUDO     5
+#define VID_HARDWARE_SAA5249    6
+#define VID_HARDWARE_AZTECH     7
+#define VID_HARDWARE_SF16MI     8
+#define VID_HARDWARE_RTRACK     9
+#define VID_HARDWARE_ZOLTRIX    10
+#define VID_HARDWARE_SAA7146    11
+#define VID_HARDWARE_VIDEUM     12      /* Reserved for Winnov videum */
+#define VID_HARDWARE_RTRACK2    13
+#define VID_HARDWARE_PERMEDIA2  14      /* Reserved for Permedia2 */
+#define VID_HARDWARE_RIVA128    15      /* Reserved for RIVA 128 */
+#define VID_HARDWARE_PLANB      16      /* PowerMac motherboard video-in */
+#define VID_HARDWARE_BROADWAY   17      /* Broadway project */
+#define VID_HARDWARE_GEMTEK     18
+#define VID_HARDWARE_TYPHOON    19
+#define VID_HARDWARE_VINO       20      /* Reserved for SGI Indy Vino */
+#define VID_HARDWARE_CADET      21      /* Cadet radio */
+#define VID_HARDWARE_TRUST      22      /* Trust FM Radio */
+
 
 #endif/*ifndef __LINUX_VIDEODEV_H*/

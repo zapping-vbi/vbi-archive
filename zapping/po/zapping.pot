@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-10-28 00:06+0200\n"
+"POT-Creation-Date: 2000-10-28 16:27+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -274,312 +274,324 @@ msgstr ""
 msgid "Error adding %s"
 msgstr ""
 
-#: src/tveng.c:149
+#: src/tveng.c:140
 msgid "The current display depth isn't supported by TVeng"
 msgstr ""
 
-#: src/tveng.c:167
+#: src/tveng.c:158
 msgid "The device cannot be attached to any controller"
 msgstr ""
 
-#: src/tveng.c:203
+#: src/tveng.c:194
 msgid "TV"
 msgstr ""
 
 #: src/properties.c:139 src/properties.c:146 src/properties.c:153
-#: src/tveng.c:204
+#: src/tveng.c:195
 msgid "Camera"
 msgstr ""
 
-#: src/tveng.c:260 src/tveng.c:286 src/tveng.c:318 src/tveng.c:344
-#: src/tveng.c:370 src/tveng.c:396 src/tveng.c:421 src/tveng.c:448
-#: src/tveng.c:474 src/tveng.c:500 src/tveng.c:525 src/tveng.c:550
-#: src/tveng.c:573 src/tveng.c:608 src/tveng.c:635 src/tveng.c:663
-#: src/tveng.c:693 src/tveng.c:726 src/tveng.c:755 src/tveng.c:780
-#: src/tveng.c:806 src/tveng.c:832 src/tveng.c:857 src/tveng.c:887
-#: src/tveng.c:912 src/tveng.c:940 src/tveng.c:966 src/tveng.c:989
-#: src/tveng.c:1023 src/tveng.c:1051 src/tveng.c:1079 src/tveng.c:1104
-#: src/tveng.c:1194 src/tveng.c:1394 src/tveng.c:1421 src/tveng.c:1449
-#: src/tveng.c:1645 src/tveng.c:1672
+#: src/tveng.c:251 src/tveng.c:277 src/tveng.c:309 src/tveng.c:335
+#: src/tveng.c:361 src/tveng.c:387 src/tveng.c:412 src/tveng.c:439
+#: src/tveng.c:465 src/tveng.c:491 src/tveng.c:516 src/tveng.c:541
+#: src/tveng.c:564 src/tveng.c:599 src/tveng.c:626 src/tveng.c:654
+#: src/tveng.c:684 src/tveng.c:717 src/tveng.c:746 src/tveng.c:771
+#: src/tveng.c:797 src/tveng.c:823 src/tveng.c:848 src/tveng.c:878
+#: src/tveng.c:903 src/tveng.c:931 src/tveng.c:957 src/tveng.c:980
+#: src/tveng.c:1014 src/tveng.c:1042 src/tveng.c:1070 src/tveng.c:1095
+#: src/tveng.c:1185 src/tveng.c:1385 src/tveng.c:1412 src/tveng.c:1440
+#: src/tveng.c:1636 src/tveng.c:1663
 #, c-format
 msgid "%s called on a non-controlled device: %s\n"
 msgstr ""
 
-#: src/tveng.c:1276
+#: src/tveng.c:1267
 msgid "zapping_setup_fb exited abnormally, check stderr"
 msgstr ""
 
-#: src/tveng.c:1286
+#: src/tveng.c:1277
 msgid "zapping_setup_fb failed to set up the video"
 msgstr ""
 
-#: src/tveng.c:1291
+#: src/tveng.c:1282
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr ""
 
-#: src/tveng.c:1335
+#: src/tveng.c:1326
 msgid "Cannot find an appropiate visual"
 msgstr ""
 
-#: src/tveng.c:1355
+#: src/tveng.c:1346
 msgid "Cannot figure out X depth"
 msgstr ""
 
-#: src/tveng.c:1741
+#: src/tveng.c:1732
 msgid "Warning: trying to stop window with no capture active\n"
 msgstr ""
 
-#: src/tveng1.c:96 src/tveng2.c:85
+#: src/tveng1.c:110 src/tveng2.c:99
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr ""
 
-#: src/tveng1.c:183
+#: src/tveng1.c:197
 msgid "Cannot duplicate device name"
 msgstr ""
 
-#: src/tveng1.c:195 src/tveng2.c:203
+#: src/tveng1.c:209 src/tveng2.c:217
 msgid "Unknown attach mode for the device"
 msgstr ""
 
-#: src/tveng1.c:221 src/tveng2.c:229
+#: src/tveng1.c:235 src/tveng2.c:243
 msgid "No inputs for this device"
 msgstr ""
 
-#: src/tveng1.c:246 src/tveng2.c:254
+#: src/tveng1.c:260 src/tveng2.c:268
 msgid "No standards for this device"
 msgstr ""
 
-#: src/tveng1.c:314 src/tveng2.c:303
+#: src/tveng1.c:328 src/tveng2.c:317
 msgid "Cannot find appropiate palette for current display"
 msgstr ""
 
-#: src/tveng1.c:574 src/tveng2.c:509
+#: src/tveng1.c:588 src/tveng2.c:523
 #, c-format
 msgid "Input %s doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:596 src/tveng2.c:531
+#: src/tveng1.c:610 src/tveng2.c:545
 #, c-format
 msgid "Input number %d doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:770 src/tveng2.c:674
+#: src/tveng1.c:784 src/tveng2.c:688
 #, c-format
 msgid "Standard %s doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:788 src/tveng2.c:692
+#: src/tveng1.c:802 src/tveng2.c:706
 #, c-format
 msgid "Standard %d doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:850 src/tveng2.c:779
+#: src/tveng1.c:864 src/tveng2.c:793
 msgid "Cannot understand the actual palette"
 msgstr ""
 
 #. unknown
-#: src/tveng1.c:924 src/tveng2.c:836
+#: src/tveng1.c:938 src/tveng2.c:850
 msgid "Cannot understand the given palette"
 msgstr ""
 
-#: src/tveng1.c:1006
+#: src/tveng1.c:1020
 msgid "Mono"
 msgstr ""
 
-#: src/tveng1.c:1007
+#: src/tveng1.c:1021
 msgid "Stereo"
 msgstr ""
 
-#: src/tveng1.c:1008
+#: src/tveng1.c:1022
 msgid "Alternate 1"
 msgstr ""
 
-#: src/tveng1.c:1009
+#: src/tveng1.c:1023
 msgid "Alternate 2"
 msgstr ""
 
-#: src/tveng1.c:1164 src/tveng1.c:1660 src/tveng1.c:1673 src/tveng2.c:946
+#: src/tveng1.c:1178 src/tveng1.c:1674 src/tveng1.c:1687 src/tveng2.c:962
 msgid "Mute"
 msgstr ""
 
-#: src/tveng1.c:1175 src/tveng2.c:945
+#: src/tveng1.c:1189 src/tveng2.c:961
 msgid "Volume"
 msgstr ""
 
-#: src/tveng1.c:1186
+#: src/tveng1.c:1200 src/tveng2.c:968
 msgid "Bass"
 msgstr ""
 
-#: src/tveng1.c:1197 src/tveng2.c:948
+#: src/tveng1.c:1211 src/tveng2.c:966
 msgid "Treble"
 msgstr ""
 
-#: src/tveng1.c:1212 src/tveng2.c:947
+#: src/tveng1.c:1226 src/tveng2.c:964
 msgid "Balance"
 msgstr ""
 
-#: src/tveng1.c:1225
+#: src/tveng1.c:1239
 msgid "Audio Decoding"
 msgstr ""
 
-#: src/tveng1.c:1239 src/tveng2.c:928
+#: src/tveng1.c:1253 src/tveng2.c:943
 msgid "Brightness"
 msgstr ""
 
-#: src/tveng1.c:1248 src/tveng2.c:931
+#: src/tveng1.c:1262 src/tveng2.c:946
 msgid "Hue"
 msgstr ""
 
-#: src/tveng1.c:1257
+#: src/tveng1.c:1271
 msgid "Colour"
 msgstr ""
 
-#: src/tveng1.c:1266 src/tveng2.c:929
+#: src/tveng1.c:1280 src/tveng2.c:944
 msgid "Contrast"
 msgstr ""
 
-#: src/tveng1.c:1355
+#: src/tveng1.c:1369
 msgid "Unknown decoding mode"
 msgstr ""
 
-#: src/tveng1.c:1377
+#: src/tveng1.c:1391
 #, c-format
 msgid "Unknown control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1461
+#: src/tveng1.c:1475
 #, c-format
 msgid "Unknown audio control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1499
+#: src/tveng1.c:1513
 #, c-format
 msgid "Unknown video control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1553 src/tveng1.c:1583 src/tveng2.c:1117 src/tveng2.c:1148
+#: src/tveng1.c:1567 src/tveng1.c:1597 src/tveng2.c:1141 src/tveng2.c:1172
 #, c-format
 msgid "Cannot find control \"%s\" in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1622 src/tveng1.c:1647 src/tveng2.c:1188 src/tveng2.c:1214
+#: src/tveng1.c:1636 src/tveng1.c:1661 src/tveng2.c:1212 src/tveng2.c:1238
 #, c-format
 msgid "Cannot find control %d in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1796 src/tveng2.c:1370
+#: src/tveng1.c:1810 src/tveng2.c:1394
 msgid "There are no tuners for the active input"
 msgstr ""
 
-#: src/tveng1.c:1945 src/tveng2.c:1601
+#: src/tveng1.c:1959 src/tveng2.c:1625
 msgid "Warning: trying to stop capture with no capture active\n"
 msgstr ""
 
-#: src/tveng1.c:1995 src/tveng1.c:2058
+#: src/tveng1.c:2009 src/tveng1.c:2072
 msgid "Cannot understand actual palette"
 msgstr ""
 
-#: src/tveng1.c:2008
+#: src/tveng1.c:2022
 msgid "Grabber chip can't sync (no station tuned in?)"
 msgstr ""
 
-#: src/tveng1.c:2123 src/tveng2.c:1659
+#: src/tveng1.c:2137 src/tveng2.c:1683
 msgid "Current capture mode is not READ"
 msgstr ""
 
-#: src/tveng1.c:2132 src/tveng2.c:1668
+#: src/tveng1.c:2146 src/tveng2.c:1692
 msgid "Size check failed, quitting to avoid segfault"
 msgstr ""
 
-#: src/tveng1.c:2245 src/tveng2.c:1802
+#: src/tveng1.c:2259 src/tveng2.c:1826
 msgid "The capability field says that there is no overlay"
 msgstr ""
 
-#: src/tveng1.c:2463 src/tveng2.c:2003
+#: src/tveng1.c:2477 src/tveng2.c:2027
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
-#: src/tveng2.c:96
+#: src/tveng2.c:110
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr ""
 
-#: src/tveng2.c:106
+#: src/tveng2.c:120
 #, c-format
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr ""
 
-#: src/tveng2.c:930
+#: src/tveng2.c:945
 msgid "Saturation"
 msgstr ""
 
-#: src/tveng2.c:932
+#: src/tveng2.c:947
 msgid "Whiteness"
 msgstr ""
 
-#: src/tveng2.c:933
+#: src/tveng2.c:948
 msgid "Black level"
 msgstr ""
 
-#: src/tveng2.c:934
+#: src/tveng2.c:949
 msgid "White balance"
 msgstr ""
 
-#: src/tveng2.c:935
+#: src/tveng2.c:950
 msgid "Do white balance"
 msgstr ""
 
-#: src/tveng2.c:936
+#: src/tveng2.c:951
 msgid "Red balance"
 msgstr ""
 
-#: src/tveng2.c:937
+#: src/tveng2.c:952
 msgid "Blue balance"
 msgstr ""
 
-#: src/tveng2.c:938
+#: src/tveng2.c:953
 msgid "Gamma"
 msgstr ""
 
-#: src/tveng2.c:939
+#: src/tveng2.c:954
 msgid "Exposure"
 msgstr ""
 
-#: src/tveng2.c:940
+#: src/tveng2.c:955
+msgid "Auto gain"
+msgstr ""
+
+#: src/tveng2.c:956
 msgid "Gain"
 msgstr ""
 
-#: src/tveng2.c:941
+#: src/tveng2.c:957
 msgid "HCenter"
 msgstr ""
 
-#: src/tveng2.c:942
+#: src/tveng2.c:958
 msgid "VCenter"
 msgstr ""
 
-#: src/tveng2.c:943
+#: src/tveng2.c:959
 msgid "Horizontal flipping"
 msgstr ""
 
-#: src/tveng2.c:944
+#: src/tveng2.c:960
 msgid "Vertical flipping"
 msgstr ""
 
-#: src/tveng2.c:949
+#: src/tveng2.c:963
+msgid "Audio Mute"
+msgstr ""
+
+#: src/tveng2.c:965
+msgid "Audio Balance"
+msgstr ""
+
+#: src/tveng2.c:967
 msgid "Loudness"
 msgstr ""
 
-#: src/tveng2.c:995
+#: src/tveng2.c:1019
 msgid "<Broken menu entry>"
 msgstr ""
 
-#: src/tveng2.c:1005
+#: src/tveng2.c:1029
 #, c-format
 msgid "V4L2: Unknown control type 0x%x (%s)\n"
 msgstr ""
 
-#: src/tveng2.c:1538
+#: src/tveng2.c:1562
 msgid "Not enough buffers"
 msgstr ""
 

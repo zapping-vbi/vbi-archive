@@ -36,10 +36,8 @@
 #include <sys/mman.h>
 #include <errno.h>
 #include <linux/kernel.h>
-#include <errno.h>
 
 #include "tveng.h"
-#include "videodev2.h"
 
 /* We need video extensions (DGA) */
 #include <X11/X.h>
@@ -48,25 +46,6 @@
 #ifndef DISABLE_X_EXTENSIONS
 #include <X11/extensions/xf86dga.h>
 #endif
-
-struct tveng2_vbuf
-{
-  void * vmem; /* Captured image in this buffer */
-  struct v4l2_buffer vidbuf; /* Info about the buffer */
-};
-
-/* 
-   This defines the struct tveng will use for controlling the
-   device. Similar to tveng_device_info, but some more fields specific
-   to V4L2.
-*/
-struct private_tveng2_device_info
-{
-  tveng_device_info info; /* Info field, inherited */
-  int num_buffers; /* Number of mmaped buffers */
-  struct tveng2_vbuf * buffers; /* Array of buffers */
-  __s64 last_timestamp; /* The timestamp of the last captured buffer */
-};
 
 /*
   Associates the given tveng_device_info with the given video
@@ -371,5 +350,10 @@ tveng2_start_previewing (tveng_device_info * info);
 */
 int
 tveng2_stop_previewing(tveng_device_info * info);
+
+/*
+  Returns the necessary size of a private struct
+*/
+int tveng2_get_private_size(void);
 
 #endif /* TVENG2.H */

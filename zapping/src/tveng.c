@@ -37,33 +37,24 @@
 #include "tveng1.h" /* V4L specific headers */
 #include "tveng2.h" /* V4L2 specific headers */
 
-/*
-  This is the structure we will be actually allocating. Note that we
-  must leave space for all the private structures, since we do not
-  know the actual size of the struct before attaching it to a
-  device. We are never going to access the fields of this struct, it
-  is just for allocating.
-*/
-struct private_tveng_device_info
-{
-  union{
-    struct private_tveng1_device_info do_not_access_this_1;
-    struct private_tveng2_device_info do_not_access_this_2;
-  } do_not_touch_this;
-};
+#ifndef MAX
+#define MAX(X, Y) (((X) < (Y)) ? (Y) : (X))
+#endif
 
 /* Initializes a tveng_device_info object */
 tveng_device_info * tveng_device_info_new(Display * display, int bpp,
 					  const char *default_standard)
 {
+  size_t needed_mem = MAX(tveng1_get_private_size(),
+			  tveng2_get_private_size());
   tveng_device_info * new_object = (tveng_device_info*)
-    malloc(sizeof(struct private_tveng_device_info));
+    malloc(needed_mem);
 
   if (!new_object)
     return NULL;
 
   /* fill the struct with 0's */
-  memset(new_object, 0, sizeof(struct private_tveng_device_info));
+  memset(new_object, 0, needed_mem);
 
   /* Allocate some space for the error string */
   new_object -> error = (char*) malloc(256);

@@ -39,6 +39,20 @@
 #include "tveng2.h"
 #include "videodev2.h" /* the V4L2 definitions */
 
+struct tveng2_vbuf
+{
+  void * vmem; /* Captured image in this buffer */
+  struct v4l2_buffer vidbuf; /* Info about the buffer */
+};
+
+struct private_tveng2_device_info
+{
+  tveng_device_info info; /* Info field, inherited */
+  int num_buffers; /* Number of mmaped buffers */
+  struct tveng2_vbuf * buffers; /* Array of buffers */
+  __s64 last_timestamp; /* The timestamp of the last captured buffer */
+};
+
 /* Private, builds the controls structure */
 static int
 p_tveng2_build_controls(tveng_device_info * info);
@@ -920,6 +934,7 @@ p_tveng2_build_controls(tveng_device_info * info)
   struct tveng_control control;
   int i;
   int j;
+  int p;
 
   /* This shouldn't be neccessary is control querying worked properly */
   /* FIXME: add audio subchannels selecting controls */
@@ -937,6 +952,7 @@ p_tveng2_build_controls(tveng_device_info * info)
     {V4L2_CID_BLUE_BALANCE, N_("Blue balance")},
     {V4L2_CID_GAMMA, N_("Gamma")},
     {V4L2_CID_EXPOSURE, N_("Exposure")},
+    {V4L2_CID_AUTOGAIN, N_("Auto gain")},
     {V4L2_CID_GAIN, N_("Gain")},
     {V4L2_CID_HCENTER, N_("HCenter")},
     {V4L2_CID_VCENTER, N_("VCenter")},
@@ -944,25 +960,33 @@ p_tveng2_build_controls(tveng_device_info * info)
     {V4L2_CID_VFLIP, N_("Vertical flipping")},
     {V4L2_CID_AUDIO_VOLUME, N_("Volume")},
     {V4L2_CID_AUDIO_MUTE, N_("Mute")},
+    {V4L2_CID_AUDIO_MUTE, N_("Audio Mute")},
     {V4L2_CID_AUDIO_BALANCE, N_("Balance")},
+    {V4L2_CID_AUDIO_BALANCE, N_("Audio Balance")},
     {V4L2_CID_AUDIO_TREBLE, N_("Treble")},
-    {V4L2_CID_AUDIO_LOUDNESS, N_("Loudness")}
+    {V4L2_CID_AUDIO_LOUDNESS, N_("Loudness")},
+    {V4L2_CID_AUDIO_BASS, N_("Bass")}
   };
 
   memset(&qc, 0, sizeof(struct v4l2_queryctrl));
-  for (i = 0;
-       i < (sizeof(cids)/sizeof(struct p_tveng2_control_with_i18n));
-       i++)
+  for (p = V4L2_CID_BASE; p < V4L2_CID_LASTP1; p++)
     {
-      qc.id = cids[i].cid;
+      qc.id = p;
       if ((ioctl(info->fd, VIDIOC_QUERYCTRL, &qc) == 0) &&
 	  (!(qc.flags & V4L2_CTRL_FLAG_DISABLED)))
 	{
-	  /* if there isn't a translation available, use the real name */
-	  if (!strcasecmp(qc.name, _(qc.name)))
-	    snprintf(control.name, 32, qc.name);
-	  else /* translated name */
-	    snprintf(control.name, 32, _(cids[i].possible_label));
+	  snprintf(control.name, 32, qc.name);
+	  /* search for possible translations */
+	  for (i=0;
+	       i<sizeof(cids)/sizeof(struct p_tveng2_control_with_i18n);
+	       i++)
+	    if ((strcasecmp(_(qc.name), qc.name)) &&
+		(qc.id == cids[i].cid))
+	      {
+		snprintf(control.name, 32, _(qc.name));
+		break; /* translation present for the given control */
+	      }
+	  control.name[31] = 0;
 	  control.min = qc.minimum;
 	  control.max = qc.maximum;
 	  control.id = qc.id;
@@ -2013,4 +2037,9 @@ tveng2_stop_previewing(tveng_device_info * info)
 #else
   return 0;
 #endif
+}
+
+int tveng2_get_private_size(void)
+{
+  return (sizeof(struct private_tveng2_device_info));
 }

@@ -38,12 +38,26 @@
 #undef WUNTRACED
 #include "tveng.h"
 #include "tveng1.h"
+#include "videodev.h"
 
 /*
   If this is enabled, some specific features of the bttv driver are
   enabled, but they are non-standard
 */
 #define TVENG1_BTTV_PRESENT 1
+
+struct private_tveng1_device_info
+{
+  tveng_device_info info; /* Info field, inherited */
+#ifdef TVENG1_BTTV_MUTE_BUG_WORKAROUND
+  int muted; /* 0 if the device is muted, 1 otherwise. A workaround
+		for a bttv problem. */
+#endif
+  char * mmaped_data; /* A pointer to the data mmap() returned */
+  struct video_mbuf mmbuf; /* Info about the location of the frames */
+  int queued, dequeued; /* The index of the [de]queued frames */
+  __s64 last_timestamp; /* Timestamp of the last frame captured */
+};
 
 /*
   If this is enabled, pal_n mode is enabled ( it can crash my system )
@@ -2475,3 +2489,7 @@ tveng1_stop_previewing(tveng_device_info * info)
 #endif
 }
 
+int tveng1_get_private_size(void)
+{
+  return (sizeof(struct private_tveng1_device_info));
+}

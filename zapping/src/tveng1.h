@@ -39,7 +39,6 @@
 #include <errno.h>
 
 #include "tveng.h"
-#include "videodev.h"
 
 /* We need video extensions (DGA) */
 #include <X11/X.h>
@@ -54,24 +53,6 @@
    property. Comment out the line if your V4L driver isn't buggy.
 */
 #define TVENG1_BTTV_MUTE_BUG_WORKAROUND 1
-
-/* 
-   This defines the struct tveng will use for controlling the
-   device. Similar to tveng_device_info, but some more fields specific
-   to V4L.
-*/
-struct private_tveng1_device_info
-{
-  tveng_device_info info; /* Info field, inherited */
-#ifdef TVENG1_BTTV_MUTE_BUG_WORKAROUND
-  int muted; /* 0 if the device is muted, 1 otherwise. A workaround
-		for a bttv problem. */
-#endif
-  char * mmaped_data; /* A pointer to the data mmap() returned */
-  struct video_mbuf mmbuf; /* Info about the location of the frames */
-  int queued, dequeued; /* The index of the [de]queued frames */
-  __s64 last_timestamp; /* Timestamp of the last frame captured */
-};
 
 /*
   Associates the given tveng_device_info with the given video
@@ -376,5 +357,10 @@ tveng1_start_previewing (tveng_device_info * info);
 */
 int
 tveng1_stop_previewing(tveng_device_info * info);
+
+/*
+  Returns the size of the private struct
+*/
+int tveng1_get_private_size(void);
 
 #endif /* TVENG1.H */
