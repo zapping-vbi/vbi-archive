@@ -80,6 +80,7 @@ static int			num_xvports = 0;
 
 static struct {
 	int			format_id;	/* XvImageFormat */
+	int			swap_uv;
 	/* Ports providing this format (index in xvports struct) */
 	int *			ports;
 	int			num_ports;
@@ -242,37 +243,39 @@ image_new(tv_pixfmt pixfmt, gint w, gint h)
   new_image->fmt.bytesperline = (w * format.bits_per_pixel) >> 3;
   new_image->fmt.sizeimage = pimage->image->data_size;
 
-  switch (pixfmt)
+  if (TV_PIXFMT_SET_YUV_PLANAR & TV_PIXFMT_SET (pixfmt))
     {
-    case TV_PIXFMT_YVU420:
-    case TV_PIXFMT_YUV420:
+      int swap_uv = formats[pixfmt].swap_uv;
+
       g_assert (pimage->image->num_planes == 3);
       g_assert (pimage->image->pitches[1] ==
 		pimage->image->pitches[2]);
+
       new_image->data.planar.y =
 	pimage->image->data + pimage->image->offsets[0];
       new_image->data.planar.y_stride =
 	pimage->image->pitches[0];
       new_image->data.planar.u =
-	pimage->image->data + pimage->image->offsets[2];
+	pimage->image->data + pimage->image->offsets[1 + swap_uv];
       new_image->data.planar.v =
-	pimage->image->data + pimage->image->offsets[1];
+	pimage->image->data + pimage->image->offsets[2 - swap_uv];
       new_image->data.planar.uv_stride =
 	pimage->image->pitches[1];
-      break;
-    case TV_PIXFMT_YUYV:
-    case TV_PIXFMT_UYVY:
+    }
+  else if (TV_PIXFMT_SET_PACKED & TV_PIXFMT_SET (pixfmt))
+    {
       g_assert (pimage->image->num_planes == 1);
       new_image->data.linear.data = pimage->image->data;
       new_image->data.linear.stride = pimage->image->pitches[0];
-      break;
-    default:
+    }
+  else
+    {
       g_assert_not_reached ();
-      break;
     }
 
   printv ("Created image: %d, %d, %d, %d, %d\n",
-	  new_image->fmt.width, new_image->fmt.height,
+	  new_image->fmt.width,
+	  new_image->fmt.height,
 	  new_image->fmt.pixfmt,
 	  new_image->data.planar.y_stride,
 	  new_image->data.planar.uv_stride);
@@ -409,6 +412,7 @@ static void
 register_port			(XvPortID		xvport,
 				 tv_pixfmt		pixfmt,
 				 int			format_id,
+				 int			swap_uv,
 				 unsigned int		adaptor_index)
 {
   int i, id = -1;
@@ -446,6 +450,7 @@ register_port			(XvPortID		xvport,
   formats[pixfmt].ports[formats[pixfmt].num_ports++] = id;
 
   formats[pixfmt].format_id = format_id;
+  formats[pixfmt].swap_uv = swap_uv;
 
   /* If this is the first port we add for the given format add
      ourselves to the backend list for the pixformat. */
@@ -485,16 +490,24 @@ traverse_ports			(Display *		display,
 	  {
 	  case TV_PIXFMT_YUV420:
 	    register_port (xvport, TV_PIXFMT_YUV420,
-			   pImageFormats[j].id, index);
+			   pImageFormats[j].id, FALSE, index);
 	    register_port (xvport, TV_PIXFMT_YVU420,
-			   pImageFormats[j].id, index);
+			   pImageFormats[j].id, TRUE, index);
+	    break;
+
+	  case TV_PIXFMT_YVU420:
+	    register_port (xvport, TV_PIXFMT_YUV420,
+			   pImageFormats[j].id, TRUE, index);
+	    register_port (xvport, TV_PIXFMT_YVU420,
+			   pImageFormats[j].id, FALSE, index);
 	    break;
 
 	  case TV_PIXFMT_YUYV:
 	  case TV_PIXFMT_YVYU:
 	  case TV_PIXFMT_UYVY:
 	  case TV_PIXFMT_VYUY:
-	    register_port (xvport, pixfmt, pImageFormats[j].id, index);
+	    register_port (xvport, pixfmt,
+			   pImageFormats[j].id, FALSE, index);
 	    break;
 
 	  default:
