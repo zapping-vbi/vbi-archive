@@ -84,21 +84,7 @@ tveng1_update_capture_format(tveng_device_info * info);
 static int
 tveng1_set_capture_format(tveng_device_info * info);
 
-/*
-  Sets the value for an specific control. The given value will be
-  clipped between min and max values. Returns -1 on error
-*/
-static int
-tveng1_set_control(tveng_device_info * info,
-		   tv_control * control, int value);
 
-
-
-/*
-  Tunes the current input to the given freq. Returns -1 on error.
-*/
-static int
-tveng1_tune_input(uint32_t freq, tveng_device_info * info);
 
 /*
   Gets the signal strength and the afc code. The afc code indicates
@@ -111,20 +97,6 @@ static int
 tveng1_get_signal_strength (int *strength, int * afc,
 			    tveng_device_info * info);
 
-/*
-  Stores in freq the currently tuned freq. Returns -1 on error.
-*/
-static int
-tveng1_get_tune(uint32_t * freq, tveng_device_info * info);
-
-/*
-  Gets the minimum and maximum freq that the current input can
-  tune. If there is no tuner in this input, -1 will be returned.
-  If any of the pointers is NULL, its value will not be filled.
-*/
-static int
-tveng1_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
-			info);
 
 /*
   Sets up the capture device so any read() call after this one

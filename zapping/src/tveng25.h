@@ -88,12 +88,6 @@ tveng25_set_capture_format(tveng_device_info * info);
 
 
 /*
-  Tunes the current input to the given freq. Returns -1 on error.
-*/
-static int
-tveng25_tune_input(uint32_t freq, tveng_device_info * info);
-
-/*
   Gets the signal strength and the afc code. The afc code indicates
   how to get a better signal, if negative, tune higher, if negative,
   tune lower. 0 means no idea of feature not present in the current
@@ -104,20 +98,6 @@ static int
 tveng25_get_signal_strength (int *strength, int * afc,
 			    tveng_device_info * info);
 
-/*
-  Stores in freq the currently tuned freq. Returns -1 on error.
-*/
-static int
-tveng25_get_tune(uint32_t * freq, tveng_device_info * info);
-
-/*
-  Gets the minimum and maximum freq that the current input can
-  tune. If there is no tuner in this input, -1 will be returned.
-  If any of the pointers is NULL, its value will not be filled.
-*/
-static int
-tveng25_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
-			info);
 
 /*
   Sets up the capture device so any read() call after this one
