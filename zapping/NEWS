@@ -11,9 +11,11 @@ the changes.
 - GUI improvements (Michael, me)
 - Verboser error reporting in libvbi (Michael)
 - Standalone Zapzilla executable (me)
+- Zapzilla autodetects channel switches, for tunerless devices and
+  standalone Zapzilla (Michael)
 - Zapping works without V4L/V4L2 now [XVideo only], Solaris port (Roger
 	Fujii, me)
-- 41th column in TTX (Michael)
+- 41st column in TTX (Michael)
 - Use afc, channel name autodetection in channel editor (me)
 - Aspect ratio fixes, now it's applied to the tvscreen, not the whole
 	window (me)
