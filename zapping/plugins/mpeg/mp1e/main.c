@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.26 2000-10-17 21:55:41 garetxe Exp $ */
+/* $Id: main.c,v 1.27 2000-10-21 22:40:10 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,8 +75,8 @@ extern void *		vbi_thread(void *);
 
 pthread_t               output_thread_id;
 
-pthread_t		tk_main_id;
-extern void *		tk_main(void *);
+pthread_t		gtk_main_id;
+extern void *		gtk_main_thread(void *);
 
 extern int		psycho_loops;
 extern int		audio_num_frames;
@@ -84,7 +84,7 @@ extern int		video_num_frames;
 
 extern void options(int ac, char **av);
 
-extern void preview_init(void);
+extern void preview_init(int *argc, char ***argv);
 
 extern void audio_init(void);
 extern void video_init(void);
@@ -146,12 +146,6 @@ main(int ac, char **av)
 	sigprocmask(SIG_BLOCK, &block_mask, NULL);
 
 	ASSERT("install termination handler", signal(SIGINT, terminate) != SIG_ERR);
-
-#if TEST_PREVIEW
-	if (preview > 0)
-		ASSERT("create tk thread",
-			!pthread_create(&tk_main_id, NULL, tk_main, NULL));
-#endif
 
 	/* Capture init */
 
@@ -246,8 +240,12 @@ main(int ac, char **av)
 		video_init();
 
 #if TEST_PREVIEW
-		if (preview > 0)
-			preview_init();
+		if (preview > 0) {
+			preview_init(&ac, &av);
+			ASSERT("create gtk thread",
+			       !pthread_create(&gtk_main_id, NULL,
+					       gtk_main_thread, NULL));
+		}
 #endif
 	}
 

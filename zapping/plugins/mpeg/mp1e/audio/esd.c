@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.2 2000-10-17 22:14:15 garetxe Exp $ */
+/* $Id: esd.c,v 1.3 2000-10-21 22:40:10 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,7 +57,6 @@ static int		scan_range;
 static int		look_ahead;
 static int		samples_per_frame;
 static double		frame_time;
-static short *		ubuffer;
 static buffer		buf;
 static fifo		pcm_fifo;
 
