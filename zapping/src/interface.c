@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: interface.c,v 1.24.2.14 2003-11-26 07:15:55 mschimek Exp $ */
+/* $Id: interface.c,v 1.24.2.15 2003-11-28 18:35:49 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 toolbar changes */
 #undef GTK_DISABLE_DEPRECATED
@@ -277,7 +277,7 @@ zconf_hook_toolbar_tooltips	(const gchar *		key,
 static GnomeUIInfo
 popup_appearance_uiinfo [] = {
   {
-    GNOME_APP_UI_TOGGLEITEM, N_("Menu and Toolbar"), NULL,
+    GNOME_APP_UI_TOGGLEITEM, N_("Show Menu and Toolbar"), NULL,
     G_CALLBACK (on_python_check_menu_toggled_reverse), "hide_controls", NULL,
     GNOME_APP_PIXMAP_NONE, NULL,
     GDK_H, (GdkModifierType) GDK_CONTROL_MASK, NULL
@@ -440,6 +440,8 @@ zapping_popup_menu_new		(GdkEventButton *	event)
 
   {
     GtkWidget *app_menu;
+    const gchar *key;
+    gboolean active;
 
     widget = gtk_separator_menu_item_new ();
     gtk_widget_show (widget);
@@ -459,20 +461,20 @@ zapping_popup_menu_new		(GdkEventButton *	event)
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget), app_menu);
 
     widget = popup_appearance_uiinfo[0].widget;
-    gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (widget),
-      zconf_get_boolean (NULL, "/zapping/internal/callbacks/hide_controls"));
-    zconf_add_hook_while_alive (G_OBJECT (widget),
-				"/zapping/internal/callbacks/hide_controls",
+    key = "/zapping/internal/callbacks/hide_controls";
+    active = zconf_get_boolean (NULL, key);
+    gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (widget), !active);
+    zconf_add_hook_while_alive (G_OBJECT (widget), key,
 				(ZConfHook) zconf_hook_show_toolbar,
 				GTK_CHECK_MENU_ITEM (widget), FALSE);
 
     widget = popup_appearance_uiinfo[1].widget;
     /* XXX tell why not */
     gtk_widget_set_sensitive (widget, !!have_wm_hints);
-    gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (widget),
-      zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top"));
-    zconf_add_hook_while_alive (G_OBJECT (widget),
-				"/zapping/options/main/keep_on_top",
+    key = "/zapping/options/main/keep_on_top";
+    active = zconf_get_boolean (NULL, key);
+    gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (widget), active);
+    zconf_add_hook_while_alive (G_OBJECT (widget), key,
 				(ZConfHook) zconf_hook_keep_window_on_top,
 				GTK_CHECK_MENU_ITEM (widget), FALSE);
 
@@ -566,7 +568,7 @@ main_view_uiinfo [] = {
   },
   GNOMEUIINFO_SEPARATOR,
   {
-    GNOME_APP_UI_TOGGLEITEM, N_("Menu and toolbar"), NULL,
+    GNOME_APP_UI_TOGGLEITEM, N_("Show menu and toolbar"), NULL,
     G_CALLBACK (on_python_check_menu_toggled_reverse), "hide_controls", NULL,
     GNOME_APP_PIXMAP_NONE, NULL,
     GDK_H, (GdkModifierType) GDK_CONTROL_MASK, NULL
@@ -631,7 +633,7 @@ zapping_menu_new		(GtkWidget *		zapping)
   register_widget (zapping, main_view_uiinfo[7].widget, "mute2");
 
   widget = main_view_uiinfo[8].widget; /* subtitles */
-  register_widget (zapping, widget, "context-subtitle");
+  register_widget (zapping, widget, "menu-subtitle");
   zconf_add_hook_while_alive (G_OBJECT (widget),
 			      "/zapping/internal/callbacks/closed_caption",
 			      (ZConfHook) zconf_hook_check_menu,
@@ -797,7 +799,7 @@ create_zapping			(void)
   GtkWidget *appbar;
   GtkWidget *tv_screen;
 
-  zapping = gnome_app_new ("Zapping", _("Zapping"));
+  zapping = gnome_app_new ("Zapping", "Zapping");
   gnome_app = GNOME_APP (zapping);
 
   menubar = zapping_menu_new (zapping);
