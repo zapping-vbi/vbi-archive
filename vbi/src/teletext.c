@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.7 2004-02-18 07:54:10 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.8 2004-02-25 17:30:02 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -48,7 +48,8 @@ do {									\
 } while (0)
 
 static void
-character_set_designation	(vbi_font_descr *	font[2],
+character_set_designation	(const vbi_character_set *char_set[2],
+				 vbi_character_set_code def_code,
 				 const vt_extension *	ext,
 				 const vt_page *	vtp);
 static void
@@ -77,58 +78,46 @@ do {									\
 } while (0)
 
 static void
-character_set_designation	(vbi_font_descr *	font[2],
+character_set_designation	(const vbi_character_set *char_set[2],
+				 vbi_character_set_code default_code,
 				 const vt_extension *	ext,
 				 const vt_page *	vtp)
 {
 	unsigned int i;
 
-/* XXX TODO per-page font override */
-
-#ifdef libzvbi_TTX_OVERRIDE_CHAR_SET
-
-	font[0] = vbi_font_descriptors + libzvbi_TTX_OVERRIDE_CHAR_SET;
-	font[1] = vbi_font_descriptors + libzvbi_TTX_OVERRIDE_CHAR_SET;
-
-	fprintf(stderr, "override char set with %d\n",
-		libzvbi_TTX_OVERRIDE_CHAR_SET);
-#else
-
-	font[0] = vbi_font_descriptors + 0;
-	font[1] = vbi_font_descriptors + 0;
-
 	for (i = 0; i < 2; ++i) {
-		int char_set = ext->char_set[i];
+		const vbi_character_set *cs;
+		vbi_character_set_code code;
 
-		if (VALID_CHARACTER_SET(char_set))
-			font[i] = vbi_font_descriptors + char_set;
+		code = default_code;
 
-		char_set = (char_set & ~7) + vtp->national;
+		if (ext->charset_valid)
+			code = ext->charset_code[i];
 
-		if (VALID_CHARACTER_SET(char_set))
-			font[i] = vbi_font_descriptors + char_set;
+		cs = vbi_character_set_from_code ((code & ~7) + vtp->national);
+
+		if (NULL == cs)
+			cs = vbi_character_set_from_code (code);
+
+		if (NULL == cs)
+			cs = vbi_character_set_from_code (0);
+
+		char_set[i] = cs;
 	}
-#endif
 }
 
-unsigned int
+/**
+ * Blurb.
+ */
+const vbi_character_set *
 vbi_page_character_set		(const vbi_page *	pg,
 				 unsigned int		level)
 {
 	const vbi_page_private *pgp;
-	unsigned int code;
 
-	PGP_CHECK (0);
+	PGP_CHECK (NULL);
 
-	if (level > 1)
-		level = 1;
-
-	code = pgp->font[level] - vbi_font_descriptors;
-
-	if (VALID_CHARACTER_SET (code))
-		return code;
-	else
-		return 0;
+	return pgp->char_set[level & 1];
 }
 
 static void
@@ -304,7 +293,8 @@ _enhance_flush			(int			column,
 		 ac->background, mac->background ? '*' : ' ',
 		 ac->size, mac->size ? '*' : ' ',
 		 ac->opacity, mac->opacity ? '*' : ' ',
-		 ac->flash, mac->flash ? '*' : ' ',
+		 !!(ac->attr & VBI_FLASH),
+		 !!(mac->attr & VBI_FLASH) ? '*' : ' ',
 		 *active_column, column - 1);
 
 	i = inv_column + *active_column;
@@ -315,22 +305,22 @@ _enhance_flush			(int			column,
 
 		c = acp[i];
 
-		if (mac->underline) {
-			int u = ac->underline;
+		if (mac->attr & VBI_UNDERLINE) {
+			unsigned int attr = ac->attr;
 
 			if (!mac->unicode)
 				ac->unicode = c.unicode;
 
 			if (vbi_is_gfx (ac->unicode)) {
-				if (u)
+				if (attr & VBI_UNDERLINE)
 					ac->unicode &= ~0x20; /* separated */
 				else
 					ac->unicode |= 0x20; /* contiguous */
 				mac->unicode = ~0;
-				u = 0;
+				attr &= ~VBI_UNDERLINE;
 			}
 
-			c.underline = u;
+			COPY_SET_MASK (c.attr, attr, VBI_UNDERLINE);
 		}
 
 		/* TODO: vbi_char is 64 bit, a masked move may work. */
@@ -345,10 +335,10 @@ _enhance_flush			(int			column,
 			SWAP (c.foreground, c.background);
 		if (mac->opacity)
 			c.opacity = ac->opacity;
-		if (mac->flash)
-			c.flash = ac->flash;
-		if (mac->conceal)
-			c.conceal = ac->conceal;
+
+		COPY_SET_MASK (c.attr, ac->attr,
+			       mac->attr & (VBI_FLASH | VBI_CONCEAL));
+
 		if (mac->unicode) {
 			c.unicode = ac->unicode;
 			mac->unicode = 0;
@@ -379,11 +369,11 @@ _enhance_flush			(int			column,
 		case 0x10 ... 0x17:	/* mosaic + foreground color */
 			fmt_log ("... fg term %d %02x\n", i, raw);
 			mac->foreground = 0;
-			mac->conceal = 0;
+			mac->attr &= ~VBI_CONCEAL;
 			break;
 
 		case 0x08:		/* flash */
-			mac->flash = 0;
+			mac->attr &= ~VBI_FLASH;
 			break;
 
 		case 0x0A:		/* end box */
@@ -414,7 +404,7 @@ _enhance_flush			(int			column,
 		
 		switch (raw) {
 		case 0x09:		/* steady */
-			mac->flash = 0;
+			mac->attr &= ~VBI_FLASH;
 			break;
 			
 		case 0x0C:		/* normal size */
@@ -423,7 +413,7 @@ _enhance_flush			(int			column,
 			break;
 			
 		case 0x18:		/* conceal */
-			mac->conceal = 0;
+			mac->attr &= ~VBI_CONCEAL;
 			break;
 			
 		/*
@@ -878,7 +868,7 @@ enhance				(vbi_page_private *		t,
 	int active_column, active_row;
 	int offset_column, offset_row;
 	int row_color, next_row_color;
-	struct vbi_font_descr *font;
+	const vbi_character_set *cs;
 	int invert;
 	int drcs_s1[2];
 	pdc_program *p1, pdc_tmp;
@@ -903,7 +893,7 @@ enhance				(vbi_page_private *		t,
 	drcs_s1[0] = 0; /* global */
 	drcs_s1[1] = 0; /* normal */
 
-	font = t->font[0];
+	cs = t->char_set[0];
 
 	/* Accumulated attributes and attr mask */
 
@@ -921,9 +911,7 @@ enhance				(vbi_page_private *		t,
 		mac.background	= ~0;
 		mac.opacity	= ~0;
 		mac.size	= ~0;
-		mac.underline	= ~0;
-		mac.conceal	= ~0;
-		mac.flash	= ~0;
+		mac.attr	&= ~(VBI_UNDERLINE | VBI_CONCEAL | VBI_FLASH);
 	}
 
 	/*
@@ -1191,7 +1179,7 @@ enhance				(vbi_page_private *		t,
 						goto store;
 					} else if (p->data >= 0x40) {
 						unicode = vbi_teletext_unicode
-						       (font->G0, NO_SUBSET, p->data);
+						       (cs->g0, VBI_SUBSET_NONE, p->data);
 						goto store;
 					}
 				}
@@ -1306,8 +1294,9 @@ enhance				(vbi_page_private *		t,
 					 *  Mode 1 - Normal flash to background color
 					 *  Rate 0 - Slow rate (1 Hz)
 					 */
-					ac.flash = !!(p->data & 3);
-					mac.flash = ~0;
+					COPY_SET_COND (ac.attr, VBI_FLASH,
+						       p->data & 3);
+					mac.attr |= VBI_FLASH;
 
 					fmt_log ("enh col %d flash 0x%02x\n",
 						 active_column, p->data);
@@ -1318,13 +1307,13 @@ enhance				(vbi_page_private *		t,
 			case 0x08:		/* modified G0 and G2
 						   character set designation */
 				if (t->max_level >= VBI_WST_LEVEL_2p5) {
+					const vbi_character_set *cs1;
+
 					if (column > active_column)
 						enhance_flush(column);
 
-					if (VALID_CHARACTER_SET(p->data))
-						font = vbi_font_descriptors + p->data;
-					else
-						font = t->font[0];
+					if ((cs1 = vbi_character_set_from_code (p->data)))
+						cs = cs1;
 
 					fmt_log ("enh col %d modify character "
 						 "set %d\n", active_column, p->data);
@@ -1339,7 +1328,7 @@ enhance				(vbi_page_private *		t,
 						enhance_flush(column);
 
 					unicode = vbi_teletext_unicode
-						(font->G0, NO_SUBSET, p->data);
+						(cs->g0, VBI_SUBSET_NONE, p->data);
 					goto store;
 				}
 
@@ -1368,15 +1357,17 @@ enhance				(vbi_page_private *		t,
 					ac.opacity = t->page_opacity[1];
 				mac.opacity = ~0;
 
-				ac.conceal = !!(p->data & 4);
-				mac.conceal = ~0;
+				COPY_SET_COND (ac.attr, VBI_CONCEAL,
+					       p->data & 4);
+				mac.attr |= VBI_CONCEAL;
 
 				/* (p->data & 8) reserved */
 
 				invert = p->data & 0x10;
 
-				ac.underline = !!(p->data & 0x20);
-				mac.underline = ~0;
+				COPY_SET_COND (ac.attr, VBI_UNDERLINE,
+					       p->data & 0x20);
+				mac.attr |= VBI_UNDERLINE;
 
 				fmt_log ("enh col %d display attr 0x%02x\n",
 					 active_column, p->data);
@@ -1420,8 +1411,8 @@ enhance				(vbi_page_private *		t,
 
 			case 0x0E:		/* font style */
 			{
-				int italic, bold, proportional;
 				int col, row, count;
+				unsigned int attr;
 				vbi_char *acp;
 
 				if (t->max_level < VBI_WST_LEVEL_3p5)
@@ -1431,16 +1422,18 @@ enhance				(vbi_page_private *		t,
 				count = (p->data >> 4) + 1;
 				acp = &t->pg.text[row * t->pg.columns];
 
-				proportional = (p->data >> 0) & 1;
-				bold = (p->data >> 1) & 1;
-				italic = (p->data >> 2) & 1;
+				attr = 0;
+				if (p->data & 0x01)
+					attr |= VBI_PROPORTIONAL;
+				if (p->data & 0x02)
+					attr |= VBI_BOLD;
+				if (p->data & 0x04)
+					attr |= VBI_ITALIC;
 
 				while (row < 25 && count > 0) {
 					for (col = inv_column + column;
 					     col < 40; ++col) {
-						acp[col].italic = italic;
-		    				acp[col].bold = bold;
-						acp[col].proportional = proportional;
+						acp[col].attr = (acp[col].attr & ~(VBI_PROPORTIONAL | VBI_BOLD | VBI_ITALIC)) | attr;
 					}
 
 					acp += t->pg.columns;
@@ -1460,7 +1453,7 @@ enhance				(vbi_page_private *		t,
 						enhance_flush(column);
 
 					unicode = vbi_teletext_unicode
-						(font->G2, NO_SUBSET, p->data);
+						(cs->g2, VBI_SUBSET_NONE, p->data);
 					goto store;
 				}
 
@@ -1693,7 +1686,7 @@ level_one_page			(vbi_page_private *	pgp)
 	i = 0; /* t->vtp->data.lop.raw[] */
 
 	for (row = 0; row < pgp->pg.rows; ++row) {
-		struct vbi_font_descr *font;
+		const vbi_character_set *cs;
 		unsigned int mosaic_plane;
 		unsigned int held_mosaic_unicode;
 		vbi_bool hold;
@@ -1714,7 +1707,7 @@ level_one_page			(vbi_page_private *	pgp)
 		ac.background	= pgp->ext->background_clut + VBI_BLACK;
 		mosaic_plane	= mosaic_contiguous;
 		ac.opacity	= pgp->page_opacity[row > 0];
-		font		= pgp->font[0];
+		cs		= pgp->char_set[0];
 		hold		= FALSE;
 		mosaic		= FALSE;
 
@@ -1739,7 +1732,7 @@ level_one_page			(vbi_page_private *	pgp)
 
 			switch (raw) {
 			case 0x09:		/* steady */
-				ac.flash = FALSE;
+				ac.attr &= ~VBI_FLASH;
 				break;
 
 			case 0x0C:		/* normal size */
@@ -1747,7 +1740,7 @@ level_one_page			(vbi_page_private *	pgp)
 				break;
 
 			case 0x18:		/* conceal */
-				ac.conceal = TRUE;
+				ac.attr |= VBI_CONCEAL;
 				break;
 
 			case 0x19:		/* contiguous mosaics */
@@ -1786,7 +1779,7 @@ level_one_page			(vbi_page_private *	pgp)
 					ac.unicode = held_mosaic_unicode;
 				} else {
 					ac.unicode = vbi_teletext_unicode
-						(font->G0, font->subset, raw);
+						(cs->g0, cs->subset, raw);
 				}
 			}
 
@@ -1808,12 +1801,12 @@ level_one_page			(vbi_page_private *	pgp)
 			case 0x00 ... 0x07:	/* alpha + foreground color */
 				ac.foreground = pgp->ext->foreground_clut
 					+ (raw & 7);
-				ac.conceal = FALSE;
+				ac.attr &= ~VBI_CONCEAL;
 				mosaic = FALSE;
 				break;
 
 			case 0x08:		/* flash */
-				ac.flash = TRUE;
+				ac.attr |= VBI_FLASH;
 				break;
 
 			case 0x0A:		/* end box */
@@ -1861,12 +1854,12 @@ level_one_page			(vbi_page_private *	pgp)
 			case 0x10 ... 0x17:	/* mosaic + foreground color */
 				ac.foreground = pgp->ext->foreground_clut
 					+ (raw & 7);
-				ac.conceal = FALSE;
+				ac.attr &= ~VBI_CONCEAL;
 				mosaic = TRUE;
 				break;
 
 			case 0x1B:		/* ESC */
-				font = pgp->font[font == pgp->font[0]];
+				cs = pgp->char_set[cs == pgp->char_set[0]];
 				break;
 
 			case 0x1F:		/* release mosaic */
@@ -2207,7 +2200,7 @@ hyperlinks			(vbi_page_private *		t,
 		    || acp[i].size == VBI_OVER_BOTTOM)
 			continue;
 
-		acp[i].link = link[j++];
+		COPY_SET_COND (acp[i].attr, VBI_LINK, link[j++]);
 	}
 }
 
@@ -2250,7 +2243,8 @@ vbi_page_hyperlink		(const vbi_page *	pg,
 
 	acp = pg->text + row * pg->columns;
 
-	if (row == 0 || pg->pgno < 0x100 || !acp[column].link)
+	if (row == 0 || pg->pgno < 0x100
+	    || !(acp[column].attr & VBI_LINK))
 		return FALSE;
 
 	if (row == 25) {
@@ -2273,7 +2267,7 @@ vbi_page_hyperlink		(const vbi_page *	pg,
 			continue;
 		++j;
 
-		if (i < column && !acp[i].link)
+		if (i < column && !(acp[i].attr & VBI_LINK))
 			start = j + 1;
 
 		if (acp[i].unicode >= 0x20 && acp[i].unicode <= 0xFF)
@@ -2354,7 +2348,7 @@ flof_navigation_bar		(vbi_page_private *		t)
 	acp = clear_navigation_bar (t);
 
 	ac = *acp;
-	ac.link = TRUE;
+	ac.attr |= VBI_LINK;
 
 	for (i = 0; i < 4; ++i) {
 		unsigned int pos;
@@ -2417,7 +2411,7 @@ flof_links		(vbi_page_private *		t)
 					;
 
 				for (; end >= start; --end) {
-					acp[end].link = TRUE;
+					acp[end].attr |= VBI_LINK;
 					t->nav_index[end] = k;
 				}
 
@@ -2447,7 +2441,7 @@ flof_links		(vbi_page_private *		t)
  */
 static vbi_bool
 top_label			(vbi_page_private *		t,
-				 vbi_font_descr *	font,
+				 const vbi_character_set *cs,
 				 unsigned int		index,
 				 vbi_pgno		pgno,
 				 vbi_color		foreground,
@@ -2504,18 +2498,18 @@ top_label			(vbi_page_private *		t,
 				acp += sh;
 				column += sh;
 
-				acp[i + 1].link = TRUE;
+				acp[i + 1].attr |= VBI_LINK;
 				t->nav_index[column + i + 1] = index;
 
 				acp[i + 2].unicode = 0x003E;
 				acp[i + 2].foreground = foreground;
-				acp[i + 2].link = TRUE;
+				acp[i + 2].attr |= VBI_LINK;
 				t->nav_index[column + i + 2] = index;
 
 				if (ff > 1) {
 					acp[i + 3].unicode = 0x003E;
 					acp[i + 3].foreground = foreground;
-					acp[i + 3].link = TRUE;
+					acp[i + 3].attr |= VBI_LINK;
 					t->nav_index[column + i + 3] = index;
 				}
 			} else {
@@ -2527,11 +2521,11 @@ top_label			(vbi_page_private *		t,
 
 			for (; i >= 0; --i) {
 				acp[i].unicode = vbi_teletext_unicode
-					(font->G0, font->subset,
+					(cs->g0, cs->subset,
 					 MAX (ait->text[i], (uint8_t) 0x20));
 
 				acp[i].foreground = foreground;
-				acp[i].link = TRUE;
+				acp[i].attr |= VBI_LINK;
 				
 				t->nav_index[column + i] = index;
 			}
@@ -2588,7 +2582,7 @@ top_navigation_bar		(vbi_page_private *		t)
 
 		if (type == VBI_TOP_BLOCK || type == VBI_TOP_GROUP) {
 			// XXX font?
-			top_label (t, t->font[0], 0, pgno, 32 + VBI_WHITE, 0);
+			top_label (t, t->char_set[0], 0, pgno, 32 + VBI_WHITE, 0);
 			break;
 		}
 
@@ -2610,13 +2604,13 @@ top_navigation_bar		(vbi_page_private *		t)
 
 		switch (t->pg.vbi->vt.page_info[pgno - 0x100].code) {
 		case VBI_TOP_BLOCK:
-			top_label (t, t->font[0], 2,
+			top_label (t, t->char_set[0], 2,
 				   pgno, 32 + VBI_YELLOW, 2);
 			return;
 
 		case VBI_TOP_GROUP:
 			if (!have_group) {
-				top_label (t, t->font[0], 1,
+				top_label (t, t->char_set[0], 1,
 					   pgno, 32 + VBI_GREEN, 1);
 				have_group = TRUE;
 			}
@@ -2829,10 +2823,10 @@ ait_title			(vbi_decoder *		vbi,
 				 const vt_page *	vtp,
 	  const ait_entry *ait, char *buf)
 {
-	struct vbi_font_descr *font[2];
+	const vbi_character_set *char_set[2];
 	int i;
 
-	character_set_designation(font, &vbi->vt.magazine[0].extension, vtp);
+	character_set_designation (char_set, 0, &vbi->vt.magazine[0].extension, vtp);
 
 	for (i = 11; i >= 0; i--)
 		if (ait->text[i] > 0x20)
@@ -2840,9 +2834,9 @@ ait_title			(vbi_decoder *		vbi,
 	buf[i + 1] = 0;
 
 	for (; i >= 0; i--) {
-		unsigned int unicode = vbi_teletext_unicode(
-			font[0]->G0, font[0]->subset,
-			(ait->text[i] < 0x20) ?	0x20 : ait->text[i]);
+		unsigned int unicode = vbi_teletext_unicode
+			(char_set[0]->g0, char_set[0]->subset,
+			 (ait->text[i] < 0x20) ? 0x20 : ait->text[i]);
 
 		buf[i] = (unicode >= 0x20 && unicode <= 0xFF) ? unicode : 0x20;
 	}
@@ -3002,6 +2996,8 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 {
 	vbi_bool option_navigation;
 	vbi_bool option_hyperlinks;
+	vbi_character_set_code option_cs_default;
+	const vbi_character_set *option_cs_override;
 
 	if (vtp->function != PAGE_FUNCTION_LOP &&
 	    vtp->function != PAGE_FUNCTION_TRIGGER)
@@ -3026,6 +3022,48 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 	pgp->pg.dirty.y1	= pgp->pg.rows - 1;
 	pgp->pg.dirty.roll	= 0;
 
+	/* Magazine and extension defaults */
+
+	pgp->mag = (pgp->max_level <= VBI_WST_LEVEL_1p5) ?
+		vbi->vt.magazine /* default magazine */
+		: vbi->vt.magazine + (vtp->pgno >> 8);
+
+	if (vtp->data.lop.ext)
+		pgp->ext = &vtp->data.ext_lop.ext;
+	else
+		pgp->ext = &pgp->mag->extension;
+
+	/* Colors */
+
+	screen_color (&pgp->pg, vtp->flags, pgp->ext->def_screen_color);
+
+	assert (sizeof (pgp->pg.color_map) == sizeof (pgp->ext->color_map));
+	memcpy (pgp->pg.color_map, pgp->ext->color_map,
+		sizeof (pgp->pg.color_map));
+
+	assert (sizeof (pgp->pg.drcs_clut) == sizeof (pgp->ext->drcs_clut));
+	memcpy (pgp->pg.drcs_clut, pgp->ext->drcs_clut,
+		sizeof (pgp->pg.drcs_clut));
+
+	/* Opacity */
+
+	pgp->page_opacity[1] = VBI_OPAQUE;
+	pgp->boxed_opacity[1] = VBI_SEMI_TRANSPARENT;
+
+	if (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE | C10_INHIBIT_DISPLAY))
+		pgp->page_opacity[1] = VBI_TRANSPARENT_SPACE;
+
+	if (vtp->flags & C10_INHIBIT_DISPLAY)
+		pgp->boxed_opacity[1] =	VBI_TRANSPARENT_SPACE;
+
+	if (pgp->vtp->flags & C7_SUPPRESS_HEADER) {
+		pgp->page_opacity[0] = VBI_TRANSPARENT_SPACE;
+		pgp->boxed_opacity[0] = VBI_TRANSPARENT_SPACE;
+	} else {
+		pgp->page_opacity[0] = pgp->page_opacity[1];
+		pgp->boxed_opacity[0] = pgp->boxed_opacity[1];
+	}
+
 	/* Options */
 
 	pgp->max_level		= VBI_WST_LEVEL_1;
@@ -3036,6 +3074,8 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 
 	option_navigation = FALSE;
 	option_hyperlinks = FALSE;
+	option_cs_default = 0;
+	option_cs_override = NULL;
 
 	for (;;) {
 		vbi_format_option option;
@@ -3070,6 +3110,17 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 				va_arg (format_options, vbi_wst_level);
 			break;
 
+		case VBI_CHAR_SET_DEFAULT:
+			option_cs_default = va_arg (format_options,
+						    vbi_character_set_code);
+			break;
+
+		case VBI_CHAR_SET_OVERRIDE:
+			option_cs_override = vbi_character_set_from_code
+				(va_arg (format_options,
+					 vbi_character_set_code));
+			break;
+
 		default:
 			option = 0;
 			break;
@@ -3079,50 +3130,15 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 			break;
 	}
 
-	/* Magazine and extension defaults */
-
-	pgp->mag = (pgp->max_level <= VBI_WST_LEVEL_1p5) ?
-		vbi->vt.magazine /* default magazine */
-		: vbi->vt.magazine + (vtp->pgno >> 8);
-
-	if (vtp->data.lop.ext)
-		pgp->ext = &vtp->data.ext_lop.ext;
-	else
-		pgp->ext = &pgp->mag->extension;
-
 	/* Character set designation */
 
-	character_set_designation (pgp->font, pgp->ext, vtp);
-
-	/* Colors */
-
-	screen_color (&pgp->pg, vtp->flags, pgp->ext->def_screen_color);
-
-	assert (sizeof (pgp->pg.color_map) == sizeof (pgp->ext->color_map));
-	memcpy (pgp->pg.color_map, pgp->ext->color_map,
-		sizeof (pgp->pg.color_map));
-
-	assert (sizeof (pgp->pg.drcs_clut) == sizeof (pgp->ext->drcs_clut));
-	memcpy (pgp->pg.drcs_clut, pgp->ext->drcs_clut,
-		sizeof (pgp->pg.drcs_clut));
-
-	/* Opacity */
-
-	pgp->page_opacity[1] = VBI_OPAQUE;
-	pgp->boxed_opacity[1] = VBI_SEMI_TRANSPARENT;
-
-	if (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE | C10_INHIBIT_DISPLAY))
-		pgp->page_opacity[1] = VBI_TRANSPARENT_SPACE;
-
-	if (vtp->flags & C10_INHIBIT_DISPLAY)
-		pgp->boxed_opacity[1] =	VBI_TRANSPARENT_SPACE;
-
-	if (pgp->vtp->flags & C7_SUPPRESS_HEADER) {
-		pgp->page_opacity[0] = VBI_TRANSPARENT_SPACE;
-		pgp->boxed_opacity[0] = VBI_TRANSPARENT_SPACE;
+	if (option_cs_override) {
+		pgp->char_set[0] = option_cs_override;
+		pgp->char_set[1] = option_cs_override;
 	} else {
-		pgp->page_opacity[0] = pgp->page_opacity[1];
-		pgp->boxed_opacity[0] = pgp->boxed_opacity[1];
+		character_set_designation (pgp->char_set,
+					   option_cs_default,
+					   pgp->ext, vtp);
 	}
 
 	/* Format level one page */
