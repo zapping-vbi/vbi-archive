@@ -1,8 +1,27 @@
 /*
- *  Preliminary helper.
+ *  Zapping (TV viewer for the Gnome Desktop)
+ *
+ * Copyright (C) 2001 Iñaki García Etxebarria
+ * Copyright (C) 2003, 2004 Michael H. Schimek
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: i18n.c,v 1.2 2003-11-29 19:43:24 mschimek Exp $ */
+/* $Id: i18n.c,v 1.3 2004-11-03 06:43:06 mschimek Exp $ */
+
+/* Shouldn't we have a library for these kinds of functions? */
 
 #include <string.h>
 #include <ctype.h>
@@ -123,6 +142,56 @@ locale_country			(void)
 	    /etc/localtime -> /usr/share/zoneinfo/foo
 	    /usr/share/zoneinfo/zone.tab
 	 */
+
+	return NULL;
+}
+
+static const struct {
+	const char		code[4];
+	const char *		name;
+} language_table [] =
+{
+	{ "ar", "Arabic" },
+	{ "bg", "Bulgarian" },
+	{ "cs", "Czech" },
+	{ "de", "German" },
+	{ "el", "Greek" },
+	{ "en", "English" },
+	{ "es", "Spanish" },
+	{ "et", "Estonian" },
+	{ "fi", "Finnish" },
+	{ "fr", "French" },
+	{ "sv", "Swedish" },
+	{ "he", "Hebrew" },
+	{ "hr", "Croatian" },
+	{ "hu", "Hungarian" },
+	{ "it", "Italian" },
+	{ "lt", "Lithuanian" },
+	{ "lv", "Lettish" },
+	{ "pl", "Polish" },
+	{ "pt", "Portuguese" },
+	{ "ro", "Rumanian" },
+	{ "ru", "Russian" },
+	{ "sk", "Slovak" },
+	{ "sl", "Slovenian" },
+	{ "sr", "Serbian" },
+	{ "tr", "Turkish" },
+	{ "uk", "Ukranian" },
+	{ "", NULL }
+};
+
+const char *
+iso639_to_language_name		(const char *		code)
+{
+	unsigned int i;
+
+	if (code[0] == 0 || code[1] == 0)
+		return NULL;
+
+	for (i = 0; language_table[i].name; i++)
+		if (language_table[i].code[0] == code[0]
+		    && language_table[i].code[1] == code[1])
+			return language_table[i].name;
 
 	return NULL;
 }
