@@ -134,6 +134,27 @@ gint resize_timeout		( gpointer ignored )
   return FALSE;
 }
 
+#include "../pixmaps/zapping_stock.h"
+
+static void
+init_zapping_stock		(void)
+{
+  GtkStockItem item;
+  guint i;
+
+  CLEAR (item);
+
+  for (i = 0; zapping_stock_table[i].stock_id; ++i)
+    {
+      item.stock_id = (gchar *) zapping_stock_table[i].stock_id;
+
+      gtk_stock_add (&item, 1);
+
+      z_icon_factory_add_pixdata (zapping_stock_table[i].stock_id,
+				  zapping_stock_table[i].pixdata);
+    }
+}
+
 extern int zapzilla_main(int argc, char * argv[]);
 
 int main(int argc, char * argv[])
@@ -312,7 +333,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.18 2003-06-16 06:11:05 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.19 2003-07-29 03:36:49 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -347,7 +368,10 @@ int main(int argc, char * argv[])
   D();
   glade_gnome_init();
   D();
-  gnome_window_icon_set_default_from_file(PACKAGE_PIXMAPS_DIR "/gnome-television.png");
+  gnome_window_icon_set_default_from_file
+    (PACKAGE_PIXMAPS_DIR "/gnome-television.png");
+  D();
+  init_zapping_stock ();
   D();
   if (!g_module_supported ())
     {
@@ -377,15 +401,24 @@ int main(int argc, char * argv[])
   if (x11_dga_query (&dga_param, NULL, 0)
       && debug_msg)
     {
+      tv_pixel_format format;
+
+      tv_pixfmt_to_pixel_format	(&format, dga_param.pixfmt, 0);
+
       fprintf (stderr, "DGA parameters:\n"
 	       "  frame buffer address   %p\n"
 	       "  frame buffer size      %ux%u pixels, 0x%x bytes\n"
 	       "  bytes per line         %u bytes\n"
+	       "  rgba mask              0x%08x 0x%08x 0x%08x 0x%08x\n"
+	       "  big endian             %u\n"
 	       "  depth, bits per pixel  %u, %u\n",
 	       dga_param.base,
 	       dga_param.width, dga_param.height,
 	       dga_param.size, dga_param.bytes_per_line,
-	       dga_param.depth, dga_param.bits_per_pixel);
+	       format.mask.rgb.r, format.mask.rgb.g,
+	       format.mask.rgb.b, format.mask.rgb.a,
+	       format.big_endian,
+	       format.color_depth, format.bits_per_pixel);
     }
 
   main_info = tveng_device_info_new(GDK_DISPLAY (), x_bpp);
@@ -405,7 +438,6 @@ int main(int argc, char * argv[])
       return 0;
     }
   D();
-
   if (yuv_format)
     {
       if (!strcasecmp(yuv_format, "YUYV"))
@@ -443,15 +475,6 @@ int main(int argc, char * argv[])
   xv_detected = tveng_detect_xv_overlay (main_info);
   printv("XV overlay detection: %s\n", xv_detected ? "OK" : "Failed");
 
-  /* try to run the auxiliary suid program */
-  if (!disable_zsfb &&
-      !xv_detected &&
-      tveng_run_zapping_setup_fb(main_info) == -1)
-    g_message("Error while executing zapping_setup_fb,\n"
-	      "Previewing might not work:\n%s", main_info->error);
-  D();
-  free(main_info -> file_name);
-
   D();
 
   if (tveng_attach_device(zcg_char(NULL, "video_device"),
@@ -486,16 +509,8 @@ int main(int argc, char * argv[])
 	  for (i = 0; i<num_fallbacks; i++)
 	    {
 	      printf("trying device: %s\n", fallback_devices[i]);
-	      main_info -> file_name = strdup(fallback_devices[i]);
+	      main_info->file_name = strdup(fallback_devices[i]);
   
-	      D();
-	      /* try to run the auxiliary suid program */
-	      if (tveng_run_zapping_setup_fb(main_info) == -1)
-		g_message("Error while executing zapping_setup_fb,\n"
-			  "Previewing might not work:\n%s", main_info->error);
-	      D();
-	      free(main_info -> file_name);
-
 	      if (tveng_attach_device(fallback_devices[i],
 				      TVENG_ATTACH_XV,
 				      main_info) != -1)
@@ -506,6 +521,9 @@ int main(int argc, char * argv[])
 			  fallback_devices[i]);
 		  goto device_ok;
 		}
+
+	      free (main_info->file_name);
+	      main_info->file_name = NULL;
 	    }
 	}
 
@@ -517,10 +535,18 @@ int main(int argc, char * argv[])
     }
 
  device_ok:
+
   if (main_info->current_controller == TVENG_CONTROLLER_XV)
     xv_present = TRUE;
 
   D();
+  /* try to run the auxiliary suid program */
+  if (!disable_zsfb && !xv_detected &&
+      !tv_set_overlay_buffer (main_info, &dga_param))
+    g_message("Error while executing zapping_setup_fb,\n"
+	      "Previewing might not work:\n%s", main_info->error);
+  D();
+
   /* mute the device while we are starting up */
   /* FIXME */
   if (-1 == tv_mute_set (main_info, TRUE))
@@ -563,6 +589,7 @@ int main(int argc, char * argv[])
 		     (struct plugin_info*)p->data);
       p = p->next;
     }
+
   /* Disable preview if needed */
   if (disable_preview)
     {
@@ -607,6 +634,7 @@ int main(int argc, char * argv[])
   printv("switching to mode %d (%d)\n",
 	 zcg_int(NULL, "capture_mode"),
 	 TVENG_CAPTURE_READ);
+
   /* Start the capture in the last mode */
   if (!disable_preview)
     {
@@ -654,7 +682,7 @@ int main(int argc, char * argv[])
     zconf_get_integer (&num_controls, ZCONF_DOMAIN "num_controls");
     controls = zconf_get_controls (num_controls, "/zapping/options/main");
     load_control_values (main_info, controls, num_controls,
-			 !!zcg_bool (NULL, "start_muted"));
+    			 !!zcg_bool (NULL, "start_muted"));
   }
 
   set_mute (3 /* update */, /* controls */ TRUE, /* osd */ FALSE);
@@ -669,6 +697,7 @@ int main(int argc, char * argv[])
   z_switch_channel (tveng_tuned_channel_nth (global_channel_list,
 					     cur_tuned_channel),
 		    main_info);
+
   if (!command)
     {
       gtk_widget_show(main_window);
@@ -790,17 +819,15 @@ static void shutdown_zapping(void)
 
   tveng_tuned_channel_list_delete (&global_channel_list);
 
-  if (main_info->num_standards)
-    zcs_int(main_info->standards[main_info -> cur_standard].hash,
-	    "current_standard");
+  if (main_info->cur_video_standard)
+    zcs_int (main_info->cur_video_standard->hash, "current_standard");
   else
-    zcs_int(0, "current_standard");
+    zcs_int (0, "current_standard");
 
-  if (main_info->num_inputs)
-    zcs_int(main_info->inputs[main_info->cur_input].hash,
-	    "current_input");
+  if (main_info->cur_video_input)
+    zcs_int (main_info->cur_video_input->hash, "current_input");
   else
-    zcs_int(0, "current_input");
+    zcs_int (0, "current_input");
 
   /* inputs, standards handling */
   printv("\n v4linterface");
@@ -810,7 +837,7 @@ static void shutdown_zapping(void)
    * Tell the overlay engine to shut down and to do a cleanup if necessary
    */
   printv(" overlay");
-  shutdown_overlay();
+  /* zilch. */
 
   /*
    * Shuts down the OSD info
