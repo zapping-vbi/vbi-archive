@@ -2,6 +2,7 @@
 
 	* list.h: double linked now
 	* fifotest.c: added
+	* yuv2rgb_mmx.c: added yuyv_rgba32, yuyv_rgb16
 
 28.05.2001	alirc plugin <garetxe@users.sf.net>
 
