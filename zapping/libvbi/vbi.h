@@ -17,6 +17,7 @@ struct raw_page
 	vt_extension		extension;
 	u8			drcs_mode[48];
 	int			num_triplets;
+	int			ait_page;
 };
 
 #define BUFS 4
@@ -36,7 +37,10 @@ struct vbi
 
 	vt_pagenum		initial_page;
 	magazine		magazine[9];	/* 1 ... 8; #0 unmodified level -1.5 default */
-	char			btt[800];
+
+	char			btt[0x800];
+	vt_pagenum		btt_link[15];
+	struct vt_page *	top_page[15];
 
     // page assembly
     struct raw_page rpage[8];	// one for each magazin

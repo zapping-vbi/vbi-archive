@@ -63,7 +63,7 @@ typedef enum {
 	PAGE_CODING_BYTES,
 	PAGE_CODING_TRIPLETS,
 	PAGE_CODING_HAMMING84,
-	PAGE_CODING_812812,
+	PAGE_CODING_AIT,
 	PAGE_CODING_META84
 } page_coding;
 
@@ -110,7 +110,7 @@ typedef struct {
 } vt_extension;
 
 typedef struct vt_triplet {
-	unsigned	stop : 8;
+	unsigned	stop : 8; // XXX useless
 	unsigned	address : 8;
 	unsigned	mode : 8;
 	unsigned	data : 8;
@@ -121,6 +121,11 @@ typedef struct vt_pagenum {
 	unsigned	pgno : 12;
 	unsigned	subno : 16;
 } vt_pagenum;
+
+typedef struct {
+	vt_pagenum	page;
+	unsigned char	text[12];
+} ait_entry;
 
 #define NO_PAGE(pgno) (((pgno) & 0xFF) == 0xFF)
 
@@ -156,6 +161,9 @@ struct vt_page
 			u8		bits[48][12 * 10 / 2];	/* XXX too large for a union? */
 			u8		mode[48];
 		}		gdrcs, drcs;
+
+		ait_entry	ait[46];
+
 	}		data;
 
 	/* added temporarily: */
@@ -181,6 +189,8 @@ struct vt_page
 #define MIP_NOW_AND_NEXT	0x7D
 #define MIP_TV_INDEX		0x7F
 #define MIP_TV_SCHEDULE		0x81
+#define MIP_SYSTEM_PAGE		0xE7
+#define MIP_TOP_PAGE		0xFE
 #define MIP_UNKNOWN		0xFF	/* Zapzilla internal code */
 
 typedef enum {

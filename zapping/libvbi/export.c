@@ -11,6 +11,10 @@
 
 #include "lang.h"
 
+/*
+    XXX t2-br p. 490 error?
+ */
+
 /* to be exported */
 
 typedef enum {
@@ -266,8 +270,8 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
 #undef printv
-#define printv printf
-// #define printv(templ, ...)
+// #define printv printf
+#define printv(templ, ...)
 
 
 
@@ -371,8 +375,10 @@ vbi_resolve_page(int x, int y, struct vt_page *vtp, int *page,
 // XXX new .ch:  123  123  112233  112233
 //                    123          112233
 
-	if (y == 24)
-		return vbi_resolve_flof(x, vtp, page, subpage);
+	if (y == 24) {
+		if (vtp->data.lop.flof)
+			return vbi_resolve_flof(x, vtp, page, subpage);
+	}
 
 	buffer[0] = buffer[41] = ' ';
 
@@ -398,6 +404,130 @@ vbi_resolve_page(int x, int y, struct vt_page *vtp, int *page,
 		}
 	
 	return FALSE;
+}
+
+/*
+ *  TOP navigation
+ */
+
+static bool
+top_label(struct vbi *vbi, font_descriptor *font,
+	  attr_char *acp, int pgno, int foreground, int ff)
+{
+	struct vt_page *vtp;
+	ait_entry *ait;
+	int i, j;
+
+	for (i = 0; i < 8; i++)
+		if (vbi->btt_link[i].type == 2) {
+			vtp = vbi->cache->op->get(vbi->cache,
+				vbi->btt_link[i].pgno, vbi->btt_link[i].subno, 0x3f7f);
+
+			if (!vtp) {
+				printv("top ait page %x not cached\n", vbi->btt_link[i].pgno);
+				continue;
+			} else if (vtp->function != PAGE_FUNCTION_AIT) {
+				printv("no ait page %x\n", vtp->pgno);
+				continue;
+			}
+
+			for (ait = vtp->data.ait, j = 0; j < 46; ait++, j++)
+				if (ait->page.pgno == pgno) {
+					for (i = 11; i >= 0; i--)
+						if (ait->text[i] > 0x20)
+							break;
+
+					if (ff && (i <= (11 - ff))) {
+						acp += (11 - ff - i) >> 1;
+
+						acp[i + 1].link_page = pgno;
+						acp[i + 1].link_subpage = ANY_SUB;
+
+						acp[i + 2].glyph = 0x003E;
+						acp[i + 2].foreground = foreground;
+						acp[i + 2].link_page = pgno;
+						acp[i + 2].link_subpage = ANY_SUB;
+
+						if (ff > 1) {
+							acp[i + 3].glyph = 0x003E;
+							acp[i + 3].foreground = foreground;
+							acp[i + 3].link_page = pgno;
+							acp[i + 3].link_subpage = ANY_SUB;
+						}
+					} else
+						acp += (11 - i) >> 1;
+
+					for (; i >= 0; i--) {
+						acp[i].glyph = glyph_lookup(font->G0, font->subset,
+							(ait->text[i] < 0x20) ? 0x20 : ait->text[i]);
+						acp[i].foreground = foreground;
+						acp[i].link_page = pgno;
+						acp[i].link_subpage = ANY_SUB;
+					}
+
+					return TRUE;
+				}
+		}
+
+	return FALSE;
+}
+
+static void
+top_navigation_bar(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp)
+{
+	ait_entry *ait;
+	attr_char ac;
+	int i, got;
+
+	printv("PAGE BTT: %d\n", vtp->vbi->btt[vtp->pgno - 0x100]);
+
+	memset(&ac, 0, sizeof(ac));
+
+	ac.foreground	= WHITE;
+	ac.background	= BLACK;
+	ac.opacity	= pg->page_opacity[1];
+	ac.glyph	= GL_SPACE;
+
+	for (i = 0; i < 40; i++)
+		pg->data[24][i] = ac;
+
+	if (0)
+		for (i = 0x100; i < 0x8FF; i++) {
+			printv("%x ", vtp->vbi->btt[i - 0x100] & 15);
+			if ((i & 0x3F) == 0x3F) putchar('\n');
+		}
+
+//	top_label(vbi, pg->font[0], &pg->data[24][1], vtp->pgno, RED, FALSE);
+
+	switch (vbi->btt[vtp->pgno - 0x100]) {
+	case 1: // subtitles?
+	default:
+/* test only */	top_label(vbi, pg->font[0], &pg->data[24][1], vtp->pgno, RED, FALSE);
+	case 4 ... 5:
+	case 6 ... 7:
+	case 8:
+	case 10:
+		for (i = vtp->pgno; i != vtp->pgno + 1; i = (i == 0) ? 0x89a : i - 1)
+			if (vbi->btt[i - 0x100] >= 4 && vbi->btt[i - 0x100] <= 7) {
+				top_label(vbi, pg->font[0], &pg->data[24][1], i, WHITE, 0);
+				break;
+			}
+
+		for (i = vtp->pgno + 1, got = FALSE; i != vtp->pgno; i = (i == 0x899) ? 0x100 : i + 1)
+			switch (vbi->btt[i - 0x100]) {
+			case 4 ... 5:
+				top_label(vbi, pg->font[0], &pg->data[24][27], i, YELLOW, 2);
+				return;
+
+			case 6 ... 7:
+				if (!got) {
+					top_label(vbi, pg->font[0], &pg->data[24][14], i, GREEN, 1);
+					got = TRUE;
+				}
+
+				break;
+			}
+	}
 }
 
 
@@ -1532,18 +1662,8 @@ fmt_page(int reveal,
 			memcpy(pg, &page, sizeof(struct fmt_page));
 	}
 
-{
-	int page;
-
-	page = vtp->pgno & 15;
-	if (page > 9) page = 1000;
-	page |= ((vtp->pgno >> 4) & 15) * 10;
-	if (page > 99) page = 1000;
-	page |= ((vtp->pgno >> 8) & 15) * 100;
-
-	if (page < 899)
-	    printf("PAGE BTT: %d\n", vtp->vbi->btt[page]);
-}
+	if (1 && !vtp->data.lop.flof)
+		top_navigation_bar(vtp->vbi, pg, vtp);
 
 #if TEST
 	for (row = 1; row < 24; row++)

@@ -77,6 +77,7 @@ printf("\n");
 
 	    if (vbi->cache)
 		cvtp = vbi->cache->op->put(vbi->cache, rvtp->page);
+
 	    if (cvtp && rvtp->extension.designations != 0) {
 		cvtp->data.unknown.extension = &cvtp->extension;
 	    }
@@ -96,7 +97,11 @@ printf("\n");
 
 
 
-
+static inline void
+dump_pagenum(vt_pagenum page)
+{
+	printf("T%x %3x/%04x\n", page.type, page.pgno, page.subno);
+}
 
 static void
 dump_extension(vt_extension *ext)
@@ -166,8 +171,14 @@ reset_magazines(struct vbi *vbi)
 	vbi->initial_page.pgno = 0x100;
 	vbi->initial_page.subno = ANY_SUB;
 
-	memset(vbi->magazine, 0, sizeof(vbi->magazine));
+	/* TOP Text */
+
 	memset(vbi->btt, 0xFF, sizeof(vbi->btt));
+//	memset(vbi->top_page, 0, sizeof(vbi->top_page));
+
+	/* Magazine defaults */
+
+	memset(vbi->magazine, 0, sizeof(vbi->magazine));
 
 	for (i = 0; i < 9; i++) {
 		mag = vbi->magazine + i;
@@ -653,41 +664,89 @@ parse_mip(magazine *mag, u8 *raw, int packet)
  *  http://www.irt.de, DEM 48.00 + PP
  *  (http://www.irt.de/IRT/publikationen/pflichtenhefte.htm)
  */
+static bool
+top_page_number(vt_pagenum *p, u8 *raw)
+{
+	char n[8];
+	int pgno, err, i;
+
+	for (err = i = 0; i < 8; i++)
+		err |= n[i] = hamm8a[raw[i]];
+
+	pgno = n[0] * 256 + n[1] * 16 + n[2];
+
+	if (err < 0 || pgno > 0x8FF)
+		return FALSE;
+
+	p->pgno = pgno;
+	p->subno = ((n[3] << 12) | (n[4] << 8) | (n[5] << 4) | n[6]) & 0x3f7f; // ?
+	p->type = n[7]; // ?
+
+	return TRUE;
+}
+
 static inline bool
 parse_btt(struct vbi *vbi, u8 *raw, int packet)
 {
+	static short dec2bcd[20] = {
+		0x000, 0x040, 0x080, 0x120, 0x160, 0x200, 0x240, 0x280, 0x320, 0x360,
+		0x400, 0x440, 0x480, 0x520, 0x560, 0x600, 0x640, 0x680, 0x720, 0x760
+	};
 	int err, i, j;
 
 	switch (packet) {
 	case 1 ... 20:
 	{
-		int index = (packet - 1) * 40;
+		int index = dec2bcd[packet - 1];
 		char n;
 
-		for (i = 0; i < 40; index++, i++) {
-			if ((n = hamm8a[*raw++]) >= 0) // ER
-				vbi->btt[index] = n;
-		}
+		if (index & 0x80)
+			for (i = 0; i < 10; raw++, index++, i++) {
+				if ((n = hamm8a[raw[0]]) >= 0) // ER
+					vbi->btt[index + 0x00] = n;
+				if ((n = hamm8a[raw[10]]) >= 0)
+					vbi->btt[index + 0x10] = n;
+				if ((n = hamm8a[raw[20]]) >= 0)
+					vbi->btt[index + 0x80] = n;
+				if ((n = hamm8a[raw[30]]) >= 0)
+					vbi->btt[index + 0x90] = n;
+			}
+		else
+			for (i = 0; i < 10; raw++, index++, i++) {
+				if ((n = hamm8a[raw[0]]) >= 0) // ER
+					vbi->btt[index + 0x00] = n;
+				if ((n = hamm8a[raw[10]]) >= 0)
+					vbi->btt[index + 0x10] = n;
+				if ((n = hamm8a[raw[20]]) >= 0)
+					vbi->btt[index + 0x20] = n;
+				if ((n = hamm8a[raw[30]]) >= 0)
+					vbi->btt[index + 0x30] = n;
+			}
 
 		break;
 	}
 
 	case 21 ... 23:
 	    {
-		int index = (packet - 21) * 5;
+		vt_pagenum *p = vbi->btt_link + (packet - 21) * 5;
 		char n[8];
 
-		for (i = 0; i < 5; raw += 10, index++, i++) {
-			for (err = j = 0; j < 8; j++)
-				err |= n[j] = hamm8a[raw[j]];
-
-			if (err < 0)
+		for (i = 0; i < 5; raw += 8, p++, i++) {
+			if (!top_page_number(p, raw))
 				continue;
 
-			// XXX
-			// pgno = (n[0] << 8) + (n[1] << 4) + n[2];
-			// 3..6 ?
-			// 7 ?
+			if (0) {
+				printf("BTT #%d: ", index);
+				dump_pagenum(*p);
+			}
+
+			switch (p->type) {
+			case 1: // MPT?
+			case 2: // AIT?
+				vbi->magazine[p->pgno >> 8].mip[p->pgno & 0xFF] = MIP_TOP_PAGE;
+				break;
+			}
+
 		}
 
 		break;
@@ -696,6 +755,38 @@ parse_btt(struct vbi *vbi, u8 *raw, int packet)
 
 	return TRUE;
 }
+
+static inline bool
+parse_ait(struct vt_page *vtp, u8 *raw, int packet)
+{
+	int i, n;
+	ait_entry *ait;
+
+	if (packet < 1 || packet > 23)
+		return TRUE;
+
+//	printf("parse_ait %d packet %d\n", vtp->ait_index, packet);
+
+	ait = vtp->data.ait + (packet - 1) * 2;
+
+	if (top_page_number(&ait[0].page, raw + 0)) {
+		for (i = 0; i < 12; i++)
+			if ((n = parity(raw[i + 8])) >= 0)
+				ait[0].text[i] = n;
+	}
+
+	if (top_page_number(&ait[1].page, raw + 20)) {
+		for (i = 0; i < 12; i++)
+			if ((n = parity(raw[i + 28])) >= 0)
+				ait[1].text[i] = n;
+	}
+
+	return TRUE;
+}
+
+
+
+
 
 /*
 0123456789012345678901234567890123456789
@@ -1167,42 +1258,6 @@ vt_packet(struct vbi *vbi, u8 *p)
 
 // printf("out %x %x\n", vbi->ppage->page->pgno, rvtp->page->pgno);
 
-if (0)
-if (vbi->ppage->page->pgno == 0x1F1
-) {
-	struct vt_page *vtp = vbi->ppage->page;
-	int i, j;
-
-	printf("MPT\n");
-	for (i = 1; i <= 23; i++) {
-		for (j = 0; j < 40; j++) {
-			printf("%x%x ", hamm8a[vtp->data.unknown.raw[i][j]], vbi->btt[(i-1)*40+j]);
-		}
-		printf("\n");
-	}
-}
-
-if (0)
-if (
-vbi->ppage->page->pgno == 0x1F2||
-vbi->ppage->page->pgno == 0x1F3
-) {
-	struct vt_page *vtp = vbi->ppage->page;
-	int i, j, k;
-
-	printf("AIT %x\n", vbi->ppage->page->pgno);
-	for (i = 1; i <= 23; i++) {
-		for (j = 0; j < 40; j += 20) {
-			for (k = 0; k < 8; k++)
-				printf("%x ", hamm8a[vtp->data.unknown.raw[i][j + k]]);
-			for (k = 8; k < 20; k++)
-				printf("%c", printable(vtp->data.unknown.raw[i][j + k]));
-			printf(" | \n");
-		}
-		printf("\n");
-	}
-}
-
 	    if (vbi->ppage->page->flags & PG_MAGSERIAL)
 		vbi_send_page(vbi, vbi->ppage, b1);
 	    vbi_send_page(vbi, rvtp, b1);
@@ -1250,25 +1305,9 @@ if ((b1 & 15) > 9 || b1 > 0x99)
 			    || cvtp->function == PAGE_FUNCTION_LOP)
 				memcpy(cvtp->data.unknown.raw[0], raw, 40);
 
-			cvtp->lop_lines = vtp->lop_lines;
-			cvtp->enh_lines = vtp->enh_lines;
-		} else {
-			switch (b1) {
-			case 0xFD:
-				cvtp->function = PAGE_FUNCTION_MIP;
-				break;
-
-			case 0xFE:
-				cvtp->function = PAGE_FUNCTION_MOT;
-				break;
-
-			default:
-				if (cvtp->pgno == 0x1F0) {
-					cvtp->function = PAGE_FUNCTION_BTT;
-					break;
-				}
-
+			if (cvtp->function == PAGE_FUNCTION_UNKNOWN) {
 				mag = vbi->magazine + mag8;
+
 
 				switch (mag->mip[b1]) {
 				case 0x01 ... 0x51:
@@ -1280,10 +1319,38 @@ if ((b1 & 15) > 9 || b1 > 0x99)
 				case 0x52 ... 0x6F:
 				case 0xD2 ... 0xDF:
 				case 0xE0 ... 0xE4: /* 0xE3 EPG/NexTView transport layer */
-				case 0xE7:
 				case 0xF0 ... 0xF3:
-				case 0xF8 ... 0xFE:
+				case 0xF8 ... 0xFD: /* 0xFD ACI page */
+				case MIP_SYSTEM_PAGE:
 					cvtp->function = PAGE_FUNCTION_UNKNOWN;
+					break;
+
+				case MIP_TOP_PAGE:
+					cvtp->function = PAGE_FUNCTION_UNKNOWN;
+//					printf("top page %x, link lookup\n", cvtp->pgno);
+
+					for (i = 0; i < 8; i++)
+						if (cvtp->pgno == vbi->btt_link[i].pgno)
+							break;
+					if (i < 8) {
+						switch (vbi->btt_link[i].type) {
+						case 1: /* probably MPT */
+//							printf("... probably MPT, ignored\n");
+							break;
+
+						case 2:
+//							printf("... is AIT %d\n", i);
+							cvtp->function = PAGE_FUNCTION_AIT;
+							break;
+
+						default:
+//							printf("... link %d, unknown type %d\n",
+//								i, vbi->btt_link[i].type);
+						}
+					} else {
+//						printf("... link not found\n");
+					}
+
 					break;
 
 				case 0xE5:
@@ -1294,6 +1361,94 @@ if ((b1 & 15) > 9 || b1 > 0x99)
 				case 0xE6:
 				case 0xEC ... 0xEF:
 					/* objects */
+			cvtp->function = PAGE_FUNCTION_UNKNOWN;
+					break;
+
+				default:
+					if (b1 <= 0x99 && (b1 & 15) <= 9)
+						cvtp->function = PAGE_FUNCTION_LOP;
+					else
+						cvtp->function = PAGE_FUNCTION_UNKNOWN;
+				}
+			}
+
+			cvtp->lop_lines = vtp->lop_lines;
+			cvtp->enh_lines = vtp->enh_lines;
+		} else {
+			mag = vbi->magazine + mag8;
+
+			if (cvtp->pgno == 0x1F0) {
+				cvtp->function = PAGE_FUNCTION_BTT;
+				vbi->magazine[1].mip[0xF0] = MIP_TOP_PAGE;
+				break;
+			}
+
+			switch (b1) {
+			case 0xFD:
+				cvtp->function = PAGE_FUNCTION_MIP;
+				mag->mip[0xFD] = MIP_SYSTEM_PAGE;
+				break;
+
+			case 0xFE:
+				cvtp->function = PAGE_FUNCTION_MOT;
+				mag->mip[0xFE] = MIP_SYSTEM_PAGE;
+				break;
+
+			default:
+
+				switch (mag->mip[b1]) {
+				case 0x01 ... 0x51:
+				case 0x70 ... 0xD1:
+				case 0xF4 ... 0xF7:
+					cvtp->function = PAGE_FUNCTION_LOP;
+					break;
+
+				case 0x52 ... 0x6F:
+				case 0xD2 ... 0xDF:
+				case 0xE0 ... 0xE4: /* 0xE3 EPG/NexTView transport layer */
+				case 0xF0 ... 0xF3:
+				case 0xF8 ... 0xFD: /* 0xFD ACI page */
+				case MIP_SYSTEM_PAGE:
+					cvtp->function = PAGE_FUNCTION_UNKNOWN;
+					break;
+
+				case MIP_TOP_PAGE:
+					cvtp->function = PAGE_FUNCTION_UNKNOWN;
+//					printf("top page %x, link lookup\n", cvtp->pgno);
+
+					for (i = 0; i < 8; i++)
+						if (cvtp->pgno == vbi->btt_link[i].pgno)
+							break;
+					if (i < 8) {
+						switch (vbi->btt_link[i].type) {
+						case 1: /* probably MPT */
+//							printf("... probably MPT, ignored\n");
+							break;
+
+						case 2:
+//							printf("*... is AIT %d\n", i);
+							cvtp->function = PAGE_FUNCTION_AIT;
+							break;
+
+						default:
+//							printf("... link %d, unknown type %d\n",
+//								i, vbi->btt_link[i].type);
+						}
+					} else {
+//						printf("... link not found\n");
+					}
+
+					break;
+
+				case 0xE5:
+				case 0xE8 ... 0xEB:
+					cvtp->function = PAGE_FUNCTION_DRCS;
+					break;
+
+				case 0xE6:
+				case 0xEC ... 0xEF:
+					/* objects */
+			cvtp->function = PAGE_FUNCTION_UNKNOWN;
 					break;
 
 				default:
@@ -1340,19 +1495,24 @@ if ((b1 & 15) > 9 || b1 > 0x99)
 				return FALSE;
 			break;
 
+		case PAGE_FUNCTION_MIP:
+			if (!parse_mip(vbi->magazine + mag8, p, packet))
+				return FALSE;
+			break;
+
 		case PAGE_FUNCTION_POP:
 		case PAGE_FUNCTION_GPOP:
 			if (!parse_pop(cvtp, p, packet))
 				return FALSE;
 			break;
 
-		case PAGE_FUNCTION_MIP:
-			if (!parse_mip(vbi->magazine + mag8, p, packet))
+		case PAGE_FUNCTION_BTT:
+			if (!parse_btt(vbi, p, packet))
 				return FALSE;
 			break;
 
-		case PAGE_FUNCTION_BTT:
-			if (!parse_btt(vbi, p, packet))
+		case PAGE_FUNCTION_AIT:
+			if (!(parse_ait(cvtp, p, packet)))
 				return FALSE;
 			break;
 
@@ -1377,6 +1537,11 @@ if ((b1 & 15) > 9 || b1 > 0x99)
 		case PAGE_FUNCTION_POP:
 		case PAGE_FUNCTION_GPOP:
 			return parse_pop(cvtp, p, packet);
+
+		case PAGE_FUNCTION_BTT:
+		case PAGE_FUNCTION_AIT:
+			/* ? */
+			return TRUE;
 
 		default:
 			break;
@@ -1714,7 +1879,7 @@ if(0)
 
 /* Quick Hack(tm) to read from a sample stream */
 
-// static char *sample_file = "libvbi/ccsamples/t2-br";
+// static char *sample_file = "libvbi/samples/t2-br";
 static char *sample_file = NULL; // disabled
 static FILE *sample_fi;
 
@@ -1839,7 +2004,7 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune, int big_buf)
     
     
 
-    if (not(vbi = malloc(sizeof(*vbi))))
+    if (not(vbi = calloc(1, sizeof(*vbi)))) // must clear for reset_magazines
     {
 	error("out of memory");
 	goto fail1;
@@ -1876,6 +2041,8 @@ fail1:
 void
 vbi_close(struct vbi *vbi)
 {
+    reset_magazines(vbi);
+
 //    fdset_del_fd(fds, vbi->fd);
     if (vbi->cache)
 	vbi->cache->op->close(vbi->cache);
