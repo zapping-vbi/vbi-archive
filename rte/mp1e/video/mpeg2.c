@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.1 2002-08-22 22:01:01 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.2 2002-09-01 15:48:22 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -241,58 +241,6 @@ picture_header			(unsigned int		temporal_reference,
 				 unsigned int		f_code11,
 				 rte_bool		bottom_field)
 {
-	bputl (&video_out, PICTURE_START_CODE, 32);
-
-	if (picture_coding_type == I_TYPE) {
-		bputl (&video_out, ((temporal_reference & 1023) << 22)
-		       + (picture_coding_type << 19) + (NO_VBV << 3) + (0 << 2), 32);
-		/*
-		 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
-		 *  extra_bit_picture '0', byte align '00'
-		 */
-	} else {
-		bputl (&video_out, ((temporal_reference & 1023) << 19)
-		       + (picture_coding_type << 16) + (NO_VBV << 0), 29);
-		/* temporal_reference [10], picture_coding_type [3], vbv_delay [16] */
-
-		if (picture_coding_type == P_TYPE) {
-			bputl (&video_out, (0 << 10) + (7 << 7) + (0 << 6) + 0, 11);
-			/*
-			 *  full_pel_forward_vector '0', forward_f_code '111',
-			 *  extra_bit_picture '0', byte align '000000'
-			 */
-		} else {
-			bputl (&video_out, (0 << 10) + (7 << 7)
-			       + (0 << 6) + (7 << 3) + (0 << 2) + 0, 11);
-			/*
-			 *  full_pel_forward_vector '0', forward_f_code '111',
-			 *  full_pel_backward_vector '0', backward_f_code '111',
-			 *  extra_bit_picture '0', byte align '00'
-			 */
-		}
-	}
-
-	bputl (&video_out, EXTENSION_START_CODE, 32);
-
-	bputl (&video_out, (PICTURE_CODING_EXTENSION_ID << 28)
-	       + (f_code00 << 24) + (f_code01 << 20)
-	       + (f_code10 << 16) + (f_code11 << 12)
-	       + (0 << 10) + ((bottom_field + 1) << 8)
-	       + (0 << 7) + (0 << 6)
-	       + (0 << 5) + (0 << 4)
-	       + (0 << 3) + (0 << 2)
-	       + (0 << 1) + (0 << 0), 32);
-	bputl (&video_out, (0 << 7) + (0 << 6) + 0, 8);
-	/*
-	 *  extension_start_code_identifier [4], f_code[s][t] [4 * 4],
-	 *  intra_dc_precision '00', picture_structure [2],
-	 *  top_field_first '0', frame_pred_frame_dct '0',
-	 *  concealment_motion_vectors '0', q_scale_type '0',
-	 *  intra_vlc_format '0', alternate_scan '0',
-	 *  repeat_first_field '0', chroma_420_type '0',
-	 *  progressive_frame '0', composite_display_flag '0',
-	 *  byte align '000000'
-	 */
 }
 
 static inline void
@@ -300,81 +248,6 @@ template_slice_i		(mpeg1_context *	mpeg1,
 				 filter_param *		fp,
 				 rte_bool		motion)
 {
-	reset_dct_pred();
-
-	for (mb_col = 0; mb_col < mb_width; mb_col++) {
-		unsigned int var;
-		int quant;
-		struct bs_rec mark;
-
-		pr_start(41, "Filter");
-		var = fp->func (fp, mb_col, mb_row);
-		pr_end(41);
-
-		emms();
-
-		{
-			quant = rc_quant(&mpeg1->rc, MB_INTRA,
-					 var / VARQ + 1, 0.0,
-					 bwritten(&video_out), 0, quant_max);
-
-			quant = quant_res_intra[quant];
-		}
-
-		/* Encode macroblock */
-
-		brewind(&mark, &video_out);
-
-		for (;;) {
-			pr_start(22, "FDCT intra");
-			fdct_intra(quant); // mblock[0] -> mblock[1]
-			pr_end(22);
-
-			bepilog(&video_out);
-
-			if (__builtin_expect(mb_col == 0, 0)) {
-				balign(&video_out);
-				bstartq(SLICE_START_CODE + mb_row);
-				bcatq((quant << 3) + 0x3, 8);
-				bputq(&video_out, 40);
-				/*
-				 *  quantiser_scale_code 'xxxxx', extra_bit_slice '0';
-				 *  macroblock_address_increment '1', macroblock_type '1' (I Intra)
-				 */
-			} else if (MB_HIST(mb_col - 1 /* last */).quant != quant) {
-				bputl(&video_out, 0xA0 + quant, 8);
-				/*
-				 *  macroblock_address_increment '1', macroblock_type '01' (I Intra, Quant),
-				 *  quantiser_scale_code 'xxxxx'
-				 */
-			} else
-				bputl(&video_out, 0x3, 2);
-				/* macroblock_address_increment '1', macroblock_type '1' (I Intra) */
-
-			pr_start(44, "Encode intra");
-
-			if (__builtin_expect(!mp1e_p6_mpeg2_encode_intra_14(), 1)) { // mblock[1]
-				pr_end(44);
-				break;
-			}
-
-			pr_end(44);
-
-			quant++;
-			brewind(&video_out, &mark);
-
-			pr_event(42, "I/intra overflow");
-		}
-
-		bprolog(&video_out);
-
-		mpeg1->quant_sum += quant;
-		MB_HIST(mb_col).quant = quant;
-	}
-
-	MB_HIST(-1) = MB_HIST(mb_col - 1);
-
-	mba_row_incr();
 }
 
 /* obsolete */
@@ -384,54 +257,7 @@ template_field_i		(mpeg1_context *	mpeg1,
 				 rte_bool		bottom,
 				 rte_bool		motion)
 {
-	int S;
-
-	printv (3, "Encoding I field%d #%lld GOP #%d, ref=%c\n",
-		bottom, video_frame_count, mpeg1->gop_frame_count, "FT"[mpeg1->referenced]);
-
-	pr_start(21, "Field I");
-
-	rc_picture_start(&mpeg1->rc, I_TYPE, mb_num);
-
-	mpeg1->quant_sum = 0;
-
-	swap(mpeg1->oldref, newref);
-
-	reset_mba();
-
-	{
-		struct mblock_hist m = { -100, 0, { 0, 0 }};
-		int i;
-
-		for (i = -1; i < mb_width; i++)
-			mpeg1->mb_hist[i + 1] = m;
-	}
-
-	/* Picture header */
-
-	bepilog(&video_out);
-
-	picture_header (mpeg1->gop_frame_count, I_TYPE, 15, 15, 15, 15, bottom);
-
-	bprolog(&video_out);
-
-	mpeg1->filter_param[0].src = org;
-	mpeg1->filter_param[1].src = org;
-
-	for (mb_row = 0; mb_row < mb_height; mb_row++)
-		template_slice_i (mpeg1, &mpeg1->filter_param[bottom], motion);
-
-	emms();
-
-	/* Rate control */
-
-	S = bflush(&video_out);
-
-	rc_picture_end(&mpeg1->rc, I_TYPE, S, mpeg1->quant_sum, mb_num);
-
-	pr_end(21);
-
-	return S >> 3;
+	return 0;
 }
 
 /* obsolete */
