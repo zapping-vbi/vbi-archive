@@ -485,11 +485,10 @@ add_controls			(struct control_window *cb,
   cb->table = NULL;
   cb->index = 0;
 
-    for (ctrl = info->controls; ctrl; ctrl = ctrl->next)
-    {
-      if (ctrl->ignore)
-	continue;
+  ctrl = NULL;
 
+  while ((ctrl = tv_control_next (info, ctrl)))
+    {
       if ((cb->index % 20) == 0)
 	{
 	  if (cb->table)
@@ -638,11 +637,10 @@ update_control_box		(tveng_device_info *	info)
 
   c = ToolBox->controls;
 
-  for (ctrl = info->controls; ctrl; ctrl = ctrl->next)
-    {
-      if (ctrl->ignore)
-	continue;
+  ctrl = NULL;
 
+  while ((ctrl = tv_control_next (info, ctrl)))
+    {
       /* XXX Is this safe? Unlikely. */
       if (!c || c->ctrl != ctrl)
 	goto rebuild;
@@ -871,31 +869,32 @@ load_control_values		(tveng_device_info *	info,
   if (!tcc || num_controls == 0)
     return 0;
 
-  for (ctrl = info->controls; ctrl; ctrl = ctrl->next)
-    if (!ctrl->ignore)
-      for (i = 0; i < num_controls; i++)
-	if (normstrcmp (ctrl->label, tcc[i].name))
-	  {
-	    gint value;
+  ctrl = NULL;
 
-	    value = rint (ctrl->minimum
-			  + (ctrl->maximum - ctrl->minimum)
-			  * tcc[i].value);
+  while ((ctrl = tv_control_next (info, ctrl)))
+    for (i = 0; i < num_controls; i++)
+      if (normstrcmp (ctrl->label, tcc[i].name))
+	{
+	  gint value;
 
-	    if (ctrl->id == TV_CONTROL_ID_MUTE)
-	      {
-		if (skip_mute)
-		  mute = value;
-		else
-		  set_mute (value, /* controls */ TRUE, /* osd */ FALSE);
-	      }
-	    else
-	      {
-		tveng_set_control (ctrl, value, info);
-	      }
+	  value = rint (ctrl->minimum
+			+ (ctrl->maximum - ctrl->minimum)
+			* tcc[i].value);
 
-	    break;
-	  }
+	  if (ctrl->id == TV_CONTROL_ID_MUTE)
+	    {
+	      if (skip_mute)
+		mute = value;
+	      else
+		set_mute (value, /* controls */ TRUE, /* osd */ FALSE);
+	    }
+	  else
+	    {
+	      tveng_set_control (ctrl, value, info);
+	    }
+
+	  break;
+	}
 
   return mute;
 }
@@ -917,22 +916,21 @@ store_control_values		(tveng_device_info *	info,
   tcc = NULL;
   num_controls = 0;
 
-  for (ctrl = info->controls; ctrl; ctrl = ctrl->next)
-    if (!ctrl->ignore)
-      num_controls++;
+  ctrl = NULL;
+
+  while ((ctrl = tv_control_next (info, ctrl)))
+    num_controls++;
 
   if (num_controls > 0)
     {
       tcc = g_malloc (sizeof (*tcc) * num_controls);
 
-      ctrl = info->controls;
+      ctrl = NULL;
+      i = 0;
 
-      for (i = 0; i < num_controls; ctrl = ctrl->next)
+      while (i < num_controls && (ctrl = tv_control_next (info, ctrl)))
 	{
 	  int value;
-
-	  if (ctrl->ignore)
-	    continue;
 
 	  value = ctrl->value;
 
@@ -1159,7 +1157,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
 
   if (info->current_mode == TVENG_CAPTURE_PREVIEW)
     osd_render_markup (NULL,
-	_("Channel: <span foreground=\"yellow\">%s</span>"), channel->name);
+	_("<span foreground=\"yellow\">%s</span>"), channel->name);
 #endif
 }
 
@@ -1803,8 +1801,10 @@ py_control_incr			(PyObject *self, PyObject *args)
   if (i >= N_ELEMENTS (controls))
     goto done;
 
-  for (tc = main_info->controls; tc; tc = tc->next)
-    if (tc->id == controls[i].id && !tc->ignore)
+  tc = NULL;
+
+  while ((tc = tv_control_next (main_info, tc)))
+    if (tc->id == controls[i].id)
       break;
 
   if (!tc)
