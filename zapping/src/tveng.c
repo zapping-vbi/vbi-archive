@@ -24,11 +24,8 @@
   This file is separated so zapping doesn't need to know about V4L[2]
 */
 
-#include "../site_def.h"
-
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "site_def.h"
+#include "config.h"
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -48,12 +45,14 @@
 #include "tveng25.h" /* V4L2 2.5 specific headers */
 #include "tvengxv.h" /* XVideo specific headers */
 #include "tvengemu.h" /* Emulation device */
+#include "tvengbktr.h" /* Emulation device */
 #include "tveng_private.h" /* private definitions */
 
 #include "globals.h" /* XXX for vidmodes, dga_param */
 
 //#include "../common/types.h"
 #include "zmisc.h"
+#include "../common/device.h"
 
 #define TVLOCK								\
 ({									\
@@ -97,6 +96,7 @@ static tveng_controller tveng_controllers[] = {
   tveng25_init_module,
   tveng2_init_module,
   tveng1_init_module,
+  tvengbktr_init_module,
   tvengemu_init_module
 };
 
@@ -617,7 +617,7 @@ do {									\
 
 #define NEXT_NODE_FUNC(item, kind)					\
 const tv_##kind *							\
-tv_next_##item			(tveng_device_info *	info,		\
+tv_next_##item			(const tveng_device_info *info,		\
 				 const tv_##kind *	p)		\
 {									\
 	if (p)								\
@@ -960,7 +960,7 @@ tveng_set_standard_by_name(const char * name, tveng_device_info * info)
  */
 
 tv_control *
-tv_next_control			(tveng_device_info *	info,
+tv_next_control			(const tveng_device_info *info,
 				 const tv_control *	control)
 {
 	tv_control *next_control;
@@ -2413,26 +2413,32 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 		info->fd = 0;
 	}
 
-	pid = fork ();
-
-	if (pid == -1) {
+	switch ((pid = fork ())) {
+	case -1: /* error */
 		info->tveng_errno = errno;
 		t_error("fork()", info);
 		goto failure;
-	} else if (pid == 0) {
-		/* Child process */
 
-		execvp ("zapping_setup_fb", argv);
+	case 0: /* in child */
+		/* First try the zapping_setup_fb install path. */
+		r = execvp (ZSFB_DIR "zapping_setup_fb", argv);
 
-		/* This shouldn't be reached if everything suceeds */
-		perror("execvp(zapping_setup_fb)");
+		if (-1 == r && ENOENT == errno) {
+			/* Try in $PATH. */
+			r = execvp ("zapping_setup_fb", argv);
 
-		_exit(2); /* zapping setup_fb on error returns 1 */
+			if (-1 == r && ENOENT == errno)
+				_exit (2);
+		}
+
+		_exit (3); /* zapping setup_fb on error returns 1 */
+
+	default: /* in parent */
+		while (-1 == (r = waitpid (pid, &status, 0))
+		       && EINTR == errno)
+			;
+		break;
 	}
-
-	/* Parent process */
-
-	r = waitpid (pid, &status, 0);
 
 	{
 		/* FIXME need a safer solution. */
@@ -2443,44 +2449,41 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	if (-1 == r) {
 		info->tveng_errno = errno;
-		t_error("waitpid", info);
+		t_error ("waitpid", info);
 		goto failure;
 	}
 
 	if (!WIFEXITED (status)) {
-		/* zapping_setup_fb exited abnormally */
 		info->tveng_errno = errno;
-		t_error_msg("WIFEXITED(status)", 
-			    "zapping_setup_fb exited abnormally, check stderr",
-			    info);
+		t_error_msg ("WIFEXITED(status)", 
+			     "zapping_setup_fb exited abnormally, check stderr",
+			     info);
 		goto failure;
 	}
 
 	switch (WEXITSTATUS (status)) {
-	case 0:
+	case 0: /* ok */
 		if (!info->priv->module.get_overlay_buffer (info, &dma))
 			goto failure;
+
 		if (!validate_overlay_buffer (target, &dma))
 			goto failure;
+
 		break;
 
-	case 1:
-		info -> tveng_errno = -1;
-		t_error_msg("case 1",
-			    "zapping_setup_fb failed to set up the video",
-			    info);
+	case 1: /* zapping_setup_fb failure */
+		info->tveng_errno = -1;
+		t_error_msg ("1", "zapping_setup_fb failed", info);
 		goto failure;
 
-	case 2:
-		info -> tveng_errno = -1;
-		t_error_msg("case 2",
-			    _("Couldn't locate zapping_setup_fb, check your install"),
-			    info);
+	case 2: /* zapping_setup_fb ENOENT */
+		info->tveng_errno = ENOENT;
+		t_error_msg ("ENOENT", "zapping_setup_fb not found", info);
 		goto failure;
 
 	default:
-		info -> tveng_errno = -1;
-		t_error_msg("case x", "Unknown error in zapping_setup_fb", info);
+		info->tveng_errno = -1;
+		t_error_msg ("?", "Unknown error in zapping_setup_fb", info);
 	failure:
 		RETURN_UNTVLOCK (FALSE);
 	}
@@ -3361,8 +3364,35 @@ void tveng_mutex_unlock(tveng_device_info * info)
   UNTVLOCK;
 }
 
+#ifndef HAVE_STRNDUP
+
 char *
-tveng_strdup_printf(const char *templ, ...)
+tv_strndup			(const char *		s,
+				 size_t			size)
+{
+	char *d;
+	size_t len;
+
+	if (NULL == s || size <= 0)
+		return NULL;
+
+	len = strlen (s);
+	len = MIN (len, size);
+
+	if (!(d = malloc (len + 1)))
+		return NULL;
+
+	memcpy (d, s, len);
+	d[len] = 0;
+
+	return d;
+}
+
+#endif /* HAVE_STRNDUP */
+
+/* XXX use asprintf when available */
+char *
+tv_strdup_printf (const char *templ, ...)
 {
   char *s, buf[512];
   va_list ap;
