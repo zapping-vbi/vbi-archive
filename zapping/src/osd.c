@@ -23,6 +23,8 @@
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <pthread.h>
+#define ZCONF_DOMAIN "/zapping/options/osd/"
+#include "zconf.h"
 #include "osd.h"
 #include "zmisc.h"
 #include "x11stuff.h"
@@ -97,6 +99,18 @@ startup_osd(void)
   osd_model = ZMODEL(zmodel_new());
 
   memset(&osd_page, 0, sizeof(struct fmt_page));
+
+  zcc_int(0, "Which kind of OSD should be used", "osd_type");
+  zcc_char("-adobe-times-bold-r-normal-*-14-*-*-*-p-*-iso8859-1",
+	   "Default font", "font");
+
+  zcc_float(1.0, "Default fg r component", "fg_r");
+  zcc_float(1.0, "Default fg g component", "fg_g");
+  zcc_float(1.0, "Default fg b component", "fg_b");
+
+  zcc_float(0.0, "Default bg r component", "bg_r");
+  zcc_float(0.0, "Default bg g component", "bg_g");
+  zcc_float(0.0, "Default bg b component", "bg_b");
 }
 
 void

@@ -1,3 +1,14 @@
+17.09.2001	OSD properties <garetxe@users.sf.net>
+
+	* osd.c: Finally(?) decided to try the gdk way, added properties
+	dialog handling.
+	* fr.po: Update by Christian.
+	* ttxview.c: Fixed a typo that broke the automatic overlaying of
+	subtitles, treat pages with TRANSPARENT background as subtitles too.
+	* Makefile.am: Added autogen.sh to the distro, so prepare_dist.sh
+	works out of the box.
+	* ru.po: Removed, unmaintained for a number of releases.
+	
 16.09.2001	SGML->attr_char <garetxe@users.sf.net>
 
 	* zvbi.c: Wrote a first version of the SGML->attr_char converter,

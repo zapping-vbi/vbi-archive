@@ -209,7 +209,6 @@ zmisc_restore_previous_mode(tveng_device_info * info)
   tveng, a new routine is needed.
   Returns whatever tveng returns, but we print the message ourselves
   too, so no need to aknowledge it to the user.
-  Side efects: Stops whatever mode was being used before.
 */
 int
 zmisc_switch_mode(enum tveng_capture_mode new_mode,
@@ -452,7 +451,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   /* Update the standards, channels, etc */
   zmodel_changed(z_input_model);
   /* Updating the properties is not so useful, and it isn't so easy,
-     since there might be multiple properties dialog open */
+     since there might be multiple properties dialogs open */
   tveng_set_mute(muted, info);
 
   /* Find optimum size for widgets */
@@ -581,7 +580,7 @@ z_menu_get_index		(GtkWidget	*menu,
 gint
 z_option_menu_get_active	(GtkWidget	*option_menu)
 {
-  option_menu = GTK_WIDGET(GTK_OPTION_MENU(option_menu)->menu);
+  option_menu = gtk_option_menu_get_menu(GTK_OPTION_MENU(option_menu));
 
   return g_list_index(GTK_MENU_SHELL(option_menu)->children,
 		      gtk_menu_get_active(GTK_MENU(option_menu)));

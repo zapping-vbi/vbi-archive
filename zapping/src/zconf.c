@@ -544,7 +544,9 @@ void zconf_set_string(const gchar * new_value, const gchar * path)
   g_assert(path != NULL);
   g_assert(zconf_started == TRUE);
   g_assert(zconf_root != NULL);
-  g_assert(new_value != NULL);
+
+  if (!new_value)
+    new_value = "";
 
   key = p_zconf_resolve(path, zconf_root);
 

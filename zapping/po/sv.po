@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6\n"
-"POT-Creation-Date: 2001-08-31 22:22+0200\n"
+"POT-Creation-Date: 2001-09-18 01:27+0200\n"
 "PO-Revision-Date: 2001-08-31 01:29+01:00\n"
 "Last-Translator: <snout@ctrl-c.liu.se>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -144,11 +144,11 @@ msgstr ""
 "%s"
 
 # src/interface.c:247
-#: src/callbacks.c:193 src/callbacks.c:385 src/main.c:731
+#: src/callbacks.c:193 src/callbacks.c:373 src/main.c:731
 msgid "Show controls"
 msgstr "Visa Inställningar"
 
-#: src/callbacks.c:194 src/callbacks.c:386 src/main.c:732
+#: src/callbacks.c:194 src/callbacks.c:374 src/main.c:732
 msgid "Show the menu and the toolbar"
 msgstr "Visa Meny och Verktyg"
 
@@ -203,20 +203,20 @@ msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr "En TV-visare för Gnome skrivbordsomgivning"
 
 # src/v4l2interface.c:344
-#: glade/glade_strings.c:28 glade/glade_strings.c:216 src/callbacks.c:180
+#: glade/glade_strings.c:28 glade/glade_strings.c:234 src/callbacks.c:180
 msgid "Hide controls"
 msgstr "Göm kontrollerna"
 
-#: glade/glade_strings.c:27 glade/glade_strings.c:215 src/callbacks.c:181
+#: glade/glade_strings.c:27 glade/glade_strings.c:233 src/callbacks.c:181
 msgid "Hide the menu and the toolbar"
 msgstr "Göm Meny och Verktygsfält"
 
-#: src/callbacks.c:367
+#: src/callbacks.c:355
 #, fuzzy
 msgid "Overlay this page"
 msgstr "Använd Overlay för denna sida"
 
-#: src/callbacks.c:368 src/zmisc.c:280
+#: src/callbacks.c:356 src/zmisc.c:279
 msgid "Return to windowed mode and use the current page as subtitles"
 msgstr "Återgå till fönsterläge och använd denna sida som textremsa"
 
@@ -342,7 +342,7 @@ msgstr "Ingångar"
 msgid "No tuned channels"
 msgstr "Inga inställda kanaler"
 
-#: src/zvbi.c:139
+#: src/zvbi.c:140
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
@@ -352,11 +352,11 @@ msgstr ""
 "%s (%d)"
 
 #. pixmaps not installed
-#: src/zvbi.c:399
+#: src/zvbi.c:401
 msgid "Click me"
 msgstr "Klicka på mig"
 
-#: src/zvbi.c:433
+#: src/zvbi.c:435
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
@@ -365,21 +365,21 @@ msgstr ""
 "Öppna denna länk med den förvalda webbläsaren.\n"
 "Du kan ställa in detta i GNOMEs Kontrollpanel, under Handlers/Url "
 
-#: src/zvbi.c:440
+#: src/zvbi.c:442
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s: Teletext sida %x"
 
-#: src/zvbi.c:443
+#: src/zvbi.c:445
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Teletext sida %x"
 
-#: src/zvbi.c:444
+#: src/zvbi.c:446
 msgid "Open this page with Zapzilla"
 msgstr "Öppna denna sida med Zapzilla"
 
-#: src/zvbi.c:537
+#: src/zvbi.c:539
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -394,7 +394,7 @@ msgstr ""
 " och skapa /dev/vbi0 med mknod. Om det inte fungerar, så kan du stänga av "
 "VBI i Inställningar/Alternativ/VBI-val/Slå på VBI-avkodning."
 
-#: src/zvbi.c:549
+#: src/zvbi.c:551
 #, c-format
 msgid ""
 "Failed to access vbi device:\n"
@@ -406,18 +406,18 @@ msgstr ""
 "%s"
 
 #. should not happen
-#: src/zvbi.c:552
+#: src/zvbi.c:554
 #, c-format
 msgid "Failed to access vbi device %s, cause unknown.\n"
 msgstr "Kunde inte komma åt VBI-enheten %s, okänt skäl.\n"
 
-#: src/zvbi.c:1751
+#: src/zvbi.c:1754
 #, fuzzy, c-format
 msgid "%d minute"
 msgid_plural "%d minutes"
 msgstr[0] "minut"
 
-#: src/zvbi.c:1753
+#: src/zvbi.c:1756
 #, c-format
 msgid "%d h %d m"
 msgstr "%d h %d m"
@@ -426,7 +426,7 @@ msgstr "%d h %d m"
 msgid "TV"
 msgstr "TV"
 
-#: src/properties.c:135 src/properties.c:142 src/properties.c:149
+#: src/properties.c:175 src/properties.c:182 src/properties.c:189
 #: src/tveng.c:273
 msgid "Camera"
 msgstr "Kamera"
@@ -444,65 +444,65 @@ msgstr "Filter"
 msgid "Colorkey"
 msgstr "Färgnyckel"
 
-#: src/tveng1.c:992
+#: src/tveng1.c:962
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng1.c:993
+#: src/tveng1.c:963
 msgid "Stereo"
 msgstr "Stereo"
 
-#: src/tveng1.c:994
+#: src/tveng1.c:964
 msgid "Alternate 1"
 msgstr "Språk 1"
 
-#: src/tveng1.c:995
+#: src/tveng1.c:965
 msgid "Alternate 2"
 msgstr "Språk 2"
 
-#: src/tveng1.c:1106 src/tveng2.c:892
+#: src/tveng1.c:1076 src/tveng2.c:872
 msgid "Brightness"
 msgstr "Ljusstyrka"
 
-#: src/tveng1.c:1116 src/tveng2.c:895
+#: src/tveng1.c:1086 src/tveng2.c:875
 msgid "Hue"
 msgstr "Färgton"
 
-#: src/tveng1.c:1126
+#: src/tveng1.c:1096
 msgid "Colour"
 msgstr "Färg"
 
 # src/interface.c:247
-#: src/tveng1.c:1136 src/tveng2.c:893
+#: src/tveng1.c:1106 src/tveng2.c:873
 msgid "Contrast"
 msgstr "Kontrast"
 
-#: src/tveng1.c:1149 src/tveng1.c:1478 src/tveng1.c:1491 src/tveng2.c:911
+#: src/tveng1.c:1119 src/tveng1.c:1448 src/tveng1.c:1461 src/tveng2.c:891
 msgid "Mute"
 msgstr "Tyst"
 
-#: src/tveng1.c:1161 src/tveng2.c:910
+#: src/tveng1.c:1131 src/tveng2.c:890
 msgid "Volume"
 msgstr "Volym"
 
-#: src/tveng1.c:1173 src/tveng2.c:917
+#: src/tveng1.c:1143 src/tveng2.c:897
 msgid "Bass"
 msgstr "Bas"
 
-#: src/tveng1.c:1185 src/tveng2.c:915
+#: src/tveng1.c:1155 src/tveng2.c:895
 msgid "Treble"
 msgstr "Diskant"
 
 # src/frequencies.c:827
-#: src/tveng1.c:1200 src/tveng2.c:913
+#: src/tveng1.c:1170 src/tveng2.c:893
 msgid "Balance"
 msgstr "Balans"
 
-#: src/tveng1.c:1213
+#: src/tveng1.c:1183
 msgid "Audio Decoding"
 msgstr "Ljudavkodning"
 
-#: src/tveng1.c:1614
+#: src/tveng1.c:1584
 msgid "There are no tuners for the active input"
 msgstr "Det finns inga tuners för den aktiva ingången"
 
@@ -522,79 +522,79 @@ msgstr "Tyvärr, \"%s\" stöder inte strömmning"
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr "Tyvärr, \"%s\" stöder inte select() på fildeskriptorer"
 
-#: src/tveng2.c:894
+#: src/tveng2.c:874
 msgid "Saturation"
 msgstr "Fyllnad"
 
-#: src/tveng2.c:896
+#: src/tveng2.c:876
 msgid "Whiteness"
 msgstr "Vitnivå"
 
-#: src/tveng2.c:897
+#: src/tveng2.c:877
 msgid "Black level"
 msgstr "Svartnivå"
 
 # src/frequencies.c:827
-#: src/tveng2.c:898
+#: src/tveng2.c:878
 msgid "White balance"
 msgstr "Vitbalans"
 
-#: src/tveng2.c:899
+#: src/tveng2.c:879
 msgid "Do white balance"
 msgstr "Automatisk vitbalans"
 
 # src/frequencies.c:827
-#: src/tveng2.c:900
+#: src/tveng2.c:880
 msgid "Red balance"
 msgstr "Rödbalans"
 
 # src/frequencies.c:827
-#: src/tveng2.c:901
+#: src/tveng2.c:881
 msgid "Blue balance"
 msgstr "Blåbalans"
 
-#: src/tveng2.c:902
+#: src/tveng2.c:882
 msgid "Gamma"
 msgstr "Gamma"
 
-#: src/tveng2.c:903
+#: src/tveng2.c:883
 msgid "Exposure"
 msgstr "Exposition"
 
-#: src/tveng2.c:904
+#: src/tveng2.c:884
 msgid "Auto gain"
 msgstr "Automatisk förstärkning"
 
-#: src/tveng2.c:905
+#: src/tveng2.c:885
 msgid "Gain"
 msgstr "Förstärkning"
 
-#: src/tveng2.c:906
+#: src/tveng2.c:886
 msgid "HCenter"
 msgstr "Horisontalcentrering"
 
-#: src/tveng2.c:907
+#: src/tveng2.c:887
 msgid "VCenter"
 msgstr "Vertikalcentrering"
 
-#: src/tveng2.c:908
+#: src/tveng2.c:888
 msgid "Horizontal flipping"
 msgstr "Horizontalspegling"
 
-#: src/tveng2.c:909
+#: src/tveng2.c:889
 msgid "Vertical flipping"
 msgstr "Vertikalspegling"
 
-#: src/tveng2.c:912
+#: src/tveng2.c:892
 msgid "Audio Mute"
 msgstr "Ljud Av"
 
 # src/frequencies.c:827
-#: src/tveng2.c:914
+#: src/tveng2.c:894
 msgid "Audio Balance"
 msgstr "Ljudbalans"
 
-#: src/tveng2.c:916
+#: src/tveng2.c:896
 msgid "Loudness"
 msgstr "Ljudstyrka"
 
@@ -656,106 +656,106 @@ msgstr ""
 "kontrollfel: \"%s\" i plugin %s skulle vara \"%s\", men är: \"%s\". Hashes "
 "är 0x%x respektive 0x%x"
 
-#: src/zmisc.c:273
+#: src/zmisc.c:272
 msgid "Use Zapping as a Teletext navigator [Ctrl+Alt+T]"
 msgstr "Använda Zapping som Teletext-Navigator [Ctrl-Alt-T]"
 
-#: src/zmisc.c:338
+#: src/zmisc.c:343
 #, c-format
 msgid "Preview will not work: %s"
 msgstr "Preview fungerar inte: %s"
 
-#: src/zmisc.c:420
+#: src/zmisc.c:425
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI har blivit avstängd, eller fungerar inte."
 
-#: src/zmisc.c:667
+#: src/zmisc.c:672
 msgid "The path must start with /"
 msgstr "Katalognamnet måste börja med /"
 
-#: src/zmisc.c:682
+#: src/zmisc.c:687
 #, c-format
 msgid "Cannot create %s: %s"
 msgstr "Kan inte skapa %s: %s"
 
-#: src/zmisc.c:695
+#: src/zmisc.c:700
 #, c-format
 msgid "%s is not a directory"
 msgstr "%s är inte en katalog."
 
-#: src/properties.c:87
+#: src/properties.c:127
 msgid "Can capture to memory.\n"
 msgstr "Kan spela in till minnet.\n"
 
-#: src/properties.c:89
+#: src/properties.c:129
 msgid "Has some tuner.\n"
 msgstr "Har en tuner.\n"
 
-#: src/properties.c:91
+#: src/properties.c:131
 msgid "Supports the teletext service.\n"
 msgstr "Stöder teletext.\n"
 
-#: src/properties.c:93
+#: src/properties.c:133
 msgid "Can overlay the image.\n"
 msgstr "Stöder overlay.\n"
 
-#: src/properties.c:95
+#: src/properties.c:135
 msgid "Can chromakey the image.\n"
 msgstr "Kan överlägga (chromakey) bilden.\n"
 
-#: src/properties.c:97
+#: src/properties.c:137
 msgid "Clipping rectangles are supported.\n"
 msgstr "Clipping stöds.\n"
 
-#: src/properties.c:99
+#: src/properties.c:139
 msgid "Framebuffer memory is overwritten.\n"
 msgstr "Bildminnet har skrivits över.\n"
 
-#: src/properties.c:101
+#: src/properties.c:141
 msgid "The capture can be scaled.\n"
 msgstr "Bilden kan skalas.\n"
 
-#: src/properties.c:103
+#: src/properties.c:143
 msgid "Only monochrome is available\n"
 msgstr "Endast monokrom är tillgängligt\n"
 
-#: src/properties.c:105
+#: src/properties.c:145
 msgid "The capture can be zoomed\n"
 msgstr "Inzoomning är möjlig\n"
 
 # src/v4l2interface.c:344
-#: src/properties.c:116
+#: src/properties.c:156
 msgid "No available inputs"
 msgstr "Inga tillgängliga ingångar"
 
-#: src/properties.c:118
+#: src/properties.c:158
 msgid "Your video device has no inputs"
 msgstr "Din videoenhet har inga ingångar"
 
-#: src/properties.c:132
+#: src/properties.c:172
 #, c-format
 msgid "%s"
 msgstr "%s"
 
-#: src/properties.c:134 src/properties.c:141 src/properties.c:148
+#: src/properties.c:174 src/properties.c:181 src/properties.c:188
 msgid "TV input"
 msgstr "TV-ingång"
 
-#: src/properties.c:139
+#: src/properties.c:179
 #, c-format
 msgid "%s with a tuner"
 msgstr "%s med en tuner"
 
-#: src/properties.c:146
+#: src/properties.c:186
 #, c-format
 msgid "%s with %d tuners"
 msgstr "%s med %d tuners"
 
-#: src/properties.c:621
+#: src/properties.c:742
 msgid "No plugin accepts this page."
 msgstr "Ingen plugin accepterar denna sida."
 
-#: src/properties.c:656
+#: src/properties.c:777
 msgid ""
 "The plugin that created the active page doesn't provide help for it. Sorry."
 msgstr ""
@@ -779,7 +779,7 @@ msgstr "Lägg till kanal"
 msgid "New channel name:"
 msgstr "Nytt kanalnamn:"
 
-#: src/channel_editor.c:1356
+#: src/channel_editor.c:1380
 #, c-format
 msgid ""
 "Channel autosearching won't work with XVideo.\n"
@@ -794,7 +794,7 @@ msgstr ""
 "Felmeddelande:\n"
 "%s"
 
-#: src/channel_editor.c:1362
+#: src/channel_editor.c:1386
 msgid "Your current V4L/V4L2 driver cannot do channel autosearching, sorry"
 msgstr "Din nuvarande V4L/V4L2-drivare kan inte autosöka kanaler, ledsen error"
 
@@ -846,7 +846,7 @@ msgstr "Tyvärr, men pluginen kunde inte startas"
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Tyvärr, pluginen ger ingen hjälp för det här"
 
-#: src/ttxview.c:173 src/ttxview.c:1218
+#: src/ttxview.c:173 src/ttxview.c:1248
 msgid "VBI has been disabled"
 msgstr "VBI har stängts av"
 
@@ -860,7 +860,7 @@ msgstr "Laddar sida %x..."
 msgid "Loading subpage %x..."
 msgstr "Laddar undersida %x..."
 
-#: src/ttxview.c:528 src/ttxview.c:826
+#: src/ttxview.c:528 src/ttxview.c:837
 msgid "Warning: Page not valid"
 msgstr "Varning: Sida ogiltig"
 
@@ -884,66 +884,66 @@ msgstr " Sida %d"
 msgid " Subpage %d"
 msgstr " Undersida %d"
 
-#: src/ttxview.c:836
+#: src/ttxview.c:847
 msgid "The cache has been cleared"
 msgstr "Sparade sidor har rensats"
 
-#: src/ttxview.c:910 src/ttxview.c:938
+#: src/ttxview.c:933 src/ttxview.c:974
 msgid "No other subpage in the cache"
 msgstr "Ingen annan undersida i sidminnet"
 
-#: src/ttxview.c:1010
+#: src/ttxview.c:1042
 msgid "Found"
 msgstr "Hittat"
 
-#: src/ttxview.c:1029
+#: src/ttxview.c:1060
 msgid "Not found"
 msgstr "Hittades inte"
 
-#: src/ttxview.c:1050
+#: src/ttxview.c:1080
 msgid "Empty cache"
 msgstr "Tomt sidminne"
 
-#: src/ttxview.c:1173
+#: src/ttxview.c:1203
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Söker igenom %x.%02x"
 
-#: src/ttxview.c:1509
+#: src/ttxview.c:1542
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> lagt till bokmärkena"
 
-#: src/ttxview.c:1572
+#: src/ttxview.c:1605
 msgid "Any subpage"
 msgstr "Vilken undersida som helst"
 
-#: src/ttxview.c:1914
+#: src/ttxview.c:1947
 #, c-format
 msgid "Export %s"
 msgstr "Exportera %s"
 
-#: src/ttxview.c:1928
+#: src/ttxview.c:1961
 msgid "Save as:"
 msgstr "Spara som:"
 
-#: src/ttxview.c:1933
+#: src/ttxview.c:1966
 msgid "Select file you'll be exporting to"
 msgstr "Välj fil du vill exportera till"
 
-#: src/ttxview.c:1948
+#: src/ttxview.c:1981
 msgid "Options"
 msgstr "Val"
 
-#: src/ttxview.c:2130 src/ttxview.c:2947
+#: src/ttxview.c:2163 src/ttxview.c:2961
 msgid "No page loaded"
 msgstr "Ingen sida laddad"
 
-#: glade/glade_strings.c:225 src/ttxview.c:2136
+#: glade/glade_strings.c:243 src/ttxview.c:2169
 msgid "Zapzilla"
 msgstr "Zapzilla"
 
-#: src/ttxview.c:2190
+#: src/ttxview.c:2223
 #, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
@@ -954,94 +954,94 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: src/ttxview.c:2209
+#: src/ttxview.c:2242
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "Exportering till %s misslyckades: %s"
 
-#: src/ttxview.c:2218
+#: src/ttxview.c:2251
 #, c-format
 msgid "%s saved"
 msgstr "%s sparad"
 
-#: src/ttxview.c:2230
+#: src/ttxview.c:2263
 #, c-format
 msgid "Export failed: %s"
 msgstr "Export misslyckades: %s"
 
-#: src/ttxview.c:2398
+#: src/ttxview.c:2414
 #, c-format
 msgid "Caption %x - %s"
 msgstr "Bildtext %x - %s"
 
-#: src/ttxview.c:2400
+#: src/ttxview.c:2416
 #, c-format
 msgid "Text %x - %s"
 msgstr "Text %x - %s"
 
-#: src/ttxview.c:2404
+#: src/ttxview.c:2420
 #, c-format
 msgid "Caption %x"
 msgstr "Bildtext %x"
 
-#: src/ttxview.c:2406
+#: src/ttxview.c:2422
 #, c-format
 msgid "Text %x"
 msgstr "Text %x"
 
-#: src/ttxview.c:2432
+#: src/ttxview.c:2447
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: Okänt språk"
 
-#: src/ttxview.c:2445 src/ttxview.c:2460 src/ttxview.c:2484 src/ttxview.c:2500
-#: src/ttxview.c:2516 src/ttxview.c:2532 src/ttxview.c:2548
+#: src/ttxview.c:2459 src/ttxview.c:2474 src/ttxview.c:2498 src/ttxview.c:2514
+#: src/ttxview.c:2530 src/ttxview.c:2546 src/ttxview.c:2562
 #, c-format
 msgid "Page %x"
 msgstr "Sida %x"
 
-#: src/ttxview.c:2454
+#: src/ttxview.c:2468
 msgid "Index"
 msgstr "Innehåll"
 
-#: src/ttxview.c:2478
+#: src/ttxview.c:2492
 msgid "Now and Next"
 msgstr "Nu och Nästa"
 
-#: src/ttxview.c:2494
+#: src/ttxview.c:2508
 msgid "Current program"
 msgstr "Om pågående program"
 
-#: src/ttxview.c:2510
+#: src/ttxview.c:2524
 msgid "Program Index"
 msgstr "Programinnehåll"
 
-#: src/ttxview.c:2526
+#: src/ttxview.c:2540
 msgid "Program Schedule"
 msgstr "Programtablå"
 
-#: src/ttxview.c:2542
+#: src/ttxview.c:2556
 msgid "Program Warning"
 msgstr "Programvarning"
 
-#: src/ttxview.c:2562
+#: src/ttxview.c:2576
 msgid "Subtitles"
 msgstr "Bildtext"
 
-#: src/ttxview.c:2564
+#: src/ttxview.c:2578
 msgid "Select subtitles page"
 msgstr "Välj sida för bildtext"
 
-#: src/ttxview.c:2637
+#: src/ttxview.c:2651
 #, c-format
 msgid "%s in %s"
 msgstr "%s i %s"
 
-#: src/ttxview.c:2956
+#: src/ttxview.c:2970
 msgid "Selecting - hold Shift for table mode"
 msgstr "Markera - håll Skift för tabell-läge"
 
-#: src/ttxview.c:3076
+#: src/ttxview.c:3090
 msgid "Selection copied to clipboard"
 msgstr "Markering kopierad till urklipp"
 
@@ -1081,23 +1081,23 @@ msgstr "Växla Ljud Av/På"
 msgid "Use this to go fullscreen. Press ESC to return to Windowed mode"
 msgstr "Använd detta för fullskärm, tryck ESC för att återgå till fönsterläge"
 
-#: glade/glade_strings.c:14 glade/glade_strings.c:204
+#: glade/glade_strings.c:14 glade/glade_strings.c:222
 msgid "Go _Fullscreen"
 msgstr "_Fullskärmsläge"
 
-#: glade/glade_strings.c:15 glade/glade_strings.c:205
+#: glade/glade_strings.c:15 glade/glade_strings.c:223
 msgid "Use this to start the windowed overlay mode"
 msgstr "Använd detta för att starta overlayläge, i fönstret"
 
-#: glade/glade_strings.c:16 glade/glade_strings.c:206
+#: glade/glade_strings.c:16 glade/glade_strings.c:224
 msgid "Go _Previewing"
 msgstr "_Overlay/Preview"
 
-#: glade/glade_strings.c:17 glade/glade_strings.c:207
+#: glade/glade_strings.c:17 glade/glade_strings.c:225
 msgid "Use this to start the windowed capture mode"
 msgstr "Använd detta för att starta inspelningsläget, i fönstret"
 
-#: glade/glade_strings.c:18 glade/glade_strings.c:208
+#: glade/glade_strings.c:18 glade/glade_strings.c:226
 msgid "Go _Capturing"
 msgstr "_Capture/Inspelningsläge"
 
@@ -1105,15 +1105,15 @@ msgstr "_Capture/Inspelningsläge"
 msgid "Use Zapping as a Teletext navigator"
 msgstr "Använd Zapping som teletext-navigator"
 
-#: glade/glade_strings.c:20 glade/glade_strings.c:210
+#: glade/glade_strings.c:20 glade/glade_strings.c:228
 msgid "_Teletext"
 msgstr "_Teletext"
 
-#: glade/glade_strings.c:21 glade/glade_strings.c:211
+#: glade/glade_strings.c:21 glade/glade_strings.c:229
 msgid "Starts the Teletext decoder in a new window"
 msgstr "Öppnar ett nytt teletext-fönster"
 
-#: glade/glade_strings.c:22 glade/glade_strings.c:212
+#: glade/glade_strings.c:22 glade/glade_strings.c:230
 msgid "_New Teletext View"
 msgstr "_Nytt teletextfönster"
 
@@ -1178,7 +1178,7 @@ msgstr "Teletext"
 msgid "Video device capabilities"
 msgstr "Videoenhetsmöjligheter"
 
-#: glade/glade_strings.c:40 glade/glade_strings.c:74
+#: glade/glade_strings.c:40 glade/glade_strings.c:92
 msgid "Device name:"
 msgstr "Enhetsnamn:"
 
@@ -1207,80 +1207,46 @@ msgid "Device info"
 msgstr "Enhetsinfo"
 
 #: glade/glade_strings.c:47
-msgid "Avoid noise while changing channels"
-msgstr "Undvik oljud medans kanaler växlas"
-
-#: glade/glade_strings.c:48
 msgid "Save window geometry (some WM's don't like it)"
 msgstr "Spara fönstergeometri (vissa fönsterhanterare gillar inte det)"
 
-#: glade/glade_strings.c:49
+#: glade/glade_strings.c:48
 msgid "Resize using fixed increments"
 msgstr "Skala om i fixa steg"
 
-#: glade/glade_strings.c:50
-msgid "Start Zapping muted"
-msgstr "Starta Zapping med ljud av"
-
-#: glade/glade_strings.c:51
-msgid ""
-"Avoid some flicker in preview mode (leaves artifacts in the main window)"
-msgstr ""
-"Undvik vissa störningar i preview-läge (lämnar en del skräp i huvudfönstret)"
-
-#: glade/glade_strings.c:52
-msgid ""
-"If this option is on, the brightness, contrast, etc. info is saved with the "
-"channel, and restored when you select it again"
-msgstr ""
-"Om detta val är på, så sparas ljusstyrkeinfo, kontrast etc, med kanalen, och "
-"återställs när du väljer den igen"
-
-#: glade/glade_strings.c:53
-msgid "Save control values with the channel info"
-msgstr "Spara kontrollvärdena med kanal-infon"
-
-#: glade/glade_strings.c:54
+#: glade/glade_strings.c:49
 msgid "Ratio mode:"
 msgstr "Ratio-läge:"
 
-#: glade/glade_strings.c:55
+#: glade/glade_strings.c:50
 msgid "No fixed ratio"
 msgstr "Ingen fastställd ratio"
 
-#: glade/glade_strings.c:56
+#: glade/glade_strings.c:51
 msgid "4:3"
 msgstr "4:3"
 
-#: glade/glade_strings.c:57
+#: glade/glade_strings.c:52
 msgid "16:9"
 msgstr "16:9"
 
-#: glade/glade_strings.c:58 glade/glade_strings.c:62
+#: glade/glade_strings.c:53 glade/glade_strings.c:55
 msgid "Autodetect"
 msgstr "Autodetect"
 
-#: glade/glade_strings.c:59
-msgid "Verbosity value given to zapping__setup__fb:"
-msgstr "Debugläge för zapping__setup__fb:"
-
-#: glade/glade_strings.c:60
-msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
-msgstr "Ju större värde, desto mer diagnosmeddelanden ger zapping_setup_fb"
-
-#: glade/glade_strings.c:61
+#: glade/glade_strings.c:54
 msgid "Fullscreen video mode:"
 msgstr "Fullskärmsläge:"
 
-#: glade/glade_strings.c:63
+#: glade/glade_strings.c:56
 msgid "Do not change mode"
 msgstr "Ändra inte läge"
 
-#: glade/glade_strings.c:64
+#: glade/glade_strings.c:57
 msgid "Capture size under XVideo:"
 msgstr "Inspelningläge under XVideo:"
 
-#: glade/glade_strings.c:65
+#: glade/glade_strings.c:58
 msgid ""
 "Thanks to the XVideo extension, if present, the capture buffer can be scaled "
 "to arbitrary sizes using HW acceleration. Select here the capture size to "
@@ -1290,23 +1256,23 @@ msgstr ""
 "till godtycklig storlek med hjälp av hårdvara. Välj inspelningsstorleken "
 "här, som ska användas i det fallet."
 
-#: glade/glade_strings.c:66
+#: glade/glade_strings.c:59
 msgid "Biggest noninterlaced (autodetect)"
 msgstr "Största ickeinterlaceade (autodetektera)"
 
-#: glade/glade_strings.c:67
+#: glade/glade_strings.c:60
 msgid "320x240"
 msgstr "320x240"
 
-#: glade/glade_strings.c:68
+#: glade/glade_strings.c:61
 msgid "Interlaced (window size)"
 msgstr "Interlacead (fönsterstorlek)"
 
-#: glade/glade_strings.c:69
+#: glade/glade_strings.c:62
 msgid "Title bar contents:"
 msgstr "Titelradsinnehåll:"
 
-#: glade/glade_strings.c:70
+#: glade/glade_strings.c:63
 msgid ""
 "A format string describing what should the program put as the main window "
 "title when changing channels. $(alias), $(index), $(id), $(freq), "
@@ -1321,43 +1287,156 @@ msgstr ""
 "$(standard) - Videostandard\n"
 "$(input)    - Ingång"
 
+#: glade/glade_strings.c:64
+msgid "Main Window"
+msgstr ""
+
+#: glade/glade_strings.c:65
+msgid "Avoid noise while changing channels"
+msgstr "Undvik oljud medans kanaler växlas"
+
+#: glade/glade_strings.c:66
+msgid "Start Zapping muted"
+msgstr "Starta Zapping med ljud av"
+
+#: glade/glade_strings.c:67
+msgid ""
+"Avoid some flicker in preview mode (leaves artifacts in the main window)"
+msgstr ""
+"Undvik vissa störningar i preview-läge (lämnar en del skräp i huvudfönstret)"
+
+#: glade/glade_strings.c:68
+msgid ""
+"If this option is on, the brightness, contrast, etc. info is saved with the "
+"channel, and restored when you select it again"
+msgstr ""
+"Om detta val är på, så sparas ljusstyrkeinfo, kontrast etc, med kanalen, och "
+"återställs när du väljer den igen"
+
+#: glade/glade_strings.c:69
+msgid "Save control values with the channel info"
+msgstr "Spara kontrollvärdena med kanal-infon"
+
+#: glade/glade_strings.c:70
+msgid "zapping__setup__fb verbosity:"
+msgstr ""
+
 #: glade/glade_strings.c:71
+msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
+msgstr "Ju större värde, desto mer diagnosmeddelanden ger zapping_setup_fb"
+
+# src/v4l2interface.c:344
+#: glade/glade_strings.c:72
+#, fuzzy
+msgid "Video"
+msgstr "Endast bild"
+
+#: glade/glade_strings.c:73
+msgid "How to show extra info:"
+msgstr ""
+
+#: glade/glade_strings.c:74
+msgid ""
+"Extra information, such as notifying of channel changes, can be reported in "
+"many different ways. Select here the variant you like most."
+msgstr ""
+
+#: glade/glade_strings.c:75
+msgid "On Screen Display (OSD)"
+msgstr ""
+
+#: glade/glade_strings.c:76
+msgid "Status Bar"
+msgstr ""
+
+#: glade/glade_strings.c:77
+#, fuzzy
+msgid "Console"
+msgstr "Töm konsollen"
+
+#: glade/glade_strings.c:78
+#, fuzzy
+msgid "Do not show"
+msgstr "Visa inte detta igen"
+
+#: glade/glade_strings.c:79
+msgid "Font used for OSD:"
+msgstr ""
+
+#: glade/glade_strings.c:80
+msgid "Select OSD font"
+msgstr ""
+
+#: glade/glade_strings.c:81
+msgid "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
+msgstr ""
+
+#: glade/glade_strings.c:82
+#, fuzzy
+msgid "Default foreground color for OSD:"
+msgstr "Antagen förgrundsfärg i terminalen"
+
+#: glade/glade_strings.c:83 glade/glade_strings.c:85
+msgid "Elija un color"
+msgstr ""
+
+#: glade/glade_strings.c:84
+#, fuzzy
+msgid "Default background color for OSD:"
+msgstr "Antagen bakgrundsfärg i terminalen"
+
+#: glade/glade_strings.c:86
+msgid "OSD"
+msgstr ""
+
+#: glade/glade_strings.c:87
 msgid "General options"
 msgstr "Diverse val"
 
-#: glade/glade_strings.c:72
+#: glade/glade_strings.c:88
 msgid "Enable VBI decoding"
 msgstr "Slå på VBI-avkodning"
 
-#: glade/glade_strings.c:73
+#: glade/glade_strings.c:89
 msgid "Use VBI for getting station names"
 msgstr "Använd VBI för att få kanalnamn"
 
-#: glade/glade_strings.c:75
+#: glade/glade_strings.c:90
+msgid ""
+"If you select this option, TTX pages marked as subtitles and opened in the "
+"main window will automagically switch to TV mode and overlay themselves."
+msgstr ""
+
+#: glade/glade_strings.c:91
+#, fuzzy
+msgid "Overlay subtitle pages automatically"
+msgstr "Öppna automatiskt"
+
+#: glade/glade_strings.c:93
 msgid "Select the VBI device"
 msgstr "Välj VBI-enhet"
 
-#: glade/glade_strings.c:76
+#: glade/glade_strings.c:94
 msgid "Enter here the device associated with the VBI input"
 msgstr "Mata in enheten associerad med VBI-ingången här"
 
-#: glade/glade_strings.c:77
+#: glade/glade_strings.c:95
 msgid "Page to take subtitles from:"
 msgstr "Sida att ta bildtext från:"
 
-#: glade/glade_strings.c:78
+#: glade/glade_strings.c:96
 msgid "Where will subtitles be taken from"
 msgstr "Var ska bildtext tas från"
 
-#: glade/glade_strings.c:79
+#: glade/glade_strings.c:97
 msgid "Default region:"
 msgstr "Standardspråk:"
 
-#: glade/glade_strings.c:80
+#: glade/glade_strings.c:98
 msgid "Teletext implementation:"
 msgstr "Teletext-implementation:"
 
-#: glade/glade_strings.c:81
+#: glade/glade_strings.c:99
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Teletext viewer may not display the correct font or national characters. You "
@@ -1367,40 +1446,40 @@ msgstr ""
 "visaren kanske inte visar korrekt teckenupsättning. Du kan välja din "
 "geografiska region här som en extra vink åt programmet."
 
-#: glade/glade_strings.c:82
+#: glade/glade_strings.c:100
 msgid "Western and Central Europe"
 msgstr "Väst- och centrala Europa"
 
 # src/frequencies.c:821
-#: glade/glade_strings.c:83
+#: glade/glade_strings.c:101
 msgid "Eastern Europe"
 msgstr "Östeuropa"
 
-#: glade/glade_strings.c:84
+#: glade/glade_strings.c:102
 msgid "Western Europe and Turkey"
 msgstr "Västeuropa och Turkiet"
 
-#: glade/glade_strings.c:85
+#: glade/glade_strings.c:103
 msgid "Central and Southeast Europe"
 msgstr "Centrala och sydöstra Europa"
 
-#: glade/glade_strings.c:86
+#: glade/glade_strings.c:104
 msgid "Cyrillic"
 msgstr "Kyrillisk"
 
-#: glade/glade_strings.c:87
+#: glade/glade_strings.c:105
 msgid "Greek and Turkish"
 msgstr "Grekisk och turkisk"
 
-#: glade/glade_strings.c:88
+#: glade/glade_strings.c:106
 msgid "Arabic"
 msgstr "Arabisk"
 
-#: glade/glade_strings.c:89
+#: glade/glade_strings.c:107
 msgid "Hebrew and Arabic"
 msgstr "Hebreiska och arabiska"
 
-#: glade/glade_strings.c:90
+#: glade/glade_strings.c:108
 msgid ""
 "Zapping supports several levels of Teletext extensions, you can disable "
 "higher levels if you dislike the appearance."
@@ -1408,104 +1487,104 @@ msgstr ""
 "Zapping stöder flera nivåer av teletext-utökningar, du kan stänga av högre "
 "nivåer om du inte tycker om utseendet."
 
-#: glade/glade_strings.c:91
+#: glade/glade_strings.c:109
 msgid "Level 1.0"
 msgstr "Nivå 1.0"
 
-#: glade/glade_strings.c:92
+#: glade/glade_strings.c:110
 msgid "Level 1.5 (additional national characters)"
 msgstr "Nivå 1.5 (extra nationella tecken)"
 
-#: glade/glade_strings.c:93
+#: glade/glade_strings.c:111
 msgid "Level 2.5 (more colours, font styles and graphics)"
 msgstr ""
 "Nivå 2.5 (\"HiText\" - fler färger, teckenuppsättningar och mer grafik)"
 
-#: glade/glade_strings.c:94
+#: glade/glade_strings.c:112
 msgid "Level 3.5 (proportional spacing, multicolour graphics)"
 msgstr "Nivå 3.5 (Proportionell skrift, flerfärgig grafik)"
 
-#: glade/glade_strings.c:95
+#: glade/glade_strings.c:113
 msgid "Interpolation type:"
 msgstr "Interpolationstyp:"
 
-#: glade/glade_strings.c:96
+#: glade/glade_strings.c:114
 msgid "Quality/speed tradeoff when scaling and antialing the page."
 msgstr "Kvalitets/hastighetsavvägning vid skalning och utjämning av sidan."
 
-#: glade/glade_strings.c:97
+#: glade/glade_strings.c:115
 msgid "Nearest (fast, looks ugly when scaled)"
 msgstr "Närmaste (snabb, ser ful ut när den skalas)"
 
-#: glade/glade_strings.c:98
+#: glade/glade_strings.c:116
 msgid "Tiles (slightly slower, somewhat better)"
 msgstr "Rutor (lite långsammare, något bättre)"
 
-#: glade/glade_strings.c:99
+#: glade/glade_strings.c:117
 msgid "Bilinear (good quality but slow)"
 msgstr "Bilinjär (bra kvalite men slö)"
 
-#: glade/glade_strings.c:100
+#: glade/glade_strings.c:118
 msgid "Hyper (best quality but CPU intensive)"
 msgstr "Hyper (bästa kvaliteten, men CPU-intensiv)"
 
-#: glade/glade_strings.c:101
+#: glade/glade_strings.c:119
 msgid "General"
 msgstr "Diverse"
 
-#: glade/glade_strings.c:102
+#: glade/glade_strings.c:120
 msgid "Filtering"
 msgstr "Filter"
 
-#: glade/glade_strings.c:103
+#: glade/glade_strings.c:121
 msgid "Program related links:"
 msgstr "Programrelaterade länkar:"
 
-#: glade/glade_strings.c:104
+#: glade/glade_strings.c:122
 msgid "Network related links:"
 msgstr "Sändarrelaterade länkar:"
 
-#: glade/glade_strings.c:105
+#: glade/glade_strings.c:123
 msgid "Station related links:"
 msgstr "Stationsrelaterade länkar:"
 
-#: glade/glade_strings.c:106
+#: glade/glade_strings.c:124
 msgid "Sponsor messages:"
 msgstr "Sponsormeddelanden:"
 
-#: glade/glade_strings.c:107
+#: glade/glade_strings.c:125
 msgid "Operator messages:"
 msgstr "Operatörsmeddelanden:"
 
-#: glade/glade_strings.c:108 glade/glade_strings.c:112
-#: glade/glade_strings.c:116 glade/glade_strings.c:120
-#: glade/glade_strings.c:124
+#: glade/glade_strings.c:126 glade/glade_strings.c:130
+#: glade/glade_strings.c:134 glade/glade_strings.c:138
+#: glade/glade_strings.c:142
 msgid "What to do with this kind of links"
 msgstr "vad ska göras med denna sorts länkar"
 
-#: glade/glade_strings.c:109 glade/glade_strings.c:113
-#: glade/glade_strings.c:117 glade/glade_strings.c:121
-#: glade/glade_strings.c:125 glade/glade_strings.c:135
+#: glade/glade_strings.c:127 glade/glade_strings.c:131
+#: glade/glade_strings.c:135 glade/glade_strings.c:139
+#: glade/glade_strings.c:143 glade/glade_strings.c:153
 msgid "Ignore"
 msgstr "Ignorera"
 
-#: glade/glade_strings.c:110 glade/glade_strings.c:114
-#: glade/glade_strings.c:118 glade/glade_strings.c:122
-#: glade/glade_strings.c:126 glade/glade_strings.c:136
+#: glade/glade_strings.c:128 glade/glade_strings.c:132
+#: glade/glade_strings.c:136 glade/glade_strings.c:140
+#: glade/glade_strings.c:144 glade/glade_strings.c:154
 msgid "Show in the status bar"
 msgstr "Visa i statusraden"
 
-#: glade/glade_strings.c:111 glade/glade_strings.c:115
-#: glade/glade_strings.c:119 glade/glade_strings.c:123
-#: glade/glade_strings.c:127 glade/glade_strings.c:137
+#: glade/glade_strings.c:129 glade/glade_strings.c:133
+#: glade/glade_strings.c:137 glade/glade_strings.c:141
+#: glade/glade_strings.c:145 glade/glade_strings.c:155
 msgid "Open automatically"
 msgstr "Öppna automatiskt"
 
-#: glade/glade_strings.c:128
+#: glade/glade_strings.c:146
 msgid "Filter Level:"
 msgstr "Filternivå:"
 
-#: glade/glade_strings.c:129
+#: glade/glade_strings.c:147
 msgid ""
 "Sometimes a priority level is transmitted with the trigger, it can be used "
 "to filter the messages you want to receive"
@@ -1513,42 +1592,42 @@ msgstr ""
 "Ibland sänds en prioritetsnivå med aktivatorn; den kan användas för att "
 "filtrera ut meddelandena du vill ta emot"
 
-#: glade/glade_strings.c:130
+#: glade/glade_strings.c:148
 msgid "High priority only"
 msgstr "Endast hög prioritet"
 
-#: glade/glade_strings.c:131
+#: glade/glade_strings.c:149
 msgid "Medium and High priority"
 msgstr "Medium och hög prioritet"
 
-#: glade/glade_strings.c:132
+#: glade/glade_strings.c:150
 msgid "All messages"
 msgstr "Alla meddelanden"
 
-#: glade/glade_strings.c:133
+#: glade/glade_strings.c:151
 msgid "Default action:"
 msgstr "Standardaktion:"
 
-#: glade/glade_strings.c:134
+#: glade/glade_strings.c:152
 msgid "What to do with received trigger if no identifier is transmitted"
 msgstr ""
 "Vad som ska göras med mottagna aktivatorer om ingen identifierare sänts"
 
-#: glade/glade_strings.c:138
+#: glade/glade_strings.c:156
 msgid "Interactive TV"
 msgstr "Interaktiv TV"
 
-#: glade/glade_strings.c:139
+#: glade/glade_strings.c:157
 msgid "VBI options"
 msgstr "VBI-val"
 
 # src/interface.c:307
-#: glade/glade_strings.c:140
+#: glade/glade_strings.c:158
 msgid "Channel choosing"
 msgstr "Kanalväljare"
 
 # src/interface.c:316
-#: glade/glade_strings.c:141
+#: glade/glade_strings.c:159
 msgid ""
 "With this dialog you can edit the channel list.\n"
 "To begin, please choose the frequency table used in your country.\n"
@@ -1564,98 +1643,98 @@ msgstr ""
 "utgåva av programmet."
 
 # src/interface.c:336
-#: glade/glade_strings.c:145
+#: glade/glade_strings.c:163
 msgid "Select here the frequency table used in your country"
 msgstr "Här väljer du frekvenstabellen som används i ditt land"
 
-#: glade/glade_strings.c:146
+#: glade/glade_strings.c:164
 msgid "No tables"
 msgstr "Ingen tabell"
 
-#: glade/glade_strings.c:147
+#: glade/glade_strings.c:165
 msgid "Select here the channel you want to tune"
 msgstr "Här väljer du kanalen du vill ställa in"
 
 # src/interface.c:362
 # glade/glade_strings.c:148, glade/glade_strings.c:153
-#: glade/glade_strings.c:148 glade/glade_strings.c:153
+#: glade/glade_strings.c:166 glade/glade_strings.c:171
 msgid "Channel"
 msgstr "Kanal"
 
 # src/interface.c:369
 # glade/glade_strings.c:149, glade/glade_strings.c:155
-#: glade/glade_strings.c:149 glade/glade_strings.c:155
+#: glade/glade_strings.c:167 glade/glade_strings.c:173
 msgid "Freq (kHz)"
 msgstr "Freq. (kHz)"
 
-#: glade/glade_strings.c:150
+#: glade/glade_strings.c:168
 msgid "Add all channels in the frequency table to the channel list."
 msgstr "Lägg till alla kanaler i tabellen till kanallistan."
 
 # src/v4l2interface.c:146
-#: glade/glade_strings.c:151
+#: glade/glade_strings.c:169
 msgid "Add all the channels"
 msgstr "_Addera alla kanaler"
 
-#: glade/glade_strings.c:152
+#: glade/glade_strings.c:170
 msgid "Station name"
 msgstr "Station"
 
 # src/interface.c:247
-#: glade/glade_strings.c:154
+#: glade/glade_strings.c:172
 msgid "Country"
 msgstr "Land"
 
-#: glade/glade_strings.c:156
+#: glade/glade_strings.c:174
 msgid "Accelerator"
 msgstr "Snabbknapp"
 
-#: glade/glade_strings.c:157
+#: glade/glade_strings.c:175
 msgid "Move selected channels one row up"
 msgstr "Flytta valda kanaler en rad upp"
 
-#: glade/glade_strings.c:158
+#: glade/glade_strings.c:176
 msgid "Move selected channels one row down"
 msgstr "Flytta valda kanaler en rad ner"
 
 # src/interface.c:440
-#: glade/glade_strings.c:159
+#: glade/glade_strings.c:177
 msgid "Delete selected channels"
 msgstr "Sudda ut valda kanaler"
 
-#: glade/glade_strings.c:160
+#: glade/glade_strings.c:178
 msgid "_Remove"
 msgstr "_Radera"
 
 # src/interface.c:440
-#: glade/glade_strings.c:161
+#: glade/glade_strings.c:179
 msgid "Click here to apply the current options to the selected channels"
 msgstr "Tryck här för att applicera valen på kanalerna du valt"
 
-#: glade/glade_strings.c:162
+#: glade/glade_strings.c:180
 msgid "_Modify"
 msgstr "_Modifiera"
 
 # src/interface.c:382
-#: glade/glade_strings.c:163
+#: glade/glade_strings.c:181
 msgid "Select here the input to be attached to this channel"
 msgstr "Här väljer du ingången som ska kopplas till denna kanal"
 
 # src/v4l2interface.c:344
-#: glade/glade_strings.c:164
+#: glade/glade_strings.c:182
 msgid "Magical input"
 msgstr "Magisk ingång"
 
-#: glade/glade_strings.c:165
+#: glade/glade_strings.c:183
 msgid "Select here the video standard used on this channel"
 msgstr "Här väljer du videostandarden denna kanal använder"
 
 # src/v4l2interface.c:344
-#: glade/glade_strings.c:166
+#: glade/glade_strings.c:184
 msgid "Magical Standard"
 msgstr "Magisk standard"
 
-#: glade/glade_strings.c:167
+#: glade/glade_strings.c:185
 msgid ""
 "Select a suitable frequency table, then click here to search through all "
 "channels in the table and add the received stations to the channel list."
@@ -1663,450 +1742,451 @@ msgstr ""
 "Välj en passande frekvenstabell, tryck sedan här för att söka igenom alla "
 "kanaler i tabellen och lägga till de som kan tas emot, till listan."
 
-#: glade/glade_strings.c:168
+#: glade/glade_strings.c:186
 msgid "Automatic station _search"
 msgstr "Automatisk _sökning"
 
-#: glade/glade_strings.c:169
+#: glade/glade_strings.c:187
 msgid "Frequency:"
 msgstr "Frekvens:"
 
 # src/interface.c:382
-#: glade/glade_strings.c:170
+#: glade/glade_strings.c:188
 msgid "Station name:"
 msgstr "Stationsnamn:"
 
-#: glade/glade_strings.c:171
+#: glade/glade_strings.c:189
 msgid "Ctrl"
 msgstr "Ctrl"
 
-#: glade/glade_strings.c:172
+#: glade/glade_strings.c:190
 msgid "Shift"
 msgstr "Skift"
 
-#: glade/glade_strings.c:173
+#: glade/glade_strings.c:191
 msgid "Alt"
 msgstr "Alt"
 
 # src/interface.c:382
-#: glade/glade_strings.c:174
+#: glade/glade_strings.c:192
 msgid "Enter here the key you want to attach to this channel"
 msgstr "Här kan du mata in den tangent du vill koppla till denna kanal"
 
-#: glade/glade_strings.c:175
+#: glade/glade_strings.c:193
 msgid "Open the list of known keys"
 msgstr "Visa listan över kända tangenter"
 
-#: glade/glade_strings.c:176
+#: glade/glade_strings.c:194
 msgid "..."
 msgstr "..."
 
-#: glade/glade_strings.c:177
+#: glade/glade_strings.c:195
 msgid "Save the changes and leave the dialog"
 msgstr "Spara ändringarna och stäng"
 
 # src/interface.c:432
-#: glade/glade_strings.c:178
+#: glade/glade_strings.c:196
 msgid ""
 "Click this button if you want to leave the dialog discarding the changes"
 msgstr "Kasta bort ändringarna och stäng"
 
 # src/interface.c:432
-#: glade/glade_strings.c:179
+#: glade/glade_strings.c:197
 msgid "Click here to add the current channel"
 msgstr "Tryck här för att lägga till kanalen"
 
-#: glade/glade_strings.c:180
+#: glade/glade_strings.c:198
 msgid "_Add"
 msgstr "_Addera"
 
-#: glade/glade_strings.c:181
+#: glade/glade_strings.c:199
 msgid "This shows some help about this dialog"
 msgstr "Visar lite hjälp om denna dialog"
 
-#: glade/glade_strings.c:182
+#: glade/glade_strings.c:200
 msgid "Plugin properties"
 msgstr "Pluginegenskaper"
 
 # src/interface.c:448
-#: glade/glade_strings.c:183 glade/glade_strings.c:262
+#: glade/glade_strings.c:201 glade/glade_strings.c:280
 msgid "Click here when you are done"
 msgstr "Tryck här när du är klar"
 
-#: glade/glade_strings.c:184
+#: glade/glade_strings.c:202
 msgid "Run the plugin"
 msgstr "Kör pluginen"
 
-#: glade/glade_strings.c:185
+#: glade/glade_strings.c:203
 msgid "_Start Plugin"
 msgstr "_Starta pluginen"
 
-#: glade/glade_strings.c:186
+#: glade/glade_strings.c:204
 msgid "Stop this plugin"
 msgstr "Stoppa pluginen"
 
-#: glade/glade_strings.c:187
+#: glade/glade_strings.c:205
 msgid "S_top Plugin"
 msgstr "S_toppa pluginen"
 
-#: glade/glade_strings.c:188
+#: glade/glade_strings.c:206
 msgid "Show the configuration options for this plugin"
 msgstr "Visa konfigurationsvalen för denna plugin"
 
-#: glade/glade_strings.c:189
+#: glade/glade_strings.c:207
 msgid "_Configure"
 msgstr "_Konfigurera"
 
-#: glade/glade_strings.c:190
+#: glade/glade_strings.c:208
 msgid "Plugins"
 msgstr "Plugins"
 
 # src/interface.c:405
-#: glade/glade_strings.c:191
+#: glade/glade_strings.c:209
 msgid "Canonical name:"
 msgstr "Programnamn:"
 
-#: glade/glade_strings.c:192
+#: glade/glade_strings.c:210
 msgid "Author:"
 msgstr "Författare:"
 
-#: glade/glade_strings.c:193
+#: glade/glade_strings.c:211
 msgid "Plugin version:"
 msgstr "Pluginversion:"
 
-#: glade/glade_strings.c:194
+#: glade/glade_strings.c:212
 msgid "Plugin priority:"
 msgstr "Pluginprioritet:"
 
-#: glade/glade_strings.c:195
+#: glade/glade_strings.c:213
 msgid "Plugin description"
 msgstr "Pluginbeskrivning"
 
-#: glade/glade_strings.c:196
+#: glade/glade_strings.c:214
 msgid "Properties"
 msgstr "Egenskaper"
 
-#: glade/glade_strings.c:197
+#: glade/glade_strings.c:215
 msgid "Plugin location"
 msgstr "Pluginkälla"
 
-#: glade/glade_strings.c:198
+#: glade/glade_strings.c:216
 msgid "This is the file where the plugin is located"
 msgstr "Pluginen finns i denna fil"
 
-#: glade/glade_strings.c:199
+#: glade/glade_strings.c:217
 msgid "Symbol"
 msgstr "Symbol"
 
-#: glade/glade_strings.c:200
+#: glade/glade_strings.c:218
 msgid "Hash"
 msgstr "Nyckel"
 
-#: glade/glade_strings.c:201
+#: glade/glade_strings.c:219
 msgid "Description of the symbol"
 msgstr "Symbolbeskrivning"
 
-#: glade/glade_strings.c:202
+#: glade/glade_strings.c:220
 msgid "Advanced"
 msgstr "Avancerat"
 
-#: glade/glade_strings.c:203
+#: glade/glade_strings.c:221
 msgid "Use this for starting the fullscreen mode"
 msgstr "Detta startar fullskärmsläge"
 
-#: glade/glade_strings.c:209
+#: glade/glade_strings.c:227
 msgid "Use Zapping as a teletext navigator"
 msgstr "Använd Zapping som teletext-navigator"
 
-#: glade/glade_strings.c:213
+#: glade/glade_strings.c:231
 msgid "Resize the main window, hide/show toolbars"
 msgstr "Skala om huvudfönstret, göm/visa verktygsfält"
 
-#: glade/glade_strings.c:214
+#: glade/glade_strings.c:232
 msgid "_Appearance"
 msgstr "_Utseende"
 
-#: glade/glade_strings.c:217
+#: glade/glade_strings.c:235
 msgid "Resize to 768x576"
 msgstr "Storlek 768x576"
 
-#: glade/glade_strings.c:218
+#: glade/glade_strings.c:236
 msgid "Resize to 720x576"
 msgstr "Storlek 720x576"
 
-#: glade/glade_strings.c:219
+#: glade/glade_strings.c:237
 msgid "Resize to 640x480"
 msgstr "Storlek 640x480"
 
-#: glade/glade_strings.c:220
+#: glade/glade_strings.c:238
 msgid "Resize to 384x288"
 msgstr "Storlek 384x288"
 
-#: glade/glade_strings.c:221
+#: glade/glade_strings.c:239
 msgid "Resize to 352x288"
 msgstr "Storlek 352x288"
 
-#: glade/glade_strings.c:222
+#: glade/glade_strings.c:240
 msgid "Resize to 320x240"
 msgstr "Storlek 320x240"
 
-#: glade/glade_strings.c:223
+#: glade/glade_strings.c:241
 msgid "Searching..."
 msgstr "Söker..."
 
-#: glade/glade_strings.c:224 glade/glade_strings.c:274
+#: glade/glade_strings.c:242 glade/glade_strings.c:292
 msgid "%P %%"
 msgstr "%P %%"
 
-#: glade/glade_strings.c:226
+#: glade/glade_strings.c:244
 msgid "Previous page in history"
 msgstr "Förra sidan i historian"
 
-#: glade/glade_strings.c:227
+#: glade/glade_strings.c:245
 msgid "Previous"
 msgstr "Förra sidan"
 
-#: glade/glade_strings.c:228
+#: glade/glade_strings.c:246
 msgid "Next page in history"
 msgstr "Nästa sida i historian"
 
-#: glade/glade_strings.c:229
+#: glade/glade_strings.c:247
 msgid "Next"
 msgstr "Nästa sida"
 
-#: glade/glade_strings.c:230
+#: glade/glade_strings.c:248
 msgid "Go to the index page [Home]"
 msgstr "Till indexsidan [Hem]"
 
-#: glade/glade_strings.c:231
+#: glade/glade_strings.c:249
 msgid "Home"
 msgstr "Hem"
 
-#: glade/glade_strings.c:232
+#: glade/glade_strings.c:250
 msgid "Clone the current Teletext window"
 msgstr "Öppna ett nytt teletextfönster"
 
-#: glade/glade_strings.c:233 glade/glade_strings.c:245
+#: glade/glade_strings.c:251 glade/glade_strings.c:263
 msgid "Search for a given pattern in the cache"
 msgstr "Sök i sidminnet"
 
-#: glade/glade_strings.c:234 glade/glade_strings.c:263
+#: glade/glade_strings.c:252 glade/glade_strings.c:281
 msgid "Search"
 msgstr "Sök"
 
-#: glade/glade_strings.c:235
+#: glade/glade_strings.c:253
 msgid "Previous subpage [-]"
 msgstr "Föregående undersida [-]"
 
-#: glade/glade_strings.c:236
+#: glade/glade_strings.c:254
 msgid "Go to the previous page [Down]"
 msgstr "Gå till nästa sida [Ner]"
 
-#: glade/glade_strings.c:237
+#: glade/glade_strings.c:255
 msgid "Hold the current subpage [H]"
 msgstr "Håll kvar sidan [H]"
 
-#: glade/glade_strings.c:238
+#: glade/glade_strings.c:256
 msgid "100"
 msgstr "100"
 
-#: glade/glade_strings.c:239
+#: glade/glade_strings.c:257
 msgid "Go to the next page [Up]"
 msgstr "Gå till nästa sida [Markör upp]"
 
-#: glade/glade_strings.c:240
+#: glade/glade_strings.c:258
 msgid "Next subpage [+]"
 msgstr "Nästa undersida [+]"
 
-#: glade/glade_strings.c:241
-msgid "Reveal hidden characters [R]"
+#: glade/glade_strings.c:259
+#, fuzzy
+msgid "Reveal hidden characters [?]"
 msgstr "Visa gömda tecken [R]"
 
-#: glade/glade_strings.c:242
+#: glade/glade_strings.c:260
 msgid "Exit TTX mode [Esc]"
 msgstr "Avsluta teletextläge [Esc]"
 
-#: glade/glade_strings.c:243
+#: glade/glade_strings.c:261
 msgid "Open this link in a new window"
 msgstr "Öppna denna länk i ett nytt fönster"
 
-#: glade/glade_strings.c:244
+#: glade/glade_strings.c:262
 msgid "_Open in new window"
 msgstr "_Öppna i nytt fönster"
 
-#: glade/glade_strings.c:246
+#: glade/glade_strings.c:264
 msgid "_Search..."
 msgstr "_Sök..."
 
-#: glade/glade_strings.c:247
+#: glade/glade_strings.c:265
 msgid "Export the current page to different formats"
 msgstr "Spara denna sida i olika format"
 
-#: glade/glade_strings.c:248
+#: glade/glade_strings.c:266
 msgid "_Export"
 msgstr "_Exportera"
 
-#: glade/glade_strings.c:249
+#: glade/glade_strings.c:267
 msgid "Manage your bookmarks"
 msgstr "Editera bokmärken"
 
-#: glade/glade_strings.c:250
+#: glade/glade_strings.c:268
 msgid "_Bookmarks"
 msgstr "_Bokmärken"
 
-#: glade/glade_strings.c:251
+#: glade/glade_strings.c:269
 msgid "Add the current page to the bookmarks"
 msgstr "Lägg till sidan till bokmärken"
 
-#: glade/glade_strings.c:252
+#: glade/glade_strings.c:270
 msgid "_Add current page..."
 msgstr "_Lägg till sidan..."
 
-#: glade/glade_strings.c:253
+#: glade/glade_strings.c:271
 msgid "Use this dialog to delete any bookmarks you wish to remove"
 msgstr "Med denna dialog kan du radera bokmärken"
 
-#: glade/glade_strings.c:254
+#: glade/glade_strings.c:272
 msgid "_Edit Bookmarks..."
 msgstr "_Editera bokmärken"
 
-#: glade/glade_strings.c:255
+#: glade/glade_strings.c:273
 msgid "_Colors"
 msgstr "_Färger"
 
-#: glade/glade_strings.c:256
+#: glade/glade_strings.c:274
 msgid "Edit Bookmarks"
 msgstr "Editera bokmärken"
 
-#: glade/glade_strings.c:257
+#: glade/glade_strings.c:275
 msgid "Page"
 msgstr "Sida"
 
-#: glade/glade_strings.c:258
+#: glade/glade_strings.c:276
 msgid "Subpage"
 msgstr "Undersida"
 
-#: glade/glade_strings.c:259
+#: glade/glade_strings.c:277
 msgid "Description"
 msgstr "Beskrivning"
 
-#: glade/glade_strings.c:260
+#: glade/glade_strings.c:278
 msgid "Remove the currently selected bookmark"
 msgstr "Radera det valda bokmärket"
 
-#: glade/glade_strings.c:261
+#: glade/glade_strings.c:279
 msgid "Remove Bookmark"
 msgstr "Radera bokmärke"
 
-#: glade/glade_strings.c:264
+#: glade/glade_strings.c:282
 msgid "Search pattern:"
 msgstr "Söktext:"
 
-#: glade/glade_strings.c:265
+#: glade/glade_strings.c:283
 msgid "Regular expression"
 msgstr "Reguljärt uttryck"
 
-#: glade/glade_strings.c:266
+#: glade/glade_strings.c:284
 msgid "Search case insensitive"
 msgstr "Sök versal/gemenoberoende"
 
-#: glade/glade_strings.c:267
+#: glade/glade_strings.c:285
 msgid "Search backwards"
 msgstr "Sök bakåt"
 
-#: glade/glade_strings.c:268
+#: glade/glade_strings.c:286
 msgid "Search in progress..."
 msgstr "Söker..."
 
-#: glade/glade_strings.c:269
+#: glade/glade_strings.c:287
 msgid "Cancel the current search"
 msgstr "Avbryt sökningen"
 
-#: glade/glade_strings.c:270
+#: glade/glade_strings.c:288
 msgid "Search backwards for the previous match"
 msgstr "Sök bakåt efter nästa"
 
-#: glade/glade_strings.c:271
+#: glade/glade_strings.c:289
 msgid "Search forwards for the next match"
 msgstr "Sök framåt för nästa"
 
-#: glade/glade_strings.c:272
+#: glade/glade_strings.c:290
 msgid "Start a new search"
 msgstr "Ny sökning"
 
-#: glade/glade_strings.c:273
+#: glade/glade_strings.c:291
 msgid "New"
 msgstr "Ny"
 
-#: glade/glade_strings.c:275
+#: glade/glade_strings.c:293
 msgid "Zapping error console"
 msgstr "Zapping felkonsoll"
 
-#: glade/glade_strings.c:276
+#: glade/glade_strings.c:294
 msgid "OK, let's go on"
 msgstr "Ok, vi fortsätter"
 
-#: glade/glade_strings.c:277
+#: glade/glade_strings.c:295
 msgid "Remove all this mess"
 msgstr "Ta bort den här smörjan"
 
-#: glade/glade_strings.c:278
+#: glade/glade_strings.c:296
 msgid "Clean console"
 msgstr "Töm konsollen"
 
-#: glade/glade_strings.c:279
+#: glade/glade_strings.c:297
 msgid "VBI info"
 msgstr "VBI-info"
 
-#: glade/glade_strings.c:280
+#: glade/glade_strings.c:298
 msgid "My curiosity has been fullfilled"
 msgstr "Min nyfikenhet has stillats"
 
-#: glade/glade_strings.c:281
+#: glade/glade_strings.c:299
 msgid "Network info"
 msgstr "Sändarinfo"
 
-#: glade/glade_strings.c:282
+#: glade/glade_strings.c:300
 msgid "Name:"
 msgstr "Namn:"
 
-#: glade/glade_strings.c:283
+#: glade/glade_strings.c:301
 msgid "Short Name:"
 msgstr "Förkortning:"
 
-#: glade/glade_strings.c:284
+#: glade/glade_strings.c:302
 msgid "Network call letters:"
 msgstr "Anropstecken:"
 
-#: glade/glade_strings.c:285
+#: glade/glade_strings.c:303
 msgid "Tape delay"
 msgstr "Tidsförskjutning:"
 
-#: glade/glade_strings.c:286
+#: glade/glade_strings.c:304
 msgid "Known key names"
 msgstr "Tangentnamn"
 
-#: glade/glade_strings.c:287
+#: glade/glade_strings.c:305
 msgid "Keys"
 msgstr "Tangenter"
 
-#: glade/glade_strings.c:288
+#: glade/glade_strings.c:306
 msgid "New bookmark:"
 msgstr "Nytt bokmärke:"
 
-#: glade/glade_strings.c:289
+#: glade/glade_strings.c:307
 msgid "Description:"
 msgstr "Beskrivning:"
 
-#: glade/glade_strings.c:290
+#: glade/glade_strings.c:308
 msgid "Switch to the current channel when the bookmark is selected"
 msgstr "Växla till nuvarande kanal när bokmärket väljs"
 
-#: glade/glade_strings.c:291
+#: glade/glade_strings.c:309
 msgid "Text colors"
 msgstr "Textfärger"
 
-#: glade/glade_strings.c:292 glade/glade_strings.c:293
+#: glade/glade_strings.c:310 glade/glade_strings.c:311
 msgid "Reset"
 msgstr "Återställ"
 
@@ -2129,38 +2209,44 @@ msgstr "Denna plugin tar stillbilder."
 
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133 plugins/mpeg/mpeg.c:118
-#: plugins/parrot/parrot.c:141 plugins/screenshot/screenshot.c:192
+#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133 plugins/mpeg/mpeg.c:130
+#: plugins/parrot/parrot.c:141 plugins/screenshot/screenshot.c:196
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Varning: \"%s\" i plugin %s har nyckel 0x%x vs. 0x%x"
 
-#: plugins/screenshot/screenshot.c:361
+#: plugins/screenshot/screenshot.c:378
 msgid "Converts a row in RGB565 format to RGB24. Returns the destination."
 msgstr ""
 "Konverterar en rad i RGB565-format till RGB24. Returnerar destinationen."
 
-#: plugins/screenshot/screenshot.c:367
+#: plugins/screenshot/screenshot.c:384
 msgid "Converts a row in RGB555 format to RGB24. Returns the destination."
 msgstr ""
 "Konverterar en rad i RGB555-format till RGB24. Returnerar destinationen."
 
-#: plugins/screenshot/screenshot.c:373
+#: plugins/screenshot/screenshot.c:390
 msgid "Converts a row in RGBA format to RGB24. Returns the destination."
 msgstr "Konverterar en rad i RGBA-format till RGB24. Returnerar destinationen."
 
-#: plugins/screenshot/screenshot.c:437 plugins/screenshot/screenshot.c:513
+#: plugins/screenshot/screenshot.c:461 plugins/screenshot/screenshot.c:546
 msgid "Screenshot"
 msgstr "Stillbild"
 
-#: plugins/screenshot/screenshot.c:485
+#: plugins/screenshot/screenshot.c:514
+#, fuzzy
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
 "save_dir/shot[1,2,3,...].jpeg\n"
 "\n"
 "The quality option lets you choose how much info will be\n"
-"discarded when compressing the JPEG."
+"discarded when compressing the JPEG.\n"
+"\n"
+"The command will be run after writing to disk the screenshot,\n"
+"with the environmental variables $SCREENSHOT_PATH, $CHANNEL_ALIAS,\n"
+"$CHANNEL_ID, $CURRENT_STANDARD, $CURRENT_INPUT set to their\n"
+"correct value."
 msgstr ""
 "Det första valet, stillbildskatalogen, låter dig ange var\n"
 "bilderna ska sparas. Filnamnen blir av typen:\n"
@@ -2169,11 +2255,11 @@ msgstr ""
 "Kvalitetsinställningen låter dig välja hur mycket info som\n"
 "kastas bort när JPEGgen komprimeras."
 
-#: plugins/screenshot/screenshot.c:514
+#: plugins/screenshot/screenshot.c:547
 msgid "Take a JPEG screenshot [Ctrl+S]"
 msgstr "JPEG-stillbild [Ctrl-S]"
 
-#: plugins/screenshot/screenshot.c:601
+#: plugins/screenshot/screenshot.c:634
 #, c-format
 msgid ""
 "Cannot create destination dir for screenshots:\n"
@@ -2185,11 +2271,11 @@ msgstr ""
 "%s"
 
 # src/tveng.c:70
-#: plugins/screenshot/screenshot.c:668
+#: plugins/screenshot/screenshot.c:701
 msgid "Sorry, but I cannot write\n"
 msgstr "Tyväerr, men jag kan inte spara\n"
 
-#: plugins/screenshot/screenshot.c:670
+#: plugins/screenshot/screenshot.c:703
 msgid ""
 "\n"
 "The image won't be saved.\n"
@@ -2197,15 +2283,15 @@ msgstr ""
 "\n"
 "Bilden kommer inte att sparas.\n"
 
-#: plugins/screenshot/screenshot.c:751
+#: plugins/screenshot/screenshot.c:784
 msgid "Saving..."
 msgstr "Sparar..."
 
-#: plugins/screenshot/screenshot.c:762
+#: plugins/screenshot/screenshot.c:795
 msgid "Sorry, not enough resources for creating a new thread"
 msgstr "Tyvärr, inte nog med resurser för att skapa en ny tråd"
 
-#: plugins/screenshot/screenshot.c:766
+#: plugins/screenshot/screenshot.c:799
 msgid "There are too many threads"
 msgstr "Det finns för många trådar"
 
@@ -2225,6 +2311,16 @@ msgstr "Välj katalogen stillbilder ska sparas i här"
 #: plugins/screenshot/screenshot_strings.c:9
 msgid "Quality of the compressed image:"
 msgstr "Kompressionskvalitet:"
+
+#: plugins/screenshot/screenshot_strings.c:10
+msgid "After saving the screenshot, run the command:"
+msgstr ""
+
+#: plugins/screenshot/screenshot_strings.c:11
+msgid ""
+"If this entry isn't empty, Zapping will try to run the given command each "
+"time you save a screenshot."
+msgstr ""
 
 #: plugins/lirc/lirc.c:39
 msgid "LIRC plugin"
@@ -2334,38 +2430,38 @@ msgstr ""
 msgid "Lets you control zapping through lirc"
 msgstr "Låter dig kontrollera zapping via lirc"
 
-#: plugins/mpeg/mpeg.c:32
+#: plugins/mpeg/mpeg.c:39
 msgid "MPEG encoder"
 msgstr "MPEG-komprimerare"
 
-#: plugins/mpeg/mpeg.c:34
+#: plugins/mpeg/mpeg.c:41
 msgid "This plugin encodes the image and audio stream into a MPEG file"
 msgstr "Denna plugin sparar ner bilden och ljudet till en MPEG-fil"
 
-#: plugins/mpeg/mpeg.c:36
+#: plugins/mpeg/mpeg.c:43
 msgid "Encode the stream as MPEG."
 msgstr "Spara strömmen som MPEG."
 
-#: plugins/mpeg/mpeg.c:438
+#: plugins/mpeg/mpeg.c:481
 #, c-format
 msgid "%d frame dropped"
 msgid_plural "%d frames dropped"
 msgstr[0] ""
 msgstr[1] ""
 
-#: plugins/mpeg/mpeg.c:442
+#: plugins/mpeg/mpeg.c:485
 #, c-format
 msgid "%d frame processed"
 msgid_plural "%d frames processed"
 msgstr[0] ""
 msgstr[1] ""
 
-#: plugins/mpeg/mpeg.c:446
+#: plugins/mpeg/mpeg.c:489
 #, c-format
 msgid "%.1f MB : %s : %s"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:517
+#: plugins/mpeg/mpeg.c:560
 #, c-format
 msgid ""
 "Cannot create destination dir for clips:\n"
@@ -2376,19 +2472,19 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:528
+#: plugins/mpeg/mpeg.c:571
 msgid "Synchronization under V4L1"
 msgstr "Synkronisation under V4L1"
 
-#: plugins/mpeg/mpeg.c:530
+#: plugins/mpeg/mpeg.c:573
 msgid "Do not show this again"
 msgstr "Visa inte detta igen"
 
-#: plugins/mpeg/mpeg.c:531
+#: plugins/mpeg/mpeg.c:574
 msgid "V4L2 page"
 msgstr "V4L2 hemsida"
 
-#: plugins/mpeg/mpeg.c:534
+#: plugins/mpeg/mpeg.c:577
 msgid ""
 "You are using a V4L1 driver, so synchronization\n"
 "between audio and video will not be very good.\n"
@@ -2401,56 +2497,61 @@ msgstr ""
 "mycket bättre synkronisation, du kanske vill prova dem om du\n"
 "inte är nöjd med resultatet."
 
-#: plugins/mpeg/mpeg.c:713
+#: plugins/mpeg/mpeg.c:762
 #, c-format
 msgid "RTE ID: %s"
 msgstr "RTE ID: %s"
 
-#: plugins/mpeg/mpeg.c:718
+#: plugins/mpeg/mpeg.c:767
 #, c-format
 msgid "Destination: %s"
 msgstr "Destination: %s"
 
-#: plugins/mpeg/mpeg.c:726 plugins/mpeg/mpeg_strings.c:12
+#: plugins/mpeg/mpeg.c:775 plugins/mpeg/mpeg_strings.c:12
 msgid "Audio only"
 msgstr "Endast ljud"
 
 # src/v4l2interface.c:344
-#: plugins/mpeg/mpeg.c:729 plugins/mpeg/mpeg_strings.c:13
+#: plugins/mpeg/mpeg.c:778 plugins/mpeg/mpeg_strings.c:13
 msgid "Video only"
 msgstr "Endast bild"
 
 # src/frequencies.c:827
-#: plugins/mpeg/mpeg.c:732 plugins/mpeg/mpeg_strings.c:14
+#: plugins/mpeg/mpeg.c:781 plugins/mpeg/mpeg_strings.c:14
 msgid "Audio and Video"
 msgstr "Bild och ljud"
 
-#: plugins/mpeg/mpeg.c:743 plugins/mpeg/mpeg.c:755
-#: plugins/mpeg/mpeg_strings.c:27
+#: plugins/mpeg/mpeg.c:792 plugins/mpeg/mpeg.c:804
 msgid "Output audio Kbits per second:"
 msgstr "Ljud, kbits/s:"
 
-#: plugins/mpeg/mpeg.c:749 plugins/mpeg/mpeg.c:757
-#: plugins/mpeg/mpeg_strings.c:26
+#: plugins/mpeg/mpeg.c:798 plugins/mpeg/mpeg.c:806
+#: plugins/mpeg/mpeg_strings.c:22
 msgid "Output video Mbits per second:"
 msgstr "Video, Mbits/s:"
 
-#: plugins/mpeg/mpeg.c:765
+#: plugins/mpeg/mpeg.c:814
 msgid "Waiting for frames..."
 msgstr "Väntar på bilder..."
 
-#: plugins/mpeg/mpeg.c:1016 plugins/mpeg/mpeg.c:1207
+# src/v4l2interface.c:139
+#: plugins/mpeg/mpeg.c:1151
+#, fuzzy
+msgid "None"
+msgstr "Kein Tuner"
+
+#: plugins/mpeg/mpeg.c:1195 plugins/mpeg/mpeg.c:1395
 msgid "MPEG"
 msgstr "MPEG"
 
-#: plugins/mpeg/mpeg.c:1208
+#: plugins/mpeg/mpeg.c:1396
 msgid "Store the data as MPEG"
 msgstr "Spara som MPEG"
 
 #.
-#. * Archivo de cadenas traducibles generado por Glade.
-#. * Añada este archivo a su POTFILES.in de su proyecto.
-#. * NO lo compile como parte de su aplicación.
+#. * Translatable strings file generated by Glade.
+#. * Add this file to your project's POTFILES.in.
+#. * DO NOT compile it as part of your application.
 #.
 #: plugins/mpeg/mpeg_strings.c:7
 msgid "window1"
@@ -2488,74 +2589,84 @@ msgstr "MPEG-filens destination"
 msgid "Sets the dir where the encoded clips will be written to"
 msgstr "Katalogen filmer ska sparas till"
 
-# src/frequencies.c:827
 #: plugins/mpeg/mpeg_strings.c:19
+msgid "Capture Width:"
+msgstr "Bildbredd:"
+
+#: plugins/mpeg/mpeg_strings.c:20
+msgid "Capture Height:"
+msgstr "Bildhöjd:"
+
+#: plugins/mpeg/mpeg_strings.c:21
+msgid "Input / output"
+msgstr "In-/utgång"
+
+#: plugins/mpeg/mpeg_strings.c:23
+msgid "Engine verbosity (output goes to stderr):"
+msgstr "Diagnosnivå (till stderr, 0 = inget):"
+
+#: plugins/mpeg/mpeg_strings.c:24
+msgid "Compression parameters"
+msgstr "Kompressionsparameter"
+
+# src/frequencies.c:827
+#: plugins/mpeg/mpeg_strings.c:25
 #, fuzzy
 msgid "Audio device:"
 msgstr "Bild och ljud"
 
-#: plugins/mpeg/mpeg_strings.c:20
+#: plugins/mpeg/mpeg_strings.c:26
+msgid "Codec:"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:27
 msgid "Select the audio input type you would like to use"
 msgstr ""
 
 # src/frequencies.c:827
-#: plugins/mpeg/mpeg_strings.c:21
+#: plugins/mpeg/mpeg_strings.c:28
 #, fuzzy
 msgid "Audio device"
 msgstr "Bild och ljud"
 
-#: plugins/mpeg/mpeg_strings.c:22
+#: plugins/mpeg/mpeg_strings.c:29
 #, fuzzy
 msgid "Select the audio device to open"
 msgstr "Välj VBI-enhet"
 
-#: plugins/mpeg/mpeg_strings.c:23
-msgid "Capture Width:"
-msgstr "Bildbredd:"
-
-#: plugins/mpeg/mpeg_strings.c:24
-msgid "Capture Height:"
-msgstr "Bildhöjd:"
-
-#: plugins/mpeg/mpeg_strings.c:25
-msgid "Input / output"
-msgstr "In-/utgång"
-
-#: plugins/mpeg/mpeg_strings.c:28
-msgid "Engine verbosity (output goes to stderr):"
-msgstr "Diagnosnivå (till stderr, 0 = inget):"
-
-#: plugins/mpeg/mpeg_strings.c:29
-msgid "Compression parameters"
-msgstr "Kompressionsparameter"
-
 #: plugins/mpeg/mpeg_strings.c:30
+#, fuzzy
+msgid "Audio"
+msgstr "Endast ljud"
+
+#: plugins/mpeg/mpeg_strings.c:31
 msgid "Saving MPEG"
 msgstr "Sparar MPEG-data"
 
 # src/interface.c:448
-#: plugins/mpeg/mpeg_strings.c:31
+#: plugins/mpeg/mpeg_strings.c:32
 msgid "Press this when you are done"
 msgstr "Tryck här när du är klar"
 
-#: plugins/mpeg/mpeg_strings.c:32
+#: plugins/mpeg/mpeg_strings.c:33
 msgid "RTE id (for debugging)"
 msgstr "RTE ID (för avlusning)"
 
-#: plugins/mpeg/mpeg_strings.c:33
+#: plugins/mpeg/mpeg_strings.c:34
 msgid "Destination"
 msgstr "Destination"
 
-#: plugins/mpeg/mpeg_strings.c:34
+#: plugins/mpeg/mpeg_strings.c:35
 msgid "Mux mode"
 msgstr "Multiplexermod"
 
-#: plugins/mpeg/mpeg_strings.c:35
+#: plugins/mpeg/mpeg_strings.c:36
 msgid "Some more info: bit rates"
 msgstr "Extra information: Bitrates"
 
-#: plugins/mpeg/mpeg_strings.c:36
-msgid "Dinamic stats (dropped, output M's, etc)"
+#: plugins/mpeg/mpeg_strings.c:37
+#, fuzzy
+msgid "Dynamic stats (dropped, output M's, etc)"
 msgstr "Dynamisk statistik (Bytes sparade, etc.)"
 
 #: plugins/parrot/parrot.c:22
@@ -2629,11 +2740,11 @@ msgstr ""
 "som en uppskattning. Alla ändringar i inspelningsvalen (fönsterstorlek, "
 "färgdjup etc) kan ändra detta värde rejält."
 
-#: libvbi/exp-gfx.c:470
+#: libvbi/exp-gfx.c:473
 msgid "Correct aspect ratio"
 msgstr "Korrekt aspektratio"
 
-#: libvbi/exp-gfx.c:471
+#: libvbi/exp-gfx.c:474
 msgid ""
 "Approach an image aspect ratio similar to a real TV, this will add redundant "
 "information"
@@ -2641,48 +2752,49 @@ msgstr ""
 "Närma mig en aspektratio liknande den i en riktig TV. Detta kommer att lägga "
 "till överflödig information"
 
-#: libvbi/exp-gfx.c:504 libvbi/exp-gfx.c:768
+#: libvbi/exp-gfx.c:507 libvbi/exp-gfx.c:771
 #, c-format
 msgid "Unable to allocate %d KB image buffer"
 msgstr "Kunde inte begära %d KB bildbuffer"
 
-#: libvbi/exp-gfx.c:516 libvbi/exp-gfx.c:774 libvbi/exp-html.c:300
+#: libvbi/exp-gfx.c:519 libvbi/exp-gfx.c:777 libvbi/exp-html.c:330
 #: libvbi/exp-vtx.c:119
 #, c-format
 msgid "Cannot create file '%s': %s"
 msgstr "Kan inte skapa filen '%s': %s"
 
-#: libvbi/exp-gfx.c:615
+#: libvbi/exp-gfx.c:618
 msgid "PPM"
 msgstr "_PPM"
 
-#: libvbi/exp-gfx.c:616
-msgid "Export this page as PPM image"
+#: libvbi/exp-gfx.c:619
+#, fuzzy
+msgid "Export this page as raw PPM image"
 msgstr "Spara denna sida som PPM-bild"
 
-#: libvbi/exp-gfx.c:835 libvbi/exp-html.c:504
+#: libvbi/exp-gfx.c:838 libvbi/exp-html.c:207
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr "Teletext sida %3x.%x"
 
-#: libvbi/exp-gfx.c:837 libvbi/exp-html.c:506
+#: libvbi/exp-gfx.c:840 libvbi/exp-html.c:209
 #, c-format, ycp-format
 msgid "Teletext Page %3x"
 msgstr "Teletext sida %3x"
 
-#: libvbi/exp-gfx.c:903
+#: libvbi/exp-gfx.c:906
 msgid "PNG"
 msgstr "P_NG"
 
-#: libvbi/exp-gfx.c:904
+#: libvbi/exp-gfx.c:907
 msgid "Export this page as PNG image"
 msgstr "Spara denna sida som PNG-bild"
 
-#: libvbi/exp-html.c:100 libvbi/exp-txt.c:52 libvbi/exp-txt.c:70
+#: libvbi/exp-html.c:100 libvbi/exp-txt.c:51 libvbi/exp-txt.c:69
 msgid "Graphics char"
 msgstr "Grafiktecken"
 
-#: libvbi/exp-html.c:101 libvbi/exp-txt.c:53 libvbi/exp-txt.c:71
+#: libvbi/exp-html.c:101 libvbi/exp-txt.c:52 libvbi/exp-txt.c:70
 msgid ""
 "Replacement for block graphic characters: a single character or decimal (32) "
 "or hex (0x20) code"
@@ -2706,101 +2818,101 @@ msgstr "HTML-header"
 msgid "Include HTML page header"
 msgstr "Inkludera HTML-header"
 
-#: libvbi/exp-html.c:295
+#.
+#. *  "lang=\"en\" refers to the page title "Teletext Page..."
+#. *  below, specify "de", "fr", "es" etc.
+#.
+#: libvbi/exp-html.c:197
+msgid "<title lang=\"en\">"
+msgstr "<title lang=\"se\">"
+
+#: libvbi/exp-html.c:325
 #, c-format
 msgid "Character conversion Unicode -> %s not supported"
 msgstr "Teckenkonvertering unicode -> %s stöds ej"
 
-#.
-#. *  "lang=\"en\" refers to "Teletext Page..." below,
-#. *  specify "de", "fr", "es" etc.
-#.
-#: libvbi/exp-html.c:494
-msgid "<title lang=\"en\">"
-msgstr "<title lang=\"se\">"
-
-#: libvbi/exp-html.c:701
+#: libvbi/exp-html.c:687
 msgid "HTML"
 msgstr "_HTML"
 
-#: libvbi/exp-html.c:702
+#: libvbi/exp-html.c:688
 msgid "Export this page as HTML page"
 msgstr "Spara denna sida som HTML"
 
 # src/frequencies.c:827
-#: libvbi/exp-txt.c:45
+#: libvbi/exp-txt.c:44
 msgid "Black"
 msgstr "Svart"
 
-#: libvbi/exp-txt.c:45
+#: libvbi/exp-txt.c:44
 msgid "Red"
 msgstr "Röd"
 
-#: libvbi/exp-txt.c:45
+#: libvbi/exp-txt.c:44
 msgid "Green"
 msgstr "Grön"
 
-#: libvbi/exp-txt.c:45
+#: libvbi/exp-txt.c:44
 msgid "Yellow"
 msgstr "Gul"
 
-#: libvbi/exp-txt.c:46
+#: libvbi/exp-txt.c:45
 msgid "Blue"
 msgstr "Blå"
 
-#: libvbi/exp-txt.c:46
+#: libvbi/exp-txt.c:45
 msgid "Magenta"
 msgstr "Violett"
 
-#: libvbi/exp-txt.c:46
+#: libvbi/exp-txt.c:45
 msgid "Cyan"
 msgstr "Turkos"
 
-#: libvbi/exp-txt.c:46
+#: libvbi/exp-txt.c:45
 msgid "White"
 msgstr "Vit"
 
-#: libvbi/exp-txt.c:47
+#: libvbi/exp-txt.c:46
 msgid "Any"
 msgstr "Valfri"
 
-#: libvbi/exp-txt.c:55 libvbi/exp-txt.c:73
+#: libvbi/exp-txt.c:54 libvbi/exp-txt.c:72
 msgid "Foreground"
 msgstr "Förgrund"
 
-#: libvbi/exp-txt.c:56 libvbi/exp-txt.c:74
+#: libvbi/exp-txt.c:55 libvbi/exp-txt.c:73
 msgid "Assumed terminal foreground color"
 msgstr "Antagen förgrundsfärg i terminalen"
 
-#: libvbi/exp-txt.c:58 libvbi/exp-txt.c:76
+#: libvbi/exp-txt.c:57 libvbi/exp-txt.c:75
 msgid "Background"
 msgstr "Bakgrund"
 
-#: libvbi/exp-txt.c:59 libvbi/exp-txt.c:77
+#: libvbi/exp-txt.c:58 libvbi/exp-txt.c:76
 msgid "Assumed terminal background color"
 msgstr "Antagen bakgrundsfärg i terminalen"
 
-#: libvbi/exp-txt.c:61
+#: libvbi/exp-txt.c:60
 msgid "ANSI colors"
 msgstr "ANSI-färger"
 
-#: libvbi/exp-txt.c:62
+#: libvbi/exp-txt.c:61
 msgid "Insert ANSI color escape codes"
 msgstr "Infoga ANSI-färgkoder"
 
-#: libvbi/exp-txt.c:126
+#: libvbi/exp-txt.c:125
 msgid "ASCII"
 msgstr "_ASCII"
 
-#: libvbi/exp-txt.c:127
+#: libvbi/exp-txt.c:126
 msgid "Export this page as ASCII text"
 msgstr "Spara sidan som ASCII-text"
 
-#: libvbi/exp-txt.c:141
+#: libvbi/exp-txt.c:140
 msgid "ANSI"
 msgstr "ANS_I"
 
-#: libvbi/exp-txt.c:142
+#: libvbi/exp-txt.c:141
 msgid "Export this page as ANSI text"
 msgstr "Spara sidan som ANSI-text"
 
@@ -2834,35 +2946,35 @@ msgstr "Kontakta Zapzilla-programmerarna på <http://zapping.sf.net>."
 msgid "V4L/V4L2 VBI interface: Failed to read from the device"
 msgstr "V4L/V4L2 VBI-gränssnitt: Läsfel från enheten"
 
-#: libvbi/v4lx.c:579
+#: libvbi/v4lx.c:574
 msgid "driver unknown"
 msgstr "okänd drivare"
 
-#: libvbi/v4lx.c:585 libvbi/v4lx.c:1091
+#: libvbi/v4lx.c:580 libvbi/v4lx.c:1086
 msgid "Virtual memory exhausted.\n"
 msgstr "Slut på virtuellt minne.\n"
 
-#: libvbi/v4lx.c:591 libvbi/v4lx.c:1097
+#: libvbi/v4lx.c:586 libvbi/v4lx.c:1092
 #, c-format
 msgid "Cannot open '%s': %d, %s."
 msgstr "Kan inte öppna enheten '%s': %d, %s."
 
-#: libvbi/v4lx.c:619 libvbi/v4lx.c:1114
+#: libvbi/v4lx.c:614 libvbi/v4lx.c:1109
 #, c-format
 msgid "%s (%s) is not a raw VBI device.\n"
 msgstr "%s (%s) är inge rå VBI-enhet.\n"
 
-#: libvbi/v4lx.c:650 libvbi/v4lx.c:1156
+#: libvbi/v4lx.c:645 libvbi/v4lx.c:1151
 #, c-format
 msgid "Sorry, %s (%s) cannot capture the requested data services.\n"
 msgstr "Tyvärr, %s (%s) kan inte spela in de begärda datatjänsterna.\n"
 
-#: libvbi/v4lx.c:678 libvbi/v4lx.c:1183
+#: libvbi/v4lx.c:673 libvbi/v4lx.c:1178
 #, c-format
 msgid "%s (%s) is already in use.\n"
 msgstr "%s (%s) används redan.\n"
 
-#: libvbi/v4lx.c:683 libvbi/v4lx.c:1199
+#: libvbi/v4lx.c:678 libvbi/v4lx.c:1194
 #, c-format
 msgid ""
 "Could not set the vbi capture parameters for %s (%s), possibly a driver bug. "
@@ -2871,32 +2983,32 @@ msgstr ""
 "Kunde inte ställa in VBI-parametrarna för %s (%s), möjligtvis ett drivarfel. "
 "%s\n"
 
-#: libvbi/v4lx.c:697 libvbi/v4lx.c:1227
+#: libvbi/v4lx.c:692 libvbi/v4lx.c:1222
 #, c-format
 msgid "%s (%s) offers unknown vbi sampling format #%d. %s"
 msgstr "%s (%s) har ett okänt VBI-hämtningsformat nr. %d. %s"
 
-#: libvbi/v4lx.c:733
+#: libvbi/v4lx.c:728
 #, c-format
 msgid "Cannot capture with %s (%s), has no standard vbi interface.\n"
 msgstr "Kan inte läsa med %s (%s), den har inget standard VBI-gränssnitt.\n"
 
-#: libvbi/v4lx.c:741 libvbi/v4lx.c:807
+#: libvbi/v4lx.c:736 libvbi/v4lx.c:802
 #, c-format
 msgid "Cannot set or determine current videostandard of %s (%s).\n"
 msgstr "Kan inte ställa in eller avgöra nuvarande videostandard av %s (%s).\n"
 
-#: libvbi/v4lx.c:778
+#: libvbi/v4lx.c:773
 #, c-format
 msgid "%s (%s) reports improbable vbi frame size. %s\n"
 msgstr "%s (%s) rapporterar en icke trovärdig VBI-bildsstorlek. %s\n"
 
-#: libvbi/v4lx.c:791 libvbi/v4lx.c:839 libvbi/v4lx.c:1244
+#: libvbi/v4lx.c:786 libvbi/v4lx.c:834 libvbi/v4lx.c:1239
 #, c-format
 msgid "Sorry, %s (%s) cannot capture any of the requested data services.\n"
 msgstr "Tyvärr, %s (%s) kan inte spela in någon av de begärda tjänsterna.\n"
 
-#: libvbi/v4lx.c:830 libvbi/v4lx.c:1235
+#: libvbi/v4lx.c:825 libvbi/v4lx.c:1230
 #, c-format
 msgid ""
 "Cannot capture the requested data services with %s (%s), the sampling "
@@ -2905,39 +3017,39 @@ msgstr ""
 "Kan inte spela in de begärda datatjänsterna med %s (%s), "
 "inspelningsfrekvensen är för låg.\n"
 
-#: libvbi/v4lx.c:856 libvbi/v4lx.c:864 libvbi/v4lx.c:1261 libvbi/v4lx.c:1269
-#: libvbi/v4lx.c:1366 libvbi/v4lx.c:1374
+#: libvbi/v4lx.c:851 libvbi/v4lx.c:859 libvbi/v4lx.c:1256 libvbi/v4lx.c:1264
+#: libvbi/v4lx.c:1361 libvbi/v4lx.c:1369
 #, c-format
 msgid "Not enough memory to allocate vbi data buffers (%d KB).\n"
 msgstr "Inte nog minne för att skapa VBI-buffrar (%d KB).\n"
 
-#: libvbi/v4lx.c:877 libvbi/v4lx.c:1389
+#: libvbi/v4lx.c:872 libvbi/v4lx.c:1384
 #, c-format
 msgid "Not enough memory to allocate vbi capture buffer (%d KB).\n"
 msgstr "Inte nog minne för att skapa VBI-inspelningsbuffer (%d KB).\n"
 
-#: libvbi/v4lx.c:946
+#: libvbi/v4lx.c:941
 msgid "V4L2 VBI interface: Capture stalled, no station tuned in?"
 msgstr "V4L2 VBI-gränssnitt: Inspelning avstannad, ingen kanal inställd?"
 
-#: libvbi/v4lx.c:958
+#: libvbi/v4lx.c:953
 msgid "V4L2 VBI interface: Failed to read from the device"
 msgstr "V4L2 VBI-gränssnitt: Läsfel"
 
-#: libvbi/v4lx.c:974
+#: libvbi/v4lx.c:969
 msgid "V4L2 VBI interface: Cannot dequeue buffer, driver or application bug?"
 msgstr ""
 "V4L2 VBI-gränssnitt: Kan inte av-köa buffern, fel i drivaren eller "
 "programmet?"
 
-#: libvbi/v4lx.c:995
+#: libvbi/v4lx.c:990
 msgid "V4L2 VBI interface: Cannot enqueue buffer, driver or application bug?"
 msgstr ""
 "V4L2 VBI-gränssnitt: Kan inte lägga buffern på kö, fel i drivare eller "
 "program?"
 
 #. mandatory, http://www.thedirks.org/v4l2/v4l2dsi.htm
-#: libvbi/v4lx.c:1123
+#: libvbi/v4lx.c:1118
 #, c-format
 msgid ""
 "Cannot query current videostandard of %s (%s): %d, %s. Probably a driver "
@@ -2946,43 +3058,43 @@ msgstr ""
 "Kan inte få videostandardinfo från %s (%s): %d, %s. Antagligen ett fel i "
 "drivaren.\n"
 
-#: libvbi/v4lx.c:1145
+#: libvbi/v4lx.c:1140
 #, c-format
 msgid "Cannot query current vbi parameters of %s (%s): %d, %s.\n"
 msgstr "Kan inte få VBI-parametrar från 5s (%s): %d, %s.\n"
 
-#: libvbi/v4lx.c:1285
+#: libvbi/v4lx.c:1280
 #, c-format
 msgid ""
 "Cannot request streaming i/o buffers from %s (%s): %d, %s. Driver bug?\n"
 msgstr "Kan inte få strömmande i/o-buffrar från %s (%s): %d, %s. Drivarfel?\n"
 
-#: libvbi/v4lx.c:1291
+#: libvbi/v4lx.c:1286
 #, c-format
 msgid "%s (%s) granted no streaming i/o buffers, physical memory exhausted?\n"
 msgstr "%s (%s) gav inga stömmande i/o-buffrar, slut på fysiskt minne?\n"
 
-#: libvbi/v4lx.c:1308
+#: libvbi/v4lx.c:1303
 #, c-format
 msgid "Querying streaming i/o buffer #%d from %s (%s) failed: %d, %s.\n"
 msgstr ""
 "Fråga till strömmande i/o-buffer nr. %d från %s (%s) misslyckades: %d, %s.\n"
 
-#: libvbi/v4lx.c:1322
+#: libvbi/v4lx.c:1317
 #, c-format
 msgid "Memory mapping streaming i/o buffer #%d from %s (%s) failed: %d, %s.\n"
 msgstr ""
 "Minnesmappning av strömmande i/o-buffer nr. %d från %s (%s) misslyckades: %"
 "d, %s.\n"
 
-#: libvbi/v4lx.c:1346
+#: libvbi/v4lx.c:1341
 #, c-format
 msgid ""
 "Cannot enqueue streaming i/o buffer #%d to %s (%s): %d, %s. Driver bug?\n"
 msgstr ""
 "Kan inte köa strömmande i/o-buffer nr. %d till %s (%s): %d, %s. Drivarfel?\n"
 
-#: libvbi/v4lx.c:1399
+#: libvbi/v4lx.c:1394
 #, c-format
 msgid ""
 "%s (%s) lacks a vbi read interface, possibly an output only device or a "
@@ -2990,6 +3102,9 @@ msgid ""
 msgstr ""
 "%s (%s) har inget läsgränssnitt för VBI, möjligen är det en endast skrivbar "
 "enhet eller ett drivarfel. %s\n"
+
+#~ msgid "Verbosity value given to zapping__setup__fb:"
+#~ msgstr "Debugläge för zapping__setup__fb:"
 
 #~ msgid "%d %s"
 #~ msgstr "%d %s"
@@ -3162,10 +3277,6 @@ msgstr ""
 # src/callbacks.c:355
 #~ msgid "Cannot tune input"
 #~ msgstr "Kann den Tuner nicht einstellen"
-
-# src/v4l2interface.c:139
-#~ msgid "No tuner"
-#~ msgstr "Kein Tuner"
 
 #~ msgid "Show the Inputs and Standards menu"
 #~ msgstr "Die Menüs für Videostandard und Eingang zeigen"

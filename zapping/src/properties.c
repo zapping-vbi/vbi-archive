@@ -42,6 +42,46 @@ extern tveng_device_info * main_info; /* About the device we are using */
 
 extern GList * plugin_list; /* The plugins we have */
 
+static void
+update_sensitivity(GtkWidget *widget)
+{
+  if (lookup_widget(widget, "checkbutton6") == widget)
+    {
+      gboolean active =
+	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+      gtk_widget_set_sensitive(lookup_widget(widget,
+					     "vbox19"), active);      
+      gtk_widget_set_sensitive(lookup_widget(widget,
+					     "vbox33"), active);      
+    }
+  else if (gtk_option_menu_get_menu(GTK_OPTION_MENU(lookup_widget(widget,
+			    "optionmenu22"))) == widget)
+    {
+      widget = lookup_widget(widget, "optionmenu22");
+      gtk_widget_set_sensitive(lookup_widget(widget, "vbox38"),
+			       !z_option_menu_get_active(widget));
+    }
+}
+
+static void
+font_set_bridge	(GtkWidget	*widget,
+		 const gchar	*new_font,
+		 GnomePropertyBox *box)
+{
+  on_property_item_changed(widget, box);
+}
+
+static void
+color_set_bridge (GtkWidget	*widget,
+		  guint		r,
+		  guint		g,
+		  guint		b,
+		  guint		a,
+		  GnomePropertyBox *box)
+{
+  on_property_item_changed(widget, box);
+}
+
 void
 on_propiedades1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
@@ -52,7 +92,7 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
   GtkNotebook * nb;
   GtkWidget * nb_label;
   GtkWidget * nb_body;
-  int i=0;
+  guint32 i=0;
 
   gchar * buffer; /* Some temporary buffer */
 
@@ -276,10 +316,58 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
+  /* OSD type */
+  widget = lookup_widget(zapping_properties, "optionmenu22");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/osd/osd_type"));
+
+  update_sensitivity(widget);
+
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* OSD font */
+  widget = lookup_widget(zapping_properties, "fontpicker1");
+  if (zconf_get_string(NULL, "/zapping/options/osd/font"))
+    gnome_font_picker_set_font_name(GNOME_FONT_PICKER(widget),
+    zconf_get_string(NULL, "/zapping/options/osd/font"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "font-set",
+		     GTK_SIGNAL_FUNC(font_set_bridge),
+		     zapping_properties);
+
+  /* OSD foreground color */
+  widget = lookup_widget(zapping_properties, "colorpicker1");
+  gnome_color_picker_set_d(GNOME_COLOR_PICKER(widget),
+		   zconf_get_float(NULL, "/zapping/options/osd/fg_r"),
+		   zconf_get_float(NULL, "/zapping/options/osd/fg_g"),
+		   zconf_get_float(NULL, "/zapping/options/osd/fg_b"),
+		   0);
+
+  gtk_signal_connect(GTK_OBJECT(widget), "color-set",
+		     GTK_SIGNAL_FUNC(color_set_bridge),
+		     zapping_properties);
+
+  /* OSD background color */
+  widget = lookup_widget(zapping_properties, "colorpicker2");
+  gnome_color_picker_set_d(GNOME_COLOR_PICKER(widget),
+		   zconf_get_float(NULL, "/zapping/options/osd/bg_r"),
+		   zconf_get_float(NULL, "/zapping/options/osd/bg_g"),
+		   zconf_get_float(NULL, "/zapping/options/osd/bg_b"),
+		   0);
+
+  gtk_signal_connect(GTK_OBJECT(widget), "color-set",
+		     GTK_SIGNAL_FUNC(color_set_bridge),
+		     zapping_properties);
+
   /* Enable VBI decoding */
   widget = lookup_widget(zapping_properties, "checkbutton6");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"));
+
+  update_sensitivity(widget);
 
   gtk_signal_connect(GTK_OBJECT(widget), "toggled",
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
@@ -411,14 +499,6 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
-  /* Disable/enable the VBI options */
-  widget = lookup_widget(zapping_properties, "vbox19");
-  gtk_widget_set_sensitive(widget,
-	 zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"));
-  widget = lookup_widget(zapping_properties, "vbox33");
-  gtk_widget_set_sensitive(widget,
-	 zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"));
-
   /* Let the plugins add their properties */
   while (p)
     {
@@ -441,6 +521,7 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
   gchar * text; /* Pointer to returned text */
   GList * p; /* For traversing the plugins */
   gint index;
+  gdouble r, g, b, a;
 
   static int region_mapping[8] = {
     0, /* WCE */
@@ -519,6 +600,31 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 
       zconf_set_integer(z_option_menu_get_active(widget),
 			"/zapping/options/capture/xvsize");
+
+      widget = lookup_widget(pbox, "optionmenu22"); /* osd type */
+
+      zconf_set_integer(z_option_menu_get_active(widget),
+			"/zapping/options/osd/osd_type");
+
+      widget = lookup_widget(pbox, "fontpicker1");
+      zconf_set_string(gnome_font_picker_get_font_name(GNOME_FONT_PICKER(widget)),
+		       "/zapping/options/osd/font");
+
+      widget = lookup_widget(pbox, "colorpicker1");
+
+      gnome_color_picker_get_d(GNOME_COLOR_PICKER(widget), &r, &g, &b,
+			       &a);
+      zconf_set_float(r, "/zapping/options/osd/fg_r");
+      zconf_set_float(g, "/zapping/options/osd/fg_g");
+      zconf_set_float(b, "/zapping/options/osd/fg_b");
+
+      widget = lookup_widget(pbox, "colorpicker2");
+
+      gnome_color_picker_get_d(GNOME_COLOR_PICKER(widget), &r, &g, &b,
+			       &a);
+      zconf_set_float(r, "/zapping/options/osd/bg_r");
+      zconf_set_float(g, "/zapping/options/osd/bg_g");
+      zconf_set_float(b, "/zapping/options/osd/bg_b");
 
       break;
     case 2:
@@ -682,17 +788,7 @@ void
 on_property_item_changed              (GtkWidget * changed_widget,
 				       GnomePropertyBox *propertybox)
 {
-  gboolean active;
-
-  if (lookup_widget(changed_widget, "checkbutton6") == changed_widget)
-    {
-      active =
-	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(changed_widget));
-      gtk_widget_set_sensitive(lookup_widget(changed_widget,
-					     "vbox19"), active);      
-      gtk_widget_set_sensitive(lookup_widget(changed_widget,
-					     "vbox33"), active);      
-    }
+  update_sensitivity(changed_widget);
 
   gnome_property_box_changed (propertybox);
 }

@@ -799,10 +799,11 @@ event_timeout				(ttxview_data	*data)
 	  if (data->parent_toolbar &&
 	      zconf_get_boolean(NULL,
 				"/zapping/options/vbi/auto_overlay") &&
-	      vbi_classify_page(zvbi_get_object(), data->fmt_page->pgno, NULL,
-				NULL) == VBI_SUBTITLE_PAGE)
+	      (data->fmt_page->screen_opacity == TRANSPARENT_SPACE ||
+	       vbi_classify_page(zvbi_get_object(), data->fmt_page->pgno, NULL,
+				 NULL) == VBI_SUBTITLE_PAGE))
 	    {
-	      zmisc_overlay_subtitles(zvbi_page);
+	      zmisc_overlay_subtitles(data->fmt_page->pgno);
 	      return TRUE;
 	    }
 
