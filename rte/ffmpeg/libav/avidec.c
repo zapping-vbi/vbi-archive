@@ -16,12 +16,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <errno.h>
-
 #include "avformat.h"
 #include "avi.h"
 
@@ -57,7 +51,7 @@ int avi_read_header(AVFormatContext *s, AVFormatParameters *ap)
     ByteIOContext *pb = &s->pb;
     UINT32 tag, tag1;
     int codec_type, stream_index, size, frame_period, bit_rate;
-    int i;
+    int i, bps;
     AVStream *st;
 
     avi = malloc(sizeof(AVIContext));
@@ -157,7 +151,7 @@ int avi_read_header(AVFormatContext *s, AVFormatParameters *ap)
                     st->codec.width = get_le32(pb);
                     st->codec.height = get_le32(pb);
                     if (frame_period)
-                        st->codec.frame_rate = (1000000LL * FRAME_RATE_BASE) / frame_period;
+                        st->codec.frame_rate = (INT64_C(1000000) * FRAME_RATE_BASE) / frame_period;
                     else
                         st->codec.frame_rate = 25 * FRAME_RATE_BASE;
                     get_le16(pb); /* panes */
@@ -175,14 +169,16 @@ int avi_read_header(AVFormatContext *s, AVFormatParameters *ap)
                     tag1 = get_le16(pb);
                     st->codec.codec_type = CODEC_TYPE_AUDIO;
                     st->codec.codec_tag = tag1;
-                    st->codec.codec_id = codec_get_id(codec_wav_tags, tag1);
 #ifdef DEBUG
                     printf("audio: 0x%x\n", tag1);
 #endif
                     st->codec.channels = get_le16(pb);
                     st->codec.sample_rate = get_le32(pb);
                     st->codec.bit_rate = get_le32(pb) * 8;
-                    url_fskip(pb, size - 3 * 4);
+                    get_le16(pb); /* block align */
+                    bps = get_le16(pb);
+                    st->codec.codec_id = wav_codec_get_id(tag1, bps);
+                    url_fskip(pb, size - 4 * 4);
                     break;
                 default:
                     url_fskip(pb, size);

@@ -1,7 +1,9 @@
 
-#include "avcodec.h"
+#define LIBAV_VERSION_INT 0x000406  
+#define LIBAV_VERSION     "0.4.6"
+#define LIBAV_BUILD       4601
 
-#define FFMPEG_VERSION "0.4.5"
+#include "avcodec.h"
 
 #include "avio.h"
 
@@ -13,7 +15,9 @@ typedef struct AVPacket {
     int size;
     int stream_index;
     int flags;
+    int duration;       
 #define PKT_FLAG_KEY   0x0001
+#define PKT_FLAG_DROPPED_FRAME   0x0002
 } AVPacket; 
 
 int av_new_packet(AVPacket *pkt, int size);
@@ -31,7 +35,7 @@ typedef struct AVFormatParameters {
     int channels;
     int width;
     int height;
-    int pix_fmt;
+    enum PixelFormat pix_fmt;
 } AVFormatParameters;
 
 typedef struct AVFormat {
@@ -46,7 +50,7 @@ typedef struct AVFormat {
     int (*write_header)(struct AVFormatContext *);
     int (*write_packet)(struct AVFormatContext *, 
                         int stream_index,
-                        unsigned char *buf, int size);
+                        unsigned char *buf, int size, int force_pts);
     int (*write_trailer)(struct AVFormatContext *);
 
     /* optional input support */
@@ -64,13 +68,15 @@ typedef struct AVFormat {
        origin is defined by the stream */
     int (*read_seek)(struct AVFormatContext *, INT64 pts);
     int flags;
-#define AVFMT_NOFILE 0x0001 /* no file should be opened */
+#define AVFMT_NOFILE        0x0001 /* no file should be opened */
+#define AVFMT_NEEDNUMBER    0x0002 /* needs '%d' in filename */ 
     struct AVFormat *next;
 } AVFormat;
 
 typedef struct AVStream {
     int id;       /* internal stream id */
     AVCodecContext codec; /* codec context */
+    int r_frame_rate;     /* real frame rate of the stream */
     void *priv_data;
 } AVStream;
 
@@ -89,6 +95,7 @@ typedef struct AVFormatContext {
     char author[512];
     char copyright[512];
     char comment[512];
+    int flags; /* format specific flags */
     /* This buffer is only needed when packets were already buffered but
        not decoded, for example to get the codec parameters in mpeg
        streams */
@@ -106,6 +113,7 @@ extern AVFormat *first_format;
 extern AVFormat rm_format;
 
 /* mpegmux.c */
+#define AVF_FLAG_VCD   0x00000001   /* VCD compatible MPEG-PS */
 extern AVFormat mpeg_mux_format;
 
 /* asfenc.c */
@@ -114,28 +122,50 @@ extern AVFormat asf_format;
 /* avienc.c */
 extern AVFormat avi_format;
 
+/* mov.c */
+extern AVFormat mov_format;
+extern AVFormat mp4_format;
+
 /* jpegenc.c */
 extern AVFormat mpjpeg_format;
 extern AVFormat jpeg_format;
+extern AVFormat single_jpeg_format;
 
 /* swfenc.c */
 extern AVFormat swf_format;
+
+/* gif.c */
+extern AVFormat gif_format;
+/* au.c */
+extern AVFormat au_format;
 
 /* wav.c */
 extern AVFormat wav_format;
 
 /* img.c */
 extern AVFormat pgm_format;
+extern AVFormat ppm_format;
 extern AVFormat pgmyuv_format;
 extern AVFormat imgyuv_format;
+
 extern AVFormat pgmpipe_format;
+extern AVFormat pgmyuvpipe_format;
+extern AVFormat ppmpipe_format;
 
 /* raw.c */
 extern AVFormat mp2_format;
 extern AVFormat ac3_format;
 extern AVFormat h263_format;
 extern AVFormat mpeg1video_format;
-extern AVFormat pcm_format;
+extern AVFormat mjpeg_format;
+extern AVFormat pcm_s16le_format;
+extern AVFormat pcm_s16be_format;
+extern AVFormat pcm_u16le_format;
+extern AVFormat pcm_u16be_format;
+extern AVFormat pcm_s8_format;
+extern AVFormat pcm_u8_format;
+extern AVFormat pcm_mulaw_format;
+extern AVFormat pcm_alaw_format;
 extern AVFormat rawvideo_format;
 
 /* ffm.c */
@@ -151,6 +181,8 @@ AVFormat *guess_format(const char *short_name, const char *filename, const char 
 
 int strstart(const char *str, const char *val, const char **ptr);
 void nstrcpy(char *buf, int buf_size, const char *str);
+/* This does what strncpy ought to do. */
+void strlcpy(char *dst, const char *src, int dst_size);
 int match_ext(const char *filename, const char *extensions);
 
 void register_all(void);
@@ -168,11 +200,14 @@ int fifo_size(FifoBuffer *f, UINT8 *rptr);
 int fifo_read(FifoBuffer *f, UINT8 *buf, int buf_size, UINT8 **rptr_ptr);
 void fifo_write(FifoBuffer *f, UINT8 *buf, int size, UINT8 **wptr_ptr);
 
-AVFormatContext *av_open_input_file(const char *filename, int buf_size);
+AVFormatContext *av_open_input_file(const char *filename, 
+                                    const char *format_name,
+                                    int buf_size,
+                                    AVFormatParameters *ap);
 int av_read_packet(AVFormatContext *s, AVPacket *pkt);
 void av_close_input_file(AVFormatContext *s);
 
-int av_write_packet(AVFormatContext *s, AVPacket *pkt);
+int av_write_packet(AVFormatContext *s, AVPacket *pkt, int force_pts);
 
 void dump_format(AVFormatContext *ic,
                  int index, 
@@ -190,3 +225,12 @@ void ffm_set_write_index(AVFormatContext *s, offset_t pos, offset_t file_size);
 
 int find_info_tag(char *arg, int arg_size, const char *tag1, const char *info);
 
+int get_frame_filename(char *buf, int buf_size,
+                       const char *path, int number);
+
+/* grab/output specific */
+extern AVFormat video_grab_device_format;
+extern AVFormat audio_device_format;
+
+extern const char *v4l_device;
+extern const char *audio_device;

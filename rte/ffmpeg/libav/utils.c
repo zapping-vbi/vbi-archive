@@ -16,16 +16,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include "avformat.h"
+#include "tick.h"
+#ifndef CONFIG_WIN32
 #include <unistd.h>
 #include <fcntl.h>
-#include <errno.h>
 #include <sys/time.h>
 #include <time.h>
-
-#include "avformat.h"
+#else
+#define strcasecmp _stricmp
+#include <sys/types.h>
+#include <sys/timeb.h>
+#endif
 
 AVFormat *first_format;
 
@@ -122,6 +124,18 @@ void nstrcpy(char *buf, int buf_size, const char *str)
     *q = '\0';
 }
 
+void strlcpy(char *dst, const char *src, int len)
+{
+    int slen = strlen(src) + 1;
+
+    if (slen <= len) {
+        memcpy(dst, src, slen);
+    } else {
+        memcpy(dst, src, len - 1);
+        dst[len - 1] = 0;
+    }
+}
+
 void register_all(void)
 {
     avcodec_init();
@@ -131,22 +145,51 @@ void register_all(void)
     register_avformat(&ac3_format);
     register_avformat(&mpeg_mux_format);
     register_avformat(&mpeg1video_format);
+    register_avformat(&mjpeg_format);
     register_avformat(&h263_format);
     register_avformat(&rm_format);
     register_avformat(&asf_format);
     register_avformat(&avi_format);
+    register_avformat(&mov_format);
+    register_avformat(&mp4_format);
     register_avformat(&mpjpeg_format);
     register_avformat(&jpeg_format);
+    register_avformat(&single_jpeg_format);
     register_avformat(&swf_format);
+    register_avformat(&gif_format);
+    register_avformat(&au_format);
     register_avformat(&wav_format);
-    register_avformat(&pcm_format);
+    register_avformat(&pcm_s16le_format);
+    register_avformat(&pcm_s16be_format);
+    register_avformat(&pcm_u16le_format);
+    register_avformat(&pcm_u16be_format);
+    register_avformat(&pcm_s8_format);
+    register_avformat(&pcm_u8_format);
+    register_avformat(&pcm_mulaw_format);
+    register_avformat(&pcm_alaw_format);
+    register_avformat(&rawvideo_format);
+#ifndef CONFIG_WIN32
     register_avformat(&ffm_format);
+#endif
     register_avformat(&pgm_format);
+    register_avformat(&ppm_format);
     register_avformat(&pgmyuv_format);
     register_avformat(&imgyuv_format);
     register_avformat(&pgmpipe_format);
+    register_avformat(&pgmyuvpipe_format);
+    register_avformat(&ppmpipe_format);
+#ifdef CONFIG_GRAB
+    register_avformat(&video_grab_device_format);
+    register_avformat(&audio_device_format);
+#endif
 
-    register_protocol(&rte_protocol);
+    /* file protocols */
+    register_protocol(&file_protocol);
+    register_protocol(&pipe_protocol);
+#ifndef CONFIG_WIN32
+    register_protocol(&udp_protocol);
+    register_protocol(&http_protocol);
+#endif
 }
 
 /* memory handling */
@@ -249,49 +292,51 @@ void fifo_write(FifoBuffer *f, UINT8 *buf, int size, UINT8 **wptr_ptr)
     *wptr_ptr = wptr;
 }
 
-/* media file handling */
+/* media file handling. 
+   'filename' is the filename to open.
+   'format_name' is used to force the file format (NULL if auto guess).
+   'buf_size' is the optional buffer size (zero if default is OK).
+   'ap' are additionnal parameters needed when opening the file (NULL if default).
+*/
 
-AVFormatContext *av_open_input_file(const char *filename, int buf_size)
+AVFormatContext *av_open_input_file(const char *filename, 
+                                    const char *format_name,
+                                    int buf_size,
+                                    AVFormatParameters *ap)
 {
-    AVFormatParameters params, *ap;
     AVFormat *fmt;
     AVFormatContext *ic = NULL;
-    URLFormat url_format;
     int err;
 
     ic = av_mallocz(sizeof(AVFormatContext));
     if (!ic)
         goto fail;
-    if (url_fopen(&ic->pb, filename, URL_RDONLY) < 0)
-        goto fail;
-    
-    if (buf_size > 0) {
-        url_setbufsize(&ic->pb, buf_size);
-    }
 
     /* find format */
-    err = url_getformat(url_fileno(&ic->pb), &url_format);
-    if (err >= 0) {
-        fmt = guess_format(url_format.format_name, NULL, NULL);
-        ap = &params;
-        ap->sample_rate = url_format.sample_rate;
-        ap->frame_rate = url_format.frame_rate;
-        ap->channels = url_format.channels;
-        ap->width = url_format.width;
-        ap->height = url_format.height;
-        ap->pix_fmt = url_format.pix_fmt;
+    if (format_name != NULL) {
+        fmt = guess_format(format_name, NULL, NULL);
     } else {
         fmt = guess_format(NULL, filename, NULL);
-        ap = NULL;
     }
     if (!fmt || !fmt->read_header) {
         return NULL;
     }
     ic->format = fmt;
 
+    /* if no file needed do not try to open one */
+    if (!(fmt->flags & AVFMT_NOFILE)) {
+        if (url_fopen(&ic->pb, filename, URL_RDONLY) < 0)
+            goto fail;
+        if (buf_size > 0) {
+            url_setbufsize(&ic->pb, buf_size);
+        }
+    }
+    
     err = ic->format->read_header(ic, ap);
     if (err < 0) {
-        url_fclose(&ic->pb);
+        if (!(fmt->flags & AVFMT_NOFILE)) {
+            url_fclose(&ic->pb);
+        }
         goto fail;
     }
     
@@ -339,15 +384,17 @@ void av_close_input_file(AVFormatContext *s)
         }
         s->packet_buffer = NULL;
     }
-    url_fclose(&s->pb);
+    if (!(s->format->flags & AVFMT_NOFILE)) {
+        url_fclose(&s->pb);
+    }
     free(s);
 }
 
 
-int av_write_packet(AVFormatContext *s, AVPacket *pkt)
+int av_write_packet(AVFormatContext *s, AVPacket *pkt, int force_pts)
 {
     /* XXX: currently, an emulation because internal API must change */
-    return s->format->write_packet(s, pkt->stream_index, pkt->data, pkt->size);
+    return s->format->write_packet(s, pkt->stream_index, pkt->data, pkt->size, force_pts);
 }
 
 /* "user interface" functions */
@@ -413,9 +460,15 @@ int parse_image_size(int *width_ptr, int *height_ptr, const char *str)
 
 INT64 gettime(void)
 {
+#ifdef CONFIG_WIN32
+    struct _timeb tb;
+    _ftime(&tb);
+    return ((INT64)tb.time * INT64_C(1000) + (INT64)tb.millitm) * INT64_C(1000);
+#else
     struct timeval tv;
     gettimeofday(&tv,NULL);
     return (INT64)tv.tv_sec * 1000000 + tv.tv_usec;
+#endif
 }
 
 /* syntax: [YYYY-MM-DD ][[HH:]MM:]SS[.m...] . Return the date in micro seconds since 1970 */
@@ -520,7 +573,91 @@ int find_info_tag(char *arg, int arg_size, const char *tag1, const char *info)
             return 1;
         if (*p != '&')
             break;
+        p++;
     }
     return 0;
 }
 
+/* Return in 'buf' the path with '%d' replaced by number. Also handles
+   the '%0nd' format where 'n' is the total number of digits and
+   '%%'. Return 0 if OK, and -1 if format error */
+int get_frame_filename(char *buf, int buf_size,
+                       const char *path, int number)
+{
+    const char *p;
+    char *q, buf1[20];
+    int nd, len, c, percentd_found;
+
+    q = buf;
+    p = path;
+    percentd_found = 0;
+    for(;;) {
+        c = *p++;
+        if (c == '\0')
+            break;
+        if (c == '%') {
+            nd = 0;
+            while (*p >= '0' && *p <= '9') {
+                nd = nd * 10 + *p++ - '0';
+            }
+            c = *p++;
+            switch(c) {
+            case '%':
+                goto addchar;
+            case 'd':
+                if (percentd_found)
+                    goto fail;
+                percentd_found = 1;
+                snprintf(buf1, sizeof(buf1), "%0*d", nd, number);
+                len = strlen(buf1);
+                if ((q - buf + len) > buf_size - 1)
+                    goto fail;
+                memcpy(q, buf1, len);
+                q += len;
+                break;
+            default:
+                goto fail;
+            }
+        } else {
+        addchar:
+            if ((q - buf) < buf_size - 1)
+                *q++ = c;
+        }
+    }
+    if (!percentd_found)
+        goto fail;
+    *q = '\0';
+    return 0;
+ fail:
+    *q = '\0';
+    return -1;
+}
+
+static int gcd(INT64 a, INT64 b)
+{
+    INT64 c;
+
+    while (1) {
+        c = a % b;
+        if (c == 0)
+            return b;
+        a = b;
+        b = c;
+    }
+}
+
+void ticker_init(Ticker *tick, INT64 inrate, INT64 outrate)
+{
+    int g;
+
+    g = gcd(inrate, outrate);
+    inrate /= g;
+    outrate /= g;
+
+    tick->value = -outrate/2;
+
+    tick->inrate = inrate;
+    tick->outrate = outrate;
+    tick->div = tick->outrate / tick->inrate;
+    tick->mod = tick->outrate % tick->inrate;
+}

@@ -2,7 +2,7 @@
  * MPEG1/2 tables
  */
 
-const UINT8 default_intra_matrix[64] = {
+INT16 default_intra_matrix[64] = {
 	8, 16, 19, 22, 26, 27, 29, 34,
 	16, 16, 22, 24, 27, 29, 34, 37,
 	19, 22, 26, 27, 29, 34, 34, 38,
@@ -13,7 +13,7 @@ const UINT8 default_intra_matrix[64] = {
 	27, 29, 35, 38, 46, 56, 69, 83
 };
 
-const UINT8 default_non_intra_matrix[64] = {
+INT16 default_non_intra_matrix[64] = {
     16, 16, 16, 16, 16, 16, 16, 16,
     16, 16, 16, 16, 16, 16, 16, 16,
     16, 16, 16, 16, 16, 16, 16, 16,
@@ -60,6 +60,10 @@ const UINT16 vlc_dc_chroma_code[12] = {
 const unsigned char vlc_dc_chroma_bits[12] = {
     2, 2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10,
 };
+
+/* simple include everything table for dc, first byte is bits number next 3 are code*/
+static UINT32 mpeg1_lum_dc_uni[512];
+static UINT32 mpeg1_chr_dc_uni[512];
 
 static const UINT16 mpeg1_vlc[113][2] = {
  { 0x3, 2 }, { 0x4, 4 }, { 0x5, 5 }, { 0x6, 7 },
@@ -127,7 +131,7 @@ static const UINT16 mpeg2_vlc[113][2] = {
   {0x06,4}, /* EOB */
 };
 
-static const UINT8 mpeg1_level[111] = {
+static const INT8 mpeg1_level[111] = {
   1,  2,  3,  4,  5,  6,  7,  8,
   9, 10, 11, 12, 13, 14, 15, 16,
  17, 18, 19, 20, 21, 22, 23, 24,
@@ -144,7 +148,7 @@ static const UINT8 mpeg1_level[111] = {
   1,  1,  1,  1,  1,  1,  1,
 };
 
-static const UINT8 mpeg1_run[111] = {
+static const INT8 mpeg1_run[111] = {
   0,  0,  0,  0,  0,  0,  0,  0,
   0,  0,  0,  0,  0,  0,  0,  0,
   0,  0,  0,  0,  0,  0,  0,  0,
@@ -160,6 +164,9 @@ static const UINT8 mpeg1_run[111] = {
  17, 18, 19, 20, 21, 22, 23, 24,
  25, 26, 27, 28, 29, 30, 31,
 };
+
+static UINT8 mpeg1_index_run[2][64];
+static INT8 mpeg1_max_level[2][64];
 
 static RLTable rl_mpeg1 = {
     111,
@@ -288,27 +295,73 @@ static const UINT8 mbPatTable[63][2] = {
 #define MB_QUANT 0x10  
 
 static const UINT8 table_mb_ptype[32][2] = {
-    [ MB_FOR|MB_PAT ] { 1, 1 },
-    [ MB_PAT ] { 1, 2 },
-    [ MB_FOR ] { 1, 3 },
-    [ MB_INTRA ] { 3, 5 },
-    [ MB_QUANT|MB_FOR|MB_PAT ] { 2, 5 },
-    [ MB_QUANT|MB_PAT ] { 1, 5 },
-    [ MB_QUANT|MB_INTRA ] { 1, 6 },
+    { 0, 0 }, // 0x00
+    { 3, 5 }, // 0x01 MB_INTRA
+    { 1, 2 }, // 0x02 MB_PAT
+    { 0, 0 }, // 0x03
+    { 0, 0 }, // 0x04
+    { 0, 0 }, // 0x05
+    { 0, 0 }, // 0x06
+    { 0, 0 }, // 0x07
+    { 1, 3 }, // 0x08 MB_FOR
+    { 0, 0 }, // 0x09
+    { 1, 1 }, // 0x0A MB_FOR|MB_PAT
+    { 0, 0 }, // 0x0B
+    { 0, 0 }, // 0x0C
+    { 0, 0 }, // 0x0D
+    { 0, 0 }, // 0x0E
+    { 0, 0 }, // 0x0F
+    { 0, 0 }, // 0x10
+    { 1, 6 }, // 0x11 MB_QUANT|MB_INTRA
+    { 1, 5 }, // 0x12 MB_QUANT|MB_PAT
+    { 0, 0 }, // 0x13
+    { 0, 0 }, // 0x14
+    { 0, 0 }, // 0x15
+    { 0, 0 }, // 0x16
+    { 0, 0 }, // 0x17
+    { 0, 0 }, // 0x18
+    { 0, 0 }, // 0x19
+    { 2, 5 }, // 0x1A MB_QUANT|MB_FOR|MB_PAT
+    { 0, 0 }, // 0x1B
+    { 0, 0 }, // 0x1C
+    { 0, 0 }, // 0x1D
+    { 0, 0 }, // 0x1E
+    { 0, 0 }, // 0x1F
 };
 
 static const UINT8 table_mb_btype[32][2] = {
-    [ MB_FOR|MB_BACK ] { 2, 2 },
-    [ MB_FOR|MB_BACK|MB_PAT ] { 3, 2 },
-    [ MB_BACK ] { 2, 3 },
-    [ MB_BACK|MB_PAT ] { 3, 3 },
-    [ MB_FOR ] { 2, 4 },
-    [ MB_FOR|MB_PAT ] { 3, 4 },
-    [ MB_INTRA ] { 3, 5 },
-    [ MB_QUANT|MB_FOR|MB_BACK|MB_PAT ] { 2, 5 },
-    [ MB_QUANT|MB_FOR|MB_PAT ] { 3, 6 },
-    [ MB_QUANT|MB_BACK|MB_PAT ] { 2, 6 },
-    [ MB_QUANT|MB_INTRA ] { 1, 6 },
+    { 0, 0 }, // 0x00
+    { 3, 5 }, // 0x01 MB_INTRA
+    { 0, 0 }, // 0x02
+    { 0, 0 }, // 0x03
+    { 2, 3 }, // 0x04 MB_BACK
+    { 0, 0 }, // 0x05
+    { 3, 3 }, // 0x06 MB_BACK|MB_PAT
+    { 0, 0 }, // 0x07
+    { 2, 4 }, // 0x08 MB_FOR
+    { 0, 0 }, // 0x09
+    { 3, 4 }, // 0x0A MB_FOR|MB_PAT
+    { 0, 0 }, // 0x0B
+    { 2, 2 }, // 0x0C MB_FOR|MB_BACK
+    { 0, 0 }, // 0x0D
+    { 3, 2 }, // 0x0E MB_FOR|MB_BACK|MB_PAT
+    { 0, 0 }, // 0x0F
+    { 0, 0 }, // 0x10
+    { 1, 6 }, // 0x11 MB_QUANT|MB_INTRA
+    { 0, 0 }, // 0x12
+    { 0, 0 }, // 0x13
+    { 0, 0 }, // 0x14
+    { 0, 0 }, // 0x15
+    { 2, 6 }, // 0x16 MB_QUANT|MB_BACK|MB_PAT
+    { 0, 0 }, // 0x17
+    { 0, 0 }, // 0x18
+    { 0, 0 }, // 0x19
+    { 3, 6 }, // 0x1A MB_QUANT|MB_FOR|MB_PAT
+    { 0, 0 }, // 0x1B
+    { 0, 0 }, // 0x1C
+    { 0, 0 }, // 0x1D
+    { 2, 5 }, // 0x1E MB_QUANT|MB_FOR|MB_BACK|MB_PAT
+    { 0, 0 }, // 0x1F
 };
 
 static const UINT8 mbMotionVectorTable[17][2] = {
@@ -329,17 +382,6 @@ static const UINT8 mbMotionVectorTable[17][2] = {
 { 0xe, 10 },
 { 0xd, 10 },
 { 0xc, 10 },
-};
-
-const UINT8 zigzag_direct[64] = {
-    0, 1, 8, 16, 9, 2, 3, 10,
-    17, 24, 32, 25, 18, 11, 4, 5,
-    12, 19, 26, 33, 40, 48, 41, 34,
-    27, 20, 13, 6, 7, 14, 21, 28,
-    35, 42, 49, 56, 57, 50, 43, 36,
-    29, 22, 15, 23, 30, 37, 44, 51,
-    58, 59, 52, 45, 38, 31, 39, 46,
-    53, 60, 61, 54, 47, 55, 62, 63
 };
 
 static const int frame_rate_tab[9] = {

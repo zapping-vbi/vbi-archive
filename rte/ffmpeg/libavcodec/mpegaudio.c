@@ -1,6 +1,6 @@
 /*
  * The simplest mpeg audio layer 2 encoder
- * Copyright (c) 2000 Gerard Lantau.
+ * Copyright (c) 2000, 2001 Gerard Lantau.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,23 +16,42 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
 #include "avcodec.h"
+#include <math.h>
 #include "mpegaudio.h"
 
-#define NDEBUG
-#include <assert.h>
+/* currently, cannot change these constants (need to modify
+   quantization stage) */
+#define FRAC_BITS 15
+#define WFRAC_BITS  14
+#define MUL(a,b) (((INT64)(a) * (INT64)(b)) >> FRAC_BITS)
+#define FIX(a)   ((int)((a) * (1 << FRAC_BITS)))
+
+#define SAMPLES_BUF_SIZE 4096
+
+typedef struct MpegAudioContext {
+    PutBitContext pb;
+    int nb_channels;
+    int freq, bit_rate;
+    int lsf;           /* 1 if mpeg2 low bitrate selected */
+    int bitrate_index; /* bit rate */
+    int freq_index;
+    int frame_size; /* frame size, in bits, without padding */
+    INT64 nb_samples; /* total number of samples encoded */
+    /* padding computation */
+    int frame_frac, frame_frac_incr, do_padding;
+    short samples_buf[MPA_MAX_CHANNELS][SAMPLES_BUF_SIZE]; /* buffer for filter */
+    int samples_offset[MPA_MAX_CHANNELS];       /* offset in samples_buf */
+    int sb_samples[MPA_MAX_CHANNELS][3][12][SBLIMIT];
+    unsigned char scale_factors[MPA_MAX_CHANNELS][SBLIMIT][3]; /* scale factors */
+    /* code to group 3 scale factors */
+    unsigned char scale_code[MPA_MAX_CHANNELS][SBLIMIT];       
+    int sblimit; /* number of used subbands */
+    const unsigned char *alloc_table;
+} MpegAudioContext;
 
 /* define it to use floats in quantization (I don't like floats !) */
 //#define USE_FLOATS
-
-#define MPA_STEREO  0
-#define MPA_JSTEREO 1
-#define MPA_DUAL    2
-#define MPA_MONO    3
 
 #include "mpegaudiotab.h"
 
@@ -42,7 +61,7 @@ int MPA_encode_init(AVCodecContext *avctx)
     int freq = avctx->sample_rate;
     int bitrate = avctx->bit_rate;
     int channels = avctx->channels;
-    int i, v, table, ch_bitrate;
+    int i, v, table;
     float a;
 
     if (channels > 2)
@@ -57,9 +76,9 @@ int MPA_encode_init(AVCodecContext *avctx)
     /* encoding freq */
     s->lsf = 0;
     for(i=0;i<3;i++) {
-        if (freq_tab[i] == freq) 
+        if (mpa_freq_tab[i] == freq) 
             break;
-        if ((freq_tab[i] / 2) == freq) {
+        if ((mpa_freq_tab[i] / 2) == freq) {
             s->lsf = 1;
             break;
         }
@@ -70,7 +89,7 @@ int MPA_encode_init(AVCodecContext *avctx)
 
     /* encoding bitrate & frequency */
     for(i=0;i<15;i++) {
-        if (bitrate_tab[1-s->lsf][i] == bitrate) 
+        if (mpa_bitrate_tab[s->lsf][1][i] == bitrate) 
             break;
     }
     if (i == 15)
@@ -87,20 +106,8 @@ int MPA_encode_init(AVCodecContext *avctx)
     s->frame_frac_incr = (int)((a - floor(a)) * 65536.0);
     
     /* select the right allocation table */
-    ch_bitrate = bitrate / s->nb_channels;
-    if (!s->lsf) {
-        if ((freq == 48000 && ch_bitrate >= 56) ||
-            (ch_bitrate >= 56 && ch_bitrate <= 80)) 
-            table = 0;
-        else if (freq != 48000 && ch_bitrate >= 96) 
-            table = 1;
-        else if (freq != 32000 && ch_bitrate <= 48) 
-            table = 2;
-        else 
-            table = 3;
-    } else {
-        table = 4;
-    }
+    table = l2_select_table(bitrate, s->nb_channels, freq, s->lsf);
+
     /* number of used subbands */
     s->sblimit = sblimit_table[table];
     s->alloc_table = alloc_tables[table];
@@ -113,10 +120,19 @@ int MPA_encode_init(AVCodecContext *avctx)
     for(i=0;i<s->nb_channels;i++)
         s->samples_offset[i] = 0;
 
-    for(i=0;i<512;i++) {
-        float a = enwindow[i] * 32768.0 * 16.0;
-        filter_bank[i] = (int)(a);
+    for(i=0;i<257;i++) {
+        int v;
+        v = mpa_enwindow[i];
+#if WFRAC_BITS != 16
+        v = (v + (1 << (16 - WFRAC_BITS - 1))) >> (16 - WFRAC_BITS);
+#endif
+        filter_bank[i] = v;
+        if ((i & 63) != 0)
+            v = -v;
+        if (i != 0)
+            filter_bank[512 - i] = v;
     }
+
     for(i=0;i<64;i++) {
         v = (int)(pow(2.0, (3 - i) / 3.0) * (1 << 20));
         if (v <= 0)
@@ -157,8 +173,8 @@ int MPA_encode_init(AVCodecContext *avctx)
     return 0;
 }
 
-/* 32 point floating point IDCT */
-static void idct32(int *out, int *tab, int sblimit, int left_shift)
+/* 32 point floating point IDCT without 1/sqrt(2) coef zero scaling */
+static void idct32(int *out, int *tab)
 {
     int i, j;
     int *t, *t1, xr;
@@ -273,15 +289,17 @@ static void idct32(int *out, int *tab, int sblimit, int left_shift)
     } while (t >= tab);
 
     for(i=0;i<32;i++) {
-        out[i] = tab[bitinv32[i]] << left_shift;
+        out[i] = tab[bitinv32[i]];
     }
 }
+
+#define WSHIFT (WFRAC_BITS + 15 - FRAC_BITS)
 
 static void filter(MpegAudioContext *s, int ch, short *samples, int incr)
 {
     short *p, *q;
-    int sum, offset, i, j, norm, n;
-    short tmp[64];
+    int sum, offset, i, j;
+    int tmp[64];
     int tmp1[32];
     int *out;
 
@@ -309,29 +327,15 @@ static void filter(MpegAudioContext *s, int ch, short *samples, int incr)
             sum += p[5*64] * q[5*64];
             sum += p[6*64] * q[6*64];
             sum += p[7*64] * q[7*64];
-            tmp[i] = sum >> 14;
+            tmp[i] = sum;
             p++;
             q++;
         }
-        tmp1[0] = tmp[16];
-        for( i=1; i<=16; i++ ) tmp1[i] = tmp[i+16]+tmp[16-i];
-        for( i=17; i<=31; i++ ) tmp1[i] = tmp[i+16]-tmp[80-i];
+        tmp1[0] = tmp[16] >> WSHIFT;
+        for( i=1; i<=16; i++ ) tmp1[i] = (tmp[i+16]+tmp[16-i]) >> WSHIFT;
+        for( i=17; i<=31; i++ ) tmp1[i] = (tmp[i+16]-tmp[80-i]) >> WSHIFT;
 
-        /* integer IDCT 32 with normalization. XXX: There may be some
-           overflow left */
-        norm = 0;
-        for(i=0;i<32;i++) {
-            norm |= abs(tmp1[i]);
-        }
-        n = log2(norm) - 12;
-        if (n > 0) {
-            for(i=0;i<32;i++) 
-                tmp1[i] >>= n;
-        } else {
-            n = 0;
-        }
-
-        idct32(out, tmp1, s->sblimit, n);
+        idct32(out, tmp1);
 
         /* advance of 32 samples */
         offset -= 32;
@@ -370,7 +374,7 @@ static void compute_scale_factors(unsigned char scale_code[SBLIMIT],
             }
             /* compute the scale factor index using log 2 computations */
             if (vmax > 0) {
-                n = log2(vmax);
+                n = av_log2(vmax);
                 /* n is the position of the MSB of vmax. now 
                    use at most 2 compares to find the index */
                 index = (21 - n) * 3 - 3;
@@ -381,9 +385,9 @@ static void compute_scale_factors(unsigned char scale_code[SBLIMIT],
                     index = 0; /* very unlikely case of overflow */
                 }
             } else {
-                index = 63;
+                index = 62; /* value 63 is not allowed */
             }
-            
+
 #if 0
             printf("%2d:%d in=%x %x %d\n", 
                    j, i, vmax, scale_factor_table[index], index);
@@ -759,7 +763,7 @@ int MPA_encode_frame(AVCodecContext *avctx,
     encode_frame(s, bit_alloc, padding);
     
     s->nb_samples += MPA_FRAME_SIZE;
-    return s->pb.buf_ptr - s->pb.buf;
+    return pbBufPtr(&s->pb) - s->pb.buf;
 }
 
 

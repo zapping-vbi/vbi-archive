@@ -1,6 +1,6 @@
 /* output byte stream handling */
 
-typedef long long offset_t;
+typedef INT64 offset_t;
 
 /* unbuffered I/O */
 
@@ -19,7 +19,7 @@ typedef struct URLFormat {
     int channels;
     int height;
     int width;
-    int pix_fmt;
+    enum PixelFormat pix_fmt;
 } URLFormat;
 
 typedef struct URLContext URLContext;
@@ -87,8 +87,8 @@ int init_put_byte(ByteIOContext *s,
 
 void put_byte(ByteIOContext *s, int b);
 void put_buffer(ByteIOContext *s, unsigned char *buf, int size);
-void put_le64(ByteIOContext *s, unsigned long long val);
-void put_be64(ByteIOContext *s, unsigned long long val);
+void put_le64(ByteIOContext *s, UINT64 val);
+void put_be64(ByteIOContext *s, UINT64 val);
 void put_le32(ByteIOContext *s, unsigned int val);
 void put_be32(ByteIOContext *s, unsigned int val);
 void put_le16(ByteIOContext *s, unsigned int val);
@@ -105,20 +105,20 @@ void put_flush_packet(ByteIOContext *s);
 int get_buffer(ByteIOContext *s, unsigned char *buf, int size);
 int get_byte(ByteIOContext *s);
 unsigned int get_le32(ByteIOContext *s);
-unsigned long long get_le64(ByteIOContext *s);
+UINT64 get_le64(ByteIOContext *s);
 unsigned int get_le16(ByteIOContext *s);
 
 unsigned int get_be16(ByteIOContext *s);
 unsigned int get_be32(ByteIOContext *s);
-unsigned long long get_be64(ByteIOContext *s);
+UINT64 get_be64(ByteIOContext *s);
 
-extern inline int url_is_streamed(ByteIOContext *s)
+static inline int url_is_streamed(ByteIOContext *s)
 {
     return s->is_streamed;
 }
 /* get the prefered packet size of the device. All I/Os should be done
    by multiple of this size */
-extern inline int url_get_packet_size(ByteIOContext *s)
+static inline int url_get_packet_size(ByteIOContext *s)
 {
     return s->packet_size;
 }
@@ -141,14 +141,3 @@ extern URLProtocol udp_protocol;
 
 /* http.c */
 extern URLProtocol http_protocol;
-
-/* audio.c */
-extern const char *audio_device;
-extern URLProtocol audio_protocol;
-
-/* grab.c */
-extern const char *v4l_device;
-extern URLProtocol video_protocol;
-
-/* rte.c */
-extern URLProtocol rte_protocol;

@@ -2,15 +2,11 @@
 
 noinst_LTLIBRARIES = libi386.la
 
-INCLUDES=-D_REENTRANT
+## -O2... because asm() runs out of regs
+CFLAGS = -D_REENTRANT -DHAVE_AV_CONFIG_H -O2 -fomit-frame-pointer
 
-libi386_la_SOURCES = cputest.c dsputil_mmx.c dsputil_mmx_avg.h \
-fdct_mmx.s fdctdata.c mmx.h sad_mmx.s cpuid.s
+EXTRA_DIST = mpegvideo_mmx_template.c
 
-# FIXME2
-cpuid.lo:
-	gcc cpuid.s -c -o $@ $<
-
-# FIXME: Configure check for nasm
-.s.lo:
-	nasm -f elf -o $@ $<
+libi386_la_SOURCES = \
+cputest.c dsputil_mmx.c dsputil_mmx_avg.h fdct_mmx.c idct_mmx.c \
+mmx.h motion_est_mmx.c mpegvideo_mmx.c simple_idct_mmx.c

@@ -339,6 +339,7 @@ static int rv10_decode_init(AVCodecContext *avctx)
     MpegEncContext *s = avctx->priv_data;
     static int done;
 
+//    s->avctx= avctx;
     s->out_format = FMT_H263;
 
     s->width = avctx->width;

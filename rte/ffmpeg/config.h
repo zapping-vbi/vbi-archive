@@ -1,7 +1,18 @@
-// rte config.h
+#include "../config.h" /* HAVE_MALLOC_H, HAVE_MEMALIGN */
+
 #define ARCH_X86 1
+#undef ARCH_ARMV4L
+#undef ARCH_ALPHA
 #define HAVE_MMX 1
+#undef HAVE_GPROF
 #define CONFIG_ENCODERS 1
-//#define CONFIG_DECODERS 0
-#define CONFIG_AC3 1
-#define CONFIG_MPGLIB 1
+#undef CONFIG_DECODERS
+#undef CONFIG_AC3
+#undef CONFIG_A52BIN
+#undef CONFIG_GRAB
+#undef CONFIG_MP3LAME
+#undef CONFIG_WIN32
+#undef SIMPLE_IDCT
+
+#undef WORDS_BIGENDIAN
+#undef HAVE_BYTESWAP_H /* NO. */

@@ -1,12 +1,27 @@
+// shapes
+#define RECT_SHAPE       0
+#define BIN_SHAPE        1
+#define BIN_ONLY_SHAPE   2
+#define GRAY_SHAPE       3
+
+#define SIMPLE_VO_TYPE 1
+#define CORE_VO_TYPE   3
+
+// aspect_ratio_info
+#define EXTENDED_PAR 15
+
+//vol_sprite_usage / sprite_enable
+#define STATIC_SPRITE 1
+#define GMC_SPRITE 2
 
 /* dc encoding for mpeg4 */
-static const UINT8 DCtab_lum[13][2] =
+const UINT8 DCtab_lum[13][2] =
 {
     {3,3}, {3,2}, {2,2}, {2,3}, {1,3}, {1,4}, {1,5}, {1,6}, {1,7},
     {1,8}, {1,9}, {1,10}, {1,11},
 }; 
 
-static const UINT8 DCtab_chrom[13][2] =
+const UINT8 DCtab_chrom[13][2] =
 {
     {3,2}, {2,2}, {1,2}, {1,3}, {1,4}, {1,5}, {1,6}, {1,7}, {1,8},
     {1,9}, {1,10}, {1,11}, {1,12},
@@ -82,25 +97,55 @@ static RLTable rl_intra = {
     intra_level,
 };
 
-/* alternate scan orders used when doing AC prediction */
-UINT8 ff_alternate_horizontal_scan[64] = {
-    0,  1,  2,  3,  8,  9, 16, 17, 
-    10, 11,  4,  5,  6,  7, 15, 14,
-    13, 12, 19, 18, 24, 25, 32, 33, 
-    26, 27, 20, 21, 22, 23, 28, 29,
-    30, 31, 34, 35, 40, 41, 48, 49, 
-    42, 43, 36, 37, 38, 39, 44, 45,
-    46, 47, 50, 51, 56, 57, 58, 59, 
-    52, 53, 54, 55, 60, 61, 62, 63,
+static const UINT16 sprite_trajectory_tab[15][2] = {
+ {0x00, 2}, {0x02, 3},  {0x03, 3},  {0x04, 3}, {0x05, 3}, {0x06, 3},
+ {0x0E, 4}, {0x1E, 5},  {0x3E, 6},  {0x7E, 7}, {0xFE, 8}, 
+ {0x1FE, 9},{0x3FE, 10},{0x7FE, 11},{0xFFE, 12},
 };
 
-UINT8 ff_alternate_vertical_scan[64] = {
-    0,  8, 16, 24,  1,  9,  2, 10, 
-    17, 25, 32, 40, 48, 56, 57, 49,
-    41, 33, 26, 18,  3, 11,  4, 12, 
-    19, 27, 34, 42, 50, 58, 35, 43,
-    51, 59, 20, 28,  5, 13,  6, 14, 
-    21, 29, 36, 44, 52, 60, 37, 45,
-    53, 61, 22, 30,  7, 15, 23, 31, 
-    38, 46, 54, 62, 39, 47, 55, 63,
+static const UINT8 mb_type_b_tab[4][2] = {
+ {1, 1}, {1, 2}, {1, 3}, {1, 4},
 };
+
+static const UINT16 pixel_aspect[16][2]={
+ {0, 0},
+ {1, 1},
+ {12, 11},
+ {10, 11},
+ {16, 11},
+ {40, 33},
+ {0, 0},
+ {0, 0},
+ {0, 0},
+ {0, 0},
+ {0, 0},
+ {0, 0},
+ {0, 0},
+ {0, 0},
+ {0, 0},
+ {0, 0},
+};
+
+/* these matrixes will be permuted for the idct */
+INT16 ff_mpeg4_default_intra_matrix[64] = {
+  8, 17, 18, 19, 21, 23, 25, 27,
+ 17, 18, 19, 21, 23, 25, 27, 28,
+ 20, 21, 22, 23, 24, 26, 28, 30,
+ 21, 22, 23, 24, 26, 28, 30, 32,
+ 22, 23, 24, 26, 28, 30, 32, 35,
+ 23, 24, 26, 28, 30, 32, 35, 38,
+ 25, 26, 28, 30, 32, 35, 38, 41,
+ 27, 28, 30, 32, 35, 38, 41, 45, 
+};
+
+INT16 ff_mpeg4_default_non_intra_matrix[64] = {
+ 16, 17, 18, 19, 20, 21, 22, 23,
+ 17, 18, 19, 20, 21, 22, 23, 24,
+ 18, 19, 20, 21, 22, 23, 24, 25,
+ 19, 20, 21, 22, 23, 24, 26, 27,
+ 20, 21, 22, 23, 25, 26, 27, 28,
+ 21, 22, 23, 24, 26, 27, 28, 30,
+ 22, 23, 24, 26, 27, 28, 30, 31,
+ 23, 24, 25, 27, 28, 30, 31, 33,
+};
+

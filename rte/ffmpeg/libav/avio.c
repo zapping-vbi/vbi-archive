@@ -16,11 +16,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-
 #include "avformat.h"
 
 URLProtocol *first_protocol = NULL;
@@ -50,7 +45,8 @@ int url_open(URLContext **puc, const char *filename, int flags)
             *q++ = *p;
         p++;
     }
-    if (*p == '\0') {
+    /* if the protocol has length 1, we consider it is a dos drive */
+    if (*p == '\0' || (q - proto_str) <= 1) {
         strcpy(proto_str, "file");
     } else {
         *q = '\0';
@@ -58,7 +54,7 @@ int url_open(URLContext **puc, const char *filename, int flags)
     
     up = first_protocol;
     while (up != NULL) {
-        if (!strcmp(proto_str, up->name)) 
+        if (!strcmp(proto_str, up->name))
             goto found;
         up = up->next;
     }

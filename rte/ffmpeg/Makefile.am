@@ -2,10 +2,10 @@
 
 SUBDIRS = libav libavcodec
 
-EXTRA_DIST = README config.h
+EXTRA_DIST = README
 
-INCLUDES=-D_REENTRANT -D_GNU_SOURCE -Ilibavcodec
+INCLUDES= -D_REENTRANT -D_GNU_SOURCE -Ilibavcodec
 
 noinst_LTLIBRARIES = libffmpeg.la
 
-libffmpeg_la_SOURCES = b_ffmpeg.c
+libffmpeg_la_SOURCES = config.h bswap.h b_ffmpeg.c

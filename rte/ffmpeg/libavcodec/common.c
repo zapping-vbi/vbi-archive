@@ -15,19 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * alternative bitstream reader & writer by Michael Niedermayer <michaelni@gmx.at>
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#ifdef __FreeBSD__
-#include <sys/param.h>
-#endif
-#include <netinet/in.h>
-#include <math.h>
 #include "common.h"
-
-#define NDEBUG
-#include <assert.h>
+#include <math.h>
 
 void init_put_bits(PutBitContext *s, 
                    UINT8 *buffer, int buffer_size,
@@ -35,148 +27,94 @@ void init_put_bits(PutBitContext *s,
                    void (*write_data)(void *, UINT8 *, int))
 {
     s->buf = buffer;
-    s->buf_ptr = s->buf;
     s->buf_end = s->buf + buffer_size;
-    s->bit_cnt=0;
-    s->bit_buf=0;
     s->data_out_size = 0;
-    s->write_data = write_data;
-    s->opaque = opaque;
-}
-
-static void flush_buffer(PutBitContext *s)
-{
-    int size;
-    if (s->write_data) {
-        size = s->buf_ptr - s->buf;
-        if (size > 0)
-            s->write_data(s->opaque, s->buf, size);
-        s->buf_ptr = s->buf;
-        s->data_out_size += size;
+    if(write_data!=NULL) 
+    {
+    	fprintf(stderr, "write Data callback is not supported\n");
     }
-}
-
-void put_bits(PutBitContext *s, int n, unsigned int value)
-{
-    unsigned int bit_buf;
-    int bit_cnt;
-
-#ifdef STATS
-    st_out_bit_counts[st_current_index] += n;
+#ifdef ALT_BITSTREAM_WRITER
+    s->index=0;
+    ((uint32_t*)(s->buf))[0]=0;
+//    memset(buffer, 0, buffer_size);
+#else
+    s->buf_ptr = s->buf;
+    s->bit_left=32;
+    s->bit_buf=0;
 #endif
-    //    printf("put_bits=%d %x\n", n, value);
-    assert(n == 32 || value < (1U << n));
-
-    bit_buf = s->bit_buf;
-    bit_cnt = s->bit_cnt;
-
-    //    printf("n=%d value=%x cnt=%d buf=%x\n", n, value, bit_cnt, bit_buf);
-    /* XXX: optimize */
-    if (n < (32-bit_cnt)) {
-        bit_buf |= value << (32 - n - bit_cnt);
-        bit_cnt+=n;
-    } else {
-        bit_buf |= value >> (n + bit_cnt - 32);
-        *(UINT32 *)s->buf_ptr = htonl(bit_buf);
-        //printf("bitbuf = %08x\n", bit_buf);
-        s->buf_ptr+=4;
-        if (s->buf_ptr >= s->buf_end)
-            flush_buffer(s);
-        bit_cnt=bit_cnt + n - 32;
-        if (bit_cnt == 0) {
-            bit_buf = 0;
-        } else {
-            bit_buf = value << (32 - bit_cnt);
-        }
-    }
-    
-    s->bit_buf = bit_buf;
-    s->bit_cnt = bit_cnt;
 }
 
 /* return the number of bits output */
-long long get_bit_count(PutBitContext *s)
+INT64 get_bit_count(PutBitContext *s)
 {
-    return (s->buf_ptr - s->buf + s->data_out_size) * 8 + (long long)s->bit_cnt;
+#ifdef ALT_BITSTREAM_WRITER
+    return s->data_out_size * 8 + s->index;
+#else
+    return (s->buf_ptr - s->buf + s->data_out_size) * 8 + 32 - (INT64)s->bit_left;
+#endif
 }
 
 void align_put_bits(PutBitContext *s)
 {
-    put_bits(s,(8 - s->bit_cnt) & 7,0);
+#ifdef ALT_BITSTREAM_WRITER
+    put_bits(s,(  - s->index) & 7,0);
+#else
+    put_bits(s,s->bit_left & 7,0);
+#endif
 }
 
 /* pad the end of the output stream with zeros */
 void flush_put_bits(PutBitContext *s)
 {
-    while (s->bit_cnt > 0) {
+#ifdef ALT_BITSTREAM_WRITER
+    align_put_bits(s);
+#else
+    s->bit_buf<<= s->bit_left;
+    while (s->bit_left < 32) {
         /* XXX: should test end of buffer */
         *s->buf_ptr++=s->bit_buf >> 24;
         s->bit_buf<<=8;
-        s->bit_cnt-=8;
+        s->bit_left+=8;
     }
-    flush_buffer(s);
-    s->bit_cnt=0;
+    s->bit_left=32;
     s->bit_buf=0;
-}
-
-/* for jpeg : espace 0xff with 0x00 after it */
-void jput_bits(PutBitContext *s, int n, unsigned int value)
-{
-    unsigned int bit_buf, b;
-    int bit_cnt, i;
-    
-    assert(n == 32 || value < (1U << n));
-
-    bit_buf = s->bit_buf;
-    bit_cnt = s->bit_cnt;
-
-    //printf("n=%d value=%x cnt=%d buf=%x\n", n, value, bit_cnt, bit_buf);
-    /* XXX: optimize */
-    if (n < (32-bit_cnt)) {
-        bit_buf |= value << (32 - n - bit_cnt);
-        bit_cnt+=n;
-    } else {
-        bit_buf |= value >> (n + bit_cnt - 32);
-        /* handle escape */
-        for(i=0;i<4;i++) {
-            b = (bit_buf >> 24);
-            *(s->buf_ptr++) = b;
-            if (b == 0xff)
-                *(s->buf_ptr++) = 0;
-            bit_buf <<= 8;
-        }
-        /* we flush the buffer sooner to handle worst case */
-        if (s->buf_ptr >= (s->buf_end - 8))
-            flush_buffer(s);
-
-        bit_cnt=bit_cnt + n - 32;
-        if (bit_cnt == 0) {
-            bit_buf = 0;
-        } else {
-            bit_buf = value << (32 - bit_cnt);
-        }
-    }
-    
-    s->bit_buf = bit_buf;
-    s->bit_cnt = bit_cnt;
+#endif
 }
 
 /* pad the end of the output stream with zeros */
+#ifndef ALT_BITSTREAM_WRITER
 void jflush_put_bits(PutBitContext *s)
 {
     unsigned int b;
+    s->bit_buf<<= s->bit_left;
+    s->bit_buf |= ~1U >> (32 - s->bit_left); /* set all the unused bits to one */
 
-    while (s->bit_cnt > 0) {
+    while (s->bit_left < 32) {
         b = s->bit_buf >> 24;
         *s->buf_ptr++ = b;
         if (b == 0xff)
             *s->buf_ptr++ = 0;
         s->bit_buf<<=8;
-        s->bit_cnt-=8;
+        s->bit_left+=8;
     }
-    flush_buffer(s);
-    s->bit_cnt=0;
+    s->bit_left=32;
     s->bit_buf=0;
+}
+#else
+void jflush_put_bits(PutBitContext *s)
+{
+    int num= (  - s->index) & 7;
+    jput_bits(s, num,0xFF>>(8-num));
+}
+#endif
+
+void put_string(PutBitContext * pbc, char *s)
+{
+    while(*s){
+        put_bits(pbc, 8, *s);
+        s++;
+    }
+    put_bits(pbc, 8, 0);
 }
 
 /* bit input functions */
@@ -184,6 +122,10 @@ void jflush_put_bits(PutBitContext *s)
 void init_get_bits(GetBitContext *s, 
                    UINT8 *buffer, int buffer_size)
 {
+#ifdef ALT_BITSTREAM_READER
+    s->index=0;
+    s->buffer= buffer;
+#else
     s->buf = buffer;
     s->buf_ptr = buffer;
     s->buf_end = buffer + buffer_size;
@@ -194,38 +136,45 @@ void init_get_bits(GetBitContext *s,
         s->bit_buf |= (*s->buf_ptr++ << (24 - s->bit_cnt));
         s->bit_cnt += 8;
     }
+#endif
+    s->size= buffer_size;
 }
 
+#ifndef ALT_BITSTREAM_READER
 /* n must be >= 1 and <= 32 */
-unsigned int get_bits(GetBitContext *s, int n)
+/* also true: n > s->bit_cnt */
+unsigned int get_bits_long(GetBitContext *s, int n)
 {
     unsigned int val;
     int bit_cnt;
     unsigned int bit_buf;
-    UINT8 *buf_ptr;
 
 #ifdef STATS
     st_bit_counts[st_current_index] += n;
 #endif
 
-    bit_cnt = s->bit_cnt;
     bit_buf = s->bit_buf;
+    bit_cnt = s->bit_cnt - n;
     
-    bit_cnt -= n;
-    if (bit_cnt >= 0) {
-        /* most common case here */
-        val = bit_buf >> (32 - n);
-        bit_buf <<= n; 
-    } else {
+//    if (bit_cnt >= 0) {
+//        val = bit_buf >> (32 - n);
+//        bit_buf <<= n; 
+//    } else 
+    {
+	UINT8 *buf_ptr;
         val = bit_buf >> (32 - n);
         buf_ptr = s->buf_ptr;
         buf_ptr += 4;
         /* handle common case: we can read everything */
         if (buf_ptr <= s->buf_end) {
-            bit_buf = (buf_ptr[-4] << 24) |
-                (buf_ptr[-3] << 16) |
+#if ARCH_X86
+	    bit_buf = bswap_32(*((unsigned long*)(&buf_ptr[-4])));
+#else
+	    bit_buf = (buf_ptr[-4] << 24) |
+		(buf_ptr[-3] << 16) |
                 (buf_ptr[-2] << 8) |
-                (buf_ptr[-1]);
+                (buf_ptr[-1]);	    
+#endif
         } else {
             buf_ptr -= 4;
             bit_buf = 0;
@@ -247,15 +196,77 @@ unsigned int get_bits(GetBitContext *s, int n)
     s->bit_cnt = bit_cnt;
     return val;
 }
+#endif
 
 void align_get_bits(GetBitContext *s)
 {
+#ifdef ALT_BITSTREAM_READER
+    s->index= (s->index + 7) & (~7); 
+#else
     int n;
     n = s->bit_cnt & 7;
     if (n > 0) {
         get_bits(s, n);
     }
+#endif
 }
+
+int check_marker(GetBitContext *s, char *msg)
+{
+    int bit= get_bits1(s);
+    if(!bit) printf("Marker bit missing %s\n", msg);
+
+    return bit;
+}
+
+#ifndef ALT_BITSTREAM_READER
+/* This function is identical to get_bits_long(), the */
+/* only diference is that it doesn't touch the buffer */
+/* it is usefull to see the buffer.                   */
+
+unsigned int show_bits_long(GetBitContext *s, int n)
+{
+    unsigned int val;
+    int bit_cnt;
+    unsigned int bit_buf;
+	UINT8 *buf_ptr;
+	
+    bit_buf = s->bit_buf;
+    bit_cnt = s->bit_cnt - n;
+
+    val = bit_buf >> (32 - n);
+    buf_ptr = s->buf_ptr;
+    buf_ptr += 4;
+
+    /* handle common case: we can read everything */
+    if (buf_ptr <= s->buf_end) {
+#ifdef ARCH_X86
+        bit_buf = bswap_32(*((unsigned long*)(&buf_ptr[-4])));
+#else
+        bit_buf = (buf_ptr[-4] << 24) |
+            (buf_ptr[-3] << 16) |
+            (buf_ptr[-2] << 8) |
+            (buf_ptr[-1]);	    
+#endif
+    } else {
+        buf_ptr -= 4;
+        bit_buf = 0;
+        if (buf_ptr < s->buf_end)
+            bit_buf |= *buf_ptr++ << 24;
+        if (buf_ptr < s->buf_end)
+            bit_buf |= *buf_ptr++ << 16;
+        if (buf_ptr < s->buf_end)
+            bit_buf |= *buf_ptr++ << 8;
+        if (buf_ptr < s->buf_end)
+            bit_buf |= *buf_ptr++;
+    }
+    val |= bit_buf >> (32 + bit_cnt);
+    bit_buf <<= - bit_cnt;
+    bit_cnt += 32;
+    
+    return val;
+}
+#endif
 
 /* VLC decoding */
 
@@ -395,7 +406,27 @@ static int build_table(VLC *vlc, int table_nb_bits,
 }
 
 
-/* wrap and size allow to handle most types of storage.  */
+/* Build VLC decoding tables suitable for use with get_vlc().
+
+   'nb_bits' set thee decoding table size (2^nb_bits) entries. The
+   bigger it is, the faster is the decoding. But it should not be too
+   big to save memory and L1 cache. '9' is a good compromise.
+   
+   'nb_codes' : number of vlcs codes
+
+   'bits' : table which gives the size (in bits) of each vlc code.
+
+   'codes' : table which gives the bit pattern of of each vlc code.
+
+   'xxx_wrap' : give the number of bytes between each entry of the
+   'bits' or 'codes' tables.
+
+   'xxx_size' : gives the number of bytes of each entry of the 'bits'
+   or 'codes' tables.
+
+   'wrap' and 'size' allows to use any memory configuration and types
+   (byte/word/long) to store the 'bits' and 'codes' tables.  
+*/
 int init_vlc(VLC *vlc, int nb_bits, int nb_codes,
              const void *bits, int bits_wrap, int bits_size,
              const void *codes, int codes_wrap, int codes_size)
@@ -429,41 +460,7 @@ void free_vlc(VLC *vlc)
     free(vlc->table_codes);
 }
 
-int get_vlc(GetBitContext *s, VLC *vlc)
-{
-    int bit_cnt, code, n, nb_bits, index;
-    UINT32 bit_buf;
-    INT16 *table_codes;
-    INT8 *table_bits;
-    UINT8 *buf_ptr;
-
-    SAVE_BITS(s);
-    nb_bits = vlc->bits;
-    table_codes = vlc->table_codes;
-    table_bits = vlc->table_bits;
-    for(;;) {
-        SHOW_BITS(s, index, nb_bits);
-        code = table_codes[index];
-        n = table_bits[index];
-        if (n > 0) {
-            /* most common case */
-            FLUSH_BITS(n);
-#ifdef STATS
-            st_bit_counts[st_current_index] += n;
-#endif
-            break;
-        } else if (n == 0) {
-            return -1;
-        } else {
-            FLUSH_BITS(nb_bits);
-#ifdef STATS
-            st_bit_counts[st_current_index] += nb_bits;
-#endif
-            nb_bits = -n;
-            table_codes = vlc->table_codes + code;
-            table_bits = vlc->table_bits + code;
-        }
-    }
-    RESTORE_BITS(s);
-    return code;
+int ff_gcd(int a, int b){
+    if(b) return ff_gcd(b, a%b);
+    else  return a;
 }

@@ -16,11 +16,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <errno.h>
 #include "avformat.h"
 
 /* simple formats */
@@ -31,7 +26,7 @@ int raw_write_header(struct AVFormatContext *s)
 
 int raw_write_packet(struct AVFormatContext *s, 
                      int stream_index,
-                     unsigned char *buf, int size)
+                     unsigned char *buf, int size, int force_pts)
 {
     put_buffer(&s->pb, buf, size);
     put_flush_packet(&s->pb);
@@ -73,7 +68,6 @@ static int raw_read_header(AVFormatContext *s,
         case CODEC_TYPE_AUDIO:
             st->codec.sample_rate = ap->sample_rate;
             st->codec.channels = ap->channels;
-            /* XXX: endianness */
             break;
         case CODEC_TYPE_VIDEO:
             st->codec.frame_rate = ap->frame_rate;
@@ -81,36 +75,53 @@ static int raw_read_header(AVFormatContext *s,
             st->codec.height = ap->height;
             break;
         default:
-            abort();
-            break;
+            return -1;
         }
     } else {
-        abort();
+        return -1;
     }
     return 0;
 }
 
-#define MIN_SIZE 1024
+/* raw input */
+static int pcm_read_header(AVFormatContext *s,
+                           AVFormatParameters *ap)
+{
+    AVStream *st;
+
+    st = malloc(sizeof(AVStream));
+    if (!st)
+        return -1;
+    s->nb_streams = 1;
+    s->streams[0] = st;
+
+    st->id = 0;
+
+    st->codec.codec_type = CODEC_TYPE_AUDIO;
+    st->codec.codec_id = s->format->audio_codec;
+
+    return 0;
+}
+
+#define RAW_PACKET_SIZE 1024
 
 int raw_read_packet(AVFormatContext *s,
                     AVPacket *pkt)
 {
-    int packet_size, n, ret;
+    int ret;
 
-    if (url_feof(&s->pb))
-        return -EIO;
-
-    packet_size = url_get_packet_size(&s->pb);
-    n = MIN_SIZE / packet_size;
-    if (n <= 0)
-        n = 1;
-    if (av_new_packet(pkt, n * packet_size) < 0)
+    if (av_new_packet(pkt, RAW_PACKET_SIZE) < 0)
         return -EIO;
 
     pkt->stream_index = 0;
-    ret = get_buffer(&s->pb, pkt->data, pkt->size);
-    if (ret < 0)
+    ret = get_buffer(&s->pb, pkt->data, RAW_PACKET_SIZE);
+    if (ret <= 0) {
         av_free_packet(pkt);
+        return -EIO;
+    }
+    /* note: we need to modify the packet size here to handle the last
+       packet */
+    pkt->size = ret;
     return ret;
 }
 
@@ -135,9 +146,7 @@ static int mp3_read_header(AVFormatContext *s,
 
     st->codec.codec_type = CODEC_TYPE_AUDIO;
     st->codec.codec_id = CODEC_ID_MP2;
-    /* XXX: read the first frame and extract rate and channels */
-    st->codec.sample_rate = 44100;
-    st->codec.channels = 2;
+    /* the parameters will be extracted from the compressed bitstream */
     return 0;
 }
 
@@ -155,6 +164,14 @@ static int video_read_header(AVFormatContext *s,
 
     st->codec.codec_type = CODEC_TYPE_VIDEO;
     st->codec.codec_id = s->format->video_codec;
+    /* for mjpeg, specify frame rate */
+    if (st->codec.codec_id == CODEC_ID_MJPEG) {
+        if (ap) {
+            st->codec.frame_rate = ap->frame_rate;
+        } else {
+            st->codec.frame_rate = 25 * FRAME_RATE_BASE;
+        }
+    }
     return 0;
 }
 
@@ -184,6 +201,9 @@ AVFormat ac3_format = {
     raw_write_header,
     raw_write_packet,
     raw_write_trailer,
+    raw_read_header,
+    raw_read_packet,
+    raw_read_close,
 };
 
 AVFormat h263_format = {
@@ -216,18 +236,163 @@ AVFormat mpeg1video_format = {
     raw_read_close,
 };
 
-AVFormat pcm_format = {
-    "pcm",
-    "pcm raw format",
+AVFormat mjpeg_format = {
+    "mjpeg",
+    "MJPEG video",
+    "video/x-mjpeg",
+    "mjpg,mjpeg",
+    0,
+    CODEC_ID_MJPEG,
+    raw_write_header,
+    raw_write_packet,
+    raw_write_trailer,
+    video_read_header,
+    raw_read_packet,
+    raw_read_close,
+};
+
+/* pcm formats */
+
+AVFormat pcm_s16le_format = {
+    "s16le",
+    "pcm signed 16 bit little endian format",
     NULL,
+#ifdef WORDS_BIGENDIAN
+    "",
+#else
     "sw",
-    CODEC_ID_PCM,
+#endif
+    CODEC_ID_PCM_S16LE,
     0,
     raw_write_header,
     raw_write_packet,
     raw_write_trailer,
 
-    raw_read_header,
+    pcm_read_header,
+    raw_read_packet,
+    raw_read_close,
+};
+
+AVFormat pcm_s16be_format = {
+    "s16be",
+    "pcm signed 16 bit big endian format",
+    NULL,
+#ifdef WORDS_BIGENDIAN
+    "sw",
+#else
+    "",
+#endif
+    CODEC_ID_PCM_S16BE,
+    0,
+    raw_write_header,
+    raw_write_packet,
+    raw_write_trailer,
+
+    pcm_read_header,
+    raw_read_packet,
+    raw_read_close,
+};
+
+AVFormat pcm_u16le_format = {
+    "u16le",
+    "pcm unsigned 16 bit little endian format",
+    NULL,
+#ifdef WORDS_BIGENDIAN
+    "",
+#else
+    "uw",
+#endif
+    CODEC_ID_PCM_U16LE,
+    0,
+    raw_write_header,
+    raw_write_packet,
+    raw_write_trailer,
+
+    pcm_read_header,
+    raw_read_packet,
+    raw_read_close,
+};
+
+AVFormat pcm_u16be_format = {
+    "u16be",
+    "pcm unsigned 16 bit big endian format",
+    NULL,
+#ifdef WORDS_BIGENDIAN
+    "uw",
+#else
+    "",
+#endif
+    CODEC_ID_PCM_U16BE,
+    0,
+    raw_write_header,
+    raw_write_packet,
+    raw_write_trailer,
+
+    pcm_read_header,
+    raw_read_packet,
+    raw_read_close,
+};
+
+AVFormat pcm_s8_format = {
+    "s8",
+    "pcm signed 8 bit format",
+    NULL,
+    "sb",
+    CODEC_ID_PCM_S8,
+    0,
+    raw_write_header,
+    raw_write_packet,
+    raw_write_trailer,
+
+    pcm_read_header,
+    raw_read_packet,
+    raw_read_close,
+};
+
+AVFormat pcm_u8_format = {
+    "u8",
+    "pcm unsigned 8 bit format",
+    NULL,
+    "ub",
+    CODEC_ID_PCM_U8,
+    0,
+    raw_write_header,
+    raw_write_packet,
+    raw_write_trailer,
+
+    pcm_read_header,
+    raw_read_packet,
+    raw_read_close,
+};
+
+AVFormat pcm_mulaw_format = {
+    "mulaw",
+    "pcm mu law format",
+    NULL,
+    "ul",
+    CODEC_ID_PCM_MULAW,
+    0,
+    raw_write_header,
+    raw_write_packet,
+    raw_write_trailer,
+
+    pcm_read_header,
+    raw_read_packet,
+    raw_read_close,
+};
+
+AVFormat pcm_alaw_format = {
+    "alaw",
+    "pcm A law format",
+    NULL,
+    "al",
+    CODEC_ID_PCM_ALAW,
+    0,
+    raw_write_header,
+    raw_write_packet,
+    raw_write_trailer,
+
+    pcm_read_header,
     raw_read_packet,
     raw_read_close,
 };
