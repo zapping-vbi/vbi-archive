@@ -289,8 +289,10 @@ zmisc_stop (tveng_device_info *info)
       break;
 
     case TVENG_TELETEXT:
+#ifdef HAVE_LIBZVBI
       /* teletext in main window */
       ttxview_detach (main_window);
+#endif
       info->current_mode = TVENG_NO_CAPTURE;
       break;
 
@@ -863,7 +865,7 @@ add_hide(GtkWidget *appbar)
     return;
 
   widget = gtk_button_new_from_stock (GTK_STOCK_CLOSE);
-  z_tooltip_set(widget, _("Hide the status bar"));
+  z_tooltip_set(widget, _("Hide the statusbar"));
 
   if (widget)
     gtk_box_pack_end(GTK_BOX(appbar), widget, FALSE, FALSE, 0);
@@ -1098,6 +1100,8 @@ z_on_electric_filename		(GtkWidget *		w,
 
   name = gtk_entry_get_text (GTK_ENTRY (w));
   len = strlen (name);
+
+  ext = name;
 
   if (len > 0)
     {
