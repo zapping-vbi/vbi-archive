@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.155 2004-10-03 21:25:59 mschimek Exp $
+dnl $Id: configure.in,v 1.156 2004-10-09 05:42:12 mschimek Exp $
 
 AC_INIT(zapping, 0.7.2,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
@@ -421,6 +421,7 @@ if test "x$HAVE_ZVBI" = "xyes"; then
   ZVBI_LIB="-lzvbi"
 fi
 AC_SUBST(ZVBI_LIB)
+AM_CONDITIONAL(HAVE_LIBZVBI, test "x$HAVE_ZVBI" = "xyes")
 LIBS="$SAVE_LIBS"
 
 dnl ---------------------------------------------------------------------------
