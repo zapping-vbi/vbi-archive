@@ -233,9 +233,10 @@ geometry_update			(void)
 {
   int i, j;
 
-  for (i=0; i<MAX_ROWS; i++)
-    for (j=0; j<matrix[i]->n_pieces; j++)
-      set_piece_geometry(&(matrix[i]->pieces[j]));
+  for (i = 0; i < MAX_ROWS; i++)
+    if (matrix[i])
+      for (j = 0; j < matrix[i]->n_pieces; j++)
+	set_piece_geometry(&(matrix[i]->pieces[j]));
 }
 
 /**
