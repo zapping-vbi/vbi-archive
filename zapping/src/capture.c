@@ -94,14 +94,15 @@ gboolean request_default_format(gint w, gint h, tveng_device_info *info)
 	{
 	  success =
 	    request_bundle_format(BUNDLE_FORMAT,
-				  info->standards[info->cur_standard].width/2,
-				  info->standards[info->cur_standard].height/2);
+			  info->standards[info->cur_standard].width/2,
+			  info->standards[info->cur_standard].height/2);
+
 	  if (!success) /* try with the other YUV pixformat */
 	    {
 	      success =
 		request_bundle_format(bundle_format2,
-				      info->standards[info->cur_standard].width/2,
-				      info->standards[info->cur_standard].height/2);
+			      info->standards[info->cur_standard].width/2,
+			      info->standards[info->cur_standard].height/2);
 	      if (success)
 		zconf_set_integer(bundle_format2,
 				  "/zapping/options/main/yuv_format");
@@ -295,6 +296,7 @@ capture_thread (gpointer data)
 	  fill_bundle(d, info);
 	  send_full_buffer(&capture_fifo, b);
 	}
+
       usleep(2000);
     }
 
@@ -364,7 +366,8 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format,
       d->format.depth = 16;
       d->format.bpp = 2;
       if (have_xv &&
-	  (d->image.xvimage = xvzImage_new(format->width, format->height)))
+	  (d->image.xvimage =
+	   xvzImage_new(format->width, format->height)))
 	{
 	  d->image_type = CAPTURE_BUNDLE_XV;
 	  d->format.width = d->image.xvimage->w;
@@ -372,6 +375,17 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format,
 	  d->image_size = d->image.xvimage->data_size;
 	  d->format.bytesperline = d->format.width*d->format.bpp;
 	  d->data = d->image.xvimage->data;
+	}
+      else
+	{
+	  d->image_type = CAPTURE_BUNDLE_DATA;
+	  d->format.width = format->width;
+	  d->format.height = format->height;
+	  d->image_size = d->format.width * d->format.height *
+	    d->format.bpp;
+	  d->image.yuv_data = g_malloc( d->image_size );
+	  d->format.bytesperline = d->format.width * d->format.bpp;
+	  d->data = d->image.yuv_data;
 	}
       break;
 
@@ -460,96 +474,102 @@ static gint idle_handler(gpointer ignored)
   print_info(main_window);
 
   b = recv_full_buffer(&capture_fifo);
-  if (b)
+
+  if (!b)
     {
-      d = (capture_bundle*)b->data;
-      if (d->timestamp)
-	{
-	  if (d->image_type)
-	    give_data_to_plugins(d);
-
-	  switch (d->image_type)
-	    {
-	    case CAPTURE_BUNDLE_XV:
-	      xvzImage_put(d->image.xvimage, capture_canvas->window,
-			   capture_canvas->style->white_gc);
-	      break;
-	    case CAPTURE_BUNDLE_GDK:
-	      gdk_window_get_size(capture_canvas->window, &w, &h);
-	      iw = d->image.gdkimage->width;
-	      ih = d->image.gdkimage->height;
-	      gdk_draw_image(capture_canvas -> window,
-			     capture_canvas -> style -> white_gc,
-			     d->image.gdkimage,
-			     0, 0, (w-iw)/2, (h-ih)/2,
-			     iw, ih);
-	      break;
-	    case CAPTURE_BUNDLE_DATA:
-	      if (d->format.pixformat != TVENG_PIX_YUV420 &&
-		  d->format.pixformat != TVENG_PIX_YVU420)
-		break;
-
-	      /* fixme: need a flag to turn drawing off, it's slow */
-	      if (!yuv_image ||
-		  yuv_image->width != d->format.width ||
-		  yuv_image->height != d->format.height)
-		{
-		  /* reallocate translation buffer */
-		  if (yuv_image)
-		    gdk_image_destroy(yuv_image);
-		  yuv_image = NULL;
-		  yuv_image = gdk_image_new(GDK_IMAGE_FASTEST,
-					    gdk_visual_get_system(),
-					    d->format.width,
-					    d->format.height);
-		}
-	      if (yuv_image)
-		{
-		  uint8_t *y, *u, *v, *t;
-		  y = (uint8_t*)d->image.yuv_data;
-		  v = y + d->format.width * d->format.height;
-		  u = v + ((d->format.width * d->format.height)>>2);
-		  g_assert(d->format.pixformat == TVENG_PIX_YUV420 ||
-			   d->format.pixformat == TVENG_PIX_YVU420);
-		  if (d->format.pixformat == TVENG_PIX_YUV420)
-		    { t = u; u = v; v = t; }
-		  yuv2rgb(x11_get_data(yuv_image), y, u, v,
-			  d->format.width, d->format.height,
-			  yuv_image->bpl, d->format.width,
-			  d->format.width*0.5);
-		  gdk_window_get_size(capture_canvas->window, &w, &h);
-		  iw = yuv_image->width;
-		  ih = yuv_image->height;
-		  gdk_draw_image(capture_canvas -> window,
-				 capture_canvas -> style -> white_gc,
-				 yuv_image,
-				 0, 0, (w-iw)/2, (h-ih)/2,
-				 iw, ih);
-		}
-	      break;
-	    case 0:
-	      /* to be rebuilt, just ignore */
-	      break;
-	    default:
-	      g_assert_not_reached();
-	      break;
-	    }
-	}
-
-      /* Rebuild if needed */
-      if (d->format.width != current_format.width ||
-	  d->format.height != current_format.height ||
-	  !pixformat_ok(d->format.pixformat, current_format.pixformat))
-	{
-	  clear_bundle(d);
-	  build_bundle(d, &current_format, &capture_fifo, b);
-	}
-      send_empty_buffer(&capture_fifo, b);
+      usleep(2000);
+      return TRUE;
     }
-  else
-    usleep(2000);
 
-  return 1; /* Keep calling me */
+  d = (capture_bundle*)b->data;
+  d->b = b;
+  
+  /* needs rebuilding */
+  if (!d->timestamp || !d->image_type || !d->data ||
+      d->format.width != current_format.width ||
+      d->format.height != current_format.height ||
+      !pixformat_ok(d->format.pixformat, current_format.pixformat))
+    {
+      clear_bundle(d);
+      build_bundle(d, &current_format, &capture_fifo, b);
+      send_empty_buffer(&capture_fifo, b);
+      return TRUE; /* done */
+    }
+  
+  if (d->image_type)
+    give_data_to_plugins(d);
+  
+  switch (d->image_type)
+    {
+    case CAPTURE_BUNDLE_XV:
+      xvzImage_put(d->image.xvimage, capture_canvas->window,
+		   capture_canvas->style->white_gc);
+      break;
+    case CAPTURE_BUNDLE_GDK:
+      gdk_window_get_size(capture_canvas->window, &w, &h);
+      iw = d->image.gdkimage->width;
+      ih = d->image.gdkimage->height;
+      gdk_draw_image(capture_canvas -> window,
+		     capture_canvas -> style -> white_gc,
+		     d->image.gdkimage,
+		     0, 0, (w-iw)/2, (h-ih)/2,
+		     iw, ih);
+      break;
+    case CAPTURE_BUNDLE_DATA:
+      /* FIXME: We should have YUYV->RGB routines too */
+      if (d->format.pixformat != TVENG_PIX_YUV420 &&
+	  d->format.pixformat != TVENG_PIX_YVU420)
+	break;
+      
+      /* fixme: need a flag to turn drawing off, it's slow */
+      if (!yuv_image ||
+	  yuv_image->width != d->format.width ||
+	  yuv_image->height != d->format.height)
+	{
+	  /* reallocate translation buffer */
+	  if (yuv_image)
+	    gdk_image_destroy(yuv_image);
+	  yuv_image = NULL;
+	  yuv_image = gdk_image_new(GDK_IMAGE_FASTEST,
+				    gdk_visual_get_system(),
+				    d->format.width,
+				    d->format.height);
+	}
+      if (yuv_image)
+	{
+	  uint8_t *y, *u, *v, *t;
+	  y = (uint8_t*)d->image.yuv_data;
+	  v = y + d->format.width * d->format.height;
+	  u = v + ((d->format.width * d->format.height)>>2);
+	  g_assert(d->format.pixformat == TVENG_PIX_YUV420 ||
+		   d->format.pixformat == TVENG_PIX_YVU420);
+	  if (d->format.pixformat == TVENG_PIX_YUV420)
+	    { t = u; u = v; v = t; }
+	  yuv2rgb(x11_get_data(yuv_image), y, u, v,
+		  d->format.width, d->format.height,
+		  yuv_image->bpl, d->format.width,
+		  d->format.width*0.5);
+	  gdk_window_get_size(capture_canvas->window, &w, &h);
+	  iw = yuv_image->width;
+	  ih = yuv_image->height;
+	  gdk_draw_image(capture_canvas -> window,
+			 capture_canvas -> style -> white_gc,
+			 yuv_image,
+			 0, 0, (w-iw)/2, (h-ih)/2,
+			 iw, ih);
+	}
+      break;
+    case 0:
+      /* to be rebuilt, just ignore */
+      break;
+    default:
+      g_assert_not_reached();
+      break;
+    }
+  
+  send_empty_buffer(&capture_fifo, b);
+
+  return TRUE;
 }
 
 gint

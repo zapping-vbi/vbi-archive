@@ -90,7 +90,8 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_help_properties, 0x1234),
     SYMBOL(plugin_add_gui, 0x1234),
     SYMBOL(plugin_remove_gui, 0x1234),
-    SYMBOL(plugin_get_misc_info, 0x1234)
+    SYMBOL(plugin_get_misc_info, 0x1234),
+    SYMBOL(plugin_running, 0x1234)
   };
   gint num_exported_symbols =
     sizeof(table_of_symbols)/sizeof(struct plugin_exported_symbol);
@@ -363,7 +364,8 @@ resolve_filename(const gchar * dir, const gchar * prefix,
 }
 
 static gpointer data_dest;
-static gboolean buffered_video = FALSE; /* TRUE segfaults */
+static gboolean buffered_video = FALSE; /* FIXME: Segfault when
+					   bundles require resizing */
 
 static
 void plugin_process_bundle ( capture_bundle * bundle )
@@ -372,6 +374,12 @@ void plugin_process_bundle ( capture_bundle * bundle )
 
   if (!active || !context || !bundle || !bundle->data ||
       !bundle->image_type || !mux_mode)
+    return;
+
+  /* format check */
+  if ((bundle->format.sizeimage != context->video_bytes) ||
+      (bundle->format.width != context->width) ||
+      (bundle->format.height != context->height))
     return;
 
   if (!buffered_video)
@@ -431,7 +439,7 @@ gboolean plugin_start (void)
 
   /* FIXME: Size should be configurable */
   /* FIXME: Won't work if YUYV isn't Z's current yuv pixformat */
-  if (!request_bundle_format(TVENG_PIX_YUYV, 384, 288))
+  if (!request_bundle_format(TVENG_PIX_YVU420, 384, 288))
     {
       ShowBox("Cannot switch to YUYV capture format",
 	      GNOME_MESSAGE_BOX_ERROR);
@@ -443,11 +451,11 @@ gboolean plugin_start (void)
     case TVENG_PIX_YUYV:
       pixformat = RTE_YUYV;
       break;
-    case TVENG_PIX_YUV420:
-      pixformat = RTE_YUV420;
+    case TVENG_PIX_YVU420:
+      pixformat = RTE_YVU420;
       break;
     default:
-      ShowBox(_("The only supported pixformats are YUYV and YUV420"),
+      ShowBox(_("The only supported pixformats are YUYV and YVU420"),
 	      GNOME_MESSAGE_BOX_ERROR);
       return FALSE;
     }
@@ -546,7 +554,6 @@ gboolean plugin_start (void)
   /* don't let anyone mess with our settings from now on */
   capture_lock();
 
-  g_message("start encoding");
   if (!rte_start_encoding(context))
     {
       ShowBox("Cannot start encoding: %s", GNOME_MESSAGE_BOX_ERROR,
@@ -558,7 +565,7 @@ gboolean plugin_start (void)
       capture_unlock();
       return FALSE;
     }
-  g_message("encoding started");
+
   if (saving_dialog)
     gtk_widget_destroy(saving_dialog);
 
@@ -608,9 +615,13 @@ gboolean plugin_start (void)
 
   gtk_widget_show(saving_dialog);
 
-  g_message("plugin started");
-
   return TRUE;
+}
+
+static gboolean
+plugin_running (void)
+{
+  return active;
 }
 
 static
