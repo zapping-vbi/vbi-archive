@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.45 2001-07-28 06:55:57 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.46 2001-08-01 08:40:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -52,8 +52,9 @@ static int (* picture_p)(unsigned char *org0, unsigned char *org1,
 static int (* picture_b)(unsigned char *org0, unsigned char *org1,
 			 int dist, int forward_motion, int backward_motion);
 
-static int (* predict_forward)(unsigned char *from) reg(1);
-static int (* predict_bidirectional)(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2);
+static unsigned int (* predict_forward)(unsigned char *from) reg(1);
+static unsigned int (* predict_bidirectional)(unsigned char *from1, unsigned char *from2,
+					      unsigned int *vmc1, unsigned int *vmc2);
 
 /**/
 
@@ -141,9 +142,9 @@ extern bool		temporal_interpolation;
 extern int		preview;
 extern void		packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
 
-int p_inter_bias = 65536 * 48,
-    b_inter_bias = 65536 * 96,
-    x_bias = 65536 * 31,
+unsigned int p_inter_bias = 65536 * 48,
+             b_inter_bias = 65536 * 96;
+int x_bias = 65536 * 31,
     quant_max = 31;
 
 #define QS 1
@@ -164,23 +165,23 @@ producer		video_prod;
 
 #if TEST12
 #define LOWVAR 3000000
-#define ZMB1						\
+#define ZMB1(var)					\
 do {							\
 	if (var < LOWVAR) quant = 3;			\
 } while (0)
 /* preliminary trick */
-#define ZMB2						\
+#define ZMB2(mb, var)					\
 do { int i, j, n;					\
 	/* if (var < LOWVAR / 5) n = 64 - 3; else */	\
 	if (var < LOWVAR) n = 64 - 8; else n = 0;	\
 	for (i = 0; i < n; i++) {			\
 		j = 63 - iscan[0][(i - 1) & 63];	\
-		mblock[1][0][0][j] = 0;			\
-		mblock[1][1][0][j] = 0;			\
-		mblock[1][2][0][j] = 0;			\
-		mblock[1][3][0][j] = 0;			\
-		mblock[1][4][0][j] = 0;			\
-		mblock[1][5][0][j] = 0;			\
+		mb[0][0][j] = 0;			\
+		mb[1][0][j] = 0;			\
+		mb[2][0][j] = 0;			\
+		mb[3][0][j] = 0;			\
+		mb[4][0][j] = 0;			\
+		mb[5][0][j] = 0;			\
 	}						\
 } while (0)
 #define PBF 2
@@ -189,8 +190,8 @@ do { int i, j, n;					\
 
 #define TEST12 0
 #define LOWVAR 0
-#define ZMB1
-#define ZMB2
+#define ZMB1(x)
+#define ZMB2(x, y)
 #define PBF 2
 
 #endif
@@ -199,9 +200,8 @@ do { int i, j, n;					\
 #if USE_SACT
 #undef VARQ
 #define VARQ (65536.0 / 16)
-#endif
 static inline int
-sact(int mb)
+sact1(int mb)
 {
 	int i, j;
 	int n, s, s2;
@@ -227,7 +227,7 @@ sact(int mb)
 
 	return max;
 }
-
+#endif
 
 
 
@@ -265,7 +265,7 @@ tmp_picture_i(unsigned char *org0, unsigned char *org1, int motion)
 	int quant_sum;
 	int S, T, prev_quant, quant;
 	struct bs_rec mark;
-	int var;
+	unsigned int var;
 	bool slice;
 
 	printv(3, "Encoding I picture #%d GOP #%d, ref=%c\n",
@@ -322,7 +322,7 @@ tmp_picture_i(unsigned char *org0, unsigned char *org1, int motion)
 			pr_end(41);
 
 #if USE_SACT
-			var = sact(0);
+			var = sact1(0);
 #endif
 
 			if (motion) {
@@ -353,7 +353,7 @@ tmp_picture_i(unsigned char *org0, unsigned char *org1, int motion)
 				quant = prev_quant;
 
 if (motion)
-ZMB1;
+ZMB1(var);
 			/* Encode macroblock */
 
 			brewind(&mark, &video_out);
@@ -363,7 +363,7 @@ ZMB1;
 				fdct_intra(quant); // mblock[0] -> mblock[1]
 				pr_end(22);
 if (motion)
-ZMB2;
+ZMB2(mblock[1], var);
 				bepilog(&video_out);
 
 				if (__builtin_expect(!slice, 0)) {
@@ -456,7 +456,7 @@ do {									\
 		pr_start(22, "FDCT intra");				\
 		fdct_intra(quant); /* mblock[0] -> mblock[1] */		\
 		pr_end(22);						\
-ZMB2;									\
+ZMB2(mblock[1], var);							\
 		bepilog(&video_out);					\
 									\
 		if (f) {						\
@@ -516,7 +516,7 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_mo
 	struct bs_rec mark;
 	struct motion M[1];
 	unsigned char *q1p;
-	int var, vmc;
+	unsigned int var, vmc;
 	int mb_skipped, mb_count;
 	int intra_count = 0;
 
@@ -616,8 +616,8 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_mo
 				pr_end(51);
 			}
 #if USE_SACT
-			var = sact(0);
-			vmc = sact(1);
+			var = sact1(0);
+			vmc = sact2(1);
 #endif
 
 			emms();
@@ -650,7 +650,7 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_mo
 				Ti += Tmb;
 
 				intra_count++;
-ZMB1;
+ZMB1(var);
 				pb_intra_mb(TRUE);
 
 				if (prev_quant < 0)
@@ -843,6 +843,8 @@ if (!T3RT) quant = 2;
 	return S >> 3;
 }
 
+#define GLITCH (0 && mb_row == 6 && mb_col == 13 && video_frame_count == 5)
+
 static inline int
 tmp_picture_b(unsigned char *org0, unsigned char *org1, int dist,
 	  int forward_motion, int backward_motion)
@@ -853,7 +855,7 @@ tmp_picture_b(unsigned char *org0, unsigned char *org1, int dist,
 	int S, T, quant, prev_quant, quant1 = 1;
 	struct bs_rec mark;
 	unsigned char *q1p;
-	int var, vmc, vmcf, vmcb;
+	unsigned int var, vmc, vmcf, vmcb;
 	mb_type macroblock_type, mb_type_last;
 	int mb_skipped, mb_count;
 	struct motion M[2];
@@ -939,7 +941,7 @@ tmp_picture_b(unsigned char *org0, unsigned char *org1, int dist,
 if (T3RI
     && ((TEST12
          && !__builtin_constant_p(forward_motion)
-	 && (var < (int)(LOWVAR / (6 * B_SHARE)))
+	 && (var < (unsigned int)(LOWVAR / (6 * B_SHARE)))
 	 )))
 	goto skip_pred;
 
@@ -955,14 +957,39 @@ if (T3RI
 						&vmcf, &vmcb);
 				pr_end(52);
 #if USE_SACT
-			var  = sact(0);
-			vmcf = sact(1);
-			vmcb = sact(2);
-			vmc  = sact(3);
+			var  = sact1(0);
+			vmcf = sact2(1);
+			vmcb = sact2(2);
+			vmc  = sact2(3);
 #endif
 				macroblock_type = MB_INTERP;
 				iblock = &mblock[3];
+if (GLITCH) {
+    int i, j, k, l;
 
+    for (i = 0; i < 4; i++) {
+	long n, s, s2;
+
+	printv(1, "mblock #%d\n", i);
+	for (j = 0; j < 1; j++) {
+    	    printv(1, "block #%d:\n", j);
+    	    for (k = 0; k < 8; k++) {
+        	for (l = 0; l < 8; l++)
+            	    printv(1, "%3d ", mblock[i][j][k][l]);
+    		printv(1, "\n");
+    	    }
+	}
+
+	s = s2 = 0;
+	for (j = 0; j < 4 * 64; j++) {
+	    s += n = mblock[i][0][0][j];
+	    s2 += n * n;
+	}
+	n = s2 * 256 - (s * s);
+	printv(1, "act: %ld s=%ld s2=%ld\n", n, s, s2);
+    }
+    printv(1, "vmc=%d vmcf=%d vmcb=%d\n", vmc, vmcf, vmcb);
+}
 				if (vmcf <= vmcb && vmcf <= vmc) {
 					if (!__builtin_constant_p(forward_motion)) {
 						/* -> dmv */
@@ -992,26 +1019,21 @@ if (T3RI
 				macroblock_type = MB_BACKWARD;
 				iblock = &mblock[1];
 			}
+if (GLITCH) {
+    printv(1, "mb_type %d\n", macroblock_type);
+}
+
 skip_pred:
 			emms();
 
-			if (!__builtin_constant_p(forward_motion)) {
-#if T3P1_PRE25 // ATTN vmc change
-				vmc <<= 8;
-#endif
-			} else
-#if !USE_SACT
-				vmc <<= 8;
-#else
-				;
-#endif
 			/* Encode macroblock */
 
 			if (T3RI
 			    && ((TEST12
 				 && !__builtin_constant_p(forward_motion)
-				 && (var < (int)(LOWVAR / (6 * B_SHARE))))
-				|| vmc > p_inter_bias))
+				 && (var < (unsigned int)(LOWVAR / (6 * B_SHARE))))
+				|| vmc > p_inter_bias
+				))
 			{
 				unsigned int code;
 				int length, i;
@@ -1028,7 +1050,7 @@ skip_pred:
 				Ti += Tmb;
 
 				macroblock_type = MB_INTRA;
-ZMB1;
+ZMB1(var);
 				pb_intra_mb(TRUE);
 
 				if (prev_quant < 0)
@@ -1054,7 +1076,18 @@ ZMB1;
 				act_sum += act = vmc / VARQ + 1;
 				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
 
-    quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
+				quant = lroundn((bwritten(&video_out) - Ti) * r31 * act);
+
+				if (quant < 1) quant = 1;
+				else
+//				if (quant > 8 && vmc < 1500000) quant = 6;
+//				else
+				if (quant > quant_max) quant = quant_max;
+
+if (GLITCH) {
+    printv(1, "inter quant=%d\n", quant);
+}
+
 if (!T3RT) quant = 2;
 
 				Ti += Tmb;
@@ -1074,6 +1107,7 @@ if (!T3RT) quant = 2;
 	pr_start(26, "FDCT inter");
 	cbp = fdct_inter(*iblock, quant); // mblock[1|2|3] -> mblock[0]
 	pr_end(26);
+
 
 	if (cbp == 0
 	    && macroblock_type == mb_type_last /* -> not first of slice */
@@ -1528,7 +1562,9 @@ mpeg1_video_ipb(void *capture_fifo)
 					this->buffer = buddy.buffer;
 					this->org[1] = buddy.org[0];
 
-					if ((b = wait_full_buffer2(&cons))) {
+					b = wait_full_buffer2(&cons);
+
+					if (b->used > 0) {
 						this->time = b->time;
 						this->org[0] = b->data;
 
@@ -1549,7 +1585,7 @@ mpeg1_video_ipb(void *capture_fifo)
 					this->buffer = b = 
 						wait_full_buffer2(&cons);
 
-					if (b) {
+					if (b->used > 0) {
 						this->time = b->time;
 						this->org[0] = b->data;
 					} else
@@ -1805,28 +1841,26 @@ gop_count++;
 	}
 
 finish:
+	/* Stream end code */
+
 	if (video_frame_count > 0) {
 		obuf = wait_empty_buffer2(&video_prod);
 		((unsigned int *) obuf->data)[0] = swab32(SEQUENCE_END_CODE);
 		obuf->type = 0;
 		obuf->offset = 1;
 		obuf->used = 4;
-		obuf->time = last.time += time_per_frame;
+		obuf->time = last.time += time_per_frame; /* not used */
 		_send_full_buffer(&video_prod, obuf);
 	}
 
-	{
-		extern volatile int mux_thread_done;
+	/* End of file */
 
-		while (!mux_thread_done) {
-			obuf = wait_empty_buffer2(&video_prod);
-			obuf->type = 0;
-			obuf->offset = 1;
-			obuf->used = 0; // EOF mark
-			obuf->time = last.time += time_per_frame;
-			_send_full_buffer(&video_prod, obuf);
-		}
-	}
+	obuf = wait_empty_buffer2(&video_prod);
+	obuf->type = 0;
+	obuf->offset = 1;
+	obuf->used = 0; /* EOF */
+	obuf->time = 0;
+	_send_full_buffer(&video_prod, obuf);
 
 	rem_consumer(&cons);
 

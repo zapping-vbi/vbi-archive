@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.h,v 1.4 2001-07-18 06:32:38 mschimek Exp $ */
+/* $Id: motion.h,v 1.5 2001-08-01 08:40:16 mschimek Exp $ */
 
 #ifndef MOTION_H
 #define MOTION_H
@@ -33,20 +33,20 @@ extern int		mm_buf_offs;
 
 /* motion.c */
 
-typedef int (search_fn)(int *dhx, int *dhy, unsigned char *from,
+typedef unsigned int (search_fn)(int *dhx, int *dhy, unsigned char *from,
 			int x, int y, int range, short dest[6][8][8]);
 
 extern search_fn	mmx_search, _3dn_search, sse_search, sse2_search;
 extern search_fn *	search;
 
-extern int		predict_forward_packed(unsigned char *from) reg(1);
-extern int		predict_forward_planar(unsigned char *from) reg(1);
-extern int		predict_backward_packed(unsigned char *from) reg(1);
-extern int		predict_bidirectional_packed(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2);
-extern int		predict_bidirectional_planar(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2);
+extern unsigned int	predict_forward_packed(unsigned char *from) reg(1);
+extern unsigned int	predict_forward_planar(unsigned char *from) reg(1);
+extern unsigned int	predict_backward_packed(unsigned char *from) reg(1);
+extern unsigned int	predict_bidirectional_packed(unsigned char *from1, unsigned char *from2, unsigned int *vmc1, unsigned int *vmc2);
+extern unsigned int	predict_bidirectional_planar(unsigned char *from1, unsigned char *from2, unsigned int *vmc1, unsigned int *vmc2);
 
-extern int		predict_forward_motion(struct motion *M, unsigned char *, int);
-extern int		predict_bidirectional_motion(struct motion *M, int *, int *, int);
+extern unsigned int	predict_forward_motion(struct motion *M, unsigned char *, int);
+extern unsigned int	predict_bidirectional_motion(struct motion *M, unsigned int *, unsigned int *, int);
 
 extern void		zero_forward_motion(void);
 extern void		t7(int range, int dist);
@@ -58,9 +58,9 @@ extern void		t7(int range, int dist);
  *  within a closed gop, low profile) discarding the reconstruction.
  *  No mmx_predict_bidi_planar, use reference version.
  */
-extern int		mmx_predict_forward_packed(unsigned char *) reg(1);
-extern int		mmx_predict_forward_planar(unsigned char *) reg(1);
-extern int		mmx_predict_bidirectional_packed(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2);
+extern unsigned int	mmx_predict_forward_packed(unsigned char *) reg(1);
+extern unsigned int	mmx_predict_forward_planar(unsigned char *) reg(1);
+extern unsigned int	mmx_predict_bidirectional_packed(unsigned char *from1, unsigned char *from2, unsigned int *vmc1, unsigned int *vmc2);
 
 /*
  *  Attention mmx_mbsum uses mblock[4] as permanent scratch in picture_i|p();

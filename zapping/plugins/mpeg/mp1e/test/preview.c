@@ -18,13 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preview.c,v 1.9 2001-07-30 02:38:42 mschimek Exp $ */
+/* $Id: preview.c,v 1.10 2001-08-01 08:40:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#if defined(HAVE_LIBXV) && defined (TEST_PREVIEW)
+#if TEST_PREVIEW && HAVE_LIBXV
 
 #include <assert.h>
 

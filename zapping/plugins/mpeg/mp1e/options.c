@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.22 2001-07-12 01:22:05 mschimek Exp $ */
+/* $Id: options.c,v 1.23 2001-08-01 08:40:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -84,7 +84,7 @@ usage(FILE *fi)
 		" -H frames      Repeat sequence header every n frames,\n"
 		"                n > 0. Helps random access                  2 secs\n"
 		" -R min,max     Motion compensation search range limits     %d,%d\n"
-#if TEST_PREVIEW && defined(HAVE_LIBXV)
+#if TEST_PREVIEW && HAVE_LIBXV
 		" -P             XvImage Preview (test mode)                 disabled\n"
 #endif
 		"\n"
@@ -537,7 +537,7 @@ parse_option(int c)
 			break;
 
 		case 'V':
-			puts("mp1e" " " VERSION);
+			puts("mp1e" " " VERSION " (" __DATE__ ")");
 			exit(EXIT_SUCCESS);
 
 		case 'X':

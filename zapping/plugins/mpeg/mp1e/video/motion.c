@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.14 2001-07-26 05:41:31 mschimek Exp $ */
+/* $Id: motion.c,v 1.15 2001-08-01 08:40:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -2815,13 +2815,14 @@ sse2_load_pref(char t[16][16])
 
 #endif /* USE_SSE2 */
 
-static inline int
+static inline unsigned int
 mmx_predict(unsigned char *from, int d2x, int d2y,
       typeof (temp22) *ibuf, int iright, int idown, short dest[6][8][8])
 {
 	unsigned char *p, *q;
 	int mx, my, hy;
-	int i, s;
+	unsigned int s;
+	int i;
 
 	pr_start(53, "forward fetch");
 
@@ -2940,7 +2941,7 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 		" movd		%%mm6,%1;\n"
 		" imul		%1,%1;\n"
 		" movd		%%mm7,%0;\n"
-		" subl		%1,%0;\n"
+// sact2 dc=0	" subl		%1,%0;\n"
 	: "=&r" (s) : "r" (0));
 
 	mx = d2x + mb_col * 16 * 2;
@@ -3144,7 +3145,7 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 	return s;
 }
 
-static inline int
+static inline unsigned int
 tmp_search(int *dhx, int *dhy, unsigned char *from,
        int x, int y, int range, short dest[6][8][8],
        int cpu_type)
@@ -3479,21 +3480,21 @@ bail_out:
 	return mmx_predict(from, *dhx, *dhy, ibuf, iright, idown, dest);
 }
 
-int
+unsigned int
 mmx_search(int *dhx, int *dhy, unsigned char *from,
        int x, int y, int range, short dest[6][8][8])
 {
 	return tmp_search(dhx, dhy, from, x, y, range, dest, CPU_PENTIUM_MMX);
 }
 
-int
+unsigned int
 _3dn_search(int *dhx, int *dhy, unsigned char *from,
        int x, int y, int range, short dest[6][8][8])
 {
 	return tmp_search(dhx, dhy, from, x, y, range, dest, CPU_K6_2);
 }
 
-int
+unsigned int
 sse_search(int *dhx, int *dhy, unsigned char *from,
        int x, int y, int range, short dest[6][8][8])
 {
@@ -3502,7 +3503,7 @@ sse_search(int *dhx, int *dhy, unsigned char *from,
 
 #if USE_SSE2
 
-int
+unsigned int
 sse2_search(int *dhx, int *dhy, unsigned char *from,
        int x, int y, int range, short dest[6][8][8])
 {
@@ -3511,7 +3512,7 @@ sse2_search(int *dhx, int *dhy, unsigned char *from,
 
 #endif
 
-static int
+static unsigned int
 t4_edu(unsigned char *ref, int *dxp, int *dyp, int sx, int sy,
 	int src_range, int max_range, short dest[6][8][8])
 {
@@ -3519,7 +3520,7 @@ t4_edu(unsigned char *ref, int *dxp, int *dyp, int sx, int sy,
 	int x, y, xs, ys;
 	int x0, y0, x1, y1;
 	int hrange, vrange;
-	int s;
+	unsigned int s;
 
 	pr_start(62, "t4_edu");
 
@@ -3603,7 +3604,7 @@ zero_forward_motion(void)
 //	pdx[mb_row][mb_col] = 127;
 }
 
-int
+unsigned int
 predict_forward_motion(struct motion *M, unsigned char *from, int dist)
 {
 	int i, s;
@@ -3638,9 +3639,9 @@ predict_forward_motion(struct motion *M, unsigned char *from, int dist)
 	return s;
 }
 
-int
+unsigned int
 predict_bidirectional_motion(struct motion *M,
-	int *vmc1, int *vmc2, int bdist /* forward */)
+	unsigned int *vmc1, unsigned int *vmc2, int bdist /* forward */)
 {
 	int i, j, si, sf, sb;
 	int *pmx1; int *pmy1;
@@ -3765,7 +3766,7 @@ predict_bidirectional_motion(struct motion *M,
 		" movd		%%mm6,%1;\n"
 		" imul		%1,%1;\n"
 		" movd		%%mm7,%0;\n"
-		" subl		%1,%0;\n"
+// sact2 dc=0	" subl		%1,%0;\n"
 	: "=&r" (si) : "r" (0));
 
 	*vmc1 = sf;
@@ -3790,7 +3791,7 @@ predict_bidirectional_motion(struct motion *M,
  *  mblock[1] = org - old_ref;
  *  mblock[3] = old_ref; 	// for reconstruction by idct_inter
  */
-int
+unsigned int
 predict_forward_packed(unsigned char *from)
 {
 	int i, n, s = 0, s2 = 0;
@@ -3807,10 +3808,10 @@ predict_forward_packed(unsigned char *from)
 		mblock[3][0][0][i] = from[i];
 	}
 
-	return s2 * 256 - (s * s);
+	return s2 * 256; // - (s * s); sact2 dc=0
 }
 
-int
+unsigned int
 predict_forward_planar(unsigned char *from)
 {
 	int i, j, n, s = 0, s2 = 0;
@@ -3846,7 +3847,7 @@ predict_forward_planar(unsigned char *from)
 		p += mb_address.block[4].pitch;
 	}
 
-	return s2 * 256 - (s * s);
+	return s2 * 256; // - (s * s); sact2 dc=0
 }
 
 /*
@@ -3854,7 +3855,7 @@ predict_forward_planar(unsigned char *from)
  *
  *  mblock[1] = org - new_ref;
  */
-int
+unsigned int
 predict_backward_packed(unsigned char *from)
 {
 	int i, n, s = 0;
@@ -3867,7 +3868,7 @@ predict_backward_packed(unsigned char *from)
 	for (; i < 6 * 64; i++)
 		mblock[1][0][0][i] = mblock[0][0][0][i] - from[i];
 
-	return s;
+	return s * 256;
 }
 
 /*
@@ -3877,8 +3878,9 @@ predict_backward_packed(unsigned char *from)
  *  mblock[2] = org - new_ref;
  *  mblock[3] = org - linear_interpolation(old_ref, new_ref);
  */
-int
-predict_bidirectional_packed(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2)
+unsigned int
+predict_bidirectional_packed(unsigned char *from1, unsigned char *from2,
+	unsigned int *vmc1, unsigned int *vmc2)
 {
 	int i, n, si = 0, sf = 0, sb = 0;
 
@@ -3897,14 +3899,15 @@ predict_bidirectional_packed(unsigned char *from1, unsigned char *from2, int *vm
 		mblock[3][0][0][i] = mblock[0][0][0][i] - ((from1[i] + from2[i] + 1) >> 1);
 	}
 
-	*vmc1 = sf;
-	*vmc2 = sb;
+	*vmc1 = sf * 256;
+	*vmc2 = sb * 256;
 
-	return si;
+	return si * 256;
 }
 
-int
-predict_bidirectional_planar(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2)
+unsigned int
+predict_bidirectional_planar(unsigned char *from1, unsigned char *from2,
+	unsigned int *vmc1, unsigned int *vmc2)
 {
 	int i, j, n, si = 0, sf = 0, sb = 0;
 	unsigned char *p1, *p2;
@@ -3949,8 +3952,8 @@ predict_bidirectional_planar(unsigned char *from1, unsigned char *from2, int *vm
 		p2 += mb_address.block[4].pitch;
 	}
 
-	*vmc1 = sf;
-	*vmc2 = sb;
+	*vmc1 = sf * 256;
+	*vmc2 = sb * 256;
 
-	return si;
+	return si * 256;
 }

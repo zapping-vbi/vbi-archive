@@ -18,7 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.47 2001-07-28 06:55:57 mschimek Exp $ */
+/* $Id: main.c,v 1.48 2001-08-01 08:40:16 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -268,6 +272,7 @@ main(int ac, char **av)
 
 #if TEST_PREVIEW
 		if (preview > 0) {
+			printv(2, "Initialize preview\n");
 			preview_init(&ac, &av);
 			ASSERT("create gtk thread",
 			       !pthread_create(&gtk_main_id, NULL,
