@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.12.2.16 2003-11-26 07:16:46 mschimek Exp $ */
+/* $Id: audio.c,v 1.12.2.17 2003-11-28 18:37:17 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -99,7 +99,7 @@ open_audio_device (gboolean stereo, gint rate, enum audio_format
 
   if (!handle)
     {
-      ShowBox(_("Cannot open the configured audio device.\n"
+      ShowBox(("Cannot open the configured audio device.\n"
 		"You might want to setup another kind of audio\n"
 		"device in the Properties dialog."),
 	      GTK_MESSAGE_WARNING);
@@ -487,6 +487,7 @@ devices_audio_mixer_setup	(GtkWidget *		page)
 		    G_CALLBACK (on_enable_device_entry_toggled), table);
   on_enable_device_entry_toggled (GTK_TOGGLE_BUTTON (checkbutton), table);
 
+  /* TRANSLATORS: Soundcard mixer line. */
   label = gtk_label_new (_("Input:"));
   gtk_widget_show (label);
   gtk_label_set_justify (GTK_LABEL (label), GTK_JUSTIFY_LEFT);
@@ -629,8 +630,8 @@ set_mute				(gint	        mode,
 	if (main_info->current_mode == TVENG_CAPTURE_PREVIEW ||
 	    !GTK_WIDGET_VISIBLE (GTK_WIDGET (dock_item)))
 	  osd_render_markup (NULL, mute ?
-			   _("<blue>audio off</blue>") :
-			   _("<yellow>AUDIO ON</yellow>"));
+			   _("<blue>Audio off</blue>") :
+			   _("<yellow>Audio on</yellow>"));
       }
   }
 
