@@ -1,3 +1,21 @@
+27.3.2000	V4L support ended <garetxe@users.sourceforge.net>
+
+	* tveng.c: V4L support has been completed after 9 days, very busy
+	this two weeks with the Uni :-(
+	* main.c: Rewritten, it was becoming very messy.
+	* config.c: Created. It's a config saving module, created with
+	gconf porting in mind.
+	* plugins.c: The new plugin protocol has been designed, it lacks
+	the implementation yet, and some docs.
+	
+18.3.2000	V4L support started <garetxe@users.sourceforge.net>
+
+	* tveng.c: It has been converted to V4L and the API has changed
+	significantly. Now the rest of the program must be changed...
+	* zapping_setup_fb: Converted to V4L
+	* Release: 0.3.2 contained a bug in the distro, a bug fix release
+	has been made, named 0.3.3.
+	
 24.2.2000	New release: 0.3.2 <garetxe@users.sourceforge.net>
 
 	* plugins.c:
@@ -41,9 +59,9 @@
 
 2.2.2000 	Fullscreen mode working <garetxe@users.sourceforge.net>
 	
-	* src/tveng.c: Fullscreen mode now work (although the code now is
+	* src/tveng.c: Fullscreen mode now works (although the code now is
 	just a hack, needs to be cleaned up)
-	* Makefile.am: Added the suid top the project, now it compiles
+	* Makefile.am: Added the suid to the project, now it compiles
 	
 29.1.2000 	First _really_ working version <garetxe@users.sourceforge.net>
 

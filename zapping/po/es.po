@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.2\n"
-"POT-Creation-Date: 2000-02-24 00:47+0100\n"
+"POT-Creation-Date: 2000-03-18 15:42+0100\n"
 "PO-Revision-Date: 2000-02-14 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -520,7 +520,7 @@ msgid "No tuned channels"
 msgstr "No hay canales sintonizados"
 
 # src/v4l2interface.c:160
-#: src/v4l2interface.c:180
+#: src/tveng.c:1307 src/v4l2interface.c:180
 msgid "Cannot tune the device"
 msgstr "No puedo sintonizar el dispositivo"
 
@@ -536,101 +536,291 @@ msgid "Error adding %s\n"
 msgstr "Error añadiendo %s\n"
 
 # src/tveng.c:40
-#: src/tveng.c:68
-#, c-format
-msgid "Cannot open device \"%s\""
+#. Just to put something other than 0
+#. Print error to stderr
+#: src/tveng.c:124
+#, fuzzy, c-format
+msgid "Cannot open %s"
 msgstr "No se puede abrir el dispositivo \"%s\""
 
-# src/tveng.c:49
-#: src/tveng.c:78
+#: src/tveng.c:133
 #, c-format
-msgid "QUERYCAP returned %d"
-msgstr "QUERICAP devolvió %d"
-
-# src/tveng.c:58
-#: src/tveng.c:87
-#, c-format
-msgid ""
-"Sorry, but \"%s\" doesn't identify itself\n"
-"as a capture device, cannot continue"
+msgid "VIDIOCGCAP failed: %s"
 msgstr ""
-"Perdón, pero \"%s\" no se identifica a sí mismo\n"
-"como un dispositivo de captura, no puedo continuar"
 
-# src/tveng.c:70
-#: src/tveng.c:99
+#: src/tveng.c:144
 #, c-format
-msgid "Sorry, but \"%s\" cannot do streaming"
-msgstr "Perdón, pero \"%s\" no soporte streaming"
-
-# src/tveng.c:80
-#: src/tveng.c:109
-#, c-format
-msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
+msgid "%s doesn't look like a valid capture device"
 msgstr ""
-"Perdón, pero \"%s\" no soporta select() en los descriptores del archivo"
 
-# src/tveng.c:90
-#: src/tveng.c:119
-#, c-format
-msgid "Sorry, but \"%s\" has no tuner"
-msgstr "Perdón, pero \"%s\"no tiene sintonizador"
-
-# src/tveng.c:121
-#. Don't use ShowBox() since there is no mem for that
-#: src/tveng.c:149
-msgid "Cannot allocate enough memory"
-msgstr "No se puede reservar suficiente memoria"
+# src/v4l2interface.c:160
+#: src/tveng.c:204
+#, fuzzy
+msgid "Cannot duplicate device name"
+msgstr "No puedo sintonizar el dispositivo"
 
 # src/tveng.c:140
-#: src/tveng.c:168
-msgid "Cannot get inputs for selected device"
+#: src/tveng.c:227
+#, fuzzy
+msgid "No inputs for this device"
 msgstr ""
 "No se puede conseguir el canal de entrada\n"
 "para el dispositivo seleccionado"
 
 # src/tveng.c:150
-#: src/tveng.c:178
-msgid "Cannot get standards for selected device"
+#: src/tveng.c:243
+#, fuzzy
+msgid "No standards for this device"
 msgstr ""
 "No puedo conseguir los estándares para el\n"
 "dispositivo seleccionado"
 
-#: src/tveng.c:372
-msgid "Error: ENUMSTD doesn't completely work\n"
-msgstr "Error: ENUMSTD no funciona del todo\n"
-
-# src/main.c:224
-#: src/tveng.c:623
-msgid "Sorry, but cannot start capturing in an adequate format\n"
-msgstr "Lo siento, no puedo empezar a capturar con la resolución adecuada\n"
-
-#: src/tveng.c:1189
-msgid "V4L2 doesn't report any previewing capabilities"
-msgstr "V4L2 dice que no tiene capacidades de previsualización"
-
-#: src/tveng.c:1196
-msgid "XFree86 - DGA extension isn't valid or it is missing"
-msgstr "XFree86 - La exensión DGA no es válida o no aparece"
-
-#: src/tveng.c:1239
-msgid "zapping_setup_fb exited abnormally (check stderr)\n"
+#: src/tveng.c:377 src/tveng.c:532 src/tveng.c:601
+#, c-format
+msgid "Getting standard failed: %d"
 msgstr ""
 
-#. zapping_setup_fb couldn't do its job
-#: src/tveng.c:1247
-msgid "zapping_setup_fb returned error (check stderr)\n"
+#: src/tveng.c:387 src/tveng.c:612
+#, c-format
+msgid "Setting standard failed: %d"
 msgstr ""
 
-#: src/tveng.c:1251
+#: src/tveng.c:437
+#, c-format
+msgid "Input %s doesn't appear to exist"
+msgstr ""
+
+#: src/tveng.c:460
+#, c-format
+msgid "Input number %d doesn't appear to exist"
+msgstr ""
+
+#: src/tveng.c:523 src/tveng.c:1287 src/tveng.c:1354
+msgid "Cannot get info about the first tuner of the current input"
+msgstr ""
+
+#: src/tveng.c:655
+#, c-format
+msgid "Standard %s doesn't appear to exist"
+msgstr ""
+
+#: src/tveng.c:673
+#, c-format
+msgid "Standard %d doesn't appear to exist"
+msgstr ""
+
+#: src/tveng.c:691 src/tveng.c:751
+#, fuzzy
+msgid "Cannot get picture parameters"
+msgstr ""
+"\n"
+"Información sobre los parámetros de captura\n"
+
+#. unknown
+#: src/tveng.c:709
+msgid "Cannot understand the actual palette"
+msgstr ""
+
+# src/callbacks.c:320 src/v4l2interface.c:89
+#: src/tveng.c:717 src/tveng.c:790
+#, fuzzy
+msgid "Cannot get window attributes"
+msgstr "No puedo ajustar el canal de entrada"
+
+#. unknown
+#: src/tveng.c:771
+msgid "Cannot understand the given palette"
+msgstr ""
+
+#: src/tveng.c:781
+#, fuzzy
+msgid "Cannot set picture parameters"
+msgstr ""
+"\n"
+"Información sobre los parámetros de captura\n"
+
+# src/callbacks.c:320 src/v4l2interface.c:89
+#: src/tveng.c:803
+#, fuzzy
+msgid "Cannot set window attributes"
+msgstr "No puedo ajustar el canal de entrada"
+
+# src/tveng.c:121
+#: src/tveng.c:818
+#, fuzzy
+msgid "Cannot allocate capture buffer"
+msgstr "No se puede reservar suficiente memoria"
+
+# src/tveng.c:121
+#: src/tveng.c:859
+#, fuzzy
+msgid "CRITICAL:: Cannot allocate enough mem"
+msgstr "No se puede reservar suficiente memoria"
+
+# src/callbacks.c:320 src/v4l2interface.c:89
+#: src/tveng.c:887 src/tveng.c:894 src/tveng.c:1020 src/tveng.c:1027
+#: src/tveng.c:1119
+#, fuzzy
+msgid "Cannot get audio info"
+msgstr "No puedo ajustar el canal de entrada"
+
+#: src/tveng.c:901
+msgid "Mute"
+msgstr "Silencio"
+
+#: src/tveng.c:912
+msgid "Volume"
+msgstr ""
+
+#: src/tveng.c:923
+msgid "Bass"
+msgstr ""
+
+#: src/tveng.c:934
+msgid "Treble"
+msgstr ""
+
+# src/frequencies.c:827
+#: src/tveng.c:945
+#, fuzzy
+msgid "Balance"
+msgstr "francia"
+
+#: src/tveng.c:959
+msgid "Brightness"
+msgstr "Brillo"
+
+#: src/tveng.c:968
+msgid "Hue"
+msgstr "Color"
+
+#: src/tveng.c:977
+msgid "Colour"
+msgstr ""
+
+# src/interface.c:247
+#: src/tveng.c:986
+msgid "Contrast"
+msgstr "Contraste"
+
+#: src/tveng.c:1068
+#, c-format
+msgid "Unknown control: %s (%d)"
+msgstr ""
+
+#: src/tveng.c:1141
+#, c-format
+msgid "Unknown audio control: %s (%d)"
+msgstr ""
+
+# src/callbacks.c:320 src/v4l2interface.c:89
+#: src/tveng.c:1151
+#, fuzzy
+msgid "Cannot set audio info"
+msgstr "No puedo ajustar el canal de entrada"
+
+# src/callbacks.c:320 src/v4l2interface.c:89
+#: src/tveng.c:1162
+#, fuzzy
+msgid "Cannot get video info"
+msgstr "No puedo ajustar el canal de entrada"
+
+#: src/tveng.c:1181
+#, c-format
+msgid "Unknown video control: %s (%d)"
+msgstr ""
+
+# src/callbacks.c:320 src/v4l2interface.c:89
+#: src/tveng.c:1191
+#, fuzzy
+msgid "Cannot set video info"
+msgstr "No puedo ajustar el canal de entrada"
+
+#: src/tveng.c:1229 src/tveng.c:1256
+msgid "Cannot find audio mute control"
+msgstr ""
+
+#: src/tveng.c:1342
+msgid "Cannot get the current tuning freq"
+msgstr ""
+
+#: src/tveng.c:1408
+msgid "Error waiting for data to be available"
+msgstr ""
+
+# src/v4l2interface.c:391
+#: src/tveng.c:1421
+#, fuzzy
+msgid "Error reading frame data"
+msgstr "Error añadiendo %s\n"
+
+# src/tveng.c:121
+#: src/tveng.c:1490
+#, fuzzy
+msgid "CRITICAL:: Not enough memory"
+msgstr "No se puede reservar suficiente memoria"
+
+# src/main.c:690
+#: src/tveng.c:1508
+#, fuzzy
+msgid "Cannot set window dimensions"
+msgstr ""
+"\n"
+"Información sobre las dimensiones de la ventana principal\n"
+
+#: src/tveng.c:1631
+msgid "Cannot get framebuffer info"
+msgstr ""
+
+#: src/tveng.c:1673
+msgid "Cannot find an appropiate visual"
+msgstr ""
+
+#: src/tveng.c:1686
+msgid "Cannot figure out framebuffer depth"
+msgstr ""
+
+#: src/tveng.c:1720
+msgid "Cannot get current window settings"
+msgstr ""
+
+#: src/tveng.c:1739
+msgid "CRITICAL:: Not enough mem"
+msgstr ""
+
+# src/callbacks.c:320 src/v4l2interface.c:89
+#: src/tveng.c:1759
+#, fuzzy
+msgid "Cannot set new window parameters"
+msgstr "No puedo ajustar el canal de entrada"
+
+# src/tveng.c:40
+#: src/tveng.c:1803
+#, fuzzy
+msgid "Cannot begin previewing"
+msgstr "No se puede abrir el dispositivo %s\n"
+
+#: src/tveng.c:1847
+msgid "The X server doesn't report any DGA extension"
+msgstr ""
+
+#: src/tveng.c:1871
+msgid "Cannot fork"
+msgstr ""
+
+#: src/tveng.c:1891
+msgid "Something weird happened to the child proccess"
+msgstr ""
+
+#: src/tveng.c:1899
+msgid "zapping_setup_fb exited abnormally, check stderr"
+msgstr ""
+
+#: src/tveng.c:1908
 msgid ""
-"Cannot start zapping_setup_fb, please check\n"
-"your installation. Try running:\n"
-"zapping_setup_fb --verbose --verbose\n"
+"zapping_setup_fb failed to set up the video,\n"
+"continuing anyway"
 msgstr ""
-"No se puede iniciar zapping_setup_fb, por favor\n"
-"compruebe su instalación. Intenta ejecutar:\n"
-"zapping_setup_fb --verbose --verbose\n"
 
 # src/tveng.c:121
 #: src/io.c:88
@@ -761,22 +951,56 @@ msgstr "No se puede abrir el display \"%s\", saliendo\n"
 msgid "Your screen depth %d isn't supported, exiting\n"
 msgstr "Tu resolución de pantalla (%d) no está soportada, saliendo\n"
 
+# src/tveng.c:49
+#~ msgid "QUERYCAP returned %d"
+#~ msgstr "QUERICAP devolvió %d"
+
+# src/tveng.c:58
+#~ msgid ""
+#~ "Sorry, but \"%s\" doesn't identify itself\n"
+#~ "as a capture device, cannot continue"
+#~ msgstr ""
+#~ "Perdón, pero \"%s\" no se identifica a sí mismo\n"
+#~ "como un dispositivo de captura, no puedo continuar"
+
+# src/tveng.c:70
+#~ msgid "Sorry, but \"%s\" cannot do streaming"
+#~ msgstr "Perdón, pero \"%s\" no soporte streaming"
+
+# src/tveng.c:80
+#~ msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
+#~ msgstr ""
+#~ "Perdón, pero \"%s\" no soporta select() en los descriptores del archivo"
+
+# src/tveng.c:90
+#~ msgid "Sorry, but \"%s\" has no tuner"
+#~ msgstr "Perdón, pero \"%s\"no tiene sintonizador"
+
+#~ msgid "Error: ENUMSTD doesn't completely work\n"
+#~ msgstr "Error: ENUMSTD no funciona del todo\n"
+
+# src/main.c:224
+#~ msgid "Sorry, but cannot start capturing in an adequate format\n"
+#~ msgstr "Lo siento, no puedo empezar a capturar con la resolución adecuada\n"
+
+#~ msgid "V4L2 doesn't report any previewing capabilities"
+#~ msgstr "V4L2 dice que no tiene capacidades de previsualización"
+
+#~ msgid "XFree86 - DGA extension isn't valid or it is missing"
+#~ msgstr "XFree86 - La exensión DGA no es válida o no aparece"
+
+#~ msgid ""
+#~ "Cannot start zapping_setup_fb, please check\n"
+#~ "your installation. Try running:\n"
+#~ "zapping_setup_fb --verbose --verbose\n"
+#~ msgstr ""
+#~ "No se puede iniciar zapping_setup_fb, por favor\n"
+#~ "compruebe su instalación. Intenta ejecutar:\n"
+#~ "zapping_setup_fb --verbose --verbose\n"
+
 # src/main.c:392
 #~ msgid "There has been an error stopping the video engine"
 #~ msgstr "Ha habido un error parando el motor de video"
 
-#~ msgid "Brightness"
-#~ msgstr "Brillo"
-
-# src/interface.c:247
-#~ msgid "Contrast"
-#~ msgstr "Contraste"
-
 #~ msgid "Saturation"
 #~ msgstr "Saturación"
-
-#~ msgid "Hue"
-#~ msgstr "Color"
-
-#~ msgid "Mute"
-#~ msgstr "Silencio"

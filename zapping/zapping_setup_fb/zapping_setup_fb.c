@@ -18,18 +18,37 @@
 
 /*
   This is intended to be an auxiliary suid program for setting up the
-  frame buffer and making V4L2 go into Overlay mode. If you find some
+  frame buffer and making V4L go into Overlay mode. If you find some
   security flaws here, please mail me to <garetxe@euskalnet.net>
   This program returns 1 in case of error
 */
 
+#include <gnome.h>
 #include <stdio.h>
-#include "../src/tveng.h" /* V4L2 header file */
+#include <sys/ioctl.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <errno.h>
+#include <linux/kernel.h>
+#include <errno.h>
+
+/* We need video extensions (DGA) */
+#include <X11/X.h>
 #include <X11/Xlib.h>
+#include <X11/Xfuncs.h>
+#include <X11/extensions/xf86dga.h>
 #include <X11/Xutil.h>
 
+#include "videodev.h" /* V4L header file */
+
 #define MAX_VERBOSE 2 /* Greatest verbosity allowed */
-#define VERSION "zapping_setup_fb 0.8" /* Current program version */
+#define VERSION "zapping_setup_fb 0.8.5" /* Current program version */
 
 /* Well, this isn't very clean, but anyway... */
 #define EXIT { \
@@ -188,8 +207,8 @@ int main(int argc, char * argv[])
   int i; /* For args parsing */
   gboolean print_usage = FALSE; /* --help, -? or --usage has been
 				   specified */
-  struct v4l2_capability caps;
-  struct v4l2_framebuffer fb; /* The framebuffer device */
+  struct video_capability caps;
+  struct video_buffer fb; /* The framebuffer device */
   gboolean show_version = FALSE;
 
   /* Parse given args */
@@ -287,25 +306,27 @@ int main(int argc, char * argv[])
   PM("Opening video device\n", 2);
 
   /* Open the video device */
-  fd = open (video_device, O_NOIO);
+  fd = open (video_device, O_TRUNC);
   if (fd <= 0)
     {
-      printf(_("Cannot open given device %s\n"), video_device);
+      perror("open()");
+      fprintf(stderr, 
+	      _("Cannot open given device %s\n"), video_device);
       return 1;
     }
 
   PM("Querying video device capabilities\n", 2);
-  if (ioctl(fd, VIDIOC_QUERYCAP, &caps))
+  if (ioctl(fd, VIDIOCGCAP, &caps))
     {
-      perror("VIDIOC_QUERYCAP");
+      perror("VIDIOCGCAP");
       close(fd);
       return 1;
     }
 
   PM("Checking returned capabilities for overlay devices\n", 2);
-  if (!(caps.flags & V4L2_FLAG_PREVIEW))
+  if (!(caps.type & VID_TYPE_OVERLAY))
     {
-      printf("The given device doesn't have the V4L2_FLAG_PREVIEW flag\n"
+      printf("The given device doesn't have the VID_TYPE_OVERLAY flag\n"
 	     "set, this program is nonsense then for this device.\n");
       close(fd);
       return 1;
@@ -335,46 +356,22 @@ int main(int argc, char * argv[])
   /* OK, the DGA is working and we have its info, set up the V4L2
      overlay */
   PM("Getting current FB characteristics\n", 2);
-  if (ioctl(fd, VIDIOC_G_FBUF, &fb))
+  if (ioctl(fd, VIDIOCGFBUF, &fb))
     {
-      perror("VIDIOC_G_FBUF");
+      perror("VIDIOCGFBUF");
       EXIT
     }
 
-  fb.base[0] = fb.base[1] = fb.base[2] = (gpointer) addr;
-  fb.fmt.width = vp_width;
-  fb.fmt.height = vp_height;
-  fb.fmt.depth = bpp;
-  switch (fb.fmt.depth)
-    {
-    case 15:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555;
-      break;
-    case 16:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565;
-      break;
-    case 24:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_BGR24;
-      break;
-    case 32:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_BGR32;
-      break;
-    default:
-      fprintf(stderr, _("Your screen depth %d isn't supported, exiting\n"),
-	      fb.fmt.depth);
-      EXIT;
-    };
-
-  /* Go to the primary screen */
-  fb.fmt.flags = V4L2_FMT_FLAG_BYTESPERLINE;
-  fb.fmt.bytesperline = width * ((fb.fmt.depth+7) >> 3);
-  fb.fmt.sizeimage = fb.fmt.bytesperline * vp_height;
-  fb.flags = V4L2_FBUF_FLAG_PRIMARY;
+  fb.base = (gpointer) addr;
+  fb.width = width;
+  fb.height = vp_height;
+  fb.depth = bpp;
+  fb.bytesperline = width * ((fb.depth+7) >> 3);
 
   PM("Setting new FB characteristics\n", 2);
-  if (ioctl(fd, VIDIOC_S_FBUF, &fb))
+  if (ioctl(fd, VIDIOCSFBUF, &fb))
     {
-      perror("VIDIOC_S_FBUF");
+      perror("VIDIOCSFBUF");
       EXIT
     }
 

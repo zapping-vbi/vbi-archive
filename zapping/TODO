@@ -1,13 +1,15 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Isolate zapping from V4L2 through tveng_ calls
+	+ Add support for V4L
+	+ Create a windowed overlay mode
 	+ Convert PNG saving into a plugin
+	+ Add desktop (and root menu) entries
+	+ Release
 	+ Add some sort of AVI capture
 	+ Report "Control always 0 first time it's read" bug
 	+ Add perfomance test (full v4l2 /dev/video use implemented?)
 	+ Add the help for the Properties
 	+ Full i18n
-	+ Add desktop (and root menu) entries
 	+ Get rid of those annoying warnings about io.c
 	+ Fix all fixme's
 	+ Bug Track

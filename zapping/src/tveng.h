@@ -33,11 +33,9 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <errno.h>
-#include <linux/fs.h>
 #include <linux/kernel.h>
 #include <errno.h>
 
-/* We need a lot of header files so videodev doesn't give warnings */
 #include "videodev.h"
 
 /* We need video extensions (DGA) */
@@ -64,12 +62,59 @@ struct ParseStruct
 		     string and g_snprintf is used instead of sscanf */
 };
 
-typedef struct
+/* The video device capabilities flags */
+#define TVENG_CAPS_CAPTURE 1 /* Can capture to memory */
+#define TVENG_CAPS_TUNER (1 << 1) /* Has some tuner */
+#define TVENG_CAPS_TELETEXT (1 << 2) /* Has teletext */
+#define TVENG_CAPS_OVERLAY (1 << 3) /* Can overlay to the framebuffer */
+#define TVENG_CAPS_CHROMAKEY (1 << 4) /* Overlay chromakeyed */
+#define TVENG_CAPS_CLIPPING (1 << 5) /* Overlay clipping supported */
+#define TVENG_CAPS_FRAMERAM (1 << 6) /* Overlay overwrites framebuffer
+				      mem */
+#define TVENG_CAPS_SCALES (1 << 7) /* HW image scaling supported */
+#define TVENG_CAPS_MONOCHROME (1 << 8) /* greyscale only */
+#define TVENG_CAPS_SUBCAPTURE (1 << 9) /* Can capture only part of the
+					image */
+
+/* The capture structure */
+struct tveng_caps{
+  char name[32]; /* canonical name for this interface */
+  int flags; /* OR'ed flags, see the above #defines */
+  int channels; /* Number of radio/tv channels */
+  int audios; /* Number of audio devices */
+  int maxwidth, maxheight; /* Maximum capture dimensions */
+  int minwidth, minheight; /* minimum capture dimensions */
+};
+
+/* frame buffer info */
+struct tveng_fb_info{
+  void * base; /* Physical address for the FB */
+  int height, width; /* Width and height (physical, not window dimensions) */
+  int depth; /* FB depth in bits */
+  int bytesperline; /* Bytesperline in the image */
+};
+
+/* Description of a clip rectangle */
+struct tveng_clip{
+  int x,y; /* Origin (X coordinates) */
+  int width, height; /* Dimensions */
+};
+
+/* a capture window (for the fb) */
+struct tveng_window{
+  int x,y; /* Origin in X coordinates */
+  int width, height; /* Dimensions */
+  unsigned int chromakey; /* The chromakey (RGB32) */
+  int clipcount; /* Number of clipping rectangles */
+  struct tveng_clip * clips; /* pointer to the clip rectangle array */
+};
+
+enum tveng_field
 {
-  struct v4l2_buffer vidbuf; /* Info about the buffer */
-  gpointer vmem; /* Captured image in this buffer */
-}
-tveng_vbuf;
+  TVENG_FIELD_ODD, /* Only odd field */
+  TVENG_FIELD_EVEN, /* Only even field */
+  TVENG_FIELD_BOTH /* Capture both field */
+};
 
 /* The format of a pixel, similar to the V4L2 ones, but they aren't
    fourcc'ed */
@@ -85,7 +130,7 @@ enum tveng_frame_pixformat{
 /* This struct holds the structure of the captured frame */
 struct tveng_frame_format
 {
-  gpointer data; /* A pointer to the captured data */
+  void * data; /* A pointer to the captured data */
   int width, height; /* Dimensions of the capture */
   int bytesperline; /* Bytes per scan line */
   int depth; /* Bits per pixel */
@@ -94,95 +139,127 @@ struct tveng_frame_format
   int sizeimage; /* Size in bytes of the image */
 };
 
-/* We need this for the callbacks */
-typedef struct
-{
-  gpointer info; /* where is this stored */
-  int id; /* id of this structure in the menu (changes) */
-  struct v4l2_input input; /* The input structure itself */
-}
-tveng_input;
+/* Info about a standard */
+struct tveng_enumstd{
+  int id; /* Standard id */
+  int index; /* Index in info->standards */
+  char name[32]; /* Canonical name for the standard */
+};
 
-/* This is also for the callbacks, same meanings as above*/
-typedef struct
-{
-  gpointer info;
-  int id;
-  struct v4l2_enumstd std;
-} 
-tveng_enumstd;
+/* Flags for the input */
+#define TVENG_INPUT_TUNER 1      /* has tuner(s) attached */
+#define TVENG_INPUT_AUDIO (1<<1) /* has audio */
+
+enum tveng_input_type{
+  TVENG_INPUT_TYPE_TV,
+  TVENG_INPUT_TYPE_CAMERA
+};
+
+/* info about an input */
+struct tveng_enum_input{
+  int id; /* Id of the input */
+  char name[32]; /* Canonical name for the input */
+  int tuners; /* Number of tuners for this input */
+  int flags; /* Flags for this channel */
+  enum tveng_input_type type; /* The type for this input */
+};
+
+/* Possible control types */
+enum tveng_control_type{
+  TVENG_CONTROL_SLIDER, /* It can take any value between min and max */ 
+  TVENG_CONTROL_CHECKBOX, /* Can only take boolean values */
+  TVENG_CONTROL_MENU, /* The control is a menu with max options and
+			 labels listed in the data struct */
+  TVENG_BUTTON /* The control is a button (when assigned a value does
+		  something, regarless the value given to it) */
+};
+
+/* info about a video control (could be image, sound, whatever) */
+struct tveng_control{
+  char name[32]; /* Canonical name */
+  int id; /* control id */
+  int min, max; /* Control ranges */
+  int cur_value; /* The current control value */
+  enum tveng_control_type type; /* The control type */
+  char ** data; /* In case the control is a menu option items are
+		   stored here */
+};
 
 enum tveng_capture_mode
 {
-  TVENG_CAPTURE_MMAPED_BUFFERS, /* Capture is going to mmaped buffers */
-  TVENG_CAPTURE_FULLSCREEN, /* Capture is fullscreen */
-  TVENG_NO_CAPTURE /* There is not capture at the moment */
+  TVENG_CAPTURE_READ, /* Capture is through a read() call */
+  TVENG_CAPTURE_PREVIEW, /* Capture is through previewing */
+  TVENG_NO_CAPTURE /* Capture isn't active */
 };
 
 /* The structure used to hold info about a video_device */
 typedef struct
 {
-  gchar * file_name; /* The name used to open() this fd */
+  char * file_name; /* The name used to open() this fd */
   int fd; /* Video device file descriptor */
-  int num_desired_buffers; /* Number of desired buffers */
   enum tveng_capture_mode current_mode; /* Current capture mode */
-  struct v4l2_capability caps; /* Video system capabilities */
-  int num_standards; /* 
+  struct tveng_caps caps; /* Video system capabilities */
+  int num_standards; /*
 			Number of standards supported by this device
 		      */
-  int cur_standard_index; /* Index of cur_standard in standards */
-  struct v4l2_standard cur_standard; /* Currently selected standard */
-  tveng_enumstd *standards; /* Standards supported */
+  int cur_standard; /* Index of cur_standard in standards */
+  struct tveng_enumstd *standards; /* Standards supported */
 
   int num_inputs; /* Number of inputs in this device */
   int cur_input; /* Currently selected input */
-  tveng_input * inputs; /* Video inputs in this device */
-  int num_buffers; /* Capture buffers allocated for this device */
-  tveng_vbuf * buffers; /* Array of mmap'ed capture buffers */
-  struct v4l2_format pix_format; /* pixel format of this device */
+  struct tveng_enum_input * inputs; /* Video inputs in this device */
+
+  /* the format about this capture */
   struct tveng_frame_format format; /* pixel format of this device */
 
   /* Framebuffer info */
-  struct v4l2_framebuffer fb;
+  struct tveng_fb_info fb_info;
 
-  gboolean interlaced; /* if TRUE the image will be interlaced */
+  /* Overlay window */
+  struct tveng_window window;
 
-  GdkImage * image; /* This image contains the image to be
-		       drawn on screen */
-  XImage * ximage; /* The XImage contained in image */
+  /* Number of items in controls */
+  int num_controls;
+  /* The supported controls */
+  struct tveng_control * controls;
+
+  int tveng_errno; /* Numerical id of the last error, 0 == success */
+  char * error; /* points to the last error message */
+
+  /* The display we are connected to, it is needed by the X functions
+   */
+  Display * display;
+
+  /* The verbosity value used by zapping_setup_fb */
+  int zapping_setup_fb_verbosity;
 }
 tveng_device_info;
 
+int ShowBox(const gchar * message,
+	    const gchar * message_box_type);
+
+/* Starts a tveng_device_info object, returns a pointer to the object
+   or NULL on error. Display is the display we are connected to */
+tveng_device_info * tveng_device_info_new(Display * display);
+
+/* Destroys a tveng_device_info object */
+void tveng_device_info_destroy(tveng_device_info * info);
+
 /*
-  Routine for opening a video device. Checks if the device is a video
-  capture device (under v4l2 we can have other kinds of devices), if
-  it has a tuner of any kind, if supports select() call, and if it
-  supports mmap()'ing the device. If any of these fails, it shows a
-  Gnome error box and returns with the code -1. Else it returns the
-  file descriptor for the device and fills in the tveng_device_info
-  structure.
-  device_file usually is "/dev/video0",
+  Associates the given tveng_device_info with the given video
+  device. On error it returns -1 and sets info->errno, info->error to
+  the correct values.
   flags can be O_RDONLY (for capturing and controlling the device), or
-  O_NONCAP for controlling only,
-  info is the structure to be filled in.
+  O_NONCAP for controlling only.
 */
-int tveng_init_device(const gchar* device_file, int flags,
-		      tveng_device_info * info);
+int tveng_attach_device(const char* device_file, int flags,
+			tveng_device_info * info);
+
 
 /*
-  Used internally by tveng, should be used since its behaviour can
-  change.
-  Open the device that info points to and checks whether its a device
-  file valid. Actually it does nearly all the job tveng_init_device
-  performs. Anyway, you shouldn't use this (although it is useful
-  sometimes, and thus it's here)
-*/
-int tveng_open_device_file(int flags, tveng_device_info * info);
-
-/*
-  Routine for closing a video device. Closes file descriptors and
-  frees any memory malloc()'ed by tveng_init_device. Should be called for
-  each device_opened.
+  Closes the video device asocciated to the device info object. Should
+  be called before reattaching a video device to the same object, but
+  there is no need to call this before calling tveng_device_info_destroy.
 */
 void tveng_close_device(tveng_device_info* info);
 
@@ -192,145 +269,152 @@ void tveng_close_device(tveng_device_info* info);
   (unless explicitly stated in the description of the function) 
 */
 /*
-  Returns the number of inputs in the given device and fills in info
-  with the correct info, allocating memory as needed
+  Returns the number of inputs in the given device and fills in info,
+  allocating memory as needed
 */
 int tveng_get_inputs(tveng_device_info * info);
 
 /*
   Sets the current input for the capture
 */
-int tveng_set_input(int input, tveng_device_info * info);
+int tveng_set_input(struct tveng_enum_input * input, tveng_device_info
+		    * info);
 
 /*
-  Sets the input named name as the active input. -1 on error.
+  Sets the input named name as the active input. -1 on error
+  (info->error states the exact error)
 */
 int
-tveng_set_input_by_name(gchar * name, tveng_device_info * info);
+tveng_set_input_by_name(const char * name, tveng_device_info * info);
 
 /*
-  Sets the current standard for the capture. standard is the index of
-  the desired standard in standards.
+  Sets the active input by its id (may not be the same as its array
+  index, but it should be). -1 on error
 */
-int tveng_set_standard(gchar * name, tveng_device_info * info);
+int
+tveng_set_input_by_id(int id, tveng_device_info * info);
 
 /*
-  Returns the number of standards in the given device and fills in info
-  with the correct info, allocating memory as needed
+  Queries the device about its standards. Fills in info as appropiate
+  and returns the number of standards in the device.
 */
 int tveng_get_standards(tveng_device_info * info);
 
 /*
-  Updates the value stored in cur_input. Returns -1 on error
+  Sets the given standard as the current standard
 */
-int tveng_update_input(tveng_device_info * info);
+int 
+tveng_set_standard(struct tveng_enumstd * std, tveng_device_info * info);
 
 /*
-  Updates the value stored in cur_standard. Returns -1 on error
+  Sets the standard by name. -1 on error
 */
-int tveng_update_standard(tveng_device_info * info);
-
-/* -1 if failed */
 int
-tveng_get_capture_format(tveng_device_info * info);
+tveng_set_standard_by_name(char * name, tveng_device_info * info);
 
-/* -1 if failed. Sets the pixformat and fills in info -> pix_format
+/*
+  Sets the standard by id.
+*/
+int
+tveng_set_standard_by_id(int id, tveng_device_info * info);
+
+/* Updates the current capture format info. -1 if failed */
+int
+tveng_update_capture_format(tveng_device_info * info);
+
+/* -1 if failed. Sets the format and fills in info -> format
    with the correct values  */
 int
-tveng_set_capture_format(__u32 video_format, tveng_device_info * info);
-
-/* Prints the name of the current pixformat and a newline */
-void print_format(__u32 format);
+tveng_set_capture_format(tveng_device_info * info);
 
 /*
-  Test if a given control is supported by the driver and fills in the
-  structure qc with some info about this control. Returns EINVAL in
-  case of failure. Return value of this function should be considered
-  valid only if it is 0. Usually tveng_set_control will be used
-  instead of this function directly.
+  Gets the current value of the controls, fills in info->controls
+  appropiately. After this (and if it succeeds) you can look in
+  info->controls to get the values for each control. -1 on error
 */
-int tveng_test_control(int control_id, struct v4l2_queryctrl * qc,
-		       tveng_device_info * info);
+int
+tveng_update_controls(tveng_device_info * info);
 
 /*
-  Set the value for specific controls. Some of this functions have
-  wrappers, such as tveng_set_mute(). Returns 1 in case the value is
-  lower than the allowed minimum, and 2 in case the value is higher
-  than the allowed maximum. The value is set to the nearest valid
-  value.
-  Returns 0 on success
+  Sets the value for an specific control. The given value will be
+  clipped between min and max values. Returns -1 on error
 */
-int tveng_set_control(int control_id, int value,
-		      tveng_device_info * info);
+int
+tveng_set_control(struct tveng_control * control, int value,
+		  tveng_device_info * info);
 
 /*
-  Gets the value of an specific control. Some of this functions have
-  wrappers, such as tveng_get_mute(). The value is stored in the
-  address value points to, if there is no error. In case of error, the
-  function returns -1, and value is undefined
+  Gets the value of a control, given its name. Returns -1 on
+  error. The comparison is performed disregarding the case. The value
+  read is stored in cur_value.
 */
-int tveng_get_control(int control_id, int * value,
-		      tveng_device_info * info);
+int
+tveng_get_control_by_name(const char * control_name,
+			  int * cur_value,
+			  tveng_device_info * info);
 
 /*
-  Some useful macros about controls
+  Sets the value of a control, given its name. Returns -1 on
+  error. The comparison is performed disregarding the case.
+  new_value holds the new value given to the control, and it is
+  clipped as neccessary.
 */
-/*
-  Sets and gets audio on/off. A value of TRUE means go mute, that is,
-  no audio. Kind of weird, but v4l2 is designed this way.
-*/
-#define tveng_set_mute(value,info) \
- tveng_set_control(V4L2_CID_AUDIO_MUTE, value, info)
-#define tveng_get_mute(value,info) \
- tveng_get_control(V4L2_CID_AUDIO_MUTE, value, info) 
+int
+tveng_set_control_by_name(const char * control_name,
+			  int new_value,
+			  tveng_device_info * info);
 
 /*
-  Tunes a video input (if is hasn't a tuner this function fails with
-  0) to the specified frequence (in kHz). If the given frequence is
-  higher than rangehigh or lower than rangelow it is clipped.
-  FIXME: What does afc in v4l2_tuner mean?
+  Gets the value of the mute property. 1 means mute (no sound) and 0
+  unmute (sound). -1 on error
 */
-int tveng_tune_input(int input, __u32 _freq, tveng_device_info * info);
+int
+tveng_get_mute(tveng_device_info * info);
 
 /*
-  Stores in freq the frequence the current input is tuned on. Returns
-  -1 on error.
+  Sets the value of the mute property. 0 means unmute (sound) and 1
+  mute (no sound). -1 on error
 */
-int tveng_get_tune(__u32 * freq, tveng_device_info * info);
+int
+tveng_set_mute(int value, tveng_device_info * info);
 
 /*
-  Start capturing frames to a memory buffer. Returns NULL on error,
-  the address of the first mmap'ed buffer otherwise
-  We should specify the number of different buffers to allocate using
-  mmap() in info->num_desired_buffers.
+  Tunes the current input to the given freq. Returns -1 on error.
 */
-gpointer tveng_start_capturing(tveng_device_info * info);
+int
+tveng_tune_input(__u32 freq, tveng_device_info * info);
 
-/* Try to stop capturing. -1 on error */
-int tveng_stop_capturing(tveng_device_info * info);
+/*
+  Stores in freq the currently tuned freq. Returns -1 on error.
+*/
+int
+tveng_get_tune(__u32 * freq, tveng_device_info * info);
+
+/*
+  Sets up the capture device so any read() call after this one
+  succeeds. Returns -1 on error.
+*/
+int
+tveng_start_capturing(tveng_device_info * info);
+
+/* Tries to stop capturing. -1 on error. */
+int
+tveng_stop_capturing(tveng_device_info * info);
 
 /* 
    Reads a frame from the video device, storing the read data in
    info->format.data
    time: time to wait using select() in miliseconds
    info: pointer to the video device info structure
-   This call was originally intended to wrap a single read() call, but
-   since i cannot get it to work, now encapsulates the dqbuf/qbuf
-   logic.
-   Returns -1 on error, anything else on success
+   Returns -1 on error, anything else on success.
+   Note: if you want this call to be non-blocking, call it with time=0
 */
 int tveng_read_frame(unsigned int time, tveng_device_info * info);
 
-/* dequeues next available buffer and returns it's id. -1 on error */
-int tveng_dqbuf(tveng_device_info * info);
-
-/* Queues an specific buffer. -1 on error */
-int tveng_qbuf(int buffer_id, tveng_device_info * info);
-
 /* 
    Sets the capture buffer to an specific size. returns -1 on
-   error. Remember to check the value of width and height since it can
-   be different to the one requested. 
+   error. Remember to check the value of width and height in the
+   format struct since it can be different to the one requested. 
 */
 int tveng_set_capture_size(int width, int height, tveng_device_info *
 			   info);
@@ -344,91 +428,102 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info);
 /* XF86 Frame Buffer routines */
 /* 
    Detects the presence of a suitable Frame Buffer.
-   TRUE if the program should continue (Frame Buffer present,
+   1 if the program should continue (Frame Buffer present,
    available and suitable)
-   FALSE if the framebuffer shouldn't be used.
-   FIXME: Many FB and Overlay routines require root access, make that
-          routines into an external program with SUID root
-	  privileges. Potential security flaw here.
+   0 if the framebuffer shouldn't be used.
    display: The display we are connected to (gdk_display)
-   screen: The screen we will use
    info: Its fb member is filled in
 */
-gboolean
-tveng_detect_XF86DGA(Display * display, int screen, tveng_device_info
-		     * info);
+int
+tveng_detect_XF86DGA(tveng_device_info * info);
 
 /*
-  Checks if previewing is available for the desired device.
-  Returns TRUE if success, FALSE on error
+  Returns 1 if the device attached to info suports previewing, 0 otherwise
 */
-gboolean
+int
 tveng_detect_preview (tveng_device_info * info);
+
+/* 
+   Runs zapping_setup_fb with the actual verbosity value.
+   Returns -1 in case of error, 0 otherwise.
+   This calls (or tries to) the external program zapping_setup_fb,
+   that should be installed as suid root.
+*/
+int
+tveng_run_zapping_setup_fb(tveng_device_info * info);
+
+/* 
+   This is a convenience function, it returns the real screen depth in
+   BPP (bits per pixel). This one is quite important for 24 and 32 bit
+   modes, since the default X visual may be 24 bit and the real screen
+   depth 32, thus an expensive RGB -> RGBA conversion must be
+   performed for each frame.
+*/
+int
+tveng_get_display_depth(tveng_device_info * info);
 
 /*
   Sets the preview window dimensions to the given window.
   Returns -1 on error, something else on success.
   Success doesn't mean that the requested dimensions are used, maybe
   they are different, check the returned fields to see if they are suitable
-  window : Structure containing the window to use (including clipping)
   info   : Device we are controlling
   The current chromakey value is used, the caller doesn't need to fill
   it in.
 */
 int
-tveng_set_preview_window(struct v4l2_window * window,
-			 tveng_device_info * info);
+tveng_set_preview_window(tveng_device_info * info);
 
 /*
   Gets the current overlay window parameters.
   Returns -1 on error, and any other value on success.
-  window : Where to store the collected data
   info   : The device to use
 */
 int
-tveng_get_preview_window(struct v4l2_window * window,
-			 tveng_device_info * info);
+tveng_get_preview_window(tveng_device_info * info);
 
 /* Some useful macros for the following function */
-#define ON TRUE
-#define OFF FALSE
+#define ON 1
+#define OFF 0
 #define tveng_set_preview_on(INFO) tveng_set_preview (ON, INFO)
 #define tveng_set_preview_off(INFO) tveng_set_preview (OFF, INFO)
 
 /* 
    Sets the previewing on/off.
-   TRUE  : on
-   FALSE : off
+   on : if 1, set preview on, if 0 off, other values are silently ignored
    info  : device to use for previewing
    Returns -1 on error, anything else on success
 */
 int
 tveng_set_preview (gboolean on, tveng_device_info * info);
 
+/* Adjusts the verbosity value passed to zapping_setup_fb, cannot fail
+ */
+void
+tveng_set_zapping_setup_fb_verbosity(int level, tveng_device_info * info);
+
+/* Returns the current verbosity value passed to zapping_setup_fb */
+int
+tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info);
+
 /* 
-   Sets up everything and starts previewing to Full Screen if possible.
-   Just call this function to start fullscreen mode, it takes care of
-   everything.
-   There should be no capture active when calling this function
-   Returns TRUE on success and FALSE on failure.
-   Verbosity refers to the verbosity zapping_setup_fb should use
+   Sets up everything and starts previewing.
+   Just call this function to start previewing, it takes care of
+   (mostly) everything.
+   Returns -1 on error.
+   Some fields in info->window must be set before calling this
+   function, namely:
+   - x, y, width, height: The preview window dimensions
+   - clips, clipcount: The clips to use
+   - The rest of parameters are overwritten.
 */
-gboolean
-tveng_start_fullscreen_previewing (tveng_device_info * info, int
-				   verbosity);
+int
+tveng_start_previewing (tveng_device_info * info);
 
 /*
-  Stops the fullscreen mode. FALSE on error and TRUE on success
+  Stops the fullscreen mode. Returns -1 on error
 */
-gboolean
-tveng_stop_fullscreen_previewing(tveng_device_info * info);
-
-/*
-  Shows a Gnome MessageBox. Shouldn't go here, but anyway... 
-  message is the message that should be displayed,
-  message_box_type is the kind of the message box (typically
-  GNOME_MESSAGE_BOX_ERROR).
-*/
-int ShowBox(const gchar* message, const gchar* message_box_type);
+int
+tveng_stop_previewing(tveng_device_info * info);
 
 #endif /* TVENG.H */
