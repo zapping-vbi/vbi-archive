@@ -3,7 +3,7 @@ noinst_LIBRARIES = libvbi.a
 EXTRA_DIST = wstfont.xbm ccfont.xbm README
 
 CFLAGS = -g -O2 -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
-CFLAGS += -D_REENTRANT -D_XOPEN_SOURCE=500
+CFLAGS += -D_REENTRANT -D_XOPEN_SOURCE=500 -D_BSD_SOURCE
 
 INCLUDES = $(X_CFLAGS) $(UNICODE_CFLAGS)
 

@@ -24,6 +24,16 @@
 #include <tveng.h>
 #include <pthread.h>
 
+/* i18n */
+#include <libintl.h>
+#ifndef _
+#define _(String) gettext (String)
+#endif
+#ifndef N_
+#define N_(String) (String)
+#endif
+
+
 /*
   Function prototypes for modules, NULL means not implemented or not
   pertinent.

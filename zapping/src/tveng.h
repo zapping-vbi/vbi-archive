@@ -19,10 +19,6 @@
 #ifndef __TVENG_H__
 #define __TVENG_H__
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -32,10 +28,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
-#include <errno.h>
 #include <errno.h>
 #include <inttypes.h>
 
@@ -62,18 +56,6 @@
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
 #endif
-
-/* i18n support if it hasn't been defined previously */
-#ifndef gettext
-#include <libintl.h>
-
-#ifndef _
-#define _(String) gettext (String)
-#endif
-#ifndef N_
-#define N_(String) (String)
-#endif
-#endif /* gettext */
 
 /* The video device capabilities flags */
 #define TVENG_CAPS_CAPTURE 1 /* Can capture to memory */
