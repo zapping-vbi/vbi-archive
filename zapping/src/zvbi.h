@@ -61,6 +61,11 @@ enum ttx_message get_ttx_message(int id);
 void unregister_ttx_client(int id);
 
 /*
+ * Tells the renderer whether to conceal hidden chars or not.
+ */
+void set_ttx_parameters(int id, int conceal);
+
+/*
  * Sets the given page as the page the client is interested in.
  * Use ANY_SUB in subpage for getting all subpages
  */

@@ -86,6 +86,7 @@ struct ttx_client {
   int		w, h;
   int		freezed; /* do not refresh the current page */
   int		num_patches;
+  int		conceal; /* whether to show hidden chars or not */
   struct ttx_patch *patches; /* patches to be applied */
 };
 
@@ -229,6 +230,7 @@ register_ttx_client(void)
   client = g_malloc(sizeof(struct ttx_client));
   memset(client, 0, sizeof(struct ttx_client));
   client->id = id++;
+  client->conceal = 1;
   pthread_mutex_init(&client->mutex, NULL);
   filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
 			     "../pixmaps/zapping/vt_loading",
@@ -279,6 +281,19 @@ find_client(int id)
     }
 
   return NULL; /* not found */
+}
+
+void
+set_ttx_parameters(int id, int conceal)
+{
+  struct ttx_client *client;
+
+  pthread_mutex_lock(&clients_mutex);
+  if ((client = find_client(id)))
+    {
+      client->conceal = conceal;
+    }
+  pthread_mutex_unlock(&clients_mutex);
 }
 
 struct fmt_page*
@@ -582,10 +597,11 @@ build_client_page(struct ttx_client *client, int page, int subpage)
 	  return 0;
 	}
       vbi_draw_page(&client->fp,
-		    gdk_pixbuf_get_pixels(client->unscaled_on), 0);
+		    gdk_pixbuf_get_pixels(client->unscaled_on),
+		    client->conceal);
       vbi_draw_page_region(&client->fp,
 			   gdk_pixbuf_get_pixels(client->unscaled_off),
-			   0, 0, 0, 40, 25, -1, 0);
+			   client->conceal, 0, 0, 40, 25, -1, 0);
     }
   else if (page == 0)
     {
@@ -682,10 +698,11 @@ void monitor_ttx_this(int id, struct fmt_page *pg)
       client->freezed = TRUE;
       memcpy(&client->fp, pg, sizeof(struct fmt_page));
       vbi_draw_page(&client->fp,
-		    gdk_pixbuf_get_pixels(client->unscaled_on), 0);
+		    gdk_pixbuf_get_pixels(client->unscaled_on),
+		    client->conceal);
       vbi_draw_page_region(&client->fp,
 			   gdk_pixbuf_get_pixels(client->unscaled_off),
-			   0, 0, 0, 40, 25, -1, 0);
+			   client->conceal, 0, 0, 40, 25, -1, 0);
       build_client_page(client, -1, -1);
       clear_message_queue(client);
       send_ttx_message(client, TTX_PAGE_RECEIVED);

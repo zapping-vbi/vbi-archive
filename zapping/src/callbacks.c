@@ -35,6 +35,7 @@
 #include "zconf.h"
 #include "zvbi.h"
 #include "ttxview.h"
+#include "osd.h"
 
 gboolean flag_exit_program; /* set this flag to TRUE to exit the program */
 extern GtkWidget * ToolBox; /* Here is stored the Toolbox (if any) */
@@ -61,6 +62,7 @@ gboolean startup_callbacks(void)
   zcc_int(640, "Width of the Zapping window", "w");
   zcc_int(480, "Height of the Zapping window", "h");
   zcc_int(0, "Currently tuned channel", "cur_tuned_channel");
+  zcc_bool(TRUE, "Show the Closed Caption", "closed_caption");
   cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
   zcc_bool(FALSE, "Hide the extra controls", "hide_extra");
 
@@ -356,6 +358,21 @@ on_go_windowed1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
   zmisc_switch_mode(restore_mode, main_info);
+}
+
+void
+on_closed_caption1_activate            (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  GtkCheckMenuItem *button = GTK_CHECK_MENU_ITEM(menuitem);
+  gboolean status = button->active;
+
+  zcs_bool(status, "closed_caption");
+
+  if (status)
+    osd_on(lookup_widget(main_window, "tv_screen"), main_window);
+  else
+    osd_off();
 }
 
 void

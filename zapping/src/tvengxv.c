@@ -64,6 +64,9 @@ struct private_tvengxv_device_info
   int colorkey_max, colorkey_min;
   Atom	interlace;
   int interlace_max, interlace_min;
+  Window last_win;
+  GC last_gc;
+  int last_w, last_h;
 };
 
 /* Private, builds the controls structure */
@@ -984,16 +987,27 @@ tvengxv_detect_preview(tveng_device_info *info)
 static int
 tvengxv_set_preview_window(tveng_device_info * info)
 {
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info *)info;
+  
   t_assert(info != NULL);
   
   /* Just reinit if necessary */
-  if (info->current_mode == TVENG_CAPTURE_WINDOW)
+  if ((info->current_mode == TVENG_CAPTURE_WINDOW) &&
+      (p_info->last_win != info->window.win ||
+       p_info->last_gc != info->window.gc ||
+       p_info->last_w != info->window.width ||
+       p_info->last_h != info->window.height))
     {
+      p_info->last_win = info->window.win;
+      p_info->last_gc = info->window.gc;
+      p_info->last_w = info->window.width;
+      p_info->last_h = info->window.height;
       tveng_set_preview_off(info);
       tveng_set_preview_on(info);
     }
 
-  return 0; /* We don't need do do anything now */
+  return 0;
 }
 
 static int
@@ -1048,6 +1062,50 @@ tvengxv_set_preview(int on, tveng_device_info * info)
   return 0;
 }
 
+static int
+tvengxv_start_previewing (tveng_device_info * info)
+{
+  Display * dpy = info->private->display;
+  int dwidth, dheight; /* Width and height of the display */
+
+  if (!tveng_detect_XF86DGA(info))
+    return -1;
+
+  /* calculate coordinates for the preview window. We compute this for
+   the first display */
+  XF86DGAGetViewPortSize(dpy, DefaultScreen(dpy),
+			 &dwidth, &dheight);
+
+  tveng_stop_everything(info);
+
+  t_assert(info -> current_mode == TVENG_NO_CAPTURE);
+
+  info->window.width = dwidth;
+  info->window.height = dheight;
+
+  if (tveng_set_preview_on(info) == -1)
+    return -1;
+
+  info->current_mode = TVENG_CAPTURE_PREVIEW;
+
+  return 0;
+}
+
+static int
+tvengxv_stop_previewing (tveng_device_info * info)
+{
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info *)info;
+
+  XvStopVideo(info->private->display, p_info->port,
+	      info->window.win);
+  XSync(info->private->display, False);
+
+  info->current_mode = TVENG_NO_CAPTURE;
+
+  return 0;
+}
+
 static struct tveng_module_info tvengxv_module_info = {
   tvengxv_attach_device,
   tvengxv_describe_controller,
@@ -1076,8 +1134,8 @@ static struct tveng_module_info tvengxv_module_info = {
   tvengxv_set_preview_window,
   tvengxv_get_preview_window,
   tvengxv_set_preview,
-  NULL, //  tvengxv_start_previewing,
-  NULL, //  tvengxv_stop_previewing,
+  tvengxv_start_previewing,
+  tvengxv_stop_previewing,
   sizeof(struct private_tvengxv_device_info)
 };
 

@@ -4,7 +4,6 @@ Outstanding issues for the next release
 	+ VBI can be opened/closed while running, try (we also need
 	some vbi_streamon, vbi_streamoff to suspend temporarily
 	streaming while changing inputs or standards).
-	+ Conceal/reveal
 	+ Configurable Vidmode
 	+ Parrot buffer for observing parrots.
 	+ Add to the configure script and to the .spec deps the
@@ -19,7 +18,6 @@ Outstanding issues for the next release
 	+ Screenshot preview.
 	+ Get thumbnails of all tuned channels.
 	+ --roottv switch (use Z as screensaver)
-	+ XV fullscreen.
 	+ Save control values and restore on startup (per input?).
 	> Further...
 	+ Do realtime effects to the image, plainly wonderful, see

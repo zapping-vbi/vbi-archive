@@ -34,6 +34,7 @@
 #include "v4linterface.h"
 #include "ttxview.h"
 #include "zvbi.h"
+#include "osd.h"
 
 extern tveng_device_info * main_info;
 extern GtkWidget * main_window;
@@ -244,7 +245,8 @@ fullscreen_start(tveng_device_info * info)
   gtk_widget_set_usize(black_window, gdk_screen_width(),
 		       gdk_screen_height());
 
-  gtk_widget_show(black_window);
+  gtk_widget_realize(black_window);
+  gtk_widget_realize(da);
   gtk_window_set_modal(GTK_WINDOW(black_window), TRUE);
   gdk_window_set_decorations(black_window->window, 0);
 
@@ -257,14 +259,19 @@ fullscreen_start(tveng_device_info * info)
 		     TRUE,
 		     0, 0, gdk_screen_width(), gdk_screen_height());
 
+  /* Needed for XV fullscreen */
+  info->window.win = GDK_WINDOW_XWINDOW(da->window);
+  info->window.gc = GDK_GC_XGC(da->style->white_gc);
   if (tveng_start_previewing(info, 1-zcg_int(NULL, "change_mode")) == -1)
     {
-      ShowBox(_("Sorry, but cannot go fullscreen"),
-	      GNOME_MESSAGE_BOX_ERROR);
+      ShowBox(_("Sorry, but cannot go fullscreen:\n%s"),
+	      GNOME_MESSAGE_BOX_ERROR, info->error);
       gtk_widget_destroy(black_window);
       zmisc_switch_mode(TVENG_CAPTURE_READ, info);
       return -1;
     }
+
+  gtk_widget_show(black_window);
 
   if (info -> current_mode != TVENG_CAPTURE_PREVIEW)
     g_warning("Setting preview succeeded, but the mode is not set");
@@ -286,6 +293,8 @@ fullscreen_start(tveng_device_info * info)
   gtk_signal_connect(GTK_OBJECT(black_window), "event",
 		     GTK_SIGNAL_FUNC(on_fullscreen_event),
   		     main_window);
+
+  osd_set_window(da, black_window);
 
   return 0;
 }
@@ -327,6 +336,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   enum tveng_frame_pixformat format;
   gboolean muted;
   gchar * old_name = NULL;
+  enum tveng_capture_mode mode;
 
   g_assert(info != NULL);
   g_assert(main_window != NULL);
@@ -345,9 +355,11 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   gdk_window_get_origin(tv_screen->window, &x, &y);
 
   muted = tveng_get_mute(info);
+  mode = info->current_mode;
+  tveng_stop_everything(info);
 
   /* Stop current capture mode */
-  switch (info->current_mode)
+  switch (mode)
     {
     case TVENG_CAPTURE_PREVIEW:
       fullscreen_stop(info);
@@ -361,15 +373,15 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     default:
       break;
     }
-
   if (new_mode != TVENG_NO_CAPTURE)
     {
       gtk_widget_hide(lookup_widget(main_window, "appbar2"));
       ttxview_detach(main_window);
       tveng_close_device(info);
     }
-  else
-    tveng_stop_everything(info);
+
+  if (new_mode != TVENG_CAPTURE_PREVIEW)
+    osd_set_window(tv_screen, main_window);
 
   switch (new_mode)
     {
@@ -442,17 +454,12 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       break;
     case TVENG_CAPTURE_PREVIEW:
       if (tveng_attach_device(zcg_char(NULL, "video_device"),
-			      TVENG_ATTACH_READ, info)==-1)
+			      TVENG_ATTACH_XV, info)==-1)
       {
-	/* Try opening as XVideo as a last resort */
-	if (tveng_attach_device(zcg_char(NULL, "video_device"),
-				TVENG_ATTACH_XV, info) == -1)
-	  {
-	    RunBox("%s couldn't be opened\n:%s,\naborting",
-		   GNOME_MESSAGE_BOX_ERROR,
-		   zcg_char(NULL, "video_device"), info->error);
-	    exit(1);
-	  }
+	RunBox("%s couldn't be opened\n:%s,\naborting",
+	       GNOME_MESSAGE_BOX_ERROR,
+	       zcg_char(NULL, "video_device"), info->error);
+	exit(1);
       }
 
       if (disable_preview) {

@@ -205,18 +205,13 @@ overlay_clearing_timeout(gpointer data)
   /* Setup the overlay and start it again if needed */
   if (tv_info.info->current_mode == TVENG_CAPTURE_WINDOW)
     {
+      overlay_sync(FALSE);
       if (tv_info.info->current_controller != TVENG_CONTROLLER_XV)
 	{
-	  overlay_sync(FALSE);
 	  if (tv_info.visible)
 	    tveng_set_preview_on(tv_info.info);
 	  else
 	    tveng_set_preview_off(tv_info.info);
-	}
-      else
-	{
-	  tveng_set_preview_off(tv_info.info);
-	  tveng_set_preview_on(tv_info.info);
 	}
     }
 
@@ -470,23 +465,29 @@ overlay_sync(gboolean clean_screen)
     overlay_get_clips(tv_info.window->window,
 		      &(tv_info.info->window.clipcount));
   tv_info.clipcount = tv_info.info->window.clipcount;
+  tv_info.info->window.win = GDK_WINDOW_XWINDOW(tv_info.window->window);
+  tv_info.info->window.gc = GDK_GC_XGC(tv_info.window->style->white_gc);
 
   tveng_set_preview_window(tv_info.info);
 
   if (tv_info.clips) {
     g_free(tv_info.clips);
+    tv_info.clips = NULL;
     malloc_count --;
   }
 
   /* The requested overlay coords might not be the definitive ones,
      adapt the clips */
-  tv_info.clips = tv_info.info->window.clips =
-    overlay_get_clips(tv_info.window->window, &(tv_info.clipcount));
-  tv_info.info->window.clipcount = tv_info.clipcount;
-
-  tveng_set_preview_window(tv_info.info);
-
-  if ((clean_screen) &&
-      (tv_info.info->current_controller != TVENG_CONTROLLER_XV))
-    x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
+  if (tv_info.info->current_controller != TVENG_CONTROLLER_XV)
+    {
+      tv_info.clips = tv_info.info->window.clips =
+	overlay_get_clips(tv_info.window->window, &(tv_info.clipcount));
+      tv_info.info->window.clipcount = tv_info.clipcount;
+      
+      tveng_set_preview_window(tv_info.info);
+      
+      if (clean_screen)
+	x11_force_expose(0, 0, gdk_screen_width(),
+			 gdk_screen_height());
+    }
 }

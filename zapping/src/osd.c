@@ -70,8 +70,8 @@ static struct osd_row * osd_matrix[NUM_ROWS];
 
 static GtkWidget *osd_window = NULL;
 static GtkWidget *osd_parent_window = NULL;
-static volatile gboolean osd_started = FALSE; /* shared between
-						 threads */
+static gboolean osd_started = FALSE; /* shared between threads */
+static gboolean osd_status = FALSE;
 
 static gint keeper_id = 0;
 
@@ -85,6 +85,9 @@ the_kommand_keeper		(gpointer	data)
   while ((b = recv_full_buffer(&osd_fifo)))
     {
       c = (struct osd_command*)b->data;
+
+      if (!osd_status)
+	c->command = OSD_NOTHING; /* discard */
 
       switch (c->command)
 	{
@@ -263,10 +266,9 @@ void on_osd_screen_size_allocate	(GtkWidget	*widget,
 }
 
 void
-osd_on(GtkWidget * dest_window, GtkWidget *parent)
+osd_set_window(GtkWidget *dest_window, GtkWidget *parent)
 {
   g_assert(osd_started == TRUE);
-  g_assert(dest_window != NULL);
 
   osd_window = dest_window;
   osd_parent_window = parent;
@@ -281,10 +283,11 @@ osd_on(GtkWidget * dest_window, GtkWidget *parent)
   osd_geometry_update();
 }
 
-void
-osd_off(void)
+static void
+osd_unset_window(void)
 {
-  g_assert(osd_started == TRUE);
+  if (!osd_window || !osd_parent_window || osd_status)
+    return;
 
   gtk_signal_disconnect_by_func(GTK_OBJECT(osd_window),
 				GTK_SIGNAL_FUNC(on_osd_screen_size_allocate),
@@ -294,6 +297,30 @@ osd_off(void)
 				NULL);
 
   osd_window = NULL;
+}
+
+void
+osd_on(GtkWidget * dest_window, GtkWidget *parent)
+{
+  g_assert(osd_started == TRUE);
+
+  if (osd_status)
+    return;
+
+  osd_set_window(dest_window, parent);
+
+  osd_status = TRUE;
+}
+
+void
+osd_off(void)
+{
+  g_assert(osd_started == TRUE);
+
+  osd_status = FALSE;
+  osd_clear();
+
+  osd_unset_window();
 }
 
 static const unsigned char palette[8][3] = {
@@ -648,17 +675,15 @@ send_cc_command(struct osd_command *c)
 {
   buffer *b;
 
-  pthread_mutex_lock(&osd_mutex);
+  if (!osd_status || !osd_started)
+    return;
 
-  /* Check that the GTK+ side is up and running */
-  if (!osd_started)
-    goto unlock;
+  pthread_mutex_lock(&osd_mutex);
 
   b = wait_empty_buffer(&osd_fifo);
   memcpy(b->data, c, sizeof(struct osd_command));
   send_full_buffer(&osd_fifo, b);
 
- unlock:
   pthread_mutex_unlock(&osd_mutex);
 }
 

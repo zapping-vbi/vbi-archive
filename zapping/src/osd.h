@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.3 2001-02-21 23:19:51 garetxe Exp $ */
+/* $Id: osd.h,v 1.4 2001-02-24 00:07:11 garetxe Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
@@ -31,6 +31,8 @@ void shutdown_osd(void);
 void osd_on(GtkWidget *dest_window, GtkWidget *parent);
 /* Hides the OSD window */
 void osd_off(void);
+/* Sets the given window as the destination */
+void osd_set_window(GtkWidget *dest_window, GtkWidget *parent);
 
 /* See libvbi/caption.c */
 void osd_render(attr_char *buffer, int row);

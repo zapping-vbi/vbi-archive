@@ -158,6 +158,7 @@ startup_ttxview (void)
 	   "exportdir");
   zcc_bool(FALSE, "URE matches disregarding case", "ure_casefold");
   zcc_bool(FALSE, "URE search backwards", "ure_backwards");
+  zcc_bool(TRUE, "Conceal hidden characters", "conceal");
 
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "bookmarks"))
     {
@@ -430,7 +431,8 @@ static void selection_handle		(GtkWidget	*widget,
 	  gint id[2];
 
 	  vbi_draw_page_region(&data->clipboard_fmt_page,
-			       gdk_pixbuf_get_pixels(canvas), 0,
+			       gdk_pixbuf_get_pixels(canvas),
+			       zcg_bool(NULL, "conceal"),
 			       data->sel_col, data->sel_row,
 			       data->sel_width, data->sel_height,
 			       gdk_pixbuf_get_rowstride(canvas), 1);
@@ -657,6 +659,17 @@ void on_ttxview_hold_toggled		(GtkToggleButton *button,
       else
 	load_page(data->fmt_page->pgno, ANY_SUB, data, NULL);
     }
+}
+
+static
+void on_ttxview_conceal_toggled		(GtkToggleButton *button,
+					 ttxview_data	*data)
+{
+  zcs_bool(gtk_toggle_button_get_active(button), "conceal");
+  set_ttx_parameters(data->id, zcg_bool(NULL, "conceal"));
+
+  if (data->page >= 0x100)
+    load_page(data->page, data->subpage, data, NULL);
 }
 
 static
@@ -2127,6 +2140,8 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 {
   gchar *buffer;
   GtkWidget * ttxview_hold = lookup_widget(data->toolbar, "ttxview_hold");
+  GtkWidget * ttxview_conceal =
+    lookup_widget(data->toolbar, "ttxview_conceal");
   gboolean active;
 
   switch (event->keyval)
@@ -2224,9 +2239,12 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ttxview_hold));
       gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_hold), !active);
       break;
-    case GDK_P:
-    case GDK_p:
-      select_region(30, 10, 10, 20, data);
+    case GDK_C:
+    case GDK_c:
+      active =
+	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ttxview_conceal));
+      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_conceal),
+				   !active);
       break;
     default:
       return FALSE;
@@ -2249,8 +2267,8 @@ GtkWidget*
 build_ttxview(void)
 {
   GtkWidget *ttxview = create_ttxview();
+  GtkWidget *ttxview_conceal;
   ttxview_data *data;
-  
 
   if (!zvbi_get_object())
     {
@@ -2274,6 +2292,10 @@ build_ttxview(void)
   gtk_object_set_data(GTK_OBJECT(ttxview), "ttxview_data", data);
   data->xor_gc = gdk_gc_new(data->da->window);
   gdk_gc_set_function(data->xor_gc, GDK_INVERT);
+
+  ttxview_conceal = lookup_widget(data->toolbar, "ttxview_conceal");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_conceal),
+			       zcg_bool(NULL, "conceal"));
 
   /* Callbacks */
   gtk_signal_connect(GTK_OBJECT(ttxview), "delete-event",
@@ -2315,6 +2337,10 @@ build_ttxview(void)
 		     "ttxview_next_sp_cache")), "clicked",
 		     GTK_SIGNAL_FUNC(on_ttxview_next_sp_cache_clicked),
 		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		     "ttxview_conceal")), "toggled",
+		     GTK_SIGNAL_FUNC(on_ttxview_conceal_toggled),
+		     data);
   gtk_signal_connect(GTK_OBJECT(data->da),
 		     "size-allocate",
 		     GTK_SIGNAL_FUNC(on_ttxview_size_allocate), data);
@@ -2350,6 +2376,8 @@ build_ttxview(void)
   gtk_widget_realize(ttxview);
   gdk_window_set_back_pixmap(data->da->window, NULL, FALSE);
 
+  set_ttx_parameters(data->id, zcg_bool(NULL, "conceal"));
+
   load_page(0x100, ANY_SUB, data, NULL);
 
   return (ttxview);
@@ -2363,6 +2391,7 @@ ttxview_attach			(GtkWidget	*parent,
 {
   ttxview_data *data =
     gtk_object_get_data(GTK_OBJECT(parent), "ttxview_data");
+  GtkWidget *ttxview_conceal;
   gint w, h;
 
   if (!zvbi_get_object())
@@ -2393,6 +2422,10 @@ ttxview_attach			(GtkWidget	*parent,
   data->popup_menu = FALSE;
   data->xor_gc = gdk_gc_new(data->da->window);
   gdk_gc_set_function(data->xor_gc, GDK_INVERT);
+
+  ttxview_conceal = lookup_widget(data->toolbar, "ttxview_conceal");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_conceal),
+			       zcg_bool(NULL, "conceal"));
 
   /* Callbacks */
   gtk_signal_connect(GTK_OBJECT(data->parent), "delete-event",
@@ -2436,6 +2469,10 @@ ttxview_attach			(GtkWidget	*parent,
 		     "ttxview_next_sp_cache")), "clicked",
 		     GTK_SIGNAL_FUNC(on_ttxview_next_sp_cache_clicked),
 		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		     "ttxview_conceal")), "toggled",
+		     GTK_SIGNAL_FUNC(on_ttxview_conceal_toggled),
+		     data);
   gtk_signal_connect(GTK_OBJECT(data->da),
 		     "size-allocate",
 		     GTK_SIGNAL_FUNC(on_ttxview_size_allocate), data);
@@ -2477,6 +2514,8 @@ ttxview_attach			(GtkWidget	*parent,
 
   gtk_toolbar_append_widget(GTK_TOOLBAR(data->parent_toolbar),
 			    data->toolbar, "", "");
+
+  set_ttx_parameters(data->id, zcg_bool(NULL, "conceal"));
 
   load_page(0x100, ANY_SUB, data, NULL);
 }

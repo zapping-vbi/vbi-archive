@@ -285,7 +285,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.91 2001-02-21 23:19:51 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.92 2001-02-24 00:07:11 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -460,8 +460,21 @@ int main(int argc, char * argv[])
   D();
   startup_osd();
   D();
-  /* just for testing, needs some GUI */
-  osd_on(tv_screen, main_window);
+  if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/closed_caption"))
+    {
+      GtkWidget *closed_caption1 = lookup_widget(main_window,
+						 "closed_caption1");
+      osd_on(tv_screen, main_window);
+      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
+				     TRUE);
+    }
+  else
+    {
+      GtkWidget *closed_caption1 = lookup_widget(main_window,
+						 "closed_caption1");
+      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
+				     FALSE);
+    }
   D();
   /* disable VBI if needed */
   if (!zvbi_get_object())
@@ -479,6 +492,11 @@ int main(int argc, char * argv[])
       gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "new_ttxview"));
+      gtk_widget_set_sensitive(lookup_widget(main_window,
+					     "closed_caption1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "closed_caption1"));
+      gtk_widget_hide(lookup_widget(main_window, "separator8"));
       /* Set the capture mode to a default value and disable VBI */
       if (zcg_int(NULL, "capture_mode") == TVENG_NO_CAPTURE)
 	zcs_int(TVENG_CAPTURE_READ, "capture_mode");

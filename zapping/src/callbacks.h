@@ -104,6 +104,10 @@ on_go_windowed1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 void
+on_closed_caption1_activate            (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
 on_videotext1_activate                 (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 

@@ -114,8 +114,8 @@ vbi_mainloop(void *p)
 
 /* examples */
 // #define FILTER_REM 0
-// #define FILTER_ADD SLICED_CAPTION
-// #define SAMPLE "libvbi/samples/s7"
+//#define FILTER_ADD SLICED_CAPTION
+//#define SAMPLE "libvbi/samples/s7"
 
 // #define FILTER_REM SLICED_TELETEXT_B
 // #define FILTER_ADD SLICED_TELETEXT_B
