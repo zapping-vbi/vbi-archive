@@ -1,0 +1,19 @@
+This the divx4linux backend, interface between the rte frontend
+and the divx encoding library libdivxencore.so. Please note this
+code is licensed under the GPL, however the libdivxencore.so and
+its header file encore2.h are NON-FREE licensed.
+
+The divx4linux backend will compile only if encore2.h is installed
+on the system. It will run only if libdivxencore.so can be linked at
+runtime. This directory contains no code by DivXNetworks, Inc. and
+no such code is distributed with rte sources or binaries.
+
+The GPL permits linking of GPLed programs with non-free software,
+assuming the following exception applies to plug-ins: "If identifiable
+sections of that work are not derived from the Program, and can be
+reasonably considered independent and separate works in themselves,
+then this License, and its terms, do not apply to those sections when
+you distribute them as separate works."
+
+No rights are granted to use or distribute divx4linux. Please see
+the divx4linux license if you are allowed to use or distribute it.

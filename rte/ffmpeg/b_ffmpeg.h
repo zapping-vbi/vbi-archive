@@ -20,16 +20,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.h,v 1.4 2002-06-24 03:21:48 mschimek Exp $ */
+/* $Id: b_ffmpeg.h,v 1.5 2002-09-26 20:43:50 mschimek Exp $ */
 
 #ifndef B_FFMPEG_H
 #define B_FFMPEG_H
 
 #include "site_def.h"
+#include "config.h"
+#include "rtepriv.h"
 
 #include <stddef.h>
-
-#include "rtepriv.h"
 
 #define be2me_32(n) (n) /* not here, thanks. */
 #include "libav/avformat.h"
@@ -49,6 +49,7 @@ typedef struct {
 	rte_codec		codec;
   	AVStream		str;
 
+	int			stream_index;
 	Ticker			pts_ticker;		/* Ticker for PTS calculation */
 	INT64			pts;			/* current pts */
 	int			pts_increment;		/* expected pts increment for next packet */
@@ -56,7 +57,11 @@ typedef struct {
 	INT64			sample_index;		/* current sample */
 	int			eof;
 
+	enum PixelFormat	input_pix_fmt;
 	rte_stream_parameters	params;
+
+	void *			temp_picture;
+	void *			packet_buffer;
 
 /* I/O parameters reported by codec */
 
