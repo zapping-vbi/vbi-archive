@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dlist.h,v 1.1.2.2 2004-04-04 21:45:40 mschimek Exp $ */
+/* $Id: dlist.h,v 1.1.2.3 2004-07-09 16:10:52 mschimek Exp $ */
 
 #ifndef DLIST_H
 #define DLIST_H
@@ -44,15 +44,19 @@ typedef struct {
 } list;
 
 /**
- * Traverses a list. p points to the parent structure
- * of a node. p1 is a pointer of same type as p, used to remember the next
- * node in the list. This permits unlink_node(p) in the loop. Resist the
- * temptation to unlink p->succ or p->pred. l points to the list to
- * traverse. _node is the name of the node element. Example:
+ * @internal
+ *
+ * Traverses a list. p points to the parent structure of a node. p1 is
+ * a pointer of same type as p, used to remember the next node in the
+ * list. This permits unlink_node(p) in the loop. Resist the temptation
+ * to unlink p->succ or p->pred. l points to the list to traverse.
+ * _node is the name of the node element. Example:
  *
  * struct mystruct { node foo; int bar; };
+ *
  * list mylist; // assumed initialized
  * struct mystruct *p, *p1;
+ *
  * FOR_ALL_NODES (p, p1, &mylist, foo)
  *   do_something (p);
  */
@@ -64,14 +68,20 @@ for (p = PARENT ((l)->head, __typeof__ (* p), _node);			\
 for (p = PARENT ((l)->tail, __typeof__ (* p), _node);			\
      (p1 = PARENT ((p)->_node.pred, typeof (* p1), _node)); p = p1)
 
-/** Destroys list l (not its nodes). */
-static void
+/**
+ * @internal
+ * Destroys list l (not its nodes).
+ */
+vbi_inline void
 list_destroy			(list *			l)
 {
 	CLEAR (*l);
 }
 
-/** Initializes list l. */
+/**
+ * @internal
+ * Initializes list l.
+ */
 vbi_inline list *
 list_init			(list *			l)
 {
@@ -82,14 +92,20 @@ list_init			(list *			l)
 	return l;
 }
 
-/** TRUE if list l is empty. */
+/**
+ * @internal
+ * TRUE if list l is empty.
+ */
 vbi_inline int
-empty_list			(list *			l)
+empty_list			(const list *		l)
 {
-	return l->head == (node *) &l->null;
+	return l->head == (const node *) &l->null;
 }
 
-/** Adds node n at begin of list l. */
+/**
+ * @internal
+ * Adds node n at begin of list l.
+ */
 vbi_inline node *
 add_head			(list *			l,
 				 node *			n)
@@ -102,7 +118,10 @@ add_head			(list *			l,
 	return n;
 }
 
-/** Adds node n at end of list l. */
+/**
+ * @internal
+ * Adds node n at end of list l.
+ */
 vbi_inline node *
 add_tail			(list *			l,
 				 node *			n)
@@ -115,7 +134,10 @@ add_tail			(list *			l,
 	return n;
 }
 
-/** Removes all nodes from list l2 and adds them at end of list l1. */
+/**
+ * @internal
+ * Removes all nodes from list l2 and adds them at end of list l1.
+ */
 vbi_inline node *
 add_tail_list			(list *			l1,
 				 list *			l2)
@@ -133,15 +155,38 @@ add_tail_list			(list *			l1,
 	return n;
 }
 
-/** TRUE if node n is at head of list l. */
+/**
+ * @internal
+ * TRUE if node n is at head of list l.
+ */
 vbi_inline vbi_bool
-is_head				(list *			l,
-				 node *			n)
+is_head				(const list *		l,
+				 const node *		n)
 {
 	return l->head == n;
 }
 
-/** Removes first node of list l, returns NULL if empty list. */
+/**
+ * @internal
+ * TRUE if node n is a member of list l.
+ */
+vbi_inline vbi_bool
+is_member			(const list *		l,
+				 const node *		n)
+{
+	const node *q;
+
+	for (q = l->head; q->succ; q = q->succ)
+		if (__builtin_expect (n == q, 0))
+			return TRUE;
+
+	return FALSE;
+}
+
+/**
+ * @internal
+ * Removes first node of list l, returns NULL if empty list.
+ */
 vbi_inline node *
 rem_head			(list *			l)
 {
@@ -157,7 +202,10 @@ rem_head			(list *			l)
 	return n;
 }
 
-/** Removes last node of list l, returns NULL if empty list. */
+/**
+ * @internal
+ * Removes last node of list l, returns NULL if empty list.
+ */
 vbi_inline node *
 rem_tail			(list *			l)
 {
@@ -173,8 +221,11 @@ rem_tail			(list *			l)
 	return n;
 }
 
-/** Removes node n from its list. The node must
-    be a member of the list, this is not verified. */
+/**
+ * @internal
+ * Removes node n from its list. The node must
+ * be a member of the list, this is not verified.
+ */
 vbi_inline node *
 unlink_node			(node *			n)
 {
@@ -184,20 +235,18 @@ unlink_node			(node *			n)
 	return n;
 }
 
-/** Removes node n if member list l. */
+/**
+ * @internal
+ * Removes node n if member of list l.
+ */
 vbi_inline node *
 rem_node			(list *			l,
 				 node *			n)
 {
-	node *q;
-
-	for (q = l->head; q->succ; q = q->succ)
-		if (__builtin_expect (n == q, 0)) {
-			n->pred->succ = n->succ;
-			n->succ->pred = n->pred;
-
-			return n;
-		}
+	if (is_member (l, n)) {
+		unlink_node (n);
+		return n;
+	}
 
 	return NULL;
 }

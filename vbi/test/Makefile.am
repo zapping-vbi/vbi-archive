@@ -5,6 +5,7 @@ TESTS = test-bcd test-hamm test-raw_decoder test-explist
 noinst_PROGRAMS = \
 	capture \
 	decode \
+	event \
 	explist \
 	export \
 	glyph \

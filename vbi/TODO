@@ -1,4 +1,4 @@
-$Id: TODO,v 1.11.2.9 2004-05-01 13:51:28 mschimek Exp $
+$Id: TODO,v 1.11.2.10 2004-07-09 16:10:51 mschimek Exp $
 
 Version 0.3
 
@@ -7,16 +7,76 @@ Version 0.3
 * Add io-dvb. Generally speaking the i/o api is poor, should be
   improved. Take a look at  http://www.baycom.org/~tom/alevt-dvb.patch
 * VR triggers from VPS/PDC/XDS.
-  - decoders complete, events missing.
-* Program info from TTX (8/30 and VPS/PDC).
-* Can we replace ASCII/Latin-1/local by a single char set?
-  Perhaps UTF-8?
-  - vbi_program_info
-  - vbi_network done
-* Improve TTX roll header + serial (Mxx increment).
-* Think about ttx header samples (p100) for stations not transmitting
-  a CNI (instead of guessing the name from ttx). May use VTX to create
-  samples.
+  - XDS events missing.
+
+* Network identification:
+   * We have 6 sources: VPS (repeats 1/frame), Teletext packet 8/30
+     format 1 and 2 (1/s), XDS call sign (?), less reliable we have
+     Teletext headers (typically 1/frame) and XDS network name, and
+     information from the client e.g. channel table.
+   * Networks may not transmit an ID at all.
+   * XDS may transmit only a network name.
+   * We may receive IDs from the same network from different sources.
+   * We may not be able to convert IDs of one type to another because
+     the schemes are incompatible, IDs have been assigned randomly,
+     or the translation tables are outdated.
+   * IDs can change due to networks time-sharing a frequency, or due to
+     asynchronous channel changes (e.g. capturing from composite input).
+   * We may receive incorrect IDs due to transmission errors: VPS and
+     8/30-1 are unprotected, XDS and Teletext are parity protected,
+     8/30-2 is Hamming 8/4 protected.
+   * We may receive incorrect IDs (e.g. identifying them as someone
+     else) due to a mistake at the sender or a faulty ID translation table.
+
+   Therefore:
+   * We cannot convert all IDs to one unique number. That would be
+     desirable for e.g. Teletext adressing by network, page and
+     subpage number. A pointer to a more dynamic network object will
+     have to suffice.
+   * We cannot rely on comparing networks by IDs from different sources.
+   * We cannot create a unique number from Source + ID, because a
+     network may transmit multiple IDs we cannot compare. The decoder
+     could learn new IDs, but that is better handled by the client,
+     e.g. by storing IDs in a channel table.
+   * We can however keep all received IDs in cache and identify
+     networks by Source + ID.
+   * When we receive a poorly protected ID we must
+     - Wait for confirmation by receiving the same ID again.
+     - Suspend decoding of all data services until the ID has been
+       confirmed. In the meantime received data could be stored in a
+       temporary location.
+     - To speed up automatic tuning / station search we should notify
+       the client that an ID has been detected but not confirmed yet.
+   * We may be able to correct known bad IDs. Generally waiting for
+     confirmation from other sources is undesirable or even impossible.
+   * Clients can pass an ID / IDs to reset() after a channel change.
+   * When we receive a different ID from a source we must assume a
+     network or channel change.
+   * Likewise when we receive an ID from a source for the first time,
+     have IDs from other sources and can compare for inequality. (What
+     if the ID translation table is buggy?)
+     Otherwise we must assume a network or channel change (?) AND treat
+     all IDs known so far as unconfirmed to eventually eliminate old
+     IDs.
+   * We can try to detect asynchronous channel changes. This is
+     unreliable, therefore we must
+     - Suspend decoding of all data services until the change has
+       been confirmed. In the meantime received data could be stored
+       in a temporary location.
+     - When the change has been confirmed before receiving an ID we
+       must assign a temporary ID. When the network never identifies
+       all cached data will be lost on a channel change, otherwise it
+       can be merged into the network's identified data.
+     - Timeout or receiving an old ID disproves the change and
+       decoding resumes.
+   * We could hash an XDS network name to create a replacement ID
+     until a call sign is received. Unlike a temporary ID this ID
+     would persist across channel changes.
+   * We need a mechanism to notify clients when an ID has been
+     received or assigned.
+   * To speed up automatic tuning / station search we can
+     notify the client about the probability of receiving an ID,
+     e.g. whether CC/XDS has been detected.
 
 Version 0.3.x
 

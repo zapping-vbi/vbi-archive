@@ -24,9 +24,7 @@
 #include "../site_def.h"
 
 #include <stdlib.h>		/* malloc() */
-#include "dlist.h"
 #include "cache-priv.h"
-#include "vbi.h"		/* _vbi_page_type_name() */
 
 #ifndef CACHE_DEBUG
 #define CACHE_DEBUG 0
@@ -36,100 +34,47 @@
 #define CACHE_STATUS 0
 #endif
 
-#ifndef CACHE_LOCK_TEST
-#define CACHE_LOCK_TEST 0
+#ifndef CACHE_CONSISTENCY
+#define CACHE_CONSISTENCY 0
 #endif
 
-#define HASH_SIZE 113
-
-typedef enum {
-	/* Locked page to be deleted when unlocked. */
-	CACHE_PRI_ZOMBIE,
-
-	/* Ordinary pages of other channels, oldest at head of list.
-	   These are deleted first when we run out of memory. */
-	CACHE_PRI_ATTIC_NORMAL,
-
-	/* Special pages of other channels, oldest at head of list. */
-	CACHE_PRI_ATTIC_SPECIAL,
-
-	/* Ordinary pages of the current channel. */
-	CACHE_PRI_NORMAL,
-
-	/* Pages we expect to use frequently, or which take long to reload:
-	   - pgno x00 and xyz with x=y=z
-	   - shared pages (objs, drcs, navigation)
-	   - subpages
-	   - visited pages (most recently at end of list) */
-	CACHE_PRI_SPECIAL,
-
-	CACHE_PRI_NUM
-} cache_priority;
-
+/** @internal */
 struct _vbi_cache {
-	/* Teletext pages by pgno (normal access), cache_page.hash_node,
-	   most recently used at head of list. */
+	/**
+	 * Teletext pages by pgno, most recently used at
+	 * head of list. Uses cache_page.hash_node.
+	 */
 	list			hash[HASH_SIZE];
 
-	/* Total number of pages cached, for statistics. */
+	/** Total number of pages cached, for statistics. */
 	unsigned int		n_pages;
 
 	unsigned int		ref_count;
 
-	/* Teletext pages by delete priority (to speed up replacement),
-	   cache_page.pri_node, oldest at head of list. */
-	list			priority[CACHE_PRI_NUM];
+	/**
+	 * Teletext pages to be replaced when out of memory, oldest at
+	 * head of list, uses cache_page.pri_node.
+	 */
+	list			priority;
 
+	/** Referenced Teletext pages, uses cache_page.pri_node. */
+	list			referenced;
+
+	/**
+	 * Memory used by all pages except referenced and zombies. (May
+	 * deadlock if all pages are referenced and the caller releases
+	 * only when receiving new pages.)
+	 */
 	unsigned int		memory_used;
 	unsigned int		memory_limit;
 
-	/* Locked Teletext pages (ref_count > 0), cache_page.pri_node. */
-	list			locked;
-
-	/* Cached networks, cache_network.node,
-	   most recently used at head of list. */
+	/** Cached networks, most recently used at head of list. */
 	list			networks;
 
+	/** Number of networks in cache except zombies. */
 	unsigned int		n_networks;
 	unsigned int		network_limit;
-
-	vbi_lock_fn *		lock;
-	vbi_unlock_fn *		unlock;
-
-	void *			lock_user_data;
 };
-
-typedef struct {
-	/* Network chain. */
-	node			node;
-
-	/* Cache this network belongs to. */
-	vbi_cache *		cache;
-
-	unsigned int		ref_count;
-	unsigned int		locked_pages;
-
-	unsigned int		current_count;
-
-	vbi_bool		zombie;
-
-	vt_network		network;
-} cache_network;
-
-typedef struct {
-	node			hash_node;
-	node			pri_node;
-
-	/* Network sending this page. */
-	cache_network *		network;
-
-	unsigned int		ref_count;
-	cache_priority		priority;
-
-	vt_page			page;
-
-	/* Dynamic size, don't add fields below */
-} cache_page;
 
 static const char *
 cache_priority_name		(cache_priority		pri)
@@ -140,8 +85,6 @@ cache_priority_name		(cache_priority		pri)
 #define CASE(pri) case CACHE_PRI_ ## pri : return #pri ;
 
 	CASE (ZOMBIE)
-	CASE (ATTIC_NORMAL)
-	CASE (ATTIC_SPECIAL)
 	CASE (NORMAL)
 	CASE (SPECIAL)
 
@@ -168,10 +111,9 @@ static void
 cache_network_dump		(const cache_network *	cn,
 				 FILE *			fp)
 {
-	fprintf (fp, "network ref=%u locked=%u curr=%u z=%u",
+	fprintf (fp, "network ref=%u referenced=%u zombie=%u",
 		 cn->ref_count,
-		 cn->locked_pages,
-		 cn->current_count,
+		 cn->n_referenced_pages,
 		 cn->zombie);
 }
 
@@ -182,13 +124,14 @@ cache_network_remove_page	(cache_network *	cn,
 {
 	page_stat *ps;
 
-	assert (cn == cp->network);
+	if (CACHE_CONSISTENCY)
+		assert (cn == cp->network);
 
 	cp->network = NULL;
 
-	--cn->network.n_pages;
+	--cn->n_pages;
 
-	ps = vt_network_page_stat (&cn->network, cp->page.pgno);
+	ps = cache_network_page_stat (cn, cp->pgno);
 
 	--ps->n_subpages;
 }
@@ -199,28 +142,30 @@ cache_network_add_page		(cache_network *	cn,
 				 cache_page *		cp)
 {
 	page_stat *ps;
-	vbi_subno subno;
 
 	if (cn->zombie) {
 		assert (NULL != cn->cache);
 
+		/* Zombies don't count. */
 		++cn->cache->n_networks;
+
 		cn->zombie = FALSE;
 	}
 
 	cp->network = cn;
 
-	++cn->network.n_pages;
-
-	if (cn->network.n_pages > cn->network.max_pages)
-		cn->network.max_pages = cn->network.n_pages;
+	++cn->n_pages;
 
 	/* Consistency check: page number range 0x100 ... 0x8FF
 	   including hex pages, and we store at most subpages
 	   0x00 ... 0x79. */
-	assert (cn->network.n_pages <= 0x800 * 80);
+	if (CACHE_CONSISTENCY)
+		assert (cn->n_pages <= 0x800 * 80);
 
-	ps = vt_network_page_stat (&cn->network, cp->page.pgno);
+	if (cn->n_pages > cn->max_pages)
+		cn->max_pages = cn->n_pages;
+
+	ps = cache_network_page_stat (cn, cp->pgno);
 
 	++ps->n_subpages;
 
@@ -228,34 +173,95 @@ cache_network_add_page		(cache_network *	cn,
 		ps->max_subpages = ps->n_subpages;
 
 	/* See above. */
-	assert (ps->n_subpages <= 80);
+	if (CACHE_CONSISTENCY)
+		assert (ps->n_subpages <= 80);
 
-	subno = cp->page.subno;
+	/* See above. */
+	if (CACHE_CONSISTENCY)
+		assert ((unsigned int) cp->subno <= 0x79);
 
-	if ((unsigned int) subno <= 0x79) {
-		if (0 == ps->subno_min
-		    || subno < ps->subno_min)
-			ps->subno_min = subno;
-		if (subno > ps->subno_max)
-			ps->subno_max = subno;
-	}
+	if (0 == ps->subno_min /* none yet */
+	    || cp->subno < ps->subno_min)
+		ps->subno_min = cp->subno;
+
+	if (cp->subno > ps->subno_max)
+		ps->subno_max = cp->subno;
 }
 
 static cache_network *
-network_by_nuid			(vbi_cache *		ca,
-				 vbi_nuid		nuid)
+network_by_id			(vbi_cache *		ca,
+				 const vbi_network *	nk)
 {
 	cache_network *cn, *cn1;
 
+	/* Shortcut if this is one of our pointers (e.g. event->network). */
 	FOR_ALL_NODES (cn, cn1, &ca->networks, node)
-		if (cn->network.client_nuid == nuid
-		    || cn->network.client_nuid == nuid) {
-			/* Find faster next time. */
-			add_head (&ca->networks, unlink_node (&cn->node));
-			return cn;
-		}
+		if (&cn->network == nk)
+			goto found;
+
+	if (nk->user_data) {
+		FOR_ALL_NODES (cn, cn1, &ca->networks, node)
+			if (cn->network.user_data == nk->user_data)
+				goto found2;
+
+		/* Perhaps no user_data has been assigned to this
+		   network yet. Try to find it by CNI or call_sign. */
+	}
+
+	if (nk->cni_vps) {
+		FOR_ALL_NODES (cn, cn1, &ca->networks, node)
+			if (cn->network.cni_vps == nk->cni_vps)
+				goto found3;
+
+		/* Perhaps we did not receive nk->cni_vps yet but
+		   another CNI or call_sign. */
+	}
+
+	if (nk->cni_8301)
+		FOR_ALL_NODES (cn, cn1, &ca->networks, node)
+			if (cn->network.cni_8301 == nk->cni_8301)
+				goto found3;
+
+	if (nk->cni_8302)
+		FOR_ALL_NODES (cn, cn1, &ca->networks, node)
+			if (cn->network.cni_8302 == nk->cni_8302)
+				goto found3;
+
+	if (nk->call_sign[0])
+		FOR_ALL_NODES (cn, cn1, &ca->networks, node)
+			if (0 == strcmp (cn->network.call_sign, nk->call_sign))
+				goto found3;
 
 	return NULL;
+
+	/* All given IDs must match unless the ID is not stored yet. */
+
+ found3:
+	if (nk->user_data && cn->network.user_data)
+		return NULL;
+
+ found2:
+	if (nk->cni_vps && cn->network.cni_vps
+	    && cn->network.cni_vps != nk->cni_vps)
+		return NULL;
+
+	if (nk->cni_8301 && cn->network.cni_8301
+	    && cn->network.cni_8301 != nk->cni_8301)
+		return NULL;
+
+	if (nk->cni_8302 && cn->network.cni_8302
+	    && cn->network.cni_8302 != nk->cni_8302)
+		return NULL;
+
+	if (nk->call_sign[0] && cn->network.call_sign[0]
+	    && 0 != strcmp (cn->network.call_sign, nk->call_sign))
+		return NULL;
+
+ found:
+	/* Find faster next time, delete last. */
+	add_head (&ca->networks, unlink_node (&cn->node));
+
+	return cn;
 }
 
 static void
@@ -266,7 +272,12 @@ static void
 delete_network			(vbi_cache *		ca,
 				 cache_network *	cn)
 {
-	assert (ca == cn->cache);
+	vbi_pid_channel ch;
+
+	if (CACHE_CONSISTENCY) {
+		assert (ca == cn->cache);
+		assert (is_member (&ca->networks, &cn->node));
+	}
 
 	if (CACHE_DEBUG) {
 		fputs ("Delete ", stderr);
@@ -274,21 +285,33 @@ delete_network			(vbi_cache *		ca,
 		fputc ('\n', stderr);
 	}
 
-	if (!cn->zombie)
-		--ca->n_networks;
-
-	if (cn->network.n_pages > 0) {
+	if (cn->n_pages > 0) {
 		/* Delete all unreferenced pages. */
 		delete_all_pages (ca, cn);
 	}
 
+	/* Zombies don't count. */
+	if (!cn->zombie)
+		--ca->n_networks;
+
 	if (cn->ref_count > 0
-	    || cn->locked_pages > 0) {
+	    || cn->n_referenced_pages > 0) {
 		cn->zombie = TRUE;
 		return;
 	}
 
 	unlink_node (&cn->node);
+
+	vbi_network_destroy (&cn->network);
+
+	vbi_program_info_destroy (&cn->program_info);
+	vbi_aspect_ratio_destroy (&cn->aspect_ratio);
+
+	for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
+		vbi_program_id_destroy (&cn->program_id[ch]);
+
+	cache_network_destroy_caption (cn);
+	cache_network_destroy_teletext (cn);
 
 	free (cn);
 }
@@ -301,7 +324,7 @@ delete_surplus_networks		(vbi_cache *		ca)
 	/* Remove last recently used networks first. */
 	FOR_ALL_NODES_REVERSE (cn, cn1, &ca->networks, node) {
 		if (cn->ref_count > 0
-		    || cn->locked_pages > 0)
+		    || cn->n_referenced_pages > 0)
 			continue;
 
 		if (cn->zombie
@@ -312,46 +335,63 @@ delete_surplus_networks		(vbi_cache *		ca)
 
 static cache_network *
 add_network			(vbi_cache *		ca,
-				 vbi_nuid		client_nuid)
+				 const vbi_network *	nk,
+				 vbi_videostd_set	videostd_set)
 {
 	cache_network *cn, *cn1;
+	vbi_pid_channel ch;
 
-	if ((cn = network_by_nuid (ca, client_nuid)))
+	if (nk && (cn = network_by_id (ca, nk))) {
+		/* Note does not merge nk. */
 		return cn;
+	}
 
-	if (ca->n_networks >= ca->network_limit) {
+	/* Allow +1 for channel change. */
+	if (ca->n_networks >= ca->network_limit + 1) {
 		/* We absorb the last recently used cache_network
 		   without references. */
 
 		FOR_ALL_NODES_REVERSE (cn, cn1, &ca->networks, node)
 			if (0 == cn->ref_count
-			    && 0 == cn->locked_pages)
+			    && 0 == cn->n_referenced_pages)
 				break;
 
 		if (!cn->node.pred) {
 			if (CACHE_DEBUG)
 				fprintf (stderr,
-					 "%s: network_limit=%u, all locked\n",
+					 "%s: network_limit=%u, all referenced\n",
 					 __FUNCTION__, ca->network_limit);
 			return NULL;
 		}
 
-		if (cn->network.n_pages > 0)
+		if (cn->n_pages > 0)
 			delete_all_pages (ca, cn);
 
 		unlink_node (&cn->node);
 
-		cn->network.n_pages = 0;
-		cn->network.max_pages = 0;
-
 		cn->ref_count = 0;
-		cn->locked_pages = 0;
-
-		cn->current_count = 0;
 
 		cn->zombie = FALSE;
 
-		vt_network_init (&cn->network);
+		vbi_network_destroy (&cn->network);
+
+		cn->confirm_cni_vps = 0;
+		cn->confirm_cni_8301 = 0;
+		cn->confirm_cni_8302 = 0;
+
+		vbi_program_info_destroy (&cn->program_info);
+		vbi_aspect_ratio_destroy (&cn->aspect_ratio);
+
+		for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
+			vbi_program_id_destroy (&cn->program_id[ch]);
+
+		cn->n_pages = 0;
+		cn->max_pages = 0;
+
+		cn->n_referenced_pages = 0;
+
+		cache_network_destroy_caption (cn);
+		cache_network_destroy_teletext (cn);
 	} else {
 		if (!(cn = calloc (1, sizeof (*cn)))) {
 			if (CACHE_DEBUG)
@@ -360,24 +400,84 @@ add_network			(vbi_cache *		ca,
 			return NULL;
 		}
 
-		vt_network_init (&cn->network);
-
 		++ca->n_networks;
 	}
 
-	cn->network.client_nuid = client_nuid;
-	cn->network.received_nuid = VBI_NUID_UNKNOWN;
+	add_head (&ca->networks, &cn->node);
 
 	cn->cache = ca;
 
-	add_head (&ca->networks, &cn->node);
+	if (nk)
+		vbi_network_copy (&cn->network, nk);
+
+	vbi_program_info_init (&cn->program_info);
+	vbi_aspect_ratio_init (&cn->aspect_ratio, videostd_set);
+
+	for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
+		vbi_program_id_init (&cn->program_id[ch], ch);
+
+	cache_network_init_caption (cn);
+	cache_network_init_teletext (cn);
 
 	return cn;
 }
 
-static const unsigned int
-cache_page_overhead =
-	sizeof (cache_page) - sizeof (((cache_page *) 0)->page);
+/**
+ * @internal
+ * @param cp Teletext page.
+ * 
+ * @returns
+ * Storage size required for the raw Teletext page,
+ * depending on its function and the data union member used.
+ */
+unsigned int
+cache_page_size			(const cache_page *	cp)
+{
+	const unsigned int header_size = sizeof (*cp) - sizeof (cp->data);
+
+	switch (cp->function) {
+	case PAGE_FUNCTION_UNKNOWN:
+	case PAGE_FUNCTION_LOP:
+		if (cp->x28_designations & 0x13)
+			return header_size + sizeof (cp->data.ext_lop);
+		else if (cp->x26_designations)
+			return header_size + sizeof (cp->data.enh_lop);
+		else
+			return header_size + sizeof (cp->data.lop);
+
+	case PAGE_FUNCTION_GPOP:
+	case PAGE_FUNCTION_POP:
+		return header_size + sizeof (cp->data.pop);
+
+	case PAGE_FUNCTION_GDRCS:
+	case PAGE_FUNCTION_DRCS:
+		return header_size + sizeof (cp->data.drcs);
+
+	case PAGE_FUNCTION_AIT:
+		return header_size + sizeof (cp->data.ait);
+
+	default:
+		return sizeof (*cp);
+	}
+}
+
+/** internal */
+vbi_bool
+cache_page_copy			(cache_page *		dst,
+				 const cache_page *	src)
+{
+	assert (NULL != dst);
+
+	if (src) {
+		memcpy (dst, src, cache_page_size (src));
+
+		dst->network = NULL; /* not cached */
+	} else {
+		CLEAR (*dst);
+	}
+
+	return TRUE;
+}
 
 static void
 cache_page_dump			(const cache_page *	cp,
@@ -385,23 +485,21 @@ cache_page_dump			(const cache_page *	cp,
 {
 	const cache_network *cn;
 
-	fprintf (fp, "page %x.%x ", cp->page.pgno, cp->page.subno);
+	fprintf (fp, "page %x.%x ", cp->pgno, cp->subno);
 
 	if ((cn = cp->network)) {
 		const page_stat *ps;
 
-		ps = vt_network_const_page_stat (&cn->network, cp->page.pgno);
+		ps = cache_network_const_page_stat (cn, cp->pgno);
 
-		fprintf (fp, "%llx/%llx %s/L%u/S%04x "
-			 "subp=%u/%u (%u-%u) ",
-			 cn->network.client_nuid,
-			 cn->network.received_nuid,
-			 _vbi_page_type_name (ps->page_type),
-			 ps->charset_code, ps->subcode,
-			 ps->n_subpages, ps->max_subpages,
-			 ps->subno_min, ps->subno_max);
-	} else {
-		fputs ("nuid=n/a ", fp);
+		fprintf (fp, "%s/L%u/S%04x subp=%u/%u (%u-%u) ",
+			 vbi_ttx_page_type_name (ps->page_type),
+			 ps->charset_code,
+			 ps->subcode,
+			 ps->n_subpages,
+			 ps->max_subpages,
+			 ps->subno_min,
+			 ps->subno_max);
 	}
 
 	fprintf (stderr, "ref=%u %s",
@@ -414,16 +512,37 @@ hash				(vbi_pgno		pgno)
 	return pgno % HASH_SIZE;
 }
 
+static vbi_bool
+cache_page_in_cache		(const vbi_cache *	ca,
+				 const cache_page *	cp)
+{
+	const list *hash_list;
+	const list *pri_list;
+
+	hash_list = &ca->hash[hash (cp->pgno)];
+
+	if (cp->ref_count > 0)
+		pri_list = &ca->referenced;
+	else
+		pri_list = &ca->priority;
+
+	return (is_member (hash_list, &cp->hash_node)
+		&& is_member (pri_list, &cp->pri_node));
+}
+
 static void
 delete_page			(vbi_cache *		ca,
 				 cache_page *		cp)
 {
-	assert (NULL != cp->network);
-	assert (ca == cp->network->cache);
+	if (CACHE_CONSISTENCY) {
+		assert (NULL != cp->network);
+		assert (ca == cp->network->cache);
+		assert (cache_page_in_cache (ca, cp));
+	}
 
 	if (cp->ref_count > 0) {
 		/* Remove from cache, mark for deletion.
-		   cp->pri_node remains on ca->locked. */
+		   cp->pri_node remains on ca->referenced. */
 
 		unlink_node (&cp->hash_node);
 
@@ -440,9 +559,9 @@ delete_page			(vbi_cache *		ca,
 		fputc ('\n', stderr);
 	}
 
+	/* Zombies don't count. */
 	if (CACHE_PRI_ZOMBIE != cp->priority)
-		ca->memory_used -=
-			vt_page_size (&cp->page) + cache_page_overhead;
+		ca->memory_used -= cache_page_size (cp);
 
 	unlink_node (&cp->pri_node);
 	unlink_node (&cp->hash_node);
@@ -455,94 +574,50 @@ delete_page			(vbi_cache *		ca,
 }
 
 static void
-delete_all_pages_by_priority	(vbi_cache *		ca,
-				 cache_network *	cn,
-				 cache_priority		pri)
-{
-	cache_page *cp, *cp1;
-
-	assert (ca == cn->cache);
-
-	FOR_ALL_NODES (cp, cp1, &ca->priority[pri], pri_node)
-		if (!cn || cp->network == cn)
-			delete_page (ca, cp);
-}
-
-static void
 delete_all_pages		(vbi_cache *		ca,
 				 cache_network *	cn)
 {
-	cache_priority pri;
+	cache_page *cp, *cp1;
 
-	assert (ca == cn->cache);
+	if (CACHE_CONSISTENCY && NULL != cn) {
+		assert (ca == cn->cache);
+		assert (is_member (&ca->networks, &cn->node));
+	}
 
-	for (pri = CACHE_PRI_ATTIC_NORMAL; pri < CACHE_PRI_NUM; ++pri)
-		delete_all_pages_by_priority (ca, cn, pri);
+	FOR_ALL_NODES (cp, cp1, &ca->priority, pri_node)
+		if (!cn || cp->network == cn)
+			delete_page (ca, cp);
 }
 
 static void
 delete_surplus_pages		(vbi_cache *		ca)
 {
 	cache_priority pri;
+	cache_page *cp, *cp1;
 
-	for (pri = CACHE_PRI_ATTIC_NORMAL; pri < CACHE_PRI_NUM; ++pri) {
-		cache_page *cp, *cp1;
-
-		FOR_ALL_NODES (cp, cp1, &ca->priority[pri], pri_node) {
+	for (pri = CACHE_PRI_NORMAL; pri <= CACHE_PRI_SPECIAL; ++pri) {
+		FOR_ALL_NODES (cp, cp1, &ca->priority, pri_node) {
 			if (ca->memory_used <= ca->memory_limit)
 				return;
+			else if (cp->priority == pri
+				 && 0 == cp->network->ref_count)
+				delete_page (ca, cp);
+		}
+	}
 
-			if (0 == cp->ref_count)
+	for (pri = CACHE_PRI_NORMAL; pri <= CACHE_PRI_SPECIAL; ++pri) {
+		FOR_ALL_NODES (cp, cp1, &ca->priority, pri_node) {
+			if (ca->memory_used <= ca->memory_limit)
+				return;
+			else if (cp->priority == pri)
 				delete_page (ca, cp);
 		}
 	}
 }
 
-static void
-change_priority_of_all_pages	(vbi_cache *		ca,
-				 cache_network *	cn,
-				 cache_priority		pri_to,
-				 cache_priority		pri_from)
-{
-	list *pri_to_list;
-	list *pri_from_list;
-	cache_page *cp, *cp1;
-
-	assert (ca == cn->cache);
-
-	assert (pri_to != CACHE_PRI_ZOMBIE);
-	assert (pri_from != CACHE_PRI_ZOMBIE);
-
-	if (pri_to == pri_from)
-		return;
-
-	pri_to_list = ca->priority + pri_to;
-	pri_from_list = ca->priority + pri_from;
-
-	if (cn) {
-		FOR_ALL_NODES (cp, cp1, pri_from_list, pri_node) {
-			if (cp->network != cn)
-				continue;
-
-			cp->priority = pri_to;
-
-			add_tail (pri_to_list, unlink_node (&cp->pri_node));
-		}
-	} else {
-		FOR_ALL_NODES (cp, cp1, pri_from_list, pri_node)
-			cp->priority = pri_to;
-
-		add_tail_list (pri_to_list, pri_from_list);
-	}
-
-	FOR_ALL_NODES (cp, cp1, &ca->locked, pri_node)
-		if (cp->priority == pri_from)
-			cp->priority = pri_to;
-}
-
 static cache_page *
 page_by_pgno			(vbi_cache *		ca,
-				 cache_network *	cn,
+				 const cache_network *	cn,
 				 vbi_pgno		pgno,
 				 vbi_subno		subno,
 				 vbi_subno		subno_mask)
@@ -550,7 +625,10 @@ page_by_pgno			(vbi_cache *		ca,
 	list *hash_list;
 	cache_page *cp, *cp1;
 
-	assert (ca == cn->cache);
+	if (CACHE_CONSISTENCY) {
+		assert (ca == cn->cache);
+		assert (is_member (&ca->networks, &cn->node));
+	}
 
 	hash_list = ca->hash + hash (pgno);
 
@@ -561,8 +639,8 @@ page_by_pgno			(vbi_cache *		ca,
 			fputc ('\n', stderr);
 		}
 
-		if (cp->page.pgno == pgno
-		    && (cp->page.subno & subno_mask) == subno
+		if (cp->pgno == pgno
+		    && (cp->subno & subno_mask) == subno
 		    && (!cn || cp->network == cn)) {
 			/* Find faster next time. */
 			add_head (hash_list, unlink_node (&cp->hash_node));
@@ -582,7 +660,10 @@ lock_page			(vbi_cache *		ca,
 {
 	cache_page *cp;
 
-	assert (ca == cn->cache);
+	if (CACHE_CONSISTENCY) {
+		assert (ca == cn->cache);
+		assert (is_member (&ca->networks, &cn->node));
+	}
 
 	if (!(cp = page_by_pgno (ca, cn, pgno, subno, subno_mask)))
 		return NULL;
@@ -603,12 +684,11 @@ lock_page			(vbi_cache *		ca,
 			cn->zombie = FALSE;
 		}
 
-		++cn->locked_pages;
+		++cn->n_referenced_pages;
 
-		ca->memory_used -=
-			vt_page_size (&cp->page) + cache_page_overhead;
+		ca->memory_used -= cache_page_size (cp);
 
-		add_tail (&ca->locked, unlink_node (&cp->pri_node));
+		add_tail (&ca->referenced, unlink_node (&cp->pri_node));
 	}
 
 	if (CACHE_DEBUG)
@@ -619,36 +699,33 @@ lock_page			(vbi_cache *		ca,
 	return cp;
 }
 
-/*
- *  Interface
- */
-
 /**
  * @internal
+ * @param cp
  *
- * Unreferences a page returned by vbi_cache_put_page(),
- * vbi_cache_get_page(), or vbi_page_dup_page_ref().
- * @a vtp can be @c NULL.
+ * Unreferences a page returned by vbi_cache_put_cache_page(),
+ * vbi_cache_get_cache_page(), or vbi_page_new_cache_page_ref().
+ * @a cp can be @c NULL.
  */
 void
-_vbi_cache_release_page		(vbi_cache *		ca,
-				 const vt_page *	vtp)
+cache_page_release		(cache_page *		cp)
 {
-	cache_page *cp;
+	vbi_cache *ca;
 
-	assert (NULL != ca);
-
-	if (!vtp)
+	if (NULL == cp)
 		return;
 
-	cp = PARENT ((vt_page *) vtp, cache_page, page);
+	assert (NULL != cp->network);
+	assert (NULL != cp->network->cache);
 
-	ca->lock (ca->lock_user_data);
+	ca = cp->network->cache;
+
+	if (CACHE_CONSISTENCY)
+		assert (cache_page_in_cache (ca, cp));
 
 	if (0 == cp->ref_count) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Unreferenced page %p", cp);
-		ca->unlock (ca->lock_user_data);
 		return;
 	}
 
@@ -659,8 +736,10 @@ _vbi_cache_release_page		(vbi_cache *		ca,
 		cache_page_dump (cp, stderr);
 	}
 
-	if (0 == --cp->ref_count) {
+	if (1 == cp->ref_count) {
 		cache_network *cn;
+
+		cp->ref_count = 0;
 
 		cn = cp->network;
 
@@ -675,59 +754,47 @@ _vbi_cache_release_page		(vbi_cache *		ca,
 				cache_network_dump (cn, stderr);
 			}
 
-			add_tail (&ca->priority[cp->priority],
-				  unlink_node (&cp->pri_node));
+			add_tail (&ca->priority, unlink_node (&cp->pri_node));
 
-			ca->memory_used += vt_page_size (&cp->page)
-				+ cache_page_overhead;
+			ca->memory_used += cache_page_size (cp);
 
 			break;
 		}
 
-		--cn->locked_pages;
+		--cn->n_referenced_pages;
 
 		if (cn->zombie
-		    && 0 == cn->locked_pages
+		    && 0 == cn->n_referenced_pages
 		    && 0 == cn->ref_count)
 			delete_network (ca, cn);
 
 		if (ca->memory_used > ca->memory_limit)
 			delete_surplus_pages (ca);
+	} else {
+		--cp->ref_count;
 	}
 
 	if (CACHE_DEBUG)
 		fputc ('\n', stderr);
-
-	ca->unlock (ca->lock_user_data);
 }
 
 /**
  * @internal
+ * @param cp
  *
  * Duplicates a page reference.
  *
- * @return 
- * vt_page pointer, never fails. Horrible things will happen
- * when @a vtp was not returned by vbi_cache functions.
+ * @returns
+ * @a cp, never fails.
  */
-const vt_page *
-_vbi_cache_dup_page_ref		(vbi_cache *		ca,
-				 const vt_page *	vtp)
+cache_page *
+cache_page_new_ref		(cache_page *		cp)
 {
-	cache_page *cp;
-
-	assert (NULL != ca);
-	assert (NULL != vtp);
-
-	cp = PARENT ((vt_page *) vtp, cache_page, page);
-
-	ca->lock (ca->lock_user_data);
+	assert (NULL != cp);
 
 	++cp->ref_count;
 
-	ca->unlock (ca->lock_user_data);
-
-	return vtp;
+	return cp;
 }
 
 /**
@@ -737,26 +804,26 @@ _vbi_cache_dup_page_ref		(vbi_cache *		ca,
  * recently received subpage of that page is returned.
  * 
  * The reference counter of the page is incremented, you must call
- * vbi_cache_release_page() to unreference the page. When @a user_access
+ * vbi_cache_release_cache_page() to unreference the page. When @a user_access
  * is set, the page gets higher priority to stay in cache and is marked
  * as most recently received subpage.
  * 
  * @return 
- * vt_page pointer, NULL when the requested page is not cached.
+ * cache_page pointer, NULL when the requested page is not cached.
  */
-const vt_page *
+cache_page *
 _vbi_cache_get_page		(vbi_cache *		ca,
-				 const vt_network *	vtn,
+				 cache_network *	cn,
 				 vbi_pgno		pgno,
 				 vbi_subno		subno,
-				 vbi_subno		subno_mask,
-				 vbi_bool		user_access)
+				 vbi_subno		subno_mask)
 {
-	cache_network *cn;
 	cache_page *cp;
 
 	assert (NULL != ca);
-	assert (NULL != vtn);
+	assert (NULL != cn);
+
+	assert (ca == cn->cache);
 
 	if (pgno < 0x100 || pgno > 0x8FF) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
@@ -765,13 +832,11 @@ _vbi_cache_get_page		(vbi_cache *		ca,
 		return NULL;
 	}
 
-	ca->lock (ca->lock_user_data);
-
-	cn = PARENT ((vt_network *) vtn, cache_network, network);
+	if (CACHE_CONSISTENCY)
+		assert (is_member (&ca->networks, &cn->node));
 
 	if (CACHE_DEBUG) {
-		fprintf (stderr, "Ref %s%x.%x/%x ",
-			 user_access ? "user " : "",
+		fprintf (stderr, "Ref %x.%x/%x ",
 			 pgno, subno, subno_mask);
 		_vbi_cache_dump (ca, stderr);
 		fputc (' ', stderr);
@@ -782,79 +847,57 @@ _vbi_cache_get_page		(vbi_cache *		ca,
 	if (VBI_ANY_SUBNO == subno)
 		subno_mask = 0;
 
-	if (!(cp = lock_page (ca, cn, pgno, subno, subno_mask)))
+	if (!(cp = lock_page (ca, (cache_network *) cn,
+			      pgno, subno, subno_mask)))
 		goto failure;
 
-	if (user_access) {
-		/* Now the page is on the ca->locked list. Unreferencing
-		   reenqueues on one of the delete priority lists
-		   according to its cp->priority. */
-
-		switch (cp->priority) {
-		case CACHE_PRI_ATTIC_NORMAL:
-			cp->priority = CACHE_PRI_ATTIC_SPECIAL;
-			break;
-
-		case CACHE_PRI_NORMAL:
-			cp->priority = CACHE_PRI_SPECIAL;
-			break;
-
-		default:
-			break;
-		}
-	}
-
-	ca->unlock (ca->lock_user_data);
-
-	return &cp->page;
+	return cp;
 
  failure:
- 	ca->unlock (ca->lock_user_data);
-
 	return NULL;
 }
 
 /**
  * @internal
+ * @param ca Cache.
+ * @param cn Network this page belongs to.
+ * @param cp Teletext page to store in the cache.
+ * @param new_ref When @c TRUE, the stored page will be referenced
+ *   as with vbi_cache_get_cache_page().
  *
- * Puts a Teletext page in the cache.
- *
- * When @a new_ref is @c TRUE, the cached page will be referenced
- * as with vbi_cache_get_page().
+ * Puts a copy of @a cp in the cache.
  * 
- * @return 
- * vt_page pointer (in the cache, not @a vtp), NULL on failure
+ * @returns
+ * cache_page pointer (in the cache, not @a cp), NULL on failure
  * (out of memory).
  */
-const vt_page *
+cache_page *
 _vbi_cache_put_page		(vbi_cache *		ca,
-				 const vt_network *	vtn,
-				 const vt_page *	vtp,
-				 vbi_bool		new_ref)
+				 cache_network *	cn,
+				 const cache_page *	cp)
 {
 	cache_page *death_row[20];
 	unsigned int death_count;
-	cache_network *cn;
 	cache_page *old_cp;
 	long memory_available;	/* NB can be < 0 */
 	long memory_needed;
 	cache_priority pri;
-	cache_page *cp;
+	cache_page *new_cp;
 
 	assert (NULL != ca);
-	assert (NULL != vtn);
-	assert (NULL != vtp);
+	assert (NULL != cn);
+	assert (NULL != cp);
 
-	ca->lock (ca->lock_user_data);
+	assert (ca == cn->cache);
 
-	memory_needed = vt_page_size (vtp) + cache_page_overhead;
+	memory_needed = cache_page_size (cp);
 	memory_available = ca->memory_limit - ca->memory_used;
 
-	cn = PARENT ((vt_network *) vtn, cache_network, network);
+	if (CACHE_CONSISTENCY)
+		assert (is_member (&ca->networks, &cn->node));
 
 	if (CACHE_DEBUG) {
-		fprintf (stderr, "Put %x.%x ",
-			 vtp->pgno, vtp->subno);
+		fprintf (stderr, "Put %x.%x ", cp->pgno, cp->subno);
 		_vbi_cache_dump (ca, stderr);
 		fputc (' ', stderr);
 		cache_network_dump (cn, stderr);
@@ -873,15 +916,15 @@ _vbi_cache_put_page		(vbi_cache *		ca,
 		   work for clock pages without page_type between 00:00
 		   and 00:59. */
 
-		ps = vt_network_page_stat (&cn->network, vtp->pgno);
+		ps = cache_network_const_page_stat (cn, cp->pgno);
 
-		if (VBI_NONSTD_SUBPAGES == (vbi_page_type) ps->page_type)
+		if (VBI_NONSTD_SUBPAGES == (vbi_ttx_page_type) ps->page_type)
 			subno_mask = 0;
 		else
-			subno_mask = - ((unsigned int) vtp->subno <= 0x79);
+			subno_mask = - ((unsigned int) cp->subno <= 0x79);
 
-		old_cp = page_by_pgno (ca, cn, vtp->pgno,
-				       vtp->subno, subno_mask);
+		old_cp = page_by_pgno (ca, cn, cp->pgno,
+				       cp->subno, subno_mask);
 	}
 
 	if (old_cp) {
@@ -901,29 +944,49 @@ _vbi_cache_put_page		(vbi_cache *		ca,
 		} else {
 			/* Got our first replacement candidate. */
 			death_row[death_count++] = old_cp;
-			memory_available += vt_page_size (&old_cp->page)
-				+ cache_page_overhead;
+			memory_available += cache_page_size (old_cp);
 		}
 	}
 
 	if (memory_available >= memory_needed)
 		goto replace;
 
-	for (pri = CACHE_PRI_ATTIC_NORMAL; pri < CACHE_PRI_NUM; ++pri) {
+	/* Find more pages to replace until have enough memory. */
+
+	for (pri = CACHE_PRI_NORMAL; pri <= CACHE_PRI_SPECIAL; ++pri) {
 		cache_page *cp, *cp1;
 
-		FOR_ALL_NODES (cp, cp1, &ca->priority[pri], pri_node) {
+		FOR_ALL_NODES (cp, cp1, &ca->priority, pri_node) {
 			if (memory_available >= memory_needed)
 				goto replace;
 
-			if (cp == old_cp)
+			if (pri != cp->priority
+			    || cp->network->ref_count > 0
+			    || cp == old_cp)
 				continue;
 
 			assert (death_count < N_ELEMENTS (death_row));
 
 			death_row[death_count++] = cp;
-			memory_available += vt_page_size (&cp->page)
-				+ cache_page_overhead;
+			memory_available += cache_page_size (cp);
+		}
+	}
+
+	for (pri = CACHE_PRI_NORMAL; pri <= CACHE_PRI_SPECIAL; ++pri) {
+		cache_page *cp, *cp1;
+
+		FOR_ALL_NODES (cp, cp1, &ca->priority, pri_node) {
+			if (memory_available >= memory_needed)
+				goto replace;
+
+			if (pri != cp->priority
+			    || cp == old_cp)
+				continue;
+
+			assert (death_count < N_ELEMENTS (death_row));
+
+			death_row[death_count++] = cp;
+			memory_available += cache_page_size (cp);
 		}
 	}
 
@@ -937,24 +1000,26 @@ _vbi_cache_put_page		(vbi_cache *		ca,
  replace:
 	if (memory_available == memory_needed
 	    && 1 == death_count) {
-		cp = death_row[0];
+		/* Usually we can replace a single page of same size. */
+
+		new_cp = death_row[0];
 
 		if (CACHE_DEBUG) {
 			fputs ("reusing ", stderr);
-			cache_page_dump (cp, stderr);
+			cache_page_dump (new_cp, stderr);
 			fputc (' ', stderr);
 		}
 
-		unlink_node (&cp->pri_node);
-		unlink_node (&cp->hash_node);
+		unlink_node (&new_cp->pri_node);
+		unlink_node (&new_cp->hash_node);
 
-		cache_network_remove_page (cp->network, cp);
+		cache_network_remove_page (new_cp->network, new_cp);
 
 		ca->memory_used -= memory_needed;
 	} else {
 		unsigned int i;
 
-		if (!(cp = malloc (memory_needed))) {
+		if (!(new_cp = malloc (memory_needed))) {
 			if (CACHE_DEBUG)
 				fputs ("out of memory\n", stderr);
 
@@ -967,113 +1032,298 @@ _vbi_cache_put_page		(vbi_cache *		ca,
 		++ca->n_pages;
 	}
 
-	add_head (ca->hash + hash (vtp->pgno), &cp->hash_node);
+	add_head (ca->hash + hash (cp->pgno), &new_cp->hash_node);
 
 	/* 100, 200, 300, ... magazine start page. */
-	if (0x00 == (vtp->pgno & 0xFF))
-		cp->priority = CACHE_PRI_SPECIAL;
+	if (0x00 == (cp->pgno & 0xFF))
+		new_cp->priority = CACHE_PRI_SPECIAL;
 	/* 111, 222, 333, ... magic page number. */
-	else if ((vtp->pgno >> 4) == (vtp->pgno & 0xFF))
-		cp->priority = CACHE_PRI_SPECIAL;
+	else if ((cp->pgno >> 4) == (cp->pgno & 0xFF))
+		new_cp->priority = CACHE_PRI_SPECIAL;
 	/* Something we may not want in cache, much less all subpages. */
-	else if (PAGE_FUNCTION_UNKNOWN == vtp->function)
-		cp->priority = CACHE_PRI_NORMAL;
+	else if (PAGE_FUNCTION_UNKNOWN == cp->function)
+		new_cp->priority = CACHE_PRI_NORMAL;
 	/* POP, GPOP, DRCS, GDRCS */
-	else if (PAGE_FUNCTION_LOP != vtp->function)
-		cp->priority = CACHE_PRI_SPECIAL;
+	else if (PAGE_FUNCTION_LOP != cp->function)
+		new_cp->priority = CACHE_PRI_SPECIAL;
 	/* Regular subpage, not clock, not rotating ads etc. */
-	else if (vtp->subno > 0x00 && vtp->subno < 0x79)
-		cp->priority = CACHE_PRI_SPECIAL;
+	else if (cp->subno > 0x00 && cp->subno < 0x79)
+		new_cp->priority = CACHE_PRI_SPECIAL;
 	else
-		cp->priority = CACHE_PRI_NORMAL;
+		new_cp->priority = CACHE_PRI_NORMAL;
 
-	memcpy (&cp->page, vtp, memory_needed - cache_page_overhead);
+	new_cp->function		= cp->function;
 
-	if (new_ref) {
-		cp->ref_count = 1;
-		ca->memory_used += 0; /* see lock_page() */
+	new_cp->pgno			= cp->pgno;
+	new_cp->subno			= cp->subno;
 
-		++cn->locked_pages;
+	new_cp->national		= cp->national;
 
-		add_tail (&ca->locked, &cp->pri_node);
-	} else {
-		cp->ref_count = 0;
-		ca->memory_used += memory_needed;
+	new_cp->flags			= cp->flags;
 
-		add_tail (ca->priority + cp->priority, &cp->pri_node);
-	}
+	new_cp->lop_packets		= cp->lop_packets;
+	new_cp->x26_designations	= cp->x26_designations;
+	new_cp->x27_designations	= cp->x27_designations;
+	new_cp->x28_designations	= cp->x28_designations;
 
-	cache_network_add_page (cn, cp);
+	memcpy (&new_cp->data, &cp->data,
+		memory_needed - (sizeof (*new_cp) - sizeof (new_cp->data)));
+
+	new_cp->ref_count = 1;
+	ca->memory_used += 0; /* see lock_page() */
+
+	++cn->n_referenced_pages;
+
+	add_tail (&ca->referenced, &new_cp->pri_node);
+
+	cache_network_add_page (cn, new_cp);
 
 	if (CACHE_STATUS) {
 		fprintf (stderr, "cache status:\n");
 		_vbi_cache_dump (ca, stderr);
 		fputc ('\n', stderr);
-		cache_page_dump (cp, stderr);
+		cache_page_dump (new_cp, stderr);
 		fputc ('\n', stderr);
-		cache_network_dump (cp->network, stderr);
+		cache_network_dump (new_cp->network, stderr);
 		fputc ('\n', stderr);
 	}
 
-	ca->unlock (ca->lock_user_data);
-
-	return &cp->page;
+	return new_cp;
 
  failure:
- 	ca->unlock (ca->lock_user_data);
-
 	return NULL;
+}
+
+/**
+ */
+void
+vbi_ttx_page_stat_destroy	(vbi_ttx_page_stat *	ps)
+{
+	assert (NULL != ps);
+
+	CLEAR (*ps);
+}
+
+/**
+ */
+void
+vbi_ttx_page_stat_init		(vbi_ttx_page_stat *	ps)
+{
+	assert (NULL != ps);
+
+	ps->page_type		= VBI_UNKNOWN_PAGE;
+
+	ps->charset_code	= 0; /* en */
+
+	ps->subpages		= 0;
+
+	ps->subno_min		= 0;
+	ps->subno_max		= 0;
 }
 
 /**
  * @internal
  */
 void
-_vbi_cache_release_network	(vbi_cache *		ca,
-				 const vt_network *	vtn)
+cache_network_get_ttx_page_stat	(const cache_network *	cn,
+				 vbi_ttx_page_stat *	ps,
+				 vbi_pgno		pgno)
+{
+	const page_stat *ps1;
+
+	assert (NULL != ps);
+
+	ps1 = cache_network_const_page_stat (cn, pgno);
+
+	if (VBI_NORMAL_PAGE == (vbi_ttx_page_type) ps1->page_type) {
+		unsigned int flags;
+
+		flags = ps1->flags & (C5_NEWSFLASH |
+				      C6_SUBTITLE |
+				      C7_SUPPRESS_HEADER);
+
+		if ((C5_NEWSFLASH | C7_SUPPRESS_HEADER) == flags)
+			ps->page_type = VBI_NEWSFLASH_PAGE;
+		else if ((C6_SUBTITLE | C7_SUPPRESS_HEADER) == flags)
+			ps->page_type = VBI_SUBTITLE_PAGE;
+		else
+			ps->page_type = VBI_NORMAL_PAGE;
+	} else {
+		ps->page_type = (vbi_ttx_page_type) ps1->page_type;
+	}
+
+	if (0xFF == ps1->charset_code)
+		ps->charset_code = 0; /* unknown -> en */
+	else
+		ps->charset_code = (vbi_character_set_code) ps1->charset_code;
+
+	if (ps1->subcode <= 9)
+		ps->subpages	= ps1->subcode; /* common */
+	else if (SUBCODE_UNKNOWN == ps1->subcode)
+		ps->subpages	= 0;
+	else if (SUBCODE_MULTI_PAGE == ps1->subcode)
+		ps->subpages	= 2; /* two or more */
+	else if (ps1->subcode >= 0x80)
+		ps->subpages	= 0; /* non-standard (clock etc) */
+	else
+		ps->subpages	= vbi_bcd2dec (ps1->subcode);
+
+	ps->subno_min	= (vbi_subno) ps1->subno_min;
+	ps->subno_max	= (vbi_subno) ps1->subno_max;
+}
+
+/**
+ */
+vbi_bool
+vbi_cache_get_ttx_page_stat	(vbi_cache *		ca,
+				 vbi_ttx_page_stat *	ps,
+				 const vbi_network *	nk,
+				 vbi_pgno		pgno)
 {
 	cache_network *cn;
 
 	assert (NULL != ca);
+	assert (NULL != ps);
+	assert (NULL != nk);
 
-	if (!vtn)
-		return;
+	if (pgno < 0x100 || pgno > 0x8FF)
+		return FALSE;
 
-	cn = PARENT ((vt_network *) vtn, cache_network, network);
+	if (!(cn = _vbi_cache_get_network (ca, nk)))
+		return FALSE;
 
-	ca->lock (ca->lock_user_data);
+	cache_network_get_ttx_page_stat	(cn, ps, pgno);
 
-	if (0 == cn->ref_count) {
+	cache_network_release (cn);
+
+	return TRUE;
+}
+
+/**
+ */
+vbi_network *
+vbi_cache_get_networks		(vbi_cache *		ca,
+				 unsigned int *		array_size)
+{
+	vbi_network *nk;
+	cache_network *cn, *cn1;
+	unsigned int size;
+	unsigned int i;
+
+	assert (NULL != ca);
+	assert (NULL != array_size);
+
+	*array_size = 0;
+
+	if (0 == ca->n_networks)
+		return NULL;
+
+	size = ca->n_networks * sizeof (*nk);
+
+	if (!(nk = malloc (size))) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
-				"Unreferenced network %p", cn);
-		ca->unlock (ca->lock_user_data);
-		return;
+				"Out of memory (%u)", size);
+		return NULL;
 	}
 
-	--cn->ref_count;
+	i = 0;
 
-	if (0 == cn->ref_count
-	    && 0 == cn->locked_pages
-	    && (cn->zombie || ca->n_networks > ca->network_limit))
-		delete_surplus_networks (ca);
+	FOR_ALL_NODES (cn, cn1, &ca->networks, node) {
+		assert (i < ca->n_networks);
 
-	ca->unlock (ca->lock_user_data);
+		if (!(vbi_network_copy (nk + i, &cn->network))) {
+			vbi_network_array_delete (nk, i);
+			return NULL;
+		}
+
+		++i;
+	}
+
+	*array_size = i;
+
+	return nk;
 }
 
 /**
  * @internal
+ * @param cn cache_network obtained with _vbi_cache_add_cache_network()
+ *   or _vbi_cache_get_cache_network(), can be @c NULL.
+ *
+ * Releases a network reference.
  */
-vt_network *
+void
+cache_network_release		(cache_network *	cn)
+{
+	vbi_cache *ca;
+
+	if (NULL == cn)
+		return;
+
+	assert (NULL != cn->cache);
+
+	ca = cn->cache;
+
+	if (CACHE_CONSISTENCY)
+		assert (is_member (&ca->networks, &cn->node));
+
+	if (0 == cn->ref_count) {
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
+				"Unreferenced network %p", cn);
+		return;
+	} else if (1 == cn->ref_count) {
+		cn->ref_count = 0;
+
+		if (0 == cn->n_referenced_pages
+		    && (cn->zombie
+			|| ca->n_networks > ca->network_limit))
+			delete_surplus_networks (ca);
+	} else {
+		--cn->ref_count;
+	}
+}
+
+/**
+ * @internal
+ * @param cn
+ *
+ * Duplicates a network reference.
+ *
+ * @returns
+ * @a cn, never fails.
+ */
+cache_network *
+cache_network_new_ref		(cache_network *	cn)
+{
+	assert (NULL != cn);
+
+	++cn->ref_count;
+
+	return cn;
+}
+
+/**
+ * @internal
+ * @param ca Cache allocated with vbi_cache_new().
+ * @param nk Identifies the network by cni_8301, cni_8302, cni_vps,
+ *   call_sign or user_data, whichever is non-zero.
+ *
+ * Finds a network in the cache.
+ *
+ * @returns
+ * Pointer to a cache_network structure, @c NULL on error.  You must call
+ * _vbi_cache_release_cache_network() when this reference is no longer
+ * needed.
+ */
+cache_network *
 _vbi_cache_get_network		(vbi_cache *		ca,
-				 vbi_nuid		client_nuid)
+				 const vbi_network *	nk)
 {
 	cache_network *cn;
 
 	assert (NULL != ca);
+	assert (NULL != nk);
 
-	ca->lock (ca->lock_user_data);
-
-	if ((cn = network_by_nuid (ca, client_nuid))) {
+	if ((cn = network_by_id (ca, nk))) {
 		if (cn->zombie) {
 			++ca->n_networks;
 			cn->zombie = FALSE;
@@ -1082,203 +1332,63 @@ _vbi_cache_get_network		(vbi_cache *		ca,
 		++cn->ref_count;
 	}
 
-	ca->unlock (ca->lock_user_data);
-
-	return cn ? &cn->network : NULL;
+	return cn;
 }
 
 /**
  * @internal
+ * @param ca Cache allocated with vbi_cache_new().
+ * @param nk Create network with this cni_8301, cni_8302, cni_vps,
+ *   call_sign or temp_id, whichever is non-zero. Can be @c NULL
+ *   to add an anonymous network.
+ *
+ * Adds a network to the cache.
+ *
+ * @returns
+ * Pointer to a new cache_network structure, an already existing
+ * structure or @c NULL on error.  You must call
+ * _vbi_cache_release_cache_network() when this reference is no
+ * longer needed.
  */
-vt_network *
-_vbi_cache_new_network		(vbi_cache *		ca,
-				 vbi_nuid		client_nuid)
+cache_network *
+_vbi_cache_add_network		(vbi_cache *		ca,
+				 const vbi_network *	nk,
+				 vbi_videostd_set	videostd_set)
 {
 	cache_network *cn;
 
 	assert (NULL != ca);
 
-	ca->lock (ca->lock_user_data);
-
-	if ((cn = add_network (ca, client_nuid))) {
+	if ((cn = add_network (ca, nk, videostd_set))) {
 		++cn->ref_count;
 	}
 
-	ca->unlock (ca->lock_user_data);
-
-	return cn ? &cn->network : NULL;
+	return cn;
 }
 
-/* Deletes all data associated with a network. A referenced network and
- * referenced Teletext pages are marked for deletion when unreferenced.
- */
-void
-_vbi_cache_purge_by_nuid	(vbi_cache *		ca,
-				 vbi_nuid		nuid)
-{
-	cache_network *cn;
-
-	assert (NULL != ca);
-
-	ca->lock (ca->lock_user_data);
-
-	if (!(cn = network_by_nuid (ca, nuid))) {
-		ca->unlock (ca->lock_user_data);
-		return;
-	}
-
-	delete_network (ca, cn);
-
-	ca->unlock (ca->lock_user_data);
-}
-
-/* Deletes all cache contents. Referenced networks and Teletext pages
+/**
+ * @internal
+ * @param ca Cache allocated with vbi_cache_new().
+ *
+ * Deletes all cache contents. Referenced networks and Teletext pages
  * are marked for deletion when unreferenced.
  */
-void
-_vbi_cache_purge		(vbi_cache *		ca)
+static void
+vbi_cache_purge			(vbi_cache *		ca)
 {
 	cache_network *cn, *cn1;
 
 	assert (NULL != ca);
 
-	ca->lock (ca->lock_user_data);
-
 	FOR_ALL_NODES (cn, cn1, &ca->networks, node)
 		delete_network (ca, cn);
-
-	ca->unlock (ca->lock_user_data);
-}
-
-/**
- * @param force When TRUE force the network out of "current" state,
- *   otherwise require pairing with _vbi_cache_current_network() calls. 
- *
- * Counterpart of _vbi_cache_current_network(). This function assigns
- * a network normal priority.
- */
-void
-_vbi_cache_normal_network	(vbi_cache *		ca,
-				 vbi_nuid		nuid,
-				 vbi_bool		force)
-{
-	cache_network *cn;
-
-	assert (NULL != ca);
-
-	ca->lock (ca->lock_user_data);
-
-	if (!(cn = network_by_nuid (ca, nuid))) {
-		/* No error. */
-		ca->unlock (ca->lock_user_data);
-		return;
-	}
-
-	if (force || 1 == cn->current_count) {
-		cn->current_count = 0;
-
-		change_priority_of_all_pages
-			(ca, cn, CACHE_PRI_ATTIC_SPECIAL, CACHE_PRI_SPECIAL);
-		change_priority_of_all_pages
-			(ca, cn, CACHE_PRI_ATTIC_NORMAL, CACHE_PRI_NORMAL);
-	} else {
-		--cn->current_count;
-	}
-
-	ca->unlock (ca->lock_user_data);
 }
 
 /**
  * @internal
- * @param exclusive When TRUE assign normal priority to all other
- *   networks in the cache.
+ * @param ca Cache allocated with vbi_cache_new().
+ * @param limit Amount of memory in bytes.
  *
- * Selects the current network, typically after a channel switch. When
- * the cache becomes too small, data of other networks will be deleted first.
- *
- * You can select more than one "current" network, this is useful when
- * you feed the cache from multiple sources.
- */
-void
-_vbi_cache_current_network	(vbi_cache *		ca,
-				 vbi_nuid		nuid,
-				 vbi_bool		exclusive)
-{
-	cache_network *cn;
-
-	assert (NULL != ca);
-
-	ca->lock (ca->lock_user_data);
-
-	if (!(cn = network_by_nuid (ca, nuid))) {
-		ca->unlock (ca->lock_user_data);
-		return;
-	}
-
-	if (exclusive && ca->n_networks > 1) {
-		change_priority_of_all_pages
-			(ca, NULL, CACHE_PRI_ATTIC_SPECIAL, CACHE_PRI_SPECIAL);
-		change_priority_of_all_pages
-			(ca, NULL, CACHE_PRI_ATTIC_NORMAL, CACHE_PRI_NORMAL);
-	}
-
-	change_priority_of_all_pages
-		(ca, cn, CACHE_PRI_SPECIAL, CACHE_PRI_ATTIC_SPECIAL);
-	change_priority_of_all_pages
-		(ca, cn, CACHE_PRI_NORMAL, CACHE_PRI_ATTIC_NORMAL);
-
-	++cn->current_count;
-
-	ca->unlock (ca->lock_user_data);
-}
-
-static void
-dummy_lock			(void *			user_data)
-{
-	if (CACHE_LOCK_TEST) {
-		assert (0 == * (int *) user_data);
-		* (int *) user_data = 1;
-	}
-}
-
-static void
-dummy_unlock			(void *			user_data)
-{
-	if (CACHE_LOCK_TEST) {
-		assert (1 == * (int *) user_data);
-		* (int *) user_data = 0;
-	}
-}
-
-void
-_vbi_cache_set_lock_functions	(vbi_cache *		ca,
-				 vbi_lock_fn *		lock,
-				 vbi_unlock_fn *	unlock,
-				 void *			user_data)
-{
-	assert (NULL != ca);
-
-	/* Both or none. */
-	assert ((NULL == lock) == (NULL == unlock));
-
-	if (lock) {
-		ca->lock = lock;
-		ca->unlock = unlock;
-		ca->lock_user_data = user_data;
-	} else {
-		ca->lock = dummy_lock;
-		ca->unlock = dummy_unlock;
-		
-		if (CACHE_LOCK_TEST) {
-			static int is_locked;
-
-			is_locked = 0;
-			ca->lock_user_data = &is_locked;
-		}
-	}
-}
-
-/*
  * Limits the amount of memory used by the Teletext page cache. Reasonable
  * values range from 16 KB to 1 GB, default is 1 GB as in libzvbi 0.2.
  * The number of pages transmitted by networks varies. Expect on the order
@@ -1300,16 +1410,17 @@ _vbi_cache_set_memory_limit	(vbi_cache *		ca,
 {
 	assert (NULL != ca);
 
-	ca->lock (ca->lock_user_data);
-
 	ca->memory_limit = SATURATE (limit, 1 << 10, 1 << 30);
 
 	delete_surplus_pages (ca);
-
-	ca->unlock (ca->lock_user_data);
 }
 
-/* Limits the number of networks cached. The default is 1
+/**
+ * @internal
+ * @param ca Cache allocated with vbi_cache_new().
+ * @param limit Number of networks.
+ *
+ * Limits the number of networks cached. The default is 1
  * as in libzvbi 0.2. Currently each network takes about 16 KB
  * additional to the vbi_cache_set_memory_limit().
  *
@@ -1323,49 +1434,28 @@ _vbi_cache_set_network_limit	(vbi_cache *		ca,
 {
 	assert (NULL != ca);
 
-	ca->lock (ca->lock_user_data);
-
 	ca->network_limit = SATURATE (limit, 1, 3000);
 
 	delete_surplus_networks (ca);
-
-	ca->unlock (ca->lock_user_data);
 }
 
-vbi_cache *
-_vbi_cache_dup_ref		(vbi_cache *		ca)
-{
-	assert (NULL != ca);
-
-	ca->lock (ca->lock_user_data);
-
-	++ca->ref_count;
-
-	ca->unlock (ca->lock_user_data);
-
-	return ca;
-}
-
+/**
+ * @param ca Cache allocated with vbi_cache_new(), can be @c NULL.
+ *
+ * Frees all resources associated with the cache, regardless of
+ * any remaining references to it.
+ */
 void
 vbi_cache_delete		(vbi_cache *		ca)
 {
 	unsigned int i;
 
-	if (!ca)
+	if (NULL == ca)
 		return;
 
-	ca->lock (ca->lock_user_data);
+	vbi_cache_purge (ca);
 
-	if (--ca->ref_count > 0) {
-		ca->unlock (ca->lock_user_data);
-		return;
-	}
-
-	ca->unlock (ca->lock_user_data);
-
-	_vbi_cache_purge (ca);
-
-	if (!empty_list (&ca->locked)) {
+	if (!empty_list (&ca->referenced)) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Warning: some cached pages still "
 				"referenced, memory leaks.\n");
@@ -1377,11 +1467,9 @@ vbi_cache_delete		(vbi_cache *		ca)
 				"referenced, memory leaks.\n");
 	}
 
-	list_destroy (&ca->locked);
 	list_destroy (&ca->networks);
-
-	for (i = 0; i < N_ELEMENTS (ca->priority); ++i)
-		list_destroy (ca->priority + i);
+	list_destroy (&ca->priority);
+	list_destroy (&ca->referenced);
 
 	for (i = 0; i < N_ELEMENTS (ca->hash); ++i)
 		list_destroy (ca->hash + i);
@@ -1391,6 +1479,56 @@ vbi_cache_delete		(vbi_cache *		ca)
 	free (ca);
 }
 
+/**
+ * @param ca Cache allocated with vbi_cache_new(), can be @c NULL.
+ *
+ * Releases a cache reference. When this is the last reference
+ * the function calls vbi_cache_delete().
+ */
+void
+vbi_cache_release		(vbi_cache *		ca)
+{
+	if (NULL == ca)
+		return;
+
+	if (ca->ref_count > 1) {
+		--ca->ref_count;
+		return;
+	}
+
+	vbi_cache_delete (ca);
+}
+
+/**
+ * @param ca Cache allocated with vbi_cache_new().
+ *
+ * Creates a new reference to the cache.
+ *
+ * @returns
+ * @a ca. You must call vbi_cache_release() when the reference is
+ * no longer needed.
+ */
+vbi_cache *
+vbi_cache_new_ref		(vbi_cache *		ca)
+{
+	assert (NULL != ca);
+
+	++ca->ref_count;
+
+	return ca;
+}
+
+/**
+ * Allocates a new cache for VBI decoders.
+ *
+ * A cache is a shared object with a reference counter. To create
+ * a new reference call vbi_cache_new_ref().
+ *
+ * @returns
+ * Pointer to newly allocated cache which must be freed with
+ * vbi_cache_unref() or vbi_cache_delete() when done. @c NULL on
+ * failure (out of memory).
+ */
 vbi_cache *
 vbi_cache_new			(void)
 {
@@ -1406,16 +1544,12 @@ vbi_cache_new			(void)
 	for (i = 0; i < N_ELEMENTS (ca->hash); ++i)
 		list_init (ca->hash + i);
 
-	for (i = 0; i < N_ELEMENTS (ca->priority); ++i)
-		list_init (ca->priority + i);
-
-	list_init (&ca->locked);
+	list_init (&ca->referenced);
+	list_init (&ca->priority);
 	list_init (&ca->networks);
 
 	ca->memory_limit = 1 << 30;
 	ca->network_limit = 1;
-
-	_vbi_cache_set_lock_functions (ca, NULL, NULL, NULL);
 
 	ca->ref_count = 1;
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.h,v 1.3.2.3 2004-04-08 23:36:26 mschimek Exp $ */
+/* $Id: sliced.h,v 1.3.2.4 2004-07-09 16:10:54 mschimek Exp $ */
 
 #ifndef __ZVBI_SLICED_H__
 #define __ZVBI_SLICED_H__
@@ -222,7 +222,7 @@ VBI_BEGIN_DECLS
 /**
  * Wide Screen Signalling for NTSC Japan
  *
- * Reference: <a href="http://www.jeita.or.jp">EIA-J CPR-1024</a>
+ * Reference: <a href="http://www.jeita.or.jp">EIA-J CPR-1204</a>
  *
  * vbi_sliced payload:
  * <pre>

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.8.2.4 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: export.h,v 1.8.2.5 2004-07-09 16:10:52 mschimek Exp $ */
 
 #ifndef __ZVBI_EXPORT_H__
 #define __ZVBI_EXPORT_H__
@@ -33,32 +33,22 @@
 #include "link.h"		/* vbi_link */
 #include "pdc.h"		/* vbi_preselection */
 #include "format.h"		/* vbi_page */
-
-//#include "vbi.h"		/* vbi_decoder */
-#ifndef VBI_DECODER
-#define VBI_DECODER
-typedef struct vbi_decoder vbi_decoder;
-#endif
+#include "vbi_decoder.h"	/* vbi_decoder */
 
 VBI_BEGIN_DECLS
 
 /**
  * @ingroup Export
- * @brief Export module instance, an opaque object.
+ * @brief Export context.
  *
- * Allocate with vbi_export_new().
+ * The contents of this structure are private.
+ * Call vbi_export_new() to allocate an export module instance.
  */
 typedef struct _vbi_export vbi_export;
 
 /**
  * @ingroup Export
  * @brief Information about an export module.
- *
- * Although export modules can be accessed by a static keyword (see
- * vbi_export_new()) they are by definition opaque. The client
- * can list export modules for the user and manipulate them without knowing
- * about their availability or purpose. To do so, information
- * about the module is necessary, given in this structure.
  *
  * You can obtain this information with vbi_export_info_enum().
  */
@@ -113,7 +103,6 @@ typedef enum {
 	 * </table>
 	 */
 	VBI_OPTION_BOOL = 1,
-
 	/**
 	 * A signed integer value. When only a few discrete values rather than
 	 * a range are permitted @p menu points to a vector of integers. Note
@@ -129,7 +118,6 @@ typedef enum {
 	 * </table>
 	 */
 	VBI_OPTION_INT,
-
 	/**
 	 * A real value, optional a vector of suggested values.
 	 * <table>
@@ -142,7 +130,6 @@ typedef enum {
 	 * </table>
 	 */
 	VBI_OPTION_REAL,
-
 	/**
 	 * A null terminated string. Note the menu version differs from
 	 * VBI_OPTION_MENU in its argument, which is the string itself.
@@ -161,7 +148,6 @@ typedef enum {
 	 * </table>
 	 */
 	VBI_OPTION_STRING,
-
 	/**
 	 * Choice between a number of named options. For example:
 	 * @code
@@ -208,7 +194,7 @@ typedef union {
  * @brief Information about an export option.
  *
  * Clients can access known options by keyword, or enumerate unknown
- * options and using the information in this structure for proper
+ * options and use the information in this structure for proper
  * presentation and access.
  *
  * You can obtain this information with vbi_export_option_info_enum().
@@ -216,19 +202,16 @@ typedef union {
 typedef struct {
 	/** @see vbi_option_type */
   	vbi_option_type		type;
-
 	/**
 	 * Unique (within the export module) keyword to identify
 	 * this option, a NUL terminated ASCII string.
 	 */
 	const char *		keyword;
-
 	/**
 	 * Localized name of the option for the user interface. Can
 	 * be @c NULL if the option is not supposed to be listed in the UI.
 	 */
 	const char *		label;
-
 	/** @see vbi_option_type */
 	union {
 		int			num;
@@ -246,7 +229,6 @@ typedef struct {
 		double *		dbl;
 		const char * const *	str;
 	}			menu;
-
 	/**
 	 * A localized description of the option for the user,
 	 * can be @c NULL.
@@ -255,45 +237,44 @@ typedef struct {
 } vbi_option_info;
 
 /**
- * @param e Export context passed to vbi_vbi_export_stdio() or
+ * @param e Export context passed to vbi_export_stdio() or
  *   other output functions.
- * @param user_data User pointer passed to vbi_export_set_link_cb().
- * @param fp Output file pointer.
+ * @param user_data User pointer passed through by
+ *   vbi_export_set_link_cb().
+ * @param fp Output stream.
  * @param link Structure describing the link.
- * @param text Text of the link.
  *
- * Function called by an export module to write a link text with
- * meta data. Might do something like this:
+ * Export modules call this type of function to write a link text
+ * with metadata. Might do something like this:
  * @code
  * if (VBI_LINK_HTTP == link->type)
- *         fprintf (fp, "<a href="%s">%s</a>", link->url, text);
+ *         fprintf (fp, "<a href="%s">%s</a>", link->url, link->text);
  * @endcode
  *
  * @returns
- * FALSE on failure. The export module will abort and return FALSE
- * itself.
+ * FALSE on failure, which causes the export module to abort and
+ * return FALSE to its caller.
  */
-#warning text in vbi_link?
 typedef vbi_bool
 vbi_export_link_cb		(vbi_export *		e,
 				 void *			user_data,
 				 FILE *			fp,
-				 const vbi_link *	link,
-				 const char *		text);
+				 const vbi_link *	link);
 /**
- * @param e Export context passed to vbi_vbi_export_stdio() or
+ * @param e Export context passed to vbi_export_stdio() or
  *   other output functions.
- * @param user_data User pointer passed to vbi_export_set_link_cb().
- * @param fp Output file pointer.
+ * @param user_data User pointer passed through by
+ *   vbi_export_set_pdc_cb().
+ * @param fp Output stream.
  * @param ps Structure describing the program.
  * @param text Text of the link.
  *
- * Function called by an export module to write a PDC preselection
- * text with meta data.
+ * Export modules call this type of function to write a PDC
+ * preselection text with metadata.
  *
  * @returns
- * FALSE on failure. The export module will abort and return FALSE
- * itself.
+ * FALSE on failure, which causes the export module to abort and
+ * return FALSE to its caller.
  */
 typedef vbi_bool
 vbi_export_pdc_cb		(vbi_export *		e,

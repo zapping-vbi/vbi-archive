@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.c,v 1.1.2.3 2004-04-17 05:52:25 mschimek Exp $ */
+/* $Id: raw_decoder.c,v 1.1.2.4 2004-07-09 16:10:53 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -45,7 +45,7 @@
    CGMS NTSC 20 11us .450450 Mbit NRZ ?
 */
 const vbi_service_par
-vbi_service_table [] = {
+_vbi_service_table [] = {
 	{
 		VBI_SLICED_TELETEXT_A, /* UNTESTED */
 		"Teletext System A",
@@ -212,9 +212,9 @@ find_service_par		(unsigned int		service)
 {
 	unsigned int i;
 
-	for (i = 0; vbi_service_table[i].id; ++i)
-		if (service == vbi_service_table[i].id)
-			return vbi_service_table + i;
+	for (i = 0; _vbi_service_table[i].id; ++i)
+		if (service == _vbi_service_table[i].id)
+			return _vbi_service_table + i;
 
 	return NULL;
 }
@@ -315,15 +315,18 @@ dump_pattern_line		(const vbi_raw_decoder *rd,
 
 	fprintf (fp, "scan line %3u: ", line);
 
-	for (i = 0; i < MAX_WAYS; ++i)
-		fprintf (fp, "%02x ",
-			 (uint8_t) rd->pattern[row * MAX_WAYS + i]);
+	for (i = 0; i < _VBI_RAW_DECODER_MAX_WAYS; ++i) {
+		unsigned int pos;
+
+		pos = row * _VBI_RAW_DECODER_MAX_WAYS;
+		fprintf (fp, "%02x ", (uint8_t) rd->pattern[pos + i]);
+	}
 
 	fputc ('\n', fp);
 }
 
 void
-vbi_raw_decoder_dump		(const vbi_raw_decoder *rd,
+_vbi_raw_decoder_dump		(const vbi_raw_decoder *rd,
 				 FILE *			fp)
 {
 	const vbi_sampling_par *sp;
@@ -356,7 +359,6 @@ vbi_raw_decoder_dump		(const vbi_raw_decoder *rd,
 	}
 }
 
-
 vbi_inline int
 cpr1204_crc			(const vbi_sliced *	out)
 {
@@ -372,6 +374,113 @@ cpr1204_crc			(const vbi_sliced *	out)
 	}
 
 	return crc;
+}
+
+vbi_inline vbi_sliced *
+decode_pattern			(vbi_raw_decoder *	rd,
+				 vbi_sliced *		sliced,
+				 int8_t *		pattern,
+				 unsigned int		i,
+				 const uint8_t *	raw)
+{
+	vbi_sampling_par *sp;
+	int8_t *pat;
+
+	sp = &rd->sampling;
+
+	for (pat = pattern;; ++pat) {
+		int j;
+
+		j = *pat; /* data service n, blank 0, or counter -n */
+
+		if (j > 0) {
+			_vbi_raw_decoder_job *job;
+
+			job = rd->jobs + j - 1;
+
+			if (!job->slicer.func (&job->slicer,
+					       sliced->data, raw)) {
+				continue; /* no match, try next data service */
+			}
+
+			/* FIXME probably wrong */
+			if (0 && VBI_SLICED_WSS_CPR1204 == job->id) {
+				const int poly = (1 << 6) + (1 << 1) + 1;
+				int crc, j;
+
+				crc = (sliced->data[0] << 12)
+					+ (sliced->data[1] << 4)
+					+ sliced->data[2];
+				crc |= (((1 << 6) - 1) << (14 + 6));
+
+				for (j = 14 + 6 - 1; j >= 0; j--) {
+					if (crc & ((1 << 6) << j))
+						crc ^= poly << j;
+				}
+
+				if (crc)
+					continue; /* no match */
+			}
+
+			/* Positive match, output decoded line. */
+
+			sliced->id = job->id;
+
+			if (i >= sp->count[0]) {
+				if (0 == sp->start[1])
+					sliced->line = 0;
+				else
+					sliced->line = sp->start[1]
+						+ i - sp->count[0];
+			} else {
+				if (0 == sp->start[0])
+					sliced->line = 0;
+				else
+					sliced->line = sp->start[0] + i;
+			}
+
+			if (0)
+				fprintf (stderr, "%2d %s\n",
+					 sliced->line,
+					 vbi_sliced_name (sliced->id));
+
+			++sliced;
+
+			/* Predict line as non-blank, force testing for
+			   all data services in the next 128 frames. */
+			pattern[_VBI_RAW_DECODER_MAX_WAYS - 1] = -128;
+		} else if (pat == pattern) {
+			/* Line was predicted as blank, once in 16
+			   frames look for data services. */
+			if (0 == rd->readjust) {
+				unsigned int size;
+
+				size = sizeof (*pattern)
+					* (_VBI_RAW_DECODER_MAX_WAYS - 1);
+
+				j = pattern[0];
+				memmove (&pattern[0], &pattern[1], size);
+				pattern[_VBI_RAW_DECODER_MAX_WAYS - 1] = j;
+			}
+
+			break;
+		} else if ((j = pattern[_VBI_RAW_DECODER_MAX_WAYS - 1]) < 0) {
+			/* Increment counter, when zero predict line as
+			   blank and stop looking for data services. */
+			pattern[_VBI_RAW_DECODER_MAX_WAYS - 1] = j + 1;
+			break;
+		} else {
+			/* found nothing, j = 0 */
+		}
+
+		/* Try the found data service first next time. */
+		*pat = pattern[0];
+		pattern[0] = j;
+
+		break; /* line done */
+	}
+
+	return sliced;
 }
 
 /**
@@ -427,105 +536,19 @@ vbi_raw_decoder_decode		(vbi_raw_decoder *	rd,
 	sliced_end = sliced + sliced_lines;
 
 	if (DECODER_PATTERN_DUMP)
-		vbi_raw_decoder_dump (rd, stderr);
+		_vbi_raw_decoder_dump (rd, stderr);
 
 	for (i = 0; i < scan_lines; ++i) {
-		int8_t *pat;
-		int j;
-
 		if (sliced >= sliced_end)
 			break;
 
 		if (sp->interlaced && i == sp->count[0])
 			raw = raw1 + sp->bytes_per_line;
 
-		for (pat = pattern;; ++pat) {
-			j = *pat; /* data service n, blank 0, or counter -n */
+		sliced = decode_pattern (rd, sliced, pattern, i, raw);
 
-			if (j > 0) {
-				vbi_raw_decoder_job *job;
-
-				job = rd->jobs + j - 1;
-
-				if (!job->slicer.func (&job->slicer, sliced->data, raw)) {
-					continue; /* no match, try next data service */
-				}
-
-				if (0) /* FIXME probably wrong */
-				if (VBI_SLICED_WSS_CPR1204 == job->id) {
-					const int poly = (1 << 6) + (1 << 1) + 1;
-					int crc, j;
-
-					crc = (sliced->data[0] << 12)
-						+ (sliced->data[1] << 4)
-						+ sliced->data[2];
-					crc |= (((1 << 6) - 1) << (14 + 6));
-
-					for (j = 14 + 6 - 1; j >= 0; j--) {
-						if (crc & ((1 << 6) << j))
-							crc ^= poly << j;
-					}
-
-					if (crc)
-						continue; /* no match */
-				}
-
-				/* Positive match, output decoded line. */
-
-				sliced->id = job->id;
-
-				if (i >= sp->count[0]) {
-					if (0 == sp->start[1])
-						sliced->line = 0;
-					else
-						sliced->line = sp->start[1]
-							+ i - sp->count[0];
-				} else {
-					if (0 == sp->start[0])
-						sliced->line = 0;
-					else
-						sliced->line = sp->start[0] + i;
-				}
-
-				if (0)
-					fprintf (stderr, "%2d %s\n",
-						 sliced->line,
-						 vbi_sliced_name (sliced->id));
-
-				++sliced;
-
-				/* Predict line as non-blank, force testing for
-				   all data services in the next 128 frames. */
-				pattern[MAX_WAYS - 1] = -128;
-			} else if (pat == pattern) {
-				/* Line was predicted as blank, once in 16
-				   frames look for data services. */
-				if (0 == rd->readjust) {
-					j = pattern[0];
-					memmove (&pattern[0], &pattern[1],
-						 sizeof (*pattern) * (MAX_WAYS - 1));
-					pattern[MAX_WAYS - 1] = j;
-				}
-
-				break;
-			} else if ((j = pattern[MAX_WAYS - 1]) < 0) {
-				/* Increment counter, when zero predict line as
-				   blank and stop looking for data services. */
-				pattern[MAX_WAYS - 1] = j + 1;
-    				break;
-			} else {
-				/* found nothing, j = 0 */
-			}
-
-			/* Try the found data service first next time. */
-			*pat = pattern[0];
-			pattern[0] = j;
-
-			break; /* line done */
-		}
-
+		pattern += _VBI_RAW_DECODER_MAX_WAYS;
 		raw += pitch;
-		pattern += MAX_WAYS;
 	}
 
 	rd->readjust = (rd->readjust + 1) & 15;
@@ -577,7 +600,7 @@ remove_job_from_pattern		(vbi_raw_decoder *	rd,
 		int8_t *end;
 
 		dst = pattern;
-		end = pattern + MAX_WAYS;
+		end = pattern + _VBI_RAW_DECODER_MAX_WAYS;
 
 		/* Remove jobs with job_num, fill up pattern with 0.
 		   Jobs above job_num move down in rd->jobs. */
@@ -612,7 +635,7 @@ vbi_service_set
 vbi_raw_decoder_remove_services	(vbi_raw_decoder *	rd,
 				 vbi_service_set	services)
 {
-	vbi_raw_decoder_job *job;
+	_vbi_raw_decoder_job *job;
 	unsigned int job_num;
 
 	assert (NULL != rd);
@@ -656,13 +679,14 @@ add_job_to_pattern		(vbi_raw_decoder *	rd,
 	scan_lines = rd->sampling.count[0]
 		+ rd->sampling.count[1];
 
-	pattern_end = rd->pattern + scan_lines * MAX_WAYS;
+	pattern_end = rd->pattern + scan_lines * _VBI_RAW_DECODER_MAX_WAYS;
 
 	for (field = 0; field < 2; ++field) {
 		int8_t *pattern;
 		unsigned int i;
 
-		pattern = rd->pattern + start[field] * MAX_WAYS;
+		pattern = rd->pattern
+			+ start[field] * _VBI_RAW_DECODER_MAX_WAYS;
 
 		/* For each line where we may find the data. */
 		for (i = 0; i < count[field]; ++i) {
@@ -674,7 +698,7 @@ add_job_to_pattern		(vbi_raw_decoder *	rd,
 			assert (pattern < pattern_end);
 
 			dst = pattern;
-			end = pattern + MAX_WAYS;
+			end = pattern + _VBI_RAW_DECODER_MAX_WAYS;
 
 			free = 0;
 
@@ -704,7 +728,8 @@ add_job_to_pattern		(vbi_raw_decoder *	rd,
 		int8_t *pattern;
 		unsigned int i;
 
-		pattern = rd->pattern + start[field] * MAX_WAYS;
+		pattern = rd->pattern
+			+ start[field] * _VBI_RAW_DECODER_MAX_WAYS;
 
 		/* For each line where we may find the data. */
 		for (i = 0; i < count[field]; ++i) {
@@ -715,9 +740,9 @@ add_job_to_pattern		(vbi_raw_decoder *	rd,
 					break;
 
 			pattern[way] = job_num;
-			pattern[MAX_WAYS - 1] = -128;
+			pattern[_VBI_RAW_DECODER_MAX_WAYS - 1] = -128;
 
-			pattern += MAX_WAYS;
+			pattern += _VBI_RAW_DECODER_MAX_WAYS;
                 }
 	}
 
@@ -768,11 +793,14 @@ vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
 	}
 
 	if (!rd->pattern) {
-		unsigned int scan_lines =
-			rd->sampling.count[0] + rd->sampling.count[1];
+		unsigned int scan_lines;
+		unsigned int scan_ways;
 
-		rd->pattern = (int8_t *) calloc (scan_lines * MAX_WAYS,
-						 sizeof (rd->pattern[0]));
+		scan_lines = rd->sampling.count[0] + rd->sampling.count[1];
+		scan_ways = scan_lines * _VBI_RAW_DECODER_MAX_WAYS;
+
+		rd->pattern = (int8_t *)
+			calloc (scan_ways, sizeof (rd->pattern[0]));
 		if (!rd->pattern) {
 			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 					"Out of memory");
@@ -785,9 +813,9 @@ vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
 	else
 		min_offset = 8.0e-6;
 
-	for (par = vbi_service_table; par->id; ++par) {
+	for (par = _vbi_service_table; par->id; ++par) {
 		vbi_sampling_par *sp;
-		vbi_raw_decoder_job *job;
+		_vbi_raw_decoder_job *job;
 		unsigned int j;
 		unsigned int field;
 		unsigned int start[2];
@@ -802,23 +830,24 @@ vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
 
 		/* Some jobs can be merged, otherwise we add a new job. */
 		for (j = 0; j < rd->n_jobs; ++j) {
-			unsigned int id = job->id | par->id;			
+			unsigned int id = job->id | par->id;
 
 			/* Level 1.0 and 2.5 */
 			if (0 == (id & ~VBI_SLICED_TELETEXT_B)
 			/* Field 1 and 2 */
 			    || 0 == (id & ~VBI_SLICED_CAPTION_525)
 			    || 0 == (id & ~VBI_SLICED_CAPTION_625)
-			    || 0 == (id & ~(VBI_SLICED_VPS | VBI_SLICED_VPS_F2)))
+			    || 0 == (id & ~(VBI_SLICED_VPS |
+					    VBI_SLICED_VPS_F2)))
 				break;
 
 			++job;
 		}
 
-		if (j >= MAX_JOBS) {
+		if (j >= _VBI_RAW_DECODER_MAX_JOBS) {
 			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 					"Set 0x%08x exceeds %u service limit",
-					services, MAX_WAYS);
+					services, _VBI_RAW_DECODER_MAX_WAYS);
 			break;
 		} else if (j >= rd->n_jobs) {
 			job->id = 0;
@@ -839,7 +868,8 @@ vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
 
 			offset = sp->offset / (double) sp->sampling_rate;
 			if (offset < min_offset)
-				sample_offset = (int)(min_offset * sp->sampling_rate);
+				sample_offset =
+					(int)(min_offset * sp->sampling_rate);
 		}
 
 		if (VBI_SLICED_WSS_625 & par->id) {
@@ -886,9 +916,11 @@ vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
 			last = first + sp->count[field] - 1;
 
 			if (first > 0 && strict > 0) {
-				first = MAX (first, (unsigned int) par->first[field]);
+				first = MAX (first,
+					     (unsigned int) par->first[field]);
 				start[field] = first - sp->start[field];
-				last = MIN (last, (unsigned int) par->last[field]);
+				last = MIN (last,
+					    (unsigned int) par->last[field]);
 				count[field] = last - first + 1;
 			} else {
 				start[field] = 0;
@@ -900,7 +932,8 @@ vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
 
 		if (!add_job_to_pattern (rd, job - rd->jobs, start, count)) {
 			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
-					"Out of pattern space for service 0x%08x (%s)",
+					"Out of pattern space "
+					"for service 0x%08x (%s)",
 					par->id, par->label);
 			continue;
 		}
@@ -981,7 +1014,7 @@ vbi_raw_decoder_get_sampling_par
  * Free all resources associated with @a rd.
  */
 void
-vbi_raw_decoder_destroy		(vbi_raw_decoder *	rd)
+_vbi_raw_decoder_destroy	(vbi_raw_decoder *	rd)
 {
 	vbi_raw_decoder_reset (rd);
 
@@ -995,7 +1028,7 @@ vbi_raw_decoder_destroy		(vbi_raw_decoder *	rd)
  * See vbi_raw_decoder_new().
  */
 vbi_bool
-vbi_raw_decoder_init		(vbi_raw_decoder *	rd,
+_vbi_raw_decoder_init		(vbi_raw_decoder *	rd,
 				 const vbi_sampling_par *sp)
 {
 	CLEAR (*rd);
@@ -1024,7 +1057,7 @@ vbi_raw_decoder_delete		(vbi_raw_decoder *	rd)
 	if (NULL == rd)
 		return;
 
-	vbi_raw_decoder_destroy (rd);
+	_vbi_raw_decoder_destroy (rd);
 
 	free (rd);
 }
@@ -1052,7 +1085,7 @@ vbi_raw_decoder_new		(const vbi_sampling_par *sp)
 		return NULL;
 	}
 
-	if (!vbi_raw_decoder_init (rd, sp)) {
+	if (!_vbi_raw_decoder_init (rd, sp)) {
 		free (rd);
 		rd = NULL;
 	}

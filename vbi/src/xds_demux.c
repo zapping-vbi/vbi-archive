@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.c,v 1.1.2.4 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: xds_demux.c,v 1.1.2.5 2004-07-09 16:10:55 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -204,9 +204,10 @@ vbi_xds_demux_demux		(vbi_xds_demux *	xd,
 			memcpy (xd->curr.buffer, sp->buffer, 32);
 
 			xd->curr.buffer_size = sp->count - 2;
+			xd->curr.buffer[sp->count - 2] = 0;
 
 			if (XDS_DEMUX_LOG)
-				vbi_xds_packet_dump (&xd->curr, stderr);
+				_vbi_xds_packet_dump (&xd->curr, stderr);
 
 			xd->callback (xd, xd->user_data, &xd->curr);
 		}
@@ -299,9 +300,9 @@ vbi_xds_demux_delete		(vbi_xds_demux *	xd)
 }
 
 /**
- * @param cb Function to be called by vbi_xds_demux_demux() when
+ * @param callback Function to be called by vbi_xds_demux_demux() when
  *   a new packet is available.
- * @param user_data User pointer passed through to @a cb function.
+ * @param user_data User pointer passed through to @a callback function.
  *
  * Allocates a new Extended Data Service (EIA 608) demultiplexer.
  *

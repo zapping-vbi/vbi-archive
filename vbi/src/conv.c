@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.c,v 1.1.2.2 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: conv.c,v 1.1.2.3 2004-07-09 16:10:52 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -26,7 +26,9 @@
 #include <string.h>
 #include <errno.h>
 #include <langinfo.h>
+#include <assert.h>
 #include "intl-priv.h"
+#include "misc.h"		/* N_ELEMENTS() */
 #include "conv.h"
 
 const char vbi_intl_domainname [] = PACKAGE;
@@ -243,7 +245,7 @@ strdup_iconv			(const char *		dst_format,
 	size_t sleft;
 	size_t dleft;
 
-	buf_size = src_size * 4;
+	buf_size = src_size * 8;
 
 	if (!(buf = malloc (buf_size)))
 		return NULL;
@@ -264,9 +266,11 @@ strdup_iconv			(const char *		dst_format,
 
 		r = xiconv (cd, &s, &sleft, &d, &dleft, csize);
 
-		if ((size_t) -1 == r)
-			if (E2BIG != errno)
-				goto failure;
+		if ((size_t) -1 != r)
+			break;
+
+		if (E2BIG != errno)
+			goto failure;
 
 		if (!(buf2 = realloc (buf, buf_size * 2)))
 			goto failure;
@@ -352,7 +356,7 @@ _vbi_strdup_locale_ucs2		(const uint16_t *	src,
 		return NULL;
 
 	return strdup_iconv (dst_format, NULL,
-			     (const char *) src, src_size, 2);
+			     (const char *) src, src_size * 2, 2);
 }
 
 /**
@@ -392,6 +396,39 @@ _vbi_strdup_locale_utf8		(const char *		src)
 	src_size = strlen (src);
 
 	return strdup_iconv (dst_format, "UTF-8", src, src_size, 1);
+}
+
+/**
+ */
+char *
+_vbi_strdup_locale_teletext	(const uint8_t *	src,
+				 unsigned int		src_size,
+				 const vbi_character_set *cs)
+{
+	uint16_t buffer[64];
+	unsigned int begin;
+	unsigned int end;
+	unsigned int i;
+
+	assert (src_size < N_ELEMENTS (buffer));
+
+	for (begin = 0; begin < src_size; ++begin)
+		if ((src[begin] & 0x7F) > 0x20)
+			break;
+
+	if (begin >= src_size)
+		return NULL;
+
+	for (end = src_size; end > 0; --end)
+		if ((src[end - 1] & 0x7F) > 0x20)
+			break;
+
+	for (i = begin; i < end; ++i) {
+		buffer[i] = vbi_teletext_unicode (cs->g0, cs->subset,
+						  src[i] & 0x7F);
+	}
+
+	return _vbi_strdup_locale_ucs2 (buffer + begin, end - begin);
 }
 
 /**

@@ -3,7 +3,7 @@
  *  Copyright (C) 2003 Michael H. Schimek
  */
 
-/* $Id: test-bcd.cc,v 1.1.2.4 2004-04-08 23:36:49 mschimek Exp $ */
+/* $Id: test-bcd.cc,v 1.1.2.5 2004-07-09 16:10:55 mschimek Exp $ */
 
 #include <iostream>
 #include <iomanip>
@@ -109,7 +109,7 @@ long_random			()
 }
 
 static vbi_bool
-vec_greater			(unsigned int		a,
+digits_greater			(unsigned int		a,
 				 unsigned int		b)
 {
 	unsigned int j;
@@ -230,13 +230,14 @@ main				(void)
 			a.bcd (x);
 			b.bcd (y);
 
-			assert (vec_greater (d & (int) b, (int) a)
-				== vbi_bcd_vec_greater (d & (int) b, (int) a));
+			assert (digits_greater (d & (int) b, (int) a)
+				== vbi_bcd_digits_greater
+				(d & (int) b, (int) a));
 
 			y = d & random();
 
-			assert (vec_greater (y, (int) a)
-				== vbi_bcd_vec_greater (y, (int) a));
+			assert (digits_greater (y, (int) a)
+				== vbi_bcd_digits_greater (y, (int) a));
 		}
 	}
 

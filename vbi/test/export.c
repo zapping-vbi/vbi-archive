@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5.2.9 2004-05-12 01:40:45 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.10 2004-07-09 16:10:55 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -53,12 +53,16 @@ vbi_preselection_dump		(const vbi_preselection *pl,
 static void
 pdc_dump (vbi_page *pg)
 {
-	vbi_preselection pl;
+	const vbi_preselection *pl;
+	unsigned int size;
 	unsigned int i;
 
-	for (i = 0; vbi_page_pdc_enum (pg, &pl, i); ++i) {
+	pl = vbi_page_get_preselections (pg, &size);
+	assert (NULL != pl);
+
+	for (i = 0; i < size; ++i) {
 		fprintf (stderr, "%02u: ", i);
-		_vbi_preselection_dump (&pl, stderr);
+		_vbi_preselection_dump (pl + i, stderr);
 		fputc ('\n', stderr);
 	}
 
@@ -70,31 +74,29 @@ static vbi_bool
 export_link			(vbi_export *		export,
 				 void *			user_data,
 				 FILE *			fp,
-				 const vbi_link *	link,
-				 const char *		text)
+				 const vbi_link *	link)
 {
 	if (0)
-		fprintf (stderr, "link text: \"%s\"\n", text);
+		fprintf (stderr, "link text: \"%s\"\n", link->name);
 
 	switch (link->type) {
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
 	case VBI_LINK_EMAIL:
 		fprintf (fp, "<a href=\"%s\">%s</a>",
-			 link->url, text);
+			 link->url, link->name);
 		break;
 
 	case VBI_LINK_PAGE:
 	case VBI_LINK_SUBPAGE:
 		fprintf (fp, "<a href=\"ttx-%3x-%02x.html\">%s</a>",
 			 link->pgno,
-			 (VBI_ANY_SUBNO == link->subno) ?
-			 0 : link->subno,
-			 text);
+			 (VBI_ANY_SUBNO == link->subno) ? 0 : link->subno,
+			 link->name);
 		break;
 
 	default:
-		fputs (text, fp);
+		fputs (link->name, fp);
 		break;
 	}
 
@@ -153,7 +155,7 @@ handler(const vbi_event *ev, void *unused)
 	}
 
 	pg = vbi_decoder_get_teletext_page (vbi,
-					    VBI_NUID_UNKNOWN,
+					    NULL /* current network */,
 					    ev->ev.ttx_page.pgno,
 					    ev->ev.ttx_page.subno,
 					    VBI_WST_LEVEL, VBI_WST_LEVEL_3p5,
@@ -360,7 +362,7 @@ main(int argc, char **argv)
 	assert ((extens = strdup (xi->extension)));
 	extens = strtok_r (extens, ",", &t);
 
-	assert ((vbi = vbi_decoder_new (NULL)));
+	assert ((vbi = vbi_decoder_new (NULL, NULL, VBI_VIDEOSTD_SET_625_50)));
 
 	assert (vbi_decoder_add_event_handler
 		(vbi, VBI_EVENT_TTX_PAGE, handler, NULL)); 

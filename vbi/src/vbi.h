@@ -22,80 +22,41 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.14 2004-05-12 01:40:44 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.15 2004-07-09 16:10:54 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
 
-#include <pthread.h>
 #include <stdarg.h>
-#include "vt.h"
+#include "macros.h"
+
+VBI_BEGIN_DECLS
+
+typedef enum {
+	VBI_DEBUG = 7,
+} vbi_log_level;
 
 extern void
 vbi_init			(void) __attribute__ ((constructor));
-extern void
+extern unsigned int
 vbi_version			(unsigned int *		major,
 				 unsigned int *		minor,
 				 unsigned int *		micro);
+
+typedef void vbi_log_fn		(vbi_log_level		level,
+				 const char *		function,
+				 const char *		message,
+				 void *			user_data);
+extern void
+vbi_set_log_fn			(vbi_log_fn *		function,
+				 void *			user_data);
+
 /* Private */
 extern void
 _vbi_asprintf			(char **		errstr,
 				 char *			templ,
 				 ...);
 
-/*
-  vbi_page private stuff (-> format.h, page-priv.h)
- */
-
-struct _vbi_page_private {
-	vbi_page		pg;
-
-	const vt_network *	network;
-
-	const magazine *	mag;
-	const extension *	ext;
-
-	const vt_page *		vtp;
-
-	vbi_wst_level		max_level;
-
-	vbi_preselection *	pdc_table;
-	unsigned int		pdc_table_size;
-
-	const vt_page *		drcs_vtp[32];
-
-	const vbi_character_set *char_set[2];
-
-	/* 0 header, 1 other rows. */
-	vbi_opacity		page_opacity[2];
-	vbi_opacity		boxed_opacity[2];
-
-	/* Navigation related, see vbi_page_nav_link(). For
-	   simplicity nav_index[] points from each character
-	   in the TOP/FLOF row 25 (max 64 columns) to the
-	   corresponding nav_link element. */
-	pagenum		nav_link[6];
-	uint8_t			nav_index[64];
-};
-
-extern void
-vbi_page_private_dump		(const vbi_page_private *pgp,
-				 FILE *			fp,
-				 unsigned int		mode);
-
-/* teletext.h */
-
-extern vbi_bool
-_vbi_page_from_vt_page_va_list	(vbi_page_private *	pgp,
-				 vbi_cache *		cache,
-				 const vt_network *	vtn,
-				 const vt_page *	vtp,
-				 va_list		format_options);
-extern vbi_bool
-_vbi_page_from_vt_page		(vbi_page_private *	pgp,
-				 vbi_cache *		cache,
-				 const vt_network *	vtn,
-				 const vt_page *	vtp,
-				 ...);
+VBI_END_DECLS
 
 #endif /* VBI_H */

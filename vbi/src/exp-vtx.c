@@ -26,7 +26,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.4.2.5 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.4.2.6 2004-07-09 16:10:52 mschimek Exp $ */
 
 /* VTX is the file format used by the VideoteXt application. It stores
    Teletext pages in raw level 1.0 format. Level 1.5 additional characters
@@ -42,10 +42,10 @@
 #include <inttypes.h>
 
 #include "hamm.h"		/* vbi_rev8() */
-#include "cache.h"
+#include "cache-priv.h"		/* cache_page */
+#include "page-priv.h"		/* vbi_page_priv */
 #include "intl-priv.h"
 #include "export-priv.h"
-#include "vt.h"
 
 struct header {
 	uint8_t			signature[5];
@@ -66,7 +66,8 @@ static vbi_bool
 export				(vbi_export *		e,
 				 const vbi_page *	pg)
 {
-	const vt_page *vtp;
+	const vbi_page_priv *pgp;
+	const cache_page *cp;
 	struct header h;
 
 	if (pg->pgno < 0x100 || pg->pgno > 0x8FF) {
@@ -75,22 +76,17 @@ export				(vbi_export *		e,
 		return FALSE;
 	}
 
-	/* bad */
+	pgp = CONST_PARENT (pg, vbi_page_priv, pg);
 
-#warning
-	//	assert (pg->cache != NULL);
-
-	//	if (!(vtp = _vbi_cache_get_page (pg->cache, NUID0,
-	//					 pg->pgno, pg->subno, ~0,
-	//					 /* user access */ FALSE))) {
+	if (pg->priv != pgp || !pgp->cp) {
 		_vbi_export_error_printf (e, _("Page is not cached, sorry."));
 		return FALSE;
-		//	}
+	}
 
-	/* end bad */
+	cp = pgp->cp;
 
-	if (vtp->function != PAGE_FUNCTION_UNKNOWN
-	    && vtp->function != PAGE_FUNCTION_LOP) {
+	if (cp->function != PAGE_FUNCTION_UNKNOWN
+	    && cp->function != PAGE_FUNCTION_LOP) {
 		_vbi_export_error_printf
 			(e, _("Cannot export this page, not displayable."));
 		goto error;
@@ -98,26 +94,24 @@ export				(vbi_export *		e,
 
 	memcpy (h.signature, "VTXV4", 5);
 
-	h.pagenum_l = vtp->pgno & 0xFF;
-	h.pagenum_h = (vtp->pgno >> 8) & 15;
+	h.pagenum_l = cp->pgno & 0xFF;
+	h.pagenum_h = (cp->pgno >> 8) & 15;
 
 	h.hour = 0;
 	h.minute = 0;
 
-	h.charset = vtp->national & 7;
+	h.charset = cp->national & 7;
 
-	h.wst_flags = vtp->flags & C4_ERASE_PAGE;
-	h.wst_flags |= vbi_rev8 (vtp->flags >> 12);
+	h.wst_flags = cp->flags & C4_ERASE_PAGE;
+	h.wst_flags |= vbi_rev8 (cp->flags >> 12);
 	h.vtx_flags = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 4) | (0 << 3);
 	/* notfound, pblf (?), hamming error, virtual, seven bits */
 
 	if (fwrite (&h, sizeof (h), 1, e->fp) != 1)
 		goto write_error;
 
-	if (fwrite (vtp->data.lop.raw, 40 * 24, 1, e->fp) != 1)
+	if (fwrite (cp->data.lop.raw, 40 * 24, 1, e->fp) != 1)
 		goto write_error;
-
-	//	_vbi_cache_release_page (pg->cache, vtp);
 
 	return TRUE;
 
@@ -125,8 +119,6 @@ export				(vbi_export *		e,
 	_vbi_export_write_error (e);
 
  error:
-	//	_vbi_cache_release_page (pg->cache, vtp);
-
 	return FALSE;
 }
 

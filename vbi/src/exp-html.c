@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.6.2.8 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.6.2.9 2004-07-09 16:10:52 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -65,7 +65,7 @@ typedef struct html_instance {
 	vec			style;
 
 	vbi_link		link;
-	vbi_preselection	pdc;
+	const vbi_preselection *pdc;
 } html_instance;
 
 static vbi_export *
@@ -78,6 +78,8 @@ html_new			(const _vbi_export_module *em)
 	if (!(html = calloc (1, sizeof (*html))))
 		return NULL;
 
+	vbi_link_init (&html->link);
+
 	return &html->export;
 }
 
@@ -88,6 +90,8 @@ html_delete			(vbi_export *		e)
 
 	free (html->text.buffer);
 	free (html->style.buffer);
+
+	vbi_link_destroy (&html->link);
 
 	free (html);
 }
@@ -535,13 +539,13 @@ header				(html_instance *	html,
 	const char *lang;
 	const char *dir;
 
-	cs = vbi_page_character_set (pg, 0);
+	cs = vbi_page_get_character_set (pg, 0);
 
 	if (!cs || !cs->language_code[0]) {
 		lang = "en";
 		dir = NULL;
 	} else {
-		/* Could we guess [0, 1, 2] from nuid? */
+		/* Could we guess [0, 1, 2] from network ID? */
 		lang = cs->language_code[0];
 		dir = NULL; /* Hebrew, Arabic visually ordered */
 	}
@@ -657,13 +661,17 @@ link_end			(html_instance *	html,
 	if (pdc) {
 		success = html->export.pdc_callback
 			(&html->export, html->export.pdc_user_data,
-			 html->export.fp, &html->pdc, html->text.buffer);
+			 html->export.fp, html->pdc, html->text.buffer);
 
 		html->in_pdc_link = FALSE;
 	} else {
+		html->link.name = html->text.buffer;
+
 		success = html->export.link_callback
 			(&html->export, html->export.link_user_data,
-			 html->export.fp, &html->link, html->text.buffer);
+			 html->export.fp, &html->link);
+
+		html->link.name = NULL;
 
 		html->in_hyperlink = FALSE;
 	}
@@ -725,10 +733,16 @@ export				(vbi_export *		e,
 				link_end (html, FALSE);
 
 			if (acp->attr & VBI_LINK) {
-				vbi_page_hyperlink (pg, &html->link,
-						    column, row);
+				vbi_bool r;
+
+				vbi_link_destroy (&html->link);
+
+				r = vbi_page_get_hyperlink (pg, &html->link,
+							    column, row);
+
 				flush (html);
-				html->in_hyperlink = TRUE;
+
+				html->in_hyperlink = r;
 			}
 		}
 
@@ -744,10 +758,13 @@ export				(vbi_export *		e,
 				link_end (html, TRUE);
 
 			if (acp->attr & VBI_PDC) {
-				vbi_page_pdc_link (pg, &html->pdc,
-						   column, row);
+				html->pdc = vbi_page_get_pdc_link
+					(pg, column, row);
+
 				flush (html);
-				html->in_pdc_link = TRUE;
+
+				if (html->pdc)
+					html->in_pdc_link = TRUE;
 			}
 		}
 

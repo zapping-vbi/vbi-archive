@@ -21,30 +21,35 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.17 2004-05-12 01:40:44 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.18 2004-07-09 16:10:54 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
 
+#include "bcd.h"		/* vbi_pgno, vbi_subno */
+#include "lang.h"		/* vbi_character_set_code */
+#include "format.h"		/* vbi_color */
+
+/*
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
 #include <assert.h>
 
-#include "bcd.h"
 #include "format.h"
-#include "lang.h"
+
 #include "pdc.h"
 #include "pfc_demux.h"
 #include "teletext_decoder.h"
 #include "event.h"
-
+*/
+/*
 #ifndef VBI_DECODER
 #define VBI_DECODER
 typedef struct vbi_decoder vbi_decoder;
 #endif
 
-
+*/
 
 /**
  * @internal
@@ -318,162 +323,23 @@ typedef struct {
 #define C13_PARTIAL_PAGE	0x400000
 #define C14_RESERVED		0x800000
 
+/**
+ * @internal
+ * @brief Level one page.
+ */
 struct lop {
+	/** Raw text as received. */
 	uint8_t			raw[26][40];
-	pagenum			link[6 * 6];	/* X/27/0-5 links */
+
+	/** Packet X/27/0-5 links. */
+	pagenum			link[6 * 6];
+
+	/**
+	 * Packet X/27 flag (ETR 287 section 10.4):
+	 * Have FLOF navigation, display row 24.
+	 */
 	vbi_bool		have_flof;
 };
-
-/**
- * @internal
- */
-typedef struct {
-	/**
-	 * Defines the page function and which member of the
-	 * union applies.
-	 */ 
-	page_function		function;
-
-	/** Page and subpage number. */
-	vbi_pgno		pgno;
-	vbi_subno		subno;
-
-	/**
-	 * National character set designator 0 ... 7
-	 * (3 lsb of a vbi_character_set_code).
-	 */
-	int			national;
-
-	/**
-	 * Page flags C4 ... C14.
-	 * Other bits will be set, just ignore them.
-	 */
-	unsigned int		flags;
-
-	/**
-	 * Sets of packets we received. This may include packets
-	 * with hamming errors.
-	 *
-	 * lop_packets:	1 << packet 0 ... 25
-	 * x26_designations: 1 << X/26 designation 0 ... 15
-	 */
-	unsigned int		lop_packets;
-	unsigned int		x26_designations;
-	unsigned int		x27_designations;
-	unsigned int		x28_designations;
-
-	union {
-		struct lop	unknown;
-		struct lop	lop;
-		struct {
-			struct lop	lop;
-			enhancement	enh;
-		}		enh_lop;
-		struct {
-			struct lop	lop;
-			enhancement	enh;
-			extension	ext;
-		}		ext_lop;
-		struct {
-			/**
-			 * 12 * 2 triplet pointers from packet 1 ... 4.
-			 * Valid range 0 ... 506 (39 packets * 13 triplets),
-			 * unused pointers 511 (10.5.1.2), broken -1.
-			 */
-			uint16_t	pointer[4 * 12 * 2];
-
-			/**
-			 * 13 triplets from each of packet 3 ... 25 and
-			 * 26/0 ... 26/15.
-			 *
-			 * Valid range of mode 0x00 ... 0x1F, broken -1.
-			 */
-		  	triplet			triplet[39 * 13 + 1];
-		}		gpop, pop;
-		struct {
-			/** DRCS in raw format for error correction. */
-			struct lop	lop;
-
-			/**
-			 * Each character consists of 12x10 pixels, stored
-			 * left to right and top to bottom. Pixels can assume
-			 * up to 16 colors. Every two pixels
-			 * are stored in one byte, left pixel in bits 0x0F,
-			 * right pixel in bits 0xF0.
-			 */
-			uint8_t		chars[DRCS_PTUS_PER_PAGE][12 * 10 / 2];
-
-			/** See 9.4.6. */
-			uint8_t		mode[DRCS_PTUS_PER_PAGE];
-
-			/**
-			 * 1 << (0 ... (DRCS_PTUS_PER_PAGE - 1)).
-			 *
-			 * Note characters can span multiple successive PTUs,
-			 * see get_drcs_data().
-			 */
-			uint64_t	invalid;
-		}		gdrcs, drcs;
-		struct {
-			ait_title	title[46];
-
-			/** Used to detect changes. */
-			unsigned int	checksum;
-		}		ait;
-
-	}		data;
-
-	/* 
-	 *  Dynamic size, add no fields below unless
-	 *  vt_page is statically allocated.
-	 */
-} vt_page;
-
-/**
- * @internal
- * @param vtp Teletext page in question.
- * 
- * @return Storage size required for the raw Teletext page,
- * depending on its function and the data union member used.
- **/
-vbi_inline unsigned int
-vt_page_size			(const vt_page *	vtp)
-{
-	const unsigned int header_size = sizeof (*vtp) - sizeof (vtp->data);
-
-	switch (vtp->function) {
-	case PAGE_FUNCTION_UNKNOWN:
-	case PAGE_FUNCTION_LOP:
-		if (vtp->x28_designations & 0x13)
-			return header_size + sizeof (vtp->data.ext_lop);
-		else if (vtp->x26_designations)
-			return header_size + sizeof (vtp->data.enh_lop);
-		else
-			return header_size + sizeof (vtp->data.lop);
-
-	case PAGE_FUNCTION_GPOP:
-	case PAGE_FUNCTION_POP:
-		return header_size + sizeof (vtp->data.pop);
-
-	case PAGE_FUNCTION_GDRCS:
-	case PAGE_FUNCTION_DRCS:
-		return header_size + sizeof (vtp->data.drcs);
-
-	case PAGE_FUNCTION_AIT:
-		return header_size + sizeof (vtp->data.ait);
-
-	default:
-		return sizeof (*vtp);
-	}
-}
-
-vbi_inline vt_page *
-vt_page_copy			(vt_page *		tvtp,
-				 const vt_page *	svtp)
-{
-	memcpy (tvtp, svtp, vt_page_size (svtp));
-	return tvtp;
-}
 
 /* Magazine */
 
@@ -526,10 +392,10 @@ typedef struct {
 typedef struct {
 	/* Information gathered from MOT, MIP, BTT, G/POP pages. */
 
-	/** Actually vbi_page_type. */
+	/** Actually a vbi_page_type. */
 	uint8_t			page_type;
 
-	/** Actually vbi_character_set_code, 0xFF unknown. */
+	/** Actually a vbi_character_set_code, 0xFF unknown. */
   	uint8_t			charset_code;
 
 	/**
@@ -543,6 +409,9 @@ typedef struct {
 	 */
 	uint16_t 		subcode;
 
+	/** Last received page flags (cache_page.flags) */
+	uint32_t	       flags;
+
 	/* Cache statistics. */
 
 	/** Subpages cached now and ever. */
@@ -554,131 +423,7 @@ typedef struct {
 	uint8_t			subno_max;
 } page_stat;
 
-/** @inline */
-typedef struct {
-	vbi_nuid		client_nuid;
-	vbi_nuid		received_nuid;
-
-	/**
-	 * Last received program ID sorted by vbi_program_id.channel.
-	 */
-	vbi_program_id		program_id[6];
-
-	/* Caption data. */
-
-	/* Teletext data. */
-
-	/** Pages cached now and ever. */
-	unsigned int		n_pages;
-	unsigned int		max_pages;
-
-	/** Usually 100. */
-        pagenum			initial_page;
-
-	/** BTT links to TOP pages. */
-	pagenum			btt_link[2 * 5];
-	vbi_bool		have_top;
-
-	/** Magazine defaults. Use vt_network_magazine(). */
-	magazine		_magazines[8];
-
-	/** Last packet 8/30 Status Display, with parity. */
-	uint8_t			status[20];
-
-	/** Page statistics. Use vt_network_page_stat(). */
-	page_stat		_pages[0x800];
-} vt_network;
-
-extern void
-vt_network_init			(vt_network *		vtn);
-extern void
-vt_network_dump			(const vt_network *	vtn,
-				 FILE *			fp);
-
-/** @internal */
-vbi_inline magazine *
-vt_network_magazine		(vt_network *		vtn,
-				 vbi_pgno		pgno)
-{
-	assert (pgno >= 0x100 && pgno <= 0x8FF);
-	return &vtn->_magazines[(pgno >> 8) - 1];
-}
-
-/** @internal */
-vbi_inline const magazine *
-vt_network_const_magazine	(const vt_network *	vtn,
-				 vbi_pgno		pgno)
-{
-	assert (pgno >= 0x100 && pgno <= 0x8FF);
-	return &vtn->_magazines[(pgno >> 8) - 1];
-}
-
 extern const magazine *
 _vbi_teletext_decoder_default_magazine (void);
 
-/** @internal */
-vbi_inline page_stat *
-vt_network_page_stat		(vt_network *		vtn,
-				 vbi_pgno		pgno)
-{
-	assert (pgno >= 0x100 && pgno <= 0x8FF);
-	return &vtn->_pages[pgno - 0x100];
-}
-
-/** @internal */
-vbi_inline const page_stat *
-vt_network_const_page_stat	(const vt_network *	vtn,
-				 vbi_pgno		pgno)
-{
-	assert (pgno >= 0x100 && pgno <= 0x8FF);
-	return &vtn->_pages[pgno - 0x100];
-}
-
-/* Teletext decoder */
-
-struct _vbi_teletext_decoder {
-	/** The cache we use. */
-	vbi_cache *		cache;
-
-	/** Current network in the cache. */
-	vt_network *		network;
-
-	/**
-	 * Pages in progress, per magazine in case of parallel transmission.
-	 */
-	vt_page			buffer[8];
-	vt_page	*		current;
-
-	/** Page Function Clear EPG Data. */
-	vbi_pfc_demux		epg_stream[2];
-
-	/** Used for channel switch detection. */
-	pagenum			header_page;
-	uint8_t			header[40];
-
-	double			timestamp;
-	double			reset_time;
-
-	_vbi_event_handler_list handlers;
-
-	void (* virtual_reset)	(vbi_teletext_decoder *	td,
-				 vbi_nuid		nuid,
-				 double			time);
-};
-
-extern vbi_bool
-_vbi_convert_cached_page	(vbi_cache *		ca,
-				 const vt_network *	vtn,
-				 const vt_page **	vtpp,
-				 page_function		new_function);
-
-extern void
-_vbi_teletext_decoder_resync	(vbi_teletext_decoder *	td);
-extern void
-_vbi_teletext_decoder_destroy	(vbi_teletext_decoder *	td);
-extern vbi_bool
-_vbi_teletext_decoder_init	(vbi_teletext_decoder *	td,
-				 vbi_cache *		ca,
-				 vbi_nuid		nuid);
-
-#endif
+#endif /* VT_H */

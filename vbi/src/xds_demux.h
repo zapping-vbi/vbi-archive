@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.h,v 1.1.2.3 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: xds_demux.h,v 1.1.2.4 2004-07-09 16:10:55 mschimek Exp $ */
 
 #ifndef __ZVBI_XDS_DEMUX_H__
 #define __ZVBI_XDS_DEMUX_H__
@@ -102,19 +102,24 @@ typedef struct {
 	/** XDS packets have variable length 1 ... 32 bytes. */
 	unsigned int		buffer_size;
 
-	/** Packet data. Bit 7 (odd parity) is cleared. */
-	uint8_t			buffer[32];
+	/**
+	 * Packet data. Bit 7 (odd parity) is cleared,
+	 * buffer[buffer_size] is 0.
+	 */
+	uint8_t			buffer[36];
 } vbi_xds_packet;
+
+/* Private */
 
 extern void
 _vbi_xds_packet_dump		(const vbi_xds_packet *	xp,
 				 FILE *			fp);
 
 /**
- * @brief XDS demultiplexer context.
+ * @brief XDS demultiplexer.
  *
  * The contents of this structure are private.
- * Call vbi_xds_demux_new() to allocate a XDS demultiplexer context.
+ * Call vbi_xds_demux_new() to allocate a XDS demultiplexer.
  */
 typedef struct _vbi_xds_demux vbi_xds_demux;
 
@@ -143,6 +148,8 @@ extern vbi_xds_demux *
 vbi_xds_demux_new		(vbi_xds_demux_cb *	callback,
 				 void *			user_data) vbi_alloc;
 
+/* Private */
+
 /** @internal */
 typedef struct {
 	uint8_t			buffer[32];
@@ -168,6 +175,7 @@ extern vbi_bool
 _vbi_xds_demux_init		(vbi_xds_demux *	xd,
 				 vbi_xds_demux_cb *	callback,
 				 void *			user_data);
+
 /** @} */
 
 VBI_END_DECLS

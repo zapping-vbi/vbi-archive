@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.6.2.9 2004-04-15 00:11:16 mschimek Exp $ */
+/* $Id: bcd.h,v 1.6.2.10 2004-07-09 16:10:51 mschimek Exp $ */
 
 #ifndef __ZVBI_BCD_H__
 #define __ZVBI_BCD_H__
@@ -143,7 +143,7 @@ vbi_is_bcd			(int			bcd)
  * corresponding digit of @a maximum.
  */
 vbi_inline vbi_bool
-vbi_bcd_vec_greater		(unsigned int		bcd,
+vbi_bcd_digits_greater		(unsigned int		bcd,
 				 unsigned int		maximum)
 {
 	maximum ^= ~0;

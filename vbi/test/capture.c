@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: capture.c,v 1.7.2.5 2004-05-12 01:40:45 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.6 2004-07-09 16:10:55 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -342,7 +342,8 @@ mainloop(void)
 }
 
 static void
-logfn    			(const char *		function,
+logfn    			(vbi_log_level		level,
+				 const char *		function,
 				 const char *		message,
 				 void *			user_data)
 {

@@ -28,7 +28,7 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.c,v 1.4.2.1 2004-03-31 00:41:35 mschimek Exp $ */
+/* $Id: ure.c,v 1.4.2.2 2004-07-09 16:10:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -2283,7 +2283,7 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
 
       if (matched) {
 	me = sp - text;
-	if (ms == ~0)
+	if (ms == (unsigned long) -1)
 	  ms = lp - text;
 
 	stp = dfa->states + stp->trans[i].next_state;
@@ -2357,7 +2357,7 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
   *match_start = ms;
   *match_end = me;
 
-  return (ms != ~0) ? 1 : 0;
+  return (ms != (unsigned long) -1) ? 1 : 0;
 }
 
 #endif /* HAVE_GLIBC21 || HAVE_LIBUNICODE */

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.6.2.6 2004-05-12 01:40:44 mschimek Exp $ */
+/* $Id: search.c,v 1.6.2.7 2004-07-09 16:10:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -37,7 +37,8 @@
 #include "search.h"
 #include "ure.h"
 #include "conv.h"
-#include "vbi.h"
+#include "teletext_decoder-priv.h"
+#include "page-priv.h"
 
 /**
  * @addtogroup Search
@@ -61,7 +62,7 @@ struct vbi_search {
 	vbi_search_progress_cb *progress;
 	void *			user_data;
 
-	vbi_page_private	pgp;
+	vbi_page_priv		pgp;
 
 	va_list			format_options;
 
@@ -76,7 +77,7 @@ struct vbi_search {
 #define LAST_ROW 24
 
 static void
-highlight(struct vbi_search *s, const vt_page *vtp,
+highlight(struct vbi_search *s, const cache_page *cp,
 	  ucs2_t *first, long ms, long me)
 {
 	vbi_page *pg = &s->pgp.pg;
@@ -85,8 +86,8 @@ highlight(struct vbi_search *s, const vt_page *vtp,
 
 	hp = s->haystack;
 
-	s->start_pgno = vtp->pgno;
-	s->start_subno = vtp->subno;
+	s->start_pgno = cp->pgno;
+	s->start_subno = cp->subno;
 	s->row[0] = LAST_ROW + 1;
 	s->col[0] = 0;
 
@@ -167,7 +168,7 @@ highlight(struct vbi_search *s, const vt_page *vtp,
 
 static int
 search_page_fwd			(void *			p,
-				 const vt_page *	vtp,
+				 cache_page *		cp,
 				 vbi_bool		wrapped)
 {
 	vbi_search *s = p;
@@ -177,7 +178,7 @@ search_page_fwd			(void *			p,
 	unsigned long ms, me;
 	int flags, i, j;
 
-	_this = (vtp->pgno << 16) + vtp->subno;
+	_this = (cp->pgno << 16) + cp->subno;
 	start = (s->start_pgno << 16) + s->start_subno;
 	stop  = (s->stop_pgno[0] << 16) + s->stop_subno[0];
 
@@ -187,7 +188,7 @@ search_page_fwd			(void *			p,
 	} else if (_this < start || _this >= stop)
 		return -1; /* all done, abort */
 
-	if (vtp->function != PAGE_FUNCTION_LOP)
+	if (cp->function != PAGE_FUNCTION_LOP)
 		return 0; /* try next */
 
 #warning todo
@@ -201,8 +202,8 @@ search_page_fwd			(void *			p,
 	if (s->progress)
 		if (!s->progress (s, &s->pgp.pg, s->user_data)) {
 			if (_this != start) {
-				s->start_pgno = vtp->pgno;
-				s->start_subno = vtp->subno;
+				s->start_pgno = cp->pgno;
+				s->start_subno = cp->subno;
 				s->row[0] = FIRST_ROW;
 				s->row[1] = LAST_ROW + 1;
 				s->col[0] = s->col[1] = 0;
@@ -264,14 +265,14 @@ fprintf(stderr, "exec: %x/%x; start %d,%d; %c%c%c...\n",
 	if (!ure_exec(s->ud, flags, first, hp - first, &ms, &me))
 		return 0; /* try next page */
 
-	highlight(s, vtp, first, ms, me);
+	highlight(s, cp, first, ms, me);
 
 	return 1; /* success, abort */
 }
 
 static int
 search_page_rev			(void *			p,
-				 const vt_page *	vtp,
+				 cache_page *		cp,
 				 vbi_bool		wrapped)
 {
 	vbi_search *s = p;
@@ -281,7 +282,7 @@ search_page_rev			(void *			p,
 	ucs2_t *hp;
 	int flags, i, j;
 
-	this  = (vtp->pgno << 16) + vtp->subno;
+	this  = (cp->pgno << 16) + cp->subno;
 	start = (s->start_pgno << 16) + s->start_subno;
 	stop  = (s->stop_pgno[1] << 16) + s->stop_subno[1];
 
@@ -291,7 +292,7 @@ search_page_rev			(void *			p,
 	} else if (this > start || this <= stop)
 		return -1; /* all done, abort */
 
-	if (vtp->function != PAGE_FUNCTION_LOP)
+	if (cp->function != PAGE_FUNCTION_LOP)
 		return 0; /* try next page */
 
 #warning todo
@@ -306,8 +307,8 @@ search_page_rev			(void *			p,
 	if (s->progress)
 		if (!s->progress (s, &s->pgp.pg, s->user_data)) {
 			if (this != start) {
-				s->start_pgno = vtp->pgno;
-				s->start_subno = vtp->subno;
+				s->start_pgno = cp->pgno;
+				s->start_subno = cp->subno;
 				s->row[0] = FIRST_ROW;
 				s->row[1] = LAST_ROW + 1;
 				s->col[0] = s->col[1] = 0;
@@ -381,7 +382,7 @@ fprintf(stderr, "exec: %x/%x; %d, %d; '%c%c%c...'\n",
 	if (i == 0)
 		return 0; /* try next page */
 
-	highlight(s, vtp, s->haystack, ms, me);
+	highlight(s, cp, s->haystack, ms, me);
 
 	return 1; /* success, abort */
 }
@@ -647,8 +648,7 @@ vbi_search_new_ucs2		(vbi_decoder *		vbi,
 	if (!(s->ub = ure_buffer_create ()))
 		goto abort;
 
-	if (!(s->ud = ure_compile (pattern, pattern_size,
-				   casefold, s->ub))) {
+	if (!(s->ud = ure_compile (pattern, pattern_size, casefold, s->ub))) {
 abort:
 		vbi_search_delete (s);
 

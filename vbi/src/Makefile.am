@@ -5,15 +5,16 @@ lib_LTLIBRARIES = libzvbi-0.3.la
 structpr = structpr.pl
 
 BUILT_SOURCES = \
-	version.h \
-	zvbi.h \
-	wstfont2.xbm \
-	ccfont3.xbm \
 	_videodev.h \
 	_videodev2.h \
-	_videodev2k.h
+	_videodev2k.h \
+	ccfont3.xbm \
+	network-table.h \
+	version.h \
+	zvbi.h \
+	wstfont2.xbm
 
-EXTRA_DIST = $(structpr) $(BUILT_SOURCES)
+EXTRA_DIST = $(structpr) network-table.pl $(BUILT_SOURCES)
 CLEANFILES = $(BUILT_SOURCES)
 
 INCLUDES = \
@@ -50,12 +51,14 @@ INSTALLHDRS = \
 	packet-830.h \
 	pdc.h \
 	pfc_demux.h \
+	program_info.h \
 	raw_decoder.h \
 	sampling.h \
 	search.h \
 	sliced.h \
 	teletext_decoder.h \
 	trigger.h \
+	vbi.h \
 	vbi_decoder.h \
 	version.h \
 	vps.h \
@@ -91,21 +94,25 @@ libzvbi_0_3_la_SOURCES = \
 	io-v4l2.c videodev2.h \
 	io-v4l.c videodev.h \
 	lang.c \
+	link.c \
 	misc.h \
 	network.c \
 	packet.c vt.h \
 	packet-830.c \
+	page-priv.h \
 	pdc.c \
 	pfc_demux.c \
+	program_info.c \
 	raw_decoder.c \
 	sampling.c \
 	search.c \
 	tables.c tables.h \
 	teletext.c \
+	top.c \
 	trigger.c \
 	ure.c ure.h \
 	vbi_decoder.c vbi_decoder-priv.h \
-	vbi.c vbi.h \
+	vbi.c \
 	vps.c \
 	wss.c \
 	xds_demux.c \
@@ -116,15 +123,15 @@ libzvbi_0_3include_HEADERS = $(INSTALLHDRS) version.h zvbi.h
 
 exp-gfx.c: wstfont2.xbm ccfont3.xbm
 
-wstfont2.xbm: wstfont2.pbm fontgen Makefile.in
+wstfont2.xbm: wstfont2.pbm fontgen Makefile.am
 	$(top_builddir)/src/fontgen xbm wstfont2 10 < $< > $@
-ccfont3.xbm: ccfont3.pbm fontgen Makefile.in
+ccfont3.xbm: ccfont3.pbm fontgen Makefile.am
 	$(top_builddir)/src/fontgen xbm ccfont3 13 < $< > $@
 
 libzvbi_0_3_la_LIBADD = $(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS)
 libzvbi_0_3_la_LDFLAGS = -version-info $(LIBZVBI_SO_VERSION)
 
-version.h: Makefile.in
+version.h: Makefile.am
 	echo -e "#ifndef __ZVBI_VERSION_H__" > $@
 	echo -e "#define __ZVBI_VERSION_H__\n" >> $@
 	echo -e "\n#define VBI_VERSION_MAJOR" `echo @VERSION@ \
@@ -133,13 +140,17 @@ version.h: Makefile.in
 	 | sed "s/\./\\\\\n#define VBI_VERSION_MICRO /"` >> $@
 	echo -e "\n#endif /* __ZVBI_VERSION_H__ */" >> $@
 
-zvbi.h: Makefile.in $(INSTALLHDRS) version.h
+zvbi.h: $(INSTALLHDRS) version.h Makefile.am
 	echo -e "#ifndef __ZVBI_H__\n#define __ZVBI_H__\n" > $@
 	for i in $(INSTALLHDRS); do \
 		echo -e "#include \"$$i\"" >> $@; \
 	done
 	echo -e "#include \"version.h\"\n" >> $@
 	echo -e "\n#endif /* __ZVBI_H__ */" >> $@
+
+network-table.h: network-table.pl Makefile.am
+	wget -q -O- http://zapping.sourceforge.net/zvbi-0.3/networks.xml | \
+	  $(srcdir)/network-table.pl > $@
 
 icheck: $(libzvbi_0_3include_HEADERS)
 	for i in $(libzvbi_0_3include_HEADERS); do \

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: aspect_ratio.h,v 1.1.2.4 2004-05-12 01:40:43 mschimek Exp $ */
+/* $Id: aspect_ratio.h,v 1.1.2.5 2004-07-09 16:10:51 mschimek Exp $ */
 
 #ifndef __ZVBI_ASPECT_RATIO_H__
 #define __ZVBI_ASPECT_RATIO_H__
@@ -30,40 +30,44 @@
 VBI_BEGIN_DECLS
 
 /**
- * @ingroup Event
- * @brief Subtitle information.
+ * @addtogroup AspectRatio
+ * @{
+ */
+
+/**
+ * @brief Caption / subtitle information.
  */
 typedef enum {
 	/**
-	 * No caption/subtitles available.
-	 */
-	VBI_SUBTITLES_NONE,
-	/**
-	 * Nothing known about caption/subtitles.
+	 * Nothing known about caption / subtitles.
 	 */
 	VBI_SUBTITLES_UNKNOWN,
 	/**
-	 * Open caption/subtitles inserted in active picture.
+	 * No caption / subtitles available.
+	 */
+	VBI_SUBTITLES_NONE,
+	/**
+	 * Open caption / subtitles inserted in active picture.
 	 */
 	VBI_SUBTITLES_ACTIVE,
 	/**
-	 * Open caption/subtitles inserted in upper or lower
+	 * Open caption / subtitles inserted in upper or lower
 	 * letterbox bar.
 	 */
 	VBI_SUBTITLES_MATTE,
 	/**
-	 * Closed caption/subtitles encoded in VBI.
+	 * Closed caption / subtitles encoded in VBI.
 	 */
 	VBI_SUBTITLES_CLOSED,
 } vbi_subtitles;
 
+/* in wss.c */
 extern const char *
-_vbi_subtitles_name		(vbi_subtitles		s);
+vbi_subtitles_name		(vbi_subtitles		subtitles);
 
 /**
- * @ingroup Event
  * @brief Information about the picture aspect ratio and open
- * caption or subtitles.
+ *   caption or subtitles.
  */
 typedef struct {
 	/**
@@ -75,7 +79,8 @@ typedef struct {
 	/**
 	 * Number of scan lines of active video, of the first and second
 	 * field respectively. This excludes letterbox bars. Full format
-	 * video has 240 or 288 scan lines per field.
+	 * video has 240 or 288 scan lines per field, depending on the
+	 * video standard.
 	 */
 	unsigned int		count[2];
 	/**
@@ -88,28 +93,36 @@ typedef struct {
 	 * video, as opposed to interlaced video from a video camera.
 	 */
  	vbi_bool		film_mode;
+	int			reserved1[6];
 	/**
 	 * Open subtitles are inserted into the picture:
-	 * NONE, UNKNOWN, ACTIVE or MATTE.
+	 * VBI_SUBTITLES_UNKNOWN, NONE, ACTIVE or MATTE.
 	 */
 	vbi_subtitles		open_subtitles;
 	/**
 	 * Closed subtitles are encoded in VBI:
-	 * NONE, UNKNOWN, CLOSED.
+	 * VBI_SUBTITLES_UNKNOWN, NONE, CLOSED.
 	 *
 	 * Both open and closed subtitles may be present.
 	 */
 	vbi_subtitles		closed_subtitles;
 } vbi_aspect_ratio;
 
+/* in wss.c */
+extern void
+vbi_aspect_ratio_destroy	(vbi_aspect_ratio *	ar);
+extern void
+vbi_aspect_ratio_init		(vbi_aspect_ratio *	ar,
+				 vbi_videostd_set	videostd_set);
+
 /* Private */
 
+/* in wss.c */
 extern void
-_vbi_aspect_ratio_dump		(const vbi_aspect_ratio *r,
+_vbi_aspect_ratio_dump		(const vbi_aspect_ratio *ar,
 				 FILE *			fp);
-extern void
-_vbi_aspect_ratio_init		(vbi_aspect_ratio *	r,
-				 vbi_videostd_set	videostd_set);
+
+/** @} */
 
 VBI_END_DECLS
 

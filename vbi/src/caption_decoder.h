@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder.h,v 1.1.2.1 2004-05-12 01:40:43 mschimek Exp $ */
+/* $Id: caption_decoder.h,v 1.1.2.2 2004-07-09 16:10:52 mschimek Exp $ */
 
 #ifndef __ZVBI_CAPTION_DECODER_H__
 #define __ZVBI_CAPTION_DECODER_H__
@@ -29,6 +29,7 @@
 #include <inttypes.h>
 #include "macros.h"
 #include "network.h"
+#include "cache.h"
 #include "event.h"
 
 VBI_BEGIN_DECLS
@@ -50,7 +51,7 @@ vbi_caption_decoder_add_event_handler
 				 void *			user_data);
 extern void
 vbi_caption_decoder_reset	(vbi_caption_decoder *	cd,
-				 vbi_nuid		nuid);
+				 const vbi_network *	nk);
 extern vbi_bool
 vbi_caption_decoder_decode	(vbi_caption_decoder *	cd,
 				 const uint8_t		buffer[2],

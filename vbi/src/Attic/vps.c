@@ -17,27 +17,31 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vps.c,v 1.1.2.4 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: vps.c,v 1.1.2.5 2004-07-09 16:10:54 mschimek Exp $ */
 
 #include "../config.h"
 
 #include <assert.h>
-#include "network.h"		/* vbi_nuid_from_cni() */
 #include "vps.h"
 
 /**
  * @addtogroup VPS Video Program System Decoder
  * @ingroup LowDec
+ * @brief Functions to decode VPS packets (ETS 300 231).
  */
 
 /**
  * @param cni CNI of type VBI_CNI_TYPE_VPS is stored here.
- * @param buffer Last 13 bytes of VPS datagram, as
- *   in struct vbi_sliced.
- * 
- * Decodes a VPS datagram according to
- * ETS 300 231, returning the 12 bit Country and
- * Network Identifier in @a cni.
+ * @param buffer VPS packet as defined for @c VBI_SLICED_VPS,
+ *   i.e. 13 bytes without clock run-in and start code.
+ *
+ * Decodes a VPS packet according to ETS 300 231, returning the
+ * 12 bit Country and Network Identifier in @a cni.
+ *
+ * The code 0xDC3 is translated according to TR 101 231: "As this
+ * code is used for a time in two networks a distinction for automatic
+ * tuning systems is given in data line 16 [VPS]: bit 3 of byte 5 = 1
+ * for the ARD network / = 0 for the ZDF network."
  *
  * @returns
  * Always @c TRUE, no error checking possible.
@@ -56,17 +60,6 @@ vbi_decode_vps_cni		(unsigned int *		cni,
 		     +  (buffer[ 8] & 0xC0)
 		     +  (buffer[11] & 0x3F));
 
-	/* From TR 101 231: "NOTE: As this code is used for a time
-	   in two networks a distinction for automatic tuning systems
-	   is given in data line 16 [VPS]: bit 3 of byte 5 = 1 for
-	   the ARD network / = 0 for the ZDF network."
-	
-	   This note refers to the common morning program of ARD/ZDF.
-           Also, being a union of regional public broadcasters ARD seems
-           to send the CNI of the contributor of a program (such as
-	   WDR). A more reliable method of station identification might
-	   be to examine the Teletext header. */
-
 	if (0x0DC3 == cni_value)
 		cni_value = (buffer[2] & 0x10) ?
 			0x0DC2 /* ZDF */ : 0x0DC1 /* ARD */;
@@ -78,8 +71,8 @@ vbi_decode_vps_cni		(unsigned int *		cni,
 
 /**
  * @param pid PDC data is stored here.
- * @param buffer Last 13 bytes of VPS datagram, as
- *   in struct vbi_sliced.
+ * @param buffer VPS packet as defined for @c VBI_SLICED_VPS,
+ *   i.e. 13 bytes without clock run-in and start code.
  * 
  * Decodes a VPS datagram according to ETS 300 231,
  * storing PDC recording-control data in @a pid.
@@ -91,14 +84,15 @@ vbi_bool
 vbi_decode_vps_pdc		(vbi_program_id *	pid,
 				 const uint8_t		buffer[13])
 {
-	unsigned int cni;
-
 	assert (NULL != pid);
 	assert (NULL != buffer);
 
-	vbi_decode_vps_cni (&cni, buffer);
+	pid->cni_type	= VBI_CNI_TYPE_VPS;
 
-	pid->nuid	= vbi_nuid_from_cni (VBI_CNI_TYPE_VPS, cni);
+	pid->cni	= (+ ((buffer[10] & 0x03) << 10)
+			   + ((buffer[11] & 0xC0) << 2)
+			   +  (buffer[ 8] & 0xC0)
+			   +  (buffer[11] & 0x3F));
 
 	pid->channel	= VBI_PID_CHANNEL_VPS;
 

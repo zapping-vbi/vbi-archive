@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Triggers
  *
- *  Copyright (C) 2001 Michael H. Schimek
+ *  Copyright (C) 2001-2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,23 +18,42 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.h,v 1.2 2002-10-22 04:42:40 mschimek Exp $ */
+/* $Id: trigger.h,v 1.2.2.1 2004-07-09 16:10:54 mschimek Exp $ */
 
 #ifndef TRIGGER_H
 #define TRIGGER_H
 
-#ifndef VBI_DECODER
-#define VBI_DECODER
-typedef struct vbi_decoder vbi_decoder;
-#endif
+#include <inttypes.h>		/* uint8_t */
+#include "network.h"		/* vbi_network */
+#include "event.h"		/* _vbi_event_handler_list */
 
-/* Private */
+typedef struct _vbi_trigger _vbi_trigger;
 
-typedef struct vbi_trigger vbi_trigger;
-
-extern void		vbi_trigger_flush(vbi_decoder *vbi);
-extern void		vbi_deferred_trigger(vbi_decoder *vbi);
-extern void		vbi_eacem_trigger(vbi_decoder *vbi, unsigned char *s);
-extern void		vbi_atvef_trigger(vbi_decoder *vbi, unsigned char *s);
+extern void
+_vbi_trigger_destroy		(_vbi_trigger *		t);
+extern vbi_bool
+_vbi_trigger_init		(_vbi_trigger *		t,
+				 const vbi_network *	nk,
+				 double			current_time);
+extern void
+_vbi_trigger_delete		(_vbi_trigger *		t);
+extern void
+_vbi_trigger_list_delete	(_vbi_trigger **	list);
+extern unsigned int
+_vbi_trigger_list_fire		(_vbi_trigger **	list,
+				 _vbi_event_handler_list *handlers,
+				 double		current_time);
+extern vbi_bool
+_vbi_trigger_list_add_eacem	(_vbi_trigger **	list,
+				 _vbi_event_handler_list *handlers,
+				 const uint8_t *	s,
+				 const vbi_network *	nk,
+				 double			current_time);
+extern vbi_bool
+_vbi_trigger_list_add_atvef	(_vbi_trigger **	list,
+				 _vbi_event_handler_list *handlers,
+				 const uint8_t *	s,
+				 const vbi_network *	nk,
+				 double			current_time);
 
 #endif /* TRIGGER_H */

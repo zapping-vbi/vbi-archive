@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-sub.c,v 1.1.2.3 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: exp-sub.c,v 1.1.2.4 2004-07-09 16:10:52 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -647,7 +647,7 @@ header				(sub_instance *		sub,
 		static const vbi_character_set *cs;
 		unsigned int lc;
 
-		cs = vbi_page_character_set (pg, 0);
+		cs = vbi_page_get_character_set (pg, 0);
 
 		for (lc = 0; lc < N_ELEMENTS (languages); ++lc)
 			if (0 == strcmp (languages[lc], cs->language_code[0]))
@@ -715,7 +715,7 @@ header				(sub_instance *		sub,
 
 		lang = "en";
 
-		cs = vbi_page_character_set (pg, 0);
+		cs = vbi_page_get_character_set (pg, 0);
 
 		if (cs && cs->language_code[0])
 			lang = cs->language_code[0];

@@ -22,78 +22,71 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder-priv.h,v 1.1.2.1 2004-05-12 01:40:44 mschimek Exp $ */
+/* $Id: vbi_decoder-priv.h,v 1.1.2.2 2004-07-09 16:10:54 mschimek Exp $ */
 
 #ifndef VBI_DECODER_PRIV_H
 #define VBI_DECODER_PRIV_H
 
-#include "vt.h"
 #include "cc.h"
 #include "event.h"
 #include "trigger.h"
+#include "teletext_decoder-priv.h"	/* vbi_teletext_decoder */
 #include "vbi_decoder.h"
 
 struct vbi_decoder {
-#if 0 /* obsolete */
-	fifo			*source;
-        pthread_t		mainloop_thread_id;
-	int			quit;		/* XXX */
-#endif
+
 	double			time;
 
+	/** Activity monitoring. */
+	double			time_teletext;
+	double			time_caption;
+	double			time_vps;
+	double			time_wss_625;
+	double			time_wss_cpr1204;
+
+
+
   //	pthread_mutex_t		chswcd_mutex;
-        int                     chswcd;
+  //      int                     chswcd;
 
-	vbi_event		network;
+  //	vbi_event		network;
 
-	vbi_trigger *		triggers;
+  // TODO	vbi_trigger *		triggers;
 
-  //	pthread_mutex_t         prog_info_mutex;
-	vbi_program_info        prog_info[2];
-  //	int                     aspect_source;
 
 	vbi_teletext_decoder	vt;
 	vbi_caption_decoder	cc;
 
-	vbi_aspect_ratio	aspect;
+
 
 	double 			reset_time;
 
 	void (* teletext_reset)	(vbi_teletext_decoder *	td,
-				 vbi_nuid		nuid,
+				 cache_network *	cn,
 				 double			time);
 
 	void (* caption_reset)	(vbi_caption_decoder *	cd,
-				 vbi_nuid		nuid,
+				 cache_network *	cn,
 				 double			time);
 
 
   //	cache *		cache;
 
-#if 0 // TODO
-	struct page_clear	epg_pc[2];
-#endif
 	/* preliminary */
 	int			pageref;
 
 	_vbi_event_handler_list handlers;
 
-	unsigned char		wss_last[2];
-	int			wss_rep_ct;
-	double			wss_time;
 
-	/* Property of the vbi_push_video caller */
-#if 0 /* obsolete */
-	enum tveng_frame_pixformat
-				video_fmt;
-	int			video_width; 
-	double			video_time;
-	vbi_bit_slicer_fn *	wss_slicer_fn;
-	vbi_bit_slicer		wss_slicer;
-	producer		wss_producer;
-#endif
 
 };
 
+extern void
+_vbi_decoder_destroy		(vbi_decoder *		vbi);
+extern vbi_bool
+_vbi_decoder_init		(vbi_decoder *		vbi,
+				 vbi_cache *		ca,
+				 const vbi_network *	nk,
+				 vbi_videostd_set	videostd_set);
 
 #endif /* VBI_DECODER_PRIV_H */

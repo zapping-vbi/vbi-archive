@@ -3,7 +3,7 @@
  *  Copyright (C) 2004 Michael H. Schimek
  */
 
-/* $Id: test-raw_decoder.cc,v 1.1.2.3 2004-04-08 23:36:49 mschimek Exp $ */
+/* $Id: test-raw_decoder.cc,v 1.1.2.4 2004-07-09 16:10:55 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -123,10 +123,11 @@ create_raw			(uint8_t **		raw,
 	if (pixel_mask) {
 		memset_rand (*raw, sp->bytes_per_line * scan_lines);
 
-		assert (_vbi_test_image_video (*raw, sp, pixel_mask,
+		assert (_vbi_test_image_video (*raw, 0, sp, pixel_mask,
 					      *sliced, sliced_lines));
 	} else {
-		assert (_vbi_test_image_vbi (*raw, sp, *sliced, sliced_lines));
+		assert (_vbi_test_image_vbi (*raw, 0, sp,
+					     *sliced, sliced_lines));
 	}
 
 	return sliced_lines;
@@ -451,7 +452,8 @@ test1				(const vbi_sampling_par *sp)
 }
 
 static void
-log	       			(const char *		function,
+log	       			(vbi_log_level		level,
+				 const char *		function,
 				 const char *		message,
 				 void *			user_data)
 {

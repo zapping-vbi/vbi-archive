@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cc.h,v 1.2.2.5 2004-05-12 01:40:43 mschimek Exp $ */
+/* $Id: cc.h,v 1.2.2.6 2004-07-09 16:10:52 mschimek Exp $ */
 
 #ifndef CC_H
 #define CC_H
@@ -29,6 +29,7 @@
 #include "format.h"
 #include "xds_decoder.h"
 #include "caption_decoder.h"
+#include "cache-priv.h"
 
 typedef enum {
 	MODE_NONE,
@@ -84,6 +85,10 @@ struct _vbi_caption_decoder {
 	int			itv_count;
 
 	int			info_cycle[2];
+
+	void (* virtual_reset)	(vbi_caption_decoder *	cd,
+				 cache_network *	cn,
+				 double			time);
 };
 
 /* Public */
@@ -102,7 +107,8 @@ extern vbi_bool		vbi_fetch_cc_page(vbi_caption_decoder *cd,
 extern void
 _vbi_caption_decoder_init	(vbi_caption_decoder *	cd,
 				 vbi_cache *		ca,
-				 vbi_nuid		nuid);
+				 const vbi_network *	nk,
+				 vbi_videostd_set	videostd_set);
 extern void
 _vbi_caption_decoder_destroy	(vbi_caption_decoder *	cd);
 extern void

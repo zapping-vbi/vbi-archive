@@ -18,11 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: link.h,v 1.1.2.2 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: link.h,v 1.1.2.3 2004-07-09 16:10:52 mschimek Exp $ */
 
 #ifndef __ZVBI_LINK_H__
 #define __ZVBI_LINK_H__
 
+#include <stdio.h>		/* FILE */
 #include "macros.h"
 #include "network.h"		/* vbi_nuid */
 #include "bcd.h"		/* vbi_pgno, vbi_subno */
@@ -73,6 +74,9 @@ typedef enum {
 	VBI_LINK_TELEWEB
 } vbi_link_type;
 
+extern const char *
+vbi_link_type_name		(vbi_link_type		type);
+
 /**
  * @ingroup Event
  * @brief ITV link type.
@@ -99,7 +103,7 @@ typedef enum {
  * libzvbi from the text (e. g. page numbers and URLs). Usually
  * not all fields will be used.
  */
-typedef struct vbi_link {
+typedef struct {
 	/** See vbi_link_type. */
 	vbi_link_type			type;
 	/**
@@ -112,14 +116,15 @@ typedef struct vbi_link {
 	/**
 	 * Some descriptive text, Latin-1, possibly blank.
 	 */
-	char 				name[80];
-	char				url[256];
+	char *				name;
+	/** ASCII */
+	char *				url;
 	/**
 	 * A piece of ECMA script (Javascript), this may be
 	 * used on WebTV or SuperTeletext pages to trigger some action.
-	 * Usually blank.
+	 * Usually blank. ASCII.
 	 */
-	char				script[256];
+	char *				script;
 	/**
 	 * Teletext page links (no Closed Caption counterpart) can
 	 * can actually reach across networks. That happens for example
@@ -129,7 +134,9 @@ typedef struct vbi_link {
 	 * So the network id (if known, otherwise 0) is part of the
 	 * page number. See vbi_nuid.
 	 */
-	vbi_nuid			nuid;
+	vbi_network *			network;
+	// bah. ugly
+	vbi_bool			nk_alloc;
 	/**
 	 * @a pgno and @a subno Teletext page number, see vbi_pgno, vbi_subno.
 	 * Note subno can be VBI_ANY_SUBNO.
@@ -163,6 +170,20 @@ typedef struct vbi_link {
 	 */
 	vbi_bool			autoload;
 } vbi_link;
+
+extern void
+vbi_link_destroy		(vbi_link *		lk);
+extern vbi_bool
+vbi_link_copy			(vbi_link *		dst,
+				 const vbi_link *	src);
+extern void
+vbi_link_init			(vbi_link *		lk);
+
+/* Private */
+
+extern void
+_vbi_link_dump			(const vbi_link *	ld,
+				 FILE *			fp);
 
 VBI_END_DECLS
 

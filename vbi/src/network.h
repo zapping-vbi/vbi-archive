@@ -17,11 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.h,v 1.1.2.3 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: network.h,v 1.1.2.4 2004-07-09 16:10:52 mschimek Exp $ */
 
 #ifndef __ZVBI_NETWORK_H__
 #define __ZVBI_NETWORK_H__
 
+#include <stdio.h>		/* FILE */
 #include <inttypes.h>		/* int64_t */
 #include "macros.h"
 
@@ -32,6 +33,7 @@ VBI_BEGIN_DECLS
  * @{
  */
 
+#if 0 // OBSOLETE
 /**
  * For proper data caching libzvbi must assign networks a unique ID.
  * Since there is no single standard to follow we use arbitrary
@@ -77,10 +79,44 @@ typedef struct {
   int			cycle;
 } vbi_network;
 
-extern void
-vbi_network_delete		(vbi_network *		n);
-extern vbi_network *
-vbi_network_new			(vbi_nuid		nuid);
+#endif
+
+typedef struct {
+	/* Locale encoding, NUL-terminated. Can be NULL. */
+	char *			name;
+
+	/* NUL-terminated ASCII string, can be empty if unknown.
+	   Only call_sign, cni_vps, cni_8301, cni_8302 and user_data
+	   will be used by libzvbi for channel identification,
+	   whichever is non-zero. */
+	char			call_sign[16];
+
+	/* NUL-terminated RFC 1766 / ISO 3166 ASCII string,
+	   e.g. "GB", "FR", "DE". Can be empty if unknown. */
+	char			country_code[4];
+
+	/* XDS Info */
+
+	unsigned int		tape_delay;
+
+	/* VPS Info */
+
+	unsigned int		cni_vps;
+
+	/* Teletext Info */
+
+	unsigned int		cni_8301;
+	unsigned int		cni_8302;
+	unsigned int		cni_pdc_a;
+	unsigned int		cni_pdc_b;
+
+	/* Other */
+
+	void *			user_data;
+
+	/* More? */
+
+} vbi_network;
 
 /**
  * The European Broadcasting Union (EBU) maintains several tables
@@ -114,25 +150,46 @@ typedef enum {
 	VBI_CNI_TYPE_PDC_B,
 } vbi_cni_type;
 
-extern vbi_nuid
-vbi_nuid_from_cni		(vbi_cni_type		type,
-				 unsigned int		cni);
+extern const char *
+vbi_cni_type_name		(vbi_cni_type		type);
 extern unsigned int
 vbi_convert_cni			(vbi_cni_type		to_type,
 				 vbi_cni_type		from_type,
 				 unsigned int		cni);
-/** @} */
+extern vbi_bool
+vbi_network_set_name		(vbi_network *		nk,
+				 const char *		name);
+extern vbi_bool
+vbi_network_set_call_sign	(vbi_network *		nk,
+				 const char *		call_sign);
+extern vbi_bool
+vbi_network_set_cni		(vbi_network *		nk,
+				 vbi_cni_type		type,
+				 unsigned int		cni);
+extern void
+vbi_network_reset		(vbi_network *		nk);
+extern void
+vbi_network_destroy		(vbi_network *		nk);
+extern vbi_bool
+vbi_network_copy		(vbi_network *		dst,
+				 const vbi_network *	src);
+extern vbi_bool
+vbi_network_init		(vbi_network *		nk);
+extern void
+vbi_network_array_delete	(vbi_network *		nk,
+				 unsigned int		nk_size);
 
 /* Private */
 
-/* preliminary */
-#define NUID0 0
+extern void
+_vbi_network_dump		(const vbi_network *	nk,
+				 FILE *			fp);
+extern vbi_bool
+_vbi_network_set_name_from_ttx_header
+				(vbi_network *		nk,
+				 const uint8_t		buffer[40]);
 
-extern vbi_nuid
-vbi_nuid_from_call_sign		(const char *		call_sign,
-				 unsigned int		length);
-extern vbi_nuid
-vbi_temporary_nuid		(void);
+/** @} */
 
 VBI_END_DECLS
 

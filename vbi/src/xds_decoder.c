@@ -18,7 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_decoder.c,v 1.1.2.4 2004-05-12 01:40:45 mschimek Exp $ */
+/* $Id: xds_decoder.c,v 1.1.2.5 2004-07-09 16:10:54 mschimek Exp $ */
+
+#if 0 // TODO
 
 #include "../site_def.h"
 #include "../config.h"
@@ -172,7 +174,8 @@ xds_strfu(char *d, const char *s, int len)
 static void
 flush_prog_info(vbi_decoder *vbi, vbi_program_info *pi, vbi_event *e)
 {
-	e->ev.aspect = pi->aspect;
+#warning
+  //	e->ev.aspect = pi->aspect;
 
 	vbi_reset_prog_info(pi);
 
@@ -651,7 +654,9 @@ static void
 decode_channel			(vbi_decoder *		vbi,
 				 const vbi_xds_packet *	xp)
 {
-	vbi_network *n = &vbi->network.ev.network;
+#warning
+  //	vbi_network *n = &vbi->network.ev.network;
+	vbi_network *n = 0;
 
 	switch (xp->xds_subclass) {
 	case VBI_XDS_CHANNEL_NAME:
@@ -848,7 +853,8 @@ vbi_decode_xds_impulse_capture_id
 	if (6 != xp->buffer_size)
 		return FALSE;
 
-	pid->nuid	= VBI_NUID_UNKNOWN;
+	pid->cni_type	= VBI_CNI_TYPE_NONE;
+	pid->cni	= 0;
 
 	pid->channel	= VBI_PID_CHANNEL_XDS;
 
@@ -856,17 +862,17 @@ vbi_decode_xds_impulse_capture_id
 
 	pid->minute	= xp->buffer[0] & 63;
 	pid->hour	= xp->buffer[1] & 31;
-	pid->day	= xp->buffer[2] & 31;
-	pid->month	= xp->buffer[3] & 15;
+	pid->day	= (xp->buffer[2] & 31) + 1;
+	pid->month	= (xp->buffer[3] & 15) + 1;
 
+	// XXX should not write on error
 	if (pid->minute > 59
 	    || pid->hour > 23
-	    || pid->day > 30
-	    || pid->month > 11)
+	    || pid->day > 31
+	    || pid->month > 12)
 		return FALSE;
 
-	pid->pil = VBI_PIL (pid->day + 1, pid->month + 1,
-			    pid->hour, pid->minute);
+	pid->pil = VBI_PIL (pid->day, pid->month, pid->hour, pid->minute);
 
 	min  = xp->buffer[4] & 63;
 	hour = xp->buffer[5] & 63;
@@ -1029,3 +1035,5 @@ _vbi_decode_xds			(vbi_xds_demux *	xd,
 
 	log ("\n");
 }
+
+#endif

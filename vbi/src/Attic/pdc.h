@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.1.2.8 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: pdc.h,v 1.1.2.9 2004-07-09 16:10:53 mschimek Exp $ */
 
 #ifndef __ZVBI_PDC_H__
 #define __ZVBI_PDC_H__
@@ -26,13 +26,16 @@
 #include <stdio.h>		/* FILE */
 #include <time.h>		/* time_t */
 #include "macros.h"
-#include "network.h"		/* vbi_nuid */
+#include "network.h"		/* vbi_cni_type */
 
 VBI_BEGIN_DECLS
 
 /**
- * @brief PDC Programme Identification Label.
+ * @addtogroup ProgramID
+ * @{
  */
+
+/** @brief PDC Programme Identification Label. */
 typedef unsigned int vbi_pil;
 
 /**
@@ -58,6 +61,8 @@ enum {
 	VBI_PIL_INTERRUPT		= VBI_PIL (15, 0, 29, 63),
 	VBI_PIL_CONTINUE		= VBI_PIL (15, 0, 28, 63),
 };
+
+/* Private */
 
 extern void
 _vbi_pil_dump			(vbi_pil		pil,
@@ -88,24 +93,33 @@ typedef enum {
 	VBI_PCS_AUDIO_BILINGUAL
 } vbi_pcs_audio;
 
+/**
+ */
 typedef struct {
 	/**
-	 * Network identifier, VBI_NUID_UNKNOWN if unknown.
-	 * Teletext Packet 8/30 format 2 and VPS transmit an
-	 * identifier.
+	 * Network identifier type, one of VBI_CNI_TYPE_UNKNOWN,
+	 * VBI_CNI_TYPE_NONE, VBI_CNI_TYPE_8302 or VBI_CNI_TYPE_VPS.
 	 */
-	vbi_nuid		nuid;
+	vbi_cni_type		cni_type;
 
+	/**
+	 * Network identifier, valid if the source is Teletext packet
+	 * 8/30 format 2 or VPS. Note 8/30 CNIs may refer to other
+	 * networks.
+	 */
+	unsigned int		cni;
+
+	/** Source of this information. */
 	vbi_pid_channel		channel;
 
 	/**
 	 * Month, day, hour and minute are the first announced starting
 	 * time of the program.
 	 *
-	 * month range 0 ... 11.
+	 * month range 1 ... 12.
 	 */
 	unsigned int		month;
-	unsigned int		day;		/**< 0 ... 30 */
+	unsigned int		day;		/**< 1 ... 31 */
 	unsigned int		hour;		/**< 0 ... 23 */
 	unsigned int		minute;		/**< 0 ... 59 */
 
@@ -156,33 +170,45 @@ typedef struct {
 } vbi_program_id;
 
 extern void
-_vbi_program_id_init		(vbi_program_id *	pid,
+vbi_program_id_destroy		(vbi_program_id *	pid);
+extern void
+vbi_program_id_init		(vbi_program_id *	pid,
 				 vbi_pid_channel	channel);
+
+/* Private */
+
 extern void
 _vbi_program_id_dump		(const vbi_program_id *	pid,
 				 FILE *			fp);
 
 /**
+ * @brief VCR programming from Teletext.
  * This structure contains PDC data of a program selected
  * from a Teletext page.
  */
 typedef struct {
 	/**
+	 * Network identifier type, either VBI_CNI_TYPE_PDC_A
+	 * or VBI_CNI_TYPE_PDC_B.
+	 */
+	vbi_cni_type		cni_type;
+
+	/**
 	 * Network identifier, always valid. Note Teletext pages
 	 * may list programs on other networks.
 	 */
-	vbi_nuid		nuid;
+	unsigned int		cni;
 
 	/**
 	 * year, month, day, at1_hour and at1_minute is the
 	 * most recently announced starting time of a
 	 * program.
 	 *
-	 * year range: 2000 ... UINT_MAX.
+	 * year range: 2000+.
 	 */
 	unsigned int		year;
-	unsigned int		month;		/**< 0 ... 11 */
-	unsigned int		day;		/**< 0 ... 30 */
+	unsigned int		month;		/**< 1 ... 12 */
+	unsigned int		day;		/**< 1 ... 31 */
 	unsigned int		at1_hour;	/**< 0 ... 23 */
 	unsigned int		at1_minute;	/**< 0 ... 59 */
 
@@ -236,17 +262,39 @@ typedef struct {
 	}			_at1_ptl[4];
 } vbi_preselection;
 
+extern time_t
+vbi_preselection_time		(const vbi_preselection *p);
+extern void
+vbi_preselection_destroy	(vbi_preselection *	p);
+extern vbi_bool
+vbi_preselection_copy		(vbi_preselection *	dst,
+				 const vbi_preselection *src);
+extern vbi_bool
+vbi_preselection_init		(vbi_preselection *	p);
+
+/* Private */
+
 extern void
 _vbi_preselection_dump		(const vbi_preselection *p,
 				 FILE *			fp);
 extern void
 _vbi_preselection_array_dump	(const vbi_preselection *p,
-				 unsigned int		size,
+				 unsigned int		p_size,
 				 FILE *			fp);
+extern void
+_vbi_preselection_array_delete	(vbi_preselection *	p,
+				 unsigned int		p_size);
+extern vbi_preselection *
+_vbi_preselection_array_dup	(const vbi_preselection *p,
+				 unsigned int		p_size);
+extern vbi_preselection *
+_vbi_preselection_array_new	(unsigned int		array_size);
 extern unsigned int
 _vbi_pdc_method_a		(vbi_preselection *	table,
 				 unsigned int		table_size,
 				 const uint8_t		lop_raw[26][40]);
+
+/** @} */
 
 VBI_END_DECLS
 

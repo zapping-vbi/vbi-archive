@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.9.2.9 2004-05-12 01:40:43 mschimek Exp $ */
+/* $Id: caption.c,v 1.9.2.10 2004-07-09 16:10:52 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,7 +84,7 @@ itv_separator(vbi_decoder *vbi, vbi_caption_decoder *cc, char c)
 
 	ITV_DEBUG(printf("ITV: <%s>\n", cc->itv_buf));
 
-	vbi_atvef_trigger(vbi, cc->itv_buf);
+	//	vbi_atvef_trigger(vbi, cc->itv_buf);
 }
 
 /*
@@ -111,9 +111,9 @@ render(vbi_page *pg, int row)
 	}
 
 	event.type = VBI_EVENT_CAPTION;
-	event.ev.caption.pgno = pg->pgno;
+	event.ev.caption.channel = pg->pgno;
 
-	caption_send_event(pg->vbi, &event);
+	//TODO	caption_send_event(pg->vbi, &event);
 }
 
 static void
@@ -126,9 +126,9 @@ clear(vbi_page *pg)
 	pg->dirty.roll = -ROWS;
 
 	event.type = VBI_EVENT_CAPTION;
-	event.ev.caption.pgno = pg->pgno;
+	event.ev.caption.channel = pg->pgno;
 
-	caption_send_event(pg->vbi, &event);
+	// TODO	caption_send_event(pg->vbi, &event);
 }
 
 static void
@@ -148,9 +148,9 @@ roll_up(vbi_page *pg, int first_row, int last_row)
 	}
 
 	event.type = VBI_EVENT_CAPTION;
-	event.ev.caption.pgno = pg->pgno;
+	event.ev.caption.channel = pg->pgno;
 
-	caption_send_event(pg->vbi, &event);
+	// TODO	caption_send_event(pg->vbi, &event);
 }
 
 vbi_inline void
@@ -873,6 +873,10 @@ vbi_caption_decoder_add_event_handler
 				 void *			user_data)
 {
 	/* TODO */
+
+	if (0 == event_mask)
+		return TRUE;
+
 	return TRUE;
 }
 
@@ -893,7 +897,7 @@ vbi_caption_decoder_resync	(vbi_caption_decoder *	cd)
 
 void
 vbi_caption_decoder_reset	(vbi_caption_decoder *	cd,
-				 vbi_nuid		nuid)
+				 const vbi_network *	nk)
 {
 
 	cc_channel *ch;
@@ -951,6 +955,18 @@ vbi_caption_decoder_decode	(vbi_caption_decoder *	cd,
 	return FALSE;
 }
 
+void
+cache_network_destroy_caption	(cache_network *	cn)
+{
+  /* TODO */
+}
+
+void
+cache_network_init_caption	(cache_network *	cn)
+{
+  /* TODO */
+}
+
 /** @internal */
 void
 _vbi_caption_decoder_destroy	(vbi_caption_decoder *	cd)
@@ -962,13 +978,18 @@ _vbi_caption_decoder_destroy	(vbi_caption_decoder *	cd)
 	_vbi_xds_demux_destroy (&cd->xds_demux);
 }
 
+void reset (vbi_caption_decoder *cd, cache_network *cn, double time)
+{
+// TODO
+}
+
 /** @internal */
 void
 _vbi_caption_decoder_init	(vbi_caption_decoder *	cd,
 				 vbi_cache *		ca,
-				 vbi_nuid		nuid)
+				 const vbi_network *	nk,
+				 vbi_videostd_set	videostd_set)
 {
-
 	cc_channel *ch;
 	int i;
 
@@ -981,7 +1002,7 @@ _vbi_caption_decoder_init	(vbi_caption_decoder *	cd,
 	for (i = 0; i < 9; i++) {
 		ch = &cd->channel[i];
 
-		ch->pg[0].vbi = NULL; //vbi;
+		// TODO		ch->pg[0].vbi = NULL; //vbi;
 
 		ch->pg[0].pgno = i + 1;
 		ch->pg[0].subno = 0;
@@ -1013,6 +1034,8 @@ _vbi_caption_decoder_init	(vbi_caption_decoder *	cd,
 //TODO	vbi_caption_channel_switched(vbi);
 
 //TODO	vbi_caption_color_level(vbi);
+
+	cd->virtual_reset = reset;
 }
 
 void

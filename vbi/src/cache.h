@@ -1,5 +1,5 @@
 /*
- *  libzvbi - Teletext page cache
+ *  libzvbi - Network cache
  *
  *  Copyright (C) 2001-2003 Michael H. Schimek
  *
@@ -21,12 +21,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.2.2.10 2004-05-12 01:40:43 mschimek Exp $ */
+/* $Id: cache.h,v 1.2.2.11 2004-07-09 16:10:52 mschimek Exp $ */
 
 #ifndef __ZVBI_CACHE_H__
 #define __ZVBI_CACHE_H__
 
 #include <stdarg.h>
+#include "network.h"
 #include "format.h"
 
 VBI_BEGIN_DECLS
@@ -35,7 +36,11 @@ VBI_BEGIN_DECLS
 /* typedef struct _vbi_cache vbi_cache; */
 
 /**
- * Teletext page type.
+ * @brief Teletext page type.
+ *
+ * Some networks provide information to classify Teletext pages,
+ * this can be used for example to automatically find program schedule
+ * and subtitle pages. See also x().
  */
 typedef enum {
 	VBI_NO_PAGE		= 0x00,
@@ -43,6 +48,7 @@ typedef enum {
 
 	VBI_TOP_BLOCK		= 0x60,		/* libzvbi private */
 	VBI_TOP_GROUP		= 0x61,		/* libzvbi private */
+	VBI_NEWSFLASH_PAGE	= 0x62,		/* libzvbi private */
 
 	VBI_SUBTITLE_PAGE	= 0x70,
 	VBI_SUBTITLE_INDEX	= 0x78,
@@ -65,32 +71,73 @@ typedef enum {
 	VBI_TOP_PAGE		= 0xFE,		/* MPT, AIT, MPT-EX */
 
 	VBI_UNKNOWN_PAGE	= 0xFF,		/* libzvbi private */
-} vbi_page_type;
+} vbi_ttx_page_type;
 
+/* in packet.c */
 extern const char *
-_vbi_page_type_name		(vbi_page_type		type);
+vbi_ttx_page_type_name		(vbi_ttx_page_type	type);
 
-/* TODO: get page statistics, pgno ->
-struct {
-	vbi_page_type		page_type;
-	// -> vbi_character_set_from_code().
-	vbi_character_set_code	charset;
-	// announced number of subpages: 0, 2 ... 79.
+typedef struct {
+	/** */
+	vbi_ttx_page_type	page_type;
+	/** */
+	vbi_character_set_code	charset_code;
+	/** Expected number of subpages: 0 or 2 ... 79. */
 	unsigned int		subpages;
-	// lowest subno received
+	/** Lowest subno received. */
 	vbi_subno		subno_min;
-	// highest subno received
+	/** Highest subno received. */
 	vbi_subno		subno_max;
-};
- */
+} vbi_ttx_page_stat;
 
-/* TODO: get network statistics, list of cached networks
-   with name, nuid etc */
-
-/* TODO: get TOP menu */
+extern void
+vbi_ttx_page_stat_destroy	(vbi_ttx_page_stat *	ps);
+extern void
+vbi_ttx_page_stat_init		(vbi_ttx_page_stat *	ps);
+extern vbi_bool
+vbi_cache_get_ttx_page_stat	(vbi_cache *		ca,
+				 vbi_ttx_page_stat *	ps,
+				 const vbi_network *	nk,
+				 vbi_pgno		pgno);
 
 /**
- * Values for the vbi_format_option VBI_WST_LEVEL.
+ */
+typedef struct {
+	/** */
+	char *			title;
+	/** */
+	vbi_pgno		pgno;
+	/** */
+	vbi_subno		subno;
+	/** */
+	vbi_bool		group;
+	int			reserved[2];
+} vbi_top_title;
+
+/* in top.c */
+extern void
+vbi_top_title_destroy		(vbi_top_title *	tt);
+extern vbi_bool
+vbi_top_title_copy		(vbi_top_title *	dst,
+				 const vbi_top_title *	src);
+extern void
+vbi_top_title_init		(vbi_top_title *	tt);
+extern void
+vbi_top_title_array_delete	(vbi_top_title *	tt,
+				 unsigned int		tt_size);
+extern vbi_bool
+vbi_cache_get_top_title		(vbi_cache *		ca,
+				 vbi_top_title *	tt,
+				 const vbi_network *	nk,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno);
+extern vbi_top_title *
+vbi_cache_get_top_titles	(vbi_cache *		ca,
+				 const vbi_network *	nk,
+				 unsigned int *		array_size);
+
+/**
+ * Values for the vbi_format_option @c VBI_WST_LEVEL.
  */
 typedef enum {
 	/**
@@ -99,19 +146,16 @@ typedef enum {
 	 * for older Teletext decoders.
 	 */
 	VBI_WST_LEVEL_1,
-
 	/**
 	 * Level 1.5 - Additional national and graphics characters.
 	 */
 	VBI_WST_LEVEL_1p5,
-
 	/**
 	 * Level 2.5 - Additional text styles, more colors, DRCS, side
 	 * panels. You should enable Level 2.5 only if you can render
 	 * and/or export such pages.
 	 */
 	VBI_WST_LEVEL_2p5,
-
 	/**
 	 * Level 3.5 - Multicolor DRCS, proportional script.
 	 */
@@ -123,6 +167,8 @@ typedef enum {
 	 * Format only the first row.
 	 * Parameter: vbi_bool, default FALSE.
 	 */
+	/* We use random numbering for safety because these
+	   values are used in variable function arguments. */
 	VBI_HEADER_ONLY = 0x37138F00,
 	/**
 	 * Often column 0 of a page contains all black spaces,
@@ -133,12 +179,18 @@ typedef enum {
 	VBI_41_COLUMNS,
 	/**
 	 * Not implemented yet.
+	 * Format the page with side panels if it has any. This
+	 * option takes precedence over VBI_41_COLUMNS if side panels
+	 * are present.
 	 * Parameter: vbi_bool, default FALSE.
 	 */
 	VBI_PANELS,
 	/**
 	 * Enable TOP or FLOF navigation in row 25.
-	 * Parameter: vbi_bool, default FALSE.
+	 * - 0 disable
+	 * - 1 FLOF or TOP style 1
+	 * - 2 FLOF or TOP style 2
+	 * Parameter: int, default 0.
 	 */
 	VBI_NAVIGATION,
 	/**
@@ -175,20 +227,28 @@ typedef enum {
 	VBI_CHAR_SET_OVERRIDE,
 } vbi_format_option;
 
+/* in teletext.c */
 extern vbi_page *
 vbi_cache_get_teletext_page_va_list
 				(vbi_cache *		ca,
-				 vbi_nuid		nuid,
+				 const vbi_network *	nk,
 				 vbi_pgno		pgno,
 				 vbi_subno		subno,
 				 va_list		format_options);
 extern vbi_page *
 vbi_cache_get_teletext_page	(vbi_cache *		ca,
-				 vbi_nuid		nuid,
+				 const vbi_network *	nk,
 				 vbi_pgno		pgno,
 				 vbi_subno		subno,
 				 ...);
-
+/* in cache.c */
+extern vbi_network *
+vbi_cache_get_networks		(vbi_cache *		ca,
+				 unsigned int *		array_size);
+extern void
+vbi_cache_release		(vbi_cache *		ca);
+extern vbi_cache *
+vbi_cache_new_ref		(vbi_cache *		ca);
 extern void
 vbi_cache_delete		(vbi_cache *		ca);
 extern vbi_cache *

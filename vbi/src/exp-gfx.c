@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.7.2.7 2004-05-12 01:40:44 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.7.2.8 2004-07-09 16:10:52 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -1042,7 +1042,7 @@ do {									\
 		if (vbi_is_drcs (unicode)) {				\
 			const uint8_t *font;				\
 									\
-			font = vbi_page_drcs_data (pg, unicode);	\
+			font = vbi_page_get_drcs_data (pg, unicode);	\
 									\
 			if (NULL != font)				\
 				DRAW_DRCS (canvas, bytes_per_pixel,	\
@@ -1698,7 +1698,7 @@ png_draw_char			(uint8_t *		canvas,
 	if (vbi_is_drcs (unicode)) {
 		const uint8_t *font;
 
-		font = vbi_page_drcs_data (pg, unicode);
+		font = vbi_page_get_drcs_data (pg, unicode);
 
 		if (font && is_ttx) {
 			DRAW_DRCS (canvas, 1, bytes_per_line, pen, font,
@@ -1920,6 +1920,7 @@ export_png			(vbi_export *		e,
 	text[0].key = "Title";
 	text[0].text = title;
 	text[0].compression = PNG_TEXT_COMPRESSION_NONE;
+
 	text[1].key = "Software";
 	text[1].text = e->creator;
 	text[1].compression = PNG_TEXT_COMPRESSION_NONE;

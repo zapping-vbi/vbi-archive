@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: macros.h,v 1.1.2.2 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: macros.h,v 1.1.2.3 2004-07-09 16:10:52 mschimek Exp $ */
 
 #ifndef __ZVBI_MACROS_H__
 #define __ZVBI_MACROS_H__
@@ -78,6 +78,11 @@ typedef int vbi_bool;
 #    define NULL ((void*)0)
 #  endif
 #endif
+
+typedef void
+vbi_lock_fn			(void *			user_data);
+typedef void
+vbi_unlock_fn			(void *			user_data);
 
 VBI_END_DECLS
 

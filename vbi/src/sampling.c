@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling.c,v 1.1.2.4 2004-04-17 05:52:25 mschimek Exp $ */
+/* $Id: sampling.c,v 1.1.2.5 2004-07-09 16:10:54 mschimek Exp $ */
 
 #include <assert.h>
 #include "misc.h"
@@ -330,7 +330,7 @@ vbi_sampling_par_check_services	(const vbi_sampling_par *sp,
 
 	rservices = 0;
 
-	for (par = vbi_service_table; par->id; ++par) {
+	for (par = _vbi_service_table; par->id; ++par) {
 		if (par->id & services)
 			if (_vbi_sampling_par_check_service (sp, par, strict))
 				rservices |= par->id;
@@ -402,7 +402,7 @@ vbi_sampling_par_from_services	(vbi_sampling_par *	sp,
 	rservices = 0;
 	rate = 0;
 
-	for (par = vbi_service_table; par->id; ++par) {
+	for (par = _vbi_service_table; par->id; ++par) {
 		double margin;
 		double signal;
 		int offset;

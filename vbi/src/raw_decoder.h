@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.h,v 1.1.2.3 2004-04-08 23:36:26 mschimek Exp $ */
+/* $Id: raw_decoder.h,v 1.1.2.4 2004-07-09 16:10:53 mschimek Exp $ */
 
 #ifndef RAW_DECODER_H
 #define RAW_DECODER_H
@@ -30,87 +30,12 @@ VBI_BEGIN_DECLS
 
 /**
  * @ingroup RawDecoder
- * @brief Raw VBI decoder context.
+ * @brief Raw VBI decoder.
  *
  * The contents of this structure are private.
+ * Call vbi_raw_decoder_new() to allocate a raw VBI decoder.
  */
 typedef struct _vbi_raw_decoder vbi_raw_decoder;
-
-/* Private */
-#warning private
-
-#define MAX_JOBS 8
-#define MAX_WAYS 8
-
-typedef struct {
-	vbi_service_set		id;
-	vbi_bit_slicer		slicer;
-} vbi_raw_decoder_job;
-
-struct _vbi_raw_decoder {
-	vbi_sampling_par	sampling;
-
-	vbi_service_set		services;
-
-	unsigned int		n_jobs;
-
-	int			readjust;
-
-	int8_t *		pattern;	/* n scan lines * MAX_WAYS */
-
-	vbi_raw_decoder_job	jobs[MAX_JOBS];
-};
-
-/* typedef vbi_service_par in sliced.h */
-
-struct _vbi_service_par {
-	vbi_service_set		id;
-	const char *		label;
-
-	/* Video standard: 525 (FV = 59.94 Hz, FH = 15734 Hz),
-			   625 (FV = 50 Hz, FH = 15625 Hz). */
-	vbi_videostd_set	videostd_set;
-
-	/* Most scan lines used by the data service, first and last
-	   line of first and second field. ITU-R numbering scheme.
-	   Zero if no data from this field, requires field sync. */
-	unsigned int		first[2];
-        unsigned int		last[2];
-
-	/* Leading edge hsync to leading edge first CRI one bit,
-	   half amplitude points, in nanoseconds. */
-	unsigned int		offset;
-
-	unsigned int		cri_rate;	/* Hz */
-	unsigned int		bit_rate;	/* Hz */
-
-	/* Clock Run In and FRaming Code, LSB last txed bit of FRC. */
-	unsigned int		cri_frc;
-
-	/* CRI and FRC bits significant for identification. */
-	unsigned int		cri_frc_mask;
-
-	/* Number of significat cri_bits (at cri_rate),
-	   frc_bits (at bit_rate). */
-	unsigned int		cri_bits;
-	unsigned int		frc_bits;
-
-	unsigned int		payload;	/* bits */
-	vbi_modulation		modulation;
-};
-
-extern const vbi_service_par vbi_service_table [];
-
-extern vbi_bool
-vbi_raw_decoder_init		(vbi_raw_decoder *	rd,
-				 const vbi_sampling_par *sp);
-extern void
-vbi_raw_decoder_destroy		(vbi_raw_decoder *	rd);
-extern void
-vbi_raw_decoder_dump		(const vbi_raw_decoder *rd,
-				 FILE *			fp);
-
-/* Public */
 
 /**
  * @addtogroup RawDecoder
@@ -145,8 +70,88 @@ vbi_raw_decoder_decode		(vbi_raw_decoder *	rd,
 				 const uint8_t *	raw);
 /** @} */
 
-VBI_END_DECLS
-
 /* Private */
+
+/** @internal */
+#define _VBI_RAW_DECODER_MAX_JOBS 8
+/** @internal */
+#define _VBI_RAW_DECODER_MAX_WAYS 8
+
+/** @internal */
+typedef struct {
+	vbi_service_set		id;
+	vbi_bit_slicer		slicer;
+} _vbi_raw_decoder_job;
+
+/** @internal */
+struct _vbi_raw_decoder {
+	vbi_sampling_par	sampling;
+	vbi_service_set		services;
+	unsigned int		n_jobs;
+	int			readjust;
+	int8_t *		pattern;	/* n scan lines * MAX_WAYS */
+	_vbi_raw_decoder_job	jobs[_VBI_RAW_DECODER_MAX_JOBS];
+};
+
+/* typedef vbi_service_par in sliced.h */
+
+/** @internal */
+struct _vbi_service_par {
+	vbi_service_set		id;
+	const char *		label;
+
+	/**
+	 * Video standard
+	 * - 525 lines, FV = 59.94 Hz, FH = 15734 Hz
+	 * - 625 lines, FV = 50 Hz, FH = 15625 Hz
+	 */
+	vbi_videostd_set	videostd_set;
+
+	/**
+	 * Most scan lines used by the data service, first and last
+	 * line of first and second field. ITU-R numbering scheme.
+	 * Zero if no data from this field, requires field sync.
+	 */
+	unsigned int		first[2];
+        unsigned int		last[2];
+
+	/**
+	 * Leading edge hsync to leading edge first CRI one bit,
+	 * half amplitude points, in nanoseconds.
+	 */
+	unsigned int		offset;
+
+	unsigned int		cri_rate;	/**< Hz */
+	unsigned int		bit_rate;	/**< Hz */
+
+	/** Clock Run In and FRaming Code, LSB last txed bit of FRC. */
+	unsigned int		cri_frc;
+
+	/** CRI and FRC bits significant for identification. */
+	unsigned int		cri_frc_mask;
+
+	/**
+	 * Number of significat cri_bits (at cri_rate),
+	 * frc_bits (at bit_rate).
+	 */
+	unsigned int		cri_bits;
+	unsigned int		frc_bits;
+
+	unsigned int		payload;	/**< bits */
+	vbi_modulation		modulation;
+};
+
+extern const vbi_service_par _vbi_service_table [];
+
+extern vbi_bool
+_vbi_raw_decoder_init		(vbi_raw_decoder *	rd,
+				 const vbi_sampling_par *sp);
+extern void
+_vbi_raw_decoder_destroy	(vbi_raw_decoder *	rd);
+extern void
+_vbi_raw_decoder_dump		(const vbi_raw_decoder *rd,
+				 FILE *			fp);
+
+VBI_END_DECLS
 
 #endif /* RAW_DECODER_H */

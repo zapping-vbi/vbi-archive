@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decode.c,v 1.1.2.4 2004-04-08 23:36:49 mschimek Exp $ */
+/* $Id: decode.c,v 1.1.2.5 2004-07-09 16:10:55 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -45,6 +45,7 @@ static vbi_bool			dump_8302	= FALSE;
 static vbi_bool			dump_idl	= FALSE;
 static vbi_bool			dump_vps	= FALSE;
 static vbi_bool			dump_vps_r	= FALSE;
+static vbi_bool			dump_wss	= FALSE;
 static vbi_bool			dump_network	= FALSE;
 static vbi_bool			dump_hex	= FALSE;
 static vbi_bool			dump_bin	= FALSE;
@@ -55,25 +56,20 @@ static unsigned int		pfc_stream	= 0;
 static vbi_pfc_demux *		pc;
 
 static void
-dump_nuid			(vbi_nuid		nuid)
+dump_cni			(vbi_cni_type		type,
+				 unsigned int		cni)
 {
-	vbi_network *n;
+	vbi_network nk;
 
 	if (!dump_network)
 		return;
 
-	n = vbi_network_new (nuid);
+	assert (vbi_network_init (&nk));
+	assert (vbi_network_set_cni (&nk, type, cni));
 
-	assert (NULL != n);
+	_vbi_network_dump (&nk, stdout);
 
-	printf ("%s call_sign=%s cni=%x/%x/%x/%x/%x country=%s\n",
-		n->name ? n->name : "Unknown",
-		n->call_sign ? n->call_sign : "unknown",
-		n->cni_vps, n->cni_8301, n->cni_8302,
-		n->cni_pdc_a, n->cni_pdc_b,
-		n->country_code);
-
-	vbi_network_delete (n);
+	vbi_network_destroy (&nk);
 }
 
 static void
@@ -102,10 +98,6 @@ dump_sliced_teletext_b		(const uint8_t		buffer[42])
 	putchar ('<');
 	putchar ('\n');
 }
-
-extern void
-vbi_program_id_dump		(const vbi_program_id *	pi,
-				 FILE *			fp);
 
 static void
 packet_8301			(const uint8_t		buffer[42],
@@ -138,12 +130,8 @@ packet_8301			(const uint8_t		buffer[42],
 		tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 		tm.tm_hour, tm.tm_min, tm.tm_sec);
 
-	if (dump_network && 0 != cni) {
-		vbi_nuid nuid;
-
-		nuid = vbi_nuid_from_cni (VBI_CNI_TYPE_8301, cni);
-		dump_nuid (nuid);
-	}
+	if (0 != cni)
+		dump_cni (VBI_CNI_TYPE_8301, cni);
 }
 
 static void
@@ -170,7 +158,10 @@ packet_8302			(const uint8_t		buffer[42],
 
 	_vbi_program_id_dump (&pi, stdout);
 
-	dump_nuid (pi.nuid);
+	putchar ('\n');
+
+	if (0 != pi.cni)
+		dump_cni (pi.cni_type, pi.cni);
 }
 
 static vbi_bool
@@ -270,11 +261,14 @@ vps				(uint8_t		buffer[13],
 			return;
 		}
 		
-		printf ("VPS L%3u cni=%x ", line, cni);
+		printf ("VPS L%3u ", line);
 
 		_vbi_program_id_dump (&pi, stdout);
 
-		dump_nuid (pi.nuid);
+		putchar ('\n');
+
+		if (0 != pi.cni)
+			dump_cni (pi.cni_type, pi.cni);
 	}
 
 	if (dump_vps_r) {
@@ -306,6 +300,23 @@ vps				(uint8_t		buffer[13],
 			buffer[2], buffer[3],
 			buffer[4], buffer[5], buffer[6], buffer[7],
 			pr_label[i]);
+	}
+}
+
+static void
+wss_625				(uint8_t		buffer[2])
+{
+	if (dump_wss) {  
+		vbi_aspect_ratio ar;
+
+		if (!vbi_decode_wss_625 (&ar, buffer)) {
+			printf ("Error in WSS\n");
+			return;
+		}
+
+		_vbi_aspect_ratio_dump (&ar, stdout);
+
+		putchar ('\n');
 	}
 }
 
@@ -351,6 +362,7 @@ mainloop			(void)
 			case 3:
 				s->id = VBI_SLICED_WSS_625; 
 				fread(s->data, 1, 2, stdin);
+				wss_625 (s->data);
 				break;
 			case 4:
 				s->id = VBI_SLICED_WSS_CPR1204; 
@@ -380,7 +392,7 @@ abort:
 }
 
 static const char
-short_options [] = "12abeinprstv";
+short_options [] = "12abeinp:rs:tvw";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
@@ -398,6 +410,7 @@ long_options [] = {
 	{ "pfc-stream",	required_argument,	NULL,		's' },
 	{ "ttx",	no_argument,		NULL,		't' },
 	{ "vps",	no_argument,		NULL,		'v' },
+	{ "wss",	no_argument,		NULL,		'w' },
 	{ 0, 0, 0, 0 }
 };
 #else
@@ -416,6 +429,7 @@ usage				(FILE *			fp,
 		 "-i | --idl     Teletext IDL packets (M/30, M/31)\n"
 		 "-t | --ttx     Decode any Teletext packet\n"
 		 "-v | --vps     VPS (PDC)\n"
+		 "-w | --wss     WSS\n"
 		 "-a | --all     Everything above, e. g.\n"
 		 "               -i     decode IDL packets\n"
 		 "               -a     decode everything\n"
@@ -433,9 +447,7 @@ usage				(FILE *			fp,
 		 "-n | --network With -1, -2, -v decode CNI and print\n"
 		 "               available information about the network.\n"
 		 "-b | --bin     With -t, -p, -v dump data in binary format,\n"
-		 "               otherwise only ASCII.\n"
-		 "\n"
-		 "(--long options are only available on GNU systems.)\n",
+		 "               otherwise only ASCII.\n",
 		 argv[0]);
 }
 
@@ -470,6 +482,7 @@ main				(int			argc,
 			dump_8302 = TRUE;
 			dump_idl = TRUE;
 			dump_vps = TRUE;
+			dump_wss = TRUE;
 			pfc_pgno = 0x1DF;
 			break;
 
@@ -507,6 +520,10 @@ main				(int			argc,
 
 		case 'v':
 			dump_vps ^= TRUE;
+			break;
+
+		case 'w':
+			dump_wss ^= TRUE;
 			break;
 
 		default:

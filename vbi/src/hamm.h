@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.h,v 1.4.2.5 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: hamm.h,v 1.4.2.6 2004-07-09 16:10:52 mschimek Exp $ */
 
 #ifndef __ZVBI_HAMM_H__
 #define __ZVBI_HAMM_H__
@@ -48,7 +48,7 @@ extern const int8_t		vbi_hamm24_inv_par [3][256];
  * 
  * Reverses the bits of the argument.
  * 
- * @return
+ * @returns
  * Data bits 0 [msb] ... 7 [lsb].
  */
 vbi_inline unsigned int
@@ -62,7 +62,7 @@ vbi_rev8			(unsigned int		c)
  * 
  * Reverses the bits of the argument.
  * 
- * @return
+ * @returns
  * Data bits 0 [msb] ... 15 [lsb].
  */
 vbi_inline unsigned int
@@ -78,7 +78,7 @@ vbi_rev16			(unsigned int		c)
  * 
  * Reverses the bits of the argument.
  * 
- * @return
+ * @returns
  * Data bits 0 [msb] ... 15 [lsb].
  */
 vbi_inline unsigned int
@@ -91,7 +91,7 @@ vbi_rev16p			(const uint8_t *	p)
 /**
  * @param c Unsigned byte.
  *
- * @return
+ * @returns
  * Changes the most significant bit of the byte
  * to make the number of set bits odd.
  */
@@ -109,7 +109,7 @@ vbi_fpar8			(unsigned int		c)
 /**
  * @param c Unsigned byte. 
  * 
- * @return
+ * @returns
  * If the byte has odd parity (sum of bits modulo 2 is 1) the
  * byte AND 127, otherwise a negative value.
  */
@@ -127,10 +127,14 @@ vbi_ipar8			(unsigned int		c)
 	return r;
 #endif
 #endif
-	if (vbi_hamm24_inv_par[0][(uint8_t) c] & 32)
+	if (vbi_hamm24_inv_par[0][(uint8_t) c] & 32) {
 		return c & 127;
-	else
+	} else {
+		/* The idea is to OR results together to find a parity
+		   error in a sequence, rather than a test and branch on
+		   each byte. */
 		return -1;
+	}
 }
 
 extern void
@@ -146,9 +150,8 @@ vbi_ipar			(uint8_t *		p,
  * Encodes a nibble with Hamming 8/4 protection
  * as specified in EN 300 706, Section 8.2.
  * 
- * @return
- * Hamming encoded unsigned byte, lsb first
- * transmitted.
+ * @returns
+ * Hamming encoded unsigned byte, lsb first transmitted.
  */
 vbi_inline unsigned int
 vbi_fham8			(unsigned int		c)
@@ -157,13 +160,12 @@ vbi_fham8			(unsigned int		c)
 }
 
 /**
- * @param c Hamming 8/4 protected byte, lsb first
- *   transmitted.
+ * @param c Hamming 8/4 protected byte, lsb first transmitted.
  * 
  * Decodes a Hamming 8/4 protected byte
  * as specified in EN 300 706, Section 8.2.
  * 
- * @return
+ * @returns
  * Data bits (D4 [msb] ... D1 [lsb]) or a negative
  * value if the byte contained incorrectable errors.
  */
@@ -180,7 +182,7 @@ vbi_iham8			(unsigned int		c)
  * Decodes a Hamming 8/4 protected byte pair
  * as specified in EN 300 706, Section 8.2.
  * 
- * @return
+ * @returns
  * Data bits D4 [msb] ... D1 of first byte and D4 ... D1 [lsb]
  * of second byte, or a negative value if any of the bytes
  * contained incorrectable errors.

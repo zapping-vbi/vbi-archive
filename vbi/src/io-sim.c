@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-sim.c,v 1.1.2.4 2004-04-17 05:52:24 mschimek Exp $ */
+/* $Id: io-sim.c,v 1.1.2.5 2004-07-09 16:10:52 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -397,19 +397,25 @@ signal_u8			(const vbi_sampling_par *sp,
  * without verification, except for buffer overflow checks.
  *
  * @return
- * TRUE on success.
+ * @c FALSE on error.
  */
 vbi_bool
 _vbi_test_image_vbi		(uint8_t *		raw,
+				 unsigned int		raw_size,
 				 const vbi_sampling_par *sp,
 				 const vbi_sliced *	sliced,
 				 unsigned int		sliced_lines)
 {
+	unsigned int scan_lines;
 	unsigned int blank_level;
 	unsigned int black_level;
 	unsigned int white_level;
 
 	if (!_vbi_sampling_par_verify (sp))
+		return FALSE;
+
+	scan_lines = sp->count[0] + sp->count[1];
+	if (scan_lines * sp->bytes_per_line > raw_size)
 		return FALSE;
 
 	if (VBI_VIDEOSTD_SET_525_60 & sp->videostd_set) {
@@ -542,6 +548,7 @@ do {									\
 /* brightness, contrast parameter? */
 vbi_bool
 _vbi_test_image_video		(uint8_t *		raw,
+				 unsigned int		raw_size,
 				 const vbi_sampling_par *sp,
 				 unsigned int		pixel_mask,
 				 const vbi_sliced *	sliced,
@@ -557,6 +564,11 @@ _vbi_test_image_video		(uint8_t *		raw,
 	uint8_t *d;
 
 	if (!_vbi_sampling_par_verify (sp))
+		return FALSE;
+
+	scan_lines = sp->count[0] + sp->count[1];
+
+	if (scan_lines * sp->bytes_per_line > raw_size)
 		return FALSE;
 
 	switch (sp->sampling_format) {
@@ -695,8 +707,6 @@ _vbi_test_image_video		(uint8_t *		raw,
 
 	sp8.sampling_format = VBI_PIXFMT_YUV420;
 	sp8.bytes_per_line = sp->samples_per_line;
-
-	scan_lines = sp->count[0] + sp->count[1];
 
 	if (!(buf = malloc (scan_lines * sp->samples_per_line))) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__,

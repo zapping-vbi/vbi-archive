@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.c,v 1.1.2.5 2004-04-17 05:52:24 mschimek Exp $ */
+/* $Id: bit_slicer.c,v 1.1.2.6 2004-07-09 16:10:51 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -227,8 +227,10 @@ BIT_SLICER (RGB8, 8, bs->thresh_frac)
 /**
  * @param bs Pointer to vbi_bit_slicer object allocated with
  *   vbi_bit_slicer_new().
- * @param buffer Output data. The buffer must be large enough to store
- *   the number of bits given as @a payload to vbi_bit_slicer_new().
+ * @param buffer Output data.
+ * @param buffer_size Size of the output buffer. The buffer must be
+ +   large enough to store the number of bits given as @a payload to
+ *   vbi_bit_slicer_new().
  * @param raw Input data. At least the number of pixels or samples
  *  given as @a samples_per_line to vbi_bit_slicer_new().
  * 
@@ -246,8 +248,20 @@ BIT_SLICER (RGB8, 8, bs->thresh_frac)
 vbi_bool
 vbi_bit_slicer_slice		(vbi_bit_slicer *	bs,
 				 uint8_t *		buffer,
+				 unsigned int		buffer_size,
 				 const uint8_t *	raw)
 {
+	assert (NULL != bs);
+	assert (NULL != buffer);
+	assert (NULL != raw);
+
+	if (bs->payload > buffer_size * 8) {
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
+				"buffer_size %u < %u bits of payload",
+				buffer_size * 8, bs->payload);
+		return FALSE;
+	}
+
 	return bs->func (bs, buffer, raw);
 }
 

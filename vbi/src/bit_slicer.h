@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.h,v 1.1.2.4 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: bit_slicer.h,v 1.1.2.5 2004-07-09 16:10:51 mschimek Exp $ */
 
 #ifndef __ZVBI_BIT_SLICER_H__
 #define __ZVBI_BIT_SLICER_H__
@@ -68,6 +68,7 @@ typedef struct _vbi_bit_slicer vbi_bit_slicer;
 extern vbi_bool
 vbi_bit_slicer_slice		(vbi_bit_slicer *	bs,
 				 uint8_t *		buffer,
+				 unsigned int		buffer_size,
 				 const uint8_t *	raw);
 extern void
 vbi_bit_slicer_delete		(vbi_bit_slicer *	bs);

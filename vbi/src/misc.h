@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.11 2004-04-17 05:52:24 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.12 2004-07-09 16:10:52 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -26,12 +26,9 @@
 #include <stddef.h>
 #include <string.h>
 #include <assert.h>
+#include "vbi.h"		/* vbi_log_level */
 
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
-
-typedef enum {
-	VBI_DEBUG = 7,
-} vbi_log_level;
 
 #ifdef __GNUC__
 
@@ -193,10 +190,23 @@ vbi_log_printf			(const char *		function,
 	(assert (sizeof (d) == sizeof (s)), memcpy (d, s, sizeof (d)))
 
 /* Use this instead of strncpy(). */
+#ifdef HAVE_STRLCPY
+#  define vbi_strlcpy(d, s, size) strlcpy (d, s, size)
+#else
 extern size_t
 vbi_strlcpy			(char *			d,
 				 const char *		s,
 				 size_t			size);
+#endif
+
+/* strndup is a GNU extension. */
+#ifdef HAVE_STRNDUP
+#  define vbi_strndup(s, size) strndup (s, size)
+#else
+extern char *
+vbi_strndup			(const char *		s,
+				 size_t			size);
+#endif
 
 #define STRCOPY(d, s) (vbi_strlcpy (d, s, sizeof (d)) < sizeof (d))
 

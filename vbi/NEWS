@@ -1,6 +1,32 @@
 0.3
 ---
 
+Packager information
+
+Version 0.3 is not source or binary compatible with earlier versions.
+To permit parallel installation and compiling with 0.2 or 0.3 versions
+the library and include files have been renamed as follows:
+
+<prefix>/include/libzvbi.h -> <prefix>/include/zvbi-0.3/zvbi/*
+<prefix>/lib/libzvbi.*     -> <prefix>/lib/libzvbi-0.3.*
+
+Compiling
+
+To compile applications with version 0.3 you must specify the include path
+-I<prefix>/include/zvbi-0.3, and link with -lzvbi-0.3. pkgconfig can
+provide these flags in a configure script:
+
+PKG_CHECK_MODULES(PACKAGE, [zvbi-0.3])
+- or -
+PKG_CHECK_MODULES(PACKAGE, [zvbi-0.3 >= 0.3.5])
+
+AC_SUBST(PACKAGE_CFLAGS)
+AC_SUBST(PACKAGE_LIBS)
+
+In source files replace #include <libzvbi.h> by #include <zvbi/zvbi.h>.
+
+
+
 0.2.3
 -----
 Bug fixes, mostly compile problems. This version supports the

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-priv.h,v 1.1.2.3 2004-05-12 01:40:44 mschimek Exp $ */
+/* $Id: io-priv.h,v 1.1.2.4 2004-07-09 16:10:52 mschimek Exp $ */
 
 #ifndef IO_PRIV_H
 #define IO_PRIV_H
@@ -57,7 +57,8 @@
 
 #endif
 
-typedef void (ioctl_log_fn)	(FILE *			fp,
+typedef void
+ioctl_log_fn			(FILE *			fp,
 				 unsigned int		cmd,
 				 int			rw,
 				 void *			arg);

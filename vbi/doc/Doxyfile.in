@@ -55,6 +55,7 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 INPUT                  = @top_srcdir@/src
 FILE_PATTERNS          = *.c \
+		         aspect_ratio.h \
                          bcd.h \
 			 bit_slicer.h \
                          cache.h \
@@ -68,26 +69,30 @@ FILE_PATTERNS          = *.c \
                          format.h \
                          graphics.h \
                          hamm.h \
+                         intl.h \
                          io.h \
+                         io-dvb.h \
 			 io-sim.h \
                          lang.h \
-                         misc.h \
+                         macros.h \
 			 network.h \
 			 packet-pfc.h \
 			 packet-830.h \
 			 pdc.h \
+                         pfc_demux.h \
 			 raw_decoder.h \
 			 sampling.h \
                          search.h \
                          sliced.h \
                          tables.h \
+                         teletext_decoder.h \
                          trigger.h \
-                         ure.h \
                          vbi.h \
+                         vbi_decoder.h \
 			 vps.h \
-                         vt.h \
                          wss.h \
-			 xds.h
+                         xds_decoder.h \
+			 xds_demux.h
 RECURSIVE              = NO
 EXCLUDE                = 
 EXCLUDE_SYMLINKS       = NO

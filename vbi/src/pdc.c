@@ -17,15 +17,29 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.7 2004-05-01 13:51:35 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.8 2004-07-09 16:10:53 mschimek Exp $ */
 
 #include "../site_def.h"
 
-#include "hamm.h"
-#include "vbi.h"
+#include <stdlib.h>		/* malloc() */
+#include <assert.h>
+#include "misc.h"
+#include "hamm.h"		/* vbi_ipar8() */
+#include "bcd.h"		/* vbi_is_bcd() */
+#include "pdc.h"
+
+/**
+ * @addtogroup ProgramID PDC/XDS Program ID Decoder
+ * @ingroup LowDec
+ */
 
 /**
  * @internal
+ * @param pil vbi_pil to print.
+ * @param fp Destination stream.
+ *
+ * Prints a vbi_pil as service code or date and time string without
+ * trailing newline. This is intended for debugging.
  */
 void
 _vbi_pil_dump			(vbi_pil		pil,
@@ -51,21 +65,84 @@ _vbi_pil_dump			(vbi_pil		pil,
 	default:
 		fprintf (fp, "%05x (%02u-%02u %02u:%02u)",
 			 pil,
-			 VBI_PIL_MONTH (pil), VBI_PIL_DAY (pil),
-			 VBI_PIL_HOUR (pil), VBI_PIL_MINUTE (pil));
+			 VBI_PIL_MONTH (pil),
+			 VBI_PIL_DAY (pil),
+			 VBI_PIL_HOUR (pil),
+			 VBI_PIL_MINUTE (pil));
 	}
 }
 
 /**
- * internal
+ * @internal
+ * @param pid vbi_program_id structure to print.
+ * @param fp Destination stream.
+ *
+ * Prints the contents of a vbi_program_id structure as a string
+ * without trailing newline. This is intended for debugging.
  */
 void
-_vbi_program_id_init		(vbi_program_id *	pid,
+_vbi_program_id_dump		(const vbi_program_id *	pid,
+				 FILE *			fp)
+{
+	static const char *pcs_audio [] = {
+		"UNKNOWN",
+		"MONO",
+		"STEREO",
+		"BILINGUAL"
+	};
+
+	fprintf (fp, "cni=%04x (%s) ch=%u ",
+		 pid->cni,
+		 vbi_cni_type_name (pid->cni_type),
+		 pid->channel);
+
+	if (0) {
+		fprintf (fp, "%02u-%02u %02u:%02u pil=",
+			 pid->month + 1, pid->day + 1,
+			 pid->hour, pid->minute);
+	} else {
+		fprintf (fp, "pil=");
+	}
+
+	_vbi_pil_dump (pid->pil, fp);
+
+	fprintf (fp, " length=%u "
+		 "luf=%u mi=%u prf=%u "
+		 "pcs=%s pty=%02x td=%u",
+		 pid->length,
+		 pid->luf, pid->mi, pid->prf,
+		 pcs_audio[pid->pcs_audio],
+		 pid->pty, pid->tape_delayed);
+}
+
+/**
+ * @param pid vbi_program_id structure initialized with vbi_program_id_init().
+ *
+ * Frees all resources associated with @a pid, except the structure itself.
+ */
+void
+vbi_program_id_destroy		(vbi_program_id *	pid)
+{
+	assert (NULL != pid);
+
+	CLEAR (*pid);
+}
+
+/**
+ * @param pid vbi_program_id structure to initialize.
+ * @param channel Logical channel number to be stored in the
+ *   channel field.
+ *
+ * Initializes a vbi_program_id structure.
+ */
+void
+vbi_program_id_init		(vbi_program_id *	pid,
 				 vbi_pid_channel	channel)
 {
 	assert (NULL != pid);
 
-	pid->nuid		= VBI_NUID_UNKNOWN;
+	pid->cni_type		= VBI_CNI_TYPE_UNKNOWN;
+	pid->cni		= 0;
 
 	pid->channel		= channel;
 
@@ -91,41 +168,11 @@ _vbi_program_id_init		(vbi_program_id *	pid,
 
 /**
  * @internal
- */
-void
-_vbi_program_id_dump		(const vbi_program_id *	pid,
-				 FILE *			fp)
-{
-	static const char *pcs_audio [] = {
-		"UNKNOWN",
-		"MONO",
-		"STEREO",
-		"BILINGUAL"
-	};
-
-	fprintf (fp, "nuid=%llx ch=%u ", pid->nuid, pid->channel);
-
-	if (0) {
-		fprintf (fp, "%02u-%02u %02u:%02u pil=",
-			 pid->month + 1, pid->day + 1,
-			 pid->hour, pid->minute);
-	} else {
-		fprintf (fp, "pil=");
-	}
-
-	_vbi_pil_dump (pid->pil, fp);
-
-	fprintf (fp, " length=%u "
-		 "luf=%u mi=%u prf=%u "
-		 "pcs=%s pty=%02x td=%u\n",
-		 pid->length,
-		 pid->luf, pid->mi, pid->prf,
-		 pcs_audio[pid->pcs_audio],
-		 pid->pty, pid->tape_delayed);
-}
-
-/**
- * @internal
+ * @param pid vbi_preselection structure to print.
+ * @param fp Destination stream.
+ *
+ * Prints the contents of a vbi_preselection structure as a string
+ * without trailing newline. This is intended for debugging.
  */
 void
 _vbi_preselection_dump		(const vbi_preselection *p,
@@ -133,10 +180,13 @@ _vbi_preselection_dump		(const vbi_preselection *p,
 {
 	unsigned int i;
 
-	fprintf (fp, "%llx %04d-%02d-%02d %02d:%02d (%02d:%02d) %3d min "
+	fprintf (fp,
+		 "cni=%04x (%s) "
+		 "%04d-%02d-%02d %02d:%02d (%02d:%02d) %3d min "
 		 "pty=%02x lto=%d caf=%u at1/ptl=",
-		 p->nuid,
-		 p->year, p->month + 1, p->day + 1,
+		 p->cni,
+		 vbi_cni_type_name (p->cni_type),
+		 p->year, p->month, p->day,
 		 p->at1_hour, p->at1_minute,
 		 p->at2_hour, p->at2_minute,
 		 p->length,
@@ -152,19 +202,132 @@ _vbi_preselection_dump		(const vbi_preselection *p,
 
 /**
  * @internal
+ * @param pid Array of vbi_preselection structures to print.
+ * @param size Number of structures in the array.
+ * @param fp Destination stream.
+ *
+ * Prints the contents of a vbi_preselection structure array,
+ * one structure per line. This is intended for debugging.
  */
 void
 _vbi_preselection_array_dump	(const vbi_preselection *p,
 				 unsigned int		size,
 				 FILE *			fp)
 {
-	unsigned int count = 0;
+	unsigned int count;
+
+	count = 0;
 
 	while (size-- > 0) {
 		fprintf (fp, "%2u: ", count++);
 		_vbi_preselection_dump (p++, fp);
 		fputc ('\n', fp);
 	}
+}
+
+/**
+ */
+void
+vbi_preselection_destroy	(vbi_preselection *	p)
+{
+	assert (NULL != p);
+
+	free (p->title);
+
+	CLEAR (*p);
+}
+
+/**
+ */
+vbi_bool
+vbi_preselection_copy		(vbi_preselection *	dst,
+				 const vbi_preselection *src)
+{
+	assert (NULL != dst);
+
+	if (src) {
+		char *title;
+
+		if (!(title = strdup (src->title)))
+			return FALSE;
+
+		*dst = *src;
+		dst->title = title;
+	} else {
+		CLEAR (*dst);
+	}
+
+	return TRUE;
+}
+
+/**
+ */
+vbi_bool
+vbi_preselection_init		(vbi_preselection *	p)
+{
+	assert (NULL != p);
+
+	CLEAR (*p);
+
+	return TRUE;
+}
+
+/**
+ * @internal
+ */
+void
+_vbi_preselection_array_delete	(vbi_preselection *	p,
+				 unsigned int		size)
+{
+	unsigned int i;
+
+	if (NULL == p || 0 == size)
+		return;
+
+	for (i = 0; i < size; ++i)
+		vbi_preselection_destroy (p + i);
+
+	free (p);
+}
+
+/**
+ * @internal
+ */
+vbi_preselection *
+_vbi_preselection_array_dup	(const vbi_preselection *p,
+				 unsigned int		size)
+{
+	vbi_preselection *new_p;
+	unsigned int i;
+
+	if (!(new_p = malloc (size * sizeof (*new_p))))
+		return NULL;
+
+	memcpy (new_p, p, size * sizeof (*new_p));
+
+	for (i = 0; i < size; ++i) {
+		if (p[i].title) {
+			if (!(new_p[i].title = strdup (p[i].title))) {
+				while (i-- > 0)
+					free (new_p[i].title);
+
+				free (new_p);
+
+				return NULL;
+			}
+		}
+	}
+
+	return new_p;
+}
+
+/**
+ * @internal
+ */
+vbi_preselection *
+_vbi_preselection_array_new	(unsigned int		size)
+{
+	return calloc (1, size * sizeof (vbi_preselection));
 }
 
 /*
@@ -279,7 +442,7 @@ pdc_time_from_bcd		(unsigned int *		hour,
 {
 	int h, m;
 
-	if (vbi_bcd_vec_greater (bcd, 0x2959))
+	if (vbi_bcd_digits_greater (bcd, 0x2959))
 		return FALSE;
 
 	m = (bcd & 15) + ((bcd >> 4) & 15) * 10;
@@ -535,9 +698,7 @@ pdc_number			(unsigned int * const	value,
 	return TRUE;
 }
 
-/**
- * @internal
- */
+/** @internal */
 static vbi_preselection *
 pdc_at2_fill			(vbi_preselection *		begin,
 				 vbi_preselection *		end,
@@ -546,7 +707,8 @@ pdc_at2_fill			(vbi_preselection *		begin,
 	vbi_preselection *p;
 
 	for (p = begin; p < end; ++p) {
-		p->nuid		= src->nuid;
+		p->cni_type	= VBI_CNI_TYPE_PDC_A;
+		p->cni		= src->cni;
 		p->year		= src->year;
 		p->month	= src->month;
 		p->day		= src->day;
@@ -562,10 +724,10 @@ pdc_at2_fill			(vbi_preselection *		begin,
 /**
  * @internal
  * @param table Store PDC data here.
- * @param table_size Size of the table.
- * @param lop_raw Raw level one page.
+ * @param table_size Free space in the table, number of elements.
+ * @param lop_raw Raw Teletext level one page.
  *
- * Scans a raw level one page for PDC data and stores the
+ * Scans a raw Teletext level one page for PDC data and stores the
  * data in a vbi_preselection table.
  *
  * @returns
@@ -591,8 +753,9 @@ _vbi_pdc_method_a		(vbi_preselection *	table,
 
 	pend = table + table_size;
 
-	p2->year = (unsigned int) -1; /* not found */
-	p2->nuid = VBI_NUID_NONE;
+	p2->year = 0; /* not found */
+	p2->cni_type = VBI_CNI_TYPE_PDC_A;
+	p2->cni = 0; /* not found */
 
 	have_at2 = FALSE;
 
@@ -750,7 +913,8 @@ _vbi_pdc_method_a		(vbi_preselection *	table,
 				p2->year	= p2[-1].year;
 				p2->month	= p2[-1].month;
 				p2->day		= p2[-1].day;
-				p2->nuid	= p2[-1].nuid;
+				p2->cni		= p2[-1].cni;
+				p2->cni_type	= VBI_CNI_TYPE_PDC_A;
 				p2->lto		= p2[-1].lto;
 
 				break;
@@ -764,7 +928,7 @@ _vbi_pdc_method_a		(vbi_preselection *	table,
 				pdc_log ("AT-1 %04x\n", value);
 
 				/* Shortcut: No date, not valid PDC-A */
-				if ((int) table[0].year < 0)
+				if (0 == table[0].year)
 					return 0;
 
 				p1->_at1_ptl[0].row = row;
@@ -786,14 +950,14 @@ _vbi_pdc_method_a		(vbi_preselection *	table,
 
 				pdc_log ("CNI %05x\n", value);
 
+				if (0 == value)
+					return 0;
+
 				if (!have_at2 && p1 > p2) /* see AD */
 					p2 = pdc_at2_fill (p2, p1, p2);
 
-				p2->nuid = vbi_nuid_from_cni
-					(VBI_CNI_TYPE_PDC_A, value);
-
-				if (VBI_NUID_UNKNOWN == p2->nuid)
-					return 0;
+				p2->cni = value;
+				p2->cni_type = VBI_CNI_TYPE_PDC_A;
 
 				combine = TRUE;
 
@@ -833,8 +997,8 @@ _vbi_pdc_method_a		(vbi_preselection *	table,
 					p2 = pdc_at2_fill (p2, p1, p2);
 
 				p2->year = y + 2000;
-				p2->month = m - 1;
-				p2->day = d - 1;
+				p2->month = m;
+				p2->day = d;
 
 				combine = TRUE;
 
@@ -861,7 +1025,7 @@ _vbi_pdc_method_a		(vbi_preselection *	table,
 				pdc_log ("AT-1 %08x\n", value);
 
 				/* Shortcut: No date, not valid PDC-A */
-				if ((int) table[0].year < 0)
+				if (0 == table[0].year)
 					return 0;
 
 				p1->length = pdc_duration
@@ -903,8 +1067,8 @@ _vbi_pdc_method_a		(vbi_preselection *	table,
  finish:
 	if (p2 > p1
 	    || p1 == table
-	    || (int) table[0].year < 0
-	    || VBI_NUID_UNKNOWN == table[0].nuid) {
+	    || 0 == table[0].year
+	    || 0 == table[0].cni) {
 		return 0; /* invalid */
 	}
 
@@ -915,7 +1079,7 @@ _vbi_pdc_method_a		(vbi_preselection *	table,
 
 		if (p2[0].length <= 0)
 			for (pp = p2 + 1; pp < p1; ++pp)
-				if (p2[0].nuid == pp[0].nuid) {
+				if (p2[0].cni == pp[0].cni) {
 					p2[0].length = pdc_duration
 						(p2[0].at1_hour,
 						 p2[0].at1_minute,
@@ -925,7 +1089,7 @@ _vbi_pdc_method_a		(vbi_preselection *	table,
 				}
 		if (p2[0].length <= 0)
 			for (pp = p2 + 1; pp < p1; ++pp)
-				if (pp[0].nuid == pp[-1].nuid) {
+				if (pp[0].cni == pp[-1].cni) {
 					p2[0].length = pdc_duration
 						(p2[0].at1_hour,
 						 p2[0].at1_minute,
@@ -963,11 +1127,13 @@ vbi_preselection_time		(const vbi_preselection *p)
 {
 	struct tm t;
 
+	assert (NULL != p);
+
 	CLEAR (t);
 
 	t.tm_year	= p->year - 1900;
-	t.tm_mon	= p->month;
-	t.tm_mday	= p->day + 1;
+	t.tm_mon	= p->month - 1;
+	t.tm_mday	= p->day;
 	t.tm_hour	= p->at1_hour;
 	t.tm_min	= p->at1_minute;
 
@@ -976,6 +1142,29 @@ vbi_preselection_time		(const vbi_preselection *p)
 	t.tm_gmtoff	= pl->lto * 60; /* XXX sign? */
 
 	return mktime (&t);
+}
+
+#else
+
+/**
+ * @param pid vbi_preselection structure.
+ *
+ * Returns the date and time (at1) in the vbi_preselection
+ * structure as time_t value.
+ *
+ * @returns
+ * time_t value, (time_t) -1 if the date and time cannot
+ * be represented as time_t value.
+ *
+ * @bugs
+ * Not implemented yet.
+ */
+time_t
+vbi_preselection_time		(const vbi_preselection *p)
+{
+	assert (NULL != p);
+
+	return (time_t) -1;
 }
 
 #endif

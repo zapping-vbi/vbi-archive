@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.h,v 1.1.2.3 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: conv.h,v 1.1.2.4 2004-07-09 16:10:52 mschimek Exp $ */
 
 #ifndef __ZVBI_CONV_H__
 #define __ZVBI_CONV_H__
@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <inttypes.h>		/* uint16_t */
 #include <iconv.h>		/* iconv_t */
+#include "lang.h"		/* vbi_character_set */
 #include "macros.h"
 
 VBI_BEGIN_DECLS
@@ -69,6 +70,13 @@ _vbi_strdup_locale_ucs2		(const uint16_t *	src,
 				 unsigned int		src_size);
 extern char *
 _vbi_strdup_locale_utf8		(const char *		src);
+extern char *
+_vbi_strndup_locale_utf8	(const char *		src,
+				 unsigned int		src_size);
+extern char *
+_vbi_strdup_locale_teletext	(const uint8_t *	src,
+				 unsigned int		src_size,
+				 const vbi_character_set *cs);
 extern uint16_t *
 _vbi_strdup_ucs2_utf8		(const char *		src);
 

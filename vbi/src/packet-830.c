@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.c,v 1.1.2.3 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: packet-830.c,v 1.1.2.4 2004-07-09 16:10:52 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -25,25 +25,25 @@
 
 #include "bcd.h"		/* vbi_bcd2dec() */
 #include "hamm.h"		/* vbi_rev16p(), vbi_iham8() */
-#include "network.h"		/* vbi_nuid_from_cni() */
 #include "packet-830.h"
 
 /**
- * @addtogroup Packet830 Teletext Packet 8/30 Decoder 
+ * @addtogroup Packet830 Teletext Packet 8/30 Decoder
  * @ingroup LowDec
+ * @brief Functions to decode Teletext packets 8/30 (ETS 300 706).
  */
 
 /**
  * @param cni CNI of type VBI_CNI_TYPE_8301 is stored here.
- * @param buffer Teletext packet (last 42 bytes, i. e. without clock
- *   run-in and framing code), as in struct vbi_sliced.
+ * @param buffer Teletext packet as defined for @c VBI_SLICED_TELETEXT_B,
+ *   i.e. 42 bytes without clock run-in and framing code.
  *
  * Decodes a Teletext packet 8/30 format 1 according to
  * ETS 300 706 section 9.8.1, returning the 16 bit Country and
  * Network Identifier in @a cni.
  *
  * @returns
- * @c FALSE if the buffer contained incorrectable data.
+ * Always @c TRUE, no error checking possible.
  */
 vbi_bool
 vbi_decode_teletext_8301_cni	(unsigned int *		cni,
@@ -61,9 +61,10 @@ vbi_decode_teletext_8301_cni	(unsigned int *		cni,
  * @param time UTC time is stored here.
  * @param gmtoff Local time offset in seconds east of UTC is stored here,
  *   including daylight saving time, as in BSD and GNU struct tm tm_gmtoff.
- *   To get local time add @a gmtoff to @a time.
- * @param buffer Teletext packet (last 42 bytes, i. e. without clock
- *   run-in and framing code), as in struct vbi_sliced.
+ *   To get the local time of the network broadcasting this packet add
+ *   @a gmtoff to @a time.
+ * @param buffer Teletext packet as defined for @c VBI_SLICED_TELETEXT_B,
+ *   i.e. 42 bytes without clock run-in and framing code.
  * 
  * Decodes a Teletext packet 8/30 format 1 according to
  * ETS 300 706 section 9.8.1, returning the time data.
@@ -72,7 +73,8 @@ vbi_decode_teletext_8301_cni	(unsigned int *		cni,
  * with gmtoff zero.
  *
  * @returns
- * @c FALSE if the buffer contained incorrectable data.
+ * @c FALSE if the buffer contained incorrectable data, in this case
+ * @a time and @a gmtoff remain unchanged.
  */
 vbi_bool
 vbi_decode_teletext_8301_local_time
@@ -94,7 +96,7 @@ vbi_decode_teletext_8301_local_time
 	       +   buffer[14]
 	       - 0x11111);
 
-	if (vbi_bcd_vec_greater (bcd, 0x99999))
+	if (!vbi_is_bcd (bcd))
 		return FALSE;
 
 	mjd = vbi_bcd2dec (bcd);
@@ -104,7 +106,7 @@ vbi_decode_teletext_8301_local_time
 	       +  buffer[17]
 	       - 0x111111);
 
-	if (vbi_bcd_vec_greater (bcd, 0x295959))
+	if (vbi_bcd_digits_greater (bcd, 0x295959))
 		return FALSE;
 
 	utc  = (bcd & 15)        + ((bcd >> 4) & 15) * 10;
@@ -135,15 +137,16 @@ vbi_decode_teletext_8301_local_time
 
 /**
  * @param cni CNI of type VBI_CNI_TYPE_8302 is stored here.
- * @param buffer Teletext packet (last 42 bytes, i. e. without clock
- *   run-in and framing code), as in struct vbi_sliced.
+ * @param buffer Teletext packet as defined for @c VBI_SLICED_TELETEXT_B,
+ *   i.e. 42 bytes without clock run-in and framing code.
  *
  * Decodes a Teletext packet 8/30 format 2 according to
  * ETS 300 706 section 9.8.2, returning the 16 bit Country and
  * Network Identifier in @a cni.
  *
  * @returns
- * @c FALSE if the buffer contained incorrectable data.
+ * @c FALSE if the buffer contained incorrectable data, in this case
+ * @a cni remains unchanged.
  */
 vbi_bool
 vbi_decode_teletext_8302_cni	(unsigned int *		cni,
@@ -178,14 +181,15 @@ vbi_decode_teletext_8302_cni	(unsigned int *		cni,
 
 /**
  * @param pid PDC data is stored here.
- * @param buffer Teletext packet (last 42 bytes, i. e. without clock
- *   run-in and framing code), as in struct vbi_sliced.
+ * @param buffer Teletext packet as defined for @c VBI_SLICED_TELETEXT_B,
+ *   i.e. 42 bytes without clock run-in and framing code.
  * 
  * Decodes a Teletext packet 8/30 format 2 according to
  * ETS 300 231, storing PDC recording-control data in @a pid.
  *
  * @returns
- * @c FALSE if the buffer contained incorrectable data.
+ * @c FALSE if the buffer contained incorrectable data, in this case
+ * @a pid remains unchanged.
  */
 vbi_bool
 vbi_decode_teletext_8302_pdc	(vbi_program_id *	pid,
@@ -194,7 +198,6 @@ vbi_decode_teletext_8302_pdc	(vbi_program_id *	pid,
 	uint8_t b[13];
 	unsigned int i;
 	int error;
-	unsigned int cni;
 
 	assert (NULL != pid);
 	assert (NULL != buffer);
@@ -213,13 +216,12 @@ vbi_decode_teletext_8302_pdc	(vbi_program_id *	pid,
 	if (error < 0)
 		return FALSE;
 
-	cni = (+ ((b[ 7] & 0x0F) << 12)
-	       + ((b[10] & 0x03) << 10)
-	       + ((b[11] & 0xC0) << 2)
-	       +  (b[ 8] & 0xC0)
-	       +  (b[11] & 0x3F));
-
-	pid->nuid	= vbi_nuid_from_cni (VBI_CNI_TYPE_8302, cni);
+	pid->cni_type	= VBI_CNI_TYPE_8302;
+	pid->cni	= (+ ((b[ 7] & 0x0F) << 12)
+			   + ((b[10] & 0x03) << 10)
+			   + ((b[11] & 0xC0) << 2)
+			   +  (b[ 8] & 0xC0)
+			   +  (b[11] & 0x3F));
 
 	pid->channel	= VBI_PID_CHANNEL_LCI_0 + ((b[6] >> 2) & 3);
 

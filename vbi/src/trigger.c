@@ -1,11 +1,7 @@
 /*
  *  libzvbi - Triggers
  *
- *  Based on EACEM TP 14-99-16 "Data Broadcasting", rev 0.8;
- *  ATVEF "Enhanced Content Specification", v1.1 (www.atvef.com);
- *  and http://developer.webtv.net
- *
- *  Copyright (C) 2001 Michael H. Schimek
+ *  Copyright (C) 2001-2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,48 +18,57 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.4.2.5 2004-05-12 01:40:44 mschimek Exp $ */
+/* $Id: trigger.c,v 1.4.2.6 2004-07-09 16:10:54 mschimek Exp $ */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <time.h>
-#include <limits.h>
-#include <math.h>
+/*
+   Based on EACEM TP 14-99-16 "Data Broadcasting", rev 0.8;
+   ATVEF "Enhanced Content Specification", v1.1 (www.atvef.com);
+   and http://developer.webtv.net
+ */
 
+#include <stdio.h>		/* FILE */
+#include <stdlib.h>		/* malloc() */
+#include <string.h>		/* strcmp() */
+#include <ctype.h>		/* isdigit(), isxdigit(), tolower() */
+#include <time.h>		/* time_t, mktime() */
+#include <limits.h>		/* INT_MAX */
+#include <math.h>		/* fabs() */
+#include "conv.h"		/* _vbi_strdup_locale_utf8() */
+#include "misc.h"		/* CLEAR(), strndup() */
 #include "trigger.h"
-#include "tables.h"
-#include "vbi_decoder-priv.h"
-#include "misc.h"
 
-struct vbi_trigger {
-	vbi_trigger *		next;
+struct _vbi_trigger {
+	_vbi_trigger *		next;
 	vbi_link		link;
-	double			fire;
-	unsigned char		view;
+	vbi_network		source_network;
+	vbi_network		target_network;
+	double			fire_time;
+	int			view;
 	vbi_bool		_delete;
 };
 
 static vbi_bool
-verify_checksum(unsigned char *s, int count, int checksum)
+verify_checksum			(const uint8_t *	s,
+				 unsigned int		s_size,
+				 unsigned int		checksum)
 {
-	register unsigned long sum2, sum1 = checksum;
+	unsigned int sum1;
+	unsigned int sum2;
 
-	for (; count > 1; count -= 2) {
+	sum1 = checksum;
+
+	for (; s_size > 1; s_size -= 2) {
 		sum1 += *s++ << 8;
 		sum1 += *s++;
 	}
 
 	sum2 = sum1;
 
-	/*
-	 *  There seems to be confusion about how left-over
-	 *  bytes shall be added, the example C code in
-	 *  RFC 1071 subclause 4.1 contradicts the definition
-	 *  in subclause 1 (zero pad to 16 bit).
-	 */
-	if (count > 0) {
+	/* There seems to be confusion about how left-over bytes shall
+	   be added. The example C code in RFC 1071 subclause 4.1
+	   contradicts the definition in subclause 1 (zero pad to 16
+	   bit). Networks don't get this right either, so we try both. */
+	if (s_size > 0) {
 		sum1 += *s << 8; /* correct */
 		sum2 += *s << 0; /* wrong */
 	}
@@ -74,223 +79,366 @@ verify_checksum(unsigned char *s, int count, int checksum)
 	while (sum2 >= (1 << 16))
 		sum2 = (sum2 & 0xFFFFUL) + (sum2 >> 16);
 
-	return sum1 == 0xFFFFUL || sum2 == 0xFFFFUL;
+	return (0xFFFFUL == sum1 || 0xFFFFUL == sum2);
 }
 
 static int
-parse_dec(unsigned char *s, int digits)
+parse_dec			(const uint8_t *	s,
+				 unsigned int		n_digits)
 {
-	int n = 0;
+	int r;
 
-	while (digits-- > 0) {
-		if (!isdigit(*s))
+	r = 0;
+
+	while (n_digits-- > 0) {
+		if (!isdigit (*s))
 			return -1;
 
-		n = n * 10 + *s++ - '0';
+		r = r * 10 + (*s++ - '0');
 	}
 
-	return n;
+	return r;
 }
 
 static int
-parse_hex(unsigned char *s, int digits)
+parse_hex			(const uint8_t *	s,
+				 unsigned int		n_digits)
 {
-	int n = 0;
+	int r;
 
-	while (digits-- > 0) {
-		if (!isxdigit(*s))
+	r = 0;
+
+	while (n_digits-- > 0) {
+		if (!isxdigit (*s))
 			return -1;
 
-		n = n * 16
-			+ (*s & 15) + ((*s > '9') ? 9 : 0);
+		r = r * 16 + (*s & 15) + ((*s > '9') ? 9 : 0);
 		s++;
 	}
 
-	return n;
+	return r;
 }
 
-/*
- *  XXX http://developer.webtv.net/itv/tvlink/main.htm adds more ...???
- */
+/* XXX http://developer.webtv.net/itv/tvlink/main.htm adds more ...??? */
 static time_t
-parse_date(unsigned char *s)
+parse_date			(const uint8_t *	s)
 {
 	struct tm tm;
 
-	memset(&tm, 0, sizeof(tm));
+	CLEAR (tm);
 
-	if ((tm.tm_year = parse_dec(s + 0, 4)) < 0
-	    || (tm.tm_mon = parse_dec(s + 4, 2)) < 0
-	    || (tm.tm_mday = parse_dec(s + 6, 2)) < 0)
+	if ((tm.tm_year = parse_dec (s + 0, 4)) < 0
+	    || (tm.tm_mon = parse_dec (s + 4, 2)) < 0
+	    || (tm.tm_mday = parse_dec (s + 6, 2)) < 0)
 		return (time_t) -1;
-	if (s[8]) {
-		if (s[8] != 'T'
-		    || (tm.tm_hour = parse_dec(s + 9, 2)) < 0
-		    || (tm.tm_min = parse_dec(s + 11, 2)) < 0)
+
+	if ('T' == s[8]) {
+		if ((tm.tm_hour = parse_dec (s + 9, 2)) < 0
+		    || (tm.tm_min = parse_dec (s + 11, 2)) < 0)
 			return (time_t) -1;
-		if (s[13] &&
-		    (tm.tm_sec = parse_dec(s + 13, 2)) < 0)
+
+		if (0 != s[13] &&
+		    (tm.tm_sec = parse_dec (s + 13, 2)) < 0)
 			return (time_t) -1;
 	}
 
 	tm.tm_year -= 1900;
 
-	return mktime(&tm);
+	// XXX tm is utc
+	return mktime (&tm);
 }
 
 static int
-parse_time(unsigned char *s)
+parse_time			(const uint8_t *	s)
 {
-	int seconds, frames = 0;
+	int seconds;
+	int frames;
 
-	seconds = strtoul(s, (char **) &s, 10);
+	seconds = strtoul (s, &s, 10);
+	frames = 0;
 
-	if (*s)
-		if (*s != 'F'
-		    || (frames = parse_dec(s + 1, 2)) < 0)
+	if ('F' == *s)
+		if ((frames = parse_dec (s + 1, 2)) < 0)
 			return -1;
 
 	return seconds * 25 + frames;
 }
 
 static int
-parse_bool(unsigned char *s)
+parse_bool			(const uint8_t *	s)
 {
-	return (strcmp(s, "1") == 0) || (strcasecmp(s, "true") == 0);
+	return (0 == strcmp (s, "1")
+		|| 0 == strcmp (s, "true")
+		|| 0 == strcmp (s, "TRUE"));
+}
+
+static const uint8_t *
+parse_string			(uint8_t *		buffer,
+				 unsigned int		buffer_size,
+				 const uint8_t *	s,
+				 int			delimiter)
+{
+	uint8_t *end;
+	int c;
+
+	end = buffer + buffer_size - 1;
+
+	while (':' != (c = *s)) {
+		if (delimiter == c)
+			break;
+
+		if ('%' == c) {
+			if ((c = parse_hex (s + 1, 2)) < 0x20)
+				return NULL;
+			s += 3;
+		} else {
+			++s;
+		}
+
+		if (0 == c || buffer >= end)
+			return NULL;
+
+		*buffer++ = c;
+	}
+
+	*buffer = 0;
+
+	return s;
+}
+
+/* NB returns UTF-8 string in buffer. */
+static const uint8_t *
+parse_quoted			(uint8_t *		buffer,
+				 unsigned int		buffer_size,
+				 const uint8_t *	s,
+				 int			delimiter)
+{
+	uint8_t *end;
+        vbi_bool quote;
+	int c;
+
+	quote = FALSE;
+	end = buffer + buffer_size - 1;
+
+	while (c = *s, quote || delimiter != c) {
+		if ('"' == c) {
+			quote ^= TRUE;
+			++s;
+		} else if ('%' == c) {
+			if ((c = parse_hex (s + 1, 2)) < 0x20)
+				return NULL;
+			s += 3;
+		} else {
+			++s;
+		}
+
+		if (0 == c || (buffer + 1) >= end)
+			return NULL;
+
+		/* Latin-1 to UTF-8 */
+
+		if (c < 0x80) {
+			*buffer++ = c;
+		} else {
+			buffer[0] = 0xC0 | (c >> 6);
+			buffer[1] = 0x80 | (c & 0x3F);
+			buffer += 2;
+		}
+	}
+
+	*buffer = 0;
+
+	return s;
 }
 
 static int
-keyword(unsigned char *s, const unsigned char **keywords, int num)
+keyword				(const uint8_t *	s,
+				 const char **		keywords,
+				 unsigned int		n_keywords)
 {
-	int i;
+	unsigned int i;
+	unsigned int j;
 
-	if (!s[0])
+	if (0 == s[0])
 		return -1;
-	else if (!s[1]) {
-		for (i = 0; i < num; i++)
-			if (tolower(s[0]) == keywords[i][0])
-				return i;
-	} else
-		for (i = 0; i < num; i++)
-			if (strcasecmp(s, keywords[i]) == 0)
-				return i;
+
+	for (i = 0; i < n_keywords; ++i) {
+		for (j = 0; s[j]; ++j) {
+			if (tolower (s[j]) != keywords[i][j])
+				goto next;
+		}
+
+		if (0 == keywords[i][j])
+			return i;
+		/* First character abbreviation. */
+		if (1 == j)
+			return i;
+	next:
+		;
+	}
+
 	return -1;
 }
 
-static unsigned char *
-parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
+static void
+_vbi_trigger_dump		(_vbi_trigger *		t,
+				 FILE *			fp,
+				 const char *		type,
+				 double			current_time)
 {
-	static const unsigned char *attributes[] = {
-		"active", "countdown", "delete", "expires",
-		"name", "priority", "script"
-	};
-	unsigned char buf[256];
-	unsigned char *s, *e, *d, *dx;
-	int active, countdown;
-	int c;
+	fprintf (fp, "Time %f %s link\n", current_time, type);
 
-	t->link.url[0]    = 0;
-	t->link.name[0]   = 0;
-	t->link.script[0] = 0;
-	t->link.priority  = 9;
-	t->link.expires   = 0.0;
-	t->link.autoload  = FALSE;
-	t->_delete	  = FALSE;
-	t->fire		  = now;
+	_vbi_link_dump (&t->link, fp);
+	
+	fputs ("source: ", fp);
+
+	_vbi_network_dump (&t->source_network, fp);
+
+	fprintf (fp, "fire=%f view=%u ('%c') delete=%u\n",
+		 t->fire_time, t->view, t->view, t->_delete);
+}
+
+/** @internal */
+void
+_vbi_trigger_destroy		(_vbi_trigger *		t)
+{
+	assert (NULL != t);
+
+	vbi_link_destroy (&t->link);
+	vbi_network_destroy (&t->source_network);
+	vbi_network_destroy (&t->target_network);
+
+	CLEAR (*t);
+}
+
+/** @internal */
+vbi_bool
+_vbi_trigger_init		(_vbi_trigger *		t,
+				 const vbi_network *	nk,
+				 double			current_time)
+{
+	assert (NULL != t);
+
+	vbi_link_init (&t->link);
+
+	if (!vbi_network_copy (&t->source_network, nk))
+		return FALSE;
+
+	vbi_network_init (&t->target_network);
+
+	t->fire_time	  = current_time;
 	t->view		  = 'w';
-	t->link.itv_type  = 0;
-	active		  = INT_MAX;
+	t->_delete	  = FALSE;
 
-	for (s = s1;; s++) {
-		e = s;
+	return TRUE;
+}
 
-		c = *s;
+/** @internal */
+void
+_vbi_trigger_delete		(_vbi_trigger *		t)
+{
+	if (NULL == t)
+		return;
 
-		if (c == '<') {
+	_vbi_trigger_destroy (t);
+
+	free (t);
+}
+
+static const uint8_t *
+_vbi_trigger_from_eacem		(_vbi_trigger *		t,
+				 const uint8_t *	s,
+				 const vbi_network *	nk,
+				 double			current_time)
+{
+	const uint8_t *s1;
+	int active;
+
+	if (!_vbi_trigger_init (t, nk, current_time))
+		return NULL;
+
+	active = INT_MAX;
+
+	for (s1 = s;; ++s) {
+		const uint8_t *begin;
+		int c;
+
+		begin = s;
+
+		switch ((c = *s)) {
+		case 0:
+			break;
+
+		case '<':
 			if (s != s1)
-				return NULL;
+				goto failure;
 
-			d = t->link.url;
-			dx = d + sizeof(t->link.url) - 2;
-
-			for (s++; (c = *s) != '>'; s++)
-				if (c && d < dx)
-					*d++ = c;
-				else
-					return NULL;
-			*d++ = 0;
-		} else
-
-		if (c == '[' || c == '(') {
-			int delim = (c == '[') ? ']' : ')';
-			unsigned char *attr;
-			const unsigned char *text = "";
-			vbi_bool quote = FALSE;
-
-			attr = d = buf;
-			dx = d + sizeof(buf) - 2;
-
-			for (s++; c = *s, c != ':' && c != delim; s++) {
-				if (c == '%') {
-					if ((c = parse_hex(s + 1, 2)) < 0x20)
-						return NULL;
-					s += 2;
-				}
-
-				if (c && d < dx)
-					*d++ = c;
-				else
-					return NULL;
+			for (++s; '>' != (c = *s); ++s) {
+				if (0 == c)
+					goto failure;
 			}
 
-			*d++ = 0;
+			t->link.url = vbi_strndup (begin + 1, s - begin - 1);
+			if (!t->link.url)
+				goto failure;
 
-			if (!attr[0])
-				return NULL;
+			break;
 
-			s++;
+		case '[':
+		case '(': /* some networks transmit ( instead of [ */
+		{
+			static const char *attrs [] = {
+				"active",
+				"countdown",
+				"delete",
+				"expires",
+				"name",
+				"priority",
+				"script"
+			};
+			uint8_t buf1[256];
+			uint8_t buf2[256];
+			int delimiter;
 
-			if (c != ':') {
-				if (!verify_checksum(s1, e - s1,
-						     strtoul(attr, NULL, 16))) {
+			delimiter = (c == '[') ? ']' : ')';
+
+			s = parse_string (buf1, sizeof (buf1), s, delimiter);
+			if (!s || 0 == buf1[0])
+				goto failure;
+
+			if (':' != *s++) {
+				int chks;
+
+				chks = strtoul (buf1, NULL, 16);
+				if (!verify_checksum (s1, begin - s1, chks)) {
 					if (0)
-						fprintf(stderr, "checksum mismatch\n");
-					return NULL;
+						fprintf (stderr,
+							 "bad checksum\n");
+					goto failure;
 				}
 
 				break;
 			}
 
-			for (text = d; quote || (c = *s) != delim; s++) {
-				if (c == '"')
-					quote ^= TRUE;
-				else if (c == '%') {
-					if ((c = parse_hex(s + 1, 2)) < 0x20)
-						return NULL;
-					s += 2;
-				}
+			s = parse_quoted (buf2, sizeof (buf2), s, delimiter);
+			if (!s || 0 == buf2[0])
+				goto failure;
 
-				if (c && d < dx)
-					*d++ = c;
-				else
-					return NULL;
-			}
+			switch (keyword (buf1, attrs, N_ELEMENTS (attrs))) {
+				int countdown;
 
-			*d++ = 0;
-
-			switch (keyword(attr, attributes,
-					sizeof(attributes) / sizeof(attributes[0]))) {
 			case 0: /* active */
-				active = parse_time(text);
+				active = parse_time (buf2);
 			       	if (active < 0)
-					return NULL;
+					goto failure;
 				break;
 
 			case 1: /* countdown */
-				countdown = parse_time(text);
+				countdown = parse_time (buf2);
 				if (countdown < 0)
-					return NULL;
-				t->fire = now + countdown / 25.0;
+					goto failure;
+				t->fire_time = current_time
+					+ countdown * (1 / 25.0);
 				break;
 
 			case 2: /* delete */
@@ -298,231 +446,231 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 				break;
 
                         case 3: /* expires */
-				t->link.expires = parse_date(text);
-				if (t->link.expires == (time_t) -1)
-					return NULL;
+				t->link.expires = parse_date (buf2);
+				if (t->link.expires < 0.0)
+					goto failure;
 				break;
 
 			case 4: /* name */
-				STRCOPY (t->link.name, text);
+				t->link.name = _vbi_strdup_locale_utf8 (buf2);
+				if (!t->link.name)
+					goto failure;
 				break;
 
                         case 5: /* priority */
-				t->link.priority = strtoul(text, NULL, 10);
-				if (t->link.priority > 9)
-					return NULL;
+				t->link.priority = strtoul (buf2, NULL, 10);
+				if ((unsigned int) t->link.priority > 9)
+					goto failure;
 				break;
 
 			case 6: /* script */
-				STRCOPY (t->link.script, text);
+				t->link.script = strdup (buf2);
+				if (!t->link.script)
+					goto failure;
 				break;
 
 			default:
 				/* ignored */
 				break;
 			}
-		} else if (c == 0)
+
 			break;
-		else
-			return NULL;
+		}
+		
+		default:
+			goto failure;
+		}
 	}
 
-	if (t->link.expires <= 0.0)
-		t->link.expires = t->fire + active / 25.0;
-		/* EACEM eqv PAL/SECAM land, 25 fps */
-
 	if (!t->link.url)
-		return NULL;
+		goto failure;
 
-	if (strncmp(t->link.url, "http://", 7) == 0)
+	/* NB EACEM implies PAL/SECAM land, 25 fps */
+	if (t->link.expires <= 0.0)
+		t->link.expires = t->fire_time + active * (1 / 25.0);
+
+	if (0 == strncmp (t->link.url, "http://", 7)) {
 		t->link.type = VBI_LINK_HTTP;
-	else if (strncmp(t->link.url, "lid://", 6) == 0)
+	} else if (0 == strncmp (t->link.url, "lid://", 6)) {
 		t->link.type = VBI_LINK_LID;
-	else if (strncmp(t->link.url, "tw://", 5) == 0)
+	} else if (0 == strncmp (t->link.url, "tw://", 5)) {
 		t->link.type = VBI_LINK_TELEWEB;
-	else if (strncmp(t->link.url, "dummy", 5) == 0) {
-		t->link.pgno = parse_dec(t->link.url + 5, 2);
-#warning parse_dec signed
-		if (!t->link.name || t->link.pgno < 0 || t->link.url[7])
-			return NULL;
-		t->link.type = VBI_LINK_MESSAGE;
-	} else if (strncmp(t->link.url, "ttx://", 6) == 0) {
-		const struct vbi_cni_entry *p;
+	} else if (0 == strncmp (t->link.url, "ttx://", 6)) {
 		int cni;
 
-		cni = parse_hex(t->link.url + 6, 4);
-		if (cni < 0 || t->link.url[10] != '/')
-			return NULL;
+		cni = parse_hex (t->link.url + 6, 4);
+		if (cni < 0 || '/' != t->link.url[10])
+			goto failure;
 
-		t->link.pgno = parse_hex(t->link.url + 11, 3);
-		if (t->link.pgno < 0x100 || t->link.url[14] != '/')
-			return NULL;
+		t->link.pgno = parse_hex (t->link.url + 11, 3);
+		if (t->link.pgno < 0x100
+		    || t->link.pgno > 0x8FF
+		    || '/' != t->link.url[14])
+			goto failure;
 
-		t->link.subno = parse_hex(t->link.url + 15, 4);
-#warning parse_hex signed
+		t->link.subno = parse_hex (t->link.url + 15, 4);
 		if (t->link.subno < 0)
-			return NULL;
+			goto failure;
 
 		if (cni > 0) {
-#warning
-#if 0
-			for (p = vbi_cni_table; p->name; p++)
-				if (p->cni1 == cni || p->cni4 == cni)
-					break;
-			if (!p->name)
-				return NULL;
+			vbi_bool r;
 
-			t->link.nuid = p->id;
-#endif
-			return NULL;
-		} else
-			t->link.nuid = nuid;
+			switch (cni >> 8) {
+			case 0x04: /* Switzerland */
+			case 0x07: /* Ukraine */
+			case 0x0A: /* Austria */
+			case 0x0D: /* Germany */
+				r = vbi_network_set_cni (&t->target_network,
+							 VBI_CNI_TYPE_VPS,
+							 cni);
+				break;
 
-		t->link.type = VBI_LINK_PAGE;
-	} else
-		return NULL;
-
-	return s;
-}
-
-static unsigned char *
-parse_atvef(vbi_trigger *t, unsigned char *s1, double now)
-{
-	static const unsigned char *attributes[] = {
-		"auto", "expires", "name", "script",
-		"type" /* "t" */, "time", "tve",
-		"tve-level", "view" /* "v" */
-	};
-	static const unsigned char *type_attrs[] = {
-		"program", "network", "station", "sponsor",
-		"operator", "tve"
-	};
-	unsigned char buf[256];
-	unsigned char *s, *e, *d, *dx;
-	int c;
-
-	t->link.url[0]    = 0;
-	t->link.name[0]   = 0;
-	t->link.script[0] = 0;
-	t->link.priority  = 9;
-	t->fire      = now;
-	t->link.expires   = 0.0;
-	t->link.autoload  = FALSE;
-	t->_delete    = FALSE;
-	t->view      = 'w';
-	t->link.itv_type  = 0;
-
-	for (s = s1;; s++) {
-		e = s;
-		c = *s;
-
-		if (c == '<') {
-			if (s != s1)
-				return NULL;
-
-			d = t->link.url;
-			dx = d + sizeof(t->link.url) - 1;
-
-			for (s++; (c = *s) != '>'; s++)
-				if (c && d < dx)
-					*d++ = c;
-				else
-					return NULL;
-			*d++ = 0;
-		} else
-
-		if (c == '[') {
-			unsigned char *attr, *text = "";
-			vbi_bool quote = FALSE;
-
-			attr = d = buf;
-			dx = d + sizeof(buf) - 2;
-
-			for (s++; c = *s, c != ':' && c != ']'; s++) {
-				if (c == '%') {
-					if ((c = parse_hex(s + 1, 2)) < 0x20)
-						return NULL;
-					s += 2;
-				}
-
-				if (c && d < dx)
-					*d++ = c;
-				else
-					return NULL;
+			default:
+				r = vbi_network_set_cni (&t->target_network,
+							 VBI_CNI_TYPE_8301,
+							 cni);
+				break;
 			}
 
-			*d++ = 0;
+			if (!r)
+				goto failure;
 
-			if (!attr[0])
-				return NULL;
+			t->link.network = &t->target_network;
+		} else {
+			t->link.network = &t->source_network;
+		}
 
-			s++; 
+		t->link.type = VBI_LINK_PAGE;
+	} else {
+		goto failure;
+	}
 
-			if (c != ':') {
-				unsigned int i;
+	return s;
 
-				for (i = 1; i < (sizeof(type_attrs) / sizeof(type_attrs[0]) - 1); i++)
-					if (strcasecmp(type_attrs[i], attr) == 0)
-						break;
+	failure:
+	_vbi_trigger_destroy (t);
+	return NULL;
+}
 
-				if (i < (sizeof(type_attrs) / sizeof(type_attrs[0]) - 1)) {
-					t->link.itv_type = i + 1;
-					continue;
+static const uint8_t *
+_vbi_trigger_from_atvef		(_vbi_trigger *		t,
+				 const uint8_t *	s,
+				 const vbi_network *	nk,
+				 double			current_time)
+{
+	const uint8_t *s1;
+
+	if (!_vbi_trigger_init (t, nk, current_time))
+		return NULL;
+
+	for (s1 = s;; ++s) {
+		const uint8_t *begin;
+		int c;
+
+		begin = s;
+
+		switch ((c = *s)) {
+		case 0:
+			break;
+
+		case '<':
+			if (s != s1)
+				goto failure;
+
+			for (++s; '>' != (c = *s); ++s) {
+				if (0 == c)
+					goto failure;
+			}
+
+			t->link.url = vbi_strndup (begin + 1, s - begin - 1);
+			if (!t->link.url)
+				goto failure;
+
+			break;
+
+		case '[':
+		{
+			static const char *attrs [] = {
+				"auto",
+				"expires",
+				"name",
+				"script",
+				"type" /* "t" */,
+				"time",
+				"tve",
+				"tve-level",
+				"view" /* "v" */
+			};
+			uint8_t buf1[256];
+			uint8_t buf2[256];
+			int delimiter;
+
+			s = parse_string (buf1, sizeof (buf1), s, ']');
+			if (!s || 0 == buf1[0])
+				goto failure;
+
+			if (':' != *s++) {
+				int chks;
+
+				chks = strtoul (buf1, NULL, 16);
+				if (!verify_checksum (s1, begin - s1, chks)) {
+					if (0)
+						fprintf (stderr,
+							 "bad checksum\n");
+					goto failure;
 				}
-
-				if (!verify_checksum(s1, e - s1,
-						       strtoul(attr, NULL, 16)))
-					return NULL;
 
 				break;
 			}
 
-			for (text = d; quote || (c = *s) != ']'; s++) {
-				if (c == '"')
-					quote ^= TRUE;
-				else if (c == '%') {
-					if ((c = parse_hex(s + 1, 2)) < 0x20)
-						return NULL;
-					s += 2;
-				}
+			s = parse_quoted (buf2, sizeof (buf2), s, delimiter);
+			if (!s || 0 == buf2[0])
+				goto failure;
 
-				if (c && d < dx)
-					*d++ = c;
-				else
-					return NULL;
-			}
-
-			*d++ = 0;
-
-			switch (keyword(attr, attributes,
-					sizeof(attributes) / sizeof(attributes[0]))) {
+			switch (keyword (buf1, attrs, N_ELEMENTS (attrs))) {
 			case 0: /* auto */
-				t->link.autoload = parse_bool(text);
+				t->link.autoload = parse_bool (buf2);
 				break;
 
 			case 1: /* expires */
-				t->link.expires = parse_date(text);
+				t->link.expires = parse_date (buf2);
 				if (t->link.expires < 0.0)
-					return NULL;
+					goto failure;
 				break;
 
 			case 2: /* name */
-				STRCOPY (t->link.name, text);
+				t->link.name = _vbi_strdup_locale_utf8 (buf2);
+				if (!t->link.name)
+					goto failure;
 				break;
 
 			case 3: /* script */
-				STRCOPY (t->link.script, text);
+				t->link.script = strdup (buf2);
+				if (!t->link.script)
+					goto failure;
 				break;
 
 			case 4: /* type */
-				t->link.itv_type = keyword(text, type_attrs,
-					sizeof(type_attrs) / sizeof(type_attrs[0])) + 1;
+			{
+				static const char *types [] = {
+					"program",
+					"network",
+					"station",
+					"sponsor",
+					"operator",
+				};
+
+				/* -1 -> VBI_WEBLINK_UNKNOWN */
+				t->link.itv_type =
+					1 + keyword (buf2, types,
+						     N_ELEMENTS (types));
 				break;
+			}
 
 			case 5: /* time */
-				t->fire = parse_date(text);
-				if (t->fire < 0.0)
-					return NULL;
+				t->fire_time = parse_date (buf2);
+				if (t->fire_time < 0.0)
+					goto failure;
 				break;
 
 			case 6: /* tve */
@@ -531,188 +679,227 @@ parse_atvef(vbi_trigger *t, unsigned char *s1, double now)
 				break;
 
 			case 8: /* view (tve == v) */
-				t->view = *text;
+				t->view = buf2[0];
 				break;
 
 			default:
 				/* ignored */
 				break;
 			}
+		}
 
-		} else if (c == 0)
-			break;
-		else
-			return NULL;
+		default:
+			goto failure;
+		}
 	}
 
 	if (!t->link.url)
-		return NULL;
+		goto failure;
 
-	if (strncmp(t->link.url, "http://", 7) == 0)
+	if (0 == strncmp (t->link.url, "http://", 7)) {
 		t->link.type = VBI_LINK_HTTP;
-	else if (strncmp(t->link.url, "lid://", 6) == 0)
+	} else if (0 == strncmp (t->link.url, "lid://", 6)) {
 		t->link.type = VBI_LINK_LID;
-	else
-		return NULL;
+	} else {
+		goto failure;
+	}
 
 	return s;
+
+ failure:
+	_vbi_trigger_destroy (t);
+	return NULL;
 }
 
 /**
- * vbi_trigger_flush:
- * @param vbi Initialized vbi decoding context.
+ * @internal
+ * @param list List head.
  * 
- * Discard all triggers stored to fire at a later time. This function
- * must be called before deleting the @vbi context.
- **/
+ * Deletes a list of triggers.
+ */
 void
-vbi_trigger_flush(vbi_decoder *vbi)
+_vbi_trigger_list_delete	(_vbi_trigger **	list)
 {
-	vbi_trigger *t;
+	_vbi_trigger *t;
 
-	while ((t = vbi->triggers)) {
-		vbi->triggers = t->next;
-		free(t);
+	while ((t = *list)) {
+		*list = t->next;
+		_vbi_trigger_delete (t);
 	}
 }
 
 /**
- * vbi_deferred_trigger:
- * @param vbi Initialized vbi decoding context.
- * 
+ * @internal
+ * @param list List head.
+ * @param handlers Call these handlers.
+ * @param current_time Current time in seconds since epoch.
+ *
  * This function must be called at regular intervals,
  * preferably once per video frame, to fire (send a trigger
  * event) previously received triggers which reached their
- * fire time. 'Now' is supposed to be @vbi->time.
- **/
-void
-vbi_deferred_trigger(vbi_decoder *vbi)
+ * fire time.
+ */
+unsigned int
+_vbi_trigger_list_fire		(_vbi_trigger **	list,
+				 _vbi_event_handler_list *handlers,
+				 double		current_time)
 {
-	vbi_trigger *t, **tp;
+	_vbi_trigger *t;
+	unsigned int count;
 
-	for (tp = &vbi->triggers; (t = *tp); tp = &t->next)
-		if (t->fire <= vbi->time) {
-			vbi_event ev;
+	count = 0;
 
-			ev.type = VBI_EVENT_TRIGGER;
-			ev.ev.trigger = &t->link;
-#warning obsolete
-//			vbi_send_event(vbi, &ev);
+	while ((t = *list)) {
+		if (t->fire_time <= current_time) {
+			vbi_event e;
 
-			*tp = t->next;
-			free(t);
-		} else
-			tp = &t->next;
+			e.type		= VBI_EVENT_TRIGGER;
+			e.network	= &t->source_network;
+			e.timestamp	= current_time;
+			e.ev.trigger	= &t->link;
+
+			_vbi_event_handler_list_send (handlers, &e);           
+
+			*list = t->next;
+			_vbi_trigger_delete (t);
+
+			++count;
+		} else {
+			list = &t->next;
+		}
+	}
+
+	return count;
 }
 
-static void
-add_trigger(vbi_decoder *vbi, vbi_trigger *a)
+static vbi_bool
+add_trigger			(_vbi_trigger **	list,
+				 _vbi_event_handler_list *handlers,
+				 _vbi_trigger *		t1,
+				 double			current_time)
 {
-	vbi_trigger *t;
+	_vbi_trigger *t;
 
-	if (a->_delete) {
-		vbi_trigger **tp;
+	if (t->_delete) {
+		_vbi_trigger **l;
 
-		for (tp = &vbi->triggers; (t = *tp); tp = &t->next)
-			if (strcmp(a->link.url, t->link.url) == 0
-			    && fabs(a->fire - t->fire) < 0.1) {
-				*tp = t->next;
-				free(t);
-			} else
-				tp = &t->next;
+		for (l = list; (t = *l); l = &t->next) {
+			if (0 == strcmp (t1->link.url, t->link.url)
+			    && fabs (t1->fire_time - t->fire_time) < 0.1) {
+				*l = t->next;
+				_vbi_trigger_delete (t);
+			} else {
+				l = &t->next;
+			}
+		}
 
-		return;
+		_vbi_trigger_destroy (t1);
+
+		return TRUE;
 	}
 
-	for (t = vbi->triggers; t; t = t->next)
-		if (strcmp(a->link.url, t->link.url) == 0
-		    && fabs(a->fire - t->fire) < 0.1)
-			return;
-
-	if (a->fire <= vbi->time) {
-		vbi_event ev;
-
-		ev.type = VBI_EVENT_TRIGGER;
-		ev.ev.trigger = &a->link;
-#warning obsolete
-//		vbi_send_event(vbi, &ev);
-
-		return;
+	for (t = *list; t; t = t->next) {
+		if (0 == strcmp (t1->link.url, t->link.url)
+		    && fabs (t1->fire_time - t->fire_time) < 0.1) {
+			_vbi_trigger_destroy (t1);
+			return TRUE; /* retransmitted; is already listed */
+		}
 	}
 
-	if (!(t = malloc(sizeof(*t))))
-		return;
+	if (t1->fire_time <= current_time) {
+		vbi_event e;
 
-	t->next = vbi->triggers;
-	vbi->triggers = t;
+		e.type		= VBI_EVENT_TRIGGER;
+		e.network	= &t1->source_network;
+		e.timestamp	= current_time;
+		e.ev.trigger	= &t1->link;
+
+		_vbi_event_handler_list_send (handlers, &e);           
+
+		_vbi_trigger_destroy (t1);
+
+		return TRUE;
+	}
+
+	if (!(t = malloc (sizeof (*t))))
+		return FALSE;
+
+	*t = *t1;
+
+	t->next = *list;
+	*list = t;
+
+	return TRUE;
 }
 
 /**
- * vbi_atvef_trigger:
- * @param vbi Initialized vbi decoding context.
- * @param s EACEM string (supposedly ASCII).
+ * @internal
+ * @param s NUL terminated EACEM string (Latin-1). XXX better make that
+ *   UCS-2.
  * 
- * Parse an EACEM string and add it to the trigger list (where it
- * may fire immediately or at a later time).
- **/
-void
-vbi_eacem_trigger(vbi_decoder *vbi, unsigned char *s)
+ * Parse an EACEM trigger string and add it to the trigger list, where it
+ * may fire immediately or at a later time.
+ */
+vbi_bool
+_vbi_trigger_list_add_eacem	(_vbi_trigger **	list,
+				 _vbi_event_handler_list *handlers,
+				 const uint8_t *	s,
+				 const vbi_network *	nk,
+				 double			current_time)
 {
-	vbi_trigger t;
+	_vbi_trigger t;
 
-	while ((s = parse_eacem(&t, s, vbi->network.ev.network.nuid, vbi->time))) {
+	while ((s = _vbi_trigger_from_eacem (&t, s, nk, current_time))) {
 		if (0)
-			fprintf(stderr, "At %f eacem link type %d '%s', <%s> '%s', "
-				"%08x %03x.%04x, exp %f, pri %d %d, auto %d; "
-				"fire %f view %d del %d\n",
-				vbi->time,
-				t.link.type, t.link.name, t.link.url, t.link.script,
-				t.link.nuid, t.link.pgno, t.link.subno,
-				t.link.expires, t.link.priority, t.link.itv_type,
-				t.link.autoload, t.fire, t.view, t._delete);
+			_vbi_trigger_dump (&t, stderr, "EACEM", current_time);
 
 		t.link.eacem = TRUE;
 
-		if (t.link.type == VBI_LINK_LID
-		    || t.link.type == VBI_LINK_TELEWEB)
-			return;
+		if (VBI_LINK_LID == t.link.type
+		    || VBI_LINK_TELEWEB == t.link.type) {
+			_vbi_trigger_destroy (&t);
+			return FALSE;
+		}
 
-		add_trigger(vbi, &t);
+		if (!add_trigger (list, handlers, &t, current_time))
+			return FALSE;
 	}
+
+	return TRUE;
 }
 
 /**
- * vbi_atvef_trigger:
- * @param vbi Initialized vbi context.
- * @param s ATVEF string (ASCII).
+ * @internal
+ * @param s NUL terminated ATVEF string (ASCII).
  * 
- * Parse an ATVEF string and add it to the trigger list (where it
- * may fire immediately or at a later time).
- **/
-void
-vbi_atvef_trigger(vbi_decoder *vbi, unsigned char *s)
+ * Parse an ATVEF trigger string and add it to the trigger list, where it
+ * may fire immediately or at a later time.
+ */
+vbi_bool
+_vbi_trigger_list_add_atvef	(_vbi_trigger **	list,
+				 _vbi_event_handler_list *handlers,
+				 const uint8_t *	s,
+				 const vbi_network *	nk,
+				 double			current_time)
 {
-	vbi_trigger t;
+	_vbi_trigger t;
 
-	if (parse_atvef(&t, s, vbi->time)) {
+	if (_vbi_trigger_from_atvef (&t, s, nk, current_time)) {
 		if (0)
-			fprintf(stderr, "At %f atvef link type %d '%s', <%s> '%s', "
-				"%08x %03x.%04x, exp %f, pri %d %d, auto %d; "
-				"fire %f view %d del %d\n",
-				vbi->time,
-				t.link.type, t.link.name, t.link.url, t.link.script,
-				t.link.nuid, t.link.pgno, t.link.subno,
-				t.link.expires, t.link.priority, t.link.itv_type,
-				t.link.autoload, t.fire, t.view, t._delete);
+			_vbi_trigger_dump (&t, stderr, "ATVEF", current_time);
 
 		t.link.eacem = FALSE;
 
-		if (t.view == 't' /* WebTV */
-		    || strchr(t.link.url, '*') /* trigger matching */
-		    || t.link.type == VBI_LINK_LID)
-			return;
+		if ('t' == t.view /* WebTV */
+		    || strchr (t.link.url, '*') /* trigger matching */
+		    || VBI_LINK_LID == t.link.type) {
+			_vbi_trigger_destroy (&t);
+			return FALSE;
+		}
 
-		add_trigger(vbi, &t);
+		if (!add_trigger (list, handlers, &t, current_time))
+			return FALSE;
 	}
-}
 
+	return TRUE;
+}
