@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.11 2002-05-07 06:39:30 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.12 2002-05-09 21:04:18 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -528,6 +528,7 @@ reschedule:
 			front_pts = pts;
 
 		if (verbose > 0 && (packet_count & 3) == 0) {
+			extern double in_fifo_load, out_fifo_load;
 			double system_load = 1.0 - get_idle();
 			int min, sec;
 
@@ -535,12 +536,19 @@ reschedule:
 			min = sec / 60;
 			sec -= min * 60;
 
+#ifdef VIDEO_FIFO_TEST
+			printv(1, "%d:%02d (%.1f MB), system load %4.1f %%"
+				" [V%2.1f:%2.1f]",
+				min, sec, bytes_out / (double)(1 << 20),
+				100.0 * system_load, in_fifo_load, out_fifo_load);
+#else
 			printv(1, "%d:%02d (%.1f MB), system load %4.1f %%",
 				min, sec, bytes_out / (double)(1 << 20),
 				100.0 * system_load);
-
+#endif
 			if (video_frames_dropped > 0)
-				printv(1, ", %5.2f %% dropped",
+				printv(1, ", %llu (%5.2f %%) dropped",
+					video_frames_dropped,
 					100.0 * video_frames_dropped / video_frame_count);
 
 #if 0 /* garetxe: num_buffers_queued doesn't exist any longer */

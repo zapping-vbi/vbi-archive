@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.28 2002-05-07 06:35:09 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.29 2002-05-09 21:03:57 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -52,6 +52,11 @@ struct bs_rec		video_out;
 long long		video_frame_count;
 long long		video_frames_dropped;
 double 			video_eff_bit_rate;
+
+#ifdef VIDEO_FIFO_TEST
+double			in_fifo_load;
+double			out_fifo_load;
+#endif
 
 /* XXX options */
 int			motion;			// current search range
@@ -91,10 +96,7 @@ mp1e_static_context(void)
 static const unsigned char
 quant_res_intra[32] __attribute__ ((SECTION("video_tables") aligned (CACHE_LINE))) =
 {
-	/* 1, 1, */
-	1, 1, /* FIXME somewhere in p-i an overflow is raising its ugly head,
-	         find out why. for now this must suffice. */
-	2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+	1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 	16, 16, 18, 18, 20, 20, 22, 22,	24, 24, 26, 26, 28, 28, 30, 30
 };
 
@@ -1723,6 +1725,17 @@ thread_body(mpeg1_context *mpeg1)
 
 					this->org = b->data;
 					this->time = b->time;
+
+#ifdef VIDEO_FIFO_TEST
+					{
+						double now = current_time();
+
+						in_fifo_load = mpeg1->nominal_frame_rate
+							* (now - b->time);
+						out_fifo_load += (mpeg1->prod.fifo->full.members
+							- out_fifo_load) * 0.1;
+					}
+#endif
 				} else {
 					this->buffer = NULL;
 					this->org = NULL;
