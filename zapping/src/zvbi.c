@@ -521,7 +521,8 @@ on_vbi_prefs_changed		(const gchar *key,
     {
       D();
       /* TTX mode */
-      if (main_info->current_mode == TVENG_NO_CAPTURE)
+      if (main_info->current_mode == TVENG_TELETEXT
+	  || main_info->current_mode == TVENG_NO_CAPTURE)
 	zmisc_switch_mode(TVENG_CAPTURE_WINDOW, main_info);
       zvbi_close_device();
       D();
@@ -557,14 +558,16 @@ static void cc_event(vbi_event *ev, void *data)
   write(pipe[1], "", 1);
 }
 
+#if 0 /* temporarily disabled */
+
 /* Trigger handling */
 static gint trigger_timeout_id = -1;
 static gint trigger_client_id = -1;
 static vbi_link last_trigger;
 
 static void
-on_trigger_clicked			(gpointer	ignored,
-					 vbi_link	*trigger)
+on_trigger_clicked		(GtkWidget *		widget,
+				 vbi_link *		trigger)
 {
   GError *err = NULL;
   switch (trigger->type)
@@ -583,8 +586,11 @@ on_trigger_clicked			(gpointer	ignored,
 
     case VBI_LINK_PAGE:
     case VBI_LINK_SUBPAGE:
-      cmd_run_printf ("zapping.ttx_open_new(%x, %x)",
-		      trigger->pgno, trigger->subno);
+      python_command_printf (widget,
+			     "zapping.ttx_open_new(%x, %d)",
+			     trigger->pgno,
+			     (trigger->subno <= 0 || trigger->subno > 0x99) ?
+			     vbi_bcd2dec (trigger->subno) : -1);
       break;
 
     case VBI_LINK_LID:
@@ -733,6 +739,10 @@ acknowledge_trigger			(vbi_link	*link)
   g_free(buffer);
 }
 
+#endif /* 0 */
+
+#if 0 /* temporarily disabled */
+
 static void
 update_main_title (void)
 {
@@ -740,15 +750,32 @@ update_main_title (void)
   gchar *name = NULL;
 
   if (*current_network.name)
-    name = current_network.name;
-  /* else switch away from known network */
+    {
+      name = current_network.name;
+      /* FIXME the nn encoding should be UTF-8, but isn't
+	 really defined. g_convert returns NULL on failure. */
+      name = g_convert (name, strlen (name),
+			"UTF-8", "ISO-8859-1",
+			NULL, NULL, NULL);
+    }
+  else
+    {
+      /* switch away from known network */
+    }
 
-  channel = tveng_tuned_channel_nth(global_channel_list, cur_tuned_channel);
+  channel = tveng_tuned_channel_nth (global_channel_list,
+				     cur_tuned_channel);
   if (!channel)
-    z_set_main_title(NULL, name);
+    z_set_main_title (NULL, name);
   else if (!channel->name)
-    z_set_main_title(channel, name);
+    z_set_main_title (channel, name);
+
+  g_free (name);
 }
+
+#endif
+
+#if 0 /* temporarily disabled */
 
 static gint trigger_timeout		(gint	client_id)
 {
@@ -779,6 +806,8 @@ static gint trigger_timeout		(gint	client_id)
 
   return TRUE;
 }
+
+#endif /* 0 */
 
 /* Open the configured VBI device, FALSE on error */
 gboolean
@@ -830,6 +859,7 @@ zvbi_open_device(const char *device)
 				 VBI_EVENT_CAPTION | VBI_EVENT_TTX_PAGE,
 				 cc_event, osd_pipe) != 0);
   D();
+#if 0 /* temporarily disabled */
   if (trigger_client_id >= 0)
     unregister_ttx_client(trigger_client_id);
   if (trigger_timeout_id >= 0)
@@ -837,6 +867,7 @@ zvbi_open_device(const char *device)
   trigger_client_id = register_ttx_client();
   trigger_timeout_id = gtk_timeout_add(100, (GtkFunction)trigger_timeout,
 				       GINT_TO_POINTER(trigger_client_id));
+#endif
   return TRUE;
 #endif
 
@@ -857,6 +888,7 @@ zvbi_close_device(void)
   if (!vbi) /* disabled */
     return;
 
+#if 0 /* temporarily disabled */
   if (trigger_timeout_id >= 0)
     gtk_timeout_remove(trigger_timeout_id);
   if (trigger_client_id >= 0)
@@ -865,6 +897,7 @@ zvbi_close_device(void)
   D();
 
   trigger_client_id = trigger_timeout_id = -1;
+#endif
 
   pthread_mutex_lock(&clients_mutex);
 
@@ -906,8 +939,10 @@ send_ttx_message(struct ttx_client *client,
   d->msg = message;
   g_assert(bytes <= sizeof(ttx_message_data));
 
+#if 0 /* temporarily disabled */
   if (data)
     memcpy(&(d->data), data, bytes);
+#endif
 
   send_full_buffer(&client->mqueue_prod, b);
 }
@@ -1739,6 +1774,8 @@ notify_clients_generic (enum ttx_message msg)
   pthread_mutex_unlock(&clients_mutex);
 }
 
+#if 0 /* temporarily disabled */
+
 static void
 notify_clients_trigger (const vbi_link *ld)
 {
@@ -1759,6 +1796,8 @@ notify_clients_trigger (const vbi_link *ld)
     }
   pthread_mutex_unlock(&clients_mutex);
 }
+
+#endif
 
 void resize_ttx_page(int id, int w, int h)
 {
@@ -1814,22 +1853,33 @@ void render_ttx_page(int id, GdkDrawable *drawable,
     return;
 
   pthread_mutex_lock(&clients_mutex);
+
   if ((client = find_client(id)))
     {
       pthread_mutex_lock(&client->mutex);
 
       if (client->scaled)
-	gdk_pixbuf_render_to_drawable(client->scaled,
-				      drawable,
-				      gc,
-				      src_x, src_y,
-				      dest_x, dest_y,
-				      w, h,
-				      GDK_RGB_DITHER_NORMAL,
-				      src_x, src_y);
+	{
+	  gint pw;
+	  gint ph;
+
+	  /* Kludge to prevent a hickup w/"Loading" image.
+	     XXX Why do we need this? */
+	  pw = gdk_pixbuf_get_width (client->scaled);
+	  ph = gdk_pixbuf_get_height (client->scaled);
+
+	  gdk_pixbuf_render_to_drawable (client->scaled,
+					 drawable, gc,
+					 src_x, src_y,
+					 dest_x, dest_y,
+					 MIN (w, pw), MIN (h, ph),
+					 GDK_RGB_DITHER_NORMAL,
+					 src_x, src_y);
+	}
 
       pthread_mutex_unlock(&client->mutex);
     }
+
   pthread_mutex_unlock(&clients_mutex);
 }
 
@@ -1930,63 +1980,17 @@ event(vbi_event *ev, void *unused)
       pthread_mutex_unlock(&network_mutex);
       break;
 
+#if 0 /* temporarily disabled */
     case VBI_EVENT_TRIGGER:
       notify_clients_trigger (ev->ev.trigger);
       break;
+#endif
 
     case VBI_EVENT_ASPECT:
       if (zconf_get_integer(NULL, "/zapping/options/main/ratio") == 3)
 	zvbi_ratio = ev->ev.aspect.ratio;
       break;
 
-    case VBI_EVENT_PROG_INFO:
-    {
-      vbi_program_info *pi = ev->ev.prog_info;
-
-#ifdef ZVBI_DUMP_PROG_INFO
-      int i;
-
-      fprintf(stderr, "Program Info %d\n"
-	      "  %d/%d %d:%d T%d L%d:%d E%d:%d:%d\n"
-	      "  title <%s> type <",
-	      pi->future,
-	      pi->month, pi->day, pi->hour, pi->min, pi->tape_delayed,
-	      pi->length_hour, pi->length_min,
-	      pi->elapsed_hour, pi->elapsed_min, pi->elapsed_sec,
-	      pi->title);
-      for (i = 0; pi->type_id[i]; i++)
-	fprintf(stderr, "%s ",
-		vbi_prog_type_str_by_id(pi->type_classf, pi->type_id[i]));
-      fprintf(stderr, "> rating <%s> dlsv %d\n"
-	      "  audio %d,%s / %d,%s\n"
-	      "  caption %d lang ",
-	      vbi_rating_str_by_id(pi->rating_auth, pi->rating_id), pi->rating_dlsv,
-	      pi->audio[0].mode, pi->audio[0].language,
-	      pi->audio[1].mode, pi->audio[1].language,
-	      pi->caption_services);
-      for (i = 0; i < 8; i++)
-	fprintf(stderr, "%s, ", pi->caption_language[i]);
-      fprintf(stderr, "\n"
-	      "  cgms %d aspect %f description: \""
-	      "  %s\\%s\\%s\\%s\\%s\\%s\\%s\\%s\"\n",
-	      pi->cgms_a, (double) pi->aspect.ratio,
-	      pi->description[0], pi->description[1],
-	      pi->description[2], pi->description[3],
-	      pi->description[4], pi->description[5],
-	      pi->description[6], pi->description[7]);
-#endif
-
-      pthread_mutex_lock(&prog_info_mutex);
-
-      program_info[!!pi->future] = *pi;
-
-      pthread_mutex_unlock(&prog_info_mutex);
-
-      notify_clients_generic (TTX_PROG_INFO_CHANGE);
-
-      break;
-    }
- 
     default:
       break;
     }
@@ -1997,577 +2001,49 @@ event(vbi_event *ev, void *unused)
 void
 vbi_gui_sensitive (gboolean on)
 {
-  if (!on)
+  static const gchar *widgets [] = {
+    "separador5",
+    "videotext1",
+#if 0 /* temporarily disabled */
+    "vbi_info1",
+    "program_info1",
+#endif
+    "toolbar-teletext",
+    "new_ttxview",
+    "closed_caption1",
+    NULL
+  };
+  const gchar **sp;
+
+  for (sp = widgets; *sp; ++sp)
     {
-      printv("VBI disabled, removing GUI items\n");
-      gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "separador5"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "videotext1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "vbi_info1"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "vbi_info1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "program_info1"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "program_info1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "videotext3"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "new_ttxview"));
-      gtk_widget_set_sensitive(lookup_widget(main_window,
-					     "closed_caption1"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "closed_caption1"));
-      gtk_widget_hide(lookup_widget(main_window, "separator8"));
-      /* Set the capture mode to a default value and disable VBI */
-      if (zcg_int(NULL, "capture_mode") == TVENG_NO_CAPTURE)
-	zcs_int(TVENG_CAPTURE_READ, "capture_mode");
+      GtkWidget *widget;
+
+      widget = lookup_widget (main_window, *sp);
+
+      if (on)
+	gtk_widget_show (widget);
+      else
+	gtk_widget_hide (widget);
+
+      gtk_widget_set_sensitive (widget, on);
+    }
+
+  if (on)
+    {
+      printv("VBI enabled, showing GUI items\n");
     }
   else
     {
-      printv("VBI enabled, showing GUI items\n");
-      gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "separador5"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "videotext1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "vbi_info1"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "vbi_info1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "program_info1"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "program_info1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "videotext3"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "new_ttxview"));
-      gtk_widget_set_sensitive(lookup_widget(main_window,
-					     "closed_caption1"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "closed_caption1"));
-      gtk_widget_show(lookup_widget(main_window, "separator8"));
+      printv("VBI disabled, removing GUI items\n");
+
+      /* Set the capture mode to a default value and disable VBI */
+      if (zcg_int(NULL, "capture_mode") == TVENG_TELETEXT)
+	zcs_int(TVENG_CAPTURE_READ, "capture_mode");
     }
 }
 
 #ifdef HAVE_LIBZVBI
-
-/* Handling of the network_info and prog_info dialog (alias vbi info vi) */
-
-typedef enum {
-	VI_TYPE_NETWORK,
-	VI_TYPE_PROGRAM,
-} vi_type;
-
-struct vi_data
-{
-  int		id;		/* ttx_client id */
-  ZModel	*vbi_model;	/* monitor changes in the VBI device */
-  GtkWidget	*dialog;
-  GtkWidget	*rating;
-  gint		timeout;
-  vi_type	type;
-};
-
-static void destroy_vi(gpointer ignored, struct vi_data *data);
-
-static void
-remove_vi_instance			(struct vi_data	*data)
-{
-  unregister_ttx_client(data->id);
-  g_signal_handlers_disconnect_matched(G_OBJECT(data->vbi_model),
-				       G_SIGNAL_MATCH_FUNC |
-				       G_SIGNAL_MATCH_DATA,
-				       0, 0, NULL,
-				       G_CALLBACK(destroy_vi),
-				       data);
-  gtk_timeout_remove(data->timeout);
-  g_free(data);
-}
-
-static void
-destroy_vi				(gpointer	ignored,
-					 struct vi_data	*data)
-{
-  gtk_widget_destroy(data->dialog);
-  remove_vi_instance(data);
-}
-
-static gboolean
-on_vi_delete_event			(GtkWidget	*widget,
-					 GdkEvent	*event,
-					 struct vi_data	*data)
-{
-  remove_vi_instance(data);
-
-  return FALSE;
-}
-
-static void
-update_vi_network			(struct vi_data *data)
-{
-  GtkWidget *vi = data->dialog;
-  GtkWidget *name, *label, *call, *tape;
-  gchar *buffer;
-  gint td;
-
-  name = lookup_widget(vi, "label204");
-  label = lookup_widget(vi, "label205");
-  call = lookup_widget(vi, "label206");
-  tape = lookup_widget(vi, "label207");
-
-  pthread_mutex_lock(&network_mutex);
-  if (*current_network.name)
-    gtk_label_set_text(GTK_LABEL(name), current_network.name);
-  else /* NLS: Network info, network name */
-    gtk_label_set_text(GTK_LABEL(name), _("Unknown"));
-
-  if (*current_network.call)
-    gtk_label_set_text(GTK_LABEL(call), current_network.call);
-  else /* NLS: Network info, call letters (USA) - not applicable */
-    gtk_label_set_text(GTK_LABEL(call), _("n/a"));
-
-  td = current_network.tape_delay;
-  if (td == 0) /* NLS: Network info, tape delay (USA) */
-    buffer = g_strdup(_("none"));
-  else if (td < 60) /* NLS: Network info, tape delay (USA) */
-    buffer = g_strdup_printf((char *)
-			     ngettext("%d minute", "%d minutes", td), td);
-  else /* NLS: Network info, tape delay (USA) */
-    buffer = g_strdup_printf(_("%d h %d m"), td / 60, td % 60);
-  gtk_label_set_text(GTK_LABEL(tape), buffer);
-  g_free(buffer);
-
-  pthread_mutex_unlock(&network_mutex);
-}
-
-static void
-update_vi_program			(struct vi_data *data)
-{
-  GtkWidget *vi = data->dialog;
-  GtkWidget *title, *date, *audio, *caption;
-  GtkWidget *type, *synopsis, *vbox, *widget;
-  vbi_program_info *pi = &program_info[0];
-  gchar buffer[300], buffer2[256];
-  const gchar *s;
-  gint i, n, r;
-
-  title = lookup_widget(vi, "label906");
-  date = lookup_widget(vi, "label914");
-  audio = lookup_widget(vi, "label915");
-  caption = lookup_widget(vi, "label916");
-  type = lookup_widget(vi, "label911");
-  synopsis = lookup_widget(vi, "label917");
-  vbox = lookup_widget(vi, "vbox45");
-
-  pthread_mutex_lock(&prog_info_mutex);
-
-  /* Title */
-
-  if (pi->title[0])
-    gtk_label_set_text(GTK_LABEL(title), pi->title);
-  else
-    gtk_label_set_text(GTK_LABEL(title), _("Current program"));
-
-  /* Date, Length, Elapsed */
-
-  buffer[0] = 0;
-
-  if (pi->month >= 0)
-    {
-      struct tm tm;
-
-      memset(&tm, 0, sizeof(tm));
-      tm.tm_min = pi->min;
-      tm.tm_hour = pi->hour;
-      tm.tm_mday = pi->day + 1;
-      tm.tm_mon = pi->month;
-
-      /*
-       *  NLS: Program info date, see man strftime;
-       *  Only month day, month, hour and min valid.
-       */
-      strftime(buffer, sizeof(buffer) - 1,
-	       _("%d %b  %I:%M %p    "), &tm);
-    }
-
-  n = strlen(buffer);
-
-  if (pi->length_hour >= 0)
-    {
-      gint rem_hour, rem_min;
-
-      rem_hour = pi->length_hour - pi->elapsed_hour;
-      rem_min = pi->length_min - pi->elapsed_min;
-      if (rem_min < 0)
-	{
-	  rem_hour -= 1;
-	  rem_min += 60;
-	}
-
-      if (pi->elapsed_hour >= 0 /* is valid */
-	  && rem_hour >= 0 /* elapsed <= length */)
-	{
-	  /* NLS: Program info length, elapsed; hours, minutes */
-	  snprintf(buffer + n, sizeof(buffer) - n - 1,
-		   _("\nLength: %uh%02u (%uh%02u remaining)"),
-		   pi->length_hour, pi->length_min,
-		   rem_hour, rem_min);
-	}
-      else 
-	{
-	  /* NLS: Program info length; hours, minutes */
-	  snprintf(buffer + n, sizeof(buffer) - n - 1,
-		   _("Length: %uh%02u"), pi->length_hour, pi->length_min);
-	}
-    }
-  else if (pi->elapsed_hour >= 0) 
-    {
-      /* NLS: Program info elapsed; hours, minutes */
-      snprintf(buffer + n, sizeof(buffer) - n - 1,
-	       _("Elapsed: %uh%02u"), pi->elapsed_hour, pi->elapsed_min);
-    }
-
-  gtk_label_set_text(GTK_LABEL(date), buffer);
-
-  /* Audio */
-
-  buffer[0] = 0;
-
-  if (pi->audio[0].mode != VBI_AUDIO_MODE_NONE
-      && pi->audio[1].mode != VBI_AUDIO_MODE_NONE
-      && pi->audio[0].mode != VBI_AUDIO_MODE_UNKNOWN
-      && pi->audio[1].mode != VBI_AUDIO_MODE_UNKNOWN)
-    {
-      const gchar *l1, *l2;
-
-      /* XXX Latin-1 */
-      l1 = pi->audio[0].language;
-      l2 = pi->audio[1].language;
-
-      if (l1 || l2)
-	{
-	  if (!l1) /* Program info audio language */
-	    l1 = _("unknown language");
-	  if (!l2)
-	    l2 = _("unknown language");
-	  snprintf(buffer, sizeof(buffer) - 1,
-		   /* Program info audio mode, language */
-		   _("Channel 1: %s (%s)\nChannel 2: %s (%s)"),
-		   _(zvbi_audio_mode_str[pi->audio[0].mode]), l1,
-		   _(zvbi_audio_mode_str[pi->audio[1].mode]), l2);
-	}
-      else
-	  snprintf(buffer, sizeof(buffer) - 1,
-		   /* Program info audio mode 1&2
-		      (eg. language 1&2: "mono", "mono") */
-		   _("Channel 1: %s\nChannel 2: %s"),
-		   _(zvbi_audio_mode_str[pi->audio[0].mode]),
-		   _(zvbi_audio_mode_str[pi->audio[1].mode]));
-    }
-  else if (pi->audio[0].mode != VBI_AUDIO_MODE_NONE
-	   && pi->audio[0].mode != VBI_AUDIO_MODE_UNKNOWN)
-    {
-      /* XXX Latin-1 */
-      const gchar *l1 = pi->audio[0].language;
-
-      if (l1)
-	snprintf(buffer, sizeof(buffer) - 1,
-		 /* Program info audio mode, language */
-		 _("Audio: %s (%s)"),
-		 _(zvbi_audio_mode_str[pi->audio[0].mode]), l1);
-      else
-	snprintf(buffer, sizeof(buffer) - 1,
-		 /* Program info audio mode */
-		 _("Audio: %s"),
-		 _(zvbi_audio_mode_str[pi->audio[0].mode]));
-    }
-
-  gtk_label_set_text(GTK_LABEL(audio), buffer);
-
-  /* Caption */
-
-  buffer[0] = 0;
-  n = 0;
-
-  if (pi->caption_services == -1)
-    ;
-  else if (pi->caption_services == 1)
-    {
-      gchar *l = pi->caption_language[0];
-
-      snprintf(buffer, sizeof(buffer) - 1,
-	      /* Program info: has subtitles [language if known] */
-	      l ? _("Captioned %s") : _("Captioned"), l);
-    }
-  else
-    for (i = 0; i < 8; i++)
-      if (pi->caption_services & (1 << i))
-	{
-	  gchar *l = pi->caption_language[i];
-
-	  if (n > (sizeof(buffer) - 3))
-	    break;
-	  if (i > 0)
-	    {
-	      buffer[n] = ',';
-	      buffer[n + 1] = ' ';
-	      n += 2;
-	    }
-	  /* Proper names, no i18n. */
-	  if (l)
-	    r = snprintf(buffer + n, sizeof(buffer) - n - 1,
-			(i < 4) ? "Caption %d: %s" : "Text %d: %s",
-			i & 3, l);
-	  else
-	    r = snprintf(buffer + n, sizeof(buffer) - n - 1,
-			(i < 4) ? "Caption %d" : "Text %d", i & 3);
-	  if (r < 0)
-	    break;
-	  
-	  n += r;
-	}
-
-  gtk_label_set_text(GTK_LABEL(caption), buffer);
-
-  /* Rating */
-
-  s = vbi_rating_string(pi->rating_auth, pi->rating_id);
-  if (!s)
-    s = "";
-  strncpy(buffer, s, sizeof(buffer) - 1);
-  n = strlen(s);
-
-  buffer2[0] = 0;
-
-  switch (pi->rating_auth)
-    {
-    case VBI_RATING_AUTH_MPAA:
-      snprintf(buffer2, sizeof(buffer2) - 1,
-	       "rating_mpaa_%x.png",
-	       pi->rating_id & 7);
-      break;
-
-    case VBI_RATING_AUTH_TV_US:
-      snprintf(buffer2, sizeof(buffer2) - 1,
-	       "rating_tv_us_%x%x.png",
-	       pi->rating_id & 7, pi->rating_dlsv & 15);
-      if (n > 0 && pi->rating_dlsv != 0)
-	snprintf(buffer + n, sizeof(buffer) - n - 1,
-		 " %s%s%s%s",
-		 (pi->rating_dlsv & VBI_RATING_D) ? "D" : "",
-		 (pi->rating_dlsv & VBI_RATING_L) ? "L" : "",
-		 (pi->rating_dlsv & VBI_RATING_S) ? "S" : "",
-		 (pi->rating_dlsv & VBI_RATING_V) ? "V" : "");
-      break;
-
-    case VBI_RATING_AUTH_TV_CA_EN:
-      snprintf(buffer2, sizeof(buffer2) - 1,
-	       "rating_tv_ca_en_%x.png",
-	       pi->rating_id & 7);
-      break;
-
-    case VBI_RATING_AUTH_TV_CA_FR:
-      snprintf(buffer2, sizeof(buffer2) - 1,
-	       "rating_tv_ca_fr_%x.png",
-	       pi->rating_id & 7);
-      break;
-
-    default:
-      break;
-    }
-
-  if (buffer2[0] == 0 || !(widget = z_load_pixmap (buffer2)))
-    {
-      if (buffer[0] == 0)
-	/* NLS: Current program rating
-	   (not rated means we don't know, not it's exempt) */
-	widget = gtk_label_new(_("Not rated"));
-      else
-	widget = gtk_label_new(buffer);
-
-      gtk_widget_show(widget);
-    }
-
-  if (data->rating)
-    gtk_container_remove(GTK_CONTAINER(vbox), data->rating);
-  gtk_box_pack_start(GTK_BOX(vbox), data->rating = widget,
-		     FALSE, FALSE, 0);
-  gtk_box_reorder_child(GTK_BOX(vbox), widget, 0);
-
-  /* Type */
-
-  buffer[0] = 0;
-  n = 0;
-
-  for (i = 0; i < 32; i++)
-    {
-      s = vbi_prog_type_string(pi->type_classf, pi->type_id[i]);
-
-      if (!s)
-	break;
-
-      r = snprintf(buffer + n, sizeof(buffer) - n - 1,
-		   "%s%s", (i > 0) ? "\n" : "", s);
-      if (r < 0)
-	break;
-	  
-      n += r;
-
-      if (pi->type_classf != VBI_PROG_CLASSF_EIA_608)
-	break;
-    }
-
-  if (islower(buffer[0]))
-      buffer[0] = toupper(buffer[0]);
-
-  gtk_label_set_text(GTK_LABEL(type), buffer);
-
-  /* Synopsis */
-
-  buffer[0] = 0;
-
-  if ((pi->description[0][0] | pi->description[1][0]
-       | pi->description[2][0] | pi->description[3][0]
-       | pi->description[4][0] | pi->description[5][0]
-       | pi->description[6][0] | pi->description[7][0]))
-    snprintf(buffer, sizeof(buffer) - 1,
-	     "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s",
-	     pi->description[0], pi->description[1],
-	     pi->description[2], pi->description[3],
-	     pi->description[4], pi->description[5],
-	     pi->description[6], pi->description[7]);
-
-  gtk_label_set_text(GTK_LABEL(synopsis), buffer);
-
-  pthread_mutex_unlock(&prog_info_mutex);
-}
-
-static gint
-event_timeout				(struct vi_data	*data)
-{
-  enum ttx_message msg;
-  ttx_message_data msg_data;
-
-  while ((msg = peek_ttx_message(data->id, &msg_data)))
-    {
-      switch (msg)
-	{
-	case TTX_PAGE_RECEIVED:
-	case TTX_TRIGGER:
-	case TTX_CHANNEL_SWITCHED:
-	  break;
-	case TTX_NETWORK_CHANGE:
-	  if (data->type == VI_TYPE_NETWORK)
-	    update_vi_network(data);
-	  break;
-        case TTX_PROG_INFO_CHANGE:
-	  if (data->type == VI_TYPE_PROGRAM)
-	    update_vi_program(data);
-	  break;
-	case TTX_BROKEN_PIPE:
-	  g_warning("Broken TTX pipe");
-	  return FALSE;
-	default:
-	  g_warning("Unknown message: %d", msg);
-	  break;
-	}
-    }
-
-  return TRUE;
-}
-
-static GtkWidget *
-zvbi_build_network_info(void)
-{
-  GtkWidget * vbi_info = build_widget("vbi_info", NULL);
-  struct vi_data *data;
-
-  if (!zvbi_get_object())
-    {
-      ShowBox("VBI couldn't be opened, Teletext won't work",
-	      GTK_MESSAGE_ERROR);
-      return vbi_info;
-    }
-
-  data = g_malloc(sizeof(struct vi_data));
-
-  data->id = register_ttx_client();
-  data->vbi_model = zvbi_get_model();
-  data->dialog = vbi_info;
-  data->type = VI_TYPE_NETWORK;
-  data->timeout = gtk_timeout_add(5000, (GtkFunction)event_timeout, data);
-
-  g_signal_connect(G_OBJECT(data->vbi_model), "changed",
-		   G_CALLBACK(destroy_vi), data);
-  g_signal_connect(G_OBJECT(data->dialog), "delete-event",
-		   G_CALLBACK(on_vi_delete_event),
-		   data);
-  g_signal_connect(G_OBJECT(lookup_widget(data->dialog, "button38")),
-		   "clicked",
-		   G_CALLBACK(destroy_vi), data);
-
-  update_vi_network(data);
-
-  return vbi_info;
-}
-
-static GtkWidget *
-zvbi_build_program_info(void)
-{
-  GtkWidget * prog_info = build_widget("program_info", NULL);
-  struct vi_data *data;
-
-  if (!zvbi_get_object())
-    {
-      ShowBox("VBI couldn't be opened", GTK_MESSAGE_ERROR);
-      return prog_info;
-    }
-
-  data = g_malloc(sizeof(struct vi_data));
-
-  data->id = register_ttx_client();
-  data->vbi_model = zvbi_get_model();
-  data->dialog = prog_info;
-  data->rating = lookup_widget(prog_info, "label919");
-  data->type = VI_TYPE_PROGRAM;
-  data->timeout = gtk_timeout_add(5000, (GtkFunction)event_timeout, data);
-
-  g_signal_connect(G_OBJECT(data->vbi_model), "changed",
-		     G_CALLBACK(destroy_vi), data);
-  g_signal_connect(G_OBJECT(data->dialog), "delete-event",
-		     G_CALLBACK(on_vi_delete_event),
-		     data);
-  g_signal_connect(G_OBJECT(lookup_widget(data->dialog, "button40")),
-		     "clicked",
-		     G_CALLBACK(destroy_vi), data);
-
-  update_vi_program(data);
-
-  return prog_info;
-}
-
-static PyObject *
-py_network_info (PyObject *self, PyObject *args)
-{
-  gtk_widget_show (zvbi_build_network_info ());
-
-  py_return_true;
-}
-
-static PyObject *
-py_program_info (PyObject *self, PyObject *args)
-{
-  gtk_widget_show (zvbi_build_program_info ());
-
-  py_return_true;
-}
 
 static PyObject *
 py_closed_caption (PyObject *self, PyObject *args)
@@ -2613,12 +2089,6 @@ startup_zvbi(void)
   zcc_int(1, "Operator messages", "op_trigger");
   zcc_int(INTERP_MODE, "Quality speed tradeoff", "qstradeoff");
 
-  cmd_register ("program_info", py_program_info, METH_VARARGS,
-		_("Shows some info about the current program"),
-		"zapping.program_info()");
-  cmd_register ("network_info", py_network_info, METH_VARARGS,
-		_("Shows some info about the current network"),
-		"zapping.network_info()");
   cmd_register ("closed_caption", py_closed_caption, METH_VARARGS,
 		_("Sets or toggles the display of closed caption"),
 		"zapping.closed_caption([1])");
@@ -2674,7 +2144,6 @@ zvbi_get_name(void)
 
   return g_convert (station_name, strlen (station_name),
 		    "ISO-8859-1","UTF-8",
-
 		    NULL, NULL, NULL);
 }
 
@@ -2682,33 +2151,6 @@ void
 zvbi_name_unknown(void)
 {
   station_name_known = FALSE;
-}
-
-void
-zvbi_reset_program_info (void)
-{
-  pthread_mutex_lock(&prog_info_mutex);
-
-  vbi_reset_prog_info(&program_info[0]);
-  vbi_reset_prog_info(&program_info[1]);
-
-  pthread_mutex_unlock(&prog_info_mutex);
-
-  update_main_title();
-  notify_clients_generic (TTX_PROG_INFO_CHANGE);
-}
-
-void
-zvbi_reset_network_info (void)
-{
-  pthread_mutex_lock(&network_mutex);
-
-  memset(&current_network, 0, sizeof(current_network));
-
-  pthread_mutex_unlock(&network_mutex);
-
-  update_main_title();
-  notify_clients_generic (TTX_NETWORK_CHANGE);
 }
 
 void
@@ -2734,43 +2176,10 @@ zvbi_channel_switched(void)
     }
   pthread_mutex_unlock(&clients_mutex);
 
+#if 0 /* Temporarily removed. */
   zvbi_reset_network_info ();
   zvbi_reset_program_info ();
-}
-
-gchar *
-zvbi_current_title(void)
-{
-  const gchar *s;
-  gchar *t;
-
-  pthread_mutex_lock(&prog_info_mutex);
-
-  /* current program title */
-  s = (program_info[0].title[0] != 0) ? (const char *) program_info[0].title : "";
-  t = g_strdup(s);
-
-  pthread_mutex_unlock(&prog_info_mutex);
-
-  return t;
-}
-
-const gchar *
-zvbi_current_rating(void)
-{
-  const gchar *s = NULL;
-
-  pthread_mutex_lock(&prog_info_mutex);
-
-  s = vbi_rating_string(program_info[0].rating_auth, program_info[0].rating_id);
-
-  if (s == NULL)
-  /* current program rating (not rated means we don't know, not it's exempt) */
-    s = _("Not rated");
-
-  pthread_mutex_unlock(&prog_info_mutex);
-
-  return s;
+#endif
 }
 
 vbi_wst_level
