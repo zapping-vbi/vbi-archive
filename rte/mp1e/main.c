@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.35 2002-08-22 22:01:33 mschimek Exp $ */
+/* $Id: main.c,v 1.36 2002-09-07 01:47:52 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -323,7 +323,7 @@ break_sequence(void)
 {
 	if (close(outFileFD) == -1) {
 		fprintf(stderr,	"%s:" __FILE__ ":" ISTF1(__LINE__) ": "
-			"Failed to close output file '%s' - "
+			"Error when closing output file '%s' - "
 			"%d, %s (ignored)\n",
 			program_invocation_short_name,
 			outFile, errno, strerror(errno));
@@ -775,7 +775,7 @@ main(int ac, char **av)
 	if ((modules == MOD_VIDEO || modules == MOD_AUDIO) && mux_syn >= 2)
 		mux_syn = 1; // compatibility
 
-	if (split_sequence && mux_syn >= 3)
+	if ((split_sequence || part_length) && mux_syn >= 3)
 		FAIL("Sorry, -z and -X%d do not combine\n", mux_syn); 
 
 	mp1e_sync_start(&context.sync, 0.0);

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.18 2002-09-01 15:48:10 mschimek Exp $ */
+/* $Id: options.c,v 1.19 2002-09-07 01:47:33 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -127,7 +127,7 @@ usage(FILE *fi)
 	exit((fi == stderr) ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
-#define OPT_STR "02a:b:c:e:f:g:hi:lm:n:o:p:r:s:t:vwx:zA:C:B:F:G:H:I:J:KL:M:PR:S:T:VX:"
+#define OPT_STR "02a:b:c:e:f:g:hi:k:lm:n:o:p:r:s:t:vwx:zA:C:B:F:G:H:I:J:KL:M:PR:S:T:VX:"
 
 static const struct option
 long_options[] = {
@@ -141,6 +141,7 @@ long_options[] = {
 	{ "gop_sequence",		required_argument, NULL, 'g' },
 	{ "help",			no_argument,	   NULL, 'h' },
 	{ "config",			required_argument, NULL, 'i' },
+	{ "break",			required_argument, NULL, 'k' },
 	{ "letterbox",			no_argument,	   NULL, 'l' },
 	{ "mux_mode",			required_argument, NULL, 'm' },
 	{ "modules",			required_argument, NULL, 'm' }, /* alias */
@@ -434,6 +435,12 @@ parse_option(int c)
 
 	case 'i':
 		options_from_file(optarg, TRUE);
+		break;
+
+	case 'k':
+		part_length = 1024 * (long long) strtol(optarg, NULL, 0);
+		if (part_length < 0)
+			usage(stdout);
 		break;
 
 	case 'l':
@@ -740,9 +747,10 @@ options(int ac, char **av)
 //	if (motion_min && motion_max)
 //		cap_buffers *= 2;
 
-	if (split_sequence && !outFile[0])
+	if (split_sequence && part_length)
+		FAIL("-z|--split and -k|--break do not combine.");
+
+	if ((split_sequence || part_length) && !outFile[0])
 		FAIL("You must specify an output file name with the\n"
-		     "-o option when using the -z|--split option.");
+		     "-o option when using the -z|--split or -k|--break option.");
 }
-
-

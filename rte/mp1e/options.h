@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.h,v 1.9 2002-08-22 22:02:19 mschimek Exp $ */
+/* $Id: options.h,v 1.10 2002-09-07 01:47:44 mschimek Exp $ */
 
 extern int		test_mode;
 
@@ -29,6 +29,7 @@ extern char *		vbi_dev;
 extern char		outFile[256];
 extern int		outFileFD;
 extern int		split_sequence;
+extern long long	part_length;
 
 /* Video */
 

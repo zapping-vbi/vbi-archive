@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.c,v 1.12 2002-06-24 03:19:47 mschimek Exp $ */
+/* $Id: systems.c,v 1.13 2002-09-07 01:48:10 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -274,14 +274,15 @@ elementary_stream_bypass(void *muxp)
 	str = PARENT(mux->streams.head, stream, fifo.node);
 
 	for (;;) {
+		extern int split_sequence;
+		extern long long part_length;
+		extern void break_sequence(void);
+
 		buffer *buf;
 
 		buf = wait_full_buffer(&str->cons);
 
 		if (buf->used <= 0) {
-			extern int split_sequence;
-			extern void break_sequence(void);
-
 			if (!split_sequence || buf->error == 0xE0F)
 				break;
 
@@ -293,7 +294,15 @@ elementary_stream_bypass(void *muxp)
 		}
 
 		mux->status.frames_out++;
-		mux->status.bytes_out += buf->used;
+
+		if (part_length > 0
+		    && mux->status.bytes_out > 0
+		    && (mux->status.bytes_out + buf->used) >= part_length) {
+			break_sequence();
+			mux->status.bytes_out = buf->used;
+		} else {
+			mux->status.bytes_out += buf->used;
+		}
 
 		buf = mux->mux_output(mux, buf);
 

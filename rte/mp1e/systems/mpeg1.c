@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.13 2002-06-24 03:19:13 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.14 2002-09-07 01:48:02 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -388,6 +388,8 @@ void *
 mpeg1_system_mux(void *muxp)
 {
 	extern int split_sequence;
+	extern long long part_length;
+	extern void break_sequence(void);
 	multiplexer *mux = muxp;
 	unsigned char *p, *ph, *ps, *pl, *px;
 	unsigned int pack_packet_count;
@@ -520,7 +522,16 @@ reschedule:
 
 		((unsigned short *) ps)[2] = swab16(p - ps - 6);
 
-		mux->status.bytes_out += obuf->used = p - obuf->data;
+		obuf->used = p - obuf->data;
+
+		if (part_length > 0
+		    && mux->status.bytes_out > 0
+		    && (mux->status.bytes_out + obuf->used) >= part_length) {
+			break_sequence();
+			mux->status.bytes_out = obuf->used;
+		} else {
+			mux->status.bytes_out += obuf->used;
+		}
 
 		obuf = mux->mux_output(mux, obuf);
 
@@ -584,8 +595,6 @@ reschedule:
 	mux->mux_output(mux, obuf);
 
 	if (split_sequence && !eof) {
-		extern void break_sequence(void);
-
 		break_sequence();
 
 		prolog(mux, &obuf, &system_overhead,
