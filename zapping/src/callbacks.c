@@ -29,6 +29,7 @@
 #include "x11stuff.h"
 /* Manages config values for zconf (it saves me some typing) */
 #define ZCONF_DOMAIN "/zapping/internal/callbacks/"
+#include "zconf.h"
 #include "zmisc.h"
 #include "plugins.h"
 #include "zconf.h"
@@ -187,22 +188,6 @@ on_zapping_delete_event                (GtkWidget       *widget,
   gtk_main_quit();
 
   return FALSE;
-}
-
-/*
- * FIXME: This should go into the capture module
- */
-void
-on_tv_screen_size_allocate             (GtkWidget       *widget,
-                                        GtkAllocation   *allocation,
-                                        gpointer         user_data)
-{
-  if (main_info -> current_mode != TVENG_CAPTURE_READ)
-    return;
-
-  if (tveng_set_capture_size(allocation->width, allocation->height, 
-			     main_info) == -1)
-    g_warning(main_info->error);
 }
 
 /* Activate an standard */

@@ -24,7 +24,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #if 0
-static char rcsid[] = "$Id: ure.c,v 1.4 2001-01-10 22:02:35 garetxe Exp $";
+static char rcsid[] = "$Id: ure.c,v 1.5 2001-01-12 23:13:42 garetxe Exp $";
 #endif
 
 #include <stdlib.h>
@@ -92,7 +92,7 @@ static char rcsid[] = "$Id: ure.c,v 1.4 2001-01-10 22:02:35 garetxe Exp $";
  * with a character and tests to see if the character has one or more of those
  * properties.
  */
-int
+static inline int
 #ifdef __STDC__
 _ure_matches_properties(unsigned long props, ucs4_t c)
 #else
@@ -2141,6 +2141,8 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
 	  matched = 1;
 	break;
       case _URE_BOL_ANCHOR:
+	if (flags & URE_NOTBOL)
+	  break;
 	if (lp == text) {
 	  sp = lp;
 	  matched = 1;
@@ -2152,6 +2154,8 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
 	}
 	break;
       case _URE_EOL_ANCHOR:
+	if (flags & URE_NOTEOL)
+	  break;
 	if (_ure_issep(c)) {
 	  /*
 	   * Put the pointer back before the separator so the match
@@ -2173,7 +2177,12 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
 	    matched = 1;
 	}
 	if (sym->type == _URE_NCCLASS)
-	  matched = !matched;
+	  {
+	    matched = !matched;
+	    if (matched && _ure_issep(c) &&
+		(!(flags & URE_DOT_MATCHES_SEPARATORS)))
+	      matched = 0;
+	  }
 	break;
       }
 

@@ -27,7 +27,7 @@
 #define _h_ure
 
 /*
- * $Id: ure.h,v 1.3 2001-01-10 19:50:44 garetxe Exp $
+ * $Id: ure.h,v 1.4 2001-01-12 23:13:42 garetxe Exp $
  */
 
 #include <stdio.h>
@@ -58,6 +58,8 @@ extern "C" {
  */
 #define URE_IGNORE_NONSPACING      0x01
 #define URE_DOT_MATCHES_SEPARATORS 0x02
+#define URE_NOTBOL		   0x04
+#define URE_NOTEOL		   0x08
 
 typedef unsigned long ucs4_t;
 typedef unsigned short ucs2_t;

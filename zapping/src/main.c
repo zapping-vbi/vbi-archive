@@ -27,12 +27,12 @@
 #include <glade/glade.h>
 #include <signal.h>
 #define ZCONF_DOMAIN "/zapping/options/main/"
+#include "zconf.h"
 #include "zmisc.h"
 #include "interface.h"
 #include "tveng.h"
 #include "v4linterface.h"
 #include "plugins.h"
-#include "zconf.h"
 #include "frequencies.h"
 #include "zvbi.h"
 #include "mmx.h"
@@ -56,7 +56,6 @@ gboolean		disable_preview = FALSE;/* preview should be
 						   disabled */
 gboolean		disable_xv = FALSE; /* XVideo should be
 					       disabled */
-gboolean		print_info_inited = FALSE;
 GtkWidget		*main_window;
 gboolean		was_fullscreen=FALSE; /* will be TRUE if when
 						 quitting we were
@@ -68,11 +67,8 @@ static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
 static gint		newbttv = -1; /* Compatibility with old bttv
 					 drivers */
 
-static guint		idle_id=0;
-
 static void shutdown_zapping(void);
 static gboolean startup_zapping(void);
-static gint idle_handler(GtkWidget *tv_screen);
 
 /* Start VBI services, and warn if we cannot */
 static void
@@ -102,62 +98,6 @@ startup_teletext(void)
   if (zvbi_get_mode())
     zcs_int(TVENG_NO_CAPTURE, "capture_mode");
   D();
-}
-
-static void
-print_visual_info(GdkVisual * visual, const char * name)
-{
-  fprintf(stderr,
-	  "%s (%p):\n"
-	  "	type:		%d\n"
-	  "	depth:		%d\n"
-	  "	byte_order:	%d\n"
-	  "	cmap_size:	%d\n"
-	  "	bprgb:		%d\n"
-	  "	red_mask:	0x%x\n"
-	  "	shift:		%d\n"
-	  "	prec:		%d\n"
-	  "	green_mask:	0x%x\n"
-	  "	shift:		%d\n"
-	  "	prec:		%d\n"
-	  "	blue_mask:	0x%x\n"
-	  "	shift:		%d\n"
-	  "	prec:		%d\n",
-	  name, visual, visual->type, visual->depth,
-	  visual->byte_order, visual->colormap_size,
-	  visual->bits_per_rgb,
-	  visual->red_mask, visual->red_shift, visual->red_prec,
-	  visual->green_mask, visual->green_shift, visual->green_prec,
-	  visual->blue_mask, visual->blue_shift, visual->blue_prec);
-}
-
-static void
-print_info(void)
-{
-  GdkWindow * tv_screen = lookup_widget(main_window, "tv_screen")->window;
-  struct tveng_frame_format * format = &(main_info->format);
-
-  if ((!debug_msg) || (print_info_inited))
-    return;
-
-  print_info_inited = TRUE;
-
-  /* info about the used visuals (they should match exactly) */
-  print_visual_info(gdk_visual_get_system(), "system visual");
-  print_visual_info(gdk_window_get_visual(tv_screen), "tv screen visual");
-
-  fprintf(stderr,
-	  "tveng frame format:\n"
-	  "	width:		%d\n"
-	  "	height:		%d\n"
-	  "	depth:		%d\n"
-	  "	pixformat:	%d\n"
-	  "	bpp:		%g\n"
-	  "	sizeimage:	%d\n",
-	  format->width, format->height, format->depth,
-	  format->pixformat, format->bpp, format->sizeimage );
-
-  fprintf(stderr, "detected x11 depth: %d\n", x11_get_bpp());
 }
 
 int main(int argc, char * argv[])
@@ -244,7 +184,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.77 2001-01-10 23:25:08 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.78 2001-01-12 23:13:42 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -369,8 +309,8 @@ int main(int argc, char * argv[])
   printv("tv_screen is %p\n", (gpointer)tv_screen);
   /* ensure that the main window is realized */
   gtk_widget_show(main_window);
-  while (gtk_events_pending() || (!tv_screen->window))
-    gtk_main_iteration();
+  while (!tv_screen->window)
+    z_update_gui();
   /* set the tv_screen as the destination window for Teletext */
   zvbi_set_widget(tv_screen);
   D();
@@ -485,8 +425,7 @@ int main(int argc, char * argv[])
       zconf_get_integer(&h, "/zapping/internal/callbacks/h");
       printv("Restoring geometry: <%d,%d> <%d x %d>\n", x, y, w, h);
       /* prevents the toolbar from resizing the window */
-      while (gtk_events_pending())
-	gtk_main_iteration();
+      z_update_gui();
       gdk_window_move_resize(main_window->window, x, y, w, h);
     }
   D();
@@ -501,8 +440,8 @@ int main(int argc, char * argv[])
 			   main_info))
     fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
   D(); printv("going into main loop...\n");
-  idle_id = gtk_idle_add((GtkFunction)idle_handler, tv_screen);
   /* That's it, now go to the main loop */
+  gtk_widget_show(main_window);
   gtk_main();
   D();
   /* Closes all fd's, writes the config to HD, and that kind of things
@@ -593,7 +532,7 @@ static void shutdown_zapping(void)
    */
   shutdown_capture(main_info);
 
-  /* Mute the device again and close */
+  /* Mute the device and close */
   tveng_set_mute(1, main_info);
   tveng_device_info_destroy(main_info);
 }
@@ -696,75 +635,4 @@ static gboolean startup_zapping()
     }
   D();
   return TRUE;
-}
-
-static gint idle_handler(GtkWidget *tv_screen)
-{
-  GdkGeometry geometry;
-  GdkWindowHints hints;
-  plugin_sample sample; /* The a/v sample passed to the plugins */
-
-  if (flag_exit_program)
-    return 0;
-
-  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
-    {
-      hints = GDK_HINT_MIN_SIZE;
-      geometry.min_width = main_info->caps.minwidth;
-      geometry.min_height = main_info->caps.minheight;
-      
-      /* Set the geometry flags if needed */
-      if (zcg_bool(NULL, "fixed_increments"))
-	{
-	  geometry.width_inc = 64;
-	  geometry.height_inc = 48;
-	  hints |= GDK_HINT_RESIZE_INC;
-	}
-      
-      switch (zcg_int(NULL, "ratio")) {
-      case 1:
-	geometry.min_aspect = geometry.max_aspect = 4.0/3.0;
-	hints |= GDK_HINT_ASPECT;
-	break;
-      case 2:
-	geometry.min_aspect = geometry.max_aspect = 16.0/9.0;
-	hints |= GDK_HINT_ASPECT;
-	break;
-      default:
-	break;
-      }
-      
-      gdk_window_set_geometry_hints(main_window->window, &geometry,
-				    hints);
-    }
-  
-  /* VBI decoding support */
-  if (zvbi_get_mode())
-    {
-      usleep(10000);
-      memset(&sample, 0, sizeof(plugin_sample));
-      sample.video_data =
-	zvbi_build_current_teletext_page(tv_screen,
-					 &(sample.video_format));
-      if (!sample.video_data)
-	goto done;
-      /* fixme: add zvbi_process_frame */
-      //goto give_data_to_plugins;
-    }
-
-  /* We are viewing in a non-capturing mode */
-  if (main_info -> current_mode != TVENG_CAPTURE_READ)
-    {
-      usleep(50000);
-      goto done;
-    }
-  
-  print_info();
-      
-  if (main_info->current_mode == TVENG_CAPTURE_READ)
-    capture_process_frame(tv_screen, main_info);
-
- done:
-
-  return 1; /* Keep calling me */
 }

@@ -10,7 +10,6 @@
 #include <gnome.h>
 #include <glade/glade.h>
 
-//#include "callbacks.h"
 #include "interface.h"
 #include "zmisc.h"
 

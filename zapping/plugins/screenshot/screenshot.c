@@ -236,8 +236,7 @@ void plugin_close(void)
 
   while (num_threads) /* Wait until all threads exit cleanly */
     {
-      while (gtk_events_pending())
-	gtk_main_iteration(); /* Don't let the GUI freeze */
+      z_update_gui();
 
       usleep(5000);
     }

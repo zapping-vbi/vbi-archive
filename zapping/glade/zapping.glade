@@ -442,11 +442,6 @@
       <name>tv_screen</name>
       <events>GDK_EXPOSURE_MASK | GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK | GDK_PROPERTY_CHANGE_MASK | GDK_VISIBILITY_NOTIFY_MASK</events>
       <signal>
-	<name>size_allocate</name>
-	<handler>on_tv_screen_size_allocate</handler>
-	<last_modification_time>Thu, 06 Jan 2000 19:43:37 GMT</last_modification_time>
-      </signal>
-      <signal>
 	<name>button_press_event</name>
 	<handler>on_tv_screen_button_press_event</handler>
 	<last_modification_time>Wed, 14 Jun 2000 09:20:18 GMT</last_modification_time>

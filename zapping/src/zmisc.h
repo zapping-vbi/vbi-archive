@@ -29,9 +29,6 @@
 #endif
 
 #include <gnome.h>
-#ifdef HAVE_GDKPIXBUF
-#include <gdk-pixbuf/gdk-pixbuf.h>
-#endif
 
 #include <tveng.h>
 
@@ -78,6 +75,13 @@ do { \
   if (debug_msg) \
     fprintf(stderr, format ,##args); \
   fflush(stderr); \
+} while (FALSE)
+
+#define z_update_gui() \
+do { \
+  gint z_num_events_pending = gtk_events_pending(); \
+  for (; z_num_events_pending >= 0; z_num_events_pending--) \
+    gtk_main_iteration(); \
 } while (FALSE)
 
 /*
@@ -159,30 +163,3 @@ zmisc_resolve_pixformat(int bpp, GdkByteOrder byte_order)
 }
 
 #endif /* ZMISC.H */
-
-#ifdef ZCONF_DOMAIN
-#define zcs_int(var, key) \
-zconf_set_integer(var,  ZCONF_DOMAIN key)
-#define zcg_int(where, key) \
-zconf_get_integer(where, ZCONF_DOMAIN key)
-#define zcc_int(value, desc, key) \
-zconf_create_integer(value, desc, ZCONF_DOMAIN key)
-#define zcs_float(var, key) \
-zconf_set_float(var,  ZCONF_DOMAIN key)
-#define zcg_float(where, key) \
-zconf_get_float(where, ZCONF_DOMAIN key)
-#define zcc_float(value, desc, key) \
-zconf_create_float(value, desc, ZCONF_DOMAIN key)
-#define zcs_char(var, key) \
-zconf_set_string(var,  ZCONF_DOMAIN key)
-#define zcg_char(where, key) \
-zconf_get_string(where, ZCONF_DOMAIN key)
-#define zcc_char(value, desc, key) \
-zconf_create_string(value, desc, ZCONF_DOMAIN key)
-#define zcs_bool(var, key) \
-zconf_set_boolean(var,  ZCONF_DOMAIN key)
-#define zcg_bool(where, key) \
-zconf_get_boolean(where, ZCONF_DOMAIN key)
-#define zcc_bool(value, desc, key) \
-zconf_create_boolean(value, desc, ZCONF_DOMAIN key)
-#endif /* ZCONF_DOMAIN */

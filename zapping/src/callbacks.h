@@ -55,11 +55,6 @@ on_zapping_delete_event                (GtkWidget       *widget,
                                         GdkEvent        *event,
                                         gpointer         user_data);
 
-void
-on_tv_screen_size_allocate             (GtkWidget       *widget,
-                                        GtkAllocation   *allocation,
-                                        gpointer         user_data);
-
 gboolean
 on_zapping_configure_event             (GtkWidget       *widget,
                                         GdkEvent        *event,

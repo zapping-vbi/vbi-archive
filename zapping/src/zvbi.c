@@ -35,9 +35,9 @@
 #include <pthread.h>
 
 #include "tveng.h"
-#include "zconf.h"
 /* Manages config values for zconf (it saves me some typing) */
 #define ZCONF_DOMAIN "/zapping/options/vbi/"
+#include "zconf.h"
 #include "zmisc.h"
 #include "callbacks.h"
 #include "zvbi.h"

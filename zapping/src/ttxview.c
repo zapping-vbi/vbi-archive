@@ -31,8 +31,8 @@
 #include "ttxview.h"
 #include "zvbi.h"
 #define ZCONF_DOMAIN "/zapping/ttxview/"
-#include "zmisc.h"
 #include "zconf.h"
+#include "zmisc.h"
 #include "zmodel.h"
 #include "../common/fifo.h"
 
@@ -440,7 +440,6 @@ load_page (int page, int subpage, ttxview_data *data,
   GtkWidget *ttxview_hold = lookup_widget(data->da, "ttxview_hold");
   GtkWidget *widget;
   gchar *buffer;
-  gint i;
 
   buffer = g_strdup_printf("%d", hex2dec(page));
   gtk_label_set_text(GTK_LABEL(ttxview_url), buffer);
@@ -476,8 +475,7 @@ load_page (int page, int subpage, ttxview_data *data,
 
   gtk_widget_grab_focus(data->da);
   
-  for (i = gtk_events_pending(); i>-1; i--)
-    gtk_main_iteration();
+  z_update_gui();
 
   if (!pg)
     monitor_ttx_page(data->id, page, subpage);
@@ -610,7 +608,7 @@ void run_next				(GtkButton	*button,
 					 "progressbar2"), TRUE);
   gtk_label_set_text(GTK_LABEL(lookup_widget(search_cancel, "label97")),
 		     "");
-
+  gnome_dialog_set_default(GNOME_DIALOG(search_progress), 0);
   gtk_object_set_user_data(GTK_OBJECT(search_progress),
 			   (gpointer)0xdeadbeef);
 
@@ -620,8 +618,9 @@ void run_next				(GtkButton	*button,
       load_page(pg->vtp->pgno, pg->vtp->subno, data, pg);
       if (search_progress)
 	{
-	  gtk_widget_set_sensitive(GTK_WIDGET(button), TRUE);
 	  gtk_widget_set_sensitive(search_cancel, FALSE);
+	  gtk_widget_set_sensitive(GTK_WIDGET(button), TRUE);
+	  gnome_dialog_set_default(GNOME_DIALOG(search_progress), 1);
 	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_cancel,
 						     "label97")),
 			     _("Found"));
@@ -632,8 +631,9 @@ void run_next				(GtkButton	*button,
     case 0: /* not found */
       if (search_progress)
 	{
-	  gtk_widget_set_sensitive(GTK_WIDGET(button), TRUE);
 	  gtk_widget_set_sensitive(search_cancel, FALSE);
+	  gtk_widget_set_sensitive(GTK_WIDGET(button), TRUE);
+	  gnome_dialog_set_default(GNOME_DIALOG(search_progress), 1);
 	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_cancel,
 						     "label97")),
 			     _("Not found"));
@@ -728,7 +728,6 @@ gchar *subtitute_search_keywords	(gchar		*string)
 static
 int progress_update			(struct fmt_page *pg)
 {
-  gint i = gtk_events_pending();
   gchar *buffer;
   GtkProgress *progress;
 
@@ -746,8 +745,7 @@ int progress_update			(struct fmt_page *pg)
   else
     return FALSE;
 
-  while ((i--) > -1)
-    gtk_main_iteration();
+  z_update_gui();
     
   if (flag_exit_program)
     return FALSE;
@@ -890,7 +888,7 @@ void on_ttxview_clone_clicked		(GtkButton	*button,
 	      NULL);
   gdk_window_get_size(data->parent->window, &w, &h);
   gtk_widget_realize(dolly);
-  gtk_main_iteration();
+  z_update_gui();
   gdk_window_resize(dolly->window, w, h);
   gtk_widget_show(dolly);
 }

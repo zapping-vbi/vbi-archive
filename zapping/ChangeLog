@@ -1,3 +1,18 @@
+12.1.2001	Rewrite of main loop <garetxe@users.sourceforge.net>
+
+	* src/main.c: Got rid of that ugly main loop, use the usual
+	gtk_main instead, modules should hook into it if necessary.
+	* src/capture.c: Old (capture related) main loop has been moved
+	here.
+	* src/ttxview.c: Small usability improvements in search_progress,
+	default button setting (easier keyb navigation).
+	* src/zconf.h: Moved the zc[cgs]_ macros here.
+	* src/zmisc.h: Added z_update_gui, calling while
+	(gtk_events_pending()) is not any longer safe (idle calls).
+	* common/ure: Added URE_NOTBOL, URE_NOTEOL. No gui for that
+	yet. Made DOT_MATCHES_SEPARATORS behave properly with negated
+	cclasses.
+
 12.1.2001	Search GUI <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: GUI for TTX searching added.

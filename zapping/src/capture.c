@@ -26,6 +26,9 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 
+#define ZCONF_DOMAIN "/zapping/options/main/"
+#include "zconf.h"
+
 #ifndef DISABLE_X_EXTENSIONS
 #ifdef HAVE_LIBXV
 #define USE_XV 1
@@ -56,6 +59,9 @@
 extern GList		*plugin_list;
 extern gboolean		disable_xv; /* TRUE is XVideo should be
 				       disabled */
+extern gboolean		flag_exit_program;
+
+
 static gboolean		have_xv = FALSE; /* Can we use the Xv extension? */
 static GdkImage		*gdkimage=NULL; /* gdk, possibly shm, image */
 
@@ -66,6 +72,67 @@ static XvImage		*xvimage=NULL; /* Xv, shm[?] image */
 static XShmSegmentInfo	shminfo; /* shared mem info for the xvimage */
 #endif
 #endif
+static guint		idle_id=0;
+static gboolean		print_info_inited = FALSE;
+
+extern tveng_device_info	*main_info;
+extern GtkWidget		*main_window;
+
+static void
+print_visual_info(GdkVisual * visual, const char * name)
+{
+  fprintf(stderr,
+	  "%s (%p):\n"
+	  "	type:		%d\n"
+	  "	depth:		%d\n"
+	  "	byte_order:	%d\n"
+	  "	cmap_size:	%d\n"
+	  "	bprgb:		%d\n"
+	  "	red_mask:	0x%x\n"
+	  "	shift:		%d\n"
+	  "	prec:		%d\n"
+	  "	green_mask:	0x%x\n"
+	  "	shift:		%d\n"
+	  "	prec:		%d\n"
+	  "	blue_mask:	0x%x\n"
+	  "	shift:		%d\n"
+	  "	prec:		%d\n",
+	  name, visual, visual->type, visual->depth,
+	  visual->byte_order, visual->colormap_size,
+	  visual->bits_per_rgb,
+	  visual->red_mask, visual->red_shift, visual->red_prec,
+	  visual->green_mask, visual->green_shift, visual->green_prec,
+	  visual->blue_mask, visual->blue_shift, visual->blue_prec);
+}
+
+static void
+print_info(GtkWidget *main_window)
+{
+  GdkWindow * tv_screen = lookup_widget(main_window, "tv_screen")->window;
+  struct tveng_frame_format * format = &(main_info->format);
+
+  if ((!debug_msg) || (print_info_inited))
+    return;
+
+  print_info_inited = TRUE;
+
+  /* info about the used visuals (they should match exactly) */
+  print_visual_info(gdk_visual_get_system(), "system visual");
+  print_visual_info(gdk_window_get_visual(tv_screen), "tv screen visual");
+
+  fprintf(stderr,
+	  "tveng frame format:\n"
+	  "	width:		%d\n"
+	  "	height:		%d\n"
+	  "	depth:		%d\n"
+	  "	pixformat:	%d\n"
+	  "	bpp:		%g\n"
+	  "	sizeimage:	%d\n",
+	  format->width, format->height, format->depth,
+	  format->pixformat, format->bpp, format->sizeimage );
+
+  fprintf(stderr, "detected x11 depth: %d\n", x11_get_bpp());
+}
 
 static unsigned int
 xv_mode_id(char * fourcc)
@@ -387,6 +454,65 @@ capture_process_frame(GtkWidget * widget, tveng_device_info * info)
     }
 }
 
+static void
+on_tv_screen_size_allocate             (GtkWidget       *widget,
+                                        GtkAllocation   *allocation,
+                                        tveng_device_info *info)
+{
+  if (tveng_set_capture_size(allocation->width, allocation->height, 
+			     info) == -1)
+    g_warning(info->error);
+}
+
+static gint idle_handler(GtkWidget *tv_screen)
+{
+  GdkGeometry geometry;
+  GdkWindowHints hints;
+  GtkWidget *main_window;
+
+  if (flag_exit_program)
+    return 0;
+
+  main_window = lookup_widget(tv_screen, "zapping");
+
+  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
+    {
+      hints = GDK_HINT_MIN_SIZE;
+      geometry.min_width = main_info->caps.minwidth;
+      geometry.min_height = main_info->caps.minheight;
+      
+      /* Set the geometry flags if needed */
+      if (zcg_bool(NULL, "fixed_increments"))
+	{
+	  geometry.width_inc = 64;
+	  geometry.height_inc = 48;
+	  hints |= GDK_HINT_RESIZE_INC;
+	}
+      
+      switch (zcg_int(NULL, "ratio")) {
+      case 1:
+	geometry.min_aspect = geometry.max_aspect = 4.0/3.0;
+	hints |= GDK_HINT_ASPECT;
+	break;
+      case 2:
+	geometry.min_aspect = geometry.max_aspect = 16.0/9.0;
+	hints |= GDK_HINT_ASPECT;
+	break;
+      default:
+	break;
+      }
+      
+      gdk_window_set_geometry_hints(main_window->window, &geometry,
+				    hints);
+    }
+  
+  print_info(main_window);
+      
+  capture_process_frame(tv_screen, main_info);
+
+  return 1; /* Keep calling me */
+}
+
 gint
 capture_start(GtkWidget * window, tveng_device_info *info)
 {
@@ -425,6 +551,10 @@ capture_start(GtkWidget * window, tveng_device_info *info)
     tveng_set_xv_port(xvport, info);
 #endif
 
+  idle_id = gtk_idle_add((GtkFunction)idle_handler, window);
+  gtk_signal_connect(GTK_OBJECT(window), "size-allocate",
+		     GTK_SIGNAL_FUNC(on_tv_screen_size_allocate), info);
+
   /* Capture started correctly */
   return 0;
 }
@@ -432,5 +562,15 @@ capture_start(GtkWidget * window, tveng_device_info *info)
 void
 capture_stop(tveng_device_info *info)
 {
-  /* nothing to be done in here */
+  GtkWidget *tv_screen;
+
+  if (!flag_exit_program)
+    {
+      tv_screen = lookup_widget(main_window, "tv_screen");
+
+      gtk_idle_remove(idle_id);
+      gtk_signal_disconnect_by_func(GTK_OBJECT(tv_screen),
+		    GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
+				    main_info);
+    }
 }
