@@ -3,9 +3,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: zapping 0.5.2\n"
+"Project-Id-Version: zapping 0.5.4\n"
 "POT-Creation-Date: 2000-09-16 21:03+0200\n"
-"PO-Revision-Date: 2000-07-29 23:56+02:00\n"
+"PO-Revision-Date: 2000-09-17 11:11+02:00\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -14,31 +14,31 @@ msgstr ""
 
 #: src/main.c:99
 msgid "Color depth of the X display"
-msgstr ""
+msgstr "Nombres de couleurs du display X"
 
 #: src/main.c:100
 msgid "BPP"
-msgstr ""
+msgstr "BPP"
 
 #: src/main.c:108
 msgid "Set debug messages on"
-msgstr ""
+msgstr "Activer le débuguage"
 
 #: src/main.c:117
 msgid "Disable VBI support"
-msgstr ""
+msgstr "Déactiver le support VBI"
 
 #: src/main.c:126
 msgid "Disable audio i/o support"
-msgstr ""
+msgstr "Déactiver le support audio"
 
 #: src/main.c:135
 msgid "Set the default standard/norm for tunerless inputs"
-msgstr ""
+msgstr "Selectionner par défaut standard/norm pour un tuner ayant une faible entrée"
 
 #: src/main.c:136
 msgid "NORM"
-msgstr ""
+msgstr "NORM"
 
 #: src/main.c:154
 msgid "Sorry, but there is no module support"
@@ -75,25 +75,30 @@ msgid ""
 "Cannot restore previous mode%s:\n"
 "%s"
 msgstr ""
+"Impossible de restorer le précédent mode%s:\n"
+"%s"
 
 #: src/main.c:350
-#, fuzzy
 msgid ", I will try starting capture mode"
-msgstr "Utilisez ceci pour démarrer la capture en fenêtre"
+msgstr ", je vais essayer de démarrer la capture de fenêtre"
 
 #: src/main.c:354
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
-msgstr "Zapping ne peut pas démarrer."
+msgstr ""
+"La capture ne peut pas être faites :\n"
+"%s"
 
 #: src/main.c:367
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
-msgstr "Zapping ne peut pas démarrer."
+msgstr ""
+"La capture d'écran ne peut être démarrée :\n"
+"%s"
 
 #: src/main.c:435
 msgid "There is no allocated mem for the capture"
@@ -124,17 +129,17 @@ msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Désolé, Zapping n'est pas capable de créer la configuration"
 
 #: src/main.c:667
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
 "%s (%d)"
 msgstr ""
-"Désolé, mais \"%s\" ne peut pas être ouvert :\n"
-"%s"
+"Désolé, mais %s ne peut pas être ouvert :\n"
+"%s (%d)"
 
 #: src/main.c:671
 msgid "There's no GdkPixbuf support, VBI has been disabled"
-msgstr ""
+msgstr "Il n'y a pas de GdkPixbuf support, le VBI a été déactivé"
 
 #: src/interface.c:52
 #, c-format
@@ -148,7 +153,7 @@ msgstr "Fenêtre non trouvée : %s"
 
 #: src/interface.c:131
 msgid "(C) Iñaki García Etxebarria"
-msgstr ""
+msgstr "(C) Iñaki García Etxebarria"
 
 #: src/interface.c:133
 msgid "A TV viewer for the Gnome Desktop Environment"
@@ -183,10 +188,12 @@ msgid ""
 "The videotext decoder needs GdkPixbuf, and\n"
 "configure didn't find it."
 msgstr ""
+"Le décodeur videotext a besoin de GdkPixbuf, et\n"
+"configure ne le trouve pas."
 
 #: src/callbacks.c:617
 msgid "VBI has been disabled, or it doesn't work."
-msgstr ""
+msgstr "VBI n'a pas été activé, ou il ne marche pas."
 
 #: src/callbacks.c:807 src/v4linterface.c:161
 msgid "No tuner"
@@ -298,7 +305,7 @@ msgstr "Le device ne peut pas être controllé"
 
 #: src/tveng.c:204
 msgid "TV"
-msgstr ""
+msgstr "TV"
 
 #: src/properties.c:139 src/properties.c:146 src/properties.c:153
 #: src/tveng.c:205
@@ -932,7 +939,6 @@ msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Le plu-gin ne fournis pas d'aide. Désolé."
 
 #: zapping_setup_fb/zapping_setup_fb.c:86
-#, fuzzy
 msgid ""
 "Usage:\n"
 " zapping_setup_fb [OPTIONS], where OPTIONS stands for\n"
@@ -949,6 +955,7 @@ msgstr ""
 " zapping_setup_fb [OPTIONS], ou OPTIONS peut être\n"
 " --device dev - Le device vidéo à ouvrir /dev/video par défaut\n"
 " --display d  - Le display X à utiliser\n"
+" --bpp x      - bpp du serveur X\n"
 " --verbose    - Mode bavard\n"
 " --quiet      - Mode silencieux\n"
 " --help, -?   - Afficher ce message\n"
@@ -964,14 +971,13 @@ msgid "X display name seems to be missing\n"
 msgstr "Le display X semble être manquant\n"
 
 #: zapping_setup_fb/zapping_setup_fb.c:265
-#, fuzzy
 msgid "Real bpp seems to be missing\n"
-msgstr "Le display X semble être manquant\n"
+msgstr "Les bpp semblent être manquant\n"
 
 #: zapping_setup_fb/zapping_setup_fb.c:267
 #, c-format
 msgid "Imposible to understand --bpp %s, ignored\n"
-msgstr ""
+msgstr "Imposible de comprendre --bpp %s, ignoré\n"
 
 #: zapping_setup_fb/zapping_setup_fb.c:288
 #, c-format
@@ -1065,11 +1071,11 @@ msgstr "Faire la _Capture"
 
 #: glade/glade_strings.c:18
 msgid "Use Zapping as a Teletext navigator"
-msgstr ""
+msgstr "Utiliser Zapping comme un navigateur Teletext"
 
 #: glade/glade_strings.c:19 glade/glade_strings.c:129
 msgid "_Teletext"
-msgstr ""
+msgstr "_Teletext"
 
 #: glade/glade_strings.c:20
 msgid "Go _Zapping"
@@ -1125,7 +1131,7 @@ msgstr "label27"
 
 #: glade/glade_strings.c:33
 msgid "Select the V4L device"
-msgstr ""
+msgstr "Selectionner le device V4L"
 
 #: glade/glade_strings.c:34
 msgid "label31"
@@ -1190,7 +1196,7 @@ msgstr ""
 
 #: glade/glade_strings.c:49
 msgid "Ratio mode:"
-msgstr ""
+msgstr "mode Ratio :"
 
 #: glade/glade_strings.c:50
 msgid ""
@@ -1198,6 +1204,9 @@ msgid ""
 "4:3\n"
 "16:9\n"
 msgstr ""
+"Pas de ratio\n"
+"4:3\n"
+"16:9\n"
 
 #: glade/glade_strings.c:54
 msgid "General options"
@@ -1205,28 +1214,27 @@ msgstr "Options générale"
 
 #: glade/glade_strings.c:55
 msgid "Enable VBI decoding"
-msgstr ""
+msgstr "Activer le décodage VBI"
 
 #: glade/glade_strings.c:56
 msgid "Use VBI for getting station names"
-msgstr ""
+msgstr "Utiliser le VBI pour définir le nom des chaînes"
 
 #: glade/glade_strings.c:57
 msgid "Try to correct errors when decoding"
-msgstr ""
+msgstr "Essaie de corriger les erreurs pendant le décodage"
 
 #: glade/glade_strings.c:59
 msgid "Select the VBI device"
-msgstr ""
+msgstr "Selectionner le device VBI"
 
 #: glade/glade_strings.c:60
 msgid "Finetune:"
-msgstr ""
+msgstr "Ajustage fin :"
 
 #: glade/glade_strings.c:61
-#, fuzzy
 msgid "VBI options"
-msgstr "Options générale"
+msgstr "Options VBI"
 
 #: glade/glade_strings.c:62
 msgid "Channel choosing"
@@ -1276,15 +1284,15 @@ msgstr "kHz"
 
 #: glade/glade_strings.c:77
 msgid "Frequence:"
-msgstr ""
+msgstr "Fréquence :"
 
 #: glade/glade_strings.c:78
 msgid "Select your country and click here to search for the available channels"
-msgstr ""
+msgstr "Sélectionner votre pays et cliquez ici pour chercher les chaînes"
 
 #: glade/glade_strings.c:79
 msgid "_Search for the available channels in the current country"
-msgstr ""
+msgstr "Chercher le_s chaines dans le pays courant"
 
 #: glade/glade_strings.c:80
 msgid "Enter here the alias you want to give to this channel:"
@@ -1457,7 +1465,7 @@ msgstr "Utilisé ceci pour démarrer le mode plein écran"
 
 #: glade/glade_strings.c:128
 msgid "Use Zapping as a teletext navigator"
-msgstr ""
+msgstr "Utiliser Zapping comme un navigateur teletext"
 
 #: glade/glade_strings.c:130
 msgid "Searching..."
@@ -1465,50 +1473,48 @@ msgstr "Recherche..."
 
 #: glade/glade_strings.c:131
 msgid "%P %%"
-msgstr ""
+msgstr "%P %%"
 
 #: glade/glade_strings.c:133
 msgid "Next page"
-msgstr ""
+msgstr "Page suivante"
 
 #: glade/glade_strings.c:134
 msgid "Previous history entry"
-msgstr ""
+msgstr "Entrée précédente"
 
 #: glade/glade_strings.c:135
 msgid "Next history entry"
-msgstr ""
+msgstr "Entrée suivante"
 
 #: glade/glade_strings.c:136
 msgid "Previous page"
-msgstr ""
+msgstr "Page précédente"
 
 #: glade/glade_strings.c:137
 msgid "Visit:"
-msgstr ""
+msgstr "Visiter :"
 
 #: glade/glade_strings.c:138 glade/glade_strings.c:140
 msgid "Page"
-msgstr ""
+msgstr "Page"
 
 #: glade/glade_strings.c:139
 msgid "Subpage, -1 for looking to all subpages"
-msgstr ""
+msgstr "Sous-page, -1 pour voir toutes les sous-pages"
 
 #: plugins/screenshot/screenshot.c:31
 msgid "Screenshot saver"
 msgstr "Copie d'écran"
 
 #: plugins/screenshot/screenshot.c:33
-#, fuzzy
 msgid ""
 "You can use this plugin to take screenshots of what you are actually "
 "watching in TV.\n"
 "It will save the screenshots in JPEG format."
 msgstr ""
-"Vous pouvez utiliser ce plu-gin pour faire des copies d'écran que vous êtes "
-"entrain de regarder.\n"
-"La copie d'écran sera sauvée au format PNG."
+"Vous pouvez utiliser ce plu-gin pour faire des copies d'écran que vous êtes entrain de regarder.\n"
+"La copie d'écran sera sauvée au format JPG."
 
 #: plugins/screenshot/screenshot.c:37
 msgid "This plugin takes screenshots of the capture."
@@ -1545,14 +1551,13 @@ msgstr "Sélectionnez le répertoire de sauvegarde"
 
 #: plugins/screenshot/screenshot.c:398
 msgid "Quality of the compressed image:"
-msgstr ""
+msgstr "Qualité de la compression d'image :"
 
 #: plugins/screenshot/screenshot.c:419 plugins/screenshot/screenshot.c:493
 msgid "Screenshot"
 msgstr "Copie d'écran"
 
 #: plugins/screenshot/screenshot.c:465
-#, fuzzy
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
@@ -1563,15 +1568,14 @@ msgid ""
 msgstr ""
 "La première option, le répertoire de sauvegarde, permet de spécifier ou\n"
 "les copies d'écran sauront sauvegardées. Le nom de fichier sera :\n"
-"répertoire/shot[1,2,3,...].png\n"
+"répertoire/shot[1,2,3,...].jpeg\n"
 "\n"
-"L'entrelacement permet de spécifier si l'image sauvée sera\n"
-"entrelacée. Ceci permet le chargement progressif de l'image."
+"L'option de qualité permet de définir combien de données\n"
+"seront perdus pendant la compression."
 
 #: plugins/screenshot/screenshot.c:494
-#, fuzzy
 msgid "Take a JPEG screenshot"
-msgstr "Faire une copie d'écran"
+msgstr "Faire une copie d'écran en JPEG"
 
 #. Probably there is no mem even for this, but try anyway
 #: plugins/screenshot/screenshot.c:574 plugins/screenshot/screenshot.c:584
@@ -1602,15 +1606,3 @@ msgstr "Désolé, plus de ressource pour créer un nouveau thread"
 #: plugins/screenshot/screenshot.c:704
 msgid "There are too many threads"
 msgstr "Il y a trop de thread"
-
-#~ msgid "PNG saver"
-#~ msgstr "Sauvegarde PNG"
-
-#~ msgid "Save interlaced PNG"
-#~ msgstr "Sauver l'image PNG entrelacée"
-
-#~ msgid "Cannot init the first PNG saving structure"
-#~ msgstr "Impossible d'initialiser la première image PNG"
-
-#~ msgid "Cannot init the second PNG saving structure"
-#~ msgstr "Impossible d'initialiser la seconde image PNG"
