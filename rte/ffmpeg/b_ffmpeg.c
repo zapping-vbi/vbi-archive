@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.9 2002-08-22 22:06:30 mschimek Exp $ */
+/* $Id: b_ffmpeg.c,v 1.10 2002-09-12 12:25:31 mschimek Exp $ */
 
 #include <limits.h>
 #include "b_ffmpeg.h"
@@ -520,11 +520,24 @@ set_input(rte_codec *codec, rte_io_method input_method,
 	return TRUE;
 }
 
+static inline int
+saturate(int val, int min, int max)
+{
+	if (val < min)
+		val = min;
+	else if (val > max)
+		val = max;
+	return val;
+}
+
 /* Sampling parameters */
 
 static rte_bool
 parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 {
+	static const double aspects[] = { 1, 54/59.0, 11/10.0, 81/118.0, 33/40.0 };
+	static const int aspect_type[] = { FF_ASPECT_SQUARE, FF_ASPECT_4_3_625, FF_ASPECT_4_3_525,
+					   FF_ASPECT_16_9_625, FF_ASPECT_16_9_525 };
 	ffmpeg_codec *fd = FD(codec);
 	ffmpeg_codec_class *fdc = FDC(fd->codec._class);
 	struct AVCodecContext *avcc = &fd->str.codec;
@@ -551,6 +564,64 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 
 		break;
 
+	case RTE_STREAM_VIDEO:
+		avcc->frame_rate = (int)(rsp->video.frame_rate * FRAME_RATE_BASE);
+
+		avcc->aspect_ratio_info = aspect_type[rte_closest_double(
+			aspects, 5, rsp->video.sample_aspect)];
+
+		avcc->width = rsp->video.width =
+			(saturate(rsp->video.width, 16, 768) + 8) & -16;
+		avcc->height = rsp->video.height =
+			(saturate(rsp->video.height, 16, 576) + 8) & -16;
+
+		rsp->video.offset = 0;
+
+		switch (rsp->video.pixfmt) {
+		default:
+			rsp->video.pixfmt = RTE_PIXFMT_YUV420;
+			/* fall through */
+
+		case RTE_PIXFMT_YUV420:
+			avcc->pix_fmt = PIX_FMT_YUV420P;
+			rsp->video.u_offset = rsp->video.width * rsp->video.height;
+			rsp->video.v_offset = rsp->video.u_offset >> 2;
+			rsp->video.stride = rsp->video.width;
+			rsp->video.uv_stride = rsp->video.width >> 1;
+			break;
+
+		case RTE_PIXFMT_YUYV:
+			avcc->pix_fmt = PIX_FMT_YUV422;
+			rsp->video.stride = rsp->video.width * 2;
+			break;
+		}
+
+		if (avcc->max_b_frames + 1 > avcc->gop_size)
+			avcc->max_b_frames = avcc->gop_size - 1;
+		if (avcc->max_b_frames < 0)
+			avcc->max_b_frames = 0;
+
+		/* hello? */
+		avcc->bit_rate_tolerance = 0;
+		avcc->rtp_mode = 0;
+		avcc->qmin = 0;
+		avcc->qmax = 31;
+		avcc->max_qdiff = 31;
+		avcc->qcompress = 16;
+		avcc->qblur = 16;
+		avcc->b_quant_factor = 10;
+		avcc->flags = 0;
+		avcc->rc_strategy = 0;
+		avcc->b_frame_strategy = 0;
+
+		if (avcodec_open(avcc, fdc->av) < 0) {
+			// XXX
+			fprintf(stderr, "could not open codec\n");
+			exit(1);
+		}
+
+		break;
+
 	default:
 		assert (!"reached");
 	}
@@ -570,6 +641,12 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 #define OPTION_STEREO			(1 << 3)
 #define OPTION_MPEG1_AUDIO_BITRATE	(1 << 4)
 #define OPTION_MPEG2_AUDIO_BITRATE	(1 << 5)
+#define OPTION_AC3_SAMPLING		(1 << 6)
+#define OPTION_AC3_BITRATE		(1 << 7)
+#define OPTION_OPEN_BITRATE		(1 << 8)
+#define OPTION_MOTION_TYPE		(1 << 9)
+#define OPTION_I_DIST			(1 << 10)
+#define OPTION_P_DIST			(1 << 11)
 
 /* Attention: Canonical order */
 static char *
@@ -588,11 +665,44 @@ mpeg_audio_sampling[2][4] = {
 };
 
 static int
+ac3_audio_sampling[6] = {
+	48000, 44100, 32000, 24000, 22050, 16000
+};
+
+static int
 mpeg_audio_bit_rate[2][16] = {
 	{ 0, 32000, 48000, 56000, 64000, 80000, 96000, 112000,
 	  128000, 160000, 192000, 224000, 256000, 320000, 384000 },
 	{ 0, 8000, 16000, 24000, 32000, 40000, 48000, 56000,
 	  64000, 80000, 96000, 112000, 128000, 144000, 160000 }
+};
+
+static int
+ac3_audio_bit_rate[24] = {
+	16000, 20000, 24000, 28000, /* XXX depends */
+	32000, 40000, 48000, 56000,
+	64000, 80000, 96000, 112000,
+	128000, 160000, 192000, 224000, 228000, /* XXX */
+	256000, 320000, 384000, 448000, /* XXX */
+	512000, 576000, 640000 /* XXX */
+};
+
+/* Attention: Canonical order */
+static char *
+menu_motion_mode[] = {
+	/* NLS: Motion estimation */
+	N_("Disabled (fastest, worst quality)"),
+	("PHODS"),
+	("LOG"),
+	("X1"),
+	("EPZS"),
+	N_("Full search (slowest, best quality)"),
+};
+
+static const enum Motion_Est_ID
+motion_type[] = {
+	ME_ZERO, ME_PHODS, ME_LOG,
+	ME_X1, ME_EPZS, ME_FULL,
 };
 
 static struct {
@@ -619,6 +729,25 @@ static struct {
 	{ OPTION_MPEG2_SAMPLING,	RTE_OPTION_INT_MENU_INITIALIZER
 	  ("sampling_freq", N_("Sampling frequency"),
 	   0 /* 22050 */, &mpeg_audio_sampling[1][0], 3, NULL) },
+	{ OPTION_AC3_SAMPLING,		RTE_OPTION_INT_MENU_INITIALIZER
+	  ("sampling_freq", N_("Sampling frequency"),
+	   1 /* 44100 */, &ac3_audio_sampling[0], 6, NULL) },
+	{ OPTION_AC3_BITRATE,		RTE_OPTION_INT_MENU_INITIALIZER
+	  ("bit_rate", N_("Bit rate"),
+	   8 /* 128k */, ac3_audio_bit_rate, 24,
+	   N_("Output bit rate, all channels together")) },
+	{ OPTION_OPEN_BITRATE,		RTE_OPTION_INT_RANGE_INITIALIZER
+	  ("bit_rate", N_("Bit rate"),
+	   1000000, 30000, 8000000, 1000, NULL) },
+	{ OPTION_MOTION_TYPE,		RTE_OPTION_MENU_INITIALIZER
+	  ("motion_estimation", N_("Motion estimation"),
+	   4 /* EPSZ */, menu_motion_mode, 6, NULL) },
+	{ OPTION_I_DIST,		RTE_OPTION_INT_RANGE_INITIALIZER
+	  ("i_dist", N_("Intra picture distance"),
+	   12, 0, 1024, 1, NULL) },
+	{ OPTION_P_DIST,		RTE_OPTION_INT_RANGE_INITIALIZER
+	  ("p_dist", N_("Predicted picture distance"),
+	   0, 0, 3, 1, NULL) },
 };
 
 static const int num_options = sizeof(options) / sizeof(* options);
@@ -626,25 +755,9 @@ static const int num_options = sizeof(options) / sizeof(* options);
 #define KEYWORD(name) (strcmp(keyword, name) == 0)
 #define KEYOPT(type, name) ((fdc->options & type) && KEYWORD(name))
 
-static int
-ivec_vmin(const int *vec, int size, int val)
-{
-	int i, imin = 0;
-	unsigned int d, dmin = UINT_MAX;
-
-	assert(size > 0);
-
-	for (i = 0; i < size; i++) {
-		d = abs(val - vec[i]);
-
-		if (d < dmin) {
-			dmin = d;
-		        imin = i;
-		}
-	}
-
-	return vec[imin];
-}
+#define sprintf_intvec(vec, len, pre, label)				\
+	snprintf(buf, sizeof(buf), _(label),				\
+		 rte_closest_int_val(vec, len, va_arg(args, int)) / pre);
 
 static char *
 option_print(rte_codec *codec, const char *keyword, va_list args)
@@ -660,21 +773,26 @@ option_print(rte_codec *codec, const char *keyword, va_list args)
 		return rte_strdup(context, NULL, _(menu_audio_mode[
 			RTE_OPTION_ARG_MENU(menu_audio_mode)]));
 	} else if (KEYOPT(OPTION_MPEG1_AUDIO_BITRATE, "bit_rate")) {
-		snprintf(buf, sizeof(buf), _("%u kbit/s"),
-			 ivec_vmin(&mpeg_audio_bit_rate[0][1], 14,
-				   va_arg(args, int)) / 1000);
+		sprintf_intvec(&mpeg_audio_bit_rate[0][1], 14, 1000, "%u kbit/s");
 	} else if (KEYOPT(OPTION_MPEG2_AUDIO_BITRATE, "bit_rate")) {
-		snprintf(buf, sizeof(buf), _("%u kbit/s"),
-			 ivec_vmin(&mpeg_audio_bit_rate[1][1], 14,
-				   va_arg(args, int)) / 1000);
+		sprintf_intvec(&mpeg_audio_bit_rate[1][1], 14, 1000, "%u kbit/s");
 	} else if (KEYOPT(OPTION_MPEG1_SAMPLING, "sampling_freq")) {
-		snprintf(buf, sizeof(buf), _("%u Hz"),
-			 ivec_vmin(mpeg_audio_sampling[0], 3,
-				   va_arg(args, int)));
+		sprintf_intvec(mpeg_audio_sampling[0], 3, 1, "%u Hz");
 	} else if (KEYOPT(OPTION_MPEG2_SAMPLING, "sampling_freq")) {
-		snprintf(buf, sizeof(buf), _("%u Hz"),
-			 ivec_vmin(mpeg_audio_sampling[1], 3,
-				   va_arg(args, int)));
+		sprintf_intvec(mpeg_audio_sampling[1], 3, 1, "%u Hz");
+	} else if (KEYOPT(OPTION_AC3_SAMPLING, "sampling_freq")) {
+		sprintf_intvec(ac3_audio_sampling, 6, 1, "%u Hz");
+	} else if (KEYOPT(OPTION_AC3_BITRATE, "bit_rate")) {
+		sprintf_intvec(ac3_audio_bit_rate, 24, 1000, "%u kbit/s");
+	} else if (KEYOPT(OPTION_OPEN_BITRATE, "bit_rate")) {
+	        snprintf(buf, sizeof(buf), _("%5.3f Mbit/s"), va_arg(args, int) / 1e6);
+	} else if (KEYWORD("motion_estimation")) {
+		return rte_strdup(context, NULL, _(menu_motion_mode[
+			RTE_OPTION_ARG_MENU(menu_motion_mode)]));
+	} else if (KEYOPT(OPTION_I_DIST, "i_dist")) {
+		snprintf(buf, sizeof(buf), "%u", va_arg(args, int));
+	} else if (KEYOPT(OPTION_P_DIST, "p_dist")) {
+		snprintf(buf, sizeof(buf), "%u", va_arg(args, int));
 	} else {
 		rte_unknown_option(context, codec, keyword);
 	failed:
@@ -693,14 +811,28 @@ option_get(rte_codec *codec, const char *keyword, rte_option_value *v)
 
 	if ((fdc->options & (OPTION_OPEN_SAMPLING |
 			     OPTION_MPEG1_SAMPLING |
-			     OPTION_MPEG2_SAMPLING))
+			     OPTION_MPEG2_SAMPLING |
+			     OPTION_AC3_SAMPLING))
 	    && KEYWORD("sampling_freq")) {
 		v->num = fd->str.codec.sample_rate;
 	} else if (KEYOPT(OPTION_STEREO, "audio_mode")) {
 		v->num = fd->str.codec.channels - 1;
 	} else if ((fdc->options & (OPTION_MPEG1_AUDIO_BITRATE |
-				    OPTION_MPEG2_AUDIO_BITRATE))) {
+				    OPTION_MPEG2_AUDIO_BITRATE |
+				    OPTION_AC3_BITRATE |
+				    OPTION_OPEN_BITRATE))) {
 		v->num = fd->str.codec.bit_rate;
+	} else if (KEYOPT(OPTION_MOTION_TYPE, "motion_estimation")) {
+		unsigned int i;
+
+		for (i = 0; i < 6; i++)
+			if (motion_type[i] == fd->str.codec.me_method)
+				v->num = i;
+		assert (i < 6);
+	} else if (KEYOPT(OPTION_I_DIST, "i_dist")) {
+		v->num = fd->str.codec.gop_size;
+	} else if (KEYOPT(OPTION_P_DIST, "p_dist")) {
+		v->num = fd->str.codec.max_b_frames;
 	} else {
 		rte_unknown_option(context, codec, keyword);
 		return FALSE;
@@ -730,16 +862,30 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 		fd->str.codec.channels = RTE_OPTION_ARG(int, 0, 2) + 1;
 	} else if (KEYOPT(OPTION_MPEG1_AUDIO_BITRATE, "bit_rate")) {
 		fd->str.codec.bit_rate = 
-			ivec_vmin(&mpeg_audio_bit_rate[0][1], 14, va_arg(args, int));
+			rte_closest_int_val(&mpeg_audio_bit_rate[0][1], 14, va_arg(args, int));
 	} else if (KEYOPT(OPTION_MPEG2_AUDIO_BITRATE, "bit_rate")) {
 		fd->str.codec.bit_rate =
-			ivec_vmin(&mpeg_audio_bit_rate[1][1], 14, va_arg(args, int));
+			rte_closest_int_val(&mpeg_audio_bit_rate[1][1], 14, va_arg(args, int));
 	} else if (KEYOPT(OPTION_MPEG1_SAMPLING, "sampling_freq")) {
 		fd->str.codec.sample_rate = 
-			ivec_vmin(mpeg_audio_sampling[0], 3, va_arg(args, int));
+			rte_closest_int_val(mpeg_audio_sampling[0], 3, va_arg(args, int));
 	} else if (KEYOPT(OPTION_MPEG2_SAMPLING, "sampling_freq")) {
 		fd->str.codec.sample_rate = 
-			ivec_vmin(mpeg_audio_sampling[1], 3, va_arg(args, int));
+			rte_closest_int_val(mpeg_audio_sampling[1], 3, va_arg(args, int));
+	} else if (KEYOPT(OPTION_AC3_SAMPLING, "sampling_freq")) {
+		fd->str.codec.sample_rate = 
+			rte_closest_int_val(ac3_audio_sampling, 6, va_arg(args, int));
+	} else if (KEYOPT(OPTION_AC3_BITRATE, "bit_rate")) {
+		fd->str.codec.bit_rate = 
+			rte_closest_int_val(ac3_audio_bit_rate, 24, va_arg(args, int));
+	} else if (KEYOPT(OPTION_OPEN_BITRATE, "bit_rate")) {
+		fd->str.codec.bit_rate = RTE_OPTION_ARG(int, 30000, 8000000);
+	} else if (KEYOPT(OPTION_MOTION_TYPE, "motion_estimation")) {
+		fd->str.codec.me_method = motion_type[RTE_OPTION_ARG(int, 0, 5)];
+	} else if (KEYOPT(OPTION_I_DIST, "i_dist")) {
+		fd->str.codec.gop_size = RTE_OPTION_ARG(int, 0, 1024);
+	} else if (KEYOPT(OPTION_P_DIST, "p_dist")) {
+		fd->str.codec.max_b_frames = RTE_OPTION_ARG(int, 0, 3);
 	} else {
 		rte_unknown_option(context, codec, keyword);
 	failed:
@@ -774,6 +920,16 @@ extern AVCodec pcm_u8_encoder;
 extern AVCodec pcm_alaw_encoder;
 extern AVCodec pcm_mulaw_encoder;
 extern AVCodec mp2_encoder;
+
+extern AVCodec mpeg1video_encoder;
+extern AVCodec h263_encoder;
+extern AVCodec h263p_encoder;
+extern AVCodec rv10_encoder;
+extern AVCodec mjpeg_encoder;
+extern AVCodec mpeg4_encoder;
+extern AVCodec msmpeg4v1_encoder;
+extern AVCodec msmpeg4v2_encoder;
+extern AVCodec msmpeg4v3_encoder;
 
 ffmpeg_codec_class
 pcm_s16le_codec = {
@@ -849,6 +1005,142 @@ mpeg2_mp2_codec = {
 		.tooltip	= N_("MPEG-2 Low Sampling Frequency extension to MPEG-1 "
 				     "Audio Layer II. Be warned not all MPEG video and "
 				     "audio players support MPEG-2 audio."),
+	},
+};
+
+ffmpeg_codec_class
+ac3_codec = {
+	.av		= &ac3_encoder,
+	.options	= OPTION_AC3_BITRATE |
+			  OPTION_AC3_SAMPLING |
+			  OPTION_STEREO,
+        .rte._public = {
+                .stream_type    = RTE_STREAM_AUDIO,
+                .keyword        = "ac3_audio",
+                .label          = N_("AC3 Audio"),
+	},
+};
+
+ffmpeg_codec_class
+mpeg1_codec = {
+	.av		= &mpeg1video_encoder,
+	.options	= OPTION_OPEN_BITRATE |
+			  OPTION_MOTION_TYPE |
+			  OPTION_I_DIST |
+			  OPTION_P_DIST,
+        .rte._public = {
+                .stream_type    = RTE_STREAM_VIDEO,
+                .keyword        = "mpeg1_video",
+                .label          = N_("MPEG-1 Video"),
+	},
+};
+
+ffmpeg_codec_class
+h263_codec = {
+	.av		= &h263_encoder,
+	.options	= OPTION_OPEN_BITRATE |
+			  OPTION_MOTION_TYPE |
+			  OPTION_I_DIST |
+			  OPTION_P_DIST,
+        .rte._public = {
+                .stream_type    = RTE_STREAM_VIDEO,
+                .keyword        = "h263_video",
+                .label          = N_("H.263 Video"),
+	},
+};
+
+ffmpeg_codec_class
+h263p_codec = {
+	.av		= &h263p_encoder,
+	.options	= OPTION_OPEN_BITRATE |
+			  OPTION_MOTION_TYPE |
+			  OPTION_I_DIST |
+			  OPTION_P_DIST,
+        .rte._public = {
+                .stream_type    = RTE_STREAM_VIDEO,
+                .keyword        = "h263p_video",
+                .label          = N_("H.263+ Video"),
+	},
+};
+
+ffmpeg_codec_class
+rv10_codec = {
+	.av		= &rv10_encoder,
+	.options	= OPTION_OPEN_BITRATE |
+			  OPTION_MOTION_TYPE |
+			  OPTION_I_DIST |
+			  OPTION_P_DIST,
+        .rte._public = {
+                .stream_type    = RTE_STREAM_VIDEO,
+                .keyword        = "rv10_video",
+                .label          = N_("RealVideo 1.0"),
+	},
+};
+
+ffmpeg_codec_class
+mjpeg_codec = {
+	.av		= &mpeg1video_encoder,
+	.options	= OPTION_OPEN_BITRATE,
+        .rte._public = {
+                .stream_type    = RTE_STREAM_VIDEO,
+                .keyword        = "mjpeg_video",
+                .label          = N_("Motion JPEG"),
+	},
+};
+
+ffmpeg_codec_class
+mpeg4_codec = {
+	.av		= &mpeg4_encoder,
+	.options	= OPTION_OPEN_BITRATE |
+			  OPTION_MOTION_TYPE |
+			  OPTION_I_DIST |
+			  OPTION_P_DIST,
+        .rte._public = {
+                .stream_type    = RTE_STREAM_VIDEO,
+                .keyword        = "mpeg4_video",
+                .label          = N_("MPEG-4 Video"),
+	},
+};
+
+ffmpeg_codec_class
+msmpeg4v1_codec = {
+	.av		= &msmpeg4v1_encoder,
+	.options	= OPTION_OPEN_BITRATE |
+			  OPTION_MOTION_TYPE |
+			  OPTION_I_DIST |
+			  OPTION_P_DIST,
+        .rte._public = {
+                .stream_type    = RTE_STREAM_VIDEO,
+                .keyword        = "msmpeg4v1_video",
+                .label          = N_("MS MPEG-4 V1 Video"),
+	},
+};
+
+ffmpeg_codec_class
+msmpeg4v2_codec = {
+	.av		= &msmpeg4v2_encoder,
+	.options	= OPTION_OPEN_BITRATE |
+			  OPTION_MOTION_TYPE |
+			  OPTION_I_DIST |
+			  OPTION_P_DIST,
+        .rte._public = {
+                .stream_type    = RTE_STREAM_VIDEO,
+                .keyword        = "msmpeg4v2_video",
+                .label          = N_("MS MPEG-4 V2 Video"),
+	},
+};
+
+ffmpeg_codec_class
+msmpeg4v3_codec = {
+	.av		= &msmpeg4v3_encoder,
+	.options	= OPTION_OPEN_BITRATE |
+			  OPTION_MOTION_TYPE |
+			  OPTION_I_DIST |
+			  OPTION_P_DIST,
+        .rte._public = {
+                .stream_type    = RTE_STREAM_VIDEO,
+                .keyword        = "msmpeg4v3_video",
+                .label          = N_("MS MPEG-4 V3 Video"),
 	},
 };
 
@@ -1086,6 +1378,7 @@ ffmpeg_ac3_audio_context = {
 	},
 	.av = &ac3_format,
 	.codecs = {
+		&ac3_codec,
 		NULL
 	}
 };
@@ -1094,6 +1387,7 @@ static ffmpeg_context_class *
 context_table[] = {
 	&ffmpeg_riff_wave_context,
 	&ffmpeg_mpeg_audio_context,
+	&ffmpeg_ac3_audio_context,
 };
 
 static const int num_contexts =
