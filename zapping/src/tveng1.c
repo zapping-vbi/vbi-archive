@@ -64,21 +64,21 @@
 #include "common/videodev.h"
 #include "common/_videodev.h"
 
-/* This macro checks the ioctl argument type at compile time. It
-   executes the ioctl, when it fails stores an error message
-   containing the ioctl name, and returns the ioctl() return value
-   and errno code. */
+/* This macro checks at compile time if the arg type is correct,
+   device_ioctl() repeats the ioctl if interrupted (EINTR) and logs
+   the args and result if log_fp is non-zero. When the ioctl failed
+   ioctl_failure() stores the cmd, caller and errno in info. */
 #define xioctl(info, cmd, arg)						\
-(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- ((0 == device_ioctl ((info)->log_fp, fprint_v4l_ioctl_arg,		\
-		      (info)->fd, cmd, (void *)(arg))) ?		\
-  0 : (ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,		\
-		      __LINE__, # cmd), -1)))
+	(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),				\
+	 ((0 == device_ioctl ((info)->log_fp, fprint_v4l_ioctl_arg,	\
+			      (info)->fd, cmd, (void *)(arg))) ?	\
+	  0 : (ioctl_failure (info, __FILE__, __FUNCTION__,		\
+			      __LINE__, # cmd), -1)))
 
 #define xioctl_may_fail(info, cmd, arg)					\
-(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- device_ioctl ((info)->log_fp, fprint_v4l_ioctl_arg,			\
-		      (info)->fd, cmd, (void *)(arg)))
+	(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),				\
+	 device_ioctl ((info)->log_fp, fprint_v4l_ioctl_arg,		\
+		       (info)->fd, cmd, (void *)(arg)))
 
 /* Bttv driver extensions. */
 
@@ -2619,7 +2619,8 @@ static int p_tveng1_dequeue(void *image,
 
 	frame = p_info->dequeued % p_info->mmbuf.frames;
 
-	while (-1 == xioctl(info, VIDIOCSYNC, &frame)) {
+	/* XXX must bypass device_ioctl() to get EINTR. */
+	while (-1 == ioctl (info, VIDIOCSYNC, &frame)) {
 		switch (errno) {
 		case EINTR:
 			if (timeout_alarm)
