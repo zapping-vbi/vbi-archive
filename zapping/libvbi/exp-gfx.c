@@ -11,7 +11,7 @@
 #define WW	(W*CW)			/* pixel width of window */
 #define WH	(H*CH)			/* pixel hegiht of window */
 
-#define TEST2 0
+#define TEST2 1
 
 #if TEST2
 #include "wstfont.xbm"
@@ -41,7 +41,7 @@ draw_char(unsigned char * colour_matrix,
 	  int sep)
 {
   int x,y;
-  unsigned char* src= txt2_bits;
+  unsigned char* src= wstfont_bits;
   int dest_x=_x*CW;
   int dest_y=_y*CH;
   int cbase = c & 0xFFF;

@@ -14,8 +14,7 @@ Changes:
     (mainly set-at, set-after and double height lower row correction)
   * fixed hold-mosaic bug (must hold separated attribute too)
   * added boxed/opacity attributes to fmt_page (for subtitles et al)
-  * level 1 ... 3.5 font designation, new font image,
-    composed glyphs and national option subset, (unfinished)
+  * all level 1 ... 3.5 character sets, new font image
   * added packet X/28/x, M/29/x decoder, finished
   * successful DRCS download, none stored & rendered yet
   * fmt_page considers page/magazine extension (unfinished)
