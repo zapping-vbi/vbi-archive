@@ -1,3 +1,11 @@
+librte 0.5.5, 2005-03-11
+------------------------
+This is a bugfix release.
+
+- librte breaks large files into smaller parts on systems which have a
+  2 GB file size limit.  When the system reported a limit of 2^64-1 bytes
+  it was incorrectly interpreted as -2^63.
+
 librte 0.5.4, 2005-02-28
 ------------------------
 This is a bugfix release.

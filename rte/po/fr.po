@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rte 0.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-02-23 06:05+0100\n"
+"POT-Creation-Date: 2005-03-11 04:54+0100\n"
 "PO-Revision-Date: 2002-09-28 15:43+0200\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -457,31 +457,31 @@ msgstr "DivX 5.x Video"
 msgid "DivX4Linux library not available. %s\n"
 msgstr "Bibliothèque DivX4Linux non disponible. %s\n"
 
-#: src/context.c:236
+#: src/context.c:234
 #, c-format
 msgid "No such encoder '%s'."
 msgstr "Pas de tel encodeur '%s'."
 
-#: src/context.c:242
+#: src/context.c:240
 #, c-format
 msgid "Encoder '%s' not available. %s"
 msgstr "Encodeur '%s' non disponible. %s"
 
-#: src/context.c:245
+#: src/context.c:243
 #, c-format
 msgid "Encoder '%s' not available."
 msgstr "Encodeur '%s' non disponible."
 
-#: src/context.c:259
+#: src/context.c:257
 #, c-format
 msgid "Cannot create new encoding context '%s'. %s"
 msgstr "Ne peu créer un nouveau contexte d'encodage '%s'. %s"
 
-#: src/context.c:263
+#: src/context.c:261
 #, c-format
 msgid "Cannot create new encoding context '%s'."
 msgstr "Ne peu créer un nouveau contexte d'encodage '%s'."
 
-#: src/context.c:1286
+#: src/context.c:1290
 msgid "Unknown error."
 msgstr "Erreur inconnue."

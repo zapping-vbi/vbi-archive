@@ -1,3 +1,15 @@
+2005-03-11    <mschimek@users.sf.net>
+
+	* Release 0.5.5.
+
+2005-03-09    <mschimek@users.sf.net>
+
+	* configure.in: Bumped version number to 0.5.5.
+	* src/context.c (rte_set_output_file): write_cb() breaks files
+	  into several parts on systems with a 2G file size limit.
+	  Created a gazillion small files if the file size was reported as
+	  UINT_MAX64 and interpreted as INT_MIN64.
+
 2005-02-28    <mschimek@users.sf.net>
 
 	* Release 0.5.4.

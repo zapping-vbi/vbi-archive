@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rte 0.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-02-23 06:05+0100\n"
+"POT-Creation-Date: 2005-03-11 04:54+0100\n"
 "PO-Revision-Date: 2004-10-05 11:44+0200\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -453,31 +453,31 @@ msgstr "DivX 5.x Video"
 msgid "DivX4Linux library not available. %s\n"
 msgstr "La librería DivX4Linux no está disponible. %s\n"
 
-#: src/context.c:236
+#: src/context.c:234
 #, c-format
 msgid "No such encoder '%s'."
 msgstr "No existe el codificador '%s'."
 
-#: src/context.c:242
+#: src/context.c:240
 #, c-format
 msgid "Encoder '%s' not available. %s"
 msgstr "Codificador '%s' no disponible. %s"
 
-#: src/context.c:245
+#: src/context.c:243
 #, c-format
 msgid "Encoder '%s' not available."
 msgstr "Codificador '%s' no disponible."
 
-#: src/context.c:259
+#: src/context.c:257
 #, c-format
 msgid "Cannot create new encoding context '%s'. %s"
 msgstr "No se puede crear un nuevo contexto de compresión '%s'. %s"
 
-#: src/context.c:263
+#: src/context.c:261
 #, c-format
 msgid "Cannot create new encoding context '%s'."
 msgstr "No se puede crear un nuevo contexto de compresión '%s'."
 
-#: src/context.c:1286
+#: src/context.c:1290
 msgid "Unknown error."
 msgstr "Error desconocido."

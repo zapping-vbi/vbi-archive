@@ -30,7 +30,7 @@ EXTRA_DIST = \
 	$(XFAIL_TESTS)
 
 INCLUDES = \
-	-I$(top_srcdir)/src \
+	-I$(top_srcdir) \
 	-I$(top_builddir)/src \
 	$(COMMON_INCLUDES) \
 	-D_GNU_SOURCE \

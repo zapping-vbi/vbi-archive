@@ -19,9 +19,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.c,v 1.10 2002-12-25 09:44:14 mschimek Exp $ */
+/* $Id: codec.c,v 1.11 2005-03-11 05:35:52 mschimek Exp $ */
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include "rtepriv.h"
 
 #define xc context->_class

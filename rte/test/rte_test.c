@@ -20,12 +20,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test.c,v 1.3 2002-03-10 07:22:29 mschimek Exp $
+ * $Id: rte_test.c,v 1.4 2005-03-11 05:35:53 mschimek Exp $
  * This is a simple RTE test.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#  include "config.h"
 #endif
 
 //#if defined(USE_ESD) || defined(OSS)

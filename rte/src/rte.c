@@ -19,9 +19,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.21 2005-02-25 18:16:38 mschimek Exp $ */
+/* $Id: rte.c,v 1.22 2005-03-11 05:35:52 mschimek Exp $ */
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <ctype.h>
 #include <errno.h>
