@@ -35,13 +35,9 @@ vbi_send(struct vbi *vbi, int type, int pgno, int subno, int i1, int i2, int i3,
 {
     vbi_event ev[1];
 
-    ev->resource = vbi;
     ev->type = type;
     ev->pgno = pgno;
     ev->subno = subno;
-    ev->i1 = i1;
-    ev->i2 = i2;
-    ev->i3 = i3;
     ev->p1 = p1;
 
     vbi_send_event(vbi, ev);
@@ -1899,6 +1895,17 @@ vbi_set_default_region(struct vbi *vbi, int default_region)
 		ext->char_set[1] =
 			default_region;
 	}
+}
+
+void
+vbi_set_teletext_level(struct vbi *vbi, int level)
+{
+	if (level < VBI_LEVEL_1)
+		level = VBI_LEVEL_1;
+	else if (level > VBI_LEVEL_3p5)
+		level = VBI_LEVEL_3p5;
+
+	vbi->vt.max_level = level;
 }
 
 void

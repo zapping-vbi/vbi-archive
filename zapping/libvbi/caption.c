@@ -1,5 +1,5 @@
 /*
- *  Closed Caption decoder
+ *  Zapzilla - Closed Caption decoder
  *
  *  gcc -g -ocaption caption.c -L/usr/X11R6/lib -lX11 -DTEST=1
  *
@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.17 2001-02-26 15:01:11 mschimek Exp $ */
+/* $Id: caption.c,v 1.18 2001-03-03 15:16:29 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,9 +31,14 @@
 #include "vbi.h"
 
 #if TEST
+
 #include "hamm.c"
 #include "tables.c"
 #include "lang.c"
+
+#define XDS_DEBUG 1
+#define ITV_DISABLE 0
+
 #else
 
 #include "hamm.h"
@@ -774,6 +779,9 @@ set_cursor(channel *ch, int col, int row)
 static void
 put_char(struct caption *cc, channel *ch, attr_char c)
 {
+	// c.foreground = rand() & 7;
+	// c.background = rand() & 7;
+
 	if (ch->col < COLUMNS - 1)
 		ch->line[ch->col++] = c;
 	else {
@@ -1484,7 +1492,7 @@ const ushort palette[8] = {
 static inline void
 draw_char(ushort *canvas, unsigned int c, ushort *pen, int underline)
 {
-	ushort *s = ((unsigned short *) bitmap_bits)
+	ushort *s = ((unsigned short *) ccfont_bits)
 		+ (c & 31) + (c >> 5) * 32 * CELL_HEIGHT;
 	int x, y, b;
 
@@ -1607,11 +1615,11 @@ render(struct fmt_page *pg, int row)
 }
 
 static void
-clear(struct fmt_page *pg, int page)
+clear(struct fmt_page *pg)
 {
 	int i;
 
-	if (draw_page >= 0 && page != draw_page)
+	if (draw_page >= 0 && pg->pgno != draw_page)
 		return;
 
 	for (i = 0; i < ROWS; i++)
@@ -1660,7 +1668,7 @@ roll_up(struct fmt_page *pg, int first_row, int last_row)
 static void
 fetch(int page)
 {
-	channel *ch = &caption.channel[page - CC_PAGE_BASE];
+	channel *ch = &vbi.cc.channel[page - CC_PAGE_BASE];
 
 	if (shift > 0) {
 		bump(shift, FALSE);
@@ -1669,11 +1677,6 @@ fetch(int page)
 	}
 
 	draw_page = page;
-
-	if (ch->mode == MODE_POP_ON)
-		clear(&ch->pg, page); // XXX have no displayed buffer, should we?
-	else
-		render(&ch->pg, -1);
 }
 
 static void
@@ -1819,7 +1822,7 @@ printc(char c)
 
 	buf[0] = odd(c);
 	buf[1] = 0x80;
-	vbi_caption_dispatcher(&vbi, buf, FALSE);
+	vbi_caption_dispatcher(&vbi, 21, buf);
 
 	xevent(33333);
 }
@@ -1832,13 +1835,13 @@ prints(char *s)
 	for (; s[0] && s[1]; s += 2) {
 		buf[0] = odd(s[0]);
 		buf[1] = odd(s[1]);
-		vbi_caption_dispatcher(&vbi, buf, FALSE);
+		vbi_caption_dispatcher(&vbi, 21, buf);
 	}
 
 	if (s[0]) {
 		buf[0] = odd(s[0]);
 		buf[1] = 0x80;
-		vbi_caption_dispatcher(&vbi, buf, FALSE);
+		vbi_caption_dispatcher(&vbi, 21, buf);
 	}
 
 	xevent(33333);
@@ -1852,7 +1855,7 @@ cmd(unsigned int n)
 	buf[0] = odd(n >> 8);
 	buf[1] = odd(n & 0x7F);
 
-	vbi_caption_dispatcher(&vbi, buf, FALSE);
+	vbi_caption_dispatcher(&vbi, 21, buf);
 
 	xevent(33333);
 }
@@ -1899,44 +1902,6 @@ PAUSE(int frames)
 		xevent(33333);
 }
 
-/* obsolete, use sample_beta() for /ccsamples files */
-void
-sample_alpha(void)
-{
-	unsigned char cc[2];
-	char *s, buf[256];
-	double dt;
-	int index, line;
-	int items;
-	int i, j;
-
-	while (!feof(stdin)) {
-		fgets(buf, 255, stdin);
-
-		if (!(s = strstr(buf, "0.033")))
-			continue;
-
-		dt = strtod(s, NULL);
-		items = fgetc(stdin);
-
-		for (i = 0; i < items; i++) {
-			index = fgetc(stdin);
-			line = fgetc(stdin);
-			line += 256 * fgetc(stdin);
-
-			cc[0] = fgetc(stdin);
-			cc[1] = fgetc(stdin);
-
-			if (i > 0 && i < (items - 1))
-				continue; /* temp fix */
-
-			vbi_caption_dispatcher(&vbi, cc, i > 0);
-
-			xevent(dt * 1e6);
-		}
-	}
-}
-
 void
 sample_beta(void)
 {
@@ -1965,15 +1930,10 @@ sample_beta(void)
 			cc[0] = fgetc(stdin);
 			cc[1] = fgetc(stdin);
 
-			if ((line & 0xFFF) != 21
-			    && (line & 0xFFF) != 284) {
-				continue; /* XXX smarter please */
-			}
-
 //			printf(" %3d %02x %02x ", line & 0xFFF, cc[0] & 0x7F, cc[1] & 0x7F);
 //			printf(" %c%c\n", printable(cc[0]), printable(cc[1]));
 
-			vbi_caption_dispatcher(&vbi, cc, line >> 15);
+			vbi_caption_dispatcher(&vbi, line & 0xFFF, cc);
 
 			xevent(dt * 1e6);
 		}

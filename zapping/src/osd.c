@@ -470,7 +470,7 @@ add_piece(int col, int row, int width, attr_char *c)
       p.unscaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
 			          CELL_WIDTH*p.width, CELL_HEIGHT);
       vbi_draw_cc_page_region(&osd_page,
-          gdk_pixbuf_get_pixels(p.unscaled),
+          (uint32_t *) gdk_pixbuf_get_pixels(p.unscaled),
 	  col, row, width, 1 /* height */,
           gdk_pixbuf_get_rowstride(p.unscaled));
     }
@@ -478,10 +478,11 @@ add_piece(int col, int row, int width, attr_char *c)
     {
       p.unscaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
 			          12*p.width, 10);
-      vbi_draw_page_region(&osd_page,
-          gdk_pixbuf_get_pixels(p.unscaled),
-	  1 /* reveal */, col, row, width, 1 /* height */,
-          gdk_pixbuf_get_rowstride(p.unscaled), 1 /* flash_on */);
+      vbi_draw_vt_page_region(&osd_page,
+          (uint32_t *) gdk_pixbuf_get_pixels(p.unscaled),
+          col, row, width, 1 /* height */,
+	  gdk_pixbuf_get_rowstride(p.unscaled),
+	  1 /* reveal */, 1 /* flash_on */);
     }
 
   pp = &(osd_matrix[row]->pieces[osd_matrix[row]->n_pieces]);

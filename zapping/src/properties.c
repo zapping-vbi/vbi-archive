@@ -279,6 +279,12 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
     zconf_get_integer(NULL,
 		      "/zapping/options/vbi/default_region"));
 
+  /* Teletext level */
+  widget = lookup_widget(zapping_properties, "optionmenu4");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/vbi/teletext_level"));
+
   gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
@@ -424,6 +430,21 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       zconf_set_integer(index, "/zapping/options/vbi/default_region");
       if (zvbi_get_object())
 	vbi_set_default_region(zvbi_get_object(), region_mapping[index]);
+
+      /* teletext_level */
+      widget = lookup_widget(pbox, "optionmenu4");
+      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+
+      index = g_list_index(GTK_MENU_SHELL(widget)->children,
+			   gtk_menu_get_active(GTK_MENU(widget)));
+      if (index < 0)
+	index = 0;
+      if (index > 3)
+	index = 3;
+
+      zconf_set_integer(index, "/zapping/options/vbi/teletext_level");
+      if (zvbi_get_object())
+	vbi_set_teletext_level(zvbi_get_object(), index);
 
       /* Directory for exporting */
       widget = lookup_widget(pbox, "fileentry3");

@@ -1,14 +1,35 @@
 /*
- * (C) 2001 Iñaki García Etxebarria
- * Just a convenience wrapper
+ *  Zapzilla/libvbi public interface
+ *
+ *  Copyright (C) 2001 Iñaki García Etxebarria
+ *  Copyright (C) 2001 Michael H. Schimek
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+
+/* $Id: libvbi.h,v 1.24 2001-03-03 15:16:29 mschimek Exp $ */
+
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
 
+#include <stdint.h>
+
 //#include <vt.h>
 //#include <lang.h>
-#include <dllist.h>
-#include <export.h>
+//#include "dllist.h"
+#include "export.h"
 
 /*
     public interface:
@@ -64,6 +85,7 @@ struct vbi; /* opaque type */
 extern int		vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
 				          int pgno, int subno, int display_rows, int navigation);
 extern void		vbi_set_default_region(struct vbi *vbi, int default_region);
+extern void		vbi_set_teletext_level(struct vbi *vbi, int level);
 
 /*
  *  Closed Caption (caption.c)
@@ -106,6 +128,19 @@ extern void		vbi_delete_search(void *p);
 extern void *		vbi_new_search(struct vbi *vbi, int pgno, int subno,
 				ucs2_t *pattern, int casefold, int (* progress)(struct fmt_page *pg));
 extern int		vbi_next_search(void *p, struct fmt_page **pg, int dir);
+
+/*
+ *  Rendering (exp_gfx.c)
+ */
+
+extern void		vbi_draw_vt_page_region(struct fmt_page *pg, uint32_t *canvas,
+				int column, int row, int width, int height, unsigned int rowstride,
+				int reveal, int flash_on);
+extern void		vbi_draw_cc_page_region(struct fmt_page *pg, uint32_t *canvas,
+				int column, int row, int width, int height, unsigned int rowstride);
+
+#define vbi_draw_vt_page(pg, canvas, reveal, flash_on) \
+	vbi_draw_vt_page_region(pg, canvas, 0, 0, 40, 25, -1, reveal, flash_on)
 
 /*
  *  Network identification.
@@ -158,17 +193,24 @@ typedef struct {
  *     can confuse the logic.
  */
 
-#define	VBI_EVENT_XPACKET	(1 << 5)	// i1:mag  i2:pkt  i3:errors  p1:data
-#define	VBI_EVENT_RESET		(1 << 6)	// ./.
-#define	VBI_EVENT_TIMER		(1 << 7)	// ./.
+#define VBI_EVENT_IO_ERROR	(1 << 5)
+/*
+ *  A fatal I/O error occured, as reported by the vbi fifo producer.
+ *  On return from the event handler the vbi mainloop will terminate
+ *  and must be restarted after the problem has been solved.
+ *
+ *  (XXX this should include an error code and message) 
+ */
+
+#define	VBI_EVENT_XPACKET	(1 << 6)	// i1:mag  i2:pkt  i3:errors  p1:data
+#define	VBI_EVENT_RESET		(1 << 7)	// ./.
+#define	VBI_EVENT_TIMER		(1 << 8)	// ./.
 
 typedef struct {
 	int			type;
 	int			pgno;
 	int			subno;
 
-    void *resource;	/* struct xio_win *, struct vbi *, ... */
-    int i1, i2, i3, i4;
     void *p1;
 } vbi_event;
 

@@ -33,10 +33,7 @@
  */
 int
 vbi_event_handler(struct vbi *vbi, int event_mask,
-	void (* handler)
-	(vbi_event *, 
-	void *), 
-	void *user_data) 
+	void (* handler)(vbi_event *, void *), void *user_data) 
 {
 	struct event_handler *eh, **ehp;
 	int found = 0, mask = 0, was_locked;
@@ -114,9 +111,12 @@ vbi_mainloop(void *p)
 		b = wait_full_buffer(vbi->fifo);
 
 		if (!b) {
-			fprintf(stderr, "Oops! VBI read error and "
-					"I don't know how to handle it.\n");
-			exit(EXIT_FAILURE);
+			vbi_event ev;
+
+			ev.type = VBI_EVENT_IO_ERROR;
+			vbi_send_event(vbi, &ev);
+
+			break;
 		}
 
 		/* call out_of_sync if timestamp delta > 1.5 * frame period */
@@ -141,7 +141,6 @@ vbi_mainloop(void *p)
 
 	return NULL;
 }
-
 
 /* TEST ONLY */
 

@@ -1,5 +1,6 @@
 /*
- *  Zapzilla - Teletext graphical rendering and export functions
+ *  Zapzilla - Closed Caption and Teletext graphical
+ *             rendering and export functions
  *
  *  Copyright (C) 2000-2001 Michael H. Schimek
  *
@@ -22,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.27 2001-02-27 12:26:47 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.28 2001-03-03 15:16:29 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -30,6 +31,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 
 #include <errno.h>
@@ -41,6 +43,7 @@
 #include "export.h"
 
 #include "wstfont.xbm"
+#include "ccfont.xbm"
 
 /* future */
 #undef _
@@ -57,13 +60,14 @@
 
 #define CPL		(wstfont_width / CW * wstfont_height / CH)
 
-static unsigned char *fimg;
+static uint8_t *fimg;
 static void init_gfx(void) __attribute__ ((constructor));
 
 static void
 init_gfx(void)
 {
-	unsigned char *p;
+	uint8_t *t;
+	uint8_t *p;
 	int i, j;
 
 	/* de-interleave font image (puts all chars in row 0) */
@@ -77,33 +81,48 @@ init_gfx(void)
 		for (j = 0; j < wstfont_height; p += wstfont_width / 8, j += CH)
 			memcpy(p, wstfont_bits + (j + i) * wstfont_width / 8,
 				wstfont_width / 8);
+
+	if (!(t = malloc(ccfont_width * ccfont_height / 8)))
+		exit(EXIT_FAILURE);
+
+	p = t;
+
+	for (i = 0; i < 26; i++)
+		for (j = 0; j < ccfont_height; p += ccfont_width / 8, j += 26)
+			memcpy(p, ccfont_bits + (j + i) * ccfont_width / 8,
+				ccfont_width / 8);
+
+	memcpy(ccfont_bits, t, ccfont_width * ccfont_height / 8);
+
+	free(t);
 }
 
-#if CW < 9 || CW > 16
-#error CW out of range
-#endif
+#define peek(p, i)							\
+((canvas_type == sizeof(uint8_t)) ? ((uint8_t *)(p))[i] :		\
+    ((canvas_type == sizeof(uint16_t)) ? ((uint16_t *)(p))[i] :		\
+	((uint32_t *)(p))[i]))
 
-#define peek(p, i)							                \
-((canvas_type == sizeof(unsigned char)) ? ((unsigned char *)(p))[i] :			\
-    ((canvas_type == sizeof(unsigned short)) ? ((unsigned char *)(p))[i] :		\
-	((unsigned int *)(p))[i]))
+#define poke(p, i, v)							\
+((canvas_type == sizeof(uint8_t)) ? (((uint8_t *)(p))[i] = (v)) :	\
+    ((canvas_type == sizeof(uint16_t)) ? (((uint16_t *)(p))[i] = (v)) :	\
+	(((uint32_t *)(p))[i] = (v))))
 
-#define poke(p, i, v)							                \
-((canvas_type == sizeof(unsigned char)) ? (((unsigned char *)(p))[i] = (v)) :		\
-    ((canvas_type == sizeof(unsigned short)) ? (((unsigned short *)(p))[i] = (v)) :	\
-	(((unsigned int *)(p))[i] = (v))))
-
+/*
+ *  draw_char template
+ */
 static inline void
-draw_char(int canvas_type, unsigned char *canvas, unsigned int rowstride,
-	unsigned char *pen, unsigned char *font, int cpl, int cw, int ch,
+draw_char(int canvas_type, uint8_t *canvas, unsigned int rowstride,
+	uint8_t *pen, uint8_t *font, int cpl, int cw, int ch,
 	int glyph, int bold, int italic, unsigned int underline, attr_size size)
 {
-	unsigned char *src1, *src2;
-	unsigned short g = glyph & 0xFFFF;
+	uint8_t *src1, *src2;
+	int g = glyph & 0xFFFF;
 	int shift1, shift2;
 	int x, y, base = 0;
 
 	/* bold = !!bold; */
+	/* assert(cw >= 8 && cw <= 16); */
+	/* assert(ch >= 1 && cw <= 31); */
 
 	if (italic && g < 0x200)
 		base = GL_ITALICS;
@@ -112,7 +131,7 @@ draw_char(int canvas_type, unsigned char *canvas, unsigned int rowstride,
 	shift1 = x & 7;
 	src1 = font + (x >> 3);
 
-	x = (base + 0xC0 + (glyph >> 20)) * cw;
+	x = (base + (glyph >> 20)) * cw;
 	shift2 = (x & 7) + ((glyph >> 18) & 1);
 	src2 = font + (x >> 3);
 
@@ -138,8 +157,8 @@ draw_char(int canvas_type, unsigned char *canvas, unsigned int rowstride,
 
 		if (!(underline & 1)) {
 #if #cpu (i386)
-			bits = (*((unsigned short *) src1) >> shift1)
-		    	     | (*((unsigned short *) src2) >> shift2);
+			bits = (*((uint16_t *) src1) >> shift1)
+		    	     | (*((uint16_t *) src2) >> shift2);
 #else
 			bits = ((src1[1] * 256 + src1[0]) >> shift1)
 			     | ((src2[1] * 256 + src2[0]) >> shift2); /* unaligned/little endian */
@@ -206,8 +225,8 @@ draw_char(int canvas_type, unsigned char *canvas, unsigned int rowstride,
 }
 
 static inline void
-draw_drcs(int canvas_type, unsigned char *canvas, unsigned char *pen,
-	unsigned char *src, int glyph, attr_size size, unsigned int rowstride)
+draw_drcs(int canvas_type, uint8_t *canvas, uint8_t *pen,
+	uint8_t *src, int glyph, attr_size size, unsigned int rowstride)
 {
 	unsigned int col;
 	int x, y;
@@ -278,7 +297,7 @@ draw_drcs(int canvas_type, unsigned char *canvas, unsigned char *pen,
 }
 
 static inline void
-draw_blank(int canvas_type, unsigned char *canvas,
+draw_blank(int canvas_type, uint8_t *canvas,
 	unsigned int colour, unsigned int rowstride)
 {
 	int x, y;
@@ -292,31 +311,62 @@ draw_blank(int canvas_type, unsigned char *canvas,
 }
 
 void
-vbi_draw_page_region(struct fmt_page *pg, void *data, int reveal,
-		     int scol, int srow, int width, int height,
-		     int rowstride, int flash_on)
+vbi_draw_cc_page_region(struct fmt_page *pg, uint32_t *canvas,
+	int column, int row, int width, int height, unsigned int rowstride)
 {
-	unsigned int *canvas = (unsigned int *) data;
-	unsigned int pen[64];
-	int conceal, row, column;
+	uint32_t pen[2];
+	int count, row_adv;
 	attr_char *ac;
-	int glyph, i;
-	int ww;
 
 	if (rowstride == -1)
-		rowstride = WW*sizeof(*canvas);
+		rowstride = pg->columns * 16 * sizeof(*canvas);
 
-	ww = rowstride / sizeof(*canvas);
+	row_adv = rowstride * 26 - width * 16 * sizeof(*canvas);
+
+	for (; height > 0; height--, row++) {
+		ac = &pg->text[row * pg->columns + column];
+
+		for (count = width; count > 0; count--, ac++) {
+			pen[0] = pg->colour_map[ac->background];
+			pen[1] = pg->colour_map[ac->foreground];
+
+			draw_char(sizeof(*canvas), (uint8_t *) canvas, rowstride,
+				(uint8_t *) pen, ccfont_bits, 256, 16, 26,
+				ac->glyph & 0xFF, 0 /* bold */, 0 /* italic, coded in glyph */,
+				ac->underline * (3 << 24) /* cell row 24, 25 */, NORMAL /* size */);
+
+			canvas += 16;
+		}
+
+		canvas += row_adv / sizeof(*canvas);
+	}
+}
+
+void
+vbi_draw_vt_page_region(struct fmt_page *pg, uint32_t *canvas,
+	int column, int row, int width, int height, unsigned int rowstride,
+	int reveal, int flash_on)
+{
+	uint32_t pen[64];
+	int count, row_adv;
+	int conceal, glyph;
+	attr_char *ac;
+	int i;
+
+	if (rowstride == -1)
+		rowstride = pg->columns * 12 * sizeof(*canvas);
+
+	row_adv = rowstride * 10 - width * 12 * sizeof(*canvas);
 
 	conceal = !reveal;
 
 	for (i = 2; i < 2 + 8 + 32; i++)
 		pen[i] = pg->colour_map[pg->drcs_clut[i]];
 
-	for (row = srow; row < srow+height; canvas += ww * (CH - 1), row++) {
-		for (column = scol; column < scol+width; canvas += CW, column++) {
-			ac = &pg->text[row * pg->columns + column];
+	for (; height > 0; height--, row++) {
+		ac = &pg->text[row * pg->columns + column];
 
+		for (count = width; count > 0; count--, ac++) {
 			glyph = ((ac->conceal & conceal) || !flash_on) ?
 				GL_SPACE : ac->glyph;
 
@@ -330,22 +380,25 @@ vbi_draw_page_region(struct fmt_page *pg, void *data, int reveal,
 
 			default:
 				if ((glyph & 0xFFFF) >= GL_DRCS) {
-					draw_drcs(sizeof(*canvas), (unsigned char *) canvas,
-						(unsigned char *) pen,
-						pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size, rowstride);
+					draw_drcs(sizeof(*canvas), (uint8_t *) canvas,
+						(uint8_t *) pen, pg->drcs[(glyph & 0x1F00) >> 8],
+						glyph, ac->size, rowstride);
 				} else {
-					draw_char(sizeof(*canvas), (unsigned char *) canvas, rowstride,
-						(unsigned char *) pen, fimg, CPL, CW, CH,
-						glyph, ac->bold, ac->italic,
+					draw_char(sizeof(*canvas), (uint8_t *) canvas, rowstride,
+						(uint8_t *) pen, fimg, CPL, CW, CH,
+						glyph + 0xC000000, ac->bold, ac->italic,
 						ac->underline << 9 /* cell row 9 */, ac->size);
 				}
 			}
+
+			canvas += CW;
 		}
 
-		canvas += (ww/CW-width)*CW;
+		canvas += row_adv / sizeof(*canvas);
 	}
 }
 
+/* XXX */
 /* We could just export WW and WH too.. */
 void vbi_get_rendered_size(int *w, int *h)
 {
@@ -412,19 +465,36 @@ static int
 ppm_output(struct export *e, char *name, struct fmt_page *pg)
 {
 	gfx_data *d = (gfx_data *) e->data;
-	unsigned int *image;
-	unsigned char *body;
+	uint32_t *image;
+	uint8_t *body;
+	int cw, ch, size, scale;
 	struct stat st;
 	FILE *fp;
 	int i;
 
-	if (!(image = malloc(WH * WW * sizeof(*image)))) {
+	if (pg->columns < 40) {
+		cw = 16;
+		ch = 26;
+		scale = !!d->double_height;
+	} else {
+		cw = 12;
+		ch = 10;
+		scale = 1 + !!d->double_height;
+	}
+
+	size = cw * pg->columns * ch * pg->rows;
+
+	if (!(image = malloc(size * sizeof(*image)))) {
 		export_error(e, _("unable to allocate %d KB image buffer"),
-			WH * WW * sizeof(*image) / 1024);
+			size * sizeof(*image) / 1024);
 		return 0;
 	}
 
-	vbi_draw_page(pg, image, !e->reveal);
+	if (pg->columns < 40)
+		vbi_draw_cc_page_region(pg, image, 0, 0, pg->columns, pg->rows, -1);
+	else
+		vbi_draw_vt_page_region(pg, image, 0, 0, pg->columns, pg->rows, -1,
+			!e->reveal, 1 /* flash_on */);
 
 	if (!(fp = fopen(name, "wb"))) {
 		export_error(e, _("cannot create file '%s': %s"), name, strerror(errno));
@@ -432,33 +502,68 @@ ppm_output(struct export *e, char *name, struct fmt_page *pg)
 		return -1;
 	}
 
-	fprintf(fp, "P6 %d %d 15\n", WW, WH << (!!d->double_height));
+	fprintf(fp, "P6 %d %d 15\n",
+		cw * pg->columns, (ch * pg->rows / 2) << scale);
 
 	if (ferror(fp))
 		goto write_error;
 
-	body = (unsigned char *) image;
+	body = (uint8_t *) image;
 
-	for (i = 0; i < WH * WW; body += 3, i++) {
-		unsigned int n = (image[i] >> 4) & 0x0F0F0F;
+	if (scale == 0) {
+		unsigned int n;
+		int stride = cw * pg->columns;
 
-		body[0] = n;
-		body[1] = n >> 8;
-		body[2] = n >> 16;
-	}
+		for (i = 0; i < size; body += 3, i++) {
+			n = (((image[i] & 0xF0F0F0) +
+			      (image[i + stride] & 0xF0F0F0) +
+			      0x101010) >> 5) & 0x0F0F0F;
 
-	if (d->double_height) {
-		body = (unsigned char *) image;
-
-		for (i = 0; i < WH; body += WW * 3, i++) {
-			if (!fwrite(body, WW * 3, 1, fp))
-				goto write_error;
-			if (!fwrite(body, WW * 3, 1, fp))
-				goto write_error;
+			body[0] = n;
+			body[1] = n >> 8;
+			body[2] = n >> 16;
 		}
 	} else
-		if (!fwrite(image, WH * WW * 3, 1, fp))
+		for (i = 0; i < size; body += 3, i++) {
+			unsigned int n = (image[i] >> 4) & 0x0F0F0F;
+
+			body[0] = n;
+			body[1] = n >> 8;
+			body[2] = n >> 16;
+		}
+
+	switch (scale) {
+		int rows, stride;
+
+	case 0:
+		body = (uint8_t *) image;
+		rows = ch * pg->rows / 2;
+		stride = cw * pg->columns * 3;
+
+		for (i = 0; i < rows; i++, body += stride * 2)
+			if (!fwrite(body, stride, 1, fp))
+				goto write_error;
+		break;
+
+	case 1:
+		if (!fwrite(image, size * 3, 1, fp))
 			goto write_error;
+		break;
+
+	case 2:
+		body = (uint8_t *) image;
+		rows = ch * pg->rows;
+		stride = cw * pg->columns * 3;
+
+		for (i = 0; i < rows; body += stride, i++) {
+			if (!fwrite(body, stride, 1, fp))
+				goto write_error;
+			if (!fwrite(body, stride, 1, fp))
+				goto write_error;
+		}
+
+		break;
+	}
 
 	free(image);
 	image = NULL;
@@ -515,17 +620,17 @@ static void
 draw_char_indexed(png_bytep canvas, png_bytep pen, int glyph, attr_char *ac,
 		  int rowstride)
 {
-	draw_char(sizeof(png_byte), (unsigned char *) canvas, rowstride,
-		(unsigned char *) pen, fimg, CPL, CW, CH,
-		glyph, ac->bold, ac->italic,
+	draw_char(sizeof(png_byte), (uint8_t *) canvas, rowstride,
+		(uint8_t *) pen, fimg, CPL, CW, CH,
+		glyph + 0xC000000, ac->bold, ac->italic,
 		ac->underline << 9 /* cell row 9 */, ac->size);
 }
 
 static void
 draw_drcs_indexed(png_bytep canvas, png_bytep pen,
-	unsigned char *src, int glyph, attr_size size, int rowstride)
+	uint8_t *src, int glyph, attr_size size, int rowstride)
 {
-	draw_drcs(sizeof(png_byte), (unsigned char *) canvas, (unsigned char *) pen, src, glyph,
+	draw_drcs(sizeof(png_byte), (uint8_t *) canvas, (uint8_t *) pen, src, glyph,
 		  size, rowstride);
 }
 
@@ -545,6 +650,11 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 	png_bytep image;
 	int i;
 	int rowstride = WW*sizeof(*image);
+
+	if (pg->columns < 40) {
+		export_error(e, "Oops - caption PNG not ready");
+		return -1;
+	}
 
 	if ((image = malloc(WH * WW * sizeof(*image)))) {
 		png_bytep canvas = image;
@@ -573,7 +683,7 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 					/*
 					 *  Transparent foreground and background.
 					 */
-					draw_blank(sizeof(*canvas), (unsigned char *) canvas,
+					draw_blank(sizeof(*canvas), (uint8_t *) canvas,
 						TRANSPARENT_BLACK, rowstride);
 					break;
 
@@ -765,113 +875,3 @@ export_png[1] =			// exported module definition
 };
 
 #endif /* HAVE_LIBPNG */
-
-/* PRELIMINARY */
-
-#include <assert.h>
-#include "ccfont.xbm"
-
-#define CELL_WIDTH 16
-#define CELL_HEIGHT 26
-
-#define NUM_COLS 34
-#define NUM_ROWS 15
-
-static const unsigned char palette[8][3] = {
-  {0x00, 0x00, 0x00},
-  {0xff, 0x00, 0x00},
-  {0x00, 0xff, 0x00},
-  {0xff, 0xff, 0x00},
-  {0x00, 0x00, 0xff},
-  {0xff, 0x00, 0xff},
-  {0x00, 0xff, 0xff},
-  {0xff, 0xff, 0xff}
-};
-
-static inline void
-cc_draw_char(unsigned char *canvas, unsigned int c, unsigned char *pen,
-	  int underline, int rowstride)
-{
-  unsigned short *s = ((unsigned short *) bitmap_bits)
-    + (c & 31) + (c >> 5) * 32 * CELL_HEIGHT;
-  int x, y, b;
-  
-  for (y = 0; y < CELL_HEIGHT; y++) {
-    b = *s;
-    s += 32;
-    
-    if (underline && (y >= 24 && y <= 25))
-      b = ~0;
-    
-    for (x = 0; x < CELL_WIDTH; x++) {
-      canvas[x*4+0] = pen[(b & 1)*3+0];
-      canvas[x*4+1] = pen[(b & 1)*3+1];
-      canvas[x*4+2] = pen[(b & 1)*3+2];
-      canvas[x*4+3] = 0xFF;
-      b >>= 1;
-    }
-
-    canvas += rowstride;
-  }
-}
-
-static void
-draw_row(unsigned char *canvas, attr_char *line, int width, int rowstride)
-{
-  int i;
-  unsigned char pen[6];
-  
-  for (i = 0; i < width; i++)
-    {
-      switch (line[i].opacity)
-	{
-	case TRANSPARENT_SPACE:
-	  assert(0);
-	  break;
-
-	case TRANSPARENT:
-	case SEMI_TRANSPARENT:
-	  /* Transparency not implemented */
-	  /* It could be done in some cases by setting the background
-	     to the XVideo chroma */
-/*	  pen[0] = palette[0][0];
-	  pen[1] = palette[0][1];
-	  pen[2] = palette[0][2];
-	  pen[3] = palette[line[i].foreground][0];
-	  pen[4] = palette[line[i].foreground][1];
-	  pen[5] = palette[line[i].foreground][2];
-	  break;
-*/	    
-	default:
-	  pen[0] = palette[line[i].background][0];
-	  pen[1] = palette[line[i].background][1];
-	  pen[2] = palette[line[i].background][2];
-	  pen[3] = palette[line[i].foreground][0];
-	  pen[4] = palette[line[i].foreground][1];
-	  pen[5] = palette[line[i].foreground][2];
-	  break;
-	}
-
-      cc_draw_char(canvas, line[i].glyph & 0xFF, pen, line[i].underline,
-		rowstride);
-      canvas += CELL_WIDTH*4;
-    }
-}
-
-void
-vbi_draw_cc_page_region(struct fmt_page *pg, void *data,
-	int scol, int srow, int width, int height, int rowstride)
-{
-	unsigned char *canvas = (unsigned char *) data;
-	int row;
-
-	if (rowstride == -1)
-		rowstride = NUM_COLS * CELL_WIDTH * 4; // sizeof(*canvas);
-
-	for (row = srow; row < srow+height; row++) {
-		draw_row(canvas, pg->text + row * pg->columns + scol,
-			width, rowstride);
-
-		canvas += rowstride * CELL_HEIGHT;
-	}
-}

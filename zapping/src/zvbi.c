@@ -76,7 +76,7 @@ struct ttx_patch {
   GdkPixbuf	*unscaled_off;
   GdkPixbuf	*scaled_on;
   GdkPixbuf	*scaled_off;
-  gboolean	phase; /* flash phase 0 ... 3, 0 == off */
+  gint		phase; /* flash phase 0 ... 3, 0 == off */
 };
 
 struct ttx_client {
@@ -198,6 +198,7 @@ startup_zvbi(void)
   zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
   zcc_char("/dev/vbi", "VBI device", "vbi_device");
   zcc_int(0, "Default TTX region", "default_region");
+  zcc_int(0, "Teletext implementation level", "teletext_level");
 
   zconf_add_hook("/zapping/options/vbi/enable_vbi",
 		 (ZConfHook)on_vbi_prefs_changed,
@@ -279,6 +280,14 @@ zvbi_open_device(void)
   if (index > 7)
     index = 7;
   vbi_set_default_region(vbi, region_mapping[index]);
+
+  index = zcg_int(NULL, "teletext_level");
+  if (index < 0)
+    index = 0;
+  if (index > 3)
+    index = 3;
+  vbi_set_teletext_level(vbi, index);
+
   pthread_mutex_init(&clients_mutex, NULL);
 
   zmodel_changed(vbi_model);
@@ -746,12 +755,15 @@ build_client_page(struct ttx_client *client, int page, int subpage)
 	  pthread_mutex_unlock(&client->mutex);
 	  return 0;
 	}
-      vbi_draw_page(&client->fp,
-		    gdk_pixbuf_get_pixels(client->unscaled_on),
-		    client->reveal);
-      vbi_draw_page_region(&client->fp,
-			   gdk_pixbuf_get_pixels(client->unscaled_off),
-			   client->reveal, 0, 0, 40, 25, -1, 0);
+      vbi_draw_vt_page(&client->fp,
+		       (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on),
+		       client->reveal, 1 /* flash_on */);
+      vbi_draw_vt_page_region(&client->fp,
+                              (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off),
+			      0 /* column */, 0 /* row */,
+			      client->fp.columns, client->fp.rows,
+			      -1 /* rowstride */,
+			      client->reveal, 0 /* flash_on */);
     }
   else if (page == 0)
     {
@@ -853,12 +865,15 @@ void monitor_ttx_this(int id, struct fmt_page *pg)
       client->subpage = pg->subno;
       client->freezed = TRUE;
       memcpy(&client->fp, pg, sizeof(struct fmt_page));
-      vbi_draw_page(&client->fp,
-		    gdk_pixbuf_get_pixels(client->unscaled_on),
-		    client->reveal);
-      vbi_draw_page_region(&client->fp,
-			   gdk_pixbuf_get_pixels(client->unscaled_off),
-			   client->reveal, 0, 0, 40, 25, -1, 0);
+      vbi_draw_vt_page(&client->fp,
+		       (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on),
+		       client->reveal, 1 /* flash_on */);
+      vbi_draw_vt_page_region(&client->fp,
+                              (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off),
+			      0 /* column */, 0 /* row */,
+			      pg->columns, pg->rows,
+			      -1 /* rowstride */,
+			      client->reveal, 0 /* flash_on */);
       build_client_page(client, -1, -1);
       clear_message_queue(client);
       send_ttx_message(client, TTX_PAGE_RECEIVED);

@@ -466,12 +466,12 @@ static void selection_handle		(GtkWidget	*widget,
 					     data->sel_height*CH);
 	  gint id[2];
 
-	  vbi_draw_page_region(&data->clipboard_fmt_page,
-			       gdk_pixbuf_get_pixels(canvas),
-			       zcg_bool(NULL, "reveal"),
-			       data->sel_col, data->sel_row,
-			       data->sel_width, data->sel_height,
-			       gdk_pixbuf_get_rowstride(canvas), 1);
+	  vbi_draw_vt_page_region(&data->clipboard_fmt_page,
+				  (uint32_t *) gdk_pixbuf_get_pixels(canvas),
+				  data->sel_col, data->sel_row,
+				  data->sel_width, data->sel_height,
+				  gdk_pixbuf_get_rowstride(canvas),
+				  zcg_bool(NULL, "reveal"), 1 /* flash_on */);
 	  gdk_pixbuf_render_to_drawable(canvas, pixmap,
 					data->da->style->white_gc, 0,
 					0, 0, 0, data->sel_width*CW,

@@ -18,10 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.5 2001-02-26 15:01:11 mschimek Exp $ */
+/* $Id: format.h,v 1.6 2001-03-03 15:16:29 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
+
+#include <stdint.h>
 
 /*
  *  WST/CC base palette, actual number of entries in WST mode
@@ -38,7 +40,7 @@ typedef enum {
 /*
  *  Standard colour map entry, 0xAABBGGRR.
  */
-typedef unsigned int	attr_rgba;
+typedef uint32_t	attr_rgba;
 
 /*
  *  TRANSPARENT_SPACE:
@@ -155,19 +157,20 @@ struct fmt_page
 	/*
 	 *  Colour and opacity outside the text area.
 	 */
-	attr_rgba		screen_colour;
+	int			screen_colour;
 	attr_opacity		screen_opacity;
 
 	/*
-	 *  text[].foreground and .background colours.
+	 *  text[].foreground, .background,
+	 *  drcs_clut, screen_colour.
 	 */
 	attr_rgba *		colour_map;
 
 	/*
 	 *  DRCS LUTs, see exp_gfx.c.
 	 */
-	unsigned char *		drcs_clut;		/* 64 entries */
-	unsigned char *		drcs[32];		/* 16 * 48 * 12 * 10 nibbles, LSN first */
+	uint8_t *		drcs_clut;		/* 64 entries */
+	uint8_t *		drcs[32];		/* 16 * 48 * 12 * 10 nibbles, LSN first */
 
 	/* Private */
 

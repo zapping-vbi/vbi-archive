@@ -1,5 +1,5 @@
 /*
- *  Zapzilla - Teletext HTML export functions
+ *  Zapzilla - Closed Caption and Teletext HTML export functions
  *
  *  Copyright (C) 2001 Michael H. Schimek
  *
@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.11 2001-02-20 07:33:20 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.12 2001-03-03 15:16:29 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -46,11 +46,38 @@
 #undef _
 #define _(String) (String)
 
-struct html_data	// private data in struct export
+typedef struct style {
+	struct style *		next;
+	int			ref_count;
+	int			foreground;
+	int			background;
+} style;
+
+typedef struct html_data	// private data in struct export
 {
   unsigned char gfx_chr;
-  unsigned char bare;
-};
+  unsigned char headerless;
+
+	char *			name;
+	FILE *			fp;
+	iconv_t			cd;
+	int			foreground;
+	int			background;
+	unsigned int		underline : 1;
+	unsigned int		bold : 1;
+	unsigned int		italic : 1;
+	unsigned int		flash : 1;
+	unsigned int		span : 1;
+
+	style *			styles;
+	style			def;
+} html_data;
+
+
+
+
+
+
 
 #define D  ((struct html_data *)e->data)
 
@@ -58,7 +85,7 @@ static int
 html_open(struct export *e)
 {
     D->gfx_chr = '#';
-    D->bare = 0;
+    D->headerless = 0;
     //e->reveal=1;	// the default should be the same for all formats.
     return 0;
 }
@@ -76,11 +103,18 @@ html_option(struct export *e, int opt, char *arg)
 	  D->gfx_chr = *arg;
       break;
     case 2: // bare (no headers)
-      D->bare=1;
+      D->headerless=1;
       break;
     }
   return 0;
 }
+
+static char *html_opts[] =	// module options
+{
+  "gfx-chr=<char>",             // substitute <char> for gfx-symbols
+  "bare",                     // no headers  
+   0                      
+};
 
 #define TEST 0
 #define LF "\n"	/* optional "" */
@@ -99,62 +133,99 @@ static const char *	html_bold[]		= { "</b>", "<b>" };
 static const char *	html_italic[]		= { "</i>", "<i>" };
 static const char *	html_flash[]		= { "</blink>", "<blink>" };
 
-static int
-html_output(struct export *e, char *name, struct fmt_page *pgp)
+static void
+write_error(struct export *e)
 {
-	struct fmt_page pg;
-	char *charset;
-	iconv_t cd;
-	attr_char *acp;
-	int foreground;
-	int background;
-	bool underline, bold, italic, flash;
-	bool span;
+	html_data *h = (html_data *) e->data;
 	struct stat st;
-	FILE *fp;
-	int i, j;
 
-	pg = *pgp;
+	export_error(e, errno ?
+		_("error while writing file '%s': %s") :
+		_("error while writing file '%s'"), h->name, strerror(errno));
 
-	switch (pg.font[0] - font_descriptors) {
+	if (h->fp)
+		fclose(h->fp);
+
+	if (!stat(h->name, &st) && S_ISREG(st.st_mode))
+		remove(h->name);
+}
+
+/*
+    Title: "<title lang=\"en\" dir=\"ltr\">Medieval Bee-Keeping</title>
+ */
+static bool
+header(struct export *e, char *name, struct fmt_page *pg, char *title)
+{
+	html_data *h = (html_data *) e->data;
+	char *charset, *lang = NULL, *dir = NULL;
+
+	h->name = name;
+
+	switch (pg->font[0] - font_descriptors) {
 	case 0:	 /* English */
-	case 1:	 /* German */
-	case 2:	 /* Swedish/Finnish/Hungarian */
-	case 3:	 /* Italian */
-	case 4:	 /* French */
-	case 5:	 /* Portuguese/Spanish */
-	case 9:	 /* German */
-	case 10: /* Swedish/Finnish/Hungarian */
-	case 11: /* Italian */
-	case 12: /* French */
 	case 16: /* English */
+		lang = "en";
+
+	case 1:	 /* German */
+	case 9:	 /* German */
 	case 17: /* German */
-	case 18: /* Swedish/Finnish/Hungarian */
-	case 19: /* Italian */
-	case 20: /* French */
-	case 21: /* Portuguese/Spanish */
 	case 33: /* German */
+		if (!lang) lang = "de";
+
+	case 2:	 /* Swedish/Finnish/Hungarian */
+	case 10: /* Swedish/Finnish/Hungarian */
+	case 18: /* Swedish/Finnish/Hungarian */
+		if (!lang) lang = "";
+
+	case 3:	 /* Italian */
+	case 11: /* Italian */
+	case 19: /* Italian */
+		if (!lang) lang = "it";
+
+	case 4:	 /* French */
+	case 12: /* French */
+	case 20: /* French */
+		if (!lang) lang = "fr";
+
+	case 5:	 /* Portuguese/Spanish */
+	case 21: /* Portuguese/Spanish */
+		if (!lang) lang = "es";
+
 	default:
 		charset = "iso-8859-1";
 		break;
 
 	case 6:	 /* Czech/Slovak */
-	case 8:	 /* Polish */
 	case 14: /* Czech/Slovak */
-	case 29: /* Serbian/Croatian/Slovenian */
-	case 31: /* Romanian */
 	case 38: /* Czech/Slovak */
+		lang = "";
+
+	case 8:	 /* Polish */
+		if (!lang) lang = ""; /* ? */
+
+	case 29: /* Serbian/Croatian/Slovenian */
+		if (!lang) lang = "";
+
+	case 31: /* Romanian */
+		if (!lang) lang = ""; /* ? */
 		charset = "iso-8859-2";
 		break;
 
 	case 34: /* Estonian */
+		lang = ""; /* ? */
+
 	case 35: /* Lettish/Lithuanian */
 		charset = "iso-8859-4";
 		break;
 
 	case 32: /* Serbian/Croatian */
+		lang = "";
+
 	case 36: /* Russian/Bulgarian */
+		if (!lang) lang = "ru";
+
 	case 37: /* Ukranian */
+		if (!lang) lang = ""; /* ? */
 		charset = "iso-8859-5";
 		break;
 
@@ -162,34 +233,126 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 	case 68: /* Arabic/French */
 	case 71: /* Arabic */
 	case 87: /* Arabic */
+		lang = "ar";
+		dir = ""; /* ? */
 		charset = "iso-8859-6";	/* XXX needs further examination */
 		break;
 
 	case 55: /* Greek */
+		lang = "el";
 		charset = "iso-8859-7";
 		break;
 
 	case 85: /* Hebrew */
+		lang = "he";
+		dir = ""; /* ? */
 		charset = "iso-8859-8";	/* XXX needs further examination */
 		break;
 
 	case 22: /* Turkish */
 	case 54: /* Turkish */
+		lang = ""; /* ? */
 		charset = "iso-8859-9";
+		break;
+
+	case 99: /* Klingon */
+		lang = "x-klingon";
+		charset = "iso-10646";
 		break;
 	}
 
-	if ((cd = iconv_open(charset, "UCS2")) == (iconv_t) -1) {
+	if ((h->cd = iconv_open(charset, "UCS2")) == (iconv_t) -1) {
 		export_error(e, "character conversion not supported, should not happen");
-		return -1;
+		return FALSE;
 	}
 
+	if (!(h->fp = fopen(name, "w"))) {
+		export_error(e, _("cannot create file '%s': %s"), name, strerror(errno));
+		iconv_close(h->cd);
+		return FALSE;
+	}
+
+	if (!h->headerless) {
+		style *s;
+		int ord;
+
+		fprintf(h->fp,
+			"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\" "
+				"\"http://www.w3.org/TR/REC-html40/loose.dtd\">" LF
+			"<html>" LF "<head>" LF
+			"<meta name=\"generator\" lang=\"en\" content=\"Zapzilla " VERSION "\">" LF
+			"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=%s\">" LF
+			"<style type=\"text/css\">" LF "<!--" LF,
+			charset);
+
+		for (s = h->styles, ord = 1; s; s = s->next)
+			if (s != &h->def && s->ref_count > 1) {
+				fprintf(h->fp, "span.c%d { color:", ord);
+				hash_colour(h->fp, pg->colour_map[s->foreground]);
+				fputs("; background-color:", h->fp);
+				hash_colour(h->fp, pg->colour_map[s->background]);
+				fputs(" }" LF, h->fp);
+				ord++;
+			}
+
+		fprintf(h->fp,
+			"//-->" LF "</style>" LF
+			"%s" /* title */ LF
+			"</head>" LF
+			"<body ",
+			title);
+
+		if (lang && *lang)
+			fprintf(h->fp, "lang=\"%s\" ", lang);
+
+		if (dir && *dir)
+			fprintf(h->fp, "dir=\"%s\" ", dir);
+
+		fputs("text=\"#FFFFFF\" bgcolor=\"", h->fp);
+
+		hash_colour(h->fp, pg->colour_map[pg->screen_colour]);
+
+		fputs("\">" LF, h->fp);
+	}
+
+	if (ferror(h->fp)) {
+		write_error(e);
+		return FALSE;
+	}
+
+	h->foreground	= WHITE;
+	h->background	= pg->screen_colour;
+	h->underline	= FALSE;
+	h->bold		= FALSE;
+	h->italic	= FALSE;
+	h->flash	= FALSE;
+	h->span		= FALSE;
+
+	return TRUE;
+}
+
+static int
+html_output(struct export *e, char *name, struct fmt_page *pgp)
+{
+	html_data *h = (html_data *) e->data;
+	struct fmt_page pg;
+	attr_char *acp;
+	int i, j;
+
+	pg = *pgp;
+
 #if TEST
-	underline  = FALSE;
-	bold	   = FALSE;
-	italic	   = FALSE;
-	flash      = FALSE;
+	h->underline	= FALSE;
+	h->bold		= FALSE;
+	h->italic	= FALSE;
+	h->flash	= FALSE;
 #endif
+
+	h->styles = &h->def;
+	h->def.next = NULL;
+	h->def.ref_count = 2;
+	h->def.foreground = h->foreground;
+	h->def.background = h->background;
 
 	for (acp = pg.text, i = 0; i < pg.rows; acp += pg.columns, i++) {
 		int blank = 0;
@@ -203,13 +366,13 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 			acp[j].flash	 = flash;
 
 			if ((rand() & 15) == 0)
-				underline = rand() & 1;
+				h->underline = rand() & 1;
 			if ((rand() & 15) == 1)
-				bold	  = rand() & 1;
+				h->bold	  = rand() & 1;
 			if ((rand() & 15) == 2)
-				italic	  = rand() & 1;
+				h->italic = rand() & 1;
 			if ((rand() & 15) == 3)
-				flash	  = rand() & 1;
+				h->flash  = rand() & 1;
 #endif
 			if (acp[j].size > DOUBLE_SIZE)
 				glyph = 0x20;
@@ -253,112 +416,134 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 				blank--;
 			}
 		}
+
+		for (j = 0; j < pg.columns; j++) {
+			attr_char ac = acp[j];
+			style *s, **sp;
+
+			for (sp = &h->styles; (s = *sp); sp = &s->next) {
+				if (s->background != ac.background)
+					continue;
+				if (ac.glyph == 0x20 || s->foreground == ac.foreground)
+					break;
+			}
+
+			if (!s) {
+				s = calloc(1, sizeof(style));
+				*sp = s;
+				s->foreground = ac.foreground;
+				s->background = ac.background;
+			}
+
+			s->ref_count++;
+		}
 	}
 
-	if (!(fp = fopen(name, "w"))) {
-		export_error(e, _("cannot create file '%s': %s"), name, strerror(errno));
-		iconv_close(cd);
+	if (!header(e, name, &pg, "<title>Medieval Bee-Keeping</title>"))
 		return -1;
-	}
 
-	if (!D->bare) {
-		fprintf(fp,
-			"<!DOCTYPE html PUBLIC \"-//W3C//DTD html 4.0 transitional//EN\">" LF
-			"<html>" LF "<head>" LF
-			"<meta name=\"generator\" content=\"Zapzilla " VERSION "\">" LF
-			"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=%s\">" LF
-			"<style type=\"text/css\"></style>" LF
-			"<title>Teletext Page %3x/%x</title>" LF /* XXX add station-short,
-				mind reserved chars (quote) and character set */
-			"</head>" LF,
-			charset,
-			pg.pgno, pg.subno);
+	fputs("<pre>", h->fp);
 
-		fputs("<body text=\"#FFFFFF\" bgcolor=\"", fp);
-		hash_colour(fp, pg.colour_map[pg.screen_colour]);
-		fputs("\">" LF "<pre>", fp);
-	} else
-		fputs("<pre>", fp);
-
-	foreground = 7;
-	background = pg.screen_colour;
-	underline  = FALSE;
-	bold	   = FALSE;
-	italic	   = FALSE;
-	flash      = FALSE;
-	span	   = FALSE;
+	h->underline  = FALSE;
+	h->bold	      = FALSE;
+	h->italic     = FALSE;
+	h->flash      = FALSE;
+	h->span	      = FALSE;
 
 	/* XXX this can get extremely large and ugly, should be improved. */
 	for (acp = pg.text, i = 0; i < pg.rows; acp += pg.columns, i++) {
 		for (j = 0; j < pg.columns; j++) {
 			int code;
 
-			if (acp[j].foreground != foreground
-			    || acp[j].background != background) {
-				if (flash)
-					fputs(html_flash[0], fp);
-				if (italic)
-					fputs(html_italic[0], fp);
-				if (bold)
-					fputs(html_bold[0], fp);
-				if (underline)
-					fputs(html_underline[0], fp);
-				if (span)
-					fputs("</span>", fp);
+			if ((acp[j].glyph != 0x20 && acp[j].foreground != h->foreground)
+			    || acp[j].background != h->background) {
+				style *s;
+				int ord;
 
-				foreground = acp[j].foreground;
-				background = acp[j].background;
-				underline  = FALSE;
-				bold	   = FALSE;
-				italic	   = FALSE;
-				flash      = FALSE;
+				if (h->flash)
+					fputs(html_flash[0], h->fp);
+				if (h->italic)
+					fputs(html_italic[0], h->fp);
+				if (h->bold)
+					fputs(html_bold[0], h->fp);
+				if (h->underline)
+					fputs(html_underline[0], h->fp);
+				if (h->span)
+					fputs("</span>", h->fp);
 
-				fputs("<span style=\"color:", fp);
-				hash_colour(fp, pg.colour_map[foreground]);
-				fputs(";background-color:", fp);
-				hash_colour(fp, pg.colour_map[background]);
-				fputs("\">", fp);
+				h->underline  = FALSE;
+				h->bold	      = FALSE;
+				h->italic     = FALSE;
+				h->flash      = FALSE;
 
-				span = TRUE;
+				for (s = h->styles, ord = 0; s; s = s->next)
+					if (s->ref_count > 1) {
+						if ((acp[j].glyph == 0x20 || s->foreground == acp[j].foreground)
+						    && s->background == acp[j].background)
+							break;
+						ord++;
+					}
+
+				if (s != &h->def) {
+					if (s) {
+						h->foreground = s->foreground;
+						h->background = s->background;
+						fprintf(h->fp, "<span class=\"c%d\">", ord);
+					} else {
+						h->foreground = acp[j].foreground;
+						h->background = acp[j].background;
+						fputs("<span style=\"color:", h->fp);
+						hash_colour(h->fp, pg.colour_map[h->foreground]);
+						fputs(";background-color:", h->fp);
+						hash_colour(h->fp, pg.colour_map[h->background]);
+						fputs("\">", h->fp);
+					}
+
+					h->span = TRUE;
+				} else {
+					h->foreground = s->foreground;
+					h->background = s->background;
+					h->span = FALSE;
+				}
 			}
 
-			if (acp[j].underline != underline
-			    || acp[j].bold != bold
-			    || acp[j].italic != italic
-			    || acp[j].flash != flash) {
-				if (flash)
-					fputs(html_flash[0], fp);
-				if (italic)
-					fputs(html_italic[0], fp);
-				if (bold)
-					fputs(html_bold[0], fp);
-				if (underline)
-					fputs(html_underline[0], fp);
+			if (acp[j].underline != h->underline
+			    || acp[j].bold != h->bold
+			    || acp[j].italic != h->italic
+			    || acp[j].flash != h->flash) {
+				if (h->flash)
+					fputs(html_flash[0], h->fp);
+				if (h->italic)
+					fputs(html_italic[0], h->fp);
+				if (h->bold)
+					fputs(html_bold[0], h->fp);
+				if (h->underline)
+					fputs(html_underline[0], h->fp);
 
-				underline  = FALSE;
-				bold	   = FALSE;
-				italic	   = FALSE;
-				flash      = FALSE;
+				h->underline  = FALSE;
+				h->bold	      = FALSE;
+				h->italic     = FALSE;
+				h->flash      = FALSE;
 			}
 
-			if (acp[j].underline != underline) {
-				underline = acp[j].underline;
-				fputs(html_underline[underline], fp);
+			if (acp[j].underline != h->underline) {
+				h->underline = acp[j].underline;
+				fputs(html_underline[h->underline], h->fp);
 			}
 
-			if (acp[j].bold != bold) {
-				bold = acp[j].bold;
-				fputs(html_bold[bold], fp);
+			if (acp[j].bold != h->bold) {
+				h->bold = acp[j].bold;
+				fputs(html_bold[h->bold], h->fp);
 			}
 
-			if (acp[j].italic != italic) {
-				italic = acp[j].italic;
-				fputs(html_italic[italic], fp);
+			if (acp[j].italic != h->italic) {
+				h->italic = acp[j].italic;
+				fputs(html_italic[h->italic], h->fp);
 			}
 
-			if (acp[j].flash != flash) {
-				flash = acp[j].flash;
-				fputs(html_flash[flash], fp);
+			if (acp[j].flash != h->flash) {
+				h->flash = acp[j].flash;
+				fputs(html_flash[h->flash], h->fp);
 			}
 
 #if TEST
@@ -366,83 +551,76 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 				code = glyph_iconv(cd, 0x100 + (rand() & 0xFF), D->gfx_chr);
 			else
 #endif
-			code = glyph_iconv(cd, acp[j].glyph, D->gfx_chr);
+			code = glyph_iconv(h->cd, acp[j].glyph, D->gfx_chr);
 
 			if (code < 0) {
-				fprintf(fp, "&#%u;", -code);
+				fprintf(h->fp, "&#%u;", -code);
 			} else {
 				switch (code) {
 				case '<':
-					fputs("&lt;", fp);
+					fputs("&lt;", h->fp);
 					break;
 
 				case '>':
-					fputs("&gt;", fp);
+					fputs("&gt;", h->fp);
 					break;
 
 				case '&':
-					fputs("&amp;", fp);
+					fputs("&amp;", h->fp);
 					break;
 
 				default:
-					fputc(code, fp);
+					fputc(code, h->fp);
 				}
 			}
 		}
 
-		fputc('\n', fp);
+		fputc('\n', h->fp);
 	}
 
-	if (flash)
-		fputs(html_flash[0], fp);
-	if (italic)
-		fputs(html_italic[0], fp);
-	if (bold)
-		fputs(html_bold[0], fp);
-	if (underline)
-		fputs(html_underline[0], fp);
-	if (span)
-		fputs("</span>", fp);
+	if (h->flash)
+		fputs(html_flash[0], h->fp);
+	if (h->italic)
+		fputs(html_italic[0], h->fp);
+	if (h->bold)
+		fputs(html_bold[0], h->fp);
+	if (h->underline)
+		fputs(html_underline[0], h->fp);
+	if (h->span)
+		fputs("</span>", h->fp);
 
-	fputs("</pre>", fp);
+	fputs("</pre>", h->fp);
 
-	if (!D->bare)
-		fputs(LF "</body>" LF "</html>", fp);
+	{
+		style *s;
 
-	fputc('\n', fp);
+		while ((s = h->styles)) {
+			h->styles = s->next;
+			if (s != &h->def)
+				free(s);
+		}
+	}
 
-	iconv_close(cd);
+	if (!D->headerless)
+		fputs(LF "</body>" LF "</html>", h->fp);
 
-	if (ferror(fp))
-		goto write_error;
+	fputc('\n', h->fp);
 
-	if (fclose(fp)) {
-		fp = NULL;
-		goto write_error;
+	iconv_close(h->cd);
+
+	if (ferror(h->fp)) {
+		write_error(e);
+		return -1;
+	}
+
+	if (fclose(h->fp)) {
+		h->fp = NULL;
+		write_error(e);
+		return -1;
 	}
 
 	return 0;
-
-write_error:
-	export_error(e, errno ?
-		_("error while writing file '%s': %s") :
-		_("error while writing file '%s'"), name, strerror(errno));
-
-	if (fp)
-		fclose(fp);
-
-	if (!stat(name, &st) && S_ISREG(st.st_mode))
-		remove(name);
-
-	return -1;
 }
-
-static char *html_opts[] =	// module options
-{
-  "gfx-chr=<char>",             // substitute <char> for gfx-symbols
-  "bare",                     // no headers  
-   0                      
-};
 
 struct export_module export_html[1] =	// exported module definition
 {
