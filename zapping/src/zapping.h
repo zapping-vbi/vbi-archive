@@ -19,13 +19,14 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.h,v 1.1 2004-09-10 04:54:51 mschimek Exp $ */
+/* $Id: zapping.h,v 1.2 2004-09-20 04:36:44 mschimek Exp $ */
 
 #ifndef ZAPPING_H
 #define ZAPPING_H
 
 #include <gnome.h>
 #include "tveng.h"
+#include "zvideo.h"
 
 G_BEGIN_DECLS
 
@@ -58,6 +59,16 @@ struct _Zapping
 
   tveng_device_info *	info;
   display_mode		display_mode;
+  GtkActionGroup *	generic_action_group;
+  GtkActionGroup *	vbi_action_group;
+  GtkUIManager *	ui_manager;
+  GtkMenuBar *		menubar;
+  gboolean		menubar_added;
+  GtkMenuItem *		channels_menu;
+  GtkToolbar *		toolbar;
+  gboolean		toolbar_added;
+  GnomeAppBar *		appbar;
+  ZVideo *		video;
 };
 
 struct _ZappingClass
@@ -67,8 +78,13 @@ struct _ZappingClass
 
 extern GType
 zapping_get_type		(void) G_GNUC_CONST;
-GtkWidget *
+extern GtkWidget *
 zapping_new			(void);
+extern void
+zapping_enable_appbar		(Zapping *		z,
+				 gboolean		show);
+extern void
+zapping_rebuild_channel_menu	(Zapping *		z);
 
 G_END_DECLS
 
