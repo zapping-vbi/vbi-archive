@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: systems.h,v 1.3 2001-08-08 05:37:54 mschimek Exp $ */
 
 #include "libsystems.h"
 

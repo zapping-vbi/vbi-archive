@@ -18,42 +18,57 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: systems.c,v 1.1 2001-08-08 05:37:54 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <assert.h>
 #include "../video/mpeg.h"
 #include "../audio/libaudio.h"
 #include "../video/video.h"
-#include "../common/fifo.h"
 #include "../common/math.h"
 #include "../options.h"
 #include "mpeg.h"
 #include "systems.h"
 
-list3			mux_input_streams;
-
-static void mux_constructor(void) __attribute__ ((constructor));
-
-static void
-mux_constructor(void)
-{
-	init_list3(&mux_input_streams);
-}
-
 void
-mux_cleanup(void)
+mux_free(multiplexer *mux)
 {
 	stream *str;
 
-	while ((str = PARENT(rem_head3(&mux_input_streams),
+	asserts(mux != NULL);
+
+	while ((str = PARENT(rem_head(&mux->streams),
 			     stream, fifo.node))) {
 		destroy_fifo(&str->fifo);
 		free(str);
 	}
+
+	destroy_list(&mux->streams);
+
+	free(mux);
+}
+
+multiplexer *
+mux_alloc(void)
+{
+	multiplexer *mux;
+
+	if (!(mux = calloc(1, sizeof(*mux))))
+		return NULL;
+
+	init_list(&mux->streams);
+
+	/* a) should be an argument, 
+	   b) this func should init the output fifo */
+	mux->packet_size = (mux_syn == 4) ? 2324 /* VCD */ : 2048;
+
+	assert(mux->packet_size >= 512 && mux->packet_size <= 32768);
+
+	return mux;
 }
 
 /*
@@ -66,9 +81,9 @@ mux_cleanup(void)
  *  Buffers' .data is supposed to contain a valid pointer.
  */
 
-fifo2 *
-mux_add_input_stream(int stream_id, char *name, int max_size, int buffers,
-	double frame_rate, int bit_rate)
+fifo *
+mux_add_input_stream(multiplexer *mux, int stream_id, char *name,
+	int max_size, int buffers, double frame_rate, int bit_rate)
 {
 	stream *str;
 
@@ -79,7 +94,7 @@ mux_add_input_stream(int stream_id, char *name, int max_size, int buffers,
 	str->frame_rate = frame_rate;
 	str->bit_rate = bit_rate;
 
-	buffers = init_buffered_fifo2(&str->fifo, name, buffers, max_size);
+	buffers = init_buffered_fifo(&str->fifo, name, buffers, max_size);
 
 	if (!buffers) {
 		free(str);
@@ -88,27 +103,28 @@ mux_add_input_stream(int stream_id, char *name, int max_size, int buffers,
 
 	add_consumer(&str->fifo, &str->cons);
 
-	add_tail3(&mux_input_streams, &str->fifo.node);
+	add_tail(&mux->streams, &str->fifo.node);
 
 	return &str->fifo;
 }
 
 void *
-stream_sink(void *unused)
+stream_sink(void *muxp)
 {
+	multiplexer *mux = muxp;
 	unsigned long long bytes_out = 0;
 	int num_streams = 0;
-	buffer2 *buf = NULL;
+	buffer *buf = NULL;
 	stream *str;
 
-	for_all_nodes (str, &mux_input_streams, fifo.node) {
+	for_all_nodes (str, &mux->streams, fifo.node) {
 		str->left = 1;
 		num_streams++;
 	}
 
 	while (num_streams > 0) {
-		for_all_nodes (str, &mux_input_streams, fifo.node)
-			if (str->left && (buf = recv_full_buffer2(&str->cons)))
+		for_all_nodes (str, &mux->streams, fifo.node)
+			if (str->left && (buf = recv_full_buffer(&str->cons)))
 				break;
 
 		if (buf->used <= 0) {
@@ -120,7 +136,7 @@ stream_sink(void *unused)
 
 		bytes_out += buf->used;
 
-		send_empty_buffer2(&str->cons, buf);
+		send_empty_buffer(&str->cons, buf);
 
 		if (verbose > 0) {
 			double system_load = 1.0 - get_idle();
@@ -142,22 +158,23 @@ stream_sink(void *unused)
  */
 
 void *
-elementary_stream_bypass(void *unused)
+elementary_stream_bypass(void *muxp)
 {
+	multiplexer *mux = muxp;
 	unsigned long long bytes_out = 0;
 	unsigned long frame_count = 0;
 	double system_load;
 	stream *str;
 
-	if (!(str = (stream *) mux_input_streams.head)) {
+	if (!(str = (stream *) mux->streams.head)) {
 		printv(1, "No elementary stream");
 		return NULL;
 	}
 
 	for (;;) {
-		buffer2 *buf;
+		buffer *buf;
 
-		buf = wait_full_buffer2(&str->cons);
+		buf = wait_full_buffer(&str->cons);
 
 		if (buf->used <= 0) // EOF / error
 			break;
@@ -167,7 +184,7 @@ elementary_stream_bypass(void *unused)
 
 		buf = mux_output(buf);
 
-		send_empty_buffer2(&str->cons, buf);
+		send_empty_buffer(&str->cons, buf);
 
 		if (verbose > 0) {
 			int min, sec, frame;
