@@ -1,3 +1,9 @@
+30.12.2000	Bookmarks editor <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade: Bookmarks editing dialog added.
+	* src/ttxview.c: Added some bookmarks editing (currently just
+	deleting, anything else is a wombat)
+
 30.12.2000	Faster rendering, bookmarks <garetxe@users.sourceforge.net>
 
 	* glade/zapping.glade: [<<][<][>][>>]

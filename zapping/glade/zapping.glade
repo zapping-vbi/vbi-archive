@@ -3166,7 +3166,7 @@ in the next release of this program.</label>
     <class>GtkPixmapMenuItem</class>
     <name>search1</name>
     <tooltip>Search for a given pattern in the cache</tooltip>
-    <label>Search</label>
+    <label>Search...</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_SEARCH</stock_icon>
   </widget>
@@ -3222,15 +3222,164 @@ in the next release of this program.</label>
 	<class>GtkPixmapMenuItem</class>
 	<name>add_bookmark</name>
 	<tooltip>Add the current page to the bookmarks</tooltip>
-	<label>Add current page</label>
+	<label>Add current page...</label>
 	<right_justify>False</right_justify>
 	<stock_icon>GNOME_STOCK_MENU_PROP</stock_icon>
+      </widget>
+
+      <widget>
+	<class>GtkPixmapMenuItem</class>
+	<name>edit_bookmarks</name>
+	<tooltip>Edit the current bookmarks</tooltip>
+	<label>Edit...</label>
+	<right_justify>False</right_justify>
+	<stock_icon>GNOME_STOCK_MENU_INDEX</stock_icon>
       </widget>
 
       <widget>
 	<class>GtkMenuItem</class>
 	<name>separator9</name>
 	<right_justify>False</right_justify>
+      </widget>
+    </widget>
+  </widget>
+</widget>
+
+<widget>
+  <class>GtkWindow</class>
+  <name>bookmarks_editor</name>
+  <title>Edit Bookmarks</title>
+  <type>GTK_WINDOW_TOPLEVEL</type>
+  <position>GTK_WIN_POS_NONE</position>
+  <modal>False</modal>
+  <allow_shrink>False</allow_shrink>
+  <allow_grow>True</allow_grow>
+  <auto_shrink>False</auto_shrink>
+
+  <widget>
+    <class>GtkVBox</class>
+    <name>vbox23</name>
+    <homogeneous>False</homogeneous>
+    <spacing>8</spacing>
+
+    <widget>
+      <class>GtkVBox</class>
+      <name>vbox24</name>
+      <homogeneous>False</homogeneous>
+      <spacing>0</spacing>
+      <child>
+	<padding>0</padding>
+	<expand>True</expand>
+	<fill>True</fill>
+      </child>
+
+      <widget>
+	<class>GtkScrolledWindow</class>
+	<name>scrolledwindow12</name>
+	<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+	<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+	<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
+
+	<widget>
+	  <class>GtkCList</class>
+	  <name>bookmarks_clist</name>
+	  <width>330</width>
+	  <height>322</height>
+	  <can_focus>True</can_focus>
+	  <columns>3</columns>
+	  <column_widths>60,82,80</column_widths>
+	  <selection_mode>GTK_SELECTION_MULTIPLE</selection_mode>
+	  <show_titles>True</show_titles>
+	  <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <child_name>CList:title</child_name>
+	    <name>label92</name>
+	    <label>Page</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	  </widget>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <child_name>CList:title</child_name>
+	    <name>label93</name>
+	    <label>Subpage</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	  </widget>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <child_name>CList:title</child_name>
+	    <name>label94</name>
+	    <label>Description</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	  </widget>
+	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkHBox</class>
+	<name>hbox26</name>
+	<homogeneous>True</homogeneous>
+	<spacing>0</spacing>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <name>bookmarks_remove</name>
+	  <tooltip>Remove the currently selected bookmark</tooltip>
+	  <can_focus>True</can_focus>
+	  <accelerator>
+	    <modifiers>0</modifiers>
+	    <key>GDK_Delete</key>
+	    <signal>clicked</signal>
+	  </accelerator>
+	  <label>Remove Bookmark</label>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <name>bookmarks_close</name>
+	  <tooltip>Click here when you are done</tooltip>
+	  <can_focus>True</can_focus>
+	  <stock_button>GNOME_STOCK_BUTTON_CLOSE</stock_button>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
       </widget>
     </widget>
   </widget>

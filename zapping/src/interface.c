@@ -185,3 +185,9 @@ create_prompt (void)
 {
   return build_widget("prompt", PACKAGE_DATA_DIR "/zapping.glade");
 }
+
+GtkWidget*
+create_widget (const gchar *name)
+{
+  return build_widget(name, PACKAGE_DATA_DIR "/zapping.glade");
+}

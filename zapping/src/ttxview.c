@@ -46,6 +46,8 @@
 
 static GdkCursor	*hand=NULL;
 static GdkCursor	*arrow=NULL;
+static GtkAdjustment	*model=NULL; /* hack for doing MV, need ZModel or
+				    sth */
 
 typedef struct {
   GdkPixmap		*scaled;
@@ -86,6 +88,7 @@ add_bookmark(gint page, gint subpage, const gchar *description)
   entry->description = g_strdup(description);
 
   bookmarks = g_list_append(bookmarks, entry);
+  gtk_adjustment_set_value(model, g_list_length(bookmarks));
 }
 
 static void
@@ -99,6 +102,7 @@ remove_bookmark(gint index)
   g_free(((struct bookmark*)(node->data))->description);
   g_free(node->data);
   bookmarks = g_list_remove(bookmarks, node->data);
+  gtk_adjustment_set_value(model, g_list_length(bookmarks));
 }
 
 gboolean
@@ -110,6 +114,7 @@ startup_ttxview (void)
 
   hand = gdk_cursor_new (GDK_HAND2);
   arrow = gdk_cursor_new(GDK_LEFT_PTR);
+  model = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0x100000, 1, 1, 1));
 
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "bookmarks"))
     {
@@ -161,6 +166,8 @@ shutdown_ttxview (void)
 
   while (bookmarks)
     remove_bookmark(0);
+
+  gtk_object_destroy(GTK_OBJECT(model));
 }
 
 static
@@ -705,6 +712,99 @@ void not_done_yet(gpointer ping, gpointer pong)
 }
 
 static
+void on_be_close			(GtkWidget	*widget,
+					 ttxview_data	*data)
+{
+  gtk_widget_destroy(lookup_widget(widget, "bookmarks_editor"));
+}
+
+static
+void on_be_delete			(GtkWidget	*widget,
+					 ttxview_data	*data)
+{
+  GtkCList *clist = GTK_CLIST(lookup_widget(widget, "bookmarks_clist"));
+  GList *rows = g_list_first(clist->row_list);
+  gint *deleted=NULL;
+  gint i=0, j=0, n;
+
+  if (!clist->selection)
+    return;
+
+  n = g_list_length(clist->selection);
+  deleted = g_malloc(sizeof(gint)*n);
+  
+  while (rows)
+    {
+      if (GTK_CLIST_ROW(rows)->state == GTK_STATE_SELECTED)
+	deleted[j++] = i;
+
+      rows = rows->next;
+      i ++;
+    }
+  
+  for (i=0; i<n; i++)
+    remove_bookmark(deleted[i]-i);
+  
+  g_free(deleted);
+}
+
+static
+void on_be_model_changed		(GtkObject	*model,
+					 GtkWidget	*view)
+{
+  GtkCList *clist = GTK_CLIST(lookup_widget(view, "bookmarks_clist"));
+  GList *p = g_list_first(bookmarks);
+  struct bookmark *bookmark;
+  gchar *buffer[3];
+
+  gtk_clist_freeze(clist);
+  gtk_clist_clear(clist);
+  while (p)
+    {
+      bookmark = (struct bookmark*)p->data;
+      buffer[0] = g_strdup_printf("%x", bookmark->page);
+      if (bookmark->subpage == ANY_SUB)
+	buffer[1] = g_strdup(_("Any subpage"));
+      else
+	buffer[1] = g_strdup_printf("%x", bookmark->subpage);
+      buffer[2] = bookmark->description;
+      gtk_clist_append(clist, buffer);
+      g_free(buffer[0]);
+      g_free(buffer[1]);
+      p = p->next;
+    }
+  gtk_clist_thaw(clist);
+}
+
+static
+void on_be_destroy			(GtkObject	*widget,
+					 ttxview_data	*data)
+{
+  gtk_signal_disconnect_by_func(GTK_OBJECT(model),
+				GTK_SIGNAL_FUNC(on_be_model_changed),
+				GTK_WIDGET(widget));
+}
+
+static
+void on_edit_bookmarks_activated	(GtkWidget	*widget,
+					 ttxview_data	*data)
+{
+  GtkWidget *be = create_widget("bookmarks_editor");
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(be, "bookmarks_close")),
+		     "clicked",
+		     GTK_SIGNAL_FUNC(on_be_close), data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(be, "bookmarks_remove")),
+		     "clicked",
+		     GTK_SIGNAL_FUNC(on_be_delete), data);
+  gtk_signal_connect(GTK_OBJECT(model), "value-changed",
+		     GTK_SIGNAL_FUNC(on_be_model_changed), be);
+  gtk_signal_connect(GTK_OBJECT(be), "destroy",
+		     GTK_SIGNAL_FUNC(on_be_destroy), data);
+  on_be_model_changed(GTK_OBJECT(model), be);
+  gtk_widget_show(be);
+}
+
+static
 void on_bookmark_activated		(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
@@ -757,10 +857,14 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
   gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "add_bookmark")),
 		     "activate",
 		     GTK_SIGNAL_FUNC(new_bookmark), data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "edit_bookmarks")),
+		     "activate",
+		     GTK_SIGNAL_FUNC(on_edit_bookmarks_activated),
+		     data);
 
   /* Bookmark entries */
   if (!p)
-    gtk_widget_hide(lookup_widget(popup, "separator8"));
+    gtk_widget_hide(lookup_widget(popup, "separator9"));
   else
     while (p)
       {

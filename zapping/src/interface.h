@@ -27,4 +27,5 @@ GtkWidget* create_txtcontrols (void);
 GtkWidget* create_ttxview (void);
 GtkWidget* create_ttxview_popup (void);
 GtkWidget* create_prompt (void);
+GtkWidget* create_widget (const gchar *name);
 #endif
