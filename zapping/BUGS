@@ -37,7 +37,7 @@ Known bugs with zapping, don't report them
 	  UNTVLOCK in tveng_get_timestamp 575365
 	  UNTVLOCK in tveng_mutex_unlock 575393 <-+ unlocked
 	  TVLOCK   in tveng_mutex_lock 575463   <-+
-	    unlock does not reschedule when
+	    lock/unlock does not reschedule when
             another thread waits?
 	  TVLOCK   in tveng_read_frame 575498
 	  UNTVLOCK in tveng_read_frame 624955
@@ -47,3 +47,15 @@ Known bugs with zapping, don't report them
 	  TVLOCK   in tveng_mutex_lock 625163
 	  TVLOCK   in tveng_read_frame 625197
 	   :
+
+
+
+
+
+
+
+
+
+
+
+
