@@ -1,17 +1,30 @@
 /*
  *	Video for Linux Two
  *
- *	Header file for V4L2 drivers and applications.
+ *	Header file for v4l or V4L2 drivers and applications, for
+ *	Linux kernels 2.2.x or 2.4.x.
  *
  *	Author: Bill Dirks <bdirks@pacbell.net>
+ *		Justin Schoeman
+ *		et al.
  */
 
 #ifndef __LINUX_VIDEODEV_H
 #define __LINUX_VIDEODEV_H
 
+#if (LINUX_VERSION_CODE >= 0x020300) && (LINUX_VERSION_CODE < 0x020400)
+#warning Due to the changes in the 2.3.x kernel series, this version of videodev.h \
+         may not work correctly for your kernel.
+#endif
+
+#include <linux/types.h>
+#include <linux/version.h>
+
+#ifdef __KERNEL__
 #include <linux/poll.h>
-#if LINUX_VERSION_CODE >= 0x020400
+#if (LINUX_VERSION_CODE >= 0x020300) || defined(CONFIG_FS_DEVFS)
 #include <linux/devfs_fs_kernel.h>
+#endif
 #endif
 
 #define V4L2_MAJOR_VERSION	0
@@ -23,7 +36,7 @@
  */
 
 /*  Four-character-code (FOURCC) */
-#define fourcc(a,b,c,d)\
+#define v4l2_fourcc(a,b,c,d)\
         (((__u32)(a)<<0)|((__u32)(b)<<8)|((__u32)(c)<<16)|((__u32)(d)<<24))
 
 /*  Open flag for non-capturing opens on capture devices  */
@@ -92,30 +105,32 @@ struct v4l2_pix_format
 	__u32	priv;		/* private data, depends on pixelformat */
 };
 /*           Pixel format    FOURCC                  depth  Description   */
-#define V4L2_PIX_FMT_RGB332  fourcc('R','G','B','1') /*  8  RGB-3-3-2     */
-#define V4L2_PIX_FMT_RGB555  fourcc('R','G','B','O') /* 16  RGB-5-5-5     */
-#define V4L2_PIX_FMT_RGB565  fourcc('R','G','B','P') /* 16  RGB-5-6-5     */
-#define V4L2_PIX_FMT_BGR24   fourcc('B','G','R','3') /* 24  BGR-8-8-8     */
-#define V4L2_PIX_FMT_RGB24   fourcc('R','G','B','3') /* 24  RGB-8-8-8     */
-#define V4L2_PIX_FMT_BGR32   fourcc('B','G','R','4') /* 32  BGR-8-8-8-8   */
-#define V4L2_PIX_FMT_RGB32   fourcc('R','G','B','4') /* 32  RGB-8-8-8-8   */
-#define V4L2_PIX_FMT_GREY    fourcc('G','R','E','Y') /*  8  Greyscale     */
-#define V4L2_PIX_FMT_YVU410  fourcc('Y','V','U','9') /*  9  YVU 4:1:0     */
-#define V4L2_PIX_FMT_YVU420  fourcc('Y','V','1','2') /* 12  YVU 4:2:0     */
-#define V4L2_PIX_FMT_YUYV    fourcc('Y','U','Y','V') /* 16  YUV 4:2:2     */
-#define V4L2_PIX_FMT_UYVY    fourcc('U','Y','V','Y') /* 16  YUV 4:2:2     */
-#define V4L2_PIX_FMT_YVU422P fourcc('4','2','2','P') /* 16  YVU422 planar */
-#define V4L2_PIX_FMT_YVU411P fourcc('4','1','1','P') /* 16  YVU411 planar */
-#define V4L2_PIX_FMT_Y41P    fourcc('Y','4','1','P') /* 12  YUV 4:1:1     */
+#define V4L2_PIX_FMT_RGB332  v4l2_fourcc('R','G','B','1') /*  8  RGB-3-3-2     */
+#define V4L2_PIX_FMT_RGB555  v4l2_fourcc('R','G','B','O') /* 16  RGB-5-5-5     */
+#define V4L2_PIX_FMT_RGB565  v4l2_fourcc('R','G','B','P') /* 16  RGB-5-6-5     */
+#define V4L2_PIX_FMT_RGB555X v4l2_fourcc('R','G','B','Q') /* 16  RGB-5-5-5 BE  */
+#define V4L2_PIX_FMT_RGB565X v4l2_fourcc('R','G','B','R') /* 16  RGB-5-6-5 BE  */
+#define V4L2_PIX_FMT_BGR24   v4l2_fourcc('B','G','R','3') /* 24  BGR-8-8-8     */
+#define V4L2_PIX_FMT_RGB24   v4l2_fourcc('R','G','B','3') /* 24  RGB-8-8-8     */
+#define V4L2_PIX_FMT_BGR32   v4l2_fourcc('B','G','R','4') /* 32  BGR-8-8-8-8   */
+#define V4L2_PIX_FMT_RGB32   v4l2_fourcc('R','G','B','4') /* 32  RGB-8-8-8-8   */
+#define V4L2_PIX_FMT_GREY    v4l2_fourcc('G','R','E','Y') /*  8  Greyscale     */
+#define V4L2_PIX_FMT_YVU410  v4l2_fourcc('Y','V','U','9') /*  9  YVU 4:1:0     */
+#define V4L2_PIX_FMT_YVU420  v4l2_fourcc('Y','V','1','2') /* 12  YVU 4:2:0     */
+#define V4L2_PIX_FMT_YUYV    v4l2_fourcc('Y','U','Y','V') /* 16  YUV 4:2:2     */
+#define V4L2_PIX_FMT_UYVY    v4l2_fourcc('U','Y','V','Y') /* 16  YUV 4:2:2     */
+#define V4L2_PIX_FMT_YVU422P v4l2_fourcc('4','2','2','P') /* 16  YVU422 planar */
+#define V4L2_PIX_FMT_YVU411P v4l2_fourcc('4','1','1','P') /* 16  YVU411 planar */
+#define V4L2_PIX_FMT_Y41P    v4l2_fourcc('Y','4','1','P') /* 12  YUV 4:1:1     */
 
 /*  The following formats are not defined in the V4L2 specification */
-#define V4L2_PIX_FMT_YUV410  fourcc('Y','U','V','9') /*  9  YUV 4:1:0     */
-#define V4L2_PIX_FMT_YUV420  fourcc('Y','U','1','2') /* 12  YUV 4:2:0     */
-#define V4L2_PIX_FMT_YYUV    fourcc('Y','Y','U','V') /* 16  YUV 4:2:2     */
-#define V4L2_PIX_FMT_HI240   fourcc('H','I','2','4') /*  8  8-bit color   */
+#define V4L2_PIX_FMT_YUV410  v4l2_fourcc('Y','U','V','9') /*  9  YUV 4:1:0     */
+#define V4L2_PIX_FMT_YUV420  v4l2_fourcc('Y','U','1','2') /* 12  YUV 4:2:0     */
+#define V4L2_PIX_FMT_YYUV    v4l2_fourcc('Y','Y','U','V') /* 16  YUV 4:2:2     */
+#define V4L2_PIX_FMT_HI240   v4l2_fourcc('H','I','2','4') /*  8  8-bit color   */
 
 /*  Vendor-specific formats   */
-#define V4L2_PIX_FMT_WNVA    fourcc('W','N','V','A') /* Winnov hw compres */
+#define V4L2_PIX_FMT_WNVA    v4l2_fourcc('W','N','V','A') /* Winnov hw compres */
 
 
 /*  Flags */
@@ -838,7 +853,7 @@ extern int v4l2_major_number(void);
 
 /*  Memory management  */
 extern unsigned long v4l2_vmalloc_to_bus(void *virt);
-#if  LINUX_VERSION_CODE > KERNEL_VERSION(2,3,0)
+#if  LINUX_VERSION_CODE >= 0x020300
 extern struct page *v4l2_vmalloc_to_page(void *virt);
 #else
 extern unsigned long v4l2_vmalloc_to_page(void *virt);
@@ -932,6 +947,10 @@ struct v4l2_device
 	int	busy;		/*  open count maintained by videodev.c  */
 	void	*v4l2_priv;		/*  for V4L2 use  */
 	int	v4l2_reserved[4];	/*  for V4L2 use  */
+#if (LINUX_VERSION_CODE >= 0x020300) || defined(CONFIG_FS_DEVFS)
+	devfs_handle_t devfs_handle;
+	char	devfs_devname[16];
+#endif
 };
 
 /*  Size of kernel ioctl arg buffer used in ioctl handler  */
@@ -957,6 +976,22 @@ extern void *v4l2_openid_from_file(struct file *file);
 
  */
 
+#ifdef __KERNEL__
+/*  Compatibility layer interface  */
+struct v4l2_v4l_compat
+{
+	int	(*translate_ioctl)(struct file		*file,
+				   struct v4l2_device	*vfl,
+				   void			*per_open_data,
+				   int			cmd,
+				   void			*arg);
+	void	(*fix_offset)(struct file *file,
+			      struct v4l2_device *vfl,
+			      struct vm_area_struct *vma);
+};
+extern int v4l2_v4l_compat_register(struct v4l2_v4l_compat *);
+extern void v4l2_v4l_compat_unregister(struct v4l2_v4l_compat *);
+#endif
 
 #define VID_TYPE_CAPTURE	1	/* Can capture */
 #define VID_TYPE_TUNER		2	/* Can tune */
@@ -1259,12 +1294,6 @@ struct video_code
 
 #ifdef __KERNEL__
 
-struct video_init
-{
-	char *name;
-	int (*init)(struct video_init *);
-};
-
 struct video_device
 {
 	char name[32];
@@ -1275,30 +1304,40 @@ struct video_device
 	long (*read)(struct video_device *, char *, unsigned long, int noblock);
 	/* Do we need a write method ? */
 	long (*write)(struct video_device *, const char *, unsigned long, int noblock);
-#if LINUX_VERSION_CODE >= 0x020100
 	unsigned int (*poll)(struct video_device *, struct file *, poll_table *);
-#endif
 	int (*ioctl)(struct video_device *, unsigned int , void *);
 	int (*mmap)(struct video_device *, const char *, unsigned long);
 	int (*initialize)(struct video_device *);       
 	void *priv;             /* Used to be 'private' but that upsets C++ */
 	int busy;
 	int minor;
-#if LINUX_VERSION_CODE >= 0x020400
+#if (LINUX_VERSION_CODE >= 0x020300) || defined(CONFIG_FS_DEVFS)
 	devfs_handle_t devfs_handle;
+#endif
+#if LINUX_VERSION_CODE >= 0x020300
+	struct file_operations *fops;
 #endif
 };
 
-
-extern int video_register_device(struct video_device *, int type);
-extern void video_unregister_device(struct video_device *);
-
 #define VIDEO_MAJOR     81
+extern int video_register_device(struct video_device *, int type);
+
 #define VFL_TYPE_GRABBER        0
 #define VFL_TYPE_VBI            1
 #define VFL_TYPE_RADIO          2
 #define VFL_TYPE_VTX            3
 
+extern void video_unregister_device(struct video_device *);
+
+/*
+ *      Initialiser list
+ */
+
+struct video_init
+{
+	char *name;
+	int (*init)(struct video_init *);
+};
 #endif
 
 
