@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.9 2000-10-15 21:24:48 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.10 2000-10-17 06:18:05 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -501,7 +501,11 @@ reschedule:
 	p = buf->data;
 
 	*((unsigned int *) p) = swab32(ISO_END_CODE);
-	buf->used = 4;
+	if (PAD_PACKETS) {
+		memset(p + 4, 0, buf->size - 4);
+		buf->used = buf->size;
+	} else
+		buf->used = 4;
 
 	mux_output(buf);
 
