@@ -1,2 +1,3 @@
 # Set of available languages.
-de en@quot es fr nl pl sv
+# sv, pl need update
+de en@quot es fr nl

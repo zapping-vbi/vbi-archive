@@ -4,12 +4,12 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6\n"
-"POT-Creation-Date: 2002-07-23 21:22+0200\n"
+"POT-Creation-Date: 2002-10-09 03:41+0200\n"
 "PO-Revision-Date: 2001-08-31 01:29+01:00\n"
 "Last-Translator: <snout@ctrl-c.liu.se>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: src/main.c:314
@@ -68,30 +68,30 @@ msgstr "Pixformat för XVideo inspelningsläge [YUYV | YVU420]"
 msgid "PIXFORMAT"
 msgstr "PIXFORMAT"
 
-#: src/main.c:482
+#: src/main.c:475
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Tyvärr, det finns inget modulstöd i GLib"
 
 # src/callbacks.c:320 src/v4l2interface.c:89
-#: src/main.c:492
+#: src/main.c:485
 msgid "Cannot get device info struct"
 msgstr "Kan inte hämta enhetens informationsstruktur"
 
-#: src/main.c:501
+#: src/main.c:494
 msgid "Zapping couldn't be started"
 msgstr "Zapping kunde inte startas"
 
-#: src/main.c:568
+#: src/main.c:561
 #, c-format
 msgid "Couldn't open %s, should I try some common options?"
 msgstr "Kunde inte öppna %s, ska jag prova några vanliga alternativ?"
 
-#: src/main.c:602
+#: src/main.c:595
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "%s lyckades, sparar det som nya normalinställningen"
 
-#: src/main.c:610
+#: src/main.c:603
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -100,7 +100,7 @@ msgstr ""
 "Tyvärr, \"%s\" kunde inte öppnas:\n"
 "%s"
 
-#: src/main.c:726
+#: src/main.c:714
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -109,11 +109,11 @@ msgstr ""
 "Kan inte återställa föregående läge%s:\n"
 "%s"
 
-#: src/main.c:729
+#: src/main.c:717
 msgid ", I will try starting capture mode"
 msgstr ", jag försöker starta inspelningsläget"
 
-#: src/main.c:733
+#: src/main.c:721
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -122,7 +122,7 @@ msgstr ""
 "Inspelningsläget kunde inte heller startas:\n"
 "%s"
 
-#: src/main.c:746
+#: src/main.c:734
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -131,7 +131,7 @@ msgstr ""
 "Inspelningsläget kunde inte startas:\n"
 "%s"
 
-#: src/main.c:964 src/zapzilla.c:164
+#: src/main.c:952 src/zapzilla.c:164
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -152,7 +152,7 @@ msgstr ""
 "   - eller, troligare, du har hittat ett fel i\n"
 "     %s var vänlig kontakta programmeraren.\n"
 
-#: src/main.c:994
+#: src/main.c:982
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Tyvärr, Zapping kan inte skapa konfigurationsträdet"
 
@@ -183,7 +183,7 @@ msgstr ""
 msgid "Overlay this page"
 msgstr "Använd Overlay för denna sida"
 
-#: src/callbacks.c:92 src/zmisc.c:282
+#: src/callbacks.c:92 src/zmisc.c:289
 msgid "Return to windowed mode and use the current page as subtitles"
 msgstr "Återgå till fönsterläge och använd denna sida som textremsa"
 
@@ -196,110 +196,116 @@ msgstr "Visa Inställningar"
 msgid "Show the menu and the toolbar"
 msgstr "Visa Meny och Verktyg"
 
-#: src/frequencies.c:1094
+#: src/frequencies.c:1227
 msgid "US terrestrial"
 msgstr ""
 
 # src/frequencies.c:817
-#: src/frequencies.c:1095
+#: src/frequencies.c:1228
 #, fuzzy
 msgid "US cable"
 msgstr "US-Kabel"
 
 # src/frequencies.c:818
-#: src/frequencies.c:1096
+#: src/frequencies.c:1229
 #, fuzzy
 msgid "US cable-hrc"
 msgstr "US-Kabel-HRC"
 
-#: src/frequencies.c:1097
+# src/frequencies.c:820
+#: src/frequencies.c:1230
+#, fuzzy
+msgid "Canada cable"
+msgstr "Japan-Kabel"
+
+#: src/frequencies.c:1231
 msgid "Japan terrestrial"
 msgstr ""
 
 # src/frequencies.c:820
-#: src/frequencies.c:1098
+#: src/frequencies.c:1232
 #, fuzzy
 msgid "Japan cable"
 msgstr "Japan-Kabel"
 
 # src/frequencies.c:821
-#: src/frequencies.c:1099
+#: src/frequencies.c:1233
 #, fuzzy
 msgid "Europe"
 msgstr "Europa"
 
 # src/frequencies.c:821
-#: src/frequencies.c:1100 glade/glade_strings.c:91
+#: src/frequencies.c:1234 glade/glade_strings.c:91
 msgid "Eastern Europe"
 msgstr "Östeuropa"
 
 # src/frequencies.c:823
-#: src/frequencies.c:1101
+#: src/frequencies.c:1235
 #, fuzzy
 msgid "Italy"
 msgstr "Italien"
 
 # src/frequencies.c:824
-#: src/frequencies.c:1102
+#: src/frequencies.c:1236
 #, fuzzy
 msgid "New Zealand"
 msgstr "Nya Zealand"
 
 # src/frequencies.c:825
-#: src/frequencies.c:1103
+#: src/frequencies.c:1237
 #, fuzzy
 msgid "Australia"
 msgstr "Australien"
 
 # src/frequencies.c:826
-#: src/frequencies.c:1104
+#: src/frequencies.c:1238
 #, fuzzy
 msgid "Ireland"
 msgstr "Irland"
 
 # src/frequencies.c:827
-#: src/frequencies.c:1105
+#: src/frequencies.c:1239
 #, fuzzy
 msgid "France"
 msgstr "Frankrike"
 
-#: src/frequencies.c:1106
+#: src/frequencies.c:1240
 #, fuzzy
 msgid "Russia"
 msgstr "Ryssland"
 
-#: src/frequencies.c:1107
+#: src/frequencies.c:1241
 #, fuzzy
 msgid "South Africa"
 msgstr "Sydafrika"
 
-#: src/frequencies.c:1108
+#: src/frequencies.c:1242
 #, fuzzy
 msgid "China"
 msgstr "Kina"
 
 # src/frequencies.c:820
-#: src/frequencies.c:1109
+#: src/frequencies.c:1243
 #, fuzzy
 msgid "Pakistan cable"
 msgstr "Japan-Kabel"
 
 # src/v4l2interface.c:146
-#: src/frequencies.c:1305 src/frequencies.c:1410 src/frequencies.c:1589
+#: src/frequencies.c:1439 src/frequencies.c:1544 src/frequencies.c:1723
 msgid "(Unnamed channel)"
 msgstr "(Ej namngiven kanal)"
 
 # src/interface.c:412
-#: src/frequencies.c:1309 src/frequencies.c:1414
+#: src/frequencies.c:1443 src/frequencies.c:1548
 msgid "(Unknown real channel)"
 msgstr "Okänd riktig kanal"
 
-#: src/frequencies.c:1313 src/frequencies.c:1418 src/frequencies.c:1597
+#: src/frequencies.c:1447 src/frequencies.c:1552 src/frequencies.c:1731
 msgid "(Unknown country)"
 msgstr "(Okänt land)"
 
 # src/interface.c:412
-#: src/frequencies.c:1593
+#: src/frequencies.c:1727
 #, fuzzy
 msgid "(Unknown RF channel)"
 msgstr "Okänd riktig kanal"
@@ -381,11 +387,11 @@ msgstr ""
 msgid "No Audio"
 msgstr "Endast ljud"
 
-#: src/zvbi.c:134 src/tveng1.c:1018
+#: src/zvbi.c:134 src/tveng1.c:1022
 msgid "Mono"
 msgstr "Mono"
 
-#: src/zvbi.c:135 src/tveng1.c:1019
+#: src/zvbi.c:135 src/tveng1.c:1023
 msgid "Stereo"
 msgstr "Stereo"
 
@@ -608,190 +614,190 @@ msgstr "Information om den valda sändaren"
 msgid "Sets or toggles the display of closed caption"
 msgstr ""
 
-#: src/tveng.c:270
+#: src/tveng.c:288
 msgid "TV"
 msgstr "TV"
 
-#: src/tveng.c:271 src/properties-handler.c:122
+#: src/tveng.c:289 src/properties-handler.c:122
 msgid "Camera"
 msgstr "Kamera"
 
-#: src/tveng.c:1544
+#: src/tveng.c:1562
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr ""
 "Kunde inte hitta programmet zapping_setup_fb, kontrollera din installation"
 
-#: src/tveng.c:2174 src/tveng.c:2192
+#: src/tveng.c:2216 src/tveng.c:2234
 msgid "Filter"
 msgstr "Filter"
 
-#: src/tveng.c:2210
+#: src/tveng.c:2252
 msgid "Colorkey"
 msgstr "Färgnyckel"
 
-#: src/tveng1.c:1020
+#: src/tveng1.c:1024
 msgid "Alternate 1"
 msgstr "Språk 1"
 
-#: src/tveng1.c:1021
+#: src/tveng1.c:1025
 msgid "Alternate 2"
 msgstr "Språk 2"
 
-#: src/tveng1.c:1131 src/tveng2.c:924
+#: src/tveng1.c:1135 src/tveng2.c:925
 msgid "Brightness"
 msgstr "Ljusstyrka"
 
-#: src/tveng1.c:1141 src/tveng2.c:927
+#: src/tveng1.c:1145 src/tveng2.c:928
 msgid "Hue"
 msgstr "Färgton"
 
-#: src/tveng1.c:1151
+#: src/tveng1.c:1155
 msgid "Colour"
 msgstr "Färg"
 
 # src/interface.c:247
-#: src/tveng1.c:1161 src/tveng2.c:925
+#: src/tveng1.c:1165 src/tveng2.c:926
 msgid "Contrast"
 msgstr "Kontrast"
 
-#: src/tveng1.c:1176 src/tveng1.c:1524 src/tveng1.c:1537 src/tveng2.c:943
+#: src/tveng1.c:1180 src/tveng1.c:1528 src/tveng1.c:1541 src/tveng2.c:944
 #: glade/glade_strings.c:293
 msgid "Mute"
 msgstr "Tyst"
 
-#: src/tveng1.c:1188 src/tveng2.c:942
+#: src/tveng1.c:1192 src/tveng2.c:943
 msgid "Volume"
 msgstr "Volym"
 
-#: src/tveng1.c:1200 src/tveng2.c:949
+#: src/tveng1.c:1204 src/tveng2.c:950
 msgid "Bass"
 msgstr "Bas"
 
-#: src/tveng1.c:1212 src/tveng2.c:947
+#: src/tveng1.c:1216 src/tveng2.c:948
 msgid "Treble"
 msgstr "Diskant"
 
 # src/frequencies.c:827
-#: src/tveng1.c:1227 src/tveng2.c:945
+#: src/tveng1.c:1231 src/tveng2.c:946
 msgid "Balance"
 msgstr "Balans"
 
-#: src/tveng1.c:1240
+#: src/tveng1.c:1244
 msgid "Audio Decoding"
 msgstr "Ljudavkodning"
 
-#: src/tveng1.c:1660
+#: src/tveng1.c:1664
 msgid "There are no tuners for the active input"
 msgstr "Det finns inga tuners för den aktiva ingången"
 
-#: src/tveng2.c:120
+#: src/tveng2.c:121
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s scheint kein Videogerät zu sein"
 
 # src/tveng.c:70
-#: src/tveng2.c:131
+#: src/tveng2.c:132
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "Tyvärr, \"%s\" stöder inte strömmning"
 
-#: src/tveng2.c:141
+#: src/tveng2.c:142
 #, c-format
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr "Tyvärr, \"%s\" stöder inte select() på fildeskriptorer"
 
-#: src/tveng2.c:926
+#: src/tveng2.c:927
 msgid "Saturation"
 msgstr "Fyllnad"
 
-#: src/tveng2.c:928
+#: src/tveng2.c:929
 msgid "Whiteness"
 msgstr "Vitnivå"
 
-#: src/tveng2.c:929
+#: src/tveng2.c:930
 msgid "Black level"
 msgstr "Svartnivå"
 
 # src/frequencies.c:827
-#: src/tveng2.c:930
+#: src/tveng2.c:931
 msgid "White balance"
 msgstr "Vitbalans"
 
-#: src/tveng2.c:931
+#: src/tveng2.c:932
 msgid "Do white balance"
 msgstr "Automatisk vitbalans"
 
 # src/frequencies.c:827
-#: src/tveng2.c:932
+#: src/tveng2.c:933
 msgid "Red balance"
 msgstr "Rödbalans"
 
 # src/frequencies.c:827
-#: src/tveng2.c:933
+#: src/tveng2.c:934
 msgid "Blue balance"
 msgstr "Blåbalans"
 
-#: src/tveng2.c:934
+#: src/tveng2.c:935
 msgid "Gamma"
 msgstr "Gamma"
 
-#: src/tveng2.c:935
+#: src/tveng2.c:936
 msgid "Exposure"
 msgstr "Exposition"
 
-#: src/tveng2.c:936
+#: src/tveng2.c:937
 msgid "Auto gain"
 msgstr "Automatisk förstärkning"
 
-#: src/tveng2.c:937
+#: src/tveng2.c:938
 msgid "Gain"
 msgstr "Förstärkning"
 
-#: src/tveng2.c:938
+#: src/tveng2.c:939
 msgid "HCenter"
 msgstr "Horisontalcentrering"
 
-#: src/tveng2.c:939
+#: src/tveng2.c:940
 msgid "VCenter"
 msgstr "Vertikalcentrering"
 
-#: src/tveng2.c:940
+#: src/tveng2.c:941
 msgid "Horizontal flipping"
 msgstr "Horizontalspegling"
 
-#: src/tveng2.c:941
+#: src/tveng2.c:942
 msgid "Vertical flipping"
 msgstr "Vertikalspegling"
 
-#: src/tveng2.c:944
+#: src/tveng2.c:945
 msgid "Audio Mute"
 msgstr "Ljud Av"
 
 # src/frequencies.c:827
-#: src/tveng2.c:946
+#: src/tveng2.c:947
 msgid "Audio Balance"
 msgstr "Ljudbalans"
 
-#: src/tveng2.c:948
+#: src/tveng2.c:949
 msgid "Loudness"
 msgstr "Ljudstyrka"
 
-#: src/plugins.c:191
+#: src/plugins.c:187
 #, c-format
 msgid "\"%s\" doesn't provide a version"
 msgstr "\"%s\" ger inget versionsnummer"
 
-#: src/plugins.c:228
+#: src/plugins.c:224
 #, c-format
 msgid "There wasn't enough mem for allocating symbol %d in %s"
 msgstr "Inte nog med minne för symbolen %d i %s"
 
-#: src/plugins.c:238
+#: src/plugins.c:234
 msgid "[No description provided]"
 msgstr "[Ingen beskrivning bifogad]"
 
 #. Warn
-#: src/plugins.c:326
+#: src/plugins.c:322
 #, c-format
 msgid ""
 "Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
@@ -800,39 +806,39 @@ msgstr ""
 "kontrollfel: \"%s\" i plugin %s skulle vara \"%s\", men är: \"%s\". Hashes "
 "är 0x%x respektive 0x%x"
 
-#: src/zmisc.c:277
+#: src/zmisc.c:284
 msgid "Use Zapping as a Teletext navigator"
 msgstr "Använd Zapping som teletext-navigator"
 
-#: src/zmisc.c:348
+#: src/zmisc.c:357
 #, c-format
 msgid "Preview will not work: %s"
 msgstr "Preview fungerar inte: %s"
 
-#: src/zmisc.c:440
+#: src/zmisc.c:449
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI har blivit avstängd, eller fungerar inte."
 
-#: src/zmisc.c:671
+#: src/zmisc.c:680
 #, fuzzy
 msgid "Hide the status bar"
 msgstr "Visa i statusraden"
 
-#: src/zmisc.c:728
+#: src/zmisc.c:737
 msgid "The path must start with /"
 msgstr "Katalognamnet måste börja med /"
 
-#: src/zmisc.c:743
+#: src/zmisc.c:752
 #, c-format
 msgid "Cannot create %s: %s"
 msgstr "Kan inte skapa %s: %s"
 
-#: src/zmisc.c:756
+#: src/zmisc.c:765
 #, c-format
 msgid "%s is not a directory"
 msgstr "%s är inte en katalog."
 
-#: src/zmisc.c:1400 glade/glade_strings.c:228 glade/glade_strings.c:229
+#: src/zmisc.c:1409 glade/glade_strings.c:228 glade/glade_strings.c:229
 msgid "Reset"
 msgstr "Återställ"
 
@@ -2445,7 +2451,7 @@ msgstr "Denna plugin tar stillbilder."
 #. hash collision code
 #. Warn
 #: plugins/screenshot/screenshot.c:173 plugins/lirc/lirc.c:142
-#: plugins/alirc/alirc.c:250 plugins/mpeg/mpeg.c:144 plugins/mpeg/mpeg.c:3205
+#: plugins/alirc/alirc.c:250 plugins/mpeg/mpeg.c:144 plugins/mpeg/mpeg.c:3233
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Varning: \"%s\" i plugin %s har nyckel 0x%x vs. 0x%x"
@@ -2499,7 +2505,7 @@ msgstr "Stillbild"
 
 #: plugins/screenshot/screenshot.c:600 plugins/screenshot/screenshot.c:1452
 #: plugins/lirc/lirc.c:375 plugins/mpeg/mpeg.c:1095 plugins/mpeg/mpeg.c:1121
-#: plugins/mpeg/mpeg.c:1183 plugins/mpeg/mpeg.c:2584 plugins/mpeg/mpeg.c:3139
+#: plugins/mpeg/mpeg.c:1183 plugins/mpeg/mpeg.c:2585 plugins/mpeg/mpeg.c:3167
 msgid "Plugins"
 msgstr "Plugins"
 
@@ -2913,7 +2919,7 @@ msgstr "Spara som MPEG"
 msgid "Format %s is incomplete, please configure the video or audio codec."
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1828
+#: plugins/mpeg/mpeg.c:1829
 #, fuzzy, c-format
 msgid ""
 "Cannot create destination directory:\n"
@@ -2925,65 +2931,65 @@ msgstr ""
 "%s"
 
 #. XXX more info please
-#: plugins/mpeg/mpeg.c:1840
+#: plugins/mpeg/mpeg.c:1841
 #, fuzzy, c-format
 msgid "Cannot create file %s: %s\n"
 msgstr "Kan inte skapa filen '%s': %s"
 
-#: plugins/mpeg/mpeg.c:2399
+#: plugins/mpeg/mpeg.c:2400
 #, fuzzy
 msgid "New format"
 msgstr "Normal"
 
-#: plugins/mpeg/mpeg.c:2400 plugins/mpeg/mpeg_strings.c:55
+#: plugins/mpeg/mpeg.c:2401 plugins/mpeg/mpeg_strings.c:55
 #, fuzzy
 msgid "Format name:"
 msgstr "Normal"
 
-#: plugins/mpeg/mpeg.c:2584 plugins/mpeg/mpeg.c:3000 plugins/mpeg/mpeg.c:3023
-#: plugins/mpeg/mpeg.c:3128 plugins/mpeg/mpeg_strings.c:34
+#: plugins/mpeg/mpeg.c:2585 plugins/mpeg/mpeg.c:3028 plugins/mpeg/mpeg.c:3051
+#: plugins/mpeg/mpeg.c:3156 plugins/mpeg/mpeg_strings.c:34
 #: plugins/mpeg/mpeg_strings.c:41
 #, fuzzy
 msgid "Record"
 msgstr "Röd"
 
-#: plugins/mpeg/mpeg.c:2831
+#: plugins/mpeg/mpeg.c:2845
 msgid "Not implemented yet"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:2985
+#: plugins/mpeg/mpeg.c:3013
 #, fuzzy
 msgid "Recording dialog"
 msgstr "Programtablå"
 
-#: plugins/mpeg/mpeg.c:3074
+#: plugins/mpeg/mpeg.c:3102
 msgid "Audio/Video Recorder"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:3077
+#: plugins/mpeg/mpeg.c:3105
 #, fuzzy
 msgid "This plugin records video and audio into a file"
 msgstr "Denna plugin sparar ner bilden och ljudet till en MPEG-fil"
 
-#: plugins/mpeg/mpeg.c:3080
+#: plugins/mpeg/mpeg.c:3108
 msgid "Record video and audio."
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:3162
+#: plugins/mpeg/mpeg.c:3190
 #, fuzzy
 msgid "Opens the record dialog"
 msgstr "Programtablå"
 
-#: plugins/mpeg/mpeg.c:3164
+#: plugins/mpeg/mpeg.c:3192
 msgid "Starts recording"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:3166
+#: plugins/mpeg/mpeg.c:3194
 #, fuzzy
 msgid "Pauses the current recording"
 msgstr "Avbryt sökningen"
 
-#: plugins/mpeg/mpeg.c:3168
+#: plugins/mpeg/mpeg.c:3196
 msgid "Stops the current recording"
 msgstr ""
 
