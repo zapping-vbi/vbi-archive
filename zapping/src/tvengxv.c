@@ -961,6 +961,8 @@ tvengxv_tune_input(uint32_t freq, tveng_device_info *info)
 		       p_info->freq,
 		       freq*0.016);
 
+  XSync(info->priv->display, False);
+
   return 0;
 }
 
