@@ -528,7 +528,14 @@ zvbi_open_device(void)
 
  error:
   D();
-  ShowBox(_("VBI: %s couldn't be opened: %d, %s"),
+  ShowBox(_("VBI: %s couldn't be opened: %d, %s\n"
+	    "This probably means that the required driver isn't loaded, "
+	    "add to your /etc/modules.conf the line:\n"
+	    "alias char-major-81-224 bttv (replace bttv with the name "
+	    "of your video driver)\n"
+	    "and create /dev/vbi0 appropiately. If this doesn't work, you "
+	    "can disable VBI in Settings/Preferences/VBI "
+	    "options/Enable VBI decoding."),
 	  GNOME_MESSAGE_BOX_ERROR, device, errno, strerror(errno));
   D();
   return FALSE;

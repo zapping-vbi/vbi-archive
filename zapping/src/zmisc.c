@@ -194,6 +194,12 @@ void set_tooltip	(GtkWidget	*widget,
 		       "private tip, or, er, just babbling, you know");
 }
 
+int
+zmisc_restore_previous_mode(tveng_device_info * info)
+{
+  return zmisc_switch_mode(zcg_int(NULL, "previous_mode"), info);
+}
+
 /*
   does the mode switching. Since this requires more than just using
   tveng, a new routine is needed.
@@ -409,6 +415,9 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       g_warning("couldn't restore old input");
 
   g_free (old_name);
+
+  if (mode != new_mode)
+    zcs_int(mode, "previous_mode");
 
   /* Update the controls window if it's open */
   update_control_box(info);

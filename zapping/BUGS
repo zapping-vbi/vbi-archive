@@ -9,4 +9,5 @@ Known bugs with zapping, don't report them
 	! MPEG plugin crashes (rte, fifos?)
 	* Need better handling of no /dev/video0.
 	* Need better no-overlay-present handling.
-	* The standard is changed when changing modes.
+	* vbi eats too much CPU, investigate.
+	* The standard is changed when changing modes (check, not sure)

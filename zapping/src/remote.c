@@ -148,7 +148,7 @@ gpointer remote_command(gchar *command, gpointer arg)
       if (channel)
 	{
 	  /* tveng_clear_tuned_channel(result) when not longer needed */
-	  return tveng_insert_tuned_channel(channel, NULL);
+	  return tveng_append_tuned_channel(channel, NULL);
 	}
       return NULL;
     }

@@ -1248,8 +1248,8 @@ first_channel(tveng_tuned_channel * list)
   It returns the index where the channel is inserted.
 */
 tveng_tuned_channel *
-tveng_insert_tuned_channel (tveng_tuned_channel * new_channel,
-			    tveng_tuned_channel * list)
+tveng_insert_tuned_channel_sorted (tveng_tuned_channel * new_channel,
+				   tveng_tuned_channel * list)
 {
   tveng_tuned_channel * channel_added = (tveng_tuned_channel*)
     g_malloc0(sizeof(tveng_tuned_channel));
@@ -1290,7 +1290,6 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel,
 
   /* The list is already started, proceed until we reach the desired
      channel */
-#ifndef DISABLE_CHANNEL_ORDERING /* ordering can be disabled */
   while (tc_ptr)
     {
       /* If this one orders itself after us, then insert it here */
@@ -1339,15 +1338,6 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel,
 
       tc_ptr = tc_ptr -> next;
     }
-#else /* no ordering, just go to the last entry */
-  while (tc_ptr)
-    {
-      index++;
-      if (!tc_ptr -> next)
-	break; /* last_one reached */
-      tc_ptr = tc_ptr -> next;
-    }
-#endif
 
   /* Add this entry as the last one */
   tc_ptr -> next = channel_added;
@@ -1356,6 +1346,114 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel,
   channel_added -> next = NULL;
 
   return first_channel(list);
+}
+
+tveng_tuned_channel *
+tveng_append_tuned_channel (tveng_tuned_channel * new_channel,
+			    tveng_tuned_channel * list)
+{
+  tveng_tuned_channel * channel_added = (tveng_tuned_channel*)
+    g_malloc0(sizeof(tveng_tuned_channel));
+  tveng_tuned_channel * tc_ptr = first_channel(list);
+  int index = 0; /* Where are we storing it */
+
+  if (!new_channel)
+    return list;
+
+  list = first_channel(list);
+
+  if (new_channel->name)
+    channel_added->name = g_strdup(new_channel->name);
+  else
+    channel_added->name = g_strdup(_("(Unnamed channel)"));
+  if (new_channel->real_name)
+    channel_added->real_name = g_strdup(new_channel->real_name);
+  else
+    channel_added->real_name = g_strdup(_("(Unknown real channel)"));
+  if (new_channel->country)
+    channel_added->country = g_strdup(new_channel->country);
+  else
+    channel_added->country = g_strdup(_("(Unknown country)"));
+
+  channel_added->accel_key = new_channel->accel_key;
+  channel_added->accel_mask = new_channel->accel_mask;
+  channel_added->freq = new_channel->freq;
+  channel_added->input = new_channel->input;
+  channel_added->standard = new_channel->standard;
+
+  /* OK, we are starting the list */
+  if (!tc_ptr)
+    {
+      channel_added->index = 0;
+      channel_added->next = channel_added->prev = NULL;
+      return channel_added;
+    }
+
+  /* The list is already started, proceed until we reach the desired
+     channel */
+  while (TRUE)
+    {
+      index++;
+      if (!tc_ptr -> next)
+	break; /* last one reached */
+      tc_ptr = tc_ptr -> next;
+    }
+
+  /* Add this entry as the last one */
+  tc_ptr -> next = channel_added;
+  channel_added -> prev = tc_ptr;
+  channel_added -> index = index;
+  channel_added -> next = NULL;
+
+  return first_channel(list);
+}
+
+void
+tveng_tuned_channel_up (tveng_tuned_channel * channel)
+{
+  tveng_tuned_channel tmp;
+
+  if (!channel || !channel->prev)
+    return;
+
+  channel->prev->next = channel->next;
+  if (channel->next)
+    channel->next->prev = channel->prev;
+
+  tmp.next = channel->next;
+  tmp.prev = channel->prev;
+  channel->next = tmp.prev;
+  channel->prev = tmp.prev->prev;
+  if (channel->prev)
+    channel->prev->next = channel;
+  channel->next->prev = channel;
+
+  channel->index--;
+  tmp.prev->index++;
+}
+
+void
+tveng_tuned_channel_down (tveng_tuned_channel * channel)
+{
+  tveng_tuned_channel tmp;
+
+  if (!channel || !channel->next)
+    return;
+
+  if (channel->prev)
+    channel->prev->next = channel->next;
+  channel->next->prev = channel->prev;
+
+  tmp.next = channel->next;
+  tmp.prev = channel->prev;
+  channel->next = tmp.next->next;
+  channel->prev = tmp.next;
+  if (channel->next)
+    channel->next->prev = channel;
+  channel->prev->next = channel;
+
+  channel->index++;
+  tmp.next->index--;
 }
 
 /*

@@ -206,6 +206,7 @@ int main(int argc, char * argv[])
   GList * p;
   gint x_bpp = -1;
   gint dword_align = FALSE;
+  gint disable_zsfb = FALSE;
   char *default_norm = NULL;
   char *video_device = NULL;
   char *command = NULL;
@@ -299,6 +300,15 @@ int main(int argc, char * argv[])
       N_("CMD")
     },
     {
+      "no-zsfb",
+      'z',
+      POPT_ARG_NONE,
+      &disable_zsfb,
+      0,
+      N_("Do not call zapping_setup_fb on startup"),
+      NULL
+    },
+    {
       NULL,
     } /* end the list */
   };
@@ -312,7 +322,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.106 2001-04-29 00:25:34 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.107 2001-05-11 22:14:49 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -380,7 +390,8 @@ int main(int argc, char * argv[])
     }
   D();
   /* try to run the auxiliary suid program */
-  if (tveng_run_zapping_setup_fb(main_info) == -1)
+  if (!disable_zsfb &&
+      tveng_run_zapping_setup_fb(main_info) == -1)
     g_message("Error while executing zapping_setup_fb,\n"
 	      "Overlay might not work:\n%s", main_info->error);
   D();
@@ -800,6 +811,7 @@ static gboolean startup_zapping()
   zcc_int(0, "Current standard", "current_standard");
   zcc_int(0, "Current input", "current_input");
   zcc_int(TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");
+  zcc_int(TVENG_CAPTURE_WINDOW, "Previous capture mode", "previous_mode");
   zcc_bool(FALSE, "In videotext mode", "videotext_mode");
   zconf_create_boolean(FALSE, "Hide controls",
 		       "/zapping/internal/callbacks/hide_controls");
@@ -844,7 +856,7 @@ static gboolean startup_zapping()
 
       new_channel.index = 0;
       global_channel_list =
-	tveng_insert_tuned_channel(&new_channel, global_channel_list);
+	tveng_append_tuned_channel(&new_channel, global_channel_list);
 
       /* Free the previously allocated mem */
       g_free(new_channel.name);

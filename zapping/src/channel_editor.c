@@ -44,6 +44,37 @@ extern tveng_device_info * main_info; /* About the device we are using */
 extern int cur_tuned_channel; /* Currently tuned channel */
 
 static void
+update_edit_buttons_sensitivity		(GtkWidget	*channel_editor)
+{
+  GtkWidget *up = lookup_widget(channel_editor, "move_channel_up");
+  GtkWidget *down = lookup_widget(channel_editor,
+				  "move_channel_down");
+  GtkWidget *remove = lookup_widget(channel_editor, "remove_channel");
+  GtkWidget *modify = lookup_widget(channel_editor, "modify_channel");
+  GtkWidget *channel_list = lookup_widget(channel_editor, "channel_list");
+  GList *ptr;
+  gboolean sensitive = FALSE;
+
+  ptr = GTK_CLIST(channel_list) -> row_list;
+
+  while (ptr)
+    {
+      if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
+	{
+	  sensitive = TRUE;
+	  break;
+	}
+
+      ptr = ptr -> next;
+    }
+
+  gtk_widget_set_sensitive(up, sensitive);
+  gtk_widget_set_sensitive(down, sensitive);
+  gtk_widget_set_sensitive(remove, sensitive);
+  gtk_widget_set_sensitive(modify, sensitive);
+}
+					 
+static void
 build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
 {
   gint i=0;
@@ -88,6 +119,8 @@ build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
     }
 
   gtk_clist_thaw(clist);
+
+  update_edit_buttons_sensitivity(GTK_WIDGET(clist));
 }
 
 static void
@@ -269,6 +302,98 @@ on_known_keys_clicked			(GtkWidget	*button,
   gtk_widget_destroy(dialog);
 }
 
+static void
+on_move_channel_down_clicked		(GtkWidget	*button,
+					 GtkWidget	*channel_editor)
+{
+  GtkWidget * channel_list = lookup_widget(GTK_WIDGET(button),
+					   "channel_list");
+  tveng_tuned_channel * list =
+    gtk_object_get_data(GTK_OBJECT(channel_editor), "list");
+  tveng_tuned_channel * tc;
+  GList *ptr;
+  gint pos;
+
+  ptr = g_list_last(GTK_CLIST(channel_list) -> row_list);
+
+  /* look for first unselected entry */
+  while (ptr)
+    {
+      if (GTK_CLIST_ROW(ptr) -> state != GTK_STATE_SELECTED)
+	break;
+
+      ptr = ptr -> prev;
+    }
+
+  /* swap this and next */
+  while (ptr)
+    {
+      if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
+	{
+	  pos = g_list_position(GTK_CLIST(channel_list) -> row_list, ptr);
+	  g_assert(pos >= 0);
+	  tc = tveng_retrieve_tuned_channel_by_index(pos, list);
+	  tveng_tuned_channel_down(tc);
+	}
+
+      ptr = ptr -> prev;
+    }
+
+  /* redraw list */
+  build_channel_list(GTK_CLIST(channel_list), list);
+}
+
+static void
+on_move_channel_up_clicked		(GtkWidget	*button,
+					 GtkWidget	*channel_editor)
+{
+  GtkWidget * channel_list = lookup_widget(GTK_WIDGET(button),
+					   "channel_list");
+  tveng_tuned_channel * list =
+    gtk_object_get_data(GTK_OBJECT(channel_editor), "list");
+  tveng_tuned_channel * tc;
+  GList *ptr;
+  gint pos;
+
+  ptr = g_list_first(GTK_CLIST(channel_list) -> row_list);
+
+  /* look for first unselected entry */
+  while (ptr)
+    {
+      if (GTK_CLIST_ROW(ptr) -> state != GTK_STATE_SELECTED)
+	break;
+
+      ptr = ptr -> next;
+    }
+
+  /* swap this and next */
+  while (ptr)
+    {
+      if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
+	{
+	  pos = g_list_position(GTK_CLIST(channel_list) -> row_list, ptr);
+	  g_assert(pos >= 0);
+	  tc = tveng_retrieve_tuned_channel_by_index(pos, list);
+	  tveng_tuned_channel_up(tc);
+	}
+
+      ptr = ptr -> next;
+    }
+
+  /* redraw list */
+  build_channel_list(GTK_CLIST(channel_list), list);
+}
+
+static void
+on_channel_list_unselect_row		(GtkCList	*channel_list,
+					 gint		 row,
+					 gint		 column,
+					 GdkEvent       *event,
+					 GtkWidget	*channel_editor)
+{
+  update_edit_buttons_sensitivity(channel_editor);
+}
+
 void
 on_channels1_activate                  (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
@@ -280,6 +405,9 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
 
   GtkWidget * new_menu;
   GtkWidget * menu_item = NULL;
+
+  GtkWidget * move_channel_up;
+  GtkWidget * move_channel_down;
 
   int i = 0;
   int currently_tuned_country = 0;
@@ -297,6 +425,9 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
   channel_window = create_channel_window();
   country_options_menu = lookup_widget(channel_window,
 				       "country_options_menu");
+
+  move_channel_up = lookup_widget(channel_window, "move_channel_up");
+  move_channel_down = lookup_widget(channel_window, "move_channel_down");
 
   channel_list = lookup_widget(channel_window, "channel_list");
   new_menu = gtk_menu_new();
@@ -334,7 +465,7 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
 
   while ((tuned_channel =
 	  tveng_retrieve_tuned_channel_by_index(i++, global_channel_list)))
-    list = tveng_insert_tuned_channel(tuned_channel, list);
+    list = tveng_append_tuned_channel(tuned_channel, list);
 
   build_channel_list(GTK_CLIST(channel_list), list);
   
@@ -358,6 +489,19 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
 		     "clicked",
 		     GTK_SIGNAL_FUNC(on_known_keys_clicked),
 		     channel_window);
+
+  gtk_signal_connect(GTK_OBJECT(move_channel_up), "clicked",
+		     GTK_SIGNAL_FUNC(on_move_channel_up_clicked),
+		     channel_window);
+  gtk_signal_connect(GTK_OBJECT(move_channel_down), "clicked",
+		     GTK_SIGNAL_FUNC(on_move_channel_down_clicked),
+		     channel_window);
+
+  gtk_signal_connect(GTK_OBJECT(channel_list), "unselect-row",
+		     GTK_SIGNAL_FUNC(on_channel_list_unselect_row),
+		     channel_window);
+
+  update_edit_buttons_sensitivity(channel_window);
 
   gtk_widget_show(channel_window);
 
@@ -391,7 +535,7 @@ on_channels_done_clicked               (GtkButton       *button,
 
   while ((tc = tveng_retrieve_tuned_channel_by_index(index++, list)))
     global_channel_list =
-      tveng_insert_tuned_channel(tc, global_channel_list);
+      tveng_append_tuned_channel(tc, global_channel_list);
 
   /* We are done, acknowledge the update in the model  */
   menu_item =
@@ -493,7 +637,7 @@ on_add_channel_clicked                 (GtkButton       *button,
       index++;
     }
 
-  list = tveng_insert_tuned_channel(&tc, list);
+  list = tveng_insert_tuned_channel_sorted(&tc, list);
 
   gtk_object_set_data(GTK_OBJECT(channel_window), "list", list);
 
@@ -884,6 +1028,8 @@ on_channel_list_select_row             (GtkCList        *clist,
     }
   else
     z_option_menu_set_active(widget, 0);
+
+  update_edit_buttons_sensitivity(channel_window);
 }
 
 /*

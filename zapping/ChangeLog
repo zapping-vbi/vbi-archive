@@ -1,3 +1,10 @@
+11.05.2001	did some things from TODO <garetxe@users.sourceforge.net>
+
+	* src/channel_editor.c: Channels can have an arbitrary order now.
+	* configure.in: Remove --disable-ordering flag.
+	* src/zvbi.c: Added a verboser message when vbi fails to open.
+	* src/ttxview.c: Go back from TTX.
+	
 5.05.2001	remote(get_channel_info) <garetxe@users.sourceforge.net>
 
 	* src/remote.c: added get_channel_info call.

@@ -152,6 +152,13 @@ z_change_menuitem			 (GtkWidget	*widget,
 					  const gchar	*new_label,
 					  const gchar	*new_tooltip);
 
+/**
+ * Restores the mode before the last switch_mode.
+ * Returns whatever switch_mode returns.
+ */
+int
+zmisc_restore_previous_mode(tveng_device_info *info);
+
 /*
   does the mode switching. Since this requires more than just using
   tveng, a new routine is needed.

@@ -8,10 +8,7 @@ Outstanding issues for the next release (0.6.0)
 		dependency on mp1e (actually RTE).
 	+ Make the mpeg plugin work.
 	+ First run wizard.
-	+ Go back from TTX.
-	+ 'Just TV' mode.
 	+ Respect the control center settings regarding toolbar.
-	+ Should be possible to modify channel order.
 
 > 0.6.1
 	+ Add some remote control applet (or sth like that).
@@ -25,11 +22,11 @@ Outstanding issues for the next release (0.6.0)
 	+ --roottv switch (use Z as screensaver)
 	+ Save control values and restore on startup (per input?).
 	+ Save screenshots at arbitrary sizes.
+	+ Standalone Zapzilla
 
 > Somewhen...
 	+ Do realtime effects to the image, plainly wonderful, see
 	http://matsu-www.is.titech.ac.jp/~fukuchi/rooms/EffecTV/index.html
 
-Note:
 please tell me about anything you think it's worth adding. 
 garetxe@users.sourceforge.net

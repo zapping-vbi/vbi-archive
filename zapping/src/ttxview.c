@@ -2827,6 +2827,22 @@ on_ttxview_button_release		(GtkWidget	*widget,
   return FALSE;
 }
 
+static void
+on_ttxview_exit				(GtkWidget	*widget,
+					 ttxview_data	*data)
+{
+  GtkWidget *ttxview;
+
+  if (!data->parent_toolbar) /* not attached, standalone window */
+    {
+      ttxview = lookup_widget(data->toolbar, "ttxview");
+      remove_ttxview_instance(data);
+      gtk_widget_destroy(ttxview);
+    }
+  else
+    zmisc_restore_previous_mode(main_info);
+}
+
 static
 gboolean on_ttxview_key_press		(GtkWidget	*widget,
 					 GdkEventKey	*event,
@@ -2836,7 +2852,6 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
   GtkWidget * ttxview_hold = lookup_widget(data->toolbar, "ttxview_hold");
   GtkWidget * ttxview_reveal =
     lookup_widget(data->toolbar, "ttxview_reveal");
-  GtkWidget * ttxview;
   gboolean active;
 
   if ((abs(data->last_time - event->time) < 100) ||
@@ -2953,12 +2968,11 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
     case GDK_Escape:
     case GDK_q:
     case GDK_Q:
-      if (!data->parent_toolbar) /* not attached, standalone window */
-	{
-	  ttxview = lookup_widget(data->toolbar, "ttxview");
-	  remove_ttxview_instance(data);
-	  gtk_widget_destroy(ttxview);
-	}
+      /* Zapping-specific: Ignore Ctrl-q keypresses when we are
+	 attached to the main window */
+      if (!(data->parent_toolbar &&
+	    (event->state & GDK_CONTROL_MASK)))
+	on_ttxview_exit(NULL, data);
       break;
     case GDK_C:
     case GDK_c:
@@ -3078,6 +3092,10 @@ build_ttxview(void)
   gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
 		     "ttxview_reveal")), "toggled",
 		     GTK_SIGNAL_FUNC(on_ttxview_reveal_toggled),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		     "ttxview_exit")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_exit),
 		     data);
   gtk_signal_connect(GTK_OBJECT(data->da),
 		     "size-allocate",
@@ -3216,6 +3234,10 @@ ttxview_attach			(GtkWidget	*parent,
   gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
 		     "ttxview_reveal")), "toggled",
 		     GTK_SIGNAL_FUNC(on_ttxview_reveal_toggled),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		     "ttxview_exit")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_exit),
 		     data);
   gtk_signal_connect(GTK_OBJECT(data->da),
 		     "size-allocate",

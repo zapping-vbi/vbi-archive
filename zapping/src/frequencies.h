@@ -102,8 +102,27 @@ tveng_get_id_of_channel (tveng_channel * channel, tveng_channels * country);
  * Returns the new pointer to the list (it might be different from list)
 */
 tveng_tuned_channel *
-tveng_insert_tuned_channel (tveng_tuned_channel * new_channel,
+tveng_insert_tuned_channel_sorted (tveng_tuned_channel * new_channel,
+				   tveng_tuned_channel * list);
+
+/**
+ * Append the given channel to the list
+ */
+tveng_tuned_channel *
+tveng_append_tuned_channel (tveng_tuned_channel * new_channel,
 			    tveng_tuned_channel * list);
+
+/**
+ * Swaps the given channel and the previous one.
+ */
+void
+tveng_tuned_channel_up (tveng_tuned_channel * channel);
+
+/**
+ * Swaps the given channel and the next one.
+ */
+void
+tveng_tuned_channel_down (tveng_tuned_channel * channel);
 
 /**
  *  Returns the number of items in the tuned_channel list
