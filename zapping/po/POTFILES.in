@@ -68,3 +68,4 @@ src/zconf.c
 src/zmisc.c
 src/zvbi.c
 zapping.desktop.in
+zapping.schemas.in
