@@ -558,11 +558,9 @@ ioctl_failure			(tveng_device_info *	info,
 				 unsigned int		source_file_line,
 				 const char *		ioctl_name)
 {
-	char buffer[256];
-
 	info->tveng_errno = errno;
 
-	snprintf (buffer, sizeof (buffer) - 1,
+	snprintf (info->error, 255,
 		  "%s:%s:%u: ioctl %s failed: %d, %s",
 		  source_file_name,
 		  function_name,
@@ -571,10 +569,10 @@ ioctl_failure			(tveng_device_info *	info,
 		  info->tveng_errno,
 		  strerror (info->tveng_errno));
 
-  info->error[255] = 0;
-  snprintf((info)->error, 255, buffer);
-  if ((info)->debug_level)
-    fprintf(stderr, "tveng:%s\n", info->error);
+	if (info->debug_level > 0) {
+		fputs (info->error, stderr);
+		fputc ('\n', stderr);
+	}
 
 	errno = info->tveng_errno;
 }
@@ -583,14 +581,16 @@ static void
 panel_failure			(tveng_device_info *	info,
 				 const char *		function_name)
 {
-  info->tveng_errno = -1;
+	info->tveng_errno = -1; /* unknown */
 
-  snprintf (info->error, 255,
-	    "%s not supported in control mode\n",
-	    function_name);
+	snprintf (info->error, 255,
+		  "%s:%s: function not supported in control mode\n",
+		  __FILE__, function_name);
 
-  if (info->debug_level)
-    fprintf (stderr, "tveng:%s\n", info->error);
+	if (info->debug_level) {
+		fputs (info->error, stderr);
+		fputc ('\n', stderr);
+	}
 }
 
 #define REQUIRE_IO_MODE(_result)					\
