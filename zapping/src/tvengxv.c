@@ -209,6 +209,9 @@ p_tvengxv_open_device(tveng_device_info *info)
 
   display = info->priv->display;
 
+  pAdaptors = NULL;
+  pAttributes = NULL;
+
   nAdaptors = 0;
   nAttributes = 0;
 
