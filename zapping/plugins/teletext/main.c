@@ -803,7 +803,7 @@ preferences_action		(GtkAction *		action _unused_,
 {
   python_command_printf (NULL,
 			 "zapping.properties('%s','%s')",
-			 _("VBI Options"), _("General"));
+			 "VBI Options", "General");
 }
 
 static GtkActionEntry
