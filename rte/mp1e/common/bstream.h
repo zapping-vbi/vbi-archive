@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bstream.h,v 1.3 2002-08-22 22:05:32 mschimek Exp $ */
+/* $Id: bstream.h,v 1.4 2002-09-12 12:25:13 mschimek Exp $ */
 
 #ifndef BITSTREAM_H
 #define BITSTREAM_H
@@ -44,6 +44,7 @@ extern void		mmx_bputl(struct bs_rec *b, int n, unsigned int v) __attribute__ ((
 #define bputq		mmx_bputq
 extern void		mmx_bputq(struct bs_rec *b, int n) __attribute__ ((regparm (2)));
 #define			bwritten(b) ((((char *)(b)->p - (char *)(b)->p1) * 8) + ((b)->n))
+#define			btell(b) ((((char *)(b)->p - (char *)(b)->p1) * 8) + ((b)->n))
 extern int		bflush(struct bs_rec *b);
 #define			brewind(bd, bs) (*(bd) = *(bs))
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bstream.c,v 1.2 2001-08-22 01:28:08 mschimek Exp $ */
+/* $Id: bstream.c,v 1.3 2002-09-12 12:25:13 mschimek Exp $ */
 
 #include <stdio.h>
 #include "bstream.h"
@@ -49,3 +49,4 @@ bflush(struct bs_rec *b)
 
 	return (b->p - b->p1) * 64;
 }
+
