@@ -22,14 +22,34 @@
 
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <pthread.h>
 #include "osd.h"
+#include "../common/fifo.h"
 #include "../libvbi/ccfont.xbm"
+
+#define CELL_WIDTH 16
+#define CELL_HEIGHT 26
+
+enum osd_code {OSD_NOTHING, OSD_RENDER, OSD_CLEAR, OSD_ROLL_UP};
 
 #define NUM_COLS 34
 #define NUM_ROWS 15
 
-#define CELL_WIDTH 16
-#define CELL_HEIGHT 26
+/* command fifo */
+static fifo osd_fifo;
+static pthread_mutex_t osd_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+/*
+ * Exact meaning of the fields might change, they cover the render,
+ * clear and roll_up commands.
+ */
+struct osd_command
+{
+  enum osd_code		command;
+  int			first_row;
+  int			last_row;
+  attr_char		buffer[NUM_COLS*NUM_ROWS];
+};
 
 struct osd_piece
 {
@@ -48,7 +68,43 @@ struct osd_row {
 static struct osd_row * osd_matrix[NUM_ROWS];
 
 static GtkWidget *osd_window =NULL;
-static gboolean osd_started = FALSE;
+static volatile gboolean osd_started = FALSE; /* shared between
+						 threads */
+
+static gint keeper_id = 0;
+
+/* Gets the events in the fifo */
+static gint
+the_kommand_keeper		(gpointer	data)
+{
+  buffer *b;
+  struct osd_command *c;
+
+  while ((b = recv_full_buffer(&osd_fifo)))
+    {
+      c = (struct osd_command*)b->data;
+
+      switch (c->command)
+	{
+	case OSD_RENDER:
+	  osd_render(c->buffer, c->first_row);
+	  break;
+	case OSD_CLEAR:
+	  osd_clear();
+	  break;
+	case OSD_ROLL_UP:
+	  osd_roll_up(c->buffer, c->first_row, c->last_row);
+	  break;
+	default:
+	  g_warning("Internal error processing OSD commands");
+	  break;
+	}
+
+      send_empty_buffer(&osd_fifo, b);
+    }
+
+  return TRUE;
+}
 
 void
 startup_osd(void)
@@ -58,6 +114,11 @@ startup_osd(void)
   if (osd_started)
     return;
 
+  pthread_mutex_lock(&osd_mutex);
+
+  g_assert(init_buffered_fifo(&osd_fifo, NULL, 6,
+			      sizeof(struct osd_command)) > 2);
+
   for (i = 0; i<NUM_ROWS; i++)
     {
       osd_matrix[i] = g_malloc(sizeof(struct osd_row));
@@ -66,6 +127,10 @@ startup_osd(void)
   /* do nothing for the moment, will allocate window pool */
 
   osd_started = TRUE;
+
+  keeper_id = gtk_timeout_add(50, the_kommand_keeper, NULL);
+
+  pthread_mutex_unlock(&osd_mutex);
 }
 
 void
@@ -74,12 +139,23 @@ shutdown_osd(void)
   int i;
 
   g_assert(osd_started == TRUE);
-  
+
+  pthread_mutex_lock(&osd_mutex);
+
+  osd_clear();
+
   for (i = 0; i<NUM_ROWS; i++)
     g_free(osd_matrix[i]);
 
-  osd_clear();
+  uninit_fifo(&osd_fifo);
+
+  gtk_timeout_remove(keeper_id);
+
   /* will free window pool */
+
+  osd_started = FALSE;
+
+  pthread_mutex_unlock(&osd_mutex);
 }
 
 static void
@@ -245,8 +321,6 @@ gboolean on_osd_expose_event		(GtkWidget	*widget,
 
   gdk_window_get_size(widget->window, &w, &h);
 
-  g_message("exposing");
-
   g_assert(piece != NULL);
   g_assert(widget == GTK_BIN(piece->window)->child);
  
@@ -255,17 +329,7 @@ gboolean on_osd_expose_event		(GtkWidget	*widget,
       (gdk_pixbuf_get_height(piece->scaled) != h))
     {
       if (piece->scaled)
-	{
-	  g_message("old scaled was %dx%d",
-		    gdk_pixbuf_get_width(piece->scaled),
-		    gdk_pixbuf_get_height(piece->scaled));
-	  gdk_pixbuf_unref(piece->scaled);
-	}
-      g_message("scaling piece: %d, %d, %d, %d (%p, %p)",
-		gdk_pixbuf_get_width(piece->unscaled),
-		gdk_pixbuf_get_height(piece->unscaled),
-		gdk_pixbuf_get_rowstride(piece->unscaled),
-		piece->width, piece->scaled, piece->unscaled);
+	gdk_pixbuf_unref(piece->scaled);
       piece->scaled = gdk_pixbuf_scale_simple(piece->unscaled, w, h,
 					      GDK_INTERP_BILINEAR);
     }
@@ -387,13 +451,6 @@ add_piece(int col, int row, int width, attr_char *c)
   gtk_signal_connect(GTK_OBJECT(da), "expose-event",
 		     GTK_SIGNAL_FUNC(on_osd_expose_event), pp);
 
-  g_message("allocated piece [%d, %d]: %d, %d, %d, %d (%p, %p)",
-	    row, osd_matrix[row]->n_pieces,
-	    gdk_pixbuf_get_width(pp->unscaled),
-	    gdk_pixbuf_get_height(pp->unscaled),
-	    gdk_pixbuf_get_rowstride(pp->unscaled),
-	    pp->width, pp->scaled, pp->unscaled);
-
   gtk_widget_show(pp->window);
 
   g_assert(GTK_BIN(pp->window)->child  == da);
@@ -472,6 +529,60 @@ void osd_roll_up(attr_char *buffer, int first_row, int last_row)
       for (i=0; i<osd_matrix[first_row]->n_pieces; i++)
 	set_piece_geometry(first_row, i);
     }
+}
+
+static void
+send_cc_command(struct osd_command *c)
+{
+  buffer *b;
+
+  pthread_mutex_lock(&osd_mutex);
+
+  /* Check that the GTK+ side is up and running */
+  if (!osd_started)
+    goto unlock;
+
+  b = wait_empty_buffer(&osd_fifo);
+  memcpy(b->data, c, sizeof(struct osd_command));
+  send_full_buffer(&osd_fifo, b);
+
+ unlock:
+  pthread_mutex_unlock(&osd_mutex);
+}
+
+void cc_render(attr_char *buffer, int row)
+{
+  struct osd_command c;
+
+  if (row > -1)
+    memcpy(c.buffer, buffer, sizeof(attr_char)*NUM_COLS);
+  else
+    memcpy(c.buffer, buffer, sizeof(attr_char)*NUM_COLS*NUM_ROWS);
+
+  c.first_row = row;
+  c.command = OSD_RENDER;
+  
+  send_cc_command(&c);
+}
+
+void cc_clear(void)
+{
+  struct osd_command c;
+
+  c.command = OSD_CLEAR;
+  send_cc_command(&c);
+}
+
+void cc_roll_up(attr_char *buffer, int first_row, int last_row)
+{
+  struct osd_command c;
+
+  c.first_row = first_row;
+  c.last_row = last_row;
+  memcpy(c.buffer, buffer, sizeof(attr_char)*NUM_COLS*(last_row+1-first_row));
+
+  c.command = OSD_ROLL_UP;
+  send_cc_command(&c);
 }
 
 #if 0

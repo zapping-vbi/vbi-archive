@@ -32,14 +32,31 @@
 
 #include <tveng.h>
 
+/* in error_console.c, just adds the given message to the console */
+void ec_add_message(const gchar *text, gboolean show,
+		    GdkColor *color);
+
 /* With precompiler aid we can print much more useful info */
 /* This shows a non-modal, non-blocking message box */
-#define ShowBox(MSG, MSGTYPE, args...) \
-do { \
+#define ShowBox(MSG, MSGTYPE, args...) do { \
   gchar * tmp_str = g_strdup_printf(MSG,##args); \
-  ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
-	      tmp_str, MSGTYPE, FALSE, FALSE); \
+  gchar *level; \
+  gchar *buffer; \
+  if (!strcasecmp(MSGTYPE, GNOME_MESSAGE_BOX_ERROR)) \
+    level = _("Error: "); \
+  else if (!strcasecmp(MSGTYPE, GNOME_MESSAGE_BOX_WARNING)) \
+    level = _("Warning: "); \
+  else if (!strcasecmp(MSGTYPE, GNOME_MESSAGE_BOX_INFO)) \
+    level = _("Info: "); \
+  else \
+    level = ""; \
+  buffer = \
+    g_strdup_printf("%s%s (%d) [%s]:\n%s", level, \
+		    __FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
+		    tmp_str); \
+  ec_add_message(buffer, TRUE, NULL); \
   g_free(tmp_str); \
+  g_free(buffer); \
 } while (FALSE)
 
 /* This one shows a modal, non-blocking message box */
@@ -161,8 +178,7 @@ zmisc_resolve_pixformat(int bpp, GdkByteOrder byte_order)
 	return TVENG_PIX_BGR32;
       break;
     default:
-      g_warning("Unrecognized image bpp: %d",
-		bpp);
+      g_warning("Unrecognized image bpp: %d", bpp);
       break;
     }
   return -1;

@@ -41,6 +41,7 @@
 #include "x11stuff.h"
 #include "ttxview.h"
 #include "yuv2rgb.h"
+#include "osd.h"
 
 /* This comes from callbacks.c */
 extern enum tveng_capture_mode restore_mode; /* the mode set when we went
@@ -284,7 +285,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.88 2001-02-17 15:22:32 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.89 2001-02-17 22:32:41 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -457,6 +458,8 @@ int main(int argc, char * argv[])
   D();
   startup_ttxview();
   D();
+  startup_osd();
+  D();
   /* disable VBI if needed */
   if (!zvbi_get_object())
     {
@@ -627,6 +630,11 @@ static void shutdown_zapping(void)
    * Shuts down the teletext view
    */
   shutdown_ttxview();
+
+  /*
+   * Shuts down the OSD info
+   */
+  shutdown_osd();
 
   /* Save the config and show an error if something failed */
   if (!zconf_close())

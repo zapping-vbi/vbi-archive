@@ -437,22 +437,33 @@ GtkWidget * create_color_picker(struct tveng_control * qc,
 }
 
 static void
-build_control_box(GtkWidget * vbox, tveng_device_info * info)
+build_control_box(GtkWidget * hbox, tveng_device_info * info)
 {
   GtkWidget * control_added;
   int i = 0;
   struct tveng_control * control;
+  GtkWidget *vbox = NULL;
 
   /* Update the values of all the controls */
   if (-1 == tveng_update_controls( info ))
     {
-      ShowBox(_("Tveng critical error, zapping will exit NOW."),
+      ShowBox("Tveng critical error, Zapping will exit NOW.",
 	      GNOME_MESSAGE_BOX_ERROR);
       g_error("tveng critical: %s", info->error);
     }
 
   for (i = 0; i < info->num_controls; i++)
     {
+      if ((i%10) == 0)
+	{
+	  if (vbox)
+	    {
+	      gtk_widget_show(vbox);
+	      gtk_box_pack_start_defaults(GTK_BOX(hbox), vbox);
+	    }
+	  vbox = gtk_vbox_new(FALSE, 10);
+	}
+
       control = &(info->controls[i]);
 
       g_assert(control != NULL);
@@ -476,7 +487,7 @@ build_control_box(GtkWidget * vbox, tveng_device_info * info)
 	  break;
 	default:
 	  control_added = NULL; /* for sanity purpouses */
-	  g_warning(_("Type %d of control %s is not supported"),
+	  g_warning("Type %d of control %s is not supported",
 		    control->type, control->name);
 	  continue;
 	}
@@ -484,31 +495,37 @@ build_control_box(GtkWidget * vbox, tveng_device_info * info)
       if (control_added)
 	{
 	  gtk_widget_show(control_added);
-	  gtk_box_pack_start_defaults(GTK_BOX(vbox), control_added);
+	  gtk_box_pack_start(GTK_BOX(vbox), control_added, FALSE,
+			     FALSE, 0);
 	}
       else
-	g_warning(_("Error adding %s"), control->name);
+	g_warning("Error adding %s", control->name);
+    }
+
+  if (vbox)
+    {
+      gtk_widget_show(vbox);
+      gtk_box_pack_start_defaults(GTK_BOX(hbox), vbox);
     }
 }
 
 GtkWidget * create_control_box(tveng_device_info * info)
 {
   GtkWidget * control_box;
-  GtkWidget * vbox;
+  GtkWidget * hbox;
 
   control_box = gtk_window_new(GTK_WINDOW_DIALOG);
   gtk_window_set_title(GTK_WINDOW(control_box), _("Available controls"));
 
-  vbox = gtk_vbox_new(FALSE, 10); /* Leave 10 pixels of space between
-				     controls */
+  hbox = gtk_hbox_new(FALSE, 0);
 
-  build_control_box(vbox, info);
+  build_control_box(hbox, info);
 
-  gtk_widget_show(vbox);
-  gtk_container_add(GTK_CONTAINER (control_box), vbox);
+  gtk_widget_show(hbox);
+  gtk_container_add(GTK_CONTAINER (control_box), hbox);
 
   gtk_window_set_policy(GTK_WINDOW(control_box), FALSE, FALSE, FALSE);
-  gtk_object_set_data(GTK_OBJECT(control_box), "vbox", vbox);
+  gtk_object_set_data(GTK_OBJECT(control_box), "hbox", hbox);
   gtk_signal_connect(GTK_OBJECT(control_box), "delete_event",
 		     GTK_SIGNAL_FUNC(on_control_box_delete_event),
 		     NULL);
@@ -519,22 +536,21 @@ GtkWidget * create_control_box(tveng_device_info * info)
 void
 update_control_box(tveng_device_info * info)
 {
-  GtkWidget * vbox;
+  GtkWidget * hbox;
   GtkWidget * control_box = ToolBox;
 
   if ((!info) || (!control_box))
     return;
 
-  vbox = GTK_WIDGET(gtk_object_get_data(GTK_OBJECT(control_box),
-					"vbox"));
-  gtk_container_remove(GTK_CONTAINER (control_box), vbox);
+  hbox = GTK_WIDGET(gtk_object_get_data(GTK_OBJECT(control_box),
+					"hbox"));
+  gtk_container_remove(GTK_CONTAINER (control_box), hbox);
 
-  vbox = gtk_vbox_new(FALSE, 10); /* Leave 10 pixels of space between
-				     controls */
+  hbox = gtk_hbox_new(FALSE, 0);
 
-  build_control_box(vbox, info);
+  build_control_box(hbox, info);
 
-  gtk_widget_show(vbox);
-  gtk_container_add(GTK_CONTAINER (control_box), vbox);
-  gtk_object_set_data(GTK_OBJECT(control_box), "vbox", vbox);
+  gtk_widget_show(hbox);
+  gtk_container_add(GTK_CONTAINER (control_box), hbox);
+  gtk_object_set_data(GTK_OBJECT(control_box), "hbox", hbox);
 }

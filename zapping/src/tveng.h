@@ -726,6 +726,8 @@ do { \
 	   __FILE__, __PRETTY_FUNCTION__, __LINE__, str_error, msg_error); \
   info->error[255] = 0; \
   snprintf(info->error, 255, temp_error_buffer ,##args); \
+  if (info->debug_level) \
+    fprintf(stderr, "TVeng: %s\n", info->error); \
 } while (0)
 
 /* Builds an error message that lets me debug much better */

@@ -28,7 +28,7 @@ zapping_SOURCES = \
 	v4linterface.c v4linterface.h \
 	plugins.c plugins.h \
 	zconf.c zconf.h \
-	zmisc.c zmisc.h \
+	zmisc.c error_console.c zmisc.h \
 	properties.c \
 	channel_editor.c keysyms.h \
 	plugin_properties.c \

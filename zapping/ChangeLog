@@ -7,7 +7,15 @@
 	* main.c: Killed the demiurgical fscking inmortal
 	i-resize-magically-when-*I*-desire-because-i'm-THE-MAIN-WINDOW
 	bug... for some time at least, awaiting its certain resurrection.
-
+	* error_console.c: Created, avoids creating too many dialogs in
+	broken systems and allows copy&paste of the exact error messages
+	(so hopefully i won't get more "it breaks saying something i
+	didn't bother to look to" bug reports :-))
+	* osd.c: Added interface (cc_* routines) to be called from the CC
+	decoder threads (untested).
+	* zmisc.c: Z works now in environments with XVideo but no
+	functional video device.
+	
 16.2.2001	TTX export <mschimek@users.sourceforge.net>
 
 	* removed all vt_page references from ttxview, zvbi. This is

@@ -961,7 +961,7 @@ p_tveng2_build_controls(tveng_device_info * info)
 		  qm.index = j;
 		  if (ioctl(info->fd, VIDIOC_QUERYMENU, &qm))
 		    control.data[j] =
-			strdup(_("<Broken menu entry>"));
+			strdup("<Broken menu entry>");
 		  else
 		    control.data[j] = strdup(_(qm.name));
 		}
@@ -1432,7 +1432,7 @@ tveng2_stop_capturing(tveng_device_info * info)
   if (info -> current_mode == TVENG_NO_CAPTURE)
     {
       fprintf(stderr,
-	      _("Warning: trying to stop capture with no capture active\n"));
+	      "Warning: trying to stop capture with no capture active\n");
       return 0; /* Nothing to be done */
     }
 

@@ -254,7 +254,7 @@ int tveng_attach_device(const char* device_file,
 	    case TVENG_CONTROL_MENU:
 	      fprintf(stderr, " <Menu>\n");
 	      for (j=0; info->controls[i].data[j]; j++)
-		fprintf(stderr, " %d.%d) [%s] <Menu entry>\n", i, j,
+		fprintf(stderr, "    %d.%d) [%s] <Menu entry>\n", i, j,
 			info->controls[i].data[j]);
 	      break;
 	    case TVENG_CONTROL_BUTTON:

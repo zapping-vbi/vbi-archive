@@ -231,3 +231,7 @@ gchar *s = N_("Search backwards for the previous match");
 gchar *s = N_("Start a new search");
 gchar *s = N_("New");
 gchar *s = N_("%P %%");
+gchar *s = N_("Zapping error console");
+gchar *s = N_("OK, let's go on");
+gchar *s = N_("Remove all this mess");
+gchar *s = N_("Clean console");
