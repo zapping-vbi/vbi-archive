@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.21 2002-06-19 08:18:45 mschimek Exp $
+dnl $Id: configure.in,v 1.22 2002-06-19 19:58:23 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(rte, 0.5)
@@ -131,5 +131,7 @@ echo "
 	divx4linux		$BACKEND_DIVX4LINUX
 
 Note mp1e is now configured as rte backend. To build the mp1e command
-line program './configure' and 'make clean; make' in mp1e/ instead.
+line program configure and make in mp1e/ instead. However you should
+build in a separate directory: cd <dir>; <where it is>/rte/mp1e/configure;
+make.
 "
