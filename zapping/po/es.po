@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-11-03 16:40+0100\n"
-"PO-Revision-Date: 2004-09-26 15:15+0200\n"
+"PO-Revision-Date: 2004-11-05 12:23+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -378,21 +378,20 @@ msgstr ""
 "tamaño de la imagen."
 
 #: libvbi/exp-gfx.c:1624
-#, fuzzy
 msgid "PPM"
-msgstr "BPP"
+msgstr "PPM"
 
 #: libvbi/exp-gfx.c:1625
 msgid "Export this page as raw PPM image"
 msgstr "Exportar la página actual como PPM"
 
 #: libvbi/exp-gfx.c:1935
-#, fuzzy, c-format
+#, c-format
 msgid "Teletext Page %x.%x"
-msgstr "Página de Teletexto %x"
+msgstr "Página de Teletexto %x.%x"
 
 #: libvbi/exp-gfx.c:1939
-#, fuzzy, c-format
+#, c-format
 msgid "Teletext Page %x"
 msgstr "Página de Teletexto %x"
 
@@ -418,16 +417,15 @@ msgstr ""
 
 #: libvbi/exp-html.c:108 libvbi/exp-txt.c:131
 msgid "ASCII art"
-msgstr ""
+msgstr "Diagramas ASCII"
 
 #: libvbi/exp-html.c:109 libvbi/exp-txt.c:132
 msgid "Replace graphic characters by ASCII art"
-msgstr ""
+msgstr "Reemplazar caracteres gráficos por diagramas ASCII."
 
 #: libvbi/exp-html.c:111
-#, fuzzy
 msgid "Color (CSS)"
-msgstr "Color"
+msgstr "Color (CSS)"
 
 #: libvbi/exp-html.c:112
 msgid "Store the page colors using CSS attributes"
@@ -449,14 +447,14 @@ msgid "<title lang=\"en\">"
 msgstr "<title lang=\"es\">"
 
 #: libvbi/exp-html.c:526
-#, fuzzy, c-format
+#, c-format
 msgid "Teletext Page %3x.%x"
-msgstr "Página de Teletexto %x"
+msgstr "Página de Teletexto %3x.%x"
 
 #: libvbi/exp-html.c:529
-#, fuzzy, c-format
+#, c-format
 msgid "Teletext Page %3x"
-msgstr "Página de Teletexto %x"
+msgstr "Página de Teletexto %3x"
 
 #: libvbi/exp-html.c:837
 msgid "HTML"
@@ -476,7 +474,7 @@ msgstr "ISO-8859-1 (Latin-1 Idiomas occidentales)"
 
 #: libvbi/exp-txt.c:77
 msgid "ISO-8859-2 (Latin-2 Central and Eastern European languages)"
-msgstr ""
+msgstr "ISO-8859-2 (Latin-2 Idiomas de Europa central y del este)"
 
 #: libvbi/exp-txt.c:78
 msgid "ISO-8859-4 (Latin-3 Baltic languages)"
@@ -513,9 +511,8 @@ msgstr "ISO-10646/UTF-8 (Unicode)"
 # src/interface.c:247
 #. TRANSLATORS: Terminal control codes menu
 #: libvbi/exp-txt.c:106
-#, fuzzy
 msgid "No control codes"
-msgstr "Controles"
+msgstr "Sin códigos de control"
 
 #: libvbi/exp-txt.c:107
 msgid "ANSI X3.64 / VT 100"
@@ -528,23 +525,20 @@ msgstr "VT 200"
 #. TRANSLATORS: Text export encoding (ASCII, Unicode, ...) menu
 #: libvbi/exp-txt.c:121
 msgid "Encoding"
-msgstr ""
+msgstr "Codificación"
 
 # src/interface.c:247
 #: libvbi/exp-txt.c:134
-#, fuzzy
 msgid "Control codes"
-msgstr "Controles"
+msgstr "Códigos de control"
 
 #: libvbi/exp-txt.c:1021
-#, fuzzy
 msgid "Text"
-msgstr "Teletexto"
+msgstr "Texto"
 
 #: libvbi/exp-txt.c:1022
-#, fuzzy
 msgid "Export this page as text file"
-msgstr "Abrir esta página con Zapzilla"
+msgstr "Exportar esta página como texto"
 
 #: libvbi/exp-vtx.c:75
 msgid "Can only export Teletext pages."
@@ -552,15 +546,15 @@ msgstr "Sólo se pueden exportar páginas de Teletexto."
 
 #: libvbi/exp-vtx.c:82
 msgid "Page is not cached."
-msgstr ""
+msgstr "La página no está en la memoria caché."
 
 #: libvbi/exp-vtx.c:91
 msgid "Cannot export this page, is not displayable."
-msgstr ""
+msgstr "No se puede exportar esta página, no es representable."
 
 #: libvbi/exp-vtx.c:128
 msgid "VTX"
-msgstr ""
+msgstr "VTX"
 
 #: libvbi/exp-vtx.c:129
 msgid ""
@@ -571,17 +565,16 @@ msgstr ""
 
 #: libvbi/export.c:197
 msgid "Write error."
-msgstr ""
+msgstr "Error de escritura."
 
 #: libvbi/export.c:207
-#, fuzzy
 msgid "Out of memory."
-msgstr "Se quedó sin memoria disponible."
+msgstr "Sin memoria disponible."
 
 #: libvbi/export.c:232
 #, c-format
 msgid "Export module %s has no option %s."
-msgstr ""
+msgstr "El módulo %s no tiene ninguna opción %s."
 
 #: libvbi/export.c:292
 #, c-format
@@ -589,14 +582,13 @@ msgid "Invalid argument %s for option %s of export module %s."
 msgstr "Argumento %s incorrecto para la opción %s del módulo %s."
 
 #: libvbi/export.c:347
-#, fuzzy
 msgid "Unknown error."
-msgstr "Audio desconocido"
+msgstr "Error desconocido."
 
 #: libvbi/export.c:433
-#, fuzzy, c-format
+#, c-format
 msgid "Could not create %s. %s."
-msgstr "No se puede crear %s: %s"
+msgstr "No se puede crear %s: %s."
 
 #: libvbi/export.c:1333
 #, c-format
@@ -618,7 +610,7 @@ msgstr ""
 #: libvbi/export.c:1468
 #, c-format
 msgid "Cannot initialize export module %s, out of memory."
-msgstr ""
+msgstr "No se puede inicializar el módulo de exportación %s, no queda memoria."
 
 #: plugins/alirc/alirc.c:37
 msgid "Another lirc plugin"
@@ -708,7 +700,7 @@ msgstr "Opciones"
 #. TRANSLATORS: Which codec: None, A, B, C, ...
 #: plugins/mpeg/options.c:739
 msgid "No codec"
-msgstr ""
+msgstr "Ningún codec"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:2
 msgid "Capture _height:"
@@ -935,7 +927,7 @@ msgstr "Descripción"
 
 #: plugins/teletext/export.c:479 plugins/teletext/export.c:505
 msgid "Could not save page"
-msgstr ""
+msgstr "No se puede grabar la página"
 
 #: plugins/teletext/export.c:550
 msgid "Save as"
@@ -946,7 +938,6 @@ msgid "Format:"
 msgstr "Formato:"
 
 #: plugins/teletext/main.c:166
-#, fuzzy
 msgid "_Preferences"
 msgstr "_Preferencias"
 
@@ -959,9 +950,8 @@ msgid "Teletext"
 msgstr "Teletexto"
 
 #: plugins/teletext/main.c:267
-#, fuzzy
 msgid "Teletext plugin"
-msgstr "Teletexto"
+msgstr "Plugin de teletexto"
 
 #: plugins/teletext/preferences.c:51
 msgid "Western and Central Europe"
@@ -997,55 +987,48 @@ msgid "Hebrew and Arabic"
 msgstr "Hebreo y Árabe"
 
 #: plugins/teletext/preferences.c:73
-#, fuzzy
 msgid "Level 1"
-msgstr "Nivel 1.0"
+msgstr "Nivel 1"
 
 #: plugins/teletext/preferences.c:74
 msgid "Level 1.5 (additional national characters)"
 msgstr "Nivel 1.5 (caracteres nacionales adicionales)"
 
 #: plugins/teletext/preferences.c:75
-#, fuzzy
 msgid "Level 2.5 (more colors, font styles and graphics)"
 msgstr "Nivel 2.5 (más colores, fuentes y gráficos)"
 
 #: plugins/teletext/preferences.c:76
-#, fuzzy
 msgid "Level 3.5 (proportional spacing, multicolor graphics)"
-msgstr "Nivel 3.5 (espaciado, gráficos multicolor)"
+msgstr "Nivel 3.5 (espaciado proporcional, gráficos multicolor)"
 
 #: plugins/teletext/preferences.c:91
-#, fuzzy
 msgid "Nearest (fast, low quality)"
-msgstr "Cercanía (rápido, feo cuando se incrementa el tamaño)"
+msgstr "Más cercano (rápido, poca calidad)"
 
 #: plugins/teletext/preferences.c:92
-#, fuzzy
 msgid "Tiles"
-msgstr "_Archivo"
+msgstr "Losetas"
 
 #: plugins/teletext/preferences.c:93
 msgid "Bilinear"
-msgstr ""
+msgstr "Bilineal"
 
 #: plugins/teletext/preferences.c:94
 msgid "Hyper (slow, high quality)"
-msgstr ""
+msgstr "Hyper (lento, gran calidad)"
 
 #: plugins/teletext/preferences.c:270
-#, fuzzy
 msgid "<b>General</b>"
-msgstr "General"
+msgstr "<b>General</b>"
 
 #: plugins/teletext/preferences.c:272
 msgid "_Teletext implementation:"
 msgstr "_Implementación de Teletexto:"
 
 #: plugins/teletext/preferences.c:278
-#, fuzzy
 msgid "_Default encoding:"
-msgstr "_Región por defecto:"
+msgstr "_Codificación por defecto:"
 
 #: plugins/teletext/preferences.c:282
 msgid ""
@@ -1060,7 +1043,7 @@ msgstr ""
 
 #: plugins/teletext/preferences.c:288
 msgid "<b>Page memory</b>"
-msgstr ""
+msgstr "<b>Memoria de páginas</b>"
 
 #: plugins/teletext/preferences.c:290
 msgid "_Size:"
@@ -1072,32 +1055,29 @@ msgstr "_Tamaño:"
 #. TRANSLATORS: Kilobyte (2^10)
 #: plugins/teletext/preferences.c:316
 msgid "KiB"
-msgstr ""
+msgstr "KiB"
 
 # src/interface.c:362
 #: plugins/teletext/preferences.c:323
-#, fuzzy
 msgid "_Channels:"
-msgstr "_Canales"
+msgstr "_Canales:"
 
 #: plugins/teletext/preferences.c:343
 msgid "<b>Display</b>"
 msgstr "<b>Pantalla</b>"
 
 #: plugins/teletext/preferences.c:345
-#, fuzzy
 msgid "_Brightness:"
-msgstr "Brillo"
+msgstr "_Brillo:"
 
 # src/interface.c:247
 #: plugins/teletext/preferences.c:367
-#, fuzzy
 msgid "_Contrast:"
-msgstr "Contraste"
+msgstr "_Contraste:"
 
 #: plugins/teletext/preferences.c:389
 msgid "S_caling:"
-msgstr ""
+msgstr "Es_calado:"
 
 #: plugins/teletext/preferences.c:393
 msgid "Quality/speed trade-off when scaling and anti-aliasing the page."
@@ -1135,9 +1115,8 @@ msgstr "Buscar sin distinguir _mayúsculas y minúsculas"
 # src/v4l2interface.c:146
 #. Future stuff.
 #: plugins/teletext/search.c:361
-#, fuzzy
 msgid "_All channels"
-msgstr "Añadir todos los _canales"
+msgstr "_Todos los canales"
 
 #: plugins/teletext/toolbar.c:123
 msgid "Next page"
@@ -1182,14 +1161,14 @@ msgid " Subpage %x"
 msgstr " Subpágina %x"
 
 #: plugins/teletext/view.c:1289
-#, fuzzy, c-format
+#, c-format
 msgid "Loading page %X..."
-msgstr "Cargando página %x..."
+msgstr "Cargando página %X..."
 
 #: plugins/teletext/view.c:1291
-#, fuzzy, c-format
+#, c-format
 msgid "Loading page %X.%02X..."
-msgstr "Cargando página %x.%02x..."
+msgstr "Cargando página %X.%02X..."
 
 #: plugins/teletext/view.c:2270
 msgid "Selection copied to clipboard"
@@ -1282,16 +1261,14 @@ msgid "Go to the index page"
 msgstr "Ir al índice"
 
 #: plugins/teletext/view.c:3153
-#, fuzzy
 msgid "Save this page to a file"
-msgstr "Abrir esta página con Zapzilla"
+msgstr "Guardar esta página en un fichero"
 
 #. TRANSLATORS: Choose from the Teletext page cache the currently
 #. received channel.
 #: plugins/teletext/window.c:306
-#, fuzzy
 msgid "_Received"
-msgstr "_Grabar"
+msgstr "_Recibido"
 
 #: plugins/teletext/window.c:337 src/v4linterface.c:1120
 #: src/v4linterface.c:2222
@@ -1300,17 +1277,15 @@ msgstr "Sin nombre"
 
 #: plugins/teletext/window.c:559
 msgid " (Latin)"
-msgstr ""
+msgstr " (Latín)"
 
 #: plugins/teletext/window.c:561
-#, fuzzy
 msgid " (Cyrillic)"
-msgstr "Cirílico"
+msgstr " (Cirílico)"
 
 #: plugins/teletext/window.c:604
-#, fuzzy
 msgid "_Automatic"
-msgstr "Automático"
+msgstr "_Automático"
 
 #: plugins/teletext/window.c:791 src/zapping.c:400
 msgid "_File"
@@ -1326,9 +1301,8 @@ msgid "_View"
 msgstr "_Ver"
 
 #: plugins/teletext/window.c:797
-#, fuzzy
 msgid "_Encoding"
-msgstr "_Habilitar decodificación VBI"
+msgstr "_Codificación"
 
 # src/interface.c:362
 #. 2.6 GTK_STOCK_EDIT
@@ -2388,16 +2362,14 @@ msgid "Hide the statusbar"
 msgstr "Ocultar la barra de estado"
 
 #: src/zmisc.c:1193
-#, fuzzy, c-format
+#, c-format
 msgid "%s is not a directory."
-msgstr "%s no es un directorio"
+msgstr "%s no es un directorio."
 
 #: src/zmisc.c:1235
-#, fuzzy, c-format
+#, c-format
 msgid "Could not create directory %s"
-msgstr ""
-"No se puede crear el directorio %s:\n"
-"%s"
+msgstr "No se puede crear el directorio %s"
 
 #: src/zmisc.c:1931 src/zmisc.c:1935
 msgid "Reset"
@@ -2418,39 +2390,33 @@ msgstr "Fichero:"
 #: src/zmisc.c:2561
 #, c-format
 msgid "Overwrite %s?"
-msgstr ""
+msgstr "¿Sobrescribir %s?"
 
 #: src/zmisc.c:2566
-#, fuzzy
 msgid "_Overwrite"
-msgstr ""
-"#-#-#-#-#  es.po (es)  #-#-#-#-#\n"
-"S_obrescribir\n"
-"#-#-#-#-#  es.po (es)  #-#-#-#-#\n"
-"_Sobreescribir"
+msgstr "_Sobreescribir"
 
 #: src/zmisc.c:2574
-#, fuzzy, c-format
+#, c-format
 msgid "%s is a directory."
-msgstr "%s no es un directorio"
+msgstr "%s no es un directorio."
 
 #: src/zmisc.c:2589
 #, c-format
 msgid "%s is a special file"
-msgstr ""
+msgstr "%s es un fichero especial"
 
 #: src/zmisc.c:2593
 msgid "Continue"
 msgstr "Continuar"
 
 #: src/zmisc.c:3429
-#, fuzzy
 msgid "Could not open help file"
-msgstr "No se pudo abrir %s, ¿pruebo algunos otros dispositivos?"
+msgstr "No se pudo abrir el fichero de ayuda"
 
 #: src/zmisc.c:3461
 msgid "Could not open URL"
-msgstr ""
+msgstr "No se pudo abrir la URL"
 
 #: src/zvbi.c:300
 #, c-format
