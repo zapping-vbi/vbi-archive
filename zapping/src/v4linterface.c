@@ -1511,6 +1511,20 @@ void on_standard_activate              (GtkMenuItem     *menuitem,
 #endif
 }
 
+static inline tveng_tuned_channel *
+nth_channel			(guint			index)
+{
+  tveng_tuned_channel *tc;
+  guint i;
+
+  for (tc = global_channel_list, i = 0; tc; tc = tc->next)
+    if (tc->name && tc->name[0])
+      if (i++ == index)
+	break;
+
+  return tc;
+}
+
 static inline void
 insert_one_channel		(GtkMenuShell *		menu,
 				 guint			index,
@@ -1520,7 +1534,7 @@ insert_one_channel		(GtkMenuShell *		menu,
   GtkWidget *menu_item;
   gchar *tooltip;
 
-  if (!(tc = tveng_tuned_channel_nth (global_channel_list, index)))
+  if (!(tc = nth_channel (index)))
     return;
 
   menu_item = z_gtk_pixmap_menu_item_new (tc->name, GTK_STOCK_PROPERTIES);
@@ -1540,12 +1554,11 @@ insert_one_channel		(GtkMenuShell *		menu,
 }
 
 static inline const gchar *
-tuned_channel_nth_name		(tveng_tuned_channel *	list,
-				 guint			index)
+tuned_channel_nth_name		(guint			index)
 {
   tveng_tuned_channel *tc;
 
-  tc = tveng_tuned_channel_nth (list, index);
+  tc = nth_channel (index);
 
   g_assert (tc != NULL);
 
@@ -1562,7 +1575,15 @@ add_channel_entries			(GtkMenuShell *menu,
   gboolean sth = FALSE;
   guint num_channels;
 
-  num_channels = tveng_tuned_channel_num (global_channel_list);
+  {
+    tveng_tuned_channel *tc;
+
+    num_channels = 0;
+
+    for (tc = global_channel_list; tc; tc = tc->next)
+      if (tc->name && tc->name[0])
+	num_channels++;
+  }
 
   if (info->num_standards)
     {
@@ -1680,10 +1701,8 @@ add_channel_entries			(GtkMenuShell *menu,
 		  if (remainder == 0)
 		    remainder = ITEMS_PER_SUBMENU;
 
-		  first_name = tuned_channel_nth_name
-		    (global_channel_list, num_channels - remainder);
-		  last_name = tuned_channel_nth_name
-		    (global_channel_list, num_channels - 1);
+		  first_name = tuned_channel_nth_name (num_channels - remainder);
+		  last_name = tuned_channel_nth_name (num_channels - 1);
 		  buf = g_strdup_printf ("%s/%s", first_name, last_name);
 		  menu_item = z_gtk_pixmap_menu_item_new (buf, "gnome-stock-line-in");
 		  g_free (buf);

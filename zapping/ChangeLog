@@ -1,3 +1,18 @@
+25.3.2003	<mschimek@users.sf.net>
+
+	* src/channel_editor.c: "Add all" aligns channel name with
+	  channel list number in NTSC country. Automatically select
+	  channel_txl option depending on country.
+	* src/frequencies.c, src/frequencies.h: Added channel number
+	  alignment hint. Fixed tv_rf_channel_next(), specifically
+	  using the French frequency table.
+	* v4linterface.c: Don't list unnamed stations in menus.
+
+24.3.2003	<mschimek@users.sf.net>
+
+	* zapping_setup_fb/Makefile.am: Patch #706599 by Kris Verbeeck
+	  to fix installation on Gentoo Linux.
+
 22.3.2003	<mschimek@users.sf.net>
 
 	* pixmaps/Makefile.am: Fixed path of zapping.desktop icon.

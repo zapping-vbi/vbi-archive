@@ -1,6 +1,8 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* After "add all channels" in the channel editor Zapping
+  should scan for station names.
 * UYVY in mpeg plugin.
 * Channel up/down should finish channel number entering
   on keypad or (a)lirc.
@@ -12,7 +14,6 @@ Outstanding issues for future releases
   fully obscured X11 events to optimize capture mode?
 * preferences from context menu (zapping-misc 2003-01-05)
 * configure.in: esd, oss etc checks
-* channel menu: don't add blank channels
 * Video standard question.
 * Improve documentation.
 * Check compilation works without optional libs
