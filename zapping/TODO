@@ -32,7 +32,8 @@ Outstanding issues for the next release (0.6.0)
 	+ Improve documentation.
 	+ Avoid bundle memcpy in MPEG plugin. The V4L unsync warning is
 	  useless btw when we get no proper ESD timestamps either. :-(
-	+ Make controls move faster with the keyb.
+	+ Make controls move faster with the keyb, and avoid rounding
+	issues (maxvalue never reached because of integer rounding)
 	+ In ttx export: instead of "export dir", chop off and remember
 	  the last path entered. Add HTML option "Save Color". Make
 	  blockgfx replacement smarter.

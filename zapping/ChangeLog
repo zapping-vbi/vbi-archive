@@ -2,7 +2,8 @@
 
 	* src/channel_editor.c: Keep selected channels selected when
 	hitting up/down.
-	* glade/zapping.glade: s/frequence/frequency/ for consistence.
+	* glade/zapping.glade: s/frequence/frequency/ for
+	consistence. Ctrl+a mutes/unmutes the device.
 
 5.08.2001	v4lx.c <mschimek@users.sf.net>
 

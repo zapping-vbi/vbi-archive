@@ -35,6 +35,10 @@ on_exit2_activate                      (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 void
+on_toggle_muted1_activate                     (GtkMenuItem     *menuitem,
+				       gpointer         user_data);
+
+void
 on_about1_activate                     (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 

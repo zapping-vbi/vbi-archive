@@ -115,6 +115,13 @@ on_exit2_activate                      (GtkMenuItem     *menuitem,
 }
 
 void
+on_toggle_muted1_activate		(GtkMenuItem	*menuitem,
+					 gpointer	user_data)
+{
+  tveng_set_mute(1-tveng_get_mute(main_info), main_info);
+}
+
+void
 on_about1_activate                     (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {

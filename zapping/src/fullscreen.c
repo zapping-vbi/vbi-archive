@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.11 2001-07-25 21:46:46 garetxe Exp $
+ * $Id: fullscreen.c,v 1.12 2001-08-06 23:28:40 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -91,6 +91,10 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
 	      on_exit2_activate(exit2, NULL);
 	    }
 	  break;
+	  /* mute/unmute */
+	case GDK_a:
+	  if (kevent->state & GDK_CONTROL_MASK)
+	    on_toggle_muted1_activate(NULL, NULL);
 	default:
 	  while ((tc =
 		  tveng_retrieve_tuned_channel_by_index(i++,
