@@ -56,6 +56,7 @@ zf_fifo					*capture_fifo = &_capture_fifo;
 /* The frame producer */
 static pthread_t			capture_thread_id;
 static volatile gboolean		exit_capture_thread;
+static volatile gboolean		capture_quit_ack;
 /* List of requested capture formats */
 static struct {
   gint			id;
@@ -206,6 +207,13 @@ capture_thread (void *data)
       _pthread_rwlock_rdlock (&fmt_rwlock); 
 
 retry:
+      if (exit_capture_thread)
+	{
+	  _pthread_rwlock_unlock (&fmt_rwlock);
+	  zf_unget_empty_buffer (&prod, &p->frame.b);
+	  break;
+	}
+
       if (p->tag != request_id && !compatible (p, info))
 	{
 	  /* schedule for rebuilding in the main thread */
@@ -248,6 +256,8 @@ retry:
     }
 
   zf_rem_producer(&prod);
+
+  capture_quit_ack = TRUE;
 
   return NULL;
 }
@@ -464,6 +474,7 @@ gint capture_start (tveng_device_info *info, GtkWidget *window)
   zf_add_consumer (capture_fifo, cf_timeout_consumer);
 
   exit_capture_thread = FALSE;
+  capture_quit_ack = FALSE;
   g_assert (!pthread_create (&capture_thread_id, NULL, capture_thread,
 			     zapping->info));
 
@@ -478,6 +489,32 @@ gint capture_start (tveng_device_info *info, GtkWidget *window)
 		    zapping->info);
 
   return TRUE;
+}
+
+static gint
+join (const char *who, pthread_t id, gboolean *ack, gint timeout)
+{
+  /* Dirty. Where is pthread_try_join()? */
+  for (; (!*ack) && timeout > 0; timeout--) {
+    usleep (100000);
+  }
+
+  /* Ok, you asked for it */
+  if (timeout == 0) {
+    int r;
+
+    printv("Unfriendly video capture termination\n");
+    r = pthread_cancel (id);
+    if (r != 0)
+      {
+	printv("Cancellation of %s failed: %d\n", who, r);
+	return 0;
+      }
+  }
+
+  pthread_join (id, NULL);
+
+  return timeout;
 }
 
 void capture_stop (void)
@@ -509,13 +546,13 @@ void capture_stop (void)
 
   /* Let the capture thread go to a better place */
   exit_capture_thread = TRUE;
+
   /* empty full queue and remove timeout consumer */
   while ((b = zf_recv_full_buffer (cf_timeout_consumer)))
     zf_send_empty_buffer (cf_timeout_consumer, b);
   zf_rem_consumer (cf_timeout_consumer);
 
-#warning improve this:
-  pthread_join (capture_thread_id, NULL);
+  join ("videocap", capture_thread_id, &capture_quit_ack, 15);
 
   /* Free handlers and formats */
   g_free (handlers);
