@@ -308,7 +308,7 @@ AC_MSG_ERROR(*** Cannot find libglade in your system. Is it installed? ***),
 gnome)
 
 dnl Add the languages which your application supports here.
-ALL_LINGUAS="de es fr ru"
+ALL_LINGUAS="de es fr pl ru"
 AM_GNU_GETTEXT
 
 dnl Set PACKAGE_*_DIR in config.h.

@@ -3754,7 +3754,7 @@ in the next release of this program.</label>
       <placement>GNOME_DOCK_TOP</placement>
       <band>0</band>
       <position>0</position>
-      <offset>37</offset>
+      <offset>24</offset>
       <locked>False</locked>
       <exclusive>True</exclusive>
       <never_floating>False</never_floating>
@@ -3823,6 +3823,30 @@ in the next release of this program.</label>
 	  <name>hbox24</name>
 	  <homogeneous>False</homogeneous>
 	  <spacing>0</spacing>
+
+	  <widget>
+	    <class>GtkFrame</class>
+	    <name>frame2</name>
+	    <label_xalign>0</label_xalign>
+	    <shadow_type>GTK_SHADOW_ETCHED_OUT</shadow_type>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>ttxview_url</name>
+	      <label>100</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	    </widget>
+	  </widget>
 
 	  <widget>
 	    <class>GtkHBox</class>
@@ -3939,30 +3963,6 @@ in the next release of this program.</label>
 		<expand>False</expand>
 		<fill>False</fill>
 	      </child>
-	    </widget>
-	  </widget>
-
-	  <widget>
-	    <class>GtkFrame</class>
-	    <name>frame2</name>
-	    <label_xalign>0</label_xalign>
-	    <shadow_type>GTK_SHADOW_ETCHED_OUT</shadow_type>
-	    <child>
-	      <padding>0</padding>
-	      <expand>False</expand>
-	      <fill>False</fill>
-	    </child>
-
-	    <widget>
-	      <class>GtkLabel</class>
-	      <name>ttxview_url</name>
-	      <label>100</label>
-	      <justify>GTK_JUSTIFY_CENTER</justify>
-	      <wrap>False</wrap>
-	      <xalign>0.5</xalign>
-	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
-	      <ypad>0</ypad>
 	    </widget>
 	  </widget>
 	</widget>
