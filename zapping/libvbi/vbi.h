@@ -12,15 +12,25 @@
 
 #define PLL_ADJUST	4
 
+typedef enum {
+	DRCS_MODE_12_10_1,
+	DRCS_MODE_12_10_2,
+	DRCS_MODE_12_10_4,
+	DRCS_MODE_6_5_4,
+	DRCS_MODE_SUBSEQUENT_PTU = 14,
+	DRCS_MODE_NO_DATA
+} drcs_mode;
+
 struct raw_page
 {
     struct vt_page page[1];
     struct enhance enh[1];
+	u8			raw[25][40];
+	struct vt_extension	extension;
+	u8			drcs_mode[48];
 };
 
 #define BUFS 4
-
-
 
 struct vbi
 {
@@ -33,6 +43,8 @@ struct vbi
     unsigned char *bufs[BUFS];
     int bpl;			// bytes per line
     u32 seq;
+    // magazine defaults
+	struct vt_extension	magazine_extension[8];
     // page assembly
     struct raw_page rpage[8];	// one for each magazin
     struct raw_page *ppage;	// points to page of previous pkt0

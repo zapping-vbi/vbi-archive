@@ -37,8 +37,61 @@ struct vt_event
 #define KEY_DEL		2007
 #define KEY_INS		2008
 
+typedef enum {
+	PAGE_FUNCTION_UNKNOWN = -1,
+	PAGE_FUNCTION_LOP,
+	PAGE_FUNCTION_DATA_BROADCAST,
+	PAGE_FUNCTION_GPOP,
+	PAGE_FUNCTION_POP,
+	PAGE_FUNCTION_GDRCS,
+	PAGE_FUNCTION_DRCS,
+	PAGE_FUNCTION_MOT,
+	PAGE_FUNCTION_MIP,
+	PAGE_FUNCTION_BTT,
+	PAGE_FUNCTION_AIT,
+	PAGE_FUNCTION_MPT,
+	PAGE_FUNCTION_MPT_EX
+} page_function;
+
+typedef enum {
+	PAGE_CODING_UNKNOWN = -1,
+	PAGE_CODING_PARITY,
+	PAGE_CODING_BYTES,
+	PAGE_CODING_TRIPLETS,
+	PAGE_CODING_HAMMING84,
+	PAGE_CODING_, /* XXX 8/12 8/12, purpose? */
+	PAGE_CODING_META84
+} page_coding;
+
+/*
+    Only a minority of pages need this
+ */
+struct vt_extension {
+	unsigned int	designations;
+
+	char		primary_char_set;
+	char		secondary_char_set;
+
+	char		def_screen_colour;
+	char		def_row_colour;
+	char		black_bg_substitution;
+	char		foreground_clut;	/* 0, 8, 16, 24 */
+	char		background_clut;
+
+	char		left_side_panel;
+	char		right_side_panel;
+	char		left_panel_columns;
+
+	u8		dclut4[2][4];		/* global, normal */
+	u8		dclut16[2][16];
+
+	u16		colour_map[32];
+};
+
 struct vt_page
 {
+	page_function		function;
+	page_coding		coding;
     int pgno, subno;	// the wanted page number
     int lang;		// language code
     int flags;		// misc flags (see PG_xxx below)
@@ -50,6 +103,7 @@ struct vt_page
 	int pgno;
 	int subno;
     } link[6];		// FastText links (FLOF)
+	struct vt_extension *	extension;
 };
 
 #define C5_NEWSFLASH		0x40	/* box and overlay */

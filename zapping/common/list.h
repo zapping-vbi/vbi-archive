@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: list.h,v 1.1 2000-12-11 04:12:53 mschimek Exp $ */
+/* $Id: list.h,v 1.2 2000-12-14 12:45:03 mschimek Exp $ */
 
 #ifndef LIST_H
 #define LIST_H
@@ -87,4 +87,4 @@ rem_head(list *l)
 	return n;
 }
 
-#endif /* LIST_H */
+#endif // LIST_H
