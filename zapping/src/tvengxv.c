@@ -112,8 +112,8 @@ find_encoding			(tveng_device_info *	info,
 	return -1;
 }
 
-/* Splits "standard-input" storing "standard" in buffer d of size,
-   returning pointer to "input". */
+/* Splits "standard-input" storing "standard" in buffer d of size
+   (can be 0), returning pointer to "input". Returns NULL on error. */
 static const char *
 split_encoding			(char *			d,
 				 size_t			size,
@@ -123,6 +123,8 @@ split_encoding			(char *			d,
 		if (size > 1) {
 			*d++ = *s;
 			--size;
+		} else if (size > 0) {
+			return NULL;
 		}
 
 	if (size > 0)
@@ -375,29 +377,9 @@ tvengxv_get_chromakey (uint32_t *chroma, tveng_device_info *info)
 
 
 
-
-
-
-
 /*
  *  Controls
  */
-
-static const struct {
-	const char *		atom;
-	const char *		label;
-	tv_control_id		id;
-	tv_control_type		type;
-} xv_attr_meta [] = {
-	{ "XV_BRIGHTNESS", N_("Brightness"), TV_CONTROL_ID_BRIGHTNESS, TV_CONTROL_TYPE_INTEGER },
-	{ "XV_CONTRAST",   N_("Contrast"),   TV_CONTROL_ID_CONTRAST,   TV_CONTROL_TYPE_INTEGER },
-	{ "XV_SATURATION", N_("Saturation"), TV_CONTROL_ID_SATURATION, TV_CONTROL_TYPE_INTEGER },
-	{ "XV_HUE",	   N_("Hue"),	     TV_CONTROL_ID_HUE,	       TV_CONTROL_TYPE_INTEGER },
-	{ "XV_COLOR",	   N_("Color"),	     TV_CONTROL_ID_UNKNOWN,    TV_CONTROL_TYPE_INTEGER },
-	{ "XV_INTERLACE",  N_("Interlace"),  TV_CONTROL_ID_UNKNOWN,    TV_CONTROL_TYPE_CHOICE },
-	{ "XV_MUTE",	   N_("Mute"),	     TV_CONTROL_ID_MUTE,       TV_CONTROL_TYPE_BOOLEAN },
-	{ "XV_VOLUME",	   N_("Volume"),     TV_CONTROL_ID_VOLUME,     TV_CONTROL_TYPE_INTEGER },
-};
 
 static tv_bool
 do_update_control		(struct private_tvengxv_device_info *p_info,
@@ -424,45 +406,59 @@ do_update_control		(struct private_tvengxv_device_info *p_info,
 
 static tv_bool
 update_control			(tveng_device_info *	info,
-				 tv_control *		tc)
+				 tv_control *		c)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 
-	if (tc) {
-		return do_update_control (p_info, C(tc));
-	} else {
-		for_all (tc, p_info->info.controls)
-			if (tc->_parent == info)
-				if (!do_update_control (p_info, C(tc)))
-					return FALSE;
-	}
+	if (c)
+		return do_update_control (p_info, C(c));
 
+	for_all (c, p_info->info.controls)
+		if (c->_parent == info)
+			if (!do_update_control (p_info, C(c)))
+				return FALSE;
 	return TRUE;
 }
 
 static int
 set_control			(tveng_device_info *	info,
-				 tv_control *		tc,
+				 tv_control *		c,
 				 int			value)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 
 	XvSetPortAttribute (info->priv->display,
 			    p_info->port,
-			    C(tc)->atom,
+			    C(c)->atom,
 			    value);
 
-	if (C(tc)->atom == p_info->xa_mute) {
-		if (tc->value != value) {
-			tc->value = value;
-			tv_callback_notify (tc, tc->_callback);
+	if (C(c)->atom == p_info->xa_mute) {
+		if (c->value != value) {
+			c->value = value;
+			tv_callback_notify (c, c->_callback);
 		}
 
 		return TRUE;
 	}
 
-	return do_update_control (p_info, C(tc));
+	return do_update_control (p_info, C(c));
 }
+
+static const struct {
+	const char *		atom;
+	const char *		label;
+	tv_control_id		id;
+	tv_control_type		type;
+} xv_attr_meta [] = {
+	{ "XV_BRIGHTNESS", N_("Brightness"), TV_CONTROL_ID_BRIGHTNESS, TV_CONTROL_TYPE_INTEGER },
+	{ "XV_CONTRAST",   N_("Contrast"),   TV_CONTROL_ID_CONTRAST,   TV_CONTROL_TYPE_INTEGER },
+	{ "XV_SATURATION", N_("Saturation"), TV_CONTROL_ID_SATURATION, TV_CONTROL_TYPE_INTEGER },
+	{ "XV_HUE",	   N_("Hue"),	     TV_CONTROL_ID_HUE,	       TV_CONTROL_TYPE_INTEGER },
+	{ "XV_COLOR",	   N_("Color"),	     TV_CONTROL_ID_UNKNOWN,    TV_CONTROL_TYPE_INTEGER },
+	{ "XV_INTERLACE",  N_("Interlace"),  TV_CONTROL_ID_UNKNOWN,    TV_CONTROL_TYPE_CHOICE },
+	{ "XV_MUTE",	   N_("Mute"),	     TV_CONTROL_ID_MUTE,       TV_CONTROL_TYPE_BOOLEAN },
+	{ "XV_VOLUME",	   N_("Volume"),     TV_CONTROL_ID_VOLUME,     TV_CONTROL_TYPE_INTEGER },
+};
 
 static tv_bool
 add_control			(struct private_tvengxv_device_info *p_info,
@@ -525,6 +521,24 @@ add_control			(struct private_tvengxv_device_info *p_info,
 /*
  *  Video standards
  */
+
+static tv_bool
+set_standard			(tveng_device_info *	info,
+				 const tv_video_standard *s)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+
+	XvSetPortAttribute (info->priv->display,
+			    p_info->port,
+			    p_info->xa_encoding,
+			    S(s)->num);
+
+	p_info->cur_encoding = S(s)->num;
+
+	store_cur_video_standard (info, s);
+
+	return TRUE;
+}
 
 /* Encodings we can translate to tv_video_standard_id. Other
    encodings will be flagged as custom standard. */
@@ -604,10 +618,8 @@ update_standard_list		(tveng_device_info *	info)
 						     sizeof (*s)));
 		}
 
-		if (s == NULL) {
-			free_video_standard_list (&info->video_standards);
-			return FALSE;
-		}
+		if (s == NULL)
+			goto failure;
 
 		z_strlcpy (s->name, buf, sizeof (s->name));
 
@@ -615,29 +627,86 @@ update_standard_list		(tveng_device_info *	info)
 	}
 
 	return TRUE;
-}
 
-static tv_bool
-set_standard			(tveng_device_info *	info,
-				 const tv_video_standard *ts)
-{
-	struct private_tvengxv_device_info *p_info = P_INFO (info);
-
-	XvSetPortAttribute (info->priv->display,
-			    p_info->port,
-			    p_info->xa_encoding,
-			    S(ts)->num);
-
-	p_info->cur_encoding = S(ts)->num;
-
-	set_cur_video_standard (info, ts);
-
-	return TRUE;
+ failure:
+	free_video_standard_list (&info->video_standards);
+	return FALSE;
 }
 
 /*
  *  Video inputs
  */
+
+static tv_bool
+update_video_input		(tveng_device_info *	info);
+
+static void
+store_frequency			(struct video_input *	vi,
+				 int			freq)
+{
+	unsigned int frequency = freq * 62500;
+
+	if (vi->pub.u.tuner.frequency != frequency) {
+		vi->pub.u.tuner.frequency = frequency;
+		tv_callback_notify (&vi->pub, vi->pub._callback);
+	}
+}
+
+static tv_bool
+update_tuner_frequency		(tveng_device_info *	info,
+				 tv_video_line *	l)
+{
+	struct private_tvengxv_device_info * p_info = P_INFO (info);
+	int freq;
+
+	if (p_info->xa_freq == None)
+		return FALSE;
+
+	if (!update_video_input (info))
+		return FALSE;
+
+	if (info->cur_video_input == l) {
+		XvGetPortAttribute (info->priv->display,
+				    p_info->port,
+				    p_info->xa_freq,
+				    &freq);
+
+		store_frequency (VI (l), freq);
+	}
+
+	return TRUE;
+}
+
+static tv_bool
+set_tuner_frequency		(tveng_device_info *	info,
+				 tv_video_line *	l,
+				 unsigned int		frequency)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+	int freq;
+
+	if (p_info->xa_freq == None)
+		return FALSE;
+
+	if (!update_video_input (info))
+		return FALSE;
+
+	freq = frequency / 62500;
+
+	if (info->cur_video_input != l)
+		goto store;
+
+	XvSetPortAttribute (info->priv->display,
+			    p_info->port,
+			    p_info->xa_freq,
+			    freq);
+
+	XSync (info->priv->display, False);
+
+ store:
+	store_frequency (VI (l), freq);
+	return TRUE;
+}
 
 static struct video_input *
 find_video_input		(tv_video_line *	list,
@@ -652,82 +721,6 @@ find_video_input		(tv_video_line *	list,
 
 	return NULL;
 }
-
-static tv_bool
-update_video_input_list		(tveng_device_info *	info)
-{
-	struct private_tvengxv_device_info *p_info = P_INFO (info);
-	unsigned int i;
-
-	free_video_inputs (info);
-
-	if (p_info->xa_encoding == None)
-		return TRUE;
-
-	for (i = 0; i < p_info->encodings; ++i) {
-		struct video_input *vi;
-		char buf[100];
-		const char *input;
-		tv_video_line_type type;
-
-		if (info->debug_level > 0)
-			fprintf (stderr, "  TVeng Xv input #%d: %s\n",
-				 i, p_info->ei[i].name);
-
-		if (!(input = split_encoding (NULL, 0,
-					      p_info->ei[i].name)))
-			continue;
-
-		if (find_video_input (info->video_inputs, input))
-			continue;
-
-		/* FIXME */
-		if (p_info->xa_freq != None)
-			type = TV_VIDEO_LINE_TYPE_TUNER;
-		else
-			type = TV_VIDEO_LINE_TYPE_BASEBAND;
-
-		z_strlcpy (buf, input, sizeof (buf));
-		buf[0] = toupper (buf[0]);
-
-		vi = VI(append_video_line (&info->video_inputs,
-					   type, buf, input, sizeof (*vi)));
-
-		if (!vi) {
-			free_video_line_list (&info->video_inputs);
-			return FALSE;
-		}
-
-		z_strlcpy (vi->name, input, sizeof (vi->name));
-
-		vi->num = i;
-	}
-
-	return TRUE;
-}
-
-#if 0
-      /* The XVideo extension provides very little info about encodings,
-	 we must just make something up */
-      if (p_info->freq != None)
-        {
-	  /* this encoding may refer to a baseband input though */
-          info->inputs[info->num_inputs].tuners = 1;
-          info->inputs[info->num_inputs].flags |= TVENG_INPUT_TUNER;
-          info->inputs[info->num_inputs].type = TVENG_INPUT_TYPE_TV;
-	}
-      else
-        {
-          info->inputs[info->num_inputs].tuners = 0;
-          info->inputs[info->num_inputs].type = TVENG_INPUT_TYPE_CAMERA;
-	}
-      if (p_info->volume != None || p_info->mute != None)
-        info->inputs[info->num_inputs].flags |= TVENG_INPUT_AUDIO;
-      snprintf(info->inputs[info->num_inputs].name, 32, input);
-      info->inputs[info->num_inputs].name[31] = 0;
-      info->inputs[info->num_inputs].hash =
-	tveng_build_hash(info->inputs[info->num_inputs].name);
-#endif
 
 /* Cannot use the generic helper functions, we must set video
    standard and input at the same time. */
@@ -753,7 +746,7 @@ set_source			(tveng_device_info *	info,
 }
 
 static tv_bool
-update_current_video_input	(tveng_device_info *	info)
+update_video_input		(tveng_device_info *	info)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 	struct video_input *vi;
@@ -838,8 +831,111 @@ set_video_input			(tveng_device_info *	info,
 
 	set_source (info, tl, ts);
 
+	/* Xv does not promise per-tuner frequency setting as we do.
+	   XXX ignores the possibility that a third
+	   party changed the frequency from the value we know. */
+	if (IS_TUNER_LINE (tl))
+		set_tuner_frequency (info, info->cur_video_input,
+				     info->cur_video_input->u.tuner.frequency);
+
 	return TRUE;
 }
+
+static tv_bool
+update_video_input_list		(tveng_device_info *	info)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+	unsigned int i;
+
+	free_video_inputs (info);
+
+	if (p_info->xa_encoding == None)
+		return TRUE;
+
+	for (i = 0; i < p_info->encodings; ++i) {
+		struct video_input *vi;
+		char buf[100];
+		const char *input;
+		tv_video_line_type type;
+
+		if (info->debug_level > 0)
+			fprintf (stderr, "  TVeng Xv input #%d: %s\n",
+				 i, p_info->ei[i].name);
+
+		if (!(input = split_encoding (NULL, 0,
+					      p_info->ei[i].name)))
+			continue;
+
+		if (find_video_input (info->video_inputs, input))
+			continue;
+
+		/* FIXME */
+		if (p_info->xa_freq != None)
+			type = TV_VIDEO_LINE_TYPE_TUNER;
+		else
+			type = TV_VIDEO_LINE_TYPE_BASEBAND;
+
+		z_strlcpy (buf, input, sizeof (buf));
+		buf[0] = toupper (buf[0]);
+
+		if (!(vi = VI(append_video_line (&info->video_inputs,
+						 type, buf, input, sizeof (*vi)))))
+			goto failure;
+
+		vi->pub._parent = info;
+
+		z_strlcpy (vi->name, input, sizeof (vi->name));
+
+		vi->num = i;
+
+		if (vi->pub.type == TV_VIDEO_LINE_TYPE_TUNER) {
+			/* FIXME */
+#if 0 /* Xv/v4l reports bogus maximum */
+			vi->pub.u.tuner.minimum = p_info->freq_min * 1000;
+			vi->pub.u.tuner.maximum = p_info->freq_max * 1000;
+#else
+			vi->pub.u.tuner.minimum = 0;
+			vi->pub.u.tuner.maximum = INT_MAX - (INT_MAX % 62500);
+			/* NB freq attr is int */
+#endif
+			vi->pub.u.tuner.step = 62500;
+			vi->pub.u.tuner.frequency = vi->pub.u.tuner.minimum;
+		}
+	}
+
+	if (!update_video_input (info))
+		goto failure;
+
+	return TRUE;
+
+ failure:
+	free_video_line_list (&info->video_inputs);
+	return FALSE;
+}
+
+#if 0
+      /* The XVideo extension provides very little info about encodings,
+	 we must just make something up */
+      if (p_info->freq != None)
+        {
+	  /* this encoding may refer to a baseband input though */
+          info->inputs[info->num_inputs].tuners = 1;
+          info->inputs[info->num_inputs].flags |= TVENG_INPUT_TUNER;
+          info->inputs[info->num_inputs].type = TVENG_INPUT_TYPE_TV;
+	}
+      else
+        {
+          info->inputs[info->num_inputs].tuners = 0;
+          info->inputs[info->num_inputs].type = TVENG_INPUT_TYPE_CAMERA;
+	}
+      if (p_info->volume != None || p_info->mute != None)
+        info->inputs[info->num_inputs].flags |= TVENG_INPUT_AUDIO;
+      snprintf(info->inputs[info->num_inputs].name, 32, input);
+      info->inputs[info->num_inputs].name[31] = 0;
+      info->inputs[info->num_inputs].hash =
+	tveng_build_hash(info->inputs[info->num_inputs].name);
+#endif
+
 
 
 
@@ -1035,9 +1131,6 @@ int tvengxv_attach_device(const char* device_file,
 	if (!update_video_input_list (info))
 		goto error1; // XXX
 
-	if (!update_current_video_input (info))
-		goto error1; // XXX
-
   /* fill in capabilities info */
 	info->caps.channels = 0; // FIXME info->num_inputs;
   /* Let's go creative! */
@@ -1131,25 +1224,6 @@ tvengxv_update_capture_format(tveng_device_info * info)
 
 
 static int
-tvengxv_tune_input(uint32_t freq, tveng_device_info *info)
-{
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info*)info;
-
-  t_assert(info != NULL);
-
-  if (p_info->xa_freq != None)
-    XvSetPortAttribute(info->priv->display,
-		       p_info->port,
-		       p_info->xa_freq,
-		       freq*0.016);
-
-  XSync(info->priv->display, False);
-
-  return 0;
-}
-
-static int
 tvengxv_get_signal_strength(int *strength, int *afc,
 			    tveng_device_info * info)
 {
@@ -1176,42 +1250,6 @@ tvengxv_get_signal_strength(int *strength, int *afc,
   return 0;
 }
 
-static int
-tvengxv_get_tune(uint32_t * freq, tveng_device_info *info)
-{
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info*)info;
-
-  t_assert(info != NULL);
-  if (!freq || p_info->xa_freq == None)
-    return 0;
-
-  XvGetPortAttribute(info->priv->display,
-		     p_info->port,
-		     p_info->xa_freq,
-		     (int*)(freq));
-
-  *freq = *freq / 0.016;
-
-  return 0;
-}
-
-static int
-tvengxv_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
-			 info)
-{
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info*)info;
-
-  t_assert(info != NULL);
-
-  if (min)
-    *min = p_info->freq_min;
-  if (max)
-    *max = p_info->freq_max;
-
-  return 0;
-}
 
 
 
@@ -1219,20 +1257,18 @@ static struct tveng_module_info tvengxv_module_info = {
   .attach_device =		tvengxv_attach_device,
   .describe_controller =	tvengxv_describe_controller,
   .close_device =		tvengxv_close_device,
-  .update_video_input		= update_current_video_input,
+  .update_video_input		= update_video_input,
   .set_video_input		= set_video_input,
+  .set_tuner_frequency		= set_tuner_frequency,
+  .update_tuner_frequency	= update_tuner_frequency,
   /* Video input and standard combine as "encoding", update_video_input
-     also determines the current standard. */
-  .update_standard		= NULL,
+     also determines the current standard, hence no update_standard. */
   .set_standard			= set_standard,
+  .set_control			= set_control,
+  .update_control		= update_control,
   .update_capture_format =	tvengxv_update_capture_format,
   .set_capture_format =		tvengxv_set_capture_format,
-  .update_control		= update_control,
-  .set_control			= set_control,
-  .tune_input =			tvengxv_tune_input,
   .get_signal_strength =	tvengxv_get_signal_strength,
-  .get_tune =			tvengxv_get_tune,
-  .get_tuner_bounds =		tvengxv_get_tuner_bounds,
   .get_overlay_buffer		= NULL,
   .set_overlay_xwindow		= set_overlay_xwindow,
   .set_preview_window =		tvengxv_set_preview_window,
