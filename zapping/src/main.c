@@ -55,7 +55,7 @@ extern GtkWidget *ChannelWindow;
 /**** GLOBAL STUFF ****/
 
 /* These are accessed by other modules as extern variables */
-tveng_device_info	*main_info;
+tveng_device_info	*main_info = NULL;
 volatile gboolean	flag_exit_program = FALSE;
 tveng_channels		*current_country = NULL;
 GList			*plugin_list = NULL;
@@ -65,7 +65,7 @@ gint			disable_xv = FALSE; /* XVideo should be
 					       disabled */
 gboolean		xv_present = FALSE; /* Whether the
 					       device can be attached as XV */
-GtkWidget		*main_window;
+GtkWidget		*main_window = NULL;
 gboolean		was_fullscreen=FALSE; /* will be TRUE if when
 						 quitting we were
 						 fullscreen */
@@ -220,6 +220,8 @@ gint resize_timeout		( gpointer ignored )
   return FALSE;
 }
 
+extern int zapzilla_main(int argc, char * argv[]);
+
 int main(int argc, char * argv[])
 {
   GtkWidget * tv_screen;
@@ -352,6 +354,9 @@ int main(int argc, char * argv[])
     } /* end the list */
   };
 
+  if (strstr(argv[0], "zapzilla"))
+    return zapzilla_main(argc, argv);
+
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
   textdomain (PACKAGE);
@@ -369,7 +374,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.120 2001-07-28 23:08:03 garetxe Exp $",
+	 "$Id: main.c,v 1.121 2001-07-29 00:21:26 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())

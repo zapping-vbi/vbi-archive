@@ -42,10 +42,12 @@ rm -rf %{buildroot}
 %post
 pushd %{_bindir} > /dev/null 2>&1
     ln -sf consolehelper zapping_setup_fb
+    ln -sf zapping zapzilla
 popd > /dev/null 2>&1
 
 %preun
 rm -f %{_bindir}/zapping_setup_fb > /dev/null 2>&1
+rm -f %{_bindir}/zapzilla > /dev/null 2>&1
 
 %clean
 rm -rf %{buildroot}
@@ -57,7 +59,6 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/pam.d/zapping_setup_fb
 %config(noreplace) %{_sysconfdir}/security/console.apps/zapping_setup_fb
 %{_bindir}/zapping
-%{_bindir}/zapzilla
 %{_sbindir}/zapping_setup_fb
 %{_libdir}/zapping
 %{_datadir}/zapping
@@ -69,7 +70,7 @@ rm -rf %{buildroot}
 
 %changelog
 * Sat Jul 28 2001 Iñaki García Etxebarria <garetxe@users.sf.net>
-- Added zapzilla
+- Added zapzilla as a soft link to zapping
 
 * Fri Feb  2 2001 Tim Powers <timp@redhat.com>
 - pamified zapping_setup_fb, now no need for suid root bits, and no

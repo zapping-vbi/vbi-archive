@@ -13,7 +13,6 @@ libvbi_a_SOURCES = \
 	search.c \
 	cache.c cache.h \
 	exp-html.c exp-txt.c exp-vtx.c exp-gfx.c export.c export.h format.h \
-	dllist.h \
 	hamm.c hamm.h \
 	lang.c lang.h \
 	tables.c tables.h \
