@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.h,v 1.1 2002-06-12 04:08:35 mschimek Exp $ */
+/* $Id: b_ffmpeg.h,v 1.2 2002-06-14 07:57:30 mschimek Exp $ */
 
 #ifndef B_FFMPEG_H
 #define B_FFMPEG_H
@@ -99,6 +99,7 @@ PCAST(FX, ffmpeg_context, rte_context, context);
 typedef struct {
 	rte_codec_class		rte;
 	AVCodec *		av;  
+	unsigned int		options;
 } ffmpeg_codec_class;
 
 PCAST(FDC, ffmpeg_codec_class, rte_codec_class, rte);
@@ -106,7 +107,7 @@ PCAST(FDC, ffmpeg_codec_class, rte_codec_class, rte);
 typedef struct {
 	rte_context_class	rte;
 	AVFormat *		av;
-
+	unsigned int		options;
 	ffmpeg_codec_class *	codecs[];
 } ffmpeg_context_class;
 
