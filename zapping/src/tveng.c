@@ -24,6 +24,10 @@
   This file is separated so zapping doesn't need to know about V4L[2]
 */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>

@@ -27,6 +27,7 @@
 #  include <config.h>
 #endif
 
+#ifdef ENABLE_V4L
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -443,3 +444,12 @@ int main(int argc, char * argv[])
   close(fd);
   return 0;
 }
+#else /* !ENABLED_V4L */
+
+/* stub */
+int main(int argc, char *argv[])
+{
+  return 0;
+}
+
+#endif

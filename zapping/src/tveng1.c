@@ -26,6 +26,8 @@
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
+
+#ifdef ENABLE_V4L
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -2350,3 +2352,16 @@ void tveng1_init_module(struct tveng_module_info *module_info)
   memcpy(module_info, &tveng1_module_info,
 	 sizeof(struct tveng_module_info)); 
 }
+
+#else /* !ENABLE_V4L */
+
+#include "tveng1.h"
+
+void tveng1_init_module(struct tveng_module_info *module_info)
+{
+  t_assert(module_info != NULL);
+
+  memset(module_info, 0, sizeof(struct tveng_module_info));
+}
+
+#endif /* ENABLE_V4L */

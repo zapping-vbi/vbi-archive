@@ -18,7 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.19 2001-06-23 02:50:44 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.20 2001-06-28 20:05:25 garetxe Exp $ */
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#ifdef ENABLE_V4L
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1258,3 +1263,23 @@ failure:
 
 	return NULL;
 }
+
+#else /* !ENABLE_V4L */
+
+#include "../common/fifo.h"
+
+/* Stubs for systems without V4L */
+
+fifo *
+vbi_open_v4lx(char *dev_name, int given_fd, int buffered, int fifo_depth)
+{
+	return NULL;
+}
+
+void
+vbi_close_v4lx(fifo *f)
+{
+	return;
+}
+
+#endif

@@ -1,3 +1,9 @@
+28.06.2001	--disable-v4l <garetxe@users.sf.net>
+
+	* configure.in, v4lx.c, tveng1.c, tveng2.c: Added --disable-v4l
+	option, lets all the V4L specific stuff out of the compilation,
+	for Solaris.
+
 23.06.2001	<mschimek@users.sf.net>
 
 	* gcc 3.0 fixes (nothing serious)

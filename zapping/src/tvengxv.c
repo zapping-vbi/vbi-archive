@@ -1177,7 +1177,7 @@ void tvengxv_init_module(struct tveng_module_info *module_info)
   t_assert(module_info != NULL);
 
   memcpy(module_info, &tvengxv_module_info,
-	 sizeof(struct tveng_module_info)); 
+	 sizeof(struct tveng_module_info));
 }
 #else /* do not use the XVideo extension */
 #include "tvengxv.h"

@@ -27,6 +27,7 @@
 #  include <config.h>
 #endif
 
+#ifdef ENABLE_V4L
 /* Avoid a couple of header warnings */
 #undef WNOHANG
 #undef WUNTRACED
@@ -1934,3 +1935,15 @@ void tveng2_init_module(struct tveng_module_info *module_info)
 	 sizeof(struct tveng_module_info)); 
 }
 
+#else /* !ENABLE_V4L */
+
+#include "tveng2.h"
+
+void tveng2_init_module(struct tveng_module_info *module_info)
+{
+  t_assert(module_info != NULL);
+
+  memset(module_info, 0, sizeof(struct tveng_module_info)); 
+}
+
+#endif /* ENABLE_V4L */
