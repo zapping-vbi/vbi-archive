@@ -1,3 +1,15 @@
+2001-09-01	<mschimek@users.sf.net>
+
+	* configure.in: Added create_links(), debugging option, mmxemu test,
+	  llibasound checks for snd_pcm_plugin_read (not in devel branch).
+	* main.c: Uses mmxemu if available for debugging.
+
+2001-08-29	<mschimek@users.sf.net>
+
+	* video/filter.c: init_filter looked suspicious, rewrote.
+	* b_mp1e.c: Added image size error check.
+	* mpeg1.c: Fixed "dnl gcc3 -O0 makes mmx_mbsum segv, why?". Stupid me.
+
 2001-08-27	post-release fixes <mschimek@users.sf.net>
 
 	* configure.in: Temporary change of the alsa test due to 0.9

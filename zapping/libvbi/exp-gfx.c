@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.40 2001-08-20 17:46:49 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.41 2001-09-02 03:25:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -154,8 +154,9 @@ draw_char(int canvas_type, uint8_t *canvas, unsigned int rowstride,
 			bits = (*((uint16_t *) src1) >> shift1)
 		    	     | (*((uint16_t *) src2) >> shift2);
 #else
+                        /* unaligned/little endian */
 			bits = ((src1[1] * 256 + src1[0]) >> shift1)
-			     | ((src2[1] * 256 + src2[0]) >> shift2); /* unaligned/little endian */
+			     | ((src2[1] * 256 + src2[0]) >> shift2);
 #endif
 			bits |= bits << bold;
 		}
@@ -420,7 +421,9 @@ vbi_draw_vt_page_region(struct fmt_page *pg, uint32_t *canvas,
 	}
 }
 
-/* XXX */
+/*
+ *  XXX this won't scale with proportional spacing or custom fonts.
+ */
 void vbi_get_max_rendered_size(int *w, int *h)
 {
   if (w) *w = 41 * CW;
@@ -613,7 +616,7 @@ export_ppm = {
 	.pub = {
 		.keyword	= "ppm",
 		.label		= N_("PPM"),
-		.tooltip	= N_("Export this page as PPM image"),
+		.tooltip	= N_("Export this page as raw PPM image"),
 	},
 	.extension		= "ppm",
 	.options		= gfx_opts,
@@ -647,8 +650,8 @@ static void
 draw_drcs_indexed(png_bytep canvas, png_bytep pen,
 	uint8_t *src, int glyph, attr_size size, int rowstride)
 {
-	draw_drcs(sizeof(png_byte), (uint8_t *) canvas, (uint8_t *) pen, src, glyph,
-		  size, rowstride);
+	draw_drcs(sizeof(png_byte), (uint8_t *) canvas, (uint8_t *) pen,
+		  src, glyph, size, rowstride);
 }
 
 static bool

@@ -93,8 +93,9 @@ exp_gfx.c
 wstfont.xpm, ccfont.xpm
 	Font images used by exp_gfx.c.
 
-Test files:
+Test files (maybe only present in CVS):
 samples
+	Sample data for debugging, see instructions in samples/README
 vbi_decoder.c
 shaped_caption.c
 caption.c (-DTEST=1)

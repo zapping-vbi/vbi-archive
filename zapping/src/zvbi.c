@@ -1612,8 +1612,8 @@ event(vbi_event *ev, void *unused)
 	if (!receiving_pages)
 	  {
 	    receiving_pages = TRUE;
-	    printv("Received vtx page %x.%02x\n", ev->pgno,
-		   ev->subno & 0xFF);
+	    printv("Received vtx page %x.%02x\n",
+		   ev->ev.ttx_page.pgno, ev->ev.ttx_page.subno & 0xFF);
 	  }
       }
 
@@ -1640,7 +1640,7 @@ event(vbi_event *ev, void *unused)
       break;
     case VBI_EVENT_NETWORK:
       pthread_mutex_lock(&network_mutex);
-      memcpy(&current_network, ev->p, sizeof(vbi_network));
+      memcpy(&current_network, &ev->ev.network, sizeof(vbi_network));
       if (*current_network.name)
 	{
 	  strncpy(station_name, current_network.name, 255);
@@ -1665,13 +1665,14 @@ event(vbi_event *ev, void *unused)
       notify_network();
       pthread_mutex_unlock(&network_mutex);
       break;
+
     case VBI_EVENT_TRIGGER:
-      notify_trigger((vbi_link *) ev->p);
+      notify_trigger(ev->ev.trigger);
       break;
 
     case VBI_EVENT_RATIO:
       if (zconf_get_integer(NULL, "/zapping/options/main/ratio") == 3)
-	zvbi_ratio = ((vbi_ratio*) ev->p)->ratio;
+	zvbi_ratio = ev->ev.ratio.ratio;
       break;
       
     default:

@@ -2,6 +2,10 @@
 Name=Zapping
 Comment=TV viewer
 Comment[es]=Pantalla de TV
+Comment[de]=TV Betrachter
+Comment[fr]=Visualiseur de TV
+Comment[pl]=Program TV
+Comment[ru]=Просмотр TV
 Exec=zapping
 Icon=zapping/gnome-television.png
 Type=Application

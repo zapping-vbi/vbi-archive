@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.4 2001-08-22 01:28:10 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.5 2001-09-02 03:26:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -471,7 +471,8 @@ ZMB2(mblock[1], var);							\
 } while (0)
 
 static inline int
-tmp_picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_motion)
+tmp_picture_p(unsigned char *org0, unsigned char *org1,
+	int motion, int dist, int forward_motion)
 {
 	double act, act_sumi, act_sump;
 	int quant_sum;
@@ -483,7 +484,7 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_mo
 	int mb_skipped, mb_count;
 	int intra_count = 0;
 
-	if (!__builtin_constant_p(forward_motion))
+	if (motion)
 		motion_init(&M[0], (dist * forward_motion) >> 8);
 	else {
 		M[0].f_code = 1;
@@ -565,7 +566,7 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_mo
 			var = (*filter)(org0, org1); // -> mblock[0]
 			pr_end(41);
 
-			if (!__builtin_constant_p(forward_motion)) {
+			if (motion) {
 				pr_start(56, "MB sum");
 				mmx_mbsum(newref + mm_buf_offs); // mblock[0]
 				pr_end(56);
@@ -587,7 +588,7 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_mo
 
 			if (T3RI
 			    && ((TEST12
-				 && !__builtin_constant_p(forward_motion)
+				 && motion
 				 && (var < (LOWVAR / 6)))
 				|| vmc > p_inter_bias))
 			{
@@ -620,7 +621,7 @@ ZMB1(var);
 
 				mb_skipped = 0;
 
-				if (!__builtin_constant_p(forward_motion)) {
+				if (motion) {
 					M[0].PMV[0] = 0;
 					M[0].PMV[1] = 0;
 				}
@@ -630,7 +631,7 @@ ZMB1(var);
 					mpeg1_idct_intra(quant); // mblock[0] -> new
 					pr_end(23);
 
-					if (!__builtin_constant_p(forward_motion))
+					if (motion)
 						zero_forward_motion();
 				}
 			} else {
@@ -651,7 +652,7 @@ if (!T3RT) quant = 2;
 
 				Ti += Tmb;
 
-				if (!__builtin_constant_p(forward_motion)) {
+				if (motion) {
 					dmv[0][0] = (M[0].MV[0] - M[0].PMV[0]) & M[0].f_mask;
 					dmv[0][1] = (M[0].MV[1] - M[0].PMV[1]) & M[0].f_mask;
 
@@ -669,8 +670,7 @@ if (!T3RT) quant = 2;
 					pr_end(26);
 
 					if (cbp == 0 && mb_count > 1 && mb_count < mb_num &&
-						(__builtin_constant_p(forward_motion)
-						 || (M[0].MV[0] | M[0].MV[1]) == 0)) {
+						(!motion || (M[0].MV[0] | M[0].MV[1]) == 0)) {
 						mmx_copy_refblock();
 						i++;
 						break;
@@ -682,7 +682,7 @@ if (!T3RT) quant = 2;
 						i = 0;
 
 						if (cbp == 0) {
-							if (!__builtin_constant_p(forward_motion)) {
+							if (motion) {
 								bputl(&video_out, (code << 3) + 1, length + 3);
 								motion_vector(&M[0], dmv[0]);
 								/* macroblock_type '001' (P MC, Not Coded) */
@@ -695,7 +695,7 @@ if (!T3RT) quant = 2;
 							mmx_copy_refblock();
 							break;
 						} else {
-							if ((!__builtin_constant_p(forward_motion))
+							if (motion
 							    && (M[0].MV[0] | M[0].MV[1])) {
 								if (prev_quant != quant) {
 									bputl(&video_out, (code << 10) + (2 << 5) + quant, length + 10);
@@ -776,7 +776,7 @@ if (!T3RT) quant = 2;
 
 	emms();
 
-	if (!__builtin_constant_p(forward_motion))
+	if (motion)
 		t7(M[0].src_range, dist);
 
 	/* Rate control */
@@ -805,8 +805,8 @@ if (!T3RT) quant = 2;
 #define GLITCH (0 && mb_row == 6 && mb_col == 13 && video_frame_count == 5)
 
 static inline int
-tmp_picture_b(unsigned char *org0, unsigned char *org1, int dist,
-	  int forward_motion, int backward_motion)
+tmp_picture_b(unsigned char *org0, unsigned char *org1,
+	int motion, int dist, int forward_motion, int backward_motion)
 {
 	double act, act_sum;
 	short (* iblock)[6][8][8];
@@ -819,7 +819,7 @@ tmp_picture_b(unsigned char *org0, unsigned char *org1, int dist,
 	int mb_skipped, mb_count;
 	struct motion M[2];
 
-	if (!__builtin_constant_p(forward_motion)) {
+	if (motion) {
 		motion_init(&M[0], forward_motion >> 8);
 		motion_init(&M[1], backward_motion >> 8);
 	} else {
@@ -899,7 +899,7 @@ tmp_picture_b(unsigned char *org0, unsigned char *org1, int dist,
 
 if (T3RI
     && ((TEST12
-         && !__builtin_constant_p(forward_motion)
+         && motion
 	 && (var < (unsigned int)(LOWVAR / (6 * B_SHARE)))
 	 )))
 	goto skip_pred;
@@ -907,7 +907,7 @@ if (T3RI
 			if (__builtin_expect(!closed_gop, 1)) {
 				pr_start(52, "Predict bidirectional");
 
-				if (!__builtin_constant_p(forward_motion))
+				if (motion)
 					vmc = predict_bidirectional_motion(M, &vmcf, &vmcb, dist);
 				else
 					vmc = predict_bidirectional(
@@ -945,7 +945,7 @@ if (GLITCH) {
     printv(1, "vmc=%d vmcf=%d vmcb=%d\n", vmc, vmcf, vmcb);
 }
 				if (vmcf <= vmcb && vmcf <= vmc) {
-					if (!__builtin_constant_p(forward_motion)) {
+					if (motion) {
 						/* -> dmv */
 						M[1].MV[0] = M[1].PMV[0];
 						M[1].MV[0] = M[1].PMV[0];
@@ -954,7 +954,7 @@ if (GLITCH) {
 					macroblock_type = MB_FORWARD;
 					iblock = &mblock[1];
 				} else if (vmcb <= vmc) {
-					if (!__builtin_constant_p(forward_motion)) {
+					if (motion) {
 						M[0].MV[0] = M[0].PMV[0];
 						M[0].MV[0] = M[0].PMV[0];
 					}
@@ -963,7 +963,7 @@ if (GLITCH) {
 					iblock = &mblock[2];
 				}
 			} else {
-				if (!__builtin_constant_p(forward_motion)) {
+				if (motion) {
 					M[0].MV[0] = M[0].PMV[0];
 					M[0].MV[0] = M[0].PMV[0];
 					vmc = predict_forward_motion(&M[1], newref, dist);
@@ -984,7 +984,7 @@ skip_pred:
 
 			if (T3RI
 			    && ((TEST12
-				 && !__builtin_constant_p(forward_motion)
+				 && motion
 				 && (var < (unsigned int)(LOWVAR / (6 * B_SHARE))))
 				|| vmc > p_inter_bias
 				))
@@ -1015,7 +1015,7 @@ ZMB1(var);
 
 				mb_skipped = 0;
 
-				if (!__builtin_constant_p(forward_motion)) {
+				if (motion) {
 					M[0].PMV[0] = 0;
 					M[0].PMV[1] = 0;
 					M[1].PMV[0] = 0;
@@ -1046,7 +1046,7 @@ if (!T3RT) quant = 2;
 
 				Ti += Tmb;
 
-				if (!__builtin_constant_p(forward_motion)) {
+				if (motion) {
 					dmv[0][0] = (M[0].MV[0] - M[0].PMV[0]) & M[0].f_mask;
 					dmv[0][1] = (M[0].MV[1] - M[0].PMV[1]) & M[0].f_mask;
 					dmv[1][0] = (M[1].MV[0] - M[1].PMV[0]) & M[1].f_mask;
@@ -1066,7 +1066,7 @@ if (!T3RT) quant = 2;
 	if (cbp == 0
 	    && macroblock_type == mb_type_last /* -> not first of slice */
 	    && mb_count < mb_num /* not last of slice */
-	    && (__builtin_constant_p(forward_motion)
+	    && (!motion
 		|| (dmv[0][0] | dmv[0][1] | dmv[1][0] | dmv[1][1]) == 0)) {
 		/* don't touch PMV here */
 		i++;
@@ -1079,7 +1079,7 @@ if (!T3RT) quant = 2;
 		i = 0;
 
 		if (cbp == 0) {
-			if (!__builtin_constant_p(forward_motion)) {
+			if (motion) {
 				len = 5 - macroblock_type;
 				bputl(&video_out, (code << len) + 2, length + len);
 				/* macroblock_type (B Not Coded, see vlc.c) */
@@ -1097,7 +1097,7 @@ if (!T3RT) quant = 2;
 			bprolog(&video_out);
 			break;
 		} else {
-			if (!__builtin_constant_p(forward_motion)) {
+			if (motion) {
 				if (prev_quant != quant) {
 					len = macroblock_type_b_quant[macroblock_type].length; // 10..11
 					code = (code << len) + macroblock_type_b_quant[macroblock_type].code + quant;
@@ -1159,7 +1159,7 @@ if (!T3RT) quant = 2;
 				quant_sum += quant;
 				mb_skipped = i;
 
-				if ((!__builtin_constant_p(forward_motion)) && i == 0) {
+				if (motion && i == 0) {
 					if (macroblock_type & MB_FORWARD) {
 						M[0].PMV[0] = M[0].MV[0];
 						M[0].PMV[1] = M[0].MV[1];
@@ -1210,14 +1210,14 @@ picture_i_nomc(unsigned char *org0, unsigned char *org1)
 static int
 picture_p_nomc(unsigned char *org0, unsigned char *org1, int dist, int forward_motion)
 {
-	return tmp_picture_p(org0, org1, 0, 0);
+	return tmp_picture_p(org0, org1, 0, 0, 0);
 }
 
 static int
 picture_b_nomc(unsigned char *org0, unsigned char *org1, int dist,
 	  int forward_motion, int backward_motion)
 {
-	return tmp_picture_b(org0, org1, 0, 0, 0);
+	return tmp_picture_b(org0, org1, 0, 0, 0, 0);
 }
 
 static int
@@ -1229,14 +1229,14 @@ picture_i_mc(unsigned char *org0, unsigned char *org1)
 static int
 picture_p_mc(unsigned char *org0, unsigned char *org1, int dist, int forward_motion)
 {
-	return tmp_picture_p(org0, org1, dist, forward_motion);
+	return tmp_picture_p(org0, org1, 1, dist, forward_motion);
 }
 
 static int
 picture_b_mc(unsigned char *org0, unsigned char *org1, int dist,
 	  int forward_motion, int backward_motion)
 {
-	return tmp_picture_b(org0, org1, dist, forward_motion, backward_motion);
+	return tmp_picture_b(org0, org1, 1, dist, forward_motion, backward_motion);
 }
 
 static int
@@ -1861,9 +1861,8 @@ video_reset(void)
 
 	Tavg	= lroundn(video_bit_rate / frame_rate);
 	G4	= Gn * 4;
-R = Gn;
-G0 = Gn;
-//fprintf(stderr, "R0 = %d\n", R);
+
+	R = G0 = Gn;
 
 	Ei = 0, Ep = 0, Eb = 0;
 	ei = 0, ep = 0, eb = 0;
@@ -1875,11 +1874,17 @@ G0 = Gn;
 #if !REG_TEST
 	if (banner)
 		free(banner);
+
 	asprintf(&banner,
+#ifdef ENABLE_DEBUGGING
 		anno ? "MP1E " VERSION " Test Stream G%dx%d b%2.2f f%2.1f F%d\nANNO: %s\n" :
 		       "MP1E " VERSION " Test Stream G%dx%d b%2.2f f%2.1f F%d\n",
 		grab_width, grab_height, (double)(video_bit_rate) / 1E6,
-		frame_rate, filter_mode, anno);
+		frame_rate, filter_mode,
+#else
+		anno ? "MP1E " VERSION "\nANNO: %s\n" : "MP1E " VERSION "\n",
+#endif
+		anno);
 #endif
 }
 

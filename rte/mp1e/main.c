@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.5 2001-08-24 17:52:49 garetxe Exp $ */
+/* $Id: main.c,v 1.6 2001-09-02 03:26:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -134,13 +134,14 @@ main(int ac, char **av)
 		if (cpu_type == CPU_UNKNOWN)
 			FAIL("Sorry, this program requires an MMX enhanced CPU");
 	}
-#if 0
-	{
-		extern void mmx_emu_configure(int);
+#ifdef HAVE_LIBMMXEMU
+	else {
+		extern void mmxemu_configure(int);
 
-		mmx_emu_configure(cpu_type);
+		mmxemu_configure(cpu_type);
 	}
 #endif
+
 	switch (cpu_type) {
 	case CPU_K6_2:
 	case CPU_CYRIX_III:
@@ -241,10 +242,9 @@ main(int ac, char **av)
 
 		if (vbi_cap_fifo == NULL) {
 			if (errstr)
-				fprintf(stderr, "Failed to access vbi device:\n%s\n", errstr);
+				FAIL("Failed to access vbi device:\n%s\n", errstr);
 			else
-				fprintf(stderr, "Failed to access vbi device: Cause unknown\n");
-			exit(EXIT_FAILURE);
+				FAIL("Failed to access vbi device: Cause unknown\n");
 		}
 	}
 

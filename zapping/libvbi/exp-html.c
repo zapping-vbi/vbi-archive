@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.23 2001-08-25 12:01:18 garetxe Exp $ */
+/* $Id: exp-html.c,v 1.24 2001-09-02 03:25:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -182,8 +182,37 @@ write_error(vbi_export *e)
 	}
 }
 
+static void
+title(vbi_export *e, struct fmt_page *pg)
+{
+	html_data *d = (html_data *) e->data;
+
+	if (pg->pgno < 0x100)
+		fprintf(d->fp, "<title lang=\"en\">");
+	else
+		/*
+		 *  "lang=\"en\" refers to the page title "Teletext Page..."
+		 *  below, specify "de", "fr", "es" etc.
+		 */
+		fprintf(d->fp, _("<title lang=\"en\">"));
+
+	if (e->network.name[0]) {
+		escaped_fputs(d->fp, e->network.name);
+		putc(' ', d->fp);
+	}
+
+	if (pg->pgno < 0x100)
+		fprintf(d->fp, "Closed Caption"); /* no i18n, is a proper name */
+	else if (pg->subno != ANY_SUB)
+		fprintf(d->fp, _("Teletext Page %3x.%x"), pg->pgno, pg->subno);
+	else
+		fprintf(d->fp, _("Teletext Page %3x"), pg->pgno);
+
+	fputs("</title>", d->fp);
+}
+
 static bool
-header(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg, char *title)
+header(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 {
 	html_data *d = (html_data *) e->data;
 	char *charset, *lang = NULL, *dir = NULL;
@@ -205,7 +234,7 @@ header(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg, char *title)
 	case 2:	 /* Swedish/Finnish/Hungarian */
 	case 10: /* Swedish/Finnish/Hungarian */
 	case 18: /* Swedish/Finnish/Hungarian */
-		if (!lang) lang = "";
+		if (!lang) lang = "sv";
 
 	case 3:	 /* Italian */
 	case 11: /* Italian */
@@ -228,34 +257,35 @@ header(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg, char *title)
 	case 6:	 /* Czech/Slovak */
 	case 14: /* Czech/Slovak */
 	case 38: /* Czech/Slovak */
-		lang = "";
+		lang = "cz";
 
 	case 8:	 /* Polish */
-		if (!lang) lang = ""; /* ? */
+		if (!lang) lang = "pl";
 
 	case 29: /* Serbian/Croatian/Slovenian */
-		if (!lang) lang = "";
+		if (!lang) lang = "hr";
 
 	case 31: /* Romanian */
-		if (!lang) lang = ""; /* ? */
+		if (!lang) lang = "ro";
 		charset = "iso-8859-2";
 		break;
 
 	case 34: /* Estonian */
-		lang = ""; /* ? */
+		lang = "et";
 
 	case 35: /* Lettish/Lithuanian */
+		if (!lang) lang = "lt";
 		charset = "iso-8859-4";
 		break;
 
 	case 32: /* Serbian/Croatian */
-		lang = "";
+		lang = "sr";
 
 	case 36: /* Russian/Bulgarian */
 		if (!lang) lang = "ru";
 
 	case 37: /* Ukranian */
-		if (!lang) lang = ""; /* ? */
+		if (!lang) lang = "uk";
 		charset = "iso-8859-5";
 		break;
 
@@ -275,13 +305,13 @@ header(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg, char *title)
 
 	case 85: /* Hebrew */
 		lang = "he";
-		dir = ""; /* ? */
-		charset = "iso-8859-8";	/* XXX needs further examination */
+		dir = ""; /* visually ordered */
+		charset = "iso-8859-8";
 		break;
 
 	case 22: /* Turkish */
 	case 54: /* Turkish */
-		lang = ""; /* ? */
+		lang = "tr";
 		charset = "iso-8859-9";
 		break;
 
@@ -297,7 +327,8 @@ header(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg, char *title)
 	}
 
 	if (name && !(d->fp = fopen(name, "w"))) {
-		set_errstr_printf(_("Cannot create file '%s': %s"), name, strerror(errno));
+		set_errstr_printf(_("Cannot create file '%s': %s"),
+				  name, strerror(errno));
 		iconv_close(d->cd);
 		return FALSE;
 	}
@@ -330,11 +361,9 @@ header(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg, char *title)
 			fputs("//-->" LF "</style>" LF, d->fp);
 		}
 
-		fprintf(d->fp,
-			"%s" /* title */ LF
-			"</head>" LF
-			"<body ",
-			title);
+		title(e, pg);
+
+		fputs(LF "</head>" LF "<body ", d->fp);
 
 		if (lang && *lang)
 			fprintf(d->fp, "lang=\"%s\" ", lang);
@@ -476,51 +505,8 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 		}
 	}
 
-	{
-#ifdef ENABLE_V4L
-		char *s;
-		size_t size;
-		FILE *fp;
-
-		fp = open_memstream(&s, &size);
-
-		if (pg.pgno < 0x100)
-			fprintf(fp, "<title lang=\"en\">");
-		else
-			/*
-			 *  "lang=\"en\" refers to "Teletext Page..." below,
-			 *  specify "de", "fr", "es" etc.
-			 */
-			fprintf(fp, _("<title lang=\"en\">"));
-
-		if (e->network.name[0]) {
-			escaped_fputs(fp, e->network.name);
-			putc(' ', fp);
-		}
-
-		if (pg.pgno < 0x100)
-			fprintf(fp, "Closed Caption"); /* no i18n, is a proper name */
-		else if (pg.subno != ANY_SUB)
-			fprintf(fp, _("Teletext Page %3x.%x"), pg.pgno, pg.subno);
-		else
-			fprintf(fp, _("Teletext Page %3x"), pg.pgno);
-
-		fputs("</title>", fp);
-
-		if (fclose(fp)) {
-			free(s);
-			write_error(e);
-			return FALSE;
-		}
-
-		if (!header(e, fp, name, &pg, s)) {
-			free(s);
-			return FALSE;
-		}
-
-		free(s);
-#endif
-	}
+	if (!header(e, fp, name, &pg))
+		return FALSE;
 
 	fputs("<pre>", d->fp);
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.35 2001-08-25 12:01:18 garetxe Exp $ */
+/* $Id: v4lx.c,v 1.36 2001-09-02 03:25:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -25,6 +25,35 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
+extern int debug_msg;
+
+#define printv(format, args...)						\
+do {									\
+	if (debug_msg) {						\
+		fprintf(stderr, format ,##args);			\
+		fflush(stderr);						\
+	}								\
+} while (0)
+
+#ifdef ENABLE_NLS
+#    include <libintl.h>
+#    define _(String) gettext (String)
+#    ifdef gettext_noop
+#        define N_(String) gettext_noop (String)
+#    else
+#        define N_(String) (String)
+#    endif
+#else
+/* Stubs that do something close enough.  */
+#    define textdomain(String) (String)
+#    define gettext(String) (String)
+#    define dgettext(Domain,Message) (Message)
+#    define dcgettext(Domain,Message,Type) (Message)
+#    define bindtextdomain(Domain,Directory) (Domain)
+#    define _(String) (String)
+#    define N_(String) (String)
+#endif
 
 #ifdef ENABLE_V4L
 
@@ -48,44 +77,15 @@
 #include "../common/errstr.h"
 #include "../common/videodev2.h"
 
-#ifdef ENABLE_NLS
-#    include <libintl.h>
-#    define _(String) gettext (String)
-#    ifdef gettext_noop
-#        define N_(String) gettext_noop (String)
-#    else
-#        define N_(String) (String)
-#    endif
-#else
-/* Stubs that do something close enough.  */
-#    define textdomain(String) (String)
-#    define gettext(String) (String)
-#    define dgettext(Domain,Message) (Message)
-#    define dcgettext(Domain,Message,Type) (Message)
-#    define bindtextdomain(Domain,Directory) (Domain)
-#    define _(String) (String)
-#    define N_(String) (String)
-#endif
+#define IOCTL(fd, cmd, data)						\
+({ int __result; do __result = ioctl(fd, cmd, data);			\
+   while (__result == -1L && errno == EINTR); __result; })
 
 typedef enum {
 	OPEN_UNKNOWN_INTERFACE = -1,
 	OPEN_FAILURE = 0,
 	OPEN_SUCCESS,
 } open_result;
-
-#endif ENABLE_V4L
-
-#define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
-
-extern int /* gboolean */ debug_msg;
-
-#define printv(format, args...)						\
-do {									\
-	if (debug_msg) {						\
-		fprintf(stderr, format ,##args);			\
-		fflush(stderr);						\
-	}								\
-} while (0)
 
 #define V4L2_LINE 		0 /* API rev. Nov 2000 (-1 -> 0) */
 
@@ -97,8 +97,6 @@ do {									\
 #if WSS_TEST
 static unsigned char wss_test_data[768 * 4];
 #endif
-
-#ifdef ENABLE_V4L
 
 typedef struct {
 	fifo			fifo;			/* world interface */
@@ -522,19 +520,14 @@ guess_bttv_v4l(v4l_device *v4l, int *strict, int given_fd)
 	}
 
 	while (readdir_r(dir, &dirent, &pdirent) == 0 && pdirent) {
-		char *s;
+		char name[256];
 
-		if (!asprintf(&s, "/dev/%s", dirent.d_name))
-			continue;
+		snprintf(name, sizeof(name), "/dev/%s", dirent.d_name);
 
-		printv("Try %s: ", s);
+		printv("Try %s: ", name);
 
-		if (probe_video_device(s, &vbi_stat, &mode)) {
-			free(s);
+		if (probe_video_device(name, &vbi_stat, &mode))
 			goto finish;
-		}
-
-		free(s);
 	}
 
 	closedir(dir);
@@ -646,7 +639,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 		if (strict >= 0 && v4l->dec.scanning) {
 			printv("Attempt to set vbi capture parameters\n");
 
-			if (!(services = qualify_vbi_sampling(&v4l->dec, &max_rate, services))) {
+			if (!(services = vbi_decoder_qualify_sampling(&v4l->dec, &max_rate, services))) {
 				set_errstr_printf(_("Sorry, %s (%s) cannot capture the requested data services.\n"),
 					dev_name, driver_name);
 				goto failure;
@@ -835,7 +828,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 
 	printv("Nyquist check passed\n");
 
-	if (!add_vbi_services(&v4l->dec, services, strict)) {
+	if (!vbi_decoder_add_services(&v4l->dec, services, strict)) {
 		set_errstr_printf(_("Sorry, %s (%s) cannot capture any of the requested data services.\n"),
 			dev_name, driver_name);
 		goto failure;
@@ -1152,7 +1145,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 	if (strict >= 0) {
 		printv("Attempt to set vbi capture parameters\n");
 
-		if (!(services = qualify_vbi_sampling(&v4l->dec, &max_rate, services))) {
+		if (!(services = vbi_decoder_qualify_sampling(&v4l->dec, &max_rate, services))) {
 			set_errstr_printf(_("Sorry, %s (%s) cannot capture the requested "
 				"data services.\n"), dev_name, vcap.name);
 			goto failure;
@@ -1240,7 +1233,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 
 	printv("Nyquist check passed\n");
 
-	if (!add_vbi_services(&v4l->dec, services, strict)) {
+	if (!vbi_decoder_add_services(&v4l->dec, services, strict)) {
 		set_errstr_printf(_("Sorry, %s (%s) cannot capture any of the requested data services.\n"),
 			dev_name, vcap.name);
 		goto failure;

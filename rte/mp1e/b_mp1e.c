@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.5 2001-08-19 10:58:34 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.6 2001-09-02 03:26:58 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -287,15 +287,26 @@ static int rte_fake_options(rte_context * context)
 	gop_sequence = context->gop_sequence;
 
 	modules = context->mode;
-	grab_width = saturate(context->width, 1, MAX_WIDTH);
-	grab_height = saturate(context->height, 1, MAX_HEIGHT);
+
+	if (context->width < 1 || context->width > MAX_WIDTH
+	    || context->height < 1 || context->height > MAX_HEIGHT) {
+		rte_error(context, "Image size %dx%d out of bounds",
+			  context->width, context->height);
+		return 0;
+	}
+
+	grab_width = context->width;
+	grab_height = context->height;
+
 	if ((context->video_rate == RTE_RATE_NORATE) ||
 	    (context->video_rate > RTE_RATE_8)) {
 		rte_error(context, "Invalid frame rate: %d",
 			  context->video_rate);
 		context->video_rate = RTE_RATE_3; /* default to PAL */
 	}
+
 	frame_rate_code = context->video_rate;
+
 	switch (context->video_format) {
 	case RTE_YUYV_PROGRESSIVE:
 	case RTE_YUYV_PROGRESSIVE_TEMPORAL:
@@ -310,10 +321,13 @@ static int rte_fake_options(rte_context * context)
 		filter_mode =
 			(context->video_format-RTE_YUYV_VERTICAL_DECIMATION) + 
 			CM_YUYV_VERTICAL_DECIMATION;
+		rte_error(context, "Video format %d temporarily out of order",
+			  context->video_rate);
+		return 0;
 		break;
 	case RTE_YUYV:
 		filter_mode = CM_YUYV;
-		pitch = grab_width*2;
+		pitch = grab_width * 2;
 		break;
 	case RTE_YUV420:
 		filter_mode = CM_YUV;
@@ -327,18 +341,22 @@ static int rte_fake_options(rte_context * context)
 		rte_error(context, "unknown pixformat %d", context->video_format);
 		return 0;
 	}
+
 	width = context->width;
 	height = context->height;
 
 	filter_init(pitch);
+
 	if ((width != grab_width) || (height != grab_height))
 		rte_error(NULL, "requested %dx%d, got %dx%d",
 			  grab_width, grab_height, width, height);
+
 	video_bit_rate = context->output_video_bits;
 	audio_bit_rate = context->output_audio_bits;
 	audio_bit_rate_stereo = audio_bit_rate * 2;
 
 	sampling_rate = context->audio_rate;
+
 	switch (context->audio_mode) {
 	case RTE_AUDIO_MODE_MONO:
 		audio_mode = AUDIO_MODE_MONO;

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.29 2001-08-20 00:53:23 mschimek Exp $ */
+/* $Id: export.h,v 1.30 2001-09-02 03:25:58 mschimek Exp $ */
 
 #ifndef EXPORT_H
 #define EXPORT_H
@@ -55,8 +55,8 @@ struct vbi_export {
 	vbi_export_module_priv *mod;
 	vbi_network		network;
 
-    int	reveal;		// reveal hidden chars
-    char *fmt_str;		// saved option string (splitted)
+	bool                    reveal;	  /* reveal hidden chars */
+	char *                  fmt_str;  /* saved option string (splitted) */
 
 	int			data[0];
 };
@@ -93,3 +93,6 @@ static void vbi_autoreg_##name(void) {					\
 extern void		vbi_export_write_error(vbi_export *, char *);
 
 #endif /* EXPORT_H */
+
+
+

@@ -635,7 +635,7 @@ static void selection_handle		(GtkWidget	*widget,
 			    data->sel_col2, data->sel_row2,
 			    data->sel_table);
 
-	  if ((e = vbi_export_open(buffer, NULL)))
+	  if ((e = vbi_export_open(buffer, NULL, 0)))
 	    {
 #ifdef ENABLE_V4L
 	      char *str;
@@ -801,10 +801,10 @@ event_timeout				(ttxview_data	*data)
 	  data->subpage = data->fmt_page->subno;
 	  widget = lookup_widget(data->toolbar, "ttxview_url");
 	  if (data->subpage)
-	    buffer = g_strdup_printf("%x.%x", data->fmt_page->pgno,
+	    buffer = g_strdup_printf("%03x.%02x", data->fmt_page->pgno,
 				     data->subpage);
 	  else
-	    buffer = g_strdup_printf("%x", data->fmt_page->pgno);
+	    buffer = g_strdup_printf("%03x.00", data->fmt_page->pgno);
 	  gtk_label_set_text(GTK_LABEL(widget), buffer);
 	  if (!data->no_history)
 	    append_history(data->fmt_page->pgno,
@@ -894,6 +894,18 @@ void on_ttxview_reveal_toggled		(GtkToggleButton *button,
 }
 
 static
+void on_ttxview_prev_page_clicked	(GtkButton	*button,
+					 ttxview_data	*data)
+{
+  gint new_page;
+  if (data->page == 0)
+    new_page = 0x899;
+  else
+    new_page = add_bcd(data->page, 0x999) & 0xFFF;
+  load_page(new_page, ANY_SUB, data, NULL);
+}
+
+static
 void on_ttxview_prev_sp_cache_clicked	(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
@@ -920,6 +932,19 @@ void on_ttxview_prev_subpage_clicked	(GtkButton	*button,
   else
     new_subpage = add_bcd(data->subpage, 0x99) & 0xFF;
   load_page(data->fmt_page->pgno, new_subpage, data, NULL);
+}
+
+static
+void on_ttxview_next_page_clicked	(GtkButton	*button,
+					 ttxview_data	*data)
+{
+  gint new_page;
+
+  if (data->page >= 0x899)
+    new_page = 0x100;
+  else
+    new_page = add_bcd(data->page, 0x001);
+  load_page(new_page, ANY_SUB, data, NULL);
 }
 
 static
@@ -2135,7 +2160,7 @@ void export_ttx_page			(GtkWidget	*widget,
   if (!network.label[0])
     strncpy(network.label, _("Zapzilla"), sizeof(network.label) - 1);
 
-  if ((exp = vbi_export_open(fmt, &network)))
+  if ((exp = vbi_export_open(fmt, &network, 0 /* reveal */)))
     {
       GtkWidget *dialog;
       gchar *dirname, *name;
@@ -3473,6 +3498,14 @@ build_ttxview(void)
   gtk_signal_connect(GTK_OBJECT(ttxview), "delete-event",
 		     GTK_SIGNAL_FUNC(on_ttxview_delete_event), data);
   gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		      "ttxview_prev_page")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_prev_page_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		      "ttxview_next_page")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_next_page_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
 		      "ttxview_prev_subpage")), "clicked",
 		     GTK_SIGNAL_FUNC(on_ttxview_prev_subpage_clicked),
 		     data);
@@ -3663,6 +3696,14 @@ ttxview_attach			(GtkWidget	*parent,
 		     GTK_SIGNAL_FUNC(on_ttxview_delete_event), data);
   gtk_signal_connect(GTK_OBJECT(data->parent), "key-press-event",
 		     GTK_SIGNAL_FUNC(on_ttxview_key_press), data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		     "ttxview_prev_page")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_prev_page_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		      "ttxview_next_page")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_next_page_clicked),
+		     data);
   gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
 		     "ttxview_prev_subpage")), "clicked",
 		     GTK_SIGNAL_FUNC(on_ttxview_prev_subpage_clicked),

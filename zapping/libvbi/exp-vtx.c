@@ -8,7 +8,7 @@
  *  Copyright 1999 by Paul Ortyl <ortylp@from.pl>
  *
  *  Based on code from VideoteXt 0.6
- *  Copyright (C) 1995-97 Martin Buck <martin-2.buck@student.uni-ulm.de>                                         
+ *  Copyright (C) 1995-97 Martin Buck <martin-2.buck@student.uni-ulm.de>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.6 2001-08-20 00:53:23 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.7 2001-09-02 03:25:58 mschimek Exp $ */
 
 /*
  *  VTX is the file format used by VideoteXt. It stores Teletext pages in

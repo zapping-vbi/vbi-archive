@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.3 2001-08-22 01:28:07 mschimek Exp $ */
+/* $Id: options.c,v 1.4 2001-09-02 03:26:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -572,7 +572,7 @@ bark(void)
 
 	if (gop_sequence[0] != 'I' ||
 	    strspn(gop_sequence, "IPB") != strlen(gop_sequence) ||
-	    strlen(gop_sequence) > 1023)
+	    strlen(gop_sequence) > 1023) /* XXX 0P can increase the size */
 		FAIL("Invalid group of pictures sequence: \"%s\".\n"
 		     "A valid sequence can consist of the picture types 'I' (intra coded),\n"
 		     "'P' (forward predicted), and 'B' (bidirectionally predicted) in any\n"

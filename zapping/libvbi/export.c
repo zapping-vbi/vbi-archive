@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.40 2001-08-20 00:53:23 mschimek Exp $ */
+/* $Id: export.c,v 1.41 2001-09-02 03:25:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -82,12 +82,13 @@ vbi_register_export_module(vbi_export_module *new)
 void
 vbi_export_write_error(vbi_export *e, char *name)
 {
-	char *t;
+	char *t, buf[256];
 
 	if (name)
-		asprintf(&t, _("Error while writing file '%s'"), name);
+		snprintf(t = buf, sizeof(buf),
+			_("Error while writing file '%s'"), name);
 	else
-		t = _("Error while writing file");
+ 		t = _("Error while writing file");
 
 	if (errno) {
 		set_errstr_printf("%s: %s", t, strerror(errno));
@@ -189,7 +190,7 @@ vbi_export_enum(int index)
 }
 
 vbi_export *
-vbi_export_open(char *fmt, vbi_network *network)
+vbi_export_open(char *fmt, vbi_network *network, int reveal)
 {
 	vbi_export_module_priv **eem, *em;
 	vbi_export *e = NULL;

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.3 2001-08-10 16:32:16 mschimek Exp $ */
+/* $Id: rte.c,v 1.4 2001-09-02 03:26:58 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -478,7 +478,7 @@ int rte_set_video_parameters (rte_context * context,
 		gop_sequence = context->gop_sequence;
 	if (strlen(gop_sequence) > 1023)
 	{
-		rte_error(context, "gop too long (1023 chars max):\n%s",
+		rte_error(context, "gop too long (max 1023 pictures):\n%s",
 			  gop_sequence);
 		return 0;
 	}
@@ -640,16 +640,24 @@ int rte_init_context ( rte_context * context )
 
 	/* create needed fifos */
 	if (context->mode & RTE_VIDEO) {
+		/*
+		 *  One for them, one for us, and one for every picture
+		 *  the encoder will stack up. XXX video_look_ahead
+		 *  and gop_sequence are mp1e specific.
+		 */
+		int min_buffers = 2
+			+ video_look_ahead(context->gop_sequence);
+
 		if (context->private->video_buffered)
 			alloc_bytes = 0; /* no need for preallocated
 					    mem */
 		else
 			alloc_bytes = context->video_bytes;
 
-		if (2 > init_callback_fifo(
+		if (min_buffers > init_callback_fifo(
 			&(context->private->vid), "rte-video",
 			NULL, NULL, video_wait_full, video_send_empty,
-			video_look_ahead(context->gop_sequence), alloc_bytes)) {
+			min_buffers, alloc_bytes)) {
 			rte_error(context, "not enough mem");
 			return 0;
 		}

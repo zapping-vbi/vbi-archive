@@ -30,13 +30,14 @@ Outstanding issues for the next release (0.6.0)
 	+ Make controls move faster with the keyb, and avoid rounding
 	issues (maxvalue never reached because of integer rounding)
 	+ TTX export: Make blockgfx replacement smarter. Streaming ascii
-	  subtitles.
+	  subtitles. HTML: replace nonstd <blink> by "text-decoration: blink;"
 	+ Think about ttx header samples (p100) for stations not transmitting
 	  a CNI (instead of guessing the name from ttx). Needs some sort of
 	  raw dump, so users can send updates. Upd: Oops, we do have a raw
 	  dump: VTX.
 	+ zapzilla: channel selector, properties.
 	+ libvbi: SGML error reporting.
+	+ Examine the possiblity of linking movie titles
 
 > Somewhen...
 	+ Do realtime effects to the image, plainly wonderful, see
@@ -46,12 +47,3 @@ Outstanding issues for the next release (0.6.0)
 
 please tell me about anything you think it's worth adding. 
 garetxe@users.sourceforge.net
-
-
-
-
-
-
-
-
-

@@ -7,7 +7,6 @@
 #include <time.h>
 #include <errno.h>
 #include <sys/ioctl.h>
-#include "os.h"
 #include "vbi.h"
 #include "hamm.h"
 #include "lang.h"
@@ -17,6 +16,7 @@
 #include "trigger.h"
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
+
 static bool convert_drcs(struct vt_page *vtp, unsigned char *raw);
 
 static inline void
@@ -1013,7 +1013,7 @@ station_lookup(vbi_cni_type type, int cni,
 static void
 unknown_cni(struct vbi *vbi, char *dl, int cni)
 {
-	if (cni == 0)
+	/* if (cni == 0) */
 		return;
 
 	fprintf(stderr,
@@ -1024,9 +1024,9 @@ unknown_cni(struct vbi *vbi, char *dl, int cni)
 		cni, dl);
 }
 
-#define BSD_TEST 0 /* Broadcaster Service Data */
+#define BSDATA_TEST 0 /* Broadcaster Service Data */
 
-#if BSD_TEST
+#if BSDATA_TEST
 
 static const char *month_names[] = {
 	"0?", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
@@ -1083,11 +1083,12 @@ dump_pty(int pty)
 	putchar('\n');
 }
 
-#endif /* BSD_TEST */
+#endif /* BSDATA_TEST */
 
 void
 vbi_vps(struct vbi *vbi, unsigned char *buf)
 {
+	vbi_network *n = &vbi->network.ev.network;
 	char *short_name, *long_name;
 	char *country;
 	int cni;
@@ -1100,38 +1101,35 @@ vbi_vps(struct vbi *vbi, unsigned char *buf)
 	if (cni == 0x0DC3)
 		cni = (buf[2] & 0x10) ? 0x0DC2 : 0x0DC1;
 
-	if (cni != vbi->network.cni_vps) {
-		vbi->network.cni_vps = cni;
-		vbi->network.cycle = 1;
-	} else if (vbi->network.cycle == 1) {
+	if (cni != n->cni_vps) {
+		n->cni_vps = cni;
+		n->cycle = 1;
+	} else if (n->cycle == 1) {
 		unsigned int id = station_lookup(CNI_VPS, cni, &country, &short_name, &long_name);
 
 		if (!id) {
-			vbi->network.name[0] = 0;
-			vbi->network.label[0] = 0;
+			n->name[0] = 0;
+			n->label[0] = 0;
 			unknown_cni(vbi, "VPS", cni);
 		} else {
-			strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
-			strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
+			strncpy(n->name, long_name, sizeof(n->name) - 1);
+			strncpy(n->label, short_name, sizeof(n->label) - 1);
 		}
 
-		if (id != vbi->network.nuid) {
-			vbi_event ev;
-
-			if (vbi->network.nuid != 0)
+		if (id != n->nuid) {
+			if (n->nuid != 0)
 				vbi_chsw_reset(vbi, id);
 
-			vbi->network.nuid = id;
+			n->nuid = id;
 
-			ev.type = VBI_EVENT_NETWORK;
-			ev.p = &vbi->network;
-			vbi_send_event(vbi, &ev);
+			vbi->network.type = VBI_EVENT_NETWORK;
+			vbi_send_event(vbi, &vbi->network);
 		}
 
-		vbi->network.cycle = 2;
+		n->cycle = 2;
 	}
 
-#if BSD_TEST
+#if BSDATA_TEST
 
 	{
 		static char pr_label[20];
@@ -1187,7 +1185,7 @@ vbi_vps(struct vbi *vbi, unsigned char *buf)
 		dump_pty(pty);
 	}
 
-#endif /* BSD_TEST */
+#endif /* BSDATA_TEST */
 
 }
 
@@ -1244,7 +1242,7 @@ parse_x26_pdc(int address, int mode, int data)
 		break;
 
 	case 13:
-#if BSD_TEST
+#if BSDATA_TEST
 		if (0) {
 			printf("X/26 pty series: %d\n", address == 0x30);
 			dump_pty(data | 0x80);
@@ -1256,7 +1254,7 @@ parse_x26_pdc(int address, int mode, int data)
 		return;
 	}
 
-#if BSD_TEST
+#if BSDATA_TEST
 
 	/*
 	 *  It's life, but not as we know it...
@@ -1273,6 +1271,7 @@ parse_x26_pdc(int address, int mode, int data)
 static bool
 parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 {
+	vbi_network *n = &vbi->network.ev.network;
 	int err, i;
 
 	switch (packet) {
@@ -1288,42 +1287,39 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 			char *short_name, *long_name;
 			char *country;
 			int cni;
-#if BSD_TEST
+#if BSDATA_TEST
 			printf("\nPacket 8/30/%d:\n", designation);
 #endif
 			cni = bit_reverse[raw[7]] * 256 + bit_reverse[raw[8]];
 
-			if (cni != vbi->network.cni_8301) {
-				vbi->network.cni_8301 = cni;
-				vbi->network.cycle = 1;
-			} else if (vbi->network.cycle == 1) {
+			if (cni != n->cni_8301) {
+				n->cni_8301 = cni;
+				n->cycle = 1;
+			} else if (n->cycle == 1) {
 				unsigned int id = station_lookup(CNI_8301, cni, &country, &short_name, &long_name);
 
 				if (!id) {
-					vbi->network.name[0] = 0;
-					vbi->network.label[0] = 0;
+					n->name[0] = 0;
+					n->label[0] = 0;
 					unknown_cni(vbi, "8/30/1", cni);
 				} else {
-					strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
-					strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
+					strncpy(n->name, long_name, sizeof(n->name) - 1);
+					strncpy(n->label, short_name, sizeof(n->label) - 1);
 				}
 
-				if (id != vbi->network.nuid) {
-					vbi_event ev;
-
-					if (vbi->network.nuid != 0)
+				if (id != n->nuid) {
+					if (n->nuid != 0)
 						vbi_chsw_reset(vbi, id);
 
-					vbi->network.nuid = id;
+					n->nuid = id;
 
-					ev.type = VBI_EVENT_NETWORK;
-					ev.p = &vbi->network;
-					vbi_send_event(vbi, &ev);
+					vbi->network.type = VBI_EVENT_NETWORK;
+					vbi_send_event(vbi, &vbi->network);
 				}
 
-				vbi->network.cycle = 2;
+				n->cycle = 2;
 			}
-#if BSD_TEST
+#if BSDATA_TEST
 			if (1) { /* country and network identifier */
 				if (station_lookup(CNI_8301, cni, &country, &short_name, &long_name))
 					printf("... country: %s\n... station: %s\n", country, long_name);
@@ -1355,65 +1351,62 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 					mjd, tm.tm_mday, month_names[tm.tm_mon + 1], tm.tm_year + 1900,
 					utc_h, utc_m, utc_s, (raw[9] & 0x80) ? '-' : '+', lto >> 1, (lto & 1) * 30);
 			}
-#endif /* BSD_TEST */
+#endif /* BSDATA_TEST */
 
 		} else /* if (designation <= 3) */ {
-			int t, n[7];
+			int t, b[7];
 			char *short_name, *long_name;
 			char *country;
 			int cni;
-#if BSD_TEST
+#if BSDATA_TEST
 			printf("\nPacket 8/30/%d:\n", designation);
 #endif
 			for (err = i = 0; i < 7; i++) {
 				err |= t = hamm16(raw + i * 2 + 6);
-				n[i] = bit_reverse[t];
+				b[i] = bit_reverse[t];
 			}
 
 			if (err < 0)
 				return FALSE;
 
-			cni = + ((n[4] & 0x03) << 10)
-			      + ((n[5] & 0xC0) << 2)
-			      + (n[2] & 0xC0)
-			      + (n[5] & 0x3F)
-			      + ((n[1] & 0x0F) << 12);
+			cni = + ((b[4] & 0x03) << 10)
+			      + ((b[5] & 0xC0) << 2)
+			      + (b[2] & 0xC0)
+			      + (b[5] & 0x3F)
+			      + ((b[1] & 0x0F) << 12);
 
 			if (cni == 0x0DC3)
-				cni = (n[2] & 0x10) ? 0x0DC2 : 0x0DC1;
+				cni = (b[2] & 0x10) ? 0x0DC2 : 0x0DC1;
 
-			if (cni != vbi->network.cni_8302) {
-				vbi->network.cni_8302 = cni;
-				vbi->network.cycle = 1;
-			} else if (vbi->network.cycle == 1) {
+			if (cni != n->cni_8302) {
+				n->cni_8302 = cni;
+				n->cycle = 1;
+			} else if (n->cycle == 1) {
 				unsigned int id = station_lookup(CNI_8302, cni, &country, &short_name, &long_name);
 
 				if (!id) {
-					vbi->network.name[0] = 0;
-					vbi->network.label[0] = 0;
+					n->name[0] = 0;
+					n->label[0] = 0;
 					unknown_cni(vbi, "8/30/2", cni);
 				} else {
-					strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
-					strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
+					strncpy(n->name, long_name, sizeof(n->name) - 1);
+					strncpy(n->label, short_name, sizeof(n->label) - 1);
 				}
 
-				if (id != vbi->network.nuid) {
-					vbi_event ev;
-
-					if (vbi->network.nuid != 0)
+				if (id != n->nuid) {
+					if (n->nuid != 0)
 						vbi_chsw_reset(vbi, id);
 
-					vbi->network.nuid = id;
+					n->nuid = id;
 
-					ev.type = VBI_EVENT_NETWORK;
-					ev.p = &vbi->network;
-					vbi_send_event(vbi, &ev);
+					vbi->network.type = VBI_EVENT_NETWORK;
+					vbi_send_event(vbi, &vbi->network);
 				}
 
-				vbi->network.cycle = 2;
+				n->cycle = 2;
 			}
 
-#if BSD_TEST
+#if BSDATA_TEST
 			if (1) { /* country and network identifier */
 				char *country, *short_name, *long_name;
 
@@ -1447,11 +1440,11 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 				printf("... analog audio: %s\n", pcs_names[pcs]);
 				dump_pty(pty);
 			}
-#endif /* BSD_TEST */
+#endif /* BSDATA_TEST */
 
 		}
 
-#if BSD_TEST
+#if BSDATA_TEST
 		/*
 		 *  "transmission status message, e.g. the programme title",
 		 *  "default G0 set". Render like subtitles a la TV or lang.c
@@ -1692,7 +1685,7 @@ store_lop(struct vbi *vbi, struct vt_page *vtp)
 }
 
 #define TTX_EVENTS (VBI_EVENT_TTX_PAGE)
-#define BSD_EVENTS (VBI_EVENT_NETWORK)
+#define BSDATA_EVENTS (VBI_EVENT_NETWORK)
 
 /*
  *  Teletext packet 27, page linking
@@ -2024,7 +2017,7 @@ parse_8_30(struct vbi *vbi, unsigned char *p, int packet)
 		}
 	}
 
-	if (vbi->event_mask & BSD_EVENTS)
+	if (vbi->event_mask & BSDATA_EVENTS)
 		return parse_bsd(vbi, p, packet, designation);
 
 	return TRUE;

@@ -1,5 +1,5 @@
 /*
- *  Zapzilla - Closed Caption decoder
+ *  Zapzilla/libvbi - Closed Caption Decoder
  *
  *  gcc -g -ocaption caption.c -L/usr/X11R6/lib -lX11 -DTEST=1 -D_GNU_SOURCE=1
  *
@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.32 2001-08-20 17:46:49 mschimek Exp $ */
+/* $Id: caption.c,v 1.33 2001-09-02 03:25:58 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -164,6 +164,7 @@ xds_strfu(char *d, char *s, int len)
 static inline void
 xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 {
+	vbi_network *n = &vbi->network.ev.network;
 	int i __attribute__ ((unused));
 
 	// assert(length > 0 && length < 32);
@@ -312,15 +313,11 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 				r.ratio = 1.0;
 
 			if (memcmp(&r, &vbi->ratio, sizeof(r)) != 0) {
-				vbi_event ev;
-
-				vbi->ratio = r;
+				vbi->ratio.ev.ratio = r;
 				vbi->ratio_source = 3;
 
-				ev.type = VBI_EVENT_RATIO;
-				ev.p = &vbi->ratio;
-
-				vbi_send_event(vbi, &ev);
+				vbi->ratio.type = VBI_EVENT_RATIO;
+				vbi_send_event(vbi, &vbi->ratio);
 			}
 #if XDS_DEBUG
 			if (length > 3)
@@ -353,15 +350,14 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 	case XDS_CHANNEL:
 		switch (type) {
 		case 1:		/* network name */
-			if (xds_strfu(vbi->network.name, buffer, length)) {
-				vbi->network.cycle = 1;
-			} else if (vbi->network.cycle == 1) {
-				char *s = vbi->network.name;
+			if (xds_strfu(n->name, buffer, length)) {
+				n->cycle = 1;
+			} else if (n->cycle == 1) {
+				char *s = n->name;
 				uint32_t sum;
-				vbi_event ev;
 
-				if (vbi->network.call[0])
-					s = vbi->network.call;
+				if (n->call[0])
+					s = n->call;
 
 				for (sum = 0; *s; s++)
 					sum = (sum >> 7) ^ hcrc[(sum ^ *s) & 0x7F];
@@ -369,16 +365,15 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 				sum &= ((1UL << 31) - 1);
 				sum |= 1UL << 30;
 
-				if (vbi->network.nuid != 0)
+				if (n->nuid != 0)
 					vbi_chsw_reset(vbi, sum);
 
-				vbi->network.nuid = sum;
+				n->nuid = sum;
 
-				ev.type = VBI_EVENT_NETWORK;
-				ev.p = &vbi->network;
-				vbi_send_event(vbi, &ev);
+				vbi->network.type = VBI_EVENT_NETWORK;
+				vbi_send_event(vbi, &vbi->network);
 
-				vbi->network.cycle = 3;
+				n->cycle = 3;
 			}
 #if XDS_DEBUG
 			printf("Network name: '");
@@ -389,10 +384,10 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 			break;
 
 		case 2:		/* network call letters */
-			if (xds_strfu(vbi->network.call, buffer, length)) {
-				if (vbi->network.cycle != 1) {
-					vbi->network.name[0] = 0;
-					vbi->network.cycle = 0;
+			if (xds_strfu(n->call, buffer, length)) {
+				if (n->cycle != 1) {
+					n->name[0] = 0;
+					n->cycle = 0;
 				}
 			}
 #if XDS_DEBUG
@@ -407,7 +402,7 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 			if (length != 2)
 				return;
 
-			vbi->network.tape_delay =
+			n->tape_delay =
 				(buffer[1] & 31) * 60 + (buffer[0] & 63);
 #if XDS_DEBUG
 			printf("Channel tape delay: %02d:%02d",

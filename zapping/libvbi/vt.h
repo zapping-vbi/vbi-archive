@@ -327,6 +327,12 @@ struct teletext {
 		unsigned 		subcode : 16;
 	}			page_info[0x800];
 
+	/*
+	 *  Property of cache.c in the network context:
+	 *  0: page not cached, 1-3F80: highest subno + 1
+	 */
+	uint16_t		cached[0x800];
+
 	pagenum		        btt_link[15];
 	bool			top;			/* use top navigation, flof overrides */
 
@@ -354,7 +360,3 @@ extern int		vbi_format_page(struct vbi *, struct fmt_page *,
 			        int display_rows, int navigation);
 
 #endif
-
-
-
-

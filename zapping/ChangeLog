@@ -1,3 +1,15 @@
+01.09.2001	libvbi <mschimek@users.sf.net>
+
+	* decoder.c: NTSC requires valid line numbers, added vbi_ prefixes.
+	* exp-html.c: Added missing language id's, replaced open_memstr.
+	* export.c: Added vbi_export_open parameter "reveal".
+	* v4lx.c: Moved printv above ENABLE_V4L.
+	* Made vbi_event a union.
+	* tables.c updated, cleanup in cache.c|h, removed -D_GNU_SOURCE.
+	* zapping.desktop: Added comment translations from *.po.
+	* ttxview.c: Page up/down wasn't connected, changed page num
+	  format to %03x.02x to avoid widget resizing. 
+
 31.08.2001	Channel editor usability <garetxe@users.sf.net>
 
 	* src/channel_editor: Do not tune all channels when there are

@@ -122,6 +122,7 @@ clear_bundle(capture_bundle *d)
     default:
       break;
     }
+
   d->image_type = 0;
 }
 
@@ -285,7 +286,7 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format)
     case TVENG_PIX_YUV420:
       d->format.depth = 12;
       d->format.bpp = 1.5;
-      
+
       /* Try XV first */
       if (have_xv &&
 	  (d->image.xvimage =

@@ -1,12 +1,11 @@
 /*
- *  Zapzilla - Teletext and Closed Caption character set
+ *  Zapzilla/libvbi - Teletext and Closed Caption character set
  *
  *  Copyright (C) 2000-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.11 2001-07-31 12:59:50 mschimek Exp $ */
+/* $Id: lang.h,v 1.12 2001-09-02 03:25:58 mschimek Exp $ */
 
 #ifndef LANG_H
 #define LANG_H

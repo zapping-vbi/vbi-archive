@@ -1,5 +1,5 @@
 /*
- *  Raw VBI Decoder
+ *  Zapzilla/libvbi - Raw VBI Decoder
  *
  *  Copyright (C) 2000 Michael H. Schimek
  *
@@ -17,45 +17,50 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.h,v 1.7 2001-08-22 01:26:53 mschimek Exp $ */
+/* $Id: decoder.h,v 1.8 2001-09-02 03:25:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
+#include "../common/types.h"
+#include "sliced.h"
+
 /*
-    Only device specific code includes this file.
+ *  Only device interface code includes this file.
  */
 
-#if NO_TVENG_H
-enum tveng_frame_pixformat {
+/* Bit slicer */
+
+#ifndef TVENG_FRAME_PIXFORMAT
+#define TVENG_FRAME_PIXFORMAT
+
+enum tveng_frame_pixformat{
+  /* common rgb formats */
   TVENG_PIX_RGB555,
   TVENG_PIX_RGB565,
   TVENG_PIX_RGB24,
   TVENG_PIX_BGR24,
   TVENG_PIX_RGB32,
   TVENG_PIX_BGR32,
+  /* common YUV formats */
   TVENG_PIX_YVU420,
   TVENG_PIX_YUV420,
   TVENG_PIX_YUYV,
   TVENG_PIX_UYVY,
   TVENG_PIX_GREY
 };
-#else
-#  include "../src/tveng.h" /* tveng_frame_pixformat */
-#endif
 
-#include "../common/types.h"
-#include "sliced.h"
+#endif /* TVENG_FRAME_PIXFORMAT */
 
 #define MOD_NRZ_LSB_ENDIAN	0
 #define MOD_NRZ_MSB_ENDIAN	1
 #define MOD_BIPHASE_LSB_ENDIAN	2
 #define MOD_BIPHASE_MSB_ENDIAN	3
 
-struct bit_slicer {
+struct vbi_bit_slicer {
 
-	/* private */
+	/* Private */
 
 	unsigned int	cri;
 	unsigned int	cri_mask;
@@ -72,27 +77,36 @@ struct bit_slicer {
 	int		skip;
 };
 
-typedef bool (bit_slicer_fn)(struct bit_slicer *d, void *raw, unsigned char *buf);
+typedef bool (vbi_bit_slicer_fn)(struct vbi_bit_slicer *d, void *raw,
+				 unsigned char *buf);
 
-extern bit_slicer_fn *	init_bit_slicer(struct bit_slicer *d, int raw_samples, int sampling_rate, int cri_rate, int bit_rate, unsigned int cri_frc, unsigned int cri_mask, int cri_bits, int frc_bits, int payload, int modulation, enum tveng_frame_pixformat fmt);
-extern bool		bit_slicer_1(struct bit_slicer *d, unsigned char *raw, unsigned char *buf);
+extern vbi_bit_slicer_fn *
+                vbi_bit_slicer_init(struct vbi_bit_slicer *d,
+				    int raw_samples, int sampling_rate,
+				    int cri_rate, int bit_rate,
+				    unsigned int cri_frc, unsigned int cri_mask,
+				    int cri_bits, int frc_bits,
+				    int payload, int modulation,
+				    enum tveng_frame_pixformat fmt);
+extern bool	vbi_bit_slicer(struct vbi_bit_slicer *d,
+			       unsigned char *raw, unsigned char *buf);
 
 /* Data services */
 
 struct vbi_decoder {
 
-	/* sampling parameters */
+	/* Sampling parameters */
 
 	int			scanning;		/* 525, 625 */
 	int			sampling_rate;		/* Hz */
 	int			samples_per_line;
 	int			offset;			/* 0H, samples */
-	int			start[2];		/* ITU-T numbering */
+	int			start[2];		/* ITU-R numbering */
 	int			count[2];		/* field lines */
 	bool			interlaced;
 	bool			synchronous;
 
-	/* private */
+	/* Private */
 
 #define MAX_JOBS		8
 #define MAX_WAYS		4
@@ -104,14 +118,20 @@ struct vbi_decoder {
 	struct vbi_decoder_job {
 		unsigned int		id;
 		int			offset;
-		struct bit_slicer 	slicer;
+		struct vbi_bit_slicer 	slicer;
 	}			jobs[MAX_JOBS];
 };
 
-extern void		init_vbi_decoder(struct vbi_decoder *);
-extern void		uninit_vbi_decoder(struct vbi_decoder *);
-extern unsigned int	add_vbi_services(struct vbi_decoder *, unsigned int services, int strict);
-extern unsigned int	remove_vbi_services(struct vbi_decoder *, unsigned int services);
-extern void		reset_vbi_decoder(struct vbi_decoder *);
-extern unsigned int	qualify_vbi_sampling(struct vbi_decoder *, int *max_rate, unsigned int services);
-extern int		vbi_decoder(struct vbi_decoder *vbi, unsigned char *raw, vbi_sliced *out);
+extern void		vbi_decoder_init(struct vbi_decoder *);
+extern void		vbi_decoder_reset(struct vbi_decoder *);
+extern void		vbi_decoder_destroy(struct vbi_decoder *);
+extern unsigned int	vbi_decoder_add_services(struct vbi_decoder *,
+						 unsigned int services,
+						 int strict);
+extern unsigned int	vbi_decoder_remove_services(struct vbi_decoder *,
+						    unsigned int services);
+extern unsigned int	vbi_decoder_qualify_sampling(struct vbi_decoder *,
+						     int *max_rate,
+						     unsigned int services);
+extern int		vbi_decoder(struct vbi_decoder *vbi, unsigned char *raw,
+				    vbi_sliced *out);

@@ -22,13 +22,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.16 2001-08-20 00:53:23 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.17 2001-09-02 03:25:58 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "os.h"
 #include "lang.h"
 #include "export.h"
 
@@ -153,6 +152,10 @@ vbi_export_module_priv
 export_string = {
 	.pub = {
 		.keyword	= "string",
+		/*
+		 *  Note this is intentionally not listed in the
+		 *  Zapzilla export menu due to missing .label.
+		 */
 	},
 	.extension		= "txt",
 	.options		= string_opts,

@@ -16,14 +16,13 @@
     Hmm... maybe a tree would be better...
 */
 
-//static struct cache_ops cops;
-
 typedef struct {
 	node			node;		/* hash chain */
-
+#if 0
 	nuid			nuid;		/* network sending this page */
 	int			priority;	/* cache purge priority */
-
+	int                     refcount;       /* get */
+#endif
 	struct vt_page		page;
 
 	/* dynamic size, no fields below */
@@ -37,30 +36,6 @@ hash(int pgno)
     return pgno % HASH_SIZE;
 }
 
-void
-vbi_cache_flush(struct vbi *vbi)
-{
-	struct cache *ca = vbi->cache;
-	cache_page *cp;
-	int h;
-
-	for (h = 0; h < HASH_SIZE; h++)
-		while ((cp = PARENT(rem_head(ca->hash + h), cache_page, node))) {
-			free(cp);
-		}
-
-	memset(ca->hi_subno, 0, sizeof(ca->hi_subno));
-}
-
-void
-vbi_cache_destroy(struct vbi *vbi)
-{
-	struct cache *ca = vbi->cache;
-
-	vbi_cache_flush(vbi);
-
-	free(ca);
-}
 
 /*
     Get a page from the cache.
@@ -70,7 +45,7 @@ vbi_cache_destroy(struct vbi *vbi)
 struct vt_page *
 vbi_cache_get(struct vbi *vbi, int pgno, int subno, int subno_mask)
 {
-	struct cache *ca = vbi->cache;
+	struct cache *ca = &vbi->cache;
 	cache_page *cp;
 	int h = hash(pgno);
 
@@ -104,7 +79,7 @@ vbi_is_cached(struct vbi *vbi, int pgno, int subno)
 struct vt_page *
 vbi_cache_put(struct vbi *vbi, struct vt_page *vtp)
 {
-	struct cache *ca = vbi->cache;
+	struct cache *ca = &vbi->cache;
 	cache_page *cp;
 	int h = hash(vtp->pgno);
 	int size = vtp_size(vtp);
@@ -133,9 +108,12 @@ vbi_cache_put(struct vbi *vbi, struct vt_page *vtp)
 	} else {
 		if (!(cp = malloc(sizeof(*cp) - sizeof(cp->page) + size)))
 			return 0;
-		if (vtp->subno >= ca->hi_subno[vtp->pgno])
-			ca->hi_subno[vtp->pgno] = vtp->subno + 1;
+
+		if (vtp->subno >= vbi->vt.cached[vtp->pgno])
+			vbi->vt.cached[vtp->pgno] = vtp->subno + 1;
+
 		ca->npages++;
+
 		add_head(ca->hash + h, &cp->node);
 	}
 
@@ -144,11 +122,6 @@ vbi_cache_put(struct vbi *vbi, struct vt_page *vtp)
 	return &cp->page;
 }
 
-
-
-/////////////////////////////////
-// this is for browsing the cache
-/////////////////////////////////
 
 /*
     Same as cache_get but doesn't make the found entry new
@@ -169,80 +142,95 @@ cache_lookup(struct cache *ca, int pgno, int subno)
 
 int
 vbi_cache_foreach(struct vbi *vbi, int pgno, int subno,
-		      int dir, foreach_callback *func, void *data)
+		  int dir, foreach_callback *func, void *data)
 {
-	struct cache *ca = vbi->cache;
-    struct vt_page *vtp;
-    int wrapped = 0;
-    int r;
+	struct cache *ca = &vbi->cache;
+	struct vt_page *vtp;
+	int wrapped = 0;
+	int r;
 
-    if (ca->npages == 0)
-	return 0;
+	if (ca->npages == 0)
+		return 0;
 
-    if ((vtp = cache_lookup(ca, pgno, subno)))
-	subno = vtp->subno;
-    else if (subno == ANY_SUB)
-	subno = 0;
-
-    for (;;) {
 	if ((vtp = cache_lookup(ca, pgno, subno)))
-	    if ((r = func(data, vtp, wrapped)))
-		return r;
+		subno = vtp->subno;
+	else if (subno == ANY_SUB)
+		subno = 0;
 
-	subno += dir;
+	for (;;) {
+		if ((vtp = cache_lookup(ca, pgno, subno)))
+			if ((r = func(data, vtp, wrapped)))
+				return r;
 
-	while (subno < 0 || subno >= ca->hi_subno[pgno]) {
-	    pgno += dir;
-	    if (pgno < 0x100) {
-		pgno = 0x8FF;
-		wrapped = 1;
-	    }
-	    if (pgno > 0x8FF) {
-		pgno = 0x100;
-		wrapped = 1;
-	    }
-	    subno = dir < 0 ? ca->hi_subno[pgno] - 1 : 0;
+		subno += dir;
+
+		while (subno < 0 || subno >= vbi->vt.cached[pgno]) {
+			pgno += dir;
+
+			if (pgno < 0x100) {
+				pgno = 0x8FF;
+				wrapped = 1;
+			}
+
+			if (pgno > 0x8FF) {
+				pgno = 0x100;
+				wrapped = 1;
+			}
+
+			subno = dir < 0 ? vbi->vt.cached[pgno] - 1 : 0;
+		}
 	}
-    }
 }
 
 /* preliminary */
 int
 vbi_cache_hi_subno(struct vbi *vbi, int pgno)
 {
-	return vbi->cache->hi_subno[pgno];
+	return vbi->vt.cached[pgno];
 }
 
-static struct cache_ops cops =
+void
+vbi_cache_flush(struct vbi *vbi)
 {
-};
+	struct cache *ca = &vbi->cache;
+	cache_page *cp;
+	int h;
 
+	for (h = 0; h < HASH_SIZE; h++)
+		while ((cp = PARENT(rem_head(ca->hash + h),
+				    cache_page, node))) {
+			free(cp);
+		}
 
-struct cache *
+	memset(vbi->vt.cached, 0, sizeof(vbi->vt.cached));
+}
+
+void
+vbi_cache_destroy(struct vbi *vbi)
+{
+	struct cache *ca = &vbi->cache;
+	int i;
+
+	vbi_cache_flush(vbi);
+
+	for (i = 0; i < HASH_SIZE; i++)
+		destroy_list(ca->hash + i);
+}
+
+void
 vbi_cache_init(struct vbi *vbi)
 {
-    struct cache *ca;
-//    struct vt_page *vtp;
-    int i;
+	struct cache *ca = &vbi->cache;
+	int i;
 
-    if (!(ca = malloc(sizeof(*ca))))
-	goto fail1;
+	for (i = 0; i < HASH_SIZE; i++)
+		init_list(ca->hash + i);
 
-    for (i = 0; i < HASH_SIZE; ++i)
-	init_list(ca->hash + i);
+	ca->npages = 0;
 
-    memset(ca->hi_subno, 0, sizeof(ca->hi_subno));
-    ca->erc = 1;
-    ca->npages = 0;
-    ca->op = &cops;
-
-    return ca;
-
-//fail2:
-    free(ca);
-fail1:
-    return 0;
+	memset(vbi->vt.cached, 0, sizeof(vbi->vt.cached));
 }
+
 
 
 

@@ -4,9 +4,8 @@
  *  Copyright (C) 2000-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.14 2001-08-20 17:46:49 mschimek Exp $ */
+/* $Id: format.h,v 1.15 2001-09-02 03:25:58 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -194,12 +193,3 @@ struct fmt_page
 };
 
 #endif /* FORMAT_H */
-
-
-
-
-
-
-
-
-

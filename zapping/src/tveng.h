@@ -155,8 +155,11 @@ enum tveng_field
   TVENG_FIELD_BOTH /* Capture both field */
 };
 
+#ifndef TVENG_FRAME_PIXFORMAT
+#define TVENG_FRAME_PIXFORMAT
+
 /* The format of a pixel, similar to the V4L2 ones, but they aren't
-   fourcc'ed */
+   fourcc'ed. Keep this in sync with libvbi/decoder.h */
 enum tveng_frame_pixformat{
   /* common rgb formats */
   TVENG_PIX_RGB555,
@@ -175,6 +178,8 @@ enum tveng_frame_pixformat{
   TVENG_PIX_GREY /* this one is used just when querying the device, it
 		  isn't supported by TVeng */
 };
+
+#endif /* TVENG_FRAME_PIXFORMAT */
 
 /* This struct holds the structure of the captured frame */
 struct tveng_frame_format

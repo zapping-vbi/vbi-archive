@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.35 2001-08-20 17:46:49 mschimek Exp $ */
+/* $Id: vbi.h,v 1.36 2001-09-02 03:25:58 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -32,7 +32,6 @@
 
 #include "vt.h"
 #include "cc.h"
-
 #include "cache.h"
 
 #include "../common/fifo.h"
@@ -49,8 +48,6 @@ struct event_handler {
 
 struct vbi
 {
-    struct cache *cache; /* TODO */
-
 	fifo			*source;
 	double			time;
 
@@ -60,11 +57,11 @@ struct vbi
 	pthread_mutex_t		chswcd_mutex;
         int                     chswcd;
 
-	vbi_network		network;
+	vbi_event		network;
 
 	vbi_trigger *		triggers;
 
-	vbi_ratio		ratio;
+	vbi_event		ratio;
 	int                     ratio_source;
 
 	int			brightness;
@@ -72,6 +69,8 @@ struct vbi
 
 	struct teletext		vt;
 	struct caption		cc;
+
+	struct cache		cache;
 
 	pthread_mutex_t		event_mutex;
 	int			event_mask;
@@ -88,8 +87,8 @@ struct vbi
 				video_fmt;
 	int			video_width; 
 	double			video_time;
-	bit_slicer_fn *		wss_slicer_fn;
-	struct bit_slicer	wss_slicer;
+	vbi_bit_slicer_fn *	wss_slicer_fn;
+	struct vbi_bit_slicer	wss_slicer;
 	producer		wss_producer;
 };
 

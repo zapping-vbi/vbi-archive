@@ -1,12 +1,22 @@
 Teletext and Closed Caption sample streams
 
-Format:
+These files can be (and have been) used to test the libvbi Teletext and
+Closed Caption decoder. Usage instructions below.
+
+File format:
+============
+
+    Header, data lines
+    Header, data lines
+    :
 
 Header
     "%8.6f\n"		frame capture timestamp delta (1/30)
     8 bits		number of lines
+
 Line
     8 bits		0: Teletext, 7: Caption
+		        (supposed to be log2(SLICED_*), well, that changed)
     8 bits		ITU-T line number lsb
     7 bits		line number msb
     1 bit		field 2
@@ -16,7 +26,9 @@ Line
     8 bits		first data byte w/parity
     8 bits		second data byte w/parity
 
-Streams:
+
+Closed Caption streams:
+=======================
 
 s1
     contributed: Dwayne Jacques Fontenot, thanks a lot!
@@ -42,9 +54,20 @@ s6 pop-on
     01 03 SABRINA 0f 6d 01 04 21 00 01 05 0f 60 05 01 20 00 0f 4b 
 s7 pop-on
 
+To feed libvbi/Zapzilla, add to zapping/site_def.h (created by configure):
+
+#define FILTER_REM SLICED_CAPTION /* discard received caption data */
+#define FILTER_ADD SLICED_CAPTION /* from the file */
+#define SAMPLE "/usr/src/zapping/libvbi/samples/s4" /* any file above */
+
+This works regardless of the video standard, but to suppress side effects
+you may want to add: #define FILTER_REM (-1) /* discard all received data */
+
+The CC decoder caption.c, compiled with -DTEST (see comment there),
+accepts any of the caption streams from standard input.
 
 
-
+Teletext streams (enter "bunzip2 -k *.bz2" to unpack):
 
 t1-swr
 t2-br
@@ -62,3 +85,12 @@ t4-arte (german)
 t5-cnn (extract only)
     contributed: yours truly
     FLOF example, parallel transmission
+
+To feed libvbi/Zapzilla, add to zapping/site_def.h:
+
+#define FILTER_REM SLICED_TELETEXT_B /* discard received ttx data */
+#define FILTER_ADD SLICED_TELETEXT_B /* add ttx data from file */
+#define SAMPLE "/usr/src/zapping/libvbi/samples/t1-swr" /* any file above */
+
+This works regardless of the video standard, but to suppress side effects
+you may want to add: #define FILTER_REM (-1) /* discard all received data */

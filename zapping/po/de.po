@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
 "POT-Creation-Date: 2001-08-25 00:38+0200\n"
-"PO-Revision-Date: 2001-08-23 20:51+02:00\n"
+"PO-Revision-Date: 2001-09-01 02:38+0200\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -212,13 +212,12 @@ msgid "Hide the menu and the toolbar"
 msgstr "Menü und Toolbar verbergen"
 
 #: src/callbacks.c:367
-#, fuzzy
 msgid "Overlay this page"
-msgstr "Unterstützt Overlay.\n"
+msgstr "Diese Seite überblenden"
 
 #: src/callbacks.c:368 src/zmisc.c:280
 msgid "Return to windowed mode and use the current page as subtitles"
-msgstr ""
+msgstr "Das Videofenster reaktivieren und diese Seite als Untertitel überblenden"
 
 # src/frequencies.c:816
 #: src/frequencies.c:1055

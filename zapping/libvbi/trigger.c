@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.5 2001-06-23 02:50:44 mschimek Exp $ */
+/* $Id: trigger.c,v 1.6 2001-09-02 03:25:58 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -571,7 +571,7 @@ vbi_deferred_trigger(struct vbi *vbi)
 			vbi_event ev;
 
 			ev.type = VBI_EVENT_TRIGGER;
-			ev.p = &t->link;
+			ev.ev.trigger = &t->link;
 			vbi_send_event(vbi, &ev);
 
 			*tp = t->next;
@@ -608,7 +608,7 @@ add_trigger(struct vbi *vbi, vbi_trigger *a)
 		vbi_event ev;
 
 		ev.type = VBI_EVENT_TRIGGER;
-		ev.p = &a->link;
+		ev.ev.trigger = &a->link;
 		vbi_send_event(vbi, &ev);
 
 		return;
@@ -626,7 +626,7 @@ vbi_eacem_trigger(struct vbi *vbi, unsigned char *s)
 {
 	vbi_trigger t;
 
-	while ((s = parse_eacem(&t, s, vbi->network.nuid, vbi->time))) {
+	while ((s = parse_eacem(&t, s, vbi->network.ev.network.nuid, vbi->time))) {
 		if (0)
 			fprintf(stderr, "At %f eacem link type %d '%s', <%s> '%s', "
 				"%08x %03x.%04x, exp %f, pri %d %d, auto %d; "

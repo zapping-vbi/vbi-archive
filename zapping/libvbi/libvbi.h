@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.49 2001-08-20 17:46:49 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.50 2001-09-02 03:25:58 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -338,8 +338,8 @@ typedef struct {
 /*
  *  Some station/network identifier has been received or is no longer
  *  transmitted (vbi_network all zero, eg. after a channel switch).
- *  vbi_event.p is a vbi_network pointer. The event will not repeat*)
- *  unless a different identifier has been received and confirmed.
+ *  ev.network is a vbi_network object, read only. The event will not
+ *  repeat*) unless a different identifier has been received and confirmed.
  *
  *  Minimum time for recognition
  *
@@ -354,7 +354,7 @@ typedef struct {
 
 #define	VBI_EVENT_TRIGGER	(1 << 5)
 /*
- *  A trigger has fired, vbi_event.p is a vbi_link pointer.
+ *  A trigger has fired, ev.trigger is a vbi_link *pointer*.
  */
 
 #define VBI_EVENT_IO_ERROR	(1 << 6)
@@ -369,18 +369,12 @@ typedef struct {
 
 #define	VBI_EVENT_RATIO		(1 << 7)
 /*
- *  Aspect ratio change, vbi_event.p is a vbi_ratio pointer.
+ *  Aspect ratio change, ev.ratio is a vbi_ratio object, read only.
  *  (From PAL WSS, NTSC XDS or EIA-J CPR-1204)
  */
 
 typedef struct {
 	int			type;
-/* deprecated > */
-	int			pgno;
-	int			subno;
-	void *			p;
-/* < deprecated */
-
 	union {
 		struct {
 		        int			pgno;
@@ -394,17 +388,23 @@ typedef struct {
 		struct {
 			int                     pgno;
 		}                       caption;
+		vbi_network             network;
+                vbi_link *              trigger;
+                vbi_ratio               ratio;
 	}                       ev;
 } vbi_event;
 
 extern int		vbi_event_handler(struct vbi *vbi, int event_mask, void (* handler)(vbi_event *, void *), void *user_data); 
 /* Affects vbi_fetch_*_page(), the fmt_page, not export */
 extern void		vbi_set_colour_level(struct vbi *vbi, int brig, int cont);
-extern void		vbi_push_video(struct vbi *vbi, void *data, int width,
-			       enum tveng_frame_pixformat fmt, double time);
 extern void             vbi_channel_switched(struct vbi *vbi, nuid nuid);
 extern void		vbi_close(struct vbi *vbi);
 extern struct vbi *	vbi_open(fifo *source);
+
+/* Video feed (WSS from RGB) */
+
+extern void		vbi_push_video(struct vbi *vbi, void *data, int width,
+			       enum tveng_frame_pixformat fmt, double time);
 
 /*
  *  Export (export.c)
@@ -439,7 +439,7 @@ typedef struct {
 } vbi_export_option;
 
 extern vbi_export_module *vbi_export_enum(int index);
-extern vbi_export *	vbi_export_open(char *keyword, vbi_network *);
+extern vbi_export *	vbi_export_open(char *keyword, vbi_network *, int reveal);
 extern void		vbi_export_close(vbi_export *e);
 extern vbi_export_module *vbi_export_info(vbi_export *e);
 extern vbi_export_option *vbi_export_query_option(vbi_export *exp, int index);

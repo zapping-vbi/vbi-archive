@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.73 2001-08-20 17:46:49 mschimek Exp $ */
+/* $Id: vbi.c,v 1.74 2001-09-02 03:25:58 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -31,7 +31,6 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
-#include "os.h"
 #include "vt.h"
 #include "vbi.h"
 #include "hamm.h"
@@ -207,15 +206,11 @@ decode_wss_625(struct vbi *vbi, unsigned char *buf, double time)
 	}
 
 	if (memcmp(&r, &vbi->ratio, sizeof(r)) != 0) {
-		vbi_event ev;
-
-		vbi->ratio = r;
+		vbi->ratio.ev.ratio = r;
 		vbi->ratio_source = 1;
 
-		ev.type = VBI_EVENT_RATIO;
-		ev.p = &vbi->ratio;
-
-		vbi_send_event(vbi, &ev);
+		vbi->ratio.type = VBI_EVENT_RATIO;
+		vbi_send_event(vbi, &vbi->ratio);
 	}
 
 	if (1) {
@@ -272,15 +267,11 @@ decode_wss_cpr1204(struct vbi *vbi, unsigned char *buf)
 	r.open_subtitles = VBI_SUBT_UNKNOWN;
 
 	if (memcmp(&r, &vbi->ratio, sizeof(&r)) != 0) {
-		vbi_event ev;
-
-		vbi->ratio = r;
+		vbi->ratio.ev.ratio = r;
 		vbi->ratio_source = 2;
 
-		ev.type = VBI_EVENT_RATIO;
-		ev.p = &vbi->ratio;
-
-		vbi_send_event(vbi, &ev);
+		vbi->ratio.type = VBI_EVENT_RATIO;
+		vbi_send_event(vbi, &vbi->ratio);
 	}
 
 	if (0)
@@ -296,8 +287,7 @@ decode_wss_cpr1204(struct vbi *vbi, unsigned char *buf)
 void
 vbi_chsw_reset(struct vbi *vbi, nuid identified)
 {
-	nuid old_nuid = vbi->network.nuid;
-	vbi_event ev;
+	nuid old_nuid = vbi->network.ev.network.nuid;
 
 	if (0)
 		fprintf(stderr, "*** chsw identified=%d old nuid=%d\n",
@@ -312,24 +302,24 @@ vbi_chsw_reset(struct vbi *vbi, nuid identified)
 		memset(&vbi->network, 0, sizeof(vbi->network));
 
 		if (old_nuid != 0) {
-			ev.type = VBI_EVENT_NETWORK;
-			ev.p = &vbi->network;
-			vbi_send_event(vbi, &ev);
+			vbi->network.type = VBI_EVENT_NETWORK;
+			vbi_send_event(vbi, &vbi->network);
 		}
 	} /* else already identified */
 
 	vbi_trigger_flush(vbi); /* sic? */
 
 	if (vbi->ratio_source > 0) {
-		vbi->ratio.first_line = (vbi->ratio_source == 1) ? 23 : 22;
-		vbi->ratio.last_line = (vbi->ratio_source == 1) ? 310 : 262;
-		vbi->ratio.ratio = 1.0;
-		vbi->ratio.film_mode = 0;
-		vbi->ratio.open_subtitles = VBI_SUBT_UNKNOWN;
+		vbi->ratio.ev.ratio.first_line =
+			(vbi->ratio_source == 1) ? 23 : 22;
+		vbi->ratio.ev.ratio.last_line =
+			(vbi->ratio_source == 1) ? 310 : 262;
+		vbi->ratio.ev.ratio.ratio = 1.0;
+		vbi->ratio.ev.ratio.film_mode = 0;
+		vbi->ratio.ev.ratio.open_subtitles = VBI_SUBT_UNKNOWN;
 
-		ev.type = VBI_EVENT_RATIO;
-		ev.p = &vbi->ratio;
-		vbi_send_event(vbi, &ev);
+		vbi->ratio.type = VBI_EVENT_RATIO;
+		vbi_send_event(vbi, &vbi->ratio);
 	}
 
 	memset(&vbi->ratio, 0, sizeof(vbi->ratio));
@@ -773,7 +763,7 @@ vbi_push_video(struct vbi *vbi, void *video_data,
 		sampling_rate = spl / 52.148e-6;
 
 		vbi->wss_slicer_fn =
-			init_bit_slicer(&vbi->wss_slicer, 
+			vbi_bit_slicer_init(&vbi->wss_slicer, 
 				width,
 				sampling_rate, 
 				/* cri_rate */ 5000000, 
@@ -860,7 +850,7 @@ vbi_open(fifo *source)
 	if (!(vbi = calloc(1, sizeof(*vbi))))
 		return NULL;
 
-	vbi->cache = vbi_cache_init(vbi);
+	vbi_cache_init(vbi);
 
 
 	/* Our sliced VBI data source */
@@ -918,15 +908,3 @@ vbi_open(fifo *source)
 #endif
 	return vbi;
 }
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,3 +1,8 @@
+2001-09-01	<mschimek@users.sf.net>
+
+	* rte.c: Increased video fifo depth by 2, all buffers required.
+	  No bug, just in case.
+
 2001-08-19	<mschimek@users.sf.net>
 
 	* Cloned AC_CHECK_FUNCS(program_invocation_name) from Zapping.
@@ -9,6 +14,7 @@
 
 2001-08-07	<mschimek@users.sf.net>
 
+	* ChangeLog forked off from mp1e/ChangeLog
 	* rte: output error caused hang, ssize_t typo. Todo: MPEG plugin
 	  should abort on error.
 	* Deleted old fifo code.

@@ -19,3 +19,4 @@ Known bugs with zapping, don't report them
 	  investigate.
 	~ Zapzilla: what's v4lx doing on standard change?
 	* Look for endianness problems.
+	* TTX subpage +- acc don't work in main window.

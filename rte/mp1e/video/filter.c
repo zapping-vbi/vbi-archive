@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.2 2001-08-22 01:28:10 mschimek Exp $ */
+/* $Id: filter.c,v 1.3 2001-09-02 03:26:58 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -384,24 +384,38 @@ YUYV_422_exp4(unsigned char *buffer, unsigned char *unused)
 	return s2 * 256 - (s * s);
 }
 
+/*
+ *  Input:
+ *  grab_width, grab_height (pixels)
+ *  [encoded image] width, height (pixels)
+ *  pitch (line distance, Y or YUYV, bytes)
+ *
+ *  Assumed:
+ *  Y plane size = pitch * grab_height,
+ *  U,V or V,U - Y distance = 4,5 * Y plane size / 4
+ *  U,V pitch = pitch / 2
+ *
+ *  Output:
+ *  width, height (pixels)
+ *  filter initialized
+ */
 void
 filter_init(int pitch)
 {
-	int outer_width, outer_height;
-	int y_bpp = 2, scale_y = 1;
+	int padded_width, padded_height;
+	int y_bpp = 2, scale_x = 1, scale_y = 1;
 	int off_x, off_y;
 	int uv_size = 0;
 	int u = 4, v = 5;
 
 	temporal_interpolation = FALSE;
-	filter_y_pitch = pitch;
 
 	switch (filter_mode) {
 	case CM_YVU:
 		u = 5; v = 4;
 	case CM_YUV:
 		filter = mmx_YUV_420;
-		uv_size = width * height / 4;
+		uv_size = pitch * grab_height / 4;
 		y_bpp = 1;
 		break;
 	case CM_YUYV:
@@ -451,28 +465,39 @@ filter_init(int pitch)
 			filter_labels[filter_mode]);
 	}
 
-	outer_width = (width + 15) >> 4;
-	outer_height = (height + 15) >> 4;
-
-	off_x = (grab_width - width + 1) >> 1;
-	off_y = (grab_height - height * scale_y + 1) >> 1;
-
 	/*
 	 *  Need a clipping mechanism (or padded buffers?), currently
 	 *  all memory accesses as 16 x 16 mblocks. Step #2: clear outside
 	 *  blocks to all zero and all outside samples to average of
 	 *  inside samples (for prediction and FDCT).
 	 */
-	if (off_x + outer_width > grab_width)
-		off_x = grab_width - outer_width;
-	if (off_y + outer_height * scale_y > grab_height)
-		off_y = grab_height - outer_height;
 
-	filter_y_offs = filter_y_pitch * off_y + off_x * y_bpp; 
-	filter_v_offs = filter_u_offs = filter_y_offs / 4;
+	padded_width = ((width + 15) & -16) * scale_x;
+	padded_height = ((height + 15) & -16) * scale_y;
 
-	filter_u_offs += uv_size * u;
-	filter_v_offs += uv_size * v;
+	if (padded_width > grab_width) {
+		width = (grab_width / scale_x) & -16;
+		padded_width = width * scale_x;
+	}
+	if (padded_height > grab_height) {
+		height = (grab_height / scale_y) & -16;
+		padded_height = height * scale_y;
+	}
+
+	/* Center the encoding window */
+	off_x = (grab_width - width * scale_x + 1) >> 1;
+	off_y = (grab_height - height * scale_y + 1) >> 1;
+
+	if (off_x + padded_width > grab_width)
+		off_x = grab_width - padded_width;
+	if (off_y + padded_height > grab_height)
+		off_y = grab_height - padded_height;
+
+	filter_y_pitch = pitch;
+
+	filter_y_offs = pitch * off_y + off_x * y_bpp;
+	filter_u_offs = uv_size * u + (filter_y_offs >> 2);
+	filter_v_offs = uv_size * v + (filter_y_offs >> 2);
 
 	printv(2, "Filter '%s'\n", filter_labels[filter_mode]);
 

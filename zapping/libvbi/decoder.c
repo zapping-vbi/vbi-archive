@@ -1,5 +1,5 @@
 /*
- *  Raw VBI Decoder
+ *  Zapzilla/libvbi - Raw VBI Decoder
  *
  *  Copyright (C) 2000 Michael H. Schimek
  *
@@ -17,13 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.c,v 1.10 2001-08-22 01:26:53 mschimek Exp $ */
-
-/*
-    XXX NTSC transmits 0-4 (AFAIS) CC packets per frame,
-    and there's no way to identify true closed caption other than
-    the line number.
- */
+/* $Id: decoder.c,v 1.11 2001-09-02 03:25:58 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -35,11 +29,11 @@
  *  Bit Slicer
  */
 
-#define OVERSAMPLING 4		// 1, 2, 4, 8
+#define OVERSAMPLING 4		/* 1, 2, 4, 8 */
 #define THRESH_FRAC 9
 
 static inline int
-sample(struct bit_slicer *d, unsigned char *raw, int offs, int bpp)
+sample(struct vbi_bit_slicer *d, unsigned char *raw, int offs, int bpp)
 {
 	unsigned char frac = offs;
 	int raw0, raw1;
@@ -64,7 +58,8 @@ sample(struct bit_slicer *d, unsigned char *raw, int offs, int bpp)
 }
 
 static inline bool
-bit_slicer_tmp(struct bit_slicer *d, unsigned char *raw, unsigned char *buf, int bpp)
+bit_slicer_tmp(struct vbi_bit_slicer *d, unsigned char *raw,
+	       unsigned char *buf, int bpp)
 {
 	int i, j, k, cl = 0, thresh0 = d->thresh, tr;
 	unsigned int c = 0, t;
@@ -195,43 +190,49 @@ bit_slicer_tmp(struct bit_slicer *d, unsigned char *raw, unsigned char *buf, int
 }
 
 bool
-bit_slicer_1(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+vbi_bit_slicer(struct vbi_bit_slicer *d, unsigned char *raw, unsigned char *buf)
 {
 	return bit_slicer_tmp(d, raw, buf, 1);
 }
 
 static bool
-bit_slicer_2(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+bit_slicer_1(struct vbi_bit_slicer *d, unsigned char *raw, unsigned char *buf)
+{
+	return bit_slicer_tmp(d, raw, buf, 1);
+}
+
+static bool
+bit_slicer_2(struct vbi_bit_slicer *d, unsigned char *raw, unsigned char *buf)
 {
 	return bit_slicer_tmp(d, raw, buf, 2);
 }
 
 static bool
-bit_slicer_3(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+bit_slicer_3(struct vbi_bit_slicer *d, unsigned char *raw, unsigned char *buf)
 {
 	return bit_slicer_tmp(d, raw, buf, 3);
 }
 
 static bool
-bit_slicer_4(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+bit_slicer_4(struct vbi_bit_slicer *d, unsigned char *raw, unsigned char *buf)
 {
 	return bit_slicer_tmp(d, raw, buf, 4);
 }
 
 static bool
-bit_slicer_5551(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+bit_slicer_5551(struct vbi_bit_slicer *d, unsigned char *raw, unsigned char *buf)
 {
 	return bit_slicer_tmp(d, raw, buf, 15);
 }
 
 static bool
-bit_slicer_565(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+bit_slicer_565(struct vbi_bit_slicer *d, unsigned char *raw, unsigned char *buf)
 {
 	return bit_slicer_tmp(d, raw, buf, 16);
 }
 
-bit_slicer_fn *
-init_bit_slicer(struct bit_slicer *d,
+vbi_bit_slicer_fn *
+vbi_bit_slicer_init(struct vbi_bit_slicer *d,
 	int raw_samples, int sampling_rate, int cri_rate, int bit_rate,
 	unsigned int cri_frc, unsigned int cri_mask,
 	int cri_bits, int frc_bits, int payload, int modulation,
@@ -509,7 +510,7 @@ vbi_decoder(struct vbi_decoder *vbi, unsigned char *raw1, vbi_sliced *out1)
 }
 
 unsigned int
-remove_vbi_services(struct vbi_decoder *vbi, unsigned int services)
+vbi_decoder_remove_services(struct vbi_decoder *vbi, unsigned int services)
 {
 	int i, j;
 	int pattern_size = (vbi->count[0] + vbi->count[1]) * MAX_WAYS;
@@ -539,7 +540,7 @@ remove_vbi_services(struct vbi_decoder *vbi, unsigned int services)
 }
 
 unsigned int
-add_vbi_services(struct vbi_decoder *vbi, unsigned int services, int strict)
+vbi_decoder_add_services(struct vbi_decoder *vbi, unsigned int services, int strict)
 {
 	double off_min = (vbi->scanning == 525) ? 7.9e-6 : 8.0e-6;
 	int row[2], count[2], way;
@@ -550,7 +551,8 @@ add_vbi_services(struct vbi_decoder *vbi, unsigned int services, int strict)
 	services &= ~(SLICED_VBI_525 | SLICED_VBI_625);
 
 	if (!vbi->pattern)
-		vbi->pattern = calloc((vbi->count[0] + vbi->count[1]) * MAX_WAYS, sizeof(vbi->pattern[0]));
+		vbi->pattern = calloc((vbi->count[0] + vbi->count[1])
+				      * MAX_WAYS, sizeof(vbi->pattern[0]));
 
 	for (i = 0; vbi_services[i].id; i++) {
 		double signal;
@@ -565,6 +567,16 @@ add_vbi_services(struct vbi_decoder *vbi, unsigned int services, int strict)
 		if (vbi_services[i].scanning != vbi->scanning)
 			goto eliminate;
 
+		if ((vbi_services[i].id & (SLICED_CAPTION_525_F1
+					   | SLICED_CAPTION_525))
+		    && (vbi->start[0] <= 0 || vbi->start[1] <= 0)) {
+			/*
+			 *  The same format is used on other lines
+			 *  for non-CC data.
+			 */
+			goto eliminate;
+		}
+
 		signal = vbi_services[i].cri_bits / (double) vbi_services[i].cri_rate
 			 + (vbi_services[i].frc_bits + vbi_services[i].payload)
 			   / (double) vbi_services[i].bit_rate;
@@ -577,13 +589,15 @@ add_vbi_services(struct vbi_decoder *vbi, unsigned int services, int strict)
 			if (offset > (vbi_services[i].offset / 1e9 - 0.5e-6))
 				goto eliminate;
 
-			if (samples_end < (vbi_services[i].offset / 1e9 + signal + 0.5e-6))
+			if (samples_end < (vbi_services[i].offset / 1e9
+					   + signal + 0.5e-6))
 				goto eliminate;
 
-			if (offset < off_min) // skip colour burst
+			if (offset < off_min) /* skip colour burst */
 				skip = off_min * vbi->sampling_rate;
 		} else {
-			double samples = vbi->samples_per_line / (double) vbi->sampling_rate;
+			double samples = vbi->samples_per_line
+				         / (double) vbi->sampling_rate;
 
 			if (samples < (signal + 1.0e-6))
 				goto eliminate;
@@ -608,7 +622,7 @@ add_vbi_services(struct vbi_decoder *vbi, unsigned int services, int strict)
 			int end = start + vbi->count[j] - 1;
 
 			if (!vbi->synchronous)
-				goto eliminate; // too difficult
+				goto eliminate; /* too difficult */
 
 			if (!(vbi_services[i].first[j] && vbi_services[i].last[j])) {
 				count[j] = 0;
@@ -639,20 +653,25 @@ add_vbi_services(struct vbi_decoder *vbi, unsigned int services, int strict)
 
 			row[1] += vbi->count[0];
 
-			for (pattern = vbi->pattern + row[j] * MAX_WAYS, k = count[j]; k > 0; pattern += MAX_WAYS, k--) {
+			for (pattern = vbi->pattern + row[j] * MAX_WAYS, k = count[j];
+			     k > 0; pattern += MAX_WAYS, k--) {
 				int free = 0;
 
 				for (way = 0; way < MAX_WAYS; way++)
-					free += (pattern[way] <= 0 || (pattern[way] - 1) == job - vbi->jobs);
+					free += (pattern[way] <= 0
+						 || ((pattern[way] - 1)
+						     == job - vbi->jobs));
 
-				if (free <= 1) // reserve one NULL way
+				if (free <= 1) /* reserve one NULL way */
 					goto eliminate;
 			}
 		}
 
 		for (j = 0; j < 2; j++)
-			for (pattern = vbi->pattern + row[j] * MAX_WAYS, k = count[j]; k > 0; pattern += MAX_WAYS, k--) {
-				for (way = 0; pattern[way] > 0 && (pattern[way] - 1) != (job - vbi->jobs); way++);
+			for (pattern = vbi->pattern + row[j] * MAX_WAYS, k = count[j];
+			     k > 0; pattern += MAX_WAYS, k--) {
+				for (way = 0; pattern[way] > 0
+				      && (pattern[way] - 1) != (job - vbi->jobs); way++);
 				pattern[way] = (job - vbi->jobs) + 1;
 				pattern[MAX_WAYS - 1] = -128;
 			}
@@ -660,18 +679,18 @@ add_vbi_services(struct vbi_decoder *vbi, unsigned int services, int strict)
 		job->id |= vbi_services[i].id;
 		job->offset = skip;
 
-		init_bit_slicer(&job->slicer,
-				vbi->samples_per_line - skip,
-				vbi->sampling_rate,
-		    		vbi_services[i].cri_rate,
-				vbi_services[i].bit_rate,
-				vbi_services[i].cri_frc,
-				vbi_services[i].cri_mask,
-				vbi_services[i].cri_bits,
-				vbi_services[i].frc_bits,
-				vbi_services[i].payload,
-				vbi_services[i].modulation,
-				TVENG_PIX_YVU420 /* sort of */);
+		vbi_bit_slicer_init(&job->slicer,
+				    vbi->samples_per_line - skip,
+				    vbi->sampling_rate,
+				    vbi_services[i].cri_rate,
+				    vbi_services[i].bit_rate,
+				    vbi_services[i].cri_frc,
+				    vbi_services[i].cri_mask,
+				    vbi_services[i].cri_bits,
+				    vbi_services[i].frc_bits,
+				    vbi_services[i].payload,
+				    vbi_services[i].modulation,
+				    TVENG_PIX_YVU420 /* sort of */);
 
 		if (job >= vbi->jobs + vbi->num_jobs)
 			vbi->num_jobs++;
@@ -685,13 +704,14 @@ eliminate:
 }
 
 unsigned int
-qualify_vbi_sampling(struct vbi_decoder *vbi, int *max_rate, unsigned int services)
+vbi_decoder_qualify_sampling(struct vbi_decoder *vbi, int *max_rate,
+			     unsigned int services)
 {
 	int i, j;
 
-	vbi->sampling_rate = 27000000;	// ITU-R Rec. 601
+	vbi->sampling_rate = 27000000;	/* ITU-R Rec. 601 */
 
-	vbi->offset = 1000e-6 * 27e6;
+	vbi->offset = 1000e-6 * vbi->sampling_rate;
 	vbi->start[0] = 1000;
 	vbi->count[0] = 0;
 	vbi->start[1] = 1000;
@@ -722,8 +742,10 @@ qualify_vbi_sampling(struct vbi_decoder *vbi, int *max_rate, unsigned int servic
 			 + (vbi_services[i].frc_bits + vbi_services[i].payload)
 			   / (double) vbi_services[i].bit_rate;
 
-		offset = (vbi_services[i].offset / 1e9 - left_margin) * 27e6 + 0.5;
-		samples = (signal + left_margin + 1.0e-6) * 27e6 + 0.5;
+		offset = (vbi_services[i].offset / 1e9 - left_margin)
+			 * vbi->sampling_rate + 0.5;
+		samples = (signal + left_margin + 1.0e-6)
+			  * vbi->sampling_rate + 0.5;
 
 		vbi->offset = MIN(vbi->offset, offset);
 
@@ -739,7 +761,8 @@ qualify_vbi_sampling(struct vbi_decoder *vbi, int *max_rate, unsigned int servic
 					    vbi_services[i].first[j]);
 				vbi->count[j] =
 					MAX(vbi->start[j] + vbi->count[j],
-					    vbi_services[i].last[j] + 1) - vbi->start[j];
+					    vbi_services[i].last[j] + 1)
+					- vbi->start[j];
 			}
 	}
 
@@ -753,7 +776,7 @@ qualify_vbi_sampling(struct vbi_decoder *vbi, int *max_rate, unsigned int servic
 }
 
 void
-uninit_vbi_decoder(struct vbi_decoder *vbi)
+vbi_decoder_reset(struct vbi_decoder *vbi)
 {
 	if (vbi->pattern)
 		free(vbi->pattern);
@@ -767,17 +790,17 @@ uninit_vbi_decoder(struct vbi_decoder *vbi)
 }
 
 void
-reset_vbi_decoder(struct vbi_decoder *vbi)
+vbi_decoder_destroy(struct vbi_decoder *vbi)
 {
-	uninit_vbi_decoder(vbi);
+	vbi_decoder_reset(vbi);
 }
 
 void
-init_vbi_decoder(struct vbi_decoder *vbi)
+vbi_decoder_init(struct vbi_decoder *vbi)
 {
 	vbi->pattern = NULL;
 
-	uninit_vbi_decoder(vbi);
+	vbi_decoder_reset(vbi);
 }
 
 

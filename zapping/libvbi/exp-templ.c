@@ -4,7 +4,7 @@
  *  Placed in the public domain.
  */
 
-/* $Id: exp-templ.c,v 1.3 2001-08-20 00:53:23 mschimek Exp $ */
+/* $Id: exp-templ.c,v 1.4 2001-09-02 03:25:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -77,8 +77,10 @@ menu_items[] = {
 
 static vbi_export_option
 tmpl_opts[] = {
-		/* type, unique keyword (for command line etc), label */
-		/* default (union), minimum, maximum, menu, tooltip */
+		/*
+		 *  type, unique keyword (for command line etc), label,
+		 *  default (union), minimum, maximum, menu, tooltip
+		 */
 	{
 		VBI_EXPORT_BOOL,	"john",		N_("Freedom"),
 		{ .num = FALSE }, FALSE, TRUE, NULL, N_("Click here if you need any")

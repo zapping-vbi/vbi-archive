@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.c,v 1.8 2001-08-22 01:26:53 mschimek Exp $ */
+/* $Id: tables.c,v 1.9 2001-09-02 03:25:58 mschimek Exp $ */
 
 /*
     Packet 8/30 f1	Byte 13			Byte 14
@@ -452,7 +452,7 @@ struct {
 	{ 109,	DE, "SAT 1",	"SAT 1 Bayern",			0x0000, 0x0000, 0x0000, 0x0DB7 },
 	{ 110,	DE, "SAT 1",	"SAT 1 Saarland",		0x0000, 0x0000, 0x0000, 0x0DB8 },
 	{ 111,	DE, "SAT 1",	"SAT 1",			0x0000, 0x0000, 0x0000, 0x0DB9 },
-	{ 112,	DE, "TM3",	"TM3",	                 	0x0000, 0x0000, 0x0000, 0x0DBA },
+	{ 112,	DE, "9 LIVE",   "NEUN LIVE",	                0x0000, 0x0000, 0x0000, 0x0DBA },
 	{ 113,	DE, "DW Bln",	"Deutsche Welle TV Berlin",	0x0000, 0x0000, 0x0000, 0x0DBB },
 	{ 114,	DE, "OK Bln",	"Berlin Offener Kanal",		0x0000, 0x0000, 0x0000, 0x0DBD },
 	{ 115,	DE, "Bln-Mix2", "Berlin-Mix-Channel 2",		0x0000, 0x0000, 0x0000, 0x0DBE },

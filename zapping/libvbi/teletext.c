@@ -2,6 +2,8 @@
 #  include <config.h>
 #endif
 
+#include "site_def.h"
+
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -1667,7 +1669,7 @@ vbi_format_page(struct vbi *vbi,
 
 	pg->vbi = vbi;
 
-	pg->nuid = vbi->network.nuid;
+	pg->nuid = vbi->network.ev.network.nuid;
 
 	pg->pgno = vtp->pgno;
 	pg->subno = vtp->subno;
@@ -1689,6 +1691,15 @@ vbi_format_page(struct vbi *vbi,
 
 	/* Character set designation */
 
+#ifdef LIBVBI_TTX_OVERRIDE_CHAR_SET
+
+	pg->font[0] = font_descriptors + LIBVBI_TTX_OVERRIDE_CHAR_SET;
+	pg->font[1] = font_descriptors + LIBVBI_TTX_OVERRIDE_CHAR_SET;
+
+	fprintf(stderr, "override char set with %d\n",
+		LIBVBI_TTX_OVERRIDE_CHAR_SET);
+#else
+
 	pg->font[0] = font_descriptors + 0;
 	pg->font[1] = font_descriptors + 0;
 
@@ -1703,6 +1714,8 @@ vbi_format_page(struct vbi *vbi,
 		if (VALID_CHARACTER_SET(char_set))
 			pg->font[i] = font_descriptors + char_set;
 	}
+
+#endif
 
 	/* Colours */
 
@@ -2032,8 +2045,8 @@ vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
 
 		if (!vbi->vt.top || !top_index(vbi, pg, subno))
 			return 0;
-
-		pg->nuid = vbi->network.nuid;
+// XXX broken
+		pg->nuid = vbi->network.ev.network.nuid;
 		pg->pgno = 0x900;
 
 		post_enhance(pg, ROWS);
@@ -2053,7 +2066,3 @@ vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
 			vbi->vt.max_level, display_rows, navigation);
 	}
 }
-
-
-
-
