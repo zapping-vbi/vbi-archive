@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.37 2004-12-07 17:30:45 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.38 2005-01-08 14:29:56 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -269,7 +269,7 @@ find_screen			(void)
   return xs;
 }
 
-void
+gboolean
 stop_fullscreen			(void)
 {
   g_assert (DISPLAY_MODE_FULLSCREEN == zapping->display_mode
@@ -288,9 +288,8 @@ stop_fullscreen			(void)
       break;
 
     case CAPTURE_MODE_READ:
-      capture_stop();
-      video_uninit ();
-      tveng_stop_capturing(zapping->info);
+      if (!capture_stop ())
+	return FALSE;
       break;
 
     case CAPTURE_MODE_TELETEXT:
@@ -326,6 +325,8 @@ stop_fullscreen			(void)
   gtk_window_move (GTK_WINDOW (zapping),
 		   old_mw_x,
 		   old_mw_y);
+
+  return TRUE;
 }
 
 gboolean
@@ -699,11 +700,6 @@ start_fullscreen		(display_mode		dmode,
 
       if (-1 == capture_start (zapping->info, GTK_WIDGET (drawing_area)))
 	goto failure;
-
-      video_init (GTK_WIDGET (drawing_area),
-		  GTK_WIDGET (drawing_area)->style->black_gc);
-
-      video_suggest_format ();
 
       break;
 

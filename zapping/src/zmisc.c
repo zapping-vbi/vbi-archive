@@ -445,11 +445,11 @@ zmisc_restore_previous_mode(tveng_device_info * info)
   return zmisc_switch_mode(dmode, cmode, info);
 }
 
-void
+gboolean
 zmisc_stop (tveng_device_info *info)
 {
   if (CAPTURE_MODE_NONE == tv_get_controller (info))
-    return;
+    return TRUE;
 
   /* Stop current capture mode */
   switch (((int) zapping->display_mode) | (int) tv_get_capture_mode (info))
@@ -460,13 +460,13 @@ zmisc_stop (tveng_device_info *info)
     case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_READ:
     case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_OVERLAY:
     case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_TELETEXT:
-      stop_fullscreen ();
+      if (!stop_fullscreen ())
+	return FALSE;
       break;
 
     case DISPLAY_MODE_WINDOW | CAPTURE_MODE_READ:
-      capture_stop();
-      video_uninit ();
-      tveng_stop_capturing(info);
+      if (!capture_stop ())
+	return FALSE;
       break;
 
     case DISPLAY_MODE_WINDOW | CAPTURE_MODE_OVERLAY:
@@ -489,6 +489,8 @@ zmisc_stop (tveng_device_info *info)
 
     z_set_window_bg (GTK_WIDGET (zapping->video), &color);
   }
+
+  return TRUE;
 }
 
 /*
@@ -563,7 +565,8 @@ zmisc_switch_mode(display_mode new_dmode,
   old_dmode = zapping->display_mode;
   old_cmode = tv_get_capture_mode (info);
 
-  zmisc_stop (info);
+  if (!zmisc_stop (info))
+    goto failure;
 
 #ifdef HAVE_LIBZVBI
   if (!flag_exit_program)
@@ -639,9 +642,6 @@ zmisc_switch_mode(display_mode new_dmode,
 	}
 
       return_value = capture_start(info, GTK_WIDGET (zapping->video));
-      video_init (GTK_WIDGET (zapping->video),
-		  GTK_WIDGET (zapping->video)->style->black_gc);
-      video_suggest_format ();
       x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE
 			   | X11_SCREENSAVER_CPU_ACTIVE);
       z_video_blank_cursor (zapping->video, timeout);
@@ -2006,8 +2006,10 @@ z_widget_add_accelerator	(GtkWidget	*widget,
 static void
 on_entry_activate (GObject *entry, GtkDialog *dialog)
 {
-  gtk_dialog_response (dialog, GPOINTER_TO_INT
-		       (g_object_get_data (entry, "zmisc-response")));
+  gint response;
+
+  response = z_object_get_int_data (entry, "zmisc-response");
+  gtk_dialog_response (dialog, response);
 }
 
 void
@@ -2653,10 +2655,48 @@ z_url_show			(GtkWindow *		parent,
 }
 
 /* Just to get rid of annoying warnings. */
+
 void
 z_object_set_const_data		(GObject *		object,
 				 const gchar *		key,
 				 const void *		data)
 {
   g_object_set_data (object, key, data);
+}
+
+void
+z_object_set_int_data		(GObject *		object,
+				 const gchar *		key,
+				 gint			data)
+{
+  g_object_set_data (object, key, GINT_TO_POINTER (data));
+}
+
+gint
+z_object_get_int_data		(GObject *		object,
+				 const gchar *		key)
+{
+  gpointer p;
+
+  p = g_object_get_data (object, key);
+  return GPOINTER_TO_INT (p);
+}
+
+gulong
+z_signal_connect_const		(gpointer		instance,
+				 const gchar *		detailed_signal,
+				 GCallback		c_handler,
+				 const void *		data)
+{
+  return g_signal_connect (instance, detailed_signal, c_handler, data);
+}
+
+gulong
+z_signal_connect_python		(gpointer		instance,
+				 const gchar *		detailed_signal,
+				 const gchar *		command)
+{
+  return g_signal_connect (instance, detailed_signal,
+			   G_CALLBACK (on_python_command1),
+			   command);
 }
