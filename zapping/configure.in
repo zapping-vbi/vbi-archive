@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.157 2004-10-11 01:54:41 mschimek Exp $
+dnl $Id: configure.in,v 1.158 2004-10-11 18:39:20 mschimek Exp $
 
 AC_INIT(zapping, 0.7.3,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
@@ -410,6 +410,8 @@ dnl ---------------------------------------------------------------------------
 dnl Check for vbi decoding library
 dnl ---------------------------------------------------------------------------
 HAVE_ZVBI="yes"
+dnl Might require -liconv, add to LIBS if present
+AC_CHECK_LIB(iconv, iconv)
 SAVE_LIBS="$LIBS"
 LIBS="$LIBS -lpng"
 dnl check for function and declaration in newest version
