@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.6 2005-01-19 04:09:50 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.7 2005-01-27 04:15:23 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -35,11 +35,11 @@
  */
 
 #ifndef TELETEXT_DECODER_CHSW_TEST
-#define TELETEXT_DECODER_CHSW_TEST 0
+#  define TELETEXT_DECODER_CHSW_TEST 0
 #endif
 
 #ifndef TELETEXT_DECODER_LOG
-#define TELETEXT_DECODER_LOG 0
+#  define TELETEXT_DECODER_LOG 0
 #endif
 
 #define log(templ, args...)						\
@@ -2348,7 +2348,7 @@ decode_packet_0			(vbi3_teletext_decoder *	td,
 		} else {
 			/* A new pgno terminates the most recently
 			   received page of the same magazine. */
-			if (0 == ((cp->pgno ^ pgno) & 0xFF)) {
+			if (0 != ((cp->pgno ^ pgno) & 0xFF)) {
 				store_page (td, cp);
 				cp->function = PAGE_FUNCTION_DISCARD;
 			}
@@ -2388,7 +2388,18 @@ decode_packet_0			(vbi3_teletext_decoder *	td,
 	cp->flags	= (flags << 16) + subno;
 
 	if (vbi3_is_bcd (page)) {
-		cp->subno = subno & 0x3F7F;
+		subno &= 0x3F7F;
+
+		log ("Normal page %03x.%04x flags %06x\n",
+		     cp->pgno, subno, cp->flags);
+
+		if (!vbi3_is_bcd (subno)) {
+			td->current = NULL;
+			cp->function = PAGE_FUNCTION_DISCARD;
+			return FALSE;
+		}
+
+		cp->subno = subno;
 	} else {
 		cp->subno = subno & 0x000F;
 
@@ -4516,7 +4527,7 @@ vbi3_teletext_decoder_get_network
 	if (!td->network)
 		return FALSE;
 
-	return vbi3_network_copy (nk, &td->network);
+	return vbi3_network_copy (nk, &td->network->network);
 }
 
 /**
