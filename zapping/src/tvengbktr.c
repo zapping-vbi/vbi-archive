@@ -876,7 +876,7 @@ tvengbktr_close_device (tveng_device_info * info)
 {
   tveng_stop_everything(info);
 
-  close (info->fd);
+  device_close (info->log_fp, info->fd);
   info->fd = 0;
 
   info->current_controller = TVENG_CONTROLLER_NONE;
@@ -941,7 +941,7 @@ p_tvengbktr_open_device_file(int flags,
     {
       info->tveng_errno = errno;
       t_error("Bad device", info);
-      close(info -> fd);
+      device_close(info->log_fp, info->fd);
       return -1;
     }
 
