@@ -81,10 +81,24 @@ void get_ttx_index(int id, int *pgno, int *subno);
 struct fmt_page* get_ttx_fmt_page(int id);
 
 /*
+ * Resizes the rendered size of the page
+ */
+void resize_ttx_page(int id, int w, int h);
+
+/*
  * Renders the currently monitored page into the given drawable.
  */
 void render_ttx_page(int id, GdkDrawable *drawable, GdkGC *gc,
-		     GdkBitmap *mask, gint w, gint h);
+		     gint src_x, gint src_y,
+		     gint dest_x, gint dest_y,
+		     gint w, gint h);
+
+/*
+ * Renders into the given bitmap (that must have appropiate
+ * dimensions) the transparency info of the current page.
+ */
+void render_ttx_mask(int id, GdkBitmap *bitmap);
+ 
 
 /* Open the configured VBI device, FALSE on error */
 gboolean

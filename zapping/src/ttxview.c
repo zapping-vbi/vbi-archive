@@ -48,7 +48,6 @@ static GdkCursor	*hand=NULL;
 static GdkCursor	*arrow=NULL;
 
 typedef struct {
-  GdkPixmap		*scaled;
   GdkBitmap		*mask;
   gint			w, h;
   GtkWidget		*da;
@@ -57,7 +56,6 @@ typedef struct {
   struct fmt_page	*fmt_page; /* current page, formatted */
   gint			page; /* page we are entering */
   gint			subpage; /* current subpage */
-  gboolean		extra_controls; /* TRUE: Show extra controls */
   GList			*history_stack; /* for back, etc... */
   gint			history_stack_size; /* items in history_stack */
   gint			history_sp; /* pointer in the stack */
@@ -183,19 +181,13 @@ void scale_image			(GtkWidget	*wid,
     {
       if (data->mask)
 	gdk_bitmap_unref(data->mask);
-      if (data->scaled)
-	gdk_pixmap_unref(data->scaled);
-      data->scaled = gdk_pixmap_new(widget->window, w, h, -1);
       data->mask = gdk_pixmap_new(widget->window, w, h, 1);
+      g_assert(data->mask != NULL);
+      resize_ttx_page(data->id, w, h);
+      render_ttx_mask(data->id, data->mask);
+      gdk_window_shape_combine_mask(data->da->window, data->mask, 0, 0);
       data->w = w;
       data->h = h;
-    }
-
-  if (data->scaled)
-    {
-      render_ttx_page(data->id, data->scaled,
-		      widget->style->white_gc, data->mask, w, h);
-      gdk_window_shape_combine_mask(data->da->window, data->mask, 0, 0);
     }
 }
 
@@ -203,14 +195,16 @@ static int
 find_prev_subpage (ttxview_data	*data, int subpage)
 {
   struct vbi *vbi = zvbi_get_object();
+  int start_subpage = subpage;
 
-  if ((!vbi->cache->hi_subno[data->fmt_page->vtp->pgno]) ||
-      (!vbi->cache->op->get(vbi->cache, data->fmt_page->vtp->pgno,
-			    subpage, 0xffff)))
+  if (!vbi->cache->hi_subno[data->fmt_page->vtp->pgno])
     return -1;
 
   do {
     subpage = dec2hex(hex2dec(subpage) - 1);
+
+    if (subpage == start_subpage)
+      return -1;
     
     if (subpage < 0)
       subpage = vbi->cache->hi_subno[data->fmt_page->vtp->pgno] - 1;
@@ -224,14 +218,16 @@ static int
 find_next_subpage (ttxview_data	*data, int subpage)
 {
   struct vbi *vbi = zvbi_get_object();
+  int start_subpage = subpage;
 
-  if ((!vbi->cache->hi_subno[data->fmt_page->vtp->pgno]) ||
-      (!vbi->cache->op->get(vbi->cache, data->fmt_page->vtp->pgno,
-			    subpage, 0xffff)))
+  if (!vbi->cache->hi_subno[data->fmt_page->vtp->pgno])
     return -1;
 
   do {
     subpage = dec2hex(hex2dec(subpage) + 1);
+    
+    if (subpage == start_subpage)
+      return -1;
     
     if (subpage >= vbi->cache->hi_subno[data->fmt_page->vtp->pgno])
       subpage = 0;
@@ -320,8 +316,6 @@ on_ttxview_delete_event			(GtkWidget	*widget,
 					 GdkEvent	*event,
 					 ttxview_data	*data)
 {
-  if (data->scaled)
-    gdk_pixmap_unref(data->scaled);
   if (data->mask)
     gdk_bitmap_unref(data->mask);
 
@@ -332,7 +326,6 @@ on_ttxview_delete_event			(GtkWidget	*widget,
 
   return FALSE;
 }
-
 
 static void
 update_pointer (ttxview_data *data)
@@ -370,10 +363,13 @@ update_pointer (ttxview_data *data)
       g_free(buffer);
       gdk_window_set_cursor(widget->window, hand);
     }
-  else if (data->in_link)
+  else
     {
-      gnome_appbar_pop(GNOME_APPBAR(appbar1));
-      data->in_link = FALSE;
+      if (data->in_link)
+	{
+	  gnome_appbar_pop(GNOME_APPBAR(appbar1));
+	  data->in_link = FALSE;
+	}
       gdk_window_set_cursor(widget->window, arrow);
     }
 }
@@ -393,7 +389,12 @@ event_timeout				(ttxview_data	*data)
 	{
 	case TTX_PAGE_RECEIVED:
 	  gdk_window_get_size(data->da->window, &w, &h);
-	  scale_image(data->da, w, h, data);
+	  if (data->mask)
+	    {
+	      render_ttx_mask(data->id, data->mask);
+	      gdk_window_shape_combine_mask(data->da->window, data->mask,
+					    0, 0);
+	    }
 	  gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
 	  data->subpage = data->fmt_page->vtp->subno;
 	  widget = lookup_widget(data->da, "ttxview_subpage");
@@ -587,7 +588,7 @@ static
 void on_ttxview_search_clicked		(GtkButton	*button,
 					 ttxview_data	*data)
 {
-  #if 0
+#if 0
   gchar * regexp =
     Prompt(lookup_widget(data->da, "ttxview"),
 	   _("Search"),
@@ -703,11 +704,8 @@ void on_ttxview_size_allocate		(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
   scale_image(widget, allocation->width, allocation->height, data);
-
-  if (data->scaled)
-    gdk_draw_pixmap(widget->window, widget->style->white_gc,
-		    data->scaled, 0, 0, 0, 0,
-		    allocation->width, allocation->height);
+  //  render_ttx_page(data->id, widget->window, widget->style->white_gc,
+  //		  0, 0, 0, 0, allocation->width, allocation->height);
 }
 
 static
@@ -715,11 +713,10 @@ gboolean on_ttxview_expose_event	(GtkWidget	*widget,
 					 GdkEventExpose	*event,
 					 ttxview_data	*data)
 {
-  if (data->scaled)
-    gdk_draw_pixmap(widget->window, widget->style->white_gc,
-		    data->scaled, event->area.x, event->area.y,
-		    event->area.x, event->area.y,
-		    event->area.width, event->area.height);
+  render_ttx_page(data->id, widget->window, widget->style->white_gc,
+		  event->area.x, event->area.y,
+		  event->area.x, event->area.y,
+		  event->area.width, event->area.height);
 
   return TRUE;
 }

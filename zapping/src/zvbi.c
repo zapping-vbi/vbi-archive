@@ -47,7 +47,6 @@
  * TODO:
  *	- protect against vbi=NULL
  *	- remove old cruft
- *	- lower mem usage, improve performance
  */
 
 #undef TRUE
@@ -428,7 +427,7 @@ build_client_page(struct ttx_client *client, struct vt_page *vtp)
 		     (double) client->w /
 		     gdk_pixbuf_get_width(client->unscaled),
 		     (double) client->h /
-			 gdk_pixbuf_get_height(client->unscaled),
+		      gdk_pixbuf_get_height(client->unscaled),
 		     INTERP_MODE);
   
   pthread_mutex_unlock(&client->mutex);
@@ -509,26 +508,25 @@ notify_clients(int page, int subpage, struct vt_page *vtp)
   pthread_mutex_unlock(&clients_mutex);
 }
 
-void render_ttx_page(int id, GdkDrawable *drawable,
-		     GdkGC *gc, GdkBitmap *mask, gint w, gint h)
+void resize_ttx_page(int id, int w, int h)
 {
   struct ttx_client *client;
+
+  if ((w<=0) || (h<=0))
+    return;
 
   pthread_mutex_lock(&clients_mutex);
   if ((client = find_client(id)))
     {
       pthread_mutex_lock(&client->mutex);
-
       if ((client->w != w) ||
 	  (client->h != h))
 	{
 	  if (client->scaled)
 	    gdk_pixbuf_unref(client->scaled);
 	  client->scaled = NULL;
-	  if ((w > 0) &&
-	      (h > 0))
-	    client->scaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
-					    w, h);
+	  client->scaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
+					  w, h);
 	  if (client->scaled)
 	    gdk_pixbuf_scale(client->unscaled,
 			     client->scaled, 0, 0, w, h,
@@ -542,19 +540,52 @@ void render_ttx_page(int id, GdkDrawable *drawable,
 	  client->w = w;
 	  client->h = h;
 	}
-	  
-      if (client->scaled)
-	{
-	  gdk_pixbuf_render_to_drawable(client->scaled,
-					drawable,
-					gc,
-					0, 0, 0, 0, w, h,
-					GDK_RGB_DITHER_NONE, 0,
-					0);
-	  gdk_pixbuf_render_threshold_alpha(client->scaled, mask,
-					    0, 0, 0, 0, w, h, 127);
-	}
+      pthread_mutex_unlock(&client->mutex);
+    }
+  pthread_mutex_unlock(&clients_mutex);
+}
 
+void render_ttx_page(int id, GdkDrawable *drawable,
+		     GdkGC *gc,
+		     gint src_x, gint src_y,
+		     gint dest_x, gint dest_y,
+		     gint w, gint h)
+{
+  struct ttx_client *client;
+
+  pthread_mutex_lock(&clients_mutex);
+  if ((client = find_client(id)))
+    {
+      pthread_mutex_lock(&client->mutex);
+
+      if (client->scaled)
+	gdk_pixbuf_render_to_drawable(client->scaled,
+				      drawable,
+				      gc,
+				      src_x, src_y,
+				      dest_x, dest_y,
+				      w, h,
+				      GDK_RGB_DITHER_NORMAL,
+				      src_x, src_y);
+
+      pthread_mutex_unlock(&client->mutex);
+    }
+  pthread_mutex_unlock(&clients_mutex);
+}
+
+void
+render_ttx_mask(int id, GdkBitmap *mask)
+{
+  struct ttx_client *client;
+
+  pthread_mutex_lock(&clients_mutex);
+  if ((client = find_client(id)))
+    {
+      pthread_mutex_lock(&client->mutex);
+      if (client->scaled)
+	gdk_pixbuf_render_threshold_alpha(client->scaled, mask,
+					  0, 0, 0, 0,
+					  client->w, client->h, 127);
       pthread_mutex_unlock(&client->mutex);
     }
   pthread_mutex_unlock(&clients_mutex);
@@ -620,9 +651,6 @@ event(struct dl_head *reqs, struct vt_event *ev)
     switch (ev->type) {
     case EV_HEADER:
 	p = ev->p1;
-// handled by ttx parser
-//	if (ev->i2 & PG_OUTOFSEQ)
-//	  break;
 	// printv("header %.32s\n", p+8);
 	pthread_mutex_lock(&(last_info.mutex));
 	memcpy(last_info.header,p+8,32);

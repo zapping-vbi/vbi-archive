@@ -87,17 +87,6 @@ printf("\n");
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
 static inline void
 dump_pagenum(vt_pagenum page)
 {
@@ -1794,17 +1783,9 @@ if(0)
 	return TRUE;
 }
 
-
-
-
-
-
-
-
-
 /* Quick Hack(tm) to read from a sample stream */
 
-// static char *sample_file = "libvbi/samples/t2-br";
+//static char *sample_file = "libvbi/samples/t2-br";
 static char *sample_file = NULL; // disabled
 static FILE *sample_fi;
 
@@ -1966,12 +1947,10 @@ vbi_close(struct vbi *vbi)
 {
     reset_magazines(vbi);
 
-//    fdset_del_fd(fds, vbi->fd);
     if (vbi->cache)
 	vbi->cache->op->close(vbi->cache);
 
     close_vbi_v4lx(vbi->fifo);
-//    close(vbi->fd);
 
     if (sample_fi)
 	fclose(sample_fi);
