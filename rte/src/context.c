@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.13 2002-12-25 09:44:14 mschimek Exp $ */
+/* $Id: context.c,v 1.14 2004-06-06 12:57:26 mschimek Exp $ */
 
 #include "config.h"
 
@@ -29,8 +29,10 @@
 
 #include "rtepriv.h"
 
-#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/resource.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <limits.h>
@@ -324,10 +326,11 @@ rte_context_delete(rte_context *context)
 		break;
 	}
 
-	if (context->error) {
-		free(context->error);
-		context->error = NULL;
-	}
+	free(context->error);
+	context->error = NULL;
+
+	free(context->filename);
+	context->filename = NULL;
 
 	xc->_delete(context);
 }
@@ -896,7 +899,8 @@ rte_set_output_callback_slave(rte_context *context,
 
 	if (r) {
 		context->output_method = RTE_CALLBACK_SLAVE;
-		context->output_fd = -1;
+		context->output_fd0 = -1;
+		context->output_fdn = -1;
 	}
 
 	return r;
@@ -910,13 +914,73 @@ write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 	if (!buffer) /* EOF */
 		return TRUE;
 
-	do actual = write(context->output_fd, buffer->data, buffer->size);
+	if (RTE_FILE == context->output_method
+	    && context->filename) {
+		/* If writing would exceed ulimit file size
+		   open a new file. */
+		if (context->part_size + buffer->size
+		    >= context->fsize_limit) {
+			unsigned int len;
+			char *ext;
+			char *new_name;
+			int new_fd;
+
+			len = strlen (context->filename);
+
+			for (ext = context->filename + len - 1;
+			     ext >= context->filename; --ext)
+				if ('.' == *ext)
+					break;
+
+			if (ext < context->filename)
+				ext = context->filename + len;
+
+			new_name = malloc (len + 32);
+			snprintf (new_name,
+				  len + 32,
+				  "%.*s-part%u%s",
+				  ext - context->filename,
+				  context->filename,
+				  context->part_count + 2,
+				  ext);
+
+#ifdef HAVE_LARGEFILE64
+			new_fd = open64 (new_name,
+					 O_CREAT | O_WRONLY | O_TRUNC |
+					 	O_LARGEFILE,
+					 S_IRUSR | S_IWUSR |
+					 S_IRGRP | S_IWGRP |
+					 S_IROTH | S_IWOTH);
+#else
+			new_fd = open (new_name,
+				       O_CREAT | O_WRONLY | O_TRUNC,
+				       S_IRUSR | S_IWUSR |
+				       S_IRGRP | S_IWGRP |
+				       S_IROTH | S_IWOTH);
+#endif
+			if (-1 != new_fd) {
+				if (context->output_fd0 != context->output_fdn)
+					close (context->output_fdn);
+
+				context->output_fdn = new_fd;
+
+				context->part_size = 0;
+				++context->part_count;
+			}
+
+			free (new_name);
+		}
+	}
+
+	do actual = write(context->output_fdn, buffer->data, buffer->size);
 	while (actual == (ssize_t) -1 && errno == EINTR);
 
 	// XXX error propagation?
 	// Aborting encoding is bad for Zapping. It should a)
 	// activate its backup plan and b) notify the user before
 	// data is lost. Have to use private callback.
+
+	context->part_size += buffer->size;
 
 	return actual == buffer->size; /* no error */
 }
@@ -926,13 +990,15 @@ seek_cb(rte_context *context, long long offset, int whence)
 {
 	// XXX error propagation?
 
-#if defined(HAVE_LARGEFILE) && defined(O_LARGEFILE)
-	return lseek64(context->output_fd, (off64_t) offset, whence) != (off64_t) -1;
+#ifdef HAVE_LARGEFILE64
+	return lseek64(context->output_fd0, (off64_t) offset, whence)
+		!= (off64_t) -1;
 #else
 	if (offset < INT_MIN || offset > INT_MAX)
 		return FALSE; 
 
-	return lseek(context->output_fd, (off_t) offset, whence) != (off_t) -1;
+	return lseek(context->output_fd0, (off_t) offset, whence)
+		!= (off_t) -1;
 #endif
 }
 
@@ -942,7 +1008,10 @@ new_output_fd(rte_context *context, rte_io_method new_method, int new_fd)
 	switch (context->output_method) {
 	case RTE_FILE:
 		// XXX can fail
-		close(context->output_fd);
+		close(context->output_fd0);
+
+		if (context->output_fd0 != context->output_fdn)
+			close(context->output_fdn);
 		break;
 
 	default:
@@ -950,7 +1019,8 @@ new_output_fd(rte_context *context, rte_io_method new_method, int new_fd)
 	}
 
 	context->output_method = new_method;
-	context->output_fd = new_fd;
+	context->output_fd0 = new_fd;
+	context->output_fdn = new_fd;
 }
 
 /**
@@ -1004,19 +1074,40 @@ rte_set_output_stdio(rte_context *context, int fd)
 rte_bool
 rte_set_output_file(rte_context *context, const char *filename)
 {
+#ifdef HAVE_LARGEFILE64
+	struct rlimit64 rl;
 	int fd;
 
 	nullcheck(context, return FALSE);
 
 	rte_error_reset(context);
 
-#if defined(HAVE_LARGEFILE) && defined(O_LARGEFILE)
+	if (0 == getrlimit64 (RLIMIT_FSIZE, &rl)) {
+		context->fsize_limit = rl.rlim_cur;
+	} else {
+		context->fsize_limit = INT64_MAX;
+	}
+
 	fd = open64(filename,
 		  O_CREAT | O_WRONLY | O_TRUNC | O_LARGEFILE,
 		  S_IRUSR | S_IWUSR |
 		  S_IRGRP | S_IWGRP |
 		  S_IROTH | S_IWOTH);
 #else
+#warning Large files not supported on 32 bit system.
+	struct rlimit lim;
+	int fd;
+
+	nullcheck(context, return FALSE);
+
+	rte_error_reset(context);
+  
+	if (0 == getrlimit (RLIMIT_FSIZE, &rl)) {
+		context->fsize_limit = rl.rlim_cur;
+	} else {
+		context->fsize_limit = INT64_MAX;
+	}
+
 	fd = open(filename,
 		  O_CREAT | O_WRONLY | O_TRUNC,
 		  S_IRUSR | S_IWUSR |
@@ -1030,12 +1121,21 @@ rte_set_output_file(rte_context *context, const char *filename)
 		return FALSE;
 	}
 
+	context->filename = strdup (filename);
+
+	context->part_size = 0;
+	context->part_count = 0;
+
 	if (rte_set_output_callback_slave(context, write_cb, seek_cb)) {
 		new_output_fd(context, RTE_FILE, fd);
 		return TRUE;
 	} else {
 		close(fd);
 		unlink(filename);
+
+		free (context->filename);
+		context->filename = NULL;
+
 		return FALSE;
 	}
 }
@@ -1072,7 +1172,8 @@ rte_set_output_discard(rte_context *context)
 
 	rte_error_reset(context);
 
-	if (rte_set_output_callback_slave(context, discard_write_cb, discard_seek_cb)) {
+	if (rte_set_output_callback_slave (context, discard_write_cb,
+					   discard_seek_cb)) {
 		new_output_fd(context, RTE_DISCARD, -1);
 		return TRUE;
 	}
