@@ -1,4 +1,4 @@
-.TH MP1E 1 "$Date: 2001-09-07 22:34:16 $" "mp1e manual" \" -*- nroff -*-
+.TH MP1E 1 "$Date: 2001-09-11 13:13:56 $" "mp1e manual" \" -*- nroff -*-
 .SH NAME
 mp1e \- realtime MPEG-1 audio/video encoder
 .SH SYNOPSIS
@@ -589,21 +589,20 @@ Due to lack of references the syntax has not been verified yet.
 .RE
 .IP "4 - vcd"
 .RS
-There is a package named mkvcdfs by Rainer Johanni to create Video
-CDs under Linux. It contains a tool vcdmplex to supposedly create
-MPEG-1 program streams as defined by the VCD spec "White Book".
-This mux creates exactly the same streams as vcdmplex does,
-on the fly. Due to lack of references the syntax has not been
-verified, nor did I receive any success or failure reports.
+MPEG-1 program stream in a format suitable for creating VCDs.
+For strict VCD compliance you have to set a number of compression
+parameters: Image size 352x240 (NTSC) or 352x288 (PAL), bit rate 1152
+kbit/s; Audio sampling rate 44.1 kHz, stereo, 225 kbit/s. Otherwise a
+hardware player may refuse to play the stream. This multiplexer is
+a clone of vcdmplex, the VCD specs are not easily available so I
+cannot warrant full compliance.
 .P
-Note the VCD spec puts more contraints on compression parameters
-such as image size, bit rates or sampling rates, to work with
-conforming hardware players.
-.I The default parameters of mp1e are not suitable.
-Please consult the mkvcdfs documentation for details.
+Frame dropping should be avoided in this mode to prevent hardware
+buffer underflows. The reason is that mp1e for now, being designed
+to record on harddisk, will not waste space to padding bytes.
 .P
-If disk space is not your major concern, some lossless recording
-and high quality offline compression tool may serve you better.
+To actually create a VCD you need another tool, for example GNU
+VCDImager or mkvcdfs from the vcdtools package.
 .RE
 .SH EXAMPLES
 .TP

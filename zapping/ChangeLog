@@ -1,3 +1,8 @@
+11.09.2001	mpeg plugin audio options <mschimek@users.sf.net>
+
+	* plugins/mpeg: Added dynamic audio options using the new
+	  rte_option API. Unfinished, won't work as expected yet.
+
 10.09.2001	automatic overlaying of subtitles <garetxe@users.sf.net>
 
 	* ttxview: Subtitle pages opened in the main window can now be

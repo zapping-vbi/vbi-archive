@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.3 2001-09-07 05:09:34 mschimek Exp $
+ * $Id: rtepriv.h,v 1.4 2001-09-11 13:13:56 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -59,6 +59,9 @@ typedef struct {
 				  struct rte_status_info *status);
 	/* Experimental */
 	rte_codec_info *(* enum_codec)(rte_context *context, int index);
+	rte_codec *	(* get_codec)(rte_context *context,
+				      rte_stream_type stream_type,
+				      int stream_index, char **keyword_p);
 	rte_codec *	(* set_codec)(rte_context *context,
 				      rte_stream_type stream_type,
 				      int stream_index, char *keyword);

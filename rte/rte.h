@@ -32,7 +32,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.3 2001-09-07 05:09:34 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.4 2001-09-11 13:13:56 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -558,9 +558,15 @@ typedef enum {
 typedef enum {
   RTE_OPTION_BOOL = 1,	/* TRUE (1) or FALSE (0), def.num */
   RTE_OPTION_INT,	/* Integer min - max inclusive, def.num */
-  RTE_OPTION_MENU,	/* Index of menu[], min - max incl, def.num */
+  RTE_OPTION_MENU,	/* Index of menu.label[], min - max incl, def.num */
   RTE_OPTION_STRING,	/* String, def.str */
+  RTE_OPTION_MENU_VAL,	/* Index of menu.v[].*, min - max incl, def.num */
 } rte_option_type;
+
+typedef struct {
+  char *		label;		/* gettext()ized _N() */
+  int			value;
+} rte_option_menu_val;
 
 typedef struct {
   rte_option_type	type;
@@ -571,7 +577,10 @@ typedef struct {
     int			  num;
   }			def;		/* default (reset) */
   int			min, max;
-  char **		menu;	/* max - min + 1 entries, gettext()ized _N() */
+  union {
+    char **               label;	/* gettext()ized _N() */
+    rte_option_menu_val * v;
+  }                     menu;
   char *		tooltip;	/* or NULL, gettext()ized _N() */
 } rte_option;
 
@@ -589,6 +598,8 @@ extern rte_codec_info *rte_enum_codec(rte_context *context, int index);
 
 typedef struct rte_codec rte_codec; /* opaque */
 
+extern rte_codec *rte_get_codec(rte_context *context,
+  rte_stream_type stream_type, int stream_index, char **codec_keyword_p);
 extern rte_codec *rte_set_codec(rte_context *context,
   rte_stream_type stream_type, int stream_index, char *codec_keyword);
 

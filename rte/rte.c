@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.6 2001-09-10 16:39:31 garetxe Exp $ */
+/* $Id: rte.c,v 1.7 2001-09-11 13:13:56 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -1046,6 +1046,22 @@ rte_enum_codec(rte_context *context, int index)
 	return BACKEND->enum_codec(context, index);
 }
 
+rte_codec *
+rte_get_codec(rte_context *context, rte_stream_type stream_type,
+	      int stream_index, char **codec_keyword_p)
+{
+	nullcheck(context, return NULL);
+
+	if (!context || !BACKEND->get_codec) {
+		if (codec_keyword_p)
+			codec_keyword_p = NULL;
+		return NULL;
+	}
+
+	return BACKEND->get_codec(context, stream_type,
+				  stream_index, codec_keyword_p);
+}
+
 /**
  * rte_set_codec:
  * @context: Initialized rte_context.
@@ -1097,7 +1113,8 @@ rte_enum_option(rte_context *context, rte_codec *codec, int index)
 }
 
 int
-rte_set_option(rte_context *context, rte_codec *codec, char *option_keyword, ...)
+rte_set_option(rte_context *context, rte_codec *codec,
+	       char *option_keyword, ...)
 {
 	va_list args;
 	int r;

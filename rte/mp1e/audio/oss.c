@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.5 2001-08-22 01:28:07 mschimek Exp $ */
+/* $Id: oss.c,v 1.6 2001-09-11 13:13:56 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -235,7 +235,7 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	if (TEST)
 		ASSERT("open raw", (oss->fd2 = open("raw", O_WRONLY | O_CREAT)) != -1);
 
-	ASSERT("open OSS PCM device %s",
+	ASSERT("open OSS PCM device %s", /* XXX O_NONBLOCK? */
 		(oss->fd = open(dev_name, O_RDONLY)) != -1, dev_name);
 
 	printv(2, "Opened OSS PCM device %s\n", dev_name);
