@@ -861,8 +861,6 @@ tveng1_update_capture_format(tveng_device_info * info)
   info->window.chromakey = window.chromakey;
   /* These two are write-only */
   info->window.clipcount = 0;
-  if (info->window.clips)
-    free(info->window.clips);
   info->window.clips = NULL;
   return 0;
 }

@@ -243,6 +243,16 @@ int main(int argc, char * argv[])
 			   main_info))
     fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
 
+  /*tveng_stop_capturing(main_info);
+  main_info->window.x = x;
+  main_info->window.y = y;
+  main_info->window.width = w;
+  main_info->window.height = h;
+  main_info->window.clipcount = 0;
+  tveng_set_preview_window(main_info);
+  tveng_set_preview_on(main_info);
+  main_info->current_mode = TVENG_CAPTURE_PREVIEW;
+  */
   while (!flag_exit_program)
     {
       while (gtk_events_pending())
@@ -284,7 +294,10 @@ int main(int argc, char * argv[])
 
       /* We are probably viewing fullscreen, just do nothing */
       if (main_info -> current_mode != TVENG_CAPTURE_READ)
-	continue;
+	{
+	  usleep(100000);
+	  continue;
+	}
 
       /* Avoid segfault */
       if (!zimage_get())

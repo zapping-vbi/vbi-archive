@@ -167,6 +167,9 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
                                         GtkAllocation   *allocation,
                                         gpointer         user_data)
 {
+  if (main_info -> current_mode != TVENG_CAPTURE_READ)
+    return;
+
   /* Delete the old image */
   zimage_destroy();
 
@@ -182,6 +185,51 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
     }
 
   zimage_reallocate(main_info->format.width, main_info->format.height);
+}
+
+gboolean
+on_zapping_configure_event             (GtkWidget       *widget,
+                                        GdkEventConfigure *event,
+                                        gpointer         user_data)
+{
+  struct tveng_clip clips[4];
+
+  GtkWidget * tv_screen = lookup_widget(widget, "tv_screen");
+  int x, y, w, h;
+
+  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
+    return FALSE;
+
+  gdk_window_get_origin(tv_screen->window, &x, &y);
+  gdk_window_get_size(tv_screen->window, &w, &h);
+
+  main_info->window.x = x;
+  main_info->window.y = y;
+  main_info->window.width = w;
+  main_info->window.height = h;
+  main_info->window.clipcount = 4;
+  clips[0].x = -x;
+  clips[0].y = -y;
+  clips[0].width = gdk_screen_width();
+  clips[0].height = y;
+  clips[1].x = -x;
+  clips[1].y = -y;
+  clips[1].width = x;
+  clips[1].height = gdk_screen_height();
+  clips[2].x = w;
+  clips[2].y = -y;
+  clips[2].width = gdk_screen_width()-(x+w);
+  clips[2].height = gdk_screen_height();
+  clips[3].x = -x;
+  clips[3].y = h;
+  clips[3].width = gdk_screen_width();
+  clips[3].height = gdk_screen_height()-(y+h);
+  main_info->window.clips = clips;
+
+  if (tveng_set_preview_window(main_info) == -1)
+    g_warning("%s", main_info->error);
+
+  return FALSE;
 }
 
 /* Activate an standard */
@@ -498,7 +546,6 @@ on_channel_up1_activate                (GtkMenuItem     *menuitem,
   gtk_option_menu_set_history(GTK_OPTION_MENU (Channels),
 			      new_channel);
 }
-
 
 void
 on_channel_down1_activate              (GtkMenuItem     *menuitem,

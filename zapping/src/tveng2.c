@@ -831,8 +831,6 @@ tveng2_update_capture_format(tveng_device_info * info)
   info->window.chromakey = window.chromakey;
   /* These two are defined as read-only */
   info->window.clipcount = 0;
-  if (info->window.clips)
-    free(info->window.clips);
   info->window.clips = NULL;
   return 0;
 }
@@ -1938,7 +1936,8 @@ tveng2_set_preview_window(tveng_device_info * info)
 	  clip->y = info->window.clips[i].y;
 	  clip->width = info->window.clips[i].width;
 	  clip->height = info->window.clips[i].height;
-	  clip->next = malloc(sizeof(struct v4l2_clip));
+	  if (i < (window.clipcount-1))
+	    clip->next = malloc(sizeof(struct v4l2_clip));
 	}
       clip -> next = NULL; /* The last one */
     }

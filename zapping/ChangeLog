@@ -7,6 +7,9 @@
 	under Sawfish)
 	* macros/autogen.sh: Little fix, it tried to autoconf mp1e's
 	configure.in (it's in the same CVS tree as zapping)
+	* src/callbacks.c: Added some (very rudimentary) support for
+	windowed overlay mode. It just sucks, and will suck forever, but
+	people ask for it :-/
 	
 19.7.2000	Option for keeping the ratio <garetxe@users.sourceforge.net>
 

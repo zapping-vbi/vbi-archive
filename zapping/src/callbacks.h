@@ -56,6 +56,11 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
                                         GtkAllocation   *allocation,
                                         gpointer         user_data);
 
+gboolean
+on_zapping_configure_event             (GtkWidget       *widget,
+                                        GdkEventConfigure *event,
+                                        gpointer         user_data);
+
 void
 on_standard_activate                   (GtkMenuItem     *menuitem,
 					gpointer        user_data);
