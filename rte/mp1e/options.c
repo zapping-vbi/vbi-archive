@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.11 2002-02-08 15:03:10 mschimek Exp $ */
+/* $Id: options.c,v 1.12 2002-03-12 18:14:56 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -239,8 +239,12 @@ suboption(const char **optp, int n, int def)
 	int i;
 
 	if (optarg) {
-		if (isdigit(optarg[0]))
-			return strtol(optarg, NULL, 0);
+		if (isdigit(optarg[0])) {
+			i = strtol(optarg, NULL, 0);
+			if (i < 0 || i >= n)
+				FAIL("Invalid parameter\n");
+			return i;
+		}
 
 		for (i = 0; i < n; i++) {
 			if (!optp[i] || !optp[i][0])
@@ -429,7 +433,7 @@ parse_option(int c)
 					 O_CREAT | O_WRONLY | O_TRUNC | O_LARGEFILE,
 					 S_IRUSR | S_IWUSR | S_IRGRP
 					 | S_IWGRP | S_IROTH | S_IWOTH);
-			ASSERT("open output file '%s'", outFileFD == -1, optarg);
+			ASSERT("open output file '%s'", outFileFD != -1, optarg);
 			break;
 
 		case 'p':
