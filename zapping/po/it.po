@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6.5\n"
-"POT-Creation-Date: 2003-01-05 15:38+0100\n"
+"POT-Creation-Date: 2003-01-21 06:44+0100\n"
 "PO-Revision-Date: 2003-01-04 11:55+0100\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -181,7 +181,7 @@ msgstr "Zapzilla non è potuto partire"
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Spiacente, Zapzilla non può creare la configurazione"
 
-#: src/interface.c:232 src/tveng1.c:1178 src/tveng1.c:1527 src/tveng1.c:1540
+#: src/interface.c:232 src/tveng1.c:1192 src/tveng1.c:1547 src/tveng1.c:1560
 #: src/tveng2.c:946
 msgid "Mute"
 msgstr "Silenzio"
@@ -358,11 +358,11 @@ msgstr "Nessun canale sintonizzato"
 msgid "No Audio"
 msgstr "Senza audio"
 
-#: src/zvbi.c:136 src/tveng1.c:1020
+#: src/zvbi.c:136 src/tveng1.c:1030
 msgid "Mono"
 msgstr "Mono"
 
-#: src/zvbi.c:137 src/tveng1.c:1021
+#: src/zvbi.c:137 src/tveng1.c:1031
 msgid "Stereo"
 msgstr "Stereo"
 
@@ -568,59 +568,64 @@ msgstr "Camera"
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr "Impossibile trovare zapping_setup_fb, controlla l'installazione"
 
-#: src/tveng.c:2174 src/tveng.c:2192
+#: src/tveng.c:2176 src/tveng.c:2194
 msgid "Filter"
 msgstr "Filtro"
 
-#: src/tveng.c:2210
+#: src/tveng.c:2212
 msgid "Colorkey"
 msgstr "Chiave di colore"
 
-#: src/tveng1.c:1022
+#: src/tveng1.c:1029
+#, fuzzy
+msgid "Automatic"
+msgstr "Guadagno automatico"
+
+#: src/tveng1.c:1032
 msgid "Alternate 1"
 msgstr "Alternativa 1"
 
-#: src/tveng1.c:1023
+#: src/tveng1.c:1033
 msgid "Alternate 2"
 msgstr "Alternativa 2"
 
-#: src/tveng1.c:1133 src/tveng2.c:927
+#: src/tveng1.c:1147 src/tveng2.c:927
 msgid "Brightness"
 msgstr "Luminosità"
 
-#: src/tveng1.c:1143 src/tveng2.c:930
+#: src/tveng1.c:1157 src/tveng2.c:930
 msgid "Hue"
 msgstr "Tonalità"
 
-#: src/tveng1.c:1153
+#: src/tveng1.c:1167
 msgid "Colour"
 msgstr "Colore"
 
-#: src/tveng1.c:1163 src/tveng2.c:928
+#: src/tveng1.c:1177 src/tveng2.c:928
 msgid "Contrast"
 msgstr "Contrasto"
 
-#: src/tveng1.c:1191 src/tveng2.c:945
+#: src/tveng1.c:1205 src/tveng2.c:945
 msgid "Volume"
 msgstr "Volume"
 
-#: src/tveng1.c:1203 src/tveng2.c:952
+#: src/tveng1.c:1217 src/tveng2.c:952
 msgid "Bass"
 msgstr "Bassi"
 
-#: src/tveng1.c:1215 src/tveng2.c:950
+#: src/tveng1.c:1229 src/tveng2.c:950
 msgid "Treble"
 msgstr "Alti"
 
-#: src/tveng1.c:1230 src/tveng2.c:948
+#: src/tveng1.c:1244 src/tveng2.c:948
 msgid "Balance"
 msgstr "Bilanciamento"
 
-#: src/tveng1.c:1243
+#: src/tveng1.c:1257
 msgid "Audio Decoding"
 msgstr "Decodifica audio"
 
-#: src/tveng1.c:1663
+#: src/tveng1.c:1683
 msgid "There are no tuners for the active input"
 msgstr "Non ci sono sintonizzatori per l'ingresso attivo"
 
