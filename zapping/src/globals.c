@@ -11,6 +11,7 @@ gint			disable_preview = FALSE;
 gint			disable_xv = FALSE;
 /* Whether the device can be attached as XV */
 gboolean		xv_present = FALSE;
+/* XXX should be properly typed XvPortID xv_overlay_port = None;*/
 gint			xv_overlay_port = -1;
 GtkWidget		*main_window = NULL;
 /* Will be TRUE if when quitting we were fullscreen */
