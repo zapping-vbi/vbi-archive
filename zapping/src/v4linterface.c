@@ -713,9 +713,9 @@ z_set_main_title	(tveng_tuned_channel	*channel,
       || channel->name || default_name)
     buffer = substitute_keywords(g_strdup(zcg_char(NULL, "title_format")),
 				 channel, default_name);
-  if (buffer && *buffer)
+  if (buffer && *buffer && main_window)
     gtk_window_set_title(GTK_WINDOW(main_window), buffer);
-  else
+  else if (main_window)
     gtk_window_set_title(GTK_WINDOW(main_window), "Zapping");
 
   g_free(buffer);
