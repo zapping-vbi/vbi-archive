@@ -1,3 +1,12 @@
+10.03.2002	zapping-Bugs-527984 <mschimek@users.sf.net>
+
+	* src/tveng1.c: Added mmap PROT_READ | PROT_WRITE for
+	  bttv 0.8.x.
+	* src/tveng2.c: Added mmap PROT_READ | PROT_WRITE for
+	  bttv 0.8.x.
+	* src/audio.c: Missing LIBZVBI conditional around
+	  osd_render_sgml().
+	* src/osd.c: Added dummy osd_render_sgml(), just in case.
 
 08.03.2002	zapping_setup_fb <mschimek@users.sf.net>
 

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test.c,v 1.2 2002-02-25 06:22:20 mschimek Exp $
+ * $Id: rte_test.c,v 1.3 2002-03-10 07:22:29 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -213,7 +213,8 @@ init_video(const char * cap_dev, int * width, int * height)
 		ASSERT("query capture buffer #%d", ioctl(fd, VIDIOC_QUERYBUF, &vbuf) == 0,
 			num_buffers);
 
-		p = mmap(NULL, vbuf.length, PROT_READ, MAP_SHARED, fd, vbuf.offset);
+		/* bttv 0.8.x wants PROT_WRITE */
+		p = mmap(NULL, vbuf.length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, vbuf.offset);
 
 		buffers[num_buffers] = p;
 

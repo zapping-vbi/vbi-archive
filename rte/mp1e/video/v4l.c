@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.18 2002-02-25 06:22:20 mschimek Exp $ */
+/* $Id: v4l.c,v 1.19 2002-03-10 07:22:15 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -375,7 +375,8 @@ v4l_init(rte_video_stream_params *par)
 
 		printv(2, "Mapping capture buffers\n");
 
-		video_buf = mmap(NULL, gb_buffers.size, PROT_READ,
+		/* bttv 0.8.x wants PROT_WRITE */
+		video_buf = mmap(NULL, gb_buffers.size, PROT_READ | PROT_WRITE,
 				 MAP_SHARED, fd, 0);
 
 		ASSERT("map capture buffers from %s",

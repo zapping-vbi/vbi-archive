@@ -1,6 +1,6 @@
 Name: zapping
 Version: @VERSION@
-Release: 1
+Release: 2
 Summary: a TV viewer for Gnome
 Copyright: GPL
 Group: Applications/Multimedia
@@ -66,6 +66,9 @@ rm -rf %{buildroot}
 %{prefix}/man/man1/*
 
 %changelog
+* Sun Mar 10 2002 Michael H. Schimek <mschimek@users.sf.net>
+- Picked up incorrect dependency on librte-0.4cvs, corrected.
+
 * Sat Mar 9 2002 Michael H. Schimek <mschimek@users.sf.net>
 - Packager changed
 

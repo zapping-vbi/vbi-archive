@@ -354,9 +354,11 @@ volume_incr_cmd				(GtkWidget *	widget,
 
   zcs_int(cur, "record_volume");
 
+#ifdef HAVE_LIBZVBI
   /* NLS: Record volume */
   osd_render_sgml(NULL, _("<blue>%3d %%</blue>"),
 		  (cur - min) * 100 / range);
+#endif
 
   return TRUE;
 }

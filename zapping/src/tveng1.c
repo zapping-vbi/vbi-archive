@@ -1779,11 +1779,17 @@ tveng1_start_capturing(tveng_device_info * info)
 
   t_assert (p_info->mmbuf.frames > 0);
 
-  p_info -> mmaped_data = (char*)mmap(0, p_info->mmbuf.size,
-				      PROT_READ, MAP_SHARED,
-				      info->fd, 0);
+  /* bttv 0.8.x wants PROT_WRITE although AFAIK we don't. */
+  p_info->mmaped_data = (char *) mmap (0, p_info->mmbuf.size,
+				       PROT_READ | PROT_WRITE,
+				       MAP_SHARED, info->fd, 0);
 
-  if (p_info->mmaped_data == ((char*)-1))
+  if (p_info->mmaped_data == (char *) -1)
+    p_info->mmaped_data = (char *) mmap (0, p_info->mmbuf.size,
+					 PROT_READ, MAP_SHARED,
+					 info->fd, 0);
+
+  if (p_info->mmaped_data == (char *) -1)
     {
       info->tveng_errno = errno;
       t_error("mmap()", info);

@@ -1467,4 +1467,15 @@ shutdown_osd(void)
   osd_model = NULL;
 }
 
-#endif /* HAVE_LIBZVBI */
+#else /* !HAVE_LIBZVBI */
+
+/* just in case */
+void
+osd_render_sgml		(void (*timeout_cb)(gboolean),
+			 const char *string, ...)
+{
+  if (timeout_cb)
+    timeout_cb(FALSE);
+}
+
+#endif /* !HAVE_LIBZVBI */

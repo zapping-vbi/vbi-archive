@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.13 2002-02-25 06:22:20 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.14 2002-03-10 07:22:15 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -570,6 +570,7 @@ v4l2_init(rte_video_stream_params *par)
 		ASSERT("query capture buffer #%d",
 			IOCTL(fd, VIDIOC_QUERYBUF, &vbuf) == 0, i);
 
+		/* bttv 0.8.x wants PROT_WRITE */
 		p = mmap(NULL, vbuf.length, PROT_READ | PROT_WRITE,
 			 MAP_SHARED, fd, vbuf.offset);
 

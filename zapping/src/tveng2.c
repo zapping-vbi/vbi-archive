@@ -1525,18 +1525,27 @@ tveng2_start_capturing(tveng_device_info * info)
 	  t_error("VIDIOC_QUERYBUF", info);
 	  return -1;
 	}
+
+      /* bttv 0.8.x wants PROT_WRITE although AFAIK we don't. */
       p_info->buffers[i].vmem =
-	mmap(0, p_info->buffers[i].vidbuf.length,
-	     PROT_READ,
-	     MAP_SHARED, info->fd, 
-	     p_info->buffers[i].vidbuf.offset);
-      if ((int)p_info->buffers[i].vmem == -1)
+	mmap (0, p_info->buffers[i].vidbuf.length,
+	      PROT_READ | PROT_WRITE,
+	      MAP_SHARED, info->fd,
+	      p_info->buffers[i].vidbuf.offset);
+
+      if (p_info->buffers[i].vmem == (void *) -1)
+	p_info->buffers[i].vmem =
+	  mmap(0, p_info->buffers[i].vidbuf.length,
+	       PROT_READ, MAP_SHARED, info->fd, 
+	       p_info->buffers[i].vidbuf.offset);
+
+      if (p_info->buffers[i].vmem == (void *) -1)
 	{
 	  info->tveng_errno = errno;
 	  t_error("mmap()", info);
 	  return -1;
 	}
-      
+
 	/* Queue the buffer */
       if (p_tveng2_qbuf(i, info) == -1)
 	return -1;
