@@ -167,7 +167,7 @@ on_vbi_prefs_changed		(const gchar *key,
     }
   else
     {
-      printv("VBI enabled, removing GUI items\n");
+      printv("VBI enabled, showing GUI items\n");
       gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
 			       TRUE);
       gtk_widget_show(lookup_widget(main_window, "separador5"));
@@ -269,10 +269,10 @@ on_trigger_clicked			(gpointer	ignored,
 
     case VBI_LINK_LID:
     case VBI_LINK_TELEWEB:
+    case VBI_LINK_MESSAGE:
       /* ignore */
       break;
-
-      /* FIXME: _MESSAGE? */
+      
     default:
       ShowBox("Unhandled trigger type %d, please contact the maintainer",
 	      GNOME_MESSAGE_BOX_WARNING, trigger->type);
@@ -403,6 +403,10 @@ acknowledge_trigger			(vbi_link	*link)
       buffer = g_strdup_printf(_("%s: TTX Page %x"), link->name,
 			       link->page);
       set_tooltip(button, _("Open this with Zapzilla"));
+      break;
+    case VBI_LINK_MESSAGE:
+      buffer = g_strdup_printf(_("Message: %s"), link->name);
+      gtk_widget_set_sensitive(button, FALSE);
       break;
     default:
       ShowBox("Unhandled link type %d, please contact the maintainer",

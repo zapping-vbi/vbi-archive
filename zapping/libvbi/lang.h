@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.9 2001-03-22 08:28:47 mschimek Exp $ */
+/* $Id: lang.h,v 1.10 2001-04-27 20:53:54 garetxe Exp $ */
 
 #ifndef LANG_H
 #define LANG_H
@@ -171,4 +171,4 @@ extern int		glyph_iconv(iconv_t cd, int glyph, int gfx_substitute);
 #endif
 #endif
 
-#endif LANG_H
+#endif /* LANG_H */

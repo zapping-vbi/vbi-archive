@@ -294,7 +294,7 @@ int main(int argc, char * argv[])
       &command,
       0,
       N_("Execute the given command and exit"),
-      NULL
+      N_("CMD")
     },
     {
       NULL,
@@ -310,7 +310,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.103 2001-04-24 23:56:13 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.104 2001-04-27 20:53:54 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -712,12 +712,6 @@ static void shutdown_zapping(void)
   printv(" ttxview");
   shutdown_ttxview();
 
-  /*
-   * Shuts down the OSD info
-   */
-  printv(" osd");
-  shutdown_osd();
-
   /* Shut down vbi */
   printv(" vbi");
   shutdown_zvbi();
@@ -731,6 +725,12 @@ static void shutdown_zapping(void)
    */
   printv(" overlay");
   shutdown_overlay();
+
+  /*
+   * Shuts down the OSD info
+   */
+  printv(" osd");
+  shutdown_osd();
 
   /*
    * Shuts down the capture engine

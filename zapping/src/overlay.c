@@ -465,6 +465,7 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 void
 overlay_stop(tveng_device_info *info)
 {
+  g_message("overlay shutdown!");
   gtk_signal_disconnect_by_func(GTK_OBJECT(tv_info.main_window),
 				GTK_SIGNAL_FUNC(on_main_overlay_event),
 				NULL);

@@ -87,8 +87,9 @@ static void UpdateCoords(GdkWindow * window)
   zcs_int(y, "y");
   zcs_int(w, "w");
   zcs_int(h, "h");
-  zconf_set_integer(tveng_stop_everything(main_info),
+  zconf_set_integer(main_info->current_mode,
 		    "/zapping/options/main/capture_mode");
+  zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
 }
 
 void
