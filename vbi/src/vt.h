@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.2 2003-05-02 10:43:23 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.3 2003-06-16 06:01:47 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
@@ -437,19 +437,52 @@ extern void		vbi_teletext_set_level(vbi_decoder *vbi, int level);
  * @addtogroup Cache
  * @{
  */
+typedef enum {
+	VBI_HEADER_ONLY		= 1 << 0,
+	VBI_41_COLUMNS		= 1 << 1,
+	VBI_NAVIGATION		= 1 << 2,
+	VBI_HYPERLINKS		= 1 << 3,
+	VBI_PDC_LINKS		= 1 << 4,
+} vbi_format_flags;
+
 extern vbi_bool		vbi_fetch_vt_page(vbi_decoder *vbi, vbi_page *pg,
-					  vbi_pgno pgno, vbi_subno subno,
-					  vbi_wst_level max_level, int display_rows,
-					  vbi_bool navigation);
+		  		vbi_pgno		pgno,
+				vbi_subno		subno,
+				vbi_wst_level		max_level,
+					  vbi_format_flags	flags);
+
 extern int		vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf);
 /** @} */
 /**
  * @addtogroup Event
  * @{
  */
-extern void		vbi_resolve_link(vbi_page *pg, int column, int row,
-					 vbi_link *ld);
-extern void		vbi_resolve_home(vbi_page *pg, vbi_link *ld);
+extern vbi_bool
+vbi_page_hyperlink		(const vbi_page *	pg,
+				 vbi_link *		ld,
+				 unsigned int		column,
+				 unsigned int		row);
+extern vbi_bool
+vbi_page_nav_enum		(const vbi_page *	pg,
+				 vbi_link *		ld,
+				 unsigned int		index);
+static_inline void
+vbi_page_home_link		(const vbi_page *	pg,
+				 vbi_link *		ld)
+{
+	vbi_page_nav_enum (pg, ld, 5);
+}
+#warning
+typedef struct _vbi_pdc_preselection vbi_pdc_preselection;
+extern vbi_bool
+vbi_page_pdc_link		(const vbi_page *	pg,
+				 vbi_pdc_preselection *	pl,
+				 unsigned int		column,
+				 unsigned int		row);
+extern vbi_bool
+vbi_page_pdc_enum		(const vbi_page *	pg,
+				 vbi_pdc_preselection *	pl,
+				 unsigned int		index);
 /** @} */
 
 /* Private */
@@ -469,18 +502,11 @@ extern void		vbi_decode_vps(vbi_decoder *vbi, uint8_t *p);
 
 /* teletext.c */
 
-/* to do */
-typedef enum {
-	VBI_VT_HEADER_ONLY	= (1 << 0),
-	VBI_VT_41_COLUMNS	= (1 << 1),
-	VBI_VT_SMART_LINKS	= (1 << 2),
-	VBI_VT_VPT_LINKS	= (1 << 3),
-	VBI_VT_NAVIGATION	= (1 << 4),
-	VBI_VT_FAKE_FLOF	= (1 << 5), /* when links but no row 25 */
-} vbi_vt_flags;
-
-extern vbi_bool		vbi_format_vt_page(vbi_decoder *, vbi_page *,
-					   const vt_page *, vbi_wst_level max_level,
-					   int display_rows, vbi_bool navigation);
+extern int
+vbi_format_vt_page		(vbi_decoder *vbi,
+				 vbi_page *xpg,
+				 const vt_page *xvtp,
+				 vbi_wst_level		max_level,
+				 vbi_format_flags	flags);
 
 #endif
