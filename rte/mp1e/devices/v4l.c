@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.3 2002-08-27 02:43:15 mschimek Exp $ */
+/* $Id: v4l.c,v 1.4 2002-09-03 22:40:32 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -367,7 +367,9 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 		printv(2, "VIDICGMBUF failed, using read interface\n");
 
 		use_mmap = 0;
-#if 1 /* works? */
+
+#if 1 /* works? Not with bttv 0.7. */
+
 		/* Set capture format and dimensions */
 
 		CLEAR(&vpict);
