@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.4 2004-12-11 11:46:21 mschimek Exp $ */
+/* $Id: image_format.h,v 1.5 2005-01-08 14:40:54 mschimek Exp $ */
 
 #ifndef __ZTV_IMAGE_FORMAT_H__
 #define __ZTV_IMAGE_FORMAT_H__
@@ -28,42 +28,31 @@
 TV_BEGIN_DECLS
 
 typedef struct {
-	/* Image width in pixels, for planar formats this refers to
+	/* Image width in pixels. For planar formats this refers to
 	   the largest plane. For YUV formats this must be a multiple
 	   of 1 << tv_pixel_format.uv_hscale. */
 	unsigned int		width;
 
-	/* Image height in pixels, for planar formats this refers to
+	/* Image height in pixels. For planar formats this refers to
 	   the largest plane. For YUV formats this must be a multiple
 	   of 1 << tv_pixel_format.uv_vscale. */
 	unsigned int		height;
 
-	/* For packed formats bytes_per_line >= (width * tv_pixel_format
-	   .bits_per_pixel + 7) / 8. For planar formats this refers to
-	   the Y plane only, with implied y_size = bytes_per_line * height. */
-	unsigned int		bytes_per_line;
+	/* Offset in bytes from the buffer start to the top left pixel
+	   of the first, second, third and fourth plane. */
+	unsigned int		offset[4];
 
-	/* For planar formats only, refers to the U and V plane. */
-	unsigned int		uv_bytes_per_line;
+	/* Bytes per line of the first, second, third and fourth plane.
+	   Must be bytes_per_line[i] >= (plane width
+	   * bits per pixel + 7) / 8. */
+	unsigned int		bytes_per_line[4];
 
-/* ATTENTION [u_|v_]offset and [uv_]bytes_per_line aren't
-   fully supported yet, don't use them. */
-
-	/* For packed formats the image offset in bytes from the buffer
-	   start. For planar formats this refers to the Y plane. */
-	unsigned int		offset;
-
-	/* For planar formats only, the byte offset of the U and V
-	   plane from the start of the buffer. */
-	unsigned int		u_offset;
-	unsigned int		v_offset;
-
-	/* Buffer size. For packed formats size >= offset + height
-	   * bytes_per_line. For planar formats size >=
-	   MAX (offset + y_size, u_offset + uv_size, v_offset + uv_size). */
+	/* Buffer size. All planes must fit within this size:
+	   offset[i] + (plane height - 1) * bytes_per_line[i]
+	   + (plane width * bits per pixel + 7) / 8 <= size. */
 	unsigned int		size;
 
-	tv_pixfmt		pixfmt;
+	const tv_pixel_format *	pixel_format;
 	tv_colspc		colspc;
 } tv_image_format;
 
@@ -87,6 +76,14 @@ extern void
 tv_memcpy			(void *			dst,
 				 const void *		src,
 				 size_t			n_bytes);
+extern tv_bool
+tv_copy_image			(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format);
+extern void *
+tv_new_image			(const void *		src_image,
+				 const tv_image_format *src_format);
 
 TV_END_DECLS
 
