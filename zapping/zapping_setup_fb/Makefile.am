@@ -48,4 +48,5 @@ zapping_setup_fb_LDADD = $(X_LIBS) \
 
 zsfb.capps:
 	echo USER=root >$@
+	echo SESSION=TRUE >>$@
 	echo PROGRAM=$(sbindir)/zapping_setup_fb >>$@
