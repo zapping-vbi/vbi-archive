@@ -31,8 +31,8 @@
 #include "interface.h"
 #include "zconf.h"
 
-static gchar *
-z_keyval_name				(guint keyval)
+static const gchar *
+z_keyval_name			(guint			keyval)
 {
   switch (keyval)
     {
@@ -66,20 +66,20 @@ z_keyval_name				(guint keyval)
  * g_free(). 
  **/
 gchar *
-z_key_name				(z_key key)
+z_key_name			(z_key			key)
 {
-  gchar *name;
+  const gchar *name;
 
   name = z_keyval_name (gdk_keyval_to_lower (key.key));
 
   if (!name)
     return NULL;
 
-  return g_strdup_printf("%s%s%s%s",
-			 (key.mask & GDK_CONTROL_MASK) ? _("Ctrl+") : "",
-			 (key.mask & GDK_MOD1_MASK) ? _("Alt+") : "",
-			 (key.mask & GDK_SHIFT_MASK) ? _("Shift+") : "",
-			 name);
+  return g_strconcat ((key.mask & GDK_CONTROL_MASK) ? _("Ctrl+")  : "",
+		      (key.mask & GDK_MOD1_MASK)    ? _("Alt+")	  : "",
+		      (key.mask & GDK_SHIFT_MASK)   ? _("Shift+") : "",
+		      name,
+		      NULL);
 }
 
 /**
@@ -92,17 +92,17 @@ z_key_name				(z_key key)
  * A z_key, representing GDK_VoidSymbol if the name is invalid.
  **/
 z_key
-z_key_from_name				(const gchar *name)
+z_key_from_name			(const gchar *		name)
 {
   struct {
     gchar *			str;
     guint			mask;
   } modifiers[3] = {
-    { N_("Ctrl+"),	GDK_CONTROL_MASK },
-    { N_("Alt+"),	GDK_MOD1_MASK },
-    { N_("Shift+"),	GDK_SHIFT_MASK }
+    { N_("Ctrl+"),  GDK_CONTROL_MASK },
+    { N_("Alt+"),   GDK_MOD1_MASK },
+    { N_("Shift+"), GDK_SHIFT_MASK }
   };
-  const gint num_modifiers = sizeof(modifiers) / sizeof(*modifiers);
+  const gint num_modifiers = G_N_ELEMENTS (modifiers);
   z_key key;
 
   key.mask = 0;
@@ -116,7 +116,8 @@ z_key_from_name				(const gchar *name)
 	str = _(modifiers[i].str);
 	len = strlen (str);
 
-	if (g_ascii_strncasecmp(name, str, len) == 0)
+#warning utf8
+	if (g_ascii_strncasecmp (name, str, len) == 0)
 	  break;
       }
 
@@ -144,12 +145,12 @@ z_key_from_name				(const gchar *name)
  * @path: 
  * 
  * Similar to other zconf_create_.. functions for z_key types.
- * Give a unique path like ZCONF_DOMAIN "/foo/bar/accel".
+ * Give an absolute path like ZCONF_DOMAIN "/foo/bar/accel".
  **/
 void
-zconf_create_z_key			(z_key		key,
-					 const gchar * 	desc,
-					 const gchar *	path)
+zconf_create_z_key		(z_key			key,
+				 const gchar *	 	desc,
+				 const gchar *		path)
 {
   gchar *s;
 
@@ -162,7 +163,7 @@ zconf_create_z_key			(z_key		key,
   if (zconf_error ())
     return;
 
-  s = g_strjoin (NULL, path, "_mask", NULL);
+  s = g_strconcat (path, "_mask", NULL);
   zconf_create_integer ((gint) key.mask, NULL, s);
   g_free (s);
 }
@@ -173,41 +174,41 @@ zconf_create_z_key			(z_key		key,
  * @path: 
  **/
 void
-zconf_set_z_key				(z_key		key,
-					 const gchar *	path)
+zconf_set_z_key			(z_key			key,
+				 const gchar *		path)
 {
   gchar *s;
 
   g_assert(path != NULL);
 
-  s = g_strjoin (NULL, path, "_key", NULL);
+  s = g_strconcat (path, "_key", NULL);
   zconf_set_integer ((gint) key.key, s);
   g_free (s);
 
   if (zconf_error())
     return;
 
-  s = g_strjoin (NULL, path, "_mask", NULL);
+  s = g_strconcat (path, "_mask", NULL);
   zconf_set_integer ((gint) key.mask, s);
   g_free (s);
 }
 
 z_key
-zconf_get_z_key				(z_key *	keyp,
-					 const gchar *	path)
+zconf_get_z_key			(z_key *		keyp,
+				 const gchar *		path)
 {
   z_key key;
   gchar *s;
 
   g_assert(path != NULL);
 
-  s = g_strjoin (NULL, path, "_key", NULL);
+  s = g_strconcat (path, "_key", NULL);
   zconf_get_integer ((gint *) &key.key, s);
   g_free (s);
 
   if (!zconf_error())
     {
-      s = g_strjoin (NULL, path, "_mask", NULL);
+      s = g_strconcat (path, "_mask", NULL);
       zconf_get_integer ((gint *) &key.mask, s);
       g_free (s);
     }
@@ -223,15 +224,54 @@ zconf_get_z_key				(z_key *	keyp,
   return key;
 }
 
-/* Key entry dialog */
+/*
+ *  Generic key entry dialog
+ */
 
-struct z_key_entry {
-  GtkWidget *			hbox;
-  GtkWidget *			ctrl;
-  GtkWidget *			alt;
-  GtkWidget *			shift;
-  GtkWidget *			entry;
-};
+typedef struct {
+  GtkWidget *		hbox;
+  GtkWidget *		ctrl;
+  GtkWidget *		alt;
+  GtkWidget *		shift;
+  GtkWidget *		entry;
+} z_key_entry;
+
+static inline z_key_entry *
+get_z_key_entry			(GtkWidget *		hbox)
+{
+  z_key_entry *ke = g_object_get_data (G_OBJECT (hbox), "z_key_entry");
+
+  g_assert (ke != NULL);
+
+  return ke;
+}
+
+/**
+ * z_key_entry_entry:
+ * @hbox:
+ * 
+ * Returns a pointer to the text entry of the z_key_entry, to
+ * connect to the "changed" signal. (We can't emit "changed" on
+ * a hbox, or can we?)
+ **/
+GtkWidget *
+z_key_entry_entry		(GtkWidget *		hbox)
+{
+  z_key_entry *ke = get_z_key_entry (hbox);
+
+  return ke->entry;
+}
+
+static void
+on_modifier_toggled		(GtkToggleButton *	togglebutton,
+				 gpointer		user_data)
+{
+  z_key_entry *ke = user_data;
+  gint pos = 0;
+
+  /* Emit "changed" signal */
+  gtk_editable_insert_text (GTK_EDITABLE (ke->entry), "", 0, &pos);
+}
 
 /**
  * z_key_entry_set_key:
@@ -242,15 +282,11 @@ struct z_key_entry {
  * GDK_VoidSymbol the key name will be blank and all modifiers off.
  **/
 void
-z_key_entry_set_key			(GtkWidget	*hbox,
-					 z_key		key)
+z_key_entry_set_key		(GtkWidget *		hbox,
+				 z_key			key)
 {
-  struct z_key_entry *ke;
-  gchar *name;
-
-  ke = g_object_get_data (G_OBJECT (hbox), "z_key_entry");
-
-  g_assert(ke != NULL);
+  z_key_entry *ke = get_z_key_entry (hbox);
+  const gchar *name;
 
   name = z_keyval_name (gdk_keyval_to_lower (key.key));
 
@@ -279,15 +315,11 @@ z_key_entry_set_key			(GtkWidget	*hbox,
  * A z_key.
  **/
 z_key
-z_key_entry_get_key			(GtkWidget	*hbox)
+z_key_entry_get_key		(GtkWidget *		hbox)
 {
-  struct z_key_entry *ke;
+  z_key_entry *ke = get_z_key_entry (hbox);
   const gchar *name;
   z_key key;
-
-  ke = g_object_get_data (G_OBJECT (hbox), "z_key_entry");
-
-  g_assert(ke != NULL);
 
   name = gtk_entry_get_text (GTK_ENTRY (ke->entry));
   key.key = gdk_keyval_from_name (name);
@@ -309,15 +341,16 @@ z_key_entry_get_key			(GtkWidget	*hbox)
 #include "keysyms.h"
 
 static gboolean
-on_key_press				(GtkWidget *	dialog,
-					 GdkEventKey *	event,
-					 gpointer	user_data)
+on_key_press			(GtkWidget *		dialog,
+				 GdkEventKey *		event,
+				 gpointer		user_data)
 {
   const guint mask = GDK_CONTROL_MASK | GDK_MOD1_MASK | GDK_SHIFT_MASK;
-  struct z_key_entry *ke = user_data;
+  z_key_entry *ke = user_data;
   GtkWidget *widget;
 
   widget = lookup_widget (dialog, "togglebutton1");
+
   if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget)))
     switch (event->keyval)
       {
@@ -348,7 +381,7 @@ on_key_press				(GtkWidget *	dialog,
 	z_key_entry_set_key (ke->hbox, key);
 
 	/* OK means that we want to use the currently selected row,
-	   so emit accept instead*/
+	   so emit accept instead */
 	gtk_dialog_response (GTK_DIALOG (dialog),
 			     GTK_RESPONSE_ACCEPT);      
 
@@ -359,10 +392,10 @@ on_key_press				(GtkWidget *	dialog,
 }
 
 static void
-on_key_table_clicked			(GtkWidget *	w,
-					 gpointer	user_data)
+on_key_table_clicked		(GtkWidget *		w,
+				 gpointer		user_data)
 {
-  struct z_key_entry *ke = user_data;
+  z_key_entry *ke = user_data;
   GtkWidget *dialog = build_widget("choose_key", NULL);
   GtkTreeView *key_view =
     GTK_TREE_VIEW(lookup_widget(dialog, "key_view"));
@@ -442,6 +475,13 @@ on_key_table_clicked			(GtkWidget *	w,
   gtk_widget_destroy(dialog);
 }
 
+#define MOD_TOGGLE(object, label)					\
+  ke->object = gtk_check_button_new_with_label (_(label));		\
+  gtk_box_pack_start (GTK_BOX (ke->hbox), ke->object, FALSE, FALSE, 3);	\
+  gtk_widget_show (ke->object);						\
+  g_signal_connect (G_OBJECT (ke->object), "toggled",			\
+		    G_CALLBACK (on_modifier_toggled), ke);
+
 /**
  * z_key_entry_new:
  * 
@@ -453,10 +493,10 @@ on_key_table_clicked			(GtkWidget *	w,
  * GtkWidget pointer, gtk_destroy() as usual.
  **/
 GtkWidget *
-z_key_entry_new				(void)
+z_key_entry_new			(void)
 {
   GtkWidget *button;
-  struct z_key_entry *ke;
+  z_key_entry *ke;
 
   ke = g_malloc (sizeof (*ke));
 
@@ -465,17 +505,9 @@ z_key_entry_new				(void)
 			  (GDestroyNotify) g_free);
   gtk_widget_show (ke->hbox);
 
-  ke->ctrl = gtk_check_button_new_with_label (_("Ctrl"));
-  gtk_box_pack_start (GTK_BOX (ke->hbox), ke->ctrl, FALSE, FALSE, 3);
-  gtk_widget_show (ke->ctrl);
-
-  ke->alt = gtk_check_button_new_with_label (_("Alt"));
-  gtk_box_pack_start (GTK_BOX (ke->hbox), ke->alt, FALSE, FALSE, 3);
-  gtk_widget_show (ke->alt);
-
-  ke->shift = gtk_check_button_new_with_label (_("Shift"));
-  gtk_box_pack_start (GTK_BOX (ke->hbox), ke->shift, FALSE, FALSE, 3);
-  gtk_widget_show (ke->shift);
+  MOD_TOGGLE (ctrl,  "Ctrl");
+  MOD_TOGGLE (alt,   "Alt");
+  MOD_TOGGLE (shift, "Shift");
 
   ke->entry = gtk_entry_new();
   gtk_box_pack_start (GTK_BOX (ke->hbox), ke->entry, TRUE, TRUE, 3);
@@ -498,19 +530,21 @@ typedef struct key_binding {
   struct key_binding *		next;
   z_key				key;
   gchar *			command;
+  gchar *			old_cmd;
 } key_binding;
 
 static key_binding *		kb_list = NULL;
 
 static void
-kb_delete				(key_binding *	kb)
+kb_delete			(key_binding *		kb)
 {
+  g_free (kb->old_cmd);
   g_free (kb->command);
   g_free (kb);
 }
 
 static void
-kb_flush				(void)
+kb_flush			(void)
 {
   key_binding *k;
 
@@ -522,8 +556,9 @@ kb_flush				(void)
 }
 
 static void
-kb_add					(z_key		key,
-					 const gchar *	command)
+kb_add				(z_key			key,
+				 const gchar *		command,
+				 const gchar *		old_cmd)
 {
   key_binding *kb, **kbpp;
 
@@ -538,6 +573,7 @@ kb_add					(z_key		key,
     {
       g_free (kb->command);
       kb->command = g_strdup (command);
+      kb->old_cmd = old_cmd ? g_strdup (old_cmd) : NULL;
     }
   else
     {
@@ -545,6 +581,7 @@ kb_add					(z_key		key,
       kb->next = NULL;
       kb->key = key;
       kb->command = g_strdup (command);
+      kb->old_cmd = old_cmd ? g_strdup (old_cmd) : NULL;
       *kbpp = kb;
     }
 }
@@ -582,35 +619,41 @@ static struct {
   const gchar *			command;
 } default_key_bindings[] = {
   /*
-   *  Historic Zapping key bindings. Note Ctrl+ is reserved
-   *  for Gnome shortcuts (exception Ctrl+S and +R), which are
-   *  all defined in zapping.glade.
+   *  Zapping default key bindings.
+   *
+   *  'Historic' entries where used in older versions. Eventually we
+   *  found Ctrl+Alt+ annoying, so new versions without qualifiers were
+   *  added. 'XawTV' entries are used by the ubiquitious XawTV viewer,
+   *  added for people switching to Zapping.
+   *
+   *  Note Ctrl+ is reserved for Gnome shortcuts (exception Ctrl+S and +R),
+   *  which are all defined in zapping.glade.
    */
-  { 0,			GDK_a,		"zapping.mute()" }, /* XawTV */
-  { CTRL + ALT,		GDK_c,		"zapping.toggle_mode('capture')" },
-  { 0,			GDK_c,		"zapping.toggle_mode('capture')" }, /* new */
+  { 0,			GDK_a,		"zapping.mute()" },			/* XawTV */
+  { CTRL + ALT,		GDK_c,		"zapping.toggle_mode('capture')" },	/* historic */
+  { 0,			GDK_c,		"zapping.toggle_mode('capture')" },
   { SHIFT,		GDK_c,		"zapping.ttx_open_new()" },
-  { 0,			GDK_f,		"zapping.toggle_mode('fullscreen')" }, /* new */
-  { 0,			GDK_g,		"zapping.quickshot('ppm')" }, /* XawTV */
+  { 0,			GDK_f,		"zapping.toggle_mode('fullscreen')" },
+  { 0,			GDK_g,		"zapping.quickshot('ppm')" },		/* XawTV */
   { 0,			GDK_h,		"zapping.ttx_hold()" },
   { SHIFT,		GDK_h,		"zapping.ttx_hold()" },
-  { 0,			GDK_j,		"zapping.quickshot('jpeg')" }, /* XawTV */
-  { CTRL + ALT,		GDK_n,		"zapping.ttx_open_new()" },
-  { 0,			GDK_n,		"zapping.ttx_open_new()" }, /* new */
-  { CTRL + ALT,		GDK_o,		"zapping.toggle_mode('preview')" },
+  { 0,			GDK_j,		"zapping.quickshot('jpeg')" },		/* XawTV */
+  { CTRL + ALT,		GDK_n,		"zapping.ttx_open_new()" },		/* historic */
+  { 0,			GDK_n,		"zapping.ttx_open_new()" },
+  { CTRL + ALT,		GDK_o,		"zapping.toggle_mode('preview')" },	/* historic */
   { 0,			GDK_o,		"zapping.toggle_mode('preview')" },
-  { CTRL + ALT,		GDK_p,		"zapping.toggle_mode('preview')" },
-  { CTRL,		GDK_p,		"zapping.toggle_mode('preview')" },
-  { 0,			GDK_p,		"zapping.toggle_mode('preview')" }, /* new */
-  { 0,			GDK_q,		"zapping.quit()" }, /* XawTV */
+  { CTRL + ALT,		GDK_p,		"zapping.toggle_mode('preview')" },	/* historic */
+  { CTRL,		GDK_p,		"zapping.toggle_mode('preview')" },	/* historic */
+  { 0,			GDK_p,		"zapping.toggle_mode('preview')" },
+  { 0,			GDK_q,		"zapping.quit()" },			/* XawTV */
   { SHIFT,		GDK_r,		"zapping.ttx_reveal()" },
-  { 0,			GDK_r,		"zapping.record()" }, /* XawTV */
+  { 0,			GDK_r,		"zapping.record()" },			/* XawTV */
   { CTRL,		GDK_r,		"zapping.quickrec()" },
   { 0,			GDK_s,		"zapping.screenshot()" },
   { CTRL,		GDK_s,		"zapping.quickshot()" },
-  { CTRL + ALT,		GDK_t,		"zapping.switch_mode('teletext')" },
-  { 0,			GDK_t,		"zapping.switch_mode('teletext')" }, /* new */
-  { 0,			GDK_space,	"zapping.channel_up()" }, /* XawTV */
+  { CTRL + ALT,		GDK_t,		"zapping.switch_mode('teletext')" },	/* historic */
+  { 0,			GDK_t,		"zapping.switch_mode('teletext')" },
+  { 0,			GDK_space,	"zapping.channel_up()" },		/* XawTV */
   { 0,			GDK_question,	"zapping.ttx_reveal()" },
   { 0,			GDK_plus,	"zapping.volume_incr(+1)" },
   { 0,			GDK_minus,	"zapping.volume_incr(-1)" },
@@ -651,7 +694,7 @@ load_default_key_bindings		(void)
       key.key = default_key_bindings[i].key;
       key.mask = default_key_bindings[i].mask;
 
-      kb_add (key, default_key_bindings[i].command);
+      kb_add (key, default_key_bindings[i].command, NULL);
     }
 }
 
@@ -659,6 +702,7 @@ static void
 load_key_bindings			(void)
 {
   gchar *buffer;
+  gchar *cmd_txl;
   gchar *command;
   z_key key;
   gint i;
@@ -667,7 +711,9 @@ load_key_bindings			(void)
 
   for (i = 0;; i++)
     {
-      buffer = g_strdup_printf ("/zapping/options/main/keys/%d_cmd", i);
+      gboolean translated;
+
+      buffer = g_strdup_printf ("/zapping/options/main/keys/%d_cmd", i);      
       command = zconf_get_string (NULL, buffer);
       g_free (buffer);
 
@@ -679,11 +725,16 @@ load_key_bindings			(void)
 	  break;
 	}
 
+      cmd_txl = cmd_compatibility (command);
+      translated = (0 != strcmp (command, cmd_txl));
+
       buffer = g_strdup_printf ("/zapping/options/main/keys/%d", i);
       zconf_get_z_key (&key, buffer);
       g_free (buffer);
 
-      kb_add (key, command);
+      kb_add (key, cmd_txl, translated ? command : NULL);
+
+      g_free (cmd_txl);
     }
 }
 
@@ -700,7 +751,11 @@ save_key_bindings			(void)
       gchar *buffer;
 
       buffer = g_strdup_printf ("/zapping/options/main/keys/%d_cmd", i);
-      zconf_create_string (kb->command, NULL, buffer);
+      /* Save old style command for easier switch back to pre-0.7 versions. */
+      if (kb->old_cmd)
+	zconf_create_string (kb->old_cmd, NULL, buffer);
+      else
+	zconf_create_string (kb->command, NULL, buffer);
       g_free (buffer);
 
       buffer = g_strdup_printf ("/zapping/options/main/keys/%d", i);
@@ -893,7 +948,7 @@ apply					(GtkWidget *	page)
 			  KEY_NAME_COLUMN, &key,
 			  KEY_ACTION_COLUMN, &cmd,
 			  -1);
-      kb_add (z_key_from_name (key), cmd);
+      kb_add (z_key_from_name (key), cmd, NULL);
       g_free (key);
       g_free (cmd);
 
