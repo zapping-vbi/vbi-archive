@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.41 2000-12-15 23:26:46 garetxe Exp $ */
+/* $Id: rte.c,v 1.42 2000-12-16 00:27:50 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -114,7 +114,7 @@ wait_data(rte_context * context, int video)
 {
 	fifo * f;
 	buffer * b;
-	mucon * consumer; list *full;
+	mucon *consumer; list *full; coninfo *koninfo;
 	rteDataCallback * data_callback;
 	rteBufferCallback * buffer_callback;
 	rte_buffer rbuf;
@@ -134,7 +134,9 @@ wait_data(rte_context * context, int video)
 	}
 
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
-	query_consumer(f, &full, &consumer);
+	koninfo = query_consumer(f);
+	full = &koninfo->full;
+	consumer = &koninfo->consumer;
 
 	/* do we have an available buffer from the push interface? */
 	pthread_mutex_lock(&consumer->mutex);
