@@ -1,4 +1,11 @@
-4.1.2001	libvbi <mschimek@users.sourceforge.net>
+7.01.2001	options <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Added preliminary support for entering export
+	options.
+	* common/ure.c: Partial UTF16 regex implementation
+	* common/unicode.c: Unicode routines (requires -lunicode)
+
+4.01.2001	libvbi <mschimek@users.sourceforge.net>
 
 	* HTML export restored, enhanced, export filter enabled
 	* ASCII/ANSI export restored, enabled
@@ -6,11 +13,11 @@
 	* fixed a problem with ttxview subpage display
 	* modified toolbar, let's see what Iñaki sez ;-)
 
-3.1.2001	gui for export filters <garetxe@users.sourceforge.net>
+3.01.2001	gui for export filters <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: Export filters GUI. 
 
-2.1.2001	libvbi <mschimek@users.sourceforge.net>
+2.01.2001	libvbi <mschimek@users.sourceforge.net>
 
 	* fmt_page: returns boolean success now
 	* PPM export restored

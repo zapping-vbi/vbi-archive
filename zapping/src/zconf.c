@@ -158,8 +158,7 @@ zconf_init(const gchar * domain)
   if (home_dir == NULL)
     {
       buffer = g_strconcat(domain,
-/* For translators: This will be precceeded by the domain (program) name */
-			   _(" cannot determine your home dir"), NULL);
+			   " cannot determine your home dir", NULL);
       ShowBox(buffer, GNOME_MESSAGE_BOX_ERROR);
       g_free(buffer);
       return FALSE;
@@ -173,7 +172,7 @@ zconf_init(const gchar * domain)
       if (mkdir(buffer, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP |
 		S_IXGRP | S_IROTH | S_IXOTH) == -1)
 	{
-	  ShowBox(_("Cannot create config home dir, check your permissions"),
+	  ShowBox("Cannot create config home dir, check your permissions",
 		  GNOME_MESSAGE_BOX_ERROR);
 	  g_free(buffer);
 	  return FALSE;
@@ -181,7 +180,7 @@ zconf_init(const gchar * domain)
       config_dir = opendir(buffer);
       if (!config_dir)
 	{
-	  ShowBox(_("Cannot open config home dir, this is weird"),
+	  ShowBox("Cannot open config home dir, this is weird",
 		  GNOME_MESSAGE_BOX_ERROR);
 	  g_free(buffer);
 	  return FALSE;
@@ -274,8 +273,8 @@ gboolean zconf_close(void)
 
   if (xmlSaveFile(zconf_file, doc) == -1)
     {
-      ShowBox(_("Zapping cannot save configuration to disk\n"
-		"You should have write permissions to your home dir..."),
+      ShowBox("Zapping cannot save configuration to disk\n"
+	      "You should have write permissions to your home dir...",
 	      GNOME_MESSAGE_BOX_ERROR);
       return FALSE; /* Error */
     }
@@ -369,7 +368,7 @@ void zconf_set_integer(gint new_value, const gchar * path)
   if (key->type != ZCONF_TYPE_INTEGER)
     {
       if (key->type != ZCONF_TYPE_DIR)
-	g_warning(_("Changing the value of %s from %s to %s"),
+	g_warning("Changing the value of %s from %s to %s",
 		  path,
 		  zconf_type_string(key->type),
 		  zconf_type_string(ZCONF_TYPE_INTEGER));
@@ -425,8 +424,8 @@ void zconf_create_integer(gint new_value, const gchar * desc,
     }
 
   if (key -> type != ZCONF_TYPE_INTEGER)
-    g_warning(_("Trying to create %s as %s, but it existed before"
-		" as %s"),
+    g_warning("Trying to create %s as %s, but it existed before"
+		" as %s",
 	      path, zconf_type_string(ZCONF_TYPE_INTEGER),
 	      zconf_type_string(key -> type));
 
@@ -504,7 +503,7 @@ void zconf_set_string(gchar * new_value, const gchar * path)
   if (key->type != ZCONF_TYPE_STRING)
     {
       if (key->type != ZCONF_TYPE_DIR)
-	g_warning(_("Changing the value of %s from %s to %s"),
+	g_warning("Changing the value of %s from %s to %s",
 		  path,
 		  zconf_type_string(key->type),
 		  zconf_type_string(ZCONF_TYPE_STRING));
@@ -563,8 +562,8 @@ gboolean zconf_create_string(gchar * value, const gchar * desc,
     }
 
   if (key -> type != ZCONF_TYPE_STRING)
-    g_warning(_("Trying to create %s as %s, but it existed before"
-		" as %s"),
+    g_warning("Trying to create %s as %s, but it existed before"
+	      " as %s",
 	      path, zconf_type_string(ZCONF_TYPE_STRING),
 	      zconf_type_string(key -> type));
 
@@ -638,7 +637,7 @@ void zconf_set_boolean(gboolean new_value, const gchar * path)
   if (key->type != ZCONF_TYPE_BOOLEAN)
     {
       if (key->type != ZCONF_TYPE_DIR)
-	g_warning(_("Changing the value of %s from %s to %s"),
+	g_warning("Changing the value of %s from %s to %s",
 		  path,
 		  zconf_type_string(key->type),
 		  zconf_type_string(ZCONF_TYPE_BOOLEAN));
@@ -692,8 +691,8 @@ void zconf_create_boolean(gboolean new_value, const gchar * desc,
     }
 
   if (key -> type != ZCONF_TYPE_BOOLEAN)
-    g_warning(_("Trying to create %s as %s, but it existed before"
-		" as %s"),
+    g_warning("Trying to create %s as %s, but it existed before"
+	      " as %s",
 	      path, zconf_type_string(ZCONF_TYPE_BOOLEAN),
 	      zconf_type_string(key -> type));
 
@@ -766,7 +765,7 @@ void zconf_set_float(gfloat new_value, const gchar * path)
   if (key->type != ZCONF_TYPE_FLOAT)
     {
       if (key->type != ZCONF_TYPE_DIR)
-	g_warning(_("Changing the value of %s from %s to %s"),
+	g_warning("Changing the value of %s from %s to %s",
 		  path,
 		  zconf_type_string(key->type),
 		  zconf_type_string(ZCONF_TYPE_FLOAT));
@@ -820,8 +819,8 @@ void zconf_create_float(gfloat new_value, const gchar * desc,
     }
 
   if (key -> type != ZCONF_TYPE_FLOAT)
-    g_warning(_("Trying to create %s as %s, but it existed before"
-		" as %s"),
+    g_warning("Trying to create %s as %s, but it existed before"
+	      " as %s",
 	      path, zconf_type_string(ZCONF_TYPE_FLOAT),
 	      zconf_type_string(key -> type));
 
@@ -1009,19 +1008,19 @@ zconf_type_string(enum zconf_type type)
   switch (type)
     {
     case ZCONF_TYPE_INTEGER:
-      return _("Integer");
+      return "Integer";
     case ZCONF_TYPE_STRING:
-      return _("String");
+      return "String";
     case ZCONF_TYPE_FLOAT:
-      return _("Float");
+      return "Float";
     case ZCONF_TYPE_BOOLEAN:
-      return _("Boolean");
+      return "Boolean";
     case ZCONF_TYPE_DIR:
-      return _("Directory");
+      return "Directory";
     case ZCONF_TYPE_NONE:
-      return _("Undefined");
+      return "Undefined";
     default:
-      return _("Unknown");
+      return "Unknown";
     }
 }
 
@@ -1102,7 +1101,7 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
       g_free(name);
       g_free(node_string);
       g_free(description);
-      g_warning(_("Sorry, the especified type \"%s\" is unknown\n"),
+      g_warning("The specified type \"%s\" is unknown",
 		type);
       return;
     }
@@ -1113,11 +1112,12 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
   if (p_zconf_resolve(full_name, zconf_root))
     {
       /* It already exists, warn */
-      g_warning(_("Duplicated node in the config tree: %s"),
+      g_warning("Duplicated node in the config tree: %s",
 		full_name);
       g_free(name);
       g_free(full_name);
       g_free(node_string);
+      g_free(description);
       return;
     }
 
@@ -1133,7 +1133,11 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
 
   if ((!node_string) && (key_type != ZCONF_TYPE_DIR))
     {
-      g_warning(_("%s is empty, but it shouldn't be"), full_name);
+      g_free(new_key);
+      g_free(name);
+      g_free(full_name);
+      g_free(node_string);
+      g_free(description);      
       return;
     }
 
@@ -1310,7 +1314,7 @@ p_zconf_resolve(const gchar * key, struct zconf_key * starting_dir)
   while (key[0] == '/')
     {
       if (i > 0)
-	g_warning(_("Removing %d consecutive slashes, this shouldn't happen"),
+	g_warning("Removing %d consecutive slashes, this shouldn't happen",
 		  i+1);
       i++;
       key++;
@@ -1327,7 +1331,7 @@ p_zconf_resolve(const gchar * key, struct zconf_key * starting_dir)
 
   if (i == 255)
     {
-      g_warning(_("Path item too long: %s"), key);
+      g_warning("Path item too long: %s", key);
       return NULL;
     }
 
@@ -1388,7 +1392,7 @@ p_zconf_create(const gchar * key, struct zconf_key * starting_dir)
   while (key[0] == '/')
     {
       if (i > 0)
-	g_warning(_("Removing %d consecutive slashes, this shouldn't happen"), 
+	g_warning("Removing %d consecutive slashes, this shouldn't happen", 
 		  i+1);
       i++;
       key++;
@@ -1405,7 +1409,7 @@ p_zconf_create(const gchar * key, struct zconf_key * starting_dir)
 
   if (i == 255)
     {
-      g_warning(_("Path item too long: %s"), key);
+      g_warning("Path item too long: %s", key);
       return NULL;
     }
 
@@ -1419,7 +1423,7 @@ p_zconf_create(const gchar * key, struct zconf_key * starting_dir)
   /* The name of the starting dir should match the given one */
   if (strcasecmp(starting_dir->name, key_name))
     {
-      g_warning(_("%s isn't your domain name, zconf will exit now"),
+      g_warning("%s isn't your domain name, zconf will exit now",
 		key_name);
       g_assert_not_reached();
     }
@@ -1443,7 +1447,7 @@ p_zconf_create(const gchar * key, struct zconf_key * starting_dir)
 
   if (i == 255)
     {
-      g_warning(_("Path item too long: %s"), key);
+      g_warning("Path item too long: %s", key);
       return NULL;
     }
 

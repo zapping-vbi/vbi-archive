@@ -918,6 +918,35 @@ void export_ttx_page			(GtkWidget	*widget,
 
   if ((exp = export_open(fmt)))
     {
+      /* Configure */
+      if (exp->mod->options)
+	{
+	  gchar *prompt;
+	  buffer = g_strjoinv(",", exp->mod->options);
+	  prompt = g_strdup_printf(_("Options for %s filter: %s"), fmt,
+				   buffer);
+	  buffer2 = g_strconcat(ZCONF_DOMAIN, fmt, "_options", NULL);
+	  zconf_create_string("", "export_options", buffer2);
+	  g_free(buffer);
+	  buffer = Prompt(data->parent, _("Export options"),
+			  prompt, zconf_get_string(NULL, buffer2));
+	  if (buffer)
+	    {
+	      zconf_set_string(buffer, buffer2);
+	      g_free(buffer2);
+	      export_close(exp);
+	      buffer2 = g_strconcat(fmt, ",", buffer, NULL);
+	      if (!(exp = export_open(buffer2)))
+		{
+		  ShowBox("Options not valid, using defaults",
+			  GNOME_MESSAGE_BOX_WARNING);
+		  g_assert((exp = export_open(fmt)));
+		}
+	    }
+	  g_free(buffer2);
+	  g_free(buffer);
+	  g_free(prompt);
+	}
       filename =
 	export_mkname(exp, "Zapzilla-%p.%e",
 		      data->fmt_page->vtp, NULL);

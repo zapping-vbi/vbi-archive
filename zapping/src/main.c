@@ -246,7 +246,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.75 2001-01-05 19:16:13 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.76 2001-01-07 20:21:03 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -308,7 +308,8 @@ int main(int argc, char * argv[])
   D();
   /* try to run the auxiliary suid program */
   if (tveng_run_zapping_setup_fb(main_info) == -1)
-    g_message("zapping_setup_fb couldn't be run, overlay might not work");
+    g_message("Error while executing zapping_setup_fb,\n"
+	      "Overlay might not work:\n%s", main_info->error);
   D();
   free(main_info -> file_name);
   D();

@@ -1289,7 +1289,7 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
     {
       info->tveng_errno = errno;
       t_error_msg("WIFEXITED(status)", 
-		  _("zapping_setup_fb exited abnormally, check stderr"),
+		  "zapping_setup_fb exited abnormally, check stderr",
 		  info);
       return -1;
     }
@@ -1299,7 +1299,7 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
     case 1:
       info -> tveng_errno = -1;
       t_error_msg("case 1",
-		  _("zapping_setup_fb failed to set up the video"), info);
+		  "zapping_setup_fb failed to set up the video", info);
       return -1;
     case 2:
       info -> tveng_errno = -1;

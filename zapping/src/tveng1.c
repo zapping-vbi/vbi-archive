@@ -1735,15 +1735,13 @@ tveng1_stop_capturing(tveng_device_info * info)
   t_assert(info->current_mode == TVENG_CAPTURE_READ);
 
   /* Dequeue last buffer */
-  if (p_tveng1_dequeue(NULL, info) == -1)
-    return -1;
+  p_tveng1_dequeue(NULL, info);
 
   if (p_info -> mmaped_data != ((char*)-1))
     if (munmap(p_info->mmaped_data, p_info->mmbuf.size) == -1)
       {
 	info -> tveng_errno = errno;
 	t_error("munmap()", info);
-	return -1;
       }
 
   info->current_mode = TVENG_NO_CAPTURE;
