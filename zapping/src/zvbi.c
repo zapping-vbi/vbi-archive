@@ -131,13 +131,17 @@ static pthread_mutex_t clients_mutex; /* FIXME: A rwlock is better for
 /* Corresponding to enum vbi_audio_mode */
 gchar *zvbi_audio_mode_str[] =
 {
-  /* vbi audio mode */
+  /* TRANSLATORS: VBI audio mode */
   N_("No Audio"),
   N_("Mono"),
   N_("Stereo"),
   N_("Stereo Surround"),
   N_("Simulated Stereo"),
+  /* TRANSLATORS: Video description for the blind,
+     on a secondary audio channel. */
   N_("Video Descriptions"),
+  /* TRANSLATORS: Audio unrelated to the current
+     program. */
   N_("Non-program Audio"),
   N_("Special Effects"),
   N_("Data Service"),
@@ -188,6 +192,7 @@ decoding_thread (void *p)
 	fprintf (stderr, "I/O error in decoding thread, aborting.\n");
       break;
 */
+      continue;
     }
 
     pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, NULL);
@@ -587,7 +592,8 @@ on_trigger_clicked		(GtkWidget *		widget,
       gnome_url_show(trigger->url, &err);
       if (err)
 	{
-	  ShowBox (_("Cannot show %s:\n%s"), GTK_MESSAGE_ERROR,
+	  /* TRANSLATORS: "Cannot open <URL>" */
+	  ShowBox (_("Cannot open %s:\n%s"), GTK_MESSAGE_ERROR,
 	  trigger->url, err->message);
 	  g_error_free (err);
 	}
@@ -685,7 +691,9 @@ acknowledge_trigger			(vbi_link	*link)
     }
   else /* pixmaps not installed */
     {
-      button = gtk_button_new_with_label (_("Click me"));
+      /* click me, tsk tsk. */
+      /*      button = gtk_button_new_with_label (_("Click me"));*/
+      button = gtk_button_new_with_label ("  ");
     }
 
   /* FIXME: Show more fields (type, itv...)
@@ -2039,6 +2047,7 @@ vbi_gui_sensitive (gboolean on)
     "toolbar-teletext",
     "toolbar-subtitle",
     "new_ttxview",
+    "menu-subtitle",
     NULL
   };
   const gchar **sp;
