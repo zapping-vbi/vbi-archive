@@ -47,6 +47,7 @@
 #include "properties-handler.h"
 #include "xawtv.h"
 #include "subtitle.h"
+#include "capture.h"
 #include "remote.h"
 
 struct control_window;
@@ -337,7 +338,7 @@ on_control_menuitem_activate	(GtkMenuItem *		menuitem,
   struct control *c = user_data;
   gint value;
 
-  value = (gint) g_object_get_data (G_OBJECT (menuitem), "value");
+  value = z_object_get_int_data (G_OBJECT (menuitem), "value");
 
   tveng_set_control (c->ctrl, value, c->info);
 }
@@ -722,7 +723,8 @@ update_control_box		(tveng_device_info *	info)
 gboolean
 z_switch_video_input		(guint hash, tveng_device_info *info)
 {
-  const tv_video_line *l;
+  tv_video_line *l;
+  capture_mode old_mode;
 
   if (!(l = tv_video_input_by_hash (info, hash)))
     {
@@ -733,13 +735,29 @@ z_switch_video_input		(guint hash, tveng_device_info *info)
       return FALSE;
     }
 
+  old_mode = tv_get_capture_mode (info);
+  if (CAPTURE_MODE_READ == old_mode) {
+    if (!capture_stop ())
+      return FALSE;
+  }
+
   if (!tv_set_video_input (info, l))
     {
+      if (CAPTURE_MODE_READ == old_mode) {
+	capture_start (info, GTK_WIDGET (zapping->video));
+	tveng_start_capturing (info);
+      }
+
       ShowBox("Couldn't switch to video input %s\n%s",
 	      GTK_MESSAGE_ERROR,
 	      l->label, tv_get_errstr(info));
       return FALSE;
     }
+
+  if (CAPTURE_MODE_READ == old_mode) {
+    capture_start (info, GTK_WIDGET (zapping->video));
+    tveng_start_capturing (info);
+  }
 
   zmodel_changed(z_input_model);
 
@@ -749,7 +767,7 @@ z_switch_video_input		(guint hash, tveng_device_info *info)
 gboolean
 z_switch_audio_input		(guint hash, tveng_device_info *info)
 {
-  const tv_audio_line *l;
+  tv_audio_line *l;
 
   if (!(l = tv_audio_input_by_hash (info, hash)))
     {
@@ -776,7 +794,8 @@ z_switch_audio_input		(guint hash, tveng_device_info *info)
 gboolean
 z_switch_standard		(guint hash, tveng_device_info *info)
 {
-  const tv_video_standard *s;
+  tv_video_standard *s;
+  capture_mode old_mode;
   tv_bool r;
 #ifdef HAVE_LIBZVBI
   vbi_decoder *vbi;
@@ -805,7 +824,31 @@ z_switch_standard		(guint hash, tveng_device_info *info)
     }
 #endif
 
+  old_mode = tv_get_capture_mode (info);
+  if (CAPTURE_MODE_READ == old_mode)
+    {
+      if (!capture_stop ())
+	{
+#ifdef HAVE_LIBZVBI
+	  if (vbi)
+	    {
+	      const gchar *device;
+
+	      device = zconf_get_string (NULL,
+					 "/zapping/options/vbi/vbi_device");
+	      zvbi_open_device (device);
+	    }
+#endif
+	  return FALSE;
+	}
+    }
+
   r = tv_set_video_standard (info, s);
+
+  if (CAPTURE_MODE_READ == old_mode) {
+    capture_start (info, GTK_WIDGET (zapping->video));
+    tveng_start_capturing (info);
+  }
 
 #ifdef HAVE_LIBZVBI
   if (vbi)
@@ -1704,7 +1747,8 @@ append_radio_menu_item		(GtkMenuShell **	menu_shell,
 
   gtk_menu_shell_append (*menu_shell, menu_item);
 
-  g_signal_connect (G_OBJECT (menu_item), "activate", handler, (gpointer) sm);
+  z_signal_connect_const (G_OBJECT (menu_item), "activate",
+			  handler, sm);
 }
 
 /* Video standards */
