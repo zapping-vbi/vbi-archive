@@ -13,14 +13,6 @@
 #include "interface.h"
 #include "zmisc.h"
 
-/* The widget is being destroyed, destroy the GladeXML tree attached
-   to it too */
-static void interface_destroy_callback (GtkWidget * widget,
-					gpointer data)
-{
-  gtk_object_unref(GTK_OBJECT(glade_get_widget_tree(widget)));
-}
-
 /**
  * Finds in the tree the given widget, returns a pointer to it or NULL
  * if not found
@@ -106,11 +98,6 @@ build_widget(const char* name, const char* glade_file)
 
   glade_xml_signal_autoconnect(xml);
 
-  /* Attach the callback to the object, so we know when we are
-     destroyed */
-  gtk_signal_connect( GTK_OBJECT (widget), "destroy",
-		      GTK_SIGNAL_FUNC(interface_destroy_callback),
-		      NULL);
   return widget;
 }
 
