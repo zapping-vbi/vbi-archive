@@ -15,6 +15,8 @@ zapping_SOURCES = \
 ##	io.c io.h \
 ##	v4l2interface.c v4l2interface.h \
 ##	plugins.c plugins.h \
+##	zconf.c zconf.h \
+	zmisc.c zmisc.h \
 	tveng.c tveng.h
 
-zapping_LDADD = $(GNOME_LIBDIR) $(GNOMEUI_LIBS) $(INTLLIBS) $(GNOME_XML_LIB) -lpng -lXxf86dga
+zapping_LDADD = $(GNOME_LIBDIR) $(GNOMEUI_LIBS) $(INTLLIBS) $(GNOME_XML_LIB) -lXxf86dga

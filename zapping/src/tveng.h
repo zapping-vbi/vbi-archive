@@ -130,7 +130,6 @@ enum tveng_frame_pixformat{
 /* This struct holds the structure of the captured frame */
 struct tveng_frame_format
 {
-  void * data; /* A pointer to the captured data */
   int width, height; /* Dimensions of the capture */
   int bytesperline; /* Bytes per scan line */
   int depth; /* Bits per pixel */
@@ -409,7 +408,8 @@ tveng_stop_capturing(tveng_device_info * info);
    Returns -1 on error, anything else on success.
    Note: if you want this call to be non-blocking, call it with time=0
 */
-int tveng_read_frame(unsigned int time, tveng_device_info * info);
+int tveng_read_frame(void * where, unsigned int size,
+		     unsigned int time, tveng_device_info * info);
 
 /* 
    Sets the capture buffer to an specific size. returns -1 on

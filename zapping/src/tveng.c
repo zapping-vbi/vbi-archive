@@ -337,7 +337,6 @@ int tveng_attach_device(const char* device_file, int flags,
   info -> format.width = (info->caps.minwidth + info->caps.maxwidth)/2;
   info -> format.height = (info->caps.minheight +
 			   info->caps.maxheight)/2;
-
   if (tveng_set_capture_format(info) == -1)
     {
       tveng_close_device(info);
@@ -840,14 +839,6 @@ tveng_set_capture_format(tveng_device_info * info)
     }
 
   /* Fill in the new width and height parameters */
-  /* Get the current window parameters */
-  /*if (ioctl(info->fd, VIDIOCGWIN, &window))
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOCGWIN", info);
-      return -1;
-    }
-  */
   /* Make them 4-byte multiplus to avoid errors */
   window.width = (info->format.width+3) & ~3;
   window.height = (info->format.height+3) & ~3;
@@ -866,16 +857,6 @@ tveng_set_capture_format(tveng_device_info * info)
   if (tveng_update_capture_format(info) == -1)
     return -1; /* error */
 
-  /* Reallocate the capture buffer */
-  if (info->format.data)
-    free(info->format.data);
-  info->format.data = (char*) malloc(info->format.sizeimage);
-  if (!info->format.data)
-    {
-      info->tveng_errno = errno;
-      t_error("malloc", info);
-      return -1;
-    }
   return 0; /* Success */
 }
 
@@ -1478,7 +1459,7 @@ tveng_get_tune(__u32 * freq, tveng_device_info * info)
 
 /* Two internal functions, both return -1 on error */
 int p_tveng_queue(tveng_device_info * info);
-int p_tveng_dequeue(tveng_device_info * info);
+int p_tveng_dequeue(void * where, tveng_device_info * info);
 
 /*
   Sets up the capture device so any read() call after this one
@@ -1559,7 +1540,7 @@ tveng_stop_capturing(tveng_device_info * info)
   t_assert(info->current_mode == TVENG_CAPTURE_READ);
 
   /* Dequeue last buffer */
-  if (p_tveng_dequeue(info) == -1)
+  if (p_tveng_dequeue(NULL, info) == -1)
     return -1;
 
   if (p_info -> mmaped_data != ((char*)-1))
@@ -1629,12 +1610,11 @@ int p_tveng_queue(tveng_device_info * info)
   return 0; /* Success */
 }
 
-int p_tveng_dequeue(tveng_device_info * info)
+int p_tveng_dequeue(void * where, tveng_device_info * info)
 {
   struct video_mmap bm;
   struct private_tveng_device_info * p_info =
     (struct private_tveng_device_info*) info;
-  int frame;
 
   t_assert(info != NULL);
   t_assert(info -> current_mode == TVENG_CAPTURE_READ);
@@ -1662,8 +1642,7 @@ int p_tveng_dequeue(tveng_device_info * info)
 		  info);
       return -1;
     }
-  frame = (p_info -> dequeued) % (p_info->mmbuf.frames);
-  bm.frame = frame;
+  bm.frame = (p_info -> dequeued) % (p_info->mmbuf.frames);
   bm.width = info -> format.width;
   bm.height = info -> format.height;
 
@@ -1674,10 +1653,11 @@ int p_tveng_dequeue(tveng_device_info * info)
       return -1;
     }
 
-  /* Copy the mmaped data to the data struct */
-  memcpy(info -> format.data, p_info -> mmaped_data + p_info->
-	 mmbuf.offsets[bm.frame],
-	 info->format.sizeimage);
+  /* Copy the mmaped data to the data struct, if it is not null */
+  if (where)
+    memcpy(where, p_info -> mmaped_data + p_info->
+	   mmbuf.offsets[bm.frame],
+	   info->format.sizeimage);
 
   /* increase the dequeued index */
   p_info -> dequeued ++;
@@ -1687,7 +1667,8 @@ int p_tveng_dequeue(tveng_device_info * info)
 
 /* 
    Reads a frame from the video device, storing the read data in
-   info->format.data
+   the location pointed to by where. size indicates the destination
+   buffer size (that must equal or greater than format.sizeimage)
    time: time to wait using select() in miliseconds
    info: pointer to the video device info structure
    This call was originally intended to wrap a single read() call, but
@@ -1695,8 +1676,13 @@ int p_tveng_dequeue(tveng_device_info * info)
    logic.
    Returns -1 on error, anything else on success
 */
-int tveng_read_frame(unsigned int time, tveng_device_info * info)
+int tveng_read_frame(void * where, unsigned int size, 
+		     unsigned int time, tveng_device_info * info)
 {
+  struct itimerval iv;
+
+  t_assert(info != NULL);
+
   if (info -> current_mode != TVENG_CAPTURE_READ)
     {
       info -> tveng_errno = -1;
@@ -1705,12 +1691,32 @@ int tveng_read_frame(unsigned int time, tveng_device_info * info)
       return -1;
     }
 
-  /* Dequeue the buffer previously queued */
+  if (info -> format.sizeimage > size)
+    {
+      info -> tveng_errno = ENOMEM;
+      t_error_msg("check()", 
+	      _("Size check failed, quitting to avoid segfault"), info);
+      return -1;
+    }
+
+  /* Queue a new frame (for the next time) */
+  /* This should be inmediate */
   if (p_tveng_queue(info) == -1)
     return -1;
 
-  /* Queue a new buffer (for the next time) */
-  if (p_tveng_dequeue(info) == -1)
+  /* Dequeue previously queued frame */
+  /* Sets the timer to expire (SIGALARM) in the given time */
+  iv.it_interval.tv_sec = iv.it_interval.tv_usec = iv.it_value.tv_sec
+    = 0;
+  iv.it_value.tv_usec = time;
+  if (setitimer(ITIMER_REAL, &iv, NULL) == -1)
+    {
+      info->tveng_errno = errno;
+      t_error("setitimer()", info);
+      return -1;
+    }
+
+  if (p_tveng_dequeue(where, info) == -1)
     return -1;
   
   /* Everything has been OK, return 0 (success) */

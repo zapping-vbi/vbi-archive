@@ -24,6 +24,7 @@
 #include <gnome-xml/tree.h>
 #include <gnome-xml/parser.h>
 #include <gdk/gdkx.h>
+#include <signal.h>
 
 #include "interface.h"
 #include "support.h"
@@ -59,8 +60,6 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
   tveng_device_info * info = (tveng_device_info*) user_data;
 
   /* Delete dummy_image */
-  /* We must have something to free here */
-  ((GdkImagePrivate*)dummy_image)->ximage->data = malloc(16);      
   gdk_image_destroy(dummy_image);
 
   /* This way errors don't segfault */
@@ -74,13 +73,11 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
     }
 
   /* Reallocate a new image */
-  dummy_image = gdk_image_new(GDK_IMAGE_NORMAL,
+  dummy_image = gdk_image_new(GDK_IMAGE_FASTEST,
 			      gdk_visual_get_system(),
 			      info->format.width,
 			      info->format.height);
 
-  /* We don't need the actual data */
-  XFree(((GdkImagePrivate*)dummy_image)->ximage->data);  
 }
 
 int ShowBox(const gchar * message,
@@ -120,6 +117,9 @@ int main(int argc, char * argv[])
   gnome_init ("zapping", VERSION, argc, argv);
 
   main_info = tveng_device_info_new( GDK_DISPLAY() );
+
+  /* Ignore alarms */
+  signal(SIGALRM, SIG_IGN);
 
   if (!main_info)
     {
@@ -189,13 +189,10 @@ int main(int argc, char * argv[])
 		      GTK_SIGNAL_FUNC (on_tv_screen_size_allocate),
 		      main_info);
 
-  dummy_image = gdk_image_new(GDK_IMAGE_NORMAL,
+  dummy_image = gdk_image_new(GDK_IMAGE_FASTEST,
 			      gdk_visual_get_system(),
 			      main_info->format.width,
 			      main_info->format.height);
-
-  /* We don't need the actual data */
-  XFree(((GdkImagePrivate*)dummy_image)->ximage->data);
 
   while (!flag_exit_program)
     {
@@ -206,10 +203,14 @@ int main(int argc, char * argv[])
 	continue; /* Exit the loop if neccesary now */
 
       /* Do the image processing here */
-      if (tveng_read_frame(50000, main_info) == -1)
-	printf("read(): %s\n", main_info->error);
-      ((GdkImagePrivate*)dummy_image)->ximage->data = 
-	main_info->format.data;
+      if (tveng_read_frame(((GdkImagePrivate*)dummy_image)-> ximage->
+			   data,
+			   ((int)dummy_image->bpl)*dummy_image->height,
+			  50, main_info) == -1)
+	{
+	  printf("read(): %s\n", main_info->error);
+	  continue;
+	}
 
       gdk_draw_image(tv_screen -> window,
 		     tv_screen -> style -> white_gc,
@@ -227,10 +228,7 @@ int main(int argc, char * argv[])
   tveng_device_info_destroy(main_info);
 
   if (dummy_image)
-    {
-      /* We must have something to free here */
-      ((GdkImagePrivate*)dummy_image)->ximage->data = malloc(16);      
-      gdk_image_destroy(dummy_image);
-    }
+    gdk_image_destroy(dummy_image);
+
   return 0;
 }
