@@ -1,10 +1,19 @@
 #ifndef __INTERFACE_H__
 #define __INTERFACE_H__
 
+/**
+ * Finds in the tree the given widget, returns a pointer to it or NULL
+ * if not found
+ */
+GtkWidget*
+find_widget(GtkWidget * parent, const char * name);
+
 /*
  * Tries to find a widget, that is accesible though parent, named
  * name. IMHO this should be called glade_lookup_widget and go into
  * libglade, but anyway...
+ * If the widget isn't found, a message is printed and the program
+ * quits, it always returns a valid widget.
  */
 GtkWidget*
 lookup_widget(GtkWidget * parent, const char * name);

@@ -516,6 +516,16 @@ z_pixbuf_render_to_drawable	(GdkPixbuf	*pixbuf,
 }
 
 gint
+z_menu_get_index		(GtkWidget	*menu,
+				 GtkWidget	*item)
+{
+  gint return_value =
+    g_list_index(GTK_MENU_SHELL(menu)->children, item);
+
+  return return_value ? return_value : -1;
+}
+
+gint
 z_option_menu_get_active	(GtkWidget	*option_menu)
 {
   option_menu = GTK_WIDGET(GTK_OPTION_MENU(option_menu)->menu);

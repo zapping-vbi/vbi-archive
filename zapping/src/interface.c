@@ -21,13 +21,12 @@ static void interface_destroy_callback (GtkWidget * widget,
   gtk_object_unref(GTK_OBJECT(glade_get_widget_tree(widget)));
 }
 
-/*
- * Tries to find a widget, that is accesible though parent, named
- * name. IMHO this should be called glade_lookup_widget and go into
- * libglade, but anyway...
+/**
+ * Finds in the tree the given widget, returns a pointer to it or NULL
+ * if not found
  */
 GtkWidget*
-lookup_widget(GtkWidget * parent, const char * name)
+find_widget(GtkWidget * parent, const char * name)
 {
   GtkWidget * widget = parent;
   GladeXML* tree;
@@ -53,7 +52,21 @@ lookup_widget(GtkWidget * parent, const char * name)
     }
 
   /* if we reach this, we have a tree */
-  widget = glade_xml_get_widget (tree, name);
+  return glade_xml_get_widget (tree, name);
+}
+
+/*
+ * Tries to find a widget, that is accesible though parent, named
+ * name. IMHO this should be called glade_lookup_widget and go into
+ * libglade, but anyway...
+ * If the widget isn't found, a message is printed and the program
+ * quits, it always returns a valid widget.
+ */
+GtkWidget *
+lookup_widget( GtkWidget *parent, const char *name)
+{
+  GtkWidget *widget = find_widget(parent, name);
+
   if (!widget)
     {
       RunBox("Widget %s not found, please contact the maintainer",

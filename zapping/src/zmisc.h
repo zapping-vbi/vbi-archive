@@ -224,6 +224,13 @@ z_pixbuf_render_to_drawable	(GdkPixbuf	*pixbuf,
 				 gint		height);
 
 /**
+ * Returns the index of the given widget in the menu, or -1
+ */
+gint
+z_menu_get_index		(GtkWidget	*menu,
+				 GtkWidget	*item);
+
+/**
  * Returns the index of the selected entry in a GtkOptionMenu.
  */
 gint
