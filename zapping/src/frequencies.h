@@ -1,26 +1,38 @@
-#ifndef __FREQUENCIES_H__
-#define __FREQUENCIES_H__
+/*
+ * Zapping (TV viewer for the Gnome Desktop)
+ *
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria 
+ * Copyright (C) 2002-2003 Michael H. Schimek
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+/* $Id: frequencies.h,v 1.10.2.7 2003-09-29 07:08:28 mschimek Exp $ */
+
+#ifndef FREQUENCIES_H
+#define FREQUENCIES_H
 
 #include "tveng.h"
 #include "keyboard.h"
 
-typedef struct tveng_rf_channel {
-  const gchar *			name;
-  uint32_t			frequ; /* Hz */
-} tveng_rf_channel;
+typedef struct _tveng_tc_control tveng_tc_control;
 
-typedef struct tveng_rf_table {
-  const gchar *			name;
-  tveng_rf_channel *		channel_list;
-  int				channel_count;
-  const gchar *			prefixes[4];
-} tveng_rf_table;
-
-
-typedef struct {
-  gchar		name[32];
-  gfloat	value; /* from 0 to 1 */
-} tveng_tc_control;
+struct _tveng_tc_control {
+  gchar				name [32];
+  gfloat			value;		/* [0;1] */
+};
 
 typedef struct _tveng_tuned_channel tveng_tuned_channel;
 
@@ -37,68 +49,14 @@ struct _tveng_tuned_channel {
   int index; /* Index in the tuned_channel list */
   uint32_t			frequ;		/* Frequency of this RF channel in Hz
 						   (may differ from RF table due to fine tuning) */
-  gint num_controls; /* number of saved controls for this channel */
-  tveng_tc_control *controls; /* saved controls for this
-				 channel pointer */
+  gint				num_controls;	/* number of saved controls for this channel */
+  tveng_tc_control *		controls;	/* saved controls for this channel */
 
   /* Don't use this to navigate through the tuned_channel list, use
      the API instead */
   tveng_tuned_channel *prev;
   tveng_tuned_channel *next;
 };
-
-/* 
-   Returns a pointer to the channel struct for some specific
-   country. NULL if the specified country is not found.
-*/
-tveng_rf_table *
-tveng_get_country_tune_by_name (gchar * country);
-
-/* 
-   Returns a pointer to the channel struct for some specific
-   country. NULL if the specified country is not found.
-   The given name can be i18ed this time.
-*/
-tveng_rf_table *
-tveng_get_country_tune_by_i18ed_name (gchar * i18ed_country);
-
-/*
-  Returns a pointer to the specified by id channel. Returns NULL on
-  error.
-  This is useful if you want to get all the countries we know about,
-  you can start from id 0, and go up until you get an error.
-*/
-tveng_rf_table *
-tveng_get_country_tune_by_id (int id);
-
-/*
-  Returns the id of the given country tune, that could be used later
-  on with tveng_get_country_tune_by_id. Returns -1 on error.
-*/
-int
-tveng_get_id_of_country_tune (tveng_rf_table *country);
-
-/*
-  Finds a specific channel in a specific country by name. NULL on
-  error.
-*/
-tveng_rf_channel *
-tveng_get_channel_by_name (gchar *name, tveng_rf_table *country);
-
-/*
-  Finds a specific channel in a specific country by its id. NULL on
-  error.
-*/
-tveng_rf_channel *
-tveng_get_channel_by_id (int id, const tveng_rf_table *country);
-
-/*
-  Returns the id of the given channel, that can be used later with
-  tveng_get_channel_by_id. Returns -1 on error.
-*/
-int
-tveng_get_id_of_channel (tveng_rf_channel *channel, tveng_rf_table *country);
-
 
 typedef struct _tv_rf_channel tv_rf_channel;
 
@@ -157,7 +115,12 @@ tv_rf_channel_by_frequency	(tv_rf_channel *	ch,
 extern tv_bool
 tv_rf_channel_next_country	(tv_rf_channel *	ch);
 
-/* ---- */
+/* ------------------------------------------------------------------------- */
+
+extern gboolean
+tveng_tuned_channel_set_control	(tveng_tuned_channel *	tc,
+				 const gchar *		name,
+				 gfloat			value);
 
 tveng_tuned_channel *
 tveng_tuned_channel_first	(const tveng_tuned_channel *list);
@@ -209,4 +172,5 @@ tveng_tuned_channel_num (const tveng_tuned_channel * list);
 tveng_tuned_channel *
 tveng_remove_tuned_channel (gchar * rf_name, int id,
 			    tveng_tuned_channel * list);
-#endif
+
+#endif /* FREQUENCIES_H */
