@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-05-26 03:57+0200\n"
+"POT-Creation-Date: 2004-05-30 18:37+0200\n"
 "PO-Revision-Date: 2003-12-08 08:07+0100\n"
 "Last-Translator: Guus Bonnema <abonnema@xs4all.nl>\n"
 "Language-Team: Dutch\n"
@@ -51,7 +51,7 @@ msgid "Arabic"
 msgstr "Arabisch"
 
 #: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng1.c:679
-#: src/tveng2.c:613 src/tveng25.c:471
+#: src/tveng2.c:610 src/tveng25.c:471
 msgid "Audio"
 msgstr "Audio"
 
@@ -167,7 +167,7 @@ msgstr "Interlaced (venstergrootte)"
 msgid "Kernel _device"
 msgstr "Kernel _device (apparaat)"
 
-#: glade/zapping.glade2.h:35 src/keyboard.c:1139
+#: glade/zapping.glade2.h:35 src/keyboard.c:1142
 msgid "Keyboard"
 msgstr "Toetsenbord"
 
@@ -768,7 +768,7 @@ msgstr "beelden voor grabben"
 msgid "Input:"
 msgstr "Input:"
 
-#: src/audio.c:531 src/keyboard.c:1144 src/osd.c:1323
+#: src/audio.c:531 src/keyboard.c:1147 src/osd.c:1323
 #: src/properties-handler.c:1606 src/properties.c:942
 msgid "General Options"
 msgstr "Algemene opties"
@@ -781,86 +781,86 @@ msgstr "<span foreground=\"blue\">geluid uit</span>"
 msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr "<span foreground=\"yellow\">geluid aan</span>"
 
-#: src/capture.c:450
+#: src/capture.c:438
 #, c-format
 msgid "Cannot start capturing: %s"
 msgstr "Kan opnemen niet beginnen: %s"
 
-#: src/channel_editor.c:583
+#: src/channel_editor.c:582
 #, c-format
 msgid "Channel: %s   Found: %u"
 msgstr "Kanaal: %s   Gevonden: %u"
 
-#: src/channel_editor.c:701
+#: src/channel_editor.c:700
 msgid "Searching..."
 msgstr "Bezig met zoeken..."
 
 # src/interface.c:336
-#: src/channel_editor.c:1438
+#: src/channel_editor.c:1437
 msgid "Select the frequency table used in your country"
 msgstr "Kies de frequentietabel die gebruikt wordt in uw regio"
 
-#: src/channel_editor.c:1582
+#: src/channel_editor.c:1581
 msgid "Ch. Name"
 msgstr "Kanaalnaam"
 
 # src/interface.c:369
 # glade/glade_strings.c:149, glade/glade_strings.c:155
-#: src/channel_editor.c:1587
+#: src/channel_editor.c:1586
 msgid "Freq (MHz)"
 msgstr "Freq (MHz)"
 
 # src/interface.c:362
 #. append
-#: src/channel_editor.c:1640
+#: src/channel_editor.c:1639
 msgid "Channel name"
 msgstr "Kanaalnaam:"
 
 #. append
-#: src/channel_editor.c:1644
+#: src/channel_editor.c:1643
 msgid "Video input"
 msgstr "Video ingang"
 
 # src/interface.c:362
 # glade/glade_strings.c:148, glade/glade_strings.c:153
 #. append
-#: src/channel_editor.c:1648
+#: src/channel_editor.c:1647
 msgid "RF Channel"
 msgstr "RF Kanaal"
 
 # src/v4l2interface.c:344ï
 #. append
-#: src/channel_editor.c:1652
+#: src/channel_editor.c:1651
 msgid "Video standard"
 msgstr "Video standaard"
 
 #. append
-#: src/channel_editor.c:1656 src/keyboard.c:437
+#: src/channel_editor.c:1655 src/keyboard.c:440
 msgid "Accelerator"
 msgstr "Sneltoets"
 
-#: src/channel_editor.c:1671
+#: src/channel_editor.c:1670
 msgid "Do not change input"
 msgstr "Ingang niet veranderen"
 
-#: src/channel_editor.c:1695
+#: src/channel_editor.c:1694
 msgid "Do not change standard"
 msgstr "Standaard niet veranderen"
 
 # src/interface.c:362
-#: src/channel_editor.c:1734
+#: src/channel_editor.c:1733
 msgid "Channel editor"
 msgstr "Kanaal editor"
 
-#: src/channel_editor.c:1758
+#: src/channel_editor.c:1757
 msgid "Region"
 msgstr "Regio"
 
-#: src/channel_editor.c:1794
+#: src/channel_editor.c:1793
 msgid "Automatic station _search"
 msgstr "Automatisch _zenderzoeken"
 
-#: src/channel_editor.c:1800
+#: src/channel_editor.c:1799
 msgid ""
 "Select a suitable frequency table, then click here to search through all "
 "channels in the table and add the received stations to the channel list."
@@ -870,50 +870,50 @@ msgstr ""
 "voegen aan het kanaal-overzicht."
 
 # src/v4l2interface.c:146
-#: src/channel_editor.c:1806
+#: src/channel_editor.c:1805
 msgid "Add all _channels"
 msgstr "_Alle kanalen toevoegen"
 
-#: src/channel_editor.c:1813
+#: src/channel_editor.c:1812
 msgid "Add all channels in the frequency table to the channel list."
 msgstr "Alle kanalen uit de tabel als voorkeuzekanalen opslaan."
 
-#: src/channel_editor.c:1817
+#: src/channel_editor.c:1816
 msgid "_Import XawTV configuration"
 msgstr "_importeer XawTV configuratie"
 
 # src/interface.c:362
-#: src/channel_editor.c:1844
+#: src/channel_editor.c:1843
 msgid "Channel List"
 msgstr "Kanaal lijst"
 
 # src/interface.c:362
-#: src/channel_editor.c:1879
+#: src/channel_editor.c:1878
 msgid "Edit channel"
 msgstr "Kies kanaal"
 
-#: src/channel_editor.c:1895
+#: src/channel_editor.c:1894
 msgid "Name:"
 msgstr "Naam:"
 
-#: src/channel_editor.c:1904
+#: src/channel_editor.c:1903
 msgid "Video input:"
 msgstr "Video ingang:"
 
-#: src/channel_editor.c:1915
+#: src/channel_editor.c:1914
 msgid "Fine tuning:"
 msgstr "Fijn afstelling: "
 
-#: src/channel_editor.c:1920
+#: src/channel_editor.c:1919
 msgid "MHz"
 msgstr "MHz"
 
 # src/v4l2interface.c:344ï
-#: src/channel_editor.c:1929
+#: src/channel_editor.c:1928
 msgid "Video standard:"
 msgstr "Video standaard:"
 
-#: src/channel_editor.c:1940
+#: src/channel_editor.c:1939
 msgid "Accelerator:"
 msgstr "Sneltoets:"
 
@@ -1060,7 +1060,7 @@ msgid "Change picture controls"
 msgstr "Wijzig beeldinstellingen"
 
 #: src/interface.c:709 src/main.c:155 src/tveng.c:1966 src/tveng1.c:751
-#: src/tveng2.c:451 src/tveng25.c:310 src/tvengxv.c:529
+#: src/tveng2.c:448 src/tveng25.c:310 src/tvengxv.c:529
 msgid "Mute"
 msgstr "Geluid uit"
 
@@ -1080,27 +1080,27 @@ msgstr "Ondertiteling"
 msgid "Switch subtitles on or off"
 msgstr "Aan- en uitschakelen subtitels"
 
-#: src/keyboard.c:83 src/keyboard.c:106
+#: src/keyboard.c:86 src/keyboard.c:109
 msgid "Ctrl+"
 msgstr "Ctrl+"
 
-#: src/keyboard.c:84 src/keyboard.c:107
+#: src/keyboard.c:87 src/keyboard.c:110
 msgid "Alt+"
 msgstr "Alt+"
 
-#: src/keyboard.c:85 src/keyboard.c:108
+#: src/keyboard.c:88 src/keyboard.c:111
 msgid "Shift+"
 msgstr "Shift+"
 
-#: src/keyboard.c:518
+#: src/keyboard.c:521
 msgid "Key table..."
 msgstr "Toetsen tabel ..."
 
-#: src/keyboard.c:1100
+#: src/keyboard.c:1103
 msgid "Command"
 msgstr "Commando"
 
-#: src/keyboard.c:1114 src/properties-handler.c:798
+#: src/keyboard.c:1117 src/properties-handler.c:798
 msgid "Shortcut"
 msgstr "Sneltoets"
 
@@ -1296,22 +1296,22 @@ msgstr ""
 "Controleer s.v.p. of het systeem correct geconfigureerd is."
 
 # src/frequencies.c:827
-#: src/oss.c:184
+#: src/oss.c:180
 msgid "Audio device:"
 msgstr "Geluid-apparaat:"
 
-#: src/oss.c:187
+#: src/oss.c:183
 msgid "Select the audio device"
 msgstr "Selecteer gewenste audio-apparaat"
 
-#: src/oss.c:214
+#: src/oss.c:210
 #, c-format
 msgid "The given audio device \"%s\" doesn't exist"
 msgstr "Het gegeven apparaat (device) \"%s\" bestaat niet"
 
 #. TRANSLATORS: Name of mixer line, mono as
 #. opposed to stereo.
-#: src/oss.c:916
+#: src/oss.c:912
 #, c-format
 msgid "%s (Mono)"
 msgstr "%s Mono"
@@ -1492,7 +1492,7 @@ msgstr "Bureaubladstandaard (%s) gebruiken"
 msgid "Do not change"
 msgstr "Niet aanpassen"
 
-#: src/properties-handler.c:1167 src/tveng1.c:285 src/tveng2.c:464
+#: src/properties-handler.c:1167 src/tveng1.c:285 src/tveng2.c:461
 #: src/tveng25.c:321
 msgid "Automatic"
 msgstr "Automatisch"
@@ -1585,13 +1585,13 @@ msgstr "Formaat: "
 msgid "Text Color"
 msgstr "Tekstkleur"
 
-#: src/ttxview.c:2212 src/tveng2.c:431 src/tveng25.c:291 src/tvengbktr.c:272
+#: src/ttxview.c:2212 src/tveng2.c:428 src/tveng25.c:291 src/tvengbktr.c:272
 #: src/tvengbktr.c:284 src/tvengxv.c:523
 msgid "Brightness"
 msgstr "Helderheid"
 
 # src/interface.c:247
-#: src/ttxview.c:2234 src/tveng2.c:432 src/tveng25.c:292 src/tvengbktr.c:273
+#: src/ttxview.c:2234 src/tveng2.c:429 src/tveng25.c:292 src/tvengbktr.c:273
 #: src/tvengbktr.c:285 src/tvengxv.c:524
 msgid "Contrast"
 msgstr "Contrast"
@@ -1761,7 +1761,7 @@ msgid "_Go"
 msgstr "_Ga naar"
 
 #. TRANSLATORS: "Cannot open <URL>" (http or smtp).
-#: src/ttxview.c:4276 src/zvbi.c:596
+#: src/ttxview.c:4276 src/zvbi.c:593
 #, c-format
 msgid ""
 "Cannot open %s:\n"
@@ -1818,7 +1818,7 @@ msgstr "Onthullen"
 msgid "Reveal concealed text"
 msgstr "Toon verborgen text"
 
-#: src/tveng.c:1958 src/tveng2.c:450 src/tveng25.c:309 src/tvengxv.c:530
+#: src/tveng.c:1958 src/tveng2.c:447 src/tveng25.c:309 src/tvengxv.c:530
 msgid "Volume"
 msgstr "Volume"
 
@@ -1848,128 +1848,128 @@ msgstr "Filter"
 msgid "Colorkey"
 msgstr "Chromakey"
 
-#: src/tveng1.c:286 src/tveng2.c:465 src/tveng25.c:322 src/zvbi.c:134
+#: src/tveng1.c:286 src/tveng2.c:462 src/tveng25.c:322 src/zvbi.c:131
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng1.c:287 src/tveng2.c:466 src/tveng25.c:323 src/zvbi.c:135
+#: src/tveng1.c:287 src/tveng2.c:463 src/tveng25.c:323 src/zvbi.c:132
 msgid "Stereo"
 msgstr "Stereo"
 
-#: src/tveng1.c:288 src/tveng2.c:467 src/tveng25.c:324
+#: src/tveng1.c:288 src/tveng2.c:464 src/tveng25.c:324
 msgid "Alternate 1"
 msgstr "Spraak 1"
 
-#: src/tveng1.c:289 src/tveng2.c:468 src/tveng25.c:325
+#: src/tveng1.c:289 src/tveng2.c:465 src/tveng25.c:325
 msgid "Alternate 2"
 msgstr "Spraak 2"
 
-#: src/tveng2.c:433 src/tveng25.c:293 src/tvengbktr.c:274 src/tvengbktr.c:286
+#: src/tveng2.c:430 src/tveng25.c:293 src/tvengbktr.c:274 src/tvengbktr.c:286
 #: src/tvengxv.c:525
 msgid "Saturation"
 msgstr "Verzadiging"
 
-#: src/tveng2.c:434 src/tveng25.c:294 src/tvengbktr.c:275 src/tvengbktr.c:287
+#: src/tveng2.c:431 src/tveng25.c:294 src/tvengbktr.c:275 src/tvengbktr.c:287
 #: src/tvengxv.c:526
 msgid "Hue"
 msgstr "Kleur"
 
-#: src/tveng2.c:435 src/tveng25.c:295
+#: src/tveng2.c:432 src/tveng25.c:295
 msgid "Whiteness"
 msgstr "Witniveau"
 
-#: src/tveng2.c:436 src/tveng25.c:296
+#: src/tveng2.c:433 src/tveng25.c:296
 msgid "Black level"
 msgstr "Zwartniveau"
 
 # src/frequencies.c:827
-#: src/tveng2.c:437 src/tveng2.c:438 src/tveng25.c:297 src/tveng25.c:298
+#: src/tveng2.c:434 src/tveng2.c:435 src/tveng25.c:297 src/tveng25.c:298
 msgid "White balance"
 msgstr "Witbalans"
 
 # src/frequencies.c:827
-#: src/tveng2.c:439 src/tveng25.c:299
+#: src/tveng2.c:436 src/tveng25.c:299
 msgid "Red balance"
 msgstr "Roodbalans"
 
 # src/frequencies.c:827
-#: src/tveng2.c:440 src/tveng25.c:300
+#: src/tveng2.c:437 src/tveng25.c:300
 msgid "Blue balance"
 msgstr "Blauwbalans"
 
-#: src/tveng2.c:441 src/tveng25.c:301
+#: src/tveng2.c:438 src/tveng25.c:301
 msgid "Gamma"
 msgstr "Gamma"
 
 #. TRANSLATORS: Video camera control.
-#: src/tveng2.c:443 src/tveng25.c:302
+#: src/tveng2.c:440 src/tveng25.c:302
 msgid "Exposure"
 msgstr "Belichting"
 
-#: src/tveng2.c:444 src/tveng25.c:303
+#: src/tveng2.c:441 src/tveng25.c:303
 msgid "Auto gain"
 msgstr "Auto gain"
 
-#: src/tveng2.c:445 src/tveng25.c:304
+#: src/tveng2.c:442 src/tveng25.c:304
 msgid "Gain"
 msgstr "Versterking"
 
-#: src/tveng2.c:446 src/tveng25.c:305
+#: src/tveng2.c:443 src/tveng25.c:305
 msgid "HCenter"
 msgstr "Horizontaal centreren"
 
-#: src/tveng2.c:447 src/tveng25.c:306
+#: src/tveng2.c:444 src/tveng25.c:306
 msgid "VCenter"
 msgstr "Verticaal centreren"
 
-#: src/tveng2.c:448 src/tveng25.c:307
+#: src/tveng2.c:445 src/tveng25.c:307
 msgid "Hor. flipping"
 msgstr "Hor. spiegelbeeld"
 
-#: src/tveng2.c:449 src/tveng25.c:308
+#: src/tveng2.c:446 src/tveng25.c:308
 msgid "Vert. flipping"
 msgstr "Vert. spiegelbeeld"
 
-#: src/tveng2.c:452 src/tveng25.c:311
+#: src/tveng2.c:449 src/tveng25.c:311
 msgid "Audio Mute"
 msgstr "Geluid uit"
 
 # src/frequencies.c:827
 #. TRANSLATORS: Left/right audio balance.
-#: src/tveng2.c:454 src/tveng25.c:312
+#: src/tveng2.c:451 src/tveng25.c:312
 msgid "Balance"
 msgstr "Balance"
 
 # src/frequencies.c:827
-#: src/tveng2.c:455 src/tveng25.c:313
+#: src/tveng2.c:452 src/tveng25.c:313
 msgid "Audio Balance"
 msgstr "Audio balans"
 
-#: src/tveng2.c:456 src/tveng25.c:314
+#: src/tveng2.c:453 src/tveng25.c:314
 msgid "Treble"
 msgstr "Treble"
 
 #. TRANSLATORS: Probably a bass boost effect.
-#: src/tveng2.c:458 src/tveng25.c:315
+#: src/tveng2.c:455 src/tveng25.c:315
 msgid "Loudness"
 msgstr "Geluidsniveau"
 
-#: src/tveng2.c:459 src/tveng25.c:316
+#: src/tveng2.c:456 src/tveng25.c:316
 msgid "Bass"
 msgstr "Bass"
 
-#: src/tveng2.c:1769 src/tveng25.c:1100
+#: src/tveng2.c:1766 src/tveng25.c:1100
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s lijkt geen video-apparaat te zijn"
 
 # src/tveng.c:70
-#: src/tveng2.c:1780 src/tveng25.c:1112
+#: src/tveng2.c:1777 src/tveng25.c:1112
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "\"%s\" ondersteunt geen streaming"
 
-#: src/tveng2.c:1790
+#: src/tveng2.c:1787
 #, c-format
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr "\"%s\" ondersteunt geen select() systeemoproep"
@@ -2133,51 +2133,51 @@ msgid "Device file:"
 msgstr "Apparaatbestand:"
 
 #. TRANSLATORS: VBI audio mode
-#: src/zvbi.c:133
+#: src/zvbi.c:130
 msgid "No Audio"
 msgstr "Geen geluid"
 
-#: src/zvbi.c:136
+#: src/zvbi.c:133
 msgid "Stereo Surround"
 msgstr "Stereo surround"
 
-#: src/zvbi.c:137
+#: src/zvbi.c:134
 msgid "Simulated Stereo"
 msgstr "Gesimuleerde stereo"
 
 #. TRANSLATORS: Video description for the blind,
 #. on a secondary audio channel.
-#: src/zvbi.c:140
+#: src/zvbi.c:137
 msgid "Video Descriptions"
 msgstr "Videobeschrijvingen"
 
 #. TRANSLATORS: Audio unrelated to the current
 #. program.
-#: src/zvbi.c:143
+#: src/zvbi.c:140
 msgid "Non-program Audio"
 msgstr "Geluid van buiten het programma"
 
-#: src/zvbi.c:144
+#: src/zvbi.c:141
 msgid "Special Effects"
 msgstr "Speciale effecten"
 
-#: src/zvbi.c:145
+#: src/zvbi.c:142
 msgid "Data Service"
 msgstr "Data service"
 
-#: src/zvbi.c:146
+#: src/zvbi.c:143
 msgid "Unknown Audio"
 msgstr "Onbekende audio"
 
-#: src/zvbi.c:257
+#: src/zvbi.c:254
 msgid "VBI interface timeout"
 msgstr "VBI-interface timeout"
 
-#: src/zvbi.c:270
+#: src/zvbi.c:267
 msgid "VBI interface: Failed to read from the device"
 msgstr "VBI-interface: Leesfout"
 
-#: src/zvbi.c:365
+#: src/zvbi.c:362
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
@@ -2186,15 +2186,15 @@ msgstr ""
 "initialisatie van VBI mislukt\n"
 "%s"
 
-#: src/zvbi.c:366
+#: src/zvbi.c:363
 msgid "Ran out of memory."
 msgstr "Geheugentekort."
 
-#: src/zvbi.c:367
+#: src/zvbi.c:364
 msgid "Out of resources to start a new thread."
 msgstr "Onvoldoende systeembronnen voor het starten van een nieuwe taak"
 
-#: src/zvbi.c:370
+#: src/zvbi.c:367
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -2210,17 +2210,17 @@ msgstr ""
 "niet functioneert, schakel dan VBI ondersteuning uit onder Voorkeuzen/"
 "Instellingen/VBI ondersteuning inschakelen"
 
-#: src/zvbi.c:739
+#: src/zvbi.c:736
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s: Teletekst pagina %x"
 
-#: src/zvbi.c:742
+#: src/zvbi.c:739
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Teletekst pagina %x"
 
-#: src/zvbi.c:743
+#: src/zvbi.c:740
 msgid "Open this page with Zapzilla"
 msgstr "Open deze pagina met Zapzilla"
 

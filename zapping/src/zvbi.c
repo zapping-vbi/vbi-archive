@@ -25,11 +25,8 @@
 /* XXX gdk_pixbuf_render_to_drawable -> gdk_draw_pixbuf() */
 #undef GDK_DISABLE_DEPRECATED
 
-#include <site_def.h>
-
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "site_def.h"
+#include "config.h"
 
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>

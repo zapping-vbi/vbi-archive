@@ -426,9 +426,15 @@ tvengxv_set_chromakey (uint32_t chroma, tveng_device_info *info)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 
-  if (p_info->xa_colorkey != None)
-    XvSetPortAttribute (info->priv->display, p_info->port,
-			p_info->xa_colorkey, chroma);
+	if (p_info->xa_colorkey != None) {
+		if (io_debug_msg > 0) {
+			fprintf (stderr, "XvSetPortAttribute "
+				 "XA_COLORKEY 0x%x\n", chroma);
+		}
+
+		XvSetPortAttribute (info->priv->display, p_info->port,
+				    p_info->xa_colorkey, chroma);
+	}
 }
 
 static int
@@ -458,13 +464,19 @@ do_update_control		(struct private_tvengxv_device_info *p_info,
 	int value;
 
 	/* XXX check at runtime */
-	if (c->atom == p_info->xa_mute)
+	if (c->atom == p_info->xa_mute) {
 		return TRUE; /* no read-back (bttv bug) */
-	else
+	} else {
 		XvGetPortAttribute (p_info->info.priv->display,
 				    p_info->port,
 				    c->atom,
 				    &value);
+
+		if (io_debug_msg > 0) {
+			fprintf (stderr, "XvGetPortAttribute %s %d\n",
+				 c->pub.label, value);
+		}
+	}
 
 	if (c->pub.value != value) {
 		c->pub.value = value;
@@ -496,6 +508,11 @@ set_control			(tveng_device_info *	info,
 				 int			value)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
+
+	if (io_debug_msg > 0) {
+		fprintf (stderr, "XvSetPortAttribute %s %d\n",
+			 c->label, value);
+	}
 
 	XvSetPortAttribute (info->priv->display,
 			    p_info->port,
@@ -597,6 +614,11 @@ set_standard			(tveng_device_info *	info,
 				 const tv_video_standard *s)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
+
+	if (io_debug_msg > 0) {
+		fprintf (stderr, "XvSetPortAttribute XA_ENCODING %s\n",
+			 s->label);
+	}
 
 	XvSetPortAttribute (info->priv->display,
 			    p_info->port,
@@ -767,6 +789,10 @@ set_tuner_frequency		(tveng_device_info *	info,
 	if (info->cur_video_input != l)
 		goto store;
 
+	if (io_debug_msg > 0) {
+		fprintf (stderr, "XvSetPortAttribute XA_FREQ %d\n", freq);
+	}
+
 	XvSetPortAttribute (info->priv->display,
 			    p_info->port,
 			    p_info->xa_freq,
@@ -880,6 +906,11 @@ set_video_input			(tveng_device_info *	info,
 	if (num == -1) {
 		num = vi->num; /* random standard */
 
+		if (io_debug_msg > 0) {
+			fprintf (stderr, "XvSetPortAttribute XA_ENCODING %d\n",
+				 num);
+		}
+
 		XvSetPortAttribute (info->priv->display,
 				    p_info->port,
 				    p_info->xa_encoding,
@@ -887,6 +918,11 @@ set_video_input			(tveng_device_info *	info,
 
 		update_standard_list (info);
 	} else {
+		if (io_debug_msg > 0) {
+			fprintf (stderr, "XvSetPortAttribute XA_ENCODING %d\n",
+				 num);
+		}
+
 		XvSetPortAttribute (info->priv->display,
 				    p_info->port,
 				    p_info->xa_encoding,

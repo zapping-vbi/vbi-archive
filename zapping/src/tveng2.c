@@ -23,11 +23,8 @@
   the name is TV Engine, since it is intended mainly for TV viewing.
   This file is separated so zapping doesn't need to know about V4L[2]
 */
-#include <site_def.h>
-
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "site_def.h"
+#include "config.h"
 
 #ifdef ENABLE_V4L
 #include <stdio.h>

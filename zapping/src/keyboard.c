@@ -22,9 +22,8 @@
 /* XXX gtk+ 2.3 GtkCombo -> GtkComboBox */
 #undef GTK_DISABLE_DEPRECATED
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "site_def.h"
+#include "config.h"
 
 #include <gnome.h>
 
@@ -35,6 +34,10 @@
 #include "zconf.h"
 #include "eggcellrendererkeys.h"
 #include "zmisc.h"
+
+#ifndef KEYBOARD_KEY_LOG
+#define KEYBOARD_KEY_LOG 0
+#endif
 
 static const gchar *
 z_keyval_name			(guint			keyval)
@@ -599,7 +602,7 @@ on_user_key_press		(GtkWidget *		widget,
   key.key = gdk_keyval_to_lower (event->keyval);
   key.mask = event->state;
 
-  if (0)
+  if (KEYBOARD_KEY_LOG)
     fprintf (stderr, "key %x %x\n", key.key, key.mask);
 
   for (kb = kb_list; kb; kb = kb->next)

@@ -23,13 +23,11 @@
   You can also this module as a template when you want to support
   other apis in tveng.
 */
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "site_def.h"
+#include "config.h"
 
 #include <stdio.h>
 #include <errno.h>
-#include <site_def.h>
 #include "common/fifo.h"
 #include <tveng.h>
 

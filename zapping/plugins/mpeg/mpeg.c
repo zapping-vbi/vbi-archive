@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.44 2004-05-22 04:54:48 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.45 2004-06-06 12:56:54 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -721,7 +721,7 @@ do_start			(const gchar *		file_name)
  */
 
 /**
- * record_config_menu_active:
+ * record_config_menu_get_active:
  * @option_menu: 
  * 
  * Returns currently selected configuration. 
@@ -730,7 +730,7 @@ do_start			(const gchar *		file_name)
  * Static keyword (escaped config name).
  **/
 static const gchar *
-record_config_menu_active	(GtkWidget *		option_menu)
+record_config_menu_get_active	(GtkWidget *		option_menu)
 {
   GtkWidget *widget;
 
@@ -741,6 +741,38 @@ record_config_menu_active	(GtkWidget *		option_menu)
     return NULL;
 
   return g_object_get_data (G_OBJECT (widget), "keyword");
+}
+
+static gboolean
+record_config_menu_set_active	(GtkWidget *		option_menu,
+				 const gchar *		keyword)
+{
+  GtkWidget *widget;
+  GtkMenuShell *menu_shell;
+  guint i;
+  GList *glist;
+
+  widget = gtk_option_menu_get_menu (GTK_OPTION_MENU (option_menu));
+  menu_shell = GTK_MENU_SHELL (widget);
+
+  i = 0;
+
+  for (glist = menu_shell->children; glist; glist = glist->next)
+    {
+      GObject object;
+      const gchar *key;
+
+      key = g_object_get_data (G_OBJECT (glist->data), "keyword");
+      if (key && 0 == strcmp (key, keyword))
+	{
+	  gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu), i);
+	  return TRUE;
+	}
+
+      ++i;
+    }
+
+  return FALSE;
 }
 
 /**
@@ -1174,11 +1206,13 @@ pref_rebuild_configs		(GtkWidget *		page,
 				 const gchar *		default_item)
 {
   static void on_pref_config_changed (GtkWidget *, GtkWidget *);
-  GtkWidget *configs = lookup_widget (page, "optionmenu15");
+  GtkWidget *configs;
   gchar *why;
   gint nformats;
 
-  nformats = record_config_menu_attach (zconf_root_temp, configs, default_item);
+  configs = lookup_widget (page, "optionmenu15");
+  nformats = record_config_menu_attach (zconf_root_temp, configs,
+					default_item);
 
   g_signal_connect (G_OBJECT (GTK_OPTION_MENU (configs)->menu),
 		      "selection-done",
@@ -1313,8 +1347,11 @@ static void
 on_pref_config_changed		(GtkWidget *		menu,
 				 GtkWidget *		page)
 {
-  GtkWidget *configs = lookup_widget (page, "optionmenu15");
-  const gchar *conf = record_config_menu_active (configs);
+  GtkWidget *configs;
+  const gchar *conf;
+
+  configs = lookup_widget (page, "optionmenu15");
+  conf = record_config_menu_get_active (configs);
 
   if (!conf || strcmp(conf, record_config_name) == 0)
     return;
@@ -1325,6 +1362,12 @@ on_pref_config_changed		(GtkWidget *		menu,
   record_config_name = g_strdup (conf);
 
   rebuild_config_dialog (page, record_config_name);
+
+  if (saving_dialog)
+    {
+      configs = lookup_widget (saving_dialog, "optionmenu14");
+      record_config_menu_set_active (configs, record_config_name);
+    }
 }
 
 static void
@@ -1409,7 +1452,7 @@ on_saving_format_changed   	(GtkWidget *		menu,
   configs = lookup_widget (saving_dialog, "optionmenu14");
   entry = lookup_widget (saving_dialog, "entry1");
 
-  ext = file_format_ext (record_config_menu_active (configs));
+  ext = file_format_ext (record_config_menu_get_active (configs));
   z_electric_replace_extension (entry, ext);
   g_free (ext);
 }
@@ -1479,7 +1522,7 @@ on_saving_record_clicked	(GtkButton *		button,
     return;
 
   widget = lookup_widget (saving_dialog, "optionmenu14");
-  buffer = record_config_menu_active (widget);
+  buffer = record_config_menu_get_active (widget);
 
   if (!buffer || !buffer[0])
     goto reject;
@@ -1540,7 +1583,8 @@ saving_dialog_attach_formats	(void)
   configs = lookup_widget (saving_dialog, "optionmenu14");
   entry = lookup_widget (saving_dialog, "entry1");
 
-  nformats = record_config_menu_attach (zconf_root, configs, NULL);
+  nformats = record_config_menu_attach (zconf_root, configs,
+					record_config_name);
   z_set_sensitive_with_tooltip (configs, nformats > 0, NULL, NULL);
 
   /*
@@ -1548,7 +1592,7 @@ saving_dialog_attach_formats	(void)
    *  and numeral suffix++ if file exists.
    */
 
-  ext = file_format_ext (record_config_menu_active (configs));
+  ext = file_format_ext (record_config_menu_get_active (configs));
   name = find_unused_name (NULL, record_option_filename, ext);
 
   gtk_entry_set_text (GTK_ENTRY (entry), name);

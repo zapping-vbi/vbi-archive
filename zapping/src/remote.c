@@ -16,12 +16,15 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "site_def.h"
+#include "config.h"
 
 #include <assert.h>
 #include "remote.h"
+
+#ifndef REMOTE_COMMAND_LOG
+#define REMOTE_COMMAND_LOG 0
+#endif
 
 PyObject *		dict;
 
@@ -46,7 +49,7 @@ on_python_command1		(GtkWidget *		widget,
   char *buf;
   unsigned int len;
 
-  if (0)
+  if (REMOTE_COMMAND_LOG)
     fprintf (stderr, "python command: '%s'\n", cmd);
 
   c_widget = widget;

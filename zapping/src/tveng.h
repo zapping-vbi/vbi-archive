@@ -1755,6 +1755,9 @@ do { \
     fprintf(stderr, "TVeng: %s\n", (info)->error); \
 } while (0)
 
+#define tv_clear_error(info)						\
+do { (info)->error[0] = 0; } while (0)
+
 #define tv_error_msg(info, template, args...)				\
 do {									\
   snprintf ((info)->error, 255, template ,##args );			\

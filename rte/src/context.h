@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.h,v 1.10 2002-12-14 00:44:26 mschimek Exp $ */
+/* $Id: context.h,v 1.11 2004-06-06 12:59:48 mschimek Exp $ */
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
@@ -211,7 +211,15 @@ struct rte_context {
 	rte_state		state;
 
 	rte_io_method		output_method;	/**< Frontend private */
-	int			output_fd;	/**< Frontend private */
+	int			output_fd0;	/**< Frontend private */
+	int			output_fdn;	/**< Frontend private */
+
+	int64_t			fsize_limit;	/**< Frontend private */
+
+	int64_t			part_size;	/**< Frontend private */
+	unsigned int		part_count;	/**< Frontend private */
+
+	char *			filename;	/**< Frontend private */
 };
 
 /**

@@ -5,7 +5,6 @@ Outstanding issues for future releases
 * Two toolbars in Teletext mode?
 * keyboard: there are too many conflicts between the Zapping
   and Xawtv mapping, better add an option to prefs.
-* Still need ure?
 * Suppress mute function of keypad enter when entering
   channel number.
 * Xawtv import considers ~/.xawtv but not /etc/X11/xawtvrc, see
@@ -61,11 +60,8 @@ Outstanding issues for future releases
 * Better audio mode (mono/stereo etc) support.
 * Check tveng has frame rate for timestamping. (Unlike mpeg bug.)
 * Remove default overlay page?
-* ttxview.c/selection_handle: What's the correct char set?
 * Is zvbi really needed for osd?
 * --roottv switch (use Z as screensaver)
-* Do realtime effects to the image, plainly wonderful, see
-  http://matsu-www.is.titech.ac.jp/~fukuchi/rooms/EffecTV/index.html
 * More compression formats.
 * Trigger: Close should remember it had been clicked already
   when a trigger is merely repeated.
@@ -79,9 +75,8 @@ Outstanding issues for future releases
 * Compress config file (libxml).
 * Config toolbar using Iñaki's dnd code.
   Update: libegg contains a new toolbar widget apparently supporting
-  user toolbar configuration.
+  user toolbar configuration. Update: see gtk+ 2.4.
 * Clean up context menu.
-* Re-add toolbar style option.
 * Remove tveng_frame_format.bytesperline. (Um, why?)
 * Verify all Gnome etc URLs everywhere.
 * Proper error messages on xawtv import.

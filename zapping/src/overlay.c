@@ -50,6 +50,14 @@
 #define OVERLAY_LOG_FP 0
 #endif
 
+#ifndef OVERLAY_EVENT_LOG_FP
+#define OVERLAY_EVENT_LOG_FP 0
+#endif
+
+#ifndef OVERLAY_DUMP_CLIPS
+#define OVERLAY_DUMP_CLIPS 0
+#endif
+
 #ifndef OVERLAY_CHROMA_TEST
 #define OVERLAY_CHROMA_TEST 0
 #endif
@@ -116,6 +124,22 @@ get_clips			(tv_clip_vector *	vector)
        tv_info.window.width,
        tv_info.window.height))
     g_assert_not_reached ();
+
+  if (OVERLAY_DUMP_CLIPS)
+    {
+      tv_clip *clip;
+      unsigned int i;
+
+      clip = vector->vector;
+
+      fprintf (stderr, "get_clips %u:\n", vector->size);
+
+      for (i = 0; i < vector->size; ++i, ++clip)
+	fprintf (stderr, "%3u: %3u, %3u - %3u, %3u\n",
+		 i, clip->x, clip->y,
+		 clip->x + clip->width,
+		 clip->y + clip->height);
+    }
 }
 
 static void
@@ -334,8 +358,8 @@ on_video_window_event		(GtkWidget *		widget,
 				 GdkEvent *		event,
 				 gpointer		user_data)
 {
-  if (0 && OVERLAY_LOG_FP)
-    fprintf (OVERLAY_LOG_FP, "on_video_window_event: GDK_%s\n",
+  if (OVERLAY_EVENT_LOG_FP)
+    fprintf (OVERLAY_EVENT_LOG_FP, "on_video_window_event: GDK_%s\n",
 	     z_gdk_event_name (event));
 
   switch (event->type)
@@ -393,6 +417,14 @@ on_video_window_event		(GtkWidget *		widget,
     case GDK_EXPOSE:
       /* Parts of the video window have been exposed, e.g. menu window has
 	 been closed. Remove those clips. */
+
+      if (OVERLAY_EVENT_LOG_FP)
+	fprintf (OVERLAY_EVENT_LOG_FP, "Expose rect %d,%d - %d,%d\n",
+		 event->expose.area.x,
+		 event->expose.area.y,
+		 event->expose.area.x + event->expose.area.width - 1,
+		 event->expose.area.y + event->expose.area.height - 1);
+
       if (tv_info.needs_cleaning)
 	{
 	  tv_info.geometry_changed = TRUE;
@@ -413,8 +445,8 @@ on_main_window_event		(GtkWidget *		widget,
 				 GdkEvent *		event,
 				 gpointer		user_data)
 {
-  if (0 && OVERLAY_LOG_FP)
-    fprintf (OVERLAY_LOG_FP, "on_main_window_event: GDK_%s\n",
+  if (OVERLAY_EVENT_LOG_FP)
+    fprintf (OVERLAY_EVENT_LOG_FP, "on_main_window_event: GDK_%s\n",
 	     z_gdk_event_name (event));
 
   switch (event->type)
@@ -456,22 +488,22 @@ root_filter			(GdkXEvent *		gdkxevent,
 {
   XEvent *event = (XEvent *) gdkxevent;
 
-  if (0 && OVERLAY_LOG_FP)
+  if (OVERLAY_EVENT_LOG_FP)
     {
-      fprintf (OVERLAY_LOG_FP, "root_filter: ");
+      fprintf (OVERLAY_EVENT_LOG_FP, "root_filter: ");
 
       switch (event->type)
 	{
-	case MotionNotify:	fprintf (OVERLAY_LOG_FP, "MotionNotify\n"); break;
-	case Expose:		fprintf (OVERLAY_LOG_FP, "Expose\n"); break;
-	case VisibilityNotify:	fprintf (OVERLAY_LOG_FP, "VisibilityNotify\n"); break;
-	case CreateNotify:	fprintf (OVERLAY_LOG_FP, "CreateNotify\n"); break;
-	case DestroyNotify:	fprintf (OVERLAY_LOG_FP, "DestroyNotify\n"); break;
-	case UnmapNotify:	fprintf (OVERLAY_LOG_FP, "UnmapNotify\n"); break;
-	case MapNotify:		fprintf (OVERLAY_LOG_FP, "MapNotify\n"); break;
-	case ConfigureNotify:	fprintf (OVERLAY_LOG_FP, "ConfigureNotify\n"); break;
-	case GravityNotify:	fprintf (OVERLAY_LOG_FP, "GravityNotify\n"); break;
-	default:		fprintf (OVERLAY_LOG_FP, "Unknown\n"); break;
+	case MotionNotify:	fprintf (OVERLAY_EVENT_LOG_FP, "MotionNotify\n"); break;
+	case Expose:		fprintf (OVERLAY_EVENT_LOG_FP, "Expose\n"); break;
+	case VisibilityNotify:	fprintf (OVERLAY_EVENT_LOG_FP, "VisibilityNotify\n"); break;
+	case CreateNotify:	fprintf (OVERLAY_EVENT_LOG_FP, "CreateNotify\n"); break;
+	case DestroyNotify:	fprintf (OVERLAY_EVENT_LOG_FP, "DestroyNotify\n"); break;
+	case UnmapNotify:	fprintf (OVERLAY_EVENT_LOG_FP, "UnmapNotify\n"); break;
+	case MapNotify:		fprintf (OVERLAY_EVENT_LOG_FP, "MapNotify\n"); break;
+	case ConfigureNotify:	fprintf (OVERLAY_EVENT_LOG_FP, "ConfigureNotify\n"); break;
+	case GravityNotify:	fprintf (OVERLAY_EVENT_LOG_FP, "GravityNotify\n"); break;
+	default:		fprintf (OVERLAY_EVENT_LOG_FP, "Unknown\n"); break;
 	}
     }
 

@@ -1760,7 +1760,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=rte
- VERSION=0.5.2
+ VERSION=0.5.3
 
 
 cat >>confdefs.h <<_ACEOF
@@ -1905,7 +1905,7 @@ fi
 	for k in m4 ; do ACLOCAL="$ACLOCAL -I $k" ; done
 
 
-LIBRTE_SO_VERSION=1:2:0
+LIBRTE_SO_VERSION=1:3:0
 
 
 test -z "`echo $CFLAGS | grep -e -g`" && CFLAGS="-O2 $CFLAGS"
@@ -9178,13 +9178,14 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-#define LARGEFILE64_SOURCE
+#define _LARGEFILE64_SOURCE
 #include <sys/types.h>
 #include <unistd.h>
+#include <fcntl.h>
 int
 main ()
 {
-lseek64(0, 0, 0)
+{ int x = O_LARGEFILE; lseek64(0, 0, 0); }
   ;
   return 0;
 }

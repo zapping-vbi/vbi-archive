@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sync.c,v 1.8 2002-12-14 00:43:44 mschimek Exp $ */
+/* $Id: sync.c,v 1.9 2004-06-06 12:59:47 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "sync.h"
@@ -156,8 +156,13 @@ mp1e_sync_run_in(sync_main *mn, sync_stream *str, consumer *c, int *frame_frac)
 			FAIL("Invalid timestamps from %s: ..., %f, %f\n",
 				c->fifo->name, last_time, b->time);
 		if ((b->time - first_time) > 2.0) {
+#if 0
+			printv (0, "Unable to sync %s after %f secs\n",
+				c->fifo->name, VT(b->time - first_time));
+#else
 			FAIL("Unable to sync %s after %f secs\n",
 				c->fifo->name, VT(b->time - first_time));
+#endif
 		}
 
 		last_time = b->time;

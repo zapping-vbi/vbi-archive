@@ -3,6 +3,123 @@ the changes.
 
 0.7
 ---
+Humorous introduction.
+
+* Video:
+  - In the video preferences, apart of "no change" and "automatic
+    selection", users can now select a particular fullscreen
+    resolution.
+  - Fullscreen mode automatically recenters and hides the pointer.
+  - The picture size menu in the video context menu is now editable,
+    including accelerators (keyboard shortcuts).
+  - The view menu now has a "keep window on top" option.
+  - In the channel menu, the video input and video standard submenu
+    are have "radio buttons" which show the current selection.
+  - XVideo support was improved.
+
+* Audio:
+  - The entire audio code was rewritten from scratch to properly
+    distinguish between sampling and mixer devices on the soundcard
+    and tv card, and between recording and output volume.
+  - Audio device preferences moved to a separate page in the preferences
+    device section and are much clearer now. Usually users will not need
+    to enter file names because available sampling and mixer devices are
+    listed in menus by file name and device name.
+  - Muting when Zapping terminates became optional.
+
+* Teletext:
+  - In Teletext mode the main window toolbar has a new button to return
+    to video mode, besides the button to overlay the current page as
+    subtitles.
+  - Teletext windows now have a menu.
+  - The history buttons didn't work quite right, do now.
+  - The search dialog is simpler now, no longer modal (blocking other
+    windows).
+  - The save format menu moved from the context menu into the dialog.
+  - We have a new Gnome 2 style bookmark editing dialog.
+
+* Caption / Subtitles:
+  - The toolbar now has a toggle button to enable caption / subtitles,
+    connected to the subtitle check menu item in the View menu. Users
+    can also enable and disable subtitles from the video context menu.
+  - The subtitle page number entry was removed from VBI preferences.
+    Zapping automatically determines the right CC stream or Teletext
+    page if the network transmits this information, and remembers the
+    last source selected by the user on each channel.
+  - Subtitles can be selected by CC stream, Teletext page number or
+    language from the video context menu, and by activating Teletext
+    mode, choosing a page and clicking on the subtitle button.
+
+* Electronic Program Guide:
+  - Zapping now interoperates with Nxtevpg. For details see
+    http://zapping.sourceforge.net/cgi-bin/view/Main/ZappingHelp
+
+* Channel Editor:
+  - Frequency tables are now sorted by country rather than geographical
+    regions. Zapping attempts to preselect the country from system
+    preferences.
+  - Automatic station search improved.
+  - Zapping can import the channel table, along with a few per-channel
+    settings, from a XawTV configuration file ~/.xawtv.
+  - The dialog now has a button to add a new channel and the GUI behaves
+    more logical.
+
+* Screenshot Plugin:
+  - Preview is now obligatory.
+  - Pressing the enter key in the screenshot dialog filename entry
+    saves the picture and closes the dialog. This is normal Gnome
+    behaviour and no longer optional.
+  - The directory for screenshots entry was removed from screenshot
+    preferences. Zapping now remembers the last path entered in the
+    dialog.
+  - When pictures are saved without dialog Zapping automatically
+    replaces the filename extension, appends an ascending number to the
+    last used filename if such a file already exists, and automatically
+    creates all non-existing directories in the path.
+
+* Command Line:
+  - zapping_setup_fb is no longer called at startup but only if needed.
+    For safety Zapping double verfies the overlay initialization.
+  - The zapping_remote tool is available to send commands to a running
+    Zapping process. Zapping and zapping_remote are partially compatible
+    to Xawtv and xawtv-remote.
+  - Zapping has new command line options: --xv-video-port,
+    --xv-image-port, --no-xv-video, --no-xv-image, --no-overlay for fine
+    grained XVideo and video overlay control (mostly for debugging,
+    this stuff really belongs into device preferences). --io-debug
+    enables logging of all driver programming.
+
+* Documentation:
+  - Zapping now has proper online help available from the Help menu.
+  - Help buttons in various dialogs now open the respective section of
+    the Zapping documentation in the Gnome help browser.
+
+* Miscellaneous:
+  - Zapping commands at the command line, for keyboard customization,
+    for remote control programming with the ALIRC plugin and commands
+    sent to a Zapping process with the new zapping_remote tool have been
+    unified. We use a real scripting language now, Python. Legacy commands
+    are still supported for compatibility.
+  - All Zapping toolbars have a context menu to change their appearance.
+    The same menu is available in the window preferences.
+  - In keyboard preferences accelerators can be entered directly in the
+    table by double-clicking on a key cell.
+  - Zapping has an experimental VDR interface, will need more work in
+    the future.
+  - The LIRC plugin was removed from this release. Plan is to combine
+    the best features of LIRC and ALIRC plugin in a future remote
+    control plugin.
+  - The program and network info dialogs were removed. If and how they
+    will return is undetermined.
+  - VBI triggers were removed from this release for a rewrite.
+
+A lot more changes were made internally, for details see the
+ChangeLog file.
+
+This release was possible with the help of the following people:
+Guus Bonnema, Iñaki Etxebarria, Henrik Isacsson, Christian Marillat,
+Morten Brix Pedersen, Michael Schimek, Pino Toscano. Many thanks to
+you and everyone submitting ideas, patches and bug reports.
 
 0.6.8
 -----

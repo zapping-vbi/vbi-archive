@@ -1,12 +1,5 @@
-Known bugs in Zapping, don't report them
+ Known bugs in Zapping, don't report them
 ----------------------------------------
-
-* Chance hang in request_capture_format_real at some rwlock, probably
-  a race condition.
-* Doesn't always reset hue on startup.
-* "drose": Under mdk 9.1 the video capture stops for no reason.
-  Start recording to a file -- come back in ten minutes, 1 - 3 minutes
-  of video are stored and zapping wasn't running.
 
 Zapping 0.6 bugs, need verification:
 * RPM creates incorrect zsfb.capps 
@@ -18,7 +11,7 @@ Zapping 0.6 bugs, need verification:
 * Do not assert on ESD timeout
 * Bug in save window geometry, reported by Pawel.
 
-Needs more work later:
+Zapping 0.7 bugs, need more work later:
 * Video size isn't always right on startup.
 * Spinslider minimum sizes.
 * Zapzilla: what's v4lx doing on standard change?
@@ -62,6 +55,15 @@ Needs more work later:
   Not recently observed, perhaps fixed.
 * Mute button is on after unmute, quit, restart. Seems to be a driver
   effect.
+* bt8x8 has no PAL delay line, or is disabled in YUYV mode?
+* tveng2/bttv-0.8.x permits capture size exceeding hardware capability?
+* Audio mutes when switching from capture to fullscreen with
+  bttv-0.8.x and Xv/v4l, although Zapping sends XvSetPortAttribute
+  XV_MUTE 0. Works normal with bttv-0.7.
+* Doesn't always reset hue on startup?
+* drose: "Under mdk 9.1 the video capture stops for no reason.
+  Start recording to a file -- come back in ten minutes, 1 - 3 minutes
+  of video are stored and zapping wasn't running." Works for me.
 
 tvengxv.c
 * Need to handle BadAtom errors resulting from Xv out

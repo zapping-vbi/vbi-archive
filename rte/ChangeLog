@@ -1,3 +1,14 @@
+2004-06-02    <mschimek@users.sf.net>
+
+	* src/context.c: Enhanced to record large files in parts on
+	  filesystems with 2 GiB limit (provided the selected format
+	  has no built-in limit).
+
+2004-06-01    <mschimek@users.sf.net>
+
+	* configure.in, src/context.c: Flawed LFS detection prevented
+	  recording of files larger than 2 GiB.
+
 2004-05-22    <mschimek@users.sf.net>
 
 	* Release 0.5.2.

@@ -80,7 +80,7 @@ do {									\
   /* function not supported by the module */ \
  info->tveng_errno = -1; \
  t_error_msg("module", \
-	     "function not supported by the module", info); \
+ 	     "function not supported by the module", info); \
 } while (0)
 
 /* for xv */
@@ -2491,6 +2491,8 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 	t_assert (info->current_controller != TVENG_CONTROLLER_NONE);
 	t_assert (target != NULL);
 
+	tv_clear_error (info);
+
 	REQUIRE_IO_MODE (FALSE);
 	REQUIRE_SUPPORT (info->priv->module.get_overlay_buffer, FALSE);
 
@@ -2603,8 +2605,10 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 		if (!info->priv->module.get_overlay_buffer (info, &dma))
 			goto failure;
 
-		if (!validate_overlay_buffer (target, &dma))
+		if (!validate_overlay_buffer (target, &dma)) {
+			tv_error_msg (info, _("zapping_setup_fb failed."));
 			goto failure;
+		}
 
 		break;
 
@@ -2622,6 +2626,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	default:
 		info->tveng_errno = -1;
+	unknown_error:
 		tv_error_msg (info, _("Unknown error in zapping_setup_fb."));
 	failure:
 		RETURN_UNTVLOCK (FALSE);
