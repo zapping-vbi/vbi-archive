@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: RTE 0.5\n"
-"POT-Creation-Date: 2002-09-01 19:19+0200\n"
+"POT-Creation-Date: 2002-09-04 05:21+0200\n"
 "PO-Revision-Date: 2002-06-13 05:06+0200\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
