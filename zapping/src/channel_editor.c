@@ -27,6 +27,7 @@
 #include "interface.h"
 #include "v4linterface.h"
 #include "zconf.h"
+#include "keysyms.h"
 /* Manages config values for zconf (it saves me some typing) */
 #define ZCONF_DOMAIN "/zapping/internal/callbacks/"
 #include "zmisc.h"
@@ -156,6 +157,8 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
   tveng_channels * tune;
   tveng_tuned_channel * tuned_channel;
   tveng_tuned_channel * list = NULL;
+
+  g_message("num keysyms: %d", num_keysyms);
 
   if (ChannelWindow)
     {

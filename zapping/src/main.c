@@ -137,6 +137,27 @@ static gint timeout_handler(gpointer unused)
   return 1; /* Keep calling me */
 }
 
+static
+gboolean on_zapping_key_press		(GtkWidget	*widget,
+					 GdkEventKey	*event,
+					 gpointer	*ignored)
+{
+  tveng_tuned_channel * tc;
+  int i = 0;
+
+  g_message("pressed key %d, mask=%x", event->keyval, event->state);
+
+  while ((tc =
+	  tveng_retrieve_tuned_channel_by_index(i++, global_channel_list)))
+    {
+      if ((event->keyval == tc->accel_key) &&
+	  ((tc->accel_mask & event->state) == tc->accel_mask))
+	g_message("channel %d (%s) matches", i, tc->name);
+    }
+
+  return FALSE; /* FIXME: return TRUE if matched */
+}
+
 /* Start VBI services, and warn if we cannot */
 static void
 startup_teletext(void)
@@ -247,7 +268,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.84 2001-01-27 22:46:11 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.85 2001-01-30 20:43:30 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -363,7 +384,11 @@ int main(int argc, char * argv[])
   tv_screen = lookup_widget(main_window, "tv_screen");
   /* Avoid dumb resizes to 1 pixel height */
   gtk_signal_connect(GTK_OBJECT(tv_screen), "size-allocate",
-		     GTK_SIGNAL_FUNC(on_tv_screen_size_allocate), NULL);
+		     GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
+		     NULL);
+  gtk_signal_connect(GTK_OBJECT(main_window),
+		     "key-press-event",
+		     GTK_SIGNAL_FUNC(on_zapping_key_press), NULL);
   /* set periodically the geometry flags on the main window */
   gtk_timeout_add(100, (GtkFunction)timeout_handler, NULL);
   /* ensure that the main window is realized */

@@ -29,7 +29,7 @@ zapping_SOURCES = \
 	zconf.c zconf.h \
 	zmisc.c zmisc.h \
 	properties.c \
-	channel_editor.c \
+	channel_editor.c keysyms.h \
 	plugin_properties.c \
 	tveng1.c tveng1.h \
 	tveng2.c tveng2.h \
