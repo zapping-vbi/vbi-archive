@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <math.h>
+#include <ctype.h>
 
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zmisc.h"
@@ -198,6 +199,31 @@ void set_tooltip	(GtkWidget	*widget,
 
   gtk_tooltips_set_tip(tips, widget, new_tip,
 		       "private tip, or, er, just babbling, you know");
+}
+
+void
+set_sensitive_with_tooltip	(GtkWidget *		widget,
+				 gboolean		sensitive,
+				 const gchar *		on_tip,
+				 const gchar *		off_tip)
+{
+  GtkTooltipsData *td = gtk_tooltips_data_get (widget);
+  GtkTooltips *tips;
+  const gchar *new_tip;
+
+  if (!td || !td->tooltips)
+    tips = gtk_tooltips_new ();
+  else
+    tips = td->tooltips;
+
+  gtk_widget_set_sensitive (widget, sensitive);
+
+  new_tip = sensitive ? on_tip : off_tip;
+
+  if (new_tip)
+    gtk_tooltips_set_tip (tips, widget, new_tip, NULL);
+  else
+    gtk_tooltips_disable (tips);
 }
 
 int
@@ -1078,18 +1104,18 @@ z_set_cursor	(GdkWindow	*window,
 }
 
 GtkWidget *
-z_pixmap_new_from_file		(const gchar	*file)
+z_pixmap_new_from_file		(const gchar *		name)
 {
   GdkBitmap *mask;
   GdkPixmap *pixmap;
   GdkPixbuf *pb;
   GtkWidget *pix;
 
-  pb = gdk_pixbuf_new_from_file(file);
+  pb = gdk_pixbuf_new_from_file (name);
 
   if (!pb) {
     printv("Unable to load pixmap \"%s\", errno %d: %s\n",
-	   file, errno, strerror(errno));
+	   name, errno, strerror(errno));
     return NULL;
   }
 
@@ -1103,44 +1129,130 @@ z_pixmap_new_from_file		(const gchar	*file)
   return pix;
 }
 
+GtkWidget *
+z_load_pixmap			(const gchar *		name)
+{
+  GtkWidget *pixmap;
+  gchar *path;
+
+  path = g_strconcat (PACKAGE_PIXMAPS_DIR, "/", name, NULL);
+  pixmap = z_pixmap_new_from_file (path);
+  g_free (path);
+
+  if (pixmap)
+    gtk_widget_show (pixmap);
+
+  return pixmap;
+}
+
 GtkWindow *
 z_main_window		(void)
 {
   return GTK_WINDOW(main_window);
 }
 
-gchar*
-find_unused_name (const gchar * dir, const gchar * prefix,
-		  const gchar * suffix)
+gchar *
+find_unused_name		(const gchar *		dir,
+				 const gchar *		file,
+				 const gchar *		ext)
 {
-  gint index = 1;
-  gchar * buf = NULL, *dot;
+  gchar *buf = NULL;
+  gchar *name;
+  const gchar *slash = "";
+  const gchar *dot = "";
+  gint index = 0;
+  const gchar *s;
+  gint n;
   struct stat sb;
 
-  dot = (suffix[0] == '.') ? "" : ".";
+  if (!dir)
+    dir = "";
+  else if (dir[0] && dir[strlen (dir) - 1] != '/')
+    slash = "/";
 
-  while (TRUE)
+  if (!file || !file[0])
+    return g_strconcat (dir, slash, NULL);
+
+  n = strlen (file);
+
+  /* cut off existing extension from @file */
+  for (s = file + n; s > file;)
+    if (*--s == '.')
+      {
+	if (s == file || s[-1] == '/')
+	  return g_strconcat (dir, slash, NULL);
+	else
+	  break;
+      }
+
+  if (s == file) /* has no extension */
+    s = file + n;
+  else if (!ext) /* no new ext, keep old */
+    ext = s;
+
+  /* parse off existing numeral suffix */
+  for (n = 1; s > file && n < 10000000; n *= 10)
+    if (isdigit(s[-1]))
+      index += (*--s & 15) * n;
+    else
+      break;
+
+  name = g_strndup (file, s - file);
+
+  if (!ext)
+    ext = "";
+  else if (ext[0] && ext[0] != '.')
+    dot = ".";
+
+  if (index == 0 && n == 1) /* had no suffix */
     {
-      /* Add a slash if needed */
-      if ((!*dir) || (dir[strlen(dir)-1] != '/'))
-	buf = g_strdup_printf("%s/%s%d%s%s", dir, prefix, index++,
-			      dot, suffix);
-      else
-	buf = g_strdup_printf("%s%s%d%s%s", dir, prefix, index++,
-			      dot, suffix);
+      /* Try first without numeral suffix */
+      buf = g_strdup_printf ("%s%s%s%s%s",
+			     dir, slash, name, dot, ext);
+      index = 2; /* foo, foo2, foo3, ... */
+    }
+  /* else fooN, fooN+1, fooN+2 */
+
+  for (n = 10000; n > 0; n--) /* eventually abort */
+    {
+      if (!buf)
+	buf = g_strdup_printf("%s%s%s%d%s%s",
+			      dir, slash, name, index++, dot, ext);
 
       /* Try to query file availability */
       /*
        * Note: This is easy to break, but since there's no good(tm)
        * way to predict an available file name, just do the simple thing.
        */
-      if (stat(buf, &sb))
-	break;
+      if (stat (buf, &sb) == -1)
+	{
+	  switch (errno)
+	    {
+	    case ENOENT:
+	    case ENOTDIR:
+	      /* take this */
+	      break;
 
-      g_free(buf);
-    };
+	    default:
+	      /* give up */
+	      g_free (buf);
+	      buf = NULL;
+	      break;
+	    }
 
-  return buf;
+	  break;
+	}
+      else
+	{
+	  /* exists, try other */
+	  g_free (buf);
+	  buf = NULL;
+	}
+    }
+
+  g_free (name);
+
+  return buf ? buf : g_strconcat (dir, slash, NULL);
 }
 
 /*
@@ -1321,10 +1433,8 @@ z_spinslider_new			(GtkAdjustment * spin_adj,
   gtk_signal_connect (GTK_OBJECT (hscale_adj), "value-changed",
 		      GTK_SIGNAL_FUNC (on_z_spinslider_hscale_changed), hbox);
 
-  pixmap = z_pixmap_new_from_file (PACKAGE_PIXMAPS_DIR "/reset.png");
-  if (pixmap)
+  if ((pixmap = z_load_pixmap ("reset.png")))
     {
-      gtk_widget_show (pixmap);
       button = gtk_button_new ();
       gtk_widget_show (button);
       gtk_container_add (GTK_CONTAINER (button), pixmap);

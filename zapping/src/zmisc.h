@@ -144,6 +144,15 @@ void set_tooltip	(GtkWidget	*widget,
 			 const gchar	*new_tip);
 
 /**
+ * Changes sensitivity and sets the appropriate tooltip if given.
+ */
+void
+set_sensitive_with_tooltip	(GtkWidget *		widget,
+				 gboolean		sensitive,
+				 const gchar *		on_tip,
+				 const gchar *		off_tip);
+
+/**
  * Widget: a GTK_PIXMAP_MENU_ITEM that you want to change.
  * Any of the attributes can be NULL, means don't change.
  */
@@ -342,6 +351,11 @@ z_set_cursor			(GdkWindow	*window,
 /* Creates a GtkPixmap from the given filename, NULL if not found */
 GtkWidget *
 z_pixmap_new_from_file		(const gchar	*file);
+
+/* Same as z_pixmap_new_from_file(), but prepends PACKAGE_PIXMAP_DIR
+   to name and gtk_shows the pixmap on success */
+GtkWidget *
+z_load_pixmap			(const gchar *	name);
 
 /* Pointer to the main window */
 GtkWindow *
