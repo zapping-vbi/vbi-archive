@@ -1480,11 +1480,11 @@ x11_screensaver_init		(void)
 
 gboolean
 x11_dga_query			(x11_dga_parameters *	par,
+				 const char *		display_name,
 				 int			bpp_hint)
 {
   x11_dga_parameters param;
-
-  Display *display = GDK_DISPLAY ();
+  Display *display;
   int event_base, error_base;
   int major_version, minor_version;
   int screen;
@@ -1494,6 +1494,21 @@ x11_dga_query			(x11_dga_parameters *	par,
     CLEAR (*par);
   else
     par = &param;
+
+  if (display_name)
+    {
+      display = XOpenDisplay (display_name);
+
+      if (NULL == display)
+	{
+	  printv ("Cannot open display '%s'\n", display_name);
+	  return FALSE;
+	}
+    }
+  else
+    {
+      display = GDK_DISPLAY ();
+    }
 
   if (!XF86DGAQueryExtension (display, &event_base, &error_base))
     {
@@ -1663,6 +1678,7 @@ x11_dga_query			(x11_dga_parameters *	par,
 
 gboolean
 x11_dga_query			(x11_dga_parameters *	par,
+				 const char *		display_name,
 				 int			bpp_hint)
 {
   printv ("DGA extension support not compiled in\n");

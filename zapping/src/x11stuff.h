@@ -26,7 +26,7 @@
 #endif
 #include <gtk/gtk.h>
 
-#include <tveng.h>
+//#include <tveng.h>
 
 /*
  * Returns a pointer to the data contained in the given GdkImage
@@ -68,10 +68,6 @@ x11_force_expose(gint x, gint y, gint w, gint h);
  */
 gboolean
 x11_window_viewable(GdkWindow *window);
-
-//void
-//x11_root_geometry		(unsigned int *		width,
-//				 unsigned int *		height);
 
 /* Keep-window-on-top routines */
 
@@ -159,6 +155,7 @@ struct _x11_dga_parameters {
 
 gboolean
 x11_dga_query			(x11_dga_parameters *	par,
+				 const char *		display_name,
 				 int			bpp_hint);
 
 static __inline__ gboolean
