@@ -46,15 +46,15 @@ make prefix=$RPM_BUILD_ROOT%{prefix} install
 
 %files
 
-%defattr (4555, bin, bin)
+%defattr (4555, root, root)
 %{prefix}/bin/zapping_setup_fb
 
-%defattr (0555, bin, bin)
+%defattr (0555, root, root)
 %{prefix}/bin/zapping
 %{prefix}/share/zapping/plugins/*.zapping.so
 %{prefix}/share/zapping/plugins/*.zapping.so.0.0.0
 
-%defattr (0444, bin, man, 0555)
+%defattr (0444, root, root, 0555)
 %{prefix}/share/zapping/*.glade
 %{prefix}/share/gnome/help/zapping/C/*.jpeg
 %{prefix}/share/gnome/help/zapping/C/*.html
@@ -63,8 +63,8 @@ make prefix=$RPM_BUILD_ROOT%{prefix} install
 %{prefix}/share/gnome/apps/Multimedia/zapping.desktop
 %{prefix}/share/locale/*/*/*
 
-%defattr (0444, bin, bin, 555)
-%doc AUTHORS THANKS ChangeLog README COPYING TODO BUGS po/zapping.pot
+%defattr (0444, root, root, 0555)
+%doc AUTHORS THANKS ChangeLog README README.plugins COPYING TODO BUGS po/zapping.pot
 
 %changelog
 * Mon Jun 19 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>

@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2000-07-23 23:46+0200\n"
+"POT-Creation-Date: 2000-07-24 11:07+0200\n"
 "PO-Revision-Date: 2000-02-14 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -43,11 +43,11 @@ msgstr ""
 "Lo siento, pero \"%s\" no se pudo abrir:\n"
 "%s"
 
-#: src/main.c:324
+#: src/main.c:325
 msgid "There is no allocated mem for the capture"
 msgstr "No hay memoria reservada para la captura"
 
-#: src/main.c:436
+#: src/main.c:437
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -66,7 +66,7 @@ msgstr ""
 "   - o, más probablemente, esto es un fallo de Zapping.\n"
 "     Por favor contacte con el autor.\n"
 
-#: src/main.c:470
+#: src/main.c:471
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Zapping no puede crear la configuración"
 

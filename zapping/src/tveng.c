@@ -1151,7 +1151,7 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
       execvp("zapping_setup_fb", argv);
 
       /* This shouldn't be reached if everything suceeds */
-      perror("execvp");
+      perror("execvp(zapping_setup_fb)");
 
       _exit(2); /* zapping setup_fb on error returns 1 */
     }

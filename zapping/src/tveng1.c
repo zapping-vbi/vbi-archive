@@ -344,6 +344,8 @@ void tveng1_close_device(tveng_device_info * info)
   int i;
   int j;
 
+  t_assert(info != NULL);
+
   tveng_stop_everything(info);
 
   close(info -> fd);

@@ -193,8 +193,9 @@ int main(int argc, char * argv[])
 
   if (!main_window)
     {
-      g_warning("Sorry, but the interface (zapping.glade) couldn't"
-		" be loaded.\nCheck your installation.");
+      g_warning("Sorry, but " PACKAGE_DATA_DIR
+		"/zapping.glade\ncouldn't"
+		" be loaded. Check your installation.\n");
       tveng_device_info_destroy(main_info);
       return 0;
     }
@@ -252,24 +253,24 @@ int main(int argc, char * argv[])
     fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
 
   /* Start the capture in the last mode */
-  switch (zcg_int(NULL, "capture_mode"))
-    {
-    case TVENG_CAPTURE_PREVIEW:
-      on_go_fullscreen1_activate(GTK_MENU_ITEM(
-	 lookup_widget(main_window, "go_fullscreen1")), NULL);
-      restore_mode = TVENG_CAPTURE_WINDOW;
-      if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
+  if (!disable_preview)
+    switch (zcg_int(NULL, "capture_mode"))
+      {
+      case TVENG_CAPTURE_PREVIEW:
+	on_go_fullscreen1_activate(GTK_MENU_ITEM(lookup_widget(main_window, "go_fullscreen1")), NULL);
+	restore_mode = TVENG_CAPTURE_WINDOW;
+	if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
+	  break;
+      case TVENG_CAPTURE_READ:
+	on_go_capturing2_activate(GTK_MENU_ITEM(lookup_widget(main_window, "go_capturing2")), NULL);
+	if (main_info->current_mode == TVENG_CAPTURE_READ)
+	  break;
+      default:
+	on_go_previewing2_activate(GTK_MENU_ITEM(lookup_widget(main_window, "go_previewing2")), NULL);
 	break;
-    case TVENG_CAPTURE_READ:
-      on_go_capturing2_activate(GTK_MENU_ITEM(
-	 lookup_widget(main_window, "go_capturing2")), NULL);
-      if (main_info->current_mode == TVENG_CAPTURE_READ)
-	break;
-    default:
-      on_go_previewing2_activate(GTK_MENU_ITEM(
-	 lookup_widget(main_window, "go_previewing2")), NULL);
-      break;
-    }
+      }
+  else /* preview disabled */
+    on_go_capturing2_activate(GTK_MENU_ITEM(lookup_widget(main_window, "go_capturing2")), NULL);
 
   while (!flag_exit_program)
     {

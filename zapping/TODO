@@ -1,8 +1,5 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Update channel editor help (and shots) - docs in general
-	+ Check that tarball and RPM installations work perfectly
-	> Release 0.5.2
 	+ Write the mpeg plugin
 	+ Bug fixes
 	> Release 0.5.3
