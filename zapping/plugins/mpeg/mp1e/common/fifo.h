@@ -20,14 +20,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.3 2000-08-12 02:14:37 mschimek Exp $ */
+/* $Id: fifo.h,v 1.4 2000-08-28 21:13:22 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
 
 #include "list.h"
 #include "types.h"
-#include "pthread.h"
+#include "threads.h"
 
 /*
  *  Old stuff to be removed
