@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.15 2001-05-14 22:51:42 garetxe Exp $ */
+/* $Id: v4lx.c,v 1.16 2001-05-15 22:02:44 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +40,7 @@
 #include "../common/math.h"
 #include "../common/fifo.h"
 
-#define IODIAG(templ, args...) //fprintf(stderr, templ ": %s\n" ,##args , strerror(errno))/* with errno */
+#define IODIAG(templ, args...) //fprintf(stderr, templ ": %s (%d)\n" ,##args , strerror(errno), errno)/* with errno */
 #define DIAG(templ, args...) //fprintf(stderr, templ,##args)
 
 #define V4L2_LINE 		0 /* API rev. Nov 2000 (-1 -> 0) */
