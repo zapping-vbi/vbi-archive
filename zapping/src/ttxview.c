@@ -519,11 +519,20 @@ static void selection_handle		(GtkWidget	*widget,
 	  char *buf = (char *) malloc (size);
 
 	  if (buf) {
-	    actual = vbi_print_page_region (&data->clipboard_fmt_page,
-					    buf, size, "ISO-8859-1" /* OK? */,
-					    data->sel_table, /* ltr */ TRUE,
-					    data->sel_col1, data->sel_row1,
-					    width, height);
+#if VBI_VERSION_MAJOR >= 1
+            actual = vbi_print_page_region (&data->clipboard_fmt_page,
+                                            buf, size, "ISO-8859-1" /* OK? */,
+                                            NULL, 0, /* std separator */
+                                            data->sel_table, /* rtl */ FALSE,
+                                            data->sel_col1, data->sel_row1,
+                                            width, height);
+#else
+            actual = vbi_print_page_region (&data->clipboard_fmt_page,
+                                            buf, size, "ISO-8859-1" /* OK? */,
+                                            data->sel_table, /* ltr */ TRUE,
+                                            data->sel_col1, data->sel_row1,
+                                            width, height);
+#endif
 	    if (actual > 0)
 	      gtk_selection_data_set (selection_data,
 				      GDK_SELECTION_TYPE_STRING, 8,
@@ -2130,7 +2139,7 @@ void export_ttx_page			(GtkWidget	*widget,
 				    extensions[0]);
       g_strfreev (extensions);
 
-      name = z_build_filename (zcg_char (NULL, "exportdir"), filename);
+      name = g_build_filename (zcg_char (NULL, "exportdir"), filename, NULL);
 
       dialog = create_export_dialog (&name, filename, data, exp);
       result = gtk_dialog_run (GTK_DIALOG(dialog));
