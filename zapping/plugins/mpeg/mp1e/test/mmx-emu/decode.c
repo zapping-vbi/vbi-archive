@@ -17,7 +17,7 @@
 #include "sse2_int.h"
 
 // FIXME: Those global vars are bad if we emulate a multi-threaded program...
-// {mhs} two gone
+// {mhs} two gone, one added :-/
 // int pshi_diff; // Used temporarily to differentiate pshi*.
 // sigcontext_t * context;
 static unsigned char xmm_reg[8][16]; /* should use SSE context where available */
@@ -28,7 +28,7 @@ static unsigned char xmm_reg[8][16]; /* should use SSE context where available *
 static ifunc *
 instr_0F[256] = {
 /* 0 */		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 /* ud2 */,
-		0,	    _3dnow_prefetch,	femms,		0 /* 3dnow prefix */,
+		0,	    _3dnow_prefetch,	femms,		(void *) -1 /* 3dnow "prefix" */,
 /* 1 */		movups,		movups,		movlps2mem,	movlps2xmm,
 		unpcklps,	unpckhps,	movhps2mem,	movhps2xmm,
 		sse_prefetch,	0,		0,		0,
@@ -82,7 +82,7 @@ instr_cyrix[16] = {
 		pmvgezb,	pmulhriw,	pmachriw,	0
 };
 
-/* "3DNow!" extensions 0x0F0Fnn */
+/* "3DNow!" extensions 0x0F0F/.../nn */
 
 static ifunc *
 instr_0F0F[256] = {
@@ -336,6 +336,7 @@ mmx_emu_configure(cpu_class cpu)
 		memset(instr_0F0F, 0, sizeof(instr_0F0F));
 		instr_0F[0x0D] = 0; /* _3dnow_prefetch */
 		instr_0F[0x0E] = 0; /* femms */
+		instr_0F[0x0F] = 0; /* 3dnow "prefix" */
 	}
 
 	if (cyrix) {
@@ -504,7 +505,7 @@ modrm(void **srcp, void **destp, ifunc *instr, int opcode, int prefix,
 	}
 
 	if (instr == sse_prefetch || instr == _3dnow_prefetch) {
-		if (mod == 3 || (mod == 0 && (rm != 4 && rm != 5)))
+		if (mod == 3)
 			FAIL("invalid modr/m byte 0x%02x",
 				(mod << 6) + (reg << 3) + rm);
 
