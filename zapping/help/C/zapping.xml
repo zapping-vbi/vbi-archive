@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" 
 "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
-  <!ENTITY appversion		"0.7.2">
-  <!ENTITY manrevision		"0.2">
-  <!ENTITY date			"2004-10-03">
+  <!ENTITY appversion		"0.9">
+  <!ENTITY manrevision		"0.3">
+  <!ENTITY date			"2005-02-18">
 
   <!ENTITY settings		SYSTEM "settings.xml">
   <!ENTITY channel-editor	SYSTEM "channel-editor.xml">
@@ -22,6 +22,7 @@
 
     <copyright> 
       <year>2004</year>
+      <year>2005</year>
       <holder>Michael H. Schimek</holder> 
     </copyright>
 
