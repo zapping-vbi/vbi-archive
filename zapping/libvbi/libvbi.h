@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.34 2001-04-23 23:48:06 garetxe Exp $ */
+/* $Id: libvbi.h,v 1.35 2001-04-24 04:08:11 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -115,6 +115,7 @@ typedef enum {
 
 typedef struct {
 	vbi_link_type			type;
+	int				eacem;
 
 	unsigned char 			name[80];
 

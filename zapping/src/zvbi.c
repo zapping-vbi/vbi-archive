@@ -267,9 +267,14 @@ on_trigger_clicked			(gpointer	ignored,
       open_in_new_ttxview(trigger->page, trigger->subpage);
       break;
 
-      /* FIXME: _MESSAGE, _LID, _TELEWEB? */
+    case VBI_LINK_LID:
+    case VBI_LINK_TELEWEB:
+      /* ignore */
+      break;
+
+      /* FIXME: _MESSAGE? */
     default:
-      ShowBox("Unhandled link type %d, please contact the maintainer",
+      ShowBox("Unhandled trigger type %d, please contact the maintainer",
 	      GNOME_MESSAGE_BOX_WARNING, trigger->type);
       break;
     }
@@ -336,8 +341,7 @@ acknowledge_trigger			(vbi_link	*link)
       return;
     }
 
-  /* FIXME: Any way to distinguish? */
-  if (! link->itv_type  &&  !link->autoload)
+  if (link->eacem)
     filename = g_strdup_printf("%s/%s.png", PACKAGE_DATA_DIR,
 			       "../pixmaps/zapping/eacem_icon");
   else

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.2 2001-04-12 19:06:20 mschimek Exp $ */
+/* $Id: trigger.c,v 1.3 2001-04-24 04:08:11 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -620,7 +620,7 @@ vbi_eacem_trigger(struct vbi *vbi, unsigned char *s)
 				t.link.expires, t.link.priority, t.link.itv_type,
 				t.link.autoload, t.fire, t.view, t.delete);
 
-		/* XXX priority */
+		t.link.eacem = TRUE;
 
 		if (t.link.type == VBI_LINK_LID
 		    || t.link.type == VBI_LINK_TELEWEB)
@@ -646,7 +646,7 @@ vbi_atvef_trigger(struct vbi *vbi, char *s)
 				t.link.expires, t.link.priority, t.link.itv_type,
 				t.link.autoload, t.fire, t.view, t.delete);
 
-		/* XXX itv_type */
+		t.link.eacem = FALSE;
 
 		if (t.view == 't' /* WebTV */
 		    || strchr(t.link.url, '*') /* trigger matching */
