@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,6 +53,7 @@ build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
   gchar country[256];
   gchar freq[256];
   gchar accel[256];
+  gchar * buffer;
 
   gchar *entry[] = {alias, channel, country, freq, accel};
 
@@ -70,11 +71,17 @@ build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
       g_snprintf(entry[2], 255, _(tuned_channel->country));
       g_snprintf(entry[3], 255, "%u", tuned_channel->freq);
       if (tuned_channel->accel_key)
-	g_snprintf(entry[4], 255, "%s%s%s%c",
-		   (tuned_channel->accel_mask&GDK_CONTROL_MASK)?"Ctl+":"",
-		   (tuned_channel->accel_mask&GDK_MOD1_MASK)?"Alt+":"",
-		   (tuned_channel->accel_mask&GDK_SHIFT_MASK)?"Shift+":"",
-		   tuned_channel->accel_key);
+	{
+	  buffer = gdk_keyval_name(tuned_channel->accel_key);
+	  if (buffer)
+	    g_snprintf(entry[4], 255, "%s%s%s%s",
+		       (tuned_channel->accel_mask&GDK_CONTROL_MASK)?"Ctl+":"",
+		       (tuned_channel->accel_mask&GDK_MOD1_MASK)?"Alt+":"",
+		       (tuned_channel->accel_mask&GDK_SHIFT_MASK)?"Shift+":"",
+		       buffer);
+	  else
+	    entry[4][0] = 0;
+	}
       else
 	entry[4][0] = 0;
       gtk_clist_append(clist, entry);
@@ -151,6 +158,8 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
   GtkWidget * new_menu;
   GtkWidget * menu_item = NULL;
 
+  GtkWidget * combo1;
+
   int i = 0;
   int currently_tuned_country = 0;
 
@@ -158,7 +167,7 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
   tveng_tuned_channel * tuned_channel;
   tveng_tuned_channel * list = NULL;
 
-  g_message("num keysyms: %d", num_keysyms);
+  GList * keylist = NULL;
 
   if (ChannelWindow)
     {
@@ -228,6 +237,15 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
   gtk_object_set_data(GTK_OBJECT(channel_window), "list", list);
 
   gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
+
+  combo1 = lookup_widget(channel_window, "combo1");
+
+  for (i=0; i<num_keysyms; i++)
+    keylist = g_list_append(keylist, keysyms[i]);
+
+  gtk_combo_set_popdown_strings(GTK_COMBO(combo1), keylist);
+
+  g_list_free(keylist);
 
   gtk_widget_show(channel_window);
 
@@ -311,7 +329,9 @@ on_add_channel_clicked                 (GtkButton       *button,
   tc.accel_key = 0;
   buffer = gtk_entry_get_text(GTK_ENTRY(channel_accel));
   if (buffer)
-      tc.accel_key = *buffer;
+      tc.accel_key = gdk_keyval_from_name(buffer);
+  if (tc.accel_key == GDK_VoidSymbol)
+    tc.accel_key = 0;
 
   tc.accel_mask = 0;
   widget = lookup_widget(clist1, "channel_accel_ctrl");
@@ -382,7 +402,9 @@ on_modify_channel_clicked              (GtkButton       *button,
   tc.accel_key = 0;
   buffer = gtk_entry_get_text(GTK_ENTRY(channel_accel));
   if (buffer)
-      tc.accel_key = *buffer;
+      tc.accel_key = gdk_keyval_from_name(buffer);
+  if (tc.accel_key == GDK_VoidSymbol)
+    tc.accel_key = 0;
   tveng_get_tune(&tc.freq, main_info);
 
   tc.accel_mask = 0;
@@ -599,7 +621,6 @@ on_channel_list_select_row             (GtkCList        *clist,
   GtkWidget * channel_accel = lookup_widget(GTK_WIDGET(clist),
 					    "channel_accel");
   GtkWidget * widget;
-  gchar * buffer;
 
   list = tveng_retrieve_tuned_channel_by_index(row, list);
 
@@ -646,9 +667,11 @@ on_channel_list_select_row             (GtkCList        *clist,
   gtk_entry_set_text(GTK_ENTRY(channel_name), list->name);
   if (list->accel_key)
     {
-      buffer = g_strdup_printf("%c", list->accel_key);
-      gtk_entry_set_text(GTK_ENTRY(channel_accel), buffer);
-      g_free(buffer);
+      if (gdk_keyval_name(list->accel_key))
+	gtk_entry_set_text(GTK_ENTRY(channel_accel),
+			   gdk_keyval_name(list->accel_key));
+      else
+	gtk_entry_set_text(GTK_ENTRY(channel_accel), "");
       widget = lookup_widget(channel_accel, "channel_accel_ctrl");
       gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
 				   list->accel_mask & GDK_CONTROL_MASK);

@@ -1,5 +1,5 @@
 /* Created with a sed script from gdkkeysyms.h */
-const char *keysyms[] = {
+static char *keysyms[] = {
   "VoidSymbol",
   "BackSpace",
   "Tab",

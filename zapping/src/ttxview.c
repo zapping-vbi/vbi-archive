@@ -192,8 +192,6 @@ void scale_image			(GtkWidget	*wid,
       data->mask = gdk_pixmap_new(data->da->window, w, h, 1);
       g_assert(data->mask != NULL);
       resize_ttx_page(data->id, w, h);
-      // render_ttx_mask(data->id, data->mask);
-      // gdk_window_shape_combine_mask(data->da->window, data->mask, 0, 0);
       data->w = w;
       data->h = h;
     }
@@ -264,8 +262,6 @@ void setup_history_gui	(ttxview_data *data)
     gtk_widget_set_sensitive(prev, TRUE);
   else
     gtk_widget_set_sensitive(prev, FALSE);
-
-  /* FIXME: add status for subpages */
 }
 
 static
@@ -395,12 +391,6 @@ event_timeout				(ttxview_data	*data)
 	{
 	case TTX_PAGE_RECEIVED:
 	  gdk_window_get_size(data->da->window, &w, &h);
-	  //	  if (data->mask)
-	  //	    {
-	      // render_ttx_mask(data->id, data->mask);
-	      // gdk_window_shape_combine_mask(data->da->window, data->mask,
-	      //			    0, 0);
-	  //	    }
 	  gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
 	  data->subpage = data->fmt_page->vtp->subno;
 	  widget = lookup_widget(data->toolbar, "ttxview_subpage");
@@ -1153,7 +1143,6 @@ void on_delete_bookmarks_activated	(GtkWidget	*widget,
   gtk_widget_show(be);
 }
 
-/* FIXME: reveal et al should be configurable */
 static
 void export_ttx_page			(GtkWidget	*widget,
 					 ttxview_data	*data,
@@ -1478,6 +1467,8 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
   gchar *buffer;
+  GtkWidget * ttxview_hold = lookup_widget(data->toolbar, "ttxview_hold");
+  gboolean active;
 
   switch (event->keyval)
     {
@@ -1562,6 +1553,17 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
     case GDK_Right:
       on_ttxview_next_sp_cache_clicked(GTK_BUTTON(lookup_widget(data->toolbar,
 				     "ttxview_next_sp_cache")), data);
+      break;
+    case GDK_Home:
+    case GDK_KP_Home:
+      on_ttxview_home_clicked(GTK_BUTTON(lookup_widget(data->toolbar,
+						       "ttxview_home")), data);
+      break;
+    case GDK_H:
+    case GDK_h:
+      active =
+	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ttxview_hold));
+      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_hold), !active);
       break;
     default:
       return FALSE;

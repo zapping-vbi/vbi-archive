@@ -86,17 +86,18 @@ AC_SUBST(PNG_LIB)
 dnl ----------------------------------------------------------------------
 dnl Unicode lib
 dnl ----------------------------------------------------------------------
-UNICODE_LIB=""
-HAVE_UNICODE="yes"
-AC_CHECK_LIB(unicode, unicode_istitle, UNICODE_LIB="-lunicode", HAVE_UNICODE="no")
-if test "x$HAVE_UNICODE" = "xyes"; then
-	AC_DEFINE(HAVE_LIBUNICODE)
+AC_MSG_CHECKING(for unicode)
+UNICODE_VERSION=`unicode-config --version`
+if test $? -eq 0; then
+	AC_MSG_RESULT($UNICODE_VERSION)
+	UNICODE_CFLAGS=`unicode-config --cflags`
+	UNICODE_LIBS=`unicode-config --libs`
+	AC_SUBST(UNICODE_CFLAGS)
+	AC_SUBST(UNICODE_LIBS)
 else
 	AC_MSG_ERROR([This version of Zapping requires libunicode:
 	ftp://ftp.gnome.org/pub/GNOME/unstable/sources])
-	HAVE_GDK_PIXBUF="no"
 fi
-AC_SUBST(UNICODE_LIB)
 
 dnl ----------------------------------------------------------------------
 dnl Check for RTE, the MPEG encoder
@@ -115,7 +116,7 @@ GNOME_X_CHECKS
 GNOME_XML_CHECK
 
 dnl ----------------------------------------------------------------------
-dnl Check for the existance of gdk-pixbuf (some plugins need it)
+dnl Check for the existance of gdk-pixbuf
 dnl ----------------------------------------------------------------------
 AC_MSG_CHECKING(for gdk_pixbuf)
 GDK_PIXBUF_VERSION=`gdk-pixbuf-config --version`

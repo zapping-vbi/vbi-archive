@@ -264,8 +264,8 @@ void on_channel_activate              (GtkMenuItem     *menuitem,
 
   if (!channel)
     {
-      printf(_("Cannot tune given channel %d (no such channel)\n"), 
-	     num_channel);
+      g_warning("Cannot tune given channel %d (no such channel)",
+		num_channel);
       return;
     }
 
@@ -497,6 +497,29 @@ change_pixmenuitem_label		(GtkWidget	*menuitem,
   gtk_label_set_text(GTK_LABEL(widget), new_label);
 }
 
+/* the returned string needs to be g_free'ed */
+static gchar *
+build_channel_tooltip(tveng_tuned_channel * tuned_channel)
+{
+  gchar * buffer;
+
+  if ((!tuned_channel) || (!tuned_channel->accel_key) ||
+      (tuned_channel->accel_key == GDK_VoidSymbol))
+    return NULL;
+
+  buffer = gdk_keyval_name(tuned_channel->accel_key);
+
+  if (!buffer)
+    return NULL;
+
+  return g_strdup_printf("%s%s%s%s",
+        	 (tuned_channel->accel_mask&GDK_CONTROL_MASK)?"Ctl+":"",
+	       (tuned_channel->accel_mask&GDK_MOD1_MASK)?"Alt+":"",
+	       (tuned_channel->accel_mask&GDK_SHIFT_MASK)?"Shift+":"",
+	       buffer);
+
+}
+
 gboolean
 on_tv_screen_button_press_event        (GtkWidget       *widget,
 					GdkEvent        *event,
@@ -506,6 +529,7 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
   GtkWidget * zapping = lookup_widget(widget, "zapping");
   GdkEventButton * bevent = (GdkEventButton *) event;
   GtkWidget *spixmap;
+  gchar * tooltip;
 
   if (event->type != GDK_BUTTON_PRESS)
     return FALSE;
@@ -516,9 +540,11 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
       {
 	GtkMenu * menu = GTK_MENU(create_popup_menu1());
 	GtkWidget * menuitem;
+	GtkMenu * submenu;
 	tveng_tuned_channel * tuned;
 	/* it needs to be realized before operating on it */
 	gtk_widget_realize(GTK_WIDGET(menu));
+	gtk_widget_hide(lookup_widget(GTK_WIDGET(menu), "channel_list1"));
 	if ((main_info->num_inputs == 0) ||
 	    (!(main_info->inputs[main_info->cur_input].flags &
 	       TVENG_INPUT_TUNER)))
@@ -538,21 +564,64 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	    gtk_menu_insert(menu, menuitem, 1);
 	  }
 	else
-	  for (i = tveng_tuned_channel_num(global_channel_list)-1; i >= 0; i--)
-	    {
-	      tuned =
-		tveng_retrieve_tuned_channel_by_index(i, global_channel_list);
-	      g_assert(tuned != NULL);
-	      menuitem =
-		z_gtk_pixmap_menu_item_new(tuned->name,
-					   GNOME_STOCK_PIXMAP_PROPERTIES);
-	      gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-				 GTK_SIGNAL_FUNC(on_channel2_activate),
-				 GINT_TO_POINTER(i));
-	      gtk_object_set_user_data(GTK_OBJECT(menuitem), zapping);
-	      gtk_widget_show(menuitem);
-	      gtk_menu_insert(menu, menuitem, 1);
-	    }
+	  {
+	    if (tveng_tuned_channel_num(global_channel_list) <= 7)
+	      for (i = tveng_tuned_channel_num(global_channel_list)-1;
+		   i >= 0; i--)
+		{
+		  tuned = tveng_retrieve_tuned_channel_by_index(i,
+					global_channel_list);
+		  g_assert(tuned != NULL);
+		  menuitem =
+		    z_gtk_pixmap_menu_item_new(tuned->name,
+					       GNOME_STOCK_PIXMAP_PROPERTIES);
+		  gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+				     GTK_SIGNAL_FUNC(on_channel2_activate),
+				     GINT_TO_POINTER(i));
+		  gtk_object_set_user_data(GTK_OBJECT(menuitem), zapping);
+		  tooltip = build_channel_tooltip(tuned);
+		  if (tooltip)
+		    {
+		      set_tooltip(menuitem, tooltip);
+		      g_free(tooltip);
+		    }
+		  gtk_widget_show(menuitem);
+		  gtk_menu_insert(menu, menuitem, 1);
+		}
+	    else
+	      {
+		menuitem = lookup_widget(GTK_WIDGET(menu),
+					 "channel_list1");
+		gtk_widget_show(menuitem);
+		submenu = GTK_MENU(gtk_menu_new());
+		gtk_widget_show(GTK_WIDGET(submenu));
+		gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem),
+					  GTK_WIDGET(submenu));
+		for (i = tveng_tuned_channel_num(global_channel_list)-1;
+		     i >= 0; i--)
+		  {
+		    tuned = tveng_retrieve_tuned_channel_by_index(i,
+				global_channel_list);
+		    g_assert(tuned != NULL);
+		    menuitem =
+		      z_gtk_pixmap_menu_item_new(tuned->name,
+					 GNOME_STOCK_PIXMAP_PROPERTIES);
+		    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+				       GTK_SIGNAL_FUNC(on_channel2_activate),
+				       GINT_TO_POINTER(i));
+		    gtk_object_set_user_data(GTK_OBJECT(menuitem),
+					     zapping);
+		    tooltip = build_channel_tooltip(tuned);
+		    if (tooltip)
+		      {
+			set_tooltip(menuitem, tooltip);
+			g_free(tooltip);
+		      }
+		    gtk_widget_show(menuitem);
+		    gtk_menu_insert(submenu, menuitem, 1);
+		  }
+	      }
+	  }
 	if (disable_preview)
 	  {
 	    widget = lookup_widget(GTK_WIDGET(menu), "go_fullscreen2");
@@ -641,4 +710,30 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
   return FALSE;
 }
 
+void
+on_pal_big_activate		       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  gdk_window_resize(main_window->window, 768, 576);
+}
 
+void
+on_ntsc_big_activate		       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  gdk_window_resize(main_window->window, 640, 480);
+}
+
+void
+on_pal_small_activate		       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  gdk_window_resize(main_window->window, 768/2, 576/2);
+}
+
+void
+on_ntsc_small_activate		       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  gdk_window_resize(main_window->window, 640/2, 480/2);
+}

@@ -1,3 +1,11 @@
+31.1.2001	Accel keys <garetxe@users.sourceforge.net>
+
+	* src/main.c, channel_editor.c: Finished accel keys. The key
+	list takes too much ram (custom widget?)
+	* configure.in: Used unicode-config for checking unicode.
+	* glade/: Added right-click access to some useful sizes.
+	* callbacks.c: Put the tuned channels in a submenu if more than 7.
+
 31.1.2001	Zapzilla <mschimek@users.sourceforge.net>
 
 	* export.c: rewrote enhancement decoder, didn't scale. Should

@@ -144,18 +144,22 @@ gboolean on_zapping_key_press		(GtkWidget	*widget,
 {
   tveng_tuned_channel * tc;
   int i = 0;
-
-  g_message("pressed key %d, mask=%x", event->keyval, event->state);
+  GtkWidget * Channels = lookup_widget(widget, "Channels");
 
   while ((tc =
 	  tveng_retrieve_tuned_channel_by_index(i++, global_channel_list)))
     {
       if ((event->keyval == tc->accel_key) &&
 	  ((tc->accel_mask & event->state) == tc->accel_mask))
-	g_message("channel %d (%s) matches", i, tc->name);
+	{
+	  gtk_option_menu_set_history(GTK_OPTION_MENU(Channels),
+				      tc->index);
+	  on_channel_activate(NULL, GINT_TO_POINTER(tc->index));
+	  return TRUE;
+	}
     }
 
-  return FALSE; /* FIXME: return TRUE if matched */
+  return FALSE;
 }
 
 /* Start VBI services, and warn if we cannot */
@@ -268,7 +272,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.85 2001-01-30 20:43:30 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.86 2001-01-31 23:43:23 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {

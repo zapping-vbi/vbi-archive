@@ -137,6 +137,22 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 					GdkEvent        *event,
 					gpointer        user_data);
 
+void
+on_pal_big_activate		       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
+on_ntsc_big_activate		       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
+on_pal_small_activate		       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
+on_ntsc_small_activate		       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
 /******************************************************************************
  Stuff located in properties.c
 ******************************************************************************/

@@ -10,3 +10,4 @@ Known bugs with zapping, don't report them
 	* TTX cursor keys increment an old page number after
 	  jumping to a FLOF/TOP/nnn linked page.
 	* Sometimes the geometry isn't correctly restored at startup.
+	! Sometimes the program hangs when exiting.
