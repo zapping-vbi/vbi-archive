@@ -92,41 +92,6 @@ static PyObject* py_quit (PyObject *self _unused_,
   py_return_true;
 }
 
-static void
-resolve_mode			(display_mode *		d,
-				 capture_mode *		c,
-				 const gchar *		mode_str)
-{
-  if (0 == strcasecmp (mode_str, "preview"))
-    {
-      *d = DISPLAY_MODE_WINDOW;
-      *c = CAPTURE_MODE_OVERLAY;
-    }
-  else if (0 == strcasecmp (mode_str, "fullscreen"))
-    {
-      *d = DISPLAY_MODE_FULLSCREEN;
-      *c = CAPTURE_MODE_OVERLAY;
-    }
-  else if (0 == strcasecmp (mode_str, "capture"))
-    {
-      *d = DISPLAY_MODE_WINDOW;
-      *c = CAPTURE_MODE_READ;
-    }
-  else if (0 == strcasecmp (mode_str, "teletext"))
-    {
-      *d = DISPLAY_MODE_WINDOW;
-      *c = CAPTURE_MODE_TELETEXT;
-    }
-  else
-    {
-      ShowBox ("Unknown display mode \"%s\", possible choices are:\n"
-	       "preview, fullscreen, capture and teletext",
-	       GTK_MESSAGE_ERROR, mode_str);
-      *d = DISPLAY_MODE_NONE;
-      *c = CAPTURE_MODE_NONE;
-    }
-}
-
 static gboolean
 switch_mode			(display_mode dmode,
 				 capture_mode cmode)
@@ -162,17 +127,51 @@ py_switch_mode			(PyObject *		self _unused_,
   old_dmode = zapping->display_mode;
   old_cmode = zapping->info->capture_mode;
 
-  resolve_mode (&new_dmode, &new_cmode, mode_str);
+  new_dmode = old_dmode;
+  new_cmode = old_cmode;
+
+  if (0 == g_ascii_strcasecmp (mode_str, "preview"))
+    {
+      new_cmode = CAPTURE_MODE_OVERLAY;
+    }
+  else if (0 == g_ascii_strcasecmp (mode_str, "window"))
+    {
+      new_dmode = DISPLAY_MODE_WINDOW;
+    }
+  else if (0 == g_ascii_strcasecmp (mode_str, "fullscreen"))
+    {
+      new_dmode = DISPLAY_MODE_FULLSCREEN;
+    }
+  else if (0 == g_ascii_strcasecmp (mode_str, "background"))
+    {
+      new_dmode = DISPLAY_MODE_BACKGROUND;
+    }
+  else if (0 == g_ascii_strcasecmp (mode_str, "capture"))
+    {
+      new_cmode = CAPTURE_MODE_READ;
+    }
+  else if (0 == g_ascii_strcasecmp (mode_str, "teletext"))
+    {
+      new_cmode = CAPTURE_MODE_TELETEXT;
+    }
+  else
+    {
+      /* XXX */
+      ShowBox ("Unknown display mode \"%s\", possible choices are:\n"
+	       "preview, fullscreen, capture and teletext",
+	       GTK_MESSAGE_ERROR, mode_str);
+      new_dmode = DISPLAY_MODE_NONE;
+      new_cmode = CAPTURE_MODE_NONE;
+    }
+
+  if (0)
+    fprintf (stderr, "switch: old=%d,%d new=%d,%d last=%d,%d\n",
+	     old_dmode, old_cmode,
+	     new_dmode, new_cmode,
+	     last_dmode, last_cmode);
 
   if (!switch_mode (new_dmode, new_cmode))
     py_return_false;
-
-  if (zapping->display_mode != old_dmode
-      || zapping->info->capture_mode != old_cmode)
-    {
-      last_dmode = old_dmode;
-      last_cmode = old_cmode;
-    }
 
   py_return_none;
 }
@@ -198,36 +197,63 @@ py_toggle_mode			(PyObject *		self _unused_,
   old_dmode = zapping->display_mode;
   old_cmode = zapping->info->capture_mode;
 
+  new_dmode = old_dmode;
+  new_cmode = old_cmode;
+
   if (mode_str)
     {
-      resolve_mode (&new_dmode, &new_cmode, mode_str);
-    }
-  else
-    {
-      new_dmode = old_dmode;
-      new_cmode = old_cmode;
+      if (0 == g_ascii_strcasecmp (mode_str, "preview"))
+	{
+	  new_cmode = CAPTURE_MODE_OVERLAY;
+	}
+      else if (0 == g_ascii_strcasecmp (mode_str, "window"))
+	{
+	  new_dmode = DISPLAY_MODE_WINDOW;
+	}
+      else if (0 == g_ascii_strcasecmp (mode_str, "fullscreen"))
+	{
+	  new_dmode = DISPLAY_MODE_FULLSCREEN;
+	}
+      else if (0 == g_ascii_strcasecmp (mode_str, "background"))
+	{
+	  new_dmode = DISPLAY_MODE_BACKGROUND;
+	}
+      else if (0 == g_ascii_strcasecmp (mode_str, "capture"))
+	{
+	  new_cmode = CAPTURE_MODE_READ;
+	}
+      else if (0 == g_ascii_strcasecmp (mode_str, "teletext"))
+	{
+	  new_cmode = CAPTURE_MODE_TELETEXT;
+	}
+      else
+	{
+	  /* XXX */
+	  ShowBox ("Unknown display mode \"%s\", possible choices are:\n"
+		   "preview, fullscreen, capture and teletext",
+		   GTK_MESSAGE_ERROR, mode_str);
+	  py_return_false;
+	}
     }
 
-  if (new_dmode == old_dmode
-      && new_cmode == old_cmode)
+  if (0)
+    fprintf (stderr, "toggle: old=%d,%d new=%d,%d last=%d,%d\n",
+	     old_dmode, old_cmode,
+	     new_dmode, new_cmode,
+	     last_dmode, last_cmode);
+
+  if (new_cmode == old_cmode)
     {
-      if (new_dmode == last_dmode
-	  && new_cmode == last_cmode)
+      if (new_cmode == last_cmode)
 	py_return_true;
 
-      if (!switch_mode (last_dmode, last_cmode))
+      if (!switch_mode (new_dmode, last_cmode))
 	py_return_false;
-
-      SWAP (new_dmode, last_dmode);
-      SWAP (new_cmode, last_cmode);
     }
   else
     {
       if (!switch_mode (new_dmode, new_cmode))
 	py_return_false;
-
-      last_dmode = old_dmode;
-      last_cmode = old_cmode;
     }
 
   py_return_true;
