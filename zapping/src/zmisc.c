@@ -440,11 +440,13 @@ z_pixbuf_copy_area		(GdkPixbuf	*src_pixbuf,
   if (src_x < 0)
     {
       width += src_x;
+      dest_x -= src_x;
       src_x = 0;
     }
   if (src_y < 0)
     {
       height += src_y;
+      dest_y -= src_y;
       src_y = 0;
     }
 
