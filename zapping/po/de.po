@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2002-03-07 03:41+0100\n"
-"PO-Revision-Date: 2002-03-04 06:19+0100\n"
+"POT-Creation-Date: 2002-03-09 09:17+0100\n"
+"PO-Revision-Date: 2002-03-09 07:21+0100\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -1985,7 +1985,7 @@ msgstr "Hauptseite"
 
 #: glade/glade_strings.c:229
 msgid "Open new Teletext window"
-msgstr "_Neues Teletext-Fenster öffnen"
+msgstr "Neues Teletext-Fenster öffnen"
 
 #: glade/glade_strings.c:230
 msgid "Search the page cache"
@@ -2804,15 +2804,13 @@ msgid "MPEG"
 msgstr "MPEG"
 
 #: plugins/mpeg/mpeg.c:1117
-#, fuzzy
 msgid ""
 "This is the first time you run the plugin,\n"
 "please take a moment to configure it to your tastes.\n"
 msgstr ""
 "Sie starten das Plugin zum ersten Mal, bitte\n"
 "nehmen Sie sich einen Augenblick Zeit zum\n"
-"Konfigurieren. Klicken Sie auf OK um den\n"
-"Einstellungsdialog zu öffnen."
+"Konfigurieren.\n"
 
 #: plugins/mpeg/mpeg.c:1120
 msgid "Open preferences"

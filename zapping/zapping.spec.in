@@ -5,7 +5,7 @@ Summary: a TV viewer for Gnome
 Copyright: GPL
 Group: Applications/Multimedia
 URL: http://zapping.sourceforge.net
-Packager: Iñaki García Etxebarria <garetxe@users.sourceforge.net>
+Packager: Michael H. Schimek <mschimek@users.sourceforge.net>
 Source: ftp://zapping.sourceforge.net/pub/zapping/@VERSION@/zapping-@VERSION@.tar.bz2
 Buildroot: %{_tmppath}/%{name}-root
 BuildPrereq: libglade-devel libxml-devel
@@ -21,11 +21,6 @@ Requires: gettext >= 0.10.36
 Requires: /usr/bin/consolehelper
 
 %description
-GNOME (GNU Network Object Model Environment) is a user-friendly set of
-applications and desktop tools to be used in conjunction with a window
-manager for the X Window System.  GNOME is similar in purpose and scope
-to CDE and KDE, but GNOME is based completely on free software.
-
 This is a TV viewer for the GNOME desktop. It has all the needed
 features, plus extensibility through a plugin system.
 
@@ -71,6 +66,9 @@ rm -rf %{buildroot}
 %{prefix}/man/man1/*
 
 %changelog
+* Sat Mar 9 2002 Michael H. Schimek <mschimek@users.sf.net>
+- Packager changed
+
 * Sat Jul 28 2001 Iñaki García Etxebarria <garetxe@users.sf.net>
 - Added zapzilla as a soft link to zapping
 

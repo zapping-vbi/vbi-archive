@@ -844,7 +844,7 @@ ttx_subpage_incr_cmd			(GtkWidget *	widget,
   if (abs (value) > 99)
     return FALSE;
   if (value < 0)
-    value += 100;
+    value += 100; /* XXX should use actual or anounced number of subp */
 
   new_subpage = vbi_add_bcd (data->subpage, vbi_dec2bcd (value)) & 0xFF;
 
