@@ -40,6 +40,40 @@
 #endif /* ENABLE_NLS */
 #endif /* _ */
 
+#include "x11stuff.h"
+#include "zmisc.h"
+
+/*
+  Utility function, stops the capture or the previewing. Returns the
+  mode the device was before stopping.
+  For stopping and restarting the device do:
+  enum tveng_capture_mode cur_mode;
+  cur_mode = tveng_stop_everything(info);
+  ... do some stuff ...
+  if (tveng_restart_everything(cur_mode, info) == -1)
+     ... show error dialog ...
+*/
+enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
+					       info);
+/*
+  Restarts the given capture mode. See the comments on
+  tveng_stop_everything. Returns -1 on error.
+*/
+int tveng_restart_everything (enum tveng_capture_mode mode,
+			      tveng_device_info * info);
+
+int p_tveng_set_preview_window(tveng_device_info * info);
+int p_tveng_set_preview (int on, tveng_device_info * info);
+enum tveng_capture_mode 
+p_tveng_stop_everything (tveng_device_info * info);
+int p_tveng_restart_everything (enum tveng_capture_mode mode,
+				tveng_device_info * info);
+int p_tveng_set_capture_format(tveng_device_info * info);
+
+extern void
+tv_callback_notify		(tveng_device_info *	info,
+				 void *			object,
+				 const tv_callback *	list);
 
 /*
   Function prototypes for modules, NULL means not implemented or not
@@ -53,40 +87,94 @@ struct tveng_module_info {
   void	(*describe_controller)(char **short_str, char **long_str,
 			       tveng_device_info *info);
   void	(*close_device)(tveng_device_info *info);
-  int	(*get_inputs)(tveng_device_info *info);
-  int	(*set_input)(struct tveng_enum_input *input,
-		     tveng_device_info *info);
-  int	(*get_standards)(tveng_device_info *info);
-  int	(*set_standard)(struct tveng_enumstd *std,
-			tveng_device_info *info);
+	/*
+	 */
+	int		(* ioctl)		(tveng_device_info *,
+						 int,
+						 char *);
+	/*
+	 *  Sets the current video input to one in the video
+	 *  input list. This implies update_video_input with all
+	 *  side effects mentioned.
+	 */
+	tv_bool		(* set_video_input)	(tveng_device_info *,
+						 const tv_video_line *);
+	/*
+	 *  Updates info.cur_video_input to notice asynchronous changes
+	 *  by other applications, may call the video_input_callback.
+	 *  May update the video standard list and the current video
+	 *  standard.
+	 */
+	tv_bool		(* update_video_input)	(tveng_device_info *);
+
+	tv_bool		(* set_tuner_frequency)	(tveng_device_info *,
+						 tv_video_line *,
+						 unsigned int);
+	tv_bool		(* update_tuner_frequency)
+						(tveng_device_info *,
+						 tv_video_line *);
+	/*
+	 *  Sets the current video standard to one in the video
+	 *  standard list. This implies update_standard with all
+	 *  side effects mentioned.
+	 */
+	tv_bool		(* set_standard)	(tveng_device_info *,
+						 const tv_video_standard *);
+	/*
+	 *  Updates info.current_videostd to notice asynchronous changes
+	 *  by other applications, may call the videostd_callback.
+	 *  To update the list of supported standards update the
+	 *  current input property instead.
+	 */
+	tv_bool		(* update_standard)	(tveng_device_info *);
+	/*
+	 *  Sets the value of a control, this implies update_control
+	 *  with all side effects mentioned.
+	 */
+  	tv_bool		(* set_control)		(tveng_device_info *,
+						 tv_control *,
+						 int);
+	/*
+	 *  Updates tv_control.value to notice asynchronous changes
+	 *  by other applications, may call tv_control.callback.
+	 *  May also update other properties if we get that
+	 *  information in the course. If the control is NULL update
+	 *  all controls, this may be faster than individual updates.
+	 */
+	tv_bool		(* update_control)	(tveng_device_info *,
+						 tv_control *);
+
   int	(*update_capture_format)(tveng_device_info *info);
   int	(*set_capture_format)(tveng_device_info *info);
-  int	(*update_controls)(tveng_device_info *info);
-  int	(*set_control)(struct tveng_control *control,
-		       int value, tveng_device_info *info);
-  int	(*get_mute)(tveng_device_info *info);
-  int	(*set_mute)(int value, tveng_device_info *info);
-  int	(*tune_input)(uint32_t freq, tveng_device_info *info);
+
   int	(*get_signal_strength)(int *strength, int *afc,
 			       tveng_device_info *info);
-  int	(*get_tune)(uint32_t *freq, tveng_device_info *info);
-  int	(*get_tuner_bounds)(uint32_t *min, uint32_t *max,
-			    tveng_device_info *info);
+
   int	(*start_capturing)(tveng_device_info *info);
   int	(*stop_capturing)(tveng_device_info *info);
-  int	(*read_frame)(void *where, unsigned int bytesperline,
+  int	(*read_frame)(tveng_image_data *where,
 		      unsigned int time, tveng_device_info *info);
   double (*get_timestamp)(tveng_device_info *info);
   int	(*set_capture_size)(int width, int height,
 			    tveng_device_info *info);
   int	(*get_capture_size)(int *width, int *height,
 			    tveng_device_info *info);
-  int	(*detect_preview)(tveng_device_info *info);
+
+
+	tv_bool		(* get_overlay_buffer)	(tveng_device_info *,
+						 tv_overlay_buffer *);
+	tv_bool		(* set_overlay_buffer)	(tveng_device_info *,
+						 tv_overlay_buffer *);
+	tv_bool		(* set_overlay_xwindow)	(tveng_device_info *,
+						 Window,
+						 GC);
   int	(*set_preview_window)(tveng_device_info *info);
   int	(*get_preview_window)(tveng_device_info *info);
-  int	(*set_preview)(int on, tveng_device_info *info);
-  int	(*start_previewing)(tveng_device_info *info);
-  int	(*stop_previewing)(tveng_device_info *info);
+	tv_bool		(* set_overlay)		(tveng_device_info *,
+						 tv_bool);
+
+  void	(*set_chromakey)(uint32_t pixel, tveng_device_info *info);
+  int	(*get_chromakey)(uint32_t *pixel, tveng_device_info *info);
 
   /* Device specific stuff */
   int	(*ov511_get_button_state)(tveng_device_info *info);
@@ -102,17 +190,12 @@ struct tveng_private {
   int		current_bpp;
   struct tveng_module_info module;
 
-#ifndef DISABLE_X_EXTENSIONS
-  XF86VidModeModeInfo modeinfo;
-  int		restore_mode;
-  int		xf86vm_enabled;
-#endif
+  x11_vidmode_state old_mode;
 
   int		zapping_setup_fb_verbosity;
-  int		change_mode;
-  int		assume_yvu; /* assume destination is YVU */
-  int		disable_xv; /* 1 if XVideo should be disabled */
-  int		chromakey; /* RGB32 */
+  gchar *	mode; /* vidmode */
+
+  int		disable_xv_video; /* 1 if XVideo should be disabled */
   int		dword_align; /* 1 if x and w should be dword aligned */
 
   pthread_mutex_t mutex; /* Thread safety */
@@ -125,132 +208,150 @@ struct tveng_private {
   Atom colorkey; /* colorkey doesn't have min, max, it's defined by
 		    RGB triplets */
 #endif
+
+  unsigned int		callback_recursion;
+
+  tv_callback *		video_input_callback;
+  tv_callback *		audio_input_callback;
+  tv_callback *		video_standard_callback;
+
+  tv_control *		control_mute;
+  tv_bool		quiet;
+
+  /* when audio capability or reception changes */
+  tv_callback *		audio_callback;
 };
 
-static int
-p_tveng_append_control(struct tveng_control * new_control, 
-		       tveng_device_info * info) __attribute__ ((unused));
+#define for_all(p, pslist) for (p = pslist; p; p = p->_next)
 
-static struct tveng_control *
-find_control_by_id(tveng_device_info *info, int id) __attribute__ ((unused));
+#define IS_TUNER_LINE(l) ((l) && (l)->type == TV_VIDEO_LINE_TYPE_TUNER)
 
-static struct tveng_control *
-find_control_by_id(tveng_device_info *info, int id)
-{
-  int i;
+#define NODE_HELPER_FUNCTIONS(item, kind)				\
+extern void								\
+free_##kind			(tv_##kind *		p);		\
+extern void								\
+free_##kind##_list		(tv_##kind **		list);		\
+extern void								\
+store_cur_##item		(tveng_device_info *	info,		\
+				 const tv_##kind *	p);
 
-  for (i = 0; i<info->num_controls; i++)
-    if (info->controls[i].id == id)
-      return &(info->controls[i]);
+NODE_HELPER_FUNCTIONS		(control, control);
+extern void
+free_controls			(tveng_device_info *	info);
+extern tv_control *
+append_control			(tveng_device_info *	info,
+				 tv_control *		tc,
+				 unsigned int		size);
+NODE_HELPER_FUNCTIONS		(video_standard, video_standard);
+extern void
+free_video_standards		(tveng_device_info *	info);
+extern tv_video_standard *
+append_video_standard		(tv_video_standard **	list,
+				 tv_videostd_set	videostd_set,
+				 const char *		label,
+				 const char *		hlabel,
+				 unsigned int		size);
+NODE_HELPER_FUNCTIONS		(audio_input, audio_line);
+extern void
+free_audio_inputs		(tveng_device_info *	info);
+extern tv_audio_line *
+append_audio_line		(tv_audio_line **	list,
+				 tv_audio_line_type	type,
+				 const char *		label,
+				 const char *		hlabel,
+				 int			minimum,
+				 int			maximum,
+				 int			step,
+				 int			reset,
+				 unsigned int		size);
+NODE_HELPER_FUNCTIONS		(video_input, video_line);
+extern void
+free_video_inputs		(tveng_device_info *	info);
+extern tv_video_line *
+append_video_line		(tv_video_line **	list,
+				 tv_video_line_type	type,
+				 const char *		label,
+				 const char *		hlabel,
+				 unsigned int		size);
 
-  return NULL;
+
+extern void
+tveng_copy_frame		(unsigned char *	src,
+				 tveng_image_data *	where,
+				 tveng_device_info *	info);
+
+extern void
+ioctl_failure			(tveng_device_info *	info,
+				 const char *		source_file_name,
+				 const char *		function_name,
+				 unsigned int		source_file_line,
+				 const char *		ioctl_name);
+#ifdef HAVE_STRNDUP
+#define tv_strndup strndup
+#else
+extern char *
+tv_strndup			(const char *		s,
+				 size_t			size);
+#endif
+
+extern char *
+tv_strdup_printf		(const char *		templ,
+				 ...);
+
+extern tv_pixfmt
+pig_depth_to_pixfmt		(unsigned int		depth);
+
+struct _tv_mixer_interface {
+	const char *		name;
+
+	/*
+	 *  Open a soundcard mixer by its device file name.
+	 */
+	tv_mixer *		(* open)		(const tv_mixer_interface *,
+							 FILE *log,
+							 const char *device);
+	/*
+	 *  Scan for mixer devices present on the system.
+	 */
+	tv_mixer *		(* scan)		(const tv_mixer_interface *,
+							 FILE *log);
+	/*
+	 *  Update tv_audio_line.muted and .volume, e.g. to notice when
+	 *  other applications change mixer properties asynchronously.
+	 *  Regular polling recommended, may call tv_dev_audio_line.changed.
+	 */
+	tv_bool			(* update_line)		(tv_audio_line *);
+	/*
+	 *  Set mixer volume and update tv_audio_line.volume accordingly.
+	 *  On mono lines left volume will be set. May call
+	 *  tv_dev_audio_line.changed. Does not unmute.
+	 */
+	tv_bool			(* set_volume)		(tv_audio_line *,
+							 unsigned int left,
+							 unsigned int right);
+	/*
+	 *  Mute (TRUE) or unmute (FALSE) mixer line and update
+	 *  tv_audio_line.muted accordingly. May call
+	 *  tv_dev_audio_line.changed.
+	 */
+	tv_bool			(* set_mute)		(tv_audio_line *,
+							 tv_bool mute);
+	/*
+	 *  Select a recording line from tv_mixer.adc_lines. When
+	 *  exclusive is TRUE disable all other recording sources (should
+	 *  be the default, but we must not prohibit recording from
+	 *  multiple sources if the user really insists). Line can be
+	 *  NULL. May call tv_dev_mixer.changed. 
+	 */
+	tv_bool			(* set_rec_line)	(tv_mixer *,
+							 tv_audio_line *,
+							 tv_bool exclusive);
+	/*
+	 *  Update tv_mixer.rec_line, e.g. to notice when other applications
+	 *  change mixer properties asynchronously. Regular polling recommended,
+	 *  may call tv_dev_mixer.changed.
+	 */
+	tv_bool			(* update_mixer)	(tv_mixer *);
 };
-
-static int
-p_tveng_append_control(struct tveng_control * new_control, 
-		       tveng_device_info * info)
-{
-  struct tveng_control * new_pointer;
-
-  if (find_control_by_id(info, new_control->id))
-    return 0;
-
-  new_pointer = (struct tveng_control*)
-    realloc(info->controls, (info->num_controls+1)*
-	    sizeof(struct tveng_control));
-
-  if (!new_pointer)
-    {
-      info->tveng_errno = errno;
-      t_error("realloc", info);
-      return -1;
-    }
-  info->controls = new_pointer;
-
-  memcpy(&info->controls[info->num_controls], new_control,
-	 sizeof(struct tveng_control));
-  info->num_controls++;
-  return 0;
-}
-
-#ifndef MAX
-#define MAX(X, Y) (((X) < (Y)) ? (Y) : (X))
-#endif
-#ifndef MIN
-#define MIN(X, Y) (((X) > (Y)) ? (Y) : (X))
-#endif
-
-/* check for hash collisions in info->inputs */
-static inline void
-input_collisions(tveng_device_info *info)
-{
-  int i, j, hash;
-
-  for (i=0; i<info->num_inputs; i++)
-    {
-      hash = info->inputs[i].hash;
-      for (j = i+1; j<info->num_inputs; j++)
-	if (info->inputs[j].hash == hash)
-	  fprintf(stderr,
-		  "WARNING: TVENG: Hash collision between %s and %s (%x)\n"
-		  "please send a bug report the maintainer!\n",
-		  info->inputs[i].name, info->inputs[j].name, hash);
-    }
-}
-
-/* check for hash collisions in info->standards */
-static inline void
-standard_collisions(tveng_device_info *info)
-{
-  int i, j, hash;
-
-  for (i=0; i<info->num_standards; i++)
-    {
-      hash = info->standards[i].hash;
-      for (j = i+1; j<info->num_standards; j++)
-	if (info->standards[j].hash == hash)
-	  fprintf(stderr,
-		  "WARNING: TVENG: Hash collision between %s and %s (%x)\n"
-		  "please send a bug report the maintainer!\n",
-		  info->standards[i].name, info->standards[j].name, hash);
-    }
-}
-
-/* Copies from src to dest "pixels" RGB/BGR pixels swapping R and B */
-static inline
-void endian3(char *dest, const char *src, int pixels)
-     __attribute__ ((unused));
-
-static inline
-void endian3(char *dest, const char *src, int pixels)
-{
-  for (;pixels;pixels--)
-    {
-      *(dest++) = src[2];
-      *(dest++) = src[1];
-      *(dest++) = src[0];
-
-      src+=3;
-    }
-}
-
-/* Copies from src to dest "pixels" RGBA/BGRA pixels swapping R and B */
-static inline
-void endian4(char *dest, const char *src, int pixels)
-     __attribute__ ((unused));
-
-static inline
-void endian4(char *dest, const char *src, int pixels)
-{
-  for (;pixels;pixels--)
-    {
-	dest[0] = src[2];
-	dest[1] = src[1];
-	dest[2] = src[0];
-
-	dest += 4;
-	src += 4;
-    }
-}
 
 #endif /* tveng_private.h */

@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include "plugin_common.h"
+#include "src/plugin_common.h"
 
 static const gchar str_canonical_name[] = "parrot";
 static const gchar str_descriptive_name[] =

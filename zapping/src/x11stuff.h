@@ -26,7 +26,7 @@
 #endif
 #include <gtk/gtk.h>
 
-#include <tveng.h>
+#include "tveng.h" /* tv_overlay_target, tv_pixfmt */
 
 /*
  * Returns a pointer to the data contained in the given GdkImage
@@ -47,16 +47,6 @@ gint
 x11_get_bpp(void);
 
 /*
- * Returns a pointer to a clips array (that you need to free()
- * afterwards if not NULL).
- * Pass the GdkWindow that you want to get the clip status of.
- * num_clips get filled with the number of clips in the array.
- */
-struct tveng_clip *
-x11_get_clips(GdkWindow * win, gint x, gint y, gint w, gint h, gint *
-	      num_clips);
-
-/*
  * Maps and unmaps a window of the given (screen) geometry, thus
  * forcing an expose event in that area
  */
@@ -69,90 +59,107 @@ x11_force_expose(gint x, gint y, gint w, gint h);
 gboolean
 x11_window_viewable(GdkWindow *window);
 
-/*
- * Sets the X screen saver on/off
- */
-void
-x11_set_screensaver(gboolean on);
+/* Keep-window-on-top routines */
 
-/**
- * XvImage handling (SHM, etc)
- */
-typedef struct {
-  gint			w, h;
-  gpointer		data;
-  gint			data_size; /* in bytes */
-  struct _xvzImagePrivate *priv; /* X-related data, not interesting */
-} xvzImage;
+extern void
+(* window_on_top)		(GtkWindow *window, gboolean on);
+extern gboolean
+wm_hints_detect			(void);
 
-/**
- * Create a new XV image with the given attributes, returns NULL on error.
- */
-xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
-			gint width, gint height);
+/* VidMode routines for fullscreen mode */
 
-/**
- * Puts the image in the given drawable, scales to the drawable's size.
- */
-void xvzImage_put(xvzImage *image, GdkWindow *window, GdkGC *gc);
+typedef struct _x11_vidmode_info x11_vidmode_info;
 
-/**
- * Frees the data associated with the image
- */
-void xvzImage_destroy(xvzImage *image);
+struct _x11_vidmode_info {
+  x11_vidmode_info *	next;
 
-/**
- * Tries to grab a port for displaying the xvzImages. FALSE on error.
- * Must be called before all the rest of xvz routines, or they won't
- * work.
- */
-gboolean xvz_grab_port(tveng_device_info *info);
+  unsigned int		width;
+  unsigned int		height;
+  double		hfreq;		/* Hz */
+  double		vfreq;		/* Hz */
+  double		aspect;		/* pixel y/x */
+};
 
-/**
- * Ungrabs any previously grabbed port.
- */
-void xvz_ungrab_port(tveng_device_info *info);
+typedef struct _x11_vidmode_state x11_vidmode_state;
 
-/**
- * Inits the video backends.
- */
-void startup_xvz(void);
+struct _x11_vidmode_state {
+  /* <Private> */
+  struct {
+    x11_vidmode_info *	  vm;
+    struct {
+      int		    x;
+      int		    y;
+    }			  pt, vp;
+  }			old, new;
+};
 
-/**
- * Closes the video backends.
- */
-void shutdown_xvz(void);
+extern void
+x11_vidmode_list_delete		(x11_vidmode_info *	list);
+extern x11_vidmode_info *
+x11_vidmode_list_new		(void);
+extern x11_vidmode_info *
+x11_vidmode_by_name		(x11_vidmode_info *	list,
+				 const gchar *		name);
+extern x11_vidmode_info *
+x11_vidmode_current		(x11_vidmode_info *	list);
+extern void
+x11_vidmode_clear_state		(x11_vidmode_state *	vs);
+extern gboolean
+x11_vidmode_switch		(x11_vidmode_info *	list,
+				 x11_vidmode_info *	vm,
+				 x11_vidmode_state *	vs);
+extern void
+x11_vidmode_restore		(x11_vidmode_info *	list,
+				 x11_vidmode_state *	vs);
 
-/* some useful constants */
-#ifndef OFF
-#define OFF FALSE
+/* Screensaver routines */
+
+#define X11_SCREENSAVER_ON		0
+#define X11_SCREENSAVER_DISPLAY_ACTIVE	(1 << 0) /* for overlay modes */
+#define X11_SCREENSAVER_CPU_ACTIVE	(1 << 1) /* for capture modes */
+
+extern void
+x11_screensaver_set		(unsigned int		level);
+extern void
+x11_screensaver_control		(gboolean		enable);
+extern void
+x11_screensaver_init		(void);
+
+/* DGA routines */
+
+gboolean
+x11_dga_query			(tv_overlay_buffer *	target,
+				 const char *		display_name,
+				 int			bpp_hint);
+static __inline__ gboolean
+x11_dga_present			(tv_overlay_buffer *	target)
+{
+  return 0 != target->base;
+}
+
+/* XVideo routines */
+
+#ifdef HAVE_XV_EXTENSION
+
+#include <X11/extensions/Xvlib.h>
+
+extern tv_pixfmt
+x11_xv_image_format_to_pixfmt	(const XvImageFormatValues *format);
+
 #endif
-#ifndef ON
-#define ON TRUE
-#endif
 
-/**
- * Struct for video backends
- */
-typedef struct {
-  /* A descriptive name for the backend */
-  char		*name;
-  /* see xvz_grab_port, open devices in here, FALSE on error */
-  gboolean	(*grab)(tveng_device_info *info);
-  /* see xvz_ungrab_port, close devices */
-  void		(*ungrab)(tveng_device_info *info);
-  /* Create a suitable image, will always be called with the port
-     grabbed */
-  xvzImage*	(*image_new)(enum tveng_frame_pixformat pixformat,
-			     gint width, gint height);
-  /* Destroy the given image */
-  void		(*image_destroy)(xvzImage *image);
-  /* Put the image in the drawable, do scaling as necessary */
-  void		(*image_put)(xvzImage *image, GdkWindow *window,
-			     GdkGC *gc);
-} video_backend;
+extern void
+x11_xvideo_dump			(void);
 
-extern void (* window_on_top)(GtkWidget *widget, gboolean on);
-extern int wm_detect (void);
+/* Clipping */
+
+extern tv_bool
+x11_window_clip_vector		(tv_clip_vector *	vector,
+				 Display *		display,
+				 Window			window,
+				 int			x,
+				 int			y,
+				 unsigned int		width,
+				 unsigned int		height);
 
 #endif /* x11stuff.h */

@@ -1,13 +1,13 @@
 ## Process this file with automake to produce Makefile.in
 
+SUBDIRS = common po glade pixmaps plugins help zapping_setup_fb src 
+
+EXTRA_DIST = autogen.sh acinclude.m4 \
+	README.plugins README.commands BUGS THANKS \
+	intltool-extract.in intltool-merge.in intltool-update.in \
+	zapping.desktop.in
+
 Multimediadir = $(datadir)/gnome/apps/Multimedia
-Multimedia_DATA = zapping.desktop
-
-EXTRA_DIST = config.rpath  config.rpath  $(Multimedia_DATA) \
-README.plugins BUGS THANKS zapping.spec.in zapping.spec prepare_dist.sh \
-autogen.sh
-
-DISTCLEANFILES = site_def.h clean.pl
-
-SUBDIRS = intl m4 macros po common src zapping_setup_fb glade help \
-plugins pixmaps
+Multimedia_in_files = zapping.desktop.in
+Multimedia_DATA = $(Multimedia_in_files:.desktop.in=.desktop)
+@INTLTOOL_DESKTOP_RULE@

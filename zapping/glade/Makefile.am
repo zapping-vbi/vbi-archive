@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-## This should go into the distro too
-EXTRA_DIST = glade_strings.c zapping.glade
+EXTRA_DIST = zapping.glade2
+# zapping.glade2p
 
-pkgdata_DATA = zapping.glade
+pkgdata_DATA = zapping.glade2

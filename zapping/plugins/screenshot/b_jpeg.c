@@ -25,10 +25,13 @@
 /* avoid redefinition warning */
 #undef HAVE_STDLIB_H
 #undef HAVE_STDDEF_H
+#undef HAVE_PROTOTYPES
 #include <jpeglib.h>
-
-#define PARENT(ptr, type, member) \
-        ((type *)(((char *) ptr) - offsetof(type, member)))
+#if 0
+#define PARENT(_ptr, _type, _member)					\
+	({ char *_p = (char *)(_ptr); (_p != 0) ?			\
+	  (_type *)(_p - offsetof (_type, _member)) : (_type *) 0; })
+#endif
 
 struct backend_private {
   struct jpeg_compress_struct	cinfo;	/* Compression parameters */
@@ -157,11 +160,11 @@ static void
 backend_save (screenshot_data *data)
 {
   backend_private *priv = (backend_private *) &data->private;
-  gchar *pixels, *row_pointer;
+  gchar *pixels;
   gint rowstride;
 
-  pixels = (gchar *) data->data;
-  rowstride = data->format.bytesperline;
+  pixels = (gchar *) data->data.linear.data;
+  rowstride = data->data.linear.stride;
 
   /* NB lines is evaluated by parent thread to update the progress bar */
   for (data->lines = 0; data->lines < data->format.height; data->lines++)
@@ -172,10 +175,7 @@ backend_save (screenshot_data *data)
 	  break;
 	}
 
-      row_pointer = (data->Converter)(data->format.width, pixels,
-				      (gchar *) data->line_data);
-
-      jpeg_write_scanlines (&priv->cinfo, (JSAMPROW *) &row_pointer, 1);
+      jpeg_write_scanlines (&priv->cinfo, (JSAMPROW *) &pixels, 1);
 
       pixels += rowstride;
     }
@@ -206,7 +206,7 @@ screenshot_backend
 screenshot_backend_jpeg =
 {
   .keyword		= "jpeg",
-  .label		= N_("JPEG"),
+  .label		= "JPEG",
   .extension		= "jpeg",
   .sizeof_private	= sizeof (backend_private),
   .quality		= TRUE,

@@ -1,7 +1,7 @@
 /*
  * Zapping (TV viewer for the Gnome Desktop)
  *
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000 IÃ±aki GarcÃ­a Etxebarria
  * Copyright (C) 2003 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,146 +25,43 @@
   flaws here, please report at zapping-misc@lists.sourceforge.net.
 */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "../config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <getopt.h>
+#ifdef HAVE_GETOPT_LONG
+#  include <getopt.h>
+#endif
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
 #include <assert.h>
 
 #include "zapping_setup_fb.h"
 
-#define ZSFB_VERSION "zapping_setup_fb 0.11"
-#define MAX_VERBOSITY 3
+static const char *	zsfb_version		= "zapping_setup_fb 0.11";
+static const char *	default_device_name	= "/dev/video0";
+static const int	max_verbosity		= 3;
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *			program_invocation_name;
 char *			program_invocation_short_name;
 #endif
 
-int			verbosity = 1;
+int			uid;
+int			euid;
+int			verbosity		= 1;
+FILE *			log_fp			= NULL;
+x11_dga_parameters	params;
 
-int			uid, euid;
-
-/* Frame buffer parameters */
-
-unsigned long		addr;
-unsigned int		bpl;
-unsigned int		width;
-unsigned int		height;
-unsigned int		depth;
-unsigned int		bpp;
-
-void
-fprintf_symbolic		(FILE *			fp,
-				 int			mode,
-				 unsigned long		value,
-				 ...)
-{
-	unsigned int i, j = 0;
-	unsigned long v;
-	const char *s;
-	va_list ap;
-
-	if (0 == mode) {
-		unsigned int n[2] = { 0, 0 };
-
-		va_start (ap, value);
-
-		for (i = 0; (s = va_arg (ap, const char *)); i++) {
-			v = va_arg (ap, unsigned long);
-			n[((v & (v - 1)) == 0)]++; /* single bit */
-		}
-
-		mode = 1 + (n[1] > n[0]); /* 1-enum, 2-flags */
-
-		va_end (ap); 
-	}
-
-	va_start (ap, value);
-
-	for (i = 0; (s = va_arg (ap, const char *)); i++) {
-		v = va_arg (ap, unsigned long);
-		if (2 == mode || v == value) {
-			fprintf (fp, "%s%s%s", j++ ? "|" : "",
-				 (2 == mode && 0 == (v & value)) ? "!" : "", s);
-			value &= ~v;
-		}
-	}
-
-	if (value)
-		fprintf (fp, "%s0x%lx", j ? "|" : "", value);
-
-	va_end (ap); 
-}
-
-int
-dev_ioctl			(int			fd,
-				 unsigned int		cmd,
-				 void *			arg,
-				 ioctl_log_fn *		fn)
-{
-  int buf[256];
-  int err;
-
-  if (3 <= verbosity && (_IOC_DIR (cmd) & _IOC_WRITE))
-    {
-      assert (sizeof (buf) >= _IOC_SIZE (cmd));
-      memcpy (buf, arg, _IOC_SIZE (cmd));
-    }
-
-  do err = ioctl (fd, cmd, arg);
-  while (-1 == err && EINTR == errno);
-
-  if (3 <= verbosity && NULL != fn)
-    {
-      int saved_errno;
-
-      saved_errno = errno;
-
-      fprintf (stderr, "%d = ", err);
-      fn (stderr, cmd, NULL);
-      fputc ('(', stderr);
-      
-      if (_IOC_DIR(cmd) & _IOC_WRITE)
-	fn (stderr, cmd, &buf);
-      
-      if (0 == err)
-	{
-	  if ((_IOC_READ | _IOC_WRITE) == _IOC_DIR(cmd))
-	    fputs (") -> (", stderr);
-	  
-	  if (_IOC_DIR(cmd) & _IOC_READ)
-	    fn (stderr, cmd, arg);
-	  
-	  fputs (")\n", stderr);
-	}
-      else 
-	{
-	  fprintf (stderr, "), errno = %d, %s\n",
-		   errno, strerror (errno));
-	}
-      
-      errno = saved_errno;
-    }
-  
-  return err;
-}
+#include <sys/stat.h>
+#include "../common/device.c"	/* generic device access routines */
 
 #ifndef major
 #  define major(dev)  (((dev) >> 8) & 0xff)
 #endif
 
 int
-dev_open			(const char *		device_name,
+device_open_safer		(const char *		device_name,
 				 int			major_number,
 				 int			flags)
 {
@@ -186,28 +83,31 @@ dev_open			(const char *		device_name,
       return -1;
     }
 
-  if (-1 == stat (device_name, &st))
+  if (major_number != 0)
     {
-      errmsg ("Cannot stat device '%s'", device_name);
-      return -1;
-    }
+      if (-1 == stat (device_name, &st))
+	{
+	  errmsg ("Cannot stat device '%s'", device_name);
+	  return -1;
+	}
 
-  if (!S_ISCHR (st.st_mode))
-    {
-      message (1, "'%s' is not a character device file.\n", device_name);
-      return -1;
-    }
+      if (!S_ISCHR (st.st_mode))
+	{
+	  message (1, "'%s' is not a character device file.\n", device_name);
+	  return -1;
+	}
 
-  if (major_number != major (st.st_rdev))
-    {
-      message (1, "'%s' has suspect major number %d, expected %d.\n",
-	       device_name, major (st.st_rdev), major_number);
-      return -1;
+      if (major_number != major (st.st_rdev))
+	{
+	  message (1, "'%s' has suspect major number %d, expected %d.\n",
+		   device_name, major (st.st_rdev), major_number);
+	  return -1;
+	}
     }
 
   message (2, "Opening device '%s'.\n", device_name);
 
-  if (-1 == (fd = open (device_name, flags)))
+  if (-1 == (fd = device_open (log_fp, device_name, flags, 0600)))
     {
       errmsg ("Cannot open device '%s'", device_name);
     }
@@ -215,9 +115,8 @@ dev_open			(const char *		device_name,
   return fd;
 }
 
-int
-drop_root_privileges		(int			uid,
-				 int			euid)
+void
+drop_root_privileges		(void)
 {
   if (ROOT_UID == euid && ROOT_UID != uid)
     {
@@ -226,17 +125,23 @@ drop_root_privileges		(int			uid,
       if (-1 == seteuid (uid))
         {
 	  errmsg ("Cannot drop root privileges "
-		  "despite uid=%d, euid=%d", uid, euid);
-	  return FALSE;
+		  "despite uid=%d, euid=%d\nAborting.", uid, euid);
+	  exit (EXIT_FAILURE);
         }
     }
-
-  return TRUE;
+  else if (ROOT_UID == uid)
+    {
+#if 0 /* cannot distinguish between root and consolehelper */
+      message (1, "You should not run %s as root,\n"
+	       "better use consolehelper, sudo, su or set the "
+	       "SUID flag with chmod +s.\n",
+	       program_invocation_name);
+#endif
+    }
 }
 
 int
-restore_root_privileges		(int			uid,
-				 int			euid)
+restore_root_privileges		(void)
 {
   if (ROOT_UID == euid && ROOT_UID != uid)
     {
@@ -253,8 +158,9 @@ restore_root_privileges		(int			uid,
   return TRUE;
 }
 
-static const char *	short_options = "d:D:b:vqh?V";
+static const char short_options[] = "d:D:b:vqh?V";
 
+#ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options [] =
 {
@@ -267,28 +173,33 @@ long_options [] =
   { "usage",		no_argument,		0, 'h' },
   { "version",		no_argument,		0, 'V' },
 };
+#else
+#  define getopt_long(ac, av, s, l, i) getopt (ac, av, s)
+#endif
 
 static void
 print_usage			(void)
 {
   printf ("Usage:\n"
 	  " %s [OPTIONS], where OPTIONS can be\n"
-	  " -d, --device name     - The video device to open, default /dev/video0\n"
+	  " -d, --device name     - The video device to open, default %s\n"
 	  " -D, --display name    - The X display to use\n"
 	  " -b, --bpp x           - Color depth, bits per pixel on said display\n"
 	  " -v, --verbose         - Increment verbosity level\n"
 	  " -q, --quiet           - Decrement verbosity level\n"
 	  " -h, --help, --usage   - Show this message\n"
 	  " -V, --version         - Print the program version and exit\n"
-	  "", program_invocation_name);
+	  "",
+	  program_invocation_name,
+	  default_device_name);
 }
 
 int
 main				(int			argc,
 				 char **		argv)
 {
-  char *device_name;
-  char *display_name;
+  const char *device_name;
+  const char *display_name;
   int bpp_arg;
   int err;
 
@@ -315,12 +226,11 @@ main				(int			argc,
   uid = getuid ();
   euid = geteuid ();
 
-  if (!drop_root_privileges (uid, euid))
-    goto failure;
+  drop_root_privileges ();
 
   /* Parse arguments */
 
-  device_name = "/dev/video0";
+  device_name = default_device_name;
   display_name = getenv ("DISPLAY");
 
   bpp_arg = -1;
@@ -337,7 +247,7 @@ main				(int			argc,
 	case 'd':
 	  device_name = strdup (optarg);
 	  break;
-	    
+
 	case 'D':
 	  display_name = strdup (optarg);
 	  break;
@@ -355,15 +265,15 @@ main				(int			argc,
 	      break;
 
 	    default:
-	      message (1, "Invalid bpp argument %d. Expected\n"
+	      message (1, "Invalid bpp argument %d. Expected "
 		       "color depth 8, 15, 16, 24 or 32.\n", bpp_arg);
 	      goto failure;
 	    }
-
+	  
 	  break;
 
 	case 'v':
-	  if (verbosity < MAX_VERBOSITY)
+	  if (verbosity < max_verbosity)
 	    verbosity++;
 	  break;
 
@@ -373,7 +283,7 @@ main				(int			argc,
 	  break;
 
 	case 'V':
-	  message (0, "%s\n", ZSFB_VERSION);
+	  message (0, "%s\n", zsfb_version);
 	  exit (EXIT_SUCCESS);
 
 	case 'h':
@@ -387,33 +297,43 @@ main				(int			argc,
 	}
     }
 
-  message (1, "(C) 2000-2003 Iñaki G. Etxebarria, Michael H. Schimek.\n"
+  message (1, "(C) 2000-2003 IÃ±aki G. Etxebarria, Michael H. Schimek.\n"
 	   "This program is freely redistributable under the terms\n"
 	   "of the GNU General Public License.\n\n");
 
   message (1, "Using video device '%s', display '%s'.\n",
 	   device_name, display_name);
 
-  if (1 != query_dga (display_name, bpp_arg))
+  message (1, "Querying frame buffer parameters from XFree86 DGA.\n");
+
+  if (!x11_dga_query (&params, display_name, bpp_arg))
     goto failure;
- 
+
+  message (2, "DGA parameters:\n"
+	   " - Frame buffer : %p, bpl %u\n"
+	   " - FB size      : %u x %u, 0x%x bytes\n"
+	   " - Screen bpp   : depth %u, bpp %u\n",
+	   params.base, params.bytes_per_line,
+	   params.width, params.height, params.size,
+	   params.depth, params.bits_per_pixel);
+
   /* OK, the DGA is working and we have its info,
      set up the overlay */
 
-  err = setup_v4l25 (device_name);
-
-  if (err == -1)
+  do
     {
-      err = setup_v4l2 (device_name);
+      if (1 == setup_v4l25 (device_name, &params))
+	break;
 
-      if (err == -1)
-	{
-	  err = setup_v4l (device_name);
-	}
+      if (1 == setup_v4l2 (device_name, &params))
+	break;
+
+      if (1 == setup_v4l (device_name, &params))
+	break;
+
+      goto failure;
     }
-
-  if (err != 1)
-    goto failure;
+  while (0);
 
   message (1, "Setup completed.\n");
 
@@ -424,3 +344,9 @@ main				(int			argc,
 
   return EXIT_FAILURE;
 }
+
+/*
+Local Variables:
+coding: utf-8
+End:
+ */

@@ -20,6 +20,11 @@
  * you can think of this code as the "model" for the properties
  * structure, while properties.c is the "view". Buzzwords, ya know :-)
  */
+
+/* XXX gtk+ 2.3 GtkOptionMenu, Gnome entry */
+#undef GTK_DISABLE_DEPRECATED
+#undef GNOME_DISABLE_DEPRECATED
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -36,6 +41,11 @@
 #include "zvbi.h"
 #include "osd.h"
 #include "x11stuff.h"
+#include "keyboard.h"
+#include "remote.h"
+#include "globals.h"
+#include "zvideo.h"
+#include "eggcellrendererkeys.h"
 
 /* Property handlers for the different pages */
 /* Device info */
@@ -45,10 +55,10 @@ di_setup		(GtkWidget	*page)
   extern tveng_device_info *main_info;
   GtkWidget *widget;
   gchar *buffer;
-  gint i;
   GtkNotebook *nb;
   GtkWidget * nb_label;
   GtkWidget * nb_body;
+  const tv_video_line *l;
 
   /* The device name */
   widget = lookup_widget(page, "label27");
@@ -56,17 +66,17 @@ di_setup		(GtkWidget	*page)
 
   /* Minimum capture dimensions */
   widget = lookup_widget(page, "label28");
-  buffer = g_strdup_printf("%d x %d", main_info->caps.minwidth,
+  z_label_set_text_printf (GTK_LABEL(widget),
+			   "%d x %d",
+			   main_info->caps.minwidth,
 			   main_info->caps.minheight);
-  gtk_label_set_text(GTK_LABEL(widget), buffer);
-  g_free(buffer);
 
   /* Maximum capture dimensions */
   widget = lookup_widget(page, "label29");
-  buffer = g_strdup_printf("%d x %d", main_info->caps.maxwidth,
+  z_label_set_text_printf (GTK_LABEL(widget),
+			   "%d x %d",
+			   main_info->caps.maxwidth,
 			   main_info->caps.maxheight);
-  gtk_label_set_text(GTK_LABEL(widget), buffer);
-  g_free(buffer);
 
   /* Reported device capabilities */
   widget = lookup_widget(page, "label30");
@@ -99,7 +109,7 @@ di_setup		(GtkWidget	*page)
   g_free(buffer);
 
   nb = GTK_NOTEBOOK (lookup_widget(page, "notebook2"));
-  if (main_info -> num_inputs == 0)
+  if (!main_info->video_inputs)
     {
       nb_label = gtk_label_new(_("No available inputs"));
       gtk_widget_show (nb_label);
@@ -109,24 +119,19 @@ di_setup		(GtkWidget	*page)
       gtk_widget_set_sensitive(GTK_WIDGET(nb), FALSE);
    }
   else
-    for (i = 0; i < main_info->num_inputs; i++)
+    for (l = tv_next_video_input (main_info, NULL);
+	 l; l = tv_next_video_input (main_info, l))
       {
 	char *type_str;
 
-	nb_label = gtk_label_new(main_info->inputs[i].name);
+	nb_label = gtk_label_new(l->label);
 	gtk_widget_show (nb_label);
 
-	if (main_info->inputs[i].type == TVENG_INPUT_TYPE_TV)
+	if (l->type == TV_VIDEO_LINE_TYPE_TUNER)
 	  type_str = _("TV input");
 	else
 	  type_str = _("Camera");
 
-	if (main_info->inputs[i].tuners)
-	  buffer = g_strdup_printf (ngettext ("%s with %d tuner",
-	                                      "%s with %d tuners",
-			                      main_info->inputs[i].tuners),
-				    type_str, main_info->inputs[i].tuners);
-	else
           buffer = g_strdup_printf ("%s", type_str);
 
 	nb_body = gtk_label_new (buffer);
@@ -163,274 +168,1007 @@ di_apply		(GtkWidget	*page)
   g_free(text); /* In the docs it says this should be freed */  
 }
 
+/*
+ *  Favorite picture sizes
+ */
+
+#define ZCONF_PICTURE_SIZES "/zapping/options/main/picture_sizes"
+
+typedef struct picture_size {
+  struct picture_size *		next;
+  guint				width;
+  guint				height;
+  z_key				key;
+} picture_size;
+
+static picture_size *		favorite_picture_sizes;
+
+static inline void
+picture_size_delete		(picture_size *		ps)
+{
+  g_free (ps);
+}
+
+static inline picture_size *
+picture_size_new		(guint			width,
+				 guint			height,
+				 z_key			key)
+{
+  picture_size *ps;
+
+  ps = g_malloc0 (sizeof (*ps));
+
+  ps->width = width;
+  ps->height = height;
+  ps->key = key;
+
+  return ps;
+}
+
+static void
+picture_sizes_delete		(void)
+{
+  picture_size *ps;
+
+  while ((ps = favorite_picture_sizes))
+    {
+      favorite_picture_sizes = ps->next;
+      picture_size_delete (ps);
+    }
+}
+
+gboolean
+on_picture_size_key_press	(GtkWidget *		widget,
+				 GdkEventKey *		event,
+				 gpointer		user_data)
+{
+  picture_size *ps;
+  z_key key;
+
+  key.key = gdk_keyval_to_lower (event->keyval);
+  key.mask = event->state;
+
+  /* fprintf(stderr, "key %x %x\n", key.key, key.mask); */
+
+  for (ps = favorite_picture_sizes; ps; ps = ps->next)
+    if (z_key_equal (ps->key, key))
+      {
+	python_command_printf (widget,
+			       "zapping.resize_screen(%u, %u)",
+			       ps->width, ps->height);
+	return TRUE; /* handled */
+      }
+
+  return FALSE; /* not for us, pass on */
+}
+
+static void
+picture_sizes_load_default	(void)
+{
+  static const guint sizes[][2] =
+    {
+      { 1024, 576 },	/* PAL/SECAM 16:9 */
+      { 768, 576 },	/* PAL/SECAM 4:3 */
+      { 720, 576 },	/* ITU-R 601 */
+      { 864, 480 },	/* NTSC 16:9 (rounded) */
+      { 640, 480 },	/* NTSC 4:3 */
+      { 384, 288 },	/* PAL/SECAM 1/4 */
+      { 352, 288 },	/* CIF */
+      { 320, 240 }	/* NTSC 1/4 */
+    };
+  picture_size **pps;
+  guint i;
+
+  picture_sizes_delete ();
+  pps = &favorite_picture_sizes;
+
+  for (i = 0; i < G_N_ELEMENTS (sizes); ++i)
+    {
+      *pps = picture_size_new (sizes[i][0], sizes[i][1], Z_KEY_NONE);
+      pps = &(*pps)->next;
+    }
+}
+
+#define ZCONF_PICTURE_SIZES "/zapping/options/main/picture_sizes"
+
+static inline void
+picture_sizes_reset_index	(void)
+{
+  zconf_create_integer (0, "", ZCONF_PICTURE_SIZES "/index");
+}
+
+static gboolean
+picture_sizes_load		(void)
+{
+  picture_size **pps;
+  guint i;
+
+  picture_sizes_delete ();
+  pps = &favorite_picture_sizes;
+
+  for (i = 0;; ++i)
+    {
+      gchar buffer[256], *s;
+      guint width, height;
+      z_key key = Z_KEY_NONE;
+
+      s = buffer + snprintf (buffer, sizeof (buffer) - 10,
+			     ZCONF_PICTURE_SIZES "/%u/", i);
+
+      strcpy (s, "width");
+      width = zconf_get_integer (NULL, buffer);
+
+      if (zconf_error ())
+	{
+	  if (0 == i)
+	    return FALSE;
+	  else
+	    break;
+	}
+
+      strcpy (s, "height");
+      height = zconf_get_integer (NULL, buffer);
+
+      if (zconf_error ())
+	break;
+
+      *s = 0;
+      zconf_get_z_key (&key, buffer);
+
+      *pps = picture_size_new (width, height, key);
+      pps = &(*pps)->next;
+    }
+
+  return TRUE;
+}
+
+static void
+picture_sizes_save		(void)
+{
+  picture_size *ps;
+  guint i = 0;
+
+  zconf_delete (ZCONF_PICTURE_SIZES);
+
+  for (ps = favorite_picture_sizes; ps; ps = ps->next)
+    {
+      gchar buffer[256], *s;
+
+      s = buffer + snprintf (buffer, sizeof (buffer) - 10,
+			     ZCONF_PICTURE_SIZES "/%u/", i);
+
+      strcpy (s, "width");
+      zconf_create_integer (ps->width, "", buffer);
+
+      strcpy (s, "height");
+      zconf_create_integer (ps->height, "", buffer);
+
+      *s = 0;
+      zconf_create_z_key (ps->key, "", buffer);
+
+      ++i;
+    }
+}
+
+/* Popup menu */
+
+static GtkAccelGroup *		accel_group;
+
+static void
+picture_sizes_on_menu_activate	(GtkMenuItem *		menu_item,
+				 gpointer		user_data)
+{
+  picture_size *ps;
+  guint count = GPOINTER_TO_INT (user_data);
+
+  g_object_unref (accel_group);
+  accel_group = NULL;
+
+  for (ps = favorite_picture_sizes; ps; ps = ps->next)
+    if (0 == count--)
+      {
+	zconf_create_integer (GPOINTER_TO_INT (user_data),
+			      "", ZCONF_PICTURE_SIZES "/index");
+	python_command_printf (GTK_WIDGET (menu_item),
+			       "zapping.resize_screen(%u, %u)",
+			       ps->width, ps->height);
+	return;
+      }
+}
+
+guint
+picture_sizes_append_menu	(GtkMenuShell *		menu)
+{
+  picture_size *ps;
+  GtkWidget *menu_item;
+  guint count = 0;
+
+  if (!favorite_picture_sizes)
+    {
+      if (!picture_sizes_load ())
+	picture_sizes_load_default ();
+
+      picture_sizes_reset_index ();
+    }
+
+  if (favorite_picture_sizes)
+    {
+      if (!accel_group)
+	accel_group = gtk_accel_group_new ();
+
+      menu_item = gtk_separator_menu_item_new ();
+      gtk_widget_show (menu_item);
+      gtk_menu_shell_append (menu, menu_item);
+    }
+
+  for (ps = favorite_picture_sizes; ps; ps = ps->next)
+    {
+      gchar *buffer;
+
+      buffer = g_strdup_printf (_("Resize to %ux%u"), ps->width, ps->height);
+      menu_item = gtk_menu_item_new_with_label (buffer);
+      g_free (buffer);
+
+      if (ps->key.key)
+	gtk_widget_add_accelerator (menu_item, "activate",
+				    accel_group,
+				    ps->key.key, ps->key.mask,
+				    GTK_ACCEL_VISIBLE);
+
+      g_signal_connect (G_OBJECT (menu_item), "activate",
+			G_CALLBACK (picture_sizes_on_menu_activate),
+			GINT_TO_POINTER (count));
+
+      gtk_widget_show (menu_item);
+      gtk_menu_shell_append (menu, menu_item);
+
+      ++count;
+    }
+
+  return count;
+}
+
+static PyObject *
+py_picture_size_cycle		(PyObject *		self,
+				 PyObject *		args)
+{
+  picture_size *ps;
+  int value;
+  gint index;
+  gint count;
+
+  value = +1;
+
+  count = 0;
+  for (ps = favorite_picture_sizes; ps; ps = ps->next)
+    ++count;
+
+  if (!PyArg_ParseTuple (args, "|i", &value))
+    g_error ("zapping.picture_size_cycle(|i)");
+
+  zconf_get_integer (&index, ZCONF_PICTURE_SIZES "/index");
+
+  index += value;
+
+  if (index < 0)
+    index = count - 1;
+  else if (index >= count)
+    index = 0;
+
+  zconf_set_integer (index, ZCONF_PICTURE_SIZES "/index");
+
+  for (ps = favorite_picture_sizes; ps; ps = ps->next)
+    if (--index == 0)
+      {
+	python_command_printf (python_command_widget (),
+			       "zapping.resize_screen(%u, %u)",
+			       ps->width, ps->height);
+	break;
+      }
+
+  py_return_true;
+}
+
+/* Picture sizes editing dialog */
+
+enum 
+{
+  C_WIDTH,
+  C_HEIGHT,
+  C_KEY,
+  C_KEY_MASK,
+  C_EDITABLE,
+  C_NUM
+};
+
+static GtkListStore *
+picture_sizes_create_model	(void)
+{
+  GtkListStore *model;
+  picture_size *ps;
+
+  if (!favorite_picture_sizes)
+    {
+      if (!picture_sizes_load ())
+	picture_sizes_load_default ();
+
+      picture_sizes_reset_index ();
+    }
+
+  model = gtk_list_store_new (C_NUM,
+			      G_TYPE_UINT,
+			      G_TYPE_UINT,
+			      G_TYPE_UINT,
+			      G_TYPE_UINT,
+			      G_TYPE_BOOLEAN);
+
+  for (ps = favorite_picture_sizes; ps; ps = ps->next)
+    {
+      GtkTreeIter iter;
+
+      gtk_list_store_append (model, &iter);
+      gtk_list_store_set (model, &iter,
+			  C_WIDTH, ps->width,
+			  C_HEIGHT, ps->height,
+			  C_KEY, ps->key.key,
+			  C_KEY_MASK, ps->key.mask,
+			  C_EDITABLE, TRUE,
+			  -1);
+    }
+
+  return model;
+}
+
+static void
+picture_sizes_model_iter	(GtkTreeView *		tree_view,
+				 const gchar *		path_string,
+				 GtkTreeModel **	model,
+				 GtkTreeIter *		iter)
+{
+  GtkTreePath *path;
+
+  *model = gtk_tree_view_get_model (tree_view);
+
+  path = gtk_tree_path_new_from_string (path_string);
+  gtk_tree_model_get_iter (*model, iter, path);
+  gtk_tree_path_free (path);
+}
+
+static void
+picture_sizes_on_cell_edited	(GtkCellRendererText *	cell,
+				 const gchar *		path_string,
+				 const gchar *		new_text,
+				 GtkTreeView *		tree_view)
+{
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+  guint column;
+  guint value;
+
+  picture_sizes_model_iter (tree_view, path_string, &model, &iter);
+  column = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (cell), "column"));
+  value = strtoul (new_text, NULL, 0);
+
+  if (value > 0)
+    value = SATURATE (value, 64, 16383);
+
+  gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+		      column, value,
+		      -1);
+
+  z_property_item_modified (GTK_WIDGET (tree_view));
+}
+
+static gboolean
+unique				(GtkTreeModel *		model,
+				 GtkTreePath *		path,
+				 GtkTreeIter *		iter,
+				 gpointer		user_data)
+{
+  z_key *new_key = user_data;
+  z_key key;
+
+  gtk_tree_model_get (model, iter,
+		      C_KEY, &key.key,
+		      C_KEY_MASK, &key.mask,
+		      -1);
+
+  if (key.key == new_key->key
+      && key.mask == new_key->mask)
+    gtk_list_store_set (GTK_LIST_STORE (model), iter,
+			C_KEY, 0,
+			C_KEY_MASK, 0,
+			-1);
+
+  return FALSE; /* continue */
+}
+
+static void
+picture_sizes_on_accel_edited	(GtkCellRendererText *	cell,
+				 const char *		path_string,
+				 guint			keyval,
+				 EggVirtualModifierType	mask,
+				 guint			keycode,
+				 GtkTreeView *		tree_view)
+{
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+  z_key key;
+
+  key.key = keyval;
+  key.mask = mask;
+
+  picture_sizes_model_iter (tree_view, path_string, &model, &iter);
+
+  if (keyval != 0)
+    gtk_tree_model_foreach (model, unique, &key);
+
+  gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+		      C_KEY, key.key,
+		      C_KEY_MASK, key.mask,
+		      -1);
+
+  z_property_item_modified (GTK_WIDGET (tree_view));
+}
+
+static void
+picture_sizes_accel_set_func	(GtkTreeViewColumn *	tree_column,
+				 GtkCellRenderer *	cell,
+				 GtkTreeModel *		model,
+				 GtkTreeIter *		iter,
+				 GtkTreeView *		tree_view)
+{
+  z_key key;
+
+  gtk_tree_model_get (model, iter,
+		      C_KEY, &key.key,
+		      C_KEY_MASK, &key.mask,
+		      -1);
+
+  g_object_set (G_OBJECT (cell),
+		"visible", TRUE,
+		"editable", TRUE,
+		"accel_key", key.key,
+		"accel_mask", key.mask,
+		"style", PANGO_STYLE_NORMAL,
+		NULL);
+}
+
+static void
+picture_sizes_on_selection_changed
+				(GtkTreeSelection *	selection,
+				 GtkTreeView *		tree_view)
+{
+  GtkTreeIter iter;
+  GtkTreeModel *model;
+  GtkWidget *remove;
+  gboolean selected;
+
+  model = gtk_tree_view_get_model (tree_view);
+
+  remove = lookup_widget (GTK_WIDGET (tree_view), "picture-sizes-remove");
+
+  selected = z_tree_selection_iter_first (selection, model, &iter);
+
+  gtk_widget_set_sensitive (remove, selected);
+}
+
+static void
+picture_sizes_on_add_clicked	(GtkButton *		add,
+				 GtkTreeView *		tree_view)
+{
+  GtkTreeSelection *selection;
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+  GtkTreePath *path;
+
+  selection = gtk_tree_view_get_selection (tree_view);
+  model = gtk_tree_view_get_model (tree_view);
+
+  if (z_tree_selection_iter_first (selection, model, &iter))
+    gtk_list_store_insert_before (GTK_LIST_STORE (model), &iter, &iter);
+  else
+    gtk_list_store_append (GTK_LIST_STORE (model), &iter);
+
+  gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+		      C_WIDTH, 0,
+		      C_HEIGHT, 0,
+		      C_KEY, 0,
+		      C_KEY_MASK, 0,
+		      C_EDITABLE, TRUE,
+		      -1);
+
+  gtk_tree_selection_unselect_all (selection);
+  gtk_tree_selection_select_iter (selection, &iter);
+
+  if ((path = gtk_tree_model_get_path (model, &iter)))
+    {
+      gtk_tree_view_set_cursor (tree_view, path,
+				gtk_tree_view_get_column (tree_view, 0),
+				/* start_editing */ TRUE);
+
+      gtk_widget_grab_focus (GTK_WIDGET (tree_view));
+
+      gtk_tree_path_free (path);
+    }
+}
+
+static void
+picture_sizes_on_remove_clicked	(GtkButton *		remove,
+				 GtkTreeView *		tree_view)
+{
+  z_tree_view_remove_selected (tree_view,
+			       gtk_tree_view_get_selection (tree_view),
+			       gtk_tree_view_get_model (tree_view));
+}
+
+static void
+picture_sizes_apply		(GtkTreeView *		tree_view)
+{
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+  picture_size **pps;
+
+  model = gtk_tree_view_get_model (tree_view);
+
+  picture_sizes_delete ();
+  pps = &favorite_picture_sizes;
+
+  if (!gtk_tree_model_get_iter_first (model, &iter))
+    return;
+
+  do
+    {
+      guint width;
+      guint height;
+      z_key key;
+      
+      gtk_tree_model_get (model, &iter,
+			  C_WIDTH, &width,
+			  C_HEIGHT, &height,
+			  C_KEY, &key.key,
+			  C_KEY_MASK, &key.mask,
+			  -1);
+
+      if (width > 0 && height > 0)
+	{
+	  *pps = picture_size_new (width, height, key);
+	  pps = &(*pps)->next;
+	}
+    }
+  while (gtk_tree_model_iter_next (model, &iter));
+
+  picture_sizes_save ();
+}
+
+static void
+picture_sizes_setup		(GtkWidget *		page)
+{
+  GtkTreeView *tree_view;
+  GtkTreeSelection *selection;
+  GtkListStore *list_store;
+  GtkCellRenderer *renderer;
+  GtkTreeViewColumn *column;
+  GtkWidget *widget;
+  guint col;
+
+  widget = lookup_widget (page, "picture-sizes-treeview");
+  tree_view = GTK_TREE_VIEW (widget);
+  gtk_tree_view_set_rules_hint (tree_view, TRUE);
+  gtk_tree_view_set_reorderable (tree_view, TRUE);
+
+  selection = gtk_tree_view_get_selection (tree_view);
+  gtk_tree_selection_set_mode (selection, GTK_SELECTION_MULTIPLE);
+
+  g_signal_connect (G_OBJECT (selection), "changed",
+  		    G_CALLBACK (picture_sizes_on_selection_changed),
+		    tree_view);
+
+  list_store = picture_sizes_create_model ();
+  gtk_tree_view_set_model (tree_view, GTK_TREE_MODEL (list_store));
+
+  for (col = C_WIDTH; col <= C_HEIGHT; ++col)
+    {
+      renderer = gtk_cell_renderer_text_new ();
+
+      gtk_tree_view_insert_column_with_attributes
+	(tree_view, -1 /* append */,
+	 (col == C_WIDTH) ? _("Width") : _("Height"),
+	 renderer,
+	 "text", col,
+	 "editable", C_EDITABLE,
+	 NULL);
+
+      g_signal_connect (G_OBJECT (renderer), "edited",
+			G_CALLBACK (picture_sizes_on_cell_edited),
+			tree_view);
+
+      g_object_set_data (G_OBJECT (renderer), "column",
+			 (gpointer) col);
+    }
+
+  renderer = (GtkCellRenderer *) g_object_new
+    (EGG_TYPE_CELL_RENDERER_KEYS,
+     "editable", TRUE,
+     "accel_mode", EGG_CELL_RENDERER_KEYS_MODE_X,
+     NULL);
+
+  g_signal_connect (G_OBJECT (renderer), "keys_edited",
+		    G_CALLBACK (picture_sizes_on_accel_edited), tree_view);
+
+  column = gtk_tree_view_column_new_with_attributes (_("Shortcut"),
+						     renderer, NULL);
+  gtk_tree_view_column_set_cell_data_func
+    (column, renderer,
+     (GtkTreeCellDataFunc) picture_sizes_accel_set_func,
+     NULL, NULL);
+  gtk_tree_view_append_column (tree_view, column);
+
+  widget = lookup_widget (page, "picture-sizes-add");
+  g_signal_connect (G_OBJECT (widget), "clicked",
+		    G_CALLBACK (picture_sizes_on_add_clicked),
+		    tree_view);
+
+  widget = lookup_widget (page, "picture-sizes-remove");
+  /* First select, then remove. */
+  gtk_widget_set_sensitive (widget, FALSE);
+  g_signal_connect (G_OBJECT (widget), "clicked",
+		    G_CALLBACK (picture_sizes_on_remove_clicked),
+		    tree_view);
+}
+
+#if 0
+
+/* Gnome does this already, see gnome-app-helper.c. Or right click
+   on the toolbar dock bevel. Note also Ctrl-Cursor to move the
+   toolbar around. Until I know how to satisfy both Gnome and GHIG
+   this remains commented. */
+
+static void
+on_toolbar_button_labels_changed
+				(GtkOptionMenu *	optionmenu,
+				 gpointer		user_data)
+{
+  GtkToolbarStyle style;
+
+  switch (gtk_option_menu_get_history (optionmenu))
+    {
+      /* Display order as in Control Center. */
+    case 1:	style = GTK_TOOLBAR_BOTH;	break;
+    case 2:	style = GTK_TOOLBAR_BOTH_HORIZ;	break;
+    case 3:	style = GTK_TOOLBAR_ICONS;	break;
+    case 4:	style = GTK_TOOLBAR_TEXT;	break;
+    default:	style = -1; /* default */	break;
+    }
+
+  zconf_set_integer ((gint) style, "/zapping/options/main/toolbar_style");
+}
+
+#endif
+
 /* Main window */
 static void
 mw_setup		(GtkWidget	*page)
 {
-  extern gboolean have_wmhooks;
   GtkWidget *widget;
+  GtkWidget *w;
+  gboolean active;
 
   /* Save the geometry through sessions */
-  widget = lookup_widget(page, "checkbutton2");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+  w = lookup_widget(page, "checkbutton2");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),
     zconf_get_boolean(NULL, "/zapping/options/main/keep_geometry"));
 
-  /* Keep the main window on top */
-  widget = lookup_widget (page, "checkbutton13");
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top"));
-  if (!have_wmhooks)
-    gtk_widget_set_sensitive (widget, FALSE);
-
   /* Show tooltips */
-  widget = lookup_widget (page, "checkbutton14");
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(widget),
+  w = lookup_widget (page, "checkbutton14");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(w),
     zconf_get_boolean (NULL, "/zapping/options/main/show_tooltips"));
 
-  /* Resize using fixed increments */
-  widget = lookup_widget(page, "checkbutton4");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/fixed_increments"));  
+  /* Disable screensaver */
+  w = lookup_widget (page, "disable_screensaver");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(w),
+    zconf_get_boolean (NULL, "/zapping/options/main/disable_screensaver"));
+
+#if 0 /* See above */
+
+  {
+    guint n;
+
+    /* Toolbar Button Labels */
+
+    w = lookup_widget(page, "toolbar_button_labels");
+
+    switch (zconf_get_integer (NULL, "/zapping/options/main/toolbar_style"))
+      {
+	/* Display order as in Control Center. */
+      case GTK_TOOLBAR_ICONS:		n = 3; break;
+      case GTK_TOOLBAR_TEXT:		n = 4; break;
+      case GTK_TOOLBAR_BOTH:		n = 1; break;
+      case GTK_TOOLBAR_BOTH_HORIZ:	n = 2; break;
+      default:				n = 0; break;
+      }
+
+    gtk_option_menu_set_history (GTK_OPTION_MENU (w), n);
+
+    g_signal_connect (G_OBJECT (w), "changed",
+		      (GCallback) on_toolbar_button_labels_changed, NULL);
+  }
+
+#endif
 
   /* Swap Page Up/Down */
 /*
-  widget = lookup_widget(page, "checkbutton13");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+  w = lookup_widget(page, "checkbutton13");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),
     zconf_get_boolean(NULL, "/zapping/options/main/swap_up_down"));
 */
 
   /* Title format Z will use */
-  widget = lookup_widget(page, "title_format");
-  widget = gnome_entry_gtk_entry(GNOME_ENTRY(widget));
-  gtk_entry_set_text(GTK_ENTRY(widget),
+  w = lookup_widget(page, "title_format");
+  w = gnome_entry_gtk_entry(GNOME_ENTRY(w));
+  gtk_entry_set_text(GTK_ENTRY(w),
 		     zconf_get_string(NULL,
 				      "/zapping/options/main/title_format"));
 
+#if 0 /* FIXME combine with size inc, move into menu */
   /* ratio mode to use */
-  widget = lookup_widget(page, "optionmenu1");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+  w = lookup_widget(page, "optionmenu1");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(w),
     zconf_get_integer(NULL,
-		      "/zapping/options/main/ratio"));  
+		      "/zapping/options/main/ratio"));
+#endif
 
-  /* entered channel numbers refer to (-1 disabled) */
-  widget = lookup_widget(page, "optionmenu23");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    1 + zconf_get_integer(NULL, "/zapping/options/main/channel_txl"));
+  active = zconf_get_boolean (NULL, "/zapping/options/main/save_controls");
+  widget = lookup_widget (page, "general-main-controls-per-channel");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), active);
 
-  /* toolbar style */
-  widget = lookup_widget(page, "toolbar_style");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL, "/zapping/options/main/toolbar_style"));  
+
+
+  {
+    gint n;
+
+    /* entered channel numbers refer to */
+    w = lookup_widget (page, "channel_number_translation");
+    n = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
+
+    if (n < 0)
+      n = 0; /* historical: -1 disabled keypad channel number entering */
+
+    gtk_option_menu_set_history (GTK_OPTION_MENU (w), n);
+  }
+
 }
 
 static void
 mw_apply		(GtkWidget	*page)
 {
-  extern GtkWidget *main_window;
   GtkWidget *widget;
   gboolean top;
+  gboolean active;
 
   widget = lookup_widget(page, "checkbutton2"); /* keep geometry */
   zconf_set_boolean(gtk_toggle_button_get_active(
 		 GTK_TOGGLE_BUTTON(widget)),
 		    "/zapping/options/main/keep_geometry");
 
-  widget = lookup_widget(page, "checkbutton13"); /* keep on top */
-  top = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
-  zconf_set_boolean (top, "/zapping/options/main/keep_on_top");
-  window_on_top (main_window, top);
-
   widget = lookup_widget(page, "checkbutton14"); /* show tooltips */
   top = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
   zconf_set_boolean (top, "/zapping/options/main/show_tooltips");
   z_tooltips_active (top);
 
-  widget = lookup_widget(page, "checkbutton4"); /* fixed increments */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-		 GTK_TOGGLE_BUTTON(widget)),
-		    "/zapping/options/main/fixed_increments");
-/*
-  widget = lookup_widget(page, "checkbutton13"); // swap chan up/down
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/swap_up_down");  
-*/
+  widget = lookup_widget(page, "disable_screensaver");
+  top = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  zconf_set_boolean (top, "/zapping/options/main/disable_screensaver");
+  x11_screensaver_control (top);
+
 
   widget = lookup_widget(page, "title_format"); /* title format */
   widget = gnome_entry_gtk_entry(GNOME_ENTRY(widget));
   zconf_set_string(gtk_entry_get_text(GTK_ENTRY(widget)),
 		   "/zapping/options/main/title_format");
 
+#if 0 /* FIXME */
   widget = lookup_widget(page, "optionmenu1"); /* ratio mode */
   zconf_set_integer(z_option_menu_get_active(widget),
 		    "/zapping/options/main/ratio");
+#endif
 
-  widget = lookup_widget(page, "optionmenu23");
-  /* channels refer to (-1 disabled) */
-  zconf_set_integer(z_option_menu_get_active(widget) - 1,
-		    "/zapping/options/main/channel_txl");
+  widget = lookup_widget (page, "general-main-controls-per-channel");
+  active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  zconf_set_boolean (active, "/zapping/options/main/save_controls");
 
-  widget = lookup_widget(page, "toolbar_style");
-  zconf_set_integer(z_option_menu_get_active(widget),
-		    "/zapping/options/main/toolbar_style");
-
-  change_toolbar_style (NULL, zconf_get_integer (NULL,
-		        "/zapping/options/main/toolbar_style"));
+  /* entered channel numbers refer to */
+  widget = lookup_widget (page, "channel_number_translation");
+  zconf_set_integer (z_option_menu_get_active (widget),
+		     "/zapping/options/main/channel_txl");
 }
+
+
+
+
+
+
+
+
 
 /* Video */
 static void
 video_setup		(GtkWidget	*page)
 {
   GtkWidget *widget;
-
-  /* Avoid some flicker in preview mode */
-  widget = lookup_widget(page, "checkbutton5");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/avoid_flicker"));
-
-  /* Save control info with the channel */
-  widget = lookup_widget(page, "checkbutton11");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/save_controls"));
-
+  gboolean active;
+#if 0
   /* Verbosity value passed to zapping_setup_fb */
   widget = lookup_widget(page, "spinbutton1");
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
      zconf_get_integer(NULL,
 		       "/zapping/options/main/zapping_setup_fb_verbosity"));
+#endif
 
-  /* fullscreen video mode */
-  widget = lookup_widget(page, "optionmenu2");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/main/change_mode"));
+#ifdef HAVE_VIDMODE_EXTENSION
+
+  {
+    GtkWidget *menu;
+    GtkWidget *menuitem;
+    x11_vidmode_info *info, *hist;
+    const gchar *mode;
+    guint i, h;
+
+    /* fullscreen video mode */
+
+    mode = zconf_get_string (NULL, "/zapping/options/main/fullscreen/vidmode");
+
+    menu = gtk_menu_new ();
+
+    /* TRANSLATORS: Fullscreen video mode */
+    menuitem = gtk_menu_item_new_with_label (_("Do not change"));
+    gtk_widget_show (menuitem);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
+
+    menuitem = gtk_menu_item_new_with_label (_("Automatic"));
+    gtk_widget_show (menuitem);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
+
+    h = (mode && 0 == strcmp (mode, "auto"));
+    hist = x11_vidmode_by_name (vidmodes, mode);
+
+    for (info = vidmodes, i = 2; info; info = info->next, i++)
+      {
+        gchar *s;
+
+        if (info == hist)
+          h = i;
+      
+        /* TRANSLATORS: Fullscreen video mode */
+        s = g_strdup_printf (_("%u x %u @ %u Hz"),
+		         info->width, info->height,
+		         (unsigned int)(info->vfreq + 0.5));
+
+        menuitem = gtk_menu_item_new_with_label (s);
+        gtk_widget_show (menuitem);
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
+
+        g_free (s);
+      }
+      
+    widget = lookup_widget(page, "optionmenu2");
+    gtk_option_menu_set_menu (GTK_OPTION_MENU (widget), menu);
+    gtk_option_menu_set_history (GTK_OPTION_MENU(widget), h);
+  }
+
+#else /* !HAVE_VIDMODE_EXTENSION */
+
+  widget = lookup_widget (page, "label90");
+  gtk_widget_set_sensitive (widget, FALSE);
+  widget = lookup_widget (page, "optionmenu2");
+  gtk_widget_set_sensitive (widget, FALSE);
+
+#endif
+
+#ifdef HAVE_XV_EXTENSION
 
   /* capture size under XVideo */
   widget = lookup_widget(page, "optionmenu20");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
     zconf_get_integer(NULL,
 		      "/zapping/options/capture/xvsize"));
-  
+
+#else
+
+  widget = lookup_widget (page, "label220");
+  gtk_widget_set_sensitive (widget, FALSE);
+  widget = lookup_widget (page, "optionmenu20");
+  gtk_widget_set_sensitive (widget, FALSE);
+
+#endif
+
+  widget = lookup_widget (page, "general-video-fixed-inc");
+  active = zconf_get_boolean (NULL, "/zapping/options/main/fixed_increments");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), active);
+
+  picture_sizes_setup (page);
 }
 
 static void
 video_apply		(GtkWidget	*page)
 {
+  GtkWidget *tv_screen;
   GtkWidget *widget;
+  gboolean active;
 
-
-  widget = lookup_widget(page, "checkbutton5"); /* avoid flicker */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/avoid_flicker");
-
-  widget = lookup_widget(page, "checkbutton11"); /* save controls */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/save_controls");
-
+#if 0
   widget = lookup_widget(page, "spinbutton1"); /* zapping_setup_fb
 						  verbosity */
   zconf_set_integer(
 	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)),
 		"/zapping/options/main/zapping_setup_fb_verbosity");
+#endif
 
-  widget = lookup_widget(page, "optionmenu2"); /* change mode */
-  zconf_set_integer(z_option_menu_get_active(widget),
-		    "/zapping/options/main/change_mode");
+#ifdef HAVE_VIDMODE_EXTENSION
+
+  {
+    const gchar *opt = "/zapping/options/main/fullscreen/vidmode";
+    guint i;
+
+    widget = lookup_widget(page, "optionmenu2"); /* change mode */
+    i = z_option_menu_get_active (widget);
+
+    if (i == 1)
+      {
+        zconf_set_string ("auto", opt);
+      }
+    else
+      {
+        x11_vidmode_info *info;
+
+        info = NULL;
+      
+        if (i >= 2)
+          for (info = vidmodes; info; info = info->next)
+            if (i-- == 2)
+	      break;
+
+	if (info)
+	  {
+            gchar *s = g_strdup_printf ("%ux%u@%u",
+					info->width, info->height,
+					(unsigned int)(info->vfreq + 0.5));
+            zconf_set_string (s, opt);
+	    g_free (s);
+	  }
+	else
+	  {
+            zconf_set_string ("", opt);
+          }
+      }
+  }
+
+#endif /* HAVE_VIDMODE_EXTENSION */
+
+#ifdef HAVE_XV_EXTENSION
 
   widget = lookup_widget(page, "optionmenu20"); /* xv capture size */
   zconf_set_integer(z_option_menu_get_active(widget),
 		    "/zapping/options/capture/xvsize");
+
+#endif
+
+  widget = lookup_widget (page, "general-video-fixed-inc");
+  active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  zconf_set_boolean (active, "/zapping/options/main/fixed_increments");
+
+  tv_screen = lookup_widget (main_window, "tv-screen");
+
+  if (active) /* XXX free, 4:3, 16:9 */
+    z_video_set_size_inc (Z_VIDEO (tv_screen), 64, 64 * 3 / 4);
+  else
+    z_video_set_size_inc (Z_VIDEO (tv_screen), 1, 1);
+
+  widget = lookup_widget (page, "picture-sizes-treeview");
+  picture_sizes_apply (GTK_TREE_VIEW (widget));
 }
 
-static void
-on_osd_type_changed	(GtkWidget	*widget,
-			 GtkWidget	*page)
-{
-  widget = lookup_widget(widget, "optionmenu22");
-  gtk_widget_set_sensitive(lookup_widget(widget, "vbox38"),
-			   !z_option_menu_get_active(widget));
-}
-
-/* OSD */
-static void
-osd_setup		(GtkWidget	*page)
-{
-  GtkWidget *widget;
-
-  /* OSD type */
-  widget = lookup_widget(page, "optionmenu22");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/osd/osd_type"));
-  gtk_widget_set_sensitive(lookup_widget(widget, "vbox38"),
-	   !zconf_get_integer(NULL, "/zapping/options/osd/osd_type"));
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_osd_type_changed),
-		     page);
-
-  /* OSD font */
-  widget = lookup_widget(page, "fontpicker1");
-  if (zconf_get_string(NULL, "/zapping/options/osd/font"))
-    gnome_font_picker_set_font_name(GNOME_FONT_PICKER(widget),
-    zconf_get_string(NULL, "/zapping/options/osd/font"));
-
-  /* OSD foreground color */
-  widget = lookup_widget(page, "colorpicker1");
-  gnome_color_picker_set_d(GNOME_COLOR_PICKER(widget),
-		   zconf_get_float(NULL, "/zapping/options/osd/fg_r"),
-		   zconf_get_float(NULL, "/zapping/options/osd/fg_g"),
-		   zconf_get_float(NULL, "/zapping/options/osd/fg_b"),
-		   0);
-
-  /* OSD background color */
-  widget = lookup_widget(page, "colorpicker2");
-  gnome_color_picker_set_d(GNOME_COLOR_PICKER(widget),
-		   zconf_get_float(NULL, "/zapping/options/osd/bg_r"),
-		   zconf_get_float(NULL, "/zapping/options/osd/bg_g"),
-		   zconf_get_float(NULL, "/zapping/options/osd/bg_b"),
-		   0);
-
-  /* OSD timeout in seconds */
-  widget = lookup_widget(page, "spinbutton2");
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
-     zconf_get_float(NULL,
-		       "/zapping/options/osd/timeout"));
-}
-
-static void
-osd_apply		(GtkWidget	*page)
-{
-  GtkWidget *widget;
-  gdouble r, g, b, a;
-
-  widget = lookup_widget(page, "optionmenu22"); /* osd type */
-  zconf_set_integer(z_option_menu_get_active(widget),
-		    "/zapping/options/osd/osd_type");
-
-  widget = lookup_widget(page, "fontpicker1");
-  zconf_set_string(gnome_font_picker_get_font_name(GNOME_FONT_PICKER(widget)),
-		   "/zapping/options/osd/font");
-
-  widget = lookup_widget(page, "colorpicker1");
-  gnome_color_picker_get_d(GNOME_COLOR_PICKER(widget), &r, &g, &b,
-			   &a);
-  zconf_set_float(r, "/zapping/options/osd/fg_r");
-  zconf_set_float(g, "/zapping/options/osd/fg_g");
-  zconf_set_float(b, "/zapping/options/osd/fg_b");
-
-  widget = lookup_widget(page, "colorpicker2");
-  gnome_color_picker_get_d(GNOME_COLOR_PICKER(widget), &r, &g, &b,
-			   &a);
-  zconf_set_float(r, "/zapping/options/osd/bg_r");
-  zconf_set_float(g, "/zapping/options/osd/bg_g");
-  zconf_set_float(b, "/zapping/options/osd/bg_b");
-
-  widget = lookup_widget(page, "spinbutton2"); /* osd timeout */
-  zconf_set_float(
-	gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(widget)),
-	"/zapping/options/osd/timeout");
-
-}
+/* VBI */
 
 static void
 on_enable_vbi_toggled	(GtkWidget	*widget,
@@ -448,11 +1186,12 @@ on_enable_vbi_toggled	(GtkWidget	*widget,
     gtk_widget_set_sensitive(itv_props, active);
 }
 
-/* VBI */
-
 static void
 vbi_general_setup	(GtkWidget	*page)
 {
+
+#ifdef HAVE_LIBZVBI
+
   GtkWidget *widget;
 
   /* Enable VBI decoding */
@@ -460,19 +1199,9 @@ vbi_general_setup	(GtkWidget	*page)
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"));
   on_enable_vbi_toggled(widget, page);
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_enable_vbi_toggled),
-		     page);
-
-  /* use VBI for getting station names */
-  widget = lookup_widget(page, "checkbutton7");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi"));
-
-  /* overlay subtitle pages automagically */
-  widget = lookup_widget(page, "checkbutton12");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/vbi/auto_overlay"));
+  g_signal_connect(G_OBJECT(widget), "toggled",
+		   G_CALLBACK(on_enable_vbi_toggled),
+		   page);
 
   /* VBI device */
   widget = lookup_widget(page, "fileentry2");
@@ -498,12 +1227,13 @@ vbi_general_setup	(GtkWidget	*page)
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
     zconf_get_integer(NULL,
 		      "/zapping/options/vbi/qstradeoff"));
-#ifdef HAVE_LIBZVBI
-  /* Default subtitle page */
-  widget = lookup_widget(page, "subtitle_page");
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
-			    vbi_bcd2dec(zcg_int(NULL, "zvbi_page")));
+
+#else /* !HAVE_LIBZVBI */
+
+  gtk_widget_set_sensitive (page, FALSE);
+
 #endif
+
 }
 
 typedef enum {
@@ -535,8 +1265,10 @@ set_toggle		(GtkWidget *page,
 static void
 vbi_general_apply	(GtkWidget	*page)
 {
+
 #ifdef HAVE_LIBZVBI
-  togglean enable_vbi, use_vbi;
+
+  togglean enable_vbi;
   GtkWidget *widget;
   gchar *text;
   gint index;
@@ -555,24 +1287,22 @@ vbi_general_apply	(GtkWidget	*page)
   /* enable VBI decoding */
   enable_vbi = set_toggle (page, "checkbutton6",
 			   "/zapping/options/vbi/enable_vbi");
-  /* Use VBI station names */
-  use_vbi = set_toggle (page, "checkbutton7",
-			"/zapping/options/vbi/use_vbi");
-
   if (enable_vbi == TOGGLE_TO_FALSE)
     {
       /* XXX bad design */
+#if 0 /* Temporarily removed */
       zvbi_reset_program_info ();
       zvbi_reset_network_info ();
+#endif
     }
+#if 0 /* always */
   else if (use_vbi == TOGGLE_TO_FALSE)
     {
+#if 0 /* Temporarily removed */
       zvbi_reset_network_info ();
+#endif
     }
-
-  /* Overlay TTX pages automagically */
-  set_toggle (page, "checkbutton12",
-	      "/zapping/options/vbi/auto_overlay");
+#endif
 
   widget = lookup_widget(page, "fileentry2"); /* VBI device entry */
   text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
@@ -614,17 +1344,11 @@ vbi_general_apply	(GtkWidget	*page)
     index = 3;
   zconf_set_integer(index, "/zapping/options/vbi/qstradeoff");
 
-  widget = lookup_widget(page, "subtitle_page"); /* subtitle page */
-  index =
-    vbi_dec2bcd(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)));
-  if (index != zvbi_page)
-    {
-      zvbi_page = index;
-      zcs_int(zvbi_page, "zvbi_page");
-      osd_clear();
-    }
 #endif /* HAVE_LIBZVBI */
+
 }
+
+#if 0
 
 /* Interactive TV */
 static void
@@ -711,34 +1435,36 @@ itv_apply		(GtkWidget	*page)
   zconf_set_integer(index, "/zapping/options/vbi/filter_level");
 }
 
+#endif
+
 static void
-add				(GnomeDialog	*dialog)
+add				(GtkDialog	*dialog)
 {
-  SidebarEntry device_info[] = {
-    { N_("Device Info"), ICON_ZAPPING, "gnome-info.png", "vbox9",
-      di_setup, di_apply }
+  SidebarEntry devices [] = {
+    { N_("Video"), "gnome-info.png", "vbox9", di_setup, di_apply }
   };
-  SidebarEntry general_options[] = {
-    { N_("Main Window"), ICON_ZAPPING, "gnome-session.png", "vbox35",
-      mw_setup, mw_apply },
-    { N_("OSD"), ICON_ZAPPING, "gnome-oscilloscope.png", "vbox37",
-      osd_setup, osd_apply },
-    { N_("Video"), ICON_ZAPPING, "gnome-television.png", "vbox36",
-      video_setup, video_apply }
+  SidebarEntry general [] = {
+    { N_("Main Window"), "gnome-session.png", "vbox35", mw_setup, mw_apply },
+    { N_("Video"), "gnome-television.png",
+      "general-video-table", video_setup, video_apply }
   };
-  SidebarEntry vbi_options[] = {
-    { N_("General"), ICON_ZAPPING, "gnome-monitor.png", "vbox17",
+  SidebarEntry vbi [] = {
+    { N_("General"), "gnome-monitor.png", "vbox17",
       vbi_general_setup, vbi_general_apply },
-    { N_("Interactive TV"), ICON_ZAPPING, "gnome-monitor.png", "vbox33",
+#if 0 /* temporarily disabled */
+    { N_("Interactive TV"), "gnome-monitor.png", "vbox33",
       itv_setup, itv_apply }
+#endif
   };
-  SidebarGroup groups[] = {
-    { N_("Device Info"), device_info, acount(device_info) },
-    { N_("General Options"), general_options, acount(general_options) },
-    { N_("VBI Options"), vbi_options, acount(vbi_options) }
+  SidebarGroup groups [] = {
+    { N_("Devices"),	     devices, G_N_ELEMENTS (devices) },
+    { N_("General Options"), general, G_N_ELEMENTS (general) },
+    { N_("VBI Options"),     vbi,     G_N_ELEMENTS (vbi) }
+    /* XXX "VBI Options" is also a constant in ttxview.c */
   };
 
-  standard_properties_add(dialog, groups, acount(groups), "zapping.glade");
+  standard_properties_add (dialog, groups, G_N_ELEMENTS (groups),
+			   "zapping.glade2");
 }
 
 void startup_properties_handler(void)
@@ -747,6 +1473,18 @@ void startup_properties_handler(void)
     add:	add
   };
   prepend_property_handler(&handler);
+
+  if (!favorite_picture_sizes)
+    {
+      if (!picture_sizes_load ())
+	picture_sizes_load_default ();
+
+      picture_sizes_reset_index ();
+    }
+
+  cmd_register ("picture_size_cycle", py_picture_size_cycle, METH_VARARGS,
+		("Next favorite picture size"), "zapping.picture_size_cycle(+1)",
+		("Previous favorite picture size"), "zapping.picture_size_cycle(-1)");
 }
 
 void shutdown_properties_handler(void)

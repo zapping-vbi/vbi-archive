@@ -3,7 +3,7 @@
  * New Mexico State University
  *
  * Modifications and fixes to the 0.5 release by Iñaki García
- * Etxebarrria <garetxe@users.sourceforge.net>
+ * Etxebarria <garetxe@users.sourceforge.net>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -24,13 +24,14 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #if 0
-static char rcsid[] = "$Id: ure.c,v 1.7 2001-01-14 20:52:09 garetxe Exp $";
+static char rcsid[] = "$Id: ure.c,v 1.8 2003-11-29 19:43:21 mschimek Exp $";
 #endif
 
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <unicode.h>
+//#include <unicode.h>
+#include <glib.h>
 #include "ure.h"
 
 /*
@@ -102,59 +103,59 @@ _ure_matches_properties(unsigned long props, ucs4_t c)
      ucs4_t c;
 #endif
 {
-  if ((props & _URE_ALNUM) && (unicode_isalnum(c)))
+  if ((props & _URE_ALNUM) && (g_unichar_isalnum(c)))
     return 1;
 
-  if ((props & _URE_ALPHA) && (unicode_isalpha(c)))
+  if ((props & _URE_ALPHA) && (g_unichar_isalpha(c)))
     return 1;
 
-  if ((props & _URE_CNTRL) && (unicode_iscntrl(c)))
+  if ((props & _URE_CNTRL) && (g_unichar_iscntrl(c)))
     return 1;
 
-  if ((props & _URE_DIGIT) && (unicode_isdigit(c)))
+  if ((props & _URE_DIGIT) && (g_unichar_isdigit(c)))
     return 1;
 
-  if ((props & _URE_GRAPH) && (unicode_isgraph(c)))
+  if ((props & _URE_GRAPH) && (g_unichar_isgraph(c)))
     return 1;
 
-  if ((props & _URE_LOWER) && (unicode_islower(c)))
+  if ((props & _URE_LOWER) && (g_unichar_islower(c)))
     return 1;
 
-  if ((props & _URE_PRINT) && (unicode_isprint(c)))
+  if ((props & _URE_PRINT) && (g_unichar_isprint(c)))
     return 1;
 
-  if ((props & _URE_PUNCT) && (unicode_ispunct(c)))
+  if ((props & _URE_PUNCT) && (g_unichar_ispunct(c)))
     return 1;
 
-  if ((props & _URE_SPACE) && (unicode_isspace(c)))
+  if ((props & _URE_SPACE) && (g_unichar_isspace(c)))
     return 1;
 
-  if ((props & _URE_UPPER) && (unicode_isupper(c)))
+  if ((props & _URE_UPPER) && (g_unichar_isupper(c)))
     return 1;
 
-  if ((props & _URE_XDIGIT) && (unicode_isxdigit(c)))
+  if ((props & _URE_XDIGIT) && (g_unichar_isxdigit(c)))
     return 1;
 
-  if ((props & _URE_TITLE) && (unicode_istitle(c)))
+  if ((props & _URE_TITLE) && (g_unichar_istitle(c)))
     return 1;
 
-  if ((props & _URE_DEFINED) && (unicode_isdefined(c)))
+  if ((props & _URE_DEFINED) && (g_unichar_isdefined(c)))
     return 1;
 
-  if ((props & _URE_WIDE) && (unicode_iswide(c)))
+  if ((props & _URE_WIDE) && (g_unichar_iswide(c)))
     return 1;
 
   if ((props & _URE_SEPARATOR))
     {
-      int type = unicode_type(c);
-      if (type >= UNICODE_LINE_SEPARATOR)
+      int type = g_unichar_type(c);
+      if (type >= G_UNICODE_LINE_SEPARATOR)
 	return 1;
     }
 
   if (props & _URE_NONSPACING)
     {
-      int type = unicode_type(c);
-      if (type < UNICODE_LINE_SEPARATOR)
+      int type = g_unichar_type(c);
+      if (type < G_UNICODE_LINE_SEPARATOR)
 	return 1;
     }
 
@@ -544,8 +545,8 @@ _ure_add_range(_ure_ccl_t *ccl, _ure_range_t *r, _ure_buffer_t *b)
    * range are converted to lower case.
    */
   if (b->flags & _URE_DFA_CASEFOLD) {
-    r->min_code = unicode_tolower(r->min_code);
-    r->max_code = unicode_tolower(r->max_code);
+    r->min_code = g_unichar_tolower(r->min_code);
+    r->max_code = g_unichar_tolower(r->max_code);
   }
 
   /*
@@ -1071,7 +1072,7 @@ _ure_compile_symbol(ucs2_t *sym, unsigned long limit, _ure_symtab_t *symp,
    * the `casefold' flag is set.
    */
   if ((b->flags & _URE_DFA_CASEFOLD) && symp->type == _URE_CHAR)
-    symp->sym.chr = unicode_tolower(symp->sym.chr);
+    symp->sym.chr = g_unichar_tolower(symp->sym.chr);
 
   /*
    * If the symbol constructed is anything other than one of the anchors,
@@ -2141,7 +2142,7 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
       continue;
 
     if (dfa->flags & _URE_DFA_CASEFOLD)
-      c = unicode_tolower(c);
+      c = g_unichar_tolower(c);
 
     /*
      * See if one of the transitions matches.

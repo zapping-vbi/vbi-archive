@@ -19,36 +19,11 @@
 #ifndef __OVERLAY_H__
 #define __OVERLAY_H__
 
-/*
- * These routines handle the Windowed overlay mode.
- */
-
-/*
- * Inits the overlay engine.
- * window: The window we will be overlaying to.
- * main_window: Its toplevel parent
- */
-void
-startup_overlay(GtkWidget * window, GtkWidget * main_window,
-		tveng_device_info * info);
-
-/*
- * Stops the overlay engine.
- */
-void
-overlay_stop(tveng_device_info *info);
-
-/*
- * Shuts down the overlay engine
- */
-void
-shutdown_overlay(void);
-
-/*
- * Tells the overlay engine to sync the overlay with the window.
- * clean_screen: TRUE means that we should refresh the whole screeen.
- */
-void
-overlay_sync(gboolean clean_screen);
+extern void
+stop_overlay			(void);
+extern gboolean
+start_overlay			(GtkWidget *		main_window,
+				 GtkWidget *		tv_window,
+				 tveng_device_info *	info);
 
 #endif /* overlay.h */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.11 2002-09-26 20:36:17 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.12 2003-11-29 19:43:22 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -29,32 +29,7 @@
 #  define R_(String) (String)
 #endif
 
-#if defined(HAVE_LIBRTE4)
-
-#define ZCONF_DOMAIN "/zapping/plugins/mpeg"
-#define MPEG_CONFIG "default"
-
-#include <rte.h>
-
-#if RTE_MAJOR_VERSION != 0 || RTE_MINOR_VERSION < 4
-#  error rte version 0.4+ required, please install the latest version from zapping.sf.net and reconfigure.
-#endif
-
-#define rte_context_delete(cx) rte_context_destroy(cx)
-#define rte_context_info_context(cx) rte_context_info_by_context (cx)
-#define rte_codec_info_codec(cd) rte_codec_info_by_codec(cd)
-#define rte_codec_option_info_enum(cd, ent) rte_option_info_enum(cd, ent)
-#define rte_codec_option_info_keyword(cd, key) rte_option_info_by_keyword(cd, key)
-#define rte_codec_option_menu_get(cd, key, ent) rte_option_get_menu(cd, key, ent)
-#define rte_codec_option_menu_set(cd, key, ent) rte_option_set_menu(cd, key, ent)
-#define rte_codec_option_get(cd, key, val) rte_option_get(cd, key, val)
-#define rte_codec_option_set(cd, key, val) rte_option_set(cd, key, val)
-#define rte_codec_option_print(cd, key, val) rte_option_print(cd, key, val)
-
-extern rte_context_info *rte_context_info_by_context (rte_context *);
-
-#elif defined(HAVE_LIBRTE5)
-
+#ifdef HAVE_LIBRTE
 #include <librte.h>
 
 extern gint grte_num_codecs (rte_context *context, rte_stream_type stream_type,

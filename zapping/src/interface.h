@@ -1,42 +1,43 @@
-#ifndef __INTERFACE_H__
-#define __INTERFACE_H__
-
-/**
- * Finds in the tree the given widget, returns a pointer to it or NULL
- * if not found
- */
-GtkWidget *
-find_widget (GtkWidget * parent, const gchar * name);
-
 /*
- * Tries to find a widget, that is accesible though parent, named
- * name. IMHO this should be called glade_lookup_widget and go into
- * libglade, but anyway...
- * If the widget isn't found, a message is printed and the program
- * quits, it always returns a valid widget.
+ *  Zapping (TV viewer for the Gnome Desktop)
+ *
+ * Copyright (C) 2001 Iñaki García Etxebarria
+ * Copyright (C) 2003 Michael H. Schimek
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-GtkWidget *
-lookup_widget (GtkWidget * parent, const gchar * name);
 
-/**
- * Registers a widget created by the app so lookup_widget finds it.
- */
-void
-register_widget(GtkWidget * widget, const char * name);
+/* $Id: interface.h,v 1.17 2003-11-29 19:43:24 mschimek Exp $ */
 
-/*
- * Change toolbar style of main window. Pass widget == NULL.
- */
-void
-change_toolbar_style (GtkWidget *widget, int style);
+#ifndef INTERFACE_H
+#define INTERFACE_H
 
 extern GtkWidget *
-build_widget(const gchar* name, const gchar* file);
-GtkWidget* create_zapping (void);
-//GtkWidget* create_zapping_properties (void);
-GtkWidget* create_about2 (void);
-//GtkWidget* create_plugin_properties (void);
-GtkWidget* create_popup_menu1 (void);
-//GtkWidget* create_searching (void);
-//GtkWidget* create_txtcontrols (void);
-#endif
+find_widget			(GtkWidget *		parent,
+				 const gchar *		name);
+extern GtkWidget *
+lookup_widget			(GtkWidget *		parent,
+				 const gchar *		name);
+extern void
+register_widget			(GtkWidget *		parent,
+				 GtkWidget *		widget,
+				 const char *		name);
+extern GtkWidget *
+build_widget			(const gchar *		name,
+				 const gchar *		file);
+extern GtkWidget *
+create_zapping			(void);
+
+#endif /* INTERFACE_H */

@@ -19,18 +19,21 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.20 2002-09-26 20:36:19 mschimek Exp $ */
+/* $Id: options.c,v 1.21 2003-11-29 19:43:22 mschimek Exp $ */
 
-#include "plugin_common.h"
+/* XXX gtk+ 2.3 GtkOptionMenu -> ? */
+#undef GTK_DISABLE_DEPRECATED
 
-#if defined(HAVE_LIBRTE4) || defined(HAVE_LIBRTE5)
+#include "src/plugin_common.h"
+
+#ifdef HAVE_LIBRTE
 
 #include <math.h>
 
 #include <glade/glade.h>
 
 #include "mpeg.h"
-#include "properties.h"
+#include "src/properties.h"
 
 typedef struct grte_options {
   rte_context *         context;
@@ -50,8 +53,12 @@ ro_label_new (rte_option_info *ro)
 {
   GtkWidget *label;
   gchar *s;
+  gchar *t;
 
-  s = g_strdup_printf ("%s:", R_(ro->label));
+  t = g_locale_to_utf8 (R_(ro->label), -1, NULL, NULL, NULL);
+  g_assert (t != NULL);
+  s = g_strdup_printf ("%s:", t);
+  g_free (t);
   label = gtk_label_new (s);
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label), 3, 3);
@@ -65,7 +72,7 @@ static void
 do_option_control (GtkWidget *w, gpointer user_data)
 {
   grte_options *opts = (grte_options *) user_data;
-  char *keyword = (char *) gtk_object_get_data (GTK_OBJECT (w), "key");
+  char *keyword = (char *) g_object_get_data (G_OBJECT (w), "key");
   GtkLabel *label;
   rte_option_info *ro;
   rte_option_value val;
@@ -81,13 +88,9 @@ do_option_control (GtkWidget *w, gpointer user_data)
 
   /* rte_option_set errors ignored */
 
-#ifdef HAVE_LIBRTE4
-  if (ro->entries > 0)
-#else
   if (ro->menu.num)
-#endif
     {
-      val.num = (gint) gtk_object_get_data (GTK_OBJECT (w), "idx");
+      val.num = (gint) g_object_get_data (G_OBJECT (w), "idx");
       rte_codec_option_menu_set (opts->codec, ro->keyword, val.num);
     }
   else
@@ -116,7 +119,7 @@ do_option_control (GtkWidget *w, gpointer user_data)
 	    g_assert_not_reached();
 	    break;
           case RTE_OPTION_STRING:
-	    val.str = gtk_entry_get_text (GTK_ENTRY (w));
+	    val.str = (gchar*)gtk_entry_get_text (GTK_ENTRY (w));
 	    break;
           default:
 	    g_warning ("Type %d of RTE option %s is not supported",
@@ -138,8 +141,8 @@ on_option_control (GtkWidget *w, gpointer user_data)
   if (GTK_IS_WIDGET (w))
     z_property_item_modified (w);
   else if (GTK_IS_ADJUSTMENT (w))
-    z_property_item_modified ((GtkWidget *) gtk_object_get_data
-			      (GTK_OBJECT (w), "spinslider"));
+    z_property_item_modified ((GtkWidget *) g_object_get_data
+			      (G_OBJECT (w), "spinslider"));
 }
 
 static void
@@ -148,20 +151,27 @@ create_entry (grte_options *opts, rte_option_info *ro, int index)
   GtkWidget *label;
   GtkWidget *entry;
   rte_option_value val;
+  gchar *t;
 
   label = ro_label_new (ro);
 
   entry = gtk_entry_new ();
-  z_tooltip_set (entry, R_(ro->tooltip));
+  if (ro->tooltip)
+    {
+      t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+      g_assert (t != NULL);
+      z_tooltip_set (entry, t);
+      g_free (t);
+    }
   gtk_widget_show (entry);
 
   g_assert (rte_codec_option_get (opts->codec, ro->keyword, &val));
   gtk_entry_set_text (GTK_ENTRY (entry), val.str);
   free (val.str);
 
-  gtk_object_set_data (GTK_OBJECT (entry), "key", ro->keyword);
-  gtk_signal_connect (GTK_OBJECT (entry), "changed",
-		      GTK_SIGNAL_FUNC (on_option_control), opts);
+  g_object_set_data (G_OBJECT (entry), "key", ro->keyword);
+  g_signal_connect (G_OBJECT (entry), "changed",
+		      G_CALLBACK (on_option_control), opts);
 
   do_option_control (entry, opts);
 
@@ -183,29 +193,22 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
   GtkWidget *menu_item; /* Each of the menu items */
   int current;
   gint i;
+  gchar *t;
 
   label = ro_label_new (ro);
 
   option_menu = gtk_option_menu_new ();
   menu = gtk_menu_new ();
 
-#ifdef HAVE_LIBRTE4
-  g_assert (ro->entries > 0);
-
-  if (!rte_codec_option_menu_get (opts->codec, ro->keyword, &current))
-    current = 0;
-
-  for (i = 0; i < ro->entries; i++)
-#else /* LIBRTE5 */
   g_assert (ro->menu.num != NULL);
 
   if (!rte_codec_option_menu_get (opts->codec, ro->keyword, &current))
     current = 0;
 
   for (i = ro->min.num; i <= ro->max.num; i++)
-#endif
     {
       char *str;
+      gchar *t;
 
       switch (ro->type) 
 	{
@@ -229,16 +232,19 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
 	}
 
       g_assert(str != NULL);
-      menu_item = gtk_menu_item_new_with_label (str);
+      t = g_locale_to_utf8 (str, -1, NULL, NULL, NULL);
+      g_assert (t != NULL);
+      menu_item = gtk_menu_item_new_with_label (t);
+      g_free (t);
       free(str);
 
-      gtk_object_set_data (GTK_OBJECT (menu_item), "key", ro->keyword);
-      gtk_object_set_data (GTK_OBJECT (menu_item), "idx", GINT_TO_POINTER (i));
-      gtk_signal_connect (GTK_OBJECT (menu_item), "activate",
-			  GTK_SIGNAL_FUNC (on_option_control), opts);
+      g_object_set_data (G_OBJECT (menu_item), "key", ro->keyword);
+      g_object_set_data (G_OBJECT (menu_item), "idx", GINT_TO_POINTER (i));
+      g_signal_connect (G_OBJECT (menu_item), "activate",
+			  G_CALLBACK (on_option_control), opts);
 
       gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
       if (current == i)
 	do_option_control (menu_item, opts);
@@ -247,7 +253,13 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
   gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu), current);
   gtk_widget_show (menu);
-  z_tooltip_set (option_menu, R_(ro->tooltip));
+  if (ro->tooltip)
+    {
+      t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+      g_assert (t != NULL);
+      z_tooltip_set (option_menu, t);
+      g_free (t);
+    }
   gtk_widget_show (option_menu);
 
   gtk_table_resize (GTK_TABLE (opts->table), index + 1, 2);
@@ -269,6 +281,7 @@ create_slider (grte_options *opts, rte_option_info *ro, int index)
   gdouble def, min, max, step, big_step, div, maxp;
   rte_option_value val;
   char *s;
+  gint digits = 0;
 
   label = ro_label_new (ro);
   s = rte_codec_option_print (opts->codec, ro->keyword, ro->max);
@@ -296,11 +309,16 @@ create_slider (grte_options *opts, rte_option_info *ro, int index)
 	    (double) max, (double) step, (double) big_step, val.dbl);
   adj = gtk_adjustment_new (val.dbl * div, min * div, max * div,
 			    step * div, big_step * div, big_step * div);
-  spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL, s, def * div);
-  gtk_object_set_data (GTK_OBJECT (adj), "key", ro->keyword);
-  gtk_object_set_data (GTK_OBJECT (adj), "spinslider", spinslider);
-  gtk_signal_connect (GTK_OBJECT (adj), "value-changed",
-		      GTK_SIGNAL_FUNC (on_option_control), opts);
+  /* Set decimal digits so that step increments < 1.0 become visible */
+  if (GTK_ADJUSTMENT (adj)->step_increment == 0.0
+      || (digits = floor (log10 (GTK_ADJUSTMENT (adj)->step_increment))) > 0)
+    digits = 0;
+  spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL,
+				 s, def * div, -digits);
+  g_object_set_data (G_OBJECT (adj), "key", ro->keyword);
+  g_object_set_data (G_OBJECT (adj), "spinslider", spinslider);
+  g_signal_connect (G_OBJECT (adj), "value-changed",
+		      G_CALLBACK (on_option_control), opts);
   gtk_widget_show (spinslider);
   gtk_table_resize (GTK_TABLE (opts->table), index + 1, 2);
   gtk_table_attach (GTK_TABLE (opts->table), label, 0, 1, index, index + 1,
@@ -316,19 +334,29 @@ create_checkbutton (grte_options *opts, rte_option_info *ro, int index)
 {
   GtkWidget *cb;
   rte_option_value val;
+  gchar *t;
 
-  cb = gtk_check_button_new_with_label (R_(ro->label));
+  t = g_locale_to_utf8 (R_(ro->label), -1, NULL, NULL, NULL);
+  g_assert (t != NULL);
+  cb = gtk_check_button_new_with_label (t);
+  g_free (t);
 
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (cb), FALSE);
-  z_tooltip_set (cb, R_(ro->tooltip));
+  if (ro->tooltip)
+    {
+      t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+      g_assert (t != NULL);
+      z_tooltip_set (cb, t);
+      g_free (t);
+    }
   gtk_widget_show (cb);
 
   g_assert (rte_codec_option_get (opts->codec, ro->keyword, &val));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cb), val.num);
 
-  gtk_object_set_data (GTK_OBJECT (cb), "key", ro->keyword);
-  gtk_signal_connect (GTK_OBJECT (cb), "toggled",
-		      GTK_SIGNAL_FUNC (on_option_control), opts);
+  g_object_set_data (G_OBJECT (cb), "key", ro->keyword);
+  g_signal_connect (G_OBJECT (cb), "toggled",
+		      G_CALLBACK (on_option_control), opts);
 
   do_option_control (cb, opts);
 
@@ -385,7 +413,7 @@ grte_options_create (rte_context *context, rte_codec *codec)
   frame = gtk_frame_new (_("Options"));
   gtk_widget_show (frame);
 
-  gtk_object_set_data_full (GTK_OBJECT (frame), "opts", opts,
+  g_object_set_data_full (G_OBJECT (frame), "opts", opts,
     (GtkDestroyNotify) grte_options_destroy);
 
   opts->table = gtk_table_new (1, 3, FALSE);
@@ -461,13 +489,8 @@ grte_options_create (rte_context *context, rte_codec *codec)
  *  All functions accessing this tree below.
  */
 
-#ifdef HAVE_LIBRTE4
-#define CONFIGS "/"
-#define CODECS "/"
-#else
 #define CONFIGS "/configs/"
 #define CODECS "/codecs/"
-#endif
 
 /**
  * grte_options_load:
@@ -514,7 +537,7 @@ grte_options_load		(rte_codec *		codec,
 	    val.dbl = zconf_get_float (NULL, zcname);
 	    break;
           case RTE_OPTION_STRING:
-	    val.str = zconf_get_string (NULL, zcname);
+	    val.str = (char *) zconf_get_string (NULL, zcname);
 	    break;
           default:
 	    g_warning ("Unknown option keyword %d in grte_load_options", ro->type);
@@ -551,6 +574,7 @@ grte_options_save		(rte_codec *		codec,
 {
   rte_option_info *ro;
   int i;
+  gchar *t;
 
   g_assert (codec && zc_domain);
 
@@ -571,20 +595,60 @@ grte_options_save		(rte_codec *		codec,
 	    /* Create won't set an already existing variable,
 	     * Set won't create one with description.
 	     */
-	    zconf_create_boolean (val.num, R_(ro->tooltip), zcname);
+	    if (ro->tooltip)
+	      {
+		t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+		g_assert (t != NULL);
+	      }
+	    else
+	      {
+		t = NULL;
+	      }
+	    zconf_create_boolean (val.num, t, zcname);
+	    g_free (t);
 	    zconf_set_boolean (val.num, zcname);
 	    break;
 	  case RTE_OPTION_INT:
 	  case RTE_OPTION_MENU:
-	    zconf_create_integer (val.num, R_(ro->tooltip), zcname);
+	    if (ro->tooltip)
+	      {
+		t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+		g_assert (t != NULL);
+	      }
+	    else
+	      {
+		t = NULL;
+	      }
+	    zconf_create_integer (val.num, t, zcname);
+	    g_free (t);
 	    zconf_set_integer (val.num, zcname);
 	    break;
 	  case RTE_OPTION_REAL:
-	    zconf_create_float (val.dbl, R_(ro->tooltip), zcname);
+	    if (ro->tooltip)
+	      {
+		t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+		g_assert (t != NULL);
+	      }
+	    else
+	      {
+		t = NULL;
+	      }
+	    zconf_create_float (val.dbl, t, zcname);
+	    g_free (t);
 	    zconf_set_float (val.dbl, zcname);
 	    break;
 	  case RTE_OPTION_STRING:
-	    zconf_create_string (val.str, R_(ro->tooltip), zcname);
+	    if (ro->tooltip)
+	      {
+		t = g_locale_to_utf8 (R_(ro->tooltip), -1, NULL, NULL, NULL);
+		g_assert (t != NULL);
+	      }
+	    else
+	      {
+		t = NULL;
+	      }
+	    zconf_create_string (val.str, t, zcname);
+	    g_free (t);
 	    zconf_set_string (val.str, zcname);
 	    free (val.str);
 	    break;
@@ -652,7 +716,7 @@ grte_codec_create_menu		(rte_context *		context,
     {
       zcname = g_strconcat (zc_root, CONFIGS, zc_conf, "/",
 			    codec_type_string[stream_type], NULL);
-      keyword = zconf_get_string (NULL, zcname);
+      keyword = (char *) zconf_get_string (NULL, zcname);
       g_free (zcname);
 
       if (!keyword || !keyword[0])
@@ -670,15 +734,12 @@ grte_codec_create_menu		(rte_context *		context,
 
   g_assert ((cxinfo = rte_context_info_by_context (context)));
 
-#ifdef HAVE_LIBRTE4
-  if (1) /* "None" permitted? */
-#else
   if (cxinfo->min_elementary[stream_type] != 1) /* "None" permitted? */
-#endif
     {
+      /* TRANSLATORS: Which codec: None, A, B, C, ... */
       menu_item = gtk_menu_item_new_with_label (_("None"));
       gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
     }
   else
     {
@@ -692,15 +753,26 @@ grte_codec_create_menu		(rte_context *		context,
   // really no choice
   for (i = 0; (cdinfo = rte_codec_info_enum (context, i)); i++)
     {
+      gchar *t;
+
       if (cdinfo->stream_type != stream_type)
         continue;
 
-      menu_item = gtk_menu_item_new_with_label (R_(cdinfo->label));
-      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword",
+      t = g_locale_to_utf8 (R_(cdinfo->label), -1, NULL, NULL, NULL);
+      g_assert (t != NULL);
+      menu_item = gtk_menu_item_new_with_label (t);
+      g_free (t);
+      g_object_set_data (G_OBJECT (menu_item), "keyword",
 			   (void *) cdinfo->keyword);
-      z_tooltip_set (menu_item, R_(cdinfo->tooltip));
+      if (cdinfo->tooltip)
+	{
+	  t = g_locale_to_utf8 (R_(cdinfo->tooltip), -1, NULL, NULL, NULL);
+	  g_assert (t != NULL);
+	  z_tooltip_set (menu_item, t);
+	  g_free (t);
+	}
       gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
       if (default_item)
 	if (strcmp (keyword, cdinfo->keyword) == 0)
@@ -711,8 +783,6 @@ grte_codec_create_menu		(rte_context *		context,
 
   return menu;
 }
-
-#ifdef HAVE_LIBRTE5
 
 /**
  * grte_num_codecs:
@@ -744,8 +814,6 @@ grte_num_codecs			(rte_context *		context,
 
   return count;
 }
-
-#endif /* HAVE_LIBRTE5 */
 
 /**
  * grte_codec_load:
@@ -784,11 +852,8 @@ grte_codec_load			(rte_context *		context,
 
   if (keyword && keyword[0])
     {
-#ifdef HAVE_LIBRTE4
-      codec = rte_codec_set (context, stream_type, 0, (char *) keyword);
-#else /* LIBRTE5 */
       codec = rte_set_codec (context, keyword, 0, NULL);
-#endif
+
       if (codec)
 	{
 	  zcname = g_strconcat (zc_root, CONFIGS, zc_conf, CODECS, keyword, NULL);
@@ -880,7 +945,7 @@ grte_context_create_menu	(const gchar *		zc_root,
   if (default_item)
     {
       zcname = g_strconcat (zc_root, CONFIGS, zc_conf, "/format", NULL);
-      keyword = zconf_get_string (NULL, zcname);
+      keyword = (char *) zconf_get_string (NULL, zcname);
       g_free (zcname);
 
       if (!keyword || !keyword[0])
@@ -894,15 +959,28 @@ grte_context_create_menu	(const gchar *		zc_root,
   // XXX prepare for empty menu
   for (i = 0; (info = rte_context_info_enum (i)); i++)
     {
-      gchar *label = g_strconcat (info->backend, "  |  ", R_(info->label), NULL);
+      gchar *label;
+      gchar *t;
+
+      t = g_locale_to_utf8 (R_(info->label), -1, NULL, NULL, NULL);
+      g_assert (t != NULL);
+      label = g_strconcat (info->backend, "  |  ", t, NULL);
+      g_free (t);
 
       menu_item = gtk_menu_item_new_with_label (label);
       g_free(label);
-      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword",
+
+      g_object_set_data (G_OBJECT (menu_item), "keyword",
 			   (void *) info->keyword);
-      z_tooltip_set (menu_item, R_(info->tooltip));
+      if (info->tooltip)
+	{
+	  t = g_locale_to_utf8 (R_(info->tooltip), -1, NULL, NULL, NULL);
+	  g_assert (t != NULL);
+	  z_tooltip_set (menu_item, t);
+	  g_free (t);
+	}
       gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
       if (default_item)
 	if (strcmp (keyword, info->keyword) == 0)
@@ -974,11 +1052,7 @@ grte_context_load		(const gchar *		zc_root,
       g_free (zcname);
     }
 
-#ifdef HAVE_LIBRTE4
-  context = rte_context_new (352, 288, (char *) keyword, NULL);
-#else
   context = rte_context_new (keyword, NULL, NULL);
-#endif
 
   if (!context)
     return NULL;

@@ -72,30 +72,7 @@ static void tveng2_close_device(tveng_device_info* info);
   in case of error, so any value != -1 should be considered valid
   (unless explicitly stated in the description of the function) 
 */
-/*
-  Returns the number of inputs in the given device and fills in info,
-  allocating memory as needed
-*/
-static int tveng2_get_inputs(tveng_device_info * info);
 
-/*
-  Sets the current input for the capture
-*/
-static
-int tveng2_set_input(struct tveng_enum_input * input, tveng_device_info
-		     * info);
-
-/*
-  Queries the device about its standards. Fills in info as appropiate
-  and returns the number of standards in the device.
-*/
-static int tveng2_get_standards(tveng_device_info * info);
-
-/*
-  Sets the given standard as the current standard
-*/
-static int 
-tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info);
 
 /* Updates the current capture format info. -1 if failed */
 static int
@@ -106,41 +83,8 @@ tveng2_update_capture_format(tveng_device_info * info);
 static int
 tveng2_set_capture_format(tveng_device_info * info);
 
-/*
-  Gets the current value of the controls, fills in info->controls
-  appropiately. After this (and if it succeeds) you can look in
-  info->controls to get the values for each control. -1 on error
-*/
-static int
-tveng2_update_controls(tveng_device_info * info);
 
-/*
-  Sets the value for an specific control. The given value will be
-  clipped between min and max values. Returns -1 on error
-*/
-static int
-tveng2_set_control(struct tveng_control * control, int value,
-		   tveng_device_info * info);
 
-/*
-  Gets the value of the mute property. 1 means mute (no sound) and 0
-  unmute (sound). -1 on error
-*/
-static int
-tveng2_get_mute(tveng_device_info * info);
-
-/*
-  Sets the value of the mute property. 0 means unmute (sound) and 1
-  mute (no sound). -1 on error
-*/
-static int
-tveng2_set_mute(int value, tveng_device_info * info);
-
-/*
-  Tunes the current input to the given freq. Returns -1 on error.
-*/
-static int
-tveng2_tune_input(uint32_t freq, tveng_device_info * info);
 
 /*
   Gets the signal strength and the afc code. The afc code indicates
@@ -153,20 +97,6 @@ static int
 tveng2_get_signal_strength (int *strength, int * afc,
 			    tveng_device_info * info);
 
-/*
-  Stores in freq the currently tuned freq. Returns -1 on error.
-*/
-static int
-tveng2_get_tune(uint32_t * freq, tveng_device_info * info);
-
-/*
-  Gets the minimum and maximum freq that the current input can
-  tune. If there is no tuner in this input, -1 will be returned.
-  If any of the pointers is NULL, its value will not be filled.
-*/
-static int
-tveng2_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
-			info);
 
 /*
   Sets up the capture device so any read() call after this one
@@ -188,7 +118,7 @@ tveng2_stop_capturing(tveng_device_info * info);
    Note: if you want this call to be non-blocking, call it with time=0
 */
 static
-int tveng2_read_frame(void * where, unsigned int size,
+int tveng2_read_frame(tveng_image_data * where,
 		      unsigned int time, tveng_device_info * info);
 
 /*
@@ -214,11 +144,6 @@ static
 int tveng2_get_capture_size(int *width, int *height, tveng_device_info * info);
 
 /* XF86 Frame Buffer routines */
-/*
-  Returns 1 if the device attached to info suports previewing, 0 otherwise
-*/
-static int
-tveng2_detect_preview (tveng_device_info * info);
 
 /*
   Sets the preview window dimensions to the given window.
@@ -240,29 +165,7 @@ tveng2_set_preview_window(tveng_device_info * info);
 static int
 tveng2_get_preview_window(tveng_device_info * info);
 
-/*
-   Sets the previewing on/off.
-   on : if 1, set preview on, if 0 off, other values are silently ignored
-   info  : device to use for previewing
-   Returns -1 on error, anything else on success
-*/
-static int
-tveng2_set_preview (int on, tveng_device_info * info);
 
-/* 
-   Sets up everything and starts previewing.
-   Just call this function to start previewing, it takes care of
-   (mostly) everything.
-   Returns -1 on error.
-*/
-static int
-tveng2_start_previewing (tveng_device_info * info);
-
-/*
-  Stops the fullscreen mode. Returns -1 on error
-*/
-static int
-tveng2_stop_previewing(tveng_device_info * info);
 
 #endif /* TVENG2_PROTOTYPES */
 #endif /* TVENG2.H */

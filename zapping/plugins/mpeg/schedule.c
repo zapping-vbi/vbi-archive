@@ -17,11 +17,11 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: schedule.c,v 1.2 2002-04-20 06:42:30 mschimek Exp $ */
+/* $Id: schedule.c,v 1.3 2003-11-29 19:43:22 mschimek Exp $ */
 
 #include "plugin_common.h"
 
-#if defined(HAVE_LIBRTE4) || defined(HAVE_LIBRTE5)
+#ifdef HAVE_LIBRTE
 
 #include <math.h>
 #include <glade/glade.h>

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: types.h,v 1.6 2002-06-25 04:35:40 mschimek Exp $ */
+/* $Id: types.h,v 1.7 2003-11-29 19:43:21 mschimek Exp $ */
 
 #ifndef TYPES_H
 #define TYPES_H
@@ -35,8 +35,10 @@ typedef unsigned char z_bool;
  *  Get a pointer to a structure of <type> from
  *  a <ptr> to one of its <members>.
  */
-#define PARENT(ptr, type, member) \
-	((type *)(((char *) ptr) - offsetof(type, member)))
+#undef PARENT
+#define PARENT(_ptr, _type, _member)					\
+	({ char *_p = (char *)(_ptr); (_p != 0) ?			\
+	  (_type *)(_p - offsetof (_type, _member)) : (_type *) 0; })
 
 /*
  *  Same as libc assert, but also reports the caller.

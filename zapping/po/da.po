@@ -3,151 +3,1330 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: zapping 0.6.6\n"
-"POT-Creation-Date: 2003-11-29 10:49+0100\n"
+"Project-Id-Version: zapping 0.7\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-11-29 05:43+0100\n"
 "PO-Revision-Date: 2003-02-17 22:30+0100\n"
 "Last-Translator: Morten Brix Pedersen <morten@wtf.dk>\n"
 "Language-Team: n/a\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=iso-8859-1\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/main.c:339
-msgid "Video device to use"
-msgstr "Video enhed der skal bruges"
+#: glade/zapping.glade2.h:1 plugins/mpeg/mpeg_properties.glade2.h:1
+#: plugins/screenshot/screenshot.glade2.h:1
+msgid "*"
+msgstr ""
 
-#: src/main.c:340 src/zapzilla.c:88
-msgid "DEVICE"
-msgstr "ENHED"
+#: glade/zapping.glade2.h:2
+msgid "320x240"
+msgstr "320x240"
 
-#: src/main.c:348
-msgid "Disable plugins support"
-msgstr "Slå plugin-understøttelse fra"
+#: glade/zapping.glade2.h:3
+msgid ""
+"A format string describing the main window title when changing channels: "
+"$(alias), $(index), $(id), $(freq), $(standard) and $(input) are substituted "
+"by the respective values."
+msgstr ""
 
-#: src/main.c:357
-msgid "Disable VBI support"
-msgstr "Slå VBI-understøttelse fra"
+#: glade/zapping.glade2.h:4
+msgid "Advanced"
+msgstr "Advanceret"
 
-#: src/main.c:366
+#: glade/zapping.glade2.h:5
+msgid "Arabic"
+msgstr ""
+
+#: glade/zapping.glade2.h:6 src/audio.c:513 src/audio.c:517 src/tveng1.c:677
+#: src/tveng2.c:612 src/tveng25.c:471
+msgid "Audio"
+msgstr "Lyd"
+
+#: glade/zapping.glade2.h:7
+msgid "Author:"
+msgstr "Forfatter:"
+
+#: glade/zapping.glade2.h:8
+msgid "Biggest noninterlaced (autodetect)"
+msgstr ""
+
+#: glade/zapping.glade2.h:9
+msgid "Bilinear (good quality but slow)"
+msgstr ""
+
+#: glade/zapping.glade2.h:10
+msgid "Canonical name:"
+msgstr "Kanonisk navn:"
+
+#: glade/zapping.glade2.h:11
+msgid "Central and Southeast Europe"
+msgstr ""
+
+#: glade/zapping.glade2.h:12
+#, fuzzy
+msgid "Channel list number"
+msgstr "Kanal redigering"
+
+#: glade/zapping.glade2.h:13
+msgid "Choose a color"
+msgstr "VÃ¦lg en farve"
+
+#: glade/zapping.glade2.h:14
+msgid "Clean console"
+msgstr "Ryd konsol"
+
+#: glade/zapping.glade2.h:15
+msgid "Click here when you are done"
+msgstr "Klik her nÃ¥r du er fÃ¦rdig"
+
+#: glade/zapping.glade2.h:16
+msgid "Console"
+msgstr "Konsollen"
+
+#: glade/zapping.glade2.h:17
+msgid "Copyright (C) 2000-2003 the contributors\n"
+msgstr ""
+
+#: glade/zapping.glade2.h:19
+msgid "Current controller:"
+msgstr ""
+
+#: glade/zapping.glade2.h:20
+msgid "Cyrillic"
+msgstr ""
+
+#: glade/zapping.glade2.h:21
+#, fuzzy
+msgid "Default _region:"
+msgstr "Standard region:"
+
+#: glade/zapping.glade2.h:22
+msgid "Device name:"
+msgstr "Enheds navn:"
+
+#: glade/zapping.glade2.h:23 src/audio.c:521 src/properties-handler.c:1460
+#, fuzzy
+msgid "Devices"
+msgstr "Enheds info"
+
+#: glade/zapping.glade2.h:24
+msgid "Disable _screensaver"
+msgstr ""
+
+#: glade/zapping.glade2.h:25
+msgid "Eastern Europe"
+msgstr "Ã˜st-Europa"
+
+#: glade/zapping.glade2.h:26
+msgid "Enter key"
+msgstr ""
+
+#: glade/zapping.glade2.h:27
+#, fuzzy
+msgid "F_ont:"
+msgstr "Format:"
+
+#: glade/zapping.glade2.h:28
+msgid "Favorite _picture sizes:"
+msgstr ""
+
+#: glade/zapping.glade2.h:29
+msgid "General options"
+msgstr "Generelle indstillinger"
+
+#: glade/zapping.glade2.h:30
+msgid "Greek and Turkish"
+msgstr ""
+
+#: glade/zapping.glade2.h:31
+msgid "Hebrew and Arabic"
+msgstr ""
+
+#: glade/zapping.glade2.h:32
+msgid "Hyper (best quality but CPU intensive)"
+msgstr ""
+
+#: glade/zapping.glade2.h:33
+msgid "Interlaced (window size)"
+msgstr ""
+
+#: glade/zapping.glade2.h:34
+msgid "Kernel _device"
+msgstr ""
+
+#: glade/zapping.glade2.h:35 src/keyboard.c:1138
+msgid "Keyboard"
+msgstr "Tastatur"
+
+#: glade/zapping.glade2.h:36
+msgid "Known key names"
+msgstr ""
+
+#: glade/zapping.glade2.h:37
+msgid "Level 1.0"
+msgstr ""
+
+#: glade/zapping.glade2.h:38
+msgid "Level 1.5 (additional national characters)"
+msgstr ""
+
+#: glade/zapping.glade2.h:39
+msgid "Level 2.5 (more colours, font styles and graphics)"
+msgstr ""
+
+#: glade/zapping.glade2.h:40
+msgid "Level 3.5 (proportional spacing, multicolour graphics)"
+msgstr ""
+
+#: glade/zapping.glade2.h:41
+msgid "Maximum capture size:"
+msgstr ""
+
+#: glade/zapping.glade2.h:42
+msgid "Minimum capture size:"
+msgstr ""
+
+#: glade/zapping.glade2.h:43
+msgid "NTSC"
+msgstr ""
+
+#: glade/zapping.glade2.h:44
+msgid "Nearest (fast, looks ugly when scaled)"
+msgstr ""
+
+#: glade/zapping.glade2.h:45
+msgid "No Display"
+msgstr ""
+
+#: glade/zapping.glade2.h:46
+msgid "OK, let's go on"
+msgstr ""
+
+#: glade/zapping.glade2.h:47 src/osd.c:1258
+msgid "OSD"
+msgstr "OSD"
+
+#: glade/zapping.glade2.h:48
+msgid "On Screen Display (OSD)"
+msgstr ""
+
+#: glade/zapping.glade2.h:49
+msgid "PAL"
+msgstr ""
+
+#: glade/zapping.glade2.h:50
+msgid "Plugin location"
+msgstr "Plugin placering"
+
+#: glade/zapping.glade2.h:51
+msgid "Plugin priority:"
+msgstr "Plugin prioritet:"
+
+#: glade/zapping.glade2.h:52
+msgid "Plugin properties"
+msgstr "Plugin egenskaber"
+
+#: glade/zapping.glade2.h:53
+msgid "Plugin version:"
+msgstr "Plugion version:"
+
+#: glade/zapping.glade2.h:54
+msgid "Properties"
+msgstr "Egenskaber"
+
+#: glade/zapping.glade2.h:55
+msgid "Quality/speed trade-off when scaling and anti-aliasing the page."
+msgstr ""
+
+#: glade/zapping.glade2.h:56
+#, fuzzy
+msgid "RF channel number"
+msgstr "Nyt kanal navn:"
+
+#: glade/zapping.glade2.h:57
+msgid "Remember this video standard"
+msgstr ""
+
+#: glade/zapping.glade2.h:58
+msgid "Remove all this mess"
+msgstr "Fjern alt dette rod"
+
+#: glade/zapping.glade2.h:59
+msgid "Run the plugin"
+msgstr "KÃ¸r plugin"
+
+#: glade/zapping.glade2.h:60
+msgid "SECAM"
+msgstr ""
+
+#: glade/zapping.glade2.h:61
+msgid "Save _control values per channel"
+msgstr ""
+
+#: glade/zapping.glade2.h:62
+msgid "Save window _geometry (some WM's don't like it)"
+msgstr ""
+
+#: glade/zapping.glade2.h:63
+msgid "Select OSD font"
+msgstr ""
+
+#: glade/zapping.glade2.h:64
+msgid "Select the V4L device"
+msgstr "VÃ¦lg V4L enheden"
+
+#: glade/zapping.glade2.h:65
+msgid "Select the VBI device"
+msgstr "VÃ¦lg VBI enheden"
+
+#: glade/zapping.glade2.h:66
+#, fuzzy
+msgid "Show _tooltips"
+msgstr "Vis vÃ¦rktÃ¸jsrÃ¥d"
+
+#: glade/zapping.glade2.h:67
+msgid ""
+"Some stations fail to transmit a complete language identifier, so the "
+"Teletext viewer may not display the correct font or national characters. You "
+"can select your geographical region here as an additional hint."
+msgstr ""
+
+#: glade/zapping.glade2.h:68
+msgid "Status Bar"
+msgstr "Statuslinjen"
+
+#: glade/zapping.glade2.h:69
+msgid "Stop this plugin"
+msgstr "Stop this plugin"
+
+#: glade/zapping.glade2.h:70
+#, fuzzy
+msgid "TV viewer for the Gnome environment"
+msgstr "Et TV-program til Gnome miljÃ¸et"
+
+#: glade/zapping.glade2.h:71
+msgid ""
+"The video capture device does not report the correct video standard, please "
+"select manually:"
+msgstr ""
+
+#: glade/zapping.glade2.h:72
+msgid "Tiles (slightly slower, somewhat better)"
+msgstr ""
+
+#: glade/zapping.glade2.h:73
+msgid "Title _bar contents:"
+msgstr ""
+
+#: glade/zapping.glade2.h:74
+msgid "VBI options"
+msgstr "VBI indstillinger"
+
+#: glade/zapping.glade2.h:75 src/main.c:157 src/properties-handler.c:1444
+#: src/properties-handler.c:1448
+msgid "Video"
+msgstr "Video"
+
+#: glade/zapping.glade2.h:76
+msgid "Video Standard"
+msgstr ""
+
+#: glade/zapping.glade2.h:77
+msgid "Video device capabilities"
+msgstr "Video enheds egenskaber"
+
+#: glade/zapping.glade2.h:78
+msgid "Western Europe and Turkey"
+msgstr ""
+
+#: glade/zapping.glade2.h:79
+msgid "Western and Central Europe"
+msgstr ""
+
+#: glade/zapping.glade2.h:80
+#, fuzzy
+msgid "Window"
+msgstr "Hovedvindue"
+
+#: glade/zapping.glade2.h:81
+#, fuzzy
+msgid "Zapping Preferences"
+msgstr "Zapping Egenskaber"
+
+#: glade/zapping.glade2.h:82
+msgid "Zapping error console"
+msgstr ""
+
+#: glade/zapping.glade2.h:83
+#, fuzzy
+msgid "_Background color:"
+msgstr "Standard handling:"
+
+#: glade/zapping.glade2.h:84
+msgid "_Capture size under XVideo:"
+msgstr ""
+
+#: glade/zapping.glade2.h:85
+#, fuzzy
+msgid "_Command:"
+msgstr "Kommando:"
+
+#: glade/zapping.glade2.h:86
+msgid "_Control volume with soundcard mixer"
+msgstr ""
+
+#: glade/zapping.glade2.h:87
+#, fuzzy
+msgid "_Device file:"
+msgstr "Enheds fil:"
+
+#: glade/zapping.glade2.h:88
+msgid "_Display mode:"
+msgstr ""
+
+#: glade/zapping.glade2.h:89
+msgid "_Enable VBI decoding"
+msgstr ""
+
+#: glade/zapping.glade2.h:90
+#, fuzzy
+msgid "_Enter channels by:"
+msgstr "Indstillede kanaler"
+
+#: glade/zapping.glade2.h:91
+#, fuzzy
+msgid "_Foreground color:"
+msgstr "Standard region:"
+
+#: glade/zapping.glade2.h:92
+#, fuzzy
+msgid "_Fullscreen video resolution:"
+msgstr "_FuldskÃ¦rm"
+
+#: glade/zapping.glade2.h:93
+msgid "_Gnome sound daemon (ESD)"
+msgstr ""
+
+#: glade/zapping.glade2.h:94
+msgid "_Interpolation type:"
+msgstr ""
+
+#: glade/zapping.glade2.h:95
+msgid "_KDE sound daemon (ARTS)"
+msgstr ""
+
+#: glade/zapping.glade2.h:96
+msgid "_Mute on exit"
+msgstr ""
+
+#: glade/zapping.glade2.h:97
+#, fuzzy
+msgid "_No audio recording"
+msgstr "Start optagning"
+
+#: glade/zapping.glade2.h:98
+#, fuzzy
+msgid "_Remove after:"
+msgstr "Fjern"
+
+#: glade/zapping.glade2.h:99
+msgid "_Resize using fixed increments"
+msgstr ""
+
+#: glade/zapping.glade2.h:100
+#, fuzzy
+msgid "_Start Zapping muted"
+msgstr "Start Zapping uden lyd"
+
+#: glade/zapping.glade2.h:101
+#, fuzzy
+msgid "_Teletext implementation:"
+msgstr "Tekst-tv implementering:"
+
+#: glade/zapping.glade2.h:102
+#, fuzzy
+msgid "seconds"
+msgstr "Ikoner"
+
+#: plugins/alirc/alirc.c:37
+msgid "Another lirc plugin"
+msgstr "Endnu et lirc plugin"
+
+#: plugins/alirc/alirc.c:39
+msgid ""
+"Another plugin to control zapping through lirc\n"
+"\n"
+"To enable this plugin you must edit your ~/.lircrc\n"
+"file. See the Zapping documentation for details.\n"
+msgstr ""
+
+#: plugins/alirc/alirc.c:44
+msgid "Lets you control zapping through lirc"
+msgstr "Lader dig kontrollere zapping igennem lirc"
+
+#. hash collision code
+#. Warn
+#: plugins/alirc/alirc.c:267 plugins/lirc/lirc.c:145 plugins/mpeg/mpeg.c:2105
+#: plugins/screenshot/screenshot.c:159
+#, c-format
+msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
+msgstr ""
+
+#: plugins/lirc/lirc.c:44
+msgid "LIRC plugin"
+msgstr "LIRC plugin"
+
+#: plugins/lirc/lirc.c:45
+msgid ""
+"This plugin enables the usage of LIRC, the Linux Infrared Remote Control."
+msgstr "Dette plugin slÃ¥r brugen af LIRC til (Linux Infrared Remote Control)."
+
+#: plugins/lirc/lirc.c:46
+msgid "This plugin enables the usage of LIRC."
+msgstr "Dette plugin slÃ¥r brugen af LIRC til"
+
+#: plugins/lirc/lirc.c:375
+msgid "LIRC"
+msgstr "LIRC"
+
+#: plugins/lirc/lirc.c:379 plugins/mpeg/mpeg.c:1422 plugins/mpeg/mpeg.c:2039
+#: plugins/screenshot/screenshot.c:558 plugins/screenshot/screenshot.c:1429
+msgid "Plugins"
+msgstr "Plugins"
+
+#: plugins/lirc/lirc.c:541
+msgid "Button"
+msgstr "Knap"
+
+#: plugins/lirc/lirc.c:546
+msgid "Action"
+msgstr "Handling"
+
+#: plugins/lirc/lirc.c:559
+msgid "Button:"
+msgstr "Knap:"
+
+#: plugins/lirc/lirc.c:570
+msgid "Action:"
+msgstr "Handling:"
+
+#: plugins/lirc/lirc.c:598 plugins/lirc/lirc.c:610
+msgid "channel up"
+msgstr "kanal op"
+
+#: plugins/lirc/lirc.c:599
+msgid "channel down"
+msgstr "kanal ned"
+
+#: plugins/lirc/lirc.c:600
+msgid "set channel"
+msgstr "sÃ¦t kanal"
+
+#: plugins/lirc/lirc.c:601
+msgid "power off"
+msgstr "sluk"
+
+#: plugins/lirc/lirc.c:644
+msgid "1"
+msgstr "1"
+
+#: plugins/lirc/lirc.c:653
+msgid "Add"
+msgstr "TilfÃ¸j"
+
+#: plugins/lirc/lirc.c:661
+msgid "Delete"
+msgstr "Fjern"
+
+#: plugins/mpeg/mpeg.c:418
+#, c-format
+msgid "Format %s is incomplete, please configure the video or audio codec."
+msgstr ""
+
+#: plugins/mpeg/mpeg.c:649
+#, c-format
+msgid ""
+"Cannot create destination directory:\n"
+"%s\n"
+"%s"
+msgstr ""
+"Kan ikke oprette destinations mappe:\n"
+"%s\n"
+"%s"
+
+#: plugins/mpeg/mpeg.c:661
+#, c-format
+msgid "Cannot create file %s: %s\n"
+msgstr "Kan ikke oprette fil %s: %s\n"
+
+#: plugins/mpeg/mpeg.c:1247
+#, fuzzy
+msgid "New format"
+msgstr "Nyt Format:"
+
+#: plugins/mpeg/mpeg.c:1248
+msgid "Format name:"
+msgstr "Format navn:"
+
+#: plugins/mpeg/mpeg.c:1422 plugins/mpeg/mpeg.c:1900 plugins/mpeg/mpeg.c:1923
+#: plugins/mpeg/mpeg.c:2028 plugins/mpeg/mpeg_properties.glade2.h:6
+msgid "Record"
+msgstr "Optag"
+
+#: plugins/mpeg/mpeg.c:1711
+msgid "Not implemented yet"
+msgstr "Ikke implementeret endnu"
+
+#: plugins/mpeg/mpeg.c:1885
+#, fuzzy
+msgid "Record a video stream"
+msgstr "Optag billede og lyd"
+
+#: plugins/mpeg/mpeg.c:1974
+msgid "Audio/Video Recorder"
+msgstr "Lyd/Billede Optager"
+
+#: plugins/mpeg/mpeg.c:1977
+msgid "This plugin records video and audio into a file"
+msgstr "Dette plugin optager billede og lyd til en fil"
+
+#: plugins/mpeg/mpeg.c:1980
+msgid "Record video and audio."
+msgstr "Optag billede og lyd"
+
+#: plugins/mpeg/options.c:413 src/ttxview.c:1839
+msgid "Options"
+msgstr "Indstillinger"
+
+#. TRANSLATORS: Which codec: None, A, B, C, ...
+#: plugins/mpeg/options.c:740
+#, fuzzy
+msgid "None"
+msgstr "ingen"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:2
+#, fuzzy
+msgid "Capture _height:"
+msgstr "Fang HÃ¸jde:"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:3
+#, fuzzy
+msgid "Capture _width:"
+msgstr "Fang Bredde:"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:4
+#: plugins/screenshot/screenshot.glade2.h:4
+msgid "Destination file"
+msgstr "Destinations fil"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:5
+#, fuzzy
+msgid "Fil_e format"
+msgstr "Fil format"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:7
+#, fuzzy
+msgid "Save _as:"
+msgstr "Gem som:"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:8
+#, fuzzy
+msgid "_Audio"
+msgstr "Lyd"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:9
+#, fuzzy
+msgid "_Codec:"
+msgstr "Kommando:"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:10
+#, fuzzy
+msgid "_Configure..."
+msgstr "Konfigurer..."
+
+#: plugins/mpeg/mpeg_properties.glade2.h:11
+msgid "_Delete"
+msgstr "Slet"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:12
+#: plugins/screenshot/screenshot.glade2.h:12
+#, fuzzy
+msgid "_Format:"
+msgstr "Format:"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:13
+#, fuzzy
+msgid "_New"
+msgstr "Ny"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:14
+#, fuzzy
+msgid "_Pause"
+msgstr "Pause"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:15
+#, fuzzy
+msgid "_Record"
+msgstr "Optag"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:16
+#, fuzzy
+msgid "_Stop"
+msgstr "Stop"
+
+#: plugins/mpeg/mpeg_properties.glade2.h:17
+#, fuzzy
+msgid "_Video"
+msgstr "Video"
+
+#: plugins/screenshot/screenshot.c:44
+msgid "Screenshot saver"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:46
+msgid ""
+"With this plugin you can take screen shots of the program you are watching "
+"and save them in various formats."
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:49
+msgid "This plugin takes screenshots of the video capture."
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:539
+msgid ""
+"The first option lets you specify where screenshots are to be\n"
+"saved. The file name will be: dir/shot[1,2,3,...].ext\n"
+"\n"
+"The command will be executed after saving the screenshot,\n"
+"with the environmental variables $SCREENSHOT_PATH, $CHANNEL_ALIAS,\n"
+"$CHANNEL_ID, $CURRENT_STANDARD, $CURRENT_INPUT set to their\n"
+"correct value.\n"
+"\n"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:554 plugins/screenshot/screenshot.c:585
+#: plugins/screenshot/screenshot.c:1429
+msgid "Screenshot"
+msgstr "SkÃ¦rmbillede"
+
+#: plugins/screenshot/screenshot.c:586
+msgid "Take a screenshot"
+msgstr "Tag et billede af skÃ¦rmen"
+
+#: plugins/screenshot/screenshot.c:720 plugins/screenshot/screenshot.c:817
+msgid "Error while writing screenshot\n"
+msgstr "Fejl ved skrivning af skÃ¦rmbillede\n"
+
+#: plugins/screenshot/screenshot.c:867
+msgid "Saving..."
+msgstr "Gemmer..."
+
+#: plugins/screenshot/screenshot.c:887
+#, c-format
+msgid ""
+"Cannot create directory:\n"
+"%s\n"
+"%s"
+msgstr ""
+"Kan ikke oprette mappe:\n"
+"%s\n"
+"%s"
+
+#: plugins/screenshot/screenshot.c:901
+#, fuzzy, c-format
+msgid ""
+"Sorry, but I cannot write %s\n"
+"%s"
+msgstr "Jeg kan ikke skrive\n"
+
+#: plugins/screenshot/screenshot.c:931
+msgid "Sorry, not enough resources to create a new thread"
+msgstr "Der er ikke nok ressourcer til at oprette en ny trÃ¥d"
+
+#: plugins/screenshot/screenshot.c:936
+msgid "There are too many threads"
+msgstr "Der er for mange trÃ¥de"
+
+#: plugins/screenshot/screenshot.c:1094
+#, c-format
+msgid "appx %u KB"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:1097
+#, c-format
+msgid "appx %.2f MB"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:1162 plugins/screenshot/screenshot.c:1286
+msgid "This format has no quality option"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:1322
+msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:2
+msgid "Backward"
+msgstr "Tilbage"
+
+#: plugins/screenshot/screenshot.glade2.h:3
+msgid "Command to execute after the image has been saved"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:5
+msgid "Forward"
+msgstr "Frem"
+
+#: plugins/screenshot/screenshot.glade2.h:6
+msgid "Off"
+msgstr "Fra"
+
+#: plugins/screenshot/screenshot.glade2.h:7
+msgid "Preview"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:8
+#, fuzzy
+msgid "Save Screenshot"
+msgstr "Gem skÃ¦rmbillede"
+
+#: plugins/screenshot/screenshot.glade2.h:9
+#, fuzzy
+msgid "_Add toolbar button"
+msgstr "TilfÃ¸j vÃ¦rktÃ¸jslinje knap"
+
+#: plugins/screenshot/screenshot.glade2.h:10
+#, fuzzy
+msgid "_Completion command:"
+msgstr "Kommando:"
+
+#: plugins/screenshot/screenshot.glade2.h:11
+#, fuzzy
+msgid "_Deinterlace:"
+msgstr "Enheds navn:"
+
+#: plugins/screenshot/screenshot.glade2.h:13
+msgid "_Grab on clicking OK"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:14
+#, fuzzy
+msgid "_Quality:"
+msgstr "Kvalitet:"
+
+#: plugins/screenshot/screenshot.glade2.h:15
+#, fuzzy
+msgid "_Save as:"
+msgstr "Gem som:"
+
+#: plugins/screenshot/screenshot.glade2.h:16
+msgid "_Skip"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:17
+msgid "pictures before grabbing"
+msgstr ""
+
+#. TRANSLATORS: Soundcard mixer line.
+#: src/audio.c:491
+#, fuzzy
+msgid "Input:"
+msgstr "Inddata"
+
+#: src/audio.c:522 src/keyboard.c:1142 src/osd.c:1262
+#: src/properties-handler.c:1461 src/properties.c:925
+msgid "General Options"
+msgstr "Generelle Indstillinger"
+
+#: src/audio.c:633
+#, fuzzy
+msgid "<blue>Audio off</blue>"
+msgstr "<blue>lyd fra</blue>"
+
+#: src/audio.c:634
+#, fuzzy
+msgid "<yellow>Audio on</yellow>"
+msgstr "<yellow>LYD TIL</yellow>"
+
+#: src/capture.c:432
+#, fuzzy, c-format
+msgid "Cannot start capturing: %s"
+msgstr "Kan ikke oprette %s: %s"
+
+#: src/channel_editor.c:582
+#, fuzzy, c-format
+msgid "Channel: %s   Found: %u"
+msgstr ""
+"Kanal 1: %s\n"
+"Kanal 2: %s"
+
+#: src/channel_editor.c:691
+msgid "Searching..."
+msgstr "SÃ¸ger..."
+
+#: src/channel_editor.c:1420
+#, fuzzy
+msgid "Select the frequency table used in your country"
+msgstr "VÃ¦lg her frekvens-tabellen brugt i dit land"
+
+#: src/channel_editor.c:1564
+#, fuzzy
+msgid "Ch. Name"
+msgstr "Navn"
+
+#: src/channel_editor.c:1569
+#, fuzzy
+msgid "Freq (MHz)"
+msgstr "Frekvens (kHz)"
+
+#. append
+#: src/channel_editor.c:1622
+#, fuzzy
+msgid "Channel name"
+msgstr "Kanonisk navn:"
+
+#. append
+#: src/channel_editor.c:1626
+#, fuzzy
+msgid "Video input"
+msgstr "Ingen inddata"
+
+#. append
+#: src/channel_editor.c:1630
+#, fuzzy
+msgid "RF Channel"
+msgstr "Kanaler"
+
+#. append
+#: src/channel_editor.c:1634
+#, fuzzy
+msgid "Video standard"
+msgstr "Ingen standard"
+
+#. append
+#: src/channel_editor.c:1638 src/keyboard.c:437
+msgid "Accelerator"
+msgstr ""
+
+#: src/channel_editor.c:1653
+msgid "Do not change input"
+msgstr ""
+
+#: src/channel_editor.c:1677
+msgid "Do not change standard"
+msgstr ""
+
+#: src/channel_editor.c:1716
+msgid "Channel editor"
+msgstr "Kanal redigering"
+
+#: src/channel_editor.c:1740
+msgid "Region"
+msgstr "Region"
+
+#: src/channel_editor.c:1776
+msgid "Automatic station _search"
+msgstr "Automatisk kanal _sÃ¸gning"
+
+#: src/channel_editor.c:1782
+msgid ""
+"Select a suitable frequency table, then click here to search through all "
+"channels in the table and add the received stations to the channel list."
+msgstr ""
+
+#: src/channel_editor.c:1788
+msgid "Add all _channels"
+msgstr "TilfÃ¸j alle kanaler"
+
+#: src/channel_editor.c:1795
+msgid "Add all channels in the frequency table to the channel list."
+msgstr "TilfÃ¸j alle kanaler i frekvens-tabellen til kanal-listen"
+
+#: src/channel_editor.c:1799
+msgid "_Import XawTV configuration"
+msgstr ""
+
+#: src/channel_editor.c:1826
+#, fuzzy
+msgid "Channel List"
+msgstr "Kanal redigering"
+
+#: src/channel_editor.c:1861
+msgid "Edit channel"
+msgstr "Rediger kanal"
+
+#: src/channel_editor.c:1877
+#, fuzzy
+msgid "Name:"
+msgstr "Navn:"
+
+#: src/channel_editor.c:1886
+#, fuzzy
+msgid "Video input:"
+msgstr "Ingen inddata"
+
+#: src/channel_editor.c:1897
+#, fuzzy
+msgid "Fine tuning:"
+msgstr "Fin-justering:"
+
+#: src/channel_editor.c:1902
+msgid "MHz"
+msgstr ""
+
+#: src/channel_editor.c:1911
+#, fuzzy
+msgid "Video standard:"
+msgstr "Ingen standard"
+
+#: src/channel_editor.c:1922
+msgid "Accelerator:"
+msgstr ""
+
+#: src/eggcellrendererkeys.c:160 src/eggcellrendererkeys.c:161
+msgid "Accelerator key"
+msgstr ""
+
+#: src/eggcellrendererkeys.c:170 src/eggcellrendererkeys.c:171
+msgid "Accelerator modifiers"
+msgstr ""
+
+#: src/eggcellrendererkeys.c:180
+msgid "Accelerator Mode"
+msgstr ""
+
+#: src/eggcellrendererkeys.c:181
+msgid "The type of accelerator."
+msgstr ""
+
+#: src/eggcellrendererkeys.c:219
+#, fuzzy
+msgid "Disabled"
+msgstr "Amerikansk kabel"
+
+#: src/eggcellrendererkeys.c:330 src/eggcellrendererkeys.c:564
+msgid "Type a new accelerator, or press Backspace to clear"
+msgstr ""
+
+#: src/eggcellrendererkeys.c:567
+msgid "Type a new accelerator"
+msgstr ""
+
+#: src/frequencies.c:93 src/frequencies.c:159
+msgid "broadcast"
+msgstr ""
+
+#: src/frequencies.c:106
+msgid "cable IRC"
+msgstr ""
+
+#: src/frequencies.c:125
+msgid "cable HRC"
+msgstr ""
+
+#: src/frequencies.c:143 src/frequencies.c:171
+#, fuzzy
+msgid "cable"
+msgstr "Amerikansk kabel"
+
+#. TRANSLATORS: Leave "Autocom" untranslated.
+#: src/frequencies.c:274
+msgid "Autocom cable"
+msgstr ""
+
+#: src/fullscreen.c:279
+msgid "No XFree86 DGA extension.\n"
+msgstr ""
+
+#: src/interface.c:280
+#, fuzzy
+msgid "Show Menu and Toolbar"
+msgstr "Gem menu og vÃ¦rktÃ¸jslinjen"
+
+#: src/interface.c:286
+msgid "Keep Window on Top"
+msgstr ""
+
+#: src/interface.c:298 src/interface.c:526
+msgid "_Fullscreen"
+msgstr "_FuldskÃ¦rm"
+
+#: src/interface.c:304 src/interface.c:532
+msgid "_Overlay mode"
+msgstr ""
+
+#: src/interface.c:310 src/interface.c:538
+msgid "_Capture mode"
+msgstr ""
+
+#: src/interface.c:317 src/interface.c:545
+msgid "_Teletext"
+msgstr "_Tekst-tv"
+
+#: src/interface.c:323 src/interface.c:564
+msgid "_Subtitles"
+msgstr "Undertekster"
+
+#: src/interface.c:329 src/ttxview.c:3741 src/ttxview.c:3989
+msgid "_Bookmarks"
+msgstr "Favoritter"
+
+#: src/interface.c:450
+#, fuzzy
+msgid "Appearance"
+msgstr "Udseende"
+
+#: src/interface.c:508
+msgid "P_lugins"
+msgstr ""
+
+#: src/interface.c:515 src/interface.c:599
+msgid "_Channels"
+msgstr "Kanaler"
+
+#: src/interface.c:551
+msgid "_New Teletext View"
+msgstr "_Ny Tekst-tv visning"
+
+#: src/interface.c:558
+msgid "_Mute"
+msgstr "SlÃ¥ lyd fra"
+
+#: src/interface.c:571
+#, fuzzy
+msgid "Show menu and toolbar"
+msgstr "Vis menuen og vÃ¦rktÃ¸jslinjen"
+
+#: src/interface.c:577
+msgid "Keep window on top"
+msgstr ""
+
+#: src/interface.c:690
+msgid "Ch. Up"
+msgstr ""
+
+#: src/interface.c:690
+#, fuzzy
+msgid "Switch to higher channel"
+msgstr "Rediger kanal listen"
+
+#: src/interface.c:695
+#, fuzzy
+msgid "Ch. Down"
+msgstr "Ned"
+
+#: src/interface.c:695
+#, fuzzy
+msgid "Switch to lower channel"
+msgstr "Skift til Tekst-tv"
+
+#: src/interface.c:702 src/v4linterface.c:631
+msgid "Controls"
+msgstr "Indstillinger"
+
+#: src/interface.c:702
+msgid "Change picture controls"
+msgstr "Skift billedindstillinger"
+
+#: src/interface.c:709 src/main.c:154 src/tveng.c:1962 src/tveng1.c:749
+#: src/tveng2.c:450 src/tveng25.c:310 src/tvengxv.c:529
+msgid "Mute"
+msgstr "SlÃ¥ lyd fra"
+
+#: src/interface.c:709
+#, fuzzy
+msgid "Switch audio on or off"
+msgstr "SlÃ¥ lyd til og fra"
+
+#: src/interface.c:714 src/zmisc.c:401
+msgid "Activate Teletext mode"
+msgstr "SlÃ¥ tekst-tv til"
+
+#: src/interface.c:722 src/main.c:156
+#, fuzzy
+msgid "Subtitles"
+msgstr "Undertekster"
+
+#: src/interface.c:722
+#, fuzzy
+msgid "Switch subtitles on or off"
+msgstr "SlÃ¥ undertekster til og fra"
+
+#: src/keyboard.c:83 src/keyboard.c:106
+msgid "Ctrl+"
+msgstr ""
+
+#: src/keyboard.c:84 src/keyboard.c:107
+msgid "Alt+"
+msgstr ""
+
+#: src/keyboard.c:85 src/keyboard.c:108
+msgid "Shift+"
+msgstr ""
+
+#: src/keyboard.c:518
+msgid "Key table..."
+msgstr ""
+
+#: src/keyboard.c:1099
+msgid "Command"
+msgstr "Kommando"
+
+#: src/keyboard.c:1113 src/properties-handler.c:799
+msgid "Shortcut"
+msgstr ""
+
+#: src/main.c:155
+msgid "Teletext"
+msgstr "Tekst-tv"
+
+#: src/main.c:215
+msgid "Kernel video device"
+msgstr ""
+
+#: src/main.c:216
+msgid "FILENAME"
+msgstr ""
+
+#: src/main.c:227 src/main.c:245
+#, fuzzy
+msgid "XVideo video input port"
+msgstr "Ingen inddata"
+
+#: src/main.c:236
+msgid "XVideo image overlay port"
+msgstr ""
+
+#: src/main.c:254
+#, fuzzy
+msgid "Disable XVideo video input support"
+msgstr "SlÃ¥ understÃ¸ttelse for XVideo-udvidelse fra"
+
+#: src/main.c:263
+#, fuzzy
+msgid "Disable XVideo image overlay support"
+msgstr "SlÃ¥ understÃ¸ttelse for XVideo-udvidelse fra"
+
+#: src/main.c:272
 msgid "Disable XVideo extension support"
-msgstr "Slå understøttelse for XVideo-udvidelse fra"
+msgstr "SlÃ¥ understÃ¸ttelse for XVideo-udvidelse fra"
 
-#: src/main.c:375
-msgid "XVideo port for overlay. Default is first usable"
+#: src/main.c:284
+#, fuzzy
+msgid "Disable video overlay"
+msgstr ""
+"Kan ikke gÃ¥ tilbage til forrige mode%s:\n"
+"%s"
+
+#: src/main.c:293
+msgid "X display is remote, disable video overlay"
 msgstr ""
 
-#: src/main.c:384
-msgid "X11 display is remote. This basically disables video overlay"
+#: src/main.c:302
+msgid "Disable VBI support"
+msgstr "SlÃ¥ VBI-understÃ¸ttelse fra"
+
+#: src/main.c:311
+#, fuzzy
+msgid "Disable plugins"
+msgstr "SlÃ¥ plugin-understÃ¸ttelse fra"
+
+#. TRANSLATORS: --no-zsfb command line switch.
+#: src/main.c:325 src/main.c:371
+msgid "Obsolete"
 msgstr ""
 
-#: src/main.c:393
-msgid "Do not call zapping_setup_fb on startup"
-msgstr "Kald ikke zapping_setup_fb ved opstart"
-
-#: src/main.c:402
+#: src/main.c:334
 msgid "Color depth of the X display"
 msgstr "X's farvedybde"
 
-#: src/main.c:403
+#: src/main.c:335
 msgid "BPP"
 msgstr "BPP"
 
-#: src/main.c:411 src/zapzilla.c:78
-msgid "Set debug messages on"
-msgstr "Slå fejlsøgnings beskeder til"
+#: src/main.c:343 src/zapzilla.c:74
+#, fuzzy
+msgid "Print debug messages"
+msgstr "SlÃ¥ fejlsÃ¸gnings beskeder til"
 
-#: src/main.c:420
-msgid "Force dword aligning of the overlay window"
+#: src/main.c:352
+msgid "Force dword alignment of the overlay window"
 msgstr ""
 
-#: src/main.c:429
+#: src/main.c:361
 msgid "Execute the given command and exit"
 msgstr "Eksekver den givne kommando og afslut"
 
-#: src/main.c:430
+#: src/main.c:362
 msgid "CMD"
 msgstr "KMD"
 
-#: src/main.c:438
-msgid "Pixformat for XVideo capture mode [YUYV | YVU420]"
-msgstr "Pixel-format for XVideo mode [YUYV | YVU420]"
-
-#: src/main.c:439
-msgid "PIXFORMAT"
-msgstr ""
-
-#: src/main.c:447 src/zapzilla.c:96
-msgid "Redirect the error messages to the console"
-msgstr "Omdirigér fejl beskeder til konsollen"
-
-#: src/main.c:535
+#: src/main.c:453
 msgid "Sorry, but there is no module support in GLib"
-msgstr "Der er desværre ingen modul understøttelse i GLib."
+msgstr "Der er desvÃ¦rre ingen modul understÃ¸ttelse i GLib."
 
-#: src/main.c:545
+#: src/main.c:502
 msgid "Cannot get device info struct"
-msgstr "Kan ikke få fat i enheds-information struct"
+msgstr "Kan ikke fÃ¥ fat i enheds-information struct"
 
-#: src/main.c:554
+#: src/main.c:511
 msgid "Zapping couldn't be started"
 msgstr "Zapping kunne ikke startes"
 
-#: src/main.c:615
-#, c-format
-msgid "Couldn't open %s, should I try some common options?"
-msgstr "Kunne ikke åbne %s, skal jeg prøve nogen andre typiske tilvalg?"
+#: src/main.c:569
+#, fuzzy, c-format
+msgid "Couldn't open %s, try other devices?"
+msgstr "Kunne ikke Ã¥bne %s, skal jeg prÃ¸ve nogen andre typiske tilvalg?"
 
-#: src/main.c:649
+#: src/main.c:594
 #, c-format
 msgid "%s suceeded, setting it as the new default"
-msgstr "%s lykkedes, sætter denne som den nye standard"
+msgstr "%s lykkedes, sÃ¦tter denne som den nye standard"
 
-#: src/main.c:658
+#: src/main.c:605
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
-"\"%s\" kunne ikke åbnes:\n"
+"\"%s\" kunne ikke Ã¥bnes:\n"
 "%s"
 
-#: src/main.c:778
-#, c-format
+#: src/main.c:719
+#, fuzzy, c-format
 msgid ""
-"Cannot restore previous mode%s:\n"
+"Cannot restore previous mode, will try capture mode:\n"
 "%s"
 msgstr ""
-"Kan ikke gå tilbage til forrige mode%s:\n"
+"Kan ikke gÃ¥ tilbage til forrige mode%s:\n"
 "%s"
 
-#: src/main.c:781
-msgid ", I will try starting capture mode"
+#: src/main.c:722
+#, fuzzy, c-format
+msgid ""
+"Cannot restore previous mode:\n"
+"%s"
 msgstr ""
+"Kan ikke gÃ¥ tilbage til forrige mode%s:\n"
+"%s"
 
-#: src/main.c:785
+#: src/main.c:727
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:798
+#: src/main.c:740
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:830 src/callbacks.c:503 src/callbacks.c:632
-msgid "Show controls"
-msgstr "Vis kontroller"
-
-#: src/main.c:831 src/callbacks.c:504 src/callbacks.c:633
-msgid "Show the menu and the toolbar"
-msgstr "Vis menuen og værktøjslinjen"
-
-#: src/main.c:1026 src/zapzilla.c:175
+#: src/main.c:1015 src/zapzilla.c:165
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -160,206 +1339,867 @@ msgid ""
 "     %s. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:1062
+#: src/main.c:1043
 msgid "Sorry, Zapping is unable to create the config tree"
-msgstr "Zapping kunne ikke oprette opsætnings-træet"
+msgstr "Zapping kunne ikke oprette opsÃ¦tnings-trÃ¦et"
 
-#: src/zapzilla.c:87
-msgid "VBI device to use"
-msgstr "VBI enhed der skal bruges"
+#: src/osd.c:813
+msgid "Please choose a font for OSD in preferences."
+msgstr ""
 
-#: src/zapzilla.c:123
-msgid "Zapzilla couldn't be started"
-msgstr "Zapzilla kunne ikke startes"
-
-#: src/zapzilla.c:201
-msgid "Sorry, Zapzilla is unable to create the config tree"
-msgstr "Zapzilla kunne ikke oprette opsætnings-træet"
-
-#: src/interface.c:232 src/tveng1.c:1193 src/tveng1.c:1548 src/tveng1.c:1561
-#: src/tveng2.c:948
-msgid "Mute"
-msgstr "Slå lyd fra"
-
-#: src/interface.c:236 glade/glade_strings.c:24
-msgid "Switch audio on and off"
-msgstr "Slå lyd til og fra"
-
-#: src/interface.c:270
-msgid "A TV viewer for the Gnome Desktop Environment"
-msgstr "Et TV-program til Gnome miljøet"
-
-#: src/callbacks.c:149
+#: src/osd.c:816
 #, c-format
 msgid ""
-"%s:\n"
-"Try running as root \"zapping_fix_overlay\" in a console"
-msgstr ""
-"%s:\n"
-"Prøv at køre \"zapping_fix_overlay\" som root i en konsol"
-
-#: src/callbacks.c:375
-msgid "<blue>audio off</blue>"
-msgstr "<blue>lyd fra</blue>"
-
-#: src/callbacks.c:376
-msgid "<yellow>AUDIO ON</yellow>"
-msgstr "<yellow>LYD TIL</yellow>"
-
-#: src/callbacks.c:490
-msgid "Hide controls"
-msgstr "Gem kontroller"
-
-#: src/callbacks.c:491
-msgid "Hide the menu and the toolbar"
-msgstr "Gem menuen og værktøjslinjen"
-
-#: src/callbacks.c:610
-msgid "Overlay this page"
+"The configured font \"%s\" cannot be loaded, please select another one in "
+"preferences\n"
 msgstr ""
 
-#: src/callbacks.c:611 src/zmisc.c:356
-msgid "Return to windowed mode and use the current page as subtitles"
+#: src/osd.c:826
+msgid ""
+"No font could be loaded, please make sure\n"
+"your system is properly configured."
 msgstr ""
 
-#: src/frequencies.c:1226
-msgid "US terrestrial"
+#: src/oss.c:184
+msgid "Audio device:"
 msgstr ""
 
-#: src/frequencies.c:1227
-msgid "US cable"
+#: src/oss.c:187
+msgid "Select the audio device"
+msgstr ""
+
+#: src/oss.c:214
+#, c-format
+msgid "The given audio device \"%s\" doesn't exist"
+msgstr ""
+
+#. TRANSLATORS: Name of mixer line, mono as
+#. opposed to stereo.
+#: src/oss.c:915
+#, fuzzy, c-format
+msgid "%s (Mono)"
+msgstr "Mono"
+
+#: src/plugin_properties.c:119
+msgid "Very low"
+msgstr "Meget lav"
+
+#: src/plugin_properties.c:121
+msgid "Low"
+msgstr "Lav"
+
+#: src/plugin_properties.c:123
+msgid "Below normal"
+msgstr "Under normal"
+
+#: src/plugin_properties.c:125
+msgid "Normal"
+msgstr "Normal"
+
+#: src/plugin_properties.c:127
+msgid "Very high"
+msgstr "Meget hÃ¸j"
+
+#: src/plugin_properties.c:129
+msgid "High"
+msgstr "HÃ¸j"
+
+#: src/plugin_properties.c:131
+msgid "Above normal"
+msgstr "Over normal"
+
+#: src/plugin_properties.c:153
+msgid "This plugin has no public symbols"
+msgstr ""
+
+#: src/plugin_properties.c:172
+msgid "List of symbols exported by the plugin"
+msgstr ""
+
+#: src/plugin_properties.c:214
+#, fuzzy
+msgid "Sorry, the plugin couldn't be started"
+msgstr "Zapping kunne ikke startes"
+
+#: src/plugin_properties.c:263
+msgid "Sorry, but no plugins have been loaded"
+msgstr ""
+
+#: src/plugin_properties.c:297
+#, fuzzy
+msgid "Plugin name"
+msgstr "Plugins"
+
+#: src/plugin_properties.c:324
+msgid "Symbol"
+msgstr "Symbol"
+
+#: src/plugin_properties.c:329
+msgid "Hash"
+msgstr ""
+
+#: src/plugins.c:187
+#, c-format
+msgid "\"%s\" doesn't provide a version"
+msgstr ""
+
+#: src/plugins.c:224
+msgid "Insufficient memory"
+msgstr ""
+
+#: src/plugins.c:233
+#, fuzzy
+msgid "No description available"
+msgstr "[Ingen beskrivelse givet]"
+
+#. Warn
+#: src/plugins.c:321
+#, c-format
+msgid ""
+"Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
+"Hashes are 0x%x vs. 0x%x"
+msgstr ""
+
+#: src/properties-handler.c:85
+msgid "Can capture to memory.\n"
+msgstr ""
+
+#: src/properties-handler.c:87
+msgid "Has some tuner.\n"
+msgstr ""
+
+#: src/properties-handler.c:89
+msgid "Supports the teletext service.\n"
+msgstr ""
+
+#: src/properties-handler.c:91
+msgid "Can overlay the image.\n"
+msgstr ""
+
+#: src/properties-handler.c:93
+msgid "Can chromakey the image.\n"
+msgstr ""
+
+#: src/properties-handler.c:95
+msgid "Clipping rectangles are supported.\n"
+msgstr ""
+
+#: src/properties-handler.c:97
+msgid "Framebuffer memory is overwritten.\n"
+msgstr ""
+
+#: src/properties-handler.c:99
+msgid "The capture can be scaled.\n"
+msgstr ""
+
+#: src/properties-handler.c:101
+msgid "Only monochrome is available\n"
+msgstr ""
+
+#: src/properties-handler.c:103
+msgid "The capture can be zoomed\n"
+msgstr ""
+
+#: src/properties-handler.c:114
+msgid "No available inputs"
+msgstr ""
+
+#: src/properties-handler.c:116
+msgid "Your video device has no inputs"
+msgstr ""
+
+#: src/properties-handler.c:131
+msgid "TV input"
+msgstr ""
+
+#: src/properties-handler.c:133
+msgid "Camera"
+msgstr "Kamera"
+
+#: src/properties-handler.c:408
+#, fuzzy, c-format
+msgid "Resize to %ux%u"
+msgstr "Ã†ndr billedstÃ¸rrelse til 768x576"
+
+#. append
+#: src/properties-handler.c:776
+msgid "Width"
+msgstr ""
+
+#: src/properties-handler.c:776
+#, fuzzy
+msgid "Height"
+msgstr "HÃ¸j"
+
+#. TRANSLATORS: Fullscreen video mode
+#: src/properties-handler.c:1024
+#, fuzzy
+msgid "Do not change"
+msgstr "Vis ikke"
+
+#: src/properties-handler.c:1028 src/tveng1.c:283 src/tveng2.c:463
+#: src/tveng25.c:321
+msgid "Automatic"
+msgstr "Automatisk"
+
+#. TRANSLATORS: Fullscreen video mode
+#: src/properties-handler.c:1043
+#, c-format
+msgid "%u x %u @ %u Hz"
+msgstr ""
+
+#: src/properties-handler.c:1180 src/properties-handler.c:1462
+#: src/ttxview.c:3894
+msgid "VBI Options"
+msgstr "VBI Indstillinger"
+
+#: src/properties-handler.c:1181 src/properties-handler.c:1455
+msgid "Interactive TV"
+msgstr "Interaktivt TV"
+
+#: src/properties-handler.c:1447
+msgid "Main Window"
+msgstr "Hovedvindue"
+
+#: src/properties-handler.c:1452 src/ttxview.c:3894
+msgid "General"
+msgstr "Generelt"
+
+#: src/properties.c:575
+msgid "Zapping Properties"
+msgstr "Zapping Egenskaber"
+
+#: src/ttxview.c:431
+#, c-format
+msgid "Loading page %x..."
+msgstr "Henter side %x..."
+
+#: src/ttxview.c:433
+#, fuzzy, c-format
+msgid "Loading page %x.%02x..."
+msgstr "Henter side %x..."
+
+#: src/ttxview.c:536
+#, fuzzy, c-format
+msgid " Page %x"
+msgstr "Side %x"
+
+#: src/ttxview.c:540
+#, fuzzy, c-format
+msgid " Subpage %x"
+msgstr " Underside %d"
+
+#: src/ttxview.c:688 src/ttxview.c:3143
+msgid "VBI has been disabled"
+msgstr "VBI er blevet deaktiveret"
+
+#: src/ttxview.c:909
+msgid "Text export failed"
+msgstr "Tekst-eksportering fejlede"
+
+#: src/ttxview.c:1277
+msgid "Selection copied to clipboard"
+msgstr ""
+
+#: src/ttxview.c:1361 src/ttxview.c:2103
+msgid "No page loaded"
+msgstr "Ingen side hentet"
+
+#: src/ttxview.c:1374
+msgid "Selecting - press Shift key for table mode"
+msgstr ""
+
+#: src/ttxview.c:1906
+#, fuzzy, c-format
+msgid ""
+"Cannot create directory %s:\n"
+"%s"
+msgstr ""
+"Kan ikke oprette mappe:\n"
+"%s\n"
+"%s"
+
+#: src/ttxview.c:1979
+#, fuzzy
+msgid "Save as"
+msgstr "Gem som:"
+
+#: src/ttxview.c:2001
+msgid "Format:"
+msgstr "Format:"
+
+#: src/ttxview.c:2195
+#, fuzzy
+msgid "Text Color"
+msgstr "Tekst farver"
+
+#: src/ttxview.c:2211 src/tveng2.c:430 src/tveng25.c:291 src/tvengbktr.c:272
+#: src/tvengbktr.c:284 src/tvengxv.c:523
+msgid "Brightness"
+msgstr "Lysstyrke"
+
+#: src/ttxview.c:2233 src/tveng2.c:431 src/tveng25.c:292 src/tvengbktr.c:273
+#: src/tvengbktr.c:285 src/tvengxv.c:524
+msgid "Contrast"
+msgstr "Konstrast"
+
+#: src/ttxview.c:2571
+#, fuzzy
+msgid "Bookmarks"
+msgstr "Favoritter"
+
+#: src/ttxview.c:2617
+#, fuzzy
+msgid "Channel"
+msgstr "Kanaler"
+
+#: src/ttxview.c:2623
+msgid "Page"
+msgstr "Side"
+
+#: src/ttxview.c:2628
+msgid "Description"
+msgstr "Beskrivelse"
+
+#: src/ttxview.c:2711
+#, c-format
+msgid "Added page %x.%02x to bookmarks"
+msgstr ""
+
+#: src/ttxview.c:2714
+#, fuzzy, c-format
+msgid "Added page %x to bookmarks"
+msgstr "<%s> tilfÃ¸jet til favoritter"
+
+#: src/ttxview.c:2768
+#, fuzzy
+msgid "_Add Bookmark"
+msgstr "Favoritter"
+
+#: src/ttxview.c:2774
+msgid "_Edit Bookmarks..."
+msgstr "Rediger Favoritter..."
+
+#: src/ttxview.c:2967 src/ttxview.c:3173
+#, fuzzy
+msgid "Search text:"
+msgstr "SÃ¸ge mÃ¸nster:"
+
+#: src/ttxview.c:2975
+#, c-format
+msgid "Found text on page %x.%02x:"
+msgstr ""
+
+#: src/ttxview.c:2982
+#, fuzzy
+msgid "Not found:"
+msgstr "Ikke fundet"
+
+#: src/ttxview.c:2993
+msgid "Page memory is empty"
+msgstr ""
+
+#: src/ttxview.c:3162 src/ttxview.c:4610
+#, fuzzy
+msgid "Search page memory"
+msgstr "SÃ¸ge mÃ¸nster:"
+
+#: src/ttxview.c:3182
+#, fuzzy
+msgid "_Regular expression"
+msgstr "RegulÃ¦rt udtryk"
+
+#: src/ttxview.c:3187
+msgid "Search case _insensitive"
+msgstr ""
+
+#: src/ttxview.c:3426
+#, fuzzy
+msgid "_Disable"
 msgstr "Amerikansk kabel"
 
-#: src/frequencies.c:1228
-msgid "US cable-hrc"
+#: src/ttxview.c:3495
+#, c-format
+msgid "Page %x"
+msgstr "Side %x"
+
+#: src/ttxview.c:3562
+#, fuzzy
+msgid "Subtitle index"
+msgstr "Undertekster"
+
+#: src/ttxview.c:3569
+msgid "Now and Next"
+msgstr "Nu og NÃ¦ste"
+
+#: src/ttxview.c:3576
+msgid "Current program"
+msgstr "NuvÃ¦rende program"
+
+#: src/ttxview.c:3583
+msgid "Program Index"
 msgstr ""
 
-#: src/frequencies.c:1229
-msgid "Canada cable"
-msgstr "Canadisk kabel"
-
-#: src/frequencies.c:1230
-msgid "Japan terrestrial"
+#: src/ttxview.c:3590
+msgid "Program Schedule"
 msgstr ""
 
-#: src/frequencies.c:1231
-msgid "Japan cable"
-msgstr "Japansk kabel"
+#: src/ttxview.c:3598
+msgid "Program Warning"
+msgstr ""
 
-#: src/frequencies.c:1232
-msgid "Europe"
-msgstr "Europa"
+#: src/ttxview.c:3683
+msgid "_Open"
+msgstr ""
 
-#: src/frequencies.c:1233 glade/glade_strings.c:126
-msgid "Eastern Europe"
-msgstr "Øst-Europa"
+#: src/ttxview.c:3689
+#, fuzzy
+msgid "Open in _New Window"
+msgstr "Ã…ben i nyt vindue"
 
-#: src/frequencies.c:1234
-msgid "Italy"
-msgstr "Italien"
+#: src/ttxview.c:3700
+msgid "_Open Link"
+msgstr ""
 
-#: src/frequencies.c:1235
-msgid "New Zealand"
-msgstr "New Zealand"
+#: src/ttxview.c:3711 src/ttxview.c:3917
+#, fuzzy
+msgid "_New Window"
+msgstr "Hovedvindue"
 
-#: src/frequencies.c:1236
-msgid "Australia"
-msgstr "Australien"
+#: src/ttxview.c:3717
+#, fuzzy
+msgid "_Save as..."
+msgstr "Gem som:"
 
-#: src/frequencies.c:1237
-msgid "Ireland"
-msgstr "Irland"
+#: src/ttxview.c:3723
+#, fuzzy
+msgid "S_earch..."
+msgstr "SÃ¸ger..."
 
-#: src/frequencies.c:1238
-msgid "France"
-msgstr "Frankrig"
+#: src/ttxview.c:3729
+#, fuzzy
+msgid "_Colors..."
+msgstr "Farver"
 
-#: src/frequencies.c:1239
-msgid "Russia"
-msgstr "Rusland"
+#: src/ttxview.c:3735
+#, fuzzy
+msgid "S_ubtitles"
+msgstr "Undertekster"
 
-#: src/frequencies.c:1240
-msgid "South Africa"
-msgstr "Syd Afrika"
+#: src/ttxview.c:3933
+#, fuzzy
+msgid "_Search"
+msgstr "SÃ¸g"
 
-#: src/frequencies.c:1241
-msgid "China"
-msgstr "Kina"
+#: src/ttxview.c:3945
+msgid "_Toolbar"
+msgstr ""
 
-#: src/frequencies.c:1242
-msgid "Pakistan cable"
-msgstr "Pakistansk kabel"
+#: src/ttxview.c:3947
+#, fuzzy
+msgid "_Statusbar"
+msgstr "Statuslinjen"
 
-#: src/frequencies.c:1438 src/frequencies.c:1543 src/frequencies.c:1722
-msgid "(Unnamed channel)"
-msgstr "(Ikke navngivet kanal)"
+#: src/ttxview.c:3950
+#, fuzzy
+msgid "_Colors"
+msgstr "Farver"
 
-#: src/frequencies.c:1442 src/frequencies.c:1547
-msgid "(Unknown real channel)"
-msgstr "(Ukendt ægte kanal)"
+#: src/ttxview.c:3958
+#, fuzzy
+msgid "_Back"
+msgstr "Tilbage"
 
-#: src/frequencies.c:1446 src/frequencies.c:1551 src/frequencies.c:1730
-msgid "(Unknown country)"
-msgstr "(Ukendt land)"
+#: src/ttxview.c:3964
+#, fuzzy
+msgid "_Forward"
+msgstr "Frem"
 
-#: src/frequencies.c:1726
-msgid "(Unknown RF channel)"
-msgstr "(Ukendt RF kanal)"
+#: src/ttxview.c:3971
+#, fuzzy
+msgid "_Home"
+msgstr "Hjem"
 
-#: src/v4linterface.c:316
+#: src/ttxview.c:3987
+msgid "_Go"
+msgstr ""
+
+#. TRANSLATORS: "Cannot open <URL>" (http or smtp).
+#: src/ttxview.c:4243 src/zvbi.c:596
+#, fuzzy, c-format
+msgid ""
+"Cannot open %s:\n"
+"%s"
+msgstr "Kan ikke oprette %s: %s"
+
+#: src/ttxview.c:4506
+#, fuzzy
+msgid "Next page"
+msgstr "NÃ¦ste underside"
+
+#: src/ttxview.c:4509
+#, fuzzy
+msgid "Previous page"
+msgstr "Forrige underside"
+
+#: src/ttxview.c:4512
+msgid "Previous subpage"
+msgstr "Forrige underside"
+
+#: src/ttxview.c:4515
+msgid "Next subpage"
+msgstr "NÃ¦ste underside"
+
+#: src/ttxview.c:4583
+msgid "Previous page in history"
+msgstr "Forrige side i historien"
+
+#: src/ttxview.c:4589
+msgid "Next page in history"
+msgstr "NÃ¦ste side i historien"
+
+#: src/ttxview.c:4598
+msgid "Index"
+msgstr "Indeks"
+
+#: src/ttxview.c:4598
+msgid "Go to the index page"
+msgstr "GÃ¥ til indeks siden"
+
+#: src/ttxview.c:4605
+msgid "Open new Teletext window"
+msgstr "Ã…ben nyt Tekst-tv vindue"
+
+#: src/ttxview.c:4628
+msgid "Hold the current subpage"
+msgstr "Hold den nuvÃ¦rende underside"
+
+#: src/ttxview.c:4650
+#, fuzzy
+msgid "Reveal"
+msgstr "Generelt"
+
+#: src/ttxview.c:4650
+msgid "Reveal concealed text"
+msgstr ""
+
+#: src/tveng.c:1954 src/tveng2.c:449 src/tveng25.c:309 src/tvengxv.c:530
+msgid "Volume"
+msgstr "Lydstyrke"
+
+#: src/tveng.c:2592
+#, fuzzy
+msgid "Cannot execute zapping_setup_fb."
+msgstr "Kald ikke zapping_setup_fb ved opstart"
+
+#: src/tveng.c:2608
+msgid "zapping_setup_fb failed."
+msgstr ""
+
+#: src/tveng.c:2613
 #, c-format
-msgid "Adjust %s"
-msgstr "Justér %s"
+msgid "zapping_setup_fb not found in \"%s\" or executable search path."
+msgstr ""
 
-#: src/v4linterface.c:458
-msgid "Available controls"
-msgstr "Ledige indstillinger"
+#: src/tveng.c:2620
+msgid "Unknown error in zapping_setup_fb."
+msgstr ""
 
-#: src/v4linterface.c:664 src/zvbi.c:2137
-msgid "Unknown"
-msgstr "Ukendt"
+#: src/tveng.c:3130 src/tveng.c:3151
+msgid "Filter"
+msgstr "Filtrer"
 
-#: src/v4linterface.c:673
-msgid "No id"
-msgstr "Intet id"
+#. TRANSLATORS: Color replaced by video in overlay mode.
+#: src/tveng.c:3173
+msgid "Colorkey"
+msgstr "Farveknap"
 
-#: src/v4linterface.c:679
-msgid "No input"
-msgstr "Ingen inddata"
-
-#: src/v4linterface.c:685
-msgid "No standard"
-msgstr "Ingen standard"
-
-#: src/v4linterface.c:841
-#, c-format
-msgid "Channel: <yellow>%s</yellow>"
-msgstr "Kanal: <yellow>%s</yellow>"
-
-#: src/v4linterface.c:1019
-#, c-format
-msgid "<green>%s</green>"
-msgstr "<green>%s</green>"
-
-#: src/v4linterface.c:1230
-msgid "Inputs"
-msgstr "Inddata"
-
-#: src/v4linterface.c:1266
-msgid "No tuned channels"
-msgstr "Ingen kanaler sat op"
-
-#: src/zvbi.c:135
-msgid "No Audio"
-msgstr "Ingen Lyd"
-
-#: src/zvbi.c:136 src/tveng1.c:1032
+#: src/tveng1.c:284 src/tveng2.c:464 src/tveng25.c:322 src/zvbi.c:136
 msgid "Mono"
 msgstr "Mono"
 
-#: src/zvbi.c:137 src/tveng1.c:1033
+#: src/tveng1.c:285 src/tveng2.c:465 src/tveng25.c:323 src/zvbi.c:137
 msgid "Stereo"
 msgstr "Stereo"
+
+#: src/tveng1.c:286 src/tveng2.c:466 src/tveng25.c:324
+msgid "Alternate 1"
+msgstr "Alternativ 1"
+
+#: src/tveng1.c:287 src/tveng2.c:467 src/tveng25.c:325
+msgid "Alternate 2"
+msgstr "Alternativ 2"
+
+#: src/tveng2.c:432 src/tveng25.c:293 src/tvengbktr.c:274 src/tvengbktr.c:286
+#: src/tvengxv.c:525
+msgid "Saturation"
+msgstr ""
+
+#: src/tveng2.c:433 src/tveng25.c:294 src/tvengbktr.c:275 src/tvengbktr.c:287
+#: src/tvengxv.c:526
+msgid "Hue"
+msgstr "Farvetone"
+
+#: src/tveng2.c:434 src/tveng25.c:295
+msgid "Whiteness"
+msgstr "Hvid-hed"
+
+#: src/tveng2.c:435 src/tveng25.c:296
+msgid "Black level"
+msgstr "Sort niveau"
+
+#: src/tveng2.c:436 src/tveng2.c:437 src/tveng25.c:297 src/tveng25.c:298
+msgid "White balance"
+msgstr "Hvid balance"
+
+#: src/tveng2.c:438 src/tveng25.c:299
+msgid "Red balance"
+msgstr "RÃ¸d balance"
+
+#: src/tveng2.c:439 src/tveng25.c:300
+msgid "Blue balance"
+msgstr "BlÃ¥ balance"
+
+#: src/tveng2.c:440 src/tveng25.c:301
+msgid "Gamma"
+msgstr "Gamma"
+
+#. TRANSLATORS: Video camera control.
+#: src/tveng2.c:442 src/tveng25.c:302
+msgid "Exposure"
+msgstr "Virkningsgrad"
+
+#: src/tveng2.c:443 src/tveng25.c:303
+msgid "Auto gain"
+msgstr ""
+
+#: src/tveng2.c:444 src/tveng25.c:304
+msgid "Gain"
+msgstr ""
+
+#: src/tveng2.c:445 src/tveng25.c:305
+msgid "HCenter"
+msgstr ""
+
+#: src/tveng2.c:446 src/tveng25.c:306
+msgid "VCenter"
+msgstr ""
+
+#: src/tveng2.c:447 src/tveng25.c:307
+msgid "Hor. flipping"
+msgstr ""
+
+#: src/tveng2.c:448 src/tveng25.c:308
+msgid "Vert. flipping"
+msgstr ""
+
+#: src/tveng2.c:451 src/tveng25.c:311
+msgid "Audio Mute"
+msgstr "SlÃ¥ Lyd Fra"
+
+#. TRANSLATORS: Left/right audio balance.
+#: src/tveng2.c:453 src/tveng25.c:312
+msgid "Balance"
+msgstr "Balance"
+
+#: src/tveng2.c:454 src/tveng25.c:313
+msgid "Audio Balance"
+msgstr "Lyd Balance"
+
+#: src/tveng2.c:455 src/tveng25.c:314
+msgid "Treble"
+msgstr ""
+
+#. TRANSLATORS: Probably a bass boost effect.
+#: src/tveng2.c:457 src/tveng25.c:315
+msgid "Loudness"
+msgstr ""
+
+#: src/tveng2.c:458 src/tveng25.c:316
+msgid "Bass"
+msgstr "Bas"
+
+#: src/tveng2.c:1750 src/tveng25.c:1084
+#, c-format
+msgid "%s doesn't look like a valid capture device"
+msgstr ""
+
+#: src/tveng2.c:1761 src/tveng25.c:1096
+#, c-format
+msgid "Sorry, but \"%s\" cannot do streaming"
+msgstr ""
+
+#: src/tveng2.c:1771
+#, c-format
+msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
+msgstr ""
+
+#: src/tvengbktr.c:277
+msgid "U/V Gain"
+msgstr ""
+
+#: src/tvengbktr.c:289
+#, fuzzy
+msgid "U Saturation"
+msgstr "Kanal"
+
+#: src/tvengbktr.c:290
+#, fuzzy
+msgid "V Saturation"
+msgstr "Kanal"
+
+#: src/tvengxv.c:527
+#, fuzzy
+msgid "Color"
+msgstr "Farve"
+
+#: src/tvengxv.c:528
+#, fuzzy
+msgid "Interlace"
+msgstr "Enheds navn:"
+
+#: src/tvengxv.c:569
+msgid "No"
+msgstr ""
+
+#: src/tvengxv.c:570
+msgid "Yes"
+msgstr ""
+
+#: src/tvengxv.c:571
+msgid "Doublescan"
+msgstr ""
+
+#. TRANSLATORS: In controls box, color picker control,
+#. something like "Adjust Chroma-Key" for overlay.
+#: src/v4linterface.c:466
+#, c-format
+msgid "Adjust %s"
+msgstr "JustÃ©r %s"
+
+#: src/v4linterface.c:1072 src/zmisc.c:1780
+msgid "Unknown"
+msgstr "Ukendt"
+
+#: src/v4linterface.c:1081 src/v4linterface.c:1984
+msgid "Unnamed"
+msgstr ""
+
+#: src/v4linterface.c:1090
+msgid "No input"
+msgstr "Ingen inddata"
+
+#: src/v4linterface.c:1101
+msgid "No standard"
+msgstr "Ingen standard"
+
+#: src/v4linterface.c:1885
+#, fuzzy
+msgid "Video standards"
+msgstr "Ingen standard"
+
+#: src/v4linterface.c:1902
+#, fuzzy
+msgid "Audio inputs"
+msgstr "SlÃ¥ Lyd Fra"
+
+#: src/v4linterface.c:1915
+#, fuzzy
+msgid "Video inputs"
+msgstr "Ingen inddata"
+
+#. TRANSLATORS: This is displayed in the channel menu when
+#. the channel list is empty.
+#: src/v4linterface.c:2012
+#, fuzzy
+msgid "No channels"
+msgstr "Ingen kanaler sat op"
+
+#: src/zapzilla.c:83
+msgid "VBI device to use"
+msgstr "VBI enhed der skal bruges"
+
+#: src/zapzilla.c:84
+msgid "DEVICE"
+msgstr "ENHED"
+
+#: src/zapzilla.c:113
+msgid "Zapzilla couldn't be started"
+msgstr "Zapzilla kunne ikke startes"
+
+#: src/zapzilla.c:192
+msgid "Sorry, Zapzilla is unable to create the config tree"
+msgstr "Zapzilla kunne ikke oprette opsÃ¦tnings-trÃ¦et"
+
+#: src/zmisc.c:388
+msgid "Return to video mode"
+msgstr ""
+
+#: src/zmisc.c:495
+#, c-format
+msgid "Preview will not work: %s"
+msgstr "Forvisning vil ikke virke: %s"
+
+#: src/zmisc.c:528
+#, fuzzy, c-format
+msgid ""
+"Cannot start video overlay.\n"
+"%s"
+msgstr ""
+"Kan ikke gÃ¥ tilbage til forrige mode%s:\n"
+"%s"
+
+#: src/zmisc.c:579
+#, c-format
+msgid ""
+"Cannot start fullscreen overlay.\n"
+"%s"
+msgstr ""
+
+#: src/zmisc.c:616
+msgid "VBI has been disabled, or it doesn't work."
+msgstr "VBI er blevet deaktiveret, eller virker ikke."
+
+#: src/zmisc.c:868
+#, fuzzy
+msgid "Hide the statusbar"
+msgstr "Gem statuslinjen"
+
+#: src/zmisc.c:970
+msgid "The path must start with /"
+msgstr "Stien skal starte med /"
+
+#: src/zmisc.c:985
+#, c-format
+msgid "Cannot create %s: %s"
+msgstr "Kan ikke oprette %s: %s"
+
+#: src/zmisc.c:998
+#, c-format
+msgid "%s is not a directory"
+msgstr "%s er ikke en mappe"
+
+#: src/zmisc.c:1691 src/zmisc.c:1695
+msgid "Reset"
+msgstr "Nulstil"
+
+#: src/zmisc.c:1975
+#, fuzzy
+msgid "Device:"
+msgstr "Enheds fil:"
+
+#: src/zmisc.c:1976
+msgid "Driver:"
+msgstr ""
+
+#: src/zmisc.c:1977
+msgid "Device file:"
+msgstr "Enheds fil:"
+
+#. TRANSLATORS: VBI audio mode
+#: src/zvbi.c:135
+msgid "No Audio"
+msgstr "Ingen Lyd"
 
 #: src/zvbi.c:138
 msgid "Stereo Surround"
@@ -369,35 +2209,39 @@ msgstr "Stereo Surround"
 msgid "Simulated Stereo"
 msgstr "Simuleret Stereo"
 
-#: src/zvbi.c:140
+#. TRANSLATORS: Video description for the blind,
+#. on a secondary audio channel.
+#: src/zvbi.c:142
 msgid "Video Descriptions"
 msgstr "Video Beskrivelser"
 
-#: src/zvbi.c:141
+#. TRANSLATORS: Audio unrelated to the current
+#. program.
+#: src/zvbi.c:145
 msgid "Non-program Audio"
 msgstr ""
 
-#: src/zvbi.c:142
+#: src/zvbi.c:146
 msgid "Special Effects"
 msgstr "Speciel Effekter"
 
-#: src/zvbi.c:143
+#: src/zvbi.c:147
 msgid "Data Service"
 msgstr ""
 
-#: src/zvbi.c:144
+#: src/zvbi.c:148
 msgid "Unknown Audio"
 msgstr "Ukendt Lyd"
 
 #: src/zvbi.c:259
-msgid "V4L/V4L2 VBI interface timeout"
+msgid "VBI interface timeout"
 msgstr ""
 
-#: src/zvbi.c:276
-msgid "V4L/V4L2 VBI interface: Failed to read from the device"
+#: src/zvbi.c:272
+msgid "VBI interface: Failed to read from the device"
 msgstr ""
 
-#: src/zvbi.c:371
+#: src/zvbi.c:367
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
@@ -406,15 +2250,15 @@ msgstr ""
 "VBI initialisering fejlede.\n"
 "%s"
 
-#: src/zvbi.c:372
+#: src/zvbi.c:368
 msgid "Ran out of memory."
-msgstr "Løb tør for hukommelse."
+msgstr "LÃ¸b tÃ¸r for hukommelse."
 
-#: src/zvbi.c:373
+#: src/zvbi.c:369
 msgid "Out of resources to start a new thread."
-msgstr "Ikke flere ressourcer til at skabe ny tråd."
+msgstr "Ikke flere ressourcer til at skabe ny trÃ¥d."
 
-#: src/zvbi.c:375
+#: src/zvbi.c:372
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -424,2418 +2268,696 @@ msgid ""
 "disable VBI in Settings/Preferences/VBI options/Enable VBI decoding."
 msgstr ""
 
-#: src/zvbi.c:748
-msgid "Click me"
-msgstr "Klik på mig"
-
-#: src/zvbi.c:783
+#: src/zvbi.c:731
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
 "Navigator"
 msgstr ""
 
-#: src/zvbi.c:790
+#: src/zvbi.c:738
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s: Tekst-tv Side %x"
 
-#: src/zvbi.c:793
+#: src/zvbi.c:741
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Tekst-tv Side %x"
 
-#: src/zvbi.c:794
+#: src/zvbi.c:742
 msgid "Open this page with Zapzilla"
-msgstr "Åben denne side med Zapzilla"
-
-#: src/zvbi.c:2142
-msgid "n/a"
-msgstr "ikke tilgængelig"
-
-#: src/zvbi.c:2146
-msgid "none"
-msgstr "ingen"
-
-#: src/zvbi.c:2149
-#, c-format
-msgid "%d minute"
-msgid_plural "%d minutes"
-msgstr[0] "%d minut"
-msgstr[1] "%d minutter"
-
-#: src/zvbi.c:2151
-#, c-format
-msgid "%d h %d m"
-msgstr "%d t %d m"
-
-#: src/zvbi.c:2183 src/ttxview.c:2554
-msgid "Current program"
-msgstr "Nuværende program"
-
-#: src/zvbi.c:2204
-msgid "%d %b  %I:%M %p    "
-msgstr "%d %b  %I:%M %p    "
-
-#: src/zvbi.c:2226
-#, c-format
-msgid ""
-"\n"
-"Length: %uh%02u (%uh%02u remaining)"
-msgstr ""
-"\n"
-"Længde: %ut%02u (%ut%02u tilbage)"
-
-#: src/zvbi.c:2234
-#, c-format
-msgid "Length: %uh%02u"
-msgstr "Længde: %ut%02u"
-
-#: src/zvbi.c:2241
-#, c-format
-msgid "Elapsed: %uh%02u"
-msgstr "Tid gået: %ut%02u"
-
-#: src/zvbi.c:2264 src/zvbi.c:2266
-msgid "unknown language"
-msgstr "ukendt sprog"
-
-#: src/zvbi.c:2269
-#, c-format
-msgid ""
-"Channel 1: %s (%s)\n"
-"Channel 2: %s (%s)"
-msgstr ""
-"Kanal 1: %s (%s)\n"
-"Kanal 2: %s (%s)"
-
-#: src/zvbi.c:2277
-#, c-format
-msgid ""
-"Channel 1: %s\n"
-"Channel 2: %s"
-msgstr ""
-"Kanal 1: %s\n"
-"Kanal 2: %s"
-
-#: src/zvbi.c:2290
-#, c-format
-msgid "Audio: %s (%s)"
-msgstr "Lyd: %s (%s)"
-
-#: src/zvbi.c:2295
-#, c-format
-msgid "Audio: %s"
-msgstr "Lyd: %s"
-
-#: src/zvbi.c:2314
-#, c-format
-msgid "Captioned %s"
-msgstr "Fangede %s"
-
-#: src/zvbi.c:2314
-msgid "Captioned"
-msgstr "Fanget"
-
-#: src/zvbi.c:2398 src/zvbi.c:2659
-msgid "Not rated"
-msgstr ""
-
-#: src/tveng.c:272
-msgid "TV"
-msgstr "TV"
-
-#: src/tveng.c:273 src/properties-handler.c:122
-msgid "Camera"
-msgstr "Kamera"
-
-#: src/tveng.c:1546
-msgid "Couldn't locate zapping_setup_fb, check your install"
-msgstr "Kunne ikke finde zapping_setup_fb, tjek din installation"
-
-#: src/tveng.c:2178 src/tveng.c:2196
-msgid "Filter"
-msgstr "Filtrer"
-
-#: src/tveng.c:2214
-msgid "Colorkey"
-msgstr "Farveknap"
-
-#: src/tveng1.c:1031
-msgid "Automatic"
-msgstr "Automatisk"
-
-#: src/tveng1.c:1034
-msgid "Alternate 1"
-msgstr "Alternativ 1"
-
-#: src/tveng1.c:1035
-msgid "Alternate 2"
-msgstr "Alternativ 2"
-
-#: src/tveng1.c:1148 src/tveng2.c:929
-msgid "Brightness"
-msgstr "Lysstyrke"
-
-#: src/tveng1.c:1158 src/tveng2.c:932
-msgid "Hue"
-msgstr "Farvetone"
-
-#: src/tveng1.c:1168
-msgid "Colour"
-msgstr "Farve"
-
-#: src/tveng1.c:1178 src/tveng2.c:930
-msgid "Contrast"
-msgstr "Konstrast"
-
-#: src/tveng1.c:1206 src/tveng2.c:947
-msgid "Volume"
-msgstr "Lydstyrke"
-
-#: src/tveng1.c:1218 src/tveng2.c:954
-msgid "Bass"
-msgstr "Bas"
-
-#: src/tveng1.c:1230 src/tveng2.c:952
-msgid "Treble"
-msgstr ""
-
-#: src/tveng1.c:1245 src/tveng2.c:950
-msgid "Balance"
-msgstr "Balance"
-
-#: src/tveng1.c:1258
-msgid "Audio Decoding"
-msgstr ""
-
-#: src/tveng1.c:1684
-msgid "There are no tuners for the active input"
-msgstr ""
-
-#: src/tveng2.c:122
-#, c-format
-msgid "%s doesn't look like a valid capture device"
-msgstr ""
-
-#: src/tveng2.c:133
-#, c-format
-msgid "Sorry, but \"%s\" cannot do streaming"
-msgstr ""
-
-#: src/tveng2.c:143
-#, c-format
-msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
-msgstr ""
-
-#: src/tveng2.c:931
-msgid "Saturation"
-msgstr ""
-
-#: src/tveng2.c:933
-msgid "Whiteness"
-msgstr "Hvid-hed"
-
-#: src/tveng2.c:934
-msgid "Black level"
-msgstr "Sort niveau"
-
-#: src/tveng2.c:935
-msgid "White balance"
-msgstr "Hvid balance"
-
-#: src/tveng2.c:936
-msgid "Do white balance"
-msgstr "Lav hvid balance"
-
-#: src/tveng2.c:937
-msgid "Red balance"
-msgstr "Rød balance"
-
-#: src/tveng2.c:938
-msgid "Blue balance"
-msgstr "Blå balance"
-
-#: src/tveng2.c:939
-msgid "Gamma"
-msgstr "Gamma"
-
-#: src/tveng2.c:940
-msgid "Exposure"
-msgstr "Virkningsgrad"
-
-#: src/tveng2.c:941
-msgid "Auto gain"
-msgstr ""
-
-#: src/tveng2.c:942
-msgid "Gain"
-msgstr ""
-
-#: src/tveng2.c:943
-msgid "HCenter"
-msgstr ""
-
-#: src/tveng2.c:944
-msgid "VCenter"
-msgstr ""
-
-#: src/tveng2.c:945
-msgid "Horizontal flipping"
-msgstr ""
-
-#: src/tveng2.c:946
-msgid "Vertical flipping"
-msgstr ""
-
-#: src/tveng2.c:949
-msgid "Audio Mute"
-msgstr "Slå Lyd Fra"
-
-#: src/tveng2.c:951
-msgid "Audio Balance"
-msgstr "Lyd Balance"
-
-#: src/tveng2.c:953
-msgid "Loudness"
-msgstr ""
-
-#: src/plugins.c:188
-#, c-format
-msgid "\"%s\" doesn't provide a version"
-msgstr ""
-
-#: src/plugins.c:225
-#, c-format
-msgid "There wasn't enough mem for allocating symbol %d in %s"
-msgstr ""
-
-#: src/plugins.c:235
-msgid "[No description provided]"
-msgstr "[Ingen beskrivelse givet]"
-
-#: src/plugins.c:322
-#, c-format
-msgid ""
-"Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
-"Hashes are 0x%x vs. 0x%x"
-msgstr ""
-
-#: src/zmisc.c:351
-msgid "Use Zapping as a Teletext navigator"
-msgstr "Brug Zapping som Tekst-tv viser"
-
-#: src/zmisc.c:423
-#, c-format
-msgid "Preview will not work: %s"
-msgstr "Forvisning vil ikke virke: %s"
-
-#: src/zmisc.c:516
-msgid "VBI has been disabled, or it doesn't work."
-msgstr "VBI er blevet deaktiveret, eller virker ikke."
-
-#: src/zmisc.c:764
-msgid "Hide the status bar"
-msgstr "Gem statuslinjen"
-
-#: src/zmisc.c:821
-msgid "The path must start with /"
-msgstr "Stien skal starte med /"
-
-#: src/zmisc.c:836
-#, c-format
-msgid "Cannot create %s: %s"
-msgstr "Kan ikke oprette %s: %s"
-
-#: src/zmisc.c:849
-#, c-format
-msgid "%s is not a directory"
-msgstr "%s er ikke en mappe"
-
-#: src/zmisc.c:1497 glade/glade_strings.c:272 glade/glade_strings.c:273
-msgid "Reset"
-msgstr "Nulstil"
-
-#: src/properties.c:604
-msgid "Zapping Properties"
-msgstr "Zapping Egenskaber"
-
-#: src/properties.c:960 src/properties-handler.c:737 src/keyboard.c:814
-msgid "General Options"
-msgstr "Generelle Indstillinger"
-
-#: src/properties-handler.c:75
-msgid "Can capture to memory.\n"
-msgstr ""
-
-#: src/properties-handler.c:77
-msgid "Has some tuner.\n"
-msgstr ""
-
-#: src/properties-handler.c:79
-msgid "Supports the teletext service.\n"
-msgstr ""
-
-#: src/properties-handler.c:81
-msgid "Can overlay the image.\n"
-msgstr ""
-
-#: src/properties-handler.c:83
-msgid "Can chromakey the image.\n"
-msgstr ""
-
-#: src/properties-handler.c:85
-msgid "Clipping rectangles are supported.\n"
-msgstr ""
-
-#: src/properties-handler.c:87
-msgid "Framebuffer memory is overwritten.\n"
-msgstr ""
-
-#: src/properties-handler.c:89
-msgid "The capture can be scaled.\n"
-msgstr ""
-
-#: src/properties-handler.c:91
-msgid "Only monochrome is available\n"
-msgstr ""
-
-#: src/properties-handler.c:93
-msgid "The capture can be zoomed\n"
-msgstr ""
-
-#: src/properties-handler.c:104
-msgid "No available inputs"
-msgstr ""
-
-#: src/properties-handler.c:106
-msgid "Your video device has no inputs"
-msgstr ""
-
-#: src/properties-handler.c:120
-msgid "TV input"
-msgstr ""
-
-#: src/properties-handler.c:125
-#, c-format
-msgid "%s with %d tuner"
-msgid_plural "%s with %d tuners"
-msgstr[0] ""
-msgstr[1] ""
-
-#: src/properties-handler.c:442 src/properties-handler.c:738
-msgid "VBI Options"
-msgstr "VBI Indstillinger"
-
-#: src/properties-handler.c:443 src/properties-handler.c:732
-#: glade/glade_strings.c:181
-msgid "Interactive TV"
-msgstr "Interaktivt TV"
-
-#: src/properties-handler.c:718 src/properties-handler.c:736
-msgid "Device Info"
-msgstr "Enheds Info"
-
-#: src/properties-handler.c:722 glade/glade_strings.c:66
-msgid "Main Window"
-msgstr "Hovedvindue"
-
-#: src/properties-handler.c:724 glade/glade_strings.c:104
-msgid "OSD"
-msgstr "OSD"
-
-#: src/properties-handler.c:726 glade/glade_strings.c:80
-#: plugins/mpeg/mpeg_strings.c:19 plugins/mpeg/mpeg_strings.c:51
-msgid "Video"
-msgstr "Video"
-
-#: src/properties-handler.c:730 glade/glade_strings.c:144
-msgid "General"
-msgstr "Generelt"
-
-#: src/channel_editor.c:424
-msgid "Do not change standard"
-msgstr ""
-
-#: src/channel_editor.c:445
-msgid "Do not change input"
-msgstr ""
-
-#: src/channel_editor.c:880
-msgid "Add Channel"
-msgstr "Tilføj Kanal"
-
-#: src/channel_editor.c:880
-msgid "New channel name:"
-msgstr "Nyt kanal navn:"
-
-#: src/channel_editor.c:1488
-#, c-format
-msgid ""
-"Channel autosearching won't work with XVideo.\n"
-"Please switch to another controller by starting\n"
-"Capture mode (\"View/Go Capturing\" menu entry).\n"
-"Reported error:\n"
-"%s"
-msgstr ""
-
-#: src/channel_editor.c:1494
-msgid "Your current V4L/V4L2 driver cannot do channel autosearching, sorry"
-msgstr ""
-
-#: src/plugin_properties.c:56
-msgid "Sorry, but no plugins have been loaded"
-msgstr ""
-
-#: src/plugin_properties.c:153
-msgid "Very low"
-msgstr "Meget lav"
-
-#: src/plugin_properties.c:155
-msgid "Low"
-msgstr "Lav"
-
-#: src/plugin_properties.c:157
-msgid "Below normal"
-msgstr "Under normal"
-
-#: src/plugin_properties.c:159
-msgid "Normal"
-msgstr "Normal"
-
-#: src/plugin_properties.c:161
-msgid "Very high"
-msgstr "Meget høj"
-
-#: src/plugin_properties.c:163
-msgid "High"
-msgstr "Høj"
-
-#: src/plugin_properties.c:165
-msgid "Above normal"
-msgstr "Over normal"
-
-#: src/plugin_properties.c:198
-msgid "This plugin has no public symbols"
-msgstr ""
-
-#: src/plugin_properties.c:220
-msgid "List of symbols exported by the plugin"
-msgstr ""
-
-#: src/plugin_properties.c:279
-msgid "Sorry, but the plugin couldn't be started"
-msgstr ""
-
-#: src/ttxview.c:186 src/ttxview.c:771 src/ttxview.c:1367
-msgid "VBI has been disabled"
-msgstr "VBI er blevet deaktiveret"
-
-#: src/ttxview.c:402
-#, c-format
-msgid "Loading page %x..."
-msgstr "Henter side %x..."
-
-#: src/ttxview.c:404
-#, c-format
-msgid "Loading subpage %x..."
-msgstr "Henter underside %x..."
-
-#: src/ttxview.c:408 src/ttxview.c:709
-msgid "Warning: Page not valid"
-msgstr "Advarsel: Siden er ikke gyldig"
-
-#: src/ttxview.c:538
-msgid "Text export failed"
-msgstr "Tekst-eksportering fejlede"
-
-#: src/ttxview.c:612
-#, c-format
-msgid " Page %d"
-msgstr " Side %d"
-
-#: src/ttxview.c:616
-#, c-format
-msgid " Subpage %d"
-msgstr " Underside %d"
-
-#: src/ttxview.c:720
-msgid "The cache has been cleared"
-msgstr "Mellemlagret (cache) er blevet ryddet"
-
-#: src/ttxview.c:1077 src/ttxview.c:1098
-msgid "No other subpage in the cache"
-msgstr "Ingen andre underside i mellemlagret (cachen)"
-
-#: src/ttxview.c:1161
-msgid "Found"
-msgstr "Fundet"
-
-#: src/ttxview.c:1179
-msgid "Not found"
-msgstr "Ikke fundet"
-
-#: src/ttxview.c:1199
-msgid "Empty cache"
-msgstr "Tomt mellemlager (cache)"
-
-#: src/ttxview.c:1322
-#, c-format
-msgid "Scanning %x.%02x"
-msgstr "Skanner %x.%02x"
-
-#: src/ttxview.c:1576
-#, c-format
-msgid "<%s> added to the bookmarks"
-msgstr "<%s> tilføjet til favoritter"
-
-#: src/ttxview.c:1639
-msgid "Any subpage"
-msgstr "Hvilken som helst underisde"
-
-#: src/ttxview.c:1988
-#, c-format
-msgid "Export %s"
-msgstr "Eksporter %s"
-
-#: src/ttxview.c:2002 plugins/screenshot/screenshot_strings.c:19
-#: plugins/mpeg/mpeg_strings.c:36
-msgid "Save as:"
-msgstr "Gem som:"
-
-#: src/ttxview.c:2007
-msgid "Select file you'll be exporting to"
-msgstr "Vælg filen du vil eksportere til"
-
-#: src/ttxview.c:2022
-msgid "Options"
-msgstr "Indstillinger"
-
-#: src/ttxview.c:2052 src/ttxview.c:3012
-msgid "No page loaded"
-msgstr "Ingen side hentet"
-
-#: src/ttxview.c:2112
-#, c-format
-msgid ""
-"Cannot create destination dir for Zapzilla export:\n"
-"%s\n"
-"%s"
-msgstr ""
-"Kan ikke oprette destinations mappe til Zapzilla eksport:\n"
-"%s\n"
-"%s"
-
-#: src/ttxview.c:2131
-#, c-format
-msgid "Export to %s failed: %s"
-msgstr "Eksport til %s fejlede: %s"
-
-#: src/ttxview.c:2140
-#, c-format
-msgid "%s saved"
-msgstr "%s gemt"
-
-#: src/ttxview.c:2152
-#, c-format
-msgid "Export failed: %s"
-msgstr "Eksport fejlede: %s"
-
-#: src/ttxview.c:2460
-#, c-format
-msgid "Caption %x - %s"
-msgstr ""
-
-#: src/ttxview.c:2462
-#, c-format
-msgid "Text %x - %s"
-msgstr "Tekst %x - %s"
-
-#: src/ttxview.c:2466
-#, c-format
-msgid "Caption %x"
-msgstr ""
-
-#: src/ttxview.c:2468
-#, c-format
-msgid "Text %x"
-msgstr "Tekst %x"
-
-#: src/ttxview.c:2493
-#, c-format
-msgid "%x: Unknown language"
-msgstr "%x: Ukendt sprog"
-
-#: src/ttxview.c:2505 src/ttxview.c:2520 src/ttxview.c:2544 src/ttxview.c:2560
-#: src/ttxview.c:2576 src/ttxview.c:2592 src/ttxview.c:2608
-#, c-format
-msgid "Page %x"
-msgstr "Side %x"
-
-#: src/ttxview.c:2514
-msgid "Index"
-msgstr "Indeks"
-
-#: src/ttxview.c:2538
-msgid "Now and Next"
-msgstr "Nu og Næste"
-
-#: src/ttxview.c:2570
-msgid "Program Index"
-msgstr ""
-
-#: src/ttxview.c:2586
-msgid "Program Schedule"
-msgstr ""
-
-#: src/ttxview.c:2602
-msgid "Program Warning"
-msgstr ""
-
-#: src/ttxview.c:2622
-msgid "Subtitles"
-msgstr "Undertekster"
-
-#: src/ttxview.c:2624
-msgid "Select subtitles page"
-msgstr ""
-
-#: src/ttxview.c:2697
-#, c-format
-msgid "%s in %s"
-msgstr ""
-
-#: src/ttxview.c:3021
-msgid "Selecting - hold Shift for table mode"
-msgstr ""
-
-#: src/ttxview.c:3141
-msgid "Selection copied to clipboard"
-msgstr ""
-
-#: src/oss.c:175
-msgid "Audio device:"
-msgstr ""
-
-#: src/oss.c:178
-msgid "Select the audio device"
-msgstr ""
-
-#: src/oss.c:205
-#, c-format
-msgid "The given audio device \"%s\" doesn't exist"
-msgstr ""
-
-#: src/keyboard.c:79 src/keyboard.c:101
-msgid "Ctrl+"
-msgstr ""
-
-#: src/keyboard.c:80 src/keyboard.c:102
-msgid "Alt+"
-msgstr ""
-
-#: src/keyboard.c:81 src/keyboard.c:103
-msgid "Shift+"
-msgstr ""
-
-#: src/keyboard.c:434
-msgid "Ctrl"
-msgstr ""
-
-#: src/keyboard.c:438
-msgid "Alt"
-msgstr ""
-
-#: src/keyboard.c:442
-msgid "Shift"
-msgstr ""
-
-#: src/keyboard.c:450
-msgid "Key table..."
-msgstr ""
-
-#: src/keyboard.c:810 glade/glade_strings.c:111
-msgid "Keyboard"
-msgstr "Tastatur"
-
-#: glade/glade_strings.c:7
-msgid "Zapping"
-msgstr ""
-
-#: glade/glade_strings.c:8
-msgid "_Quit"
-msgstr "Afslut"
-
-#: glade/glade_strings.c:9
-msgid "P_lugins"
-msgstr ""
-
-#: glade/glade_strings.c:10
-msgid "Edit the channel list"
-msgstr "Rediger kanal listen"
-
-#: glade/glade_strings.c:11
-msgid "_TV Channels"
-msgstr "_TV Kanaler"
-
-#: glade/glade_strings.c:12
-msgid "Switch to fullscreen mode. Press ESC to return to windowed mode"
-msgstr ""
-
-#: glade/glade_strings.c:13 glade/glade_strings.c:202
-msgid "_Fullscreen"
-msgstr "_Fuldskærm"
-
-#: glade/glade_strings.c:14
-msgid "Switch to windowed overlay mode"
-msgstr ""
-
-#: glade/glade_strings.c:15 glade/glade_strings.c:203
-msgid "_Overlay mode"
-msgstr ""
-
-#: glade/glade_strings.c:16
-msgid "Switch to windowed capture mode"
-msgstr ""
-
-#: glade/glade_strings.c:17 glade/glade_strings.c:204
-msgid "_Capture mode"
-msgstr ""
-
-#: glade/glade_strings.c:18
-msgid "Switch to Teletext mode"
-msgstr "Skift til Tekst-tv"
-
-#: glade/glade_strings.c:19 glade/glade_strings.c:205
-msgid "_Teletext"
-msgstr "_Tekst-tv"
-
-#: glade/glade_strings.c:20 glade/glade_strings.c:206
-msgid "_New Teletext View"
-msgstr "_Ny Tekst-tv visning"
-
-#: glade/glade_strings.c:21
-msgid "Info about the currently tuned network"
-msgstr ""
-
-#: glade/glade_strings.c:22 glade/glade_strings.c:313
-msgid "Network Info"
-msgstr "Netværks Info"
-
-#: glade/glade_strings.c:23 glade/glade_strings.c:318
-msgid "Program Info"
-msgstr "Program Info"
-
-#: glade/glade_strings.c:25
-msgid "_Mute"
-msgstr "Slå lyd fra"
-
-#: glade/glade_strings.c:26
-msgid "Switch subtitles on and off"
-msgstr "Slå undertekster til og fra"
-
-#: glade/glade_strings.c:27
-msgid "_Subtitles"
-msgstr "Undertekster"
-
-#: glade/glade_strings.c:28 glade/glade_strings.c:208
-msgid "Hide menu and toolbar"
-msgstr "Gem menu og værktøjslinjen"
-
-#: glade/glade_strings.c:29
-msgid "_Channels"
-msgstr "Kanaler"
-
-#: glade/glade_strings.c:30
-msgid "_Main help"
-msgstr "Hjælp"
-
-#: glade/glade_strings.c:31
-msgid "Select the next station in the channel list"
-msgstr "Vælg den næste kanal i kanal-listen"
-
-#: glade/glade_strings.c:32
-msgid "Up"
-msgstr "Op"
+msgstr "Ã…ben denne side med Zapzilla"
 
-#: glade/glade_strings.c:33
-msgid "Select the previous station in the channel list"
-msgstr "Vælg den forrige kanal i kanal-listen"
-
-#: glade/glade_strings.c:34
-msgid "Down"
-msgstr "Ned"
-
-#: glade/glade_strings.c:35
-msgid "Change picture controls"
-msgstr "Skift billedindstillinger"
-
-#: glade/glade_strings.c:36
-msgid "Controls"
-msgstr "Indstillinger"
-
-#: glade/glade_strings.c:37
-msgid "Activate Teletext mode"
-msgstr "Slå tekst-tv til"
-
-#: glade/glade_strings.c:38
-msgid "Teletext"
-msgstr "Tekst-tv"
-
-#: glade/glade_strings.c:39
-msgid "Video device capabilities"
-msgstr "Video enheds egenskaber"
-
-#: glade/glade_strings.c:40 glade/glade_strings.c:117
-msgid "Device name:"
-msgstr "Enheds navn:"
-
-#: glade/glade_strings.c:41
-msgid "Select the V4L device"
-msgstr "Vælg V4L enheden"
-
-#: glade/glade_strings.c:42
-msgid "Current controller:"
-msgstr ""
-
-#: glade/glade_strings.c:43
-msgid "Device file:"
-msgstr "Enheds fil:"
-
-#: glade/glade_strings.c:44
-msgid "Minimum capture size:"
-msgstr ""
-
-#: glade/glade_strings.c:45
-msgid "Maximum capture size:"
-msgstr ""
-
-#: glade/glade_strings.c:46
-msgid "Device info"
-msgstr "Enheds info"
-
-#: glade/glade_strings.c:47
-msgid "Save window geometry (some WM's don't like it)"
-msgstr ""
-
-#: glade/glade_strings.c:48
-msgid "Keep window on top"
-msgstr ""
-
-#: glade/glade_strings.c:49
-msgid "Resize using fixed increments"
-msgstr ""
-
-#: glade/glade_strings.c:50
-msgid "Show tooltips"
-msgstr "Vis værktøjsråd"
-
-#: glade/glade_strings.c:51
-msgid "Numeric keypad channel switching:"
-msgstr ""
-
-#: glade/glade_strings.c:52
-msgid "Ratio mode:"
-msgstr ""
-
-#: glade/glade_strings.c:53
-msgid "Title bar contents:"
-msgstr ""
-
-#: glade/glade_strings.c:54
-msgid "Disabled"
-msgstr ""
-
-#: glade/glade_strings.c:55
-msgid "By channel list entry"
-msgstr ""
-
-#: glade/glade_strings.c:56
-msgid "By RF channel number"
-msgstr ""
-
-#: glade/glade_strings.c:57
-msgid "No fixed ratio"
-msgstr ""
-
-#: glade/glade_strings.c:58
-msgid "4:3"
-msgstr "4:3"
-
-#: glade/glade_strings.c:59
-msgid "16:9"
-msgstr "16:9"
-
-#: glade/glade_strings.c:60 glade/glade_strings.c:71
-msgid "Autodetect"
-msgstr "Autodetekter"
-
-#: glade/glade_strings.c:61
-msgid ""
-"A format string describing what should the program put as the main window "
-"title when changing channels. $(alias), $(index), $(id), $(freq), "
-"$(standard) and $(input) are substituted by the proper values."
-msgstr ""
-
-#: glade/glade_strings.c:62
-msgid "Show toolbar as:"
-msgstr "Vis værktøjslinje som:"
-
-#: glade/glade_strings.c:63
-msgid "Icons"
-msgstr "Ikoner"
-
-#: glade/glade_strings.c:64
-msgid "Text"
-msgstr "Tekst"
-
-#: glade/glade_strings.c:65
-msgid "Icons and text"
-msgstr "Ikoner og tekst"
-
-#: glade/glade_strings.c:67
-msgid ""
-"Avoid some flicker in preview mode (leaves artifacts in the main window)"
-msgstr ""
-
-#: glade/glade_strings.c:68
-msgid ""
-"If this option is on, the brightness, contrast, etc. info is saved with the "
-"channel, and restored when you select it again"
+#: zapping.desktop.in.h:1
+msgid "TV viewer"
 msgstr ""
 
-#: glade/glade_strings.c:69
-msgid "Save control values with the channel info"
-msgstr ""
-
-#: glade/glade_strings.c:70
-msgid "Fullscreen video mode:"
-msgstr ""
-
-#: glade/glade_strings.c:72
-msgid "Do not change mode"
-msgstr ""
-
-#: glade/glade_strings.c:73
-msgid "Capture size under XVideo:"
-msgstr ""
-
-#: glade/glade_strings.c:74
-msgid ""
-"Thanks to the XVideo extension, if present, the capture buffer can be scaled "
-"to arbitrary sizes using HW acceleration. Select here the capture size to "
-"use in this case."
-msgstr ""
-
-#: glade/glade_strings.c:75
-msgid "Biggest noninterlaced (autodetect)"
-msgstr ""
-
-#: glade/glade_strings.c:76
-msgid "320x240"
-msgstr "320x240"
-
-#: glade/glade_strings.c:77
-msgid "Interlaced (window size)"
-msgstr ""
-
-#: glade/glade_strings.c:78
-msgid "zapping__setup__fb verbosity:"
-msgstr ""
-
-#: glade/glade_strings.c:79
-msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
-msgstr ""
-
-#: glade/glade_strings.c:81
-msgid "Start Zapping muted"
-msgstr "Start Zapping uden lyd"
-
-#: glade/glade_strings.c:82
-msgid "Avoid noise while changing channels"
-msgstr ""
-
-#: glade/glade_strings.c:83
-msgid "Control volume with mixer instead of video device"
-msgstr ""
+#~ msgid "Recording dialog"
+#~ msgstr "Optagelse-dialog"
 
-#: glade/glade_strings.c:84
-msgid "Mixer settings for recording"
-msgstr ""
-
-#: glade/glade_strings.c:85
-msgid "Recording source:"
-msgstr "Kilde til optagning"
-
-#: glade/glade_strings.c:86
-msgid "Recording volume:"
-msgstr "Lydstyrke for optagning"
-
-#: glade/glade_strings.c:87
-msgid "Use system settings"
-msgstr "Brug system indstillinger"
-
-#: glade/glade_strings.c:88
-msgid "Audio recording interface:"
-msgstr ""
-
-#: glade/glade_strings.c:89 plugins/mpeg/mpeg_strings.c:21
-#: plugins/mpeg/mpeg_strings.c:53
-msgid "Audio"
-msgstr "Lyd"
-
-#: glade/glade_strings.c:90
-msgid "How to show extra info:"
-msgstr "Hvordan der skal vises ekstra info:"
-
-#: glade/glade_strings.c:91
-msgid ""
-"Extra information, such as notifying of channel changes, can be reported in "
-"many different ways. Select here the variant you like most."
-msgstr ""
-
-#: glade/glade_strings.c:92
-msgid "On Screen Display (OSD)"
-msgstr ""
-
-#: glade/glade_strings.c:93
-msgid "Status Bar"
-msgstr "Statuslinjen"
-
-#: glade/glade_strings.c:94
-msgid "Console"
-msgstr "Konsollen"
+#~ msgid ""
+#~ "\n"
+#~ "The image won't be saved.\n"
+#~ msgstr ""
+#~ "\n"
+#~ "Billedet vil ikke blive gemt.\n"
 
-#: glade/glade_strings.c:95
-msgid "Do not show"
-msgstr "Vis ikke"
+#~ msgid "Set debug messages on"
+#~ msgstr "SlÃ¥ fejlsÃ¸gnings beskeder til"
 
-#: glade/glade_strings.c:96
-msgid "Font used for OSD:"
-msgstr ""
-
-#: glade/glade_strings.c:97
-msgid "Select OSD font"
-msgstr ""
-
-#: glade/glade_strings.c:98
-msgid "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
-msgstr ""
-
-#: glade/glade_strings.c:99
-msgid "Default foreground color for OSD:"
-msgstr ""
+#, fuzzy
+#~ msgid ""
+#~ "Cannot show %s:\n"
+#~ "%s"
+#~ msgstr "Kan ikke oprette %s: %s"
 
-#: glade/glade_strings.c:100 glade/glade_strings.c:102
-msgid "Choose a color"
-msgstr "Vælg en farve"
+#~ msgid "Click me"
+#~ msgstr "Klik pÃ¥ mig"
 
-#: glade/glade_strings.c:101
-msgid "Default background color for OSD:"
-msgstr ""
+#~ msgid "Standard"
+#~ msgstr "Standard"
 
-#: glade/glade_strings.c:103
-msgid "OSD timeout in seconds:"
-msgstr ""
+#~ msgid "Key"
+#~ msgstr "Knap"
 
-#: glade/glade_strings.c:105
-msgid "Command:"
-msgstr "Kommando:"
+#, fuzzy
+#~ msgid "Menu and toolbar"
+#~ msgstr "Gem menu og vÃ¦rktÃ¸jslinjen"
 
-#: glade/glade_strings.c:106
-msgid "Key:"
-msgstr "Knap:"
+#~ msgid "No id"
+#~ msgstr "Intet id"
 
-#: glade/glade_strings.c:107
-msgid "_Add"
-msgstr "Tilføj"
+#, fuzzy
+#~ msgid "<span foreground=\"yellow\">%s</span>"
+#~ msgstr "Kanal: <yellow>%s</yellow>"
 
-#: glade/glade_strings.c:108
-msgid "_Delete"
-msgstr "Slet"
+#, fuzzy
+#~ msgid "<span foreground=\"blue\">%s %d %%</span>"
+#~ msgstr "Kanal: <yellow>%s</yellow>"
 
-#: glade/glade_strings.c:109 glade/glade_strings.c:296
-msgid "Key"
-msgstr "Knap"
+#, fuzzy
+#~ msgid "_Overlay subtitle pages automatically"
+#~ msgstr "Ã…ben automatisk"
 
-#: glade/glade_strings.c:110
-msgid "Command"
-msgstr "Kommando"
+#, fuzzy
+#~ msgid "_Subtitle page:"
+#~ msgstr "Undertekster"
 
-#: glade/glade_strings.c:112
-msgid "General options"
-msgstr "Generelle indstillinger"
+#~ msgid "Save to file"
+#~ msgstr "Gem til fil"
 
-#: glade/glade_strings.c:113
-msgid "Enable VBI decoding"
-msgstr ""
+#~ msgid "/dev/null"
+#~ msgstr "/dev/null"
 
-#: glade/glade_strings.c:114
-msgid "Use VBI for getting station names"
-msgstr ""
+#~ msgid "MPEG file destination"
+#~ msgstr "MPEG fil-destionation"
 
-#: glade/glade_strings.c:115
-msgid ""
-"If you select this option, TTX pages marked as subtitles and opened in the "
-"main window will automagically switch to TV mode and overlay themselves."
-msgstr ""
+#~ msgid "Input / output"
+#~ msgstr "Ind / Ud"
 
-#: glade/glade_strings.c:116
-msgid "Overlay subtitle pages automatically"
-msgstr ""
+#~ msgid "Saving MPEG"
+#~ msgstr "Gemmer MPEG"
 
-#: glade/glade_strings.c:118
-msgid "Select the VBI device"
-msgstr "Vælg VBI enheden"
+#~ msgid "Press this when you are done"
+#~ msgstr "Tryk pÃ¥ denne nÃ¥r du er fÃ¦rdig"
 
-#: glade/glade_strings.c:119
-msgid "Enter here the device associated with the VBI input"
-msgstr ""
+#~ msgid "Destination"
+#~ msgstr "Destination"
 
-#: glade/glade_strings.c:120
-msgid "Page to take subtitles from:"
-msgstr "Side at tage undertekster fra:"
-
-#: glade/glade_strings.c:121
-msgid "Where will subtitles be taken from"
-msgstr "Hvor skal undertekster tages fra"
-
-#: glade/glade_strings.c:122
-msgid "Default region:"
-msgstr "Standard region:"
-
-#: glade/glade_strings.c:123
-msgid "Teletext implementation:"
-msgstr "Tekst-tv implementering:"
-
-#: glade/glade_strings.c:124
-msgid ""
-"Some stations fail to transmit a complete language identifier, so the "
-"Teletext viewer may not display the correct font or national characters. You "
-"can select your geographical region here as an additional hint."
-msgstr ""
+#~ msgid "Save mpeg"
+#~ msgstr "Gem mpeg"
 
-#: glade/glade_strings.c:125
-msgid "Western and Central Europe"
-msgstr ""
+#~ msgid "Configure the properties for this plugin"
+#~ msgstr "Konfigurer egenskaberne for dette plugin"
 
-#: glade/glade_strings.c:127
-msgid "Western Europe and Turkey"
-msgstr ""
+#~ msgid "Configure"
+#~ msgstr "Konfigurer"
 
-#: glade/glade_strings.c:128
-msgid "Central and Southeast Europe"
-msgstr ""
+#~ msgid "Destination file:"
+#~ msgstr "Destinations fil:"
 
-#: glade/glade_strings.c:129
-msgid "Cyrillic"
-msgstr ""
+#~ msgid "%P %%"
+#~ msgstr "%P %%"
 
-#: glade/glade_strings.c:130
-msgid "Greek and Turkish"
-msgstr ""
+#~ msgid "New Format"
+#~ msgstr "Nyt Format:"
 
-#: glade/glade_strings.c:131
-msgid "Arabic"
-msgstr ""
+#~ msgid "Video device to use"
+#~ msgstr "Video enhed der skal bruges"
 
-#: glade/glade_strings.c:132
-msgid "Hebrew and Arabic"
-msgstr ""
+#~ msgid "Pixformat for XVideo capture mode [YUYV | YVU420]"
+#~ msgstr "Pixel-format for XVideo mode [YUYV | YVU420]"
 
-#: glade/glade_strings.c:133
-msgid ""
-"Zapping supports several levels of Teletext extensions, you can disable "
-"higher levels if you dislike the appearance."
-msgstr ""
+#~ msgid "Page to take subtitles from:"
+#~ msgstr "Side at tage undertekster fra:"
 
-#: glade/glade_strings.c:134
-msgid "Level 1.0"
-msgstr ""
+#~ msgid "Where will subtitles be taken from"
+#~ msgstr "Hvor skal undertekster tages fra"
 
-#: glade/glade_strings.c:135
-msgid "Level 1.5 (additional national characters)"
-msgstr ""
+#, fuzzy
+#~ msgid "Quits Zapzilla"
+#~ msgstr "Zapzilla"
 
-#: glade/glade_strings.c:136
-msgid "Level 2.5 (more colours, font styles and graphics)"
-msgstr ""
+#~ msgid "_TV Channels"
+#~ msgstr "_TV Kanaler"
 
-#: glade/glade_strings.c:137
-msgid "Level 3.5 (proportional spacing, multicolour graphics)"
-msgstr ""
+#, fuzzy
+#~ msgid "Switches to the next channel"
+#~ msgstr "GÃ¥ til den nÃ¦ste side"
 
-#: glade/glade_strings.c:138
-msgid "Interpolation type:"
-msgstr ""
+#, fuzzy
+#~ msgid "Switches to the previous channel"
+#~ msgstr "GÃ¥ til den forrige side"
 
-#: glade/glade_strings.c:139
-msgid "Quality/speed tradeoff when scaling and antialing the page."
-msgstr ""
+#~ msgid "Couldn't locate zapping_setup_fb, check your install"
+#~ msgstr "Kunne ikke finde zapping_setup_fb, tjek din installation"
 
-#: glade/glade_strings.c:140
-msgid "Nearest (fast, looks ugly when scaled)"
-msgstr ""
+#~ msgid "Device Info"
+#~ msgstr "Enheds Info"
 
-#: glade/glade_strings.c:141
-msgid "Tiles (slightly slower, somewhat better)"
-msgstr ""
+#, fuzzy
+#~ msgid "Opens the channel editor"
+#~ msgstr "Kanal redigering"
 
-#: glade/glade_strings.c:142
-msgid "Bilinear (good quality but slow)"
-msgstr ""
+#, fuzzy
+#~ msgid "Opens the plugin properties dialog"
+#~ msgstr "Plugin egenskaber"
 
-#: glade/glade_strings.c:143
-msgid "Hyper (best quality but CPU intensive)"
-msgstr ""
+#, fuzzy
+#~ msgid "Open Teletext page"
+#~ msgstr " Tekst-tv Side %x"
 
-#: glade/glade_strings.c:145
-msgid "Filtering"
-msgstr "Filtrering"
+#, fuzzy
+#~ msgid "Advance subpage number"
+#~ msgstr "Hvilken som helst underisde"
 
-#: glade/glade_strings.c:146
-msgid "Program related links:"
-msgstr "Program relaterede links:"
+#, fuzzy
+#~ msgid "Go to index page"
+#~ msgstr "GÃ¥ til indeks siden"
 
-#: glade/glade_strings.c:147
-msgid "Network related links:"
-msgstr "Netværks relaterede links:"
+#, fuzzy
+#~ msgid "Hold current subpage"
+#~ msgstr "Hold den nuvÃ¦rende underside"
 
-#: glade/glade_strings.c:148
-msgid "Station related links:"
-msgstr "Kanal relaterede links:"
+#, fuzzy
+#~ msgid "Open search dialog"
+#~ msgstr "Optagelse-dialog"
 
-#: glade/glade_strings.c:149
-msgid "Sponsor messages:"
-msgstr ""
+#~ msgid "Device info"
+#~ msgstr "Enheds info"
 
-#: glade/glade_strings.c:150
-msgid "Operator messages:"
-msgstr ""
+#~ msgid "Do not show"
+#~ msgstr "Vis ikke"
 
-#: glade/glade_strings.c:151 glade/glade_strings.c:155
-#: glade/glade_strings.c:159 glade/glade_strings.c:163
-#: glade/glade_strings.c:167
-msgid "What to do with this kind of links"
-msgstr "Hvad der skal gøres med denne slags links"
-
-#: glade/glade_strings.c:152 glade/glade_strings.c:156
-#: glade/glade_strings.c:160 glade/glade_strings.c:164
-#: glade/glade_strings.c:168 glade/glade_strings.c:178
-msgid "Ignore"
-msgstr "Ignorér"
-
-#: glade/glade_strings.c:153 glade/glade_strings.c:157
-#: glade/glade_strings.c:161 glade/glade_strings.c:165
-#: glade/glade_strings.c:169 glade/glade_strings.c:179
-msgid "Show in the status bar"
-msgstr "Vis i statuslinjen"
-
-#: glade/glade_strings.c:154 glade/glade_strings.c:158
-#: glade/glade_strings.c:162 glade/glade_strings.c:166
-#: glade/glade_strings.c:170 glade/glade_strings.c:180
-msgid "Open automatically"
-msgstr "Åben automatisk"
-
-#: glade/glade_strings.c:171
-msgid "Filter Level:"
-msgstr "Filtrerings Niveau:"
-
-#: glade/glade_strings.c:172
-msgid ""
-"Sometimes a priority level is transmitted with the trigger, it can be used "
-"to filter the messages you want to receive"
-msgstr ""
+#~ msgid "Key:"
+#~ msgstr "Knap:"
 
-#: glade/glade_strings.c:173
-msgid "High priority only"
-msgstr "Høj prioritet kun"
+#~ msgid "_Add"
+#~ msgstr "TilfÃ¸j"
 
-#: glade/glade_strings.c:174
-msgid "Medium and High priority"
-msgstr "Medium og Høj prioritet"
+#, fuzzy
+#~ msgid "Takes a screenshot"
+#~ msgstr "Tag et billede af skÃ¦rmen"
 
-#: glade/glade_strings.c:175
-msgid "All messages"
-msgstr "Alle beskeder"
+#~ msgid "After saving the screenshot, run the command:"
+#~ msgstr "Efter skÃ¦rmbilledet er gemt, kÃ¸r kommandoen:"
 
-#: glade/glade_strings.c:176
-msgid "Default action:"
-msgstr "Standard handling:"
+#~ msgid "Select directory to save screenshots"
+#~ msgstr "VÃ¦lg mappen hvor skÃ¦rmbilleder skal gemmes"
 
-#: glade/glade_strings.c:177
-msgid "What to do with received trigger if no identifier is transmitted"
-msgstr ""
+#~ msgid "Select here the directory where screenshots will be saved"
+#~ msgstr "VÃ¦lg her mappen hvor skÃ¦rmbilleder skal gemmes"
 
-#: glade/glade_strings.c:182
-msgid "VBI options"
-msgstr "VBI indstillinger"
-
-#: glade/glade_strings.c:183
-msgid "Plugin properties"
-msgstr "Plugin egenskaber"
-
-#: glade/glade_strings.c:184 glade/glade_strings.c:248
-msgid "Click here when you are done"
-msgstr "Klik her når du er færdig"
-
-#: glade/glade_strings.c:185
-msgid "Run the plugin"
-msgstr "Kør plugin"
-
-#: glade/glade_strings.c:186
-msgid "_Start Plugin"
-msgstr "_Start Plugin"
-
-#: glade/glade_strings.c:187
-msgid "Stop this plugin"
-msgstr "Stop this plugin"
-
-#: glade/glade_strings.c:188
-msgid "S_top Plugin"
-msgstr "S_top Plugin"
-
-#: glade/glade_strings.c:189 plugins/screenshot/screenshot.c:579
-#: plugins/screenshot/screenshot.c:1426 plugins/lirc/lirc.c:382
-#: plugins/mpeg/mpeg.c:1096 plugins/mpeg/mpeg.c:1123 plugins/mpeg/mpeg.c:1187
-#: plugins/mpeg/mpeg.c:2734 plugins/mpeg/mpeg.c:3336
-msgid "Plugins"
-msgstr "Plugins"
-
-#: glade/glade_strings.c:190
-msgid "Canonical name:"
-msgstr "Kanonisk navn:"
-
-#: glade/glade_strings.c:191
-msgid "Author:"
-msgstr "Forfatter:"
-
-#: glade/glade_strings.c:192
-msgid "Plugin version:"
-msgstr "Plugion version:"
-
-#: glade/glade_strings.c:193
-msgid "Plugin priority:"
-msgstr "Plugin prioritet:"
-
-#: glade/glade_strings.c:194
-msgid "Plugin description"
-msgstr "Plugin beskrivelse"
-
-#: glade/glade_strings.c:195
-msgid "Properties"
-msgstr "Egenskaber"
-
-#: glade/glade_strings.c:196
-msgid "Plugin location"
-msgstr "Plugin placering"
-
-#: glade/glade_strings.c:197
-msgid "This is the file where the plugin is located"
-msgstr "Dette er filen hvor plugin'et er placeret"
-
-#: glade/glade_strings.c:198
-msgid "Symbol"
-msgstr "Symbol"
-
-#: glade/glade_strings.c:199
-msgid "Hash"
-msgstr ""
+#, fuzzy
+#~ msgid "Opens the record dialog"
+#~ msgstr "Optagelse-dialog"
 
-#: glade/glade_strings.c:200
-msgid "Description of the symbol"
-msgstr "Beskrivelse af symbolet"
+#, fuzzy
+#~ msgid "Starts recording"
+#~ msgstr "Start optagning"
 
-#: glade/glade_strings.c:201
-msgid "Advanced"
-msgstr "Advanceret"
+#, fuzzy
+#~ msgid "Pauses the current recording"
+#~ msgstr "Annuller den nuvÃ¦rende sÃ¸gning"
 
-#: glade/glade_strings.c:207
-msgid "_Appearance"
-msgstr "Udseende"
+#, fuzzy
+#~ msgid "Stops the current recording"
+#~ msgstr "Start optagning"
 
-#: glade/glade_strings.c:209
-msgid "Resize to 768x576"
-msgstr "Ændr billedstørrelse til 768x576"
+#~ msgid "Inputs"
+#~ msgstr "Inddata"
 
-#: glade/glade_strings.c:210
-msgid "Resize to 720x576"
-msgstr "Ændr billedstørrelse til 720x576"
+#~ msgid "n/a"
+#~ msgstr "ikke tilgÃ¦ngelig"
 
-#: glade/glade_strings.c:211
-msgid "Resize to 640x480"
-msgstr "Ændr billedstørrelse til 640x480"
+#~ msgid "%d minute"
+#~ msgid_plural "%d minutes"
+#~ msgstr[0] "%d minut"
+#~ msgstr[1] "%d minutter"
 
-#: glade/glade_strings.c:212
-msgid "Resize to 384x288"
-msgstr "Ændr billedstørrelse til 384x288"
+#~ msgid "%d h %d m"
+#~ msgstr "%d t %d m"
 
-#: glade/glade_strings.c:213
-msgid "Resize to 352x288"
-msgstr "Ændr billedstørrelse til 352x288"
+#~ msgid "%d %b  %I:%M %p    "
+#~ msgstr "%d %b  %I:%M %p    "
 
-#: glade/glade_strings.c:214
-msgid "Resize to 320x240"
-msgstr "Ændr billedstørrelse til 320x240"
+#~ msgid ""
+#~ "\n"
+#~ "Length: %uh%02u (%uh%02u remaining)"
+#~ msgstr ""
+#~ "\n"
+#~ "LÃ¦ngde: %ut%02u (%ut%02u tilbage)"
 
-#: glade/glade_strings.c:215
-msgid "Searching..."
-msgstr "Søger..."
+#~ msgid "Length: %uh%02u"
+#~ msgstr "LÃ¦ngde: %ut%02u"
 
-#: glade/glade_strings.c:216 glade/glade_strings.c:260
-#: plugins/mpeg/mpeg_strings.c:39
-msgid "%P %%"
-msgstr "%P %%"
-
-#: glade/glade_strings.c:217
-msgid "Zapzilla"
-msgstr "Zapzilla"
-
-#: glade/glade_strings.c:218
-msgid "Previous page in history"
-msgstr "Forrige side i historien"
-
-#: glade/glade_strings.c:219
-msgid "Previous"
-msgstr "Forrige"
-
-#: glade/glade_strings.c:220
-msgid "Next page in history"
-msgstr "Næste side i historien"
-
-#: glade/glade_strings.c:221
-msgid "Next"
-msgstr "Næste"
-
-#: glade/glade_strings.c:222
-msgid "Go to the index page"
-msgstr "Gå til indeks siden"
-
-#: glade/glade_strings.c:223
-msgid "Home"
-msgstr "Hjem"
-
-#: glade/glade_strings.c:224
-msgid "Open new Teletext window"
-msgstr "Åben nyt Tekst-tv vindue"
-
-#: glade/glade_strings.c:225
-msgid "Search the page cache"
-msgstr "Søg side mellemlagret (cache)"
+#~ msgid "Elapsed: %uh%02u"
+#~ msgstr "Tid gÃ¥et: %ut%02u"
 
-#: glade/glade_strings.c:226 glade/glade_strings.c:249
-msgid "Search"
-msgstr "Søg"
+#~ msgid "unknown language"
+#~ msgstr "ukendt sprog"
 
-#: glade/glade_strings.c:227
-msgid "Previous subpage"
-msgstr "Forrige underside"
+#~ msgid ""
+#~ "Channel 1: %s (%s)\n"
+#~ "Channel 2: %s (%s)"
+#~ msgstr ""
+#~ "Kanal 1: %s (%s)\n"
+#~ "Kanal 2: %s (%s)"
 
-#: glade/glade_strings.c:228
-msgid "Go to the previous page"
-msgstr "Gå til den forrige side"
+#~ msgid ""
+#~ "Channel 1: %s\n"
+#~ "Channel 2: %s"
+#~ msgstr ""
+#~ "Kanal 1: %s\n"
+#~ "Kanal 2: %s"
 
-#: glade/glade_strings.c:229
-msgid "Hold the current subpage"
-msgstr "Hold den nuværende underside"
+#~ msgid "Audio: %s (%s)"
+#~ msgstr "Lyd: %s (%s)"
 
-#: glade/glade_strings.c:230
-msgid "100"
-msgstr "100"
+#~ msgid "Audio: %s"
+#~ msgstr "Lyd: %s"
 
-#: glade/glade_strings.c:231
-msgid "Go to the next page"
-msgstr "Gå til den næste side"
+#~ msgid "Captioned %s"
+#~ msgstr "Fangede %s"
 
-#: glade/glade_strings.c:232
-msgid "Next subpage"
-msgstr "Næste underside"
+#~ msgid "Captioned"
+#~ msgstr "Fanget"
 
-#: glade/glade_strings.c:233
-msgid "Reveal hidden characters"
-msgstr "Vis gemte bogstaver"
+#~ msgid "TV"
+#~ msgstr "TV"
 
-#: glade/glade_strings.c:234
-msgid "Leave Teletext mode"
-msgstr "Forlad Tekst-tv"
+#~ msgid "Use Zapping as a Teletext navigator"
+#~ msgstr "Brug Zapping som Tekst-tv viser"
 
-#: glade/glade_strings.c:235
-msgid "_Open in new window"
-msgstr "Åben i nyt vindue"
+#~ msgid "Loading subpage %x..."
+#~ msgstr "Henter underside %x..."
 
-#: glade/glade_strings.c:236
-msgid "_Search page cache..."
-msgstr "Søg side mellemlagret (cache)..."
+#~ msgid "Warning: Page not valid"
+#~ msgstr "Advarsel: Siden er ikke gyldig"
 
-#: glade/glade_strings.c:237
-msgid "_Export this page"
-msgstr "Eksporter denne side"
+#~ msgid " Page %d"
+#~ msgstr " Side %d"
 
-#: glade/glade_strings.c:238
-msgid "_Bookmarks"
-msgstr "Favoritter"
+#~ msgid "The cache has been cleared"
+#~ msgstr "Mellemlagret (cache) er blevet ryddet"
 
-#: glade/glade_strings.c:239
-msgid "_Add current page..."
-msgstr "Tilføj nuværende side..."
+#~ msgid "No other subpage in the cache"
+#~ msgstr "Ingen andre underside i mellemlagret (cachen)"
 
-#: glade/glade_strings.c:240
-msgid "_Edit Bookmarks..."
-msgstr "Rediger Favoritter..."
+#~ msgid "Found"
+#~ msgstr "Fundet"
 
-#: glade/glade_strings.c:241
-msgid "_Colors"
-msgstr "Farver"
+#~ msgid "Empty cache"
+#~ msgstr "Tomt mellemlager (cache)"
 
-#: glade/glade_strings.c:242
-msgid "Edit Bookmarks"
-msgstr "Rediger Favoritter"
+#~ msgid "Scanning %x.%02x"
+#~ msgstr "Skanner %x.%02x"
 
-#: glade/glade_strings.c:243
-msgid "Page"
-msgstr "Side"
+#~ msgid "Subpage"
+#~ msgstr "Undereside"
 
-#: glade/glade_strings.c:244
-msgid "Subpage"
-msgstr "Undereside"
+#~ msgid "Export %s"
+#~ msgstr "Eksporter %s"
 
-#: glade/glade_strings.c:245
-msgid "Description"
-msgstr "Beskrivelse"
+#~ msgid "Select file you'll be exporting to"
+#~ msgstr "VÃ¦lg filen du vil eksportere til"
 
-#: glade/glade_strings.c:246
-msgid "Remove the currently selected bookmark"
-msgstr "Fjern den valgte favorit"
+#~ msgid ""
+#~ "Cannot create destination dir for Zapzilla export:\n"
+#~ "%s\n"
+#~ "%s"
+#~ msgstr ""
+#~ "Kan ikke oprette destinations mappe til Zapzilla eksport:\n"
+#~ "%s\n"
+#~ "%s"
 
-#: glade/glade_strings.c:247
-msgid "Remove Bookmark"
-msgstr "Fjern favorit"
+#~ msgid "Export to %s failed: %s"
+#~ msgstr "Eksport til %s fejlede: %s"
 
-#: glade/glade_strings.c:250
-msgid "Search pattern:"
-msgstr "Søge mønster:"
+#~ msgid "%s saved"
+#~ msgstr "%s gemt"
 
-#: glade/glade_strings.c:251
-msgid "Regular expression"
-msgstr "Regulært udtryk"
+#~ msgid "Export failed: %s"
+#~ msgstr "Eksport fejlede: %s"
 
-#: glade/glade_strings.c:252
-msgid "Search case insensitive"
-msgstr ""
+#~ msgid "Text %x - %s"
+#~ msgstr "Tekst %x - %s"
 
-#: glade/glade_strings.c:253
-msgid "Search backwards"
-msgstr "Søg baglæns"
+#~ msgid "Text %x"
+#~ msgstr "Tekst %x"
 
-#: glade/glade_strings.c:254
-msgid "Search in progress..."
-msgstr "Søgning i gang..."
+#~ msgid "%x: Unknown language"
+#~ msgstr "%x: Ukendt sprog"
 
-#: glade/glade_strings.c:255
-msgid "Cancel the current search"
-msgstr "Annuller den nuværende søgning"
+#~ msgid "100"
+#~ msgstr "100"
 
-#: glade/glade_strings.c:256
-msgid "Search backwards for the previous match"
-msgstr "Søg baglæns til forrige resultat"
+#~ msgid "16:9"
+#~ msgstr "16:9"
 
-#: glade/glade_strings.c:257
-msgid "Search forwards for the next match"
-msgstr "Søg forlæns til næste resultat"
+#~ msgid "4:3"
+#~ msgstr "4:3"
 
-#: glade/glade_strings.c:258
-msgid "Start a new search"
-msgstr "Start en ny søgning"
+#~ msgid "All messages"
+#~ msgstr "Alle beskeder"
 
-#: glade/glade_strings.c:259 plugins/mpeg/mpeg_strings.c:44
-msgid "New"
-msgstr "Ny"
+#~ msgid "Create a new channel with these settings"
+#~ msgstr "Opret en ny kanal med disse indstillinger"
 
-#: glade/glade_strings.c:261
-msgid "Zapping error console"
-msgstr ""
+#~ msgid "Description:"
+#~ msgstr "Beskrivelse:"
 
-#: glade/glade_strings.c:262
-msgid "OK, let's go on"
-msgstr ""
+#~ msgid "Edit Bookmarks"
+#~ msgstr "Rediger Favoritter"
 
-#: glade/glade_strings.c:263
-msgid "Remove all this mess"
-msgstr "Fjern alt dette rod"
+#~ msgid "Filter Level:"
+#~ msgstr "Filtrerings Niveau:"
 
-#: glade/glade_strings.c:264
-msgid "Clean console"
-msgstr "Ryd konsol"
+#~ msgid "Filtering"
+#~ msgstr "Filtrering"
 
-#: glade/glade_strings.c:265
-msgid "Known key names"
-msgstr ""
+#~ msgid "Go to the next page"
+#~ msgstr "GÃ¥ til den nÃ¦ste side"
 
-#: glade/glade_strings.c:266
-msgid "Keys"
-msgstr ""
+#~ msgid "Go to the previous page"
+#~ msgstr "GÃ¥ til den forrige side"
 
-#: glade/glade_strings.c:267
-msgid "Enter key"
-msgstr ""
+#~ msgid "Hide menu and toolbar"
+#~ msgstr "Gem menu og vÃ¦rktÃ¸jslinjen"
 
-#: glade/glade_strings.c:268
-msgid "New bookmark:"
-msgstr "Ny favorit:"
+#~ msgid "High priority only"
+#~ msgstr "HÃ¸j prioritet kun"
 
-#: glade/glade_strings.c:269
-msgid "Description:"
-msgstr "Beskrivelse:"
+#~ msgid "Ignore"
+#~ msgstr "IgnorÃ©r"
 
-#: glade/glade_strings.c:270
-msgid "Switch to the current channel when the bookmark is selected"
-msgstr ""
+#~ msgid "Keyboard shortcut:"
+#~ msgstr "Genvejs-knap:"
 
-#: glade/glade_strings.c:271
-msgid "Text colors"
-msgstr "Tekst farver"
+#~ msgid "Leave Teletext mode"
+#~ msgstr "Forlad Tekst-tv"
 
-#: glade/glade_strings.c:274
-msgid "Channel editor"
-msgstr "Kanal redigering"
+#~ msgid "Medium and High priority"
+#~ msgstr "Medium og HÃ¸j prioritet"
 
-#: glade/glade_strings.c:275
-msgid "Save the changes and leave the dialog"
-msgstr "Gem ændringer og forlad dialogen"
+#~ msgid "Network Info"
+#~ msgstr "NetvÃ¦rks Info"
 
-#: glade/glade_strings.c:276
-msgid ""
-"Click this button if you want to leave the dialog discarding the changes"
-msgstr ""
+#~ msgid "Network related links:"
+#~ msgstr "NetvÃ¦rks relaterede links:"
 
-#: glade/glade_strings.c:277
-msgid "This shows some help about this dialog"
-msgstr "Dette viser noget hjælp om denne dialog"
-
-#: glade/glade_strings.c:278
-msgid "Region"
-msgstr "Region"
-
-#: glade/glade_strings.c:279
-msgid "Select here the frequency table used in your country"
-msgstr "Vælg her frekvens-tabellen brugt i dit land"
-
-#: glade/glade_strings.c:280
-msgid "No tables"
-msgstr "Ingen tabeller"
-
-#: glade/glade_strings.c:281
-msgid ""
-"Select a suitable frequency table, then click here to search through all "
-"channels in the table and add the received stations to the channel list."
-msgstr ""
+#~ msgid "New bookmark:"
+#~ msgstr "Ny favorit:"
 
-#: glade/glade_strings.c:282
-msgid "Automatic station _search"
-msgstr "Automatisk kanal _søgning"
-
-#: glade/glade_strings.c:283
-msgid "Add all channels in the frequency table to the channel list."
-msgstr "Tilføj alle kanaler i frekvens-tabellen til kanal-listen"
-
-#: glade/glade_strings.c:284
-msgid "Add all _channels"
-msgstr "Tilføj alle kanaler"
-
-#: glade/glade_strings.c:285
-msgid ""
-"When your country or the required table is not present please notify the "
-"author,\n"
-"adding the table if possible, for inclusion in the next release of this "
-"program."
-msgstr ""
+#~ msgid "Next"
+#~ msgstr "NÃ¦ste"
 
-#: glade/glade_strings.c:287
-msgid "Select here the channel you want to tune"
-msgstr "Vælg her den kanal du vil indstille"
+#~ msgid "Previous"
+#~ msgstr "Forrige"
 
-#: glade/glade_strings.c:288 glade/glade_strings.c:293
-msgid "Station"
-msgstr "Kanal"
+#~ msgid "Program Info"
+#~ msgstr "Program Info"
 
-#: glade/glade_strings.c:289 glade/glade_strings.c:294
-msgid "Freq (kHz)"
-msgstr "Frekvens (kHz)"
+#~ msgid "Program related links:"
+#~ msgstr "Program relaterede links:"
 
-#: glade/glade_strings.c:290
-msgid "Tuned channels"
-msgstr "Indstillede kanaler"
+#~ msgid "Remove Bookmark"
+#~ msgstr "Fjern favorit"
 
-#: glade/glade_strings.c:291
-msgid "Name"
-msgstr "Navn"
+#~ msgid "Remove the currently selected bookmark"
+#~ msgstr "Fjern den valgte favorit"
 
-#: glade/glade_strings.c:292
-msgid "Country"
-msgstr "Land"
+#~ msgid "Reveal hidden characters"
+#~ msgstr "Vis gemte bogstaver"
 
-#: glade/glade_strings.c:295
-msgid "Standard"
-msgstr "Standard"
+#~ msgid "Save the changes and leave the dialog"
+#~ msgstr "Gem Ã¦ndringer og forlad dialogen"
 
-#: glade/glade_strings.c:297
-msgid "Move selected channels one row up"
-msgstr "Flyt valgte kanaler en række op"
+#~ msgid "Search backwards"
+#~ msgstr "SÃ¸g baglÃ¦ns"
 
-#: glade/glade_strings.c:298
-msgid "Move selected channels one row down"
-msgstr "Flyt valgte kanaler en række ned"
+#~ msgid "Search in progress..."
+#~ msgstr "SÃ¸gning i gang..."
 
-#: glade/glade_strings.c:299
-msgid "Delete selected channels"
-msgstr "Fjern valgte kanaler"
+#~ msgid "Search the page cache"
+#~ msgstr "SÃ¸g side mellemlagret (cache)"
 
-#: glade/glade_strings.c:300
-msgid "_Remove"
-msgstr "Fjern"
+#~ msgid "Select here the frequency table used in your country"
+#~ msgstr "VÃ¦lg her frekvens-tabellen brugt i dit land"
 
-#: glade/glade_strings.c:301
-msgid "Edit channel"
-msgstr "Rediger kanal"
+#~ msgid "Select the next station in the channel list"
+#~ msgstr "VÃ¦lg den nÃ¦ste kanal i kanal-listen"
 
-#: glade/glade_strings.c:302 glade/glade_strings.c:314
-msgid "Name:"
-msgstr "Navn:"
+#~ msgid "Select the previous station in the channel list"
+#~ msgstr "VÃ¦lg den forrige kanal i kanal-listen"
 
-#: glade/glade_strings.c:303
-msgid "Fine tuning:"
-msgstr "Fin-justering:"
+#~ msgid "Short Name:"
+#~ msgstr "Kort Navn:"
 
-#: glade/glade_strings.c:304
-msgid "Video standard:"
-msgstr ""
+#~ msgid "Show in the status bar"
+#~ msgstr "Vis i statuslinjen"
 
-#: glade/glade_strings.c:305
-msgid "Select here the video standard used on this channel"
-msgstr ""
+#~ msgid "Start a new search"
+#~ msgstr "Start en ny sÃ¸gning"
 
-#: glade/glade_strings.c:306
-msgid "Select here the input to be attached to this channel"
-msgstr ""
+#~ msgid "Station related links:"
+#~ msgstr "Kanal relaterede links:"
 
-#: glade/glade_strings.c:307
-msgid "Input:"
-msgstr ""
+#~ msgid "This shows some help about this dialog"
+#~ msgstr "Dette viser noget hjÃ¦lp om denne dialog"
 
-#: glade/glade_strings.c:308
-msgid "Keyboard shortcut:"
-msgstr "Genvejs-knap:"
+#~ msgid "Tuned channels"
+#~ msgstr "Indstillede kanaler"
 
-#: glade/glade_strings.c:309
-msgid "Create a new channel with these settings"
-msgstr "Opret en ny kanal med disse indstillinger"
+#~ msgid "What to do with this kind of links"
+#~ msgstr "Hvad der skal gÃ¸res med denne slags links"
 
-#: glade/glade_strings.c:310
-msgid "_Add as a new channel"
-msgstr "Tilføj som en ny kanal"
+#~ msgid "Zapzilla"
+#~ msgstr "Zapzilla"
 
-#: glade/glade_strings.c:311
-msgid "Apply the current settings to the marked channels above"
-msgstr ""
+#~ msgid "_Add current page..."
+#~ msgstr "TilfÃ¸j nuvÃ¦rende side..."
 
-#: glade/glade_strings.c:312
-msgid "_Modify selected channels"
-msgstr ""
+#~ msgid "_Export this page"
+#~ msgstr "Eksporter denne side"
 
-#: glade/glade_strings.c:315
-msgid "Short Name:"
-msgstr "Kort Navn:"
+#~ msgid "_Main help"
+#~ msgstr "HjÃ¦lp"
 
-#: glade/glade_strings.c:316
-msgid "Network call letters:"
-msgstr ""
+#~ msgid "Use system settings"
+#~ msgstr "Brug system indstillinger"
 
-#: glade/glade_strings.c:317
-msgid "Tape delay:"
-msgstr ""
+#~ msgid "%s : %s"
+#~ msgstr "%s : %s"
 
-#: glade/glade_strings.c:319
-msgid "Synopsis"
-msgstr ""
+#~ msgid "Do not show this again"
+#~ msgstr "Vis ikke dette igen"
 
-#: glade/glade_strings.c:320
-msgid "Video Standard"
-msgstr ""
+#~ msgid ""
+#~ "Cannot create destination dir for clips:\n"
+#~ "%s\n"
+#~ "%s"
+#~ msgstr ""
+#~ "Kan ikke oprette destinations mappe for clips:\n"
+#~ "%s\n"
+#~ "%s"
 
-#: glade/glade_strings.c:321
-msgid ""
-"The video capture device does not report the correct\n"
-"video standard, please select manually:"
-msgstr ""
+#~ msgid "RTE ID: %s"
+#~ msgstr "RTE ID: %s"
 
-#: glade/glade_strings.c:323
-msgid "NTSC"
-msgstr ""
+#~ msgid "Destination: %s"
+#~ msgstr "Destination: %s"
 
-#: glade/glade_strings.c:324
-msgid "PAL"
-msgstr ""
+#~ msgid "Audio only"
+#~ msgstr "Kun lyd"
 
-#: glade/glade_strings.c:325
-msgid "SECAM"
-msgstr ""
+#~ msgid "Video only"
+#~ msgstr "Kun billede"
 
-#: glade/glade_strings.c:326
-msgid "Remember this video standard"
-msgstr ""
+#~ msgid "Audio and Video"
+#~ msgstr "Lyd og Billede"
 
-#: plugins/screenshot/screenshot.c:40
-msgid "Screenshot saver"
-msgstr ""
+#~ msgid "MPEG"
+#~ msgstr "MPEG"
 
-#: plugins/screenshot/screenshot.c:42
-msgid ""
-"With this plugin you can take screen shots of the program you are watching "
-"and save them in various formats."
-msgstr ""
+#~ msgid "Open preferences"
+#~ msgstr "Ã…ben prÃ¦ferencer"
 
-#: plugins/screenshot/screenshot.c:45
-msgid "This plugin takes screenshots of the video capture."
-msgstr ""
+#~ msgid "Redirect the error messages to the console"
+#~ msgstr "OmdirigÃ©r fejl beskeder til konsollen"
 
-#: plugins/screenshot/screenshot.c:173 plugins/lirc/lirc.c:134
-#: plugins/alirc/alirc.c:252 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3398
-#, c-format
-msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
-msgstr ""
+#~ msgid "Show controls"
+#~ msgstr "Vis kontroller"
 
-#: plugins/screenshot/screenshot.c:457
-msgid "Converts a row in RGB565 format to RGB24. Returns the destination."
-msgstr ""
+#~ msgid ""
+#~ "%s:\n"
+#~ "Try running as root \"zapping_fix_overlay\" in a console"
+#~ msgstr ""
+#~ "%s:\n"
+#~ "PrÃ¸v at kÃ¸re \"zapping_fix_overlay\" som root i en konsol"
 
-#: plugins/screenshot/screenshot.c:463
-msgid "Converts a row in RGB555 format to RGB24. Returns the destination."
-msgstr ""
+#~ msgid "Hide controls"
+#~ msgstr "Gem kontroller"
 
-#: plugins/screenshot/screenshot.c:469
-msgid "Converts a row in RGBA format to RGB24. Returns the destination."
-msgstr ""
+#~ msgid "Hide the menu and the toolbar"
+#~ msgstr "Gem menuen og vÃ¦rktÃ¸jslinjen"
 
-#: plugins/screenshot/screenshot.c:560
-msgid ""
-"The first option lets you specify where screenshots are to be\n"
-"saved. The file name will be: dir/shot[1,2,3,...].ext\n"
-"\n"
-"The command will be executed after saving the screenshot,\n"
-"with the environmental variables $SCREENSHOT_PATH, $CHANNEL_ALIAS,\n"
-"$CHANNEL_ID, $CURRENT_STANDARD, $CURRENT_INPUT set to their\n"
-"correct value.\n"
-"\n"
-msgstr ""
+#~ msgid "Canada cable"
+#~ msgstr "Canadisk kabel"
 
-#: plugins/screenshot/screenshot.c:575 plugins/screenshot/screenshot.c:607
-#: plugins/screenshot/screenshot.c:1426
-msgid "Screenshot"
-msgstr "Skærmbillede"
-
-#: plugins/screenshot/screenshot.c:612
-msgid "Take a screenshot"
-msgstr "Tag et billede af skærmen"
-
-#: plugins/screenshot/screenshot.c:745 plugins/screenshot/screenshot.c:846
-msgid "Error while writing screenshot\n"
-msgstr "Fejl ved skrivning af skærmbillede\n"
-
-#: plugins/screenshot/screenshot.c:898
-msgid "Saving..."
-msgstr "Gemmer..."
-
-#: plugins/screenshot/screenshot.c:918
-#, c-format
-msgid ""
-"Cannot create directory:\n"
-"%s\n"
-"%s"
-msgstr ""
-"Kan ikke oprette mappe:\n"
-"%s\n"
-"%s"
-
-#: plugins/screenshot/screenshot.c:931
-msgid "Sorry, but I cannot write\n"
-msgstr "Jeg kan ikke skrive\n"
-
-#: plugins/screenshot/screenshot.c:933
-msgid ""
-"\n"
-"The image won't be saved.\n"
-msgstr ""
-"\n"
-"Billedet vil ikke blive gemt.\n"
-
-#: plugins/screenshot/screenshot.c:964
-msgid "Sorry, not enough resources to create a new thread"
-msgstr "Der er ikke nok ressourcer til at oprette en ny tråd"
-
-#: plugins/screenshot/screenshot.c:969
-msgid "There are too many threads"
-msgstr "Der er for mange tråde"
-
-#: plugins/screenshot/screenshot.c:1109
-#, c-format
-msgid "appx %u KB"
-msgstr ""
+#~ msgid "Japan cable"
+#~ msgstr "Japansk kabel"
 
-#: plugins/screenshot/screenshot.c:1112
-#, c-format
-msgid "appx %.2f MB"
-msgstr ""
+#~ msgid "Europe"
+#~ msgstr "Europa"
 
-#: plugins/screenshot/screenshot.c:1177 plugins/screenshot/screenshot.c:1296
-msgid "This format has no quality option"
-msgstr ""
+#~ msgid "Italy"
+#~ msgstr "Italien"
 
-#: plugins/screenshot/screenshot.c:1332
-msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
-msgstr ""
+#~ msgid "New Zealand"
+#~ msgstr "New Zealand"
 
-#: plugins/screenshot/screenshot_strings.c:7
-msgid "Select here the directory where screenshots will be saved"
-msgstr "Vælg her mappen hvor skærmbilleder skal gemmes"
-
-#: plugins/screenshot/screenshot_strings.c:8
-msgid "Select directory to save screenshots"
-msgstr "Vælg mappen hvor skærmbilleder skal gemmes"
-
-#: plugins/screenshot/screenshot_strings.c:9
-msgid "After saving the screenshot, run the command:"
-msgstr "Efter skærmbilledet er gemt, kør kommandoen:"
-
-#: plugins/screenshot/screenshot_strings.c:10
-msgid ""
-"If this entry isn't empty, Zapping will try to run the given command each "
-"time you save a screenshot."
-msgstr ""
+#~ msgid "Australia"
+#~ msgstr "Australien"
 
-#: plugins/screenshot/screenshot_strings.c:11
-#: plugins/screenshot/screenshot_strings.c:23
-msgid "Preview"
-msgstr ""
+#~ msgid "Ireland"
+#~ msgstr "Irland"
 
-#: plugins/screenshot/screenshot_strings.c:12
-msgid "Grab on clicking OK"
-msgstr ""
+#~ msgid "France"
+#~ msgstr "Frankrig"
 
-#: plugins/screenshot/screenshot_strings.c:13
-msgid "Skip one picture before grabbing"
-msgstr ""
+#~ msgid "Russia"
+#~ msgstr "Rusland"
 
-#: plugins/screenshot/screenshot_strings.c:14
-msgid "Entering file name closes dialog"
-msgstr ""
+#~ msgid "South Africa"
+#~ msgstr "Syd Afrika"
 
-#: plugins/screenshot/screenshot_strings.c:15
-msgid "Add toolbar button"
-msgstr "Tilføj værktøjslinje knap"
-
-#: plugins/screenshot/screenshot_strings.c:16
-msgid "Save screenshot"
-msgstr "Gem skærmbillede"
-
-#: plugins/screenshot/screenshot_strings.c:17 plugins/mpeg/mpeg_strings.c:30
-msgid "Configure the properties for this plugin"
-msgstr "Konfigurer egenskaberne for dette plugin"
-
-#: plugins/screenshot/screenshot_strings.c:18 plugins/mpeg/mpeg_strings.c:31
-msgid "Configure"
-msgstr "Konfigurer"
-
-#: plugins/screenshot/screenshot_strings.c:20 plugins/mpeg/mpeg_strings.c:33
-#: plugins/mpeg/mpeg_strings.c:38
-msgid "Destination file"
-msgstr "Destinations fil"
-
-#: plugins/screenshot/screenshot_strings.c:21
-msgid "Quality:"
-msgstr "Kvalitet:"
-
-#: plugins/screenshot/screenshot_strings.c:22 plugins/mpeg/mpeg_strings.c:7
-#: plugins/mpeg/mpeg_strings.c:35 plugins/mpeg/mpeg_strings.c:43
-msgid "Format:"
-msgstr "Format:"
-
-#: plugins/screenshot/screenshot_strings.c:24
-msgid "Deinterlace:"
-msgstr ""
+#~ msgid "China"
+#~ msgstr "Kina"
 
-#: plugins/screenshot/screenshot_strings.c:25
-msgid "Off"
-msgstr "Fra"
-
-#: plugins/screenshot/screenshot_strings.c:26
-msgid "Forward"
-msgstr "Frem"
-
-#: plugins/screenshot/screenshot_strings.c:27
-msgid "Backward"
-msgstr "Tilbage"
-
-#: plugins/lirc/lirc.c:41
-msgid "LIRC plugin"
-msgstr "LIRC plugin"
-
-#: plugins/lirc/lirc.c:42
-msgid ""
-"This plugin enables the usage of LIRC, the Linux Infrared Remote Control."
-msgstr "Dette plugin slår brugen af LIRC til (Linux Infrared Remote Control)."
-
-#: plugins/lirc/lirc.c:43
-msgid "This plugin enables the usage of LIRC."
-msgstr "Dette plugin slår brugen af LIRC til"
-
-#: plugins/lirc/lirc.c:378
-msgid "LIRC"
-msgstr "LIRC"
-
-#: plugins/lirc/lirc.c:548
-msgid "Button"
-msgstr "Knap"
-
-#: plugins/lirc/lirc.c:555
-msgid "Action"
-msgstr "Handling"
-
-#: plugins/lirc/lirc.c:572
-msgid "Button:"
-msgstr "Knap:"
-
-#: plugins/lirc/lirc.c:583
-msgid "Action:"
-msgstr "Handling:"
-
-#: plugins/lirc/lirc.c:611 plugins/lirc/lirc.c:623
-msgid "channel up"
-msgstr "kanal op"
-
-#: plugins/lirc/lirc.c:612
-msgid "channel down"
-msgstr "kanal ned"
-
-#: plugins/lirc/lirc.c:613
-msgid "set channel"
-msgstr "sæt kanal"
-
-#: plugins/lirc/lirc.c:614
-msgid "power off"
-msgstr "sluk"
-
-#: plugins/lirc/lirc.c:657
-msgid "1"
-msgstr "1"
-
-#: plugins/lirc/lirc.c:666
-msgid "Add"
-msgstr "Tilføj"
-
-#: plugins/lirc/lirc.c:675 plugins/mpeg/mpeg_strings.c:45
-msgid "Delete"
-msgstr "Fjern"
-
-#: plugins/alirc/alirc.c:32
-msgid "Another lirc plugin"
-msgstr "Endnu et lirc plugin"
-
-#: plugins/alirc/alirc.c:34
-msgid ""
-"Another plugin to control zapping through lirc\n"
-"\n"
-"See the lirc documentation for information about the .lircrc file. The "
-"plugin will register itself under the name 'zapping_lirc' and you can use "
-"the following commands:\n"
-"  CHANUP:  One Channel up\n"
-"  CHANDOWN:  One Channel down\n"
-"  ZOOM: switch between full screen and windowed mode\n"
-"  SETCHANNEL <int>: set the channel to 0 ... 9\n"
-"  MUTE: Turn Sound [On|Off]\n"
-"  VOL_UP: Increase Volume\n"
-"  VOL_DOWN: Decrease Volume\n"
-"  QUIT: Quit zapping\n"
-"  \n"
-"Note: when using SETCHANNEL two times within 1500 ms, it will react the "
-"same\n"
-"as you would expect from a television set. e.g SETCHANNEL 1, SETCHANNEL 3 "
-"will set the channel to 13\n"
-"The README.alirc file has some more information about the plugin."
-msgstr ""
+#~ msgid "Pakistan cable"
+#~ msgstr "Pakistansk kabel"
 
-#: plugins/alirc/alirc.c:54
-msgid "Lets you control zapping through lirc"
-msgstr "Lader dig kontrollere zapping igennem lirc"
+#~ msgid "(Unnamed channel)"
+#~ msgstr "(Ikke navngivet kanal)"
 
-#: plugins/mpeg/mpeg.c:38
-msgid "MPEG encoder"
-msgstr ""
+#~ msgid "(Unknown real channel)"
+#~ msgstr "(Ukendt Ã¦gte kanal)"
 
-#: plugins/mpeg/mpeg.c:40
-msgid "This plugin encodes the image and audio stream into a MPEG file"
-msgstr ""
+#~ msgid "(Unknown country)"
+#~ msgstr "(Ukendt land)"
 
-#: plugins/mpeg/mpeg.c:42
-msgid "Encode the stream as MPEG."
-msgstr ""
+#~ msgid "(Unknown RF channel)"
+#~ msgstr "(Ukendt RF kanal)"
 
-#: plugins/mpeg/mpeg.c:280
-#, c-format
-msgid "%d frame dropped"
-msgid_plural "%d frames dropped"
-msgstr[0] ""
-msgstr[1] ""
-
-#: plugins/mpeg/mpeg.c:284
-#, c-format
-msgid "%d frame processed"
-msgid_plural "%d frames processed"
-msgstr[0] ""
-msgstr[1] ""
-
-#: plugins/mpeg/mpeg.c:288
-#, c-format
-msgid "%s : %s"
-msgstr "%s : %s"
-
-#: plugins/mpeg/mpeg.c:386
-msgid "Synchronization under V4L1"
-msgstr ""
+#~ msgid "Available controls"
+#~ msgstr "Ledige indstillinger"
 
-#: plugins/mpeg/mpeg.c:388
-msgid "Do not show this again"
-msgstr "Vis ikke dette igen"
+#~ msgid "<green>%s</green>"
+#~ msgstr "<green>%s</green>"
 
-#: plugins/mpeg/mpeg.c:389
-msgid "V4L2 page"
-msgstr ""
+#~ msgid "Do white balance"
+#~ msgstr "Lav hvid balance"
 
-#: plugins/mpeg/mpeg.c:392
-msgid ""
-"You are using a V4L1 driver, so synchronization\n"
-"between audio and video will not be very good.\n"
-"V4L2 drivers provide a much better sync,\n"
-"you might want to try those if you aren't\n"
-"satisfied with the results."
-msgstr ""
+#~ msgid "Add Channel"
+#~ msgstr "TilfÃ¸j Kanal"
 
-#: plugins/mpeg/mpeg.c:545
-#, c-format
-msgid ""
-"Cannot create destination dir for clips:\n"
-"%s\n"
-"%s"
-msgstr ""
-"Kan ikke oprette destinations mappe for clips:\n"
-"%s\n"
-"%s"
-
-#: plugins/mpeg/mpeg.c:614
-#, c-format
-msgid "RTE ID: %s"
-msgstr "RTE ID: %s"
-
-#: plugins/mpeg/mpeg.c:620 plugins/mpeg/mpeg.c:622
-#, c-format
-msgid "Destination: %s"
-msgstr "Destination: %s"
-
-#: plugins/mpeg/mpeg.c:630
-msgid "Audio only"
-msgstr "Kun lyd"
-
-#: plugins/mpeg/mpeg.c:633
-msgid "Video only"
-msgstr "Kun billede"
-
-#: plugins/mpeg/mpeg.c:636
-msgid "Audio and Video"
-msgstr "Lyd og Billede"
-
-#: plugins/mpeg/mpeg.c:653 plugins/mpeg/mpeg.c:661
-msgid "Output audio kbits per second:"
-msgstr ""
+#~ msgid "_Quit"
+#~ msgstr "Afslut"
 
-#: plugins/mpeg/mpeg.c:657 plugins/mpeg/mpeg.c:663
-msgid "Output video Mbits per second:"
-msgstr ""
+#~ msgid "Edit the channel list"
+#~ msgstr "Rediger kanal listen"
 
-#: plugins/mpeg/mpeg.c:670
-msgid "Waiting for frames..."
-msgstr ""
+#~ msgid "Switch to Teletext mode"
+#~ msgstr "Skift til Tekst-tv"
 
-#: plugins/mpeg/mpeg.c:1092 plugins/mpeg/mpeg.c:1123 plugins/mpeg/mpeg.c:1187
-#: plugins/mpeg/mpeg.c:1228
-msgid "MPEG"
-msgstr "MPEG"
-
-#: plugins/mpeg/mpeg.c:1113
-msgid ""
-"This is the first time you run the plugin,\n"
-"please take a moment to configure it to your tastes.\n"
-msgstr ""
+#~ msgid "Up"
+#~ msgstr "Op"
 
-#: plugins/mpeg/mpeg.c:1116
-msgid "Open preferences"
-msgstr "Åben præferencer"
+#~ msgid "Show toolbar as:"
+#~ msgstr "Vis vÃ¦rktÃ¸jslinje som:"
 
-#: plugins/mpeg/mpeg.c:1213
-msgid "Start recording"
-msgstr "Start optagning"
+#~ msgid "Text"
+#~ msgstr "Tekst"
 
-#: plugins/mpeg/mpeg.c:1264
-msgid "Record as MPEG"
-msgstr "Optag som MPEG"
+#~ msgid "Icons and text"
+#~ msgstr "Ikoner og tekst"
 
-#: plugins/mpeg/mpeg.c:1697
-#, c-format
-msgid "Format %s is incomplete, please configure the video or audio codec."
-msgstr ""
+#~ msgid "_Start Plugin"
+#~ msgstr "_Start Plugin"
 
-#: plugins/mpeg/mpeg.c:1883
-#, c-format
-msgid ""
-"Cannot create destination directory:\n"
-"%s\n"
-"%s"
-msgstr ""
-"Kan ikke oprette destinations mappe:\n"
-"%s\n"
-"%s"
-
-#: plugins/mpeg/mpeg.c:1895
-#, c-format
-msgid "Cannot create file %s: %s\n"
-msgstr "Kan ikke oprette fil %s: %s\n"
-
-#: plugins/mpeg/mpeg.c:2734 plugins/mpeg/mpeg.c:3190 plugins/mpeg/mpeg.c:3214
-#: plugins/mpeg/mpeg.c:3324 plugins/mpeg/mpeg_strings.c:34
-#: plugins/mpeg/mpeg_strings.c:41
-msgid "Record"
-msgstr "Optag"
-
-#: plugins/mpeg/mpeg.c:2991
-msgid "Not implemented yet"
-msgstr "Ikke implementeret endnu"
-
-#: plugins/mpeg/mpeg.c:3174
-msgid "Recording dialog"
-msgstr "Optagelse-dialog"
-
-#: plugins/mpeg/mpeg.c:3265
-msgid "Audio/Video Recorder"
-msgstr "Lyd/Billede Optager"
-
-#: plugins/mpeg/mpeg.c:3268
-msgid "This plugin records video and audio into a file"
-msgstr "Dette plugin optager billede og lyd til en fil"
-
-#: plugins/mpeg/mpeg.c:3271
-msgid "Record video and audio."
-msgstr "Optag billede og lyd"
-
-#: plugins/mpeg/mpeg_strings.c:8
-msgid "What to do with the compressed stream"
-msgstr ""
+#~ msgid "S_top Plugin"
+#~ msgstr "S_top Plugin"
 
-#: plugins/mpeg/mpeg_strings.c:9
-msgid "Save to file"
-msgstr "Gem til fil"
+#~ msgid "Plugin description"
+#~ msgstr "Plugin beskrivelse"
 
-#: plugins/mpeg/mpeg_strings.c:10
-msgid "/dev/null"
-msgstr "/dev/null"
+#~ msgid "This is the file where the plugin is located"
+#~ msgstr "Dette er filen hvor plugin'et er placeret"
 
-#: plugins/mpeg/mpeg_strings.c:11
-msgid "Write the encoded stream to:"
-msgstr ""
+#~ msgid "Description of the symbol"
+#~ msgstr "Beskrivelse af symbolet"
 
-#: plugins/mpeg/mpeg_strings.c:12
-msgid "MPEG file destination"
-msgstr "MPEG fil-destionation"
+#~ msgid "Resize to 720x576"
+#~ msgstr "Ã†ndr billedstÃ¸rrelse til 720x576"
 
-#: plugins/mpeg/mpeg_strings.c:13
-msgid "Sets the dir where the encoded clips will be written to"
-msgstr ""
+#~ msgid "Resize to 640x480"
+#~ msgstr "Ã†ndr billedstÃ¸rrelse til 640x480"
 
-#: plugins/mpeg/mpeg_strings.c:14
-msgid "Engine verbosity (output goes to stderr):"
-msgstr ""
+#~ msgid "Resize to 384x288"
+#~ msgstr "Ã†ndr billedstÃ¸rrelse til 384x288"
 
-#: plugins/mpeg/mpeg_strings.c:15
-msgid "Input / output"
-msgstr "Ind / Ud"
-
-#: plugins/mpeg/mpeg_strings.c:16 plugins/mpeg/mpeg_strings.c:20
-#: plugins/mpeg/mpeg_strings.c:46 plugins/mpeg/mpeg_strings.c:48
-#: plugins/mpeg/mpeg_strings.c:52
-msgid "Codec:"
-msgstr ""
+#~ msgid "Resize to 352x288"
+#~ msgstr "Ã†ndr billedstÃ¸rrelse til 352x288"
 
-#: plugins/mpeg/mpeg_strings.c:17 plugins/mpeg/mpeg_strings.c:49
-msgid "Capture Width:"
-msgstr "Fang Bredde:"
+#~ msgid "Resize to 320x240"
+#~ msgstr "Ã†ndr billedstÃ¸rrelse til 320x240"
 
-#: plugins/mpeg/mpeg_strings.c:18 plugins/mpeg/mpeg_strings.c:50
-msgid "Capture Height:"
-msgstr "Fang Højde:"
+#~ msgid "No tables"
+#~ msgstr "Ingen tabeller"
 
-#: plugins/mpeg/mpeg_strings.c:22
-msgid "Saving MPEG"
-msgstr "Gemmer MPEG"
+#~ msgid "Select here the channel you want to tune"
+#~ msgstr "VÃ¦lg her den kanal du vil indstille"
 
-#: plugins/mpeg/mpeg_strings.c:23
-msgid "Press this when you are done"
-msgstr "Tryk på denne når du er færdig"
+#~ msgid "Country"
+#~ msgstr "Land"
 
-#: plugins/mpeg/mpeg_strings.c:24
-msgid "RTE id (for debugging)"
-msgstr ""
+#~ msgid "Move selected channels one row up"
+#~ msgstr "Flyt valgte kanaler en rÃ¦kke op"
 
-#: plugins/mpeg/mpeg_strings.c:25
-msgid "Destination"
-msgstr "Destination"
+#~ msgid "Move selected channels one row down"
+#~ msgstr "Flyt valgte kanaler en rÃ¦kke ned"
 
-#: plugins/mpeg/mpeg_strings.c:26
-msgid "Mux mode"
-msgstr ""
+#~ msgid "Delete selected channels"
+#~ msgstr "Fjern valgte kanaler"
 
-#: plugins/mpeg/mpeg_strings.c:27
-msgid "Some more info: bit rates"
-msgstr ""
+#~ msgid "_Add as a new channel"
+#~ msgstr "TilfÃ¸j som en ny kanal"
 
-#: plugins/mpeg/mpeg_strings.c:28
-msgid "Dynamic stats (dropped, output M's, etc)"
-msgstr ""
+#~ msgid "Channel: <yellow>%s</yellow>"
+#~ msgstr "Kanal: <yellow>%s</yellow>"
 
-#: plugins/mpeg/mpeg_strings.c:29
-msgid "Save mpeg"
-msgstr "Gem mpeg"
+#~ msgid "Autodetect"
+#~ msgstr "Autodetekter"
 
-#: plugins/mpeg/mpeg_strings.c:32
-msgid "Destination file:"
-msgstr "Destinations fil:"
+#~ msgid "Recording source:"
+#~ msgstr "Kilde til optagning"
 
-#: plugins/mpeg/mpeg_strings.c:37
-msgid "Configure..."
-msgstr "Konfigurer..."
+#~ msgid "Recording volume:"
+#~ msgstr "Lydstyrke for optagning"
 
-#: plugins/mpeg/mpeg_strings.c:40
-msgid "Stop"
-msgstr "Stop"
+#~ msgid "How to show extra info:"
+#~ msgstr "Hvordan der skal vises ekstra info:"
 
-#: plugins/mpeg/mpeg_strings.c:42
-msgid "Pause"
-msgstr "Pause"
+#~ msgid "_Search page cache..."
+#~ msgstr "SÃ¸g side mellemlagret (cache)..."
 
-#: plugins/mpeg/mpeg_strings.c:47
-msgid "File format"
-msgstr "Fil format"
+#~ msgid "Search backwards for the previous match"
+#~ msgstr "SÃ¸g baglÃ¦ns til forrige resultat"
 
-#: plugins/mpeg/mpeg_strings.c:54
-msgid "New Format"
-msgstr "Nyt Format:"
+#~ msgid "Search forwards for the next match"
+#~ msgstr "SÃ¸g forlÃ¦ns til nÃ¦ste resultat"
 
-#: plugins/mpeg/mpeg_strings.c:55
-msgid "Format name:"
-msgstr "Format navn:"
+#~ msgid "Record as MPEG"
+#~ msgstr "Optag som MPEG"

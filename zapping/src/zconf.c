@@ -34,9 +34,9 @@
 #endif
 
 #include <gnome.h>
-#include <tree.h> /* libxml */
-#include <parser.h> /* libxml */
-#include <xmlmemory.h> /* libxml */
+#include <libxml/tree.h>
+#include <libxml/parser.h>
+#include <libxml/xmlmemory.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -47,20 +47,7 @@
 #include "zconf.h"
 #include "zmisc.h" /* Misc common stuff */
 #include "zmodel.h"
-
-/*
-  Work around these little annoying incompatibilities between libxml 1
-  and 2
-*/
-#ifdef LIBXML_CHILDS
-#define children childs
-#endif
-
-#ifndef LIBXML_xmlDocGetRootElement
-/* Some people don't need this defines, but need the ones above */
-#define xmlDocSetRootElement(doc, node) (doc->root = node)
-#define xmlDocGetRootElement(doc) (doc->root)
-#endif
+#include "globals.h"
 
 /*
   This defines a key in the configuration tree.
@@ -186,7 +173,7 @@ gboolean
 zconf_init(const gchar * domain)
 {
   /* Hold here the home dir */
-  gchar * home_dir = g_get_home_dir();
+  const gchar * home_dir = g_get_home_dir();
   gchar * buffer = NULL; /* temporal storage */
   DIR * config_dir;
   xmlDocPtr doc;
@@ -203,7 +190,7 @@ zconf_init(const gchar * domain)
     {
       buffer = g_strconcat(domain,
 			   " cannot determine your home dir", NULL);
-      RunBox(buffer, GNOME_MESSAGE_BOX_ERROR);
+      RunBox(buffer, GTK_MESSAGE_ERROR);
       g_free(buffer);
       return FALSE;
     }
@@ -217,7 +204,7 @@ zconf_init(const gchar * domain)
 		S_IXGRP | S_IROTH | S_IXOTH) == -1)
 	{
 	  RunBox("Cannot create config home dir, check your permissions",
-		  GNOME_MESSAGE_BOX_ERROR);
+		  GTK_MESSAGE_ERROR);
 	  g_free(buffer);
 	  return FALSE;
 	}
@@ -225,7 +212,7 @@ zconf_init(const gchar * domain)
       if (!config_dir)
 	{
 	  RunBox("Cannot open config home dir, this is weird",
-		  GNOME_MESSAGE_BOX_ERROR);
+		  GTK_MESSAGE_ERROR);
 	  g_free(buffer);
 	  return FALSE;
 	}
@@ -325,11 +312,11 @@ gboolean zconf_close(void)
   /* and we destroy the zconf tree */
   zconf_root = p_zconf_cut_branch(zconf_root);
 
-  if (xmlSaveFile(zconf_file, doc) == -1)
+  if (xmlSaveFormatFile(zconf_file, doc, TRUE) == -1)
     {
       ShowBox("Zapping cannot save configuration to disk\n"
 	      "You should have write permissions to your home dir...",
-	      GNOME_MESSAGE_BOX_ERROR);
+	      GTK_MESSAGE_ERROR);
       return FALSE; /* Error */
     }
 
@@ -505,7 +492,7 @@ void zconf_create_integer(gint new_value, const gchar * desc,
   if where is not NULL, zconf will g_strdup the string itself, and
   place a pointer to it in where, that should be freed later with g_free.
 */
-gchar * zconf_get_string(gchar ** where, const gchar * path)
+const gchar * zconf_get_string(gchar ** where, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -1206,8 +1193,8 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
     }
 
   /* Create and clear the struct */
-  new_key = g_malloc(sizeof(struct zconf_key));
-  memset(new_key, 0, sizeof(struct zconf_key));
+  new_key = g_malloc0(sizeof(*new_key));
+
   new_key -> parent = parent;
   new_key -> full_path = full_name;
   new_key -> name = g_strdup(name);
@@ -1356,7 +1343,7 @@ p_zconf_cut_branch(struct zconf_key * key)
   g_free(key -> contents);
   g_free(key -> description);
   if (key->model)
-    gtk_object_destroy(GTK_OBJECT(key->model));
+    g_object_unref(G_OBJECT(key->model));
 
   for (p = g_list_first(key->hooked); p; p = p->next)
     {
@@ -1567,8 +1554,8 @@ p_zconf_create(const gchar * key, struct zconf_key * starting_dir)
     }
 
   /* The child didn't exist, create it */
-  sub_key = (struct zconf_key*) g_malloc(sizeof(struct zconf_key));
-  memset(sub_key, 0, sizeof(struct zconf_key));
+  sub_key = g_malloc0(sizeof(*sub_key));
+
   sub_key -> name = g_strdup(key_name_2);
   ptr = starting_dir -> full_path;
   g_assert(ptr != NULL);
@@ -1590,10 +1577,10 @@ p_zconf_create(const gchar * key, struct zconf_key * starting_dir)
 
 /* HOOKS HANDLING */
 static
-void on_key_model_changed		(GtkObject	*model,
+void on_key_model_changed		(GObject	*model,
 					 struct	zconf_hook *hook)
 {
-  struct zconf_key *key = gtk_object_get_user_data(model);
+  struct zconf_key *key = g_object_get_data(model, "key");
 
   g_assert(key != NULL);
   g_assert(hook != NULL);
@@ -1603,7 +1590,8 @@ void on_key_model_changed		(GtkObject	*model,
 }
 
 static struct zconf_hook*
-real_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
+real_add_hook(const gchar * key_name, ZConfHook callback, gpointer data,
+	      gboolean wakeup)
 {
   struct zconf_key *key;
   struct zconf_hook *hook;
@@ -1622,7 +1610,7 @@ real_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
   if (!key->model)
     {
       key->model = ZMODEL(zmodel_new());
-      gtk_object_set_user_data(GTK_OBJECT(key->model), key);
+      g_object_set_data(G_OBJECT(key->model), "key", key);
     }
 
   hook = g_malloc(sizeof(struct zconf_hook));
@@ -1633,9 +1621,12 @@ real_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
 
   key->hooked = g_list_append(key->hooked, hook);
 
-  gtk_signal_connect(GTK_OBJECT(key->model), "changed",
-		     GTK_SIGNAL_FUNC(on_key_model_changed),
-		     hook);
+  g_signal_connect(G_OBJECT(key->model), "changed",
+		   G_CALLBACK(on_key_model_changed),
+		   hook);
+
+  if (wakeup)
+    callback(key->full_path, key->contents, data);
 
   return hook;
 }
@@ -1643,11 +1634,11 @@ real_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
 void
 zconf_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
 {
-  real_add_hook(key_name, callback, data);
+  real_add_hook(key_name, callback, data, FALSE);
 }
 
 static void
-on_object_hook_destroyed	(GtkObject	*object,
+on_object_hook_destroyed	(GObject	*object,
 				 struct zconf_hook *hook)
 {
   struct zconf_key *key;
@@ -1665,20 +1656,21 @@ on_object_hook_destroyed	(GtkObject	*object,
 }
 
 void
-zconf_add_hook_while_alive(GtkObject *object,
+zconf_add_hook_while_alive(GObject *object,
 			   const gchar * key_name,
 			   ZConfHook callback,
-			   gpointer data)
+			   gpointer data,
+			   gboolean wakeup)
 {
   struct zconf_hook *hook =
-    real_add_hook(key_name, callback, data);
+    real_add_hook(key_name, callback, data, wakeup);
 
   if (!hook)
     return;
 
-  gtk_signal_connect(GTK_OBJECT(object), "destroy",
-		     GTK_SIGNAL_FUNC(on_object_hook_destroyed),
-		     hook);
+  g_signal_connect(object, "destroy",
+		   G_CALLBACK(on_object_hook_destroyed),
+		   hook);
 }
 
 void
@@ -1722,9 +1714,12 @@ zconf_remove_hook(const gchar * key_name, ZConfHook callback, gpointer data)
   g_free(hook->key);
   key->hooked = g_list_remove(key->hooked, hook);
 
-  gtk_signal_disconnect_by_func(GTK_OBJECT(key->model),
-				GTK_SIGNAL_FUNC(on_key_model_changed),
-				hook);
+  g_signal_handlers_disconnect_matched (key->model,
+					G_SIGNAL_MATCH_FUNC |
+					G_SIGNAL_MATCH_DATA,
+					0, 0, NULL,
+					on_key_model_changed,
+					hook);
 
   g_free(hook);
 }
@@ -1749,4 +1744,46 @@ zconf_touch(const gchar * key_name)
     return;
 
   zmodel_changed(key->model);
+}
+
+/*
+ *  Generic hooks
+ */
+
+void
+zconf_hook_widget_show		(const gchar *		key,
+				 gpointer		new_value_ptr,
+				 gpointer		user_data)
+{
+  gboolean show = * (gboolean *) new_value_ptr;
+  GtkWidget *widget = user_data;
+
+  if (show)
+    gtk_widget_show (widget);
+  else
+    gtk_widget_hide (widget);
+}
+
+void
+zconf_hook_toggle_button	(const gchar *		key,
+				 gpointer		new_value_ptr,
+				 gpointer		user_data)
+{
+  gboolean active = * (gboolean *) new_value_ptr;
+  GtkToggleButton *toggle_button = user_data;
+
+  if (active != gtk_toggle_button_get_active (toggle_button))
+    gtk_toggle_button_set_active (toggle_button, active);
+}
+
+void
+zconf_hook_check_menu		(const gchar *		key,
+				 gpointer		new_value_ptr,
+				 gpointer		user_data)
+{
+  gboolean active = * (gboolean *) new_value_ptr;
+  GtkCheckMenuItem *item = user_data;
+
+  if (active != item->active)
+    gtk_check_menu_item_set_active (item, active);
 }

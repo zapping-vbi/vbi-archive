@@ -24,7 +24,8 @@ static void dump_list();
 static int fd;
 static struct sockaddr_un addr;
 static int lirc_page;
-static int last_row = -1; /* last selected row in property dialog */
+static GtkTreePath *last_row = NULL; /* last selected row in
+					property dialog */
 
 static GtkWidget *lirc_actionlist;
 static GtkWidget *lirc_edit_button;
@@ -33,16 +34,13 @@ static GtkWidget *lirc_combo_action;
 
 static GtkWidget* create_lirc_properties (GtkWidget *lirc_properties);
 
-static void on_lirc_actionlist_select_row(GtkCList *clist, gint row,
-					 gint column,
-					 GdkEvent *event, gpointer user_data);
+static void on_lirc_actionlist_cursor_changed (GtkTreeView *v,
+					       gpointer user_data);
 
 static void on_lirc_button_add_clicked(GtkButton *button, gpointer user_data);
 static void on_lirc_button_delete_clicked(GtkButton *button, gpointer
 					  user_data);
 
-
-static void set_channel(int c);
 
 static void *lirc_thread(void *dummy);
 

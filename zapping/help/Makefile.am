@@ -1,3 +1,6 @@
 ## Process this file with automake to produce Makefile.in.
 
-SUBDIRS = C de man
+SUBDIRS = man
+# C
+
+# EXTRA_DIST = omf.make xmldocs.make

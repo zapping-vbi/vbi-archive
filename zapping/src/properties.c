@@ -34,6 +34,11 @@
  *	- Similarly for help and cancel.
  *	- The rest of the housekeeping is left to the handlers.
  */
+
+/* XXX gtk+ 2.3 GtkOptionMenu, Gnome entry, font picker, color picker */
+#undef GTK_DISABLE_DEPRECATED
+#undef GNOME_DISABLE_DEPRECATED
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -46,10 +51,11 @@
 #include "interface.h"
 #include "properties.h"
 #include "zmisc.h"
+#include "remote.h"
 
 extern GtkWidget * main_window;
 
-static GnomeDialog *PropertiesDialog = NULL; /* Only you.. */
+static GtkDialog *PropertiesDialog = NULL; /* Only you.. */
 static property_handler *handlers = NULL;
 static gint num_handlers = 0;
 
@@ -58,26 +64,25 @@ static gint num_handlers = 0;
  * dirty and set Apply sensitive.
  */
 static void
-page_modified			(GnomeDialog	*dialog,
+page_modified			(GtkDialog	*dialog,
 				 gint		page_id)
 {
   GtkNotebook *notebook = GTK_NOTEBOOK
     (lookup_widget(GTK_WIDGET(dialog), "properties-notebook"));
   GtkWidget *page = gtk_notebook_get_nth_page(notebook, page_id);
 
-  gtk_object_set_data(GTK_OBJECT(page), "properties-dirty",
-		      GINT_TO_POINTER(TRUE));
+  g_object_set_data(G_OBJECT(page), "properties-dirty",
+		    GINT_TO_POINTER(TRUE));
 
-  gtk_widget_set_sensitive(lookup_widget(GTK_WIDGET(dialog), "apply"),
-			   TRUE);
+  gtk_dialog_set_response_sensitive(dialog, GTK_RESPONSE_APPLY, TRUE);
 }
 
 static void
 modify_page			(GtkWidget	*widget,
 				 gpointer	page_id_ptr)
 {
-  GnomeDialog *dialog = GNOME_DIALOG
-    (gtk_object_get_data(GTK_OBJECT(widget), "modify_page_dialog"));
+  GtkDialog *dialog = GTK_DIALOG
+    (g_object_get_data(G_OBJECT(widget), "modify_page_dialog"));
   gint page_id = GPOINTER_TO_INT(page_id_ptr);
 
   page_modified(dialog, page_id);
@@ -103,30 +108,8 @@ z_property_item_modified	(GtkWidget	*widget)
       return;
     }
 
-  page_modified(GNOME_DIALOG(gtk_widget_get_toplevel(notebook)),
+  page_modified(GTK_DIALOG(gtk_widget_get_toplevel(notebook)),
 		gtk_notebook_page_num(GTK_NOTEBOOK(notebook), widget));
-}
-
-static void
-on_option_menu_modify		(GtkWidget	*menu,
-				 gpointer	page_id_ptr)
-{
-  GtkWidget *omenu = GTK_WIDGET
-    (gtk_object_get_data(GTK_OBJECT(menu), "properties-menu-parent"));
-  gint last_status = GPOINTER_TO_INT
-    (gtk_object_get_data(GTK_OBJECT(menu), "properties-last-status"));
-  GnomeDialog *dialog = GNOME_DIALOG
-    (gtk_object_get_data(GTK_OBJECT(menu), "modify_page_dialog"));
-  gint page_id = GPOINTER_TO_INT(page_id_ptr);
-  gint status = z_option_menu_get_active(omenu);
-
-  if (status != last_status)
-    {
-      gtk_signal_emit_by_name(GTK_OBJECT(omenu), "changed", status);
-      gtk_object_set_data(GTK_OBJECT(menu), "properties-last-status",
-			  GINT_TO_POINTER(status));
-      page_modified(dialog, page_id);
-    }
 }
 
 static void
@@ -134,8 +117,8 @@ font_set_bridge	(GtkWidget	*widget,
 		 const gchar	*new_font,
 		 gpointer	page_id_ptr)
 {
-  GnomeDialog *dialog = GNOME_DIALOG
-    (gtk_object_get_data(GTK_OBJECT(widget), "modify_page_dialog"));
+  GtkDialog *dialog = GTK_DIALOG
+    (g_object_get_data(G_OBJECT(widget), "modify_page_dialog"));
   gint page_id = GPOINTER_TO_INT(page_id_ptr);
 
   page_modified(dialog, page_id);
@@ -149,8 +132,8 @@ color_set_bridge (GtkWidget	*widget,
 		  guint		a,
 		  gpointer	page_id_ptr)
 {
-  GnomeDialog *dialog = GNOME_DIALOG
-    (gtk_object_get_data(GTK_OBJECT(widget), "modify_page_dialog"));
+  GtkDialog *dialog = GTK_DIALOG
+    (g_object_get_data(G_OBJECT(widget), "modify_page_dialog"));
   gint page_id = GPOINTER_TO_INT(page_id_ptr);
 
   page_modified(dialog, page_id);
@@ -161,13 +144,13 @@ color_set_bridge (GtkWidget	*widget,
  * page_modifed call.
  */
 static void
-autoconnect_modify		(GnomeDialog	*dialog,
+autoconnect_modify		(GtkDialog	*dialog,
 				 GtkWidget	*widget,
 				 gint		page_id)
 {
   if (GTK_IS_CONTAINER(widget))
     {
-      GList *children = gtk_container_children(GTK_CONTAINER(widget));
+      GList *children = gtk_container_get_children(GTK_CONTAINER(widget));
       while (children)
 	{
 	  autoconnect_modify(dialog, GTK_WIDGET(children->data),
@@ -188,59 +171,45 @@ autoconnect_modify		(GnomeDialog	*dialog,
     }
   else if (GTK_IS_TOGGLE_BUTTON(widget))
     {
-      gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-			 GTK_SIGNAL_FUNC(modify_page),
-			 GINT_TO_POINTER(page_id));
+      g_signal_connect(G_OBJECT(widget), "toggled",
+		       G_CALLBACK(modify_page),
+		       GINT_TO_POINTER(page_id));
     }
   else if (GTK_IS_ENTRY(widget))
     {
-      gtk_signal_connect(GTK_OBJECT(widget), "changed",
-			 GTK_SIGNAL_FUNC(modify_page),
-			 GINT_TO_POINTER(page_id));      
+      g_signal_connect(G_OBJECT(widget), "changed",
+		       G_CALLBACK(modify_page),
+		       GINT_TO_POINTER(page_id));      
     }
   else if (GTK_IS_OPTION_MENU(widget))
     {
-      GtkWidget *omenu = widget; /* option menu */
-      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
-
-      /* Do not mark as dirty when we don't modify the option menu
-	 status */
-      gtk_object_set_data(GTK_OBJECT(widget), "properties-last-status",
-			  GINT_TO_POINTER
-			  (z_option_menu_get_active(omenu)));
-
-      /* Let the menu know it's parent */
-      gtk_object_set_data(GTK_OBJECT(widget), "properties-menu-parent",
-			  omenu);
-
-      gtk_signal_connect(GTK_OBJECT(widget),
-			 "deactivate",
-			 GTK_SIGNAL_FUNC(on_option_menu_modify),
-			 GINT_TO_POINTER(page_id));
+      g_signal_connect(G_OBJECT(widget), "changed",
+		       G_CALLBACK(modify_page),
+		       GINT_TO_POINTER(page_id));      
     }
   else if (GNOME_IS_FONT_PICKER(widget))
     {
-      gtk_signal_connect(GTK_OBJECT(widget), "font-set",
-			 GTK_SIGNAL_FUNC(font_set_bridge),
-			 GINT_TO_POINTER(page_id));
+      g_signal_connect(G_OBJECT(widget), "font-set",
+		       G_CALLBACK(font_set_bridge),
+		       GINT_TO_POINTER(page_id));
     }
   else if (GNOME_IS_COLOR_PICKER(widget))
     {
-      gtk_signal_connect(GTK_OBJECT(widget), "color-set",
-			 GTK_SIGNAL_FUNC(color_set_bridge),
-			 GINT_TO_POINTER(page_id));
+      g_signal_connect(G_OBJECT(widget), "color-set",
+		       G_CALLBACK(color_set_bridge),
+		       GINT_TO_POINTER(page_id));
     }
   else if (GTK_IS_RANGE(widget))
     {
       /* Weird cast to spare some useless code */
       widget = (GtkWidget*)gtk_range_get_adjustment(GTK_RANGE(widget));
-      gtk_signal_connect(GTK_OBJECT(widget),
-			 "value-changed",
-			 GTK_SIGNAL_FUNC(modify_page),
-			 GINT_TO_POINTER(page_id));
+      g_signal_connect(G_OBJECT(widget),
+		       "value-changed",
+		       G_CALLBACK(modify_page),
+		       GINT_TO_POINTER(page_id));
     }
 
-  gtk_object_set_data(GTK_OBJECT(widget), "modify_page_dialog", dialog);
+  g_object_set_data(G_OBJECT(widget), "modify_page_dialog", dialog);
 }
 
 /**
@@ -262,7 +231,8 @@ find_selected_group		(GtkWidget	*widget,
 
   if (GTK_WIDGET_VISIBLE(widget))
     *group =
-      (g_list_index(gtk_container_children(group_container), widget)-1)/2;
+      (g_list_index(gtk_container_get_children(group_container),
+		    widget)-1)/2;
 }
 
 /**
@@ -275,8 +245,9 @@ nth_group_contents		(gpointer	dialog,
   GtkContainer *group_container = GTK_CONTAINER
     (lookup_widget(GTK_WIDGET(dialog), "group-container"));
 
-  return GTK_WIDGET((g_list_nth_data(gtk_container_children(group_container),
-				     2*n + 2)));
+  return GTK_WIDGET((g_list_nth_data
+		     (gtk_container_get_children(group_container),
+		      2*n + 2)));
 }
 
 /* Gets the currently selected group and item, or sets to -1 both
@@ -295,14 +266,14 @@ get_cur_sel			(GtkWidget	*dialog,
   *group = *item = -1;
 
   gtk_container_foreach(group_container,
-			GTK_SIGNAL_FUNC(find_selected_group),
+			(GtkCallback)find_selected_group,
 			group);
 
   if (*group == -1)
     return; /* Nothing shown yet */
   
   group_widget = nth_group_contents(dialog, *group);
-  group_list = gtk_object_get_data(GTK_OBJECT(group_widget), "group_list");
+  group_list = g_object_get_data(G_OBJECT(group_widget), "group_list");
 
   while (group_list)
     {
@@ -330,7 +301,7 @@ get_properties_page		(GtkWidget	*sth,
 }
 
 static void
-generic_apply			(GnomeDialog	*dialog)
+generic_apply			(GtkDialog	*dialog)
 {
   gint i = 0;
   GtkWidget *page;
@@ -338,19 +309,19 @@ generic_apply			(GnomeDialog	*dialog)
     GTK_NOTEBOOK(lookup_widget(GTK_WIDGET(dialog), "properties-notebook"));
 
   while ((page = gtk_notebook_get_nth_page(notebook, i++)))
-    if (gtk_object_get_data(GTK_OBJECT(page), "properties-dirty"))
+    if (g_object_get_data(G_OBJECT(page), "properties-dirty"))
       {
 	property_handler *handler = (property_handler*)
-	  gtk_object_get_data(GTK_OBJECT(page), "property-handler");
+	  g_object_get_data(G_OBJECT(page), "property-handler");
 
 	handler->apply(dialog, page);
 
-	gtk_object_set_data(GTK_OBJECT(page), "properties-dirty", NULL);
+	g_object_set_data(G_OBJECT(page), "properties-dirty", NULL);
       }
 }
 
 static void
-generic_cancel			(GnomeDialog	*dialog)
+generic_cancel			(GtkDialog	*dialog)
 {
   gint i = 0;
   GtkWidget *page;
@@ -360,52 +331,24 @@ generic_cancel			(GnomeDialog	*dialog)
   while ((page = gtk_notebook_get_nth_page(notebook, i++)))
     {
       property_handler *handler = (property_handler*)
-	gtk_object_get_data(GTK_OBJECT(page), "property-handler");
+	g_object_get_data(G_OBJECT(page), "property-handler");
 
       if (handler && handler->cancel)
 	handler->cancel(dialog, page);
 
-      gtk_object_set_data(GTK_OBJECT(page), "properties-dirty", NULL);
+      g_object_set_data(G_OBJECT(page), "properties-dirty", NULL);
     }
 }
 
 static void
-on_properties_ok_clicked	(GtkWidget	*button,
-				 GnomeDialog	*dialog)
-{
-  generic_apply(dialog);
-
-  gnome_dialog_close(dialog);
-}
-
-static void
-on_properties_apply_clicked	(GtkWidget	*button,
-				 GnomeDialog	*dialog)
-{
-  gtk_widget_set_sensitive(button, FALSE);
-
-  generic_apply(dialog);
-}
-
-static void
-on_properties_cancel_clicked	(GtkWidget	*button,
-				 GnomeDialog	*dialog)
-{
-  generic_cancel(dialog);
-
-  gnome_dialog_close(dialog);
-}
-
-static void
-on_properties_help_clicked	(GtkWidget	*button,
-				 GnomeDialog	*dialog)
+generic_help			(GtkDialog	*dialog)
 {
   GtkNotebook *notebook =
-    GTK_NOTEBOOK(lookup_widget(button, "properties-notebook"));
-  gint cur_page = gtk_notebook_current_page(notebook);
+    GTK_NOTEBOOK(lookup_widget(GTK_WIDGET (dialog), "properties-notebook"));
+  gint cur_page = gtk_notebook_get_current_page(notebook);
   GtkWidget *page = gtk_notebook_get_nth_page(notebook, cur_page);
   property_handler *handler = (property_handler*)
-    gtk_object_get_data(GTK_OBJECT(page), "property-handler");
+    g_object_get_data(G_OBJECT(page), "property-handler");
 
   if (!handler)
     {
@@ -417,9 +360,8 @@ on_properties_help_clicked	(GtkWidget	*button,
   handler->help(dialog, page);
 }
 
-static gint
-on_properties_close		(GtkWidget	*dialog,
-				 gpointer	unused)
+static void
+generic_close			(GtkWidget	*dialog)
 {
   gint cur_group, cur_item;
   gchar *group_name = NULL;
@@ -428,13 +370,41 @@ on_properties_close		(GtkWidget	*dialog,
   get_cur_sel(dialog, &cur_group, &cur_item);
 
   if (cur_group != -1 &&
-      (group_name = gtk_object_get_data(GTK_OBJECT
-		(nth_group_contents(dialog, cur_group)), "group-name")))
+      (group_name = g_object_get_data(G_OBJECT
+				      (nth_group_contents(dialog, cur_group)), "group-name")))
     zcs_char(group_name, "last_group");
 
   PropertiesDialog = NULL;
+}
 
-  return FALSE; /* done */
+static void
+on_properties_response		(GtkDialog	*dialog,
+				 gint		response,
+				 gpointer	unused)
+{
+  switch (response)
+    {
+    case GTK_RESPONSE_APPLY:
+      generic_apply (dialog);
+      gtk_dialog_set_response_sensitive (dialog, GTK_RESPONSE_APPLY, FALSE);
+      return; /* Do not destroy */
+    case GTK_RESPONSE_HELP:
+      generic_help (dialog);
+      return; /* Do not destroy */
+    case GTK_RESPONSE_OK:
+      generic_apply (dialog);
+      break;
+    case GTK_RESPONSE_CANCEL:
+      generic_cancel (dialog);
+      break;
+    default:
+      /* Some sort of delete event or similar */
+      break;
+    }
+
+  /* Remember settings and close */
+  generic_close (GTK_WIDGET (dialog));
+  gtk_widget_destroy (GTK_WIDGET (dialog));
 }
 
 /**
@@ -446,15 +416,15 @@ ensure_width			(GtkWidget	*widget,
 {
   GtkRequisition request;
   gint req_max_width = GPOINTER_TO_INT
-    (gtk_object_get_data(GTK_OBJECT(parent), "req_max_width"));
+    (g_object_get_data(G_OBJECT(parent), "req_max_width"));
 
   gtk_widget_size_request(widget, &request);
   if (request.width > req_max_width)
     {
       req_max_width = request.width;
-      gtk_object_set_data(GTK_OBJECT(parent), "req_max_width",
-			  GINT_TO_POINTER(req_max_width));
-      gtk_widget_set_usize(parent, req_max_width, -2);
+      g_object_set_data(G_OBJECT(parent), "req_max_width",
+			GINT_TO_POINTER(req_max_width));
+      gtk_widget_set_size_request(parent, req_max_width, -1);
     }
 }
 
@@ -473,10 +443,10 @@ on_container_add		(GtkWidget	*container,
   GtkRequisition request;
   /* Sum of all the buttons height up to now */
   gint req_button_height = GPOINTER_TO_INT
-    (gtk_object_get_data(GTK_OBJECT(sidebar), "req_button_height"));
+    (g_object_get_data(G_OBJECT(sidebar), "req_button_height"));
   /* Biggest subgroup allocated */
   gint req_max_height = GPOINTER_TO_INT
-    (gtk_object_get_data(GTK_OBJECT(sidebar), "req_max_height"));
+    (g_object_get_data(G_OBJECT(sidebar), "req_max_height"));
 
   /* Adding a new group */
   if (container == sidebar && GTK_IS_BUTTON(widget))
@@ -484,9 +454,10 @@ on_container_add		(GtkWidget	*container,
       gtk_widget_size_request(widget, &request);
 
       req_button_height += request.height;
-      gtk_object_set_data(GTK_OBJECT(sidebar), "req_button_height",
-			  GINT_TO_POINTER(req_button_height));
-      gtk_widget_set_usize(sidebar, -2, req_button_height + req_max_height);
+      g_object_set_data(G_OBJECT(sidebar), "req_button_height",
+			GINT_TO_POINTER(req_button_height));
+      gtk_widget_set_size_request(sidebar, -1,
+				  req_button_height + req_max_height);
     }
   /* Adding a new item to a group */
   else if (GTK_IS_BUTTON(widget))
@@ -497,10 +468,10 @@ on_container_add		(GtkWidget	*container,
       if (req_max_height < request.height)
 	{
 	  req_max_height = request.height;
-	  gtk_object_set_data(GTK_OBJECT(sidebar), "req_max_height",
-			      GINT_TO_POINTER(req_max_height));
-	  gtk_widget_set_usize(sidebar, -2, req_button_height +
-			       req_max_height);
+	  g_object_set_data(G_OBJECT(sidebar), "req_max_height",
+			    GINT_TO_POINTER(req_max_height));
+	  gtk_widget_set_size_request(sidebar, -1, req_button_height +
+				      req_max_height);
 	}
     }
 
@@ -515,11 +486,11 @@ on_radio_toggled		(GtkWidget	*selector,
     GTK_NOTEBOOK(lookup_widget(selector, "properties-notebook"));
   gint page_id = GPOINTER_TO_INT(page_id_ptr);
 
-  gtk_notebook_set_page(notebook, page_id);
+  gtk_notebook_set_current_page(notebook, page_id);
 }
 
 static void
-build_properties_contents	(GnomeDialog	*dialog)
+build_properties_contents	(GtkDialog	*dialog)
 {
   GtkWidget *hbox;
   GtkWidget *frame;
@@ -537,7 +508,7 @@ build_properties_contents	(GnomeDialog	*dialog)
   vbox = gtk_vbox_new(FALSE, 0);
   gtk_widget_show(vbox);
   gtk_container_add(GTK_CONTAINER(frame), vbox);
-  register_widget(vbox, "group-container");
+  register_widget(NULL, vbox, "group-container");
 
   /* Create a notebook for holding the pages. Note that we don't rely
      on any of the notebook's features, we select the active page
@@ -553,7 +524,7 @@ build_properties_contents	(GnomeDialog	*dialog)
   gtk_notebook_set_scrollable(notebook, FALSE);
   gtk_notebook_popup_disable(notebook);
   gtk_container_add(GTK_CONTAINER(frame), GTK_WIDGET(notebook));
-  register_widget(GTK_WIDGET(notebook), "properties-notebook");
+  register_widget(NULL, GTK_WIDGET(notebook), "properties-notebook");
 
   /* Put our logo when nothing is selected yet */
   if ((logo = z_load_pixmap ("logo.png")))
@@ -567,8 +538,8 @@ build_properties_contents	(GnomeDialog	*dialog)
   /* Add the nothing selected button */
   nsbutton = gtk_radio_button_new(NULL);
   gtk_box_pack_start(GTK_BOX(vbox), nsbutton, FALSE, TRUE, 0);
-  gtk_object_set_data(GTK_OBJECT(vbox), "group_list",
-		      gtk_radio_button_group(GTK_RADIO_BUTTON(nsbutton)));
+  g_object_set_data(G_OBJECT(vbox), "group_list",
+		    gtk_radio_button_get_group(GTK_RADIO_BUTTON(nsbutton)));
 
   /* Make property handlers build their pages */
   for (i = 0; i<num_handlers; i++)
@@ -577,8 +548,8 @@ build_properties_contents	(GnomeDialog	*dialog)
       handlers[i].add(dialog);
       while ((page = gtk_notebook_get_nth_page(notebook, page_count++)))
 	{
-	  gtk_object_set_data(GTK_OBJECT(page), "property-handler",
-			      handlers + i);
+	  g_object_set_data(G_OBJECT(page), "property-handler",
+			    handlers + i);
 	  /* Connect widgets in these pages to modify events */
 	  autoconnect_modify(dialog, page, page_count-1);
 	}
@@ -586,57 +557,47 @@ build_properties_contents	(GnomeDialog	*dialog)
     }
 }
 
+
+
 GtkWidget*
 build_properties_dialog			(void)
 {
-  GnomeDialog *dialog;
-  GtkWidget *apply_button;
-  enum {
-    OK_ID, APPLY_ID, CANCEL_ID, HELP_ID
-  };
+  GtkDialog *dialog;
+  GtkWidget *menuitem;
 
   if (PropertiesDialog)
     {
-      gdk_window_raise(GTK_WIDGET(PropertiesDialog)->window);
+      gtk_window_present (GTK_WINDOW (PropertiesDialog));
       return GTK_WIDGET(PropertiesDialog);
     }
 
-  dialog = GNOME_DIALOG(gnome_dialog_new(_("Zapping Properties"),
-					 GNOME_STOCK_BUTTON_OK,
-					 GNOME_STOCK_BUTTON_APPLY,
-					 GNOME_STOCK_BUTTON_CANCEL,
-					 GNOME_STOCK_BUTTON_HELP,
-					 NULL));
+  dialog = GTK_DIALOG(gtk_dialog_new_with_buttons
+		      (_("Zapping Properties"),
+		       GTK_WINDOW (main_window),
+		       GTK_DIALOG_DESTROY_WITH_PARENT,
+		       GTK_STOCK_OK, GTK_RESPONSE_OK,
+		       GTK_STOCK_APPLY, GTK_RESPONSE_APPLY,
+		       GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		       GTK_STOCK_HELP, GTK_RESPONSE_HELP,
+		       NULL));
 
-  /* We need this later on */
-  apply_button = GTK_WIDGET(g_list_nth_data(dialog->buttons, APPLY_ID));
-  register_widget(apply_button, "apply");
+  if (main_window)
+    {
+      menuitem = lookup_widget (main_window, "propiedades1");
+      gtk_widget_set_sensitive (menuitem, FALSE);
+      g_signal_connect_swapped (G_OBJECT (dialog), "destroy",
+				G_CALLBACK (gtk_widget_set_sensitive),
+				menuitem);
+    }
 
-  gtk_widget_set_sensitive(apply_button, FALSE);
+  gtk_dialog_set_response_sensitive(dialog, GTK_RESPONSE_APPLY, FALSE);
 
-  gtk_window_set_policy(GTK_WINDOW(dialog), FALSE, TRUE, FALSE);
-
-  gnome_dialog_set_default(dialog, OK_ID);
-  gnome_dialog_set_parent(dialog, GTK_WINDOW(main_window));
-  gnome_dialog_close_hides(dialog, FALSE); /* destroy on close */
-  gnome_dialog_set_close(dialog, FALSE);
+  gtk_dialog_set_default_response (dialog, GTK_RESPONSE_OK);
 
   /* Connect the appropiate callbacks */
-  gtk_signal_connect(GTK_OBJECT(dialog), "close",
-		     GTK_SIGNAL_FUNC(on_properties_close),
-		     NULL);
-  gnome_dialog_button_connect(dialog, OK_ID,
-			      GTK_SIGNAL_FUNC(on_properties_ok_clicked),
-			      dialog);
-  gnome_dialog_button_connect(dialog, APPLY_ID,
-			      GTK_SIGNAL_FUNC(on_properties_apply_clicked),
-			      dialog);
-  gnome_dialog_button_connect(dialog, CANCEL_ID,
-			      GTK_SIGNAL_FUNC(on_properties_cancel_clicked),
-			      dialog);
-  gnome_dialog_button_connect(dialog, HELP_ID,
-			      GTK_SIGNAL_FUNC(on_properties_help_clicked),
-			      dialog);
+  g_signal_connect (G_OBJECT (dialog), "response",
+		    G_CALLBACK (on_properties_response),
+		    NULL);
 
   PropertiesDialog = dialog;
 
@@ -650,7 +611,7 @@ build_properties_dialog			(void)
 }
 
 void
-append_properties_group		(GnomeDialog	*dialog,
+append_properties_group		(GtkDialog	*dialog,
 				 const gchar	*group)
 {
   GtkWidget *button;
@@ -666,25 +627,25 @@ append_properties_group		(GnomeDialog	*dialog,
   gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
   on_container_add(vbox, button, vbox);
   gtk_widget_show(button);
-  register_widget(button, buf);
-  gtk_signal_connect(GTK_OBJECT(button), "clicked",
-		     GTK_SIGNAL_FUNC(open_properties_group),
-		     (gpointer)group);
+  register_widget(NULL, button, buf);
+  g_signal_connect(G_OBJECT(button), "clicked",
+		   G_CALLBACK(open_properties_group),
+		   (gpointer)group);
   g_free(buf);
 
   buf = g_strdup_printf("group-contents-%s", group);
   contents = gtk_vbox_new(FALSE, 0);
   gtk_box_pack_start_defaults(GTK_BOX(vbox), contents);
-  gtk_object_set_data_full(GTK_OBJECT(contents), "group-name",
-			   g_strdup(group),
-			   g_free);
+  g_object_set_data_full(G_OBJECT(contents), "group-name",
+			 g_strdup(group),
+			 g_free);
   /* Note that we don't show() contents */
-  register_widget(contents, buf);
+  register_widget(NULL, contents, buf);
   g_free(buf);
 }
 
 void
-append_properties_page		(GnomeDialog	*dialog,
+append_properties_page		(GtkDialog	*dialog,
 				 const gchar	*group,
 				 const gchar	*label,
 				 GtkWidget	*pixmap,
@@ -694,8 +655,8 @@ append_properties_page		(GnomeDialog	*dialog,
   GtkWidget *contents = lookup_widget(GTK_WIDGET(dialog), buf);
   GtkWidget *radio;
   GtkWidget *container = lookup_widget(contents, "group-container");
-  GSList *group_list = gtk_object_get_data(GTK_OBJECT(container),
-					   "group_list");
+  GSList *group_list = g_object_get_data(G_OBJECT(container),
+					 "group_list");
   GtkWidget *notebook = lookup_widget(GTK_WIDGET(dialog),
 				      "properties-notebook");
   GtkWidget *vbox;
@@ -709,12 +670,12 @@ append_properties_page		(GnomeDialog	*dialog,
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new(""));
   page_id = gtk_notebook_page_num(GTK_NOTEBOOK(notebook), page);
 
-  gtk_signal_connect(GTK_OBJECT(radio), "toggled",
-		     GTK_SIGNAL_FUNC(on_radio_toggled),
-		     GINT_TO_POINTER(page_id));
+  g_signal_connect(G_OBJECT(radio), "toggled",
+		   G_CALLBACK(on_radio_toggled),
+		   GINT_TO_POINTER(page_id));
 
-  group_list = gtk_radio_button_group(GTK_RADIO_BUTTON(radio));
-  gtk_object_set_data(GTK_OBJECT(container), "group_list", group_list);
+  group_list = gtk_radio_button_get_group(GTK_RADIO_BUTTON(radio));
+  g_object_set_data(G_OBJECT(container), "group_list", group_list);
 
   vbox = gtk_vbox_new(FALSE, 0);
   gtk_container_add(GTK_CONTAINER(radio), vbox);
@@ -731,11 +692,11 @@ append_properties_page		(GnomeDialog	*dialog,
   g_free(buf);
 
   buf = g_strdup_printf("group-%s-item-%s", group, label);
-  register_widget(page, buf);
+  register_widget(NULL, page, buf);
   g_free(buf);
 
   buf = g_strdup_printf("group-%s-item-%s-radio", group, label);
-  register_widget(radio, buf);
+  register_widget(NULL, radio, buf);
   g_free(buf);
 }
 
@@ -774,7 +735,7 @@ open_properties_group		(GtkWidget	*dialog,
   if (cur_group == -1 ||
       nth_group_contents(dialog, cur_group) != contents)
     gtk_container_foreach(GTK_CONTAINER(group_container),
-			  GTK_SIGNAL_FUNC(show_hide_foreach),
+			  (GtkCallback)show_hide_foreach,
 			  contents);
 
   g_free(buf);
@@ -802,7 +763,7 @@ open_properties_page		(GtkWidget	*dialog,
 }
 
 void
-standard_properties_add		(GnomeDialog	*dialog,
+standard_properties_add		(GtkDialog	*dialog,
 				 SidebarGroup	*groups,
 				 gint		num_groups,
 				 const gchar	*glade_file)
@@ -818,28 +779,16 @@ standard_properties_add		(GnomeDialog	*dialog,
 	  GtkWidget *pixmap;
 	  GtkWidget *page;
 
-	  if (groups[i].items[j].icon_source ==	ICON_ZAPPING)
-	    {
-	      pixmap = z_load_pixmap (groups[i].items[j].icon_name);
-	    }
-	  else
-	    {
-	      gchar *pixmap_path = g_strdup (gnome_pixmap_file
-	      	(groups[i].items[j].icon_name)); /* FIXME: leak?? */
-
-	      pixmap = z_pixmap_new_from_file (pixmap_path);
-
-	      g_free(pixmap_path);
-	    }
+	  pixmap = z_load_pixmap (groups[i].items[j].icon_name);
 
 	  page = build_widget(groups[i].items[j].widget, glade_file);
 
-	  gtk_object_set_data(GTK_OBJECT(page), "apply",
-			      groups[i].items[j].apply);
-	  gtk_object_set_data(GTK_OBJECT(page), "help",
-			      groups[i].items[j].help);
-	  gtk_object_set_data(GTK_OBJECT(page), "cancel",
-			      groups[i].items[j].cancel);
+	  g_object_set_data(G_OBJECT(page), "apply",
+			    groups[i].items[j].apply);
+	  g_object_set_data(G_OBJECT(page), "help",
+			    groups[i].items[j].help);
+	  g_object_set_data(G_OBJECT(page), "cancel",
+			    groups[i].items[j].cancel);
 
 	  append_properties_page(dialog, _(groups[i].label),
 				 _(groups[i].items[j].label),
@@ -851,11 +800,11 @@ standard_properties_add		(GnomeDialog	*dialog,
 }
 
 static void
-apply				(GnomeDialog	*dialog,
+apply				(GtkDialog	*dialog,
 				 GtkWidget	*page)
 {
   void (*page_apply)(GtkWidget *page) =
-    gtk_object_get_data(GTK_OBJECT(page), "apply");
+    g_object_get_data(G_OBJECT(page), "apply");
 
   g_assert(page_apply != NULL);
 
@@ -863,31 +812,30 @@ apply				(GnomeDialog	*dialog,
 }
 
 static void
-help		(GnomeDialog	*dialog,
+help		(GtkDialog	*dialog,
 		 GtkWidget	*page)
 {
   void (*page_help)(GtkWidget *page) =
-    gtk_object_get_data(GTK_OBJECT(page), "help");
+    g_object_get_data(G_OBJECT(page), "help");
 
   if (page_help)
     page_help(page);
   else
-    ShowBox("No help written yet",
-	    GNOME_MESSAGE_BOX_WARNING);
+    ShowBox("No help written yet", GTK_MESSAGE_WARNING);
 }
 
 static void
-cancel		(GnomeDialog	*dialog,
+cancel		(GtkDialog	*dialog,
 		 GtkWidget	*page)
 {
   void (*page_cancel)(GtkWidget *page) =
-    gtk_object_get_data(GTK_OBJECT(page), "cancel");
+    g_object_get_data(G_OBJECT(page), "cancel");
 
   if (page_cancel)
     page_cancel(page);
 }
 
-void prepend_property_handler (property_handler *p)
+void prepend_property_handler (const property_handler *p)
 {
   gint i;
 
@@ -916,7 +864,7 @@ void prepend_property_handler (property_handler *p)
   num_handlers++;
 }
 
-void append_property_handler (property_handler *p)
+void append_property_handler (const property_handler *p)
 {
   if (!p->add)
     g_error("passing in a broken handler");
@@ -939,25 +887,44 @@ void append_property_handler (property_handler *p)
   num_handlers++;
 }
 
-void
-on_propiedades1_activate               (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
+static PyObject *
+py_properties(PyObject *self, PyObject *args, PyObject *keywds)
 {
-  GtkWidget *properties = build_properties_dialog();
+  char *group = NULL;
+  char *item = NULL;
+  char *kwlist[] = {"group", "item", NULL};
+  GtkWidget *dialog;
+  
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, "|ss", kwlist, 
+				   &group, &item))
+    g_error ("zapping.properties(|ss)");
 
-  gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
+  if (item && !group)
+    g_error ("Cannot open an item without knowing the group");
 
-  gtk_signal_connect_object(GTK_OBJECT(properties), "close",
-			    GTK_SIGNAL_FUNC(gtk_widget_set_sensitive),
-			    GTK_OBJECT(menuitem));
+  dialog = build_properties_dialog ();
 
-  gnome_dialog_run(GNOME_DIALOG(properties));
+  if (group)
+    {
+      if (item)
+	open_properties_page (dialog, group, item);
+      else
+	open_properties_group (dialog, group);
+    }
+
+  gtk_widget_show (dialog);
+
+  Py_INCREF(Py_None);
+
+  return Py_None;
 }
 
 void
 startup_properties(void)
 {
   zcc_char(_("General Options"), "Selected properties group", "last_group");
+  cmd_register ("properties", (PyCFunction) py_properties,
+		METH_VARARGS | METH_KEYWORDS);
 }
 
 void shutdown_properties(void)

@@ -37,12 +37,13 @@
 #include "interface.h"
 #include "remote.h"
 #include "x11stuff.h"
-#include "../common/fifo.h"
+#include "common/fifo.h"
 #include "capture.h"
 #include "frequencies.h"
+#include "globals.h"
 
 /* The plugin protocol we are able to understand */
-#define PLUGIN_PROTOCOL 2
+#define PLUGIN_PROTOCOL 3
 
 /* The definition of a PluginBrigde */
 typedef gboolean (*PluginBridge) ( gpointer * ptr, gchar * plugin,
@@ -110,8 +111,7 @@ static gboolean plugin_start ( void ) UNUSED ;
 static void plugin_stop( void ) UNUSED ;
 static void plugin_load_config ( gchar * root_key ) UNUSED ;
 static void plugin_save_config ( gchar * root_key ) UNUSED ;
-static void plugin_write_bundle( capture_bundle * bundle ) UNUSED ;
-static void plugin_read_bundle( capture_bundle * bundle ) UNUSED ;
+static void plugin_read_frame ( capture_frame * frame ) UNUSED ;
 static void plugin_capture_stop( void ) UNUSED ;
 static
 gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **

@@ -33,14 +33,14 @@ screenshot_deinterlace (screenshot_data *data, gint parity)
 
   deint_data = g_malloc (data->format.width * data->format.height * 3);
 
-  src = (gchar *) data->data;
-  src_bpl = data->format.bytesperline;
+  src = (gchar *) data->data.linear.data;
+  src_bpl = data->data.linear.stride;
 
   dest = deint_data;
   dest_bpl = data->format.width * 3;
 
   for (y = 0; y < data->format.height; y++, src += src_bpl, dest += dest_bpl)
-    (data->Converter)(data->format.width, src, dest);
+    memcpy (dest, src, data->format.width * 3);
 
   if (parity)
     {

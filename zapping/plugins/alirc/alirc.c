@@ -18,8 +18,13 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "v4linterface.h" /* channel_key_press() */
-#include "plugin_common.h"
+/* $Id: alirc.c,v 1.6 2003-11-29 19:43:22 mschimek Exp $ */
+
+/* XXX gtk_input */
+#undef GTK_DISABLE_DEPRECATED
+
+#include "src/v4linterface.h" /* channel_key_press() */
+#include "src/plugin_common.h"
 
 #ifdef HAVE_LIRC
 #include <lirc/lirc_client.h>
@@ -32,23 +37,8 @@ static const gchar str_descriptive_name[] =
 N_("Another lirc plugin");
 static const gchar str_description[] =
 N_("Another plugin to control zapping through lirc\n\n\
-See the lirc documentation for information about the .lircrc file. The plugin \
-will register itself under the name 'zapping_lirc' and you can use the \
-following commands:\n\
-  CHANUP:  One Channel up\n\
-  CHANDOWN:  One Channel down\n\
-  ZOOM: switch between full screen and windowed mode\n\
-  SETCHANNEL <int>: set the channel to 0 ... 9\n\
-  MUTE: Turn Sound [On|Off]\n\
-  VOL_UP: Increase Volume\n\
-  VOL_DOWN: Decrease Volume\n\
-  QUIT: Quit zapping\n\
-  \n\
-Note: when using SETCHANNEL two times within 1500 ms, it will react the same\n\
-as you would expect from a television set. e.g SETCHANNEL 1, SETCHANNEL 3 \
-will set the channel to 13\n\
-The README.alirc file has some more information about the plugin.\
-");
+To enable this plugin you must edit your ~/.lircrc\n\
+file. See the Zapping documentation for details.\n");
 
 static const gchar str_short_description[] = 
 N_("Lets you control zapping through lirc");
@@ -77,12 +67,36 @@ static int setchan;
 static void
 legacy_zoom			(const gchar *		args)
 {
-  if (tveng_info->current_mode == TVENG_CAPTURE_PREVIEW) {
-    remote_command("switch_mode",GINT_TO_POINTER(windowedmode));
-  } else {
-    windowedmode = tveng_info->current_mode;
-    remote_command("switch_mode",GINT_TO_POINTER(TVENG_CAPTURE_PREVIEW));
-  }
+  if (tveng_info->current_mode == TVENG_CAPTURE_PREVIEW)
+    {
+      const gchar *s;
+
+      switch (windowedmode)
+	{
+	case TVENG_CAPTURE_READ:
+	  s = "capture";
+	  break;
+	case TVENG_CAPTURE_PREVIEW:
+	  s = "fullscreen";
+	  break;
+	case TVENG_CAPTURE_WINDOW:
+	  s = "preview";
+	  break;
+	case TVENG_NO_CAPTURE:
+	  s = "teletext";
+	  break;
+	default:
+	  g_assert_not_reached ();
+	  break;
+	}
+
+      python_command_printf (NULL, "zapping.switch_mode('%s')", s);
+    }
+  else
+    {
+      windowedmode = tveng_info->current_mode;
+      python_command (NULL, "zapping.switch_mode('fullscreen')");
+    }
 }
 
 static void
@@ -113,28 +127,28 @@ legacy_setchannel		(const gchar *		args)
     }
   else
     {
-      remote_command ("set_channel", GINT_TO_POINTER (n));
+      python_command_printf (NULL, "zapping.set_channel(%d)", n);
     }
 }
 
 struct legacy_command
 {
   const gchar *		lirc_command;
-  const gchar *		mkii_command;
+  const gchar *		py_command;
   void			(* func)(const gchar *args);
 };
 
 static const struct legacy_command
 legacy_command_txl_table [] =
 {
-  { "CHANUP",		"channel_up",			NULL },
-  { "CHANDOWN",		"channel_down",			NULL },
-  { "QUIT",		"quit",				NULL },
+  { "CHANUP",		"zapping.channel_up()",		NULL },
+  { "CHANDOWN",		"zapping.channel_down()",	NULL },
+  { "QUIT",		"zapping.quit()",		NULL },
   { "ZOOM",		NULL,				legacy_zoom },
   { "SETCHANNEL",	NULL,				legacy_setchannel },
-  { "MUTE",		"mute",				NULL },
-  { "VOL_UP",		"volume_incr +1",		NULL },
-  { "VOL_DOWN",		"volume_incr -1",		NULL },
+  { "MUTE",		"zapping.mute()",		NULL },
+  { "VOL_UP",		"zapping.volume_incr(+1)",	NULL },
+  { "VOL_DOWN",		"zapping.volume_incr(-1)",	NULL },
 };
 
 static void 
@@ -153,8 +167,7 @@ run_command			(const gchar *		s)
 
   lc = legacy_command_txl_table;
 
-  for (i = 0; i < sizeof (legacy_command_txl_table)
-	 / sizeof (*legacy_command_txl_table); i++)
+  for (i = 0; i < G_N_ELEMENTS (legacy_command_txl_table); i++)
     {
       guint n = strlen (lc->lirc_command);
 
@@ -168,10 +181,10 @@ run_command			(const gchar *		s)
 	  while (*s && isspace(*s))
 	    s++;
 
-	  if (lc->mkii_command)
+	  if (lc->py_command)
 	    {
-	      printv ("alirc: command txl '%s'\n", lc->mkii_command);
-	      cmd_execute (NULL, lc->mkii_command);
+	      printv ("alirc: command txl '%s'\n", lc->py_command);
+	      python_command (NULL, lc->py_command);
 	    }
 	  else
 	    {
@@ -185,7 +198,9 @@ run_command			(const gchar *		s)
       lc++;
     }
 
-  printv ("alirc: unknown command\n");
+  printv ("alirc: not a legacy command\n");
+
+  python_command (NULL, s);
 }
 
 static void
@@ -338,8 +353,10 @@ plugin_start (void) {
   }
   printv("alirc: Succesfully initialize\n");
 
-  lirc_iotag = gdk_input_add(fd,GDK_INPUT_READ,(GdkInputFunction)
-                             lirc_receive, NULL);
+  lirc_iotag = gtk_input_add_full (fd,
+				   GDK_INPUT_READ,
+				   (GdkInputFunction)
+				   lirc_receive, NULL, NULL, NULL);
   /* If everything has been ok, set the active flags and return TRUE
    */
   active = TRUE;
@@ -352,7 +369,7 @@ plugin_stop(void) {
   if (!active)
     return;
   /* stop it, we were active so */
-  gdk_input_remove(lirc_iotag);
+  gtk_input_remove(lirc_iotag);
   lirc_freeconfig(config);
   printv("alirc: Freed config struct\n");
   lirc_deinit();

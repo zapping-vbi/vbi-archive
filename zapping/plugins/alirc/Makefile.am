@@ -11,5 +11,4 @@ libalirc_zapping_la_LIBADD = $(LIRC_LIB)
 
 CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
 
-INCLUDES = $(COMMON_INCLUDES) -I$(top_srcdir)/intl \
--I$(top_srcdir)/src ## Let the plugin access Zapping headers
+INCLUDES = -I$(top_srcdir) $(COMMON_INCLUDES)

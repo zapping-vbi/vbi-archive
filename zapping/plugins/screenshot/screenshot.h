@@ -18,10 +18,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "plugin_common.h"
+#include "src/plugin_common.h"
 #include <pthread.h>
-
-typedef gchar * (* LineConverter)(gint width, gchar *src, gchar *dest);
 
 typedef struct screenshot_data screenshot_data;
 typedef struct screenshot_backend screenshot_backend;
@@ -43,11 +41,8 @@ struct screenshot_data
 
   gdouble		size_est;
 
-  gpointer		data;		/* Pointer to the grabbed image */
-  struct tveng_frame_format format;	/* Format of the grabbed image */
-
-  LineConverter 	Converter;
-  gpointer		line_data;	/* Conversion line buffer */
+  tveng_image_data	data;
+  tv_image_format	format;	/* Format of the grabbed image */
 
   gpointer		deint_data;
 

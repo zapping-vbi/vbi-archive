@@ -1,5 +1,5 @@
 /* Template plugin for Zapping
- * Copyright (C) 2000-2001 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 IÃ±aki GarcÃ­a Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include "plugin_common.h"
+#include "src/plugin_common.h"
 /*
   You can use this code as the template for your own plugins. If you
   have any doubts after reading this and the docs, please contact the
@@ -31,7 +31,7 @@ static const gchar str_description[] =
 N_("This plugin is just a template, it does nothing.");
 static const gchar str_short_description[] = 
 N_("This plugin does nothing useful.");
-static const gchar str_author[] = "Iñaki García Etxebarria";
+static const gchar str_author[] = "IÃ±aki GarcÃ­a Etxebarria";
 /* The format of the version string must be
    %d[[.%d[.%d]][other_things]], where the things between [] aren't
    needed, and if not present, 0 will be assumed */
@@ -67,14 +67,8 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
     SYMBOL(plugin_running, 0x1234),
-    SYMBOL(plugin_write_bundle, 0x1234),
-    SYMBOL(plugin_read_bundle, 0x1234),
+    SYMBOL(plugin_read_frame, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
-    /* These three shouldn't be exported, since there are no
-       configuration options */
-    /*    SYMBOL(plugin_add_properties, 0x1234),
-    SYMBOL(plugin_activate_properties, 0x1234),
-    SYMBOL(plugin_help_properties, 0x1234),*/
     SYMBOL(plugin_add_gui, 0x1234),
     SYMBOL(plugin_remove_gui, 0x1234),
     SYMBOL(plugin_get_misc_info, 0x1234)
@@ -219,37 +213,18 @@ void plugin_save_config (gchar * root_key)
 }
 
 /*
-  Write access to the bundle. You can do almost whatever you want
-  with the given struct (see the limitations in capture.h), but
-  remember that the resulting struct will be passed verbatim to the
-  rest of the plugins, so produce something valid :-)
-  Also, you shouldn't make any X (or GTK, for that matter) in this
-  function, since it's run on a thread different to the main one.
-*/
-static
-void plugin_write_bundle ( capture_bundle * bundle )
-{
-  /* If the plugin isn't active, it shouldn't do anything */
-  if (!active)
-    return;
-
-  /* Do any changes to the image here and update the struct
-     accordingly */
-}
-
-/*
   Read only access to the bundle. You can do X or GTK calls from here,
   but you shouldn't modify the members of the struct.
 */
 static
-void plugin_read_bundle ( capture_bundle * bundle )
+void plugin_read_frame ( capture_frame * frame )
 {
 }
 
 static
 void yoyo_dado ( void )
 {
-  ShowBox("Yoyo-Dado", GNOME_MESSAGE_BOX_INFO);
+  ShowBox("Yoyo-Dado", GTK_MESSAGE_INFO);
 }
 
 
@@ -293,36 +268,6 @@ gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
     *hash = symbols[index].hash;
 
   return TRUE; /* Exported */
-}
-
-static
-gboolean plugin_add_properties ( GnomePropertyBox * gpb )
-{
-  /* Here you would add a page to the property box. Define this
-     function only if you are going to add something to the box */
-  /* if gpb == NULL, then Z is asking whether the plugin will add
-     anything to the box */
-  /* return TRUE if you [have added | will add] a page to the dialog */
-  return FALSE;
-}
-
-static
-gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
-{
-  /* Return TRUE only if the given page have been built by this
-     plugin, and apply any config changes here */
-  return FALSE;
-}
-
-static
-gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page )
-{
-  /*
-    Return TRUE only if the given page have been built by this
-    plugin, and show some help (or at least sth like ShowBox
-    "Sorry, but the template plugin doesn't help you").
-  */
-  return FALSE;
 }
 
 static

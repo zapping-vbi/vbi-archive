@@ -1,32 +1,34 @@
 #ifndef __PROPERTIES_H__
 #define __PROPERTIES_H__
 
+#include <gtk/gtk.h>
+
 /* A module handling a toplevel property page (new version) */
 typedef struct {
   /* Add a property page to the properties dialog */
-  void (*add) ( GnomeDialog *dialog );
+  void (*add) ( GtkDialog *dialog );
   /* Called when the OK or Apply buttons are pressed for a modified
      page. @page is the modified page */
-  void (*apply) ( GnomeDialog *dialog, GtkWidget *page );
+  void (*apply) ( GtkDialog *dialog, GtkWidget *page );
   /* Called when the help button is pressed */
-  void (*help) ( GnomeDialog *dialog, GtkWidget *page );
+  void (*help) ( GtkDialog *dialog, GtkWidget *page );
   /* Called when the Cancel button is pressed for a modified
      page. @page is the modified page */
-  void (*cancel) ( GnomeDialog *dialog, GtkWidget *page );
+  void (*cancel) ( GtkDialog *dialog, GtkWidget *page );
 } property_handler;
 
 /* Register a set of callbacks to manage the properties */
 /* prepend/append refer to the order in which the handlers are called
    to build the properties */
-void prepend_property_handler (property_handler *p);
-void append_property_handler (property_handler *p);
+void prepend_property_handler (const property_handler *p);
+void append_property_handler (const property_handler *p);
 
 /**
  * Create a group with the given name.
  * @group: Name for the group.
  */
 void
-append_properties_group		(GnomeDialog	*dialog,
+append_properties_group		(GtkDialog	*dialog,
 				 const gchar	*group);
 
 /**
@@ -59,7 +61,7 @@ open_properties_page		(GtkWidget	*dialog,
  * @page: The page contents.
  */
 void
-append_properties_page		(GnomeDialog	*dialog,
+append_properties_page		(GtkDialog	*dialog,
 				 const gchar	*group,
 				 const gchar	*label,
 				 GtkWidget	*pixmap,
@@ -102,13 +104,7 @@ void shutdown_properties(void);
 typedef struct {
   /* Label for the entry */
   const gchar	*label;
-  /* Source of the icon (we use both GNOME and Z icons for the moment) */
-  enum {
-    ICON_ZAPPING,
-    ICON_GNOME
-  } icon_source;
-  const gchar	*icon_name; /* relative to PACKAGE_PIXMAPS_DIR or
-			       gnome_pixmap_file */
+  const gchar	*icon_name; /* relative to the pixmaps installation dir */
   const gchar	*widget; /* Notebook page to use (must be in zapping.glade) */
   /* Apply the current config to the dialog */
   void		(*setup)(GtkWidget *widget);
@@ -143,7 +139,7 @@ typedef struct {
  * @glade_file: glade file containing the widgets.
  */
 void
-standard_properties_add		(GnomeDialog	*dialog,
+standard_properties_add		(GtkDialog	*dialog,
 				 SidebarGroup	*groups,
 				 gint		num_groups,
 				 const gchar	*glade_file);

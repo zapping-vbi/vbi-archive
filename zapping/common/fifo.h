@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.29 2003-05-30 04:17:18 mschimek Exp $ */
+/* $Id: fifo.h,v 1.30 2003-11-29 19:43:21 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -141,7 +141,6 @@ struct zf_fifo {
 struct zf_producer {
 	struct node		node;		/* fifo->producers */
 	zf_fifo *		fifo;
-
 	int			dequeued;	/* bookkeeping */
 	z_bool			eof_sent;
 };
@@ -149,7 +148,6 @@ struct zf_producer {
 struct zf_consumer {
 	struct node		node;		/* fifo->consumers */
 	zf_fifo *		fifo;
-
 	zf_buffer *		next_buffer;	/* virtual pointer */
 	int			dequeued;	/* bookkeeping */
 };
@@ -165,7 +163,7 @@ struct zf_consumer {
  * gettimeofday() in seconds and fractions, double.
  **/
 static inline double
-current_time(void)
+zf_current_time(void)
 {
 	struct timeval tv;
 

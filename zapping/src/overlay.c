@@ -1,5 +1,8 @@
-/* Zapping (TV viewer for the Gnome Desktop)
+/*
+ * Zapping (TV viewer for the Gnome Desktop)
+ *
  * Copyright (C) 2000-2001 Iñaki García Etxebarria
+ * Copyright (C) 2003 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,9 +19,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "site_def.h"
+#include "config.h"
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
@@ -29,512 +31,730 @@
 #include "zvbi.h"
 #include "overlay.h"
 #include "osd.h"
+#include "globals.h"
+
+/* This code clips DMA overlay into video memory against X window
+   boundaries. Which is really the job of the X server, but without
+   XVideo extension we have little choice. If XVideo is available
+   it merely adjusts the overlay to fill the video window. Actually
+   all this should be integrated into zvideo.c. */
+
+/* TODO:
+   + Special mode for devices without clipping. Hint: think twice.
+   + Matte option (clip out WSS, GCR).
+   + Source rectangle, if supported by hardware (e.g. zoom function).
+ */
+
+#ifndef OVERLAY_LOG_FP
+#define OVERLAY_LOG_FP 0
+#endif
+
+#ifndef OVERLAY_CHROMA_TEST
+#define OVERLAY_CHROMA_TEST 0
+#endif
 
 #define CLEAR_TIMEOUT 50 /* ms for the clear window timeout */
 
-/* event names for debugging. event_str = events[event->type+1] */
-#if 0 /* just for debugging */
-static gchar * events[] =
-{
-  "GDK_NOTHING",
-  "GDK_DELETE",
-  "GDK_DESTROY",
-  "GDK_EXPOSE",
-  "GDK_MOTION_NOTIFY",
-  "GDK_BUTTON_PRESS",
-  "GDK_2BUTTON_PRESS",
-  "GDK_3BUTTON_PRESS",
-  "GDK_BUTTON_RELEASE",
-  "GDK_KEY_PRESS",
-  "GDK_KEY_RELEASE",
-  "GDK_ENTER_NOTIFY",
-  "GDK_LEAVE_NOTIFY",
-  "GDK_FOCUS_CHANGE",
-  "GDK_CONFIGURE",
-  "GDK_MAP",
-  "GDK_UNMAP",
-  "GDK_PROPERTY_NOTIFY",
-  "GDK_SELECTION_CLEAR",
-  "GDK_SELECTION_REQUEST",
-  "GDK_SELECTION_NOTIFY",
-  "GDK_PROXIMITY_IN",
-  "GDK_PROXIMITY_OUT",
-  "GDK_DRAG_ENTER",
-  "GDK_DRAG_LEAVE",
-  "GDK_DRAG_MOTION",
-  "GDK_DRAG_STATUS",
-  "GDK_DROP_START",
-  "GDK_DROP_FINISHED",
-  "GDK_CLIENT_EVENT",
-  "GDK_VISIBILITY_NOTIFY",
-  "GDK_NO_EXPOSE"
-};
-#endif
-
-/* Saves some info about the tv_screen */
 static struct {
-  gint x, y, w, h; /* geometry */
-  gboolean visible; /* If it is visible */
-  GtkWidget * window; /* The window we will be overlaying to */
-  GtkWidget * main_window; /* The toplevel window .window is in */
-  tveng_device_info * info; /* The overlaying V4L device */
-  struct tveng_clip * clips; /* Clip rectangles */
-  gint clipcount; /* Number of clips in clips */
-  gboolean clean_screen; /* TRUE if the whole screen will be cleared */
-  gint clear_timeout_id; /* timeout for redrawing */
-  gboolean needs_cleaning; /* FALSE for XVideo and chromakey */
+  GdkWindow *		root_window;
+
+  GtkWidget *		main_window;	/* top level parent of video_window */
+  GtkWidget *		video_window;	/* displays the overlay */
+
+  gint			mw_x;		/* last known main_window position */
+  gint			mw_y;		/* (root relative) */
+
+  gint			vw_x;		/* last known video_window position */
+  gint			vw_y;		/* (main_window relative) */
+
+  guint			vw_width;	/* last known video_window size */
+  guint			vw_height;
+
+  gboolean		needs_cleaning; /* FALSE for XVideo and chromakey */
+
+  tveng_device_info *	info;		/* V4L device */
+
+  /* DMA overlay */
+
+  GdkVisibilityState	visibility;	/* of video_window */
+
+  tv_window		window;		/* overlay rectangle */
+
+  tv_clip_vector	tmp_vector;
+
+  gboolean		clean_screen;
+  gboolean		geometry_changed;
+
+  gint			timeout_id;
+
+  /* XVideo overlay */
+
+  Window		xwindow;
+  GC			xgc;
 } tv_info;
 
-/* Pointer to a gdk wrapper for the root window */
-static GdkWindow	*root_window = NULL;
-
-/*
- * Just like x11_get_clips, but fixes the dword-align ugliness
- */
-static struct tveng_clip *
-overlay_get_clips(GdkWindow * window, gint * clipcount)
+static __inline__ tv_bool
+tv_window_equal			(const tv_window *	window1,
+				 const tv_window *	window2)
 {
-  struct tveng_clip * clips;
-
-  g_assert(clipcount != NULL);
-
-  if (!window || !tv_info.needs_cleaning)
-    {
-      *clipcount = 0;
-      return NULL;
-    }
-
-  clips = x11_get_clips(window,
-			tv_info.info->window.x,
-			tv_info.info->window.y,
-			tv_info.info->window.width,
-			tv_info.info->window.height,
-			clipcount);
-
-  return clips;
+  return (0 == ((window1->x ^ window2->x) |
+		(window1->y ^ window2->y) |
+		(window1->width ^ window2->width) |
+		(window1->height ^ window2->height)));
 }
 
-/*
- * Checks whether two clipping structs look the same.
- */
-static gboolean
-compare_clips(struct tveng_clip *a, gint na, struct tveng_clip* b,
-	      gint nb)
+static __inline__ void
+get_clips			(tv_clip_vector *	vector)
 {
-  gint i;
+  if (!x11_window_clip_vector
+      (vector,
+       GDK_WINDOW_XDISPLAY (tv_info.video_window->window),
+       GDK_WINDOW_XID (tv_info.video_window->window),
+       tv_info.window.x,
+       tv_info.window.y,
+       tv_info.window.width,
+       tv_info.window.height))
+    g_assert_not_reached ();
+}
 
-  if (na != nb)
+static void
+expose_window_clip_vector	(tv_window *		window)
+{
+  tv_clip *clip;
+  guint count;
+
+  clip = window->clip_vector.vector;
+  count = window->clip_vector.size;
+
+  while (count-- > 0)
+    {
+      x11_force_expose (window->x + clip->x,
+			window->y + clip->y,
+			clip->width,
+			clip->height);
+      ++clip;
+    }
+}
+
+static gboolean
+set_window			(void)
+{
+  tv_info.info->overlay_window.x	= tv_info.window.x;
+  tv_info.info->overlay_window.y	= tv_info.window.y;
+  tv_info.info->overlay_window.width	= tv_info.window.width;
+  tv_info.info->overlay_window.height	= tv_info.window.height;
+
+  if (!tv_clip_vector_copy (&tv_info.info->overlay_window.clip_vector,
+			    &tv_info.window.clip_vector))
     return FALSE;
 
-  for (i = 0; i < na; i++)
-    if ((a[i].x != b[i].x) || (a[i].y != b[i].y) ||
-	(a[i].width != b[i].width) || (a[i].height != b[i].height))
-      return FALSE;
-
-  return TRUE;
+  return (-1 != tveng_set_preview_window (tv_info.info));
 }
 
-/*
- * Clearing needed callback
- */
-static gint
-overlay_clearing_timeout(gpointer data)
+static gboolean
+obscured_timeout		(gpointer		user_data)
 {
-  struct tveng_clip * clips;
-  gint clipcount;
+  tv_window *window;
 
-  clips = overlay_get_clips(tv_info.window->window, &clipcount);
+  if (OVERLAY_LOG_FP)
+    fprintf (OVERLAY_LOG_FP, "obscured_timeout\n");
 
-  if (!compare_clips(clips, clipcount, tv_info.clips,
-		     tv_info.clipcount))
-    { /* delay the update till the situation stabilizes */
-      if (tv_info.clips)
-	g_free(tv_info.clips);
+  /* Changed from partially visible or unobscured to fully obscured. */
 
-      tv_info.clips = clips;
-      tv_info.clipcount = clipcount;
-      tv_info.clean_screen = TRUE;
-	
-      return TRUE; /* call me again */
+  window = &tv_info.info->overlay_window;
+
+  if (tv_info.clean_screen)
+    {
+      tv_info.clean_screen = FALSE;
+      x11_force_expose (0, 0, gdk_screen_width (), gdk_screen_height ());
+    }
+  else
+    {
+      x11_force_expose (window->x, window->y, window->width, window->height);
     }
 
-  if (clips)
-    g_free(clips);
+  tv_clip_vector_clear (&tv_info.window.clip_vector);
+  /* XXX error ignored */
+  tv_clip_vector_add_clip_xy (&tv_info.window.clip_vector,
+			      0, 0, window->width, window->height);
 
-  if ((tv_info.info->current_mode == TVENG_CAPTURE_WINDOW) &&
-      (tv_info.needs_cleaning) && (tv_info.visible))
+  tv_info.geometry_changed = TRUE;
+
+  tv_info.timeout_id = -1;
+  return FALSE; /* remove timeout */
+}
+
+static gboolean
+visible_timeout			(gpointer		user_data)
+{
+  if (OVERLAY_LOG_FP)
+    fprintf (OVERLAY_LOG_FP, "visible_timeout\n");
+
+  /* Changed from
+     a) fully obscured or partially visible to unobscured
+        (cleaning the clip vector is not enough, we must
+	 still clip against the video_window bounds)
+     b) fully obscured or unobscured to partially visible
+     c) possible clip vector change while partially obscured
+  */
+
+  /* XXX error */
+  get_clips (&tv_info.tmp_vector);
+
+  if (!tv_clip_vector_equal (&tv_info.window.clip_vector,
+			     &tv_info.tmp_vector))
     {
-      if (tv_info.clean_screen)
-	x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
-      else
-	x11_force_expose(tv_info.info->window.x-40,
-			 tv_info.info->window.y-40,
-			 tv_info.info->window.width+80,
-			 tv_info.info->window.height+80);
+      /* Delay until the situation stabilizes. */
 
+      if (OVERLAY_LOG_FP)
+	fprintf (OVERLAY_LOG_FP, "visible_timeout: delay\n");
+
+      SWAP (tv_info.window.clip_vector, tv_info.tmp_vector);
+
+      tv_info.geometry_changed = TRUE;
+
+      return TRUE; /* call again */
+    }
+
+  /* Resume overlay. */
+
+  if (tv_info.geometry_changed)
+    {
+      guint retry_count;
+
+      tv_info.geometry_changed = FALSE;
+
+      if (OVERLAY_LOG_FP)
+	fprintf (OVERLAY_LOG_FP, "visible_timeout: geometry change\n");
+
+      /* Other windows may have received expose events before we
+	 were able to turn off the overlay. Resend expose
+	 events for those regions which should be clean now. */
+      if (tv_info.clean_screen)
+	{
+	  tv_info.clean_screen = FALSE;
+	  x11_force_expose (0, 0, gdk_screen_width (), gdk_screen_height ());
+	}
+      else
+	{
+	  expose_window_clip_vector (&tv_info.info->overlay_window);
+	}
+
+      /* Desired overlay bounds */
+
+      tv_info.window.x		= tv_info.mw_x + tv_info.vw_x;
+      tv_info.window.y		= tv_info.mw_y + tv_info.vw_y;
+      tv_info.window.width	= tv_info.vw_width;
+      tv_info.window.height	= tv_info.vw_height;
+
+      retry_count = 5;
+
+      for (;;)
+	{
+	  if (retry_count-- == 0)
+	    goto finish; /* XXX */
+
+	  /* XXX error */
+	  set_window ();
+
+	  if (tv_window_equal (&tv_info.window, &tv_info.info->overlay_window))
+	    break;
+
+	  /* The driver modified the overlay bounds (alignment, limits),
+	     we must update the clips. */
+
+	  tv_info.window.x      = tv_info.info->overlay_window.x;
+	  tv_info.window.y      = tv_info.info->overlay_window.y;
+	  tv_info.window.width  = tv_info.info->overlay_window.width;
+	  tv_info.window.height = tv_info.info->overlay_window.height;
+
+	  /* XXX error */
+	  get_clips (&tv_info.tmp_vector);
+	}
+    }
+  else if (tv_info.clean_screen)
+    {
+      x11_force_expose (0, 0, gdk_screen_width (), gdk_screen_height ());
       tv_info.clean_screen = FALSE;
     }
 
-  /* Setup the overlay and start it again if needed */
-  if (tv_info.info->current_mode == TVENG_CAPTURE_WINDOW)
+  if (!OVERLAY_CHROMA_TEST)
     {
-      overlay_sync(FALSE);
-      if (tv_info.needs_cleaning)
-	{
-	  if (tv_info.visible)
-	    tveng_set_preview_on(tv_info.info);
-	  else
-	    tveng_set_preview_off(tv_info.info);
-	}
+      /* XXX error ignored */
+      tveng_set_preview_on (tv_info.info);
     }
 
-  *((gint*)data) = -1; /* set timeout_id to destroyed */
-
-  return FALSE; /* the timeout will be destroyed */
+ finish:
+  tv_info.timeout_id = -1;
+  return FALSE; /* remove timeout */
 }
 
-/*
- * Something has changed, schedule a redraw in TIMEOUT ms
- * clean_screen: the whole screen needs updating
- */
 static void
-overlay_status_changed(gboolean clean_screen)
+stop_timeout			(void)
 {
-  if (tv_info.clear_timeout_id >= 0)
-    gtk_timeout_remove(tv_info.clear_timeout_id);
+  if (tv_info.timeout_id > 0)
+    g_source_remove (tv_info.timeout_id);
 
-  tv_info.clear_timeout_id =
-    gtk_timeout_add(CLEAR_TIMEOUT, overlay_clearing_timeout,
-		    &(tv_info.clear_timeout_id));
-
-  if ((tv_info.info->current_mode == TVENG_CAPTURE_WINDOW) &&
-      (tv_info.needs_cleaning))
-    tveng_set_preview_off(tv_info.info);
-
-  if (!tv_info.clean_screen)
-    tv_info.clean_screen = clean_screen;
+  tv_info.timeout_id = -1;
 }
 
-/*
- * event handler for the toplevel overlay window
- */
-static gboolean
-on_main_overlay_event        (GtkWidget       *widget,
-			      GdkEvent        *event,
-			      gpointer         user_data)
+static void
+restart_timeout			(void)
 {
+  if (OVERLAY_LOG_FP)
+    fprintf (OVERLAY_LOG_FP, "restart_timeout\n");
+
+  tveng_set_preview_off (tv_info.info);
+
+  stop_timeout ();
+
+  if (tv_info.visibility == GDK_VISIBILITY_FULLY_OBSCURED)
+    tv_info.timeout_id =
+      g_timeout_add (CLEAR_TIMEOUT,
+		     (GSourceFunc) obscured_timeout, &tv_info);
+  else
+    tv_info.timeout_id =
+      g_timeout_add (CLEAR_TIMEOUT,
+		     (GSourceFunc) visible_timeout, &tv_info);
+}
+
+static __inline__ void
+reconfigure			(void)
+{
+  tv_info.geometry_changed = TRUE;
+  tv_info.clean_screen = TRUE; /* see root_filter() below */
+
+  if (tv_info.visibility != GDK_VISIBILITY_FULLY_OBSCURED)
+    restart_timeout ();
+}
+
+static gboolean
+on_video_window_event		(GtkWidget *		widget,
+				 GdkEvent *		event,
+				 gpointer		user_data)
+{
+  if (0 && OVERLAY_LOG_FP)
+    fprintf (OVERLAY_LOG_FP, "on_video_window_event: GDK_%s\n",
+	     z_gdk_event_name (event));
+
   switch (event->type)
     {
-    case GDK_UNMAP:
-      tv_info.visible = FALSE;
-      overlay_sync(TRUE);
-      overlay_status_changed(TRUE);
-      break;
-    case GDK_MAP:
-      tv_info.visible = TRUE;
-      overlay_status_changed(FALSE);
-      break;
     case GDK_CONFIGURE:
-      overlay_status_changed(TRUE);
+      /* Size, position, stacking order changed. Note position
+         is relative to the parent window. */
+
+      if (tv_info.needs_cleaning)
+	{
+	  if (tv_info.vw_width != event->configure.width
+	      || tv_info.vw_height != event->configure.height
+	      || tv_info.vw_x != event->configure.x
+	      || tv_info.vw_y != event->configure.y)
+	    {
+	      tv_info.vw_x = event->configure.x; /* XXX really mw relative? */
+	      tv_info.vw_y = event->configure.y;
+	      
+	      tv_info.vw_width = event->configure.width;
+	      tv_info.vw_height = event->configure.height;
+
+	      reconfigure ();
+	    }
+	}
+      else
+	{
+	  /* XVideo overlay is automatically positioned relative to
+	     the video_window origin, only have to adjust size. */
+
+	  tveng_set_preview_off (tv_info.info);
+
+	  /* XXX tveng_set_preview_window (currently default is
+	     fill window size) */
+
+	  if (!OVERLAY_CHROMA_TEST)
+	    {
+	      /* XXX error
+	         XXX off/on is inefficient, XVideo does this automatically. */
+	      tveng_set_preview_on (tv_info.info);
+	    }
+	}
+
       break;
+
+    case GDK_VISIBILITY_NOTIFY:
+      /* Visibility state changed: obscured, partially or fully visible. */
+
+      if (!tv_info.needs_cleaning)
+	break;
+
+      tv_info.visibility = event->visibility.state;
+      restart_timeout ();
+      break;
+
+    case GDK_EXPOSE:
+      /* Parts of the video window have been exposed, e.g. menu window has
+	 been closed. Remove those clips. */
+      if (tv_info.needs_cleaning)
+	{
+	  tv_info.geometry_changed = TRUE;
+	  restart_timeout ();
+	}
+
+      break;
+
     default:
       break;
     }
 
-  return FALSE;
+  return FALSE; /* pass on */
 }
 
-/**
- * Event handler for the root window.
- */
-static GdkFilterReturn
-x_root_filter		(GdkXEvent	*xev,
-			 GdkEvent	*event,
-			 gpointer	data)
+static gboolean
+on_main_window_event		(GtkWidget *		widget,
+				 GdkEvent *		event,
+				 gpointer		user_data)
 {
-  struct tveng_clip * clips;
-  gint clipcount;
+  if (0 && OVERLAY_LOG_FP)
+    fprintf (OVERLAY_LOG_FP, "on_main_window_event: GDK_%s\n",
+	     z_gdk_event_name (event));
 
-  if (tv_info.clear_timeout_id >= 0 || !tv_info.needs_cleaning ||
-      !tv_info.visible)
-    return GDK_FILTER_CONTINUE; /* no need for this */
+  switch (event->type)
+    {
+    case GDK_CONFIGURE:
+      /* Size, position, stacking order changed. Note position
+         is relative to the parent window. */
 
-  clips = overlay_get_clips(tv_info.window->window, &clipcount);
+      if (tv_info.mw_x != event->configure.x
+	  || tv_info.mw_y != event->configure.y)
+	{
+	  tv_info.mw_x = event->configure.x; /* XXX really root relative? */
+	  tv_info.mw_y = event->configure.y;
 
-  if (!compare_clips(clips, clipcount, tv_info.clips,
-		     tv_info.clipcount))
-    overlay_status_changed(TRUE);
+	  reconfigure ();
+	}
 
-  g_free(clips);
+      break;
+
+    case GDK_UNMAP:
+      /* Window was rolled up or minimized. No visibility events are
+	 sent in this case. */
+
+      tv_info.visibility = GDK_VISIBILITY_FULLY_OBSCURED;
+      restart_timeout ();
+      break;
+
+    default:
+      break;
+    }
+
+  return FALSE; /* pass on */
+}
+
+static GdkFilterReturn
+root_filter			(GdkXEvent *		gdkxevent,
+				 GdkEvent *		unused,
+				 gpointer		data)
+{
+  XEvent *event = (XEvent *) gdkxevent;
+
+  if (0 && OVERLAY_LOG_FP)
+    {
+      fprintf (OVERLAY_LOG_FP, "root_filter: ");
+
+      switch (event->type)
+	{
+	case MotionNotify:	fprintf (OVERLAY_LOG_FP, "MotionNotify\n"); break;
+	case Expose:		fprintf (OVERLAY_LOG_FP, "Expose\n"); break;
+	case VisibilityNotify:	fprintf (OVERLAY_LOG_FP, "VisibilityNotify\n"); break;
+	case CreateNotify:	fprintf (OVERLAY_LOG_FP, "CreateNotify\n"); break;
+	case DestroyNotify:	fprintf (OVERLAY_LOG_FP, "DestroyNotify\n"); break;
+	case UnmapNotify:	fprintf (OVERLAY_LOG_FP, "UnmapNotify\n"); break;
+	case MapNotify:		fprintf (OVERLAY_LOG_FP, "MapNotify\n"); break;
+	case ConfigureNotify:	fprintf (OVERLAY_LOG_FP, "ConfigureNotify\n"); break;
+	case GravityNotify:	fprintf (OVERLAY_LOG_FP, "GravityNotify\n"); break;
+	default:		fprintf (OVERLAY_LOG_FP, "Unknown\n"); break;
+	}
+    }
+
+  if (tv_info.visibility != GDK_VISIBILITY_PARTIAL)
+    return GDK_FILTER_CONTINUE;
+
+  switch (event->type)
+    {
+    case ConfigureNotify:
+      {
+	/* We could just refresh regions we previously DMAed, but unfortunately
+	   it's possible to move a destroyed window away before we did. What's
+	   worse, imperfect refresh or unconditionally refreshing the entire
+	   screen? */
+
+	if (1)
+	  {
+	    tv_info.clean_screen = TRUE;
+	  }
+	else
+	  {
+	    XConfigureEvent *ev = &event->xconfigure;
+	    tv_window *win = &tv_info.info->overlay_window;
+
+	    if ((ev->x - ev->border_width) >= (win->x + win->width)
+		|| (ev->x + ev->width + ev->border_width) <= win->x
+		|| (ev->y - ev->border_width) >= (win->y + win->height)
+		|| (ev->y + ev->height + ev->border_width) <= win->y)
+	      /* Windows do not overlap. */
+	      return GDK_FILTER_CONTINUE;
+	  }
+
+	restart_timeout ();
+
+	break;
+      }
+
+    default:
+      break;
+    }
 
   return GDK_FILTER_CONTINUE;
 }
 
-/*
- * Called when the tv_screen geometry changes
- */
+/* The osd pieces have changed, avoid flicker if not needed. */
 static void
-on_tv_screen_size_allocate             (GtkWidget       *widget,
-                                        GtkAllocation   *allocation,
-					gpointer	ignored)
+on_osd_model_changed		(ZModel *		osd_model,
+				 gpointer		ignored)
 {
-  static gint old_w=-1, old_h;
-
-  /**
-   * GtkFixed sends allocation events when removing
-   * children from it, even when no resize is involved. Ignore these.
-   */
-  if (old_w == allocation->width &&
-      old_h == allocation->height)
+  if (tv_info.visibility == GDK_VISIBILITY_FULLY_OBSCURED)
     return;
 
-  old_w = allocation->width;
-  old_h = allocation->height;
-
-  overlay_status_changed(FALSE);
+  tv_info.visibility = GDK_VISIBILITY_PARTIAL;
+  restart_timeout ();
 }
 
-/*
- * Called when the main overlay window is destroyed (shuts down the
- * timers)
- */
+static void
+terminate			(void)
+{
+  stop_timeout ();
+
+  tveng_set_preview_off (tv_info.info);
+
+  if (tv_info.needs_cleaning)
+    {
+      usleep (CLEAR_TIMEOUT * 1000);
+
+      if (tv_info.clean_screen)
+	x11_force_expose (0, 0, gdk_screen_width (), gdk_screen_height ());
+      else
+	expose_window_clip_vector (&tv_info.info->overlay_window);
+    }
+}
+
 static gboolean
-on_main_overlay_delete_event           (GtkWidget       *widget,
-                                        GdkEvent        *event,
-                                        gpointer         user_data)
+on_main_window_delete_event	(GtkWidget *		widget,
+				 GdkEvent *		event,
+				 gpointer		user_data)
 {
-  if (tv_info.clear_timeout_id >= 0)
+  terminate ();
+
+  return FALSE; /* pass on */
+}
+
+void
+stop_overlay			(void)
+{
+  g_assert (tv_info.main_window != NULL);
+
+  g_signal_handlers_disconnect_matched
+    (G_OBJECT (tv_info.main_window),
+     G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
+     0, 0, NULL, G_CALLBACK (on_main_window_delete_event), NULL);
+
+  g_signal_handlers_disconnect_matched
+    (G_OBJECT (tv_info.video_window),
+     G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
+     0, 0, NULL, G_CALLBACK (on_video_window_event), NULL);
+
+  if (tv_info.needs_cleaning)
     {
-      gtk_timeout_remove(tv_info.clear_timeout_id);
-      tv_info.clear_timeout_id = -1;
+      gdk_window_remove_filter (tv_info.root_window, root_filter, NULL);
+
+      g_signal_handlers_disconnect_matched
+	(G_OBJECT (tv_info.main_window),
+	 G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
+	 0, 0, NULL, G_CALLBACK (on_main_window_event), NULL);
+
+      g_signal_handlers_disconnect_matched
+	(G_OBJECT (osd_model),
+	 G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
+	 0, 0, NULL, G_CALLBACK (on_osd_model_changed), NULL);
     }
 
-  return FALSE; /* go on with the callbacks */
+  terminate ();
+
+  tv_window_destroy (&tv_info.window);
+
+  tv_clip_vector_destroy (&tv_info.tmp_vector);
+
+  tv_info.info->current_mode = TVENG_NO_CAPTURE;
+
+  CLEAR (tv_info);
 }
 
-/*
- * The osd pieces have changed, avoid flicker if not needed.
- */
-static void
-on_osd_model_changed			(ZModel		*osd_model,
-					 gpointer	ignored)
+gboolean
+start_overlay			(GtkWidget *		main_window,
+				 GtkWidget *		video_window,
+				 tveng_device_info *	info)
 {
-  struct tveng_window window;
+  GdkEventMask mask;
 
-  if (tv_info.clear_timeout_id >= 0 || !tv_info.needs_cleaning ||
-      !tv_info.visible)
-    return; /* no need for this */
+  tv_info.main_window		= main_window;
+  tv_info.video_window		= video_window;
 
-  if (tv_info.clips)
-    g_free(tv_info.clips);
+  tv_info.needs_cleaning	=
+    (info->current_controller != TVENG_CONTROLLER_XV);
 
-  tv_info.clips =
-    overlay_get_clips(tv_info.window->window, &tv_info.clipcount);
+  tv_info.info			= info;
 
-  memcpy(&window, &tv_info.info->window, sizeof(struct tveng_window));
-  tveng_set_preview_off(tv_info.info);
-  memcpy(&tv_info.info->window, &window, sizeof(struct tveng_window));
-  tv_info.info->window.clips = tv_info.clips;
-  tv_info.info->window.clipcount = tv_info.clipcount;
-  tveng_set_preview_window(tv_info.info);
-  tveng_set_preview_on(tv_info.info);
-}
+  gdk_window_get_origin (main_window->window,
+			 &tv_info.mw_x,
+			 &tv_info.mw_y);
 
-/*
- * Inits the overlay engine.
- * window: The window we will be overlaying to.
- * main_window: The toplevel window window belongs to. They can be the
- * same.
- */
-void
-startup_overlay(GtkWidget * window, GtkWidget * main_window,
-		tveng_device_info * info)
-{
-  GdkEventMask mask; /* The GDK events we want to see */
-  GdkColor chroma = {0, 0, 0, 0};
+  gdk_window_get_geometry (video_window->window,
+			   &tv_info.vw_x,
+			   &tv_info.vw_y,
+			   &tv_info.vw_width,
+			   &tv_info.vw_height,
+			   NULL);
 
-  gtk_signal_connect(GTK_OBJECT(main_window), "event",
-		     GTK_SIGNAL_FUNC(on_main_overlay_event),
-		     NULL);
+  tv_window_init (&tv_info.window);
 
-  gtk_signal_connect(GTK_OBJECT(main_window), "delete-event",
-		     GTK_SIGNAL_FUNC(on_main_overlay_delete_event),
-		     NULL);
+  tv_clip_vector_init (&tv_info.tmp_vector);
 
-  gtk_signal_connect(GTK_OBJECT(window), "size-allocate",
-		     GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
-		     NULL);
+  tv_info.xwindow		= GDK_WINDOW_XWINDOW (video_window->window);
+  tv_info.xgc			= GDK_GC_XGC (video_window->style->white_gc);
 
-  /*
-    gdk has no [Sub]structureNotify wrapper, but a timer will
-    do nicely.
-  */
-  mask = gdk_window_get_events(window->window);
-  mask |= (GDK_EXPOSURE_MASK | GDK_VISIBILITY_NOTIFY_MASK);
-  gdk_window_set_events(window->window, mask);
+  tv_info.visibility		= GDK_VISIBILITY_PARTIAL; /* assume worst */
 
-  mask = gdk_window_get_events(main_window->window);
-  mask |= (GDK_EXPOSURE_MASK | GDK_VISIBILITY_NOTIFY_MASK);
-  gdk_window_set_events(main_window->window, mask);
+  tv_info.clean_screen		= FALSE;
+  tv_info.geometry_changed	= TRUE;
 
-  tv_info.window = window;
-  tv_info.main_window = main_window;
-  tv_info.info = info;
-  tv_info.visible = x11_window_viewable(window->window);
+  tv_info.timeout_id		= -1;
 
-  tv_info.clear_timeout_id = -1;
-  tv_info.clean_screen = FALSE;
-  tv_info.clips = NULL;
-  tv_info.clipcount = 0;
-  if (info->current_controller == TVENG_CONTROLLER_XV)
-    tv_info.needs_cleaning = FALSE;
-  else
-    tv_info.needs_cleaning = TRUE;
-  gdk_window_get_size(window->window, &tv_info.w, &tv_info.h);
-  gdk_window_get_origin(window->window, &tv_info.x, &tv_info.y);
-
-  if (info->current_controller != TVENG_CONTROLLER_XV)
+  if (info->current_controller != TVENG_CONTROLLER_XV
+      && (OVERLAY_CHROMA_TEST
+	  || (info->caps.flags & TVENG_CAPS_CHROMAKEY)))
     {
-      if (info->caps.flags & TVENG_CAPS_CHROMAKEY)
+      GdkColor chroma;
+
+      CLEAR (chroma);
+
+      if (OVERLAY_CHROMA_TEST)
+	chroma.red = 0xffff;
+      else
+	chroma.blue = 0xffff;
+
+      if (gdk_colormap_alloc_color (gdk_colormap_get_system (),
+				    &chroma, FALSE, TRUE))
 	{
-	  chroma.red = chroma.green = 0;
-	  chroma.blue = 0xffff;
-	  
-	  if (gdk_colormap_alloc_color(gdk_colormap_get_system(), &chroma,
-				       FALSE, TRUE))
-	    tveng_set_chromakey(chroma.red >> 8, chroma.green >> 8,
-				chroma.blue >> 8, info);
-	  else
-	    ShowBox("Couldn't allocate chromakey, chroma won't work",
-		    GNOME_MESSAGE_BOX_WARNING);
+	  z_set_window_bg (video_window, &chroma);
+
+	  /* XXX safe? (we run on 15/16/24/32 yet, but 8 bit later?) */
+	  gdk_colormap_free_colors (gdk_colormap_get_system(), &chroma, 1);
 	}
+      else
+	{
+	  ShowBox ("Couldn't allocate chromakey, chroma won't work",
+		   GTK_MESSAGE_WARNING);
+	}
+    }
+  else if (info->current_controller == TVENG_CONTROLLER_XV)
+    {
+      GdkColor chroma;
 
-      gdk_window_set_background(window->window, &chroma);
+      CLEAR (chroma);
 
-      if (chroma.pixel != 0)
-	gdk_colormap_free_colors(gdk_colormap_get_system(), &chroma,
-				 1);
+      if (0 == tveng_get_chromakey (&chroma.pixel, info))
+	z_set_window_bg (video_window, &chroma);
+    }
+
+  /* Disable double buffering just in case, will help when a
+     XV driver doesn't provide XV_COLORKEY but requires the colorkey
+     not to be overwritten */
+  gtk_widget_set_double_buffered (video_window, FALSE);
+
+  if (tv_info.needs_cleaning)
+    {
+      if (!tv_set_overlay_buffer (info, &dga_param))
+	return FALSE;
+
+      g_signal_connect (G_OBJECT (osd_model), "changed",
+			G_CALLBACK (on_osd_model_changed), NULL);
+
+      g_signal_connect (G_OBJECT (video_window), "event",
+			G_CALLBACK (on_video_window_event), NULL);
+
+      mask = gdk_window_get_events (video_window->window);
+      mask |= GDK_VISIBILITY_NOTIFY_MASK | GDK_CONFIGURE | GDK_EXPOSE;
+      gdk_window_set_events (video_window->window, mask);
+
+      /* We must connect to main_window because the video_window
+	 GDK_CONFIGURE event notifies only about main_window relative,
+	 not absolute i.e. root window relative position changes.
+         GDK_UNMAP, but no visibility event, is sent after the window
+	 was rolled up or minimized. */
+
+      g_signal_connect (G_OBJECT (main_window), "event",
+			G_CALLBACK (on_main_window_event), NULL);
+
+      mask = gdk_window_get_events (main_window->window);
+      mask |= GDK_UNMAP | GDK_CONFIGURE;
+      gdk_window_set_events (main_window->window, mask);
+
+      /* There is no GDK_OBSCURED event, we must monitor all child
+	 windows of the root window. E.g. drop-down menus. */
+
+      tv_info.root_window = gdk_get_default_root_window ();
+
+      gdk_window_add_filter (tv_info.root_window, root_filter, NULL);
+
+      mask = GDK_STRUCTURE_MASK | GDK_SUBSTRUCTURE_MASK;
+      gdk_window_set_events (tv_info.root_window, mask);
     }
   else
     {
-      gdk_window_set_background(window->window, &chroma);
+      if (!tv_set_overlay_xwindow (tv_info.info,
+				   tv_info.xwindow,
+				   tv_info.xgc))
+	return FALSE;
+
+      /* Just update overlay on video_window size change. */
+
+      g_signal_connect (G_OBJECT (video_window), "event",
+			G_CALLBACK (on_video_window_event), NULL);
+
+      mask = gdk_window_get_events (video_window->window);
+      mask |= GDK_CONFIGURE;
+      gdk_window_set_events (video_window->window, mask);
     }
 
-#ifdef HAVE_LIBZVBI
+  g_signal_connect (G_OBJECT (main_window), "delete-event",
+		    G_CALLBACK (on_main_window_delete_event), NULL);
+
+  /* Start overlay */
+
   if (tv_info.needs_cleaning)
     {
-      if (!root_window)
+      restart_timeout ();
+    }
+  else
+    {
+      /* XXX tveng_set_preview_window (currently default is
+	 fill window size) */
+
+      if (!OVERLAY_CHROMA_TEST)
 	{
-	  root_window = gdk_window_foreign_new(GDK_ROOT_WINDOW());
-	  gdk_window_set_events(root_window,
-				GDK_STRUCTURE_MASK |
-				GDK_SUBSTRUCTURE_MASK);
+	  /* XXX error ignored */
+	  tveng_set_preview_on (tv_info.info);
 	}
-      gdk_window_add_filter(root_window, x_root_filter, NULL);
-
-      gtk_signal_connect(GTK_OBJECT(osd_model), "changed",
-			 GTK_SIGNAL_FUNC(on_osd_model_changed),
-			 NULL);
-      /* Update the cliplist now */
-      on_osd_model_changed(osd_model, NULL);
-    }
-#endif /* HAVE_LIBZVBI */
-}
-
-/*
- * Stops the overlay engine.
- */
-void
-overlay_stop(tveng_device_info *info)
-{
-  gtk_signal_disconnect_by_func(GTK_OBJECT(tv_info.main_window),
-				GTK_SIGNAL_FUNC(on_main_overlay_event),
-				NULL);
-
-  gtk_signal_disconnect_by_func(GTK_OBJECT(tv_info.main_window),
-				GTK_SIGNAL_FUNC(on_main_overlay_delete_event),
-				NULL);
-
-  gtk_signal_disconnect_by_func(GTK_OBJECT(tv_info.window),
-				GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
-				NULL);
-#ifdef HAVE_LIBZVBI
-  if (tv_info.needs_cleaning)
-    gtk_signal_disconnect_by_func(GTK_OBJECT(osd_model),
-				  GTK_SIGNAL_FUNC(on_osd_model_changed),
-				  NULL);
-#endif
-
-  if (tv_info.needs_cleaning)
-    gdk_window_remove_filter(root_window, x_root_filter, NULL);
-
-  if (tv_info.clear_timeout_id >= 0)
-    {
-      gtk_timeout_remove(tv_info.clear_timeout_id);
-      tv_info.clear_timeout_id = -1;
     }
 
-  if (tv_info.needs_cleaning)
-    x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
-}
+  info->current_mode = TVENG_CAPTURE_WINDOW;
 
-/*
- * Shuts down the overlay engine
- */
-void
-shutdown_overlay(void )
-{
-  /* Nothing to be done */
-}
-
-/*
- * Tells the overlay engine to sync the overlay with the window.
- * clean_screen: TRUE means that we should refresh the whole screeen.
- */
-void
-overlay_sync(gboolean clean_screen)
-{
-  extern tveng_device_info *main_info;
-
-  if (main_info->current_mode != TVENG_CAPTURE_WINDOW)
-    return;
-
-  gdk_window_get_size(tv_info.window->window, &tv_info.w, &tv_info.h);
-  gdk_window_get_origin(tv_info.window->window, &tv_info.x,
-			&tv_info.y);
-
-  if (tv_info.clips)
-    g_free(tv_info.clips);
-
-  tv_info.info->window.x = tv_info.x;
-  tv_info.info->window.y = tv_info.y;
-  tv_info.info->window.width = tv_info.w;
-  tv_info.info->window.height = tv_info.h;
-  tv_info.info->window.clips = tv_info.clips =
-    overlay_get_clips(tv_info.window->window,
-		      &(tv_info.info->window.clipcount));
-  tv_info.clipcount = tv_info.info->window.clipcount;
-  tv_info.info->window.win = GDK_WINDOW_XWINDOW(tv_info.window->window);
-  tv_info.info->window.gc = GDK_GC_XGC(tv_info.window->style->white_gc);
-
-  tveng_set_preview_window(tv_info.info);
-
-  if (tv_info.clips) {
-    g_free(tv_info.clips);
-    tv_info.clips = NULL;
-  }
-
-  /* The requested overlay coords might not be the definitive ones,
-     adapt the clips */
-  if (tv_info.needs_cleaning)
-    {
-      tv_info.clips = tv_info.info->window.clips =
-	overlay_get_clips(tv_info.window->window, &(tv_info.clipcount));
-      tv_info.info->window.clipcount = tv_info.clipcount;
-      
-      tveng_set_preview_window(tv_info.info);
-      
-      if (clean_screen)
-	x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
-    }
+  return TRUE;
 }

@@ -1,6 +1,8 @@
 #ifndef __AUDIO_H__
 #define __AUDIO_H__
 
+#include "tveng.h"
+
 enum audio_format {
   /* More to come when we need more */
   AUDIO_FORMAT_S16_LE
@@ -33,6 +35,16 @@ void
 read_audio_data (gpointer handle, gpointer dest, gint num_bytes,
 		 double *timestamp);
 
+void
+reset_quiet			(tveng_device_info *	info,
+				 guint			delay);
+gboolean
+set_mute			(gint		        mode,
+				 gboolean		controls,
+				 gboolean		osd);
+
+extern void mixer_setup ( void );
+
 /**
  * Initialization/shutdown
  */
@@ -58,11 +70,12 @@ typedef struct {
   void		(*apply_props)(GtkBox *vbox);
 } audio_backend_info;
 
-extern void mixer_setup ( void );
-
-extern gboolean
-audio_set_mute			(gint			mute);
-extern gboolean
-audio_get_mute			(gint *			mute);
+tv_device_node *
+oss_pcm_open			(void *			unused,
+				 FILE *			log, 
+				 const char *		dev_name);
+tv_device_node *
+oss_pcm_scan			(void *			unused,
+				 FILE *			log);
 
 #endif /* audio.h */

@@ -1,107 +1,108 @@
-/* Zapping
- * Adapted from GtkAdjustment in the GTK+ distro, generic simple model object
- * (C) Iñaki García Etxebarria 200[01]
- * Original copyright of GtkAdjustment
- * Copyright (C) 1995-1997 Peter Mattis, Spencer Kimball and Josh MacDonald
+/* GDK - The GIMP Drawing Kit
+ * Copyright (C) 2000 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
+ * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Library General Public License for more details.
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Library General Public
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
  */
 
-#include <gtk/gtksignal.h>
+/*
+ * Modified by the GTK+ Team and others 1997-2000.  See the AUTHORS
+ * file for a list of people on the GTK+ Team.  See the ChangeLog
+ * files for a list of changes.  These files are distributed with
+ * GTK+ at ftp://ftp.gtk.org/pub/gtk/. 
+ */
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "zmodel.h"
+#include "zmarshalers.h"
 
 enum {
   CHANGED,
   LAST_SIGNAL
 };
 
+static void zmodel_init       (ZModel      *zmodel);
 static void zmodel_class_init (ZModelClass *klass);
-static void zmodel_init       (ZModel      *adjustment);
 
-static guint zmodel_signals[LAST_SIGNAL] = { 0 };
+static gpointer parent_class = NULL;
 
-GtkType
+static guint signals[LAST_SIGNAL] = { 0 };
+
+GType
 zmodel_get_type (void)
 {
-  static GtkType zmodel_type = 0;
+  static GType object_type = 0;
 
-  if (!zmodel_type)
+  if (!object_type)
     {
-      static const GtkTypeInfo zmodel_info =
+      static const GTypeInfo object_info =
       {
-	"ZModel",
-	sizeof (ZModel),
-	sizeof (ZModelClass),
-	(GtkClassInitFunc) zmodel_class_init,
-	(GtkObjectInitFunc) zmodel_init,
-	/* reserved_1 */ NULL,
-	/* reserved_2 */ NULL,
-        (GtkClassInitFunc) NULL,
+        sizeof (ZModelClass),
+        (GBaseInitFunc) NULL,
+        (GBaseFinalizeFunc) NULL,
+        (GClassInitFunc) zmodel_class_init,
+        NULL,           /* class_finalize */
+        NULL,           /* class_data */
+        sizeof (ZModel),
+        0,              /* n_preallocs */
+        (GInstanceInitFunc) zmodel_init,
       };
-
-      zmodel_type = gtk_type_unique (GTK_TYPE_DATA, &zmodel_info);
+      
+      object_type = g_type_register_static (G_TYPE_OBJECT,
+                                            "ZModel",
+                                            &object_info, 0);
     }
-
-  return zmodel_type;
+  
+  return object_type;
 }
 
 static void
-zmodel_class_init (ZModelClass *class)
+zmodel_init (ZModel *zmodel)
 {
-  GtkObjectClass *object_class;
 
-  object_class = (GtkObjectClass*) class;
-
-  zmodel_signals[CHANGED] =
-    gtk_signal_new ("changed",
-                    GTK_RUN_FIRST | GTK_RUN_NO_RECURSE,
-                    object_class->type,
-                    GTK_SIGNAL_OFFSET (ZModelClass, changed),
-                    gtk_marshal_NONE__NONE,
-		    GTK_TYPE_NONE, 0);
-
-  gtk_object_class_add_signals (object_class, zmodel_signals, LAST_SIGNAL);
-
-  class->changed = NULL;
 }
 
 static void
-zmodel_init (ZModel *adjustment)
+zmodel_class_init (ZModelClass *klass)
 {
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  parent_class = g_type_class_peek_parent (klass);
+
+  signals[CHANGED] =
+    g_signal_new ("changed",
+		  G_OBJECT_CLASS_TYPE (object_class),
+		  G_SIGNAL_RUN_LAST,
+		  G_STRUCT_OFFSET (ZModelClass, changed),
+		  NULL, NULL,
+		  z_marshal_VOID__VOID,
+		  G_TYPE_NONE,
+		  0);
 }
 
-GtkObject*
+ZModel *
 zmodel_new (void)
 {
-  ZModel *model;
-
-  model = gtk_type_new (zmodel_get_type ());
-
-  return GTK_OBJECT (model);
+  return (ZMODEL(g_object_new (ZMODEL_TYPE, NULL)));
 }
 
 void
-zmodel_changed (ZModel        *model)
+zmodel_changed (ZModel *zmodel)
 {
-  g_return_if_fail (model != NULL);
-  g_return_if_fail (GTK_IS_ZMODEL (model));
-
-  gtk_signal_emit (GTK_OBJECT (model), zmodel_signals[CHANGED]);
+  g_signal_emit (zmodel, signals[CHANGED], 0);
 }
-
-
-
-

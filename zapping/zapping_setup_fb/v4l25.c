@@ -19,31 +19,33 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.1 2003-02-16 17:56:40 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.2 2003-11-29 19:43:24 mschimek Exp $ */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "../config.h"
 
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+
+#include "zapping_setup_fb.h"
 
 #ifdef ENABLE_V4L
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
-#include "zapping_setup_fb.h"
-
 #include <linux/types.h>		/* __u32 etc */
 #include <sys/time.h>			/* struct timeval */
 #include "../common/videodev25.h"	/* V4L2 header file */
+#include "../common/fprintf_videodev25.h"
 
-#define v4l25_ioctl(fd, cmd, arg) dev_ioctl (fd, cmd, arg, NULL)
+#define v4l25_ioctl(fd, cmd, arg)					\
+  (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
+   device_ioctl (log_fp, fprintf_ioctl_arg, fd, cmd, arg))
 
 int
-setup_v4l25			(const char *		device_name)
+setup_v4l25			(const char *		device_name,
+				 x11_dga_parameters *	dga)
 {
   int fd;
   struct v4l2_capability cap;
@@ -51,14 +53,14 @@ setup_v4l25			(const char *		device_name)
 
   message (2, "Opening video device.\n");
 
-  if (-1 == (fd = dev_open (device_name, 81, O_RDWR)))
+  if (-1 == (fd = device_open_safer (device_name, 81, O_RDWR)))
     return -1;
 
   message (2, "Querying device capabilities.\n");
 
   if (-1 == v4l25_ioctl (fd, VIDIOC_QUERYCAP, &cap))
     {
-      errmsg ("VIDIOC_QUERYCAP ioctl failed,\n  probably not a V4L2 device");
+      errmsg ("VIDIOC_QUERYCAP ioctl failed,\n  probably not a V4L2 2.5 device");
       close (fd);
       return -1;
     }
@@ -83,38 +85,59 @@ setup_v4l25			(const char *		device_name)
 
   if (fb.capability & V4L2_FBUF_CAP_EXTERNOVERLAY)
     {
-      message (2, "Genlock device, mission accomplished.\n");
+      message (2, "Genlock device, no setup necessary.\n");
       close (fd);
       return 1;
     }
 
   memset (&fb, 0, sizeof (fb));
 
-  fb.base		= (void *) addr;
-  fb.fmt.width		= width;
-  fb.fmt.height		= height;
+  fb.base		= dga->base;
+  fb.fmt.width		= dga->width;
+  fb.fmt.height		= dga->height;
 
-  switch (depth)
+  switch (dga->depth)
     {
     case  8:
       fb.fmt.pixelformat = V4L2_PIX_FMT_HI240; /* XXX bttv only */
       break;
 
+      /* Note defines and Spec (0.4) are wrong: r <-> b,
+	 RGB32 == A,R,G,B in bttv 0.9 unlike description in Spec */
+
 #if BYTE_ORDER == BIG_ENDIAN /* safe? */
-    case 15: fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555X; break;
-    case 16: fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565X; break;
-    case 24: fb.fmt.pixelformat = V4L2_PIX_FMT_RGB24;   break;
-    case 32: fb.fmt.pixelformat = V4L2_PIX_FMT_RGB32;   break;
+    case 15:
+      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555X;
+      break;
+    case 16:
+      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565X;
+      break;
+    case 24:
+    case 32:
+      if (dga->bits_per_pixel == 24)
+	fb.fmt.pixelformat = V4L2_PIX_FMT_RGB24;
+      else
+	fb.fmt.pixelformat = V4L2_PIX_FMT_RGB32;
+      break;
 #else
-    case 15: fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555;  break;
-    case 16: fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565;  break;
-    case 24: fb.fmt.pixelformat = V4L2_PIX_FMT_BGR24;   break;
-    case 32: fb.fmt.pixelformat = V4L2_PIX_FMT_BGR32;   break;
+    case 15:
+      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555;
+      break;
+    case 16:
+      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565;
+      break;
+    case 24:
+    case 32:
+      if (dga->bits_per_pixel == 24)
+	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR24;
+      else
+	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR32;
+      break;
 #endif
     }
 
-  fb.fmt.bytesperline	= bpl;
-  fb.fmt.sizeimage	= height * fb.fmt.bytesperline;
+  fb.fmt.bytesperline	= dga->bytes_per_line;
+  fb.fmt.sizeimage	= dga->height * fb.fmt.bytesperline;
 
   message (2, "Setting new frame buffer parameters.\n");
 
@@ -126,14 +149,13 @@ setup_v4l25			(const char *		device_name)
     int success;
     int saved_errno;
 
-    if (!restore_root_privileges (uid, euid))
+    if (!restore_root_privileges ())
       goto failure;
 
-    success = v4l25_ioctl (fd, VIDIOC_S_FBUF, &fb);
+    success = ioctl (fd, VIDIOC_S_FBUF, &fb);
     saved_errno = errno;
 
-    if (!drop_root_privileges (uid, euid))
-      ; /* ignore */
+    drop_root_privileges ();
 
     if (success == -1)
       {
@@ -142,8 +164,8 @@ setup_v4l25			(const char *		device_name)
         errmsg ("VIDIOC_S_FBUF ioctl failed");
 
         if (EPERM == saved_errno && ROOT_UID != euid)
-	  message (1, "%s must be run as root, or marked as SUID root.\n",
-		   program_invocation_short_name);
+	  privilege_hint ();
+
       failure:
 	close (fd);
         return 0;
@@ -158,7 +180,8 @@ setup_v4l25			(const char *		device_name)
 #else /* !ENABLE_V4L */
 
 int
-setup_v4l25			(const char *		device_name)
+setup_v4l25			(const char *		device_name,
+				 x11_dga_parameters *	dga)
 {
   return -1;
 }

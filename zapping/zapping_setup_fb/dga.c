@@ -1,5 +1,5 @@
 /*
- * Zapping (TV viewer for the Gnome Desktop)
+ *  Zapping (TV viewer for the Gnome Desktop)
  *
  * Copyright (C) 2000 Iñaki García Etxebarria
  * Copyright (C) 2003 Michael H. Schimek
@@ -19,181 +19,245 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dga.c,v 1.1 2003-01-21 05:18:39 mschimek Exp $ */
+/* $Id: dga.c,v 1.2 2003-11-29 19:43:24 mschimek Exp $ */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+/* XXX Verbatim copy from ../src/x11_stuff, keep in sync.
+   One day this will be part of libtveng and we can just link. */
+
+#include "../config.h"
 
 #include "zapping_setup_fb.h"
-
-#ifdef DISABLE_X_EXTENSIONS
-
-int
-query_dga			(Display *		display,
-				 int			screen,
-				 int			bpp_arg)
-{
-  message (1, "Not compiled with DGA support.\n");
-
-  return FALSE;
-}
-
-#else /* !DISABLE_X_EXTENSIONS */
 
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xfuncs.h>
-#include <X11/extensions/xf86dga.h>
 #include <X11/Xutil.h>
 
-int
-query_dga			(const char *		display_name,
-				 int			bpp_arg)
+#define CLEAR(var) memset (&(var), 0, sizeof (var))
+
+#define printv(template, args...) message (1, template , ##args)
+
+#ifdef HAVE_DGA_EXTENSION
+
+#ifndef X11STUFF_DGA_DEBUG
+#define X11STUFF_DGA_DEBUG 0
+#endif
+
+/* man XF86DGA */
+#include <X11/extensions/xf86dga.h>
+
+gboolean
+x11_dga_query			(x11_dga_parameters *	par,
+				 const char *		display_name,
+				 int			bpp_hint)
 {
+  x11_dga_parameters param;
   Display *display;
-  int screen;
   int event_base, error_base;
   int major_version, minor_version;
+  int screen;
   int flags;
 
-  message (2, "Opening X display.\n");
+  if (par)
+    CLEAR (*par);
+  else
+    par = &param;
 
-  if (NULL == (display = XOpenDisplay (display_name)))
+  if (display_name)
     {
-      message (1, "Cannot open display '%s'.", display_name);
-      return -1;
+      display = XOpenDisplay (display_name);
+
+      if (NULL == display)
+	{
+	  printv ("Cannot open display '%s'\n", display_name);
+	  return FALSE;
+	}
     }
+  else
+    {
+	  printv ("Cannot open display ''\n");
+	  return FALSE;
 
-  message (2, "Getting default screen for the given display.\n");
-
-  screen = XDefaultScreen (display);
+      //      display = GDK_DISPLAY ();
+    }
 
   if (!XF86DGAQueryExtension (display, &event_base, &error_base))
     {
-      message (1, "DGA extension not available.\n");
-      goto failure;
+      printv ("DGA extension not available\n");
+      return FALSE;
     }
 
   if (!XF86DGAQueryVersion (display, &major_version, &minor_version))
     {
-      message (1, "XF86DGAQueryVersion() failed.\n");
-      goto failure;
+      printv ("DGA extension not usable\n");
+      return FALSE;
     }
+
+  printv ("DGA base %d, %d, version %d.%d\n",
+	  event_base, error_base,
+	  major_version, minor_version);
+
+  if (major_version != 1
+      && major_version != 2)
+    {
+      printv ("Unknown DGA version\n");
+      return FALSE;
+    }
+
+  screen = XDefaultScreen (display);
 
   if (!XF86DGAQueryDirectVideo (display, screen, &flags))
     {
-      message (1, "XF86DGAQueryDirectVideo() failed.\n");
-      goto failure;
+      printv ("DGA DirectVideo not available\n");
+      return FALSE;
     }
 
   if (!(flags & XF86DGADirectPresent))
     {
-      message (1, "DirectVideo not available.\n");
-      goto failure;
+      printv ("DGA DirectVideo not supported\n");
+      return FALSE;
     }
 
-  message (1, "Querying frame buffer parameters from DGA.\n");
-
   {
-    int start, width, banksize, memsize;
+    int start;		/* physical address (?) */
+    int width;		/* of root window in pixels */
+    int banksize;	/* in bytes, usually video memory size */
+    int memsize;	/* ? */
 
     if (!XF86DGAGetVideoLL (display, screen,
 			    &start, &width, &banksize, &memsize))
       {
-	message (1, "XF86DGAGetVideoLL() failed.\n");
-	goto failure;
+	printv ("XF86DGAGetVideoLL() failed\n");
+	return FALSE;
       }
 
-    addr = start;
+    if (X11STUFF_DGA_DEBUG)
+      printv ("DGA start=%p width=%d banksize=%d "
+	      "(0x%x) memsize=%d (0x%x)\n",
+	      (void *) start, width, banksize, banksize,
+	      memsize, memsize);
+
+    par->base = (void *) start;
   }
-
-#if 0
-
-  if (!XF86DGAGetViewPortSize (display, screen, &vp_width, &vp_height))
-    {
-      message (1, "XF86DGAGetViewPortSize() failed.\n");
-      goto failure;
-    }
-
-#endif
 
   {
     Window root;
     XWindowAttributes wts;
 
-    root = DefaultRootWindow(display);
+    root = DefaultRootWindow (display);
 
-    XGetWindowAttributes(display, root, &wts);
+    XGetWindowAttributes (display, root, &wts);
 
-    width  = wts.width;
-    height = wts.height;
+    if (X11STUFF_DGA_DEBUG)
+      printv ("DGA root width=%u height=%u\n",
+	      wts.width, wts.height);
+
+    par->width  = wts.width;
+    par->height = wts.height;
   }
 
-  message (2, "Heuristic bpp search.\n");
+  {
+    XVisualInfo *info, templ;
+    int i, nitems;
 
-  if (bpp_arg == -1)
+    templ.screen = screen;
+
+    info = XGetVisualInfo (display, VisualScreenMask, &templ, &nitems);
+
+    for (i = 0; i < nitems; i++)
+      if (info[i].class == TrueColor && info[i].depth > 8)
+	{
+	  if (X11STUFF_DGA_DEBUG)
+	    printv ("DGA vi[%u] depth=%u\n", i, info[i].depth);
+
+	  par->depth = info[i].depth;
+	  break;
+	}
+
+    XFree (info);
+
+    if (i >= nitems)
+      {
+	printv ("DGA: No appropriate X visual available\n");
+	CLEAR (*par);
+	return FALSE;
+      }
+
+    switch (bpp_hint)
+      {
+      case 16:
+      case 24:
+      case 32:
+	par->bits_per_pixel = bpp_hint;
+	break;
+
+      default:
+	{
+	  XPixmapFormatValues *pf;
+	  int i, count;
+
+	  /* BPP heuristic */
+
+	  par->bits_per_pixel = 0;
+
+	  pf = XListPixmapFormats (display, &count);
+
+	  for (i = 0; i < count; i++)
+	    {
+	      if (X11STUFF_DGA_DEBUG)
+		printv ("DGA pf[%u]: depth=%u bpp=%u\n",
+			i, pf[i].depth, pf[i].bits_per_pixel);
+
+	      if (pf[i].depth == par->depth)
+		{
+		  par->bits_per_pixel = pf[i].bits_per_pixel;
+		  break;
+		}
+	    }
+
+	  XFree (pf);
+
+	  if (i >= count)
+	    {
+	      printv ("DGA: Unknown frame buffer bits per pixel\n");
+	      CLEAR (*par);
+	      return FALSE;
+	    }
+	}
+      }
+
+    /* XImageByteOrder() ? */
+  }
+
+  par->bytes_per_line = par->width * par->bits_per_pixel;
+
+  if (par->bytes_per_line & 7)
     {
-      XVisualInfo *info, templ;
-      XPixmapFormatValues *pf;
-      int found, v, i, n;
-
-      bpp = 0;
-
-      templ.screen = screen;
-
-      info = XGetVisualInfo (display, VisualScreenMask, &templ, &found);
-
-      for (i = 0, v = -1; v == -1 && i < found; i++)
-        if (info[i].class == TrueColor && info[i].depth >= 15)
-	  v = i;
-
-      if (-1 == v)
-        {
-          message (1, "No appropriate X visual available.\n");
-	  goto failure;
-        }
-
-      /* get depth + bpp (heuristic) */
-      pf = XListPixmapFormats (display, &n);
-
-      for (i = 0; i < n; i++)
-        if (pf[i].depth == info[v].depth)
-	  {
-	    bpp = pf[i].bits_per_pixel;
-	    break;
-          }
-
-      if (0 == bpp)
-        {
-          message (1, "Cannot figure out framebuffer depth,\n"
-		   "please use option --bpp\n");
-	  goto failure;
-        }
-    }
-  else
-    {
-      bpp = bpp_arg;
+      printv ("DGA: Unknown frame buffer bits per pixel\n");
+      CLEAR (*par);
+      return FALSE;
     }
 
-  depth = bpp;
+  par->bytes_per_line >>= 3;
 
-  bpl = (width * bpp + 7) >> 3;
-
-  message (2, "DGA info:\n");
-  message (2, " - Version      : %d.%d\n", major_version, minor_version);
-  /* message (2, " - Viewport     : %d x %d\n", vp_width, vp_height); */
-  message (2, " - Frame buffer : %p, bpl %u\n", (void *) addr, bpl);
-  message (2, " - FB size      : %u x %u\n", width, height);
-  message (2, " - Screen bpp   : depth %u, bpp %u\n", depth, bpp);
+  par->size = par->height * par->bytes_per_line;
 
   return TRUE;
+}
 
- failure:
-  if (display != 0)
-    XCloseDisplay (display);
+#else /* !HAVE_DGA_EXTENSION */
+
+gboolean
+x11_dga_query			(x11_dga_parameters *	par,
+				 const char *		display_name,
+				 int			bpp_hint)
+{
+  printv ("DGA extension support not compiled in\n");
+
+  if (par)
+    CLEAR (*par);
 
   return FALSE;
 }
 
-#endif /* !DISABLE_X_EXTENSIONS */
+#endif /* !HAVE_DGA_EXTENSION */

@@ -16,12 +16,20 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/* XXX gtk+ 2.3 GtkOptionMenu, GtkCombo, toolbar changes */
+/* gdk_pixbuf_render_to_drawable -> gdk_draw_pixbuf() */
+#undef GTK_DISABLE_DEPRECATED
+#undef GDK_DISABLE_DEPRECATED
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
+#include "site_def.h"
+
 #include <gdk/gdkx.h>
 
+#include <stdarg.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -43,107 +51,57 @@
 #include "zvbi.h"
 #include "osd.h"
 #include "remote.h"
+#include "keyboard.h"
+#include "globals.h"
 #include "audio.h"
+#include "mixer.h"
+#include "zvideo.h"
 
 extern tveng_device_info * main_info;
 extern volatile gboolean flag_exit_program;
-extern GtkWidget * main_window;
 extern gint disable_preview; /* TRUE if preview won't work */
 extern gboolean xv_present;
-int debug_msg = FALSE; /* Debugging messages on or off */
-
-/*
-  Prints a message box showing an error, with the location of the code
-  that called the function. If run is TRUE, gnome_dialog_run will be
-  called instead of just showing the dialog. Keep in mind that this
-  will block the capture.
-*/
-GtkWidget * ShowBoxReal(const gchar * sourcefile,
-			const gint line,
-			const gchar * func,
-			const gchar * message,
-			const gchar * message_box_type,
-			gboolean blocking, gboolean modal)
-{
-  GtkWidget * dialog;
-  gchar * str;
-  gchar buffer[256];
-
-  buffer[255] = 0;
-
-  g_snprintf(buffer, 255, " (%d)", line);
-
-  str = g_strconcat(sourcefile, buffer, ": [", func, "]", NULL);
-
-  if (!str)
-    return NULL;
-
-  dialog = gnome_message_box_new(message, message_box_type,
-				 GNOME_STOCK_BUTTON_OK,
-				 NULL);
-
-
-  gtk_window_set_title(GTK_WINDOW (dialog), str);
-
-  /*
-    I know this isn't usual for a dialog box, but this way we can see
-    all the title bar if we want to
-  */
-  gtk_window_set_policy(GTK_WINDOW (dialog), FALSE, TRUE, TRUE);
-
-  g_free(str);
-
-  if (blocking)
-    {
-      gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
-      return NULL;
-    }
-
-  gtk_window_set_modal(GTK_WINDOW (dialog), modal);
-  gtk_widget_show(dialog);
-
-  return dialog;
-}
 
 gchar*
 Prompt (GtkWidget *main_window, const gchar *title,
 	const gchar *prompt,  const gchar *default_text)
 {
   GtkWidget * dialog;
-  GtkVBox * vbox;
+  GtkBox *vbox;
   GtkWidget *label, *entry;
   gchar *buffer = NULL;
 
-  dialog = gnome_dialog_new(title,
-			    GNOME_STOCK_BUTTON_OK,
-			    GNOME_STOCK_BUTTON_CANCEL,
-			    NULL);
-  if (main_window)
-    gnome_dialog_set_parent(GNOME_DIALOG (dialog), GTK_WINDOW(main_window));
-  gnome_dialog_close_hides(GNOME_DIALOG (dialog), TRUE);
-  gnome_dialog_set_default(GNOME_DIALOG (dialog), 0);
+  dialog = gtk_dialog_new_with_buttons
+    (title, GTK_WINDOW (main_window),
+     GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
+     GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+     GTK_STOCK_OK, GTK_RESPONSE_OK,
+     NULL);
 
-  gtk_window_set_title(GTK_WINDOW (dialog), title);
-  gtk_window_set_modal(GTK_WINDOW (dialog), TRUE);
-  vbox = GTK_VBOX(GNOME_DIALOG(dialog)->vbox);
+  gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
+
+  vbox = GTK_BOX (GTK_DIALOG (dialog) -> vbox);
+
   if (prompt)
     {
-      label = gtk_label_new(prompt);
-      gtk_box_pack_start_defaults(GTK_BOX(vbox), label);
+      label = gtk_label_new (prompt);
+      gtk_box_pack_start_defaults (vbox, label);
       gtk_widget_show(label);
     }
   entry = gtk_entry_new();
   gtk_box_pack_start_defaults(GTK_BOX(vbox), entry);
   gtk_widget_show(entry);
-  gnome_dialog_editable_enters(GNOME_DIALOG(dialog), GTK_EDITABLE (entry));
   gtk_widget_grab_focus(entry);
   if (default_text)
     {
-      gtk_entry_set_text(GTK_ENTRY(entry), default_text);
-      gtk_entry_select_region(GTK_ENTRY(entry), 0, -1);
+      gtk_entry_set_text (GTK_ENTRY(entry), default_text);
+      gtk_editable_select_region (GTK_EDITABLE (entry), 0, -1);
     }
 
-  if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+  z_entry_emits_response (entry, GTK_DIALOG (dialog),
+			  GTK_RESPONSE_OK);
+
+  if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_OK)
     buffer = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
 
   gtk_widget_destroy(dialog);
@@ -151,40 +109,24 @@ Prompt (GtkWidget *main_window, const gchar *title,
   return buffer;
 }
 
-/*
-  Creates a GtkPixmapMenuEntry with the desired pixmap and the
-  desired label.
-*/
-GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
+GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * mnemonic,
 				       const gchar * icon)
 {
-  GtkWidget * pixmap_menu_item;
-  GtkWidget * accel_label;
-  GtkWidget * pixmap;
+  GtkWidget * imi;
+  GtkWidget * image;
 
-  g_assert(label != NULL);
-
-  pixmap_menu_item = gtk_pixmap_menu_item_new();
-  accel_label = gtk_accel_label_new (label);
-  gtk_misc_set_alignment(GTK_MISC(accel_label), 0.0, 0.5);
-  gtk_container_add(GTK_CONTAINER (pixmap_menu_item), accel_label);
-  gtk_accel_label_set_accel_widget (GTK_ACCEL_LABEL (accel_label),
-				    pixmap_menu_item);
-  gtk_widget_show (accel_label);
+  imi = gtk_image_menu_item_new_with_mnemonic (mnemonic);
 
   if (icon)
     {
-      /* if i don't specify the size, the pixmap is too big, but the
-	 one libgnomeui creates isn't... why? */
-      pixmap = gnome_stock_pixmap_widget_at_size (pixmap_menu_item,
-						  icon, 16, 16);
-      
-      gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(pixmap_menu_item),
-				      pixmap);
-      gtk_widget_show(pixmap);
+      image = gtk_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
+      gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (imi),
+				     image);
+      /* not sure whether this is necessary, but won't harm */
+      gtk_widget_show (image);
     }
 
-  return (pixmap_menu_item);
+  return (imi);
 }
 
 /*
@@ -196,7 +138,8 @@ static GtkTooltips *		tooltips_default = NULL;
 static gboolean			tooltips_enabled = TRUE;
 
 static void
-tooltips_destroy_notify		(gpointer		data)
+tooltips_destroy_notify		(gpointer	data,
+				 GObject	*where_the_object_was)
 {
   g_list_remove (tooltips_list, data);
 }
@@ -209,9 +152,9 @@ z_tooltips_add			(GtkTooltips *		tips)
 
   tooltips_list = g_list_append (tooltips_list, (gpointer) tips);
 
-  gtk_object_weakref (GTK_OBJECT (tips),
-		      tooltips_destroy_notify,
-		      (gpointer) tips);
+  g_object_weak_ref (G_OBJECT (tips),
+		     tooltips_destroy_notify,
+		     (gpointer) tips);
 
   if (tooltips_enabled)
     gtk_tooltips_enable (tips);
@@ -244,7 +187,36 @@ z_tooltip_set			(GtkWidget *		widget,
   if (!tooltips_default)
     tooltips_default = z_tooltips_add (NULL);
 
+#ifndef ZMISC_TOOLTIP_WARNING
+#define ZMISC_TOOLTIP_WARNING 0
+#endif
+
+  if (ZMISC_TOOLTIP_WARNING && GTK_WIDGET_NO_WINDOW(widget))
+    fprintf(stderr, "Warning: tooltip <%s> for "
+            "widget without window\n", tip_text);
+
   gtk_tooltips_set_tip (tooltips_default, widget, tip_text, "private tip");
+}
+
+GtkWidget *
+z_tooltip_set_wrap		(GtkWidget *		widget,
+				 const gchar *		tip_text)
+{
+  if (!tooltips_default)
+    tooltips_default = z_tooltips_add (NULL);
+
+  if (GTK_WIDGET_NO_WINDOW(widget))
+    {
+      GtkWidget *event_box = gtk_event_box_new ();
+
+      gtk_widget_show (widget);
+      gtk_container_add (GTK_CONTAINER (event_box), widget);
+      widget = event_box;
+    }
+
+  gtk_tooltips_set_tip (tooltips_default, widget, tip_text, "private tip");
+
+  return widget;
 }
 
 void
@@ -265,13 +237,83 @@ z_set_sensitive_with_tooltip	(GtkWidget *		widget,
   gtk_tooltips_set_tip (tooltips_default, widget, new_tip, NULL);
 }
 
-/*****************************************************************************/
+/**************************************************************************/
+
+void
+z_set_window_bg			(GtkWidget *		widget,
+				 GdkColor *		color)
+{
+  GdkRectangle rect;
+
+  gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, color);
+
+  rect.x = 0;
+  rect.y = 0;
+  rect.width = widget->allocation.width;
+  rect.height = widget->allocation.height;
+
+  gdk_window_invalidate_rect (widget->window, &rect, /* children */ FALSE);
+  gdk_window_process_updates (widget->window, /* children */ FALSE);
+}
 
 int
 zmisc_restore_previous_mode(tveng_device_info * info)
 {
   return zmisc_switch_mode(zcg_int(NULL, "previous_mode"), info);
 }
+
+void
+zmisc_stop (tveng_device_info *info)
+{
+  if (TVENG_NO_CAPTURE == info->current_mode)
+    return;
+
+  /* Stop current capture mode */
+  switch (info->current_mode)
+    {
+    case TVENG_CAPTURE_PREVIEW:
+      /* overlay fullscreen */
+      stop_fullscreen (info);
+      break;
+
+    case TVENG_CAPTURE_READ:
+      /* capture windowed */
+      capture_stop();
+      video_uninit ();
+      tveng_stop_capturing(info);
+      break;
+
+    case TVENG_CAPTURE_WINDOW:
+      /* overlay windowed */
+      stop_overlay ();
+      break;
+
+    case TVENG_TELETEXT:
+#ifdef HAVE_LIBZVBI
+      /* teletext in main window */
+      ttxview_detach (main_window);
+#endif
+      info->current_mode = TVENG_NO_CAPTURE;
+      break;
+
+    case TVENG_NO_CAPTURE:
+      break;
+
+    default:
+      g_assert_not_reached ();
+      break;
+    }
+
+  {
+    GdkColor color;
+
+    CLEAR (color);
+
+    z_set_window_bg (lookup_widget (main_window, "tv-screen"), &color);
+  }
+}
+
+#define BLANK_CURSOR_TIMEOUT 1500 /* ms */
 
 /*
   does the mode switching. Since this requires more than just using
@@ -286,87 +328,103 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   GtkWidget * tv_screen;
   int return_value = 0;
   gint x, y, w, h;
-  enum tveng_frame_pixformat format;
-  gint muted;
+  tv_pixfmt pixfmt;
   gchar * old_input = NULL;
   gchar * old_standard = NULL;
   enum tveng_capture_mode mode;
   extern int disable_overlay;
-  
+  gint muted;
+
   g_assert(info != NULL);
   g_assert(main_window != NULL);
-  tv_screen = lookup_widget(main_window, "tv_screen");
+  tv_screen = lookup_widget(main_window, "tv-screen");
   g_assert(tv_screen != NULL);
 
-  if ((info->current_mode == new_mode) &&
-      (new_mode != TVENG_NO_CAPTURE))
-    return 0; /* success */
+  if (info->current_mode == new_mode)
+    switch (new_mode)
+      {
+      case TVENG_TELETEXT:
+      case TVENG_NO_CAPTURE:
+	break;
+      default:
+	x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
+	z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
+	return 0; /* success */
+      }
 
   /* save this input name for later retrieval */
-  if (info->num_inputs > 0)
-    old_input = g_strdup(info->inputs[info->cur_input].name);
-  if (info->num_standards > 0)
-    old_standard = g_strdup(info->standards[info->cur_standard].name);
+  if (info->cur_video_input)
+    old_input = g_strdup (info->cur_video_input->label);
+  if (info->cur_video_standard)
+    old_standard = g_strdup(info->cur_video_standard->label);
 
-  gdk_window_get_size(tv_screen->window, &w, &h);
+  gdk_window_get_geometry(tv_screen->window, NULL, NULL, &w, &h, NULL);
   gdk_window_get_origin(tv_screen->window, &x, &y);
 
-  if (!audio_get_mute (&muted))
-    muted = -1;
+#if 0 /* XXX should use quiet_set, but that can't handle yet
+         how the controls are rebuilt when switching btw
+         v4l <-> xv. */
+  /* Always: if ((avoid_noise = zcg_bool (NULL, "avoid_noise"))) */
+    tv_quiet_set (main_info, TRUE);
+#else
+  muted = tv_mute_get (main_info, FALSE);
+#endif
 
   mode = info->current_mode;
 
-  /* Stop current capture mode */
-  switch (mode)
-    {
-    case TVENG_CAPTURE_PREVIEW:
-      tveng_stop_everything(info);
-      fullscreen_stop(info);
-      break;
-    case TVENG_CAPTURE_READ:
-      capture_stop(info);
-      tveng_stop_everything(info);
-      break;
-    case TVENG_CAPTURE_WINDOW:
-      tveng_stop_everything(info);
-      overlay_stop(info);
-      break;
-    default:
-      tveng_stop_everything(info);
-      break;
-    }
+  zmisc_stop (info);
 
 #ifdef HAVE_LIBZVBI
   if (!flag_exit_program)
     {
-      GtkWidget *w = lookup_widget (main_window, "videotext3"); /* toolbar */
+      GtkWidget *toolbar = lookup_widget (main_window, "toolbar1");
+      GtkWidget *button = lookup_widget (main_window, "toolbar-teletext");
 
-      if (new_mode != TVENG_NO_CAPTURE)
+      if (new_mode == TVENG_TELETEXT)
 	{
-	  gtk_widget_hide(lookup_widget(main_window, "appbar2"));
-
-	  ttxview_detach(main_window);
-
-	  set_stock_pixmap(w, GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
-	  z_tooltip_set(w, _("Use Zapping as a Teletext navigator"));
+	  gtk_container_remove (GTK_CONTAINER (toolbar), button);
+	  button = gtk_toolbar_insert_stock (GTK_TOOLBAR (toolbar),
+					     "zapping-video",
+					     _("Return to video mode"), NULL,
+					     G_CALLBACK (on_python_command1),
+					     "zapping.toggle_mode()",
+					     5);
+	  register_widget (main_window, button, "toolbar-teletext");
 	}
-      else
+      else if (mode == TVENG_TELETEXT)
 	{
-	  set_stock_pixmap(w, GNOME_STOCK_PIXMAP_TABLE_FILL);
-	  z_tooltip_set(w, _("Return to windowed mode and use the current "
-			   "page as subtitles"));
-	}
-    }
+	  GtkWidget *appbar;
 
-  if (new_mode != TVENG_CAPTURE_PREVIEW &&
-      new_mode != TVENG_NO_CAPTURE)
-    osd_set_window(tv_screen);
-  else if (new_mode == TVENG_NO_CAPTURE)
-    {
-      osd_clear();
-      osd_unset_window();
+	  gtk_container_remove (GTK_CONTAINER (toolbar), button);
+	  button = gtk_toolbar_insert_stock (GTK_TOOLBAR (toolbar),
+					     "zapping-teletext",
+					     _("Activate Teletext mode"), NULL,
+					     G_CALLBACK (on_python_command1),
+					     "zapping.switch_mode('teletext')",
+					     5);
+	  register_widget (main_window, button, "toolbar-teletext");
+
+	  appbar = lookup_widget (main_window, "appbar2");
+	  gtk_widget_hide (appbar);
+	  gtk_widget_queue_resize (main_window);
+	}
     }
 #endif /* HAVE_LIBZVBI */
+
+  switch (new_mode)
+    {
+    case TVENG_TELETEXT:
+    case TVENG_NO_CAPTURE:
+      python_command_printf (main_window, "zapping.closed_caption(0)");
+      osd_clear();
+      osd_unset_window();
+      break;
+    case TVENG_CAPTURE_PREVIEW:
+      break;
+    default:
+      osd_set_window(tv_screen);
+      break;
+    }
 
   switch (new_mode)
     {
@@ -384,23 +442,33 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 				      TVENG_ATTACH_XV, info) == -1)
 		{
 		  RunBox("%s couldn't be opened\n:%s,\naborting",
-			 GNOME_MESSAGE_BOX_ERROR,
+			 GTK_MESSAGE_ERROR,
 			 zcg_char(NULL, "video_device"), info->error);
 		  exit(1);
 		}
 	      else
 		ShowBox("Capture mode not available:\n%s",
-			GNOME_MESSAGE_BOX_ERROR, info->error);
+			GTK_MESSAGE_ERROR, info->error);
 	    }
 	}
+
+      /* XXX error? */
       tveng_set_capture_size(w, h, info);
-      return_value = capture_start(tv_screen, info);
+      return_value = capture_start(info);
+      video_init (tv_screen, tv_screen->style->black_gc);
+      video_suggest_format ();
+      x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE
+			   | X11_SCREENSAVER_CPU_ACTIVE);
+      z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
       break;
+
     case TVENG_CAPTURE_WINDOW:
-      if (disable_preview) {
-	ShowBox("preview has been disabled", GNOME_MESSAGE_BOX_WARNING);
+      if (disable_preview || disable_overlay) {
+	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
 	g_free(old_input);
 	g_free(old_standard);
+	x11_screensaver_set (X11_SCREENSAVER_ON);
+        z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 	return -1;
       }
 
@@ -412,56 +480,68 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 				  TVENG_ATTACH_XV, info)==-1)
 	    {
 	      RunBox("%s couldn't be opened\n:%s, aborting",
-		     GNOME_MESSAGE_BOX_ERROR,
+		     GTK_MESSAGE_ERROR,
 		     zcg_char(NULL, "video_device"), info->error);
 	      exit(1);
 	    }
 	}
 
-      if (!tveng_detect_preview(info))
+      if (info->current_controller != TVENG_CONTROLLER_XV)
 	{
-	  ShowBox(_("Preview will not work: %s"),
-		  GNOME_MESSAGE_BOX_ERROR, info->error);
-	  return -1;
+	  tv_overlay_buffer dma;
+
+	  if (!tv_get_overlay_buffer (info, &dma))
+	    {
+	      ShowBox(_("Preview will not work: %s"),
+		      GTK_MESSAGE_ERROR, info->error);
+	      x11_screensaver_set (X11_SCREENSAVER_ON);
+	      z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
+	      return -1;
+	    }
 	}
 
-      format = zmisc_resolve_pixformat(tveng_get_display_depth(info),
-				       x11_get_byte_order());
+      pixfmt = dga_param.format.pixfmt;
 
-      if ((format != -1) &&
+      if ((pixfmt != TV_PIXFMT_UNKNOWN) &&
 	  (info->current_controller != TVENG_CONTROLLER_XV))
 	{
-	  info->format.pixformat = format;
+	  info->format.pixfmt = pixfmt;
+
 	  if ((tveng_set_capture_format(info) == -1) ||
-	      (info->format.pixformat != format))
+	      (info->format.pixfmt != pixfmt))
 	    g_warning("Preview format invalid: %s (%d, %d)", info->error,
-		      info->format.pixformat, format);
-	  printv("prev: setting %d, got %d\n", format,
-		 info->format.pixformat);
+		      info->format.pixfmt, pixfmt);
+	  printv("prev: setting %d, got %d\n", pixfmt,
+		 info->format.pixfmt);
 	}
 
-      info->window.x = x;
-      info->window.y = y;
-      info->window.width = w;
-      info->window.height = h;
-      info->window.clipcount = 0;
-      info->window.win = GDK_WINDOW_XWINDOW(tv_screen->window);
-      info->window.gc = GDK_GC_XGC(tv_screen->style->white_gc);
-      tveng_set_preview_window(info);
-      return_value = tveng_start_window(info);
-      if (return_value != -1)
+      if ((x + w) <= 0 || (y + h) <= 0)
+	goto oops;
+
+      if (start_overlay (main_window, tv_screen, info))
 	{
-	  startup_overlay(tv_screen, main_window, info);
-	  overlay_sync(TRUE);
+	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
+          z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
 	}
       else
-	g_warning(info->error);
+	{
+	  ShowBox(_("Cannot start video overlay.\n%s"),
+		  GTK_MESSAGE_ERROR, info->error);
+	oops:
+	  zmisc_stop (info);
+
+	  x11_screensaver_set (X11_SCREENSAVER_ON);
+          z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
+	}
       break;
+
     case TVENG_CAPTURE_PREVIEW:
       if (disable_preview || disable_overlay) {
-	ShowBox("preview has been disabled", GNOME_MESSAGE_BOX_WARNING);
+	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
 	g_free(old_input);
 	g_free(old_standard);
+	x11_screensaver_set (X11_SCREENSAVER_ON);
+	z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 	return -1;
       }
 
@@ -473,61 +553,93 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 				  TVENG_ATTACH_XV, info)==-1)
 	    {
 	      RunBox("%s couldn't be opened\n:%s, aborting",
-		     GNOME_MESSAGE_BOX_ERROR,
+		     GTK_MESSAGE_ERROR,
 		     zcg_char(NULL, "video_device"), info->error);
 	      exit(1);
 	    }
 	}
 
-      format = zmisc_resolve_pixformat(tveng_get_display_depth(info),
-				       x11_get_byte_order());
+      pixfmt = dga_param.format.pixfmt;
 
-      if ((format != -1) &&
+      if ((pixfmt != TV_PIXFMT_UNKNOWN) &&
 	  (info->current_controller != TVENG_CONTROLLER_XV))
 	{
-	  info->format.pixformat = format;
+	  info->format.pixfmt = pixfmt;
+
 	  if ((tveng_set_capture_format(info) == -1) ||
-	      (info->format.pixformat != format))
+	      (info->format.pixfmt != pixfmt))
 	    g_warning("Fullscreen format invalid: %s (%d, %d)", info->error,
-		      info->format.pixformat, format);
-	  printv("fulls: setting %d, got %d\n", format,
-		 info->format.pixformat);
+		      info->format.pixfmt, pixfmt);
+	  printv("fulls: setting %d, got %d\n", pixfmt,
+		 info->format.pixfmt);
 	}
 
-      return_value = fullscreen_start(info);
-      if (return_value == -1)
-	g_warning("couldn't start fullscreen mode");
-      break;
-    default:
-      if (!flag_exit_program) /* Just closing */
+      if (!start_fullscreen (info))
 	{
-#ifdef HAVE_LIBZVBI
-	  if (zvbi_get_object())
-	    {
-	      /* start vbi code */
-	      gtk_widget_show(lookup_widget(main_window, "appbar2"));
-	      ttxview_attach(main_window, lookup_widget(main_window, "tv_screen"),
-			     lookup_widget(main_window, "toolbar1"),
-			     lookup_widget(main_window, "appbar2"));
-	    }
-	  else
-#endif
-	    {
-	      ShowBox(_("VBI has been disabled, or it doesn't work."),
-		      GNOME_MESSAGE_BOX_INFO);
-	      break;
-	    }
+	  ShowBox (_("Cannot start fullscreen overlay.\n%s"),
+		   GTK_MESSAGE_ERROR, info->error);
+
+	  zmisc_stop (info);
+
+	  x11_screensaver_set (X11_SCREENSAVER_ON);
+          z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 	}
-      break; /* TVENG_NO_CAPTURE */
+      else
+	{
+	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
+          z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
+	}
+      break;
+
+    case TVENG_TELETEXT:
+      x11_screensaver_set (X11_SCREENSAVER_ON);
+      z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
+
+#ifdef HAVE_LIBZVBI
+      if (zvbi_get_object ())
+	{
+	  /* start vbi code */
+
+	  gtk_widget_show (lookup_widget (main_window, "appbar2"));
+	  gtk_widget_queue_resize (main_window);
+
+	  ttxview_attach (main_window,
+			  lookup_widget (main_window, "tv-screen"),
+			  lookup_widget (main_window, "toolbar1"),
+			  lookup_widget (main_window, "appbar2"));
+
+	  info->current_mode = TVENG_TELETEXT;
+	}
+      else
+#endif
+	{
+	  ShowBox(_("VBI has been disabled, or it doesn't work."),
+		  GTK_MESSAGE_INFO);
+	  break;
+	}
+
+      break;
+
+    default: /* TVENG_NO_CAPTURE */
+      x11_screensaver_set (X11_SCREENSAVER_ON);
+      z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
+
+      break;
     }
 
   /* Restore old input if we found it earlier */
+  /*
   if (old_input != NULL)
     if (-1 == tveng_set_input_by_name(old_input, info))
       g_warning("couldn't restore old input");
   if (old_standard != NULL)
     if (-1 == tveng_set_standard_by_name(old_standard, info))
       g_warning("couldn't restore old standard");
+  */
+  if (old_input != NULL)
+    tveng_set_input_by_name(old_input, info);
+  if (old_standard != NULL)
+    tveng_set_standard_by_name(old_standard, info);
 
   g_free (old_input);
   g_free (old_standard);
@@ -540,8 +652,15 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   /* Updating the properties is not so useful, and it isn't so easy,
      since there might be multiple properties dialogs open */
 
+#if 0
+  /* XXX don't reset when we're in shutdown, see cmd.c/py_quit(). */
+  if (/* Always: avoid_noise && */ !flag_exit_program)
+    reset_quiet (main_info, /* delay ms */ 300);
+#else
   if (muted != -1)
-    set_mute1(!!muted, FALSE, FALSE);
+    tv_mute_set (main_info, muted);
+#endif
+
   /* Update the controls window if it's open */
   update_control_box(info);
 
@@ -551,31 +670,11 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   return return_value;
 }
 
-int
-z_restart_everything(enum tveng_capture_mode mode,
-		     tveng_device_info * info)
-{
-  int result = tveng_restart_everything(mode, info);
-
-  if (result)
-    return result;
-
-  if (info->current_mode == TVENG_CAPTURE_WINDOW)
-    overlay_sync(FALSE);
-
-  return 0;
-}
-
-/* API flaw */
 void set_stock_pixmap	(GtkWidget	*button,
 			 const gchar	*new_pix)
 {
-  GtkWidget *widget = GTK_BIN(button)->child;
-  GList *node = g_list_first(GTK_BOX(widget)->children)->next;
-
-  widget = GTK_WIDGET(((GtkBoxChild*)(node->data))->widget);
-
-  gnome_stock_set_icon(GNOME_STOCK(widget), new_pix);
+  gtk_button_set_use_stock (GTK_BUTTON (button), TRUE);
+  gtk_button_set_label (GTK_BUTTON (button), new_pix);
 }
 
 /**
@@ -689,13 +788,23 @@ z_menu_get_index		(GtkWidget	*menu,
   return return_value ? return_value : -1;
 }
 
+GtkWidget *
+z_menu_shell_nth_item		(GtkMenuShell *		menu_shell,
+				 guint			n)
+{
+  GList *list;
+
+  list = g_list_nth (menu_shell->children, n);
+  assert (list != NULL);
+
+  return GTK_WIDGET (list->data);
+}
+
+
 gint
 z_option_menu_get_active	(GtkWidget	*option_menu)
 {
-  option_menu = gtk_option_menu_get_menu(GTK_OPTION_MENU(option_menu));
-
-  return g_list_index(GTK_MENU_SHELL(option_menu)->children,
-		      gtk_menu_get_active(GTK_MENU(option_menu)));
+  return gtk_option_menu_get_history (GTK_OPTION_MENU (option_menu));
 }
 
 void
@@ -722,7 +831,7 @@ z_change_menuitem			 (GtkWidget	*widget,
 					  const gchar	*new_label,
 					  const gchar	*new_tooltip)
 {
-  GtkWidget *spixmap;
+  GtkWidget *image;
 
   if (new_label)
     change_pixmenuitem_label(widget, new_label);
@@ -730,16 +839,11 @@ z_change_menuitem			 (GtkWidget	*widget,
     z_tooltip_set(widget, new_tooltip);
   if (new_pixmap)
     {
-      spixmap = gnome_stock_pixmap_widget_at_size(widget, new_pixmap, 16, 16);
-      
-      /************* THIS SHOULD NEVER BE DONE ***********/
-      gtk_object_destroy(GTK_OBJECT(GTK_PIXMAP_MENU_ITEM(widget)->pixmap));
-      GTK_PIXMAP_MENU_ITEM(widget)->pixmap = NULL;
-      
-      /********** BUT THERE'S NO OTHER WAY TO DO IT ******/
-      gtk_widget_show(spixmap);
-      gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(widget),
-				      spixmap);
+      image = gtk_image_new_from_stock (new_pixmap, GTK_ICON_SIZE_MENU);
+      gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (widget),
+				     image);
+      /* not sure whether this is necessary, but won't harm */
+      gtk_widget_show (image);
      }
 }
 
@@ -754,35 +858,80 @@ static void
 add_hide(GtkWidget *appbar)
 {
   GtkWidget *old =
-    gtk_object_get_data(GTK_OBJECT(appbar), "hide_button");
+    g_object_get_data(G_OBJECT(appbar), "hide_button");
   GtkWidget *widget;
 
   if (old)
     return;
 
-  widget = gnome_stock_button(GNOME_STOCK_BUTTON_CLOSE);
-  z_tooltip_set(widget, _("Hide the status bar"));
+  widget = gtk_button_new_from_stock (GTK_STOCK_CLOSE);
+  z_tooltip_set(widget, _("Hide the statusbar"));
 
   if (widget)
     gtk_box_pack_end(GTK_BOX(appbar), widget, FALSE, FALSE, 0);
 
   gtk_widget_show(widget);
-  gtk_signal_connect_object(GTK_OBJECT(widget), "clicked",
-			    GTK_SIGNAL_FUNC(appbar_hide),
-			    GTK_OBJECT(appbar));
+  g_signal_connect_swapped(G_OBJECT(widget), "clicked",
+			   G_CALLBACK(appbar_hide),
+			   appbar);
 
-  gtk_object_set_data(GTK_OBJECT(appbar), "hide_button", widget);
+  g_object_set_data(G_OBJECT(appbar), "hide_button", widget);
 }
 
-void z_status_print(const gchar *message)
+static guint status_hide_timeout_id = -1;
+
+static gint
+status_hide_timeout	(void		*ignored)
 {
   GtkWidget *appbar2 =
     lookup_widget(main_window, "appbar2");
 
+  appbar_hide (appbar2);
+
+  status_hide_timeout_id = -1;
+  return FALSE; /* Do not call me again */
+}
+
+void z_status_print(const gchar *message, gint timeout)
+{
+  GtkWidget *appbar2 =
+    lookup_widget(main_window, "appbar2");
+  GtkWidget *status = gnome_appbar_get_status (GNOME_APPBAR (appbar2));
+
   add_hide(appbar2);
 
-  gnome_appbar_set_status(GNOME_APPBAR(appbar2), message);
+  gtk_label_set_text (GTK_LABEL (status), message);
   gtk_widget_show(appbar2);
+
+  if (status_hide_timeout_id > 0)
+    g_source_remove (status_hide_timeout_id);
+
+  if (timeout > 0)
+    status_hide_timeout_id =
+      g_timeout_add (timeout, (GSourceFunc) status_hide_timeout, NULL);
+  else
+    status_hide_timeout_id = -1;
+}
+
+void z_status_print_markup (const gchar *markup, gint timeout)
+{
+  GtkWidget *appbar2 =
+    lookup_widget(main_window, "appbar2");
+  GtkWidget *status = gnome_appbar_get_status (GNOME_APPBAR (appbar2));
+
+  add_hide(appbar2);
+
+  gtk_label_set_markup (GTK_LABEL (status), markup);
+  gtk_widget_show(appbar2);
+
+  if (status_hide_timeout_id > -1)
+    gtk_timeout_remove(status_hide_timeout_id);
+
+  if (timeout > 0)
+    status_hide_timeout_id =
+      gtk_timeout_add(timeout, status_hide_timeout, NULL);
+  else
+    status_hide_timeout_id = -1;
 }
 
 /* FIXME: [Hide] button */
@@ -791,7 +940,7 @@ void z_status_set_widget(GtkWidget * widget)
   GtkWidget *appbar2 =
     lookup_widget(main_window, "appbar2");
   GtkWidget *old =
-    gtk_object_get_data(GTK_OBJECT(appbar2), "old_widget");
+    g_object_get_data(G_OBJECT(appbar2), "old_widget");
 
   if (old)
     gtk_container_remove(GTK_CONTAINER(appbar2), old);
@@ -801,7 +950,7 @@ void z_status_set_widget(GtkWidget * widget)
 
   add_hide(appbar2);
 
-  gtk_object_set_data(GTK_OBJECT(appbar2), "old_widget", widget);
+  g_object_set_data(G_OBJECT(appbar2), "old_widget", widget);
 
   gtk_widget_show(appbar2);
 }
@@ -857,128 +1006,214 @@ z_build_path(const gchar *path, gchar **error_description)
   return TRUE;
 }
 
-gchar *
-z_replace_filename_extension (gchar *filename, gchar *new_ext)
+static gchar *
+strnmerge			(const gchar *		s1,
+				 guint			len1,
+				 const gchar *		s2,
+				 guint			len2)
 {
-  gchar *name, *ext;
+  gchar *d;
+
+  d = g_malloc (len1 + len2 + 1);
+
+  memcpy (d, s1, len1);
+  memcpy (d + len1, s2, len2);
+
+  d[len1 + len2] = 0;
+
+  return d;
+}
+
+gchar *
+z_replace_filename_extension	(const gchar *		filename,
+				 const gchar *		new_ext)
+{
+  const gchar *ext;
   gint len;
 
   if (!filename)
     return NULL;
 
   len = strlen (filename);
-
-  /* last '.' in last part of name */
+  /* Last '.' in basename. UTF-8 safe because we scan for ASCII only. */
   for (ext = filename + len - 1;
-       ext > filename && *ext != '.' && *ext != '/';
-       ext--);
+       ext > filename && *ext != '.' && *ext != '/'; ext--);
 
-  if (*ext != '.')
-    return g_strdup (filename);
+  if (len == 0 || *ext != '.')
+    {
+      if (!new_ext)
+	return g_strdup (filename);
+      else
+	return g_strconcat (filename, ".", new_ext, NULL);
+    }
 
   len = ext - filename;
 
-  if (!new_ext)
-    return g_strndup(filename, len);
-
-  name = g_malloc (len + strlen (new_ext) + 2);
-  memcpy (name, filename, len + 1);
-  strcpy (name + len + 1, new_ext);
-
-  return name;
+  if (new_ext)
+    return strnmerge (filename, len + 1, new_ext, strlen (new_ext));
+  else
+    return g_strndup (filename, len);
 }
 
-gchar *
-z_build_filename (gchar *dirname, gchar *filename)
+static void
+append_text			(GtkEditable *		e,
+				 const gchar *		text)
 {
-  gchar *name;
-  gint trailing_slashes = 0, i;
+  const gint end_pos = -1;
+  gint old_pos, new_pos;
 
-  if (!dirname || strlen (dirname) == 0)
-    return g_strdup (filename);
+  gtk_editable_set_position (e, end_pos);
+  old_pos = gtk_editable_get_position (e);
+  new_pos = old_pos;
 
-  dirname = g_strdup (dirname);
-  g_strstrip (dirname);
+  gtk_editable_insert_text (e, text, /* bytes */ strlen (text), &new_pos);
 
-  for (i = strlen (dirname); i > 0 && dirname[i - 1] == '/'; i--)
-    trailing_slashes++;
+  /* Move cursor before appended text */
+  gtk_editable_set_position (e, old_pos);
+}
 
-  if (trailing_slashes <= 0)
-    name = g_strconcat (dirname, "/", filename, NULL);
-  else if (trailing_slashes == 1)
-    name = g_strconcat (dirname, filename, NULL);
-  else
-    {
-      gchar *temp = g_strndup (dirname, i + 1);
-      name = g_strconcat (dirname, filename, NULL);
-      g_free (temp);
-    }
+void
+z_electric_set_basename		(GtkWidget *		w,
+				 const gchar *		basename)
+{
+  g_assert (NULL != w);
+  g_assert (NULL != basename);
 
-  g_free (dirname);
-
-  return name;
+  g_object_set_data_full (G_OBJECT (w), "basename",
+			  g_strdup (basename),
+			  (GtkDestroyNotify) g_free);
 }
 
 /* See ttx export or screenshot for a demo */
 void
-z_on_electric_filename (GtkWidget *w, gpointer user_data)
+z_on_electric_filename		(GtkWidget *		w,
+				 gpointer		user_data)
 {
-  gchar **bpp = (gchar **) user_data;
-  gchar *basename = (gchar *)
-    gtk_object_get_data (GTK_OBJECT (w), "basename");
-  gchar *name = gtk_entry_get_text (GTK_ENTRY (w));
-  gchar *baseext, *ext;
-  gint len, baselen, baseextlen;
+  const gchar *name;	/* editable: "/foo/bar.baz" */
+  const gchar *ext;	/* editable: "baz" */
+  gchar *basename;	/* proposed: "far.faz" */
+  gchar *baseext;	/* proposed: "faz" */
+  gchar **bpp;		/* copy entered name here */
+  gint len;
+  gint baselen;
+  gint baseextlen;
 
-  g_assert(basename != NULL);
-  baselen = strlen(basename);
-  /* last '.' in basename */
-  for (baseext = basename + baselen - 1; baseext > basename
-	 && *baseext != '.'; baseext--);
-  baseextlen = (*baseext == '.') ?
-    baselen - (baseext - basename) : 0;
+  name = gtk_entry_get_text (GTK_ENTRY (w));
+  len = strlen (name);
 
-  len = strlen(name);
-  /* last '/' in name */
-  for (ext = name + len - 1; ext > name && *ext != '/'; ext--);
-  /* first '.' in last part of name */
-  for (; *ext && *ext != '.'; ext++);
+  ext = name;
+
+  if (len > 0)
+    {
+      /* Last '/' in name. */
+      for (ext = name + len - 1; ext > name && *ext != '/'; ext--)
+	;
+
+      /* First '.' in last part of name. */
+      for (; *ext && *ext != '.'; ext++)
+	;
+    }
+
+  basename = (gchar *) g_object_get_data (G_OBJECT (w), "basename");
+  g_assert (basename != NULL);
+
+  baselen = strlen (basename);
+  /* Last '.' in basename. UTF-8 safe because we scan for ASCII only. */
+  for (baseext = basename + baselen - 1;
+       baseext > basename && *baseext != '.'; baseext--);
+  baseextlen = (*baseext == '.') ? baselen - (baseext - basename) : 0;
+
+  bpp = (gchar **) user_data;
+
+  /* This function is usually a callback handler for the "changed"
+     signal in a GtkEditable. Since we will change the editable too,
+     block the signal emission while we are editing */
+  g_signal_handlers_block_by_func (G_OBJECT (w), 
+				   z_on_electric_filename,
+				   user_data);
 
   /* Tack basename on if no name or ends with '/' */
   if (len == 0 || name[len - 1] == '/')
     {
-      gtk_entry_append_text (GTK_ENTRY (w), basename);
-      gtk_entry_set_position (GTK_ENTRY (w), len);
+      append_text (GTK_EDITABLE (w), basename);
     }
   /* Cut off basename if not prepended by '/' */
   else if (len > baselen
-	   && strcmp(&name[len - baselen], basename) == 0
+	   && 0 == strcmp (&name[len - baselen], basename)
 	   && name[len - baselen - 1] != '/')
     {
-      name = g_strndup(name, len - baselen);
-      gtk_entry_set_text (GTK_ENTRY (w), name);
-      /* Attach baseext if none already left of basename */
+      const gint end_pos = -1;
+      gchar *buf = g_strndup (name, len - baselen);
+
+      gtk_entry_set_text (GTK_ENTRY (w), buf);
+
+      /* Attach baseext if none already */
       if (baseextlen > 0 && ext < (name + len - baselen))
-	{
-	  gtk_entry_append_text (GTK_ENTRY (w), baseext);
-	  gtk_entry_set_position (GTK_ENTRY (w), len - baselen);
-	}
-      g_free(name);
+	append_text (GTK_EDITABLE (w), baseext);
+      else
+	gtk_editable_set_position (GTK_EDITABLE (w), end_pos);
+
+      g_free (buf);
     }
+#if 0
+  /* Tack baseext on if name ends with '.' */
+  else if (baseextlen > 0 && name[len - 1] == '.')
+    {
+      append_text (GTK_EDITABLE (w), baseext + 1);
+    }
+#endif
   /* Cut off baseext when duplicate */
   else if (baseextlen > 0 && len > baseextlen
-	   && strcmp(&name[len - baseextlen], baseext) == 0
+	   && 0 == strcmp (&name[len - baseextlen], baseext)
 	   && ext < (name + len - baseextlen))
     {
-      name = g_strndup(name, len - baseextlen);
-      gtk_entry_set_text (GTK_ENTRY (w), name);
-      g_free(name);
+      gchar *buf = g_strndup (name, len - baseextlen);
+
+      gtk_entry_set_text (GTK_ENTRY (w), buf);
+
+      g_free (buf);
     }
-  else if (bpp)
+
+  if (bpp)
     {
-      g_free(*bpp);
-      *bpp = g_strdup(name);
+      g_free (*bpp);
+
+      *bpp = g_strdup (gtk_entry_get_text (GTK_ENTRY (w)));
     }
+
+  g_signal_handlers_unblock_by_func (G_OBJECT (w), 
+				     z_on_electric_filename,
+				     user_data);
+}
+
+void
+z_electric_replace_extension	(GtkWidget *		w,
+				 const gchar *		ext)
+{
+  const gchar *old_name;
+  gchar *old_base;
+  gchar *new_name;
+
+  old_base = (gchar *) g_object_get_data (G_OBJECT (w), "basename");
+
+  if (NULL == old_base)
+    return; /* has no extension */
+
+  new_name = z_replace_filename_extension (old_base, ext);
+  z_electric_set_basename (w, new_name);
+
+  old_name = gtk_entry_get_text (GTK_ENTRY (w));
+  new_name = z_replace_filename_extension (old_name, ext);
+  
+  g_signal_handlers_block_matched (G_OBJECT (w), G_SIGNAL_MATCH_FUNC,
+				   0, 0, 0, z_on_electric_filename, 0);
+
+  gtk_entry_set_text (GTK_ENTRY (w), new_name);
+
+  g_signal_handlers_unblock_matched (G_OBJECT (w), G_SIGNAL_MATCH_FUNC,
+				     0, 0, 0, z_on_electric_filename, 0);
+
+  g_free (new_name);
 }
 
 static void
@@ -1000,6 +1235,8 @@ set_orientation_recursive	(GtkToolbar	*toolbar,
 
   gtk_toolbar_set_orientation(toolbar, orientation);
 }
+
+#if 0
 
 static void
 on_orientation_changed		(GtkToolbar	*toolbar,
@@ -1025,26 +1262,39 @@ on_orientation_changed		(GtkToolbar	*toolbar,
     }  
 }
 
-static void
-set_style_recursive		(GtkToolbar	*toolbar,
-				 GtkToolbarStyle style)
-{
-  GList *p = toolbar->children;
-  GtkToolbarChild *child;
+#endif
 
-  while (p)
+void
+z_toolbar_set_style_recursive	(GtkToolbar *		toolbar,
+				 GtkToolbarStyle	style)
+{
+  GList *p;
+
+  for (p = toolbar->children; p; p = p->next)
     {
-      child = (GtkToolbarChild*)p->data;
+      GtkToolbarChild *child = (GtkToolbarChild *) p->data;
       
-      if (child->type == GTK_TOOLBAR_CHILD_WIDGET &&
-	  GTK_IS_TOOLBAR(child->widget))
-	set_style_recursive(GTK_TOOLBAR(child->widget), style);
-      p = p->next;
+      if (child->type == GTK_TOOLBAR_CHILD_WIDGET
+	  && GTK_IS_TOOLBAR (child->widget))
+	z_toolbar_set_style_recursive (GTK_TOOLBAR (child->widget), style);
     }
 
-  gtk_toolbar_set_style(toolbar, style);
+  switch (style)
+    {
+    case GTK_TOOLBAR_ICONS:
+    case GTK_TOOLBAR_TEXT:
+    case GTK_TOOLBAR_BOTH:
+    case GTK_TOOLBAR_BOTH_HORIZ:
+      gtk_toolbar_set_style (toolbar, style);
+      break;
+
+    default:
+      gtk_toolbar_unset_style (toolbar);
+      break;
+    }
 }
 
+/*
 static void
 on_style_changed		(GtkToolbar	*toolbar,
 				 GtkToolbarStyle style,
@@ -1064,138 +1314,25 @@ on_style_changed		(GtkToolbar	*toolbar,
 
       if (child->type == GTK_TOOLBAR_CHILD_WIDGET &&
 	  GTK_IS_TOOLBAR(child->widget))
-	set_style_recursive(GTK_TOOLBAR(child->widget), style);
+	z_toolbar_set_style_recursive(GTK_TOOLBAR(child->widget), style);
       p = p->next;
     }
 }
-
-void
-propagate_toolbar_changes	(GtkWidget	*toolbar)
-{
-  g_return_if_fail (GTK_IS_TOOLBAR(toolbar));
-
-  gtk_signal_connect(GTK_OBJECT(toolbar), "style-changed",
-		     GTK_SIGNAL_FUNC(on_style_changed),
-		     NULL);
-  gtk_signal_connect(GTK_OBJECT(toolbar), "orientation-changed",
-		     GTK_SIGNAL_FUNC(on_orientation_changed),
-		     NULL);
-}
-
-void zmisc_overlay_subtitles	(gint page)
-{
-#ifdef HAVE_LIBZVBI
-  GtkWidget *closed_caption1;
-
-  zvbi_page = page;
-  
-  zconf_set_integer(zvbi_page,
-		    "/zapping/internal/callbacks/zvbi_page");
-  zconf_set_boolean(TRUE, "/zapping/internal/callbacks/closed_caption");
-
-  if (main_info->current_mode == TVENG_NO_CAPTURE)
-    zmisc_restore_previous_mode(main_info);
-
-  osd_clear();
-  
-  closed_caption1 =
-    lookup_widget(main_window, "closed_caption1");
-  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
-				 TRUE);
-#endif /* HAVE_LIBZVBI */
-}
-
-void
-z_set_cursor	(GdkWindow	*window,
-		 guint		cid)
-{
-  GdkCursor *cursor;
-
-  /* blank cursor */
-  if (cid == 0)
-    {
-#define empty_cursor_width 16
-#define empty_cursor_height 16
-      unsigned char empty_cursor_bits[] = {
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-      unsigned char empty_cursor_mask[] = {
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-      GdkColor fg = {0, 0, 0, 0};
-      GdkColor bg = {0, 0, 0, 0};
-      GdkPixmap *source, *mask;
-
-      source = gdk_bitmap_create_from_data(NULL, empty_cursor_bits,
-					   empty_cursor_width,
-					   empty_cursor_height);
-
-      mask = gdk_bitmap_create_from_data(NULL, empty_cursor_mask,
-					 empty_cursor_width,
-					 empty_cursor_height);
-
-      cursor = gdk_cursor_new_from_pixmap(source, mask, &fg, &bg, 8, 8);
-      
-      gdk_pixmap_unref(source);
-      gdk_pixmap_unref(mask);
-    }
-  else
-    {
-      if (cid >= GDK_NUM_GLYPHS)
-	cid = GDK_NUM_GLYPHS-2;
-      cid &= ~1;
-      cursor = gdk_cursor_new(cid);
-    }
-
-  if (!cursor)
-    return;
-
-  gdk_window_set_cursor(window, cursor);
-  gdk_cursor_destroy(cursor);
-}
-
-GtkWidget *
-z_pixmap_new_from_file		(const gchar *		name)
-{
-  GdkBitmap *mask;
-  GdkPixmap *pixmap;
-  GdkPixbuf *pb;
-  GtkWidget *pix;
-
-  pb = gdk_pixbuf_new_from_file (name);
-
-  if (!pb) {
-    printv("Unable to load pixmap \"%s\", errno %d: %s\n",
-	   name, errno, strerror(errno));
-    return NULL;
-  }
-
-  gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
-  gdk_pixbuf_unref(pb);
-  pix = gtk_pixmap_new(pixmap, mask);
-  if (mask)
-    gdk_bitmap_unref(mask);
-  gdk_pixmap_unref(pixmap);
-
-  return pix;
-}
+*/
 
 GtkWidget *
 z_load_pixmap			(const gchar *		name)
 {
-  GtkWidget *pixmap;
+  GtkWidget *image;
   gchar *path;
 
-  path = g_strconcat (PACKAGE_PIXMAPS_DIR, "/", name, NULL);
-  pixmap = z_pixmap_new_from_file (path);
+  path = g_strconcat (PACKAGE_PIXMAPS_DIR "/", name, NULL);
+  image = gtk_image_new_from_file (path);
   g_free (path);
 
-  if (pixmap)
-    gtk_widget_show (pixmap);
+  gtk_widget_show (image);
 
-  return pixmap;
+  return image;
 }
 
 GtkWindow *
@@ -1310,203 +1447,549 @@ find_unused_name		(const gchar *		dir,
 
 /*
  *  "Spinslider"
+ *
+ *  [12345___|<>] unit [-<>--------][Reset]
  */
 
-GtkAdjustment *
-z_spinslider_get_spin_adj		(GtkWidget *hbox)
-{
-  GtkAdjustment * adj;
+typedef struct _z_spinslider z_spinslider;
 
-  adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
-  g_assert (adj);
-  return adj;
+struct _z_spinslider
+{
+  GtkWidget *		hbox;
+  GtkAdjustment *	spin_adj;
+  GtkAdjustment *	hscale_adj;
+
+  gfloat		history[3];
+  guint			reset_state;
+  gboolean		in_reset;
+};
+
+static inline z_spinslider *
+get_spinslider			(GtkWidget *		hbox)
+{
+  z_spinslider *sp;
+
+  sp = g_object_get_data (G_OBJECT (hbox), "z_spinslider");
+  g_assert (sp != NULL);
+
+  return sp;
 }
 
 GtkAdjustment *
-z_spinslider_get_hscale_adj		(GtkWidget *hbox)
+z_spinslider_get_spin_adj	(GtkWidget *		hbox)
 {
-  GtkAdjustment * adj;
+  return get_spinslider (hbox)->spin_adj;
+}
 
-  adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
-  g_assert (adj);
-  return adj;
+GtkAdjustment *
+z_spinslider_get_hscale_adj	(GtkWidget *		hbox)
+{
+  return get_spinslider (hbox)->hscale_adj;
 }
 
 gfloat
-z_spinslider_get_value			(GtkWidget *hbox)
+z_spinslider_get_value		(GtkWidget *		hbox)
 {
-  GtkAdjustment * adj;
-
-  adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
-  g_assert (adj);
-  return adj->value;
+  return get_spinslider (hbox)->spin_adj->value;
 }
 
 void
-z_spinslider_set_value			(GtkWidget *hbox,
-					 gfloat value)
+z_spinslider_set_value		(GtkWidget *		hbox,
+				 gfloat			value)
 {
-  GtkAdjustment * spin_adj, * hscale_adj;
+  z_spinslider *sp = get_spinslider (hbox);
 
-  spin_adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
-  hscale_adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
-  g_assert (spin_adj && hscale_adj);
-  gtk_adjustment_set_value (spin_adj, value);
-  gtk_adjustment_set_value (hscale_adj, value);
+  gtk_adjustment_set_value (sp->spin_adj, value);
+  gtk_adjustment_set_value (sp->hscale_adj, value);
 }
 
 void
-z_spinslider_set_reset_value		(GtkWidget *hbox,
-					 gfloat value)
+z_spinslider_set_reset_value	(GtkWidget *		hbox,
+				 gfloat			value)
 {
-  gfloat *reset_value =
-    gtk_object_get_data (GTK_OBJECT (hbox), "reset_value");
+  z_spinslider *sp = get_spinslider (hbox);
 
-  g_assert (reset_value);
-  *reset_value = value;
+  sp->history[sp->reset_state] = value;
+
+  gtk_adjustment_set_value (sp->spin_adj, value);
+  gtk_adjustment_set_value (sp->hscale_adj, value);
 }
 
 void
-z_spinslider_adjustment_changed		(GtkWidget *hbox)
+z_spinslider_adjustment_changed	(GtkWidget *		hbox)
 {
-  GtkAdjustment *spin_adj, *hscale_adj;
+  z_spinslider *sp = get_spinslider (hbox);
 
-  spin_adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
-  hscale_adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
-  g_assert (spin_adj && hscale_adj);
-  hscale_adj->value = spin_adj->value;
-  hscale_adj->lower = spin_adj->lower;
-  hscale_adj->upper = spin_adj->upper + spin_adj->page_size;
-  hscale_adj->step_increment = spin_adj->step_increment;
-  hscale_adj->page_increment = spin_adj->page_increment;
-  hscale_adj->page_size = spin_adj->page_size;
-  gtk_adjustment_changed (spin_adj);
-  gtk_adjustment_changed (hscale_adj);
+  sp->hscale_adj->value = sp->spin_adj->value;
+  sp->hscale_adj->lower = sp->spin_adj->lower;
+  sp->hscale_adj->upper = sp->spin_adj->upper + sp->spin_adj->page_size;
+  sp->hscale_adj->step_increment = sp->spin_adj->step_increment;
+  sp->hscale_adj->page_increment = sp->spin_adj->page_increment;
+  sp->hscale_adj->page_size = sp->spin_adj->page_size;
+  gtk_adjustment_changed (sp->spin_adj);
+  gtk_adjustment_changed (sp->hscale_adj);
 }
 
 static void
-on_z_spinslider_hscale_changed		(GtkWidget *widget,
-					 GtkWidget *hbox)
+on_z_spinslider_hscale_changed	(GtkWidget *		widget,
+				 z_spinslider *		sp)
 {
-  GtkAdjustment * spin_adj, * hscale_adj;
-
-  spin_adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
-  hscale_adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
-  g_assert (spin_adj && hscale_adj);
-  if (spin_adj->value != hscale_adj->value)
-    gtk_adjustment_set_value (spin_adj, hscale_adj->value);
+  if (sp->spin_adj->value != sp->hscale_adj->value)
+    gtk_adjustment_set_value (sp->spin_adj, sp->hscale_adj->value);
 }
 
 static void
-on_z_spinslider_spinbutton_changed	(GtkWidget *widget,
-					 GtkWidget *hbox)
+on_z_spinslider_spinbutton_changed (GtkWidget *		widget,
+				    z_spinslider *	sp)
 {
-  GtkAdjustment * spin_adj, * hscale_adj;
+  if (!sp->in_reset)
+    {
+      if (sp->reset_state != 0)
+	{
+	  sp->history[0] = sp->history[1];
+	  sp->history[1] = sp->history[2];
+	  sp->reset_state--;
+	}
+      sp->history[2] = sp->spin_adj->value;
+    }
 
-  spin_adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
-  hscale_adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
-  g_assert (spin_adj && hscale_adj);
-  if (spin_adj->value != hscale_adj->value)
-    gtk_adjustment_set_value (hscale_adj, spin_adj->value);
+  if (sp->spin_adj->value != sp->hscale_adj->value)
+    gtk_adjustment_set_value (sp->hscale_adj, sp->spin_adj->value);
 }
 
 static void
-on_z_spinslider_reset			(GtkWidget *widget,
-					 GtkWidget *hbox)
+on_z_spinslider_reset		(GtkWidget *		widget,
+				 z_spinslider *		sp)
 {
-  gfloat *reset_value =
-    gtk_object_get_data (GTK_OBJECT (hbox), "reset_value");
+  gfloat current_value;
 
-  g_assert (reset_value);
-  z_spinslider_set_value (hbox, *reset_value);
+  current_value = sp->history[2];
+  sp->history[2] = sp->history[1];
+  sp->history[1] = sp->history[0];
+  sp->history[0] = current_value;
+
+  sp->in_reset = TRUE;
+
+  gtk_adjustment_set_value (sp->spin_adj, sp->history[2]);
+  gtk_adjustment_set_value (sp->hscale_adj, sp->history[2]);
+
+  sp->in_reset = FALSE;
+
+  if (sp->reset_state == 0
+      && fabs (sp->history[0] - sp->history[1]) < 1e-6)
+    sp->reset_state = 2;
+  else
+    sp->reset_state = (sp->reset_state + 1) % 3;
 }
+
+#include "pixmaps/reset.h"
 
 GtkWidget *
-z_spinslider_new			(GtkAdjustment * spin_adj,
-					 GtkAdjustment * hscale_adj,
-					 gchar *unit, gfloat reset)
+z_spinslider_new		(GtkAdjustment *	spin_adj,
+				 GtkAdjustment *	hscale_adj,
+				 const gchar *		unit,
+				 gfloat			reset,
+				 gint			digits)
 {
-  GtkWidget * hbox;
-  GtkWidget * hscale;
-  GtkWidget * spinbutton;
-  GtkWidget * label;
-  GtkWidget * button;
-  GtkWidget * pixmap;
-  gfloat * reset_value;
-  gint digits = 0;
+  z_spinslider *sp;
 
-  hbox = gtk_hbox_new (FALSE, 0);
-  gtk_object_set_data (GTK_OBJECT (hbox), "spin_adj", spin_adj);
+  g_assert (spin_adj != NULL);
 
-  /* Set decimal digits so that step increments < 1.0 become visible */
-  if (spin_adj->step_increment == 0.0
-      || (digits = floor(log10(spin_adj->step_increment))) > 0)
-    digits = 0;
-  /*
-  fprintf(stderr, "zss_new %f %f...%f  %f %f  %f  %d\n",
-	  spin_adj->value,
-	  spin_adj->lower, spin_adj->upper,
-	  spin_adj->step_increment, spin_adj->page_increment,
-	  spin_adj->page_size, digits);
-  */
-  spinbutton = gtk_spin_button_new (spin_adj, 1, -digits);
-  gtk_widget_show (spinbutton);
-  /* I don't see how to set "as much as needed", so hacking this up */
-  gtk_widget_set_usize (spinbutton, 80, -1);
-  gtk_spin_button_set_update_policy (GTK_SPIN_BUTTON (spinbutton),
-				     GTK_UPDATE_IF_VALID);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton), TRUE);
-  gtk_spin_button_set_wrap (GTK_SPIN_BUTTON (spinbutton), TRUE);
-  gtk_spin_button_set_snap_to_ticks (GTK_SPIN_BUTTON (spinbutton), TRUE);
-  gtk_spin_button_set_shadow_type (GTK_SPIN_BUTTON (spinbutton),
-				   GTK_SHADOW_NONE);
-  gtk_box_pack_start(GTK_BOX (hbox), spinbutton, FALSE, FALSE, 0);
-  gtk_signal_connect (GTK_OBJECT (spin_adj), "value-changed",
-		      GTK_SIGNAL_FUNC (on_z_spinslider_spinbutton_changed), hbox);
+  sp = g_malloc (sizeof (*sp));
+
+  sp->spin_adj = spin_adj;
+  sp->hscale_adj = hscale_adj;
+
+  sp->hbox = gtk_hbox_new (FALSE, 0);
+  g_object_set_data_full (G_OBJECT (sp->hbox), "z_spinslider", sp,
+			  (GDestroyNotify) g_free);
+
+  if (0)
+    fprintf (stderr, "zss_new %f %f...%f  %f %f  %f  %d\n",
+	     spin_adj->value, spin_adj->lower, spin_adj->upper,
+	     spin_adj->step_increment, spin_adj->page_increment,
+	     spin_adj->page_size, digits);
+
+  /* Spin button */
+
+  {
+    GtkWidget *spinbutton;
+
+    spinbutton = gtk_spin_button_new (sp->spin_adj,
+				      sp->spin_adj->step_increment, digits);
+    gtk_widget_show (spinbutton);
+    /* I don't see how to set "as much as needed", so hacking this up */
+    gtk_widget_set_size_request (spinbutton, 80, -1);
+    gtk_spin_button_set_update_policy (GTK_SPIN_BUTTON (spinbutton),
+				       GTK_UPDATE_IF_VALID);
+    gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton), TRUE);
+    gtk_spin_button_set_wrap (GTK_SPIN_BUTTON (spinbutton), TRUE);
+    gtk_spin_button_set_snap_to_ticks (GTK_SPIN_BUTTON (spinbutton), TRUE);
+    gtk_box_pack_start (GTK_BOX (sp->hbox), spinbutton, FALSE, FALSE, 0);
+    g_signal_connect (G_OBJECT (sp->spin_adj), "value-changed",
+		      G_CALLBACK (on_z_spinslider_spinbutton_changed), sp);
+  }
+
+  /* Unit name */
 
   if (unit)
     {
+      GtkWidget *label;
+
       label = gtk_label_new (unit);
       gtk_widget_show (label);
-      gtk_box_pack_start (GTK_BOX (hbox), label, FALSE, FALSE, 3);
+      gtk_box_pack_start (GTK_BOX (sp->hbox), label, FALSE, FALSE, 3);
     }
+
+  /* Slider */
 
   /* Necessary to reach spin_adj->upper with slider */
   if (!hscale_adj)
-    hscale_adj = GTK_ADJUSTMENT (gtk_adjustment_new (spin_adj->value,
-      spin_adj->lower, spin_adj->upper + spin_adj->page_size,
-      spin_adj->step_increment, spin_adj->page_increment,
-      spin_adj->page_size));
-  gtk_object_set_data (GTK_OBJECT (hbox), "hscale_adj", hscale_adj);
-  hscale = gtk_hscale_new (hscale_adj);
-  gtk_widget_show (hscale);
-  gtk_scale_set_draw_value (GTK_SCALE (hscale), FALSE);
-  gtk_scale_set_digits (GTK_SCALE (hscale), -digits);
-  gtk_box_pack_start (GTK_BOX (hbox), hscale, TRUE, TRUE, 3);
-  gtk_signal_connect (GTK_OBJECT (hscale_adj), "value-changed",
-		      GTK_SIGNAL_FUNC (on_z_spinslider_hscale_changed), hbox);
+    sp->hscale_adj = GTK_ADJUSTMENT (gtk_adjustment_new
+	(sp->spin_adj->value,
+	 sp->spin_adj->lower,
+	 sp->spin_adj->upper + sp->spin_adj->page_size,
+	 sp->spin_adj->step_increment,
+	 sp->spin_adj->page_increment,
+	 sp->spin_adj->page_size));
 
-  if ((pixmap = z_load_pixmap ("reset.png")))
+  {
+    GtkWidget *hscale;
+
+    hscale = gtk_hscale_new (sp->hscale_adj);
+    /* Another hack */
+    gtk_widget_set_size_request (hscale, 80, -1);
+    gtk_widget_show (hscale);
+    gtk_scale_set_draw_value (GTK_SCALE (hscale), FALSE);
+    gtk_scale_set_digits (GTK_SCALE (hscale), -digits);
+    gtk_box_pack_start (GTK_BOX (sp->hbox), hscale, TRUE, TRUE, 3);
+    g_signal_connect (G_OBJECT (sp->hscale_adj), "value-changed",
+		      G_CALLBACK (on_z_spinslider_hscale_changed), sp);
+  }
+
+  /* Reset button */
+
+  {
+    static GdkPixbuf *pixbuf = NULL;
+    GtkWidget *button;
+    GtkWidget *image;
+
+    sp->history[0] = reset;
+    sp->history[1] = reset;
+    sp->history[2] = reset;
+    sp->reset_state = 0;
+    sp->in_reset = FALSE;
+
+    if (!pixbuf)
+      pixbuf = gdk_pixbuf_from_pixdata (&reset_png, FALSE, NULL);
+
+    if (pixbuf && (image = gtk_image_new_from_pixbuf (pixbuf)))
+      {
+	gtk_widget_show (image);
+	button = gtk_button_new ();
+	gtk_container_add (GTK_CONTAINER (button), image);
+	z_tooltip_set (button, _("Reset"));
+      }
+    else
+      {
+	button = gtk_button_new_with_label (_("Reset"));
+      }
+
+    gtk_widget_show (button);
+    gtk_box_pack_start (GTK_BOX (sp->hbox), button, FALSE, FALSE, 0);
+    g_signal_connect (G_OBJECT (button), "pressed",
+		      G_CALLBACK (on_z_spinslider_reset), sp);
+  }
+
+  return sp->hbox;
+}
+
+/*
+ *  "Device entry"
+ *
+ *  Device:	 Foo Inc. Mk II
+ *  Driver:	 Foo 0.0.1
+ *  Device file: [/dev/foo__________][v]
+ */
+
+typedef struct _z_device_entry z_device_entry;
+
+struct _z_device_entry
+{
+  GtkWidget *		table;
+  GtkWidget *		device;
+  GtkWidget *		driver;
+  GtkWidget *		combo;
+
+  guint			timeout;
+
+  tv_device_node *	list;
+  tv_device_node *	selected;
+
+  z_device_entry_open_fn *open_fn;
+  z_device_entry_select_fn *select_fn;
+
+  gpointer		user_data;
+};
+
+static void
+z_device_entry_destroy		(gpointer		data)
+{
+  z_device_entry *de = data;
+
+  if (de->timeout != ~0)
+    gtk_timeout_remove (de->timeout);
+
+  tv_device_node_delete_list (&de->list);
+
+  g_free (de);
+}
+
+tv_device_node *
+z_device_entry_selected		(GtkWidget *		table)
+{
+  z_device_entry *de = g_object_get_data (G_OBJECT (table), "z_device_entry");
+
+  g_assert (de != NULL);
+  return de->selected;
+}
+
+void
+z_device_entry_grab_focus	(GtkWidget *		table)
+{
+  z_device_entry *de = g_object_get_data (G_OBJECT (table), "z_device_entry");
+
+  g_assert (de != NULL);
+
+  gtk_widget_grab_focus (de->combo);
+}
+
+static void
+z_device_entry_select		(z_device_entry *	de,
+				 tv_device_node *	n)
+{
+  const gchar *device;
+  const gchar *driver;
+  gchar *s = NULL;
+
+  de->selected = n;
+
+  if (de->select_fn)
+    de->select_fn (de->table, n, de->user_data);
+
+  device = _("Unknown");
+  driver = device;
+
+  if (n)
     {
-      button = gtk_button_new ();
-      gtk_widget_show (button);
-      gtk_container_add (GTK_CONTAINER (button), pixmap);
+      if (n->label)
+	device = n->label;
+
+      if (n->driver && n->version)
+	driver = s = g_strdup_printf ("%s %s", n->driver, n->version);
+      else if (n->driver)
+	driver = n->driver;
+      else if (n->version)
+	driver = n->version;
+    }
+
+  gtk_label_set_text (GTK_LABEL (de->device), device);
+  gtk_label_set_text (GTK_LABEL (de->driver), driver);
+
+  g_free (s);
+}
+
+static GtkWidget *
+z_device_entry_label_new	(const char *		text,
+				 guint			padding)
+{
+  GtkWidget *label;
+
+  label = gtk_label_new (text);
+  gtk_widget_show (label);
+  gtk_label_set_justify (GTK_LABEL (label), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label), padding, padding);
+
+  return label;
+}
+
+static void
+on_z_device_entry_changed	(GtkEntry *		entry,
+				 gpointer		user_data);
+
+static void
+z_device_entry_relist		(z_device_entry *	de)
+{
+  tv_device_node *n;
+
+  if (de->combo)
+    gtk_widget_destroy (de->combo);
+  de->combo = gtk_combo_new ();
+  gtk_widget_show (de->combo);
+
+  for (n = de->list; n; n = n->next)
+    {
+      GtkWidget *item;
+      GtkWidget *label;
+      gchar *s;
+
+      /* XXX deprecated, although the GtkCombo description elaborates:
+	 "The drop-down list is a GtkList widget and can be accessed
+	 using the list member of the GtkCombo. List elements can contain
+	 arbitrary widgets, [by appending GtkListItems to the list]" */
+      extern GtkWidget *gtk_list_item_new (void);
+
+      item = gtk_list_item_new ();
+      gtk_widget_show (item);
+
+      /* XXX Perhaps add an icon indicating if the device is
+         present but busy (v4l...), or the user has no access permission. */
+
+      if (n->driver && n->label)
+	s = g_strdup_printf ("%s (%s %s)", n->device, n->driver, n->label);
+      else if (n->driver || n->label)
+	s = g_strdup_printf ("%s (%s)", n->device,
+			     n->driver ? n->driver : n->label);
+      else
+	s = g_strdup (n->device);
+
+      label = z_device_entry_label_new (s, 0);
+      g_free (s);
+
+      gtk_container_add (GTK_CONTAINER (item), label);
+      gtk_combo_set_item_string (GTK_COMBO (de->combo), GTK_ITEM (item), n->device);
+      gtk_container_add (GTK_CONTAINER (GTK_COMBO (de->combo)->list), item);
+    }
+
+    gtk_table_attach (GTK_TABLE (de->table), de->combo, 1, 2, 2, 2 + 1,
+  	    GTK_FILL | GTK_EXPAND, 0, 0, 0);
+
+    g_signal_connect (G_OBJECT (GTK_COMBO (de->combo)->entry),
+  	    "changed", G_CALLBACK (on_z_device_entry_changed), de);
+}
+
+static gboolean
+on_z_device_entry_timeout	(gpointer		user_data)
+{
+  z_device_entry *de = user_data;
+  tv_device_node *n;
+  const gchar *s;
+
+  s = gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (de->combo)->entry));
+
+  if (s && s[0])
+    if ((n = de->open_fn (de->table, de->list, s, de->user_data)))
+      {
+	tv_device_node_add (&de->list, n);
+	z_device_entry_relist (de);
+	z_device_entry_select (de, n);
+	return FALSE;
+      }
+
+  z_device_entry_select (de, NULL);
+
+  return FALSE; /* don't call again */
+}
+
+static void
+on_z_device_entry_changed	(GtkEntry *		entry,
+				 gpointer		user_data)
+{
+  z_device_entry *de = user_data;
+  tv_device_node *n;
+  const gchar *s;
+
+  if (de->timeout != ~0)
+    {
+      gtk_timeout_remove (de->timeout);
+      de->timeout = ~0;
+    }
+
+  s = gtk_entry_get_text (entry);
+
+  if (s && s[0])
+    {
+      for (n = de->list; n; n = n->next)
+	if (0 == strcmp (s, n->device))
+	  {
+	    z_device_entry_select (de, n);
+	    return;
+	  }
+
+      z_device_entry_select (de, NULL);
+      
+      de->timeout = gtk_timeout_add (1000 /* ms */,
+				     on_z_device_entry_timeout, de);
     }
   else
     {
-      button = gtk_button_new_with_label (_("Reset"));
+      z_device_entry_select (de, NULL);
     }
-  gtk_widget_show (button);
-  gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 0);
-  /* Sigh */
-  reset_value = g_malloc (sizeof (gfloat));
-  *reset_value = reset;
-  gtk_object_set_data_full (GTK_OBJECT (hbox), "reset_value", reset_value,
-			    (GtkDestroyNotify) g_free);
-  gtk_signal_connect (GTK_OBJECT (button), "pressed",
-		      GTK_SIGNAL_FUNC (on_z_spinslider_reset), hbox);
+}
 
-  return hbox;
+static void
+z_device_entry_table_pair	(z_device_entry *	de,
+				 gint			row,
+				 const char *		label,
+				 GtkWidget *		crank)
+{
+  gtk_table_attach (GTK_TABLE (de->table), z_device_entry_label_new (label, 3),
+		    0, 1, row, row + 1, GTK_FILL, 0, 0, 0);
+  if (crank)
+    {
+      gtk_widget_show (crank);
+      gtk_table_attach (GTK_TABLE (de->table), crank, 1, 2, row, row + 1,
+			GTK_FILL | GTK_EXPAND, 0, 0, 0);
+    }
+}
+
+GtkWidget *
+z_device_entry_new		(const gchar *		prompt,
+				 tv_device_node *	list,
+				 const gchar *		current_device,
+				 z_device_entry_open_fn *open_fn,
+				 z_device_entry_select_fn *select_fn,
+				 gpointer		user_data)
+{
+  z_device_entry *de;
+
+  g_assert (open_fn != NULL);
+
+  de = g_malloc0 (sizeof (*de));
+
+  de->open_fn = open_fn;
+  de->select_fn = select_fn;
+  de->user_data = user_data;
+
+  de->timeout = ~0;
+
+  de->table = gtk_table_new (3, 2, FALSE);
+  gtk_widget_show (de->table);
+  g_object_set_data_full (G_OBJECT (de->table), "z_device_entry", de,
+			  (GDestroyNotify) z_device_entry_destroy);
+
+  de->device = z_device_entry_label_new ("", 3);
+  de->driver = z_device_entry_label_new ("", 3);
+
+  z_device_entry_table_pair (de, 0, _("Device:"), de->device);
+  z_device_entry_table_pair (de, 1, _("Driver:"), de->driver);
+  z_device_entry_table_pair (de, 2, prompt ? prompt : _("Device file:"), NULL);
+
+  de->list = list;
+
+  z_device_entry_relist (de);
+
+  gtk_entry_set_text (GTK_ENTRY (GTK_COMBO (de->combo)->entry), "");
+
+  if (current_device && current_device[0])
+    gtk_entry_set_text (GTK_ENTRY (GTK_COMBO (de->combo)->entry),
+			current_device);
+  else if (list)
+    gtk_entry_set_text (GTK_ENTRY (GTK_COMBO (de->combo)->entry),
+			list->device);
+
+  return de->table;
 }
 
 /**
@@ -1534,4 +2017,274 @@ z_widget_add_accelerator	(GtkWidget	*widget,
 
   gtk_widget_add_accelerator(widget, accel_signal, accel_group,
 			     accel_key, accel_mods, GTK_ACCEL_VISIBLE);
+}
+
+static void
+on_entry_activate (GObject *entry, GtkDialog *dialog)
+{
+  gtk_dialog_response (dialog, GPOINTER_TO_INT
+		       (g_object_get_data (entry, "zmisc-response")));
+}
+
+void
+z_entry_emits_response		(GtkWidget	*entry,
+				 GtkDialog	*dialog,
+				 GtkResponseType response)
+{
+  g_signal_connect (G_OBJECT (entry), "activate",
+		    G_CALLBACK (on_entry_activate),
+		    dialog);
+
+  g_object_set_data (G_OBJECT (entry), "zmisc-response",
+		     GINT_TO_POINTER (response));
+}
+
+/*
+ *  Application stock icons
+ */
+
+GtkWidget *
+z_gtk_image_new_from_pixdata	(const GdkPixdata *	pixdata)
+{
+  GdkPixbuf *pixbuf;
+  GtkWidget *image;
+
+  pixbuf = gdk_pixbuf_from_pixdata (pixdata, FALSE, NULL);
+  g_assert (pixbuf != NULL);
+
+  image = gtk_image_new_from_pixbuf (pixbuf);
+  g_object_unref (G_OBJECT (pixbuf));
+
+  return image;
+}
+
+static GtkIconFactory *
+icon_factory			(void)
+{
+  static GtkIconFactory *factory = NULL;
+
+  if (!factory)
+    {
+      factory = gtk_icon_factory_new ();
+      gtk_icon_factory_add_default (factory);
+      /* g_object_unref (factory); */
+    }
+
+  return factory;
+}
+
+gboolean
+z_icon_factory_add_file		(const gchar *		stock_id,
+				 const gchar *		filename)
+{
+  GtkIconSet *icon_set;
+  GdkPixbuf *pixbuf;
+  GError *err;
+  gchar *path;
+ 
+  path = g_strconcat (PACKAGE_PIXMAPS_DIR "/", filename, NULL);
+
+  err = NULL;
+
+  pixbuf = gdk_pixbuf_new_from_file (path, &err);
+
+  g_free (path);
+
+  if (!pixbuf)
+    {
+      if (err)
+	{
+#ifdef ZMISC_DEBUG_STOCK /* FIXME */
+	  fprintf (stderr, "Cannot read image file '%s':\n%s\n",
+		   err->message);
+#endif
+	  g_error_free (err);
+	}
+
+      return FALSE;
+    }
+
+  icon_set = gtk_icon_set_new_from_pixbuf (pixbuf);
+  g_object_unref (G_OBJECT (pixbuf));
+
+  gtk_icon_factory_add (icon_factory (), stock_id, icon_set);
+  gtk_icon_set_unref (icon_set);
+
+  return TRUE;
+}
+
+gboolean
+z_icon_factory_add_pixdata	(const gchar *		stock_id,
+				 const GdkPixdata *	pixdata)
+{
+  GtkIconSet *icon_set;
+  GdkPixbuf *pixbuf;
+  GError *err;
+
+  err = NULL;
+
+  pixbuf = gdk_pixbuf_from_pixdata (pixdata, /* copy_pixels */ FALSE, &err);
+
+  if (!pixbuf)
+    {
+      if (err)
+	{
+#ifdef ZMISC_DEBUG_STOCK /* FIXME */
+	  fprintf (stderr, "Cannot read pixdata:\n%s\n", err->message);
+#endif
+	  g_error_free (err);
+	}
+
+      return FALSE;
+    }
+
+  icon_set = gtk_icon_set_new_from_pixbuf (pixbuf);
+  g_object_unref (G_OBJECT (pixbuf));
+
+  gtk_icon_factory_add (icon_factory (), stock_id, icon_set);
+  gtk_icon_set_unref (icon_set);
+
+  return TRUE;
+}
+
+/* This is for tveng, which will eventually spin off.
+   Elsewhere use g_strlcpy. */
+size_t
+z_strlcpy			(char *			dst,
+				 const char *		src,
+				 size_t			size)
+{
+	register const char *s;
+	register char c, *d, *e;
+
+	if (size < 1)
+		return strlen (src);
+
+	s = src;
+	d = dst;
+	e = d + size - 1;
+
+	while ((c = *s++) && d < e)
+		*d++ = c;
+
+	*d = 0;
+
+	while (c)
+		c = *s++;
+
+	return s - src;
+}
+
+/* Debugging. */
+const gchar *
+z_gdk_event_name		(GdkEvent *		event)
+{
+  static const gchar *event_name[] =
+    {
+      "NOTHING", "DELETE", "DESTROY", "EXPOSE", "MOTION_NOTIFY",
+      "BUTTON_PRESS", "2BUTTON_PRESS", "3BUTTON_PRESS", "BUTTON_RELEASE",
+      "KEY_PRESS", "KEY_RELEASE", "ENTER_NOTIFY", "LEAVE_NOTIFY",
+      "FOCUS_CHANGE", "CONFIGURE", "MAP", "UNMAP", "PROPERTY_NOTIFY",
+      "SELECTION_CLEAR", "SELECTION_REQUEST", "SELECTION_NOTIFY",
+      "PROXIMITY_IN", "PROXIMITY_OUT", "DRAG_ENTER", "DRAG_LEAVE",
+      "DRAG_MOTION", "DRAG_STATUS", "DROP_START", "DROP_FINISHED",
+      "CLIENT_EVENT", "VISIBILITY_NOTIFY", "NO_EXPOSE"
+    };
+  
+  if (event->type >= GDK_NOTHING
+      && event->type <= GDK_NO_EXPOSE)
+    return event_name[event->type - GDK_NOTHING];
+  else
+    return "unknown";
+}
+
+void
+z_label_set_text_printf		(GtkLabel *		label,
+				 const gchar *		format,
+				 ...)
+{
+  gchar *buffer;
+  va_list args;
+
+  va_start (args, format);
+  buffer = g_strdup_vprintf (format, args);
+  va_end (args);
+
+  gtk_label_set_text (label, buffer);
+
+  g_free (buffer);
+}
+
+#define VALID_ITER(iter, list_store)					\
+  ((iter) != NULL							\
+   && (iter)->user_data != NULL						\
+   && ((GTK_LIST_STORE (list_store))->stamp == (iter)->stamp))
+
+gboolean
+z_tree_selection_iter_first	(GtkTreeSelection *	selection,
+				 GtkTreeModel *		model,
+				 GtkTreeIter *		iter)
+{
+  if (!gtk_tree_model_get_iter_first (model, iter))
+    return FALSE; /* empty list */
+
+  while (!gtk_tree_selection_iter_is_selected (selection, iter))
+    if (!gtk_tree_model_iter_next (model, iter))
+      return FALSE; /* nothing selected */
+
+  return TRUE;
+}
+
+gboolean
+z_tree_selection_iter_last	(GtkTreeSelection *	selection,
+				 GtkTreeModel *		model,
+				 GtkTreeIter *		iter)
+{
+  GtkTreeIter last;
+
+  if (!z_tree_selection_iter_first (selection, model, iter))
+    return FALSE; /* nothing */
+
+  last = *iter;
+
+  while (gtk_tree_model_iter_next (model, &last)
+	 && gtk_tree_selection_iter_is_selected (selection, &last))
+    *iter = last;
+
+  return TRUE;
+}
+
+/* In a GTK_SELECTION_MULTIPLE tree view, remove all selected
+   rows of the model. */
+void
+z_tree_view_remove_selected	(GtkTreeView *		tree_view,
+				 GtkTreeSelection *	selection,
+				 GtkTreeModel *		model)
+{
+  GtkTreeIter iter;
+
+  if (!z_tree_selection_iter_first (selection, model, &iter))
+    return; /* nothing */
+
+  while (VALID_ITER (&iter, model))
+    {
+      if (!gtk_tree_selection_iter_is_selected (selection, &iter))
+	break;
+
+      gtk_list_store_remove (GTK_LIST_STORE (model), &iter);
+    }
+
+  if (VALID_ITER (&iter, model))
+    {
+      GtkTreePath *path;
+
+      gtk_tree_selection_select_iter (selection, &iter);
+
+      if ((path = gtk_tree_model_get_path (model, &iter)))
+	{
+	  gtk_tree_view_scroll_to_cell (tree_view, path, NULL,
+					/* use_align */ TRUE, 0.5, 0.0);
+	  gtk_tree_path_free (path);
+	}
+    }
 }

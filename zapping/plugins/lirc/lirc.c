@@ -16,7 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "plugin_common.h"
+/* XXX gtk+ 2.3 GtkCombo -> GtkComboBox */
+#undef GTK_DISABLE_DEPRECATED
+
+#include "src/plugin_common.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -30,11 +33,11 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include "callbacks.h"
-#include "tveng.h"
-#include "remote.h"
+#include "src/callbacks.h"
+#include "src/tveng.h"
+#include "src/remote.h"
 #include "lirc.h"
-#include "properties.h"
+#include "src/properties.h"
 
 /* This is the description of the plugin, change as appropiate */
 static const gchar str_canonical_name[] = "lirc";
@@ -51,11 +54,14 @@ static gboolean first = TRUE;
 static pthread_t lirc_thread_id;
 static int thread_exit = 0;
 
-static int num_channels;
+enum {
+  BUTTON_COLUMN,
+  ACTION_COLUMN
+};
 
 /* Properties handling code */
 static void
-properties_add			(GnomeDialog	*dialog);
+properties_add			(GtkDialog	*dialog);
 
 static
 int init_socket(void)
@@ -79,13 +85,18 @@ int init_socket(void)
 static
 void add_actions_to_list(void)
 {
-  gchar *data[2];
   action_list_item *item = first_item;
+  GtkTreeIter iter;
+  GtkListStore *model = GTK_LIST_STORE (gtk_tree_view_get_model
+					(GTK_TREE_VIEW (lirc_actionlist)));
 
   while (item != NULL) {
-    data[0] = item->button;
-    data[1] = item->action;
-    gtk_clist_append(GTK_CLIST(lirc_actionlist), data);
+    gtk_list_store_append (model, &iter);
+    gtk_list_store_set (model, &iter,
+			BUTTON_COLUMN, item->button,
+			ACTION_COLUMN, item->action,
+			-1);
+
     item = item->next;
   }
 }
@@ -189,10 +200,7 @@ gboolean plugin_init (PluginBridge bridge, tveng_device_info * info)
 
   append_property_handler(&lirc_handler);
 
-  num_channels = (int)remote_command("get_num_channels", NULL);
-
   printv("lirc plugin: init\n");
-  printv("lirc plugin: number of channels: %d\n", num_channels);
 
   /* If this is set, autostarting is on (we should start now) */
   if (active)
@@ -248,7 +256,8 @@ static
 void plugin_load_config (gchar * root_key)
 {
   gchar *buffer;
-  gchar *button, *action;
+  const gchar *button;
+  gchar *action;
   int i=0;
   action_list_item *item;
 
@@ -309,7 +318,7 @@ void plugin_save_config (gchar * root_key)
 
 /* mostly cut'n'paste from properties.c */
 static void
-custom_properties_add		(GnomeDialog	*dialog,
+custom_properties_add		(GtkDialog	*dialog,
 				 SidebarGroup	*groups,
 				 gint		num_groups)
 {
@@ -325,23 +334,11 @@ custom_properties_add		(GnomeDialog	*dialog,
 	  GtkWidget *pixmap;
 	  GtkWidget *page = gtk_vbox_new(FALSE, 15);
 
-	  if (groups[i].items[j].icon_source ==	ICON_ZAPPING)
-	    {
-	      pixmap = z_load_pixmap (groups[i].items[j].icon_name);
-	    }
-	  else
-	    {
-	      gchar *pixmap_path = g_strdup (gnome_pixmap_file
-	      	(groups[i].items[j].icon_name)); /* FIXME: leak?? */
+	  pixmap = z_load_pixmap (groups[i].items[j].icon_name);
 
-	      pixmap = z_pixmap_new_from_file (pixmap_path);
-
-	      g_free (pixmap_path);
-	    }
-
-	  gtk_object_set_data(GTK_OBJECT(page), "apply",
+	  g_object_set_data(G_OBJECT(page), "apply",
 			      groups[i].items[j].apply);
-	  gtk_object_set_data(GTK_OBJECT(page), "help",
+	  g_object_set_data(G_OBJECT(page), "help",
 			      groups[i].items[j].help);
 
 	  append_properties_page(dialog, _(groups[i].label),
@@ -368,14 +365,14 @@ static void
 on_lirc_help			(GtkWidget	*widget)
 {
   ShowBox("LIRC plugin version 0.1 by Marco Pfattner\nmarco.p@bigfoot.com",
-	  GNOME_MESSAGE_BOX_INFO);
+	  GTK_MESSAGE_INFO);
 }
 
 static void
-properties_add			(GnomeDialog	*dialog)
+properties_add			(GtkDialog	*dialog)
 {
   SidebarEntry plugin_options[] = {
-    { N_("LIRC"), ICON_ZAPPING, "gnome-shutdown.png" , NULL, NULL,
+    { N_("LIRC"), "gnome-shutdown.png" , NULL, NULL,
       on_lirc_apply, on_lirc_help }
   };
   SidebarGroup groups[] = {
@@ -403,6 +400,8 @@ struct plugin_misc_info * plugin_get_misc_info (void)
   */
   return (&returned_struct);
 }
+
+#warning security issues
 
 static
 void *lirc_thread(void *dummy)
@@ -476,28 +475,20 @@ void *lirc_thread(void *dummy)
     
     if (action == NULL) continue;
 
-    if (strcmp(action, "power off") == 0) remote_command("quit", NULL);
-    else if (strcmp(action, "channel up") == 0) remote_command("channel_up", NULL);
-    else if (strcmp(action, "channel down") == 0) remote_command("channel_down", NULL);
-    else if (strncmp(action, "set channel", 11) == 0) {
+    if (strcmp(action, "power off") == 0)
+      python_command (NULL, "zapping.quit()");
+    else if (strcmp(action, "channel up") == 0)
+      python_command (NULL, "zapping.channel_up()");
+    else if (strcmp(action, "channel down") == 0)
+      python_command (NULL, "zapping.channel_down()");
+    else if (strncmp(action, "set channel", strlen("set_channel")) == 0) {
       /* extract channel number */
-      action += 12;
-      i = atoi(action);
-      set_channel(i);
+      action += strlen ("set channel");
+      python_command_printf (NULL, "zapping.set_channel(%s - 1)", action);
     }
   }
 
   return NULL;
-}
-
-static
-void set_channel(int c)
-{
-  c--;
-  if (c < 0) c = 0;
-  if (c >= num_channels) c = num_channels - 1;
-  
-  remote_command("set_channel", GINT_TO_POINTER(c));
 }
 
 static GtkWidget*
@@ -505,8 +496,6 @@ create_lirc_properties (GtkWidget *lirc_properties)
 {
   GtkWidget *lirc_vbox;
   GtkWidget *lirc_scrolledwindow;
-  GtkWidget *lirc_label1;
-  GtkWidget *lirc_label2;
   GtkWidget *lirc_table;
   GtkWidget *lirc_label3;
   GtkWidget *lirc_label4;
@@ -517,12 +506,15 @@ create_lirc_properties (GtkWidget *lirc_properties)
   GtkWidget *lirc_fixed;
   GtkWidget *lirc_button_add;
   GtkWidget *lirc_button_delete;
+  GtkListStore *model;
+  GtkTreeViewColumn *column;
+  GtkCellRenderer *renderer;
   int i=0;
   char *number;
 
   lirc_vbox = gtk_vbox_new (FALSE, 5);
   gtk_widget_ref (lirc_vbox);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_vbox", lirc_vbox,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_vbox", lirc_vbox,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_vbox);
   gtk_container_add (GTK_CONTAINER (lirc_properties), lirc_vbox);
@@ -530,38 +522,33 @@ create_lirc_properties (GtkWidget *lirc_properties)
 
   lirc_scrolledwindow = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_ref (lirc_scrolledwindow);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_scrolledwindow", lirc_scrolledwindow,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_scrolledwindow", lirc_scrolledwindow,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_scrolledwindow);
   gtk_box_pack_start (GTK_BOX (lirc_vbox), lirc_scrolledwindow, TRUE, TRUE, 0);
 
-  lirc_actionlist = gtk_clist_new (2);
+  model = gtk_list_store_new (2, G_TYPE_STRING, G_TYPE_STRING);
+
+  lirc_actionlist = gtk_tree_view_new_with_model (GTK_TREE_MODEL (model));
   gtk_widget_ref (lirc_actionlist);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_actionlist", lirc_actionlist,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_actionlist", lirc_actionlist,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_actionlist);
   gtk_container_add (GTK_CONTAINER (lirc_scrolledwindow), lirc_actionlist);
-  gtk_clist_set_column_width (GTK_CLIST (lirc_actionlist), 0, 80);
-  gtk_clist_set_column_width (GTK_CLIST (lirc_actionlist), 1, 80);
-  gtk_clist_column_titles_show (GTK_CLIST (lirc_actionlist));
 
-  lirc_label1 = gtk_label_new (_("Button"));
-  gtk_widget_ref (lirc_label1);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_label1", lirc_label1,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (lirc_label1);
-  gtk_clist_set_column_widget (GTK_CLIST (lirc_actionlist), 0, lirc_label1);
+  renderer = gtk_cell_renderer_text_new ();
+  column = gtk_tree_view_column_new_with_attributes
+    (_("Button"), renderer, "text", BUTTON_COLUMN, NULL);
+  gtk_tree_view_append_column (GTK_TREE_VIEW (lirc_actionlist), column);  
 
-  lirc_label2 = gtk_label_new (_("Action"));
-  gtk_widget_ref (lirc_label2);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_label2", lirc_label2,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (lirc_label2);
-  gtk_clist_set_column_widget (GTK_CLIST (lirc_actionlist), 1, lirc_label2);
+  renderer = gtk_cell_renderer_text_new ();
+  column = gtk_tree_view_column_new_with_attributes
+    (_("Action"), renderer, "text", ACTION_COLUMN, NULL);
+  gtk_tree_view_append_column (GTK_TREE_VIEW (lirc_actionlist), column);
 
   lirc_table = gtk_table_new (2, 3, FALSE);
   gtk_widget_ref (lirc_table);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_table", lirc_table,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_table", lirc_table,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_table);
   gtk_box_pack_start (GTK_BOX (lirc_vbox), lirc_table, FALSE, TRUE, 0);
@@ -571,7 +558,7 @@ create_lirc_properties (GtkWidget *lirc_properties)
 
   lirc_label3 = gtk_label_new (_("Button:"));
   gtk_widget_ref (lirc_label3);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_label3", lirc_label3,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_label3", lirc_label3,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_label3);
   gtk_table_attach (GTK_TABLE (lirc_table), lirc_label3, 0, 1, 0, 1,
@@ -582,7 +569,7 @@ create_lirc_properties (GtkWidget *lirc_properties)
 
   lirc_label4 = gtk_label_new (_("Action:"));
   gtk_widget_ref (lirc_label4);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_label4", lirc_label4,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_label4", lirc_label4,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_label4);
   gtk_table_attach (GTK_TABLE (lirc_table), lirc_label4, 0, 1, 1, 2,
@@ -593,7 +580,7 @@ create_lirc_properties (GtkWidget *lirc_properties)
 
   lirc_edit_button = gtk_entry_new ();
   gtk_widget_ref (lirc_edit_button);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_edit_button", lirc_edit_button,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_edit_button", lirc_edit_button,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_edit_button);
   gtk_table_attach (GTK_TABLE (lirc_table), lirc_edit_button, 1, 3, 0, 1,
@@ -602,7 +589,7 @@ create_lirc_properties (GtkWidget *lirc_properties)
 
   lirc_combo_action = gtk_combo_new ();
   gtk_widget_ref (lirc_combo_action);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_combo_action", lirc_combo_action,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_combo_action", lirc_combo_action,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_combo_action);
   gtk_table_attach (GTK_TABLE (lirc_table), lirc_combo_action, 1, 2, 1, 2,
@@ -617,20 +604,20 @@ create_lirc_properties (GtkWidget *lirc_properties)
 
   lirc_combo_entry_action = GTK_COMBO (lirc_combo_action)->entry;
   gtk_widget_ref (lirc_combo_entry_action);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_combo_entry_action", lirc_combo_entry_action,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_combo_entry_action", lirc_combo_entry_action,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_combo_entry_action);
   gtk_entry_set_text (GTK_ENTRY (lirc_combo_entry_action), _("channel up"));
 
   lirc_combo_channel = gtk_combo_new ();
   gtk_widget_ref (lirc_combo_channel);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_combo_channel", lirc_combo_channel,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_combo_channel", lirc_combo_channel,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_combo_channel);
   gtk_table_attach (GTK_TABLE (lirc_table), lirc_combo_channel, 2, 3, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_usize (lirc_combo_channel, 60, -2);
+  gtk_widget_set_size_request (lirc_combo_channel, 60, -1);
 
   for (i=1; i<=99; i++) {
     number = (char*)malloc(3);
@@ -651,69 +638,73 @@ create_lirc_properties (GtkWidget *lirc_properties)
 
   lirc_combo_entry_channel = GTK_COMBO (lirc_combo_channel)->entry;
   gtk_widget_ref (lirc_combo_entry_channel);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_combo_entry_channel", lirc_combo_entry_channel,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_combo_entry_channel", lirc_combo_entry_channel,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_combo_entry_channel);
   gtk_entry_set_text (GTK_ENTRY (lirc_combo_entry_channel), _("1"));
 
   lirc_fixed = gtk_fixed_new ();
   gtk_widget_ref (lirc_fixed);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_fixed", lirc_fixed,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_fixed", lirc_fixed,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_fixed);
   gtk_box_pack_start (GTK_BOX (lirc_vbox), lirc_fixed, FALSE, TRUE, 0);
 
   lirc_button_add = gtk_button_new_with_label (_("Add"));
   gtk_widget_ref (lirc_button_add);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_button_add", lirc_button_add,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_button_add", lirc_button_add,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_button_add);
   gtk_fixed_put (GTK_FIXED (lirc_fixed), lirc_button_add, 0, 0);
-  gtk_widget_set_uposition (lirc_button_add, 0, 0);
-  gtk_widget_set_usize (lirc_button_add, 72, 24);
+  gtk_widget_set_size_request (lirc_button_add, 72, 24);
 
   lirc_button_delete = gtk_button_new_with_label (_("Delete"));
   gtk_widget_ref (lirc_button_delete);
-  gtk_object_set_data_full (GTK_OBJECT (lirc_properties), "lirc_button_delete", lirc_button_delete,
+  g_object_set_data_full (G_OBJECT (lirc_properties), "lirc_button_delete", lirc_button_delete,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (lirc_button_delete);
   gtk_fixed_put (GTK_FIXED (lirc_fixed), lirc_button_delete, 80, 0);
-  gtk_widget_set_uposition (lirc_button_delete, 80, 0);
-  gtk_widget_set_usize (lirc_button_delete, 72, 24);
+  gtk_widget_set_size_request (lirc_button_delete, 72, 24);
 
-  gtk_entry_set_editable(GTK_ENTRY(GTK_COMBO(lirc_combo_action)->entry), FALSE);
-  gtk_entry_set_editable(GTK_ENTRY(GTK_COMBO(lirc_combo_channel)->entry), FALSE);
+  gtk_editable_set_editable(GTK_EDITABLE(GTK_COMBO(lirc_combo_action)->entry), FALSE);
+  gtk_editable_set_editable(GTK_EDITABLE(GTK_COMBO(lirc_combo_channel)->entry), FALSE);
 
 
-  gtk_signal_connect (GTK_OBJECT (lirc_actionlist), "select_row",
-                      GTK_SIGNAL_FUNC (on_lirc_actionlist_select_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (lirc_button_add), "clicked",
-                      GTK_SIGNAL_FUNC (on_lirc_button_add_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (lirc_button_delete), "clicked",
-                      GTK_SIGNAL_FUNC (on_lirc_button_delete_clicked),
-                      NULL);
+  g_signal_connect (G_OBJECT (lirc_actionlist), "cursor-changed",
+		    G_CALLBACK (on_lirc_actionlist_cursor_changed),
+		    NULL);
+  g_signal_connect (G_OBJECT (lirc_button_add), "clicked",
+		    G_CALLBACK (on_lirc_button_add_clicked),
+		    NULL);
+  g_signal_connect (G_OBJECT (lirc_button_delete), "clicked",
+		    G_CALLBACK (on_lirc_button_delete_clicked),
+		    NULL);
 
   return lirc_properties;
 }
 
 static
-void on_lirc_actionlist_select_row (GtkCList *clist, gint row, gint column,
-                                    GdkEvent *event, gpointer user_data)
+void on_lirc_actionlist_cursor_changed (GtkTreeView *view,
+					gpointer user_data)
 {
-  last_row = row;
-}
+  if (last_row)
+    gtk_tree_path_free (last_row);
 
+  gtk_tree_view_get_cursor (view, &last_row, NULL);
+}
 
 static
 void on_lirc_button_add_clicked (GtkButton *button, gpointer user_data)
 {
   gchar buf[50];
-  gchar *data[2];
+  const gchar *data[2];
   int i=0;
   action_list_item *item;
   gchar *buffer = (gchar *)malloc(50);
+  gboolean valid;
+  GtkTreeIter iter;
+  GtkTreeModel *model = gtk_tree_view_get_model
+    (GTK_TREE_VIEW (lirc_actionlist));
 
   data[0] = gtk_entry_get_text(GTK_ENTRY(lirc_edit_button));
   data[1] = gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(lirc_combo_action)->entry));
@@ -734,29 +725,51 @@ void on_lirc_button_add_clicked (GtkButton *button, gpointer user_data)
   delete_action(item->button);
   add_action(item);
 
-  while (1) {
-    if (!gtk_clist_get_text(GTK_CLIST(lirc_actionlist), i, 0, &buffer)) break;
+  valid = gtk_tree_model_get_iter_first (model, &iter);
+  while (valid) {
+    gtk_tree_model_get (model, &iter, BUTTON_COLUMN, &buffer, -1);
+
     if (strcmp(buffer, item->button) == 0) {
-      gtk_clist_set_text(GTK_CLIST(lirc_actionlist), i, 1, item->action);
+      gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+			  ACTION_COLUMN, item->action, -1);
+      g_free (buffer);
       return;
     }
 
-    i++;
+    g_free (buffer);
+
+    valid = gtk_tree_model_iter_next (model, &iter);
   }
-  gtk_clist_append(GTK_CLIST(lirc_actionlist), data);
+
+  /* Not found, add */
+  gtk_list_store_append (GTK_LIST_STORE (model), &iter);
+  gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+		      ACTION_COLUMN, data[1],
+		      BUTTON_COLUMN, data[0],
+		      -1);
 }
 
 static
 void on_lirc_button_delete_clicked (GtkButton *button, gpointer user_data)
 {
-  if (last_row != -1) {
-    gchar *buffer = (gchar *)malloc(50);
-    gtk_clist_get_text(GTK_CLIST(lirc_actionlist), last_row, 0, &buffer);
-    delete_action(buffer);
+  GtkTreeIter iter;
+  GtkTreeModel *model;
+  gchar *buffer;
 
-    gtk_clist_remove(GTK_CLIST (lirc_actionlist), last_row);
-    last_row = -1;
-  }
+  if (!last_row)
+    return;
+
+  model = gtk_tree_view_get_model (GTK_TREE_VIEW (lirc_actionlist));
+  gtk_tree_model_get_iter (model, &iter, last_row);
+  gtk_tree_model_get (model, &iter, BUTTON_COLUMN, &buffer, -1);
+
+  delete_action(buffer);
+  g_free (buffer);
+
+  gtk_list_store_remove (GTK_LIST_STORE (model), &iter);
+
+  gtk_tree_path_free (last_row);
+  last_row = NULL;
 }
 
 static

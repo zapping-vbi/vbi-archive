@@ -32,8 +32,8 @@ backend_save (screenshot_data *data)
   gchar *src, *dest;
   gint src_bpl, dest_bpl, free, n;
 
-  src = (gchar *) data->data;
-  src_bpl = data->format.bytesperline;
+  src = (gchar *) data->data.linear.data;
+  src_bpl = data->data.linear.stride;
   dest = data->io_buffer;
   free = data->io_buffer_size;
   dest_bpl = data->format.width * 3;
@@ -61,7 +61,7 @@ backend_save (screenshot_data *data)
 	  free = data->io_buffer_size;
 	}
 
-      (data->Converter)(data->format.width, src, dest);
+      memcpy (dest, src, data->format.width * 3);
 
       src += src_bpl;
       dest += dest_bpl;
@@ -76,7 +76,7 @@ screenshot_backend
 screenshot_backend_ppm =
 {
   .keyword		= "ppm",
-  .label		= N_("PPM"),
+  .label		= "PPM",
   .extension		= "ppm",
   .quality		= FALSE,
   .bpp_est		= 3.0,

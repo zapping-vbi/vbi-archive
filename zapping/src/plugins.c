@@ -16,8 +16,11 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#define ZCONF_DOMAIN "/zapping/plugins/"
+#include "zconf.h"
 #include "plugins.h"
 #include "properties.h"
+#include "globals.h"
 
 /* This is the main plugin list, it is only used in plugin_bridge */
 extern GList * plugin_list;
@@ -50,7 +53,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
   g_assert(info != NULL);
   g_assert(file_name != NULL);
 
-  memset (info, 0, sizeof(struct plugin_info));
+  CLEAR (*info);
 
   info -> handle = g_module_open (file_name, 0);
 
@@ -128,13 +131,9 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 		       (gpointer*)&(info->plugin_running)))
     info->plugin_running = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_write_bundle", 0x1234,
-		       (gpointer*)&(info->plugin_write_bundle)))
-    info->plugin_write_bundle = NULL;
-
-  if (!(*plugin_get_symbol)("plugin_read_bundle", 0x1234,
-		       (gpointer*)&(info->plugin_read_bundle)))
-    info->plugin_read_bundle = NULL;
+  if (!(*plugin_get_symbol)("plugin_read_frame", 0x1234,
+		       (gpointer*)&(info->plugin_read_frame)))
+    info->plugin_read_frame = NULL;
 
   if (!(*plugin_get_symbol)("plugin_capture_stop", 0x1234,
 		       (gpointer*)&(info->plugin_capture_stop)))
@@ -165,7 +164,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 	    (gpointer*)&(info->plugin_get_misc_info)))
     info->plugin_get_misc_info = NULL;
 
-  memset(&(info->misc_info), 0, sizeof(struct plugin_misc_info));
+  CLEAR (info->misc_info);
 
   if (info -> plugin_get_misc_info)
     memcpy(&(info->misc_info), (*info->plugin_get_misc_info)(),
@@ -222,8 +221,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 	   realloc(info->exported_symbols,
 		   sizeof(struct plugin_exported_symbol)*(i+1));
 	 if (!info->exported_symbols)
-	  g_error(_("There wasn't enough mem for allocating symbol %d in %s"),
-		  i+1, info->file_name);
+	  g_error(_("Insufficient memory"));
 	
 	info->exported_symbols[i].symbol = g_strdup(symbol);
  	info->exported_symbols[i].type = g_strdup(type);
@@ -232,7 +230,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 	    g_strdup(description);
 	else
 	  info->exported_symbols[i].description =
-	    g_strdup(_("[No description provided]"));
+	    g_strdup(_("No description available"));
 	info->exported_symbols[i].ptr = ptr;
 	info->exported_symbols[i].hash = hash;
 	info->num_exported_symbols++;
@@ -269,6 +267,7 @@ void plugin_unload(struct plugin_info * info)
   g_module_close (info -> handle);
 }
 
+/* FIXME: This is ancient, remote.h is much nicer */
 /*
   This is the bridge given to the plugins.
 */
@@ -489,26 +488,14 @@ gboolean plugin_running ( struct plugin_info * info)
   return (*(info->plugin_running))();
 }
 
-void plugin_write_bundle (capture_bundle * bundle, struct plugin_info
-			  * info)
+void plugin_read_frame (capture_frame * frame,
+			struct plugin_info * info)
 {
   g_assert(info != NULL);
-  g_return_if_fail(bundle != NULL);
-  g_return_if_fail(bundle -> image_type != 0);
+  g_return_if_fail(frame != NULL);
 
-  if (info -> plugin_write_bundle)
-    (*info->plugin_write_bundle)(bundle);
-}
-
-void plugin_read_bundle (capture_bundle * bundle, struct plugin_info
-			 * info)
-{
-  g_assert(info != NULL);
-  g_return_if_fail(bundle != NULL);
-  g_return_if_fail(bundle -> image_type != 0);
-
-  if (info -> plugin_read_bundle)
-    (*info->plugin_read_bundle)(bundle);
+  if (info -> plugin_read_frame)
+    (*info->plugin_read_frame)(frame);
 }
 
 void plugin_capture_stop (struct plugin_info * info)
@@ -558,7 +545,8 @@ void plugin_process_popup_menu (GtkWidget	*widget,
 /* Loads all the valid plugins in the given directory, and appends them to
    the given GList. It returns the new GList. The plugins should
    contain exp in their filename (usually called with exp = .zapping.so) */
-static GList * plugin_load_plugins_in_dir( gchar * directory, gchar * exp,
+static GList * plugin_load_plugins_in_dir( const gchar * directory,
+					   gchar * exp,
 					   GList * old )
 {
   struct dirent ** namelist;
@@ -673,76 +661,41 @@ static gint plugin_sorter (struct plugin_info * a, struct plugin_info * b)
 GList * plugin_load_plugins ( void )
 {
   gchar * plugin_path; /* Path to the plugins */
-  gchar * buffer;
+  const gchar *dir;
+  gchar **plugin_dirs;
   GList * list = NULL;
-  FILE * fd;
   gint i;
 
   /* First load plugins in the home dir */
-  buffer = g_get_home_dir();
-  if (buffer)
+  dir = g_get_home_dir();
+  if (dir)
     {
-      g_assert(strlen(buffer) > 0);
-      if (buffer[strlen(buffer)-1] == '/')
-	plugin_path = g_strconcat(buffer, ".zapping/plugins", NULL);
+      g_assert(strlen(dir) > 0);
+      if (dir[strlen(dir)-1] == '/')
+	plugin_path = g_strconcat(dir, ".zapping/plugins", NULL);
       else
-	plugin_path = g_strconcat(buffer, "/.zapping/plugins", NULL);
+	plugin_path = g_strconcat(dir, "/.zapping/plugins", NULL);
       list = plugin_load_plugins_in_dir (plugin_path, PLUGIN_STRID,
 					 list);
       g_free( plugin_path );
-
-      /* Now load ~/.zapping/plugins_dirs */
-      if (buffer[strlen(buffer)-1] == '/')
-	plugin_path = g_strconcat(buffer, ".zapping/plugin_dirs", NULL);
-      else
-	plugin_path = g_strconcat(buffer, "/.zapping/plugin_dirs",
-				  NULL);
-      fd = fopen (plugin_path, "r");
-      g_free(plugin_path);
-      if (fd)
-	{
-	  buffer = (gchar *) g_malloc0(1024);
-
-	  while (fgets(buffer, 1023, fd))
-	    {
-	      plugin_path = buffer;
-	      /* Skip all spaces */
-	      while (*plugin_path == ' ')
-		plugin_path++;
-
-	      if ((strlen(plugin_path) == 0) || 
-		  (plugin_path[0] == '\n') ||
-		  (plugin_path[0] == '#')) /* Comments and empty lines
-					    */
-		continue;
-	      if (plugin_path[strlen(plugin_path)-1] == '\n')
-		plugin_path[strlen(plugin_path)-1] = 0;
-	      /* Remove all spaces at the end of the string */
-	      i = strlen(plugin_path)-1;
-	      while ((plugin_path[i] == ' ') && (i>=0))
-		{
-		  plugin_path[i--] = 0;
-		}
-	      if (strlen(plugin_path) == 0)
-		continue;
-	      list = plugin_load_plugins_in_dir (plugin_path,
-						 PLUGIN_STRID, list);
-	    }
-	  g_free (buffer);
-	}
     }
 
-  /* Now load plugins in $(prefix)/lib/zapping/plugins */
-  buffer = PACKAGE_LIB_DIR;
+  /* Load plugins in other directories */
+  zcc_char ("",
+	    "Colon separated list of dirs to be searched for plugins",
+	    "plugin_dirs");
+  plugin_dirs = g_strsplit(zcg_char (NULL, "plugin_dirs"), ":", 0);
+  if (plugin_dirs)
+    {
+      for (i=0; plugin_dirs[i]; i++)
+	list = plugin_load_plugins_in_dir (plugin_dirs[i],
+					   PLUGIN_STRID, list);
+      g_strfreev (plugin_dirs);
+    }
 
-  g_assert(strlen(buffer) > 0);
-  if (buffer[strlen(buffer)-1] == '/')
-    plugin_path = g_strconcat(buffer, "plugins", NULL);
-  else
-    plugin_path = g_strconcat(buffer, "/plugins", NULL);
-  /* Load all the plugins in this dir */
-  list = plugin_load_plugins_in_dir (plugin_path, PLUGIN_STRID, list);
-  g_free(plugin_path);
+  /* $(prefix)/lib/zapping/plugins */
+  dir = PACKAGE_LIB_DIR "/plugins";
+  list = plugin_load_plugins_in_dir (dir, PLUGIN_STRID, list);
 
   list = g_list_sort (list, (GCompareFunc) plugin_sorter);
 

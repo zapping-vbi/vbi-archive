@@ -1,0 +1,23 @@
+<?xml version="1.0" standalone="no"?>
+<omf>
+  <resource>
+    <title>Zapping Manual</title>
+    <creator>
+     <person>
+      <firstName>Michael</firstName>
+      <lastName>Schimek</lastName>
+      <email>mschimek@users.sourceforge.net</email>
+     </person>
+    </creator>
+    <subject>
+      <category>FIXME</category>
+    </subject>
+    <description>
+      FIXME
+    </description>
+    <type>manual</type>
+    <format mime="text/sgml"/>
+    <identifier url="zapping-manual.xml"/>
+    <language code="C"/>
+  </resource>
+</omf>

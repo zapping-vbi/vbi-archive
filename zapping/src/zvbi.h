@@ -40,8 +40,10 @@ enum ttx_message {
   TTX_NONE=0, /* No messages */
   TTX_PAGE_RECEIVED, /* The monitored page has been received */
   TTX_NETWORK_CHANGE, /* New network info feeded into the decoder */
+#if 0 /* temporarily disabled */
   TTX_PROG_INFO_CHANGE, /* New program info feeded into the decoder */
   TTX_TRIGGER, /* Trigger event, ttx_message_data.link filled */
+#endif
   TTX_CHANNEL_SWITCHED, /* zvbi_channel_switched was called, the cache
 			   has been cleared */
   TTX_BROKEN_PIPE /* No longer connected to the TTX decoder */
@@ -49,13 +51,14 @@ enum ttx_message {
 
 typedef struct {
   enum ttx_message msg;
+#if 0 /* temporarily disabled */
   union {
     vbi_link	link; /* A trigger link */
   } data;
+#endif
 } ttx_message_data;
 
-extern vbi_pgno zvbi_page; /* page, subpage for subtitles */
-extern vbi_subno zvbi_subpage;
+extern vbi_pgno zvbi_caption_pgno; /* page for subtitles */
 
 /*
  * Register a client as TTX receiver, and returns the id that the
@@ -155,7 +158,7 @@ void shutdown_zvbi(void);
 
 /* Open the configured VBI device, FALSE on error */
 gboolean
-zvbi_open_device(char *device);
+zvbi_open_device(const char *device);
 
 /* Closes the VBI device */
 void
@@ -177,15 +180,8 @@ ZModel *
 zvbi_get_model(void);
 
 /*
-  Builds a dialog showing the info we get from the VBI device
-  a) network info, b) program info
-*/
-GtkWidget *zvbi_build_network_info(void);
-GtkWidget *zvbi_build_program_info(void);
-
-/*
-  Returns the g_strdup'ed name of the current station,
-  if known, or NULL. The returned value should be g_free'ed
+  Returns the g_strdup'ed name of the current station, if known, or
+  NULL. The returned value should be g_free'ed
 */
 gchar *
 zvbi_get_name(void);
@@ -224,7 +220,7 @@ zvbi_current_title(void);
   Returns the current program rating ("TV-MA", "Not rated"),
   don't free, just a pointer.
 */
-gchar *
+const gchar *
 zvbi_current_rating(void);
 
 /*
@@ -234,5 +230,16 @@ zvbi_current_rating(void);
 vbi_wst_level
 zvbi_teletext_level (void);
 
-#endif /* HAVE_LIBZVBI */
+#else /* !HAVE_LIBZVBI */
+
+typedef unsigned int vbi_pgno;
+
+#endif /* !HAVE_LIBZVBI */
+
+/*
+  Modifies the gui according to VBI availability.
+ */
+void
+vbi_gui_sensitive (gboolean on);
+
 #endif /* zvbi.h */

@@ -22,12 +22,7 @@
 #include "frequencies.h"
 #include "zmodel.h"
 #include "zmisc.h"
-
-/* 
-   Creates a control box suited for setting up all the controls this
-   device can have
-*/
-GtkWidget * create_control_box(tveng_device_info * info);
+#include "tveng.h"
 
 /*
   Rebuilds the control box if it's open. Call whenever the device
@@ -42,13 +37,13 @@ extern ZModel *z_input_model;
 /**
  * Sets the given input, based on its hash.
  */
-void
+gboolean
 z_switch_input			(int hash, tveng_device_info *info);
 
 /**
  * Sets the given standard, based on its hash.
  */
-void
+gboolean
 z_switch_standard		(int hash, tveng_device_info *info);
 
 /**
@@ -57,6 +52,7 @@ z_switch_standard		(int hash, tveng_device_info *info);
 void
 z_switch_channel		(tveng_tuned_channel	*channel,
 				 tveng_device_info	*info);
+
 
 gboolean
 channel_key_press		(GdkEventKey *		event);
@@ -72,19 +68,31 @@ on_channel_key_press		(GtkWidget *	widget,
 void
 z_set_main_title		(tveng_tuned_channel	*channel,
 				 gchar *default_name);
-/**
- * Stores the current values of the known controls in the given
- * struct. num_controls and list are filled in appropiately.
- * used when saving 
- */
+
+extern tveng_tc_control *
+zconf_get_controls		(guint			num_controls,
+				 const gchar *		path);
+extern void
+zconf_create_controls		(tveng_tc_control *	tcc,
+				 guint			num_controls,
+				 const gchar *		path);
+tveng_tc_control *
+tveng_tc_control_by_id		(const tveng_device_info *info,
+				 tveng_tc_control *tcc,
+				 guint			num_controls,
+				 tv_control_id		id);
+extern gint
+load_control_values		(tveng_device_info *	info,
+				 tveng_tc_control *	tcc,
+				 guint			num_controls);
 void
-store_control_values		(gint		*num_controls,
-				 tveng_tc_control **list,
-				 tveng_device_info *info);
+store_control_values		(tveng_device_info *	info,
+				 tveng_tc_control **	tcc,
+				 guint *		num_controls);
 
 /* Returns whether something (useful) was added */
 gboolean
-add_channel_entries		(GtkMenu *menu,
+add_channel_entries		(GtkMenuShell *menu,
 				 gint pos,
 				 gint menu_max_entries,
 				 tveng_device_info *info);
@@ -92,16 +100,6 @@ add_channel_entries		(GtkMenu *menu,
 /* Do the startup/shutdown */
 void startup_v4linterface	(tveng_device_info *info);
 void shutdown_v4linterface	(void);
-
-/* XXX called by glade */
-extern gboolean channel_up_cmd		(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data);
-extern gboolean channel_down_cmd	(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data);
 
 extern gdouble videostd_inquiry(void);
 

@@ -4,8 +4,7 @@
 srcdir=`dirname $0`
 test -z "$srcdir" && srcdir=.
 
-PACKAGE=zapping
-GETTEXTIZE_FLAGS="--copy --intl --no-changelog"
+PKG_NAME="zapping."
 
 (test -f $srcdir/configure.in) || {
     echo -n "**Error**: Directory "\`$srcdir\'" does not look like the"
@@ -13,4 +12,9 @@ GETTEXTIZE_FLAGS="--copy --intl --no-changelog"
     exit 1
 }
 
-. $srcdir/macros/autogen.sh
+which gnome-autogen.sh || {
+    echo "You need to install gnome-common from the GNOME CVS"
+    exit 1
+}
+
+USE_GNOME2_MACROS=1 . gnome-autogen.sh
