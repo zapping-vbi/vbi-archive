@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.4 2000-08-12 02:14:37 mschimek Exp $ */
+/* $Id: oss.c,v 1.5 2000-10-15 09:08:44 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,7 +56,6 @@ static int		scan_range;
 static int		look_ahead;
 static char		first;
 static int		samples_per_frame;
-static short *		ubuffer;
 static buffer		buf;
 static fifo		pcm_fifo;
 
@@ -81,14 +80,6 @@ pcm_wait_full(fifo *f)
 	static double rtime, utime;
 	static int left = 0;
 	static short *p;
-
-	if (ubuffer) {
-		p = ubuffer;
-		ubuffer = NULL;
-		buf.time = utime;
-		buf.data = (unsigned char *) p;
-		return &buf;
-	}
 
 	if (left <= 0)
 	{
