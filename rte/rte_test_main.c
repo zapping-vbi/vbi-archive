@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.6 2001-09-13 17:15:42 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.7 2001-09-23 21:04:25 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -532,7 +532,7 @@ int main(int argc, char *argv[])
 					      "mpeg1-audio-layer2");
 
 			fprintf(stderr, "Audio options:\n");
-			for (i = 0; (option = rte_enum_option(context, codec, i)); i++)
+			for (i = 0; (option = rte_enum_option(codec, i)); i++)
 				fprintf(stderr, "%2d %s\n", i, option->label);
 		}
 

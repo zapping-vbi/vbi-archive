@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.9 2001-09-23 19:45:42 mschimek Exp $ */
+/* $Id: rte.c,v 1.10 2001-09-23 21:04:25 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -1085,9 +1085,10 @@ rte_set_codec(rte_context *context, rte_stream_type stream_type,
 rte_option *
 rte_enum_option(rte_codec *codec, int index)
 {
-	rte_context *context;
+	rte_context *context = NULL;
 
-	nullcheck(codec && (context = codec->context), return 0);
+	nullcheck(codec, return 0);
+	nullcheck((context = codec->context), return 0);
 
 	if (!BACKEND->enum_option)
 		return NULL;
@@ -1098,9 +1099,10 @@ rte_enum_option(rte_codec *codec, int index)
 int
 rte_get_option(rte_codec *codec, char *keyword, rte_option_value *v)
 {
-	rte_context *context;
+	rte_context *context = NULL;
 
-	nullcheck(codec && (context = codec->context), return 0);
+	nullcheck(codec, return 0);
+	nullcheck((context = codec->context), return 0);
 
 	if (!BACKEND->set_option)
 		return 0;
@@ -1111,11 +1113,12 @@ rte_get_option(rte_codec *codec, char *keyword, rte_option_value *v)
 int
 rte_set_option(rte_codec *codec, char *keyword, ...)
 {
-	rte_context *context;
+	rte_context *context = NULL;
 	va_list args;
 	int r;
 
-	nullcheck(codec && (context = codec->context), return 0);
+	nullcheck(codec, return 0);
+	nullcheck((context = codec->context), return 0);
 
 	if (!BACKEND->set_option)
 		return 0;

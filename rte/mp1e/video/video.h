@@ -17,14 +17,35 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.3 2001-08-22 01:28:10 mschimek Exp $ */
+/* $Id: video.h,v 1.4 2001-09-23 21:04:25 mschimek Exp $ */
 
 #include "../common/bstream.h"
 #include "../common/fifo.h"
 #include "mblock.h"
 
-#define MAX_WIDTH 1024			// 1 ... 4096
-#define MAX_HEIGHT 1024			// 1 ... 2800
+#include "libvideo.h"
+
+#define MAX_WIDTH 1024			/* 1 ... 4096 */
+#define MAX_HEIGHT 1024			/* 1 ... 2800 */
+
+typedef struct video_context {
+
+	/* Options */
+
+	rte_codec		codec;
+
+} video_context;
+
+
+
+
+
+
+
+
+
+
+
 
 #define video_align(n) __attribute__ ((aligned (n)))
 

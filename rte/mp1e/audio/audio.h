@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.5 2001-09-23 19:45:44 mschimek Exp $ */
+/* $Id: audio.h,v 1.6 2001-09-23 21:04:25 mschimek Exp $ */
 
 #include <pthread.h>
 #include "../common/fifo.h"
@@ -130,8 +130,6 @@ typedef struct mp2_context {
 	int			audio_mode;
 
 } mp2_context;
-
-extern mp2_context aseg;
 
 /* psycho.c */
 

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: psycho.c,v 1.3 2001-09-23 19:45:44 mschimek Exp $ */
+/* $Id: psycho.c,v 1.4 2001-09-23 21:04:25 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -190,8 +190,8 @@ mp1e_mp2_psycho_init(mp2_context *mp2, int sampling_freq)
 
 	for (i = 0; i < 3; i++)
 		for (j = 0; j < HBLKSIZE; j++) {
-			aseg.h_save[0][i][j] = 1.0; /* force oldest, old phi = 0.0 */
-			aseg.e_save[0][i & 1][j] = 1.0; /* should be 0.0, see below */
+			mp2->h_save[0][i][j] = 1.0; /* force oldest, old phi = 0.0 */
+			mp2->e_save[0][i & 1][j] = 1.0; /* should be 0.0, see below */
 		}
 
 	for (j = 0; j < SBLIMIT; j++)

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.6 2001-09-23 19:45:43 mschimek Exp $
+ * $Id: rtepriv.h,v 1.7 2001-09-23 21:04:25 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -26,6 +26,7 @@
 #define __RTEPRIV_H__
 #include "rte.h"
 #include <pthread.h>
+#include <stdarg.h>
 
 #define BLANK_BUFFER	1 /* the buffer was created by blank_callback,
 			     do not unref_callback it */
