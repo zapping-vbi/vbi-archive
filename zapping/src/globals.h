@@ -25,10 +25,10 @@ extern gboolean			was_fullscreen;
 extern tveng_tuned_channel *	global_channel_list;
 extern x11_vidmode_info *	vidmodes;
 extern gboolean			have_wm_hints;
-extern x11_dga_parameters	dga_param;
+extern tv_overlay_buffer	dga_param;
 extern int			debug_msg;
 extern gint			cur_tuned_channel;
 /* XXX Move this into virtual device context when ready. */
 extern tv_mixer *		mixer;
-extern tv_mixer_line *		mixer_line;
+extern tv_audio_line *		mixer_line;
 #endif

@@ -19,9 +19,9 @@ tveng_tuned_channel *	global_channel_list = NULL;
 x11_vidmode_info *	vidmodes;
 /* TRUE if we can tell the WM to keep the video window on top */
 gboolean		have_wm_hints = FALSE;
-x11_dga_parameters	dga_param;
+tv_overlay_buffer	dga_param;
 int			debug_msg = 0;
 gint			cur_tuned_channel = -1;
 /* XXX Move this into virtual device context when ready. */
 tv_mixer *		mixer = NULL;
-tv_mixer_line *		mixer_line = NULL;
+tv_audio_line *		mixer_line = NULL;
