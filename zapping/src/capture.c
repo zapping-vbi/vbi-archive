@@ -110,18 +110,26 @@ free_bundle (zf_buffer *b)
   g_free (b);
 }
 
-static void
+static int
 fill_bundle_tveng (producer_buffer *p, tveng_device_info *info)
 {
+  int r;
+
   if (p->src_image) {
-    tveng_read_frame (&p->src_image->data, 50, info);
+    r = tveng_read_frame (&p->src_image->data, 50, info);
   } else { /* read & discard */
-    tveng_read_frame (NULL, 50, info);
+    r = tveng_read_frame (NULL, 50, info);
   }
+
+  if (0 != r)
+    return r;
+
   p->frame.timestamp = tveng_get_timestamp (info);
 
   CLEAR (p->converted);
   p->converted[p->src_index] = TRUE;
+
+  return 0;
 }
 
 static tv_pixfmt_set
@@ -180,6 +188,8 @@ capture_thread (void *data)
 
   while (!exit_capture_thread)
     {
+      int r;
+
       producer_buffer *p =
 	(producer_buffer*)zf_wait_empty_buffer(&prod);
 
@@ -204,7 +214,10 @@ capture_thread (void *data)
 	  continue;
 	}
 
-      fill_bundle_tveng(p, info);
+      /* We cannot handle timeouts or errors. Note timeouts
+         are frequent when capturing an empty */
+      while (0 != fill_bundle_tveng(p, info))
+	;
 
       pthread_rwlock_unlock (&size_rwlock);
 
