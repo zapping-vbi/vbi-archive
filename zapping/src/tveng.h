@@ -590,7 +590,8 @@ struct _tv_window {
 
 /* Preliminary */
 
-/* That ought to be none, read, mmap, userp, overlay for tveng,
+/* That ought to be none, read, mmap, userp, overlay, teletext
+   (ATTACH_VBI pseudo capture mode) for tveng,
    none, capture (read,mmap,userp), overlay, teletext for zm. */
 typedef enum {
   CAPTURE_MODE_NONE,
@@ -621,7 +622,7 @@ tv_nth_video_input		(tveng_device_info *	info,
 extern unsigned int
 tv_video_input_position		(tveng_device_info *	info,
 				 const tv_video_line *	line);
-extern const tv_video_line *
+extern tv_video_line *
 tv_video_input_by_hash		(tveng_device_info *	info,
 				 unsigned int		hash);
 extern const tv_video_line *
@@ -661,7 +662,7 @@ tv_nth_audio_input		(tveng_device_info *	info,
 extern unsigned int
 tv_audio_input_position		(tveng_device_info *	info,
 				 const tv_audio_line *	line);
-extern const tv_audio_line *
+extern tv_audio_line *
 tv_audio_input_by_hash		(tveng_device_info *	info,
 				 unsigned int		hash);
 extern const tv_audio_line *
@@ -690,7 +691,7 @@ tv_nth_video_standard		(tveng_device_info *	info,
 extern unsigned int
 tv_video_standard_position	(tveng_device_info *	info,
 				 const tv_video_standard *standard);
-extern const tv_video_standard *
+extern tv_video_standard *
 tv_video_standard_by_hash	(tveng_device_info *	info,
 				 unsigned int		hash);
 extern const tv_video_standard *

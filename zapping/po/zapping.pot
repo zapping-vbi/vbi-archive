@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-02-28 23:53+0100\n"
+"POT-Creation-Date: 2005-03-03 18:38+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1432,8 +1432,8 @@ msgstr ""
 msgid "_Received"
 msgstr ""
 
-#: plugins/teletext/window.c:341 src/v4linterface.c:1172
-#: src/v4linterface.c:2288
+#: plugins/teletext/window.c:341 src/v4linterface.c:1236
+#: src/v4linterface.c:2360
 msgid "Unnamed"
 msgstr ""
 
@@ -1699,139 +1699,139 @@ msgstr ""
 msgid "Subtitles"
 msgstr ""
 
-#: src/main.c:267 src/main.c:300
+#: src/main.c:236 src/main.c:269
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:284
+#: src/main.c:253
 #, c-format
 msgid ""
 "Cannot restore previous mode, will try capture mode:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:291
+#: src/main.c:260
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:294
+#: src/main.c:263
 #, c-format
 msgid ""
 "Cannot restore previous mode:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:357
+#: src/main.c:326
 msgid "Kernel video device"
 msgstr ""
 
-#: src/main.c:358
+#: src/main.c:327
 msgid "FILENAME"
 msgstr ""
 
-#: src/main.c:369 src/main.c:387
+#: src/main.c:338 src/main.c:356
 msgid "XVideo video input port"
 msgstr ""
 
-#: src/main.c:378
+#: src/main.c:347
 msgid "XVideo image overlay port"
 msgstr ""
 
-#: src/main.c:396
+#: src/main.c:365
 msgid "Disable XVideo video input support"
 msgstr ""
 
-#: src/main.c:405
+#: src/main.c:374
 msgid "Disable XVideo image overlay support"
 msgstr ""
 
-#: src/main.c:414
+#: src/main.c:383
 msgid "Disable XVideo extension support"
 msgstr ""
 
-#: src/main.c:426
+#: src/main.c:395
 msgid "Disable video overlay"
 msgstr ""
 
-#: src/main.c:435
+#: src/main.c:404
 msgid "X display is remote, disable video overlay"
 msgstr ""
 
-#: src/main.c:444
+#: src/main.c:413
 msgid "Disable VBI support"
 msgstr ""
 
-#: src/main.c:453
+#: src/main.c:422
 msgid "Disable plugins"
 msgstr ""
 
 #. TRANSLATORS: --no-zsfb command line option.
 #. TRANSLATORS: --yuv-format command line option.
 #. TRANSLATORS: --tunerless-norm command line option.
-#: src/main.c:467 src/main.c:522 src/main.c:531
+#: src/main.c:436 src/main.c:491 src/main.c:501
 msgid "Obsolete"
 msgstr ""
 
-#: src/main.c:476
+#: src/main.c:445
 msgid "Color depth of the X display"
 msgstr ""
 
-#: src/main.c:477
+#: src/main.c:446
 msgid "BPP"
 msgstr ""
 
-#: src/main.c:485 src/zapzilla.c:74
+#: src/main.c:454 src/zapzilla.c:74
 msgid "Print debug messages"
 msgstr ""
 
-#: src/main.c:503
+#: src/main.c:472
 msgid "Force dword alignment of the overlay window"
 msgstr ""
 
-#: src/main.c:512
+#: src/main.c:481
 msgid "Execute the given command and exit"
 msgstr ""
 
-#: src/main.c:513
+#: src/main.c:482
 msgid "CMD"
 msgstr ""
 
-#: src/main.c:595
+#: src/main.c:572
 msgid "Sorry, but there is no module support in GLib"
 msgstr ""
 
-#: src/main.c:710
+#: src/main.c:696
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: src/main.c:719
+#: src/main.c:705
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:773
+#: src/main.c:759
 #, c-format
 msgid "Couldn't open %s, try other devices?"
 msgstr ""
 
-#: src/main.c:800
+#: src/main.c:786
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr ""
 
-#: src/main.c:810
+#: src/main.c:796
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:1156 src/zapzilla.c:165
+#: src/main.c:1126 src/zapzilla.c:165
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -1844,7 +1844,7 @@ msgid ""
 "     %s. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:1184
+#: src/main.c:1154
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
@@ -2287,33 +2287,33 @@ msgstr ""
 msgid "Controls"
 msgstr ""
 
-#: src/v4linterface.c:1163 src/zmisc.c:1765
+#: src/v4linterface.c:1227 src/zmisc.c:1748
 msgid "Unknown"
 msgstr ""
 
-#: src/v4linterface.c:1181
+#: src/v4linterface.c:1245
 msgid "No input"
 msgstr ""
 
-#: src/v4linterface.c:1192
+#: src/v4linterface.c:1256
 msgid "No standard"
 msgstr ""
 
-#: src/v4linterface.c:2178
+#: src/v4linterface.c:2250
 msgid "Video standards"
 msgstr ""
 
-#: src/v4linterface.c:2198
+#: src/v4linterface.c:2270
 msgid "Audio inputs"
 msgstr ""
 
-#: src/v4linterface.c:2218
+#: src/v4linterface.c:2290
 msgid "Video inputs"
 msgstr ""
 
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: src/v4linterface.c:2316
+#: src/v4linterface.c:2388
 msgid "No channels"
 msgstr ""
 
@@ -2448,104 +2448,104 @@ msgstr ""
 msgid "VBI has been disabled, or it doesn't work."
 msgstr ""
 
-#: src/zmisc.c:711
+#: src/zmisc.c:715
 #, c-format
 msgid ""
 "Cannot start fullscreen overlay.\n"
 "%s"
 msgstr ""
 
-#: src/zmisc.c:988
+#: src/zmisc.c:971
 msgid "Hide the statusbar"
 msgstr ""
 
-#: src/zmisc.c:1198
+#: src/zmisc.c:1181
 #, c-format
 msgid "%s is not a directory."
 msgstr ""
 
-#: src/zmisc.c:1240
+#: src/zmisc.c:1223
 #, c-format
 msgid "Could not create directory %s"
 msgstr ""
 
-#: src/zmisc.c:1960
+#: src/zmisc.c:1943
 msgid "Device:"
 msgstr ""
 
-#: src/zmisc.c:1961
+#: src/zmisc.c:1944
 msgid "Driver:"
 msgstr ""
 
-#: src/zmisc.c:1962
+#: src/zmisc.c:1945
 msgid "Device file:"
 msgstr ""
 
-#: src/zmisc.c:2308
+#: src/zmisc.c:2291
 #, c-format
 msgid "Overwrite %s?"
 msgstr ""
 
-#: src/zmisc.c:2313
+#: src/zmisc.c:2296
 msgid "_Overwrite"
 msgstr ""
 
-#: src/zmisc.c:2321
+#: src/zmisc.c:2304
 #, c-format
 msgid "%s is a directory."
 msgstr ""
 
-#: src/zmisc.c:2336
+#: src/zmisc.c:2319
 #, c-format
 msgid "%s is a special file"
 msgstr ""
 
-#: src/zmisc.c:2340
+#: src/zmisc.c:2323
 msgid "Continue"
 msgstr ""
 
-#: src/zmisc.c:2617
+#: src/zmisc.c:2600
 msgid "Could not open help file"
 msgstr ""
 
-#: src/zmisc.c:2649
+#: src/zmisc.c:2632
 msgid "Could not open URL"
 msgstr ""
 
-#: src/zvbi.c:300
+#: src/zvbi.c:304
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr ""
 
-#: src/zvbi.c:303
+#: src/zvbi.c:307
 #, c-format
 msgid " Teletext Page %x"
 msgstr ""
 
-#: src/zvbi.c:304
+#: src/zvbi.c:308
 msgid "Open this page with Zapzilla"
 msgstr ""
 
-#: src/zvbi.c:863
+#: src/zvbi.c:867
 msgid "VBI interface timeout"
 msgstr ""
 
-#: src/zvbi.c:886
+#: src/zvbi.c:890
 msgid "VBI interface: Failed to read from the device"
 msgstr ""
 
-#: src/zvbi.c:1157
+#: src/zvbi.c:1161
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
 "%s"
 msgstr ""
 
-#: src/zvbi.c:1158
+#: src/zvbi.c:1162
 msgid "Ran out of memory."
 msgstr ""
 
-#: src/zvbi.c:1261
+#: src/zvbi.c:1264
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -2555,7 +2555,7 @@ msgid ""
 "disable VBI in Settings/Preferences/VBI options/Enable VBI decoding."
 msgstr ""
 
-#: src/zvbi.c:1370
+#: src/zvbi.c:1371
 msgid "Out of resources to start a new thread."
 msgstr ""
 

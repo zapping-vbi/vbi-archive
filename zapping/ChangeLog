@@ -1,3 +1,91 @@
+2005-03-30    <mschimek@users.sf.net>
+
+	* test/simd.c: Added to check libtv/simd.h macros.
+	* test/Makefile.am (TESTS): Added simd.
+
+2005-03-18    <mschimek@users.sf.net>
+
+	* common/structpr_gen.pl: VPATH include fix. device.h is in common. 
+	* src/tveng1.c (dequeue_xbuffer, read_frame): Didn't return buffer
+	  sample time.
+
+2005-03-13    <mschimek@users.sf.net>
+
+	* src/zvbi.c (init_threads): Changed #if to if(), to catch bktr
+	  compile errors early.
+	* src/v4linterface.c: On FreeBSD (bktr) the initial video standard
+	  is NTSC. Restoring the last standard to PAL didn't work because
+	  apparently the radio menu item "activate" signal called twice for
+	  the new and old standard, tv_setting PAL then NTSC again.
+	* src/tvengbktr.c: With Teletext in main window, input and channel
+	  changes were blocked because video capturing was on.  Changed
+	  capture_mode from NONE to TELETEXT (i.e. capturing video to make
+	  Teletext work, a bug work-around).
+	  (get_standard_list): Remember a PAL standard to choose when
+	  video capturing in Teletext mode.
+	  (get_signal_strength): Did not set afc return value.
+	* src/zmisc.c (zmisc_switch_mode), src/v4linterface.h,
+	  src/v4linterface.c (zconf_get_sources, zconf_set_sources),
+	  src/main.c (restore_controls, shutdown_zapping): Moved code to
+	  save and restore current video standard, video and audio input
+	  at startup/shutdown and zmisc_switch_mode() to common functions
+	  zconf_set_sources() and zconf_get_sources().
+	* plugins/deinterlace/DI_Misc/Makefile.am: Rewrote to compile
+	  (almost) all MMX code as MMX, 3DNow, SSE, SSE2 (x86 and x86-64),
+	  and AltiVec vector intrinsics.
+	* plugins/deinterlace/DI_Misc/DI_VideoWeave.c,
+	  plugins/deinterlace/DI_Misc/DI_VideoBob.c,
+	  plugins/deinterlace/DI_Misc/DI_TwoFrame.c, 
+	  plugins/deinterlace/DI_Misc/DI_OldGame.c,
+	  plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c,
+	  plugins/deinterlace/DI_Misc/DI_Greedy.c:
+	  Integrated and converted the MMX code to vector intrinsics.
+	* plugins/deinterlace/DI_Misc/DI_VideoWeave.asm,
+	  plugins/deinterlace/DI_Misc/DI_VideoBob.asm,
+	  plugins/deinterlace/DI_Misc/DI_TwoFrame.asm,
+	  plugins/deinterlace/DI_Misc/DI_OldGame.asm,
+	  plugins/deinterlace/DI_Misc/DI_Greedy2Frame.asm,
+	  plugins/deinterlace/DI_Misc/DI_Greedy.asm:
+	  MMX code integrated into respective .c file, this file is no
+	  longer needed.
+	* plugins/deinterlace/windows.h: Added some SIMD macros to save
+	  typing in Di_Misc.
+	* libtv/Makefile.am (libtv_la_SOURCES): Added simd.h.
+	* libtv/simd.h: New file. Some macros to simplify coding with vector
+	  intrinsics.
+	* plugins/deinterlace/main.c, plugins/deinterlace/ditest.c:
+	  Define constants needed by new DI_Misc SIMD code.
+	* plugins/deinterlace/DS_Deinterlace.h (_DEINTERLACE_METHOD),
+	  plugins/deinterlace/DS_ApiCommon.h: Constness fixes.
+	* plugins/Makefile.am: Distinguish between SSE2 asm and SSE2
+	  intrinsics availability for deinterlacing.
+	* configure.in (CHECK_SIMD): Rewrote SIMD check to recognize broken
+	  gcc 4.0 SSE2 implementation.
+	* plugins/mpeg/mpeg.c (video_unref): Added work-around for a librte
+	  bug causing an assert (c->dequeued == 0) when stopping mp1e video
+	  recording.
+	* src/capture.c (change_capture_format): Segfaulted when current
+	  capture format was set but no pixel_format.
+
+2005-03-06    <mschimek@users.sf.net>
+
+	* plugins/deinterlace/DS_ApiCommon.h (MEMCPY_FUNC): Source is
+	  const pointer.
+
+2005-03-04    <mschimek@users.sf.net>
+
+	* plugins/deinterlace/DI_Misc/DI_TwoFrame.asm,
+	  plugins/deinterlace/DI_Misc/DI_Greedy2Frame.asm:
+	  Segfault because used esp register which isn't available when
+	  compiling with -fomit-frame-pointer.
+
+2005-03-03    <mschimek@users.sf.net>
+
+	* src/zmisc.c (zmisc_switch_mode): Tried to restore old video input
+	  and standard which isn't longer possible if capture mode is
+	  active. Didn't restore audio input.
+	* configure.in: Bumped version number to 0.9.3.
+
 2005-02-28    <mschimek@users.sf.net>
 
 	* Release 0.9.2.

@@ -910,7 +910,7 @@ tv_##item##_position		(tveng_device_info *	info,		\
 }
 
 #define NODE_BY_HASH_FUNC(item, kind)					\
-const tv_##kind *							\
+tv_##kind *							        \
 tv_##item##_by_hash		(tveng_device_info *	info,		\
 				 unsigned int		hash)		\
 {									\

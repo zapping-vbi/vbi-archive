@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.6 2005-01-31 07:12:57 mschimek Exp $ */
+/* $Id: image_format.h,v 1.7 2005-03-30 21:34:34 mschimek Exp $ */
 
 #ifndef __ZTV_IMAGE_FORMAT_H__
 #define __ZTV_IMAGE_FORMAT_H__
@@ -54,6 +54,9 @@ typedef struct {
 
 	const tv_pixel_format *	pixel_format;
 	tv_colspc		colspc;
+
+	/* XXX field order:
+	   progressive, interlaced, top field, bottom field. */
 } tv_image_format;
 
 extern tv_bool

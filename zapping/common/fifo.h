@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.34 2005-01-08 14:54:19 mschimek Exp $ */
+/* $Id: fifo.h,v 1.35 2005-03-30 21:34:29 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -280,6 +280,7 @@ zf_unget_full_buffer(zf_consumer *c, zf_buffer *b)
 	/* Migration prohibited */
 	assert(c->fifo == b->fifo);
 
+	assert (c->dequeued > 0);
 	c->dequeued--;
 
 	pthread_mutex_lock(&f->consumer->mutex);
@@ -308,6 +309,7 @@ zf_send_empty_buffer(zf_consumer *c, zf_buffer *b)
 	/* Migration prohibited */
 	assert(c->fifo == b->fifo);
 
+	assert (c->dequeued > 0);
 	c->dequeued--;
 
 	c->fifo->send_empty(c, b);

@@ -390,7 +390,7 @@ void
 startup_remote			(void)
 {
   PyMethodDef empty [] = {
-    { NULL }
+    { 0, 0, 0, 0 }
   };
   PyObject *module;
 
