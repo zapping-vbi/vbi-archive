@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.41 2002-09-07 01:49:22 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.42 2002-09-26 20:39:22 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -62,8 +62,7 @@ static const int		audio_buffers = 2*32;	/* audio compression -> mux */
 
 /* Legacy, will be removed */
 
-#warning verbose
-int				verbose = 1;
+int				verbose = 0;
 int				test_mode = 0;
 int				filter_mode;
 int				preview;
@@ -924,7 +923,7 @@ codec_set(rte_context *context, const char *keyword,
 
 		if (!(codec = dc->_new(dc, &error))) {
 			if (error) {
-				rte_error_printf(context, _("Cannot create new codec instance '%s': %s"),
+				rte_error_printf(context, _("Cannot create new codec instance '%s'. %s"),
 						 dc->_public.keyword, error);
 				free(error);
 			} else {
@@ -1019,7 +1018,7 @@ mp1e_mpeg1_video_context = {
 	._public = {
 		.keyword	= "mp1e_mpeg_video",
 		.label		= N_("MPEG Video Elementary Stream"),
-		.mime_type	= "video/mpeg",
+		.mime_type	= "video/x-mpeg",
 		.extension	= "mpg,mpe,mpeg",
 		.min_elementary	= { 0, 1, 0 },
 		.max_elementary	= { 0, 1, 0 },
@@ -1031,7 +1030,7 @@ mp1e_mpeg1_audio_context = {
 	._public = {
 		.keyword	= "mp1e_mpeg_audio",
 		.label		= N_("MPEG Audio Elementary Stream"),
-		.mime_type	= "audio/mpeg",
+		.mime_type	= "audio/x-mpeg",
 		.extension	= "mp2,mpga", /* note */
 		.min_elementary	= { 0, 0, 1 },
 		.max_elementary	= { 0, 0, 1 },
