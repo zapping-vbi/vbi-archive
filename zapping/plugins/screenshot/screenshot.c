@@ -521,9 +521,8 @@ void plugin_add_gui (GnomeApp * app _unused_)
 
       z_tooltip_set (GTK_WIDGET (tool_item), _("Take a screenshot"));
 
-      g_signal_connect (G_OBJECT (tool_item), "clicked",
-			G_CALLBACK (on_python_command1),
-			(gpointer) "zapping.screenshot()");
+      z_signal_connect_python (G_OBJECT (tool_item), "clicked",
+			       "zapping.screenshot()");
 
       gtk_toolbar_insert (zapping->toolbar, tool_item, APPEND);
 
@@ -606,7 +605,7 @@ screenshot_destroy (screenshot_data *data)
   g_free (data->error);
   g_free (data->deint_data);
 
-  g_free (data->data.linear.data);
+  free (data->data);
   g_free (data->auto_filename);
 
   if (data->pixbuf)
@@ -736,9 +735,8 @@ screenshot_saving_thread (void *_data)
       if ((new_data = screenshot_deinterlace (data,
 		      screenshot_option_deint - 1)))
 	{
-	  g_free (data->data.linear.data);
-
-	  data->data.linear.data = new_data;
+	  free (data->data);
+	  data->data = new_data;
 	}
 
   data->backend->save (data);
@@ -912,9 +910,11 @@ screenshot_save			(screenshot_data *	data)
 static void
 preview (screenshot_data *data)
 {
-  tveng_image_data old_data;
+  void *old_data;
   tv_image_format old_format;
   const tv_pixel_format *pf;
+  unsigned int h_offset;
+  unsigned int v_offset;
 
   if (!data || !data->drawingarea || !data->pixbuf)
     return;
@@ -922,15 +922,15 @@ preview (screenshot_data *data)
   old_data = data->data;
   old_format = data->format;
 
-  pf = tv_pixel_format_from_pixfmt (data->format.pixfmt);
+  pf = data->format.pixel_format;
 
-  data->data.linear.data =
-    (char *) data->data.linear.data
-    + (int) (((((data->format.width - PREVIEW_WIDTH) >> 1)
-	       * pf->bits_per_pixel) >> 3)
-	     + (((data->format.height - PREVIEW_HEIGHT) >> 1)
-		& (unsigned int) -1) /* top field first */
-	     * data->data.linear.stride);
+  h_offset = (((data->format.width - PREVIEW_WIDTH) >> 1)
+	      * pf->bits_per_pixel) >> 3;
+  v_offset = (((data->format.height - PREVIEW_HEIGHT) >> 1)
+	      & (unsigned int) -1); /* top field first */
+
+  data->data = (char *) data->data
+    + h_offset + v_offset * old_format.bytes_per_line[0];
 
   data->format.width = PREVIEW_WIDTH;
   data->format.height = PREVIEW_HEIGHT;
@@ -949,15 +949,14 @@ preview (screenshot_data *data)
 
   if (screenshot_option_deint && data->deint_data)
     {
-      data->data.linear.data = data->deint_data;
-      data->data.linear.stride = data->format.width * 3;
+      data->data = data->deint_data;
+      data->format.bytes_per_line[0] = data->format.width * 3;
     }
 
   if (data->backend->load)
     {
       if (!data->io_buffer)
-	if (!io_buffer_init (data, PREVIEW_WIDTH
-			     * PREVIEW_HEIGHT * 4))
+	if (!io_buffer_init (data, PREVIEW_WIDTH * PREVIEW_HEIGHT * 4))
 	  {
 	    //	    printf ("a\n");
 	    goto restore;
@@ -999,14 +998,14 @@ preview (screenshot_data *data)
       guint line, rowstride;
       gchar *s, *d;
 
-      s = data->data.linear.data;
+      s = data->data;
       d = gdk_pixbuf_get_pixels (data->pixbuf);
       rowstride = gdk_pixbuf_get_rowstride (data->pixbuf);
 
       for (line = 0; line < data->format.height; line++)
 	{
 	  memcpy (d, s, data->format.width * 3);
-	  s += data->data.linear.stride;
+	  s += data->format.bytes_per_line[0];
 	  d += rowstride;
 	}
 
@@ -1056,7 +1055,7 @@ static gboolean
 on_deint_changed                      (GtkWidget *widget,
 				       screenshot_data *data)
 {
-  gint new_deint = (gint) g_object_get_data (G_OBJECT (widget), "deint");
+  gint new_deint = z_object_get_int_data (G_OBJECT (widget), "deint");
 
   if (screenshot_option_deint == new_deint)
     return FALSE;
@@ -1296,7 +1295,7 @@ static gint format_request = -1;
 
 static void unrequest (void)
 {
-  if (format_request >= 0)
+  if (-1 != format_request)
     {
       release_capture_format (format_request);
       format_request = -1;
@@ -1455,15 +1454,10 @@ copy_image (screenshot_data *data, capture_frame *frame)
   if (!image)
     return FALSE;
 
-  memcpy (&data->data, &image->data, sizeof (image->data));
-  data->data.linear.data = g_malloc (image->fmt.size);
+  data->format = image->fmt;
+  data->data = tv_new_image (image->img, &image->fmt);
 
-  memcpy (&data->format, &image->fmt, sizeof(data->format));
-
-  memcpy (data->data.linear.data, image->data.linear.data,
-	  image->fmt.size);
-
-  return TRUE;
+  return (NULL != data->data);
 }
 
 static void
@@ -1488,7 +1482,6 @@ static gboolean
 screenshot_grab (gint dialog)
 {
   screenshot_data *data;
-  capture_fmt fmt;
 
   if (grab_data)
     return FALSE; /* request pending */
@@ -1514,11 +1507,14 @@ screenshot_grab (gint dialog)
 	  return FALSE; /* unable to set the mode */
 	}
 
-      /* Request a RGB type capture */
-      fmt.locked = FALSE;
-      fmt.pixfmt = TV_PIXFMT_RGB24_LE;
-      format_request = request_capture_format (&fmt);
-      if (format_request == -1)
+      format_request = request_capture_format
+	(zapping_info,
+	 /* width: any */ 0,
+	 /* height: any */ 0,
+	 TV_PIXFMT_SET (TV_PIXFMT_RGB24_LE),
+	 /* flags */ 0);
+
+      if (-1 == format_request)
 	{
 	  /* FIXME: This and above we should restore whatever mode was
 	     present before */
