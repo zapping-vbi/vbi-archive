@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.9 2004-03-31 00:41:35 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.10 2004-04-03 00:07:55 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -411,11 +411,12 @@ vbi_decode(vbi_decoder *vbi, vbi_sliced *sliced, int lines, double time)
 			vbi_decode_caption(vbi, sliced->line, sliced->data);
 		else if (sliced->id & VBI_SLICED_VPS)
 			vbi_decode_vps(vbi, sliced->data);
+		/* TODO
 		else if (sliced->id & VBI_SLICED_WSS_625)
 			vbi_decode_wss_625(vbi, sliced->data, time);
 		else if (sliced->id & VBI_SLICED_WSS_CPR1204)
 			vbi_decode_wss_cpr1204(vbi, sliced->data);
-
+		*/
 		sliced++;
 		lines--;
 	}
@@ -456,11 +457,10 @@ vbi_chsw_reset(vbi_decoder *vbi, vbi_nuid identified)
 	if (vbi->aspect_source > 0) {
 		vbi_event e;
 
-		e.ev.aspect.first_line = (vbi->aspect_source == 1) ? 23 : 22;
-		e.ev.aspect.last_line =	(vbi->aspect_source == 1) ? 310 : 262;
-		e.ev.aspect.ratio = 1.0;
-		e.ev.aspect.film_mode = 0;
-		e.ev.aspect.open_subtitles = VBI_SUBT_UNKNOWN;
+		_vbi_aspect_ratio_init (&e.ev.aspect,
+					(vbi->aspect_source == 1) ?
+					VBI_VIDEOSTD_SET_625_50 :
+					VBI_VIDEOSTD_SET_525_60);
 
 		e.type = VBI_EVENT_ASPECT;
 		vbi_send_event(vbi, &e);
@@ -556,18 +556,18 @@ vbi_cache_page_language		(vbi_decoder *		vbi,
 	if (pgno <= 8 && pgno >= 1) {
 		return vbi->cc.channel[pgno - 1].lang_code;
 	} else if (pgno >= 0x100 && pgno <= 0x8FF) {
-		struct page_info *pi;
+	  page_stat *pi;
 		int code;
 
-		pi = vbi->vt.page_info + pgno - 0x100;
-		code = pi->code;
+		pi = vt_network_page_stat (vbi->vt.network, pgno);
+		code = pi->page_type;
 		if (code != VBI_UNKNOWN_PAGE) {
 /* FIXME normal pages */		
 			if (code == VBI_SUBTITLE_PAGE) {
 				const vbi_character_set *cs;
 
-				if (pi->language != 0xFF
-				    && (cs = vbi_character_set_from_code (pi->language)))
+				if (pi->charset_code != 0xFF
+				    && (cs = vbi_character_set_from_code (pi->charset_code)))
 					return cs->language_code;
 			}
 		}
@@ -641,7 +641,7 @@ vbi_cache_page_language		(vbi_decoder *		vbi,
 vbi_page_type
 vbi_classify_page(vbi_decoder *vbi, vbi_pgno pgno, vbi_subno *subno)
 {
-	struct page_info *pi;
+  page_stat *pi;
 	int code, subc;
 //	char *lang;
 
@@ -666,12 +666,12 @@ vbi_classify_page(vbi_decoder *vbi, vbi_pgno pgno, vbi_subno *subno)
 		return VBI_UNKNOWN_PAGE;
 	}
 
-	pi = vbi->vt.page_info + pgno - 0x100;
-	code = pi->code;
+	pi = vt_network_page_stat (vbi->vt.network, pgno);
+	code = pi->page_type;
 
 	if (code != VBI_UNKNOWN_PAGE) {
 		if (code == VBI_SUBTITLE_PAGE) {
-			if (pi->language != 0xFF)
+			if (pi->charset_code != 0xFF)
 				;
 	//		*language = vbi_font_descriptors[pi->language].label;
 		} else if (code == VBI_TOP_BLOCK || code == VBI_TOP_GROUP)
@@ -740,11 +740,7 @@ vbi_reset_prog_info(vbi_program_info *pi)
 	/* CGMS */
 	pi->cgms_a = -1;
 	/* AR */
-	pi->aspect.first_line = -1;
-	pi->aspect.last_line = -1;
-	pi->aspect.ratio = 0.0;
-	pi->aspect.film_mode = 0;
-	pi->aspect.open_subtitles = VBI_SUBT_UNKNOWN;
+	_vbi_aspect_ratio_init (&pi->aspect, VBI_VIDEOSTD_SET_525_60);
 	/* PD */
 	for (i = 0; i < 8; i++)
 		pi->description[i][0] = 0;
@@ -922,7 +918,7 @@ vbi_page_private_dump		(const vbi_page_private *pgp,
 	unsigned int column;
 	vbi_char *acp;
 
-	acp = pgp->pg.text;
+ 	acp = pgp->pg.text;
 
 	for (row = 0; row < pgp->pg.rows; ++row) {
 		fprintf (fp, "%2u: ", row);

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5.2.4 2004-02-25 17:33:17 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.5 2004-04-03 00:08:08 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -43,6 +43,7 @@ vbi_bool		option_hyperlinks;
 vbi_bool		option_pdc_links;
 vbi_bool		option_enum;
 unsigned int		delay;
+char			cr;
 
 extern void
 vbi_preselection_dump		(const vbi_preselection *pl,
@@ -126,9 +127,10 @@ handler(vbi_event *ev, void *unused)
 	FILE *fp;
 	vbi_page *pg;
 
-	fprintf(stderr, "\rPage %03x.%02x ",
+	fprintf(stderr, "Page %03x.%02x %c",
 		ev->ev.ttx_page.pgno,
-		ev->ev.ttx_page.subno & 0xFF);
+		ev->ev.ttx_page.subno & 0xFF,
+		cr);
 
 	if (pgno >= 0 && ev->ev.ttx_page.pgno != pgno)
 		return;
@@ -261,6 +263,8 @@ main(int argc, char **argv)
 	char *module, *t;
 	const vbi_export_info *xi;
 	unsigned int i;
+
+	cr = isatty (STDERR_FILENO) ? '\r' : '\n';
 
 	module= NULL;
 	pgno = 0;

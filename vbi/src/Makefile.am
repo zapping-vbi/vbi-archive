@@ -16,6 +16,7 @@ INCLUDES += -D_REENTRANT -D_XOPEN_SOURCE -D_BSD_SOURCE
 INCLUDES += $(X_CFLAGS) $(UNICODE_CFLAGS)
 
 libzvbi_la_SOURCES = \
+	aspect_ratio.h \
 	bcd.c bcd.h \
 	bit_slicer.c bit_slicer.h \
 	cache.c cache.h \
@@ -34,6 +35,7 @@ libzvbi_la_SOURCES = \
 	hamm.c hamm.h \
 	intl.h intl-priv.h \
 	lang.c lang.h \
+	link.h \
 	macros.h \
 	misc.h \
 	network.c network.h \
@@ -82,7 +84,8 @@ version.h: Makefile.in
 
 LIBZVBI_HDRS = \
 	macros.h intl.h \
-	bcd.h hamm.h network.h event.h format.h pdc.h lang.h export.h \
+	bcd.h hamm.h network.h link.h aspect_ratio.h event.h \
+	format.h pdc.h lang.h export.h \
 	cache.h search.h \
 	sliced.h \
 	graphics.h \

@@ -1,7 +1,7 @@
 /*
- *  libzvbi - WSS decoder
+ *  libzvbi - Wide Screen Signalling
  *
- *  Copyright (C) 2001, 2002 Michael H. Schimek
+ *  Copyright (C) 2001-2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,28 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: wss.h,v 1.1.1.1 2002-01-12 16:19:06 mschimek Exp $ */
+/* $Id: wss.h,v 1.1.1.1.2.1 2004-04-03 00:07:55 mschimek Exp $ */
 
-extern void		vbi_decode_wss_625(vbi_decoder *vbi, uint8_t *buf, double time);
-extern void		vbi_decode_wss_cpr1204(vbi_decoder *vbi, uint8_t *buf);
+#ifndef __ZVBI_WSS_H__
+#define __ZVBI_WSS_H__
+
+#include <inttypes.h>		/* uint8_t */
+#include "macros.h"
+#include "aspect.h"		/* vbi_aspect_ratio */
+
+/* Public */
+
+VBI_BEGIN_DECLS
+
+extern vbi_bool
+vbi_decode_wss_625		(vbi_aspect_ratio *	r,
+				 const uint8_t		buffer[2]);
+extern vbi_bool
+vbi_decode_wss_cpr1204		(vbi_aspect_ratio *	r,
+				 const uint8_t		buffer[3]);
+
+VBI_END_DECLS
+
+/* Private */
+
+#endif /* __ZVBI_WSS_H__ */

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.9 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.10 2004-04-03 00:07:55 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -51,7 +51,7 @@ do {									\
 static void
 character_set_designation	(const vbi_character_set *char_set[2],
 				 vbi_character_set_code def_code,
-				 const vt_extension *	ext,
+				 const extension *	ext,
 				 const vt_page *	vtp);
 static void
 screen_color			(vbi_page *		pg,
@@ -60,7 +60,7 @@ screen_color			(vbi_page *		pg,
 static vbi_bool
 enhance				(vbi_page_private *		t,
 				 object_type		type,
-				 const vt_triplet *	p,
+				 const triplet *	p,
 				 int			n_triplets,
 				 int			inv_row,
 				 int			inv_column);
@@ -69,7 +69,7 @@ enhance				(vbi_page_private *		t,
 /* Teletext page formatting ----------------------------------------------- */
 
 #ifndef TELETEXT_FMT_LOG
-#define TELETEXT_FMT_LOG 0
+#define TELETEXT_FMT_LOG 1
 #endif
 
 #define fmt_log(templ, args...)						\
@@ -81,7 +81,7 @@ do {									\
 static void
 character_set_designation	(const vbi_character_set *char_set[2],
 				 vbi_character_set_code default_code,
-				 const vt_extension *	ext,
+				 const extension *	ext,
 				 const vt_page *	vtp)
 {
 	unsigned int i;
@@ -137,7 +137,7 @@ screen_color			(vbi_page *		pg,
 
 static const vt_page *
 resolve_obj_address		(vbi_page_private *	pgp,
-				 const vt_triplet **	trip,
+				 const triplet **	trip,
 				 unsigned int *		remaining,
 				 object_type		type,
 				 vbi_pgno		pgno,
@@ -167,7 +167,7 @@ resolve_obj_address		(vbi_page_private *	pgp,
 	}
 
 	if (vtp->function == PAGE_FUNCTION_UNKNOWN) {
-		if (!vbi_convert_cached_page (pgp->pg.vbi, &vtp, function)) {
+		if (!_vbi_convert_cached_page (pgp->pg.vbi, &vtp, function)) {
 			fmt_log ("... no g/pop page or hamming error\n");
 			goto failure;
 		}
@@ -182,7 +182,7 @@ resolve_obj_address		(vbi_page_private *	pgp,
 	}
 
 	pointer = vtp->data.pop.pointer[packet * 24 + i * 2 
-					+ ((address >> 4) & 1)];
+					+ ((address >> 4) & 1) - 2];
 
 	fmt_log ("... triplet pointer %u\n", pointer);
 
@@ -218,7 +218,8 @@ resolve_obj_address		(vbi_page_private *	pgp,
 
 	if ((*trip)->mode != (type + 0x14)
 	    || (address & 0x1FF)) {
-		fmt_log ("... no object definition\n");
+		fmt_log ("... no object definition (%x, %x)\n",
+			 type + 0x14, address & 0x1FF);
 		goto failure;
 	}
 
@@ -440,13 +441,13 @@ magazine_pop_link		(vbi_page_private *	pgp,
 	vbi_pgno pgno;
 
 	if (pgp->max_level >= VBI_WST_LEVEL_3p5) {
-		pgno = pgp->mag->pop_link[link + 8].pgno;
+		pgno = pgp->mag->pop_link[1][link].pgno;
 
 		if (!NO_PAGE (pgno))
 			return pgno;
 	}
 
-	return pgp->mag->pop_link[link + 0].pgno;
+	return pgp->mag->pop_link[0][link].pgno;
 }
 
 /**
@@ -464,7 +465,7 @@ magazine_pop_link		(vbi_page_private *	pgp,
 static vbi_bool
 object_invocation		(vbi_page_private *	pgp,
 				 object_type		type,
-				 const vt_triplet *	trip,
+				 const triplet *	trip,
 				 int			row,
 				 int			column)
 {
@@ -511,7 +512,7 @@ object_invocation		(vbi_page_private *	pgp,
 			return FALSE;
 		}
 
-		if (0 == (pgp->vtp->enh_lines & 1)) {
+		if (0 == (pgp->vtp->x26_designations & 1)) {
 			fmt_log ("... have no packet %u\n", designation);
 			return FALSE;
 		}
@@ -534,6 +535,7 @@ object_invocation		(vbi_page_private *	pgp,
 			pgno = pgp->vtp->data.lop.link[24].pgno;
 
 			if (NO_PAGE (pgno)) {
+  fprintf (stderr, "### %p\n", pgp->mag);
 				pgno = magazine_pop_link (pgp, 0);
 			} else {
 				fmt_log ("... X/27/4 GPOP overrides MOT\n");
@@ -593,7 +595,7 @@ object_invocation		(vbi_page_private *	pgp,
 vbi_inline vbi_bool
 default_object_invocation	(vbi_page_private *	pgp)
 {
-	const vt_pop_link *pop;
+	const pop_link *pop;
 	unsigned int link;
 	unsigned int order;
 	unsigned int i;
@@ -607,11 +609,11 @@ default_object_invocation	(vbi_page_private *	pgp)
 		return FALSE;
 	}
 
-	pop = pgp->mag->pop_link + link + 8;
+	pop = &pgp->mag->pop_link[1][link];
 
 	if (pgp->max_level < VBI_WST_LEVEL_3p5
 	    || NO_PAGE (pop->pgno)) {
-		pop = pgp->mag->pop_link + link;
+		pop = &pgp->mag->pop_link[0][link];
 
 		if (NO_PAGE (pop->pgno)) {
 			fmt_log ("... dead MOT pop link %u\n", link);
@@ -625,7 +627,7 @@ default_object_invocation	(vbi_page_private *	pgp)
 	for (i = 0; i < 2; ++i) {
 		object_type type;
 		const vt_page *trip_vtp;
-		const vt_triplet *trip;
+		const triplet *trip;
 		unsigned int n_triplets;
 		vbi_bool success;
 
@@ -668,13 +670,13 @@ magazine_drcs_link		(vbi_page_private *	pgp,
 	vbi_pgno pgno;
 
 	if (pgp->max_level >= VBI_WST_LEVEL_3p5) {
-		pgno = pgp->mag->drcs_link[link + 8];
+		pgno = pgp->mag->drcs_link[1][link];
 
 		if (!NO_PAGE (pgno))
 			return pgno;
 	}
 
-	return pgp->mag->drcs_link[link + 0];
+	return pgp->mag->drcs_link[0][link];
 }
 
 static const vt_page *
@@ -696,7 +698,7 @@ get_drcs_page			(vbi_page_private *	pgp,
 	}
 
 	if (vtp->function == PAGE_FUNCTION_UNKNOWN) {
-		if (!vbi_convert_cached_page (pgp->pg.vbi, &vtp, function)) {
+		if (!_vbi_convert_cached_page (pgp->pg.vbi, &vtp, function)) {
 			fmt_log ("... no g/drcs page or hamming error\n");
 			goto failure;
 		}
@@ -842,7 +844,7 @@ vbi_page_drcs_data		(const vbi_page *	pg,
 	if (glyph >= 48)
 		return NULL;
 
-	return drcs_vtp->data.drcs.bits[glyph];
+	return drcs_vtp->data.drcs.chars[glyph];
 }
 
 /*
@@ -860,7 +862,7 @@ vbi_page_drcs_data		(const vbi_page *	pg,
 static vbi_bool
 enhance				(vbi_page_private *		t,
 				 object_type		type,
-				 const vt_triplet *	p,
+				 const triplet *	p,
 				 int			n_triplets,
 				 int			inv_row,
 				 int			inv_column)
@@ -2458,28 +2460,31 @@ top_label			(vbi_page_private *		t,
 
 	for (i = 0; i < 8; ++i) {
 		const vt_page *vtp;
-		const ait_entry *ait;
+		const ait_title *ait;
+		const vt_network *vtn;
 		unsigned int j;
 
 		vtp = NULL;
 
-		if (t->pg.vbi->vt.btt_link[i].type != 2)
+		vtn = t->pg.vbi->vt.network;
+
+		if (vtn->btt_link[i].function != PAGE_FUNCTION_AIT)
 			goto cont;
 
 		vtp = vbi_cache_get (t->pg.vbi, NUID0,
-				     t->pg.vbi->vt.btt_link[i].pgno,
-				     t->pg.vbi->vt.btt_link[i].subno, 0x3f7f,
+				     vtn->btt_link[i].pgno,
+				     vtn->btt_link[i].subno, 0x3f7f,
 				     /* user access */ FALSE);
 		if (!vtp) {
 			nav_log ("top ait page %x not cached\n",
-				 t->pg.vbi->vt.btt_link[i].pgno);
+				 vtn->btt_link[i].pgno);
 			goto cont;
 		} else if (vtp->function != PAGE_FUNCTION_AIT) {
 			nav_log ("no ait page %x\n", vtp->pgno);
 			goto cont;
 		}
 
-		for (ait = vtp->data.ait, j = 0; j < 46; ++ait, ++j) {
+		for (ait = vtp->data.ait.title, j = 0; j < 46; ++ait, ++j) {
 			unsigned int sh;
 			int i;
 
@@ -2560,7 +2565,8 @@ top_navigation_bar		(vbi_page_private *		t)
 	vbi_bool have_group;
 
 	nav_log ("page mip/btt: %d\n",
-		 t->pg.vbi->vt.page_info[t->vtp->pgno - 0x100].code);
+		 vt_network_page_stat (t->pg.vbi->vt.network,
+				       t->vtp->pgno)->page_type);
 
 	clear_navigation_bar (t);
 
@@ -2579,7 +2585,8 @@ top_navigation_bar		(vbi_page_private *		t)
 	do {
 		vbi_page_type type;
 
-		type = t->pg.vbi->vt.page_info[pgno - 0x100].code;
+		type = vt_network_page_stat (t->pg.vbi->vt.network,
+					     pgno)->page_type;
 
 		if (type == VBI_TOP_BLOCK || type == VBI_TOP_GROUP) {
 			// XXX font?
@@ -2603,7 +2610,8 @@ top_navigation_bar		(vbi_page_private *		t)
 
 		// XXX font?
 
-		switch (t->pg.vbi->vt.page_info[pgno - 0x100].code) {
+		switch (vt_network_page_stat (t->pg.vbi->vt.network,
+					      pgno)->page_type) {
 		case VBI_TOP_BLOCK:
 			top_label (t, t->char_set[0], 2,
 				   pgno, 32 + VBI_YELLOW, 2);
@@ -2628,11 +2636,11 @@ top_navigation_bar		(vbi_page_private *		t)
  *  XXX
  */
 
-static const ait_entry *
+static const ait_title *
 next_ait(vbi_decoder *vbi, int pgno, int subno, const vt_page **mvtp)
 {
-	const ait_entry *ait;
-	const ait_entry *mait = NULL;
+	const ait_title *ait;
+	const ait_title *mait = NULL;
 	int mpgno = 0xFFF, msubno = 0xFFFF;
 	int i, j;
 
@@ -2640,24 +2648,27 @@ next_ait(vbi_decoder *vbi, int pgno, int subno, const vt_page **mvtp)
 
 	for (i = 0; i < 8; i++) {
 		const vt_page *vtp, *xvtp = NULL;
+		const vt_network *vtn;
 
-		if (vbi->vt.btt_link[i].type != 2)
+		vtn = vbi->vt.network;
+
+		if (vtn->btt_link[i].function != PAGE_FUNCTION_AIT)
 			continue;
 
 		vtp = vbi_cache_get (vbi, NUID0,
-				     vbi->vt.btt_link[i].pgno, 
-				     vbi->vt.btt_link[i].subno, 0x3f7f,
+				     vtn->btt_link[i].pgno, 
+				     vtn->btt_link[i].subno, 0x3f7f,
 				     /* user access */ FALSE);
 		if (!vtp) {
 			nav_log ("top ait page %x not cached\n",
-			       vbi->vt.btt_link[i].pgno);
+				 vtn->btt_link[i].pgno);
 			continue;
 		} else if (vtp->function != PAGE_FUNCTION_AIT) {
 			nav_log ("no ait page %x\n", vtp->pgno);
 			goto end;
 		}
 
-		for (ait = vtp->data.ait, j = 0; j < 46; ait++, j++) {
+		for (ait = vtp->data.ait.title, j = 0; j < 46; ait++, j++) {
 			if (!ait->page.pgno)
 				break;
 
@@ -2692,10 +2703,10 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
 {
 	const vt_page *vtp;
 	vbi_char ac, *acp;
-	const ait_entry *ait;
+	const ait_title *ait;
 	int i, j, k, n, lines;
 	int xpgno, xsubno;
-	const vt_extension *ext;
+	const extension *ext;
 	char *index_str;
 	unsigned int ii;
 
@@ -2710,7 +2721,7 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
 	pg->dirty.y1 = 25 - 1;
 	pg->dirty.roll = 0;
 
-	ext = &vbi->vt.magazine[0].extension;
+	ext = &vbi->vt.network->magazines[0].extension;
 
 	screen_color(pg, 0, 32 + VBI_BLUE);
 
@@ -2782,7 +2793,8 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
 			if (ait->text[i] > 0x20)
 				break;
 
-		switch (vbi->vt.page_info[ait->page.pgno - 0x100].code) {
+		switch (vt_network_page_stat (vbi->vt.network,
+					      ait->page.pgno)->page_type) {
 		case VBI_TOP_GROUP:
 			k = 3;
 			break;
@@ -2820,14 +2832,16 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
 }
 
 vbi_inline void
-ait_title			(vbi_decoder *		vbi,
+do_ait_title			(vbi_decoder *		vbi,
 				 const vt_page *	vtp,
-	  const ait_entry *ait, char *buf)
+	  const ait_title *ait, char *buf)
 {
 	const vbi_character_set *char_set[2];
 	int i;
 
-	character_set_designation (char_set, 0, &vbi->vt.magazine[0].extension, vtp);
+	character_set_designation (char_set, 0,
+				   &vbi->vt.network->
+				   magazines[0].extension, vtp);
 
 	for (i = 11; i >= 0; i--)
 		if (ait->text[i] > 0x20)
@@ -2860,25 +2874,26 @@ ait_title			(vbi_decoder *		vbi,
 vbi_bool
 vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf)
 {
-	const ait_entry *ait;
+	const ait_title *ait;
 	int i, j;
 
 	subno = subno;
 
-	if (vbi->vt.top) {
+	if (vbi->vt.network->have_top) {
 		for (i = 0; i < 8; i++) {
 			const vt_page *vtp;
+			const vt_network *vtn;
 
-			if (vbi->vt.btt_link[i].type != 2)
+			if (vtn->btt_link[i].function != PAGE_FUNCTION_AIT)
 				continue;
 
 			vtp = vbi_cache_get (vbi, NUID0,
-					     vbi->vt.btt_link[i].pgno, 
-					     vbi->vt.btt_link[i].subno, 0x3f7f,
+					     vtn->btt_link[i].pgno, 
+					     vtn->btt_link[i].subno, 0x3f7f,
 					     /* user access */ FALSE);
 			if (!vtp) {
 				nav_log ("p/t top ait page %x not cached\n",
-				       vbi->vt.btt_link[i].pgno);
+					 vtn->btt_link[i].pgno);
 				continue;
 			}
 
@@ -2887,10 +2902,10 @@ vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf)
 				goto end;
 			}
 
-			for (ait = vtp->data.ait, j = 0; j < 46; ait++, j++)
+			for (ait = vtp->data.ait.title, j = 0; j < 46; ait++, j++)
 				if (ait->page.pgno == pgno) {
 
-					ait_title(vbi, vtp, ait, buf);
+					do_ait_title(vbi, vtp, ait, buf);
 					vbi_cache_unref (vbi, vtp);
 					return TRUE;
 				}
@@ -2910,7 +2925,7 @@ vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf)
 static void
 navigation			(vbi_page_private *		t)
 {
-	if (t->vtp->data.lop.flof) {
+	if (t->vtp->data.lop.have_flof) {
 		vbi_pgno home_pgno = t->vtp->data.lop.link[5].pgno;
 
 		if (home_pgno >= 0x100 && home_pgno <= 0x899
@@ -2919,12 +2934,12 @@ navigation			(vbi_page_private *		t)
 			t->nav_link[5].subno = t->vtp->data.lop.link[5].subno;
 		}
 
-		if (t->vtp->lop_lines & (1 << 24)) {
+		if (t->vtp->lop_packets & (1 << 24)) {
 			flof_links (t);
 		} else {
 			flof_navigation_bar (t);
 		}
-	} else if (t->pg.vbi->vt.top) {
+	} else if (t->pg.vbi->vt.network->have_top) {
 		top_navigation_bar (t);
 	}
 }
@@ -3023,48 +3038,6 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 	pgp->pg.dirty.y1	= pgp->pg.rows - 1;
 	pgp->pg.dirty.roll	= 0;
 
-	/* Magazine and extension defaults */
-
-	pgp->mag = (pgp->max_level <= VBI_WST_LEVEL_1p5) ?
-		vbi->vt.magazine /* default magazine */
-		: vbi->vt.magazine + (vtp->pgno >> 8);
-
-	if (vtp->data.lop.ext)
-		pgp->ext = &vtp->data.ext_lop.ext;
-	else
-		pgp->ext = &pgp->mag->extension;
-
-	/* Colors */
-
-	screen_color (&pgp->pg, vtp->flags, pgp->ext->def_screen_color);
-
-	assert (sizeof (pgp->pg.color_map) == sizeof (pgp->ext->color_map));
-	memcpy (pgp->pg.color_map, pgp->ext->color_map,
-		sizeof (pgp->pg.color_map));
-
-	assert (sizeof (pgp->pg.drcs_clut) == sizeof (pgp->ext->drcs_clut));
-	memcpy (pgp->pg.drcs_clut, pgp->ext->drcs_clut,
-		sizeof (pgp->pg.drcs_clut));
-
-	/* Opacity */
-
-	pgp->page_opacity[1] = VBI_OPAQUE;
-	pgp->boxed_opacity[1] = VBI_SEMI_TRANSPARENT;
-
-	if (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE | C10_INHIBIT_DISPLAY))
-		pgp->page_opacity[1] = VBI_TRANSPARENT_SPACE;
-
-	if (vtp->flags & C10_INHIBIT_DISPLAY)
-		pgp->boxed_opacity[1] =	VBI_TRANSPARENT_SPACE;
-
-	if (pgp->vtp->flags & C7_SUPPRESS_HEADER) {
-		pgp->page_opacity[0] = VBI_TRANSPARENT_SPACE;
-		pgp->boxed_opacity[0] = VBI_TRANSPARENT_SPACE;
-	} else {
-		pgp->page_opacity[0] = pgp->page_opacity[1];
-		pgp->boxed_opacity[0] = pgp->boxed_opacity[1];
-	}
-
 	/* Options */
 
 	pgp->max_level		= VBI_WST_LEVEL_1;
@@ -3131,6 +3104,48 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 			break;
 	}
 
+	/* Magazine and extension defaults */
+
+	pgp->mag = (pgp->max_level <= VBI_WST_LEVEL_1p5) ?
+		&vbi->vt.network->magazines[0] /* default magazine */
+		: vt_network_magazine (vbi->vt.network, vtp->pgno);
+
+	if (vtp->data.lop.ext)
+		pgp->ext = &vtp->data.ext_lop.ext;
+	else
+		pgp->ext = &pgp->mag->extension;
+
+	/* Colors */
+
+	screen_color (&pgp->pg, vtp->flags, pgp->ext->def_screen_color);
+
+	assert (sizeof (pgp->pg.color_map) == sizeof (pgp->ext->color_map));
+	memcpy (pgp->pg.color_map, pgp->ext->color_map,
+		sizeof (pgp->pg.color_map));
+
+	assert (sizeof (pgp->pg.drcs_clut) == sizeof (pgp->ext->drcs_clut));
+	memcpy (pgp->pg.drcs_clut, pgp->ext->drcs_clut,
+		sizeof (pgp->pg.drcs_clut));
+
+	/* Opacity */
+
+	pgp->page_opacity[1] = VBI_OPAQUE;
+	pgp->boxed_opacity[1] = VBI_SEMI_TRANSPARENT;
+
+	if (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE | C10_INHIBIT_DISPLAY))
+		pgp->page_opacity[1] = VBI_TRANSPARENT_SPACE;
+
+	if (vtp->flags & C10_INHIBIT_DISPLAY)
+		pgp->boxed_opacity[1] =	VBI_TRANSPARENT_SPACE;
+
+	if (pgp->vtp->flags & C7_SUPPRESS_HEADER) {
+		pgp->page_opacity[0] = VBI_TRANSPARENT_SPACE;
+		pgp->boxed_opacity[0] = VBI_TRANSPARENT_SPACE;
+	} else {
+		pgp->page_opacity[0] = pgp->page_opacity[1];
+		pgp->boxed_opacity[0] = pgp->boxed_opacity[1];
+	}
+
 	/* Character set designation */
 
 	if (option_cs_override) {
@@ -3170,9 +3185,9 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 			pgp->boxed_opacity[1] = VBI_TRANSPARENT_SPACE;
 		}
 
-		if (vtp->enh_lines & 1) {
+		if (vtp->x26_designations & 1) {
 			fmt_log ("enhancement packets %08x\n",
-				 vtp->enh_lines);
+				 vtp->x26_designations);
 
 			success = enhance
 				(pgp, LOCAL_ENHANCEMENT_DATA,
@@ -3202,7 +3217,7 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 		}
 	}
 
-	pgp->nav_link[5] = vbi->vt.initial_page;
+	pgp->nav_link[5] = vbi->vt.network->initial_page;
 
 	if (pgp->pg.rows > 1) {
 		unsigned int row;
@@ -3341,7 +3356,7 @@ vbi_fetch_vt_page_va_list	(vbi_decoder *		vbi,
 				break;
 		}
 
-		if (!vbi->vt.top
+		if (!vbi->vt.network->have_top
 		    || !top_index (vbi, &pgp->pg, subno, pgp->pg.columns)) {
 			vbi_page_delete (&pgp->pg);
 			return NULL;

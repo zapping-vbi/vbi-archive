@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.2.2.6 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: cache.h,v 1.2.2.7 2004-04-03 00:07:55 mschimek Exp $ */
 
 #ifndef CACHE_H
 #define CACHE_H
@@ -34,26 +34,10 @@
 typedef struct vbi_decoder vbi_decoder;
 #endif
 
-typedef struct page_stat page_stat;
 typedef struct cache_page cache_page;
 typedef struct cache_stat cache_stat;
 typedef struct cache cache;
 
-struct page_stat {
-	/* Information gathered from Magazine Inventory Pages (MIP) */
-
-	unsigned 		code		: 8;
-	unsigned		language	: 8;
-	unsigned 		subcode		: 16;
-
-	/* Cache statistics (read-only outside cache.c) */
-
-	unsigned		num_pages	: 8;
-	unsigned		max_pages	: 8;
-
-	unsigned		subno_min	: 8;
-	unsigned		subno_max	: 8;
-};
 
 /* private, for vbi_page_stat */
 struct cache_stat {

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.8 2004-03-31 00:41:35 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.9 2004-04-03 00:07:55 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -103,7 +103,7 @@ struct vbi_decoder {
 	vbi_program_info        prog_info[2];
 	int                     aspect_source;
 
-	struct teletext		vt;
+	vbi_teletext_decoder	vt;
 	struct caption		cc;
 
 	cache *			cache;
@@ -185,33 +185,34 @@ typedef struct vbi_decoder vbi_decoder;
  * See vbi_classify_page().
  */
 typedef enum {
-	VBI_NO_PAGE = 0x00,
-	VBI_NORMAL_PAGE = 0x01,
-	VBI_SUBTITLE_PAGE = 0x70,
-	VBI_SUBTITLE_INDEX = 0x78,
-	VBI_NONSTD_SUBPAGES = 0x79,
-	VBI_PROGR_WARNING = 0x7A,
-	VBI_CURRENT_PROGR = 0x7C,
-	VBI_NOW_AND_NEXT = 0x7D,
-	VBI_PROGR_INDEX = 0x7F,
-	VBI_PROGR_SCHEDULE = 0x81,
-	VBI_UNKNOWN_PAGE = 0xFF,
-/* Private */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-	VBI_NOT_PUBLIC = 0x80,
-	VBI_CA_DATA_BROADCAST =	0xE0,
-	VBI_EPG_DATA = 0xE3,
-	VBI_SYSTEM_PAGE = 0xE7,
-	VBI_DISP_SYSTEM_PAGE = 0xF7,
+	VBI_NO_PAGE		= 0x00,
+	VBI_NORMAL_PAGE		= 0x01,
+	VBI_TOP_BLOCK		= 0x64,		/* libzvbi internal */
+	VBI_TOP_GROUP		= 0x65,		/* libzvbi internal */
+	VBI_SUBTITLE_PAGE	= 0x70,
+	VBI_SUBTITLE_INDEX	= 0x78,
+	VBI_NONSTD_SUBPAGES	= 0x79,
+	VBI_PROGR_WARNING	= 0x7A,
+	VBI_CURRENT_PROGR	= 0x7C,
+	VBI_NOW_AND_NEXT	= 0x7D,
+	VBI_PROGR_INDEX		= 0x7F,
+	VBI_NOT_PUBLIC		= 0x80,
+	VBI_PROGR_SCHEDULE	= 0x81,
+	VBI_CA_DATA		= 0xE0,
+	VBI_PFC_EPG_DATA	= 0xE3,
+	VBI_PFC_DATA		= 0xE4,
+	VBI_DRCS_PAGE		= 0xE5,
+	VBI_POP_PAGE		= 0xE6,
+	VBI_SYSTEM_PAGE		= 0xE7,
 	VBI_KEYWORD_SEARCH_LIST = 0xF9,
-	VBI_TOP_BLOCK = 0xFA,
-	VBI_TOP_GROUP = 0xFB,
-	VBI_TRIGGER_DATA = 0xFC,
-	VBI_ACI = 0xFD,
-	VBI_TOP_PAGE = 0xFE
-#endif
-/* Public */
+	VBI_TRIGGER_DATA	= 0xFC,
+	VBI_ACI_PAGE		= 0xFD,
+	VBI_TOP_PAGE		= 0xFE,		/* MPT, AIT, MPT-EX */
+	VBI_UNKNOWN_PAGE	= 0xFF,		/* libzvbi internal */
 } vbi_page_type;
+
+extern const char *
+_vbi_page_type_name		(vbi_page_type		type);
 
 /**
  * @addtogroup Service
@@ -246,8 +247,8 @@ typedef struct vbi_page_private {
 
 	unsigned int		magic;
 
-	const vt_magazine *	mag;
-	const vt_extension *	ext;
+	const magazine *	mag;
+	const extension *	ext;
 
 	const vt_page *		vtp;
 
@@ -271,7 +272,7 @@ typedef struct vbi_page_private {
 	   simplicity nav_index[] points from each character
 	   in the TOP/FLOF row 25 (max 64 columns) to the
 	   corresponding nav_link element. */
-	vt_pagenum		nav_link[6];
+	pagenum		nav_link[6];
 	uint8_t			nav_index[64];
 } vbi_page_private;
 

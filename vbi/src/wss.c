@@ -1,7 +1,7 @@
 /*
- *  libzvbi - WSS decoder
+ *  libzvbi - Wide Screen Signalling
  *
- *  Copyright (C) 2001, 2002 Michael H. Schimek
+ *  Copyright (C) 2001-2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,179 +18,209 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: wss.c,v 1.2 2002-09-26 20:48:39 mschimek Exp $ */
+/* $Id: wss.c,v 1.2.2.1 2004-04-03 00:07:55 mschimek Exp $ */
 
-#include <stdio.h>
-#include <string.h>
+#include "../config.h"
 
-#include "vbi.h"
-#include "hamm.h"
+#include <assert.h>
+#include <stdio.h>		/* FILE */
 #include "wss.h"
 
-void
-vbi_decode_wss_625(vbi_decoder *vbi, uint8_t *buf, double time)
+const char *
+_vbi_subtitles_name		(vbi_subtitles		s)
 {
-	vbi_event e;
-	vbi_aspect_ratio *r = &e.ev.aspect;
-	int parity;
+	switch (s) {
 
-	memset(&e, 0, sizeof(e));
+#undef CASE
+#define CASE(s) case VBI_SUBTITLES_##s : return #s ;
 
-	/* Two producers... */
-	if (time < vbi->wss_time)
-		return;
-
-	vbi->wss_time = time;
-
-	if (buf[0] != vbi->wss_last[0]
-	    || buf[1] != vbi->wss_last[1]) {
-		vbi->wss_last[0] = buf[0];
-		vbi->wss_last[1] = buf[1];
-		vbi->wss_rep_ct = 0;
-		return;
+	CASE (NONE);
+	CASE (UNKNOWN);
+	CASE (ACTIVE);
+	CASE (MATTE);
+	CASE (CLOSED);
+	
+		/* No default, gcc warns. */
 	}
 
-	if (++vbi->wss_rep_ct < 3)
-		return;
+	return NULL;
+}
 
-	parity = buf[0] & 15;
+void
+_vbi_aspect_ratio_init		(vbi_aspect_ratio *	r,
+				 vbi_videostd_set	videostd_set)
+{
+	assert (NULL != r);
+	
+	if (videostd_set & VBI_VIDEOSTD_SET_525_60) {
+		r->start[0] = 23;
+		r->start[1] = 336;
+		r->count[0] = 288; 
+		r->count[1] = 288; 
+	} else {
+		r->start[0] = 22;
+		r->start[1] = 285;
+		r->count[0] = 240;
+		r->count[1] = 240;
+	}
+
+	r->ratio		= 1.0;
+	r->film_mode		= FALSE;
+	r->open_subtitles	= VBI_SUBTITLES_UNKNOWN;
+	r->closed_subtitles	= VBI_SUBTITLES_UNKNOWN;
+}
+
+void
+_vbi_aspect_ratio_dump		(const vbi_aspect_ratio *r,
+				 FILE *			fp)
+{
+	fprintf (fp, "%u-%u %u-%u ratio=%f film=%u sub=%s,%s",
+		 r->start[0], r->start[0] + r->count[0] - 1,
+		 r->start[1], r->start[1] + r->count[1] - 1,
+		 r->ratio, r->film_mode,
+		 _vbi_subtitles_name (r->open_subtitles),
+		 _vbi_subtitles_name (r->closed_subtitles));
+}
+
+/**
+ */
+vbi_bool
+vbi_decode_wss_625		(vbi_aspect_ratio *	r,
+				 const uint8_t		buffer[2])
+{
+	int parity;
+
+	assert (NULL != r);
+	assert (NULL != buffer);
+
+	parity = buffer[0] & 15;
 	parity ^= parity >> 2;
 	parity ^= parity >> 1;
 
 	if (!(parity & 1))
-		return;
+		return FALSE;
 
 	r->ratio = 1.0;
 
-	switch (buf[0] & 7) {
+	switch (buffer[0] & 7) {
 	case 0: /* 4:3 */
 	case 6: /* 14:9 soft matte */
-		r->first_line = 23;
-		r->last_line = 310;
+		r->start[0] = 23;
+		r->start[1] = 336;
+		r->count[0] = 288; 
+		r->count[1] = 288; 
 		break;
 	case 1: /* 14:9 */
-		r->first_line = 41;
-		r->last_line = 292;
+		r->start[0] = 41;
+		r->start[1] = 354;
+		r->count[0] = 252; 
+		r->count[1] = 252; 
 		break;
 	case 2: /* 14:9 top */
-		r->first_line = 23;
-		r->last_line = 274;
+		r->start[0] = 23;
+		r->start[1] = 336;
+		r->count[0] = 252;
+		r->count[1] = 252;
 		break;
 	case 3: /* 16:9 */
 	case 5: /* "Letterbox > 16:9" */
-		r->first_line = 59; // 59.5 ?
-		r->last_line = 273;
+		r->start[0] = 59;
+		r->start[1] = 372;
+		r->count[0] = 216;
+		r->count[1] = 216;
 		break;
 	case 4: /* 16:9 top */
-		r->first_line = 23;
-		r->last_line = 237;
+		r->start[0] = 23;
+		r->start[1] = 336;
+		r->count[0] = 216;
+		r->count[1] = 216;
 		break;
 	case 7: /* 16:9 anamorphic */
-		r->first_line = 23;
-		r->last_line = 310;
+		r->start[0] = 23;
+		r->start[1] = 336;
+		r->count[0] = 288; 
+		r->count[1] = 288; 
 		r->ratio = 3.0 / 4.0;
 		break;
 	}
 
-	r->film_mode = !!(buf[0] & 0x10);
+	r->film_mode = !!(buffer[0] & 0x10);
 
-	switch ((buf[1] >> 1) & 3) {
+	switch (buffer[1] & 1) {
 	case 0:
-		r->open_subtitles = VBI_SUBT_NONE;
+		r->closed_subtitles = VBI_SUBTITLES_NONE;
 		break;
 	case 1:
-		r->open_subtitles = VBI_SUBT_ACTIVE;
-		break;
-	case 2:
-		r->open_subtitles = VBI_SUBT_MATTE;
-		break;
-	case 3:
-		r->open_subtitles = VBI_SUBT_UNKNOWN;
+		r->closed_subtitles = VBI_SUBTITLES_CLOSED;
 		break;
 	}
 
-	if (memcmp(r, &vbi->prog_info[0].aspect, sizeof(*r)) != 0) {
-		vbi->prog_info[0].aspect = *r;
-		vbi->aspect_source = 1;
-
-		e.type = VBI_EVENT_ASPECT;
-		vbi_send_event(vbi, &e);
-
-		e.type = VBI_EVENT_PROG_INFO;
-		e.ev.prog_info = &vbi->prog_info[0];
-		vbi_send_event(vbi, &e);
+	switch ((buffer[1] >> 1) & 3) {
+	case 0:
+		r->open_subtitles = VBI_SUBTITLES_NONE;
+		break;
+	case 1:
+		r->open_subtitles = VBI_SUBTITLES_ACTIVE;
+		break;
+	case 2:
+		r->open_subtitles = VBI_SUBTITLES_MATTE;
+		break;
+	case 3:
+		r->open_subtitles = VBI_SUBTITLES_UNKNOWN;
+		break;
 	}
 
 	if (0) {
-		static const char *formats[] = {
-			"Full format 4:3, 576 lines",
-			"Letterbox 14:9 centre, 504 lines",
-			"Letterbox 14:9 top, 504 lines",
-			"Letterbox 16:9 centre, 430 lines",
-			"Letterbox 16:9 top, 430 lines",
-			"Letterbox > 16:9 centre",
-			"Full format 14:9 centre, 576 lines",
-			"Anamorphic 16:9, 576 lines"
-		};
-		static const char *subtitles[] = {
-			"none",
-			"in active image area",
-			"out of active image area",
-			"?"
-		};
+		fputs ("WSS: ", stderr);
 
-		printf("WSS: %s; %s mode; %s color coding;\n"
-		       "      %s helper; reserved b7=%d; %s\n"
-		       "      open subtitles: %s; %scopyright %s; copying %s\n",
-		       formats[buf[0] & 7],
-		       (buf[0] & 0x10) ? "film" : "camera",
-		       (buf[0] & 0x20) ? "MA/CP" : "standard",
-		       (buf[0] & 0x40) ? "modulated" : "no",
-		       !!(buf[0] & 0x80),
-		       (buf[1] & 0x01) ? "have TTX subtitles; " : "",
-		       subtitles[(buf[1] >> 1) & 3],
-		       (buf[1] & 0x08) ? "surround sound; " : "",
-		       (buf[1] & 0x10) ? "asserted" : "unknown",
-		       (buf[1] & 0x20) ? "restricted" : "not restricted");
+		_vbi_aspect_ratio_dump (r, stderr);
+
+		fprintf (stderr,
+			 "\nmacp=%u, helper=%u, b7=%u "
+			 "surround=%u, copyright=%u, copying=%u\n",
+			 !!(buffer[0] & 0x20), /* motion adaptive color plus */
+			 !!(buffer[0] & 0x40), /* modulated helper */
+			 !!(buffer[0] & 0x80), /* reserved */
+			 !!(buffer[1] & 0x08), /* surround sound */
+			 !!(buffer[1] & 0x10), /* copyright asserted */
+			 !!(buffer[1] & 0x20)); /* copying restricted */
 	}
+
+	return TRUE;
 }
 
-void
-vbi_decode_wss_cpr1204(vbi_decoder *vbi, uint8_t *buf)
+/**
+ */
+vbi_bool
+vbi_decode_wss_cpr1204		(vbi_aspect_ratio *	r,
+				 const uint8_t		buffer[3])
 {
-	int b0 = buf[0] & 0x80;
-	int b1 = buf[0] & 0x40;
-	vbi_event e;
-	vbi_aspect_ratio *r = &e.ev.aspect;
+	int b0 = buffer[0] & 0x80;
+	int b1 = buffer[0] & 0x40;
 
-	memset(&e, 0, sizeof(e));
+	assert (NULL != r);
+	assert (NULL != buffer);
 
 	if (b1) {
-		r->first_line = 72; // wild guess
-		r->last_line = 212;
+		r->start[0] = 52;
+		r->start[1] = 315;
+		r->count[0] = 180;
+		r->count[1] = 180;
 	} else {
-		r->first_line = 22;
-		r->last_line = 262;
+		r->start[0] = 22;
+		r->start[1] = 285;
+		r->count[0] = 240;
+		r->count[1] = 240;
 	}
 
 	r->ratio = b0 ? 3.0 / 4.0 : 1.0;
-	r->film_mode = 0;
-	r->open_subtitles = VBI_SUBT_UNKNOWN;
 
-	if (memcmp(r, &vbi->prog_info[0].aspect, sizeof(*r)) != 0) {
-		vbi->prog_info[0].aspect = *r;
-		vbi->aspect_source = 2;
+	r->film_mode = FALSE;
 
-		e.type = VBI_EVENT_ASPECT;
-		vbi_send_event(vbi, &e);
+	r->open_subtitles = VBI_SUBTITLES_UNKNOWN;
+	r->closed_subtitles = VBI_SUBTITLES_UNKNOWN;
 
-		e.type = VBI_EVENT_PROG_INFO;
-		e.ev.prog_info = &vbi->prog_info[0];
-		vbi_send_event(vbi, &e);
-	}
-
-	if (0)
-		printf("CPR: %d %d\n", !!b0, !!b1);
+	return TRUE;
 }
 
 #if 0 /* old stuff */

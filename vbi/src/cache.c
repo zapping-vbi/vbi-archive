@@ -128,8 +128,8 @@ cache_page_dump			(const cache_page *	cp,
 
 		fprintf (stderr, "nuid=%08x/%08x C%u/L%u/S%04x sub %u/%u (%u-%u) ",
 			 cs->client_nuid, cs->received_nuid,
-			 ps->code, ps->language, ps->subcode,
-			 ps->num_pages, ps->max_pages,
+			 ps->page_type, ps->charset_code, ps->subcode,
+			 ps->n_subpages, ps->max_subpages,
 			 ps->subno_min, ps->subno_max);
 	} else {
 		fprintf (stderr, "nuid=n/a ");
@@ -175,7 +175,7 @@ cache_stat_remove_page		(cache_page *		cp)
 
 	ps = cs->pages + cp->page.pgno - 0x100;
 
-	ps->num_pages--;
+	ps->n_subpages--;
 }
 
 vbi_inline void
@@ -194,10 +194,10 @@ cache_stat_add_page		(cache_stat *		cs,
 
 	ps = cs->pages + cp->page.pgno - 0x100;
 
-	ps->num_pages++;
+	ps->n_subpages++;
 
-	if (ps->num_pages > ps->max_pages)
-		ps->max_pages = ps->num_pages;
+	if (ps->n_subpages > ps->max_subpages)
+		ps->max_subpages = ps->n_subpages;
 
 	subno = cp->page.subno;
 
@@ -304,7 +304,7 @@ delete_page			(cache *		ca,
 	}
 
 	if (__builtin_expect (cp->priority != CACHE_PRI_ZOMBIE, 1))
-		ca->mem_used -= vtp_size (&cp->page) + cache_page_overhead;
+		ca->mem_used -= vt_page_size (&cp->page) + cache_page_overhead;
 
 	unlink_node (&cp->pri_node);
 	unlink_node (&cp->hash_node);
@@ -479,7 +479,7 @@ vbi_cache_unref			(vbi_decoder *		vbi,
 			add_tail (&ca->priority[cp->priority],
 				  unlink_node (&cp->pri_node));
 
-			ca->mem_used += vtp_size (&cp->page) + cache_page_overhead;
+			ca->mem_used += vt_page_size (&cp->page) + cache_page_overhead;
 		}
 
 		if (__builtin_expect (ca->mem_used > ca->mem_max, 0))
@@ -539,7 +539,7 @@ page_lookup			(cache *		ca,
 			cs->locked_pages++;
 		}
 
-		ca->mem_used -= vtp_size (&cp->page) + cache_page_overhead;
+		ca->mem_used -= vt_page_size (&cp->page) + cache_page_overhead;
 
 		add_tail (&ca->locked, unlink_node (&cp->pri_node));
 	}
@@ -674,7 +674,7 @@ vbi_cache_foreach		(vbi_decoder *		vbi,
 
 		subno += dir;
 
-		while (ps->num_pages == 0
+		while (ps->n_subpages == 0
 		       || subno < ps->subno_min
 		       || subno > ps->subno_max) {
 			if (dir < 0) {
@@ -871,7 +871,7 @@ vbi_cache_put			(vbi_decoder *		vbi,
 	dead_count = 0;
 
 	free_size = (long) ca->mem_max - (long) ca->mem_used; /* can be < 0 */
-	new_size = vtp_size (vtp) + cache_page_overhead;
+	new_size = vt_page_size (vtp) + cache_page_overhead;
 
 	hash_list = ca->hash + hash (vtp->pgno);
 
@@ -910,7 +910,7 @@ vbi_cache_put			(vbi_decoder *		vbi,
 			old_cp = NULL;
 		} else {
 			dead_row[dead_count++] = old_cp;
-			free_size += vtp_size (&old_cp->page) + cache_page_overhead;
+			free_size += vt_page_size (&old_cp->page) + cache_page_overhead;
 		}
 	} else {
 		old_cp = NULL;
@@ -936,7 +936,7 @@ vbi_cache_put			(vbi_decoder *		vbi,
 		if (__builtin_expect (cp != old_cp, 1)) {
 			assert (dead_count < N_ELEMENTS (dead_row));
 			dead_row[dead_count++] = cp;
-			free_size += vtp_size (&cp->page) + cache_page_overhead;
+			free_size += vt_page_size (&cp->page) + cache_page_overhead;
 		}
 
 		cp = PARENT (cp->pri_node.succ, cache_page, pri_node);

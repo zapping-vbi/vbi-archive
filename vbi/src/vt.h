@@ -21,11 +21,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.9 2004-03-31 00:41:35 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.10 2004-04-03 00:07:55 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
 
+#include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
 
@@ -40,18 +41,15 @@ typedef struct vbi_decoder vbi_decoder;
 
 /**
  * @internal
- *
- * Page function code according to ETS 300 706, Section 9.4.2,
- * Table 3: Page function and page coding bits
- * (packets X/28/0 Format 1, X/28/3 and X/28/4).
+ * EN 300 706, Section 9.4.2, Table 3 Page function.
  */
 typedef enum {
-	PAGE_FUNCTION_EPG = -4,		/* libzvbi private */
-	PAGE_FUNCTION_TRIGGER = -3,	/* libzvbi private */
-	PAGE_FUNCTION_DISCARD = -2,	/* libzvbi private */
-	PAGE_FUNCTION_UNKNOWN = -1,	/* libzvbi private */
-	PAGE_FUNCTION_LOP,
-	PAGE_FUNCTION_DATA_BROADCAST,
+	PAGE_FUNCTION_ACI		= -4,	/* libzvbi private */
+	PAGE_FUNCTION_EPG		= -3,	/* libzvbi private */
+	PAGE_FUNCTION_DISCARD		= -2,	/* libzvbi private */
+	PAGE_FUNCTION_UNKNOWN		= -1,	/* libzvbi private */
+	PAGE_FUNCTION_LOP		= 0,
+	PAGE_FUNCTION_DATA,
 	PAGE_FUNCTION_GPOP,
 	PAGE_FUNCTION_POP,
 	PAGE_FUNCTION_GDRCS,
@@ -61,7 +59,8 @@ typedef enum {
 	PAGE_FUNCTION_BTT,
 	PAGE_FUNCTION_AIT,
 	PAGE_FUNCTION_MPT,
-	PAGE_FUNCTION_MPT_EX
+	PAGE_FUNCTION_MPT_EX,
+	PAGE_FUNCTION_TRIGGER
 } page_function;
 
 extern const char *
@@ -69,27 +68,81 @@ page_function_name		(page_function		function);
 
 /**
  * @internal
- *
- * Page coding code according to ETS 300 706, Section 9.4.2,
- * Table 3: Page function and page coding bits
- * (packets X/28/0 Format 1, X/28/3 and X/28/4).
+ * TOP BTT links to other TOP pages.
+ * top_page_number() translates this to enum page_function.
  */
 typedef enum {
-	PAGE_CODING_UNKNOWN = -1,	/* libzvbi private */
-	PAGE_CODING_PARITY,
-	PAGE_CODING_BYTES,
-	PAGE_CODING_TRIPLETS,
-	PAGE_CODING_HAMMING84,
-	PAGE_CODING_AIT,
-	PAGE_CODING_META84
-} page_coding;
+	TOP_PAGE_FUNCTION_MPT = 1,
+	TOP_PAGE_FUNCTION_AIT,
+	TOP_PAGE_FUNCTION_MPT_EX,
+} top_page_function;
 
 /**
  * @internal
- *
- * DRCS character coding according to ETS 300 706, Section 14.2,
- * Table 31: DRCS modes; Section 9.4.6, Table 9: Coding of Packet
- * X/28/3 for DRCS Downloading Pages.
+ * 9.4.2 Table 3 Page coding.
+ */
+typedef enum {
+	PAGE_CODING_UNKNOWN = -1,	/**< libzvbi private */
+	PAGE_CODING_ODD_PARITY,
+	PAGE_CODING_UBYTES,
+	PAGE_CODING_TRIPLETS,
+	PAGE_CODING_HAMMING84,
+	PAGE_CODING_AIT,
+	/**
+	 * First byte is a hamming 8/4 coded page_coding,
+	 * describing remaining 39 bytes.
+	 */
+	PAGE_CODING_META84
+} page_coding;
+
+extern const char *
+page_coding_name		(page_coding		coding);
+
+/**
+ * @internal
+ * TOP BTT page type.
+ * decode_btt_page() translates this to MIP page type
+ * which is defined as enum vbi_page_type in vbi.h.
+ */
+typedef enum {
+	BTT_NO_PAGE = 0,
+	BTT_SUBTITLE,
+	/** S = single page */
+	BTT_PROGR_INDEX_S,
+	/** M = multi-page (number of subpages in MPT or MPT-EX) */
+	BTT_PROGR_INDEX_M,
+	BTT_BLOCK_S,
+	BTT_BLOCK_M,
+	BTT_GROUP_S,
+	BTT_GROUP_M,
+	BTT_NORMAL_S,
+	BTT_NORMAL_9,		/**< ? */
+	BTT_NORMAL_M,
+	BTT_NORMAL_11,		/**< ? */
+	BTT_12,			/**< ? */
+	BTT_13,			/**< ? */
+	BTT_14,			/**< ? */
+	BTT_15			/**< ? */
+} btt_page_type;
+
+/**
+ * @internal
+ * 12.3.1 Table 28 Enhancement object type.
+ */
+typedef enum {
+	LOCAL_ENHANCEMENT_DATA = 0,	/**< depends on context */
+	OBJECT_TYPE_NONE = 0,
+	OBJECT_TYPE_ACTIVE,
+	OBJECT_TYPE_ADAPTIVE,
+	OBJECT_TYPE_PASSIVE
+} object_type;
+
+extern const char *
+object_type_name		(object_type		type);
+
+/**
+ * @internal
+ * 14.2 Table 31, 9.4.6 Table 9 DRCS character coding.
  */
 typedef enum {
 	DRCS_MODE_12_10_1,
@@ -100,22 +153,61 @@ typedef enum {
 	DRCS_MODE_NO_DATA
 } drcs_mode;
 
+extern const char *
+drcs_mode_name			(drcs_mode		mode);
+
+/** @internal */
+#define DRCS_PTUS_PER_PAGE 48
+
+/**
+ * @internal
+ */
+typedef struct {
+	page_function		function;
+
+	/** NO_PAGE (pgno) when unused or broken. */
+	vbi_pgno		pgno;
+
+	/**
+	 * X/27/4 ... 5 format 1 (struct lop.link[]):
+	 * Set of subpages required: 1 << (0 ... 15).
+	 * Otherwise subpage number or VBI_NO_SUBNO.
+	 */
+	vbi_subno		subno;
+} pagenum;
+
+/** @internal */
+#define NO_PAGE(pgno) (((pgno) & 0xFF) == 0xFF)
+
+extern void
+pagenum_dump			(const pagenum *	pn,
+				 FILE *			fp);
+
+/**
+ * @internal
+ * 12.3.1 Packet X/26 code triplet.
+ * Broken triplets are set to -1, -1, -1.
+ */
+struct _triplet {
+	unsigned	address		: 8;
+	unsigned	mode		: 8;
+	unsigned	data		: 8;
+} __attribute__ ((packed));
+
+/** @internal */
+typedef struct _triplet triplet;
+
 /* Level one page extension */
 
-typedef struct _ext_fallback ext_fallback;
-
-struct _ext_fallback {
+typedef struct {
 	int		black_bg_substitution;
-	int		left_side_panel;
-	int		right_side_panel;
 	int		left_panel_columns;
-};
+	int		right_panel_columns;
+} ext_fallback;
 
 #define VBI_TRANSPARENT_BLACK 8
 
-typedef struct _vt_extension vt_extension;
-
-struct _vt_extension {
+typedef struct {
 	unsigned int		designations;
 
 	vbi_character_set_code	charset_code[2]; /* primary, secondary */
@@ -133,38 +225,18 @@ struct _vt_extension {
 	vbi_color		drcs_clut[2 * 1 + 2 * 4 + 2 * 16];
 
 	vbi_rgba		color_map[40];
-};
+} extension;
 
-typedef struct _vt_triplet vt_triplet;
+extern void
+extension_dump			(const extension *	ext,
+				 FILE *			fp);
 
-/**
- * @internal
- *
- * Packet X/26 code triplet according to ETS 300 706,
- * Section 12.3.1.
- */
-struct _vt_triplet {
-	unsigned	address		: 8;
-	unsigned	mode		: 8;
-	unsigned	data		: 8;
-} __attribute__ ((packed));
-
-typedef struct _vt_pagenum vt_pagenum;
-
-struct _vt_pagenum {
-	unsigned int		type; // XXX enum
-	vbi_pgno		pgno;
-	vbi_subno		subno;
-};
-
-typedef struct _ait_entry ait_entry;
-
-struct _ait_entry {
-	vt_pagenum		page;
+typedef struct {
+	pagenum			page;
 	uint8_t			text[12];
-};
+} ait_title;
 
-typedef vt_triplet enhancement[16 * 13 + 1];
+typedef triplet enhancement[16 * 13 + 1];
 
 #define NO_PAGE(pgno) (((pgno) & 0xFF) == 0xFF)
 
@@ -182,8 +254,8 @@ typedef vt_triplet enhancement[16 * 13 + 1];
 
 struct lop {
 	uint8_t			raw[26][40];
-	vt_pagenum		link[6 * 6];	/* X/27/0-5 links */
-	vbi_bool		flof;
+	pagenum		link[6 * 6];	/* X/27/0-5 links */
+	vbi_bool		have_flof;
 	vbi_bool		ext;
 };
 
@@ -217,15 +289,21 @@ struct _vt_page {
 	int			national;
 
 	/**
-	 * Page flags C4_ERASE_PAGE ... C11_MAGAZIN_SERIAL.
+	 * Page flags C4 ... C14. Other bits will be set, just ignore them.
 	 */
-	int			flags;
+	unsigned int		flags;
 
 	/**
-	 * One bit for each LOP and enhancement packet
+	 * Sets of packets we received. This may include packets
+	 * with hamming errors.
+	 *
+	 * lop_packets:	1 << packet 0 ... 25
+	 * x26_designations: 1 << X/26 designation 0 ... 15
 	 */
-	int			lop_lines;
-	int			enh_lines;
+	unsigned int		lop_packets;
+	unsigned int		x26_designations;
+	unsigned int		x27_designations;
+	unsigned int		x28_designations;
 
 	union {
 		struct lop	unknown;
@@ -237,21 +315,36 @@ struct _vt_page {
 		struct {
 			struct lop	lop;
 			enhancement	enh;
-			vt_extension	ext;
+			extension	ext;
 		}		ext_lop;
 		struct {
-			uint16_t	pointer[96];
-			vt_triplet	triplet[39 * 13 + 1];
-/* XXX preset [+1] mode (not 0xFF) or catch */
+			/**
+			 * 12 * 2 triplet pointers from packet 1 ... 4.
+			 * Valid range 0 ... 506 (39 packets * 13 triplets),
+			 * unused pointers 511 (10.5.1.2), broken -1.
+			 */
+			uint16_t	pointer[4 * 12 * 2];
+
+			/**
+			 * 13 triplets from each of packet 3 ... 25 and
+			 * 26/0 ... 26/15.
+			 *
+			 * Valid range of mode 0x00 ... 0x1F, broken -1.
+			 */
+		  	triplet			triplet[39 * 13 + 1];
 		}		gpop, pop;
 		struct {
-			uint8_t			raw[26][40];
-			uint8_t			bits[48][12 * 10 / 2];
+			struct lop		lop;
+			uint8_t			chars[48][12 * 10 / 2];
 			uint8_t			mode[48];
 			uint64_t		invalid;
 		}		gdrcs, drcs;
+		struct {
+			ait_title	title[46];
 
-		ait_entry	ait[46];
+			/** Used to detect changes. */
+			unsigned int	checksum;
+		}		ait;
 
 	}		data;
 
@@ -269,7 +362,7 @@ struct _vt_page {
  * depending on its function and the data union member used.
  **/
 vbi_inline unsigned int
-vtp_size			(const vt_page *	vtp)
+vt_page_size			(const vt_page *	vtp)
 {
 	const unsigned int header_size = sizeof(*vtp) - sizeof(vtp->data);
 
@@ -278,7 +371,7 @@ vtp_size			(const vt_page *	vtp)
 	case PAGE_FUNCTION_LOP:
 		if (vtp->data.lop.ext)
 			return header_size + sizeof(vtp->data.ext_lop);
-		else if (vtp->enh_lines)
+		else if (vtp->x26_designations)
 			return header_size + sizeof(vtp->data.enh_lop);
 		else
 			return header_size + sizeof(vtp->data.lop);
@@ -300,50 +393,13 @@ vtp_size			(const vt_page *	vtp)
 }
 
 vbi_inline vt_page *
-copy_vt_page			(vt_page *		tvtp,
+vt_page_copy			(vt_page *		tvtp,
 				 const vt_page *	svtp)
 {
-	memcpy (tvtp, svtp, vtp_size (svtp));
+	memcpy (tvtp, svtp, vt_page_size (svtp));
 	return tvtp;
 }
 
-/**
- * @internal
- *
- * TOP BTT page class.
- */
-typedef enum {
-	BTT_NO_PAGE = 0,
-	BTT_SUBTITLE,
-	BTT_PROGR_INDEX_S,
-	BTT_PROGR_INDEX_M,
-	BTT_BLOCK_S,
-	BTT_BLOCK_M,
-	BTT_GROUP_S,
-	BTT_GROUP_M,
-	BTT_NORMAL_S,
-	BTT_NORMAL_9, /* ? */
-	BTT_NORMAL_M,
-	BTT_NORMAL_11 /* ? */
-	/* 12 ... 15 ? */
-} btt_page_class;
-
-/**
- * @internal
- *
- * Enhancement object type according to ETS 300 706, Section 12.3.1,
- * Table 28: Function of Row Address triplets.
- */
-typedef enum {
-	LOCAL_ENHANCEMENT_DATA = 0,
-	OBJECT_TYPE_NONE = 0,
-	OBJECT_TYPE_ACTIVE,
-	OBJECT_TYPE_ADAPTIVE,
-	OBJECT_TYPE_PASSIVE
-} object_type;
-
-extern const char *
-object_type_name		(object_type		type);
 
 /**
  * @internal
@@ -358,35 +414,24 @@ object_type_name		(object_type		type);
  */
 typedef int object_address;
 
-typedef struct _vt_pop_link vt_pop_link;
-
-struct _vt_pop_link {
+typedef struct {
 	vbi_pgno		pgno;
 	ext_fallback		fallback;
 	struct {
 		object_type		type;
 		object_address		address;
 	}			default_obj[2];
-};
+} pop_link;
 
-typedef struct _vt_magazine vt_magazine;
-
-struct _vt_magazine {
-	vt_extension		extension;
+typedef struct {
+	extension		extension;
 
 	uint8_t			pop_lut[256];
 	uint8_t			drcs_lut[256];
 
-    	vt_pop_link		pop_link[16];
-	vbi_pgno		drcs_link[16];
-};
-
-struct raw_page {
-	vt_page			page[1];
-        uint8_t		        drcs_mode[48];
-	int			num_triplets;
-	int			___ait_page; // XXX unused??
-};
+    	pop_link		pop_link[2][8];
+	vbi_pgno		drcs_link[2][8];
+} magazine;
 
 /* Public */
 
@@ -409,30 +454,81 @@ typedef enum {
 
 /* Private */
 
-struct page_info {
-	unsigned 		code		: 8;
-	unsigned		language	: 8;
-	unsigned 		subcode		: 16;
-};
+#define SUBCODE_SINGLE_PAGE 0x0000
+#define SUBCODE_MULTI_PAGE 0xFFFE
+#define SUBCODE_UNKNOWN 0xFFFF
 
-struct teletext {
-	vbi_wst_level		max_level;
+typedef struct {
+	/* Information gathered from MOT, MIP, BTT, G/POP pages. */
 
-	vt_pagenum		header_page;
+	/** vbi_page_type. */
+	uint8_t			page_type;
+
+	/** vbi_character_set_code, 0xFF unknown. */
+  	uint8_t			charset_code;
+
+	/**
+	 * Highest subpage number transmitted.
+	 * - 0x0000		single page
+	 * - 0x0002 - 0x0099	multi-page
+	 * - 0x0100 - 0x3F7F	clock page?
+	 * - 0xFFFE		has 2+ subpages (libzvbi)
+	 * - 0xFFFF		unknown (libzvbi)
+	 */
+	uint16_t 		subcode;
+
+	/* Cache statistics. */
+
+	/** Subpages cached now and ever. */
+	uint8_t			n_subpages;
+	uint8_t			max_subpages;
+
+	/** Subpage numbers encountered (0x00 ... 0x99). */
+	uint8_t			subno_min;
+	uint8_t			subno_max;
+} page_stat;
+
+typedef struct {
+        pagenum			initial_page;
+	magazine		magazines[9];	/* 1 ... 8; #0 unmodified level 1.5 default */
+	page_stat		pages[0x800];
+
+	pagenum			btt_link[2 * 5];
+	vbi_bool		have_top;		/* use top navigation, flof overrides */
+} vt_network;
+
+/** @internal */
+vbi_inline magazine *
+vt_network_magazine		(vt_network *		vtn,
+				 vbi_pgno		pgno)
+{
+	assert (pgno >= 0x100 && pgno <= 0x8FF);
+	return vtn->magazines + (pgno >> 8);
+}
+
+/** @internal */
+vbi_inline page_stat *
+vt_network_page_stat		(vt_network *		vtn,
+				 vbi_pgno		pgno)
+{
+	assert (pgno >= 0x100 && pgno <= 0x8FF);
+	return vtn->pages - 0x100 + pgno;
+}
+
+typedef struct _vbi_teletext_decoder vbi_teletext_decoder;
+
+struct _vbi_teletext_decoder {
+//	vbi_wst_level		max_level;
+
+	vt_network		network[1];
+
+	pagenum			header_page;
 	uint8_t			header[40];
 
-        vt_pagenum		initial_page;
-	vt_magazine		magazine[9];	/* 1 ... 8; #0 unmodified level 1.5 default */
+//	int			region;
 
-	int			region;
-
-	struct page_info	page_info[0x800];
-
-	vt_pagenum		btt_link[15];
-	vbi_bool		top;		/* use top navigation, flof overrides */
-
-	struct raw_page		raw_page[8];
-	struct raw_page		*current;
+	vt_page			buffer[8];
+	vt_page	*		current;
 };
 
 /* Public */
@@ -547,10 +643,10 @@ vbi_page_home_link		(const vbi_page *	pg,
 
 extern void		vbi_teletext_init(vbi_decoder *vbi);
 extern void		vbi_teletext_destroy(vbi_decoder *vbi);
-extern vbi_bool		vbi_decode_teletext(vbi_decoder *vbi, uint8_t *p);
+extern vbi_bool		vbi_decode_teletext(vbi_decoder *vbi, 		    const uint8_t buffer[42]);
 extern void		vbi_teletext_desync(vbi_decoder *vbi);
 extern void             vbi_teletext_channel_switched(vbi_decoder *vbi);
-extern vbi_bool		vbi_convert_cached_page	(vbi_decoder *		vbi,
+extern vbi_bool		_vbi_convert_cached_page	(vbi_decoder *		vbi,
 						 const vt_page **	vtpp,
 						 page_function		new_function);
 
