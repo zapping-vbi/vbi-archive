@@ -1,3 +1,9 @@
+2003-12-04	<garetxe@users.sf.net>
+
+	* it.po, es.po: Updated.
+	* src/zvbi.c (acknowledge_trigger): Display proper location of
+	web browser setting in GNOME Preferences (Pino).
+
 2003-12-03    <mschimek@users.sf.net>
 
 	* configure.in: Work with automake 1.4, 1.5, 1.6, 1.7.

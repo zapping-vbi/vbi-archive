@@ -729,8 +729,8 @@ acknowledge_trigger			(vbi_link	*link)
         buffer = g_strdup_printf(" %s", link->url);
       z_tooltip_set(button,
 		  _("Open this link with the predetermined Web browser.\n"
-		    "You can configure this in the GNOME Control Center, "
-		    "under Handlers/Url Navigator"));
+		    "You can configure this in the GNOME Desktop Preferences,\n"
+		    "under Advanced/Preferred Applications"));
       break;
     case VBI_LINK_PAGE:
     case VBI_LINK_SUBPAGE:
