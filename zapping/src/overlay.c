@@ -45,8 +45,12 @@
    + Source rectangle, if supported by hardware (e.g. zoom function).
  */
 
-#ifndef OVERLAY_LOG
-#define OVERLAY_LOG 0
+#ifndef OVERLAY_LOG_FP
+#define OVERLAY_LOG_FP 0
+#endif
+
+#ifndef OVERLAY_CHROMA_TEST
+#define OVERLAY_CHROMA_TEST 0
 #endif
 
 #define CLEAR_TIMEOUT 50 /* ms for the clear window timeout */
@@ -152,8 +156,8 @@ obscured_timeout		(gpointer		user_data)
 {
   tv_window *window;
 
-  if (OVERLAY_LOG)
-    fprintf (stderr, "obscured_timeout\n");
+  if (OVERLAY_LOG_FP)
+    fprintf (OVERLAY_LOG_FP, "obscured_timeout\n");
 
   /* Changed from partially visible or unobscured to fully obscured. */
 
@@ -183,8 +187,8 @@ obscured_timeout		(gpointer		user_data)
 static gboolean
 visible_timeout			(gpointer		user_data)
 {
-  if (OVERLAY_LOG)
-    fprintf (stderr, "visible_timeout\n");
+  if (OVERLAY_LOG_FP)
+    fprintf (OVERLAY_LOG_FP, "visible_timeout\n");
 
   /* Changed from
      a) fully obscured or partially visible to unobscured
@@ -202,8 +206,8 @@ visible_timeout			(gpointer		user_data)
     {
       /* Delay until the situation stabilizes. */
 
-      if (OVERLAY_LOG)
-	fprintf (stderr, "visible_timeout: delay\n");
+      if (OVERLAY_LOG_FP)
+	fprintf (OVERLAY_LOG_FP, "visible_timeout: delay\n");
 
       SWAP (tv_info.window.clip_vector, tv_info.tmp_vector);
 
@@ -220,8 +224,8 @@ visible_timeout			(gpointer		user_data)
 
       tv_info.geometry_changed = FALSE;
 
-      if (OVERLAY_LOG)
-	fprintf (stderr, "visible_timeout: geometry change\n");
+      if (OVERLAY_LOG_FP)
+	fprintf (OVERLAY_LOG_FP, "visible_timeout: geometry change\n");
 
       /* Other windows may have received expose events before we
 	 were able to turn off the overlay. Resend expose
@@ -274,8 +278,11 @@ visible_timeout			(gpointer		user_data)
       tv_info.clean_screen = FALSE;
     }
 
-  // XXX error ignored
-  tveng_set_preview_on (tv_info.info);
+  if (!OVERLAY_CHROMA_TEST)
+    {
+      // XXX error ignored
+      tveng_set_preview_on (tv_info.info);
+    }
 
  finish:
   tv_info.timeout_id = -1;
@@ -294,8 +301,8 @@ stop_timeout			(void)
 static void
 restart_timeout			(void)
 {
-  if (OVERLAY_LOG)
-    fprintf (stderr, "restart_timeout\n");
+  if (OVERLAY_LOG_FP)
+    fprintf (OVERLAY_LOG_FP, "restart_timeout\n");
 
   tveng_set_preview_off (tv_info.info);
 
@@ -324,8 +331,8 @@ on_video_window_event		(GtkWidget *		widget,
 				 GdkEvent *		event,
 				 gpointer		user_data)
 {
-  if (0 && OVERLAY_LOG)
-    fprintf (stderr, "on_video_window_event: GDK_%s\n",
+  if (0 && OVERLAY_LOG_FP)
+    fprintf (OVERLAY_LOG_FP, "on_video_window_event: GDK_%s\n",
 	     z_gdk_event_name (event));
 
   switch (event->type)
@@ -360,9 +367,12 @@ on_video_window_event		(GtkWidget *		widget,
 	  /* XXX tveng_set_preview_window (currently default is
 	     fill window size) */
 
-	  // XXX error
-	  // XXX off/on is inefficient, XVideo does this automatically.
-	  tveng_set_preview_on (tv_info.info);
+	  if (!OVERLAY_CHROMA_TEST)
+	    {
+	      // XXX error
+	      // XXX off/on is inefficient, XVideo does this automatically.
+	      tveng_set_preview_on (tv_info.info);
+	    }
 	}
 
       break;
@@ -400,8 +410,8 @@ on_main_window_event		(GtkWidget *		widget,
 				 GdkEvent *		event,
 				 gpointer		user_data)
 {
-  if (0 && OVERLAY_LOG)
-    fprintf (stderr, "on_main_window_event: GDK_%s\n",
+  if (0 && OVERLAY_LOG_FP)
+    fprintf (OVERLAY_LOG_FP, "on_main_window_event: GDK_%s\n",
 	     z_gdk_event_name (event));
 
   switch (event->type)
@@ -443,22 +453,22 @@ root_filter			(GdkXEvent *		gdkxevent,
 {
   XEvent *event = (XEvent *) gdkxevent;
 
-  if (0 && OVERLAY_LOG)
+  if (0 && OVERLAY_LOG_FP)
     {
-      fprintf (stderr, "root_filter: ");
+      fprintf (OVERLAY_LOG_FP, "root_filter: ");
 
       switch (event->type)
 	{
-	case MotionNotify:	fprintf (stderr, "MotionNotify\n"); break;
-	case Expose:		fprintf (stderr, "Expose\n"); break;
-	case VisibilityNotify:	fprintf (stderr, "VisibilityNotify\n"); break;
-	case CreateNotify:	fprintf (stderr, "CreateNotify\n"); break;
-	case DestroyNotify:	fprintf (stderr, "DestroyNotify\n"); break;
-	case UnmapNotify:	fprintf (stderr, "UnmapNotify\n"); break;
-	case MapNotify:		fprintf (stderr, "MapNotify\n"); break;
-	case ConfigureNotify:	fprintf (stderr, "ConfigureNotify\n"); break;
-	case GravityNotify:	fprintf (stderr, "GravityNotify\n"); break;
-	default:		fprintf (stderr, "Unknown\n"); break;
+	case MotionNotify:	fprintf (OVERLAY_LOG_FP, "MotionNotify\n"); break;
+	case Expose:		fprintf (OVERLAY_LOG_FP, "Expose\n"); break;
+	case VisibilityNotify:	fprintf (OVERLAY_LOG_FP, "VisibilityNotify\n"); break;
+	case CreateNotify:	fprintf (OVERLAY_LOG_FP, "CreateNotify\n"); break;
+	case DestroyNotify:	fprintf (OVERLAY_LOG_FP, "DestroyNotify\n"); break;
+	case UnmapNotify:	fprintf (OVERLAY_LOG_FP, "UnmapNotify\n"); break;
+	case MapNotify:		fprintf (OVERLAY_LOG_FP, "MapNotify\n"); break;
+	case ConfigureNotify:	fprintf (OVERLAY_LOG_FP, "ConfigureNotify\n"); break;
+	case GravityNotify:	fprintf (OVERLAY_LOG_FP, "GravityNotify\n"); break;
+	default:		fprintf (OVERLAY_LOG_FP, "Unknown\n"); break;
 	}
     }
 
@@ -589,7 +599,6 @@ start_overlay			(GtkWidget *		main_window,
 				 GtkWidget *		video_window,
 				 tveng_device_info *	info)
 {
-  GdkColor chroma;
   GdkEventMask mask;
 
   tv_info.main_window		= main_window;
@@ -625,17 +634,25 @@ start_overlay			(GtkWidget *		main_window,
 
   tv_info.timeout_id		= -1;
 
-  if (info->current_controller != TVENG_CONTROLLER_XV &&
-      info->caps.flags & TVENG_CAPS_CHROMAKEY)
+  if (info->current_controller != TVENG_CONTROLLER_XV
+      && (OVERLAY_CHROMA_TEST
+	  || (info->caps.flags & TVENG_CAPS_CHROMAKEY)))
     {
+      GdkColor chroma;
+
       CLEAR (chroma);
-      chroma.blue = 0xffff;
+
+      if (OVERLAY_CHROMA_TEST)
+	chroma.red = 0xffff;
+      else
+	chroma.blue = 0xffff;
 
       if (gdk_colormap_alloc_color (gdk_colormap_get_system (),
 				    &chroma, FALSE, TRUE))
 	{
-	  tveng_set_chromakey (chroma.pixel, info);
-	  gdk_window_set_background (video_window->window, &chroma);
+	  z_set_window_bg (video_window, &chroma);
+
+	  /* XXX safe? (we run on 15/16/24/32 yet, but 8 bit later?) */
 	  gdk_colormap_free_colors (gdk_colormap_get_system(), &chroma, 1);
 	}
       else
@@ -644,10 +661,14 @@ start_overlay			(GtkWidget *		main_window,
 		   GTK_MESSAGE_WARNING);
 	}
     }
-  else if (info->current_controller == TVENG_CONTROLLER_XV &&
-	   tveng_get_chromakey (&chroma.pixel, info) == 0)
+  else if (info->current_controller == TVENG_CONTROLLER_XV)
     {
-      gdk_window_set_background (video_window->window, &chroma);      
+      GdkColor chroma;
+
+      CLEAR (chroma);
+
+      if (0 == tveng_get_chromakey (&chroma.pixel, info))
+	z_set_window_bg (video_window, &chroma);
     }
 
   /* Disable double buffering just in case, will help when a
@@ -724,8 +745,11 @@ start_overlay			(GtkWidget *		main_window,
       /* XXX tveng_set_preview_window (currently default is
 	 fill window size) */
 
-      // XXX error ignored
-      tveng_set_preview_on (tv_info.info);
+      if (!OVERLAY_CHROMA_TEST)
+	{
+	  // XXX error ignored
+	  tveng_set_preview_on (tv_info.info);
+	}
     }
 
   info->current_mode = TVENG_CAPTURE_WINDOW;
