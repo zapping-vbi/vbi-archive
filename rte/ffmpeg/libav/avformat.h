@@ -182,8 +182,10 @@ AVFormat *guess_format(const char *short_name, const char *filename, const char 
 
 int strstart(const char *str, const char *val, const char **ptr);
 void nstrcpy(char *buf, int buf_size, const char *str);
+#ifndef HAVE_STRLCPY
 /* This does what strncpy ought to do. */
 void strlcpy(char *dst, const char *src, int dst_size);
+#endif
 int match_ext(const char *filename, const char *extensions);
 
 void register_all(void);

@@ -124,6 +124,8 @@ void nstrcpy(char *buf, int buf_size, const char *str)
     *q = '\0';
 }
 
+#ifndef HAVE_STRLCPY
+
 void strlcpy(char *dst, const char *src, int len)
 {
     int slen = strlen(src) + 1;
@@ -135,6 +137,8 @@ void strlcpy(char *dst, const char *src, int len)
         dst[len - 1] = 0;
     }
 }
+
+#endif
 
 void register_all(void)
 {
