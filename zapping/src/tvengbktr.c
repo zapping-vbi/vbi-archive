@@ -689,7 +689,7 @@ set_video_input			(tveng_device_info *	info,
 				return TRUE;
 	}
 
-	pixfmt = p_info->info.format.pixfmt;
+	pixfmt = p_info->info.capture_format.pixfmt;
 	current_mode = p_tveng_stop_everything (&p_info->info, &was_active);
 
 	if (-1 == bktr_ioctl (&p_info->info, METEORSINPUT, &VI(l)->dev))
@@ -717,7 +717,7 @@ set_video_input			(tveng_device_info *	info,
 				     p_info->info.cur_video_input
 				     ->u.tuner.frequency);
 
-	p_info->info.format.pixfmt = pixfmt;
+	p_info->info.capture_format.pixfmt = pixfmt;
 	p_tveng_set_capture_format(&p_info->info);
 
 	/* XXX Start capturing again as if nothing had happened */
@@ -1827,13 +1827,13 @@ tvengbktr_close_device (tveng_device_info * info)
 
   p_tveng_stop_everything (info, &was_active);
 
-  if (P_INFO (info)->tuner_fd > 0) {
+  if (-1 != P_INFO (info)->tuner_fd) {
 	  device_close (info->log_fp, P_INFO (info)->tuner_fd);
-	  P_INFO (info)->tuner_fd = 0;
+	  P_INFO (info)->tuner_fd = -1;
   }
 
   device_close (info->log_fp, info->fd);
-  info->fd = 0;
+  info->fd = -1;
 
   info->current_controller = TVENG_CONTROLLER_NONE;
 
@@ -1944,7 +1944,7 @@ tvengbktr_attach_device (const char* device_file,
 			 enum tveng_attach_mode attach_mode,
 			 tveng_device_info * info)
 {
-  if (info->fd)
+  if (-1 != info->fd)
     tveng_close_device (info);
 
   if (!(info->file_name = strdup (device_file)))
