@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.31 2002-06-12 03:58:56 mschimek Exp $ */
+/* $Id: mp2.c,v 1.32 2002-06-18 02:22:12 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -978,7 +978,7 @@ mpeg1_options[] = {
 	   0 /* 44100 */, (int *) &sampling_freq_value[MPEG_VERSION_1][0], 3, (NULL)),
 	RTE_OPTION_MENU_INITIALIZER
 	  ("audio_mode", N_("Mode"),
-	   0, menu_audio_mode, elements(menu_audio_mode), (NULL)),
+	   0, menu_audio_mode, elements(menu_audio_mode), NULL),
 	RTE_OPTION_MENU_INITIALIZER
 	  ("psycho", N_("Psychoacoustic analysis"),
 	   0, menu_psycho, elements(menu_psycho),
