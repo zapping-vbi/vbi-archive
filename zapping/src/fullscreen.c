@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.6 2003-03-24 17:16:37 mschimek Exp $
+ * $Id: fullscreen.c,v 1.21.2.7 2003-06-16 06:07:05 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -27,7 +27,7 @@
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
-#include "tveng.h"
+#include "tveng_private.h"
 #include "osd.h"
 #include "x11stuff.h"
 #define ZCONF_DOMAIN "/zapping/options/main/"
@@ -119,21 +119,46 @@ osd_model_changed			(ZModel		*ignored1,
   g_free(clips);
 }
 
+static void
+on_cursor_blanked		(ZVideo *		video,
+				 gpointer		user_data)
+{
+  tveng_device_info *info = user_data;
+
+  /* Recenter */
+  x11_vidmode_switch (vidmodes, NULL, &info->priv->old_mode);
+}
+
 gint
 fullscreen_start(tveng_device_info * info)
 {
   GtkWidget * da; /* Drawing area */
   GdkColor chroma = {0, 0, 0, 0};
 
-  /* Add a black background */
-  black_window = gtk_window_new( GTK_WINDOW_POPUP );
-  da = z_video_new (); /* gtk_drawing_area_new(); */
+  /* Notes: The main window is not used in fullscreen mode but still
+     exists. black_window is an unmanaged, fullscreen window without
+     decorations. da is a drawing area of same size as the window.
+     start_previewing enables Xv or v4l overlay into da->window.
+     The video size is limited by the DMA hardware
+     (eg. 768x576x4) and the window size, thus usually drawing only
+     part of the window, centered. Independent of all this
+     start_previewing tries to figure out the actual video size
+     and select a similar vidmode (eg. 800x600).
 
-  gtk_widget_show(da);
+     Plan: Determine a nominal size 480 or 576 times 4/3 or 16/9.
+     Find hardware limit and choose capture or overlay mode,
+     da->window size == overlay size and vidmode.
+   */
 
-  gtk_container_add(GTK_CONTAINER(black_window), da);
-  gtk_widget_set_size_request(black_window, gdk_screen_width(),
-		       gdk_screen_height());
+  black_window = gtk_window_new (GTK_WINDOW_POPUP);
+  gtk_widget_set_size_request (black_window,
+			       gdk_screen_width(),
+			       gdk_screen_height());
+
+  da = z_video_new ();
+  gtk_widget_show (da);
+  gtk_widget_modify_bg (da, GTK_STATE_NORMAL, &chroma);
+  gtk_container_add (GTK_CONTAINER (black_window), da);
 
   gtk_widget_add_events(da, GDK_BUTTON_PRESS_MASK);
   gtk_window_set_modal(GTK_WINDOW(black_window), TRUE);
@@ -141,15 +166,7 @@ fullscreen_start(tveng_device_info * info)
   gdk_window_set_decorations (black_window->window, 0);
   gtk_widget_show (black_window);
 
-  /* hide the cursor in fullscreen mode */
   z_video_blank_cursor (Z_VIDEO (da), 1500 /* ms */);
-
-  /* XXX */
-  gdk_draw_rectangle (GTK_WIDGET (da)->window,
-		      GTK_WIDGET (da)->style->fg_gc[GTK_STATE_NORMAL],
-		      /* filled */ TRUE, /* x */ 0, /* y */ 0,
-		      GTK_WIDGET (da)->allocation.width,
-		      GTK_WIDGET (da)->allocation.height);
 
   if (info->current_controller != TVENG_CONTROLLER_XV &&
       (info->caps.flags & TVENG_CAPS_CHROMAKEY))
@@ -194,6 +211,9 @@ fullscreen_start(tveng_device_info * info)
   if (info -> current_mode != TVENG_CAPTURE_PREVIEW)
     g_warning("Setting preview succeeded, but the mode is not set");
 
+  g_signal_connect (G_OBJECT (da), "cursor-blanked",
+		    G_CALLBACK (on_cursor_blanked), info);
+
   gtk_widget_grab_focus(black_window);
 
   g_signal_connect(G_OBJECT(black_window), "event",
@@ -204,7 +224,7 @@ fullscreen_start(tveng_device_info * info)
     osd_set_coords(da,
 		   info->window.x, info->window.y, info->window.width,
 		   info->window.height);
-  else
+  else /* wrong because Xv may pad to this size (DMA hw limit) */
     osd_set_coords(da, 0, 0, info->window.width,
 		   info->window.height);
 
