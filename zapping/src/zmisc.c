@@ -1266,6 +1266,7 @@ z_spinslider_new			(GtkAdjustment * spin_adj,
   GtkWidget * spinbutton;
   GtkWidget * label;
   GtkWidget * button;
+  GtkWidget * pixmap;
   gfloat * reset_value;
   gint digits;
 
@@ -1320,14 +1321,18 @@ z_spinslider_new			(GtkAdjustment * spin_adj,
   gtk_signal_connect (GTK_OBJECT (hscale_adj), "value-changed",
 		      GTK_SIGNAL_FUNC (on_z_spinslider_hscale_changed), hbox);
 
-  /*
-    button = gtk_button_new ();
-    gtk_widget_show (button);
-    pixmap =
-    gtk_widget_show (pixmap);
-    gtk_container_add (GTK_CONTAINER (button), pixmap);
-  */
-  button = gtk_button_new_with_label (_("Reset"));
+  pixmap = z_pixmap_new_from_file (PACKAGE_PIXMAPS_DIR "/reset.png");
+  if (pixmap)
+    {
+      gtk_widget_show (pixmap);
+      button = gtk_button_new ();
+      gtk_widget_show (button);
+      gtk_container_add (GTK_CONTAINER (button), pixmap);
+    }
+  else
+    {
+      button = gtk_button_new_with_label (_("Reset"));
+    }
   gtk_widget_show (button);
   gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 0);
   /* Sigh */
