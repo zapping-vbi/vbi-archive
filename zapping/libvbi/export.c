@@ -1097,7 +1097,7 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 			store:
 					printv("enh row %d col %d print 0x%02x/0x%02x -> 0x%04x %c\n",
 						active_row, active_column, p->mode, p->data,
-						gl, printable(gl & 0x7F));
+						gl, glyph2latin(gl));
 
 					if ((i = inv_column + active_column) >= 40)
 						break;

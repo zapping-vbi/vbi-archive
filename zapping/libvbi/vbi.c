@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
+#include <errno.h>
 #include <sys/ioctl.h>
 #include "os.h"
 #include "vt.h"
@@ -822,7 +823,7 @@ station_lookup(cni *cni, char **country, char **short_name, char **long_name)
 			}
 		break;
 
-	case CNI_X26:
+	case CNI_X26: /* unreliable, lowest priority please */
 		for (j = 0; PDC_CNI[j].short_name; j++)
 			if (PDC_CNI[j].cni3 == code) {
 				*country = country_names_en[PDC_CNI[j].country];
@@ -830,6 +831,9 @@ station_lookup(cni *cni, char **country, char **short_name, char **long_name)
 				*long_name = PDC_CNI[j].long_name;
 				return TRUE;
 			}
+
+		/* try code | 0x0080 & 0x0FFF -> VPS? */
+
 		break;
 
 	default:
@@ -964,6 +968,9 @@ parse_x26_pdc(int address, int mode, int data)
 		return;
 	}
 
+	/*
+	 *  It's life, but not as we know it...
+	 */
 	if (1 && mode == 6)
 		printf("X/26 %2d/%2d/%2d; lto=%d, caf=%d, end/dur=%d; %d %s %02x:%02x %02x:%02x\n",
 			address, mode, data,
@@ -1705,6 +1712,55 @@ if(0)
 }
 
 
+/* Quick Hack(tm) to read from a sample stream */
+
+// static char *sample_file = "libvbi/ccsamples/t2-br";
+static char *sample_file = NULL; // disabled
+static FILE *sample_fi;
+
+void
+sample_beta(struct vbi *vbi)
+{
+	unsigned char wst[42];
+	char buf[256];
+	double dt;
+	int index, line;
+	int items;
+	int i, j;
+
+	if (feof(sample_fi)) {
+		rewind(sample_fi);
+		printf("Rewind sample stream\n");
+	}
+
+	{
+		fgets(buf, 255, sample_fi);
+
+		/* usually 0.04 (1/25) */
+//		dt = strtod(buf, NULL);
+
+		items = fgetc(sample_fi);
+
+//		printf("%8.6f %d:\n", dt, items);
+
+		for (i = 0; i < items; i++) {
+			index = fgetc(sample_fi);
+			line = fgetc(sample_fi);
+			line += 256 * fgetc(sample_fi);
+
+			if (index != 0) {
+				printf("Oops! Confusion in vbi.c/sample_beta()\n");
+				// index == 0 == Teletext
+				exit(EXIT_FAILURE);
+			}
+
+			fread(wst, 1, 42, sample_fi);
+
+			vt_packet(vbi, wst);
+		}
+	}
+}
+
 
 
 #include "../common/fifo.h"
@@ -1724,6 +1780,11 @@ vbi_teletext(struct vbi *vbi, buffer *b)
 {
     vbi_sliced *s;
     int items;
+
+    if (sample_fi) {
+	    sample_beta(vbi);
+	    return;
+    }
 
     /* call out_of_sync if timestamp delta > 1.5 * frame period */
 
@@ -1800,6 +1861,10 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune, int big_buf)
     vbi->ppage = vbi->rpage;
     reset_magazines(vbi);
 
+    if (sample_file)
+	if (!(sample_fi = fopen(sample_file, "r")))
+	    printf("Cannot open %s: %s\n", sample_file, strerror(errno));
+
     return vbi;
 
 fail2:
@@ -1817,6 +1882,10 @@ vbi_close(struct vbi *vbi)
 
     close_vbi_v4lx(vbi->fifo);
 //    close(vbi->fd);
+
+    if (sample_fi)
+	fclose(sample_fi);
+    sample_fi = NULL;
 
     free(vbi);
 }

@@ -68,12 +68,12 @@ draw_char(unsigned int *canvas, unsigned int *pen, int glyph,
 #if 1
 	x = (glyph & 31) * CW;
 	shift1 = x & 7;
-	src1 = wstfont_bits + ((glyph & 0xFFFF) >> 5) * CH * CW * 32 / 8 + (x >> 3);
+	src1 = wstfont_bits + ((glyph & 0x03FF) >> 5) * CH * CW * 32 / 8 + (x >> 3);
 
 	x = (glyph >> 20) * CW;
 	shift2 = (x & 7) + ((glyph >> 18) & 1);
 	src2 = wstfont_bits + ((base + 0xC0) >> 5) * CH * CW * 32 / 8 + (x >> 3);
-	if (glyph & 0x80000) src2 += CW * 32 / 8;
+	if (glyph & 0x080000) src2 += CW * 32 / 8;
 #else
 	x = (glyph & 0xFFFF) * CW;
 	shift1 = x & 7;
@@ -241,8 +241,7 @@ draw_page(struct fmt_page *pg, unsigned int *canvas)
 			pen[0] = pg->colour_map[ac->background];
 			pen[1] = pg->colour_map[ac->foreground];
 
-//			if (ac->size <= DOUBLE_SIZE) 
-	{
+			if (ac->size <= DOUBLE_SIZE) {
 				if ((ac->glyph & 0xFFFF) >= GL_DRCS) {
 					draw_drcs(canvas, pg->drcs[(ac->glyph & 0x1F00) >> 8],
 						pen, ac->glyph, ac->size);

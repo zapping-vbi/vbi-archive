@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.5 2000-12-29 00:38:30 mschimek Exp $ */
+/* $Id: lang.c,v 1.6 2000-12-29 04:58:16 mschimek Exp $ */
 
 #include "lang.h"
 
@@ -376,7 +376,7 @@ compose_glyph(int glyph, int mark)
 			glyph = 0x000011;
 	}
 
-	glyph |= mark << 12;
+	glyph |= mark << 20;
 
 	if (glyph == 0xA00001)
 		glyph = 0x000017;
