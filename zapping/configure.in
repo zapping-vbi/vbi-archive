@@ -15,6 +15,13 @@ AC_PROG_CC
 AM_PROG_CC_STDC
 AC_HEADER_STDC
 
+dnl Check the PNG writing library
+
+PNG_LIB=""
+AC_CHECK_LIB(png, png_create_write_struct, PNG_LIB="-lpng",
+AC_MSG_ERROR(*** PNG saving library couldn't be found ***))
+AC_SUBST(PNG_LIB)
+
 GNOME_COMPILE_WARNINGS
 GNOME_X_CHECKS
 GNOME_XML_CHECK

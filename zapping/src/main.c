@@ -70,6 +70,7 @@ int main(int argc, char * argv[])
   struct tveng_frame_format format;
   gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
 				     work */
+  GdkImage * image; /* The image we are processing */
 
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
@@ -236,11 +237,6 @@ int main(int argc, char * argv[])
       if (main_info -> current_mode != TVENG_CAPTURE_READ)
 	continue;
 
-      /* Reallocate the image, it might have changed beacuse of the
-	 plugins */
-      zimage_reallocate(main_info->format.width,
-			main_info->format.height);
-
       /* Avoid segfault */
       if (!zimage_get())
 	{
@@ -249,7 +245,7 @@ int main(int argc, char * argv[])
 	}
 
       /* Do the image processing here */
-      if (tveng_read_frame(zimage_get_data(),
+      if (tveng_read_frame(zimage_get_data(zimage_get()),
 			   ((int)zimage_get()->bpl)*zimage_get()->height,
 			  50, main_info) == -1)
 	{
@@ -261,16 +257,17 @@ int main(int argc, char * argv[])
       memcpy(&format, &(main_info->format),
 	     sizeof(struct tveng_frame_format));
       p = g_list_first(plugin_list);
+      image = zimage_get();
       while (p)
 	{
-	  plugin_process_frame(zimage_get_data(), &format,
-				(struct plugin_info*)p->data);
-	  zimage_reallocate(format.width, format.height);
+	  image =
+	    plugin_process_frame(image, zimage_get_data(image), &format,
+				 (struct plugin_info*)p->data);
 	  p = p->next;
 	}
       gdk_draw_image(tv_screen -> window,
 		     tv_screen -> style -> white_gc,
-		     zimage_get(),
+		     image,
 		     0, 0, 0, 0,
 		     format.width,
 		     format.height);

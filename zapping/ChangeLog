@@ -1,3 +1,8 @@
+30.4.2000	Screenshot saver <garetxe@users.sourceforge.net>
+
+	* plugins/screenshot/screenshot.c: Finished.
+	* configure.in: Added checking for -lpng
+
 29.4.2000	Screenshot saver <garetxe@users.sourceforge.net>
 
 	* plugins/template/template.c: Finished.

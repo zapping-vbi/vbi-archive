@@ -148,6 +148,24 @@ int tveng_attach_device(const char* device_file,
 
   info -> current_controller = TVENG_CONTROLLER_NONE;
 
+  /*
+    Check that the current display depth is one of the supported ones
+  */
+  switch (tveng_get_display_depth(info))
+    {
+    case 16:
+    case 15:
+    case 24:
+    case 32:
+      break;
+    default:
+      info -> tveng_errno = -1;
+      t_error_msg("switch()",
+		  _("The current display depth isn't supported by TVeng"),
+		  info);
+      return -1;
+    }
+
   /* Try first to attach it as a V4L2 device */
   /*  if (-1 != tveng2_attach_device(device_file, attach_mode, info))
       return info -> fd;*/
@@ -158,7 +176,7 @@ int tveng_attach_device(const char* device_file,
 
   /* Error */
   info->tveng_errno = -1;
-  t_error_msg("check()", 
+  t_error_msg("check()",
 	      _("The device cannot be attached to any controller"),
 	      info);
   return -1;

@@ -101,9 +101,9 @@ zimage_reallocate(int new_width, int new_height)
 	  new_size = new_zimage->height * new_zimage->bpl;
 	  new_data = ((GdkImagePrivate*)new_zimage) -> ximage-> data;
 	  if (old_size > new_size)
-	    memcpy(new_data, zimage_get_data(), new_size);
+	    memcpy(new_data, zimage_get_data(zimage), new_size);
 	  else
-	    memcpy(new_data, zimage_get_data(), old_size);
+	    memcpy(new_data, zimage_get_data(zimage), old_size);
 	  
 	  /* Destroy the old image, now it is useless */
 	  gdk_image_destroy(zimage);
@@ -127,9 +127,9 @@ zimage_get(void)
   Returns a pointer to the image data
 */
 gpointer
-zimage_get_data()
+zimage_get_data( GdkImage * image)
 {
-  return (((GdkImagePrivate*)zimage) -> ximage-> data);
+  return (((GdkImagePrivate*)image) -> ximage-> data);
 }
 
 /*

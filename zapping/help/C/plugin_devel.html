@@ -130,12 +130,13 @@ Used by Zapping to know whether the plugin is working or not.<br>
 There are some functions that the plugin may or may not have. If they
 aren't present, Zapping doesn't worry, and ignores it.<p>
 <a name="zp_process_frame"></a>
-<B>gpointer zp_process_frame ( gpointer data, struct tveng_frame_format
-* format );</B><p>
+<B>GdkImage * zp_process_frame ( GdkImage * image, gpointer data,
+struct tveng_frame_format * format );</B><p>
 This is called for all the plugins secuentially. Here the plugin, if
 it is a image processing plugin, would make any changes to the
 image.<br>
-<I>data</I>: Pointer to the buffer that contains the captured image.<br>
+<I>image</I>: The image that contains the captured frame.
+<I>data</I>: Pointer to the data contained in <I>image</I>.<br>
 <I>format</I>: A pointer to the struct that holds the image
 format. If the plugin modifies the image in size, the
 changes should be reflected here, so the following plugins know about

@@ -70,7 +70,7 @@ zimage_get(void);
   Returns a pointer to the zimage data.
 */
 gpointer
-zimage_get_data (void);
+zimage_get_data ( GdkImage * image);
 
 /*
   Destroys the image that holds the capture

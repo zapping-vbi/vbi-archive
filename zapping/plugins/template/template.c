@@ -144,18 +144,18 @@ void zp_save_config (gchar * root_key)
   /* Save here any other config keys you need to save*/
 }
 
-gpointer zp_process_frame(gpointer data, struct tveng_frame_format *
-			  format)
+GdkImage * zp_process_frame(GdkImage * image, gpointer data,
+			    struct tveng_frame_format * format)
 {
   /* If the plugin isn't active, it shouldn't do anything */
   if (!active)
-    return data;
+    return image;
 
   /*
     Return the modified data (the same as the supplied on, in this
     case).
   */
-  return data;
+  return image;
 }
 
 void yoyo_dado ( void );

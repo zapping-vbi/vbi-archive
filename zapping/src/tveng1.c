@@ -324,7 +324,7 @@ int tveng1_attach_device(const char* device_file,
 		  _("Cannot find appropiate palette for current display"),
 		  info);
       tveng1_close_device(info);
-      return 0;
+      return -1;
     }
 
   /* Set our desired size, make it halfway */

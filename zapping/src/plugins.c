@@ -52,7 +52,10 @@ gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 
   info -> handle = g_module_open (file_name, 0);
   if (!info -> handle)
-    return FALSE;
+    {
+      g_warning(g_module_error());
+      return FALSE;
+    }
 
   /* Check that the protocols we speak are the same */
   if (!g_module_symbol(info -> handle, "zp_protocol",
@@ -217,6 +220,7 @@ gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 	info->num_exported_symbols++;
 	i++;
       }
+
   return TRUE;
 }
 
@@ -448,18 +452,19 @@ gboolean plugin_running ( struct plugin_info * info)
   return (*(info->plugin_running))();
 }
 
-gpointer plugin_process_frame (gpointer data, struct
-				tveng_frame_format *
-				format, struct plugin_info * info)
+GdkImage * plugin_process_frame (GdkImage * image, gpointer data,
+				 struct tveng_frame_format *
+				 format, struct plugin_info * info)
 {
   g_assert(format != NULL);
   g_assert(data != NULL);
   g_assert(info != NULL);
+  g_assert(image != NULL);
 
   if (info -> plugin_process_frame)
-    return ((*info->plugin_process_frame))(data, format);
+    return ((*info->plugin_process_frame))(image, data, format);
   else
-    return data;
+    return image;
 }
 
 void plugin_add_properties (GnomePropertyBox * gpb, struct plugin_info
