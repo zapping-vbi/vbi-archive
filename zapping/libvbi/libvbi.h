@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.33 2001-04-12 19:06:20 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.34 2001-04-23 23:48:06 garetxe Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -127,7 +127,7 @@ typedef struct {
 
 	double				expires;
 
-	int				itv_type;
+	vbi_itv_type			itv_type;
 	int				priority;
 	int				autoload;
 } vbi_link;

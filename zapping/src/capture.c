@@ -497,7 +497,7 @@ static gint idle_handler(GtkWidget *tv_screen)
   main_window = lookup_widget(tv_screen, "zapping");
 
   print_info(main_window);
-      
+
   capture_process_frame(tv_screen, main_info);
 
   return 1; /* Keep calling me */

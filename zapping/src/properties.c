@@ -304,8 +304,69 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);  
 
+  /* The various itv filters */
+  widget = lookup_widget(zapping_properties, "optionmenu12");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/vbi/pr_trigger"));
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  widget = lookup_widget(zapping_properties, "optionmenu16");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/vbi/nw_trigger"));
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  widget = lookup_widget(zapping_properties, "optionmenu17");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/vbi/st_trigger"));
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  widget = lookup_widget(zapping_properties, "optionmenu18");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/vbi/sp_trigger"));
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  widget = lookup_widget(zapping_properties, "optionmenu19");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/vbi/op_trigger"));
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  widget = lookup_widget(zapping_properties, "optionmenu6");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/vbi/trigger_default"));
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* Filter level */
+  widget = lookup_widget(zapping_properties, "optionmenu5");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/vbi/filter_level"));
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
   /* Disable/enable the VBI options */
   widget = lookup_widget(zapping_properties, "vbox19");
+  gtk_widget_set_sensitive(widget,
+	 zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"));
+  widget = lookup_widget(zapping_properties, "vbox33");
   gtk_widget_set_sensitive(widget,
 	 zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"));
 
@@ -450,6 +511,36 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 	zconf_set_string(text, "/zapping/ttxview/exportdir");
       g_free(text);
 
+      /* The many itv filters */
+      widget = lookup_widget(pbox, "optionmenu12");
+      index = z_option_menu_get_active(widget);
+      zconf_set_integer(index, "/zapping/options/vbi/pr_trigger");
+
+      widget = lookup_widget(pbox, "optionmenu16");
+      index = z_option_menu_get_active(widget);
+      zconf_set_integer(index, "/zapping/options/vbi/nw_trigger");
+
+      widget = lookup_widget(pbox, "optionmenu17");
+      index = z_option_menu_get_active(widget);
+      zconf_set_integer(index, "/zapping/options/vbi/st_trigger");
+
+      widget = lookup_widget(pbox, "optionmenu18");
+      index = z_option_menu_get_active(widget);
+      zconf_set_integer(index, "/zapping/options/vbi/sp_trigger");
+
+      widget = lookup_widget(pbox, "optionmenu19");
+      index = z_option_menu_get_active(widget);
+      zconf_set_integer(index, "/zapping/options/vbi/op_trigger");
+
+      widget = lookup_widget(pbox, "optionmenu6");
+      index = z_option_menu_get_active(widget);
+      zconf_set_integer(index, "/zapping/options/vbi/trigger_default");
+
+      /* Filter level */
+      widget = lookup_widget(pbox, "optionmenu5");
+      index = z_option_menu_get_active(widget);
+      zconf_set_integer(index, "/zapping/options/vbi/filter_level");
+
       break;
     default:
       p = g_list_first(plugin_list);
@@ -521,6 +612,8 @@ on_property_item_changed              (GtkWidget * changed_widget,
 	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(changed_widget));
       gtk_widget_set_sensitive(lookup_widget(changed_widget,
 					     "vbox19"), active);      
+      gtk_widget_set_sensitive(lookup_widget(changed_widget,
+					     "vbox33"), active);      
     }
 
   gnome_property_box_changed (propertybox);

@@ -41,6 +41,7 @@
 #include "zvbi.h"
 #include "zmisc.h"
 #include "interface.h"
+#include "ttxview.h"
 
 #undef TRUE
 #undef FALSE
@@ -200,6 +201,13 @@ startup_zvbi(void)
   zcc_char("/dev/vbi0", "VBI device", "vbi_device");
   zcc_int(0, "Default TTX region", "default_region");
   zcc_int(3, "Teletext implementation level", "teletext_level");
+  zcc_int(2, "ITV filter level", "filter_level");
+  zcc_int(1, "Default action for triggers", "trigger_default");
+  zcc_int(1, "Program related links", "pr_trigger");
+  zcc_int(1, "Network related links", "nw_trigger");
+  zcc_int(1, "Station related links", "st_trigger");
+  zcc_int(1, "Sponsor messages", "sp_trigger");
+  zcc_int(1, "Operator messages", "op_trigger");
 
   zconf_add_hook("/zapping/options/vbi/enable_vbi",
 		 (ZConfHook)on_vbi_prefs_changed,
@@ -237,36 +245,120 @@ static void cc_event(vbi_event *ev, void *data)
   write(pipe[1], "", 1);
 }
 
-/* TRIGGER handling */
+/* Trigger handling */
 static gint trigger_timeout_id = -1;
 static gint trigger_client_id = -1;
-static char last_trigger_link[256]; /* last received link */
+static vbi_link last_trigger;
 
 static void
-on_trigger_clicked			(GtkWidget	*widget,
-					 vbi_link	*link)
+on_trigger_clicked			(gpointer	ignored,
+					 vbi_link	*trigger)
 {
-  gnome_url_show(last_trigger_link);
+  switch (trigger->type)
+    {
+    case VBI_LINK_HTTP:
+    case VBI_LINK_FTP:
+    case VBI_LINK_EMAIL:
+      gnome_url_show(trigger->url);
+      break;
+
+    case VBI_LINK_PAGE:
+    case VBI_LINK_SUBPAGE:
+      open_in_new_ttxview(trigger->page, trigger->subpage);
+      break;
+
+      /* FIXME: _MESSAGE, _LID, _TELEWEB? */
+    default:
+      ShowBox("Unhandled link type %d, please contact the maintainer",
+	      GNOME_MESSAGE_BOX_WARNING, trigger->type);
+      break;
+    }
 }
 
 static void
 acknowledge_trigger			(vbi_link	*link)
 {
-  GtkWidget *button =
-    gtk_button_new();
+  GtkWidget *button;
   gchar *buffer;
   GdkBitmap *mask;
   GdkPixmap *pixmap;
-  /* FIXME */
-  GdkPixbuf *pb = gdk_pixbuf_new_from_file("../libvbi/atvef_icon.png");
+  GdkPixbuf *pb;
   GtkWidget *pix;
+  gchar *filename;
+  gint filter_level = 9;
+  gint action = zcg_int(NULL, "trigger_default");
 
-  gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
-  gdk_pixbuf_unref(pb);
-  pix = gtk_pixmap_new(pixmap, mask);
+  switch (zcg_int(NULL, "filter_level"))
+    {
+    case 0: /* High priority */
+      filter_level = 2;
+      break;
+    case 1: /* Medium, high */
+      filter_level = 5;
+      break;
+    default:
+      break;
+    }
 
-  gtk_widget_show(pix);
-  gtk_container_add(GTK_CONTAINER(button), pix);
+  if (link->priority > filter_level)
+    return;
+
+  switch (link->itv_type)
+    {
+    case VBI_WEBLINK_PROGRAM_RELATED:
+      action = zcg_int(NULL, "pr_trigger");
+      break;
+    case VBI_WEBLINK_NETWORK_RELATED:
+      action = zcg_int(NULL, "nw_trigger");
+      break;
+    case VBI_WEBLINK_STATION_RELATED:
+      action = zcg_int(NULL, "st_trigger");
+      break;
+    case VBI_WEBLINK_SPONSOR_MESSAGE:
+      action = zcg_int(NULL, "sp_trigger");
+      break;
+    case VBI_WEBLINK_OPERATOR:
+      action = zcg_int(NULL, "op_trigger");
+      break;
+    default:
+      break;
+    }
+
+  if (link->autoload)
+    action = 2;
+
+  if (!action) /* ignore */
+    return;
+
+  if (action == 2) /* open automagically */
+    {
+      on_trigger_clicked(NULL, link);
+      return;
+    }
+
+  /* FIXME: Any way to distinguish? */
+  if (! link->itv_type  &&  !link->autoload)
+    filename = g_strdup_printf("%s/%s.png", PACKAGE_DATA_DIR,
+			       "../pixmaps/zapping/eacem_icon");
+  else
+    filename = g_strdup_printf("%s/%s.png", PACKAGE_DATA_DIR,
+			       "../pixmaps/zapping/atvef_icon");
+
+  pb = gdk_pixbuf_new_from_file(filename);
+  g_free(filename);
+
+  if (pb)
+    {
+      button = gtk_button_new();
+      gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
+      gdk_pixbuf_unref(pb);
+      pix = gtk_pixmap_new(pixmap, mask);
+
+      gtk_widget_show(pix);
+      gtk_container_add(GTK_CONTAINER(button), pix);
+    }
+  else /* pixmaps not installed */
+    button = gtk_button_new_with_label(_("Click me"));
 
   /* FIXME: Show more fields (type, itv...)
    * {mhs}:
@@ -284,18 +376,37 @@ acknowledge_trigger			(vbi_link	*link)
    *     medium = 3, 4 or 5
    *     low = 6, 7, 8 or 9 (default 9)
    */
-  memcpy(&last_trigger_link, link->url, 256);
+  memcpy(&last_trigger, link, sizeof(last_trigger));
   gtk_signal_connect(GTK_OBJECT(button), "clicked",
-		     GTK_SIGNAL_FUNC(on_trigger_clicked), NULL);
-
-  set_tooltip(button,
-	      _("Open this link with the predetermined Web browser.\n"
-		"You can configure this in the GNOME Control Center, "
-		"under Handlers/Url Navigator"));
+		     GTK_SIGNAL_FUNC(on_trigger_clicked),
+		     &last_trigger);
 
   gtk_widget_show(button);
+  switch (link->type)
+    {
+    case VBI_LINK_HTTP:
+    case VBI_LINK_FTP:
+    case VBI_LINK_EMAIL:
+      buffer = g_strdup_printf("%s: %s", link->name, link->url);
+      set_tooltip(button,
+		  _("Open this link with the predetermined Web browser.\n"
+		    "You can configure this in the GNOME Control Center, "
+		    "under Handlers/Url Navigator"));
+
+      break;
+    case VBI_LINK_PAGE:
+    case VBI_LINK_SUBPAGE:
+      buffer = g_strdup_printf(_("%s: TTX Page %x"), link->name,
+			       link->page);
+      set_tooltip(button, _("Open this with Zapzilla"));
+      break;
+    default:
+      ShowBox("Unhandled link type %d, please contact the maintainer",
+	      GNOME_MESSAGE_BOX_WARNING, link->type);
+      buffer = g_strdup_printf("%s", link->name);
+      break;
+    }
   z_status_set_widget(button);
-  buffer = g_strdup_printf(_("%s: %s"), link->name, link->url);
   z_status_print(buffer);
   g_free(buffer);
 }
@@ -1233,6 +1344,21 @@ event(vbi_event *ev, void *unused)
       }
       /* Set the dirty flag on the page */
       notify_clients(ev->pgno, ev->subno);
+
+#ifdef BLACK_MOON_IS_ON
+      if (ev->pgno == 0x300)
+	{
+	  vbi_link link;
+	  snprintf(link.name, 256, "Programación T5");
+	  snprintf(link.url, 256, "ttx://300");
+	  link.type = VBI_LINK_PAGE;
+	  link.page = 0x300;
+	  link.subpage = ANY_SUB;
+	  link.priority = 9;
+	  link.itv_type = link.autoload = 0;
+	  notify_trigger(&link);
+	}
+#endif
       break;
     case VBI_EVENT_NETWORK:
       pthread_mutex_lock(&network_mutex);
@@ -1241,11 +1367,7 @@ event(vbi_event *ev, void *unused)
       pthread_mutex_unlock(&network_mutex);
       break;
     case VBI_EVENT_TRIGGER:
-      fprintf(stderr, "Trigger event, name=%s url=%s\n",
-        ((vbi_link *) ev->p)->name,
-        ((vbi_link *) ev->p)->url);
-      // crashed
-      // notify_trigger((vbi_link *) ev->p);
+      notify_trigger((vbi_link *) ev->p);
       break;
       
     default:

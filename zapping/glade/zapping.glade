@@ -1003,53 +1003,8 @@
     <widget>
       <class>GtkVBox</class>
       <name>vbox8</name>
-      <homogeneous>True</homogeneous>
-      <spacing>0</spacing>
-
-      <widget>
-	<class>GtkHBox</class>
-	<name>hbox21</name>
-	<homogeneous>True</homogeneous>
-	<spacing>3</spacing>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>False</fill>
-	  <pack>GTK_PACK_END</pack>
-	</child>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label90</name>
-	  <label>Fullscreen video mode:</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>1</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <child>
-	    <padding>0</padding>
-	    <expand>True</expand>
-	    <fill>True</fill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkOptionMenu</class>
-	  <name>optionmenu2</name>
-	  <can_focus>True</can_focus>
-	  <items>Autodetect
-Do not change mode
-</items>
-	  <initial_choice>0</initial_choice>
-	  <child>
-	    <padding>0</padding>
-	    <expand>True</expand>
-	    <fill>True</fill>
-	  </child>
-	</widget>
-      </widget>
+      <homogeneous>False</homogeneous>
+      <spacing>3</spacing>
 
       <widget>
 	<class>GtkCheckButton</class>
@@ -1128,7 +1083,7 @@ Do not change mode
 	<spacing>3</spacing>
 	<child>
 	  <padding>0</padding>
-	  <expand>True</expand>
+	  <expand>False</expand>
 	  <fill>True</fill>
 	</child>
 
@@ -1173,8 +1128,8 @@ Do not change mode
 	<spacing>3</spacing>
 	<child>
 	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
+	  <expand>False</expand>
+	  <fill>False</fill>
 	</child>
 
 	<widget>
@@ -1190,7 +1145,7 @@ Do not change mode
 	  <default_focus_target>spinbutton1</default_focus_target>
 	  <child>
 	    <padding>0</padding>
-	    <expand>True</expand>
+	    <expand>False</expand>
 	    <fill>False</fill>
 	  </child>
 	</widget>
@@ -1219,6 +1174,50 @@ Do not change mode
 	  </child>
 	</widget>
       </widget>
+
+      <widget>
+	<class>GtkHBox</class>
+	<name>hbox21</name>
+	<homogeneous>True</homogeneous>
+	<spacing>3</spacing>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label90</name>
+	  <label>Fullscreen video mode:</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>1</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkOptionMenu</class>
+	  <name>optionmenu2</name>
+	  <can_focus>True</can_focus>
+	  <items>Autodetect
+Do not change mode
+</items>
+	  <initial_choice>0</initial_choice>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+	</widget>
+      </widget>
     </widget>
 
     <widget>
@@ -1235,41 +1234,28 @@ Do not change mode
     </widget>
 
     <widget>
-      <class>GtkVBox</class>
-      <name>vbox17</name>
-      <homogeneous>False</homogeneous>
-      <spacing>0</spacing>
-
-      <widget>
-	<class>GtkCheckButton</class>
-	<name>checkbutton6</name>
-	<can_focus>True</can_focus>
-	<label>Enable VBI decoding</label>
-	<active>False</active>
-	<draw_indicator>True</draw_indicator>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>False</fill>
-	</child>
-      </widget>
+      <class>GtkNotebook</class>
+      <name>notebook4</name>
+      <can_focus>True</can_focus>
+      <show_tabs>True</show_tabs>
+      <show_border>True</show_border>
+      <tab_pos>GTK_POS_TOP</tab_pos>
+      <scrollable>False</scrollable>
+      <tab_hborder>2</tab_hborder>
+      <tab_vborder>2</tab_vborder>
+      <popup_enable>False</popup_enable>
 
       <widget>
 	<class>GtkVBox</class>
-	<name>vbox19</name>
+	<name>vbox17</name>
 	<homogeneous>False</homogeneous>
-	<spacing>2</spacing>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
+	<spacing>0</spacing>
 
 	<widget>
 	  <class>GtkCheckButton</class>
-	  <name>checkbutton7</name>
+	  <name>checkbutton6</name>
 	  <can_focus>True</can_focus>
-	  <label>Use VBI for getting station names</label>
+	  <label>Enable VBI decoding</label>
 	  <active>False</active>
 	  <draw_indicator>True</draw_indicator>
 	  <child>
@@ -1280,78 +1266,103 @@ Do not change mode
 	</widget>
 
 	<widget>
-	  <class>GtkTable</class>
-	  <name>table3</name>
-	  <rows>2</rows>
-	  <columns>2</columns>
+	  <class>GtkVBox</class>
+	  <name>vbox19</name>
 	  <homogeneous>False</homogeneous>
-	  <row_spacing>0</row_spacing>
-	  <column_spacing>0</column_spacing>
+	  <spacing>2</spacing>
 	  <child>
 	    <padding>0</padding>
-	    <expand>True</expand>
+	    <expand>False</expand>
 	    <fill>True</fill>
-	    <pack>GTK_PACK_END</pack>
 	  </child>
 
 	  <widget>
-	    <class>GtkLabel</class>
-	    <name>label91</name>
-	    <label>Default region:</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>1</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <child>
-	      <left_attach>0</left_attach>
-	      <right_attach>1</right_attach>
-	      <top_attach>0</top_attach>
-	      <bottom_attach>1</bottom_attach>
-	      <xpad>0</xpad>
-	      <ypad>0</ypad>
-	      <xexpand>False</xexpand>
-	      <yexpand>False</yexpand>
-	      <xshrink>False</xshrink>
-	      <yshrink>False</yshrink>
-	      <xfill>True</xfill>
-	      <yfill>False</yfill>
-	    </child>
-	  </widget>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <name>label95</name>
-	    <label>Teletext implementation:</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>1</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <child>
-	      <left_attach>0</left_attach>
-	      <right_attach>1</right_attach>
-	      <top_attach>1</top_attach>
-	      <bottom_attach>2</bottom_attach>
-	      <xpad>0</xpad>
-	      <ypad>0</ypad>
-	      <xexpand>False</xexpand>
-	      <yexpand>False</yexpand>
-	      <xshrink>False</xshrink>
-	      <yshrink>False</yshrink>
-	      <xfill>True</xfill>
-	      <yfill>False</yfill>
-	    </child>
-	  </widget>
-
-	  <widget>
-	    <class>GtkOptionMenu</class>
-	    <name>optionmenu3</name>
-	    <tooltip>Some stations fail to transmit a complete language identifier, so the Teletext viewer may not display the correct font or national characters. You can select your geographical region here as an additional hint.</tooltip>
+	    <class>GtkCheckButton</class>
+	    <name>checkbutton7</name>
 	    <can_focus>True</can_focus>
-	    <items>Western and Central Europe
+	    <label>Use VBI for getting station names</label>
+	    <active>False</active>
+	    <draw_indicator>True</draw_indicator>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GtkTable</class>
+	    <name>table3</name>
+	    <rows>2</rows>
+	    <columns>2</columns>
+	    <homogeneous>False</homogeneous>
+	    <row_spacing>0</row_spacing>
+	    <column_spacing>0</column_spacing>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	      <pack>GTK_PACK_END</pack>
+	    </child>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label91</name>
+	      <label>Default region:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>1</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>0</top_attach>
+		<bottom_attach>1</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label95</name>
+	      <label>Teletext implementation:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>1</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>1</top_attach>
+		<bottom_attach>2</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>optionmenu3</name>
+	      <tooltip>Some stations fail to transmit a complete language identifier, so the Teletext viewer may not display the correct font or national characters. You can select your geographical region here as an additional hint.</tooltip>
+	      <can_focus>True</can_focus>
+	      <items>Western and Central Europe
 Eastern Europe
 Western Europe and Turkey
 Central and Southeast Europe
@@ -1360,7 +1371,517 @@ Greek and Turkish
 Arabic
 Hebrew and Arabic
 </items>
-	    <initial_choice>0</initial_choice>
+	      <initial_choice>0</initial_choice>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>0</top_attach>
+		<bottom_attach>1</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>True</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>optionmenu4</name>
+	      <tooltip>Zapping supports several levels of Teletext extensions, you can disable higher levels if you dislike the appearance.</tooltip>
+	      <can_focus>True</can_focus>
+	      <items>Level 1.0
+Level 1.5 (additional national characters)
+Level 2.5 (more colours, font styles and graphics)
+Level 3.5 (proportional spacing, multicolour graphics)
+</items>
+	      <initial_choice>2</initial_choice>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>1</top_attach>
+		<bottom_attach>2</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>True</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkHBox</class>
+	    <name>hbox19</name>
+	    <homogeneous>True</homogeneous>
+	    <spacing>3</spacing>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label86</name>
+	      <label>Device name:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>1</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>True</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GnomeFileEntry</class>
+	      <name>fileentry2</name>
+	      <history_id>zapping_vbi_device</history_id>
+	      <max_saved>10</max_saved>
+	      <title>Select the VBI device</title>
+	      <directory>False</directory>
+	      <modal>False</modal>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkEntry</class>
+		<child_name>GnomeEntry:entry</child_name>
+		<name>combo-entry2</name>
+		<tooltip>Enter here the device associated with the VBI input</tooltip>
+		<can_focus>True</can_focus>
+		<editable>True</editable>
+		<text_visible>True</text_visible>
+		<text_max_length>0</text_max_length>
+		<text></text>
+	      </widget>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkHBox</class>
+	    <name>hbox27</name>
+	    <homogeneous>True</homogeneous>
+	    <spacing>3</spacing>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label95</name>
+	      <label>Export Teletext pages to:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>1</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>True</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GnomeFileEntry</class>
+	      <name>fileentry3</name>
+	      <history_id>ttxview_export_destination</history_id>
+	      <max_saved>10</max_saved>
+	      <title>Select directory we will export pages to</title>
+	      <directory>True</directory>
+	      <modal>False</modal>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkEntry</class>
+		<child_name>GnomeEntry:entry</child_name>
+		<name>combo-entry3</name>
+		<tooltip>Enter here the directory we will be exporting TTX pages to</tooltip>
+		<can_focus>True</can_focus>
+		<editable>True</editable>
+		<text_visible>True</text_visible>
+		<text_max_length>0</text_max_length>
+		<text></text>
+	      </widget>
+	    </widget>
+	  </widget>
+	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkLabel</class>
+	<child_name>Notebook:tab</child_name>
+	<name>label211</name>
+	<label>General</label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+      </widget>
+
+      <widget>
+	<class>GtkVBox</class>
+	<name>vbox33</name>
+	<homogeneous>False</homogeneous>
+	<spacing>3</spacing>
+
+	<widget>
+	  <class>GtkFrame</class>
+	  <name>frame7</name>
+	  <label>Filtering</label>
+	  <label_xalign>0</label_xalign>
+	  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+
+	  <widget>
+	    <class>GtkTable</class>
+	    <name>table5</name>
+	    <rows>5</rows>
+	    <columns>2</columns>
+	    <homogeneous>False</homogeneous>
+	    <row_spacing>3</row_spacing>
+	    <column_spacing>3</column_spacing>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label215</name>
+	      <label>Program related links:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>0</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>0</top_attach>
+		<bottom_attach>1</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label216</name>
+	      <label>Network related links:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>0</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>1</top_attach>
+		<bottom_attach>2</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label217</name>
+	      <label>Station related links:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>0</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>2</top_attach>
+		<bottom_attach>3</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label218</name>
+	      <label>Sponsor messages:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>0</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>3</top_attach>
+		<bottom_attach>4</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label219</name>
+	      <label>Operator messages:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>0</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>4</top_attach>
+		<bottom_attach>5</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>optionmenu12</name>
+	      <tooltip>What to do with this kind of links</tooltip>
+	      <can_focus>True</can_focus>
+	      <items>Ignore
+Show in the status bar
+Open automatically
+</items>
+	      <initial_choice>1</initial_choice>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>0</top_attach>
+		<bottom_attach>1</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>True</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>optionmenu16</name>
+	      <tooltip>What to do with this kind of links</tooltip>
+	      <can_focus>True</can_focus>
+	      <items>Ignore
+Show in the status bar
+Open automatically
+</items>
+	      <initial_choice>1</initial_choice>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>1</top_attach>
+		<bottom_attach>2</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>optionmenu17</name>
+	      <tooltip>What to do with this kind of links</tooltip>
+	      <can_focus>True</can_focus>
+	      <items>Ignore
+Show in the status bar
+Open automatically
+</items>
+	      <initial_choice>1</initial_choice>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>2</top_attach>
+		<bottom_attach>3</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>optionmenu18</name>
+	      <tooltip>What to do with this kind of links</tooltip>
+	      <can_focus>True</can_focus>
+	      <items>Ignore
+Show in the status bar
+Open automatically
+</items>
+	      <initial_choice>1</initial_choice>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>3</top_attach>
+		<bottom_attach>4</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>optionmenu19</name>
+	      <tooltip>What to do with this kind of links</tooltip>
+	      <can_focus>True</can_focus>
+	      <items>Ignore
+Show in the status bar
+Open automatically
+</items>
+	      <initial_choice>1</initial_choice>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>4</top_attach>
+		<bottom_attach>5</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+	  </widget>
+	</widget>
+
+	<widget>
+	  <class>GtkTable</class>
+	  <name>table4</name>
+	  <rows>2</rows>
+	  <columns>2</columns>
+	  <homogeneous>False</homogeneous>
+	  <row_spacing>3</row_spacing>
+	  <column_spacing>3</column_spacing>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <name>label213</name>
+	    <label>Filter Level:</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <child>
+	      <left_attach>0</left_attach>
+	      <right_attach>1</right_attach>
+	      <top_attach>0</top_attach>
+	      <bottom_attach>1</bottom_attach>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <xexpand>False</xexpand>
+	      <yexpand>False</yexpand>
+	      <xshrink>False</xshrink>
+	      <yshrink>False</yshrink>
+	      <xfill>True</xfill>
+	      <yfill>False</yfill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GtkOptionMenu</class>
+	    <name>optionmenu5</name>
+	    <tooltip>Sometimes a priority level is transmitted with the trigger, it can be used to filter the messages you want to receive</tooltip>
+	    <can_focus>True</can_focus>
+	    <items>High priority only
+Medium and High priority
+All messages
+</items>
+	    <initial_choice>2</initial_choice>
 	    <child>
 	      <left_attach>1</left_attach>
 	      <right_attach>2</right_attach>
@@ -1378,16 +1899,41 @@ Hebrew and Arabic
 	  </widget>
 
 	  <widget>
+	    <class>GtkLabel</class>
+	    <name>label214</name>
+	    <label>Default action:</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <child>
+	      <left_attach>0</left_attach>
+	      <right_attach>1</right_attach>
+	      <top_attach>1</top_attach>
+	      <bottom_attach>2</bottom_attach>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <xexpand>False</xexpand>
+	      <yexpand>False</yexpand>
+	      <xshrink>False</xshrink>
+	      <yshrink>False</yshrink>
+	      <xfill>True</xfill>
+	      <yfill>False</yfill>
+	    </child>
+	  </widget>
+
+	  <widget>
 	    <class>GtkOptionMenu</class>
-	    <name>optionmenu4</name>
-	    <tooltip>Zapping supports several levels of Teletext extensions, you can disable higher levels if you dislike the appearance.</tooltip>
+	    <name>optionmenu6</name>
+	    <tooltip>What to do with received trigger if no identifier is transmitted</tooltip>
 	    <can_focus>True</can_focus>
-	    <items>Level 1.0
-Level 1.5 (additional national characters)
-Level 2.5 (more colours, font styles and graphics)
-Level 3.5 (proportional spacing, multicolour graphics)
+	    <items>Ignore
+Show in the status bar
+Open automatically
 </items>
-	    <initial_choice>2</initial_choice>
+	    <initial_choice>1</initial_choice>
 	    <child>
 	      <left_attach>1</left_attach>
 	      <right_attach>2</right_attach>
@@ -1395,7 +1941,7 @@ Level 3.5 (proportional spacing, multicolour graphics)
 	      <bottom_attach>2</bottom_attach>
 	      <xpad>0</xpad>
 	      <ypad>0</ypad>
-	      <xexpand>True</xexpand>
+	      <xexpand>False</xexpand>
 	      <yexpand>False</yexpand>
 	      <xshrink>False</xshrink>
 	      <yshrink>False</yshrink>
@@ -1404,118 +1950,19 @@ Level 3.5 (proportional spacing, multicolour graphics)
 	    </child>
 	  </widget>
 	</widget>
+      </widget>
 
-	<widget>
-	  <class>GtkHBox</class>
-	  <name>hbox19</name>
-	  <homogeneous>True</homogeneous>
-	  <spacing>3</spacing>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <name>label86</name>
-	    <label>Device name:</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>1</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <child>
-	      <padding>0</padding>
-	      <expand>False</expand>
-	      <fill>True</fill>
-	    </child>
-	  </widget>
-
-	  <widget>
-	    <class>GnomeFileEntry</class>
-	    <name>fileentry2</name>
-	    <history_id>zapping_vbi_device</history_id>
-	    <max_saved>10</max_saved>
-	    <title>Select the VBI device</title>
-	    <directory>False</directory>
-	    <modal>False</modal>
-	    <child>
-	      <padding>0</padding>
-	      <expand>True</expand>
-	      <fill>True</fill>
-	    </child>
-
-	    <widget>
-	      <class>GtkEntry</class>
-	      <child_name>GnomeEntry:entry</child_name>
-	      <name>combo-entry2</name>
-	      <tooltip>Enter here the device associated with the VBI input</tooltip>
-	      <can_focus>True</can_focus>
-	      <editable>True</editable>
-	      <text_visible>True</text_visible>
-	      <text_max_length>0</text_max_length>
-	      <text></text>
-	    </widget>
-	  </widget>
-	</widget>
-
-	<widget>
-	  <class>GtkHBox</class>
-	  <name>hbox27</name>
-	  <homogeneous>True</homogeneous>
-	  <spacing>3</spacing>
-	  <child>
-	    <padding>0</padding>
-	    <expand>True</expand>
-	    <fill>True</fill>
-	  </child>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <name>label95</name>
-	    <label>Export Teletext pages to:</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>1</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <child>
-	      <padding>0</padding>
-	      <expand>False</expand>
-	      <fill>True</fill>
-	    </child>
-	  </widget>
-
-	  <widget>
-	    <class>GnomeFileEntry</class>
-	    <name>fileentry3</name>
-	    <history_id>ttxview_export_destination</history_id>
-	    <max_saved>10</max_saved>
-	    <title>Select directory we will export pages to</title>
-	    <directory>True</directory>
-	    <modal>False</modal>
-	    <child>
-	      <padding>0</padding>
-	      <expand>True</expand>
-	      <fill>True</fill>
-	    </child>
-
-	    <widget>
-	      <class>GtkEntry</class>
-	      <child_name>GnomeEntry:entry</child_name>
-	      <name>combo-entry3</name>
-	      <tooltip>Enter here the directory we will be exporting TTX pages to</tooltip>
-	      <can_focus>True</can_focus>
-	      <editable>True</editable>
-	      <text_visible>True</text_visible>
-	      <text_max_length>0</text_max_length>
-	      <text></text>
-	    </widget>
-	  </widget>
-	</widget>
+      <widget>
+	<class>GtkLabel</class>
+	<child_name>Notebook:tab</child_name>
+	<name>label212</name>
+	<label>Interactive TV</label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
       </widget>
     </widget>
 

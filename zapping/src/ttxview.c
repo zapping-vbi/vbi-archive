@@ -1302,16 +1302,28 @@ void on_ttxview_size_allocate		(GtkWidget	*widget,
   scale_image(widget, allocation->width, allocation->height, data);
 }
 
+void
+open_in_new_ttxview			(gint		page,
+					 gint		subpage)
+{
+  GtkWidget *dolly = build_ttxview();
+
+  nullcheck();
+
+  if (dolly) {
+      load_page(page, subpage,
+		(ttxview_data*)gtk_object_get_data(GTK_OBJECT(dolly),
+						   "ttxview_data"),
+		NULL);
+      gtk_widget_show(dolly);
+    }
+}
+
 static
 void popup_new_win			(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
-  GtkWidget *dolly = build_ttxview();
-  load_page(data->pop_pgno, data->pop_subno,
-	    (ttxview_data*)gtk_object_get_data(GTK_OBJECT(dolly),
-					       "ttxview_data"),
-	    NULL);
-  gtk_widget_show(dolly);
+  open_in_new_ttxview(data->pop_pgno, data->pop_subno);
 }
 
 static
@@ -1955,21 +1967,13 @@ static void
 on_subtitle_page_ttxview		(GtkWidget	*widget,
 					 gint		val)
 {
-  GtkWidget * index_view;
   gint page = val >> 16;
   gint subpage = val & 0xffff;
 
   if (!zvbi_get_object() || page < 0x100)
     return;
 
-  index_view = build_ttxview();
-
-  load_page(page, subpage,
-	    (ttxview_data*)gtk_object_get_data(GTK_OBJECT(index_view),
-					       "ttxview_data"),
-	      NULL);
-
-  gtk_widget_show(index_view);
+  open_in_new_ttxview(page, subpage);
 }
 
 /* Open the subtitle page in the main window */
@@ -2739,7 +2743,6 @@ on_ttxview_button_press			(GtkWidget	*widget,
 {
   gint w, h, col, row;
   vbi_link ld;
-  GtkWidget *dolly;
   GtkMenu *menu;
 
   gdk_window_get_size(widget->window, &w, &h);
@@ -2784,11 +2787,7 @@ on_ttxview_button_press			(GtkWidget	*widget,
         {
 	case VBI_LINK_PAGE:
 	case VBI_LINK_SUBPAGE:
-	  dolly = build_ttxview();
-	  load_page(ld.page, ld.subpage,
-	    (ttxview_data*)gtk_object_get_data(GTK_OBJECT(dolly),
-					       "ttxview_data"), NULL);
-	  gtk_widget_show(dolly);
+	  open_in_new_ttxview(ld.page, ld.subpage);
 	  break;
 
 	case VBI_LINK_HTTP:

@@ -1,3 +1,8 @@
+24.4.2001	trigger gui <garetxe@users.sourceforge.net>
+
+	* zvbi.c, properties, .glade: Started trigger gui.
+	* eacem_icon, atvef_icon: Moved to pixmaps. 
+
 7.04.2001	mpeg plugin <garetxe@users.sourceforge.net>
 
 	* rte: rte_stop closes properly, buffers used for push are
