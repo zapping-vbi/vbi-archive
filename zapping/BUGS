@@ -6,5 +6,3 @@ Known bugs with zapping, don't report them
 	
 	* When viewing Teletext, we shouldn't use ERC, but we should
 for the rest. Make it configurable.
-	* The window resizes automatically to minimum size if the
-given size < min gtk size.

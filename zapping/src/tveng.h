@@ -265,22 +265,7 @@ typedef struct
   char * error; /* points to the last error message */
   int debug_level; /* 0 for no errors, increase for greater verbosity */
 
-  /* Consider the following as private data, you don't need to access
-     this */
-  /* fixme: put this into the private struct */
-  Display * display;
-  int save_x, save_y;
-  int bpp;
-  char * default_standard;
-
-#ifndef DISABLE_X_EXTENSIONS
-  XF86VidModeModeInfo modeinfo;
-  int restore_mode;
-  int xf86vm_enabled;
-#endif
-
-  int zapping_setup_fb_verbosity;
-  int change_mode;
+  struct tveng_private * private; /* private stuff */
 }
 tveng_device_info;
 

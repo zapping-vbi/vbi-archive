@@ -1,3 +1,12 @@
+14.11.2000	Bug fixes <garetxe@users.sourceforge.net>
+
+	* main.c: Fixed the auto-resize-to-unusable-size bug, it lacked a
+	gtk_main_iteration.
+	* tveng.h: Privatized some stuff
+	* tveng_private.h: Added, definitions for the private stuff.
+	* tveng_lib: Brought the standalone lib in sync with the latest
+	stuff.
+	
 12.11.2000	de.po and some quick hacks <garetxe@users.sourceforge.net>
 
 	* po/de.po: Commited by Michael some days ago.

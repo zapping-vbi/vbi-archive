@@ -373,16 +373,6 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
 }
 
 void
-on_go_fullscreen2_activate             (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
-{
-  /* fixme: there's no need for two different callbacks */
-  restore_mode = main_info->current_mode;
-
-  zmisc_switch_mode(TVENG_CAPTURE_PREVIEW, main_info);
-}
-
-void
 on_go_windowed1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {

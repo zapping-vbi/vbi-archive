@@ -429,6 +429,9 @@ int main(int argc, char * argv[])
       zconf_get_integer(&w, "/zapping/internal/callbacks/w");
       zconf_get_integer(&h, "/zapping/internal/callbacks/h");
       printv("Restoring geometry: <%d,%d> <%d x %d>\n", x, y, w, h);
+      /* prevents the toolbar from resizing the window */
+      while (gtk_events_pending())
+	gtk_main_iteration();
       gdk_window_move_resize(main_window->window, x, y, w, h);
     }
 

@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-11-12 23:21+0100\n"
+"POT-Creation-Date: 2000-11-14 22:37+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -71,32 +71,32 @@ msgid ""
 "%s"
 msgstr ""
 
-#: src/main.c:448
+#: src/main.c:451
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:451
+#: src/main.c:454
 msgid ", I will try starting capture mode"
 msgstr ""
 
-#: src/main.c:455
+#: src/main.c:458
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:468
+#: src/main.c:471
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:603
+#: src/main.c:606
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -108,18 +108,18 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:638
+#: src/main.c:641
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
-#: src/main.c:706
+#: src/main.c:709
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
 "%s (%d)"
 msgstr ""
 
-#: src/main.c:710
+#: src/main.c:713
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr ""
 
@@ -156,21 +156,21 @@ msgstr ""
 msgid "Cannot tune input"
 msgstr ""
 
-#: src/callbacks.c:397
+#: src/callbacks.c:387
 msgid ""
 "The teletext decoder needs GdkPixbuf, and\n"
 "configure didn't find it."
 msgstr ""
 
-#: src/callbacks.c:403
+#: src/callbacks.c:393
 msgid "VBI has been disabled, or it doesn't work."
 msgstr ""
 
-#: src/callbacks.c:550 src/v4linterface.c:161
+#: src/callbacks.c:540 src/v4linterface.c:161
 msgid "No tuner"
 msgstr ""
 
-#: src/callbacks.c:558 src/v4linterface.c:163
+#: src/callbacks.c:548 src/v4linterface.c:163
 msgid "No tuned channels"
 msgstr ""
 
@@ -1109,7 +1109,7 @@ msgid "Device info"
 msgstr ""
 
 #: glade/glade_strings.c:42
-msgid "Fullscreen mode:"
+msgid "Fullscreen video mode:"
 msgstr ""
 
 #: glade/glade_strings.c:43

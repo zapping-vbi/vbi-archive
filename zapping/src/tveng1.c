@@ -38,6 +38,7 @@
 #undef WUNTRACED
 #include "tveng.h"
 #include "tveng1.h"
+#include "tveng_private.h"
 #include "videodev.h"
 
 /*
@@ -262,9 +263,9 @@ int tveng1_attach_device(const char* device_file,
   /* make another ioctl test, switch to first or default standard */
   if (info->num_standards > 0)
     {
-      if (info->default_standard)
+      if (info->private->default_standard)
 	{
-	  if (tveng1_set_standard_by_name(info->default_standard, info) ==
+	  if (tveng1_set_standard_by_name(info->private->default_standard, info) ==
 	      -1)
 	    {
 	      tveng1_close_device(info);
@@ -494,7 +495,7 @@ int tveng1_set_input(struct tveng_enum_input * input,
   /* If this input has no tuner, switch to an input with a tuner and
      set the given standard. This fixes the V4L1 design flaw */
   if ((input->tuners == 0) || (!(input->flags & TVENG_INPUT_TUNER)))
-    if (info->default_standard)
+    if (info->private->default_standard)
       {
 	int i, j;
 	for (i = 0; i<info->num_inputs;i++)
@@ -507,7 +508,7 @@ int tveng1_set_input(struct tveng_enum_input * input,
 	    if (info->debug_level > 0)
 	      fprintf(stderr,
 		      "Tunerless input, switching to input #%d to set %s\n",
-		      i, info->default_standard);
+		      i, info->private->default_standard);
 	    for (j=0; j<info->num_inputs; j++)
 	      fprintf(stderr, "I %d) [%s]\n", j, info->inputs[j].name);
 	    for (j=0;j<info->num_standards; j++)
@@ -526,7 +527,7 @@ int tveng1_set_input(struct tveng_enum_input * input,
 	    fprintf(stderr, "cur_input: %d cur_standard: %d\n",
 		    info->cur_input, info->cur_standard);
 	    fprintf(stderr, "b) %d\n",
-		    tveng_set_standard_by_name(info->default_standard,
+		    tveng_set_standard_by_name(info->private->default_standard,
 					       info));
 	    for (j=0; j<info->num_inputs; j++)
 	      fprintf(stderr, "I %d) [%s]\n", j, info->inputs[j].name);
@@ -2418,7 +2419,7 @@ int
 tveng1_start_previewing (tveng_device_info * info)
 {
 #ifndef DISABLE_X_EXTENSIONS
-  Display * display = info->display;
+  Display * display = info->private->display;
   int width, height;
   int dwidth, dheight; /* Width and height of the display */
 

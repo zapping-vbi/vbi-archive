@@ -592,7 +592,6 @@ GList * plugin_load_plugins_in_dir( gchar * directory, gchar * exp,
 
   printv("looking for plugins in %s\n", directory);
 
-  /* fixme: Sometime (kernel 2.4.0test8) this crashes for me, repair */
   n = scandir(directory, &namelist, 0, alphasort);
   if (n < 0)
     {

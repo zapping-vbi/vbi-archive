@@ -39,7 +39,7 @@ gchar *s = N_("Maximum capture size:");
 gchar *s = N_("label28");
 gchar *s = N_("label29");
 gchar *s = N_("Device info");
-gchar *s = N_("Fullscreen mode:");
+gchar *s = N_("Fullscreen video mode:");
 gchar *s = N_("Autodetect\n"
               "Do not change mode\n"
               "");

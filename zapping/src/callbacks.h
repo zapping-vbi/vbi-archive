@@ -112,10 +112,6 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 void
-on_go_fullscreen2_activate             (GtkMenuItem     *menuitem,
-                                        gpointer         user_data);
-
-void
 on_go_windowed1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 

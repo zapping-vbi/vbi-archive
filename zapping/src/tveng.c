@@ -36,10 +36,7 @@
 #include "tveng.h"
 #include "tveng1.h" /* V4L specific headers */
 #include "tveng2.h" /* V4L2 specific headers */
-
-#ifndef MAX
-#define MAX(X, Y) (((X) < (Y)) ? (Y) : (X))
-#endif
+#include "tveng_private.h" /* private definitions */
 
 /* Initializes a tveng_device_info object */
 tveng_device_info * tveng_device_info_new(Display * display, int bpp,
@@ -56,6 +53,14 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp,
   /* fill the struct with 0's */
   memset(new_object, 0, needed_mem);
 
+  new_object -> private = malloc(sizeof(struct tveng_private));
+
+  if (!new_object->private)
+    {
+      free(new_object);
+      return NULL;
+    }
+
   /* Allocate some space for the error string */
   new_object -> error = (char*) malloc(256);
 
@@ -66,14 +71,15 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp,
       return NULL;
     }
 
-  new_object->display = display;
-  new_object->bpp = bpp;
+  new_object->private->display = display;
+  new_object->private->bpp = bpp;
   if (default_standard)
-    new_object->default_standard=strdup(default_standard);
+    new_object->private->default_standard=strdup(default_standard);
   else
-    new_object->default_standard=NULL;
+    new_object->private->default_standard=NULL;
 
-  new_object->zapping_setup_fb_verbosity = 0; /* No output by default */
+  new_object->private->zapping_setup_fb_verbosity = 0; /* No output by
+							  default */
 
   new_object->current_controller = TVENG_CONTROLLER_NONE;
 
@@ -92,9 +98,10 @@ void tveng_device_info_destroy(tveng_device_info * info)
   if (info -> error)
     free(info -> error);
 
-  if (info -> default_standard)
-    free(info -> default_standard);
+  if (info -> private->default_standard)
+    free(info -> private->default_standard);
 
+  free(info->private);
   free(info);
 }
 
@@ -106,7 +113,7 @@ void tveng_device_info_destroy(tveng_device_info * info)
   /dev/video)
   attach_mode: Specifies the mode to open the device file
   depth: The color depth the capture will be in, -1 means let tveng
-  decide based on the current display depth.
+  decide based on the current private->display depth.
   info: The structure to be associated with the device
 */
 int tveng_attach_device(const char* device_file,
@@ -125,7 +132,7 @@ int tveng_attach_device(const char* device_file,
   info -> current_controller = TVENG_CONTROLLER_NONE;
 
   /*
-    Check that the current display depth is one of the supported ones
+    Check that the current private->display depth is one of the supported ones
   */
   switch (tveng_get_display_depth(info))
     {
@@ -137,7 +144,7 @@ int tveng_attach_device(const char* device_file,
     default:
       info -> tveng_errno = -1;
       t_error_msg("switch()",
-		  _("The current display depth isn't supported by TVeng"),
+		  _("The current private->display depth isn't supported by TVeng"),
 		  info);
       return -1;
     }
@@ -168,9 +175,9 @@ int tveng_attach_device(const char* device_file,
       tveng_describe_controller(&short_str, &long_str, info);
       fprintf(stderr, "Device: %s [%s - %s]\n", info->file_name,
 	      short_str, long_str);
-      if (info->default_standard)
+      if (info->private->default_standard)
 	fprintf(stderr, "On tunerless inputs, the norm defaults to %s\n",
-		info->default_standard);
+		info->private->default_standard);
       fprintf(stderr, "Current capture format:\n");
       fprintf(stderr, "  Dimensions: %dx%d  BytesPerLine: %d  Depth: %d "
 	      "Size: %d K\n", info->format.width,
@@ -1108,7 +1115,7 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
    1 if the program should continue (Frame Buffer present,
    available and suitable)
    0 if the framebuffer shouldn't be used.
-   display: The display we are connected to (gdk_display)
+   private->display: The private->display we are connected to (gdk_private->display)
    info: Its fb member is filled in
 */
 int
@@ -1120,21 +1127,21 @@ tveng_detect_XF86DGA(tveng_device_info * info)
   int flags;
   static int info_printed = 0; /* Print the info just once */
 
-  Display * display = info->display;
+  Display * dpy = info->private->display;
 
-  if (!XF86DGAQueryExtension(display, &event_base, &error_base))
+  if (!XF86DGAQueryExtension(dpy, &event_base, &error_base))
     {
       perror("XF86DGAQueryExtension");
       return 0;
     }
 
-  if (!XF86DGAQueryVersion(display, &major_version, &minor_version))
+  if (!XF86DGAQueryVersion(dpy, &major_version, &minor_version))
     {
       perror("XF86DGAQueryVersion");
       return 0;
     }
 
-  if (!XF86DGAQueryDirectVideo(display, 0, &flags))
+  if (!XF86DGAQueryDirectVideo(dpy, 0, &flags))
     {
       perror("XF86DGAQueryDirectVideo");
       return 0;
@@ -1205,7 +1212,7 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
   pid_t pid; /* New child's pid as returned by fork() */
   int status; /* zapping_setup_fb returned status */
   int i=0;
-  int verbosity = info->zapping_setup_fb_verbosity;
+  int verbosity = info->private->zapping_setup_fb_verbosity;
   char buffer[256]; /* A temporary buffer */
 
   /* Executes zapping_setup_fb with the given arguments */
@@ -1220,9 +1227,9 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
     verbosity = 2;
   for (; verbosity > 0; verbosity --)
     argv[i++] = "--verbose";
-  if (info->bpp != -1)
+  if (info->private->bpp != -1)
     {
-      snprintf(buffer, 255, "%d", info->bpp);
+      snprintf(buffer, 255, "%d", info->private->bpp);
       buffer[255] = 0;
       argv[i++] = "--bpp";
       argv[i++] = buffer;
@@ -1286,12 +1293,12 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
 
 /* 
    This is a convenience function, it returns the real screen depth in
-   BPP (bits per pixel). This one is quite important for 24 and 32 bit
+   PRIVATE->BPP (bits per pixel). This one is quite important for 24 and 32 bit
    modes, since the default X visual may be 24 bit and the real screen
    depth 32, thus an expensive RGB -> RGBA conversion must be
    performed for each frame.
-   display: the display we want to know its real depth (can be
-   accessed through gdk_display)
+   private->display: the private->display we want to know its real depth (can be
+   accessed through gdk_private->display)
 */
 int
 tveng_get_display_depth(tveng_device_info * info)
@@ -1300,16 +1307,16 @@ tveng_get_display_depth(tveng_device_info * info)
      well, but they seem to work OK */
   XVisualInfo * visual_info, template;
   XPixmapFormatValues * pf;
-  Display * display = info->display;
+  Display * dpy = info->private->display;
   int found, v, i, n;
   int bpp = 0;
 
-  if (info->bpp != -1)
-    return info->bpp;
+  if (info->private->bpp != -1)
+    return info->private->bpp;
 
   /* Use the first screen, should give no problems assuming this */
   template.screen = 0;
-  visual_info = XGetVisualInfo(display, VisualScreenMask, &template, &found);
+  visual_info = XGetVisualInfo(dpy, VisualScreenMask, &template, &found);
   v = -1;
   for (i = 0; v == -1 && i < found; i++)
     if (visual_info[i].class == TrueColor && visual_info[i].depth >=
@@ -1325,13 +1332,13 @@ tveng_get_display_depth(tveng_device_info * info)
   }
   
   /* get depth + bpp (heuristic) */
-  pf = XListPixmapFormats(display,&n);
+  pf = XListPixmapFormats(dpy, &n);
   for (i = 0; i < n; i++) {
     if (pf[i].depth == visual_info[v].depth) {
       if (visual_info[v].depth == 15)
 	bpp = 15; /* here bits_per_pixel is 16, but the depth is 15 */
       else
-	bpp   = pf[i].bits_per_pixel;
+	bpp = pf[i].bits_per_pixel;
       break;
     }
   }
@@ -1458,14 +1465,14 @@ tveng_set_zapping_setup_fb_verbosity(int level, tveng_device_info *
     level = 2;
   else if (level < 0)
     level = 0;
-  info->zapping_setup_fb_verbosity = level;
+  info->private->zapping_setup_fb_verbosity = level;
 }
 
 /* Returns the current verbosity value passed to zapping_setup_fb */
 int
 tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info)
 {
-  return (info->zapping_setup_fb_verbosity);
+  return (info->private->zapping_setup_fb_verbosity);
 }
 
 /* 
@@ -1494,44 +1501,44 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
   /* special code, used only inside tveng, means remember from last
      time */
   if (change_mode == -1)
-    change_mode = info->change_mode;
+    change_mode = info->private->change_mode;
   else
-    info->change_mode = change_mode;
+    info->private->change_mode = change_mode;
 
 #ifndef DISABLE_X_EXTENSIONS
-  info -> xf86vm_enabled = 1;
+  info -> private->xf86vm_enabled = 1;
 
-  if (!XF86VidModeQueryExtension(info->display, &event_base,
+  if (!XF86VidModeQueryExtension(info->private->display, &event_base,
 				 &error_base))
     {
       info->tveng_errno = -1;
       t_error_msg("XF86VidModeQueryExtension",
 		  "No vidmode extension supported", info);
-      info->xf86vm_enabled = 0;
+      info->private->xf86vm_enabled = 0;
     }
 
-  if ((info->xf86vm_enabled) &&
-      (!XF86VidModeQueryVersion(info->display, &major_version,
+  if ((info->private->xf86vm_enabled) &&
+      (!XF86VidModeQueryVersion(info->private->display, &major_version,
 				&minor_version)))
     {
       info->tveng_errno = -1;
       t_error_msg("XF86VidModeQueryVersion",
 		  "No vidmode extension supported", info);
-      info->xf86vm_enabled = 0;      
+      info->private->xf86vm_enabled = 0;      
     }
 
-  if ((info->xf86vm_enabled) &&
-      (!XF86VidModeGetAllModeLines(info->display, 
-				   DefaultScreen(info->display),
+  if ((info->private->xf86vm_enabled) &&
+      (!XF86VidModeGetAllModeLines(info->private->display, 
+				   DefaultScreen(info->private->display),
 				   &modecount, &modesinfo)))
     {
       info->tveng_errno = -1;
       t_error_msg("XF86VidModeGetAllModeLines",
 		  "No vidmode extension supported", info);
-      info->xf86vm_enabled = 0;
+      info->private->xf86vm_enabled = 0;
     }
 
-  if (info -> xf86vm_enabled)
+  if (info -> private->xf86vm_enabled)
     {
       if ((info->debug_level > 0) && (!info_printed))
 	{
@@ -1588,40 +1595,40 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
       /* If the chosen mode isn't the actual one, choose it, but
 	 place the viewport correctly first */
       /* get the current viewport pos for restoring later */
-      XF86VidModeGetViewPort(info->display,
-			     DefaultScreen(info->display),
-			     &(info->save_x), &(info->save_y));
+      XF86VidModeGetViewPort(info->private->display,
+			     DefaultScreen(info->private->display),
+			     &(info->private->save_x), &(info->private->save_y));
 
       if (change_mode == 0)
 	chosen_mode = 0;
 
       if (chosen_mode == 0)
 	{
-	  info->restore_mode = 0;
-	  XF86VidModeSetViewPort(info->display,
-				 DefaultScreen(info->display), 0, 0);
+	  info->private->restore_mode = 0;
+	  XF86VidModeSetViewPort(info->private->display,
+				 DefaultScreen(info->private->display), 0, 0);
 	}
       else
 	{
-	  info->restore_mode = 1;
-	  info->modeinfo.privsize = 0;
-	  XF86VidModeGetModeLine(info->display,
-				 DefaultScreen(info->display),
-				 &(info->modeinfo.dotclock),
+	  info->private->restore_mode = 1;
+	  info->private->modeinfo.privsize = 0;
+	  XF86VidModeGetModeLine(info->private->display,
+				 DefaultScreen(info->private->display),
+				 &(info->private->modeinfo.dotclock),
 				 /* this is kinda broken, but it
 				    will probably always work */
 				 (XF86VidModeModeLine*)
-				 &(info->modeinfo.hdisplay));
+				 &(info->private->modeinfo.hdisplay));
 
-	  if (!XF86VidModeSwitchToMode(info->display,
-				       DefaultScreen(info->display),
+	  if (!XF86VidModeSwitchToMode(info->private->display,
+				       DefaultScreen(info->private->display),
 				       modesinfo[chosen_mode]))
-	    info -> xf86vm_enabled = 0;
+	    info -> private->xf86vm_enabled = 0;
 
 	  /* Place the viewport again */
-	  if (info -> xf86vm_enabled)
-	    XF86VidModeSetViewPort(info->display,
-				   DefaultScreen(info->display), 0, 0);
+	  if (info -> private->xf86vm_enabled)
+	    XF86VidModeSetViewPort(info->private->display,
+				   DefaultScreen(info->private->display), 0, 0);
 	}
 
       for (i=0; i<modecount; i++)
@@ -1630,7 +1637,7 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
       
       XFree(modesinfo);
     }
-  else /* info -> xf86vm_enabled */
+  else /* info -> private->xf86vm_enabled */
     {
       fprintf(stderr, "XF86VidMode not enabled: %s\n", info -> error);
     }
@@ -1680,19 +1687,19 @@ tveng_stop_previewing(tveng_device_info * info)
     }
 
 #ifndef DISABLE_X_EXTENSIONS
-  if (info->xf86vm_enabled)
+  if (info->private->xf86vm_enabled)
     {
-      if (info->restore_mode)
+      if (info->private->restore_mode)
 	{
-	  XF86VidModeSwitchToMode(info->display,
-				  DefaultScreen(info->display),
-				  &(info->modeinfo));
-	  if (info->modeinfo.privsize > 0)
-	    XFree(info->modeinfo.private);
+	  XF86VidModeSwitchToMode(info->private->display,
+				  DefaultScreen(info->private->display),
+				  &(info->private->modeinfo));
+	  if (info->private->modeinfo.privsize > 0)
+	    XFree(info->private->modeinfo.private);
 	}
-      XF86VidModeSetViewPort(info->display,
-			     DefaultScreen(info->display),
-			     info->save_x, info->save_y);
+      XF86VidModeSetViewPort(info->private->display,
+			     DefaultScreen(info->private->display),
+			     info->private->save_x, info->private->save_y);
     }
 #endif
 

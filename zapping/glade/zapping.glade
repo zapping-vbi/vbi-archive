@@ -840,7 +840,7 @@
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label90</name>
-	  <label>Fullscreen mode:</label>
+	  <label>Fullscreen video mode:</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>1</xalign>
@@ -2323,8 +2323,8 @@ in the next release of this program.</label>
     <tooltip>Use this for starting the fullscreen mode</tooltip>
     <signal>
       <name>activate</name>
-      <handler>on_go_fullscreen2_activate</handler>
-      <last_modification_time>Tue, 13 Jun 2000 22:34:03 GMT</last_modification_time>
+      <handler>on_go_fullscreen1_activate</handler>
+      <last_modification_time>Tue, 14 Nov 2000 21:36:52 GMT</last_modification_time>
     </signal>
     <label>Go _Fullscreen</label>
     <right_justify>False</right_justify>
@@ -2338,7 +2338,7 @@ in the next release of this program.</label>
     <signal>
       <name>activate</name>
       <handler>on_go_previewing2_activate</handler>
-      <last_modification_time>Sat, 22 Jul 2000 19:27:11 GMT</last_modification_time>
+      <last_modification_time>Tue, 14 Nov 2000 21:36:49 GMT</last_modification_time>
     </signal>
     <label>Go _Previewing</label>
     <right_justify>False</right_justify>

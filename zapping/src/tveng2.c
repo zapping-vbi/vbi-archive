@@ -37,6 +37,7 @@
 #undef WUNTRACED
 #include "tveng.h"
 #include "tveng2.h"
+#include "tveng_private.h"
 #include "videodev2.h" /* the V4L2 definitions */
 
 struct tveng2_vbuf
@@ -1979,7 +1980,7 @@ int
 tveng2_start_previewing (tveng_device_info * info)
 {
 #ifndef DISABLE_X_EXTENSIONS
-  Display * display = info->display;
+  Display * dpy = info->private->display;
   int width, height;
   int dwidth, dheight; /* Width and height of the display */
 
@@ -1996,7 +1997,7 @@ tveng2_start_previewing (tveng_device_info * info)
 
   /* calculate coordinates for the preview window. We compute this for
    the first display */
-  XF86DGAGetViewPortSize(display, DefaultScreen(display),
+  XF86DGAGetViewPortSize(dpy, DefaultScreen(dpy),
 			 &dwidth, &dheight);
   width = info->caps.maxwidth;
 
