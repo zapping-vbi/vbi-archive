@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.1.2.4 2003-10-07 18:38:14 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.1.2.5 2003-10-10 18:01:52 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
@@ -42,8 +42,18 @@
 static const GScannerConfig
 config = {
   .cset_skip_characters = " \t",
-  .cset_identifier_first = G_CSET_a_2_z G_CSET_A_2_Z,
-  .cset_identifier_nth = G_CSET_a_2_z "_+-0123456789" G_CSET_A_2_Z,
+
+  .cset_identifier_first = (G_CSET_a_2_z
+			    G_CSET_A_2_Z
+			    G_CSET_LATINC
+			    G_CSET_LATINS),
+  .cset_identifier_nth   = ("_+-"
+			    G_CSET_DIGITS
+			    G_CSET_a_2_z
+			    G_CSET_A_2_Z
+			    G_CSET_LATINC
+			    G_CSET_LATINS),
+
   .cpair_comment_single = "#\n",
 
   .case_sensitive = TRUE,
@@ -538,7 +548,6 @@ channel_section			(GScanner *		scanner,
  finish:
   tt_ch->frequ += fine_tuning;
 
-  fprintf(stderr, "DDDDD %d\n", tt_ch->frequ);
   return TRUE;
 
  failure:
@@ -712,7 +721,11 @@ xawtv_import_config		(const tveng_device_info *info,
 	  eat (G_TOKEN_LEFT_BRACE);
 	  eat (G_TOKEN_IDENTIFIER);
 
-	  s = g_strdup (scanner->value.v_identifier);
+	  s = g_locale_to_utf8 (scanner->value.v_identifier,
+				strlen (scanner->value.v_identifier),
+				NULL, NULL, NULL);
+
+	  g_assert (NULL != s);
 
 	  eat (G_TOKEN_RIGHT_BRACE);
 	  eat ('\n');
