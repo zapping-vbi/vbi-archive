@@ -29,7 +29,8 @@
 
 #define ROWS			25
 #define COLUMNS			40
-#define LAST_ROW		((ROWS - 1) * COLUMNS)
+#define EXT_COLUMNS		41
+#define LAST_ROW		((ROWS - 1) * EXT_COLUMNS)
 
 /*
  *  FLOF navigation
@@ -51,7 +52,7 @@ flof_navigation_bar(struct fmt_page *pg, struct vt_page *vtp)
 	ac.opacity	= pg->page_opacity[1];
 	ac.glyph	= GL_SPACE;
 
-	for (i = 0; i < COLUMNS; i++)
+	for (i = 0; i < EXT_COLUMNS; i++)
 		pg->text[LAST_ROW + i] = ac;
 
 	ac.link = TRUE;
@@ -206,7 +207,7 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg,
 	ac.opacity	= pg->page_opacity[1];
 	ac.glyph	= GL_SPACE;
 
-	for (i = 0; i < COLUMNS; i++)
+	for (i = 0; i < EXT_COLUMNS; i++)
 		pg->text[LAST_ROW + i] = ac;
 
 	if (pg->page_opacity[1] != OPAQUE)
@@ -292,7 +293,7 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 	pg->subno = subno;
 
 	pg->rows = ROWS;
-	pg->columns = COLUMNS;
+	pg->columns = EXT_COLUMNS;
 
 	pg->dirty.y0 = 0;
 	pg->dirty.y1 = ROWS - 1;
@@ -309,7 +310,7 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 	ac.opacity	= OPAQUE;
 	ac.glyph	= GL_SPACE;
 
-	for (i = 0; i < COLUMNS * ROWS; i++)
+	for (i = 0; i < EXT_COLUMNS * ROWS; i++)
 		pg->text[i] = ac;
 
 	ac.size = DOUBLE_SIZE;
@@ -317,12 +318,12 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 	for (i = 0; i < 5; i++) {
 		// this asks for i18n and some2glyph :-P
 		ac.glyph = "INDEX"[i];
-		pg->text[1 * COLUMNS + 2 + i * 2] = ac;
+		pg->text[1 * EXT_COLUMNS + 2 + i * 2] = ac;
 	}
 
 	ac.size = NORMAL;
 
-	acp = &pg->text[4 * COLUMNS];
+	acp = &pg->text[4 * EXT_COLUMNS];
 	lines = 17;
 	xpgno = 0;
 	xsubno = 0;
@@ -372,7 +373,7 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 			acp[j + 35].glyph = n;
  		}
 
-		acp += COLUMNS;
+		acp += EXT_COLUMNS;
 	}
 
 	return 1;
@@ -504,7 +505,7 @@ zap_links(struct fmt_page *pg, int row)
 	bool link[43];
 	int i, j, n, b;
 
-	acp = &pg->text[row * COLUMNS];
+	acp = &pg->text[row * EXT_COLUMNS];
 
 	for (i = j = 0; i < COLUMNS; i++) {
 		if (acp[i].size == OVER_TOP || acp[i].size == OVER_BOTTOM)
@@ -541,11 +542,11 @@ vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link *ld)
 	attr_char *acp;
 	int i, j, b;
 
-	assert(column >= 0 && column < COLUMNS);
+	assert(column >= 0 && column < EXT_COLUMNS);
 
 	ld->nuid = pg->nuid;
 
-	acp = &pg->text[row * COLUMNS];
+	acp = &pg->text[row * EXT_COLUMNS];
 
 	if (row == (ROWS - 1) && acp[column].link) {
 		i = pg->nav_index[column];
@@ -557,7 +558,7 @@ vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link *ld)
 		return;
 	}
 
-	if (row < 1 || row > 23) {
+	if (row < 1 || row > 23 || column >= COLUMNS) {
 		ld->type = VBI_LINK_NONE;
 		return;
 	}
@@ -929,7 +930,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 	active_column = 0;
 	active_row = 0;
 
-	acp = &pg->text[(inv_row + 0) * COLUMNS];
+	acp = &pg->text[(inv_row + 0) * EXT_COLUMNS];
 
 	offset_column = 0;
 	offset_row = 0;
@@ -1023,7 +1024,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				active_row = row;
 				active_column = column;
 
-				acp = &pg->text[(inv_row + active_row) * COLUMNS];
+				acp = &pg->text[(inv_row + active_row) * EXT_COLUMNS];
 
 				break;
 
@@ -1419,7 +1420,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 
 				row = inv_row + active_row;
 				count = (p->data >> 4) + 1;
-				acp = &pg->text[row * COLUMNS];
+				acp = &pg->text[row * EXT_COLUMNS];
 
 				proportional = (p->data >> 0) & 1;
 				bold = (p->data >> 1) & 1;
@@ -1432,7 +1433,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 						acp[col].proportional = proportional;
 					}
 
-					acp += COLUMNS;
+					acp += EXT_COLUMNS;
 					row++;
 					count--;
 				}
@@ -1488,6 +1489,8 @@ swedish:
 		}
 
 		printv("\n");
+
+		acp += EXT_COLUMNS - COLUMNS;
 	}
 #endif
 
@@ -1518,9 +1521,10 @@ post_enhance(struct fmt_page *pg)
 			switch (acp->size) {
 			case NORMAL:
 				if (row < 23
-				    && (acp[COLUMNS].size == DOUBLE_HEIGHT2 || acp[COLUMNS].size == DOUBLE_SIZE2)) {
-					acp[COLUMNS].glyph = GL_SPACE;
-					acp[COLUMNS].size = NORMAL;
+				    && (acp[EXT_COLUMNS].size == DOUBLE_HEIGHT2
+					|| acp[EXT_COLUMNS].size == DOUBLE_SIZE2)) {
+					acp[EXT_COLUMNS].glyph = GL_SPACE;
+					acp[EXT_COLUMNS].size = NORMAL;
 				}
 
 				if (column < 39
@@ -1534,15 +1538,15 @@ post_enhance(struct fmt_page *pg)
 			case DOUBLE_HEIGHT:
 				ac = acp[0];
 				ac.size = DOUBLE_HEIGHT2;
-				acp[COLUMNS] = ac;
+				acp[EXT_COLUMNS] = ac;
 				break;
 
 			case DOUBLE_SIZE:
 				ac = acp[0];
 				ac.size = DOUBLE_SIZE2;
-				acp[COLUMNS] = ac;
+				acp[EXT_COLUMNS] = ac;
 				ac.size = OVER_BOTTOM;
-				acp[41] = ac;
+				acp[EXT_COLUMNS + 1] = ac;
 				/* fall through */
 
 			case DOUBLE_WIDTH:
@@ -1557,6 +1561,8 @@ post_enhance(struct fmt_page *pg)
 		}
 
 		printv("\n");
+
+		acp += EXT_COLUMNS - COLUMNS;
 	}
 }
 
@@ -1629,7 +1635,7 @@ vbi_format_page(struct vbi *vbi,
 	pg->subno = vtp->subno;
 
 	pg->rows = ROWS;
-	pg->columns = COLUMNS;
+	pg->columns = EXT_COLUMNS;
 
 	pg->dirty.y0 = 0;
 	pg->dirty.y1 = ROWS - 1;
@@ -1701,7 +1707,7 @@ vbi_format_page(struct vbi *vbi,
 		int held_mosaic_glyph;
 		bool hold, mosaic;
 		bool double_height, wide_char;
-		attr_char ac, *acp = &pg->text[row * COLUMNS];
+		attr_char ac, *acp = &pg->text[row * EXT_COLUMNS];
 
 		held_mosaic_glyph = GL_CONTIGUOUS_BLOCK_MOSAIC_G1 + 0; /* blank */
 
@@ -1717,6 +1723,8 @@ vbi_format_page(struct vbi *vbi,
 
 		double_height	= FALSE;
 		wide_char	= FALSE;
+
+		acp[COLUMNS] = ac;
 
 		for (column = 0; column < COLUMNS; ++column) {
 			int raw;
@@ -1777,7 +1785,7 @@ vbi_format_page(struct vbi *vbi,
 
 				wide_char = /*!!*/(ac.size & DOUBLE_WIDTH);
 
-				if (wide_char && column < 39) {
+				if (wide_char && column < (COLUMNS - 1)) {
 					acp[column + 1] = ac;
 					acp[column + 1].size = OVER_TOP;
 				}
@@ -1798,12 +1806,12 @@ vbi_format_page(struct vbi *vbi,
 				break;
 
 			case 0x0A:		/* end box */
-				if (column < 39 && parity(vtp->data.lop.raw[0][i]) == 0x0a)
+				if (column < (COLUMNS - 1) && parity(vtp->data.lop.raw[0][i]) == 0x0a)
 					ac.opacity = pg->page_opacity[row > 0];
 				break;
 
 			case 0x0B:		/* start box */
-				if (column < 39 && parity(vtp->data.lop.raw[0][i]) == 0x0b)
+				if (column < (COLUMNS - 1) && parity(vtp->data.lop.raw[0][i]) == 0x0b)
 					ac.opacity = pg->boxed_opacity[row > 0];
 				break;
 
@@ -1816,13 +1824,13 @@ vbi_format_page(struct vbi *vbi,
 
 			case 0x0E:		/* double width */
 				printv("spacing col %d row %d double width\n", column, row);
-				if (column < 39)
+				if (column < (COLUMNS - 1))
 					ac.size = DOUBLE_WIDTH;
 				break;
 
 			case 0x0F:		/* double size */
 				printv("spacing col %d row %d double size\n", column, row);
-				if (column >= 39 || row <= 0 || row >= 23)
+				if (column >= (COLUMNS - 1) || row <= 0 || row >= 23)
 					break;
 				ac.size = DOUBLE_SIZE;
 				double_height = TRUE;
@@ -1852,20 +1860,20 @@ vbi_format_page(struct vbi *vbi,
 				switch (ac.size) {
 				case DOUBLE_HEIGHT:
 					ac.size = DOUBLE_HEIGHT2;
-					acp[COLUMNS + column] = ac;
+					acp[EXT_COLUMNS + column] = ac;
 					break;
 		
 				case DOUBLE_SIZE:
 					ac.size = DOUBLE_SIZE2;
-					acp[COLUMNS + column] = ac;
+					acp[EXT_COLUMNS + column] = ac;
 					ac.size = OVER_BOTTOM;
-					acp[COLUMNS + (++column)] = ac;
+					acp[EXT_COLUMNS + (++column)] = ac;
 					break;
 
 				default: /* NORMAL, DOUBLE_WIDTH, OVER_TOP */
 					ac.size = NORMAL;
 					ac.glyph = GL_SPACE;
-					acp[COLUMNS + column] = ac;
+					acp[EXT_COLUMNS + column] = ac;
 					break;
 				}
 			}
@@ -1887,7 +1895,7 @@ vbi_format_page(struct vbi *vbi,
 		ac.opacity	= pg->page_opacity[1];
 		ac.glyph	= GL_SPACE;
 
-		for (i = row * COLUMNS; i < ROWS * COLUMNS; i++)
+		for (i = row * EXT_COLUMNS; i < ROWS * EXT_COLUMNS; i++)
 			pg->text[i] = ac;
 	}
 

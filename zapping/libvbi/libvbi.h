@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.39 2001-07-21 06:09:09 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.40 2001-07-21 11:52:25 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -159,8 +159,12 @@ extern void		vbi_draw_vt_page_region(struct fmt_page *pg, uint32_t *canvas,
 extern void		vbi_draw_cc_page_region(struct fmt_page *pg, uint32_t *canvas,
 				int column, int row, int width, int height, unsigned int rowstride);
 
-#define vbi_draw_vt_page(pg, canvas, reveal, flash_on) \
-	vbi_draw_vt_page_region(pg, canvas, 0, 0, 40, 25, -1, reveal, flash_on)
+static inline void
+vbi_draw_vt_page(struct fmt_page *pg, uint32_t *canvas, int reveal, int flash_on)
+{
+	vbi_draw_vt_page_region(pg, canvas, 0, 0,
+		pg->columns, pg->rows, -1, reveal, flash_on);
+}
 
 /*
  *  Network identification.
@@ -380,7 +384,8 @@ extern int		vbi_export_name(vbi_export *e, char *name, struct fmt_page *pg);
 extern int		vbi_export_file(vbi_export *e, FILE *fp, struct fmt_page *pg);
 
 /* XXX */
-void vbi_get_rendered_size(int *w, int *h);
+void vbi_get_max_rendered_size(int *w, int *h);
+void vbi_get_vt_cell_size(int *w, int *h);
 
 
 

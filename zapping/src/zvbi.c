@@ -653,7 +653,7 @@ register_ttx_client(void)
   filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
 			     "../pixmaps/zapping/vt_loading",
 			     (rand()%2)+1);
-  vbi_get_rendered_size(&w, &h);
+  vbi_get_max_rendered_size(&w, &h);
   client->unscaled_on = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w,
 				    h);
   client->unscaled_off = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w,

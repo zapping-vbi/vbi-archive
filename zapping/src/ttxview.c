@@ -579,12 +579,9 @@ static void selection_handle		(GtkWidget	*widget,
 					 guint		time_stamp,
 					 ttxview_data	*data)
 {
-  gint rw, rh;
   gint CW, CH;
 
-  vbi_get_rendered_size(&rw, &rh);
-  CW = rw/40;
-  CH = rh/25;
+  vbi_get_vt_cell_size(&CW, &CH);
 
   if (((selection_data->selection == GDK_SELECTION_PRIMARY) &&
        (data->in_selection)) ||
@@ -2640,13 +2637,13 @@ static void region_union_with_rect(GdkRegion **region,
  * to window dimensions.
  */
 static void scale_rect(GdkRectangle *rect,
-		       int x1, int y1, int x2, int y2,
-		       int w, int h)
+		       gint x1, gint y1, gint x2, gint y2,
+		       gint w, gint h, gint rows, gint columns)
 {
-  rect->x = (x1 * w) / 40;
-  rect->y = (y1 * h) / 25;
-  rect->width = ((x2 + 1) * w) / 40 - rect->x;
-  rect->height = ((y2 + 1) * h) / 25 - rect->y;
+  rect->x = (x1 * w) / columns;
+  rect->y = (y1 * h) / rows;
+  rect->width = ((x2 + 1) * w) / columns - rect->x;
+  rect->height = ((y2 + 1) * h) / rows - rect->y;
 }
 
 #define SWAP(a, b)			\
@@ -2684,9 +2681,13 @@ static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
 {
   gint w, h;
   gint h1, h2, h3, h4;
+  gint rows, columns;
   GdkRectangle rect;
   GdkRegion *src_region, *dst_region;
   GdkRegion *clip_region;
+
+  rows = data->fmt_page->rows;
+  columns = data->fmt_page->columns;
 
   gdk_window_get_size(data->da->window, &w, &h);
   gdk_gc_set_clip_origin(data->xor_gc, 0, 0);
@@ -2709,14 +2710,14 @@ static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
       if (sx1 > sx2)
         SWAP(sx1, sx2);
 
-      scale_rect(&rect, sx1, sy1 - h1, sx2, sy2 + h4, w, h);
+      scale_rect(&rect, sx1, sy1 - h1, sx2, sy2 + h4, w, h, rows, columns);
       src_region = region_from_rect(&rect);
     }
   else
     {
-      scale_rect(&rect, sx1, sy1 - h1, 39, sy1 + h2, w, h);
+      scale_rect(&rect, sx1, sy1 - h1, columns - 1, sy1 + h2, w, h, rows, columns);
       src_region = region_from_rect(&rect);
-      scale_rect(&rect, 0, sy2 - h3, sx2, sy2 + h4, w, h);
+      scale_rect(&rect, 0, sy2 - h3, sx2, sy2 + h4, w, h, rows, columns);
       region_union_with_rect(&src_region, &rect);
 
       sy1 += h2 + 1;
@@ -2724,7 +2725,7 @@ static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
 
       if (sy2 >= sy1)
         {
-          scale_rect(&rect, 0, sy1, 39, sy2, w, h);
+          scale_rect(&rect, 0, sy1, columns - 1, sy2, w, h, rows, columns);
 	  region_union_with_rect(&src_region, &rect);
 	}
     }
@@ -2750,14 +2751,14 @@ static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
       data->trn_col2 = dx2;
       data->trn_row2 = dy2 += h4;
 
-      scale_rect(&rect, dx1, dy1, dx2, dy2, w, h);
+      scale_rect(&rect, dx1, dy1, dx2, dy2, w, h, rows, columns);
       dst_region = region_from_rect(&rect);
     }
   else
     {
-      scale_rect(&rect, dx1, dy1 - h1, 39, dy1 + h2, w, h);
+      scale_rect(&rect, dx1, dy1 - h1, columns - 1, dy1 + h2, w, h, rows, columns);
       dst_region = region_from_rect(&rect);
-      scale_rect(&rect, 0, dy2 - h3, dx2, dy2 + h4, w, h);
+      scale_rect(&rect, 0, dy2 - h3, dx2, dy2 + h4, w, h, rows, columns);
       region_union_with_rect(&dst_region, &rect);
 
       data->trn_col1 = dx1;
@@ -2770,7 +2771,7 @@ static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
 
       if (dy2 >= dy1)
         {
-          scale_rect(&rect, 0, dy1, 39, dy2, w, h);
+          scale_rect(&rect, 0, dy1, columns - 1, dy2, w, h, rows, columns);
 	  region_union_with_rect(&dst_region, &rect);
 	}
     }
@@ -2829,41 +2830,44 @@ static void select_update(gint x, gint y, guint state,
 			  ttxview_data * data)
 {
   gint w, h;
-  gint ocol, orow, col, row, scol, srow;
+  gint ocol, orow, col, row, scol, srow, rows, columns;
   gboolean table = !!(state & GDK_SHIFT_MASK);
 
   if (!data->selecting)
     return;
 
+  rows = data->fmt_page->rows;
+  columns = data->fmt_page->columns;
+
   gdk_window_get_size(data->da->window, &w, &h);
 
-  col = (x*40)/w;
-  row = (y*25)/h;
-  scol = (data->ssx*40)/w;
-  srow = (data->ssy*25)/h;
+  col = (x * columns) / w;
+  row = (y * rows) / h;
+  scol = (data->ssx * columns) / w;
+  srow = (data->ssy * rows) / h;
 
   if (data->osx == -1)
     {
-      ocol = (data->ssx*40)/w;
-      orow = (data->ssy*25)/h;
+      ocol = (data->ssx * columns) / w;
+      orow = (data->ssy * rows) / h;
     }
   else
     {
-      ocol = (data->osx*40)/w;
-      orow = (data->osy*25)/h;
+      ocol = (data->osx * columns) / w;
+      orow = (data->osy * rows) / h;
     }
 
-  col = SATURATE(col, 0, 39);
-  row = SATURATE(row, 0, 24);
-  scol = SATURATE(scol, 0, 39);
-  srow = SATURATE(srow, 0, 24);
-  ocol = SATURATE(ocol, 0, 39);
-  orow = SATURATE(orow, 0, 24);
+  col = SATURATE(col, 0, columns - 1);
+  row = SATURATE(row, 0, rows - 1);
+  scol = SATURATE(scol, 0, columns - 1);
+  srow = SATURATE(srow, 0, rows - 1);
+  ocol = SATURATE(ocol, 0, columns - 1);
+  orow = SATURATE(orow, 0, rows - 1);
 
   /* first movement */
   if (data->osx == -1)
     {
-      transform_region(40, 25, 40, 25, scol, srow, col, row,
+      transform_region(columns, rows, columns, rows, scol, srow, col, row,
                        data->sel_table, table, NULL, data);
       data->osx = (x < 0) ? 0 : x;
       data->osy = y;
@@ -2880,10 +2884,13 @@ static void select_update(gint x, gint y, guint state,
 static void select_stop(ttxview_data * data)
 {
   gint w, h;
-  gint scol, srow, col, row;
+  gint scol, srow, col, row, rows, columns;
 
   if (!data->selecting)
     return;
+
+  rows = data->fmt_page->rows;
+  columns = data->fmt_page->columns;
 
   if (data->appbar)
     gnome_appbar_pop(GNOME_APPBAR(data->appbar));
@@ -2892,22 +2899,22 @@ static void select_stop(ttxview_data * data)
     {
       gdk_window_get_size(data->da->window, &w, &h);
 
-      scol = (data->ssx*40)/w;
-      srow = (data->ssy*25)/h;
-      col = (data->osx*40)/w;
-      row = (data->osy*25)/h;
+      scol = (data->ssx * columns) / w;
+      srow = (data->ssy * rows) / h;
+      col = (data->osx * columns) / w;
+      row = (data->osy * rows) / h;
 
-      col = SATURATE(col, 0, 39);
-      row = SATURATE(row, 0, 24);
-      scol = SATURATE(scol, 0, 39);
-      srow = SATURATE(srow, 0, 24);
+      col = SATURATE(col, 0, columns - 1);
+      row = SATURATE(row, 0, rows - 1);
+      scol = SATURATE(scol, 0, columns - 1);
+      srow = SATURATE(srow, 0, rows - 1);
 
       data->sel_col1 = data->trn_col1;
       data->sel_row1 = data->trn_row1;
       data->sel_col2 = data->trn_col2;
       data->sel_row2 = data->trn_row2;
 
-      transform_region(scol, srow, col, row, 40, 25, 40, 25,
+      transform_region(scol, srow, col, row, columns, rows, columns, rows,
                        data->sel_table, data->sel_table, NULL, data);
 
       memcpy(&data->clipboard_fmt_page, data->fmt_page,
@@ -2955,8 +2962,11 @@ gboolean on_ttxview_expose_event	(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
   gint w, h;
-  gint scol, srow, col, row;
+  gint scol, srow, col, row, rows, columns;
   GdkRegion *region;
+
+  rows = data->fmt_page->rows;
+  columns = data->fmt_page->columns;
 
   render_ttx_page(data->id, widget->window, widget->style->white_gc,
 		  event->area.x, event->area.y,
@@ -2967,15 +2977,15 @@ gboolean on_ttxview_expose_event	(GtkWidget	*widget,
     {
       gdk_window_get_size(data->da->window, &w, &h);
 
-      scol = (data->ssx*40)/w;
-      srow = (data->ssy*25)/h;
-      col = (data->osx*40)/w;
-      row = (data->osy*25)/h;
+      scol = (data->ssx * columns) / w;
+      srow = (data->ssy * rows) / h;
+      col = (data->osx * columns) / w;
+      row = (data->osy * rows) / h;
 
-      col = SATURATE(col, 0, 39);
-      row = SATURATE(row, 0, 24);
-      scol = SATURATE(scol, 0, 39);
-      srow = SATURATE(srow, 0, 24);
+      col = SATURATE(col, 0, columns - 1);
+      row = SATURATE(row, 0, rows - 1);
+      scol = SATURATE(scol, 0, columns - 1);
+      srow = SATURATE(srow, 0, rows - 1);
 
       region = region_from_rect(&event->area);
 

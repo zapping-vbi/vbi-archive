@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.18 2001-06-23 02:50:44 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.19 2001-07-21 11:52:25 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -145,8 +145,13 @@ escaped_fputc(FILE *fp, int c)
 static void
 escaped_fputs(FILE *fp, char *s)
 {
-	while (*s)
-		escaped_fputc(fp, *s++);
+	while (*s) {
+		if (*s < 0) /* Latin-1 */
+			escaped_fputc(fp, - (unsigned char) *s);
+		else
+			escaped_fputc(fp, *s);
+		s++;
+	}
 }
 
 static const char *	html_underline[]	= { "</u>", "<u>" };

@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.34 2001-07-02 16:17:13 garetxe Exp $ */
+/* $Id: exp-gfx.c,v 1.35 2001-07-21 11:52:25 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -48,12 +48,8 @@
 
 /* Character cell dimensions - hardcoded (DRCS) */
 
-#define W               40
-#define H               25
 #define CW		12		
 #define CH		10
-#define WW		(W * CW)
-#define WH		(H * CH)
 
 #define CPL		(wstfont_width / CW * wstfont_height / CH)
 
@@ -398,13 +394,16 @@ vbi_draw_vt_page_region(struct fmt_page *pg, uint32_t *canvas,
 }
 
 /* XXX */
-/* We could just export WW and WH too.. */
-void vbi_get_rendered_size(int *w, int *h)
+void vbi_get_max_rendered_size(int *w, int *h)
 {
-  if (w)
-    *w = WW;
-  if (h)
-    *h = WH;
+  if (w) *w = 41 * CW;
+  if (h) *h = 25 * CH;
+}
+
+void vbi_get_vt_cell_size(int *w, int *h)
+{
+  if (w) *w = CW;
+  if (h) *h = CH;
 }
 
 /*
@@ -462,7 +461,7 @@ ppm_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 	struct stat st;
 	int i;
 
-	if (pg->columns < 40) {
+	if (pg->columns < 40) /* caption */ {
 		cw = 16;
 		ch = 26;
 		scale = !!d->double_height;
@@ -636,8 +635,10 @@ png_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 	png_byte alpha[80];
 	png_text text[4];
 	char title[80];
+	int WH = pg->rows * CH;
 	png_bytep row_pointer[WH * 2];
 	png_bytep image;
+	int WW = pg->columns * CW;
 	int rowstride = WW * sizeof(*image);
 	int i;
 
@@ -658,8 +659,8 @@ png_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 			pen[i + 64] = pg->drcs_clut[i] + 40;
 		}
 
-		for (row = 0; row < H; canvas += W * CW * CH - W * CW, row++) {
-			for (column = 0; column < W; canvas += CW, column++) {
+		for (row = 0; row < pg->rows; canvas += pg->columns * CW * CH - pg->columns * CW, row++) {
+			for (column = 0; column < pg->columns ; canvas += CW, column++) {
 				ac = &pg->text[row * pg->columns + column];
 
 				if (ac->size == OVER_TOP

@@ -1,6 +1,7 @@
 21.07.2001	libvbi <mschimek@users.sf.net>
 
 	* Added aspect ratio event.
+	* Artificial 41st column for TTX pages.
 
 17.07.2001	libvbi/wss <mschimek@users.sf.net>
 

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.27 2001-07-21 06:09:09 mschimek Exp $ */
+/* $Id: caption.c,v 1.28 2001-07-21 11:52:25 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -311,7 +311,7 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 			else
 				r.ratio = 1.0;
 
-			if (strcmp(r, &vbi->ratio) != 0) {
+			if (memcmp(&r, &vbi->ratio, sizeof(r)) != 0) {
 				vbi_event ev;
 
 				vbi->ratio = r;

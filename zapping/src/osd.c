@@ -34,7 +34,7 @@
 #define CELL_WIDTH 16
 #define CELL_HEIGHT 26
 
-#define MAX_COLUMNS 40
+#define MAX_COLUMNS 48
 #define MAX_ROWS 25
 
 #include "libvbi/libvbi.h"

@@ -178,7 +178,7 @@ decode_wss_625(struct vbi *vbi, unsigned char *buf, double time)
 		break;
 	}
 
-	if (strcmp(r, &vbi->ratio) != 0) {
+	if (memcmp(&r, &vbi->ratio, sizeof(r)) != 0) {
 		vbi_event ev;
 
 		vbi->ratio = r;
@@ -242,7 +242,7 @@ decode_wss_cpr1204(struct vbi *vbi, unsigned char *buf)
 	r.film_mode = 0;
 	r.open_subtitles = VBI_SUBT_UNKNOWN;
 
-	if (strcmp(r, &vbi->ratio) != 0) {
+	if (memcmp(&r, &vbi->ratio, sizeof(&r)) != 0) {
 		vbi_event ev;
 
 		vbi->ratio = r;
