@@ -38,7 +38,10 @@ extern ZModel *z_input_model;
  * Sets the given input, based on its hash.
  */
 gboolean
-z_switch_input			(int hash, tveng_device_info *info);
+z_switch_video_input		(int hash, tveng_device_info *info);
+
+gboolean
+z_switch_audio_input		(int hash, tveng_device_info *info);
 
 /**
  * Sets the given standard, based on its hash.
