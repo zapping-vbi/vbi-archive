@@ -8,6 +8,14 @@ plugins/mpeg/options.c
 plugins/mpeg/mpeg_properties.glade2
 plugins/screenshot/screenshot.c
 plugins/screenshot/screenshot.glade2
+plugins/teletext/bookmark.c
+plugins/teletext/color.c
+plugins/teletext/export.c
+plugins/teletext/main.c
+plugins/teletext/search.c
+plugins/teletext/toolbar.c
+plugins/teletext/view.c
+plugins/teletext/window.c
 src/audio.c
 src/capture.c
 src/channel_editor.c
@@ -23,7 +31,6 @@ src/plugin_properties.c
 src/plugins.c
 src/properties-handler.c
 src/properties.c
-src/ttxview.c
 src/tveng.c
 src/tveng1.c
 src/tveng2.c
