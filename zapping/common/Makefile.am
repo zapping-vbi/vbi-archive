@@ -8,6 +8,7 @@ libcommon_a_SOURCES = \
 	ioctl_meteor.h ioctl_bt848.h \
 	list.h \
 	math.h \
+	pwc-ioctl.h \
 	threads.h \
 	types.h \
 	videodev.h videodev2.h videodev25.h
@@ -15,10 +16,11 @@ libcommon_a_SOURCES = \
 structpr = structpr_gen.pl
 
 BUILT_SOURCES = \
+	_bktr.h \
+	_pwc-ioctl.h \
 	_videodev.h \
 	_videodev2.h \
-	_videodev25.h \
-	_bktr.h
+	_videodev25.h
 
 EXTRA_DIST = \
 	$(structpr) \
@@ -29,6 +31,7 @@ INCLUDES = $(DEFAULT_CFLAGS) $(UNICODE_CFLAGS) @COMMON_INCLUDES@ \
 
 _videodev.h: Makefile.am $(structpr) videodev.h
 	$(srcdir)/$(structpr) <$(srcdir)/videodev.h \
+	printfn=fprint_v4l_ioctl_arg \
 	video_device.type=VFL_TYPE_ \
 	video_device.hardware=VID_HARDWARE_ \
 	video_capability.type=VID_TYPE_ \
@@ -54,6 +57,7 @@ _videodev.h: Makefile.am $(structpr) videodev.h
 # XXX v4l2_buffer.flags has V4L2_BUF_FLAG_, V4L2_BUF_ATTR_, V4L2_BUF_REQ_.
 _videodev2.h: Makefile.am $(structpr) videodev2.h
 	$(srcdir)/$(structpr) <$(srcdir)/videodev2.h \
+	printfn=fprint_v4l2_ioctl_arg \
 	v4l2_capability.type=V4L2_TYPE_ \
 	v4l2_capability.flags=V4L2_FLAG_ \
 	v4l2_pix_format.pixelformat=V4L2_PIX_FMT_ \
@@ -136,6 +140,7 @@ _videodev2.h: Makefile.am $(structpr) videodev2.h
 _videodev25.h: Makefile.am $(structpr) videodev25.h
 	$(srcdir)/$(structpr) <$(srcdir)/videodev25.h \
 	"v4l2_fract={ fprintf (fp, \"%u/%u\", t->numerator, t->denominator); }" \
+	printfn=fprint_v4l25_ioctl_arg \
 	v4l2_capability.driver=string \
 	v4l2_capability.card=string \
 	v4l2_capability.bus_info=string \
@@ -214,4 +219,10 @@ _bktr.h: Makefile.am $(structpr) ioctl_bt848.h ioctl_meteor.h
 	RADIO_GETMODE=RADIO_ \
 	BT848SFMT=BT848_IFORM_F_ \
 	meteor_geomet.oformat=METEOR_GEO_ \
+	> $@
+
+_pwc-ioctl.h: Makefile.am $(structpr) pwc-ioctl.h
+	$(srcdir)/$(structpr) <$(srcdir)/pwc-ioctl.h \
+	printfn=fprint_pwc_ioctl_arg \
+	pwc_whitebalance.mode=PWC_WB_ \
 	> $@
