@@ -1,3 +1,9 @@
+7.5.2003	<mschimek@users.sf.net>
+
+	* src/zvbi.c: Experimental proxyd interface.
+	* configure.in: Added --enable-proxy (experimental
+	  proxyd interface).
+
 19.2.2003	<morten@wtf.dk>
 
         * zapping.desktop: Add Danish translation.

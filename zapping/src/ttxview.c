@@ -513,11 +513,20 @@ static void selection_handle		(GtkWidget	*widget,
 	  char *buf = (char *) malloc (size);
 
 	  if (buf) {
+#if VBI_VERSION_MAJOR >= 1
+	    actual = vbi_print_page_region (&data->clipboard_fmt_page,
+					    buf, size, "ISO-8859-1" /* OK? */,
+					    NULL, 0, /* std separator */
+					    data->sel_table, /* rtl */ FALSE,
+					    data->sel_col1, data->sel_row1,
+					    width, height);
+#else
 	    actual = vbi_print_page_region (&data->clipboard_fmt_page,
 					    buf, size, "ISO-8859-1" /* OK? */,
 					    data->sel_table, /* ltr */ TRUE,
 					    data->sel_col1, data->sel_row1,
 					    width, height);
+#endif
 	    if (actual > 0)
 	      gtk_selection_data_set (selection_data,
 				      GDK_SELECTION_TYPE_STRING, 8,
@@ -2413,7 +2422,7 @@ build_subtitles_submenu(GtkWidget *widget,
   gboolean empty = TRUE, something = FALSE, index = FALSE;
   vbi_page_type classf;
   vbi_subno subpage = VBI_ANY_SUBNO;
-  gchar *language;
+  const char *language;
   gchar *buffer;
   gint insert_index; /* after New TTX view */
 

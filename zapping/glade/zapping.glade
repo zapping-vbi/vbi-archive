@@ -1348,7 +1348,7 @@ Do not change mode
 320x240
 Interlaced (window size)
 </items>
-	    <initial_choice>0</initial_choice>
+	    <initial_choice>2</initial_choice>
 	    <child>
 	      <padding>0</padding>
 	      <expand>True</expand>

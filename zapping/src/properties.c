@@ -556,7 +556,7 @@ build_properties_contents	(GnomeDialog	*dialog)
   register_widget(GTK_WIDGET(notebook), "properties-notebook");
 
   /* Put our logo when nothing is selected yet */
-  if ((logo = z_load_pixmap ("logo.png")));
+  if ((logo = z_load_pixmap ("logo.png")))
     {
       gtk_notebook_append_page(notebook, logo, gtk_label_new(""));
       page_count ++; /* No handler for this page */
