@@ -1,6 +1,12 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* With the new Teletext plugin interface it would be trivial
+  to create a split display showing 2, 4, 9, ... pages at
+  once and with a little more effort split video/teletext,
+  usefull in fullscreen. Would be nice if we could combine
+  that with multiple cards, channel mosaic and picture-in-
+  picture. Even better with OpenGL animations.
 * Mouse wheel needs testing.
 * keyboard: there are too many conflicts between the Zapping
   and Xawtv mapping, better add an option to prefs.
@@ -20,8 +26,6 @@ Outstanding issues for future releases
 * Examine interaction of Zapping (esp. overlay) with RANDR.
   http://keithp.com/~keithp/talks/randr/randr/
   xc/doc/specs/Randr, xrandr et al
-* Examine possibility of fullscreen window at the
-  root window layer.
 * Support libzvbi proxyd
 * After "add all channels" in the channel editor Zapping
   should scan for station names.
@@ -141,7 +145,6 @@ Outstanding issues for future releases
 
   To get rid of the annoying WSS and CG patterns in the picture, in
   overlay mode V4L2 cropping could reduce the image height, then the
-
   driver could shift the VBI capture window down to cover the WSS. If
   that's not possible one could still clip the line out, but then
   Zapping won't see WSS changes either. In capture mode reducing the

@@ -1,5 +1,12 @@
 2004-10-03    <mschimek@users.sf.net>
 
+	* plugins/teletext/view.c (teletext_view_popup_menu_new):
+	  Fixed context > teletext > save as / colors.
+	* src/capture.c (capture_thread): Abort retry on thread join.
+	(capture_stop): Force thread join when capture thread hangs.
+	* help/C/zapping.xml, help/C/settings.xml, help/C/commands.xml: 
+	  Updated to reflect bktr support, new window, fullscreen and
+	  background modes and the Teletext switch to a plugin.
 	* zapping_setup_fb/Makefile.am: Installed zapping_fix_overlay
 	  on BSD although not needed, fixed in toplevel Makefile.am
 	  by excluding zapping_setup_fb subdir from compilation.
@@ -15,7 +22,8 @@
 	  In Teletext mode put video device into VBI-bypass mode (bktr bug).
 	* src/cmd.c (py_quit): Must destroy zapping object before we quit,
 	  to save config.
-	* plugins/teletext/main.c (cancel_preferences): Fixed params.
+	* plugins/teletext/main.c: Added missing py_ttx_color().
+	(cancel_preferences): Fixed params.
 	* libtv/misc.h, libtv/misc.c: Moved strlcpy, strndup, asprintf
 	  replacement functions here from tveng.c.
 	* libtv/Makefile.am (libtv_a_SOURCES): Added callback.c/h, misc.c.
@@ -138,7 +146,6 @@
 	  src/plugin_properties.c, src/main.c, src/audio.c (set_mute):
 	  Switched to action based menus and toolbar.
 	  NOTE Zapping now requires Gtk+ 2.4.
-
 	* po/sv.po, po/nl.po, po/it.po, po/fr.po, po/es.po, po/de.po: 
 	  Updated from Gnome compendium (former libgnomeui strings).
 	* po/POTFILES.in: Added src/zapping.c.

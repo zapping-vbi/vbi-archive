@@ -6,10 +6,10 @@ Zapping 0.7.2:
 * bktr: Closing and reopening /dev/bktr, /dev/tuner sometimes fails
   when /dev/vbi is open. Apparently close() does not call the driver
   close function before open(). Strange.
-
-Zapping 0.7.1:
+* No color update of Teletext pages when the subpage is locked.
 * Teletext toolbar reorientation is broken with
-  gtk_toolbar_set_show_arrow FALSE, seems to be a Gtk+ bug.
+  gtk_toolbar_set_show_arrow FALSE (we use default TRUE now),
+  seems to be a Gtk+ bug.
 
 Zapping 0.7 bugs, need more work later:
 * Video size isn't always right on startup.
@@ -88,12 +88,9 @@ bktr driver:
   For details search tvengbktr.c for "Bug".
 
 Debian
-* 168263 - feature added in 0.7.
 * 126641 - zapping_remote, see also sf.net. Without X to do.
-* 170380 - rewrote in 0.7, user can override automatic selection.
-* 169173 - rewrote in 0.7.
-* 226590 - still in 0.6.8 (never notified - ??), rewrote in 0.7.
-* 198942 - open.
+* 168263 - Feature request, implemented in 0.7.
+* 198942 - Open.
 
 XFree86 stuff
 -------------

@@ -3,6 +3,26 @@ the changes.
 
 0.7.2
 -----
+This version of Zapping requires Gtk+ 2.4.
+
+Zapping now supports fullscreen video capturing, including screenshots
+and recording while in fullscreen mode, and fullscreen Teletext. Since
+overlay limitations do not apply to captured video (if the graphics
+card supports XVideo image scaling) the entire screen can be covered
+by video. The context menu is now available in fullscreen mode.
+
+A new background display mode has been added.
+
+Teletext is now implemented as a plugin, slightly faster, with a
+few minor GUI improvements. In the main window the menu and toolbar
+can be disabled separately. Changing channels by mouse wheel should
+work better and Zapping now properly disables the KDE 3.0 screensaver
+(untested).
+
+Important bug fixes:
+- Zapping did not work with MSI TV-@nywhere (cx8800 based, using
+  Linux 2.6 V4L2), this has been fixed and the driver interface
+  generally improved.
 
 0.7.1
 -----

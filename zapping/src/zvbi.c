@@ -363,7 +363,7 @@ join (const char *who, pthread_t id, gboolean *ack, gint timeout)
   if (timeout == 0) {
     int r;
 
-    printv("Unfriendly termination\n");
+    printv("Unfriendly vbi capture termination\n");
     r = pthread_cancel (id);
     if (r != 0)
       {
@@ -376,8 +376,6 @@ join (const char *who, pthread_t id, gboolean *ack, gint timeout)
 
   return timeout;
 }
-
-/* XXX vbi must be restarted on video std change. does it? */
 
 static gboolean
 threads_init (const gchar *dev_name, int given_fd)
