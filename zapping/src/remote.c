@@ -21,11 +21,14 @@
 
 #include <assert.h>
 #include <glib.h>		/* g_strdup_vprintf() */
+#include <stdarg.h>
 #include "remote.h"
+#include "zmisc.h"
 
 #ifndef REMOTE_COMMAND_LOG
 #define REMOTE_COMMAND_LOG 0
 #endif
+
 
 PyObject *		dict;
 
@@ -41,6 +44,24 @@ static action *		action_list;
 */
 
 static GtkWidget *	c_widget;
+
+int
+ParseTuple			(PyObject *		args,
+				 const char *		format,
+				 ...)
+{
+  int retval;
+  va_list va;
+
+  va_start (va, format);
+
+  /* Sigh. */
+  retval = PyArg_VaParse (args, (char *) format, va);
+
+  va_end (va);
+
+  return retval;    
+}
 
 /* Callback glue for Gtk signals. */
 void
@@ -72,7 +93,7 @@ on_python_command1		(GtkWidget *		widget,
 
 void
 on_python_command2		(GtkWidget *		widget,
-				 gpointer 		unused,
+				 gpointer 		unused _unused_,
 				 const gchar *		cmd)
 {
   on_python_command1 (widget, cmd);
@@ -80,8 +101,8 @@ on_python_command2		(GtkWidget *		widget,
 
 void
 on_python_command3		(GtkWidget *		widget,
-				 gpointer 		unused1,
-				 gpointer 		unused2,
+				 gpointer 		unused1 _unused_,
+				 gpointer 		unused2 _unused_,
 				 const gchar *		cmd)
 {
   on_python_command1 (widget, cmd);
@@ -214,7 +235,7 @@ cmd_compatibility		(const gchar *		cmd)
     return g_strdup ("");
 
   while (g_unichar_isspace (g_utf8_get_char_validated (s, -1)))
-    s = g_utf8_next_char (s);
+    s = g_utf8_next_char ((gchar *) s);
 
   if (0 == strncmp (s, "zapping.", 8))
     return g_strdup (cmd);
@@ -254,7 +275,7 @@ cmd_compatibility		(const gchar *		cmd)
       if (!g_unichar_isspace (g_utf8_get_char_validated (s, -1)))
 	goto bad_cmd;
 
-      s = g_utf8_next_char (s);
+      s = g_utf8_next_char ((gchar *) s);
     }
 
   for (j = 0; j < cmd_txl_table[i].num_args; j++)
@@ -271,9 +292,9 @@ cmd_compatibility		(const gchar *		cmd)
 	}
 
       while (*s != 0 && !g_unichar_isspace (g_utf8_get_char_validated (s, -1)))
-	s = g_utf8_next_char (s);
+	s = g_utf8_next_char ((gchar *) s);
 
-      arg = g_strndup (s1, s - s1);
+      arg = g_strndup (s1, (guint)(s - s1));
 
       if (cmd_txl_table[i].flags & STRING)
 	d1 = g_strconcat (d, (args > 0) ? ", " : "", "'", arg, "'", NULL);
@@ -288,7 +309,7 @@ cmd_compatibility		(const gchar *		cmd)
       g_free (arg);
 
       while (*s && g_unichar_isspace (g_utf8_get_char_validated (s, -1)))
-	s = g_utf8_next_char (s);
+	s = g_utf8_next_char ((gchar *) s);
     }
 
   if (*s)
@@ -367,7 +388,7 @@ void
 startup_remote			(void)
 {
   PyMethodDef empty [] = {
-    { NULL, NULL }
+    { NULL }
   };
   PyObject *module;
 

@@ -18,6 +18,11 @@
 
 #include <gtk/gtk.h>
 
+extern int
+ParseTuple			(PyObject *		args,
+				 const char *		format,
+				 ...);
+
 /* The zapping dictionary in case you want to add things
    manually. To register functions use cmd_register() instead. */
 extern PyObject *	dict;
