@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.1.2.3 2003-09-24 18:36:06 mschimek Exp $ */
+/* $Id: v4l.c,v 1.1.2.4 2003-10-07 18:36:24 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -81,7 +81,12 @@ setup_v4l			(const char *		device_name,
   fb.base		= dga->base;
   fb.width		= dga->width;
   fb.height		= dga->height;
-  fb.depth		= dga->bits_per_pixel;
+
+  if (dga->bits_per_pixel == 32)
+    fb.depth		= 32; /* depth 24 bpp 32 */
+  else
+    fb.depth		= dga->depth; /* 15, 16, 24 */
+
   fb.bytesperline	= dga->bytes_per_line;
 
   message (2, "Setting new FB parameters.\n");

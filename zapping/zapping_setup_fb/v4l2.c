@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.1.2.4 2003-09-24 18:36:14 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.1.2.5 2003-10-07 18:36:40 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -102,16 +102,37 @@ setup_v4l2			(const char *		device_name,
       fb.fmt.pixelformat = V4L2_PIX_FMT_HI240; /* XXX bttv only */
       break;
 
+      /* Note 15/16 defines and Spec are wrong: r <-> b,
+	 RGB32 == A,R,G,B in bttv unlike description in Spec. */
+
 #if BYTE_ORDER == BIG_ENDIAN /* safe? */
-    case 15: fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555X; break;
-    case 16: fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565X; break;
-    case 24: fb.fmt.pixelformat = V4L2_PIX_FMT_RGB24;   break;
-    case 32: fb.fmt.pixelformat = V4L2_PIX_FMT_RGB32;   break;
+    case 15:
+      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555X;
+      break;
+    case 16:
+      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565X;
+      break;
+    case 24:
+    case 32:
+      if (dga->bits_per_pixel == 24)
+	fb.fmt.pixelformat = V4L2_PIX_FMT_RGB24;
+      else
+	fb.fmt.pixelformat = V4L2_PIX_FMT_RGB32;
+      break;
 #else
-    case 15: fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555;  break;
-    case 16: fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565;  break;
-    case 24: fb.fmt.pixelformat = V4L2_PIX_FMT_BGR24;   break;
-    case 32: fb.fmt.pixelformat = V4L2_PIX_FMT_BGR32;   break;
+    case 15:
+      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555;
+      break;
+    case 16:
+      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565;
+      break;
+    case 24:
+    case 32:
+      if (dga->bits_per_pixel == 24)
+	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR24;
+      else
+	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR32;
+      break;
 #endif
     }
 
