@@ -14,3 +14,37 @@ Basic types
 
 </para>
 
+<!-- ##### TYPEDEF rte_bool ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### TYPEDEF rte_context_info ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### TYPEDEF rte_codec_info ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### ENUM rte_stream_type ##### -->
+<para>
+
+</para>
+
+@RTE_STREAM_VIDEO: 
+@RTE_STREAM_AUDIO: 
+@RTE_STREAM_SLICED_VBI: 
+@RTE_STREAM_MAX: 
+
+<!-- ##### TYPEDEF rte_option_info ##### -->
+<para>
+
+</para>
+
+

@@ -25,7 +25,6 @@
   A nice set of HTML rendered docs can be found here:
   http://zapping.sf.net/docs/rte/index.html
   FIXME: Upload docs before the release.
-  FIXME: Non-blocking push.
 */
 
 #include "rte-enums.h"
@@ -234,10 +233,42 @@ rte_codec *
 rte_codec_get(rte_context *context, rte_stream_type stream_type,
 	      int stream_index);
 
+
+/**
+ * rte_codec_set_parameters:
+ * @codec: Pointer to a rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set()
+ * @params: Parameters needed for describing the data source.
+ * 
+ * Use this function for describing how are you going to feed the data
+ * into the encoder.
+ * Make sure to zero out the struct before setting the fields you are
+ * interested in, defaults will be used if that makes sense.
+ * Upon return, the fields might be overwritten to reflect the nearest
+ * possible match. For example, the width and height might be rounded
+ * to 16-multiplus.
+ *
+ * Typical usage would be:
+ * <programlisting>
+ * memset(params, 0, sizeof(*params));
+ * params->video.pixfmt = RTE_PIXFMT_YUV420;
+ * params->video.frame_rate = 24;
+ * params->video.width = 384;
+ * params->video.height = 288;
+ * params->feed_mode = RTE_PUSH_COPY;
+ * rte_codec_set_parameters(codec, params);
+ * </programlisting>
+ *
+ * Return value: %TRUE if a suitable match was found, make sure to
+ * check whether the returned parameters are the same as the ones you passed.
+ **/
+rte_bool
+rte_codec_set_parameters(rte_codec *codec, rte_stream_parameters *params);
+
 /**
  * rte_option_info_enum:
  * @codec: Pointer to a rte_codec returned by rte_codec_get() or
- *	   rte_codec_get()
+ *	   rte_codec_set()
  * @index: Index in the option table 0,...n
  *
  * Enumerates the options available for the given codec. 
@@ -254,7 +285,7 @@ rte_option_info_enum(rte_codec *codec, int index);
 /**
  * rte_option_info_keyword:
  * @codec: Pointer to a rte_codec returned by rte_codec_get() or
- *	   rte_codec_get()
+ *	   rte_codec_set()
  * @keyword: Keyword of the relevant option, as in rte_option_info
  *
  * Like rte_option_info_enum() but tries to find the option info based
@@ -265,5 +296,45 @@ rte_option_info_enum(rte_codec *codec, int index);
  **/
 rte_option_info *
 rte_option_info_keyword(rte_codec *codec, const char *keyword);
+
+/**
+ * rte_option_get:
+ * @codec: Pointer to a rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set()
+ * @keyword: Keyword of the relevant option, as in rte_option_info
+ * @value: A place to store info about the options.
+ *
+ * This function is used to query the current value for the given
+ * option. If the option is a string, @value.str must be freed when
+ * you don't need it any longer. If the option is a menu, then
+ * @value.num contains the selected entry.
+ *
+ * Return value: %TRUE if the option was found, %FALSE otherwise.
+ **/
+rte_bool
+rte_option_get(rte_codec *codec, const char *keyword,
+	       rte_option_value *value);
+
+/**
+ * rte_option_set:
+ * @codec: Pointer to a rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set()
+ * @keyword: Keyword of the relevant option, as in rte_option_info.
+ * @Varargs: New value to set.
+ *
+ * Sets the value of the given option. Make sure you are casting the
+ * third parameter (the new value to set) to the correct type (int,
+ * char*, double), otherwise you might get heisenbugs.
+ *
+ * Typical usage is:
+ * <programlisting>
+ * rte_option_set(codec, "frame_rate", (double)3.141592);
+ * </programlisting>
+ *
+ * Return value: %TRUE if the option was found and it could be
+ * correctly set.
+ **/
+rte_bool
+rte_option_set(rte_codec *codec, const char *keyword, ...);
 
 #endif /* rte.h */

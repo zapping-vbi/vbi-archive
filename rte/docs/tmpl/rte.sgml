@@ -141,6 +141,16 @@ Library interface
 @Returns: 
 
 
+<!-- ##### FUNCTION rte_codec_set_parameters ##### -->
+<para>
+
+</para>
+
+@codec: 
+@params: 
+@Returns: 
+
+
 <!-- ##### FUNCTION rte_option_info_enum ##### -->
 <para>
 
@@ -158,6 +168,28 @@ Library interface
 
 @codec: 
 @keyword: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_option_get ##### -->
+<para>
+
+</para>
+
+@codec: 
+@keyword: 
+@value: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_option_set ##### -->
+<para>
+
+</para>
+
+@codec: 
+@keyword: 
+@Varargs: 
 @Returns: 
 
 

@@ -18,24 +18,24 @@
 enums
 
 
-<!-- ##### SECTION ./tmpl/types.sgml:Long_Description ##### -->
+<!-- ##### SECTION ./tmpl/rte-types.sgml:Long_Description ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### SECTION ./tmpl/types.sgml:See_Also ##### -->
+<!-- ##### SECTION ./tmpl/rte-types.sgml:See_Also ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### SECTION ./tmpl/types.sgml:Short_Description ##### -->
+<!-- ##### SECTION ./tmpl/rte-types.sgml:Short_Description ##### -->
 
 
 
-<!-- ##### SECTION ./tmpl/types.sgml:Title ##### -->
-Basic types
+<!-- ##### SECTION ./tmpl/rte-types.sgml:Title ##### -->
+Fundamental types
 
 
 <!-- ##### MACRO RTE_VBIFMTS_2xCAPTION_525 ##### -->
@@ -130,6 +130,17 @@ Basic types
 @context: 
 @Returns: 
 
+<!-- ##### ENUM rte_option_type ##### -->
+<para>
+
+</para>
+
+@RTE_OPTION_BOOL: 
+@RTE_OPTION_INT: 
+@RTE_OPTION_REAL: 
+@RTE_OPTION_STRING: 
+@RTE_OPTION_MENU: 
+
 <!-- ##### ENUM rte_pixfmt ##### -->
 <para>
 
@@ -149,6 +160,15 @@ Basic types
 @RTE_PIXFMT_RGB15: 
 @RTE_PIXFMT_BGR15: 
 @RTE_PIXFMT_MAX: 
+
+<!-- ##### FUNCTION rte_set_parameters ##### -->
+<para>
+
+</para>
+
+@codec: 
+@params: 
+@Returns: 
 
 <!-- ##### ENUM rte_sndfmt ##### -->
 <para>

@@ -1,6 +1,7 @@
 <!doctype book PUBLIC "-//Davenport//DTD DocBook V3.0//EN" [
 <!ENTITY rte-rte SYSTEM "sgml/rte.sgml">
-<!ENTITY rte-rte-enums SYSTEM "sgml/enums.sgml">
+<!ENTITY rte-enums SYSTEM "sgml/enums.sgml">
+<!ENTITY rte-types SYSTEM "sgml/types.sgml">
 ]>
 <book id="index">
   <bookinfo>
@@ -10,6 +11,7 @@
   <chapter>
     <title>RTE</title>
     &rte-rte;
-    &rte-rte-enums;
+    &rte-types;
+    &rte-enums;
   </chapter>
 </book>

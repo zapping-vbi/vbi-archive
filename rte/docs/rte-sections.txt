@@ -14,6 +14,23 @@ rte_codec_info_keyword
 rte_codec_info_codec
 rte_codec_set
 rte_codec_get
+rte_codec_set_parameters
 rte_option_info_enum
 rte_option_info_keyword
+rte_option_get
+rte_option_set
+</SECTION>
+
+<SECTION>
+<TITLE>Fundamental types</TITLE>
+<FILE>types</FILE>
+rte_bool
+rte_context_info
+rte_context
+rte_codec_info
+rte_codec
+rte_stream_type
+rte_option_value
+rte_option_info
+rte_stream_parameters
 </SECTION>
