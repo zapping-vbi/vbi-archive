@@ -7,3 +7,4 @@ noinst_LTLIBRARIES = libtest.la
 libtest_la_SOURCES = \
 	support.c support.h \
 	preview.c
+libtest_la_LIBADD = $(GTK_LIBS)

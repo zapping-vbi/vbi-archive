@@ -1,3 +1,4 @@
+#if defined(HAVE_LIBXV) && defined(TEST_PREVIEW)
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -34,3 +35,5 @@ lookup_widget                          (GtkWidget       *widget,
     g_warning ("Widget not found: %s", widget_name);
   return found_widget;
 }
+
+#endif

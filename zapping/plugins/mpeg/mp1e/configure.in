@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.12 2000-10-21 22:40:10 garetxe Exp $
+dnl $Id: configure.in,v 1.13 2000-11-01 19:52:06 garetxe Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(mp1e, 1.8.0-pre5)
@@ -45,15 +45,18 @@ else
 fi
 
 AC_PATH_XTRA
-AC_CHECK_LIB(Xv, XvShmPutImage,,, $X_LIBS -lX11 -lXext)
-if test "$ac_cv_lib_Xv_XvShmPutImage" = "yes"; then LIBS="$LIBS -lX11 -lXext"; fi
+AC_CHECK_LIB(Xv, XvShmPutImage, HAVE_XV="yes",, $X_LIBS -lX11 -lXext)
 
 AC_ARG_ENABLE(test,[  --enable-test           enable test gui])
 if test "$enable_test" = "yes"; then
-	LIBS="$LIBS `gtk-config --libs`"
+if test "x$HAVE_XV" = "xyes"; then
+	GTK_LIBS="`gtk-config --libs` -lXv -lXext"
 	GTK_CFLAGS=`gtk-config --cflags`
 	AC_SUBST(GTK_CFLAGS)
+	AC_SUBST(GTK_LIBS)
 	AC_DEFINE(TEST_PREVIEW, 1)
+	AC_DEFINE(HAVE_LIBXV, 1)
+fi
 fi
 
 AC_OUTPUT(Makefile video/Makefile audio/Makefile vbi/Makefile systems/Makefile common/Makefile test/Makefile mp1e.lsm)

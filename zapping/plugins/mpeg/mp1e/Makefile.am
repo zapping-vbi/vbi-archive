@@ -16,8 +16,8 @@ librte_la_SOURCES = global_data.c options.h \
 		rte.c rte.h rtepriv.h \
 		convert_ry.c convert_ry.h
 librte_la_LIBADD = video/libvideo_rte.la audio/libaudio_rte.la \
-systems/libsystems_rte.la common/libcommon.la test/libtest.la
-librte_la_LDFLAGS = -export-dynamic $(X_LIBS) $(ESD_LIBS)
+systems/libsystems_rte.la common/libcommon.la -lpthread -lm
+librte_la_LDFLAGS = -export-dynamic
 
 mp1e_SOURCES = main.c \
 	options.c global_data.c options.h
@@ -28,4 +28,4 @@ systems/libsystems.la common/libcommon.la test/libtest.la $(X_LIBS) -lm \
 
 rte_test_SOURCES = rte_test_main.c
 
-rte_test_LDADD = librte.a
+rte_test_LDADD = librte.la $(ESD_LIBS) -lpthread

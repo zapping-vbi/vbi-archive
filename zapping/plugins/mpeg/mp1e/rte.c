@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.33 2000-10-27 19:15:17 mschimek Exp $ */
+/* $Id: rte.c,v 1.34 2000-11-01 19:52:06 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -49,6 +49,9 @@
 /*
   BUGS:
       . It isn't reentrant.
+  TODO:
+      . Add VBI support
+      . Add preview support.
 */
 
 #define NUM_AUDIO_BUFFERS 8 /* audio buffers in the audio fifo */
@@ -70,8 +73,13 @@ int			stereo;
 
 fifo *			video_cap_fifo;
 
+/* fixme: This is just to satisfy dependencies for now */
+void
+packed_preview(unsigned char *buffer, int mb_cols, int mb_rows)
+{
+}
+
 /* prototypes for main initialization (mp1e startup) */
-/* fixme: preview support (whew, XV is really nice!) */
 /* These routines are called in this order, they come from mp1e's main.c */
 static void rte_audio_startup(void); /* Startup video parameters */
 static void rte_compression_startup(void); /* Compression parameters */
