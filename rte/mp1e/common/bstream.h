@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bstream.h,v 1.2 2001-08-22 01:28:08 mschimek Exp $ */
+/* $Id: bstream.h,v 1.3 2002-08-22 22:05:32 mschimek Exp $ */
 
 #ifndef BITSTREAM_H
 #define BITSTREAM_H
@@ -77,5 +77,14 @@ do {									\
 			"\tpor %%mm1,%%mm0;\n"				\
 			:: "rm" ((unsigned int)(v)) : "cc" FPU_REGS);	\
 } while (0)
+
+static inline void
+balign (struct bs_rec *b)
+{
+	int n7 = b->n & 7;
+
+	if (__builtin_expect(n7 > 0, 1))
+		b->n += 8 - n7;
+}
 
 #endif /* BITSTREAM_H */
