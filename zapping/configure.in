@@ -259,7 +259,7 @@ dnl ----------------------------------------------------------------------
 YUV2RGB_MMX=""
 HAVE_MMX="no"
 ARCH_CFLAGS=""
-case "$host_alias" in
+case "$host" in
 i?86-* | k?-*) dnl catch i386,i486,i586,i686,k6,k7
 	AC_DEFINE(__i386__) 
 	case "$host_alias" in
@@ -292,16 +292,16 @@ esac
 
 if test "x$HAVE_MMX" = "xyes"; then
 	AC_DEFINE(USE_MMX)
-	AC_PATH_PROG(AS_LOCATION, "as")
-	if test "x$AS_LOCATION" != "x"; then
-		AS_VERSION=`$AS_LOCATION --version | grep GNU`
-		if test "x$AS_VERSION" != "x"; then
+	AC_PATH_PROG(ASLOCATION, "as")
+	if test "x$ASLOCATION" != "x"; then
+		ASVERSION=`$ASLOCATION --version | grep GNU`
+		if test "x$ASVERSION" != "x"; then
 			AC_DEFINE(HAVE_GAS)
 		fi
 	fi
 fi
 
-AM_CONDITIONAL(BUILD_GEN_CONV, test "x$AS_VERSION" != "x")
+AM_CONDITIONAL(BUILD_GEN_CONV, test "x$ASVERSION" != "x")
 
 AC_SUBST(ARCH_CFLAGS)
 
