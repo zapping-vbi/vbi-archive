@@ -18,9 +18,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.4 2004-09-23 00:59:59 mschimek Exp $ */
+/* $Id: zapping.c,v 1.5 2004-09-26 13:30:00 mschimek Exp $ */
 
 #include "config.h"
+#include "site_def.h"
 
 #include "audio.h"
 #include "interface.h"
@@ -66,11 +67,58 @@ channel_editor_action		(GtkAction *		action _unused_,
 }
 
 static void
+window_action			(GtkAction *		action _unused_,
+				 Zapping *		z)
+{
+  on_python_command1 (GTK_WIDGET (z), "zapping.switch_mode('window')");
+}
+
+static void
 fullscreen_action		(GtkAction *		action _unused_,
 				 Zapping *		z)
 {
   on_python_command1 (GTK_WIDGET (z), "zapping.switch_mode('fullscreen')");
 }
+
+static void
+background_action		(GtkAction *		action _unused_,
+				 Zapping *		z)
+{
+  on_python_command1 (GTK_WIDGET (z), "zapping.switch_mode('background')");
+}
+
+#if 0 /* Ok that's nice, but how can we SET current?
+         gtk_toggle_action active? */
+
+static void
+display_mode_action		(GtkRadioAction *	action,
+				 GtkRadioAction *	current _unused_,
+				 Zapping *		z)
+{
+  gint value;
+
+  value = gtk_radio_action_get_current_value (action);
+
+  switch ((display_mode) value)
+    {
+    case DISPLAY_MODE_WINDOW:
+      on_python_command1 (GTK_WIDGET (z), "zapping.switch_mode('window')");
+      break;
+
+    case DISPLAY_MODE_FULLSCREEN:
+      on_python_command1 (GTK_WIDGET (z), "zapping.switch_mode('fullscreen')");
+      break;
+
+    case DISPLAY_MODE_BACKGROUND:
+      on_python_command1 (GTK_WIDGET (z), "zapping.switch_mode('background')");
+      break;
+
+    default:
+      break;
+    }
+}
+
+#endif
 
 static void
 overlay_action			(GtkAction *		action _unused_,
@@ -138,12 +186,12 @@ zconf_hook_subtitles		(const gchar *		key _unused_,
 }
 
 static void
-view_menu_action		(GtkToggleAction *	toggle_action,
-				 Zapping *		z)
+view_menu			(Zapping *		z,
+				 gboolean		view)
 {
   BonoboDockItem *dock_item;
 
-  if (gtk_toggle_action_get_active (toggle_action))
+  if (view && z->decorated)
     {
       /* Adding a hidden menu is impossible, we have to add when the
 	 menu becomes first visible. */
@@ -170,15 +218,14 @@ view_menu_action		(GtkToggleAction *	toggle_action,
 }
 
 static void
-view_toolbar_action		(GtkToggleAction *	toggle_action,
-				 Zapping *		z)
+view_toolbar			(Zapping *		z,
+				 gboolean		view)
 {
   BonoboDockItem *dock_item;
 
-  if (gtk_toggle_action_get_active (toggle_action))
+  if (view && z->decorated)
     {
-      /* Adding a hidden toolbar is impossible, we have to add when the
-	 toolbar becomes first visible. */
+      /* Same as above. */
       if (!z->toolbar_added)
 	{
 	  z->toolbar_added = TRUE;
@@ -199,6 +246,45 @@ view_toolbar_action		(GtkToggleAction *	toggle_action,
     }
 
   gtk_widget_queue_resize (GTK_WIDGET (z));
+}
+
+void
+zapping_view_appbar		(Zapping *		z,
+				 gboolean		view)
+{
+  if (view && z->decorated)
+    {
+      /* Same as above. */
+      if (!z->appbar_added)
+	{
+	  z->appbar_added = TRUE;
+	  gnome_app_set_statusbar (&z->app, GTK_WIDGET (z->appbar));
+	}
+      else
+	{
+	  gtk_widget_show (GTK_WIDGET (z->appbar));
+	}
+    }
+  else if (z->appbar_added)
+    {
+      gtk_widget_hide (GTK_WIDGET (z->appbar));
+    }
+
+  gtk_widget_queue_resize (GTK_WIDGET (z));
+}
+
+static void
+view_menu_action		(GtkToggleAction *	toggle_action,
+				 Zapping *		z)
+{
+  view_menu (z, gtk_toggle_action_get_active (toggle_action));
+}
+
+static void
+view_toolbar_action		(GtkToggleAction *	toggle_action,
+				 Zapping *		z)
+{
+  view_toolbar (z, gtk_toggle_action_get_active (toggle_action));
 }
 
 static PyObject *
@@ -320,8 +406,12 @@ generic_actions [] = {
   { "ChannelEditor", NULL /* 2.6 GTK_STOCK_EDIT */, N_("_Channels"), NULL,
     NULL, G_CALLBACK (channel_editor_action) },
   { "ViewSubmenu", NULL, N_("_View"), NULL, NULL, NULL },
+  { "Window", GTK_STOCK_EXECUTE, N_("_Window"), "<Control>w",
+    NULL, G_CALLBACK (window_action) },
   { "Fullscreen", GTK_STOCK_EXECUTE, N_("_Fullscreen"), "<Control>f",
     NULL, G_CALLBACK (fullscreen_action) },
+  { "Background", GTK_STOCK_EXECUTE, N_("_Background"), "<Control>b",
+    NULL, G_CALLBACK (background_action) },
   { "Overlay", GTK_STOCK_EXECUTE, N_("_Overlay mode"), "<Control>o",
     NULL, G_CALLBACK (overlay_action) },
   { "Capture", GTK_STOCK_EXECUTE, N_("_Capture mode"), "<Control>c",
@@ -353,6 +443,18 @@ generic_toggle_actions [] = {
   { "KeepWindowOnTop", NULL, N_("Keep window on top"), NULL,
     NULL, G_CALLBACK (keep_window_on_top_action), FALSE },
 };
+
+#if 0 /* TODO */
+static GtkRadioActionEntry
+display_mode_radio_actions [] = {
+  { "Window", NULL, N_("_Window"), "<Control>w",
+    NULL, (gint) DISPLAY_MODE_WINDOW },
+  { "Fullscreen", NULL, N_("_Fullscreen"), "<Control>f",
+    NULL, (gint) DISPLAY_MODE_FULLSCREEN },
+  { "Background", NULL, N_("_Background"), "<Control>b",
+    NULL, (gint) DISPLAY_MODE_BACKGROUND },
+};
+#endif
 
 static GtkActionEntry
 vbi_actions [] = {
@@ -386,7 +488,10 @@ ui_description =
 "   <menuitem action='ChannelEditor'/>"
 "  </menu>"
 "  <menu action='ViewSubmenu'>"
+"   <menuitem action='Window'/>"
 "   <menuitem action='Fullscreen'/>"
+"   <menuitem action='Background'/>"
+"   <separator/>"
 "   <menuitem action='Overlay'/>"
 "   <menuitem action='Capture'/>"
 "   <separator/>"
@@ -426,7 +531,10 @@ popup_menu_description =
 "<ui>"
 " <menubar name='Popup'>"
 "  <menu action='PopupSubmenu'>"
+"   <menuitem action='Window'/>"
 "   <menuitem action='Fullscreen'/>"
+"   <menuitem action='Background'/>"
+"   <separator/>"
 "   <menuitem action='Overlay'/>"
 "   <menuitem action='Capture'/>"
 "   <separator/>"
@@ -613,41 +721,6 @@ zapping_rebuild_channel_menu	(Zapping *		z)
     }
 }
 
-void
-zapping_enable_appbar		(Zapping *		z,
-				 gboolean		show)
-{
-  if (show)
-    {
-      if (!z->appbar)
-	{
-	  GtkWidget *appbar;
-
-	  /* Adding a hidden appbar is impossible, we have to add when
-	     it becomes first visible. */
-
-	  appbar = gnome_appbar_new (/* progress */ FALSE,
-				     /* status */ TRUE,
-				     /* interactive */
-				     GNOME_PREFERENCES_NEVER);
-
-	  z->appbar = GNOME_APPBAR (appbar);
-
-	  gnome_app_set_statusbar (&z->app, appbar);
-	}
-      else
-	{
-	  gtk_widget_show (GTK_WIDGET (z->appbar));
-	}
-    }
-  else if (z->appbar)
-    {
-      gtk_widget_hide (GTK_WIDGET (z->appbar));
-    }
-
-  gtk_widget_queue_resize (GTK_WIDGET (z));
-}
-
 static gboolean
 scroll_event			(GtkWidget *		widget,
 				 GdkEventScroll *	event)
@@ -680,11 +753,7 @@ button_press_event		(GtkWidget *		widget,
   switch (event->button)
     {
     case 2: /* Middle button */
-      if (CAPTURE_MODE_TELETEXT == z->info->capture_mode)
-	break;
-
       python_command (widget, "zapping.switch_mode('fullscreen')");
-
       return TRUE; /* handled */
 
     case 3: /* Right button */
@@ -707,12 +776,12 @@ delete_event			(GtkWidget *		widget,
 }
 
 static void
-realize				(GtkWidget *		widget)
+map				(GtkWidget *		widget)
 {
   Zapping *z = ZAPPING (widget);
   GtkAction *action;
 
-  GTK_WIDGET_CLASS (parent_class)->realize (widget);
+  GTK_WIDGET_CLASS (parent_class)->map (widget);
 
   action = gtk_action_group_get_action (z->generic_action_group,
 					"KeepWindowOnTop");
@@ -723,7 +792,7 @@ realize				(GtkWidget *		widget)
       toggle_action = GTK_TOGGLE_ACTION (action);
       z_toggle_action_connect_gconf_key (toggle_action,
 					 "/apps/zapping/window/keep_on_top");
-      /* Window is realized now, set the initial state. */
+      /* Window is mapped now, set the initial state. */
       keep_window_on_top_action (toggle_action, z);
     }
   else
@@ -764,10 +833,17 @@ instance_init			(GTypeInstance *	instance,
 				generic_actions,
 				G_N_ELEMENTS (generic_actions),
 				/* user_data */ z);
-  gtk_action_group_add_toggle_actions (z->generic_action_group,
-				       generic_toggle_actions,
-				       G_N_ELEMENTS (generic_toggle_actions),
-				       /* user_data */ z);
+  gtk_action_group_add_toggle_actions
+    (z->generic_action_group,
+     generic_toggle_actions, G_N_ELEMENTS (generic_toggle_actions),
+     /* user_data */ z);
+#if 0 /* TODO */
+  gtk_action_group_add_radio_actions
+    (z->generic_action_group,
+     display_mode_radio_actions, G_N_ELEMENTS (display_mode_radio_actions),
+     (gint) DISPLAY_MODE_WINDOW,
+     G_CALLBACK (display_mode_action), /* user_data */ z);
+#endif
 
   /* We add the submenu ourselves. Make sure the menu item is
      visible despite initially without menu. */
@@ -826,33 +902,47 @@ instance_init			(GTypeInstance *	instance,
       exit (EXIT_FAILURE);
     }
 
-  widget = gtk_ui_manager_get_widget (z->ui_manager, "/MainMenu");
-  z->menubar = GTK_MENU_BAR (widget);
-  widget = gtk_ui_manager_get_widget (z->ui_manager,
-				      "/MainMenu/ChannelsSubmenu");
-  z->channels_menu = GTK_MENU_ITEM (widget);
-  zapping_rebuild_channel_menu (z);
+  z->decorated = TRUE;
 
-  toggle_action = GTK_TOGGLE_ACTION (gtk_action_group_get_action
-				     (z->generic_action_group,
-				      "ViewMenu"));
-  z_toggle_action_connect_gconf_key (toggle_action,
-				     "/apps/zapping/window/view_menu");
-  /* Adds the menu if necessary. */
-  view_menu_action (toggle_action, z);
+  {
+    widget = gtk_ui_manager_get_widget (z->ui_manager, "/MainMenu");
+    z->menubar = GTK_MENU_BAR (widget);
+    widget = gtk_ui_manager_get_widget (z->ui_manager,
+					"/MainMenu/ChannelsSubmenu");
+    z->channels_menu = GTK_MENU_ITEM (widget);
+    zapping_rebuild_channel_menu (z);
 
-  widget = gtk_ui_manager_get_widget (z->ui_manager, "/Toolbar");
-  z->toolbar = GTK_TOOLBAR (widget);
+    toggle_action = GTK_TOGGLE_ACTION (gtk_action_group_get_action
+				       (z->generic_action_group,
+					"ViewMenu"));
+    z_toggle_action_connect_gconf_key (toggle_action,
+				       "/apps/zapping/window/view_menu");
+    /* Adds the menu if necessary. */
+    view_menu_action (toggle_action, z);
+  }
 
-  toggle_action = GTK_TOGGLE_ACTION (gtk_action_group_get_action
-				     (z->generic_action_group,
-				      "ViewToolbar"));
-  z_toggle_action_connect_gconf_key (toggle_action,
-				     "/apps/zapping/window/view_toolbar");
-  /* Adds the toolbar if necessary. */
-  view_toolbar_action (toggle_action, z);
+  {
+    widget = gtk_ui_manager_get_widget (z->ui_manager, "/Toolbar");
+    z->toolbar = GTK_TOOLBAR (widget);
 
-  /* Will add appbar on demand, see zapping_enable_appbar(). */
+    toggle_action = GTK_TOGGLE_ACTION (gtk_action_group_get_action
+				       (z->generic_action_group,
+					"ViewToolbar"));
+    z_toggle_action_connect_gconf_key (toggle_action,
+				       "/apps/zapping/window/view_toolbar");
+    /* Adds the toolbar if necessary. */
+    view_toolbar_action (toggle_action, z);
+  }
+
+  {
+    widget = gnome_appbar_new (/* progress */ FALSE,
+			       /* status */ TRUE,
+			       /* interactive */ GNOME_PREFERENCES_NEVER);
+    z->appbar = GNOME_APPBAR (widget);
+
+    /* Cannot hide the appbar at this point, so we add (and show) when
+       the Teletext plugin needs it. */
+  }
 
   box = gtk_hbox_new (FALSE, 0);
   z->contents = GTK_BOX (box);
@@ -904,7 +994,7 @@ class_init			(gpointer		g_class,
 
   object_class->finalize = instance_finalize;
 
-  widget_class->realize	= realize;
+  widget_class->map = map;
   widget_class->delete_event = delete_event;
   widget_class->button_press_event = button_press_event;
   widget_class->scroll_event = scroll_event;
