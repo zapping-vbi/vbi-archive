@@ -1,5 +1,29 @@
+2005-02-12    <mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c (do_start): Incorrect zmisc_switch_mode()
+	  error check.
+	* src/zmisc.c (zmisc_switch_mode), src/fullscreen.c
+	(start_fullscreen): Incorrect capture_stop() error check.
+	* src/tvengxv.c (get_video_standard_list): Match video standard
+	  names loosely (case insensitive, alnum only).
+	* src/tvengxv.c (get_video_input_list): Load current tuner
+	  frequency into video_input.
+	* src/audio.c, src/esd.c, configure.in:
+	  Compile ESD backend only if libesd is present.
+	* plugins/deinterlace/ditest.c (main, write_buffer): 
+	  s/ssize_t/size_t fread/fwrite return type.
+	* libvbi/search.h: Missing include stdarg.h for va_list.
+
 2005-02-10    <mschimek@users.sf.net>
 
+	* src/properties-handler.c, src/overlay.c, src/interface.c:
+	  Removed unneeded #include.
+	* glade/zapping.glade2: Made video device notebook tabs (inputs)
+	  scrollable to reduce page width.
+	* help/man/zapping_remote.xml: Added.
+	* help/man/Makefile.am (man_MANS): Added zapping_remote.1.
+	* src/tvengxv.c (split_encoding): Handle malformed (pal-m-composite
+	  etc) encodings.
 	* src/tveng.c (store_cur_video_standard): Don't assert on std != NULL.
 	* libtv/image_format.c, libtv/Makefile.am (INCLUDES):
 	  Enabled untested SIMD routines for tests.

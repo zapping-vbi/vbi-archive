@@ -40,7 +40,7 @@
   <refsect1 id="description">
     <title>Description</title>
 
-    <para>&app; is a program to watch TV on a computer, specifically on Linux, within the Gnome environment. You can take screenshots and record video and audio. &app; has a Teletext viewer built in and supports Closed Caption and Teletext subtitles. It is extensible through plugins. For more information open the Gnome help and choose Applications -> Sound and Video -> Zapping.</para>
+    <para>&app; is a program to watch TV on a computer, within the Gnome environment. You can take screenshots and record video and audio. &app; has a Teletext viewer built in and supports Closed Caption and Teletext subtitles. It is extensible through plugins. For more information open the Gnome help and choose Applications -> Sound and Video -> Zapping.</para>
   </refsect1>
 
   <refsect1 id="options">

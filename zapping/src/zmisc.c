@@ -496,8 +496,8 @@ zmisc_stop (tveng_device_info *info)
 /*
   does the mode switching. Since this requires more than just using
   tveng, a new routine is needed.
-  Returns whatever tveng returns, but we print the message ourselves
-  too, so no need to aknowledge it to the user.
+  Returns whatever tveng returns (0 == success), but we print the
+  message ourselves too, so no need to aknowledge it to the user.
 */
 int
 zmisc_switch_mode(display_mode new_dmode,
@@ -641,7 +641,8 @@ zmisc_switch_mode(display_mode new_dmode,
 	    }
 	}
 
-      return_value = capture_start(info, GTK_WIDGET (zapping->video));
+      return_value = capture_start (info, GTK_WIDGET (zapping->video)) ?
+	0 : -1;
       x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE
 			   | X11_SCREENSAVER_CPU_ACTIVE);
       z_video_blank_cursor (zapping->video, timeout);

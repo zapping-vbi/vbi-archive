@@ -2,11 +2,9 @@ Known bugs in Zapping, don't report them
 ----------------------------------------
 
 Zapping 0.9:
-* zapping_remote man page is missing.
 * bktr interface needs more work.
 * src/tveng1.c/p_tveng1_dequeue/CSYNC hangs with bttv when changing video
   standard PAL NTSC PAL. Timeout SIGALRMs but doesn't EINTR.
-* XVideo: pal-m-television -> pal m-television.
 
 Zapping 0.7.2:
 * Fullscreen DMA overlay clips subtitles but not context menu and windows.

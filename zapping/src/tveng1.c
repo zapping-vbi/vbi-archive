@@ -2057,7 +2057,7 @@ set_overlay_window_clipvec	(tveng_device_info *	info,
 	window.clips		= clips;
 	window.clipcount	= v->size;
 
-	window.chromakey	= calc_chroma (info); // XXX check this
+	window.chromakey	= calc_chroma (info); /* XXX check this */
 
 	/* Up to the caller to call _on */
 	p_tv_enable_overlay (info, FALSE);

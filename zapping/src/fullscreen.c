@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.41 2005-01-31 07:21:35 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.42 2005-02-12 13:37:07 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -698,7 +698,7 @@ start_fullscreen		(display_mode		dmode,
       /* XXX error? */
       tveng_set_capture_size (vwidth, vheight, zapping->info);
 
-      if (-1 == capture_start (zapping->info, GTK_WIDGET (drawing_area)))
+      if (!capture_start (zapping->info, GTK_WIDGET (drawing_area)))
 	goto failure;
 
       break;

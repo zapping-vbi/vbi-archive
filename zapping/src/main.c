@@ -218,33 +218,39 @@ restore_controls		(void)
 
   /* Restore the input and the standard */
 
-  if (zcg_int(NULL, "current_input"))
-    z_switch_video_input(zcg_uint(NULL, "current_input"), zapping->info);
+  /* XXX make this optional */
 
-  if (zcg_int(NULL, "current_audio_input"))
-    z_switch_audio_input(zcg_uint(NULL, "current_audio_input"), zapping->info);
-
-  if (zcg_int(NULL, "current_standard"))
-    z_switch_standard(zcg_uint(NULL, "current_standard"), zapping->info);
-
-  cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
-  ch = tveng_tuned_channel_nth (global_channel_list,
-				(guint) cur_tuned_channel);
-
-  if (NULL != ch)
+  if (1)
     {
-      if (start_muted)
+      if (zcg_int(NULL, "current_input"))
+	z_switch_video_input(zcg_uint(NULL, "current_input"), zapping->info);
+
+      if (zcg_int(NULL, "current_audio_input"))
+	z_switch_audio_input(zcg_uint(NULL, "current_audio_input"),
+			     zapping->info);
+
+      if (zcg_int(NULL, "current_standard"))
+	z_switch_standard(zcg_uint(NULL, "current_standard"), zapping->info);
+
+      cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
+      ch = tveng_tuned_channel_nth (global_channel_list,
+				    (guint) cur_tuned_channel);
+
+      if (NULL != ch)
 	{
-	  tveng_tc_control *mute;
+	  if (start_muted)
+	    {
+	      tveng_tc_control *mute;
 
-	  if ((mute = tveng_tc_control_by_id (zapping->info,
-					      ch->controls,
-					      ch->num_controls,
-					      TV_CONTROL_ID_MUTE)))
-	    mute->value = 1; /* XXX sub-optimal */
+	      if ((mute = tveng_tc_control_by_id (zapping->info,
+						  ch->controls,
+						  ch->num_controls,
+						  TV_CONTROL_ID_MUTE)))
+		mute->value = 1; /* XXX sub-optimal */
+	    }
+
+	  z_switch_channel (ch, zapping->info);
 	}
-
-      z_switch_channel (ch, zapping->info);
     }
 }
 
@@ -570,7 +576,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.195 2005-01-19 04:16:20 mschimek Exp $",
+	 "$Id: main.c,v 1.196 2005-02-12 13:37:07 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();

@@ -20,7 +20,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping_remote.c,v 1.2 2004-09-10 04:58:53 mschimek Exp $ */
+/* $Id: zapping_remote.c,v 1.3 2005-02-12 13:37:08 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,7 +137,6 @@ usage				(const char *		argv0)
 	prog = argv0;
 
     fprintf (stderr,
-"This is an experimental \"remote control\" for Zapping.\n"
 "Usage: %s [ options ] [ command ]\n"
 "\n"
 "Available options:\n"
@@ -154,7 +153,7 @@ usage				(const char *		argv0)
 "will have to put commands in \'single\' or \"double\" quotes\n"
 "to prevent shell expansion. When the -x option is given you\n"
 "can send XawTV commands, see the xawtv-remote manual page for\n"
-"details. Zapping also responds to xawtv-remote itself.\n"
+"details. Zapping also responds to xawtv-remote.\n"
 "\n"
 "Usage example:\n"
 "%s \'zapping.mute()\'\n"
