@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.35 2004-10-22 01:23:56 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.36 2004-11-03 06:41:26 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -33,7 +33,6 @@
 #include <gdk/gdkx.h>
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zconf.h"
-#include "tveng_private.h"
 #include "osd.h"
 #include "x11stuff.h"
 #include "interface.h"
@@ -43,6 +42,7 @@
 #include "plugins.h"
 #include "zvideo.h"
 #include "globals.h"
+#include "zvbi.h"
 
 static x11_vidmode_info *	svidmodes;
 static GtkWidget *		drawing_area;
@@ -77,10 +77,14 @@ on_key_press			(GtkWidget *		widget,
     }
 
 #ifdef HAVE_LIBZVBI
-  if (CAPTURE_MODE_TELETEXT == zapping->info->capture_mode)
-    if (_teletext_view_on_key_press (widget, event,
-				     (TeletextView *)(drawing_area)))
-      return TRUE;
+  if (CAPTURE_MODE_TELETEXT == tv_get_capture_mode (zapping->info))
+    {
+      TeletextView *view;
+
+      view = (TeletextView *) drawing_area;
+      if (view->key_press (view, event))
+	return TRUE;
+    }
 #endif
 
   return on_user_key_press (widget, event, NULL)
@@ -136,29 +140,35 @@ static void
 osd_model_changed			(ZModel	*	ignored1 _unused_,
 					 tveng_device_info *info)
 {
-  tv_window window;
+  const tv_window *w;
+  tv_clip_vector clip_vector;
   GdkWindow *gdk_window;
 
-  if (info->current_controller == TVENG_CONTROLLER_XV ||
+  if (tv_get_controller (info) == TVENG_CONTROLLER_XV ||
       !black_window || !black_window->window)
     return;
 
-  window = info->overlay_window;
-  tveng_set_preview_off (info);
-  info->overlay_window = window;
+  tv_enable_overlay (info, FALSE);
+
+  tv_clip_vector_init (&clip_vector);
 
   gdk_window = GTK_BIN (black_window)->child->window;
 
-  x11_window_clip_vector (&info->overlay_window.clip_vector,
+  w = tv_cur_overlay_window (info);
+
+  x11_window_clip_vector (&clip_vector,
 			  GDK_WINDOW_XDISPLAY (gdk_window),
 			  GDK_WINDOW_XID (gdk_window),
-			  window.x,
-			  window.y,
-			  window.width,
-			  window.height);
+			  w->x,
+			  w->y,
+			  w->width,
+			  w->height);
 
-  tveng_set_preview_window (info);
-  tveng_set_preview_on (info);
+  tv_set_overlay_window_clipvec (info, w, &clip_vector);
+
+  tv_clip_vector_destroy (&clip_vector);
+
+  tv_enable_overlay (info, TRUE);
 }
 
 static void
@@ -174,7 +184,7 @@ set_blank_timeout		(ZVideo *		video)
 {
   gint timeout;
 
-  timeout = 1500; /* ms */
+  timeout = 0; /* disabled */
   z_gconf_get_int (&timeout, "/apps/zapping/blank_cursor_timeout");
 
   z_video_blank_cursor (video, timeout);
@@ -218,7 +228,7 @@ find_vidmode			(const x11_vidmode_info *vidmodes,
 
   v = vmin;
 
-  if (zapping->info->debug_level > 0)
+  if (0)
     fprintf (stderr, "Using mode %ux%u@%u for video %ux%u\n",
 	     v->width, v->height, (guint)(v->vfreq + 0.5),
 	     width, height);
@@ -264,11 +274,11 @@ stop_fullscreen			(void)
   g_assert (DISPLAY_MODE_FULLSCREEN == zapping->display_mode
 	    || DISPLAY_MODE_BACKGROUND == zapping->display_mode);
 
-  switch (zapping->info->capture_mode)
+  switch (tv_get_capture_mode (zapping->info))
     {
     case CAPTURE_MODE_OVERLAY:
       /* Error ignored */
-      tveng_set_preview (FALSE, zapping->info);
+      tv_enable_overlay (zapping->info, FALSE);
 
       g_signal_handlers_disconnect_matched
 	(G_OBJECT (osd_model), G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
@@ -291,7 +301,7 @@ stop_fullscreen			(void)
     }
 
   zapping->display_mode = DISPLAY_MODE_WINDOW;
-  zapping->info->capture_mode = CAPTURE_MODE_NONE;
+  tv_set_capture_mode (zapping->info, CAPTURE_MODE_NONE);
 
   x11_vidmode_restore (svidmodes, &old_vidmode);
 
@@ -448,12 +458,12 @@ start_fullscreen		(display_mode		dmode,
 				     zapping->info))
 	{
 	  ShowBox("Overlay mode not available:\n%s",
-		  GTK_MESSAGE_ERROR, zapping->info->error);
+		  GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
 	  goto failure;
 	}
 
-      if (zapping->info->current_controller != TVENG_CONTROLLER_XV &&
-	  (zapping->info->caps.flags & TVENG_CAPS_CHROMAKEY))
+      if (tv_get_controller (zapping->info) != TVENG_CONTROLLER_XV &&
+	  (tv_get_caps (zapping->info)->flags & TVENG_CAPS_CHROMAKEY))
 	{
 	  chroma.blue = 0xffff;
       
@@ -470,14 +480,18 @@ start_fullscreen		(display_mode		dmode,
 		      GTK_MESSAGE_WARNING);
 	    }
 	}
-      else if (zapping->info->current_controller == TVENG_CONTROLLER_XV)
+      else if (tv_get_controller (zapping->info) == TVENG_CONTROLLER_XV)
 	{
 	  GdkColor chroma;
+	  unsigned int chromakey;
 	  
 	  CLEAR (chroma);
 	  
-	  if (0 == tveng_get_chromakey (&chroma.pixel, zapping->info))
-	    z_set_window_bg (drawing_area, &chroma);
+	  if (tv_get_overlay_chromakey (zapping->info, &chromakey))
+	    {
+	      chroma.pixel = chromakey;
+	      z_set_window_bg (drawing_area, &chroma);
+	    }
 	}
 
       /* Disable double buffering just in case, will help when a
@@ -496,7 +510,7 @@ start_fullscreen		(display_mode		dmode,
 				     zapping->info))
 	{
 	  ShowBox("Capture mode not available:\n%s",
-		  GTK_MESSAGE_ERROR, zapping->info->error);
+		  GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
 	  goto failure;
 	}
 
@@ -552,10 +566,13 @@ start_fullscreen		(display_mode		dmode,
     }
   else
     {
-      if (zapping->info->cur_video_standard)
+      const tv_video_standard *vs;
+      const struct tveng_caps *caps;
+
+      if ((vs = tv_cur_video_standard (zapping->info)))
 	{
-	  vwidth = zapping->info->cur_video_standard->frame_width;
-	  vheight = zapping->info->cur_video_standard->frame_height;
+	  vwidth = vs->frame_width;
+	  vheight = vs->frame_height;
 	}
       else
 	{
@@ -564,8 +581,9 @@ start_fullscreen		(display_mode		dmode,
 	}
 
       /* Driver limit. */
-      vwidth = MIN ((guint) zapping->info->caps.maxwidth, vwidth);
-      vheight = MIN ((guint) zapping->info->caps.maxheight, vheight);
+      caps = tv_get_caps (zapping->info);
+      vwidth = MIN ((guint) caps->maxwidth, vwidth);
+      vheight = MIN ((guint) caps->maxheight, vheight);
 
       /* Screen limit. XXX should try to scale captured images down. */
       vwidth = MIN (xs->width, vwidth);
@@ -622,7 +640,7 @@ start_fullscreen		(display_mode		dmode,
     {
     case CAPTURE_MODE_OVERLAY:
       /* XXX */
-      if (zapping->info->current_controller == TVENG_CONTROLLER_XV)
+      if (tv_get_controller (zapping->info) == TVENG_CONTROLLER_XV)
 	{
 	  /* Wait until da has the desired size. */
 	  while (gtk_events_pending ())
@@ -634,42 +652,42 @@ start_fullscreen		(display_mode		dmode,
 	    goto failure;
 
 	  /* For OSD. */
-	  zapping->info->overlay_window.x = vx;
-	  zapping->info->overlay_window.y = vy;
-	  zapping->info->overlay_window.width = vwidth;
-	  zapping->info->overlay_window.height = vheight;
+	  tv_overlay_hack (zapping->info, vx, vy, (int) vwidth, (int) vheight);
 	}
       else
 	{
+	  tv_window window;
+	  const tv_window *w;
+
 	  if (!z_set_overlay_buffer (zapping->info, xs, drawing_area->window))
 	    goto failure;
 
-	  zapping->info->overlay_window.x = vx;
-	  zapping->info->overlay_window.y = vy;
-	  zapping->info->overlay_window.width = vwidth;
-	  zapping->info->overlay_window.height = vheight;
+	  CLEAR (w);
 
-	  tv_clip_vector_clear (&zapping->info->overlay_window.clip_vector);
+	  window.x = vx;
+	  window.y = vy;
+	  window.width = vwidth;
+	  window.height = vheight;
 
 	  /* Set new capture dimensions */
-	  if (-1 == tveng_set_preview_window (zapping->info))
+	  if (!tv_set_overlay_window_clipvec (zapping->info, &window, NULL))
 	    goto failure;
 
-	  if (zapping->info->overlay_window.width != vwidth
-	      || zapping->info->overlay_window.height != vheight)
+	  w = tv_cur_overlay_window (zapping->info);
+	  if (w->width != vwidth
+	      || w->height != vheight)
 	    {
-	      zapping->info->overlay_window.x =
-		(xs->width - zapping->info->overlay_window.width) >> 1;
-	      zapping->info->overlay_window.y =
-		(xs->height - zapping->info->overlay_window.height) >> 1;
+	      window.x = (xs->width - w->width) >> 1;
+	      window.y = (xs->height - w->height) >> 1;
 
-	      if (-1 == tveng_set_preview_window (zapping->info))
+	      if (!tv_set_overlay_window_clipvec
+		  (zapping->info, &window, NULL))
 		goto failure;
 	    }
 	}
 
       /* Start preview */
-      if (-1 == tveng_set_preview (TRUE, zapping->info))
+      if (!tv_enable_overlay (zapping->info, TRUE))
 	goto failure;
 
       break;
@@ -703,7 +721,7 @@ start_fullscreen		(display_mode		dmode,
   gtk_widget_hide (GTK_WIDGET (zapping));
 
   zapping->display_mode = DISPLAY_MODE_FULLSCREEN;
-  zapping->info->capture_mode = cmode;
+  tv_set_capture_mode (zapping->info, cmode);
 
   gtk_widget_grab_focus (black_window);
 
@@ -725,23 +743,21 @@ start_fullscreen		(display_mode		dmode,
 
   switch (cmode)
     {
+      const tv_window *w;
+
     case CAPTURE_MODE_OVERLAY:
-      if (zapping->info->current_controller != TVENG_CONTROLLER_XV)
+      w = tv_cur_overlay_window (zapping->info);
+
+      if (tv_get_controller (zapping->info) != TVENG_CONTROLLER_XV)
 	{
 	  osd_set_coords (drawing_area,
-			  zapping->info->overlay_window.x,
-			  zapping->info->overlay_window.y,
-			  (gint) zapping->info->overlay_window.width,
-			  (gint) zapping->info->overlay_window.height);
+			  w->x, w->y, (gint) w->width, (gint) w->height);
 	}
       else
 	{
 	  /* wrong because Xv may pad to this size (DMA hw limit) */
 	  osd_set_coords (drawing_area,
-			  zapping->info->overlay_window.x,
-			  zapping->info->overlay_window.y,
-			  (gint) zapping->info->overlay_window.width,
-			  (gint) zapping->info->overlay_window.height);
+			  w->x, w->y, (gint) w->width, (gint) w->height);
 	}
 
       g_signal_connect (G_OBJECT (osd_model), "changed",
