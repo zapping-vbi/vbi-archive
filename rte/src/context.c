@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.7 2002-06-14 07:57:21 mschimek Exp $ */
+/* $Id: context.c,v 1.8 2002-06-25 04:36:31 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -35,13 +35,13 @@ extern const rte_backend_class rte_backend_divx4linux;
 
 static const rte_backend_class *
 backends[] = {
-#ifdef MP1E
+#ifdef BACKEND_MP1E
 	&rte_backend_mp1e,
 #endif
-#ifdef FFMPEG
+#ifdef BACKEND_FFMPEG
 	&rte_backend_ffmpeg,
 #endif
-#ifdef DIVX4LINUX
+#ifdef BACKEND_DIVX4LINUX
 	&rte_backend_divx4linux,
 #endif
 	/* more */
