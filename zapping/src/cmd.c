@@ -44,7 +44,7 @@ static PyObject* py_quit (PyObject *self, PyObject *args)
     py_return_false;
 
   /* Error ignored */
-  tv_mute_set (main_info, TRUE);
+  tv_quiet_set (main_info, TRUE);
 
   /* Save the currently tuned channel */
   zconf_set_integer (cur_tuned_channel,
@@ -220,7 +220,7 @@ static PyObject* py_about (PyObject *self, PyObject *args)
 
 static PyObject* py_resize_screen (PyObject *self, PyObject *args)
 {
-  GdkWindow *subwindow = lookup_widget (main_window, "tv_screen")->window;
+  GdkWindow *subwindow = lookup_widget (main_window, "tv-screen")->window;
   GdkWindow *mw = gdk_window_get_toplevel(subwindow);
   gint sw_w, sw_h, mw_w, mw_h;
   int w, h;
@@ -229,6 +229,7 @@ static PyObject* py_resize_screen (PyObject *self, PyObject *args)
   if (!ok)
     g_error ("zapping.resize_screen(ii)");
 
+#warning
   gdk_window_get_geometry (mw, NULL, NULL, &mw_w, &mw_h, NULL);
   gdk_window_get_geometry (subwindow, NULL, NULL, &sw_w, &sw_h, NULL);
 
