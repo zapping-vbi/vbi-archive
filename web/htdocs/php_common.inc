@@ -5,6 +5,10 @@ $this_file =
     strtolower(str_replace(".php", "", basename($PHP_SELF)));
 
 $this_dir = dirname($PHP_SELF);
+if ($this_dir == "/")
+{
+	$this_dir = "";
+}
 
 if (!$theme)
 {
