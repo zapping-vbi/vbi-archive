@@ -1,3 +1,7 @@
+2004-09-23    <mschimek@users.sf.net>
+
+	* src/zapping.c: Added scroll_event mouse wheel support, untested. 
+
 2004-09-22    <mschimek@users.sf.net>
 
 	* src/zvbi.c: Switched to GConf for Teletext region, level and
