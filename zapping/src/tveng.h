@@ -280,8 +280,6 @@ typedef struct
 #endif
 
   int zapping_setup_fb_verbosity;
-
-  struct timeval tv_init;
 }
 tveng_device_info;
 
@@ -531,13 +529,9 @@ int tveng_read_frame(void * where, unsigned int size,
 		     unsigned int time, tveng_device_info * info);
 
 /*
-  Gets the timestamp of the last read frame.
-  Returns -1 on error, if the current mode isn't capture, or if we
-  haven't captured any frame yet. The timestamp is relative to when we
-  started streaming, and is calculated with the following formula:
-  timestamp = (sec*1000000+usec)*1000
+  Gets the timestamp of the last read frame in seconds.
 */
-__s64 tveng_get_timestamp(tveng_device_info * info);
+double tveng_get_timestamp(tveng_device_info * info);
 
 /* 
    Sets the capture buffer to an specific size. returns -1 on
@@ -685,9 +679,6 @@ enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
 */
 int tveng_restart_everything (enum tveng_capture_mode mode,
 			      tveng_device_info * info);
-
-/* Sets the timestamps relative to the current time */
-void tveng_start_timer(tveng_device_info * info);
 
 /* get the current debug level */
 int tveng_get_debug_level(tveng_device_info * info);

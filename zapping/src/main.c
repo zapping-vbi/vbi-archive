@@ -737,7 +737,5 @@ gboolean startup_zapping()
       p = p->next;
     }
   D();
-  tveng_start_timer(main_info);
-  D();
   return TRUE;
 }

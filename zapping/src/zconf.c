@@ -74,20 +74,20 @@ struct zconf_key
 };
 
 /* Global values that control the library */
-struct zconf_key * zconf_root = NULL; /* The root of the config tree
+static struct zconf_key * zconf_root = NULL; /* The root of the config tree
 				       */
-gboolean zconf_started = FALSE; /* indicates whether zconf has been
-				   successfully started */
+static gboolean zconf_started = FALSE; /* indicates whether zconf has been
+					  successfully started */
 
-gchar * zconf_file = NULL;
+static gchar * zconf_file = NULL;
 
-gboolean zconf_we = FALSE; /* TRUE if the last call failed */
+static gboolean zconf_we = FALSE; /* TRUE if the last call failed */
 
-gchar * zconf_buffer = NULL; /* A global buffer some functions share */
+static gchar * zconf_buffer = NULL; /* A global buffer some functions share */
 
 /*
   We should use namespaces, but the code in this file is for
-  transitional purpouses only, zconf will be used when gconf comes.
+  transitional purpouses only, gconf will be used when gconf comes.
   Don't relay on it too much, i don't plan to maintain it...
 */
 

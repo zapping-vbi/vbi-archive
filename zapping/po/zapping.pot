@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-11-04 01:27+0100\n"
+"POT-Creation-Date: 2000-11-04 21:28+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -294,34 +294,34 @@ msgstr ""
 #: src/tveng.c:684 src/tveng.c:717 src/tveng.c:746 src/tveng.c:771
 #: src/tveng.c:797 src/tveng.c:823 src/tveng.c:848 src/tveng.c:878
 #: src/tveng.c:903 src/tveng.c:931 src/tveng.c:957 src/tveng.c:980
-#: src/tveng.c:1014 src/tveng.c:1042 src/tveng.c:1070 src/tveng.c:1095
-#: src/tveng.c:1185 src/tveng.c:1385 src/tveng.c:1412 src/tveng.c:1440
-#: src/tveng.c:1636 src/tveng.c:1663
+#: src/tveng.c:1014 src/tveng.c:1038 src/tveng.c:1066 src/tveng.c:1091
+#: src/tveng.c:1181 src/tveng.c:1381 src/tveng.c:1408 src/tveng.c:1436
+#: src/tveng.c:1632 src/tveng.c:1659
 #, c-format
 msgid "%s called on a non-controlled device: %s\n"
 msgstr ""
 
-#: src/tveng.c:1267
+#: src/tveng.c:1263
 msgid "zapping_setup_fb exited abnormally, check stderr"
 msgstr ""
 
-#: src/tveng.c:1277
+#: src/tveng.c:1273
 msgid "zapping_setup_fb failed to set up the video"
 msgstr ""
 
-#: src/tveng.c:1282
+#: src/tveng.c:1278
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr ""
 
-#: src/tveng.c:1326
+#: src/tveng.c:1322
 msgid "Cannot find an appropiate visual"
 msgstr ""
 
-#: src/tveng.c:1346
+#: src/tveng.c:1342
 msgid "Cannot figure out X depth"
 msgstr ""
 
-#: src/tveng.c:1732
+#: src/tveng.c:1728
 msgid "Warning: trying to stop window with no capture active\n"
 msgstr ""
 
@@ -464,7 +464,7 @@ msgstr ""
 msgid "There are no tuners for the active input"
 msgstr ""
 
-#: src/tveng1.c:1980 src/tveng2.c:1653
+#: src/tveng1.c:1980 src/tveng2.c:1649
 msgid "Warning: trying to stop capture with no capture active\n"
 msgstr ""
 
@@ -476,19 +476,19 @@ msgstr ""
 msgid "Grabber chip can't sync (no station tuned in?)"
 msgstr ""
 
-#: src/tveng1.c:2176 src/tveng2.c:1711
+#: src/tveng1.c:2164 src/tveng2.c:1711
 msgid "Current capture mode is not READ"
 msgstr ""
 
-#: src/tveng1.c:2185 src/tveng2.c:1720
+#: src/tveng1.c:2173 src/tveng2.c:1720
 msgid "Size check failed, quitting to avoid segfault"
 msgstr ""
 
-#: src/tveng1.c:2298 src/tveng2.c:1854
+#: src/tveng1.c:2279 src/tveng2.c:1855
 msgid "The capability field says that there is no overlay"
 msgstr ""
 
-#: src/tveng1.c:2516 src/tveng2.c:2055
+#: src/tveng1.c:2497 src/tveng2.c:2056
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
@@ -583,7 +583,7 @@ msgstr ""
 msgid "V4L2: Unknown control type 0x%x (%s)\n"
 msgstr ""
 
-#: src/tveng2.c:1590
+#: src/tveng2.c:1586
 msgid "Not enough buffers"
 msgstr ""
 
@@ -1457,7 +1457,7 @@ msgstr ""
 
 #. hash collision code
 #. Warn
-#: plugins/mpeg/plugin.c:94 plugins/screenshot/screenshot.c:181
+#: plugins/mpeg/plugin.c:95 plugins/screenshot/screenshot.c:181
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
@@ -1532,27 +1532,27 @@ msgstr ""
 msgid "There are too many threads"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:31
+#: plugins/mpeg/plugin.c:32
 msgid "MPEG encoder"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:33
+#: plugins/mpeg/plugin.c:34
 msgid "This plugin encodes the image and audio stream into a MPEG file"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:35
+#: plugins/mpeg/plugin.c:36
 msgid "Encode the stream as MPEG."
 msgstr ""
 
-#: plugins/mpeg/plugin.c:196
+#: plugins/mpeg/plugin.c:318
 msgid "The only supported pixformats are YUYV and YUV420"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:285 plugins/mpeg/plugin.c:352
+#: plugins/mpeg/plugin.c:415 plugins/mpeg/plugin.c:482
 msgid "MPEG"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:353
+#: plugins/mpeg/plugin.c:483
 msgid "Store the data as MPEG"
 msgstr ""
 

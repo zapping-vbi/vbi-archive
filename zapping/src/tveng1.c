@@ -56,7 +56,7 @@ struct private_tveng1_device_info
   char * mmaped_data; /* A pointer to the data mmap() returned */
   struct video_mbuf mmbuf; /* Info about the location of the frames */
   int queued, dequeued; /* The index of the [de]queued frames */
-  __s64 last_timestamp; /* Timestamp of the last frame captured */
+  double last_timestamp; /* Timestamp of the last frame captured */
 };
 
 /*
@@ -2125,20 +2125,8 @@ static int p_tveng1_dequeue(void * where, tveng_device_info * info)
 
   /* get the timestamp */
   gettimeofday(&tv, NULL);
-  tv.tv_sec -= info->tv_init.tv_sec;
-  tv.tv_usec -= info->tv_init.tv_usec;
-  if (tv.tv_usec < 0)
-    {
-      tv.tv_sec--;
-      tv.tv_usec += 1000000;
-    }
 
-  /* fixme: This is usually harmless, but sometimes the assertions fail ? */
-  t_assert(tv.tv_sec >= 0);
-  t_assert(tv.tv_usec >= 0);
-
-  p_info->last_timestamp = ((__s64)tv.tv_sec)*1000000 + ((__s64)tv.tv_usec);
-  p_info->last_timestamp *= 1000;
+  p_info->last_timestamp = tv.tv_sec + tv.tv_usec / 1e6;
 
   /* Copy the mmaped data to the data struct, if it is not null */
   if (where)
@@ -2210,14 +2198,7 @@ int tveng1_read_frame(void * where, unsigned int size,
   return 0;
 }
 
-/*
-  Gets the timestamp of the last read frame.
-  Returns -1 on error, if the current mode isn't capture, or if we
-  haven't captured any frame yet. The timestamp is relative to when we
-  started streaming, and is calculated with the following formula:
-  timestamp = (sec*1000000+usec)*1000
-*/
-__s64 tveng1_get_timestamp(tveng_device_info * info)
+double tveng1_get_timestamp(tveng_device_info * info)
 {
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info *) info;

@@ -17,6 +17,7 @@
  */
 #include "plugin_common.h"
 #include <glade/glade.h>
+#include <esd.h>
 #include <rte.h>
 
 /*
@@ -149,23 +150,147 @@ void plugin_close(void)
 {
   if (active)
     {
-      context = rte_context_destroy(context);
+      if (context)
+	context = rte_context_destroy(context);
       active = FALSE;
     }
 }
 
+/*
+ * Audio capture
+ */
+#define BUFFER_SIZE (ESD_BUF_SIZE)
+static int		esd_recording_socket;
+static short *		abuffer;
+static int		scan_range;
+static int		look_ahead;
+static int		buffer_size;
+static int		samples_per_frame;
+
 static void
-data_callback(rte_context * context, void * data, double * time, enum
-	      rte_mux_mode stream, void * user_data)
+read_audio(void * data, double * time, rte_context * context)
+{
+	static double rtime, utime;
+	static int left = 0;
+	static short *p;
+	int stereo = (context->audio_mode == RTE_AUDIO_MODE_STEREO) ? 1
+		: 0;
+	struct timeval tv;
+	int sampling_rate = context->audio_rate;
+
+	if (left <= 0)
+	{
+		ssize_t r;
+		int n;
+
+		memcpy(abuffer, abuffer + scan_range, look_ahead *
+		       sizeof(abuffer[0]));
+
+		p = abuffer + look_ahead;
+		n = scan_range * sizeof(abuffer[0]);
+
+		while (n > 0) {
+			fd_set rdset;
+			int err;
+
+			FD_ZERO(&rdset);
+			FD_SET(esd_recording_socket, &rdset);
+			tv.tv_sec = 1;
+			tv.tv_usec = 0;
+			err = select(esd_recording_socket+1, &rdset,
+				   NULL, NULL, &tv);
+
+			if ((err == -1) || (err == 0))
+				continue;
+
+			r = read(esd_recording_socket, p, n);
+			
+			if (r < 0 && errno == EINTR)
+				continue;
+
+			if (r == 0) {
+				memset(p, 0, n);
+				break;
+			}
+
+			(char *) p += r;
+			n -= r;
+		}
+
+		gettimeofday(&tv, NULL);
+
+		rtime = tv.tv_sec + tv.tv_usec / 1e6;
+		rtime -= (scan_range - n) / (double) sampling_rate;
+
+		left = scan_range - samples_per_frame;
+		p = abuffer;
+
+		*time = rtime;
+		memcpy(data, p, context->audio_bytes);
+		return;
+	}
+
+	utime = rtime + ((p - abuffer) >> stereo) / (double) sampling_rate;
+	left -= samples_per_frame;
+
+	p += samples_per_frame;
+
+	*time = utime;
+	memcpy(data, p, context->audio_bytes);
+}
+
+static void
+audio_data_callback(rte_context * context, void * data, double * time, enum
+		    rte_mux_mode stream, void * user_data)
 {
   struct timeval tv;
 
   g_assert(stream == RTE_AUDIO);
   g_assert(user_data == (void*)0xbeefdead);
 
-  gettimeofday(&tv, NULL);
+  read_audio(data, time, context);
+}
 
-  *time = tv.tv_sec + tv.tv_usec/1e6;
+static gboolean
+init_audio(gint rate, gboolean stereo)
+{
+  esd_format_t format = ESD_STREAM | ESD_RECORD | ESD_BITS16;
+
+  format |= stereo ? ESD_STEREO : ESD_MONO;
+
+  esd_recording_socket =
+    esd_record_stream_fallback(format, rate, NULL, NULL);
+
+  if (esd_recording_socket <= 0)
+    return FALSE;
+
+  samples_per_frame = 1152 << stereo;
+  
+  scan_range = MAX(BUFFER_SIZE / sizeof(short) /
+		   samples_per_frame, 1) * samples_per_frame;
+  
+  look_ahead = (512 - 32) << stereo;
+  
+  buffer_size = (scan_range + look_ahead) * sizeof(abuffer[0]);
+
+  abuffer = malloc(buffer_size);
+
+  if (!abuffer)
+    return FALSE;
+
+  memset(abuffer, 0, buffer_size);
+
+  return TRUE;
+}
+
+static void
+close_audio(void)
+{
+  close(esd_recording_socket);
+  esd_recording_socket = -1;
+
+  if (abuffer)
+    free(abuffer);
 }
 
 static
@@ -173,10 +298,7 @@ gboolean plugin_start (void)
 {
   enum rte_pixformat pixformat = RTE_YUV420;
 
-  /* it would be better to gray out the button */
-  ShowBox("This doesn't work yet.", GNOME_MESSAGE_BOX_INFO);
-  return FALSE;
-
+  /* it would be better to gray out the button and set insensitive */
   if (active)
     {
       ShowBox("The plugin is running!", GNOME_MESSAGE_BOX_WARNING);
@@ -198,6 +320,15 @@ gboolean plugin_start (void)
       return FALSE;
     }
 
+  g_assert(context == NULL);
+
+  if (!init_audio(44100, FALSE))
+    {
+      ShowBox("Couldn't open the ESD device for capturing audio",
+	      GNOME_MESSAGE_BOX_ERROR);
+      return FALSE;
+    }
+
   context =
     rte_context_new(zapping_info->format.width,
 		    zapping_info->format.height, pixformat,
@@ -211,11 +342,11 @@ gboolean plugin_start (void)
     }
 
   /* Set up the context for encoding */
-  rte_set_mode(context, RTE_AUDIO);
-  /*  rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE, NULL, NULL,
-      NULL);*/
+  rte_set_mode(context, RTE_AUDIO | RTE_VIDEO);
+  rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE, NULL, NULL,
+		NULL);
   rte_set_input(context, RTE_AUDIO, RTE_CALLBACKS, FALSE,
-		data_callback, NULL, NULL);
+  		audio_data_callback, NULL, NULL);
   rte_set_output(context, NULL, "temp.mpeg");
   /* Set everything up for encoding */
   if (!rte_init_context(context))
@@ -251,20 +382,19 @@ void plugin_save_config (gchar * root_key)
 static
 void plugin_process_sample(plugin_sample * sample)
 {
-  double timestamp = ((double)(sample->video_timestamp/1000))/1e6;
   if (!active)
     return;
 
   if (dest_buffer) /* fixme: this will segfault if the size changes */
-    memcpy(dest_buffer, sample->video_data, sample->video_format.sizeimage);
-  dest_buffer = rte_push_video_data(context, dest_buffer, timestamp);
+    memcpy(dest_buffer, sample->video_data,
+	   context->video_bytes);
+
+  dest_buffer = rte_push_video_data(context, dest_buffer,
+				    sample->video_timestamp);
   if ((coded_frames++) > (25*10)) /* If we have encoded 10 seconds */
     {
-      g_warning("stopping context");
-      rte_stop(context);
-      g_warning("context stopped");
       context = rte_context_destroy(context);
-      g_warning("going deactivated");
+      close_audio();
       active = FALSE;
     }
 }

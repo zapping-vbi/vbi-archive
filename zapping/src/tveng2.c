@@ -50,7 +50,7 @@ struct private_tveng2_device_info
   tveng_device_info info; /* Info field, inherited */
   int num_buffers; /* Number of mmaped buffers */
   struct tveng2_vbuf * buffers; /* Array of buffers */
-  __s64 last_timestamp; /* The timestamp of the last captured buffer */
+  double last_timestamp; /* The timestamp of the last captured buffer */
 };
 
 /* Private, builds the controls structure */
@@ -1531,8 +1531,7 @@ static int p_tveng2_dqbuf(tveng_device_info * info)
   struct v4l2_buffer tmp_buffer;
   struct private_tveng2_device_info * p_info =
     (struct private_tveng2_device_info*) info;
-  __s64 init_timestamp;
-
+  
   t_assert(info != NULL);
 
   tmp_buffer.type = p_info -> buffers[0].vidbuf.type;
@@ -1544,12 +1543,7 @@ static int p_tveng2_dqbuf(tveng_device_info * info)
       return -1;
     }
 
-  init_timestamp = ((__s64)info->tv_init.tv_sec) * 1000000 +
-    info->tv_init.tv_usec;
-  init_timestamp *= 1000;
-
-  p_info -> last_timestamp = tmp_buffer.timestamp;
-  p_info -> last_timestamp -= init_timestamp;
+  p_info -> last_timestamp = tmp_buffer.timestamp / 1e9;
 
   return (tmp_buffer.index);
 }
@@ -1571,6 +1565,8 @@ tveng2_start_capturing(tveng_device_info * info)
   tveng_stop_everything(info);
 
   t_assert(info -> current_mode == TVENG_NO_CAPTURE);
+  t_assert(p_info->num_buffers == 0);
+  t_assert(p_info->buffers == NULL);
 
   p_info -> buffers = NULL;
   p_info -> num_buffers = 0;
@@ -1584,7 +1580,7 @@ tveng2_start_capturing(tveng_device_info * info)
       return -1;
     }
 
-  if (rb.count == 0)
+  if (rb.count <= 0)
     {
       info->tveng_errno = -1;
       t_error_msg("check()", _("Not enough buffers"), info);
@@ -1649,7 +1645,7 @@ tveng2_stop_capturing(tveng_device_info * info)
 
   if (info -> current_mode == TVENG_NO_CAPTURE)
     {
-      fprintf(stderr, 
+      fprintf(stderr,
 	      _("Warning: trying to stop capture with no capture active\n"));
       return 0; /* Nothing to be done */
     }
@@ -1676,7 +1672,11 @@ tveng2_stop_capturing(tveng_device_info * info)
     }
 
   if (p_info -> buffers)
-    free(p_info -> buffers);
+    {
+      free(p_info -> buffers);
+      p_info->buffers = NULL;
+    }
+  p_info->num_buffers = 0;
 
   p_info -> last_timestamp = -1;
 
@@ -1713,7 +1713,7 @@ int tveng2_read_frame(void * where, unsigned int size,
       return -1;
     }
 
-  if (info -> format.sizeimage > size)
+  if (info -> format.sizeimage != size)
     {
       info -> tveng_errno = ENOMEM;
       t_error_msg("check()", 
@@ -1754,8 +1754,9 @@ int tveng2_read_frame(void * where, unsigned int size,
   } while (1);
 
   /* Copy the data to the address given */
-  memcpy(where, p_info->buffers[n].vmem,
-	 size);
+  if (where)
+    memcpy(where, p_info->buffers[n].vmem,
+	   info->format.sizeimage);
 
   /* Queue the buffer again for processing */
   if (p_tveng2_qbuf(n, info))
@@ -1772,7 +1773,7 @@ int tveng2_read_frame(void * where, unsigned int size,
   started streaming, and is calculated with the following formula:
   timestamp = (sec*1000000+usec)*1000
 */
-__s64 tveng2_get_timestamp(tveng_device_info * info)
+double tveng2_get_timestamp(tveng_device_info * info)
 {
   struct private_tveng2_device_info * p_info =
     (struct private_tveng2_device_info *) info;

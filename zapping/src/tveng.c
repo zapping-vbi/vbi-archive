@@ -1026,13 +1026,9 @@ int tveng_read_frame(void * where, unsigned int size,
 }
 
 /*
-  Gets the timestamp of the last read frame.
-  Returns -1 on error, if the current mode isn't capture, or if we
-  haven't captured any frame yet. The timestamp is relative to when we
-  started streaming, and is calculated with the following formula:
-  timestamp = (sec*1000000+usec)*1000
+  Gets the timestamp of the last read frame in seconds.
 */
-__s64 tveng_get_timestamp(tveng_device_info * info)
+double tveng_get_timestamp(tveng_device_info * info)
 {
   t_assert(info != NULL);
 
@@ -1802,11 +1798,6 @@ int tveng_restart_everything (enum tveng_capture_mode mode,
       break;
     }
   return 0; /* Success */
-}
-
-void tveng_start_timer(tveng_device_info * info)
-{
-  gettimeofday(&(info->tv_init), NULL);
 }
 
 int tveng_get_debug_level(tveng_device_info * info)
