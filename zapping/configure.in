@@ -1,7 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.130.2.16 2003-08-24 23:56:37 mschimek Exp $
+dnl $Id: configure.in,v 1.130.2.17 2003-09-24 18:33:38 mschimek Exp $
 
-AC_INIT(zapping, 0.7cvs1, [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
+AC_INIT(zapping, 0.7cvs1,
+  [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 
@@ -12,23 +13,19 @@ AC_ISC_POSIX
 AC_PROG_CC
 AM_PROG_CC_STDC
 AC_HEADER_STDC
+AC_CHECK_FUNCS(strndup)
+AC_CHECK_FUNCS(asprintf)
+AC_CHECK_FUNCS(getopt_long)
+AC_CHECK_FUNCS(program_invocation_name)
 
 AC_DISABLE_STATIC
 AM_PROG_LIBTOOL
 
 AC_PROG_INTLTOOL(0.22)
 
-AC_CHECK_FUNCS(stpcpy)
-
-dnl
-dnl GNU Extensions
-dnl
-AC_CHECK_FUNCS(getopt_long)
-AC_CHECK_FUNCS(program_invocation_name)
-
 test -e site_def.h || cat <<EOF >site_def.h
-/* These defines enable various tests and other hacks by
-   default disabled in released packages. */
+/* These defines enable various tests and other hacks
+   we do not want in released packages. */
 
 #ifndef SITE_DEF_H
 #define SITE_DEF_H
@@ -42,38 +39,70 @@ test -e site_def.h || cat <<EOF >site_def.h
 /* #define AUDIO_MIXER_LOG_FP stderr */
 /* #define ZVIDEO_EXPOSE_TEST 1 */
 /* #define OSS_LOG_FP stderr */
+/* #define XAWTV_CONFIG_TEST 1 */
 #endif /* SITE_DEF_H */
 EOF
 
-dnl These are the plugins we can build, they depend on the present
-dnl libs.
+dnl These are the plugins we can build, depending on the libs we find.
+dnl Template and lirc need no external files.
 PLUGINS_TO_BUILD="template lirc"
 
-dnl ======================================================================
+dnl ===========================================================================
 dnl Video (TV) device checks
-dnl ======================================================================
+dnl ===========================================================================
 
-AC_MSG_CHECKING(whether to build the Video4Linux backends)
+dnl ---------------------------------------------------------------------------
+dnl Video For Linux [Two]
+dnl ---------------------------------------------------------------------------
+
+AC_MSG_CHECKING(whether to build the Video4Linux driver interfaces)
 AC_ARG_ENABLE(v4l,
-  AC_HELP_STRING([--enable-v4l], [Include the V4L and V4L2 controllers (auto)]),
-  enable_vl4="$enableval", enable_v4l="auto")
+  AC_HELP_STRING([--enable-v4l],
+    [Include V4L and V4L2 driver interfaces (auto)]),
+  enable_v4l="$enableval", enable_v4l="auto")
 
-if test "x$enable_v4l" = "xauto"; then
-  if test "x`uname`" = "xLinux"; then
+test "$enable_v4l" = "auto" &&
+  test "`uname -s`" = "Linux" &&
     enable_v4l=yes
-  else
-    enable_v4l=no
-  fi
-fi
+
+test "$enable_v4l" != "yes" && enable_v4l=no
 
 AC_MSG_RESULT($enable_v4l)
-if test "x$enable_v4l" = "xyes"; then
+
+if test "$enable_v4l" = "yes"; then
   AC_DEFINE(ENABLE_V4L, 1, [Define to build with V4L support])
 fi
 
-dnl ======================================================================
+dnl ---------------------------------------------------------------------------
+dnl BSD Brooktree / Meteor
+dnl ---------------------------------------------------------------------------
+
+AC_MSG_CHECKING(whether to build the Bktr/Meteor driver interfaces)
+AC_ARG_ENABLE(bktr,
+  AC_HELP_STRING([--enable-bktr],
+    [Include Bktr/Meteor driver interfaces (auto)]),
+  enable_bktr="$enableval", enable_bktr="auto")
+
+test "$enable_bktr" = "auto" &&
+  case "`uname -s`" in
+  OpenBSD | FreeBSD | NetBSD | BSDi)
+    enable_bktr=yes
+    ;;
+  *)
+    ;;
+  esac
+
+test "$enable_bktr" != "yes" && enable_bktr=no
+
+AC_MSG_RESULT($enable_bktr)
+
+if test "$enable_bktr" = "yes"; then
+  AC_DEFINE(ENABLE_BKTR, 1, [Define to build with Bktr/Meteor support])
+fi
+
+dnl ===========================================================================
 dnl X11 checks
-dnl ======================================================================
+dnl ===========================================================================
 
 AC_PATH_XTRA
 if test "$X_CFLAGS" = "-DX_DISPLAY_MISSING"; then
@@ -100,25 +129,29 @@ AC_DEFUN(AC_CHECK_X_LIB, [
   CPPFLAGS="$SAVE_CPPFLAGS"
   LDFLAGS="$SAVE_LDFLAGS"])
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Check for the DPMS extension (to disable screensaver)
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
+
 HAVE_DPMS=no
-AC_ARG_WITH(dpms-ext, AC_HELP_STRING([--with-dpms-ext],
-  [Include support for the DPMS extension (yes).]),
-  [with_dpms="$withval"],[with_dpms=yes])
+
+AC_ARG_WITH(dpms-ext,
+  AC_HELP_STRING([--with-dpms-ext],
+    [Include support for the DPMS extension (yes).]),
+  [with_dpms="$withval"], [with_dpms=yes])
+
 if test "$with_dpms" = "yes"; then
   AC_CHECK_X_HEADER(X11/extensions/dpms.h, [HAVE_DPMS=yes],,
-                    [#include <X11/Xlib.h>])
+    [#include <X11/Xlib.h>])
   if test "$HAVE_DPMS" = "yes"; then
-    # first look in -lXext (this is where it is with XFree86 4.0)
+    # first look in -lXext (this is where it is in XFree86 4.0)
     HAVE_DPMS=no
     AC_CHECK_X_LIB(Xext, DPMSInfo, [HAVE_DPMS=yes; X_XDPMS_LIBS="-lXext"],
-                   [true],)
+      [true],)
     # if that failed, look in -lXdpms (this is where it was in XFree86 3.x)
     if test "$HAVE_DPMS" = "no"; then
       AC_CHECK_X_LIB(Xdpms, DPMSInfo, [HAVE_DPMS=yes; X_DPMS_LIBS="-lXdpms"],
-                     [true], [-lXext])
+        [true], [-lXext])
     fi
   fi
   if test "$HAVE_DPMS" = "yes"; then
@@ -127,16 +160,20 @@ if test "$with_dpms" = "yes"; then
   fi
 fi
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Check for the DGA extension (DMA overlay without Xv)
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
+
 HAVE_DGA=no
-AC_ARG_WITH(xf86dga-ext, AC_HELP_STRING([--with-xf86dga-ext],
-  [Include support for the DGA extension (yes).]),
-  [with_dga="$withval"],[with_dga=yes])
+
+AC_ARG_WITH(xf86dga-ext,
+  AC_HELP_STRING([--with-xf86dga-ext],
+    [Include support for the DGA extension (yes).]),
+  [with_dga="$withval"], [with_dga=yes])
+
 if test "$with_dga" = "yes"; then
   AC_CHECK_X_HEADER(X11/extensions/xf86dga.h, [HAVE_DGA=yes],,
-                    [#include <X11/Xlib.h>])
+    [#include <X11/Xlib.h>])
   if test "$HAVE_DGA" = "yes"; then
     HAVE_DGA=no
     AC_CHECK_X_LIB(Xxf86dga, XF86DGAQueryExtension,
@@ -148,16 +185,20 @@ if test "$with_dga" = "yes"; then
   fi
 fi
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Check for the VidMode extension (XF86Config Modelines for fullscreen)
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
+
 HAVE_VIDMODE=no
-AC_ARG_WITH(xf86vmode-ext, AC_HELP_STRING([--with-xf86vmode-ext],
-  [Include support for the VidMode extension (yes).]),
-  [with_vidmode="$withval"],[with_vidmode=yes])
+
+AC_ARG_WITH(xf86vmode-ext,
+  AC_HELP_STRING([--with-xf86vmode-ext],
+    [Include support for the VidMode extension (yes).]),
+  [with_vidmode="$withval"], [with_vidmode=yes])
+
 if test "$with_vidmode" = "yes"; then
   AC_CHECK_X_HEADER(X11/extensions/xf86vmode.h, [HAVE_VIDMODE=yes],,
-                    [#include <X11/Xlib.h>])
+    [#include <X11/Xlib.h>])
   if test "$HAVE_VIDMODE" = "yes"; then
     HAVE_VIDMODE=no
     AC_CHECK_X_LIB(Xxf86vm, XF86VidModeGetViewPort,
@@ -169,20 +210,24 @@ if test "$with_vidmode" = "yes"; then
   fi
 fi
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Check for the Xv extension (video windows and hardware scaler)
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
+
 HAVE_XV=no
-AC_ARG_WITH(xv-ext, AC_HELP_STRING([--with-xv-ext],
-  [Include support for the XVideo extension (yes).]),
-  [with_xv="$withval"],[with_xv=yes])
+
+AC_ARG_WITH(xv-ext,
+  AC_HELP_STRING([--with-xv-ext],
+    [Include support for the XVideo extension (yes).]),
+  [with_xv="$withval"], [with_xv=yes])
+
 if test "$with_xv" = "yes"; then
   AC_CHECK_X_HEADER(X11/extensions/Xv.h, [HAVE_XV=yes],,
-                    [#include <X11/Xlib.h>])
+    [#include <X11/Xlib.h>])
   if test "$HAVE_XV" = "yes"; then
     HAVE_XV=no
     AC_CHECK_X_LIB(Xv, XvShmPutImage, [HAVE_XV=yes; X_XV_LIBS="-lXv"],
-		   [true], [-lXext])
+      [true], [-lXext])
   fi
   if test "$HAVE_XV" = "yes"; then
     AC_DEFINE(HAVE_XV_EXTENSION, 1, [Define if present])
@@ -190,9 +235,9 @@ if test "$with_xv" = "yes"; then
   fi
 fi
 
-dnl -----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Profiling
-dnl -----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 AC_MSG_CHECKING(whether to include profiling info in the executable)
 AC_ARG_ENABLE(profiling,
   AC_HELP_STRING([--enable-profiling], [Include profiling info in the executable]),
@@ -206,9 +251,9 @@ AC_ARG_ENABLE(ccmalloc,
   CCMALLOC=-lccmalloc, CCMALLOC=)
 AC_SUBST(CCMALLOC)
 
-dnl ---------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl consolehelper, PAM authentication for zapping_setup_fb
-dnl ---------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 HAVE_PAM="no"
 AC_MSG_CHECKING(whether to enable PAM support)
 AC_ARG_ENABLE(pam,
@@ -239,9 +284,9 @@ esac
 AC_SUBST(ZSFB_OWNER)
 AC_SUBST(ZSFB_GROUP)
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Check which arch is present, and enable MMX support
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 HAVE_MMX="no"
 case "$host" in
 i?86-* | k?-*) dnl catch i386,i486,i586,i686,k6,k7
@@ -284,9 +329,9 @@ test -z "$GDK_PIXBUF_CSOURCE" && AC_MSG_ERROR([
 *** from GTK+ 2.0's gdk-pixbuf.
 ])
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Check how to link pthreads functions
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 AC_CHECK_LIB(pthread, pthread_create,,[
   AC_TRY_LINK(, pthread_create();,,[
     LDFLAGS="$LDFLAGS -pthread"
@@ -296,9 +341,9 @@ AC_CHECK_LIB(pthread, pthread_create,,[
   ])
 ])
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Check for vbi decoding library
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 HAVE_ZVBI="yes"
 SAVE_LIBS="$LIBS"
 LIBS="$LIBS -lpng"
@@ -315,9 +360,9 @@ fi
 AC_SUBST(ZVBI_LIB)
 LIBS="$SAVE_LIBS"
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Check for the existance of ARTS (KDE sound server)
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 AC_MSG_CHECKING(for ARTS)
 HAVE_ARTS_TEXT="no"
 ARTS_VERSION=`artsc-config --version`
@@ -338,22 +383,22 @@ else
   AC_DEFINE(HAVE_ARTS, 1, [Define if ARTS sound server is present])
 fi
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Check for OSS.
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 HAVE_OSS="no"
 AC_REQUIRE_CPP
-AC_CHECK_HEADERS(sys/soundcard.h, HAVE_OSS=yes, )
-AC_CHECK_HEADERS(machine/soundcard.h, HAVE_OSS=yes, )
+AC_CHECK_HEADERS(sys/soundcard.h, HAVE_OSS=yes,)
+AC_CHECK_HEADERS(machine/soundcard.h, HAVE_OSS=yes,)
 if test "$HAVE_OSS" = "yes"; then
-  AC_DEFINE(USE_OSS, 1, [Define to compile with OSS support])
+  AC_DEFINE(HAVE_OSS, 1, [Define to compile with OSS support])
 else
   AC_MSG_WARN([*** OSS support not available ***])
 fi
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Check the JPEG writing lib
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 JPEG_LIB=""
 HAVE_JPEG="yes"
 AC_CHECK_LIB(jpeg, jpeg_destroy_compress, JPEG_LIB="-ljpeg", HAVE_JPEG="no")
@@ -364,9 +409,9 @@ if test "$HAVE_JPEG" = "yes"; then
 fi
 AC_SUBST(JPEG_LIB)
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Check the PNG writing lib
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 PNG_LIB=""
 HAVE_PNG="yes"
 AC_CHECK_LIB(png, png_destroy_write_struct, PNG_LIB="-lpng -lz -lm", HAVE_PNG="no", -lz -lm)
@@ -376,9 +421,9 @@ if test "x$HAVE_PNG" = "xyes"; then
 fi
 AC_SUBST(PNG_LIB)
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Record plugin: librte, real time a/v encoding
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 SAVE_LIBS=$LIBS
 HAVE_RTE="0.5"
 AC_CHECK_LIB(rte, rte_parameters_set,, [HAVE_RTE="no"])
@@ -391,9 +436,9 @@ fi
 AC_SUBST(RTE_LIB)
 LIBS="$SAVE_LIBS"
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Check for lirc_client
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 HAVE_LIRC="yes"
 AC_REQUIRE_CPP
 AC_CHECK_LIB(lirc_client, lirc_init,
@@ -408,9 +453,9 @@ else
 fi
 AC_SUBST(LIRC_LIB)
 
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl Check for ESD lib (FIXME)
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 ESD_LIBS=""
 HAVE_ESD=yes
 AC_CHECK_LIB(esd, esd_record_stream_fallback, ESD_LIBS="-lesd", HAVE_ESD=no,)
@@ -419,20 +464,56 @@ if test "x$HAVE_ESD" = "xyes"; then
 fi
 AC_SUBST(ESD_LIBS)
 
+dnl ---------------------------------------------------------------------------
+dnl Check for Python support (our script language)
+dnl ---------------------------------------------------------------------------
+AC_PYTHON_CHECK
+
 dnl ----------------------------------------------------------------------
+dnl Check for libxml2 (src/zconf)
+dnl ----------------------------------------------------------------------
+AC_MSG_CHECKING([for libxml2])
+HAVE_LIBXML="no"
+LIBXML_VERSION=`xml2-config --version`
+if test $? -eq 0; then
+  LIBXML_CFLAGS=`xml2-config --cflags`
+  LIBXML_LIBS=`xml2-config --libs`
+  XML_LIB="xml2"
+  SAVE_CFLAGS="$CFLAGS"
+  CFLAGS="$CFLAGS $LIBXML_CFLAGS $LIBXML_LIBS"
+  AC_TRY_LINK([#include <libxml/parser.h>],, HAVE_LIBXML="yes")
+  CFLAGS="$SAVE_CFLAGS"
+fi
+AC_MSG_RESULT($LIBXML_VERSION)
+if test $HAVE_LIBXML = "no"; then
+  AC_MSG_ERROR([This version of Zapping requires libxml2])
+fi
+AC_SUBST(LIBXML_CFLAGS)
+AC_SUBST(LIBXML_LIBS)
+
+dnl ---------------------------------------------------------------------------
 dnl Native language support
-dnl ----------------------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 GETTEXT_PACKAGE=AC_PACKAGE_NAME
 AC_SUBST(GETTEXT_PACKAGE)
-AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [gp])
+AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [Package name])
 dnl XXX VPATH
 ALL_LINGUAS=`sed -e "/^ *#/d" po/LINGUAS`
 AM_GLIB_GNU_GETTEXT
 
-dnl ----------------------------------------------------------------------
-dnl Check for Python support (our script language)
-dnl ----------------------------------------------------------------------
-AC_PYTHON_CHECK
+dnl ---------------------------------------------------------------------------
+dnl Documentation
+dnl ---------------------------------------------------------------------------
+dnl SCROLLKEEPER_BUILD_REQUIRED=0.3.5
+dnl AC_SUBST(SCROLLKEEPER_BUILD_REQUIRED)
+dnl 
+dnl AC_PATH_PROG(SCROLLKEEPER_CONFIG, [scrollkeeper-config], [no])
+dnl if test "$SCROLLKEEPER_CONFIG" = "no"; then
+dnl   AC_MSG_ERROR([Couldn't find scrollkeeper-config. Please install
+dnl the scrollkeeper package: http://scrollkeeper.sourceforge.net])
+dnl fi
+
+dnl ---------------------------------------------------------------------------
 
 dnl Setup the compilation flags
 DEFAULT_CFLAGS="-g -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations -D_GNU_SOURCE -DGTK_DISABLE_DEPRECATED -DGNOME_DISABLE_DEPRECATED -DG_DISABLE_DEPRECATED -DGDK_DISABLE_DEPRECATED -DGDK_PIXBUF_DISABLE_DEPRECATED $X_CFLAGS"
@@ -445,9 +526,9 @@ dnl ASFLAGS=$DEFAULT_CFLAGS
 dnl AC_SUBST(AS)
 dnl AC_SUBST(ASFLAGS)
 
-dnl -----------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 dnl with-gnome-prefix handling, used for building packages.
-dnl -----------------------------------------------------------
+dnl ---------------------------------------------------------------------------
 AC_ARG_WITH(gnome-prefix,
   [  --with-gnome-prefix     Use the given path as the Gnome prefix],
   if test ! "x$withval" = x; then
