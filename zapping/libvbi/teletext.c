@@ -582,7 +582,7 @@ vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link *ld)
 		return;
 	}
 
-	if (row < 1 || row > 23 || column >= COLUMNS) {
+	if (row < 1 || row > 23 || column >= COLUMNS || pg->pgno < 0x100) {
 		ld->type = VBI_LINK_NONE;
 		return;
 	}
@@ -621,6 +621,11 @@ vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link *ld)
 void
 vbi_resolve_home(struct fmt_page *pg, vbi_link *ld)
 {
+	if (pg->pgno < 0x100) {
+		ld->type = VBI_LINK_NONE;
+		return;
+	}
+
 	ld->type = VBI_LINK_PAGE;
 	ld->page = pg->nav_link[5].pgno;
 	ld->subpage = pg->nav_link[5].subno;

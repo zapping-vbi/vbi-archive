@@ -23,21 +23,5 @@ Known bugs with zapping, don't report them
 	  standard: don't change behaves strange.
 	  w/o tuner freq display is wrong.
 	* sometimes crash at termination.
-	* eacem triggers broken?
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	* check on_trigger_clicked
+	* check html export blink attr

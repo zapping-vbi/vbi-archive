@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: psycho.c,v 1.4 2001-09-23 21:04:25 mschimek Exp $ */
+/* $Id: psycho.c,v 1.5 2001-11-27 04:38:24 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -84,6 +84,11 @@ mp1e_mp2_psycho_init(mp2_context *mp2, int sampling_freq)
 	mp2->h_save_old    = mp2->h_save[0][1];
 	mp2->h_save_oldest = mp2->h_save[0][0];
 
+	for (i = 0; i < CBANDS; i++) {
+		bval[i] = 26.0;
+		numlines[i] = 0;
+	}
+
 	create_absthres(mp2, sampling_freq);
 
 	/* Compute fft frequency multiplicand */
@@ -106,7 +111,7 @@ mp1e_mp2_psycho_init(mp2_context *mp2, int sampling_freq)
 	for (i = 1; i < HBLKSIZE; i++) {
 		if ((temp[i] - bval_lo) > 0.33) {
 			mp2->partition[i] = mp2->partition[i - 1] + 1;
-			bval[(int) mp2->partition[i - 1]] = bval[(int) mp2->partition[i - 1]] / temp2;
+			bval[(int) mp2->partition[i - 1]] /= temp2;
 			bval[(int) mp2->partition[i]] = temp[i];
     			bval_lo = temp[i];
     			numlines[(int) mp2->partition[i - 1]] = temp2;
@@ -119,7 +124,7 @@ mp1e_mp2_psycho_init(mp2_context *mp2, int sampling_freq)
 	}
 
 	numlines[(int) mp2->partition[i - 1]] = temp2;
-	bval[(int) mp2->partition[i - 1]] = bval[(int) mp2->partition[i - 1]] / temp2;
+	bval[(int) mp2->partition[i - 1]] /= temp2;
 
 	/*
 	 *  Compute the spreading function, s[j][i], the value of the

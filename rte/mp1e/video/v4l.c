@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.14 2001-11-22 17:51:07 mschimek Exp $ */
+/* $Id: v4l.c,v 1.15 2001-11-27 04:38:24 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -190,6 +190,7 @@ v4l_init(double *frame_rate)
 	unsigned long buf_size;
 	int buf_count;
 	int max_height;
+	int retry;
 
 	ASSERT("open capture device",
 		(fd = open(cap_dev, O_RDWR)) >= 0);
@@ -307,25 +308,32 @@ v4l_init(double *frame_rate)
 	if (filter_mode == CM_YUV)
 		pict.palette = VIDEO_PALETTE_YUV420P;
 	else
-		pict.palette = VIDEO_PALETTE_YUV422;
+		pict.palette = VIDEO_PALETTE_YUYV;
 
-	if (IOCTL(fd, VIDIOCSPICT, &pict) != 0) {
+	retry = 0;
+
+	while (IOCTL(fd, VIDIOCSPICT, &pict) != 0) {
 		printv(2, "Image format %d not accepted.\n", pict.palette);
+
+		if (pict.palette == VIDEO_PALETTE_YUYV) {
+			pict.palette = VIDEO_PALETTE_YUV422;
+			continue;
+		}
+
+		if (retry++)
+			FAIL("Cannot set image format of %s, "
+			     "probably none of YUV 4:2:0 or 4:2:2 (YUYV) are supported",
+	    		     cap_dev);
 
 		if (filter_mode == CM_YUV) {
 			filter_mode = CM_YUYV;
-			pict.palette = VIDEO_PALETTE_YUV422;
+			pict.palette = VIDEO_PALETTE_YUYV;
 		} else {
 			filter_mode = CM_YUV;
 			pict.palette = VIDEO_PALETTE_YUV420P;
 			aligned_height = (grab_height + 15) & -16;
 		}
-
-		ASSERT("set image format of %s, "
-		       "probably none of YUV 4:2:0 or 4:2:2 are supported",
-	    		IOCTL(fd, VIDIOCSPICT, &pict) == 0, cap_dev);
 	}
-
 
 	for (;;) {
 		CLEAR(&win);
@@ -392,17 +400,25 @@ v4l_init(double *frame_rate)
 		if (filter_mode == CM_YUV || filter_mode == CM_YVU)
 			gb_buf.format = VIDEO_PALETTE_YUV420P;
 		else
-			gb_buf.format = VIDEO_PALETTE_YUV422;
+			gb_buf.format = VIDEO_PALETTE_YUYV;
 
-    		r = IOCTL(fd, VIDIOCMCAPTURE, &gb_buf);
+		retry = 0;
 
-		if (r != 0 && errno != EAGAIN) {
-			printv(2, "Image format %d not accepted.\n",
-				gb_buf.format);
+		while ((r = IOCTL(fd, VIDIOCMCAPTURE, &gb_buf)) != 0 && errno != EAGAIN) {
+			printv(2, "Image filter %d, palette %d not accepted.\n",
+				filter_mode, gb_buf.format);
+
+			if (gb_buf.format == VIDEO_PALETTE_YUYV) {
+				gb_buf.format = VIDEO_PALETTE_YUV422;
+				continue;
+			}
+
+			if (retry++)
+				break;
 
 			if (filter_mode == CM_YUV) {
 				filter_mode = CM_YUYV;
-				gb_buf.format = VIDEO_PALETTE_YUV422;
+				gb_buf.format = VIDEO_PALETTE_YUYV;
 			} else {
 				filter_mode = CM_YUV;
 
@@ -414,15 +430,13 @@ v4l_init(double *frame_rate)
 
 				gb_buf.format = VIDEO_PALETTE_YUV420P;
 			}
-
-			r = IOCTL(fd, VIDIOCMCAPTURE, &gb_buf);
 		}
 
     		if (r != 0 && errno == EAGAIN)
 			FAIL("%s does not receive a video signal.\n", cap_dev);
 
 		ASSERT("start capturing (VIDIOCMCAPTURE) from %s, maybe the device doesn't\n"
-		       "support YUV 4:2:0 or 4:2:2, or the grab size %dx%d is not suitable.\n"
+		       "support YUV 4:2:0 or 4:2:2 (YUYV), or the grab size %dx%d is not suitable.\n"
 		       "Different -s, -G, -F values may help.",
 		       r >= 0,
 		       cap_dev, gb_buf.width, gb_buf.height);

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.26 2001-10-18 18:36:18 garetxe Exp $ */
+/* $Id: exp-html.c,v 1.27 2001-11-27 04:38:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -284,6 +284,7 @@ header(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 
 	case 36: /* Russian/Bulgarian */
 		if (!lang) lang = "ru";
+// XXX better KOI8-R?
 
 	case 37: /* Ukranian */
 		if (!lang) lang = "uk";

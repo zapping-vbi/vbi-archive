@@ -1,3 +1,10 @@
+2001-11-27	<mschimek@users.sf.net>
+
+	* v4l.c: Try VIDEO_PALETTE_YUYV before _YUV422. (Some drivers
+	  do not support _YUYV, and YUV422 may be YUYV (bttv), UYVY
+	  (dc10) or according to v4l api spec YYYYUUVV.)
+	* psycho.c: Fixed array initialization, segfault was possible.
+
 2001-11-20	<mschimek@users.sf.net>
 
 	* motion.c fix: ignored result 2nd of (0,0) test (rare, not critical).

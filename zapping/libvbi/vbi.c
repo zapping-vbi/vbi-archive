@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.76 2001-10-26 09:12:06 mschimek Exp $ */
+/* $Id: vbi.c,v 1.77 2001-11-27 04:38:07 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -914,7 +914,7 @@ vbi_open(fifo *source)
 		return NULL;
 	}
 
-#if LIBVBI_IDL_ALERT
+#ifdef LIBVBI_IDL_ALERT
 	fprintf(stderr, "IDL sniffer on\n");
 #endif
 	return vbi;

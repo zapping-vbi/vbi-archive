@@ -1,3 +1,6 @@
+
+#include "site_def.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -604,9 +607,9 @@ eacem_trigger(struct vbi *vbi, struct vt_page *vtp)
 	unsigned char *s;
 	int i, j;
 
-fprintf(stderr, "EACEM\n");
-	if (1)
-		dump_raw(vtp, FALSE);
+#ifdef LIBVBI_TRIGGER_VERBOSE
+	dump_raw(vtp, FALSE);
+#endif
 
 	if (!(vbi->event_mask & VBI_EVENT_TRIGGER))
 		return;
@@ -2442,7 +2445,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 			break;
 
 		default:
-#if LIBVBI_IDL_ALERT /* no 6.8 ??? */
+#ifdef LIBVBI_IDL_ALERT /* no 6.8 ??? */
 			fprintf(stderr, "IDL: %d\n", pmag & 0x0F);
 #endif
 			break;

@@ -22,7 +22,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.7 2001-11-23 00:52:00 mschimek Exp $ */
+/* $Id: trigger.c,v 1.8 2001-11-27 04:38:07 mschimek Exp $ */
+
+#include "site_def.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -252,8 +254,9 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 			if (c != ':') {
 				if (!verify_checksum(s1, e - s1,
 						     strtoul(attr, NULL, 16))) {
-					if (0)
+#ifdef LIBVBI_TRIGGER_VERBOSE
 						fprintf(stderr, "checksum mismatch\n");
+#endif
 					return NULL;
 				}
 
@@ -627,16 +630,16 @@ vbi_eacem_trigger(struct vbi *vbi, unsigned char *s)
 	vbi_trigger t;
 
 	while ((s = parse_eacem(&t, s, vbi->network.ev.network.nuid, vbi->time))) {
-		if (1)
-			fprintf(stderr, "At %f eacem link type %d '%s', <%s> '%s', "
-				"%08x %03x.%04x, exp %f, pri %d %d, auto %d; "
-				"fire %f view %d del %d\n",
-				vbi->time,
-				t.link.type, t.link.name, t.link.url, t.link.script,
-				t.link.nuid, t.link.page, t.link.subpage,
-				t.link.expires, t.link.priority, t.link.itv_type,
-				t.link.autoload, t.fire, t.view, t.delete);
-
+#ifdef LIBVBI_TRIGGER_VERBOSE
+		fprintf(stderr, "At %f eacem link type %d '%s', <%s> '%s', "
+			"%08x %03x.%04x, exp %f, pri %d %d, auto %d; "
+			"fire %f view %d del %d\n",
+			vbi->time,
+			t.link.type, t.link.name, t.link.url, t.link.script,
+			t.link.nuid, t.link.page, t.link.subpage,
+			t.link.expires, t.link.priority, t.link.itv_type,
+			t.link.autoload, t.fire, t.view, t.delete);
+#endif
 		t.link.eacem = TRUE;
 
 		if (t.link.type == VBI_LINK_LID
@@ -653,16 +656,16 @@ vbi_atvef_trigger(struct vbi *vbi, char *s)
 	vbi_trigger t;
 
 	if (parse_atvef(&t, s, vbi->time)) {
-		if (0)
-			fprintf(stderr, "At %f atvef link type %d '%s', <%s> '%s', "
-				"%08x %03x.%04x, exp %f, pri %d %d, auto %d; "
-				"fire %f view %d del %d\n",
-				vbi->time,
-				t.link.type, t.link.name, t.link.url, t.link.script,
-				t.link.nuid, t.link.page, t.link.subpage,
-				t.link.expires, t.link.priority, t.link.itv_type,
-				t.link.autoload, t.fire, t.view, t.delete);
-
+#ifdef LIBVBI_TRIGGER_VERBOSE
+		fprintf(stderr, "At %f atvef link type %d '%s', <%s> '%s', "
+			"%08x %03x.%04x, exp %f, pri %d %d, auto %d; "
+			"fire %f view %d del %d\n",
+			vbi->time,
+			t.link.type, t.link.name, t.link.url, t.link.script,
+			t.link.nuid, t.link.page, t.link.subpage,
+			t.link.expires, t.link.priority, t.link.itv_type,
+			t.link.autoload, t.fire, t.view, t.delete);
+#endif
 		t.link.eacem = FALSE;
 
 		if (t.view == 't' /* WebTV */

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.19 2001-11-22 17:51:07 mschimek Exp $ */
+/* $Id: main.c,v 1.20 2001-11-27 04:38:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -162,7 +162,7 @@ main(int ac, char **av)
 
 	mp1e_mp2_module_init(test_mode & 1);
 
-	if (test_mode <= 3) {
+	if (test_mode >= 1 && test_mode <= 3) {
 		printv(1, "Tests passed\n");
 		exit(EXIT_SUCCESS);
 	}
