@@ -20,7 +20,7 @@
 #include <jpeglib.h> /* jpeg compression */
 
 /*
-  This plugin was builded from the template one. It does some thing
+  This plugin was built from the template one. It does some thing
   that the template one doesn't, such as adding itself to the gui and
   adding help for the properties.
 */

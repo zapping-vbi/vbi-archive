@@ -5,6 +5,7 @@ Outstanding issues for the next release
 	+ Make the channel ordering configurable
 	+ Disable audio by default
 	+ Bring up-to-date libvbi with aleVT 1.6.0
+	+ Update THANKS, README and NEWS, mark the rest of the docs as 'OLD'
 	+ Bug fixes
 	> Release 0.5.5
 	+ Subtitles support

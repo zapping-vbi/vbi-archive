@@ -1,3 +1,8 @@
+24.10.2000	MPEG plugin started <garetxe@users.sourceforge.net>
+
+	* plugins/mpeg: rte is now ready, i'm starting the wrapper plugin.
+	* configure.in, Makefile.am: Modified as necessary
+
 14.10.2000	XGetScreenSaver <garetxe@users.sourceforge.net>
 
 	* src/x11stuff.c: Use XGetScreenSaver and friends to modify the

@@ -433,7 +433,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       format = zmisc_resolve_pixformat(tveng_get_display_depth(info),
 				       x11_get_byte_order());
       /* fixme: force an invalid pixformat */
-      format = TVENG_PIX_RGB565;
+      //      format = TVENG_PIX_RGB565;
 
       if (format != -1)
 	{
@@ -468,7 +468,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 				       x11_get_byte_order());
 
       /* fixme: force an invalid pixformat */
-      format = TVENG_PIX_RGB565;
+      //format = TVENG_PIX_RGB565;
 
       if (format != -1)
 	{

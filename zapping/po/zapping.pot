@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-10-05 00:05+0200\n"
+"POT-Creation-Date: 2000-10-24 01:24+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,93 +14,97 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: ENCODING\n"
 
-#: src/main.c:102
-msgid "Color depth of the X display"
+#: src/main.c:178
+msgid "Give the XImage bpp"
 msgstr ""
 
-#: src/main.c:103
+#: src/main.c:179 src/main.c:188
 msgid "BPP"
 msgstr ""
 
-#: src/main.c:111
+#: src/main.c:187
+msgid "Color depth of the X display"
+msgstr ""
+
+#: src/main.c:196
 msgid "Set debug messages on"
 msgstr ""
 
-#: src/main.c:120
+#: src/main.c:205
 msgid "Disable VBI support"
 msgstr ""
 
-#: src/main.c:129
+#: src/main.c:214
 msgid "VBI support for old (<0.5.2) bttv drivers"
 msgstr ""
 
-#: src/main.c:138
+#: src/main.c:223
 msgid "Disable audio i/o support"
 msgstr ""
 
-#: src/main.c:147
+#: src/main.c:232
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr ""
 
-#: src/main.c:148
+#: src/main.c:233
 msgid "NORM"
 msgstr ""
 
-#: src/main.c:188
+#: src/main.c:273
 msgid "Sorry, but there is no module support"
 msgstr ""
 
-#: src/main.c:197
+#: src/main.c:282
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: src/main.c:203
+#: src/main.c:288
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:241
+#: src/main.c:326
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:262
+#: src/main.c:347
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:387
+#: src/main.c:472
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:390
+#: src/main.c:475
 msgid ", I will try starting capture mode"
 msgstr ""
 
-#: src/main.c:394
+#: src/main.c:479
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:407
+#: src/main.c:492
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:475
+#: src/main.c:561
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:606
+#: src/main.c:694
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -112,18 +116,18 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:640
+#: src/main.c:728
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
-#: src/main.c:707
+#: src/main.c:795
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
 "%s (%d)"
 msgstr ""
 
-#: src/main.c:711
+#: src/main.c:799
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr ""
 
@@ -145,104 +149,100 @@ msgstr ""
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr ""
 
-#: src/callbacks.c:236
+#: src/callbacks.c:229
 msgid "Cannot set input"
 msgstr ""
 
-#: src/callbacks.c:255
+#: src/callbacks.c:248
 #, c-format
 msgid "Cannot tune given channel %d (no such channel)\n"
 msgstr ""
 
 #. Set the
 #. input freq
-#: src/callbacks.c:270
+#: src/callbacks.c:263
 msgid "Cannot tune input"
 msgstr ""
 
-#: src/callbacks.c:423
-msgid "Sorry, but cannot go fullscreen"
-msgstr ""
-
-#: src/callbacks.c:500
-msgid "I cannot find the main zapping window, weird..."
-msgstr ""
-
-#: src/callbacks.c:519
+#: src/callbacks.c:408
 msgid ""
 "The videotext decoder needs GdkPixbuf, and\n"
 "configure didn't find it."
 msgstr ""
 
-#: src/callbacks.c:525
+#: src/callbacks.c:414
 msgid "VBI has been disabled, or it doesn't work."
 msgstr ""
 
-#: src/callbacks.c:676 src/v4linterface.c:161
+#: src/callbacks.c:567 src/v4linterface.c:161
 msgid "No tuner"
 msgstr ""
 
-#: src/callbacks.c:684 src/v4linterface.c:163
+#: src/callbacks.c:575 src/v4linterface.c:163
 msgid "No tuned channels"
 msgstr ""
 
-#: src/frequencies.c:843
+#: src/frequencies.c:898
 msgid "us-bcast"
 msgstr ""
 
-#: src/frequencies.c:844
+#: src/frequencies.c:899
 msgid "us-cable"
 msgstr ""
 
-#: src/frequencies.c:845
+#: src/frequencies.c:900
 msgid "us-cable-hrc"
 msgstr ""
 
-#: src/frequencies.c:846
+#: src/frequencies.c:901
 msgid "japan-bcast"
 msgstr ""
 
-#: src/frequencies.c:847
+#: src/frequencies.c:902
 msgid "japan-cable"
 msgstr ""
 
-#: src/frequencies.c:848
+#: src/frequencies.c:903
 msgid "europe"
 msgstr ""
 
-#: src/frequencies.c:849
+#: src/frequencies.c:904
 msgid "europe-east"
 msgstr ""
 
-#: src/frequencies.c:850
+#: src/frequencies.c:905
 msgid "italy"
 msgstr ""
 
-#: src/frequencies.c:851
+#: src/frequencies.c:906
 msgid "newzealand"
 msgstr ""
 
-#: src/frequencies.c:852
+#: src/frequencies.c:907
 msgid "australia"
 msgstr ""
 
-#: src/frequencies.c:853
+#: src/frequencies.c:908
 msgid "ireland"
 msgstr ""
 
-#: src/frequencies.c:854
+#: src/frequencies.c:909
 msgid "france"
 msgstr ""
 
-#: src/frequencies.c:1038
+#: src/frequencies.c:910
+msgid "russia"
+msgstr ""
+
+#: src/frequencies.c:1094
 msgid "(Unnamed channel)"
 msgstr ""
 
-#: src/frequencies.c:1042
+#: src/frequencies.c:1098
 msgid "(Unknown real channel)"
 msgstr ""
 
-#: src/channel_editor.c:300 src/channel_editor.c:345 src/frequencies.c:1046
+#: src/channel_editor.c:300 src/channel_editor.c:345 src/frequencies.c:1102
 msgid "(Unknown country)"
 msgstr ""
 
@@ -462,21 +462,21 @@ msgstr ""
 msgid "Unknown video control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1553 src/tveng1.c:1583 src/tveng2.c:1121 src/tveng2.c:1152
+#: src/tveng1.c:1553 src/tveng1.c:1583 src/tveng2.c:1117 src/tveng2.c:1148
 #, c-format
 msgid "Cannot find control \"%s\" in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1622 src/tveng1.c:1647 src/tveng2.c:1192 src/tveng2.c:1218
+#: src/tveng1.c:1622 src/tveng1.c:1647 src/tveng2.c:1188 src/tveng2.c:1214
 #, c-format
 msgid "Cannot find control %d in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1796 src/tveng2.c:1374
+#: src/tveng1.c:1796 src/tveng2.c:1370
 msgid "There are no tuners for the active input"
 msgstr ""
 
-#: src/tveng1.c:1945 src/tveng2.c:1605
+#: src/tveng1.c:1945 src/tveng2.c:1601
 msgid "Warning: trying to stop capture with no capture active\n"
 msgstr ""
 
@@ -488,19 +488,19 @@ msgstr ""
 msgid "Grabber chip can't sync (no station tuned in?)"
 msgstr ""
 
-#: src/tveng1.c:2123 src/tveng2.c:1663
+#: src/tveng1.c:2123 src/tveng2.c:1659
 msgid "Current capture mode is not READ"
 msgstr ""
 
-#: src/tveng1.c:2132 src/tveng2.c:1672
+#: src/tveng1.c:2132 src/tveng2.c:1668
 msgid "Size check failed, quitting to avoid segfault"
 msgstr ""
 
-#: src/tveng1.c:2245 src/tveng2.c:1806
+#: src/tveng1.c:2245 src/tveng2.c:1802
 msgid "The capability field says that there is no overlay"
 msgstr ""
 
-#: src/tveng1.c:2463 src/tveng2.c:2015
+#: src/tveng1.c:2463 src/tveng2.c:2003
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
@@ -579,16 +579,16 @@ msgstr ""
 msgid "Loudness"
 msgstr ""
 
-#: src/tveng2.c:999
+#: src/tveng2.c:995
 msgid "<Broken menu entry>"
 msgstr ""
 
-#: src/tveng2.c:1009
+#: src/tveng2.c:1005
 #, c-format
 msgid "V4L2: Unknown control type 0x%x (%s)\n"
 msgstr ""
 
-#: src/tveng2.c:1542
+#: src/tveng2.c:1538
 msgid "Not enough buffers"
 msgstr ""
 
@@ -641,11 +641,15 @@ msgid ""
 "Hashes are 0x%x vs. 0x%x"
 msgstr ""
 
-#: src/zmisc.c:135
+#: src/zmisc.c:141
 #, c-format
 msgid ""
 "Sorry, but a %dx%d image couldn't be allocated, the image will not be "
 "changed."
+msgstr ""
+
+#: src/zmisc.c:298
+msgid "Sorry, but cannot go fullscreen"
 msgstr ""
 
 #. For translators: This will be precceeded by the domain (program) name
@@ -1465,7 +1469,7 @@ msgstr ""
 
 #. hash collision code
 #. Warn
-#: plugins/screenshot/screenshot.c:181
+#: plugins/mpeg/plugin.c:88 plugins/screenshot/screenshot.c:181
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
@@ -1528,14 +1532,59 @@ msgid ""
 "The image won't be saved."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:689
+#: plugins/screenshot/screenshot.c:702
 msgid "Saving..."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:700
+#: plugins/screenshot/screenshot.c:713
 msgid "Sorry, not enough resources for creating a new thread"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:704
+#: plugins/screenshot/screenshot.c:717
 msgid "There are too many threads"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:29
+msgid "MPEG encoder"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:31
+msgid "This plugin encodes the image and audio stream into a MPEG file"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:33
+msgid "Encode the stream as MPEG."
+msgstr ""
+
+#: plugins/mpeg/plugin.c:193
+msgid "Not done yet!"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:208
+msgid "MPEG"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:209
+msgid "Store the data as MPEG"
+msgstr ""
+
+#.
+#. * Translatable strings file generated by Glade.
+#. * Add this file to your project's POTFILES.in.
+#. * DO NOT compile it as part of your application.
+#.
+#: plugins/mpeg/mpeg_strings.c:7
+msgid "window1"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:8 plugins/mpeg/mpeg_strings.c:10
+msgid "Not done"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:9
+msgid "Input / output"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:11
+msgid "Compression parameters"
 msgstr ""

@@ -11,7 +11,7 @@ AM_PROG_LIBTOOL
 
 dnl These are the plugins we can build, they depend on the present
 dnl libs.
-PLUGINS_TO_BUILD="template"
+PLUGINS_TO_BUILD="template mpeg"
 
 dnl ---------------------------------------------------------------------------
 dnl disable X extensions
@@ -207,6 +207,7 @@ plugins/Makefile
 zapping_setup_fb/Makefile
 plugins/template/Makefile
 plugins/screenshot/Makefile
+plugins/mpeg/Makefile
 ])
 
 echo "
