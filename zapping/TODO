@@ -42,11 +42,6 @@ Outstanding issues for the next release (0.6.2)
 	  when a trigger is merely repeated.
 	+ Recording schedule.
 	+ Screenshot plugin: subtitle overlay
-	+ xawtv style pointer hiding
-	  "* Killed all the old mouse pointer handling code and the assorted 
-	  config config options / cmd line switches. Replaced it with a simple 
-	  timeout logic: If you don't move the mouse for some time xawtv will 
-	  hide the pointer. Any pointer motion event will show the pointer again."
 	+ TTX export ANSI colors needs improvement.
 	+ Mpeg plugin/mp1e very low frame rate interrupts display,
 	  probably a scheduling issue. Investigate if/how this can be avoided.

@@ -215,6 +215,45 @@ gboolean on_zapping_key_press		(GtkWidget	*widget,
   return FALSE;
 }
 
+static gint hide_pointer_tid = -1;
+static gint cursor = GDK_LEFT_PTR;
+#define HIDE_TIMEOUT /*ms*/ 1500
+static gint
+hide_pointer_timeout	(GtkWidget	*window)
+{
+  if (main_info->current_mode != TVENG_NO_CAPTURE) /* TTX mode */
+    if (cursor)
+      {
+	z_set_cursor(window->window, 0);
+	cursor = 0;
+      }
+
+  hide_pointer_tid = -1;
+  return FALSE;
+}
+
+static gboolean
+on_da_motion_notify			(GtkWidget	*widget,
+					 GdkEventMotion	*motion,
+					 gpointer	ignored)
+{
+  if (main_info->current_mode == TVENG_NO_CAPTURE) /* TTX mode */
+    return FALSE;
+
+  if (hide_pointer_tid>=0)
+    gtk_timeout_remove(hide_pointer_tid);
+
+  if (!cursor)
+    z_set_cursor(widget->window, GDK_LEFT_PTR);
+  cursor = GDK_LEFT_PTR;
+
+  hide_pointer_tid = gtk_timeout_add(HIDE_TIMEOUT,
+				     (GtkFunction)hide_pointer_timeout,
+				     widget);
+
+  return FALSE;
+}
+
 /* Start VBI services, and warn if we cannot */
 static void
 startup_teletext(void)
@@ -413,7 +452,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.150 2001-12-23 17:33:27 garetxe Exp $",
+	 "$Id: main.c,v 1.151 2001-12-25 19:56:15 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -621,19 +660,11 @@ int main(int argc, char * argv[])
   while (!tv_screen->window)
     z_update_gui();
   D();
-  if (zcg_bool(NULL, "hide_pointer"))
-    z_set_cursor(tv_screen->window, 0);
-
-  {
-    static void pointer_hook	(const gchar	*key,
-				 gboolean	*new_value,
-				 gpointer	data)
-      {
-	z_set_cursor(tv_screen->window, (!*new_value)*GDK_LEFT_PTR);
-      }
-
-    zconf_add_hook(ZCONF_DOMAIN "hide_pointer", (ZConfHook)pointer_hook, NULL);
-  }
+  gtk_signal_connect(GTK_OBJECT(tv_screen), "motion-notify-event",
+		     GTK_SIGNAL_FUNC(on_da_motion_notify), NULL);
+  hide_pointer_tid = gtk_timeout_add(HIDE_TIMEOUT,
+				     (GtkFunction)hide_pointer_timeout,
+				     tv_screen);
 
   D();
   if (!startup_capture(tv_screen))
@@ -1026,7 +1057,6 @@ static gboolean startup_zapping(gboolean load_plugins)
   zcc_int(0, "Verbosity value given to zapping_setup_fb",
 	  "zapping_setup_fb_verbosity");
   zcc_int(0, "Ratio mode", "ratio");
-  zcc_bool(FALSE, "Hide the mouse pointer in the TV window", "hide_pointer");
   zcc_int(0, "Change the video mode when going fullscreen", "change_mode");
   zcc_int(0, "Current standard", "current_standard");
   zcc_int(0, "Current input", "current_input");

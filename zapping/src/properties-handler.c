@@ -192,11 +192,6 @@ mw_setup		(GtkWidget	*page)
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean(NULL, "/zapping/options/main/swap_up_down"));
 
-  /* Hide the mouse pointer */
-  widget = lookup_widget(page, "checkbutton14");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/hide_pointer"));
-
   /* Title format Z will use */
   widget = lookup_widget(page, "title_format");
   widget = gnome_entry_gtk_entry(GNOME_ENTRY(widget));
@@ -229,10 +224,6 @@ mw_apply		(GtkWidget	*page)
   widget = lookup_widget(page, "checkbutton13"); /* swap chan up/down */
   zconf_set_boolean(gtk_toggle_button_get_active(
 	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/swap_up_down");  
-
-  widget = lookup_widget(page, "checkbutton14"); /* mouse pointer */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/hide_pointer");
 
   widget = lookup_widget(page, "title_format"); /* title format */
   widget = gnome_entry_gtk_entry(GNOME_ENTRY(widget));
