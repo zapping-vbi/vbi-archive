@@ -3,7 +3,7 @@
 ## Don't forget to put these files into the distribution
 EXTRA_DIST = gen_conv.s zmarshalers.list 
 
-INCLUDES = @DEFAULT_CFLAGS@ @COMMON_INCLUDES@
+INCLUDES = -I$(top_srcdir)/common @DEFAULT_CFLAGS@ @COMMON_INCLUDES@
 
 bin_PROGRAMS = zapping
 
