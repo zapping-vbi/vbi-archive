@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5.2.1 2003-06-16 06:05:24 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.2 2004-02-13 02:10:15 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -37,12 +37,36 @@ vbi_bool		quit = FALSE;
 vbi_pgno		pgno;
 vbi_export *		ex;
 char *			extension;
+vbi_bool		option_columns_41;
+vbi_bool		option_navigation;
+vbi_bool		option_hyperlinks;
+vbi_bool		option_pdc_links;
+vbi_bool		option_enum;
+unsigned int		delay;
+
+extern void
+vbi_preselection_dump		(const vbi_preselection *pl,
+				 FILE *			fp);
+static void
+pdc_dump (vbi_page *pg)
+{
+	vbi_preselection pl;
+	unsigned int i;
+
+	for (i = 0; vbi_page_pdc_enum (pg, &pl, i); ++i) {
+		fprintf (stderr, "%02u: ", i);
+		vbi_preselection_dump (&pl, stderr);
+	}
+
+	if (0 == i)
+		fputs ("No PDC data\n", stderr);
+}
 
 static void
 handler(vbi_event *ev, void *unused)
 {
 	FILE *fp;
-	vbi_page page;
+	vbi_page *pg;
 
 	fprintf(stderr, "\rPage %03x.%02x ",
 		ev->ev.ttx_page.pgno,
@@ -51,27 +75,31 @@ handler(vbi_event *ev, void *unused)
 	if (pgno != -1 && ev->ev.ttx_page.pgno != pgno)
 		return;
 
+	if (delay > 0) {
+		--delay;
+		return;
+	}
+
 	fprintf(stderr, "\nSaving... ");
 	if (isatty(STDERR_FILENO))
 		fputc('\n', stderr);
 	fflush(stderr);
 
-	/* Fetching & exporting here is a bad idea,
-	   but this is only a test. */
-	assert(vbi_fetch_vt_page(vbi, &page,
-				 ev->ev.ttx_page.pgno,
-				 ev->ev.ttx_page.subno,
-				 VBI_WST_LEVEL_3p5,
-				 VBI_41_COLUMNS |
-				 VBI_NAVIGATION |
-				 VBI_HYPERLINKS |
-				 VBI_PDC_LINKS));
+	pg = vbi_fetch_vt_page(vbi,
+			       ev->ev.ttx_page.pgno,
+			       ev->ev.ttx_page.subno,
+			       VBI_WST_LEVEL, VBI_WST_LEVEL_3p5,
+			       VBI_41_COLUMNS, option_columns_41,
+			       VBI_NAVIGATION, option_navigation,
+			       VBI_HYPERLINKS, option_hyperlinks,
+			       VBI_PDC_LINKS, option_pdc_links,
+			       VBI_END);
 
 	/* Just for fun */
 	if (pgno == -1) {
 		char name[256];
 		
-		snprintf(name, sizeof(name) - 1, "test-%03x-%02x.%s",
+		snprintf(name, sizeof(name) - 1, "ttx-%03x-%02x.%s",
 			 ev->ev.ttx_page.pgno,
 			 ev->ev.ttx_page.subno,
 			 extension);
@@ -80,14 +108,17 @@ handler(vbi_event *ev, void *unused)
 	} else
 		fp = stdout;
 
-	if (!vbi_export_stdio(ex, fp, &page)) {
+	if (!vbi_export_stdio(ex, fp, pg)) {
 		fprintf(stderr, "failed: %s\n", vbi_export_errstr(ex));
 		exit(EXIT_FAILURE);
 	} else {
 		fprintf(stderr, "done\n");
 	}
 
-	vbi_unref_page(&page);
+	if (option_enum)
+		pdc_dump (pg);
+
+	vbi_page_delete (pg);
 
 	if (pgno == -1)
 		assert(fclose(fp) == 0);
@@ -170,22 +201,57 @@ main(int argc, char **argv)
 {
 	char *module, *t;
 	vbi_export_info *xi;
+	unsigned int i;
 
-	if (argc < 3) {
-		fprintf(stderr, "Usage: %s module[;options] pgno <vbi data >file\n"
-				"module eg. \"ppm\", pgno eg. 100 (hex)\n",
-			argv[0]);
-		exit(EXIT_FAILURE);
+	module= NULL;
+	pgno = 0;
+	option_columns_41 = FALSE;
+	option_navigation = FALSE;
+	option_hyperlinks = FALSE;
+	option_pdc_links = FALSE;
+	delay = 0;
+
+	for (i = 1; i < argc; ++i) {
+		if (0 == strcmp ("-d", argv[i])) {
+			delay = 3;
+		} else if (0 == strcmp ("-4", argv[i])) {
+			option_columns_41 = TRUE;
+		} else if (0 == strcmp ("-n", argv[i])) {
+			option_navigation = TRUE;
+		} else if (0 == strcmp ("-h", argv[i])) {
+			option_hyperlinks = TRUE;
+		} else if (0 == strcmp ("-p", argv[i])) {
+			option_pdc_links = TRUE;
+		} else if (0 == strcmp ("-e", argv[i])) {
+			option_enum = TRUE;
+		} else if (module) {
+			if (0 != pgno)
+				goto bad_args;
+
+			pgno = strtol (argv[i], NULL, 16);
+		} else {
+			module = argv[i];
+		}
 	}
 
-	if (isatty(STDIN_FILENO)) {
-		fprintf(stderr, "No vbi data on stdin\n");
-		exit(EXIT_FAILURE);
+	if (!module || 0 == pgno) {
+	bad_args:
+		fprintf (stderr, "Usage: %s [format options] module[;export "
+			 "options] pgno <vbi data >file\n"
+			 "module e.g. \"ppm\", pgno e.g. 100 (hex)\n"
+			 "format options:\n"
+			 "-4 add 41st column\n"
+			 "-n add navigation bar\n"
+			 "-h add hyperlinks\n"
+			 "-p add PDC links\n",
+			 argv[0]);
+		exit (EXIT_FAILURE);
 	}
 
-
-	module = argv[1];
-	pgno = strtol(argv[2], NULL, 16);
+	if (isatty (STDIN_FILENO)) {
+		fprintf (stderr, "No vbi data on stdin\n");
+		exit (EXIT_FAILURE);
+	}
 
 	if (!(ex = vbi_export_new(module, &t))) {
 		fprintf(stderr, "Failed to open export module '%s': %s\n",
