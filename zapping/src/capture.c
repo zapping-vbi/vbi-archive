@@ -188,8 +188,6 @@ capture_thread (void *data)
 
   while (!exit_capture_thread)
     {
-      int r;
-
       producer_buffer *p =
 	(producer_buffer*)zf_wait_empty_buffer(&prod);
 
