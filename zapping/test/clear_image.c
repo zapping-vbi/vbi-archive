@@ -16,14 +16,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clear_image.c,v 1.3 2005-02-10 07:55:37 mschimek Exp $ */
+/* $Id: clear_image.c,v 1.4 2005-02-25 18:10:52 mschimek Exp $ */
 
 #undef NDEBUG
 
+#include "libtv/cpu.h"
 #include "pixel.h"
 #include "guard.h"
-
-#include "src/cpu.c"
 
 static uint8_t *		buffer;
 static uint8_t *		buffer_end;

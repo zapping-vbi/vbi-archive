@@ -16,17 +16,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: memcpy.c,v 1.3 2005-02-10 07:55:47 mschimek Exp $ */
+/* $Id: memcpy.c,v 1.4 2005-02-25 18:10:42 mschimek Exp $ */
 
 #undef NDEBUG
 
 #include <inttypes.h>
 #include <string.h>
 #include "libtv/image_format.h"
+#include "libtv/cpu.h"
 
 #include "guard.h"
-
-#include "src/cpu.c"
 
 static uint8_t *		sbuffer;
 static uint8_t *		sbuffer_end;
