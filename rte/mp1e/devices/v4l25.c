@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.3 2004-04-09 05:16:45 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.4 2004-04-21 16:57:15 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -25,11 +25,14 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <asm/types.h>
 #include "../common/videodev25.h"
+#include "../common/_videodev25.h"
+#include "../common/device.h"
 #include "../common/log.h"
 #include "../common/fifo.h"
 #include "../common/math.h"
@@ -37,15 +40,20 @@
 #include "../b_mp1e.h"
 #include "../video/video.h"
 
-#define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
+#define _ioctl(info, cmd, arg)						\
+(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
+ device_ioctl (log_fp, fprintf_ioctl_arg, fd, cmd, (void *)(arg)))
+
+/* changed to _IOWR */
+#define OLD_VIDIOC_S_CTRL _IOW ('V', 28, struct v4l2_control) 
 
 static int			fd;
+static FILE *			log_fp;
 static fifo			cap_fifo;
 static producer			cap_prod;
 static buffer *		        buffers;
 
 static struct v4l2_capability	vcap;
-static struct v4l2_standard	vstd;
 static struct v4l2_format	vfmt;
 static struct v4l2_buffer	vbuf;
 static struct v4l2_requestbuffers vrbuf;
@@ -77,7 +85,7 @@ capture_on(fifo *unused)
 {
  	int str_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-	return IOCTL(fd, VIDIOC_STREAMON, &str_type) == 0;
+	return (0 == _ioctl (fd, VIDIOC_STREAMON, &str_type));
 }
 
 static void
@@ -115,12 +123,12 @@ drop:
 	vbuf.memory = V4L2_MEMORY_MMAP;
 
 	ASSERT("dequeue capture buffer",
-		IOCTL(fd, VIDIOC_DQBUF, &vbuf) == 0);
+		0 == _ioctl (fd, VIDIOC_DQBUF, &vbuf));
 
 #ifdef V4L2_DROP_TEST
 	if ((rand() % 100) > 50) {
 		ASSERT("enqueue capture buffer",
-		       IOCTL(fd, VIDIOC_QBUF, &vbuf) == 0);
+		       0 == _ioctl (fd, VIDIOC_QBUF, &vbuf));
 		fprintf(stderr, "video drop\n");
 		goto drop;
 	}
@@ -148,7 +156,7 @@ send_empty(consumer *c, buffer *b)
 	vbuf.index = b - buffers;
 
 	ASSERT("enqueue capture buffer",
-		IOCTL(fd, VIDIOC_QBUF, &vbuf) == 0);
+		0 == _ioctl (fd, VIDIOC_QBUF, &vbuf));
 }
 
 /*
@@ -159,7 +167,9 @@ static void
 mute_restore(void)
 {
 	if (old_mute.id)
-		IOCTL(fd, VIDIOC_S_CTRL, &old_mute);
+		if (-1 == _ioctl (fd, VIDIOC_S_CTRL, &old_mute)
+		    && EINVAL == errno)
+			ioctl (fd, OLD_VIDIOC_S_CTRL, &old_mute);
 }
 
 #define YUV420(mode) (mode == CM_YUV || mode == CM_YUV_VERTICAL_DECIMATION)
@@ -182,11 +192,16 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 	v4l2_std_id std;
 	struct v4l2_standard standard;
 
-	ASSERT("open video capture device",
-	       (fd = open(cap_dev, O_RDWR)) != -1);
+	if (verbose >= 3)
+		log_fp = stderr;
+	else
+		log_fp = NULL;
 
-	if (IOCTL(fd, VIDIOC_QUERYCAP, &vcap) == -1) {
-		close(fd);
+	ASSERT("open video capture device",
+	       -1 != (fd = device_open (log_fp, cap_dev, O_RDWR, 0)));
+
+	if (-1 == _ioctl (fd, VIDIOC_QUERYCAP, &vcap)) {
+		device_close (log_fp, fd);
 		return NULL; /* No V4L2.5 device, we'll try V4L2 */
 	}
 
@@ -198,16 +213,16 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 		FAIL("%s ('%s') does not support streaming i/o.",
 		     cap_dev, vcap.card);
 
-	printv(2, "Opened %s ('%s')\n", cap_dev, vcap.card);
+	printv(2, "Opened V4L2 (new) %s ('%s')\n", cap_dev, vcap.card);
 
 	ASSERT("query current video standard",
-	       ioctl (fd, VIDIOC_G_STD, &std) == 0);
+	       0 == _ioctl (fd, VIDIOC_G_STD, &std));
 
 	standard.index = 0;
 
 	for (;;) {
 		ASSERT("query current video standard",
-		       ioctl (fd, VIDIOC_ENUMSTD, &standard) == 0);
+		       0 == _ioctl (fd, VIDIOC_ENUMSTD, &standard));
 
 		if (standard.id & std)
 			break;
@@ -230,12 +245,12 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 	}
 
 	printv(2, "Video standard is '%s' (%5.2f Hz)\n",
-		vstd.name, par->frame_rate);
+		standard.name, par->frame_rate);
 
 	if (mute != 2) {
 		old_mute.id = V4L2_CID_AUDIO_MUTE;
 
-		if (IOCTL(fd, VIDIOC_G_CTRL, &old_mute) == 0) {
+		if (0 == _ioctl (fd, VIDIOC_G_CTRL, &old_mute)) {
 			static const char *mute_options[] = { "unmuted", "muted" };
 			struct v4l2_control new_mute;
 
@@ -244,8 +259,12 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 			new_mute.id = V4L2_CID_AUDIO_MUTE;
 			new_mute.value = !!mute;
 
-			ASSERT("set mute control to %d",
-				IOCTL(fd, VIDIOC_S_CTRL, &new_mute) == 0, !!mute);
+			if (-1 == _ioctl (fd, VIDIOC_S_CTRL, &new_mute)
+			    && EINVAL == errno) {
+				ASSERT("set mute control to %d",
+				       0 == ioctl (fd, OLD_VIDIOC_S_CTRL,
+						    &new_mute),	!!mute);
+			}
 
 			printv(2, "Audio %s\n", mute_options[!!mute]);
 		} else {
@@ -291,7 +310,7 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 		else
 			vfmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
 
-		if (IOCTL(fd, VIDIOC_S_FMT, &vfmt) == 0) {
+		if (0 == _ioctl (fd, VIDIOC_S_FMT, &vfmt)) {
 			if (!DECIMATING(filter_mode))
 				break;
 			if (vfmt.fmt.pix.height > par->height * 0.7
@@ -303,7 +322,7 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 			/* Maybe this works. */
 			vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
 
-			if (IOCTL(fd, VIDIOC_S_FMT, &vfmt) == 0) {
+			if (0 == _ioctl (fd, VIDIOC_S_FMT, &vfmt)) {
 				if (!DECIMATING(filter_mode))
 					break;
 				if (vfmt.fmt.pix.height > par->height * 0.7
@@ -367,7 +386,7 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 		vfmt.fmt.pix.width	&= -hmod;
 		vfmt.fmt.pix.height	&= -vmod;
 
-		if (IOCTL(fd, VIDIOC_S_FMT, &vfmt) != 0 ||
+		if (0 != _ioctl (fd, VIDIOC_S_FMT, &vfmt) ||
 		    vfmt.fmt.pix.width & (hmod - 1) || vfmt.fmt.pix.height & (vmod - 1)) {
 			FAIL("Please try a different grab size");
 		}
@@ -417,12 +436,14 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 
 	/* Phase 2, i/o setup */
 
+	memset (&vrbuf, 0, sizeof (vrbuf));
+
 	vrbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	vrbuf.memory = V4L2_MEMORY_MMAP;
 	vrbuf.count = MAX(cap_buffers, min_cap_buffers);
 
 	ASSERT("request capture buffers",
-		IOCTL(fd, VIDIOC_REQBUFS, &vrbuf) == 0);
+		0 == _ioctl (fd, VIDIOC_REQBUFS, &vrbuf));
 
 	if (vrbuf.count == 0)
 		FAIL("No capture buffers granted");
@@ -452,7 +473,7 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 		printv(3, "Mapping capture buffer #%d\n", i);
 
 		ASSERT("query capture buffer #%d",
-			IOCTL(fd, VIDIOC_QUERYBUF, &vbuf) == 0, i);
+			0 == _ioctl (fd, VIDIOC_QUERYBUF, &vbuf), i);
 
 		/* bttv 0.8.x wants PROT_WRITE */
 		p = mmap(NULL, vbuf.length, PROT_READ | PROT_WRITE,
@@ -471,7 +492,7 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 		}
 
 		ASSERT("enqueue capture buffer #%d",
-			IOCTL(fd, VIDIOC_QBUF, &vbuf) == 0,
+			0 == _ioctl (fd, VIDIOC_QBUF, &vbuf),
 			vbuf.index);
 	}
 
