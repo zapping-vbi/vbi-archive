@@ -332,10 +332,11 @@ generic_cancel			(GtkDialog	*dialog)
       property_handler *handler = (property_handler*)
 	g_object_get_data(G_OBJECT(page), "property-handler");
 
+      g_object_set_data(G_OBJECT(page), "properties-dirty", NULL);
+
+      /* Be warned this may destroy page. */
       if (handler && handler->cancel)
 	handler->cancel(dialog, page);
-
-      g_object_set_data(G_OBJECT(page), "properties-dirty", NULL);
     }
 }
 
@@ -848,12 +849,18 @@ help		(GtkDialog	*dialog _unused_,
     g_object_get_data (G_OBJECT (page), "help");
 
   if (link_id)
-    /* XXX handle error */
-    gnome_help_display ("zapping", link_id, NULL);
+    {
+      z_help_display (NULL, "zapping", link_id);
+    }
   else if (page_help)
-    page_help (page);
+    {
+      page_help (page);
+    }
   else
-    ShowBox ("No help available", GTK_MESSAGE_WARNING);
+    {
+      /* XXX disable help button instead. */
+      ShowBox ("No help available", GTK_MESSAGE_WARNING);
+    }
 }
 
 static void
