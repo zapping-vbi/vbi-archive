@@ -531,7 +531,7 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
         <varlistentry>
           <term>Video (MoComp2)</term>
           <listitem>
-            <para>This is a new method that should be considered a work in progress. At the moment it is a motion adaptive method with diagonal interpolation based on: T. Chen, H.R. Wu; & Z.H. Yu, "Efficient deinterlacing algorithm using edge-based line average interpolation" Optical Engineering, Volume 39, Issue 8, (2000). This method also incorporates built in chroma smoothing to help disguise MPEG chroma problems.</para>
+            <para>This is a new method that should be considered a work in progress. At the moment it is a motion adaptive method with diagonal interpolation based on: T. Chen, H.R. Wu; &amp; Z.H. Yu, "Efficient deinterlacing algorithm using edge-based line average interpolation" Optical Engineering, Volume 39, Issue 8, (2000). This method also incorporates built in chroma smoothing to help disguise MPEG chroma problems.</para>
             <para>The method should be a general use one but at the moment most consider TomsMoComp to give a better picture. As this method uses less CPU than TomsMoComp it may be well suited to those who run a lot of filters. Note the built in chroma smoother means that this method may give better results with digital sourced material such as DVD or DVB.</para>
           </listitem>
         </varlistentry>
