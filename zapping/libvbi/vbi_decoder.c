@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.8 2000-12-01 13:37:55 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.9 2000-12-06 15:38:45 mschimek Exp $ */
 
 /*
     TODO:
@@ -1441,6 +1441,7 @@ capture_on_stream(fifo *f)
 
 	return FALSE;
 */
+	return TRUE;
 }
 
 static int
@@ -1644,7 +1645,7 @@ vbi->buf.size = sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]);
 		vrbuf.type = V4L2_BUF_TYPE_VBI;
 		vrbuf.count = MAX_RAW_BUFFERS;
 
-		if (ioctl(vbi->fd, VIDIOC_REQBUFS, &vfmt) == -1) {
+		if (ioctl(vbi->fd, VIDIOC_REQBUFS, &vrbuf) == -1) {
 			IODIAG("streaming I/O buffer request failed (broken driver?)");
 			goto fifo_failure;
 		}
@@ -1690,9 +1691,12 @@ vbi->buf.size = sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]);
 				for (i = s = 0; i < vbuf.length; i++)
 					s += p[i];
 
-				if (s % vbuf.length)
+				if (s % vbuf.length) {
 					printf("Security warning: driver %s (%s) seems to mmap "
-					       "physical memory uncleared.\n", dev_name, vcap.name);
+					       "physical memory uncleared. Please contact the "
+					       "driver author.\n", dev_name, vcap.name);
+					exit(EXIT_FAILURE);
+				}
 			}
 
 			if (ioctl(vbi->fd, VIDIOC_QBUF, &vbuf) == -1) {
