@@ -323,7 +323,7 @@ gint update_timeout ( rte_context *context )
 {
   struct rte_status_info status;
   GtkWidget *widget;
-  gchar *buffer;
+  gchar *buffer,*dropbuf,*procbuf;
 
   if (!active || !saving_dialog)
     {
@@ -334,15 +334,21 @@ gint update_timeout ( rte_context *context )
   rte_get_status(context, &status);
 
   widget = lookup_widget(saving_dialog, "label12");
-  buffer =
-    g_strdup_printf(_("%.1f MB : %d %s dropped : %d %s processed"),
-		    status.bytes_out / ((double)(1<<20)),
-		    status.dropped_frames,
-		    status.dropped_frames == 1 ? _("frame") : _("frames"),
-		    status.processed_frames,
-		    status.processed_frames == 1 ? _("frame") : _("frames"));
+  dropbuf = g_strdup_printf(ngettext("%d frame dropped",
+				     "%d frames dropped",
+				     status.dropped_frames),
+			    status.dropped_frames);
+  procbuf = g_strdup_printf(ngettext("%d frame processed",
+				     "%d frames processed",
+				     status.processed_frames),
+			    status.processed_frames);
+  buffer = g_strdup_printf(_("%.1f MB : %s : %s"),
+		    status.bytes_out / ((double)(1<<20)), dropbuf,
+		    procbuf);
   gtk_label_set_text(GTK_LABEL(widget), buffer);
   g_free(buffer);
+  g_free(dropbuf);
+  g_free(procbuf);
 
   return TRUE;
 }

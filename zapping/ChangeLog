@@ -1,3 +1,8 @@
+25.08.2001	Plural forms <garetxe@users.sf.net>
+
+	* gettext: Applied patch from Pawel for handling plural i18ed
+		strings correctly.
+
 24.08.2001	0.6.0 released <garetxe@users.sf.net>
 
 	* 0.6.0 released, include prepare_dist.sh in the distro.

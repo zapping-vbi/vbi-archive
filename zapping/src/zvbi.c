@@ -1746,8 +1746,7 @@ update_vi				(GtkWidget	*vi)
 
   td = current_network.tape_delay;
   if (td < 60)
-    buffer = g_strdup_printf(_("%d %s"), td,
-			     td==1?_("minute"):_("minutes"));
+    buffer = g_strdup_printf(ngettext("%d minute", "%d minutes", td), td);
   else
     buffer = g_strdup_printf(_("%d h %d m"), td/60, td%60);
   gtk_label_set_text(GTK_LABEL(tape), buffer);
