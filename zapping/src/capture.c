@@ -777,7 +777,7 @@ on_capture_canvas_allocate             (GtkWidget       *widget _unused_,
                                         tveng_device_info *info)
 {
   /* Suggest widget size as capture size. */
-
+  /* XXX error? */
   request_capture_format (info,
 			  allocation->width,
 			  allocation->height,
@@ -1218,13 +1218,15 @@ change_capture_format		(tveng_device_info *	info,
       if (!fmt)
 	{
 	  /* XXX Cannot restore old format. What now? */
+	  /* XXX Who restores capture mode? */
 	  return NULL;
 	}
 
       fmt = NULL; /* failed */
     }
 
-  if (CAPTURE_MODE_READ == old_mode)
+  /* XXX caller doesn't properly handle a stop.
+     if (CAPTURE_MODE_READ == old_mode) */
     tveng_start_capturing (info);
 
   return fmt;
