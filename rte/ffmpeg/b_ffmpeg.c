@@ -2,7 +2,7 @@
  *  Real Time Encoder lib
  *  ffmpeg backend
  *
- *  Copyright (C) 2000, 2001 Iñaki García Etxebarria
+ *  Copyright (C) 2000, 2001 I? Garc?Etxebarria
  *  Copyright (C) 2000, 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.5 2002-06-12 04:08:47 mschimek Exp $ */
+/* $Id: b_ffmpeg.c,v 1.6 2002-06-14 07:57:40 mschimek Exp $ */
 
 #include "b_ffmpeg.h"
 
@@ -524,30 +524,14 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 {
 	ffmpeg_codec *fd = FD(codec);
 	ffmpeg_codec_class *fdc = FDC(fd->codec.class);
+	struct AVCodecContext *avcc = &fd->str.codec;
 
 	switch (fdc->rte.public.stream_type) {
-		struct AVCodecContext *avcc;
-
 	case RTE_STREAM_AUDIO:
 		rsp->audio.sndfmt = RTE_SNDFMT_S16_LE; /* XXX machine endian */
 
-		rsp->audio.sampling_freq = 44100; /* XXX */
-
-		if (rsp->audio.channels < 1) /* XXX */
-			rsp->audio.channels = 1;
-		else if (rsp->audio.channels > 2)
-			rsp->audio.channels = 2;
-
-		rsp->audio.channels = 1; // XXX
-
-		/* FIXME */
-
-       		avcc = &fd->str.codec;
-
-		memset(avcc, 0, sizeof(*avcc));
-
-		avcc->sample_rate = 44100;
-		avcc->channels = 1;
+		rsp->audio.sampling_freq = avcc->sample_rate;
+		rsp->audio.channels = avcc->channels;
 
 		if (avcodec_open(avcc, fdc->av) < 0) {
 			// XXX
@@ -575,26 +559,121 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 
 /* Codec options */
 
+#define OPTION_OPEN_SAMPLING	(1 << 0)
+#define OPTION_STEREO		(1 << 1)
+
+/* Attention: Canonical order */
+static const char *
+menu_audio_mode[] = {
+	/* 0 */ N_("Mono"),
+	/* 1 */ N_("Stereo"),
+	/* NLS: Bilingual for example left audio channel English, right French */
+	/* 2 */ N_("Bilingual"), 
+	/* 3 TODO N_("Joint Stereo"), */
+};
+
+static const struct {
+	unsigned int		opt;
+	rte_option_info		info;
+} options[] = {
+	{ OPTION_OPEN_SAMPLING,		RTE_OPTION_INT_RANGE_INITIALIZER
+	  ("sampling_freq", N_("Sampling frequency"),
+	   44100, 8000, 48000, 100, NULL) },
+	{ OPTION_STEREO,		RTE_OPTION_MENU_INITIALIZER
+	  ("audio_mode", N_("Mode"),
+	   0, menu_audio_mode, 2, NULL) },
+};
+
+static const int num_options = sizeof(options) / sizeof(* options);
+
+#define KEYWORD(name) (strcmp(keyword, name) == 0)
+#define KEYOPT(type, name) ((fdc->options & type) && KEYWORD(name))
+
+static char *
+option_print(rte_codec *codec, const char *keyword, va_list args)
+{
+        ffmpeg_codec *fd = FD(codec);
+        ffmpeg_codec_class *fdc = FDC(fd->codec.class);
+	rte_context *context = fd->codec.context;
+	char buf[80];
+
+	if (KEYWORD("sampling_freq")) {
+		snprintf(buf, sizeof(buf), _("%u Hz"), va_arg(args, int));
+	} else if (KEYWORD("audio_mode")) {
+		return rte_strdup(context, NULL, _(menu_audio_mode[
+			RTE_OPTION_ARG_MENU(menu_audio_mode)]));
+	} else {
+		rte_unknown_option(context, codec, keyword);
+	failed:
+		return NULL;
+	}
+
+	return rte_strdup(context, NULL, buf);
+}
+
+static rte_bool
+option_get(rte_codec *codec, const char *keyword, rte_option_value *v)
+{
+        ffmpeg_codec *fd = FD(codec);
+        ffmpeg_codec_class *fdc = FDC(fd->codec.class);
+	rte_context *context = fd->codec.context;
+
+	if (KEYOPT(OPTION_OPEN_SAMPLING, "sampling_freq")) {
+		v->num = fd->str.codec.sample_rate;
+	} else if (KEYOPT(OPTION_STEREO, "audio_mode")) {
+		v->num = fd->str.codec.channels - 1;
+	} else {
+		rte_unknown_option(context, codec, keyword);
+		return FALSE;
+	}
+
+        return TRUE;
+}
+
 static rte_bool
 option_set(rte_codec *codec, const char *keyword, va_list args)
 {
-        ffmpeg_codec *fd = FD(codec);
+	ffmpeg_codec *fd = FD(codec);
+	ffmpeg_codec_class *fdc = FDC(fd->codec.class);
+	rte_context *context = fd->codec.context;
 
-        if (fd->codec.state == RTE_STATE_READY)
-                reset_input(fd);
+	if (fd->codec.state == RTE_STATE_READY)
+		reset_input(fd);
 
 	if (fd->codec.state == RTE_STATE_PARAM) {
 		avcodec_close(&fd->str.codec);
 		fd->codec.state = RTE_STATE_NEW;
 	}
 
-        return FALSE;
+	if (KEYOPT(OPTION_OPEN_SAMPLING, "sampling_freq")) {
+		fd->str.codec.sample_rate = RTE_OPTION_ARG(int, 8000, 48000);
+	} else if (KEYOPT(OPTION_STEREO, "audio_mode")) {
+		fd->str.codec.channels = RTE_OPTION_ARG(int, 0, 2) + 1;
+	} else {
+		rte_unknown_option(context, codec, keyword);
+	failed:
+		return FALSE;
+	}
+
+        return TRUE;
 }
 
-static rte_option_info *
+static const rte_option_info *
 option_enum(rte_codec *codec, int index)
 {
-        return NULL;
+	ffmpeg_codec *fd = FD(codec);
+	ffmpeg_codec_class *fdc = FDC(fd->codec.class);
+	int i;
+
+	for (i = 0; i < num_options; i++)
+		if (options[i].opt & fdc->options) {
+			if (index == 0)
+				return &options[i].info;
+			else
+				index--;
+		}
+
+	return NULL;
 }
 
 /* Codec allocation */
@@ -606,46 +685,50 @@ extern AVCodec pcm_mulaw_encoder;
 
 ffmpeg_codec_class
 pcm_s16le_codec = {
-	.av = &pcm_s16le_encoder,
+	.av 		= &pcm_s16le_encoder,
+	.options	= OPTION_OPEN_SAMPLING |
+			  OPTION_STEREO,
         .rte.public = {
                 .stream_type    = RTE_STREAM_AUDIO,
                 .keyword        = "pcm_s16le",
                 .label          = N_("PCM 16 Bit Signed Little Endian"),
-                .tooltip        = NULL,
         },
 };
 
 ffmpeg_codec_class
 pcm_u8_codec = {
-	.av = &pcm_u8_encoder,
+	.av		= &pcm_u8_encoder,
+	.options	= OPTION_OPEN_SAMPLING | 
+			  OPTION_STEREO,
         .rte.public = {
                 .stream_type    = RTE_STREAM_AUDIO,
                 .keyword        = "pcm_u8",
                 .label          = N_("PCM 8 Bit Unsigned"),
-                .tooltip        = NULL,
         },
 };
 
 ffmpeg_codec_class
 pcm_alaw_codec = {
-	.av = &pcm_u8_encoder,
+	.av		= &pcm_alaw_encoder,
+	.options	= OPTION_OPEN_SAMPLING | 
+			  OPTION_STEREO,
         .rte.public = {
                 .stream_type    = RTE_STREAM_AUDIO,
                 .keyword        = "pcm_alaw",
                 .label          = N_("PCM a-Law"),
-                .tooltip        = NULL,
         },
 };
 
 ffmpeg_codec_class
 pcm_mulaw_codec = {
-	.av = &pcm_u8_encoder,
+	.av		= &pcm_mulaw_encoder,
+	.options	= OPTION_OPEN_SAMPLING | 
+			  OPTION_STEREO,
         .rte.public = {
                 .stream_type    = RTE_STREAM_AUDIO,
                 .keyword        = "pcm_mulaw",
                 .label          = N_("PCM mu-Law"),
-                .tooltip        = NULL,
-        },
+	},
 };
 
 static void
@@ -690,6 +773,8 @@ codec_new(rte_codec_class *cc, char **errstr)
         fd->codec.class = cc;
 
         pthread_mutex_init(&fd->codec.mutex, NULL);
+
+	memset(&fd->str.codec, 0, sizeof(fd->str.codec));
 
         fd->codec.state = RTE_STATE_NEW;
 
@@ -834,13 +919,13 @@ ffmpeg_riff_wave_context = {
 		.label		= N_("RIFF-WAVE Audio"),
 		.min_elementary	= { 0, 0, 1 },
 		.max_elementary	= { 0, 0, 1 },
+		.flags		= RTE_FLAG_SEEKS,
 	},
 	.av = &wav_format,
 	.codecs = {
 //		&mp2_codec,
 //		&mp3lame_codec,
 //		&ac3_codec,
-//		&pcm_alaw_codec,
 		&pcm_s16le_codec,
 		&pcm_u8_codec,
 		&pcm_alaw_codec,
@@ -936,7 +1021,10 @@ backend_init(void)
 		xc->codec_set = codec_set;
 
 		xc->codec_option_set = option_set;
+		xc->codec_option_get = option_get;
+		xc->codec_option_print = option_print;
 		xc->codec_option_enum = option_enum;
+
 		xc->parameters_set = parameters_set;
 
 		xc->set_input = set_input;
