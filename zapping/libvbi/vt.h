@@ -91,6 +91,13 @@ struct vt_extension {
 	u16		colour_map[32];
 };
 
+typedef struct vt_triplet {
+	unsigned	stop : 8;
+	unsigned	address : 8;
+	unsigned	mode : 8;
+	unsigned	data : 8;
+} vt_triplet;
+
 struct vt_page
 {
 	page_function		function;
@@ -113,6 +120,8 @@ struct vt_page
 
 	/* added temporarily: */
 	u8			raw[25][40];
+	int			num_triplets;
+	vt_triplet		triplets[16 * 13];
 	struct vbi *		vbi;
 };
 

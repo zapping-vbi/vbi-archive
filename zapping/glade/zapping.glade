@@ -1198,12 +1198,12 @@ Do not change mode
 	  <widget>
 	    <class>GtkOptionMenu</class>
 	    <name>optionmenu3</name>
-	    <tooltip>Select here the region you are in. This setting will only be used if it isn't transmitted together with the TTX signal</tooltip>
+	    <tooltip>Some stations fail to transmit a complete language identifier, so the Teletext viewer may not display the correct font or national characters. You can select your geographical region here as an additional hint.</tooltip>
 	    <can_focus>True</can_focus>
 	    <items>Western and Central Europe
 Eastern Europe
 Western Europe and Turkey
-Middle and SouthEast Europe
+Central and Southeast Europe
 Cyrillic
 Greece and Cyprus
 Arabic

@@ -62,11 +62,11 @@ gchar *s = N_("Try to correct errors when decoding");
 gchar *s = N_("Device name:");
 gchar *s = N_("Select the VBI device");
 gchar *s = N_("Default region:");
-gchar *s = N_("Select here the region you are in. This setting will only be used if it isn't transmitted together with the TTX signal");
+gchar *s = N_("Some stations fail to transmit a complete language identifier, so the Teletext viewer may not display the correct font or national characters. You can select your geographical region here as an additional hint.");
 gchar *s = N_("Western and Central Europe\n"
               "Eastern Europe\n"
               "Western Europe and Turkey\n"
-              "Middle and SouthEast Europe\n"
+              "Central and Southeast Europe\n"
               "Cyrillic\n"
               "Greece and Cyprus\n"
               "Arabic\n"

@@ -90,84 +90,84 @@ void
 vbi_set_default_region(struct vbi *vbi, int default_region)
 {
 	int i;
-	struct vt_extension *x;
+	struct vt_extension *ext;
 
 	for (i = 0; i < 8; i++) {
-		x = vbi->magazine_extension + i;
+		ext = vbi->magazine_extension + i;
 
-		x->char_set[0] =
-		x->char_set[1] =
+		ext->char_set[0] =
+		ext->char_set[1] =
 			default_region;
 	}
 }
 
-static void
+ void
 reset_magazines(struct vbi *vbi)
 {
-	struct vt_extension *x;
+	struct vt_extension *ext;
 	int i, j;
 
 	for (i = 0; i < 8; i++) {
-		x = vbi->magazine_extension + i;
+		ext = vbi->magazine_extension + i;
 
-		x->designations			= 0;
+		ext->designations		= 0;
 
-		x->char_set[0]			= 16;		/* Latin G0, G2, English subset */
-		x->char_set[0]			= 16;		/* Latin G0, English subset */
+		ext->char_set[0]		= 16;		/* Latin G0, G2, English subset */
+		ext->char_set[0]		= 16;		/* Latin G0, English subset */
 								/* Region Western Europe and Turkey */
 
-		x->def_screen_colour		= BLACK;	/* A.5 */
-		x->def_row_colour		= BLACK;	/* A.5 */
-		x->black_bg_substitution	= FALSE;
-		x->foreground_clut		= 0;
-		x->background_clut		= 0;
+		ext->def_screen_colour		= BLACK;	/* A.5 */
+		ext->def_row_colour		= BLACK;	/* A.5 */
+		ext->black_bg_substitution	= FALSE;
+		ext->foreground_clut		= 0;
+		ext->background_clut		= 0;
 
-		x->left_side_panel		= FALSE;
-		x->right_side_panel		= FALSE;
-		x->left_panel_columns		= 0;		/* sum 16 */
+		ext->left_side_panel		= FALSE;
+		ext->right_side_panel		= FALSE;
+		ext->left_panel_columns		= 0;		/* sum 16 */
 
 		for (j = 0; j < 8; j++)
-			x->dclut4[0][j] = j & 3;
+			ext->dclut4[0][j] = j & 3;
 
 		for (j = 0; j < 32; j++)
-			x->dclut16[0][j] = j & 15;
+			ext->dclut16[0][j] = j & 15;
 
-		memcpy(x->colour_map, default_colour_map,
-			sizeof(x->colour_map));
+		memcpy(ext->colour_map, default_colour_map,
+			sizeof(ext->colour_map));
 	}
 }
 
 static void
-dump_extension(struct vt_extension *x)
+dump_extension(struct vt_extension *ext)
 {
 	int i;
 
-	printf("designations %08x\n", x->designations);
+	printf("designations %08x\n", ext->designations);
 	printf("char set primary %d secondary %d\n",
-		x->char_set[0], x->char_set[1]);
+		ext->char_set[0], ext->char_set[1]);
 	printf("default screen col %d row col %d\n",
-		x->def_screen_colour, x->def_row_colour);
+		ext->def_screen_colour, ext->def_row_colour);
 	printf("bbg subst %d colour table remapping %d, %d\n",
-		x->black_bg_substitution, x->foreground_clut, x->background_clut);
+		ext->black_bg_substitution, ext->foreground_clut, ext->background_clut);
 	printf("panel left %d right %d left columns %d\n",
-		x->left_side_panel, x->right_side_panel, x->left_panel_columns);
+		ext->left_side_panel, ext->right_side_panel, ext->left_panel_columns);
 	printf("colour map (bgr):\n");
 	for (i = 0; i <= 31; i++) {
-		printf("%03x, ", x->colour_map[i]);
+		printf("%03x, ", ext->colour_map[i]);
 		if ((i % 8) == 7) printf("\n");
 	}
 	printf("dclut4 global: ");
 	for (i = 0; i <= 3; i++)
-		printf("%2d ", x->dclut4[0][i]);
+		printf("%2d ", ext->dclut4[0][i]);
 	printf("\ndclut4 normal: ");
 	for (i = 0; i <= 3; i++)
-		printf("%2d ", x->dclut4[1][i]);
+		printf("%2d ", ext->dclut4[1][i]);
 	printf("\ndclut16 global: ");
 	for (i = 0; i <= 15; i++)
-		printf("%2d ", x->dclut16[0][i]);
+		printf("%2d ", ext->dclut16[0][i]);
 	printf("\ndclut16 normal: ");
 	for (i = 0; i <= 15; i++)
-		printf("%2d ", x->dclut16[1][i]);
+		printf("%2d ", ext->dclut16[1][i]);
 	printf("\n\n");
 }
 
@@ -300,6 +300,7 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    if (err & 0xf000)
 		return 4;
 
+	    memcpy(cvtp->raw[0]+0, p, 40);
 	    cvtp->errors = (err >> 8) + chk_parity(p + 8, 32);;
 	    cvtp->pgno = mag8 * 256 + b1;
 	    cvtp->subno = (b2 + b3 * 256) & 0x3f7f;
@@ -314,7 +315,6 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    cvtp->flof = 0;
 	    vbi->ppage = rvtp;
 
-//	    pll_add(vbi, 1, cvtp->errors);
 
 	    conv2latin(p + 8, 32, cvtp->lang);
 	    vbi_send(vbi, EV_HEADER, cvtp->pgno, cvtp->subno, cvtp->flags, p);
@@ -330,6 +330,7 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    memset(cvtp->data[0]+40, ' ', sizeof(cvtp->data)-40);
 	    memset(cvtp->raw[0]+40, ' ', sizeof(cvtp->raw)-40);
 	    rvtp->extension.designations = 0;
+	    cvtp->num_triplets = 0;
 	    cvtp->vbi = vbi;
 	    return 0;
 	}
@@ -338,7 +339,7 @@ vt_packet(struct vbi *vbi, u8 *p)
 	{
 		memcpy(cvtp->raw[pkt], p, 40);
 
-//	    pll_add(vbi, 1, err = chk_parity(p, 40));
+	     err = chk_parity(p, 40);
 
 	    if (~cvtp->flags & PG_ACTIVE)
 		return 0;
@@ -354,23 +355,43 @@ vt_packet(struct vbi *vbi, u8 *p)
 
 	case 26:
 	{
-	    int d, t[13];
+		int designation;
+		unsigned int t;
+		vt_triplet triplet;
 
 	    if (~cvtp->flags & PG_ACTIVE)
 		return 0;
 
-	    d = hamm8(p, &err);
-	    if (err & 0xf000)
-		return 4;
+		designation = hamm8(p, &err);
+		if (err & 0xf000)
+			return 4;
 
-	    for (i = 0; i < 13; ++i)
-		t[i] = hamm24(p + 1 + 3*i, &err);
-	    if (err & 0xf000)
-		return 4;
+		if (cvtp->num_triplets >= 16 * 13
+		    || cvtp->num_triplets != designation * 13
+		    || (cvtp->num_triplets > 0
+			&& cvtp->triplets[cvtp->num_triplets - 1].stop)) {
+			cvtp->num_triplets = -1;
+			return 0;
+		}
 
-//    printf("enhance on %x/%x\n", cvtp->pgno, cvtp->subno);
-	    add_enhance(rvtp->enh, d, t);
-	    return 0;
+//	fprintf(stderr, "packet %d/%d/%d page %x/%x\n", mag8, pkt, designation, cvtp->pgno, cvtp->subno);
+
+		for (p++, i = 0; i < 13; p += 3, i++) {
+			t = hamm24(p, &err);
+
+			triplet.address = t & 0x3F;
+			triplet.mode = (t >> 6) & 0x1F;
+			triplet.data = t >> 11;
+			triplet.stop = !((~t) & 0x7FF);
+
+//    if ((triplet.mode >= 0x18 || triplet.mode <= 0x08) && !triplet.stop)
+//	printf("triplet %02x %02x %02x %d\n",
+//		triplet.address, triplet.mode, triplet.data, triplet.stop);
+
+			cvtp->triplets[cvtp->num_triplets++] = triplet;
+		}
+
+		return 0;
 	}
 
 	case 27:
@@ -719,10 +740,6 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune, int big_buf)
     vbi->ppage = vbi->rpage;
     reset_magazines(vbi);
 
-//    vbi_pll_reset(vbi, fine_tune);
-    // now done by sliced device
-    ///* now done by v4l2 and v4l modules */
-    ////    fdset_add_fd(fds, vbi->fd, vbi_handler, vbi);
     return vbi;
 
 fail2:

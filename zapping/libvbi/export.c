@@ -8,6 +8,7 @@
 #include "vbi.h"
 
 #include "../common/types.h"
+#include "../common/math.h"
 
 extern struct export_module export_txt[1];
 extern struct export_module export_ansi[1];
@@ -244,6 +245,8 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
 }
 
 
+#define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
+
 /*
     ETS 300 706 Table 32, 33, 34
 
@@ -287,8 +290,10 @@ done
 
     * level 1 alpha/mosaic spacing attribute
       and primary/secondary G0 escape code
+done
 
     * enhancement data triplet
+done
       - G0 character
       - G2 character
       - block mosaic G1 character
@@ -336,10 +341,12 @@ typedef enum {
 	TURKISH
 } national_subset;
 
+#define VALID_CHARACTER_SET(n) ((n) < 88 && font_d_table[n].G0)
+
 struct font_d {
 	character_set	G0;
 	character_set	G2;
-	national_subset	subset;
+	national_subset	subset;	/* applies only to LATIN_G0 */
 } font_d_table[88] = {
 	/* 0 - Western and Central Europe */
 	{ LATIN_G0, LATIN_G2, ENGLISH		},
@@ -464,11 +471,11 @@ national_subst[14][13] = {
 	{ 0x23, 0x24, 0xB000 + 'T', 0x10, 0xB000 + 'S', 0xF017, 0x11, 0xF5, 0xB000 + 't', 0x3000 + 'a', 0xB000 + 's', 0xF000 + 'a', 0x09 },
 	{ 0x23, 0x13, 0xF018, 0x2018, 0xF01F, 0xE2, 0xF01D, 0x8000 + 'e', 0xF000 + 'c', 0x2000 + 'c', 0xF000 + 'z', 0xF2, 0xF000 + 's' },
 	{ 0x23, 0x24, 0x2019, 0x12, 0x15, 0x0D, 0x16, 0x5F, 0x2000 + 'e', 0x08, 0x8000 + 'o', 0xA000 + 'a', 0x8000 + 'u' },
-	{ 0x0F, 0xF000 + 'g', 0x1B, 0xB000 + 'S', 0x15, 0xB000 + 'C', 0x16, 0xF01A, 0xF5, 0xB000 + 's', 0x8000 + 'o', 0xB000 + 'c', 0x8000 + 'u' }
+	{ 0x0F, 0xF000 + 'g', 0x06, 0xB000 + 'S', 0x15, 0xB000 + 'C', 0x16, 0xF01A, 0xF5, 0xB000 + 's', 0x8000 + 'o', 0xB000 + 'c', 0x8000 + 'u' }
 };
 
 static const int
-cyrillic_g0_1_alpha_subst[64] = {
+cyrillic_1_g0_alpha_subst[64] = {
 	0x011E, 0x0101, 0x0102, 0x0103,	0x0104, 0x0105, 0x0106, 0x0107,
 	0x0108, 0x0109,    'J', 0x010B,	0x010C, 0x010D, 0x010E, 0x010F,
 	0x0080, 0x0081, 0x0112, 0x0113, 0x0114, 0x0115, 0x0117, 0x0082,
@@ -495,6 +502,19 @@ greek_g2_subst[96] = {
 	 's',  'u',  'v',  'w',  'y',  'z', 0x8E, 0xFF,
 };
 
+#define GL_LATIN_G0				(0x0000)	/* 0x00 ... 0x1F reserved */
+#define GL_LATIN_G2				(0x0080)	/* 0x80 ... 0x9F reserved */
+#define GL_CYRILLIC_2_G0_ALPHA			(0x0100)
+#define GL_GREEK_G0_ALPHA			(0x0140)
+#define GL_ARABIC_G0_ALPHA			(0x0180)
+#define GL_ARABIC_G2				(0x01C0 - 0x20)	/* 0x20 ... 0x3F only */
+#define GL_HEBREW_G0_LOWER			(0x01E0)
+#define GL_CONTIGUOUS_BLOCK_MOSAIC_G1		(0x0200 - 0x20)
+#define GL_SEPARATED_BLOCK_MOSAIC_G1		(0x0220 - 0x20)	/* interleaved 2-2-6-6 */
+#define GL_SMOOTH_MOSAIC_G3			(0x0280 - 0x20)
+
+#define GL_SPACE				(GL_LATIN_G0 + ' ')
+
 /*
     XXX should be optimized
  */
@@ -508,17 +528,17 @@ glyph(character_set s, national_subset n, int c)
 		for (i = 0; i < 13; i++)
 			if (c == national_subst[0][i])
 				return national_subst[n][i];
-		return c;
+		return GL_LATIN_G0 + c;
 
 	case LATIN_G2:
-		return 0x0080 + c;
+		return GL_LATIN_G2 + c;
 
 	case CYRILLIC_1_G0:
 		if (c == 0x24)
 			return 0x00A4;
 		if (c <= 0x3F)
-			return c;
-		return cyrillic_g0_1_alpha_subst[c - 0x40];
+			return GL_LATIN_G0 + c;
+		return cyrillic_1_g0_alpha_subst[c - 0x40];
 
 	case CYRILLIC_2_G0:
 		if (c == 0x24)
@@ -527,7 +547,7 @@ glyph(character_set s, national_subset n, int c)
 			return 0x0097;
 		if (c <= 0x3F)
 			return c;
-		return 0x0100 - 0x40 + c;
+		return GL_CYRILLIC_2_G0_ALPHA - 0x40 + c;
 
 	case CYRILLIC_3_G0:
 		if (c == 0x24)
@@ -548,7 +568,7 @@ glyph(character_set s, national_subset n, int c)
 			return 0x0099;
 		if (c == 0x7C)
 			return 0x0098;
-		return 0x0100 - 0x40 + c;
+		return GL_CYRILLIC_2_G0_ALPHA - 0x40 + c;
 
 	case CYRILLIC_G2:
 		if (c == 0x59)
@@ -558,8 +578,8 @@ glyph(character_set s, national_subset n, int c)
 		if (c == 0x5B)
 			return 0x00FB;
 		if (c <= 0x5F)
-			return 0x0080 + c;
-		return 0x0000 + "DEFGIJKLNQRSUVWZdefgijklnqrsuvwz"[c - 0x60];
+			return GL_LATIN_G2 + c;
+		return GL_LATIN_G0 + "DEFGIJKLNQRSUVWZdefgijklnqrsuvwz"[c - 0x60];
 
 	case GREEK_G0:
 		if (c == 0x24)
@@ -570,7 +590,7 @@ glyph(character_set s, national_subset n, int c)
 			return 0x00BB;
 		if (c <= 0x3F)
 			return c;
-		return 0x0140 - 0x40 + c;
+		return GL_GREEK_G0_ALPHA - 0x40 + c;
 
 	case GREEK_G2:
 		return greek_g2_subst[c - 0x20];
@@ -598,11 +618,11 @@ glyph(character_set s, national_subset n, int c)
 			return '<';
 		if (c == 0x3F)
 			return 0x009F;
-		return 0x0180 - 0x40 + c;
+		return GL_ARABIC_G0_ALPHA - 0x40 + c;
 
 	case ARABIC_G2:
 		if (c <= 0x3F)
-			return 0x01C0 - 0x20 + c;
+			return GL_ARABIC_G2 + c;
 		if (c == 0x40)
 			return 0x1000 + 'a';
 		if (c == 0x60)
@@ -625,7 +645,7 @@ glyph(character_set s, national_subset n, int c)
 			return 0x3000 + 'u';
 		if (c == 0x4E)
 			return 0xB000 + 'c';
-		return c;
+		return GL_LATIN_G0 + c;
 
 	case HEBREW_G0:
 		if (c == 0x23)
@@ -642,29 +662,414 @@ glyph(character_set s, national_subset n, int c)
 			return 0x00AD;
 		if (c == 0x4F)
 			return '#';
-		return 0x01E0 - 0x60 + c;
+		return GL_HEBREW_G0_LOWER - 0x60 + c;
 
 	default:
-		return '?';
+		return GL_LATIN_G0 + '?';
+	}
+}
+
+#undef printv
+#define printv printf
+// #define printv(templ, ...)
+
+static void
+new_enhance(struct fmt_page *pg, struct vt_page *vtp,
+	int invc_row, int invc_column)
+{
+	vt_triplet *p;
+	int active_column, active_row;
+	int offset_column, offset_row;
+	int min_column, i, j;
+	struct font_d *font, *g0_g2_font;
+	int gl;
+	attr_char *acp;
+	u8 *rawp;
+
+	if (vtp->num_triplets <= 0) /* XXX */
+		return;
+
+	active_column = 0;
+	active_row = 0;
+
+	offset_column = 0;
+	offset_row = 0;
+
+	rawp = vtp->raw[0];
+	acp = pg->data[0];
+	min_column = 0;
+
+	{
+		struct vt_extension *ext;
+		int char_set;
+
+		g0_g2_font = font_d_table;
+
+		if (!(ext = vtp->extension))
+			ext = &vtp->vbi->magazine_extension[(vtp->pgno >> 8) - 1];
+
+		char_set = ext->char_set[0];
+
+		if (VALID_CHARACTER_SET(char_set))
+			g0_g2_font = font_d_table + char_set;
+
+		char_set = (char_set & ~7) + vtp->national;
+
+		if (VALID_CHARACTER_SET(char_set))
+			g0_g2_font = font_d_table + char_set;
+
+		printv("enh char_set = %d\n", char_set);
+	}
+
+	font = g0_g2_font;
+
+	/* XXX */
+	for (p = vtp->triplets, i = 0; i < vtp->num_triplets;/**/ p++, i++) {
+		if (p->stop)
+			break;
+
+		if (p->address >= 40) {
+			/* row address triplets */
+
+			int s = p->data >> 5;
+			int row;
+
+			switch (p->mode) {
+			case 0x00:		/* full screen colour */
+				if (s == 0) {
+					/* TODO */
+				}
+
+				break;
+
+			case 0x07:		/* address display row 0 */
+				if (p->address != 0x3F)
+					break; /* reserved, no position */
+
+			case 0x01:		/* full row colour */
+				active_column = 0;
+
+				if (p->mode == 7)
+					row = 0;
+				else
+					row = (p->address - 40) ? : 24;
+#if 0
+				if (s == 0) {
+					int colour = p->data & 0x1F;
+					// addressed row
+				} else if (s == 3) {
+					int colour = p->data & 0x1F;
+					// here and below
+				} /* other reserved */
+#endif
+				goto set_active;
+
+			/* case 0x02: reserved */
+			/* case 0x03: reserved */
+
+			case 0x04:		/* set active position */
+				if (p->data >= 40)
+					break; /* reserved */
+
+				active_column = p->data;
+				row = (p->address - 40) ? : 24;
+
+			set_active:
+				if (row != active_row) {
+					active_row = row;
+
+					font = g0_g2_font;
+
+					if (invc_row + row > 24)
+						acp = NULL;
+					else {
+						rawp = vtp->raw[invc_row + row];
+						acp = pg->data[invc_row + row];
+
+						min_column = (invc_row + row == 0) ? 8 : 0;
+					}
+				}
+
+				printv("enh set_active row %d col %d\n", active_row, active_column);
+
+				break;
+
+			/* case 0x05: reserved */
+			/* case 0x06: reserved */
+			/* case 0x08 ... 0x0F: PDC data */
+
+			case 0x10:		/* origin modifier */
+				if (p->data >= 72)
+					break; /* invalid */
+				
+				offset_column = p->data;
+				offset_row = p->address - 40;
+
+				printv("enh origin modifier %d %d\n", offset_column, offset_row);
+
+				break;
+
+			case 0x11 ... 0x13:	/* object invocation */
+				/* TODO */
+
+				printv("enh obj invocation 0x%02x 0x%02x\n", p->mode, p->data);
+
+				offset_column = 0;
+				offset_row = 0;
+
+				break;
+
+			/* case 0x14: reserved */
+
+			case 0x15 ... 0x17:	/* object definition */
+				/* TODO (skip here? abort?) */
+
+				printv("enh obj definition 0x%02x 0x%02x\n", p->mode, p->data);
+				
+				break;
+
+			case 0x18:		/* drcs mode */
+				/* TODO */
+
+				printv("enh DRCS mode 0x%02x\n", p->data);
+
+				break;
+
+			/* case 0x19 ... 0x1E: reserved */
+			
+			case 0x1F:		/* termination marker */
+				i = vtp->num_triplets; /* XXX */
+				break;
+			}
+		} else {
+			/* column address triplets */
+
+			int s = p->data >> 5;			
+
+			switch (p->mode) {
+			case 0x00:			/* foreground colour */
+				active_column = p->address;
+
+				if (s == 0 && acp) {
+					int foreground = p->data & 0x1F;
+
+					j = MAX(min_column, invc_column + active_column);
+
+					for (; j < 40; j++) {
+						int raw = rawp[j] & 0x78; /* XXX parity */
+
+						acp[j].foreground = foreground;
+
+						/* spacing alpha foreground, set-after */
+						/* spacing mosaic foreground, set-after */
+						if (raw == 0x00 || raw == 0x10)
+							break;
+					}
+
+					printv("enh col %d foreground %d\n", active_column, foreground);
+				}
+				
+				break;
+
+			case 0x01:			/* G1 block mosaic character */
+				active_column = p->address;
+
+				if (p->data & 0x20) {
+					gl = GL_CONTIGUOUS_BLOCK_MOSAIC_G1 + p->data;
+					goto store;
+				} else if (p->data >= 0x40) {
+					gl = glyph(font->G0, NO_SUBSET, p->data);
+					goto store;
+				}
+
+				break;
+
+			case 0x02:		/* G3 smooth mosaic or line drawing character */
+			case 0x0B:
+				active_column = p->address;
+
+				if (p->data >= 0x20) {
+					gl = GL_SMOOTH_MOSAIC_G3 + p->data;
+					goto store;
+				}
+
+				break;
+
+			case 0x03:		/* background colour */
+				active_column = p->address;
+
+				if (s == 0 && acp) {
+					int background = p->data & 0x1F;
+
+					j = MAX(min_column, invc_column + active_column);
+
+					for (; j < 40; j++) {
+						int raw = rawp[j] & 0x7F; /* XXX parity */
+
+						/* spacing black background, set-at */
+						/* spacing new background, set-at */
+						if (raw == 0x1C || raw == 0x1D)
+							break;
+
+						acp[j].background = background;
+					}
+
+					printv("enh col %d background %d\n", active_column, background);
+				}
+
+				break;
+
+			/* case 0x04: reserved */
+			/* case 0x05: reserved */
+			/* case 0x06: pdc data */
+
+			case 0x07:		/* additional flash functions */	
+				active_column = p->address;
+
+				if (s == 0) {
+					/* huh? */
+
+					printv("enh col %d flash 0x%02x\n", active_column, p->data);
+				}
+
+				break;
+
+			case 0x08:		/* modified G0 and G2 character set designation */
+				active_column = p->address;
+
+				printv("enh col %d modify character set %d\n", active_column, p->data);
+
+				if (VALID_CHARACTER_SET(p->data))
+					font = font_d_table + p->data;
+				else
+					font = g0_g2_font;
+
+				break;
+
+			case 0x09:		/* G0 character */			
+				active_column = p->address;
+
+				if (p->data >= 0x20) {
+					gl = glyph(font->G0, NO_SUBSET, p->data);
+					goto store;
+				}
+
+				break;
+
+			/* case 0x0A: reserved */
+
+			case 0x0C:		/* display attributes */
+				active_column = p->address;
+
+				printv("enh col %d display attr 0x%02x\n", active_column, p->data);
+
+				break;
+
+			/*
+				d6	double width
+				d5	underline / separate
+				d4	invert colour
+				d3	reserved
+				d2	conceal
+				d1	boxing / window
+				d0	double height
+				set-at, 1=yes
+				The action persists to the end of a display row but may be cancelled by
+				the transmission of a further triplet of this type with the relevant bit set to '0', or, in
+				most cases, by an appropriate spacing attribute on the Level 1 page.
+			*/
+
+			case 0x0D:		/* drcs character invocation */
+				active_column = p->address;
+
+				/* TODO */
+
+				printv("enh col %d DRCS 0x%02x %c\n", active_column, p->data, printable(p->data));
+
+				break;
+
+			case 0x0E:		/* font style */
+				active_column = p->address;
+
+				/* TODO */
+
+				printv("enh col %d font style 0x%02x\n", active_column, p->data);
+
+				break;
+
+			case 0x0F:		/* G2 character */
+				active_column = p->address;
+
+				if (p->data >= 0x20) {
+					gl = glyph(font->G2, NO_SUBSET, p->data);
+					goto store;
+				}
+
+				break;
+
+			case 0x10 ... 0x1F:	/* characters including diacritical marks */
+				active_column = p->address;
+
+				if (p->data >= 0x20) {
+					static const char *reduced_uppercase = "ACEGIOSUZ";
+					static const int composed_subst[32] = {
+						0, 0, 0, 0, 0, 0, 0x701B, 0x1000 + 'a',
+						0x8000 + 'a', 0x20F5, 0x30F5, 0xF000 + 't', 0x80F5, 0xA017, 0, 0,
+						0x3017,	0x301B, 0x8017, 0x8019, 0x801B, 0x801C, 0x801E
+					};
+					int mark = p->mode - 16;
+					char *s;
+
+					gl = glyph(font->G0, NO_SUBSET, p->data);
+
+					/* requested by the aestehics department */
+					if (0xA5FE & (1 << mark)) {
+						if (gl <= 0x60 && (s = strchr(reduced_uppercase, gl)))
+							gl = 0x17 + (s - reduced_uppercase);
+						else if (gl == 'i')
+							gl = 0xF5;
+					}
+
+					if (mark > 0) 
+
+					gl |= (p->mode - 16) << 12;
+
+					/* again */
+					for (j = 6; j <= 22; j++)
+						if (gl == composed_subst[j]) {
+							gl = j;
+							break;
+						}
+			store:
+					printv("enh row %d col %d print 0x%02x/0x%02x -> 0x%04x %c\n",
+						active_row, active_column, p->mode, p->data, gl, printable(gl & 0x7F));
+
+					j = invc_column + active_column;
+
+					if (j < min_column || j > 40)
+						break;
+
+					acp[j].glyph = gl;
+				}
+
+				break;
+			}
+		}
 	}
 }
 
 void
 fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 {
-    char buf[16];
-    int column, row, i;
-
+	char buf[16];
 	struct vt_extension *ext;
-	struct font_d *g0_set[2];
+	struct font_d *g0_font[2];
+	int column, row, i;
 
+	sprintf(buf, "\2%x.%02x\7", vtp->pgno, vtp->subno & 0xff);
 
-    sprintf(buf, "\2%x.%02x\7", vtp->pgno, vtp->subno & 0xff);
-
-
-
-	g0_set[0] = font_d_table;
-	g0_set[1] = font_d_table;
+	g0_font[0] = font_d_table;
+	g0_font[1] = font_d_table;
 
 	if (!(ext = vtp->extension))
 		ext = &vtp->vbi->magazine_extension[(vtp->pgno >> 8) - 1];
@@ -672,13 +1077,13 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 	for (i = 0; i < 2; i++) {
 		int char_set = ext->char_set[i];
 
-		if (char_set < 88 && font_d_table[char_set].G0)
-			g0_set[1] = font_d_table + char_set;
+		if (VALID_CHARACTER_SET(char_set))
+			g0_font[1] = font_d_table + char_set;
 
 		char_set = (char_set & ~7) + vtp->national;
 
-		if (char_set < 88 && font_d_table[char_set].G0)
-			g0_set[i] = font_d_table + char_set;
+		if (VALID_CHARACTER_SET(char_set))
+			g0_font[i] = font_d_table + char_set;
 
 // printf("char_set[%d] = %d\n", char_set);
 	}
@@ -706,7 +1111,7 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 		bool double_height, wide_char;
 		attr_char ac;
 
-		held_mosaic_glyph = 0x0200; /* blank, contiguous */
+		held_mosaic_glyph = GL_CONTIGUOUS_BLOCK_MOSAIC_G1 + 0; /* blank */
 
 		page_opacity = OPAQUE;
 		boxed_opacity = SEMI_TRANSPARENT;
@@ -727,9 +1132,9 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 
 		ac.foreground	= ext->foreground_clut + WHITE;
 		ac.background	= ext->background_clut + BLACK;
-		mosaic_glyphs	= 0x0200 - 0x20; /* contiguous */
+		mosaic_glyphs	= GL_CONTIGUOUS_BLOCK_MOSAIC_G1;
 		ac.opacity	= page_opacity;
-		font		= g0_set[0];
+		font		= g0_font[0];
 		reveal	       |= 2;
 		hold		= FALSE;
 		mosaic		= FALSE;
@@ -745,12 +1150,14 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 			if (row == 0 && column < 8)
 				raw = buf[column];
 
+			/* set-at spacing attributes */
+
 			switch (raw) {
 			case 0x09:		/* steady */
 				ac.flash = FALSE;
 				break;
 
-			case 0x0c:		/* normal size */
+			case 0x0C:		/* normal size */
 				ac.size = NORMAL;
 				break;
 
@@ -759,34 +1166,34 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 				break;
 
 			case 0x19:		/* contiguous mosaics */
-				mosaic_glyphs = 0x0200 - 0x20 + 0;
+				mosaic_glyphs = GL_CONTIGUOUS_BLOCK_MOSAIC_G1;
 				break;
 
-			case 0x1a:		/* separated mosaics */
-				mosaic_glyphs = 0x0200 - 0x20 + 32;
+			case 0x1A:		/* separated mosaics */
+				mosaic_glyphs = GL_SEPARATED_BLOCK_MOSAIC_G1;
 				break;
 
-			case 0x1c:		/* black bg */
+			case 0x1C:		/* black background */
 				ac.background = ext->background_clut + BLACK;
 				break;
 
-			case 0x1d:		/* new bg */
-				ac.background = ac.foreground;
+			case 0x1D:		/* new background */
+				ac.background = ext->background_clut + (ac.foreground & 7);
 				break;
 
-			case 0x1e:		/* hold mosaic */
+			case 0x1E:		/* hold mosaic */
 				hold = TRUE;
 				break;
 			}
 
 			if (raw <= 0x1F)
-				ac.glyph = (hold & mosaic) ? held_mosaic_glyph : 0x0000 + ' ';
+				ac.glyph = (hold & mosaic) ? held_mosaic_glyph : GL_SPACE;
 			else
 				if (mosaic && (raw & 0x20)) {
 					held_mosaic_glyph = mosaic_glyphs + raw;
-					ac.glyph = reveal ? held_mosaic_glyph : 0x0000 + ' ';
+					ac.glyph = reveal ? held_mosaic_glyph : GL_SPACE;
 				} else
-					ac.glyph = reveal ? glyph(font->G0, font->subset, raw) : 0x0000 + ' ';
+					ac.glyph = reveal ? glyph(font->G0, font->subset, raw) : GL_SPACE;
 
 			if (!wide_char)
 				pg->data[row][column] = ac;
@@ -800,10 +1207,12 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 				pg->data[row][column + 1] = t;
 			}
 
+			/* set-after spacing attributes */
+
 			switch (raw) {
-			case 0x00 ... 0x07:	/* alpha + fg colour */
+			case 0x00 ... 0x07:	/* alpha + foreground colour */
 				ac.foreground = ext->foreground_clut + (raw & 7);
-				mosaic_glyphs = 0x0200 - 0x20 + 0; /* contiguous */
+				mosaic_glyphs = GL_CONTIGUOUS_BLOCK_MOSAIC_G1;
 				reveal |= 2;
 				mosaic = FALSE;
 				break;
@@ -812,47 +1221,47 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 				ac.flash = TRUE;
 				break;
 
-			case 0x0a:		/* end box */
+			case 0x0A:		/* end box */
 				if (column < 39 && vtp->raw[0][i] == 0x0a)
 					ac.opacity = page_opacity;
 				break;
 
-			case 0x0b:		/* start box */
+			case 0x0B:		/* start box */
 				if (column < 39 && vtp->raw[0][i] == 0x0b)
 					ac.opacity = boxed_opacity;
 				break;
 
-			case 0x0d:		/* double height */
+			case 0x0D:		/* double height */
 				if (row <= 0 || row >= 23)
 					break;
 				ac.size = DOUBLE_HEIGHT;
 				double_height = TRUE;
 				break;
 
-			case 0x0e:		/* double width */
+			case 0x0E:		/* double width */
 				if (column < 39)
 					ac.size = DOUBLE_WIDTH;
 				break;
 
-			case 0x0f:		/* double size */
+			case 0x0F:		/* double size */
 				if (column >= 39 || row <= 0 || row >= 22)
 					break;
 				ac.size = DOUBLE_SIZE;
 				double_height = TRUE;
 				break;
 
-			case 0x10 ... 0x17:	/* mosaic + fg colour */
+			case 0x10 ... 0x17:	/* mosaic + foreground colour */
 				ac.foreground = ext->foreground_clut + (raw & 7);
 				reveal |= 2;
 				mosaic = TRUE;
 				break;
 
-			case 0x1f:		/* release mosaic */
+			case 0x1F:		/* release mosaic */
 				hold = FALSE;
 				break;
 
-			case 0x1b:		/* ESC */
-				font = (font == g0_set[0]) ? g0_set[1] : g0_set[0];
+			case 0x1B:		/* ESC */
+				font = (font == g0_font[0]) ? g0_font[1] : g0_font[0];
 				break;
 			}
 		}
@@ -876,7 +1285,7 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 
 				default: /* NORMAL, DOUBLE_WIDTH, OVER_TOP */
 					ac.size = NORMAL;
-					ac.glyph = 0x0000 + ' ';
+					ac.glyph = GL_SPACE;
 					pg->data[row + 1][column] = ac;
 					break;
 				}
@@ -886,6 +1295,36 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 			row++;
 		}
 	}
+
+	new_enhance(pg, vtp, 0, 0);
+
+	if (0)
+		return;
+
+	/* Test */
+
+	for (row = 1; row < 24; row++)
+		for (column = 0; column < 40; column++) {
+			int page = ((vtp->pgno >> 4) & 15) * 10 + (vtp->pgno & 15);
+
+			if (page <= 15) {
+				if (row <= 23 && column <= 31) {
+					pg->data[row][column].foreground = WHITE;
+					pg->data[row][column].background = BLACK;
+					pg->data[row][column].size = NORMAL;
+					pg->data[row][column].glyph =
+						((page & 15) << 12) + (row - 1) * 32 + column;
+				}
+			} else if (page == 16) {
+				if (row <= 14 && column <= 12) {
+					pg->data[row][column].foreground = WHITE;
+					pg->data[row][column].background = BLACK;
+					pg->data[row][column].size = NORMAL;
+					pg->data[row][column].glyph =
+						national_subst[row - 1][column];
+				}
+			}
+		}
 }
 
 int
