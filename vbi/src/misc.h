@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2 2003-01-03 06:18:05 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.1 2003-02-16 21:03:37 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.4 2002-10-22 04:42:40 mschimek Exp $ */
+/* $Id: format.h,v 1.4.2.1 2003-02-16 21:03:34 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -360,7 +360,7 @@ typedef struct vbi_page {
 	 * 16-entry Color Look-Up Tables. Also the different resolution of DRCS and
 	 * the bitplane color coding is hidden to speed up rendering.
 	 */
-	uint8_t *		drcs_clut;		/* 64 entries */
+	const uint8_t *		drcs_clut;		/* 64 entries */
 	/**
 	 * Pointer to DRCS data. Per definition the maximum number of DRCS
 	 * usable at the same time, i. e. on one page, is limited to 96. However the
@@ -380,12 +380,12 @@ typedef struct vbi_page {
 	 * segfault may result. Do not access DRCS data after calling
 	 * vbi_unref_page(), it may not be cached anymore.
 	 */
-	uint8_t *		drcs[32];
+	const uint8_t *		drcs[32];
 
 	struct {
 		int			pgno, subno;
 	}			nav_link[6];
-	char			nav_index[64];
+	int8_t			nav_index[64];
 
 	struct vbi_font_descr *	font[2];
 	unsigned int		double_height_lower;	/* legacy */

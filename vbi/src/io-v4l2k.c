@@ -1,7 +1,7 @@
 /*
  *  libzvbi - V4L2 (version 2002-10) interface
  *
- *  Copyright (C) 1999, 2000, 2001, 2002 Michael H. Schimek
+ *  Copyright (C) 2002-2003 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2k.c,v 1.2 2002-11-30 02:37:18 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l2k.c,v 1.2.2.1 2003-02-16 21:03:35 mschimek Exp $";
 
 /*
  *  Around Oct-Nov 2002 the V4L2 API was revised for inclusion into
@@ -289,7 +289,7 @@ v4l2_fd(vbi_capture *vc)
 }
 
 static void
-print_vfmt(char *s, struct v4l2_format *vfmt)
+print_vfmt(const char *s, struct v4l2_format *vfmt)
 {
 	fprintf(stderr, "%sformat %08x, %d Hz, %d bpl, offs %d, "
 		"F1 %d+%d, F2 %d+%d, flags %08x\n", s,
@@ -316,9 +316,11 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 	struct v4l2_requestbuffers vrbuf;
 	struct v4l2_buffer vbuf;
 	struct v4l2_standard vstd;
+	v4l2_std_id stdid;
 	char *guess = "";
 	vbi_capture_v4l2 *v;
 	int max_rate, g_fmt;
+	int r;
 
 	pthread_once (&vbi_init_once, vbi_init);
 
@@ -380,15 +382,29 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 	}
 #endif
 
-	/* mandatory, http://www.thedirks.org/v4l2/v4l2dsi.htm */
-	if (IOCTL(v->fd, VIDIOC_G_STD, &vstd) == -1) {
+	if (-1 == IOCTL(v->fd, VIDIOC_G_STD, &stdid)) {
 		vbi_asprintf(errorstr, _("Cannot query current videostandard of %s (%s): %d, %s."),
 			     dev_name, vcap.card, errno, strerror(errno));
 		guess = _("Probably a driver bug.");
 		goto io_error;
 	}
 
-	printv("Current scanning system is %d\n", vstd.framelines);
+	vstd.index = 0;
+
+	while (0 == (r = IOCTL(v->fd, VIDIOC_ENUMSTD, &vstd))) {
+		if (vstd.id & stdid)
+			break;
+		vstd.index++;
+	}
+
+	if (-1 == r) {
+		vbi_asprintf(errorstr, _("Cannot query current videostandard of %s (%s): %d, %s."),
+			     dev_name, vcap.card, errno, strerror(errno));
+		guess = _("Probably a driver bug.");
+		goto io_error;
+	}
+
+	printv ("Current scanning system is %d\n", vstd.framelines);
 
 	/* add_vbi_services() eliminates non 525/625 */
 	v->dec.scanning = vstd.framelines;
