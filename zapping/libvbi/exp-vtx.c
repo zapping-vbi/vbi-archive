@@ -25,7 +25,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.3 2001-03-17 17:18:27 garetxe Exp $ */
+/* $Id: exp-vtx.c,v 1.4 2001-03-22 08:28:47 mschimek Exp $ */
 
 /*
  *  VTX is the file format used by VideoteXt. It stores Teletext pages in
@@ -50,7 +50,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "vbi.h"
+#include "vbi.h"	/* cache, vt.h */
 #include "hamm.h"	/* bit_reverse */
 #include "export.h"
 
@@ -69,17 +69,16 @@ struct header {
  *  VTX - VideoteXt File (VTXV4)
  */
 
-static int
-vtx_output(struct export *e, char *name, struct fmt_page *pg)
+static bool
+vtx_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 {
 	struct vt_page page, *vtp;
 	struct header h;
 	struct stat st;
-	FILE *fp;
 
 	if (pg->pgno < 0x100 || pg->pgno > 0x8FF) {
-		export_error(e, _("can only export Teletext pages"));
-		return 0;
+		vbi_export_error(e, _("Can only export Teletext pages"));
+		return FALSE;
 	}
 
 	/**/
@@ -87,8 +86,8 @@ vtx_output(struct export *e, char *name, struct fmt_page *pg)
 	vtp = pg->vbi->cache->op->get(pg->vbi->cache, pg->pgno, pg->subno, 0xFFFF);
 
 	if (!vtp) {
-		export_error(e, _("page is not cached, sorry"));
-		return 0;
+		vbi_export_error(e, _("Page is not cached, sorry"));
+		return FALSE;
 	}
 
 	page = *vtp;
@@ -97,8 +96,8 @@ vtx_output(struct export *e, char *name, struct fmt_page *pg)
 
 	if (page.function != PAGE_FUNCTION_UNKNOWN
 	    && page.function != PAGE_FUNCTION_LOP) {
-		export_error(e, _("cannot export this page"));
-		return 0;
+		vbi_export_error(e, _("Cannot export this page"));
+		return FALSE;
 	}
 
 	memcpy(h.signature, "VTXV4", 5);
@@ -116,9 +115,9 @@ vtx_output(struct export *e, char *name, struct fmt_page *pg)
 	h.vtx_flags = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 4) | (0 << 3);
 	/* notfound, pblf (?), hamming error, virtual, seven bits */
 
-	if (!(fp = fopen(name, "w"))) {
-		export_error(e, _("cannot create file '%s': %s"), name, strerror(errno));
-		return -1;
+	if (name && !(fp = fopen(name, "w"))) {
+		vbi_export_error(e, _("Cannot create file '%s': %s"), name, strerror(errno));
+		return FALSE;
 	}
 
 	if (fwrite(&h, sizeof(h), 1, fp) != 1)
@@ -127,38 +126,34 @@ vtx_output(struct export *e, char *name, struct fmt_page *pg)
 	if (fwrite(page.data.lop.raw, 40 * 24, 1, fp) != 1)
 		goto write_error;
 
-	if (fclose(fp)) {
+	if (name && fclose(fp)) {
 		fp = NULL;
 		goto write_error;
 	}
 
-	return 0;
+	return TRUE;
 
 write_error:
-	export_error(e, errno ?
-		_("error while writing file '%s': %s") :
-		_("error while writing file '%s'"), name, strerror(errno));
+	vbi_export_write_error(e, name);
 
-	if (fp)
-		fclose(fp);
+	if (name) {
+		if (fp)
+			fclose(fp);
 
-	if (!stat(name, &st) && S_ISREG(st.st_mode))
-		remove(name);
+		if (!stat(name, &st) && S_ISREG(st.st_mode))
+			remove(name);
+	}
 
-	return -1;
+	return FALSE;
 }
 
-struct export_module
-export_vtx[1] =			// exported module definition
-{
-    {
-	"vtx",			// id
-	"vtx",			// extension
-	0,			// options
-	0,			// size
-	0,			// open
-	0,			// close
-	0,			// option
-	vtx_output		// output
-    }
+vbi_export_module_priv
+export_vtx = {
+	.pub = {
+		.keyword	= "vtx",
+		.label		= N_("VTX"),
+		.tooltip	= N_("Export this page as VTX file, the format used by VideoteXt and vbidecode"),
+	},
+	.extension		= "vtx",
+	.output			= vtx_output,
 };

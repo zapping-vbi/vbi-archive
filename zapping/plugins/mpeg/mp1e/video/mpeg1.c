@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.21 2001-03-17 07:44:29 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.22 2001-03-22 08:28:47 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -120,7 +120,7 @@ extern double		video_stop_time;
 extern int p6_predict_forward_packed(unsigned char *) reg(1);
 extern int p6_predict_forward_planar(unsigned char *) reg(1);
 
-#define PACKED 1
+#define PACKED 0
 
 #if PACKED
 #define predict_forward		p6_predict_forward_packed

@@ -1,3 +1,15 @@
+21.3.2001	ttxview.c <mschimek@users.sourceforge.net>
+
+	* frequencies.c: Added PAL-China, ripped from XawTV. Isn't GPL
+	  a wonderful thing?
+	* libvbi: Rewrite of export api finished.
+	* ttxview.c: The export menu builds dynamically now, the only
+	  visible change is the dialog title "Export <format>".
+	* ttxview.c: Replaced the string export hack by mem fp.
+	* ttxview.c: Simplified the selection routines, added
+	  wrap-around mode cf. xterm.
+	* de.po update.
+
 20.3.2001	0.5.92 released <garetxe@users.sourceforge.net>
 
 	* src/overlay.c: Do not clean screen with cards that support

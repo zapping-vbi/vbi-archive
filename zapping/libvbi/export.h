@@ -1,83 +1,95 @@
+/*
+ *  Zapzilla - Export modules interface
+ *
+ *  Copyright (C) 2001 Michael H. Schimek
+ *
+ *  Based on code from AleVT 1.5.1
+ *  Copyright (C) 1998,1999 Edgar Toernig (froese@gmx.de)
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+/* $Id: export.h,v 1.28 2001-03-22 08:28:47 mschimek Exp $ */
+
 #ifndef EXPORT_H
 #define EXPORT_H
 
-#include "vt.h"
-#include "lang.h"
-#include "../common/types.h"
-#include "format.h"
 #include "libvbi.h"
+#include "../common/types.h"
 
-/* not public */
-extern int		vbi_format_page(struct vbi *vbi, struct fmt_page *pg,
-					struct vt_page *vtp, int display_rows, int navigation);
+#ifdef ENABLE_NLS
+#    include <libintl.h>
+#    define _(String) gettext (String)
+#    ifdef gettext_noop
+#        define N_(String) gettext_noop (String)
+#    else
+#        define N_(String) (String)
+#    endif
+#else
+/* Stubs that do something close enough.  */
+#    define textdomain(String) (String)
+#    define gettext(String) (String)
+#    define dgettext(Domain,Message) (Message)
+#    define dcgettext(Domain,Message,Type) (Message)
+#    define bindtextdomain(Domain,Directory) (Domain)
+#    define _(String) (String)
+#    define N_(String) (String)
+#endif
 
-typedef enum {
-	VBI_EXPORT_BOOL = 1,	/* TRUE (1) or FALSE (0), def.num */
-	VBI_EXPORT_INT,		/* Integer min - max, def.num */
-	VBI_EXPORT_MENU,	/* Index of menu[], min - max, def.num */
-	VBI_EXPORT_STRING,	/* String, def.str */
-} vbi_export_option_type;
+typedef struct _vbi_export_module_priv vbi_export_module_priv;
 
-typedef struct {
-	vbi_export_option_type	type;
-	char *			keyword;
-	char *			label;		/* i18n */
-	union {
-		char *			str;	/* i18n */
-		int			num;
-	}			def;
-	int			min, max;
-	char **			menu;		/* max - min + 1 entries, i18n */
-	char *			tooltip;	/* or NULL, i18n */
-} vbi_export_option;
+struct vbi_export {
+	vbi_export_module_priv *mod;
+	vbi_network		network;
+	char *			err_str;
 
-
-
-
-
-
-
-
-
-struct export
-{
-    struct export_module *mod;	// module type
+    int	reveal;		// reveal hidden chars
     char *fmt_str;		// saved option string (splitted)
-    char *err_str;		// NULL if none
-    vbi_network			network;
-    // global options
-    int reveal;			// reveal hidden chars
-    // local data for module's use.  initialized to 0.
-    struct { int dummy; } data[0];
+
+	int			data[0];
 };
 
-struct export_module
-{
-    char *fmt_name;		// the format type name (ASCII/HTML/PNG/...)
-    char *extension;		// the default file name extension
+struct _vbi_export_module_priv {
+	vbi_export_module_priv *next;
+	vbi_export_module	pub;
+
+	char *			extension;
 	vbi_export_option *	options;
-    int local_size;
-    int (*open)(struct export *fmt);
-    void (*close)(struct export *fmt);
-    int (*option)(struct export *fmt, int opt, char *str_arg, int num_arg);
-    int (*output)(struct export *fmt, char *name, struct fmt_page *pg);
+	int			local_size;
+
+	bool			(* open)(vbi_export *);
+	void			(* close)(vbi_export *);
+	bool			(* output)(vbi_export *, FILE *, char *, struct fmt_page *);
+	vbi_export_option *	(* query_option)(vbi_export *, int opt);
+	bool			(* set_option)(vbi_export *, int opt, char *str_arg, int num_arg);
 };
 
+/* Helper functions */
 
-extern struct export_module *modules[];	// list of modules (for help msgs)
-void export_error(struct export *e, char *str, ...);	// set error
-char *export_errstr(struct export *e);		// return last error
-char *export_mkname(struct export *e, char *fmt, int pgno, int subno, char *usr);
+#define VBI_AUTOREG_EXPORT_MODULE(name)
 
-struct export *export_open(char *fmt, vbi_network *);
-void export_close(struct export *e);
-int export(struct export *e, struct fmt_page *pg, char *user_str);
+#if 0 // doesn't work --??
+extern void		vbi_register_export_module(vbi_export_module_priv *);
 
+#define VBI_AUTOREG_EXPORT_MODULE(name)					\
+static void vbi_autoreg_##name(void) __attribute__ ((constructor));	\
+static void vbi_autoreg_##name(void) {					\
+	vbi_register_export_module(&name);				\
+}
+#endif
 
-extern int		vbi_export_set_option(struct export *exp, int index, ...);
-
-
-void vbi_get_rendered_size(int *w, int *h);
-
+extern void		vbi_export_write_error(vbi_export *, char *);
 
 #endif /* EXPORT_H */

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.20 2001-03-17 07:44:29 mschimek Exp $ */
+/* $Id: caption.c,v 1.21 2001-03-22 08:28:47 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -530,8 +530,10 @@ xds_separator(struct vbi *vbi, unsigned char *buf)
  *  http://developer.webtv.net
  */
 
+#if ITV_DEBUG
 static char *
 itv_key[] = { "program", "network", "station", "sponsor", "operator", NULL };
+#endif
 
 static inline int
 itv_chksum(char *s, unsigned int sum)

@@ -3329,54 +3329,6 @@ in the next release of this program.</label>
     <widget>
       <class>GtkMenu</class>
       <name>export1_menu</name>
-
-      <widget>
-	<class>GtkMenuItem</class>
-	<name>html1</name>
-	<tooltip>Export the current page as HTML page</tooltip>
-	<label>_HTML</label>
-	<right_justify>False</right_justify>
-      </widget>
-
-      <widget>
-	<class>GtkMenuItem</class>
-	<name>ppm1</name>
-	<tooltip>Export the current page as PPM image</tooltip>
-	<label>P_PM</label>
-	<right_justify>False</right_justify>
-      </widget>
-
-      <widget>
-	<class>GtkMenuItem</class>
-	<name>png1</name>
-	<tooltip>Export the current page as PNG image</tooltip>
-	<label>P_NG</label>
-	<right_justify>False</right_justify>
-      </widget>
-
-      <widget>
-	<class>GtkMenuItem</class>
-	<name>ascii1</name>
-	<tooltip>Export the current page as ASCII text</tooltip>
-	<label>_ASCII</label>
-	<right_justify>False</right_justify>
-      </widget>
-
-      <widget>
-	<class>GtkMenuItem</class>
-	<name>ansi1</name>
-	<tooltip>Export the current page as ANSI text</tooltip>
-	<label>ANS_I</label>
-	<right_justify>False</right_justify>
-      </widget>
-
-      <widget>
-	<class>GtkMenuItem</class>
-	<name>vtx1</name>
-	<tooltip>Export the current page as VTX file</tooltip>
-	<label>_VTX</label>
-	<right_justify>False</right_justify>
-      </widget>
     </widget>
   </widget>
 

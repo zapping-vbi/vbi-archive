@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: profile.c,v 1.2 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: profile.c,v 1.3 2001-03-22 08:28:47 mschimek Exp $ */
 
 #include <stdio.h>
 
@@ -81,8 +81,8 @@ pr_report(void)
 	for (i = 0; i < COUNTERS; i++)
 		if (count[i]) {
 			if (sum[i] > 0)
-				fprintf(stderr, "%25s %02d: %10lld cycles %8d iterations\n",
-					labels[i], i, sum[i] / count[i], count[i]);
+				fprintf(stderr, "%25s %02d: %10lld cycles %8d iterations (%10lld)\n",
+					labels[i], i, sum[i] / count[i], count[i], sum[i]);
 			else
 				fprintf(stderr, "%25s %02d:                   %8d iterations\n", labels[i], i, count[i]);
 		}

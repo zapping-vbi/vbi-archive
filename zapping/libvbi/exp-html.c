@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.15 2001-03-18 06:03:37 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.16 2001-03-22 08:28:47 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -51,7 +51,7 @@ typedef struct style {
 	int			background;
 } style;
 
-typedef struct html_data	// private data in struct export
+typedef struct html_data
 {
   unsigned int gfx_chr;
   unsigned char headerless;
@@ -72,38 +72,25 @@ typedef struct html_data	// private data in struct export
 	style			def;
 } html_data;
 
+// XXX css option?
 
-
-
-
-
-
-#define D  ((struct html_data *)e->data)
-
-static int
-html_open(struct export *e)
+static bool
+html_set_option(vbi_export *e, int opt, char *str_arg, int num_arg)
 {
-    D->gfx_chr = '#';
-    D->headerless = 0;
-    //e->reveal=1;	// the default should be the same for all formats.
-    return 0;
-}
+	html_data *d = (html_data *) e->data;
 
-static int
-html_option(struct export *e, int opt, char *str_arg, int num_arg)
-{
 	switch (opt) {
 	case 0: /* gfx-chr */
 		if (strlen(str_arg) == 1)
 			num_arg = *str_arg;
-		D->gfx_chr = MAX(num_arg, 0x20);
+		d->gfx_chr = MAX(num_arg, 0x20);
 		break;
 	case 1: /* header */
-		D->headerless = !num_arg;
+		d->headerless = !num_arg;
 		break;
 	}
 
-	return 0;
+	return TRUE;
 }
 
 static vbi_export_option html_opts[] = {
@@ -167,29 +154,30 @@ static const char *	html_italic[]		= { "</i>", "<i>" };
 static const char *	html_flash[]		= { "</blink>", "<blink>" };
 
 static void
-write_error(struct export *e)
+write_error(vbi_export *e)
 {
-	html_data *h = (html_data *) e->data;
+	html_data *d = (html_data *) e->data;
 	struct stat st;
 
-	export_error(e, errno ?
-		_("error while writing file '%s': %s") :
-		_("error while writing file '%s'"), h->name, strerror(errno));
+	vbi_export_write_error(e, d->name);
 
-	if (h->fp)
-		fclose(h->fp);
+	if (d->name) {
+		if (d->fp)
+			fclose(d->fp);
 
-	if (!stat(h->name, &st) && S_ISREG(st.st_mode))
-		remove(h->name);
+		if (!stat(d->name, &st) && S_ISREG(st.st_mode))
+			remove(d->name);
+	}
 }
 
 static bool
-header(struct export *e, char *name, struct fmt_page *pg, char *title)
+header(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg, char *title)
 {
-	html_data *h = (html_data *) e->data;
+	html_data *d = (html_data *) e->data;
 	char *charset, *lang = NULL, *dir = NULL;
 
-	h->name = name;
+	d->fp = fp;
+	d->name = name;
 
 	switch (pg->font[0] - font_descriptors) {
 	case 0:	 /* English */
@@ -291,22 +279,22 @@ header(struct export *e, char *name, struct fmt_page *pg, char *title)
 		break;
 	}
 
-	if ((h->cd = iconv_open(charset, "UCS2")) == (iconv_t) -1) {
-		export_error(e, "character conversion not supported, should not happen");
+	if ((d->cd = iconv_open(charset, "UCS2")) == (iconv_t) -1) {
+		vbi_export_error(e, _("Character conversion Unicode -> %s not supported"), charset);
 		return FALSE;
 	}
 
-	if (!(h->fp = fopen(name, "w"))) {
-		export_error(e, _("cannot create file '%s': %s"), name, strerror(errno));
-		iconv_close(h->cd);
+	if (name && !(d->fp = fopen(name, "w"))) {
+		vbi_export_error(e, _("Cannot create file '%s': %s"), name, strerror(errno));
+		iconv_close(d->cd);
 		return FALSE;
 	}
 
-	if (!h->headerless) {
+	if (!d->headerless) {
 		style *s;
 		int ord;
 
-		fprintf(h->fp,
+		fprintf(d->fp,
 			"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\" "
 				"\"http://www.w3.org/TR/REC-html40/loose.dtd\">" LF
 			"<html>" LF "<head>" LF
@@ -315,17 +303,17 @@ header(struct export *e, char *name, struct fmt_page *pg, char *title)
 			"<style type=\"text/css\">" LF "<!--" LF,
 			charset);
 
-		for (s = h->styles, ord = 1; s; s = s->next)
-			if (s != &h->def && s->ref_count > 1) {
-				fprintf(h->fp, "span.c%d { color:", ord);
-				hash_colour(h->fp, pg->colour_map[s->foreground]);
-				fputs("; background-color:", h->fp);
-				hash_colour(h->fp, pg->colour_map[s->background]);
-				fputs(" }" LF, h->fp);
+		for (s = d->styles, ord = 1; s; s = s->next)
+			if (s != &d->def && s->ref_count > 1) {
+				fprintf(d->fp, "span.c%d { color:", ord);
+				hash_colour(d->fp, pg->colour_map[s->foreground]);
+				fputs("; background-color:", d->fp);
+				hash_colour(d->fp, pg->colour_map[s->background]);
+				fputs(" }" LF, d->fp);
 				ord++;
 			}
 
-		fprintf(h->fp,
+		fprintf(d->fp,
 			"//-->" LF "</style>" LF
 			"%s" /* title */ LF
 			"</head>" LF
@@ -333,39 +321,39 @@ header(struct export *e, char *name, struct fmt_page *pg, char *title)
 			title);
 
 		if (lang && *lang)
-			fprintf(h->fp, "lang=\"%s\" ", lang);
+			fprintf(d->fp, "lang=\"%s\" ", lang);
 
 		if (dir && *dir)
-			fprintf(h->fp, "dir=\"%s\" ", dir);
+			fprintf(d->fp, "dir=\"%s\" ", dir);
 
-		fputs("text=\"#FFFFFF\" bgcolor=\"", h->fp);
+		fputs("text=\"#FFFFFF\" bgcolor=\"", d->fp);
 
-		hash_colour(h->fp, pg->colour_map[pg->screen_colour]);
+		hash_colour(d->fp, pg->colour_map[pg->screen_colour]);
 
-		fputs("\">" LF, h->fp);
+		fputs("\">" LF, d->fp);
 	}
 
-	if (ferror(h->fp)) {
+	if (ferror(d->fp)) {
 		write_error(e);
 		return FALSE;
 	}
 
-	h->foreground	= WHITE;
-	h->background	= pg->screen_colour;
-	h->underline	= FALSE;
-	h->bold		= FALSE;
-	h->italic	= FALSE;
-	h->flash	= FALSE;
-	h->span		= FALSE;
-	h->link		= FALSE;
+	d->foreground	= WHITE;
+	d->background	= pg->screen_colour;
+	d->underline	= FALSE;
+	d->bold		= FALSE;
+	d->italic	= FALSE;
+	d->flash	= FALSE;
+	d->span		= FALSE;
+	d->link		= FALSE;
 
 	return TRUE;
 }
 
-static int
-html_output(struct export *e, char *name, struct fmt_page *pgp)
+static bool
+html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 {
-	html_data *h = (html_data *) e->data;
+	html_data *d = (html_data *) e->data;
 	struct fmt_page pg;
 	attr_char *acp;
 	int i, j;
@@ -373,17 +361,17 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 	pg = *pgp;
 
 #if TEST
-	h->underline	= FALSE;
-	h->bold		= FALSE;
-	h->italic	= FALSE;
-	h->flash	= FALSE;
+	d->underline	= FALSE;
+	d->bold		= FALSE;
+	d->italic	= FALSE;
+	d->flash	= FALSE;
 #endif
 
-	h->styles = &h->def;
-	h->def.next = NULL;
-	h->def.ref_count = 2;
-	h->def.foreground = h->foreground;
-	h->def.background = h->background;
+	d->styles = &d->def;
+	d->def.next = NULL;
+	d->def.ref_count = 2;
+	d->def.foreground = d->foreground;
+	d->def.background = d->background;
 
 	for (acp = pg.text, i = 0; i < pg.rows; acp += pg.columns, i++) {
 		int blank = 0;
@@ -397,13 +385,13 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 			acp[j].flash	 = flash;
 
 			if ((rand() & 15) == 0)
-				h->underline = rand() & 1;
+				d->underline = rand() & 1;
 			if ((rand() & 15) == 1)
-				h->bold	  = rand() & 1;
+				d->bold	  = rand() & 1;
 			if ((rand() & 15) == 2)
-				h->italic = rand() & 1;
+				d->italic = rand() & 1;
 			if ((rand() & 15) == 3)
-				h->flash  = rand() & 1;
+				d->flash  = rand() & 1;
 #endif
 			if (acp[j].size > DOUBLE_SIZE)
 				glyph = 0x20;
@@ -454,7 +442,7 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 			attr_char ac = acp[j];
 			style *s, **sp;
 
-			for (sp = &h->styles; (s = *sp); sp = &s->next) {
+			for (sp = &d->styles; (s = *sp); sp = &s->next) {
 				if (s->background != ac.background)
 					continue;
 				if (ac.glyph == 0x20 || s->foreground == ac.foreground)
@@ -482,7 +470,11 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 		if (pg.pgno < 0x100)
 			fprintf(fp, "<title lang=\"en\">");
 		else
-			fprintf(fp, _("<title lang=\"en\">")); /* dir=\"ltr\" */
+			/*
+			 *  "lang=\"en\" refers to "Teletext Page..." below,
+			 *  specify "de", "fr", "es" etc.
+			 */
+			fprintf(fp, _("<title lang=\"en\">"));
 
 		if (e->network.name[0]) {
 			escaped_fputs(fp, e->network.name);
@@ -501,25 +493,25 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 		if (fclose(fp)) {
 			free(s);
 			write_error(e);
-			return -1;
+			return FALSE;
 		}
 
-		if (!header(e, name, &pg, s)) {
+		if (!header(e, fp, name, &pg, s)) {
 			free(s);
-			return -1;
+			return FALSE;
 		}
 
 		free(s);
 	}
 
-	fputs("<pre>", h->fp);
+	fputs("<pre>", d->fp);
 
-	h->underline  = FALSE;
-	h->bold	      = FALSE;
-	h->italic     = FALSE;
-	h->flash      = FALSE;
-	h->span	      = FALSE;
-	h->link	      = FALSE;
+	d->underline  = FALSE;
+	d->bold	      = FALSE;
+	d->italic     = FALSE;
+	d->flash      = FALSE;
+	d->span	      = FALSE;
+	d->link	      = FALSE;
 
 	/* XXX this can get extremely large and ugly, should be improved. */
 	for (acp = pg.text, i = 0; i < pg.rows; acp += pg.columns, i++) {
@@ -527,28 +519,28 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 			int code;
 
 
-			if ((acp[j].glyph != 0x20 && acp[j].foreground != h->foreground)
-			    || acp[j].background != h->background) {
+			if ((acp[j].glyph != 0x20 && acp[j].foreground != d->foreground)
+			    || acp[j].background != d->background) {
 				style *s;
 				int ord;
 
-				if (h->flash)
-					fputs(html_flash[0], h->fp);
-				if (h->italic)
-					fputs(html_italic[0], h->fp);
-				if (h->bold)
-					fputs(html_bold[0], h->fp);
-				if (h->underline)
-					fputs(html_underline[0], h->fp);
-				if (h->span)
-					fputs("</span>", h->fp);
+				if (d->flash)
+					fputs(html_flash[0], d->fp);
+				if (d->italic)
+					fputs(html_italic[0], d->fp);
+				if (d->bold)
+					fputs(html_bold[0], d->fp);
+				if (d->underline)
+					fputs(html_underline[0], d->fp);
+				if (d->span)
+					fputs("</span>", d->fp);
 
-				h->underline  = FALSE;
-				h->bold	      = FALSE;
-				h->italic     = FALSE;
-				h->flash      = FALSE;
+				d->underline  = FALSE;
+				d->bold	      = FALSE;
+				d->italic     = FALSE;
+				d->flash      = FALSE;
 
-				for (s = h->styles, ord = 0; s; s = s->next)
+				for (s = d->styles, ord = 0; s; s = s->next)
 					if (s->ref_count > 1) {
 						if ((acp[j].glyph == 0x20 || s->foreground == acp[j].foreground)
 						    && s->background == acp[j].background)
@@ -556,8 +548,8 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 						ord++;
 					}
 
-				if (s != &h->def) {
-					if (h->link != acp[j].link) {
+				if (s != &d->def) {
+					if (d->link != acp[j].link) {
 						vbi_link link;
 
 						vbi_resolve_link(pgp, j, i, &link);
@@ -566,58 +558,58 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 						case VBI_LINK_HTTP:
 						case VBI_LINK_FTP:
 						case VBI_LINK_EMAIL:
-							fprintf(h->fp, "<a href=\"%s\">", link.text);
-							h->link = TRUE;
+							fprintf(d->fp, "<a href=\"%s\">", link.text);
+							d->link = TRUE;
 
 						default:
 						}
 					}
 
-					if (s) {
-						h->foreground = s->foreground;
-						h->background = s->background;
-						fprintf(h->fp, "<span class=\"c%d\">", ord);
+					if (s && !d->headerless) {
+						d->foreground = s->foreground;
+						d->background = s->background;
+						fprintf(d->fp, "<span class=\"c%d\">", ord);
 					} else {
-						h->foreground = acp[j].foreground;
-						h->background = acp[j].background;
-						fputs("<span style=\"color:", h->fp);
-						hash_colour(h->fp, pg.colour_map[h->foreground]);
-						fputs(";background-color:", h->fp);
-						hash_colour(h->fp, pg.colour_map[h->background]);
-						fputs("\">", h->fp);
+						d->foreground = acp[j].foreground;
+						d->background = acp[j].background;
+						fputs("<span style=\"color:", d->fp);
+						hash_colour(d->fp, pg.colour_map[d->foreground]);
+						fputs(";background-color:", d->fp);
+						hash_colour(d->fp, pg.colour_map[d->background]);
+						fputs("\">", d->fp);
 					}
 
-					h->span = TRUE;
+					d->span = TRUE;
 				} else {
-					h->foreground = s->foreground;
-					h->background = s->background;
-					h->span = FALSE;
+					d->foreground = s->foreground;
+					d->background = s->background;
+					d->span = FALSE;
 				}
 			}
 			
-			if (acp[j].underline != h->underline
-			    || acp[j].bold != h->bold
-			    || acp[j].italic != h->italic
-			    || acp[j].flash != h->flash) {
-				if (h->flash)
-					fputs(html_flash[0], h->fp);
-				if (h->italic)
-					fputs(html_italic[0], h->fp);
-				if (h->bold)
-					fputs(html_bold[0], h->fp);
-				if (h->underline)
-					fputs(html_underline[0], h->fp);
+			if (acp[j].underline != d->underline
+			    || acp[j].bold != d->bold
+			    || acp[j].italic != d->italic
+			    || acp[j].flash != d->flash) {
+				if (d->flash)
+					fputs(html_flash[0], d->fp);
+				if (d->italic)
+					fputs(html_italic[0], d->fp);
+				if (d->bold)
+					fputs(html_bold[0], d->fp);
+				if (d->underline)
+					fputs(html_underline[0], d->fp);
 
-				h->underline  = FALSE;
-				h->bold	      = FALSE;
-				h->italic     = FALSE;
-				h->flash      = FALSE;
+				d->underline  = FALSE;
+				d->bold	      = FALSE;
+				d->italic     = FALSE;
+				d->flash      = FALSE;
 			}
 
-			if (h->link != acp[j].link) {
-				if (h->link) {
-					fputs("</a>", h->fp);
-					h->link = FALSE;
+			if (d->link != acp[j].link) {
+				if (d->link) {
+					fputs("</a>", d->fp);
+					d->link = FALSE;
 				} else {
 					vbi_link link;
 
@@ -627,32 +619,32 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 					case VBI_LINK_HTTP:
 					case VBI_LINK_FTP:
 					case VBI_LINK_EMAIL:
-						fprintf(h->fp, "<a href=\"%s\">", link.text);
-						h->link = TRUE;
+						fprintf(d->fp, "<a href=\"%s\">", link.text);
+						d->link = TRUE;
 
 					default:
 					}
 				}
 			}
 
-			if (acp[j].underline != h->underline) {
-				h->underline = acp[j].underline;
-				fputs(html_underline[h->underline], h->fp);
+			if (acp[j].underline != d->underline) {
+				d->underline = acp[j].underline;
+				fputs(html_underline[d->underline], d->fp);
 			}
 
-			if (acp[j].bold != h->bold) {
-				h->bold = acp[j].bold;
-				fputs(html_bold[h->bold], h->fp);
+			if (acp[j].bold != d->bold) {
+				d->bold = acp[j].bold;
+				fputs(html_bold[d->bold], d->fp);
 			}
 
-			if (acp[j].italic != h->italic) {
-				h->italic = acp[j].italic;
-				fputs(html_italic[h->italic], h->fp);
+			if (acp[j].italic != d->italic) {
+				d->italic = acp[j].italic;
+				fputs(html_italic[d->italic], d->fp);
 			}
 
-			if (acp[j].flash != h->flash) {
-				h->flash = acp[j].flash;
-				fputs(html_flash[h->flash], h->fp);
+			if (acp[j].flash != d->flash) {
+				d->flash = acp[j].flash;
+				fputs(html_flash[d->flash], d->fp);
 			}
 
 #if TEST
@@ -660,68 +652,71 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 				code = glyph_iconv(cd, 0x100 + (rand() & 0xFF), D->gfx_chr);
 			else
 #endif
-			code = glyph_iconv(h->cd, acp[j].glyph, D->gfx_chr);
+			code = glyph_iconv(d->cd, acp[j].glyph, d->gfx_chr);
 
-			escaped_fputc(h->fp, code);
+			escaped_fputc(d->fp, code);
 		}
 
-		fputc('\n', h->fp);
+		fputc('\n', d->fp);
 	}
 
-	if (h->flash)
-		fputs(html_flash[0], h->fp);
-	if (h->italic)
-		fputs(html_italic[0], h->fp);
-	if (h->bold)
-		fputs(html_bold[0], h->fp);
-	if (h->underline)
-		fputs(html_underline[0], h->fp);
-	if (h->span)
-		fputs("</span>", h->fp);
+	if (d->flash)
+		fputs(html_flash[0], d->fp);
+	if (d->italic)
+		fputs(html_italic[0], d->fp);
+	if (d->bold)
+		fputs(html_bold[0], d->fp);
+	if (d->underline)
+		fputs(html_underline[0], d->fp);
+	if (d->span)
+		fputs("</span>", d->fp);
 
-	fputs("</pre>", h->fp);
+	fputs("</pre>", d->fp);
 
 	{
 		style *s;
 
-		while ((s = h->styles)) {
-			h->styles = s->next;
-			if (s != &h->def)
+		while ((s = d->styles)) {
+			d->styles = s->next;
+			if (s != &d->def)
 				free(s);
 		}
 	}
 
-	if (!D->headerless)
-		fputs(LF "</body>" LF "</html>", h->fp);
+	if (!d->headerless)
+		fputs(LF "</body>" LF "</html>", d->fp);
 
-	fputc('\n', h->fp);
+	fputc('\n', d->fp);
 
-	iconv_close(h->cd);
+	iconv_close(d->cd);
 
-	if (ferror(h->fp)) {
+	if (ferror(d->fp)) {
 		write_error(e);
-		return -1;
+		return FALSE;
 	}
 
-	if (fclose(h->fp)) {
-		h->fp = NULL;
+	if (d->name && fclose(d->fp)) {
+		d->fp = NULL;
 		write_error(e);
-		return -1;
+		return FALSE;
 	}
 
-	return 0;
+	return TRUE;
 }
 
-struct export_module export_html[1] =	// exported module definition
-{
-  {
-    "html",			// id
-    "html",			// extension
-    html_opts,			// options
-    sizeof(struct html_data),	// size
-    html_open,			// open
-    0,				// close
-    html_option,		// option
-    html_output			// output
-  }
+vbi_export_module_priv
+export_html = {
+	.pub = {
+		.keyword	= "html",
+		.label		= N_("HTML"),
+		.tooltip	= N_("Export this page as HTML page"),
+	},
+
+	.extension		= "html",
+	.options		= html_opts,
+	.local_size		= sizeof(struct html_data),
+	.set_option		= html_set_option,
+	.output			= html_output,
 };
+
+VBI_AUTOREG_EXPORT_MODULE(export_html)

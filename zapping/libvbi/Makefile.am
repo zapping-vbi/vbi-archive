@@ -11,7 +11,7 @@ libvbi_a_SOURCES = \
 	caption.c cc.h \
 	search.c \
 	cache.c cache.h \
-	exp-gfx.c exp-html.c exp-txt.c exp-vtx.c export.c export.h format.h \
+	exp-html.c exp-txt.c exp-vtx.c exp-gfx.c export.c export.h format.h \
 	dllist.h \
 	hamm.c hamm.h \
 	lang.c lang.h \

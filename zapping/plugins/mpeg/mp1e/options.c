@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.14 2001-03-17 07:44:29 mschimek Exp $ */
+/* $Id: options.c,v 1.15 2001-03-22 08:28:47 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -427,8 +427,8 @@ parse_option(int c)
 					swap(motion_min, motion_max);
 				if (motion_min < 4)
 					motion_min = 4;
-				if (motion_max > 32)
-					motion_max = 32;
+				if (motion_max > 64)
+					motion_max = 64;
 			}
 			break;
 

@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.31 2001-03-18 06:03:37 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.32 2001-03-22 08:28:47 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -44,6 +44,8 @@
 
 #include "wstfont.xbm"
 #include "ccfont.xbm"
+
+#define TRANSPARENT_BLACK 8
 
 /* Character cell dimensions - hardcoded (DRCS) */
 
@@ -417,23 +419,13 @@ typedef struct
 	 *  So raw pixel aspect is 2:1, and this option will double
 	 *  lines adding redundant information. The resulting images
 	 *  with pixel aspect 2:2 are still too narrow compared to a
-	 *  real TV closer to 4:3 (11 MHz pixel clock), but I {mhs}
+	 *  real TV closer to 4:3 (11 MHz TXT pixel clock), but I {mhs}
 	 *  think one should export raw, not scaled data.
 	 */
 } gfx_data;
 
-static int
-gfx_open(struct export *e)
-{
-	gfx_data *d = (gfx_data *) e->data;
-
-	d->double_height = 1;
-
-	return 0;
-}
-
-static int
-gfx_option(struct export *e, int opt, char *str_arg, int num_arg)
+static bool
+gfx_set_option(vbi_export *e, int opt, char *str_arg, int num_arg)
 {
 	gfx_data *d = (gfx_data *) e->data;
 
@@ -443,13 +435,13 @@ gfx_option(struct export *e, int opt, char *str_arg, int num_arg)
 		break;
 	}
 
-	return 0;
+	return TRUE;
 }
 
 static vbi_export_option gfx_opts[] = {
 	{
 		VBI_EXPORT_BOOL,	"aspect",	N_("Correct aspect ratio"),
-		{ .num = TRUE }, FALSE, TRUE, NULL, "Approximate an image aspect ratio similar to a real TV, however this will add redundant information"
+		{ .num = TRUE }, FALSE, TRUE, NULL, N_("Approach an image aspect ratio similar to a real TV, this will add redundant information")
 	}, {
 		0
 	}
@@ -459,15 +451,14 @@ static vbi_export_option gfx_opts[] = {
  *  PPM - Portable Pixmap File (raw)
  */
 
-static int
-ppm_output(struct export *e, char *name, struct fmt_page *pg)
+static bool
+ppm_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 {
 	gfx_data *d = (gfx_data *) e->data;
 	uint32_t *image;
 	uint8_t *body;
 	int cw, ch, size, scale;
 	struct stat st;
-	FILE *fp;
 	int i;
 
 	if (pg->columns < 40) {
@@ -483,9 +474,9 @@ ppm_output(struct export *e, char *name, struct fmt_page *pg)
 	size = cw * pg->columns * ch * pg->rows;
 
 	if (!(image = malloc(size * sizeof(*image)))) {
-		export_error(e, _("unable to allocate %d KB image buffer"),
+		vbi_export_error(e, _("Unable to allocate %d KB image buffer"),
 			size * sizeof(*image) / 1024);
-		return 0;
+		return FALSE;
 	}
 
 	if (pg->columns < 40)
@@ -494,10 +485,10 @@ ppm_output(struct export *e, char *name, struct fmt_page *pg)
 		vbi_draw_vt_page_region(pg, image, 0, 0, pg->columns, pg->rows, -1,
 			!e->reveal, 1 /* flash_on */);
 
-	if (!(fp = fopen(name, "wb"))) {
-		export_error(e, _("cannot create file '%s': %s"), name, strerror(errno));
+	if (name && !(fp = fopen(name, "wb"))) {
+		vbi_export_error(e, _("Cannot create file '%s': %s"), name, strerror(errno));
 		free(image);
-		return -1;
+		return FALSE;
 	}
 
 	fprintf(fp, "P6 %d %d 15\n",
@@ -566,40 +557,45 @@ ppm_output(struct export *e, char *name, struct fmt_page *pg)
 	free(image);
 	image = NULL;
 
-	if (fclose(fp)) {
+	if (name && fclose(fp)) {
 		fp = NULL;
 		goto write_error;
 	}
 
-	return 0;
+	return TRUE;
 
 write_error:
-	export_error(e, errno ?
-		_("error while writing file '%s': %s") :
-		_("error while writing file '%s'"), name, strerror(errno));
+	vbi_export_write_error(e, name);
 
 	if (image)
 		free(image);
 
-	if (fp)
-		fclose(fp);
+	if (name) {
+		if (fp)
+			fclose(fp);
 
-	if (!stat(name, &st) && S_ISREG(st.st_mode))
-		remove(name);
+		if (!stat(name, &st) && S_ISREG(st.st_mode))
+			remove(name);
+	}
 
-	return -1;
+	return FALSE;
 }
 
-struct export_module
+vbi_export_module_priv
 export_ppm = {
-	.fmt_name		= "ppm",
+	.pub = {
+		.keyword	= "ppm",
+		.label		= N_("PPM"),
+		.tooltip	= N_("Export this page as PPM image"),
+	},
 	.extension		= "ppm",
 	.options		= gfx_opts,
 	.local_size		= sizeof(gfx_data),
-	.open			= gfx_open,
-	.option			= gfx_option,
+	.set_option		= gfx_set_option,
 	.output			= ppm_output
 };
+
+VBI_AUTOREG_EXPORT_MODULE(export_ppm)
 
 /*
  *  PNG - Portable Network Graphics File
@@ -628,11 +624,10 @@ draw_drcs_indexed(png_bytep canvas, png_bytep pen,
 		  size, rowstride);
 }
 
-static int
-png_output(struct export *e, char *name, struct fmt_page *pg)
+static bool
+png_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 {
 	gfx_data *d = (gfx_data *) e->data;
-	FILE *fp;
 	struct stat st;
 	png_structp png_ptr;
 	png_infop info_ptr;
@@ -642,12 +637,12 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 	char title[80];
 	png_bytep row_pointer[WH * 2];
 	png_bytep image;
+	int rowstride = WW * sizeof(*image);
 	int i;
-	int rowstride = WW*sizeof(*image);
 
 	if (pg->columns < 40) {
-		export_error(e, "Oops - caption PNG not ready");
-		return -1;
+		vbi_export_error(e, "Oops - caption PNG not ready");
+		return FALSE;
 	}
 
 	if ((image = malloc(WH * WW * sizeof(*image)))) {
@@ -741,15 +736,15 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 			}
 		}
 	} else {
-		export_error(e, _("unable to allocate %d KB image buffer"),
+		vbi_export_error(e, _("Unable to allocate %d KB image buffer"),
 			WH * WW * sizeof(*image) / 1024);
-		return -1;
+		return FALSE;
 	}
 
-	if (!(fp = fopen(name, "wb"))) {
-		export_error(e, _("cannot create file '%s': %s"), name, strerror(errno));
+	if (name && !(fp = fopen(name, "wb"))) {
+		vbi_export_error(e, _("Cannot create file '%s': %s"), name, strerror(errno));
 		free(image);
-		return -1;
+		return FALSE;
 	}
 
 	if (!(png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)))
@@ -841,40 +836,45 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 	free(image);
 	image = NULL;
 
-	if (fclose(fp)) {
+	if (name && fclose(fp)) {
 		fp = NULL;
 		goto write_error;
 	}
 
-	return 0;
+	return TRUE;
 
 write_error:
-	export_error(e, errno ?
-		_("error while writing '%s': %s") :
-		_("error while writing '%s'"), name, strerror(errno));
+	vbi_export_write_error(e, name);
 
 unknown_error:
 	if (image)
 		free(image);
 
-	if (fp)
-		fclose(fp);
+	if (name) {
+		if (fp)
+			fclose(fp);
 
-	if (!stat(name, &st) && S_ISREG(st.st_mode))
-		remove(name);
+		if (!stat(name, &st) && S_ISREG(st.st_mode))
+			remove(name);
+	}
 
-	return -1;
+	return FALSE;
 }
 
-struct export_module
+vbi_export_module_priv
 export_png = {
-	.fmt_name		= "png",
+	.pub = {
+		.keyword	= "png",
+		.label		= N_("PNG"),
+		.tooltip	= N_("Export this page as PNG image"),
+	},
 	.extension		= "png",
 	.options		= gfx_opts,
 	.local_size		= sizeof(gfx_data),
-	.open			= gfx_open,
-	.option			= gfx_option,
+	.set_option		= gfx_set_option,
 	.output			= png_output
 };
+
+VBI_AUTOREG_EXPORT_MODULE(export_png)
 
 #endif /* HAVE_LIBPNG */

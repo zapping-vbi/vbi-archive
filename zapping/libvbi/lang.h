@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.8 2001-03-17 17:18:27 garetxe Exp $ */
+/* $Id: lang.h,v 1.9 2001-03-22 08:28:47 mschimek Exp $ */
 
 #ifndef LANG_H
 #define LANG_H
@@ -147,6 +147,7 @@ extern unsigned char	glyph2latin(int glyph);
  */
 extern int		glyph_iconv(iconv_t cd, int glyph, int gfx_substitute);
 
+#if 0
 /*
  * i18n support
  */
@@ -167,6 +168,7 @@ extern int		glyph_iconv(iconv_t cd, int glyph, int gfx_substitute);
 #    define bindtextdomain(Domain,Directory) (Domain)
 #    define _(String) (String)
 #    define N_(String) (String)
+#endif
 #endif
 
 #endif LANG_H

@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.5.8cvs\n"
-"POT-Creation-Date: 2001-03-20 22:47+0100\n"
+"POT-Creation-Date: 2001-03-22 09:12+0100\n"
 "PO-Revision-Date: 2000-11-18 17:00+0300\n"
 "Last-Translator: Sergey Nikulin <sergey-nikulin@mail.ru>\n"
 "Language-Team: LANGUAGE <ru@li.org>\n"
@@ -181,71 +181,75 @@ msgstr "Настройки"
 msgid "Show the menu and the toolbar"
 msgstr ""
 
-#: src/frequencies.c:958
+#: src/frequencies.c:1055
 msgid "us-bcast"
 msgstr "США"
 
-#: src/frequencies.c:959
+#: src/frequencies.c:1056
 msgid "us-cable"
 msgstr "США-кабель"
 
-#: src/frequencies.c:960
+#: src/frequencies.c:1057
 msgid "us-cable-hrc"
 msgstr "США-кабель-hrc"
 
-#: src/frequencies.c:961
+#: src/frequencies.c:1058
 msgid "japan-bcast"
 msgstr "Япония"
 
-#: src/frequencies.c:962
+#: src/frequencies.c:1059
 msgid "japan-cable"
 msgstr "Япония-кабель"
 
-#: src/frequencies.c:963
+#: src/frequencies.c:1060
 msgid "europe"
 msgstr "Европа"
 
-#: src/frequencies.c:964
+#: src/frequencies.c:1061
 msgid "europe-east"
 msgstr "Восточтая Европа"
 
-#: src/frequencies.c:965
+#: src/frequencies.c:1062
 msgid "italy"
 msgstr "Италия"
 
-#: src/frequencies.c:966
+#: src/frequencies.c:1063
 msgid "newzealand"
 msgstr "Новая Зеландия"
 
-#: src/frequencies.c:967
+#: src/frequencies.c:1064
 msgid "australia"
 msgstr "Австралия"
 
-#: src/frequencies.c:968
+#: src/frequencies.c:1065
 msgid "ireland"
 msgstr "Ирландия"
 
-#: src/frequencies.c:969
+#: src/frequencies.c:1066
 msgid "france"
 msgstr "Франция"
 
-#: src/frequencies.c:970
+#: src/frequencies.c:1067
 msgid "russia"
 msgstr "Россия"
 
-#: src/frequencies.c:971
+#: src/frequencies.c:1068
 msgid "south africa"
 msgstr ""
 
-#: src/frequencies.c:1169 src/frequencies.c:1355
+#: src/frequencies.c:1069
+msgid "china"
+msgstr ""
+
+#: src/frequencies.c:1267 src/frequencies.c:1453
 msgid "(Unnamed channel)"
 msgstr "(Безымянный канал)"
 
-#: src/frequencies.c:1173 src/frequencies.c:1359
+#: src/frequencies.c:1271 src/frequencies.c:1457
 msgid "(Unknown real channel)"
 msgstr "(Неизвестный реальный канал)"
 
-#: src/frequencies.c:1177 src/frequencies.c:1363
+#: src/frequencies.c:1275 src/frequencies.c:1461
 msgid "(Unknown country)"
 msgstr "(Неизвестная страна)"
 
@@ -522,15 +526,7 @@ msgid ""
 "Hashes are 0x%x vs. 0x%x"
 msgstr ""
 
-#: src/zmisc.c:365
-msgid ""
-"The teletext decoder needs GdkPixbuf, and\n"
-"configure didn't find it."
-msgstr ""
-"Декодеру телетекста нужен GdkPixbuf, и\n"
-"configure не нашел его."
-
-#: src/zmisc.c:372
+#: src/zmisc.c:366
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI был отключен или не работает."
 
@@ -670,115 +666,135 @@ msgstr "Извините, но плагин не может быть запущен"
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Извините, плагин не предоставляет справки для этого"
 
-#: src/ttxview.c:532
+#: src/ttxview.c:470
+#, c-format
+msgid "Text export failed: %s"
+msgstr ""
+
+#: src/ttxview.c:478
+#, c-format
+msgid "Selection failed: %s"
+msgstr ""
+
+#: src/ttxview.c:555
 #, fuzzy, c-format
 msgid " Page %d"
 msgstr "Страница"
 
-#: src/ttxview.c:536
+#: src/ttxview.c:559
 #, c-format
 msgid " Subpage %d"
 msgstr ""
 
-#: src/ttxview.c:612 src/ttxview.c:720
+#: src/ttxview.c:635 src/ttxview.c:743
 msgid "Warning: Page not valid"
 msgstr ""
 
-#: src/ttxview.c:714
+#: src/ttxview.c:737
 #, c-format
 msgid "Loading page %x..."
 msgstr ""
 
-#: src/ttxview.c:716
+#: src/ttxview.c:739
 #, c-format
 msgid "Loading subpage %x..."
 msgstr ""
 
-#: src/ttxview.c:787 src/ttxview.c:823
+#: src/ttxview.c:810 src/ttxview.c:846
 msgid "No cache"
 msgstr ""
 
-#: src/ttxview.c:796 src/ttxview.c:832
+#: src/ttxview.c:819 src/ttxview.c:855
 msgid "No other subpage in the cache"
 msgstr ""
 
-#: src/ttxview.c:904
+#: src/ttxview.c:927
 msgid "Found"
 msgstr ""
 
-#: src/ttxview.c:923
+#: src/ttxview.c:946
 msgid "Not found"
 msgstr ""
 
-#: src/ttxview.c:1045
+#: src/ttxview.c:1068
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr ""
 
-#: src/ttxview.c:1087
+#: src/ttxview.c:1110
 #, fuzzy
 msgid "VBI has been disabled"
 msgstr "VBI был отключен или не работает."
 
-#: src/ttxview.c:1295
+#: src/ttxview.c:1318
 msgid "New bookmark"
 msgstr ""
 
-#: src/ttxview.c:1296
+#: src/ttxview.c:1319
 #, fuzzy
 msgid "Description:"
 msgstr "Точка назначения"
 
-#: src/ttxview.c:1302
+#: src/ttxview.c:1325
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr ""
 
-#: src/ttxview.c:1364
+#: src/ttxview.c:1387
 msgid "Any subpage"
 msgstr ""
 
-#: src/ttxview.c:1665
-#, fuzzy
-msgid "Export"
+#: src/ttxview.c:1694
+#, fuzzy, c-format
+msgid "Export %s"
 msgstr "Экспозиция"
 
-#: src/ttxview.c:1676
+#: src/ttxview.c:1708
 msgid "Save as:"
 msgstr ""
 
-#: src/ttxview.c:1681
+#: src/ttxview.c:1713
 #, fuzzy
 msgid "Select file you'll be exporting to"
 msgstr "Выберите дирректорию для сохранения скриншотов"
 
-#: src/ttxview.c:1695
+#: src/ttxview.c:1727
 #, fuzzy
 msgid "Options"
 msgstr "VBI опции"
 
-#: src/ttxview.c:1731
+#: src/ttxview.c:1765
 msgid "You must first set the destination dir in the properties dialog"
 msgstr ""
 
-#: src/ttxview.c:1740 src/ttxview.c:2036
+#: src/ttxview.c:1774 src/ttxview.c:2210
 msgid "No page loaded"
 msgstr ""
 
-#: glade/glade_strings.c:179 src/ttxview.c:1750
+#: glade/glade_strings.c:179 src/ttxview.c:1780
 msgid "Zapzilla"
 msgstr ""
 
-#: src/ttxview.c:1782
+#: src/ttxview.c:1809
+#, c-format
+msgid "Export to %s failed: %s"
+msgstr ""
+
+#: src/ttxview.c:1818
 #, c-format
 msgid "%s saved"
 msgstr ""
 
-#: src/ttxview.c:2044
-msgid "Selecting"
+#: src/ttxview.c:1829
+#, c-format
+msgid "Export failed: %s"
 msgstr ""
 
-#: src/ttxview.c:2152
+#: src/ttxview.c:2219
+msgid "Selecting - hold Shift for table mode"
+msgstr ""
+
+#: src/ttxview.c:2333
 msgid "Selection copied to clipboard"
 msgstr ""
 
@@ -1955,147 +1971,206 @@ msgstr "_Добавить"
 msgid "Delete"
 msgstr "_Телетекст"
 
-#: libvbi/exp-gfx.c:451
+#: libvbi/exp-gfx.c:443
 msgid "Correct aspect ratio"
 msgstr ""
 
-#: libvbi/exp-gfx.c:486 libvbi/exp-gfx.c:744
-#, c-format
-msgid "unable to allocate %d KB image buffer"
+#: libvbi/exp-gfx.c:444
+msgid ""
+"Approach an image aspect ratio similar to a real TV, this will add redundant "
+"information"
 msgstr ""
 
-#: libvbi/exp-gfx.c:498 libvbi/exp-gfx.c:750 libvbi/exp-html.c:300
-#: libvbi/exp-vtx.c:120
+#: libvbi/exp-gfx.c:477 libvbi/exp-gfx.c:739
 #, c-format
-msgid "cannot create file '%s': %s"
+msgid "Unable to allocate %d KB image buffer"
 msgstr ""
 
-#: libvbi/exp-gfx.c:578 libvbi/exp-html.c:176 libvbi/exp-vtx.c:139
-#, c-format
-msgid "error while writing file '%s': %s"
+#: libvbi/exp-gfx.c:489 libvbi/exp-gfx.c:745 libvbi/exp-html.c:288
+#: libvbi/exp-vtx.c:119
+#, fuzzy, c-format
+msgid "Cannot create file '%s': %s"
+msgstr ""
+"Не могу восстановить предыдущий режим%s:\n"
+"%s"
+
+#: libvbi/exp-gfx.c:588
+msgid "PPM"
 msgstr ""
 
-#: libvbi/exp-gfx.c:579 libvbi/exp-html.c:177 libvbi/exp-vtx.c:140
-#, c-format
-msgid "error while writing file '%s'"
-msgstr ""
+#: libvbi/exp-gfx.c:589
+#, fuzzy
+msgid "Export this page as PPM image"
+msgstr "Извините, но текущий вход не имеет тюнеров"
 
-#: libvbi/exp-gfx.c:809 libvbi/exp-html.c:495
+#: libvbi/exp-gfx.c:804 libvbi/exp-html.c:487
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr ""
 
-#: libvbi/exp-gfx.c:811 libvbi/exp-html.c:497
+#: libvbi/exp-gfx.c:806 libvbi/exp-html.c:489
 #, fuzzy, c-format
 msgid "Teletext Page %3x"
 msgstr "_Телетекст"
 
-#: libvbi/exp-gfx.c:853
-#, c-format
-msgid "error while writing '%s': %s"
+#: libvbi/exp-gfx.c:868
+msgid "PNG"
 msgstr ""
 
-#: libvbi/exp-gfx.c:854
-#, c-format
-msgid "error while writing '%s'"
-msgstr ""
+#: libvbi/exp-gfx.c:869
+#, fuzzy
+msgid "Export this page as PNG image"
+msgstr "Извините, но текущий вход не имеет тюнеров"
 
-#: libvbi/exp-html.c:111 libvbi/exp-txt.c:51 libvbi/exp-txt.c:69
+#: libvbi/exp-html.c:98 libvbi/exp-txt.c:52 libvbi/exp-txt.c:70
 msgid "Graphics char"
 msgstr ""
 
-#: libvbi/exp-html.c:112 libvbi/exp-txt.c:52 libvbi/exp-txt.c:70
+#: libvbi/exp-html.c:99 libvbi/exp-txt.c:53 libvbi/exp-txt.c:71
 msgid ""
 "Replacement for block graphic characters: a single character or decimal (32) "
 "or hex (0x20) code"
 msgstr ""
 
-#: libvbi/exp-html.c:114
+#: libvbi/exp-html.c:101
 msgid "HTML header"
 msgstr ""
 
-#: libvbi/exp-html.c:115
+#: libvbi/exp-html.c:102
 msgid "Include HTML page header"
 msgstr ""
 
-#: libvbi/exp-html.c:485
+#: libvbi/exp-html.c:283
+#, c-format
+msgid "Character conversion Unicode -> %s not supported"
+msgstr ""
+
+#.
+#. *  "lang=\"en\" refers to "Teletext Page..." below,
+#. *  specify "de", "fr", "es" etc.
+#.
+#: libvbi/exp-html.c:477
 msgid "<title lang=\"en\">"
 msgstr ""
 
-#: libvbi/exp-txt.c:44
+#: libvbi/exp-html.c:711
+msgid "HTML"
+msgstr ""
+
+#: libvbi/exp-html.c:712
+#, fuzzy
+msgid "Export this page as HTML page"
+msgstr "Извините, но текущий вход не имеет тюнеров"
+
+#: libvbi/exp-txt.c:45
 #, fuzzy
 msgid "Black"
 msgstr "Баланс"
 
-#: libvbi/exp-txt.c:44
+#: libvbi/exp-txt.c:45
 msgid "Red"
 msgstr ""
 
-#: libvbi/exp-txt.c:44
+#: libvbi/exp-txt.c:45
 msgid "Green"
 msgstr ""
 
-#: libvbi/exp-txt.c:44
+#: libvbi/exp-txt.c:45
 msgid "Yellow"
 msgstr ""
 
-#: libvbi/exp-txt.c:45
+#: libvbi/exp-txt.c:46
 #, fuzzy
 msgid "Blue"
 msgstr "Громкость"
 
-#: libvbi/exp-txt.c:45
+#: libvbi/exp-txt.c:46
 msgid "Magenta"
 msgstr ""
 
-#: libvbi/exp-txt.c:45
+#: libvbi/exp-txt.c:46
 msgid "Cyan"
 msgstr ""
 
-#: libvbi/exp-txt.c:45
+#: libvbi/exp-txt.c:46
 #, fuzzy
 msgid "White"
 msgstr "Уровень белого"
 
-#: libvbi/exp-txt.c:46
+#: libvbi/exp-txt.c:47
 msgid "Any"
 msgstr ""
 
-#: libvbi/exp-txt.c:54 libvbi/exp-txt.c:72
+#: libvbi/exp-txt.c:55 libvbi/exp-txt.c:73
 msgid "Foreground"
 msgstr ""
 
-#: libvbi/exp-txt.c:55 libvbi/exp-txt.c:73
+#: libvbi/exp-txt.c:56 libvbi/exp-txt.c:74
 msgid "Assumed terminal foreground color"
 msgstr ""
 
-#: libvbi/exp-txt.c:57 libvbi/exp-txt.c:75
+#: libvbi/exp-txt.c:58 libvbi/exp-txt.c:76
 msgid "Background"
 msgstr ""
 
-#: libvbi/exp-txt.c:58 libvbi/exp-txt.c:76
+#: libvbi/exp-txt.c:59 libvbi/exp-txt.c:77
 msgid "Assumed terminal background color"
 msgstr ""
 
-#: libvbi/exp-txt.c:60
+#: libvbi/exp-txt.c:61
 msgid "ANSI colors"
 msgstr ""
 
-#: libvbi/exp-txt.c:61
+#: libvbi/exp-txt.c:62
 msgid "Insert ANSI color escape codes"
 msgstr ""
 
-#: libvbi/exp-vtx.c:81
-msgid "can only export Teletext pages"
+#: libvbi/exp-txt.c:126
+msgid "ASCII"
 msgstr ""
 
-#: libvbi/exp-vtx.c:90
-msgid "page is not cached, sorry"
+#: libvbi/exp-txt.c:127
+#, fuzzy
+msgid "Export this page as ASCII text"
+msgstr "Извините, но текущий вход не имеет тюнеров"
+
+#: libvbi/exp-txt.c:141
+msgid "ANSI"
 msgstr ""
 
-#: libvbi/exp-vtx.c:100
-msgid "cannot export this page"
+#: libvbi/exp-txt.c:142
+#, fuzzy
+msgid "Export this page as ANSI text"
+msgstr "Извините, но текущий вход не имеет тюнеров"
+
+#: libvbi/exp-vtx.c:80
+msgid "Can only export Teletext pages"
 msgstr ""
+
+#: libvbi/exp-vtx.c:89
+msgid "Page is not cached, sorry"
+msgstr ""
+
+#: libvbi/exp-vtx.c:99
+#, fuzzy
+msgid "Cannot export this page"
+msgstr "Не могу понять данную палитру"
+
+#: libvbi/exp-vtx.c:154
+msgid "VTX"
+msgstr ""
+
+#: libvbi/exp-vtx.c:155
+msgid ""
+"Export this page as VTX file, the format used by VideoteXt and vbidecode"
+msgstr ""
+
+#~ msgid ""
+#~ "The teletext decoder needs GdkPixbuf, and\n"
+#~ "configure didn't find it."
+#~ msgstr ""
+#~ "Декодеру телетекста нужен GdkPixbuf, и\n"
+#~ "configure не нашел его."
 
 #~ msgid "There's no GdkPixbuf support, VBI has been disabled"
 #~ msgstr "Нет поддержки GdkPizbuf, VBI будет отключен"
@@ -2123,9 +2198,6 @@ msgstr ""
 
 #~ msgid "Cannot understand the actual palette"
 #~ msgstr "Не могу понять настоящую палитру"
-
-#~ msgid "Cannot understand the given palette"
-#~ msgstr "Не могу понять данную палитру"
 
 #~ msgid "Unknown audio control: %s (%d)"
 #~ msgstr "Неизвестная аудио настройка: %s (%d)"

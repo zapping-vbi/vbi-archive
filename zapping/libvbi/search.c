@@ -21,13 +21,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.11 2001-02-19 07:23:02 mschimek Exp $ */
+/* $Id: search.c,v 1.12 2001-03-22 08:28:47 mschimek Exp $ */
 
 #include <stdlib.h>
+#include <ctype.h>
+
 #include "vt.h"
 #include "vbi.h"
+#include "lang.h"
 #include "cache.h"
-#include "export.h"
+
 #include "../common/ucs-2.h"
 #include "../common/ure.h"
 

@@ -22,20 +22,21 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.12 2001-03-17 17:18:27 garetxe Exp $ */
+/* $Id: exp-txt.c,v 1.13 2001-03-22 08:28:47 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "os.h"
 #include "lang.h"
 #include "export.h"
 
-static int txt_open(struct export *e);
-static int txt_option(struct export *e, int opt, char *str_arg, int num_arg);
-static int txt_output(struct export *e, char *name, struct fmt_page *pg);
-static int string_option(struct export *e, int opt, char *str_arg, int num_arg);
-static int string_output(struct export *e, char *name, struct fmt_page *pg);
+static bool txt_open(vbi_export *e);
+static bool txt_set_option(vbi_export *e, int opt, char *str_arg, int num_arg);
+static bool txt_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg);
+static bool string_set_option(vbi_export *e, int opt, char *str_arg, int num_arg);
+static bool string_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg);
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -84,13 +85,15 @@ static vbi_export_option ansi_opts[] = {
  */
 static vbi_export_option string_opts[] = {
 	{
-		VBI_EXPORT_INT,	"col",	  "col",	{ .num = 0 }, 0, 39, NULL, NULL
+		VBI_EXPORT_INT,	"col1",	  "col1",	{ .num = 0 }, 0, 39, NULL, NULL
 	}, {
-		VBI_EXPORT_INT,	"row",	  "row",	{ .num = 0 }, 0, 24, NULL, NULL
+		VBI_EXPORT_INT,	"row1",	  "row1",	{ .num = 0 }, 0, 24, NULL, NULL
 	}, {
-		VBI_EXPORT_INT,	"width",  "width",	{ .num = 40 }, 1, 40, NULL, NULL
+		VBI_EXPORT_INT,	"col2",	  "col2",	{ .num = 0 }, 0, 39, NULL, NULL
 	}, {
-		VBI_EXPORT_INT,	"height", "height",	{ .num = 25 }, 1, 25, NULL, NULL
+		VBI_EXPORT_INT,	"row2",   "row2",	{ .num = 0 }, 0, 24, NULL, NULL
+	}, {
+		VBI_EXPORT_BOOL, "table", "table",	{ .num = 1 }, 0, 1, NULL, NULL
 	}, {
 		0
 	}
@@ -108,58 +111,57 @@ struct txt_data			// private data in struct export
 
 struct string_data
 {
-	int col;
-	int row;
-	int width;
-	int height;
+	int col1;
+	int row1;
+	int col2;
+	int row2;
+	int table;
+	FILE *fp;
 };
 
-struct export_module export_txt[1] =	// exported module definition
-{
-  {
-    "ascii",			// id
-    "txt",			// extension
-    txt_opts,			// options
-    sizeof(struct txt_data),	// data size
-    txt_open,			// open
-    0,				// close
-    txt_option,			// option
-    txt_output,			// output
-  }
+vbi_export_module_priv
+export_txt = {
+	.pub = {
+		.keyword	= "ascii",
+		.label		= N_("ASCII"),
+		.tooltip	= N_("Export this page as ASCII text"),
+	},
+	.extension		= "txt",
+	.options		= txt_opts,
+	.local_size		= sizeof(struct txt_data),
+	.open			= txt_open,
+	.set_option		= txt_set_option,
+	.output			= txt_output,
 };
 
-struct export_module export_ansi[1] =	// exported module definition
-{
-  {
-    "ansi",			// id
-    "txt",			// extension
-    ansi_opts,			// options
-    sizeof(struct txt_data),	// data size
-    txt_open,			// open
-    0,				// close
-    txt_option,			// option
-    txt_output,			// output
-  }
+vbi_export_module_priv
+export_ansi = {
+	.pub = {
+		.keyword	= "ansi",
+		.label		= N_("ANSI"),
+		.tooltip	= N_("Export this page as ANSI text"),
+	},
+	.extension		= "txt",
+	.options		= ansi_opts,
+	.local_size		= sizeof(struct txt_data),
+	.open			= txt_open,
+	.set_option		= txt_set_option,
+	.output			= txt_output,
 };
 
-struct export_module export_string[1] =	// exported module definition
-{
-  {
-    "string",			// id
-    "txt",			// extension
-    string_opts,			// options
-    sizeof(struct string_data),	// data size
-    0,			// open
-    0,				// close
-    string_option,		// option
-    string_output,		// output
-  }
+vbi_export_module_priv
+export_string = {
+	.pub = {
+		.keyword	= "string",
+	},
+	.extension		= "txt",
+	.options		= string_opts,
+	.local_size		= sizeof(struct string_data),
+	.set_option		= string_set_option,
+	.output			= string_output,
 };
 
 ///////////////////////////////////////////////////////
-
-#define D  ((struct txt_data *)e->data)
-#define S  ((struct string_data *)e->data)
 
 #ifdef BSD
 char *
@@ -172,30 +174,22 @@ stpcpy(char *dst, const char *src)
 #endif
 
 
-static int
-txt_open(struct export *e)
+static bool
+txt_open(vbi_export *e)
 {
-    D->gfx_chr = '#';
-    D->def_fg = -1;
-    D->def_bg = -1;
-    if (e->mod == export_ansi)
-	D->color = 1;
-    return 0;
+	struct txt_data *d = (struct txt_data *) e->data;
+
+	if (e->mod == &export_ansi)
+		d->color = 1;
+
+	return TRUE;
 }
 
-static int number(const char *arg)
+static bool
+txt_set_option(vbi_export *e, int opt, char *str_arg, int num_arg)
 {
-	int result = 0;
+	struct txt_data *d = (struct txt_data *) e->data;
 
-	for (;*arg >= '0' && *arg <= '9'; arg++)
-		result = result*10 + (*arg-'0');
-
-	return result;
-}
-
-static int
-txt_option(struct export *e, int opt, char *str_arg, int num_arg)
-{
     switch (opt)
     {
 	case 0: /* gfx-chr */
@@ -203,64 +197,74 @@ txt_option(struct export *e, int opt, char *str_arg, int num_arg)
 			num_arg = *str_arg;
 		if (num_arg >= 0x100)
 			num_arg = '#';
-		D->gfx_chr = MAX(num_arg, 0x20);
+		d->gfx_chr = MAX(num_arg, 0x20);
 		break;
 	case 1: // fg=
-	    D->def_fg = (num_arg < 0) ? -1 : (num_arg > 7) ? -1 : num_arg;
+	    d->def_fg = (num_arg < 0) ? -1 : (num_arg > 7) ? -1 : num_arg;
 	    break;
 	case 2: // bg=
-	    D->def_bg = (num_arg < 0) ? -1 : (num_arg > 7) ? -1 : num_arg;
+	    d->def_bg = (num_arg < 0) ? -1 : (num_arg > 7) ? -1 : num_arg;
 	    break;
 	case 3: // color
-	    D->color = !!num_arg;
+	    d->color = !!num_arg;
 	    break;
+	default:
+	    return FALSE;
     }
-    return 0;
+    return TRUE;
 }
 
-static int
-string_option(struct export *e, int opt, char *str_arg, int num_arg)
+static bool
+string_set_option(vbi_export *e, int opt, char *str_arg, int num_arg)
 {
+	struct string_data *d = (struct string_data *) e->data;
+
     switch (opt)
     {
-	case 1: // column
-	    S->col = num_arg;
+	case 0: // column1
+	    d->col1 = num_arg;
 	    break;
-	case 2: // row
-	    S->row = num_arg;
+	case 1: // row1
+	    d->row1 = num_arg;
 	    break;
-	case 3: // width
-	    S->width = num_arg;
+	case 2: // column2
+	    d->col2 = num_arg;
 	    break;
-	case 4: // height
-	    S->height = num_arg;
+	case 3: // row2
+	    d->row2 = num_arg;
 	    break;
+	case 4: // table mode
+	    d->table = !!num_arg;
+	    break;
+	default:
+	    return FALSE;
     }
-    return 0;
+    return TRUE;
 }
 
 static void
-put_attr(struct export *e, attr_char *new)
+put_attr(vbi_export *e, attr_char *new)
 {
+	struct txt_data *d = (struct txt_data *) e->data;
     char buf[64];
     char *p = buf;
     attr_char ac;
     int reset = 0;
     int i;
 
-    if (D->color)
+    if (d->color)
     {
 	for (i = 0; i < sizeof(attr_char); i++)
-		((char *) &ac)[i] = ((char *) D->curr)[i] ^ ((char *) new)[i];
+		((char *) &ac)[i] = ((char *) d->curr)[i] ^ ((char *) new)[i];
 
 	if (ac.foreground | ac.background | ac.flash | ac.size)
 	{
 	    if ((ac.flash && !new->flash)
 		|| (ac.size && new->size == NORMAL))	// reset some attributes ->  reset all.
 		reset = 1;
-	    if (ac.foreground && new->foreground == D->def_fg)	// switch to def fg -> reset all
+	    if (ac.foreground && new->foreground == d->def_fg)	// switch to def fg -> reset all
 		reset = 1;
-	    if (ac.background && new->background == D->def_bg)	// switch to def bg -> reset all
+	    if (ac.background && new->background == d->def_bg)	// switch to def bg -> reset all
 		reset = 1;
 
 	    p = stpcpy(buf, "\e[");
@@ -269,8 +273,8 @@ put_attr(struct export *e, attr_char *new)
 		p = stpcpy(p, ";");	/* "0;", but 0 isn't necessary */
 		ac.flash = 1;
 		ac.size = 1;			// set all attributes
-		ac.foreground = new->foreground ^ D->def_fg;	// set fg if != default fg
-		ac.background = new->background ^ D->def_bg;	// set bg if != default bg
+		ac.foreground = new->foreground ^ d->def_fg;	// set fg if != default fg
+		ac.background = new->background ^ d->def_bg;	// set bg if != default bg
 	    }
 	    if (ac.flash & new->flash)
 		p = stpcpy(p, "5;");			// blink
@@ -281,43 +285,43 @@ put_attr(struct export *e, attr_char *new)
 	    if (ac.background)
 		p += sprintf(p, "%d;", (new->background & 7) + 40);	// bg-color
 	    p[-1] = 'm';	// replace last ;
-	    *D->curr = *new;
+	    *d->curr = *new;
 	}
     }
     *p++ = new->glyph;
     *p = 0;
-    fputs(buf, D->fp);
+    fputs(buf, d->fp);
 }
 
 /*
  *  XXX suggest user option char set, currently Latin-1
- *  (in ASCII mode 8 bits too). Pointless to implement yet
- *  without a props menu.
+ *  (in ASCII mode 8 bits too).
  */
 
 #define MAX_COLUMNS 64
 
-static int
-txt_output(struct export *e, char *name, struct fmt_page *pg)
+static bool
+txt_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 {
+	struct txt_data *d = (struct txt_data *) e->data;
     attr_char def_ac[1];
     attr_char l[MAX_COLUMNS+2];
     #define L (l+1)
     int x, y;
 
-    D->fp = fopen(name, "w");
-    if (! D->fp)
-    {
-	export_error(e, "cannot create file");
-	return -1;
+    if (!name)
+	d->fp = fp;
+    else if (!(d->fp = fopen(name, "w"))) {
+	vbi_export_error(e, "Cannot create file");
+	return FALSE;
     }
 
     /* initialize default colors.  these have to be restored at EOL. */
     memset(def_ac, 0, sizeof(def_ac));
     def_ac->glyph = '\n';
-    def_ac->foreground = D->def_fg;
-    def_ac->background = D->def_bg;
-    *D->curr = *def_ac;
+    def_ac->foreground = d->def_fg;
+    def_ac->background = d->def_bg;
+    *d->curr = *def_ac;
     L[-1] = L[pg->columns] = *def_ac;
 
     for (y = 0; y < pg->rows; y++)
@@ -340,7 +344,7 @@ txt_output(struct export *e, char *name, struct fmt_page *pg)
 		L[x] = ac;
 	    }
 
-	    if (D->color)
+	    if (d->color)
 	    {
 		// optimize color and attribute changes
 
@@ -365,58 +369,85 @@ txt_output(struct export *e, char *name, struct fmt_page *pg)
 	    for (x = 0; x < pg->columns+1; ++x)
 		put_attr(e, L + x);
 	}
-    fclose(D->fp);
-    return 0;
+    if (name)
+	fclose(d->fp);
+    return TRUE;
 }
 
-static int
-string_output(struct export *e, char *name, struct fmt_page *pg)
+static bool
+string_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 {
-    int x, y;
-    char *dest_buf, *p;
+	struct string_data *d = (struct string_data *) e->data;
+	int x, y;
+	int spaces;
 
-    if (S->col < 0  ||  S->col > 39  || S->col+S->width > 40  ||
-	S->width < 0)
-	return 0;
+    if (d->col1 < 0 || d->col1 > 39 || d->col2 < 0 || d->col2 > 39)
+	return FALSE;
 
-    if (S->row < 0  ||  S->row > 24  || S->row+S->height > 25 ||
-	S->height < 0)
-	return 0;
+    if (d->row1 < 0 || d->row1 > 24 || d->row2 < 0 || d->row2 > 24)
+	return FALSE;
 
-    dest_buf = malloc((S->width+1)*S->height*sizeof(char) + 1);
-    if (!dest_buf)
-	return 0;
-    p = dest_buf;
+    if (!name)
+	d->fp = fp;
+    else if (!(d->fp = fopen(name, "w"))) {
+	vbi_export_error(e, "Cannot create file");
+	return FALSE;
+    }
 
-    for (y = S->row; y < S->row+S->height; y++)
-	{
-	    if (pg->double_height_lower & (1<<y))
-		continue;
+	for (y = d->row1; y <= d->row2; y++) {
+		int x0, x1;
 
-	    // character conversion
-	    for (x = S->col; x < S->col+S->width; ++x)
-		{
-		    attr_char ac = pg->text[y * pg->columns + x];
-		    
-		    if (ac.size > DOUBLE_SIZE) {
-			ac.glyph = 0x20;
-			ac.size = NORMAL;
-		    } else {
-			ac.glyph = glyph2latin(ac.glyph);
-			
-			if (ac.glyph == 0xA0)
-			    ac.glyph = 0x20;
-		    }
-		    
-		    *p++ = ac.glyph;
+		/* XXX */
+		if (pg->double_height_lower & (1<<y))
+			continue;
+
+		x0 = (d->table || y == d->row1) ? d->col1 : 0;
+		x1 = (d->table || y == d->row2) ? d->col2 : pg->columns;
+
+		spaces = 0;
+
+		// character conversion
+		for (x = x0; x <= x1; ++x) {
+			attr_char ac = pg->text[y * pg->columns + x];
+
+			if (ac.size > DOUBLE_SIZE) {
+				ac.glyph = 0x20;
+				ac.size = NORMAL;
+			} else {
+				ac.glyph = glyph2latin(ac.glyph);
+
+				if (ac.glyph == 0xA0)
+					ac.glyph = 0x20;
+			}
+
+			if (d->table)
+				fputc(ac.glyph, d->fp);
+			else if (ac.glyph == 0x20)
+				spaces++;
+			else {
+				if ((x0 + spaces) < x || y == d->row1) {
+					for (; spaces > 0; spaces--)
+						fputc(0x20, d->fp);
+				} else
+					spaces = 0; /* discard leading sp. */
+
+				fputc(ac.glyph, d->fp);
+			}
 		}
-	    
-	    if (y < S->row+S->height-1)
-		*p++ = '\n';
+
+		/* if (!d->table) discard trailing spaces */
+
+		if (y < d->row2)
+			fputc(d->table ? '\n' : ' ', d->fp);
+		else
+			for (; spaces > 0; spaces--)
+				fputc(0x20, d->fp);
 	}
-    
-    *p = 0;
-    
-    /* hope the architecture supports this (most will) */
-    return (int)dest_buf;
+
+    /* Nope. fputc(0, d->fp); */
+
+    if (name)
+	fclose(d->fp);
+
+    return TRUE;
 }

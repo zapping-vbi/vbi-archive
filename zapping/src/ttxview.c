@@ -97,7 +97,9 @@ typedef struct {
   gboolean		in_selection; /* in the primary selection */
   struct fmt_page	clipboard_fmt_page; /* page that contains the
 					   selection */
-  gint			sel_col, sel_row, sel_width, sel_height;
+  gboolean		sel_table;
+  gint			sel_col1, sel_row1, sel_col2, sel_row2;
+  gint			trn_col1, trn_row1, trn_col2, trn_row2;
   gint			blink_timeout; /* timeout for refreshing the page */
   ZModel		*vbi_model; /* notifies when the vbi object is
 				     destroyed */
@@ -438,53 +440,74 @@ static void selection_handle		(GtkWidget	*widget,
     {
       if (info == TARGET_STRING)
 	{
-	  struct export *e;
+	  vbi_export *e;
+	  char *errstr;
 	  gchar * buffer =
-	    g_strdup_printf("string,col=%d,row=%d,width=%d,height=%d",
-			    data->sel_col, data->sel_row,
-			    data->sel_width, data->sel_height);
-	  gchar *result;
+	    g_strdup_printf("string,col1=%d,row1=%d,"
+			    "col2=%d,row2=%d,table=%d",
+			    data->sel_col1, data->sel_row1,
+			    data->sel_col2, data->sel_row2,
+			    data->sel_table);
 
-	  if ((e = export_open(buffer, NULL)))
+	  if ((e = vbi_export_open(buffer, NULL, &errstr)))
 	    {
-	      if ((result = (gchar*)export(e, &data->clipboard_fmt_page,
-					   "memory")))
+	      char *str;
+	      size_t size;
+	      FILE *fp = open_memstream(&str, &size);
+
+	      g_assert(fp != NULL);
+
+	      if (vbi_export_file(e, fp, &data->clipboard_fmt_page))
 		{
+	          fclose(fp);
 		  gtk_selection_data_set (selection_data,
 					  GDK_SELECTION_TYPE_STRING, 8,
-					  result, strlen(result));
-		  free(result);
+					  str, size);
 		}
 	      else
-		g_warning("couldn't export as string: %s", export_errstr(e));
-	      export_close(e);
+	        {
+	          fclose(fp);
+		  g_warning(_("Text export failed: %s"), vbi_export_errstr(e));
+		}
+	      if (str)
+	        free(str);
+	      vbi_export_close(e);
 	    }
 	  else
-	    g_warning("couldn't init export struct: <%s> %s", buffer,
-		      export_errstr(e));
-
+	    {
+	      g_warning(_("Selection failed: %s"), errstr);
+	      free(errstr);
+	    }
 	  g_free(buffer);
 	}
       else if (info == TARGET_PIXMAP)
 	{
-	  GdkPixmap *pixmap =
-	    gdk_pixmap_new(data->da->window, data->sel_width*CW,
-			   data->sel_height*CH, -1);
-	  GdkPixbuf *canvas = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE,
-					     8, data->sel_width*CW,
-					     data->sel_height*CH);
+	  gint width, height;
+	  GdkPixmap *pixmap;
+	  GdkPixbuf *canvas;
 	  gint id[2];
+
+	  /* Selection is open (eg. 25,5 - 15,6),
+	     ok to simply bail out? */
+	  if (data->sel_col2 < data->sel_col1)
+	    return;
+
+	  width = data->sel_col2 - data->sel_col1 + 1;
+	  height = data->sel_row2 - data->sel_row1 + 1;
+	  pixmap =
+	    gdk_pixmap_new(data->da->window, width*CW, height*CH, -1);
+	  canvas = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE,
+					     8, width*CW, height*CH);
 
 	  vbi_draw_vt_page_region(&data->clipboard_fmt_page,
 				  (uint32_t *) gdk_pixbuf_get_pixels(canvas),
-				  data->sel_col, data->sel_row,
-				  data->sel_width, data->sel_height,
+				  data->sel_col1, data->sel_row1,
+				  width, height,
 				  gdk_pixbuf_get_rowstride(canvas),
 				  zcg_bool(NULL, "reveal"), 1 /* flash_on */);
 	  gdk_pixbuf_render_to_drawable(canvas, pixmap,
 					data->da->style->white_gc, 0,
-					0, 0, 0, data->sel_width*CW,
-					data->sel_height*CH,
+					0, 0, 0, width*CW, height*CH,
 					GDK_RGB_DITHER_NORMAL, 0, 0);
 	  id[0] = GDK_WINDOW_XWINDOW(pixmap);
 	  gtk_selection_data_set (selection_data,
@@ -1404,10 +1427,14 @@ void on_delete_bookmarks_activated	(GtkWidget	*widget,
 /* returns the zconf name for the given export option, needs to be
    g_free'd by the caller */
 static inline gchar *
-xo_zconf_name (vbi_export_option *xo, struct export *exp)
+xo_zconf_name (vbi_export_option *xo, vbi_export *exp)
 {
+  vbi_export_module *xm = vbi_export_info(exp);
+
+  g_assert(xm != NULL);
+
   return g_strdup_printf("/zapping/options/export/%s/%s",
-			 exp->mod->fmt_name, xo->keyword);
+			 xm->keyword, xo->keyword);
 }
 
 static void
@@ -1415,16 +1442,17 @@ on_export_control			(GtkWidget *w,
 					 gpointer user_data)
 {
   gint id = GPOINTER_TO_INT (user_data);
-  struct export *exp =
-    (struct export *) gtk_object_get_data (GTK_OBJECT (w), "exp");
+  vbi_export *exp =
+    (vbi_export *) gtk_object_get_data (GTK_OBJECT (w), "exp");
+  vbi_export_option *xo = vbi_export_query_option(exp, id);
   gint t1; gchar *t2;
   gchar *zcname;
 
-  g_assert(exp != NULL);
+  g_assert(exp != NULL && xo != NULL);
 
-  zcname = xo_zconf_name(&exp->mod->options[id], exp);
+  zcname = xo_zconf_name(xo, exp);
 
-  switch (exp->mod->options[id].type)
+  switch (xo->type)
     {
       case VBI_EXPORT_BOOL:
 	t1 = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (w));
@@ -1451,8 +1479,7 @@ on_export_control			(GtkWidget *w,
 	break;
 
       default:
-	g_warning ("Miracle of type %d in on_export_control",
-		  exp->mod->options[id].type);
+	g_warning ("Miracle of type %d in on_export_control", xo->type);
     }
 
   g_free(zcname);
@@ -1460,7 +1487,7 @@ on_export_control			(GtkWidget *w,
 
 static void
 create_export_entry (GtkWidget *table, vbi_export_option *xo,
-		    int index, struct export *exp)
+		    int index, vbi_export *exp)
 { 
   GtkWidget *label;
   GtkWidget *entry;
@@ -1493,7 +1520,7 @@ create_export_entry (GtkWidget *table, vbi_export_option *xo,
 
 static void
 create_export_menu (GtkWidget *table, vbi_export_option *xo,
-		   int index, struct export *exp)
+		   int index, vbi_export *exp)
 {
   GtkWidget *label; /* This shows what the menu is for */
   GtkWidget *option_menu; /* The option menu */
@@ -1544,7 +1571,7 @@ create_export_menu (GtkWidget *table, vbi_export_option *xo,
 
 static void
 create_export_slider (GtkWidget *table, vbi_export_option *xo,
-		     int index, struct export *exp)
+		     int index, vbi_export *exp)
 { 
   GtkWidget *label;
   GtkWidget *hscale;
@@ -1583,7 +1610,7 @@ create_export_slider (GtkWidget *table, vbi_export_option *xo,
 
 static void
 create_export_checkbutton (GtkWidget *table, vbi_export_option *xo,
-			  int index, struct export *exp)
+			  int index, vbi_export *exp)
 {
   GtkWidget *cb;
   gchar *zcname = xo_zconf_name(xo, exp);
@@ -1609,14 +1636,12 @@ create_export_checkbutton (GtkWidget *table, vbi_export_option *xo,
 }
 
 static void
-create_export_options (GtkWidget *table, struct export *exp)
+create_export_options (GtkWidget *table, vbi_export *exp)
 {
   vbi_export_option *xo;
   int i;
 
-  xo = exp->mod->options;
-
-  for (i = 0; xo->type; xo++, i++)
+  for (i = 0; (xo = vbi_export_query_option(exp, i)); i++)
     {
       switch (xo->type)
 	{
@@ -1655,17 +1680,24 @@ on_export_filename			(GtkWidget *w,
 
 static GtkWidget *
 create_export_dialog (gchar **bpp, ttxview_data *data,
-		      struct export *exp)
+		      vbi_export *exp)
 {
+  vbi_export_module *xm;
+  gchar *buffer;
   GtkWidget *dialog;
   GtkWidget *table;
   GtkWidget *vbox;
   GtkWidget *w;
 
-  dialog = gnome_dialog_new (_("Export"),
+  xm = vbi_export_info(exp);
+  g_assert(xm != NULL);
+  buffer = g_strdup_printf(_("Export %s"), xm->label);
+
+  dialog = gnome_dialog_new (buffer,
 			     GNOME_STOCK_BUTTON_OK,
 			     GNOME_STOCK_BUTTON_CANCEL,
 			     NULL);
+  g_free(buffer);
   gnome_dialog_set_parent (GNOME_DIALOG (dialog), GTK_WINDOW (data->parent));
   gnome_dialog_set_default(GNOME_DIALOG(dialog), 0);
   gtk_window_set_policy(GTK_WINDOW(dialog), TRUE, TRUE, TRUE); // resizable
@@ -1690,7 +1722,7 @@ create_export_dialog (gchar **bpp, ttxview_data *data,
 		      GTK_SIGNAL_FUNC (on_export_filename),
 		      (gpointer) bpp);
 
-  if (exp->mod->options)
+  if (vbi_export_query_option(exp, 0))
     {
       w = gtk_frame_new (_("Options"));
       gtk_widget_show (w);
@@ -1716,9 +1748,11 @@ void export_ttx_page			(GtkWidget	*widget,
 					 char		*fmt)
 {
   extern vbi_network current_network; /* FIXME */
-  struct export *exp;
+  vbi_network network;
+  vbi_export *exp;
   gchar *buffer, *buffer2;
   char *filename;
+  char *errstr;
   GtkWidget * dialog;
 
   buffer = zcg_char(NULL, "exportdir");
@@ -1741,17 +1775,19 @@ void export_ttx_page			(GtkWidget	*widget,
       return;
     }
 
-  if ((exp = export_open(fmt, &current_network)))
+  network = current_network;
+  if (!network.label[0])
+    strncpy(network.label, _("Zapzilla"), sizeof(network.label) - 1);
+
+  if ((exp = vbi_export_open(fmt, &network, &errstr)))
     {
       /* Configure */
       gint result;
 
-      if (!exp->network.label[0])
-        strncpy(exp->network.label, _("Zapzilla"), sizeof(exp->network.label) - 1);
-
       filename =
-	export_mkname(exp, "%n-%p.%e",
+	vbi_export_mkname(exp, "%n-%p.%e",
 		      data->fmt_page->pgno, data->fmt_page->subno, NULL);
+      g_assert(filename != NULL);
       zcg_char(&buffer, "exportdir");
       g_strstrip(buffer);
       if (buffer[strlen(buffer)-1] != '/')
@@ -1768,10 +1804,10 @@ void export_ttx_page			(GtkWidget	*widget,
       if (result != 0)
         return;
 
-      if (export(exp, data->fmt_page, buffer))
+      if (!vbi_export_name(exp, buffer, data->fmt_page))
 	{
-	  buffer2 = g_strdup_printf("Export to %s failed: %s", buffer,
-				    export_errstr(exp));
+	  buffer2 = g_strdup_printf(_("Export to %s failed: %s"), buffer,
+				    vbi_export_errstr(exp));
 	  g_warning(buffer2);
 	  if (data->appbar)
 	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer2);
@@ -1786,61 +1822,17 @@ void export_ttx_page			(GtkWidget	*widget,
 	}
       free(filename);
       g_free(buffer);
-      export_close(exp);
+      vbi_export_close(exp);
     }
   else
     {
-      buffer = g_strdup_printf("Cannot create export struct: %s",
-			       export_errstr(exp));
+      buffer = g_strdup_printf(_("Export failed: %s"), errstr);
+      free(errstr);
       g_warning(buffer);
       if (data->appbar)
 	gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer);
       g_free(buffer);
     }
-}
-
-static
-void export_html			(GtkWidget	*widget,
-					 ttxview_data	*data)
-{
-  export_ttx_page(widget, data, "html");
-}
-
-static
-void export_ppm				(GtkWidget	*widget,
-					 ttxview_data	*data)
-{
-  export_ttx_page(widget, data, "ppm");
-}
-
-#ifdef HAVE_LIBPNG
-static
-void export_png				(GtkWidget	*widget,
-					 ttxview_data	*data)
-{
-  export_ttx_page(widget, data, "png");
-}
-#endif /* HAVE_LIBPNG */
-
-static
-void export_ascii			(GtkWidget	*widget,
-					 ttxview_data	*data)
-{
-  export_ttx_page(widget, data, "ascii");
-}
-
-static
-void export_ansi			(GtkWidget	*widget,
-					 ttxview_data	*data)
-{
-  export_ttx_page(widget, data, "ansi");
-}
-
-static
-void export_vtx				(GtkWidget	*widget,
-					 ttxview_data	*data)
-{
-  export_ttx_page(widget, data, "vtx");
 }
 
 static
@@ -1854,9 +1846,20 @@ void on_bookmark_activated		(GtkWidget	*widget,
 }
 
 static
+void on_export_menu			(GtkWidget	*widget,
+					 ttxview_data	*data)
+{
+  gchar *keyword = (gchar *)
+    gtk_object_get_user_data(GTK_OBJECT(widget));
+
+  export_ttx_page(widget, data, keyword);
+}
+
+static
 GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 {
   GtkWidget *popup = create_ttxview_popup();
+  GtkWidget *export;
   GList *p = g_list_first(bookmarks);
   struct bookmark *bookmark;
   GtkWidget *menuitem;
@@ -1882,28 +1885,6 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 		     "activate",
 		     GTK_SIGNAL_FUNC(on_ttxview_search_clicked),
 		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "html1")),
-		     "activate",
-		     GTK_SIGNAL_FUNC(export_html), data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "ppm1")),
-		     "activate",
-		     GTK_SIGNAL_FUNC(export_ppm), data);
-#ifdef HAVE_LIBPNG
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "png1")),
-		     "activate",
-		     GTK_SIGNAL_FUNC(export_png), data);
-#else
-  gtk_widget_hide(lookup_widget(popup, "png1"));
-#endif
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "vtx1")),
-		     "activate",
-		     GTK_SIGNAL_FUNC(export_vtx), data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "ascii1")),
-		     "activate",
-		     GTK_SIGNAL_FUNC(export_ascii), data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "ansi1")),
-		     "activate",
-		     GTK_SIGNAL_FUNC(export_ansi), data);
   gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "add_bookmark")),
 		     "activate",
 		     GTK_SIGNAL_FUNC(new_bookmark), data);
@@ -1935,6 +1916,33 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 			   data);
 	p = p->next;
       }
+
+  /* Export modules */
+  export = lookup_widget(popup, "export1");
+
+  if (!vbi_export_enum(0))
+    gtk_widget_hide(export);
+  else
+    {
+      vbi_export_module *xm;
+      gint i;
+
+      export = lookup_widget(popup, "export1_menu");
+
+      for (i = 0; (xm = vbi_export_enum(i)); i++)
+        if (xm->label) /* for public use */
+          {
+	    menuitem = gtk_menu_item_new_with_label(xm->label);
+	    if (xm->tooltip)
+	      set_tooltip(menuitem, xm->tooltip);
+	    gtk_object_set_user_data(GTK_OBJECT(menuitem), xm->keyword);
+	    gtk_widget_show(menuitem);
+	    gtk_menu_append(GTK_MENU(export), menuitem);
+	    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+			       GTK_SIGNAL_FUNC(on_export_menu),
+			       data);
+	  }
+    }
 
   return popup;
 }
@@ -1983,51 +1991,217 @@ process_ttxview_menu_popup		(GtkWidget	*widget,
   gtk_menu_insert(GTK_MENU(popup), menu_item, 2);
 }
 
-/*
- * Inverts the color of the given region.
- * The region is given in to 40x25 coordinates
- * The complexity is needed to avoid integer division roundof errors.
+/**
+ * Returns a freshly allocated region exactly like rect.
  */
-static void
-select_region				(gint		x1,
-					 gint		y1,
-					 gint		x2,
-					 gint		y2,
-					 ttxview_data	*data)
+static GdkRegion * region_from_rect(GdkRectangle *rect)
 {
-  gint w, h; /* scaling factors */
-  gint temp;
+  GdkRegion *region = gdk_region_new();
+  GdkRegion *result = NULL;
 
-  gdk_window_get_size(data->da->window, &w, &h);
+  result = gdk_region_union_with_rect(region, rect);
+  g_free(region);
 
-  if (y1 > y2)
-    {
-      temp = x1;
-      x1 = x2;
-      x2 = temp;
-      temp = y1;
-      y1 = y2;
-      y2 = temp;
-    }
-
-  if (x1 > x2)
-    {
-      temp = x1;
-      x1 = x2;
-      x2 = temp;
-    }
-
-  /* transform into pixel coordinates */
-  x1 = (x1*w)/40;
-  y1 = (y1*h)/25;
-  x2 = ((x2+1)*w)/40;
-  y2 = ((y2+1)*h)/25;
-
-  gdk_draw_rectangle(data->da->window, data->xor_gc, TRUE,
-		     x1, y1, x2-x1, y2-y1);
+  return result;
 }
 
-static void select_start(gint x, gint y, ttxview_data * data)
+static void region_union_with_rect(GdkRegion **region,
+                                   GdkRectangle *rect)
+{
+  GdkRegion *result;
+
+  result = gdk_region_union_with_rect(*region, rect);
+  gdk_region_destroy(*region);
+
+  *region = result;
+}
+
+/**
+ * Calculates a rectangle, scaling from text coordinates
+ * to window dimensions.
+ */
+static void scale_rect(GdkRectangle *rect,
+		       int x1, int y1, int x2, int y2,
+		       int w, int h)
+{
+  rect->x = (x1 * w) / 40;
+  rect->y = (y1 * h) / 25;
+  rect->width = ((x2 + 1) * w) / 40 - rect->x;
+  rect->height = ((y2 + 1) * h) / 25 - rect->y;
+}
+
+#define SWAP(a, b)			\
+do {					\
+  gint temp = b;			\
+  b = a;				\
+  a = temp;				\
+} while (0)
+
+#define SATURATE(n, min, max)		\
+  (((n) < (min)) ? (min) :		\
+    (((n) > (max)) ? (max) : (n)))
+
+#define hidden_row(X) real_hidden_row(X, data)
+static int real_hidden_row(int row, ttxview_data * data)
+{
+  if ((row <= 0) || (row >= 25))
+    return FALSE;
+
+  return !!(data->fmt_page->double_height_lower & (1<<row));
+}
+
+/**
+ * transform the selected region from the first rectangle to the
+ * second one. Coordinates are in 40x25 space. No pixel is drawn more
+ * than once.
+ *
+ * {mhs} moved hidden_row stuff and saturation here because it's
+ * easier, calculates data->trn_* from dest rect on the fly.
+ */
+static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
+			     gint dx1, gint dy1, gint dx2, gint dy2,
+			     gboolean stable, gboolean dtable,
+			     GdkRegion *exposed, ttxview_data * data)
+{
+  gint w, h;
+  GdkRectangle rect;
+  GdkRegion *src_region, *dst_region;
+  GdkRegion *clip_region;
+
+fprintf(stderr, "from %d,%d-%d,%d to %d,%d-%d,%d >>",
+	sx1,sy1,sx2,sy2,
+	dx1,dy1,dx2,dy2);
+
+  if (sy1 > sy2)
+    {
+      SWAP(sx1, sx2);
+      SWAP(sy1, sy2);
+    }
+  if (stable || sy1 == sy2)
+    if (sx1 > sx2)
+      SWAP(sx1, sx2);
+
+  if (dy1 > dy2)
+    {
+      SWAP(dx1, dx2);
+      SWAP(dy1, dy2);
+    }
+  if (dtable || dy1 == dy2)
+    if (dx1 > dx2)
+      SWAP(dx1, dx2);
+
+fprintf(stderr, "from %d,%d-%d,%d to %d,%d-%d,%d\n",
+	sx1,sy1,sx2,sy2,
+	dx1,dy1,dx2,dy2);
+
+  gdk_window_get_size(data->da->window, &w, &h);
+  gdk_gc_set_clip_origin(data->xor_gc, 0, 0);
+
+  if (stable || sy1 == sy2)
+    {
+      sy1 -= hidden_row(sy1);
+      sy2 += hidden_row(sy2 + 1);
+
+      scale_rect(&rect, sx1, sy1, sx2, sy2, w, h);
+      src_region = region_from_rect(&rect);
+    }
+  else
+    {
+      gint h1, h2;
+
+      h1 = hidden_row(sy1);
+      h2 = hidden_row(sy2 + 1);
+
+      scale_rect(&rect, sx1, sy1 - h1, 39, sy1, w, h);
+      src_region = region_from_rect(&rect);
+      scale_rect(&rect, 0, sy2, sx2, sy2 + h2, w, h);
+      region_union_with_rect(&src_region, &rect);
+
+      if ((sy2 - sy1) > 1)
+        {
+          sy1 -= hidden_row(sy1 + 1);
+          sy2 += hidden_row(sy2);
+
+          scale_rect(&rect, 0, sy1 + 1, 39, sy2 - 1, w, h);
+	  region_union_with_rect(&src_region, &rect);
+	}
+    }
+
+  data->sel_table = dtable;
+
+  if (dtable || dy1 == dy2)
+    {
+      dy1 -= hidden_row(dy1);
+      dy2 += hidden_row(dy2 + 1);
+
+      data->trn_col1 = dx1;
+      data->trn_row1 = dy1;
+      data->trn_col2 = dx2;
+      data->trn_row2 = dy2;
+
+      scale_rect(&rect, dx1, dy1, dx2, dy2, w, h);
+      dst_region = region_from_rect(&rect);
+    }
+  else
+    {
+      gint h1, h2;
+
+      h1 = hidden_row(dy1);
+      h2 = hidden_row(dy2 + 1);
+
+      data->trn_col1 = dx1;
+      data->trn_row1 = dy1 - h1;
+      data->trn_col2 = dx2;
+      data->trn_row2 = dy2 + h2;
+
+      scale_rect(&rect, dx1, dy1 - h1, 39, dy1, w, h);
+      dst_region = region_from_rect(&rect);
+      scale_rect(&rect, 0, dy2, dx2, dy2 + h2, w, h);
+      region_union_with_rect(&dst_region, &rect);
+
+      if ((dy2 - dy1) > 1)
+        {
+          h1 = 1 - hidden_row(dy1 + 1);
+          h2 = 1 - hidden_row(dy2);
+
+	  if (h1 == 0) data->trn_col1 = 0;
+	  if (h2 == 0) data->trn_col2 = 39;
+
+          scale_rect(&rect, 0, dy1 + h1, 39, dy2 - h2, w, h);
+	  region_union_with_rect(&dst_region, &rect);
+	}
+    }
+
+fprintf(stderr, "SEL: %d,%d - %d,%d\n",
+data->trn_col1,
+data->trn_row1,
+data->trn_col2,
+data->trn_row2);
+
+  if (exposed)
+    {
+      clip_region = gdk_regions_subtract(src_region, exposed);
+      gdk_region_destroy(src_region);
+      src_region = clip_region;
+    }
+
+  clip_region = gdk_regions_xor(src_region, dst_region);
+
+  gdk_region_destroy(src_region);
+  gdk_region_destroy(dst_region);
+
+  gdk_gc_set_clip_region(data->xor_gc, clip_region);
+
+  gdk_draw_rectangle(data->da->window, data->xor_gc, TRUE,
+		     0, 0, w - 1, h - 1);
+
+  gdk_region_destroy(clip_region);
+
+  gdk_gc_set_clip_rectangle(data->xor_gc, NULL);
+}
+
+static void select_start(gint x, gint y, guint state,
+			 ttxview_data * data)
 {
   if (data->fmt_page->pgno < 0x100)
     {
@@ -2041,7 +2215,8 @@ static void select_start(gint x, gint y, ttxview_data * data)
     return;
 
   if (data->appbar)
-    gnome_appbar_push(GNOME_APPBAR(data->appbar), _("Selecting"));
+    gnome_appbar_push(GNOME_APPBAR(data->appbar),
+		      _("Selecting - hold Shift for table mode"));
 
   gdk_window_set_cursor(data->da->window, xterm);
 
@@ -2049,22 +2224,66 @@ static void select_start(gint x, gint y, ttxview_data * data)
   data->ssy = y;
   data->osx = -1; /* Selection not started yet, wait to move event */
   data->selecting = TRUE;
+  data->sel_table = !!(state & GDK_SHIFT_MASK);
   ttx_freeze(data->id);
 }
 
-#define hidden_row(X) real_hidden_row(X, data)
-static int real_hidden_row(int row, ttxview_data * data)
+static void select_update(gint x, gint y, guint state,
+			  ttxview_data * data)
 {
-  if ((row <= 0) || (row >= 25))
-    return FALSE;
+  gint w, h;
+  gint ocol, orow, col, row, scol, srow;
+  gboolean table = !!(state & GDK_SHIFT_MASK);
 
-  return (data->fmt_page->double_height_lower & (1<<row));
+  if (!data->selecting)
+    return;
+
+  gdk_window_get_size(data->da->window, &w, &h);
+
+  col = (x*40)/w;
+  row = (y*25)/h;
+  scol = (data->ssx*40)/w;
+  srow = (data->ssy*25)/h;
+
+  if (data->osx == -1)
+    {
+      ocol = (data->ssx*40)/w;
+      orow = (data->ssy*25)/h;
+    }
+  else
+    {
+      ocol = (data->osx*40)/w;
+      orow = (data->osy*25)/h;
+    }
+
+  col = SATURATE(col, 0, 39);
+  row = SATURATE(row, 0, 24);
+  scol = SATURATE(scol, 0, 39);
+  srow = SATURATE(srow, 0, 24);
+  ocol = SATURATE(ocol, 0, 39);
+  orow = SATURATE(orow, 0, 24);
+
+  /* first movement */
+  if (data->osx == -1)
+    {
+      transform_region(40, 25, 40, 25, scol, srow, col, row,
+                       data->sel_table, table, NULL, data);
+      data->osx = (x < 0) ? 0 : x;
+      data->osy = y;
+      return;
+    }
+
+  transform_region(scol, srow, ocol, orow, scol, srow, col, row,
+                   data->sel_table, table, NULL, data);
+
+  data->osx = (x < 0) ? 0 : x;
+  data->osy = y;
 }
 
 static void select_stop(ttxview_data * data)
 {
   gint w, h;
-  gint scol, srow, col, row, temp;
+  gint scol, srow, col, row;
 
   if (!data->selecting)
     return;
@@ -2081,56 +2300,18 @@ static void select_stop(ttxview_data * data)
       col = (data->osx*40)/w;
       row = (data->osy*25)/h;
 
-      if (row > srow)
-	{
-	  if (hidden_row(srow))
-	    srow--;
-	  if (hidden_row(row+1))
-	    row++;
-	}
-      else if (row < srow)
-	{
-	  if (hidden_row(srow+1))
-	    srow++;
-	  if (hidden_row(row))
-	    row--;
-	}
-      else /* row == srow */
-	{
-	  if (hidden_row(row))
-	    srow--;
-	  else if (hidden_row(row+1))
-	    row++;
-	}
+      col = SATURATE(col, 0, 39);
+      row = SATURATE(row, 0, 24);
+      scol = SATURATE(scol, 0, 39);
+      srow = SATURATE(srow, 0, 24);
 
-      if (col > 39) col = 39;
-      if (col < 0) col = 0;
-      if (row > 24) row = 24;
-      if (row < 0) row = 0;
-      if (scol > 39) scol = 39;
-      if (scol < 0) scol = 0;
-      if (srow > 24) srow = 24;
-      if (srow < 0) srow = 0;
+      data->sel_col1 = data->trn_col1;
+      data->sel_row1 = data->trn_row1;
+      data->sel_col2 = data->trn_col2;
+      data->sel_row2 = data->trn_row2;
 
-      if (srow > row)
-	{
-	  temp = srow;
-	  srow = row;
-	  row = temp;
-	}
-      if (scol > col)
-	{
-	  temp = scol;
-	  scol = col;
-	  col = temp;
-	}
-
-      select_region(scol, srow, col, row, data);
-
-      data->sel_col = scol;
-      data->sel_row = srow;
-      data->sel_width = (col-scol)+1;
-      data->sel_height = (row-srow)+1;
+      transform_region(scol, srow, col, row, 40, 25, 40, 25,
+                       data->sel_table, data->sel_table, NULL, data);
 
       memcpy(&data->clipboard_fmt_page, data->fmt_page,
 	     sizeof(data->clipboard_fmt_page));
@@ -2158,220 +2339,6 @@ static void select_stop(ttxview_data * data)
   update_pointer(data);
 }
 
-/**
- * Returns a freshly allocated region exactly like rect.
- */
-static GdkRegion * region_from_rect(GdkRectangle *rect)
-{
-  GdkRegion *region = gdk_region_new();
-  GdkRegion *result = NULL;
-
-  result = gdk_region_union_with_rect(region, rect);
-  g_free(region);
-
-  return result;
-}
-
-/**
- * transform the selected region from the first rectangle to the
- * second one. Coordinates are in 40x25 space. No pixel is drawn more
- * than once.
- */
-static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
-			     gint dx1, gint dy1, gint dx2, gint dy2,
-			     ttxview_data * data)
-{
-  gint w, h;
-  gint temp;
-  /* tv_screen coordinates */
-  gint nsx1, nsy1, nsx2, nsy2, ndx1, ndy1, ndx2, ndy2;
-  GdkRectangle rect;
-  GdkRegion *window, *temp_region;
-  GdkRegion *clip_region;
-
-  if (sy1 > sy2)
-    {
-      temp = sx1;
-      sx1 = sx2;
-      sx2 = temp;
-      temp = sy1;
-      sy1 = sy2;
-      sy2 = temp;
-    }
-  if (sx1 > sx2)
-    {
-      temp = sx1;
-      sx1 = sx2;
-      sx2 = temp;
-    }
-
-  if (dy1 > dy2)
-    {
-      temp = dx1;
-      dx1 = dx2;
-      dx2 = temp;
-      temp = dy1;
-      dy1 = dy2;
-      dy2 = temp;
-    }
-  if (dx1 > dx2)
-    {
-      temp = dx1;
-      dx1 = dx2;
-      dx2 = temp;
-    }
-
-  gdk_window_get_size(data->da->window, &w, &h);
-
-#define TTX2DA_X(X, Y) Y = ((X)*w)/40
-  TTX2DA_X(sx1, nsx1);
-  TTX2DA_X(sx2+1, nsx2)-1;
-  TTX2DA_X(dx1, ndx1);
-  TTX2DA_X(dx2+1, ndx2)-1;
-
-#define TTX2DA_Y(X, Y) Y = ((X)*h)/25
-  TTX2DA_Y(sy1, nsy1);
-  TTX2DA_Y(sy2+1, nsy2)-1;
-  TTX2DA_Y(dy1, ndy1);
-  TTX2DA_Y(dy2+1, ndy2)-1;
-
-  gdk_gc_set_clip_origin(data->xor_gc, 0, 0);
-
-  rect.x = rect.y = 0;
-  rect.width = w; rect.height = h;
-
-  window = region_from_rect(&rect);
-
-  rect.x = nsx1; rect.y = nsy1;
-  rect.width = (nsx2 - rect.x) +1; rect.height = (nsy2 - rect.y) +1;
-
-  temp_region = region_from_rect(&rect);
-  clip_region = gdk_regions_subtract(window, temp_region);
-  gdk_gc_set_clip_region(data->xor_gc, clip_region);
-  g_free(temp_region);
-  g_free(clip_region);
-
-  select_region(dx1, dy1, dx2, dy2, data);
-
-  rect.x = ndx1; rect.y = ndy1;
-  rect.width = (ndx2 - rect.x)+1; rect.height = (ndy2 - rect.y)+1;
-
-  temp_region = region_from_rect(&rect);
-  clip_region = gdk_regions_subtract(window, temp_region);
-  gdk_gc_set_clip_region(data->xor_gc, clip_region);
-  g_free(temp_region);
-  g_free(clip_region);
-
-  select_region(sx1, sy1, sx2, sy2, data);
-
-  gdk_region_destroy(window);
-
-  /* no more clip rect */
-  gdk_gc_set_clip_rectangle(data->xor_gc, NULL);
-}
-
-static void select_update(gint x, gint y, ttxview_data * data)
-{
-  gint w, h;
-  gint ocol, orow, col, row, scol, osrow, srow;
-
-  if (!data->selecting)
-    return;
-
-  gdk_window_get_size(data->da->window, &w, &h);
-
-  col = (x*40)/w;
-  row = (y*25)/h;
-  scol = (data->ssx*40)/w;
-  srow = (data->ssy*25)/h;
-  if (data->osx == -1)
-    {
-      ocol = (data->ssx*40)/w;
-      orow = (data->ssy*25)/h;
-    }
-  else
-    {
-      ocol = (data->osx*40)/w;
-      orow = (data->osy*25)/h;
-    }
-
-  osrow = srow;;
-
-  if (row > srow)
-    {
-      if (hidden_row(srow))
-	srow--;
-      if (hidden_row(row+1))
-	row++;
-    }
-  else if (row < srow)
-    {
-      if (hidden_row(srow+1))
-	srow++;
-      if (hidden_row(row))
-	row--;
-    }
-  else /* row == srow */
-    {
-      if (hidden_row(row))
-	srow--;
-      else if (hidden_row(row+1))
-	row++;
-    }
-
-  if (orow > osrow)
-    {
-      if (hidden_row(osrow))
-	osrow--;
-      if (hidden_row(orow+1))
-	orow++;
-    }
-  else if (orow < osrow)
-    {
-      if (hidden_row(osrow+1))
-	osrow++;
-      if (hidden_row(orow))
-	orow--;
-    }
-  else /* orow == osrow */
-    {
-      if (hidden_row(orow))
-	osrow--;
-      else if (hidden_row(orow+1))
-	orow++;
-    }
-
-  if (col > 39) col = 39;
-  if (col < 0) col = 0;
-  if (row > 24) row = 24;
-  if (row < 0) row = 0;
-  if (scol > 39) scol = 39;
-  if (scol < 0) scol = 0;
-  if (srow > 24) srow = 24;
-  if (srow < 0) srow = 0;
-  if (ocol > 39) ocol = 39;
-  if (ocol < 0) ocol = 0;
-  if (orow > 24) orow = 24;
-  if (orow < 0) orow = 0;
-  if (osrow > 24) osrow = 24;
-  if (osrow < 0) osrow = 0;
-
-  /* first movement */
-  if (data->osx == -1)
-    {
-      select_region(scol, srow, col, row, data);
-      data->osx = (x < 0)?0:x;
-      data->osy = y;
-      return;
-    }
-
-  /* transform ocol, orow, scol, osrow  into  col, row, scol, srow */
-  transform_region(ocol, orow, scol, osrow, col, row, scol, srow, data);
-
-  data->osx = (x < 0)?0:x;
-  data->osy = y;
-}
-
 static gboolean
 on_ttxview_motion_notify		(GtkWidget	*widget,
 					 GdkEventMotion	*event,
@@ -2380,7 +2347,7 @@ on_ttxview_motion_notify		(GtkWidget	*widget,
   if (!data->selecting)
     update_pointer(data);
   else
-    select_update(event->x, event->y, data);
+    select_update(event->x, event->y, event->state, data);
 
   return FALSE;
 }
@@ -2400,9 +2367,6 @@ gboolean on_ttxview_expose_event	(GtkWidget	*widget,
   
   if (data->selecting && data->osx != -1)
     {
-      gdk_gc_set_clip_origin(data->xor_gc, 0, 0);
-      gdk_gc_set_clip_rectangle(data->xor_gc, &event->area);
-
       gdk_window_get_size(data->da->window, &w, &h);
 
       scol = (data->ssx*40)/w;
@@ -2410,40 +2374,13 @@ gboolean on_ttxview_expose_event	(GtkWidget	*widget,
       col = (data->osx*40)/w;
       row = (data->osy*25)/h;
 
-      if (row > srow)
-	{
-	  if (hidden_row(srow))
-	    srow--;
-	  if (hidden_row(row+1))
-	    row++;
-	}
-      else if (row < srow)
-	{
-	  if (hidden_row(srow+1))
-	    srow++;
-	  if (hidden_row(row))
-	    row--;
-	}
-      else /* row == srow */
-	{
-	  if (hidden_row(row))
-	    srow--;
-	  else if (hidden_row(row+1))
-	    row++;
-	}
+      col = SATURATE(col, 0, 39);
+      row = SATURATE(row, 0, 24);
+      scol = SATURATE(scol, 0, 39);
+      srow = SATURATE(srow, 0, 24);
 
-      if (col > 39) col = 39;
-      if (col < 0) col = 0;
-      if (row > 24) row = 24;
-      if (row < 0) row = 0;
-      if (scol > 39) scol = 39;
-      if (scol < 0) scol = 0;
-      if (srow > 24) srow = 24;
-      if (srow < 0) srow = 0;
-
-      select_region(scol, srow, col, row, data);
-
-      gdk_gc_set_clip_rectangle(data->xor_gc, NULL);
+      transform_region(scol, srow, col, row, scol, srow, col, row,
+                       data->sel_table, data->sel_table, &event->area, data);
     }
 
   return TRUE;
@@ -2492,7 +2429,7 @@ on_ttxview_button_press			(GtkWidget	*widget,
 
 	default:
 	  /* start selecting */
-	  select_start(event->x, event->y, data);
+	  select_start(event->x, event->y, event->state, data);
 	  break;
 	}
       break;
@@ -2658,6 +2595,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ttxview_hold));
       gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_hold), !active);
       break;
+    case GDK_question:
     case GDK_R:
     case GDK_r:
       active =

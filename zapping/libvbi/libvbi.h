@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.27 2001-03-18 06:03:37 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.28 2001-03-22 08:28:47 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -29,9 +29,8 @@
 
 /*
     public interface:
-	libvbi.h: bcd stuff, struct vbi, vbi_*
+	libvbi.h: bcd stuff, struct vbi, VBI_*, vbi_*, vbi_export*
 	format.h: attr_*, struct fmt_page
-	export.h: 2do
  */
 
 /*
@@ -220,7 +219,55 @@ struct vbi *vbi_open(char *vbi_dev_name, struct cache *ca, int given_fd);
 void vbi_close(struct vbi *vbi);
 extern void *	vbi_mainloop(void *p);
 
-#include "vbi.h" /* XXX */
-#include "export.h"
+/*
+ *  Export (export.c)
+ */
+
+typedef struct vbi_export vbi_export; /* opaque type */
+
+typedef struct {
+	char *			keyword;
+	char *			label;		/* or NULL, i18n */
+	char *			tooltip;	/* or NULL, i18n */
+} vbi_export_module;
+
+typedef enum {
+	VBI_EXPORT_BOOL = 1,	/* TRUE (1) or FALSE (0), def.num */
+	VBI_EXPORT_INT,		/* Integer min - max, def.num */
+	VBI_EXPORT_MENU,	/* Index of menu[], min - max, def.num */
+	VBI_EXPORT_STRING,	/* String, def.str */
+} vbi_export_option_type;
+
+typedef struct {
+	vbi_export_option_type	type;
+	char *			keyword;
+	char *			label;		/* i18n */
+	union {
+		char *			str;	/* i18n */
+		int			num;
+	}			def;
+	int			min, max;
+	char **			menu;		/* max - min + 1 entries, i18n */
+	char *			tooltip;	/* or NULL, i18n */
+} vbi_export_option;
+
+extern vbi_export_module *vbi_export_enum(int index);
+extern vbi_export *	vbi_export_open(char *keyword, vbi_network *, char **errstr);
+extern void		vbi_export_close(vbi_export *e);
+extern vbi_export_module *vbi_export_info(vbi_export *e);
+extern vbi_export_option *vbi_export_query_option(vbi_export *exp, int index);
+extern int		vbi_export_set_option(vbi_export *exp, int index, ...);
+extern void             vbi_export_error(vbi_export *e, char *templ, ...);
+extern char *           vbi_export_errstr(vbi_export *e);
+extern char *		vbi_export_mkname(vbi_export *e, char *fmt, int pgno, int subno, char *usr);
+extern int		vbi_export_name(vbi_export *e, char *name, struct fmt_page *pg);
+extern int		vbi_export_file(vbi_export *e, FILE *fp, struct fmt_page *pg);
+
+/* XXX */
+void vbi_get_rendered_size(int *w, int *h);
+
+
+
+#include "vbi.h" /* XXX cache */
 
 #endif /* __LIBVBI_H__ */

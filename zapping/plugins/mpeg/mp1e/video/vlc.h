@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.h,v 1.4 2001-03-17 07:44:29 mschimek Exp $ */
+/* $Id: vlc.h,v 1.5 2001-03-22 08:28:47 mschimek Exp $ */
 
 #include "../common/math.h"
 #include "../options.h"
@@ -27,6 +27,11 @@ typedef struct {
 	unsigned char		code;
 	unsigned char		length;
 } VLC2;
+
+typedef struct {
+	unsigned 		code : 12;
+	unsigned 		length : 4;
+} VLCM;
 
 typedef struct {
 	unsigned short		code;
@@ -42,7 +47,7 @@ extern int		dc_dct_pred[2][3];
 
 extern VLC2		coded_block_pattern[64];
 extern VLC2		macroblock_address_increment[33];
-extern VLC2		motion_vector_component[224];
+extern VLCM		motion_vector_component[480];
 extern VLC4		macroblock_type_b_nomc_quant[4];
 extern VLC2		macroblock_type_b_nomc[4];
 extern VLC2		macroblock_type_b_nomc_notc[4];
@@ -71,10 +76,10 @@ void reset_dct_pred(void)
 }
 
 #define F_CODE_MIN 1
-#define F_CODE_MAX 3
+#define F_CODE_MAX 4
 
 struct motion {
-	VLC2 *			vlc;
+	VLCM *			vlc;
 	int			f_code;
 	int			f_mask;
 	int			range;
@@ -96,10 +101,10 @@ motion_init(struct motion *m, int range)
 	range = saturate(range, motion_min, motion_max);
 	f = saturate(ffsr(range - 1) - 1, F_CODE_MIN, F_CODE_MAX);
 	m->range = saturate(range, 4, 4 << f);
-	m->f_mask = 0x7F >> (3 - f);
+	m->f_mask = 0xFF >> (4 - f);
 	m->f_code = f;
 
-	m->vlc = motion_vector_component + ((15 << f) & 224);
+	m->vlc = motion_vector_component + ((15 << f) & 480);
 	// = motion_vector_component + ((1 << (f - 1)) - 1) * 32;
 
 	reset_pmv(m);
