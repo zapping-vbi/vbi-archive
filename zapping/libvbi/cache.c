@@ -27,7 +27,7 @@ hash(int pgno)
 static void
 do_erc(struct vt_page *ovtp, struct vt_page *nvtp)
 {
-    int l, c;
+//    int l, c;
 
 //    if (nvtp->errors == 0 && ovtp->lines == nvtp->lines)
 	return;
@@ -69,7 +69,7 @@ cache_reset(struct cache *ca)
     int i;
 
     for (i = 0; i < HASH_SIZE; ++i)
-	for (cp = $ ca->hash[i].first; cpn = $ cp->node->next; cp = cpn)
+	for (cp = $ ca->hash[i].first; (cpn = $ cp->node->next); cp = cpn)
 	    if (cp->page->pgno / 256 != 9) // don't remove help pages
 	    {
 		dl_remove(cp->node);
@@ -175,7 +175,7 @@ cache_foreach_pg(struct cache *ca, int pgno, int subno, int dir,
     if (ca->npages == 0)
 	return 0;
 
-    if (vtp = cache_lookup(ca, pgno, subno))
+    if ((vtp = cache_lookup(ca, pgno, subno)))
 	subno = vtp->subno;
     else if (subno == ANY_SUB)
 	subno = dir < 0 ? 0 : 0xffff;
@@ -192,7 +192,7 @@ cache_foreach_pg(struct cache *ca, int pgno, int subno, int dir,
 		pgno = 0x100;
 	    subno = dir < 0 ? ca->hi_subno[pgno] - 1 : 0;
 	}
-	if (vtp = cache_lookup(ca, pgno, subno))
+	if ((vtp = cache_lookup(ca, pgno, subno)))
 	{
 	    if (s_vtp == vtp)
 		return 0;
@@ -208,32 +208,39 @@ static int
 cache_foreach_pg2(struct cache *ca, int pgno, int subno,
 		  int dir, int (*func)(), void *data)
 {
-    struct vt_page *vtp, *s_vtp = 0;
+    struct vt_page *vtp;
+    int wrapped = 0;
     int r;
 
     if (ca->npages == 0)
 	return 0;
 
-    if (vtp = cache_lookup(ca, pgno, subno))
+    if ((vtp = cache_lookup(ca, pgno, subno)))
 	subno = vtp->subno;
     else if (subno == ANY_SUB)
 	subno = 0;
 
     for (;;)
     {
-	if (vtp = cache_lookup(ca, pgno, subno))
+	if ((vtp = cache_lookup(ca, pgno, subno)))
 	{
-	    if ((r = func(data, vtp)))
+	    if ((r = func(data, vtp, wrapped)))
 		return r;
 	}
+
 	subno += dir;
+
 	while (subno < 0 || subno >= ca->hi_subno[pgno])
 	{
 	    pgno += dir;
-	    if (pgno < 0x100)
+	    if (pgno < 0x100) {
 		pgno = 0x9ff;
-	    if (pgno > 0x9ff)
+		wrapped = 1;
+	    }
+	    if (pgno > 0x9ff) {
 		pgno = 0x100;
+		wrapped = 1;
+	    }
 	    subno = dir < 0 ? ca->hi_subno[pgno] - 1 : 0;
 	}
     }
@@ -273,7 +280,7 @@ struct cache *
 cache_open(void)
 {
     struct cache *ca;
-    struct vt_page *vtp;
+//    struct vt_page *vtp;
     int i;
 
     if (not(ca = malloc(sizeof(*ca))))
@@ -289,7 +296,7 @@ cache_open(void)
 
     return ca;
 
-fail2:
+//fail2:
     free(ca);
 fail1:
     return 0;

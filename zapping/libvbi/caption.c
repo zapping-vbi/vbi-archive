@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.6 2001-01-09 06:27:41 mschimek Exp $ */
+/* $Id: caption.c,v 1.7 2001-01-13 23:53:39 mschimek Exp $ */
 
 #define TEST 1
 
@@ -1023,7 +1023,9 @@ xevent(int nap_usec)
 
 	bump(step, TRUE);
 
-	usleep(nap_usec);
+	usleep(nap_usec
+/ 2);
+
 }
 
 static bool

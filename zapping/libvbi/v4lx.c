@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.4 2000-12-15 23:26:46 garetxe Exp $ */
+/* $Id: v4lx.c,v 1.5 2001-01-13 23:53:39 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -403,11 +403,15 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 		case 625:
 			vbi->dec.sampling_rate = 35468950;
 			vbi->dec.offset = 10.2e-6 * 35468950;
+			vbi->dec.start[0] = -1; // who knows
+			vbi->dec.start[1] = -1;
 			break;
 
 		case 525:
 			vbi->dec.sampling_rate = 28636363;
 			vbi->dec.offset = 9.2e-6 * 28636363;
+			vbi->dec.start[0] = 10;	 // confirmed for bttv 0.7.52
+			vbi->dec.start[1] = 273;
 			break;
 
 		default:
@@ -416,8 +420,6 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 		}
 
 		vbi->dec.samples_per_line 	= 2048;
-		vbi->dec.start[0] 		= -1; // who knows
-		vbi->dec.start[1] 		= -1;
 		vbi->dec.interlaced		= FALSE;
 		vbi->dec.synchronous		= TRUE;
 

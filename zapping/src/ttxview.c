@@ -122,6 +122,7 @@ startup_ttxview (void)
   zcc_char(g_get_home_dir(), "Directory to export pages to",
 	   "exportdir");
   zcc_bool(FALSE, "URE matches disregarding case", "ure_casefold");
+  zcc_bool(FALSE, "URE search backwards", "ure_backwards");
 
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "bookmarks"))
     {
@@ -769,6 +770,9 @@ void on_ttxview_search_clicked		(GtkButton	*button,
   GtkToggleButton *checkbutton9 =
     GTK_TOGGLE_BUTTON(lookup_widget(GTK_WIDGET(ure_search),
 				    "checkbutton9"));
+  GtkToggleButton *checkbutton10 =
+    GTK_TOGGLE_BUTTON(lookup_widget(GTK_WIDGET(ure_search),
+				    "checkbutton10"));
   GtkWidget *search_progress_next;
   gboolean result;
   gchar *needle;
@@ -786,6 +790,8 @@ void on_ttxview_search_clicked		(GtkButton	*button,
 
   gtk_toggle_button_set_active(checkbutton9,
 			       zcg_bool(NULL, "ure_casefold"));
+  gtk_toggle_button_set_active(checkbutton10,
+			       zcg_bool(NULL, "ure_backwards"));
 
   result = gnome_dialog_run_and_close(ure_search);
   needle = gtk_entry_get_text(GTK_ENTRY(entry1));
@@ -793,6 +799,7 @@ void on_ttxview_search_clicked		(GtkButton	*button,
     needle = g_strdup(needle);
   
   zcs_bool(gtk_toggle_button_get_active(checkbutton9), "ure_casefold");
+  zcs_bool(gtk_toggle_button_get_active(checkbutton10), "ure_backwards");
   gtk_widget_destroy(GTK_WIDGET(ure_search));
 
   if ((!result) && (needle))
@@ -805,7 +812,9 @@ void on_ttxview_search_clicked		(GtkButton	*button,
 	  search_context =
 	    vbi_new_search(zvbi_get_object(),
 			   0x100, ANY_SUB, pattern,
-			   zcg_bool(NULL, "ure_casefold"), progress_update);
+			   zcg_bool(NULL, "ure_casefold"),
+			   zcg_bool(NULL, "ure_backwards") ? -1 : +1,
+			   progress_update);
 	  free(pattern);
 	  if (search_context)
 	    {

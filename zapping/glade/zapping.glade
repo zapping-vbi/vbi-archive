@@ -3245,7 +3245,8 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkEntry</class>
 	<name>entry1</name>
-	<tooltip>Enter here the regular expression you want to look for. Click help if you don't know about regular expressions.</tooltip>
+	<tooltip>Enter here the word or phrase you want to find.
+. matches any character, .* matches zero or more characters. A preceding \ escapes the special characters .*\$^+?[]. Click help for more information about regular expressions.</tooltip>
 	<can_focus>True</can_focus>
 	<editable>True</editable>
 	<text_visible>True</text_visible>
@@ -3262,7 +3263,21 @@ in the next release of this program.</label>
 	<class>GtkCheckButton</class>
 	<name>checkbutton9</name>
 	<can_focus>True</can_focus>
-	<label>Ignore case when matching</label>
+	<label>Search case insensitive</label>
+	<active>False</active>
+	<draw_indicator>True</draw_indicator>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkCheckButton</class>
+	<name>checkbutton10</name>
+	<can_focus>True</can_focus>
+	<label>Search backwards</label>
 	<active>False</active>
 	<draw_indicator>True</draw_indicator>
 	<child>
