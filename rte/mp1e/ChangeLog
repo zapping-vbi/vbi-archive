@@ -1,3 +1,9 @@
+2001-09-07	audio noise bug <mschimek@users.sf.net>
+
+	* afl.c, alsa.c, esd.c: Fixed an internal interface bug.
+	* global_data.c: PCM device didn't default to ALSA if present.
+	* options.c: Cleaned up usage text.
+
 2001-09-03	audio sync hang fix <mschimek@users.sf.net>
 
 	* sync.c: Added bytes_per_sample parameter, for (;;) aborts
@@ -7,8 +13,7 @@
 
 2001-09-01	<mschimek@users.sf.net>
 
-	* configure.in: Added create_links(), debugging option, mmxemu test,
-	  llibasound checks for snd_pcm_plugin_read (not in devel branch).
+	* configure.in: Added create_links(), debugging option, mmxemu test.
 	* main.c: Uses mmxemu if available for debugging.
 
 2001-08-29	<mschimek@users.sf.net>

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.4 2001-08-15 23:16:16 mschimek Exp $ */
+/* $Id: esd.c,v 1.5 2001-09-07 22:34:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -195,6 +195,7 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 
 	b->data = NULL;
 	b->used = (esd->samples_per_frame + esd->look_ahead) * sizeof(short);
+	b->offset = esd->look_ahead * sizeof(short);
 
 	return &esd->pcm.fifo;
 }

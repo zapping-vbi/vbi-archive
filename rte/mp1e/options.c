@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.4 2001-09-02 03:26:58 mschimek Exp $ */
+/* $Id: options.c,v 1.5 2001-09-07 22:34:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -54,7 +54,7 @@ usage(FILE *fi)
 {
 	fprintf(fi,
 		"Real time MPEG-1 encoder " VERSION "\n"
-		"Copyright (C) 1999-2000 Michael H. Schimek\n"
+		"Copyright (C) 1999-2001 Michael H. Schimek\n"
 		"\n"
 		"This is free software licensed without a fee under the terms of the\n"
 		"GNU General Public License Version 2. NO WARRANTIES.\n"
@@ -65,12 +65,8 @@ usage(FILE *fi)
 		" -X mux         Multiplexer to use                          auto\n"
 		"\n"
 		" -b bps         Output video bits per second                %5.3f Mbits/s\n"
-#ifdef V4L2_MAJOR_VERSION
-		" -c name        Video capture device (V4L2 API)             %s\n"
-		" -F mode        Filter mode                                 apropriate\n"
-#else
-		" -c name        Video capture device (V4L API)              %s\n"
-#endif
+		" -c name        Video capture device (V4L2/V4L API)         %s\n"
+		" -F mode        Filter mode                                 auto\n"
 		" -f frames      Frames per second                           maximum\n"
 		" -g string      Group of pictures sequence (display order)  %s\n"
 		" -l             Letterbox mode                              off\n"
@@ -92,16 +88,14 @@ usage(FILE *fi)
 		"\n"
 		" -a mode        Audio mode 0 = stereo, 2 = dual channel,\n"
 		"                3 = mono                                    %s\n"
-		" -p name        PCM sampling device (OSS API)               %s\n"
+		" -p name        PCM sampling device                         %s\n"
 		" -B bps         Output audio bits per second                %d kbits/s\n"
 		" -S rate        Audio sampling rate                         %2.1f kHz\n"
 		"\n"
 		" -r line,vol    Audio record source 1..30%s,\n"
 		"                volume 0..100                               %d,%d\n"
 		" -x name        Audio mixer device (OSS API)                %s\n"
-#ifdef V4L2_MAJOR_VERSION
 		" -M mode        RF audio 0 = unmute, 1 = mute, 2 = ignore   %s\n"
-#endif
 		"\n"
 		" -i filename    Source configuration file\n"
 		" -v             Increase verbosity level, try -v, -vv\n"
@@ -119,10 +113,7 @@ usage(FILE *fi)
 
 		audio_options[audio_mode], pcm_dev, audio_bit_rate / 1000, sampling_rate / 1e3,
 
-		mix_sources(), mix_line, mix_volume, mix_dev
-#ifdef V4L2_MAJOR_VERSION
-		, mute_options[mute]
-#endif
+		mix_sources(), mix_line, mix_volume, mix_dev, mute_options[mute]
 		);
 
 	exit((fi == stderr) ? EXIT_FAILURE : EXIT_SUCCESS);

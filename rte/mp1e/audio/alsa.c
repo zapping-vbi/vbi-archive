@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.5 2001-08-22 01:28:07 mschimek Exp $ */
+/* $Id: alsa.c,v 1.6 2001-09-07 22:34:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -94,7 +94,7 @@ wait_full(fifo *f)
 				continue;
 
 			if (r == 0 || r == -EAGAIN) {
-				usleep(alsa->scan_time * 800000);
+				usleep(alsa->scan_time * 400000);
 				continue;
 			}
 
@@ -104,7 +104,7 @@ wait_full(fifo *f)
 			n -= r;
 
 			if (r < 200)
-				usleep(alsa->scan_time * 800000);
+				usleep(alsa->scan_time * 400000);
 		}
 
 		if (alsa->time < 0.0) {
@@ -117,7 +117,7 @@ wait_full(fifo *f)
 				FAIL("Failed to query ALSA PCM plugin status (%d, %s)",
 					err, snd_strerror(err));
 
-			alsa->time = status.stime.tv_sec + status.stime.tv_usec / 1e6;
+			alsa->time = status.stime.tv_sec + status.stime.tv_usec * (1 / 1e6);
 		} else
 			alsa->time += alsa->scan_time;
 
@@ -250,6 +250,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 
 	b->data = NULL;
 	b->used = (alsa->samples_per_frame + alsa->look_ahead) * sizeof(short);
+	b->offset = alsa->look_ahead * sizeof(short);
 
 	return &alsa->pcm.fifo;
 }

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: afl.c,v 1.4 2001-08-22 01:28:07 mschimek Exp $ */
+/* $Id: afl.c,v 1.5 2001-09-07 22:34:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -201,6 +201,7 @@ open_pcm_afl(char *name, int ignored1, bool ignored2)
 
 	b->data = NULL;
 	b->used = (afl->samples_per_frame + afl->look_ahead) * sizeof(short);
+	b->offset = afl->look_ahead * sizeof(short);
 
 	return &afl->pcm.fifo;
 }

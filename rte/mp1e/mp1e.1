@@ -1,4 +1,4 @@
-.TH MP1E 1 "$Date: 2001-08-07 22:09:23 $" "mp1e manual" \" -*- nroff -*-
+.TH MP1E 1 "$Date: 2001-09-07 22:34:16 $" "mp1e manual" \" -*- nroff -*-
 .SH NAME
 mp1e \- realtime MPEG-1 audio/video encoder
 .SH SYNOPSIS
@@ -657,8 +657,9 @@ prior 1.8 created invalid stream syntax which only a few players would
 accept, and inaccurate predictive coding which has been replaced in
 version 1.8.
 .P
-Motion compensation in version 1.9pre1 will not work properly.
-No known bugs in version 1.9pre2.
+The ALSA and ESD interface in 1.9 doesn't work properly. Versions prior
+1.9.1 can hang due to a sync flaw and won't compile with ALSA devel libs
+0.9.
 .SH AUTHORS
 .IP \(em
 Michael H. Schimek (mschimek@users.sf.net)
@@ -666,8 +667,10 @@ Michael H. Schimek (mschimek@users.sf.net)
 Iñaki G. Etxebarria (garetxe@users.sf.net)
 .P
 Thanks to
-.IP \(em Justin Schoeman for the original V4L interface
-.IP \(em Bill Simpson-Young and Conrad Parker for a V4L2 fix
+.IP \(em
+Justin Schoeman for the original V4L interface
+.IP \(em
+Bill Simpson-Young and Conrad Parker for a V4L2 fix
 .P
 .B mp1e
 lives at the
