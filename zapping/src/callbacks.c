@@ -590,6 +590,13 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 					      "channel_down1")),
 				NULL);
       return TRUE;
+    case 2:
+      if (main_info->current_mode == TVENG_NO_CAPTURE)
+	return FALSE;
+      on_go_fullscreen1_activate(GTK_MENU_ITEM(lookup_widget(widget,
+					     "go_fullscreen1")),
+				NULL);
+      break;
     default:
       break;
     }

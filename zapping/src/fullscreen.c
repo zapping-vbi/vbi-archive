@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.8 2001-05-14 22:51:42 garetxe Exp $
+ * $Id: fullscreen.c,v 1.9 2001-05-18 22:15:09 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -91,6 +91,8 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
 	}
       return TRUE; /* Event processing done */
     }
+  else if (event->type == GDK_BUTTON_PRESS)
+    on_go_windowed1_activate(go_windowed1, NULL);
 
   return FALSE; /* We aren't interested in this event, pass it on */
 }
@@ -237,7 +239,7 @@ fullscreen_start(tveng_device_info * info)
 
   gdk_window_set_events(black_window->window, GDK_ALL_EVENTS_MASK);
 
-  gtk_signal_connect(GTK_OBJECT(black_window), "key-press-event",
+  gtk_signal_connect(GTK_OBJECT(black_window), "event",
 		     GTK_SIGNAL_FUNC(on_fullscreen_event),
   		     main_window);
 

@@ -1,3 +1,7 @@
+19.05.2001	Fullscreen <garetxe@users.sourceforge.net>
+
+	* src/fullscreen.c: Made fullscreen usable under many heads.	
+
 14.05.2001	--yuv-format flag <garetxe@users.sourceforge.net>
 
 	* src/main.c, capture.c, x11stuff.c: Added CLO [command line

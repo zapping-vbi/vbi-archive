@@ -8,9 +8,10 @@ liblirc_zapping_la_SOURCES = lirc.c lirc.h
 
 EXTRA_DIST = README
 
-CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
+CFLAGS = @CFLAGS@ $(PLUGIN_DEFAULT_FLAGS)
+
 INCLUDES = \
-	-I$(top_srcdir)/intl \
-	-I$(includedir)	\
-	$(GNOME_INCLUDEDIR) \
-	-I$(top_srcdir)/src ## Let the plugin access Zapping headers
+-I$(top_srcdir)/intl \
+-I$(includedir)	\
+$(GNOME_INCLUDEDIR) \
+-I$(top_srcdir)/src ## Let the plugin access Zapping headers

@@ -254,10 +254,10 @@ struct tveng_control{
 
 enum tveng_capture_mode
 {
+  TVENG_NO_CAPTURE, /* Capture isn't active */
   TVENG_CAPTURE_READ, /* Capture is through a read() call */
   TVENG_CAPTURE_PREVIEW, /* Capture is through (fullscreen) previewing */
-  TVENG_CAPTURE_WINDOW, /* Capture is through windowed overlays */
-  TVENG_NO_CAPTURE /* Capture isn't active */
+  TVENG_CAPTURE_WINDOW /* Capture is through windowed overlays */
 };
 
 /* The structure used to hold info about a video_device */

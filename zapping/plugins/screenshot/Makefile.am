@@ -11,7 +11,8 @@ libscreenshot_zapping_la_LIBADD = $(JPEG_LIB)
 
 pkgdata_DATA = screenshot.glade
 
-CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
+CFLAGS = @CFLAGS@ $(PLUGIN_DEFAULT_FLAGS)
+
 INCLUDES = \
 -I$(top_srcdir)/intl \
 -I$(includedir)	\
