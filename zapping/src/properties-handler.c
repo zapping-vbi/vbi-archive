@@ -40,6 +40,7 @@
 #include "remote.h"
 #include "globals.h"
 #include "zvideo.h"
+#include "eggcellrendererkeys.h"
 
 /* Property handlers for the different pages */
 /* Device info */
@@ -171,7 +172,7 @@ di_apply		(GtkWidget	*page)
 }
 
 /*
- *  Favorite picture sizes (popup menu)
+ *  Favorite picture sizes
  */
 
 #define ZCONF_PICTURE_SIZES "/zapping/options/main/picture_sizes"
@@ -183,7 +184,7 @@ typedef struct picture_size {
   z_key				key;
 } picture_size;
 
-static picture_size *		favorite_picture_sizes = NULL;
+static picture_size *		favorite_picture_sizes;
 
 static inline void
 picture_size_delete		(picture_size *		ps)
@@ -208,7 +209,7 @@ picture_size_new		(guint			width,
 }
 
 static void
-picture_sizes_flush		(void)
+picture_sizes_delete		(void)
 {
   picture_size *ps;
 
@@ -217,6 +218,31 @@ picture_sizes_flush		(void)
       favorite_picture_sizes = ps->next;
       picture_size_delete (ps);
     }
+}
+
+gboolean
+on_picture_size_key_press	(GtkWidget *		widget,
+				 GdkEventKey *		event,
+				 gpointer		user_data)
+{
+  picture_size *ps;
+  z_key key;
+
+  key.key = gdk_keyval_to_lower (event->keyval);
+  key.mask = event->state;
+
+  /* fprintf(stderr, "key %x %x\n", key.key, key.mask); */
+
+  for (ps = favorite_picture_sizes; ps; ps = ps->next)
+    if (z_key_equal (ps->key, key))
+      {
+	python_command_printf (widget,
+			       "zapping.resize_screen(%u, %u)",
+			       ps->width, ps->height);
+	return TRUE; /* handled */
+      }
+
+  return FALSE; /* not for us, pass on */
 }
 
 static void
@@ -236,10 +262,10 @@ picture_sizes_load_default	(void)
   picture_size **pps;
   guint i;
 
-  picture_sizes_flush ();
+  picture_sizes_delete ();
   pps = &favorite_picture_sizes;
 
-  for (i = 0; i < G_N_ELEMENTS (sizes); i++)
+  for (i = 0; i < G_N_ELEMENTS (sizes); ++i)
     {
       *pps = picture_size_new (sizes[i][0], sizes[i][1], Z_KEY_NONE);
       pps = &(*pps)->next;
@@ -260,37 +286,37 @@ picture_sizes_load		(void)
   picture_size **pps;
   guint i;
 
-  picture_sizes_flush ();
+  picture_sizes_delete ();
   pps = &favorite_picture_sizes;
 
-  for (i = 0;; i++)
+  for (i = 0;; ++i)
     {
-      gchar *buffer;
+      gchar buffer[256], *s;
       guint width, height;
       z_key key = Z_KEY_NONE;
 
-      buffer = g_strdup_printf (ZCONF_PICTURE_SIZES "/%u/width", i);
+      s = buffer + snprintf (buffer, sizeof (buffer) - 10,
+			     ZCONF_PICTURE_SIZES "/%u/", i);
+
+      strcpy (s, "width");
       width = zconf_get_integer (NULL, buffer);
-      g_free (buffer);
 
       if (zconf_error ())
 	{
-	  if (i == 0)
+	  if (0 == i)
 	    return FALSE;
 	  else
 	    break;
 	}
 
-      buffer = g_strdup_printf (ZCONF_PICTURE_SIZES "/%u/height", i);
+      strcpy (s, "height");
       height = zconf_get_integer (NULL, buffer);
-      g_free (buffer);
 
       if (zconf_error ())
 	break;
 
-      buffer = g_strdup_printf (ZCONF_PICTURE_SIZES "/%u/", i);
+      *s = 0;
       zconf_get_z_key (&key, buffer);
-      g_free (buffer);
 
       *pps = picture_size_new (width, height, key);
       pps = &(*pps)->next;
@@ -309,21 +335,21 @@ picture_sizes_save		(void)
 
   for (ps = favorite_picture_sizes; ps; ps = ps->next)
     {
-      gchar *buffer;
+      gchar buffer[256], *s;
 
-      buffer = g_strdup_printf (ZCONF_PICTURE_SIZES "/%u/width", i);
+      s = buffer + snprintf (buffer, sizeof (buffer) - 10,
+			     ZCONF_PICTURE_SIZES "/%u/", i);
+
+      strcpy (s, "width");
       zconf_create_integer (ps->width, "", buffer);
-      g_free (buffer);
 
-      buffer = g_strdup_printf (ZCONF_PICTURE_SIZES "/%u/height", i);
+      strcpy (s, "height");
       zconf_create_integer (ps->height, "", buffer);
-      g_free (buffer);
 
-      buffer = g_strdup_printf (ZCONF_PICTURE_SIZES "/%u/", i);
+      *s = 0;
       zconf_create_z_key (ps->key, "", buffer);
-      g_free (buffer);
 
-      i++;
+      ++i;
     }
 }
 
@@ -342,7 +368,7 @@ picture_sizes_on_menu_activate	(GtkMenuItem *		menu_item,
   accel_group = NULL;
 
   for (ps = favorite_picture_sizes; ps; ps = ps->next)
-    if (count-- == 0)
+    if (--count == 0)
       {
 	zconf_create_integer (GPOINTER_TO_INT (user_data),
 			      "", ZCONF_PICTURE_SIZES "/index");
@@ -350,7 +376,6 @@ picture_sizes_on_menu_activate	(GtkMenuItem *		menu_item,
 	python_command_printf (GTK_WIDGET (menu_item),
 			       "zapping.resize_screen(%u, %u)",
 			       ps->width, ps->height);
-
 	return;
       }
 }
@@ -384,8 +409,7 @@ picture_sizes_append_menu	(GtkMenuShell *		menu)
     {
       gchar *buffer;
 
-      buffer = g_strdup_printf (_("Resize to %ux%u"),
-				ps->width, ps->height);
+      buffer = g_strdup_printf (_("Resize to %ux%u"), ps->width, ps->height);
       menu_item = gtk_menu_item_new_with_label (buffer);
       g_free (buffer);
 
@@ -402,7 +426,7 @@ picture_sizes_append_menu	(GtkMenuShell *		menu)
       gtk_widget_show (menu_item);
       gtk_menu_shell_append (menu, menu_item);
 
-      count++;
+      ++count;
     }
 
   return count;
@@ -413,13 +437,15 @@ py_picture_size_cycle		(PyObject *		self,
 				 PyObject *		args)
 {
   picture_size *ps;
-  gint value = +1;
-  gint index, count;
+  int value;
+  gint index;
+  gint count;
+
+  value = +1;
 
   count = 0;
-
   for (ps = favorite_picture_sizes; ps; ps = ps->next)
-    count++;
+    ++count;
 
   if (!PyArg_ParseTuple (args, "|i", &value))
     g_error ("zapping.picture_size_cycle(|i)");
@@ -436,7 +462,7 @@ py_picture_size_cycle		(PyObject *		self,
   zconf_set_integer (index, ZCONF_PICTURE_SIZES "/index");
 
   for (ps = favorite_picture_sizes; ps; ps = ps->next)
-    if (index-- == 0)
+    if (--index == 0)
       {
 	python_command_printf (python_command_widget (),
 			       "zapping.resize_screen(%u, %u)",
@@ -474,8 +500,10 @@ picture_sizes_create_model	(void)
     }
 
   model = gtk_list_store_new (C_NUM,
-			      G_TYPE_UINT, G_TYPE_UINT,
-			      G_TYPE_UINT, G_TYPE_UINT,
+			      G_TYPE_UINT,
+			      G_TYPE_UINT,
+			      G_TYPE_UINT,
+			      G_TYPE_UINT,
 			      G_TYPE_BOOLEAN);
 
   for (ps = favorite_picture_sizes; ps; ps = ps->next)
@@ -496,6 +524,21 @@ picture_sizes_create_model	(void)
 }
 
 static void
+picture_sizes_model_iter	(GtkTreeView *		tree_view,
+				 const gchar *		path_string,
+				 GtkTreeModel **	model,
+				 GtkTreeIter *		iter)
+{
+  GtkTreePath *path;
+
+  *model = gtk_tree_view_get_model (tree_view);
+
+  path = gtk_tree_path_new_from_string (path_string);
+  gtk_tree_model_get_iter (*model, iter, path);
+  gtk_tree_path_free (path);
+}
+
+static void
 picture_sizes_on_cell_edited	(GtkCellRendererText *	cell,
 				 const gchar *		path_string,
 				 const gchar *		new_text,
@@ -503,108 +546,115 @@ picture_sizes_on_cell_edited	(GtkCellRendererText *	cell,
 {
   GtkTreeModel *model;
   GtkTreeIter iter;
-  guint column, value;
+  guint column;
+  guint value;
 
-  model = gtk_tree_view_get_model (tree_view);
-
-  {
-    GtkTreePath *path;
-
-    path = gtk_tree_path_new_from_string (path_string);
-    gtk_tree_model_get_iter (model, &iter, path);
-    gtk_tree_path_free (path);
-  }
-
+  picture_sizes_model_iter (tree_view, path_string, &model, &iter);
   column = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (cell), "column"));
-
   value = strtoul (new_text, NULL, 0);
 
-  if (value > 16383)
-    value = 16383;
+  if (value > 0)
+    value = SATURATE (value, 64, 16383);
 
   gtk_list_store_set (GTK_LIST_STORE (model), &iter,
 		      column, value,
 		      -1);
+
+  z_property_item_modified (GTK_WIDGET (tree_view));
 }
 
-static void
-picture_sizes_set_func_key	(GtkTreeViewColumn *	column,
-				 GtkCellRenderer *	cell,
-				 GtkTreeModel *		model,
+static gboolean
+unique				(GtkTreeModel *		model,
+				 GtkTreePath *		path,
 				 GtkTreeIter *		iter,
-				 gpointer		data)
+				 gpointer		user_data)
 {
+  z_key *new_key = user_data;
   z_key key;
-  gchar *key_name;
 
   gtk_tree_model_get (model, iter,
 		      C_KEY, &key.key,
 		      C_KEY_MASK, &key.mask,
 		      -1);
 
-  key_name = z_key_name (key);
+  if (key.key == new_key->key
+      && key.mask == new_key->mask)
+    gtk_list_store_set (GTK_LIST_STORE (model), iter,
+			C_KEY, 0,
+			C_KEY_MASK, 0,
+			-1);
 
-  g_object_set (cell, "text", key_name, NULL);
-
-  g_free (key_name);
+  return FALSE; /* continue */
 }
 
 static void
-picture_sizes_on_key_entry_changed (GtkEditable *	editable,
-				    GtkTreeView *	tree_view)
-{
-  GtkTreeSelection *selection;
-  GtkTreeModel *model;
-  GtkTreeIter iter;
-  GtkWidget *key_entry;
-
-  selection = gtk_tree_view_get_selection (tree_view);
-  model = gtk_tree_view_get_model (tree_view);
-  key_entry = lookup_widget (GTK_WIDGET (tree_view), "custom3");
-
-  if (gtk_tree_selection_get_selected (selection, NULL, &iter))
-    {
-      z_key key;
-
-      key = z_key_entry_get_key (key_entry);
-
-      gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-			  C_KEY, key.key,
-			  C_KEY_MASK, key.mask,
-			  -1);
-    }
-}
-
-static void
-picture_sizes_selection_changed	(GtkTreeSelection *	selection,
+picture_sizes_on_accel_edited	(GtkCellRendererText *	cell,
+				 const char *		path_string,
+				 guint			keyval,
+				 EggVirtualModifierType	mask,
+				 guint			keycode,
 				 GtkTreeView *		tree_view)
 {
   GtkTreeModel *model;
   GtkTreeIter iter;
-  GtkWidget *key_entry;
+  z_key key;
+
+  key.key = keyval;
+  key.mask = mask;
+
+  picture_sizes_model_iter (tree_view, path_string, &model, &iter);
+
+  if (keyval != 0)
+    gtk_tree_model_foreach (model, unique, &key);
+
+  gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+		      C_KEY, key.key,
+		      C_KEY_MASK, key.mask,
+		      -1);
+
+  z_property_item_modified (GTK_WIDGET (tree_view));
+}
+
+static void
+picture_sizes_accel_set_func	(GtkTreeViewColumn *	tree_column,
+				 GtkCellRenderer *	cell,
+				 GtkTreeModel *		model,
+				 GtkTreeIter *		iter,
+				 GtkTreeView *		tree_view)
+{
+  z_key key;
+
+  gtk_tree_model_get (model, iter,
+		      C_KEY, &key.key,
+		      C_KEY_MASK, &key.mask,
+		      -1);
+
+  g_object_set (G_OBJECT (cell),
+		"visible", TRUE,
+		"editable", TRUE,
+		"accel_key", key.key,
+		"accel_mask", key.mask,
+		"style", PANGO_STYLE_NORMAL,
+		NULL);
+}
+
+static void
+picture_sizes_on_selection_changed
+				(GtkTreeSelection *	selection,
+				 GtkTreeView *		tree_view)
+{
+  GtkTreeIter iter;
+  GtkTreeModel *model;
+  GtkWidget *remove;
+  gboolean selected;
 
   model = gtk_tree_view_get_model (tree_view);
-  key_entry = lookup_widget (GTK_WIDGET (tree_view), "custom3");
 
-  if (gtk_tree_selection_get_selected (selection, NULL, &iter))
-    {
-      z_key key;
+  remove = lookup_widget (GTK_WIDGET (tree_view), "picture-sizes-remove");
 
-      g_signal_handlers_block_by_func (G_OBJECT (key_entry),
-				       (gpointer) picture_sizes_on_key_entry_changed,
-				       (gpointer) tree_view);
+  selected = z_tree_selection_iter_first (selection, model, &iter);
 
-      gtk_tree_model_get (model, &iter,
-			  C_KEY, &key.key,
-			  C_KEY_MASK, &key.mask,
-			  -1);
-
-      z_key_entry_set_key (key_entry, key);
-
-      g_signal_handlers_unblock_by_func (G_OBJECT (key_entry),
-					 (gpointer) picture_sizes_on_key_entry_changed,
-					 (gpointer) tree_view);
-    }
+  gtk_widget_set_sensitive (remove, selected);
 }
 
 static void
@@ -619,7 +669,7 @@ picture_sizes_on_add_clicked	(GtkButton *		add,
   selection = gtk_tree_view_get_selection (tree_view);
   model = gtk_tree_view_get_model (tree_view);
 
-  if (gtk_tree_selection_get_selected (selection, NULL, &iter))
+  if (z_tree_selection_iter_first (selection, model, &iter))
     gtk_list_store_insert_before (GTK_LIST_STORE (model), &iter, &iter);
   else
     gtk_list_store_append (GTK_LIST_STORE (model), &iter);
@@ -651,15 +701,9 @@ static void
 picture_sizes_on_remove_clicked	(GtkButton *		remove,
 				 GtkTreeView *		tree_view)
 {
-  GtkTreeSelection *selection;
-  GtkTreeModel *model;
-  GtkTreeIter iter;
-
-  selection = gtk_tree_view_get_selection (tree_view);
-  model = gtk_tree_view_get_model (tree_view);
-
-  if (gtk_tree_selection_get_selected (selection, NULL, &iter))
-    gtk_list_store_remove (GTK_LIST_STORE (model), &iter);
+  z_tree_view_remove_selected (tree_view,
+			       gtk_tree_view_get_selection (tree_view),
+			       gtk_tree_view_get_model (tree_view));
 }
 
 static void
@@ -671,7 +715,7 @@ picture_sizes_apply		(GtkTreeView *		tree_view)
 
   model = gtk_tree_view_get_model (tree_view);
 
-  picture_sizes_flush ();
+  picture_sizes_delete ();
   pps = &favorite_picture_sizes;
 
   if (!gtk_tree_model_get_iter_first (model, &iter))
@@ -699,6 +743,82 @@ picture_sizes_apply		(GtkTreeView *		tree_view)
   while (gtk_tree_model_iter_next (model, &iter));
 
   picture_sizes_save ();
+}
+
+static void
+picture_sizes_setup		(GtkWidget *		page)
+{
+  GtkTreeView *tree_view;
+  GtkTreeSelection *selection;
+  GtkListStore *list_store;
+  GtkCellRenderer *renderer;
+  GtkTreeViewColumn *column;
+  GtkWidget *widget;
+  guint col;
+
+  widget = lookup_widget (page, "picture-sizes-treeview");
+  tree_view = GTK_TREE_VIEW (widget);
+  gtk_tree_view_set_rules_hint (tree_view, TRUE);
+  gtk_tree_view_set_reorderable (tree_view, TRUE);
+
+  selection = gtk_tree_view_get_selection (tree_view);
+  gtk_tree_selection_set_mode (selection, GTK_SELECTION_MULTIPLE);
+
+  g_signal_connect (G_OBJECT (selection), "changed",
+  		    G_CALLBACK (picture_sizes_on_selection_changed),
+		    tree_view);
+
+  list_store = picture_sizes_create_model ();
+  gtk_tree_view_set_model (tree_view, GTK_TREE_MODEL (list_store));
+
+  for (col = C_WIDTH; col <= C_HEIGHT; ++col)
+    {
+      renderer = gtk_cell_renderer_text_new ();
+
+      gtk_tree_view_insert_column_with_attributes
+	(tree_view, -1 /* append */,
+	 (col == C_WIDTH) ? _("Width") : _("Height"),
+	 renderer,
+	 "text", col,
+	 "editable", C_EDITABLE,
+	 NULL);
+
+      g_signal_connect (G_OBJECT (renderer), "edited",
+			G_CALLBACK (picture_sizes_on_cell_edited),
+			tree_view);
+
+      g_object_set_data (G_OBJECT (renderer), "column",
+			 (gpointer) col);
+    }
+
+  renderer = (GtkCellRenderer *) g_object_new
+    (EGG_TYPE_CELL_RENDERER_KEYS,
+     "editable", TRUE,
+     "accel_mode", EGG_CELL_RENDERER_KEYS_MODE_X,
+     NULL);
+
+  g_signal_connect (G_OBJECT (renderer), "keys_edited",
+		    G_CALLBACK (picture_sizes_on_accel_edited), tree_view);
+
+  column = gtk_tree_view_column_new_with_attributes (_("Shortcut"),
+						     renderer, NULL);
+  gtk_tree_view_column_set_cell_data_func
+    (column, renderer,
+     (GtkTreeCellDataFunc) picture_sizes_accel_set_func,
+     NULL, NULL);
+  gtk_tree_view_append_column (tree_view, column);
+
+  widget = lookup_widget (page, "picture-sizes-add");
+  g_signal_connect (G_OBJECT (widget), "clicked",
+		    G_CALLBACK (picture_sizes_on_add_clicked),
+		    tree_view);
+
+  widget = lookup_widget (page, "picture-sizes-remove");
+  /* First select, then remove. */
+  gtk_widget_set_sensitive (widget, FALSE);
+  g_signal_connect (G_OBJECT (widget), "clicked",
+		    G_CALLBACK (picture_sizes_on_remove_clicked),
+		    tree_view);
 }
 
 #if 0
@@ -734,7 +854,9 @@ on_toolbar_button_labels_changed
 static void
 mw_setup		(GtkWidget	*page)
 {
+  GtkWidget *widget;
   GtkWidget *w;
+  gboolean active;
 
   /* Save the geometry through sessions */
   w = lookup_widget(page, "checkbutton2");
@@ -750,11 +872,6 @@ mw_setup		(GtkWidget	*page)
   w = lookup_widget (page, "disable_screensaver");
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(w),
     zconf_get_boolean (NULL, "/zapping/options/main/disable_screensaver"));
-
-  /* Resize using fixed increments */
-  w = lookup_widget(page, "checkbutton4");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),
-    zconf_get_boolean(NULL, "/zapping/options/main/fixed_increments"));  
 
 #if 0 /* See above */
 
@@ -805,6 +922,12 @@ mw_setup		(GtkWidget	*page)
 		      "/zapping/options/main/ratio"));
 #endif
 
+  active = zconf_get_boolean (NULL, "/zapping/options/main/save_controls");
+  widget = lookup_widget (page, "general-main-controls-per-channel");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), active);
+
+
+
   {
     gint n;
 
@@ -818,70 +941,14 @@ mw_setup		(GtkWidget	*page)
     gtk_option_menu_set_history (GTK_OPTION_MENU (w), n);
   }
 
-  /* Picture size list */
-  {
-    GtkWidget *tree_view;
-    guint column;
-
-    tree_view = lookup_widget (page, "treeview1");
-    gtk_tree_view_set_model (GTK_TREE_VIEW (tree_view),
-			     GTK_TREE_MODEL (picture_sizes_create_model ()));
-
-    for (column = C_WIDTH; column <= C_HEIGHT; column++)
-      {
-	GtkCellRenderer *renderer;
-
-	renderer = gtk_cell_renderer_text_new ();
-
-	gtk_tree_view_insert_column_with_attributes
-	  (GTK_TREE_VIEW (tree_view), -1 /* append */,
-	   (column == C_WIDTH) ? _("Width") : _("Height"),
-	   renderer,
-	   "text", column,
-	   "editable", C_EDITABLE,
-	   NULL);
-
-	g_signal_connect (G_OBJECT (renderer), "edited",
-			  G_CALLBACK (picture_sizes_on_cell_edited),
-			  tree_view);
-
-	g_object_set_data (G_OBJECT (renderer), "column",
-			   (gpointer) column);
-      }
-
-    gtk_tree_view_insert_column_with_data_func
-      (GTK_TREE_VIEW (tree_view), -1 /* append */, _("Key"),
-       gtk_cell_renderer_text_new (),
-       picture_sizes_set_func_key, NULL, NULL);
-
-    w = lookup_widget (page, "button44");
-    g_signal_connect (G_OBJECT (w), "clicked",
-		      G_CALLBACK (picture_sizes_on_add_clicked),
-		      tree_view);
-
-    w = lookup_widget (page, "button45");
-    g_signal_connect (G_OBJECT (w), "clicked",
-		      G_CALLBACK (picture_sizes_on_remove_clicked),
-		      tree_view);
-
-    g_signal_connect (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW (tree_view))),
-		      "changed",
-		      G_CALLBACK (picture_sizes_selection_changed),
-		      tree_view);
-
-    w = lookup_widget (page, "custom3");
-    g_signal_connect (G_OBJECT (z_key_entry_entry (w)), "changed",
-		      G_CALLBACK (picture_sizes_on_key_entry_changed),
-		      tree_view);
-  }
 }
 
 static void
 mw_apply		(GtkWidget	*page)
 {
   GtkWidget *widget;
-  GtkWidget *tv_screen;
-  gboolean top, inc;
+  gboolean top;
+  gboolean active;
 
   widget = lookup_widget(page, "checkbutton2"); /* keep geometry */
   zconf_set_boolean(gtk_toggle_button_get_active(
@@ -898,14 +965,6 @@ mw_apply		(GtkWidget	*page)
   zconf_set_boolean (top, "/zapping/options/main/disable_screensaver");
   x11_screensaver_control (top);
 
-  widget = lookup_widget(page, "checkbutton4"); /* fixed increments */
-  inc = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
-  zconf_set_boolean (inc, "/zapping/options/main/fixed_increments");
-  tv_screen = lookup_widget (main_window, "tv-screen");
-  if (inc)
-    z_video_set_size_inc (Z_VIDEO (tv_screen), 64, 64 * 3 / 4); // XXX free, 4:3, 16:9
-  else
-    z_video_set_size_inc (Z_VIDEO (tv_screen), 1, 1);
 
 /*
   widget = lookup_widget(page, "checkbutton13"); // swap chan up/down
@@ -924,33 +983,37 @@ mw_apply		(GtkWidget	*page)
 		    "/zapping/options/main/ratio");
 #endif
 
+  widget = lookup_widget (page, "general-main-controls-per-channel");
+  active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  zconf_set_boolean (active, "/zapping/options/main/save_controls");
+
   /* entered channel numbers refer to */
   widget = lookup_widget (page, "channel_number_translation");
   zconf_set_integer (z_option_menu_get_active (widget),
 		     "/zapping/options/main/channel_txl");
-
-  widget = lookup_widget (page, "treeview1");
-  picture_sizes_apply (GTK_TREE_VIEW (widget));
 }
+
+
+
+
+
+
+
+
 
 /* Video */
 static void
 video_setup		(GtkWidget	*page)
 {
   GtkWidget *widget;
-
-
-  /* Save control info with the channel */
-  widget = lookup_widget(page, "checkbutton11");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/save_controls"));
-
+  gboolean active;
+#if 0
   /* Verbosity value passed to zapping_setup_fb */
   widget = lookup_widget(page, "spinbutton1");
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
      zconf_get_integer(NULL,
 		       "/zapping/options/main/zapping_setup_fb_verbosity"));
-
+#endif
   {
     GtkWidget *menu;
     GtkWidget *menuitem;
@@ -1005,26 +1068,28 @@ video_setup		(GtkWidget	*page)
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
     zconf_get_integer(NULL,
 		      "/zapping/options/capture/xvsize"));
-  
+
+  widget = lookup_widget (page, "general-video-fixed-inc");
+  active = zconf_get_boolean (NULL, "/zapping/options/main/fixed_increments");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), active);
+
+  picture_sizes_setup (page);
 }
 
 static void
 video_apply		(GtkWidget	*page)
 {
+  GtkWidget *tv_screen;
   GtkWidget *widget;
+  gboolean active;
 
-
-
-  widget = lookup_widget(page, "checkbutton11"); /* save controls */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/save_controls");
-
+#if 0
   widget = lookup_widget(page, "spinbutton1"); /* zapping_setup_fb
 						  verbosity */
   zconf_set_integer(
 	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)),
 		"/zapping/options/main/zapping_setup_fb_verbosity");
-
+#endif
   {
     const gchar *opt = "/zapping/options/main/fullscreen/vidmode";
     guint i;
@@ -1065,6 +1130,20 @@ video_apply		(GtkWidget	*page)
   widget = lookup_widget(page, "optionmenu20"); /* xv capture size */
   zconf_set_integer(z_option_menu_get_active(widget),
 		    "/zapping/options/capture/xvsize");
+
+  widget = lookup_widget (page, "general-video-fixed-inc");
+  active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  zconf_set_boolean (active, "/zapping/options/main/fixed_increments");
+
+  tv_screen = lookup_widget (main_window, "tv-screen");
+
+  if (active) /* XXX free, 4:3, 16:9 */
+    z_video_set_size_inc (Z_VIDEO (tv_screen), 64, 64 * 3 / 4);
+  else
+    z_video_set_size_inc (Z_VIDEO (tv_screen), 1, 1);
+
+  widget = lookup_widget (page, "picture-sizes-treeview");
+  picture_sizes_apply (GTK_TREE_VIEW (widget));
 }
 
 /* VBI */
@@ -1357,17 +1436,15 @@ itv_apply		(GtkWidget	*page)
 static void
 add				(GtkDialog	*dialog)
 {
-  SidebarEntry device_info[] = {
-    { N_("Device Info"), "gnome-info.png", "vbox9",
-      di_setup, di_apply }
+  SidebarEntry devices [] = {
+    { N_("Video"), "gnome-info.png", "vbox9", di_setup, di_apply }
   };
-  SidebarEntry general_options[] = {
-    { N_("Main Window"), "gnome-session.png", "vbox35",
-      mw_setup, mw_apply },
-    { N_("Video"), "gnome-television.png", "vbox36",
-      video_setup, video_apply }
+  SidebarEntry general [] = {
+    { N_("Main Window"), "gnome-session.png", "vbox35", mw_setup, mw_apply },
+    { N_("Video"), "gnome-television.png",
+      "general-video-table", video_setup, video_apply }
   };
-  SidebarEntry vbi_options[] = {
+  SidebarEntry vbi [] = {
     { N_("General"), "gnome-monitor.png", "vbox17",
       vbi_general_setup, vbi_general_apply },
 #if 0 /* temporarily disabled */
@@ -1375,15 +1452,15 @@ add				(GtkDialog	*dialog)
       itv_setup, itv_apply }
 #endif
   };
-  SidebarGroup groups[] = {
-    { N_("Device Info"), device_info, acount(device_info) },
-    { N_("General Options"), general_options, acount(general_options) },
-    { N_("VBI Options"), vbi_options, acount(vbi_options) }
+  SidebarGroup groups [] = {
+    { N_("Devices"),	     devices, G_N_ELEMENTS (devices) },
+    { N_("General Options"), general, G_N_ELEMENTS (general) },
+    { N_("VBI Options"),     vbi,     G_N_ELEMENTS (vbi) }
     /* XXX "VBI Options" is also a constant in ttxview.c */
   };
 
-  standard_properties_add(dialog, groups, acount(groups),
-			  "zapping.glade2");
+  standard_properties_add (dialog, groups, G_N_ELEMENTS (groups),
+			   "zapping.glade2");
 }
 
 void startup_properties_handler(void)
@@ -1393,12 +1470,17 @@ void startup_properties_handler(void)
   };
   prepend_property_handler(&handler);
 
-  /* This is so stupid I can't tell. Wait until we use
-     Python OO to implement this. */
-  cmd_register ("picture_size_cycle",
-		py_picture_size_cycle, METH_VARARGS,
-	       _("Cycle through favourite picture sizes"),
-		"zapping.picture_size_cycle(+1)");
+  if (!favorite_picture_sizes)
+    {
+      if (!picture_sizes_load ())
+	picture_sizes_load_default ();
+
+      picture_sizes_reset_index ();
+    }
+
+  cmd_register ("picture_size_cycle", py_picture_size_cycle, METH_VARARGS,
+		("Next favorite picture size"), "zapping.picture_size_cycle(+1)",
+		("Previous favorite picture size"), "zapping.picture_size_cycle(-1)");
 }
 
 void shutdown_properties_handler(void)

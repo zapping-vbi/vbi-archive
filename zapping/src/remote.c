@@ -26,6 +26,16 @@
 PyObject *		dict;
 
 static GList *		c_list;
+
+/* Hm. Let's see what develops in Gtk+.
+typedef struct _action {
+  struct _action *	next;
+  gchar *		descr;
+  gchar *		cmd;
+} action;
+static action *		action_list;
+*/
+
 static GtkWidget *	c_widget;
 
 /* Callback glue for Gtk signals. */
@@ -94,11 +104,47 @@ python_command_printf		(GtkWidget *		widget,
   free (buf);
 }
 
+
 GList *
 cmd_list			(void)
 {
   return g_list_copy (c_list);
 }
+
+#if 0
+
+const gchar *
+cmd_action_from_cmd		(const gchar *		cmd)
+{
+  action *a;
+
+  for (a = action_list; a; a = a->next)
+    if (0 == strcmp (a->cmd, cmd))
+      return a->descr;
+
+  return NULL;
+}
+
+GtkMenu *
+cmd_action_menu			(void)
+{
+  GtkMenu *menu;
+  GtkWidget *menu_item;
+  action *a;
+
+  menu = GTK_MENU (gtk_menu_new ());
+
+  for (a = action_list; a; a = a->next)
+    {
+      menu_item = gtk_menu_item_new_with_label (a->descr);
+      gtk_widget_show (menu_item);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
+    }
+
+  return menu;
+}
+
+#endif
 
 /* Widget sending the last command, or NULL. */
 GtkWidget *
@@ -255,14 +301,16 @@ cmd_compatibility		(const gchar *		cmd)
    will be registering every command just once during the
    program's lifetime. */
 void
-cmd_register			(const gchar *		name,
+_cmd_register			(const gchar *		name,
 				 PyCFunction		cfunc,
 				 int			flags,
-				 const gchar *		doc,
-				 const gchar *		usage)
+				 ...)
 {
   PyMethodDef *def;
   PyObject *func;
+  va_list ap;
+  gchar *descr;
+  gchar *cmd;
 
   def = (PyMethodDef *) malloc (sizeof (*def));
   assert (def != NULL);
@@ -270,14 +318,34 @@ cmd_register			(const gchar *		name,
   def->ml_name = strdup(name);
   def->ml_meth = cfunc;
   def->ml_flags = flags;
-  def->ml_doc = strdup(doc);
+  /*  def->ml_doc = strdup(doc); */
   
   func = PyCFunction_New (def, NULL);
   PyDict_SetItemString (dict, (char *) name, func);
   Py_DECREF (func);
 
-  /* Append this cmd to the list of known methods. */
-  c_list = g_list_append (c_list, g_strdup (usage));
+  va_start (ap, flags);
+
+  while ((descr = va_arg (ap, gchar *))
+	 && (cmd = va_arg (ap, gchar *)))
+    {
+#if 1
+      c_list = g_list_append (c_list, g_strdup (cmd));
+#else
+      action *a;
+
+      if (!(a = g_malloc (sizeof (*a))))
+	break;
+
+      a->next = action_list;
+      action_list = a;
+
+      a->descr = descr;
+      a->cmd = cmd;
+#endif
+    }
+
+  va_end (ap);
 }
 
 void

@@ -20,8 +20,8 @@ typedef struct {
 /* Register a set of callbacks to manage the properties */
 /* prepend/append refer to the order in which the handlers are called
    to build the properties */
-void prepend_property_handler (property_handler *p);
-void append_property_handler (property_handler *p);
+void prepend_property_handler (const property_handler *p);
+void append_property_handler (const property_handler *p);
 
 /**
  * Create a group with the given name.

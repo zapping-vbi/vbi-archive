@@ -358,9 +358,8 @@ py_plugin_properties (PyObject *self, PyObject *args)
 
 void startup_plugin_properties (void)
 {
-  cmd_register ("plugin_properties", py_plugin_properties,
-		METH_VARARGS, _("Opens the plugin properties dialog"),
-		"zapping.plugin_properties()");
+  cmd_register ("plugin_properties", py_plugin_properties, METH_VARARGS,
+		("Plugin properties"), "zapping.plugin_properties()");
 }
 
 void shutdown_plugin_properties (void)

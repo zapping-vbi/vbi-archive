@@ -101,7 +101,7 @@ int zapzilla_main(int argc, char * argv[])
 		      NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: zapzilla.c,v 1.4.2.4 2003-08-24 23:59:10 mschimek Exp $",
+	 "$Id: zapzilla.c,v 1.4.2.5 2003-09-24 18:41:25 mschimek Exp $",
 	 "Zapzilla", VERSION, __DATE__);
   D();
   /* FIXME: Find something better */
@@ -183,7 +183,7 @@ static gboolean startup_zapzilla()
   startup_remote ();
 
   cmd_register ("quit", py_quit, METH_VARARGS,
-		_("Quits Zapzilla"), "zapping.quit()");
+		("Quit"), "zapping.quit()");
   D();
 
   /* Starts the configuration engine */

@@ -30,7 +30,7 @@
 #include <gdk/gdkx.h>
 #include <gtk/gtk.h>
 #include <stdlib.h>
-#include "../common/math.h"
+#include "common/math.h"
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zconf.h"
 #include "globals.h"

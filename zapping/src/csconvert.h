@@ -5,7 +5,7 @@
  * Colorspace conversions.
  */
 
-#include <tveng.h>
+#include "tveng.h"
 
 typedef void (*CSConverter) (tveng_image_data *src, tveng_image_data *dest,
 			     int width, int height,

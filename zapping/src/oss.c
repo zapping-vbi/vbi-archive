@@ -25,13 +25,13 @@
 #endif
 
 /** OSS backend **/
-#if USE_OSS
+#ifdef HAVE_OSS
 
 #include <gnome.h>
 #include <math.h>
 #include <unistd.h>
 
-#include "../common/fifo.h" // current_time()
+#include "common/fifo.h" // current_time()
 
 #include "audio.h"
 #define ZCONF_DOMAIN "/zapping/options/audio/"
@@ -42,6 +42,10 @@
 
 #include <sys/ioctl.h>
 #include <sys/soundcard.h>
+
+#include "tveng_private.h"
+#include "common/device.h"
+
 
 typedef struct {
   int		fd;
@@ -235,7 +239,153 @@ const audio_backend_info oss_backend =
   apply_props:	oss_apply_props
 };
 
+/* Preliminary */
 
+struct pcm {
+	tv_device_node		node;
+	int			fd;
+	FILE *			_log;
+};
+
+static void
+destroy_pcm			(tv_device_node *	n,
+				 tv_bool		restore)
+{
+	struct pcm *p;
+	int saved_errno;
+
+	if (!n)
+		return;
+
+	p = PARENT (n, struct pcm, node);
+
+	saved_errno = errno;
+
+	if (restore) {
+		/* Blah. */
+	}
+
+	free (p->node.device);
+	free (p->node.version);
+	free (p->node.driver);
+	free (p->node.label);
+
+	if (p->fd >= 0)
+		device_close (p->_log, p->fd);
+
+	CLEAR (*p);
+
+	free (p);
+
+	errno = saved_errno;
+}
+
+static struct pcm *
+open_pcm			(void *			unused,
+				 FILE *			log,
+				 const char *		device)
+{
+	struct stat st;
+	struct pcm *p;
+
+	/* if (OSS_LOG_FP)
+	   log = OSS_LOG_FP; */
+
+	if (-1 == stat (device, &st))
+		return NULL;
+
+	/* Don't accidentally overwrite a regular file. */
+	if (!S_ISCHR (st.st_mode)) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	/* Check minor number here? */
+
+	if (!(p = calloc (1, sizeof (*p))))
+		goto error;
+
+	p->node.destroy = destroy_pcm;
+	p->_log = log;
+
+	p->fd = device_open (p->_log, device, O_RDWR, 0);
+
+	if (-1 == p->fd)
+		goto error;
+
+	if (!(p->node.device = strdup (device)))
+		goto error;
+
+#ifdef OSS_GETVERSION
+	{
+		int version;
+
+		/* Introduced in OSS 3.6, error ignored */
+		/* XXX use ioctl wrapper */
+		ioctl (p->fd, OSS_GETVERSION, &version);
+
+		if (version > 0) {
+			p->node.version = tv_strdup_printf
+				(_("OSS %u.%u.%u"),
+				 (version >> 16) & 0xFF,
+				 (version >> 8) & 0xFF,
+				 (version >> 0) & 0xFF);
+
+			if (!p->node.version)
+				goto error;
+		}
+	}
+#endif
+
+	/* That's it. No other information available.
+	   Maybe if we could somehow link mixer and pcm device? */
+
+	return p;
+
+ error:
+	destroy_pcm (&p->node, FALSE);
+	return NULL;
+}
+	
+tv_device_node *
+oss_pcm_open			(void *			unused,
+				 FILE *			log, 
+				 const char *		dev_name)
+{
+	struct pcm *p;
+
+	if ((p = open_pcm (NULL, log, dev_name)))
+		return &p->node;
+
+	return NULL;
+}
+
+tv_device_node *
+oss_pcm_scan			(void *			unused,
+				 FILE *			log)
+{
+	static const char *pcm_devices [] = {
+		"/dev/dsp",
+		"/dev/dsp0",
+		"/dev/dsp1",
+		"/dev/dsp2",
+		"/dev/dsp3",
+	};
+	tv_device_node *list = NULL;
+	const char **sp;
+
+	for (sp = pcm_devices; *sp; ++sp) {
+		if (!tv_device_node_find (list, *sp)) {
+			struct pcm *p;
+
+			if ((p = open_pcm (NULL, log, *sp))) {
+				tv_device_node_add (&list, &p->node);
+			}
+		}
+	}
+
+	return list;
+}
 
 
 
@@ -250,10 +400,6 @@ const audio_backend_info oss_backend =
 
 
 /* XXX check for freebsd quirks */
-
-#include "tveng_private.h"
-
-#include "../common/device.h"
 
 #ifndef OSS_LOG_FP
 #define OSS_LOG_FP 0 /* stderr */
@@ -826,16 +972,18 @@ open_mixer			(const tv_mixer_interface *mi,
 #ifdef SOUND_MIXER_INFO
 	if (mixer_ioctl (m->fd, SOUND_MIXER_INFO, &m->mixer_info)) {
 		if (m->mixer_info.name[0]) {
-			m->pub.node.label = tveng_strdup_printf
-				("%.*s", N_ELEMENTS (m->mixer_info.name), m->mixer_info.name);
+			m->pub.node.label =
+				tv_strndup (m->mixer_info.name,
+					    N_ELEMENTS (m->mixer_info.name));
 
 			if (!m->pub.node.label)
 				goto error;
 		}
 
 		if (m->mixer_info.id[0]) {
-			m->pub.node.driver = tveng_strdup_printf
-				("%.*s", N_ELEMENTS (m->mixer_info.id), m->mixer_info.id);
+			m->pub.node.driver =
+				tv_strndup (m->mixer_info.id,
+					    N_ELEMENTS (m->mixer_info.id));
 
 			if (!m->pub.node.driver)
 				goto error;
@@ -862,7 +1010,7 @@ open_mixer			(const tv_mixer_interface *mi,
 	mixer_ioctl (m->fd, OSS_GETVERSION, &m->version);
 
 	if (m->version > 0) {
-		m->pub.node.version = tveng_strdup_printf
+		m->pub.node.version = tv_strdup_printf
 			(_("OSS %u.%u.%u"),
 			 (m->version >> 16) & 0xFF,
 			 (m->version >> 8) & 0xFF,

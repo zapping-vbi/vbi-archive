@@ -36,14 +36,21 @@ python_command_widget		(void);
 
 extern GList *
 cmd_list			(void);
+extern const gchar *
+cmd_action_from_cmd		(const gchar *		cmd);
+extern const gchar *
+cmd_action_to_cmd		(const gchar *		action);
+extern GtkMenu *
+cmd_action_menu			(void);
 extern gchar *
 cmd_compatibility		(const gchar *		cmd);
 extern void
-cmd_register			(const gchar *		name,
+_cmd_register			(const gchar *		name,
 				 PyCFunction		cfunc,
 				 int			flags,
-				 const gchar *		doc,
-				 const gchar *		usage);
+				 ...);
+#define cmd_register(name, cfunc, flags, args...)			\
+  _cmd_register (name, cfunc, flags ,##args , 0)
 extern void
 shutdown_remote			(void);
 extern void

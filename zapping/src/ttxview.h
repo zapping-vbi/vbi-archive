@@ -1,5 +1,8 @@
-/* Zapping (TV viewer for the Gnome Desktop)
+/*
+ *  Zapping (TV viewer for the Gnome Desktop)
+ *
  * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2003 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,20 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#ifndef __TTXVIEW_H__
-#define __TTXVIEW_H__
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#ifndef TTXVIEW_H
+#define TTXVIEW_H
+
+#include "config.h"
 
 #ifdef HAVE_LIBZVBI
 
-#include <zmodel.h>
+#include "zmodel.h"
 
-/**
- * Signals creation or destruction of a view.
- */
+/* Signals creation or destruction of a view. */
 extern ZModel *		ttxview_zmodel;
 
 #define NUM_TTXVIEWS(zmodel)						\
@@ -78,4 +78,4 @@ extern void
 ttxview_detach			(GtkWidget *		parent);
 
 #endif /* HAVE_LIBZVBI */
-#endif /* __TTXVIEW_H__ */
+#endif /* TTXVIEW_H */

@@ -70,4 +70,12 @@ typedef struct {
   void		(*apply_props)(GtkBox *vbox);
 } audio_backend_info;
 
+tv_device_node *
+oss_pcm_open			(void *			unused,
+				 FILE *			log, 
+				 const char *		dev_name);
+tv_device_node *
+oss_pcm_scan			(void *			unused,
+				 FILE *			log);
+
 #endif /* audio.h */

@@ -1,9 +1,9 @@
 #ifndef __ZIMAGE_H__
 #define __ZIMAGE_H__
 
-#include <tveng.h>
 #include <gtk/gtk.h>
-#include "../common/fifo.h"
+#include "tveng.h"
+#include "common/fifo.h"
 #include "csconvert.h"
 
 /* Startup/shutdown */

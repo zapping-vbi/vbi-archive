@@ -32,7 +32,7 @@
 #include "zmisc.h"
 #include "osd.h"
 #include "remote.h"
-#include "../common/math.h"
+#include "common/math.h"
 #include "properties.h"
 #include "interface.h"
 #include "globals.h"
@@ -1126,6 +1126,8 @@ static void
 on_osd_type_changed	(GtkWidget	*widget,
 			 GtkWidget	*page)
 {
+  GtkWidget *w;
+
   gboolean sensitive1 = FALSE;
   gboolean sensitive2 = FALSE;
 
@@ -1142,10 +1144,25 @@ on_osd_type_changed	(GtkWidget	*widget,
       break;
     }
 
-  gtk_widget_set_sensitive(lookup_widget(widget, "vbox38"),
-			   sensitive1);
-  gtk_widget_set_sensitive(lookup_widget(widget, "hbox42"),
-			   sensitive2);
+  /* XXX Ugh. */
+
+  w = lookup_widget (widget, "general-osd-font-label");
+  gtk_widget_set_sensitive (w, sensitive1);
+  w = lookup_widget (widget, "general-osd-font-selector");
+  gtk_widget_set_sensitive (w, sensitive1);
+  w = lookup_widget (widget, "general-osd-foreground-label");
+  gtk_widget_set_sensitive (w, sensitive1);
+  w = lookup_widget (widget, "general-osd-foreground-selector");
+  gtk_widget_set_sensitive (w, sensitive1);
+  w = lookup_widget (widget, "general-osd-background-label");
+  gtk_widget_set_sensitive (w, sensitive1);
+  w = lookup_widget (widget, "general-osd-background-selector");
+  gtk_widget_set_sensitive (w, sensitive1);
+
+  w = lookup_widget (widget, "general-osd-timeout-label");
+  gtk_widget_set_sensitive (w, sensitive2);
+  w = lookup_widget (widget, "general-osd-timeout-selector");
+  gtk_widget_set_sensitive (w, sensitive2);
 }
 
 /* OSD properties */
@@ -1158,21 +1175,20 @@ osd_setup		(GtkWidget	*page)
   widget = lookup_widget(page, "optionmenu22");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
 			      zcg_int(NULL, "osd_type"));
-  gtk_widget_set_sensitive(lookup_widget(widget, "vbox38"),
-			   !zcg_int(NULL, "osd_type"));
+  on_osd_type_changed (page, page);
 
   g_signal_connect(G_OBJECT (widget), "changed",
 		   G_CALLBACK(on_osd_type_changed),
 		   page);
 
   /* OSD font */
-  widget = lookup_widget(page, "fontpicker1");
+  widget = lookup_widget(page, "general-osd-font-selector");
   if (zcg_char(NULL, "font"))
     gnome_font_picker_set_font_name(GNOME_FONT_PICKER(widget),
 				    zcg_char(NULL, "font"));
 
   /* OSD foreground color */
-  widget = lookup_widget(page, "colorpicker1");
+  widget = lookup_widget(page, "general-osd-foreground-selector");
   gnome_color_picker_set_d(GNOME_COLOR_PICKER(widget),
 		   zcg_float(NULL, "fg_r"),
 		   zcg_float(NULL, "fg_g"),
@@ -1180,7 +1196,7 @@ osd_setup		(GtkWidget	*page)
 		   0);
 
   /* OSD background color */
-  widget = lookup_widget(page, "colorpicker2");
+  widget = lookup_widget(page, "general-osd-background-selector");
   gnome_color_picker_set_d(GNOME_COLOR_PICKER(widget),
 		   zcg_float(NULL, "bg_r"),
 		   zcg_float(NULL, "bg_g"),
@@ -1203,18 +1219,18 @@ osd_apply		(GtkWidget	*page)
   zcs_int(z_option_menu_get_active(widget),
 	  "osd_type");
 
-  widget = lookup_widget(page, "fontpicker1");
+  widget = lookup_widget(page, "general-osd-font-selector");
   zcs_char(gnome_font_picker_get_font_name(GNOME_FONT_PICKER(widget)),
 	   "font");
 
-  widget = lookup_widget(page, "colorpicker1");
+  widget = lookup_widget(page, "general-osd-foreground-selector");
   gnome_color_picker_get_d(GNOME_COLOR_PICKER(widget), &r, &g, &b,
 			   &a);
   zcs_float(r, "fg_r");
   zcs_float(g, "fg_g");
   zcs_float(b, "fg_b");
 
-  widget = lookup_widget(page, "colorpicker2");
+  widget = lookup_widget(page, "general-osd-background-selector");
   gnome_color_picker_get_d(GNOME_COLOR_PICKER(widget), &r, &g, &b,
 			   &a);
   zcs_float(r, "bg_r");
@@ -1231,8 +1247,8 @@ static void
 add				(GtkDialog *		dialog)
 {
   SidebarEntry general_options[] = {
-    { N_("OSD"), "gnome-oscilloscope.png", "vbox37",
-      osd_setup, osd_apply }
+    { N_("OSD"), "gnome-oscilloscope.png",
+      "general-osd-table", osd_setup, osd_apply }
   };
   SidebarGroup groups[] = {
     { N_("General Options"), general_options, acount (general_options) }
@@ -1290,12 +1306,8 @@ startup_osd(void)
   /* toplevel will never be shown */
 
   /* Add Python interface to our routines */
-  cmd_register ("osd_render_markup", py_osd_render_markup,
-		METH_VARARGS, "Renders OSD text with SGML parsing",
-		"zapping.osd_render_markup('Hello <i>World</i>!')");
-  cmd_register ("osd_render", py_osd_render, METH_VARARGS,
-		"Renders OSD text without SGML parsing",
-		"zapping.osd_render('Hello World!')");
+  cmd_register ("osd_render_markup", py_osd_render_markup, METH_VARARGS);
+  cmd_register ("osd_render", py_osd_render, METH_VARARGS);
 
   /* Register our properties handler */
   prepend_property_handler (&osd_handler);

@@ -19,8 +19,8 @@
 #ifndef __CAPTURE_H__
 #define __CAPTURE_H__
 
-#include "../common/fifo.h"
-#include <tveng.h>
+#include "common/fifo.h"
+#include "tveng.h"
 
 #include "x11stuff.h"
 #include "zimage.h"

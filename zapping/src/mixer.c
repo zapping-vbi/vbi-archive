@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mixer.c,v 1.5.2.5 2003-07-29 03:41:15 mschimek Exp $ */
+/* $Id: mixer.c,v 1.5.2.6 2003-09-24 18:41:24 mschimek Exp $ */
 
 /*
  *  These functions encapsulate the OS and driver specific
@@ -196,7 +196,7 @@ extern const tv_mixer_interface oss_mixer_interface;
 
 static const tv_mixer_interface *
 mixer_interfaces [] = {
-#if USE_OSS
+#ifdef HAVE_OSS
 	&oss_mixer_interface,
 #endif
 	NULL

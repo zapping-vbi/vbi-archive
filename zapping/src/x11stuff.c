@@ -34,11 +34,8 @@
  * the routines contained here are all the X-specific stuff in Zapping
  */
 
-#include "../site_def.h"
-
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "site_def.h"
+#include "config.h"
 
 #include <gdk/gdkx.h>
 #include <gtk/gtk.h>
