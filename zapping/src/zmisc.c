@@ -45,11 +45,12 @@
 #include "capture.h"
 #include "fullscreen.h"
 #include "v4linterface.h"
-#include "ttxview.h"
+
 #include "zvbi.h"
 #include "osd.h"
 #include "remote.h"
 #include "keyboard.h"
+#include "properties-handler.h"
 #include "globals.h"
 #include "audio.h"
 #include "mixer.h"
@@ -236,6 +237,163 @@ z_set_sensitive_with_tooltip	(GtkWidget *		widget,
 
 /**************************************************************************/
 
+/* main.c */
+extern gboolean
+on_zapping_key_press            (GtkWidget *            widget,
+                                 GdkEventKey *          event,
+                                 gpointer *             user_data);
+
+static gboolean
+on_key_press                    (GtkWidget *            widget,
+                                 GdkEventKey *          event,
+                                 TeletextView *         view)
+{
+  return (_teletext_view_on_key_press (widget, event, view)
+          || on_user_key_press (widget, event, NULL)
+          || on_picture_size_key_press (widget, event, NULL));
+}
+
+static gboolean
+on_button_press			(GtkWidget *		widget _unused_,
+				 GdkEventButton *	event,
+				 Zapping *		z)
+{
+  switch (event->button)
+    {
+    case 3: /* Right button */
+      zapping_create_popup (z, event);
+      return TRUE; /* handled */
+
+    default:
+      /* TeletextView handles. */
+      break;
+    }
+
+  return FALSE; /* pass on */
+}
+
+static void
+stop_teletext			(void)
+{
+
+#ifdef HAVE_LIBZVBI
+
+  TeletextView *view;
+  BonoboDockItem *dock_item;
+	
+  /* Teletext in main window */
+
+  view = _teletext_view_from_widget (GTK_WIDGET (zapping));
+ 
+  /* Unredirect key-press-event */
+  g_signal_handlers_disconnect_matched
+    (G_OBJECT (zapping), G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
+     0, 0, NULL, G_CALLBACK (on_key_press), view);
+	
+  g_signal_handlers_unblock_matched
+    (G_OBJECT (zapping), G_SIGNAL_MATCH_FUNC,
+     0, 0, NULL, G_CALLBACK (on_zapping_key_press), NULL);
+
+  dock_item = gnome_app_get_dock_item_by_name (&zapping->app,
+					       "teletext-toolbar");
+  gtk_widget_destroy (GTK_WIDGET (dock_item));
+	
+  gtk_widget_destroy (GTK_WIDGET (view));
+  g_object_set_data (G_OBJECT (zapping), "TeletextView", NULL);
+	
+  gtk_widget_show (GTK_WIDGET (zapping->video));
+
+#endif
+
+}
+
+static gboolean
+start_teletext			(void)
+{
+
+#ifdef HAVE_LIBZVBI
+
+  TeletextView *view;
+  GtkWidget *widget;
+  gint width;
+  gint height;
+  BonoboDockItemBehavior behaviour;
+
+  if (!_teletext_view_new
+      || !zvbi_get_object ())
+    return FALSE;
+
+  view = (TeletextView *) _teletext_view_new ();
+  gtk_widget_show (GTK_WIDGET (view));
+	  
+  g_object_set_data (G_OBJECT (zapping), "TeletextView", view);
+	  
+  gtk_widget_add_events (GTK_WIDGET (zapping), GDK_KEY_PRESS_MASK);
+	  
+  /* Redirect key-press-event */
+  g_signal_handlers_block_matched
+    (G_OBJECT (zapping), G_SIGNAL_MATCH_FUNC,
+     0, 0, NULL, G_CALLBACK (on_zapping_key_press), NULL);
+	  
+  g_signal_connect (G_OBJECT (zapping), "key_press_event",
+		    G_CALLBACK (on_key_press), view);
+  g_signal_connect (G_OBJECT (zapping), "button_press_event",
+		    G_CALLBACK (on_button_press), zapping);
+
+  widget = _teletext_toolbar_new (view->action_group);
+  gtk_widget_show (widget);
+	  
+  view->toolbar = (TeletextToolbar *) widget;
+
+  behaviour = BONOBO_DOCK_ITEM_BEH_EXCLUSIVE;
+  if (!gconf_client_get_bool
+      (gconf_client, "/desktop/gnome/interface/toolbar_detachable", NULL))
+    behaviour |= BONOBO_DOCK_ITEM_BEH_LOCKED;
+
+  gnome_app_add_toolbar (&zapping->app,
+			 GTK_TOOLBAR (widget),
+			 "teletext-toolbar",
+			 behaviour,
+			 BONOBO_DOCK_TOP,
+			 /* band_num */ 2,
+			 /* band_position */ 0,
+			 /* offset */ 0);
+
+  zapping_enable_appbar (zapping, TRUE);
+
+  gtk_widget_hide (GTK_WIDGET (zapping->video));
+
+  gtk_widget_queue_resize (GTK_WIDGET (zapping));
+	  
+  gtk_container_add (GTK_CONTAINER (zapping->contents),
+		     GTK_WIDGET (view));
+  
+  gdk_window_get_geometry (GTK_WIDGET (view)->window,
+			   /* x */ NULL,
+			   /* y */ NULL,
+			   &width,
+			   &height,
+			   /* depth */ NULL);
+	  
+  if (width > 10 && height > 10)
+    {
+      resize_ttx_page (view->zvbi_client_id, width, height);
+      render_ttx_page (view->zvbi_client_id,
+		       GTK_WIDGET (view)->window,
+		       GTK_WIDGET (view)->style->white_gc,
+		       0, 0, 0, 0, width, height);
+    }
+
+  return TRUE;
+
+#else
+
+  return FALSE;
+
+#endif
+
+}
+
 void
 z_set_window_bg			(GtkWidget *		widget,
 				 GdkColor *		color)
@@ -290,12 +448,8 @@ zmisc_stop (tveng_device_info *info)
       break;
 
     case DISPLAY_MODE_WINDOW | CAPTURE_MODE_TELETEXT:
-#ifdef HAVE_LIBZVBI
-      /* teletext in main window */
-      if (1)
-	ttxview_detach (GTK_WIDGET (zapping));
-#endif
-      info->capture_mode = CAPTURE_MODE_NONE;
+      stop_teletext ();
+      zapping->info->capture_mode = CAPTURE_MODE_NONE; /* ugh */
       break;
 
     default:
@@ -335,6 +489,12 @@ zmisc_switch_mode(display_mode new_dmode,
 
   g_assert(info != NULL);
   g_assert(zapping->video != NULL);
+
+  if (0)
+    fprintf (stderr, "%s: %d %d -> %d %d\n",
+	     __FUNCTION__,
+	     zapping->display_mode, info->capture_mode,
+	     new_dmode, new_cmode);
 
   if (zapping->display_mode == new_dmode
       && info->capture_mode == new_cmode)
@@ -386,21 +546,21 @@ zmisc_switch_mode(display_mode new_dmode,
 	{
 	  action = gtk_action_group_get_action (zapping->vbi_action_group,
 						"Teletext");
-	  gtk_action_set_visible (action, FALSE);
+	  z_action_set_visible (action, FALSE);
 
 	  action = gtk_action_group_get_action (zapping->vbi_action_group,
 						"RestoreVideo");
-	  gtk_action_set_visible (action, TRUE);
+	  z_action_set_visible (action, TRUE);
 	}
       else
 	{
 	  action = gtk_action_group_get_action (zapping->vbi_action_group,
 						"RestoreVideo");
-	  gtk_action_set_visible (action, FALSE);
+	  z_action_set_visible (action, FALSE);
 
 	  action = gtk_action_group_get_action (zapping->vbi_action_group,
 						"Teletext");
-	  gtk_action_set_visible (action, TRUE);
+	  z_action_set_visible (action, TRUE);
 
 	  zapping_enable_appbar (zapping, FALSE);
 	}
@@ -501,40 +661,15 @@ zmisc_switch_mode(display_mode new_dmode,
       x11_screensaver_set (X11_SCREENSAVER_ON);
       z_video_blank_cursor (zapping->video, 0);
 
-#ifdef HAVE_LIBZVBI
-      if (zvbi_get_object ())
-	{
-	  if (info->current_controller != TVENG_CONTROLLER_NONE)
-	    tveng_close_device (info);
-	  if (-1 == tveng_attach_device
-	      (zcg_char (NULL, "video_device"),
-	       GDK_WINDOW_XWINDOW (GTK_WIDGET (zapping->video)->window),
-	       TVENG_ATTACH_VBI, info))
-	    {
-	      ShowBox ("Teletext mode not available.",
-		       GTK_MESSAGE_ERROR);
-	      goto failure;
-	    }
-
-	  /* start vbi code */
-
-	  zapping_enable_appbar (zapping, TRUE);
-
-	  ttxview_attach (GTK_WIDGET (zapping),
-			  GTK_WIDGET (zapping->video),
-			  NULL,
-			  GTK_WIDGET (zapping->appbar));
-
-	  zapping->display_mode = DISPLAY_MODE_WINDOW;
-	  info->capture_mode = CAPTURE_MODE_TELETEXT;
-	}
-      else
-#endif
+      if (!start_teletext ())
 	{
 	  ShowBox(_("VBI has been disabled, or it doesn't work."),
 		  GTK_MESSAGE_INFO);
+	  zmisc_stop (info);
 	  goto failure;
 	}
+
+      zapping->info->capture_mode = CAPTURE_MODE_TELETEXT; /* ugh */
 
       break;
 
@@ -791,7 +926,7 @@ z_change_menuitem			 (GtkWidget	*widget,
 }
 
 static void
-appbar_hide(GtkWidget *appbar)
+appbar_hide(GtkWidget *appbar _unused_)
 {
   zapping_enable_appbar (zapping, FALSE);
 }
@@ -2232,6 +2367,68 @@ z_tree_view_remove_selected	(GtkTreeView *		tree_view,
     }
 }
 
+gboolean
+z_overwrite_file		(GtkWindow *		parent,
+				 const gchar *		filename)
+{
+  struct stat st;
+  GtkWidget *dialog;
+  gchar *name;
+
+  if (-1 == stat (filename, &st))
+    {
+      /* Also symlink to non-existing file. */
+      return TRUE;
+    }
+
+  name = g_filename_to_utf8 (filename, -1, NULL, NULL, NULL);
+  if (!name)
+    return FALSE; 
+
+  if (S_ISREG (st.st_mode) || S_ISLNK (st.st_mode))
+    {
+      dialog = gtk_message_dialog_new (parent,
+				       (GTK_DIALOG_MODAL |
+					GTK_DIALOG_DESTROY_WITH_PARENT),
+				       GTK_MESSAGE_QUESTION,
+				       GTK_BUTTONS_NONE,
+				       _("%s exists."),
+				       name);
+
+      gtk_dialog_add_buttons (GTK_DIALOG (dialog),
+			      GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
+			      _("_Overwrite"), GTK_RESPONSE_ACCEPT,
+			      NULL);
+    }
+  else if (S_ISDIR (st.st_mode))
+    {
+      ShowBox (_("%s is a directory."), GTK_MESSAGE_ERROR, name);
+      g_free (name);
+      return FALSE;
+    }
+  else
+    {
+      dialog = gtk_message_dialog_new (parent,
+				       (GTK_DIALOG_MODAL |
+					GTK_DIALOG_DESTROY_WITH_PARENT),
+				       GTK_MESSAGE_QUESTION,
+				       GTK_BUTTONS_NONE,
+				       /* TRANSLATORS: device file, pipe,
+					  socket etc. */
+				       _("%s is a special file."),
+				       name);
+
+      gtk_dialog_add_buttons (GTK_DIALOG (dialog),
+			      _("Continue"), GTK_RESPONSE_ACCEPT,
+			      GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
+			      NULL);
+    }
+
+  g_free (name);
+
+  return (GTK_RESPONSE_ACCEPT == gtk_dialog_run (GTK_DIALOG (dialog)));
+}
+
 void
 from_old_tveng_capture_mode	(display_mode *		dmode,
 				 capture_mode *		cmode,
@@ -2312,7 +2509,7 @@ to_old_tveng_capture_mode	(display_mode 		dmode,
 gboolean
 z_set_overlay_buffer		(tveng_device_info *	info,
 				 const tv_screen *	screen,
-				 const GdkWindow *	window)
+				 const GdkWindow *	window _unused_)
 {
 #if 0 /* Gtk 2.2 */
   GdkDisplay *display;
@@ -2328,19 +2525,54 @@ z_set_overlay_buffer		(tveng_device_info *	info,
 				&screen->target);
 }
 
-
 typedef struct {
-  GtkToggleAction *	toggle_action;
-  gulong		handler_id;
-  gchar *		gconf_key;
-  guint			gconf_cnxn;
-} tagc_con;
+  gchar *		key;
+  guint			cnxn;
+} gc_notify;
 
 static void
-gconf_change			(GConfClient *		client,
-				 guint			cnxn_id,
+gc_notify_destroy		(gc_notify *		g)
+{
+  if (0 != g->cnxn)
+    gconf_client_notify_remove (gconf_client, g->cnxn);
+
+  g_free (g->key);
+
+  g_free (g);
+}
+
+static void
+gc_notify_add			(gc_notify *		g,
+				 const char *		gconf_key,
+				 GConfClientNotifyFunc	func)
+{
+  GError *error;
+
+  error = NULL;
+
+  g->key = g_strdup (gconf_key);
+
+  g->cnxn = gconf_client_notify_add (gconf_client, gconf_key,
+				     func, g, /* destroy */ NULL, &error);
+  if (error)
+    {
+      g_message ("GConf notification '%s' error:\n%s\n",
+		 gconf_key, error->message);
+      g_error_free (error);
+      exit (EXIT_FAILURE);
+    }
+}
+
+typedef struct {
+  gc_notify		gcn;
+  GtkToggleAction *	toggle_action;
+} gc_toggle_action;
+
+static void
+gc_toggle_action_notify		(GConfClient *		client _unused_,
+				 guint			cnxn_id _unused_,
 				 GConfEntry *		entry,
-				 tagc_con *		tagc)
+				 gc_toggle_action *	g)
 {
   gboolean active;
 
@@ -2349,60 +2581,36 @@ gconf_change			(GConfClient *		client,
 
   active = gconf_value_get_bool (entry->value);
 
-  if (active == gtk_toggle_action_get_active (tagc->toggle_action))
-    return; /* break recursion */
+  if (active == gtk_toggle_action_get_active (g->toggle_action))
+    return;
 
-  gtk_toggle_action_set_active (tagc->toggle_action, active);
+  gtk_toggle_action_set_active (g->toggle_action, active);
 }
 
 static void
-gconf_destroy			(tagc_con *		tagc)
-{
-  if (tagc->toggle_action)
-    if (g_signal_handler_is_connected (tagc->toggle_action, tagc->handler_id))
-      g_signal_handler_disconnect (tagc->toggle_action, tagc->handler_id);
-
-  g_free (tagc->gconf_key);
-
-  CLEAR (tagc);
-  g_free (tagc);
-}
-
-static void
-action_toggled			(GtkToggleAction *	toggle_action,
-				 tagc_con *		tagc)
+gc_toggle_action_toggled	(GtkToggleAction *	toggle_action,
+				 gc_toggle_action *	g)
 {
   gboolean active;
 
   active = gtk_toggle_action_get_active (toggle_action);
 
   /* Error ignored. */
-  gconf_client_set_bool (gconf_client, tagc->gconf_key,
-			 active, /* GError */ NULL);
-}
-
-static void
-action_destroy			(tagc_con *		tagc,
-				 GClosure *		closure)
-{
-  if (0 != tagc->gconf_cnxn)
-    gconf_client_notify_remove (gconf_client, tagc->gconf_cnxn);
-
-  g_free (tagc->gconf_key);
-
-  CLEAR (tagc);
-  g_free (tagc);
+  gconf_client_set_bool (gconf_client,
+			 g->gcn.key,
+			 active,
+			 /* err */ NULL);
 }
 
 void
 z_toggle_action_connect_gconf_key
 				(GtkToggleAction *	toggle_action,
-				 const gchar *		key)
+				 const gchar *		gconf_key)
 {
-  tagc_con *tagc;
+  gc_toggle_action *g;
   GConfValue *value;
 
-  if ((value = gconf_client_get (gconf_client, key, /* GError */ NULL)))
+  if ((value = gconf_client_get (gconf_client, gconf_key, /* err */ NULL)))
     {
       gboolean active;
 
@@ -2414,19 +2622,168 @@ z_toggle_action_connect_gconf_key
       gtk_toggle_action_set_active (toggle_action, active);
     }
 
-  tagc = g_malloc0 (sizeof (*tagc));
-  tagc->gconf_key = g_strdup (key);
+  g = g_malloc0 (sizeof (*g));
 
-  tagc->toggle_action = toggle_action;
+  g->toggle_action = toggle_action;
 
-  tagc->gconf_cnxn = gconf_client_notify_add (gconf_client,
-					      tagc->gconf_key,
-					      gconf_change, tagc,
-					      gconf_destroy,
-					      /* GError */ NULL);
+  gc_notify_add (&g->gcn, gconf_key,
+		 (GConfClientNotifyFunc) gc_toggle_action_notify);
 
-  tagc->handler_id = g_signal_connect_data (toggle_action, "toggled",
-					    G_CALLBACK (action_toggled), tagc,
-					    action_destroy,
-					    /* connect_flags */ 0);
+  g_signal_connect_data (G_OBJECT (toggle_action), "toggled",
+			 G_CALLBACK (gc_toggle_action_toggled), g,
+			 (GClosureNotify) gc_notify_destroy,
+			 /* connect_flags */ 0);
+}
+
+typedef struct {
+  gc_notify		gcn;
+  GtkComboBox *		combo_box;
+  GConfEnumStringPair *	lookup_table;
+} gc_combo_box;
+
+static void
+gc_combo_box_notify		(GConfClient *		client _unused_,
+				 guint			cnxn_id _unused_,
+				 GConfEntry *		entry,
+				 gc_combo_box *		g)
+{
+  if (entry->value)
+    {
+      const gchar *s;
+
+      s = gconf_value_get_string (entry->value);
+      if (s)
+	{
+	  guint i;
+
+	  for (i = 0; g->lookup_table[i].str; ++i)
+	    {
+	      if (0 == strcmp (s, g->lookup_table[i].str))
+		{
+		  gint index;
+
+		  index = gtk_combo_box_get_active (g->combo_box);
+		  if ((gint) i != index)
+		    gtk_combo_box_set_active (g->combo_box, (gint) i);
+
+		  return;
+		}
+	    }
+	}
+    }
+
+  gtk_combo_box_set_active (g->combo_box, -1 /* unset */);
+}
+
+static void
+gc_combo_box_changed		(GtkComboBox *		combo_box,
+				 gc_combo_box *		g)
+{
+  gint index;
+
+  index = gtk_combo_box_get_active (combo_box);
+
+  /* Error ignored. */
+  gconf_client_set_string (gconf_client,
+			   g->gcn.key,
+			   g->lookup_table[index].str,
+			   /* err */ NULL);
+}
+
+GtkWidget *
+z_gconf_combo_box_new		(const gchar **		option_menu,
+				 const gchar *		gconf_key,
+				 GConfEnumStringPair *	lookup_table)
+{
+  gc_combo_box *g;
+  GtkWidget *widget;
+  guint i;
+  GError *error;
+  gchar *s;
+
+  g = g_malloc0 (sizeof (*g));
+
+  widget = gtk_combo_box_new_text ();
+  g->combo_box = GTK_COMBO_BOX (widget);
+
+  for (i = 0; option_menu[i]; ++i)
+    gtk_combo_box_append_text (g->combo_box, _(option_menu[i]));
+
+  error = NULL;
+
+  if ((s = gconf_client_get_string (gconf_client, gconf_key, &error)))
+    {
+      for (i = 0; lookup_table[i].str; ++i)
+	{
+	  if (0 == strcmp (s, lookup_table[i].str))
+	    {
+	      gtk_combo_box_set_active (g->combo_box, (int) i);
+	      break;
+	    }
+	}
+    }
+  else
+    {
+      g_message ("GConf get '%s' error:\n%s\n", gconf_key, error->message);
+      g_error_free (error);
+    }
+
+  g->lookup_table = lookup_table;
+
+  gc_notify_add (&g->gcn, gconf_key,
+		 (GConfClientNotifyFunc) gc_combo_box_notify);
+
+  g_signal_connect (G_OBJECT (widget), "changed",
+		    G_CALLBACK (gc_combo_box_changed), g);
+
+  g_signal_connect_swapped (G_OBJECT (widget), "destroy",
+			    G_CALLBACK (gc_notify_destroy), g);
+
+  return widget;
+}
+
+gboolean
+z_gconf_get_string_enum		(gint *			enum_value,
+				 const gchar *		gconf_key,
+				 const GConfEnumStringPair *lookup_table)
+{
+  GError *error;
+  gchar *s;
+  gboolean r;
+
+  error = NULL;
+
+  if ((s = gconf_client_get_string (gconf_client, gconf_key, &error)))
+    {
+      r = gconf_string_to_enum (lookup_table, s, enum_value);
+      g_free (s);
+    }
+  else
+    {
+      g_message ("GConf get '%s' error:\n%s\n", gconf_key, error->message);
+      g_error_free (error);
+      r = FALSE;
+    }
+
+  return r;
+}
+
+/* Not available until Gtk+ 2.6 */
+void
+z_action_set_sensitive		(GtkAction *		action,
+				 gboolean		sensitive)
+{
+  g_object_set (G_OBJECT (action),
+		"sensitive", sensitive,
+		NULL);
+}
+
+/* Not available until Gtk+ 2.6 */
+void
+z_action_set_visible		(GtkAction *		action,
+				 gboolean		visible)
+{
+  g_object_set (G_OBJECT (action),
+		"visible", visible,
+		NULL);
 }
