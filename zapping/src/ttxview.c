@@ -41,7 +41,7 @@
 #include "zmisc.h"
 #include "zmodel.h"
 #include "common/fifo.h"
-#include "common/errstr.h"
+//#include "common/errstr.h"
 #include "common/ucs-2.h"
 #include "osd.h"
 #include "callbacks.h"
@@ -195,7 +195,7 @@ static void
 add_bookmark(gint page, gint subpage, const gchar *description,
 	     const gchar *channel)
 {
-  struct bookmark *entry =
+  struct bookmark *entry = (struct bookmark *)
     g_malloc(sizeof(struct bookmark));
 
   entry->page = page;
@@ -232,7 +232,8 @@ ttxview_data_from_widget		(GtkWidget *	widget)
 
   if ((parent = find_widget (widget, "ttxview"))
       || (parent = find_widget (widget, "zapping")))
-    return gtk_object_get_data (GTK_OBJECT (parent), "ttxview_data");
+    return (ttxview_data *)
+      gtk_object_get_data (GTK_OBJECT (parent), "ttxview_data");
 
   return NULL;
 }
@@ -503,7 +504,7 @@ static void selection_handle		(GtkWidget	*widget,
 	  int width = data->sel_col2 - data->sel_col1 + 1;
 	  int height = data->sel_row2 - data->sel_row1 + 1;
 	  int actual = 0, size = width * height * 8;
-	  char *buf = malloc (size);
+	  char *buf = (char *) malloc (size);
 
 	  if (buf) {
 	    actual = vbi_print_page_region (&data->clipboard_fmt_page,
@@ -1098,7 +1099,7 @@ void on_search_progress_destroy		(GtkObject	*widget,
   search_progress = NULL;
 
   if (!running)
-    vbi_search_delete(context);
+    vbi_search_delete((vbi_search *) context);
 }
 
 static
@@ -1202,7 +1203,7 @@ void run_next				(GtkButton	*button,
       if (search_progress)
 	gtk_widget_destroy(search_progress);
       else
-	vbi_search_delete(context);
+	vbi_search_delete((vbi_search *) context);
     }
 }
 
@@ -1587,7 +1588,7 @@ void on_be_delete			(GtkWidget	*widget,
     return;
 
   n = g_list_length(clist->selection);
-  deleted = g_malloc(sizeof(gint)*n);
+  deleted = (gint *) g_malloc(n * sizeof(gint));
   
   while (rows)
     {
@@ -1689,7 +1690,7 @@ on_export_control			(GtkWidget *w,
 					 gpointer user_data)
 {
   vbi_export *exp = user_data;
-  gchar *keyword = gtk_object_get_data (GTK_OBJECT (w), "key");
+  gchar *keyword = (gchar *) gtk_object_get_data (GTK_OBJECT (w), "key");
   vbi_option_info *oi = vbi_export_option_info_keyword (exp, keyword);
   vbi_option_value val;
   gchar *zcname;
@@ -1712,7 +1713,7 @@ on_export_control			(GtkWidget *w,
 	  zconf_set_boolean (val.num, zcname);
 	break;
       case VBI_OPTION_INT:
-	val.num = GTK_ADJUSTMENT (w)->value;
+	val.num = (int) GTK_ADJUSTMENT (w)->value;
         if (vbi_export_option_set (exp, keyword, val))
 	  zconf_set_integer (val.num, zcname);
 	break;
@@ -2061,7 +2062,7 @@ void export_ttx_page			(GtkWidget	*widget,
       xi = vbi_export_info_export (exp);
       extensions = g_strsplit (xi->extension, ",", 1);
 
-      for (i = 0; i < strlen (network.name); i++)
+      for (i = 0; i < (int) strlen (network.name); i++)
 	if (!isalnum (network.name[i]))
 	  network.name[i] = '_';
 
@@ -2163,13 +2164,13 @@ on_color_control			(GtkWidget *w,
 
   switch (id) {
   case 0:
-    brig = GTK_ADJUSTMENT(w)->value;
+    brig = (gint) GTK_ADJUSTMENT(w)->value;
     zconf_set_integer(brig, TXCOLOR_DOMAIN "brightness");
     zconf_get_integer(&cont, TXCOLOR_DOMAIN "contrast");
     break;
 
   case 1:
-    cont = GTK_ADJUSTMENT(w)->value;
+    cont = (gint) GTK_ADJUSTMENT(w)->value;
     zconf_set_integer(cont, TXCOLOR_DOMAIN "contrast");
     zconf_get_integer(&brig, TXCOLOR_DOMAIN "brightness");
     break;
@@ -2500,7 +2501,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
-			     GINT_TO_POINTER(count<<16) + VBI_ANY_SUBNO);
+			     GINT_TO_POINTER((count << 16) + VBI_ANY_SUBNO));
 	  buffer = g_strdup_printf(_("Page %x"), count);
 	  z_tooltip_set(menu_item, buffer);
 	  g_free(buffer);
@@ -2625,7 +2626,7 @@ static
 GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 {
   GtkWidget *popup = build_widget("ttxview_popup", NULL);
-  GtkWidget *export;
+  GtkWidget *exp;
   GList *p = g_list_first(bookmarks);
   struct bookmark *bookmark;
   GtkWidget *menuitem;
@@ -2694,10 +2695,10 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
       }
 
   /* Export modules */
-  export = lookup_widget(popup, "export1");
+  exp = lookup_widget(popup, "export1");
 
   if (!vbi_export_info_enum(0))
-    gtk_widget_hide(export);
+    gtk_widget_hide(exp);
   else
     {
       vbi_export_info *xm;
@@ -2722,7 +2723,7 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 			       GTK_SIGNAL_FUNC(on_export_menu),
 			       data);
 	  }
-      gtk_menu_item_set_submenu(GTK_MENU_ITEM(export), menu);
+      gtk_menu_item_set_submenu(GTK_MENU_ITEM(exp), menu);
     }
 
   build_subtitles_submenu(data->parent, GTK_MENU(popup), FALSE);
@@ -2738,8 +2739,8 @@ process_ttxview_menu_popup		(GtkWidget	*widget,
   gint w, h, col, row;
   vbi_link ld;
   GtkMenu *menu;
-  ttxview_data *data = gtk_object_get_data(GTK_OBJECT(widget),
-					   "ttxview_data");
+  ttxview_data *data = (ttxview_data *)
+    gtk_object_get_data(GTK_OBJECT(widget), "ttxview_data");
 
   GtkWidget *menu_item;
   gint count = 1;
@@ -3432,7 +3433,7 @@ ttxview_toolbar_init		(GtkWidget *		toolbar)
   };
   GtkWidget *widget;
   GtkWidget *button;
-  gint i;
+  guint i;
 
   for (i = 0; i < sizeof (buttons) / sizeof (buttons[0]); i++)
     {
@@ -3465,7 +3466,7 @@ build_ttxview(void)
       return ttxview;
     }
 
-  data = g_malloc(sizeof(ttxview_data));
+  data = (ttxview_data *) g_malloc(sizeof(ttxview_data));
   memset(data, 0, sizeof(ttxview_data));
 
   data->da = lookup_widget(ttxview, "drawingarea1");
@@ -3559,7 +3560,7 @@ ttxview_attach				(GtkWidget	*parent,
 					 GtkWidget	*toolbar,
 					 GtkWidget	*appbar)
 {
-  ttxview_data *data =
+  ttxview_data *data = (ttxview_data *)
     gtk_object_get_data(GTK_OBJECT(parent), "ttxview_data");
   gint w, h;
 
@@ -3574,7 +3575,7 @@ ttxview_attach				(GtkWidget	*parent,
   if (data)
     return;
 
-  data = g_malloc(sizeof(ttxview_data));
+  data = (ttxview_data *) g_malloc(sizeof(ttxview_data));
   memset(data, 0, sizeof(ttxview_data));
 
   gtk_object_set_data(GTK_OBJECT(parent), "ttxview_data", data);
@@ -3679,7 +3680,7 @@ ttxview_attach				(GtkWidget	*parent,
 void
 ttxview_detach			(GtkWidget	*parent)
 {
-  ttxview_data *data =
+  ttxview_data *data = (ttxview_data *)
     gtk_object_get_data(GTK_OBJECT(parent), "ttxview_data");
 
   if (!data)
