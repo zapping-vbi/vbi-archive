@@ -54,10 +54,10 @@ typedef struct _DEINTERLACE_METHOD
     // set to DEINTERLACE_CURRENT_VERSION
     long DeinterlaceStructureVersion;
     // What to display when selected
-    char* szName;
+    const char* szName;
     // Short Name
     // What to display when used in adaptive Mode (NULL to use szName)
-    char* szShortName;
+    const char* szShortName;
     // Do we need to shrink the overlay by half
     BOOL bIsHalfHeight;
     // Is this a film Mode
