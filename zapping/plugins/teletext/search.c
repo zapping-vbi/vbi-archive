@@ -1,49 +1,41 @@
 /*
- *  Zapping (TV viewer for the Gnome Desktop)
+ *  Zapping TV viewer
  *
- * Copyright (C) 2001 Iñaki García Etxebarria
- * Copyright (C) 2003 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002 Iñaki García Etxebarria
+ *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.1 2004-09-22 21:29:07 mschimek Exp $ */
+/* $Id: search.c,v 1.2 2004-11-03 06:46:44 mschimek Exp $ */
 
-#define ZCONF_DOMAIN "/zapping/ttxview/"
-#include "zconf.h"
-#include "zmisc.h"
-#include "zvbi.h"
-
+#include "src/zmisc.h"
+#include "main.h"		/* td */
 #include "search.h"
-
-static GdkCursor *	cursor_normal;
-static GdkCursor *	cursor_busy;
-
-/* XXX should be a signal. */
-extern void
-teletext_view_load_page		(TeletextView *		view,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 vbi_page *		pg);
 
 enum {
   SEARCH_RESPONSE_BACK = 1,
   SEARCH_RESPONSE_FORWARD,
 };
 
-static GObjectClass *parent_class;
+#define GCONF_DIR "/apps/zapping/plugins/teletext"
+
+static GObjectClass *		parent_class;
+
+static GdkCursor *		cursor_normal;
+static GdkCursor *		cursor_busy;
 
 /* Substitute keywords by regex, returns a newly allocated string. */
 static gchar *
@@ -51,7 +43,8 @@ substitute			(const gchar *		string)
 {
   static const gchar *search_keys [][2] = {
     { "#email#", "([:alnum:]|[-~.])+@([:alnum:]|[-~.])+" },
-    { "#url#", "(https?://([:alnum:]|[-~./?%_=+])+)|(www.([:alnum:]|[-~./?%_=+])+)" }
+    { "#url#", "(https?://([:alnum:]|[-~./?%_=+])+)|"
+               "(www.([:alnum:]|[-~./?%_=+])+)" }
   };
   gchar *s;
   guint i;
@@ -118,8 +111,8 @@ static gboolean
 idle				(gpointer		user_data)
 {
   SearchDialog *sp = user_data;
-  vbi_search_status status;
-  vbi_page *pg;
+  vbi3_search_status status;
+  const vbi3_page *pg;
   gboolean call_again;
 
 #if 1
@@ -137,32 +130,42 @@ idle				(gpointer		user_data)
 
   gtk_label_set_text (sp->label, _("Search text:"));
 
-  status = vbi_search_next (sp->context, &pg, sp->direction);
+  status = vbi3_search_next (sp->context, &pg, sp->direction);
 
   switch (status)
     {
-    case VBI_SEARCH_SUCCESS:
+    case VBI3_SEARCH_SUCCESS:
       sp->start_pgno = pg->pgno;
       sp->start_subno = pg->subno;
-      if (sp->data)
-	teletext_view_load_page (sp->data, pg->pgno, pg->subno, pg);
+
+      if (sp->view)
+	{
+	  vbi3_page *pg2;
+
+	  pg2 = vbi3_page_dup (pg);
+	  g_assert (NULL != pg2);
+
+	  teletext_view_show_page (sp->view, pg2);
+	}
+
       result (sp, _("Found text on page %x.%02x:"), pg->pgno, pg->subno);
+
       call_again = FALSE;
       sp->searching = FALSE;
       break;
 
-    case VBI_SEARCH_NOT_FOUND:
+    case VBI3_SEARCH_NOT_FOUND:
       result (sp, _("Not found:"));
       call_again = FALSE;
       sp->searching = FALSE;
       break;
 
-    case VBI_SEARCH_CANCELED:
+    case VBI3_SEARCH_ABORTED:
       /* Events pending, handle them and continue. */
       call_again = TRUE;
       break;
 
-    case VBI_SEARCH_CACHE_EMPTY:
+    case VBI3_SEARCH_CACHE_EMPTY:
       result (sp, _("Page memory is empty"));
       call_again = FALSE;
       sp->searching = FALSE;
@@ -174,7 +177,7 @@ idle				(gpointer		user_data)
 
       /* fall through */
 
-    case VBI_SEARCH_ERROR:
+    case VBI3_SEARCH_ERROR:
       call_again = FALSE;
       sp->searching = FALSE;
       break;
@@ -186,64 +189,49 @@ idle				(gpointer		user_data)
 static void
 search_restart			(SearchDialog *		sp,
 				 const gchar *		text,
-				 vbi_pgno		start_pgno,
-				 vbi_subno		start_subno,
+				 vbi3_pgno		start_pgno,
+				 vbi3_subno		start_subno,
 				 gboolean		regexp,
-				 gboolean		casefold)
+				 gboolean		casefold,
+				 gboolean		all_channels _unused_)
 {
-  uint16_t *pattern;
-  gchar *s;
-  gchar *s1;
-  guint i;
+  const vbi3_network *nk;
+  gchar *pattern;
 
   g_free (sp->text);
   sp->text = g_strdup (text);
 
-  zcs_bool (regexp, "ure_regexp");
-  zcs_bool (casefold, "ure_casefold");
+  pattern = substitute (text);
 
-  s1 = substitute (text);
+  vbi3_search_delete (sp->context);
 
-  /* I don't trust g_convert() to convert to the
-     machine endian UCS2 we need, hence g_utf8_foo. */
-
-  pattern = g_malloc (strlen (s1) * 2 + 2);
-
-  i = 0;
-
-  for (s = s1; *s; s = g_utf8_next_char (s))
-    pattern[i++] = g_utf8_get_char (s);
-
-  pattern[i] = 0;
-
-  vbi_search_delete (sp->context);
+  nk = &sp->view->req.network;
+  if (vbi3_network_is_anonymous (nk))
+    nk = NULL; /* use received */
 
   /* Progress callback: Tried first with, to permit the user cancelling
      a running search. But it seems there's a bug in libzvbi,
-     vbi_search_next does not properly resume after the progress
+     vbi3_search_next does not properly resume after the progress
      callback aborted to handle pending gtk events. Calling gtk main
      from callback is suicidal. Another bug: the callback lacks a
      user_data parameter. */
-  sp->context = vbi_search_new (zvbi_get_object (),
-				start_pgno,
-				start_subno,
-				pattern,
-				casefold,
-				regexp,
-				/* progress */ NULL);
-  g_free (pattern);
+  sp->context = vbi3_teletext_decoder_search_utf8_new
+    (td, nk, start_pgno, start_subno,
+     pattern, casefold, regexp,
+     /* progress */ NULL, /* user_data */ NULL);
 
-  g_free (s1);
+  g_free (pattern);
 }
 
 static void
 _continue			(SearchDialog *		sp,
 				 gint			direction)
 {
+  gboolean regexp = TRUE;
+  gboolean casefold = FALSE;
+  gboolean all_channels = FALSE;
   const gchar *ctext;
   gchar *text;
-  gboolean regexp;
-  gboolean casefold;
 
   ctext = gtk_entry_get_text (GTK_ENTRY (sp->entry));
 
@@ -257,23 +245,27 @@ _continue			(SearchDialog *		sp,
 
   text = g_strdup (ctext);
 
-  regexp = gtk_toggle_button_get_active (sp->regexp);
-  casefold = gtk_toggle_button_get_active (sp->casefold);
+  /* Error ignored. */
+  z_gconf_get_bool (&regexp, GCONF_DIR "/search/regexp");
+  z_gconf_get_bool (&casefold, GCONF_DIR "/search/casefold");
+  z_gconf_get_bool (&all_channels, GCONF_DIR "/search/all_channels");
 
-  if (!sp->text
-      || 0 != strcmp (sp->text, text))
+  if (!sp->text || 0 != strcmp (sp->text, text))
     {
-      search_restart (sp, text,
-		      0x100, VBI_ANY_SUBNO,
-		      regexp, casefold);
+      search_restart (sp, text, 0x100, VBI3_ANY_SUBNO,
+		      regexp, casefold, all_channels);
     }
-  else if (casefold != zcg_bool (NULL, "ure_casefold")
-	   || regexp != zcg_bool (NULL, "ure_regexp"))
+  else if (regexp != sp->regexp
+	   || casefold != sp->casefold
+	   || all_channels != sp->all_channels)
     {
-      search_restart (sp, text,
-		      sp->start_pgno, sp->start_subno,
-		      regexp, casefold);
+      search_restart (sp, text, sp->start_pgno, sp->start_subno,
+		      regexp, casefold, all_channels);
     }
+
+  sp->regexp = regexp;
+  sp->casefold = casefold;
+  sp->all_channels = all_channels;
 
   g_free (text);
 
@@ -309,8 +301,7 @@ static void
 on_help_clicked			(GtkWidget *		button _unused_,
 				 SearchDialog *		sp _unused_)
 {
-  /* XXX handle error */
-  gnome_help_display ("zapping", "zapzilla-search", NULL); 
+  z_help_display (GTK_WINDOW (sp), "zapping", "zapzilla-search");
 }
 
 static void
@@ -322,7 +313,7 @@ instance_finalize		(GObject *		object)
     g_idle_remove_by_data (t);
 
   if (t->context)
-    vbi_search_delete (t->context);
+    vbi3_search_delete (t->context);
 
   g_free (t->text);
 
@@ -339,7 +330,7 @@ instance_init			(GTypeInstance *	instance,
   GtkBox *vbox;
 
   t->start_pgno = 0x100;
-  t->start_subno = VBI_ANY_SUBNO;
+  t->start_subno = VBI3_ANY_SUBNO;
 
   window = GTK_WINDOW (t);
   gtk_window_set_title (window, _("Search page memory"));
@@ -358,14 +349,18 @@ instance_init			(GTypeInstance *	instance,
   gtk_entry_set_activates_default (GTK_ENTRY (t->entry), TRUE);
   gtk_box_pack_start (vbox, widget, FALSE, FALSE, 3);
 
-  widget = gtk_check_button_new_with_mnemonic (_("_Regular expression"));
-  t->regexp = GTK_TOGGLE_BUTTON (widget);
-  gtk_toggle_button_set_active (t->regexp, zcg_bool (NULL, "ure_regexp"));
+  widget = z_gconf_check_button_new (_("_Regular expression"),
+				     GCONF_DIR "/search/regexp", TRUE);
   gtk_box_pack_start (vbox, widget, FALSE, FALSE, 3);
 
-  widget = gtk_check_button_new_with_mnemonic (_("Search case _insensitive"));
-  t->casefold = GTK_TOGGLE_BUTTON (widget);
-  gtk_toggle_button_set_active (t->casefold, zcg_bool (NULL, "ure_casefold"));
+  widget = z_gconf_check_button_new (_("Search case _insensitive"),
+				     GCONF_DIR "/search/casefold", FALSE);
+  gtk_box_pack_start (vbox, widget, FALSE, FALSE, 3);
+
+  /* Future stuff. */
+  widget = z_gconf_check_button_new (_("_All channels"),
+				     GCONF_DIR "/search/all_channels", FALSE);
+  gtk_widget_set_sensitive (widget, FALSE);
   gtk_box_pack_start (vbox, widget, FALSE, FALSE, 3);
 
   widget = gtk_button_new_from_stock (GTK_STOCK_HELP);
@@ -399,19 +394,16 @@ instance_init			(GTypeInstance *	instance,
 }
 
 GtkWidget *
-search_dialog_new		(void *		data)
+search_dialog_new		(TeletextView *		view)
 {
   SearchDialog *sp;
 
-  if (!zvbi_get_object())
-    {
-      ShowBox (_("VBI has been disabled"), GTK_MESSAGE_WARNING);
-      return NULL;
-    }
-
   sp = (SearchDialog *) g_object_new (TYPE_SEARCH_DIALOG, NULL);
 
-  sp->data = data;
+  sp->view = view;
+
+  g_signal_connect_swapped (G_OBJECT (view), "destroy",
+			    G_CALLBACK (gtk_widget_destroy), sp);
 
   return GTK_WIDGET (sp);
 }
