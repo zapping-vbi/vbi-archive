@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: interface.c,v 1.27 2004-08-13 01:10:41 mschimek Exp $ */
+/* $Id: interface.c,v 1.28 2004-09-10 04:46:09 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 toolbar changes */
 #undef GTK_DISABLE_DEPRECATED
@@ -208,7 +208,7 @@ on_python_check_menu_toggled_reverse
 }
 
 static void
-zconf_hook_show_toolbar		(const gchar *		key,
+zconf_hook_show_toolbar		(const gchar *		key _unused_,
 				 gpointer		new_value_ptr,
 				 GtkCheckMenuItem *	item)
 {
@@ -220,9 +220,9 @@ zconf_hook_show_toolbar		(const gchar *		key,
     gtk_check_menu_item_set_active (item, !hide);
 
   menu = GTK_WIDGET (gnome_app_get_dock_item_by_name
-		     (GNOME_APP (main_window), GNOME_APP_MENUBAR_NAME));
+		     (&zapping->app, GNOME_APP_MENUBAR_NAME));
   toolbar = GTK_WIDGET (gnome_app_get_dock_item_by_name
-			(GNOME_APP (main_window), GNOME_APP_TOOLBAR_NAME));
+			(&zapping->app, GNOME_APP_TOOLBAR_NAME));
   if (hide)
     {
       gtk_widget_hide (menu);
@@ -234,11 +234,11 @@ zconf_hook_show_toolbar		(const gchar *		key,
       gtk_widget_show (toolbar);
     }
 
-  gtk_widget_queue_resize (main_window);
+  gtk_widget_queue_resize (GTK_WIDGET (zapping));
 }
 
 static void
-zconf_hook_keep_window_on_top	(const gchar *		key,
+zconf_hook_keep_window_on_top	(const gchar *		key _unused_,
 				 gpointer		new_value_ptr,
 				 GtkCheckMenuItem *	item)
 {
@@ -251,9 +251,9 @@ zconf_hook_keep_window_on_top	(const gchar *		key,
 }
 
 static void
-zconf_hook_toolbar_style	(const gchar *		key,
-				 gpointer		new_value_ptr,
-				 gpointer		data)
+zconf_hook_toolbar_style	(const gchar *		key _unused_,
+				 gpointer		new_value_ptr _unused_,
+				 gpointer		data _unused_)
 {
 #if 0
   gint style = * (gint *) new_value_ptr;
@@ -264,7 +264,7 @@ zconf_hook_toolbar_style	(const gchar *		key,
 }
 
 static void
-zconf_hook_toolbar_tooltips	(const gchar *		key,
+zconf_hook_toolbar_tooltips	(const gchar *		key _unused_,
 				 gpointer		new_value_ptr,
 				 gpointer		data)
 {
@@ -347,7 +347,7 @@ zapping_popup_menu_new		(GdkEventButton *	event)
 		       /* mnemo */ FALSE,
 		       /* position */ 0);
 
-  add_channel_entries (GTK_MENU_SHELL (menu), 0, 10, main_info);
+  add_channel_entries (GTK_MENU_SHELL (menu), 0, 10, zapping->info);
 
   if (disable_preview)
     {
@@ -365,12 +365,17 @@ zapping_popup_menu_new		(GdkEventButton *	event)
 
       teletext = popup_uiinfo[5].widget; /* teletext */
 
-      if (TVENG_TELETEXT == main_info->current_mode)
+      if (CAPTURE_MODE_TELETEXT == zapping->info->capture_mode)
 	{
 	  GtkWidget *ttxview_menu;
 
 	  if (event)
-	    ttxview_menu = ttxview_popup (main_window, event);
+	    {
+	      if (1)
+		ttxview_menu = ttxview_popup (GTK_WIDGET (zapping), event);
+	      else
+		ttxview_menu = NULL;
+	    }
 
 	  if (event && ttxview_menu)
 	    {
@@ -384,8 +389,14 @@ zapping_popup_menu_new		(GdkEventButton *	event)
 	    }
 
 	  widget = popup_uiinfo[7].widget; /* bookmarks */
-	  gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget),
-				     ttxview_bookmarks_menu_new (main_window));
+
+	  if (1)
+	    {
+	      GtkWidget *bookmarks;
+	      
+	      bookmarks = ttxview_bookmarks_menu_new (GTK_WIDGET (zapping));
+	      gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget), bookmarks);
+	    }
 	}
       else
 	{
@@ -403,7 +414,7 @@ zapping_popup_menu_new		(GdkEventButton *	event)
 
 	widget = popup_uiinfo[6].widget; /* subtitles */
 
-	if ((subtitles_menu = ttxview_subtitles_menu_new ()))
+	if (1 && (subtitles_menu = ttxview_subtitles_menu_new ()))
 	  {
 	    gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget),
 				       subtitles_menu);
@@ -415,8 +426,9 @@ zapping_popup_menu_new		(GdkEventButton *	event)
 	  }
       }
 
-      ttxview_hotlist_menu_append (GTK_MENU_SHELL (menu),
-				   /* separator */ FALSE);
+      if (1)
+	ttxview_hotlist_menu_append (GTK_MENU_SHELL (menu),
+				      /* separator */ FALSE);
     }
   else
 #endif
@@ -486,7 +498,7 @@ zapping_popup_menu_new		(GdkEventButton *	event)
 
     /* Let plugins add their GUI to this context menu */
     for (glist = plugin_list; glist; glist = glist->next)
-      plugin_process_popup_menu (main_window, event,
+      plugin_process_popup_menu (GTK_WIDGET (zapping), event,
 				 GTK_MENU (menu),
 				 (struct plugin_info *) glist->data);
   }
@@ -736,7 +748,7 @@ zapping_toolbar_new		(GtkWidget *		zapping)
 
 static void
 on_zapping_delete_event		(GtkWidget *		widget,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   python_command (widget, "zapping.quit()");
 }
@@ -744,12 +756,12 @@ on_zapping_delete_event		(GtkWidget *		widget,
 static gboolean
 on_tv_screen_button_press_event	(GtkWidget *		widget,
 				 GdkEventButton *	event,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   switch (event->button)
     {
     case 2: /* Middle button */
-      if (main_info->current_mode == TVENG_TELETEXT)
+      if (CAPTURE_MODE_TELETEXT == zapping->info->capture_mode)
 	break;
 
       python_command (widget, "zapping.switch_mode('fullscreen')");
@@ -791,22 +803,24 @@ GtkWidget *
 create_zapping			(void)
 {
   GdkColor black = { 0, 0, 0, 0 };
+  GtkWidget *z;
   GnomeApp *gnome_app;
-  GtkWidget *zapping;
   GtkWidget *menubar;
   GtkWidget *toolbar;
   GtkWidget *box;
   GtkWidget *appbar;
   GtkWidget *tv_screen;
 
-  zapping = gnome_app_new ("Zapping", "Zapping");
-  gnome_app = GNOME_APP (zapping);
+  z = zapping_new ();
 
-  menubar = zapping_menu_new (zapping);
+  gnome_app = GNOME_APP (z);
+  gnome_app_construct (gnome_app, "Zapping", "Zapping");
+
+  menubar = zapping_menu_new (z);
   gtk_widget_show (menubar);
   gnome_app_set_menus (gnome_app, GTK_MENU_BAR (menubar));
 
-  toolbar = zapping_toolbar_new (zapping);
+  toolbar = zapping_toolbar_new (z);
   gtk_widget_show (toolbar);
   gnome_app_set_toolbar (gnome_app, GTK_TOOLBAR (toolbar));
 
@@ -822,12 +836,12 @@ create_zapping			(void)
   /* Status bar is only used in Teletext mode. */
   gtk_widget_hide (appbar);
   gnome_app_set_statusbar (gnome_app, appbar);
-  register_widget (zapping, appbar, "appbar2");
+  register_widget (z, appbar, "appbar2");
 
   tv_screen = z_video_new ();
   gtk_widget_show (tv_screen);
   gtk_container_add (GTK_CONTAINER (box), tv_screen);
-  register_widget (zapping, tv_screen, "tv-screen");
+  register_widget (z, tv_screen, "tv-screen");
 
   gtk_widget_modify_bg (tv_screen, GTK_STATE_NORMAL, &black);
 
@@ -848,18 +862,18 @@ create_zapping			(void)
   g_signal_connect (G_OBJECT (tv_screen), "button_press_event",
 		    G_CALLBACK (on_tv_screen_button_press_event), NULL);
 
-  g_signal_connect (G_OBJECT (zapping), "delete_event",
+  g_signal_connect (G_OBJECT (z), "delete_event",
                     G_CALLBACK (on_zapping_delete_event), NULL);
 
   if (0) {
     GtkWidget *w;
 
-    w = lookup_widget (zapping, "toolbar1");
+    w = lookup_widget (z, "toolbar1");
     zconf_add_hook_while_alive (G_OBJECT (w),
 				"/zapping/options/main/toolbar_style",
 				zconf_hook_toolbar_style,
 				GTK_TOOLBAR (w), /* call now */ TRUE);
   }
 
-  return zapping;
+  return z;
 }
