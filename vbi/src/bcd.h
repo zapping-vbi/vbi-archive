@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.6.2.5 2003-10-16 18:14:38 mschimek Exp $ */
+/* $Id: bcd.h,v 1.6.2.6 2004-01-30 00:38:11 mschimek Exp $ */
 
 #ifndef BCD_H
 #define BCD_H
@@ -37,26 +37,27 @@
 #define VBI_BCD_MIN (0xF << (sizeof (int) * 8 - 4))
 #define VBI_BCD_MAX (VBI_BCD_MIN ^ ~VBI_BCD_06)
 
-#define VBI_BCD_DEC_MAX							\
-	((sizeof (int) == 4) ? 9999999 :				\
-	 ((sizeof (int) == 8) ? 999999999999999LL : 0))
-#define VBI_BCD_DEC_MIN (-VBI_BCD_INT_MAX - 1)
+#define VBI_BCD_DEC_MAX	   /* FEDCBA9876543210    F6543210 */		\
+	((8 == sizeof (int)) ? 999999999999999LL : 9999999)
+#define VBI_BCD_DEC_MIN ((-VBI_BCD_DEC_MAX) - 1)
 
 extern int
-vbi_dec2bcd			(int			dec);
+vbi_dec2bcd			(int			dec)
+	vbi_attribute_const;
 extern int
-vbi_bcd2dec			(int			bcd);
+vbi_bcd2dec			(int			bcd)
+	vbi_attribute_const;
 
 /**
  * @ingroup BCD
  * @param a BCD number.
  * @param b BCD number.
  * 
- * Adds two packed bcd numbers, returning a packed bcd sum.
+ * Adds two signed packed bcd numbers, returning a siged packed bcd sum.
  * 
  * @return
  * BCD number. The result is undefined when any of the arguments
- * contains hex digits 0xA ... 0xF.
+ * contain hex digits 0xA ... 0xF, except for the sign nibble.
  */
 static_inline int
 vbi_add_bcd			(int			a,
@@ -73,13 +74,17 @@ vbi_add_bcd			(int			a,
  * @ingroup BCD
  * @param bcd BCD number.
  * 
- * Calculates the 10's complement of a packed bcd. The most significant
- * nibble is the sign, e.g. 0xF999&nbsp;9999 = vbi_neg_bcd
- * (0x0000&nbsp;00001) presumed sizeof(int) is 4.
- * 
+ * Calculates the ten's complement of a signed packed bcd. The most
+ * significant nibble is the sign, e.g. 0xF999&nbsp;9999 = vbi_neg_bcd
+ * (0x0000&nbsp;00001), presumed sizeof(int) is 4.
+ *
  * @return
  * BCD number. The result is undefined when any of the arguments
- * contains hex digits 0xA ... 0xF.
+ * contain hex digits 0xA ... 0xF, except for the sign nibble.
+ *
+ * Note the ten's complement of VBI_BCD_MIN is not representable
+ * as signed packed bcd, this function will return VBI_BCD_MAX + 1
+ * (0x1000&nbsp;0000) instead.
  */
 static_inline int
 vbi_neg_bcd			(int			bcd)
@@ -94,12 +99,12 @@ vbi_neg_bcd			(int			bcd)
  * @param a BCD number.
  * @param b BCD number.
  * 
- * Subtracts two packed bcd numbers, returning a - b. The result
- * may be negative (10's complement), see vbi_neg_bcd().
+ * Subtracts two signed packed bcd numbers, returning a - b. The result
+ * may be negative (ten's complement), see vbi_neg_bcd().
  * 
  * @return
- * BCD number. The result is undefined when the bcd number contains
- * hex digits 0xA ... 0xF.
+ * BCD number. The result is undefined when any of the arguments
+ * contain hex digits 0xA ... 0xF, except for the sign nibble.
  */
 static_inline int
 vbi_sub_bcd			(int			a,
@@ -112,17 +117,18 @@ vbi_sub_bcd			(int			a,
  * @ingroup BCD
  * @param bcd BCD number.
  * 
- * Tests if @a bcd forms a valid packed bcd number.
+ * Tests if @a bcd forms a valid signed packed bcd number.
  * 
  * @return
- * @c FALSE if @a bcd contains hex digits 0xA ... 0xF.
+ * @c FALSE if @a bcd contains hex digits 0xA ... 0xF, ignoring
+ * the four most significant bits i.e. the sign nibble.
  */
 static_inline vbi_bool
 vbi_is_bcd			(int			bcd)
 {
 	bcd &= ~VBI_BCD_MIN;
 
-	return (((bcd + VBI_BCD_06) ^ bcd ^ VBI_BCD_06) & VBI_BCD_10) == 0;
+	return 0 == (((bcd + VBI_BCD_06) ^ bcd ^ VBI_BCD_06) & VBI_BCD_10);
 }
 
 /**
@@ -130,22 +136,22 @@ vbi_is_bcd			(int			bcd)
  * @param bcd Unsigned BCD number.
  * @param maximum Unsigned maximum value.
  *
- * Compares a bcd value digit-wise against a maximum value,
- * for example 0x295959. The function executes in constant time,
+ * Compares an unsigned packed bcd number digit-wise against a maximum
+ * value, for example 0x295959. The function executes in constant time,
  * about six instructions. @a maximum can contain digits 0x0 ...
  * 0xF.
  *
  * @return
- * @c FALSE if any digit of @a bcd is greater than the
+ * @c TRUE if any digit of @a bcd is greater than the
  * corresponding digit of @a maximum.
  */
 static_inline vbi_bool
-vbi_bcd_limit			(unsigned int		bcd,
+vbi_bcd_vec_greater		(unsigned int		bcd,
 				 unsigned int		maximum)
 {
 	maximum ^= ~0;
 
-	return (((bcd + maximum) ^ bcd ^ maximum) & VBI_BCD_10) == 0;
+	return 0 != (((bcd + maximum) ^ bcd ^ maximum) & VBI_BCD_10);
 }
 
 /**
