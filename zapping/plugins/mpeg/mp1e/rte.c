@@ -27,70 +27,32 @@
 #include "options.h"
 #include "fifo.h"
 #include "mmx.h"
-#include "rte.h"
+#include "rtepriv.h"
 #include "video/video.h" /* fixme: video_unget_frame and friends */
 #include "audio/audio.h" /* fixme: audio_read, audio_unget prots. */
 #include "audio/mpeg.h"
 
 /*
-  TODO:
-      . Setters and getters
-*/
-/*
   BUGS:
       . Callbacks + push doesn't work yet.
 */
 
-static rte_context * global_context = NULL;
-
-/*
-  Private things we don't want people to see, we can play with this
-  without breaking any compatibility.
-  Eventually all the global data will move here, except for the
-  tables.
-*/
-struct _rte_context_private {
-	int encoding; /* 1 if working, 0 if not */
-	rteEncodeCallback encode_callback; /* save-data Callback */
-	rteDataCallback data_callback; /* need-data Callback */
-	int fd; /* file descriptor of the file we are saving */
-	char * error; /* last error */
-	void * user_data; /* user data given to the callback */
-	fifo aud, vid; /* fifos for pushing */
-	int v_ubuffer; /* for unget() */
-	buffer * a_ubuffer; /* for unget() */
-	int a_again; /* if 1, return a_ubuffer again */
-	int depth; /* video bit depth (bytes per pixel, includes
-		      packing) */
-	buffer * last_video_buffer; /* video buffer the app should be
-				       encoding to */
-	buffer * last_audio_buffer; /* audio buffer */
-	/* video fetcher (callbacks) */
-	int video_pending; /* Pending video frames */
-	pthread_t video_fetcher_id; /* id of the video fetcher thread */
-	pthread_mutex_t video_mutex; /* mutex for the fetcher */
-	pthread_cond_t video_cond; /* cond for the fetcher */
-	/* audio fetcher (callbacks) */
-	int audio_pending; /* Pending video frames */
-	pthread_t audio_fetcher_id; /* id of the video fetcher thread */
-	pthread_mutex_t audio_mutex; /* mutex for the fetcher */
-	pthread_cond_t audio_cond; /* cond for the fetcher */
-};
+rte_context * rte_global_context = NULL;
 
 #define RC(X)  ((rte_context*)X)
 
 #define rte_error(context, format, args...) \
 { \
 	if (context) { \
-		if (!RC(context)->private->error) \
-			RC(context)->private->error = malloc(256); \
-		RC(context)->private->error[255] = 0; \
-		snprintf(RC(context)->private->error, 255, \
-			 "rte - %s (%d): " format, \
+		if (!RC(context)->error) \
+			RC(context)->error = malloc(256); \
+		RC(context)->error[255] = 0; \
+		snprintf(RC(context)->error, 255, \
+			 "rte:%s(%d): " format, \
 			 __PRETTY_FUNCTION__, __LINE__ ,##args); \
 	} \
 	else \
-		fprintf(stderr, "rte - %s (%d): " format ".\n", \
+		fprintf(stderr, "rte:%s(%d): " format ".\n", \
 			__PRETTY_FUNCTION__, __LINE__ ,##args); \
 }
 
@@ -238,7 +200,7 @@ rte_context * rte_context_new (char * file,
 	rte_context * context;
 	int stereo;
 
-	if (global_context)
+	if (rte_global_context)
 	{
 		rte_error(NULL, "There is already a context");
 		return NULL;
@@ -326,7 +288,7 @@ rte_context * rte_context_new (char * file,
 
 	context->audio_bytes = 2 * (stereo+1) * 1632;
 
-	global_context = context;
+	rte_global_context = context;
 
 	return (context);
 }
@@ -339,7 +301,7 @@ void * rte_context_destroy ( rte_context * context )
 		return NULL;
 	}
 
-	if (context != global_context)
+	if (context != rte_global_context)
 	{
 		rte_error(NULL, "Sorry, the given context hasn't been created by rte");
 		return NULL;
@@ -351,12 +313,12 @@ void * rte_context_destroy ( rte_context * context )
 	if (context->private->encoding)
 		rte_stop(context);
 
-	if (context->private->error)
-		free(context->private->error);
+	if (context->error)
+		free(context->error);
 	free(context->private);
 	free(context);
 
-	global_context = NULL;
+	rte_global_context = NULL;
 
 	return NULL;
 }
@@ -520,6 +482,12 @@ void rte_set_file_name(rte_context * context, const char * file_name)
 		rte_error(NULL, "context == NULL");
 		return;
 	}
+	if (context->private->encoding)
+	{
+		rte_error(context, "already encoding");
+		return;
+	}
+
 	if (context->file_name)
 		free(context->file_name);
 
@@ -539,7 +507,34 @@ char * rte_get_file_name(rte_context * context)
 	return context->file_name;
 }
 
-/* tranlates the context options to the global mp1e options */
+void rte_set_user_data(rte_context * context, void * user_data)
+{
+	if (!context)
+	{
+		rte_error(NULL, "context == NULL");
+		return;
+	}
+	if (context->private->encoding)
+	{
+		rte_error(context, "already encoding");
+		return;
+	}
+
+	context->private->user_data = user_data;
+}
+
+void * rte_get_user_data(rte_context * context)
+{
+	if (!context)
+	{
+		rte_error(NULL, "context == NULL");
+		return NULL;
+	}
+	return context->private->user_data;
+}
+
+
+/* translates the context options to the global mp1e options */
 static int rte_fake_options(rte_context * context);
 
 int rte_start ( rte_context * context )
@@ -558,21 +553,25 @@ int rte_start ( rte_context * context )
 		rte_error(context, "You need an encode callback OR a file name");
 		return 0;
 	}
+	if ((!context->private->encode_callback) && (!context->file_name)) {
+		rte_error(context, "You need to specify an encode callback or a filename");
+		return 0;
+	}
 
 	if (!rte_fake_options(context))
 		return 0;
 
 	if (context->file_name) {
-		/* fixme: &&& */
-		context->private->fd = creat("dummy.%%%", 00644);
+		context->private->fd = creat(context->file_name, 00644);
 		if (context->private->fd == -1) {
-			rte_error(context, "creat(): %s [%d]",
-				  strerror(errno), errno);
+			rte_error(context, "creat(%s): %s [%d]",
+				  context->file_name, strerror(errno), errno);
 			return 0;
 		}
-	} else
+
 		context->private->encode_callback =
 			RTE_ENCODE_CALLBACK(default_write_callback);
+	}
 
 	context->private->v_ubuffer = -1;
 	context->private->a_ubuffer = NULL;
@@ -595,12 +594,9 @@ int rte_start ( rte_context * context )
 			schedule_video_fetch(context);
 			/* Wait until we get the frames (avoid frame drops) */
 			pthread_mutex_lock(&(context->private->video_mutex));
-			fprintf(stderr, "locked\n");
-			while (context->private->video_pending) {
-				fprintf(stderr, "waiting\n");
+			while (context->private->video_pending)
 				pthread_cond_wait(&(context->private->video_cond), &(context->private->video_mutex));
-				fprintf(stderr, "done waiting\n");
-			}
+
 			pthread_mutex_unlock(&(context->private->video_mutex));
 		}
 	}
@@ -776,11 +772,6 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 	return buf->data;
 }
 
-char * rte_last_error ( rte_context * context )
-{
-	return (context->private->error);
-}
-
 /* video_start = video_input_start */
 static void
 video_input_start ( void )
@@ -793,7 +784,7 @@ video_input_start ( void )
 static unsigned char *
 video_input_wait_frame (double *ftime, int *buf_index)
 {
-	rte_context * context = global_context; /* FIXME: this shoudn't be global */
+	rte_context * context = rte_global_context; /* FIXME: this shoudn't be global */
 	buffer * b;
 	fifo * f;
 
@@ -838,7 +829,7 @@ video_input_wait_frame (double *ftime, int *buf_index)
 static void
 video_input_frame_done(int buf_index)
 {
-	rte_context * context = global_context; /* fixme: avoid global */
+	rte_context * context = rte_global_context; /* fixme: avoid global */
 
 	ASSERT("Checking that i'm sane\n",
 	       context->private->vid.num_buffers > buf_index);
@@ -851,7 +842,7 @@ video_input_frame_done(int buf_index)
 static void
 video_input_unget_frame(int buf_index)
 {
-	rte_context * context = global_context; /* fixme: avoid global */
+	rte_context * context = rte_global_context; /* fixme: avoid global */
 
 	ASSERT("You shouldn't unget() twice, core!\n",
 	       context->private->v_ubuffer < 0);
@@ -863,7 +854,7 @@ video_input_unget_frame(int buf_index)
 static short *
 audio_input_read( double *ftime)
 {
-	rte_context * context = global_context; /* FIXME: this shoudn't be global */
+	rte_context * context = rte_global_context; /* FIXME: this shoudn't be global */
 	buffer * b;
 	fifo * f;
 
@@ -909,7 +900,7 @@ audio_input_read( double *ftime)
 static void
 audio_input_unget(short * p)
 {
-	rte_context * context = global_context; /* fixme: avoid global */
+	rte_context * context = rte_global_context; /* fixme: avoid global */
 
 	ASSERT("Ungetting an incorrect buffer\n",
 	       p == (short*)context->private->a_ubuffer->data);
@@ -924,6 +915,8 @@ int rte_init ( void )
 {
 	if (!cpu_id(ARCH_PENTIUM_MMX))
 		return 0;
+
+	rte_global_context = NULL;
 
 	video_start = video_input_start;
 	video_wait_frame = video_input_wait_frame;

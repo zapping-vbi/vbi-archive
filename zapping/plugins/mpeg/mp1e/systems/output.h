@@ -27,7 +27,7 @@
 #define 			PACKET_SIZE		2048	// including any headers
 
 extern void *                   output_thread(void * unused);
-extern int                      output_init(const char * filename);
+extern int                      output_init(void);
 extern void                     output_end(void);
 extern buffer *                 output(buffer *);
 

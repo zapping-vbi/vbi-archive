@@ -352,11 +352,20 @@ void tveng2_close_device(tveng_device_info * info)
   info -> current_controller = TVENG_CONTROLLER_NONE;
 
   if (info -> file_name)
-    free(info -> file_name);
+    {
+      free(info -> file_name);
+      info->file_name = NULL;
+    }
   if (info -> inputs)
-    free(info -> inputs);
+    {
+      free(info -> inputs);
+      info->inputs = NULL;
+    }
   if (info -> standards)
-    free(info -> standards);
+    {
+      free(info -> standards);
+      info->standards = NULL;
+    }
   for (i=0; i<info->num_controls; i++)
     {
       if ((info->controls[i].type == TVENG_CONTROL_MENU) &&
@@ -372,7 +381,10 @@ void tveng2_close_device(tveng_device_info * info)
 	}
     }
   if (info -> controls)
-    free(info -> controls);
+    {
+      free(info -> controls);
+      info->controls = NULL;
+    }
 }
 
 /*

@@ -3,4 +3,6 @@ Outstanding issues for the next release
 	+ Write the mpeg saving plugin.
 	+ Modify the web page to point to
 http://sourceforge.net/projects/zapping
+	+ Create the popup menu slightly away from the pointer
+	+ Check that tarball and RPM installations work perfectly
 	> Release 0.5.2

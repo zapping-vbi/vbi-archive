@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.6 2000-07-14 22:33:53 garetxe Exp $ */
+/* $Id: main.c,v 1.7 2000-07-17 20:17:57 garetxe Exp $ */
 
 #define MAIN_C
 
@@ -53,7 +53,7 @@
 #include "options.h"
 #include "mmx.h"
 #include "bstream.h"
-#include "rte.h"
+#include "rtepriv.h"
 
 char *			my_name;
 int			verbose;
@@ -135,7 +135,7 @@ void * video_emulation_thread (void * ptr)
 	rte_context * context = (rte_context *)ptr;
 
 	data = rte_push_video_data(context, NULL, 0);
-	for (;;) {
+	for (;data;) {
 		pthread_mutex_lock(&video_device_mutex);
 		video_data = ye_olde_wait_frame(&timestamp, &frame);
 		pthread_mutex_unlock(&video_device_mutex);
@@ -143,6 +143,8 @@ void * video_emulation_thread (void * ptr)
 		data = rte_push_video_data(context, data, timestamp);
 		ye_olde_frame_done(frame);
 	}
+	fprintf(stderr, "video emulation: %s\n", context->error);
+	return NULL;
 }
 
 void * audio_emulation_thread (void * ptr)
@@ -153,13 +155,15 @@ void * audio_emulation_thread (void * ptr)
 	rte_context * context = (rte_context *)ptr;
 
 	data = rte_push_audio_data(context, NULL, 0);
-	for (;;) {
+	for (;data;) {
 		pthread_mutex_lock(&audio_device_mutex);
 		audio_data = ye_olde_audio_read(&timestamp);
 		pthread_mutex_unlock(&audio_device_mutex);
 		memcpy(data, audio_data, context->audio_bytes);
 		data = rte_push_audio_data(context, data, timestamp);
 	}
+	fprintf(stderr, "audio emulation: %s\n", context->error);
+	return NULL;
 }
 
 /*
@@ -174,7 +178,7 @@ void * audio_emulation_thread (void * ptr)
 int emulation_thread_init ( void )
 {
 	rte_context * context;
-	int do_test = 1; /* 1 == push, 2 == callbacks, 3 == both */
+	int do_test = 3; /* 1 == push, 2 == callbacks, 3 == both */
 	rteDataCallback callback;
 	enum rte_pixformat format;
 
@@ -192,10 +196,12 @@ int emulation_thread_init ( void )
 		callback = NULL;
 
 	context = rte_context_new("temp.mpeg", width, height, RTE_RATE_3,
-				  NULL, callback, NULL);
+				  NULL, callback, (void*)0xdeadbeef);
 
-	if (!context)
+	if (!context) {
+		fprintf(stderr, "%s\n", context->error);
 		return 0;
+	}
 
 	format = context->video_format;
 	switch (filter_mode) {
@@ -215,7 +221,7 @@ int emulation_thread_init ( void )
 
 	if (!rte_start(context))
 	{
-		fprintf(stderr, "%s\n", rte_last_error(context));
+		fprintf(stderr, "%s\n", context->error);
 		rte_context_destroy(context);
 		return 0;
 	}
@@ -384,15 +390,15 @@ main(int ac, char **av)
 		video_start();
 	}
 
-	ASSERT("open output files", output_init("temp.mpeg") >= 0);
+	if (!emulation_thread_init())
+		return 0;
+
+	ASSERT("open output files", output_init() >= 0);
 
 	ASSERT("create output thread",
 	       !pthread_create(&output_thread_id, NULL, output_thread, NULL));
 
 	printv(2, "Output thread launched\n");
-
-	if (!emulation_thread_init())
-		return 0;
 
 	if ((mux_mode & 3) == 3)
 		mpeg1_system_run_in();

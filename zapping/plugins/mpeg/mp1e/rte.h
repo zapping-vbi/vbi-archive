@@ -110,6 +110,9 @@ typedef struct {
 	/* size in bytes of an audio frame */
 	int audio_bytes;
 
+	/* last error */
+	char * error;
+
 	/* Pointer to the private data of this struct */
 	rte_context_private * private;
 } rte_context;
@@ -239,6 +242,10 @@ void rte_set_file_name(rte_context * context, const char * file_name);
 */
 char * rte_get_file_name(rte_context * context);
 
+/* [SG]ets the user data parameter */
+void rte_set_user_data(rte_context * context, void * user_data);
+void * rte_get_user_data(rte_context * context);
+
 /*
   Sets up everything to start coding. Call this after setting the
   desired parameters, after calling this they will be read-only. If we
@@ -300,7 +307,5 @@ void * rte_push_audio_data ( rte_context * context, void * data,
   statically allocated (and it can be NULL), you don't need to free it.
 */
 char * rte_last_error ( rte_context * context );
-
-//extern rte_context * global_context;
 
 #endif /* rtelib.h */

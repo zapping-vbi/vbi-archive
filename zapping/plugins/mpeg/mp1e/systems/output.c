@@ -32,10 +32,9 @@
 #include "../options.h"
 #include "../fifo.h"
 #include "../log.h"
-#include "../rte.h"
+#include "../rtepriv.h"
 #include "systems.h"
 
-static int              output_file = -1;
 extern pthread_t        output_thread_id;
 
 static fifo             out;
@@ -43,16 +42,10 @@ static int              out_buffers = 8;
 static size_t           out_buffer_size;
 
 extern int		stereo;
-extern rte_context *    global_context;
 
 int
-output_init( const char * file )
+output_init( void )
 {
-	if (output_file >= 0)
-		close(output_file);
-	
-	output_file = creat(file, 00755);
-
 	/* we need this later for the size check */
 	switch (mux_mode & 3) {
 	case 1:
@@ -69,26 +62,7 @@ output_init( const char * file )
 	out_buffers = init_fifo(&out, "output", out_buffer_size,
 				out_buffers);
 
-	return (output_file);
-}
-
-
-static inline void
-do_real_output(char * s, size_t n)
-{
-	size_t r;
-
-	while (n > 0) {
-		r = write(output_file, s, n);
-		
-		if (r < 0 && errno == EINTR)
-			continue;
-		
-		ASSERT("write", r >= 0);
-		
-		(char *) s += r;
-		n -= r;
-	}
+	return (out_buffers > 4 ? 1 : 0);
 }
 
 void
@@ -103,13 +77,10 @@ output_end ( void )
 	{
 		if (!buf->size)
 			break;
-		do_real_output(buf->data, buf->size);
+		rte_global_context->private->encode_callback(buf->data, buf->size,
+			   rte_global_context, rte_global_context->private->user_data);
 		empty_buffer(&out, buf);
 	}
-
-	if (output_file)
-		close(output_file);
-
 }
 
 /*
@@ -151,7 +122,10 @@ output_thread (void * unused)
 
 		pthread_mutex_unlock(&out.mutex);
 
-		do_real_output(buf->data, buf->size);
+		ASSERT("global context is set", rte_global_context != NULL);
+
+		rte_global_context->private->encode_callback(buf->data, buf->size,
+			   rte_global_context, rte_global_context->private->user_data);
 
 		empty_buffer(&out, buf);
 	}
