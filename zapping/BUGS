@@ -8,13 +8,10 @@ Known bugs in Zapping, don't report them
   (btw overlay and fullscreen IIRC).
 * Fullscreen doesn't work in libzvbi-less Zapping, does
   in other versions (with --no-xv, using DMA).
-* Must check if "no audio recording" works.
 * Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
-* Pointer does not properly reappear in windowed mode.
 * ** (zapping:14562): WARNING **: Group Allgemeine Optionen not found
   in the properties; Also seen with "VBI Optionen"
 * Video size isn't always right on startup.
-* TTX search: on the fly case and regex change doesnt work.
 * Wrong window stacking layer of overlay window when
   Zapping restores no-xv fullscreen at startup.
 * Station search doesn't work in overlay mode

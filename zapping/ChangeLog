@@ -1,3 +1,15 @@
+2003-12-03    <mschimek@users.sf.net>
+
+	* configure.in: Work with automake 1.4, 1.5, 1.6, 1.7.
+	* plugins/template/Makefile.am, plugins/screenshot/Makefile.am,
+	  plugins/parrot/Makefile.am, plugins/mpeg/Makefile.am,
+	  plugins/lirc/Makefile.am, plugins/alirc/Makefile.am:
+	  Don't set CFLAGS.
+	* src/ttxview.c (search_dialog_continue): Restart search on
+	  regexp or casefold option change.
+	* src/zvideo.c (blank_cursor_timeout): Pointer wasn't unblanked
+	  on motion in overlay mode.
+
 2003-12-01    <mschimek@users.sf.net>
 
 	* src/zmisc.c (z_status_print): Merged z_status_print_markup()
