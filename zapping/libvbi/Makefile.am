@@ -9,7 +9,7 @@ libvbi_a_SOURCES = \
 	vbi.c vbi.h libvbi.h \
 	packet.c teletext.c vt.h \
 	caption.c cc.h \
-	trigger.c \
+	trigger.c trigger.h \
 	search.c \
 	cache.c cache.h \
 	exp-html.c exp-txt.c exp-vtx.c exp-gfx.c export.c export.h format.h \

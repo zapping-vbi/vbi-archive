@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.5.8cvs\n"
-"POT-Creation-Date: 2001-04-09 14:29+0200\n"
+"POT-Creation-Date: 2001-04-10 21:56+0200\n"
 "PO-Revision-Date: 2000-11-18 17:00+0300\n"
 "Last-Translator: Sergey Nikulin <sergey-nikulin@mail.ru>\n"
 "Language-Team: LANGUAGE <ru@li.org>\n"
@@ -714,145 +714,141 @@ msgstr ""
 msgid "Loading subpage %x..."
 msgstr ""
 
-#: src/ttxview.c:840 src/ttxview.c:876
+#: src/ttxview.c:840 src/ttxview.c:877
 msgid "No cache"
 msgstr ""
 
-#: src/ttxview.c:849 src/ttxview.c:885
+#: src/ttxview.c:850 src/ttxview.c:886
 msgid "No other subpage in the cache"
 msgstr ""
 
-#: src/ttxview.c:957
+#: src/ttxview.c:958
 msgid "Found"
 msgstr ""
 
-#: src/ttxview.c:976
+#: src/ttxview.c:977
 msgid "Not found"
 msgstr ""
 
-#: src/ttxview.c:1100
+#: src/ttxview.c:1101
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr ""
 
-#: src/ttxview.c:1142
+#: src/ttxview.c:1143
 #, fuzzy
 msgid "VBI has been disabled"
 msgstr "VBI был отключен или не работает."
 
-#: src/ttxview.c:1384
+#: src/ttxview.c:1385
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr ""
 
-#: src/ttxview.c:1447
+#: src/ttxview.c:1448
 msgid "Any subpage"
 msgstr ""
 
-#: src/ttxview.c:1754
+#: src/ttxview.c:1755
 #, fuzzy, c-format
 msgid "Export %s"
 msgstr "Экспозиция"
 
-#: src/ttxview.c:1768
+#: src/ttxview.c:1769
 msgid "Save as:"
 msgstr ""
 
-#: src/ttxview.c:1773
+#: src/ttxview.c:1774
 #, fuzzy
 msgid "Select file you'll be exporting to"
 msgstr "Выберите дирректорию для сохранения скриншотов"
 
-#: src/ttxview.c:1787
+#: src/ttxview.c:1788
 #, fuzzy
 msgid "Options"
 msgstr "VBI опции"
 
-#: src/ttxview.c:1825
+#: src/ttxview.c:1826
 msgid "You must first set the destination dir in the properties dialog"
 msgstr ""
 
-#: src/ttxview.c:1834 src/ttxview.c:2539
+#: src/ttxview.c:1835 src/ttxview.c:2542
 msgid "No page loaded"
 msgstr ""
 
-#: glade/glade_strings.c:192 src/ttxview.c:1840
+#: glade/glade_strings.c:192 src/ttxview.c:1841
 msgid "Zapzilla"
 msgstr ""
 
-#: src/ttxview.c:1869
+#: src/ttxview.c:1870
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr ""
 
-#: src/ttxview.c:1878
+#: src/ttxview.c:1879
 #, c-format
 msgid "%s saved"
 msgstr ""
 
-#: src/ttxview.c:1889
+#: src/ttxview.c:1890
 #, c-format
 msgid "Export failed: %s"
 msgstr ""
 
-#: src/ttxview.c:2050
+#: src/ttxview.c:2052
 #, c-format
 msgid "%x: Unknown language"
 msgstr ""
 
-#: src/ttxview.c:2062 src/ttxview.c:2076 src/ttxview.c:2099 src/ttxview.c:2131
-#: src/ttxview.c:2163
+#: src/ttxview.c:2064 src/ttxview.c:2078 src/ttxview.c:2102 src/ttxview.c:2118
+#: src/ttxview.c:2134 src/ttxview.c:2150 src/ttxview.c:2166
 #, fuzzy, c-format
 msgid "Page %x"
 msgstr "Страница"
 
-#: src/ttxview.c:2071
+#: src/ttxview.c:2073
 msgid "Index"
 msgstr ""
 
-#: src/ttxview.c:2093
+#: src/ttxview.c:2096
 msgid "Now and Next"
 msgstr ""
 
-#: src/ttxview.c:2109
-msgid "Program Info"
-msgstr ""
+#: src/ttxview.c:2112
+#, fuzzy
+msgid "Current program"
+msgstr "Текущий контроллер:"
 
-#: src/ttxview.c:2115 src/ttxview.c:2147
-#, fuzzy, c-format
-msgid "Page %x.%x"
-msgstr "Страница"
-
-#: src/ttxview.c:2125
+#: src/ttxview.c:2128
 msgid "Program Index"
 msgstr ""
 
-#: src/ttxview.c:2141
+#: src/ttxview.c:2144
 msgid "Program Schedule"
 msgstr ""
 
-#: src/ttxview.c:2157
+#: src/ttxview.c:2160
 msgid "Program Warning"
 msgstr ""
 
-#: src/ttxview.c:2177
+#: src/ttxview.c:2180
 msgid "Subtitles"
 msgstr ""
 
-#: src/ttxview.c:2179
+#: src/ttxview.c:2182
 msgid "Select subtitles page"
 msgstr ""
 
-#: src/ttxview.c:2248
+#: src/ttxview.c:2251
 #, c-format
 msgid "%s in %s"
 msgstr ""
 
-#: src/ttxview.c:2548
+#: src/ttxview.c:2551
 msgid "Selecting - hold Shift for table mode"
 msgstr ""
 
-#: src/ttxview.c:2662
+#: src/ttxview.c:2665
 msgid "Selection copied to clipboard"
 msgstr ""
 
@@ -2229,6 +2225,10 @@ msgstr ""
 msgid ""
 "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 msgstr ""
+
+#, fuzzy
+#~ msgid "Page %x.%x"
+#~ msgstr "Страница"
 
 #~ msgid "Cannot set input"
 #~ msgstr "Не могу установить вход"

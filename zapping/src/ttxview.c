@@ -624,13 +624,14 @@ event_timeout				(ttxview_data	*data)
   gint w, h;
   GtkWidget *widget;
   gchar *buffer;
+  ttx_message_data msg_data;
 
-  while ((msg = peek_ttx_message(data->id)))
+  while ((msg = peek_ttx_message(data->id, &msg_data)))
     {
-      /* discard page received messages while selecting */
       if (data->selecting)
 	continue;
 
+      /* discard page received messages while selecting */
       switch (msg)
 	{
 	case TTX_PAGE_RECEIVED:
@@ -663,6 +664,7 @@ event_timeout				(ttxview_data	*data)
 	  update_pointer(data);
 	  break;
 	case TTX_NETWORK_CHANGE:
+	case TTX_TRIGGER:
 	  break;
 	case TTX_BROKEN_PIPE:
 	  g_warning("Broken TTX pipe");
@@ -829,7 +831,7 @@ void on_ttxview_prev_sp_cache_clicked	(GtkButton	*button,
 					 ttxview_data	*data)
 {
   struct vbi *vbi = zvbi_get_object();
-  int subpage;
+  int subpage = ANY_SUB; /* compiler happy */
 
   nullcheck();
 
@@ -2029,6 +2031,10 @@ build_subtitles_submenu(GtkWidget *widget,
 
   menu = GTK_MENU(gtk_menu_new());
 
+  menu_item = gtk_tearoff_menu_item_new();
+  gtk_widget_show(menu_item);
+  gtk_menu_append(menu, menu_item);
+
   if (find_widget(GTK_WIDGET(zmenu), "separador7"))
     insert_index =
       z_menu_get_index(GTK_WIDGET(zmenu),
@@ -2275,6 +2281,9 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 
       menu = gtk_menu_new();
       gtk_widget_show(menu);
+      menuitem = gtk_tearoff_menu_item_new();
+      gtk_widget_show(menuitem);
+      gtk_menu_append(GTK_MENU(menu), menuitem);
 
       for (i = 0; (xm = vbi_export_enum(i)); i++)
         if (xm->label) /* for public use */

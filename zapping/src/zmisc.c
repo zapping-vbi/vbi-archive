@@ -576,3 +576,31 @@ z_change_menuitem			 (GtkWidget	*widget,
 				      spixmap);
      }
 }
+
+void z_status_print(const gchar *message)
+{
+  GtkWidget *appbar2 =
+    lookup_widget(main_window, "appbar2");
+
+  gnome_appbar_set_status(GNOME_APPBAR(appbar2), message);
+  gtk_widget_show(appbar2);
+}
+
+/* FIXME: [Hide] button */
+void z_status_set_widget(GtkWidget * widget)
+{
+  GtkWidget *appbar2 =
+    lookup_widget(main_window, "appbar2");
+  GtkWidget *old =
+    gtk_object_get_data(GTK_OBJECT(appbar2), "old_widget");
+
+  if (old)
+    gtk_container_remove(GTK_CONTAINER(appbar2), old);
+
+  if (widget)
+    gtk_box_pack_end(GTK_BOX(appbar2), widget, FALSE, FALSE, 0);
+
+  gtk_object_set_data(GTK_OBJECT(appbar2), "old_widget", widget);
+
+  gtk_widget_show(appbar2);
+}

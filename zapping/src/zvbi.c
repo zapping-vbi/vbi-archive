@@ -237,6 +237,80 @@ static void cc_event(vbi_event *ev, void *data)
   write(pipe[1], "", 1);
 }
 
+/* TRIGGER handling */
+static gint trigger_timeout_id = -1;
+static gint trigger_client_id = -1;
+static char last_trigger_link[256]; /* last received link */
+
+static void
+on_trigger_clicked			(GtkWidget	*widget,
+					 vbi_link	*link)
+{
+  gnome_url_show(last_trigger_link);
+}
+
+static void
+acknowledge_trigger			(vbi_link	*link)
+{
+  GtkWidget *button =
+    gtk_button_new();
+  gchar *buffer;
+  GdkBitmap *mask;
+  GdkPixmap *pixmap;
+  /* FIXME */
+  GdkPixbuf *pb = gdk_pixbuf_new_from_file("../libvbi/atvef_icon.png");
+  GtkWidget *pix;
+
+  gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
+  gdk_pixbuf_unref(pb);
+  pix = gtk_pixmap_new(pixmap, mask);
+
+  gtk_widget_show(pix);
+  gtk_container_add(GTK_CONTAINER(button), pix);
+
+  /* FIXME: Show more fields (type, itv...) */
+  memcpy(&last_trigger_link, link->url, 256);
+  gtk_signal_connect(GTK_OBJECT(button), "clicked",
+		     GTK_SIGNAL_FUNC(on_trigger_clicked), NULL);
+
+  set_tooltip(button,
+	      _("Open this link with the predeterminated Web browser.\n"
+		"You can configure this in the GNOME Control Center, "
+		"under Handlers/Url Navigator"));
+
+  gtk_widget_show(button);
+  z_status_set_widget(button);
+  buffer = g_strdup_printf(_("%s: %s"), link->name, link->url);
+  z_status_print(buffer);
+  g_free(buffer);
+}
+
+static gint trigger_timeout		(gint	client_id)
+{
+  enum ttx_message msg;
+  ttx_message_data data;
+
+  while ((msg = peek_ttx_message(client_id, &data)))
+    switch(msg)
+      {
+      case TTX_PAGE_RECEIVED:
+      case TTX_NETWORK_CHANGE:
+	break;
+      case TTX_BROKEN_PIPE:
+	g_warning("Broken TTX pipe");
+	trigger_timeout_id = -1;
+	return FALSE;
+      case TTX_TRIGGER:
+	acknowledge_trigger((vbi_link*)(&data.data));
+	break;
+      default:
+	g_warning("Unkown message: %d", msg);
+	break;
+      }
+
+  return TRUE;
+}
+
 /* Open the configured VBI device, FALSE on error */
 gboolean
 zvbi_open_device(void)
@@ -309,6 +383,13 @@ zvbi_open_device(void)
 			     VBI_EVENT_CAPTION | VBI_EVENT_PAGE,
 			     cc_event, test_pipe) != 0);
   D();
+  if (trigger_client_id >= 0)
+    unregister_ttx_client(trigger_client_id);
+  if (trigger_timeout_id >= 0)
+    gtk_timeout_remove(trigger_timeout_id);
+  trigger_client_id = register_ttx_client();
+  trigger_timeout_id = gtk_timeout_add(100, (GtkFunction)trigger_timeout,
+				       GINT_TO_POINTER(trigger_client_id));
   return TRUE;
 
  error:
@@ -330,6 +411,13 @@ zvbi_close_device(void)
 
   if (!vbi) /* disabled */
     return;
+
+  if (trigger_timeout_id >= 0)
+    gtk_timeout_remove(trigger_timeout_id);
+  if (trigger_client_id >= 0)
+    unregister_ttx_client(trigger_client_id);
+
+  trigger_client_id = trigger_timeout_id = -1;
 
   vbi->quit = 1;
   pthread_join(zvbi_thread_id, NULL);
@@ -354,10 +442,34 @@ zvbi_close_device(void)
 
 static void
 send_ttx_message(struct ttx_client *client,
-		 enum ttx_message message)
+		 enum ttx_message message,
+		 void *data, int bytes)
 {
+  ttx_message_data *d;
+
   buffer *b = wait_empty_buffer(&client->mqueue);
-  b->data = GINT_TO_POINTER(message);
+  d = (ttx_message_data*)b->data;
+  d->msg = message;
+  if (message == TTX_TRIGGER)
+    {
+      /* Convert these into indexes */
+      vbi_link *ld = data;
+      if (ld->name)
+	ld->name = (char*)(ld->name - ld->buf);
+      else
+	ld->name = (char*)0xdeadbeef;
+      if (ld->url)
+	ld->url = (char*)(ld->url - ld->buf);
+      else
+	ld->url = (char*)0xdeadbeef;
+      if (ld->script)
+	ld->script = (char*)(ld->script - ld->buf);
+      else
+	ld->script = (char*)0xdeadbeef;
+    }
+  g_assert(bytes <= sizeof(ttx_message_data));
+  if (data)
+    memcpy(&(d->data), data, bytes);
   send_full_buffer(&client->mqueue, b);
 }
 
@@ -428,7 +540,8 @@ register_ttx_client(void)
       gdk_pixbuf_unref(simple);
     }
 
-  g_assert(init_buffered_fifo(&client->mqueue, "zvbi-mqueue", 16, 0) > 0);
+  g_assert(init_buffered_fifo(&client->mqueue, "zvbi-mqueue", 16,
+			      sizeof(ttx_message_data)) > 0);
   pthread_mutex_lock(&clients_mutex);
   ttx_clients = g_list_append(ttx_clients, client);
   pthread_mutex_unlock(&clients_mutex);
@@ -480,11 +593,12 @@ get_ttx_fmt_page(int id)
 }
 
 enum ttx_message
-peek_ttx_message(int id)
+peek_ttx_message(int id, ttx_message_data *data)
 {
   struct ttx_client *client;
   buffer *b;
   enum ttx_message message;
+  ttx_message_data *d;
 
   pthread_mutex_lock(&clients_mutex);
 
@@ -493,8 +607,27 @@ peek_ttx_message(int id)
       b = recv_full_buffer(&client->mqueue);
       if (b)
 	{
-	  message = GPOINTER_TO_INT(b->data);
+	  d = (ttx_message_data*)b->data;
+	  message = d->msg;
+	  memcpy(data, d, sizeof(ttx_message_data));
 	  send_empty_buffer(&client->mqueue, b);
+	  /* FIXME: fix this in libvbi instead of here */
+	  if (message == TTX_TRIGGER)
+	    {
+	      vbi_link *ld = &(data->data.link);
+	      if (ld->url != ((unsigned char*)0xdeadbeef))
+		ld->url = ld->buf + (int)ld->url;
+	      else 
+		ld->url = NULL;
+	      if (ld->name != ((unsigned char*)0xdeadbeef))
+		ld->name = ld->buf + (int)ld->name;
+	      else
+		ld->name = NULL;
+	      if (ld->script != ((unsigned char*)0xdeadbeef))
+		ld->script = ld->buf + (int)ld->script;
+	      else
+		ld->script = NULL;
+	    }
 	}
       else
 	message = TTX_NONE;
@@ -508,11 +641,12 @@ peek_ttx_message(int id)
 }
 
 enum ttx_message
-get_ttx_message(int id)
+get_ttx_message(int id, ttx_message_data *data)
 {
   struct ttx_client *client;
   buffer *b;
   enum ttx_message message;
+  ttx_message_data *d;
 
   pthread_mutex_lock(&clients_mutex);
 
@@ -520,8 +654,27 @@ get_ttx_message(int id)
     {
       b = wait_full_buffer(&client->mqueue);
       g_assert(b != NULL);
-      message = GPOINTER_TO_INT(b->data);
+      d = (ttx_message_data*)b->data;
+      message = d->msg;
+      memcpy(data, d, sizeof(ttx_message_data));
       send_empty_buffer(&client->mqueue, b);
+      /* FIXME: fix this in libvbi instead of here */
+      if (message == TTX_TRIGGER)
+	{
+	  vbi_link *ld = &(data->data.link);
+	  if (ld->url != (unsigned char*)0xdeadbeef)
+	    ld->url = ld->buf + (int)ld->url;
+	  else 
+	    ld->url = NULL;
+	  if (ld->name != (unsigned char*)0xdeadbeef)
+	    ld->name = ld->buf + (int)ld->name;
+	  else
+	    ld->name = NULL;
+	  if (ld->script != (unsigned char*)0xdeadbeef)
+	    ld->script = ld->buf + (int)ld->script;
+	  else
+	    ld->script = NULL;
+	}
     }
   else
     message = TTX_BROKEN_PIPE;
@@ -850,12 +1003,12 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
         if (build_client_page(client, page, subpage))
 	  {
 	    clear_message_queue(client);
-	    send_ttx_message(client, TTX_PAGE_RECEIVED);
+	    send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
 	  }
       } else {
 	build_client_page(client, 0, 0);
 	clear_message_queue(client);
-	send_ttx_message(client, TTX_PAGE_RECEIVED);
+	send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
       }
     }
   pthread_mutex_unlock(&clients_mutex);
@@ -889,7 +1042,7 @@ void monitor_ttx_this(int id, struct fmt_page *pg)
 			      client->reveal, 0 /* flash_on */);
       build_client_page(client, -1, -1);
       clear_message_queue(client);
-      send_ttx_message(client, TTX_PAGE_RECEIVED);
+      send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
     }
   pthread_mutex_unlock(&clients_mutex);
 }
@@ -940,7 +1093,7 @@ notify_clients(int page, int subpage)
 	  ((client->subpage == subpage) || (client->subpage == ANY_SUB)))
 	{
 	  build_client_page(client, page, subpage);
-	  send_ttx_message(client, TTX_PAGE_RECEIVED);
+	  send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
 	}
       p = p->next;
     }
@@ -961,7 +1114,28 @@ notify_network(void)
   while (p)
     {
       client = (struct ttx_client*)p->data;
-      send_ttx_message(client, TTX_NETWORK_CHANGE);
+      send_ttx_message(client, TTX_NETWORK_CHANGE, NULL, 0);
+      p = p->next;
+    }
+  pthread_mutex_unlock(&clients_mutex);
+}
+
+static void
+notify_trigger(const vbi_link *ld)
+{
+  GList *p;
+  struct ttx_client *client;
+
+  if (!vbi)
+    return;
+
+  pthread_mutex_lock(&clients_mutex);
+  p = g_list_first(ttx_clients);
+  while (p)
+    {
+      client = (struct ttx_client*)p->data;
+      send_ttx_message(client, TTX_TRIGGER, (ttx_message_data*)ld,
+		       sizeof(vbi_link));
       p = p->next;
     }
   pthread_mutex_unlock(&clients_mutex);
@@ -1093,9 +1267,9 @@ event(vbi_event *ev, void *unused)
 		   ev->subno & 0xFF);
 	  }
       }
-	/* Set the dirty flag on the page */
-	notify_clients(ev->pgno, ev->subno);
-	break;
+      /* Set the dirty flag on the page */
+      notify_clients(ev->pgno, ev->subno);
+      break;
     case VBI_EVENT_NETWORK:
       pthread_mutex_lock(&network_mutex);
       memcpy(&current_network, ev->p, sizeof(vbi_network));
@@ -1103,13 +1277,9 @@ event(vbi_event *ev, void *unused)
       pthread_mutex_unlock(&network_mutex);
       break;
     case VBI_EVENT_TRIGGER:
-      if (0)
-        {
-          vbi_link *ld = (vbi_link *) ev->p;
-	  printf("<> name: %s url: %s\n", ld->name, ld->url);
-        }
+      notify_trigger((vbi_link *) ev->p);
       break;
-
+      
     default:
     }
 }
@@ -1197,12 +1367,14 @@ static gint
 event_timeout				(struct vi_data	*data)
 {
   enum ttx_message msg;
+  ttx_message_data msg_data;
 
-  while ((msg = peek_ttx_message(data->id)))
+  while ((msg = peek_ttx_message(data->id, &msg_data)))
     {
       switch (msg)
 	{
 	case TTX_PAGE_RECEIVED:
+	case TTX_TRIGGER:
 	  break;
 	case TTX_NETWORK_CHANGE:
 	  update_vi(data->vi);

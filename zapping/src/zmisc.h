@@ -163,6 +163,22 @@ int
 zmisc_switch_mode(enum tveng_capture_mode new_mode,
 		  tveng_device_info * info);
 
+/**
+ * Prints the message in the status bar.
+ * if the bar is hidden, it's shown.
+ */
+void
+z_status_print(const gchar *message);
+
+/**
+ * Adds the given widget to the status bar, it replaces any widgets
+ * present before.
+ * If the appbar is hidden, it's shown.
+ * Pass NULL to remove the current widget, if any.
+ */
+void
+z_status_set_widget(GtkWidget *widget);
+
 /*
   Given a bpp (bites per pixel) and the endianess, returns the proper
   TVeng RGB mode.

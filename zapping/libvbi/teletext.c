@@ -392,8 +392,6 @@ keyword(vbi_link *ld, unsigned char *p, int column,
 	ld->type = VBI_LINK_NONE;
 	ld->page = 0;
 	ld->subpage = ANY_SUB;
-	ld->url = ld->buf;
-	ld->buf[0] = 0;
 	*back = 0;
 
 	if (isdigit(*s)) {
@@ -436,19 +434,19 @@ keyword(vbi_link *ld, unsigned char *p, int column,
 		ld->type = VBI_LINK_HTTP;
 	} else if (!strncasecmp(s, "www.", i = 4)) {
 		ld->type = VBI_LINK_HTTP;
-		strcpy(ld->buf, "http://");
+		strcpy(ld->url, "http://");
 	} else if (!strncasecmp(s, "ftp://", i = 6)) {
 		ld->type = VBI_LINK_FTP;
 	} else if (*s == '@' || *s == 167 /* paragraph sign */) {
 		ld->type = VBI_LINK_EMAIL;
-		strcpy(ld->buf, "mailto:");
+		strcpy(ld->url, "mailto:");
 		i = 1;
 	} else if (!strncasecmp(s, "(at)", i = 4)) {
 		ld->type = VBI_LINK_EMAIL;
-		strcpy(ld->buf, "mailto:");
+		strcpy(ld->url, "mailto:");
 	} else if (!strncasecmp(s, "(a)", i = 3)) {
 		ld->type = VBI_LINK_EMAIL;
-		strcpy(ld->buf, "mailto:");
+		strcpy(ld->url, "mailto:");
 	} else
 		return 1;
 
@@ -486,11 +484,11 @@ keyword(vbi_link *ld, unsigned char *p, int column,
 
 		*back = k;
 
-		strncat(ld->buf, s + k, -k);
-		strcat(ld->buf, "@");
-		strncat(ld->buf, s + i, j);
+		strncat(ld->url, s + k, -k);
+		strcat(ld->url, "@");
+		strncat(ld->url, s + i, j);
 	} else
-		strncat(ld->buf, s + k, i + j - k);
+		strncat(ld->url, s + k, i + j - k);
 
 	return i + j;
 }

@@ -37,8 +37,16 @@ enum ttx_message {
   TTX_NONE=0, /* No messages */
   TTX_PAGE_RECEIVED, /* The monitored page has been received */
   TTX_NETWORK_CHANGE, /* New network info feeded into the decoder */
+  TTX_TRIGGER, /* Trigger event, ttx_message_data.link filled */
   TTX_BROKEN_PIPE /* No longer connected to the TTX decoder */
 };
+
+typedef struct {
+  enum ttx_message msg;
+  union {
+    vbi_link	link; /* A trigger link */
+  } data;
+} ttx_message_data;
 
 /*
  * Register a client as TTX receiver, and returns the id that the
@@ -47,14 +55,17 @@ enum ttx_message {
 int register_ttx_client(void);
 
 /*
- * Gets the next message in the queue, or TTX_NONE if nothing available.
+ * Gets the next message in the queue, or TTX_NONE if nothing
+ * available.
+ * Provide a valid pointer in data, it can be filled in.
  */
-enum ttx_message peek_ttx_message(int id);
+enum ttx_message peek_ttx_message(int id, ttx_message_data *data);
 
 /*
  * Like peek, but waits until something is available
+ * Provide a valid pointer in data, it can be filled in.
  */
-enum ttx_message get_ttx_message(int id);
+enum ttx_message get_ttx_message(int id, ttx_message_data *data);
 
 /*
  * Unregisters a client, telling that it won't continue porocessing

@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2001-04-09 14:29+0200\n"
+"POT-Creation-Date: 2001-04-10 21:56+0200\n"
 "PO-Revision-Date: 2000-02-14 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -733,143 +733,139 @@ msgstr "Cargando página %x..."
 msgid "Loading subpage %x..."
 msgstr "Cargando subpágina %x..."
 
-#: src/ttxview.c:840 src/ttxview.c:876
+#: src/ttxview.c:840 src/ttxview.c:877
 msgid "No cache"
 msgstr "No hay cache"
 
-#: src/ttxview.c:849 src/ttxview.c:885
+#: src/ttxview.c:850 src/ttxview.c:886
 msgid "No other subpage in the cache"
 msgstr "Ninguna otra subpágina en la cache"
 
-#: src/ttxview.c:957
+#: src/ttxview.c:958
 msgid "Found"
 msgstr "Encontrado"
 
-#: src/ttxview.c:976
+#: src/ttxview.c:977
 msgid "Not found"
 msgstr "No encontrado"
 
-#: src/ttxview.c:1100
+#: src/ttxview.c:1101
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Analizando %x.%02x"
 
-#: src/ttxview.c:1142
+#: src/ttxview.c:1143
 msgid "VBI has been disabled"
 msgstr "VBI ha sido dishabilitado"
 
-#: src/ttxview.c:1384
+#: src/ttxview.c:1385
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> añadido a los marcadores"
 
-#: src/ttxview.c:1447
+#: src/ttxview.c:1448
 msgid "Any subpage"
 msgstr "Cualquier subpágina"
 
-#: src/ttxview.c:1754
+#: src/ttxview.c:1755
 #, c-format
 msgid "Export %s"
 msgstr "Exportar %s"
 
-#: src/ttxview.c:1768
+#: src/ttxview.c:1769
 msgid "Save as:"
 msgstr "Guardar como:"
 
-#: src/ttxview.c:1773
+#: src/ttxview.c:1774
 msgid "Select file you'll be exporting to"
 msgstr "Selecciona el fichero donde exportar"
 
-#: src/ttxview.c:1787
+#: src/ttxview.c:1788
 msgid "Options"
 msgstr "Opciones"
 
-#: src/ttxview.c:1825
+#: src/ttxview.c:1826
 msgid "You must first set the destination dir in the properties dialog"
 msgstr "Debes configurar el directorio destino en el diálogo de propiedades"
 
-#: src/ttxview.c:1834 src/ttxview.c:2539
+#: src/ttxview.c:1835 src/ttxview.c:2542
 msgid "No page loaded"
 msgstr "Ninguna página cargada"
 
-#: glade/glade_strings.c:192 src/ttxview.c:1840
+#: glade/glade_strings.c:192 src/ttxview.c:1841
 msgid "Zapzilla"
 msgstr ""
 
-#: src/ttxview.c:1869
+#: src/ttxview.c:1870
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr ""
 
-#: src/ttxview.c:1878
+#: src/ttxview.c:1879
 #, c-format
 msgid "%s saved"
 msgstr "%s guardada"
 
-#: src/ttxview.c:1889
+#: src/ttxview.c:1890
 #, c-format
 msgid "Export failed: %s"
 msgstr ""
 
-#: src/ttxview.c:2050
+#: src/ttxview.c:2052
 #, c-format
 msgid "%x: Unknown language"
 msgstr ""
 
-#: src/ttxview.c:2062 src/ttxview.c:2076 src/ttxview.c:2099 src/ttxview.c:2131
-#: src/ttxview.c:2163
+#: src/ttxview.c:2064 src/ttxview.c:2078 src/ttxview.c:2102 src/ttxview.c:2118
+#: src/ttxview.c:2134 src/ttxview.c:2150 src/ttxview.c:2166
 #, fuzzy, c-format
 msgid "Page %x"
 msgstr "Página %d"
 
-#: src/ttxview.c:2071
+#: src/ttxview.c:2073
 msgid "Index"
 msgstr ""
 
-#: src/ttxview.c:2093
+#: src/ttxview.c:2096
 msgid "Now and Next"
 msgstr ""
 
-#: src/ttxview.c:2109
-msgid "Program Info"
-msgstr ""
+#: src/ttxview.c:2112
+#, fuzzy
+msgid "Current program"
+msgstr "Controlador:"
 
-#: src/ttxview.c:2115 src/ttxview.c:2147
-#, fuzzy, c-format
-msgid "Page %x.%x"
-msgstr "Página %d"
-
-#: src/ttxview.c:2125
+#: src/ttxview.c:2128
 msgid "Program Index"
 msgstr ""
 
-#: src/ttxview.c:2141
+#: src/ttxview.c:2144
 msgid "Program Schedule"
 msgstr ""
 
-#: src/ttxview.c:2157
+#: src/ttxview.c:2160
 msgid "Program Warning"
 msgstr ""
 
-#: src/ttxview.c:2177
+#: src/ttxview.c:2180
 #, fuzzy
 msgid "Subtitles"
 msgstr "_Subtítulos"
 
-#: src/ttxview.c:2179
+#: src/ttxview.c:2182
 msgid "Select subtitles page"
 msgstr ""
 
-#: src/ttxview.c:2248
+#: src/ttxview.c:2251
 #, c-format
 msgid "%s in %s"
 msgstr "%s en %s"
 
-#: src/ttxview.c:2548
+#: src/ttxview.c:2551
 msgid "Selecting - hold Shift for table mode"
 msgstr "Seleccionando - pulse Shift para modo tabla"
 
-#: src/ttxview.c:2662
+#: src/ttxview.c:2665
 msgid "Selection copied to clipboard"
 msgstr "Selección copiada al portapapeles"
 
@@ -2233,6 +2229,10 @@ msgstr ""
 msgid ""
 "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 msgstr ""
+
+#, fuzzy
+#~ msgid "Page %x.%x"
+#~ msgstr "Página %d"
 
 #~ msgid "Delete some bookmarks"
 #~ msgstr "Borrar algunos marcadores"
