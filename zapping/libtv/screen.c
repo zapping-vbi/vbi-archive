@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: screen.c,v 1.6 2005-01-08 14:41:55 mschimek Exp $ */
+/* $Id: screen.c,v 1.7 2005-01-19 04:13:57 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -543,9 +543,10 @@ dga_query			(tv_screen *		list,
 
 	printv ("DGA extension support not compiled in\n");
 
-	display_pixfmt (list, display, bpp_hint);
-
-	return FALSE;
+	/* We cannot overlay without DGA but we still need
+	   the pixel format of the screen(s) to choose an
+	   optimal capture format. */
+	return display_pixfmt (list, display, bpp_hint);
 }
 
 #endif /* !HAVE_DGA_EXTENSION */
