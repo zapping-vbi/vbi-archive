@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.32 2004-10-09 02:52:28 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.33 2004-10-09 05:39:52 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -76,10 +76,12 @@ on_key_press			(GtkWidget *		widget,
       return TRUE;
     }
 
+#ifdef HAVE_LIBZVBI
   if (CAPTURE_MODE_TELETEXT == zapping->info->capture_mode)
     if (_teletext_view_on_key_press (widget, event,
 				     (TeletextView *)(drawing_area)))
       return TRUE;
+#endif
 
   return on_user_key_press (widget, event, NULL)
     || on_channel_key_press (widget, event, NULL);
@@ -339,10 +341,15 @@ start_fullscreen		(display_mode		dmode,
   guint vheight;
   GtkWidget *fixed;
 
+#ifdef HAVE_LIBZVBI
   if (CAPTURE_MODE_TELETEXT == cmode)
     if (!_teletext_view_new
 	|| !zvbi_get_object ())
       return FALSE;
+#else
+  if (CAPTURE_MODE_TELETEXT == cmode)
+    return FALSE;
+#endif
 
   xs = find_screen ();
   screen = xs;
@@ -364,6 +371,9 @@ start_fullscreen		(display_mode		dmode,
 
   gtk_widget_modify_bg (black_window, GTK_STATE_NORMAL, &chroma);
 
+  gtk_window_add_accel_group
+    (window, gtk_ui_manager_get_accel_group (zapping->ui_manager));
+
 
   fixed = gtk_fixed_new ();
   gtk_widget_show (fixed);
@@ -372,8 +382,10 @@ start_fullscreen		(display_mode		dmode,
 
   if (CAPTURE_MODE_TELETEXT == cmode)
     {
+#ifdef HAVE_LIBZVBI
       /* Welcome to the magic world of encapsulation. */ 
       drawing_area = _teletext_view_new ();
+#endif
 
       /* Gdk scaling routines hang if we start with the default 1, 1. */
       gtk_widget_set_size_request (drawing_area, 400, 300);
