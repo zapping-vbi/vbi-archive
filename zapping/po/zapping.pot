@@ -1,0 +1,2560 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2005-02-06 22:43+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: glade/zapping.glade2.h:1 plugins/mpeg/mpeg_properties.glade2.h:1
+msgid "*"
+msgstr ""
+
+#: glade/zapping.glade2.h:2
+msgid "320x240"
+msgstr ""
+
+#: glade/zapping.glade2.h:3
+msgid ""
+"A format string describing the main window title when changing channels: "
+"$(alias), $(index), $(id), $(freq), $(standard) and $(input) are substituted "
+"by the respective values."
+msgstr ""
+
+#: glade/zapping.glade2.h:4
+msgid "Advanced"
+msgstr ""
+
+#: glade/zapping.glade2.h:5 src/audio.c:523 src/audio.c:528 src/tveng.c:4423
+msgid "Audio"
+msgstr ""
+
+#: glade/zapping.glade2.h:6
+msgid "Author:"
+msgstr ""
+
+#: glade/zapping.glade2.h:7
+msgid "Biggest noninterlaced (autodetect)"
+msgstr ""
+
+#: glade/zapping.glade2.h:8
+msgid "Canonical name:"
+msgstr ""
+
+#: glade/zapping.glade2.h:9
+msgid "Channel list number"
+msgstr ""
+
+#: glade/zapping.glade2.h:10
+msgid "Choose a color"
+msgstr ""
+
+#: glade/zapping.glade2.h:11
+msgid "Clean console"
+msgstr ""
+
+#: glade/zapping.glade2.h:12
+msgid "Click here when you are done"
+msgstr ""
+
+#: glade/zapping.glade2.h:13
+msgid "Console"
+msgstr ""
+
+#: glade/zapping.glade2.h:14
+msgid "Copyright (C) 2000-2003 the contributors\n"
+msgstr ""
+
+#: glade/zapping.glade2.h:16
+msgid "Current controller:"
+msgstr ""
+
+#: glade/zapping.glade2.h:17
+msgid "Device name:"
+msgstr ""
+
+#: glade/zapping.glade2.h:18 src/audio.c:533 src/properties-handler.c:1540
+msgid "Devices"
+msgstr ""
+
+#: glade/zapping.glade2.h:19
+msgid "Disable _screensaver"
+msgstr ""
+
+#: glade/zapping.glade2.h:20
+msgid "Enter key"
+msgstr ""
+
+#: glade/zapping.glade2.h:21
+msgid "F_ont:"
+msgstr ""
+
+#: glade/zapping.glade2.h:22
+msgid "Favorite _picture sizes:"
+msgstr ""
+
+#: glade/zapping.glade2.h:23
+msgid "General options"
+msgstr ""
+
+#: glade/zapping.glade2.h:24
+msgid "Interlaced (window size)"
+msgstr ""
+
+#: glade/zapping.glade2.h:25
+msgid "Kernel _device"
+msgstr ""
+
+#: glade/zapping.glade2.h:26 src/keyboard.c:1144
+msgid "Keyboard"
+msgstr ""
+
+#: glade/zapping.glade2.h:27
+msgid "Known key names"
+msgstr ""
+
+#: glade/zapping.glade2.h:28
+msgid "Maximum capture size:"
+msgstr ""
+
+#: glade/zapping.glade2.h:29
+msgid "Minimum capture size:"
+msgstr ""
+
+#: glade/zapping.glade2.h:30
+msgid "Mute while ch_anging channels"
+msgstr ""
+
+#: glade/zapping.glade2.h:31
+msgid "NTSC"
+msgstr ""
+
+#: glade/zapping.glade2.h:32
+msgid "No Display"
+msgstr ""
+
+#: glade/zapping.glade2.h:33
+msgid "OK, let's go on"
+msgstr ""
+
+#: glade/zapping.glade2.h:34 src/osd.c:1346
+msgid "OSD"
+msgstr ""
+
+#: glade/zapping.glade2.h:35
+msgid "On Screen Display (OSD)"
+msgstr ""
+
+#: glade/zapping.glade2.h:36
+msgid "PAL"
+msgstr ""
+
+#: glade/zapping.glade2.h:37
+msgid "Plugin location"
+msgstr ""
+
+#: glade/zapping.glade2.h:38
+msgid "Plugin priority:"
+msgstr ""
+
+#: glade/zapping.glade2.h:39
+msgid "Plugin properties"
+msgstr ""
+
+#: glade/zapping.glade2.h:40
+msgid "Plugin version:"
+msgstr ""
+
+#: glade/zapping.glade2.h:41
+msgid "Properties"
+msgstr ""
+
+#: glade/zapping.glade2.h:42
+msgid "RF channel number"
+msgstr ""
+
+#: glade/zapping.glade2.h:43
+msgid "Remember this video standard"
+msgstr ""
+
+#: glade/zapping.glade2.h:44
+msgid "Remove all this mess"
+msgstr ""
+
+#: glade/zapping.glade2.h:45
+msgid "Run the plugin"
+msgstr ""
+
+#: glade/zapping.glade2.h:46
+msgid "SECAM"
+msgstr ""
+
+#: glade/zapping.glade2.h:47
+msgid "S_how toolbar as:"
+msgstr ""
+
+#: glade/zapping.glade2.h:48
+msgid "Save _control values per channel"
+msgstr ""
+
+#: glade/zapping.glade2.h:49
+msgid "Save window _geometry (some WM's don't like it)"
+msgstr ""
+
+#: glade/zapping.glade2.h:50
+msgid "Select OSD font"
+msgstr ""
+
+#: glade/zapping.glade2.h:51
+msgid "Select the V4L device"
+msgstr ""
+
+#: glade/zapping.glade2.h:52
+msgid "Select the VBI device"
+msgstr ""
+
+#: glade/zapping.glade2.h:53
+msgid "Show _tooltips"
+msgstr ""
+
+#: glade/zapping.glade2.h:54
+msgid "Status Bar"
+msgstr ""
+
+#: glade/zapping.glade2.h:55
+msgid "Stop this plugin"
+msgstr ""
+
+#: glade/zapping.glade2.h:56
+msgid "TV viewer for the Gnome environment"
+msgstr ""
+
+#: glade/zapping.glade2.h:57
+msgid ""
+"The video capture device does not report the correct video standard, please "
+"select manually:"
+msgstr ""
+
+#: glade/zapping.glade2.h:58
+msgid "Title _bar contents:"
+msgstr ""
+
+#: glade/zapping.glade2.h:59
+msgid "VBI options"
+msgstr ""
+
+#: glade/zapping.glade2.h:60 src/main.c:167 src/properties-handler.c:1518
+#: src/properties-handler.c:1526
+msgid "Video"
+msgstr ""
+
+#: glade/zapping.glade2.h:61
+msgid "Video Standard"
+msgstr ""
+
+#: glade/zapping.glade2.h:62
+msgid "Video device capabilities"
+msgstr ""
+
+#: glade/zapping.glade2.h:63
+msgid "Window"
+msgstr ""
+
+#: glade/zapping.glade2.h:64
+msgid "Zapping Preferences"
+msgstr ""
+
+#: glade/zapping.glade2.h:65
+msgid "Zapping error console"
+msgstr ""
+
+#: glade/zapping.glade2.h:66
+msgid "_Background color:"
+msgstr ""
+
+#: glade/zapping.glade2.h:67
+msgid "_Capture size under XVideo:"
+msgstr ""
+
+#: glade/zapping.glade2.h:68
+msgid "_Command:"
+msgstr ""
+
+#: glade/zapping.glade2.h:69
+msgid "_Control volume with soundcard mixer"
+msgstr ""
+
+#: glade/zapping.glade2.h:70
+msgid "_Device file:"
+msgstr ""
+
+#: glade/zapping.glade2.h:71
+msgid "_Display mode:"
+msgstr ""
+
+#: glade/zapping.glade2.h:72
+msgid "_Enable VBI decoding"
+msgstr ""
+
+#: glade/zapping.glade2.h:73
+msgid "_Enter channels by:"
+msgstr ""
+
+#: glade/zapping.glade2.h:74
+msgid "_Foreground color:"
+msgstr ""
+
+#: glade/zapping.glade2.h:75
+msgid "_Fullscreen video resolution:"
+msgstr ""
+
+#: glade/zapping.glade2.h:76
+msgid "_Gnome sound daemon (ESD)"
+msgstr ""
+
+#: glade/zapping.glade2.h:77
+msgid "_KDE sound daemon (ARTS)"
+msgstr ""
+
+#: glade/zapping.glade2.h:78
+msgid "_Mute on exit"
+msgstr ""
+
+#: glade/zapping.glade2.h:79
+msgid "_No audio recording"
+msgstr ""
+
+#: glade/zapping.glade2.h:80
+msgid "_Remove after:"
+msgstr ""
+
+#: glade/zapping.glade2.h:81
+msgid "_Resize using fixed increments"
+msgstr ""
+
+#: glade/zapping.glade2.h:82
+msgid "_Start Zapping muted"
+msgstr ""
+
+#: glade/zapping.glade2.h:83
+msgid "seconds"
+msgstr ""
+
+#: libvbi/exp-gfx.c:1490
+msgid "Correct aspect ratio"
+msgstr ""
+
+#: libvbi/exp-gfx.c:1491
+msgid ""
+"Approach an image aspect ratio similar to a real TV. This will double the "
+"image size."
+msgstr ""
+
+#: libvbi/exp-gfx.c:1634
+msgid "PPM"
+msgstr ""
+
+#: libvbi/exp-gfx.c:1635
+msgid "Export this page as raw PPM image"
+msgstr ""
+
+#: libvbi/exp-gfx.c:1946 libvbi/exp-html.c:528
+#, c-format
+msgid "Teletext Page %3x.%x"
+msgstr ""
+
+#: libvbi/exp-gfx.c:1950 libvbi/exp-html.c:531
+#, c-format
+msgid "Teletext Page %3x"
+msgstr ""
+
+#: libvbi/exp-gfx.c:2013
+msgid "PNG"
+msgstr ""
+
+#: libvbi/exp-gfx.c:2014
+msgid "Export this page as PNG image"
+msgstr ""
+
+#: libvbi/exp-html.c:106 libvbi/exp-txt.c:129
+msgid "Graphics char"
+msgstr ""
+
+#: libvbi/exp-html.c:107 libvbi/exp-txt.c:130
+msgid ""
+"Replacement for block graphic characters: a single character or decimal (32) "
+"or hex (0x20) code"
+msgstr ""
+
+#: libvbi/exp-html.c:110 libvbi/exp-txt.c:133
+msgid "ASCII art"
+msgstr ""
+
+#: libvbi/exp-html.c:111 libvbi/exp-txt.c:134
+msgid "Replace graphic characters by ASCII art"
+msgstr ""
+
+#: libvbi/exp-html.c:113
+msgid "Color (CSS)"
+msgstr ""
+
+#: libvbi/exp-html.c:114
+msgid "Store the page colors using CSS attributes"
+msgstr ""
+
+#: libvbi/exp-html.c:116
+msgid "HTML header"
+msgstr ""
+
+#: libvbi/exp-html.c:117
+msgid "Include HTML page header"
+msgstr ""
+
+#. TRANSLATORS: "lang=\"en\" refers to the page title
+#. "Teletext Page ...". Please specify "de", "fr", "es"
+#. etc.
+#: libvbi/exp-html.c:517
+msgid "<title lang=\"en\">"
+msgstr ""
+
+#: libvbi/exp-html.c:839
+msgid "HTML"
+msgstr ""
+
+#: libvbi/exp-html.c:840
+msgid "Export this page as HTML page"
+msgstr ""
+
+#: libvbi/exp-txt.c:77
+msgid "ASCII"
+msgstr ""
+
+#: libvbi/exp-txt.c:78
+msgid "ISO-8859-1 (Latin-1 Western languages)"
+msgstr ""
+
+#: libvbi/exp-txt.c:79
+msgid "ISO-8859-2 (Latin-2 Central and Eastern European languages)"
+msgstr ""
+
+#: libvbi/exp-txt.c:80
+msgid "ISO-8859-4 (Latin-3 Baltic languages)"
+msgstr ""
+
+#: libvbi/exp-txt.c:81
+msgid "ISO-8859-5 (Cyrillic)"
+msgstr ""
+
+#: libvbi/exp-txt.c:82
+msgid "ISO-8859-7 (Greek)"
+msgstr ""
+
+#: libvbi/exp-txt.c:83
+msgid "ISO-8859-8 (Hebrew)"
+msgstr ""
+
+#: libvbi/exp-txt.c:84
+msgid "ISO-8859-9 (Turkish)"
+msgstr ""
+
+#: libvbi/exp-txt.c:85
+msgid "KOI8-R (Russian and Bulgarian)"
+msgstr ""
+
+#: libvbi/exp-txt.c:86
+msgid "KOI8-U (Ukranian)"
+msgstr ""
+
+#: libvbi/exp-txt.c:87
+msgid "ISO-10646/UTF-8 (Unicode)"
+msgstr ""
+
+#. TRANSLATORS: Terminal control codes menu
+#: libvbi/exp-txt.c:108
+msgid "None"
+msgstr ""
+
+#: libvbi/exp-txt.c:109
+msgid "ANSI X3.64 / VT 100"
+msgstr ""
+
+#: libvbi/exp-txt.c:110
+msgid "VT 200"
+msgstr ""
+
+#. TRANSLATORS: Text export encoding (ASCII, Unicode, ...) menu
+#: libvbi/exp-txt.c:123
+msgid "Encoding"
+msgstr ""
+
+#: libvbi/exp-txt.c:136
+msgid "Control codes"
+msgstr ""
+
+#: libvbi/exp-txt.c:1023
+msgid "Text"
+msgstr ""
+
+#: libvbi/exp-txt.c:1024
+msgid "Export this page as text file"
+msgstr ""
+
+#: libvbi/exp-vtx.c:77
+msgid "Can only export Teletext pages."
+msgstr ""
+
+#: libvbi/exp-vtx.c:84
+msgid "Page is not cached."
+msgstr ""
+
+#: libvbi/exp-vtx.c:93
+msgid "Cannot export this page, is not displayable."
+msgstr ""
+
+#: libvbi/exp-vtx.c:130
+msgid "VTX"
+msgstr ""
+
+#: libvbi/exp-vtx.c:131
+msgid ""
+"Export this page as VTX file, the format used by VideoteXt and vbidecode"
+msgstr ""
+
+#: libvbi/export.c:198
+msgid "Write error."
+msgstr ""
+
+#: libvbi/export.c:208
+msgid "Out of memory."
+msgstr ""
+
+#: libvbi/export.c:233
+#, c-format
+msgid "Export module %s has no option %s."
+msgstr ""
+
+#: libvbi/export.c:293
+#, c-format
+msgid "Invalid argument %s for option %s of export module %s."
+msgstr ""
+
+#: libvbi/export.c:348
+msgid "Unknown error."
+msgstr ""
+
+#: libvbi/export.c:434
+#, c-format
+msgid "Could not create %s. %s."
+msgstr ""
+
+#: libvbi/export.c:1326
+#, c-format
+msgid "Invalid option string \"%s\"."
+msgstr ""
+
+#: libvbi/export.c:1428
+#, c-format
+msgid "Unknown export module '%s'."
+msgstr ""
+
+#: libvbi/export.c:1441
+#, c-format
+msgid "Cannot initialize export module '%s', probably lack of memory."
+msgstr ""
+
+#: libvbi/export.c:1461
+#, c-format
+msgid "Cannot initialize export module '%s', out of memory."
+msgstr ""
+
+#: plugins/alirc/alirc.c:37
+msgid "Another lirc plugin"
+msgstr ""
+
+#: plugins/alirc/alirc.c:39
+msgid ""
+"Another plugin to control zapping through lirc\n"
+"\n"
+"To enable this plugin you must edit your ~/.lircrc\n"
+"file. See the Zapping documentation for details.\n"
+msgstr ""
+
+#: plugins/alirc/alirc.c:44
+msgid "Lets you control zapping through lirc"
+msgstr ""
+
+#. hash collision code
+#. Warn
+#. hash collision code
+#. hash collision code
+#. Warn
+#: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:2162
+#: plugins/screenshot/screenshot.c:1645
+#, c-format
+msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
+msgstr ""
+
+#: plugins/deinterlace/main.c:340
+msgid "Could not start deinterlace plugin"
+msgstr ""
+
+#: plugins/deinterlace/main.c:341
+#, c-format
+msgid "Could not switch to capture format YUYV %u x %u."
+msgstr ""
+
+#: plugins/deinterlace/main.c:434
+msgid "Deinterlace"
+msgstr ""
+
+#: plugins/deinterlace/main.c:441 plugins/mpeg/mpeg.c:1485
+#: plugins/mpeg/mpeg.c:2096 plugins/screenshot/screenshot.c:509
+#: plugins/screenshot/screenshot.c:1408 plugins/teletext/main.c:258
+msgid "Plugins"
+msgstr ""
+
+#: plugins/deinterlace/main.c:521
+msgid "Deinterlace plugin"
+msgstr ""
+
+#: plugins/deinterlace/preferences.c:48 src/plugin_properties.c:120
+msgid "Low"
+msgstr ""
+
+#: plugins/deinterlace/preferences.c:49
+msgid "Medium"
+msgstr ""
+
+#: plugins/deinterlace/preferences.c:50 src/plugin_properties.c:128
+msgid "High"
+msgstr ""
+
+#: plugins/deinterlace/preferences.c:319
+msgid "_Resolution:"
+msgstr ""
+
+#. TRANSLATORS: Relative display duration of the first and
+#. second field in deinterlace mode.
+#: plugins/deinterlace/preferences.c:328
+msgid "_Field Balance:"
+msgstr ""
+
+#: plugins/deinterlace/preferences.c:734 src/eggcellrendererkeys.c:222
+msgid "Disabled"
+msgstr ""
+
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:140
+msgid "Max Comb"
+msgstr ""
+
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:147
+msgid "Motion Threshold"
+msgstr ""
+
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:154
+msgid "Motion Sense"
+msgstr ""
+
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:161
+msgid "Good PullDown Lvl"
+msgstr ""
+
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:168
+msgid "Bad PullDown Lvl"
+msgstr ""
+
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:175
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:232
+msgid "H. Sharpness"
+msgstr ""
+
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:182
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:225
+msgid "V. Sharpness"
+msgstr ""
+
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:190
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:218
+msgid "Median Filter"
+msgstr ""
+
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:197
+msgid "High Comb Skip"
+msgstr ""
+
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:204
+msgid "Auto Pull-Down"
+msgstr ""
+
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:211
+msgid "In-Between Frames"
+msgstr ""
+
+#. size of this struct
+#. curr version compiled
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:618
+msgid "Video (Greedy, High Motion)"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_Adaptive.c:310
+msgid "Adaptive"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_BlendedClip.c:966
+msgid "Blended Clip"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_Bob.c:271
+msgid "Simple Bob"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_EvenOnly.c:92
+msgid "Even Scanlines Only"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_Greedy.c:77
+msgid "Greedy Max Comb"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_Greedy.c:88
+msgid "Video (Greedy, Low Motion)"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:78
+msgid "Greedy 2 Frame Luma Threshold"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:84
+msgid "Greedy 2 Frame Chroma Threshold"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:96
+msgid "Greedy 2 Frame"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_OddOnly.c:91
+msgid "Odd Scanlines Only"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_OldGame.c:147
+msgid "Maximum motion"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_OldGame.c:153
+msgid "Composite mode"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_OldGame.c:165
+msgid "Old Game"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_ScalerBob.c:80
+msgid "Scaler Bob"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:78
+msgid "2 Frame Spatial Tolerance"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:84
+msgid "2 Frame Temporal Tolerance"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:95
+msgid "Video Deinterlace (2-Frame)"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:82
+msgid "Weave Edge Detect"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:88
+msgid "Weave Jaggie Threshold"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:99
+msgid "Video Deinterlace (Bob)"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:79
+msgid "Temporal Tolerance"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:85
+msgid "Spatial Tolerance"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:91
+msgid "Similarity Threshold"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:102
+msgid "Video Deinterlace (Weave)"
+msgstr ""
+
+#: plugins/deinterlace/DI_Misc/DI_Weave.c:102
+msgid "Simple Weave"
+msgstr ""
+
+#: plugins/deinterlace/DI_MoComp2/DI_MoComp2.c:82
+#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:96
+msgid "Search Effort"
+msgstr ""
+
+#: plugins/deinterlace/DI_MoComp2/DI_MoComp2.c:93
+msgid "Video (MoComp2)"
+msgstr ""
+
+#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:102
+msgid "Use Strange Bob"
+msgstr ""
+
+#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:113
+msgid "Video (TomsMoComp)"
+msgstr ""
+
+#: plugins/mpeg/mpeg.c:417
+#, c-format
+msgid "Format %s is incomplete, please configure the video or audio codec."
+msgstr ""
+
+#: plugins/mpeg/mpeg.c:682
+#, c-format
+msgid "Cannot create file %s: %s\n"
+msgstr ""
+
+#: plugins/mpeg/mpeg.c:1303
+msgid "New format"
+msgstr ""
+
+#: plugins/mpeg/mpeg.c:1304
+msgid "Format name:"
+msgstr ""
+
+#: plugins/mpeg/mpeg.c:1485 plugins/mpeg/mpeg.c:1953 plugins/mpeg/mpeg.c:1981
+#: plugins/mpeg/mpeg.c:2085 plugins/mpeg/mpeg_properties.glade2.h:6
+msgid "Record"
+msgstr ""
+
+#: plugins/mpeg/mpeg.c:1774
+msgid "Not implemented yet"
+msgstr ""
+
+#: plugins/mpeg/mpeg.c:1946
+msgid "Record a video stream"
+msgstr ""
+
+#: plugins/mpeg/mpeg.c:2031
+msgid "Audio/Video Recorder"
+msgstr ""
+
+#: plugins/mpeg/mpeg.c:2034
+msgid "This plugin records video and audio into a file"
+msgstr ""
+
+#: plugins/mpeg/mpeg.c:2037
+msgid "Record video and audio."
+msgstr ""
+
+#: plugins/mpeg/options.c:407 plugins/teletext/export.c:440
+msgid "Options"
+msgstr ""
+
+#. TRANSLATORS: Which codec: None, A, B, C, ...
+#: plugins/mpeg/options.c:740
+msgid "No codec"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:2
+msgid "Capture _height:"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:3
+msgid "Capture _width:"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:4
+#: plugins/screenshot/screenshot.glade2.h:3
+msgid "Destination file"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:5
+msgid "Fil_e format"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:7
+msgid "Save _as:"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:8
+msgid "_Audio"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:9
+msgid "_Codec:"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:10
+msgid "_Configure..."
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:11
+msgid "_Delete"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:12
+#: plugins/screenshot/screenshot.glade2.h:12
+msgid "_Format:"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:13
+msgid "_New"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:14
+msgid "_Pause"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:15
+msgid "_Record"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:16
+msgid "_Stop"
+msgstr ""
+
+#: plugins/mpeg/mpeg_properties.glade2.h:17 src/zapping.c:471
+msgid "_Video"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:44
+msgid "Screenshot saver"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:46
+msgid ""
+"With this plugin you can take screen shots of the program you are watching "
+"and save them in various formats."
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:49
+msgid "This plugin takes screenshots of the video capture."
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:504 plugins/screenshot/screenshot.c:529
+#: plugins/screenshot/screenshot.c:1408
+msgid "Screenshot"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:534
+msgid "Take a screenshot"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:668 plugins/screenshot/screenshot.c:763
+msgid "Error while writing screenshot\n"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:813
+msgid "Saving..."
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:840
+#, c-format
+msgid ""
+"Sorry, but I cannot write %s\n"
+"%s"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:874
+msgid "Sorry, not enough resources to create a new thread"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:879
+msgid "There are too many threads"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:1055
+#, c-format
+msgid "appx %u KB"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:1058
+#, c-format
+msgid "appx %.2f MB"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:1123 plugins/screenshot/screenshot.c:1267
+msgid "This format has no quality option"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:1303
+msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:1
+msgid "Backward"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:2
+msgid "Command to execute after the image has been saved"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:4
+msgid "Forward"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:5
+msgid "Grab full size image"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:6
+msgid "Off"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:7
+msgid "Preview"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:8
+msgid "Save Screenshot"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:9
+msgid "_Add toolbar button"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:10
+msgid "_Completion command:"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:11
+msgid "_Deinterlace:"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:13
+msgid "_Grab on clicking OK"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:14
+msgid "_Quality:"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:15
+msgid "_Save as:"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:16
+msgid "_Skip"
+msgstr ""
+
+#: plugins/screenshot/screenshot.glade2.h:17
+msgid "pictures before grabbing"
+msgstr ""
+
+#: plugins/teletext/bookmark.c:277
+#, c-format
+msgid "Added page %x.%02x to bookmarks"
+msgstr ""
+
+#: plugins/teletext/bookmark.c:281
+#, c-format
+msgid "Added page %x to bookmarks"
+msgstr ""
+
+#: plugins/teletext/bookmark.c:342
+msgid "_Add Bookmark"
+msgstr ""
+
+#: plugins/teletext/bookmark.c:348
+msgid "_Edit Bookmarks..."
+msgstr ""
+
+#: plugins/teletext/bookmark.c:589
+msgid "Bookmarks"
+msgstr ""
+
+#: plugins/teletext/bookmark.c:628
+msgid "Channel"
+msgstr ""
+
+#: plugins/teletext/bookmark.c:634
+msgid "Page"
+msgstr ""
+
+#: plugins/teletext/bookmark.c:639
+msgid "Description"
+msgstr ""
+
+#: plugins/teletext/export.c:481 plugins/teletext/export.c:507
+msgid "Could not save page"
+msgstr ""
+
+#: plugins/teletext/export.c:552
+msgid "Save as"
+msgstr ""
+
+#: plugins/teletext/export.c:570
+msgid "Format:"
+msgstr ""
+
+#: plugins/teletext/main.c:179
+msgid "_Preferences"
+msgstr ""
+
+#: plugins/teletext/main.c:181
+msgid "_Colors"
+msgstr ""
+
+#: plugins/teletext/main.c:250 src/main.c:165
+msgid "Teletext"
+msgstr ""
+
+#: plugins/teletext/main.c:332
+msgid "Teletext plugin"
+msgstr ""
+
+#: plugins/teletext/preferences.c:52
+msgid "Western and Central Europe"
+msgstr ""
+
+#: plugins/teletext/preferences.c:53
+msgid "Eastern Europe"
+msgstr ""
+
+#: plugins/teletext/preferences.c:54
+msgid "Western Europe and Turkey"
+msgstr ""
+
+#: plugins/teletext/preferences.c:55
+msgid "Central and Southeast Europe"
+msgstr ""
+
+#: plugins/teletext/preferences.c:56
+msgid "Cyrillic"
+msgstr ""
+
+#: plugins/teletext/preferences.c:57
+msgid "Greek and Turkish"
+msgstr ""
+
+#: plugins/teletext/preferences.c:58
+msgid "Arabic"
+msgstr ""
+
+#: plugins/teletext/preferences.c:59
+msgid "Hebrew and Arabic"
+msgstr ""
+
+#: plugins/teletext/preferences.c:74
+msgid "Level 1"
+msgstr ""
+
+#: plugins/teletext/preferences.c:75
+msgid "Level 1.5 (additional national characters)"
+msgstr ""
+
+#: plugins/teletext/preferences.c:76
+msgid "Level 2.5 (more colors, font styles and graphics)"
+msgstr ""
+
+#: plugins/teletext/preferences.c:77
+msgid "Level 3.5 (proportional spacing, multicolor graphics)"
+msgstr ""
+
+#: plugins/teletext/preferences.c:92
+msgid "Nearest (fast, low quality)"
+msgstr ""
+
+#: plugins/teletext/preferences.c:93
+msgid "Tiles"
+msgstr ""
+
+#: plugins/teletext/preferences.c:94
+msgid "Bilinear"
+msgstr ""
+
+#: plugins/teletext/preferences.c:95
+msgid "Hyper (slow, high quality)"
+msgstr ""
+
+#: plugins/teletext/preferences.c:276
+msgid "<b>General</b>"
+msgstr ""
+
+#: plugins/teletext/preferences.c:278
+msgid "_Teletext implementation:"
+msgstr ""
+
+#: plugins/teletext/preferences.c:284
+msgid "_Default encoding:"
+msgstr ""
+
+#: plugins/teletext/preferences.c:288
+msgid ""
+"Some stations fail to transmit a complete language identifier, so the "
+"Teletext viewer may not display the correct font or national characters. You "
+"can select your geographical region here as an additional hint."
+msgstr ""
+
+#: plugins/teletext/preferences.c:294
+msgid "<b>Page memory</b>"
+msgstr ""
+
+#: plugins/teletext/preferences.c:296
+msgid "_Size:"
+msgstr ""
+
+#. expand
+#. fill
+#. pad
+#. TRANSLATORS: Kilobyte (2^10)
+#: plugins/teletext/preferences.c:322
+msgid "KiB"
+msgstr ""
+
+#: plugins/teletext/preferences.c:329
+msgid "_Channels:"
+msgstr ""
+
+#: plugins/teletext/preferences.c:349
+msgid "<b>Display</b>"
+msgstr ""
+
+#: plugins/teletext/preferences.c:351
+msgid "_Brightness:"
+msgstr ""
+
+#: plugins/teletext/preferences.c:373
+msgid "_Contrast:"
+msgstr ""
+
+#: plugins/teletext/preferences.c:395
+msgid "S_caling:"
+msgstr ""
+
+#: plugins/teletext/preferences.c:399
+msgid "Quality/speed trade-off when scaling and anti-aliasing the page."
+msgstr ""
+
+#: plugins/teletext/search.c:131 plugins/teletext/search.c:345
+msgid "Search text:"
+msgstr ""
+
+#: plugins/teletext/search.c:153
+#, c-format
+msgid "Found text on page %x.%02x:"
+msgstr ""
+
+#: plugins/teletext/search.c:160
+msgid "Not found:"
+msgstr ""
+
+#: plugins/teletext/search.c:171
+msgid "Page memory is empty"
+msgstr ""
+
+#: plugins/teletext/search.c:338 plugins/teletext/view.c:3161
+msgid "Search page memory"
+msgstr ""
+
+#: plugins/teletext/search.c:354
+msgid "_Regular expression"
+msgstr ""
+
+#: plugins/teletext/search.c:359
+msgid "Search case _insensitive"
+msgstr ""
+
+#. Future stuff.
+#: plugins/teletext/search.c:365
+msgid "_All channels"
+msgstr ""
+
+#: plugins/teletext/toolbar.c:122
+msgid "Next page"
+msgstr ""
+
+#: plugins/teletext/toolbar.c:125
+msgid "Previous page"
+msgstr ""
+
+#: plugins/teletext/toolbar.c:128
+msgid "Previous subpage"
+msgstr ""
+
+#: plugins/teletext/toolbar.c:131
+msgid "Next subpage"
+msgstr ""
+
+#: plugins/teletext/toolbar.c:188
+msgid "Open new Teletext window"
+msgstr ""
+
+#: plugins/teletext/toolbar.c:210
+msgid "Hold the current subpage"
+msgstr ""
+
+#: plugins/teletext/toolbar.c:240
+msgid "Reveal"
+msgstr ""
+
+#: plugins/teletext/toolbar.c:241
+msgid "Reveal concealed text"
+msgstr ""
+
+#: plugins/teletext/view.c:837
+#, c-format
+msgid " Page %x"
+msgstr ""
+
+#: plugins/teletext/view.c:841
+#, c-format
+msgid " Subpage %x"
+msgstr ""
+
+#: plugins/teletext/view.c:1362
+#, c-format
+msgid "Loading page %X..."
+msgstr ""
+
+#: plugins/teletext/view.c:1364
+#, c-format
+msgid "Loading page %X.%02X..."
+msgstr ""
+
+#: plugins/teletext/view.c:2284
+msgid "Selection copied to clipboard"
+msgstr ""
+
+#: plugins/teletext/view.c:2366
+msgid "No page loaded"
+msgstr ""
+
+#: plugins/teletext/view.c:2379
+msgid "Selecting - press Shift key for table mode"
+msgstr ""
+
+#: plugins/teletext/view.c:2532
+msgid "Subtitle index"
+msgstr ""
+
+#: plugins/teletext/view.c:2539
+msgid "Now and Next"
+msgstr ""
+
+#: plugins/teletext/view.c:2545
+msgid "Current program"
+msgstr ""
+
+#: plugins/teletext/view.c:2551
+msgid "Program Index"
+msgstr ""
+
+#: plugins/teletext/view.c:2557
+msgid "Program Schedule"
+msgstr ""
+
+#. TRANSLATORS: Schedule changes and the like.
+#: plugins/teletext/view.c:2565
+msgid "Program Warning"
+msgstr ""
+
+#: plugins/teletext/view.c:2626
+msgid "_Open"
+msgstr ""
+
+#: plugins/teletext/view.c:2632
+msgid "Open in _New Window"
+msgstr ""
+
+#: plugins/teletext/view.c:2643
+msgid "_Open Link"
+msgstr ""
+
+#: plugins/teletext/view.c:2654 plugins/teletext/window.c:797
+msgid "_New Window"
+msgstr ""
+
+#: plugins/teletext/view.c:2660
+msgid "_Save as..."
+msgstr ""
+
+#: plugins/teletext/view.c:2666
+msgid "S_earch..."
+msgstr ""
+
+#: plugins/teletext/view.c:2672
+msgid "S_ubtitles"
+msgstr ""
+
+#: plugins/teletext/view.c:2678 plugins/teletext/window.c:804
+#: src/zapping.c:468
+msgid "_Bookmarks"
+msgstr ""
+
+#: plugins/teletext/view.c:3153
+msgid "_Go"
+msgstr ""
+
+#: plugins/teletext/view.c:3155
+msgid "Previous page in history"
+msgstr ""
+
+#: plugins/teletext/view.c:3157
+msgid "Next page in history"
+msgstr ""
+
+#: plugins/teletext/view.c:3158
+msgid "Index"
+msgstr ""
+
+#: plugins/teletext/view.c:3159
+msgid "Go to the index page"
+msgstr ""
+
+#: plugins/teletext/view.c:3163
+msgid "Save this page to a file"
+msgstr ""
+
+#. TRANSLATORS: Choose from the Teletext page cache the currently
+#. received channel.
+#: plugins/teletext/window.c:310
+msgid "_Received"
+msgstr ""
+
+#: plugins/teletext/window.c:341 src/v4linterface.c:1166
+#: src/v4linterface.c:2270
+msgid "Unnamed"
+msgstr ""
+
+#: plugins/teletext/window.c:563
+msgid " (Latin)"
+msgstr ""
+
+#: plugins/teletext/window.c:565
+msgid " (Cyrillic)"
+msgstr ""
+
+#: plugins/teletext/window.c:608
+msgid "_Automatic"
+msgstr ""
+
+#: plugins/teletext/window.c:796 src/zapping.c:404
+msgid "_File"
+msgstr ""
+
+#: plugins/teletext/window.c:800 src/zapping.c:406
+msgid "_Edit"
+msgstr ""
+
+#: plugins/teletext/window.c:801 src/zapping.c:413
+msgid "_View"
+msgstr ""
+
+#: plugins/teletext/window.c:802
+msgid "_Encoding"
+msgstr ""
+
+#. 2.6 GTK_STOCK_EDIT
+#: plugins/teletext/window.c:803 src/zapping.c:411 src/zapping.c:424
+msgid "_Channels"
+msgstr ""
+
+#: plugins/teletext/window.c:863 src/zapping.c:446
+msgid "_Toolbar"
+msgstr ""
+
+#: plugins/teletext/window.c:865
+msgid "_Statusbar"
+msgstr ""
+
+#. TRANSLATORS: Soundcard mixer line.
+#: src/audio.c:501
+msgid "Input:"
+msgstr ""
+
+#: src/audio.c:534 src/keyboard.c:1149 src/osd.c:1351
+#: src/properties-handler.c:1541 src/properties.c:968
+msgid "General Options"
+msgstr ""
+
+#: src/audio.c:633
+msgid "<span foreground=\"blue\">Audio off</span>"
+msgstr ""
+
+#: src/audio.c:634
+msgid "<span foreground=\"yellow\">Audio on</span>"
+msgstr ""
+
+#: src/capture.c:955
+#, c-format
+msgid "Cannot start capturing: %s"
+msgstr ""
+
+#: src/channel_editor.c:590
+#, c-format
+msgid "Channel: %s   Found: %u"
+msgstr ""
+
+#: src/channel_editor.c:710
+msgid "Searching..."
+msgstr ""
+
+#: src/channel_editor.c:1447
+msgid "Select the frequency table used in your country"
+msgstr ""
+
+#: src/channel_editor.c:1591
+msgid "Ch. Name"
+msgstr ""
+
+#: src/channel_editor.c:1596
+msgid "Freq (MHz)"
+msgstr ""
+
+#. append
+#: src/channel_editor.c:1649
+msgid "Channel name"
+msgstr ""
+
+#. append
+#: src/channel_editor.c:1653
+msgid "Video input"
+msgstr ""
+
+#. append
+#: src/channel_editor.c:1657
+msgid "RF Channel"
+msgstr ""
+
+#. append
+#: src/channel_editor.c:1661
+msgid "Video standard"
+msgstr ""
+
+#. append
+#: src/channel_editor.c:1665 src/keyboard.c:442
+msgid "Accelerator"
+msgstr ""
+
+#: src/channel_editor.c:1680
+msgid "Do not change input"
+msgstr ""
+
+#: src/channel_editor.c:1704
+msgid "Do not change standard"
+msgstr ""
+
+#: src/channel_editor.c:1743
+msgid "Channel editor"
+msgstr ""
+
+#: src/channel_editor.c:1767
+msgid "Region"
+msgstr ""
+
+#: src/channel_editor.c:1803
+msgid "Automatic station _search"
+msgstr ""
+
+#: src/channel_editor.c:1809
+msgid ""
+"Select a suitable frequency table, then click here to search through all "
+"channels in the table and add the received stations to the channel list."
+msgstr ""
+
+#: src/channel_editor.c:1815
+msgid "Add all _channels"
+msgstr ""
+
+#: src/channel_editor.c:1822
+msgid "Add all channels in the frequency table to the channel list."
+msgstr ""
+
+#: src/channel_editor.c:1826
+msgid "_Import XawTV configuration"
+msgstr ""
+
+#: src/channel_editor.c:1853
+msgid "Channel List"
+msgstr ""
+
+#: src/channel_editor.c:1888
+msgid "Edit channel"
+msgstr ""
+
+#: src/channel_editor.c:1905
+msgid "Name:"
+msgstr ""
+
+#: src/channel_editor.c:1914
+msgid "Video input:"
+msgstr ""
+
+#: src/channel_editor.c:1925
+msgid "Fine tuning:"
+msgstr ""
+
+#: src/channel_editor.c:1931
+msgid "MHz"
+msgstr ""
+
+#: src/channel_editor.c:1942
+msgid "Video standard:"
+msgstr ""
+
+#: src/channel_editor.c:1953
+msgid "Accelerator:"
+msgstr ""
+
+#: src/eggcellrendererkeys.c:163 src/eggcellrendererkeys.c:164
+msgid "Accelerator key"
+msgstr ""
+
+#: src/eggcellrendererkeys.c:173 src/eggcellrendererkeys.c:174
+msgid "Accelerator modifiers"
+msgstr ""
+
+#: src/eggcellrendererkeys.c:183
+msgid "Accelerator Mode"
+msgstr ""
+
+#: src/eggcellrendererkeys.c:184
+msgid "The type of accelerator."
+msgstr ""
+
+#: src/eggcellrendererkeys.c:333 src/eggcellrendererkeys.c:567
+msgid "Type a new accelerator, or press Backspace to clear"
+msgstr ""
+
+#: src/eggcellrendererkeys.c:570
+msgid "Type a new accelerator"
+msgstr ""
+
+#: src/frequencies.c:94 src/frequencies.c:160
+msgid "broadcast"
+msgstr ""
+
+#: src/frequencies.c:107
+msgid "cable IRC"
+msgstr ""
+
+#: src/frequencies.c:126
+msgid "cable HRC"
+msgstr ""
+
+#: src/frequencies.c:144 src/frequencies.c:172
+msgid "cable"
+msgstr ""
+
+#. TRANSLATORS: Leave "Autocom" untranslated.
+#: src/frequencies.c:275
+msgid "Autocom cable"
+msgstr ""
+
+#: src/keyboard.c:89 src/keyboard.c:112
+msgid "Ctrl+"
+msgstr ""
+
+#: src/keyboard.c:90 src/keyboard.c:113
+msgid "Alt+"
+msgstr ""
+
+#: src/keyboard.c:91 src/keyboard.c:114
+msgid "Shift+"
+msgstr ""
+
+#: src/keyboard.c:523
+msgid "Key table..."
+msgstr ""
+
+#: src/keyboard.c:1105
+msgid "Command"
+msgstr ""
+
+#: src/keyboard.c:1119 src/properties-handler.c:804
+msgid "Shortcut"
+msgstr ""
+
+#: src/main.c:164 src/tveng.c:2195 src/tveng1.c:1101 src/tveng25.c:495
+#: src/tvengbktr.c:412 src/tvengxv.c:549
+msgid "Mute"
+msgstr ""
+
+#: src/main.c:166
+msgid "Subtitles"
+msgstr ""
+
+#: src/main.c:261 src/main.c:294
+#, c-format
+msgid ""
+"Capture mode couldn't be started:\n"
+"%s"
+msgstr ""
+
+#: src/main.c:278
+#, c-format
+msgid ""
+"Cannot restore previous mode, will try capture mode:\n"
+"%s"
+msgstr ""
+
+#: src/main.c:285
+#, c-format
+msgid ""
+"Capture mode couldn't be started either:\n"
+"%s"
+msgstr ""
+
+#: src/main.c:288
+#, c-format
+msgid ""
+"Cannot restore previous mode:\n"
+"%s"
+msgstr ""
+
+#: src/main.c:351
+msgid "Kernel video device"
+msgstr ""
+
+#: src/main.c:352
+msgid "FILENAME"
+msgstr ""
+
+#: src/main.c:363 src/main.c:381
+msgid "XVideo video input port"
+msgstr ""
+
+#: src/main.c:372
+msgid "XVideo image overlay port"
+msgstr ""
+
+#: src/main.c:390
+msgid "Disable XVideo video input support"
+msgstr ""
+
+#: src/main.c:399
+msgid "Disable XVideo image overlay support"
+msgstr ""
+
+#: src/main.c:408
+msgid "Disable XVideo extension support"
+msgstr ""
+
+#: src/main.c:420
+msgid "Disable video overlay"
+msgstr ""
+
+#: src/main.c:429
+msgid "X display is remote, disable video overlay"
+msgstr ""
+
+#: src/main.c:438
+msgid "Disable VBI support"
+msgstr ""
+
+#: src/main.c:447
+msgid "Disable plugins"
+msgstr ""
+
+#. TRANSLATORS: --no-zsfb command line option.
+#. TRANSLATORS: --yuv-format command line option.
+#. TRANSLATORS: --tunerless-norm command line option.
+#: src/main.c:461 src/main.c:516 src/main.c:525
+msgid "Obsolete"
+msgstr ""
+
+#: src/main.c:470
+msgid "Color depth of the X display"
+msgstr ""
+
+#: src/main.c:471
+msgid "BPP"
+msgstr ""
+
+#: src/main.c:479 src/zapzilla.c:74
+msgid "Print debug messages"
+msgstr ""
+
+#: src/main.c:497
+msgid "Force dword alignment of the overlay window"
+msgstr ""
+
+#: src/main.c:506
+msgid "Execute the given command and exit"
+msgstr ""
+
+#: src/main.c:507
+msgid "CMD"
+msgstr ""
+
+#: src/main.c:589
+msgid "Sorry, but there is no module support in GLib"
+msgstr ""
+
+#: src/main.c:704
+msgid "Cannot get device info struct"
+msgstr ""
+
+#: src/main.c:713
+msgid "Zapping couldn't be started"
+msgstr ""
+
+#: src/main.c:767
+#, c-format
+msgid "Couldn't open %s, try other devices?"
+msgstr ""
+
+#: src/main.c:794
+#, c-format
+msgid "%s suceeded, setting it as the new default"
+msgstr ""
+
+#: src/main.c:804
+#, c-format
+msgid ""
+"Sorry, but \"%s\" could not be opened:\n"
+"%s"
+msgstr ""
+
+#: src/main.c:1147 src/zapzilla.c:165
+#, c-format
+msgid ""
+"ZConf could not be closed properly , your\n"
+"configuration will be lost.\n"
+"Possible causes for this are:\n"
+"   - There is not enough free memory\n"
+"   - You do not have permissions to write to $HOME/.zapping\n"
+"   - libxml is non-functional (?)\n"
+"   - or, more probably, you have found a bug in\n"
+"     %s. Please contact the author.\n"
+msgstr ""
+
+#: src/main.c:1176
+msgid "Sorry, Zapping is unable to create the config tree"
+msgstr ""
+
+#: src/osd.c:872
+msgid "Please choose a font for OSD in preferences."
+msgstr ""
+
+#: src/osd.c:875
+#, c-format
+msgid ""
+"The configured font \"%s\" cannot be loaded, please select another one in "
+"preferences\n"
+msgstr ""
+
+#: src/osd.c:885
+msgid ""
+"No font could be loaded, please make sure\n"
+"your system is properly configured."
+msgstr ""
+
+#: src/oss.c:179
+msgid "Audio device:"
+msgstr ""
+
+#: src/oss.c:182
+msgid "Select the audio device"
+msgstr ""
+
+#: src/oss.c:209
+#, c-format
+msgid "The given audio device \"%s\" doesn't exist"
+msgstr ""
+
+#. TRANSLATORS: Name of mixer line, mono as
+#. opposed to stereo.
+#: src/oss.c:913
+#, c-format
+msgid "%s (Mono)"
+msgstr ""
+
+#: src/plugin_properties.c:118
+msgid "Very low"
+msgstr ""
+
+#: src/plugin_properties.c:122
+msgid "Lower"
+msgstr ""
+
+#: src/plugin_properties.c:124
+msgid "Normal"
+msgstr ""
+
+#: src/plugin_properties.c:126
+msgid "Very high"
+msgstr ""
+
+#: src/plugin_properties.c:130
+msgid "Higher"
+msgstr ""
+
+#: src/plugin_properties.c:152
+msgid "This plugin has no public symbols"
+msgstr ""
+
+#: src/plugin_properties.c:171
+msgid "List of symbols exported by the plugin"
+msgstr ""
+
+#: src/plugin_properties.c:213
+msgid "Sorry, the plugin couldn't be started"
+msgstr ""
+
+#: src/plugin_properties.c:273
+msgid "Sorry, but no plugins have been loaded"
+msgstr ""
+
+#: src/plugin_properties.c:308
+msgid "Plugin name"
+msgstr ""
+
+#: src/plugin_properties.c:335
+msgid "Symbol"
+msgstr ""
+
+#: src/plugin_properties.c:340
+msgid "Hash"
+msgstr ""
+
+#: src/plugins.c:190
+#, c-format
+msgid "\"%s\" doesn't provide a version"
+msgstr ""
+
+#: src/plugins.c:227
+msgid "Insufficient memory"
+msgstr ""
+
+#: src/plugins.c:236
+msgid "No description available"
+msgstr ""
+
+#. Warn
+#: src/plugins.c:350
+#, c-format
+msgid ""
+"Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
+"Hashes are 0x%x vs. 0x%x"
+msgstr ""
+
+#: src/properties-handler.c:86
+msgid "Can capture to memory.\n"
+msgstr ""
+
+#: src/properties-handler.c:88
+msgid "Has some tuner.\n"
+msgstr ""
+
+#: src/properties-handler.c:90
+msgid "Supports the teletext service.\n"
+msgstr ""
+
+#: src/properties-handler.c:92
+msgid "Can overlay the image.\n"
+msgstr ""
+
+#: src/properties-handler.c:94
+msgid "Can chromakey the image.\n"
+msgstr ""
+
+#: src/properties-handler.c:96
+msgid "Clipping rectangles are supported.\n"
+msgstr ""
+
+#: src/properties-handler.c:98
+msgid "Framebuffer memory is overwritten.\n"
+msgstr ""
+
+#: src/properties-handler.c:100
+msgid "The capture can be scaled.\n"
+msgstr ""
+
+#: src/properties-handler.c:102
+msgid "Only monochrome is available\n"
+msgstr ""
+
+#: src/properties-handler.c:104
+msgid "The capture can be zoomed\n"
+msgstr ""
+
+#: src/properties-handler.c:115
+msgid "No available inputs"
+msgstr ""
+
+#: src/properties-handler.c:117
+msgid "Your video device has no inputs"
+msgstr ""
+
+#: src/properties-handler.c:132
+msgid "TV input"
+msgstr ""
+
+#: src/properties-handler.c:134
+msgid "Camera"
+msgstr ""
+
+#: src/properties-handler.c:413
+#, c-format
+msgid "Resize to %ux%u"
+msgstr ""
+
+#. append
+#: src/properties-handler.c:781
+msgid "Width"
+msgstr ""
+
+#: src/properties-handler.c:781
+msgid "Height"
+msgstr ""
+
+#: src/properties-handler.c:889
+msgid "Text Below Icons"
+msgstr ""
+
+#: src/properties-handler.c:890
+msgid "Priority Text Beside Icons"
+msgstr ""
+
+#: src/properties-handler.c:891
+msgid "Icons Only"
+msgstr ""
+
+#: src/properties-handler.c:892
+msgid "Text Only"
+msgstr ""
+
+#: src/properties-handler.c:957
+#, c-format
+msgid "Use desktop default (%s)"
+msgstr ""
+
+#. TRANSLATORS: Fullscreen video mode
+#: src/properties-handler.c:1165
+msgid "Do not change"
+msgstr ""
+
+#: src/properties-handler.c:1169 src/tveng.c:4434
+msgid "Automatic"
+msgstr ""
+
+#. TRANSLATORS: Fullscreen video mode
+#: src/properties-handler.c:1184
+#, c-format
+msgid "%u x %u @ %u Hz"
+msgstr ""
+
+#: src/properties-handler.c:1321 src/properties-handler.c:1542
+msgid "VBI Options"
+msgstr ""
+
+#: src/properties-handler.c:1322 src/properties-handler.c:1535
+msgid "Interactive TV"
+msgstr ""
+
+#: src/properties-handler.c:1523
+msgid "Main Window"
+msgstr ""
+
+#: src/properties-handler.c:1531
+msgid "General"
+msgstr ""
+
+#: src/properties.c:599
+msgid "Zapping Properties"
+msgstr ""
+
+#: src/subtitle.c:74
+msgid "_Disable"
+msgstr ""
+
+#: src/subtitle.c:143
+#, c-format
+msgid "Page %x"
+msgstr ""
+
+#: src/tveng.c:2187 src/tveng25.c:494 src/tvengxv.c:550
+msgid "Volume"
+msgstr ""
+
+#: src/tveng.c:3033
+msgid "Cannot execute zapping_setup_fb."
+msgstr ""
+
+#: src/tveng.c:3043 src/tveng.c:3051
+msgid "zapping_setup_fb failed."
+msgstr ""
+
+#: src/tveng.c:3056
+#, c-format
+msgid "zapping_setup_fb not found in \"%s\" or executable search path."
+msgstr ""
+
+#: src/tveng.c:3063
+msgid "Unknown error in zapping_setup_fb."
+msgstr ""
+
+#: src/tveng.c:3815 src/tveng.c:3836
+msgid "Filter"
+msgstr ""
+
+#. TRANSLATORS: Color replaced by video in overlay mode.
+#: src/tveng.c:3858
+msgid "Colorkey"
+msgstr ""
+
+#: src/tveng.c:4441
+msgid "Mono"
+msgstr ""
+
+#: src/tveng.c:4448
+msgid "Stereo"
+msgstr ""
+
+#: src/tveng.c:4456
+msgid "Language 2"
+msgstr ""
+
+#: src/tveng1.c:1153
+msgid "Frame Rate"
+msgstr ""
+
+#. TRANSLATORS: PWC driver control.  In 'Snapshot' mode the
+#. camera freezes its automatic exposure and colour balance
+#. controls.
+#: src/tveng1.c:1166
+msgid "Snapshot Mode"
+msgstr ""
+
+#: src/tveng25.c:476 src/tvengbktr.c:381 src/tvengbktr.c:398 src/tvengxv.c:543
+msgid "Brightness"
+msgstr ""
+
+#: src/tveng25.c:477 src/tvengbktr.c:383 src/tvengbktr.c:400 src/tvengxv.c:544
+msgid "Contrast"
+msgstr ""
+
+#: src/tveng25.c:478 src/tvengbktr.c:385 src/tvengbktr.c:402 src/tvengxv.c:545
+msgid "Saturation"
+msgstr ""
+
+#: src/tveng25.c:479 src/tvengbktr.c:391 src/tvengbktr.c:410 src/tvengxv.c:546
+msgid "Hue"
+msgstr ""
+
+#: src/tveng25.c:480
+msgid "Whiteness"
+msgstr ""
+
+#: src/tveng25.c:481
+msgid "Black level"
+msgstr ""
+
+#: src/tveng25.c:482 src/tveng25.c:483
+msgid "White balance"
+msgstr ""
+
+#: src/tveng25.c:484
+msgid "Red balance"
+msgstr ""
+
+#: src/tveng25.c:485
+msgid "Blue balance"
+msgstr ""
+
+#: src/tveng25.c:486
+msgid "Gamma"
+msgstr ""
+
+#: src/tveng25.c:487
+msgid "Exposure"
+msgstr ""
+
+#: src/tveng25.c:488
+msgid "Auto gain"
+msgstr ""
+
+#: src/tveng25.c:489
+msgid "Gain"
+msgstr ""
+
+#: src/tveng25.c:490
+msgid "HCenter"
+msgstr ""
+
+#: src/tveng25.c:491
+msgid "VCenter"
+msgstr ""
+
+#: src/tveng25.c:492
+msgid "Hor. flipping"
+msgstr ""
+
+#: src/tveng25.c:493
+msgid "Vert. flipping"
+msgstr ""
+
+#: src/tveng25.c:496
+msgid "Audio Mute"
+msgstr ""
+
+#: src/tveng25.c:497
+msgid "Balance"
+msgstr ""
+
+#: src/tveng25.c:498
+msgid "Audio Balance"
+msgstr ""
+
+#: src/tveng25.c:499
+msgid "Treble"
+msgstr ""
+
+#: src/tveng25.c:500
+msgid "Loudness"
+msgstr ""
+
+#: src/tveng25.c:501
+msgid "Bass"
+msgstr ""
+
+#: src/tveng25.c:2171
+#, c-format
+msgid "%s doesn't look like a valid capture device"
+msgstr ""
+
+#: src/tveng25.c:2181
+#, c-format
+msgid "Sorry, but \"%s\" cannot do streaming"
+msgstr ""
+
+#: src/tvengbktr.c:388
+msgid "U/V Gain"
+msgstr ""
+
+#: src/tvengbktr.c:405
+msgid "U Saturation"
+msgstr ""
+
+#: src/tvengbktr.c:407
+msgid "V Saturation"
+msgstr ""
+
+#: src/tvengxv.c:547
+msgid "Color"
+msgstr ""
+
+#: src/tvengxv.c:548
+msgid "Interlace"
+msgstr ""
+
+#: src/tvengxv.c:589
+msgid "No"
+msgstr ""
+
+#: src/tvengxv.c:590
+msgid "Yes"
+msgstr ""
+
+#: src/tvengxv.c:591
+msgid "Doublescan"
+msgstr ""
+
+#. TRANSLATORS: In controls box, color picker control,
+#. something like "Adjust Chroma-Key" for overlay.
+#: src/v4linterface.c:452
+#, c-format
+msgid "Adjust %s"
+msgstr ""
+
+#: src/v4linterface.c:622 src/zapping.c:436
+msgid "Controls"
+msgstr ""
+
+#: src/v4linterface.c:1157 src/zmisc.c:1764
+msgid "Unknown"
+msgstr ""
+
+#: src/v4linterface.c:1175
+msgid "No input"
+msgstr ""
+
+#: src/v4linterface.c:1186
+msgid "No standard"
+msgstr ""
+
+#: src/v4linterface.c:2160
+msgid "Video standards"
+msgstr ""
+
+#: src/v4linterface.c:2180
+msgid "Audio inputs"
+msgstr ""
+
+#: src/v4linterface.c:2200
+msgid "Video inputs"
+msgstr ""
+
+#. TRANSLATORS: This is displayed in the channel menu when
+#. the channel list is empty.
+#: src/v4linterface.c:2298
+msgid "No channels"
+msgstr ""
+
+#: src/zapping.c:409
+msgid "P_lugins"
+msgstr ""
+
+#: src/zapping.c:414 src/zapping.c:455
+msgid "_Window"
+msgstr ""
+
+#: src/zapping.c:416 src/zapping.c:457
+msgid "_Fullscreen"
+msgstr ""
+
+#: src/zapping.c:418 src/zapping.c:459
+msgid "_Background"
+msgstr ""
+
+#: src/zapping.c:420
+msgid "_Overlay mode"
+msgstr ""
+
+#: src/zapping.c:422
+msgid "_Capture mode"
+msgstr ""
+
+#: src/zapping.c:425
+msgid "_Help"
+msgstr ""
+
+#: src/zapping.c:426
+msgid "_Contents"
+msgstr ""
+
+#: src/zapping.c:428
+msgid "_About"
+msgstr ""
+
+#: src/zapping.c:431
+msgid "Appearance"
+msgstr ""
+
+#: src/zapping.c:432
+msgid "Ch. Up"
+msgstr ""
+
+#: src/zapping.c:433
+msgid "Switch to higher channel"
+msgstr ""
+
+#: src/zapping.c:434
+msgid "Ch. Down"
+msgstr ""
+
+#: src/zapping.c:435
+msgid "Switch to lower channel"
+msgstr ""
+
+#: src/zapping.c:437
+msgid "Change picture controls"
+msgstr ""
+
+#: src/zapping.c:442
+msgid "_Mute"
+msgstr ""
+
+#: src/zapping.c:443
+msgid "Switch audio on or off"
+msgstr ""
+
+#: src/zapping.c:444
+msgid "Menu"
+msgstr ""
+
+#: src/zapping.c:448 src/zapping.c:1027
+msgid "Keep window on top"
+msgstr ""
+
+#: src/zapping.c:466 src/zapping.c:469
+msgid "_Teletext"
+msgstr ""
+
+#: src/zapping.c:467 src/zapping.c:479
+msgid "_Subtitles"
+msgstr ""
+
+#: src/zapping.c:470
+msgid "Activate Teletext mode"
+msgstr ""
+
+#: src/zapping.c:472
+msgid "Return to video mode"
+msgstr ""
+
+#: src/zapping.c:473
+msgid "_New Teletext View"
+msgstr ""
+
+#: src/zapping.c:480
+msgid "Switch subtitles on or off"
+msgstr ""
+
+#: src/zapping.c:1025
+msgid "Show menu and toolbar"
+msgstr ""
+
+#: src/zapzilla.c:83
+msgid "VBI device to use"
+msgstr ""
+
+#: src/zapzilla.c:84
+msgid "DEVICE"
+msgstr ""
+
+#: src/zapzilla.c:113
+msgid "Zapzilla couldn't be started"
+msgstr ""
+
+#: src/zapzilla.c:192
+msgid "Sorry, Zapzilla is unable to create the config tree"
+msgstr ""
+
+#: src/zmisc.c:663
+#, c-format
+msgid ""
+"Cannot start video overlay.\n"
+"%s"
+msgstr ""
+
+#: src/zmisc.c:676
+msgid "VBI has been disabled, or it doesn't work."
+msgstr ""
+
+#: src/zmisc.c:710
+#, c-format
+msgid ""
+"Cannot start fullscreen overlay.\n"
+"%s"
+msgstr ""
+
+#: src/zmisc.c:987
+msgid "Hide the statusbar"
+msgstr ""
+
+#: src/zmisc.c:1197
+#, c-format
+msgid "%s is not a directory."
+msgstr ""
+
+#: src/zmisc.c:1239
+#, c-format
+msgid "Could not create directory %s"
+msgstr ""
+
+#: src/zmisc.c:1959
+msgid "Device:"
+msgstr ""
+
+#: src/zmisc.c:1960
+msgid "Driver:"
+msgstr ""
+
+#: src/zmisc.c:1961
+msgid "Device file:"
+msgstr ""
+
+#: src/zmisc.c:2307
+#, c-format
+msgid "Overwrite %s?"
+msgstr ""
+
+#: src/zmisc.c:2312
+msgid "_Overwrite"
+msgstr ""
+
+#: src/zmisc.c:2320
+#, c-format
+msgid "%s is a directory."
+msgstr ""
+
+#: src/zmisc.c:2335
+#, c-format
+msgid "%s is a special file"
+msgstr ""
+
+#: src/zmisc.c:2339
+msgid "Continue"
+msgstr ""
+
+#: src/zmisc.c:2616
+msgid "Could not open help file"
+msgstr ""
+
+#: src/zmisc.c:2648
+msgid "Could not open URL"
+msgstr ""
+
+#: src/zvbi.c:300
+#, c-format
+msgid " %s: Teletext Page %x"
+msgstr ""
+
+#: src/zvbi.c:303
+#, c-format
+msgid " Teletext Page %x"
+msgstr ""
+
+#: src/zvbi.c:304
+msgid "Open this page with Zapzilla"
+msgstr ""
+
+#: src/zvbi.c:863
+msgid "VBI interface timeout"
+msgstr ""
+
+#: src/zvbi.c:886
+msgid "VBI interface: Failed to read from the device"
+msgstr ""
+
+#: src/zvbi.c:1157
+#, c-format
+msgid ""
+"VBI initialization failed.\n"
+"%s"
+msgstr ""
+
+#: src/zvbi.c:1158
+msgid "Ran out of memory."
+msgstr ""
+
+#: src/zvbi.c:1261
+msgid ""
+"This probably means that the required driver isn't loaded. Add to your /etc/"
+"modules.conf the line:\n"
+"alias char-major-81-224 bttv (replace bttv by the name of your video "
+"driver)\n"
+"and with mknod create /dev/vbi0 appropriately. If this doesn't work, you can "
+"disable VBI in Settings/Preferences/VBI options/Enable VBI decoding."
+msgstr ""
+
+#: src/zvbi.c:1370
+msgid "Out of resources to start a new thread."
+msgstr ""
+
+#: zapping.desktop.in.h:1
+msgid "Zapping TV Viewer"
+msgstr ""
