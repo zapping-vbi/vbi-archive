@@ -242,6 +242,50 @@ enum tveng_control_property {
   TVENG_CTRL_PROP_HUE,
 };
 
+typedef int tv_bool;
+
+#undef TRUE
+#define TRUE 1
+#undef FALSE
+#define FALSE 0
+
+/* XXX private */
+typedef struct callback_node *	callback_node;
+struct callback_node {
+	callback_node *		next;
+	tv_bool			(* action)(void *, void *);
+	void			(* remove)(void *, void *);
+	void *			user_data;
+	unsigned int		blocked;
+};
+
+/*
+ *  Programmatically accessable controls. Other controls
+ *  are anonymous, only the user knows what they do. Keep
+ *  the list short. This is not control->id, which is
+ *  controller specific.
+ */
+typedef enum {
+	TV_CONTROL_ID_NONE,
+	TV_CONTROL_ID_UNKNOWN = TV_CONTROL_ID_NONE,
+	TV_CONTROL_ID_BRIGHTNESS,
+	TV_CONTROL_ID_CONTRAST,
+	TV_CONTROL_ID_SATURATION,
+	TV_CONTROL_ID_HUE,
+	TV_CONTROL_ID_MUTE,
+	TV_CONTROL_ID_VOLUME,
+	TV_CONTROL_ID_BASS,
+	TV_CONTROL_ID_TREBLE
+} tv_control_id;
+
+typedef enum {
+	TV_CONTROL_TYPE_INTEGER,	/* integer [min, max] */
+	TV_CONTROL_TYPE_BOOLEAN,	/* integer [0, 1] */
+	TV_CONTROL_TYPE_MENU,		/* list of named options */
+	TV_CONTROL_TYPE_ACTION,		/* setting has one-time effect */
+	TV_CONTROL_TYPE_COLOR		/* RGB color entry */
+} tv_control_type;
+
 /* The controller we are using for this device */
 enum tveng_controller
 {
@@ -252,6 +296,8 @@ enum tveng_controller
   TVENG_CONTROLLER_EMU,	 /* Emulation controller */
   TVENG_CONTROLLER_MOTHER /* The wrapper controller (tveng.c) */
 };
+
+typedef struct tveng_control tveng_control;
 
 /* info about a video control (could be image, sound, whatever) */
 struct tveng_control{
@@ -265,6 +311,9 @@ struct tveng_control{
   char ** data; /* If this is a menu entry, pointer to a array of
 		   pointers to the labels, ended by a NULL pointer */
   enum tveng_controller controller; /* controller owning this control */
+
+  /* add callback list to notify clients when
+     (set, get, update). ideally this would use SigC */
 };
 
 enum tveng_capture_mode
@@ -308,6 +357,7 @@ typedef struct
   int num_controls;
   /* The supported controls */
   struct tveng_control * controls;
+  unsigned audio_mutable : 1;
 
   /* Unique integer that indentifies this device */
   int signature;
