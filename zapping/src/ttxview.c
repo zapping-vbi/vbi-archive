@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.116.2.18 2003-11-16 10:45:48 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.116.2.19 2003-11-17 06:21:45 mschimek Exp $ */
 
 /*
  *  Teletext View
@@ -3885,14 +3885,12 @@ on_ttxview_close		(GtkWidget *		widget,
     zmisc_restore_previous_mode (main_info);
 }
 
-/*
 static void
 on_ttxview_quit			(GtkWidget *		widget,
 				 ttxview_data *		data)
 {
   python_command (widget, "zapping.quit()");
 }
-*/
 
 static GnomeUIInfo
 main_file_uiinfo [] = {
@@ -3906,8 +3904,7 @@ main_file_uiinfo [] = {
   GNOMEUIINFO_MENU_SAVE_AS_ITEM (on_export_dialog_activate, NULL),
   GNOMEUIINFO_SEPARATOR,
   GNOMEUIINFO_MENU_CLOSE_ITEM (on_ttxview_close, NULL),
-  /* XXX crashes
-     GNOMEUIINFO_MENU_QUIT_ITEM (on_ttxview_quit, NULL), */
+  GNOMEUIINFO_MENU_QUIT_ITEM (on_ttxview_quit, NULL),
   GNOMEUIINFO_END
 };
 
