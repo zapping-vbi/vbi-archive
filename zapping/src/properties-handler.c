@@ -711,6 +711,11 @@ mw_setup		(GtkWidget	*page)
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean (NULL, "/zapping/options/main/show_tooltips"));
 
+  /* Disable screensaver */
+  widget = lookup_widget (page, "disable_screensaver");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean (NULL, "/zapping/options/main/disable_screensaver"));
+
   /* Resize using fixed increments */
   widget = lookup_widget(page, "checkbutton4");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
@@ -814,6 +819,11 @@ mw_apply		(GtkWidget	*page)
   top = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
   zconf_set_boolean (top, "/zapping/options/main/show_tooltips");
   z_tooltips_active (top);
+
+  widget = lookup_widget(page, "disable_screensaver");
+  top = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  zconf_set_boolean (top, "/zapping/options/main/disable_screensaver");
+  x11_screensaver_control (top);
 
   widget = lookup_widget(page, "checkbutton4"); /* fixed increments */
   zconf_set_boolean(gtk_toggle_button_get_active(

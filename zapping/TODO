@@ -38,7 +38,6 @@ Outstanding issues for the next release (0.7)
 	+ Examine the possiblity of linking movie titles, VBI plugin API.
 	+ Deinterlace plugin.
 	+ iodiag module.
-	+ Disable screensaver in capture and preview mode too?
 	+ VBI station name ignored when card w/tuner & composite selected 
 	+ Compress config file (libxml).
 	+ Config toolbar...?

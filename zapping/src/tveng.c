@@ -34,6 +34,7 @@
 #include <X11/Xlib.h> /* We use some X calls */
 #include <X11/Xutil.h>
 #include <ctype.h>
+#include <assert.h>
 
 /* This undef's are to avoid a couple of header warnings */
 #undef WNOHANG
@@ -46,6 +47,8 @@
 #include "tveng_private.h" /* private definitions */
 
 #include "globals.h" /* XXX for vidmodes */
+
+#include "../common/types.h"
 
 #define TVLOCK								\
 ({									\
@@ -72,6 +75,14 @@ do {									\
 	     "function not supported by the module", info); \
 } while (0)
 
+/* for xv */
+struct control {
+  tv_dev_control	dev;
+  Atom			atom;
+};
+
+#define C(l) PARENT (l, struct control, dev)
+#define CC(l) PARENT (l, struct control, dev.pub)
 
 typedef void (*tveng_controller)(struct tveng_module_info *info);
 static tveng_controller tveng_controllers[] = {
@@ -100,7 +111,7 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp)
 
   t_assert(needed_mem > 0);
 
-  new_object = (tveng_device_info*) malloc(needed_mem);
+  new_object = (tveng_device_info*) calloc(1, needed_mem);
 
   if (!new_object)
     return NULL;
@@ -171,6 +182,13 @@ void tveng_device_info_destroy(tveng_device_info * info)
   free(info);
 }
 
+static void
+deref_callback			(void *			object,
+				 void *			user_data)
+{
+	*((void **) user_data) = NULL;
+}
+
 /*
   Associates the given tveng_device_info with the given video
   device. On error it returns -1 and sets info->tveng_errno, info->error to
@@ -188,6 +206,8 @@ int tveng_attach_device(const char* device_file,
 {
   int i, j;
   char *long_str, *short_str, *sign = NULL;
+  tv_control *tc;
+  int num_controls;
 
   t_assert(device_file != NULL);
   t_assert(info != NULL);
@@ -241,10 +261,27 @@ int tveng_attach_device(const char* device_file,
   return -1;
 
  success:
+  {
+    info->priv->control_mute = NULL;
+    info->audio_mutable = 0;
+    num_controls = 0;
 
+    for (tc = info->controls; tc; tc = tc->next) {
+      if (tc->id == TV_CONTROL_ID_MUTE && info->priv->control_mute == NULL) {
+	if (tv_control_callback_add (tc, NULL, (void *) deref_callback,
+				     &info->priv->control_mute))
+	  {
+	    info->priv->control_mute = tc;
+	    info->audio_mutable = 1; /* preliminary */
+	  }
+      }
+
+      num_controls++;
+    }
+  }
 
   if (asprintf (&sign, "%s - %d %d - %d %d %d", info->caps.name,
-		info->num_inputs, info->num_controls,
+		info->num_inputs, num_controls,
 		info->caps.flags, info->caps.maxwidth,
 		info->caps.maxheight) == -1)
     {
@@ -294,28 +331,31 @@ int tveng_attach_device(const char* device_file,
 		  info->inputs[i].flags);
 	}
       fprintf(stderr, "Available controls:\n");
-      for (i=0;i<info->num_controls;i++)
+      for (tc = info->controls; tc; tc = tc->next)
 	{
 	  fprintf(stderr, "  %d) [%s] ID: %d  Range: (%d, %d)  Value: %d ",
-		  i, info->controls[i].name, info->controls[i].id,
-		  info->controls[i].min, info->controls[i].max,
-		  info->controls[i].cur_value);
-	  switch (info->controls[i].type)
+		  i, tc->label, tc->id,
+		  tc->minimum, tc->maximum,
+		  tc->value);
+	  switch (tc->type)
 	    {
-	    case TVENG_CONTROL_SLIDER:
+	    case TV_CONTROL_TYPE_INTEGER:
 	      fprintf(stderr, " <Slider>\n");
 	      break;
-	    case TVENG_CONTROL_CHECKBOX:
+	    case TV_CONTROL_TYPE_BOOLEAN:
 	      fprintf(stderr, " <Checkbox>\n");
 	      break;
-	    case TVENG_CONTROL_MENU:
+	    case TV_CONTROL_TYPE_CHOICE:
 	      fprintf(stderr, " <Menu>\n");
-	      for (j=0; info->controls[i].data[j]; j++)
+	      for (j=0; tc->menu[j]; j++)
 		fprintf(stderr, "    %d.%d) [%s] <Menu entry>\n", i, j,
-			info->controls[i].data[j]);
+			tc->menu[j]);
 	      break;
-	    case TVENG_CONTROL_BUTTON:
+	    case TV_CONTROL_TYPE_ACTION:
 	      fprintf(stderr, " <Button>\n");
+	      break;
+	    case TV_CONTROL_TYPE_COLOR:
+	      fprintf(stderr, " <Color>\n");
 	      break;
 	    default:
 	      fprintf(stderr, " <Unknown type>\n");
@@ -771,52 +811,51 @@ tveng_set_capture_format(tveng_device_info * info)
   TVUNSUPPORTED;
   UNTVLOCK;
   return -1;
-
 }
 
 /*
-  Gets the current value of the controls, fills in info->controls
-  appropiately. After this (and if it succeeds) you can look in
-  info->controls to get the values for each control. -1 on error
-*/
-int
-tveng_update_controls(tveng_device_info * info)
+ *  Controls
+ */
+
+tv_callback_node *
+tv_control_callback_add		(tv_control *		control,
+				 tv_bool		(* notify)(tv_control *, void *user_data),
+				 void			(* destroy)(tv_control *, void *user_data),
+				 void *			user_data)
 {
-  struct tveng_control * control;
-  int i;
-  t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+	tv_dev_control *tdc;
 
-  TVLOCK;
+	assert (control != NULL);
 
-  /* Update the controls we maintain */
-  for (i=0; i<info->num_controls; i++)
-    {
-      control = &(info->controls[i]);
-      if (control->controller != TVENG_CONTROLLER_MOTHER)
-	continue; /* not created by us */
+	tdc = PARENT (control, tv_dev_control, pub);
+
+	return tv_callback_add (&tdc->callback,
+				(void *) notify,
+				(void *) destroy,
+				user_data);
+}
+
+static int
+update_xv_control (tveng_device_info * info, struct control *c)
+{
 #ifdef USE_XV
-      if ((control->id == (int)info->priv->filter) &&
+      if ((c->atom == info->priv->filter) &&
 	  (info->priv->port != None))
 	{
 	  XvGetPortAttribute(info->priv->display,
 			     info->priv->port,
 			     info->priv->filter,
-			     &(info->controls[i].cur_value));
-	  UNTVLOCK;
-	  return 0;
+			     &c->dev.pub.value);
 	}
-      else if ((control->id == (int)info->priv->double_buffer) &&
+      else if ((c->atom == info->priv->double_buffer) &&
 	       (info->priv->port))
 	{
 	  XvGetPortAttribute(info->priv->display,
 			     info->priv->port,
 			     info->priv->double_buffer,
-			     &(info->controls[i].cur_value));
-	  UNTVLOCK;
-	  return 0;
+			     &c->dev.pub.value);
 	}
-      else if ((control->id == (int)info->priv->colorkey) &&
+      else if ((c->atom == info->priv->colorkey) &&
 	       (info->priv->port != None))
 	{
 	  int r,g,b, val;
@@ -854,18 +893,59 @@ tveng_update_controls(tveng_device_info * info)
 	  else
 	    b = val << -bs;
 	  b &= bm;
-	  info->controls[i].cur_value = (r<<16)+(g<<8)+b;
-	  UNTVLOCK;
-	  return 0;
+	  c->dev.pub.value = (r<<16)+(g<<8)+b;
 	}
 #endif
-    }
 
-  if (info->priv->module.update_controls)
-    RETURN_UNTVLOCK(info->priv->module.update_controls(info));
+      return 0;
+}
+
+int
+tveng_update_control(tv_control *control,
+		     tveng_device_info * info)
+{
+  t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+  t_assert(control != NULL);
+
+  TVLOCK;
+
+  if (CC(control)->dev.device == NULL /* TVENG_CONTROLLER_MOTHER */) {
+    update_xv_control (info, CC(control));
+    UNTVLOCK;
+    return 0;
+  }
+
+  info = CC(control)->dev.device; /* XXX */
+
+  if (info->priv->module.update_control)
+    RETURN_UNTVLOCK(info->priv->module.update_control (info, &CC(control)->dev));
 
   TVUNSUPPORTED;
+  UNTVLOCK;
+  return -1;
+}
+
+int
+tveng_update_controls(tveng_device_info * info)
+{
+  tv_control *tc;
+
+  t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
   TVLOCK;
+
+  /* Update the controls we maintain */
+  for (tc = info->controls; tc; tc = tc->next)
+    if (CC(tc)->dev.device == NULL /* TVENG_CONTROLLER_MOTHER */)
+      update_xv_control (info, CC(tc));
+
+  if (info->priv->module.update_control)
+    RETURN_UNTVLOCK(info->priv->module.update_control (info, NULL) ? 0 : -1);
+
+  TVUNSUPPORTED;
+  UNTVLOCK;
   return -1;
 }
 
@@ -874,19 +954,28 @@ tveng_update_controls(tveng_device_info * info)
   clipped between min and max values. Returns -1 on error
 */
 int
-tveng_set_control(struct tveng_control * control, int value,
+tveng_set_control(tv_control * control, int value,
 		  tveng_device_info * info)
 {
+  struct control *c;
+
   t_assert(info != NULL);
   t_assert(control != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
   TVLOCK;
 
-  if (control->controller == TVENG_CONTROLLER_MOTHER)
+  c = CC(control);
+
+  if (value < control->minimum)
+    value = control->minimum;
+  else if (value > control->maximum)
+    value = control->maximum;
+
+  if (c->dev.device == NULL /* TVENG_CONTROLLER_MOTHER */)
     {
 #ifdef USE_XV
-      if ((control->id == (int)info->priv->filter) &&
+      if ((c->atom == info->priv->filter) &&
 	  (info->priv->port != None))
 	{
 	  XvSetPortAttribute(info->priv->display,
@@ -896,7 +985,7 @@ tveng_set_control(struct tveng_control * control, int value,
 	  UNTVLOCK;
 	  return 0;
 	}
-      else if ((control->id == (int)info->priv->double_buffer) &&
+      else if ((c->atom == info->priv->double_buffer) &&
 	       (info->priv->port != None))
 	{
 	  XvSetPortAttribute(info->priv->display,
@@ -906,7 +995,7 @@ tveng_set_control(struct tveng_control * control, int value,
 	  UNTVLOCK;
 	  return 0;
 	}
-      else if ((control->id == (int)info->priv->colorkey) &&
+      else if ((c->atom == info->priv->colorkey) &&
 	       (info->priv->port != None))
 	{
 	  int r, g, b;
@@ -951,16 +1040,16 @@ tveng_set_control(struct tveng_control * control, int value,
       else
 #endif
 	{
-	  info->tveng_errno = -1;
-	  t_error_msg("check",
-		      "Unknown control given: %d", info, control->id);
-	  UNTVLOCK;
+	  assert (0);
 	  return -1;
 	}
     }
-  else if (info->priv->module.set_control)
-    RETURN_UNTVLOCK(info->priv->module.set_control(control, value, info));
-  
+
+  info = c->dev.device; /* XXX */
+
+  if (info->priv->module.set_control)
+    RETURN_UNTVLOCK (info->priv->module.set_control (info, &c->dev, value) ? 0 : -1);
+
   TVUNSUPPORTED;
   UNTVLOCK;
   return -1;
@@ -976,11 +1065,11 @@ tveng_get_control_by_name(const char * control_name,
 			  int * cur_value,
 			  tveng_device_info * info)
 {
-  int i;
   int value;
+  tv_control *tc;
 
   t_assert(info != NULL);
-  t_assert(info -> num_controls > 0);
+  t_assert(info->controls != NULL);
   t_assert(control_name != NULL);
 
   TVLOCK;
@@ -990,13 +1079,13 @@ tveng_get_control_by_name(const char * control_name,
     RETURN_UNTVLOCK(-1);
 
   /* iterate through the info struct to find the control */
-  for (i = 0; i < info->num_controls; i++)
-    if (!strcasecmp(info->controls[i].name,control_name))
+  for (tc = info->controls; tc; tc = tc->next)
+    if (!strcasecmp(tc->label,control_name))
       /* we found it */
       {
-	value = info->controls[i].cur_value;
-	t_assert(value <= info->controls[i].max);
-	t_assert(value >= info->controls[i].min);
+	value = tc->value;
+	t_assert(value <= tc->maximum);
+	t_assert(value >= tc->minimum);
 	if (cur_value)
 	  *cur_value = value;
 	UNTVLOCK;
@@ -1023,19 +1112,17 @@ tveng_set_control_by_name(const char * control_name,
 			  int new_value,
 			  tveng_device_info * info)
 {
-  int i;
+  tv_control *tc;
 
   t_assert(info != NULL);
-  t_assert(info -> num_controls > 0);
+  t_assert(info->controls != NULL);
 
   TVLOCK;
 
-  /* iterate through the info struct to find the mute control */
-  for (i = 0; i < info->num_controls; i++)
-    if (!strcasecmp(info->controls[i].name,control_name))
+  for (tc = info->controls; tc; tc = tc->next)
+    if (!strcasecmp(tc->label,control_name))
       /* we found it */
-      RETURN_UNTVLOCK((tveng_set_control(&(info->controls[i]),
-				       new_value, info)));
+      RETURN_UNTVLOCK((tveng_set_control(tc, new_value, info)));
 
   /* if we reach this, we haven't found the control */
   info->tveng_errno = -1;
@@ -1054,11 +1141,15 @@ int
 tveng_get_control_by_id(int cid, int * cur_value,
 			tveng_device_info * info)
 {
+  assert (0);
+
+#if 0
   int i;
   int value;
+  tv_dev_control *tc;
 
   t_assert(info != NULL);
-  t_assert(info -> num_controls > 0);
+  t_assert(info -> _controls != NULL);
 
   TVLOCK;
 
@@ -1066,14 +1157,13 @@ tveng_get_control_by_id(int cid, int * cur_value,
   if (tveng_update_controls(info) == -1)
     RETURN_UNTVLOCK(-1);
 
-  /* iterate through the info struct to find the mute control */
-  for (i = 0; i < info->num_controls; i++)
-    if (info->controls[i].id == cid)
+  for (tc = info->_controls; tc; tc = tc->next)
+    if (tc->id == cid)
       /* we found it */
       {
-	value = info->controls[i].cur_value;
-	t_assert(value <= info->controls[i].max);
-	t_assert(value >= info->controls[i].min);
+	value = tc->cur_value;
+	t_assert(value <= tc->max);
+	t_assert(value >= tc->min);
 	if (cur_value)
 	  *cur_value = value;
 	UNTVLOCK;
@@ -1086,6 +1176,7 @@ tveng_get_control_by_id(int cid, int * cur_value,
 	      "Cannot find control %d in the list of controls",
 	      info, cid);
   UNTVLOCK;
+#endif
   return -1;
 }
 
@@ -1095,19 +1186,21 @@ tveng_get_control_by_id(int cid, int * cur_value,
 int tveng_set_control_by_id(int cid, int new_value,
 			    tveng_device_info * info)
 {
+  assert (0);
+
+#if 0
   int i;
+  tv_dev_control *tc;
 
   t_assert(info != NULL);
-  t_assert(info -> num_controls > 0);
+  t_assert(info -> _controls != NULL);
 
   TVLOCK;
 
-  /* iterate through the info struct to find the mute control */
-  for (i = 0; i < info->num_controls; i++)
-    if (info->controls[i].id == cid)
+  for (tc = info->_controls; tc; tc = tc->next)
+    if (tc->id == cid)
       /* we found it */
-      RETURN_UNTVLOCK(tveng_set_control(&(info->controls[i]), new_value,
-				      info));
+      RETURN_UNTVLOCK(tveng_set_control(tc, new_value, info));
 
   /* if we reach this, we haven't found the control */
   info->tveng_errno = -1;
@@ -1115,6 +1208,7 @@ int tveng_set_control_by_id(int cid, int new_value,
 	      "Cannot find control %d in the list of controls",
 	      info, cid);
   UNTVLOCK;
+#endif
   return -1;
 }
 
@@ -1125,13 +1219,20 @@ int tveng_set_control_by_id(int cid, int new_value,
 int
 tveng_get_mute(tveng_device_info * info)
 {
+  tv_control *tc;
+
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
   TVLOCK;
 
-  if (info->priv->module.get_mute)
-    RETURN_UNTVLOCK(info->priv->module.get_mute(info));
+  if ((tc = info->priv->control_mute)) {
+    info = CC(tc)->dev.device; /* XXX */
+    if (!info->priv->module.update_control (info, &CC(tc)->dev))
+      RETURN_UNTVLOCK (-1);
+    else
+      RETURN_UNTVLOCK (tc->value);
+  }
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1141,17 +1242,26 @@ tveng_get_mute(tveng_device_info * info)
 /*
   Sets the value of the mute property. 0 means unmute (sound) and 1
   mute (no sound). -1 on error
+
+  Currently this is just a shortcut to access the
+  mute control, if any, but that may change in the future.
 */
 int
 tveng_set_mute(int value, tveng_device_info * info)
 {
+  tv_control *tc;
+
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
   TVLOCK;
 
-  if (info->priv->module.set_mute)
-    RETURN_UNTVLOCK(info->priv->module.set_mute(value, info));
+  if ((tc = info->priv->control_mute)) {
+    info = CC(tc)->dev.device; /* XXX */
+
+    RETURN_UNTVLOCK (info->priv->module.set_control
+		     (info, &CC(tc)->dev, !!value) ? 0 : -1);
+  }
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -1382,6 +1492,11 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
 }
 
 /* XF86 Frame Buffer routines */
+
+#ifdef HAVE_DGA_EXTENSION
+
+#include <X11/extensions/xf86dga.h>
+
 /* 
    Detects the presence of a suitable Frame Buffer.
    1 if the program should continue (Frame Buffer present,
@@ -1393,7 +1508,6 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
 int
 tveng_detect_XF86DGA(tveng_device_info * info)
 {
-#ifndef DISABLE_X_EXTENSIONS
   int event_base, error_base;
   int major_version, minor_version;
   int flags;
@@ -1448,11 +1562,17 @@ tveng_detect_XF86DGA(tveng_device_info * info)
 
   UNTVLOCK;
   return 1; /* Everything correct */
-#else
-
-  return 0; /* disabled by configure */
-#endif
 }
+
+#else /* !HAVE_DGA_EXTENSION */
+
+int
+tveng_detect_XF86DGA(tveng_device_info * info)
+{
+  return 0; /* disabled by configure */
+}
+
+#endif
 
 /*
   Returns 1 if the device attached to info suports previewing, 0 otherwise
@@ -1883,8 +2003,7 @@ tveng_start_previewing (tveng_device_info * info, const char *mode)
 		 width, height);
     }
 
-  if (!x11_vidmode_switch (info->priv->display, vidmodes,
-			   v, &info->priv->old_mode))
+  if (!x11_vidmode_switch (vidmodes, v, &info->priv->old_mode))
     goto failure;
 
   if (info->priv->module.start_previewing)
@@ -1911,8 +2030,7 @@ tveng_stop_previewing(tveng_device_info * info)
   if (info->priv->module.stop_previewing)
     return_code = info->priv->module.stop_previewing(info);
 
-  x11_vidmode_restore (info->priv->display,
-		       vidmodes, &info->priv->old_mode);
+  x11_vidmode_restore (vidmodes, &info->priv->old_mode);
 
   UNTVLOCK;
 
@@ -2090,7 +2208,6 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
   XvAttribute *at;
   int attributes, i;
   Display *dpy;
-  struct tveng_control control;
 
   TVLOCK;
 
@@ -2103,6 +2220,8 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
   at = XvQueryPortAttributes(dpy, port, &attributes);
   for (i=0; i<attributes; i++)
     {
+      struct control c;
+
       if (info->debug_level)
 	fprintf(stderr, "  TVeng.c Xv atom: %s%s%s (%i -> %i)\n",
 		at[i].name,
@@ -2115,19 +2234,23 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	  (!(at[i].flags & XvSettable)))
 	continue;
 
+      memset (&c, 0, sizeof (c));
+
       if (!strcmp("XV_FILTER", at[i].name))
 	  {
 	    info->priv->filter = XInternAtom(dpy, "XV_FILTER",
 						False);
-	    control.id = (int)info->priv->filter;
-	    snprintf(control.name, 32, _("Filter"));
-	    control.min = at[i].min_value;
-	    control.max = at[i].max_value;
-	    control.type = TVENG_CONTROL_CHECKBOX;
-	    control.data = NULL;
-	    control.controller = TVENG_CONTROLLER_MOTHER;
-	    if (p_tveng_append_control(&control, info) == -1)
+	    c.atom = info->priv->filter;
+	    if (!(c.dev.pub.label = strdup (_("Filter"))))
+	      goto failure;
+	    c.dev.pub.minimum = at[i].min_value;
+	    c.dev.pub.maximum = at[i].max_value;
+	    c.dev.pub.type = TV_CONTROL_TYPE_BOOLEAN;
+	    c.dev.pub.menu = NULL;
+	    c.dev.device = NULL; /* TVENG_CONTROLLER_MOTHER; */
+	    if (!append_control(info, &c.dev.pub, sizeof (c)))
 	      {
+	      failure:
 		UNTVLOCK;
 		return;
 	      }
@@ -2137,15 +2260,17 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	  {
 	    info->priv->double_buffer = XInternAtom(dpy, "XV_DOUBLE_BUFFER",
 						       False);
-	    control.id = (int)info->priv->double_buffer;
-	    snprintf(control.name, 32, _("Filter"));
-	    control.min = at[i].min_value;
-	    control.max = at[i].max_value;
-	    control.type = TVENG_CONTROL_CHECKBOX;
-	    control.data = NULL;
-	    control.controller = TVENG_CONTROLLER_MOTHER;
-	    if (p_tveng_append_control(&control, info) == -1)
+	    c.atom = info->priv->double_buffer;
+	    if (!(c.dev.pub.label = strdup (_("Filter"))))
+	      goto failure2;
+	    c.dev.pub.minimum = at[i].min_value;
+	    c.dev.pub.maximum = at[i].max_value;
+	    c.dev.pub.type = TV_CONTROL_TYPE_BOOLEAN;
+	    c.dev.pub.menu = NULL;
+	    c.dev.device = NULL; /* TVENG_CONTROLLER_MOTHER; */
+	    if (!append_control(info, &c.dev.pub, sizeof (c)))
 	      {
+	      failure2:
 		UNTVLOCK;
 		return;
 	      }
@@ -2155,15 +2280,17 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	  {
 	    info->priv->colorkey = XInternAtom(dpy, "XV_COLORKEY",
 						False);
-	    control.id = (int)info->priv->colorkey;
-	    snprintf(control.name, 32, _("Colorkey"));
-	    control.min = at[i].min_value;
-	    control.max = at[i].max_value;
-	    control.type = TVENG_CONTROL_COLOR;
-	    control.data = NULL;
-	    control.controller = TVENG_CONTROLLER_MOTHER;
-	    if (p_tveng_append_control(&control, info) == -1)
+	    c.atom = info->priv->colorkey;
+	    if (!(c.dev.pub.label = strdup (_("Colorkey"))))
+	      goto failure3;
+	    c.dev.pub.minimum = at[i].min_value;
+	    c.dev.pub.maximum = at[i].max_value;
+	    c.dev.pub.type = TV_CONTROL_TYPE_COLOR;
+	    c.dev.pub.menu = NULL;
+	    c.dev.device = NULL; /* TVENG_CONTROLLER_MOTHER; */
+	    if (!append_control(info, &c.dev.pub, sizeof (c)))
 	      {
+	      failure3:
 		UNTVLOCK;
 		return;
 	      }
@@ -2366,9 +2493,10 @@ tv_callback_add			(tv_callback_node **	list,
 void
 tv_callback_remove		(tv_callback_node *	cb)
 {
-	*(cb->pred) = cb->next;
-
-	free (cb);
+	if (cb) {
+		*(cb->pred) = cb->next;
+		free (cb);
+	}
 }
 
 /*
@@ -2383,7 +2511,9 @@ tv_callback_destroy		(void *			object,
 
 	while ((cb = *list)) {
 		*list = cb->next;
-		cb->next->pred = list;
+
+		if (cb->next)
+			cb->next->pred = list;
 
 		if (cb->destroy)
 			cb->destroy (object, cb->user_data);
@@ -2398,7 +2528,8 @@ tv_callback_destroy		(void *			object,
 void
 tv_callback_block		(tv_callback_node *	cb)
 {
-	cb->blocked++;
+  	if (cb)
+		cb->blocked++;
 }
 
 /*
@@ -2407,7 +2538,7 @@ tv_callback_block		(tv_callback_node *	cb)
 void
 tv_callback_unblock		(tv_callback_node *	cb)
 {
-	if (cb->blocked > 0)
+	if (cb && cb->blocked > 0)
 		cb->blocked--;
 }
 
@@ -2422,6 +2553,6 @@ tv_callback_notify		(void *			object,
 	const tv_callback_node *cb;
 
 	for (cb = list; cb; cb = cb->next)
-		if (cb->blocked == 0)
+		if (cb->notify && cb->blocked == 0)
 			cb->notify (object, cb->user_data);
 }

@@ -73,31 +73,18 @@ void
 x11_root_geometry		(unsigned int *		width,
 				 unsigned int *		height);
 
-/*
- * Sets the X screen saver on/off
- */
-void
-x11_set_screensaver(gboolean on);
+/* Keep-window-on-top routines */
 
-/* some useful constants */
-#ifndef OFF
-#define OFF FALSE
-#endif
-#ifndef ON
-#define ON TRUE
-#endif
+extern void
+(* window_on_top)		(GtkWindow *window, gboolean on);
+extern gboolean
+wm_hints_detect			(void);
 
-extern void (* window_on_top)(GtkWindow *window, gboolean on);
-extern gboolean wm_hints_detect (void);
+/* VidMode routines for fullscreen mode */
 
-typedef struct x11_vidmode_info x11_vidmode_info;
+typedef struct _x11_vidmode_info x11_vidmode_info;
 
-/*
- * This is an abstraction of a XF86VidMode (like a Modeline in
- * /etc/XF86Config) intended to encapsulate the underlying X11
- * stuff.   
- */
-struct x11_vidmode_info {
+struct _x11_vidmode_info {
   x11_vidmode_info *	next;
 
   unsigned int		width;
@@ -107,13 +94,9 @@ struct x11_vidmode_info {
   double		aspect;		/* pixel y/x */
 };
 
-typedef struct x11_vidmode_state x11_vidmode_state;
+typedef struct _x11_vidmode_state x11_vidmode_state;
 
-/*
- * Used by x11_vidmode_switch() and x11_vidmode_restore()
- * to save settings.
- */
-struct x11_vidmode_state {
+struct _x11_vidmode_state {
   /* <Private> */
   struct {
     x11_vidmode_info *	  vm;
@@ -127,23 +110,33 @@ struct x11_vidmode_state {
 extern void
 x11_vidmode_list_delete		(x11_vidmode_info *	list);
 extern x11_vidmode_info *
-x11_vidmode_list_new		(Display *		display);
+x11_vidmode_list_new		(void);
 extern x11_vidmode_info *
 x11_vidmode_by_name		(x11_vidmode_info *	list,
-				 const char *		name);
+				 const gchar *		name);
 extern x11_vidmode_info *
-x11_vidmode_current		(Display *		display,
-				 x11_vidmode_info *	list);
+x11_vidmode_current		(x11_vidmode_info *	list);
 extern void
 x11_vidmode_clear_state		(x11_vidmode_state *	vs);
-extern int
-x11_vidmode_switch		(Display *		display,
-				 x11_vidmode_info *	list,
+extern gboolean
+x11_vidmode_switch		(x11_vidmode_info *	list,
 				 x11_vidmode_info *	vm,
 				 x11_vidmode_state *	vs);
 extern void
-x11_vidmode_restore		(Display *		display,
-				 x11_vidmode_info *	list,
+x11_vidmode_restore		(x11_vidmode_info *	list,
 				 x11_vidmode_state *	vs);
+
+/* Screensaver routines */
+
+#define X11_SCREENSAVER_ON		0
+#define X11_SCREENSAVER_DISPLAY_ACTIVE	(1 << 0) /* for overlay modes */
+#define X11_SCREENSAVER_CPU_ACTIVE	(1 << 1) /* for capture modes */
+
+extern void
+x11_screensaver_set		(unsigned int		level);
+extern void
+x11_screensaver_control		(gboolean		enable);
+extern void
+x11_screensaver_init		(void);
 
 #endif /* x11stuff.h */

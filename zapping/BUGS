@@ -4,6 +4,9 @@ Known bugs with zapping, don't report them
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
+	* v4l/v4l2 fbuf params must be validated in case
+	  setup_fb failed, but were initialized before.
+	  Try modifying XF86Config, then restart the X session. 
 	* resize menu key accel doesn't work?
 	* Need better no-overlay-present handling.
 	! RPM creates incorrect zsfb.capps
@@ -29,6 +32,27 @@ Known bugs with zapping, don't report them
 	  although this may be a gtk bug.
 	* Settings > Prefs > Main > Numeric... needs update,
 	  scope of the option changed.
+	* There's a bug in XF86 4.2.99 and prob. earlier, redirecting
+	  controls to tveng1/2.c will fix this. They didn't consider
+	  audio.mode changes semantics on read/write in
+	  xc/programs/Xserver/hw/xfree86/drivers/v4l/v4l.c:
+    } else if (attribute == xvMute ||
+	       attribute == xvVolume) {
+	ioctl(V4L_FD,VIDIOCGAUDIO,&pPPriv->audio);
+	if (attribute == xvMute) {
+	    if (value)
+		pPPriv->audio.flags |= VIDEO_AUDIO_MUTE;
+	    else
+		pPPriv->audio.flags &= ~VIDEO_AUDIO_MUTE;
+	} else if (attribute == xvVolume) {
+	    if (pPPriv->audio.flags & VIDEO_AUDIO_VOLUME)
+		pPPriv->audio.volume = xv_to_v4l(value);
+	} else {
+	    ret = BadValue;
+	}
+	if (ret != BadValue)
+	    if (-1 == ioctl(V4L_FD,VIDIOCSAUDIO,&pPPriv->audio))
+		perror("ioctl VIDIOCSAUDIO");
 	* Closing the main window while recording blocks.
 	  Backtrace:
 	  on_exit2_activate() [now quit_cmd()]

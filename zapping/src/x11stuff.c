@@ -51,13 +51,7 @@
 #include "zmisc.h"
 #include "globals.h"
 
-#ifndef DISABLE_X_EXTENSIONS
-#ifdef HAVE_LIBXDPMS
-#define USE_XDPMS 1
-#include <X11/extensions/dpms.h>
-#endif
 #include <X11/Xatom.h>
-#endif
 
 
 /*
@@ -368,7 +362,7 @@ x11_root_geometry		(unsigned int *		width,
 }
 
 /*
- *
+ *  Window property & event helpers
  */
 
 static XErrorHandler	old_error_handler	= 0;
@@ -418,7 +412,7 @@ get_window_property		(Display *		display,
     }
 
   return status;
-}      
+}
 
 static void
 send_event			(Display *		display,
@@ -428,6 +422,7 @@ send_event			(Display *		display,
 				 long			l1)
 {
   XEvent xev;
+  int status;
 
   memset (&xev, 0, sizeof (xev));
 
@@ -440,47 +435,48 @@ send_event			(Display *		display,
   xev.xclient.data.l[0] = l0;
   xev.xclient.data.l[1] = l1;
 
-  if (!XSendEvent (display, DefaultRootWindow (display),
-	           False,
-	           SubstructureNotifyMask |
-	           SubstructureRedirectMask,
-	           &xev))
-    {
-//      fprintf(stderr, "bad send event\n");
-    }
-
-//      fprintf(stderr, "send event ok\n");
+  status = XSendEvent (display, DefaultRootWindow (display),
+		       False,
+		       SubstructureNotifyMask |
+		       SubstructureRedirectMask,
+		       &xev);
+  if (0)
+    fprintf (stderr, "%d = XSendEvent(message_type=%u l0=%ld l1=%ld)\n",
+	     status, (unsigned int) message_type, l0, l1);
 
   XSync (display, False);
 }
 
 static void
-window_send_event		(GtkWindow *		window,
+gtk_window_send_x11_event	(GtkWindow *		window,
 				 Atom			message_type,
 				 long			l0,
 				 long			l1)
 {
-  GdkWindow *toplevel = window->frame ? window->frame
-    : GTK_WIDGET (window)->window;
+  GdkWindow *toplevel;
+
+  if (window->frame)
+    toplevel = window->frame;
+  else
+    toplevel = GTK_WIDGET (window)->window;
 
   g_assert (toplevel != NULL);
   g_assert (GTK_WIDGET_MAPPED (window));
 
-  if (1) printv ("window_send_event\n");
-
   send_event (GDK_WINDOW_XDISPLAY (toplevel),
 	      GDK_WINDOW_XWINDOW (toplevel),
 	      message_type,
-	      l0,
-	      l1);
+	      l0, l1);
 }
+
+
 
 /*
  *  WindowManager hints for stay-on-top option
  */
 
-#ifndef X11STUFF_WM_HINT_DEBUG
-#define X11STUFF_WM_HINT_DEBUG(x)
+#ifndef X11STUFF_WM_HINTS_DEBUG
+#define X11STUFF_WM_HINTS_DEBUG 0
 #endif
 
 static void
@@ -499,16 +495,6 @@ dummy_window_on_top		(GtkWindow *		window,
 void (* window_on_top)		(GtkWindow *		window,
 				 gboolean		on)
   = dummy_window_on_top;
-
-#ifdef DISABLE_X_EXTENSIONS
-
-gboolean
-wm_hints_detect (void)
-{
-  return FALSE;
-}
-
-#else
 
 static GdkFilterReturn
 wm_event_handler		(GdkXEvent *		xevent,
@@ -534,10 +520,10 @@ static void
 net_wm_window_on_top		(GtkWindow *		window,
 				 gboolean		on)
 {
-  window_send_event (window,
-		     _XA_NET_WM_STATE,
-		     on ? _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE,
-		     _XA_NET_WM_STATE_ABOVE);
+  gtk_window_send_x11_event (window,
+			     _XA_NET_WM_STATE,
+			     on ? _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE,
+			     _XA_NET_WM_STATE_ABOVE);
 }
 
 enum {
@@ -556,19 +542,27 @@ static void
 gnome_window_on_top		(GtkWindow *		window,
 				 gboolean		on)
 {
-  window_send_event (window,
-		     _XA_WIN_LAYER,
-		     on ? WIN_LAYER_ONTOP : WIN_LAYER_NORMAL,
-		     0);
+  gtk_window_send_x11_event (window,
+			     _XA_WIN_LAYER,
+			     on ? WIN_LAYER_ONTOP : WIN_LAYER_NORMAL,
+			     0);
 }
 
+/**
+ * wm_hints_detect:
+ * Check if we can tell the WM to keep a window on top of other windows.
+ * This must be called before window_on_top().
+ *
+ * @returns:
+ * TRUE if possible.
+ */
 gboolean
-wm_hints_detect (void)
+wm_hints_detect			(void)
 {
   Display *display;
   Window root;
-  unsigned char *args = NULL;
-  Atom *atoms = NULL;
+  unsigned char *args;
+  Atom *atoms;
   unsigned long nitems;
   int i;
 
@@ -584,18 +578,21 @@ wm_hints_detect (void)
 
   /* Netwm compliant */
 
+  atoms = NULL;
+
   if (Success == get_window_property (display, root, _XA_NET_SUPPORTED,
                                       AnyPropertyType, &nitems,
 				      (unsigned char **) &atoms))
     {
-      printv ("wm hints _NET_SUPPORTED (%lu)\n", nitems);
+      printv ("WM supports _NET_SUPPORTED (%lu)\n", nitems);
 
       for (i = 0; i < nitems; i++)
 	{
 	  /* atoms[i] != _XA_... */
 	  char *atom_name = XGetAtomName (display, atoms[i]);
 
-	  X11STUFF_WM_HINT_DEBUG (printv ("  atom %s\n", atom_name));
+	  if (X11STUFF_WM_HINTS_DEBUG)
+	    printv ("  atom %s\n", atom_name);
 
 	  /* E.g. IceWM 1.2.2 _NET yes, _ABOVE no, but _LAYER */
 	  if (0 == strcmp (atom_name, "_NET_WM_STATE_ABOVE"))
@@ -616,6 +613,8 @@ wm_hints_detect (void)
 	}
 
       XFree (atoms);
+
+      printv ("  ... nothing useful\n");
     }
 
   _XA_WIN_SUPPORTING_WM_CHECK	= XInternAtom (display, "_WIN_SUPPORTING_WM_CHECK", False);
@@ -623,12 +622,14 @@ wm_hints_detect (void)
 
   /* Gnome compliant */
 
+  args = NULL;
+
   if (Success == get_window_property (display, root,
                                       _XA_WIN_SUPPORTING_WM_CHECK,
 				      AnyPropertyType, &nitems, &args))
     if (nitems > 0)
       {
-        printv("wm hints _WIN_SUPPORTING_WM_CHECK\n");
+        printv ("WM supports _WIN_SUPPORTING_WM_CHECK\n");
 
         /* FIXME: check capabilities */
 
@@ -643,16 +644,18 @@ wm_hints_detect (void)
         return TRUE;
       }
 
-  printv ("wm hints unknown\n");
+  printv ("No WM hints\n");
 
   return FALSE;
 }
 
-#endif /* !DISABLE_X_EXTENSIONS */
-
 /*
  *  XFree86VidMode helpers
  */
+
+#ifndef X11STUFF_VIDMODE_DEBUG
+#define X11STUFF_VIDMODE_DEBUG 0
+#endif
 
 /**
  * x11_vidmode_clear_state:
@@ -672,45 +675,10 @@ x11_vidmode_clear_state		(x11_vidmode_state *	vs)
   vs->new.vp.x = 1 << 20;
 }
 
-#ifdef DISABLE_X_EXTENSIONS
-
-void
-x11_vidmode_list_delete		(x11_vidmode_info *	list)
-{
-}
-
-x11_vidmode_info *
-x11_vidmode_list_new		(Display *		display)
-{
-  return NULL;
-}
-
-x11_vidmode_info *
-x11_vidmode_current		(Display *		display,
-				 x11_vidmode_info *	list)
-{
-  return NULL;
-}
-
-int
-x11_vidmode_switch		(Display *		display,
-				 x11_vidmode_info *	list,
-				 x11_vidmode_info *	vm,
-				 x11_vidmode_state *	vs)
-{
-  return 0;
-}
-
-void
-x11_vidmode_restore		(Display *		display,
-				 x11_vidmode_info *	list,
-				 x11_vidmode_state *	vs)
-{
-}
-
-#else
+#ifdef HAVE_VIDMODE_EXTENSION
 
 #include <assert.h>
+#include <X11/extensions/xf86vmode.h>
 
 #define PARENT(ptr, type, member) \
 	((type *)(((char *)(ptr)) - offsetof(type, member)))
@@ -744,16 +712,15 @@ x11_vidmode_list_delete		(x11_vidmode_info *	list)
 
 /**
  * x11_vidmode_list_new:
- * @display:
- *
  * Creates a sorted list of selectable VidModes, i.e. all valid
  * Modelines in XF86Config including those switchable with kp+
  * and kp-. The list must be freed with x11_vidmode_list_delete().
  * Result can be NULL for various reasons.
  */
 x11_vidmode_info *
-x11_vidmode_list_new		(Display *		display)
+x11_vidmode_list_new		(void)
 {
+  Display *display;
   int event_base, error_base;
   int major_version, minor_version;
   int screen;
@@ -762,23 +729,31 @@ x11_vidmode_list_new		(Display *		display)
   x11_vidmode_info *list;
   int i;
 
+  display = GDK_DISPLAY ();
   screen = DefaultScreen (display);
 
   if (!XF86VidModeQueryExtension (display, &event_base, &error_base))
-    return NULL;
-
-  if (!XF86VidModeQueryVersion (display, &major_version, &minor_version))
-    return NULL;
-
-  if (0)
     {
-      fprintf (stderr, "XF86VidMode:\n");
-      fprintf (stderr, "  - base    : %d, %d\n", event_base, error_base);
-      fprintf (stderr, "  - version : %d.%d\n", major_version, minor_version);
+      printv ("XF86VidMode extension not available.\n");
+      return NULL;
     }
 
+  if (!XF86VidModeQueryVersion (display, &major_version, &minor_version))
+    {
+      printv ("XF86VidMode extension not usable.\n");
+      return NULL;
+    }
+
+  printv ("XF86VidMode base %d, %d, version %d.%d.\n",
+	  event_base, error_base,
+	  major_version, minor_version);
+
   if (!XF86VidModeGetAllModeLines (display, screen, &mode_count, &mode_info))
-    return NULL;
+    {
+      if (X11STUFF_VIDMODE_DEBUG)
+	printv ("No mode lines\n");
+      return NULL;
+    }
 
   list = NULL;
 
@@ -796,13 +771,13 @@ x11_vidmode_list_new		(Display *		display)
 
       if (Success == XF86VidModeValidateModeLine (display, screen, m))
 	{
-	  if (0)
-	  fprintf (stderr, "Valid mode dot=%u flags=%08x "
-		   "hd=%u hss=%u hse=%u ht=%u "
-		   "vd=%u vss=%u vse=%u vt=%u\n",
-		   m->dotclock, m->flags,
-		   m->hdisplay, m->hsyncstart, m->hsyncend, m->htotal,
-		   m->vdisplay, m->vsyncstart, m->vsyncend, m->vtotal);
+	  if (X11STUFF_VIDMODE_DEBUG)
+	    printv ("Valid mode dot=%u flags=%08x "
+		    "hd=%u hss=%u hse=%u ht=%u "
+		    "vd=%u vss=%u vse=%u vt=%u\n",
+		    m->dotclock, m->flags,
+		    m->hdisplay, m->hsyncstart, m->hsyncend, m->htotal,
+		    m->vdisplay, m->vsyncstart, m->vsyncend, m->vtotal);
 
 	  if ((v = calloc (1, sizeof (*v))))
 	    {
@@ -840,9 +815,9 @@ x11_vidmode_list_new		(Display *		display)
 	}
       else
 	{
-	  if (0)
-	  fprintf (stderr, "Ignore bad mode dot=%u h=%u v=%u\n",
-		   m->dotclock, m->hdisplay, m->vdisplay);
+	  if (X11STUFF_VIDMODE_DEBUG)
+	    printv ("Ignore bad mode dot=%u hd=%u vd=%u\n",
+		    m->dotclock, m->hdisplay, m->vdisplay);
 	}
     }
 
@@ -859,11 +834,12 @@ x11_vidmode_list_new		(Display *		display)
  *   characters following the last sep are ignored. Numbers strtoul.
  *
  * Returns a pointer to the first VidMode matching the name, NULL
- * when the mode is not in the list.
+ * when the mode is not in the list. (This is intended to select
+ * a mode from config file.)
  */
 x11_vidmode_info *
 x11_vidmode_by_name		(x11_vidmode_info *	list,
-				 const char *		name)
+				 const gchar *		name)
 {
   unsigned int val[3] = { 0, 0, 0 };
   x11_vidmode_info *info;
@@ -921,16 +897,15 @@ x11_vidmode_by_name		(x11_vidmode_info *	list,
 
 /**
  * x11_vidmode_current:
- * @display: Same as given to x11_vidmode_list_new().
  * @list: List of VidModes as returned by x11_vidmode_list_new().
  *
  * Returns a pointer to the current VidMode, NULL when the mode
  * is not in the list or some other problem occurred.
  */
 x11_vidmode_info *
-x11_vidmode_current		(Display *		display,
-				 x11_vidmode_info *	list)
+x11_vidmode_current		(x11_vidmode_info *	list)
 {
+  Display *display;
   int screen;
   XF86VidModeModeLine mode_line;
   int dot_clock;
@@ -939,10 +914,15 @@ x11_vidmode_current		(Display *		display,
   if (!list)
     return NULL;
 
+  display = GDK_DISPLAY ();
   screen = DefaultScreen (display);
 
   if (!XF86VidModeGetModeLine (display, screen, &dot_clock, &mode_line))
-    return NULL;
+    {
+      if (X11STUFF_VIDMODE_DEBUG)
+	printv ("XF86VidModeGetModeLine() failed\n");
+      return NULL;
+    }
 
   if (mode_line.privsize > 0)
     {
@@ -964,14 +944,18 @@ x11_vidmode_current		(Display *		display,
       break;
 
   if (!v)
-    return NULL;
+    {
+      if (X11STUFF_VIDMODE_DEBUG)
+	printv ("Current VidMode dot=%u hd=%u vd=%u not in list\n",
+		dot_clock, mode_line.hdisplay, mode_line.vdisplay);
+      return NULL;
+    }
 
   return &v->pub;
 }
 
 /**
  * x11_vidmode_current:
- * @display: Same as given to x11_vidmode_list_new().
  * @list: List of VidModes as returned by x11_vidmode_list_new().
  * @vm: VidMode to switch to, must be member of @list.
  * @vs: If given save settings for x11_vidmode_restore() here.
@@ -980,12 +964,12 @@ x11_vidmode_current		(Display *		display,
  * Then centers the viewport over the root window, and if
  * necessary moves the pointer into sight.
  */
-int
-x11_vidmode_switch		(Display *		display,
-				 x11_vidmode_info *	list,
+gboolean
+x11_vidmode_switch		(x11_vidmode_info *	list,
 				 x11_vidmode_info *	vm,
 				 x11_vidmode_state *	vs)
 {
+  Display *display;
   x11_vidmode_state state;
   int screen;
   Window root, dummy1;
@@ -999,6 +983,7 @@ x11_vidmode_switch		(Display *		display,
 
   x11_vidmode_clear_state (vs);
 
+  display = GDK_DISPLAY ();
   screen = DefaultScreen (display);
   root = DefaultRootWindow (display);
 
@@ -1009,16 +994,22 @@ x11_vidmode_switch		(Display *		display,
 
   /* Switch to requested mode, if any */
 
-  vs->old.vm = x11_vidmode_current (display, list);
+  vs->old.vm = x11_vidmode_current (list);
 
   if (vm)
     {
       if (vs->old.vm != vm)
 	{
 	  if (XF86VidModeSwitchToMode (display, screen, &VIDMODE (vm)->info))
-	    vs->new.vm = vm;
+	    {
+	      vs->new.vm = vm;
+	    }
 	  else
-	    return 0;
+	    {
+	      if (X11STUFF_VIDMODE_DEBUG)
+		printv ("XF86VidModeSwitchToMode() failed\n");
+	      return FALSE;
+	    }
 	}
     }
   else if (vs->old.vm)
@@ -1027,7 +1018,7 @@ x11_vidmode_switch		(Display *		display,
     }
   else
     {
-      return 1;
+      return TRUE;
     }
 
   /* Center ViewPort */
@@ -1044,6 +1035,9 @@ x11_vidmode_switch		(Display *		display,
     }
   else
     {
+      if (X11STUFF_VIDMODE_DEBUG)
+	printv ("XF86VidModeSetViewPort() failed\n");
+
       x = vs->old.vp.x;
       y = vs->old.vp.y;
     }
@@ -1086,12 +1080,11 @@ x11_vidmode_switch		(Display *		display,
 
   XSync (display, False);
 
-  return 1;
+  return TRUE;
 }
 
 /**
  * x11_vidmode_current:
- * @display: Same as given to the corresponding x11_vidmode_switch().
  * @list: List of VidModes as returned by x11_vidmode_list_new(),
  *        must be the same as given to the corresponding
  *        x11_vidmode_switch().
@@ -1102,10 +1095,10 @@ x11_vidmode_switch		(Display *		display,
  * x11_vidmode_clear_state() to prevent restore twice.
  */
 void
-x11_vidmode_restore		(Display *		display,
-				 x11_vidmode_info *	list,
+x11_vidmode_restore		(x11_vidmode_info *	list,
 				 x11_vidmode_state *	vs)
 {
+  Display *display;
   int screen;
   Window root, dummy1;
   int vpx, vpy, ptx, pty, dummy2;
@@ -1114,6 +1107,7 @@ x11_vidmode_restore		(Display *		display,
   if (!vs)
     return;
 
+  display = GDK_DISPLAY ();
   screen = DefaultScreen (display);
   root = DefaultRootWindow (display);
 
@@ -1125,14 +1119,19 @@ x11_vidmode_restore		(Display *		display,
     {
       x11_vidmode_info *new_vm;
 
-      new_vm = x11_vidmode_current (display, list);
+      new_vm = x11_vidmode_current (list);
 
       if (vs->new.vm != new_vm)
 	goto done; /* user changed vidmode, keep that */
 
       if (!XF86VidModeSwitchToMode (display, screen,
 				    &VIDMODE (vs->old.vm)->info))
-	goto done;
+	{
+	  if (X11STUFF_VIDMODE_DEBUG)
+	    printv ("Cannot restore old mode, "
+		    "XF86VidModeSwitchToMode() failed\n");
+	  goto done;
+	}
     }
 
   if (vs->new.vp.x == vpx && vs->new.vp.y == vpy)
@@ -1151,18 +1150,96 @@ x11_vidmode_restore		(Display *		display,
   x11_vidmode_clear_state (vs);
 }
 
-#endif /* !DISABLE_X_EXTENSIONS */
+#else /* !HAVE_VIDMODE_EXTENSION */
+
+void
+x11_vidmode_list_delete		(x11_vidmode_info *	list)
+{
+}
+
+x11_vidmode_info *
+x11_vidmode_list_new		(void)
+{
+  printv ("VidMode extension support not compiled in.\n");
+
+  return NULL;
+}
+
+x11_vidmode_info *
+x11_vidmode_by_name		(x11_vidmode_info *	list,
+				 const gchar *		name)
+{
+  return NULL;
+}
+
+x11_vidmode_info *
+x11_vidmode_current		(x11_vidmode_info *	list)
+{
+  return NULL;
+}
+
+gboolean
+x11_vidmode_switch		(x11_vidmode_info *	list,
+				 x11_vidmode_info *	vm,
+				 x11_vidmode_state *	vs)
+{
+  return FALSE;
+}
+
+void
+x11_vidmode_restore		(x11_vidmode_info *	list,
+				 x11_vidmode_state *	vs)
+{
+}
+
+#endif /* !HAVE_VIDMODE_EXTENSION */
 
 /*
  *  Screensaver
  */
 
+#ifndef X11STUFF_SCREENSAVER_DEBUG
+#define X11STUFF_SCREENSAVER_DEBUG 0
+#endif
+
+#ifdef HAVE_DPMS_EXTENSION
+/* xc/doc/hardcopy/Xext/DPMSLib.PS.gz */
+#include <X11/Xproto.h> /* CARD16 */
+#include <X11/extensions/dpms.h>
+#endif
+
+/*
+   Tested:				on		check-test (TTX mode)
+   xset s 7 (blank/noblank)		blocked		blanks
+   sleep 1; xset s active		deactivates	no action
+   xset dpms 7				blocked		blanks
+   sleep 1; xset dpms force off		forces on+	no action
+   xscreensaver 4.06:
+     detect start & kill		ok
+     transition from / to xset s 7	blocked
+     blank after 1m			blocked		blanks
+     dpms blank 1m			blocked+	blanks
+     ++
+   xautolock 2.1 (w/MIT saver)+++	blocked		blanks
+
+  + after work-around
+  ++ Various methods to detect inactivity (XIdle, monitoring kernel
+     device etc) UNTESTED or NOT BLOCKED.
+  +++ XIdle UNTESTED. Without MIT or XIdle xautolock scans all
+      windows for KeyPress events, that is NOT BLOCKED.
+*/
+
 static Atom _XA_SCREENSAVER_VERSION;
 static Atom _XA_SCREENSAVER;
 static Atom _XA_DEACTIVATE;
 
-static int
-xss_find_screensaver_window	(Display *		display,
+static gboolean		screensaver_enabled;
+static unsigned int	screensaver_level;
+static gboolean		dpms_usable;
+static gint		gtimeout;
+
+static gboolean
+find_xscreensaver_window	(Display *		display,
 				 Window *		window_return)
 {
   Window root = RootWindowOfScreen (DefaultScreenOfDisplay (display));
@@ -1173,7 +1250,7 @@ xss_find_screensaver_window	(Display *		display,
   if (!XQueryTree (display, root, &root2, &parent, &kids, &nkids)
       || root != root2 || parent
       || !kids || nkids == 0)
-    return 0;
+    return FALSE;
 
   /* We're walking the list of root-level windows and trying to find
      the one that has a particular property on it.  We need to trap
@@ -1185,7 +1262,6 @@ xss_find_screensaver_window	(Display *		display,
 
   for (i = 0; i < nkids; i++)
     {
-      int status;
       unsigned long nitems;
       char *v;
 
@@ -1199,115 +1275,199 @@ xss_find_screensaver_window	(Display *		display,
 	  XSetErrorHandler (old_error_handler);
           *window_return = kids[i];
           XFree (kids);
-	  return 1;
+	  return TRUE;
 	}
     }
 
   XSetErrorHandler (old_error_handler);
   XFree (kids);
-  return 0;
+
+  return FALSE;
 }
 
-static inline void
-xss_deactivate			(Display *		display)
-{
-  Window window;
-  
-  if (!xss_find_screensaver_window (display, &window))
-    return; /* XXX What now? */
-
-  /* If the screensaver is active unblank, otherwise just re-start
-     the countdown. We have to call this regularly to get the desired
-     effect, which is inconvenient, but at least the screensaver
-     won't remain disabled when we bite the dust.  
-   */
-  send_event (display, window, _XA_SCREENSAVER,
-              (long) _XA_DEACTIVATE, 0);
-
-  /* Error ignored, response ignored. */
-}
-
-
-
-#define ROOT_UID 0
-
+/* Here we reset the idle counter at regular intervals,
+   an inconvenience outweight by a number of advantages:
+   No need to remember and restore saver states. It works
+   nicely with other apps because no synchronization is
+   neccessary. When we unexpectedly bite the dust, the
+   screensaver kicks in as usual, no cleanup necessary. */
 static gboolean
-stop_xscreensaver_timeout (gpointer unused)
+screensaver_timeout		(gpointer		unused)
 {
-  const char *cmd = "xscreensaver-command -deactivate >&- 2>&- &";
-  int r;
+  Display *display = GDK_DISPLAY ();
+  Window window;
+  gboolean xss;
 
-xss_deactivate (GDK_DISPLAY());
+  /* xscreensaver is a client, it may come and go at will. */
+  xss = find_xscreensaver_window (display, &window);
 
-//  r = system (cmd);
-//
-//  printv ("%d = system(\"%s\")\n", r, cmd);
-//
-//cmd = "/usr/local/bin/bell";
-//  r = system (cmd);
+  if (X11STUFF_SCREENSAVER_DEBUG)
+    printv ("screensaver_timeout() xss=%d dpms=%d\n", xss, dpms_usable);
+
+  if (xss)
+    {
+      /* xscreensaver overrides the X savers, so it takes
+	 priority here. This call unblanks the display and/or
+	 re-starts the idle counter. Error ignored, response ignored. */
+      send_event (display, window, _XA_SCREENSAVER, (long) _XA_DEACTIVATE, 0);
+    }
+  /* xscreensaver 4.06 doesn't appear to call XForceScreenSaver() on
+     _XA_DEACTIVATE when DPMS was enabled, only when MIT or SGI
+     screensaver extensions are used, so we're forced to do it anyway.*/ 
+  /* else */
+    {
+      /* Restart the idle counter, this impacts the internal
+	 saver, MIT-SCREEN-SAVER extension and DPMS extension
+	 idle counter (in XFree86 4.2). Curiously it forces
+	 the monitor back on after blanking by the internal
+	 saver, but not after DPMS blanking. */
+      XForceScreenSaver (display, ScreenSaverReset);
+
+#ifdef HAVE_DPMS_EXTENSION
+
+      if (dpms_usable)
+	{
+	  CARD16 power_level;
+	  BOOL state;
+
+	  if (DPMSInfo (display, &power_level, &state))
+	    {
+	      if (X11STUFF_SCREENSAVER_DEBUG)
+		printv ("DPMSInfo(level=%d enabled=%d)\n",
+			(int) power_level, (int) state);
+
+	      if (power_level != DPMSModeOn)
+		/* Error ignored */
+		DPMSForceLevel (display, DPMSModeOn);
+	    }
+	}
+
+#endif
+
+    }
 
   return TRUE; /* call again */
 }
 
-/*
- * Sets the X screen saver on/off
+/**
+ * x11_screensaver_set:
+ * @level:
+ *
+ * Switch the screensaver on or off. @level can be one of
+ * X11_SCREENSAVER_ON or X11_SCREENSAVER_DISPLAY_ACTIVE.
+ * When the function is disabled it does nothing.
  */
 void
-x11_set_screensaver(gboolean on)
+x11_screensaver_set		(unsigned int		level)
 {
-#ifdef USE_XDPMS
-  static BOOL dpms_was_on;
-  CARD16 dpms_state;
-  int dummy;
-#endif
-  static int timeout=-2, interval, prefer_blanking, allow_exposures;
-  static gint gtimeout = -1;
+  Display *display = GDK_DISPLAY ();
 
-  static int killme = 0;
-  if (!killme)
+  if (X11STUFF_SCREENSAVER_DEBUG)
+    printv ("x11_screensaver_set (level=%d) enabled=%d dpms=%d\n",
+	    (int) level, screensaver_enabled, dpms_usable);
+
+  if (screensaver_enabled)
     {
-      Display *display = GDK_DISPLAY();
-
-      killme=1;
-
-      _XA_SCREENSAVER_VERSION	= XInternAtom (display, "_SCREENSAVER_VERSION", False);
-      _XA_SCREENSAVER	= XInternAtom (display, "SCREENSAVER", False);
-      _XA_DEACTIVATE	= XInternAtom (display, "DEACTIVATE", False);
+      if (level == X11_SCREENSAVER_ON)
+	{
+	  if (gtimeout != -1)
+	    {
+	      gtk_timeout_remove (gtimeout);
+	      gtimeout = -1;
+	    }
+	}
+      else
+	{
+	  if (level & X11_SCREENSAVER_CPU_ACTIVE)
+	    {
+	      /* to do - this should block APM */
+	    }
+	  
+	  if (level & X11_SCREENSAVER_DISPLAY_ACTIVE)
+	    {
+	      if (gtimeout == -1)
+		{
+		  /* Make sure the display is on now. */
+		  screensaver_timeout (NULL);	      
+		  XSync (display, False);
+		  
+		  gtimeout = gtk_timeout_add (5432 /* ms */, screensaver_timeout, NULL);
+		}
+	    }
+	}
     }
 
-
-  printv ("x11_set_screensaver(%d)\n", on);
-
-  if (on) {
-    if (timeout == -2) {
-      g_warning("cannot activate screensaver before deactivating");
-      return;
-    }
-    XSetScreenSaver(GDK_DISPLAY(), timeout, interval, prefer_blanking,
-		    allow_exposures);
-    gtk_timeout_remove(gtimeout);
-    gtimeout = -1;
-#ifdef USE_XDPMS
-    if ( (DPMSQueryExtension(GDK_DISPLAY(), &dummy, &dummy) ) &&
-	 (DPMSCapable(GDK_DISPLAY())) && (dpms_was_on) )
-      DPMSEnable(GDK_DISPLAY());
-#endif
-  } else {
-    XGetScreenSaver(GDK_DISPLAY(), &timeout, &interval,
-		    &prefer_blanking, &allow_exposures);
-    /* This disables the builtin X screensaver... */
-    XSetScreenSaver(GDK_DISPLAY(), 0, interval, prefer_blanking,
-		    allow_exposures);
-    /* and this XScreensaver. */
-    gtimeout = gtk_timeout_add(5000, stop_xscreensaver_timeout, NULL);
-
-#ifdef USE_XDPMS
-    if ( (DPMSQueryExtension(GDK_DISPLAY(), &dummy, &dummy)) &&
-	 (DPMSCapable(GDK_DISPLAY())) ) {
-      DPMSInfo(GDK_DISPLAY(), &dpms_state, &dpms_was_on);
-      DPMSDisable(GDK_DISPLAY());
-    }
-#endif
-  }
+  screensaver_level = level;
 }
 
+/**
+ * x11_screensaver_control:
+ * @enable:
+ *
+ * Enable or disable the x11_screensaver_set() function.
+ */
+void
+x11_screensaver_control		(gboolean		enable)
+{
+  if (enable)
+    {
+      screensaver_enabled = TRUE;
+      x11_screensaver_set (screensaver_level);
+    }
+  else if (screensaver_level != X11_SCREENSAVER_ON)
+    {
+      unsigned int level = screensaver_level;
+
+      x11_screensaver_set (X11_SCREENSAVER_ON);
+
+      screensaver_enabled = FALSE;
+      screensaver_level = level;
+    }
+}
+
+void
+x11_screensaver_init		(void)
+{
+  Display *display = GDK_DISPLAY();
+  int event_base, error_base;
+  int major_version, minor_version;
+
+  _XA_SCREENSAVER_VERSION = XInternAtom (display, "_SCREENSAVER_VERSION", False);
+  _XA_SCREENSAVER	  = XInternAtom (display, "SCREENSAVER", False);
+  _XA_DEACTIVATE	  = XInternAtom (display, "DEACTIVATE", False);
+
+  screensaver_enabled	  = FALSE;
+  screensaver_level	  = X11_SCREENSAVER_ON;
+  dpms_usable		  = FALSE;
+  gtimeout		  = -1;
+
+#ifdef HAVE_DPMS_EXTENSION
+
+  if (!DPMSQueryExtension (display, &event_base, &error_base))
+    {
+      printv ("DPMS extension not available\n");
+      return;
+    }
+
+  if (!DPMSGetVersion (display, &major_version, &minor_version)
+      || major_version != 1)
+    {
+      printv ("DPMS extension not usable\n");
+      return;
+    }
+
+  if (!DPMSCapable (display))
+    {
+      printv ("Display does not support DPMS\n");
+      return;
+    }
+
+  printv ("DPMS base %d, %d, version %d.%d\n",
+	  event_base, error_base,
+	  major_version, minor_version);
+
+  dpms_usable = TRUE;
+
+#endif /* HAVE_DPMS_EXTENSION */
+
+}

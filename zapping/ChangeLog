@@ -1,3 +1,36 @@
+27.1.2003	<mschimek@users.sf.net>
+
+	* configure.in: DPMS check didn't work properly, rewrote. In
+	  the course also add/changed checks for xf86dga, xf86vmode, xv.
+	* src/Makefile.am: configure.in X lib checks changed.
+	* src/fullscreen.c: Moved screensaver disabling into zmisc.c.
+	* src/main.c: Init screensaver routines.
+	* src/mixer.c, src/mixer.h: A few minor interface corrections.
+	* src/x11stuff.c: User more fine grained configure.in X lib
+	  checks. Various cleanups. Rewrote screensaver disabling routines.
+	* src/x11stuff.h: Cleanup, screensaver interface changed.
+	* src/zmisc.c (zmisc_switch_mode): Disable screensaver in all
+	  modes except Teletext. 
+
+25.1.2003	<mschimek@users.sf.net>
+
+	* src/tveng.c, src/tveng.h: Switch to tv_control with better
+	  encapsulation of controller specifics and callbacks, numerous
+	  small changes. Attn tveng_device_info.controls changed from vec
+	  to list. Added tveng_update_control(). Moved sanity checks from
+	  controllers into tveng_set_control(). tveng_*_control_by_id()
+	  preliminary disabled. tveng_*_mute() use controls, controller
+	  mute interface removed. 
+	* src/tveng_private.h: New tv_dev_control for controller control
+	  interface, mute interface removed. Replaced control helper
+	  functions.
+	* src/tveng1.c, src/tveng1.h, src/tveng2.c, src/tveng2.h,
+	  src/tvengxv.c, src/tvengxv.h, src/tvengemu.c, src/tvengemu.h:
+	  Switch to tv_control, rewrote most of the control routines.
+	  Mute interface routines removed.
+	* src/v4linterface.c: Switch to tv_control, use tv_control
+	  callback to update mute button.
+
 23.1.2003	<mschimek@users.sf.net>
 
 	* src/main.c, src/tveng.c, src/tveng1.c, src/tveng2.c,

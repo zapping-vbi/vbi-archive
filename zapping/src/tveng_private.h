@@ -40,6 +40,13 @@
 #endif /* ENABLE_NLS */
 #endif /* _ */
 
+typedef struct _tv_dev_control tv_dev_control;
+
+struct _tv_dev_control {
+	tv_control		pub;		/* attn keep this first */
+	tveng_device_info *	device;		/* owner */	
+	tv_callback_node *	callback;
+};
 
 /*
   Function prototypes for modules, NULL means not implemented or not
@@ -61,11 +68,25 @@ struct tveng_module_info {
 			tveng_device_info *info);
   int	(*update_capture_format)(tveng_device_info *info);
   int	(*set_capture_format)(tveng_device_info *info);
-  int	(*update_controls)(tveng_device_info *info);
-  int	(*set_control)(struct tveng_control *control,
-		       int value, tveng_device_info *info);
-  int	(*get_mute)(tveng_device_info *info);
-  int	(*set_mute)(int value, tveng_device_info *info);
+
+	/*
+	 *  Update tv_control.value to notice asynchronous changes
+	 *  by other applications, may call tv_dev_control.callback.
+	 *  May also update other properties if we come across that
+	 *  information in the course. If the control is NULL update
+	 *  all controls, this may be faster than individual updates.
+	 */
+	tv_bool			(* update_control)	(tveng_device_info *,
+							 tv_dev_control *);
+
+	/*
+	 *  Set the value of a control, this implies update_control
+	 *  with all side effects mentioned.
+	 */
+  	tv_bool			(*set_control)		(tveng_device_info *,
+							 tv_dev_control *,
+							 int);
+
   int	(*tune_input)(uint32_t freq, tveng_device_info *info);
   int	(*get_signal_strength)(int *strength, int *afc,
 			       tveng_device_info *info);
@@ -124,52 +145,66 @@ struct tveng_private {
   Atom colorkey; /* colorkey doesn't have min, max, it's defined by
 		    RGB triplets */
 #endif
+
+  tv_control *		control_mute;
 };
 
-static int
-p_tveng_append_control(struct tveng_control * new_control, 
-		       tveng_device_info * info) __attribute__ ((unused));
-
-static struct tveng_control *
-find_control_by_id(tveng_device_info *info, int id) __attribute__ ((unused));
-
-static struct tveng_control *
-find_control_by_id(tveng_device_info *info, int id)
+static inline void
+free_control			(tv_control *		tc)
 {
-  int i;
+	tv_dev_control *tdc = (tv_dev_control *) tc; /* XXX */
 
-  for (i = 0; i<info->num_controls; i++)
-    if (info->controls[i].id == id)
-      return &(info->controls[i]);
+	if (!tc)
+		return;
 
-  return NULL;
-};
+	tv_callback_destroy (tc, &tdc->callback);
 
-static int
-p_tveng_append_control(struct tveng_control * new_control, 
-		       tveng_device_info * info)
+	if (tc->label) {
+		free ((char *) tc->label);
+	}
+
+	if (tc->menu) {
+	      unsigned int i;
+
+	      for (i = 0; tc->menu[i]; i++) {
+		      free ((char *) tc->menu[i]);
+	      }
+
+	      free (tc->menu);
+	}
+
+	free (tc);
+}
+
+static inline tv_control *
+append_control			(tveng_device_info *	info,
+				 tv_control *		tc,
+				 unsigned int		size)
 {
-  struct tveng_control * new_pointer;
+	tv_control **tcp;
 
-  if (find_control_by_id(info, new_control->id))
-    return 0;
+	for (tcp = &info->controls; *tcp; tcp = &(*tcp)->next)
+		;
 
-  new_pointer = (struct tveng_control*)
-    realloc(info->controls, (info->num_controls+1)*
-	    sizeof(struct tveng_control));
+	if (size > 0) {
+		*tcp = malloc (size);
 
-  if (!new_pointer)
-    {
-      info->tveng_errno = errno;
-      t_error("realloc", info);
-      return -1;
-    }
-  info->controls = new_pointer;
+		if (!*tcp) {
+			info->tveng_errno = errno;
+			t_error("malloc", info);
+			return NULL;
+		}
 
-  memcpy(&info->controls[info->num_controls], new_control,
-	 sizeof(struct tveng_control));
-  info->num_controls++;
-  return 0;
+		memcpy (*tcp, tc, size);
+
+		tc = *tcp;
+	} else {
+		*tcp = tc;
+	}
+
+	tc->next = NULL;
+
+	return tc;
 }
 
 #ifndef MAX

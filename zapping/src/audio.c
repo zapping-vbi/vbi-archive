@@ -492,8 +492,10 @@ set_mute				(gint	        mode,
 			      gtk_check_menu_item_set_active (check, mute));
       }
 
+    /* obsolete, using callbacks now
     if (controls)
       update_control_box (main_info);
+    */
 
     if (osd)
       {

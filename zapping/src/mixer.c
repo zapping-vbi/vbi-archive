@@ -547,7 +547,6 @@ tv_mixer_line_record		(tv_mixer_line *	line,
 {
 	tv_dev_mixer_line *l;
 	tv_dev_mixer *m;
-	unsigned int i;
 
 	assert (line != NULL);
 
@@ -606,7 +605,6 @@ tv_mixer_callback_add		(tv_mixer *		mixer,
 	tv_dev_mixer *m;
 
 	assert (mixer != NULL);
-	assert (notify != NULL);
 
 	m = PARENT (mixer, tv_dev_mixer, pub);
 

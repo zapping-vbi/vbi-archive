@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.4 2003-01-24 18:22:23 mschimek Exp $
+ * $Id: fullscreen.c,v 1.21.2.5 2003-01-30 02:39:49 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -186,11 +186,6 @@ fullscreen_start(tveng_device_info * info)
   if (info -> current_mode != TVENG_CAPTURE_PREVIEW)
     g_warning("Setting preview succeeded, but the mode is not set");
 
-#ifdef MESS_WITH_XSS
-  /* Set the blank screensaver */
-  x11_set_screensaver(OFF);
-#endif
-
   gtk_widget_grab_focus(black_window);
 
   g_signal_connect(G_OBJECT(black_window), "event",
@@ -214,11 +209,6 @@ fullscreen_start(tveng_device_info * info)
 void
 fullscreen_stop(tveng_device_info * info)
 {
-#ifdef MESS_WITH_XSS
-  /* Restore the normal screensaver */
-  x11_set_screensaver(ON);
-#endif
-
   osd_unset_window();
 
   /* Remove the black window */

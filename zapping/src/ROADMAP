@@ -132,7 +132,7 @@ A/V Matrix
   * other tv card line in (?)
   * any soundcard line in
 
-Logical tv device
+Virtual tv device
 
 + Kernel video device (V4L, V4L2 0.20, V4L2 2.5, BKTR),
     eventually mixed V4L / V4L2 if orthogonal interfaces

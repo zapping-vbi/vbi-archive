@@ -288,7 +288,10 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
   if ((info->current_mode == new_mode) &&
       (new_mode != TVENG_NO_CAPTURE))
-    return 0; /* success */
+    {
+      x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
+      return 0; /* success */
+    }
 
   /* save this input name for later retrieval */
   if (info->num_inputs > 0)
@@ -377,11 +380,14 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       return_value = capture_start(info);
       video_init (tv_screen, tv_screen->style->black_gc);
       video_suggest_format ();
+      x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE
+			   | X11_SCREENSAVER_CPU_ACTIVE);
       break;
     case TVENG_CAPTURE_WINDOW:
       if (disable_preview || disable_overlay) {
 	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
 	g_free(old_name);
+	x11_screensaver_set (X11_SCREENSAVER_ON);
 	return -1;
       }
 
@@ -403,6 +409,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	{
 	  ShowBox(_("Preview will not work: %s"),
 		  GTK_MESSAGE_ERROR, info->error);
+	  x11_screensaver_set (X11_SCREENSAVER_ON);
 	  return -1;
 	}
 
@@ -434,14 +441,19 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	{
 	  startup_overlay(tv_screen, main_window, info);
 	  overlay_sync(TRUE);
+	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
 	}
       else
-	g_warning(info->error);
+	{
+	  g_warning(info->error);
+	  x11_screensaver_set (X11_SCREENSAVER_ON);
+	}
       break;
     case TVENG_CAPTURE_PREVIEW:
       if (disable_preview || disable_overlay) {
 	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
 	g_free(old_name);
+	x11_screensaver_set (X11_SCREENSAVER_ON);
 	return -1;
       }
 
@@ -476,9 +488,18 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
       return_value = fullscreen_start(info);
       if (return_value == -1)
-	g_warning("couldn't start fullscreen mode");
+	{
+	  g_warning("couldn't start fullscreen mode");
+	  x11_screensaver_set (X11_SCREENSAVER_ON);
+	}
+      else
+	{
+	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
+	}
       break;
     default:
+      x11_screensaver_set (X11_SCREENSAVER_ON);
+
       if (!flag_exit_program) /* Just closing */
 	{
 #ifdef HAVE_LIBZVBI

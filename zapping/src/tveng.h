@@ -34,7 +34,7 @@
 #include <inttypes.h>
 
 #ifndef DISABLE_X_EXTENSIONS
-#ifdef HAVE_LIBXV
+#ifdef HAVE_XV_EXTENSION
 #ifndef USE_XV /* avoid redefinition */
 #define USE_XV 1
 #endif
@@ -47,7 +47,6 @@
 #include <X11/Xfuncs.h>
 #ifndef DISABLE_X_EXTENSIONS
 #include <X11/extensions/xf86dga.h>
-#include <X11/extensions/xf86vmode.h>
 #endif
 #ifdef USE_XV
 #include <sys/ipc.h>
@@ -221,27 +220,6 @@ struct tveng_enum_input{
   enum tveng_input_type type; /* The type for this input */
 };
 
-/* Possible control types */
-enum tveng_control_type{
-  TVENG_CONTROL_SLIDER, /* It can take any value between min and max */ 
-  TVENG_CONTROL_CHECKBOX, /* Can only take boolean values */
-  TVENG_CONTROL_MENU, /* The control is a menu with max options and
-			 labels listed in the data struct */
-  TVENG_CONTROL_BUTTON, /* The control is a button (when assigned a value does
-			   something, regarless the value given to it)
-			*/
-  TVENG_CONTROL_COLOR /* RGB color entry */
-};
-
-/* XXX rethink */
-enum tveng_control_property {
-  TVENG_CTRL_PROP_OTHER = 0,
-  TVENG_CTRL_PROP_BRIGHTNESS,
-  TVENG_CTRL_PROP_CONTRAST,
-  TVENG_CTRL_PROP_SATURATION,
-  TVENG_CTRL_PROP_HUE,
-};
-
 
 
 typedef int tv_bool;
@@ -271,14 +249,28 @@ extern void
 tv_callback_notify		(void *			object,
 				 const tv_callback_node *list);
 
+#define TV_CALLBACK_BLOCK(cb, statement)				\
+do {									\
+	tv_callback_block (cb);						\
+	statement;							\
+	tv_callback_unblock (cb);					\
+} while (0)
 
-#if 0
+/* The controller we are using for this device */
+enum tveng_controller
+{
+  TVENG_CONTROLLER_NONE, /* No controller set */
+  TVENG_CONTROLLER_V4L1, /* V4L1 controller (old V4l spec) */
+  TVENG_CONTROLLER_V4L2, /* V4L2 controller (new v4l spec) */
+  TVENG_CONTROLLER_XV,	 /* XVideo controller */
+  TVENG_CONTROLLER_EMU,	 /* Emulation controller */
+  TVENG_CONTROLLER_MOTHER /* The wrapper controller (tveng.c) */
+};
 
 /*
  *  Programmatically accessable controls. Other controls
  *  are anonymous, only the user knows what they do. Keep
- *  the list short. This is not control->id, which is
- *  controller specific.
+ *  the list short.
  */
 typedef enum {
 	TV_CONTROL_ID_NONE,
@@ -301,49 +293,38 @@ typedef enum {
 	TV_CONTROL_TYPE_COLOR			/* RGB color entry */
 } tv_control_type;
 
-typedef struct tv_control tv_control;
+typedef struct _tv_control tv_control;
 
-struct tv_control {
+struct _tv_control {
+	tv_control *		next;		// private?
+
 	tv_control_id		id;
 	tv_control_type		type;
-	const char *		name;		/* localized */
-	const char **		menu;		/* localized */
-	unsigned int		selectable;	/* menu item 1 << n */
-	tv_bool			enabled;
+
+	const char *		label;		/* localized */
+
+	const char **		menu;		/* localized; last entry NULL */
+  //	unsigned int		selectable;	/* menu item 1 << n */
+
 	int			minimum;
 	int			maximum;
-	int			default_value;
-	int			last_value;	/* not current value */
+  //	int			step;
+	int			reset;
+
+	int			value;		/* last known, not current value */
 };
 
-#endif /* future */
+extern tv_callback_node *
+tv_control_callback_add		(tv_control *		control,
+				 tv_bool		(* notify)(tv_control *, void *user_data),
+				 void			(* destroy)(tv_control *, void *user_data),
+				 void *			user_data);
 
-/* The controller we are using for this device */
-enum tveng_controller
-{
-  TVENG_CONTROLLER_NONE, /* No controller set */
-  TVENG_CONTROLLER_V4L1, /* V4L1 controller (old V4l spec) */
-  TVENG_CONTROLLER_V4L2, /* V4L2 controller (new v4l spec) */
-  TVENG_CONTROLLER_XV,	 /* XVideo controller */
-  TVENG_CONTROLLER_EMU,	 /* Emulation controller */
-  TVENG_CONTROLLER_MOTHER /* The wrapper controller (tveng.c) */
-};
-
-typedef struct tveng_control tveng_control;
-
-/* info about a video control (could be image, sound, whatever) */
-struct tveng_control{
-  char name[32]; /* Canonical name */
-  int id; /* control id */
-  enum tveng_control_property property;
-  int min, max; /* Control ranges */
-  int cur_value; /* The current control value */
-  int def_value; /* Default (reset) value */
-  enum tveng_control_type type; /* The control type */
-  char ** data; /* If this is a menu entry, pointer to a array of
-		   pointers to the labels, ended by a NULL pointer */
-  enum tveng_controller controller; /* controller owning this control */
-};
+#if 0
+a) audio mode capability - mono, stereo, sap, bilingual; ! sap & bi
+b) reception lang1, lang2 - nil, mono, stereo
+c) demodulation - auto, mono (l1), stereo (l1), l1 (mono), l2
+#endif
 
 enum tveng_capture_mode
 {
@@ -382,11 +363,9 @@ typedef struct
   /* Overlay window */
   struct tveng_window window;
 
-  /* Number of items in controls */
-  int num_controls;
-  /* The supported controls */
-  struct tveng_control * controls;
-  unsigned audio_mutable : 1;
+  /* Controls */
+  tv_control *		controls;
+  unsigned		audio_mutable : 1;
 
   /* Unique integer that indentifies this device */
   int signature;
@@ -545,12 +524,15 @@ tveng_set_capture_format(tveng_device_info * info);
 int
 tveng_update_controls(tveng_device_info * info);
 
+int
+tveng_update_control(tv_control *control, tveng_device_info * info);
+
 /*
   Sets the value for an specific control. The given value will be
   clipped between min and max values. Returns -1 on error
 */
 int
-tveng_set_control(struct tveng_control * control, int value,
+tveng_set_control(tv_control * control, int value,
 		  tveng_device_info * info);
 
 /*
@@ -578,15 +560,15 @@ tveng_set_control_by_name(const char * control_name,
   Gets the value of a control, given its control id. -1 on error (or
   cid not found). The result is stored in cur_value.
 */
-int
-tveng_get_control_by_id(int cid, int * cur_value,
-			tveng_device_info * info);
+//int
+//tveng_get_control_by_id(int cid, int * cur_value,
+//			tveng_device_info * info);
 
 /*
   Sets a control by its id. Returns -1 on error
 */
-int tveng_set_control_by_id(int cid, int new_value,
-			    tveng_device_info * info);
+//int tveng_set_control_by_id(int cid, int new_value,
+//			    tveng_device_info * info);
 
 /*
   Gets the value of the mute property. 1 means mute (no sound) and 0
@@ -888,15 +870,15 @@ do { \
   temp_error_buffer[255] = 0; \
   snprintf(temp_error_buffer, 255, "[%s] %s (line %d)\n%s failed: %s", \
 	   __FILE__, __PRETTY_FUNCTION__, __LINE__, str_error, msg_error); \
-  info->error[255] = 0; \
-  snprintf(info->error, 255, temp_error_buffer ,##args); \
-  if (info->debug_level) \
-    fprintf(stderr, "TVeng: %s\n", info->error); \
+  (info)->error[255] = 0; \
+  snprintf((info)->error, 255, temp_error_buffer ,##args); \
+  if ((info)->debug_level) \
+    fprintf(stderr, "TVeng: %s\n", (info)->error); \
 } while (0)
 
 /* Builds an error message that lets me debug much better */
 #define t_error(str_error, info) \
-t_error_msg(str_error, strerror(info->tveng_errno), info);
+t_error_msg((str_error), strerror((info)->tveng_errno), (info));
 
 /* Defines a point that should never be reached */
 #define t_assert_not_reached() do {\

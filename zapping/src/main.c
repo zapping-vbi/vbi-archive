@@ -445,7 +445,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.13 2003-01-24 18:22:23 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.14 2003-01-30 02:39:49 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -489,10 +489,13 @@ int main(int argc, char * argv[])
       return 0;
     }
   D();
+
+  x11_screensaver_init ();
+
   have_wm_hints = wm_hints_detect ();
-  D();
-  vidmodes = x11_vidmode_list_new (GDK_DISPLAY ());
-  D();
+
+  vidmodes = x11_vidmode_list_new ();
+
   if (debug_msg)
     {
       x11_vidmode_info *v;
@@ -503,7 +506,7 @@ int main(int argc, char * argv[])
 		 v->width, v->height,
 		 (unsigned int)(v->vfreq + 0.5));
     }
-  D();
+
   main_info = tveng_device_info_new(GDK_DISPLAY (), x_bpp);
   if (!main_info)
     {
@@ -646,6 +649,10 @@ int main(int argc, char * argv[])
   D();
   z_tooltips_active (zconf_get_boolean
 		     (NULL, "/zapping/options/main/show_tooltips"));
+  D();
+  zconf_create_boolean (TRUE, NULL, "/zapping/options/main/disable_screensaver");
+  x11_screensaver_control (zconf_get_boolean
+			   (NULL, "/zapping/options/main/disable_screensaver"));
   D();
   main_window = create_zapping();
   D();

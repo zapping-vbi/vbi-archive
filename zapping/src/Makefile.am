@@ -73,7 +73,8 @@ zapping_SOURCES = \
 	channel_editor.c channel_editor.h \
 	i18n.c i18n.h
 
-zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(PACKAGE_LIBS) \
-$(PYTHON_LIBS) $(X_LIBS) $(X_DGA_LIBS) $(X_XV_LIBS) $(X_XDPMS_LIBS) \
-$(UNICODE_LIBS) $(CCMALLOC) $(ZVBI_LIB) $(ARTS_LIBS) $(ESD_LIBS)
+zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(PACKAGE_LIBS) $(PYTHON_LIBS) \
+  $(X_LIBS) $(X_DPMS_LIBS) \
+  $(X_XF86DGA_LIBS) $(X_XF86VMODE_LIBS) $(X_XV_LIBS) \
+  $(UNICODE_LIBS) $(CCMALLOC) $(ZVBI_LIB) $(ARTS_LIBS) $(ESD_LIBS)
 zapping_LDFLAGS = -export-dynamic

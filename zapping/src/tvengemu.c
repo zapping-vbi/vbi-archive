@@ -20,22 +20,34 @@
   This module is somewhat different, this time we are generating a
   virtual device without actual hw underneath.
   The module is disabled by default, to enable it define
-  ENABLE_TVENGEMU in site_def.h:
-  #define ENABLE_TVENGEMU
+  TVENGEMU_ENABLE in site_def.h:
+  #define TVENGEMU_ENABLE 1
   You can also this module as a template when you want to support
   other apis in tveng.
 */
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
+
 #include <stdio.h>
 #include <errno.h>
 #include <site_def.h>
 #include <common/fifo.h>
 #include <tveng.h>
 
+#ifndef TVENGEMU_ENABLE
+#define TVENGEMU_ENABLE 0
+#endif
+
 #define TVENGEMU_PROTOTYPES
 #include "tvengemu.h"
+
+struct control {
+	tv_dev_control		dev;
+	/* interface specifics here */
+};
+
+#define C(l) PARENT (l, struct control, dev)
 
 struct private_tvengemu_device_info
 {
@@ -80,36 +92,41 @@ static struct tveng_enum_input inputs[] = {
 };
 #define ninputs (sizeof(inputs)/sizeof(inputs[0]))
 
-/* Available controls */
-static char *meaning_of_life_options[] =
-  {"42", "0xdeadbeef", "Monthy Python knows", NULL};
-static struct tveng_control controls[] = {
-  {
-    name:	"Foobarity",
-    min:	-20,
-    max:	72,
-    def_value:	13,
-    type:	TVENG_CONTROL_SLIDER
-  },
-  {
-    name:	"Meaning of life",
-    min:	0,
-    max:	(sizeof(meaning_of_life_options)/sizeof(char*)) - 2,
-    def_value:	0,
-    type:	TVENG_CONTROL_MENU,
-    data:	meaning_of_life_options
-  },
-  {
-    name:	"Do magical things",
-    type:	TVENG_CONTROL_BUTTON
-  },
-  {
-    name:	"Mute",
-    def_value:	0,
-    type:	TVENG_CONTROL_CHECKBOX
-  }
-};
-#define ncontrols (sizeof(controls)/sizeof(controls[0]))
+static tv_control *
+add_control			(tveng_device_info *	info,
+				 const char *		label,
+				 tv_control_id		tcid,
+				 tv_control_type	type,
+				 int			cur,
+				 int			def,
+				 int			minimum,
+				 int			maximum)
+{
+	struct control c;
+	tv_control *tc;
+
+	memset (&c, 0, sizeof (c));
+
+	if (!(c.dev.pub.label = strdup (_(label))))
+		return NULL;
+
+	c.dev.pub.id = tcid;
+	c.dev.pub.type = type;
+	c.dev.pub.minimum = minimum;
+	c.dev.pub.maximum = maximum;
+	c.dev.pub.reset = def;
+	c.dev.pub.value = cur;
+
+	c.dev.device = info;
+
+	if ((tc = append_control (info, &c.dev.pub, sizeof (c)))) {
+	} else {
+		free ((char *) c.dev.pub.label);
+		return NULL;
+	}
+
+	return tc;
+}
 
 static struct tveng_caps caps = {
   name:		"Emulation device",
@@ -149,8 +166,6 @@ int tvengemu_attach_device(const char* device_file,
   if (info->fd)
     tveng_close_device (info);
 
-  info->audio_mutable = 1;
-
   info -> file_name = strdup (device_file);
 
   memcpy (&info->caps, &caps, sizeof (caps));
@@ -181,21 +196,39 @@ int tvengemu_attach_device(const char* device_file,
   info->num_standards = nstandards;
   info->cur_standard = 0;
 
-  info->controls = malloc (sizeof(controls[0])*ncontrols);
-  for (i=0; i<ncontrols; i++)
+  if (1)
     {
-      if (controls[i].type == TVENG_CONTROL_BUTTON ||
-	  controls[i].type == TVENG_CONTROL_CHECKBOX)
-	{
-	  controls[i].min = 0;
-	  controls[i].max = 1;
-	}
-      memcpy (&info->controls[i], &controls[i], sizeof (controls[0]));
-      info->controls[i].controller = TVENG_CONTROLLER_EMU;
-      info->controls[i].cur_value = info->controls[i].def_value;
-      info->controls[i].id = i;
+      tv_control *tc;
+
+      add_control (info, "Pimples",
+		   TV_CONTROL_ID_UNKNOWN,
+		   TV_CONTROL_TYPE_INTEGER,
+		   0, 13, -20, 72);
+
+      tc = add_control (info, "Meaning of Life",
+			TV_CONTROL_ID_UNKNOWN,
+			TV_CONTROL_TYPE_CHOICE,
+			0, 0, 0, 2);
+      tc->menu = calloc (3 + 1, sizeof (const char *));
+      tc->menu[0] = strdup ("42");
+      tc->menu[1] = strdup ("Pr0n");
+      tc->menu[2] = strdup ("Monty Python");
+
+      add_control (info, "-> Self Destruct <-",
+		   TV_CONTROL_ID_UNKNOWN,
+		   TV_CONTROL_TYPE_ACTION,
+		   0, 0, 0, 0);
+
+      add_control (info, "Mute",
+		   TV_CONTROL_ID_MUTE,
+		   TV_CONTROL_TYPE_BOOLEAN,
+		   0, 1, 0, 1);
+
+      add_control (info, "Red Alert Color",
+		   TV_CONTROL_ID_UNKNOWN,
+		   TV_CONTROL_TYPE_COLOR,
+		   0x00FF00, 0xFF0000, 0, 0);
     }
-  info->num_controls = ncontrols;
 
   /* Set up some capture parameters */
   info->format.width = info->standards[info->cur_standard].width/2;
@@ -253,6 +286,8 @@ tvengemu_describe_controller(char ** short_str, char ** long_str,
 /* Closes a device opened with tveng_init_device */
 static void tvengemu_close_device(tveng_device_info * info)
 {
+  tv_control *tc;
+
   tveng_stop_everything (info);
   info->fd = 0;
   info->current_controller = TVENG_CONTROLLER_NONE;
@@ -275,13 +310,11 @@ static void tvengemu_close_device(tveng_device_info * info)
       info->standards = NULL;
     }
 
-  if (info -> controls)
-    {
-      free(info -> controls);
-      info->controls = NULL;
-    }
+	while ((tc = info->controls)) {
+		info->controls = tc->next;
+		free_control (tc);
+	}
 
-  info->num_controls = 0;
   info->num_standards = 0;
   info->num_inputs = 0;
 }
@@ -389,49 +422,22 @@ tvengemu_set_capture_format (tveng_device_info *info)
   return 0;
 }
 
-static int
-tvengemu_update_controls (tveng_device_info *info)
+static tv_bool
+tvengemu_update_control		(tveng_device_info *	info,
+				 tv_dev_control *	tdc)
 {
-  t_assert (info != NULL);
-
-  return 0;
+  return TRUE;
 }
 
-static int
-tvengemu_set_control (struct tveng_control *control, int value,
-		      tveng_device_info *info)
+static tv_bool
+tvengemu_set_control		(tveng_device_info *	info,
+				 tv_dev_control *	tdc,
+				 int			value)
 {
-  t_assert(control != NULL);
-  t_assert(info != NULL);
-
-  /* Clip value to a valid one */
-  if (value < control->min)
-    value = control -> min;
-      
-  if (value > control->max)
-    value = control -> max;
-
-  control->cur_value = value;
-
-  return 0;
+  tdc->pub.value = value;
+  return TRUE;
 }
 
-static int
-tvengemu_get_mute (tveng_device_info * info)
-{
-  int returned_value;
-  if (tveng_get_control_by_name("Mute", &returned_value, info) ==
-      -1)
-    return -1;
-
-  return !!returned_value;
-}
-
-static int
-tvengemu_set_mute (int value, tveng_device_info * info)
-{
-  return (tveng_set_control_by_name("Mute", !!value, info));
-}
 
 static int
 tvengemu_tune_input (uint32_t freq, tveng_device_info *info)
@@ -658,10 +664,8 @@ static struct tveng_module_info tvengemu_module_info = {
   set_standard:			tvengemu_set_standard,
   update_capture_format:	tvengemu_update_capture_format,
   set_capture_format:		tvengemu_set_capture_format,
-  update_controls:		tvengemu_update_controls,
+  update_control:		tvengemu_update_control,
   set_control:			tvengemu_set_control,
-  get_mute:			tvengemu_get_mute,
-  set_mute:			tvengemu_set_mute,
   tune_input:			tvengemu_tune_input,
   get_signal_strength:		tvengemu_get_signal_strength,
   get_tune:			tvengemu_get_tune,
@@ -689,8 +693,7 @@ void tvengemu_init_module(struct tveng_module_info *module_info)
 {
   t_assert(module_info != NULL);
 
-#ifdef ENABLE_TVENGEMU
-  memcpy(module_info, &tvengemu_module_info,
-	 sizeof(struct tveng_module_info));
-#endif 
+  if (TVENGEMU_ENABLE)
+    memcpy (module_info, &tvengemu_module_info,
+	    sizeof (struct tveng_module_info));
 }

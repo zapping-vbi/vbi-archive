@@ -106,35 +106,16 @@ tvengemu_update_capture_format(tveng_device_info * info);
 static int
 tvengemu_set_capture_format(tveng_device_info * info);
 
-/*
-  Gets the current value of the controls, fills in info->controls
-  appropiately. After this (and if it succeeds) you can look in
-  info->controls to get the values for each control. -1 on error
-*/
-static int
-tvengemu_update_controls(tveng_device_info * info);
 
 /*
   Sets the value for an specific control. The given value will be
   clipped between min and max values. Returns -1 on error
 */
 static int
-tvengemu_set_control(struct tveng_control * control, int value,
-		   tveng_device_info * info);
+tvengemu_set_control(tveng_device_info * info,
+		     tv_dev_control * control, int value);
 
-/*
-  Gets the value of the mute property. 1 means mute (no sound) and 0
-  unmute (sound). -1 on error
-*/
-static int
-tvengemu_get_mute(tveng_device_info * info);
 
-/*
-  Sets the value of the mute property. 0 means unmute (sound) and 1
-  mute (no sound). -1 on error
-*/
-static int
-tvengemu_set_mute(int value, tveng_device_info * info);
 
 /*
   Tunes the current input to the given freq. Returns -1 on error.

@@ -55,21 +55,19 @@ int		mixer_set_recording_line(int	line);
 
 /* Client interface */
 
-typedef enum tv_mixer_line_id tv_mixer_line_id;
-
 /*
  *  Machine readable purpose of the mixer line.
  *  We'll see what's needed.
  */
-enum tv_mixer_line_id {
+typedef enum {
 	TV_MIXER_LINE_ID_NONE,
 	TV_MIXER_LINE_ID_UNKNOWN = TV_MIXER_LINE_ID_NONE,
-};
+} tv_mixer_line_id;
 
-typedef struct tv_mixer tv_mixer;
-typedef struct tv_mixer_line tv_mixer_line;
+typedef struct _tv_mixer tv_mixer;
+typedef struct _tv_mixer_line tv_mixer_line;
 
-struct tv_mixer_line {
+struct _tv_mixer_line {
 	tv_mixer_line *		next;
 
 	tv_mixer_line_id	id;
@@ -144,7 +142,7 @@ struct tv_mixer_line {
  *  devices have more, have digital inputs and outputs, and not all
  *  of them routed through the mixer.
  */
-struct tv_mixer {
+struct _tv_mixer {
 	/*
 	 *  For the user, ASCII.
 	 */
@@ -221,11 +219,11 @@ tv_mixer_callback_add		(tv_mixer *		mixer,
 
 /* Device interface */
 
-typedef struct tv_dev_mixer tv_dev_mixer;
-typedef struct tv_dev_mixer_line tv_dev_mixer_line;
-typedef struct tv_dev_mixer_interface tv_dev_mixer_interface;
+typedef struct _tv_dev_mixer tv_dev_mixer;
+typedef struct _tv_dev_mixer_line tv_dev_mixer_line;
+typedef struct _tv_dev_mixer_interface tv_dev_mixer_interface;
 
-struct tv_dev_mixer_line {
+struct _tv_dev_mixer_line {
 	tv_mixer_line		pub;
 	tv_dev_mixer *		mixer;
 
@@ -236,7 +234,7 @@ struct tv_dev_mixer_line {
 	tv_callback_node *	callback;
 };
 
-struct tv_dev_mixer {
+struct _tv_dev_mixer {
 	tv_dev_mixer *		next;
 	tv_dev_mixer_interface *interface;
 
@@ -299,7 +297,7 @@ struct tv_dev_mixer {
 							 tv_bool restore);
 };
 
-struct tv_dev_mixer_interface {
+struct _tv_dev_mixer_interface {
 	const char *		name;
 
 	tv_dev_mixer *		(* open)		(tv_dev_mixer_interface *,

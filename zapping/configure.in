@@ -12,13 +12,20 @@ AC_HEADER_STDC
 
 AM_PROG_LIBTOOL
 
+AC_CHECK_FUNCS(stpcpy)
 AC_CHECK_FUNCS(program_invocation_name)
 
 test -e site_def.h || cat <<EOF >site_def.h
-/* Site specific definitions */
+/* These defines enable various tests and other hacks by
+   default disabled in released packages. */
 
 #ifndef SITE_DEF_H
 #define SITE_DEF_H
+/* #define TVENGEMU_ENABLE 1 */
+/* #define ZMISC_TOOLTIP_WARNING 1 */
+/* #define X11STUFF_WM_HINTS_DEBUG 1 */
+/* #define X11STUFF_VIDMODE_DEBUG 1 */
+/* #define X11STUFF_SCREENSAVER_DEBUG 1 */
 #endif /* SITE_DEF_H */
 EOF
 
@@ -26,27 +33,13 @@ dnl These are the plugins we can build, they depend on the present
 dnl libs.
 PLUGINS_TO_BUILD="template lirc"
 
-dnl ------------------------------------------------------------------------
-dnl enable X extensions
-dnl ------------------------------------------------------------------------
-AC_MSG_CHECKING(whether to enable X extensions)
-AC_ARG_ENABLE(x_extensions,
-  AC_HELP_STRING([--disable-x-extensions], [Disable all X extensions]),
-  enable_x_extensions="$enableval", enable_x_extensions="yes")
-AC_MSG_RESULT($enable_x_extensions)
-if test "x$enable_x_extensions" = "xno"; then
-  AC_DEFINE(DISABLE_X_EXTENSIONS, 1, [Duh])
-else
-  X_DGA_LIBS="-lXxf86dga -lXxf86vm"
-  AC_SUBST(X_DGA_LIBS)
-fi
+dnl ======================================================================
+dnl Video (TV) device checks
+dnl ======================================================================
 
-dnl ------------------------------------------------------------------------
-dnl Remove all the V4L(2) stuff from the compilation if not Linux
-dnl ------------------------------------------------------------------------
 AC_MSG_CHECKING(whether to build the Video4Linux backends)
 AC_ARG_ENABLE(v4l,
-  AC_HELP_STRING([--enable-v4l], [Include the V4L and V4L2 controllers]),
+  AC_HELP_STRING([--enable-v4l], [Include the V4L and V4L2 controllers (auto)]),
   enable_vl4="$enableval", enable_v4l="auto")
 
 if test "x$enable_v4l" = "xauto"; then
@@ -62,26 +55,122 @@ if test "x$enable_v4l" = "xyes"; then
   AC_DEFINE(ENABLE_V4L, 1, [Define to build with V4L support])
 fi
 
-dnl AC_ISC_POSIX
-dnl AC_PROG_CC
-dnl AM_PROG_CC_STDC
-dnl AC_HEADER_STDC
-AC_CHECK_FUNCS(stpcpy)
-
+dnl ======================================================================
 dnl X11 checks
+dnl ======================================================================
+
 AC_PATH_XTRA
 if test "-DX_DISPLAY_MISSING" = "$X_CFLAGS"; then
   AC_MSG_ERROR(cannot find X11)
 fi
+
 dnl Force inclusion of the common path
 if test "x`echo $X_LIBS | grep /usr/X11R6/lib`" = "x"; then
   X_LIBS="$X_LIBS -L/usr/X11R6/lib"
 fi
+
 AC_SUBST(X_CFLAGS)
 AC_SUBST(X_PRE_LIBS)
 AC_SUBST(X_EXTRA_LIBS)
 AC_SUBST(X_LIBS)
 AC_SUBST(x_libraries)
+
+dnl ----------------------------------------------------------------------
+dnl Check for the DPMS extension (to disable screensaver)
+dnl ----------------------------------------------------------------------
+HAVE_DPMS=no
+AC_ARG_WITH(dpms-ext, AC_HELP_STRING([--with-dpms-ext],
+  [Include support for the DPMS extension (yes).]),
+  [with_dpms="$withval"],[with_dpms=yes])
+if test "$with_dpms" = "yes"; then
+  AC_CHECK_HEADER(X11/extensions/dpms.h, [HAVE_DPMS=yes],,
+                  [#include <X11/Xlib.h>])
+  if test "$HAVE_DPMS" = "yes"; then
+    # first look in -lXext (this is where it is with XFree86 4.0)
+    HAVE_DPMS=no
+    AC_CHECK_LIB(Xext, DPMSInfo, [HAVE_DPMS=yes; X_XDPMS_LIBS="-lXext"],
+		 [true], $X_LIBS -lXext -lX11)
+    # if that failed, look in -lXdpms (this is where it was in XFree86 3.x)
+    if test "$HAVE_DPMS" = "no"; then
+      AC_CHECK_LIB(Xdpms, DPMSInfo,
+                   [HAVE_DPMS=yes; X_DPMS_LIBS="-lXdpms"], [true],
+		    $X_LIBS -lXext -lX11)
+    fi
+  fi
+  if test "$HAVE_DPMS" = "yes"; then
+    AC_DEFINE(HAVE_DPMS_EXTENSION, 1, [Define if present])
+    AC_SUBST(X_DPMS_LIBS)
+  fi
+fi
+
+dnl ----------------------------------------------------------------------
+dnl Check for the DGA extension (DMA overlay without Xv)
+dnl ----------------------------------------------------------------------
+HAVE_DGA=no
+AC_ARG_WITH(xf86dga-ext, AC_HELP_STRING([--with-xf86dga-ext],
+  [Include support for the DGA extension (yes).]),
+  [with_dga="$withval"],[with_dga=yes])
+if test "$with_dga" = "yes"; then
+  AC_CHECK_HEADER(X11/extensions/xf86dga.h, [HAVE_DGA=yes],,
+                  [#include <X11/Xlib.h>])
+  if test "$HAVE_DGA" = "yes"; then
+    HAVE_DGA=no
+    AC_CHECK_LIB(Xxf86dga, XF86DGAQueryExtension,
+      [HAVE_DGA=yes; X_XF86DGA_LIBS="-lXxf86dga"], [true],
+      $X_LIBS -lXext -lX11)
+  fi
+  if test "$HAVE_DGA" = "yes"; then
+    AC_DEFINE(HAVE_DGA_EXTENSION, 1, [Define if present])
+    AC_SUBST(X_XF86DGA_LIBS)
+  fi
+fi
+
+dnl ----------------------------------------------------------------------
+dnl Check for the VidMode extension (XF86Config Modelines for fullscreen)
+dnl ----------------------------------------------------------------------
+HAVE_VIDMODE=no
+AC_ARG_WITH(xf86vmode-ext, AC_HELP_STRING([--with-xf86vmode-ext],
+  [Include support for the VidMode extension (yes).]),
+  [with_vidmode="$withval"],[with_vidmode=yes])
+if test "$with_vidmode" = "yes"; then
+  AC_CHECK_HEADER(X11/extensions/xf86vmode.h, [HAVE_VIDMODE=yes],,
+                  [#include <X11/Xlib.h>])
+  if test "$HAVE_VIDMODE" = "yes"; then
+    HAVE_VIDMODE=no
+    AC_CHECK_LIB(Xxf86vm, XF86VidModeGetViewPort,
+      [HAVE_VIDMODE=yes; X_XF86VMODE_LIBS="-lXxf86vm"], [true],
+      $X_LIBS -lXext -lX11)
+  fi
+  if test "$HAVE_VIDMODE" = "yes"; then
+    AC_DEFINE(HAVE_VIDMODE_EXTENSION, 1, [Define if present])
+    AC_SUBST(X_XF86VMODE_LIBS)
+  fi
+fi
+
+dnl ----------------------------------------------------------------------
+dnl Check for the Xv extension (video windows and hardware scaler)
+dnl ----------------------------------------------------------------------
+HAVE_XV=no
+AC_ARG_WITH(xv-ext, AC_HELP_STRING([--with-xv-ext],
+  [Include support for the XVideo extension (yes).]),
+  [with_xv="$withval"],[with_xv=yes])
+if test "$with_xv" = "yes"; then
+  AC_CHECK_HEADER(X11/extensions/Xv.h, [HAVE_XV=yes],,
+                  [#include <X11/Xlib.h>])
+  if test "$HAVE_XV" = "yes"; then
+    HAVE_XV=no
+    AC_CHECK_LIB(Xv, XvShmPutImage, [HAVE_XV=yes; X_XV_LIBS="-lXv"],
+		 [true], $X_LIBS -lXext -lX11)
+  fi
+  if test "$HAVE_XV" = "yes"; then
+    AC_DEFINE(HAVE_XV_EXTENSION, 1, [Define if present])
+    AC_SUBST(X_XV_LIBS)
+  fi
+fi
+
+
+
+
 
 dnl ----------------------------------------------------------------------
 dnl Unicode lib
@@ -177,36 +266,6 @@ pkg_modules="libgnomeui-2.0 libglade-2.0"
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
-
-dnl ----------------------------------------------------------------------
-dnl Check for the Xv extension
-dnl ----------------------------------------------------------------------
-XV_PRESENT=""
-AC_CHECK_LIB(Xv, XvShmPutImage, XV_PRESENT="yes",, $PACKAGE_LIBS)
-if test "x$XV_PRESENT" = "xyes"; then
-  AC_DEFINE(HAVE_LIBXV, 1, [Define if XVideo lib is present])
-  X_XV_LIBS="-lXv"
-  AC_SUBST(X_XV_LIBS)
-fi
-
-dnl ----------------------------------------------------------------------
-dnl Check for the DPMS extension
-dnl ----------------------------------------------------------------------
-DPMS_PRESENT=""
-AC_CHECK_LIB(Xdpms, DPMSQueryExtension, DPMS_PRESENT="yes",, $GTK_LIBS)
-if test "x$DPMS_PRESENT" = "xyes"; then
-  AC_DEFINE(HAVE_LIBXDPMS, 1, [Define if Xdpms lib is present])
-  X_XDPMS_LIBS="-lXdpms"
-  AC_SUBST(X_XDPMS_LIBS)
-fi
-if test "x$DPMS_PRESENT" = "x"; then
-  AC_CHECK_LIB(Xext, DPMSQueryExtension, DPMS_PRESENT="yes",, $GTK_LIBS)
-  if test "x$DPMS_PRESENT" = "xyes"; then
-    AC_DEFINE(HAVE_LIBXDPMS, 1, [Define if Xdpms lib is present])
-    X_XDPMS_LIBS="-lXext"
-    AC_SUBST(X_XDPMS_LIBS)
-  fi
-fi
 
 dnl ----------------------------------------------------------------------
 dnl Check for vbi decoding library
@@ -431,7 +490,7 @@ echo "
 	JPEG lib                        $HAVE_JPEG
 	PNG lib                         $HAVE_PNG
 	MMX                             $HAVE_MMX
-	XVideo                          $XV_PRESENT
+	XVideo                          $HAVE_XV
 	RTE                             $HAVE_RTE
 	Lirc client                     $HAVE_LIRC
 	PAM                             $HAVE_PAM

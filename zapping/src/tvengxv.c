@@ -35,6 +35,16 @@
 #define TVENGXV_PROTOTYPES 1
 #include "tvengxv.h"
 
+#include "../common/types.h"
+
+struct control {
+	tv_dev_control		dev;
+	Atom			atom;
+};
+
+#define C(l) PARENT (l, struct control, dev)
+#define CC(l) PARENT (l, struct control, dev.pub)
+
 struct private_tvengxv_device_info
 {
   tveng_device_info info; /* Info field, inherited */
@@ -44,35 +54,19 @@ struct private_tvengxv_device_info
   /* This atoms define the controls */
   Atom	encoding;
   int encoding_max, encoding_min, encoding_gettable;
-  Atom	color;
-  int color_max, color_min;
-  Atom	hue;
-  int hue_max, hue_min;
-  Atom	saturation;
-  int saturation_max, saturation_min;
-  Atom	brightness;
-  int brightness_max, brightness_min;
-  Atom	contrast;
-  int contrast_max, contrast_min;
   Atom	freq;
   int freq_max, freq_min;
-  Atom	mute; int muted; /* workaround */
-  int mute_max, mute_min;
+  Atom	mute;
   Atom	volume;
-  int volume_max, volume_min;
   Atom	colorkey;
   int colorkey_max, colorkey_min;
-  Atom	interlace;
-  int interlace_max, interlace_min;
   Atom	signal_strength;
   Window last_win;
   GC last_gc;
   int last_w, last_h;
 };
 
-/* Private, builds the controls structure */
-static int
-p_tvengxv_build_controls(tveng_device_info * info);
+#define P_INFO(p) PARENT (p, struct private_tvengxv_device_info, info)
 
 static int
 p_tvengxv_open_device(tveng_device_info *info)
@@ -165,6 +159,89 @@ p_tvengxv_open_device(tveng_device_info *info)
   return -1; /* failure */
 }
 
+static const struct {
+	const char *		atom;
+	const char *		label;
+	tv_control_id		id;
+	tv_control_type		type;
+} xv_attr_meta [] = {
+	{ "XV_BRIGHTNESS", N_("Brightness"), TV_CONTROL_ID_BRIGHTNESS, TV_CONTROL_TYPE_INTEGER },
+	{ "XV_CONTRAST",   N_("Contrast"),   TV_CONTROL_ID_CONTRAST,   TV_CONTROL_TYPE_INTEGER },
+	{ "XV_SATURATION", N_("Saturation"), TV_CONTROL_ID_SATURATION, TV_CONTROL_TYPE_INTEGER },
+	{ "XV_HUE",	   N_("Hue"),	     TV_CONTROL_ID_HUE,	       TV_CONTROL_TYPE_INTEGER },
+	{ "XV_COLOR",	   N_("Color"),	     TV_CONTROL_ID_UNKNOWN,    TV_CONTROL_TYPE_INTEGER },
+	{ "XV_INTERLACE",  N_("Interlace"),  TV_CONTROL_ID_UNKNOWN,    TV_CONTROL_TYPE_CHOICE },
+	{ "XV_MUTE",	   N_("Mute"),	     TV_CONTROL_ID_MUTE,       TV_CONTROL_TYPE_BOOLEAN },
+	{ "XV_VOLUME",	   N_("Volume"),     TV_CONTROL_ID_VOLUME,     TV_CONTROL_TYPE_INTEGER },
+};
+
+static const unsigned int xv_attr_meta_size = sizeof (xv_attr_meta) / sizeof (*xv_attr_meta);
+
+static tv_bool
+add_control			(struct private_tvengxv_device_info *p_info,
+				 const char *		atom,
+				 const char *		label,
+				 tv_control_id		id,
+				 tv_control_type	type,
+				 int			minimum,
+				 int			maximum)
+{
+  struct control c;
+  Atom xatom;
+
+  memset (&c, 0, sizeof (c));
+
+  xatom = XInternAtom (p_info->info.priv->display, atom, False);
+
+  if (xatom == None)
+    return TRUE;
+
+  c.atom = xatom;
+
+  c.dev.pub.id = id;
+
+  if (!(c.dev.pub.label = strdup (_(label))))
+	 goto failure;
+
+  c.dev.pub.minimum = minimum;
+  c.dev.pub.maximum = maximum;
+
+  c.dev.pub.type = type;
+
+  c.dev.device = &p_info->info;
+
+  if (0 == strcmp (atom, "XV_INTERLACE")) {
+	  c.dev.pub.menu = calloc (4, sizeof (char *));
+
+	  if (!c.dev.pub.menu)
+		  goto failure;
+
+	  if (!(c.dev.pub.menu[0] = strdup (_("No")))
+	      || !(c.dev.pub.menu[1] = strdup (_("Yes")))
+	      || !(c.dev.pub.menu[2] = strdup (_("Doublescan"))))
+		  goto failure;
+  }
+
+  if (!append_control (&p_info->info, &c.dev.pub, sizeof (c))) {
+  failure:
+	  if (c.dev.pub.menu) {
+		  free ((char *) c.dev.pub.menu[0]);
+		  free ((char *) c.dev.pub.menu[1]);
+		  free ((char *) c.dev.pub.menu[2]);
+		  free ((char **) c.dev.pub.menu);
+	  }
+
+	  free ((char *) c.dev.pub.label);
+	  return FALSE;
+  }
+
+  return TRUE;
+}
+
+static tv_bool
+tvengxv_update_control		(tveng_device_info *	info,
+				 tv_dev_control *	tdc);
+
 /*
   Associates the given tveng_device_info with the given video
   device. On error it returns -1 and sets info->tveng_errno, info->error to
@@ -183,10 +260,11 @@ int tvengxv_attach_device(const char* device_file,
 {
   struct private_tvengxv_device_info * p_info =
     (struct private_tvengxv_device_info *)info;
-  XvAttribute *at;
-  int attributes, i;
   Display *dpy;
   extern int disable_overlay;
+  XvAttribute *at;
+  int num_attributes;
+  int i, j;
 
   t_assert(info != NULL);
 
@@ -198,18 +276,18 @@ int tvengxv_attach_device(const char* device_file,
       return -1;
     }
 
-  dpy = info->priv->display;;
+  dpy = info->priv->display;
 
   if (info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
 
-  info->audio_mutable = 0;
-
   /* clear the atoms */
-  p_info->encoding = p_info->color = p_info->hue = p_info->saturation
-    = p_info->brightness = p_info->contrast = p_info->freq =
-    p_info->mute = p_info->volume = p_info->colorkey =
-    p_info->interlace = p_info->signal_strength = None;
+  p_info->encoding = None;
+  p_info->freq = None;
+  p_info->mute = None;
+  p_info->volume = None;
+  p_info->colorkey = None;
+  p_info->signal_strength = None;
   p_info->ei = NULL;
 
   /* In this module, the given device file doesn't matter */
@@ -244,111 +322,84 @@ int tvengxv_attach_device(const char* device_file,
 
   info->caps.flags = TVENG_CAPS_OVERLAY | TVENG_CAPS_CLIPPING;
   info->caps.audios = 0;
-  p_info->muted=0;
-  /* Build the atoms */
-  at = XvQueryPortAttributes(dpy, p_info->port, &attributes);
-  for (i=0; i<attributes; i++)
-    {
-      if (info->debug_level>0)
-	fprintf(stderr, "  TVeng Xv atom: %s%s%s (%i -> %i)\n",
-		at[i].name,
-		(at[i].flags & XvGettable) ? " gettable" : "",
-		(at[i].flags & XvSettable) ? " settable" : "",
-		at[i].min_value, at[i].max_value);
-      /* Any attribute not settable and Gettable is of little value,
-       except XV_ENCODING, which is allowed */
-      if (((!(at[i].flags & XvGettable)) ||
-	  (!(at[i].flags & XvSettable))) &&
-	  (strcmp("XV_ENCODING", at[i].name) &&
-	   strcmp("XV_SIGNAL_STRENGTH", at[i].name)))
-	continue;
-      if (!strcmp("XV_ENCODING", at[i].name))
-	{
-	  if (!(at[i].flags & XvSettable))
-	    continue;
-	  p_info->encoding = XInternAtom(dpy, "XV_ENCODING", False);
-	  p_info->encoding_max = at[i].max_value;
-	  p_info->encoding_min = at[i].min_value;
-	  p_info->encoding_gettable = at[i].flags & XvGettable;
-	}
-      else if (!strcmp("XV_COLOR", at[i].name))
-	{
-	  p_info->color = XInternAtom(dpy, "XV_COLOR", False);
-	  p_info->color_max = at[i].max_value;
-	  p_info->color_min = at[i].min_value;
-	}
-      else if (!strcmp("XV_HUE", at[i].name))
-	{
-	  p_info->hue = XInternAtom(dpy, "XV_HUE", False);
-	  p_info->hue_max = at[i].max_value;
-	  p_info->hue_min = at[i].min_value;
-	}
-      else if (!strcmp("XV_SATURATION", at[i].name))
-	{
-	  p_info->saturation = XInternAtom(dpy, "XV_SATURATION",
-					   False);
-	  p_info->saturation_max = at[i].max_value;
-	  p_info->saturation_min = at[i].min_value;
-	}
-      else if (!strcmp("XV_BRIGHTNESS", at[i].name))
-	{
-	  p_info->brightness = XInternAtom(dpy, "XV_BRIGHTNESS",
-					   False);
-	  p_info->brightness_max = at[i].max_value;
-	  p_info->brightness_min = at[i].min_value;
-	}
-      else if (!strcmp("XV_CONTRAST", at[i].name))
-	{
-	  p_info->contrast = XInternAtom(dpy, "XV_CONTRAST", False);
-	  p_info->contrast_max = at[i].max_value;
-	  p_info->contrast_min = at[i].min_value;
-	}
-      else if (!strcmp("XV_FREQ", at[i].name))
-	{
-          info->caps.flags |= TVENG_CAPS_TUNER;
-	  p_info->freq = XInternAtom(dpy, "XV_FREQ", False);
-	  p_info->freq_max = at[i].max_value;
-	  p_info->freq_min = at[i].min_value;
-	}
-      else if (!strcmp("XV_MUTE", at[i].name))
-	{
-          info->caps.audios = 1;
-	  info->audio_mutable = 1;
-	  p_info->mute = XInternAtom(dpy, "XV_MUTE", False);
-	  p_info->mute_max = at[i].max_value;
-	  p_info->mute_min = at[i].min_value;
-	}
-      else if (!strcmp("XV_VOLUME", at[i].name))
-	{
-          info->caps.audios = 1;
-	  p_info->volume = XInternAtom(dpy, "XV_VOLUME", False);
-	  p_info->volume_max = at[i].max_value;
-	  p_info->volume_min = at[i].min_value;
-	}
-      else if (!strcmp("XV_COLORKEY", at[i].name))
-	{
-          info->caps.flags = TVENG_CAPS_CHROMAKEY;
-	  p_info->colorkey = XInternAtom(dpy, "XV_COLORKEY", False);
-	  p_info->colorkey_max = at[i].max_value;
-	  p_info->colorkey_min = at[i].min_value;
-	}
-      else if (!strcmp("XV_INTERLACE", at[i].name))
-	{
-	  /*  0 = No (avoid interlace artefacts when scaling),
-	   *  1 = Yes, 2 = Doublescan 50/60 Hz (pm2.c feature)
-	   */
-	  p_info->interlace = XInternAtom(dpy, "XV_INTERLACE", False);
-	  p_info->interlace_max = at[i].max_value;
-	  p_info->interlace_min = at[i].min_value;
-	}
-      else if (!strcmp("XV_SIGNAL_STRENGTH", at[i].name))
-	{
-	  if (!(at[i].flags & XvGettable))
-	    continue;
-	  p_info->signal_strength =
-	    XInternAtom(dpy, "XV_SIGNAL_STRENGTH", False);
-	}
-    }
+
+  /* Atoms & controls */
+
+  info->controls = NULL;
+
+  at = XvQueryPortAttributes (dpy, p_info->port, &num_attributes);
+
+  for (i = 0; i < num_attributes; i++) {
+	  if (info->debug_level > 0)
+		  fprintf(stderr, "  TVeng Xv atom: %s %c/%c (%i -> %i)\n",
+			  at[i].name,
+			  (at[i].flags & XvGettable) ? 'r' : '-',
+			  (at[i].flags & XvSettable) ? 'w' : '-',
+			  at[i].min_value, at[i].max_value);
+
+	  if (!strcmp("XV_ENCODING", at[i].name)) {
+		  if (!(at[i].flags & XvSettable))
+			  continue;
+
+		  p_info->encoding = XInternAtom (dpy, "XV_ENCODING", False);
+		  p_info->encoding_max = at[i].max_value;
+		  p_info->encoding_min = at[i].min_value;
+		  p_info->encoding_gettable = at[i].flags & XvGettable;
+		  continue;
+	  } else if (!strcmp("XV_SIGNAL_STRENGTH", at[i].name)) {
+		  if (!(at[i].flags & XvGettable))
+			  continue;
+
+		  p_info->signal_strength = XInternAtom (dpy, "XV_SIGNAL_STRENGTH", False);
+		  continue;
+	  }
+
+	  if ((at[i].flags & (XvGettable | XvSettable)) != (XvGettable | XvSettable))
+		  continue;
+		  
+	  if (!strcmp("XV_FREQ", at[i].name)) {
+		  info->caps.flags |= TVENG_CAPS_TUNER;
+
+		  p_info->freq = XInternAtom (dpy, "XV_FREQ", False);
+		  p_info->freq_max = at[i].max_value;
+		  p_info->freq_min = at[i].min_value;
+		  continue;
+	  } else if (!strcmp("XV_COLORKEY", at[i].name)) {
+		  info->caps.flags = TVENG_CAPS_CHROMAKEY;
+
+		  p_info->colorkey = XInternAtom (dpy, "XV_COLORKEY", False);
+		  p_info->colorkey_max = at[i].max_value;
+		  p_info->colorkey_min = at[i].min_value;
+		  continue;
+	  }
+
+	  if (0 == strcmp ("XV_MUTE", at[i].name)) {
+		  p_info->mute = XInternAtom (dpy, "XV_MUTE", False);
+	  } else if (0 == strcmp ("XV_VOLUME", at[i].name)) {
+		  p_info->volume = XInternAtom (dpy, "XV_VOLUME", False);
+	  }
+
+	  for (j = 0; j < xv_attr_meta_size; j++) {
+		  if (0 == strcmp (xv_attr_meta[j].atom, at[i].name)) {
+			  /* Error ignored */
+			  add_control (p_info,
+				       xv_attr_meta[j].atom,
+				       xv_attr_meta[j].label,
+				       xv_attr_meta[j].id,
+				       xv_attr_meta[j].type,
+				       at[i].min_value,
+				       at[i].max_value);
+		  }
+	  }
+  }
+
+#warning
+      /* Set the mute control to OFF (workaround for BTTV bug) */
+//      tveng_set_control(&control, 0, info);
+
+  /* fill in with the proper values */
+  tvengxv_update_control (info, NULL);
+
   /* We have a valid device, get some info about it */
   info->current_controller = TVENG_CONTROLLER_XV;
 
@@ -361,11 +412,6 @@ int tvengxv_attach_device(const char* device_file,
   info->standards = NULL;
   info->cur_standard = 0;
   tvengxv_get_standards(info);
-
-  /* Query present controls */
-  info->num_controls = 0;
-  info->controls = NULL;
-  p_tvengxv_build_controls(info);
 
   /* fill in capabilities info */
   info->caps.channels = info->num_inputs;
@@ -409,10 +455,10 @@ tvengxv_describe_controller(char ** short_str, char ** long_str,
 /* Closes a device opened with tveng_init_device */
 static void tvengxv_close_device(tveng_device_info * info)
 {
-  int i;
-  int j;
   struct private_tvengxv_device_info *p_info=
     (struct private_tvengxv_device_info*) info;
+  tv_control *tc;
+
   t_assert(info != NULL);
 
   tveng_stop_everything(info);
@@ -430,28 +476,15 @@ static void tvengxv_close_device(tveng_device_info * info)
     free(info -> inputs);
   if (info -> standards)
     free(info -> standards);
-  for (i=0; i<info->num_controls; i++)
-    {
-      if ((info->controls[i].type == TVENG_CONTROL_MENU) &&
-	  (info->controls[i].data))
-	{
-	  j = 0;
-	  while (info->controls[i].data[j])
-	    {
-	      free(info->controls[i].data[j]);
-	      j++;
-	    }
-	  free(info->controls[i].data);
+
+	while ((tc = info->controls)) {
+		info->controls = tc->next;
+		free_control (tc);
 	}
-    }
-  if (info -> controls)
-    free(info -> controls);
 
   /* clear the atoms */
-  info -> num_controls = 0;
   info -> num_standards = 0;
   info -> num_inputs = 0;
-  info -> controls = NULL;
   info -> inputs = NULL;
   info -> standards = NULL;
   info -> file_name = NULL;
@@ -739,225 +772,73 @@ tvengxv_update_capture_format(tveng_device_info * info)
   return 0; /* This one was easy too :-) */
 }
 
-static int
-p_tvengxv_build_controls(tveng_device_info *info)
+
+static tv_bool
+update_control			(struct private_tvengxv_device_info *p_info,
+				 struct control *	c)
 {
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info *) info;
-  struct tveng_control control;
-  int r;
+	int value;
 
-  t_assert(info != NULL);
+	if (c->atom == p_info->mute)
+		return TRUE; /* no read-back (bttv bug) */
+	else
+		XvGetPortAttribute (p_info->info.priv->display,
+				    p_info->port,
+				    c->atom,
+				    &value);
 
-  if (p_info->hue != None)
-    {
-      control.id = (int)p_info->hue;
-      control.property = TVENG_CTRL_PROP_HUE;
-      snprintf(control.name, 32, _("Hue"));
-      control.min = p_info->hue_min;
-      control.max = p_info->hue_max;
-      control.type = TVENG_CONTROL_SLIDER;
-      control.data = NULL;
-      control.controller = TVENG_CONTROLLER_XV;
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
-    }
-  if (p_info->saturation != None)
-    {
-      control.id = (int)p_info->saturation;
-      control.property = TVENG_CTRL_PROP_SATURATION;
-      snprintf(control.name, 32, _("Saturation"));
-      control.min = p_info->saturation_min;
-      control.max = p_info->saturation_max;
-      control.type = TVENG_CONTROL_SLIDER;
-      control.data = NULL;
-      control.controller = TVENG_CONTROLLER_XV;
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
-    }
-  if (p_info->brightness != None)
-    {
-      control.id = (int)p_info->brightness;
-      control.property = TVENG_CTRL_PROP_BRIGHTNESS;
-      snprintf(control.name, 32, _("Brightness"));
-      control.min = p_info->brightness_min;
-      control.max = p_info->brightness_max;
-      control.type = TVENG_CONTROL_SLIDER;
-      control.data = NULL;
-      control.controller = TVENG_CONTROLLER_XV;
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
-    }
-  if (p_info->contrast != None)
-    {
-      control.id = (int)p_info->contrast;
-      control.property = TVENG_CTRL_PROP_CONTRAST;
-      snprintf(control.name, 32, _("Contrast"));
-      control.min = p_info->contrast_min;
-      control.max = p_info->contrast_max;
-      control.type = TVENG_CONTROL_SLIDER;
-      control.data = NULL;
-      control.controller = TVENG_CONTROLLER_XV;
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
-    }
-  if (p_info->color != None)
-    {
-      control.id = (int)p_info->color;
-      control.property = TVENG_CTRL_PROP_OTHER;
-      snprintf(control.name, 32, _("Color"));
-      control.min = p_info->color_min;
-      control.max = p_info->color_max;
-      control.type = TVENG_CONTROL_SLIDER;
-      control.data = NULL;
-      control.controller = TVENG_CONTROLLER_XV;
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
-    }
-  if (p_info->mute != None)
-    {
-      control.id = (int)p_info->mute;
-      control.property = TVENG_CTRL_PROP_OTHER;
-      snprintf(control.name, 32, _("Mute"));
-      control.min = 0;
-      control.max = 1;
-      control.type = TVENG_CONTROL_CHECKBOX;
-      control.data = NULL;
-      control.controller = TVENG_CONTROLLER_XV;
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
-      /* Set the mute control to OFF (workaround for BTTV bug) */
-      tveng_set_control(&control, 0, info);
-    }
-  if (p_info->volume != None)
-    {
-      control.id = (int)p_info->volume;
-      control.property = TVENG_CTRL_PROP_OTHER;
-      snprintf(control.name, 32, _("Volume"));
-      control.min = p_info->volume_min;
-      control.max = p_info->volume_max;
-      control.type = TVENG_CONTROL_SLIDER;
-      control.data = NULL;
-      control.controller = TVENG_CONTROLLER_XV;
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
-    }
-  if (p_info->interlace != None)
-    {
-      control.id = (int)p_info->interlace;
-      control.property = TVENG_CTRL_PROP_OTHER;
-      snprintf(control.name, 32, _("Interlace"));
-      control.min = p_info->interlace_min;
-      control.max = p_info->interlace_max;
-      control.type = TVENG_CONTROL_MENU;
-      control.data = malloc(sizeof(char*)*4);
-      t_assert(control.data != NULL);
-      control.data[0] = strdup(_("No"));
-      control.data[1] = strdup(_("Yes"));
-      control.data[2] = strdup(_("Doublescan"));
-      control.data[3] = NULL;
-      control.controller = TVENG_CONTROLLER_XV;
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
-    }
+	if (c->dev.pub.value != value) {
+		c->dev.pub.value = value;
+		tv_callback_notify (&c->dev.pub, c->dev.callback);
+	}
 
-  /* fill in with the proper values */
-  r = tvengxv_update_controls(info);
+	return TRUE; /* ? */
+}
 
-  control.def_value = control.cur_value;
+static tv_bool
+tvengxv_update_control		(tveng_device_info *	info,
+				 tv_dev_control *	tdc)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+	tv_control *tc;
 
-  return r;
+	if (tdc) {
+		return update_control (p_info, C(tdc));
+	} else {
+		for (tc = p_info->info.controls; tc; tc = tc->next)
+			if (CC(tc)->dev.device == info)
+				if (!update_control (p_info, CC(tc)))
+					return FALSE;
+	}
+
+	return TRUE;
 }
 
 static int
-tvengxv_update_controls(tveng_device_info *info)
+tvengxv_set_control		(tveng_device_info *	info,
+				 tv_dev_control *	tdc,
+				 int			value)
 {
-  int i, id;
-  struct private_tvengxv_device_info *p_info =
-    (struct private_tvengxv_device_info *)info;
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+	struct control *c = C(tdc);
 
-  t_assert(info != NULL);
+	XvSetPortAttribute (info->priv->display,
+			    p_info->port,
+			    c->atom,
+			    value);
 
-  for (i=0; i<info->num_controls; i++)
-    {
-      id = info->controls[i].id;
-      if (info->controls[i].controller != TVENG_CONTROLLER_XV)
-	continue;
-      if (id == (int)p_info->mute)
-	info->controls[i].cur_value = p_info->muted;
-      else
-	XvGetPortAttribute(info->priv->display,
-			   p_info->port,
-			   (Atom)id,
-			   &(info->controls[i].cur_value));
-    }
+	if (c->atom == p_info->mute) {
+		if (c->dev.pub.value != value) {
+			c->dev.pub.value = value;
+			tv_callback_notify (&c->dev.pub, c->dev.callback);
+		}
 
-  return 0; /* Success */
+		return TRUE;
+	}
+
+	return update_control (p_info, c);
 }
 
-static int
-tvengxv_set_control(struct tveng_control * control, int value,
-		    tveng_device_info * info)
-{
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info*) info;
-
-  t_assert(info != NULL);
-
-  if (value < control->min)
-    value = control->min;
-  if (value > control->max)
-    value = control->max;
-  if (control->id == (int)p_info->mute)
-    p_info->muted = value;
-
-  XvSetPortAttribute(info->priv->display,
-		     p_info->port,
-		     (Atom)control->id,
-		     value);
-
-  return (tvengxv_update_controls(info));
-}
-
-static int
-tvengxv_get_mute(tveng_device_info * info)
-{
-  /*  int val; */
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info*)info;
-
-  t_assert(info != NULL);
-
-#if 1 /* BTTV workaround */
-  return !!p_info->muted;
-#else
-  if (p_info->mute != None)
-    if (Success != XvGetPortAttribute(info->private->display,
-	p_info->port, p_info->mute, &val))
-      return -1;
-
-  return !!val;
-#endif
-}
-
-static int
-tvengxv_set_mute(int value, tveng_device_info * info)
-{
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info*)info;
-
-  t_assert(info != NULL);
-  value = !!value;
-
-  if (p_info->mute != None)
-    if (Success != XvSetPortAttribute(info->priv->display,
-	p_info->port, p_info->mute, value))
-      return -1;
-
-  p_info->muted = value;
-
-  return 0;
-}
 
 static int
 tvengxv_tune_input(uint32_t freq, tveng_device_info *info)
@@ -1189,33 +1070,31 @@ tvengxv_get_chromakey (uint32_t *chroma, tveng_device_info *info)
 }
 
 static struct tveng_module_info tvengxv_module_info = {
-  attach_device:		tvengxv_attach_device,
-  describe_controller:		tvengxv_describe_controller,
-  close_device:			tvengxv_close_device,
-  get_inputs:			tvengxv_get_inputs,
-  set_input:			tvengxv_set_input,
-  get_standards:		tvengxv_get_standards,
-  set_standard:			tvengxv_set_standard,
-  update_capture_format:	tvengxv_update_capture_format,
-  set_capture_format:		tvengxv_set_capture_format,
-  update_controls:		tvengxv_update_controls,
-  set_control:			tvengxv_set_control,
-  get_mute:			tvengxv_get_mute,
-  set_mute:			tvengxv_set_mute,
-  tune_input:			tvengxv_tune_input,
-  get_signal_strength:		tvengxv_get_signal_strength,
-  get_tune:			tvengxv_get_tune,
-  get_tuner_bounds:		tvengxv_get_tuner_bounds,
-  detect_preview:		tvengxv_detect_preview,
-  set_preview_window:		tvengxv_set_preview_window,
-  get_preview_window:		tvengxv_get_preview_window,
-  set_preview:			tvengxv_set_preview,
-  start_previewing:		tvengxv_start_previewing,
-  stop_previewing:		tvengxv_stop_previewing,
-  get_chromakey:		tvengxv_get_chromakey,
-  set_chromakey:		tvengxv_set_chromakey,
+  .attach_device =		tvengxv_attach_device,
+  .describe_controller =	tvengxv_describe_controller,
+  .close_device =		tvengxv_close_device,
+  .get_inputs =			tvengxv_get_inputs,
+  .set_input =			tvengxv_set_input,
+  .get_standards =		tvengxv_get_standards,
+  .set_standard =		tvengxv_set_standard,
+  .update_capture_format =	tvengxv_update_capture_format,
+  .set_capture_format =		tvengxv_set_capture_format,
+  .update_control =		tvengxv_update_control,
+  .set_control =		tvengxv_set_control,
+  .tune_input =			tvengxv_tune_input,
+  .get_signal_strength =	tvengxv_get_signal_strength,
+  .get_tune =			tvengxv_get_tune,
+  .get_tuner_bounds =		tvengxv_get_tuner_bounds,
+  .detect_preview =		tvengxv_detect_preview,
+  .set_preview_window =		tvengxv_set_preview_window,
+  .get_preview_window =		tvengxv_get_preview_window,
+  .set_preview =		tvengxv_set_preview,
+  .start_previewing =		tvengxv_start_previewing,
+  .stop_previewing =		tvengxv_stop_previewing,
+  .get_chromakey =		tvengxv_get_chromakey,
+  .set_chromakey =		tvengxv_set_chromakey,
 
-  private_size:			sizeof(struct private_tvengxv_device_info)
+  .private_size =		sizeof(struct private_tvengxv_device_info)
 };
 
 /*
