@@ -32,9 +32,9 @@
 
 static struct {
   video_backend		backend;
-  tv_pixfmt pixfmt;
-} *backends = NULL;
-static int num_backends = 0;
+  tv_pixfmt		pixfmt;
+} *				backends;
+static guint			n_backends;
 
 /* Bookkeeping stuff */
 typedef struct {
@@ -46,15 +46,17 @@ typedef struct {
 
 static GtkWidget *dest_window = NULL;
 
+gint				capture_format_id = -1;
+
 gboolean register_video_backend (tv_pixfmt pixfmt,
 				 video_backend *backend)
 {
   /* We always let backends be registered, so zimage_new always
      succeeds for all pixformats (video_mem doesn't fail). */
-  backends = g_realloc (backends, (num_backends+1)*sizeof(*backends));
-  backends[num_backends].pixfmt = pixfmt;
-  memcpy (&backends[num_backends].backend, backend, sizeof(*backend));
-  num_backends ++;
+  backends = g_realloc (backends, (n_backends+1)*sizeof(*backends));
+  backends[n_backends].pixfmt = pixfmt;
+  memcpy (&backends[n_backends].backend, backend, sizeof(*backend));
+  n_backends ++;
   
   return TRUE;
 }
@@ -67,8 +69,8 @@ zimage *zimage_create_object (void)
 zimage *zimage_new (tv_pixfmt pixfmt,
 		    guint w, guint h)
 {
-  gint i;
-  for (i=0; i<num_backends; i++)
+  guint i;
+  for (i=0; i<n_backends; i++)
     if (backends[i].pixfmt == pixfmt)
       {
 	zimage *zimage = backends[i].backend.image_new (pixfmt, w, h);
@@ -76,8 +78,8 @@ zimage *zimage_new (tv_pixfmt pixfmt,
 	  {
 	    private_zimage *pz = (private_zimage*)zimage;
 
-	    printv ("zimage_new using video backend %s\n",
-		    backends[i].backend.name);
+	    printv ("zimage_new %p using video backend %s\n",
+		    zimage, backends[i].backend.name);
 
 	    pz->refcount = 1;
 	    pz->backend = i;
@@ -103,6 +105,8 @@ void zimage_unref (zimage *image)
 
   if (! (-- pz->refcount))
     {
+      printv ("zimage_destroy %p\n", image);
+
       backends[pz->backend].backend.image_destroy (image);
       g_free (pz);
     }
@@ -121,43 +125,56 @@ void zimage_blit (zimage *image)
        (guint) dest_window->allocation.height);
 }
 
-void video_init (GtkWidget *window, GdkGC *gc)
+void
+video_init			(GtkWidget *		window,
+				 GdkGC *		gc)
 {
-  int i;
+  tv_pixfmt_set pixfmt_set;
+  guint i;
+
   g_assert (window->window);
 
   dest_window = window;
 
-  for (i=0; i<num_backends; i++)
-    if (backends[i].backend.set_destination)
-      backends[i].backend.set_destination (window->window, gc, zapping->info);
+  pixfmt_set = TV_PIXFMT_SET_EMPTY;
+
+  for (i = 0; i < n_backends; ++i)
+    {
+      pixfmt_set |= backends[i].backend.supported_formats ();
+
+      if (backends[i].backend.set_destination)
+	backends[i].backend.set_destination (window->window,
+					     gc, zapping->info);
+    }
+
+  capture_format_id = request_capture_format (zapping->info,
+					      /* width: any */ 0,
+					      /* height: any */ 0,
+					      pixfmt_set,
+					      /* flags */ 0);
 }
 
-void video_uninit (void)
+void
+video_uninit			(void)
 {
-  int i;
-  for (i=0; i<num_backends; i++)
+  guint i;
+
+  release_capture_format (capture_format_id);
+  capture_format_id = -1;
+
+  for (i = 0; i < n_backends; ++i)
     if (backends[i].backend.unset_destination)
       backends[i].backend.unset_destination (zapping->info);
 
   dest_window = NULL;
 }
 
-void video_suggest_format (void)
-{
-  int i;
-  for (i=0; i<num_backends; i++)
-    if (backends[i].backend.suggest_format &&
-	backends[i].backend.suggest_format ())
-      break;
-}
-
 void video_blit_frame (capture_frame *frame)
 {
-  int i;
+  guint i;
   zimage *img;
 
- for (i=0; i<num_backends; i++)
+ for (i=0; i<n_backends; i++)
    {
      /* NOTE copy: we want the original zimage allocated by the backend. */
      if ((img = retrieve_frame (frame, backends[i].pixfmt, /* copy */ TRUE)))
@@ -188,5 +205,5 @@ void shutdown_zimage (void)
 
   g_free (backends);
   backends = NULL;
-  num_backends = 0;
+  n_backends = 0;
 }
