@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2 2004-10-03 10:05:12 mschimek Exp $ */
+/* $Id: misc.h,v 1.3 2004-10-04 02:44:26 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -49,6 +49,7 @@
 /* &x == PARENT (&x.tm_min, struct tm, tm_min),
    safer than &x == (struct tm *) &x.tm_min. A NULL _ptr is safe and
    will return NULL, not -offsetof(_member). */
+#undef PARENT
 #define PARENT(_ptr, _type, _member) ({					\
 	__typeof__ (&((_type *) 0)->_member) _p = (_ptr);		\
 	(_p != 0) ? (_type *)(((char *) _p) - offsetof (_type,		\
@@ -56,6 +57,7 @@
 })
 
 /* Like PARENT(), to be used with const _ptr. */
+#undef CONST_PARENT
 #define CONST_PARENT(_ptr, _type, _member) ({				\
 	__typeof__ (&((const _type *) 0)->_member) _p = (_ptr);		\
 	(_p != 0) ? (const _type *)(((const char *) _p) - offsetof	\
@@ -98,6 +100,7 @@ do {									\
 	y = _x;								\
 } while (0)
 
+#undef SATURATE
 #ifdef __i686__ /* has conditional move. */
 #define SATURATE(n, min, max) ({					\
 	__typeof__ (n) _n = (n);					\
@@ -141,9 +144,11 @@ static const char *
 CONST_PARENT_HELPER (const char *p, unsigned int offset)
 { return (p == 0) ? 0 : p - offset; }
 
+#undef PARENT
 #define PARENT(_ptr, _type, _member)					\
 	((offsetof (_type, _member) == 0) ? (_type *)(_ptr)		\
 	 : (_type *) PARENT_HELPER ((char *)(_ptr), offsetof (_type, _member)))
+#undef CONST_PARENT
 #define CONST_PARENT(_ptr, _type, _member)				\
 	((offsetof (const _type, _member) == 0) ? (const _type *)(_ptr)	\
 	 : (const _type *) CONST_PARENT_HELPER ((const char *)(_ptr),	\
@@ -165,10 +170,12 @@ do {									\
 	y = _x;								\
 } while (0)
 
+#undef SATURATE
 #define SATURATE(n, min, max) MIN (MAX (n, min), max)
 
 #endif /* !__GNUC__ */
 
+#undef CLAMP
 #define CLAMP(n, min, max) SATURATE (n, min, max)
 
 /* NB gcc inlines and optimizes when size is const. */
@@ -178,6 +185,7 @@ do {									\
 	(assert (sizeof (d) == sizeof (s)), memcpy (d, s, sizeof (d)))
 
 /* legacy, to be removed/replaced */
+#ifndef printv
 #include <stdio.h>
 #define printv(format, args...) \
 do { \
@@ -186,6 +194,7 @@ do { \
     fprintf(stderr, format ,##args); \
   fflush(stderr); } \
 } while (0)
+#endif
 
 #ifdef HAVE_STRLCPY
 #define _tv_strlcpy strlcpy
