@@ -106,9 +106,9 @@ struct ttx_patch {
 };
 
 struct ttx_client {
-  fifo		mqueue;
-  producer	mqueue_prod;
-  consumer	mqueue_cons;
+  zf_fifo	mqueue;
+  zf_producer	mqueue_prod;
+  zf_consumer	mqueue_cons;
   int		page, subpage; /* monitored page, subpage */
   int		id; /* of the client */
   pthread_mutex_t mutex;
@@ -153,7 +153,7 @@ static pthread_t	capturer_id;
 static gboolean		vbi_quit;
 static gboolean		decoder_quit_ack;
 static gboolean		capturer_quit_ack;
-static fifo		sliced_fifo;
+static zf_fifo		sliced_fifo;
 static vbi_capture *	capture;
 
 /* Attn: must be pthread_cancel-safe */
@@ -161,16 +161,16 @@ static vbi_capture *	capture;
 static void *
 decoding_thread (void *p)
 {
-  consumer c;
+  zf_consumer c;
 
   D();
 
-  assert (add_consumer (&sliced_fifo, &c));
+  assert (zf_add_consumer (&sliced_fifo, &c));
 
   /* setpriority (PRIO_PROCESS, 0, 5); */
 
   while (!vbi_quit) {
-    buffer *b;
+    zf_buffer *b;
     struct timeval now;
     struct timespec timeout;
 
@@ -178,11 +178,11 @@ decoding_thread (void *p)
     timeout.tv_sec = now.tv_sec + 1;
     timeout.tv_nsec = now.tv_usec * 1000;
 
-    if (!(b = wait_full_buffer_timeout (&c, &timeout)))
+    if (!(b = zf_wait_full_buffer_timeout (&c, &timeout)))
       continue;
 
     if (b->used <= 0) {
-      send_empty_buffer (&c, b);
+      zf_send_empty_buffer (&c, b);
       if (b->used < 0)
 	fprintf (stderr, "I/O error #%d in decoding thread:\n"
 		"%s\nAborting.\n",
@@ -197,10 +197,10 @@ decoding_thread (void *p)
 
     pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL);
 
-    send_empty_buffer(&c, b);
+    zf_send_empty_buffer(&c, b);
   }
 
-  rem_consumer(&c);
+  zf_rem_consumer(&c);
 
   decoder_quit_ack = TRUE;
 
@@ -213,7 +213,7 @@ static void *
 capturing_thread (void *x)
 {
   struct timeval timeout;  
-  producer p;
+  zf_producer p;
 #if 0
   list stack;
   int stacked;
@@ -230,13 +230,13 @@ capturing_thread (void *x)
   timeout.tv_sec = 1;
   timeout.tv_usec = 0;
 
-  assert (add_producer (&sliced_fifo, &p));
+  assert (zf_add_producer (&sliced_fifo, &p));
 
   while (!vbi_quit) {
-    buffer *b;
+    zf_buffer *b;
     int lines;
 
-    b = wait_empty_buffer (&p);
+    b = zf_wait_empty_buffer (&p);
 
 redo:
     switch (vbi_capture_read_sliced (capture, (vbi_sliced *) b->data,
@@ -258,7 +258,7 @@ redo:
 	b->error = errno;
 	b->errorstr = _("V4L/V4L2 VBI interface timeout");
 
-	send_full_buffer (&p, b);
+	zf_send_full_buffer (&p, b);
 
 	goto abort;
 
@@ -275,7 +275,7 @@ redo:
 	b->error = errno;
 	b->errorstr = _("V4L/V4L2 VBI interface: Failed to read from the device");
 
-	send_full_buffer (&p, b);
+	zf_send_full_buffer (&p, b);
 
 	goto abort;
       }
@@ -319,12 +319,12 @@ redo:
     last_time = b->time;
 #endif
 
-    send_full_buffer(&p, b);
+    zf_send_full_buffer(&p, b);
   }
 
  abort:
 
-  rem_producer (&p);
+  zf_rem_producer (&p);
 
   capturer_quit_ack = TRUE;
 
@@ -451,7 +451,7 @@ threads_init (gchar *dev_name, int given_fd)
   raw = vbi_capture_parameters (capture);
   buffer_size = (raw->count[0] + raw->count[1]) * sizeof(vbi_sliced);
 
-  if (!init_buffered_fifo (&sliced_fifo, "vbi-sliced", 20, buffer_size))
+  if (!zf_init_buffered_fifo (&sliced_fifo, "vbi-sliced", 20, buffer_size))
     {
       ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, memory);
       vbi_capture_delete (capture);
@@ -469,7 +469,7 @@ threads_init (gchar *dev_name, int given_fd)
   if (pthread_create (&decoder_id, NULL, decoding_thread, NULL))
     {
       ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, thread);
-      destroy_fifo (&sliced_fifo);
+      zf_destroy_fifo (&sliced_fifo);
       vbi_capture_delete (capture);
       vbi_decoder_delete (vbi);
       vbi = NULL;
@@ -482,7 +482,7 @@ threads_init (gchar *dev_name, int given_fd)
     {
       ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, thread);
       join ("dec0", decoder_id, &decoder_quit_ack, 15);
-      destroy_fifo (&sliced_fifo);
+      zf_destroy_fifo (&sliced_fifo);
       vbi_capture_delete (capture);
       vbi_decoder_delete (vbi);
       vbi = NULL;
@@ -506,7 +506,7 @@ threads_destroy (void)
       D();
       join ("dec", decoder_id, &decoder_quit_ack, 15);
       D();
-      destroy_fifo (&sliced_fifo);
+      zf_destroy_fifo (&sliced_fifo);
       D();
       vbi_capture_delete (capture);
       D();
@@ -976,9 +976,9 @@ send_ttx_message(struct ttx_client *client,
 		 void *data, int bytes)
 {
   ttx_message_data *d;
-  buffer *b;
+  zf_buffer *b;
   
-  b = wait_empty_buffer(&client->mqueue_prod);
+  b = zf_wait_empty_buffer(&client->mqueue_prod);
 
   d = (ttx_message_data*)b->data;
   d->msg = message;
@@ -987,7 +987,7 @@ send_ttx_message(struct ttx_client *client,
   if (data)
     memcpy(&(d->data), data, bytes);
 
-  send_full_buffer(&client->mqueue_prod, b);
+  zf_send_full_buffer(&client->mqueue_prod, b);
 }
 
 static void
@@ -995,7 +995,7 @@ remove_client(struct ttx_client *client)
 {
   gint i;
 
-  destroy_fifo(&client->mqueue);
+  zf_destroy_fifo(&client->mqueue);
   pthread_mutex_destroy(&client->mutex);
   gdk_pixbuf_unref(client->unscaled_on);
   gdk_pixbuf_unref(client->unscaled_off);
@@ -1069,12 +1069,12 @@ register_ttx_client(void)
       gdk_pixbuf_unref(simple);
     }
 
-  g_assert(init_buffered_fifo(
+  g_assert(zf_init_buffered_fifo(
            &client->mqueue, "zvbi-mqueue",
 	   16, sizeof(ttx_message_data)) > 0);
 
-  add_producer(&client->mqueue, &client->mqueue_prod);
-  add_consumer(&client->mqueue, &client->mqueue_cons);
+  zf_add_producer(&client->mqueue, &client->mqueue_prod);
+  zf_add_consumer(&client->mqueue, &client->mqueue_cons);
 
   pthread_mutex_lock(&clients_mutex);
   ttx_clients = g_list_append(ttx_clients, client);
@@ -1146,7 +1146,7 @@ enum ttx_message
 peek_ttx_message(int id, ttx_message_data *data)
 {
   struct ttx_client *client;
-  buffer *b;
+  zf_buffer *b;
   enum ttx_message message;
   ttx_message_data *d;
 
@@ -1154,13 +1154,13 @@ peek_ttx_message(int id, ttx_message_data *data)
 
   if ((client = find_client(id)))
     {
-      b = recv_full_buffer(&client->mqueue_cons);
+      b = zf_recv_full_buffer(&client->mqueue_cons);
       if (b)
 	{
 	  d = (ttx_message_data*)b->data;
 	  message = d->msg;
 	  memcpy(data, d, sizeof(ttx_message_data));
-	  send_empty_buffer(&client->mqueue_cons, b);
+	  zf_send_empty_buffer(&client->mqueue_cons, b);
 	}
       else
 	message = TTX_NONE;
@@ -1177,7 +1177,7 @@ enum ttx_message
 get_ttx_message(int id, ttx_message_data *data)
 {
   struct ttx_client *client;
-  buffer *b;
+  zf_buffer *b;
   enum ttx_message message;
   ttx_message_data *d;
 
@@ -1185,12 +1185,12 @@ get_ttx_message(int id, ttx_message_data *data)
 
   if ((client = find_client(id)))
     {
-      b = wait_full_buffer(&client->mqueue_cons);
+      b = zf_wait_full_buffer(&client->mqueue_cons);
       g_assert(b != NULL);
       d = (ttx_message_data*)b->data;
       message = d->msg;
       memcpy(data, d, sizeof(ttx_message_data));
-      send_empty_buffer(&client->mqueue_cons, b);
+      zf_send_empty_buffer(&client->mqueue_cons, b);
     }
   else
     message = TTX_BROKEN_PIPE;
@@ -1203,10 +1203,10 @@ get_ttx_message(int id, ttx_message_data *data)
 static void
 clear_message_queue(struct ttx_client *client)
 {
-  buffer *b;
+  zf_buffer *b;
 
-  while ((b=recv_full_buffer(&client->mqueue_cons)))
-    send_empty_buffer(&client->mqueue_cons, b);
+  while ((b=zf_recv_full_buffer(&client->mqueue_cons)))
+    zf_send_empty_buffer(&client->mqueue_cons, b);
 }
 
 void
