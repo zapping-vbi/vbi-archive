@@ -274,6 +274,10 @@ z_change_menuitem			 (GtkWidget	*widget,
 					  const gchar	*new_label,
 					  const gchar	*new_tooltip);
 
+extern void
+z_set_window_bg			(GtkWidget *		widget,
+				 GdkColor *		color);
+
 /**
  * Restores the mode before the last switch_mode.
  * Returns whatever switch_mode returns.
