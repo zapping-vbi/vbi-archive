@@ -60,6 +60,9 @@ char *program_invocation_name;
 char *program_invocation_short_name;
 #endif
 
+Zapping *		zapping;
+
+
 /*** END OF GLOBAL STUFF ***/
 
 static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
@@ -67,7 +70,8 @@ static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
 
 
 static void shutdown_zapping(void);
-static gboolean startup_zapping(gboolean load_plugins);
+static gboolean startup_zapping(gboolean load_plugins,
+				tveng_device_info *info);
 
 gboolean
 on_zapping_key_press			(GtkWidget	*widget,
@@ -109,24 +113,24 @@ startup_teletext(void)
   XXX replace by session management
 */
 static
-gint resize_timeout		( gpointer ignored )
+gint resize_timeout		( gpointer ignored  _unused_)
 {
   gint x, y, w, h; /* Saved geometry */
 
-  zconf_get_integer(&x, "/zapping/internal/callbacks/x");
-  zconf_get_integer(&y, "/zapping/internal/callbacks/y");
-  zconf_get_integer(&w, "/zapping/internal/callbacks/w");
-  zconf_get_integer(&h, "/zapping/internal/callbacks/h");
+  zconf_get_int (&x, "/zapping/internal/callbacks/x");
+  zconf_get_int (&y, "/zapping/internal/callbacks/y");
+  zconf_get_int (&w, "/zapping/internal/callbacks/w");
+  zconf_get_int (&h, "/zapping/internal/callbacks/h");
 
   printv("Restoring geometry: <%d,%d> <%d x %d>\n", x, y, w, h);
 
   if (w == 0 || h == 0)
     {
-      gdk_window_resize(main_window->window, 320, 200);
+      gdk_window_resize(GTK_WIDGET (zapping)->window, 320, 200);
     }
   else
     {
-      gdk_window_move_resize(main_window->window, x, y, w, h);
+      gdk_window_move_resize(GTK_WIDGET (zapping)->window, x, y, w, h);
     }
 
   return FALSE;
@@ -186,7 +190,7 @@ restore_controls		(void)
 
   D();
 
-  zconf_get_integer (&num_controls, ZCONF_DOMAIN "num_controls");
+  zconf_get_int (&num_controls, ZCONF_DOMAIN "num_controls");
   controls = zconf_get_controls (num_controls, "/zapping/options/main");
 
   start_muted = zcg_bool (NULL, "start_muted");
@@ -195,13 +199,13 @@ restore_controls		(void)
     {
       tveng_tc_control *mute;
 
-      if ((mute = tveng_tc_control_by_id (main_info,
+      if ((mute = tveng_tc_control_by_id (zapping->info,
 					  controls, num_controls,
 					  TV_CONTROL_ID_MUTE)))
 	mute->value = 1;
     }
 
-  load_control_values (main_info, controls, num_controls);
+  load_control_values (zapping->info, controls, num_controls);
 
   set_mute (3 /* update */, /* controls */ TRUE, /* osd */ FALSE);
 
@@ -210,16 +214,17 @@ restore_controls		(void)
   /* Restore the input and the standard */
 
   if (zcg_int(NULL, "current_input"))
-    z_switch_video_input(zcg_int(NULL, "current_input"), main_info);
+    z_switch_video_input(zcg_uint(NULL, "current_input"), zapping->info);
 
   if (zcg_int(NULL, "current_audio_input"))
-    z_switch_audio_input(zcg_int(NULL, "current_audio_input"), main_info);
+    z_switch_audio_input(zcg_uint(NULL, "current_audio_input"), zapping->info);
 
   if (zcg_int(NULL, "current_standard"))
-    z_switch_standard(zcg_int(NULL, "current_standard"), main_info);
+    z_switch_standard(zcg_uint(NULL, "current_standard"), zapping->info);
 
   cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
-  ch = tveng_tuned_channel_nth (global_channel_list, cur_tuned_channel);
+  ch = tveng_tuned_channel_nth (global_channel_list,
+				(guint) cur_tuned_channel);
 
   if (NULL != ch)
     {
@@ -227,14 +232,14 @@ restore_controls		(void)
 	{
 	  tveng_tc_control *mute;
 
-	  if ((mute = tveng_tc_control_by_id (main_info,
+	  if ((mute = tveng_tc_control_by_id (zapping->info,
 					      ch->controls,
 					      ch->num_controls,
 					      TV_CONTROL_ID_MUTE)))
 	    mute->value = 1; /* XXX sub-optimal */
 	}
 
-      z_switch_channel (ch, main_info);
+      z_switch_channel (ch, zapping->info);
     }
 }
 
@@ -245,46 +250,50 @@ restore_last_capture_mode		(void)
 
   if (disable_preview)
     {
-      if (-1 == zmisc_switch_mode (TVENG_CAPTURE_READ, main_info))
+      if (-1 == zmisc_switch_mode (DISPLAY_MODE_WINDOW,
+				   CAPTURE_MODE_READ,
+				   zapping->info))
 	ShowBox (_("Capture mode couldn't be started:\n%s"),
-		 GTK_MESSAGE_ERROR, main_info->error);
+		 GTK_MESSAGE_ERROR, zapping->info->error);
     }
   else
     {
-      enum tveng_capture_mode mode;
+      display_mode dmode;
+      capture_mode cmode;
 
-      mode = (enum tveng_capture_mode) zcg_int (NULL, "capture_mode");
+      from_old_tveng_capture_mode (&dmode, &cmode,
+				   (enum old_tveng_capture_mode)
+				   zcg_int (NULL, "capture_mode"));
 
-      if (-1 == zmisc_switch_mode (mode, main_info))
+      if (-1 == zmisc_switch_mode (dmode, cmode, zapping->info))
 	{
-	  if (TVENG_CAPTURE_READ != mode)
+	  if (CAPTURE_MODE_READ != cmode)
 	    {
 	      if (0)
 		ShowBox(_("Cannot restore previous mode, will try capture mode:\n%s"),
-			GTK_MESSAGE_ERROR, main_info->error);
+			GTK_MESSAGE_ERROR, zapping->info->error);
 
-	      if (-1 == zmisc_switch_mode (TVENG_CAPTURE_READ, main_info))
+	      if (-1 == zmisc_switch_mode (DISPLAY_MODE_WINDOW,
+					   CAPTURE_MODE_READ, zapping->info))
 		{
 		  if (0)
 		    ShowBox(_("Capture mode couldn't be started either:\n%s"),
-			    GTK_MESSAGE_ERROR, main_info->error);
+			    GTK_MESSAGE_ERROR, zapping->info->error);
 		  else
 		    ShowBox(_("Cannot restore previous mode:\n%s"),
-			    GTK_MESSAGE_ERROR, main_info->error);
+			    GTK_MESSAGE_ERROR, zapping->info->error);
 		}
 	    }
 	  else
 	    {
 	      ShowBox (_("Capture mode couldn't be started:\n%s"),
-		       GTK_MESSAGE_ERROR, main_info->error);
+		       GTK_MESSAGE_ERROR, zapping->info->error);
 	    }
 	}
       else
 	{
-	  /* in callbacks.c */
-	  extern enum tveng_capture_mode last_mode;
-
-	  last_mode = TVENG_CAPTURE_WINDOW;
+	  last_dmode = DISPLAY_MODE_WINDOW;
+	  last_cmode = CAPTURE_MODE_OVERLAY;
 	}
     }
 }
@@ -294,7 +303,7 @@ extern int zapzilla_main(int argc, char * argv[]);
 
 int main(int argc, char * argv[])
 {
-  GtkWidget * tv_screen;
+  GtkWidget * tvscreen;
   GList * p;
   gint x_bpp = -1;
   gint dword_align = FALSE;
@@ -305,8 +314,10 @@ int main(int argc, char * argv[])
   char *yuv_format = NULL;
   char *norm = NULL;
   gboolean mutable = TRUE;
+  const gchar *display_name;
+  tveng_device_info *info;
   /* Some other common options in case the standard one fails */
-  char *fallback_devices[] =
+  const gchar *fallback_devices[] =
   {
 #ifdef ENABLE_V4L
     "/dev/video",
@@ -549,7 +560,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.181 2004-08-13 01:10:05 mschimek Exp $",
+	 "$Id: main.c,v 1.182 2004-09-10 04:50:22 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -605,11 +616,55 @@ int main(int argc, char * argv[])
       system ("metacity --version 1>&2");    
     }
 
-  x11_screensaver_init ();
-
   have_wm_hints = wm_hints_detect ();
 
-  vidmodes = x11_vidmode_list_new ();
+#if 0 /* Gtk 2.2 */
+  display_name = gdk_display_get_name (gdk_display_get_default ());
+#else
+  display_name = x11_display_name ();
+#endif
+  screens = tv_screen_list_new (display_name, x_bpp);
+
+  /* We should have at least on screen, even without Xinerama and DGA.
+     The information is needed by fullscreen and overlay code. */
+  if (!screens)
+    {
+      /* XXX localize */
+      RunBox(("Cannot find X11 screens"),
+	     GTK_MESSAGE_ERROR);
+      return 0;
+    }
+  D();
+
+  if (debug_msg)
+    {
+      const tv_screen *xs;
+
+      for (xs = screens; xs; xs = xs->next)
+	{
+	  fprintf (stderr, "Screen %d:\n"
+		   "  position               %u, %u - %u, %u\n"
+		   "  frame buffer address   0x%lx\n"
+		   "  frame buffer size      %ux%u pixels, 0x%x bytes\n"
+		   "  bytes per line         %u bytes\n"
+		   "  pixfmt                 %s\n",
+		   xs->screen_number,
+		   xs->x,
+		   xs->y,
+		   xs->x + xs->width,
+		   xs->y + xs->height,
+		   xs->target.base,
+		   xs->target.format.width,
+		   xs->target.format.height,
+		   xs->target.format.size,
+		   xs->target.format.bytes_per_line,
+		   tv_pixfmt_name (xs->target.format.pixfmt));
+	}
+    }
+
+  /* XXX we need a list for preferences but actually each
+     x11 screen may have its own set of vidmodes?? */
+  vidmodes = x11_vidmode_list_new (NULL, -1);
 
   if (debug_msg)
     {
@@ -623,21 +678,6 @@ int main(int argc, char * argv[])
     }
 
   /* Determine size and pixfmt of the Display. */
-  x11_dga_query (&dga_param, NULL, 0);
-
-  if (debug_msg)
-    {
-      fprintf (stderr, "DGA parameters:\n"
-	       "  frame buffer address   0x%lx\n"
-	       "  frame buffer size      %ux%u pixels, 0x%x bytes\n"
-	       "  bytes per line         %u bytes\n"
-	       "  pixfmt                 %s\n",
-	       dga_param.base,
-	       dga_param.format.width, dga_param.format.height,
-	       dga_param.format.size, dga_param.format.bytes_per_line,
-	       tv_pixfmt_name (dga_param.format.pixfmt));
-    }
-
   if (debug_msg)
     {
       /* If we have the XVideo extension, list adaptors, ports
@@ -645,20 +685,22 @@ int main(int argc, char * argv[])
       x11_xvideo_dump ();
     }
 
-  main_info = tveng_device_info_new(GDK_DISPLAY (), x_bpp);
-  if (!main_info)
+  x11_screensaver_init ();
+
+  info = tveng_device_info_new(GDK_DISPLAY (), x_bpp);
+  if (!info)
     {
       g_error(_("Cannot get device info struct"));
       return -1;
     }
-  tveng_set_debug_level(debug_msg, main_info);
-  tveng_set_xv_support(disable_xv || disable_xv_video, main_info);
-  tveng_set_dword_align(dword_align, main_info);
+  tveng_set_debug_level(debug_msg, info);
+  tveng_set_xv_support(disable_xv || disable_xv_video, info);
+  tveng_set_dword_align(dword_align, info);
   D();
-  if (!startup_zapping(!disable_plugins))
+  if (!startup_zapping(!disable_plugins, info))
     {
       RunBox(_("Zapping couldn't be started"), GTK_MESSAGE_ERROR);
-      tveng_device_info_destroy(main_info);
+      tveng_device_info_destroy(info);
       return 0;
     }
   D();
@@ -668,14 +710,14 @@ int main(int argc, char * argv[])
       static const unsigned int TVENG_PIX_YUYV = 8;
 
       if (0 == strcasecmp (yuv_format, "YUYV"))
-	zcs_int (TVENG_PIX_YUYV, "yuv_format");
+	zcs_int ((int) TVENG_PIX_YUYV, "yuv_format");
       else if (0 == strcasecmp (yuv_format, "YVU420"))
-	zcs_int (TVENG_PIX_YVU420, "yuv_format");
+	zcs_int ((int) TVENG_PIX_YVU420, "yuv_format");
       else
 	g_warning ("Unknown pixformat %s, must be YUYV or YVU420.\n"
 		   "The current format is %s.",
 		   yuv_format, (zcg_int (NULL, "yuv_format") ==
-				TVENG_PIX_YUYV) ? "YUYV" : "YVU420");
+				(int) TVENG_PIX_YUYV) ? "YUYV" : "YVU420");
     }
 
   D();
@@ -685,17 +727,17 @@ int main(int argc, char * argv[])
 
   if (!debug_msg)
 #if 1
-    tveng_set_zapping_setup_fb_verbosity(0, main_info);
+    tveng_set_zapping_setup_fb_verbosity(0, info);
 #else
     tveng_set_zapping_setup_fb_verbosity(zcg_int(NULL, "zapping_setup_fb_verbosity"),
-					 main_info);
+					 info);
 #endif
   else
-    tveng_set_zapping_setup_fb_verbosity(3, main_info);
+    tveng_set_zapping_setup_fb_verbosity(3, info);
 
-  main_info -> file_name = strdup(zcg_char(NULL, "video_device"));
+  info -> file_name = strdup(zcg_char(NULL, "video_device"));
 
-  if (!main_info -> file_name)
+  if (!info -> file_name)
     {
       perror("strdup");
       return 1;
@@ -703,8 +745,9 @@ int main(int argc, char * argv[])
   D();
 
   if (tveng_attach_device(zcg_char(NULL, "video_device"),
+			  None,
 			  TVENG_ATTACH_XV,
-			  main_info) == -1)
+			  info) == -1)
     {
       GtkWidget * question_box;
       gint i;
@@ -733,11 +776,12 @@ int main(int argc, char * argv[])
 	  for (i = 0; i<num_fallbacks; i++)
 	    {
 	      printf("trying device: %s\n", fallback_devices[i]);
-	      main_info->file_name = strdup(fallback_devices[i]);
+	      info->file_name = strdup(fallback_devices[i]);
   
 	      if (tveng_attach_device(fallback_devices[i],
+				      None,
 				      TVENG_ATTACH_XV,
-				      main_info) != -1)
+				      info) != -1)
 		{
 		  zcs_char(fallback_devices[i], "video_device");
 		  ShowBox(_("%s suceeded, setting it as the new default"),
@@ -746,27 +790,27 @@ int main(int argc, char * argv[])
 		  goto device_ok;
 		}
 
-	      free (main_info->file_name);
-	      main_info->file_name = NULL;
+	      free (info->file_name);
+	      info->file_name = NULL;
 	    }
 	}
 
       RunBox(_("Sorry, but \"%s\" could not be opened:\n%s"),
 	     GTK_MESSAGE_ERROR, zcg_char(NULL, "video_device"),
-	     main_info->error);
+	     info->error);
 
       return -1;
     }
 
  device_ok:
 
-  if (main_info->current_controller == TVENG_CONTROLLER_XV)
+  if (info->current_controller == TVENG_CONTROLLER_XV)
     xv_present = TRUE;
 
   D();
   /* mute the device while we are starting up */
   /* FIXME */
-  if (-1 == tv_mute_set (main_info, TRUE))
+  if (-1 == tv_mute_set (info, TRUE))
     mutable = FALSE;
   D();
   z_tooltips_active (zconf_get_boolean
@@ -778,21 +822,22 @@ int main(int argc, char * argv[])
   D();
   startup_zvbi();
   D();
-  main_window = create_zapping();
+  zapping = ZAPPING (create_zapping ());
+  zapping->info = info;
   D();
-  tv_screen = lookup_widget(main_window, "tv-screen");
-  g_signal_connect(G_OBJECT(main_window),
+  tvscreen = lookup_widget(GTK_WIDGET (zapping), "tv-screen");
+  g_signal_connect(G_OBJECT(zapping),
 		     "key-press-event",
 		     G_CALLBACK(on_zapping_key_press), NULL);
 
   /* Once again hiding doesn't work earlier... */
-  gtk_widget_hide (lookup_widget (main_window, "appbar2"));
-  gtk_widget_queue_resize (main_window);
+  gtk_widget_hide (lookup_widget (GTK_WIDGET (zapping), "appbar2"));
+  gtk_widget_queue_resize (GTK_WIDGET (zapping));
 
   /* ensure that the main window is realized */
-  gtk_widget_realize(tv_screen);
-  gtk_widget_realize(main_window);
-  while (!tv_screen->window)
+  gtk_widget_realize(tvscreen);
+  gtk_widget_realize(GTK_WIDGET (zapping));
+  while (!tvscreen->window)
     z_update_gui();
   D();
 
@@ -803,7 +848,8 @@ int main(int argc, char * argv[])
       /* FIXME this can change at runtime, the mute button
          should update just like the controls box. */
       /* has no mute function */
-      gtk_widget_hide(lookup_widget(main_window, "toolbar-mute"));
+      gtk_widget_hide(lookup_widget(GTK_WIDGET (zapping),
+				    "toolbar-mute"));
       D();
     }
   D();
@@ -811,8 +857,7 @@ int main(int argc, char * argv[])
   p = g_list_first(plugin_list);
   while (p)
     {
-      plugin_add_gui(GNOME_APP(main_window),
-		     (struct plugin_info*)p->data);
+      plugin_add_gui(&zapping->app, (struct plugin_info*)p->data);
       p = p->next;
     }
 
@@ -820,12 +865,12 @@ int main(int argc, char * argv[])
   if (disable_preview)
     {
       printv("Preview disabled, removing GUI items\n");
-      gtk_widget_set_sensitive(lookup_widget(main_window, "go_previewing2"),
+      gtk_widget_set_sensitive(lookup_widget(GTK_WIDGET (zapping), "go_previewing2"),
 			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "go_previewing2"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "go_fullscreen1"),
+      gtk_widget_hide(lookup_widget(GTK_WIDGET (zapping), "go_previewing2"));
+      gtk_widget_set_sensitive(lookup_widget(GTK_WIDGET (zapping), "go_fullscreen1"),
 			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "go_fullscreen1"));
+      gtk_widget_hide(lookup_widget(GTK_WIDGET (zapping), "go_fullscreen1"));
     }
   D();
   startup_capture();
@@ -852,9 +897,9 @@ int main(int argc, char * argv[])
   D();
   startup_channel_editor ();
   D();
-  osd_set_window(tv_screen);
+  osd_set_window(tvscreen);
   D();
-  xawtv_ipc_init (main_window);
+  xawtv_ipc_init (GTK_WIDGET (zapping));
   D();
   mixer_setup ();
   D();
@@ -863,13 +908,13 @@ int main(int argc, char * argv[])
 
   if (!command)
     {
-      gtk_widget_show(main_window);
+      gtk_widget_show(GTK_WIDGET (zapping));
       D();
       printv("switching to mode %d (%d)\n",
-	     zcg_int (NULL, "capture_mode"), TVENG_CAPTURE_READ);
+	     zcg_int (NULL, "capture_mode"), OLD_TVENG_CAPTURE_READ);
       D();
-      window_on_top (GTK_WINDOW (main_window), zconf_get_boolean
-		     (NULL, "/zapping/options/main/keep_on_top"));
+      x11_window_on_top (GTK_WINDOW (zapping), zconf_get_boolean
+			 (NULL, "/zapping/options/main/keep_on_top"));
       D();
       zconf_touch ("/zapping/internal/callbacks/hide_controls");
       D();
@@ -901,14 +946,14 @@ int main(int argc, char * argv[])
 
 static void shutdown_zapping(void)
 {
-  int i = 0;
+  guint i = 0;
   gchar * buffer = NULL;
   tveng_tuned_channel * channel;
 
   printv("Shutting down the beast:\n");
 
   if (was_fullscreen)
-    zcs_int(TVENG_CAPTURE_PREVIEW, "capture_mode");
+    zcs_int(OLD_TVENG_CAPTURE_PREVIEW, "capture_mode");
 
   /* Unloads all plugins, this tells them to save their config too */
   printv("plugins");
@@ -929,17 +974,18 @@ static void shutdown_zapping(void)
 
   {
     tveng_tc_control *controls;
-    guint num_controls;
+    guint n_controls;
 
     /* Global controls (preliminary) */
 
     printv(" controls");
 
-    store_control_values (main_info, &controls, &num_controls);
+    store_control_values (zapping->info, &controls, &n_controls);
     zconf_delete (ZCONF_DOMAIN "num_controls");
     zconf_delete ("/zapping/options/main/controls");
-    zconf_create_integer (num_controls, "Saved controls", ZCONF_DOMAIN "num_controls");
-    zconf_create_controls (controls, num_controls, "/zapping/options/main");
+    zconf_create_uint (n_controls, "Saved controls",
+		       ZCONF_DOMAIN "num_controls");
+    zconf_create_controls (controls, n_controls, "/zapping/options/main");
   }
 
   /* Write the currently tuned channels */
@@ -947,14 +993,16 @@ static void shutdown_zapping(void)
 
   zconf_delete (ZCONF_DOMAIN "tuned_channels");
 
+  i = 0;
+
   while ((channel = tveng_tuned_channel_nth (global_channel_list, i)) != NULL)
     {
-      if ((i == cur_tuned_channel) &&
+      if ((i == (guint) cur_tuned_channel) &&
 	  !ChannelWindow) /* Having the channel editor open screws this
 			   logic up, do not save controls in this case */
 	{
 	  g_free (channel->controls);
-	  store_control_values (main_info,
+	  store_control_values (zapping->info,
 				&channel->controls,
 				&channel->num_controls);
 	}
@@ -967,16 +1015,16 @@ static void shutdown_zapping(void)
       SAVE_CONFIG (string,  name,         name,         "Station name");
 
       buffer = g_strdup_printf (ZCONF_DOMAIN "tuned_channels/%d/freq", i);
-      zconf_create_integer (channel->frequ / 1000, "Tuning frequency", buffer);
+      zconf_create_uint (channel->frequ / 1000, "Tuning frequency", buffer);
       g_free (buffer);
 
       SAVE_CONFIG (z_key,   accel,        accel,        "Accelerator key");
       /* historic "real_name", changed to less confusing rf_name */
       SAVE_CONFIG (string,  rf_name,      real_name,    "RF channel name");
       SAVE_CONFIG (string,  rf_table,     country,      "RF channel table");
-      SAVE_CONFIG (integer, input,        input,        "Attached input");
-      SAVE_CONFIG (integer, standard,     standard,     "Attached standard");
-      SAVE_CONFIG (integer, num_controls, num_controls, "Saved controls");
+      SAVE_CONFIG (uint,    input,        input,        "Attached input");
+      SAVE_CONFIG (uint,    standard,     standard,     "Attached standard");
+      SAVE_CONFIG (uint,    num_controls, num_controls, "Saved controls");
 
       if (channel->num_controls > 0)
 	{
@@ -985,25 +1033,25 @@ static void shutdown_zapping(void)
 	  g_free (buffer);
 	}
 
-      SAVE_CONFIG (integer, caption_pgno, caption_pgno, "Default subtitle page");
+      SAVE_CONFIG (int, caption_pgno, caption_pgno, "Default subtitle page");
 
       i++;
     }
 
   tveng_tuned_channel_list_delete (&global_channel_list);
 
-  if (main_info->cur_video_standard)
-    zcs_int (main_info->cur_video_standard->hash, "current_standard");
+  if (zapping->info->cur_video_standard)
+    zcs_uint (zapping->info->cur_video_standard->hash, "current_standard");
   else
     zcs_int (0, "current_standard");
 
-  if (main_info->cur_video_input)
-    zcs_int (main_info->cur_video_input->hash, "current_input");
+  if (zapping->info->cur_video_input)
+    zcs_uint (zapping->info->cur_video_input->hash, "current_input");
   else
     zcs_int (0, "current_input");
 
-  if (main_info->cur_audio_input)
-    zcs_int (main_info->cur_audio_input->hash, "current_audio_input");
+  if (zapping->info->cur_audio_input)
+    zcs_uint (zapping->info->cur_audio_input->hash, "current_audio_input");
   else
     zcs_int (0, "current_audio_input");
 
@@ -1086,7 +1134,7 @@ static void shutdown_zapping(void)
 
   /* Close */
   printv(" video device");
-  tveng_device_info_destroy(main_info);
+  tveng_device_info_destroy(zapping->info);
 
   /* Save the config and show an error if something failed */
   printv(" config");
@@ -1108,9 +1156,10 @@ static void shutdown_zapping(void)
   printv(".\nShutdown complete, goodbye.\n");
 }
 
-static gboolean startup_zapping(gboolean load_plugins)
+static gboolean startup_zapping(gboolean load_plugins,
+				tveng_device_info *info)
 {
-  int i = 0;
+  guint i = 0;
   gchar * buffer = NULL;
   gchar * buffer2 = NULL;
   tveng_tuned_channel new_channel;
@@ -1125,7 +1174,7 @@ static gboolean startup_zapping(gboolean load_plugins)
   D();
   startup_remote ();
   startup_cmd ();
-#if GNOME2_PORT_COMPLETE
+#ifdef GNOME2_PORT_COMPLETE
   cmd_register ("subtitle_overlay", subtitle_overlay_cmd, 0, NULL);
 #endif
   startup_properties();
@@ -1169,8 +1218,8 @@ static gboolean startup_zapping(gboolean load_plugins)
   zcc_int(0, "Current standard", "current_standard");
   zcc_int(0, "Current video input", "current_input");
   zcc_int(0, "Current audio input", "current_audio_input");
-  zcc_int(TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");
-  zcc_int(TVENG_CAPTURE_WINDOW, "Previous capture mode", "previous_mode");
+  zcc_int(OLD_TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");
+  zcc_int(OLD_TVENG_CAPTURE_WINDOW, "Previous capture mode", "previous_mode");
   zcc_int(8 /* TVENG_PIX_YUYV */, "Pixformat used with XVideo capture",
 	  "yuv_format");
   zcc_bool(FALSE, "In videotext mode", "videotext_mode");
@@ -1184,6 +1233,8 @@ static gboolean startup_zapping(gboolean load_plugins)
   /* Loads all the tuned channels */
 
   global_channel_list = NULL;
+
+  i = 0;
 
   while (zconf_get_nth (i, &buffer, ZCONF_DOMAIN "tuned_channels") != NULL)
     {
@@ -1203,17 +1254,18 @@ static gboolean startup_zapping(gboolean load_plugins)
 
       LOAD_CONFIG (string,  name,         name);
       LOAD_CONFIG (string,  rf_name,      real_name);
-      LOAD_CONFIG (integer, frequ,        freq);
+      LOAD_CONFIG (int,     frequ,        freq);
       new_channel.frequ *= 1000;
       LOAD_CONFIG (z_key,   accel,        accel);
       LOAD_CONFIG (string,  rf_table,     country);
-      LOAD_CONFIG (integer, input,        input);
-      LOAD_CONFIG (integer, standard,     standard);
-      LOAD_CONFIG (integer, num_controls, num_controls);
+      LOAD_CONFIG (int,     input,        input);
+      LOAD_CONFIG (int,     standard,     standard);
+      LOAD_CONFIG (int,     num_controls, num_controls);
 
-      new_channel.controls = zconf_get_controls (new_channel.num_controls, buffer);
+      new_channel.controls = zconf_get_controls (new_channel.num_controls,
+						 buffer);
 
-      LOAD_CONFIG (integer, caption_pgno, caption_pgno);
+      LOAD_CONFIG (int, caption_pgno, caption_pgno);
 
       tveng_tuned_channel_insert (&global_channel_list,
 				  tveng_tuned_channel_new (&new_channel),
@@ -1231,9 +1283,9 @@ static gboolean startup_zapping(gboolean load_plugins)
 
   D();
   /* Starts all modules */
-  startup_v4linterface(main_info);
+  startup_v4linterface(info);
   D();
-  startup_mixer();
+  startup_mixer(info);
   D();
   startup_zimage();
   D();
@@ -1249,7 +1301,7 @@ static gboolean startup_zapping(gboolean load_plugins)
   while (p)
     {
       plugin_load_config((struct plugin_info*)p->data);
-      if (!plugin_init(main_info, (struct plugin_info*)p->data))
+      if (!plugin_init(info, (struct plugin_info*)p->data))
 	{
 	  plugin_unload((struct plugin_info*)p->data);
 	  plugin_list = g_list_remove_link(plugin_list, p);
