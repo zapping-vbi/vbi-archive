@@ -31,9 +31,10 @@ abstract -> short text that describes the page (for themes that support it)
     thinking about playing with the TV device under Linux, you
     might find this interesting. <br/>
     <br/>
-     <b>Downloading:</b> The latest tveng code comes with every
-    Zapping release, and there are some standalone tveng packages
-    too. The files are <i>src/tveng*</i>. 
+     <b>Downloading:</b> The latest tveng code is included in the
+    Zapping source code, files <i>src/tveng*</i>. There were some
+    some standalone tveng packages too, but these are no longer
+    maintained.
 
     <header>Unicode regular expressions</header>
     We added support for UCS2 regular expressions in Zapzilla,
