@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.5 2001-09-07 05:09:34 mschimek Exp $ */
+/* $Id: rte.c,v 1.6 2001-09-10 16:39:31 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -29,6 +29,7 @@
 #include <limits.h>
 #include <assert.h>
 #include <ctype.h>
+#include <stdarg.h>
 
 #include "mp1e/common/fifo.h" /* fifos */
 #include "mp1e/common/log.h" /* printv, verbose */
