@@ -2,6 +2,7 @@ COMPILE = gcc -DXML2 -Wall -g `xml2-config --cflags --libs`
 DEPS = Makefile parser_common.h
 
 all: parser_carsten parser_modern parser_simple
+	./parser_carsten && ./parser_modern && ./parser_simple
 
 parser_carsten: parser_carsten.c $(DEPS)
 	$(COMPILE) -oparser_carsten parser_carsten.c

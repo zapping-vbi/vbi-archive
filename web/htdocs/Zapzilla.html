@@ -18,7 +18,7 @@ features are:
 <ul>
   <li>Teletext Level 2.5/3.5 ("HiText") support, this includes:
   <ul>
-    <li>Support for a fscking lot of languages, for example
+    <li>Support for all Teletext languages, for example
       Turkish, Russian, Greek, Hebrew and Arabic. Internally
       we use <a href="http://www.unicode.org/">Unicode</a>.</li>
     <li>DRCS, i.e. <a href="#DRCS">graphics</a> within the Teletext page.</li>
@@ -39,16 +39,14 @@ depends on how big your iron is, and the size of the window. To make a rough
 estimation, it takes about 0.1s to scale and render a 400x300 page. Not bad
 for scaling and antialias. But all the credit for this speed/slowdown is
 due to gdk-pixbuf, I wash my hands. :-)</li>
-  <li>Zapzilla is tied to Zapping. That means tied to all the Gnome libraries.
-I don't have currently the time/will to untie it myself, but if some brave
-soul wants to take the challenge, here's my <a
-href="mailto:garetxe@users.sourceforge.net">
-email address</a>. Send petitions to write docs and release libvbi as a separate
-entity to <a href="mailto:mschimek@users.sourceforge.net">Michael</a>.</li>
+  <li>The Zapzilla user interface is firmly built into Zapping, there are
+now plans to separate them. The vbi decoding, export, search and basic
+drawing functions however are available as a separate library "libzvbi"
+from the Zapping download page. Extensive documentation is included.</li>
 </ul>
 <h2>Screenshots</h2>
 If you're not utterly impressed by now, here are the carefully crafted
-screenshots you've been waiting for:<br>
+screenshots (Zapping/Zapzilla 0.6.0) you've been waiting for:<br>
 <br>
 <div align="Center">
 <a name="DRCS"></a>
@@ -59,7 +57,7 @@ height="300" align="Top" border="0"></a><br>
 OK, many things:<br>
 There are three TTX windows here, one of them is the Zapping main window
 acting as a TTX viewer. You can see the graphics in the page (Level 2.5).
-Note the arbitrary scaling, each TTX page has a different size.<br>
+Note the arbitrary scaling, each TTX page has a different size.
 The open dialog lets you export a page to the previously mentioned formats,
 this time I am exporting to an HTML page.<br>
 <br>

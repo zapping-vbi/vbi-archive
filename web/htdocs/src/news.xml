@@ -5,78 +5,81 @@ abstract -> short text that describes the page (for themes that support it)
 HTML tags can be used freely in the body.
 -->
 <document title="News page" abstract="News and co.">
-<header>New release, codename: "Monkeys in a Blue Suit"</header>
-<ul>
-<li><b>Zapping</b> 0.6.2
-<ul>
-<li>Dutch translation.</li>
-<li>Redesigned channel editor and properties dialog.</li>
-<li>SGML renderer for OSD.</li>
-<li>In-window OSD, no more floating subtitle windows.</li>
-<li>Support for the Logitech Quickcam Express (possibly other
-quickcams too, but this is untested).</li>
-<li>Improved timestamping.</li>
-<li>ARTS recording support.</li>
-<li>Sync with rte 0.4</li>
-<li>Bugfixes and polishment, as usual.</li>
-</ul>
-</li>
-<li><b>rte</b> 0.4
-<p><b>Warning:</b> Please note that the old API wont work any longer
-and that the ffmpeg backend has been temporarily removed. This release is only
-known to work with the mpeg plugin in Zapping. We'll fix this soon.</p>
-<ul>
-<li>Continued api morphing (work in progress).</li>
-<li>Removed ffmpeg backend, it was unused.</li>
-<li>Fixes in the mp1e backend.</li>
-</ul>
-</li>
-</ul>
-<header>Zapping, mp1e and rte released</header>
-New release of your favourite programs, some of the improvements are:
-<ul>
-<li><b>Zapping</b> 0.6.1
-<ul>
-<li>Added Swedish translation.</li>
-<li>Reported to build and work (using XVideo) under FreeBSD and Solaris.</li>
-<li>Automatic overlaying of subtitle TTX pages.</li>
-<li>Reverted to the old fb depth detection routine.</li>
-<li>Some bugfixes in the mpeg plugin, adapted to use rte 0.3.1's new
-controls api.</li>
-<li>Fixed some bugs with Arabic and Hebrew TTX glyph mapping.</li>
-<li>Usability improvements, especially in the channel editor.</li>
-<li>Updated de, es, fr and pl translations.</li>
-</ul>
-</li>
-<li><b>mp1e</b> 1.9.1
-<ul>
-<li>Some important bugs fixed.</li>
-<li>Abort after two seconds if audio and video cannot sync.</li>
-<li>Cleaned up --usage</li>
-</ul>
-</li>
-<li><b>rte</b> 0.3.1
-<ul>
-<li>New controls api, unfinished (code using 0.3's api will still work).</li>
-</ul>
-</li>
-</ul>
-<header>Web page redesigned</header>
-As you can see, the web page has been redesigned, it has new contents and
-support for different themes (works best with cookies enabled). Thanks a lot to
-<b>Carsten Menke</b>, he worked hard to create the excellent <i>Carsten</i>
-theme. I hope you like the new design.
-<header>0.6.0 released</header>
-0.6.0 has been released, new in this release:
-<ul>
-<li>Aspect ratio autodetection and fixes</li>
-<li>Faster MPEG capture</li>
-<li>GUI improvements</li>
-<li>Standalone Zapzilla executable</li>
-<li>New alirc plugin</li>
-<li>Man pages</li>
-<li>Added Polish translation, updated de, es, fr</li>
-<li>Much more, see the <a href="changelog.php">ChangeLog</a>.</li>
-</ul>
-You can download Zapping from <a href="download.php">here</a>.
+
+  <header>New release</header>
+
+    <ul>
+      <li>
+        <b>Zapping</b> 0.6.3 
+
+        <p>A new year, a new release, a new maintainer. This
+	release does not include all improvements planned for 0.6.3,
+	but it's over three months since the last release, without an
+	end in sight. Future versions will be released at shorter
+	intervals.</p>
+
+        <p>The main difference to 0.6.2 is the extraction of the
+        Zapping vbi decoder into a separate package "zvbi".
+        Motivation was to clean up and re-use the component in
+        other applications, it may also encourage more frequent
+	updates and reduce the size of binaries. Zapping can be
+	compiled without zvbi, but a lot of functionality depends
+	on the zvbi library, so you should really get it. The
+	dependency is compiled into the Zapping	binary packages,
+	so they need zvbi to install.</p>
+
+        <p>Other changes:</p>
+
+        <ul>
+          <li>Recording source and volume can be selected in
+          preferences. Currently only the OSS /dev/mixer is
+          supported. (And yes, ffmpeg support is underway.)</li>
+
+          <li>For our US and Canadian users Zapping now looks for
+          XDS program title, start and end times, rating etc. and
+          can display this information in the title bar or a
+          program info window.</li>
+
+          <li>Complete rewrite of the screenshot plugin. Better
+          dialog, supports JPEG and PPM (possibly more, inquire
+          within), has quality preview and on-the-fly
+          deinterlacing.</li>
+
+          <li>Some channel editor improvements.</li>
+
+          <li>The "snapshot button" present on ov511 web cams is
+          scanned and does what it's supposed to.</li>
+
+          <li>Pointer disappears and reappears screen-saver
+          style.</li>
+
+          <li>Some Teletext export improvements.</li>
+
+          <li>New mute audio toolbar button.</li>
+
+          <li>Channel numbers can be entered on the numeric keypad,
+          either by channel memory number (European style) or RF
+          channel number (US style).</li>
+
+          <li>Preliminary volume up/down function.</li>
+
+          <li>Most of the keybord shortcuts are configurable
+          now.</li>
+
+          <li>And the usual set of bug fixes and new bugs.</li>
+        </ul>
+        <br/>
+        <br/>
+      </li>
+
+      <li>
+        <b>zvbi</b> 0.1 
+
+        <p>First release of the Zapping vbi decoder as a standalone
+        library.</p>
+      </li>
+    </ul>
+
+    <a href="download.php">Download instructions</a>.
+
 </document>
