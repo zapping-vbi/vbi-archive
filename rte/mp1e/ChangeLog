@@ -1,3 +1,10 @@
+2001-09-25	<mschimek@users.sf.net>
+
+	* video: Some work towards reentrancy and encapsulation.
+	* mp2.c: Added S|U8|16LE sample conversion.
+	* alsa.c: Added new direct, mmapping interface. Let's see
+	  if this works better.
+
 2001-09-23	finished rte audio options <mschimek@users.sf.net>
 
 	* Moved rte_option stuff from b_mp1e.c to mp2.c, added get_option.

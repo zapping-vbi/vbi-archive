@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.6 2001-09-20 23:35:07 mschimek Exp $ */
+/* $Id: esd.c,v 1.7 2001-09-26 10:44:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -89,7 +89,7 @@ wait_full(fifo *f)
 	if (esd->time > 0
 	    && fabs(dt - esd->buffer_period) < esd->buffer_period * 0.1) {
 		b->time = esd->time;
-		esd->buffer_period = (esd->buffer_period - dt) * 0.9 + dt;
+		esd->buffer_period = (esd->buffer_period - dt) * 0.999 + dt;
 		esd->time += esd->buffer_period;
 	} else {
 		esd->time = now;
@@ -121,6 +121,7 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 	ASSERT("allocate pcm context",
 		(esd = calloc(1, sizeof(struct esd_context))));
 
+	esd->pcm.format = RTE_SNDFMT_S16LE;
 	esd->pcm.sampling_rate = sampling_rate;
 	esd->pcm.stereo = stereo;
 

@@ -36,7 +36,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.8 2001-09-25 09:29:11 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.9 2001-09-26 10:44:46 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -519,7 +519,12 @@ typedef enum {
 #define RTE_PIXFMTS_BGR15	(1UL << RTE_PIXFMT_BGR15)
 
 typedef enum {
-  RTE_SNDFMT_S16LE = 1,
+  RTE_SNDFMT_S8 = 1,
+  RTE_SNDFMT_U8,
+  RTE_SNDFMT_S16LE,
+  RTE_SNDFMT_S16BE,
+  RTE_SNDFMT_U16LE,
+  RTE_SNDFMT_U16BE,
   /* ... */
   RTE_SNDFMT_MAX = 31
 } rte_sndfmt;

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.10 2001-09-25 09:29:13 mschimek Exp $ */
+/* $Id: main.c,v 1.11 2001-09-26 10:44:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -131,6 +131,8 @@ int
 main(int ac, char **av)
 {
 	sigset_t block_mask;
+	/* XXX encapsulation */
+	struct pcm_context *pcm;
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 	program_invocation_short_name =
@@ -197,10 +199,12 @@ main(int ac, char **av)
 			audio_parameters(&sampling_rate, &audio_bit_rate);
 			mix_init(); // OSS
 			audio_cap_fifo = open_pcm_alsa(pcm_dev, sampling_rate, stereo);
+			/* XXX */ pcm = (struct pcm_context *) audio_cap_fifo->user_data;
 		} else if (!strcasecmp(pcm_dev, "esd")) {
 			audio_parameters(&sampling_rate, &audio_bit_rate);
 			mix_init(); /* fixme: esd_mix_init? */
 			audio_cap_fifo = open_pcm_esd(pcm_dev, sampling_rate, stereo);
+			/* XXX */ pcm = (struct pcm_context *) audio_cap_fifo->user_data;
 		} else {
 			ASSERT("test file type of '%s'", !stat(pcm_dev, &st), pcm_dev);
 
@@ -208,10 +212,8 @@ main(int ac, char **av)
 				audio_parameters(&sampling_rate, &audio_bit_rate);
 				mix_init();
 				audio_cap_fifo = open_pcm_oss(pcm_dev, sampling_rate, stereo);
+				/* XXX */ pcm = (struct pcm_context *) audio_cap_fifo->user_data;
 			} else {
-				/* XXX encapsulation */
-				struct pcm_context *pcm;
-
 				audio_cap_fifo = open_pcm_afl(pcm_dev, sampling_rate, stereo);
 				pcm = (struct pcm_context *) audio_cap_fifo->user_data;
 				stereo = pcm->stereo;
@@ -290,7 +292,7 @@ main(int ac, char **av)
 		set_option(audio_codec, "audio_mode", (int) "\1\3\2\0"[audio_mode]);
 		set_option(audio_codec, "psycho", psycho_loops);
 
-		mp1e_mp2_init(audio_codec, audio_cap_fifo, mux);
+		mp1e_mp2_init(audio_codec, audio_cap_fifo, mux, pcm->format);
 	}
 
 	if (modules & MOD_VIDEO) {

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: afl.c,v 1.6 2001-09-20 23:35:07 mschimek Exp $ */
+/* $Id: afl.c,v 1.7 2001-09-26 10:44:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -133,6 +133,7 @@ open_pcm_afl(char *name, int ignored1, bool ignored2)
 	if (channels > 2)
 		FAIL("Cannot read %d channel file %s\n", channels, name);
 
+	afl->pcm.format = RTE_SNDFMT_S16LE;
 	afl->pcm.sampling_rate = rate;
 	afl->pcm.stereo = (channels > 1);
 

@@ -17,8 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.6 2001-09-23 21:04:25 mschimek Exp $ */
+/* $Id: audio.h,v 1.7 2001-09-26 10:44:48 mschimek Exp $ */
 
+#include <stdint.h>
 #include <pthread.h>
 #include "../common/fifo.h"
 #include "../common/bstream.h"
@@ -103,9 +104,11 @@ typedef struct mp2_context {
 
 	consumer		cons;
 	buffer *		ibuf;
-	int			i16, e16;
+	unsigned int		i16, e16;
 	double			time;
 	synchr_stream 		sstr;
+	uint32_t		format_sign;
+	bool			format_scale;
 
 	/* Output */
 

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.12 2001-09-25 09:29:13 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.13 2001-09-26 10:44:48 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -449,7 +449,8 @@ static void rte_audio_init(backend_private *priv) /* init audio capture */
 			       "psycho", (int) psycho_loops);
 		}
 
-		mp1e_mp2_init(priv->audio_codec, &priv->priv.aud, priv->mux);
+		mp1e_mp2_init(priv->audio_codec, &priv->priv.aud,
+			      priv->mux, RTE_SNDFMT_S16LE);
 	}
 }
 

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.8 2001-09-23 19:45:44 mschimek Exp $ */
+/* $Id: mp2.c,v 1.9 2001-09-26 10:44:48 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -109,14 +109,14 @@ fetch_samples(mp2_context *mp2, int channels)
 
 	if (audio_frame_count++ > audio_num_frames
 	    || mp1e_sync_break(&mp2->sstr,
-			buf->time + (mp2->i16 >> 16) * cs * mp2->sstr.byte_period,
-			mp2->frame_period, &drift)) {
+			       buf->time + (mp2->i16 >> 16) * cs * mp2->sstr.byte_period,
+			       mp2->frame_period, &drift)) {
 		send_empty_buffer(&mp2->cons, buf);
 		terminate(mp2);
 	}
 
 	incr = lroundn(((mp2->frame_period + drift) / (double) mp2->frame_period)
-		* (double)(1 << 16));
+		       * (double)(1 << 16));
 
 	if (incr < 0)
 		incr = 0;
@@ -125,26 +125,66 @@ fetch_samples(mp2_context *mp2, int channels)
 
 	o = mp2->wrap + la;
 
-	for (todo = spf; todo > 0; todo -= cs) {
-		if (mp2->i16 >= mp2->e16) {
-			send_empty_buffer(&mp2->cons, buf);
-			mp2->ibuf = buf = wait_full_buffer(&mp2->cons);
-
-			if (buf->used <= 0) {
+	if (mp2->format_scale)
+		for (todo = 0; todo < SAMPLES_PER_FRAME; todo++) {
+			if (mp2->i16 >= mp2->e16) {
 				send_empty_buffer(&mp2->cons, buf);
-				terminate(mp2);
-			} else {
-				assert(buf->used < (1 << 15));
+				mp2->ibuf = buf = wait_full_buffer(&mp2->cons);
 
-				mp2->i16 = 0;
-				mp2->e16 = buf->used << (16 - channels);
+				if (buf->used <= 0) {
+					send_empty_buffer(&mp2->cons, buf);
+					terminate(mp2);
+				} else {
+					assert(buf->used < (1 << 14));
+
+					mp2->i16 = 0; /* (samples / channel) << 16 */
+					mp2->e16 = buf->used << (16 + 1 - channels);
+				}
 			}
-		}
 
-		memcpy(o, buf->data + (mp2->i16 >> 16) * cs, cs);
-		mp2->i16 += incr;
-		o += cs;
-	}
+			/* 8 -> 16 bit machine endian */
+
+			if (channels > 1) {
+				uint32_t temp;
+
+				temp = ((uint16_t *) buf->data)[mp2->i16 >> 16] << 8;
+				temp = ((temp << 8) | temp) & 0xFF00FF00;
+
+				*((uint32_t *) o)++ = mp2->format_sign ^ temp;
+			} else
+				*((uint16_t *) o)++ = mp2->format_sign
+					^ (((uint8_t *) buf->data)[mp2->i16 >> 16] << 8);
+
+			mp2->i16 += incr;
+		}
+	else
+		for (todo = 0; todo < SAMPLES_PER_FRAME; todo++) {
+			if (mp2->i16 >= mp2->e16) {
+				send_empty_buffer(&mp2->cons, buf);
+				mp2->ibuf = buf = wait_full_buffer(&mp2->cons);
+
+				if (buf->used <= 0) {
+					send_empty_buffer(&mp2->cons, buf);
+					terminate(mp2);
+				} else {
+					assert(buf->used < (1 << 15));
+
+					mp2->i16 = 0; /* (samples / channel) << 16 */
+					mp2->e16 = buf->used << (16 - channels);
+				}
+			}
+
+			/* 16 -> 16 bit, same endian */
+
+			if (channels > 1)
+				*((uint32_t *) o)++ = mp2->format_sign
+					^ ((uint32_t *) buf->data)[mp2->i16 >> 16];
+			else
+				*((uint16_t *) o)++ = mp2->format_sign
+					^ ((uint16_t *) buf->data)[mp2->i16 >> 16];
+
+			mp2->i16 += incr;
+		}
 
 	return (short *) mp2->wrap;
 }
@@ -533,8 +573,8 @@ mp1e_mp2_thread(void *p)
 	assert(buf->used < (1 << 15));
 
 	channels = (mp2->audio_mode != AUDIO_MODE_MONO) + 1;
-	mp2->i16 = frame_frac << (16 - channels);
-	mp2->e16 = buf->used << (16 - channels);
+	mp2->i16 = frame_frac << (16 + (!!mp2->format_scale) - channels);
+	mp2->e16 = buf->used << (16 + (!!mp2->format_scale) - channels);
 
 	if (mp2->audio_mode == AUDIO_MODE_MONO)
 		for (;;)
@@ -605,7 +645,7 @@ audio_parameters(int *sampling_freq, int *bit_rate)
  *  (api preliminary)
  */
 void
-mp1e_mp2_init(rte_codec *codec, fifo *cap_fifo, multiplexer *mux)
+mp1e_mp2_init(rte_codec *codec, fifo *cap_fifo, multiplexer *mux, rte_sndfmt format)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
 	int sb, min_sg, bit_rate, bit_rate_per_ch;
@@ -766,8 +806,37 @@ mp1e_mp2_init(rte_codec *codec, fifo *cap_fifo, multiplexer *mux)
 
 	memset(&mp2->sstr, 0, sizeof(mp2->sstr));
 
+	switch (format) {
+	case RTE_SNDFMT_S8:
+	case RTE_SNDFMT_U8:
+		mp2->sstr.bytes_per_sample = channels * sizeof(int8_t);
+		mp2->format_scale = TRUE;
+		break;
+
+	case RTE_SNDFMT_S16LE:
+	case RTE_SNDFMT_U16LE:
+		mp2->sstr.bytes_per_sample = channels * sizeof(int16_t);
+		mp2->format_scale = FALSE;
+		break;
+
+	default:
+		FAIL("unsupported sample format %d", format);
+	}
+
+	switch (format) {
+	case RTE_SNDFMT_U8:
+	case RTE_SNDFMT_U16LE:
+		mp2->format_sign = 0x80008000;
+		break;
+
+	default:
+		mp2->format_sign = 0;
+		break;
+	}
+
+	printv(3, "Using sample format %d\n", format);
+
 	mp2->sstr.this_module = MOD_AUDIO;
-	mp2->sstr.bytes_per_sample = channels * sizeof(short);
 	mp2->sstr.byte_period = 1.0 / (sampling_freq * mp2->sstr.bytes_per_sample);
 
 	memset(mp2->wrap, 0, sizeof(mp2->wrap));

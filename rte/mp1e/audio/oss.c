@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.7 2001-09-20 23:35:07 mschimek Exp $ */
+/* $Id: oss.c,v 1.8 2001-09-26 10:44:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -119,7 +119,7 @@ wait_full(fifo *f)
 	if (oss->time > 0
 	    && fabs(dt - oss->buffer_period) < oss->buffer_period * 0.1) {
 		b->time = oss->time;
-		oss->buffer_period = (oss->buffer_period - dt) * 0.95 + dt;
+		oss->buffer_period = (oss->buffer_period - dt) * 0.99 + dt;
 		oss->time += oss->buffer_period;
 	} else
 		b->time = oss->time = now;
@@ -152,6 +152,7 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	ASSERT("allocate pcm context",
 		(oss = calloc(1, sizeof(struct oss_context))));
 
+	oss->pcm.format = RTE_SNDFMT_S16LE;
 	oss->pcm.sampling_rate = sampling_rate;
 	oss->pcm.stereo = stereo;
 
