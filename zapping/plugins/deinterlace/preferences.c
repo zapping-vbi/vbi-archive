@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preferences.c,v 1.1 2005-01-08 14:30:54 mschimek Exp $ */
+/* $Id: preferences.c,v 1.2 2005-02-05 22:21:43 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -323,6 +323,8 @@ create_option_table		(const DEINTERLACE_METHOD *method)
 		    /* tooltip */ NULL);
 
 #if 0
+  /* TRANSLATORS: Relative display duration of the first and
+     second field in deinterlace mode. */
   attach_label (table, row, _("_Field Balance:"));
   attach_field_balance (table, row++,
 			GCONF_DIR "/field_balance",
@@ -535,7 +537,7 @@ on_method_changed		(GtkComboBox *		combo_box,
 				 gpointer		user_data)
 {
   DeinterlacePrefs *prefs = DEINTERLACE_PREFS (user_data);
-  gint index;
+  gint active_item;
 
   g_return_if_fail (IS_DEINTERLACE_PREFS (prefs));
 
@@ -545,9 +547,9 @@ on_method_changed		(GtkComboBox *		combo_box,
       prefs->option_table = NULL;
     }
 
-  index = gtk_combo_box_get_active (combo_box);
+  active_item = gtk_combo_box_get_active (combo_box);
 
-  if (index <= 0)
+  if (active_item <= 0)
     {
       /* Error ignored. */
       z_gconf_set_string (GCONF_DIR "/method", "disabled");
@@ -557,13 +559,17 @@ on_method_changed		(GtkComboBox *		combo_box,
       const DEINTERLACE_METHOD *method;
       guint i;
 
+      --active_item;
+
       for (i = 0; i < N_ELEMENTS (deinterlace_methods); ++i)
 	{
 	  if (!(method = deinterlace_methods[i]))
 	    continue;
 
-	  if (1 == index--)
+	  if (0 == active_item)
 	    break;
+
+	  --active_item;
 	}
 
       if (i < N_ELEMENTS (deinterlace_methods)
@@ -716,7 +722,8 @@ attach_method_combo		(DeinterlacePrefs *	prefs,
 
   {
     gchar *item_name;
-    guint value;
+    guint item_counter;
+    guint active_item;
     guint i;
 
     item_name = NULL;
@@ -724,9 +731,10 @@ attach_method_combo		(DeinterlacePrefs *	prefs,
     /* Error ignored. */
     z_gconf_get_string (&item_name, GCONF_DIR "/method");
 
-    value = 0; /* disabled */
-
     gtk_combo_box_append_text (combo_box, _("Disabled"));
+
+    active_item = 0; /* disabled */
+    item_counter = 1;
 
     for (i = 0; i < N_ELEMENTS (deinterlace_methods); ++i)
       {
@@ -735,16 +743,18 @@ attach_method_combo		(DeinterlacePrefs *	prefs,
 	if (!(method = deinterlace_methods[i]))
 	  continue;
 
-	if (item_name)
+	if (item_name && 0 == active_item)
 	  if (0 == g_ascii_strcasecmp (item_name, method->szName))
-	    value = i + 1;
+	    active_item = item_counter;
 
-	gtk_combo_box_append_text (combo_box, method->szName);
+	gtk_combo_box_append_text (combo_box, _(method->szName));
+
+	++item_counter;
       }
 
     g_free (item_name);
 
-    gtk_combo_box_set_active (combo_box, value);
+    gtk_combo_box_set_active (combo_box, active_item);
   }
 
   object = G_OBJECT (combo_box);
