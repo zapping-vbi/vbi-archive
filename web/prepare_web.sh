@@ -1,5 +1,5 @@
 #!/bin/sh
-#$Id: prepare_web.sh,v 1.6 2003-10-20 23:50:52 mschimek Exp $
+#$Id: prepare_web.sh,v 1.7 2004-04-17 05:53:24 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
