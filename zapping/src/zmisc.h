@@ -55,6 +55,21 @@ MSG, MSGTYPE, FALSE, TRUE)
 ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
 MSG, MSGTYPE, TRUE, TRUE)
 
+/* Some debug messages to track the startup */
+extern gboolean debug_msg;
+
+#define D() \
+do { \
+  if (debug_msg) \
+    g_message("Line %d, routine %s", __LINE__, __PRETTY_FUNCTION__); \
+} while (FALSE)
+
+#define printv(format, args...) \
+do { \
+  if (debug_msg) \
+    g_message(format ,##args); \
+} while (FALSE)
+
 /*
   Prints a message box showing an error, with the location of the code
   that called the function.

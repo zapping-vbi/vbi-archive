@@ -93,27 +93,35 @@ int main(int argc, char * argv[])
       N_("BPP")
     },
     {
+      "debug",
+      'd',
+      POPT_ARG_NONE,
+      &debug_msg,
+      0,
+      N_("Set debug messages on"),
+      NULL
+    },
+    {
       NULL,
     } /* end the list */
   };
-
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
   textdomain (PACKAGE);
 #endif
-
   /* Init gnome, libglade, modules and tveng */
   gnome_init_with_popt_table ("zapping", VERSION, argc, argv, options,
 			      0, NULL);
+  printv("%s %s, build date: %s", "Zapping", VERSION, __DATE__);
   glade_gnome_init();
-
+  D();
   if (!g_module_supported ())
     {
       RunBox(_("Sorry, but there is no module support"),
 	     GNOME_MESSAGE_BOX_ERROR);
       return 0;
     }
-
+  D();
   main_info = tveng_device_info_new( GDK_DISPLAY(), x_bpp );
 
   if (!main_info)
@@ -121,7 +129,7 @@ int main(int argc, char * argv[])
       g_error(_("Cannot get device info struct"));
       return -1;
     }
-
+  D();
   if (!startup_zapping())
     {
       RunBox(_("Zapping couldn't be started"),
@@ -129,7 +137,7 @@ int main(int argc, char * argv[])
       tveng_device_info_destroy(main_info);
       return 0;
     }
-
+  D();
   /* We must do this (running zapping_setup_fb) before attaching the
      device because V4L and V4L2 don't support multiple capture opens
   */
@@ -142,17 +150,17 @@ int main(int argc, char * argv[])
       perror("strdup");
       return 1;
     }
-
+  D();
   tveng_set_zapping_setup_fb_verbosity(zcg_int(NULL,
 					       "zapping_setup_fb_verbosity"),
 				       main_info);
-
+  D();
   /* try to run the auxiliary suid program */
   if (tveng_run_zapping_setup_fb(main_info) == -1)
     disable_preview = TRUE;
-
+  D();
   free(main_info -> file_name);
-
+  D();
   if (tveng_attach_device(zcg_char(NULL, "video_device"),
 			  TVENG_ATTACH_READ,
 			  main_info) == -1)
@@ -193,20 +201,20 @@ int main(int argc, char * argv[])
 
       return -1;
     }
-
+  D();
   /* Do some checks for the preview */
   if ((!disable_preview) && (!tveng_detect_XF86DGA(main_info)))
 	disable_preview = TRUE;
-
+  D();
   if ((!disable_preview) && (!tveng_detect_preview(main_info)))
 	disable_preview = TRUE;
-
+  D();
   /* Mute the device while we are starting Zapping */
   if (-1 == tveng_set_mute(1, main_info))
     fprintf(stderr, "%s\n", main_info->error);
-
+  D();
   main_window = create_zapping();
-
+  D();
   if (!main_window)
     {
       g_warning("Sorry, but " PACKAGE_DATA_DIR
@@ -215,9 +223,9 @@ int main(int argc, char * argv[])
       tveng_device_info_destroy(main_info);
       return 0;
     }
-
+  D();
   tv_screen = lookup_widget(main_window, "tv_screen");
-
+  printv("tv_screen is %p", (gpointer)tv_screen);
   /* Add the plugins to the GUI */
   p = g_list_first(plugin_list);
   while (p)
@@ -263,13 +271,14 @@ int main(int argc, char * argv[])
       gtk_widget_hide(lookup_widget(main_window, "view1"));      
     }
   gtk_widget_show(main_window);
-
+  D();
   /* Restore the input and the standard */
   tveng_set_input_by_index(zcg_int(NULL, "current_input"), main_info);
+  D();
   tveng_set_standard_by_index(zcg_int(NULL, "current_standard"), main_info);
-
+  D();
   update_standards_menu(main_window, main_info);
-
+  D();
   /* Process all events */
   while (gtk_events_pending())
     gtk_main_iteration();
@@ -287,11 +296,13 @@ int main(int argc, char * argv[])
   /* Process all events */
   while (gtk_events_pending())
     gtk_main_iteration();
-
+  D();
   if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"),
 			   main_info))
     fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
-
+  D(); printv("switching to mode %d (%d)", zcg_int(NULL,
+						   "capture_mode"),
+	      TVENG_CAPTURE_READ);
   /* Start the capture in the last mode */
   if (!disable_preview)
     {
@@ -320,7 +331,7 @@ int main(int argc, char * argv[])
       if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
 	ShowBox(_("Capture mode couldn't be started:\n%s"),
 		GNOME_MESSAGE_BOX_ERROR, main_info->error);
-
+  D(); printv("going into main loop...");
   while (!flag_exit_program)
     {
       while (gtk_events_pending())
@@ -528,14 +539,14 @@ gboolean startup_zapping()
   gchar * buffer2 = NULL;
   tveng_tuned_channel new_channel;
   GList * p;
-
+  D();
   /* Starts the configuration engine */
   if (!zconf_init("zapping"))
     {
       g_error(_("Sorry, Zapping is unable to create the config tree"));
       return FALSE;
     }
-
+  D();
   /* Sets defaults for zconf */
   zcc_bool(TRUE, "Save and restore zapping geometry (non ICCM compliant)", 
 	   "keep_geometry");
@@ -557,7 +568,7 @@ gboolean startup_zapping()
   zcc_int(0, "Current input", "current_input");
   zcc_int(TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");
   zcc_bool(FALSE, "In videotext mode", "videotext_mode");
-
+  D();
   /* Loads all the tuned channels */
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "tuned_channels") !=
 	 NULL)
@@ -592,7 +603,7 @@ gboolean startup_zapping()
       g_free(buffer);
       i++;
     }
-
+  D();
   /* Start VBI services, and warn if we cannot */
 #ifdef HAVE_GDKPIXBUF
   if ((!zvbi_open_device()) &&
@@ -605,20 +616,20 @@ gboolean startup_zapping()
 	    GNOME_MESSAGE_BOX_INFO);
   zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
 #endif
-
+  D();
   zvbi_set_mode(zcg_bool(NULL, "videotext_mode"));
-
+  D();
   /* Starts all modules */
   if (!startup_callbacks())
     return FALSE;
-
+  D();
   /* Start sound capturing */
   if (!startup_sound())
     return FALSE;
-  
+  D();
   /* Loads the modules */
   plugin_list = plugin_load_plugins();
-
+  D();
   /* init them, and remove the ones that couldn't be inited */
  restart_loop:
 
@@ -635,12 +646,12 @@ gboolean startup_zapping()
 	}
       p = p->next;
     }
-
+  D();
   si = sound_create_struct();
-
+  D();
   /* Sync (more or less) the timestamps from the video and the audio */
   sound_start_timer();
   tveng_start_timer(main_info);
-
+  D();
   return TRUE;
 }

@@ -4,6 +4,8 @@
 	* src/tveng.c: Support for command-line bpp added.
 	* src/callbacks.c: The screensaver now goes to throttle mode when
 	Fullscreen is used.
+	* src/zmisc.h: Added some debug routines
+	* src/main.c: populated with debugging messages
 
 08.9.2000	History improved <garetxe@users.sourceforge.net>
 

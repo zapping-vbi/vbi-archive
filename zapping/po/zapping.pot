@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-09-06 23:44+0200\n"
+"POT-Creation-Date: 2000-09-11 19:45+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,61 +14,73 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: ENCODING\n"
 
-#: src/main.c:96
+#: src/main.c:92
+msgid "Color depth of the X display"
+msgstr ""
+
+#: src/main.c:93
+msgid "BPP"
+msgstr ""
+
+#: src/main.c:101
+msgid "Set debug messages on"
+msgstr ""
+
+#: src/main.c:120
 msgid "Sorry, but there is no module support"
 msgstr ""
 
-#: src/main.c:105
+#: src/main.c:129
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: src/main.c:111
+#: src/main.c:135
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:149
+#: src/main.c:173
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:170
+#: src/main.c:194
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:282
+#: src/main.c:312
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:285
+#: src/main.c:315
 msgid ", I will try starting capture mode"
 msgstr ""
 
-#: src/main.c:289
+#: src/main.c:319
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:302
+#: src/main.c:332
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:365
+#: src/main.c:395
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:482
+#: src/main.c:512
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -80,18 +92,18 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:516
+#: src/main.c:546
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
-#: src/main.c:581
+#: src/main.c:611
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
 "%s (%d)"
 msgstr ""
 
-#: src/main.c:585
+#: src/main.c:615
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr ""
 
@@ -113,44 +125,44 @@ msgstr ""
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr ""
 
-#: src/callbacks.c:324
+#: src/callbacks.c:328
 msgid "Cannot set input"
 msgstr ""
 
-#: src/callbacks.c:343
+#: src/callbacks.c:347
 #, c-format
 msgid "Cannot tune given channel %d (no such channel)\n"
 msgstr ""
 
 #. Set the
 #. input freq
-#: src/callbacks.c:358
+#: src/callbacks.c:362
 msgid "Cannot tune input"
 msgstr ""
 
-#: src/callbacks.c:511
+#: src/callbacks.c:515
 msgid "Sorry, but cannot go fullscreen"
 msgstr ""
 
-#: src/callbacks.c:578
+#: src/callbacks.c:592
 msgid "I cannot find the main zapping window, weird..."
 msgstr ""
 
-#: src/callbacks.c:597
+#: src/callbacks.c:611
 msgid ""
 "The videotext decoder needs GdkPixbuf, and\n"
 "configure didn't find it."
 msgstr ""
 
-#: src/callbacks.c:603
+#: src/callbacks.c:617
 msgid "VBI has been disabled, or it doesn't work."
 msgstr ""
 
-#: src/callbacks.c:793 src/v4linterface.c:161
+#: src/callbacks.c:807 src/v4linterface.c:161
 msgid "No tuner"
 msgstr ""
 
-#: src/callbacks.c:801 src/v4linterface.c:163
+#: src/callbacks.c:815 src/v4linterface.c:163
 msgid "No tuned channels"
 msgstr ""
 
@@ -246,49 +258,49 @@ msgstr ""
 msgid "Error adding %s"
 msgstr ""
 
-#: src/tveng.c:137
+#: src/tveng.c:138
 msgid "The current display depth isn't supported by TVeng"
 msgstr ""
 
-#: src/tveng.c:155
+#: src/tveng.c:156
 msgid "The device cannot be attached to any controller"
 msgstr ""
 
-#: src/tveng.c:179 src/tveng.c:205 src/tveng.c:237 src/tveng.c:263
-#: src/tveng.c:289 src/tveng.c:315 src/tveng.c:340 src/tveng.c:367
-#: src/tveng.c:393 src/tveng.c:419 src/tveng.c:444 src/tveng.c:469
-#: src/tveng.c:492 src/tveng.c:516 src/tveng.c:543 src/tveng.c:571
-#: src/tveng.c:601 src/tveng.c:634 src/tveng.c:663 src/tveng.c:688
-#: src/tveng.c:714 src/tveng.c:740 src/tveng.c:765 src/tveng.c:795
-#: src/tveng.c:820 src/tveng.c:848 src/tveng.c:874 src/tveng.c:897
-#: src/tveng.c:931 src/tveng.c:959 src/tveng.c:987 src/tveng.c:1012
-#: src/tveng.c:1102 src/tveng.c:1280 src/tveng.c:1307 src/tveng.c:1335
-#: src/tveng.c:1529 src/tveng.c:1556
+#: src/tveng.c:180 src/tveng.c:206 src/tveng.c:238 src/tveng.c:264
+#: src/tveng.c:290 src/tveng.c:316 src/tveng.c:341 src/tveng.c:368
+#: src/tveng.c:394 src/tveng.c:420 src/tveng.c:445 src/tveng.c:470
+#: src/tveng.c:493 src/tveng.c:517 src/tveng.c:544 src/tveng.c:572
+#: src/tveng.c:602 src/tveng.c:635 src/tveng.c:664 src/tveng.c:689
+#: src/tveng.c:715 src/tveng.c:741 src/tveng.c:766 src/tveng.c:796
+#: src/tveng.c:821 src/tveng.c:849 src/tveng.c:875 src/tveng.c:898
+#: src/tveng.c:932 src/tveng.c:960 src/tveng.c:988 src/tveng.c:1013
+#: src/tveng.c:1103 src/tveng.c:1292 src/tveng.c:1319 src/tveng.c:1347
+#: src/tveng.c:1541 src/tveng.c:1568
 #, c-format
 msgid "%s called on a non-controlled device: %s\n"
 msgstr ""
 
-#: src/tveng.c:1176
+#: src/tveng.c:1185
 msgid "zapping_setup_fb exited abnormally, check stderr"
 msgstr ""
 
-#: src/tveng.c:1186
+#: src/tveng.c:1195
 msgid "zapping_setup_fb failed to set up the video"
 msgstr ""
 
-#: src/tveng.c:1191
+#: src/tveng.c:1200
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr ""
 
-#: src/tveng.c:1232
+#: src/tveng.c:1244
 msgid "Cannot find an appropiate visual"
 msgstr ""
 
-#: src/tveng.c:1252
+#: src/tveng.c:1264
 msgid "Cannot figure out X depth"
 msgstr ""
 
-#: src/tveng.c:1623
+#: src/tveng.c:1635
 msgid "Warning: trying to stop window with no capture active\n"
 msgstr ""
 
@@ -601,7 +613,7 @@ msgid ""
 "Hashes are 0x%x vs. 0x%x"
 msgstr ""
 
-#: src/zmisc.c:118
+#: src/zmisc.c:141
 #, c-format
 msgid ""
 "Sorry, but a %dx%d image couldn't be allocated, the image will not be "
@@ -984,12 +996,12 @@ msgstr ""
 msgid "Go _Capturing"
 msgstr ""
 
-#: glade/glade_strings.c:18 glade/glade_strings.c:128
-msgid "Use Zapping as a videotext decoder"
+#: glade/glade_strings.c:18
+msgid "Use Zapping as a Teletext navigator"
 msgstr ""
 
 #: glade/glade_strings.c:19 glade/glade_strings.c:129
-msgid "Videotext"
+msgid "_Teletext"
 msgstr ""
 
 #: glade/glade_strings.c:20
@@ -1372,6 +1384,10 @@ msgstr ""
 msgid "Use this for starting the fullscreen mode"
 msgstr ""
 
+#: glade/glade_strings.c:128
+msgid "Use Zapping as a teletext navigator"
+msgstr ""
+
 #: glade/glade_strings.c:130
 msgid "Searching..."
 msgstr ""
@@ -1381,35 +1397,31 @@ msgid "%P %%"
 msgstr ""
 
 #: glade/glade_strings.c:133
-msgid "Previous subpage"
-msgstr ""
-
-#: glade/glade_strings.c:134
-msgid "Previous page"
-msgstr ""
-
-#: glade/glade_strings.c:135
 msgid "Next page"
 msgstr ""
 
+#: glade/glade_strings.c:134
+msgid "Previous history entry"
+msgstr ""
+
+#: glade/glade_strings.c:135
+msgid "Next history entry"
+msgstr ""
+
 #: glade/glade_strings.c:136
-msgid "Next subpage"
+msgid "Previous page"
 msgstr ""
 
 #: glade/glade_strings.c:137
 msgid "Visit:"
 msgstr ""
 
-#: glade/glade_strings.c:138
+#: glade/glade_strings.c:138 glade/glade_strings.c:140
 msgid "Page"
 msgstr ""
 
 #: glade/glade_strings.c:139
-msgid "Subpage, 0 for looking to all subpages"
-msgstr ""
-
-#: glade/glade_strings.c:140
-msgid "History box"
+msgid "Subpage, -1 for looking to all subpages"
 msgstr ""
 
 #: plugins/screenshot/screenshot.c:31

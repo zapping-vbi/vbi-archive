@@ -19,6 +19,8 @@ Requires: gtk+ >= 1.2.6
 Requires: gnome-libs >= 1.0.40
 Requires: libxml >= 1.4.0
 Requires: libglade >= 0.9
+Requires: gdk-pixbuf >= 0.7
+Requires: libpng >= 1.0.5
 
 %description
 GNOME (GNU Network Object Model Environment) is a user-friendly set of
@@ -67,6 +69,9 @@ make prefix=$RPM_BUILD_ROOT%{prefix} install
 %doc AUTHORS THANKS ChangeLog README README.plugins COPYING TODO BUGS po/zapping.pot
 
 %changelog
+* Mon Sep 11 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
+	- Added the dependency to GdkPixbuf and LibPng
+
 * Mon Jun 19 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
 	- Added the desktop entry and removed the specified --datadir
 

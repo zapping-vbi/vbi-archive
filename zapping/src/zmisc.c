@@ -39,6 +39,7 @@ static gint curx, cury, curw=-1, curh=-1;
 /* current geometry of the window */
 static gboolean obscured = FALSE;
 gboolean ignore_next_expose = FALSE;
+gboolean debug_msg=FALSE; /* Debugging messages on or off */
 static guint timeout_id = 0;
 
 /*
