@@ -224,6 +224,7 @@ int main(int argc, char *argv[])
 	padding: 2;
     }
   --></style>
+  <link rel="Shortcut Icon" href="http://zapping.sourceforge.net/bookmark.ico">
   </head>
 
 ½abstract1
