@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<!--
-Include Bugs reporting guidelines and contact info to reduce number of buttons.
--->
-<document title="Contacting the maintainers" abstract="Contacting us">
-<include>contact.xml</include>
-<include>bugs.xml</include>
-</document>

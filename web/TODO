@@ -1,5 +1,0 @@
-$Id: TODO,v 1.2 2002-05-09 19:49:56 mschimek Exp $
-
-+ Can we get our own 404 page? Yes! .htaccess & ErrorDocument.
-
-
