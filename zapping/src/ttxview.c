@@ -842,6 +842,7 @@ event_timeout				(ttxview_data	*data)
 	  update_pointer(data);
 	  break;
 	case TTX_NETWORK_CHANGE:
+	case TTX_PROG_INFO_CHANGE:
 	case TTX_TRIGGER:
 	  break;
 	case TTX_CHANNEL_SWITCHED:

@@ -652,7 +652,9 @@ gchar *substitute_keywords	(gchar		*string,
     "$(id)",
     "$(input)",
     "$(standard)",
-    "$(freq)"
+    "$(freq)",
+    "$(title)",
+    "$(rating)"
   };
   gint num_keys = sizeof(search_keys)/sizeof(*search_keys);
 
@@ -698,6 +700,12 @@ gchar *substitute_keywords	(gchar		*string,
 	   break;
 	 case 5:
 	   buffer = g_strdup_printf("%d", tc->freq);
+	   break;
+	 case 6: /* title */
+	   buffer = zvbi_current_title();
+	   break;
+	 case 7: /* rating */
+	   buffer = g_strdup(zvbi_current_rating());
 	   break;
 	 default:
 	   g_assert_not_reached();

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.18 2001-11-28 22:13:24 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.19 2001-12-07 06:50:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -200,13 +200,19 @@ tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
 
 	bprolog(&video_out);
 
+	mpeg1->filter_param[0].src = org;
+
 	for (mb_row = 0; mb_row < mb_height; mb_row++) {
 		for (mb_col = 0; mb_col < mb_width; mb_col++) {
 
 			/* Read macroblock (MMX state) */
 
 			pr_start(41, "Filter");
+#if TEST21
+			var = mpeg1->filter_param[0].func(&mpeg1->filter_param[0], mb_col, mb_row);
+#else
 			var = (*filter)(org, org); // -> mblock[0]
+#endif
 			pr_end(41);
 
 			if (motion) {
@@ -454,6 +460,8 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 
 	bprolog(&video_out);
 
+	mpeg1->filter_param[0].src = org;
+
 	for (mb_row = 0; mb_row < mb_height; mb_row++) {
 		if (1 && __builtin_expect(mb_row == mpeg1->mb_cx_row &&
 		    intra_count >= mpeg1->mb_cx_thresh, 0)) {
@@ -468,7 +476,11 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 			/* Read macroblock (MMX state) */
 
 			pr_start(41, "Filter");
+#if TEST21
+			var = mpeg1->filter_param[0].func(&mpeg1->filter_param[0], mb_col, mb_row);
+#else
 			var = (*filter)(org, org); // -> mblock[0]
+#endif
 			pr_end(41);
 
 			if (motion) {
@@ -761,13 +773,19 @@ tmp_picture_b(mpeg1_context *mpeg1, unsigned char *org,
 
 	bprolog(&video_out);
 
+	mpeg1->filter_param[0].src = org;
+
 	for (mb_row = 0; mb_row < mb_height; mb_row++) {
 		for (mb_col = 0; mb_col < mb_width; mb_col++) {
 
 			/* Read macroblock (MMX state) */
 
 			pr_start(41, "Filter");
+#if TEST21
+			var = mpeg1->filter_param[0].func(&mpeg1->filter_param[0], mb_col, mb_row);
+#else
 			var = (*filter)(org, org); // -> mblock[0]
+#endif
 			pr_end(41);
 
 			/* Choose prediction type */
@@ -1502,6 +1520,30 @@ mpeg1_video_ipb(void *p)
 	buffer *obuf;
 
 	printv(3, "Video compression thread\n");
+
+#if TEST21
+{
+	extern void mmx_YUV_420(void);
+	extern void mmx_YUYV_422(void);
+	extern int pmmx_YUV420_0(filter_param *, int, int) __attribute__ ((regparm (3)));
+	extern int pmmx_YUYV_0(filter_param *, int, int) __attribute__ ((regparm (3)));
+	extern int filter_y_offs, filter_u_offs, filter_v_offs, filter_y_pitch;
+
+	mpeg1->filter_param[0].dest = &mblock[0];
+	mpeg1->filter_param[0].offset = filter_y_offs;
+	mpeg1->filter_param[0].u_offset = filter_u_offs;
+	mpeg1->filter_param[0].v_offset = filter_v_offs;
+	mpeg1->filter_param[0].stride = filter_y_pitch;
+	mpeg1->filter_param[0].uv_stride = filter_y_pitch >> 1;
+
+	if (filter == mmx_YUV_420)
+		mpeg1->filter_param[0].func = pmmx_YUV420_0;
+	else if (filter == mmx_YUYV_422)
+		mpeg1->filter_param[0].func = pmmx_YUYV_0;
+	else
+		assert(0);	
+}
+#endif
 
 	/* XXX this function isn't reentrant */
 	assert(static_context == mpeg1);

@@ -1,3 +1,10 @@
+7.12.2001	<mschimek@users.sf.net>
+
+	* v4linterface.c: Added new title bar vars $(title), $(rating),
+	  contents from program_info[current] (for now CC/XDS only).
+	* Added program_info dialog, clone of vbi_info (now Network Info),
+	  unified the dialog design.
+
 5.12.2001	caption.c <mschimek@users.sf.net>
 
 	* Fixed repeated roll-ups may be merged into one.

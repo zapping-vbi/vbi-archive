@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.11 2001-12-05 07:22:46 mschimek Exp $ */
+/* $Id: video.h,v 1.12 2001-12-07 06:50:24 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -195,6 +195,24 @@ rc_picture_end(struct rc *rc, picture_type type,
 	}
 }
 
+typedef struct filter_param filter_param;
+
+typedef int (filter_fn)(filter_param *, int col, int row) __attribute__ ((regparm (3)));
+
+struct filter_param {
+	void *			dest;		// 0
+	void *			src;		// 1
+	filter_fn *		func;		// 2
+	int			offset;		// 3
+	int			u_offset;	// 4
+	int			v_offset;	// 5
+	int			stride;		// 6
+	int			uv_stride;	// 7
+	int			clip_col;	// 8
+	int			clip_row;	// 9
+	int			resv[6];
+};
+
 typedef struct stacked_frame {
 	uint8_t *	org;
 	buffer *	buffer;
@@ -205,6 +223,8 @@ typedef struct stacked_frame {
 typedef struct mpeg1_context mpeg1_context;
 
 struct mpeg1_context {
+	filter_param	filter_param[2];
+
 	uint8_t		seq_header_template[32];
 
 	uint8_t *	zerop_template;		/* empty P picture */

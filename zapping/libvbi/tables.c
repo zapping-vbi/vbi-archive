@@ -24,7 +24,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.c,v 1.10 2001-12-05 07:25:00 mschimek Exp $ */
+/* $Id: tables.c,v 1.11 2001-12-07 06:49:37 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "libvbi.h"
@@ -992,10 +992,10 @@ char *
 vbi_rating_str_by_id(vbi_rating_auth auth, int id)
 {
 	static const char *ratings[4][8] = {
-		{ NULL, "G", "PG", "PG-13", "R", "NC-17", "X", "not rated" },
-		{ "not rated", "TV-Y", "TV-Y7", "TV-G", "TV-PG", "TV-14", "TV-MA", "not rated" },
-		{ "exempt", "C", "C8+", "G", "PG", "14+", "18+", NULL },
-		{ "exempt", "G", "8 ans +", "13 ans +", "16 ans +", "18 ans +", NULL, NULL },
+		{ NULL, "G", "PG", "PG-13", "R", "NC-17", "X", "Not rated" },
+		{ "Not rated", "TV-Y", "TV-Y7", "TV-G", "TV-PG", "TV-14", "TV-MA", "Not rated" },
+		{ "Exempt", "C", "C8+", "G", "PG", "14+", "18+", NULL },
+		{ "Exempt", "G", "8 ans +", "13 ans +", "16 ans +", "18 ans +", NULL, NULL },
 	};
 
 	if (id < 0 || id > 7)

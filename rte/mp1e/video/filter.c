@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.4 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: filter.c,v 1.5 2001-12-07 06:50:24 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -507,4 +507,17 @@ filter_init(int pitch)
 		color_pred = filter;
 		filter = color_trap;
 	}
+/*
+	void *			dest;		// 0
+	void *			src;		// 1
+	filter_fn *		func;		// 2
+	int			offset;		// 3
+	int			u_offset;	// 4
+	int			v_offset;	// 5
+	int			stride;		// 6
+	int			uv_stride;	// 7
+	int			clip_col;	// 8
+	int			clip_row;	// 9
+	int			resv[6];
+*/
 }

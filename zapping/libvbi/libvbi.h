@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.51 2001-12-05 07:25:00 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.52 2001-12-07 06:49:37 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -304,6 +304,7 @@ typedef enum {
 
 extern char *		vbi_prog_type_str_by_id(vbi_prog_classf classf, int id);
 
+/* code depends on order, don't change */
 typedef enum {
 	VBI_AUDIO_MODE_NONE = 0,
 	VBI_AUDIO_MODE_MONO,
@@ -427,6 +428,9 @@ typedef struct vbi_program_info {
 	 */
 	char			description[8][33];
 } vbi_program_info;
+
+/* Convenience function to reset as noted above. */
+extern void		vbi_reset_prog_info(vbi_program_info *pi);
 
 /*
  *  Event (vbi.c)

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.13 2001-12-05 07:22:46 mschimek Exp $ */
+/* $Id: oss.c,v 1.14 2001-12-07 06:50:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -46,6 +46,8 @@
    while (__result == -1L && errno == EINTR); __result; })
 
 #define TEST 0
+
+extern int test_mode;
 
 /*
  *  OSS PCM Device
@@ -195,11 +197,19 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	ASSERT("set OSS PCM %d channels",
 		IOCTL(oss->fd, SNDCTL_DSP_STEREO, &oss_stereo) == 0, stereo + 1);
 
-oss_speed = 31000;
-//	ASSERT("set OSS PCM sampling rate %d Hz",
-		IOCTL(oss->fd, SNDCTL_DSP_SPEED, &oss_speed) == 0
-; //		&& abs(oss_speed - sampling_rate) < (sampling_rate / 50),
-//		sampling_rate);
+	if (test_mode & 32) {
+		printv(0, "Deliberate sampling rate mismatch: "
+			  "request 32 kHz, presumed to be %d Hz\n", sampling_rate);
+		oss_speed = 32000;
+		ASSERT("set OSS PCM sampling rate %d Hz",
+	    		IOCTL(oss->fd, SNDCTL_DSP_SPEED, &oss_speed) == 0,
+			oss_speed);
+	} else {
+		ASSERT("set OSS PCM sampling rate %d Hz",
+		    	IOCTL(oss->fd, SNDCTL_DSP_SPEED, &oss_speed) == 0
+			 && abs(oss_speed - sampling_rate) < (sampling_rate / 50),
+			sampling_rate);
+	}
 
 	if (IOCTL(oss->fd, SNDCTL_DSP_GETBLKSIZE, &oss_frag_size) != 0)
 		oss_frag_size = 4096; /* bytes */

@@ -283,7 +283,14 @@ void
 on_vbi_info1_activate                  (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  gtk_widget_show(build_vbi_info());
+  gtk_widget_show(zvbi_build_network_info());
+}
+
+void
+on_program_info1_activate              (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  gtk_widget_show(zvbi_build_program_info());
 }
 
 void

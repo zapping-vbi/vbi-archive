@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.78 2001-12-05 07:25:00 mschimek Exp $ */
+/* $Id: vbi.c,v 1.79 2001-12-07 06:49:37 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -345,6 +345,7 @@ vbi_chsw_reset(struct vbi *vbi, nuid identified)
 
 	vbi_reset_prog_info(&vbi->prog_info[0]);
 	vbi_reset_prog_info(&vbi->prog_info[1]);
+	/* XXX event? */
 
 	vbi->prog_info[1].future = TRUE;
 	vbi->prog_info[0].future = FALSE;

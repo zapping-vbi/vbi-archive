@@ -38,6 +38,7 @@ enum ttx_message {
   TTX_NONE=0, /* No messages */
   TTX_PAGE_RECEIVED, /* The monitored page has been received */
   TTX_NETWORK_CHANGE, /* New network info feeded into the decoder */
+  TTX_PROG_INFO_CHANGE, /* New program info feeded into the decoder */
   TTX_TRIGGER, /* Trigger event, ttx_message_data.link filled */
   TTX_CHANNEL_SWITCHED, /* zvbi_channel_switched was called, the cache
 			   has been cleared */
@@ -174,10 +175,10 @@ zvbi_get_model(void);
 
 /*
   Builds a dialog showing the info we get from the VBI device
-  (network, tape delay, etc)
+  a) network info, b) program info
 */
-GtkWidget *
-build_vbi_info(void);
+GtkWidget *zvbi_build_network_info(void);
+GtkWidget *zvbi_build_program_info(void);
 
 /*
   Returns the g_strdup'ed name of the current station, if known, or
@@ -199,5 +200,19 @@ zvbi_name_unknown(void);
 */
 void
 zvbi_channel_switched(void);
+
+/*
+  Returns the current program title ("Foo", "Bar", "Unknown"),
+  the returned string must be g_free'ed
+*/
+gchar *
+zvbi_current_title(void);
+
+/*
+  Returns the current program rating ("TV-MA", "Not rated"),
+  don't free, just a pointer.
+*/
+gchar *
+zvbi_current_rating(void);
 
 #endif /* zvbi.h */
