@@ -513,7 +513,7 @@ zvbi_open_device(char *device)
     given_fd = -1;
   D();
     vbi_source = vbi_open_v4lx(device, given_fd,
-			       1 /* buffered */, 30 /* fifo depth */,
+			       1 /* buffered */, 50 /* fifo depth */,
 			       &err_str);
   if (!vbi_source)
     {

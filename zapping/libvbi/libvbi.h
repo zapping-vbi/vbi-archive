@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.44 2001-08-09 15:12:20 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.45 2001-08-10 04:43:28 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -338,11 +338,11 @@ typedef struct {
 } vbi_event;
 
 extern int		vbi_event_handler(struct vbi *vbi, int event_mask, void (* handler)(vbi_event *, void *), void *user_data); 
-
 /* Affects vbi_fetch_*_page(), the fmt_page, not export */
 extern void		vbi_set_colour_level(struct vbi *vbi, int brig, int cont);
-extern void		vbi_push_video(struct vbi *vbi, void *data, int width, enum tveng_frame_pixformat fmt, double time);
-
+extern void		vbi_push_video(struct vbi *vbi, void *data, int width,
+			       enum tveng_frame_pixformat fmt, double time);
+extern void             vbi_channel_switched(struct vbi *vbi);
 extern void		vbi_close(struct vbi *vbi);
 extern struct vbi *	vbi_open(fifo *source);
 

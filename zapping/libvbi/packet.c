@@ -1005,7 +1005,7 @@ station_lookup(vbi_cni_type type, int cni,
 	return 0;
 }
 
-#define BSD_TEST 0
+#define BSD_TEST 0 /* Broadcaster Service Data */
 
 #if BSD_TEST
 
@@ -1437,16 +1437,6 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 	}
 
 	return TRUE;
-}
-
-void
-vbi_teletext_desync(struct vbi *vbi)
-{
-	int i;
-
-	/* Discard all in progress pages */
-	for (i = 0; i < 8; i++)
-		vbi->vt.raw_page[i].page->function = PAGE_FUNCTION_DISCARD;
 }
 
 #define TTX_EVENTS (VBI_EVENT_PAGE)
@@ -2192,14 +2182,85 @@ default_colour_map[40] = {
 	0xFF000000, 0xFF99AAFF, 0xFF44EE00, 0xFF00DDFF, 0xFFFFAA99, 0xFFFF00FF, 0xFFFFFF00, 0xFFEEEEEE,
 };
 
-/*
- *  Public. default_region is an index into font_descriptors[]
- *  table, lang.c.
- */
+void
+vbi_teletext_desync(struct vbi *vbi)
+{
+	int i;
+
+	/* Discard all in progress pages */
+
+	for (i = 0; i < 8; i++)
+		vbi->vt.raw_page[i].page->function = PAGE_FUNCTION_DISCARD;
+}
+
+void
+vbi_teletext_channel_switched(struct vbi *vbi)
+{
+	magazine *mag;
+	extension *ext;
+	int i, j;
+
+	vbi->vt.initial_page.pgno = 0x100;
+	vbi->vt.initial_page.subno = ANY_SUB;
+
+	vbi->vt.top = FALSE;
+
+	memset(vbi->vt.page_info, 0xFF, sizeof(vbi->vt.page_info));
+
+	/* Magazine defaults */
+
+	memset(vbi->vt.magazine, 0, sizeof(vbi->vt.magazine));
+
+	for (i = 0; i < 9; i++) {
+		mag = vbi->vt.magazine + i;
+
+		for (j = 0; j < 16; j++) {
+			mag->pop_link[j].pgno = 0x0FF;		/* unused */
+			mag->drcs_link[j] = 0x0FF;		/* unused */
+		}
+
+		ext = &mag->extension;
+
+		ext->def_screen_colour		= BLACK;	/* A.5 */
+		ext->def_row_colour		= BLACK;	/* A.5 */
+		ext->foreground_clut		= 0;
+		ext->background_clut		= 0;
+
+		for (j = 0; j < 8; j++)
+			ext->drcs_clut[j + 2] = j & 3;
+
+		for (j = 0; j < 32; j++)
+			ext->drcs_clut[j + 10] = j & 15;
+
+		memcpy(ext->colour_map, default_colour_map, sizeof(ext->colour_map));
+	}
+
+	vbi_teletext_desync(vbi);
+}
+
+/**
+ * vbi_set_default_region:
+ * @vbi: vbi decoder context
+ * @default_region: a value between 0 ... 80, index into
+ *   font_descriptors[] table, lang.c. The three lsb are
+ *   insignificant.
+ * 
+ * The original Teletext specification distinguished between
+ * eight national character sets. When more countries started
+ * to broadcast Teletext the three bit character set id was
+ * locally redefined and later extended to seven bits grouping
+ * the regional variations. Since some stations still transmit
+ * only the legacy id and we don't ship regional variants this
+ * function can be used to set a default for the extended bits.
+ * The factory default is 16.
+ **/
 void
 vbi_set_default_region(struct vbi *vbi, int default_region)
 {
 	int i;
+
+	if (default_region < 0 || default_region > 87)
+		return;
 
 	for (i = 0; i < 9; i++) {
 		extension *ext = &vbi->vt.magazine[i].extension;
@@ -2222,52 +2283,33 @@ vbi_set_teletext_level(struct vbi *vbi, int level)
 }
 
 void
-vbi_init_teletext(struct teletext *vt)
+vbi_init_teletext(struct vbi *vbi)
 {
-	magazine *mag;
 	extension *ext;
-	int i, j;
+	int i;
 
-	vt->max_level = VBI_LEVEL_2p5;
+	vbi_teletext_channel_switched(vbi);     /* Reset */
 
-	vt->initial_page.pgno = 0x100;
-	vt->initial_page.subno = ANY_SUB;
-
-	vt->top = FALSE;
-
-	memset(vt->page_info, 0xFF, sizeof(vt->page_info));
-
-	/* Magazine defaults */
-
-	memset(vt->magazine, 0, sizeof(vt->magazine));
+	vbi->vt.max_level = VBI_LEVEL_2p5;
 
 	for (i = 0; i < 9; i++) {
-		mag = vt->magazine + i;
+		ext = &vbi->vt.magazine[i].extension;
 
-		for (j = 0; j < 16; j++) {
-			mag->pop_link[j].pgno = 0x0FF;		/* unused */
-			mag->drcs_link[j] = 0x0FF;		/* unused */
-		}
-
-		ext = &mag->extension;
-
-		ext->char_set[0]		= 16;		/* Latin G0, G2, English subset */
-		ext->char_set[0]		= 16;		/* Latin G0, English subset */
-								/* Region Western Europe and Turkey */
-		ext->def_screen_colour		= BLACK;	/* A.5 */
-		ext->def_row_colour		= BLACK;	/* A.5 */
-		ext->foreground_clut		= 0;
-		ext->background_clut		= 0;
-
-		for (j = 0; j < 8; j++)
-			ext->drcs_clut[j + 2] = j & 3;
-
-		for (j = 0; j < 32; j++)
-			ext->drcs_clut[j + 10] = j & 15;
-
-		memcpy(ext->colour_map, default_colour_map, sizeof(ext->colour_map));
+		ext->char_set[0] = 16;		/* Latin G0, G2, English subset */
+		ext->char_set[0] = 16;		/* Latin G0, English subset */
+						/* Region Western Europe and Turkey */
 	}
-
-	for (i = 0; i < 8; i++)
-		vt->raw_page[i].page->function = PAGE_FUNCTION_DISCARD;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

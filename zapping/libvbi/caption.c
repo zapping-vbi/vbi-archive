@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.29 2001-07-24 20:47:04 garetxe Exp $ */
+/* $Id: caption.c,v 1.30 2001-08-10 04:43:28 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -315,6 +315,7 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 				vbi_event ev;
 
 				vbi->ratio = r;
+				vbi->ratio_source = 3;
 
 				ev.type = VBI_EVENT_RATIO;
 				ev.p = &vbi->ratio;
@@ -1123,12 +1124,6 @@ caption_command(struct vbi *vbi, struct caption *cc,
 }
 
 void
-vbi_caption_desync(struct vbi *vbi)
-{
-	/* XXX TODO */
-}
-
-void
 vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 {
 	struct caption *cc = &vbi->cc;
@@ -1250,31 +1245,14 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 	pthread_mutex_unlock(&cc->mutex);
 }
 
-static attr_rgba
-default_colour_map[8] = {
-	0xFF000000, 0xFF0000FF, 0xFF00FF00, 0xFF00FFFF,	
-	0xFFFF0000, 0xFFFF00FF, 0xFFFFFF00, 0xFFFFFFFF
-};
-
 void
-vbi_caption_colour_level(struct vbi *vbi)
+vbi_caption_desync(struct vbi *vbi)
 {
-	int i;
-
-#if TEST
-	memcpy(vbi->cc.channel[0].pg[0].colour_map, default_colour_map,
-		sizeof(default_colour_map));
-#else
-	vbi_transp_colourmap(vbi, vbi->cc.channel[0].pg[0].colour_map, default_colour_map, 8);
-#endif
-	for (i = 1; i < 16; i++)
-		memcpy(vbi->cc.channel[i >> 1].pg[i & 1].colour_map,
-		       vbi->cc.channel[0].pg[0].colour_map,
-		       sizeof(default_colour_map));
+	/* XXX TODO */
 }
 
 void
-vbi_init_caption(struct vbi *vbi)
+vbi_caption_channel_switched(struct vbi *vbi)
 {
 	struct caption *cc = &vbi->cc;
 	channel *ch;
@@ -1282,9 +1260,10 @@ vbi_init_caption(struct vbi *vbi)
 
 	memset(cc, 0, sizeof(struct caption));
 
+	/* XXX */
 	pthread_mutex_init(&cc->mutex, NULL);
 
-	for (i = 0; i < 2; i++) {
+       	for (i = 0; i < 2; i++) {
 		cc->transp_space[i].foreground = WHITE;
 		cc->transp_space[i].background = BLACK;
 		cc->transp_space[i].glyph = GL_CAPTION + 0x20;
@@ -1317,6 +1296,52 @@ vbi_init_caption(struct vbi *vbi)
 
 		ch->hidden = 0;
 
+		ch->pg[0].dirty.y0 = 0;
+		ch->pg[0].dirty.y1 = ROWS - 1;
+		ch->pg[0].dirty.roll = 0;
+
+		erase_memory(cc, ch, 0);
+
+		memcpy(&ch->pg[1], &ch->pg[0], sizeof(ch->pg[1]));
+	}
+}
+
+
+static attr_rgba
+default_colour_map[8] = {
+	0xFF000000, 0xFF0000FF, 0xFF00FF00, 0xFF00FFFF,	
+	0xFFFF0000, 0xFFFF00FF, 0xFFFFFF00, 0xFFFFFFFF
+};
+
+void
+vbi_caption_colour_level(struct vbi *vbi)
+{
+	int i;
+
+#if TEST
+	memcpy(vbi->cc.channel[0].pg[0].colour_map, default_colour_map,
+		sizeof(default_colour_map));
+#else
+	vbi_transp_colourmap(vbi, vbi->cc.channel[0].pg[0].colour_map, default_colour_map, 8);
+#endif
+	for (i = 1; i < 16; i++)
+		memcpy(vbi->cc.channel[i >> 1].pg[i & 1].colour_map,
+		       vbi->cc.channel[0].pg[0].colour_map,
+		       sizeof(default_colour_map));
+}
+
+void
+vbi_init_caption(struct vbi *vbi)
+{
+	struct caption *cc = &vbi->cc;
+	channel *ch;
+	int i;
+
+	vbi_caption_channel_switched(vbi);
+
+	for (i = 0; i < 8; i++) {
+		ch = &cc->channel[i];
+
 		ch->pg[0].vbi = vbi;
 
 		ch->pg[0].pgno = CC_PAGE_BASE + i;
@@ -1331,17 +1356,12 @@ vbi_init_caption(struct vbi *vbi)
 		ch->pg[0].font[0] = font_descriptors; /* English */
 		ch->pg[0].font[1] = font_descriptors;
 
-		ch->pg[0].dirty.y0 = 0;
-		ch->pg[0].dirty.y1 = ROWS - 1;
-		ch->pg[0].dirty.roll = 0;
-
-		erase_memory(cc, ch, 0);
-
 		memcpy(&ch->pg[1], &ch->pg[0], sizeof(ch->pg[1]));
 	}
 
 	vbi_caption_colour_level(vbi);
 }
+
 
 #if !TEST
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.67 2001-08-09 15:12:20 mschimek Exp $ */
+/* $Id: vbi.c,v 1.68 2001-08-10 04:43:28 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -107,11 +107,17 @@ vbi_event_handler(struct vbi *vbi, int event_mask,
 	activate = mask & ~vbi->event_mask;
 
 	if (activate & VBI_EVENT_PAGE)
-		vbi_init_teletext(&vbi->vt);
+		vbi_teletext_channel_switched(vbi);
 	if (activate & VBI_EVENT_CAPTION)
-		vbi_init_caption(vbi);
+		vbi_caption_channel_switched(vbi);
 	if (activate & VBI_EVENT_NETWORK)
 		memset(&vbi->network, 0, sizeof(vbi->network));
+	if (activate & VBI_EVENT_TRIGGER)
+		vbi_trigger_flush(vbi);
+	if (activate & VBI_EVENT_RATIO) {
+		memset(&vbi->ratio, 0, sizeof(vbi->ratio));
+		vbi->ratio_source = 0;
+	}
 
 	vbi->event_mask = mask;
 
@@ -204,6 +210,7 @@ decode_wss_625(struct vbi *vbi, unsigned char *buf, double time)
 		vbi_event ev;
 
 		vbi->ratio = r;
+		vbi->ratio_source = 1;
 
 		ev.type = VBI_EVENT_RATIO;
 		ev.p = &vbi->ratio;
@@ -232,16 +239,16 @@ decode_wss_625(struct vbi *vbi, unsigned char *buf, double time)
 		printf("WSS: %s; %s mode; %s colour coding;\n"
 		       "      %s helper; reserved b7=%d; %s\n"
 		       "      open subtitles: %s; %scopyright %s; copying %s\n",
-			formats[buf[0] & 7],
-			(buf[0] & 0x10) ? "film" : "camera",
-			(buf[0] & 0x20) ? "MA/CP" : "standard",
-			(buf[0] & 0x40) ? "modulated" : "no",
-			!!(buf[0] & 0x80),
-			(buf[1] & 0x01) ? "have TTX subtitles; " : "",
-			subtitles[(buf[1] >> 1) & 3],
-			(buf[1] & 0x08) ? "surround sound; " : "",
-			(buf[1] & 0x10) ? "asserted" : "unknown",
-			(buf[1] & 0x20) ? "restricted" : "not restricted");
+		       formats[buf[0] & 7],
+		       (buf[0] & 0x10) ? "film" : "camera",
+		       (buf[0] & 0x20) ? "MA/CP" : "standard",
+		       (buf[0] & 0x40) ? "modulated" : "no",
+		       !!(buf[0] & 0x80),
+		       (buf[1] & 0x01) ? "have TTX subtitles; " : "",
+		       subtitles[(buf[1] >> 1) & 3],
+		       (buf[1] & 0x08) ? "surround sound; " : "",
+		       (buf[1] & 0x10) ? "asserted" : "unknown",
+		       (buf[1] & 0x20) ? "restricted" : "not restricted");
 	}
 }
 
@@ -268,6 +275,7 @@ decode_wss_cpr1204(struct vbi *vbi, unsigned char *buf)
 		vbi_event ev;
 
 		vbi->ratio = r;
+		vbi->ratio_source = 2;
 
 		ev.type = VBI_EVENT_RATIO;
 		ev.p = &vbi->ratio;
@@ -283,6 +291,52 @@ decode_wss_cpr1204(struct vbi *vbi, unsigned char *buf)
 #define SLICED_CAPTION		(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625 \
 				 | SLICED_CAPTION_525_F1 | SLICED_CAPTION_525)
 
+#include <sys/resource.h>
+
+static void
+channel_switched(struct vbi *vbi)
+{
+	nuid old_nuid = vbi->network.nuid;
+	vbi_event ev;
+
+return; /* unfinished */
+
+	/* XXX cache */
+
+	vbi_teletext_channel_switched(vbi);
+	vbi_caption_channel_switched(vbi);
+
+	memset(&vbi->network, 0, sizeof(&vbi->network));
+
+	if (old_nuid) {
+		ev.type = VBI_EVENT_NETWORK;
+		ev.p = &vbi->network;
+		vbi_send_event(vbi, &ev);
+	}
+
+	vbi_trigger_flush(vbi); /* sic? */
+
+	if (vbi->ratio_source > 0) {
+		vbi->ratio.first_line = (vbi->ratio_source == 1) ? 23 : 22;
+		vbi->ratio.last_line = (vbi->ratio_source == 1) ? 310 : 262;
+		vbi->ratio.ratio = 1.0;
+		vbi->ratio.film_mode = 0;
+		vbi->ratio.open_subtitles = VBI_SUBT_UNKNOWN;
+
+		ev.type = VBI_EVENT_RATIO;
+		ev.p = &vbi->ratio;
+		vbi_send_event(vbi, &ev);
+	}
+
+	memset(&vbi->ratio, 0, sizeof(vbi->ratio));
+	vbi->ratio_source = 0;
+
+	vbi->wss_last[0] = 0;
+	vbi->wss_last[1] = 0;
+	vbi->wss_rep_ct = 0;
+	vbi->wss_time = 0.0;
+}
+
 static void *
 mainloop(void *p)
 {
@@ -293,6 +347,8 @@ mainloop(void *p)
 	int items;
 
 	assert(add_consumer(vbi->source, &c));
+
+	setpriority(PRIO_PROCESS, 0, 5);
 
 	while (!vbi->quit) {
 		buffer *b = wait_full_buffer(&c);
@@ -309,11 +365,30 @@ mainloop(void *p)
 		}
 
 		if (vbi->time > 0 && (b->time - vbi->time) > 0.055) {
+			/*
+			 *  Since (dropped >= channel switch) we give
+			 *  ~1.5 s to refute, then assume a switch.
+			 */
+			pthread_mutex_lock(&vbi->resync_mutex);
+
+			if (vbi->resync > 0)
+				vbi->resync = 40;
+
+			pthread_mutex_unlock(&vbi->resync_mutex);
+
 // fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n", b->time, b->time - vbi->time);
 			if (vbi->event_mask & (VBI_EVENT_PAGE | VBI_EVENT_NETWORK))
 				vbi_teletext_desync(vbi);
 			if (vbi->event_mask & (VBI_EVENT_CAPTION | VBI_EVENT_NETWORK))
 				vbi_caption_desync(vbi);
+		} else {
+			pthread_mutex_lock(&vbi->resync_mutex);
+
+			if (vbi->resync > 0 && --vbi->resync == 0) {
+				pthread_mutex_unlock(&vbi->resync_mutex);
+				channel_switched(vbi);
+			} else
+				pthread_mutex_unlock(&vbi->resync_mutex);
 		}
 
 		if (b->time > vbi->time)
@@ -354,6 +429,16 @@ mainloop(void *p)
 	rem_consumer(&c);
 
 	return NULL;
+}
+
+void
+vbi_channel_switched(struct vbi *vbi)
+{
+	pthread_mutex_lock(&vbi->resync_mutex);
+
+	vbi->resync = 1;
+
+	pthread_mutex_unlock(&vbi->resync_mutex);
 }
 
 /* TEST ONLY */
@@ -691,6 +776,7 @@ vbi_close(struct vbi *vbi)
 	vbi_trigger_flush(vbi);
 
 	pthread_mutex_destroy(&vbi->event_mutex);
+	pthread_mutex_destroy(&vbi->resync_mutex);
 
 	rem_producer(&vbi->wss_producer);
 
@@ -742,11 +828,12 @@ vbi_open(fifo *source)
 
 	/* Initialize the decoder */
 
+	pthread_mutex_init(&vbi->resync_mutex, NULL);
 	pthread_mutex_init(&vbi->event_mutex, NULL);
 
 	vbi->time = 0.0;
 
-	vbi_init_teletext(&vbi->vt);
+	vbi_init_teletext(vbi);
 
 	vbi->vt.max_level = VBI_LEVEL_2p5;
 
@@ -761,6 +848,7 @@ vbi_open(fifo *source)
 	if (pthread_create(&vbi->mainloop_thread_id, NULL, mainloop, vbi)) {
 		/* Or maybe not */
 		pthread_mutex_destroy(&vbi->event_mutex);
+		pthread_mutex_destroy(&vbi->resync_mutex);
 		rem_producer(&vbi->wss_producer);
 		remove_filter(vbi);
 		vbi_cache_destroy(vbi);
@@ -771,3 +859,8 @@ vbi_open(fifo *source)
 
 	return vbi;
 }
+
+
+
+
+

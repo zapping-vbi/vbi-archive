@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.30 2001-08-08 05:23:27 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.31 2001-08-10 04:43:28 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -214,9 +214,10 @@ read_thread(void *p)
 			    && (errno == EINTR || errno == ETIME))
 				continue;
 
-			for (; stacked > 0; stacked--)
+			for (; stacked > 0; stacked--) {
 				send_full_buffer(&v4l->producer,
 					PARENT(rem_head(&stack), buffer, node));
+                        }
 
 			b->used = -1;
 			b->error = errno;

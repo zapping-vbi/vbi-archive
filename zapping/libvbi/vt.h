@@ -334,15 +334,19 @@ struct vbi; /* parent of struct teletext */
 
 /* packet.c */
 
-extern void		vbi_init_teletext(struct teletext *vt);
+extern void		vbi_init_teletext(struct vbi *vbi);
 extern bool		vbi_teletext_packet(struct vbi *vbi, unsigned char *p);
 extern void		vbi_teletext_desync(struct vbi *vbi);
-extern struct vt_page *	vbi_convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_function new_function);
+extern void             vbi_teletext_channel_switched(struct vbi *vbi);
+extern struct vt_page *	vbi_convert_page(struct vbi *vbi, struct vt_page *vtp,
+					 bool cached, page_function new_function);
 
 extern void		vbi_vps(struct vbi *vbi, unsigned char *p);
 
 /* teletext.c */
 
-extern int		vbi_format_page(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp, vbi_wst_level max_level, int display_rows, int navigation);
+extern int		vbi_format_page(struct vbi *, struct fmt_page *,
+				struct vt_page *, vbi_wst_level max_level,
+			        int display_rows, int navigation);
 
 #endif

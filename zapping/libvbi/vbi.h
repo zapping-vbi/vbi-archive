@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.31 2001-08-09 15:12:20 mschimek Exp $ */
+/* $Id: vbi.h,v 1.32 2001-08-10 04:43:28 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -54,12 +54,18 @@ struct vbi
 	fifo			*source;
 	double			time;
 
-	pthread_t		mainloop_thread_id;
+	pthread_mutex_t		resync_mutex;
+        int                     resync;
+
+        pthread_t		mainloop_thread_id;
 	int			quit;		/* XXX */
 
 	vbi_network		network;
+
 	vbi_trigger *		triggers;
+
 	vbi_ratio		ratio;
+	int                     ratio_source;
 
 	int			brightness;
 	int			contrast;
