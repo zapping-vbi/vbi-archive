@@ -302,7 +302,9 @@ tveng_describe_controller(char ** short_str, char ** long_str,
 void tveng_close_device(tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (info->current_controller == TVENG_CONTROLLER_NONE)
+    return; /* nothing to be done */
 
   tveng_stop_everything(info);
 

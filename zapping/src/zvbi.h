@@ -73,10 +73,15 @@ void monitor_ttx_page(int id/*client*/, int page, int subpage);
 void monitor_ttx_this(int id, struct fmt_page *pg);
 
 /*
- * Gets the page number of the index page
- * {mhs} discouraged, use vbi_resolve_home() instead
+ * Freezes the current page, no more RECEIVED events are sent until
+ * it's unfreezed.
  */
-void get_ttx_index(int id, int *pgno, int *subno);
+void ttx_freeze(int id);
+
+/*
+ * Allows sending RECEIVED events to the client.
+ */
+void ttx_unfreeze(int id);
 
 /*
  * Returns a pointer to the formatted page the client is rendering

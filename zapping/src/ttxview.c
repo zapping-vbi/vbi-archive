@@ -40,6 +40,7 @@ extern gboolean flag_exit_program;
 
 /*
  * BUGS: No alpha yet.
+ *       This is getting too big, maybe we should split it up.
  */
 static GdkCursor	*hand=NULL;
 static GdkCursor	*arrow=NULL;
@@ -67,6 +68,11 @@ typedef struct {
   GtkWidget		*toolbar; /* toolbar */
   GtkWidget		*parent_toolbar; /* parent toolbar toolbar is in */
   gboolean		popup_menu; /* whether right-click shows a popup */
+  GdkGC			*xor_gc; /* graphic context for the xor mask */
+  gboolean		selecting; /* TRUE if we are selecting text */
+  gint		        ssx, ssy; /* starting positions for the
+				     selection */
+  gint			osx, osy; /* old positions for the selection */
 } ttxview_data;
 
 struct bookmark {
@@ -305,6 +311,8 @@ remove_ttxview_instance			(ttxview_data	*data)
   if (data->mask)
     gdk_bitmap_unref(data->mask);
 
+  gdk_gc_unref(data->xor_gc);
+
   unregister_ttx_client(data->id);
   gtk_timeout_remove(data->timeout);
   
@@ -363,7 +371,9 @@ update_pointer (ttxview_data *data)
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
 	case VBI_LINK_EMAIL:
-	  buffer = g_strdup_printf(" %s", ld.text);
+	  buffer = g_strdup_printf(" %s%s",
+				   ld.type == VBI_LINK_EMAIL ?
+				   "mailto:" : "", ld.text);
 	  break;
 
         default:
@@ -1001,16 +1011,6 @@ gboolean on_ttxview_expose_event	(GtkWidget	*widget,
   return TRUE;
 }
 
-static gboolean
-on_ttxview_motion_notify		(GtkWidget	*widget,
-					 GdkEventMotion	*event,
-					 ttxview_data	*data)
-{
-  update_pointer(data);
-
-  return FALSE;
-}
-
 static
 void popup_new_win			(GtkWidget	*widget,
 					 ttxview_data	*data)
@@ -1182,49 +1182,54 @@ void export_ttx_page			(GtkWidget	*widget,
     {
       if (data->appbar)
 	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
-			      "You must first set the destination dir"
-			      " in the properties dialog");
+				_("You must first set the destination dir"
+				  " in the properties dialog"));
       return;
     }
 
   if (data->fmt_page->vtp->pgno < 0x100)
     {
       if (data->appbar)
-	gnome_appbar_set_status(GNOME_APPBAR(data->appbar), "No page loaded");
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
+				_("No page loaded"));
       return;
     }
 
   if ((exp = export_open(fmt)))
     {
       /* Configure */
+      gchar *prompt;
       if (exp->mod->options)
+	buffer = g_strjoinv(",", exp->mod->options);
+      else
+	buffer = g_strdup(_("[none]"));
+      prompt = g_strdup_printf(_("Global options: %s\n"
+				 "Options for %s filter: %s"),
+			       "reveal,hide",
+			       fmt,
+			       buffer);
+      buffer2 = g_strconcat(ZCONF_DOMAIN, fmt, "_options", NULL);
+      zconf_create_string("", "export_options", buffer2);
+      g_free(buffer);
+      buffer = Prompt(data->parent, _("Export options"),
+		      prompt, zconf_get_string(NULL, buffer2));
+      if (buffer)
 	{
-	  gchar *prompt;
-	  buffer = g_strjoinv(",", exp->mod->options);
-	  prompt = g_strdup_printf(_("Options for %s filter: %s"), fmt,
-				   buffer);
-	  buffer2 = g_strconcat(ZCONF_DOMAIN, fmt, "_options", NULL);
-	  zconf_create_string("", "export_options", buffer2);
-	  g_free(buffer);
-	  buffer = Prompt(data->parent, _("Export options"),
-			  prompt, zconf_get_string(NULL, buffer2));
-	  if (buffer)
-	    {
-	      zconf_set_string(buffer, buffer2);
-	      g_free(buffer2);
-	      export_close(exp);
-	      buffer2 = g_strconcat(fmt, ",", buffer, NULL);
-	      if (!(exp = export_open(buffer2)))
-		{
-		  ShowBox("Options not valid, using defaults",
-			  GNOME_MESSAGE_BOX_WARNING);
-		  g_assert((exp = export_open(fmt)));
-		}
-	    }
+	  zconf_set_string(buffer, buffer2);
 	  g_free(buffer2);
-	  g_free(buffer);
-	  g_free(prompt);
+	  export_close(exp);
+	  buffer2 = g_strconcat(fmt, ",", buffer, NULL);
+	  if (!(exp = export_open(buffer2)))
+	    {
+	      ShowBox("Options not valid, using defaults",
+		      GNOME_MESSAGE_BOX_WARNING);
+	      g_assert((exp = export_open(fmt)));
+	    }
 	}
+      g_free(buffer2);
+      g_free(buffer);
+      g_free(prompt);
+
       filename =
 	export_mkname(exp, "Zapzilla-%p.%e",
 		      data->fmt_page->vtp, NULL);
@@ -1443,6 +1448,158 @@ process_ttxview_menu_popup		(GtkWidget	*widget,
   gtk_menu_insert(GTK_MENU(popup), menu_item, 2);
 }
 
+/*
+ * Inverts the color of the given region.
+ * The region is in to 40x25 coordinates
+ */
+static void
+select_region				(gint		x1,
+					 gint		y1,
+					 gint		x2,
+					 gint		y2,
+					 ttxview_data	*data)
+{
+  gint w, h; /* scaling factors */
+  gint temp;
+
+  gdk_window_get_size(data->da->window, &w, &h);
+
+  if (x1 < 0) x1 = 0;
+  else if (x1 > 39) x1 = 39;
+  if (x2 < 0) x2 = 0;
+  else if (x2 > 39) x2 = 39;
+  if (y1 < 0) y1 = 0;
+  else if (y1 > 24) y1 = 24;
+  if (y2 < 0) y2 = 0;
+  else if (y2 > 24) y2 = 24;
+
+  if (y1 > y2)
+    {
+      temp = x1;
+      x1 = x2;
+      x2 = temp;
+      temp = y1;
+      y1 = y2;
+      y2 = temp;
+    }
+  else if ((y1 == y2) && (x1 > x2))
+    {
+      temp = x1;
+      x1 = x2;
+      x2 = temp;
+    }
+
+  while (y1 != y2)
+    {
+      gdk_draw_rectangle(data->da->window, data->xor_gc, TRUE,
+			 (x1*w)/40, (y1*h)/25, w-((x1*w)/40), h/25);
+      y1++;
+      x1 = 0;
+    }
+
+  gdk_draw_rectangle(data->da->window, data->xor_gc, TRUE,
+		     (x1*w)/40, (y1*h)/25, ((x2-x1+1)*w)/40, h/25);
+}
+
+static void select_start(gint x, gint y, ttxview_data * data)
+{
+  if (data->fmt_page->vtp->pgno < 0x100)
+    {
+      if (data->appbar)
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
+				_("No page loaded"));
+      return;
+    }
+
+  if (data->selecting)
+    return;
+
+  if (data->appbar)
+    gnome_appbar_push(GNOME_APPBAR(data->appbar), _("Selecting"));
+
+  data->ssx = x;
+  data->ssy = y;
+  data->osx = -1; /* Selection not started yet, wait to move event */
+  data->selecting = TRUE;
+  ttx_freeze(data->id);
+}
+
+static void select_stop(ttxview_data * data)
+{
+  gint w, h;
+  gint scol, srow, col, row;
+
+  if (!data->selecting)
+    return;
+
+  if (data->appbar)
+    gnome_appbar_pop(GNOME_APPBAR(data->appbar));
+
+  if (data->osx != -1)
+    {
+      gdk_window_get_size(data->da->window, &w, &h);
+
+      scol = (data->ssx*40)/w;
+      srow = (data->ssy*25)/h;
+      col = (data->osx*40)/w;
+      row = (data->osy*25)/h;
+      select_region(scol, srow, col, row, data);
+      
+      /* EXPORT TO CLIPBOARD HERE */
+
+      if (data->appbar)
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
+				_("selection copied to clipboard"));
+    }
+
+  data->selecting = FALSE;
+  ttx_unfreeze(data->id);
+
+  update_pointer(data);
+}
+
+static void select_update(gint x, gint y, ttxview_data * data)
+{
+  gint w, h;
+  gint ocol, orow, col, row;
+
+  if (!data->selecting)
+    return;
+
+  if (data->osx == -1)
+    {
+      data->osx = data->ssx; /* pointer moved flag */
+      data->osy = data->ssy;
+    }
+
+  gdk_window_get_size(data->da->window, &w, &h);
+
+  col = (x*40)/w;
+  row = (y*25)/h;
+  ocol = (data->osx*40)/w;
+  orow = (data->osy*25)/h;
+
+  /* FIXME: This needs to be optimized (draw just once, avoid flicker,
+     make it work :-) */
+  select_region(ocol, orow, col, row, data);
+
+  data->osx = x;
+  data->osy = y;
+}
+
+static gboolean
+on_ttxview_motion_notify		(GtkWidget	*widget,
+					 GdkEventMotion	*event,
+					 ttxview_data	*data)
+{
+  if (!data->selecting)
+    update_pointer(data);
+  else
+    select_update(event->x, event->y, data);
+
+  return FALSE;
+}
+
 static gboolean
 on_ttxview_button_press			(GtkWidget	*widget,
 					 GdkEventButton	*event,
@@ -1452,6 +1609,7 @@ on_ttxview_button_press			(GtkWidget	*widget,
   vbi_link_descr ld;
   GtkWidget *dolly;
   GtkMenu *menu;
+  gchar * buffer;
 
   gdk_window_get_size(widget->window, &w, &h);
   /* convert to fmt_page space */
@@ -1461,7 +1619,11 @@ on_ttxview_button_press			(GtkWidget	*widget,
   ld.type = VBI_LINK_NONE;
   ld.pgno = ld.subno = 0;
 
-  if (data->fmt_page->data[row][col].link)
+  /* Any modifier enters select mode */
+  if ((data->fmt_page->data[row][col].link) && (!
+      (event->state & GDK_SHIFT_MASK ||
+       event->state & GDK_CONTROL_MASK ||
+       event->state & GDK_MOD1_MASK)))
     vbi_resolve_link(data->fmt_page, col, row, &ld);
 
   switch (event->button)
@@ -1476,11 +1638,19 @@ on_ttxview_button_press			(GtkWidget	*widget,
 
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
+	  gnome_url_show(ld.text);
+	  break;
+
 	case VBI_LINK_EMAIL:
-	  /* Action TBD */
+	  buffer = g_strconcat("mailto:", ld.text, NULL);
+	  gnome_url_show(buffer);
+	  g_free(buffer);
 	  break;
 
 	default:
+	  /* start selecting */
+	  select_start(event->x, event->y, data);
+	  break;
 	}
       break;
     case 2: /* middle button, open link in new window */
@@ -1497,8 +1667,13 @@ on_ttxview_button_press			(GtkWidget	*widget,
 
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
+	  gnome_url_show(ld.text);
+	  break;
+
 	case VBI_LINK_EMAIL:
-	  /* Action TBD */
+	  buffer = g_strconcat("mailto:", ld.text, NULL);
+	  gnome_url_show(buffer);
+	  g_free(buffer);
 	  break;
 
 	default:
@@ -1519,6 +1694,16 @@ on_ttxview_button_press			(GtkWidget	*widget,
       break;
     }
   
+  return FALSE;
+}
+
+static gboolean
+on_ttxview_button_release		(GtkWidget	*widget,
+					 GdkEventButton	*event,
+					 ttxview_data	*data)
+{
+  select_stop(data);
+
   return FALSE;
 }
 
@@ -1659,6 +1844,8 @@ build_ttxview(void)
   data->fmt_page = get_ttx_fmt_page(data->id);
   data->popup_menu = TRUE;
   gtk_object_set_data(GTK_OBJECT(ttxview), "ttxview_data", data);
+  data->xor_gc = gdk_gc_new(data->da->window);
+  gdk_gc_set_function(data->xor_gc, GDK_INVERT);
 
   /* Callbacks */
   gtk_signal_connect(GTK_OBJECT(ttxview), "delete-event",
@@ -1712,6 +1899,9 @@ build_ttxview(void)
   gtk_signal_connect(GTK_OBJECT(data->da),
 		     "button-press-event",
 		     GTK_SIGNAL_FUNC(on_ttxview_button_press), data);
+  gtk_signal_connect(GTK_OBJECT(data->da),
+		     "button-release-event",
+		     GTK_SIGNAL_FUNC(on_ttxview_button_release), data);
   gtk_signal_connect(GTK_OBJECT(data->parent),
 		     "key-press-event",
 		     GTK_SIGNAL_FUNC(on_ttxview_key_press), data);
@@ -1762,6 +1952,8 @@ ttxview_attach			(GtkWidget	*parent,
     gtk_timeout_add(50, (GtkFunction)event_timeout, data);
   data->fmt_page = get_ttx_fmt_page(data->id);
   data->popup_menu = FALSE;
+  data->xor_gc = gdk_gc_new(data->da->window);
+  gdk_gc_set_function(data->xor_gc, GDK_INVERT);
 
   /* Callbacks */
   gtk_signal_connect(GTK_OBJECT(data->parent), "delete-event",
@@ -1817,6 +2009,9 @@ ttxview_attach			(GtkWidget	*parent,
   gtk_signal_connect(GTK_OBJECT(data->da),
 		     "button-press-event",
 		     GTK_SIGNAL_FUNC(on_ttxview_button_press), data);
+  gtk_signal_connect(GTK_OBJECT(data->da),
+		     "button-release-event",
+		     GTK_SIGNAL_FUNC(on_ttxview_button_release), data);
 
   if (data->da->window)
     {

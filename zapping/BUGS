@@ -13,3 +13,4 @@ Known bugs with zapping, don't report them
 	! Sometimes the program hangs when exiting.
 	* The input (and probably the standard) are changed when
 	changing modes.
+	* The graphics export filters save the image with double width.

@@ -458,7 +458,7 @@ void monitor_ttx_this(int id, struct fmt_page *pg)
     {
       client->page = pg->vtp->pgno;
       client->subpage = pg->vtp->subno;
-      client->freezed = TRUE; /* FIXME: Until when? */
+      client->freezed = TRUE;
       memcpy(&client->vtp, pg->vtp, vtp_size(pg->vtp));
       memcpy(&client->fp, pg, sizeof(struct fmt_page));
       vbi_draw_page(&client->fp,
@@ -471,28 +471,25 @@ void monitor_ttx_this(int id, struct fmt_page *pg)
 }
 
 void
-get_ttx_index(int id, int *pgno, int *subno)
+ttx_freeze (int id)
 {
   struct ttx_client *client;
 
-  /* {mhs} discouraged, use vbi_resolve_home() instead */
-  g_assert(0);
+  pthread_mutex_lock(&clients_mutex);
+  if ((client = find_client(id)))
+    client->freezed = TRUE;
+  pthread_mutex_unlock(&clients_mutex);  
+}
 
-  if ((!pgno) || (!subno))
-    return;
+void
+ttx_unfreeze (int id)
+{
+  struct ttx_client *client;
 
   pthread_mutex_lock(&clients_mutex);
   if ((client = find_client(id)))
-    {
-      *pgno = client->vtp.data.lop.link[5].pgno;
-      *subno = client->vtp.data.lop.link[5].subno;
-      if (((*pgno & 0xff) == 0xff) || (*pgno < 0x100) || (*pgno > 0x899))
-	{
-	  *pgno = vbi->initial_page.pgno;
-	  *subno = vbi->initial_page.subno;
-	}
-    }
-  pthread_mutex_unlock(&clients_mutex);
+    client->freezed = FALSE;
+  pthread_mutex_unlock(&clients_mutex);  
 }
 
 static void

@@ -1,3 +1,9 @@
+8.2.2001	gnome-help-browser <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Action for links. Configure with gnomecc,
+	"URL handler". Started copy&paste work, selecting doesn't work
+	properly yet, but i need to sleep 8-P
+
 7.2.2001	Zapzilla navigation <mschimek@users.sourceforge.net>
 
 	* new add_bcd and carry fix in on_ttxview_key_press()
