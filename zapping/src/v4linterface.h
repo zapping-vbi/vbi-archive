@@ -100,4 +100,6 @@ extern gboolean channel_down_cmd	(GtkWidget *	widget,
 					 gchar **	argv,
 					 gpointer	user_data);
 
+extern gdouble videostd_inquiry(void);
+
 #endif
