@@ -1494,6 +1494,8 @@ static int p_tveng2_dqbuf(tveng_device_info * info)
       t_error("VIDIOC_DQBUF", info);
       return -1;
     }
+
+  p_info -> last_timestamp = tmp_buffer.timestamp;
   
   return (tmp_buffer.index);
 }
@@ -1587,6 +1589,8 @@ tveng2_start_capturing(tveng_device_info * info)
       return -1;
     }
 
+  p_info -> last_timestamp = -1;
+
   info->current_mode = TVENG_CAPTURE_READ;
 
   return 0;
@@ -1630,6 +1634,8 @@ tveng2_stop_capturing(tveng_device_info * info)
 
   if (p_info -> buffers)
     free(p_info -> buffers);
+
+  p_info -> last_timestamp = -1;
 
   info->current_mode = TVENG_NO_CAPTURE;
 
@@ -1714,6 +1720,26 @@ int tveng2_read_frame(void * where, unsigned int size,
 
   /* Everything has been OK, return 0 (success) */
   return 0;
+}
+
+/*
+  Gets the timestamp of the last read frame.
+  Returns -1 on error, if the current mode isn't capture, or if we
+  haven't captured any frame yet. The timestamp is relative to when we
+  started streaming, and is calculated with the following formula:
+  timestamp = (sec*1000000+usec)*1000
+*/
+__s64 tveng2_get_timestamp(tveng_device_info * info)
+{
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info *) info;
+
+  t_assert(info != NULL);
+
+  if (info->current_mode != TVENG_CAPTURE_READ)
+    return -1;
+
+  return (p_info -> last_timestamp);
 }
 
 /* 

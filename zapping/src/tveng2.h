@@ -65,6 +65,7 @@ struct private_tveng2_device_info
   tveng_device_info info; /* Info field, inherited */
   int num_buffers; /* Number of mmaped buffers */
   struct tveng2_vbuf * buffers; /* Array of buffers */
+  __s64 last_timestamp; /* The timestamp of the last captured buffer */
 };
 
 /*
@@ -296,6 +297,15 @@ tveng2_stop_capturing(tveng_device_info * info);
 */
 int tveng2_read_frame(void * where, unsigned int size,
 		      unsigned int time, tveng_device_info * info);
+
+/*
+  Gets the timestamp of the last read frame.
+  Returns -1 on error, if the current mode isn't capture, or if we
+  haven't captured any frame yet. The timestamp is relative to when we
+  started streaming, and is calculated with the following formula:
+  timestamp = (sec*1000000+usec)*1000
+*/
+__s64 tveng2_get_timestamp(tveng_device_info * info);
 
 /* 
    Sets the capture buffer to an specific size. returns -1 on

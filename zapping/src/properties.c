@@ -184,10 +184,19 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
-  /* Save the geometry thoguh sessions */
+  /* Save the geometry through sessions */
   widget = lookup_widget(zapping_properties, "checkbutton2");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean(NULL, "/zapping/options/main/keep_geometry"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* Resize using fixed increments */
+  widget = lookup_widget(zapping_properties, "checkbutton4");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean(NULL, "/zapping/options/main/fixed_increments"));
 
   gtk_signal_connect(GTK_OBJECT(widget), "toggled",
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
@@ -257,6 +266,10 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       zconf_set_boolean(gtk_toggle_button_get_active(
 	GTK_TOGGLE_BUTTON(widget)),
 			"/zapping/options/main/keep_geometry");
+
+      widget = lookup_widget(pbox, "checkbutton4"); /* fixed increments */
+      zconf_set_boolean(gtk_toggle_button_get_active(
+	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/fixed_increments");
 
       widget = lookup_widget(pbox, "checkbutton3"); /* start muted */
       zconf_set_boolean(gtk_toggle_button_get_active(

@@ -64,6 +64,8 @@ struct private_tveng1_device_info
   char * mmaped_data; /* A pointer to the data mmap() returned */
   struct video_mbuf mmbuf; /* Info about the location of the frames */
   int queued, dequeued; /* The index of the [de]queued frames */
+  __s64 start_timestamp; /* Timestamp of the capture start */
+  __s64 last_timestamp; /* Timestamp of the last frame captured */
 };
 
 /*
@@ -295,6 +297,15 @@ tveng1_stop_capturing(tveng_device_info * info);
 */
 int tveng1_read_frame(void * where, unsigned int size,
 		      unsigned int time, tveng_device_info * info);
+
+/*
+  Gets the timestamp of the last read frame.
+  Returns -1 on error, if the current mode isn't capture, or if we
+  haven't captured any frame yet. The timestamp is relative to when we
+  started streaming, and is calculated with the following formula:
+  timestamp = (sec*1000000+usec)*1000
+*/
+__s64 tveng1_get_timestamp(tveng_device_info * info);
 
 /* 
    Sets the capture buffer to an specific size. returns -1 on

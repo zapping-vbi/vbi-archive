@@ -32,8 +32,9 @@ AC_PROG_CC
 AM_PROG_CC_STDC
 AC_HEADER_STDC
 
+dnl ----------------------------------------------------------------------
 dnl Check the PNG writing library
-
+dnl ----------------------------------------------------------------------
 PNG_LIB=""
 AC_CHECK_LIB(png, png_create_write_struct, PNG_LIB="-lpng",
 AC_MSG_ERROR(*** PNG saving library couldn't be found ***))
@@ -42,6 +43,20 @@ AC_SUBST(PNG_LIB)
 GNOME_COMPILE_WARNINGS
 GNOME_X_CHECKS
 GNOME_XML_CHECK
+
+dnl ----------------------------------------------------------------------
+dnl Check which libxml syntax we will use (children vs. childs)
+dnl ----------------------------------------------------------------------
+AC_MSG_CHECKING(which syntax to use for xml child nodes)
+AC_TRY_LINK([#include <gnome-xml/tree.h>],
+[
+xmlNodePtr node;
+node->childs = NULL;
+return 0;
+],
+AC_MSG_RESULT(childs)
+AC_DEFINE(LIBXML_CHILDS),
+AC_MSG_RESULT(children))
 
 AM_PATH_LIBGLADE(,
 AC_MSG_ERROR(*** Cannot find libglade in your system. Is it installed? ***),
@@ -68,16 +83,6 @@ fi
 dnl Subst PACKAGE_PIXMAPS_DIR.
 PACKAGE_PIXMAPS_DIR="`${GNOME_CONFIG} --datadir`/pixmaps/${PACKAGE}"
 AC_SUBST(PACKAGE_PIXMAPS_DIR)
-
-dnl ----------------------------------------------------------------------
-dnl Check which libxml syntax we will use (children vs. childs)
-dnl ----------------------------------------------------------------------
-AC_TRY_LINK([#include <gnome-xml/tree.h>],
-[
-xmlNodePtr node;
-node->childs = NULL;
-return 0;
-], AC_DEFINE(LIBXML_CHILDS))
 
 AC_OUTPUT([
 Makefile

@@ -4,6 +4,9 @@
 	from the configure script (thanks to Jan Castermans).
 	* configure.in: Added a test to determine whether to use
 	node->children or node->childs.
+	* tveng: Added frame timestamps.
+	* callbacks.c:
+	* main.c: Added option for resizing with fixed increments.
 	
 01.6.2000	Bug fixes <garetxe@users.sourceforge.net>
 

@@ -1840,7 +1840,8 @@ tveng1_start_capturing(tveng_device_info * info)
 {
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info*) info;
- 
+  struct timeval tv;
+
   /* Check which is the current mode and switch it off if neccesary */
   switch (info -> current_mode)
     {
@@ -1885,7 +1886,11 @@ tveng1_start_capturing(tveng_device_info * info)
 
   p_info -> queued = p_info -> dequeued = 0;
 
-  info->current_mode = TVENG_CAPTURE_READ;
+  info->current_mode = TVENG_CAPTURE_READ;  
+
+  gettimeofday(&tv, NULL);
+  p_info -> start_timestamp = (tv.tv_sec * 1000000) + tv.tv_usec;
+  p_info -> start_timestamp *= 1000;
 
   /* Queue first buffer */
   if (p_tveng1_queue(info) == -1)
@@ -1985,6 +1990,7 @@ static int p_tveng1_dequeue(void * where, tveng_device_info * info)
   struct video_mmap bm;
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info*) info;
+  struct timeval tv; /* For the timestamp */
 
   t_assert(info != NULL);
   t_assert(info -> current_mode == TVENG_CAPTURE_READ);
@@ -2022,6 +2028,12 @@ static int p_tveng1_dequeue(void * where, tveng_device_info * info)
       t_error("VIDIOCSYNC", info);
       return -1;
     }
+
+  gettimeofday(&tv, NULL);
+
+  p_info -> last_timestamp = (tv.tv_sec * 1000000) + tv.tv_usec;
+  p_info -> last_timestamp *= 1000;
+  p_info -> last_timestamp -= p_info -> start_timestamp;
 
   /* Copy the mmaped data to the data struct, if it is not null */
   if (where)
@@ -2091,6 +2103,25 @@ int tveng1_read_frame(void * where, unsigned int size,
   
   /* Everything has been OK, return 0 (success) */
   return 0;
+}
+
+/*
+  Gets the timestamp of the last read frame.
+  Returns -1 on error, if the current mode isn't capture, or if we
+  haven't captured any frame yet. The timestamp is relative to when we
+  started streaming, and is calculated with the following formula:
+  timestamp = (sec*1000000+usec)*1000
+*/
+__s64 tveng1_get_timestamp(tveng_device_info * info)
+{
+  struct private_tveng1_device_info * p_info =
+    (struct private_tveng1_device_info *) info;
+
+  t_assert(info != NULL);
+  if (info->current_mode != TVENG_CAPTURE_READ)
+    return -1;
+
+  return (p_info -> last_timestamp);
 }
 
 /* 

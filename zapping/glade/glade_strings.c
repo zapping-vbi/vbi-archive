@@ -36,6 +36,7 @@ gchar *s = N_("label29");
 gchar *s = N_("Device info");
 gchar *s = N_("Avoid noise while changing channels");
 gchar *s = N_("Save window geometry (some WM's don't like it)");
+gchar *s = N_("Resize using fixed increments");
 gchar *s = N_("Start Zapping muted");
 gchar *s = N_("Verbosity value given to zapping_setup_fb:");
 gchar *s = N_("The bigger this value is, the more verbose zapping_setup_fb will be");

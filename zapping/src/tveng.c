@@ -941,6 +941,34 @@ int tveng_read_frame(void * where, unsigned int size,
   return -1;
 }
 
+/*
+  Gets the timestamp of the last read frame.
+  Returns -1 on error, if the current mode isn't capture, or if we
+  haven't captured any frame yet. The timestamp is relative to when we
+  started streaming, and is calculated with the following formula:
+  timestamp = (sec*1000000+usec)*1000
+*/
+__s64 tveng_get_timestamp(tveng_device_info * info)
+{
+  t_assert(info != NULL);
+
+  switch (info -> current_controller)
+    {
+    case TVENG_CONTROLLER_NONE:
+      fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
+	      __PRETTY_FUNCTION__, info -> file_name);
+      break;
+    case TVENG_CONTROLLER_V4L1:
+      return tveng1_get_timestamp(info);
+    case TVENG_CONTROLLER_V4L2:
+      return tveng2_get_timestamp(info);
+    default:
+      t_assert_not_reached();
+    }
+
+  return -1;
+}
+
 /* 
    Sets the capture buffer to an specific size. returns -1 on
    error. Remember to check the value of width and height since it can

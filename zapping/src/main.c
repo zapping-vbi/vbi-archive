@@ -71,6 +71,7 @@ int main(int argc, char * argv[])
   gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
 				     work */
   gint x, y, w, h; /* Saved geometry */
+  GdkGeometry geometry;
 
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
@@ -203,7 +204,11 @@ int main(int argc, char * argv[])
   gtk_widget_show(main_window);
 
   update_standards_menu(main_window, main_info);
-  
+
+  /* Process all events */
+  while (gtk_events_pending())
+    gtk_main_iteration();
+
   /* Sets the coords to the previous values, if the users wants to */
   if (zcg_bool(NULL, "keep_geometry"))
     {
@@ -229,6 +234,18 @@ int main(int argc, char * argv[])
 
       if (flag_exit_program)
 	continue; /* Exit the loop if neccesary now */
+
+      /* Set the geometry flags if needed */
+      if (zcg_bool(NULL, "fixed_increments"))
+	{
+	  geometry.width_inc = 64;
+	  geometry.height_inc = 48;
+	  geometry.min_width = 64;
+	  geometry.min_height = 48;
+	  gdk_window_set_geometry_hints(main_window->window, &geometry,
+					GDK_HINT_RESIZE_INC |
+					GDK_HINT_MIN_SIZE);
+	}
 
       /* We are probably viewing fullscreen, just do nothing */
       if (main_info -> current_mode != TVENG_CAPTURE_READ)
@@ -357,6 +374,7 @@ gboolean startup_zapping()
   /* Sets defaults for zconf */
   zcc_bool(TRUE, "Save and restore zapping geometry (non ICCM compliant)", 
 	   "keep_geometry");
+  zcc_bool(FALSE, "Resize by fixed increments", "fixed_increments");
   zcc_char(tveng_get_country_tune_by_id(0)->name,
 	     "The country you are currently in", "current_country");
   current_country = 

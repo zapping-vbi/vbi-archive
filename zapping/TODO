@@ -1,13 +1,10 @@
 Outstanding issues for the next release
 ---------------------------------------
 	+ Add support for capturing the sound stream
-	+ Add the option for fixed increments a la xawtv	
-	+ Add timestamps to TVeng
 	+ Write docs on tveng and plugins
 	+ Remake plugin properties dialog.
 	+ Add the help for the Properties
 	+ Add desktop (and root menu) entries
 	+ Build RPMS (rpm -tb) and DEBS (using alien)
-	+ Add some code to change children into childs if libxml < 2.0.0
 	+ Fix bugs
 	> Release 0.5.1
