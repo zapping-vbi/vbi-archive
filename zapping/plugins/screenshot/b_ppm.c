@@ -33,8 +33,8 @@ backend_save (screenshot_data *data)
   gchar *src, *dest;
   guint src_bpl, dest_bpl, free, n;
 
-  src = (gchar *) data->data.linear.data;
-  src_bpl = data->data.linear.stride;
+  src = (gchar *) data->data;
+  src_bpl = data->format.bytes_per_line[0];
   dest = data->io_buffer;
   free = data->io_buffer_size;
   dest_bpl = data->format.width * 3;

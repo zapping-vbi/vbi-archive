@@ -7,17 +7,18 @@
 
 #include "tveng.h"
 
-typedef void (CSConverter_fn)	(tveng_image_data *	src,
-				 tveng_image_data *	dest,
-				 unsigned int		width,
-				 unsigned int		height,
-				 const char *		user_data);
+typedef void
+CSConverter_fn			(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format,
+				 const void *		user_data);
 
 typedef struct {
   tv_pixfmt		src_pixfmt;
   tv_pixfmt		dst_pixfmt;
   CSConverter_fn *	convert;
-  const gchar *		user_data;
+  const void *		user_data;
 } CSFilter;
 
 /**
@@ -30,9 +31,10 @@ int lookup_csconvert(tv_pixfmt src_pixfmt,
 /**
  * Converts from src to dest.
  */
-void csconvert(int id, tveng_image_data *src,
-	       tveng_image_data *dest,
-	       unsigned int width, unsigned int height);
+gboolean csconvert(void *	dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format);
 
 /**
  * Registers a converter. Returns -1 and does nothing when there
@@ -43,7 +45,7 @@ int register_converter (const char *name,
 			tv_pixfmt src_pixfmt,
 			tv_pixfmt dst_pixfmt,
 			CSConverter_fn *converter,
-			const char *user_data);
+			const void *user_data);
 
 /*
  * Registers a bunch of converters at once. Does the same thing as

@@ -162,8 +162,8 @@ backend_save (screenshot_data *data)
   gchar *pixels;
   gint rowstride;
 
-  pixels = (gchar *) data->data.linear.data;
-  rowstride = data->data.linear.stride;
+  pixels = (gchar *) data->data;
+  rowstride = data->format.bytes_per_line[0];
 
   /* NB lines is evaluated by parent thread to update the progress bar */
   for (data->lines = 0; data->lines < data->format.height; data->lines++)

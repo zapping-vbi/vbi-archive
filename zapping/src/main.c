@@ -570,7 +570,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.193 2004-12-11 11:46:24 mschimek Exp $",
+	 "$Id: main.c,v 1.194 2005-01-08 14:38:18 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
@@ -636,7 +636,7 @@ int main(int argc, char * argv[])
 
   /* We need the display pixfmt to optimize the capture format.
      This info should be avaialable even without Xinerama and DGA. */
-  if (TV_PIXFMT_NONE == screens->target.format.pixfmt)
+  if (TV_PIXFMT_NONE == screens->target.format.pixel_format->pixfmt)
     {
       /* XXX could use XVideo without. */
       /* XXX localize */
@@ -668,8 +668,8 @@ int main(int argc, char * argv[])
 		   xs->target.format.width,
 		   xs->target.format.height,
 		   xs->target.format.size,
-		   xs->target.format.bytes_per_line,
-		   tv_pixfmt_name (xs->target.format.pixfmt));
+		   xs->target.format.bytes_per_line[0],
+		   xs->target.format.pixel_format->name);
 	}
     }
 

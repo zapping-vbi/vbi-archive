@@ -34,8 +34,8 @@ screenshot_deinterlace (screenshot_data *data, gint parity)
 
   deint_data = g_malloc (data->format.width * data->format.height * 3);
 
-  src = (gchar *) data->data.linear.data;
-  src_bpl = data->data.linear.stride;
+  src = (gchar *) data->data;
+  src_bpl = data->format.bytes_per_line[0];
 
   dest = deint_data;
   dest_bpl = data->format.width * 3;

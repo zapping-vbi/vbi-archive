@@ -32,7 +32,7 @@
 
 static struct {
   CSConverter_fn *	convert;
-  const char *		user_data;
+  const void *		user_data;
 } filters[TV_MAX_PIXFMTS][TV_MAX_PIXFMTS];
 
 int lookup_csconvert(tv_pixfmt src_pixfmt,
@@ -44,27 +44,37 @@ int lookup_csconvert(tv_pixfmt src_pixfmt,
   return (((int)src_pixfmt)<<16) + dst_pixfmt;
 }
 
-void csconvert(int id, tveng_image_data *src, tveng_image_data *dest,
-	       unsigned int width, unsigned int height)
+gboolean
+csconvert			(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format)
 {
-  tv_pixfmt src_pixfmt, dst_pixfmt;
+  CSConverter_fn *convert;
+  const void *user_data;
 
-  src_pixfmt = id>>16;
-  dst_pixfmt = id&0xffff;
+  if (dst_format->pixel_format == src_format->pixel_format)
+    return tv_copy_image (dst_image, dst_format, src_image, src_format);
 
-  g_assert (filters[src_pixfmt][dst_pixfmt].convert != NULL);
+  convert = filters[src_format->pixel_format->pixfmt]
+    [dst_format->pixel_format->pixfmt].convert;
 
-  filters[src_pixfmt][dst_pixfmt].convert
-    (src, dest, width, height, filters[src_pixfmt][dst_pixfmt].user_data);
+  if (!convert)
+    return FALSE;
 
+  user_data = filters[src_format->pixel_format->pixfmt]
+    [dst_format->pixel_format->pixfmt].user_data;
 
+  convert (dst_image, dst_format, src_image, src_format, user_data);
+
+  return TRUE;
 }
 
 int register_converter (const char *	name _unused_,
 			tv_pixfmt src_pixfmt,
 			tv_pixfmt dst_pixfmt,
 			CSConverter_fn *	converter,
-			const char *		user_data)
+			const void *		user_data)
 {
   if (-1 != lookup_csconvert (src_pixfmt, dst_pixfmt))
     return -1; /* already registered */
@@ -92,6 +102,8 @@ int register_converters (const char *	name,
   return count;
 }
 
+/* ------------------------------------------------------------------------ */
+
 static void build_csconvert_tables(unsigned int *r,
 				   unsigned int *g,
 				   unsigned int *b,
@@ -110,69 +122,106 @@ static void build_csconvert_tables(unsigned int *r,
 }
 
 static void
-rgb_rgb565	(tveng_image_data *_src, tveng_image_data *_dest,
-		 unsigned int width, unsigned int height,
-		 const gchar *	user_data)
+rgb_rgb565			(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format,
+				 const void *		user_data)
 {
-  const unsigned char *src=_src->linear.data, *s = src;
-  int src_stride = _src->linear.stride;
-  int dest_stride = _dest->linear.stride;
-  unsigned short *dest = (unsigned short *)_dest->linear.data, *d = dest;
-  int x, y;
-  static int tables = 0;
-  static int r[256], g[256], b[256];
+	static int r[256], g[256], b[256];
+	static int tables = 0;
+	uint16_t *d;
+	const uint8_t *s;
+	unsigned int width;
+	unsigned int height;
+	unsigned int count;
+	unsigned int dst_padding;
+	unsigned int src_padding;
 
-  if (!tables)
-    {
-      build_csconvert_tables (r, g, b,
-			      0xf800, 11, 5, /* red */
-			      0x7e0, 5, 6, /* green */
-			      0x1f, 0, 5 /* blue */);
-      tables = 1;
-    }
+	d = (uint16_t *)((uint8_t *) dst_image + dst_format->offset[0]);
+	s = (const uint8_t *) src_image + src_format->offset[0];
 
-  if (!strcmp (user_data, "bgr"))
-    {
-      for (y=height; y; y--, d += (dest_stride/2), dest = d,
-	     s += src_stride, src = s)
-	for (x=width; x; x--, dest++, src+=3)
-	  *dest = b[src[0]] | g[src[1]] | r[src[2]];
-    }
-  else if (!strcmp (user_data, "rgb"))
-    {
-      for (y=height; y; y--, d += (dest_stride/2), dest = d,
-	     s += src_stride, src = s)
-	for (x=width; x; x--, dest++, src+=3)
-	  *dest = r[src[0]] | g[src[1]] | b[src[2]];
-    }
-  else if (!strcmp (user_data, "bgra"))
-    {
-      for (y=height; y; y--, d += (dest_stride/2), dest = d,
-	     s += src_stride, src = s)
-	for (x=width; x; x--, dest++, src+=4)
-	  *dest = b[src[0]] | g[src[1]] | r[src[2]];
-    }
-  else if (!strcmp (user_data, "rgba"))
-    {
-      for (y=height; y; y--, d += (dest_stride/2), dest = d,
-	     s += src_stride, src = s)
-	for (x=width; x; x--, dest++, src+=4)
-	  *dest = r[src[0]] | g[src[1]] | b[src[2]];
-    }
+	width = MIN (dst_format->width, src_format->width);
+	height = MIN (dst_format->height, src_format->height);
+
+	dst_padding = dst_format->bytes_per_line[0] - width * 2;
+
+	if (!tables) {
+		build_csconvert_tables (r, g, b,
+					0xf800, 11, 5, /* red */
+					0x7e0, 5, 6, /* green */
+					0x1f, 0, 5 /* blue */);
+		tables = 1;
+	}
+
+	if (0 == strcmp (user_data, "bgr")) {
+		src_padding = src_format->bytes_per_line[0] - width * 3;
+
+		while (height-- > 0) {
+			for (count = width; count > 0; --count) {
+				*d++ = b[s[0]] | g[s[1]] | r[s[2]];
+				s += 3;
+			}
+
+			d = (uint16_t *)((uint8_t *) d + dst_padding);
+			s += src_padding;
+		}
+	} else if (0 == strcmp (user_data, "rgb")) {
+		src_padding = src_format->bytes_per_line[0] - width * 3;
+
+		while (height-- > 0) {
+			for (count = width; count > 0; --count) {
+				*d++ = r[s[0]] | g[s[1]] | b[s[2]];
+				s += 3;
+			}
+
+			d = (uint16_t *)((uint8_t *) d + dst_padding);
+			s += src_padding;
+		}
+	} else if (0 == strcmp (user_data, "bgra")) {
+		src_padding = src_format->bytes_per_line[0] - width * 4;
+
+		while (height-- > 0) {
+			for (count = width; count > 0; --count) {
+				*d++ = b[s[0]] | g[s[1]] | r[s[2]];
+				s += 4;
+			}
+
+			d = (uint16_t *)((uint8_t *) d + dst_padding);
+			s += src_padding;
+		}
+	} else if (!strcmp (user_data, "rgba")) {
+		src_padding = src_format->bytes_per_line[0] - width * 4;
+
+		while (height-- > 0) {
+			for (count = width; count > 0; --count) {
+				*d++ = r[s[0]] | g[s[1]] | b[s[2]];
+				s += 4;
+			}
+
+			d = (uint16_t *)((uint8_t *) d + dst_padding);
+			s += src_padding;
+		}
+	}
 }
 
 static void
-rgb_rgb555	(tveng_image_data *_src, tveng_image_data *_dest,
-		 unsigned int width, unsigned int height,
-		 const gchar *	user_data)
+rgb_rgb555			(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format,
+				 const void *		user_data)
 {
-  const unsigned char *src=_src->linear.data, *s = src;
-  int src_stride = _src->linear.stride;
-  int dest_stride = _dest->linear.stride;
-  unsigned short *dest = (unsigned short *)_dest->linear.data, *d = dest;
+  const unsigned char *src=
+	  (const uint8_t *) src_image + src_format->offset[0],*s = src;
+  int src_stride = src_format->bytes_per_line[0];
+  int dest_stride = dst_format->bytes_per_line[0];
+  uint16_t *dest = (uint16_t *)((uint8_t *) dst_image + dst_format->offset[0]),*d = dest;
   int x, y;
   static int tables = 0;
   static int r[256], g[256], b[256];
+  unsigned int width = MIN (dst_format->width, src_format->width);
+  unsigned int height = MIN (dst_format->height, src_format->height);
 
   if (!tables)
     {
@@ -214,87 +263,93 @@ rgb_rgb555	(tveng_image_data *_src, tveng_image_data *_dest,
 }
 
 static void
-rgb_bgr		(tveng_image_data	*_src, tveng_image_data *_dest,
-		 unsigned int width, unsigned int height, const gchar * user_data)
+rgb_bgr				(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format,
+				 const void *		user_data _unused_)
 {
-  unsigned char *src = _src->linear.data, *s = src;
-  unsigned char *dest = _dest->linear.data, *d = dest;
-  int src_stride = _src->linear.stride;
-  int dest_stride = _dest->linear.stride;
-  int x, y;
-  int src_size = 0, dest_size = 0;
+	uint8_t *d;
+	const uint8_t *s;
+	unsigned int width;
+	unsigned int height;
+	unsigned int dst_size;
+	unsigned int src_size;
+	unsigned int dst_padding;
+	unsigned int src_padding;
 
-  if (!strcmp (user_data, "bgra<->rgba"))
-    {
-      src_size = 4;
-      dest_size = 4;
-    }
-  else if (!strcmp (user_data, "rgb->bgra"))
-    {
-      src_size = 3;
-      dest_size = 4;
-    }
-  else if (!strcmp (user_data, "bgra->rgb"))
-    {
-      src_size = 4;
-      dest_size = 3;
-    }
-  else if (!strcmp (user_data, "bgr<->rgb"))
-    {
-      src_size = 3;
-      dest_size = 3;
-    }
-  else if (!strcmp (user_data, "rgb<->bgr"))
-    {
-      src_size = 3;
-      dest_size = 3;
-    }
-  else
-    g_assert_not_reached ();
+	d = (uint8_t *) dst_image + dst_format->offset[0];
+	s = (const uint8_t *) src_image + src_format->offset[0];
 
-  for (y=height; y; y--, d += (dest_stride), dest = d,
-	 s += src_stride, src = s)
-    for (x=width; x; x--, dest += dest_size, src += src_size)
-      {
-	dest[0] = src[2];
-	dest[1] = src[1];
-	dest[2] = src[0];
-      }
+	width = MIN (dst_format->width, src_format->width);
+	height = MIN (dst_format->height, src_format->height);
+
+	dst_size = dst_format->pixel_format->bits_per_pixel >> 3;
+	src_size = src_format->pixel_format->bits_per_pixel >> 3;
+
+	dst_padding = dst_format->bytes_per_line[0] - width * dst_size;
+	src_padding = src_format->bytes_per_line[0] - width * src_size;
+
+	while (height-- > 0) {
+		unsigned int count;
+
+		for (count = width; count > 0; --count) {
+			d[0] = s[2];
+			d[1] = s[1];
+			d[2] = s[0];
+
+			d += dst_size;
+			s += src_size;
+		}
+
+		d += dst_padding;
+		s += src_padding;
+	}
 }
 
 static void
-bgra_bgr (tveng_image_data *_src, tveng_image_data *_dest,
-	  unsigned int width, unsigned int height,
-	  const gchar * user_data)
+bgra_bgr			(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format,
+				 const void *		user_data _unused_)
 {
-  unsigned char *src = _src->linear.data, *s = src;
-  unsigned char *dest = _dest->linear.data, *d = dest;
-  int src_stride = _src->linear.stride;
-  int dest_stride = _dest->linear.stride;
-  int x, y;
-  int src_size = 0, dest_size = 0;
+	uint8_t *d;
+	const uint8_t *s;
+	unsigned int width;
+	unsigned int height;
+	unsigned int dst_size;
+	unsigned int src_size;
+	unsigned int dst_padding;
+	unsigned int src_padding;
 
-  if (!strcmp (user_data, "bgra->bgr"))
-    {
-      src_size = 4;
-      dest_size = 3;
-    }
-  else if (!strcmp (user_data, "bgr->bgra"))
-    {
-      src_size = 3;
-      dest_size = 4;
-    }
-  else
-    g_assert_not_reached ();
+	d = (uint8_t *) dst_image + dst_format->offset[0];
+	s = (const uint8_t *) src_image + src_format->offset[0];
 
-  for (y=height; y; y--, d += (dest_stride), dest = d,
-	 s += src_stride, src = s)
-    for (x=width; x; x--, dest += dest_size, src += src_size)
-      {
-	dest[0] = src[0];
-	dest[1] = src[1];
-	dest[2] = src[2];
-      }
+	width = MIN (dst_format->width, src_format->width);
+	height = MIN (dst_format->height, src_format->height);
+
+	dst_size = dst_format->pixel_format->bits_per_pixel >> 3;
+	src_size = src_format->pixel_format->bits_per_pixel >> 3;
+
+	dst_padding = dst_format->bytes_per_line[0] - width * dst_size;
+	src_padding = src_format->bytes_per_line[0] - width * src_size;
+
+	while (height-- > 0) {
+		unsigned int count;
+
+		for (count = width; count > 0; --count) {
+			d[0] = s[0];
+			d[1] = s[1];
+			d[2] = s[2];
+
+			d += dst_size;
+			s += src_size;
+		}
+
+		d += dst_padding;
+		s += src_padding;
+	}
 }
 
 void startup_csconvert(void)
