@@ -54,8 +54,11 @@ static gint		count=0; /* # of printed errors */
 static gboolean		capture_locked = FALSE;
 
 static pthread_t	capture_thread_id;
-static fifo		capture_fifo; /* capture_thread <-> main
+static fifo2		capture_fifo; /* capture_thread <-> main
 					 thread, uses bundles */
+static producer		cf_producer;
+static consumer		cf_idle_consumer;
+
 static struct tveng_frame_format current_format;
 
 extern tveng_device_info	*main_info;
@@ -282,12 +285,21 @@ static volatile gboolean exit_capture_thread = FALSE;
 static void *
 capture_thread (gpointer data)
 {
-  buffer *b;
+  buffer2 *b;
   capture_bundle *d;
   tveng_device_info *info = (tveng_device_info *)data;
 
   while (!exit_capture_thread)
     {
+      b = recv_empty_buffer2(&cf_producer);
+      if (b)
+	{
+	  d = (capture_bundle *) b->data;
+	  fill_bundle(d, info);
+	  b->used = sizeof(capture_bundle);
+	  send_full_buffer2(&cf_producer, b);
+	}
+#if 0
       b = recv_empty_buffer(&capture_fifo);
       if (b)
 	{
@@ -296,8 +308,8 @@ capture_thread (gpointer data)
 	  fill_bundle(d, info);
 	  send_full_buffer(&capture_fifo, b);
 	}
-
-      usleep(2000);
+#endif
+      usleep(2000); /* mhs: why? */
     }
 
   /* clear capture_fifo on exit */
@@ -351,7 +363,7 @@ clear_bundle(capture_bundle *d)
 
 static void
 build_bundle(capture_bundle *d, struct tveng_frame_format *format,
-	     fifo *f, buffer *b)
+	     fifo2 *f, buffer2 *b)
 {
   g_assert(d != NULL);
   g_assert(format != NULL);
@@ -469,7 +481,7 @@ give_data_to_plugins(capture_bundle *d)
 
 static gint idle_handler(gpointer ignored)
 {
-  buffer *b;
+  buffer2 *b;
   capture_bundle *d;
   gint w, h, iw, ih;
 
@@ -478,13 +490,15 @@ static gint idle_handler(gpointer ignored)
 
   print_info(main_window);
 
-  b = recv_full_buffer(&capture_fifo);
+  b = recv_full_buffer2(&cf_idle_consumer);
 
   if (!b)
     {
       usleep(2000);
       return TRUE;
     }
+
+  g_assert(b->used > 0);
 
   d = (capture_bundle*)b->data;
   d->b = b;
@@ -497,7 +511,7 @@ static gint idle_handler(gpointer ignored)
     {
       clear_bundle(d);
       build_bundle(d, &current_format, &capture_fifo, b);
-      send_empty_buffer(&capture_fifo, b);
+      send_empty_buffer2(&cf_idle_consumer, b);
       return TRUE; /* done */
     }
   
@@ -595,7 +609,7 @@ static gint idle_handler(gpointer ignored)
       break;
     }
   
-  send_empty_buffer(&capture_fifo, b);
+  send_empty_buffer2(&cf_idle_consumer, b);
 
   return TRUE;
 }
@@ -611,8 +625,10 @@ capture_start(GtkWidget * window, tveng_device_info *info)
 
   memset(&current_format, 0, sizeof(current_format));
 
-  g_assert(init_buffered_fifo(&capture_fifo, "zapping-capture", 8,
+  g_assert(init_buffered_fifo2(&capture_fifo, "zapping-capture", 8,
 			      sizeof(capture_bundle)));
+  g_assert(add_producer(&capture_fifo, &cf_producer));
+  g_assert(add_consumer(&capture_fifo, &cf_idle_consumer));
 
   gdk_window_set_back_pixmap(window->window, NULL, FALSE);
 
@@ -657,8 +673,7 @@ capture_start(GtkWidget * window, tveng_device_info *info)
 void
 capture_stop(tveng_device_info *info)
 {
-  buffer *b;
-  gint i;
+  buffer2 *b;
   GList *p;
 
   gtk_idle_remove(idle_id);
@@ -672,17 +687,25 @@ capture_stop(tveng_device_info *info)
     }
 
   exit_capture_thread = TRUE;
-  while ((b = recv_full_buffer(&capture_fifo)))
-    send_empty_buffer(&capture_fifo, b);
+fprintf(stderr, "down\n");
+
+  while ((b = recv_full_buffer2(&cf_idle_consumer)))
+    send_empty_buffer2(&cf_idle_consumer, b);
+
   pthread_join(capture_thread_id, NULL);
 
+  rem_consumer(&cf_idle_consumer);
+  rem_producer(&cf_producer);
+
   /* Free the memory used by the bundles */
-  for (i=0; i<capture_fifo.num_buffers; i++)
-    clear_bundle((capture_bundle*)capture_fifo.buffers[i].data);
+  /* XXX should use the buffer2.destroy hook */
+  for (b = (buffer2 *) capture_fifo.buffers.head;
+       b->node.succ; b = (buffer2 *) b->node.succ) 
+    clear_bundle((capture_bundle * ) b->data);
 
   xvz_ungrab_port(info);
 
-  uninit_fifo(&capture_fifo);
+  destroy_fifo(&capture_fifo);
 
   if (!flag_exit_program)
     {
@@ -752,8 +775,12 @@ print_info(GtkWidget *main_window)
   fprintf(stderr, "detected x11 depth: %d\n", x11_get_bpp());
 }
 
+/* mhs: capture_fifo is not mc-able due to
+  capture_bundle write permission */
+#if 0
 fifo *
 get_capture_fifo (void)
 {
   return &capture_fifo;
 }
+#endif

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: types.h,v 1.4 2001-07-02 16:17:13 garetxe Exp $ */
+/* $Id: types.h,v 1.5 2001-07-16 07:06:01 mschimek Exp $ */
 
 #ifndef TYPES_H
 #define TYPES_H
@@ -37,5 +37,17 @@ typedef unsigned char bool;
  */
 #define PARENT(ptr, type, member) \
 	((type *)(((char *) ptr) - offsetof(type, member)))
+
+/*
+ *  Same as libc assert, but also reports the caller.
+ */
+#ifdef	NDEBUG
+# define asserts(expr) ((void) 0)
+#else
+extern void asserts_fail(char *assertion, char *file, unsigned int line, char *function, void *caller);
+#define asserts(expr)							\
+	((void)((expr) ? 0 : asserts_fail(#expr, __FILE__, __LINE__,	\
+		__PRETTY_FUNCTION__, __builtin_return_address(0))))
+#endif
 
 #endif /* TYPES_H */

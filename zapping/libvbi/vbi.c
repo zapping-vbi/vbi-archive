@@ -169,14 +169,21 @@ vbi_mainloop(void *p)
 {
 	struct vbi *vbi = p;
 	vbi_sliced *s;
+	consumer c;
 	int items;
 
-	while (!vbi->quit) {
-		buffer *b = wait_full_buffer(vbi->fifo);
+	assert(add_consumer(vbi->fifo, &c));
 
-		if (!b) {
+	while (!vbi->quit) {
+		buffer2 *b = wait_full_buffer2(&c);
+
+		if (b->used <= 0) {
 			vbi_event ev;
 
+			/* ack */
+			send_empty_buffer2(&c, b);
+
+			/* EOF? Well, shouldn't happen */
 			ev.type = VBI_EVENT_IO_ERROR;
 			vbi_send_event(vbi, &ev);
 
@@ -212,7 +219,7 @@ vbi_mainloop(void *p)
 			items--;
 		}
 
-		send_empty_buffer(vbi->fifo, b);
+		send_empty_buffer2(&c, b);
 
 		if (vbi->event_mask & VBI_EVENT_TRIGGER)
 			vbi_deferred_trigger(vbi);
@@ -221,6 +228,8 @@ vbi_mainloop(void *p)
 			vbi_eacem_trigger(vbi,
 				"<http://zapping.sourceforge.net>[n:Zapping][5450]");
 	}
+
+	rem_consumer(&c);
 
 	return NULL;
 }
@@ -252,10 +261,12 @@ vbi_mainloop(void *p)
  */
 
 struct {
-	fifo			fifo;
-	buffer 			buf;
+	fifo2			fifo;
+	producer		producer;
+	buffer2			buf;
 
-	fifo *			old_fifo;
+	fifo2 *			old_fifo;
+	consumer		old_consumer;
 
 	vbi_sliced		sliced[60];
 	int			pass, add;
@@ -263,16 +274,28 @@ struct {
 	FILE *			fp;
 } filter;
 
-static buffer *
-wait_full_filter(fifo *f)
+static void
+wait_full_filter(fifo2 *f)
 {
 	int items, index, line;
 	vbi_sliced *s, *d;
 	char buf[256];
-	buffer *b;
+	buffer2 *b;
 	int i;
 
-	b = wait_full_buffer(filter.old_fifo);
+	b = wait_full_buffer2(&filter.old_consumer);
+
+	if (b->used <= 0) {
+		filter.buf.time = b->time;
+		filter.buf.used = b->used;
+		filter.buf.error = -1;
+		filter.buf.errstr = NULL;
+
+		send_empty_buffer2(&filter.old_consumer, b);
+		send_full_buffer2(&filter.producer, b);
+
+		return;
+	}
 
 	s = (vbi_sliced *) b->data;
 	d = filter.sliced;
@@ -323,14 +346,8 @@ wait_full_filter(fifo *f)
 	filter.buf.used = (d - filter.sliced) * sizeof(vbi_sliced);
 	filter.buf.time = b->time;
 
-	send_empty_buffer(filter.old_fifo, b);
-
-	return &filter.buf;
-}
-
-static void
-send_empty_filter(fifo *f, buffer *b)
-{
+	send_empty_buffer2(&filter.old_consumer, b);
+	send_full_buffer2(&filter.producer, b);
 }
 
 static void
@@ -349,8 +366,12 @@ add_filter(struct vbi *vbi)
 
 	filter.old_fifo = vbi->fifo;
 
-	init_callback_fifo(&filter.fifo, "vbi-filter",
-		wait_full_filter, send_empty_filter, 0, 0);
+	assert(add_consumer(filter.old_fifo, &filter.old_consumer));
+
+	init_callback_fifo2(&filter.fifo, "vbi-filter",
+		NULL, NULL, wait_full_filter, NULL, 0, 0);
+
+	assert(add_producer(&filter.fifo, &filter.producer));
 
 	vbi->fifo = &filter.fifo;
 }
@@ -361,9 +382,13 @@ remove_filter(struct vbi *vbi)
 	if (!filter.old_fifo)
 		return;
 
+	rem_consumer(&filter.old_consumer);
+
 	vbi->fifo = filter.old_fifo;
 
 	filter.old_fifo = NULL;
+
+	destroy_fifo(&filter.fifo);
 
 	fclose(filter.fp);
 }

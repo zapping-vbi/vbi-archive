@@ -1,3 +1,8 @@
+16.07.2001	<mschimek@users.sf.net>
+
+	* capture.c: ported capture_fifo to fifo2
+	* v4lx.c: ported vbi fifo to fifo2
+
 15.07.2001	mpeg plugin <mschimek@users.sf.net>
 
 	* tveng.c: tveng_get_timestamp(), RETURN_UNTVLOCK()

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.16 2001-07-07 08:46:54 mschimek Exp $ */
+/* $Id: fifo.h,v 1.17 2001-07-16 07:06:01 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -275,7 +275,7 @@ send_empty_buffer(fifo *f, buffer *b)
 		f->send_empty(f, b);
 }
 
-#define inc_buffer_refcount(b) (b->refcount++)
+#define inc_buffer_refcount(b) ((b)->refcount++)
 
 static inline buffer *
 wait_empty_buffer(fifo *f)
@@ -549,11 +549,11 @@ recv_full_buffer2(consumer *c)
 	if ((b = c->next_buffer)->node.succ) {
 		c->next_buffer = (buffer2 *) b->node.succ;
 		b->dequeued++;
-	}
+		c->dequeued++;
+	} else
+		b = NULL;
 
 	pthread_mutex_unlock(&f->consumer->mutex);
-
-	c->dequeued++;
 
 	return b;
 }
@@ -641,8 +641,10 @@ recv_empty_buffer2(producer *p)
 
 	pthread_mutex_unlock(&f->producer->mutex);
 
-	b->dequeued = 1;
-	p->dequeued++;
+	if (b) {
+		b->dequeued = 1;
+		p->dequeued++;
+	}
 
 	return b;
 }
@@ -693,5 +695,12 @@ extern producer *		add_producer(fifo2 *f, producer *p);
 
 extern void			rem_consumer(consumer *c);
 extern consumer	*		add_consumer(fifo2 *f, consumer *c);
+
+/* XXX TBD */
+static inline bool
+start_fifo2(fifo2 *f)
+{
+	return f->start(f);
+}
 
 #endif /* FIFO_H */

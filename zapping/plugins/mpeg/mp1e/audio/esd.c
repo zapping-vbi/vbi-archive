@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.11 2001-05-31 19:40:49 mschimek Exp $ */
+/* $Id: esd.c,v 1.12 2001-07-16 07:06:01 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -176,6 +176,8 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 
 	if (esd->socket <= 0)
 		FAIL("Couldn't create esd recording socket");
+
+	printv(2, "Opened ESD socket\n");
 
 	ASSERT("init pcm/esd capture fifo", init_callback_fifo(
 		&esd->pcm.fifo, "audio-esd",

@@ -9,6 +9,8 @@ Known bugs with zapping, don't report them
 	! MPEG plugin crashes (rte, fifos?)
 rte:remote.c:112: Invalid timestamps from rte-audio: ..., 995206011,154335, 995206011,154335
 Check disabled for further examination
+	* MPEG a+v sync sucks big rocks (maybe just because my CPU is too
+	  slow, but then it's still a bug in mhs' opinion.)
 	* Need better handling of no /dev/video0.
 	* Need better no-overlay-present handling.
 	* vbi eats too much CPU, investigate.

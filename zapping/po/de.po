@@ -1537,7 +1537,7 @@ msgstr "kHz"
 
 #: glade/glade_strings.c:159
 msgid "Accelerator"
-msgstr "Beschleunigung"
+msgstr "Taste"
 
 #: glade/glade_strings.c:160
 msgid "Move selected channels one row up"

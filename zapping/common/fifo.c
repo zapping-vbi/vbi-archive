@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.18 2001-07-15 15:22:07 mschimek Exp $ */
+/* $Id: fifo.c,v 1.19 2001-07-16 07:06:01 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -334,13 +334,14 @@ kill_zombies(fifo *f)
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 }
 
+#if 0
 typedef long long int tsc_t;
 static tsc_t rdtsc(void) {
     tsc_t tsc;
     asm ("\trdtsc\n" : "=A" (tsc));
     return tsc;
 }
-
+#endif
 
 buffer *
 wait_full_buffer(fifo *f)
@@ -441,6 +442,50 @@ init_buffered_fifo(fifo *f, char *name, int num_buffers, int buffer_size)
 /*
  *  NEW STUFF
  */
+
+static char *
+addr2line(void *addr)
+{
+	static char buf[256];
+	FILE *stream;
+	char *d;
+
+	snprintf(buf, 255, "addr2line -Ce \"%s\" 0x%lx",
+		program_invocation_name, (long) addr);
+
+	if (!(stream = popen(buf, "r")))
+		return NULL;
+
+	fgets(buf, sizeof(buf) - 1, stream);
+
+	pclose(stream);
+
+	if (!(d = strchr(buf, '\n')))
+		return NULL;
+	*d = 0;
+
+	if (buf[0] == 0 || buf[0] == '?')
+		return NULL;
+
+	return buf;
+}
+
+void
+asserts_fail(char *assertion, char *file, unsigned int line,
+	char *function, void *caller)
+{
+	char *at = addr2line(caller);
+
+	if (at)
+		fprintf(stderr, "%s: %s:%u: %s called from %s: Assertion \"%s\" failed\n",
+			program_invocation_short_name, file, line,
+			function, at, assertion);
+	else
+		fprintf(stderr, "%s: %s:%u: %s: Assertion \"%s\" failed\n",
+			program_invocation_short_name, file, line,
+			function, assertion);
+	abort();
+}
 
 /*
  *  Buffer
@@ -546,6 +591,10 @@ alloc_buffer(ssize_t size)
  *  Fifo
  */
 
+/*
+ *  To avoid a deadlock, two threads holding a resource
+ *  the opposite wants to lock.
+ */
 static inline void
 mutex_bi_lock(pthread_mutex_t *m1, pthread_mutex_t *m2)
 {
@@ -568,15 +617,16 @@ mutex_co_lock(pthread_mutex_t *m1, pthread_mutex_t *m2)
 	}
 }
 
-/*
-    addr2line -Cfe src/zapping 0xreturn_address
-    XXX exec?
- */
 static void
 dead_fifo(fifo2 *f)
 {
-	fprintf(stderr, "Invalid fifo %p (%s) called at %p, dumping core.\n",
-		f, f->name, __builtin_return_address(0));
+	char *at = addr2line(__builtin_return_address(0));
+
+	if (at)
+		fprintf(stderr, "Invalid fifo %p (%s) called at %s\n", f, f->name, at);
+	else
+		fprintf(stderr, "Invalid fifo %p (%s) called at %p\n",
+			f, f->name, __builtin_return_address(0));
 
 	signal(SIGABRT, SIG_DFL);
 
@@ -587,9 +637,14 @@ static void
 dead_producer(producer *p)
 {
 	fifo2 *f = p->fifo;
+	char *at = addr2line(__builtin_return_address(0));
 
-	fprintf(stderr, "Invalid fifo %p (%s) called by producer %p at %p, dumping core.\n",
-		f, f->name, p, __builtin_return_address(0));
+	if (at)
+		fprintf(stderr, "Invalid fifo %p (%s) called by producer %p at %s\n",
+			f, f->name, p, at);
+	else
+		fprintf(stderr, "Invalid fifo %p (%s) called by producer %p at %p\n",
+			f, f->name, p, __builtin_return_address(0));
 
 	signal(SIGABRT, SIG_DFL);
 
@@ -600,14 +655,20 @@ static void
 dead_consumer(consumer *c)
 {
 	fifo2 *f = c->fifo;
+	char *at = addr2line(__builtin_return_address(0));
 
-	fprintf(stderr, "Invalid fifo %p (%s) called by consumer %p at %p, terminating.\n",
-		f, f->name, c, __builtin_return_address(0));
+	if (at)
+		fprintf(stderr, "Invalid fifo %p (%s) called by consumer "
+			"%p at %s, terminating.\n", f, f->name, c, at);
+	else
+		fprintf(stderr, "Invalid fifo %p (%s) called by consumer "
+			"%p at %p, terminating.\n", f, f->name, c,
+			__builtin_return_address(0));
 
 	/*
 	 *  A sane consumer should never hold a mutex
 	 *  when calling fifo functions, so we won't block
-	 *  joining other cosumers or producers.
+	 *  joining other consumers or producers.
 	 */
 
 	pthread_exit(0);
@@ -904,7 +965,7 @@ send_full2(producer *p, buffer2 *b)
 		 *  Nobody is listening, I'm only the loopback.
 		 */
 
-		assert(!f->wait_empty);
+		asserts(!f->wait_empty);
 
 		c.fifo = f;
 
@@ -935,7 +996,7 @@ send_full2(producer *p, buffer2 *b)
  *            recorded until all producers sent EOF, the buffer
  *            will be recycled. Sending non-zero b->used after EOF
  *            is not permitted.
- * b->errno   Copy of errno if appropriate, zero otherwise.
+ * b->error   Copy of errno if appropriate, zero otherwise.
  * b->errstr  Pointer to a localized error message for display
  *            to the user if appropriate, NULL otherwise. Shall not
  *            include strerror(errno), but rather hint the attempted
@@ -954,7 +1015,7 @@ void
 send_full_buffer2(producer *p, buffer2 *b)
 {
 	/* Migration prohibited, don't use this to add buffers to the fifo */
-	assert(p->fifo == b->fifo && b->dequeued == 1);
+	asserts(p->fifo == b->fifo && b->dequeued == 1);
 
 	b->consumers = 1;
 
@@ -964,7 +1025,7 @@ send_full_buffer2(producer *p, buffer2 *b)
 	p->dequeued--;
 
 	if (b->used > 0) {
-		assert(!p->eof_sent);
+		asserts(!p->eof_sent);
 	} else {
 		fifo2 *f = p->fifo;
 
@@ -1262,9 +1323,9 @@ init_callback_fifo2(fifo2 *f, char *name,
 	void (* custom_send_empty)(consumer *, buffer2 *),
 	int num_buffers, ssize_t buffer_size)
 {
-	assert((!!custom_wait_empty) != (!!custom_wait_full));
-	assert((!!custom_wait_empty) >= (!!custom_send_full));
-	assert((!!custom_wait_full) >= (!!custom_send_empty));
+	asserts((!!custom_wait_empty) != (!!custom_wait_full));
+	asserts((!!custom_wait_empty) >= (!!custom_send_full));
+	asserts((!!custom_wait_full) >= (!!custom_send_empty));
 
 	if (!custom_send_full)
 		custom_send_full = send_full2;
@@ -1292,7 +1353,7 @@ rem_producer(producer *p)
 {
 	fifo2 *f = p->fifo;
 
-	assert(p->dequeued == 0);
+	asserts(p->dequeued == 0);
 
 	pthread_mutex_lock(&f->producer->mutex);
 
@@ -1367,7 +1428,7 @@ rem_consumer(consumer *c)
 {
 	fifo2 *f = c->fifo;
 
-	assert(c->dequeued == 0);
+	asserts(c->dequeued == 0);
 
 	pthread_mutex_lock(&f->consumer->mutex);
 

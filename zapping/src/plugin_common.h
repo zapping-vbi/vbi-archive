@@ -112,8 +112,8 @@ typedef struct {
   double	timestamp;		/* time when the bundle was
 					   captured */
 
-  fifo		*f;			/* fifo this bundle belongs to */
-  buffer	*b;			/* buffer this bundle belongs to */
+  fifo2		*f;			/* fifo this bundle belongs to */
+  buffer2	*b;			/* buffer this bundle belongs to */
 } capture_bundle;
 
 #ifndef ZAPPING /* If this is being included from a plugin, give them

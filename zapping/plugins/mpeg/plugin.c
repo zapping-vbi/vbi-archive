@@ -401,6 +401,8 @@ void plugin_process_bundle ( capture_bundle * bundle )
     }
   else
     {
+      g_assert_not_reached(); /* capture_fifo2 not mc-able */
+#if 0
       inc_buffer_refcount(bundle->b);
       
       rbuf.user_data = bundle->b;
@@ -408,6 +410,7 @@ void plugin_process_bundle ( capture_bundle * bundle )
       rbuf.data = bundle->data;
       
       rte_push_video_buffer(context, &rbuf);
+#endif
     }
 
   rte_get_status(context, &status);
@@ -424,10 +427,14 @@ void plugin_process_bundle ( capture_bundle * bundle )
 static void
 video_unref_buffer(rte_context *context, rte_buffer *buf)
 {
+  g_assert_not_reached(); /* capture_fifo2 not mc-able */
+
+#if 0
   fifo *capture_fifo = rte_get_user_data(context);
   g_assert(capture_fifo != NULL);
 
   send_empty_buffer(capture_fifo, (buffer*)buf->user_data);
+#endif
 }
 
 static
@@ -526,7 +533,10 @@ gboolean plugin_start (void)
   context =
     rte_context_new(zapping_info->format.width,
 		    zapping_info->format.height, pixformat,
-		    get_capture_fifo());
+		    NULL);
+  /* mhs: capture_fifo is not mc-able due to the capture_bundle
+     write permission. */
+//		    get_capture_fifo());
 
   if (!context)
     {

@@ -79,5 +79,7 @@ capture_unlock(void);
 
 fifo *
 get_capture_fifo(void);
+fifo2 *
+get_capture_fifo2(void);
 
 #endif /* capture.h */
