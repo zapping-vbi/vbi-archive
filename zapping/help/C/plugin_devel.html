@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<HTML>
+
+<HEAD>
+<META name="GENERATOR" content="Bluefish 0.3.6 + Emacs">
+<TITLE>Plugin writer's help</TITLE>
+</HEAD>
+<BODY BGCOLOR="#fffefe">
+<H1>Zapping plugin writer's help (Plugin Protocol 2)</H1>
+<H3>Brief</H3>
+This document explains what are Zapping plugins and how to write one, please read it carefully and mail <A HREF="mailto:garetxe@users.sourceforge.net">me</A> if you have suggestions or you find anything erroneous.
+<H3>How does Zapping understand plugins</H3>
+On startup, Zapping will scan some directories, and it will try to load all the files in the directory <STRONG>containing</STRONG> the string <EM>.zapping.so</EM> in their file name. Thus, Zapping will try to load <EM>plugin.zapping.so.2</EM>.<br>
+After finding the files, it will try to load and validate them. See <A HREF="#Structure">the plugin structure section</A> to find out what are the requirements for a plugin to be valid.
+<BR>After that, the plugins will become part of Zapping itself, and you will be able to manage them from inside Zapping.
+<BR>The following directories are scanned on startup for plugins:<BR><OL>
+	<LI><I><B>$(prefix)</B>/share/zapping/plugins</I>, where <B>$(prefix)</B> is the subdirectory were the program will be installed, usually <I>/usr</I> or <I>/usr/local</I>.
+	<LI><I><B>$HOME</B>/.zapping/plugins</I>, where <B>$HOME</B> is the content of the enviromental variable with that name.
+	<LI>Anything listed in <I><B>$HOME</B>/.zapping/plugin_dirs</I>.
+</OL>
+<A NAME="Structure"></A>
+<H3>Plugin structure in detail</H3>
+All plugins must have a function with the following prototype:<P>
+<A NAME="plugin_protocol"></A>
+<B>gint plugin_protocol(void);</B><P>
+It must return the protocol number the plugin speaks. 2 in this revision (the Protocol 1 was used in the 0.3 Zapping series, but it had serious limitations). If that doesn't match the protocol Zapping understands, the plugin will not be loaded.<P>
+The are also other compulsory functions that will be resolved if the prevoious step succeeded:<P>
+<A NAME="plugin_init"></A>
+<B>gboolean plugin_init ( <A HREF="#PluginBridge">PluginBridge</A>
+bridge, tveng_device_info * info );</B><P>
+Inits the plugin. It should prepare itself for work, but it shouldn't
+start working yet. For that, it should wait until <a
+href="#plugin_start">plugin_start</a> is called.<p>
+<I>bridge</I>: The brige is used to let the plugin access Zapping
+internals, more on this on the <a href="#RunningThePlugin">running the
+plugin section</a>.<br>
+<I>info</I>: A pointer to the structure attached to the video
+device. There is no documentation on TVeng yet, see src/tveng.h on the
+main Zapping distribution to get some help on this.
+<I>Returns</I>: The plugin should return FALSE if it cannot init
+itself, so Zapping doesn't use it again. TRUE if it can be used.<p>
+<A NAME="plugin_close"></A>
+<B>void plugin_close ( );</B><p>
+Close (unload) the plugin. The plugin should free here all the mem it
+uses, close file descriptors, kill threads, etc.<p>
+<A NAME="plugin_start"></A>
+<B>gboolean plugin_start ( );</B><p>
+When this function is called, the plugin should start to work. It
+should return FALSE and stop itself if there is some error, although
+it shouldn't be. Anything that should cause errors should be done in
+<a href="#plugin_init">plugin_init</a>.
+<I>Returns</I>: TRUE if everything succeeded and FALSE otherwise.<p>
+<A NAME="plugin_stop"></A>
+<B>void plugin_stop ( );</B><p>
+Used to stop the plugin, but it shouldn't unload itself.<p>
+<A NAME="plugin_load_config"></A>
+<B>void plugin_load_config ( gchar * root_key );</B><p>
+The plugins should store their configuration through the ZConf system
+(similar to gconf). When this is called, the plugin should read its
+values from the zconf config tree, under the given branch.<br>
+<B>Note:</B> At least the <I>autostart (Boolean)</I> configuration value
+should be present for all plugins. If, when reading the configuration,
+the plugin gets a value of <I>TRUE</I> for the <I>autostart</I> value, it
+should call <a href="#plugin_start">plugin_start</a> itself.<br>
+<I>root_key</I>: It will be something like:
+<I>/zapping/plugins/plugin_name/</I>, look to the example plugin
+that comes intro the distribution to see how this is actually done.<p>
+<A NAME="plugin_save_config"></A>
+<B>void plugin_save_config ( gchar * root_key );</B><p>
+This is called when Zapping wants all the plugins to store their
+config. The <I>autostart (Boolean)</I> value is compulsory for all
+plugins.<br>
+<I>root_key</I>: The branch of the config tree were the config should
+be saved under. It will look like
+<I>/zapping/plugins/plugin_name/</I>.<p>
+<A NAME="plugin_get_info"></A>
+<B>void plugin_get_info ( gchar ** canonical_name, gchar **
+descriptive_name, gchar ** description, gchar ** short_description,
+gchar ** author, gchar ** version );</B><p>
+Asks the plugin for some info. One or more of the pointers could be
+NULL, that will mean that we don't need that value. The others should
+be modified to point to a valid (possibly statically allocated,
+Zapping will not modify or free it) string with the desired
+contents.<br>
+<I>canonical_name</I>: Short, unique, alphanumeric name for the
+plugin. Will be used when creating the config key, for example.<br>
+<I>descriptive_name</I>: Long name for the plugin. The user will see
+it called like this.<br>
+<I>description</I>: Plugin description. Here you should explain what
+the plugin does, requirements, and maybe a short faq.<br>
+<I>short_description</I>: A line of two giving a general idea of what
+this does.<br>
+<I>author</I>: Your name here.<br>
+<I>version</I>: A string describing the version of the plugin.<p>
+<H3>Optative functions</H3>
+There are some functions that the plugin may or may not have. If it
+hasn't got them, they are simply ignored.<p>
+<a name="plugin_process_frame"></a>
+<B>gpointer plugin_process_frame ( gpointer data, struct tveng_frame_format
+* format );</B><p>
+This is called for all the plugins secuentially. Here the plugin, if
+it is a image processing plugin, would make any changes to the
+image.<br>
+<I>data</I>: Pointer to the buffer that contains the captured image.<br>
+<I>format</I>: A pointer to the struct that holds the image
+description. If the plugin modifies the image in size or depth, the
+changes should be reflected here, so the following plugins know about
+the change and behave correctly.<br>
+<I>Returns<I>: A pointer to the new image. Might be the same as the
+given pointer.<br>
+<I></I>
+
+<P>(C) <A HREF="mailto:garetxe@users.sourceforge.net">Iñaki García
+Etxebarria</A> 2000. This document is under the Gnu Documentation License.
+</BODY>
+</HTML>
