@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.c,v 1.2 2003-11-29 19:43:21 mschimek Exp $ */
+/* $Id: device.c,v 1.3 2004-04-19 15:18:52 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -70,7 +70,9 @@ fprintf_symbolic		(FILE *			fp,
 		}
 	}
 
-	if (value)
+	if (0 == value && 0 == j)
+		fputc ('0', fp);
+	else if (value)
 		fprintf (fp, "%s0x%lx", j ? "|" : "", value);
 
 	va_end (ap); 
@@ -180,11 +182,11 @@ device_ioctl			(FILE *			fp,
       saved_errno = errno;
 
       fprintf (fp, "%d = ", err);
-      fn (fp, cmd, NULL);
+      fn (fp, cmd, 0, NULL);
       fputc ('(', fp);
       
       if (IOCTL_WRITE (cmd))
-	fn (fp, cmd, &buf);
+	fn (fp, cmd, IOCTL_READ (cmd) ? 2 : 3, &buf);
 
       if (-1 == err)
 	{
@@ -196,7 +198,7 @@ device_ioctl			(FILE *			fp,
 	  if (IOCTL_READ (cmd))
 	    {
 	      fputs (") -> (", fp);
-	      fn (fp, cmd, arg);
+	      fn (fp, cmd, IOCTL_WRITE (cmd) ? 1 : 3, arg);
 	    }
 
 	  fputs (")\n", fp);
