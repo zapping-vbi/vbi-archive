@@ -1010,6 +1010,10 @@ gboolean on_ttxview_expose_event	(GtkWidget	*widget,
 					 GdkEventExpose	*event,
 					 ttxview_data	*data)
 {
+  /* avoid refreshing whilst selecting */
+  if (data->selecting)
+    return TRUE;
+
   render_ttx_page(data->id, widget->window, widget->style->white_gc,
 		  event->area.x, event->area.y,
 		  event->area.x, event->area.y,
