@@ -1279,6 +1279,9 @@ update_xv_control (tveng_device_info * info, struct control *c)
     {
       tv_audio_line *line;
 
+      if (info->priv->quiet)
+	return 0;
+
       line = c->mixer_line;
       t_assert (line != NULL);
 
@@ -1375,11 +1378,6 @@ tveng_update_control(tv_control *control,
 
   TVLOCK;
 
-  if (info->priv->quiet)
-    if (control->id == TV_CONTROL_ID_MUTE
-	|| control->id == TV_CONTROL_ID_VOLUME)
-      RETURN_UNTVLOCK (0);
-  
   if (control->_parent == NULL /* TVENG_CONTROLLER_MOTHER */)
     RETURN_UNTVLOCK (update_xv_control (info, C(control)));
 
@@ -1395,8 +1393,6 @@ p_tveng_update_controls(tveng_device_info * info)
   tv_control *tc;
 
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
-
-  /* FIXME quiet */
 
   /* Update the controls we maintain */
   for (tc = info->controls; tc; tc = tc->_next)
@@ -1431,7 +1427,7 @@ reset_video_volume		(tveng_device_info *	info,
 
   for (tc = info->controls; tc; tc = tc->_next)
     {
-      if (tc->_parent != NULL)
+      if (tc->_parent != NULL && tc->_ignore)
 	switch (tc->id)
 	  {
 	  case TV_CONTROL_ID_VOLUME:
@@ -1453,14 +1449,98 @@ reset_video_volume		(tveng_device_info *	info,
 } 
 
 static int
+set_control_audio		(tveng_device_info *	info,
+				 struct control *	c,
+				 int			value,
+				 tv_bool		quiet,
+				 tv_bool		reset)
+{
+  tv_bool success;
+
+  if (NULL == c->pub._parent)
+    {
+      tv_callback *cb;
+
+      t_assert (NULL != c->mixer_line);
+
+      cb = c->mixer_line->_callback;
+
+      if (quiet)
+	c->mixer_line->_callback = NULL;
+
+      switch (c->pub.id)
+	{
+	case TV_CONTROL_ID_MUTE:
+	  success = tv_mixer_line_set_mute (c->mixer_line, value);
+
+	  value = c->mixer_line->muted;
+
+	  if (value)
+	    reset = FALSE;
+
+	  break;
+
+	case TV_CONTROL_ID_VOLUME:
+	  success = tv_mixer_line_set_volume (c->mixer_line, value, value);
+
+	  value = (c->mixer_line->volume[0]
+		   + c->mixer_line->volume[1] + 1) >> 1;
+	  break;
+
+	default:
+	  assert (0);
+	}
+
+      if (quiet)
+	{
+	  c->mixer_line->_callback = cb;
+	}
+      else if (success && c->pub.value != value)
+	{
+	  c->pub.value = value;
+	  tv_callback_notify (info, &c->pub, c->pub._callback);
+	}
+
+      if (success && reset)
+	reset_video_volume (info, /* mute */ FALSE);
+    }
+  else if (info->priv->module.set_control)
+    {
+      if (quiet)
+	{
+	  tv_callback *cb;
+	  int old_value;
+
+	  cb = c->pub._callback;
+	  old_value = c->pub.value;
+
+	  c->pub._callback = NULL;
+
+	  success = info->priv->module.set_control (info, &c->pub, value);
+
+	  c->pub.value = old_value;
+	  c->pub._callback = cb;
+	}
+      else
+	{
+	  success = info->priv->module.set_control (info, &c->pub, value);
+	}
+    }
+
+  return success ? 0 : -1;
+}
+
+static int
 set_control			(struct control * c, int value,
-				 tv_bool rvv,
+				 tv_bool reset,
 				 tveng_device_info * info)
 {
   int r = 0;
 
   value = SATURATE (value, c->pub.minimum, c->pub.maximum);
 
+  /* If the quiet switch is set we remember the
+     requested value but don't change driver state. */
   if (info->priv->quiet)
     if (c->pub.id == TV_CONTROL_ID_VOLUME
 	|| c->pub.id == TV_CONTROL_ID_MUTE)
@@ -1468,22 +1548,10 @@ set_control			(struct control * c, int value,
 
   if (c->pub._parent == NULL /* TVENG_CONTROLLER_MOTHER */)
     {
-      if (c->pub.id == TV_CONTROL_ID_VOLUME)
+      if (c->pub.id == TV_CONTROL_ID_VOLUME
+	  || c->pub.id == TV_CONTROL_ID_MUTE)
 	{
-	  t_assert (c->mixer_line != NULL);
-	  r = tv_mixer_line_set_volume (c->mixer_line, value, value) ? 0 : -1;
-	  if (rvv)
-	    reset_video_volume (info, 0);
-	  value = (c->mixer_line->volume[0]
-		   + c->mixer_line->volume[1] + 1) >> 1;
-	}
-      else if (c->pub.id == TV_CONTROL_ID_MUTE)
-	{
-	  t_assert (c->mixer_line != NULL);
-	  r = tv_mixer_line_set_mute (c->mixer_line, value) ? 0 : -1;
-	  if (!value && rvv)
-	    reset_video_volume (info, 0);
-	  value = c->mixer_line->muted;
+	  return set_control_audio (info, c, value, /* quiet */ FALSE, reset);
 	}
 #ifdef USE_XV
       else if ((c->atom == info->priv->filter) &&
@@ -1608,8 +1676,17 @@ tveng_get_control_by_name(const char * control_name,
   TVLOCK;
 
   /* Update the controls (their values) */
-  if (tveng_update_controls(info) == -1)
-    RETURN_UNTVLOCK(-1);
+  if (info->priv->quiet
+      && (tc->id == TV_CONTROL_ID_VOLUME
+	  || tc->id == TV_CONTROL_ID_MUTE))
+    {
+      /* not now */
+    }
+  else
+    {
+      if (tveng_update_controls(info) == -1)
+	RETURN_UNTVLOCK(-1);
+    }
 
   /* iterate through the info struct to find the control */
   for (tc = info->controls; tc; tc = tc->_next)
@@ -1617,8 +1694,6 @@ tveng_get_control_by_name(const char * control_name,
       /* we found it */
       {
 	value = tc->value;
-	t_assert(value <= tc->maximum);
-	t_assert(value >= tc->minimum);
 	if (cur_value)
 	  *cur_value = value;
 	UNTVLOCK;
@@ -1653,7 +1728,7 @@ tveng_set_control_by_name(const char * control_name,
   TVLOCK;
 
   for (tc = info->controls; tc; tc = tc->_next)
-    if (!strcasecmp(tc->label,control_name))
+    if (!tc->_ignore && 0 == strcasecmp(tc->label,control_name))
       /* we found it */
       RETURN_UNTVLOCK (set_control (C(tc), new_value, TRUE, info));
 
@@ -1949,60 +2024,74 @@ tv_quiet_set			(tveng_device_info *	info,
 
   TVLOCK;
 
-  if (info->priv->quiet != quiet)
+  if (info->priv->quiet == quiet)
+    {
+      UNTVLOCK;
+      return;
+    }
+
+  info->priv->quiet = quiet;
+
+  if (quiet)
+    {
+      tv_control *tc;
+
+      for (tc = info->controls; tc; tc = tc->_next)
+	if (!tc->_ignore && TV_CONTROL_ID_MUTE == tc->id)
+	  {
+	    /* Error ignored */
+	    set_control_audio (info, C (tc),
+			       /* value */ TRUE,
+			       /* quiet */ TRUE,
+			       /* reset */ FALSE);
+	    break;
+	  }
+
+      if (NULL == tc) /* no mute control found */
+	for (tc = info->controls; tc; tc = tc->_next)
+	  if (!tc->_ignore && TV_CONTROL_ID_VOLUME == tc->id)
+	    {
+	      /* Error ignored */
+	      set_control_audio (info, C (tc),
+				 /* value */ 0,
+				 /* quiet */ TRUE,
+				 /* reset */ FALSE);
+	      break;
+	    }
+    }
+  else
     {
       tv_control *tc;
       tv_bool reset;
-
-      info->priv->quiet = quiet;
 
       reset = FALSE;
 
       for (tc = info->controls; tc; tc = tc->_next)
 	{
-	  if (!tc->_ignore)
+	  if (tc->_ignore)
+	    continue;
+
+	  switch (tc->id)
 	    {
-	      if (tc->id == TV_CONTROL_ID_VOLUME)
-		{
-		  if (!quiet)
-		    {
-		      set_control (C(tc), tc->value, FALSE, info);
-		      reset |= (tc->_parent == NULL);
-		    }
-		}
-	      else if (tc->id == TV_CONTROL_ID_MUTE)
-		{
-		  if (quiet)
-		    {
-		      if (tc->_parent == NULL)
-			{
-			  struct control *c = PARENT (tc, struct control, pub);
+	    case TV_CONTROL_ID_MUTE:
+	    case TV_CONTROL_ID_VOLUME:
+	      set_control_audio (info, C (tc),
+				 tc->value,
+				 /* quiet */ FALSE,
+				 /* reset */ FALSE);
 
-			  t_assert (c->mixer_line != NULL);
-			  tv_mixer_line_set_mute (c->mixer_line, TRUE);
-			}
-		      else if (info->priv->module.set_control)
-			{
-			  tv_callback *cb = tc->_callback;
-			  int old_value = tc->value;
+	      if (NULL == tc->_parent) /* uses soundcard mixer */
+		reset = TRUE;
 
-			  tc->_callback = NULL;
-			  info->priv->module.set_control (info, tc, TRUE);
-			  tc->_callback = cb;
-			  tc->value = old_value;
-			}
-		    }
-		  else /* !quiet */
-		    {
-		      set_control (C(tc), tc->value, FALSE, info);
-		      reset |= (tc->_parent == NULL);
-		    }
-		}
+	      break;
+
+	    default:
+	      break;
 	    }
 	}
 
-      if (reset && !quiet)
-	reset_video_volume (info, FALSE);
+      if (reset)
+	reset_video_volume (info, /* mute */ FALSE);
     }
 
   UNTVLOCK;
@@ -2027,10 +2116,12 @@ tv_mute_get			(tveng_device_info *	info,
 
   if ((tc = info->priv->control_mute))
     {
-      if (update && (-1 == tveng_update_control (tc, info)))
-	return -1;
-      else
-	return tc->value;
+      if (!info->priv->quiet)
+	if (update)
+	  if (-1 == tveng_update_control (tc, info))
+	    return -1;
+
+      return tc->value;
     }
 
   TVLOCK;
@@ -2434,7 +2525,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	case 0: /* in child */
 		/* First try the zapping_setup_fb install path. */
-		r = execvp (ZSFB_DIR "/zapping_setup_fb", argv);
+		r = execvp (PACKAGE_ZSFB_DIR "/zapping_setup_fb", argv);
 
 		if (-1 == r && ENOENT == errno) {
 			/* Try in $PATH. */
@@ -2490,7 +2581,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 	case 2: /* zapping_setup_fb ENOENT */
 		info->tveng_errno = ENOENT;
 		tv_error_msg (info, _("zapping_setup_fb not found in "
-			ZSFB_DIR " or executable search path."));
+			PACKAGE_ZSFB_DIR " or executable search path."));
 		goto failure;
 
 	default:
