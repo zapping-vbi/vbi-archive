@@ -1310,7 +1310,7 @@ on_channel_search_clicked              (GtkButton       *button,
 		  "entry).\nReported error:\n%s"),
 		GNOME_MESSAGE_BOX_WARNING, main_info->error);
       else
-	ShowBox(_("Your current V4L/V4L2 driver cannot do, "
+	ShowBox(_("Your current V4L/V4L2 driver cannot do "
 		  "channel autosearching, sorry"),
 		GNOME_MESSAGE_BOX_INFO);
       return;

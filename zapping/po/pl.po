@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2001-08-20 22:08+0200\n"
+"POT-Creation-Date: 2001-08-21 18:19+0200\n"
 "PO-Revision-Date: 2001-08-16 12:32+0000\n"
 "Last-Translator: Pawe³ Sakowski <pawel@sakowski.eu.org>\n"
 "Language-Team: Polish <pl@li.org>\n"
@@ -1057,7 +1057,8 @@ msgstr ""
 
 # src/channel_editor.c:1313
 #: src/channel_editor.c:1313
-msgid "Your current V4L/V4L2 driver cannot do, channel autosearching, sorry"
+#, fuzzy
+msgid "Your current V4L/V4L2 driver cannot do channel autosearching, sorry"
 msgstr ""
 "Niestety, twój aktualny sterownik V4L/V4L2 nie potrafi przeszukiwaæ kana³ów"
 
@@ -2945,7 +2946,8 @@ msgstr "Ta wtyczka robi zrzuty przechwytywanego obrazu."
 # plugins/mpeg/mpeg.c:116 plugins/screenshot/screenshot.c:192
 #. hash collision code
 #. Warn
-#: plugins/mpeg/mpeg.c:116 plugins/screenshot/screenshot.c:192
+#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133 plugins/mpeg/mpeg.c:116
+#: plugins/parrot/parrot.c:141 plugins/screenshot/screenshot.c:192
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "B³±d kontroli: \"%s\" we wtyczce %s ma kod mieszania 0x%x zamiast 0x%x"
@@ -3086,17 +3088,6 @@ msgstr "Ta wtyczka pozwala na u¿ycie LIRCa (Linux Infrared Remote Control)."
 #: plugins/lirc/lirc.c:41
 msgid "This plugin enables the usage of LIRC."
 msgstr "Ta wtyczka pozwala na u¿ycie LIRCa."
-
-# plugins/lirc/lirc.c:101
-# plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133
-# plugins/parrot/parrot.c:141
-#. hash collision code
-#. Warn
-#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133
-#: plugins/parrot/parrot.c:141
-#, c-format
-msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
-msgstr "B³±d kontroli: \"%s\" we wtyczce %sma kod mieszania 0x%x zamiast 0x%x"
 
 # plugins/lirc/lirc.c:296
 # plugins/lirc/lirc.c:321
@@ -4030,6 +4021,13 @@ msgid ""
 msgstr ""
 "W %s (%s) brakuje interfejsu odczytu vbi, prawdopodobnie urz±dzenie tylko do "
 "wyj¶cia albo b³±d sterownika. %s\n"
+
+# plugins/lirc/lirc.c:101
+# plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133
+# plugins/parrot/parrot.c:141
+#~ msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
+#~ msgstr ""
+#~ "B³±d kontroli: \"%s\" we wtyczce %sma kod mieszania 0x%x zamiast 0x%x"
 
 # glade/glade_strings.c:190
 # glade/glade_strings.c:237

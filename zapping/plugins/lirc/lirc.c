@@ -130,7 +130,7 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
 	    if (ptr)
 	      *ptr = GINT_TO_POINTER(0x3); /* hash collision code */
 	    /* Warn */
-	    g_warning(_("Check error: \"%s\" in plugin %s"
+	    g_warning(_("Check error: \"%s\" in plugin %s "
 		       "has hash 0x%x vs. 0x%x"), name,
 		      str_canonical_name, 
 		      table_of_symbols[i].hash,

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.0cvs\n"
-"POT-Creation-Date: 2001-08-20 22:08+0200\n"
+"POT-Creation-Date: 2001-08-21 18:19+0200\n"
 "PO-Revision-Date: 2001-07-04 18:08+0200\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -769,7 +769,8 @@ msgstr ""
 "%s"
 
 #: src/channel_editor.c:1313
-msgid "Your current V4L/V4L2 driver cannot do, channel autosearching, sorry"
+#, fuzzy
+msgid "Your current V4L/V4L2 driver cannot do channel autosearching, sorry"
 msgstr ""
 "Votre pilote V4L/V4L2 ne peut pas faire la recherche automatique des "
 "chaînes, désolé"
@@ -2109,7 +2110,8 @@ msgstr "Ce greffon fait des copies d'écran de la fenêtre"
 
 #. hash collision code
 #. Warn
-#: plugins/mpeg/mpeg.c:116 plugins/screenshot/screenshot.c:192
+#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133 plugins/mpeg/mpeg.c:116
+#: plugins/parrot/parrot.c:141 plugins/screenshot/screenshot.c:192
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Check erreur : \"%s\" du greffon %s has hash 0x%x vs. 0x%x"
@@ -2215,14 +2217,6 @@ msgstr ""
 #: plugins/lirc/lirc.c:41
 msgid "This plugin enables the usage of LIRC."
 msgstr "Ce greffon permet l'usage de LIRC."
-
-#. hash collision code
-#. Warn
-#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133
-#: plugins/parrot/parrot.c:141
-#, c-format
-msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
-msgstr "Check erreur : \"%s\" du greffon %shas hash 0x%x vs. 0x%x"
 
 #: plugins/lirc/lirc.c:321
 msgid "LIRC"
@@ -2908,6 +2902,9 @@ msgid ""
 "%s (%s) lacks a vbi read interface, possibly an output only device or a "
 "driver bug. %s\n"
 msgstr ""
+
+#~ msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
+#~ msgstr "Check erreur : \"%s\" du greffon %shas hash 0x%x vs. 0x%x"
 
 #~ msgid "Previous subpage in the cache [Left]"
 #~ msgstr "Sous-page précédente dans le cache [Gauche]"

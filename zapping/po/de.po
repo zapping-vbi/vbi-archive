@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2001-08-20 22:08+0200\n"
+"POT-Creation-Date: 2001-08-21 18:19+0200\n"
 "PO-Revision-Date: 2001-08-18 15:51+02:00\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -790,7 +790,8 @@ msgstr ""
 "%s"
 
 #: src/channel_editor.c:1313
-msgid "Your current V4L/V4L2 driver cannot do, channel autosearching, sorry"
+#, fuzzy
+msgid "Your current V4L/V4L2 driver cannot do channel autosearching, sorry"
 msgstr ""
 "Ihr V4L/V4L2 Treiber erlaubt leider keine automatische Kanalprogrammierung"
 
@@ -2151,7 +2152,8 @@ msgstr "Dieses Plugin speichert Standbilder."
 
 #. hash collision code
 #. Warn
-#: plugins/mpeg/mpeg.c:116 plugins/screenshot/screenshot.c:192
+#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133 plugins/mpeg/mpeg.c:116
+#: plugins/parrot/parrot.c:141 plugins/screenshot/screenshot.c:192
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Warnung: \"%s\" im Plugin %s hat Hash 0x%x ggü. 0x%x"
@@ -2263,14 +2265,6 @@ msgstr ""
 #: plugins/lirc/lirc.c:41
 msgid "This plugin enables the usage of LIRC."
 msgstr "Diese Plugin erlaubt die Verwendung von LIRC."
-
-#. hash collision code
-#. Warn
-#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133
-#: plugins/parrot/parrot.c:141
-#, c-format
-msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
-msgstr "Warnung: \"%s\" im Plugin %shat Hash 0x%x ggü. 0x%x"
 
 #: plugins/lirc/lirc.c:321
 msgid "LIRC"
@@ -3010,6 +3004,9 @@ msgid ""
 msgstr ""
 "%s (%s) hat keine VBI Leseschnittstelle, möglicherweise ein Ausgabegerät "
 "oder ein Treiber Bug. %s\n"
+
+#~ msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
+#~ msgstr "Warnung: \"%s\" im Plugin %shat Hash 0x%x ggü. 0x%x"
 
 #~ msgid "Previous subpage in the cache [Left]"
 #~ msgstr "Vorhergehende Unterseite im Speicher [Links]"
