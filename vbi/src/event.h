@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.h,v 1.5.2.1 2003-02-16 21:03:33 mschimek Exp $ */
+/* $Id: event.h,v 1.5.2.2 2003-06-16 06:02:56 mschimek Exp $ */
 
 #ifndef EVENT_H
 #define EVENT_H
@@ -190,6 +190,7 @@ typedef struct vbi_link {
 	vbi_nuid			nuid;
 	/**
 	 * @a pgno and @a subno Teletext page number, see vbi_pgno, vbi_subno.
+	 * Note subno can be VBI_ANY_SUBNO.
 	 */
 	vbi_pgno			pgno;
 	vbi_subno			subno;
@@ -220,6 +221,31 @@ typedef struct vbi_link {
 	 */
 	vbi_bool			autoload;
 } vbi_link;
+
+/* preliminary */
+typedef struct vbi_pdc_selection {
+	unsigned int			cni;
+
+	unsigned int			year;		/* 2000 ... */
+	unsigned int			month;		/* 0 ... 11 */
+	unsigned int			day;		/* 0 ... 30 */
+
+	unsigned int			at1_hour;	/* 0 ... 23 */
+	unsigned int			at1_minute;	/* 0 ... 59 */
+
+	unsigned int			at2_hour;
+	unsigned int			at2_minute;
+
+	unsigned int			length;		/* minutes */
+
+	int				lto;		/* -720 ... +720 minutes */
+
+	unsigned int			pty;
+
+	vbi_bool			caf;
+
+	char				title [200];
+} vbi_pdc_selection;
 
 /*
  *  Aspect ratio information.
@@ -441,8 +467,8 @@ typedef struct vbi_program_info {
 	struct {
 		/* If unknown mode == VBI_AUDIO_MODE_UNKNOWN */
 		vbi_audio_mode		mode;
-		/* If unknown language == NULL */
-		const unsigned char *	language; /* Latin-1 */
+		/* If unknown lang_code == NULL */
+		const char *		lang_code; /* ISO 639 */
 	}			audio[2];	/* primary and secondary */
 
 	/* 07 Program Caption Services */
@@ -452,10 +478,10 @@ typedef struct vbi_program_info {
 	 *  Note for the current program this information is also
 	 *  available via vbi_classify_page().
 	 *
-	 *  If unknown caption_services == -1, _language[] = NULL
+	 *  If unknown caption_services == -1, _lang_code[] = NULL
 	 */
 	int			caption_services;
-	char *			caption_language[8]; /* Latin-1 */
+	const char *		caption_lang_code[8]; /* ISO 639 */
 
 	/* 08 Copy Generation Management System */
 
