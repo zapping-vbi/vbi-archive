@@ -793,7 +793,7 @@ standard_properties_add		(GtkDialog	*dialog,
 	  g_object_set_data(G_OBJECT(page), "cancel",
 			    groups[i].items[j].cancel);
 
-	  append_properties_page(dialog, _(groups[i].label),
+	  append_properties_page(dialog, /* no i18n */ groups[i].label,
 				 _(groups[i].items[j].label),
 				 pixmap, page);
 

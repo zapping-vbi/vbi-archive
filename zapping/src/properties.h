@@ -40,7 +40,7 @@ build_properties_dialog		(void);
 
 /**
  * Opens a created group.
- * @group: Name you gave the group when creating it.
+ * @group: Name you gave the group when creating it (not localized).
  */
 void
 open_properties_group		(GtkWidget	*dialog,
@@ -56,7 +56,7 @@ open_properties_page		(GtkWidget	*dialog,
 
 /**
  * Appends to the dialog group the given page.
- * @group: Name of the group this page belongs to.
+ * @group: Name of the group this page belongs to (not localized).
  * @label: Name you wish to give to this group.
  * @pixmap: Pixmap to show with the label, can be %NULL.
  * @page: The page contents.
