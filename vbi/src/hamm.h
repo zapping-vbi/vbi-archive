@@ -21,12 +21,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.h,v 1.4 2002-07-16 00:11:36 mschimek Exp $ */
+/* $Id: hamm.h,v 1.4.2.1 2003-04-29 17:11:25 mschimek Exp $ */
 
 #ifndef HAMM_H
 #define HAMM_H
 
 #include <inttypes.h>
+#include "misc.h"
 
 extern const uint8_t		vbi_bit_reverse[256];
 extern const int8_t		vbi_hamm24par[3][256];
@@ -40,18 +41,17 @@ extern const int8_t		vbi_hamm8val[256];
  * If the byte has odd parity (sum of bits mod 2 is 1) the
  * byte AND 127, otherwise -1.
  */
-static inline int
-vbi_parity(unsigned int c)
+static __inline__ int
+vbi_parity			(unsigned int		c)
 {
-#if 0 /* #cpu (i686) */
+#ifdef __i686__
 	int r = c;
 
-	/* This saves cache business and a branch */
-	asm (" andl	$127,%0\n"
-	     " testb	%1,%1\n"
-	     " cmovp    %2,%0\n"
-	     : "+&r" (r) : "abcd" (c), "rm" (-1));
-
+	/* This saves cache flushes and a branch */
+	__asm__ __volatile__ (" andl	$127,%0\n"
+			      " testb	%1,%1\n"
+			      " cmovp    %2,%0\n"
+			      : "+&a" (r) : "c" (c), "rm" (-1));
 	return r;
 #else
 	if (vbi_hamm24par[0][c] & 32)
@@ -61,13 +61,14 @@ vbi_parity(unsigned int c)
 #endif
 }
 
-static inline int
-vbi_chk_parity(uint8_t *p, int n)
+static __inline__ int
+vbi_chk_parity			(uint8_t *		p,
+				 unsigned int		n)
 {
 	unsigned int c;
 	int err;
 
-	for (err = 0; n--; p++)
+	for (err = 0; n-- > 0; p++)
 		if (vbi_hamm24par[0][c = *p] & 32)
 			*p = c & 0x7F;
 		else
@@ -76,12 +77,13 @@ vbi_chk_parity(uint8_t *p, int n)
 	return err == 0;
 }
 
-static inline void
-vbi_set_parity(uint8_t *p, int n)
+static __inline__ void
+vbi_set_parity			(uint8_t *		p,
+				 unsigned int		n)
 {
 	unsigned int c;
 
-	for (; n--; p++)
+	for (; n-- > 0; p++)
 		if (!(vbi_hamm24par[0][c = *p] & 32))
 			*p = c | 0x80;
 }
@@ -112,12 +114,13 @@ vbi_set_parity(uint8_t *p, int n)
  * Data bits D4 [msb] ... D1 of byte 1, D4 ... D1 [lsb] of byte 2
  * or a negative value if the pair contained incorrectable errors.
  */
-static inline int
-vbi_hamm16(uint8_t *p)
+static __inline__ int
+vbi_hamm16			(const uint8_t *	p)
 {
 	return vbi_hamm8val[p[0]] | (vbi_hamm8val[p[1]] << 4);
 }
 
-extern int vbi_hamm24(uint8_t *p);
+extern int
+vbi_hamm24			(const uint8_t *	p);
 
 #endif /* HAMM_H */
