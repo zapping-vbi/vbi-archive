@@ -249,16 +249,16 @@ int tvengemu_attach_device(const char* device_file,
   CLEAR (p_info->overlay_buffer);
 
   /* Set up some capture parameters */
-  info->format.width = info->cur_video_standard->frame_width / 2;
-  info->format.height = info->cur_video_standard->frame_height / 2;
-  info->format.pixfmt = TV_PIXFMT_YVU420;
+  info->capture_format.width = info->cur_video_standard->frame_width / 2;
+  info->capture_format.height = info->cur_video_standard->frame_height / 2;
+  info->capture_format.pixfmt = TV_PIXFMT_YVU420;
   tvengemu_update_capture_format (info);
 
   /* Overlay window setup */
   info->overlay_window.x = 0;
   info->overlay_window.y = 0;
-  info->overlay_window.width = info->format.width;
-  info->overlay_window.height = info->format.height;
+  info->overlay_window.width = info->capture_format.width;
+  info->overlay_window.height = info->capture_format.height;
   info->overlay_window.clip_vector.vector = NULL;
   info->overlay_window.clip_vector.size = 0;
   info->overlay_window.clip_vector.capacity = 0;
@@ -325,11 +325,11 @@ static void tvengemu_close_device(tveng_device_info * info)
 static int
 tvengemu_update_capture_format (tveng_device_info *info)
 {
-  tv_image_format_init (&info->format,
-			info->format.width,
-			info->format.height,
+  tv_image_format_init (&info->capture_format,
+			info->capture_format.width,
+			info->capture_format.height,
 			/* bytes_per_line */ 0,
-			info->format.pixfmt, 0);
+			info->capture_format.pixfmt, 0);
 
   return 0;
 }
@@ -339,14 +339,14 @@ tvengemu_set_capture_format (tveng_device_info *info)
 {
   t_assert (info != NULL);
 
-  if (info->format.height < info->caps.minheight)
-    info->format.height = info->caps.minheight;
-  if (info->format.height > info->caps.maxheight)
-    info->format.height = info->caps.maxheight;
-  if (info->format.width < info->caps.minwidth)
-    info->format.width = info->caps.minwidth;
-  if (info->format.width > info->caps.maxwidth)
-    info->format.width = info->caps.maxwidth;
+  if (info->capture_format.height < info->caps.minheight)
+    info->capture_format.height = info->caps.minheight;
+  if (info->capture_format.height > info->caps.maxheight)
+    info->capture_format.height = info->caps.maxheight;
+  if (info->capture_format.width < info->caps.minwidth)
+    info->capture_format.width = info->caps.minwidth;
+  if (info->capture_format.width > info->caps.maxwidth)
+    info->capture_format.width = info->caps.maxwidth;
 
   tvengemu_update_capture_format (info);
 
@@ -430,10 +430,9 @@ tvengemu_get_timestamp (tveng_device_info *info _unused_)
 
 
 static tv_bool
-get_overlay_buffer		(tveng_device_info *	info,
-				 tv_overlay_buffer *	t)
+get_overlay_buffer		(tveng_device_info *	info _unused_)
 {
-	*t = P_INFO (info)->overlay_buffer;
+	/* Nothing to do. */
 	return TRUE;
 }
 

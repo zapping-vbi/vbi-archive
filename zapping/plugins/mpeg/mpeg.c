@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.47 2004-09-10 04:53:00 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.48 2004-09-16 04:07:27 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -500,8 +500,8 @@ do_start			(const gchar *		file_name)
 
 	  capture_pixfmt = pixfmt;
 
-	  par->width = zapping_info->format.width;
-	  par->height = zapping_info->format.height;
+	  par->width = zapping_info->capture_format.width;
+	  par->height = zapping_info->capture_format.height;
 
 	  if (pixfmt == TV_PIXFMT_YUV420)
 	    {
@@ -566,8 +566,8 @@ do_start			(const gchar *		file_name)
 	      return FALSE; 
 	    }
 
-	  if (par->width != zapping_info->format.width
-	      || par->height != zapping_info->format.height)
+	  if (par->width != zapping_info->capture_format.width
+	      || par->height != zapping_info->capture_format.height)
 	    {
 	      width = par->width;
 	      height = par->height;

@@ -159,8 +159,8 @@ compatible (producer_buffer *p, tveng_device_info *info)
     return FALSE;
 
   /* first check whether the size is right */
-  if (info->format.width != p->images[0]->fmt.width ||
-      info->format.height != p->images[0]->fmt.height)
+  if (info->capture_format.width != p->images[0]->fmt.width ||
+      info->capture_format.height != p->images[0]->fmt.height)
     {
       retvalue = FALSE;
     }
@@ -287,7 +287,7 @@ scan_device		(tveng_device_info	*info)
     return info->supported_pixfmt_set;
   }
 
-  old_pixfmt = info->format.pixfmt;
+  old_pixfmt = info->capture_format.pixfmt;
 
   supported = 0;
 
@@ -296,15 +296,15 @@ scan_device		(tveng_device_info	*info)
   for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; pixfmt++)
     if (TV_PIXFMT_SET_ALL & TV_PIXFMT_SET (pixfmt))
       {
-	/* FIXME other code assumes info->format is the
+	/* FIXME other code assumes info->capture_format is the
 	   current format, not the one we request. */
-	info->format.pixfmt = pixfmt;
+	info->capture_format.pixfmt = pixfmt;
 
 	if (0 == tveng_set_capture_format (info))
 	  supported |= TV_PIXFMT_SET (pixfmt);
       }
 
-  info->format.pixfmt = old_pixfmt;
+  info->capture_format.pixfmt = old_pixfmt;
   tveng_set_capture_format (info);
 
   /*
@@ -393,14 +393,14 @@ static gint idle_handler(gpointer _info)
 
       /* Get number of requested modes */
       for (i = 0; i < TV_MAX_PIXFMTS; i++)
-	if (TV_PIXFMT_SET (i) & (mask | TV_PIXFMT_SET (info->format.pixfmt)))
+	if (TV_PIXFMT_SET (i) & (mask | TV_PIXFMT_SET (info->capture_format.pixfmt)))
 	  {
 	    pb->images[pb->num_images] =
 	      zimage_new (i,
-			  info->format.width,
-			  info->format.height);
+			  info->capture_format.width,
+			  info->capture_format.height);
 
-	    if (info->format.pixfmt == i)
+	    if (info->capture_format.pixfmt == i)
 	      {
 		/* XXX is this correct? */
 		pb->src_index = pb->num_images;
@@ -428,7 +428,7 @@ on_capture_canvas_allocate             (GtkWidget       *widget _unused_,
 
   CLEAR (fmt);
 
-  fmt.pixfmt = info->format.pixfmt;
+  fmt.pixfmt = info->capture_format.pixfmt;
   fmt.width = allocation->width;
   fmt.height = allocation->height;
 
@@ -627,7 +627,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
   if (prev_mask & req_mask)
     {
       /* Keep the current capture pixfmt. */
-      id = info->format.pixfmt;
+      id = info->capture_format.pixfmt;
       goto req_ok;
     }
 
@@ -694,17 +694,17 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
 
  req_ok:
   /* Request the new format to TVeng (should succeed) [id] */
-  memcpy (&prev_fmt, &info->format, sizeof (prev_fmt));
+  memcpy (&prev_fmt, &info->capture_format, sizeof (prev_fmt));
 
   fixed_size = find_request_size (fmt, &req_w, &req_h);
 
-  if (info->format.pixfmt != id
-      || info->format.width != req_w
-      || info->format.height != req_h)
+  if (info->capture_format.pixfmt != id
+      || info->capture_format.width != req_w
+      || info->capture_format.height != req_h)
     {
-      info->format.pixfmt = id;
-      info->format.width = req_w;
-      info->format.height = req_h;
+      info->capture_format.pixfmt = id;
+      info->capture_format.width = req_w;
+      info->capture_format.height = req_h;
 
       printv ("Setting TVeng mode %s [%d x %d]\n",
 	      tv_pixfmt_name (id), req_w, req_h);
@@ -714,13 +714,13 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
       if (-1 == tveng_set_capture_format (info)
 	  || (fixed_size &&
 	      /* may change due to driver limits */
-	      (info->format.width != req_w
-	       || info->format.height != req_h)))
+	      (info->capture_format.width != req_w
+	       || info->capture_format.height != req_h)))
 	{
 	  if (info->tveng_errno)
 	    g_warning ("Cannot set new mode: %s", info->error);
 	  /* Try to restore previous setup so we can keep working */
-	  memcpy (&info->format, &prev_fmt, sizeof (prev_fmt));
+	  memcpy (&info->capture_format, &prev_fmt, sizeof (prev_fmt));
 
 	  if (tveng_set_capture_format (info) != -1)
 	    if (info->capture_mode == CAPTURE_MODE_NONE
@@ -745,7 +745,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
       _pthread_rwlock_unlock (&fmt_rwlock);
       printv ("Format %s accepted [%s]\n",
 	      tv_pixfmt_name (fmt->pixfmt),
-	      tv_pixfmt_name (info->format.pixfmt));
+	      tv_pixfmt_name (info->capture_format.pixfmt));
       /* Safe because we only modify in one thread */
       return formats[num_formats-1].id;
     }
