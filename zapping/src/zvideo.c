@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zvideo.c,v 1.4 2004-09-10 04:58:53 mschimek Exp $ */
+/* $Id: zvideo.c,v 1.5 2004-09-26 13:28:26 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -126,6 +126,9 @@ z_video_blank_cursor		(ZVideo *		video,
 {
   g_return_if_fail (Z_IS_VIDEO (video));
 
+  /* Let's get real. */
+  timeout = MIN (timeout, (guint) 60 * 60 * 1000);
+
   if (video->blank_cursor_timeout == timeout)
     return;
 
@@ -184,6 +187,12 @@ size_allocate			(GtkWidget *		widget,
 
   g_return_if_fail (Z_IS_VIDEO (widget));
   g_return_if_fail (allocation != NULL);
+
+  if (!video->size_magic)
+    {
+      GTK_WIDGET_CLASS (parent_class)->size_allocate (widget, allocation);
+      return;
+    }
 
   /* FIXME: fails after 
      gdk_window_resize(main_window->window, 0, 0);
@@ -416,10 +425,13 @@ size_request			(GtkWidget *		widget,
 
   GTK_WIDGET_CLASS (parent_class)->size_request (widget, requisition);
 
-  requisition->width = CLAMP ((guint) requisition->width,
-			      video->min_width, video->max_width);
-  requisition->height = CLAMP ((guint) requisition->height,
-			       video->min_height, video->max_height);
+  if (video->size_magic)
+    {
+      requisition->width = CLAMP ((guint) requisition->width,
+				  video->min_width, video->max_width);
+      requisition->height = CLAMP ((guint) requisition->height,
+				   video->min_height, video->max_height);
+    }
 }
 
 static void        
@@ -623,11 +635,12 @@ destroy				(GtkObject *		object)
 }
 
 static void
-realize				(GtkWidget *		widget,
-				 gpointer		user_data _unused_)
+realize				(GtkWidget *		widget)
 {
   ZVideo *video = (ZVideo *) widget;
   GtkWidget *toplevel;
+
+  GTK_WIDGET_CLASS (parent_class)->realize (widget);
 
   toplevel = get_toplevel_window (video);
 
@@ -642,6 +655,8 @@ instance_init			(GTypeInstance *	instance,
 				 gpointer		g_class _unused_)
 {
   ZVideo *video = (ZVideo *) instance;
+
+  video->size_magic = TRUE;
 
   video->mod_x = 1;
   video->mod_y = 1;
@@ -667,9 +682,6 @@ instance_init			(GTypeInstance *	instance,
 
   video->window_alloc.width = ~0;
   video->old_hints.base_width = ~0;
-
-  g_signal_connect_after (video, "realize",
-			  G_CALLBACK (realize), NULL);
 }
 
 GtkWidget *
@@ -687,13 +699,14 @@ class_init			(gpointer		g_class,
   ZVideoClass *class = g_class;
   GtkObjectClass *object_class;
   GtkWidgetClass *widget_class;
-  
-  parent_class = g_type_class_peek_parent (class);
 
-  object_class = GTK_OBJECT_CLASS (class);
+  object_class = GTK_OBJECT_CLASS (g_class);  
+  widget_class = GTK_WIDGET_CLASS (g_class);
+  parent_class = g_type_class_peek_parent (g_class);
+
   object_class->destroy = destroy;
 
-  widget_class = GTK_WIDGET_CLASS (class);
+  widget_class->realize = realize;
   widget_class->size_allocate = size_allocate;
   widget_class->size_request = size_request;
 
