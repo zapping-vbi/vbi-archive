@@ -1,0 +1,760 @@
+{QText}
+[00:00:00.00]
+[00:00:01.00]
+{justify:center}Beim dritten Versuch zeigten wir
+ihm Gesichter und Gegenstände.
+[00:00:02.00]
+[00:00:03.00]
+{justify:center}Das ist die Auswertung bei
+jemandem, der normal sieht.
+[00:00:04.00]
+[00:00:05.00]
+{justify:center}Die blauen Stellen zeigen,
+wo Objekte verarbeitet werden.
+[00:00:06.00]
+[00:00:07.00]
+{justify:center}Rot zeigt die Stellen
+der Gesichter-Verarbeitung.
+[00:00:08.00]
+[00:00:09.00]
+{justify:center}Ein großer Teil des Gehirns
+ist damit beschäftigt.
+[00:00:10.00]
+[00:00:11.00]
+{justify:center}Denn die Erkennung von Gesichtern
+und Sachen ist wichtig.
+[00:00:12.00]
+[00:00:13.00]
+{justify:center}Bei Michael leuchtet die Objekt-
+Verarbeitungs-Stelle nur schwach.
+[00:00:14.00]
+[00:00:15.00]
+{justify:center}Diese Stellen sind normalerweise
+sehr aktiv, bei Michael jedoch nicht.
+[00:00:16.00]
+[00:00:17.00]
+{justify:center}Ein gesundes Auge
+genügt nicht.
+[00:00:18.00]
+[00:00:19.00]
+{justify:center}Für Michael ist das
+Erkennen von Dingen schwierig, -
+[00:00:20.00]
+[00:00:21.00]
+{justify:center}- wenn er sie nicht
+auch anfassen kann.
+[00:00:22.00]
+[00:00:23.00]
+{justify:center}Ich sehe hier einen Gegenstand.
+Was könnte es sein?
+[00:00:24.00]
+[00:00:25.00]
+{justify:center}Er ist etwa so groß wie ein
+Motorrad und größer als ein Fahrrad.
+[00:00:26.00]
+[00:00:27.00]
+{justify:center}Er fühlt sich weich an.
+Das ist seltsam.
+[00:00:28.00]
+[00:00:29.00]
+{justify:center}Vielleicht ist es die
+Bedeckung eines Motorrads.
+[00:00:30.00]
+[00:00:31.00]
+{justify:center}Beim Anfassen merke ich:
+Es ist kein Motorrad.
+[00:00:32.00]
+[00:00:33.00]
+{justify:center}Es ist ein
+technisches Gerät.
+[00:00:34.00]
+[00:00:35.00]
+{justify:center}Für mich sieht es aber
+aus wie ein Motorrad.
+[00:00:36.00]
+[00:00:37.00]
+{justify:center}Michaels visuelle Welt ist ganz
+anders als die Normal-Sehender.
+[00:00:38.00]
+[00:00:39.00]
+{justify:center}Für sie ergibt
+das Gesehene Sinn.
+[00:00:40.00]
+[00:00:41.00]
+{justify:center}Michael hingegen nimmt nur
+Farben, Flächen und Formen wahr.
+[00:00:42.00]
+[00:00:43.00]
+{justify:center}Er sieht die Welt wie ein abstraktes
+Bild. Den Inhalt erkennt er oft nicht.
+[00:00:44.00]
+[00:00:45.00]
+{justify:center}Als der Verband weg war,
+fiel wieder Licht in mein Auge.
+[00:00:46.00]
+[00:00:47.00]
+{justify:center}Licht und Formen strömten auf mich
+ein. Es ergab aber keinen Sinn.
+[00:00:48.00]
+[00:00:49.00]
+{justify:center}Nach ein paar Sekunden erkannte ich
+etwas Schwarzes und etwas Rotes.
+[00:00:50.00]
+[00:00:51.00]
+{justify:center}Ich erkannte Farben. Seit drei Jahren
+lerne ich ständig neue Seh-Eindrücke.
+[00:00:52.00]
+[00:00:53.00]
+{justify:center}Farben erkannte Michael
+sofort wieder.
+[00:00:54.00]
+[00:00:55.00]
+{justify:center}Denn er hatte sie
+als Kind gesehen.
+[00:00:56.00]
+[00:00:57.00]
+{justify:center}Während seiner Blindheit versuchte
+er immer, sich an sie zu erinnern.
+[00:00:58.00]
+[00:00:59.00]
+{justify:center}Ein Fußball war für ihn dann nur
+ein Gegenstand. Er erkannte ihn nicht.
+[00:01:00.00]
+[00:01:01.00]
+{justify:center}Er musste ihn berühren,
+um die Form zu erkennen.
+[00:01:02.00]
+[00:01:03.00]
+{justify:center}Michael machte große Fortschritte. Nun
+ist er aber offenbar an einer Grenze.
+[00:01:04.00]
+[00:01:05.00]
+{justify:center}Viel besser wird er vermutlich
+nicht mehr sehen können.
+[00:01:06.00]
+[00:01:07.00]
+{justify:center}Er wird für die Ferne
+immer ein Hilfsmittel brauchen.
+[00:01:08.00]
+[00:01:09.00]
+{justify:center}Das Spiel der Söhne beobachtet
+er mit einer Video-Kamera.
+[00:01:10.00]
+[00:01:11.00]
+{justify:center}Oft schaut er die
+Aufnahmen nochmals an.
+[00:01:12.00]
+[00:01:13.00]
+{justify:center}Ohne Kamera sehe ich alles
+kleiner und weniger scharf.
+[00:01:14.00]
+[00:01:15.00]
+{justify:center}Mit bloßem Auge erkenne ich meine
+Söhne in 30 m Entfernung nicht.
+[00:01:16.00]
+[00:01:17.00]
+{justify:center}Mit der Kamera erkenne ich Personen.
+Ich erkenne auch, was sie machen.
+[00:01:18.00]
+[00:01:19.00]
+{justify:center}Diesen Schatten würde
+ich sonst nicht sehen.
+[00:01:20.00]
+[00:01:21.00]
+{justify:center}Sehen ist für Michael
+vor allem Unterhaltung.
+[00:01:22.00]
+[00:01:23.00]
+{justify:center}Es fasziniert ihn, das zu sehen,
+was er früher nur hörte.
+[00:01:24.00]
+[00:01:25.00]
+{justify:center}Baseball-Spiele verfolgte
+er schon immer im Radio.
+[00:01:26.00]
+[00:01:27.00]
+{justify:center}Er kannte das Geräusch, wenn
+der Schläger den Ball traf.
+[00:01:28.00]
+[00:01:29.00]
+{justify:center}Er hatte aber
+kein Bild davon.
+[00:01:30.00]
+[00:01:31.00]
+{justify:center}Michael beobachtet gerne Menschen,
+ihre Körper und Bewegungen.
+[00:01:32.00]
+[00:01:33.00]
+{justify:center}Mehr erkennt er nicht. Die "visuelle
+Welt" ist für ihn oft unverständlich.
+[00:01:34.00]
+[00:01:35.00]
+{justify:center}Sehen ist für ihn
+nicht lebens-notwendig.
+[00:01:36.00]
+[00:01:37.00]
+{justify:center}Michael lernte,
+3-Dimensionalität zu erkennen.
+[00:01:38.00]
+[00:01:39.00]
+{justify:center}Bei diesem Versuch muss er angeben,
+wohin sich die Kolonnen bewegen.
+[00:01:40.00]
+[00:01:41.00]
+{justify:center}Michael erzielt dabei erstmals
+Ergebnisse wie ein Normal-Sichtiger.
+[00:01:42.00]
+[00:01:43.00]
+{justify:center}Er sieht die dritte Dimension, also
+keinen Kreis, sondern eine Halb-Kugel.
+[00:01:44.00]
+[00:01:45.00]
+{justify:center}Auf einem flachen Bildschirm
+ist etwas 3-dimensional!
+[00:01:46.00]
+[00:01:47.00]
+{justify:center}Das war für mich unglaublich.
+Ich überlegte:
+[00:01:48.00]
+[00:01:49.00]
+{justify:center}Ein dunkler Fleck in der Mitte
+heißt vermutlich Wölbung nach innen.
+[00:01:50.00]
+[00:01:51.00]
+{justify:center}Helle Oberfläche heißt, es wird Licht
+reflektiert, also Wölbung nach außen.
+[00:01:52.00]
+[00:01:53.00]
+{justify:center}Die Sinne entwickeln sich offenbar
+ab der Geburt im Zusammenspiel.
+[00:01:54.00]
+[00:01:55.00]
+{justify:center}Fällt ein Sinn aus,
+fehlt die Verknüpfung.
+[00:01:56.00]
+[00:01:57.00]
+{justify:center}Hier wird die Reaktion
+des Gehirns untersucht, -
+[00:01:58.00]
+[00:01:59.00]
+{justify:center}- wenn es widersprüchliche
+Informationen bekommt.
+[00:02:00.00]
+[00:02:01.00]
+{justify:center}Die Person sieht ein Holz-Stück
+durch ein Vergrößerungs-Glas.
+[00:02:02.00]
+[00:02:03.00]
+{justify:center}Die Hände ertasten
+eine andere Größe.
+[00:02:04.00]
+[00:02:05.00]
+{justify:center}Welchem Sinn traut
+das Gehirn mehr?
+[00:02:06.00]
+[00:02:07.00]
+{justify:center}Die Test-Person muss
+nun Blättchen erfühlen.
+[00:02:08.00]
+[00:02:09.00]
+{justify:center}Sie soll das zuvor Gesehene
+und das Ertastete erkennen.
+[00:02:10.00]
+[00:02:11.00]
+{justify:center}Das ist es!
+[00:02:12.00]
+[00:02:13.00]
+{justify:center}Das ist das Objekt, das du gefühlt
+hast.Das sind die Vergleichs-Objekte.
+[00:02:14.00]
+[00:02:15.00]
+{justify:center}Es entspricht diesem.
+Dieses Blättchen hast du gesehen.
+[00:02:16.00]
+[00:02:17.00]
+{justify:center}Das hast
+du getippt.
+[00:02:18.00]
+[00:02:19.00]
+{justify:center}Das Gehirn bildet also einen
+Mittel-Wert aus allen Informationen.
+[00:02:20.00]
+[00:02:21.00]
+{justify:center}Unser Gehirn verlässt sich
+nicht nur auf den Seh-Sinn.
+[00:02:22.00]
+[00:02:23.00]
+{justify:center}Bei 3-dimensionalen Dingen,
+beim Greifen und Treppen-Gehen -
+[00:02:24.00]
+[00:02:25.00]
+{justify:center}- nutzt es auch Informationen vom
+Tast-Sinn sowie von Armen und Beinen.
+[00:02:26.00]
+[00:02:27.00]
+{justify:center}Das Gehirn bestimmt, welche
+Informationen es verarbeitet.
+[00:02:28.00]
+[00:02:29.00]
+{justify:center}Es sorgt für eine
+Filterung der Wahrnehmung.
+[00:02:30.00]
+[00:02:31.00]
+{justify:center}Ohne Filterung wären wir
+von den Eindrücken überfordert.
+[00:02:32.00]
+[00:02:33.00]
+{justify:center}Das Gehirn meldet daher dem Seh-Sinn,
+was es als wichtig erachtet.
+[00:02:34.00]
+[00:02:35.00]
+{justify:center}Der Maler Oliver Jordan weiß, dass
+wir viele Details nicht bemerken.
+[00:02:36.00]
+[00:02:37.00]
+{justify:center}Er sucht gerne Alltags-Motive,
+die wir nur flüchtig sehen -
+[00:02:38.00]
+[00:02:39.00]
+{justify:center}- und gleich
+wieder vergessen.
+[00:02:40.00]
+[00:02:41.00]
+{justify:center}Er will diese
+Motive festhalten.
+[00:02:42.00]
+[00:02:43.00]
+{justify:center}Allmählich bekommt er eine Vorstellung
+von dem, was er malen will.
+[00:02:44.00]
+[00:02:45.00]
+{justify:center}Es ist z.B. das Kiosk
+am Ende der Straße.
+[00:02:46.00]
+[00:02:47.00]
+{justify:center}Man weiß im Hinterkopf
+genau, was man will.
+[00:02:48.00]
+[00:02:49.00]
+{justify:center}Es verdichtet sich zu
+einem Bild, nicht zu Worten.
+[00:02:50.00]
+[00:02:51.00]
+{justify:center}Man möchte dem Bild nachgehen.
+Es hat zu tun mit dem Verschwinden.
+[00:02:52.00]
+[00:02:53.00]
+{justify:center}Wir haben das Wahrgenommene
+nicht "auf der Platte".
+[00:02:54.00]
+[00:02:55.00]
+{justify:center}Es ist immer
+wieder weg.
+[00:02:56.00]
+[00:02:57.00]
+{justify:center}Ich will mich gegen das
+Verschwinden des Bildes wehren.
+[00:02:58.00]
+[00:02:59.00]
+{justify:center}Ich sehe den Verkäufer
+jeden Tag am Kiosk.
+[00:03:00.00]
+[00:03:01.00]
+{justify:center}Im Hinterkopf ist ein
+begehrens-wertes Bild.
+[00:03:02.00]
+[00:03:03.00]
+{justify:center}Man möchte
+es übertragen.
+[00:03:04.00]
+[00:03:05.00]
+{justify:center}Manche Veränderungen
+bemerken wir fast nie.
+[00:03:06.00]
+[00:03:07.00]
+{justify:center}In diesem Bild
+erscheint etwas.
+[00:03:08.00]
+[00:03:09.00]
+{justify:center}Unten rechts im Bild wurden ganz
+langsam Wasser-Flaschen eingeblendet.
+[00:03:10.00]
+[00:03:11.00]
+{justify:center}Es geschah so langsam,
+dass man es nicht bemerkte.
+[00:03:12.00]
+[00:03:13.00]
+{justify:center}Erst wenn das Bild schneller läuft,
+erkennt man es mühelos.
+[00:03:14.00]
+[00:03:15.00]
+{justify:center}Auch hier wird
+etwas im Bild verändert.
+[00:03:16.00]
+[00:03:17.00]
+{justify:center}Es geschieht immer,
+wenn die Punkte erscheinen.
+[00:03:18.00]
+[00:03:19.00]
+{justify:center}Wenn die Punkte nicht
+mehr ablenken, erkennen wir:
+[00:03:20.00]
+[00:03:21.00]
+{justify:center}- Der Mittel-Streifen wird
+zur durchgezogenen Linie.
+[00:03:22.00]
+[00:03:23.00]
+{justify:center}In die Mitte schauen!
+Und nach oben!
+[00:03:24.00]
+[00:03:25.00]
+{justify:center}An der Universität München
+wird untersucht, -
+[00:03:26.00]
+[00:03:27.00]
+{justify:center}- unter welchen Umständen wir
+Veränderungen nicht wahrnehmen.
+[00:03:28.00]
+[00:03:29.00]
+{justify:center}Während des Blinzelns verschwindet
+oder erscheint ein Detail des Bildes.
+[00:03:30.00]
+[00:03:31.00]
+{justify:center}Versuchs-Personen erkennen
+meist nicht, dass es das Boot ist.
+[00:03:32.00]
+[00:03:33.00]
+{justify:center}Wir erzeugen bestimmte Ereignisse.
+Dabei sehen wir nichts.
+[00:03:34.00]
+[00:03:35.00]
+{justify:center}Das passiert z.B.
+beim Lid-Schlag.
+[00:03:36.00]
+[00:03:37.00]
+{justify:center}Außerdem gilt es bei Blick-
+Bewegungen. Diese macht man ständig.
+[00:03:38.00]
+[00:03:39.00]
+{justify:center}Es sind drei bis
+vier pro Sekunde.
+[00:03:40.00]
+[00:03:41.00]
+{justify:center}In dieser Zeit sind
+wir funktionell blind.
+[00:03:42.00]
+[00:03:43.00]
+{justify:center}Das hat insgesamt große Auswirkungen.
+Man kann es ausrechnen.
+[00:03:44.00]
+[00:03:45.00]
+{justify:center}Eine Sakkade dauert 50 Millisekunden.
+Man macht ca. drei pro Sekunde.
+[00:03:46.00]
+[00:03:47.00]
+{justify:center}Und wir machen ca. alle drei
+Sekunden einen Lid-Schlag.
+[00:03:48.00]
+[00:03:49.00]
+{justify:center}Während 25 % der Wachzeit verarbeitet
+das Auge also keine Informationen.
+[00:03:50.00]
+[00:03:51.00]
+{justify:center}Die Wahrnehmung hängt auch davon ab,
+wohin wir die Aufmerksamkeit lenken.
+[00:03:52.00]
+[00:03:53.00]
+{justify:center}Ich weiß nicht
+genau, wo ich bin.
+[00:03:54.00]
+[00:03:55.00]
+{justify:center}Wir sind im Süden
+der Gisela-Straße.
+[00:03:56.00]
+[00:03:57.00]
+{justify:center}Sie müssen eine Station mit der
+U-Bahn zur Münchner Freiheit fahren.
+[00:03:58.00]
+[00:03:59.00]
+{justify:center}Also eine Station mit der U-Bahn
+Richtung Münchner Freiheit.
+[00:04:00.00]
+[00:04:01.00]
+{justify:center}Und dann nehmen Sie am
+besten den Bus. Gut, danke.
+[00:04:02.00]
+[00:04:03.00]
+{justify:center}70 % der Versuchs-Personen
+erkannten die Veränderung nicht.
+[00:04:04.00]
+[00:04:05.00]
+{justify:center}Sie konzentrierten sich auf
+den Plan und die Weg-Beschreibung.
+[00:04:06.00]
+[00:04:07.00]
+{justify:center}Sie bemerkten nicht, dass
+der Fragende ausgetauscht wurde.
+[00:04:08.00]
+[00:04:09.00]
+{justify:center}Das Handy klingelt. Auch eine
+Handlung stört die Wahrnehmung.
+[00:04:10.00]
+[00:04:11.00]
+{justify:center}Bevor man zum Handy greift,
+ist die Aufmerksamkeit schon dort.
+[00:04:12.00]
+[00:04:13.00]
+{justify:center}Wir sind dann "blind"
+für alles andere.
+[00:04:14.00]
+[00:04:15.00]
+{justify:center}Hier muss man eine Farbe,eine Richtung
+und einen Buchstaben erkennen.
+[00:04:16.00]
+[00:04:17.00]
+{justify:center}Keine Versuchs-Person konnte auf alle
+drei Vorgaben gleichzeitig achten.
+[00:04:18.00]
+[00:04:19.00]
+{justify:center}Wir glauben, wir können mit gleicher
+Aufmerksamkeit verschiedene Dinge tun.
+[00:04:20.00]
+[00:04:21.00]
+{justify:center}Aber wir
+überschätzen uns.
+[00:04:22.00]
+[00:04:23.00]
+{justify:center}Neuere elektro-physiologische
+Untersuchungen zeigen: -
+[00:04:24.00]
+[00:04:25.00]
+{justify:center}- Es sind nur ein
+bis drei Objekte, -
+[00:04:26.00]
+[00:04:27.00]
+{justify:center}- die gleichzeitig in unserem
+visuellen System abgebildet werden.
+[00:04:28.00]
+[00:04:29.00]
+{justify:center}Das ist erstaunlich. Es widerspricht
+unserer persönlichen Einschätzung.
+[00:04:30.00]
+[00:04:31.00]
+{justify:center}Bei geöffneten Augen denke ich,
+dass ich alles sehe, was im Raum ist.
+[00:04:32.00]
+[00:04:33.00]
+{justify:center}Ich meine, ich sehe Sie
+und die ganzen Gegenstände.
+[00:04:34.00]
+[00:04:35.00]
+{justify:center}Die Experimente zeigen aber,
+dass das offenbar nicht stimmt.
+[00:04:36.00]
+[00:04:37.00]
+{justify:center}Die Aufmerksamkeit
+wählt bestimmte Dinge aus.
+[00:04:38.00]
+[00:04:39.00]
+{justify:center}Wir können bewusst nur ein bis
+zwei Dinge gleichzeitig verarbeiten.
+[00:04:40.00]
+[00:04:41.00]
+{justify:center}Handy-Telefonate
+beim Auto-Fahren -
+[00:04:42.00]
+[00:04:43.00]
+{justify:center}- sind nach Ansicht von
+Forschern zu Recht verboten.
+[00:04:44.00]
+[00:04:45.00]
+{justify:center}Wenn wir uns auf das
+Gespräch konzentrieren, -
+[00:04:46.00]
+[00:04:47.00]
+{justify:center}- nehmen wir zu wenig
+von der Umgebung wahr.
+[00:04:48.00]
+[00:04:49.00]
+{justify:center}Und wir bekommen
+einen "Tunnel-Blick".
+[00:04:50.00]
+[00:04:51.00]
+{justify:center}Dieser dauert nach dem Gespräch
+noch einige Minuten an, -
+[00:04:52.00]
+[00:04:53.00]
+{justify:center}- wenn man gedanklich
+noch damit beschäftigt ist.
+[00:04:54.00]
+[00:04:55.00]
+{justify:center}Vieles entgeht uns. Aber
+manches müssen wir wahrnehmen.
+[00:04:56.00]
+[00:04:57.00]
+{justify:center}Z.B. schnelle Bewegungen
+oder blinkende Lichter.
+[00:04:58.00]
+[00:04:59.00]
+{justify:center}Plötzlich Auftauchendes
+erfassen wir reflex-artig.
+[00:05:00.00]
+[00:05:01.00]
+{justify:center}Dieser uralte Instinkt
+sicherte einst das Überleben.
+[00:05:02.00]
+[00:05:03.00]
+{justify:center}Auch der Maler Oliver Jordan
+versucht unseren Blick zu lenken.
+[00:05:04.00]
+[00:05:05.00]
+{justify:center}Er benutzt dazu
+seine Mal-Technik.
+[00:05:06.00]
+[00:05:07.00]
+{justify:center}Durch sie ergibt erst aus
+der Entfernung ein klares Bild.
+[00:05:08.00]
+[00:05:09.00]
+{justify:center}Das ist interessant
+für Neurologen.
+[00:05:10.00]
+[00:05:11.00]
+{justify:center}Was passiert in unserem Gehirn,
+wenn wir diese Bilder betrachten?
+[00:05:12.00]
+[00:05:13.00]
+{justify:center}Die linke Gehirn-Hälfte
+ist zuständig für Detail-Sehen.
+[00:05:14.00]
+[00:05:15.00]
+{justify:center}Die rechte Hälfte ist zuständig für
+das Ganze und sucht nach Bedeutungen.
+[00:05:16.00]
+[00:05:17.00]
+{justify:center}Ungenaues Erkennen ist wichtig.
+Es löst eine Such-Aktion aus.
+[00:05:18.00]
+[00:05:19.00]
+{justify:center}Wir versuchen, eine
+Bedeutung zu finden.
+[00:05:20.00]
+[00:05:21.00]
+{justify:center}Im Kopf wird vieles aktiviert.
+Alle "Schubladen" werden überprüft.
+[00:05:22.00]
+[00:05:23.00]
+{justify:center}Man kann dadurch näher
+auf das Bild eingehen.
+[00:05:24.00]
+[00:05:25.00]
+{justify:center}Ein Bild aktiviert also
+unser ganzes "Schubladen-System".
+[00:05:26.00]
+[00:05:27.00]
+{justify:center}Das ist wichtig. Denn damit wird
+nicht nur unser Vorwissen bestätigt.
+[00:05:28.00]
+[00:05:29.00]
+{justify:center}Wir können auch
+neue Perspektiven einnehmen.
+[00:05:30.00]
+[00:05:31.00]
+{justify:center}Schon die griechischen Natur-
+Philosophen der Antike vermuteten, -
+[00:05:32.00]
+[00:05:33.00]
+{justify:center}- dass unser Gesichts-Sinn
+mit dem Gehirn verbunden ist.
+[00:05:34.00]
+[00:05:35.00]
+{justify:center}Aber wie können entfernte Objekte
+Auge und Gehirn erreichen?
+[00:05:36.00]
+[00:05:37.00]
+{justify:center}Sehen war etwas Aktives
+für die Alten Griechen.
+[00:05:38.00]
+[00:05:39.00]
+{justify:center}Sie meinten, aus den Augen des
+Betrachters strömt unsichtbares Feuer.
+[00:05:40.00]
+[00:05:41.00]
+{justify:center}Es trifft auf das Wahrzunehmende
+und enthüllt dessen Form und Farbe.
+[00:05:42.00]
+[00:05:43.00]
+{justify:center}Platon bezeichnete den Gesichts-
+Sinn als den "göttlichen" Sinn.
+[00:05:44.00]
+[00:05:45.00]
+{justify:center}Er unterschied schon Sinnes-
+Wahrnehmung und Denk-Vorgang.
+[00:05:46.00]
+[00:05:47.00]
+{justify:center}Die genaue Funktion des Auges
+erkannte er aber nicht.
+[00:05:48.00]
+[00:05:49.00]
+{justify:center}Erst zu Beginn des
+17. Jh. entdeckte man -
+[00:05:50.00]
+[00:05:51.00]
+{justify:center}- Abbilder der Außenwelt
+auf der Netz-Haut.
+[00:05:52.00]
+[00:05:53.00]
+{justify:center}Wir sprechen nicht mehr
+vom "göttlichen Sinn".
+[00:05:54.00]
+[00:05:55.00]
+{justify:center}Sehen ist aber immer
+noch unser "Königs-Sinn".
+[00:05:56.00]
+[00:05:57.00]
+{justify:center}Der Werbefilm-Regisseur Marc Wilkins
+ist leidenschaftlicher Bilder-Sammler.
+[00:05:58.00]
+[00:05:59.00]
+{justify:center}Mit offenen Augen erkennt
+man überall anregende Bilder.
+[00:06:00.00]
+[00:06:01.00]
+{justify:center}Sie erzählen Geschichten und
+vermitteln Gefühle und Erfahrungen.
+[00:06:02.00]
+[00:06:03.00]
+{justify:center}Daraus macht er
+seine Werbe-Spots.
+[00:06:04.00]
+[00:06:05.00]
+{justify:center}Unsere moderne Medien-Welt
+überschüttet uns mit Bildern.
+[00:06:06.00]
+[00:06:07.00]
+{justify:center}Wir lassen es zu, weil wir süchtig
+nach Bildern sind, meint Marc Wilkins.
+[00:06:08.00]
+[00:06:09.00]
+{justify:center}Für ihn sind Bilder daher
+wichtigstes Kommunikations-Mittel.
+[00:06:10.00]
+[00:06:11.00]
+{justify:center}Ich bin ein Opfer des Sehens.
+Sehen ist der aggressivste Sinn.
+[00:06:12.00]
+[00:06:13.00]
+{justify:center}Ich meine, Ohren
+kann man schließen.
+[00:06:14.00]
+[00:06:15.00]
+{justify:center}Wenn man die Augen
+verschließt, schläft man.
+[00:06:16.00]
+[00:06:17.00]
+{justify:center}Wir sind Opfer der Augen. Sie sind
+aber auch unser größtes Geschenk.
+[00:06:18.00]
+[00:06:19.00]
+{justify:center}Ein Werbe-Spot funktioniert, wenn
+die Bilder eine Geschichte erzählen.
