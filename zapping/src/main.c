@@ -210,7 +210,10 @@ restore_controls		(void)
   /* Restore the input and the standard */
 
   if (zcg_int(NULL, "current_input"))
-    z_switch_input(zcg_int(NULL, "current_input"), main_info);
+    z_switch_video_input(zcg_int(NULL, "current_input"), main_info);
+
+  if (zcg_int(NULL, "current_audio_input"))
+    z_switch_audio_input(zcg_int(NULL, "current_audio_input"), main_info);
 
   if (zcg_int(NULL, "current_standard"))
     z_switch_standard(zcg_int(NULL, "current_standard"), main_info);
@@ -218,18 +221,21 @@ restore_controls		(void)
   cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
   ch = tveng_tuned_channel_nth (global_channel_list, cur_tuned_channel);
 
-  if (start_muted)
+  if (NULL != ch)
     {
-      tveng_tc_control *mute;
+      if (start_muted)
+	{
+	  tveng_tc_control *mute;
 
-      if ((mute = tveng_tc_control_by_id (main_info,
-					  ch->controls,
-					  ch->num_controls,
-					  TV_CONTROL_ID_MUTE)))
-	mute->value = 1; /* XXX sub-optimal */
+	  if ((mute = tveng_tc_control_by_id (main_info,
+					      ch->controls,
+					      ch->num_controls,
+					      TV_CONTROL_ID_MUTE)))
+	    mute->value = 1; /* XXX sub-optimal */
+	}
+
+      z_switch_channel (ch, main_info);
     }
-
-  z_switch_channel (ch, main_info);
 }
 
 static void
@@ -302,6 +308,7 @@ int main(int argc, char * argv[])
   /* Some other common options in case the standard one fails */
   char *fallback_devices[] =
   {
+#ifdef ENABLE_V4L
     "/dev/video",
     "/dev/video0",
     "/dev/v4l/video0",
@@ -311,7 +318,11 @@ int main(int argc, char * argv[])
     "/dev/video3",
     "/dev/v4l/video1",
     "/dev/v4l/video2",
-    "/dev/v4l/video3"
+    "/dev/v4l/video3",
+#endif
+#ifdef ENABLE_BKTR
+    "/dev/bktr",
+#endif
   };
   gint num_fallbacks = sizeof(fallback_devices)/sizeof(char*);
 
@@ -538,7 +549,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.180 2004-06-18 14:11:54 mschimek Exp $",
+	 "$Id: main.c,v 1.181 2004-08-13 01:10:05 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -991,6 +1002,11 @@ static void shutdown_zapping(void)
   else
     zcs_int (0, "current_input");
 
+  if (main_info->cur_audio_input)
+    zcs_int (main_info->cur_audio_input->hash, "current_audio_input");
+  else
+    zcs_int (0, "current_audio_input");
+
   /* inputs, standards handling */
   printv("\n v4linterface");
   shutdown_v4linterface();
@@ -1134,8 +1150,16 @@ static gboolean startup_zapping(gboolean load_plugins)
   zcc_char ("", "The country you are currently in", "current_country");
 #endif
 
+#if defined(ENABLE_V4L)
   zcc_char("/dev/video0", "The device file to open on startup",
 	   "video_device");
+#elif defined(ENABLE_BKTR)
+  zcc_char("/dev/bktr", "The device file to open on startup",
+	   "video_device");
+#else
+  zcc_char("", "The device file to open on startup", "video_device");
+#endif
+
   zcc_bool(FALSE, "TRUE if the controls info should be saved with each "
 	   "channel", "save_controls");
   zcc_int(0, "Verbosity value given to zapping_setup_fb",
@@ -1143,7 +1167,8 @@ static gboolean startup_zapping(gboolean load_plugins)
   zcc_int(0, "Ratio mode", "ratio");
   zcc_int(0, "Change the video mode when going fullscreen", "change_mode");
   zcc_int(0, "Current standard", "current_standard");
-  zcc_int(0, "Current input", "current_input");
+  zcc_int(0, "Current video input", "current_input");
+  zcc_int(0, "Current audio input", "current_audio_input");
   zcc_int(TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");
   zcc_int(TVENG_CAPTURE_WINDOW, "Previous capture mode", "previous_mode");
   zcc_int(8 /* TVENG_PIX_YUYV */, "Pixformat used with XVideo capture",
