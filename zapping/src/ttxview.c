@@ -2295,8 +2295,8 @@ build_subtitles_submenu(GtkWidget *widget,
 	  else
 	    buffer = g_strdup_printf(_("%x: Unknown language"), count);
 
-	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
 	  menu_item = gtk_menu_item_new_with_label(buffer);
+	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			     GTK_SIGNAL_FUNC(on_subtitle_select),
 			     GINT_TO_POINTER(count));

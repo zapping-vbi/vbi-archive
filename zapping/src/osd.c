@@ -212,7 +212,8 @@ set_piece_geometry(int row, int piece)
 	p->scaled = NULL;
     }
 
-  paint_piece(GTK_BIN(p->window)->child, p, 0, 0, dest_w, dest_h);
+  if (p->scaled)
+    paint_piece(GTK_BIN(p->window)->child, p, 0, 0, dest_w, dest_h);
 }
 
 static void
