@@ -1,5 +1,5 @@
 #!/bin/sh
-#$Id: prepare_web.sh,v 1.20 2004-07-03 01:39:59 mschimek Exp $
+#$Id: prepare_web.sh,v 1.21 2004-07-12 17:40:03 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -87,7 +87,7 @@ cd -
 
 chmod a+rX htdocs
 cd htdocs
-chmod a+r *.php *.inc *.html *.jpeg *.gif *.png bookmark.ico rescd.zip .htaccess
+chmod a+r *.php *.inc *.html *.jpeg *.gif *.png *.ico rescd.zip .htaccess
 for i in images_* screenshots style; do
   find $i -name "CVS" -prune -o -exec chmod a+rX '{}' ';'
 done
