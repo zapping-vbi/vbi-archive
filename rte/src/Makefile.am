@@ -2,7 +2,7 @@
 
 lib_LTLIBRARIES = librte.la
 
-EXTRA_DIST = 
+EXTRA_DIST = rte.sym
 
 INCLUDES = -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 ## -D_LARGEFILE64_SOURCE to enable lseek64, off64_t not portable, sigh.
