@@ -373,44 +373,24 @@ gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
 static
 void plugin_add_properties ( GnomePropertyBox * gpb )
 {
-  GtkWidget * label;
-  GtkBox * vbox; /* the page added to the notebook */
-  GtkWidget * box; /* For building the slider */
-  GtkWidget * widget;
-  GtkObject * adj;
-  GtkWidget * hscale;
+  GtkWidget *vbox1 =
+    build_widget("vbox1", PACKAGE_DATA_DIR "/screenshot.glade");
+  GtkWidget *screenshot_quality =
+    lookup_widget(vbox1, "screenshot_quality");
+  GtkWidget *screenshot_dir =
+    lookup_widget(vbox1, "screenshot_dir");
+  GtkWidget *combo_entry1 = lookup_widget(vbox1, "combo-entry1");
+  GtkObject *adj;
+  GtkWidget *label;
   gint page;
 
-  vbox = GTK_BOX(gtk_vbox_new(FALSE, 15));
-
-  widget =
-    gtk_label_new(_("Select here the directory where screenshots will"
-		    " be saved"));
-  gtk_widget_show(widget);
-  gtk_box_pack_start(vbox, widget, FALSE, TRUE, 0);
-
-  widget = gnome_file_entry_new("screenshot_save_dir_history",
-   _("Select directory to save screenshots"));
-  gnome_file_entry_set_directory(GNOME_FILE_ENTRY(widget), TRUE);
-  gnome_entry_load_history(GNOME_ENTRY(gnome_file_entry_gnome_entry
-	(GNOME_FILE_ENTRY(widget))));
-  gnome_file_entry_set_default_path(GNOME_FILE_ENTRY(widget),
+  gtk_object_set_data(GTK_OBJECT(gpb), "screenshot_save_dir", screenshot_dir);
+  gnome_file_entry_set_default_path(GNOME_FILE_ENTRY(screenshot_dir),
 				    save_dir);
-  gnome_file_entry_set_modal(GNOME_FILE_ENTRY(widget), TRUE);
-  /* Store a pointer to the widget so we can find it later */
-  gtk_object_set_data(GTK_OBJECT(gpb), "screenshot_save_dir", widget);
-  gtk_widget_show(widget);
-  gtk_box_pack_start(vbox, widget, FALSE, TRUE, 0);
-  widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
-  gtk_entry_set_text(GTK_ENTRY(widget), save_dir);
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     on_property_item_changed, gpb);
 
-  /* The quality slider */
-  box = gtk_hbox_new (FALSE, 0);
-  label = gtk_label_new(_("Quality of the compressed image:"));
-  gtk_widget_show(label);
-  gtk_box_pack_start_defaults(GTK_BOX (box), label);
+  gtk_entry_set_text(GTK_ENTRY(combo_entry1), save_dir);
+  gtk_signal_connect(GTK_OBJECT(combo_entry1), "changed",
+		     on_property_item_changed, gpb);
 
   adj = gtk_adjustment_new(quality, 0, 100, 1, 10,
 			   10);
@@ -418,20 +398,12 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
   gtk_signal_connect(adj, "value-changed", 
 		     on_property_item_changed, gpb);
 
-  hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
-
-  gtk_widget_show (hscale);
-  gtk_box_pack_end_defaults(GTK_BOX (box), hscale);
-  gtk_scale_set_value_pos (GTK_SCALE(hscale), GTK_POS_RIGHT);
-  gtk_scale_set_digits (GTK_SCALE (hscale), 0);
-  gtk_widget_show(box);
-  gtk_box_pack_start(vbox, box, FALSE, TRUE, 0);
-  
-  gtk_widget_show(GTK_WIDGET(vbox));
+  gtk_range_set_adjustment(GTK_RANGE(screenshot_quality),
+			   GTK_ADJUSTMENT(adj));
 
   label = gtk_label_new(_("Screenshot"));
   gtk_widget_show(label);
-  page = gnome_property_box_append_page(gpb, GTK_WIDGET(vbox), label);
+  page = gnome_property_box_append_page(gpb, GTK_WIDGET(vbox1), label);
 
   gtk_object_set_data(GTK_OBJECT(gpb), "screenshot_page",
 		      GINT_TO_POINTER( page ));
@@ -495,7 +467,7 @@ static
 void plugin_add_gui (GnomeApp * app)
 {
   GtkWidget * toolbar1 = lookup_widget(GTK_WIDGET(app), "toolbar1");
-  GtkWidget * button; /* The button to add */
+  GtkWidget * button;
   GtkWidget * tmp_toolbar_icon;
 
   tmp_toolbar_icon =
@@ -504,10 +476,16 @@ void plugin_add_gui (GnomeApp * app)
   button = gtk_toolbar_append_element(GTK_TOOLBAR(toolbar1),
 				      GTK_TOOLBAR_CHILD_BUTTON, NULL,
 				      _("Screenshot"),
-				      _("Take a JPEG screenshot"),
+				      _("Take a JPEG screenshot [Ctrl+S]"),
 				      NULL, tmp_toolbar_icon,
 				      on_screenshot_button_clicked,
 				      NULL);
+
+  gtk_accel_group_add(gtk_accel_group_get_default(), GDK_s,
+		      GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE |
+		      GTK_ACCEL_SIGNAL_VISIBLE, GTK_OBJECT(button),
+		      "clicked");
+
   gtk_widget_ref (button);
 
   /* Set up the widget so we can find it later */

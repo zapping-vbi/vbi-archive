@@ -1,3 +1,10 @@
+1.04.2001	screenshot gladefied <garetxe@users.sourceforge.net>
+
+	* plugins/screenshot: uses libglade now, added accelator for saving
+	(Ctrl+s).
+	* src/capture.c: send_event = False. Appears to be faster in some
+	setups.
+
 31.3.2001	mcfifos fixed <garetxe@users.sourceforge.net>
 
 	* fifo: Rewrote most multi-consumer part of fifos, rte

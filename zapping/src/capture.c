@@ -428,7 +428,7 @@ capture_process_frame(GtkWidget * widget, tveng_device_info * info)
 		    GDK_GC_XGC(widget->style->white_gc), xvimage,
 		    0, 0, xvimage->width, xvimage->height, /* source */
 		    0, 0, w, h, /* dest */
-		    True /* send event when done */);
+		    False /* send event when done */);
 #else
       XvPutImage(GDK_DISPLAY(), xvport,
 		 GDK_WINDOW_XWINDOW(widget->window),

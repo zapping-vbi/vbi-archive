@@ -785,7 +785,12 @@ void on_ttxview_home_clicked		(GtkButton	*button,
   vbi_resolve_home(data->fmt_page, &ld);
 
   if (ld.type == VBI_LINK_PAGE || ld.type == VBI_LINK_SUBPAGE)
-    load_page(ld.pgno, ld.subno, data, NULL);
+    {
+      if (ld.pgno)
+	load_page(ld.pgno, ld.subno, data, NULL);
+      else
+	load_page(0x100, ANY_SUB, data, NULL);
+    }
   /* else VBI_LINK_HTTP, "http://zapping.sourceforge.net" :-) */
 }
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.18 2001-03-31 11:10:26 garetxe Exp $ */
+/* $Id: fifo.h,v 1.19 2001-04-01 20:12:37 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -35,8 +35,6 @@
     + Stealing buffers from slow consumers
   
   - Interface changes:
-    + Callbacks: send_full not allowed
-    + Consumer mucons no longer pertinent.
     + We should remove wait_full callback in favour of something like
 	fill_buffer, and do the fifo managing ourselves, not the producer.
 */
@@ -122,6 +120,9 @@ extern int	init_buffered_fifo(fifo *f, char *name, int num_buffers, int buffer_s
 extern int	init_callback_fifo(fifo *f, char *name, buffer * (* wait_full)(fifo *), void (* send_empty)(fifo *, buffer *), buffer * (* wait_empty)(fifo *), int num_buffers, int buffer_size);
 extern void	remove_consumer(fifo *f);
 extern coninfo *create_consumer(fifo *f);
+/* if (on) and the consumer is slow, buffers can be stolen from it,
+	and eventually it can get killed */
+extern void set_victim(fifo *f, int on);
 
 #define VALID_BUFFER(f, b) \
 	((b)->index < (f)->num_buffers && (f)->buffers + (b)->index == (b))
