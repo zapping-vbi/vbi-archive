@@ -31,6 +31,7 @@
 #include "zvbi.h"
 #include "overlay.h"
 #include "osd.h"
+#include "globals.h"
 
 /* This code clips DMA overlay into video memory against X window
    boundaries. Which is really the job of the X server, but without
@@ -656,6 +657,9 @@ start_overlay			(GtkWidget *		main_window,
 
   if (tv_info.needs_cleaning)
     {
+      if (!tv_set_overlay_buffer (info, &dga_param))
+	return FALSE;
+
       g_signal_connect (G_OBJECT (osd_model), "changed",
 			G_CALLBACK (on_osd_model_changed), NULL);
 
@@ -691,6 +695,11 @@ start_overlay			(GtkWidget *		main_window,
     }
   else
     {
+      if (!tv_set_overlay_xwindow (tv_info.info,
+				   tv_info.xwindow,
+				   tv_info.xgc))
+	return FALSE;
+
       /* Just update overlay on video_window size change. */
 
       g_signal_connect (G_OBJECT (video_window), "event",
@@ -712,9 +721,6 @@ start_overlay			(GtkWidget *		main_window,
     }
   else
     {
-      /* XXX error */
-      tv_set_overlay_xwindow (tv_info.info, tv_info.xwindow, tv_info.xgc);
-
       /* XXX tveng_set_preview_window (currently default is
 	 fill window size) */
 
