@@ -248,7 +248,7 @@ destroy_lines			(device_entry	*dev)
 #include <fcntl.h>
 #ifdef HAVE_SYS_SOUNDCARD_H
 #include <sys/soundcard.h>
-#else if defined(HAVE_MACHINE_SOUNDCARD_H)
+#elif defined(HAVE_MACHINE_SOUNDCARD_H)
 #include <machine/soundcard.h>
 #endif
 #include <stdio.h>
