@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: capture.c,v 1.7.2.2 2004-01-30 00:43:03 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.3 2004-02-25 17:27:36 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -43,11 +43,9 @@ vbi_bool		quit;
 int			src_w, src_h;
 
 int			dump;
-int			dump_ttx;
 int			dump_xds;
 int			dump_cc;
 int			dump_wss;
-int			dump_vps;
 int			dump_sliced;
 int			bin_sliced;
 int			do_read = TRUE;
@@ -76,110 +74,6 @@ vbi_hamm16(uint8_t *p)
 }
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
-
-#define PIL(day, mon, hour, min) \
-	(((day) << 15) + ((mon) << 11) + ((hour) << 6) + ((min) << 0))
-
-static void
-dump_pil(int pil)
-{
-	int day, mon, hour, min;
-
-	day = pil >> 15;
-	mon = (pil >> 11) & 0xF;
-	hour = (pil >> 6) & 0x1F;
-	min = pil & 0x3F;
-
-	if (pil == PIL(0, 15, 31, 63))
-		printf(" PDC: Timer-control (no PDC)\n");
-	else if (pil == PIL(0, 15, 30, 63))
-		printf(" PDC: Recording inhibit/terminate\n");
-	else if (pil == PIL(0, 15, 29, 63))
-		printf(" PDC: Interruption\n");
-	else if (pil == PIL(0, 15, 28, 63))
-		printf(" PDC: Continue\n");
-	else if (pil == PIL(31, 15, 31, 63))
-		printf(" PDC: No time\n");
-	else
-		printf(" PDC: %05x, 200X-%02d-%02d %02d:%02d\n",
-			pil, mon, day, hour, min);
-}
-
-static void
-decode_vps(uint8_t *buf)
-{
-	static char pr_label[20];
-	static char label[20];
-	static int l = 0;
-	int cni, pcs, pty, pil;
-	int c;
-
-	if (!dump_vps)
-		return;
-
-	printf("\nVPS:\n");
-
-	c = vbi_bit_reverse[buf[1]];
-
-	if ((int8_t) c < 0) {
-		label[l] = 0;
-		memcpy(pr_label, label, sizeof(pr_label));
-		l = 0;
-	}
-
-	c &= 0x7F;
-
-	label[l] = printable(c);
-
-	l = (l + 1) % 16;
-
-	printf(" 3-10: %02x %02x %02x %02x %02x %02x %02x %02x (\"%s\")\n",
-		buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], pr_label);
-
-	pcs = buf[2] >> 6;
-
-	cni = + ((buf[10] & 3) << 10)
-	      + ((buf[11] & 0xC0) << 2)
-	      + ((buf[8] & 0xC0) << 0)
-	      + (buf[11] & 0x3F);
-
-	pil = ((buf[8] & 0x3F) << 14) + (buf[9] << 6) + (buf[10] >> 2);
-
-	pty = buf[12];
-
-	printf(" CNI: %04x PCS: %d PTY: %d ", cni, pcs, pty);
-
-	dump_pil(pil);
-}
-
-static void
-decode_ttx(uint8_t *buf, int line)
-{
-	int packet_address;
-	int magazine, packet;
-	int j;
-
-	packet_address = vbi_hamm16(buf + 0);
-
-	if (packet_address < 0)
-		return; /* hamming error */
-
-	magazine = packet_address & 7;
-	packet = packet_address >> 3;
-
-	if (dump_ttx) {
-		printf("WST %x %02d %03d >", magazine, packet, line);
-
-		for (j = 0; j < 42; j++) {
-			char c = printable(buf[j]);
-
-			putchar(c);
-		}
-
-		putchar('<');
-		putchar('\n');
-	}
-}
 
 static void
 decode_xds(uint8_t *buf)
@@ -323,9 +217,7 @@ decode_sliced(vbi_sliced *s, double time, int lines)
 		if (s->id == 0) {
 			continue;
 		} else if (s->id & VBI_SLICED_VPS) {
-			decode_vps(s->data);
 		} else if (s->id & VBI_SLICED_TELETEXT_B) {
-			decode_ttx(s->data, s->line);
 		} else if (s->id & VBI_SLICED_CAPTION_525) {
 			decode_caption(s->data, s->line);
 		} else if (s->id & VBI_SLICED_CAPTION_625) {
@@ -350,7 +242,7 @@ const int
 services[][2] = {
 	{ VBI_SLICED_TELETEXT_B, 42 },
 	{ VBI_SLICED_CAPTION_625, 2 },
-	{ VBI_SLICED_VPS, 13 },
+	{ VBI_SLICED_VPS | VBI_SLICED_VPS_F2, 13 },
 	{ VBI_SLICED_WSS_625, 2 },
 	{ VBI_SLICED_WSS_CPR1204, 3 },
 	{ 0, 0 },
@@ -464,11 +356,9 @@ static const char short_options[] = "d:lnpstv";
 static const struct option
 long_options[] = {
 	{ "device",	required_argument,	NULL,		'd' },
-	{ "dump-ttx",	no_argument,		NULL,		't' },
 	{ "dump-xds",	no_argument,		&dump_xds,	TRUE },
 	{ "dump-cc",	no_argument,		&dump_cc,	TRUE },
 	{ "dump-wss",	no_argument,		&dump_wss,	TRUE },
-	{ "dump-vps",	no_argument,		&dump_vps,	TRUE },
 	{ "dump-sliced",no_argument,		&dump_sliced,	TRUE },
 	{ "sliced",	no_argument,		NULL,		'l' },
 	{ "read",	no_argument,		&do_read,	TRUE },
@@ -513,9 +403,6 @@ main(int argc, char **argv)
 		case 's':
 			do_sim ^= TRUE;
 			break;
-		case 't':
-			dump_ttx ^= TRUE;
-			break;
 		case 'v':
 			verbose ^= TRUE;
 			break;
@@ -525,12 +412,13 @@ main(int argc, char **argv)
 		}
 	}
 
-	dump = dump_ttx | dump_xds | dump_cc
-		| dump_wss | dump_vps | dump_sliced;
+	dump = dump_xds | dump_cc
+		| dump_wss | dump_sliced;
 
 	services = VBI_SLICED_VBI_525 | VBI_SLICED_VBI_625
 		| VBI_SLICED_TELETEXT_B | VBI_SLICED_CAPTION_525
-		| VBI_SLICED_CAPTION_625 | VBI_SLICED_VPS
+		| VBI_SLICED_CAPTION_625
+	  	| VBI_SLICED_VPS | VBI_SLICED_VPS_F2
 		| VBI_SLICED_WSS_625 | VBI_SLICED_WSS_CPR1204;
 
 	if (verbose)
