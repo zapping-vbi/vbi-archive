@@ -18,9 +18,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.4 2001-09-07 05:09:34 mschimek Exp $
+ * $Id: rte_test_main.c,v 1.5 2001-09-12 23:06:48 garetxe Exp $
  * This is a simple RTE test.
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#if defined(USE_ESD) || defined(OSS)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -427,7 +433,7 @@ int main(int argc, char *argv[])
 	int width = 16, height = 16;
 	int sleep_time = 10;
 	int audio_rate=44100, stereo=1;
-#if 1
+#if 1 
 	char * video_device = "/dev/video4";
 	char * audio_device = "/dev/audio";
 	char * backend = "mp1e";
@@ -679,3 +685,12 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+
+#else
+int main(int argc, char *argv)
+{
+	fprintf(stderr, "ESD or OSS required for this test\n");
+
+	return 0;
+}
+#endif

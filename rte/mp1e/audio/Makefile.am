@@ -1,6 +1,6 @@
 noinst_LTLIBRARIES = libaudio_rte.la libaudio.la
 
-INCLUDES=-D_GNU_SOURCE -D_REENTRANT -DFLOAT=float
+INCLUDES=-D_GNU_SOURCE -D_REENTRANT -DFLOAT=float $(ESD_CFLAGS)
 
 libaudio_rte_la_SOURCES = \
 	fft.c libaudio.h \

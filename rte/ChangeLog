@@ -1,3 +1,7 @@
+2001-09-13	<garetxe@users.sf.net>
+
+	* configure: Put esd_cflags and esd_libs in place.
+
 2001-09-01	<mschimek@users.sf.net>
 
 	* rte.c: Increased video fifo depth by 2, all buffers required.

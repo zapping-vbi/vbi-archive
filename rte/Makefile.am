@@ -26,8 +26,6 @@ librte_la_LDFLAGS = -export-dynamic -release @VERSION@
 
 rte_test_SOURCES = rte_test_main.c
 
-## Fixme: Rewrite rte_test audio input using standard oss.
-ESD_LIBS = -lesd
-
+rte_test_INCLUDES = $(ESD_CFLAGS)
 rte_test_LDADD = $(ESD_LIBS) -lpthread .libs/librte.a
 ## -lmmxemu
