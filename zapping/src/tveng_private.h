@@ -157,8 +157,7 @@ struct tveng_module_info {
 
 	tv_bool		(* set_overlay_buffer)	(tveng_device_info *,
 						 const tv_overlay_buffer *);
-	tv_bool		(* get_overlay_buffer)	(tveng_device_info *,
-						 tv_overlay_buffer *);
+	tv_bool		(* get_overlay_buffer)	(tveng_device_info *);
 	tv_bool		(* set_overlay_xwindow)	(tveng_device_info *,
 						 Window,
 						 GC);
