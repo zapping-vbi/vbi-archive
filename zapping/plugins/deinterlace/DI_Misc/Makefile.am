@@ -9,8 +9,8 @@ noinst_LTLIBRARIES = libDI_Misc.la
 
 libDI_Misc_la_SOURCES = \
 	DI_Adaptive.c \
-	DI_Bob.c \
 	DI_BlendedClip.c \
+	DI_Bob.c \
 	DI_EvenOnly.c \
 	DI_Greedy.c \
 	DI_Greedy2Frame.c \
@@ -21,3 +21,12 @@ libDI_Misc_la_SOURCES = \
 	DI_VideoBob.c \
 	DI_VideoWeave.c \
 	DI_Weave.c
+
+# Other files included by .c files (not asm code)
+EXTRA_DIST = \
+	DI_Greedy.asm \
+	DI_Greedy2Frame.asm \
+	DI_OldGame.asm \
+	DI_TwoFrame.asm \
+	DI_VideoBob.asm \
+	DI_VideoWeave.asm

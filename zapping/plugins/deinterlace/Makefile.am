@@ -10,7 +10,11 @@ INCLUDES = \
 
 noinst_PROGRAMS = ditest
 ditest_SOURCES = \
-	ditest.c
+	DS_ApiCommon.h \
+	DS_Control.h \
+	DS_Deinterlace.h \
+	ditest.c \
+	windows.h
 
 ditest_LDADD = \
 	DI_GreedyH/libDI_GreedyH.la \
@@ -22,8 +26,12 @@ plugindir = @PLUGIN_DEFAULT_DIR@
 plugin_LTLIBRARIES = libdeinterlace.zapping.la
 
 libdeinterlace_zapping_la_SOURCES = \
+	DS_ApiCommon.h \
+	DS_Control.h \
+	DS_Deinterlace.h \
 	main.c \
-	preferences.c preferences.h
+	preferences.c preferences.h \
+	windows.h
 
 libdeinterlace_zapping_la_LIBADD = \
 	DI_GreedyH/libDI_GreedyH.la \
