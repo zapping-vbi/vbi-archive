@@ -31,7 +31,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rte 0.5.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-10-31 22:17+0100\n"
+"POT-Creation-Date: 2004-04-01 05:21+0200\n"
 "PO-Revision-Date: 2002-12-27 04:43+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -69,7 +69,7 @@ msgstr ""
 #: mp1e/video/mpeg1.c:2592 mp1e/video/mpeg1.c:2949 mp1e/audio/mp2.c:1161
 #: mp1e/b_mp1e.c:448 mp1e/b_mp1e.c:498 mp1e/b_mp1e.c:508 mp1e/b_mp1e.c:1095
 #: ffmpeg/b_ffmpeg.c:673 ffmpeg/b_ffmpeg.c:1453 ffmpeg/b_ffmpeg.c:1880
-#: divx4linux/b_divx4linux.c:486 divx4linux/b_divx4linux.c:929
+#: divx4linux/b_divx4linux.c:635 divx4linux/b_divx4linux.c:1058
 msgid "Out of memory."
 msgstr "Out of memory."
 
@@ -87,7 +87,7 @@ msgstr "Insert fake pictures"
 
 #: mp1e/video/mpeg1.c:2704 mp1e/audio/mp2.c:982 ffmpeg/b_ffmpeg.c:914
 #: ffmpeg/b_ffmpeg.c:918 ffmpeg/b_ffmpeg.c:931 ffmpeg/b_ffmpeg.c:935
-#: divx4linux/b_divx4linux.c:679
+#: divx4linux/b_divx4linux.c:808
 msgid "Bit rate"
 msgstr "Bit rate"
 
@@ -143,7 +143,7 @@ msgstr ""
 "Add an annotation in the user data field shortly after the video stream "
 "start. This is an mp1e extension, players will ignore it."
 
-#: mp1e/video/mpeg1.c:2750 ffmpeg/b_ffmpeg.c:985 divx4linux/b_divx4linux.c:708
+#: mp1e/video/mpeg1.c:2750 ffmpeg/b_ffmpeg.c:985 divx4linux/b_divx4linux.c:837
 #, c-format
 msgid "%5.3f Mbit/s"
 msgstr "%5.3f Mbit/s"
@@ -158,11 +158,11 @@ msgstr "%4.2f frames/s"
 msgid "%5.3f frames/s"
 msgstr "%5.3f frames/s"
 
-#: mp1e/video/mpeg1.c:2765 divx4linux/b_divx4linux.c:718
+#: mp1e/video/mpeg1.c:2765 divx4linux/b_divx4linux.c:847
 msgid "on"
 msgstr "on"
 
-#: mp1e/video/mpeg1.c:2765 divx4linux/b_divx4linux.c:718
+#: mp1e/video/mpeg1.c:2765 divx4linux/b_divx4linux.c:847
 msgid "off"
 msgstr "off"
 
@@ -296,7 +296,7 @@ msgid ""
 msgstr ""
 "MP1E backend requires MMX but the CPU type is unknown, backend disabled."
 
-#: ffmpeg/b_ffmpeg.c:501 divx4linux/b_divx4linux.c:430
+#: ffmpeg/b_ffmpeg.c:501 divx4linux/b_divx4linux.c:579
 msgid "Insufficient resources to start encoding thread.\n"
 msgstr "Insufficient resources to start encoding thread.\n"
 
@@ -412,68 +412,68 @@ msgstr "Shockwave Animation"
 msgid "AVI File"
 msgstr "AVI File"
 
-#: divx4linux/b_divx4linux.c:669
+#: divx4linux/b_divx4linux.c:798
 msgid "Fastest encoding, worst quality"
 msgstr "Fastest encoding, worst quality"
 
-#: divx4linux/b_divx4linux.c:670
+#: divx4linux/b_divx4linux.c:799
 msgid "Lower quality"
 msgstr "Lower quality"
 
-#: divx4linux/b_divx4linux.c:671
+#: divx4linux/b_divx4linux.c:800
 msgid "Medium quality"
 msgstr "Medium quality"
 
-#: divx4linux/b_divx4linux.c:672
+#: divx4linux/b_divx4linux.c:801
 msgid "Higher quality"
 msgstr "Higher quality"
 
-#: divx4linux/b_divx4linux.c:673
+#: divx4linux/b_divx4linux.c:802
 msgid "Slowest encoding, best quality"
 msgstr "Slowest encoding, best quality"
 
-#: divx4linux/b_divx4linux.c:682
+#: divx4linux/b_divx4linux.c:811
 msgid "Key frame distance"
 msgstr "Key frame distance"
 
-#: divx4linux/b_divx4linux.c:685
+#: divx4linux/b_divx4linux.c:814
 msgid "Compression quality"
 msgstr "Compression quality"
 
-#: divx4linux/b_divx4linux.c:688
+#: divx4linux/b_divx4linux.c:817
 msgid "Bidirectional encoding"
 msgstr "Bidirectional encoding"
 
-#: divx4linux/b_divx4linux.c:690
+#: divx4linux/b_divx4linux.c:819
 msgid "Overlapped block motion compensation"
 msgstr "Overlapped block motion compensation"
 
-#: divx4linux/b_divx4linux.c:692
+#: divx4linux/b_divx4linux.c:821
 msgid "Deinterlace"
 msgstr "Deinterlace"
 
-#: divx4linux/b_divx4linux.c:818
+#: divx4linux/b_divx4linux.c:947
 msgid "DivX 4.x Video"
 msgstr "DivX 4.x Video"
 
-#: divx4linux/b_divx4linux.c:949
+#: divx4linux/b_divx4linux.c:1078
 msgid "DivX Video Elementary Stream"
 msgstr "DivX Video Elementary Stream"
 
-#: divx4linux/b_divx4linux.c:984
+#: divx4linux/b_divx4linux.c:1113
 msgid "DivX AVI Stream"
 msgstr "DivX AVI Stream"
 
-#: divx4linux/b_divx4linux.c:1040
+#: divx4linux/b_divx4linux.c:1169
 #, c-format
 msgid "Version %d not supported\n"
 msgstr "Version %d not supported\n"
 
-#: divx4linux/b_divx4linux.c:1056
+#: divx4linux/b_divx4linux.c:1185
 msgid "DivX 5.x Video"
 msgstr "DivX 5.x Video"
 
-#: divx4linux/b_divx4linux.c:1070
+#: divx4linux/b_divx4linux.c:1199
 #, c-format
 msgid "DivX4Linux library not available. %s\n"
 msgstr "DivX4Linux library not available. %s\n"

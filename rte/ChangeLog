@@ -1,3 +1,7 @@
+2004-04-01    <mschimek@users.sf.net>
+
+	* divx4linux: Updated for divx4linux 5.2, fixes Bug #872742.
+
 2003-11-13    <mschimek@users.sf.net>
 
 	* divx4linux/b_divx4linux.c (mainloop): Incorrect declaration

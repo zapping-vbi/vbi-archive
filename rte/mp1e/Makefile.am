@@ -1,5 +1,5 @@
 ## Process this file with automake to produce Makefile.in
-## $Id: Makefile.am,v 1.15 2002-12-14 00:43:43 mschimek Exp $
+## $Id: Makefile.am,v 1.16 2004-04-09 05:16:45 mschimek Exp $
 
 INCLUDES = -D_GNU_SOURCE -D_REENTRANT -include $(top_builddir)/config.h \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
@@ -27,6 +27,8 @@ DIST_SUBDIRS = macros video audio vbi systems common devices test
 EXTRA_DIST = mp1e.lsm.in mp1e.spec.in $(man_MANS) BUGS b_mp1e.h rte
 
 dist-hook:
+	for file in b_mp1e.c; do \
+		rm -rf $(distdir)/$$file; done
 
 bin_PROGRAMS = mp1e
 

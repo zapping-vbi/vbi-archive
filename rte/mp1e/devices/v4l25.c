@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.2 2003-03-09 00:33:04 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.3 2004-04-09 05:16:45 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -110,7 +110,9 @@ drop:
 		ASSERT("execute select", r > 0);
 	}
 
+	memset (&vbuf, 0, sizeof (vbuf));
 	vbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	vbuf.memory = V4L2_MEMORY_MMAP;
 
 	ASSERT("dequeue capture buffer",
 		IOCTL(fd, VIDIOC_DQBUF, &vbuf) == 0);
@@ -140,7 +142,9 @@ send_empty(consumer *c, buffer *b)
 	// XXX
 	unlink_node(&c->fifo->full, &b->node);
 
+	memset (&vbuf, 0, sizeof (vbuf));
 	vbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	vbuf.memory = V4L2_MEMORY_MMAP;
 	vbuf.index = b - buffers;
 
 	ASSERT("enqueue capture buffer",
@@ -414,6 +418,7 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 	/* Phase 2, i/o setup */
 
 	vrbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	vrbuf.memory = V4L2_MEMORY_MMAP;
 	vrbuf.count = MAX(cap_buffers, min_cap_buffers);
 
 	ASSERT("request capture buffers",
@@ -441,6 +446,7 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 		unsigned char *p;
 
 		vbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		vbuf.memory = V4L2_MEMORY_MMAP;
 		vbuf.index = i;
 
 		printv(3, "Mapping capture buffer #%d\n", i);

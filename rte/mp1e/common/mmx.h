@@ -60,7 +60,7 @@ typedef	union {
 extern int cpu_detection(void);
 
 #if __GNUC__ == 3
-# if __GNUC_MINOR__ > 2
+# if __GNUC_MINOR__ > 3
 #  warning Compilation with your version of gcc is untested,
 #  warning may fail or create incorrect code.
 # endif

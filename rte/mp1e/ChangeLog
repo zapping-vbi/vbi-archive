@@ -1,3 +1,8 @@
+2004-04-08	<mschimek@users.sf.net>
+
+	* devices/v4l25.c: Fixed incomplete v4l2_buffer
+	  initialization.
+
 2003-03-06	<mschimek@users.sf.net>
 
 	* video/video.h, video/mpeg1.c, video/filter_mmx.s,

@@ -17,14 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alloc.h,v 1.7 2002-12-14 00:43:44 mschimek Exp $ */
+/* $Id: alloc.h,v 1.8 2004-04-09 05:16:45 mschimek Exp $ */
 
 #ifndef ALLOC_H
 #define ALLOC_H
 
 #include <stdlib.h>
 #include <string.h>
-/* #include <malloc.h> */
+#include <malloc.h>
 #include "types.h"
 
 #ifdef HAVE_MEMALIGN
