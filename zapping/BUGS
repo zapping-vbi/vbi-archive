@@ -59,6 +59,9 @@ Needs more work later:
 * Overlay needs a review.
 * Prefs toolbar style menu does not update when config changes
   (should it?) and selection cannot be canceled.
+* mpeg plugin doesn't link with libdivx-20030428.
+  Undefined reference to __start_cp_handler, __eh_rtime_match.
+  g++ doesn't help, no .a|.o|.so found. Where the fsck are they defined??
 
 tvengxv.c
 * Need to handle BadAtom errors resulting from Xv out
@@ -78,6 +81,14 @@ GTK
 * TTX to video mode switch: "(zapping:14644): Gtk-WARNING
   **: Toolbar position 8 is not a space", separator not removed.
   This is gtk 2.3 bug #127092, apparently fixed now.
+
+Debian
+* 168263 - feature added in 0.7.
+* 126641 - zapping_remote, see also sf.net. Feature to do.
+* 170380 - rewrote in 0.7, user can override automatic selection.
+* 169173 - rewrote in 0.7.
+* 226590 - still in 0.6.8 (never notified - ??), rewrote in 0.7.
+* 198942 - open.
 
 XFree86 stuff
 -------------

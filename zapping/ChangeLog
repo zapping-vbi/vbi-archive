@@ -1,3 +1,7 @@
+2004-05-22    <mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c (do_start): Corrected YUV/YVU pixfmt retries.
+
 2004-05-21    <mschimek@users.sf.net>
 
 	* src/frequencies.c (loose_strcmp): Infinite loop. Holy crap I

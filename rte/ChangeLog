@@ -1,6 +1,13 @@
+2004-05-22    <mschimek@users.sf.net>
+
+	* Release 0.5.2.
+
 2004-05-21    <mschimek@users.sf.net>
 
-	* ffmpeg/libavcodec/i386/motion_est_mmx.c: Static global "bone"
+	* ffmpeg/b_ffmpeg.c (parameters_set): YUV420 v_offset fix.
+	* m4/Makefile.am (EXTRA_DIST): Updated.
+	* ffmpeg/libavcodec/i386/simple_idct_mmx.c,
+	  ffmpeg/libavcodec/i386/motion_est_mmx.c: Static const
 	  only referenced in asm, eliminated by gcc -O3.
 	* src/Makefile.am (librte.h): Generated invalid file with VPATH.
 
