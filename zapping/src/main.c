@@ -312,7 +312,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.17 2003-03-24 17:17:10 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.18 2003-06-16 06:11:05 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -374,7 +374,8 @@ int main(int argc, char * argv[])
 		 (unsigned int)(v->vfreq + 0.5));
     }
 
-  if (x11_dga_query (&dga_param, 0) && debug_msg)
+  if (x11_dga_query (&dga_param, NULL, 0)
+      && debug_msg)
     {
       fprintf (stderr, "DGA parameters:\n"
 	       "  frame buffer address   %p\n"
