@@ -726,8 +726,7 @@ update_main_title (void)
     name = current_network.name;
   /* else switch away from known network */
 
-  channel = tveng_retrieve_tuned_channel_by_index(
-	      cur_tuned_channel, global_channel_list);
+  channel = tveng_tuned_channel_nth(global_channel_list, cur_tuned_channel);
   if (!channel)
     z_set_main_title(NULL, name);
   else if (!channel->name)
@@ -2652,7 +2651,10 @@ zvbi_get_name(void)
   if (!station_name_known || !vbi)
     return NULL;
 
-  return g_strdup(station_name);
+  return g_convert (station_name, strlen (station_name),
+		    "ISO-8859-1","UTF-8",
+
+		    NULL, NULL, NULL);
 }
 
 void
