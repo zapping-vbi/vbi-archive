@@ -780,6 +780,8 @@ typedef uint64_t tv_pixfmt_set;
 
 extern const char *
 tv_pixfmt_name			(tv_pixfmt		pixfmt);
+extern unsigned int
+tv_pixfmt_bytes_per_pixel	(tv_pixfmt		pixfmt);
 
 /*
  *  Broken-down pixel format
@@ -789,15 +791,43 @@ typedef struct _tv_pixel_format tv_pixel_format;
 
 struct _tv_pixel_format {
 	tv_pixfmt		pixfmt;
-	unsigned int		reserved;		/* color space */
-	unsigned int		bits_per_pixel;		/* packed or Y plane */
+	unsigned int		_reserved1;		/* color space */
+
+	/* Number of bits per pixel. For packed YUV 4:2:2 this is 16.
+	   For planar formats this refers to the Y plane only. */
+	unsigned int		bits_per_pixel;
+
+	/* Number of red, green and blue, or luma and chroma bits
+	   per pixel. Averaged if U and V plane are smaller than Y plane. */
 	unsigned int		color_depth;
-	unsigned int		uv_hscale;		/* 1, 2, 4 */
-	unsigned int		uv_vscale;		/* 1, 2, 4 */
+
+	/* Width and height of the U and V plane must be multiplied
+	   by these values to get the size of the Y plane. Will be
+           1, 2 or 4. */
+	unsigned int		uv_hscale;
+	unsigned int		uv_vscale;
+
+	/* Format is packed and pixels are stored in 16, 24 or 32 bit
+	   (bits_per_pixel) quantities with most significant byte
+	   first in memory. */
 	unsigned		big_endian	: 1;
+
+	/* Y, U and V color components are stored in separate arrays,
+	   first Y, then U and V. */
 	unsigned		planar		: 1;
+
+	/* For packed YUV 4:2:2, V pixel is stored before U pixel
+	   in memory. For planar YUV formats, V plane is stored
+	   before U plane in memory. */
 	unsigned		vu_order	: 1;
-	unsigned		_reserved	: 29;
+
+	unsigned		_reserved2	: 29;
+
+	/* Bit masks describing size and position of color components
+	   in a in 8, 16, 24 or 32 bit (bits_per_pixel) quantity, as
+	   seen when reading from memory with proper endianess.
+	   For packed YUV 4:2:2 and planar formats y, u and v will be
+	   0xFF. The a (alpha) component can be zero. */
 	union {
 		struct {
 			unsigned int		r;
@@ -822,17 +852,61 @@ extern tv_bool
 tv_pixel_format_to_pixfmt	(tv_pixel_format *	format);
 
 /*
- *  Video capture
+ *  Image format
  */
 
-/* This struct holds the structure of the captured frame */
-struct tveng_frame_format
-{
-  int width, height; /* Dimensions of the capture */
-  int bytesperline; /* Bytes per scan line (packed or Y plane) */
-  tv_pixfmt pixfmt;
-  int sizeimage; /* Size in bytes of the image */
+typedef struct _tv_image_format tv_image_format;
+
+struct _tv_image_format {
+	/* Image width in pixels, for planar formats this refers to
+	   the Y plane and must be a multiple of tv_pixel_format.uv_hscale. */
+	unsigned int		width;
+
+	/* Image height in pixels, for planar formats this refers to
+	   the Y plane and must be a multiple of tv_pixel_format.uv_vscale. */
+	unsigned int		height;
+
+	/* For packed formats bytes_per_line >= (width * tv_pixel_format
+	   .bits_per_pixel + 7) / 8. For planar formats this refers to
+	   the Y plane only, with implied y_size = bytes_per_line * height. */
+	unsigned int		bytes_per_line;
+
+	/* For planar formats only, refers to the U and V plane. */
+	unsigned int		uv_bytes_per_line;
+
+/* ATTENTION [u_|v_]offset and [uv_]bytes_per_line aren't
+   fully supported yet, don't use them. */
+
+	/* For packed formats the image offset in bytes from the buffer
+	   start. For planar formats this refers to the Y plane. */
+	unsigned int		offset;
+
+	/* For planar formats only, the byte offset of the U and V
+	   plane from the start of the buffer. */
+	unsigned int		u_offset;
+	unsigned int		v_offset;
+
+	/* Buffer size. For packed formats size >= offset + height
+	   * bytes_per_line. For planar formats size >=
+	   MAX (offset + y_size, u_offset + uv_size, v_offset + uv_size). */
+	unsigned int		size;
+
+	tv_pixfmt		pixfmt;
+	unsigned int		_reserved;		/* color space */
 };
+
+extern tv_bool
+tv_image_format_init		(tv_image_format *	format,
+				 unsigned int		width,
+				 unsigned int		height,
+				 tv_pixfmt		pixfmt,
+				 unsigned int		reserved);
+extern tv_bool
+tv_image_format_is_valid	(const tv_image_format *format);
+
+/*
+ *  Video capture
+ */
 
 /* Convenience construction for managing image data */
 typedef union {
@@ -854,20 +928,18 @@ typedef union {
 
 typedef struct _tv_overlay_buffer tv_overlay_buffer;
 
-/* This is the target of DMA overlay, a continuous chunk of physical memory,
-   unlike malloc'ed virtual memory. Usually it describes the visible portion
-   of the graphics card's video memory. */
+/* This is the target of DMA overlay, a continuous chunk of physical memory.
+   Usually it describes the visible portion of the graphics card's video
+   memory. */
 struct _tv_overlay_buffer {
-	/* Frame buffer physical address. (XXX What is physical?) */
-	void *			base;
+  	/* Memory address as seen by the video capture device, without
+	   virtual address translation by the CPU. Actually this assumes
+           graphic card and capture device share an address space, which is
+	   not necessarily true if the devices connect to different busses,
+	   but I'm not aware of any driver APIs considering this either. */
+	unsigned long		base;
 
-	unsigned int		bytes_per_line;		/* >= width * bytes per pixel */
-	unsigned int		size;			/* >= bytes_per_line * height, bytes */
-
-	unsigned int		width;			/* pixels */
-	unsigned int		height;
-
-	tv_pixfmt		pixfmt;
+	tv_image_format		format;
 };
 
 /* Overlay clipping rectangle. These are regions you don't want
@@ -1031,7 +1103,7 @@ struct _tveng_device_info
   struct tveng_caps caps; /* Video system capabilities */
 
   /* the format about this capture */
-  struct tveng_frame_format format; /* pixel format of this device */
+  tv_image_format format; /* pixel format of this device */
 
 	/* All internal communication with the device is logged
 	   through this fp when non-NULL. */
