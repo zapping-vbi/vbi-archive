@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.25 2001-07-07 08:46:54 mschimek Exp $
+ * $Id: rte_test_main.c,v 1.26 2001-07-07 19:14:15 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -36,7 +36,7 @@
 #include <asm/types.h>
 #include <pthread.h>
 #include "common/log.h"
-#include "videodev2.h"
+#include "common/videodev2.h"
 #include "rte.h"
 
 #ifndef USE_ESD

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.20 2001-07-07 08:46:54 mschimek Exp $ */
+/* $Id: options.c,v 1.21 2001-07-07 19:14:15 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -33,8 +33,8 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <asm/types.h>
-#include <linux/videodev.h>
 #include <linux/soundcard.h>
+#include "common/videodev2.h"
 #include "common/types.h"
 #include "common/math.h"
 #include "common/log.h"

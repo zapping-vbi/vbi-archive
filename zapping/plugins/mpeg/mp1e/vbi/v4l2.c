@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.10 2001-05-05 23:35:09 garetxe Exp $ */
+/* $Id: v4l2.c,v 1.11 2001-07-07 19:14:16 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -28,7 +28,7 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <asm/types.h>
-#include "../videodev2.h"
+#include "../common/videodev2.h"
 #include "../common/log.h"
 #include "../common/math.h"
 #include "vbi.h"

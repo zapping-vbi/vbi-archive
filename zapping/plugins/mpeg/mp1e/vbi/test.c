@@ -13,7 +13,7 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <linux/types.h>
-#include <linux/videodev.h>
+#include "../common/videodev2.h"
 #include "../common/mmx.h"
 #include "../common/fifo.h"
 #include "libvbi.h"
