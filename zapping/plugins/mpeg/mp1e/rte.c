@@ -1,7 +1,7 @@
 /*
  *  Real Time Encoder lib
  *
- *  Copyright (C) 2000 Iñaki García Etxebarria
+ *  Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.47 2001-03-31 11:10:26 garetxe Exp $ */
+/* $Id: rte.c,v 1.48 2001-04-02 22:39:49 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -50,8 +50,6 @@
   BUGS:
       . It isn't reentrant.
       . We shouldn't use ASSERTS if possible
-      . When doing start/stop many times, the mux thread cannot be
-      joined sometimes, why?
   TODO:
       . Add VBI support
       . Add preview support.

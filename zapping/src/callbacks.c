@@ -39,7 +39,7 @@
 
 /* set this flag to TRUE to exit the program */
 extern volatile gboolean flag_exit_program;
-extern GtkWidget * ToolBox; /* Here is stored the Toolbox (if any) */
+extern GtkWidget *ToolBox; /* Control box, if any */
 /* the mode set when we went fullscreen (used by main.c too) */
 enum tveng_capture_mode restore_mode;
 
@@ -163,6 +163,12 @@ on_hide_controls1_activate             (GtkMenuItem     *menuitem,
       gtk_widget_show(lookup_widget(main_window, "dockitem1"));
       gtk_widget_show(lookup_widget(main_window, "dockitem2")); 
       gtk_widget_queue_resize(main_window);
+
+      z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
+				      "hide_controls2"),
+			GNOME_STOCK_PIXMAP_BOOK_YELLOW,
+			_("Hide controls"),
+			_("Hide the menu and the toolbar"));
     }
   else
     {
@@ -170,6 +176,12 @@ on_hide_controls1_activate             (GtkMenuItem     *menuitem,
       gtk_widget_hide(lookup_widget(main_window, "dockitem1"));
       gtk_widget_hide(lookup_widget(main_window, "dockitem2"));
       gtk_widget_queue_resize(main_window);
+
+      z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
+				      "hide_controls2"),
+			GNOME_STOCK_PIXMAP_BOOK_OPEN,
+			_("Show controls"),
+			_("Show the menu and the toolbar"));
     }
 }
 
@@ -183,6 +195,12 @@ on_hide_menubars1_activate             (GtkMenuItem     *menuitem,
       gtk_widget_show(lookup_widget(main_window, "Inputs"));
       gtk_widget_show(lookup_widget(main_window, "Standards")); 
       gtk_widget_show(lookup_widget(main_window, "frame6"));
+
+      z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
+				      "hide_menubars2"),
+			GNOME_STOCK_PIXMAP_BOOK_BLUE,
+			_("Hide extra controls"),
+			_("Hide Input, Standards and subtitle selection"));
     }
   else
     {
@@ -190,6 +208,12 @@ on_hide_menubars1_activate             (GtkMenuItem     *menuitem,
       gtk_widget_hide(lookup_widget(main_window, "Inputs"));
       gtk_widget_hide(lookup_widget(main_window, "Standards"));
       gtk_widget_hide(lookup_widget(main_window, "frame6"));
+
+      z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
+				      "hide_menubars2"),
+			GNOME_STOCK_PIXMAP_BOOK_OPEN,
+			_("Show extra controls"),
+			_("Show Input, Standards and subtitle selection"));
     }
 }
 
@@ -266,23 +290,6 @@ on_controls_clicked                    (GtkButton       *button,
   gtk_object_set_user_data(GTK_OBJECT(ToolBox), button);
 
   gtk_widget_show(ToolBox);
-}
-
-gboolean
-on_control_box_delete_event            (GtkWidget      *widget,
-					GdkEvent       *event,
-					gpointer        user_data)
-{
-  GtkWidget * related_button;
-
-  related_button =
-    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(widget)));
-
-  gtk_widget_set_sensitive(related_button, TRUE);
-
-  ToolBox = NULL;
-
-  return FALSE;
 }
 
 void
@@ -417,15 +424,6 @@ on_channel_down1_activate              (GtkMenuItem     *menuitem,
 			      new_channel);
 }
 
-static void
-change_pixmenuitem_label		(GtkWidget	*menuitem,
-					 const gchar	*new_label)
-{
-  GtkWidget *widget = GTK_BIN(menuitem)->child;
-
-  gtk_label_set_text(GTK_LABEL(widget), new_label);
-}
-
 /* the returned string needs to be g_free'ed */
 static gchar *
 build_channel_tooltip(tveng_tuned_channel * tuned_channel)
@@ -457,7 +455,6 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
   gint i;
   GtkWidget * zapping = lookup_widget(widget, "zapping");
   GdkEventButton * bevent = (GdkEventButton *) event;
-  GtkWidget *spixmap;
   gchar * tooltip;
 
   if (event->type != GDK_BUTTON_PRESS)
@@ -571,42 +568,21 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	    gtk_widget_set_sensitive(widget, FALSE);
 	    gtk_widget_hide(widget);
 	  }
+
 	if (zcg_bool(NULL, "hide_extra"))
-	  {
-	    widget = lookup_widget(GTK_WIDGET(menu), "hide_menubars1");
-	    change_pixmenuitem_label(widget, _("Show extra controls"));
-	    set_tooltip(widget,
-			_("Show the Inputs and Standards menu"));
-	    spixmap =
-	      gnome_stock_pixmap_widget_at_size(widget,
-						GNOME_STOCK_PIXMAP_BOOK_OPEN,
-						16, 16);
-	    /************* THIS SHOULD NEVER BE DONE ***********/
-	    gtk_object_destroy(GTK_OBJECT(GTK_PIXMAP_MENU_ITEM(widget)->pixmap));
-	    GTK_PIXMAP_MENU_ITEM(widget)->pixmap = NULL;
-	    /********** BUT THERE'S NO OTHER WAY TO DO IT ******/
-	    gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(widget),
-					    spixmap);
-	    gtk_widget_show(spixmap);
-	  }
+	  z_change_menuitem(lookup_widget(GTK_WIDGET(menu),
+					  "hide_menubars1"),
+			    GNOME_STOCK_PIXMAP_BOOK_OPEN,
+			    _("Show extra controls"),
+			    _("Show Input, Standards and subtitle selection"));
+
 	if (zcg_bool(NULL, "hide_controls"))
-	  {
-	    widget = lookup_widget(GTK_WIDGET(menu), "hide_controls1");
-	    change_pixmenuitem_label(widget, _("Show controls"));
-	    set_tooltip(widget,
-			_("Show the menu and the toolbar"));
-	    spixmap =
-	      gnome_stock_pixmap_widget_at_size(widget,
-						GNOME_STOCK_PIXMAP_BOOK_OPEN,
-						16, 16);
-	    /************* THIS SHOULD NEVER BE DONE ***********/
-	    gtk_object_destroy(GTK_OBJECT(GTK_PIXMAP_MENU_ITEM(widget)->pixmap));
-	    GTK_PIXMAP_MENU_ITEM(widget)->pixmap = NULL;
-	    /********** BUT THERE'S NO OTHER WAY TO DO IT ******/
-	    gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(widget),
-					    spixmap);
-	    gtk_widget_show(spixmap);
-	  }
+	  z_change_menuitem(lookup_widget(GTK_WIDGET(menu),
+					  "hide_controls1"),
+			    GNOME_STOCK_PIXMAP_BOOK_OPEN,
+			    _("Show controls"),
+			    _("Show the menu and the toolbar"));
+
 	process_ttxview_menu_popup(main_window, bevent, menu);
 	gtk_menu_popup(menu, NULL, NULL, NULL,
 		       NULL, bevent->button, bevent->time);

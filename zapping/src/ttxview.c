@@ -2017,6 +2017,123 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
   return popup;
 }
 
+static
+void on_subtitle_select			(GtkWidget	*widget,
+					 gint		page)
+{
+  int classf;
+
+  if (!zvbi_get_object())
+    return;
+
+  classf = vbi_classify_page(zvbi_get_object(), page, NULL, NULL);
+
+  if (classf == VBI_SUBTITLE_PAGE)
+    {
+      /* FIXME: This looks ugly */
+      extern GtkWidget *main_window;
+      extern int zvbi_page;
+      GtkSpinButton *wzp =
+	GTK_SPIN_BUTTON(lookup_widget(main_window, "zvbi_page"));
+
+      zvbi_page = page;
+
+      zconf_set_integer(zvbi_page,
+			"/zapping/internal/callbacks/zvbi_page");
+
+      gtk_spin_button_set_value(wzp, bcd2dec(zvbi_page));
+    }
+}
+
+static void
+on_subtitle_index_select		(GtkWidget	*widget,
+					 gint		page)
+{
+  GtkWidget * index_view;
+
+  if (!zvbi_get_object() || page < 0x100)
+    return;
+
+  index_view = build_ttxview();
+
+  load_page(page, ANY_SUB,
+	    (ttxview_data*)gtk_object_get_data(GTK_OBJECT(index_view),
+					       "ttxview_data"),
+	      NULL);
+
+  gtk_widget_show(index_view);
+}
+
+static GtkMenu *
+build_subtitles_submenu(void)
+{
+  GtkMenu *menu;
+  GtkWidget *menu_item;
+  gint count;
+  gboolean empty = TRUE;
+  gint classf, subpage;
+  gchar *language;
+  gchar *buffer;
+
+  if (!zvbi_get_object())
+    return NULL;
+
+  menu = GTK_MENU(gtk_menu_new());
+
+  for (count = 0x100; count <= 0x899; count = add_bcd(count, 1))
+    {
+      classf = vbi_classify_page(zvbi_get_object(), count, &subpage,
+				 &language);
+      if (classf == VBI_SUBTITLE_PAGE)
+	{
+	  if (language)
+	    buffer = g_strdup(language);
+	  else
+	    buffer = g_strdup_printf(_("%x: Unknown language"), count);
+
+	  menu_item = gtk_menu_item_new_with_label(buffer);
+	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
+			     GTK_SIGNAL_FUNC(on_subtitle_select),
+			     GINT_TO_POINTER(count));
+	  gtk_menu_append(menu, menu_item);
+	  gtk_widget_show(menu_item);
+
+	  g_free(buffer);
+	  if (language)
+	    {
+	      buffer = g_strdup_printf(_("Page %x"), count);
+	      set_tooltip(menu_item, buffer);
+	      g_free(buffer);
+	    }
+	  empty = FALSE;
+	}
+      else if (classf == VBI_SUBTITLE_INDEX)
+	{
+	  menu_item = gtk_menu_item_new_with_label(_("Index"));
+	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
+			     GTK_SIGNAL_FUNC(on_subtitle_index_select),
+			     GINT_TO_POINTER(count));
+	  buffer = g_strdup_printf(_("Page %x"), count);
+	  set_tooltip(menu_item, buffer);
+	  g_free(buffer);
+	  gtk_menu_insert(menu, menu_item, 1);
+	  gtk_widget_show(menu_item);
+	  menu_item = gtk_menu_item_new();
+	  gtk_widget_show(menu_item);
+	  gtk_menu_insert(menu, menu_item, 2);
+	  empty = FALSE;
+	}
+    }
+
+  if (empty)
+    {
+      gtk_widget_destroy(GTK_WIDGET(menu));
+      menu = FALSE;
+    }
+
+  return menu;
+}
+
 void
 process_ttxview_menu_popup		(GtkWidget	*widget,
 					 GdkEventButton	*event,
@@ -2029,36 +2146,54 @@ process_ttxview_menu_popup		(GtkWidget	*widget,
 					   "ttxview_data");
 
   GtkWidget *menu_item;
+  gint count = 1;
 
-  if (!data)
-    return;
-
-  gdk_window_get_size(widget->window, &w, &h);
-  /* convert to fmt_page space */
-  col = (event->x*data->fmt_page->columns)/w;
-  row = (event->y*data->fmt_page->rows)/h;
-
-  ld.pgno = ld.subno = 0;
-  if (data->fmt_page->text[row * data->fmt_page->columns + col].link)
+  if (data)
     {
-      vbi_resolve_link(data->fmt_page, col, row, &ld);
-
-      if (ld.type != VBI_LINK_PAGE &&
-          ld.type != VBI_LINK_SUBPAGE)
-        ld.pgno = ld.subno = 0;
+      gdk_window_get_size(widget->window, &w, &h);
+      /* convert to fmt_page space */
+      col = (event->x*data->fmt_page->columns)/w;
+      row = (event->y*data->fmt_page->rows)/h;
+      
+      ld.pgno = ld.subno = 0;
+      if (data->fmt_page->text[row * data->fmt_page->columns + col].link)
+	{
+	  vbi_resolve_link(data->fmt_page, col, row, &ld);
+	  
+	  if (ld.type != VBI_LINK_PAGE &&
+	      ld.type != VBI_LINK_SUBPAGE)
+	    ld.pgno = ld.subno = 0;
+	}
+      
+      menu = GTK_MENU(build_ttxview_popup(data, ld.pgno, ld.subno));
+      
+      menu_item =
+	z_gtk_pixmap_menu_item_new("Zapzilla", GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
+      gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), GTK_WIDGET(menu));
+      gtk_widget_show(GTK_WIDGET(menu));
+      gtk_widget_show(menu_item);
+      gtk_menu_insert(GTK_MENU(popup), menu_item, 1);
+      menu_item = gtk_menu_item_new();
+      gtk_widget_show(menu_item);
+      gtk_menu_insert(GTK_MENU(popup), menu_item, 2);
+      count += 2;
     }
-
-  menu = GTK_MENU(build_ttxview_popup(data, ld.pgno, ld.subno));
-
-  menu_item =
-    z_gtk_pixmap_menu_item_new("Zapzilla", GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
-  gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), GTK_WIDGET(menu));
-  gtk_widget_show(GTK_WIDGET(menu));
-  gtk_widget_show(menu_item);
-  gtk_menu_insert(GTK_MENU(popup), menu_item, 1);
-  menu_item = gtk_menu_item_new();
-  gtk_widget_show(menu_item);
-  gtk_menu_insert(GTK_MENU(popup), menu_item, 2);
+  else
+    if ((menu = build_subtitles_submenu()))
+      {
+	menu_item =
+	  z_gtk_pixmap_menu_item_new(_("Subtitles"),
+				     GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
+	set_tooltip(menu_item, _("Select subtitles page"));
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
+				  GTK_WIDGET(menu));
+	gtk_widget_show(menu_item);
+	gtk_widget_show(GTK_WIDGET(menu));
+	gtk_menu_insert(GTK_MENU(popup), menu_item, count++);
+	menu_item = gtk_menu_item_new();
+	gtk_widget_show(menu_item);
+	gtk_menu_insert(GTK_MENU(popup), menu_item, count++);      
+      }
 }
 
 /**

@@ -1,3 +1,10 @@
+2.04.2001	accelerators <garetxe@users.sourceforge.net>
+
+	* controls: Added accelerators for hiding/showing menu bars
+	(Ctrl+H), control box (Ctrl+C).
+	* es.po: Updated.
+	* src/ttxview.c: Added TTX subtitles selection to the popup menu.
+
 1.04.2001	screenshot gladefied <garetxe@users.sourceforge.net>
 
 	* plugins/screenshot: uses libglade now, added accelator for saving

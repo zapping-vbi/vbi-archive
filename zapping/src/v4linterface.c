@@ -516,6 +516,46 @@ build_control_box(GtkWidget * hbox, tveng_device_info * info)
     }
 }
 
+static
+gboolean on_control_box_key_press	(GtkWidget	*widget,
+					 GdkEventKey	*event,
+					 gpointer	data)
+{
+  switch (event->keyval)
+    {
+    case GDK_Escape:
+      gtk_widget_destroy(widget);
+      break;
+    case GDK_c:
+    case GDK_C:
+      if (event->state & GDK_CONTROL_MASK)
+	{
+	  gtk_widget_destroy(widget);
+	  break;
+	}
+    default:
+      return FALSE;
+    }
+
+  return TRUE;
+}
+
+static void
+on_control_box_destroy		       (GtkWidget      *widget,
+					gpointer        user_data)
+{
+  GtkWidget * related_button;
+
+  related_button =
+    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(widget)));
+
+  gtk_widget_set_sensitive(related_button, TRUE);
+
+  g_message("destroying");
+
+  ToolBox = NULL;
+}
+
 GtkWidget * create_control_box(tveng_device_info * info)
 {
   GtkWidget * control_box;
@@ -533,8 +573,12 @@ GtkWidget * create_control_box(tveng_device_info * info)
 
   gtk_window_set_policy(GTK_WINDOW(control_box), FALSE, FALSE, FALSE);
   gtk_object_set_data(GTK_OBJECT(control_box), "hbox", hbox);
-  gtk_signal_connect(GTK_OBJECT(control_box), "delete_event",
-		     GTK_SIGNAL_FUNC(on_control_box_delete_event),
+  gtk_signal_connect(GTK_OBJECT(control_box), "destroy",
+		     GTK_SIGNAL_FUNC(on_control_box_destroy),
+		     NULL);
+
+  gtk_signal_connect(GTK_OBJECT(control_box), "key-press-event",
+		     GTK_SIGNAL_FUNC(on_control_box_key_press),
 		     NULL);
 
   return (control_box);

@@ -142,6 +142,16 @@ GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
 void set_tooltip	(GtkWidget	*widget,
 			 const gchar	*new_tip);
 
+/**
+ * Widget: a GTK_PIXMAP_MENU_ITEM that you want to change.
+ * Any of the attributes can be NULL, means don't change.
+ */
+void
+z_change_menuitem			 (GtkWidget	*widget,
+					  const gchar	*new_pixmap,
+					  const gchar	*new_label,
+					  const gchar	*new_tooltip);
+
 /*
   does the mode switching. Since this requires more than just using
   tveng, a new routine is needed.

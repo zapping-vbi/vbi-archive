@@ -167,7 +167,7 @@ fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n", b->time, b->time - time);
 
 // #define FILTER_REM SLICED_TELETEXT_B
 // #define FILTER_ADD SLICED_TELETEXT_B
-// #define SAMPLE "libvbi/samples/t1-swr"
+// #define SAMPLE "libvbi/samples/t4-arte"
 
 // #define FILTER_* (SLICED_TELETEXT_B | SLICED_CAPTION | SLICED_VPS)
 

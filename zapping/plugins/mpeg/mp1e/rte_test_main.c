@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.18 2001-03-31 11:10:26 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.19 2001-04-02 22:39:49 garetxe Exp $
  * This is a simple RTE test.
  */
 
@@ -484,14 +484,14 @@ int main(int argc, char *argv[])
 	rte_context * context;
 	enum rte_frame_rate rate_code;
 	int width = 16, height = 16;
-	int sleep_time = 5;
+	int sleep_time = 15;
 	int audio_rate=44100, stereo=0;
 	char * video_device = "/dev/video0";
 	char * audio_device = "/dev/audio0";
 	char dest_file[] = "tempx.mpeg";
 	pthread_t audio_thread_id;
 	enum rte_mux_mode mux_mode = RTE_AUDIO | RTE_VIDEO;
-	enum rte_interface video_interface = RTE_CALLBACKS;
+	enum rte_interface video_interface = RTE_PUSH;
 	int num_encoded_frames;
 	void * dest_ptr = NULL;
 	int i=0;

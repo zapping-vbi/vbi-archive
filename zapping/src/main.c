@@ -299,7 +299,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.100 2001-03-25 22:06:00 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.101 2001-04-02 22:39:49 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -544,6 +544,12 @@ int main(int argc, char * argv[])
       gtk_widget_hide(lookup_widget(main_window, "dockitem1"));
       gtk_widget_hide(lookup_widget(main_window, "dockitem2"));
       gtk_widget_queue_resize(main_window);
+
+      z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
+				      "hide_controls2"),
+			GNOME_STOCK_PIXMAP_BOOK_OPEN,
+			_("Show controls"),
+			_("Show the menu and the toolbar"));
     }
   if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_extra"))
     {
@@ -551,6 +557,12 @@ int main(int argc, char * argv[])
       gtk_widget_hide(lookup_widget(main_window, "Standards"));
       gtk_widget_hide(lookup_widget(main_window, "frame6"));
       gtk_widget_queue_resize(main_window);
+
+      z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
+				      "hide_menubars2"),
+			GNOME_STOCK_PIXMAP_BOOK_OPEN,
+			_("Show extra controls"),
+			_("Show Input, Standards and subtitle selection"));
     }
   {
     /* setup subtitles page button */

@@ -523,3 +523,39 @@ z_option_menu_set_active	(GtkWidget	*option_menu,
 {
   gtk_option_menu_set_history(GTK_OPTION_MENU(option_menu), index);
 }
+
+static void
+change_pixmenuitem_label		(GtkWidget	*menuitem,
+					 const gchar	*new_label)
+{
+  GtkWidget *widget = GTK_BIN(menuitem)->child;
+
+  gtk_label_set_text(GTK_LABEL(widget), new_label);
+}
+
+void
+z_change_menuitem			 (GtkWidget	*widget,
+					  const gchar	*new_pixmap,
+					  const gchar	*new_label,
+					  const gchar	*new_tooltip)
+{
+  GtkWidget *spixmap;
+
+  if (new_label)
+    change_pixmenuitem_label(widget, new_label);
+  if (new_tooltip)
+    set_tooltip(widget, new_tooltip);
+  if (new_pixmap)
+    {
+      spixmap = gnome_stock_pixmap_widget_at_size(widget, new_pixmap, 16, 16);
+      
+      /************* THIS SHOULD NEVER BE DONE ***********/
+      gtk_object_destroy(GTK_OBJECT(GTK_PIXMAP_MENU_ITEM(widget)->pixmap));
+      GTK_PIXMAP_MENU_ITEM(widget)->pixmap = NULL;
+      
+      /********** BUT THERE'S NO OTHER WAY TO DO IT ******/
+      gtk_widget_show(spixmap);
+      gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(widget),
+				      spixmap);
+     }
+}
