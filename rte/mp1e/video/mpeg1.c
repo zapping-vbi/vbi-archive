@@ -17,13 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.31 2002-05-13 05:37:28 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.32 2002-06-12 03:58:40 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include "site_def.h"
+#include "../site_def.h"
 
 #include <assert.h>
 #include <limits.h>
@@ -2569,6 +2569,12 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	mpeg1->codec.output_bit_rate = mpeg1->bit_rate;
 	mpeg1->codec.output_frame_rate = mpeg1->coded_frame_rate;
 
+	memset(&mpeg1->codec.status, 0, sizeof(mpeg1->codec.status));
+	mpeg1->codec.status.valid = 0
+		+ RTE_STATUS_FRAMES_OUT
+		+ RTE_STATUS_BYTES_OUT
+		+ RTE_STATUS_CODED_TIME;
+
 	codec->state = RTE_STATE_PARAM;
 
 	return TRUE;
@@ -2885,5 +2891,4 @@ mp1e_mpeg1_video_codec = {
 void
 mp1e_mpeg1_module_init(int test)
 {
-	mp1e_vlc_init();
 }
