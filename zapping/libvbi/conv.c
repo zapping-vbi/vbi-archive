@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.c,v 1.4 2005-01-19 04:17:53 mschimek Exp $ */
+/* $Id: conv.c,v 1.5 2005-01-31 07:11:31 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -43,7 +43,8 @@ const char vbi3_intl_domainname [] = PACKAGE;
 void
 vbi3_iconv_ucs2_close		(iconv_t		cd)
 {
-	iconv_close (cd);
+	if ((iconv_t) -1 != cd)
+		iconv_close (cd);
 }
 
 static iconv_t
@@ -97,6 +98,8 @@ vbi3_iconv_ucs2_open		(const char *		dst_format,
 				 char **		dst,
 				 unsigned int		dst_size)
 {
+	assert (NULL != dst);
+
 	return xiconv_open (dst_format, NULL, dst, dst_size);
 }
 
@@ -187,6 +190,13 @@ vbi3_iconv_ucs2			(iconv_t		cd,
 	size_t dleft;
 	size_t r;
 
+	assert (NULL != dst);
+
+	if (NULL == src) {
+		static const uint16_t dummy[1] = { 0 };
+		src = dummy;
+	}
+
 	s = (const char *) src;
 
 	sleft = src_size * 2;
@@ -226,6 +236,8 @@ vbi3_iconv_unicode		(iconv_t		cd,
 {
 	uint16_t t[1];
 
+	assert (NULL != dst);
+
 	t[0] = unicode;
 
 	return vbi3_iconv_ucs2 (cd, dst, dst_size, t, 1);
@@ -264,6 +276,9 @@ strdup_iconv			(const char *		dst_format,
 	char *d;
 	size_t sleft;
 	size_t dleft;
+
+	if (!src)
+		return NULL;
 
 	buf_size = src_size * 8;
 
@@ -367,6 +382,9 @@ _vbi3_strdup_locale_ucs2		(const uint16_t *	src,
 {
 	const char *dst_format;
 
+	if (!src)
+		return NULL;
+
 	dst_format = bind_textdomain_codeset (vbi3_intl_domainname, NULL);
 
 	if (NULL == dst_format)
@@ -429,6 +447,9 @@ _vbi3_strdup_locale_teletext	(const uint8_t *	src,
 	unsigned int begin;
 	unsigned int end;
 	unsigned int i;
+
+	if (!src)
+		return NULL;
 
 	assert (src_size < N_ELEMENTS (buffer));
 
