@@ -21,8 +21,6 @@
 #include "plugin_common.h"
 #include <pthread.h>
 
-typedef gchar * (* LineConverter)(gint width, gchar *src, gchar *dest);
-
 typedef struct screenshot_data screenshot_data;
 typedef struct screenshot_backend screenshot_backend;
 typedef struct backend_private backend_private;
@@ -43,11 +41,8 @@ struct screenshot_data
 
   gdouble		size_est;
 
-  gpointer		data;		/* Pointer to the grabbed image */
+  tveng_image_data	data;
   struct tveng_frame_format format;	/* Format of the grabbed image */
-
-  LineConverter 	Converter;
-  gpointer		line_data;	/* Conversion line buffer */
 
   gpointer		deint_data;
 

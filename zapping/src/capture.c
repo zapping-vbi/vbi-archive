@@ -133,7 +133,6 @@ static gint build_mask (gboolean allow_suggested)
 }
 
 /* Check whether the given buffer can hold the current request */
-/* This isn't necessary, but */
 static gboolean
 compatible (producer_buffer *p, tveng_device_info *info)
 {
@@ -291,7 +290,7 @@ static gint idle_handler(gpointer _info)
     return TRUE; /* keep calling me */
 
   pb = (producer_buffer*)b;
-  if (compatible (pb, info))
+  if (pb->tag == request_id)
     {
       capture_frame *cf = (capture_frame*)pb;
       GList *p = plugin_list;
@@ -305,9 +304,7 @@ static gint idle_handler(gpointer _info)
 	  p = p->next;
 	}
     }
-
-  /* Rebuild time */
-  if (pb->tag != request_id)
+  else /* Rebuild time */
     {
       int mask = build_mask (TRUE);
       int i;
@@ -584,7 +581,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
       printv ("Format %s accepted [%s]\n", mode2str(fmt->fmt),
 	      mode2str(info->format.pixformat));
       /* Safe because we only modify in one thread */
-      return formats[num_formats].id;
+      return formats[num_formats-1].id;
     }
 
   pthread_rwlock_unlock (&fmt_rwlock);
@@ -612,9 +609,9 @@ gint suggest_capture_format (capture_fmt *fmt)
 void release_capture_format (gint id)
 {
   gint index;
-  capture_fmt *fmt;
 
   pthread_rwlock_wrlock (&fmt_rwlock);
+
   for (index=0; index<num_formats; index++)
     if (formats[index].id == id)
       break;
@@ -624,9 +621,9 @@ void release_capture_format (gint id)
   num_formats--;
   if (index != num_formats)
     memcpy (&formats[index], &formats[index+1],
-	    (num_formats - index) * sizeof (*fmt));
+	    (num_formats - index) * sizeof (formats[0]));
 
-  formats = g_realloc (formats, num_formats);
+  formats = g_realloc (formats, num_formats*sizeof(formats[0]));
 
   pthread_rwlock_unlock (&fmt_rwlock);
 

@@ -130,8 +130,8 @@ build_widget			(const gchar *		name,
 
   if (!xml)
     {
-      g_warning ("%s [%s] couldn't be found, please contact the maintainer",
-		 path, name);
+      RunBox ("%s [%s] couldn't be found, please contact the maintainer",
+	      GTK_MESSAGE_ERROR, path, name);
       exit (1);
     }
 
@@ -141,8 +141,8 @@ build_widget			(const gchar *		name,
 
   if (!widget)
     {
-      g_warning ("%s [%s] couldn't be loaded, please contact the maintainer",
-		 path, name);
+      RunBox ("%s [%s] couldn't be loaded, please contact the maintainer",
+	      GTK_MESSAGE_ERROR, path, name);
       exit (1);
     }
 
@@ -189,6 +189,7 @@ create_zapping (void)
   MENU_CMD (vbi_info1,		"zapping.network_info()");
   MENU_CMD (program_info1,	"zapping.program_info()");
   MENU_CMD (closed_caption1,	"zapping.closed_caption()");
+  MENU_CMD (channels1,		"zapping.channel_editor()");
 
   /* Toolbar commands */
   w = lookup_widget (widget, "tb-mute");

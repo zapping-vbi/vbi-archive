@@ -2988,17 +2988,14 @@
 
   <child internal-child="vbox">
     <widget class="GtkVBox" id="dialog-vbox1">
-      <property name="border_width">2</property>
       <property name="visible">True</property>
       <property name="homogeneous">False</property>
       <property name="spacing">0</property>
 
       <child internal-child="action_area">
 	<widget class="GtkHButtonBox" id="dialog-action_area1">
-	  <property name="border_width">5</property>
 	  <property name="visible">True</property>
 	  <property name="layout_style">GTK_BUTTONBOX_END</property>
-	  <property name="spacing">10</property>
 
 	  <child>
 	    <widget class="GtkButton" id="plugin_start">
@@ -3812,10 +3809,8 @@
 
       <child internal-child="action_area">
 	<widget class="GtkHButtonBox" id="dialog-action_area2">
-	  <property name="border_width">10</property>
 	  <property name="visible">True</property>
 	  <property name="layout_style">GTK_BUTTONBOX_END</property>
-	  <property name="spacing">5</property>
 
 	  <child>
 	    <widget class="GtkButton" id="cancel_search">
@@ -4135,7 +4130,7 @@
 	</packing>
       </child>
 
-      <child internal-child="BonoboDock:contents">
+      <child>
 	<widget class="GtkDrawingArea" id="drawingarea1">
 	  <property name="visible">True</property>
 	  <property name="events">GDK_EXPOSURE_MASK | GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_STRUCTURE_MASK | GDK_VISIBILITY_NOTIFY_MASK</property>
@@ -4340,17 +4335,6 @@
 	      <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
 	      <property name="shadow_type">GTK_SHADOW_IN</property>
 	      <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
-
-	      <child internal-child="vscrollbar">
-		<widget class="GtkTreeView" id="bookmarks_treeview">
-		  <property name="visible">True</property>
-		  <property name="can_focus">True</property>
-		  <property name="headers_visible">True</property>
-		  <property name="rules_hint">False</property>
-		  <property name="reorderable">False</property>
-		  <property name="enable_search">True</property>
-		</widget>
-	      </child>
 	    </widget>
 	    <packing>
 	      <property name="padding">0</property>
@@ -4427,17 +4411,14 @@
 
   <child internal-child="vbox">
     <widget class="GtkVBox" id="dialog-vbox4">
-      <property name="border_width">2</property>
       <property name="visible">True</property>
       <property name="homogeneous">False</property>
       <property name="spacing">8</property>
 
       <child internal-child="action_area">
 	<widget class="GtkHButtonBox" id="dialog-action_area4">
-	  <property name="border_width">5</property>
 	  <property name="visible">True</property>
 	  <property name="layout_style">GTK_BUTTONBOX_END</property>
-	  <property name="spacing">10</property>
 
 	  <child>
 	    <widget class="GtkButton" id="button13">
@@ -4613,17 +4594,14 @@
 
   <child internal-child="vbox">
     <widget class="GtkVBox" id="dialog-vbox5">
-      <property name="border_width">2</property>
       <property name="visible">True</property>
       <property name="homogeneous">False</property>
       <property name="spacing">8</property>
 
       <child internal-child="action_area">
 	<widget class="GtkHButtonBox" id="dialog-action_area5">
-	  <property name="border_width">5</property>
 	  <property name="visible">True</property>
 	  <property name="layout_style">GTK_BUTTONBOX_END</property>
-	  <property name="spacing">10</property>
 
 	  <child>
 	    <widget class="GtkButton" id="button19">
@@ -4761,7 +4739,6 @@
 	<widget class="GtkHButtonBox" id="dialog-action_area6">
 	  <property name="visible">True</property>
 	  <property name="layout_style">GTK_BUTTONBOX_END</property>
-	  <property name="spacing">8</property>
 
 	  <child>
 	    <widget class="GtkButton" id="button24">
@@ -4805,15 +4782,6 @@
 	  <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
 	  <property name="shadow_type">GTK_SHADOW_IN</property>
 	  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
-
-	  <child internal-child="vscrollbar">
-	    <widget class="GtkVScrollbar" id="convertwidget114">
-	      <property name="visible">True</property>
-	      <property name="update_policy">GTK_UPDATE_CONTINUOUS</property>
-	      <property name="inverted">False</property>
-	      <property name="adjustment">0 0 0 0 0 0</property>
-	    </widget>
-	  </child>
 	</widget>
 	<packing>
 	  <property name="padding">0</property>
@@ -4836,17 +4804,14 @@
 
   <child internal-child="vbox">
     <widget class="GtkVBox" id="dialog-vbox8">
-      <property name="border_width">2</property>
       <property name="visible">True</property>
       <property name="homogeneous">False</property>
       <property name="spacing">8</property>
 
       <child internal-child="action_area">
 	<widget class="GtkHButtonBox" id="dialog-action_area8">
-	  <property name="border_width">5</property>
 	  <property name="visible">True</property>
 	  <property name="layout_style">GTK_BUTTONBOX_END</property>
-	  <property name="spacing">10</property>
 
 	  <child>
 	    <widget class="GtkButton" id="button29">
@@ -4951,17 +4916,14 @@
 
   <child internal-child="vbox">
     <widget class="GtkVBox" id="dialog-vbox9">
-      <property name="border_width">2</property>
       <property name="visible">True</property>
       <property name="homogeneous">False</property>
       <property name="spacing">8</property>
 
       <child internal-child="action_area">
 	<widget class="GtkHButtonBox" id="dialog-action_area9">
-	  <property name="border_width">5</property>
 	  <property name="visible">True</property>
 	  <property name="layout_style">GTK_BUTTONBOX_END</property>
-	  <property name="spacing">10</property>
 
 	  <child>
 	    <widget class="GtkButton" id="button32">
@@ -5185,10 +5147,8 @@
 
       <child internal-child="action_area">
 	<widget class="GtkHButtonBox" id="dialog-action_area10">
-	  <property name="border_width">10</property>
 	  <property name="visible">True</property>
 	  <property name="layout_style">GTK_BUTTONBOX_END</property>
-	  <property name="spacing">5</property>
 
 	  <child>
 	    <widget class="GtkHBox" id="hbox5">
@@ -5197,14 +5157,13 @@
 	      <property name="spacing">15</property>
 
 	      <child>
-		<widget class="GtkButton" id="channels_done">
+		<widget class="GtkButton" id="ok">
 		  <property name="visible">True</property>
 		  <property name="tooltip" translatable="yes">Save the changes and leave the dialog</property>
 		  <property name="can_focus">True</property>
 		  <property name="label">gtk-ok</property>
 		  <property name="use_stock">True</property>
 		  <property name="relief">GTK_RELIEF_NORMAL</property>
-		  <signal name="clicked" handler="on_channels_done_clicked"/>
 		</widget>
 		<packing>
 		  <property name="padding">0</property>
@@ -5214,14 +5173,13 @@
 	      </child>
 
 	      <child>
-		<widget class="GtkButton" id="button11">
+		<widget class="GtkButton" id="cancel">
 		  <property name="visible">True</property>
 		  <property name="tooltip" translatable="yes">Click this button if you want to leave the dialog discarding the changes</property>
 		  <property name="can_focus">True</property>
 		  <property name="label">gtk-cancel</property>
 		  <property name="use_stock">True</property>
 		  <property name="relief">GTK_RELIEF_NORMAL</property>
-		  <signal name="clicked" handler="on_cancel_channels_clicked"/>
 		</widget>
 		<packing>
 		  <property name="padding">0</property>
@@ -5231,14 +5189,13 @@
 	      </child>
 
 	      <child>
-		<widget class="GtkButton" id="button10">
+		<widget class="GtkButton" id="help">
 		  <property name="visible">True</property>
 		  <property name="tooltip" translatable="yes">This shows some help about this dialog</property>
 		  <property name="can_focus">True</property>
 		  <property name="label">gtk-help</property>
 		  <property name="use_stock">True</property>
 		  <property name="relief">GTK_RELIEF_NORMAL</property>
-		  <signal name="clicked" handler="on_help_channels_clicked"/>
 		</widget>
 		<packing>
 		  <property name="padding">0</property>
@@ -5294,19 +5251,11 @@
 			      <property name="visible">True</property>
 			      <property name="tooltip" translatable="yes">Select here the frequency table used in your country</property>
 			      <property name="can_focus">True</property>
-			      <property name="history">0</property>
+			      <property name="history">-1</property>
 
 			      <child internal-child="menu">
 				<widget class="GtkMenu" id="convertwidget117">
 				  <property name="visible">True</property>
-
-				  <child>
-				    <widget class="GtkMenuItem" id="convertwidget118">
-				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">No tables</property>
-				      <property name="use_underline">True</property>
-				    </widget>
-				  </child>
 				</widget>
 			      </child>
 			    </widget>
@@ -5338,7 +5287,6 @@
 			      <property name="label" translatable="yes">Automatic station _search</property>
 			      <property name="use_underline">True</property>
 			      <property name="relief">GTK_RELIEF_NORMAL</property>
-			      <signal name="clicked" handler="on_channel_search_clicked"/>
 			    </widget>
 			    <packing>
 			      <property name="padding">0</property>
@@ -5348,14 +5296,13 @@
 			  </child>
 
 			  <child>
-			    <widget class="GtkButton" id="button35">
+			    <widget class="GtkButton" id="add_all_channels">
 			      <property name="visible">True</property>
 			      <property name="tooltip" translatable="yes">Add all channels in the frequency table to the channel list.</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">Add all _channels</property>
 			      <property name="use_underline">True</property>
 			      <property name="relief">GTK_RELIEF_NORMAL</property>
-			      <signal name="clicked" handler="on_add_all_channels_clicked"/>
 			    </widget>
 			    <packing>
 			      <property name="padding">0</property>
@@ -5401,19 +5348,22 @@ adding the table if possible, for inclusion in the next release of this program.
 		  </child>
 
 		  <child>
-		    <widget class="GtkScrolledWindow" id="scrolledwindow5">
+		    <widget class="GtkScrolledWindow" id="scrolledwindow17">
 		      <property name="visible">True</property>
-		      <property name="hscrollbar_policy">GTK_POLICY_NEVER</property>
+		      <property name="can_focus">True</property>
+		      <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
 		      <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-		      <property name="shadow_type">GTK_SHADOW_IN</property>
+		      <property name="shadow_type">GTK_SHADOW_NONE</property>
 		      <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
-		      <child internal-child="vscrollbar">
-			<widget class="GtkVScrollbar" id="convertwidget120">
+		      <child>
+			<widget class="GtkTreeView" id="country_frequencies">
 			  <property name="visible">True</property>
-			  <property name="update_policy">GTK_UPDATE_CONTINUOUS</property>
-			  <property name="inverted">False</property>
-			  <property name="adjustment">0 0 0 0 0 0</property>
+			  <property name="can_focus">True</property>
+			  <property name="headers_visible">True</property>
+			  <property name="rules_hint">False</property>
+			  <property name="reorderable">False</property>
+			  <property name="enable_search">True</property>
 			</widget>
 		      </child>
 		    </widget>
@@ -5460,95 +5410,23 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
 
 	      <child>
-		<widget class="GtkHBox" id="hbox6">
+		<widget class="GtkScrolledWindow" id="scrolledwindow16">
 		  <property name="visible">True</property>
-		  <property name="homogeneous">False</property>
-		  <property name="spacing">0</property>
+		  <property name="can_focus">True</property>
+		  <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+		  <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+		  <property name="shadow_type">GTK_SHADOW_NONE</property>
+		  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 		  <child>
-		    <widget class="GtkScrolledWindow" id="scrolledwindow6">
+		    <widget class="GtkTreeView" id="channel_treeview">
 		      <property name="visible">True</property>
-		      <property name="hscrollbar_policy">GTK_POLICY_NEVER</property>
-		      <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-		      <property name="shadow_type">GTK_SHADOW_IN</property>
-		      <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
-
-		      <child internal-child="vscrollbar">
-			<widget class="GtkVScrollbar" id="convertwidget122">
-			  <property name="visible">True</property>
-			  <property name="update_policy">GTK_UPDATE_CONTINUOUS</property>
-			  <property name="inverted">False</property>
-			  <property name="adjustment">0 0 0 0 0 0</property>
-			</widget>
-		      </child>
+		      <property name="can_focus">True</property>
+		      <property name="headers_visible">True</property>
+		      <property name="rules_hint">True</property>
+		      <property name="reorderable">True</property>
+		      <property name="enable_search">True</property>
 		    </widget>
-		    <packing>
-		      <property name="padding">0</property>
-		      <property name="expand">True</property>
-		      <property name="fill">True</property>
-		    </packing>
-		  </child>
-
-		  <child>
-		    <widget class="GtkVBox" id="vbox34">
-		      <property name="visible">True</property>
-		      <property name="homogeneous">True</property>
-		      <property name="spacing">0</property>
-
-		      <child>
-			<widget class="GtkButton" id="move_channel_up">
-			  <property name="visible">True</property>
-			  <property name="tooltip" translatable="yes">Move selected channels one row up</property>
-			  <property name="can_focus">True</property>
-			  <property name="label">gtk-go-up</property>
-			  <property name="use_stock">True</property>
-			  <property name="relief">GTK_RELIEF_NORMAL</property>
-			</widget>
-			<packing>
-			  <property name="padding">0</property>
-			  <property name="expand">True</property>
-			  <property name="fill">True</property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkButton" id="move_channel_down">
-			  <property name="visible">True</property>
-			  <property name="tooltip" translatable="yes">Move selected channels one row down</property>
-			  <property name="can_focus">True</property>
-			  <property name="label">gtk-go-down</property>
-			  <property name="use_stock">True</property>
-			  <property name="relief">GTK_RELIEF_NORMAL</property>
-			</widget>
-			<packing>
-			  <property name="padding">0</property>
-			  <property name="expand">True</property>
-			  <property name="fill">True</property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkButton" id="remove_channel">
-			  <property name="visible">True</property>
-			  <property name="tooltip" translatable="yes">Delete selected channels</property>
-			  <property name="can_focus">True</property>
-			  <property name="label" translatable="yes">_Remove</property>
-			  <property name="use_underline">True</property>
-			  <property name="relief">GTK_RELIEF_NORMAL</property>
-			  <signal name="clicked" handler="on_remove_channel_clicked"/>
-			</widget>
-			<packing>
-			  <property name="padding">0</property>
-			  <property name="expand">True</property>
-			  <property name="fill">True</property>
-			</packing>
-		      </child>
-		    </widget>
-		    <packing>
-		      <property name="padding">0</property>
-		      <property name="expand">False</property>
-		      <property name="fill">False</property>
-		    </packing>
 		  </child>
 		</widget>
 	      </child>
@@ -5587,10 +5465,10 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
 
 	      <child>
-		<widget class="GtkVBox" id="vbox42">
+		<widget class="GtkHBox" id="hbox54">
 		  <property name="visible">True</property>
 		  <property name="homogeneous">False</property>
-		  <property name="spacing">0</property>
+		  <property name="spacing">3</property>
 
 		  <child>
 		    <widget class="GtkTable" id="table72">
@@ -5636,7 +5514,6 @@ adding the table if possible, for inclusion in the next release of this program.
 			  <property name="has_frame">True</property>
 			  <property name="invisible_char" translatable="yes">*</property>
 			  <property name="activates_default">False</property>
-			  <signal name="activate" handler="on_channel_name_activate"/>
 			</widget>
 			<packing>
 			  <property name="left_attach">1</property>
@@ -5806,6 +5683,27 @@ adding the table if possible, for inclusion in the next release of this program.
 			  <property name="y_options">fill</property>
 			</packing>
 		      </child>
+
+		      <child>
+			<widget class="GtkHScale" id="fine_tuning">
+			  <property name="visible">True</property>
+			  <property name="can_focus">True</property>
+			  <property name="draw_value">False</property>
+			  <property name="value_pos">GTK_POS_TOP</property>
+			  <property name="digits">1</property>
+			  <property name="update_policy">GTK_UPDATE_CONTINUOUS</property>
+			  <property name="inverted">False</property>
+			  <property name="adjustment">0 0 0 0 0 0</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">1</property>
+			  <property name="right_attach">2</property>
+			  <property name="top_attach">2</property>
+			  <property name="bottom_attach">3</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options">fill</property>
+			</packing>
+		      </child>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
@@ -5815,50 +5713,18 @@ adding the table if possible, for inclusion in the next release of this program.
 		  </child>
 
 		  <child>
-		    <widget class="GtkHBox" id="hbox48">
-		      <property name="border_width">3</property>
+		    <widget class="GtkButton" id="add_channel">
 		      <property name="visible">True</property>
-		      <property name="homogeneous">True</property>
-		      <property name="spacing">3</property>
-
-		      <child>
-			<widget class="GtkButton" id="add_channel">
-			  <property name="visible">True</property>
-			  <property name="tooltip" translatable="yes">Create a new channel with these settings</property>
-			  <property name="can_focus">True</property>
-			  <property name="label" translatable="yes">_Add as a new channel</property>
-			  <property name="use_underline">True</property>
-			  <property name="relief">GTK_RELIEF_NORMAL</property>
-			  <signal name="clicked" handler="on_add_channel_clicked"/>
-			</widget>
-			<packing>
-			  <property name="padding">0</property>
-			  <property name="expand">True</property>
-			  <property name="fill">True</property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkButton" id="modify_channel">
-			  <property name="visible">True</property>
-			  <property name="tooltip" translatable="yes">Apply the current settings to the marked channels above</property>
-			  <property name="can_focus">True</property>
-			  <property name="label" translatable="yes">_Modify selected channels</property>
-			  <property name="use_underline">True</property>
-			  <property name="relief">GTK_RELIEF_NORMAL</property>
-			  <signal name="clicked" handler="on_modify_channel_clicked"/>
-			</widget>
-			<packing>
-			  <property name="padding">0</property>
-			  <property name="expand">True</property>
-			  <property name="fill">True</property>
-			</packing>
-		      </child>
+		      <property name="tooltip" translatable="yes">Create a new channel with these settings</property>
+		      <property name="can_focus">True</property>
+		      <property name="label">gtk-add</property>
+		      <property name="use_stock">True</property>
+		      <property name="relief">GTK_RELIEF_NORMAL</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
-		      <property name="expand">True</property>
-		      <property name="fill">True</property>
+		      <property name="expand">False</property>
+		      <property name="fill">False</property>
 		    </packing>
 		  </child>
 		</widget>
@@ -5920,7 +5786,6 @@ adding the table if possible, for inclusion in the next release of this program.
 	<widget class="GtkHButtonBox" id="dialog-action_area12">
 	  <property name="visible">True</property>
 	  <property name="layout_style">GTK_BUTTONBOX_END</property>
-	  <property name="spacing">8</property>
 
 	  <child>
 	    <widget class="GtkButton" id="button38">
@@ -6165,17 +6030,14 @@ adding the table if possible, for inclusion in the next release of this program.
 
   <child internal-child="vbox">
     <widget class="GtkVBox" id="dialog-vbox13">
-      <property name="border_width">2</property>
       <property name="visible">True</property>
       <property name="homogeneous">False</property>
       <property name="spacing">8</property>
 
       <child internal-child="action_area">
 	<widget class="GtkHButtonBox" id="dialog-action_area13">
-	  <property name="border_width">5</property>
 	  <property name="visible">True</property>
 	  <property name="layout_style">GTK_BUTTONBOX_END</property>
-	  <property name="spacing">10</property>
 
 	  <child>
 	    <widget class="GtkButton" id="button40">
@@ -6554,7 +6416,7 @@ Iñaki García Etxebarria</property>
 			  <property name="use_underline">True</property>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image81">
+			    <widget class="GtkImage" id="image90">
 			      <property name="visible">True</property>
 			      <property name="stock">gnome-stock-attach</property>
 			      <property name="icon_size">1</property>
@@ -6578,10 +6440,9 @@ Iñaki García Etxebarria</property>
 			  <property name="visible">True</property>
 			  <property name="label" translatable="yes">_TV Channels</property>
 			  <property name="use_underline">True</property>
-			  <signal name="activate" handler="on_channels1_activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image82">
+			    <widget class="GtkImage" id="image91">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-index</property>
 			      <property name="icon_size">1</property>
@@ -6614,7 +6475,7 @@ Iñaki García Etxebarria</property>
 			  <accelerator key="F" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image83">
+			    <widget class="GtkImage" id="image92">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-execute</property>
 			      <property name="icon_size">1</property>
@@ -6635,7 +6496,7 @@ Iñaki García Etxebarria</property>
 			  <accelerator key="O" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image84">
+			    <widget class="GtkImage" id="image93">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-execute</property>
 			      <property name="icon_size">1</property>
@@ -6656,7 +6517,7 @@ Iñaki García Etxebarria</property>
 			  <accelerator key="C" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image85">
+			    <widget class="GtkImage" id="image94">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-execute</property>
 			      <property name="icon_size">1</property>
@@ -6683,7 +6544,7 @@ Iñaki García Etxebarria</property>
 			  <accelerator key="T" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image86">
+			    <widget class="GtkImage" id="image95">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-justify-fill</property>
 			      <property name="icon_size">1</property>
@@ -6718,7 +6579,7 @@ Iñaki García Etxebarria</property>
 			  <property name="use_underline">True</property>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image87">
+			    <widget class="GtkImage" id="image96">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-home</property>
 			      <property name="icon_size">1</property>
@@ -6738,7 +6599,7 @@ Iñaki García Etxebarria</property>
 			  <property name="use_underline">True</property>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image88">
+			    <widget class="GtkImage" id="image97">
 			      <property name="visible">True</property>
 			      <property name="stock">gnome-stock-book-open</property>
 			      <property name="icon_size">1</property>
@@ -6790,7 +6651,7 @@ Iñaki García Etxebarria</property>
 			  <accelerator key="H" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image89">
+			    <widget class="GtkImage" id="image98">
 			      <property name="visible">True</property>
 			      <property name="stock">gnome-stock-book-yellow</property>
 			      <property name="icon_size">1</property>
@@ -6830,7 +6691,7 @@ Iñaki García Etxebarria</property>
 			  <property name="use_underline">True</property>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image90">
+			    <widget class="GtkImage" id="image99">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-help</property>
 			      <property name="icon_size">1</property>
@@ -6966,7 +6827,7 @@ Iñaki García Etxebarria</property>
 	</packing>
       </child>
 
-      <child internal-child="BonoboDock:contents">
+      <child>
 	<widget class="GtkDrawingArea" id="tv_screen">
 	  <property name="visible">True</property>
 	  <property name="events">GDK_EXPOSURE_MASK | GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_STRUCTURE_MASK | GDK_VISIBILITY_NOTIFY_MASK</property>

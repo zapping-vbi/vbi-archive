@@ -158,11 +158,11 @@ static void
 backend_save (screenshot_data *data)
 {
   backend_private *priv = (backend_private *) &data->private;
-  gchar *pixels, *row_pointer;
+  gchar *pixels;
   gint rowstride;
 
-  pixels = (gchar *) data->data;
-  rowstride = data->format.bytesperline;
+  pixels = (gchar *) data->data.linear.data;
+  rowstride = data->data.linear.stride;
 
   /* NB lines is evaluated by parent thread to update the progress bar */
   for (data->lines = 0; data->lines < data->format.height; data->lines++)
@@ -173,10 +173,7 @@ backend_save (screenshot_data *data)
 	  break;
 	}
 
-      row_pointer = (data->Converter)(data->format.width, pixels,
-				      (gchar *) data->line_data);
-
-      jpeg_write_scanlines (&priv->cinfo, (JSAMPROW *) &row_pointer, 1);
+      jpeg_write_scanlines (&priv->cinfo, (JSAMPROW *) &pixels, 1);
 
       pixels += rowstride;
     }

@@ -69,7 +69,8 @@ zapping_SOURCES = \
 	globals.c globals.h \
 	ttxview.c ttxview.h \
 	properties-handler.c properties-handler.h \
-	plugin_properties.c plugin_properties.h
+	plugin_properties.c plugin_properties.h \
+	channel_editor.c channel_editor.h
 
 zapping_CFLAGS = @DEFAULT_CFLAGS@
 

@@ -52,6 +52,7 @@
 #include "keyboard.h"
 #include "globals.h"
 #include "plugin_properties.h"
+#include "channel_editor.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
@@ -433,7 +434,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.3 2002-08-22 16:09:38 garetxe Exp $",
+	 "$Id: main.c,v 1.165.2.4 2002-10-07 20:09:26 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -694,6 +695,8 @@ int main(int argc, char * argv[])
   D();
   startup_plugin_properties ();
   D();
+  startup_channel_editor ();
+  D();
   osd_set_window(tv_screen);
 #ifdef HAVE_LIBZVBI
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM
@@ -871,12 +874,6 @@ static void shutdown_zapping(void)
   else
     zcs_int(0, "current_input");
 
-#if GNOME2_PORT_COMPLETE
-  /* Shutdown all other modules */
-  printv(" callbacks");
-  shutdown_callbacks();
-#endif
-
   /* inputs, standards handling */
   printv("\n v4linterface");
   shutdown_v4linterface();
@@ -936,12 +933,18 @@ static void shutdown_zapping(void)
   shutdown_plugin_properties();
 
   /*
+   * The channel editor.
+   */
+  printv (" ce");
+  shutdown_channel_editor ();
+
+  /*
    * The properties handler.
    */
   printv(" ph");
   shutdown_properties_handler();
   shutdown_properties();
-   
+
   /* Close */
   printv(" video device");
   tveng_device_info_destroy(main_info);
@@ -1096,11 +1099,6 @@ static gboolean startup_zapping(gboolean load_plugins)
   startup_mixer();
   D();
   startup_zimage();
-  D();
-#if GNOME2_PORT_COMPLETE
-  if (!startup_callbacks())
-    return FALSE;
-#endif
   D();
   /* Loads the plugins */
   if (load_plugins)

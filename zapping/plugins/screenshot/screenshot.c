@@ -89,23 +89,7 @@ on_screenshot_button_fast_clicked	(GtkButton       *button,
 					 gpointer         user_data);
 
 /*
- *  Conversions between different RGB pixel formats
- *
- *  These functions are exported through the symbol mechanism
- *  so other plugins can use them too.
- */
-static gchar *Convert_RGB565_RGB24 (gint width, gchar* src, gchar* dest);
-static gchar *Convert_BGR565_RGB24 (gint width, gchar* src, gchar* dest);
-static gchar *Convert_RGB555_RGB24 (gint width, gchar* src, gchar* dest);
-static gchar *Convert_BGR555_RGB24 (gint width, gchar* src, gchar* dest);
-static gchar *Convert_RGBA_RGB24 (gint width, gchar* src, gchar* dest);
-static gchar *Convert_BGRA_RGB24 (gint width, gchar* src, gchar* dest);
-static gchar *Convert_BGR24_RGB24 (gint width, gchar* src, gchar* dest);
-static gchar *Convert_YUYV_RGB24 (gint w, guchar *src, guchar *dest);
-static gchar *Convert_RGB24_RGB24 (gint width, gchar *src, gchar *dest);
-
-/*
- *  plugin_read_bundle interface
+ *  plugin_read_frame interface
  */
 static screenshot_data *grab_data;
 static int grab_countdown = 0;
@@ -150,7 +134,7 @@ plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_start, 0x1234),
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
-    SYMBOL(plugin_read_bundle, 0x1234),
+    SYMBOL(plugin_read_frame, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
     SYMBOL(plugin_add_gui, 0x1234),
     SYMBOL(plugin_remove_gui, 0x1234),
@@ -476,24 +460,6 @@ plugin_get_public_info (gint index, gpointer * ptr, gchar **
   /* Export the conversion functions */
   struct plugin_exported_symbol symbols[] =
   {
-    {
-      Convert_RGB565_RGB24, "Convert_RGB565_RGB24",
-      N_("Converts a row in RGB565 format to RGB24. Returns the destination."),
-      "gchar * Convert_RGB565_RGB24 ( gint width, gchar * src, gchar * dest);",
-      0x1234
-    },
-    {
-      Convert_RGB555_RGB24, "Convert_RGB555_RGB24",
-      N_("Converts a row in RGB555 format to RGB24. Returns the destination."),
-      "gchar * Convert_RGB555_RGB24 ( gint width, gchar * src, gchar * dest);",
-      0x1234
-    },
-    {
-      Convert_RGBA_RGB24, "Convert_RGBA_RGB24",
-      N_("Converts a row in RGBA format to RGB24. Returns the destination."),
-      "gchar * Convert_RGBA_RGB24 ( gint width, gchar * src, gchar * dest);",
-      0x1234
-    }
   };
   gint num_exported_symbols =
     sizeof(symbols)/sizeof(struct plugin_exported_symbol);
@@ -711,10 +677,7 @@ screenshot_destroy (screenshot_data *data)
   g_free (data->error);
   g_free (data->deint_data);
 
-  data->Converter = NULL;
-
-  g_free (data->line_data);
-  g_free (data->data);
+  g_free (data->data.linear.data);
   g_free (data->auto_filename);
 
   if (data->pixbuf)
@@ -846,12 +809,9 @@ screenshot_saving_thread (void *_data)
       if ((new_data = screenshot_deinterlace (data,
 		      screenshot_option_deint - 1)))
 	{
-	  g_free (data->data);
+	  g_free (data->data.linear.data);
 
-	  data->data = new_data;
-	  data->format.bpp = 3;
-	  data->format.bytesperline = data->format.width * 3;
-	  data->Converter = Convert_RGB24_RGB24;
+	  data->data.linear.data = new_data;
 	}
 
   data->backend->save (data);
@@ -1015,23 +975,21 @@ screenshot_save (screenshot_data *data)
 static void
 preview (screenshot_data *data)
 {
-  gpointer old_data;
+  tveng_image_data old_data;
   struct tveng_frame_format old_format;
-  LineConverter old_Converter;
 
   if (!data || !data->drawingarea || !data->pixbuf)
     return;
 
   old_data = data->data;
   old_format = data->format;
-  old_Converter = data->Converter;
 
-  data->data += (int)
+  data->data.linear.data += (int)
     (((data->format.width - PREVIEW_WIDTH) >> 1)
      * data->format.bpp
      + (((data->format.height - PREVIEW_HEIGHT) >> 1)
 	& -1) /* top field first */
-     * data->format.bytesperline);
+     * data->data.linear.stride);
 
   data->format.width = PREVIEW_WIDTH;
   data->format.height = PREVIEW_HEIGHT;
@@ -1050,10 +1008,8 @@ preview (screenshot_data *data)
 
   if (screenshot_option_deint && data->deint_data)
     {
-      data->data = data->deint_data;
-      data->format.bpp = 3;
-      data->format.bytesperline = data->format.width * 3;
-      data->Converter = Convert_RGB24_RGB24;
+      data->data.linear.data = data->deint_data;
+      data->data.linear.stride = data->format.width * 3;
     }
 
   if (data->backend->load)
@@ -1061,26 +1017,38 @@ preview (screenshot_data *data)
       if (!data->io_buffer)
 	if (!io_buffer_init (data, PREVIEW_WIDTH
 			     * PREVIEW_HEIGHT * 4))
-	  goto restore;
+	  {
+	    printf ("a\n");
+	    goto restore;
+	  }
 
       data->io_flush = io_flush_memory;
       data->io_buffer_used = 0;
 
       if (!data->backend->init (data, /* write */ TRUE,
 				screenshot_option_quality))
-	goto restore;
+	{
+	  printf ("b\n");
+	  goto restore;
+	}
 
       data->backend->save (data);
 
       if (data->thread_abort)
-	goto restore;
+	{
+	  printf ("c\n");
+	  goto restore;
+	}
 
       data->size_est = data->io_buffer_used
 	* (double)(old_format.width * old_format.height)
 	/ (double)(PREVIEW_WIDTH * PREVIEW_HEIGHT);
 
       if (!data->backend->init (data, /* write */ FALSE, 0))
-	goto restore;
+	{
+	  printf ("d\n");
+	  goto restore;
+	}
 
       data->backend->load (data, gdk_pixbuf_get_pixels (data->pixbuf),
 			   gdk_pixbuf_get_rowstride (data->pixbuf));
@@ -1090,14 +1058,14 @@ preview (screenshot_data *data)
       gint line, rowstride;
       gchar *s, *d, *row;
 
-      s = data->data;
+      s = data->data.linear.data;
       d = gdk_pixbuf_get_pixels (data->pixbuf);
       rowstride = gdk_pixbuf_get_rowstride (data->pixbuf);
 
       for (line = 0; line < data->format.height; line++)
 	{
-	  (data->Converter)(data->format.width, s, d);
-	  s += data->format.bytesperline;
+	  memcpy (d, s, data->format.width * 3);
+	  s += data->data.linear.stride;
 	  d += rowstride;
 	}
 
@@ -1105,8 +1073,10 @@ preview (screenshot_data *data)
 	* (double)(old_format.width * old_format.height);
     }
 
+  gtk_widget_set_size_request (data->drawingarea, PREVIEW_WIDTH,
+			       PREVIEW_HEIGHT);
+
  restore:
-  data->Converter = old_Converter; 
   data->format = old_format;
   data->data = old_data;
 }
@@ -1363,6 +1333,17 @@ build_dialog (screenshot_data *data)
     }
 }
 
+static gint format_request = -1;
+
+static void unrequest (void)
+{
+  if (format_request >= 0)
+    {
+      release_capture_format (format_request);
+      format_request = -1;
+    }
+}
+
 /*
  *  This timer callback controls the progress of image saving.
  *  I [mhs] promise to never ever write something ugly like this
@@ -1381,6 +1362,7 @@ screenshot_timeout (screenshot_data *data)
     case 4: /* waiting for image */
       if (data->lines-- <= 0)
 	{
+	  unrequest ();
 	  grab_data = NULL;
 	  screenshot_destroy (data);
 	  return FALSE; /* remove */
@@ -1396,6 +1378,7 @@ screenshot_timeout (screenshot_data *data)
 
       if (!screenshot_save (data))
 	{
+	  unrequest ();
 	  grab_data = NULL;
 	  screenshot_destroy (data);
 	  return FALSE; /* remove */
@@ -1428,6 +1411,7 @@ screenshot_timeout (screenshot_data *data)
 		}
 	      else if (!screenshot_save (data))
 		{
+		  unrequest ();
 		  grab_data = NULL;
 		  screenshot_destroy (data);
 		  return FALSE; /* remove */
@@ -1439,12 +1423,14 @@ screenshot_timeout (screenshot_data *data)
 	  /* fall through */
 
 	default: /* Cancel */
+	  unrequest ();
 	  grab_data = NULL;
 	  screenshot_destroy (data);
 	  return FALSE; /* remove */
 
 	case SCREENSHOT_CONFIGURE: /* Configure */
 	  {
+	    unrequest ();
 	    grab_data = NULL;
 	    screenshot_destroy (data);
 
@@ -1460,6 +1446,7 @@ screenshot_timeout (screenshot_data *data)
     case 6: /* post-dialog data ready */
       if (!screenshot_save (data))
 	{
+	  unrequest ();
 	  grab_data = NULL;
 	  screenshot_destroy (data);
 	  return FALSE; /* remove */
@@ -1491,6 +1478,8 @@ screenshot_timeout (screenshot_data *data)
       /* fall through */
 
     default:
+      unrequest ();
+  
       if (grab_data == data)
 	grab_data = NULL;
       screenshot_destroy (data);
@@ -1500,302 +1489,37 @@ screenshot_timeout (screenshot_data *data)
   return TRUE; /* resume */
 }
 
-/* XXX ENDIANESS */
-
-/* Takes a RGB565 line and saves it as RGB24 */
-static gchar *
-Convert_RGB565_RGB24 (gint width, gchar* src, gchar* dest)
-{
-  gint16 * line = (gint16*) src;
-  gchar * where_have_we_written = dest;
-  gint i;
-
-  for (i = 0; i < width; i++)
-    {
-      gint word, val;
-
-      word = *line; /* gggrrrrr bbbbbggg */
-      val = word & 0x001f;
-      dest[0] = (val << 3) + (val >> 2);
-      val = word & 0x07E0;
-      dest[1] = (val >> 3) + (val >> 9);
-      word &= 0xF800;
-      dest[2] = (word >> 8) + (word >> 13);
-      dest += 3;
-      line ++;
-    }
-  return where_have_we_written;
-}
-
-/* Takes a RGB565 line and saves it as RGB24 */
-static gchar *
-Convert_BGR565_RGB24 (gint width, gchar* src, gchar* dest)
-{
-  gint16 * line = (gint16*) src;
-  gchar * where_have_we_written = dest;
-  int i;
-
-  for (i = 0; i < width; i++)
-    {
-      gint word, val;
-
-      word = *line; /* gggbbbbb rrrrrggg */
-      val = word & 0x001f;
-      dest[2] = (val << 3) + (val >> 2);
-      val = word & 0x07E0;
-      dest[1] = (val >> 3) + (val >> 9);
-      word &= 0xF800;
-      dest[0] = (word >> 8) + (word >> 13);
-      dest += 3;
-      line ++;
-    }
-  return where_have_we_written;
-}
-
-/* Takes a RGB555 line and saves it as RGB24 */
-static gchar *
-Convert_RGB555_RGB24 (gint width, gchar* src, gchar* dest)
-{
-  gint16 * line = (gint16*) src;
-  gchar * where_have_we_written = dest;
-  int i;
-
-  for (i = 0; i < width; i++)
-    {
-      gint word, val;
-
-      word = *line; /* gggrrrrr abbbbbgg */
-      val = word & 0x001f;
-      dest[0] = (val << 3) + (val >> 2);
-      val = word & 0x03e0;
-      dest[1] = (val >> 2) + (val >> 7);
-      word &= 0x7C00;
-      dest[2] = (word >> 7) + (word >> 12);
-      dest += 3;
-      line ++;
-    }
-  return where_have_we_written;
-}
-
-/* Takes a BGR555 line and saves it as RGB24 */
-static gchar *
-Convert_BGR555_RGB24 (gint width, gchar* src, gchar* dest)
-{
-  gint16 * line = (gint16*) src;
-  gchar * where_have_we_written = dest;
-  int i;
-
-  for (i = 0; i < width; i++)
-    {
-      gint word, val;
-
-      word = *line; /* gggbbbbb arrrrrgg */
-      val = word & 0x001f;
-      dest[2] = (val << 3) + (val >> 2);
-      val = word & 0x03e0;
-      dest[1] = (val >> 2) + (val >> 7);
-      word &= 0x7C00;
-      dest[0] = (word >> 7) + (word >> 12);
-      dest += 3;
-      line ++;
-    }
-  return where_have_we_written;
-}
-
-/* Removes the last byte (supposedly alpha channel info) from the
-   image */
-static gchar *
-Convert_RGBA_RGB24 (gint width, gchar* src, gchar* dest)
-{
-  gchar * where_have_we_written = dest;
-  int i;
-
-  for (i = 0; i < width; i++)
-    {
-      dest[0] = src[0];
-      dest[1] = src[1];
-      dest[2] = src[2];
-      dest += 3;
-      src += 4;
-    }
-  return where_have_we_written;
-}
-
-/* Removes the last byte (suppoosedly alpha channel info) from the
-   image */
-static gchar *
-Convert_BGRA_RGB24 (gint width, gchar* src, gchar* dest)
-{
-  gchar * where_have_we_written = dest;
-  int i;
-
-  for (i = 0; i < width; i++)
-    {
-      dest[0] = src[2];
-      dest[1] = src[1];
-      dest[2] = src[0];
-      dest += 3;
-      src += 4;
-    }
-  return where_have_we_written;
-}
-
-/* Swaps the R and the B components of a RGB24 image */
-static gchar *
-Convert_BGR24_RGB24 (gint width, gchar* src, gchar* dest)
-{
-  gchar * where_have_we_written = dest;
-  gint i;
-
-  for (i = 0; i < width; i++)
-    {
-      dest[0] = src[2];
-      dest[1] = src[1];
-      dest[2] = src[0];
-      dest += 3;
-      src += 3;
-    }
-  return where_have_we_written;
-}
-
-static inline int
-clamp (double n)
-{
-  int r = n;
-
-  if (r > 255)
-    return 255;
-  else if (r < 0)
-    return 0;
-  else
-    return r;
-}
-
-/* Converts a YUYV line into a RGB24 one */
-static gchar *
-Convert_YUYV_RGB24 (gint w, guchar *src, guchar *dest)
-{
-  gchar *where_have_we_written = dest;
-  gint i;
-  double y1, y2, u, v, uv;
-
-  for (i=0; i<w; i+=2)
-    {
-      y1 = ((src[0] - 16) * 255) * (1 / 219.0);
-      u  =  (src[1] - 128) * 127;
-      y2 = ((src[2] - 16) * 255) * (1 / 219.0);
-      v  =  (src[3] - 128) * 127;
-
-      uv = (- 0.344 / 112.0) * u - (0.714 / 112.0) * v;
-      v *= 1.402 / 112.0;
-      u *= 1.772 / 112.0;
-
-      dest[0] = clamp(y1 + v);
-      dest[1] = clamp(y1 + uv);
-      dest[2] = clamp(y1 + u);
-
-      dest[3] = clamp(y2 + v);
-      dest[4] = clamp(y2 + uv);
-      dest[5] = clamp(y2 + u);
-
-      src += 4;
-      dest += 6;
-    }
-  return where_have_we_written;
-}
-
-static gchar *
-Convert_RGB24_RGB24 (gint width, gchar* src, gchar* dest)
-{
-  memcpy (dest, src, width * 3);
-  return dest;
-}
-
 static gboolean
-copy_image (screenshot_data *data,
-	    gpointer image, struct tveng_frame_format *format)
+copy_image (screenshot_data *data, capture_frame *frame)
 {
-  if (format->pixformat == TVENG_PIX_YVU420 ||
-      format->pixformat == TVENG_PIX_YUV420)
-    {
-      gint yuv_bpp = (x11_get_bpp () + 7) >> 3;
-      gint yuv_bytesperline = format->width * yuv_bpp;
-      uint8_t *y, *u, *v;
+  zimage *image = retrieve_frame (frame, TVENG_PIX_RGB24);
 
-      data->data = g_malloc (yuv_bytesperline * format->height);
+  if (!image)
+    return FALSE;
 
-      y = (uint8_t *) image;
-      u = y + (format->width * format->height);
-      v = u + ((format->width * format->height) >> 2);
+  memcpy (&data->data, &image->data, sizeof (image->data));
+  data->data.linear.data =
+    g_malloc (image->fmt.sizeimage);
 
-      if (format->pixformat == TVENG_PIX_YVU420)
-	SWAP (u, v);
+  memcpy (&data->format, &image->fmt, sizeof(data->format));
 
-      yuv2rgb (data->data, y, u, v, format->width, format->height,
-	       yuv_bytesperline, format->width, format->width * 0.5);
-
-      memcpy (&data->format, format, sizeof(data->format));
-
-      data->format.pixformat =
-	zmisc_resolve_pixformat (x11_get_bpp (), x11_get_byte_order ());
-      data->format.bytesperline = yuv_bytesperline;
-      data->format.depth = x11_get_bpp();
-      /* unfortunate election of names :-( */
-      data->format.bpp = yuv_bpp;
-      data->format.sizeimage = data->format.bytesperline * format->height;
-    }
-  else
-    {
-      data->data = g_malloc (format->bytesperline * format->height);
-
-      memcpy (&data->format, format, sizeof(data->format));
-
-      memcpy (data->data, image, format->bytesperline *
-	      format->height);
-    }
-
-  data->line_data = g_malloc (data->format.width * 3);
-
-  switch (data->format.pixformat)
-    {
-    case TVENG_PIX_RGB32:
-      data->Converter = (LineConverter) Convert_RGBA_RGB24;
-      break;
-    case TVENG_PIX_RGB24:
-      data->Converter = (LineConverter) Convert_RGB24_RGB24;
-      break;
-    case TVENG_PIX_BGR32:
-      data->Converter = (LineConverter) Convert_BGRA_RGB24;
-      break;
-    case TVENG_PIX_BGR24:
-      data->Converter = (LineConverter) Convert_BGR24_RGB24;
-      break;
-    case TVENG_PIX_RGB565:
-      data->Converter = (LineConverter) Convert_BGR565_RGB24;
-      break;
-    case TVENG_PIX_RGB555:
-      data->Converter = (LineConverter) Convert_BGR555_RGB24;
-      break;
-    case TVENG_PIX_YUYV:
-      data->Converter = (LineConverter) Convert_YUYV_RGB24;
-      break;
-    default:
-      ShowBox("The current pixformat isn't supported",
-	      GTK_MESSAGE_ERROR);
-      return FALSE;
-    }
+  memcpy (data->data.linear.data, image->data.linear.data,
+	  image->fmt.sizeimage);
 
   return TRUE;
 }
 
 static void
-plugin_read_bundle (capture_bundle *bundle)
+plugin_read_frame (capture_frame *frame)
 {
   if (grab_data && grab_countdown > 0)
     if (grab_countdown-- == 1)
       {
-	if (copy_image (grab_data, bundle->data, &bundle->format))
-	  grab_data->status += 2; /* data ready */
+	if (copy_image (grab_data, frame))
+	  {
+	    unrequest ();
+	    grab_data->status += 2; /* data ready */
+	  }
 	else
 	  grab_data->status = -1; /* timeout abort yourself */
       }
@@ -1806,6 +1530,7 @@ screenshot_grab (gint dialog)
 {
   GdkPixbuf *pixbuf;
   screenshot_data *data;
+  capture_fmt fmt;
 
   if (grab_data)
     return FALSE; /* request pending */
@@ -1821,14 +1546,28 @@ screenshot_grab (gint dialog)
    */
   if (zapping_info->current_mode != TVENG_NO_CAPTURE)
     {
-      zmisc_switch_mode (TVENG_CAPTURE_READ, zapping_info);
+      if (zapping_info->current_mode != TVENG_CAPTURE_READ)
+	zmisc_switch_mode (TVENG_CAPTURE_READ, zapping_info);
 
       if (zapping_info->current_mode != TVENG_CAPTURE_READ)
 	{
 	  screenshot_destroy (data);
 	  return FALSE; /* unable to set the mode */
 	}
+
+      /* Request a RGB type capture */
+      fmt.locked = FALSE;
+      fmt.fmt = TVENG_PIX_RGB24;
+      format_request = request_capture_format (&fmt);
+      if (format_request == -1)
+	{
+	  /* FIXME: This and above we should restore whatever mode was
+	     present before */
+	  return FALSE;
+	}
     }
+
+#if GNOME2_CONVERSION_COMPLETE
 #ifdef HAVE_LIBZVBI
   /*
    *  Otherwise request TTX image 
@@ -1859,6 +1598,7 @@ screenshot_grab (gint dialog)
       return TRUE;
     }
 #endif /* HAVE_LIBZVBI */
+#endif /* conversion complete */
   else
     return FALSE;
 

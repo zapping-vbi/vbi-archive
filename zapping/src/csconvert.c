@@ -241,6 +241,11 @@ rgb_bgr		(tveng_image_data	*_src, tveng_image_data *_dest,
       src_size = 3;
       dest_size = 3;
     }
+  else if (!strcmp ((char*)user_data, "rgb<->bgr"))
+    {
+      src_size = 3;
+      dest_size = 3;
+    }
   else
     g_assert_not_reached ();
 
