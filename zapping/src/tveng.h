@@ -39,7 +39,9 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xfuncs.h>
+#ifndef DISABLE_X_EXTENSIONS
 #include <X11/extensions/xf86dga.h>
+#endif
 
 /* i18n support if it hasn't been defined previously */
 #ifndef gettext

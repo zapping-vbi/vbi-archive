@@ -1,3 +1,8 @@
+02.6.2000	First problems fixed <garetxe@users.sourceforge.net>
+
+	* configure.in: Added the option to disable X extensions (DGA)
+	from the configure script (thanks to Jan Castermans).
+	
 01.6.2000	Bug fixes <garetxe@users.sourceforge.net>
 
 	* everything: Lots of bugs and fixme's have been corrected. Some

@@ -1006,6 +1006,7 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
 int
 tveng_detect_XF86DGA(tveng_device_info * info)
 {
+#ifndef DISABLE_X_EXTENSIONS
   int event_base, error_base;
   int major_version, minor_version;
   int flags;
@@ -1046,6 +1047,9 @@ tveng_detect_XF86DGA(tveng_device_info * info)
 	 (flags & XF86DGADirectPresent) ? " DirectVideo" : "");
 
   return 1; /* Everything correct */
+#else
+  return 0; /* disabled by configure */
+#endif
 }
 
 /*

@@ -1960,6 +1960,7 @@ tveng2_set_preview (int on, tveng_device_info * info)
 int
 tveng2_start_previewing (tveng_device_info * info)
 {
+#ifndef DISABLE_X_EXTENSIONS
   Display * display = info->display;
   int width, height;
   int dwidth, dheight; /* Width and height of the display */
@@ -2048,6 +2049,13 @@ tveng2_start_previewing (tveng_device_info * info)
 
   info -> current_mode = TVENG_CAPTURE_PREVIEW;
   return 0; /* Success */
+#else
+  info -> tveng_errno = -1;
+  t_error_msg("configure()",
+	      "The X extensions have been disabled when configuring",
+	      info);
+  return -1;
+#endif
 }
 
 /*
@@ -2056,6 +2064,7 @@ tveng2_start_previewing (tveng_device_info * info)
 int
 tveng2_stop_previewing(tveng_device_info * info)
 {
+#ifndef DISABLE_X_EXTENSIONS
   Display * display = info->display;
 
   if (info -> current_mode == TVENG_NO_CAPTURE)
@@ -2077,4 +2086,7 @@ tveng2_stop_previewing(tveng_device_info * info)
 
   info -> current_mode = TVENG_NO_CAPTURE;
   return 0; /* Success */
+#else
+  return 0;
+#endif
 }

@@ -19,6 +19,10 @@
 #ifndef __TVENG1_H__
 #define __TVENG1_H__
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -41,7 +45,9 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xfuncs.h>
+#ifndef DISABLE_X_EXTENSIONS
 #include <X11/extensions/xf86dga.h>
+#endif
 
 /* 
    This defines the struct tveng will use for controlling the

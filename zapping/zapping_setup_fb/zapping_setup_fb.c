@@ -23,6 +23,10 @@
   This program returns 1 in case of error
 */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <gnome.h>
 #include <stdio.h>
 #include <sys/ioctl.h>
@@ -42,13 +46,15 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xfuncs.h>
+#ifndef DISABLE_X_EXTENSIONS
 #include <X11/extensions/xf86dga.h>
+#endif
 #include <X11/Xutil.h>
 
 #include "../src/videodev.h" /* V4L header file */
 
 #define MAX_VERBOSE 2 /* Greatest verbosity allowed */
-#define VERSION "zapping_setup_fb 0.8.5" /* Current program version */
+#define ZSFB_VERSION "zapping_setup_fb 0.8.5" /* Current program version */
 
 /* Well, this isn't very clean, but anyway... */
 #define EXIT { \
@@ -93,6 +99,7 @@ void PM(char * message, int min_message)
 
 gboolean check_dga(Display * display, int screen)
 {
+#ifndef DISABLE_X_EXTENSIONS
   int event_base, error_base;
   int major_version, minor_version;
   int flags;
@@ -203,6 +210,10 @@ gboolean check_dga(Display * display, int screen)
   PM(buffer, 1);
 
   return TRUE;
+#else
+  PM("X extensions have been disabled, this program won't work\n", 1);
+  return FALSE;
+#endif
 }
 
 int main(int argc, char * argv[])
@@ -262,7 +273,7 @@ int main(int argc, char * argv[])
 
   if (show_version)
     {
-      printf("%s\n", VERSION);
+      printf("%s\n", ZSFB_VERSION);
       return 0;
     }
 

@@ -6,10 +6,6 @@ INCLUDES = \
 
 bin_PROGRAMS = zapping
 
-## This should be detected by configure, but i cannot get it to work
-## properly, probably because it is static.
-X_DGA_LIB = -lXxf86dga
-
 ## Don't forget to put these files into the distribution
 EXTRA_DIST = videodev.h videodev2.h plugin_common.h ROADMAP
 
@@ -30,4 +26,4 @@ zapping_SOURCES = \
 	tveng.c tveng.h 
 
 zapping_LDADD = $(GNOME_LIBDIR) $(GNOMEUI_LIBS) $(INTLLIBS) \
-$(GNOME_XML_LIB) $(LIBGLADE_LIBS) $(X_DGA_LIB) $(PTHREAD_LIB) $(PNG_LIB)
+$(GNOME_XML_LIB) $(LIBGLADE_LIBS) $(X_DGA_LIBS) $(PTHREAD_LIB) $(PNG_LIB)

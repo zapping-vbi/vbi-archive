@@ -11,4 +11,4 @@ INSTALL_PROGRAM = $(INSTALL) -m4711 -o root -g root
 zapping_setup_fbSOURCES = \
 	zapping_setup_fb.c videodev.h
 
-zapping_setup_fb_LDADD = $(GNOME_LIBDIR) $(GNOMEUI_LIBS) $(INTLLIBS) -lXxf86dga
+zapping_setup_fb_LDADD = $(GNOME_LIBDIR) $(GNOMEUI_LIBS) $(INTLLIBS) $(X_DGA_LIBS)

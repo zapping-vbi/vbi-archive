@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-06-02 18:05+0200\n"
+"POT-Creation-Date: 2000-06-02 22:36+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -215,30 +215,30 @@ msgstr ""
 #: src/tveng.c:600 src/tveng.c:633 src/tveng.c:662 src/tveng.c:687
 #: src/tveng.c:713 src/tveng.c:739 src/tveng.c:764 src/tveng.c:794
 #: src/tveng.c:819 src/tveng.c:847 src/tveng.c:873 src/tveng.c:896
-#: src/tveng.c:930 src/tveng.c:958 src/tveng.c:983 src/tveng.c:1062
-#: src/tveng.c:1229 src/tveng.c:1256 src/tveng.c:1284 src/tveng.c:1333
-#: src/tveng.c:1358
+#: src/tveng.c:930 src/tveng.c:958 src/tveng.c:983 src/tveng.c:1066
+#: src/tveng.c:1233 src/tveng.c:1260 src/tveng.c:1288 src/tveng.c:1337
+#: src/tveng.c:1362
 #, c-format
 msgid "%s called on a non-controlled device: %s\n"
 msgstr ""
 
-#: src/tveng.c:1136
+#: src/tveng.c:1140
 msgid "zapping_setup_fb exited abnormally, check stderr"
 msgstr ""
 
-#: src/tveng.c:1146
+#: src/tveng.c:1150
 msgid "zapping_setup_fb failed to set up the video"
 msgstr ""
 
-#: src/tveng.c:1151
+#: src/tveng.c:1155
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr ""
 
-#: src/tveng.c:1191
+#: src/tveng.c:1195
 msgid "Cannot find an appropiate visual"
 msgstr ""
 
-#: src/tveng.c:1206
+#: src/tveng.c:1210
 msgid "Cannot figure out X depth"
 msgstr ""
 
@@ -410,7 +410,7 @@ msgstr ""
 msgid "The capability field says that there is no overlay"
 msgstr ""
 
-#: src/tveng1.c:2428 src/tveng2.c:2064
+#: src/tveng1.c:2437 src/tveng2.c:2073
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
@@ -829,7 +829,7 @@ msgstr ""
 msgid "Sorry, but the plugin couldn't be started"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:77
+#: zapping_setup_fb/zapping_setup_fb.c:83
 msgid ""
 "Usage:\n"
 " zapping_setup_fb [OPTIONS], where OPTIONS stands for\n"
@@ -842,47 +842,47 @@ msgid ""
 " --version    - Shows the program version\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:230
+#: zapping_setup_fb/zapping_setup_fb.c:241
 msgid "Video device name seems to be missing\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:238
+#: zapping_setup_fb/zapping_setup_fb.c:249
 msgid "X display name seems to be missing\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:260
+#: zapping_setup_fb/zapping_setup_fb.c:271
 #, c-format
 msgid "Unknown command line option %s, ignoring it\n"
 msgstr ""
 
 #. Print a short copyright notice if we aren't totally quiet
-#: zapping_setup_fb/zapping_setup_fb.c:271
+#: zapping_setup_fb/zapping_setup_fb.c:282
 msgid ""
 "(C) 2000 Iñaki García Etxebarria.\n"
 "This program is under the GNU General Public License.\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:296
+#: zapping_setup_fb/zapping_setup_fb.c:307
 #, c-format
 msgid "Given device %s has dots in it, cannot use it\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:306
+#: zapping_setup_fb/zapping_setup_fb.c:317
 #, c-format
 msgid "Given device %s is too short, cannot use it\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:314
+#: zapping_setup_fb/zapping_setup_fb.c:325
 #, c-format
 msgid "Given device %s doesn't start with /dev/, cannot use it\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:329
+#: zapping_setup_fb/zapping_setup_fb.c:340
 #, c-format
 msgid "Cannot open given device %s\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:359
+#: zapping_setup_fb/zapping_setup_fb.c:370
 #, c-format
 msgid "Cannot open display %s, quitting\n"
 msgstr ""
