@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.18 2001-06-05 17:52:08 mschimek Exp $ */
+/* $Id: options.c,v 1.19 2001-06-07 17:43:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -44,7 +44,7 @@
 #include "audio/mpeg.h"
 #include "options.h"
 
-static const char *mux_options[] = { "", "video", "audio", "video_and_audio" };
+static const char *mux_options[] = { "", "video", "audio", "video_and_audio", "subtitles" };
 static const char *mux_syn_options[] = { "nirvana", "bypass", "mpeg1", "mpeg2-ps", "vcd" };
 static const char *audio_options[] = { "stereo", "", "dual_channel", "mono" };
 static const char *mute_options[] = { "unmute", "mute", "ignore" };
@@ -228,7 +228,7 @@ suboption(const char **optp, int n, int def)
 			return strtol(optarg, NULL, 0);
 
 		for (i = 0; i < n; i++) {
-			if (!optp[i])
+			if (!optp[i] || !optp[i][0])
 				continue;
 
 			if (!strcmp(optarg, optp[i]))
@@ -239,6 +239,58 @@ suboption(const char **optp, int n, int def)
 	}
 
 	return def;
+}
+
+static int
+multi_suboption(const char **optp, int n, int def)
+{
+	char *s = optarg;
+	int r = 0, l, i;
+
+	if (!s || !*s)
+		return def;
+
+	while (isspace(*s))
+		s++;
+
+	if (!*s)
+		return -1;
+
+	do {
+		while (isspace(*s))
+			s++;
+
+		if (!*s)
+			return r;
+
+		if (isdigit(*s))
+			r |= strtol(s, &s, 0);
+		else {
+			for (i = 0; i < n; i++) {
+				if (!optp[i] || !optp[i][0])
+					continue;
+
+				l = strlen(optp[i]);
+
+				if (strncmp(s, optp[i], l) == 0
+				    && (s[l] == 0 || isspace(s[l])
+					|| strchr("+&|,", s[l]))) {
+					s += l;
+					r |= i;
+					break;
+				}
+			}
+
+			if (i >= n)
+				return -1;
+		}
+
+		while (isspace(*s))
+			s++;
+
+	} while (*s && strchr("+&|,", *s++));
+
+	return r;
 }
 
 static bool have_audio_bit_rate = FALSE;
@@ -315,7 +367,7 @@ parse_option(int c)
 		}
 
 		case 'm':
-			modules = suboption(mux_options, 4, modules);
+			modules = multi_suboption(mux_options, 5, modules);
 			if (modules <= 0 || modules > 7)
 				return FALSE;
 			break;
@@ -510,6 +562,7 @@ bark(void)
 	have_image_size = FALSE;
 	have_grab_size = FALSE;
 	have_letterbox = FALSE;
+	have_filter = FALSE;
 }
 
 void
@@ -545,4 +598,7 @@ options(int ac, char **av)
 
 	if (width * height < 128000)
 		cap_buffers *= 2;
+
+//	if (motion_min && motion_max)
+//		cap_buffers *= 2;
 }

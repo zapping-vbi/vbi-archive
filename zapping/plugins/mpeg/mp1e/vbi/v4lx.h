@@ -1,4 +1,6 @@
 /*
+ *  V4L/V4L2 VBI Interface
+ *
  *  Copyright (C) 1999-2000 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -16,21 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: types.h,v 1.4 2001-06-07 17:43:51 mschimek Exp $ */
+/* $Id: v4lx.h,v 1.1 2001-06-07 17:43:51 mschimek Exp $ */
 
-#ifndef TYPES_H
-#define TYPES_H
+#include "../common/fifo.h"
 
-#include <stddef.h>
-
-#undef TRUE
-#undef FALSE
-
-enum { FALSE, TRUE };
-
-typedef unsigned char bool;
-
-#define PARENT(ptr, type, member) \
-	((type *)(((char *) ptr) - offsetof(type, member)))
-
-#endif /* TYPES_H */
+/* given_fd points to an opened video device, or -1, ignored for V4L2 */
+extern fifo *		vbi_open_v4lx(char *dev_name, int given_fd, int buffered, int fifo_depth);
+extern void		vbi_close_v4lx(fifo *f);

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.35 2001-06-05 17:52:08 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.36 2001-06-07 17:43:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -160,15 +160,16 @@ fifo *			video_fifo;
 #endif
 
 #if TEST12
-
+#define LOWVAR 5000000
 #define ZMB1						\
 do {							\
-	if (var < 5000000) quant = 3;			\
+	if (var < LOWVAR) quant = 3;			\
 } while (0)
+/* preliminary trick */
 #define ZMB2						\
 do { int i, j, n;					\
-	if (var < 1000000) n = 64 - 3; else		\
-	if (var < 5000000) n = 64 - 6; else n = 0;	\
+	/* if (var < LOWVAR / 5) n = 64 - 3; else */	\
+	if (var < LOWVAR) n = 64 - 6; else n = 0;	\
 	for (i = 0; i < n; i++) {			\
 		j = 63 - iscan[0][(i - 1) & 63];	\
 		mblock[1][0][0][j] = 0;			\
@@ -308,9 +309,12 @@ tmp_picture_i(unsigned char *org0, unsigned char *org1, int motion)
 
 			Ti += Tmb;
 
+			if (!(TEST12 && motion))
 			if (quant >= 4 && quant > prev_quant &&
 			    nbabs(quant - prev_quant) <= 2)
 				quant = prev_quant;
+
+if (motion)
 ZMB1;
 			/* Encode macroblock */
 
@@ -320,6 +324,7 @@ ZMB1;
 				pr_start(22, "FDCT intra");
 				fdct_intra(quant); // mblock[0] -> mblock[1]
 				pr_end(22);
+if (motion)
 ZMB2;
 				bepilog(&video_out);
 
@@ -578,8 +583,12 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_mo
 
 			/* Encode macroblock */
 
-			if (T3RI && vmc > p_inter_bias) {
-//			if (vmc > var || vmc > p_inter_bias) {
+			if (T3RI
+			    && ((TEST12
+				 && !__builtin_constant_p(forward_motion)
+				 && var < (LOWVAR / 6))
+				|| vmc > p_inter_bias))
+			{
 				unsigned int code;
 				int length, i;
 
@@ -964,8 +973,12 @@ if (!TEST3)
 
 			/* Encode macroblock */
 
-			if (T3RI && vmc > b_inter_bias) {
-//			if (vmc > var || vmc > b_inter_bias) {
+			if (T3RI
+			    && ((TEST12
+				 && !__builtin_constant_p(forward_motion)
+				 && var < (int)(LOWVAR / (6 * B_SHARE)))
+				|| vmc > p_inter_bias))
+			{
 				unsigned int code;
 				int length, i;
 

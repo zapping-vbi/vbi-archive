@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,10 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.4 2001-01-24 22:48:52 mschimek Exp $ */
+/* $Id: pdc.c,v 1.5 2001-06-07 17:43:51 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "vbi.h"
+#include "hamm.h"
 
 /*
  *  ETS 300 231 -- Specification of the domestic video
@@ -62,18 +63,17 @@ void
 decode_pdc(unsigned char *buf)
 {
 	struct pdc_rec pdc;
-	int c, j;
+	int i, t, err;
 
 	/* ttx packet 8/30/2 */
 
-	for (j = 0; j < 5; j++) {
-		c = unham84(buf + j * 2 + 8);
-
-		if (c < 0)
-			return; /* hamming error */
-
-		buf[j] = bit_reverse[c];
+	for (err = i = 0; i < 5; i++) {
+		err |= t = hamm16a(buf + i * 2 + 8);
+		buf[i] = bit_reverse[t];
 	}
+
+	if (err < 0)
+		return; /* hamming error */
 
 	pdc.lci = (buf[0] >> 2) & 3;
 	pdc.luf = !!(buf[0] & 2);
@@ -85,6 +85,9 @@ decode_pdc(unsigned char *buf)
 		  + (buf[2] & 0xC0)
 		  + (buf[5] & 0x3F)
 		  + ((buf[1] & 0x0F) << 12);
+
+	if (pdc.cni == 0x0DC3)
+		pdc.cni = (buf[2] & 0x10) ? 0x0DC2 : 0x0DC1;
 
 	pdc.pil = ((buf[2] & 0x3F) << 14) 
 	          + (buf[3] << 6) + (buf[4] >> 2);

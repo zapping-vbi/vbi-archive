@@ -1,6 +1,6 @@
 /*
  *  MPEG-1 Real Time Encoder
- *  Motion compensation V3.1.37
+ *  Motion compensation V3.1.38
  *
  *  Copyright (C) 2001 Michael H. Schimek
  *
@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.7 2001-06-05 17:52:08 mschimek Exp $ */
+/* $Id: motion.c,v 1.8 2001-06-07 17:43:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1956,7 +1956,7 @@ search(int *dhx, int *dhy, unsigned char *from,
 	x0 = x - (hrange >> 1);	y0 = y - (vrange >> 1);
 	x1 = x + (hrange >> 1);	y1 = y + (vrange >> 1);
 
-	hrange = ((range + 15) & -16) >> 2; // XXX
+	hrange = (range > 8) ? ((range + 15) & -16) >> 1 : 4; 
 	vrange >>= 2;
 
 	if (x0 < 0) {
@@ -1974,6 +1974,10 @@ search(int *dhx, int *dhy, unsigned char *from,
 					y0 = y1 - vrange;
 				}
 
+	if (!((x1 - x0) == 4 || ((x1 - x0) & 7) == 0)) {
+		fprintf(stderr, "x0=%d x1=%d hrange=%d range=%d\n",
+			x0, x1, hrange, range);
+	}
 	assert((x1 - x0) == 4 || ((x1 - x0) & 7) == 0);
 
 	bbmin = MMXRW(0xFFFE - 0x8000);
@@ -2176,6 +2180,7 @@ static int
 t4_edu(unsigned char *ref, int *dxp, int *dyp, int sx, int sy,
 	int src_range, int max_range, short dest[6][8][8])
 {
+	struct motion M;
 	int x, y, xs, ys;
 	int x0, y0, x1, y1;
 	int hrange, vrange;

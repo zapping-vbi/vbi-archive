@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.36 2001-01-24 22:48:52 mschimek Exp $ */
+/* $Id: main.c,v 1.37 2001-06-07 17:43:51 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -202,7 +202,7 @@ main(int ac, char **av)
 	}
 
 	if (modules & MOD_SUBTITLES) {
-		vbi_cap_fifo = open_vbi_v4l2(vbi_dev);
+		vbi_cap_fifo = vbi_open_v4lx(vbi_dev, 0, FALSE, 30);
 	}
 
 	/* Compression init */

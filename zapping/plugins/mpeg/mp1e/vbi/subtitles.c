@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,20 +18,29 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: subtitles.c,v 1.4 2000-12-15 23:26:46 garetxe Exp $ */
+/* $Id: subtitles.c,v 1.5 2001-06-07 17:43:51 mschimek Exp $ */
 
 #include <ctype.h>
 #include "../common/log.h"
 #include "vbi.h"
+#include "hamm.h"
 
 /*
+ *  Based on:
  *  ETS 300 472 -- Specification for conveying
  *  ITU-R System B Teletext in DVB bitstreams
+ *  ETSI EN 301 775 -- Specification for the carriage of
+ *  Vertical Blanking Information (VBI) data in DVB bitstreams
  */
 
 #define DATA_UNIT_EBU_TELETEXT_NON_SUBTITLE	0x02
 #define DATA_UNIT_EBU_TELETEXT_SUBTITLE		0x03
-#define DATA_UNIT_USER_DEFINED			0x80 // 0x80 .. 0xFE
+#define DATA_UNIT_EBU_TELETEXT_INVERTED_FRC	0xC0
+#define DATA_UNIT_VPS				0xC3
+#define DATA_UNIT_WSS				0xC4
+#define DATA_UNIT_CLOSED_CAPTIONING		0xC5
+#define DATA_UNIT_RAW_VBI_DATA			0xC6
+#define DATA_UNIT_USER_DEFINED			0x80 // 0x80 .. 0xBF
 #define DATA_UNIT_STUFFING			0xFF
 
 static struct {
@@ -41,37 +50,27 @@ static struct {
 
 static int magazine_set;
 static int next_packet[8];
-static unsigned char fplo_lut[32];
 
 unsigned char stuffing_packet[2][46];
 
 int
-init_dvb_packet_filter(struct vbi_context *vbi, char *s)
+init_dvb_packet_filter(char *s)
 {
 	int i, j, max;
 	int page, mask;
 
 	memset(next_packet, sizeof(next_packet), 0);
 
-	/* 7 (6) ... 22, 320 (318) ... 335 */
-
-	if ((vbi->start[0] >= 0 && vbi->start[0] + vbi->count[0] > 22) ||
-	    (vbi->start[1] >= 0 && vbi->start[1] + vbi->count[0] > 335) ||
-	    (vbi->count[0] + vbi->count[1]) > 32)
-		return 0; // XXX relax
-
-	for (i = 0; i < vbi->count[0]; i++)
-		fplo_lut[i] = (3 << 6) + (1 << 5) + ((vbi->start[0] < 0) ? 0 : vbi->start[0] + 1 + i);
-
-	for (i = 0; i < vbi->count[1]; i++)
-		fplo_lut[i + vbi->count[0]] = (3 << 6) + (0 << 5)
-			+ ((vbi->start[1] < 0) ? 0 : vbi->start[1] + 1 + i - 313);
-
 	memset(stuffing_packet, 0, sizeof(stuffing_packet));
 
 	for (i = 0; i < 2; i++) {
-		/* Update field counter between PES packet PTS updates */
-
+		/*
+		 *  We cannot (and don't want to) encode one PTS for
+		 *  each txt_data_field, so to advance the field
+		 *  counter in the decoder for frames without Teletext
+		 *  data (frequently when we write only subtitles) we
+		 *  have to encode a dummy packet.
+		 */
 		stuffing_packet[i][0] = DATA_UNIT_EBU_TELETEXT_NON_SUBTITLE;
 		stuffing_packet[i][1] = 44;
 		stuffing_packet[i][2] = (3 << 6) + ((i ^ 1) << 5) + 0;
@@ -86,6 +85,7 @@ init_dvb_packet_filter(struct vbi_context *vbi, char *s)
 
 	if (page_list)
 		free(page_list);
+
 	if (!(page_list = malloc((max = 8) * sizeof(page_list[0]))))
 		return 0;
 
@@ -94,6 +94,7 @@ init_dvb_packet_filter(struct vbi_context *vbi, char *s)
 
 		while (isspace(*s))
 			s++;
+
 	    	if (!*s)
 			break;
 
@@ -137,8 +138,13 @@ init_dvb_packet_filter(struct vbi_context *vbi, char *s)
 	return 1;
 }
 
+/*
+ *  XXX rethink:
+ *  - parallel transmission
+ *  - Level 1.5
+ */
 int
-dvb_packet_filter(unsigned char *p, unsigned char *buf,
+dvb_teletext_packet_filter(unsigned char *p, unsigned char *buf,
 	int line, int magazine, int packet)
 {
 	int page, i;
@@ -147,7 +153,7 @@ dvb_packet_filter(unsigned char *p, unsigned char *buf,
 		goto encode_packet;
 
 	if (packet == 0) {
-		if ((page = unham84(buf + 2)) < 0)
+		if ((page = hamm16a(buf + 2)) < 0)
 			return 0;
 
 		next_packet[magazine] = 0;
@@ -193,7 +199,10 @@ encode_packet:
 
 	p[0] = DATA_UNIT_EBU_TELETEXT_NON_SUBTITLE; // ?
 	p[1] = 44;
-	p[2] = fplo_lut[line];
+	if (line < 32)
+		p[2] = (3 << 6) + (1 << 5) + line;
+	else
+		p[2] = (3 << 6) + (0 << 5) + line - 313;
 	p[3] = 0xE4; // bit_reverse[0x27]
 	for (i = 0; i < 42; i++)
 		p[4 + i] = bit_reverse[buf[i]];

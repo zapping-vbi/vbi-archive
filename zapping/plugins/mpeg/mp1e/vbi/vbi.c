@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.8 2001-02-22 14:15:51 mschimek Exp $ */
+/* $Id: vbi.c,v 1.9 2001-06-07 17:43:51 mschimek Exp $ */
+
+#include "site_def.h"
 
 #include "../common/fifo.h"
 #include "../systems/mpeg.h"
@@ -28,44 +30,43 @@
 #include "../common/remote.h"
 #include "../options.h"
 #include "vbi.h"
+#include "tables.h"
+#include "decoder.h"
+#include "hamm.h"
 
-static int		lines;
-static int		vps_offset;
+#ifndef DO_PDC
+#define DO_PDC 0
+#endif
+
 static bool		do_pdc, do_subtitles;
-static struct bit_slicer
-			vpsd, ttxd;
-static unsigned char	buf[64];
 static fifo *		vbi_output_fifo;
 
 extern int		video_num_frames;
 
 /*
  *  ETS 300 706 -- Enhanced Teletext specification
- *  XXX somewhere here is a flaw, forgot what it was
  */
-
-static int
-decode_ttx(unsigned char *p, unsigned char *buf, int line)
+static inline int
+teletext_packet(unsigned char *p, unsigned char *buf, int line)
 {
 	int r = 0;
-	int packet_address;
-	int magazine, packet;
+	int mag0, packet;
 	int designation;
 
-	if ((packet_address = unham84(buf + 0)) < 0)
+	if ((packet = hamm16a(buf)) < 0)
 		return 0; /* hamming error */
 
-	magazine = packet_address & 7;
-	packet = packet_address >> 3;
+	mag0 = packet & 7;
+	packet >>= 3;
 
 	if (do_subtitles)
-		r = dvb_packet_filter(p, buf, line, magazine, packet);
+		r = dvb_teletext_packet_filter(p, buf, line, mag0, packet);
 
 	if (do_pdc) {
-		if (magazine != (8 & 7) || packet != 30)
+		if (mag0 != 0 /* 8 */ || packet != 30)
 			return r;
 
-		designation = hamming84[buf[2]]; 
+		designation = hamm8a[buf[2]];
 
 		if (designation <= 1)
 			return r; /* hamming error or packet 8/30/1 */
@@ -77,67 +78,63 @@ decode_ttx(unsigned char *p, unsigned char *buf, int line)
 	return r;
 }
 
+#define SLICED_TELETEXT_B	(SLICED_TELETEXT_B_L10_625 | SLICED_TELETEXT_B_L25_625)
+#define SLICED_CAPTION		(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625 \
+				 | SLICED_CAPTION_525_F1 | SLICED_CAPTION_525)
+
 void *
 vbi_thread(void *f) // XXX
 {
-	struct vbi_context *vbi = ((fifo *) f)->user_data;
-	buffer *ibuf, *obuf;
-	unsigned char *p, *p1;
+	buffer *ibuf, *obuf = NULL;
+	unsigned char *p = NULL, *p1 = NULL;
 	int vbi_frame_count = 0;
+	int items, parity = -1;
+	vbi_sliced *s;
 
 	if (do_subtitles)
-		remote_sync(&vbi->fifo, MOD_SUBTITLES, 1 / 25.0);
+		remote_sync(f, MOD_SUBTITLES, 1 / 25.0);
 
 	while (vbi_frame_count < video_num_frames) { // XXX video XXX pdc
-		if (!(ibuf = wait_full_buffer(&vbi->fifo)))
-			break; // EOF
-
-		if (do_subtitles && remote_break(ibuf->time, 1 / 25.0)) {
-			send_empty_buffer(&vbi->fifo, ibuf);
-			break;
-		}
-
-		vbi_frame_count++;
-
-		if (do_pdc && bit_slicer(&vpsd, ibuf->data + vps_offset, buf))
-			decode_vps(buf);
+		if (!(ibuf = wait_full_buffer((fifo *) f)) || ibuf->used <= 0)
+			break; // EOF or error
 
 		if (do_subtitles) {
-			int i;
+			if (remote_break(ibuf->time, 1 / 25.0)) {
+				send_empty_buffer((fifo *) f, ibuf);
+				break;
+			}
 
 			obuf = wait_empty_buffer(vbi_output_fifo);
 			p1 = p = obuf->data;
 
-			if (vbi->interlaced) {
-				for (i = 0; i < (vbi->count[0] * 2 + 0); i += 2)
-					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
-						p += decode_ttx(p, buf, i);
+			parity = 0;
+		}
 
-				if (p == p1) {
-					memcpy(p, stuffing_packet[0], 46);
-					p1 = p += 46;
+		vbi_frame_count++;
+
+		s = (vbi_sliced *) ibuf->data;
+		items = ibuf->used / sizeof(vbi_sliced);
+
+		while (items) {
+			if ((do_pdc | do_subtitles) && (s->id & SLICED_TELETEXT_B)) {
+				p += teletext_packet(p, s->data, s->line);
+
+				if (s->line > 32 && parity == 0) {
+					parity = 1;
+
+					if (p == p1) {
+						memcpy(p, stuffing_packet[0], 46);
+						p1 = p += 46;
+					}
 				}
+			} else if (do_pdc && (s->id & SLICED_VPS))
+				decode_vps(s->data);
 
-				for (i = 1; i < (vbi->count[0] * 2 + 1); i += 2)
-					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
-						p += decode_ttx(p, buf, i);
-			} else {
-				// Top field
-				for (i = 0; i < vbi->count[0]; i++)
-					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
-						p += decode_ttx(p, buf, i);
+			s++;
+			items--;
+		}
 
-				if (p == p1) {
-					memcpy(p, stuffing_packet[0], 46);
-					p1 = p += 46;
-				}
-
-				// Bottom field
-				for (; i < lines; i++)
-					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
-						p += decode_ttx(p, buf, i);
-			}
-
+		if (do_subtitles) {
 			if (p == p1) {
 				memcpy(p, stuffing_packet[1], 46);
 				p += 46;
@@ -148,25 +145,8 @@ vbi_thread(void *f) // XXX
 
 			send_full_buffer(vbi_output_fifo, obuf);
 		}
-		else if (do_pdc)
-		{
-			int i;
 
-			if (vbi->interlaced) {
-				for (i = 0; i < (vbi->count[0] * 2 + 0); i += 2)
-					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
-						decode_ttx(NULL, buf, i);
-
-				for (i = 1; i < (vbi->count[0] * 2 + 1); i += 2)
-					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
-						decode_ttx(NULL, buf, i);
-			} else
-				for (i = 0; i < lines; i++)
-					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
-						decode_ttx(NULL, buf, i);
-		}
-
-		send_empty_buffer(&vbi->fifo, ibuf);
+		send_empty_buffer(f, ibuf);
 	}
 
 	printv(2, "VBI: End of file\n");
@@ -184,31 +164,18 @@ vbi_thread(void *f) // XXX
 void
 vbi_init(fifo *f)
 {
-	struct vbi_context *vbi = f->user_data;
-
-	lines = vbi->count[0] + vbi->count[1];
-
-	vps_offset = ((16 - (vbi->start[0] + 1)) << vbi->interlaced) * vbi->samples_per_line;
-
-	init_bit_slicer(&vpsd, vbi->samples_per_line, vbi->sampling_rate,
-		5000000, 2500000, 0xAAAA8A99, 24, 0, 13, MOD_BIPHASE_MSB_ENDIAN);
-
-	init_bit_slicer(&ttxd, vbi->samples_per_line, vbi->sampling_rate,
-		6937500, 6937500, 0x00AAAAE4, 10, 6, 42, MOD_NRZ_LSB_ENDIAN);
-
-	do_pdc = FALSE;
-//	do_pdc = TRUE;
+	do_pdc = DO_PDC;
 
 	do_subtitles = FALSE;
 
 	if (subtitle_pages != NULL) {
 		do_subtitles = TRUE;
 
-		init_dvb_packet_filter(vbi, subtitle_pages);
+		init_dvb_packet_filter(subtitle_pages);
 
 		vbi_output_fifo = mux_add_input_stream(
 			PRIVATE_STREAM_1, "vbi-ps1",
-			32 * 46, 5, 25.0, 294400 /* peak */, &vbi->fifo);
+			32 * 46, 5, 25.0, 294400 /* peak */, f);
 	}
 
 	if (!do_pdc && !do_subtitles)

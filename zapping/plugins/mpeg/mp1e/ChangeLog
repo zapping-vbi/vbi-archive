@@ -1,3 +1,8 @@
+2001-06-07	<mschimek@users.sourceforge.net>
+
+	* Restored subtitle recording
+	* MC P/B bug still with us :-P
+
 2001-06-05	<mschimek@users.sourceforge.net>
 
 	* Removed all hardcoded image sizes from motion code
@@ -36,7 +41,6 @@
 	- MC: stream syntax bug, probably large vectors
 	  [-> confirmed, fixed on 2001-06-04]
 	- With MC enabled: P/B block bug (quant?), apparently at scene cuts
-	  [-> source unknown, not observed after 2001-06-04]
 
 2001-05-06	<garetxe@users.sourceforge.net>
 

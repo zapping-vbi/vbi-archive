@@ -1,7 +1,6 @@
 /*
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999-2001 Michael H. Schimek
  *
- *  gcc -O2 -DHAVE_MEMALIGN decode.c slicer.c tables.c v4l2.c test.c ../common/fifo.c
  *  ./a.out [/dev/vbi*]
  */
 
@@ -19,11 +18,13 @@
 #include "../common/fifo.h"
 #include "libvbi.h"
 #include "vbi.h"
+#include "v4lx.h"
+#include "tables.h"
+#include "decoder.h"
+#include "hamm.h"
 
 char *				my_name;
 int				verbose = 0;
-
-static struct bit_slicer	vpsd, ttxd;
 
 /*
  *  ETS 300 706 8.1 Odd parity
@@ -159,16 +160,16 @@ decode_vps2(unsigned char *buf)
 	pty = buf[12];
 
 	if (cni)
-		for (j = 0; VPS_CNI[j].short_name; j++)
-			if (VPS_CNI[j].cni == cni) {
+		for (j = 0; PDC_VPS_CNI[j].short_name; j++)
+			if (PDC_VPS_CNI[j].cni4 == cni) {
 				printf(" Country: %s\n Station: %s%s\n",
-					country_names_en[VPS_CNI[j].country],
-					VPS_CNI[j].long_name,
+					country_names_en[PDC_VPS_CNI[j].country],
+					PDC_VPS_CNI[j].long_name,
 					(cni == 0x0DC3) ? ((buf[2] & 0x10) ? " (ZDF)" : " (ARD)") : "");
 				break;
 			}
 
-//	if (!cni || !VPS_CNI[j].short_name)
+//	if (!cni || !PDC_VPS_CNI[j].short_name)
 		printf(" CNI: %04x\n", cni);
 
 	printf(" Analog audio: %s\n", pcs_names[pcs]);
@@ -207,26 +208,26 @@ decode_pdc2(unsigned char *buf)
 		lci, luf, prf, mi);
 
 	if (cni) {
-		for (j = 0; VPS_CNI[j].short_name; j++)
-			if (VPS_CNI[j].cni == cni_vps) {
+		for (j = 0; PDC_VPS_CNI[j].short_name; j++)
+			if (PDC_VPS_CNI[j].cni4 == cni_vps) {
 				printf(" Country: %s\n Station: %s%s\n",
-					country_names_en[VPS_CNI[j].country],
-					VPS_CNI[j].long_name,
+					country_names_en[PDC_VPS_CNI[j].country],
+					PDC_VPS_CNI[j].long_name,
 					(cni_vps == 0x0DC3) ? ((buf[2] & 0x10) ? " (ZDF)" : " (ARD)") : "");
 				break;
 			}
 
-		if (!VPS_CNI[j].short_name)
-			for (j = 0; PDC_CNI[j].short_name; j++)
-				if (PDC_CNI[j].cni2 == cni) {
+		if (!PDC_VPS_CNI[j].short_name)
+			for (j = 0; PDC_VPS_CNI[j].short_name; j++)
+				if (PDC_VPS_CNI[j].cni2 == cni) {
 					printf(" Country: %s\n Station: %s\n",
-						country_names_en[PDC_CNI[j].country],
-						PDC_CNI[j].long_name);
+						country_names_en[PDC_VPS_CNI[j].country],
+						PDC_VPS_CNI[j].long_name);
 					break;
 				}
 	}
 
-//	if (!cni || !PDC_CNI[j].short_name)
+//	if (!cni || !PDC_VPS_CNI[j].short_name)
 		printf(" CNI: %04x\n", cni);
 
 	printf(" Analog audio: %s\n", pcs_names[pcs]);
@@ -259,26 +260,26 @@ decode_8301(unsigned char *buf)
 	utc_s = ((buf[17] >> 4) - 1) * 10 + ((buf[17] & 0xF) - 1);
 
 	if (cni) {
-		for (j = 0; VPS_CNI[j].short_name; j++)
-			if (VPS_CNI[j].cni == cni_vps) {
+		for (j = 0; PDC_VPS_CNI[j].short_name; j++)
+			if (PDC_VPS_CNI[j].cni4 == cni_vps) {
 				printf(" Country: %s\n Station: %s%s\n",
-					country_names_en[VPS_CNI[j].country],
-					VPS_CNI[j].long_name,
+					country_names_en[PDC_VPS_CNI[j].country],
+					PDC_VPS_CNI[j].long_name,
 					(cni_vps == 0x0DC3) ? ((buf[2] & 0x10) ? " (ZDF)" : " (ARD)") : "");
 				break;
 			}
 
-		if (!VPS_CNI[j].short_name)
-			for (j = 0; PDC_CNI[j].short_name; j++)
-				if (PDC_CNI[j].cni1 == cni) {
+		if (!PDC_VPS_CNI[j].short_name)
+			for (j = 0; PDC_VPS_CNI[j].short_name; j++)
+				if (PDC_VPS_CNI[j].cni1 == cni) {
 					printf(" Country: %s\n Station: %s\n",
-					    	country_names_en[PDC_CNI[j].country],
-						PDC_CNI[j].long_name);
+					    	country_names_en[PDC_VPS_CNI[j].country],
+						PDC_VPS_CNI[j].long_name);
 					break;
 				}
 	}
 
-	if (!cni || !PDC_CNI[j].short_name)
+	if (!cni || !PDC_VPS_CNI[j].short_name)
 		printf(" CNI: %04x\n", cni);
 
 	ti = (mjd - 40587) * 86400 + 43200;
@@ -298,7 +299,7 @@ decode_ttx2(unsigned char *buf, int line)
 	int designation;
 	int c, j;
 
-	packet_address = unham84(buf + 0);
+	packet_address = hamm8a[buf[0]];
 
 	if (packet_address < 0)
 		return; /* hamming error */
@@ -325,7 +326,7 @@ decode_ttx2(unsigned char *buf, int line)
 		return;
 	}
 
-	designation = hamming84[buf[2]]; 
+	designation = hamm8a[buf[2]]; 
 
 	if (designation < 0) {
 		return; /* hamming error */
@@ -338,7 +339,7 @@ decode_ttx2(unsigned char *buf, int line)
 		printf("\nPacket 8/30/2:\n");
 
 		for (j = 0; j < 7; j++) {
-			c = unham84(buf + j * 2 + 8);
+			c = hamm8a[buf[j * 2 + 8]];
 
 			if (c < 0)
 				return; /* hamming error */
@@ -350,6 +351,12 @@ decode_ttx2(unsigned char *buf, int line)
 		dump_status(buf + 22);
 	}
 }
+
+#define SLICED_TELETEXT_B	(SLICED_TELETEXT_B_L10_625 | SLICED_TELETEXT_B_L25_625)
+#define SLICED_CAPTION		(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625 \
+				 | SLICED_CAPTION_525_F1 | SLICED_CAPTION_525)
+
+#define FIFO_DEPTH 30
 
 int
 main(int ac, char **av)
@@ -364,45 +371,34 @@ main(int ac, char **av)
 	if (ac > 1)
 		dev_name = av[1];
 
-	f = open_vbi_v4l2(dev_name);
-
-	vbi = f->user_data;
-
-	init_bit_slicer(&vpsd, vbi->samples_per_line, vbi->sampling_rate,
-		5000000, 2500000, 0xAAAA8A99, 24, 0, 13, MOD_BIPHASE_MSB_ENDIAN);
-
-	init_bit_slicer(&ttxd, vbi->samples_per_line, vbi->sampling_rate,
-		6937500, 6937500, 0x00AAAAE4, 10, 6, 42, MOD_NRZ_LSB_ENDIAN);
-
-	vps_offset = ((16 - (vbi->start[0] + 1)) << vbi->interlaced)
-		     * vbi->samples_per_line;
+	f = vbi_open_v4lx(dev_name, 0, FALSE, 5);
 
 	for (;;) {
-		unsigned char buf[42];
-		buffer *b;
-		int i;
+		buffer *b = wait_full_buffer(f);
+		vbi_sliced *s;
+		int items;
 
-		if (!(b = wait_full_buffer(&vbi->fifo)))
-			break; // XXX EOF
-
-		if (bit_slicer(&vpsd, b->data + vps_offset, buf))
-			decode_vps2(buf);
-
-		if (vbi->interlaced) {
-			for (i = 0; i < vbi->count[0] * 2; i += 2)
-				if (bit_slicer(&ttxd, b->data + i * vbi->samples_per_line, buf))
-					decode_ttx2(buf, i);
-
-			for (i = 1; i < (vbi->count[0] * 2 + 1); i += 2)
-				if (bit_slicer(&ttxd, b->data + i * vbi->samples_per_line, buf))
-					decode_ttx2(buf, i);
-		} else {
-			for (i = 0; i < vbi->count[0] + vbi->count[1]; i++)
-				if (bit_slicer(&ttxd, b->data + i * vbi->samples_per_line, buf))
-					decode_ttx2(buf, i);
+		if (!b) {
+			fprintf(stderr, "vbi i/o error\n");
+			break;
 		}
 
-		send_empty_buffer(&vbi->fifo, b);
+		s = (vbi_sliced *) b->data;
+		items = b->used / sizeof(vbi_sliced);
+
+		while (items) {
+			if (s->id & SLICED_TELETEXT_B)
+				decode_ttx2(s->data, s->line);
+//			else if (s->id & SLICED_CAPTION)
+//				vbi_caption_dispatcher(s->line, s->data);
+			else if (s->id & SLICED_VPS)
+				decode_vps2(s->data);
+
+			s++;
+			items--;
+		}
+
+		send_empty_buffer(f, b);
 	}
 
 	return EXIT_SUCCESS;
