@@ -18,7 +18,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: motion_mmx.s,v 1.4 2001-05-07 13:06:06 mschimek Exp $
+# $Id: motion_mmx.s,v 1.5 2001-05-24 01:11:36 mschimek Exp $
 
 		.text
 		.align		16
@@ -676,7 +676,8 @@ mmx_mbsum:
 		movl		mb_row,%edi
 		sall		$4,%edi
 		addl		$9-16,%edi
-		imull		$352,%edi,%edi
+		movl		mb_address+4,%ecx
+		imull		%ecx,%edi
 		addl		%eax,%edi
 		movl		$7,%ecx
 
@@ -723,7 +724,7 @@ mmx_mbsum:
 		packuswb	%mm1,%mm0;
 		pxor		%mm7,%mm0;
 		movq		%mm0,-16+8(%edi);
-		addl		$352,%edi
+		addl		mb_address+4,%edi
 		movq		(%esi),%mm0;
 		psubw		(%ebx),%mm0;
 		movq		8(%esi),%mm1;
@@ -747,7 +748,8 @@ mmx_mbsum:
 .L906:
 		movl		mb_row,%edi
 		sall		$4,%edi
-		imull		$352,%edi,%edi
+		movl		mb_address+4,%ecx
+		imull		%ecx,%edi
 		addl		%eax,%edi
 		movl		$mblock+3072,%ebx
 		movl		$8,%ecx
@@ -800,7 +802,7 @@ mmx_mbsum:
 		movq		8(%esi),%mm1;
 		psubw		8(%ebx),%mm1;
 		psubw		256+0(%ebx),%mm3;
-		leal		352(%edi),%edi
+		addl		mb_address+4,%edi
 		psubw		256+8(%ebx),%mm4;
 		paddw		128(%ebx),%mm0;		// mblock[4][0][y+8][0]
 		movq		%mm0,(%esi);
@@ -820,7 +822,8 @@ mmx_mbsum:
 		movl		mb_row,%edi
 		sall		$4,%edi
 		addl		$8,%edi
-		imull		$352,%edi,%edi
+		movl		mb_address+4,%edx
+		imull		%edx,%edi
 		addl		%eax,%edi
 		movl		$mblock+3200,%edx
 
@@ -919,7 +922,8 @@ mmx_mbsum:
 
 		sall		$4,%edi
 		addl		$9-16,%edi
-		imull		$352,%edi,%edi
+		movl		mb_address+4,%ecx
+		imull		%ecx,%edi
 		addl		%eax,%edi
 		movl		mb_col,%edx
 		sall		$5,%edx
@@ -967,7 +971,7 @@ mmx_mbsum:
 		psubw		(%edx),%mm0;
 		psubw		8(%edx),%mm3;
 		psubw		16(%edx),%mm4;
-		addl		$352,%edi
+		addl		mb_address+4,%edi
 		psubw		24(%edx),%mm5;
 		addl		$704,%edx
 		paddw		(%ebx),%mm0;
@@ -984,7 +988,8 @@ mmx_mbsum:
 .L924:
 		movl		mb_row,%edi
 		sall		$4,%edi
-		imull		$352,%edi,%edi
+		movl		mb_address+4,%ecx
+		imull		mb_address+4,%edi
 		addl		%eax,%edi
 		movl		$mblock,%ebx
 		movl		$8,%ecx
@@ -1029,7 +1034,7 @@ mmx_mbsum:
 		psubw		(%ebx),%mm0;		// mblock[0][0][y+0][0]
 		psubw		8(%ebx),%mm3;
 		psubw		256+0(%ebx),%mm4;
-		addl		$352,%edi
+		addl		mb_address+4,%edi
 		psubw		256+8(%ebx),%mm5;
 		paddw		128(%ebx),%mm0;		// mblock[0][0][y+8][0]
 		movq		%mm0,(%esi);

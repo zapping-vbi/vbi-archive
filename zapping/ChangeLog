@@ -7,6 +7,10 @@
 
 	* src/fullscreen.c: Made fullscreen usable under many heads.	
 
+16.05.2001	<mschimek@users.sourceforge.net>
+
+	* Fixed port_grabbed shortcut in xvz_grab_port.
+
 14.05.2001	--yuv-format flag <garetxe@users.sourceforge.net>
 
 	* src/main.c, capture.c, x11stuff.c: Added CLO [command line

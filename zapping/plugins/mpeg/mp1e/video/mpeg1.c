@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.29 2001-05-15 02:03:34 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.30 2001-05-24 01:11:36 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -203,6 +203,31 @@ const int mm_mbrow;
 #else
 static int motion = 8 * 256;
 #include "motion.c"
+#if 1
+#define ZMB1						\
+do {							\
+	if (var < 5000000) quant = 3;			\
+} while (0)
+#define ZMB2						\
+do { int i, j, n;					\
+	if (var < 1000000) n = 64 - 3; else		\
+	if (var < 5000000) n = 64 - 6; else n = 0;	\
+	for (i = 0; i < n; i++) {			\
+		j = 63 - iscan[0][(i - 1) & 63];	\
+		mblock[1][0][0][j] = 0;			\
+		mblock[1][1][0][j] = 0;			\
+		mblock[1][2][0][j] = 0;			\
+		mblock[1][3][0][j] = 0;			\
+		mblock[1][4][0][j] = 0;			\
+		mblock[1][5][0][j] = 0;			\
+	}						\
+} while (0)
+#define PBF 2
+#else
+#define ZMB1
+#define ZMB2
+#define PBF 4
+#endif
 #endif
 
 static int
@@ -292,7 +317,7 @@ picture_i(unsigned char *org0, unsigned char *org1)
 			if (quant >= 4 && quant > prev_quant &&
 			    nbabs(quant - prev_quant) <= 2)
 				quant = prev_quant;
-
+ZMB1;
 			/* Encode macroblock */
 
 			brewind(&mark, &video_out);
@@ -301,7 +326,7 @@ picture_i(unsigned char *org0, unsigned char *org1)
 				pr_start(22, "FDCT intra");
 				fdct_intra(quant); // mblock[0] -> mblock[1]
 				pr_end(22);
-
+ZMB2;
 				bepilog(&video_out);
 
 				if (!slice) {
@@ -404,7 +429,7 @@ do {									\
 		pr_start(22, "FDCT intra");				\
 		fdct_intra(quant); /* mblock[0] -> mblock[1] */		\
 		pr_end(22);						\
-									\
+ZMB2;									\
 		bepilog(&video_out);					\
 									\
 		if (f) {						\
@@ -591,7 +616,7 @@ picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_motion
 				Ti += Tmb;
 
 				intra_count++;
-
+ZMB1;
 				pb_intra_mb(TRUE);
 
 				if (prev_quant < 0)
@@ -963,7 +988,7 @@ if (!TEST3)
 				Ti += Tmb;
 
 				macroblock_type = MB_INTRA;
-
+ZMB1;
 				pb_intra_mb(TRUE);
 
 				if (prev_quant < 0)
@@ -1888,7 +1913,7 @@ video_init(void)
 		motion = (motion_min + motion_max) << 7;
 
 		p_inter_bias *= 2;
-		b_inter_bias *= 4;
+		b_inter_bias *= PBF;
 #endif
 
 	mb_cx_row = mb_height;

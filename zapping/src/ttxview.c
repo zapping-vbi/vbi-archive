@@ -1957,8 +1957,8 @@ void on_subtitle_select			(GtkWidget	*widget,
 
       zconf_set_integer(zvbi_page,
 			"/zapping/internal/callbacks/zvbi_page");
-
       osd_clear();
+      /* XXX should activate osd when in main window */
     }
 }
 
@@ -2059,11 +2059,17 @@ build_subtitles_submenu(GtkWidget *widget,
 	  && build_subtitles)
 	{
 	  if (language)
-	    buffer = g_strdup_printf("%s", language);
-	  else if (count < 5)
-	    buffer = g_strdup_printf(_("Caption %x"), count);
+	    {
+	      if (classf == VBI_SUBTITLE_PAGE)
+	        buffer = g_strdup_printf(_("Caption %x - %s"), count, language);
+	      else
+	        buffer = g_strdup_printf(_("Text %x - %s"), count - 4, language);
+	    }
 	  else
-	    buffer = g_strdup_printf(_("Text %x"), count-4);
+	    if (classf == VBI_SUBTITLE_PAGE)
+	      buffer = g_strdup_printf(_("Caption %x"), count);
+	    else
+	      buffer = g_strdup_printf(_("Text %x"), count - 4);
 
 	  menu_item = gtk_menu_item_new_with_label(buffer);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
@@ -2073,7 +2079,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	  gtk_widget_show(menu_item);
 
 	  g_free(buffer);
-
+/*
 	  if (language)
 	    {
 	      if (count < 5)
@@ -2083,7 +2089,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	      set_tooltip(menu_item, buffer);
 	      g_free(buffer);
 	    }
-
+*/
 	  empty = FALSE;
 	}
     }

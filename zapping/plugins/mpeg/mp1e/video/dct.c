@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct.c,v 1.11 2001-05-07 13:06:06 mschimek Exp $ */
+/* $Id: dct.c,v 1.12 2001-05-24 01:11:36 mschimek Exp $ */
 
 #include <assert.h>
 #include "../common/math.h"
@@ -71,6 +71,7 @@ mmx_t cC4C6_14 align(8);
 mmx_t cC2C61_13 align(8);
 mmx_t cC2626_15 align(8);
 mmx_t cC6262_15 align(8);
+mmx_t c256 align(8);
 mmx_t mm8, mm9;
 
 char			mmx_q_fdct_intra_sh[32]			align(MIN(CACHE_LINE,32));
@@ -117,13 +118,13 @@ init_dct(void)
 	c255		= MMXRW(255);
 	c128_6		= MMXRW(128 << 6);
 	c1b		= MMXRB(1);
+	c256		= MMXRW(1 << 8);
 
 	cC4_14		= MMXRW(lroundn(C4 * S14));
 	cC4_15		= MMXRW(lroundn(C4 * S15));
 
 	c1C6_13		= MMXRW(lroundn((1.0 / C6) * S13));
 	cC4C6_14	= MMXRW(lroundn((C4 / C6) * S14));
-
 	cC2C61_13	= MMXRW(lroundn((C2 / C6 - 1) * S13));
 	cC2626_15	= MMXW(lroundn(C2 * S15), -lroundn(C6 * S15), lroundn(C2 * S15), -lroundn(C6 * S15));
 	cC6262_15	= MMXW(lroundn(C6 * S15), +lroundn(C2 * S15), lroundn(C6 * S15), +lroundn(C2 * S15));

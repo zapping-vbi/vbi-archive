@@ -521,8 +521,10 @@ gboolean xvz_grab_port(tveng_device_info *info)
   XvImageFormatValues *pImgFormats=NULL;
   int nImgFormats;
 
-  if (disable_xv || port_grabbed)
+  if (disable_xv)
     return FALSE;
+  if (port_grabbed)
+    return TRUE;
 
   if (Success != XvQueryExtension(dpy, &version, &revision,
 				  &major_opcode, &event_base,

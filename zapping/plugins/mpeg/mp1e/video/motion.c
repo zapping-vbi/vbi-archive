@@ -10,7 +10,7 @@
  *  Motion test: add -b4, -gIPIP or -gIBIB, set T3RT 0, T3RI 0
  */
 
-/* $Id: motion.c,v 1.2 2001-05-15 02:03:34 mschimek Exp $ */
+/* $Id: motion.c,v 1.3 2001-05-24 01:11:36 mschimek Exp $ */
 
 #define TEST3p1 1	/* enable */
 #define T3RT 1		/* use prediction (zero prediction error if 0) */
@@ -940,7 +940,7 @@ load_ref(unsigned char t[16][16])
 	" :: "S" (&mblock[0][0][0][0]), "D" (&t[0][0]) : "memory");
 }
 
-mmx_t bbmin, bbdxy, crdxy;
+mmx_t bbmin, bbdxy, crdxy, crdy0;
 
 static inline void
 mmx_psse(char t[16][16], char *p, int pitch)
@@ -1074,6 +1074,20 @@ mmx_psse(char t[16][16], char *p, int pitch)
 
 		movq		%%mm4,%%mm0;
 
+
+		movq		%%mm4,%%mm5;
+		pxor		%%mm3,%%mm3;
+		pcmpgtb		%%mm4,%%mm3;
+		pxor		%%mm3,%%mm5;
+		psubb		%%mm3,%%mm5;
+
+		movq		%%mm5,%%mm3;
+		psrlw		$8,%%mm5;
+		paddsw		%%mm5,%%mm6;
+		pand		c255,%%mm3;
+		paddsw		%%mm3,%%mm6;
+
+
 		movq		%%mm1,%%mm5;
 		pcmpgtw		%%mm6,%%mm5;
 		movq		%%mm1,%%mm3;
@@ -1154,6 +1168,20 @@ mmx_psse(char t[16][16], char *p, int pitch)
 		pand		%%mm2,%%mm5;
 		pxor		%%mm5,%%mm4;
 		pxor		%%mm4,%%mm2;
+
+
+		movq		%%mm0,%%mm5;
+		pxor		%%mm3,%%mm3;
+		pcmpgtb		%%mm0,%%mm3;
+		pxor		%%mm3,%%mm5;
+		psubb		%%mm3,%%mm5;
+
+		movq		%%mm5,%%mm3;
+		psrlw		$8,%%mm5;
+		paddsw		%%mm5,%%mm7;
+		pand		c255,%%mm3;
+		paddsw		%%mm3,%%mm7;
+
 
 		movq		%%mm1,%%mm5;
 		pcmpgtw		%%mm7,%%mm5;
@@ -1726,7 +1754,7 @@ predict(unsigned char *from, int d2x, int d2y,
 
 static int
 search(int *dhx, int *dhy, int dir,
-      int x, int y, int range, short dest[6][8][8])
+       int x, int y, int range, short dest[6][8][8])
 {
 	typeof (temp22) *pat1, *pat2, *pat3, *pat4;
 	unsigned char *from = dir ? newref : oldref;
@@ -1738,8 +1766,8 @@ search(int *dhx, int *dhy, int dir,
 	typeof (temp22) *ibuf;
 	int iright, idown;
 
-	hrange = (range + 7) & ~7;
-	vrange = (range + 1) & ~1;
+	hrange = (range + 7) & -8;
+	vrange = (range + 3) & -4;
 
 	x0 = x - (hrange >> 1);	y0 = y - (vrange >> 1);
 	x1 = x + (hrange >> 1);	y1 = y + (vrange >> 1);
@@ -1751,14 +1779,13 @@ search(int *dhx, int *dhy, int dir,
 		x1 = mb_last_col * 16;
 		x0 = x1 - hrange;
 	}
-
-	if (y0 < 0) {
-		y0 = 0;
-		y1 = vrange;
-	} else if (y1 > mb_last_row * 16) {
-		y1 = mb_last_row * 16;
-		y0 = y1 - vrange;
-	}
+				if (y0 < 0) {
+					y0 = 0;
+					y1 = vrange;
+				} else if (y1 > mb_last_row * 16) {
+					y1 = mb_last_row * 16;
+					y0 = y1 - vrange;
+				}
 
 	assert(((x1 - x0) & 7) == 0);
 
@@ -1767,16 +1794,23 @@ search(int *dhx, int *dhy, int dir,
 
 	load_pref(tbuf);
 
-	p = (*bp[dir])[0] + y0 * 352;
+	p = (*bp[dir])[0] + y0 * mb_address.block[0].pitch;
 
-	for (j = y0; j < y1; p += 352, j++) {
-		for (k = 0; k < 4; k++) {
-			crdxy.b[k * 2 + 0] = x0 - x + k - 4;
-			crdxy.b[k * 2 + 1] = j - y;
-		}
+	for (k = 0; k < 4; k++) {
+		crdy0.b[k * 2 + 0] = x0 - x + k - 4;
+		crdy0.b[k * 2 + 1] = y0 - y - 1;
+	}
+
+	for (j = y0; j < y1; p += mb_address.block[0].pitch, j++) {
+		asm ("
+			movq		crdy0,%mm0;
+			paddb		c256,%mm0;
+			movq		%mm0,crdy0;
+			movq		%mm0,crdxy;
+		");
 
 		for (i = x0; i < x1; i += 8)
-			mmx_psse(tbuf, p + i, 352);
+			mmx_psse(tbuf, p + i, mb_address.block[0].pitch);
 	}
 
 	p = from + x + y * mb_address.block[0].pitch;
@@ -1785,8 +1819,7 @@ search(int *dhx, int *dhy, int dir,
 
 	min = mmx_sad(tbuf, p, mb_address.block[0].pitch);
 	min -= (min >> 3);
-	dx = 0;
-	dy = 0;
+	dx = 0;			dy = 0;
 
 	for (i = 0; i < 4; i++) {
 		act = mmx_sad(tbuf,
@@ -1801,18 +1834,14 @@ search(int *dhx, int *dhy, int dir,
 		}
 	}
 
-	*dhx = dx * 2;
-	*dhy = dy * 2;
+	*dhx = dx * 2;		*dhy = dy * 2;
 
 	/* half sample refinement */
 
-	x *= 2;
-	y *= 2;
-	dx *= 2;
-	dy *= 2;
+	x *= 2;			y *= 2;
+	dx *= 2;		dy *= 2;
 
-	ii = dx;
-	jj = dy;
+	ii = dx;		jj = dy;
 
 	/*
 	 *  Full range is eg. -8*2 ... +7*2, MV limit -16 ... +16;
@@ -1821,13 +1850,12 @@ search(int *dhx, int *dhy, int dir,
 	 *  eg. 0*2 -> 0,1,2 FHF. Used to skip refinement, not good.
 	 *  Boundary deltas are often +0,+0; Otherwise FHF occurs rarely.
 	 */
-	dx -= ((x + dx) >= (352 - 16) * 2);
+	dx -= ((x + dx) >= (mb_last_col * 16) * 2);
 	dy -= ((y + dy) >= (mb_last_row * 16) * 2);
 	dx += ((x + dx) <= x0 * 2);
 	dy += ((y + dy) <= y0 * 2);
 
-	ii -= dx; // default halfs from fine sad >> 3
-	jj -= dy;
+	ii -= dx;		jj -= dy; // default halfs from fine sad >> 3
 
 	mini[1][1] = min;
 
@@ -1838,6 +1866,9 @@ search(int *dhx, int *dhy, int dir,
 	pat2 = &temp2v;
 	pat3 = &temp2h;
 	pat4 = &temp22;
+
+	iright = ((dx ^ 1) & 1);
+	idown = ((dy ^ 1) & 1);
 
 	if (dx & 1) {
 		swap(pat1, pat3);
@@ -1855,15 +1886,15 @@ search(int *dhx, int *dhy, int dir,
 	 *  XXX the second result should be used.
 	 */
 	if ((dx | dy) & 1) {
-		// act = sad1(tbuf, *pat1, (dx ^ 1) & 1, (dy ^ 1) & 1); mini[1][1] = act;
-		act = mmx_sad2h(tbuf, *pat1, (dy ^ 1) & 1, &act2);
-		mini[1][1] = ((dx ^ 1) & 1) ? act2 : act;
+		// act = sad1(tbuf, *pat1, iright, idown); mini[1][1] = act;
+		act = mmx_sad2h(tbuf, *pat1, idown, &act2);
+		mini[1][1] = iright ? act2 : act;
 	}
 
-	act = mmx_sad2v(tbuf, *pat2, (dx ^ 1) & 1, &act2); mini[0][1] = act; mini[2][1] = act2;
-	act = mmx_sad2h(tbuf, *pat3, (dy ^ 1) & 1, &act2); mini[1][0] = act; mini[1][2] = act2;
+	act = mmx_sad2h(tbuf, *pat3, idown, &act2); mini[1][0] = act; mini[1][2] = act2;
 	act = mmx_sad2h(tbuf, *pat4, 0, &act2); mini[0][0] = act; mini[0][2] = act2;
 	act = mmx_sad2h(tbuf, *pat4, 1, &act2); mini[2][0] = act; mini[2][2] = act2;
+	act = mmx_sad2v(tbuf, *pat2, iright, &act2); mini[0][1] = act; mini[2][1] = act2;
 
 	/* XXX optimize */
 	for (j = -1; j <= +1; j++) {
@@ -1872,9 +1903,9 @@ search(int *dhx, int *dhy, int dir,
 
 			/* XXX inaccurate */
 			if (((dx + i) & (dy + j)) & 1)
-				act += act >> 2;
+				act += (act * 3) >> 4;
 			else if (((dx + i) | (dy + j)) & 1)
-				act += act >> 3;
+				act += (act * 4) >> 4;
 
 			if (act < min) {
 				min = act;
@@ -1887,24 +1918,17 @@ search(int *dhx, int *dhy, int dir,
 	}
 
 	if (ii == 0) {
-		if (jj == 0) {
-			ibuf = pat1;
-			iright = ((dx ^ 1) & 1);
-			idown = ((dy ^ 1) & 1);
-		} else {
+		ibuf = pat1;
+		if (jj != 0) {
 			ibuf = pat2;
-			iright = ((dx ^ 1) & 1);
-			idown = (jj < 0) ? 0 : 1;
+			idown = (((unsigned int) jj) >> 31) ^ 1;
 		}
 	} else {
-		if (jj == 0) {
-			ibuf = pat3;
-			iright = (ii < 0) ? 0 : 1;
-			idown = (dy ^ 1) & 1;
-		} else {
+		ibuf = pat3;
+		iright = (((unsigned int) ii) >> 31) ^ 1;
+		if (jj != 0) {
 			ibuf = pat4;
-			iright = (ii < 0) ? 0 : 1;
-			idown = (jj < 0) ? 0 : 1;
+			idown = (((unsigned int) jj) >> 31) ^ 1;
 		}
 	}
 
@@ -1934,7 +1958,7 @@ t4_edu(int dir, int *dxp, int *dyp, int sx, int sy,
 
 	x0 = x - (max_range >> 1); if (x0 < 0) x0 = 0;
 	y0 = y - (max_range >> 1); if (y0 < 0) y0 = 0;
-	x1 = x + (max_range >> 1); if (x1 > 352 - 16) x1 = 352 - 16;
+	x1 = x + (max_range >> 1); if (x1 > mb_last_col * 16) x1 = mb_last_col * 16;
 	y1 = y + (max_range >> 1); if (y1 > mb_last_row * 16) y1 = mb_last_row * 16;
 
 	if (xs - hrange < x0) {

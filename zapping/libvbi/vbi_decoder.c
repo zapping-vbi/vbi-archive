@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.13 2001-05-14 22:51:42 garetxe Exp $ */
+/* $Id: vbi_decoder.c,v 1.14 2001-05-24 01:11:36 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -890,6 +890,8 @@ cc_gen(struct vbi_capture *vbi, unsigned char *buf)
 #define BTTV_VERSION		_IOR('v' , BASE_VIDIOCPRIVATE+6, int)
 #define HAVE_V4L_VBI_FORMAT	0 // Linux 2.4
 
+int opt_sleep = 0;
+
 static buffer *
 wait_full_read(fifo *f)
 {
@@ -903,6 +905,9 @@ wait_full_read(fifo *f)
 
 	r = read(vbi->fd, vbi->raw_buffer[0].data,
 		 vbi->raw_buffer[0].size);
+
+	if (opt_sleep)
+		usleep(opt_sleep);
 
 	if (r != vbi->raw_buffer[0].size) {
 		IODIAG("VBI Read error");
@@ -2599,6 +2604,7 @@ long_options[] = {
 	{ "help",			no_argument,		NULL,		'h' },
 	{ "device",			required_argument,	NULL,		'd' },
 	{ "strict",			required_argument,	NULL,		's' },
+	{ "sleep",			required_argument,	NULL,		'p' },
 	{ "surrender",			no_argument,		NULL,		'u' },
 	{ "teletext",			no_argument,		&opt_teletext,	1 },
 	{ "pdc",			no_argument,		&opt_cni,	1 },
@@ -2652,7 +2658,7 @@ options(int ac, char **av)
 	char c;
 	int index;
 
-	while ((c = getopt_long(ac, av, "hd:s:", long_options, &index)) != -1) {
+	while ((c = getopt_long(ac, av, "hd:s:p:", long_options, &index)) != -1) {
 		switch (c) {
 		case 0:
 			break;
@@ -2663,6 +2669,10 @@ options(int ac, char **av)
 		
 		case 's':
 			opt_strict = strtol(optarg, NULL, 0);
+			break;
+
+		case 'p':
+			opt_sleep = strtol(optarg, NULL, 0);
 			break;
 
 		case 'u':

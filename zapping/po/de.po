@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
 "POT-Creation-Date: 2001-05-15 00:33+0200\n"
-"PO-Revision-Date: 2001-05-12 23:08+02:00\n"
+"PO-Revision-Date: 2001-05-24 03:09+02:00\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -55,24 +55,23 @@ msgstr "DWord-Ausrichtung des Overlayfensters"
 
 #: src/main.c:300
 msgid "Execute the given command and exit"
-msgstr ""
+msgstr "Angegebenen Befehl ausführen und das Programm beenden"
 
 #: src/main.c:301
 msgid "CMD"
-msgstr ""
+msgstr "CMD"
 
 #: src/main.c:309
-#, fuzzy
 msgid "Do not call zapping_setup_fb on startup"
-msgstr "Konnte zapping_setup_fb nicht finden, prüfen Sie Ihre Installation"
+msgstr "zapping_setup_fb nicht beim Start nicht aktivieren"
 
 #: src/main.c:318
 msgid "Pixformat for XVideo capture mode [YUYV | YVU420]"
-msgstr ""
+msgstr "Pixformat für XVideo Capturemodus [YUYV | YVU420]"
 
 #: src/main.c:319
 msgid "PIXFORMAT"
-msgstr ""
+msgstr "PIXFORMAT"
 
 #: src/main.c:361
 msgid "Sorry, but there is no module support in GLib"
@@ -320,28 +319,28 @@ msgstr ""
 #. pixmaps not installed
 #: src/zvbi.c:365
 msgid "Click me"
-msgstr ""
+msgstr "Anklicken"
 
 #: src/zvbi.c:396
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
 "Navigator"
-msgstr ""
+msgstr "Sie können diesen Link mit dem Webbrowser öffnen der im GNOME Kontrollzentrum unter Handlers/Url Navigator eingestellt ist"
 
 #: src/zvbi.c:403
-#, fuzzy, c-format
+#, c-format
 msgid "%s: TTX Page %x"
-msgstr "Seite %x"
+msgstr "%s: Seite %x"
 
 #: src/zvbi.c:405
 msgid "Open this with Zapzilla"
-msgstr ""
+msgstr "Seite mit Zapzilla öffnen"
 
 #: src/zvbi.c:408
 #, c-format
 msgid "Message: %s"
-msgstr ""
+msgstr "Info: %s"
 
 #: src/zvbi.c:531
 #, c-format
@@ -354,6 +353,10 @@ msgid ""
 "and create /dev/vbi0 appropiately. If this doesn't work, you can disable VBI "
 "in Settings/Preferences/VBI options/Enable VBI decoding."
 msgstr ""
+"VBI: %s konnte nicht geöffnet werden: %d, %s\n"
+"Das bedeutet wahrscheinlich der nötige Treiber ist nicht geladen, fügen Sie die folgende Zeile in der Datei /etc/modules.conf ein:\n"
+"alias char-major-81-224 bttv ('bttv' durch den Namen ihres Treibers ersetzen)\n"
+"danach erstellen Sie /dev/vbi0. Wenn das nicht funktioniert, können Sie VBI im Menu \"Einstellungen/VBI Optionen/VBI aktivieren\" abstellen."
 
 #: src/zvbi.c:1461
 #, c-format
@@ -701,7 +704,7 @@ msgid "Do not change input"
 msgstr "Eingang beibehalten"
 
 #: src/channel_editor.c:1159
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Channel autosearching won't work with XVideo.\n"
 "Please switch to another controller by starting\n"
@@ -710,11 +713,13 @@ msgid ""
 "%s"
 msgstr ""
 "Mit XVideo ist keine automatische Kanalprogrammierung möglich.\n"
-"Bitte aktivieren Sie the Capture-Modus (Menü \"Ansicht/Video\")"
+"Bitte aktivieren Sie the Capture-Modus (Menü \"Ansicht/Video\")\n"
+"Fehlermeldung:\n"
+"%s"
 
 #: src/channel_editor.c:1165
 msgid "Your current V4L/V4L2 driver cannot do, channel autosearching, sorry"
-msgstr ""
+msgstr "Ihr V4L/V4L2 Treiber erlaubt leider keine automatische Kanalprogrammierung"
 
 #: src/plugin_properties.c:56
 msgid "Sorry, but no plugins have been loaded"
@@ -879,12 +884,12 @@ msgstr "Ausgabe fehlgeschlagen: %s"
 #: src/ttxview.c:2063 src/ttxview.c:2079
 #, c-format
 msgid "Caption %x"
-msgstr ""
+msgstr "Caption %x"
 
 #: src/ttxview.c:2065 src/ttxview.c:2081
 #, c-format
 msgid "Text %x"
-msgstr ""
+msgstr "Text %x"
 
 #: src/ttxview.c:2100
 #, c-format
@@ -1184,18 +1189,18 @@ msgstr "Modus nicht verändern"
 
 #: glade/glade_strings.c:68
 msgid "Capture size under XVideo:"
-msgstr ""
+msgstr "Capturegröße unter XVideo:"
 
 #: glade/glade_strings.c:69
 msgid ""
 "Thanks to the XVideo extension, if present, the capture buffer can be scaled "
 "to arbitrary sizes using HW acceleration. Select here the capture size to "
 "use in this case."
-msgstr ""
+msgstr "Wenn die XVideo Extension verfügbar ist, kann der Capturepuffer hardwareunterstützt beliebig skaliert werden. Die Größe läßt sich hier einstellen."
 
 #: glade/glade_strings.c:70
 msgid "Biggest noninterlaced (autodetect)"
-msgstr ""
+msgstr "Größtmögliche ohne Zeilensprung (automatisch)"
 
 #: glade/glade_strings.c:71
 msgid "320x240"
@@ -1203,7 +1208,7 @@ msgstr "320x240"
 
 #: glade/glade_strings.c:72
 msgid "Interlaced (window size)"
-msgstr ""
+msgstr "Mit Zeilensprung (Fenstergröße)"
 
 #: glade/glade_strings.c:73
 msgid "General options"
@@ -1241,11 +1246,11 @@ msgstr ""
 
 #: glade/glade_strings.c:82
 msgid "Page to take subtitles from:"
-msgstr ""
+msgstr "Untertitelseite:"
 
 #: glade/glade_strings.c:83
 msgid "Where will subtitles be taken from"
-msgstr ""
+msgstr "Quelle von Untertiteln"
 
 #: glade/glade_strings.c:84
 msgid "Default region:"
@@ -1324,95 +1329,90 @@ msgid "Level 3.5 (proportional spacing, multicolour graphics)"
 msgstr "Level 3.5 (Proportionalschrift, mehrfarbige Grafik)"
 
 #: glade/glade_strings.c:100
-#, fuzzy
 msgid "General"
 msgstr "Allgemeine Optionen"
 
 #: glade/glade_strings.c:101
-#, fuzzy
 msgid "Filtering"
-msgstr "Filter"
+msgstr "Filtern"
 
 #: glade/glade_strings.c:102
 msgid "Program related links:"
-msgstr ""
+msgstr "Programmbezogene Links:"
 
 #: glade/glade_strings.c:103
-#, fuzzy
 msgid "Network related links:"
-msgstr "Rufzeichen:"
+msgstr "Senderbezogene Links:"
 
 #: glade/glade_strings.c:104
 msgid "Station related links:"
-msgstr ""
+msgstr "Stationsbezogene Links:"
 
 #: glade/glade_strings.c:105
 msgid "Sponsor messages:"
-msgstr ""
+msgstr "Werbeinformationen:"
 
 #: glade/glade_strings.c:106
 msgid "Operator messages:"
-msgstr ""
+msgstr "Betreibernachrichten:"
 
 #: glade/glade_strings.c:107 glade/glade_strings.c:111
 #: glade/glade_strings.c:115 glade/glade_strings.c:119
 #: glade/glade_strings.c:123
 msgid "What to do with this kind of links"
-msgstr ""
+msgstr "Was soll mit diesen Links geschehen"
 
 #: glade/glade_strings.c:108 glade/glade_strings.c:112
 #: glade/glade_strings.c:116 glade/glade_strings.c:120
 #: glade/glade_strings.c:124 glade/glade_strings.c:134
 msgid "Ignore"
-msgstr ""
+msgstr "Ignorieren"
 
 #: glade/glade_strings.c:109 glade/glade_strings.c:113
 #: glade/glade_strings.c:117 glade/glade_strings.c:121
 #: glade/glade_strings.c:125 glade/glade_strings.c:135
 msgid "Show in the status bar"
-msgstr ""
+msgstr "In der Statuszeile anzeigen"
 
 #: glade/glade_strings.c:110 glade/glade_strings.c:114
 #: glade/glade_strings.c:118 glade/glade_strings.c:122
 #: glade/glade_strings.c:126 glade/glade_strings.c:136
 msgid "Open automatically"
-msgstr ""
+msgstr "Automatisch Öffnen"
 
 #: glade/glade_strings.c:127
-#, fuzzy
 msgid "Filter Level:"
-msgstr "Filter"
+msgstr "Filterstufe:"
 
 #: glade/glade_strings.c:128
 msgid ""
 "Sometimes a priority level is transmitted with the trigger, it can be used "
 "to filter the messages you want to receive"
-msgstr ""
+msgstr "Manchmal ordnen die Sender den Links Prioritäten zu, damit können unerwünschte Informationen unterdrückt werden"
 
 #: glade/glade_strings.c:129
 msgid "High priority only"
-msgstr ""
+msgstr "Nur hohe Priorität"
 
 #: glade/glade_strings.c:130
 msgid "Medium and High priority"
-msgstr ""
+msgstr "Hohe und mittlere Priorität"
 
 #: glade/glade_strings.c:131
 msgid "All messages"
-msgstr ""
+msgstr "Alle Links"
 
 #: glade/glade_strings.c:132
-#, fuzzy
 msgid "Default action:"
-msgstr "Sprachvorgabe:"
+msgstr "Standardaktion:"
 
 #: glade/glade_strings.c:133
 msgid "What to do with received trigger if no identifier is transmitted"
-msgstr ""
+msgstr "Was soll mit empfangenen Links ohne Namen geschehen"
 
 #: glade/glade_strings.c:137
 msgid "Interactive TV"
-msgstr ""
+msgstr "Interaktives Fernsehen"
 
 #: glade/glade_strings.c:138
 msgid "VBI options"
@@ -1480,17 +1480,16 @@ msgstr "Beschleunigung"
 
 #: glade/glade_strings.c:154
 msgid "Move selected channels one row up"
-msgstr ""
+msgstr "Gewählte Kanäle eine Zeile nach oben"
 
 #: glade/glade_strings.c:155
 msgid "Move selected channels one row down"
-msgstr ""
+msgstr "Gewählte Kanäle eine Zeile nach unten"
 
 # src/interface.c:440
 #: glade/glade_strings.c:156
-#, fuzzy
 msgid "Delete selected channels"
-msgstr "Anklicken um die gewählten Kanäle zu löschen"
+msgstr "Die gewählten Kanäle löschen"
 
 #: glade/glade_strings.c:157
 msgid "_Remove"
@@ -1867,12 +1866,11 @@ msgstr "R"
 
 #: glade/glade_strings.c:261
 msgid "Exit TTX mode [Esc]"
-msgstr ""
+msgstr "Teletext Modus verlassen [Esc]"
 
 #: glade/glade_strings.c:262
-#, fuzzy
 msgid "button35"
-msgstr "Taste"
+msgstr ""
 
 #: glade/glade_strings.c:263
 msgid "Open this link in a new window"
