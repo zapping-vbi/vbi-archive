@@ -17,10 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.h,v 1.1.2.1 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: network.h,v 1.1.2.2 2004-02-25 17:30:49 mschimek Exp $ */
 
-#ifndef NUID_H
-#define NUID_H
+#ifndef NETWORK_H
+#define NETWORK_H
 
 #include <inttypes.h>
 
@@ -37,10 +37,10 @@
  * For proper data caching libzvbi must assign networks a unique ID.
  * Since there is no single standard to follow we use arbitrary
  * 64 bit integers. IDs calculated by the library are random
- * negative numbers. You can store these IDs with your channel data or
- * assign custom IDs, for example an index into a channel table.
- * Custom IDs must be in range 1 ... (1 << 63) - 1.
- * The value zero must be interpreted as unknown or invalid ID.
+ * negative numbers. You can store these IDs with your channel
+ * data or assign custom IDs, for example a DVB PID or an index
+ * into a channel table. Custom IDs must be in range 1 ... (1 << 63)
+ * - 1. The value zero must be interpreted as unknown or invalid ID.
  */
 typedef int64_t vbi_nuid;
 
@@ -53,7 +53,7 @@ typedef int64_t vbi_nuid;
 /**
  * @brief Network description.
  *
- * All strings are ISO 8859-1, local language, and @c NUL terminated.
+ * All strings are in locale format, local language, and @c NUL terminated.
  * Prepare for empty strings. Read only.
  *
  * Note this structure may grow in the future.
@@ -61,27 +61,22 @@ typedef int64_t vbi_nuid;
 typedef struct {
 	vbi_nuid		nuid;
 
-	char			name[64];		/* descriptive name */
-	char			call[40];		/* network call letters (XDS) */
+	char *			name;
+	char *			call_sign;	/* network call letters (XDS) */
+	const char *		country_code;
 
-	int			tape_delay;		/* tape delay, minutes (XDS) */
+  int			tape_delay;	/* tape delay, minutes (XDS) */
 
 	/* Private */
 
-	int			cni_vps;
-	int			cni_8301;
-	int			cni_8302;
-	int			cni_x26;
+	unsigned int		cni_vps;
+	unsigned int		cni_8301;
+	unsigned int		cni_8302;
+	unsigned int		cni_pdc_a;
+	unsigned int		cni_pdc_b;
 
-	int			cycle;
+  int			cycle;
 } vbi_network;
-
-/* Private */
-
-extern vbi_bool
-vbi_network_from_nuid		(vbi_network *		n,
-				 vbi_nuid		nuid);
-/* Public */
 
 extern void
 vbi_network_delete		(vbi_network *		n);
@@ -96,11 +91,17 @@ vbi_network_new			(vbi_nuid		nuid);
 typedef enum {
 	VBI_CNI_TYPE_NONE,
 	VBI_CNI_TYPE_UNKNOWN = VBI_CNI_TYPE_NONE,
-	/** VPS format. */
+	/** VPS format, for example from vbi_decode_vps_cni(). */
 	VBI_CNI_TYPE_VPS,
-	/** Teletext packet 8/30 format 1. */
+	/**
+	 * Teletext packet 8/30 format 1, for example
+	 * from vbi_decode_teletext_8301_cni().
+	 */
 	VBI_CNI_TYPE_8301,
-	/** Teletext packet 8/30 format 2. */
+	/**
+	 * Teletext packet 8/30 format 2, for example
+	 * from vbi_decode_teletext_8302_cni().
+	 */
 	VBI_CNI_TYPE_8302,
 	/**
 	 * 5 digit PDC Preselection method "A" format
