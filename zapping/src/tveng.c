@@ -329,12 +329,18 @@ int tveng_attach_device(const char* device_file,
       fprintf(stderr, "Device signature: %x\n", info->signature);
       fprintf(stderr, "Detected framebuffer depth: %d\n",
 	      tveng_get_display_depth(info));
-      fprintf(stderr, "Current capture format:\n");
-      fprintf(stderr, "  Dimensions: %dx%d  BytesPerLine: %d  Pixfmt: %s "
-	      "Size: %d K\n", info->format.width,
-	      info->format.height, info->format.bytesperline,
-	      tv_pixfmt_name (info->format.pixfmt),
-	      info->format.sizeimage/1024);
+      fprintf (stderr, "Capture format:\n"
+	       "  buffer size            %ux%u pixels, 0x%x bytes\n"
+	       "  bytes per line         %u, %u bytes\n"
+	       "  offset		 %u, %u, %u bytes\n"
+	       "  pixfmt                 %s\n",
+	       info->format.width, info->format.height,
+	       info->format.size,
+	       info->format.bytes_per_line,
+	       info->format.uv_bytes_per_line,
+	       info->format.offset, info->format.u_offset,
+	       info->format.v_offset,
+	       tv_pixfmt_name (info->format.pixfmt));
       fprintf(stderr, "Current overlay window struct:\n");
       fprintf(stderr, "  Coords: %dx%d-%dx%d\n",
 	      info->overlay_window.x,
@@ -1206,14 +1212,10 @@ tveng_set_capture_format(tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->format.height < info->caps.minheight)
-    info->format.height = info->caps.minheight;
-  if (info->format.height > info->caps.maxheight)
-    info->format.height = info->caps.maxheight;
-  if (info->format.width < info->caps.minwidth)
-    info->format.width = info->caps.minwidth;
-  if (info->format.width > info->caps.maxwidth)
-    info->format.width = info->caps.maxwidth;
+  info->format.height = SATURATE (info->format.height,
+				  info->caps.minheight, info->caps.maxheight);
+  info->format.width  = SATURATE (info->format.width,
+				  info->caps.minwidth, info->caps.maxwidth);
 
   if (info->priv->dword_align)
     round_boundary_4 (NULL, &info->format.width,
@@ -2285,14 +2287,8 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
     round_boundary_4 (NULL, &info->format.width,
 		      info->format.pixfmt, info->caps.maxwidth);
 
-  if (width < info->caps.minwidth)
-    width = info->caps.minwidth;
-  if (width > info->caps.maxwidth)
-    width = info->caps.maxwidth;
-  if (height < info->caps.minheight)
-    height = info->caps.minheight;
-  if (height > info->caps.maxheight)
-    height = info->caps.maxheight;
+  height = SATURATE (height, info->caps.minheight, info->caps.maxheight);
+  width  = SATURATE (width, info->caps.minwidth, info->caps.maxwidth);
 
   if (info->priv->module.set_capture_size)
     RETURN_UNTVLOCK(info->priv->module.set_capture_size(width,
@@ -2340,41 +2336,39 @@ static tv_bool
 validate_overlay_buffer		(const tv_overlay_buffer *dga,
 				 const tv_overlay_buffer *dma)
 {
-	char *dga_end;
-	char *dma_end;
+	unsigned long dga_end;
+	unsigned long dma_end;
 
-	if (dga->base == NULL
-	    || dga->width < 32 || dga->height < 32
-	    || dga->bytes_per_line < dga->width
-	    || dga->size < (dga->bytes_per_line * dga->height))
+	if (0 == dga->base
+	    || dga->format.width < 32 || dga->format.height < 32
+	    || dga->format.bytes_per_line < dga->format.width
+	    || dga->format.size < (dga->format.bytes_per_line * dga->format.height))
 		return FALSE;
 
-	if (dma->base == NULL
-	    || dma->width < 32 || dma->height < 32
-	    || dma->bytes_per_line < dma->width
-	    || dma->size < (dma->bytes_per_line * dma->height))
+	if (0 == dma->base
+	    || dma->format.width < 32 || dma->format.height < 32
+	    || dma->format.bytes_per_line < dma->format.width
+	    || dma->format.size < (dma->format.bytes_per_line * dma->format.height))
 		return FALSE;
 
-	dga_end = ((char *) dga->base) + dga->size;
-	dma_end = ((char *) dma->base) + dma->size;
+	dga_end = dga->base + dga->format.size;
+	dma_end = dma->base + dma->format.size;
 
-	if (dma_end < ((char *) dga->base))
+	if (dma_end < dga->base
+	    || dma->base >= dga_end)
 		return FALSE;
 
-	if (((char *) dma->base) >= dga_end)
+	if (TV_PIXFMT_NONE == dga->format.pixfmt)
 		return FALSE;
 
-	if (TV_PIXFMT_NONE == dga->pixfmt)
-		return FALSE;
-
-	if (dga->bytes_per_line != dma->bytes_per_line
-	    || dga->pixfmt != dma->pixfmt)
+	if (dga->format.bytes_per_line != dma->format.bytes_per_line
+	    || dga->format.pixfmt != dma->format.pixfmt)
 		return FALSE;
 
 	/* Adjust? */
 	if (dga->base != dma->base
-	    || dga->width != dma->width
-	    || dga->height != dma->height)
+	    || dga->format.width != dma->format.width
+	    || dga->format.height != dma->format.height)
 		return FALSE;
 
 	return TRUE;
@@ -2660,7 +2654,7 @@ tveng_set_preview_window(tveng_device_info * info)
   if (info->priv->dword_align)
     round_boundary_4 (&info->overlay_window.x,
 		      &info->overlay_window.width,
-		      info->overlay_buffer.pixfmt,
+		      info->overlay_buffer.format.pixfmt,
 		      info->caps.maxwidth);
 
   if (info->overlay_window.height < info->caps.minheight)
@@ -3561,10 +3555,100 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 	case TV_PIXFMT_RESERVED3:
 		break;
 
-		/* No default, gcc warns. */
+		/* No default, gcc warns if we missed any. */
 	}
 
 	return NULL;
+}
+
+unsigned int
+tv_pixfmt_bytes_per_pixel	(tv_pixfmt		pixfmt)
+{
+	switch (pixfmt) {
+	case TV_PIXFMT_YUV444:
+	case TV_PIXFMT_YVU444:
+	case TV_PIXFMT_YUV422:
+	case TV_PIXFMT_YVU422:
+	case TV_PIXFMT_YUV411:
+	case TV_PIXFMT_YVU411:
+	case TV_PIXFMT_YUV420:
+	case TV_PIXFMT_YVU420:
+	case TV_PIXFMT_YUV410:
+	case TV_PIXFMT_YVU410:
+		return 1;
+
+	case TV_PIXFMT_YUVA24_LE:
+	case TV_PIXFMT_YUVA24_BE:
+	case TV_PIXFMT_YVUA24_LE:
+	case TV_PIXFMT_YVUA24_BE:
+		return 4;
+
+	case TV_PIXFMT_YUV24_LE:
+	case TV_PIXFMT_YUV24_BE:
+	case TV_PIXFMT_YVU24_LE:
+	case TV_PIXFMT_YVU24_BE:
+		return 3;
+
+	case TV_PIXFMT_YUYV:
+	case TV_PIXFMT_YVYU:
+	case TV_PIXFMT_UYVY:
+	case TV_PIXFMT_VYUY:
+		return 2;
+
+	case TV_PIXFMT_Y8:
+		return 1;
+
+	case TV_PIXFMT_RGBA24_LE:
+	case TV_PIXFMT_RGBA24_BE:
+	case TV_PIXFMT_BGRA24_LE:
+	case TV_PIXFMT_BGRA24_BE:
+		return 4;
+
+	case TV_PIXFMT_RGB24_LE:
+	case TV_PIXFMT_BGR24_LE:
+		return 3;
+
+	case TV_PIXFMT_RGB16_LE:
+	case TV_PIXFMT_RGB16_BE:
+	case TV_PIXFMT_BGR16_LE:
+	case TV_PIXFMT_BGR16_BE:
+	case TV_PIXFMT_RGBA15_LE:
+	case TV_PIXFMT_RGBA15_BE:
+	case TV_PIXFMT_BGRA15_LE:
+	case TV_PIXFMT_BGRA15_BE:
+	case TV_PIXFMT_ARGB15_LE:
+	case TV_PIXFMT_ARGB15_BE:
+	case TV_PIXFMT_ABGR15_LE:
+	case TV_PIXFMT_ABGR15_BE:
+	case TV_PIXFMT_RGBA12_LE:
+	case TV_PIXFMT_RGBA12_BE:
+	case TV_PIXFMT_BGRA12_LE:
+	case TV_PIXFMT_BGRA12_BE:
+	case TV_PIXFMT_ARGB12_LE:
+	case TV_PIXFMT_ARGB12_BE:
+	case TV_PIXFMT_ABGR12_LE:
+	case TV_PIXFMT_ABGR12_BE:
+		return 2;
+
+	case TV_PIXFMT_RGB8:
+	case TV_PIXFMT_BGR8:
+	case TV_PIXFMT_RGBA7:
+	case TV_PIXFMT_BGRA7:
+	case TV_PIXFMT_ARGB7:
+	case TV_PIXFMT_ABGR7:
+		return 1;
+
+	case TV_PIXFMT_NONE:
+	case TV_PIXFMT_RESERVED0:
+	case TV_PIXFMT_RESERVED1:
+	case TV_PIXFMT_RESERVED2:
+	case TV_PIXFMT_RESERVED3:
+		break;
+
+		/* No default, gcc warns if we missed any. */
+	}
+
+	return 0;
 }
 
 /* XXX check this, esp LE/BE */
@@ -3653,15 +3737,19 @@ tv_pixfmt_to_pixel_format	(tv_pixel_format *	format,
 	attr = attr_table [pixfmt];
 
 	format->pixfmt			= pixfmt;
-	format->reserved		= 0;
+	format->_reserved1		= 0;
+
 	format->uv_hscale		= 1;
 	format->uv_vscale		= 1;
+
 #if BYTE_ORDER == BIG_ENDIAN
 	format->big_endian		= !!(attr & 3);
 #else
 	format->big_endian		= attr & 1;
 #endif
+
 	format->planar			= FALSE;
+
 	format->mask.rgb.a		= 0;
 
 	switch (pixfmt) {
@@ -4025,7 +4113,7 @@ tv_pixel_format_to_pixfmt	(tv_pixel_format *	format)
 		return FALSE;
 	}
 
-	format->reserved = 0;
+	format->_reserved1 = 0;
 
 	format->uv_hscale = 1;
 	format->uv_vscale = 1;
@@ -4386,6 +4474,9 @@ tveng_copy_block		(uint8_t *		src,
 				 unsigned int		dst_stride,
 				 unsigned int		lines)
 {
+  /* XXX dont copy padding if > 32 bytes;
+     eventually use MMX/SSE. */
+
 	if (src_stride != dst_stride) {
 		unsigned int min_stride = MIN (src_stride, dst_stride);
 
@@ -4396,6 +4487,7 @@ tveng_copy_block		(uint8_t *		src,
 	}
 }
 
+/* XXX should take dst*, src*, tv_image_format* */
 void
 tveng_copy_frame		(unsigned char *	src,
 				 tveng_image_data *	where,
@@ -4416,6 +4508,8 @@ tveng_copy_frame		(unsigned char *	src,
 		src_u = src_y + size_y;
 		src_v = src_u + (size_y >> 2);
 
+		/* XXX shortcut if no padding between planes. */
+
 		tveng_copy_block (src_y, where->planar.y,
 				  info->format.width,
 				  where->planar.y_stride,
@@ -4432,7 +4526,7 @@ tveng_copy_frame		(unsigned char *	src,
 				  info->format.height >> 1);
 	} else {
 		tveng_copy_block (src, where->linear.data,
-				  info->format.bytesperline,
+				  info->format.bytes_per_line,
 				  where->linear.stride,
 				  info->format.height);
 	}
@@ -4740,4 +4834,154 @@ tv_clip_vector_to_clip_mask	(tv_clip_vector *	vector,
  failure:
 	free (mask);
 	return NULL;
+}
+
+tv_bool
+tv_image_format_init		(tv_image_format *	format,
+				 unsigned int		width,
+				 unsigned int		height,
+				 tv_pixfmt		pixfmt,
+				 unsigned int		reserved)
+{
+	tv_pixel_format pixel;
+
+	assert (NULL != format);
+
+	if (!tv_pixfmt_to_pixel_format (&pixel, pixfmt, 0))
+		return FALSE;
+
+	if (0 == width || 0 == height)
+		return FALSE;
+
+	if (pixel.planar) {
+		/* Round size up to U and V scale factors. */
+
+		width += pixel.uv_hscale - 1;
+		width -= width % pixel.uv_hscale;
+
+		height += pixel.uv_vscale - 1;
+		height -= height % pixel.uv_vscale;
+	}
+
+	format->width = width;
+	format->height = height;
+
+	/* No padding. */
+	format->bytes_per_line = (width * pixel.bits_per_pixel + 7) >> 3;
+
+	format->offset = 0;
+
+	if (pixel.planar) {
+		unsigned int y_size;
+		unsigned int uv_size;
+
+		/* No padding. */
+		format->uv_bytes_per_line = width / pixel.uv_hscale;
+
+		y_size = format->bytes_per_line * height;
+		uv_size = y_size / (pixel.uv_hscale * pixel.uv_vscale);
+
+		if (pixel.vu_order) {
+			format->v_offset = y_size; 
+			format->u_offset = y_size + uv_size;
+		} else {
+			format->u_offset = y_size; 
+			format->v_offset = y_size + uv_size;
+		}
+
+		format->size = y_size + uv_size * 2;
+	} else {
+		format->uv_bytes_per_line = 0;
+
+		format->u_offset = 0;
+		format->v_offset = 0;
+
+		format->size = format->bytes_per_line * height;
+	}
+
+	format->pixfmt = pixfmt;
+	format->_reserved = reserved;
+
+	return TRUE;
+}
+
+tv_bool
+tv_image_format_is_valid	(const tv_image_format *format)
+{
+	tv_pixel_format pixel;
+	unsigned int min_bytes_per_line;
+	unsigned int min_size;
+
+	assert (NULL != format);
+
+	if (!tv_pixfmt_to_pixel_format (&pixel, format->pixfmt, 0))
+		return FALSE;
+
+	if (0 == format->width
+	    || 0 == format->height)
+		return FALSE;
+
+	min_bytes_per_line = (format->width * pixel.bits_per_pixel + 7) >> 3;
+
+	if (format->bytes_per_line < min_bytes_per_line)
+		return FALSE;
+
+	/* We don't enforce bytes_per_line padding on the last
+	   line, in case offset and bytes_per_line were adjusted
+	   for cropping. */
+	min_size = format->bytes_per_line * (format->height - 1)
+		+ min_bytes_per_line;
+
+	if (pixel.planar) {
+		unsigned int min_uv_bytes_per_line;
+		unsigned int min_uv_size;
+		unsigned int p1_offset;
+		unsigned int p2_offset;
+
+		if (0 != format->width % pixel.uv_hscale
+		    || 0 != format->height % pixel.uv_vscale)
+			return FALSE;
+
+		if (0 != format->bytes_per_line % pixel.uv_hscale)
+			return FALSE;
+
+		/* U and V bits_per_pixel assumed 8. */
+		min_uv_bytes_per_line = format->width / pixel.uv_hscale;
+
+		if (format->uv_bytes_per_line < min_uv_bytes_per_line)
+			return FALSE;
+
+		/* We don't enforce bytes_per_line padding on the last line. */
+		min_uv_size = format->uv_bytes_per_line
+			* (format->height / pixel.uv_vscale - 1)
+			+ min_uv_bytes_per_line;
+
+		if (pixel.vu_order != (format->v_offset > format->u_offset))
+			return FALSE;
+
+		if (format->u_offset > format->v_offset) {
+			p1_offset = format->v_offset;
+			p2_offset = format->u_offset;
+		} else {
+			p1_offset = format->u_offset;
+			p2_offset = format->v_offset;
+		}
+
+		/* Y before U and V, planes must not overlap. */
+		if (format->offset + min_size >= p1_offset)
+			return FALSE;
+
+		/* U and V planes must not overlap. */
+		if (p1_offset + min_uv_size >= p2_offset)
+			return FALSE;
+
+		/* All planes must fit in buffer. */
+		if (p2_offset + min_uv_size >= format->size)
+			return FALSE;
+	} else {
+		if (format->offset + min_size >= format->size)
+			return FALSE;
+	}
+
+	return TRUE;
 }
