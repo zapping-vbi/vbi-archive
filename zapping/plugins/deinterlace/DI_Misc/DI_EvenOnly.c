@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_EvenOnly.c,v 1.1 2005-01-08 14:54:23 mschimek Exp $
+// $Id: DI_EvenOnly.c,v 1.2 2005-02-05 22:20:18 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:54:23  mschimek
+// *** empty log message ***
+//
 // Revision 1.2  2004/11/15 23:03:19  michael
 // *** empty log message ***
 //
@@ -83,7 +86,7 @@ DEINTERLACE_METHOD EvenOnlyMethod =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
-    "Even Scanlines Only", 
+    N_("Even Scanlines Only"), 
     "Even",
     TRUE, 
     FALSE, 

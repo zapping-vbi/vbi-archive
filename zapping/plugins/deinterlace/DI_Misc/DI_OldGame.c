@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_OldGame.c,v 1.1 2005-01-08 14:34:43 mschimek Exp $
+// $Id: DI_OldGame.c,v 1.2 2005-02-05 22:19:34 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Lindsey Dubb.  All rights reserved.
 // based on OddOnly and Temporal Noise DScaler Plugins
@@ -20,6 +20,11 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:34:43  mschimek
+// TomsMoCompMethod, MoComp2Method, VideoWeaveMethod, VideoBobMethod,
+// TwoFrameMethod, OldGameMethod, Greedy2FrameMethod, GreedyMethod,
+// DI_GreedyHSettings: Localized.
+//
 // Revision 1.2  2004/11/15 23:03:19  michael
 // *** empty log message ***
 //
@@ -154,7 +159,7 @@ static DEINTERLACE_METHOD OldGameMethod =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
-    "Old Game", 
+    N_("Old Game"), 
     NULL,     // It could make sense to use this with a resolution sensing adaptive filter
     TRUE, 
     FALSE, 

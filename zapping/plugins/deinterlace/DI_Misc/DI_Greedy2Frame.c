@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// $Id: DI_Greedy2Frame.c,v 1.1 2005-01-08 14:35:01 mschimek Exp $
+// $Id: DI_Greedy2Frame.c,v 1.2 2005-02-05 22:19:53 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,11 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:35:01  mschimek
+// TomsMoCompMethod, MoComp2Method, VideoWeaveMethod, VideoBobMethod,
+// TwoFrameMethod, OldGameMethod, Greedy2FrameMethod, GreedyMethod,
+// DI_GreedyHSettings: Localized.
+//
 // Revision 1.2  2004/11/15 23:03:19  michael
 // *** empty log message ***
 //
@@ -85,7 +90,7 @@ DEINTERLACE_METHOD Greedy2FrameMethod =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
-    "Greedy 2 Frame", 
+    N_("Greedy 2 Frame"), 
     "Greedy2", 
     FALSE, 
     FALSE, 

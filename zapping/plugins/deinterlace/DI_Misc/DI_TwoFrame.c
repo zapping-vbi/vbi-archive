@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// $Id: DI_TwoFrame.c,v 1.1 2005-01-08 14:34:04 mschimek Exp $
+// $Id: DI_TwoFrame.c,v 1.2 2005-02-05 22:19:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 Steven Grimm.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,11 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:34:04  mschimek
+// TomsMoCompMethod, MoComp2Method, VideoWeaveMethod, VideoBobMethod,
+// TwoFrameMethod, OldGameMethod, Greedy2FrameMethod, GreedyMethod,
+// DI_GreedyHSettings: Localized.
+//
 // Revision 1.2  2004/11/15 23:03:19  michael
 // *** empty log message ***
 //
@@ -84,7 +89,7 @@ DEINTERLACE_METHOD TwoFrameMethod =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
-    "Video Deinterlace (2-Frame)", 
+    N_("Video Deinterlace (2-Frame)"), 
     "2-Frame", 
     FALSE, 
     FALSE, 

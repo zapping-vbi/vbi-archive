@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyH.c,v 1.1 2005-01-08 14:35:29 mschimek Exp $
+// $Id: DI_GreedyH.c,v 1.2 2005-02-05 22:21:06 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -36,6 +36,11 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:35:29  mschimek
+// TomsMoCompMethod, MoComp2Method, VideoWeaveMethod, VideoBobMethod,
+// TwoFrameMethod, OldGameMethod, Greedy2FrameMethod, GreedyMethod,
+// DI_GreedyHSettings: Localized.
+//
 // Revision 1.16  2002/06/18 19:46:07  adcockj
 // Changed appliaction Messages to use WM_APP instead of WM_USER
 //
@@ -607,7 +612,7 @@ DEINTERLACE_METHOD GreedyHMethod =
 {
 	sizeof(DEINTERLACE_METHOD),		// size of this struct
 	DEINTERLACE_CURRENT_VERSION,	// curr version compiled	
-	"Video (Greedy, High Motion)",	// What to display when selected
+	N_("Video (Greedy, High Motion)"),	// What to display when selected
 	"GreedyH",						// Short name
 	FALSE,							// Is 1/2 height?
 	FALSE,							// Is film mode?

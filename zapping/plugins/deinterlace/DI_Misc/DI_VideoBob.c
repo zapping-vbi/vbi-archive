@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_VideoBob.c,v 1.1 2005-01-08 14:33:51 mschimek Exp $
+// $Id: DI_VideoBob.c,v 1.2 2005-02-05 22:19:04 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 // Based on code from Virtual Dub Plug-in by Gunnar Thalin
@@ -26,6 +26,11 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:33:51  mschimek
+// TomsMoCompMethod, MoComp2Method, VideoWeaveMethod, VideoBobMethod,
+// TwoFrameMethod, OldGameMethod, Greedy2FrameMethod, GreedyMethod,
+// DI_GreedyHSettings: Localized.
+//
 // Revision 1.2  2004/11/15 23:03:19  michael
 // *** empty log message ***
 //
@@ -88,7 +93,7 @@ DEINTERLACE_METHOD VideoBobMethod =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
-    "Video Deinterlace (Bob)", 
+    N_("Video Deinterlace (Bob)"), 
     "Bob",
     FALSE, 
     FALSE, 

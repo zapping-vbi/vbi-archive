@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_MoComp2.c,v 1.2 2005-01-31 07:03:38 mschimek Exp $
+// $Id: DI_MoComp2.c,v 1.3 2005-02-05 22:18:27 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2003 Tom Barry & John Adcock.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2005/01/31 07:03:38  mschimek
+// Don\'t define size_t or we run into conflicts with system headers.
+//
 // Revision 1.1  2005/01/08 14:33:33  mschimek
 // TomsMoCompMethod, MoComp2Method, VideoWeaveMethod, VideoBobMethod,
 // TwoFrameMethod, OldGameMethod, Greedy2FrameMethod, GreedyMethod,
@@ -84,7 +87,7 @@ DEINTERLACE_METHOD MoComp2Method =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
-    "Video (MoComp2)", 
+    N_("Video (MoComp2)"), 
     "MoComp2",
     FALSE, 
     FALSE, 

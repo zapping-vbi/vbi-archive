@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_TomsMoComp.c,v 1.1 2005-01-08 14:33:23 mschimek Exp $
+// $Id: DI_TomsMoComp.c,v 1.2 2005-02-05 22:18:17 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2002 Tom Barry.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -31,6 +31,11 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:33:23  mschimek
+// TomsMoCompMethod, MoComp2Method, VideoWeaveMethod, VideoBobMethod,
+// TwoFrameMethod, OldGameMethod, Greedy2FrameMethod, GreedyMethod,
+// DI_GreedyHSettings: Localized.
+//
 // Revision 1.7  2003/06/17 12:46:29  adcockj
 // Added Help for new deinterlace methods
 //
@@ -102,7 +107,7 @@ DEINTERLACE_METHOD TomsMoCompMethod =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
-    "Video (TomsMoComp)", 
+    N_("Video (TomsMoComp)"), 
     "TomsMoComp",
     FALSE, 
     FALSE, 
