@@ -523,11 +523,11 @@ x11_vidmode_clear_state		(x11_vidmode_state *	vs)
   if (!vs)
     return;
 
-  vs->old.vm = NULL;
+  vs->_old.vm = NULL;
 
-  vs->new.vm = NULL;		/* don't restore */
-  vs->new.pt.x = 1 << 20;	/* implausible, don't restore */
-  vs->new.vp.x = 1 << 20;
+  vs->_new.vm = NULL;		/* don't restore */
+  vs->_new.pt.x = 1 << 20;	/* implausible, don't restore */
+  vs->_new.vp.x = 1 << 20;
 }
 
 #ifdef HAVE_VIDMODE_EXTENSION
@@ -864,10 +864,11 @@ x11_vidmode_switch		(x11_vidmode_info *	list,
 
   XGetGeometry (display, root, &dummy1, &x, &y, &w, &h, &dummy3, &dummy3);
 
-  XF86VidModeGetViewPort (display, screen, &vs->old.vp.x, &vs->old.vp.y);
+  XF86VidModeGetViewPort (display, screen, &vs->_old.vp.x, &vs->_old.vp.y);
 
   XQueryPointer (display, root, &dummy1, &dummy1,
-		 &vs->old.pt.x, &vs->old.pt.y, &dummy2, &dummy2, &dummy3);
+		 &vs->_old.pt.x, &vs->_old.pt.y,
+		 &dummy2, &dummy2, &dummy3);
 
   /* Switch to requested mode, if any */
 
@@ -876,7 +877,7 @@ x11_vidmode_switch		(x11_vidmode_info *	list,
 
     cur_vm = x11_vidmode_current (list);
 
-    vs->old.vm = cur_vm;
+    vs->_old.vm = cur_vm;
 
     if (vm)
       {
@@ -889,7 +890,7 @@ x11_vidmode_switch		(x11_vidmode_info *	list,
 		if (!(vm = x11_vidmode_current (list)))
 		  return FALSE;
 
-		vs->new.vm = vm;
+		vs->_new.vm = vm;
 	      }
 	    else
 	      {
@@ -919,52 +920,52 @@ x11_vidmode_switch		(x11_vidmode_info *	list,
 
   if (XF86VidModeSetViewPort (display, screen, x, y))
     {
-      vs->new.vp.x = x;
-      vs->new.vp.y = y;
+      vs->_new.vp.x = x;
+      vs->_new.vp.y = y;
     }
   else
     {
       if (X11STUFF_VIDMODE_DEBUG)
 	printv ("XF86VidModeSetViewPort() failed\n");
 
-      x = vs->old.vp.x;
-      y = vs->old.vp.y;
+      x = vs->_old.vp.x;
+      y = vs->_old.vp.y;
     }
 
   /* Make pointer visible */
 
   warp = 0;
 
-  if (vs->old.pt.x < x)
+  if (vs->_old.pt.x < x)
     warp = 1;
-  else if (vs->old.pt.x > x + vm->width - 16)
+  else if (vs->_old.pt.x > x + vm->width - 16)
     {
       x += vm->width - 16;
       warp = 1;
     }
   else
     {
-      x = vs->old.pt.x;
+      x = vs->_old.pt.x;
     }
 
-  if (vs->old.pt.y < y)
+  if (vs->_old.pt.y < y)
     warp = 1;
-  else if (vs->old.pt.y > y + vm->height - 16)
+  else if (vs->_old.pt.y > y + vm->height - 16)
     {
       y += vm->height - 16;
       warp = 1;
     }
   else
     {
-      y = vs->old.pt.y;
+      y = vs->_old.pt.y;
     }
 
   if (warp)
     {
       XWarpPointer (display, None, root, 0, 0, 0, 0, x, y);
 
-      vs->new.pt.x = x;
-      vs->new.pt.y = y;
+      vs->_new.pt.x = x;
+      vs->_new.pt.y = y;
     }
 
   XSync (display, False);
@@ -1004,18 +1005,18 @@ x11_vidmode_restore		(x11_vidmode_info *	list,
   XQueryPointer (display, root, &dummy1, &dummy1,
 		 &ptx, &pty, &dummy2, &dummy2, &dummy3);
 
-  if (vs->old.vm && vs->new.vm)
+  if (vs->_old.vm && vs->_new.vm)
     {
       x11_vidmode_info *cur_vm;
 
       cur_vm = x11_vidmode_current (list);
 
-      if (vs->new.vm != cur_vm)
+      if (vs->_new.vm != cur_vm)
 	goto done; /* user changed vidmode, keep that */
 
-      if (vs->old.vm != cur_vm) 
+      if (vs->_old.vm != cur_vm) 
         if (!XF86VidModeSwitchToMode (display, screen,
-				      &VIDMODE (vs->old.vm)->info))
+				      &VIDMODE (vs->_old.vm)->info))
 	  {
 	    if (X11STUFF_VIDMODE_DEBUG)
 	      printv ("Cannot restore old mode, "
@@ -1024,14 +1025,14 @@ x11_vidmode_restore		(x11_vidmode_info *	list,
 	  }
     }
 
-  if (vs->new.vp.x == vpx && vs->new.vp.y == vpy)
-    XF86VidModeSetViewPort (display, screen, vs->old.vp.x, vs->old.vp.y);
+  if (vs->_new.vp.x == vpx && vs->_new.vp.y == vpy)
+    XF86VidModeSetViewPort (display, screen, vs->_old.vp.x, vs->_old.vp.y);
   else
     goto done; /* user moved viewport, keep that */
 
-  if (abs (vs->new.pt.x - ptx) < 10 && abs (vs->new.pt.y - pty) < 10)
+  if (abs (vs->_new.pt.x - ptx) < 10 && abs (vs->_new.pt.y - pty) < 10)
     XWarpPointer (display, None, root, 0, 0, 0, 0,
-		  vs->old.pt.x, vs->old.pt.y);
+		  vs->_old.pt.x, vs->_old.pt.y);
   /* else user moved pointer, keep that */
 
  done:

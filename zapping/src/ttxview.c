@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.123 2003-12-17 06:34:26 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.124 2004-03-30 11:34:11 mschimek Exp $ */
 
 /*
  *  Teletext View
@@ -3824,6 +3824,7 @@ ttxview_popup_menu_new		(ttxview_data *		data,
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
 	case VBI_LINK_EMAIL:
+	  break; /* BUG */
 	  popup_open_url_uiinfo[0].user_data = g_strdup (ld->url);
 	  g_signal_connect_swapped (G_OBJECT (menu), "destroy",
 				    G_CALLBACK (g_free),

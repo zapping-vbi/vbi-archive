@@ -96,7 +96,7 @@ msgstr "Konsole"
 
 #: glade/zapping.glade2.h:17
 msgid "Copyright (C) 2000-2003 the contributors\n"
-msgstr "Copyright (C) 2000-2003 die Beitragenden\n"
+msgstr "Copyright (C) 2000-2003 die Mitwirkenden\n"
 
 #: glade/zapping.glade2.h:19
 msgid "Current controller:"

@@ -31,6 +31,7 @@ x11_vidmode_info *	vidmodes;
 gboolean		have_wm_hints = FALSE;
 tv_overlay_buffer	dga_param;
 int			debug_msg = 0;
+int			io_debug_msg = 0;
 gint			cur_tuned_channel = -1;
 /* XXX Move this into virtual device context when ready. */
 tv_mixer *		mixer = NULL;

@@ -175,6 +175,9 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp)
   pthread_mutexattr_destroy(&attr);
 
   new_object->current_controller = TVENG_CONTROLLER_NONE;
+ 
+  if (io_debug_msg > 0)
+    new_object->log_fp = stderr;
 
   /* return the allocated memory */
   return (new_object);

@@ -529,7 +529,17 @@ build_properties_contents	(GtkDialog	*dialog)
   /* Put our logo when nothing is selected yet */
   if ((logo = z_load_pixmap ("logo.png")))
     {
-      gtk_notebook_append_page(notebook, logo, gtk_label_new(""));
+      GtkWidget *box;
+      GdkColor color;
+
+      box = gtk_frame_new (NULL);
+      /* all i wanted was white bg and all i got was this lousy comment */
+      // gdk_color_parse ("#FFFFFF", &color);
+      // gtk_widget_modify_bg (box, GTK_STATE_NORMAL, &color);
+      gtk_container_add (GTK_CONTAINER (box), logo);
+      gtk_misc_set_alignment (GTK_MISC (logo), 1, 1);
+
+      gtk_notebook_append_page(notebook, box, gtk_label_new(""));
       page_count ++; /* No handler for this page */
     }
 

@@ -60,6 +60,11 @@ typedef struct {
 
 extern vbi_pgno zvbi_caption_pgno; /* page for subtitles */
 
+void startup_zvbi(void);
+
+/* Shuts down the VBI engine */
+void shutdown_zvbi(void);
+
 /*
  * Register a client as TTX receiver, and returns the id that the
  * client should use to identify itself.

@@ -35,6 +35,7 @@ extern x11_vidmode_info *	vidmodes;
 extern gboolean			have_wm_hints;
 extern tv_overlay_buffer	dga_param;
 extern int			debug_msg;
+extern int			io_debug_msg;
 extern gint			cur_tuned_channel;
 /* XXX Move this into virtual device context when ready. */
 extern tv_mixer *		mixer;

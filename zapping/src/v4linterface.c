@@ -1406,6 +1406,7 @@ kp_timeout			(gboolean		timer)
     }
 }
 
+#if 0
 static gboolean
 kp_timeout2			(gpointer		user_data)
 {
@@ -1415,6 +1416,7 @@ kp_timeout2			(gpointer		user_data)
 
   return FALSE; /* don't call again */
 }
+#endif
 
 static gboolean
 kp_key_press			(GdkEventKey *		event,

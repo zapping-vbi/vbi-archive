@@ -68,7 +68,6 @@ static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
 static void shutdown_zapping(void);
 static gboolean startup_zapping(gboolean load_plugins);
 
-
 gboolean
 on_zapping_key_press			(GtkWidget	*widget,
 					 GdkEventKey	*event,
@@ -346,6 +345,15 @@ int main(int argc, char * argv[])
       NULL
     },
     {
+      "io-debug",
+      0,
+      POPT_ARG_NONE,
+      &io_debug_msg,
+      0,
+      0, /* N_("Log driver accesses"), */
+      NULL
+    },
+    {
       "dword-align",
       0,
       POPT_ARG_NONE,
@@ -386,12 +394,14 @@ int main(int argc, char * argv[])
     } /* end the list */
   };
 
+#if 0 /* L8ER */
   if (strlen(argv[0]) >= strlen("zapzilla") &&
       !(strcmp(&argv[0][strlen(argv[0])-strlen("zapzilla")], "zapzilla")))
 #ifdef HAVE_LIBZVBI
     return zapzilla_main(argc, argv);
 #else
     return EXIT_FAILURE;
+#endif
 #endif
 
 #ifdef ENABLE_NLS
@@ -419,7 +429,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.176 2003-12-31 06:49:59 mschimek Exp $",
+	 "$Id: main.c,v 1.177 2004-03-30 11:34:11 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())

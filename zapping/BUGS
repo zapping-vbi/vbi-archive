@@ -1,6 +1,8 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
+* Current video input isn't on startup.
+* Zapzilla code.
 * Chance hang in request_capture_format_real at some rwlock,
   in libzvbi-less Zapping, when switching display mode
   (btw overlay and fullscreen IIRC).

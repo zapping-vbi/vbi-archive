@@ -90,7 +90,7 @@ struct _x11_vidmode_state {
       int		    x;
       int		    y;
     }			  pt, vp;
-  }			old, new;
+  }			_old, _new;
 };
 
 extern void
