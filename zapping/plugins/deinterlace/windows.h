@@ -18,11 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: windows.h,v 1.4 2005-01-27 04:20:20 mschimek Exp $ */
+/* $Id: windows.h,v 1.5 2005-01-31 07:03:54 mschimek Exp $ */
 
 #ifndef WINDOWS_H
 #define WINDOWS_H
 
+#include <stddef.h>		/* size_t */
 #include <inttypes.h>		/* int64_t */
 #include "common/intl-priv.h"
 
@@ -70,8 +71,6 @@ typedef void *HWND;
 typedef void *HMODULE;
 typedef void *HANDLE;
 typedef void *HINSTANCE;
-
-#define size_t unsigned int
 
 typedef struct {
 } RECT;

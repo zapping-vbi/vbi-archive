@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_MoComp2.c,v 1.1 2005-01-08 14:33:33 mschimek Exp $
+// $Id: DI_MoComp2.c,v 1.2 2005-01-31 07:03:38 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2003 Tom Barry & John Adcock.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,11 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:33:33  mschimek
+// TomsMoCompMethod, MoComp2Method, VideoWeaveMethod, VideoBobMethod,
+// TwoFrameMethod, OldGameMethod, Greedy2FrameMethod, GreedyMethod,
+// DI_GreedyHSettings: Localized.
+//
 // Revision 1.3  2003/06/17 12:46:28  adcockj
 // Added Help for new deinterlace methods
 //
@@ -57,7 +62,6 @@
 
 #include "windows.h"
 #include <DS_Deinterlace.h>
-#undef size_t
 #include "MoComp2.h"
 //Z #include "..\help\helpids.h"
 
