@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5.2.3 2004-02-18 07:53:21 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.4 2004-02-25 17:33:17 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -35,7 +35,7 @@
 vbi_decoder *		vbi;
 vbi_bool		quit = FALSE;
 vbi_pgno		pgno;
-vbi_export *		ex;
+vbi_export *		e;
 char *			extension;
 vbi_bool		option_columns_41;
 vbi_bool		option_navigation;
@@ -165,11 +165,11 @@ handler(vbi_event *ev, void *unused)
 	} else
 		fp = stdout;
 
-	if (!vbi_export_stdio(ex, fp, pg)) {
-		fprintf(stderr, "failed: %s\n", vbi_export_errstr(ex));
-		exit(EXIT_FAILURE);
+	if (!vbi_export_stdio (e, fp, pg)) {
+		fprintf (stderr, "failed: %s\n", vbi_export_errstr (e));
+		exit (EXIT_FAILURE);
 	} else {
-		fprintf(stderr, "done\n");
+		fprintf (stderr, "done\n");
 	}
 
 	if (option_enum)
@@ -259,7 +259,7 @@ int
 main(int argc, char **argv)
 {
 	char *module, *t;
-	vbi_export_info *xi;
+	const vbi_export_info *xi;
 	unsigned int i;
 
 	module= NULL;
@@ -313,29 +313,30 @@ main(int argc, char **argv)
 		exit (EXIT_FAILURE);
 	}
 
-	if (!(ex = vbi_export_new(module, &t))) {
-		fprintf(stderr, "Failed to open export module '%s': %s\n",
-			module, t);
-		exit(EXIT_FAILURE);
+	if (!(e = vbi_export_new (module, &t))) {
+		fprintf (stderr, "Failed to open export module '%s': %s\n",
+			 module, t);
+		exit (EXIT_FAILURE);
 	}
 
 	if (0 == strncmp (module, "html", 4)) {
 		if (option_hyperlinks)
-			vbi_export_set_link_fn (ex, export_link, NULL);
+			vbi_export_set_link_fn (e, export_link, NULL);
 
 		if (option_pdc_links)
-			vbi_export_set_pdc_fn (ex, export_pdc, NULL);
+			vbi_export_set_pdc_fn (e, export_pdc, NULL);
 	}
 
-	assert((xi = vbi_export_info_export(ex)));
-	assert((extension = strdup(xi->extension)));
-	extension = strtok_r(extension, ",", &t);
+	assert ((xi = vbi_export_info_from_export (e)));
+	assert ((extension = strdup (xi->extension)));
+	extension = strtok_r (extension, ",", &t);
 
-	assert((vbi = vbi_decoder_new()));
+	assert ((vbi = vbi_decoder_new ()));
 
-	assert(vbi_event_handler_add(vbi, VBI_EVENT_TTX_PAGE, handler, NULL)); 
+	assert (vbi_event_handler_add
+		(vbi, VBI_EVENT_TTX_PAGE, handler, NULL)); 
 
-	stream();
+	stream ();
 
-	exit(EXIT_SUCCESS);
+	exit (EXIT_SUCCESS);
 }
