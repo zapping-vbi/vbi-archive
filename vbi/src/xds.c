@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds.c,v 1.1.2.1 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: xds.c,v 1.1.2.2 2004-02-25 17:27:59 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -30,6 +30,12 @@
 
 #include "hamm.h"
 #include "xds.h"
+
+/**
+ * @addtogroup XDSDecoder Extended Data Service Decoder
+ * @ingroup LowDec
+ * @brief Functions to decode XDS packets (EIA 608).
+ */
 
 #ifndef XDS_DECODER_LOG
 #define XDS_DECODER_LOG 0
@@ -647,6 +653,7 @@ decode_channel			(vbi_decoder *		vbi,
 		if (xds_strfu(n->name, buffer, buffer_size)) {
 			n->cycle = 1;
 		} else if (n->cycle == 1) {
+#if 0 // FIXME
 			char *s = n->name;
 			uint32_t sum;
 
@@ -668,6 +675,7 @@ decode_channel			(vbi_decoder *		vbi,
 				caption_send_event(vbi, &vbi->network);
 
 				n->cycle = 3;
+#endif
 			}
 
 			XDS_DEBUG(
@@ -680,13 +688,14 @@ decode_channel			(vbi_decoder *		vbi,
 			break;
 
 	case VBI_XDS_CHANNEL_CALL_LETTERS:
+#if 0 // FIXME
 			if (xds_strfu(n->call, buffer, buffer_size)) {
 				if (n->cycle != 1) {
 					n->name[0] = 0;
 					n->cycle = 0;
 				}
 			}
-
+#endif
 			XDS_DEBUG(
 				printf("Network call letters: '");
 				for (i = 0; i < buffer_size; i++)
@@ -861,8 +870,13 @@ vbi_decode_xds_impulse_capture_id
 
 	pi->length = hour * 60 + min;
 
+	pi->lci = 0; /* just one label channel */
+	pi->luf	= FALSE; /* no update, just id */
+	pi->mi 	= FALSE; /* id is not 30 s early */
+	pi->prf	= FALSE; /* prepare to record unknown */
+
 	pi->pcs_audio = VBI_PCS_AUDIO_UNKNOWN;
-	pi->pty	= 0; /* none/unknown */
+	pi->pty	= 0; /* none / unknown */
 
 	pi->tape_delayed = !!(buffer[3] & 0x10);
 
@@ -1021,6 +1035,13 @@ vbi_decode_xds			(vbi_xds_demux *	xd,
 
 /* ------------------------------------------------------------------------- */
 
+/**
+ * @addtogroup XDSDemux Extended Data Service Demultiplexer
+ * @ingroup LowDec
+ * @brief Separating XDS data from a Closed Caption stream
+ *   (EIA 608).
+ */
+
 #ifndef XDS_DEMUX_LOG
 #define XDS_DEMUX_LOG 0
 #endif
@@ -1056,6 +1077,12 @@ fprint_subpacket		(FILE *			fp,
 	fputs ("'\n", fp);
 }
 
+/**
+ * @param xd XDS demultiplexer context allocated with vbi_xds_demux_new().
+ * @param buffer Closed Caption character pair, as in struct vbi_sliced.
+ *
+ * blah
+ */
 void
 vbi_xds_demux_demux		(vbi_xds_demux *	xd,
 				 const uint8_t		buffer[2])
@@ -1184,6 +1211,12 @@ vbi_xds_demux_demux		(vbi_xds_demux *	xd,
 	return;
 }
 
+/**
+ * @param xd XDS demultiplexer context allocated with vbi_xds_demux_new().
+ *
+ * Resets the XDS demux context, useful for example after a channel
+ * change.
+ */
 void
 vbi_xds_demux_reset		(vbi_xds_demux *	xd)
 {
@@ -1200,12 +1233,18 @@ vbi_xds_demux_reset		(vbi_xds_demux *	xd)
 	xd->curr_sp = NULL;
 }
 
+/**
+ * @internal
+ */
 void
 vbi_xds_demux_destroy		(vbi_xds_demux *	xd)
 {
 	CLEAR (*xd);
 }
 
+/**
+ * @internal
+ */
 vbi_bool
 vbi_xds_demux_init		(vbi_xds_demux *	xd,
 				 vbi_xds_demux_cb *	cb,
@@ -1219,6 +1258,12 @@ vbi_xds_demux_init		(vbi_xds_demux *	xd,
 	return TRUE;
 }
 
+/**
+ * @param xd XDS demultiplexer context allocated with
+ *   vbi_xds_demux_new(), can be @c NULL.
+ *
+ * Frees all resources associated with @a xd.
+ */
 void
 vbi_xds_demux_delete		(vbi_xds_demux *	xd)
 {
@@ -1230,6 +1275,19 @@ vbi_xds_demux_delete		(vbi_xds_demux *	xd)
 	free (xd);		
 }
 
+/**
+ * @param cb Function to be called by vbi_xds_demux_demux() when
+ *   a new packet is available.
+ * @param user_data User pointer passed through to @a cb function.
+ *
+ * Allocates a new Extended Data Service (EIA 608)
+ * demultiplexer.
+ *
+ * @returns
+ * Pointer to newly allocated XDS demux context which must be
+ * freed with vbi_xds_demux_delete() when done. @c NULL on failure
+ * (out of memory).
+ */
 vbi_xds_demux *
 vbi_xds_demux_new		(vbi_xds_demux_cb *	cb,
 				 void *			user_data)

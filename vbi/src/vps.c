@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vps.c,v 1.1.2.1 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: vps.c,v 1.1.2.2 2004-02-25 17:28:11 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -29,12 +29,18 @@
 #include "vt.h" /* vbi_decoder */
 
 /**
- * @addtogroup Network
- * @param buffer 13 bytes, MSB first transmitted.
+ * @addtogroup VPS Video Programm System Decoder
+ * @ingroup LowDec
+ */
+
+/**
+ * @param cni CNI of type VBI_CNI_TYPE_VPS is stored here.
+ * @param buffer Last 13 bytes of VPS datagram, as
+ *   in struct vbi_sliced.
  * 
- * Decodes a VPS datagram (13 bytes) according to
+ * Decodes a VPS datagram according to
  * ETS 300 231, returning the 12 bit Country and
- * Network Identifier.
+ * Network Identifier in @a cni.
  *
  * @returns
  * Always @c TRUE, no error checking possible.
@@ -74,11 +80,12 @@ vbi_decode_vps_cni		(unsigned int *		cni,
 }
 
 /**
- * @addtogroup PDC
- * @param buffer 13 bytes, MSB first transmitted.
+ * @param pi PDC data is stored here.
+ * @param buffer Last 13 bytes of VPS datagram, as
+ *   in struct vbi_sliced.
  * 
- * Decodes a VPS datagram (13 bytes) according to
- * ETS 300 231.
+ * Decodes a VPS datagram according to ETS 300 231,
+ * storing PDC recording-control data in @a pi.
  *
  * @returns
  * Always @c TRUE, no error checking possible.
@@ -96,8 +103,8 @@ vbi_decode_vps_pdc		(vbi_program_id *	pi,
 
 	pi->nuid	= vbi_nuid_from_cni (VBI_CNI_TYPE_VPS, cni);
 
-	pi->pil		= (+ ((buffer[8] & 0x3F) << 14)
-			   +  (buffer[9] << 6)
+	pi->pil		= (+ ((buffer[ 8] & 0x3F) << 14)
+			   +  (buffer[ 9] << 6)
 			   +  (buffer[10] >> 2));
 
 	pi->month	= VBI_PIL_MONTH (pi->pil) - 1; 
@@ -107,39 +114,17 @@ vbi_decode_vps_pdc		(vbi_program_id *	pi,
 
 	pi->length	= 0; /* unknown */
 
-	pi->pcs_audio	= buffer[1] >> 6;
+	pi->lci		= 0; /* just one label channel */
+	pi->luf		= FALSE; /* no update, just pil */
+	pi->mi		= FALSE; /* label is not 30 s early */
+	pi->prf		= FALSE; /* prepare to record unknown */
+
+	pi->pcs_audio	= buffer[ 2] >> 6;
 	pi->pty		= buffer[12];
 
 	pi->tape_delayed = FALSE;
 
 	return TRUE;
-}
-
-/**
- * @internal
- *
- * What's this? Some sort of station ID apparently.
- * Note this function is not reentrant.
- */
-void
-vbi_decode_vps_label		(const uint8_t		buffer[13])
-{
-	static char label[32];
-	static unsigned int length = 0;
-	char c;
-
-	c = vbi_rev8 (buffer[1]);
-
-	if (c < 0x20 || c >= 0x7F || length >= N_ELEMENTS (label) - 1) {
-		label[length] = 0;
-		printf ("VPS label: '%s'\n", label);
-		length = 0;
-	}
-
-	c &= 0x7F;
-
-	if (c >= 0x20 && c < 0x7F)
-		label[length++] = c;
 }
 
 /**
@@ -176,6 +161,7 @@ vbi_decode_vps			(vbi_decoder *		vbi,
 		nuid = vbi_nuid_from_cni (VBI_CNI_TYPE_VPS, cni);
 
 		if (nuid != n->nuid) {
+#if 0 // FIXME
 			if (n->nuid != 0) {
 				vbi_chsw_reset(vbi, nuid);
 			}
@@ -185,6 +171,7 @@ vbi_decode_vps			(vbi_decoder *		vbi,
 
 			vbi->network.type = VBI_EVENT_NETWORK;
 			vbi_send_event(vbi, &vbi->network);
+#endif
 		}
 
 		n->cycle = 2;
