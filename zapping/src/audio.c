@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.12.2.15 2003-11-20 20:01:18 mschimek Exp $ */
+/* $Id: audio.c,v 1.12.2.16 2003-11-26 07:16:46 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -604,19 +604,15 @@ set_mute				(gint	        mode,
     button = lookup_widget (main_window, "toolbar-mute");
 
     if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)) != mute)
-      {
-	SIGNAL_HANDLER_BLOCK (button, on_python_command1,
-			      gtk_toggle_button_set_active
-			      (GTK_TOGGLE_BUTTON (button), mute));
-      }
+	SIGNAL_BLOCK (button, "toggled",
+		      gtk_toggle_button_set_active
+		      (GTK_TOGGLE_BUTTON (button), mute));
 
     check = GTK_CHECK_MENU_ITEM (lookup_widget (main_window, "mute2"));
 
     if (check->active != mute)
-      {
-	SIGNAL_HANDLER_BLOCK (check, on_python_command1,
-			      gtk_check_menu_item_set_active (check, mute));
-      }
+	SIGNAL_BLOCK (check, "toggled",
+		      gtk_check_menu_item_set_active (check, mute));
 
     /* obsolete, using callbacks now
     if (controls)
