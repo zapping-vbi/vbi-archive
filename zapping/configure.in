@@ -94,6 +94,7 @@ AC_OUTPUT([
 zapping.spec
 Makefile
 macros/Makefile
+pixmaps/Makefile
 src/Makefile
 intl/Makefile
 po/Makefile.in
