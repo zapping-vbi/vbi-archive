@@ -18,9 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: profile.c,v 1.4 2002-06-12 04:00:53 mschimek Exp $ */
+/* $Id: profile.c,v 1.5 2002-06-24 03:20:58 mschimek Exp $ */
 
-#include "../site_def.h"
+#include "site_def.h"
 
 #if PROFILING
 

@@ -17,10 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alloc.h,v 1.3 2002-06-19 19:57:45 mschimek Exp $ */
+/* $Id: alloc.h,v 1.4 2002-06-24 03:20:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include "../config.h"
+#  include "config.h"
 #endif
 
 #ifndef ALLOC_H

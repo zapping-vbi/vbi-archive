@@ -1,6 +1,9 @@
+## Process this file with automake to produce Makefile.in
+
 noinst_LTLIBRARIES = libcommon.la
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT $(RTE_CFLAGS) \
+	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 libcommon_la_SOURCES = \
 	alloc.c alloc.h \
@@ -11,3 +14,6 @@ libcommon_la_SOURCES = \
 	profile.c profile.h \
 	threads.h types.h \
 	sync.c sync.h
+
+EXTRA_DIST = videodev.h videodev2.h
+
