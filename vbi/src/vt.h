@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.1 2003-02-16 21:03:49 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.2 2003-05-02 10:43:23 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
@@ -41,8 +41,8 @@ typedef struct vbi_decoder vbi_decoder;
  * @internal
  *
  * Page function code according to ETS 300 706, Section 9.4.2,
- * Table 3: Page function and page coding bits (packets X/28/0 Format 1,
- * X/28/3 and X/28/4).
+ * Table 3: Page function and page coding bits
+ * (packets X/28/0 Format 1, X/28/3 and X/28/4).
  */
 typedef enum {
 	PAGE_FUNCTION_EPG = -4,		/* libzvbi private */
@@ -65,9 +65,10 @@ typedef enum {
 
 /**
  * @internal
+ *
  * Page coding code according to ETS 300 706, Section 9.4.2,
- * Table 3: Page function and page coding bits (packets X/28/0 Format 1,
- * X/28/3 and X/28/4).
+ * Table 3: Page function and page coding bits
+ * (packets X/28/0 Format 1, X/28/3 and X/28/4).
  */
 typedef enum {
 	PAGE_CODING_UNKNOWN = -1,	/* libzvbi private */
@@ -95,20 +96,22 @@ typedef enum {
 	DRCS_MODE_NO_DATA
 } drcs_mode;
 
-/*
-    Only a minority of pages need this
- */
+/* Level one page extension */
 
-typedef struct {
+typedef struct _ext_fallback ext_fallback;
+
+struct _ext_fallback {
 	int		black_bg_substitution;
 	int		left_side_panel;
 	int		right_side_panel;
 	int		left_panel_columns;
-} ext_fallback;
+};
 
 #define VBI_TRANSPARENT_BLACK 8
 
-typedef struct {
+typedef struct _vt_extension vt_extension;
+
+struct _vt_extension {
 	unsigned int	designations;
 
 	int		char_set[2];		/* primary, secondary */
@@ -121,36 +124,38 @@ typedef struct {
 
 	ext_fallback	fallback;
 
-	uint8_t		drcs_clut[2 + 2 * 4 + 2 * 16];
+	uint8_t		drcs_clut[2 * 1 + 2 * 4 + 2 * 16];
 						/* f/b, dclut4, dclut16 */
 	vbi_rgba	color_map[40];
-} vt_extension;
+};
 
-typedef struct vt_triplet vt_triplet;
-typedef struct vt_pagenum pagenum;
+typedef struct _vt_triplet vt_triplet;
 
 /**
  * @internal
  *
- * Packet X/26 code triplet according to ETS 300 706, Section 12.3.1.
+ * Packet X/26 code triplet according to ETS 300 706,
+ * Section 12.3.1.
  */
-struct vt_triplet {
-	unsigned	address : 8;
-	unsigned	mode : 8;
-	unsigned	data : 8;
-} __attribute__ ((packed));
+struct _vt_triplet {
+	unsigned	address		: 8;
+	unsigned	mode		: 8;
+	unsigned	data		: 8;
+} PACKED;
 
-struct vt_pagenum {
-	unsigned	type : 8;
-	unsigned	pgno : 16;
-	unsigned	subno : 16;
-} __attribute__ ((packed));
+typedef struct _vt_pagenum vt_pagenum;
 
-typedef struct ait_entry ait_entry;
+struct _vt_pagenum {
+	unsigned int		type; // XXX enum
+	vbi_pgno		pgno;
+	vbi_subno		subno;
+};
 
-struct ait_entry {
-	pagenum	        page;
-	uint8_t		text[12];
+typedef struct _ait_entry ait_entry;
+
+struct _ait_entry {
+	vt_pagenum		page;
+	uint8_t			text[12];
 };
 
 typedef vt_triplet enhancement[16 * 13 + 1];
@@ -167,6 +172,17 @@ typedef vt_triplet enhancement[16 * 13 + 1];
 #define C10_INHIBIT_DISPLAY	0x080000 /* rows 1-24 not to be displayed */
 #define C11_MAGAZINE_SERIAL	0x100000
 
+/* Level one page */
+
+struct lop {
+	uint8_t			raw[26][40];
+	vt_pagenum		link[6 * 6];	/* X/27/0-5 links */
+	vbi_bool		flof;
+	vbi_bool		ext;
+};
+
+typedef struct _vt_page vt_page;
+
 /**
  * @internal
  *
@@ -176,7 +192,7 @@ typedef vt_triplet enhancement[16 * 13 + 1];
  * thus not directly accessible by the client. Note the size
  * (of the union) will vary in order to save cache memory.
  **/
-typedef struct vt_page {
+struct _vt_page {
 	/**
 	 * Defines the page function and which member of the
 	 * union applies.
@@ -206,11 +222,8 @@ typedef struct vt_page {
 	int			enh_lines;
 
 	union {
-		struct lop {
-			unsigned char	raw[26][40];
-		        pagenum	        link[6 * 6];		/* X/27/0-5 links */
-			vbi_bool	flof, ext;
-		}		unknown, lop;
+		struct lop	unknown;
+		struct lop	lop;
 		struct {
 			struct lop	lop;
 			enhancement	enh;
@@ -240,7 +253,7 @@ typedef struct vt_page {
 	 *  Dynamic size, add no fields below unless
 	 *  vt_page is statically allocated.
 	 */
-} vt_page;
+};
 
 /**
  * @internal
@@ -336,30 +349,34 @@ typedef enum {
  */
 typedef int object_address;
 
-typedef struct {
-	int		pgno;
-	ext_fallback	fallback;
+typedef struct _vt_pop_link vt_pop_link;
+
+struct _vt_pop_link {
+	vbi_pgno		pgno;
+	ext_fallback		fallback;
 	struct {
-		object_type	type;
-		object_address	address;
-	}		default_obj[2];
-} vt_pop_link;
+		object_type		type;
+		object_address		address;
+	}			default_obj[2];
+};
 
-typedef struct {
-	vt_extension	extension;
+typedef struct _vt_magazine vt_magazine;
 
-	uint8_t		pop_lut[256];
-	uint8_t		drcs_lut[256];
+struct _vt_magazine {
+	vt_extension		extension;
 
-    	vt_pop_link	pop_link[16];
-	vbi_pgno	drcs_link[16];
-} vt_magazine;
+	uint8_t			pop_lut[256];
+	uint8_t			drcs_lut[256];
+
+    	vt_pop_link		pop_link[16];
+	vbi_pgno		drcs_link[16];
+};
 
 struct raw_page {
 	vt_page			page[1];
         uint8_t		        drcs_mode[48];
 	int			num_triplets;
-	int			ait_page;
+	int			___ait_page; // XXX unused??
 };
 
 /* Public */
@@ -381,25 +398,27 @@ typedef enum {
 
 /* Private */
 
+struct page_info {
+	unsigned 		code		: 8;
+	unsigned		language	: 8;
+	unsigned 		subcode		: 16;
+};
+
 struct teletext {
 	vbi_wst_level		max_level;
 
-	pagenum                 header_page;
-	uint8_t		        header[40];
+	vt_pagenum		header_page;
+	uint8_t			header[40];
 
-        pagenum		        initial_page;
-	vt_magazine		magazine[9];		/* 1 ... 8; #0 unmodified level 1.5 default */
+        vt_pagenum		initial_page;
+	vt_magazine		magazine[9];	/* 1 ... 8; #0 unmodified level 1.5 default */
 
-	int                     region;
+	int			region;
 
-	struct page_info {
-		unsigned 		code : 8;
-		unsigned		language : 8;
-		unsigned 		subcode : 16;
-	}			page_info[0x800];
+	struct page_info	page_info[0x800];
 
-	pagenum		        btt_link[15];
-	vbi_bool		top;			/* use top navigation, flof overrides */
+	vt_pagenum		btt_link[15];
+	vbi_bool		top;		/* use top navigation, flof overrides */
 
 	struct raw_page		raw_page[8];
 	struct raw_page		*current;
