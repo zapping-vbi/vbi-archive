@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.12 2001-12-17 08:56:52 mschimek Exp $
+dnl $Id: configure.in,v 1.13 2001-12-18 18:24:02 garetxe Exp $
 
 AC_INIT(configure.in)
 RTE_VERSION_MAJOR=0
@@ -102,6 +102,7 @@ AC_CHECK_FUNCS(ngettext)
 
 AC_OUTPUT([
 Makefile
+intl/Makefile
 common/Makefile
 docs/Makefile
 src/Makefile
@@ -110,6 +111,14 @@ test/Makefile
 po/Makefile.in
 rte.spec
 ])
+
+dnl fscking broken world
+if test ! -r po/Makefile; then
+	dnl Don't ask :-)
+	PF="POT"
+	PF=$PF"FILES"
+        sed -e "/$PF =/r po/PF" po/Makefile.in > po/Makefile
+fi
 
 echo "
 	Backend			Build		

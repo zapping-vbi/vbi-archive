@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.26 2001-12-17 19:00:33 garetxe Exp $ */
+/* $Id: b_mp1e.c,v 1.27 2001-12-18 18:24:04 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -50,6 +50,12 @@
 
 typedef struct {
 	rte_context context; /* Parent */
+
+	multiplexer *mux;
+
+	pthread_t mux_thread; /* mp1e multiplexer thread */
+	pthread_t video_thread_id; /* video encoder thread */
+	pthread_t audio_thread_id; /* audio encoder thread */	
 
 	unsigned int codec_set;
 	rte_codec *video_codec;
@@ -192,6 +198,19 @@ static rte_codec * codec_set (rte_context * context,
 	return codec;
 }
 
+/* Prepare to start recording, codecs haven't been inited yet (done by
+   rte) */
+static rte_bool pre_init (rte_context *context)
+{
+	return TRUE;
+}
+
+/* Undo anything pre_init does */
+static void uninit (rte_context *context)
+{
+}
+
+/* Start recording */
 static rte_bool context_start (rte_context *context)
 {
 	return FALSE;
@@ -301,6 +320,9 @@ init_backend			(void)
 		context_table[i]->codec_enum = codec_enum;
 		context_table[i]->codec_get = codec_get;
 		context_table[i]->codec_set = codec_set;
+
+		context_table[i]->pre_init = pre_init;
+		context_table[i]->uninit = uninit;
 
 		context_table[i]->start = context_start;
 		context_table[i]->stop = context_stop;

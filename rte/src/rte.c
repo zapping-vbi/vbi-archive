@@ -28,8 +28,15 @@
 #include <string.h>
 
 /*
-  FIXME: Better error reporting.
-  TODO: i18n support.
+  TODO in no particular order:
+  * context->bsize should be visible by the app.
+  * Push modes not functional (think about termination).
+  * better error reporting.
+  * Pause, resume.
+  * Status api.
+  * Sliced vbi.
+  * Finish b_mp1e, write b_divx4linux and b_ffmpeg.
+  * i18n support.
 */
 
 #define xc context->class
@@ -49,7 +56,10 @@ backends[] =
 };
 static const int num_backends = sizeof(backends)/sizeof(backends[0]);
 
-/* runs func for all used codecs in context */
+/* Private flag for fifos */
+#define BLANK_BUFFER 1
+
+/* one function to iterate them all */
 static rte_bool codec_forall(rte_context *context,
 			     rte_bool (*func)(rte_codec*, rte_pointer),
 			     rte_pointer udata)
@@ -708,6 +718,7 @@ codecs_uninit(rte_context *context)
 	}
 
 	codec_forall(context, uninit_codec, NULL);
+	xc->uninit(context);
 }
 
 /* Returns the required buffer size for the codec */
@@ -744,7 +755,7 @@ rte_wait_cb(rte_codec *codec)
 	rte_buffer rbuf;
 	buffer *b;
 
-	codec->input.cb.get(codec->context, codec, &cb);
+	codec->input.cb.get(codec->context, codec, &rbuf);
 
 	b = wait_empty_buffer(p);
 	b->data = rbuf.data;
@@ -763,7 +774,7 @@ rte_wait_cd(rte_codec *codec)
 	producer *p = &(codec->prod);
 	buffer *b;
 
-	b = wait_empy_buffer(p);
+	b = wait_empty_buffer(p);
 	codec->input.cd.get(codec->context, codec, b->data, &(b->time));
 	b->rte_flags |= ~BLANK_BUFFER;
 	b->used = codec->bsize;
@@ -812,10 +823,10 @@ rte_wait_full (fifo *f)
 static void
 rte_send_empty (consumer *c, buffer *b)
 {
-	rte_codec *codec = (rte_codec*)f->user_data;
+	rte_codec *codec = (rte_codec*)c->fifo->user_data;
 	rte_buffer rbuf;
 
-	if (!b->rte_flags & BLANK_BUFFER) {
+	if (!(b->rte_flags & BLANK_BUFFER)) {
 		rbuf.data = b->data;
 		rbuf.timestamp = b->time;
 		rbuf.user_data = b->user_data;
@@ -932,6 +943,9 @@ rte_start(rte_context *context)
 		rte_error(context, "No codecs set");
 		return FALSE;
 	}
+
+	if (!xc->pre_init(context))
+		return FALSE;
 
 	if (!codec_forall(context, init_codec, NULL))
 		return FALSE;

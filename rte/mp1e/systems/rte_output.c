@@ -49,7 +49,8 @@ output(struct multiplexer *mux,
 	if (!mbuf)
 		return &mux_buffer;
 
-#warning TODO
+	if (mbuf->used && mbuf->data)
+		context->write(context, mbuf->data, mbuf->used);
 
 	return mbuf; /* any previously entered */
 }

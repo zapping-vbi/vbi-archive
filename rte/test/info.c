@@ -23,7 +23,6 @@
 */
 #include "../src/rte.h"
 #include <stdio.h>
-#include <assert.h>
 
 static void
 show_option_info (rte_option_info *oi)
@@ -56,16 +55,12 @@ show_codec_info (rte_context *context, rte_codec_info *ci)
 		return;
 	}
 
-	assert(codec == rte_codec_get(context, ci->stream_type, 0));
-
 	for (i=0; (oi = rte_codec_option_info_enum(codec, i)); i++)
 		show_option_info(oi);
 	printf("\n");
 
 	/* unset codec */
 	codec = rte_codec_set(context, ci->stream_type, 0, NULL);
-	assert(codec == rte_codec_get(context, ci->stream_type, 0));
-	assert(codec == NULL);
 }
 
 static void
@@ -87,7 +82,6 @@ show_context_info (rte_context_info *ci)
 	printf("Codecs:\n");
 
 	context = rte_context_new(ci->keyword);
-	assert(context != NULL);
 
 	for (i=0; (di = rte_codec_info_enum(context, i)); i++)
 		show_codec_info(context, di);

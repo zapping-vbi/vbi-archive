@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.6 2001-12-17 19:00:34 garetxe Exp $
+ * $Id: rtepriv.h,v 1.7 2001-12-18 18:24:04 garetxe Exp $
  * Private stuff in the context.
  */
 
@@ -166,6 +166,9 @@ struct _rte_context_class {
 	char *			(* option_print)(rte_context *, const char *, va_list);
 
 	rte_status_info *	(* status_enum)(rte_context *, int);
+
+	rte_bool		(* pre_init)(rte_context *);
+	void			(* uninit)(rte_context *);
 
 	rte_bool		(* start)(rte_context *);
 	void			(* stop)(rte_context *);
