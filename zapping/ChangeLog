@@ -1,3 +1,8 @@
+02.09.2001	sv translation <mschimek@users.sf.net>
+
+	* sv.po: Commited Swedish translation, contributed by
+	  Henrik Isacsson. Many thanks!
+
 01.09.2001	libvbi <mschimek@users.sf.net>
 
 	* decoder.c: NTSC requires valid line numbers, added vbi_ prefixes.
