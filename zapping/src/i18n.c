@@ -2,7 +2,7 @@
  *  Preliminary helper.
  */
 
-/* $Id: i18n.c,v 1.1.2.1 2003-01-08 16:42:05 mschimek Exp $ */
+/* $Id: i18n.c,v 1.1.2.2 2003-09-24 18:34:39 mschimek Exp $ */
 
 #include <string.h>
 #include <ctype.h>
@@ -21,6 +21,7 @@ static const struct {
 	{ "BA", "Bosnia and Herzegovina" },
 	{ "BE", "Belgium" },
 	{ "BG", "Bulgaria" },
+	{ "BJ", "Benin" },
 	{ "CA", "Canada" },
 	{ "CH", "Switzerland" },
 	{ "CN", "China" },
@@ -33,11 +34,14 @@ static const struct {
 	{ "GR", "Greece" },
 	{ "HR", "Croatia" },
 	{ "HU", "Hungary" },
+	{ "ID", "Indonesia" },
 	{ "IE", "Ireland" },
 	{ "IS", "Iceland" },
 	{ "IT", "Italy" },
 	{ "JP", "Japan" },
+	{ "KH", "Cambodia" },
 	{ "MK", "Macedonia" },
+	{ "MY", "Malaysia" },
 	{ "NL", "Netherlands" },
 	{ "NO", "Norway" },
 	{ "NZ", "New Zealand" },
@@ -47,7 +51,9 @@ static const struct {
 	{ "RO", "Romania" },
 	{ "RU", "Russia" },
 	{ "SE", "Sweden" },
+	{ "SG", "Singapore" },
 	{ "SK", "Slovakia" },
+	{ "TH", "Thailand" },
 	{ "UK", "United Kingdom" },
 	{ "US", "United States" },
 	{ "YU", "Yugoslavia" },
