@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.4 2002-09-14 04:20:08 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.5 2002-09-26 20:38:43 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -243,30 +243,28 @@ picture_header			(struct bs_rec *	bs,
 {
 	const unsigned int vbv_delay = 0xFFFF; /* TODO */ 
 
+	bepilog (bs);
+
 	bputl (bs, PICTURE_START_CODE, 32);
 
 	if (picture_coding_type == I_TYPE) {
-		bputl (bs, 0
-		       + ((temporal_reference & 0x3FF) << 22)	/* temporal_reference [10] */
+		bputl (bs, ((temporal_reference & 0x3FF) << 22)	/* temporal_reference [10] */
 		       + (picture_coding_type << 19)		/* picture_coding_type [3] */
 		       + ((vbv_delay & 0xFFFF) << 3)		/* vbv_delay [16] */
 		       + (0 << 2)				/* extra_bit_picture */
 		       + 0, 32);				/* byte align '00' */
 	} else {
-		bputl (bs, 0
-		       + ((temporal_reference & 0x3FF) << 19)	/* temporal_reference [10] */
+		bputl (bs, ((temporal_reference & 0x3FF) << 19)	/* temporal_reference [10] */
 		       + (picture_coding_type << 16)		/* picture_coding_type [3] */
 		       + ((vbv_delay & 0xFFFF) << 0), 29);	/* vbv_delay [16] */
 
 		if (picture_coding_type == P_TYPE) {
-			bputl (bs, 0
-			       + (0 << 10)			/* full_pel_forward_vector */
+			bputl (bs, (0 << 10)			/* full_pel_forward_vector */
 			       + (7 << 7)			/* forward_f_code '111' */
 			       + (0 << 6)			/* extra_bit_picture */
 			       + 0, 11);			/* byte align '000000' */
 		} else {
-			bputl (bs, 0
-			       + (0 << 10)			/* full_pel_forward_vector */
+			bputl (bs, (0 << 10)			/* full_pel_forward_vector */
 			       + (7 << 7)			/* forward_f_code '111' */
 			       + (0 << 6)   			/* full_pel_backward_vector */
 			       + (7 << 3)   			/* backward_f_code '111' */
@@ -277,8 +275,7 @@ picture_header			(struct bs_rec *	bs,
 
 	bputl (bs, EXTENSION_START_CODE, 32);
 
-	bputl (bs, 0
-	       + (PICTURE_CODING_EXTENSION_ID << 28)		/* extension_start_code_identifier [4] */
+	bputl (bs, (PICTURE_CODING_EXTENSION_ID << 28)		/* extension_start_code_identifier [4] */
 	       + (f_code00 << 24)				/* f_code[s][t] [4] */
 	       + (f_code01 << 20)				/* f_code[s][t] [4] */
 	       + (f_code10 << 16)				/* f_code[s][t] [4] */
@@ -294,16 +291,52 @@ picture_header			(struct bs_rec *	bs,
 	       + (0 << 1)					/* repeat_first_field */
 	       + (0 << 0), 32);					/* chroma_420_type */
 
-	bputl (bs, 0
-	       + (0 << 7)					/* progressive_frame */
+	bputl (bs, (0 << 7)					/* progressive_frame */
 	       + (0 << 6)					/* composite_display_flag */
 	       + 0, 8);						/* byte align '000000' */
+
+	bprolog (bs);
 }
 
 typedef struct {
 	struct vlc_rec		vlc;
 	filter_param		fp;
+	rc_field		rc;
+	struct mblock_hist	mb_hist[(MAX_WIDTH >> 4) + 1];
 } field;
+
+#define MB_HIST2(n) (f->mb_hist[(n) + 1])
+
+static inline void
+reset_mb_hist			(field *		f)
+{
+	static const struct mblock_hist m = { -100, 0, { 0, 0 }};
+	int i;
+
+	for (i = -1; i < mb_width; i++)
+		f->mb_hist[i + 1] = m;
+}
+
+static inline void
+head_i				(mpeg1_context *	mpeg1,
+				 field *		f,
+				 rte_bool		bottom,
+				 rte_bool		motion)
+{
+	printv (3, "Encoding I field%d #%lld GOP #%d, ref=%c\n",
+		bottom, video_frame_count, mpeg1->gop_frame_count, "FT"[mpeg1->referenced]);
+
+//	swap (mpeg1->oldref, newref);
+
+//	reset_mba ();
+
+	reset_mb_hist (f);
+
+	/* Picture header */
+
+	picture_header (&f->vlc.bstream, I_TYPE, TOP_FIELD + bottom,
+			mpeg1->gop_frame_count, 15, 15, 15, 15);
+}
 
 static inline void
 template_slice_i		(mpeg1_context *	mpeg1,
@@ -325,7 +358,7 @@ template_slice_i		(mpeg1_context *	mpeg1,
 		emms ();
 
 		{
-			quant = rc_quant (&mpeg1->rc, &mpeg1->rc.f, MB_INTRA,
+			quant = rc_quant (&mpeg1->rc, &f->rc, MB_INTRA,
 					  var / VARQ + 1, 0.0,
 					  bwritten (bs), 0, quant_max);
 
@@ -351,7 +384,7 @@ template_slice_i		(mpeg1_context *	mpeg1,
 				       + (1 << 1)		/* macroblock_address_increment +1 */
 				       + (1 << 0), 8);		/* macroblock_type '1' (I Intra) */
 				bputq (bs, 40);
-			} else if (MB_HIST (mb_col - 1 /* last */).quant != quant) {
+			} else if (MB_HIST2 (mb_col - 1 /* last */).quant != quant) {
 				bputl (bs, (1 << 7)		/* macroblock_address_increment +1 */
 				       + (1 << 5)		/* macroblock_type '01' (I Intra, Quant) */
 				       + quant, 8);		/* quantiser_scale_code [5] */
@@ -377,29 +410,33 @@ template_slice_i		(mpeg1_context *	mpeg1,
 
 		bprolog (bs);
 
-		mpeg1->rc.f.quant_sum += quant;
-		MB_HIST (mb_col).quant = quant;
+		f->rc.quant_sum += quant;
+		MB_HIST2 (mb_col).quant = quant;
 	}
 
-	MB_HIST (-1) = MB_HIST (mb_col - 1);
+	MB_HIST2 (-1) = MB_HIST2 (mb_col - 1);
 
 	mba_row_incr ();
 }
 
-/* obsolete */
 static inline int
-template_field_i		(mpeg1_context *	mpeg1,
-				 uint8_t *		org,
+template_tail_i			(mpeg1_context *	mpeg1,
+				 field *		f,
 				 rte_bool		bottom,
 				 rte_bool		motion)
 {
+	int S = bflush (&f->vlc.bstream);
+
+	rc_picture_end (&mpeg1->rc, &f->rc, I_TYPE, S, mb_num);
+
+	return S >> 3;
 }
 
-/* obsolete */
-static int
-field_i_nomc (mpeg1_context *mpeg1, unsigned char *org, bool bottom)
+static void
+slice_i_nomc			(mpeg1_context *	mpeg1,
+				 field *		f)
 {
-	return template_field_i (mpeg1, org, bottom, FALSE);
+	template_slice_i (mpeg1, f, FALSE);
 }
 
 static int
@@ -444,6 +481,7 @@ picture_zero (mpeg1_context *mpeg1)
 	}
 
 	bprolog (bs);
+
 	emms ();
 
 	return bflush (bs) >> 3;
@@ -567,45 +605,7 @@ encode_keyframe(mpeg1_context *mpeg1, stacked_frame *this,
 		int stacked_bframes, int key_offset,
 		buffer *obuf, bool pframe)
 {
-	mpeg1->gop_frame_count += key_offset;
-
-	obuf->used = field_i_nomc (mpeg1, this->org, 0);
-	obuf->type = I_TYPE;
-	pframe = FALSE;
-	mpeg1->p_succ = 0;
-
-	mpeg1->gop_frame_count -= key_offset;
-
-	obuf->offset = key_offset;
-	obuf->time = this->time;
-
-	_send_full_buffer(mpeg1, obuf);
-
-	mpeg1->closed_gop = FALSE;
-
-	obuf = wait_empty_buffer(&mpeg1->prod);
-	bstart(&video_out.bstream, obuf->data);
-
-	mpeg1->referenced = 0; // XXX
-
-	obuf->used = field_i_nomc (mpeg1, this->org, 1);
-	obuf->type = I_TYPE;
-	pframe = FALSE;
-	mpeg1->p_succ = 0;
-
-	obuf->offset = key_offset;
-	obuf->time = this->time;
-
-	_send_full_buffer(mpeg1, obuf);
-
-	if (this->buffer)
-		send_empty_buffer(&mpeg1->cons, this->buffer);
-
-	video_frame_count++;
-	mpeg1->seq_frame_count++;
-	mpeg1->coded_frames_countd -= 1.0;
-
-	return pframe;
+	return 0;
 }
 
 static bool
@@ -1584,8 +1584,8 @@ option_print(rte_codec *codec, const char *keyword, va_list args)
 	} else if (KEYWORD("virtual_frame_rate")) {
 		snprintf(buf, sizeof(buf), _("%5.3f frames/s"), va_arg(args, double));
 	} else if (KEYWORD("skip_method")) {
-		return rte_strdup(context, NULL, menu_skip_method[
-			RTE_OPTION_ARG_MENU(menu_skip_method)]);
+		return rte_strdup(context, NULL, _(menu_skip_method[
+			RTE_OPTION_ARG_MENU(menu_skip_method)]));
 	} else if (KEYWORD("gop_sequence") || KEYWORD("anno")) {
 		return rte_strdup(context, NULL, va_arg(args, char *));
 	} else if (KEYWORD("motion_compensation") || KEYWORD("monochrome")) {
