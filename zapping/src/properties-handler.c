@@ -670,8 +670,6 @@ add				(GnomeDialog	*dialog)
 
   standard_properties_add(dialog, groups, acount(groups),
 			  PACKAGE_DATA_DIR "/zapping.glade");
-
-  open_properties_group(GTK_WIDGET(dialog), _("General Options"));
 }
 
 void startup_properties_handler(void)

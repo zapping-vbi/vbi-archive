@@ -1,6 +1,10 @@
 15.11.2001	nl.po <garetxe@users.sf.net>
 
-	* nl.po: Added, contributed by Ime Smits and Reinout van Schowen.
+	* nl.po: Added, contributed by Ime Smits and Reinout van Schouwen.
+	* tveng1.c: Reenabled pal-n.
+	* properties.c: Remember last open group, added a frame around the
+	properties contents, fixed sidebar geometry calculation ("add"
+	isn't called for boxes, apparently, even being containers...)
 
 14.11.2001	Killed parrot <garetxe@users.sf.net>
 

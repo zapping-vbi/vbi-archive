@@ -72,6 +72,12 @@ void
 z_property_item_modified	(GtkWidget	*widget);
 
 /**
+ * Startup/shutdown
+ */
+void startup_properties(void);
+void shutdown_properties(void);
+
+/**
  * Useful structures and definitions for property handlers.
  * This isn't required (you can always add pages by hand), but using
  * these routines/structs helps a big deal.

@@ -1,6 +1,6 @@
 # Zapping Dutch translation -*- coding: iso-8859-15 -*-
 # Copyleft (L) 2001 Ime Smits <ime@iae.nl>
-# Reviewed: Reinout van Schouwen <reinout@cs.vu.nl
+# Reviewed: Reinout van Schouwen <reinout@cs.vu.nl>
 #
 msgid ""
 msgstr ""

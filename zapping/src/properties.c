@@ -40,6 +40,8 @@
 
 #include <gnome.h>
 
+#define ZCONF_DOMAIN "/zapping/internal/properties/"
+#include "zconf.h"
 #include "callbacks.h"
 #include "interface.h"
 #include "properties.h"
@@ -261,6 +263,20 @@ find_selected_group		(GtkWidget	*widget,
       (g_list_index(gtk_container_children(group_container), widget)-1)/2;
 }
 
+/**
+ * Returns the vbox associated with the nth group.
+ */
+static GtkWidget*
+nth_group_contents		(gpointer	dialog,
+				 gint		n)
+{
+  GtkContainer *group_container = GTK_CONTAINER
+    (lookup_widget(GTK_WIDGET(dialog), "group-container"));
+
+  return GTK_WIDGET((g_list_nth_data(gtk_container_children(group_container),
+				     2*n + 2)));
+}
+
 /* Gets the currently selected group and item, or sets to -1 both
    group and item if nothing is selected yet */
 static void
@@ -283,9 +299,7 @@ get_cur_sel			(GtkWidget	*dialog,
   if (*group == -1)
     return; /* Nothing shown yet */
   
-  group_widget = GTK_WIDGET
-    (g_list_nth_data(gtk_container_children(group_container),
-		     2*(*group) + 2));
+  group_widget = nth_group_contents(dialog, *group);
   group_list = gtk_object_get_data(GTK_OBJECT(group_widget), "group_list");
 
   while (group_list)
@@ -380,9 +394,20 @@ on_properties_help_clicked	(GtkWidget	*button,
 }
 
 static gint
-on_properties_close		(GnomeDialog	*dialog,
+on_properties_close		(GtkWidget	*dialog,
 				 GtkWidget	*menuitem)
 {
+  gint cur_group, cur_item;
+  gchar *group_name = NULL;
+
+  /* Remember last open group */
+  get_cur_sel(dialog, &cur_group, &cur_item);
+
+  if (cur_group != -1 &&
+      (group_name = gtk_object_get_data(GTK_OBJECT
+		(nth_group_contents(dialog, cur_group)), "group-name")))
+    zcs_char(group_name, "last_group");
+
   gtk_widget_set_sensitive(menuitem, TRUE);
 
   PropertiesDialog = NULL;
@@ -488,18 +513,24 @@ build_properties_contents	(GnomeDialog	*dialog)
   gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
   gtk_box_pack_start(GTK_BOX(hbox), frame, FALSE, FALSE, 0);
   vbox = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(vbox);
   gtk_container_add(GTK_CONTAINER(frame), vbox);
   register_widget(vbox, "group-container");
 
   /* Create a notebook for holding the pages. Note that we don't rely
      on any of the notebook's features, we select the active page
      programatically */
+  /* Some eye candy first */
+  frame = gtk_frame_new(NULL);
+  gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
+  gtk_box_pack_start_defaults(GTK_BOX(hbox), frame);
+  /* Notebook */
   notebook = GTK_NOTEBOOK(gtk_notebook_new());
   gtk_notebook_set_show_tabs(notebook, FALSE);
   gtk_notebook_set_show_border(notebook, FALSE);
   gtk_notebook_set_scrollable(notebook, FALSE);
   gtk_notebook_popup_disable(notebook);
-  gtk_box_pack_start_defaults(GTK_BOX(hbox), GTK_WIDGET(notebook));
+  gtk_container_add(GTK_CONTAINER(frame), GTK_WIDGET(notebook));
   register_widget(GTK_WIDGET(notebook), "properties-notebook");
 
   /* Put our logo when nothing is selected yet */
@@ -518,11 +549,6 @@ build_properties_contents	(GnomeDialog	*dialog)
   gtk_box_pack_start(GTK_BOX(vbox), nsbutton, FALSE, TRUE, 0);
   gtk_object_set_data(GTK_OBJECT(vbox), "group_list",
 		      gtk_radio_button_group(GTK_RADIO_BUTTON(nsbutton)));
-
-  /* Make the widget adapt itself to fit all added items/groups */
-  gtk_signal_connect(GTK_OBJECT(vbox), "add",
-		     GTK_SIGNAL_FUNC(on_container_add),
-		     vbox);
 
   /* Make property handlers build their pages */
   for (i = 0; i<num_handlers; i++)
@@ -595,6 +621,9 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
   /* Build the rest of the dialog */
   build_properties_contents(dialog);
 
+  /* Open the last selected group */
+  open_properties_group(GTK_WIDGET(dialog), zcg_char(NULL, "last_group"));
+
   gnome_dialog_run(dialog);
 }
 
@@ -613,6 +642,7 @@ append_properties_group		(GnomeDialog	*dialog,
 
   button = gtk_button_new_with_label(group);
   gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
+  on_container_add(vbox, button, vbox);
   gtk_widget_show(button);
   register_widget(button, buf);
   gtk_signal_connect(GTK_OBJECT(button), "clicked",
@@ -623,11 +653,11 @@ append_properties_group		(GnomeDialog	*dialog,
   buf = g_strdup_printf("group-contents-%s", group);
   contents = gtk_vbox_new(FALSE, 0);
   gtk_box_pack_start_defaults(GTK_BOX(vbox), contents);
+  gtk_object_set_data_full(GTK_OBJECT(contents), "group-name",
+			   g_strdup(group),
+			   g_free);
   /* Note that we don't show() contents */
   register_widget(contents, buf);
-  gtk_signal_connect(GTK_OBJECT(contents), "add",
-		     GTK_SIGNAL_FUNC(on_container_add),
-		     vbox);
   g_free(buf);
 }
 
@@ -674,6 +704,7 @@ append_properties_page		(GnomeDialog	*dialog,
   gtk_button_set_relief(GTK_BUTTON(radio), GTK_RELIEF_NONE);
 
   gtk_widget_show_all(radio);
+  on_container_add(contents, radio, container);
 
   g_free(buf);
 
@@ -700,18 +731,22 @@ open_properties_group		(GtkWidget	*dialog,
 				 const gchar	*group)
 {
   gchar *buf = g_strdup_printf("group-contents-%s", group);
-  GtkWidget *contents = lookup_widget(dialog, buf);
+  GtkWidget *contents = find_widget(dialog, buf);
   GtkContainer *group_container = GTK_CONTAINER
     (lookup_widget(dialog, "group-container"));
   gint cur_group, cur_item;
+
+  if (!contents)
+    {
+      g_warning("Group %s not found in the properties", group);
+      return; /* Not found */
+    }
 
   /* If the current selection is in a different group, switch to it */
   get_cur_sel(dialog, &cur_group, &cur_item);
 
   if (cur_group == -1 ||
-      GTK_WIDGET
-      (g_list_nth_data(gtk_container_children(group_container),
-		       2*cur_group + 1)) != contents)
+      nth_group_contents(dialog, cur_group) != contents)
     gtk_container_foreach(GTK_CONTAINER(group_container),
 			  GTK_SIGNAL_FUNC(show_hide_foreach),
 			  contents);
@@ -828,4 +863,17 @@ void append_property_handler (property_handler *p)
     handlers[num_handlers].help = help;
 
   num_handlers++;
+}
+
+void
+startup_properties(void)
+{
+  zcc_char(_("General Options"), "Selected properties group", "last_group");
+}
+
+void shutdown_properties(void)
+{
+  g_free(handlers);
+  handlers = NULL;
+  num_handlers = 0;
 }

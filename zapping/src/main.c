@@ -47,6 +47,7 @@
 #include "audio.h"
 #include "csconvert.h"
 #include "properties-handler.h"
+#include "properties.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
@@ -417,7 +418,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.144 2001-11-12 22:38:39 garetxe Exp $",
+	 "$Id: main.c,v 1.145 2001-11-15 23:07:03 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -934,6 +935,7 @@ static void shutdown_zapping(void)
    */
   printv(" ph");
   shutdown_properties_handler();
+  shutdown_properties();
     
   /* Close */
   printv(" video device");
@@ -971,6 +973,8 @@ static gboolean startup_zapping(gboolean load_plugins)
       g_error(_("Sorry, Zapping is unable to create the config tree"));
       return FALSE;
     }
+  D();
+  startup_properties();
   D();
   /* Sets defaults for zconf */
   zcc_bool(TRUE, "Save and restore zapping geometry (non ICCM compliant)", 

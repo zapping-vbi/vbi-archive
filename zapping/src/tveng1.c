@@ -87,11 +87,6 @@ struct private_tveng1_device_info
   double frame_period_far;
 };
 
-/*
-  If this is enabled, pal_n mode is enabled ( it can crash my system )
-*/
-/* #define TVENG1_PAL_N 1 */
-
 /* Private, builds the controls structure */
 static int
 p_tveng1_build_controls(tveng_device_info * info);
@@ -622,9 +617,7 @@ static int tveng1_get_standards(tveng_device_info * info)
     {  2, "SECAM" },
     {  3, "PAL-NC" },
     {  4, "PAL-M" },
-#ifdef TVENG1_PAL_N
-    {  5, "PAL-N" }, /* This one hangs zapping */
-#endif
+    {  5, "PAL-N" },
     {  6, "NTSC-JP" },
     { -1, NULL}
   };
