@@ -33,12 +33,12 @@
 #define ZCONF_DOMAIN "/zapping/ttxview/"
 #include "zmisc.h"
 #include "zconf.h"
+#include "zmodel.h"
 #include "../common/fifo.h"
 
 /*
   TODO:
 	better handling of loading... page
-	Bookmark editing
 	Search
 	Export filters
 	ttxview in main window (alpha et al)
@@ -46,8 +46,6 @@
 
 static GdkCursor	*hand=NULL;
 static GdkCursor	*arrow=NULL;
-static GtkAdjustment	*model=NULL; /* hack for doing MV, need ZModel or
-				    sth */
 
 typedef struct {
   GdkPixmap		*scaled;
@@ -75,7 +73,8 @@ struct bookmark {
   gchar *description;
 };
 
-static GList *bookmarks=NULL;
+static GList	*bookmarks=NULL;
+static ZModel	*model=NULL; /* for bookmarks */
 
 static void
 add_bookmark(gint page, gint subpage, const gchar *description)
@@ -88,7 +87,7 @@ add_bookmark(gint page, gint subpage, const gchar *description)
   entry->description = g_strdup(description);
 
   bookmarks = g_list_append(bookmarks, entry);
-  gtk_adjustment_set_value(model, g_list_length(bookmarks));
+  zmodel_changed(model);
 }
 
 static void
@@ -102,7 +101,7 @@ remove_bookmark(gint index)
   g_free(((struct bookmark*)(node->data))->description);
   g_free(node->data);
   bookmarks = g_list_remove(bookmarks, node->data);
-  gtk_adjustment_set_value(model, g_list_length(bookmarks));
+  zmodel_changed(model);
 }
 
 gboolean
@@ -114,7 +113,7 @@ startup_ttxview (void)
 
   hand = gdk_cursor_new (GDK_HAND2);
   arrow = gdk_cursor_new(GDK_LEFT_PTR);
-  model = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0x100000, 1, 1, 1));
+  model = ZMODEL(zmodel_new());
 
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "bookmarks"))
     {
@@ -796,7 +795,7 @@ void on_edit_bookmarks_activated	(GtkWidget	*widget,
   gtk_signal_connect(GTK_OBJECT(lookup_widget(be, "bookmarks_remove")),
 		     "clicked",
 		     GTK_SIGNAL_FUNC(on_be_delete), data);
-  gtk_signal_connect(GTK_OBJECT(model), "value-changed",
+  gtk_signal_connect(GTK_OBJECT(model), "changed",
 		     GTK_SIGNAL_FUNC(on_be_model_changed), be);
   gtk_signal_connect(GTK_OBJECT(be), "destroy",
 		     GTK_SIGNAL_FUNC(on_be_destroy), data);
