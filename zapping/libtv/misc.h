@@ -17,10 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.1 2004-09-10 04:57:13 mschimek Exp $ */
+/* $Id: misc.h,v 1.2 2004-10-03 10:05:12 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
+
+#include "../config.h"
 
 #include <stddef.h>
 #include <string.h>
@@ -184,5 +186,31 @@ do { \
     fprintf(stderr, format ,##args); \
   fflush(stderr); } \
 } while (0)
+
+#ifdef HAVE_STRLCPY
+#define _tv_strlcpy strlcpy
+#else
+extern size_t
+_tv_strlcpy			(char *			dst,
+				 const char *		src,
+				 size_t			len);
+#endif
+
+#ifdef HAVE_STRNDUP
+#define _tv_strndup strndup
+#else
+extern char *
+_tv_strndup			(const char *		s,
+				 size_t			len);
+#endif
+
+#ifdef HAVE_ASPRINTF
+#define _tv_asprintf asprintf
+#else
+int
+_tv_asprintf			(char **		dstp,
+				 const char *		templ,
+				 ...);
+#endif
 
 #endif /* MISC_H */
