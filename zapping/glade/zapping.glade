@@ -1064,6 +1064,7 @@
 	  <items>No fixed ratio
 4:3
 16:9
+Autodetect
 </items>
 	  <initial_choice>0</initial_choice>
 	  <child>

@@ -55,6 +55,7 @@ gchar *s = N_("Ratio mode:");
 gchar *s = N_("No fixed ratio");
 gchar *s = N_("4:3");
 gchar *s = N_("16:9");
+gchar *s = N_("Autodetect");
 gchar *s = N_("Verbosity value given to zapping__setup__fb:");
 gchar *s = N_("The bigger this value is, the more verbose zapping_setup_fb will be");
 gchar *s = N_("Fullscreen video mode:");

@@ -78,6 +78,7 @@ static pthread_mutex_t network_mutex;
 static gboolean station_name_known = FALSE;
 static gchar station_name[256];
 vbi_network current_network; /* current network info */
+double zvbi_ratio = 4.0/3.0;
 
 /* symbol used by osd.c */
 int zvbi_page = 1, zvbi_subpage = ANY_SUB;	// caption 1 ... 8
@@ -1664,6 +1665,11 @@ event(vbi_event *ev, void *unused)
       break;
     case VBI_EVENT_TRIGGER:
       notify_trigger((vbi_link *) ev->p);
+      break;
+
+    case VBI_EVENT_RATIO:
+      if (zconf_get_integer(NULL, "/zapping/options/main/ratio") == 3)
+	zvbi_ratio = ((vbi_ratio*) ev->p)->ratio;
       break;
       
     default:

@@ -4,6 +4,7 @@
 	the main window is in TTX mode.
 	* ttxview: improved page selection as discussed, use the new
 	pixmaps.
+	* main.c, zvbi.c: Added support for aspect ratio autodetecting.
 	
 21.08.2001	es updated <garetxe@users.sf.net>
 

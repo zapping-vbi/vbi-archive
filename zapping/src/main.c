@@ -120,6 +120,8 @@ static gint timeout_handler(gpointer unused)
   GtkWidget *tv_screen;
   gint tvs_w, tvs_h, mw_w, mw_h;
   double rw = 0, rh=0;
+  extern double zvbi_ratio;
+  static double old_ratio = 0;
 
   if ((flag_exit_program) || (!main_window->window))
     return 0;
@@ -143,6 +145,10 @@ static gint timeout_handler(gpointer unused)
 	rw = 16;
 	rh = 9;
 	break;
+      case 3:
+	rw = zvbi_ratio;
+	rh = 1;
+	break;
       default:
 	break;
       }
@@ -164,6 +170,17 @@ static gint timeout_handler(gpointer unused)
       
       gdk_window_set_geometry_hints(main_window->window, &geometry,
 				    hints);
+
+      if (old_ratio != zvbi_ratio &&
+	  zcg_int(NULL, "ratio") == 3)
+	{
+	  /* ug, ugly */
+	  gdk_window_get_size(main_window->window, &mw_w, &mw_h);
+	  gdk_window_resize(main_window->window,
+			    mw_h*geometry.min_aspect, mw_h);
+	  old_ratio = zvbi_ratio;
+	}
+
     }
 
   return 1; /* Keep calling me */
@@ -395,7 +412,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.127 2001-08-18 21:40:52 garetxe Exp $",
+	 "$Id: main.c,v 1.128 2001-08-22 21:13:07 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
