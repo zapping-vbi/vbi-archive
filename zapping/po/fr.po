@@ -1,12 +1,12 @@
-# French translation for Zapping.
+# French translation for Zapping. -*- coding: utf-8 -*-
 # Christian Marillat <marillat.christian@wanadoo.fr>, 2000-2003.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-09-16 06:06+0200\n"
-"PO-Revision-Date: 2003-12-08 08:11+0100\n"
+"POT-Creation-Date: 2004-09-18 17:08+0200\n"
+"PO-Revision-Date: 2004-09-18 17:51+0200\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -470,8 +470,8 @@ msgstr "Vous permet de contrôler zapping avec lirc"
 
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:411 plugins/mpeg/mpeg.c:2147
-#: plugins/screenshot/screenshot.c:1617
+#: plugins/alirc/alirc.c:411 plugins/mpeg/mpeg.c:2146
+#: plugins/screenshot/screenshot.c:1616
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Check erreur : \"%s\" du greffon %s has hash 0x%x vs. 0x%x"
@@ -505,13 +505,13 @@ msgstr "Nouveau format"
 msgid "Format name:"
 msgstr "Nom du format :"
 
-#: plugins/mpeg/mpeg.c:1467 plugins/mpeg/mpeg.c:2081
-#: plugins/screenshot/screenshot.c:498 plugins/screenshot/screenshot.c:1404
+#: plugins/mpeg/mpeg.c:1467 plugins/mpeg/mpeg.c:2080
+#: plugins/screenshot/screenshot.c:498 plugins/screenshot/screenshot.c:1403
 msgid "Plugins"
 msgstr "Greffons"
 
-#: plugins/mpeg/mpeg.c:1467 plugins/mpeg/mpeg.c:1943 plugins/mpeg/mpeg.c:1965
-#: plugins/mpeg/mpeg.c:2070 plugins/mpeg/mpeg_properties.glade2.h:6
+#: plugins/mpeg/mpeg.c:1467 plugins/mpeg/mpeg.c:1935 plugins/mpeg/mpeg.c:1964
+#: plugins/mpeg/mpeg.c:2069 plugins/mpeg/mpeg_properties.glade2.h:6
 msgid "Record"
 msgstr "Enregistrement"
 
@@ -519,19 +519,19 @@ msgstr "Enregistrement"
 msgid "Not implemented yet"
 msgstr "Pas encore implémenté"
 
-#: plugins/mpeg/mpeg.c:1929
+#: plugins/mpeg/mpeg.c:1928
 msgid "Record a video stream"
 msgstr "Enregistrer le flux vidéo"
 
-#: plugins/mpeg/mpeg.c:2016
+#: plugins/mpeg/mpeg.c:2015
 msgid "Audio/Video Recorder"
 msgstr "Enregistrement Audio/Video"
 
-#: plugins/mpeg/mpeg.c:2019
+#: plugins/mpeg/mpeg.c:2018
 msgid "This plugin records video and audio into a file"
 msgstr "Ce greffon enregistre les flux image et audio dans un fichier"
 
-#: plugins/mpeg/mpeg.c:2022
+#: plugins/mpeg/mpeg.c:2021
 msgid "Record video and audio."
 msgstr "Enregistrer la vidéo et l'audio."
 
@@ -602,7 +602,7 @@ msgstr "Enregist_rement"
 msgid "_Stop"
 msgstr "_Stop"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:17
+#: plugins/mpeg/mpeg_properties.glade2.h:17 src/zapping.c:374
 msgid "_Video"
 msgstr "_Vidéo"
 
@@ -622,25 +622,25 @@ msgstr ""
 msgid "This plugin takes screenshots of the video capture."
 msgstr "Ce greffon fait des copies d'écran de la capture vidéo"
 
-#: plugins/screenshot/screenshot.c:493 plugins/screenshot/screenshot.c:525
-#: plugins/screenshot/screenshot.c:1404
+#: plugins/screenshot/screenshot.c:493 plugins/screenshot/screenshot.c:518
+#: plugins/screenshot/screenshot.c:1403
 msgid "Screenshot"
 msgstr "Copie d'écran"
 
-#: plugins/screenshot/screenshot.c:526
+#: plugins/screenshot/screenshot.c:523
 msgid "Take a screenshot"
 msgstr "Faire une copie d'écran"
 
-#: plugins/screenshot/screenshot.c:659 plugins/screenshot/screenshot.c:755
+#: plugins/screenshot/screenshot.c:658 plugins/screenshot/screenshot.c:754
 msgid "Error while writing screenshot\n"
 msgstr "Erreur lors de la sauvegarde de la copie d'écran\n"
 
-#: plugins/screenshot/screenshot.c:805
+#: plugins/screenshot/screenshot.c:804
 msgid "Saving..."
 msgstr "Sauvegarde..."
 
 #. XXX check errno and possibly retry
-#: plugins/screenshot/screenshot.c:828
+#: plugins/screenshot/screenshot.c:827
 #, c-format
 msgid ""
 "Cannot create directory:\n"
@@ -651,7 +651,7 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/screenshot/screenshot.c:838
+#: plugins/screenshot/screenshot.c:837
 #, c-format
 msgid ""
 "Sorry, but I cannot write %s\n"
@@ -660,29 +660,29 @@ msgstr ""
 "Désolé, mais je ne peut pas écrire %s\n"
 "%s"
 
-#: plugins/screenshot/screenshot.c:872
+#: plugins/screenshot/screenshot.c:871
 msgid "Sorry, not enough resources to create a new thread"
 msgstr "Désolé, plus de ressources pour créer un nouveau thread"
 
-#: plugins/screenshot/screenshot.c:877
+#: plugins/screenshot/screenshot.c:876
 msgid "There are too many threads"
 msgstr "Il y a trop de threads"
 
-#: plugins/screenshot/screenshot.c:1051
+#: plugins/screenshot/screenshot.c:1050
 #, c-format
 msgid "appx %u KB"
 msgstr "environ %u Ko"
 
-#: plugins/screenshot/screenshot.c:1054
+#: plugins/screenshot/screenshot.c:1053
 #, c-format
 msgid "appx %.2f MB"
 msgstr "environ %.2f Mo"
 
-#: plugins/screenshot/screenshot.c:1119 plugins/screenshot/screenshot.c:1263
+#: plugins/screenshot/screenshot.c:1118 plugins/screenshot/screenshot.c:1262
 msgid "This format has no quality option"
 msgstr "Ce format n'a pas d'option pour la qualité"
 
-#: plugins/screenshot/screenshot.c:1299
+#: plugins/screenshot/screenshot.c:1298
 msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
 msgstr "Seulement utilisable avec de grande résolution (480 ou 576 lignes)"
 
@@ -748,15 +748,15 @@ msgid "Input:"
 msgstr "Entrée :"
 
 #: src/audio.c:531 src/keyboard.c:1146 src/osd.c:1335
-#: src/properties-handler.c:1607 src/properties.c:942
+#: src/properties-handler.c:1607 src/properties.c:955
 msgid "General Options"
 msgstr "Options Générale"
 
-#: src/audio.c:643
+#: src/audio.c:629
 msgid "<span foreground=\"blue\">Audio off</span>"
 msgstr ""
 
-#: src/audio.c:644
+#: src/audio.c:630
 msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr ""
 
@@ -936,111 +936,6 @@ msgstr "cable"
 msgid "Autocom cable"
 msgstr "Cable autocom"
 
-#: src/interface.c:280
-msgid "Show Menu and Toolbar"
-msgstr "Afficher le menu et la barre d'outils"
-
-#: src/interface.c:286
-msgid "Keep Window on Top"
-msgstr "Garder la fenêtre au premier plan"
-
-#: src/interface.c:298 src/interface.c:538
-msgid "_Fullscreen"
-msgstr "_Plein écran"
-
-#: src/interface.c:304 src/interface.c:544
-msgid "_Overlay mode"
-msgstr "Mode _Overlay"
-
-#: src/interface.c:310 src/interface.c:550
-msgid "_Capture mode"
-msgstr "Mode _Capture"
-
-#: src/interface.c:317 src/interface.c:557
-msgid "_Teletext"
-msgstr "_Télétexte"
-
-#: src/interface.c:323 src/interface.c:576
-msgid "_Subtitles"
-msgstr "_Sous-titres"
-
-#: src/interface.c:329 src/ttxview.c:3806 src/ttxview.c:4057
-msgid "_Bookmarks"
-msgstr "_Signets"
-
-#: src/interface.c:462
-msgid "Appearance"
-msgstr "Apparence"
-
-#: src/interface.c:520
-msgid "P_lugins"
-msgstr "_Greffons"
-
-#: src/interface.c:527 src/interface.c:611
-msgid "_Channels"
-msgstr "_Chaînes"
-
-#: src/interface.c:563
-msgid "_New Teletext View"
-msgstr "_Nouvelle vue Télétexte"
-
-#: src/interface.c:570
-msgid "_Mute"
-msgstr "_Sourdine"
-
-#: src/interface.c:583
-msgid "Show menu and toolbar"
-msgstr "Voir le menu et la barre d'outils"
-
-#: src/interface.c:589
-msgid "Keep window on top"
-msgstr "Garder la fenêtre au premier plan"
-
-#: src/interface.c:702
-msgid "Ch. Up"
-msgstr "Ch. Haut"
-
-#: src/interface.c:702
-msgid "Switch to higher channel"
-msgstr "Changer pour la chaîne la plus haute"
-
-#: src/interface.c:707
-msgid "Ch. Down"
-msgstr "Ch. Bas"
-
-#: src/interface.c:707
-msgid "Switch to lower channel"
-msgstr "Changer pour la chaîne la plus basse"
-
-#: src/interface.c:714 src/v4linterface.c:637
-msgid "Controls"
-msgstr "Contrôles"
-
-#: src/interface.c:714
-msgid "Change picture controls"
-msgstr "Régler l'image et le son"
-
-#: src/interface.c:721 src/main.c:159 src/tveng.c:2089 src/tveng1.c:903
-#: src/tveng2.c:450 src/tveng25.c:491 src/tvengbktr.c:399 src/tvengxv.c:538
-msgid "Mute"
-msgstr "Sourdine"
-
-#: src/interface.c:721
-msgid "Switch audio on or off"
-msgstr "Basculer le son on ou off"
-
-#: src/interface.c:726 src/zmisc.c:405
-msgid "Activate Teletext mode"
-msgstr "Activer le mode Télétexte"
-
-#: src/interface.c:734 src/main.c:161
-msgid "Subtitles"
-msgstr "Sous-titres"
-
-#: src/interface.c:734
-msgid "Switch subtitles on or off"
-msgstr "Basculer les sous-titres on ou off"
-
 #: src/keyboard.c:86 src/keyboard.c:109
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -1065,9 +960,18 @@ msgstr "Commande"
 msgid "Shortcut"
 msgstr "Raccourcis"
 
+#: src/main.c:159 src/tveng.c:2089 src/tveng1.c:903 src/tveng2.c:450
+#: src/tveng25.c:491 src/tvengbktr.c:399 src/tvengxv.c:538
+msgid "Mute"
+msgstr "Sourdine"
+
 #: src/main.c:160
 msgid "Teletext"
 msgstr "Télétexte"
+
+#: src/main.c:161
+msgid "Subtitles"
+msgstr "Sous-titres"
 
 #: src/main.c:256 src/main.c:289
 #, c-format
@@ -1178,29 +1082,29 @@ msgstr "Exécuter la commande donnée et quitter"
 msgid "CMD"
 msgstr "CMD"
 
-#: src/main.c:605
+#: src/main.c:609
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Désolé, mais il n'y a pas le support des modules dans Glib"
 
-#: src/main.c:720
+#: src/main.c:724
 msgid "Cannot get device info struct"
 msgstr "Impossible d'obtenir les infos du périphérique"
 
-#: src/main.c:729
+#: src/main.c:733
 msgid "Zapping couldn't be started"
 msgstr "Zapping ne peut pas démarrer"
 
-#: src/main.c:788
+#: src/main.c:792
 #, c-format
 msgid "Couldn't open %s, try other devices?"
 msgstr "Ne peut ouvrir %s, dois-je essayer un autre périphérique ?"
 
-#: src/main.c:814
+#: src/main.c:818
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "%s avec succès, prendre comme le nouveau défaut"
 
-#: src/main.c:825
+#: src/main.c:829
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -1209,7 +1113,7 @@ msgstr ""
 "Désolé, mais \"%s\" ne peut pas être ouvert :\n"
 "%s"
 
-#: src/main.c:1169 src/zapzilla.c:165
+#: src/main.c:1166 src/zapzilla.c:165
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -1230,7 +1134,7 @@ msgstr ""
 "   - ou, plus sûrement, vous venez de trouver un bogue dans\n"
 "     %s. Contactez l'auteur SVP.\n"
 
-#: src/main.c:1198
+#: src/main.c:1195
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Désolé, Zapping est incapable de créer la configuration par défaut"
 
@@ -1315,19 +1219,19 @@ msgstr "Liste des symboles exportés par le greffon"
 msgid "Sorry, the plugin couldn't be started"
 msgstr "Désolé, mais le greffon ne peut être démarré"
 
-#: src/plugin_properties.c:262
+#: src/plugin_properties.c:273
 msgid "Sorry, but no plugins have been loaded"
 msgstr "Désolé, mais aucun greffon n'a été chargé"
 
-#: src/plugin_properties.c:296
+#: src/plugin_properties.c:308
 msgid "Plugin name"
 msgstr "Nom du greffon"
 
-#: src/plugin_properties.c:323
+#: src/plugin_properties.c:335
 msgid "Symbol"
 msgstr "Symbole"
 
-#: src/plugin_properties.c:328
+#: src/plugin_properties.c:340
 msgid "Hash"
 msgstr "Hash"
 
@@ -1461,7 +1365,7 @@ msgid "%u x %u @ %u Hz"
 msgstr "%u x %u @ %u Hz"
 
 #: src/properties-handler.c:1326 src/properties-handler.c:1608
-#: src/ttxview.c:3962
+#: src/ttxview.c:3967
 msgid "VBI Options"
 msgstr "Options VBI"
 
@@ -1473,11 +1377,11 @@ msgstr "TV Interactive"
 msgid "Main Window"
 msgstr "Fenêtre Principale"
 
-#: src/properties-handler.c:1597 src/ttxview.c:3962
+#: src/properties-handler.c:1597 src/ttxview.c:3967
 msgid "General"
 msgstr "Générale"
 
-#: src/properties.c:584
+#: src/properties.c:595
 msgid "Zapping Properties"
 msgstr "Propriétés de Zapping"
 
@@ -1603,7 +1507,7 @@ msgstr "Non trouvé :"
 msgid "Page memory is empty"
 msgstr "La page mémoire est vide"
 
-#: src/ttxview.c:3228 src/ttxview.c:4653
+#: src/ttxview.c:3228 src/ttxview.c:4658
 msgid "Search page memory"
 msgstr "Chercher la page mémoire"
 
@@ -1624,96 +1528,100 @@ msgstr "N_on activé"
 msgid "Page %x"
 msgstr "Page %x"
 
-#: src/ttxview.c:3627
+#: src/ttxview.c:3628
 msgid "Subtitle index"
 msgstr "Index du sous-titre"
 
-#: src/ttxview.c:3634
+#: src/ttxview.c:3635
 msgid "Now and Next"
 msgstr "Maintenant et suivant"
 
-#: src/ttxview.c:3641
+#: src/ttxview.c:3642
 msgid "Current program"
 msgstr "Programme courant"
 
-#: src/ttxview.c:3648
+#: src/ttxview.c:3649
 msgid "Program Index"
 msgstr "Index des programmes"
 
-#: src/ttxview.c:3655
+#: src/ttxview.c:3656
 msgid "Program Schedule"
 msgstr "Calendrier des programmes"
 
-#: src/ttxview.c:3663
+#: src/ttxview.c:3664
 msgid "Program Warning"
 msgstr "Préavis des programmes"
 
-#: src/ttxview.c:3748
+#: src/ttxview.c:3753
 msgid "_Open"
 msgstr "_Ouvrir"
 
-#: src/ttxview.c:3754
+#: src/ttxview.c:3759
 msgid "Open in _New Window"
 msgstr "Ouvrir dans une nouvelle fe_nêtre"
 
-#: src/ttxview.c:3765
+#: src/ttxview.c:3770
 msgid "_Open Link"
 msgstr "_Ouvrir Lien"
 
-#: src/ttxview.c:3776 src/ttxview.c:3985
+#: src/ttxview.c:3781 src/ttxview.c:3990
 msgid "_New Window"
 msgstr "_Nouvelle Fenêtre"
 
-#: src/ttxview.c:3782
+#: src/ttxview.c:3787
 msgid "_Save as..."
 msgstr "_Sauver sous..."
 
-#: src/ttxview.c:3788
+#: src/ttxview.c:3793
 msgid "S_earch..."
 msgstr "R_echerche..."
 
-#: src/ttxview.c:3794
+#: src/ttxview.c:3799
 msgid "_Colors..."
 msgstr "_Couleurs..."
 
-#: src/ttxview.c:3800
+#: src/ttxview.c:3805
 msgid "S_ubtitles"
 msgstr "So_us-titres"
 
-#: src/ttxview.c:4001
+#: src/ttxview.c:3811 src/ttxview.c:4062 src/zapping.c:371
+msgid "_Bookmarks"
+msgstr "_Signets"
+
+#: src/ttxview.c:4006
 msgid "_Search"
 msgstr "_Recherche"
 
-#: src/ttxview.c:4013
+#: src/ttxview.c:4018
 msgid "_Toolbar"
 msgstr "Barre d'ou_tils"
 
-#: src/ttxview.c:4015
+#: src/ttxview.c:4020
 msgid "_Statusbar"
 msgstr "_Barre d'état"
 
-#: src/ttxview.c:4018
+#: src/ttxview.c:4023
 msgid "_Colors"
 msgstr "_Couleurs"
 
-#: src/ttxview.c:4026
+#: src/ttxview.c:4031
 msgid "_Back"
 msgstr "_En arrière"
 
-#: src/ttxview.c:4032
+#: src/ttxview.c:4037
 msgid "_Forward"
 msgstr "E_n avant"
 
-#: src/ttxview.c:4039
+#: src/ttxview.c:4044
 msgid "_Home"
 msgstr "_Maison"
 
-#: src/ttxview.c:4055
+#: src/ttxview.c:4060
 msgid "_Go"
 msgstr "_Aller"
 
 #. TRANSLATORS: "Cannot open <URL>" (http or smtp).
-#: src/ttxview.c:4311 src/zvbi.c:632
+#: src/ttxview.c:4316 src/zvbi.c:632
 #, c-format
 msgid ""
 "Cannot open %s:\n"
@@ -1722,51 +1630,51 @@ msgstr ""
 "Ne peut ouvrir %s :\n"
 "%s"
 
-#: src/ttxview.c:4578
+#: src/ttxview.c:4583
 msgid "Next page"
 msgstr "Page suivante"
 
-#: src/ttxview.c:4581
+#: src/ttxview.c:4586
 msgid "Previous page"
 msgstr "Page précédente"
 
-#: src/ttxview.c:4584
+#: src/ttxview.c:4589
 msgid "Previous subpage"
 msgstr "Sous-page précédente"
 
-#: src/ttxview.c:4587
+#: src/ttxview.c:4592
 msgid "Next subpage"
 msgstr "Sous-page suivante"
 
-#: src/ttxview.c:4626
+#: src/ttxview.c:4631
 msgid "Previous page in history"
 msgstr "Page précédente dans l'historique"
 
-#: src/ttxview.c:4632
+#: src/ttxview.c:4637
 msgid "Next page in history"
 msgstr "Entrée suivante dans l'historique"
 
-#: src/ttxview.c:4641
+#: src/ttxview.c:4646
 msgid "Index"
 msgstr "Index"
 
-#: src/ttxview.c:4641
+#: src/ttxview.c:4646
 msgid "Go to the index page"
 msgstr "Aller à la page d'index"
 
-#: src/ttxview.c:4648
+#: src/ttxview.c:4653
 msgid "Open new Teletext window"
 msgstr "Ouvrir une nouvelle fenêtre Télétexte"
 
-#: src/ttxview.c:4671
+#: src/ttxview.c:4676
 msgid "Hold the current subpage"
 msgstr "Retenir la sous-page courante"
 
-#: src/ttxview.c:4693
+#: src/ttxview.c:4698
 msgid "Reveal"
 msgstr "Découvrir"
 
-#: src/ttxview.c:4693
+#: src/ttxview.c:4698
 msgid "Reveal concealed text"
 msgstr "Afficher le texte caché"
 
@@ -1960,44 +1868,164 @@ msgstr "Balayage double"
 
 #. TRANSLATORS: In controls box, color picker control,
 #. something like "Adjust Chroma-Key" for overlay.
-#: src/v4linterface.c:469
+#: src/v4linterface.c:447
 #, c-format
 msgid "Adjust %s"
 msgstr "Ajuster %s"
 
-#: src/v4linterface.c:1129 src/zmisc.c:1734
+#: src/v4linterface.c:615 src/zapping.c:351
+msgid "Controls"
+msgstr "Contrôles"
+
+#: src/v4linterface.c:1107 src/zmisc.c:1713
 msgid "Unknown"
 msgstr "Inconnu"
 
-#: src/v4linterface.c:1138 src/v4linterface.c:2236
+#: src/v4linterface.c:1116 src/v4linterface.c:2214
 msgid "Unnamed"
 msgstr "Sans nom"
 
-#: src/v4linterface.c:1147
+#: src/v4linterface.c:1125
 msgid "No input"
 msgstr "Pas d'entrée"
 
-#: src/v4linterface.c:1158
+#: src/v4linterface.c:1136
 msgid "No standard"
 msgstr "Pas de standard"
 
-#: src/v4linterface.c:2126
+#: src/v4linterface.c:2104
 msgid "Video standards"
 msgstr "Standards vidéo"
 
-#: src/v4linterface.c:2146
+#: src/v4linterface.c:2124
 msgid "Audio inputs"
 msgstr "Entrées Audio"
 
-#: src/v4linterface.c:2166
+#: src/v4linterface.c:2144
 msgid "Video inputs"
 msgstr "Entrée vidéo"
 
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: src/v4linterface.c:2264
+#: src/v4linterface.c:2242
 msgid "No channels"
 msgstr "Pas de chaîne"
+
+#: src/zapping.c:323
+msgid "_File"
+msgstr "_Fichier"
+
+#: src/zapping.c:325
+msgid "_Edit"
+msgstr "_Éditer"
+
+#: src/zapping.c:328
+msgid "P_lugins"
+msgstr "_Greffons"
+
+#: src/zapping.c:330 src/zapping.c:339
+msgid "_Channels"
+msgstr "_Chaînes"
+
+#: src/zapping.c:332
+msgid "_View"
+msgstr "Afficha_ge"
+
+#: src/zapping.c:333
+msgid "_Fullscreen"
+msgstr "_Plein écran"
+
+#: src/zapping.c:335
+msgid "_Overlay mode"
+msgstr "Mode _Overlay"
+
+#: src/zapping.c:337
+msgid "_Capture mode"
+msgstr "Mode _Capture"
+
+#: src/zapping.c:340
+msgid "_Help"
+msgstr "_Aide"
+
+#: src/zapping.c:341
+msgid "_Contents"
+msgstr "_Sommaire"
+
+#: src/zapping.c:343
+msgid "_About"
+msgstr "À _propos"
+
+#: src/zapping.c:346
+msgid "Appearance"
+msgstr "Apparence"
+
+#: src/zapping.c:347
+msgid "Ch. Up"
+msgstr "Ch. Haut"
+
+#: src/zapping.c:348
+msgid "Switch to higher channel"
+msgstr "Changer pour la chaîne la plus haute"
+
+#: src/zapping.c:349
+msgid "Ch. Down"
+msgstr "Ch. Bas"
+
+#: src/zapping.c:350
+msgid "Switch to lower channel"
+msgstr "Changer pour la chaîne la plus basse"
+
+#: src/zapping.c:352
+msgid "Change picture controls"
+msgstr "Régler l'image et le son"
+
+#: src/zapping.c:357
+msgid "_Mute"
+msgstr "_Sourdine"
+
+#: src/zapping.c:358
+msgid "Switch audio on or off"
+msgstr "Basculer le son on ou off"
+
+#: src/zapping.c:359
+msgid "Show menu"
+msgstr "Voir le menu"
+
+#: src/zapping.c:361
+msgid "Show toolbar"
+msgstr "Voir la barre d'outils"
+
+#: src/zapping.c:363 src/zapping.c:874
+msgid "Keep window on top"
+msgstr "Garder la fenêtre au premier plan"
+
+#: src/zapping.c:369 src/zapping.c:372
+msgid "_Teletext"
+msgstr "_Télétexte"
+
+#: src/zapping.c:370 src/zapping.c:382
+msgid "_Subtitles"
+msgstr "_Sous-titres"
+
+#: src/zapping.c:373
+msgid "Activate Teletext mode"
+msgstr "Activer le mode Télétexte"
+
+#: src/zapping.c:375
+msgid "Return to video mode"
+msgstr "Retour au mode vidéo"
+
+#: src/zapping.c:376
+msgid "_New Teletext View"
+msgstr "_Nouvelle vue Télétexte"
+
+#: src/zapping.c:383
+msgid "Switch subtitles on or off"
+msgstr "Basculer les sous-titres on ou off"
+
+#: src/zapping.c:872
+msgid "Show menu and toolbar"
+msgstr "Voir le menu et la barre d'outils"
 
 #: src/zapzilla.c:83
 msgid "VBI device to use"
@@ -2015,11 +2043,7 @@ msgstr "Zapzilla ne peut pas démarrer"
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Désolé, Zapzilla est incapable de créer la configuration par défaut"
 
-#: src/zmisc.c:392
-msgid "Return to video mode"
-msgstr "Retour au mode vidéo"
-
-#: src/zmisc.c:479
+#: src/zmisc.c:470
 #, c-format
 msgid ""
 "Cannot start video overlay.\n"
@@ -2028,7 +2052,7 @@ msgstr ""
 "Ne peut démarer l'overlay vidéo.\n"
 "%s"
 
-#: src/zmisc.c:498
+#: src/zmisc.c:489
 #, c-format
 msgid ""
 "Cannot start fullscreen overlay.\n"
@@ -2037,41 +2061,41 @@ msgstr ""
 "Ne peut démarrer le mode plein écran en overlay.\n"
 "%s"
 
-#: src/zmisc.c:542
+#: src/zmisc.c:529
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "Le VBI n'a pas été activé, ou il ne marche pas."
 
-#: src/zmisc.c:814
+#: src/zmisc.c:800
 msgid "Hide the statusbar"
 msgstr "Cacher la barre d'état"
 
-#: src/zmisc.c:922
+#: src/zmisc.c:901
 msgid "The path must start with /"
 msgstr "Le chemin doit commencer par /"
 
-#: src/zmisc.c:937
+#: src/zmisc.c:916
 #, c-format
 msgid "Cannot create %s: %s"
 msgstr "Ne peut créer %s : %s"
 
-#: src/zmisc.c:950
+#: src/zmisc.c:929
 #, c-format
 msgid "%s is not a directory"
 msgstr "%s n'est pas un répertoire"
 
-#: src/zmisc.c:1645 src/zmisc.c:1649
+#: src/zmisc.c:1624 src/zmisc.c:1628
 msgid "Reset"
 msgstr "Remise à zéro"
 
-#: src/zmisc.c:1929
+#: src/zmisc.c:1908
 msgid "Device:"
 msgstr "Périphérique :"
 
-#: src/zmisc.c:1930
+#: src/zmisc.c:1909
 msgid "Driver:"
 msgstr "Pilote :"
 
-#: src/zmisc.c:1931
+#: src/zmisc.c:1910
 msgid "Device file:"
 msgstr "Fichier du périphérique :"
 
@@ -2170,6 +2194,12 @@ msgstr "Ouvrir cette page avec Zapzilla"
 #: zapping.desktop.in.h:1
 msgid "TV viewer"
 msgstr "Visualiseur de TV"
+
+#~ msgid "Show Menu and Toolbar"
+#~ msgstr "Afficher le menu et la barre d'outils"
+
+#~ msgid "Keep Window on Top"
+#~ msgstr "Garder la fenêtre au premier plan"
 
 #~ msgid "No XFree86 DGA extension.\n"
 #~ msgstr "Pas d'extension XFree86 DGA.\n"
