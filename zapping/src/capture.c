@@ -204,9 +204,7 @@ capture_thread (gpointer data)
 	  d = (capture_bundle*)b->data;
 	  
 	  fill_bundle(d, info);
-	  fprintf(stderr, "sending full\n");
 	  send_full_buffer(&capture_fifo, b);
-	  fprintf(stderr, "sent full\n");
 	}
       usleep(1000);
     }
@@ -369,9 +367,7 @@ static gint idle_handler(gpointer ignored)
 
   print_info(main_window);
 
-  fprintf(stderr, "receiving full capture\n");
   b = recv_full_buffer(&capture_fifo);
-  fprintf(stderr, "received full capture (%p)\n", b);
   if (b)
     {
       d = (capture_bundle*)b->data;
@@ -416,9 +412,7 @@ static gint idle_handler(gpointer ignored)
 	  clear_bundle(d);
 	  build_bundle(d, &current_format, &capture_fifo);
 	}
-      fprintf(stderr, "sending empty ml\n");
       send_empty_buffer(&capture_fifo, b);
-      fprintf(stderr, "sent empty ml\n");
     }
   else
     usleep(2000);

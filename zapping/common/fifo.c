@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.9 2001-05-05 23:45:06 garetxe Exp $ */
+/* $Id: fifo.c,v 1.10 2001-05-06 13:30:16 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -125,8 +125,6 @@ create_consumer(fifo *f)
 	buffer *b;
 	coninfo *new_consumer;
 
-	fprintf(stderr, "CREATING NEW\n");
-
 	/* no recursive rwlocks, this is non-atomic */
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 	pthread_rwlock_wrlock(&f->consumers_rwlock);
@@ -145,6 +143,7 @@ create_consumer(fifo *f)
 	/* Send the kept buffers to this consumer */
 	pthread_mutex_lock(&f->mbackup.mutex);
 	while ((b = (buffer*) rem_head(&f->backup))) {
+		b->refcount = 1;
 		add_tail(&(new_consumer->full), &b->node);
 		new_consumer->waiting++;
 	}
@@ -152,8 +151,6 @@ create_consumer(fifo *f)
 
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
-
-	fprintf(stderr, "NEW created\n");
 
 	return new_consumer;
 }
@@ -164,8 +161,6 @@ dealloc_consumer_info(fifo *f, coninfo *consumer)
 	buffer *b;
 	list * full=&(consumer->full);
 	mucon *cm=&(consumer->consumer);
-
-	fprintf(stderr, "deallocating %p\n", consumer);
 
 	pthread_mutex_lock(&(cm->mutex));
 	while ((b = (buffer*) rem_head(full))) {
@@ -260,9 +255,9 @@ send_full(fifo *f, buffer *b)
 		pthread_mutex_lock(&(consumer->consumer.mutex));
 		add_tail(&(consumer->full), (node*)b);
 		consumer->waiting ++;
+		b->refcount ++;
 		pthread_mutex_unlock(&(consumer->consumer.mutex));
 		pthread_cond_broadcast(&(consumer->consumer.cond));
-		b->refcount ++;
 	}
 
 	propagate_buffer(f, b, consumer);

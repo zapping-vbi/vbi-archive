@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.9 2001-05-05 23:45:06 garetxe Exp $ */
+/* $Id: fifo.h,v 1.10 2001-05-06 13:30:17 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -221,9 +221,9 @@ propagate_buffer(fifo *f, buffer *b, coninfo *consumer)
 			pthread_mutex_lock(&(p->consumer.mutex));
 			add_tail(&(p->full), &b->node);
 			p->waiting++;
+			b->refcount++;
 			pthread_mutex_unlock(&(p->consumer.mutex));
 			pthread_cond_broadcast(&(p->consumer.cond));
-			b->refcount++;
 		}
 		p = (coninfo*)(p->node.next);
 	}
@@ -283,13 +283,9 @@ recv_full_buffer(fifo *f)
 	coninfo *consumer;
 
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
-	fprintf(stderr, "query (%p)\n", f->wait_full);
 	consumer = query_consumer(f);
-	fprintf(stderr, "queried (%p, %p)\n", consumer, f->consumers.head);
 	pthread_mutex_lock(&consumer->consumer.mutex);
-	fprintf(stderr, "locked\n");
 	b = (buffer*) rem_head(&consumer->full);
-	fprintf(stderr, "got %p\n", b);
 	if (b)
 		consumer->waiting--;
 	pthread_mutex_unlock(&consumer->consumer.mutex);
@@ -320,7 +316,7 @@ wait_empty_buffer(fifo *f)
 	buffer *b;
 
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
-	if (empty_list(&f->consumers) &&
+      	if (empty_list(&f->consumers) &&
 	    empty_list(&f->empty)) {
 		b = (buffer*) rem_head(&f->backup);
 		if (b) {
@@ -345,7 +341,9 @@ wait_empty_buffer(fifo *f)
 	  while (!(b = (buffer *) rem_head(&f->empty)))
 	    pthread_cond_wait(&f->producer.cond,
 			      &f->producer.mutex);
-	}
+	} else
+		/* otherwise producer cannot be cancelled without consumers */
+		pthread_testcancel();
 
 	pthread_mutex_unlock(&f->producer.mutex);
 

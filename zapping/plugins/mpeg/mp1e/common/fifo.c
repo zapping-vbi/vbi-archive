@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.16 2001-05-05 23:35:09 garetxe Exp $ */
+/* $Id: fifo.c,v 1.17 2001-05-06 13:30:17 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -133,7 +133,7 @@ create_consumer(fifo *f)
 	mucon_init(&(new_consumer->consumer));
 	init_list(&(new_consumer->full));
 	new_consumer->f = f;
-//	new_consumer->killable = 1;
+	new_consumer->killable = 1;
 	new_consumer->owner = pthread_self();
 
 	add_tail(&f->consumers, (node*)new_consumer);
@@ -143,6 +143,7 @@ create_consumer(fifo *f)
 	/* Send the kept buffers to this consumer */
 	pthread_mutex_lock(&f->mbackup.mutex);
 	while ((b = (buffer*) rem_head(&f->backup))) {
+		b->refcount = 1;
 		add_tail(&(new_consumer->full), &b->node);
 		new_consumer->waiting++;
 	}
@@ -254,9 +255,9 @@ send_full(fifo *f, buffer *b)
 		pthread_mutex_lock(&(consumer->consumer.mutex));
 		add_tail(&(consumer->full), (node*)b);
 		consumer->waiting ++;
+		b->refcount ++;
 		pthread_mutex_unlock(&(consumer->consumer.mutex));
 		pthread_cond_broadcast(&(consumer->consumer.cond));
-		b->refcount ++;
 	}
 
 	propagate_buffer(f, b, consumer);

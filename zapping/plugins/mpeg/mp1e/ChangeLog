@@ -1,6 +1,8 @@
 2001-05-6	<garetxe@users.sourceforge.net>
 
-	* more work on fifos (killing zombies, fixes). Still some bugs left.
+	* more work on fifos (killing zombies, fixes). Still some bugs
+	left.
+	* (later) fixed a couple of bugs, plus a purely theoretical one.
 
 2001-04-12	<mschimek@users.sourceforge.net>
 

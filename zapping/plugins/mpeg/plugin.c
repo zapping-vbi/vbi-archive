@@ -309,7 +309,6 @@ encode_callback(rte_context * context, void * data, size_t size,
 		void * user_data)
 {
   /* currently /dev/null handler */
-  g_assert(0xbeefdead == (int)user_data);
 }
 
 /*
@@ -369,18 +368,14 @@ video_get_buffer(rte_context *context, rte_buffer *buf,
 
   while (!b)
     {
-      fprintf(stderr, "waiting full mpeg\n");
       b = wait_full_buffer(capture_fifo);
-      fprintf(stderr, "waited full mpeg\n");
       bundle = (capture_bundle*)b->data;
 
       /* empty bundles are allowed (resizing, etc.) */
       if (!bundle->image_type ||
 	  !bundle->data)
 	{
-	  fprintf(stderr, "sending empty mpeg\n");
 	  send_empty_buffer(capture_fifo, b);
-	  fprintf(stderr, "sent empty mpeg\n");
 	  b = NULL;
 	}
     }
@@ -396,9 +391,7 @@ video_unref_buffer(rte_context *context, rte_buffer *buf)
   fifo *capture_fifo = rte_get_user_data(context);
   g_assert(capture_fifo != NULL);
 
-  fprintf(stderr, "sending empty unref mpeg\n");
   send_empty_buffer(capture_fifo, (buffer*)buf->user_data);
-  fprintf(stderr, "sent empty unref mpeg\n");
 }
 
 static
