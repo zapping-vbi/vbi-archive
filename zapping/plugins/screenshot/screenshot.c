@@ -1150,7 +1150,7 @@ on_format_changed                     (GtkWidget *menu,
 				       screenshot_data *data)
 {
   GtkWidget *menu_item = gtk_menu_get_active (GTK_MENU (menu));
-  gchar *keyword, *name;
+  gchar *keyword;
 
   keyword = g_object_get_data (G_OBJECT (menu_item), "keyword");
 
@@ -1166,10 +1166,8 @@ on_format_changed                     (GtkWidget *menu,
 				NULL,
 				_("This format has no quality option"));
 
-  name = (gchar*)gtk_entry_get_text (data->entry);
-  name = z_replace_filename_extension (name, data->backend->extension);
-  gtk_entry_set_text (data->entry, name);
-  g_free (name);
+  z_electric_replace_extension (GTK_WIDGET (data->entry),
+				data->backend->extension);
 
   preview (data);
   on_drawingarea_expose_event (NULL, NULL, data);
