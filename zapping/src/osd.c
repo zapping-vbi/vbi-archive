@@ -26,9 +26,9 @@
 #include "osd.h"
 #include "zmisc.h"
 #include "x11stuff.h"
-#include "../common/fifo.h"
+#include "common/fifo.h"
 
-#include "../libvbi/export.h"
+#include "libvbi/export.h"
 
 #define CELL_WIDTH 16
 #define CELL_HEIGHT 26
@@ -36,7 +36,7 @@
 #define MAX_COLUMNS 40
 #define MAX_ROWS 25
 
-#include "../libvbi/libvbi.h"
+#include "libvbi/libvbi.h"
 extern struct vbi *zvbi_get_object(void);
 
 ZModel *osd_model = NULL;

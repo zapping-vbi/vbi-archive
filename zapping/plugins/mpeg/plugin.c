@@ -1,5 +1,5 @@
 /* RTE (Real time encoder) front end for Zapping
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@
 
 /*
   TODO:
-    . lock sizes
     . support for SECAM/NTSC/etc standards
     . Less CPU usage (less memcopy's)
 */
@@ -51,10 +50,6 @@ static void * dest_buffer = NULL;
 static rte_context * context = NULL;
 /* Info about the video device */
 static tveng_device_info * zapping_info = NULL;
-/* Whether we should start encoding in the next frame */
-static gboolean start_encoding = FALSE;
-/* Whether we should stop encoding in the next frame */
-static gboolean stop_encoding = FALSE;
 /* Pointer to the dialog that appears while saving */
 static GtkWidget * saving_dialog = NULL;
 
@@ -87,7 +82,8 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_start, 0x1234),
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
-    SYMBOL(plugin_process_sample, 0x1234),
+    SYMBOL(plugin_process_bundle, 0x1234),
+    SYMBOL(plugin_capture_stop, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
     SYMBOL(plugin_add_properties, 0x1234),
     SYMBOL(plugin_activate_properties, 0x1234),
@@ -383,7 +379,22 @@ gboolean plugin_start (void)
       return FALSE;
     }
 
-  /* fixme: we should lock resizing from now */
+  if (zmisc_switch_mode(TVENG_CAPTURE_READ, zapping_info))
+    {
+      ShowBox("This plugin needs to run in Capture mode, but"
+	      " couln't switch to that mode:\n%s",
+	      GNOME_MESSAGE_BOX_INFO, zapping_info->error);
+      return FALSE;
+    }
+
+  /* FIXME: Size should be configurable */
+  if (!request_bundle_format(TVENG_PIX_YUYV, 384, 288))
+    {
+      ShowBox("Cannot switch to YUYV capture format",
+	      GNOME_MESSAGE_BOX_ERROR);
+      return FALSE;
+    }
+
   switch (zapping_info->format.pixformat)
     {
     case TVENG_PIX_YUYV:
@@ -482,9 +493,18 @@ gboolean plugin_start (void)
 	close_audio();
       return FALSE;
     }
-  start_encoding = TRUE;
+
+  if (!rte_start_encoding(context))
+    {
+      ShowBox("Cannot start encoding: %s", GNOME_MESSAGE_BOX_ERROR,
+	      context->error);
+      context = rte_context_destroy(context);
+      if ((mux_mode+1) & 1)
+	close_audio();
+      return FALSE;
+    }
+
   dest_buffer = rte_push_video_data(context, NULL, 0.0);
-  active = TRUE;
   coded_frames = 0;
 
   if (saving_dialog)
@@ -535,6 +555,11 @@ gboolean plugin_start (void)
   g_free(file_name);
 
   gtk_widget_show(saving_dialog);
+
+  /* don't let anyone mess with our settings from now on */
+  capture_lock();
+
+  active = TRUE;
 
   return TRUE;
 }
@@ -614,45 +639,47 @@ void plugin_save_config (gchar * root_key)
   g_free(buffer);
 }
 
+static void
+do_stop(void)
+{
+  capture_unlock();
+
+  if (!active)
+    return;
+
+  context = rte_context_destroy(context);
+  if ((mux_mode+1) & 1)
+    close_audio();
+
+  if (saving_dialog)
+    gtk_widget_destroy(saving_dialog);
+
+  saving_dialog = NULL;
+
+  active = FALSE;
+}
+
 static
-void plugin_process_sample(plugin_sample * sample)
+void plugin_process_bundle ( capture_bundle * bundle )
 {
   if (!active)
     return;
 
   if ((mux_mode+1)&2)
     {
-      if (dest_buffer) /* fixme: this will segfault if the size changes */
-	memcpy(dest_buffer, sample->video_data,
+      if (dest_buffer)
+	memcpy(dest_buffer, bundle->data,
 	       context->video_bytes);
 
       dest_buffer = rte_push_video_data(context, dest_buffer,
-					sample->video_timestamp);
+					bundle->timestamp);
     }
+}
 
-  if (start_encoding)
-    {
-      start_encoding = FALSE;
-      if (!rte_start_encoding(context))
-	{
-	  ShowBox("Cannot start encoding: %s", GNOME_MESSAGE_BOX_ERROR,
-		  context->error);
-	  context = rte_context_destroy(context);
-	  active = FALSE;
-	  if ((mux_mode+1) & 1)
-	    close_audio();
-	  return;
-	}
-      g_message("encoding to %s", context->file_name);
-    }
-
-  if (stop_encoding) /* If we have encoded 10 seconds */
-    {
-      context = rte_context_destroy(context);
-      if ((mux_mode+1) & 1)
-	close_audio();
-      active = FALSE;
-    }
+static
+void plugin_capture_stop ( void )
+{
+  do_stop();
 }
 
 static
@@ -859,11 +886,9 @@ on_mpeg_dialog1_delete_event		(GtkWidget	*widget,
 					 GdkEvent	*event,
 					 gpointer	user_data)
 {
-  stop_encoding = TRUE;
-
-  g_message("delete!");
-
   saving_dialog = NULL;
+
+  do_stop();
   
   return FALSE;
 }
@@ -877,12 +902,10 @@ on_mpeg_button1_clicked			(GtkButton	*button,
 {
   g_assert(saving_dialog != NULL);
 
-  g_message("Stop!");
-
   gtk_widget_destroy(saving_dialog);
   saving_dialog = NULL;
 
-  stop_encoding = TRUE;
+  do_stop();
 }
 #else
 /**

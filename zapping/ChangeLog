@@ -1,3 +1,8 @@
+4.05.2001	mpeg plugin improvements <garetxe@users.sourceforge.net>
+
+	* plugins/mpeg: Adapted to new bundled capture. Now it's possible
+	to record mpeg's without XVideo backend scaler.
+
 2.05.2001	Config options <garetxe@users.sourceforge.net>
 
 	* src/capture.c: Fixed, so plugins can work again. Made capture

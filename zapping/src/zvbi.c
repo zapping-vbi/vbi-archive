@@ -45,7 +45,7 @@
 
 #undef TRUE
 #undef FALSE
-#include "../common/fifo.h"
+#include "common/fifo.h"
 
 extern GtkWidget *main_window;
 extern tveng_device_info *main_info;

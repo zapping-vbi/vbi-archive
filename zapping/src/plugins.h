@@ -82,12 +82,11 @@ struct plugin_info{
   /* Returns TRUE if the plugin is working */
   gboolean (*plugin_running) ( void );
 
-  /* Lets the plugin process one frame */
-  /*  GdkImage * (*plugin_process_frame) ( GdkImage * image, gpointer
-				       data, struct
-				       tveng_frame_format * format );*/
-  /* Lets the plugin process one a+v sample */
-  void (*plugin_process_sample)      ( plugin_sample * sample );
+  /* Lets the plugin process one video bundle */
+  void (*plugin_process_bundle)      ( capture_bundle * bundle );
+  /* If the plugin is capturing using the provided fifo, it must stop
+   when this call returns */
+  void (*plugin_capture_stop)	( void );
   /* Used to query the public symbols from the plugin */
   gboolean (*plugin_get_public_info) ( gint index, gpointer * ptr,
 				       gchar ** symbol, 
@@ -163,12 +162,10 @@ gchar * plugin_get_version (struct plugin_info * info);
 
 gboolean plugin_running ( struct plugin_info * info);
 
-/*GdkImage * plugin_process_frame (GdkImage * image, gpointer data,
-				 struct  tveng_frame_format *
-				 format, struct plugin_info * info);
-*/
-void plugin_process_sample (plugin_sample * sample, struct plugin_info
+void plugin_process_bundle (capture_bundle * bundle, struct plugin_info
 			    * info);
+
+void plugin_capture_stop ( struct plugin_info * info);
 
 void plugin_add_properties (GnomePropertyBox * gpb, struct plugin_info
 			    * info);

@@ -37,7 +37,7 @@
 #include "zconf.h"
 #include "zmisc.h"
 #include "zmodel.h"
-#include "../common/fifo.h"
+#include "common/fifo.h"
 
 /* Useful vars from Zapping */
 extern gboolean flag_exit_program;

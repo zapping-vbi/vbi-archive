@@ -76,7 +76,6 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
     SYMBOL(plugin_running, 0x1234),
-    SYMBOL(plugin_process_sample, 0x1234),
     SYMBOL(plugin_add_properties, 0x1234),
     SYMBOL(plugin_activate_properties, 0x1234),
     SYMBOL(plugin_help_properties, 0x1234),
@@ -263,14 +262,6 @@ void plugin_save_config (gchar * root_key)
     item = item->next;
     g_free(buffer);
   }
-}
-
-static
-void plugin_process_sample(plugin_sample * sample)
-{
-  /* If the plugin isn't active, it shouldn't do anything */
-  if (!active)
-    return;
 }
 
 static

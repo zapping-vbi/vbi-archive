@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -126,9 +126,13 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 		       (gpointer*)&(info->plugin_running)))
     info->plugin_running = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_process_sample", 0x1234,
-		       (gpointer*)&(info->plugin_process_sample)))
-    info->plugin_process_sample = NULL;
+  if (!(*plugin_get_symbol)("plugin_process_bundle", 0x1234,
+		       (gpointer*)&(info->plugin_process_bundle)))
+    info->plugin_process_bundle = NULL;
+
+  if (!(*plugin_get_symbol)("plugin_capture_stop", 0x1234,
+		       (gpointer*)&(info->plugin_capture_stop)))
+    info->plugin_capture_stop = NULL;
 
   if (!(*plugin_get_symbol)("plugin_get_public_info", 0x1234,
 		       (gpointer*)&(info->plugin_get_public_info)))
@@ -495,15 +499,23 @@ gboolean plugin_running ( struct plugin_info * info)
   return (*(info->plugin_running))();
 }
 
-void plugin_process_sample (plugin_sample * sample, struct plugin_info
+void plugin_process_bundle (capture_bundle * bundle, struct plugin_info
 			    * info)
 {
   g_assert(info != NULL);
-  g_return_if_fail(sample != NULL);
-  g_return_if_fail(sample -> video_data != NULL);
+  g_return_if_fail(bundle != NULL);
+  g_return_if_fail(bundle -> image_type != 0);
 
-  if (info -> plugin_process_sample)
-    (*info->plugin_process_sample)(sample);
+  if (info -> plugin_process_bundle)
+    (*info->plugin_process_bundle)(bundle);
+}
+
+void plugin_capture_stop (struct plugin_info * info)
+{
+  g_assert(info != NULL);
+
+  if (info -> plugin_capture_stop)
+    (*info->plugin_capture_stop)();
 }
 
 void plugin_add_properties (GnomePropertyBox * gpb, struct plugin_info

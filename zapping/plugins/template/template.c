@@ -67,7 +67,7 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
     SYMBOL(plugin_running, 0x1234),
-    SYMBOL(plugin_process_sample, 0x1234),
+    SYMBOL(plugin_process_bundle, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
     /* These three shouldn't be exported, since there are no
        configuration options */
@@ -218,7 +218,7 @@ void plugin_save_config (gchar * root_key)
 }
 
 static
-void plugin_process_sample(plugin_sample * sample)
+void plugin_process_bundle ( capture_bundle * bundle )
 {
   /* If the plugin isn't active, it shouldn't do anything */
   if (!active)

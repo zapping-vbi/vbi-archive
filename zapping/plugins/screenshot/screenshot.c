@@ -161,7 +161,7 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_start, 0x1234),
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
-    SYMBOL(plugin_process_sample, 0x1234),
+    SYMBOL(plugin_process_bundle, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
     SYMBOL(plugin_add_properties, 0x1234),
     SYMBOL(plugin_activate_properties, 0x1234),
@@ -309,14 +309,14 @@ void plugin_save_config (gchar * root_key)
 }
 
 static
-void plugin_process_sample(plugin_sample * sample)
+void plugin_process_bundle ( capture_bundle * bundle )
 {
   if (!save_screenshot)
     return;
   else if (save_screenshot == 1)
     {
-      start_saving_screenshot(sample->video_data,
-			      &(sample->video_format));
+      start_saving_screenshot(bundle->data,
+			      &(bundle->format));
       save_screenshot = 0;
     }
   else

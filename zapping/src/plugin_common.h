@@ -32,6 +32,9 @@
 #include "zconf.h"
 #include "interface.h"
 #include "remote.h"
+#include "x11stuff.h"
+#include "common/fifo.h"
+#include "capture.h"
 
 /* The plugin protocol we are able to understand */
 #define PLUGIN_PROTOCOL 2
@@ -79,19 +82,36 @@ struct plugin_misc_info
 };
 
 /*
-  This struct holds all the info about a a/v sample pased to a
+  This struct holds all the info about a video sample pased to a
   plugin. The plugin can write to all fields, but it should keep all
   the data valid, since the same struct will be passed to the
   remaining plugins.
 */
-typedef struct
-{
-  /* VIDEO fields */
-  gpointer video_data; /* The data contained in the image */
-  double video_timestamp; /* Timestamp for this frame, in seconds */
-  struct tveng_frame_format video_format; /* Format of the frame */
-}
-plugin_sample;
+typedef struct {
+  struct tveng_frame_format	format;
+
+  union {
+    xvzImage			*xvimage; /* if xv present */
+    GdkImage			*gdkimage; /* otherwise */
+    void			*yuv_data; /* raw data */
+  } image;
+
+#define CAPTURE_BUNDLE_XV 1		/* XvImage */
+#define CAPTURE_BUNDLE_GDK 2		/* GdkImage */
+#define CAPTURE_BUNDLE_DATA 3		/* raw YUYV data */
+  gint		image_type;		/* type of data the bundle
+					   contains */
+
+  gpointer	data;			/* pointer to the data
+					   (writable) */
+
+  gint		image_size;		/* size of data, in bytes */
+
+  double	timestamp;		/* time when the bundle was
+					   captured */
+
+  fifo		*f;			/* fifo this bundle belongs to */
+} capture_bundle;
 
 #ifndef ZAPPING /* If this is being included from a plugin, give them
 		   the correct prototypes for public symbols ( so
@@ -115,7 +135,8 @@ static gboolean plugin_start ( void ) __attribute__ ((unused)) ;
 static void plugin_stop( void ) __attribute__ ((unused)) ;
 static void plugin_load_config ( gchar * root_key ) __attribute__ ((unused)) ;
 static void plugin_save_config ( gchar * root_key ) __attribute__ ((unused)) ;
-static void plugin_process_sample( plugin_sample * sample ) __attribute__ ((unused)) ;
+static void plugin_process_bundle( capture_bundle * bundle ) __attribute__ ((unused)) ;
+static void plugin_capture_stop( void ) __attribute__ ((unused)) ;
 static
 gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
 				 symbol, gchar ** description, gchar **

@@ -16,8 +16,11 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#ifndef __CAPTURE_H__
+#define __CAPTURE_H__
+
 /*
- * These routines handle the capture mode and the Xv stuff.
+ * These routines handle the capture mode.
  */
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -53,8 +56,24 @@ void
 capture_stop(tveng_device_info * info);
 
 /*
- * Get one frame, pass it to the plugins, and render it into the
- * widget, if needed.
+ * Requests that the bundles produced from now on have the given
+ * format. Returns TRUE on success, FALSE on error.
+ */
+gboolean
+request_bundle_format(enum tveng_frame_pixformat pixformat, gint w, gint h);
+
+/**
+ * Locks the current capture format, so any call to
+ * request_bundle_format will fail.
+ * If it's already locked it does nothing.
  */
 void
-capture_process_frame(GtkWidget * widget, tveng_device_info * info);
+capture_lock(void);
+
+/**
+ * If the capture format is locked, this unlocks it.
+ */
+void
+capture_unlock(void);
+
+#endif /* capture.h */
