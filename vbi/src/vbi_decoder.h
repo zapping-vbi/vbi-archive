@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.h,v 1.1.2.1 2004-04-09 05:17:21 mschimek Exp $ */
+/* $Id: vbi_decoder.h,v 1.1.2.2 2004-05-01 13:51:35 mschimek Exp $ */
 
 #ifndef __ZVBI_VBI_DECODER_H__
 #define __ZVBI_VBI_DECODER_H__
@@ -69,9 +69,6 @@ vbi_set_log_fn			(vbi_log_fn *		function,
 /** @} */
 
 
-extern const vbi_character_set *
-vbi_page_character_set		(const vbi_page *	pg,
-				 unsigned int		level);
 
 //extern pthread_once_t	vbi_init_once;
 extern void
@@ -191,13 +188,6 @@ extern vbi_bool
 vbi_page_nav_enum		(const vbi_page *	pg,
 				 vbi_link *		ld,
 				 unsigned int		index);
-vbi_inline void
-vbi_page_home_link		(const vbi_page *	pg,
-				 vbi_link *		ld)
-{
-	vbi_page_nav_enum (pg, ld, 5);
-}
-
 /** @} */
 
 VBI_END_DECLS

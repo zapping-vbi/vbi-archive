@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.h,v 1.2.2.1 2004-02-25 17:28:33 mschimek Exp $ */
+/* $Id: search.h,v 1.2.2.2 2004-05-01 13:51:35 mschimek Exp $ */
 
 #ifndef SEARCH_H
 #define SEARCH_H
@@ -34,6 +34,7 @@ typedef struct vbi_decoder vbi_decoder;
 /* Public */
 
 #include <stdarg.h>
+#include "format.h"
 
 /**
  * @ingroup Search

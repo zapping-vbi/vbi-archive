@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.h,v 1.1.2.2 2004-04-17 05:52:25 mschimek Exp $ */
+/* $Id: teletext_decoder.h,v 1.1.2.3 2004-05-01 13:51:35 mschimek Exp $ */
 
 #ifndef __ZVBI_TELETEXT_DECODER_H__
 #define __ZVBI_TELETEXT_DECODER_H__
@@ -30,7 +30,7 @@
 #include "macros.h"
 #include "pdc.h"		/* vbi_program_id, vbi_pid_channel */
 #include "network.h"		/* vbi_nuid */
-//#include "cache.h"		/* vbi_cache */
+#include "cache.h"		/* vbi_cache */
 #include "event.h"		/* vbi_event_cb */
 
 VBI_BEGIN_DECLS
@@ -108,9 +108,6 @@ vbi_teletext_decoder_decode	(vbi_teletext_decoder *	td,
 				 double			timestamp);
 extern void
 vbi_teletext_decoder_delete	(vbi_teletext_decoder *	td);
-
-// TODO
-#define vbi_cache void
 
 extern vbi_teletext_decoder *
 vbi_teletext_decoder_new	(vbi_cache *		ca) vbi_alloc;

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.6.2.4 2004-02-25 17:28:22 mschimek Exp $ */
+/* $Id: search.c,v 1.6.2.5 2004-05-01 13:51:35 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -190,7 +190,9 @@ search_page_fwd			(void *			p,
 	if (vtp->function != PAGE_FUNCTION_LOP)
 		return 0; /* try next */
 
-	if (!vbi_format_vt_page_va_list (s->vbi, &s->pgp,
+	if (!vbi_format_vt_page_va_list (&s->pgp,
+					 s->vbi->vt.cache,
+					 s->vbi->vt.network,
 					 vtp, s->format_options))
 		return -3; /* formatting error, abort */
 
@@ -290,7 +292,10 @@ search_page_rev			(void *			p,
 	if (vtp->function != PAGE_FUNCTION_LOP)
 		return 0; /* try next page */
 
-	if (!vbi_format_vt_page_va_list (s->vbi,&s->pgp, vtp,
+	if (!vbi_format_vt_page_va_list (&s->pgp,
+					 s->vbi->vt.cache,
+					 s->vbi->vt.network,
+					 vtp,
 					 s->format_options))
 		return -3; /* formatting error, abort */
 
@@ -430,12 +435,16 @@ vbi_search_next_va_list		(vbi_search *		search,
 	search->format_options = format_options;
 #endif
 
+#warning todo
+	/*
 	switch (vbi_cache_foreach (search->vbi, NUID0,
 				   search->start_pgno,
 				   search->start_subno,
 				   dir,
 				   (dir > 0) ? search_page_fwd
 				   : search_page_rev, search)) {
+	*/
+	switch (0) {
 	case 1:
 		*pg = &search->pgp.pg;
 		return VBI_SEARCH_SUCCESS;
@@ -682,7 +691,7 @@ vbi_search_new_utf8		(vbi_decoder *		vbi,
 	if (!pattern)
 		return NULL;
 
-	ucs2_pattern = vbi_strdup_ucs2_utf8 (pattern);
+	ucs2_pattern = _vbi_strdup_ucs2_utf8 (pattern);
 
 	if (!ucs2_pattern)
 		return NULL;

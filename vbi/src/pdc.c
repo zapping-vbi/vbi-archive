@@ -17,22 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.6 2004-04-15 00:11:16 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.7 2004-05-01 13:51:35 mschimek Exp $ */
 
 #include "../site_def.h"
 
 #include "hamm.h"
 #include "vbi.h"
-
-#define PGP_CHECK(ret_value)						\
-do {									\
-	assert (NULL != pg);						\
-									\
-	pgp = CONST_PARENT (pg, vbi_page_private, pg);			\
-									\
-	if (VBI_PAGE_PRIVATE_MAGIC != pgp->magic)			\
-		return ret_value;					\
-} while (0)
 
 /**
  * @internal
@@ -66,7 +56,9 @@ _vbi_pil_dump			(vbi_pil		pil,
 	}
 }
 
-/** internal */
+/**
+ * internal
+ */
 void
 _vbi_program_id_init		(vbi_program_id *	pid,
 				 vbi_pid_channel	channel)
@@ -136,24 +128,25 @@ _vbi_program_id_dump		(const vbi_program_id *	pid,
  * @internal
  */
 void
-pdc_program_dump		(const pdc_program *	p,
+_vbi_preselection_dump		(const vbi_preselection *p,
 				 FILE *			fp)
 {
 	unsigned int i;
 
-	fprintf (fp, "%02d-%02d-%02d %02d:%02d (%02d:%02d) %3d min "
-		 "cni=%08x pty=%02x lto=%d caf=%u at1/ptl=",
-		 p->ad.year, p->ad.month + 1, p->ad.day + 1,
-		 p->at1.hour, p->at1.min,
-		 p->at2.hour, p->at2.min,
+	fprintf (fp, "%llx %04d-%02d-%02d %02d:%02d (%02d:%02d) %3d min "
+		 "pty=%02x lto=%d caf=%u at1/ptl=",
+		 p->nuid,
+		 p->year, p->month + 1, p->day + 1,
+		 p->at1_hour, p->at1_minute,
+		 p->at2_hour, p->at2_minute,
 		 p->length,
-		 p->cni, p->pty, p->lto, p->caf);
+		 p->pty, p->lto, p->caf);
 
 	for (i = 0; i < 3; ++i)
 		fprintf (fp, "%d:%d-%d%c",
-			 p->at1_ptl_pos[i].row,
-			 p->at1_ptl_pos[i].column_begin,
-			 p->at1_ptl_pos[i].column_end,
+			 p->_at1_ptl[i].row,
+			 p->_at1_ptl[i].column_begin,
+			 p->_at1_ptl[i].column_end,
 			 (i == 2) ? ' ' : ',');
 }
 
@@ -161,7 +154,7 @@ pdc_program_dump		(const pdc_program *	p,
  * @internal
  */
 void
-pdc_program_array_dump		(const pdc_program *	p,
+_vbi_preselection_array_dump	(const vbi_preselection *p,
 				 unsigned int		size,
 				 FILE *			fp)
 {
@@ -169,34 +162,18 @@ pdc_program_array_dump		(const pdc_program *	p,
 
 	while (size-- > 0) {
 		fprintf (fp, "%2u: ", count++);
-		pdc_program_dump (p++, fp);
+		_vbi_preselection_dump (p++, fp);
 		fputc ('\n', fp);
 	}
 }
 
-/**
- * @internal
- */
-void
-vbi_preselection_dump		(const vbi_preselection *pl,
-				 FILE *			fp)
-{
-	fprintf (fp, "%llx %04u-%02u-%02u %02u:%02u %3u min "
-		 "pdc=%02u%02u\n",
-		 pl->nuid,
-		 pl->year, pl->month + 1, pl->day + 1,
-		 pl->at1_hour, pl->at1_minute,
-		 pl->length,
-		 pl->at2_hour, pl->at2_minute);
-}
-
 /*
- *  PDC Preselection method "A"
- *  ETS 300 231, Section 7.3.1.
- *
- *  (Method "B" code has been merged into the Teletext
- *   enhancement routines in teletext.c)
- */
+    PDC Preselection method "A"
+    ETS 300 231, Section 7.3.1.
+
+    (Method "B" code has been merged into the Teletext
+     enhancement routines in teletext.c)
+*/
 
 /*
 
@@ -286,7 +263,8 @@ do {									\
 
 /**
  * @internal
- * @param t Output
+ * @param hour Returns hour 0 ... 23.
+ * @param minute Returns minute 0 ... 59.
  * @param bcd Four digit time value, e.g. 0x2359.
  *
  * Converts BCD coded time to pdc_time.
@@ -295,7 +273,8 @@ do {									\
  * FALSE if @a bcd is invalid.
  */
 static vbi_bool
-pdc_time_from_bcd		(pdc_time *		t,
+pdc_time_from_bcd		(unsigned int *		hour,
+				 unsigned int *		minute,
 				 int			bcd)
 {
 	int h, m;
@@ -312,16 +291,33 @@ pdc_time_from_bcd		(pdc_time *		t,
 	if (h >= 24)
 		return FALSE;
 
-	t->hour = h;
-	t->min = m;
+	*hour = h;
+	*minute = m;
 
 	return TRUE;
+}
+
+static unsigned int
+pdc_duration			(unsigned int		begin_hour,
+				 unsigned int		begin_minute,
+				 unsigned int		end_hour,
+				 unsigned int		end_minute)
+{
+	int d;
+
+	d = (end_hour - begin_hour) * 60
+		+ end_minute - begin_minute;
+
+	if (d < 0)
+		d += 24 * 60;
+
+	return (unsigned int) d;
 }
 
 /**
  * @internal
  * @param table Table we write.
- * @param p Current pdc_program entry in table, store PTL info here.
+ * @param p Current vbi_preselection entry in table, store PTL info here.
  * @param raw Raw level one page, current row.
  * @param row Current position.
  * @param column Current position >= 1.
@@ -331,9 +327,9 @@ pdc_time_from_bcd		(pdc_time *		t,
  * @returns
  * Next column to process >= @a column, or 0 on error.
  */
-vbi_inline unsigned int
-pdc_ptl				(pdc_program *		table,
-				 pdc_program *		p,
+static unsigned int
+pdc_ptl				(vbi_preselection *	table,
+				 vbi_preselection *	p,
 				 const uint8_t *	raw,
 				 unsigned int		row,
 				 unsigned int		column)
@@ -412,21 +408,19 @@ pdc_ptl				(pdc_program *		table,
 	   stores AT-1 position in case there is no PTL. */
 
 	if (p > table) {
-	  	pdc_position *tab;
-		pdc_position *pp;
+		unsigned int i;
 
-		tab = p[-1].at1_ptl_pos;
+		for (i = 1; i < 4; ++i) {
+			if (p[-1]._at1_ptl[i].row <= 0) {
+				if (i >= 2)
+					if (p[-1]._at1_ptl[i - 1].row
+					    < (row - 1))
+						break; /* probably unrelated */
 
-		for (pp = &tab[1]; pp <= &tab[3]; ++pp) {
-			if (pp->row < 0) {
-				if (pp >= &tab[2]
-				    && ((unsigned int) pp[-1].row
-					< (row - 1)))
-					break; /* probably unrelated */
+				p[-1]._at1_ptl[i].row		= row;
+				p[-1]._at1_ptl[i].column_begin	= column_begin;
+				p[-1]._at1_ptl[i].column_end	= column_end;
 
-				pp->row		 = row;
-				pp->column_begin = column_begin;
-				pp->column_end   = column_end;
 				break;
 			}
 		}
@@ -453,7 +447,7 @@ pdc_ptl				(pdc_program *		table,
  * @returns
  * FALSE on error.
  */
-vbi_inline unsigned int
+static unsigned int
 pdc_number			(unsigned int * const	value,
 				 unsigned int * const	digits,
 				 const uint8_t *	raw,
@@ -543,86 +537,26 @@ pdc_number			(unsigned int * const	value,
 
 /**
  * @internal
- * @param table Table we write.
- * @param p2 Source and destination.
- * @param pend End of destination.
- *
- * Copies AD, CNI, LTO in row p2 to rows p2 ... pend - 1.
- *
- * @returns
- * MAX (p2, pend). 
  */
-static pdc_program *
-pdc_at2_fill			(pdc_program *		table,
-				 pdc_program *		p2,
-				 pdc_program *		pend)
+static vbi_preselection *
+pdc_at2_fill			(vbi_preselection *		begin,
+				 vbi_preselection *		end,
+				 vbi_preselection *		src)
 {
-	while (p2 < pend) {
-		if (p2 > table) {
-			p2->ad	= p2[-1].ad;
-			p2->cni	= p2[-1].cni;
-			p2->lto	= p2[-1].lto;
-		}
+	vbi_preselection *p;
 
-		p2->at2	= p2->at1;
+	for (p = begin; p < end; ++p) {
+		p->nuid		= src->nuid;
+		p->year		= src->year;
+		p->month	= src->month;
+		p->day		= src->day;
+		p->lto		= src->lto;
 
-		++p2;
+		p->at2_hour	= p->at1_hour;
+		p->at2_minute	= p->at2_minute;
 	}
 
-	return p2;
-}
-
-/**
- * @internal
- * @param pg Formatted page.
- * @param pbegin Take AT-1 and PTL positions from this table.
- * @param pend End of the table.
- *
- * Adds PDC flags to the text.
- */
-void
-vbi_page_mark_pdc		(vbi_page *		pg,
-				 const pdc_program *	pbegin,
-				 const pdc_program *	pend)
-{
-	while (pbegin < pend) {
-		unsigned int i;
-
-		for (i = 0; i < 4; ++i) {
-			const pdc_position *pp;
-
-			pp = pbegin->at1_ptl_pos + i;
-
-			if (pp->row > 0) {
-				vbi_char *acp;
-				unsigned int j;
-
-				acp = pg->text + pg->columns * pp->row;
-
-				/* We could mark exactly the AT-1 and PTL
-				   characters, but from a usability
-				   standpoint it's better to make the
-				   sensitive area larger. */
-				for (j = 0; j < pg->columns; ++j) {
-					acp[j].attr |= VBI_PDC;
-
-					switch (acp[j].size) {
-					case VBI_DOUBLE_HEIGHT:
-					case VBI_DOUBLE_SIZE:
-					case VBI_OVER_TOP:
-						acp[pg->columns].attr |=
-							VBI_PDC;
-						break;
-
-					default:
-						break;
-					}
-				}
-			}
-		}
-
-		++pbegin;
-	}
+	return p;
 }
 
 /**
@@ -632,19 +566,19 @@ vbi_page_mark_pdc		(vbi_page *		pg,
  * @param lop_raw Raw level one page.
  *
  * Scans a raw level one page for PDC data and stores the
- * data in a pdc_program table.
+ * data in a vbi_preselection table.
  *
  * @returns
  * Number of entries written in table.
  */
 unsigned int
-pdc_method_a			(pdc_program *		table,
+_vbi_pdc_method_a		(vbi_preselection *	table,
 				 unsigned int		table_size,
 				 const uint8_t		lop_raw[26][40])
 {
-	pdc_program *p1;
-	pdc_program *p2;
-	pdc_program *pend;
+	vbi_preselection *p1;
+	vbi_preselection *p2;
+	vbi_preselection *pend;
 	unsigned int row;
 	vbi_bool have_at2;
 	int pw_sum;
@@ -657,8 +591,8 @@ pdc_method_a			(pdc_program *		table,
 
 	pend = table + table_size;
 
-	p2->ad.year = -1; /* not found */
-	p2->cni = -1;
+	p2->year = (unsigned int) -1; /* not found */
+	p2->nuid = VBI_NUID_NONE;
 
 	have_at2 = FALSE;
 
@@ -729,9 +663,6 @@ pdc_method_a			(pdc_program *		table,
 			}
 
 			switch (digits) {
-				unsigned int d, m, y;
-				struct pdc_time at;
-
 			case 0x002:
 				if (!((combine && ctrl1 == 0x20)
 				      || ismagenta_conceal (ctrl1)))
@@ -752,23 +683,31 @@ pdc_method_a			(pdc_program *		table,
 				switch (value >> 8) {
 				case 0x0:
 				case 0x9:
+				{
+					unsigned int d;
+
 					if (!vbi_is_bcd (value))
 						goto bad;
 
-					pdc_log ("LTO %03x %d\n", value, p2->lto);
+					pdc_log ("LTO %03x %d\n",
+						 value, p2->lto);
 
-					d = (value & 15) + ((value >> 4) & 15) * 10;
+					d = (value & 15)
+						+ ((value >> 4) & 15) * 10;
 
 					if (d >= 12 * 4)
 						goto bad; /* implausible */
 
 					if (!have_at2 && p1 > p2) /* see AD */
-						p2 = pdc_at2_fill (p2, p2, p1);
+						p2 = pdc_at2_fill (p2, p1, p2);
 
 					/* 0x999 = -0x001 (ok?) */
-					p2->lto = (value >= 0x900) ? d - 100: d;
+					p2->lto = (value >= 0x900) ?
+						d - 100: d;
+					p2->lto *= 15; /* to minutes */
 
 					break;
+				}
 
 				case 0xF:
 					if (!ismagenta (ctrl0))
@@ -792,9 +731,12 @@ pdc_method_a			(pdc_program *		table,
 
 				if (value == 0x2500) {
 					/* Skip flag */
-					p2->at2.hour = 25;
+					p2->at2_hour = 25;
 				} else {
-					if (!pdc_time_from_bcd (&p2->at2, value))
+					if (!pdc_time_from_bcd
+					    (&p2->at2_hour,
+					     &p2->at2_minute,
+					     value))
 						goto bad;
 				}
 
@@ -805,25 +747,29 @@ pdc_method_a			(pdc_program *		table,
 				if (++p2 >= pend)
 					goto finish;
 
-				p2->ad  = p2[-1].ad;
-				p2->cni = p2[-1].cni;
-				p2->lto = p2[-1].lto;
+				p2->year	= p2[-1].year;
+				p2->month	= p2[-1].month;
+				p2->day		= p2[-1].day;
+				p2->nuid	= p2[-1].nuid;
+				p2->lto		= p2[-1].lto;
 
 				break;
 
 			case 0x104:
-				if (!pdc_time_from_bcd (&p1->at1, value))
+				if (!pdc_time_from_bcd (&p1->at1_hour,
+							&p1->at1_minute,
+							value))
 					goto bad;
 
 				pdc_log ("AT-1 %04x\n", value);
 
 				/* Shortcut: No date, not valid PDC-A */
-				if (table[0].ad.year < 0)
+				if ((int) table[0].year < 0)
 					return 0;
 
-				p1->at1_ptl_pos[0].row = row;
-				p1->at1_ptl_pos[0].column_begin = column_begin;
-				p1->at1_ptl_pos[0].column_end = column;
+				p1->_at1_ptl[0].row = row;
+				p1->_at1_ptl[0].column_begin = column_begin;
+				p1->_at1_ptl[0].column_end = column;
 
 				if (++p1 >= pend)
 					goto finish;
@@ -841,15 +787,22 @@ pdc_method_a			(pdc_program *		table,
 				pdc_log ("CNI %05x\n", value);
 
 				if (!have_at2 && p1 > p2) /* see AD */
-					p2 = pdc_at2_fill (p2, p2, p1);
+					p2 = pdc_at2_fill (p2, p1, p2);
 
-				p2->cni = value;
+				p2->nuid = vbi_nuid_from_cni
+					(VBI_CNI_TYPE_PDC_A, value);
+
+				if (VBI_NUID_UNKNOWN == p2->nuid)
+					return 0;
 
 				combine = TRUE;
 
 				break;
 
 			case 0x006:
+			{
+				unsigned int y, m, d;
+
 				if (!((combine && ctrl1 == 0x20)
 				      || ismagenta_conceal (ctrl1)))
 					goto bad;
@@ -857,8 +810,10 @@ pdc_method_a			(pdc_program *		table,
 				if (!vbi_is_bcd (value))
 					goto bad;
 
-				y = (value & 15) + ((value >> 4) & 15) * 10; value >>= 8;
-				m = (value & 15) + ((value >> 4) & 15) * 10; value >>= 8;
+				y = (value & 15) + ((value >> 4) & 15) * 10;
+				value >>= 8;
+				m = (value & 15) + ((value >> 4) & 15) * 10;
+				value >>= 8;
 				d = (value & 15) + (value >> 4) * 10;
 
 				if (d == 0 || d > 31
@@ -867,59 +822,80 @@ pdc_method_a			(pdc_program *		table,
 
 				pdc_log ("AD %02d-%02d-%02d\n", y, m, d);
 
-				/* ETS 300 231: "5) CNI, AD, LTO and PTY data are 
-				   entered in the next row in the table on which
-				   no AT-2 has as yet been written;" Literally
-				   this would forbid two ADs on a page without
-				   AT-2s, but such pages have been observed. */
+				/* ETS 300 231: "5) CNI, AD, LTO and PTY data
+				   are entered in the next row in the table on
+				   which no AT-2 has as yet been written;"
+				   Literally this would forbid two ADs on a
+				   page without AT-2s, but such pages have
+				   been observed. */
 
 				if (!have_at2 && p1 > p2)
-					p2 = pdc_at2_fill (p2, p2, p1);
+					p2 = pdc_at2_fill (p2, p1, p2);
 
-				p2->ad.year = y;
-				p2->ad.month = m - 1;
-				p2->ad.day = d - 1;
+				p2->year = y + 2000;
+				p2->month = m - 1;
+				p2->day = d - 1;
 
 				combine = TRUE;
 
 				break;
+			}
 
 			case 0x308:
+			{
+				unsigned int end_hour;
+				unsigned int end_minute;
+
 				if (ismagenta_conceal (ctrl1))
 					goto bad;
 
-				if (!pdc_time_from_bcd (&at, value & 0xFFFF))
+				if (!pdc_time_from_bcd (&end_hour,
+							&end_minute,
+							value & 0xFFFF))
 					goto bad;
-				if (!pdc_time_from_bcd (&p1->at1, value >> 16))
+				if (!pdc_time_from_bcd (&p1->at1_hour,
+							&p1->at1_minute,
+							value >> 16))
 					goto bad;
 
 				pdc_log ("AT-1 %08x\n", value);
 
 				/* Shortcut: No date, not valid PDC-A */
-				if (table[0].ad.year < 0)
+				if ((int) table[0].year < 0)
 					return 0;
 
-				p1->length = pdc_time_diff (&p1->at1, &at);
+				p1->length = pdc_duration
+					(p1->at1_hour,
+					 p1->at1_minute,
+					 end_hour,
+					 end_minute);
 
-				p1->at1_ptl_pos[0].row = row;
-				p1->at1_ptl_pos[0].column_begin = column_begin;
-				p1->at1_ptl_pos[0].column_end = column;
+				p1->_at1_ptl[0].row = row;
+				p1->_at1_ptl[0].column_begin = column_begin;
+				p1->_at1_ptl[0].column_end = column;
 
 				if (++p1 >= pend)
 					goto finish;
 
 				break;
+			}
 
 			default:
 				goto bad;
 			}
 
-			ctrl1 = (column > 0) ? vbi_ipar8 (raw[column - 1]) : 0xFF;
-			ctrl2 = (column < 40) ? vbi_ipar8 (raw[column]) : 0xFF;
+			ctrl1 = (column > 0) ?
+				vbi_ipar8 (raw[column - 1]) : 0xFF;
+			ctrl2 = (column < 40) ?
+				vbi_ipar8 (raw[column]) : 0xFF;
 			continue;
+
 		bad:
-			ctrl1 = (column > 0) ? vbi_ipar8 (raw[column - 1]) : 0xFF;
-			ctrl2 = (column < 40) ? vbi_ipar8 (raw[column]) : 0xFF;
+			ctrl1 = (column > 0) ?
+				vbi_ipar8 (raw[column - 1]) : 0xFF;
+			ctrl2 = (column < 40) ?
+				vbi_ipar8 (raw[column]) : 0xFF;
+
 			digits = 0;
 		}
 	}
@@ -927,31 +903,39 @@ pdc_method_a			(pdc_program *		table,
  finish:
 	if (p2 > p1
 	    || p1 == table
-	    || table[0].ad.year < 0
-	    || table[0].cni < 0) {
+	    || (int) table[0].year < 0
+	    || VBI_NUID_UNKNOWN == table[0].nuid) {
 		return 0; /* invalid */
 	}
 
-	pdc_at2_fill (have_at2 ? table : p2, p2, p1);
+	pdc_at2_fill (p2, p1, p2);
 
 	for (p2 = table; p2 < p1; ++p2) {
-		pdc_program *pp;
+		vbi_preselection *pp;
 
 		if (p2[0].length <= 0)
 			for (pp = p2 + 1; pp < p1; ++pp)
-				if (p2[0].cni == pp[0].cni) {
-					p2[0].length = pdc_time_diff
-						(&p2[0].at1, &pp[0].at1);
+				if (p2[0].nuid == pp[0].nuid) {
+					p2[0].length = pdc_duration
+						(p2[0].at1_hour,
+						 p2[0].at1_minute,
+						 pp[0].at1_hour,
+						 pp[0].at1_minute);
 					break;
 				}
 		if (p2[0].length <= 0)
 			for (pp = p2 + 1; pp < p1; ++pp)
-				if (pp[0].cni == pp[-1].cni) {
-					p2[0].length = pdc_time_diff
-						(&p2[0].at1, &pp[0].at1);
+				if (pp[0].nuid == pp[-1].nuid) {
+					p2[0].length = pdc_duration
+						(p2[0].at1_hour,
+						 p2[0].at1_minute,
+						 pp[0].at1_hour,
+						 pp[0].at1_minute);
 					break;
 				}
-		if (p2[0].length <= 0 || p2[0].at2.hour == 25) {
+
+		/* AT-2 hour 25 to skip a program. */
+		if (p2[0].length <= 0 || 25 == p2[0].at2_hour) {
 			memmove (p2, p2 + 1, (p1 - p2 - 1) * sizeof (*p2));
 			--p1;
 			--p2;
@@ -960,181 +944,38 @@ pdc_method_a			(pdc_program *		table,
 	}
 
 	if (0)
-		pdc_program_array_dump (table, p2 - table, stderr);
+		_vbi_preselection_array_dump (table, p2 - table, stderr);
 
 	return p2 - table;
 }
 
-/**
- * @param pl Blah
- * 
- * Converts the date and time in @a pl to a time_t value.
- *
- * Note this function initializes the global tzname variable
- * from the TZ environment variable as a side effect of
- * calling mktime().
- *
- * @returns
- * time_t value or (time_t) -1 if the date or time cannot
- * be represented.
- */
+#if 0
+
+/*
+   Problem: vbi_preselection gives network local time, which may
+   not be our time zone. p->lto should tell, but is it always
+   transmitted? mktime OTOH assumes our timezone, tm_gmtoff is
+   a GNU extension.
+*/
+
 time_t
-vbi_preselection_time		(const vbi_preselection *pl)
+vbi_preselection_time		(const vbi_preselection *p)
 {
 	struct tm t;
 
 	CLEAR (t);
 
-	t.tm_year	= pl->year - 1900;
-	t.tm_mon	= pl->month;
-	t.tm_mday	= pl->day + 1;
-	t.tm_hour	= pl->at1_hour;
-	t.tm_min	= pl->at1_minute;
+	t.tm_year	= p->year - 1900;
+	t.tm_mon	= p->month;
+	t.tm_mday	= p->day + 1;
+	t.tm_hour	= p->at1_hour;
+	t.tm_min	= p->at1_minute;
 
 	t.tm_isdst	= -1; /* unknown */
 
-// ?	t.tm_gmtoff	= pl->lto * 60; /* sign? */
+	t.tm_gmtoff	= pl->lto * 60; /* XXX sign? */
 
 	return mktime (&t);
 }
 
-static vbi_bool
-vbi_preselection_from_pdc_program
-				(vbi_preselection *	pl,
-				 const vbi_page_private *pgp,
-				 const pdc_program *	p)
-{
-	if (p->at1.hour >= 0) {
-		pl->nuid = vbi_nuid_from_cni (VBI_CNI_TYPE_PDC_A, p->cni);
-
-		pl->at1_hour = p->at1.hour;
-		pl->at1_minute = p->at1.min;
-	} else {
-		pl->nuid = vbi_nuid_from_cni (VBI_CNI_TYPE_PDC_B, p->cni);
-
-		pl->at1_hour = p->at2.hour;
-		pl->at1_minute = p->at2.min;
-	}
-
-	if (p->ad.year >= 0) {
-		if (p->ad.year > 80)
-			pl->year = 1900 + p->ad.year;
-		else
-			pl->year = 2000 + p->ad.year;
-	} else {
-		time_t now;
-		struct tm t;
-		int d;
-
-		time (&now);
-
-		if ((time_t) -1 == now)
-			return FALSE;
-
-		localtime_r (&now, &t);
-
-		pl->year = t.tm_year + 1900;
-
-		d = t.tm_mon - p->ad.month;
-
-		if (d > 0 && d <= 6)
-			++pl->year;
-	}
-
-	pl->month = p->ad.month;
-	pl->day = p->ad.day;
-
-	pl->at2_hour = p->at2.hour;
-	pl->at2_minute = p->at2.min;
-
-	pl->length = p->length;
-
-#warning more
-
-	return TRUE;
-}
-
-/**
- * @param pg With vbi_fetch_vt_page() obtained vbi_page.
- * @param pl Place to store information about the link.
- * @param column Column 0 ... pg->columns - 1 of the character in question.
- * @param row Row 0 ... pg->rows - 1 of the character in question.
- * 
- * Describe me.
- *
- * @returns
- * TRUE if the link is valid.
- */
-vbi_bool
-vbi_page_pdc_link		(const vbi_page *	pg,
-				 vbi_preselection *	pl,
-				 unsigned int		column,
-				 unsigned int		row)
-{
-	const vbi_page_private *pgp;
-	const pdc_program *p;
-	const pdc_program *pend;
-	const pdc_program *pmatch;
-
-	PGP_CHECK (FALSE);
-
-	assert (NULL != pl);
-
-	if (0 == row
-	    || row >= pgp->pg.rows
-	    || column >= pgp->pg.columns)
-		return FALSE;
-
-	pend = pgp->pdc_table + pgp->pdc_table_size;
-	pmatch = NULL;
-
-	for (p = pgp->pdc_table; p < pend; ++p) {
-		unsigned int i;
-
-		for (i = 0; i < N_ELEMENTS (p->at1_ptl_pos); ++i) {
-			const pdc_position *pp = p->at1_ptl_pos + i;
-
-			if (row != (unsigned int) pp->row)
-				continue;
-
-			pmatch = p;
-
-			if (column >= (unsigned int) pp->column_begin
-			    && column < (unsigned int) pp->column_end)
-				goto finish;
-		}
-	}
-
-	if (!pmatch)
-		return FALSE;
-
- finish:
-	return vbi_preselection_from_pdc_program (pl, pgp, pmatch);
-}
-
-/**
- * @param pg With vbi_fetch_vt_page() obtained vbi_page.
- * @param pl Place to store information about the link.
- * @param index Number 0 ... n of item.
- * 
- * Describe me.
- *
- * @returns
- * FALSE if @a num is out of bounds.
- */
-vbi_bool
-vbi_page_pdc_enum		(const vbi_page *	pg,
-				 vbi_preselection *	pl,
-				 unsigned int		index)
-{
-	const vbi_page_private *pgp;
-
-	PGP_CHECK (FALSE);
-	assert (NULL != pl);
-
-	if (index >= pgp->pdc_table_size)
-		return FALSE;
-
-	return vbi_preselection_from_pdc_program
-		(pl, pgp, pgp->pdc_table + index);
-}
+#endif

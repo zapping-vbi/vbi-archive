@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.h,v 1.1.2.2 2004-04-08 23:36:26 mschimek Exp $ */
+/* $Id: xds_demux.h,v 1.1.2.3 2004-05-01 13:51:35 mschimek Exp $ */
 
 #ifndef __ZVBI_XDS_DEMUX_H__
 #define __ZVBI_XDS_DEMUX_H__
@@ -114,9 +114,7 @@ _vbi_xds_packet_dump		(const vbi_xds_packet *	xp,
  * @brief XDS demultiplexer context.
  *
  * The contents of this structure are private.
- *
- * Call vbi_xds_demux_new() to allocate
- * a XDS demultiplexer context.
+ * Call vbi_xds_demux_new() to allocate a XDS demultiplexer context.
  */
 typedef struct _vbi_xds_demux vbi_xds_demux;
 
@@ -127,7 +125,7 @@ typedef struct _vbi_xds_demux vbi_xds_demux;
  * 
  * The XDS demux calls a function of this type when an XDS packet
  * has been completely received, all bytes have correct parity and the
- * packet checksum is correct.
+ * packet checksum is correct. Other packets are discarded.
  */
 typedef vbi_bool
 vbi_xds_demux_cb		(vbi_xds_demux *	xd,

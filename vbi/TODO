@@ -1,4 +1,4 @@
-$Id: TODO,v 1.11.2.8 2004-04-21 18:23:14 mschimek Exp $
+$Id: TODO,v 1.11.2.9 2004-05-01 13:51:28 mschimek Exp $
 
 Version 0.3
 
@@ -14,7 +14,6 @@ Version 0.3
   - vbi_program_info
   - vbi_network done
 * Improve TTX roll header + serial (Mxx increment).
-* Improve TTX page cache.
 * Think about ttx header samples (p100) for stations not transmitting
   a CNI (instead of guessing the name from ttx). May use VTX to create
   samples.

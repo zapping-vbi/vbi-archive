@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.15 2004-04-21 18:24:02 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.16 2004-05-01 13:51:35 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -47,6 +47,7 @@
 #include "wss.h"
 #include "version.h"
 #include "vps.h"
+#include "misc.h"
 
 /**
  * @mainpage ZVBI - VBI Decoding Library
@@ -224,8 +225,9 @@ vbi_decode(vbi_decoder *vbi, vbi_sliced *sliced, int lines, double time)
 	   */
 	  pthread_mutex_lock(&vbi->chswcd_mutex);
 
-	  if (vbi->chswcd == 0)
-		  vbi->chswcd = 40;
+#warning later
+	  //	  if (vbi->chswcd == 0)
+	  //		  vbi->chswcd = 40;
 
 	  pthread_mutex_unlock(&vbi->chswcd_mutex);
 
@@ -273,8 +275,9 @@ vbi_decode(vbi_decoder *vbi, vbi_sliced *sliced, int lines, double time)
 		vbi_deferred_trigger(vbi);
 
 	if (0 && (rand() % 511) == 0)
-		vbi_eacem_trigger(vbi, (unsigned char *) /* Latin-1 */
-				  "<http://zapping.sourceforge.net>[n:Zapping][5450]");
+		vbi_eacem_trigger
+		  (vbi, (unsigned char *) /* Latin-1 */
+		   "<http://zapping.sourceforge.net>[n:Zapping][5450]");
 }
 
 void
@@ -286,7 +289,8 @@ vbi_chsw_reset(vbi_decoder *vbi, vbi_nuid identified)
 		fprintf(stderr, "*** chsw identified=%d old nuid=%d\n",
 			identified, old_nuid);
 
-	vbi_cache_flush (vbi, TRUE);
+#warning
+	//	vbi_cache_flush (vbi, TRUE);
 
 #warning unfinished
 	vbi_teletext_decoder_reset (&vbi->vt, 0);
@@ -614,7 +618,7 @@ vbi_decoder_delete(vbi_decoder *vbi)
 	pthread_mutex_destroy(&vbi->prog_info_mutex);
 	pthread_mutex_destroy(&vbi->chswcd_mutex);
 
-	vbi_cache_destroy(vbi);
+	//	vbi_cache_destroy(vbi);
 
 	free(vbi);
 }
@@ -639,7 +643,7 @@ vbi_decoder_new(void)
 	if (!(vbi = (vbi_decoder *) calloc(1, sizeof(*vbi))))
 		return NULL;
 
-	vbi_cache_init(vbi);
+	//	vbi_cache_init(vbi);
 
 	pthread_mutex_init(&vbi->chswcd_mutex, NULL);
 	pthread_mutex_init(&vbi->prog_info_mutex, NULL);

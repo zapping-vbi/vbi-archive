@@ -17,13 +17,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.4.2.9 2004-04-17 05:52:24 mschimek Exp $ */
+/* $Id: format.h,v 1.4.2.10 2004-05-01 13:51:35 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
 
-#include "bcd.h"
-#include "network.h" /* vbi_nuid */
+#include "macros.h"
+#include "cache.h"	/* vbi_cache */
+#include "network.h"	/* vbi_nuid */
+#include "link.h" 	/* vbi_link */
+#include "pdc.h"        /* vbi_preselection */
+#include "lang.h"	/* vbi_character_set */
+
+VBI_BEGIN_DECLS
 
 #ifndef VBI_DECODER
 #define VBI_DECODER
@@ -256,6 +262,7 @@ typedef struct vbi_char {
 	unsigned	unicode		: 16;
 } vbi_char;
 
+typedef struct _vbi_page_private vbi_page_private;
 
 /**
  * @ingroup Page
@@ -268,11 +275,14 @@ typedef struct vbi_char {
  * by the fetch functions, vbi_unref_page() must be called when done.
  * Note this structure is large, some 10 KB.
  */
-typedef struct vbi_page {
+typedef struct {
+	/* to be removed */
+	vbi_decoder *		vbi;
+
 	/**
 	 * Points back to the source context.
 	 */ 
-	vbi_decoder *		vbi;
+	vbi_cache *		cache;
 
 	/**
 	 * Identifies the network broadcasting this page.
@@ -377,7 +387,49 @@ typedef struct vbi_page {
 	 * in row 25 uses entries 32 ... 39.
 	 */
 	vbi_rgba 		color_map[40];
+
+	vbi_page_private *	priv;
 } vbi_page;
+
+extern vbi_page *
+vbi_page_new			(void);
+extern void
+vbi_page_delete			(vbi_page *		pg);
+extern vbi_page *
+vbi_page_dup			(const vbi_page *	pg);
+extern const uint8_t *
+vbi_page_drcs_data		(const vbi_page *	pg,
+				 unsigned int		unicode);
+extern int
+vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf);
+
+extern vbi_bool
+vbi_page_hyperlink		(const vbi_page *	pg,
+				 vbi_link *		ld,
+				 unsigned int		column,
+				 unsigned int		row);
+extern vbi_bool
+vbi_page_nav_enum		(const vbi_page *	pg,
+				 vbi_link *		ld,
+				 unsigned int		index);
+vbi_inline void
+vbi_page_home_link		(const vbi_page *	pg,
+				 vbi_link *		ld)
+{
+	vbi_page_nav_enum (pg, ld, 5);
+}
+vbi_bool
+vbi_page_pdc_link		(const vbi_page *	pg,
+				 vbi_preselection *	p,
+				 unsigned int		column,
+				 unsigned int		row);
+vbi_bool
+vbi_page_pdc_enum		(const vbi_page *	pg,
+				 vbi_preselection *	p,
+				 unsigned int		index);
+extern const vbi_character_set *
+vbi_page_character_set		(const vbi_page *	pg,
+				 unsigned int		level);
 
 typedef enum {
 	VBI_TABLE = 0x32f54a00,
@@ -390,5 +442,7 @@ typedef enum {
 } vbi_export_option;
 
 /* Private */
+
+VBI_END_DECLS
 
 #endif /* FORMAT_H */

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_decoder.c,v 1.1.2.2 2004-04-17 05:52:25 mschimek Exp $ */
+/* $Id: xds_decoder.c,v 1.1.2.3 2004-05-01 13:51:35 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -30,6 +30,7 @@
 
 #include "hamm.h"
 #include "xds_decoder.h"
+#include "misc.h"
 
 /**
  * @addtogroup XDSDecoder Extended Data Service Decoder

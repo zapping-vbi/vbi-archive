@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.14 2004-04-21 18:24:02 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.15 2004-05-01 13:51:35 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -30,13 +30,14 @@
 #include <assert.h>
 
 #include "intl-priv.h"
-#include "bcd.h"
+#include "cache-priv.h"
 #include "vt.h"
 #include "export.h"
 #include "vbi.h"
 #include "hamm.h"
 #include "lang.h"
 #include "pdc.h"
+#include "misc.h"
 
 #ifndef TELETEXT_FMT_LOG
 #define TELETEXT_FMT_LOG 0
@@ -54,7 +55,7 @@ do {									\
 									\
 	pgp = CONST_PARENT (pg, vbi_page_private, pg);			\
 									\
-	if (VBI_PAGE_PRIVATE_MAGIC != pgp->magic)			\
+	if (pg->priv != pgp)						\
 		return ret_value;					\
 } while (0)
 
@@ -65,7 +66,6 @@ enhance				(vbi_page_private *	pgp,
 				 unsigned int		n_triplets,
 				 unsigned int		inv_row,
 				 unsigned int		inv_column);
-
 
 void
 vbi_page_private_dump		(const vbi_page_private *pgp,
@@ -179,7 +179,7 @@ init_screen_color		(vbi_page *		pg,
 
 /* Level One Page ---------------------------------------------------------- */
 
-vbi_inline vbi_bool
+static vbi_bool
 level_one_row			(vbi_page_private *	pgp,
 				 unsigned int		row)
 {
@@ -201,7 +201,7 @@ level_one_row			(vbi_page_private *	pgp,
 	rawp = pgp->vtp->data.lop.raw[row];
 	acp = pgp->pg.text + row * pgp->pg.columns;
 
-	/* G1 block mosaic, blank, contiguous */
+	/* G1 block mosaic, blank, contiguous. */
 	held_mosaic_unicode = mosaic_contiguous + 0x20;
 
 	CLEAR (ac);
@@ -357,7 +357,7 @@ level_one_row			(vbi_page_private *	pgp,
 	return double_height_row;
 }
 
-vbi_inline void
+static void
 level_one_row_extend		(vbi_page_private *	pgp,
 				 unsigned int		row)
 {
@@ -425,15 +425,10 @@ level_one_page			(vbi_page_private *	pgp)
 	}
 
 	if (0)
-		vbi_page_private_dump (pgp, 0, stderr);
+		vbi_page_private_dump (pgp, stderr, 0);
 }
 
-
-
-
-
-
-//-----------------------------------------
+/* Level One Page Enhancement ---------------------------------------------- */
 
 static const vt_page *
 get_system_page			(const vbi_page_private *pgp,
@@ -443,13 +438,9 @@ get_system_page			(const vbi_page_private *pgp,
 {
 	const vt_page *vtp;
 
-	//	vtp = _vbi_cache_get_page (pgp->pg.cache,
-	//			   pgp->network,
-	//			   pgno, subno, 0x000F,
-	//			  /* user_access */ FALSE);
-
-	vtp = vbi_cache_get (pgp->pg.vbi, NUID0, pgno, subno, 0x000F,
-			     /* user access */ FALSE);
+	vtp = _vbi_cache_get_page (pgp->pg.cache, pgp->network,
+				   pgno, subno, 0x000F,
+				   /* user_access */ FALSE);
 
 	if (!vtp) {
 		fmt_log ("... page %llx %03x.%04x not cached\n",
@@ -459,10 +450,9 @@ get_system_page			(const vbi_page_private *pgp,
 
 	switch (vtp->function) {
 	case PAGE_FUNCTION_UNKNOWN:
-	  //		if (_vbi_convert_cached_page (pgp->pg.cache,
-	  //					      pgp->network,
-	  //					      &vtp, function))
-		if (_vbi_convert_cached_page (pgp->pg.vbi, &vtp, function))
+		if (_vbi_convert_cached_page (pgp->pg.cache,
+					      pgp->network,
+					      &vtp, function))
 			return vtp;
 
 		fmt_log ("... not %s or hamming error\n",
@@ -493,8 +483,7 @@ get_system_page			(const vbi_page_private *pgp,
 		 page_function_name (function));
 
  failure:
-	//	_vbi_cache_release_page (pgp->pg.cache, vtp);
-	vbi_cache_unref (pgp->pg.vbi, vtp);
+	_vbi_cache_release_page (pgp->pg.cache, vtp);
 
 	return NULL;
 }
@@ -503,7 +492,7 @@ get_system_page			(const vbi_page_private *pgp,
 	Objects
 */
 
-vbi_inline const pop_link *
+static const pop_link *
 magazine_pop_link		(const vbi_page_private *pgp,
 				 unsigned int		link)
 {
@@ -519,7 +508,7 @@ magazine_pop_link		(const vbi_page_private *pgp,
 	return &pgp->mag->pop_link[0][link];
 }
 
-vbi_inline object_address
+static object_address
 triplet_object_address		(const triplet *	trip)
 {
 	/* 
@@ -624,8 +613,7 @@ resolve_obj_address		(vbi_page_private *	pgp,
 	return TRUE;
 
  failure:
-	//	_vbi_cache_release_page (pgp->pg.cache, vtp);
-	vbi_cache_unref (pgp->pg.vbi, vtp);
+	_vbi_cache_release_page (pgp->pg.cache, vtp);
 
 	return FALSE;
 }
@@ -789,8 +777,7 @@ object_invocation		(vbi_page_private *	pgp,
 
 	success = enhance (pgp, new_type, trip, n_triplets, row, column);
 
-//	_vbi_cache_release_page (pgp->pg.cache, trip_vtp);
-	vbi_cache_unref (pgp->pg.vbi, trip_vtp);
+	_vbi_cache_release_page (pgp->pg.cache, trip_vtp);
 
 	fmt_log ("... object done, %s\n",
 		 success ? "success" : "failed");
@@ -855,8 +842,7 @@ default_object_invocation	(vbi_page_private *	pgp)
 
 		success = enhance (pgp, type, trip, n_triplets, 0, 0);
 
-		//	_vbi_cache_release_page (pgp->pg.cache, trip_vtp);
-		vbi_cache_unref (pgp->pg.vbi, trip_vtp);
+		_vbi_cache_release_page (pgp->pg.cache, trip_vtp);
 
 		if (!success)
 			return FALSE;
@@ -871,7 +857,7 @@ default_object_invocation	(vbi_page_private *	pgp)
 	DRCS
  */
 
-vbi_inline vbi_pgno
+static vbi_pgno
 magazine_drcs_link		(const vbi_page_private *pgp,
 				 unsigned int		link)
 {
@@ -1002,8 +988,7 @@ reference_drcs_page		(vbi_page_private *	pgp,
 
 	if (!get_drcs_data (drcs_vtp, glyph)) {
 		fmt_log ("... invalid drcs, prob. tx error\n");
-		//	_vbi_cache_release_page (pgp->pg.cache, drcs_vtp);
-		vbi_cache_unref (pgp->pg.vbi, drcs_vtp);
+		_vbi_cache_release_page (pgp->pg.cache, drcs_vtp);
 		return FALSE;
 	}
 
@@ -1135,7 +1120,7 @@ enhance_flush			(enhance_state *	st,
 		return;
 
 	if (column_end >= 40) {
-		/* Flush entire row */
+		/* Flush entire row. */
 
 		switch (st->type) {
 		case OBJECT_TYPE_PASSIVE:
@@ -1238,7 +1223,7 @@ enhance_flush			(enhance_state *	st,
 			0x20 : vbi_ipar8 (st->pgp->vtp->data.lop.raw
 					  [row][column - 1]);
 
-		/* Set-after spacing attributes cancelling non-spacing */
+		/* Set-after spacing attributes cancelling non-spacing. */
 
 		switch (raw) {
 		case 0x00 ... 0x07:	/* alpha + foreground color */
@@ -1279,7 +1264,7 @@ enhance_flush			(enhance_state *	st,
 			0x20 : vbi_ipar8 (st->pgp->vtp->data.lop.raw
 					  [row][column]);
 
-		/* Set-at spacing attributes cancelling non-spacing */
+		/* Set-at spacing attributes cancelling non-spacing. */
 		
 		switch (raw) {
 		case 0x09:		/* steady */
@@ -1330,15 +1315,19 @@ enhance_row_triplet		(enhance_state *	st)
 
 	switch (st->trip->mode) {
 	case 0x00:		/* full screen color */
-		if (st->pgp->max_level >= VBI_WST_LEVEL_2p5
-		    && 0 == s
-		    && st->type <= OBJECT_TYPE_ACTIVE)
+		if (st->pgp->max_level < VBI_WST_LEVEL_2p5)
+			break;
+
+		if (0 == s && st->type <= OBJECT_TYPE_ACTIVE)
 			init_screen_color (&st->pgp->pg,
 					   st->pgp->vtp->flags,
 					   st->trip->data & 0x1F);
 		break;
 
 	case 0x07:		/* address display row 0 */
+		if (st->pgp->max_level < VBI_WST_LEVEL_1p5)
+			break;
+		
 		if (st->trip->address != 0x3F)
 			break; /* reserved, no position */
 
@@ -1347,14 +1336,21 @@ enhance_row_triplet		(enhance_state *	st)
 		/* fall through */
 
 	case 0x01:		/* full row color */
+		if (st->pgp->max_level < VBI_WST_LEVEL_1p5)
+			break;
+
 		st->row_color = st->next_row_color;
 
-		if (0 == s) {
+		switch (s) {
+		case 0:
 			st->row_color = st->trip->data & 0x1F;
 			st->next_row_color = st->pgp->ext->def_row_color;
-		} else if (3 == s) {
+			break;
+
+		case 3:
 			st->row_color = st->trip->data & 0x1F;
 			st->next_row_color = st->row_color;
+			break;
 		}
 
 		goto set_active;
@@ -1369,6 +1365,8 @@ enhance_row_triplet		(enhance_state *	st)
 				break; /* reserved */
 
 			column = st->trip->data;
+		} else if (st->pgp->max_level < VBI_WST_LEVEL_1p5) {
+			break;
 		}
 
 		if (row > st->active_row)
@@ -1424,20 +1422,26 @@ enhance_row_triplet		(enhance_state *	st)
 	{
 		unsigned int cni;
 
-		/* .address            .data
+		/*
+		   .address         .data
 		   1 1 c3 c2 c1 c0  n6  n5 n4 n3 n2 n1 n0
 		       --country--  msb ------source-----
 		   -> 0011 cccc 0mss ssss  as in TR 101 231.
 		*/
 		cni = st->trip->address * 256 + st->trip->data;
+
 		st->pdc_tmp.nuid =
 			vbi_nuid_from_cni (VBI_CNI_TYPE_PDC_B, cni);
+
 		break;
 	}
 
 	case 0x09:		/* PDC data - Month and Day */
-		/* 1 1 m3 m2 m1 m0  0 t1 t0 u3 u2 u1 u0
-		       ---month---    ------day-------- */
+		/*
+		   .address         .data
+		   1 1 m3 m2 m1 m0  0 t1 t0 u3 u2 u1 u0
+		       ---month---    ------day--------
+		*/
 		st->pdc_tmp.month = (st->trip->address & 15) - 1;
 		st->pdc_tmp.day = ((st->trip->data >> 4) * 10
 				   + (st->trip->data & 15) - 1);
@@ -1445,22 +1449,31 @@ enhance_row_triplet		(enhance_state *	st)
 		
 	case 0x0A:		/* PDC data - Cursor Row and
 				   Announced Starting Time Hours */
-		/* 1 r4 r3 r2 r1 r0  caf t1 t0 u3 u2 u1 u0
-		     ------row-----      -------hour------ */
+		/*
+		   .address          .data
+		   1 r4 r3 r2 r1 r0  caf t1 t0 u3 u2 u1 u0
+		     ------row-----      -------hour------
+		*/
 
-		if (!st->p1)
+		if (!st->p1) {
 			break;
+		}
 
 		if (st->pdc_tmp.month > 11
+		    || st->pdc_tmp.day > 30
 		    || VBI_NUID_UNKNOWN == st->pdc_tmp.nuid) {
-			return FALSE;
+			/* PDC data is broken, but no need to throw
+			   away all the enhancement. */
+			st->p1 = NULL;
+			break;
 		}
 
 		st->pdc_tmp.at2_hour = (((st->trip->data & 0x30) >> 4) * 10
 					+ (st->trip->data & 15));
 		st->pdc_tmp.length = 0;
-//		st->pdc_tmp._at1_ptl[1].row = row;
-//		st->pdc_tmp.caf = !!(st->trip->data & 0x40);
+
+		st->pdc_tmp._at1_ptl[1].row = row;
+		st->pdc_tmp.caf = !!(st->trip->data & 0x40);
 
 		st->pdc_hour = *st->trip;
 
@@ -1468,8 +1481,11 @@ enhance_row_triplet		(enhance_state *	st)
 
 	case 0x0B:		/* PDC data - Cursor Row and
 				   Announced Finishing Time Hours */
-		/* 1 r4 r3 r2 r1 r0  msb t1 t0 u3 u2 u1 u0
-		     -----row------      -------hour------ */
+		/*
+		   .address          .data
+		   1 r4 r3 r2 r1 r0  msb t1 t0 u3 u2 u1 u0
+		     -----row------      -------hour------
+		*/
 
 		/* msb: Duration or end time, see column triplet 0x06. */
 		st->pdc_tmp.at2_hour = (((st->trip->data & 0x70) >> 4) * 10
@@ -1483,29 +1499,35 @@ enhance_row_triplet		(enhance_state *	st)
 	{
 		unsigned int lto;
 
-		/* 1 r4 r3 r2 r1 r0  t6 t5 t4 t3 t2 t1 t0
-		     ------row-----  -------offset------- */
+		/*
+		   .address          .data
+		   1 r4 r3 r2 r1 r0  t6 t5 t4 t3 t2 t1 t0
+		     ------row-----  -------offset-------
+		*/
 
 		lto = st->trip->data;
 
-		if (lto & 0x40) /* 6 bit two's complement */
+		if (lto & 0x40) /* 7 bit two's complement */
 			lto |= ~0x7F;
 
-//		st->pdc_tmp.lto = lto * 15; /* minutes */
+		st->pdc_tmp.lto = lto * 15; /* minutes */
 
 		break;
 	}
 
 	case 0x0D:		/* PDC data - Series Identifier
 				   and Series Code */
-		/* 1 1 0 0 0 0 0  p6 p5 p4 p3 p2 p1 p0
-		                  ---------pty-------- */
+		/*
+		   .address       .data
+		   1 1 0 0 0 0 0  p6 p5 p4 p3 p2 p1 p0
+		                  ---------pty--------
+		*/
 
 		/* 0x30 == is series code. */
 		if (0x30 != st->trip->address)
 			break;
 		
-//		st->pdc_tmp.pty = 0x80 + st->trip->data;
+		st->pdc_tmp.pty = 0x80 + st->trip->data;
 
 		break;
 
@@ -1518,7 +1540,7 @@ enhance_row_triplet		(enhance_state *	st)
 			break;
 
 		if (st->trip->data >= 72)
-			break; /* invalid */
+			return FALSE; /* invalid */
 
 		st->offset_row = st->trip->address - 40;
 		st->offset_column = st->trip->data;
@@ -1538,7 +1560,7 @@ enhance_row_triplet		(enhance_state *	st)
 		
 		row = st->inv_row + st->active_row;
 		column = st->inv_column + st->active_column;
-		
+
 		table = st->pgp->pdc_table;
 		st->pgp->pdc_table = NULL;
 
@@ -1577,7 +1599,8 @@ enhance_row_triplet		(enhance_state *	st)
 
 	case 0x1F:		/* termination marker */
 	terminate:
-		enhance_flush (st, -1);
+		if (st->pgp->max_level >= VBI_WST_LEVEL_1p5)
+			enhance_flush (st, -1);
 
 		fmt_log ("... enh terminated %02x\n", st->trip->mode);
 
@@ -1620,35 +1643,39 @@ enhance_column_triplet		(enhance_state *	st)
 
 	switch (st->trip->mode) {
 	case 0x00:		/* foreground color */
-		if (st->pgp->max_level >= VBI_WST_LEVEL_2p5
-		    && 0 == s) {
-			if (column > st->active_column)
-				enhance_flush (st, column);
+		if (st->pgp->max_level < VBI_WST_LEVEL_2p5)
+			break;
 
-			st->ac.foreground = st->trip->data & 0x1F;
-			st->mac.foreground = ~0;
+		if (0 != s)
+			break;
 
-			fmt_log ("... enh col %d foreground %d\n",
-				 st->active_column, st->ac.foreground);
-		}
+		if (column > st->active_column)
+			enhance_flush (st, column);
+
+		st->ac.foreground = st->trip->data & 0x1F;
+		st->mac.foreground = ~0;
+
+		fmt_log ("... enh col %d foreground %d\n",
+			 st->active_column, st->ac.foreground);
 
 		break;
 
 	case 0x01:		/* G1 block mosaic character */
-		if (st->pgp->max_level >= VBI_WST_LEVEL_2p5) {
-			if (column > st->active_column)
-				enhance_flush (st, column);
+		if (st->pgp->max_level < VBI_WST_LEVEL_2p5)
+			break;
 
-			if (st->trip->data & 0x20) {
-				/* G1 contiguous */
-				unicode = 0xEE00 + st->trip->data;
-				goto store;
-			} else if (st->trip->data >= 0x40) {
-				unicode = vbi_teletext_unicode
-					(st->cs->g0, VBI_SUBSET_NONE,
-					 st->trip->data);
-				goto store;
-			}
+		if (column > st->active_column)
+			enhance_flush (st, column);
+
+		if (st->trip->data & 0x20) {
+			/* G1 contiguous */
+			unicode = 0xEE00 + st->trip->data;
+			goto store;
+		} else if (st->trip->data >= 0x40) {
+			unicode = vbi_teletext_unicode (st->cs->g0,
+							VBI_SUBSET_NONE,
+							st->trip->data);
+			goto store;
 		}
 
 		break;
@@ -1662,28 +1689,34 @@ enhance_column_triplet		(enhance_state *	st)
 
 	case 0x02:		/* G3 smooth mosaic or
 				   line drawing character */
-		if (st->trip->data >= 0x20) {
-			if (column > st->active_column)
-				enhance_flush (st, column);
+		if (st->pgp->max_level < VBI_WST_LEVEL_1p5)
+			break;
 
-			unicode = 0xEF00 + st->trip->data;
-			goto store;
-		}
+		if (st->trip->data < 0x20)
+			break;
 
-		break;
+		if (column > st->active_column)
+			enhance_flush (st, column);
+
+		unicode = 0xEF00 + st->trip->data;
+
+		goto store;
 
 	case 0x03:		/* background color */
-		if (st->pgp->max_level >= VBI_WST_LEVEL_2p5
-		    && 0 == s) {
-			if (column > st->active_column)
-				enhance_flush (st, column);
+		if (st->pgp->max_level < VBI_WST_LEVEL_2p5)
+			break;
 
-			st->ac.background = st->trip->data & 0x1F;
-			st->mac.background = ~0;
+		if (0 != s)
+			break;
 
-			fmt_log ("... enh col %d background %d\n",
-				 st->active_column, st->ac.background);
-		}
+		if (column > st->active_column)
+			enhance_flush (st, column);
+
+		st->ac.background = st->trip->data & 0x1F;
+		st->mac.background = ~0;
+
+		fmt_log ("... enh col %d background %d\n",
+			 st->active_column, st->ac.background);
 
 		break;
 
@@ -1694,8 +1727,11 @@ enhance_column_triplet		(enhance_state *	st)
 	case 0x06:		/* PDC data - Cursor Column and
 				   Announced Starting and
 				   Finishing Time Minutes */
-		/* c5 c4 c3 c2 c1 c0  t2 t1 t0 u3 u2 u1 u0
-		   ------column-----  -------minute------- */
+		/*
+		   .address           .data
+		   c5 c4 c3 c2 c1 c0  t2 t1 t0 u3 u2 u1 u0
+		   ------column-----  -------minute-------
+		*/
 
 		if (!st->p1)
 			break;
@@ -1710,25 +1746,30 @@ enhance_column_triplet		(enhance_state *	st)
 				pdc_duration (st);
 			}
 
-//			st->pdc_tmp._at1_ptl[1].column_begin = column;
-//			st->pdc_tmp._at1_ptl[1].column_end = 40;
+			st->pdc_tmp._at1_ptl[1].column_begin = column;
+			st->pdc_tmp._at1_ptl[1].column_end = 40;
 
 			if (st->p1 >= st->pgp->pdc_table + 24)
 				return FALSE;
 
 			*st->p1++ = st->pdc_tmp;
 
-//			st->pdc_tmp.pty = 0;
+			st->pdc_tmp.pty = 0;
 
 			break;
 
 		case 0x0B: /* Finishing time */
-			if (st->p1 == st->pgp->pdc_table)
-				return FALSE; /* finish what? */
+			if (st->p1 == st->pgp->pdc_table) {
+				/* Finish what? PDC is broken, but no need
+				   to throw away all the enhancement. */
+				st->p1 = NULL;
+				break;
+			}
 
 			/* See row triplet 0x0B. */
 			if (st->pdc_tmp.at2_hour >= 40) {
 				/* Duration. */
+
 				st->p1[-1].length =
 					(st->pdc_tmp.at2_hour - 40) * 60
 					+ st->pdc_tmp.at2_minute;
@@ -1742,7 +1783,10 @@ enhance_column_triplet		(enhance_state *	st)
 
 		default:
 			fmt_log ("... pdc hour triplet missing\n");
-			return FALSE;
+
+			/* PDC is broken. */
+			st->p1 = NULL;
+			break;
 		}
 
 		st->pdc_hour.mode = 0;
@@ -1750,56 +1794,59 @@ enhance_column_triplet		(enhance_state *	st)
 		break;
 
 	case 0x07:		/* additional flash functions */
-		if (st->pgp->max_level >= VBI_WST_LEVEL_2p5) {
-			if (column > st->active_column)
-				enhance_flush (st, column);
+		if (st->pgp->max_level < VBI_WST_LEVEL_2p5)
+			break;
 
-			/* Only one flash function implemented:
-			   Mode 1 - Normal flash to background color
-			   Rate 0 - Slow rate (1 Hz) */
-			COPY_SET_COND (st->ac.attr, VBI_FLASH,
-				       st->trip->data & 3);
-			st->mac.attr |= VBI_FLASH;
+		if (column > st->active_column)
+			enhance_flush (st, column);
 
-			fmt_log ("... enh col %d flash 0x%02x\n",
-				 st->active_column, st->trip->data);
-		}
+		/* XXX Only one flash function implemented:
+		   Mode 1 - Normal flash to background color
+		   Rate 0 - Slow rate (1 Hz) */
+		COPY_SET_COND (st->ac.attr, VBI_FLASH, st->trip->data & 3);
+		st->mac.attr |= VBI_FLASH;
+
+		fmt_log ("... enh col %d flash 0x%02x\n",
+			 st->active_column, st->trip->data);
 
 		break;
 
 	case 0x08:		/* modified G0 and G2
 				   character set designation */
-		if (st->pgp->max_level >= VBI_WST_LEVEL_2p5) {
-			const vbi_character_set *cs;
+	{
+		const vbi_character_set *cs;
 
-			if (column > st->active_column)
-				enhance_flush (st, column);
+		if (st->pgp->max_level < VBI_WST_LEVEL_2p5)
+			break;
 
-			cs = vbi_character_set_from_code (st->trip->data);
+		if (column > st->active_column)
+			enhance_flush (st, column);
 
-			if (cs) {
-				st->cs = cs;
+		cs = vbi_character_set_from_code (st->trip->data);
 
-				fmt_log ("... enh col %d modify character "
-					 "set %d\n", st->active_column,
-					 st->trip->data);
-			}
+		if (cs) {
+			st->cs = cs;
+
+			fmt_log ("... enh col %d modify character set %d\n",
+				 st->active_column, st->trip->data);
 		}
 
 		break;
+	}
 
 	case 0x09:		/* G0 character */
-		if (st->pgp->max_level >= VBI_WST_LEVEL_2p5
-		    && st->trip->data >= 0x20) {
-			if (column > st->active_column)
-				enhance_flush (st, column);
+		if (st->pgp->max_level < VBI_WST_LEVEL_2p5)
+			break;
 
-			unicode = vbi_teletext_unicode
-				(st->cs->g0, VBI_SUBSET_NONE, st->trip->data);
-			goto store;
-		}
+		if (st->trip->data < 0x20)
+			break;
 
-		break;
+		if (column > st->active_column)
+			enhance_flush (st, column);
+
+		unicode = vbi_teletext_unicode (st->cs->g0, VBI_SUBSET_NONE,
+						st->trip->data);
+		goto store;
 
 	case 0x0A:		/* reserved */
 		break;
@@ -1923,35 +1970,41 @@ enhance_column_triplet		(enhance_state *	st)
 	}
 
 	case 0x0F:		/* G2 character */
-		if (st->trip->data >= 0x20) {
-			if (column > st->active_column)
-				enhance_flush (st, column);
+		if (st->pgp->max_level < VBI_WST_LEVEL_1p5)
+			break;
 
-			unicode = vbi_teletext_unicode
-				(st->cs->g2, VBI_SUBSET_NONE, st->trip->data);
-			goto store;
-		}
+		if (st->trip->data < 0x20)
+			break;
 
-		break;
+		if (column > st->active_column)
+			enhance_flush (st, column);
+
+		unicode = vbi_teletext_unicode (st->cs->g2, VBI_SUBSET_NONE,
+						st->trip->data);
+		goto store;
 
 	case 0x10 ... 0x1F:	/* characters including
 				   diacritical marks */
-		if (st->trip->data >= 0x20) {
-			if (column > st->active_column)
-				enhance_flush (st, column);
+		if (st->pgp->max_level < VBI_WST_LEVEL_1p5)
+			break;
 
-			unicode = _vbi_teletext_composed_unicode
-				(st->trip->mode - 0x10, st->trip->data);
-		store:
-			fmt_log ("... enh row %d col %d print "
-				 "0x%02x/0x%02x -> 0x%04x %c\n",
-				 st->active_row, st->active_column,
-				 st->trip->mode, st->trip->data,
-				 unicode, unicode & 0xFF);
+		if (st->trip->data < 0x20)
+			break;
 
-			st->ac.unicode = unicode;
-			st->mac.unicode = ~0;
-		}
+		if (column > st->active_column)
+			enhance_flush (st, column);
+
+		unicode = _vbi_teletext_composed_unicode
+			(st->trip->mode - 0x10, st->trip->data);
+	store:
+		fmt_log ("... enh row %d col %d print "
+			 "0x%02x/0x%02x -> 0x%04x %c\n",
+			 st->active_row, st->active_column,
+			 st->trip->mode, st->trip->data,
+			 unicode, unicode & 0xFF);
+
+		st->ac.unicode = unicode;
+		st->mac.unicode = ~0;
 
 		break;
 
@@ -2094,15 +2147,15 @@ enhance				(vbi_page_private *	pgp,
 
 		pgp->pdc_table_size = st.p1 - pgp->pdc_table;
 
-//		if (0)
-//			_vbi_preselection_array_dump (pgp->pdc_table,
-//						      pgp->pdc_table_size,
-//						      stderr);
+		if (0)
+			_vbi_preselection_array_dump (pgp->pdc_table,
+						      pgp->pdc_table_size,
+						      stderr);
 	}
 
  finish2:
-//	if (0)
-//		_vbi_page_private_dump (t, 2, stderr);
+	if (0)
+		vbi_page_private_dump (pgp, stderr, 2);
 
 	return TRUE;
 }
@@ -2193,29 +2246,181 @@ post_enhance			(vbi_page_private *	pgp)
 	}
 }
 
+/* PDC Preselection -------------------------------------------------------- */
 
-
-/* Artificial 41st column. Often column 0 of a LOP contains only set-after
-   attributes and thus all black spaces, unlike column 39. To balance the
-   view we add a black column 40. If OTOH column 0 has been modified using
-   enhancement we extend column 39. */
+/**
+ * @internal
+ * @param pg Formatted page.
+ * @param pbegin Take AT-1 and PTL positions from this table.
+ * @param pend End of the table.
+ *
+ * Adds PDC flags to the text.
+ *
+ * XXX incomplete: p->text
+ */
 static void
-column_41			(vbi_page_private *		t)
+post_pdc			(vbi_page *		pg,
+				 const vbi_preselection *pbegin,
+				 const vbi_preselection *pend)
+{
+	const vbi_preselection *p;
+
+	for (p = pbegin; p < pend; ++p) {
+		unsigned int i;
+
+		for (i = 0; i < N_ELEMENTS (p->_at1_ptl); ++i) {
+			unsigned int row;
+
+			row = p->_at1_ptl[i].row;
+
+			if (row > 0) {
+				vbi_char *acp;
+				unsigned int j;
+
+				acp = pg->text + pg->columns * row;
+
+				/* We could mark exactly the AT-1 and PTL
+				   characters, but from a usability
+				   standpoint it's better to make the
+				   sensitive area larger. */
+				for (j = 0; j < pg->columns; ++j) {
+					acp[j].attr |= VBI_PDC;
+
+					switch (acp[j].size) {
+					case VBI_DOUBLE_HEIGHT:
+					case VBI_DOUBLE_SIZE:
+					case VBI_OVER_TOP:
+						acp[pg->columns].attr |=
+							VBI_PDC;
+						break;
+
+					default:
+						break;
+					}
+				}
+			}
+		}
+	}
+}
+
+/**
+ * @param pg With vbi_fetch_vt_page() obtained vbi_page.
+ * @param p Place to store information about the link.
+ * @param column Column 0 ... pg->columns - 1 of the character in question.
+ * @param row Row 0 ... pg->rows - 1 of the character in question.
+ * 
+ * Describe me.
+ *
+ * @returns
+ * TRUE if the link is valid.
+ */
+vbi_bool
+vbi_page_pdc_link		(const vbi_page *	pg,
+				 vbi_preselection *	p,
+				 unsigned int		column,
+				 unsigned int		row)
+{
+	const vbi_page_private *pgp;
+	const vbi_preselection *p1;
+	const vbi_preselection *pend;
+	const vbi_preselection *pmatch;
+
+	PGP_CHECK (FALSE);
+
+	assert (NULL != p);
+
+	if (0 == row
+	    || row >= pgp->pg.rows
+	    || column >= pgp->pg.columns)
+		return FALSE;
+
+	pend = pgp->pdc_table + pgp->pdc_table_size;
+	pmatch = NULL;
+
+	for (p1 = pgp->pdc_table; p1 < pend; ++p1) {
+		unsigned int i;
+
+		for (i = 0; i < N_ELEMENTS (p1->_at1_ptl); ++i) {
+			if (row != p1->_at1_ptl[i].row)
+				continue;
+
+			pmatch = p1;
+
+			if (column >= p1->_at1_ptl[i].column_begin
+			    && column < p1->_at1_ptl[i].column_end)
+				goto finish;
+		}
+	}
+
+	if (!pmatch)
+		return FALSE;
+
+	p1 = pmatch;
+
+ finish:
+	memcpy (p, p1, sizeof (*p));
+
+	return TRUE;
+}
+
+/**
+ * @param pg With vbi_fetch_vt_page() obtained vbi_page.
+ * @param pl Place to store information about the link.
+ * @param index Number 0 ... n of item.
+ * 
+ * Describe me.
+ *
+ * @returns
+ * FALSE if @a num is out of bounds.
+ */
+vbi_bool
+vbi_page_pdc_enum		(const vbi_page *	pg,
+				 vbi_preselection *	p,
+				 unsigned int		index)
+{
+	const vbi_page_private *pgp;
+
+	PGP_CHECK (FALSE);
+	assert (NULL != p);
+
+	if (index >= pgp->pdc_table_size)
+		return FALSE;
+
+	memcpy (p, pgp->pdc_table + index, sizeof (*p));
+
+	return TRUE;
+}
+
+/* Column 41 --------------------------------------------------------------- */
+
+/**
+ * @internal
+ * @param pgp Current vbi_page.
+ *
+ * Artificial 41st column. Often column 0 of a LOP contains only set-after
+ * attributes and thus all black spaces, unlike column 39. To balance the
+ * view we add a black column 40. If OTOH column 0 has been modified using
+ * enhancement we extend column 39.
+ */
+static void
+column_41			(vbi_page_private *	pgp)
 {
 	vbi_char *acp;
 	unsigned int row;
 	vbi_bool black0;
 	vbi_bool cont39;
 
-	acp = t->pg.text;
+	acp = pgp->pg.text;
 
 	/* Header. */
 
 	acp[40] = acp[39];
 	acp[40].unicode = 0x0020;
 
-	if (1 == t->pg.rows)
+	if (1 == pgp->pg.rows)
 		return;
+
+	/* Body. */
 
 	acp += 41;
 
@@ -2239,7 +2444,7 @@ column_41			(vbi_page_private *		t)
 		acp += 41;
 	}
 
-	acp = t->pg.text + 41;
+	acp = pgp->pg.text + 41;
 
 	if (!black0 && cont39) {
 		for (row = 1; row <= 24; ++row) {
@@ -2256,9 +2461,9 @@ column_41			(vbi_page_private *		t)
 		CLEAR (ac);
 
 		ac.unicode	= 0x0020;
-		ac.foreground	= t->ext->foreground_clut + VBI_WHITE;
-		ac.background	= t->ext->background_clut + VBI_BLACK;
-		ac.opacity	= t->page_opacity[1];
+		ac.foreground	= pgp->ext->foreground_clut + VBI_WHITE;
+		ac.background	= pgp->ext->background_clut + VBI_BLACK;
+		ac.opacity	= pgp->page_opacity[1];
 
 		for (row = 1; row <= 24; ++row) {
 			acp[40] = ac;
@@ -2272,271 +2477,9 @@ column_41			(vbi_page_private *		t)
 	acp[40].unicode = 0x0020;
 }
 
-/**
- * @internal
- *
- * Formats a level one page. Source is pgp->vtp.
- */
-static void
-___level_one_page			(vbi_page_private *	pgp)
-{
-	static const unsigned int mosaic_separate = 0xEE00 - 0x20;
-	static const unsigned int mosaic_contiguous = 0xEE20 - 0x20;
-	char buf[16];
-	unsigned int column;
-	unsigned int row;
-	unsigned int i;
+/* Hyperlinks -------------------------------------------------------------- */
 
-	/* Current page number in header */
-
-	sprintf (buf, "\2%03x.%02x\7",
-		 pgp->pg.pgno & 0xFFF,
-		 pgp->pg.subno & 0xFF);
-
-//	pgp->pg.double_height_lower = 0;
-
-	i = 0; /* t->vtp->data.lop.raw[] */
-
-	for (row = 0; row < pgp->pg.rows; ++row) {
-		const vbi_character_set *cs;
-		unsigned int mosaic_plane;
-		unsigned int held_mosaic_unicode;
-		vbi_bool hold;
-		vbi_bool mosaic;
-		vbi_bool double_height;
-		vbi_bool wide_char;
-		vbi_char ac, *acp;
-
-		acp = pgp->pg.text + row * pgp->pg.columns;
-
-		/* G1 block mosaic, blank, contiguous */
-		held_mosaic_unicode = mosaic_contiguous + 0x20;
-
-		CLEAR (ac);
-
-		ac.unicode	= 0x0020;
-		ac.foreground	= pgp->ext->foreground_clut + VBI_WHITE;
-		ac.background	= pgp->ext->background_clut + VBI_BLACK;
-		mosaic_plane	= mosaic_contiguous;
-		ac.opacity	= pgp->page_opacity[row > 0];
-		cs		= pgp->char_set[0];
-		hold		= FALSE;
-		mosaic		= FALSE;
-
-		double_height	= FALSE;
-		wide_char	= FALSE;
-
-		for (column = 0; column < 40; ++column) {
-			int raw;
-
-			if (row == 0 && column < 8) {
-				raw = buf[column];
-				++i;
-			} else {
-				raw = vbi_ipar8
-					(pgp->vtp->data.lop.raw[0][i++]);
-
-				if (raw < 0) /* parity error */
-					raw = 0x20;
-			}
-
-			/* Set-at spacing attributes */
-
-			switch (raw) {
-			case 0x09:		/* steady */
-				ac.attr &= ~VBI_FLASH;
-				break;
-
-			case 0x0C:		/* normal size */
-				ac.size = VBI_NORMAL_SIZE;
-				break;
-
-			case 0x18:		/* conceal */
-				ac.attr |= VBI_CONCEAL;
-				break;
-
-			case 0x19:		/* contiguous mosaics */
-				mosaic_plane = mosaic_contiguous;
-				break;
-
-			case 0x1A:		/* separated mosaics */
-				mosaic_plane = mosaic_separate;
-				break;
-
-			case 0x1C:		/* black background */
-				ac.background = pgp->ext->background_clut
-					+ VBI_BLACK;
-				break;
-
-			case 0x1D:		/* new background */
-				ac.background = pgp->ext->background_clut
-					+ (ac.foreground & 7);
-				break;
-
-			case 0x1E:		/* hold mosaic */
-				hold = TRUE;
-				break;
-
-			default:
-				break;
-			}
-
-			if (raw <= 0x1F) {
-				ac.unicode = (hold & mosaic) ?
-					held_mosaic_unicode : 0x0020;
-			} else {
-				if (mosaic && (raw & 0x20)) {
-					held_mosaic_unicode =
-						mosaic_plane + raw;
-					ac.unicode = held_mosaic_unicode;
-				} else {
-					ac.unicode = vbi_teletext_unicode
-						(cs->g0, cs->subset, raw);
-				}
-			}
-
-			if (!wide_char) {
-				acp[column] = ac;
-
-				wide_char = /* !! */
-					(ac.size & VBI_DOUBLE_WIDTH);
-
-				if (wide_char && column < 39) {
-					acp[column + 1] = ac;
-					acp[column + 1].size = VBI_OVER_TOP;
-				}
-			}
-
-			/* Set-after spacing attributes */
-
-			switch (raw) {
-			case 0x00 ... 0x07:	/* alpha + foreground color */
-				ac.foreground = pgp->ext->foreground_clut
-					+ (raw & 7);
-				ac.attr &= ~VBI_CONCEAL;
-				mosaic = FALSE;
-				break;
-
-			case 0x08:		/* flash */
-				ac.attr |= VBI_FLASH;
-				break;
-
-			case 0x0A:		/* end box */
-				if (column >= 39)
-					break;
-				if (0x0A == vbi_ipar8
-				    (pgp->vtp->data.lop.raw[0][i]))
-					ac.opacity =
-						pgp->page_opacity[row > 0];
-				break;
-
-			case 0x0B:		/* start box */
-				if (column >= 39)
-					break;
-				if (0x0B == vbi_ipar8
-				    (pgp->vtp->data.lop.raw[0][i]))
-					ac.opacity =
-						pgp->boxed_opacity[row > 0];
-				break;
-
-			case 0x0D:		/* double height */
-				if (row == 0 || row >= 23)
-					break;
-				ac.size = VBI_DOUBLE_HEIGHT;
-				double_height = TRUE;
-				break;
-
-			case 0x0E:		/* double width */
-				fmt_log ("spacing col %d row %d double width\n",
-					column, row);
-				if (column >= 39)
-					break;
-				ac.size = VBI_DOUBLE_WIDTH;
-				break;
-
-			case 0x0F:		/* double size */
-				fmt_log ("spacing col %d row %d double size\n",
-					column, row);
-				if (column >= 39 || row == 0 || row >= 23)
-					break;
-				ac.size = VBI_DOUBLE_SIZE;
-				double_height = TRUE;
-				break;
-
-			case 0x10 ... 0x17:	/* mosaic + foreground color */
-				ac.foreground = pgp->ext->foreground_clut
-					+ (raw & 7);
-				ac.attr &= ~VBI_CONCEAL;
-				mosaic = TRUE;
-				break;
-
-			case 0x1B:		/* ESC */
-				cs = pgp->char_set[cs == pgp->char_set[0]];
-				break;
-
-			case 0x1F:		/* release mosaic */
-				hold = FALSE;
-				break;
-			}
-		}
-
-		if (double_height) {
-			for (column = 0; column < pgp->pg.columns; ++column) {
-				ac = acp[column];
-
-				switch (ac.size) {
-				case VBI_DOUBLE_HEIGHT:
-					ac.size = VBI_DOUBLE_HEIGHT2;
-					acp[pgp->pg.columns + column] = ac;
-					break;
-		
-				case VBI_DOUBLE_SIZE:
-					ac.size = VBI_DOUBLE_SIZE2;
-					acp[pgp->pg.columns + column] = ac;
-					++column;
-					ac.size = VBI_OVER_BOTTOM;
-					acp[pgp->pg.columns + column] = ac;
-					break;
-
-				default: /* NORMAL, DOUBLE_WIDTH, OVER_TOP */
-					ac.size = VBI_NORMAL_SIZE;
-					ac.unicode = 0x0020;
-					acp[pgp->pg.columns + column] = ac;
-					break;
-				}
-			}
-
-			i += 40;
-			++row;
-
-//			pgp->pg.double_height_lower |= 1 << row;
-		}
-	}
-
-	if (0) {
-		if (row < 25) {
-			vbi_char ac;
-
-			CLEAR (ac);
-
-			ac.foreground	= pgp->ext->foreground_clut + VBI_WHITE;
-			ac.background	= pgp->ext->background_clut + VBI_BLACK;
-			ac.opacity	= pgp->page_opacity[1];
-			ac.unicode	= 0x0020;
-
-			for (i = row * pgp->pg.columns;
-			     i < pgp->pg.rows * pgp->pg.columns; ++i)
-				pgp->pg.text[i] = ac;
-		}
-	}
-
-//	if (0)
-//		vbi_page_private_dump (pgp, 0, stderr);
-}
-
-/* Hyperlinks ------------------------------------------------------------- */
-
-#define SECTION_SIGN 0xA7
+#define SECTION_SIGN ((char)(0xA7))
 
 static unsigned int
 keycmp				(const char *		s1,
@@ -2763,7 +2706,7 @@ keyword				(vbi_link *		ld,
  *  http and ftp urls, e-mail addresses, 3-digit page
  *  numbers, subpage numbers "n/m", next page ">>".
  */
-vbi_inline void
+static void
 hyperlinks			(vbi_page_private *		t,
 				 unsigned int		row)
 {
@@ -2895,7 +2838,7 @@ vbi_page_hyperlink		(const vbi_page *	pg,
 	return keyword (ld, buffer, pg->pgno, pg->subno, &start, &end);
 }
 
-/* Navigation enhancements ------------------------------------------------ */
+/* Navigation enhancements ------------------------------------------------- */
 
 #ifndef TELETEXT_NAV_LOG
 #define TELETEXT_NAV_LOG 0
@@ -2919,7 +2862,7 @@ flof_link_col [4] = {
 	VBI_CYAN
 };
 
-vbi_inline vbi_char *
+static vbi_char *
 navigation_row			(vbi_page_private *		t)
 {
 	return t->pg.text + 25 * t->pg.columns;
@@ -2951,7 +2894,7 @@ clear_navigation_bar		(vbi_page_private *		t)
  *  We have FLOF links but no labels in row 25. This function replaces
  *  row 25 using the FLOF page numbers as labels.
  */
-vbi_inline void
+static void
 flof_navigation_bar		(vbi_page_private *		t)
 {
 	vbi_char ac, *acp;
@@ -2993,7 +2936,7 @@ flof_navigation_bar		(vbi_page_private *		t)
 /*
  *  Adds link flags to a page navigation bar (row 25) from FLOF data.
  */
-vbi_inline void
+static void
 flof_links		(vbi_page_private *		t)
 {
 	vbi_char *acp;
@@ -3075,15 +3018,15 @@ top_label			(vbi_page_private *		t,
 
 		vtp = NULL;
 
-		vtn = t->pg.vbi->vt.network;
+		vtn = t->network;
 
 		if (vtn->btt_link[i].function != PAGE_FUNCTION_AIT)
 			goto cont;
 
-		vtp = vbi_cache_get (t->pg.vbi, NUID0,
-				     vtn->btt_link[i].pgno,
-				     vtn->btt_link[i].subno, 0x3f7f,
-				     /* user access */ FALSE);
+		vtp = _vbi_cache_get_page (t->pg.cache, t->network,
+					  vtn->btt_link[i].pgno,
+					  vtn->btt_link[i].subno, 0x3f7f,
+					  /* user access */ FALSE);
 		if (!vtp) {
 			nav_log ("top ait page %x not cached\n",
 				 vtn->btt_link[i].pgno);
@@ -3145,19 +3088,19 @@ top_label			(vbi_page_private *		t,
 				t->nav_index[column + i] = index;
 			}
 
-			vbi_cache_unref (t->pg.vbi, vtp);
+			_vbi_cache_release_page (t->pg.cache, vtp);
 
 			return TRUE;
 		}
 		
 	cont:
-		vbi_cache_unref (t->pg.vbi, vtp);
+		_vbi_cache_release_page (t->pg.cache, vtp);
 	}
 
 	return FALSE;
 }
 
-vbi_inline vbi_pgno
+static vbi_pgno
 add_modulo			(vbi_pgno		pgno,
 				 int			incr)
 {
@@ -3167,15 +3110,16 @@ add_modulo			(vbi_pgno		pgno,
 /*
  *  Replaces row 25 by labels and links from TOP data.
  */
-vbi_inline void
+static void
 top_navigation_bar		(vbi_page_private *		t)
 {
 	vbi_pgno pgno;
 	vbi_bool have_group;
+	const page_stat *ps;
 
-	nav_log ("page mip/btt: %d\n",
-		 vt_network_page_stat (t->pg.vbi->vt.network,
-				       t->vtp->pgno)->page_type);
+	ps = vt_network_const_page_stat (t->network, t->vtp->pgno);
+
+	nav_log ("page mip/btt: %d\n", ps->page_type);
 
 	clear_navigation_bar (t);
 
@@ -3192,10 +3136,11 @@ top_navigation_bar		(vbi_page_private *		t)
 	pgno = t->pg.pgno;
 
 	do {
+		const page_stat *ps;
 		vbi_page_type type;
 
-		type = vt_network_page_stat (t->pg.vbi->vt.network,
-					     pgno)->page_type;
+		ps = vt_network_const_page_stat (t->network, pgno);
+		type = ps->page_type;
 
 		if (type == VBI_TOP_BLOCK || type == VBI_TOP_GROUP) {
 			// XXX font?
@@ -3212,6 +3157,8 @@ top_navigation_bar		(vbi_page_private *		t)
 	have_group = FALSE;
 
 	for (;;) {
+		const page_stat *ps;
+
 		pgno = add_modulo (pgno, +1);
 
 		if (pgno == t->vtp->pgno)
@@ -3219,8 +3166,9 @@ top_navigation_bar		(vbi_page_private *		t)
 
 		// XXX font?
 
-		switch (vt_network_page_stat (t->pg.vbi->vt.network,
-					      pgno)->page_type) {
+		ps = vt_network_const_page_stat (t->network, pgno);
+
+		switch (ps->page_type) {
 		case VBI_TOP_BLOCK:
 			top_label (t, t->char_set[0], 2,
 				   pgno, 32 + VBI_YELLOW, 2);
@@ -3264,10 +3212,10 @@ next_ait(vbi_decoder *vbi, int pgno, int subno, const vt_page **mvtp)
 		if (vtn->btt_link[i].function != PAGE_FUNCTION_AIT)
 			continue;
 
-		vtp = vbi_cache_get (vbi, NUID0,
-				     vtn->btt_link[i].pgno, 
-				     vtn->btt_link[i].subno, 0x3f7f,
-				     /* user access */ FALSE);
+		vtp = _vbi_cache_get_page (vbi->vt.cache, vbi->vt.network,
+					  vtn->btt_link[i].pgno, 
+					  vtn->btt_link[i].subno, 0x3f7f,
+					  /* user access */ FALSE);
 		if (!vtp) {
 			nav_log ("top ait page %x not cached\n",
 				 vtn->btt_link[i].pgno);
@@ -3296,11 +3244,11 @@ next_ait(vbi_decoder *vbi, int pgno, int subno, const vt_page **mvtp)
 		}
 
 		if (xvtp) {
-			vbi_cache_unref (vbi, *mvtp);
+			_vbi_cache_release_page (vbi->vt.cache, *mvtp);
 			*mvtp = xvtp;
 		} else {
 		end:
-			vbi_cache_unref (vbi, vtp);
+			_vbi_cache_release_page (vbi->vt.cache, vtp);
 		}
 	}
 
@@ -3402,8 +3350,8 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
 			if (ait->text[i] > 0x20)
 				break;
 
-		switch (vt_network_page_stat (vbi->vt.network,
-					      ait->page.pgno)->page_type) {
+		switch (vt_network_page_stat
+			(vbi->vt.network, ait->page.pgno)->page_type) {
 		case VBI_TOP_GROUP:
 			k = 3;
 			break;
@@ -3435,12 +3383,12 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
 	}
 
 	if (vtp)
-		vbi_cache_unref (vbi, vtp);
+		_vbi_cache_release_page (vbi->vt.cache, vtp);
 
 	return 1;
 }
 
-vbi_inline void
+static void
 do_ait_title			(vbi_decoder *		vbi,
 				 const vt_page *	vtp,
 	  const ait_title *ait, char *buf)
@@ -3492,14 +3440,17 @@ vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf)
 		for (i = 0; i < 8; i++) {
 			const vt_page *vtp;
 			const vt_network *vtn;
-
+			
+#warning vtn = ?
 			if (vtn->btt_link[i].function != PAGE_FUNCTION_AIT)
 				continue;
 
-			vtp = vbi_cache_get (vbi, NUID0,
-					     vtn->btt_link[i].pgno, 
-					     vtn->btt_link[i].subno, 0x3f7f,
-					     /* user access */ FALSE);
+			vtp = _vbi_cache_get_page (vbi->vt.cache,
+						  vbi->vt.network,
+						  vtn->btt_link[i].pgno, 
+						  vtn->btt_link[i].subno,
+						  0x3f7f,
+						  /* user access */ FALSE);
 			if (!vtp) {
 				nav_log ("p/t top ait page %x not cached\n",
 					 vtn->btt_link[i].pgno);
@@ -3515,11 +3466,11 @@ vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf)
 				if (ait->page.pgno == pgno) {
 
 					do_ait_title(vbi, vtp, ait, buf);
-					vbi_cache_unref (vbi, vtp);
+					_vbi_cache_release_page (vbi->vt.cache, vtp);
 					return TRUE;
 				}
 		end:
-			vbi_cache_unref (vbi, vtp);
+			_vbi_cache_release_page (vbi->vt.cache, vtp);
 		}
 	} else {
 		/* find a FLOF link and the corresponding label */
@@ -3548,7 +3499,7 @@ navigation			(vbi_page_private *		t)
 		} else {
 			flof_navigation_bar (t);
 		}
-	} else if (t->pg.vbi->vt.network->have_top) {
+	} else if (t->network->have_top) {
 		top_navigation_bar (t);
 	}
 }
@@ -3614,13 +3565,15 @@ vbi_page_nav_enum		(const vbi_page *	pg,
  * @c TRUE if the page could be formatted.
  */
 vbi_bool
-vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
-				 vbi_page_private *	pgp,
+vbi_format_vt_page_va_list	(vbi_page_private *	pgp,
+				 vbi_cache *		cache,
+				 const vt_network *	vtn,
 				 const vt_page *	vtp,
 				 va_list		format_options)
 {
 	vbi_bool option_navigation;
 	vbi_bool option_hyperlinks;
+	vbi_bool option_pdc_links;
 	vbi_character_set_code option_cs_default;
 	const vbi_character_set *option_cs_override;
 	const extension *ext;
@@ -3632,17 +3585,16 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 	fmt_log ("\nFormatting page %03x/%04x pgp=%p\n",
 		 vtp->pgno, vtp->subno, pgp);
 
-	pgp->pg.vbi		= vbi;
+	pgp->pg.cache		= cache;
+	pgp->network		= vtn;
 
 	/* Source page */
 
-	pgp->pg.nuid		= vbi->network.ev.network.nuid;
+	pgp->pg.nuid		= vtn->client_nuid;
 	pgp->pg.pgno		= vtp->pgno;
 	pgp->pg.subno		= vtp->subno;
 
-	vbi_cache_ref (pgp->pg.vbi, vtp);
-
-	pgp->vtp		= vtp;
+	pgp->vtp		= _vbi_cache_dup_page_ref (cache, vtp);
 
 	pgp->pg.dirty.y0	= 0;
 	pgp->pg.dirty.y1	= pgp->pg.rows - 1;
@@ -3651,15 +3603,18 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 	/* Options */
 
 	pgp->max_level		= VBI_WST_LEVEL_1;
-	pgp->pdc_links		= FALSE;
 
 	pgp->pg.rows		= 25;
 	pgp->pg.columns		= 40;
 
-	option_navigation = FALSE;
-	option_hyperlinks = FALSE;
-	option_cs_default = 0;
-	option_cs_override = NULL;
+	pgp->pdc_table		= NULL;
+	pgp->pdc_table_size	= 0;
+
+	option_navigation	= FALSE;
+	option_hyperlinks	= FALSE;
+	option_pdc_links	= FALSE;
+	option_cs_default	= 0;
+	option_cs_override	= NULL;
 
 	for (;;) {
 		vbi_format_option option;
@@ -3686,7 +3641,7 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 			break;
 
 		case VBI_PDC_LINKS:
-			pgp->pdc_links = va_arg (format_options, vbi_bool);
+			option_pdc_links = va_arg (format_options, vbi_bool);
 			break;
 
 		case VBI_WST_LEVEL:
@@ -3718,7 +3673,7 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 
 	pgp->mag = (pgp->max_level <= VBI_WST_LEVEL_1p5) ?
 		_vbi_teletext_decoder_default_magazine ()
-		: vt_network_magazine (vbi->vt.network, vtp->pgno);
+		: vt_network_const_magazine (vtn, vtp->pgno);
 
 	if (vtp->x28_designations & 0x11)
 		pgp->ext = &vtp->data.ext_lop.ext;
@@ -3761,7 +3716,7 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 	if (vtp->flags & C10_INHIBIT_DISPLAY)
 		pgp->boxed_opacity[1] =	VBI_TRANSPARENT_SPACE;
 
-	if (pgp->vtp->flags & C7_SUPPRESS_HEADER) {
+	if (vtp->flags & C7_SUPPRESS_HEADER) {
 		pgp->page_opacity[0] = VBI_TRANSPARENT_SPACE;
 		pgp->boxed_opacity[0] = VBI_TRANSPARENT_SPACE;
 	} else {
@@ -3775,8 +3730,7 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 		pgp->char_set[0] = option_cs_override;
 		pgp->char_set[1] = option_cs_override;
 	} else {
-		init_character_set (pgp->char_set,
-				    option_cs_default,
+		init_character_set (pgp->char_set, option_cs_default,
 				    pgp->ext, vtp);
 	}
 
@@ -3786,13 +3740,15 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 
 	/* PDC Preselection method "A" links */
 
-pgp->pdc_table = 0;
+	if (pgp->pg.rows > 1
+	    && option_pdc_links) {
+		pgp->pdc_table = malloc (25 * sizeof (*pgp->pdc_table));
 
-	if (pgp->pg.rows > 1 && pgp->pdc_links) {
-//		pgp->pdc_table_size =
-//			pdc_method_a (pgp->pdc_table,
-//				      N_ELEMENTS (pgp->pdc_table),
-//				      vtp->data.lop.raw);
+		if (pgp->pdc_table) {
+			pgp->pdc_table_size =
+				_vbi_pdc_method_a (pgp->pdc_table, 25,
+						   vtp->data.lop.raw);
+		}
 	}
 
 	/* Local enhancement data and objects */
@@ -3833,16 +3789,28 @@ pgp->pdc_table = 0;
 
 			for (i = 0; i < N_ELEMENTS (pgp->drcs_vtp); ++i) {
 				if (pgp->drcs_vtp[i])
-					vbi_cache_unref (vbi,
-							 pgp->drcs_vtp[i]);
+					_vbi_cache_release_page
+						(cache, pgp->drcs_vtp[i]);
+
 				pgp->drcs_vtp[i] = NULL;
 			}
 
 			pgp->pg = page;
 		}
+	} else if (option_pdc_links
+		   && pgp->pdc_table
+		   && 0 == pgp->pdc_table_size) {
+		/* Just PDC preselection from packets X/26. */
+
+		if (vtp->x26_designations & 1) {
+			enhance	(pgp, LOCAL_ENHANCEMENT_DATA,
+				 vtp->data.enh_lop.enh,
+				 N_ELEMENTS (vtp->data.enh_lop.enh),
+				 0, 0);
+		}
 	}
 
-	pgp->nav_link[5] = vbi->vt.network->initial_page;
+	pgp->nav_link[5] = vtn->initial_page;
 
 	if (pgp->pg.rows > 1) {
 		unsigned int row;
@@ -3854,17 +3822,16 @@ pgp->pdc_table = 0;
 		if (option_navigation)
 			navigation (pgp);
 
-//		if (pgp->pdc_links)
-//			vbi_page_mark_pdc (&pgp->pg, pgp->pdc_table,
-//					   pgp->pdc_table
-//					   + pgp->pdc_table_size);
+		if (pgp->pdc_table_size > 0)
+			post_pdc (&pgp->pg, pgp->pdc_table,
+				  pgp->pdc_table + pgp->pdc_table_size);
 	}
 
 	if (41 == pgp->pg.columns)
 		column_41 (pgp);
 
 	if (0)
-		vbi_page_private_dump (pgp, 2, stderr);
+		vbi_page_private_dump (pgp, stderr, 2);
 
 	return TRUE;
 }
@@ -3882,8 +3849,9 @@ pgp->pdc_table = 0;
  * @c TRUE if the page could be formatted.
  */
 vbi_bool
-vbi_format_vt_page		(vbi_decoder *		vbi,
-				 vbi_page_private *	pgp,
+vbi_format_vt_page		(vbi_page_private *	pgp,
+				 vbi_cache *		cache,
+				 const vt_network *	vtn,
 				 const vt_page *	vtp,
 				 ...)
 {
@@ -3891,7 +3859,7 @@ vbi_format_vt_page		(vbi_decoder *		vbi,
 	va_list format_options;
 
 	va_start (format_options, vtp);
-	r = vbi_format_vt_page_va_list (vbi, pgp, vtp, format_options);
+	r = vbi_format_vt_page_va_list (pgp, cache, vtn, vtp, format_options);
 	va_end (format_options);
 
 	return r;
@@ -3923,98 +3891,33 @@ vbi_fetch_vt_page_va_list	(vbi_decoder *		vbi,
 				 vbi_subno		subno,
 				 va_list		format_options)
 {
+	const vt_page *vtp;
 	vbi_page *pg;
 	vbi_page_private *pgp;
 
-	if (!(pg = vbi_page_new ()))
+	vtp = _vbi_cache_get_page (vbi->vt.cache, vbi->vt.network,
+				   pgno, subno, ~0,
+				   /* user access */ FALSE);
+
+	if (!vtp)
 		return NULL;
+
+	if (!(pg = vbi_page_new ())) {
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
+				"Out of memory");
+		_vbi_cache_release_page (vbi->vt.cache, vtp);
+		return NULL;
+	}
 
 	pgp = PARENT (pg, vbi_page_private, pg);
 
-	if (0x900 == pgno) {
-		unsigned int row;
-
-		if (subno == VBI_ANY_SUBNO)
-			subno = 0;
-
-		CLEAR (*pgp);
-
-		pgp->pg.vbi		= vbi;
-
-		pgp->pg.rows		= 25;
-		pgp->pg.columns		= 40;
-
-		for (;;) {
-			vbi_format_option option;
-
-			option = va_arg (format_options, vbi_format_option);
-
-			switch (option) {
-			case VBI_HEADER_ONLY:
-				pgp->pg.rows =
-					va_arg (format_options, vbi_bool) ?
-					1 : 25;
-				break;
-
-			case VBI_41_COLUMNS:
-				pgp->pg.columns =
-					va_arg (format_options, vbi_bool) ?
-					41 : 40;
-				break;
-
-			case VBI_NAVIGATION:
-			case VBI_HYPERLINKS:
-			case VBI_PDC_LINKS:
-				va_arg (format_options, vbi_bool);
-				break;
-
-			case VBI_WST_LEVEL:
-				va_arg (format_options, vbi_wst_level);
-				break;
-
-			default:
-				option = 0;
-				break;
-			}
-
-			if (0 == option)
-				break;
-		}
-
-		if (!vbi->vt.network->have_top
-		    || !top_index (vbi, &pgp->pg, subno, pgp->pg.columns)) {
-			vbi_page_delete (&pgp->pg);
-			return NULL;
-		}
-
-		pgp->pg.nuid = vbi->network.ev.network.nuid;
-		pgp->pg.pgno = 0x900;
-		pgp->pg.subno = subno;
-
-		post_enhance (pgp);
-
-		for (row = 1; row < pgp->pg.rows; ++row)
-			hyperlinks (pgp, row);
-	} else {
-		const vt_page *vtp;
-
-		vtp = vbi_cache_get (vbi, NUID0,
-				     pgno, subno, ~0,
-				     /* user access */ FALSE);
-
-		if (NULL == vtp) {
-			vbi_page_delete (&pgp->pg);
-			return NULL;
-		}
-
-		if (!vbi_format_vt_page_va_list (vbi, pgp, vtp,
-						 format_options)) {
-			vbi_page_delete (&pgp->pg);
-			return NULL;
-		}
-
-		vbi_cache_unref (vbi, vtp);
+	if (!vbi_format_vt_page_va_list (pgp, vbi->vt.cache, vbi->vt.network,
+					 vtp, format_options)) {
+		vbi_page_delete (&pgp->pg);
+		return NULL;
 	}
+
+	_vbi_cache_release_page (vbi->vt.cache, vtp);
 
 	return &pgp->pg;
 }
@@ -4059,45 +3962,55 @@ vbi_fetch_vt_page		(vbi_decoder *		vbi,
  * @param pg A vbi_page allocated with vbi_page_new(),
  *   vbi_fetch_vt_page() or vbi_fetch_vt_page_va_list().
  *
- * Creates a copy of the vbi_page.
+ * Allocates a duplicate of the vbi_page.
  *
  * @returns
  * Pointer to newly allocated vbi_page, which must be deleted with
  * vbi_page_delete() when done, NULL if out of memory.
  */
 vbi_page *
-vbi_page_copy			(const vbi_page *	pg)
+vbi_page_dup			(const vbi_page *	pg)
 {
-	const vbi_page_private *old_pgp;
+	const vbi_page_private *pgp;
 	vbi_page_private *new_pgp;
 
-	assert (NULL != pg);
-
-	old_pgp = CONST_PARENT (pg, vbi_page_private, pg);
+	PGP_CHECK (NULL);
 
 	if (!(new_pgp = malloc (sizeof (*new_pgp)))) {
-		vbi_log_printf (VBI_DEBUG, __FUNCTION__, "Out of memory");
+		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
+				"Out of memory");
 		return NULL;
 	}
 
-	if (VBI_PAGE_PRIVATE_MAGIC != old_pgp->magic) {
-		CLEAR (*new_pgp);
+	*new_pgp = *pgp;
 
-		new_pgp->pg = *pg;
-	} else {
-		*new_pgp = *old_pgp;
+	new_pgp->pg.priv = new_pgp;
 
-		if (new_pgp->pg.vbi) {
-			unsigned int i;
+	if (new_pgp->pg.cache) {
+		unsigned int i;
 
-			if (new_pgp->vtp)
-				vbi_cache_ref (new_pgp->pg.vbi, new_pgp->vtp);
+		if (new_pgp->vtp)
+			_vbi_cache_dup_page_ref
+				(new_pgp->pg.cache, new_pgp->vtp);
 
-			for (i = 0; i < N_ELEMENTS (new_pgp->drcs_vtp); ++i)
-				if (new_pgp->drcs_vtp[i])
-					vbi_cache_ref (new_pgp->pg.vbi,
-						       new_pgp->drcs_vtp[i]);
-		}
+		for (i = 0; i < N_ELEMENTS (new_pgp->drcs_vtp); ++i)
+			if (new_pgp->drcs_vtp[i])
+				_vbi_cache_dup_page_ref (new_pgp->pg.cache,
+							 new_pgp->drcs_vtp[i]);
+	}
+
+	if (new_pgp->pdc_table) {
+		vbi_preselection *p;
+
+		assert (new_pgp->pdc_table_size <= 25);
+
+		p = malloc (25 * sizeof (*p));
+
+#warning p->text
+		memcpy (p, new_pgp->pdc_table,
+			new_pgp->pdc_table_size * sizeof (*p));
+
+		new_pgp->pdc_table = p;
 	}
 
 	return &new_pgp->pg;
@@ -4119,23 +4032,25 @@ vbi_page_delete			(vbi_page *		pg)
 
 	pgp = PARENT (pg, vbi_page_private, pg);
 
-	if (VBI_PAGE_PRIVATE_MAGIC != pgp->magic) {
+	if (pg->priv != pgp) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"vbi_page %p not allocated by libzvbi", pg);
 		return;
 	}
 
-	if (pgp->pg.vbi) {
+	if (pgp->pg.cache) {
 		unsigned int i;
 
 		if (pgp->vtp)
-			vbi_cache_unref (pgp->pg.vbi, pgp->vtp);
+			_vbi_cache_release_page (pgp->pg.cache, pgp->vtp);
 
 		for (i = 0; i < N_ELEMENTS (pgp->drcs_vtp); ++i)
 			if (pgp->drcs_vtp[i])
-				vbi_cache_unref (pgp->pg.vbi,
-						 pgp->drcs_vtp[i]);
+				_vbi_cache_release_page
+					(pgp->pg.cache, pgp->drcs_vtp[i]);
 	}
+
+	free (pgp->pdc_table);
 
 	CLEAR (*pgp);
 
@@ -4159,7 +4074,7 @@ vbi_page_new			(void)
 		return NULL;
 	}
 
-	pgp->magic = VBI_PAGE_PRIVATE_MAGIC;
+	pgp->pg.priv = pgp;
 
 	return &pgp->pg;
 }

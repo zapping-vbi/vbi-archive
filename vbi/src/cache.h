@@ -21,99 +21,54 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.2.2.8 2004-04-04 21:45:40 mschimek Exp $ */
+/* $Id: cache.h,v 1.2.2.9 2004-05-01 13:51:35 mschimek Exp $ */
 
-#ifndef CACHE_H
-#define CACHE_H
+#ifndef __ZVBI_CACHE_H__
+#define __ZVBI_CACHE_H__
 
-#include "vt.h" /* vt_page, vt_network */
-#include "dlist.h"
+#include "network.h"		/* vbi_nuid */
+#include "macros.h"		/* vbi_bool */
 
-#ifndef VBI_DECODER
-#define VBI_DECODER
-typedef struct vbi_decoder vbi_decoder;
-#endif
+VBI_BEGIN_DECLS
 
-typedef struct cache_page cache_page;
-typedef struct cache_stat cache_stat;
-typedef struct cache cache;
+typedef struct _vbi_cache vbi_cache;
 
-
-/* private, for vbi_page_stat */
-struct cache_stat {
-	node			node;		/* network chain */
-
-	unsigned int		ref_count;
-	unsigned int		locked_pages;
-
-	vt_network		network;
-};
-
-vbi_inline page_stat *
-vbi_page_stat			(cache_stat *		cs,
-				 vbi_pgno		pgno)
-{
-	return cs->network._pages + pgno - 0x100;
-}
-
-/* Public */
-
-/**
- * @addtogroup Cache
- * @{
- */
-extern void
-vbi_unref_page			(vbi_page *		pg);
-extern void
-vbi_cache_max_size		(vbi_decoder *		vbi,
-				 unsigned long		size);
-extern void
-vbi_cache_max_stations		(vbi_decoder *		vbi,
-				 unsigned int		count);
-/** @} */
-
-/* Private */
-
-typedef int		foreach_callback (void *, const vt_page *, vbi_bool);
+typedef void
+vbi_lock_fn			(void *			user_data);
+typedef void
+vbi_unlock_fn			(void *			user_data);
 
 extern void
-vbi_cache_init			(vbi_decoder *		vbi);
-extern void
-vbi_cache_destroy		(vbi_decoder *		vbi);
-extern void
-vbi_cache_flush			(vbi_decoder *		vbi,
-				 vbi_bool		all);
-extern const vt_page *
-vbi_cache_put			(vbi_decoder *		vbi,
-				 vbi_nuid		nuid,
-				 const vt_page *	vtp,
-				 vbi_bool		user_access);
-extern const vt_page *
-vbi_cache_get			(vbi_decoder *		vbi,
-				 vbi_nuid		nuid,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 vbi_subno		subno_mask,
-				 vbi_bool		new_ref);
-extern void
-vbi_cache_ref			(vbi_decoder *		vbi,
-				 const vt_page *	vtp);
-extern void
-vbi_cache_unref			(vbi_decoder *		vbi,
-				 const vt_page *	vtp);
-extern int
-vbi_cache_foreach		(vbi_decoder *		vbi,
-				 vbi_nuid		nuid,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 int			dir,
-				 foreach_callback *	func,
-				 void *			data);
-extern const cache_stat *
-vbi_cache_stat			(vbi_decoder *		vbi,
+_vbi_cache_purge_by_nuid	(vbi_cache *		ca,
 				 vbi_nuid		nuid);
 extern void
-vbi_cache_stat_unref		(vbi_decoder *		vbi,
-				 const cache_stat *	cs);
+_vbi_cache_purge		(vbi_cache *		ca);
+extern void
+_vbi_cache_normal_network	(vbi_cache *		ca,
+				 vbi_nuid		nuid,
+				 vbi_bool		force);
+extern void
+_vbi_cache_current_network	(vbi_cache *		ca,
+				 vbi_nuid		nuid,
+				 vbi_bool		exclusive);
+extern void
+_vbi_cache_set_lock_functions	(vbi_cache *		ca,
+				 vbi_lock_fn *		lock,
+				 vbi_unlock_fn *	unlock,
+				 void *			user_data);
+extern void
+_vbi_cache_set_memory_limit	(vbi_cache *		ca,
+				 unsigned int		limit);
+extern void
+_vbi_cache_set_network_limit	(vbi_cache *		ca,
+				 unsigned int		limit);
+extern vbi_cache *
+_vbi_cache_dup_ref		(vbi_cache *		ca);
+extern void
+vbi_cache_delete		(vbi_cache *		ca);
+extern vbi_cache *
+vbi_cache_new			(void) vbi_alloc;
 
-#endif /* CACHE_H */
+VBI_END_DECLS
+
+#endif /* __ZVBI_CACHE_H__ */

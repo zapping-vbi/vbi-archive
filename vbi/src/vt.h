@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.15 2004-04-17 05:52:25 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.16 2004-05-01 13:51:35 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
@@ -322,7 +322,6 @@ struct lop {
 	uint8_t			raw[26][40];
 	pagenum			link[6 * 6];	/* X/27/0-5 links */
 	vbi_bool		have_flof;
-  //	vbi_bool		have_ext;
 };
 
 /**
@@ -602,7 +601,16 @@ vt_network_magazine		(vt_network *		vtn,
 				 vbi_pgno		pgno)
 {
 	assert (pgno >= 0x100 && pgno <= 0x8FF);
-	return vtn->_magazines - 1 + (pgno >> 8);
+	return &vtn->_magazines[(pgno >> 8) - 1];
+}
+
+/** @internal */
+vbi_inline const magazine *
+vt_network_const_magazine	(const vt_network *	vtn,
+				 vbi_pgno		pgno)
+{
+	assert (pgno >= 0x100 && pgno <= 0x8FF);
+	return &vtn->_magazines[(pgno >> 8) - 1];
 }
 
 extern const magazine *
@@ -614,19 +622,26 @@ vt_network_page_stat		(vt_network *		vtn,
 				 vbi_pgno		pgno)
 {
 	assert (pgno >= 0x100 && pgno <= 0x8FF);
-	return vtn->_pages - 0x100 + pgno;
+	return &vtn->_pages[pgno - 0x100];
+}
+
+/** @internal */
+vbi_inline const page_stat *
+vt_network_const_page_stat	(const vt_network *	vtn,
+				 vbi_pgno		pgno)
+{
+	assert (pgno >= 0x100 && pgno <= 0x8FF);
+	return &vtn->_pages[pgno - 0x100];
 }
 
 /* Teletext decoder */
 
 struct _vbi_teletext_decoder {
 	/** The cache we use. */
-  //	vbi_cache *		cache;
+	vbi_cache *		cache;
 
 	/** Current network in the cache. */
-  //	vt_network *		network;
-
-	vt_network		network[1];
+	vt_network *		network;
 
 	/**
 	 * Pages in progress, per magazine in case of parallel transmission.
@@ -641,29 +656,19 @@ struct _vbi_teletext_decoder {
 	pagenum			header_page;
 	uint8_t			header[40];
 
-	/**
-	 * If > 0 we suspect a channel switch and discard all received
-	 * data. The number is decremented with each packet, when we
-	 * reach no conclusion a channel switch is assumed.
-	 */
-  //	unsigned int		reset_delay;
-
 	double			timestamp;
+	double			reset_time;
 
 	_vbi_event_handler_list handlers;
 
-  //	void (* virtual_reset)	(vbi_teletext_decoder *	td,
-  //				 vbi_nuid		nuid,
-  //				 int			delay);
+	void (* virtual_reset)	(vbi_teletext_decoder *	td,
+				 vbi_nuid		nuid,
+				 double			time);
 };
 
-//extern vbi_bool
-//_vbi_convert_cached_page	(vbi_cache *		ca,
-//				 vt_network *		vtn,
-//				 const vt_page **	vtpp,
-//				 page_function		new_function);
 extern vbi_bool
-_vbi_convert_cached_page	(vbi_decoder *		vbi,
+_vbi_convert_cached_page	(vbi_cache *		ca,
+				 const vt_network *	vtn,
 				 const vt_page **	vtpp,
 				 page_function		new_function);
 // preliminary

@@ -29,6 +29,7 @@ INSTALLHDRS = \
 	aspect_ratio.h \
 	bcd.h \
 	bit_slicer.h \
+	cache.h \
 	conv.h \
 	event.h \
 	export.h \
@@ -64,7 +65,7 @@ INSTALLHDRS = \
 libzvbi_0_3_la_SOURCES = $(INSTALLHDRS) \
 	bcd.c \
 	bit_slicer.c \
-	cache.c cache.h \
+	cache.c cache-priv.h \
 	caption.c cc.h \
 	conv.c \
 	dlist.h \

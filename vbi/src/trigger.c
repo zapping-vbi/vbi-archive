@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.4.2.3 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: trigger.c,v 1.4.2.4 2004-05-01 13:51:35 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +35,7 @@
 #include "trigger.h"
 #include "tables.h"
 #include "vbi.h"
+#include "misc.h"
 
 struct vbi_trigger {
 	vbi_trigger *		next;

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5.2.7 2004-04-17 05:52:25 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.8 2004-05-01 13:51:35 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -43,6 +43,7 @@ vbi_bool		option_hyperlinks;
 vbi_bool		option_pdc_links;
 vbi_bool		option_enum;
 vbi_bool		option_stream;
+vbi_bool		option_quiet;
 unsigned int		delay;
 char			cr;
 
@@ -57,7 +58,8 @@ pdc_dump (vbi_page *pg)
 
 	for (i = 0; vbi_page_pdc_enum (pg, &pl, i); ++i) {
 		fprintf (stderr, "%02u: ", i);
-		vbi_preselection_dump (&pl, stderr);
+		_vbi_preselection_dump (&pl, stderr);
+		fputc ('\n', stderr);
 	}
 
 	if (0 == i)
@@ -129,10 +131,11 @@ handler(vbi_event *ev, void *unused)
 	FILE *fp;
 	vbi_page *pg;
 
-	fprintf(stderr, "Page %03x.%02x %c",
-		ev->ev.ttx_page.pgno,
-		ev->ev.ttx_page.subno & 0xFF,
-		cr);
+	if (!option_quiet)
+		fprintf(stderr, "Page %03x.%02x %c",
+			ev->ev.ttx_page.pgno,
+			ev->ev.ttx_page.subno & 0xFF,
+			cr);
 
 	if (pgno >= 0 && ev->ev.ttx_page.pgno != pgno)
 		return;
@@ -142,10 +145,12 @@ handler(vbi_event *ev, void *unused)
 		return;
 	}
 
-	fprintf(stderr, "\nSaving... ");
-	if (isatty(STDERR_FILENO))
-		fputc('\n', stderr);
-	fflush(stderr);
+	if (!option_quiet) {
+		fprintf(stderr, "\nSaving... ");
+		if (isatty(STDERR_FILENO))
+			fputc('\n', stderr);
+		fflush(stderr);
+	}
 
 	pg = vbi_fetch_vt_page(vbi,
 			       ev->ev.ttx_page.pgno,
@@ -177,7 +182,8 @@ handler(vbi_event *ev, void *unused)
 		fprintf (stderr, "failed: %s\n", vbi_export_errstr (e));
 		exit (EXIT_FAILURE);
 	} else {
-		fprintf (stderr, "done\n");
+		if (!option_quiet)
+			fprintf (stderr, "done\n");
 	}
 
 	if (option_enum)
@@ -302,6 +308,8 @@ main(int argc, char **argv)
 			option_enum = TRUE;
 		} else if (0 == strcmp ("-s", argv[i])) {
 			option_stream = TRUE;
+		} else if (0 == strcmp ("-q", argv[i])) {
+			option_quiet = TRUE;
 		} else if (module) {
 			if (0 != pgno)
 				goto bad_args;

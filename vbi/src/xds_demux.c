@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.c,v 1.1.2.3 2004-04-17 05:52:25 mschimek Exp $ */
+/* $Id: xds_demux.c,v 1.1.2.4 2004-05-01 13:51:35 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -103,7 +103,7 @@ vbi_xds_demux_reset		(vbi_xds_demux *	xd)
  * stream, filters out XDS data and calls the output function given to
  * vbi_xds_demux_new() when a new packet is complete.
  *
- * You should feed only data from NTSC line 284. 
+ * You should feed only data from NTSC line 284.
  */
 vbi_bool
 vbi_xds_demux_demux		(vbi_xds_demux *	xd,
@@ -303,8 +303,7 @@ vbi_xds_demux_delete		(vbi_xds_demux *	xd)
  *   a new packet is available.
  * @param user_data User pointer passed through to @a cb function.
  *
- * Allocates a new Extended Data Service (EIA 608)
- * demultiplexer.
+ * Allocates a new Extended Data Service (EIA 608) demultiplexer.
  *
  * @returns
  * Pointer to newly allocated XDS demux context which must be

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.6.2.7 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.6.2.8 2004-05-01 13:51:35 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -404,7 +404,7 @@ same_style			(const vbi_char *	ac1,
 	return TRUE;
 }
 
-static __inline__ void
+static void
 style_gen			(html_instance *	html,
 				 vbi_page *		dpg,
 				 const vbi_page *	spg,
@@ -527,7 +527,7 @@ title				(html_instance *	html,
 	puts (html, "</title>\n");
 }
 
-static __inline__ void
+static void
 header				(html_instance *	html,
 				 const vbi_page *	pg)
 {
@@ -602,7 +602,7 @@ header				(html_instance *	html,
 	puts (html, ">\n");
 }
 
-static __inline__ const style *
+static const style *
 span_start			(html_instance *	html,
 				 const vbi_page *	pg,
 				 const vbi_char *	acp,

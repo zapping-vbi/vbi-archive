@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.9.2.7 2004-04-17 05:52:24 mschimek Exp $ */
+/* $Id: caption.c,v 1.9.2.8 2004-05-01 13:51:35 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +32,7 @@
 #include "hamm.h"
 #include "tables.h"
 #include "vbi.h"
+#include "misc.h"
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 #define elements(array) (sizeof(array) / sizeof(array[0]))
@@ -264,7 +265,7 @@ row_mapping[] = {
 // not verified means I didn't encounter the code in a
 // sample stream yet
 
-vbi_inline void
+static void
 caption_command(vbi_decoder *vbi, struct caption *cc,
 	unsigned char c1, unsigned char c2, vbi_bool field2)
 {
