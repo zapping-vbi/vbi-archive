@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.12 2002-05-07 06:39:59 mschimek Exp $ */
+/* $Id: global_data.c,v 1.13 2002-05-13 05:37:17 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -79,7 +79,7 @@ double			video_num_frames	= DBL_MAX;
 long long		video_num_secs		= INT_MAX;
 char *			gop_sequence		= "IBBPBBPBBPBB";
 // int			frames_per_seqhdr	= 50;
-int			filter_mode		= CM_YUYV_VERTICAL_DECIMATION;
+int			filter_mode		= CM_YUV_VERTICAL_DECIMATION;
 double			frame_rate		= 1000.0;
 int			preview			= 0;			// 0 = none, XvImage/GTK, progressive
 char *			anno			= NULL;
