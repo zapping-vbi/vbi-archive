@@ -220,7 +220,7 @@ get_window_property		(Display *		display,
 				 Atom			property,
 				 Atom			req_type,
 				 unsigned long *	nitems_return,
-				 unsigned char **	prop_return)	 
+				 void **		prop_return)
 {
   int status;
   Atom type;
@@ -234,7 +234,7 @@ get_window_property		(Display *		display,
 			       False, req_type,
 			       &type, &format,
 			       nitems_return, &bytes_after,
-			       prop_return);
+			       (unsigned char **) prop_return);
   if (bad_window)
     {
       status = BadWindow;
@@ -318,6 +318,7 @@ gtk_window_send_x11_event	(GtkWindow *		window,
    Tested:		proto
    IceWM 1.2.2		Gnome
    Sawfish 1.2		NetWM
+   Metacity 2.6.3	NetWM
 */
 
 static void
@@ -402,10 +403,6 @@ wm_hints_detect			(void)
 {
   Display *display;
   Window root;
-  unsigned char *args;
-  Atom *atoms;
-  unsigned long nitems;
-  int i;
 
   display = gdk_x11_get_default_xdisplay ();
   g_assert (display != 0);
@@ -419,71 +416,85 @@ wm_hints_detect			(void)
 
   /* Netwm compliant */
 
-  atoms = NULL;
+  {
+    Atom *atoms;
+    unsigned long nitems;
 
-  if (Success == get_window_property (display, root, _XA_NET_SUPPORTED,
-                                      AnyPropertyType, &nitems,
-				      (unsigned char **) &atoms))
-    {
-      printv ("WM supports _NET_SUPPORTED (%lu)\n", nitems);
+    atoms = NULL;
 
-      for (i = 0; i < nitems; i++)
-	{
-	  /* atoms[i] != _XA_... */
-	  char *atom_name = XGetAtomName (display, atoms[i]);
+    if (Success == get_window_property (display, root, _XA_NET_SUPPORTED,
+					AnyPropertyType, &nitems,
+					(void **) &atoms))
+      {
+	unsigned int i;
 
-	  if (X11STUFF_WM_HINTS_DEBUG)
-	    printv ("  atom %s\n", atom_name);
+	printv ("WM supports _NET_SUPPORTED (%lu)\n", nitems);
 
-	  /* E.g. IceWM 1.2.2 _NET yes, _ABOVE no, but _LAYER */
-	  if (0 == strcmp (atom_name, "_NET_WM_STATE_ABOVE"))
-	    {
-	      XFree (atom_name);
-	      XFree (atoms);
+	for (i = 0; i < nitems; i++)
+	  {
+	    /* atoms[i] != _XA_... */
+	    char *atom_name = XGetAtomName (display, atoms[i]);
 
-	      window_on_top = net_wm_window_on_top;
+	    if (X11STUFF_WM_HINTS_DEBUG)
+	      printv ("  atom %s\n", atom_name);
 
-	      gdk_add_client_message_filter
-		(gdk_x11_xatom_to_atom (_XA_NET_WM_STATE),
-		 wm_event_handler, 0);
+	    /* E.g. IceWM 1.2.2 _NET yes, _ABOVE no, but _LAYER */
+	    if (0 == strcmp (atom_name, "_NET_WM_STATE_ABOVE"))
+	      {
+		XFree (atom_name);
+		XFree (atoms);
 
-	      return TRUE;
-	    }
+		window_on_top = net_wm_window_on_top;
 
-	  XFree (atom_name);
-	}
+		gdk_add_client_message_filter
+		  (gdk_x11_xatom_to_atom (_XA_NET_WM_STATE),
+		   wm_event_handler, 0);
 
-      XFree (atoms);
+		return TRUE;
+	      }
 
-      printv ("  ... nothing useful\n");
-    }
+	    XFree (atom_name);
+	  }
 
-  _XA_WIN_SUPPORTING_WM_CHECK	= XInternAtom (display, "_WIN_SUPPORTING_WM_CHECK", False);
-  _XA_WIN_LAYER			= XInternAtom (display, "_WIN_LAYER", False);
+	XFree (atoms);
+
+	printv ("  ... nothing useful\n");
+      }
+
+    _XA_WIN_SUPPORTING_WM_CHECK	=
+      XInternAtom (display, "_WIN_SUPPORTING_WM_CHECK", False);
+    _XA_WIN_LAYER		=
+      XInternAtom (display, "_WIN_LAYER", False);
+  }
 
   /* Gnome compliant */
 
-  args = NULL;
+  {
+    void *args;
+    unsigned long nitems;
 
-  if (Success == get_window_property (display, root,
-                                      _XA_WIN_SUPPORTING_WM_CHECK,
-				      AnyPropertyType, &nitems, &args))
-    if (nitems > 0)
-      {
-        printv ("WM supports _WIN_SUPPORTING_WM_CHECK\n");
+    args = NULL;
 
-        /* FIXME: check capabilities */
+    if (Success == get_window_property (display, root,
+					_XA_WIN_SUPPORTING_WM_CHECK,
+					AnyPropertyType, &nitems, &args))
+      if (nitems > 0)
+	{
+	  printv ("WM supports _WIN_SUPPORTING_WM_CHECK\n");
 
-        XFree (args);
+	  /* FIXME: check capabilities */
 
-        window_on_top = gnome_window_on_top;
+	  XFree (args);
 
-	gdk_add_client_message_filter
-	  (gdk_x11_xatom_to_atom (_XA_WIN_LAYER),
-	   wm_event_handler, 0);
+	  window_on_top = gnome_window_on_top;
 
-        return TRUE;
-      }
+	  gdk_add_client_message_filter
+	    (gdk_x11_xatom_to_atom (_XA_WIN_LAYER),
+	     wm_event_handler, 0);
+
+	  return TRUE;
+	}
+  }
 
   printv ("No WM hints\n");
 
@@ -1143,16 +1154,17 @@ find_xscreensaver_window	(Display *		display,
 
   for (i = 0; i < nkids; i++)
     {
+      void *vec;
       unsigned long nitems;
-      char *v;
 
       XSync (display, False);
 
       if (Success == get_window_property (display, kids[i],
                                           _XA_SCREENSAVER_VERSION,
-                                          XA_STRING, &nitems,
-				          (unsigned char **) &v))
+                                          XA_STRING, &nitems, &vec))
         {
+	  assert (0 == nitems);
+
 	  XSetErrorHandler (old_error_handler);
           *window_return = kids[i];
           XFree (kids);
@@ -1313,8 +1325,10 @@ void
 x11_screensaver_init		(void)
 {
   Display *display = GDK_DISPLAY ();
+#ifdef HAVE_DPMS_EXTENSION
   int event_base, error_base;
   int major_version, minor_version;
+#endif
 
   _XA_SCREENSAVER_VERSION = XInternAtom (display, "_SCREENSAVER_VERSION", False);
   _XA_SCREENSAVER	  = XInternAtom (display, "SCREENSAVER", False);
