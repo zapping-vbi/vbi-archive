@@ -1,7 +1,6 @@
 Outstanding issues for the next release (0.6.2)
 -----------------------------------------------
 > 0.6.2
-	+ Make sure subtitles on/off status isn't affected by vbi status.
 	+ Save control values and restore on startup (per channel).
 	+ In ttx search, is Cancel correct at the left? And it may be
 	  cleaner with an Abort (the search) and a Cancel (the dialog).
