@@ -38,6 +38,10 @@ void
 on_about1_activate                     (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
+void
+on_plugin_writing1_activate            (GtkMenuItem     *menuitem,
+					gpointer         user_data);
+
 gboolean
 on_zapping_delete_event                (GtkWidget       *widget,
                                         GdkEvent        *event,

@@ -1,3 +1,12 @@
+24.4.2000	Again into CVS <garetxe@users.sourceforge.net>
+
+	* CVS/: Zapping has gone again into CVS (it was time since the
+	last cvs ci, but a lot of work has been done :)))
+	* src/tveng1.c: All the V4L1 specific stuff has been placed here
+	* src/tveng.c: Now it detects the video device driver (V4L1 or
+	V4L2) and acts accordingly. Total rewrite.
+	* help/C/plugin_devel.html: Created, it is the plugin API.
+	
 22.4.2000	Channel editor done <garetxe@users.sourceforge.net>
 
 	* channel_editor.c: Finished, except for the help (not written)

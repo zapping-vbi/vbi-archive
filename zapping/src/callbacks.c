@@ -96,6 +96,14 @@ on_about1_activate                     (GtkMenuItem     *menuitem,
   gtk_widget_show(create_about2());
 }
 
+void
+on_plugin_writing1_activate            (GtkMenuItem     *menuitem,
+					gpointer         user_data)
+{
+  static GnomeHelpMenuEntry help_ref = { "zapping",
+					 "plugin_devel.html" };
+  gnome_help_display (NULL, &help_ref);
+}
 
 gboolean
 on_zapping_delete_event                (GtkWidget       *widget,

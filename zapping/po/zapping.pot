@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-04-24 18:08+0200\n"
+"POT-Creation-Date: 2000-04-25 00:31+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -131,55 +131,55 @@ msgstr ""
 msgid "Currently tuned channel"
 msgstr ""
 
-#: src/callbacks.c:165
+#: src/callbacks.c:173
 msgid "Cannot set input"
 msgstr ""
 
-#: src/callbacks.c:184
+#: src/callbacks.c:192
 #, c-format
 msgid "Cannot tune given channel %d (no such channel)\n"
 msgstr ""
 
 #. Set the
 #. input freq
-#: src/callbacks.c:199
+#: src/callbacks.c:207
 msgid "Cannot tune input"
 msgstr ""
 
-#: src/callbacks.c:328
+#: src/callbacks.c:336
 msgid "Sorry, but cannot go fullscreen"
 msgstr ""
 
-#: src/callbacks.c:364
+#: src/callbacks.c:372
 msgid "I cannot find the main zapping window, weird..."
 msgstr ""
 
-#: src/callbacks.c:465 src/callbacks.c:551 src/callbacks.c:577
+#: src/callbacks.c:473 src/callbacks.c:559 src/callbacks.c:585
 msgid "Yes"
 msgstr ""
 
-#: src/callbacks.c:465 src/callbacks.c:551 src/callbacks.c:577
+#: src/callbacks.c:473 src/callbacks.c:559 src/callbacks.c:585
 msgid "No"
 msgstr ""
 
-#: src/callbacks.c:499
+#: src/callbacks.c:507
 msgid "Plugin Description: "
 msgstr ""
 
-#: src/callbacks.c:503
+#: src/callbacks.c:511
 msgid ""
 "\n"
 "Plugin author: "
 msgstr ""
 
 #. Adapt this and " required" to your own language structure freely
-#: src/callbacks.c:510
+#: src/callbacks.c:518
 msgid ""
 "\n"
 "Zapping "
 msgstr ""
 
-#: src/callbacks.c:512
+#: src/callbacks.c:520
 msgid " required"
 msgstr ""
 

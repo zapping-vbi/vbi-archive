@@ -6,20 +6,21 @@
 <TITLE>Plugin writer's help</TITLE>
 </HEAD>
 <BODY BGCOLOR="#fffefe">
-<H1>Zapping plugin writer's help (Plugin Protocol 2)</H1>
-<H3>Brief</H3>
+<a name="start"></a>
+<center><H1>Zapping plugin writer's help (Plugin Protocol 2)</H1></center>
+<H2>Brief</H2>
 This document explains what are Zapping plugins and how to write one, please read it carefully and mail <A HREF="mailto:garetxe@users.sourceforge.net">me</A> if you have suggestions or you find anything erroneous.
-<H3>How does Zapping understand plugins</H3>
-On startup, Zapping will scan some directories, and it will try to load all the files in the directory <STRONG>containing</STRONG> the string <EM>.zapping.so</EM> in their file name. Thus, Zapping will try to load <EM>plugin.zapping.so.2</EM>.<br>
+<H2>How does Zapping understand plugins</H2>
+On startup, Zapping will scan some directories, and it will try to load all the files in the directory <STRONG>containing</STRONG> the string <EM>.zapping.so</EM> in their filename. Thus, Zapping will identify <EM>plugin.zapping.so.2</EM> as a possible plugin, to put an example.<br>
 After finding the files, it will try to load and validate them. See <A HREF="#Structure">the plugin structure section</A> to find out what are the requirements for a plugin to be valid.
 <BR>After that, the plugins will become part of Zapping itself, and you will be able to manage them from inside Zapping.
 <BR>The following directories are scanned on startup for plugins:<BR><OL>
 	<LI><I><B>$(prefix)</B>/share/zapping/plugins</I>, where <B>$(prefix)</B> is the subdirectory were the program will be installed, usually <I>/usr</I> or <I>/usr/local</I>.
 	<LI><I><B>$HOME</B>/.zapping/plugins</I>, where <B>$HOME</B> is the content of the enviromental variable with that name.
-	<LI>Anything listed in <I><B>$HOME</B>/.zapping/plugin_dirs</I>.
+	<LI>Anything listed in <I><B>$HOME</B>/.zapping/plugin_dirs</I>, if that file exists.
 </OL>
 <A NAME="Structure"></A>
-<H3>Plugin structure in detail</H3>
+<H2>Plugin structure in detail</H2>
 All plugins must have a function with the following prototype:<P>
 <A NAME="plugin_protocol"></A>
 <B>gint plugin_protocol(void);</B><P>
@@ -32,11 +33,10 @@ Inits the plugin. It should prepare itself for work, but it shouldn't
 start working yet. For that, it should wait until <a
 href="#plugin_start">plugin_start</a> is called.<p>
 <I>bridge</I>: The brige is used to let the plugin access Zapping
-internals, more on this on the <a href="#RunningThePlugin">running the
-plugin section</a>.<br>
+internals, more on this on the <a href="#Communication">communication section</a>.<br>
 <I>info</I>: A pointer to the structure attached to the video
 device. There is no documentation on TVeng yet, see src/tveng.h on the
-main Zapping distribution to get some help on this.
+main Zapping distribution to get some help on this.<br>
 <I>Returns</I>: The plugin should return FALSE if it cannot init
 itself, so Zapping doesn't use it again. TRUE if it can be used.<p>
 <A NAME="plugin_close"></A>
@@ -92,7 +92,7 @@ the plugin does, requirements, and maybe a short faq.<br>
 this does.<br>
 <I>author</I>: Your name here.<br>
 <I>version</I>: A string describing the version of the plugin.<p>
-<H3>Optative functions</H3>
+<H2>Optative functions</H2>
 There are some functions that the plugin may or may not have. If it
 hasn't got them, they are simply ignored.<p>
 <a name="plugin_process_frame"></a>
@@ -103,13 +103,107 @@ it is a image processing plugin, would make any changes to the
 image.<br>
 <I>data</I>: Pointer to the buffer that contains the captured image.<br>
 <I>format</I>: A pointer to the struct that holds the image
-description. If the plugin modifies the image in size or depth, the
+format. If the plugin modifies the image in size or depth, the
 changes should be reflected here, so the following plugins know about
 the change and behave correctly.<br>
-<I>Returns<I>: A pointer to the new image. Might be the same as the
-given pointer.<br>
-<I></I>
-
+<I>Returns</I>: A pointer to the new image. Might be the same as the
+given pointer.<p>
+<a name="plugin_get_public_info"></a>
+<b>gboolean plugin_get_public_info ( gint index, gchar ** symbol, gchar ** description, gchar ** type, gint hash );</b><p>
+If present, Zapping will use this routine to get info about the public symbols in the plugin. This public symbols are the routines or variables that can be accessed by other plugins. Zapping will call this from index=0, until gets a return value of FALSE.<br>
+<I>index</I>: The symbol we are querying.<br>
+<I>symbol</I>: If non-null, the plugin should store here the symbol name. This will not be freed or modified bt Zapping, so it can be statically allocated.<br>
+<I>description</I>: A short description for this symbol (not modified and not freed).<br>
+<I>type</I>: The type of the symbol, in C sintax, not modified and not freed. <b><i>Example:</i></b>: int symbol_name (int param1, int param2);<br>
+<I>hash</I>: The hash value for this symbol. More on this in the <a href="#Communication">communications section</a>.<br>
+<I>Returns</I>: The plugin should return TRUE if there is an entry for index, and FALSE otherwise.<p>
+<a name="plugin_add_properties"></a>
+<b>void plugin_add_properties ( GnomePropertyBox * gpb );</b><p>
+Tells the plugin that a new property box has been created. Any plugin
+that wants to be user-configurable should add a new page to the
+property box, and configure the callbacks properly.<br>
+<I>gpb</I>:The property box we are building.<p>
+<a name="plugin_activate_properties"></a>
+<b>gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint
+page );</b><p>
+This is called when the Apply or the OK button are pressed.<br>
+<I>gpb</I>: A pointer to the GnomePropertyBox.<br>
+<I>page</I>: The active page in the property box. If it is not the
+page of the plugin, it should ignore this and return FALSE.<br>
+<I>Returns</I>: The plugin should return TRUE if it handles this page,
+or FALSE if it doesn't.<p>
+<a name="plugin_help_properties"></a>
+<b>gboolean plugin_help_properties (GnomePropertyBox * gpb, int page
+);</b><p>
+This is called when the Help button of the property box is
+pressed.<br>
+<I>gpb</I>: A pointer to the GnomePropertyBox.<br>
+<I>page</I>: The active page in the property box. If it is not the
+page of the plugin, it should ignore this and return FALSE.<br>
+<I>Returns</I>: The plugin should return TRUE if it handles this page,
+or FALSE if it doesn't.<p>
+<a name="plugin_add_gui"></a>
+<b>void plugin_add_gui ( GnomeApp * app);</b><p>
+Tells the plugin that it can add itself to the main Zapping
+window.<br>
+<I>app</I>: The Gnome Application window belonging to Zapping.<p>
+<a name="plugin_remove_gui"></a>
+<b>void plugin_remove_gui ( GnomeApp * app );</b><p>
+Asks the plugin to remove all the GUI items it has added to the main
+Zapping window. The plugin should call this itself when it is being
+closed.<br>
+<I>app</I>: The main Zapping window.<p>
+<a name="RunningThePlugin"></a>
+<H2>The way Zapping runs the plugins</H2>
+The way Zapping runs the plugins is, more or less, the following:<br>
+<OL>
+	<LI><a href="#plugin_init">plugin_init (...)</a>
+	<LI><a href="#plugin_load_config">plugin_load_config (...)</a>
+	<LI><a href="#plugin_add_gui">plugin_add_gui(...)</a>
+	<LI><a href="#plugin_process_frame">plugin_process_frame(...)</a> a
+	lot of times 
+	<LI><a href="#plugin_remove_gui">plugin_remove_gui(...)</a>
+	<LI><a href="#plugin_save_config">plugin_save_config(...)</a>
+	<LI><a href="#plugin_close">plugin_close(....)</a>
+</OL>
+Other routines, such as <a
+href="#plugin_add_properties">plugin_add_properties </a> are called
+when the user wants to, so there is no predefined order for those.<p>
+<a name="Communication"></a>
+<H2>Communication between Zapping and the plugins</H2>
+The way Zapping uses to access the plugins has been described, but the
+other way, how do the plugins access zapping, has not yet been
+covered. This section will try to cover that.<br>
+The plugins are provided with a "bridge" on startup. This bridge is a
+pointer to a function with the following prototype:<p>
+<a name="PluginBridge"></a>
+<b>typedef gboolean (*PluginBridge) ( gpointer * ptr, gchar* plugin,
+gchar * symbol, gint hash );</b><p>
+Through this the plugin can use this bridge to ask Zapping for symbols
+in Zapping or in other modules.<br>
+<I>ptr</I>: On success, a pointer to the symbol is stored here. On
+error its content is undefined.
+<I>plugin</I>: The canonical name of the plugin where the symbol is
+located. Can be NULL, indicating that the requested symbol is in
+Zapping itself.<br>
+<I>symbol</I>: The name of the symbol we want to get.<br>
+<I>hash</I>: This hash value is used to avoid errors when calling or
+using the returned symbols. When the plugin writer creates a public
+symbol (see <a
+href="#plugin_get_public_info">plugin_get_public_info</a>), a random
+hash value is given to the symbol. This random value is kept while the
+plugin type is the same as the original, but is changed if its type
+changes. This ensures that the type of the symbol is the same as the
+type the plugin believes it is.<br>
+<I>Returns</I>: FALSE if the symbol could not be loaded or found, and
+TRUE if the location stored at ptr is valid.<p>
+<H2>Epilog</H2>
+This is the first version of this document, it may contain errors,
+unaccuracies, vague references, typos and gramatical errors (I am not
+a native speaker). If you find any of these, please contact me, so it
+can get fixed. If you think something is worth adding, if you have any
+good ideas for this API, comments or criticism, contact me too. Thanks
+a lot.
 <P>(C) <A HREF="mailto:garetxe@users.sourceforge.net">Iñaki García
 Etxebarria</A> 2000. This document is under the Gnu Documentation License.
 </BODY>
