@@ -1069,11 +1069,13 @@ tveng_detect_XF86DGA(tveng_device_info * info)
     }
 
 /* Print collected info if we are in debug mode */
-  printf("DGA info:\n");
-  printf("  - event and error base  : %d, %d\n", event_base, error_base);
-  printf("  - DGA reported version  : %d.%d\n", major_version, minor_version);
-  printf("  - Supported features    :%s\n",
-	 (flags & XF86DGADirectPresent) ? " DirectVideo" : "");
+  fprintf(stderr, "DGA info:\n");
+  fprintf(stderr, "  - event and error base  : %d, %d\n", event_base,
+	  error_base);
+  fprintf(stderr, "  - DGA reported version  : %d.%d\n",
+	  major_version, minor_version);
+  fprintf(stderr, "  - Supported features    :%s\n",
+	  (flags & XF86DGADirectPresent) ? " DirectVideo" : "");
 
   return 1; /* Everything correct */
 #else
@@ -1470,8 +1472,15 @@ tveng_start_previewing (tveng_device_info * info)
       else
 	{
 	  info->restore_mode = 1;
-	  memcpy(&(info->modeinfo), modesinfo[0],
-		 sizeof(XF86VidModeModeInfo));
+	  info->modeinfo.privsize = 0;
+	  XF86VidModeGetModeLine(info->display,
+				 DefaultScreen(info->display),
+				 &(info->modeinfo.dotclock),
+				 /* this is kinda broken, but it
+				    will probably always work */
+				 (XF86VidModeModeLine*)
+				 &(info->modeinfo.hdisplay));
+
 	  if (!XF86VidModeSwitchToMode(info->display,
 				       DefaultScreen(info->display),
 				       modesinfo[chosen_mode]))
@@ -1482,6 +1491,10 @@ tveng_start_previewing (tveng_device_info * info)
 	    XF86DGASetViewPort(info->display,
 			       DefaultScreen(info->display), 0, 0);
 	}
+
+      for (i=0; i<modecount; i++)
+	if (modesinfo[i]->privsize > 0)
+	  XFree(modesinfo[i]->private);
       
       XFree(modesinfo);
     }
@@ -1514,30 +1527,38 @@ tveng_start_previewing (tveng_device_info * info)
 int
 tveng_stop_previewing(tveng_device_info * info)
 {
-  t_assert(info != NULL);
+  int return_code = 0;
 
-#ifndef DISABLE_X_EXTENSIONS
-  if ((info->restore_mode) && (info->xf86vm_enabled))
-    XF86VidModeSwitchToMode(info->display,
-			    DefaultScreen(info->display),
-			    &(info->modeinfo));
-#endif
+  t_assert(info != NULL);
 
   switch (info -> current_controller)
     {
     case TVENG_CONTROLLER_NONE:
       fprintf(stderr, _("%s called on a non-controlled device: %s\n"),
 	      __PRETTY_FUNCTION__, info -> file_name);
-      break;
+      return 0;
     case TVENG_CONTROLLER_V4L1:
-      return tveng1_stop_previewing(info);
+      return_code = tveng1_stop_previewing(info);
+      break;
     case TVENG_CONTROLLER_V4L2:
-      return tveng2_stop_previewing(info);
+      return_code = tveng2_stop_previewing(info);
+      break;
     default:
       t_assert_not_reached();
     }
 
-  return 0;
+#ifndef DISABLE_X_EXTENSIONS
+  if ((info->restore_mode) && (info->xf86vm_enabled))
+    {
+      XF86VidModeSwitchToMode(info->display,
+			      DefaultScreen(info->display),
+			      &(info->modeinfo));
+      if (info->modeinfo.privsize > 0)
+	XFree(info->modeinfo.private);
+    }
+#endif
+
+  return return_code;
 }
 
 /*

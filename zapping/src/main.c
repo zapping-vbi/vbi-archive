@@ -179,6 +179,13 @@ int main(int argc, char * argv[])
       return -1;
     }
 
+  /* Do some checks for the preview */
+  if ((!disable_preview) && (!tveng_detect_XF86DGA(main_info)))
+	disable_preview = TRUE;
+
+  if ((!disable_preview) && (!tveng_detect_preview(main_info)))
+	disable_preview = TRUE;
+
   /* Mute the device while we are starting Zapping */
   if (-1 == tveng_set_mute(1, main_info))
     fprintf(stderr, "%s\n", main_info->error);
@@ -194,10 +201,6 @@ int main(int argc, char * argv[])
     }
 
   tv_screen = lookup_widget(main_window, "tv_screen");
-
-  /* Set the minimum size for this widget */
-  gtk_widget_set_usize(tv_screen, main_info->caps.minwidth,
-		       main_info->caps.minheight);
 
   /* Add the plugins to the GUI */
   p = g_list_first(plugin_list);
@@ -223,10 +226,6 @@ int main(int argc, char * argv[])
 
   update_standards_menu(main_window, main_info);
 
-  /* Process all events */
-  while (gtk_events_pending())
-    gtk_main_iteration();
-
   /* Sets the coords to the previous values, if the users wants to */
   if (zcg_bool(NULL, "keep_geometry"))
     {
@@ -240,6 +239,10 @@ int main(int argc, char * argv[])
 #endif
       gdk_window_move_resize(main_window->window, x, y, w, h);
     }
+
+  /* Process all events */
+  while (gtk_events_pending())
+    gtk_main_iteration();
 
   if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"),
 			   main_info))
@@ -273,15 +276,16 @@ int main(int argc, char * argv[])
       if (flag_exit_program)
 	continue; /* Exit the loop if neccesary now */
 
-      hints = 0;
+      hints = GDK_HINT_MIN_SIZE;
+      geometry.min_width = main_info->caps.minwidth;
+      geometry.min_height = main_info->caps.minheight;
+
       /* Set the geometry flags if needed */
       if (zcg_bool(NULL, "fixed_increments"))
 	{
 	  geometry.width_inc = 64;
 	  geometry.height_inc = 48;
-	  geometry.min_width = 64;
-	  geometry.min_height = 48;
-	  hints |= GDK_HINT_RESIZE_INC | GDK_HINT_MIN_SIZE;
+	  hints |= GDK_HINT_RESIZE_INC;
 	}
 
       switch (zcg_int(NULL, "ratio")) {
@@ -343,7 +347,7 @@ int main(int argc, char * argv[])
       sample.audio_rate  = si->rate;
       sample.a_timestamp = ((((__s64)si->tv.tv_sec) *
 			     1000000)+si->tv.tv_usec)*1000;
-
+      
       p = g_list_first(plugin_list);
       while (p)
 	{
@@ -363,7 +367,7 @@ int main(int argc, char * argv[])
   /* Closes all fd's, writes the config to HD, and that kind of things
    */
   shutdown_zapping();
-  
+
   return 0;
 }
 
@@ -527,7 +531,7 @@ gboolean startup_zapping()
   /* Start sound capturing */
   if (!startup_sound())
     return FALSE;
-
+  
   /* Loads the modules */
   plugin_list = plugin_load_plugins();
 

@@ -32,6 +32,7 @@ static gint curx, cury, curw, curh; /* current geometry of the window
 				     */
 static gboolean obscured = FALSE;
 gboolean ignore_next_expose = FALSE;
+static guint timeout_id = 0;
 
 /*
   Prints a message box showing an error, with the location of the code
@@ -330,6 +331,8 @@ gint zmisc_timeout_done (gpointer data)
       main_info->window.y = cury;
       main_info->window.width = curw;
       main_info->window.height = curh;
+      main_info->window.clipcount = 0;
+      tveng_set_preview_window(main_info);
       zmisc_get_clips(); /* fills main_info->window.clips and calls
 			    tveng_set_window */
       if (!obscured)
@@ -344,7 +347,6 @@ gint zmisc_timeout_done (gpointer data)
 void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h, gboolean
 			     obscured_param)
 {
-  static guint timeout_id = 0;
   gint timeout_length = 100; /* 0.1 sec */
 
   curx = x; cury = y; curw = w; curh = h; obscured = obscured_param;
@@ -362,7 +364,7 @@ void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h, gboolean
     if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
       tveng_set_preview_off(main_info);
 
-    if ((main_info -> current_mode == TVENG_CAPTURE_WINDOW) && (oldw != -1))
+    if (main_info -> current_mode == TVENG_CAPTURE_WINDOW)
       {
 	if (zcg_bool(NULL, "avoid_flicker"))
 	  zmisc_clear_area(main_info->window.x, main_info->window.y,
@@ -383,4 +385,13 @@ void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h, gboolean
   }
   gdk_window_get_origin(main_window->window, &oldx, &oldy);
   gdk_window_get_size(main_window->window, &oldw, &oldh);
+}
+
+/* Clears any timers zmisc could use (the Zapping window is to be closed) */
+void zmisc_clear_timers(void)
+{
+  if (timeout_id != 0)
+    gtk_timeout_remove(timeout_id);
+
+  timeout_id = 0;
 }

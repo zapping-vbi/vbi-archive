@@ -1,3 +1,10 @@
+23.7.2000	Misc bug fixing <garetxe@users.sourceforge.net>
+
+	* src/zmisc.c: Fixed the segfault when quitting (i believe so, at
+	least).
+	* src/tveng.c: Fixed some memleaks with the X code.
+	* src/tveng.c: It now restores the VidMode correctly.
+
 22.7.2000	Windowed preview working <garetxe@users.sourceforge.net>
 
 	* src/zmisc.c: Fixed the last bugs with it except one, that i

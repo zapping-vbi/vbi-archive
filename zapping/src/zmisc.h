@@ -89,6 +89,10 @@ GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
    old placement of the window if neccesary */
 void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h, gboolean
 			     obscured);
+
+/* Clears any timers zmisc could use (the Zapping window is to be closed) */
+void zmisc_clear_timers(void);
+
 #endif /* ZMISC.H */
 
 #ifdef ZCONF_DOMAIN

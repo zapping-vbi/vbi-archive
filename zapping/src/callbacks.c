@@ -91,6 +91,7 @@ on_exit2_activate                      (GtkMenuItem     *menuitem,
   GtkWidget * widget = lookup_widget(GTK_WIDGET(menuitem), "zapping");
   GList * p;
   UpdateCoords(widget->window);
+  zmisc_clear_timers();
 
   /* Tell the widget that the GUI is going to be closed */
   p = g_list_first(plugin_list);
@@ -153,6 +154,7 @@ on_zapping_delete_event                (GtkWidget       *widget,
   GList * p;
   flag_exit_program = TRUE;
   UpdateCoords(widget->window);
+  zmisc_clear_timers();
 
   /* Tell the widget that the GUI is going to be closed */
   p = g_list_first(plugin_list);
@@ -601,6 +603,9 @@ on_go_previewing2_activate             (GtkMenuItem     *menuitem,
   gint x, y, w, h;
 
   if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
+    return;
+
+  if (disable_preview)
     return;
 
   gdk_window_get_origin(lookup_widget(main_window,
