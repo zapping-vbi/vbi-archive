@@ -392,7 +392,7 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 		tveng_device_info * info)
 {
   GdkEventMask mask; /* The GDK events we want to see */
-  GdkColor chroma;
+  GdkColor chroma = {0, 0, 0, 0};
 
   gtk_signal_connect(GTK_OBJECT(main_window), "event",
 		     GTK_SIGNAL_FUNC(on_main_overlay_event),
@@ -439,27 +439,25 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
       if (info->caps.flags & TVENG_CAPS_CHROMAKEY)
 	{
 	  chroma.red = chroma.green = 0;
-	  chroma.blue = 65535;
-
+	  chroma.blue = 0xffff;
+	  
 	  if (gdk_colormap_alloc_color(gdk_colormap_get_system(), &chroma,
 				       FALSE, TRUE))
-	    {
-	      tveng_set_chromakey(chroma.red >> 8, chroma.green >> 8,
-				  chroma.blue >> 8, info);
-	      gdk_window_set_background(window->window, &chroma);
-	      gdk_colormap_free_colors(gdk_colormap_get_system(), &chroma,
-				       1);
-	      gdk_window_clear_area_e(window->window, 0, 0, tv_info.w,
-				      tv_info.h);
-	      tv_info.needs_cleaning = FALSE;
-	    }
+	    tveng_set_chromakey(chroma.red >> 8, chroma.green >> 8,
+				chroma.blue >> 8, info);
 	  else
 	    ShowBox("Couldn't allocate chromakey, chroma won't work",
 		    GNOME_MESSAGE_BOX_WARNING);
 	}
-      else
-	gdk_window_set_back_pixmap(window->window, NULL, FALSE);
+
+      gdk_window_set_background(window->window, &chroma);
+
+      if (chroma.pixel != 0)
+	gdk_colormap_free_colors(gdk_colormap_get_system(), &chroma,
+				 1);
     }
+  else
+    gdk_window_set_back_pixmap(window->window, NULL, FALSE);
 
   if (tv_info.needs_cleaning)
     {
@@ -469,6 +467,8 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
       gtk_signal_connect(GTK_OBJECT(osd_model), "changed",
 			 GTK_SIGNAL_FUNC(on_osd_model_changed),
 			 NULL);
+      /* Update the cliplist now */
+      on_osd_model_changed(osd_model, NULL);
     }
   else
     tv_info.check_timeout_id = -1;

@@ -36,7 +36,7 @@
 #define MAX_COLUMNS 48 /* TTX */
 #define MAX_ROWS 26 /* 25 for TTX plus one for OSD */
 
-typedef struct {
+typedef struct _piece {
   /* The drawing area */
   GtkWidget	*da;
 
@@ -44,8 +44,15 @@ typedef struct {
   GdkPixbuf	*unscaled;
   GdkPixbuf	*scaled;
 
+  /* geometry in the osd matrix, interesting for TTX and CC location */
+  int		column, row, width, max_rows, max_columns;
+
   /* relative geometry in the OSD window (0...1) */
   float		x, y, w, h;
+
+  /* called before the piece geometry is set to allow changing of
+     x, y, w, h */
+  void		(*position)(struct _piece *p);
 } piece;
 
 typedef struct {
@@ -94,10 +101,21 @@ set_piece_geometry		(piece		*p)
 {
   gint dest_x, dest_y, dest_w, dest_h;
 
-  dest_x = cx + p->x * cw;
-  dest_y = cy + p->y * ch;
-  dest_w = p->w * cw;
-  dest_h = p->h * ch;
+  if (p->position)
+    {
+      p->position(p);
+      dest_x = p->x;
+      dest_y = p->y;
+      dest_w = p->w;
+      dest_h = p->h;
+    }
+  else
+    {
+      dest_x = cx + p->x * cw;
+      dest_y = cy + p->y * ch;
+      dest_w = p->w * cw;
+      dest_h = p->h * ch;
+    }
 
   if (osd_window && ((!p->scaled)  ||
       (gdk_pixbuf_get_width(p->scaled) != dest_w)  ||
@@ -113,22 +131,18 @@ set_piece_geometry		(piece		*p)
 	p->scaled = NULL;
     }
 
-  if (osd_window != p->da->parent &&
-      !((osd_window == NULL) && (p->da->parent == orphanarium)))
-    {
-      GtkWidget *new_parent = osd_window ? osd_window : orphanarium;
-
-      if (p->da->parent)
-	gtk_widget_reparent(p->da, new_parent);
-      else
-	gtk_fixed_put(GTK_FIXED(new_parent), p->da, dest_x, dest_y);
-      if (!p->da->window)
-	gtk_widget_realize(p->da);
-      gtk_widget_show(p->da);
-    }
-
   if (!osd_window)
-    return; /* no need for drawing in this case */
+    {
+      if (gdk_window_get_parent(p->da->window) != orphanarium->window)
+	gdk_window_reparent(p->da->window, orphanarium->window, 0, 0);
+      return;
+    }
+  else if (osd_window->window != gdk_window_get_parent(p->da->window))
+    {
+      gdk_window_reparent(p->da->window, osd_window->window, dest_x,
+			  dest_y);
+      gdk_window_show(p->da->window);
+    }
 
   gdk_window_move_resize(p->da->window,
 			 dest_x, dest_y, dest_w, dest_h);
@@ -167,9 +181,10 @@ get_window(void)
 
   gtk_widget_add_events(da, GDK_EXPOSURE_MASK);
 
-  gtk_fixed_put(GTK_FIXED(osd_window ? osd_window : orphanarium), da, 0, 0);
+  gtk_fixed_put(GTK_FIXED(orphanarium), da, 0, 0);
 
-  gtk_widget_show(da);
+  gtk_widget_realize(da);
+  gdk_window_set_back_pixmap(da->window, NULL, FALSE);
 
   return da;
 }
@@ -177,6 +192,9 @@ get_window(void)
 static void
 unget_window(GtkWidget *window)
 {
+  if (gdk_window_get_parent(window->window) != orphanarium->window)
+    gdk_window_reparent(window->window, orphanarium->window, 0, 0);
+
   gtk_widget_destroy(window);
 }
 
@@ -224,8 +242,11 @@ static void
 add_piece			(GdkPixbuf	*unscaled,
 				 GtkWidget	*da,
 				 int col,	int row,
+				 int width,	int max_rows,
+				 int max_columns,
 				 float x,	float y,
-				 float w,	float h)
+				 float w,	float h,
+				 void		(*position)(piece *p))
 {
   piece *p;
 
@@ -246,6 +267,13 @@ add_piece			(GdkPixbuf	*unscaled,
   p->y = y;
   p->w = w;
   p->h = h;
+
+  p->row = row;
+  p->column = col;
+  p->width = width;
+  p->max_rows = max_rows;
+  p->max_columns = max_columns;
+  p->position = position;
 
   p->unscaled = unscaled;
 
@@ -301,15 +329,17 @@ static void
 roll_up(int first_row, int last_row)
 {
   gint i;
-  float y = 0;
+  float y = 0, h = 0;
   gboolean y_set = FALSE;
 
   if (first_row >= last_row)
     return;
 
+  /* This code assumes all pieces in a row have the same height */
   if (matrix[first_row]->n_pieces)
     {
       y = matrix[first_row]->pieces[0].y;
+      h = matrix[first_row]->pieces[0].h;
       y_set = TRUE;
     }
 
@@ -317,7 +347,7 @@ roll_up(int first_row, int last_row)
   
   for (; first_row < last_row; first_row++)
     {
-      float tmp = 0;
+      float tmp = 0, tmph = 0;
       gboolean tmp_set;
 
       swap(matrix[first_row], matrix[first_row + 1]);
@@ -325,6 +355,7 @@ roll_up(int first_row, int last_row)
       if (matrix[first_row]->n_pieces)
 	{
 	  tmp = matrix[first_row]->pieces[0].y;
+	  tmph = matrix[first_row]->pieces[0].h;
 	  tmp_set = TRUE;
 	}
       else
@@ -334,8 +365,13 @@ roll_up(int first_row, int last_row)
 	{
 	  piece *p = matrix[first_row]->pieces + i;
 
+	  p->row --;
+
 	  if (y_set)
-	    p->y = y;
+	    {
+	      p->y = y;
+	      p->h = h;
+	    }
 	  else
 	    p->y -= p->h;
 
@@ -343,6 +379,7 @@ roll_up(int first_row, int last_row)
 	}
 
       y = tmp;
+      h = tmph;
       y_set = tmp_set;
     }
 
@@ -366,12 +403,48 @@ extern int osd_pipe[2];
 #define CELL_HEIGHT 26
 
 static void
+ttx_position		(piece		*p)
+{
+  gint x = 0, y = 0, w = cw, h = ch;
+
+  /* Text area 40x25 is (64, 38) - (703, 537) in a 768x576 screen */
+  x += (64*w)/768;
+  y += (38*h)/576;
+  w -= (128*w)/768;
+  h -= (76*h)/576;
+
+  p->w = ((p->column+p->width)*w)/p->max_columns
+    - (p->column*w)/p->max_columns;
+  p->h = ((p->row+1)*h)/p->max_rows-(p->row*h)/p->max_rows;
+
+  p->x = x + (p->column*w)/p->max_columns;
+  p->y = y + (p->row*h)/p->max_rows;
+}
+
+static void
+cc_position		(piece		*p)
+{
+  gint x = 0, y = 0, w = cw, h = ch;
+
+  /* Text area 34x15 is (48, 45) - (591, 434) in a 640x480 screen */
+  x += (48*w)/640;
+  y += (45*h)/480;
+  w -= (96*w)/640;
+  h -= (90*h)/480;
+
+  p->w = ((p->column+p->width)*w)/p->max_columns
+    - (p->column*w)/p->max_columns;
+  p->h = ((p->row+1)*h)/p->max_rows-(p->row*h)/p->max_rows;
+
+  p->x = x + (p->column*w)/p->max_columns;
+  p->y = y + (p->row*h)/p->max_rows;
+}
+
+static void
 add_piece_vbi		(int col, int row, int width)
 {
   GdkPixbuf *buf;
   GtkWidget *da;
-  float x=0, y=0, w=1, h=1;
-  float dest_x, dest_y, dest_w, dest_h;
 
   da = pop_window();
 
@@ -383,12 +456,6 @@ add_piece_vbi		(int col, int row, int width)
           (uint32_t *) gdk_pixbuf_get_pixels(buf),
 	  col, row, width, 1 /* height */,
           gdk_pixbuf_get_rowstride(buf));
-
-      /* Text area 34x15 is (48, 45) - (591, 434) in a 640x480 screen */
-      x += (48*w)/640;
-      y += (45*h)/480;
-      w -= (96*w)/640;
-      h -= (90*h)/480;
     }
   else
     {
@@ -399,22 +466,11 @@ add_piece_vbi		(int col, int row, int width)
           col, row, width, 1 /* height */,
 	  gdk_pixbuf_get_rowstride(buf),
 	  1 /* reveal */, 1 /* flash_on */);
-
-      /* Text area 40x25 is (64, 38) - (703, 537) in a 768x576 screen */
-      x += (64*w)/768;
-      y += (38*h)/576;
-      w -= (128*w)/768;
-      h -= (76*h)/576;
     }
 
-  dest_w = ((col+width)*w)/osd_page.columns
-           - (col*w)/osd_page.columns;
-  dest_h = ((row+1)*h)/osd_page.rows-(row*h)/osd_page.rows;
-
-  dest_x = x + (col*w)/osd_page.columns;
-  dest_y = y + (row*h)/osd_page.rows;
-
-  add_piece(buf, da, col, row, dest_x, dest_y, dest_w, dest_h);
+  add_piece(buf, da, col, row, width, osd_page.rows,
+	    osd_page.columns, 0, 0, 0, 0,
+	    (osd_page.columns < 40) ? cc_position : ttx_position);
 }
 
 static void
@@ -840,8 +896,6 @@ prepare_context		(sax_context	*ctx,
 
   ctx->patch = pop_window();
 
-  gtk_widget_realize(ctx->patch);
-
   ctx->gc = gdk_gc_new(ctx->patch->window);
   g_assert(ctx->gc != NULL);
   ctx->cmap = gdk_window_get_colormap(ctx->patch->window);
@@ -910,7 +964,7 @@ process_context		(sax_context	*ctx)
   add_piece(gdk_pixbuf_get_from_drawable
 	    (NULL, ctx->canvas, ctx->cmap, x, y, 0, 0, w, h),
 	    ctx->patch,
-	    0, row, 0.6, 0.9, 0.4, 0.1);
+	    0, row, 0, 0, 0, 0.6, 0.9, 0.4, 0.1, NULL);
   
   gdk_pixmap_unref(ctx->canvas);
 }
@@ -1006,6 +1060,10 @@ void on_osd_screen_size_allocate	(GtkWidget	*widget,
 					 GtkAllocation	*allocation,
 					 gpointer	ignored)
 {
+  if (cw == allocation->width &&
+      ch == allocation->height)
+    return;
+
   cw = allocation->width;
   ch = allocation->height;
 
@@ -1013,12 +1071,16 @@ void on_osd_screen_size_allocate	(GtkWidget	*widget,
 }
 
 static void
-set_window(GtkWidget *dest_window)
+set_window(GtkWidget *dest_window, gboolean _coords_mode)
 {
-  if (osd_window)
-    osd_unset_window();
+  if (osd_window && !coords_mode)
+    gtk_signal_disconnect_by_func(GTK_OBJECT(osd_window),
+				  GTK_SIGNAL_FUNC(on_osd_screen_size_allocate),
+				  NULL);
 
   osd_window = dest_window;
+
+  coords_mode = _coords_mode;
 
   if (!coords_mode)
     gtk_signal_connect(GTK_OBJECT(dest_window), "size-allocate",
@@ -1035,12 +1097,10 @@ osd_set_window(GtkWidget *dest_window)
 
   gtk_widget_realize(dest_window);
 
-  coords_mode = FALSE;
-
   cx = cy = 0;
   gdk_window_get_size(dest_window->window, &cw, &ch);
   
-  set_window(dest_window);
+  set_window(dest_window, FALSE);
 }
 
 void
@@ -1054,9 +1114,7 @@ osd_set_coords(GtkWidget *dest_window,
   cw = w;
   ch = h;
 
-  coords_mode = TRUE;
-
-  set_window(dest_window);
+  set_window(dest_window, TRUE);
 }
 
 void
@@ -1119,6 +1177,7 @@ startup_osd(void)
   toplevel = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_container_add(GTK_CONTAINER(toplevel), orphanarium);
   gtk_widget_show(orphanarium);
+  gtk_widget_realize(orphanarium);
   /* toplevel will never be shown */
 }
 

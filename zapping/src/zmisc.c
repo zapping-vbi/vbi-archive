@@ -542,7 +542,13 @@ z_pixbuf_render_to_drawable	(GdkPixbuf	*pixbuf,
 				 gint		width,
 				 gint		height)
 {
-  gint w = gdk_pixbuf_get_width(pixbuf), h=gdk_pixbuf_get_height(pixbuf);
+  gint w, h;
+
+  if (!pixbuf)
+    return;
+
+  w = gdk_pixbuf_get_width(pixbuf);
+  h = gdk_pixbuf_get_height(pixbuf);
 
   if (x < 0)
     {

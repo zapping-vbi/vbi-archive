@@ -1,3 +1,9 @@
+26.09.2001	OSD fixes <garetxe@users.sf.net>
+
+	* osd.c: Fixed 'flicker in FS', 'off-by-one', 'extra
+	size_allocates'	and 'prolly more' :-) 'Missing words' is still a
+	mistery.
+
 25.09.2001	OSD rewrite <garetxe@users.sf.net>
 
 	* osd.c: Rewritten, now osd windows are subwindows of the TV
