@@ -17,12 +17,12 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.2 2003-11-29 19:43:24 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.3 2004-05-16 11:41:01 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
    * Import XawTV configuration - currently channels only
-   * XawTV IPC (w/nxtvepg etc) - to do
+   * XawTV IPC (w/nxtvepg etc) - more to do
  */
 
 #include "site_def.h"
@@ -31,9 +31,12 @@
 #include <gnome.h>
 #include <fcntl.h>
 #include <string.h>
+#include <gdk/gdkx.h>
+#include <X11/Xatom.h>		/* XA_STRING */
 
 #include "xawtv.h"
 #include "zmisc.h"
+#include "remote.h"
 
 #ifndef XAWTV_CONFIG_TEST
 #define XAWTV_CONFIG_TEST 0
@@ -758,6 +761,338 @@ xawtv_import_config		(const tveng_device_info *info,
       close (fd);
       g_free (filename);
     }
+
+  return TRUE;
+}
+
+/* XawTV IPC */
+
+static GdkAtom _GA_XAWTV_STATION;
+static GdkAtom _GA_XAWTV_REMOTE;
+static GdkAtom _GA_ZAPPING_REMOTE;
+static GdkAtom _GA_STRING;
+
+static gboolean
+xawtv_command			(int			argc,
+				 char **		argv)
+{
+  if (0 == argc)
+    return TRUE;
+
+  /*
+     From xawtv-remote man page:
+
+       setstation [ <name> | <nr> | next | prev | back ]
+              Set the TV station.  This selects on of the TV sta-
+              tions  which  are  configured  in the .xawtv config
+              file.  The argument can be the station  name  or  a
+              number  (the first one listed in the config file is
+              0, ...).  next/prev jumps to the next/previous sta-
+              tion  in  the list, back to the previously selected
+              one.
+
+       setchannel [ <name> | next | prev ]
+              Tune in some channel.
+
+       setfreqtab <table>
+              Set the frequency table.  See the menu in xawtv for
+              a list of valid choices.
+
+       setnorm <norm>
+              Set the TV norm (NTSC/PAL/SECAM).
+
+       setinput [ <input> | next ]
+              Set the video input (Television/Composite1/...)
+
+       capture [ on | off | overlay | grabdisplay ]
+              Set capture mode.
+
+       volume mute on | off
+              mute / unmute audio.
+
+       volume <arg>
+
+       color <arg>
+       hue <arg>
+       bright <arg>
+       contrast <arg>
+              Set  the  parameter  to the specified value.  <arg>
+              can be one of the following: A percent value ("70%"
+              for  example).   Some absolute value ("32768"), the
+              valid range is hardware specific.  Relative  values
+              can be specified too by prefixing with "+=" or "-="
+              ("+=10%" or  "-=2000").   The  keywords  "inc"  and
+              "dec"   are  accepted  to  and  will  increase  and
+              decrease the given value in small steps.
+                              
+       setattr <name> <value>
+              Set the value of some  attribute  (color,  con-
+              trast, ... can be set this way too).
+
+       show [ <name> ]
+              Show the value current of some attribute.
+
+       list   List  all  available attributes with all properties
+              (default value, range, ...)
+
+       snap [ jpeg | ppm ] [ full | win | widthxheight ] <file-
+              name>
+              Capture one image.
+
+       webcam <filename>
+              Capture  one  image.   Does  basically  the same as
+              "snap jpeg win <filename>".  Works also  while  avi
+              recording is active.  It writes to a temporary file
+              and renames it when  done,  so  there  is  never  a
+              invalid file.
+
+       movie driver [ files | raw | avi | qt ]
+
+       movie  video [ ppm | pgm | jpeg | rgb | gray | 422 | 422p
+              | rgb15 | rgb24 | mjpeg | jpeg | raw | mjpa | png ]
+
+       movie fps <frames per second>
+
+       movie audio [ mono8 | mono16 | stereo ]
+
+       movie rate <sample rate>
+
+       movie fvideo <filename>
+
+       movie faudio <filename>
+
+       movie start
+
+       movie stop
+              control xawtv's movie recorder.
+
+       fullscreen
+              Toggle fullscreen mode.
+
+       showtime
+              Display time (same what the 'D' key does in xawtv).
+
+       msg text
+              Display text on the on-screen display (window title
+              / upper left corner in fullscreen mode).         
+
+       vtx line1 line2 [ ... ]
+              Display subtitles.  It pops up a  small  window  at
+              the  bottom  of  the screen.  It is supported to be
+              used as interface for displaying  subtitles  (often
+              on  videotext  page  150  in  europe, thats why the
+              name) by external programs.
+              Every command line argument is one line, zero lines
+              removes the window.  You can colorize the text with
+              the control sequence "ESC  foreground  background".
+              foreground/background  has the range 0-7 (ansi term
+              colors).  Example: "\03347 hello world " is blue on
+              white.  "\033" must be a real escape character, the
+              string does'nt work.  With the bash you'll  get  it
+              with ^V ESC.  vtx does also understand the ANSI tty
+              escape sequences for color.
+
+       quit   quit xawtv
+
+       keypad n
+              enter digit  'n'.   That's  the  two-digit  channel
+              selection,  entering  two  digits  within 5 seconds
+              switches to the selected station.  Useful for lirc.
+
+       vdr command
+              send  "command"  to  vdr  (via  connect  on  local-
+              host:2001).
+  */
+
+  fprintf (stderr, "Command '%s' not implemented\n", argv[0]);
+
+  return FALSE;
+}
+
+static GString *
+property_get_string		(GdkWindow *		window,
+				 GdkAtom		atom)
+{
+  GdkDisplay *display;
+  Atom xatom;
+  Atom actual_type;
+  int actual_format;
+  unsigned long nitems;
+  unsigned long bytes_after;
+  unsigned char *prop;
+  GString *s;
+
+  display = gdk_drawable_get_display (GDK_DRAWABLE (window));
+  xatom = gdk_x11_atom_to_xatom_for_display (display, atom);
+
+  /* GDK 2.6 gdk_property_get() documentation advises
+     use of XGetWindowProperty() because function is fubar. */
+
+  if (Success != XGetWindowProperty (GDK_WINDOW_XDISPLAY (window),
+				     GDK_WINDOW_XWINDOW (window),
+				     xatom,
+				     /* long_offset */ 0 / sizeof (long),
+				     /* long_length */ 65536 / sizeof (long),
+				     /* delete */ True,
+				     /* req_type */ XA_STRING,
+				     &actual_type,
+				     &actual_format,
+				     &nitems,
+				     &bytes_after,
+				     &prop))
+    return NULL;
+
+  if (0 == nitems)
+    return NULL;
+
+  s = g_string_new (NULL);
+  g_string_append_len (s, prop, nitems);
+
+  /* Make sure we have a cstring. */
+  g_string_append_len (s, "", 1);
+
+  XFree (prop);
+
+  return s;
+}
+
+static gboolean
+on_event			(GtkWidget *		widget,
+				 GdkEvent *		event,
+				 gpointer		user_data)
+{
+  if (GDK_PROPERTY_NOTIFY == event->type)
+    {
+      if (_GA_XAWTV_REMOTE == event->property.atom)
+	{
+	  GString *s;
+	  gsize i;
+	  int argc;
+	  char *argv[32];
+
+	  if (!(s = property_get_string (event->property.window,
+					 _GA_XAWTV_REMOTE)))
+	    return TRUE;
+
+	  argc = 0;
+
+	  /* Format: "command\0par\0par\0\0command\0..." */
+
+	  for (i = 0; i <= s->len; i += strlen (&s->str[i]) + 1)
+	    {
+	      if (argc >= G_N_ELEMENTS (argv) - 1)
+		break; /* die graceful */
+
+	      if (i == s->len || 0 == s->str[i])
+		{
+		  argv[argc] = NULL;
+
+		  if (!xawtv_command (argc, argv))
+		    break;
+
+		  argc = 0;
+		}
+	      else
+		{
+		  argv[argc++] = &s->str[i];
+		}
+	    }
+
+	  g_string_free (s, /* cstring too */ TRUE);
+
+	  return TRUE; /* handled */
+	}
+      else if (_GA_ZAPPING_REMOTE == event->property.atom)
+	{
+	  GString *s;
+
+	  if (!(s = property_get_string (event->property.window,
+					 _GA_ZAPPING_REMOTE)))
+	    return TRUE;
+
+	  on_python_command1 (widget, s->str);
+
+	  g_string_free (s, /* cstring too */ TRUE);
+
+	  return TRUE; /* handled */
+	}
+    }
+
+  return FALSE; /* pass on */
+}
+
+gboolean
+xawtv_ipc_set_station		(GtkWidget *		window,
+				 tveng_tuned_channel *	ch)
+{
+  gchar *name;
+  gchar *rf_name;
+  gboolean r;
+
+  r = FALSE;
+
+  name = g_locale_from_utf8 (ch->name, -1, NULL, NULL, NULL);
+  rf_name = g_locale_from_utf8 (ch->rf_name, -1, NULL, NULL, NULL);
+
+  if (name && rf_name)
+    {
+      GString *s;
+
+      /* Format: "freq\0channel_name\0network_name\0". RF %.3f MHz,
+	 channel name "21", "E2", "?", network name "foobar", "?",
+	 presumably locale encoding. */
+
+      s = g_string_new (NULL);
+      g_string_printf (s, "%.3f%c%s%c%s",
+		       ch->frequ / 1e6, 0,
+		       ch->rf_name ? rf_name : "?", 0,
+		       ch->name ? name : "?");
+
+      gdk_property_change (window->window,
+			   _GA_XAWTV_STATION,
+			   _GA_STRING, /* bits */ 8,
+			   GDK_PROP_MODE_REPLACE,
+			   s->str, s->len + 1);
+
+      g_string_free (s, /* cstring too */ TRUE);
+
+      r = TRUE;
+    }
+
+  g_free (rf_name);
+  g_free (name);
+
+  return r;
+}
+
+gboolean
+xawtv_ipc_init			(GtkWidget *		window)
+{
+  const gchar station[] = "0.000\0?\0?";
+  GdkEventMask mask;
+
+  _GA_XAWTV_STATION = gdk_atom_intern ("_XAWTV_STATION",
+				       /* dont create */ FALSE);
+
+  _GA_XAWTV_REMOTE = gdk_atom_intern ("_XAWTV_REMOTE", FALSE);
+  _GA_ZAPPING_REMOTE = gdk_atom_intern ("_ZAPPING_REMOTE", FALSE);
+
+  _GA_STRING = gdk_atom_intern ("STRING", FALSE);
+
+  /* _XAWTV_STATION identifies us as XawTV clone which understands
+     _XAWTV_REMOTE commands. Make sure the lights are on. */
+  gdk_property_change (window->window,
+		       _GA_XAWTV_STATION,
+		       _GA_STRING, /* bits */ 8,
+		       GDK_PROP_MODE_REPLACE,
+		       station, sizeof (station));
+
+  g_signal_connect (G_OBJECT (window), "event",
+		    G_CALLBACK (on_event), /* user_data */ NULL);
+
+  mask = gdk_window_get_events (window->window);
+  mask |= GDK_PROPERTY_CHANGE_MASK;
+  gdk_window_set_events (window->window, mask);
 
   return TRUE;
 }

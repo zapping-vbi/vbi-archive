@@ -53,6 +53,7 @@
 #include "channel_editor.h"
 #include "i18n.h"
 #include "vdr.h"
+#include "xawtv.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
@@ -429,7 +430,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.177 2004-03-30 11:34:11 mschimek Exp $",
+	 "$Id: main.c,v 1.178 2004-05-16 11:41:35 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -725,6 +726,8 @@ int main(int argc, char * argv[])
   startup_channel_editor ();
   D();
   osd_set_window(tv_screen);
+  D();
+  xawtv_ipc_init (main_window);
 
   printv("switching to mode %d (%d)\n",
 	 zcg_int (NULL, "capture_mode"), TVENG_CAPTURE_READ);

@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.h,v 1.2 2003-11-29 19:43:24 mschimek Exp $ */
+/* $Id: xawtv.h,v 1.3 2004-05-16 11:41:11 mschimek Exp $ */
 
 #ifndef XAWTV_H
 #define XAWTV_H
@@ -29,5 +29,11 @@ xawtv_config_present		(void);
 extern gboolean
 xawtv_import_config		(const tveng_device_info *info,
 				 tveng_tuned_channel **	channel_list);
+
+extern gboolean
+xawtv_ipc_set_station		(GtkWidget *		window,
+				 tveng_tuned_channel *	ch);
+extern gboolean
+xawtv_ipc_init			(GtkWidget *		window);
 
 #endif /* XAWTV_H */

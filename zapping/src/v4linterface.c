@@ -45,6 +45,7 @@
 #include "audio.h"
 #include "mixer.h"
 #include "properties-handler.h"
+#include "xawtv.h"
 
 struct control_window;
 
@@ -1252,6 +1253,8 @@ z_switch_channel		(tveng_tuned_channel *	channel,
     osd_render_markup (NULL,
 	("<span foreground=\"yellow\">%s</span>"), channel->name);
 #endif
+
+  xawtv_ipc_set_station (main_window, channel);
 }
 
 static void
