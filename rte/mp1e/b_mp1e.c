@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.40 2002-08-22 22:03:10 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.41 2002-09-07 01:49:22 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -74,6 +74,7 @@ int				luma_only;
 int				outFileFD;
 int				mux_syn;
 int				split_sequence = 0;
+long long			part_length = 0;
 
 void packed_preview(unsigned char *buffer, int mb_cols, int mb_rows) { }
 void preview_init(int *argc, char ***argv) { }
