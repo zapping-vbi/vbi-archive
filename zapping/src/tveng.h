@@ -281,7 +281,8 @@ typedef struct
   int num_controls;
   /* The supported controls */
   struct tveng_control * controls;
-
+  unsigned audio_mutable : 1;
+  
   /* Debugging/error reporting stuff */
   int tveng_errno; /* Numerical id of the last error, 0 == success */
   char * error; /* points to the last error message */
