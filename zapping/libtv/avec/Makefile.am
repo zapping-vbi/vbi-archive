@@ -12,4 +12,5 @@ INCLUDES = -I$(top_srcdir)
 
 libavec_a_SOURCES = \
 	avec.c avec.h \
-	clear_block.h
+	clear_block.h \
+	cpu.c
