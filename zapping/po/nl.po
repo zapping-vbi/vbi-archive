@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6.1\n"
-"POT-Creation-Date: 2002-06-18 10:25+0200\n"
+"POT-Creation-Date: 2002-06-19 05:29+0200\n"
 "PO-Revision-Date: 2001-10-05 22:28+02:00\n"
 "Last-Translator: Ime Smits <ime@iae.nl>\n"
 "Language-Team: Dutch <ime@iae.nl>\n"
