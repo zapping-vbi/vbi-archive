@@ -203,10 +203,12 @@ struct control {
 
 #define C(l) PARENT (l, struct control, pub)
 
+
 static int p_tveng1_queue(tveng_device_info * info);
 static int p_tveng1_dequeue(void *image,
 			    const tv_image_format *format,
-			    tveng_device_info * info);
+			    tveng_device_info * info,
+			    const struct timeval *	timeout);
 
 
 
@@ -2122,224 +2124,6 @@ get_overlay_chromakey		(tveng_device_info *info)
   return TRUE;
 }
 
-
-
-
-/*
-  Return fd for the device file opened. Checks if the device is a
-  valid video device. -1 on error.
-  Flags will be used for open()'ing the file 
-*/
-static
-int p_tveng1_open_device_file(int flags, tveng_device_info * info)
-{
-  struct private_tveng1_device_info *p_info = P_INFO (info);
-  struct video_capability caps;
-  
-  t_assert(info != NULL);
-  t_assert(info -> file_name != NULL);
-
-	info->fd = -1;
-
-	if (!(info->node.device = strdup (info->file_name)))
-		goto failure;
-
-  info -> fd = device_open (info->log_fp, info -> file_name, flags, 0);
-  if (-1 == info -> fd)
-    {
-      info->tveng_errno = errno; /* Just to put something other than 0 */
-      t_error("open()", info);
-      goto failure;
-    }
-
-  /* We check the capabilities of this video device */
-  if (-1 == xioctl(info, VIDIOCGCAP, &caps))
-    goto failure;
-
-  /* Check if this device is convenient for capturing */
-  if ( !(caps.type & VID_TYPE_CAPTURE) )
-    {
-      info->tveng_errno = -1;
-      snprintf(info->error, 256, 
-	       "%s doesn't look like a valid capture device", info
-	       -> file_name);
-      goto failure;
-    }
-
-#undef STRCOPY
-#define STRCOPY(s) _tv_strndup ((s), N_ELEMENTS (s))
-
-	/* We copy in case the string array lacks a NUL. */
-	/* XXX localize (encoding). */
-	if (!(info->node.label = STRCOPY (caps.name)))
-		goto failure;
-
-	info->node.bus = NULL; /* unknown */
-	info->node.driver = NULL; /* unknown */
-	info->node.version = NULL; /* unknown */
-
-  /* Copy capability info*/
-  snprintf(info->caps.name, 32, caps.name);
-  info->caps.channels = caps.channels;
-  info->caps.audios = caps.audios;
-  info->caps.maxwidth = caps.maxwidth;
-  info->caps.minwidth = caps.minwidth;
-  info->caps.maxheight = caps.maxheight;
-  info->caps.minheight = caps.minheight;
-  info->caps.flags = 0;
-
-  /* BTTV doesn't return properly the maximum width */
-#ifdef TVENG1_BTTV_PRESENT
-  if (info->caps.maxwidth > 768)
-    info->caps.maxwidth = 768;
-#endif
-
-  /* Sets up the capability flags */
-  if (caps.type & VID_TYPE_CAPTURE)
-    info ->caps.flags |= TVENG_CAPS_CAPTURE;
-  if (caps.type & VID_TYPE_TUNER)
-    info ->caps.flags |= TVENG_CAPS_TUNER;
-  if (caps.type & VID_TYPE_TELETEXT)
-    info ->caps.flags |= TVENG_CAPS_TELETEXT;
-  if (1)
-    {
-  if (caps.type & VID_TYPE_OVERLAY)
-    info ->caps.flags |= TVENG_CAPS_OVERLAY;
-  if (caps.type & VID_TYPE_CHROMAKEY)
-    info ->caps.flags |= TVENG_CAPS_CHROMAKEY;
-  if (caps.type & VID_TYPE_CLIPPING)
-    info ->caps.flags |= TVENG_CAPS_CLIPPING;
-    }
-  if (caps.type & VID_TYPE_FRAMERAM)
-    info ->caps.flags |= TVENG_CAPS_FRAMERAM;
-  if (caps.type & VID_TYPE_SCALES)
-    info ->caps.flags |= TVENG_CAPS_SCALES;
-  if (caps.type & VID_TYPE_MONOCHROME)
-    info ->caps.flags |= TVENG_CAPS_MONOCHROME;
-  if (caps.type & VID_TYPE_SUBCAPTURE)
-    info ->caps.flags |= TVENG_CAPS_SUBCAPTURE;
-
-	p_info->pwc_driver = FALSE;
-
-	{
-		struct pwc_probe probe;
-
-		CLEAR (probe);
-
-		if (0 == pwc_xioctl_may_fail (info, VIDIOCPWCPROBE, &probe)) {
-			if (0 == strncmp (info->caps.name,
-					  probe.name,
-					  MIN (sizeof (info->caps.name),
-					       sizeof (probe.name)))) {
-				p_info->pwc_driver = TRUE;
-			}
-		}
-	}
-
-	p_info->bttv_driver = FALSE;
-
-	if (!p_info->pwc_driver) {
-		/* Rather poor, but we must not send a private
-		   ioctl to innocent drivers. */
-		if (strstr (info->caps.name, "bt")
-		    || strstr (info->caps.name, "BT")) {
-			int version;
-			int dummy;
-
-			version = bttv_xioctl_may_fail (info, BTTV_VERSION,
-							&dummy);
-			if (version != -1)
-				p_info->bttv_driver = TRUE;
-		}
-	}
-
-  /* This tries to fill the fb_info field */
-  get_overlay_buffer (info);
-
-  /* Set some flags for this device */
-  fcntl( info -> fd, F_SETFD, FD_CLOEXEC );
-
-  /* Ignore the alarm signal */
-  signal(SIGALRM, SIG_IGN);
-
-  /* Set the controller */
-  info -> current_controller = TVENG_CONTROLLER_V4L1;
-
-  p_info->read_back_controls	= FALSE;
-  p_info->audio_mode_reads_rx	= TRUE;	/* bttv TRUE, other devices? */
-
-  /* XXX should be autodetected */
-#ifdef TVENG1_BTTV_MUTE_BUG_WORKAROUND
-  p_info->mute_flag_readable	= FALSE;
-#else
-  p_info->mute_flag_readable	= TRUE;
-#endif
-
-  p_info->channel_norm_usable	= channel_norm_test (info);
-
-  /* Everything seems to be OK with this device */
-  return (info -> fd);
-
- failure:
-	free (info->node.label);
-	info->node.label = NULL;
-
-	if (-1 != info->fd) {
-		device_close (0, info->fd);
-		info->fd = -1;
-	}
-
-	free (info->node.device);
-	info->node.device = NULL;
-
-	return -1;
-}
-
-/* Closes a device opened with tveng_init_device */
-static void tveng1_close_device(tveng_device_info * info)
-{
-  struct private_tveng1_device_info *p_info=
-    (struct private_tveng1_device_info*) info;
-
-  t_assert(info != NULL);
-
-  if (-1 != info->fd) {
-    gboolean dummy;
-
-    p_tveng_stop_everything(info, &dummy);
-    device_close(info->log_fp, info -> fd);
-    info -> fd = -1;
-  }
-
-  info -> current_controller = TVENG_CONTROLLER_NONE;
-
-  if (info -> file_name)
-    free(info -> file_name);
-
-	free_controls (info);
-
-	free_video_standards (info);
-
-	free_video_inputs (info);
-
-  if (p_info -> ogb_fd > 0)
-    device_close(info->log_fp, p_info->ogb_fd);
-  p_info ->ogb_fd = -1;
-
-  info -> file_name = NULL;
-
-  free (info->node.label);
-  free (info->node.bus);
-  free (info->node.driver);
-  free (info->node.version);
-  free (info->node.device);
-
-  CLEAR (info->node);
-
-  if (info->debug_level > 0)
-    fprintf(stderr, "\nTVeng: V4L1 controller unloaded\n");
-}
-
 static int
 tveng1_ioctl			(tveng_device_info *	info,
 				 unsigned int		cmd,
@@ -2474,112 +2258,77 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 	return pixfmt_set;
 }
 
-static void p_tveng1_timestamp_init(tveng_device_info *info);
-
-/*
-  Sets up the capture device so any read() call after this one
-  succeeds. Returns -1 on error.
-*/
-static int
-tveng1_start_capturing(tveng_device_info * info)
+static tv_bool
+unmap_xbuffers			(tveng_device_info *	info,
+				 tv_bool		ignore_errors)
 {
-  struct private_tveng1_device_info * p_info =
-    (struct private_tveng1_device_info*) info;
-  gboolean dummy;
+	struct private_tveng1_device_info *p_info = P_INFO (info);
+	tv_bool success;
 
-  p_tveng_stop_everything(info, &dummy);
-  t_assert(info -> capture_mode == CAPTURE_MODE_NONE);
+	if ((void *) -1 == p_info->mmaped_data)
+		return TRUE;
 
-  p_tveng1_timestamp_init(info);
+	success = TRUE;
 
-  /* Make the pointer a invalid pointer */
-  p_info -> mmaped_data = (char*) -1;
+	if (-1 == device_munmap (info->log_fp,
+				 p_info->mmaped_data,
+				 p_info->mmbuf.size)) {
+		if (!ignore_errors) {
+			info->tveng_errno = errno;
+			t_error("munmap()", info);
 
-  /* 
-     When this function is called, the desired capture format should
-     have been set.
-  */
-  if (xioctl(info, VIDIOCGMBUF, &(p_info->mmbuf)))
-      return -1;
+			success = FALSE;
+		}
+	}
 
-  t_assert (p_info->mmbuf.frames > 0);
+	p_info->mmaped_data = (void *) -1;
 
-  /* NB PROT_WRITE required since bttv 0.8,
-     client may write mmapped buffers too. */
-  p_info->mmaped_data = (char *) mmap (0, (unsigned int) p_info->mmbuf.size,
-				       PROT_READ | PROT_WRITE,
-				       MAP_SHARED, info->fd, 0);
-
-  if (p_info->mmaped_data == (char *) -1)
-    p_info->mmaped_data = (char *) mmap (0, (unsigned int) p_info->mmbuf.size,
-					 PROT_READ, MAP_SHARED,
-					 info->fd, 0);
-
-  if (p_info->mmaped_data == (char *) -1)
-    {
-      info->tveng_errno = errno;
-      t_error("mmap()", info);
-      return -1;
-    }
-
-  p_info -> queued = p_info -> dequeued = 0;
-
-  info->capture_mode = CAPTURE_MODE_READ;
-
-  /* Queue first buffer */
-  if (p_tveng1_queue(info) == -1)
-    return -1;
-
-  p_info->streaming = TRUE;
-
-  return 0;
-}
-
-/* Tries to stop capturing. -1 on error. */
-static int
-tveng1_stop_capturing(tveng_device_info * info)
-{
-  struct private_tveng1_device_info * p_info =
-    (struct private_tveng1_device_info*) info;
-
-  if (info -> capture_mode == CAPTURE_MODE_NONE)
-    {
-      fprintf(stderr, 
-	      "Warning: trying to stop capture with no capture active\n");
-      return 0; /* Nothing to be done */
-    }
-  t_assert(info->capture_mode == CAPTURE_MODE_READ);
-
-  /* Dequeue last buffer */
-  p_tveng1_dequeue(NULL, NULL, info);
-
-  if (p_info -> mmaped_data != ((char*)-1))
-    if (munmap(p_info->mmaped_data, (unsigned int) p_info->mmbuf.size) == -1)
-      {
-	info -> tveng_errno = errno;
-	t_error("munmap()", info);
-      }
-
-  info->capture_mode = CAPTURE_MODE_NONE;
-
-  p_info->streaming = FALSE;
-
-  return 0;
+	return success;
 }
 
 static tv_bool
-capture_enable			(tveng_device_info *	info,
-				 tv_bool		enable)
+map_xbuffers			(tveng_device_info *	info)
 {
-  int r;
+	struct private_tveng1_device_info *p_info = P_INFO (info);
+	unsigned int i;
 
-  if (enable)
-    r = tveng1_start_capturing (info);
-  else
-    r = tveng1_stop_capturing (info);
+	assert ((void *) -1 == p_info->mmaped_data);
 
-  return (0 == r);
+	CLEAR (p_info->mmbuf);
+
+	if (-1 == xioctl (info, VIDIOCGMBUF, &p_info->mmbuf))
+		return FALSE;
+
+	if (0 == p_info->mmbuf.frames)
+		return FALSE;
+
+	p_info->mmaped_data = device_mmap (info->log_fp,
+					   /* start: any */ NULL,
+					   (size_t) p_info->mmbuf.size,
+					   PROT_READ | PROT_WRITE,
+					   MAP_SHARED,
+					   info->fd,
+					   (off_t) 0);
+
+	if ((void *) -1 == p_info->mmaped_data) {
+		info->tveng_errno = errno;
+		t_error("mmap()", info);
+		return FALSE;
+	}
+
+	if (p_info->mmbuf.frames > VIDEO_MAX_FRAME)
+		p_info->mmbuf.frames = VIDEO_MAX_FRAME;
+
+	p_info -> queued = p_info -> dequeued = 0;
+
+	return TRUE;
 }
+
+
+
+
+
+
 
 static int p_tveng1_queue(tveng_device_info * info)
 {
@@ -2621,6 +2370,91 @@ static int p_tveng1_queue(tveng_device_info * info)
 
   return 0; /* Success */
 }
+
+
+
+
+
+
+static void p_tveng1_timestamp_init(tveng_device_info *info);
+
+/*
+  Sets up the capture device so any read() call after this one
+  succeeds. Returns -1 on error.
+*/
+static int
+tveng1_start_capturing(tveng_device_info * info)
+{
+  struct private_tveng1_device_info * p_info =
+    (struct private_tveng1_device_info*) info;
+  gboolean dummy;
+
+  p_tveng_stop_everything(info, &dummy);
+  t_assert(info -> capture_mode == CAPTURE_MODE_NONE);
+
+  p_tveng1_timestamp_init(info);
+
+	if (!map_xbuffers (info)) {
+		return -1;
+	}
+
+  info->capture_mode = CAPTURE_MODE_READ;
+
+  /* Queue first buffer */
+  if (p_tveng1_queue(info) == -1)
+    return -1;
+
+  p_info->streaming = TRUE;
+
+  return 0;
+}
+
+/* Tries to stop capturing. -1 on error. */
+static int
+tveng1_stop_capturing(tveng_device_info * info)
+{
+  struct private_tveng1_device_info * p_info =
+    (struct private_tveng1_device_info*) info;
+  struct timeval timeout;
+
+  if (info -> capture_mode == CAPTURE_MODE_NONE)
+    {
+      fprintf(stderr, 
+	      "Warning: trying to stop capture with no capture active\n");
+      return 0; /* Nothing to be done */
+    }
+  t_assert(info->capture_mode == CAPTURE_MODE_READ);
+
+  timeout.tv_sec = 1;
+  timeout.tv_usec = 0;
+
+  /* Dequeue last buffer */
+  p_tveng1_dequeue(NULL, NULL, info, &timeout);
+
+  if (!unmap_xbuffers (info, /* ignore_errors */ FALSE))
+	  return -1;
+
+  info->capture_mode = CAPTURE_MODE_NONE;
+
+  p_info->streaming = FALSE;
+
+  return 0;
+}
+
+static tv_bool
+capture_enable			(tveng_device_info *	info,
+				 tv_bool		enable)
+{
+  int r;
+
+  if (enable)
+    r = tveng1_start_capturing (info);
+  else
+    r = tveng1_stop_capturing (info);
+
+  return (0 == r);
+}
+
 
 /*
  *  From rte/mp1e since it now needs much more stable
@@ -2667,9 +2501,18 @@ p_tveng1_timestamp_init(tveng_device_info *info)
   p_info->frame_period_near = p_info->frame_period_far = 1.0 / rate;
 }
 
+static sig_atomic_t timeout_alarm;
+
+static void
+alarm_handler			(int			signum)
+{
+	timeout_alarm = TRUE;
+}
+
 static int p_tveng1_dequeue(void *image,
 			    const tv_image_format *format,
-			    tveng_device_info * info)
+			    tveng_device_info * info,
+			    const struct timeval *	timeout)
 {
   struct private_tveng1_device_info *p_info = P_INFO (info);
   int frame;
@@ -2680,17 +2523,62 @@ static int p_tveng1_dequeue(void *image,
   if (p_info -> dequeued == p_info -> queued)
     return 0; /* All queued frames have been dequeued */
 
-  frame = p_info->dequeued % p_info->mmbuf.frames;
+	timeout_alarm = FALSE;
 
-  while (-1 == xioctl(info, VIDIOCSYNC, &frame))
-    {
-      if (errno == EINTR)
-	continue;
+	if (timeout) {
+		struct itimerval iv;
 
-      return -1;
-    }
+		/* Sets the timer to expire (SIGALRM) if we do not
+		   receive a frame within timeout. */
+		/* XXX there's only ITIMER_REAL, may conflict with
+		   caller use of timer, isn't reentrant. */
+
+		iv.it_interval.tv_sec = 0;
+		iv.it_interval.tv_usec = 0;
+
+		if (0 == (timeout->tv_sec | timeout->tv_usec)) {
+			/* XXX can we temporarily switch to nonblocking? */
+
+			iv.it_value.tv_sec = 0;
+			iv.it_value.tv_usec = 1000;
+		} else {
+			iv.it_value = *timeout;
+		}
+
+		if (-1 == setitimer (ITIMER_REAL, &iv, NULL)) {
+			info->tveng_errno = errno;
+			t_error("setitimer()", info);
+			return -1;
+		}
+	} else {
+		/* Block forever. */
+	}
+
+	frame = p_info->dequeued % p_info->mmbuf.frames;
+
+	while (-1 == xioctl(info, VIDIOCSYNC, &frame)) {
+		switch (errno) {
+		case EINTR:
+			if (timeout_alarm)
+				return -1;
+
+			continue;
+
+		default:
+			return -1;
+		}
+	}
 
   p_info->last_timestamp = p_tveng1_timestamp(p_info);
+
+	if (timeout) {
+		struct itimerval iv;
+
+		CLEAR (iv); /* cancel alarm */
+
+		/* Error ignored. */
+		setitimer (ITIMER_REAL, &iv, NULL);
+	}
 
   /* Copy the mmaped data to the data struct, if it is not null */
   if (image)
@@ -2711,8 +2599,6 @@ read_frame			(tveng_device_info *	info,
 				 tv_capture_buffer *	buffer,
 				 const struct timeval *	timeout)
 {
-  struct itimerval iv;
-
   t_assert(info != NULL);
 
   if (info -> capture_mode != CAPTURE_MODE_READ)
@@ -2729,25 +2615,9 @@ read_frame			(tveng_device_info *	info,
 
 	/* Dequeue previously queued frame */
 
-	/* XXX expect timeout zero */
-	if (timeout) {
-		/* Sets the timer to expire (SIGALARM) in the given time */
-		iv.it_interval.tv_sec = 0;
-		iv.it_interval.tv_usec = 0;
-		iv.it_value = *timeout;
-
-		if (-1 == setitimer (ITIMER_REAL, &iv, NULL)) {
-			info->tveng_errno = errno;
-			t_error("setitimer()", info);
-			return -1;
-		}
-	} else {
-		/* Block forever. */
-	}
-
 /* XXX 0 timeout */
   if (p_tveng1_dequeue(buffer ? buffer->data : NULL,
-		       buffer ? buffer->format : NULL, info) == -1)
+		       buffer ? buffer->format : NULL, info, timeout) == -1)
     return -1;
 
   /* Everything has been OK, return 1 (success) */
@@ -2769,6 +2639,232 @@ ov511_get_button_state		(tveng_device_info	*info)
     return -1;
 
   return (button_state - '0');
+}
+
+/*
+  Return fd for the device file opened. Checks if the device is a
+  valid video device. -1 on error.
+  Flags will be used for open()'ing the file 
+*/
+static
+int p_tveng1_open_device_file(int flags, tveng_device_info * info)
+{
+  struct private_tveng1_device_info *p_info = P_INFO (info);
+  struct video_capability caps;
+  
+  t_assert(info != NULL);
+  t_assert(info -> file_name != NULL);
+
+	info->fd = -1;
+
+	if (!(info->node.device = strdup (info->file_name)))
+		goto failure;
+
+  info -> fd = device_open (info->log_fp, info -> file_name, flags, 0);
+  if (-1 == info -> fd)
+    {
+      info->tveng_errno = errno; /* Just to put something other than 0 */
+      t_error("open()", info);
+      goto failure;
+    }
+
+  /* We check the capabilities of this video device */
+  if (-1 == xioctl(info, VIDIOCGCAP, &caps))
+    goto failure;
+
+  /* Check if this device is convenient for capturing */
+  if ( !(caps.type & VID_TYPE_CAPTURE) )
+    {
+      info->tveng_errno = -1;
+      snprintf(info->error, 256, 
+	       "%s doesn't look like a valid capture device", info
+	       -> file_name);
+      goto failure;
+    }
+
+#undef STRCOPY
+#define STRCOPY(s) _tv_strndup ((s), N_ELEMENTS (s))
+
+	/* We copy in case the string array lacks a NUL. */
+	/* XXX localize (encoding). */
+	if (!(info->node.label = STRCOPY (caps.name)))
+		goto failure;
+
+	info->node.bus = NULL; /* unknown */
+	info->node.driver = NULL; /* unknown */
+	info->node.version = NULL; /* unknown */
+
+  /* Copy capability info*/
+  snprintf(info->caps.name, 32, caps.name);
+  info->caps.channels = caps.channels;
+  info->caps.audios = caps.audios;
+  info->caps.maxwidth = caps.maxwidth;
+  info->caps.minwidth = caps.minwidth;
+  info->caps.maxheight = caps.maxheight;
+  info->caps.minheight = caps.minheight;
+  info->caps.flags = 0;
+
+  /* BTTV doesn't return properly the maximum width */
+#ifdef TVENG1_BTTV_PRESENT
+  if (info->caps.maxwidth > 768)
+    info->caps.maxwidth = 768;
+#endif
+
+  /* Sets up the capability flags */
+  if (caps.type & VID_TYPE_CAPTURE)
+    info ->caps.flags |= TVENG_CAPS_CAPTURE;
+  if (caps.type & VID_TYPE_TUNER)
+    info ->caps.flags |= TVENG_CAPS_TUNER;
+  if (caps.type & VID_TYPE_TELETEXT)
+    info ->caps.flags |= TVENG_CAPS_TELETEXT;
+  if (1)
+    {
+  if (caps.type & VID_TYPE_OVERLAY)
+    info ->caps.flags |= TVENG_CAPS_OVERLAY;
+  if (caps.type & VID_TYPE_CHROMAKEY)
+    info ->caps.flags |= TVENG_CAPS_CHROMAKEY;
+  if (caps.type & VID_TYPE_CLIPPING)
+    info ->caps.flags |= TVENG_CAPS_CLIPPING;
+    }
+  if (caps.type & VID_TYPE_FRAMERAM)
+    info ->caps.flags |= TVENG_CAPS_FRAMERAM;
+  if (caps.type & VID_TYPE_SCALES)
+    info ->caps.flags |= TVENG_CAPS_SCALES;
+  if (caps.type & VID_TYPE_MONOCHROME)
+    info ->caps.flags |= TVENG_CAPS_MONOCHROME;
+  if (caps.type & VID_TYPE_SUBCAPTURE)
+    info ->caps.flags |= TVENG_CAPS_SUBCAPTURE;
+
+  p_info -> mmaped_data = (char*) -1;
+
+	p_info->pwc_driver = FALSE;
+
+	{
+		struct pwc_probe probe;
+
+		CLEAR (probe);
+
+		if (0 == pwc_xioctl_may_fail (info, VIDIOCPWCPROBE, &probe)) {
+			if (0 == strncmp (info->caps.name,
+					  probe.name,
+					  MIN (sizeof (info->caps.name),
+					       sizeof (probe.name)))) {
+				p_info->pwc_driver = TRUE;
+			}
+		}
+	}
+
+	p_info->bttv_driver = FALSE;
+
+	if (!p_info->pwc_driver) {
+		/* Rather poor, but we must not send a private
+		   ioctl to innocent drivers. */
+		if (strstr (info->caps.name, "bt")
+		    || strstr (info->caps.name, "BT")) {
+			int version;
+			int dummy;
+
+			version = bttv_xioctl_may_fail (info, BTTV_VERSION,
+							&dummy);
+			if (version != -1)
+				p_info->bttv_driver = TRUE;
+		}
+	}
+
+  /* This tries to fill the fb_info field */
+  get_overlay_buffer (info);
+
+  /* Set some flags for this device */
+  fcntl( info -> fd, F_SETFD, FD_CLOEXEC );
+
+	{
+		struct sigaction sa;
+
+		CLEAR (sa);
+		sa.sa_handler = alarm_handler;
+		/* no sa_flags = SA_RESTART to cause EINTR. */
+
+		sigaction (SIGALRM, &sa, NULL);
+	}
+
+  /* Set the controller */
+  info -> current_controller = TVENG_CONTROLLER_V4L1;
+
+  p_info->read_back_controls	= FALSE;
+  p_info->audio_mode_reads_rx	= TRUE;	/* bttv TRUE, other devices? */
+
+  /* XXX should be autodetected */
+#ifdef TVENG1_BTTV_MUTE_BUG_WORKAROUND
+  p_info->mute_flag_readable	= FALSE;
+#else
+  p_info->mute_flag_readable	= TRUE;
+#endif
+
+  p_info->channel_norm_usable	= channel_norm_test (info);
+
+  /* Everything seems to be OK with this device */
+  return (info -> fd);
+
+ failure:
+	free (info->node.label);
+	info->node.label = NULL;
+
+	if (-1 != info->fd) {
+		device_close (0, info->fd);
+		info->fd = -1;
+	}
+
+	free (info->node.device);
+	info->node.device = NULL;
+
+	return -1;
+}
+
+/* Closes a device opened with tveng_init_device */
+static void tveng1_close_device(tveng_device_info * info)
+{
+  struct private_tveng1_device_info *p_info=
+    (struct private_tveng1_device_info*) info;
+
+  t_assert(info != NULL);
+
+  if (-1 != info->fd) {
+    gboolean dummy;
+
+    p_tveng_stop_everything(info, &dummy);
+    device_close(info->log_fp, info -> fd);
+    info -> fd = -1;
+  }
+
+  signal (SIGALRM, SIG_DFL);
+
+  info -> current_controller = TVENG_CONTROLLER_NONE;
+
+  if (info -> file_name)
+    free(info -> file_name);
+
+	free_controls (info);
+
+	free_video_standards (info);
+
+	free_video_inputs (info);
+
+  if (p_info -> ogb_fd > 0)
+    device_close(info->log_fp, p_info->ogb_fd);
+  p_info ->ogb_fd = -1;
+
+  info -> file_name = NULL;
+
+  free (info->node.label);
+  free (info->node.bus);
+  free (info->node.driver);
+  free (info->node.version);
+  free (info->node.device);
+
+  CLEAR (info->node);
+
+  if (info->debug_level > 0)
+    fprintf(stderr, "\nTVeng: V4L1 controller unloaded\n");
 }
 
 /*
@@ -2925,7 +3021,7 @@ int tveng1_attach_device(const char* device_file,
   set_capture_format (info, &info->capture.format);
 
   /* init the private struct */
-  p_info->mmaped_data = NULL;
+  p_info->mmaped_data = (void *) -1;
   p_info->queued = p_info->dequeued = 0;
 
   /* get the minor device number for accessing the appropiate /proc
