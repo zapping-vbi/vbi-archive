@@ -3475,6 +3475,31 @@ build_ttxview(void)
   return (ttxview);
 }
 
+static void
+set_toolbar_style_recursive	(GtkToolbar	*toolbar,
+				 GtkToolbarStyle style)
+{
+  GList *p;
+  GtkToolbarChild *child;
+
+  if (!toolbar)
+    return;
+
+  p = toolbar->children;
+
+  while (p)
+    {
+      child = (GtkToolbarChild*)p->data;
+
+      if (child->type == GTK_TOOLBAR_CHILD_WIDGET &&
+	  GTK_IS_TOOLBAR(child->widget))
+	set_toolbar_style_recursive(GTK_TOOLBAR(child->widget), style);
+      p = p->next;
+    }
+
+  gtk_toolbar_set_style(toolbar, style);
+}
+
 void
 ttxview_attach			(GtkWidget	*parent,
 				 GtkWidget	*da,
@@ -3622,8 +3647,10 @@ ttxview_attach			(GtkWidget	*parent,
   gtk_widget_show(data->toolbar);
 
   data->toolbar_style = GTK_TOOLBAR(data->parent_toolbar)->style;
-  gtk_toolbar_set_style(GTK_TOOLBAR(data->parent_toolbar), GTK_TOOLBAR_ICONS);
+  set_toolbar_style_recursive(GTK_TOOLBAR(data->parent_toolbar),
+			      GTK_TOOLBAR_ICONS);
 
+  gtk_toolbar_prepend_space(GTK_TOOLBAR(data->toolbar));
   gtk_toolbar_append_widget(GTK_TOOLBAR(data->parent_toolbar),
 			    data->toolbar, "", "");
 
@@ -3676,8 +3703,8 @@ ttxview_detach			(GtkWidget	*parent)
 				GTK_SIGNAL_FUNC(selection_clear),
 				data);
 
-  gtk_toolbar_set_style(GTK_TOOLBAR(data->parent_toolbar),
-			data->toolbar_style);
+  set_toolbar_style_recursive(GTK_TOOLBAR(data->parent_toolbar),
+			      data->toolbar_style);
 
   remove_ttxview_instance(data);
 

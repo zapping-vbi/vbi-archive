@@ -36,6 +36,7 @@ Outstanding issues for the next release (0.6.0)
 	+ In ttx export: instead of "export dir", chop off and remember
 	  the last path entered. Add HTML option "Save Color". Make
 	  blockgfx replacement smarter.
+	+ zapzilla: channel selector, properties.
 
 > Somewhen...
 	+ Do realtime effects to the image, plainly wonderful, see

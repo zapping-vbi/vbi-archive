@@ -449,13 +449,6 @@
 	</widget>
 
 	<widget>
-	  <class>GtkVSeparator</class>
-	  <name>sep1</name>
-	  <width>8</width>
-          <height>30</height> 
-	</widget>
-
-	<widget>
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
 	  <name>button1</name>
@@ -472,6 +465,9 @@
 	  </signal>
 	  <label>Controls</label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_EXEC</stock_pixmap>
+	  <child>
+	    <new_group>True</new_group>
+	  </child>
 	</widget>
 
 	<widget>

@@ -1,3 +1,11 @@
-14-2-2000	First release of this packet
----------
-	+ es.po quite complete
+2001-08-02  gettextize  <bug-gnu-utils@gnu.org>
+
+	* Makefile.in.in: Upgrade to gettext-0.10.36.
+
+2001-08-02  gettextize  <bug-gnu-utils@gnu.org>
+
+	* Makefile.in.in: Upgrade to gettext-0.10.36.
+
+2001-08-02  gettextize  <bug-gnu-utils@gnu.org>
+
+	* Makefile.in.in: Upgrade to gettext-0.10.36.
