@@ -1,10 +1,14 @@
 Known bugs with zapping, don't report them
 ------------------------------------------
-* == Bug that needs fixing
-! == Bug that needs fixing, very important
+- == Annoying
+* == Bug
+! == Killer bug
 ------------------------------------------
-
-	* bttv 0.9.5 seems to crash the X server whenever
+ 
+	- In capture mode window resizing flickers.
+	* Wrong aspect when video window opens:
+	  bugzilla.gnome.org #108237.
+	! bttv 0.9.5 seems to crash the X server whenever
 	  XvPutImage is called (field ANY not handled?).
 	  Gerd notified, promised fix in 0.9.6.
 	* v4l/v4l2 fbuf params must be validated in case

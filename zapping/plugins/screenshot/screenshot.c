@@ -583,9 +583,9 @@ void plugin_add_gui (GnomeApp * app)
     {
       GtkWidget *tmp_toolbar_icon;
 
-      tmp_toolbar_icon =
-	gtk_image_new_from_stock (GTK_STOCK_SELECT_COLOR,
-				  GTK_ICON_SIZE_LARGE_TOOLBAR);
+      tmp_toolbar_icon = z_load_pixmap ("screenshot.png");
+//	gtk_image_new_from_stock (GTK_STOCK_SELECT_COLOR,
+//				  GTK_ICON_SIZE_LARGE_TOOLBAR);
 
       button = gtk_toolbar_append_item (GTK_TOOLBAR (toolbar),
 					_("Screenshot"),

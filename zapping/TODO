@@ -1,57 +1,94 @@
-Outstanding issues for the next release (0.7)
------------------------------------------------
-	* Channel up/down should finish channel number entering
-	  on keypad or (a)lirc.
-	+ Prefs building takes longer and longer, it's annoying.
-	+ Maybe Zapping should support all xawtv command line options?
-	+ We need an Xv overlay port menu.
-	+ http://developer.gnome.org/dotplan/porting/ checklist.
-        + Are we using window fully visible, partially visible and
-	  fully obscured X11 events to optimize capture mode?
-	+ preferences from context menu (zapping-misc 2003-01-05)
-	+ configure.in: esd, oss etc checks
-	+ channel menu: don't add blank channels
-	+ Video standard question.
-	+ Improve documentation.
-	+ Check compilation works without optional libs
-	+ Switching subtitles on/off needs improvement.
-	+ Fullscreen integrates badly into desktop, eg. context menu.
-	+ vbi: add toggle button to disable CC/TTX decoding
-          (independent of station name decoding, that is). Mind
-	  listing subtitles. Should also disable trigger
-          decoding when all set to ignore.
-	+ zapzilla: channel selector, properties.
-	+ Finish parrot buffer for observing parrots.
-	+ Get thumbnails of all tuned channels.
-	+ PIP?
-	+ Take TTX out of the context menus when Zapping doesn't
-	  receive TTX. (event timestamps?)
-	+ Better audio mode (mono/stereo etc) support.
-	+ Finish WSS.
-	+ Check tveng has frame rate for timestamping. (Unlike mpeg bug.)
-	+ Remove default overlay page?
-	+ ttxview.c/selection_handle: What's the correct char set?
-	+ Is zvbi really needed for osd?
-	+ --roottv switch (use Z as screensaver)
-	+ Do realtime effects to the image, plainly wonderful, see
-	http://matsu-www.is.titech.ac.jp/~fukuchi/rooms/EffecTV/index.html
-	+ More compression formats.
-	+ Trigger: Close should remember it had been clicked already
-	  when a trigger is merely repeated.
-	+ Recording schedule.
-	+ Screenshot plugin: subtitle overlay
-	+ Mpeg plugin/mp1e very low frame rate interrupts display,
-	  probably a scheduling issue. Investigate if/how this can be avoided.
-	+ Examine the possiblity of linking movie titles, VBI plugin API.
-	+ Deinterlace plugin.
-	+ VBI station name ignored when card w/tuner & composite selected 
-	+ Compress config file (libxml).
-	+ Config toolbar.
-	+ Clean up context menu.
-	+ Re-add toolbar style option.
-	+ Remove tveng_frame_format.bytesperline.
-	+ Verify all Gnome etc URLs everywhere.
-	+ Eliminate WSS/GC from the display (paint, clip, whatever)
+Outstanding issues for future releases
+--------------------------------------
+
+* UYVY in mpeg plugin.
+* Channel up/down should finish channel number entering
+  on keypad or (a)lirc.
+* Prefs building takes longer and longer, it's annoying.
+* Maybe Zapping should support all xawtv command line options?
+* We need an Xv overlay port menu.
+* http://developer.gnome.org/dotplan/porting/ checklist.
+* Are we using window fully visible, partially visible and
+  fully obscured X11 events to optimize capture mode?
+* preferences from context menu (zapping-misc 2003-01-05)
+* configure.in: esd, oss etc checks
+* channel menu: don't add blank channels
+* Video standard question.
+* Improve documentation.
+* Check compilation works without optional libs
+* Switching subtitles on/off needs improvement.
+* Fullscreen integrates badly into desktop, eg. context menu.
+* vbi: add toggle button to disable CC/TTX decoding
+  (independent of station name decoding, that is). Mind
+  listing subtitles. Should also disable trigger
+  decoding when all set to ignore.
+* zapzilla: channel selector, properties.
+* Finish parrot buffer for observing parrots.
+* Get thumbnails of all tuned channels.
+* PIP?
+* Take TTX out of the context menus when Zapping doesn't
+  receive TTX. (event timestamps?)
+* Better audio mode (mono/stereo etc) support.
+* Check tveng has frame rate for timestamping. (Unlike mpeg bug.)
+* Remove default overlay page?
+* ttxview.c/selection_handle: What's the correct char set?
+* Is zvbi really needed for osd?
+* --roottv switch (use Z as screensaver)
+* Do realtime effects to the image, plainly wonderful, see
+  http://matsu-www.is.titech.ac.jp/~fukuchi/rooms/EffecTV/index.html
+* More compression formats.
+* Trigger: Close should remember it had been clicked already
+  when a trigger is merely repeated.
+* Recording schedule.
+* Screenshot plugin: subtitle overlay
+* Mpeg plugin/mp1e very low frame rate interrupts display,
+  probably a scheduling issue. Investigate if/how this can be avoided.
+* Examine the possiblity of linking movie titles, VBI plugin API.
+* Deinterlace plugin.
+* VBI station name ignored when card w/tuner & composite selected 
+* Compress config file (libxml).
+* Config toolbar using Iñaki's dnd code.
+* Clean up context menu.
+* Re-add toolbar style option.
+* Remove tveng_frame_format.bytesperline.
+* Verify all Gnome etc URLs everywhere.
+
+* Better 16:9 support:
+
+  WSS acquisition needs to be more robust. Usually video and VBI
+  capturing cannot overlap and video capturing includes the WSS
+  line. Hardware (sliced) VBI decoding would pick it up despite video
+  capturing, but not every hardware has the capability and AFAIK no
+  driver supports the API yet. We can still sample the signal off
+  captured images or even overlaid images by reading from video ram.
+
+  To get rid of the annoying WSS and CG patterns in the picture, in
+  overlay mode V4L2 cropping could reduce the image height, then the
+  driver could shift the VBI capture window down to cover the WSS. If
+  that's not possible one could still clip the line out, but then
+  Zapping won't see WSS changes either. In capture mode reducing the
+  height may conflict with recording (height mod 16 et al). Blanking
+  the line after extracting WSS should be no problem.
+
+  The appearance menu is editable now, nevertheless it must be
+  possible to switch between 4:3 and 16:9 regardless of the current
+  window size. I'd also like two 16:9 modes, one properly scaling
+  anamorphic 16:9 and another to get rid of letterbox bars. Would be
+  useful for proud owners of 16:9 monitors and generally save screen
+  space.
+
+  Overlay is usually limited to 768. Xv could overlay with bounce
+  buffers in video ram, but right now doesn't. Zapping should
+  automagically fall back to capture mode to achieve 1024x576. As a
+  last resort it can scale to 768x432. Better yet it had a deinterlace
+  plugin which can optionally scale 1024:768. We could use capture
+  mode with field motion (50/60 Hz refresh rate) and compensate for
+  filterless hw scaling. Just duplicating every third pixel already
+  gives artefacts, not to mention dropping one of four field lines.
+
+  Fullscreen mode currently implies overlay and the picture aspect is
+  assumed 4:3. Actually the app should look up an XF86 Modeline with
+  16:9 aspect or use e.g. 1024x768, kind of a HDTV letterbox.
 
 Please tell me about anything you think is worth adding:
 

@@ -39,6 +39,7 @@
 #include "keyboard.h"
 #include "remote.h"
 #include "globals.h"
+#include "zvideo.h"
 
 /* Property handlers for the different pages */
 /* Device info */
@@ -735,11 +736,13 @@ mw_setup		(GtkWidget	*page)
 		     zconf_get_string(NULL,
 				      "/zapping/options/main/title_format"));
 
+#if 0 /* FIXME combine with size inc, move into menu */
   /* ratio mode to use */
   widget = lookup_widget(page, "optionmenu1");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
     zconf_get_integer(NULL,
-		      "/zapping/options/main/ratio"));  
+		      "/zapping/options/main/ratio"));
+#endif
 
   {
     gint n;
@@ -816,7 +819,8 @@ static void
 mw_apply		(GtkWidget	*page)
 {
   GtkWidget *widget;
-  gboolean top;
+  GtkWidget *tv_screen;
+  gboolean top, inc;
 
   widget = lookup_widget(page, "checkbutton2"); /* keep geometry */
   zconf_set_boolean(gtk_toggle_button_get_active(
@@ -834,9 +838,14 @@ mw_apply		(GtkWidget	*page)
   x11_screensaver_control (top);
 
   widget = lookup_widget(page, "checkbutton4"); /* fixed increments */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-		 GTK_TOGGLE_BUTTON(widget)),
-		    "/zapping/options/main/fixed_increments");
+  inc = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  zconf_set_boolean (inc, "/zapping/options/main/fixed_increments");
+  tv_screen = lookup_widget (main_window, "tv-screen");
+  if (inc)
+    z_video_set_size_inc (Z_VIDEO (tv_screen), 64, 64 * 3 / 4); // XXX free, 4:3, 16:9
+  else
+    z_video_set_size_inc (Z_VIDEO (tv_screen), 1, 1);
+
 /*
   widget = lookup_widget(page, "checkbutton13"); // swap chan up/down
   zconf_set_boolean(gtk_toggle_button_get_active(
@@ -848,9 +857,11 @@ mw_apply		(GtkWidget	*page)
   zconf_set_string(gtk_entry_get_text(GTK_ENTRY(widget)),
 		   "/zapping/options/main/title_format");
 
+#if 0 /* FIXME */
   widget = lookup_widget(page, "optionmenu1"); /* ratio mode */
   zconf_set_integer(z_option_menu_get_active(widget),
 		    "/zapping/options/main/ratio");
+#endif
 
   /* entered channel numbers refer to */
   widget = lookup_widget (page, "channel_number_translation");

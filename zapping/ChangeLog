@@ -1,3 +1,40 @@
+22.3.2003	<mschimek@users.sf.net>
+
+	* pixmaps/Makefile.am: Fixed path of zapping.desktop icon.
+	* src/oss.c (oss_mixer_set_rec_line): Fixed incorrect
+	  set of record lines.
+
+21.3.2003	<mschimek@users.sf.net>
+
+	* glade/zapping.glade2, src/properties-handler.c: Removed ratio
+	  option, needs rewrite. Auto ratio doesn't work as suggested,
+	  belongs into menu, ought to use ZVideo.
+	* glade/zapping.glade2: Replaced tv_screen GtkDrawingArea.
+	* src/Makefile.am: added zvideo.c, zvideo.h.
+	* src/cmd.c: Fixed shutdown muting incorrectly recorded in config.
+	* src/fullscreen.c: Switched from GtkDrawingArea to ZVideo. Paint
+	  video background black.
+	* src/interface.c: Replaced tv_screen GtkDrawingArea by ZVideo.
+	  Paint window background black. Fixed toolbar up/down command
+	  connection.
+	* src/main.c: Removed 1-unit-height hack. Removed geometry hints
+	  timeout hack. This is now better addressed (I hope) in ZVideo.
+	  Moved hide-pointer functions into ZVideo, is cleaner. Fixed
+	  first startup video size 0,0. Fixed saving of global
+	  (vs. per-channel) controls.
+	* src/properties-handler.c: Control window size increment with
+	  ZVideo.
+	* src/zmisc.c (zmisc_switch_mode): Use ZVideo cursor blanking.
+	  Fixed unmuting during shutdown. Moved z_set_cursor() into ZVideo.
+	* src/zmisc.c, src/zmisc.h (z_set_cursor): Moved into ZVideo.
+	* src/zvideo.c, src/zvideo.h: New custom widget, specialization
+	  of GtkDrawingArea, for better control over video size.
+
+7.3.2003	<mschimek@users.sf.net>
+
+	* src/tveng2.c, src/tveng25.c: Fixed get_standard code
+	  determining active picture size.
+
 5.3.2003	<mschimek@users.sf.net>
 
 	* common/Makefile.am: fprintf_videodev25.h compile warning fix.
