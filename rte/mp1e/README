@@ -4,9 +4,8 @@
   Installation
   ============
 
-  When you got mp1e from cvs, type "./autogen.sh" to create
-  and run the configure script. You will need recent versions
-  of the GNU build utilities automake, autoconf etc.
+  When you got mp1e from cvs, type "./autogen.sh" in the
+  parent rte/ directory, then cd into mp1e/ and proceed as follows.
 
   When the source comes from a .tgz or .rpm package, just
   type "./configure".

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alloc.h,v 1.1 2000-12-11 04:12:52 mschimek Exp $ */
+/* $Id: alloc.h,v 1.2 2002-06-25 04:35:40 mschimek Exp $ */
 
 #ifndef ALLOC_H
 #define ALLOC_H
@@ -31,7 +31,7 @@
 #define free_aligned(p) free(((void **) p)[-1])
 #endif
 
-extern void *alloc_aligned(size_t, int, bool);
+extern void *alloc_aligned(size_t, unsigned int, z_bool);
 
 static inline void *
 malloc_aligned(size_t size, int align)

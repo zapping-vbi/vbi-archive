@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: threads.h,v 1.7 2001-08-22 01:26:53 mschimek Exp $ */
+/* $Id: threads.h,v 1.8 2002-06-25 04:35:40 mschimek Exp $ */
 
 #ifndef THREADS_H
 #define THREADS_H
@@ -31,7 +31,7 @@
 typedef struct {
 	pthread_mutex_t		mutex;		/* attn: fast mutex */
 	pthread_cond_t		cond;
-	list			list;
+	struct list		list;
 } mucon;
 
 static inline void

@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.36 2002-02-25 06:24:40 mschimek Exp $ */
+/* $Id: fifo.c,v 1.37 2002-06-25 04:35:40 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -72,8 +72,8 @@ addr2line(void *addr)
 }
 
 void
-asserts_fail(char *assertion, char *file, unsigned int line,
-	char *function, void *caller)
+asserts_fail(const char *assertion, const char *file, unsigned int line,
+	     const char *function, void *caller)
 {
 	char *at = addr2line(caller);
 
@@ -92,7 +92,7 @@ asserts_fail(char *assertion, char *file, unsigned int line,
  *  Buffer
  */
 
-static bool
+static z_bool
 nop(void)
 {
 	return TRUE;
@@ -125,7 +125,7 @@ uninit_buffer(buffer *b)
 buffer *
 init_buffer(buffer *b, ssize_t size)
 {
-	size_t page_size = (size_t) sysconf(_SC_PAGESIZE);
+	ssize_t page_size = (ssize_t) sysconf(_SC_PAGESIZE);
 
 	memset(b, 0, sizeof(buffer));
 
@@ -133,7 +133,7 @@ init_buffer(buffer *b, ssize_t size)
 
 	if (size > 0) {
 		b->data =
-		b->allocated =
+		b->allocated = (unsigned char *)
 			calloc_aligned(size, (size < page_size) ?
 				CACHE_LINE : page_size);
 
@@ -172,7 +172,7 @@ alloc_buffer(ssize_t size)
 {
 	buffer *b;
 
-	if (!(b = malloc(sizeof(buffer))))
+	if (!(b = (buffer *) malloc(sizeof(buffer))))
 		return NULL;
 
 	if (!init_buffer(b, size)) {
@@ -288,7 +288,7 @@ uninit_fifo(fifo *f)
 	f->wait_full  = (void (*)(fifo *)) dead_fifo;
 	f->send_empty = (void (*)(consumer *, buffer *)) dead_consumer;
 
-	f->start      = (bool (*)(fifo *)) dead_fifo;
+	f->start      = (z_bool (*)(fifo *)) dead_fifo;
 	f->stop       = (void (*)(fifo *)) dead_fifo;
 
 	f->alloc_buffer = NULL;
@@ -693,7 +693,7 @@ send_full_buffer(producer *p, buffer *b)
 		if (!p->eof_sent)
 			f->eof_count++;
 
-		if (f->eof_count < list_members(&f->producers)) {
+		if (f->eof_count < (int) list_members(&f->producers)) {
 			b->consumers = 0;
 			b->used = -1;
 			b->error = EINVAL;
@@ -792,7 +792,7 @@ attach_buffer(fifo *f, buffer *b)
  * Return value: 
  * %FALSE when @b is %NULL.
  **/
-bool
+z_bool
 add_buffer(fifo *f, buffer *b)
 {
 	consumer c;
@@ -826,7 +826,7 @@ init_fifo(fifo *f, char *name,
 	f->wait_full  = custom_wait_full;
 	f->send_empty = custom_send_empty;
 
-	f->start = (bool (*)(fifo *)) nop;
+	f->start = (z_bool (*)(fifo *)) nop;
 	f->stop  = (void (*)(fifo *)) nop;
 
 	f->destroy = uninit_fifo;
@@ -1077,7 +1077,7 @@ add_producer(fifo *f, producer *p)
 	 *  fifos remain finished. (Just in case.)
 	 */
 	if ((empty_list(&f->producers) || !f->wait_full)
-	    && f->eof_count <= list_members(&f->consumers))
+	    && f->eof_count <= (int) list_members(&f->consumers))
 		add_tail(&f->producers, &p->node);
 	else
 		p = NULL;
@@ -1154,7 +1154,7 @@ add_consumer(fifo *f, consumer *c)
 	 *  fifos are inhibited for new consumers. (Just in case.)
 	 */
 	if ((empty_list(&f->consumers) || !f->wait_empty)
-	    && f->eof_count <= list_members(&f->consumers))
+	    && f->eof_count <= (int) list_members(&f->consumers))
 		add_tail(&f->consumers, &c->node);
 	else
 		c = NULL;

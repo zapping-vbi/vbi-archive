@@ -44,7 +44,7 @@ librte.h: option.h context.h codec.h rte.h
 	echo -e "\n#define RTE_VERSION_MAJOR" `echo @VERSION@ \
 	 | sed "s/\./\\\\\n#define RTE_VERSION_MINOR /" \
 	 | sed "s/\./\\\\\n#define RTE_VERSION_MICRO /"` >> $@
-	echo -e "\n#ifdef __cplusplus\nextern "C" {\n#endif\n" >> $@
+	echo -e "\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n" >> $@
 	for fi in $^; do \
 		echo "/* $$fi */" >> $@; \
 		sed -e "/^\/\* Public/,/^\/\* Private/!d;/^\/\* Public/d;/^\/\* Private/d;/^\/\*\*/,/\*\*\/$$/d;" $$fi >> $@; \

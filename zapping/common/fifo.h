@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.27 2001-10-26 09:12:05 mschimek Exp $ */
+/* $Id: fifo.h,v 1.28 2002-06-25 04:35:40 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -32,8 +32,8 @@ typedef struct consumer consumer;
 typedef struct producer producer;
 
 struct buffer {
-	node 			node;		/* fifo->full/empty */
-	fifo *			fifo;
+	struct node 		node;		/* fifo->full/empty */
+	struct fifo *		fifo;
 
 	/*
 	 *  These fields are used for the "virtual full queue".
@@ -66,7 +66,7 @@ struct buffer {
 	int			dequeued;
 	int			enqueued;
 
-	bool			remove;
+	z_bool			remove;
 
 	/* Consumer read only, see send_full_buffer() */
 
@@ -82,7 +82,7 @@ struct buffer {
 
 	/* Owner private */
 
-	node			added;		/* fifo->buffers */
+	struct node		added;		/* fifo->buffers */
 
 	unsigned char *		allocated;
 	ssize_t			size;
@@ -96,7 +96,7 @@ struct buffer {
 };
 
 struct fifo {
-	node			node;		/* owner private */
+	struct node		node;		/* owner private */
 
 	char			name[64];	/* for debug messages */
 
@@ -120,15 +120,15 @@ struct fifo {
 
 	list			buffers;	/* add/rem_buffer */
 
-	bool			unlink_full_buffers; /* default true */
+	z_bool			unlink_full_buffers; /* default true */
 
 	void			(* wait_empty)(fifo *);
-	void			(* send_full)(producer *, buffer *);
+	void			(* send_full)(struct producer *, buffer *);
 
 	void			(* wait_full)(fifo *);
-	void			(* send_empty)(consumer *, buffer *);
+	void			(* send_empty)(struct consumer *, buffer *);
 
-	bool			(* start)(fifo *);
+	z_bool			(* start)(fifo *);
 	void			(* stop)(fifo *);
 
 	void			(* destroy)(fifo *);
@@ -139,16 +139,16 @@ struct fifo {
 };
 
 struct producer {
-	node			node;		/* fifo->producers */
-	fifo *			fifo;
+	struct node		node;		/* fifo->producers */
+	struct fifo *		fifo;
 
 	int			dequeued;	/* bookkeeping */
-	bool			eof_sent;
+	z_bool			eof_sent;
 };
 
 struct consumer {
-	node			node;		/* fifo->consumers */
-	fifo *			fifo;
+	struct node		node;		/* fifo->consumers */
+	struct fifo *		fifo;
 
 	buffer *		next_buffer;	/* virtual pointer */
 	int			dequeued;	/* bookkeeping */
@@ -389,7 +389,7 @@ unget_empty_buffer(producer *p, buffer *b)
 extern void			send_full_buffer(producer *p, buffer *b);
 
 extern void			rem_buffer(buffer *b);
-extern bool			add_buffer(fifo *f, buffer *b);
+extern z_bool			add_buffer(fifo *f, buffer *b);
 
 extern int			init_buffered_fifo(fifo *f, char *name, int num_buffers, ssize_t buffer_size);
 extern int			init_callback_fifo(fifo *f, char *name, void (* custom_wait_empty)(fifo *), void (* custom_send_full)(producer *, buffer *), void (* custom_wait_full)(fifo *), void (* custom_send_empty)(consumer *, buffer *), int num_buffers, ssize_t buffer_size);
@@ -403,7 +403,7 @@ extern consumer	*		add_consumer(fifo *f, consumer *c);
 /* XXX TBD */
 /* start only *after* adding a consumer? */
 /* mp-fifos? */
-static inline bool
+static inline z_bool
 start_fifo(fifo *f)
 {
 	return f->start(f);

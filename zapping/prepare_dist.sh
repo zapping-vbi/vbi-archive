@@ -29,7 +29,9 @@ echo "Generating new $PACKAGE release (version $VER)"
 echo
 echo "Generating the Makefiles"
 echo "------------------------" && echo
-(NOCONFIGURE="yes" && ./autogen.sh) || exit 1
+if test -e ./autogen.sh; then
+  (NOCONFIGURE="yes" && ./autogen.sh) || exit 1
+fi
 if test ! x$1 = x; then
     ./configure --with-gnome-prefix=$1 || exit 1
 else

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: errstr.c,v 1.1 2001-08-20 00:53:23 mschimek Exp $ */
+/* $Id: errstr.c,v 1.2 2002-06-25 04:35:40 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -125,7 +125,7 @@ get_errstr(void)
 static void
 uninit_errstr(void *p)
 {
-	struct errstr_rec *e = p;
+	struct errstr_rec *e = (struct errstr_rec *) p;
 
 	if (e) {
 		if (e->message && e->free)

@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.23 2002-06-24 03:25:16 mschimek Exp $
+dnl $Id: configure.in,v 1.24 2002-06-25 04:36:50 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(rte, 0.5cvs)
@@ -143,5 +143,6 @@ dnl or vice versa.
 dnl
 test -e $srcdir/mp1e/configure.in && echo "
 Note mp1e is now configured as rte backend. To build the mp1e command
-line program, configure and make in mp1e/ instead.
+line program, configure and make in mp1e/ instead. You can build
+rte and mp1e by configuring from other directories too.
 "

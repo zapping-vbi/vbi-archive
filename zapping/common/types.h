@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: types.h,v 1.5 2001-07-16 07:06:01 mschimek Exp $ */
+/* $Id: types.h,v 1.6 2002-06-25 04:35:40 mschimek Exp $ */
 
 #ifndef TYPES_H
 #define TYPES_H
@@ -25,11 +25,11 @@
 #include <sys/types.h>
 
 #undef TRUE
+#define TRUE 1
 #undef FALSE
+#define FALSE 0
 
-enum { FALSE, TRUE };
-
-typedef unsigned char bool;
+typedef unsigned char z_bool;
 
 /*
  *  Get a pointer to a structure of <type> from
@@ -44,7 +44,8 @@ typedef unsigned char bool;
 #ifdef	NDEBUG
 # define asserts(expr) ((void) 0)
 #else
-extern void asserts_fail(char *assertion, char *file, unsigned int line, char *function, void *caller);
+extern void asserts_fail(const char *assertion, const char *file,
+			 unsigned int line, const char *function, void *caller);
 #define asserts(expr)							\
 	((void)((expr) ? 0 : asserts_fail(#expr, __FILE__, __LINE__,	\
 		__PRETTY_FUNCTION__, __builtin_return_address(0))))
