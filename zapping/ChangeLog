@@ -1,3 +1,27 @@
+2004-12-01    <mschimek@users.sf.net>
+
+	* src/tveng25.c: Added preliminary Bayer (SBGGR8) support with
+	  conversion to BGRA32, BGR24 and BGR16.
+	* src/tveng.c (tveng_attach_device, p_tv_set_capture_format):
+	  Disable YUVHACK if the device supports only RGB.
+	* common/videodev25.h: Added V4L2_PIX_FMT_SBGGR8.
+	* src/bayer.c, src/bayer.h: New plain C Bayer (SBGGR) to RGB
+	  conversion routines.
+	* src/zmisc.c (zmisc_switch_mode): No py zapping.closed_caption
+	  call without libzvbi, command not compiled.
+	(zmisc_switch_mode): tveng_set_capture_size() redundant, removed.
+	* src/zapping.c (instance_init): No zconf_add_hook closed_caption
+	  without libzvbi.
+	* plugins/teletext/view.c,
+	* plugins/teletext/Makefile.am,
+	* libvbi/misc.h, libvbi/event.h:
+	(ZAPPING8): Let Makefile.am disable missing features.
+
+2004-11-12    <mschimek@users.sf.net>
+
+	* libvbi/Makefile.am, plugins/teletext/Makefile.am:
+	  Changed libvbi to LTLIBRARY for proper linking.
+
 2004-11-11    <mschimek@users.sf.net>
 
 	* Release 0.8

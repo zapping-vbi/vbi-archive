@@ -40,6 +40,7 @@ zmarshalers.c: zmarshalers.list
 zapping_SOURCES = \
 	arts.c esd.c oss.c \
 	audio.c audio.h \
+	bayer.c bayer.h \
 	capture.c capture.h \
 	channel_editor.c channel_editor.h \
 	cmd.c cmd.h \

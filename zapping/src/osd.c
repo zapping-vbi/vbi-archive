@@ -484,7 +484,7 @@ roll_up(guint first_row, guint last_row)
  * OSD sources.
  */
 
-#if HAVE_LIBZVBI
+#ifdef HAVE_LIBZVBI
 #include "src/zvbi.h"
 
 static vbi_page osd_page;

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.8 2004-11-11 14:34:27 mschimek Exp $ */
+/* $Id: view.c,v 1.9 2004-12-02 02:48:08 mschimek Exp $ */
 
 /*
  *  Zapping (TV viewer for the Gnome Desktop)
@@ -42,13 +42,11 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.8 2004-11-11 14:34:27 mschimek Exp $ */
+/* $Id: view.c,v 1.9 2004-12-02 02:48:08 mschimek Exp $ */
 
 #include "config.h"
 
 #include <gdk/gdkx.h>
-
-#define ZAPPING8
 
 #include "libvbi/exp-gfx.h"
 #include "libvbi/exp-txt.h"

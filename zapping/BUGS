@@ -1,6 +1,9 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
+Zapping 0.8:
+* Doesn't run w/o DGA lib but configure doesn't fail either?
+
 Zapping 0.7.2:
 * Fullscreen DMA overlay clips subtitles but not context menu and windows.
 * bktr: Closing and reopening /dev/bktr, /dev/tuner sometimes fails
