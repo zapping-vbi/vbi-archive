@@ -376,6 +376,17 @@ on_video_window_event		(GtkWidget *		widget,
       restart_timeout ();
       break;
 
+    case GDK_EXPOSE:
+      /* Parts of the video window have been exposed, e.g. menu window has
+	 been closed. Remove those clips. */
+      if (tv_info.needs_cleaning)
+	{
+	  tv_info.geometry_changed = TRUE;
+	  restart_timeout ();
+	}
+
+      break;
+
     default:
       break;
     }
@@ -652,7 +663,7 @@ start_overlay			(GtkWidget *		main_window,
 			G_CALLBACK (on_video_window_event), NULL);
 
       mask = gdk_window_get_events (video_window->window);
-      mask |= GDK_VISIBILITY_NOTIFY_MASK | GDK_CONFIGURE;
+      mask |= GDK_VISIBILITY_NOTIFY_MASK | GDK_CONFIGURE | GDK_EXPOSE;
       gdk_window_set_events (video_window->window, mask);
 
       /* We must connect to main_window because the video_window
