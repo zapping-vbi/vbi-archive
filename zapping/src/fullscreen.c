@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.8 2003-07-29 03:43:07 mschimek Exp $
+ * $Id: fullscreen.c,v 1.21.2.9 2003-08-24 23:52:43 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -56,9 +56,9 @@ extern tveng_device_info *main_info;
 #define MESS_WITH_XSS 1
 
 static gboolean
-on_fullscreen_event			(GtkWidget *	widget,
-					 GdkEvent *	event,
-					 gpointer	user_data)
+on_fullscreen_event		(GtkWidget *		widget,
+				 GdkEvent *		event,
+				 gpointer		user_data)
 {
   if (event->type == GDK_KEY_PRESS)
     {
@@ -70,7 +70,7 @@ on_fullscreen_event			(GtkWidget *	widget,
 
 	  was_fullscreen = TRUE;
 	  zmisc_switch_mode(last_mode, main_info);
-	  cmd_run ("zapping.quit()");
+	  python_command (widget, "zapping.quit()");
 
 	  return TRUE;
 	}
@@ -123,10 +123,8 @@ static void
 on_cursor_blanked		(ZVideo *		video,
 				 gpointer		user_data)
 {
-  tveng_device_info *info = user_data;
-
   /* Recenter */
-  x11_vidmode_switch (vidmodes, NULL, &info->priv->old_mode);
+  x11_vidmode_switch (vidmodes, NULL, NULL);
 }
 
 gint
