@@ -1,33 +1,31 @@
 /*
- *  Zapping (TV viewer for the Gnome Desktop)
+ *  Zapping TV viewer
  *
- * Copyright (C) 2001 Iñaki García Etxebarria
- * Copyright (C) 2003 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002 Iñaki García Etxebarria
+ *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: toolbar.c,v 1.1 2004-09-22 21:29:07 mschimek Exp $ */
+/* $Id: toolbar.c,v 1.2 2004-11-03 06:47:07 mschimek Exp $ */
 
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gdk-pixbuf/gdk-pixdata.h>
 
-#include "toolbar.h"
-
-#include "zmisc.h"
-#include "remote.h"
+#include "src/zmisc.h"
+#include "src/remote.h"
 
 #include "pixmaps/left.h"
 #include "pixmaps/down.h"
@@ -35,17 +33,19 @@
 #include "pixmaps/right.h"
 #include "pixmaps/reveal.h"
 
+#include "toolbar.h"
+
 void
 teletext_toolbar_set_url	(TeletextToolbar *	toolbar,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno)
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno)
 {
-  gchar buffer[8];
+  gchar buffer[16];
 
   if ((guint) subno > 0x99)
-    subno = 0; /* 0, VBI_ANY_SUBNO, 0x2359, bug */
+    subno = 0; /* 0, VBI3_ANY_SUBNO, 0x2359, bug */
 
-  sprintf (buffer, "%3x.%02x", pgno & 0xFFF, subno);
+  snprintf (buffer, 16, "%3x.%02x", pgno & 0xFFF, subno);
 
   gtk_label_set_text (toolbar->url, buffer);
 }
@@ -60,12 +60,12 @@ on_hold_toggled			(GtkToggleButton *	button,
 }
 
 static void
-on_reveal_toggled		(GtkToggleButton *	button,
+on_reveal_toggled		(GtkToggleToolButton *	button,
 				 gpointer		user_data _unused_)
 {
   python_command_printf (GTK_WIDGET (button),
 			 "zapping.ttx_reveal(%u)",
-			 gtk_toggle_button_get_active (button));
+			 gtk_toggle_tool_button_get_active (button));
 }
 
 static GtkWidget *
@@ -88,8 +88,7 @@ button_new_from_pixdata		(const GdkPixdata *	pixdata,
   z_tooltip_set (button, tooltip);
 
   g_signal_connect (G_OBJECT (button), "clicked",
-		    G_CALLBACK (on_python_command1),
-		    (gpointer) py_cmd);
+		    G_CALLBACK (on_python_command1), (gpointer) py_cmd);
 
   return button;
 }
@@ -190,7 +189,7 @@ teletext_toolbar_new		(GtkActionGroup *action_group)
   z_tooltip_set (GTK_WIDGET (tool_item), _("Open new Teletext window"));
   g_signal_connect (tool_item, "clicked",
 		    G_CALLBACK (on_python_command1),
-		    (void *) "zapping.ttx_open_new()");
+		    (gpointer) "zapping.ttx_open_new()");
   gtk_toolbar_insert (&toolbar->toolbar, tool_item, APPEND);
 
   widget = gtk_action_create_tool_item
