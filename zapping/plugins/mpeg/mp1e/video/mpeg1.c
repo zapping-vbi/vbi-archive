@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.36 2001-06-07 17:43:51 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.37 2001-06-18 12:33:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -160,7 +160,7 @@ fifo *			video_fifo;
 #endif
 
 #if TEST12
-#define LOWVAR 5000000
+#define LOWVAR 3000000
 #define ZMB1						\
 do {							\
 	if (var < LOWVAR) quant = 3;			\
@@ -169,7 +169,7 @@ do {							\
 #define ZMB2						\
 do { int i, j, n;					\
 	/* if (var < LOWVAR / 5) n = 64 - 3; else */	\
-	if (var < LOWVAR) n = 64 - 6; else n = 0;	\
+	if (var < LOWVAR) n = 64 - 8; else n = 0;	\
 	for (i = 0; i < n; i++) {			\
 		j = 63 - iscan[0][(i - 1) & 63];	\
 		mblock[1][0][0][j] = 0;			\
@@ -895,6 +895,12 @@ tmp_picture_b(unsigned char *org0, unsigned char *org1, int dist,
 
 			/* Choose prediction type */
 
+if (T3RI
+    && ((TEST12
+         && !__builtin_constant_p(forward_motion)
+	 && var < (int)(LOWVAR / (6 * B_SHARE)))))
+	goto skip_pred;
+
 			if (!closed_gop) {
 				pr_start(52, "Predict bidirectional");
 
@@ -960,7 +966,7 @@ if (TEST3) {
 				macroblock_type = MB_BACKWARD;
 				iblock = &mblock[1];
 			}
-
+skip_pred:
 			emms();
 
 			if (!__builtin_constant_p(forward_motion)) {

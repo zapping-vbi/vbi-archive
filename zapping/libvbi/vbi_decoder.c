@@ -1,7 +1,7 @@
 /*
  *  V4L/V4L2 VBI Decoder  DRAFT
  *
- *  gcc -O2 -othis this.c mp1e/vbi/tables.c -L/usr/X11R6/lib -lm -lX11
+ *  gcc -O2 -ovbi_decoder vbi_decoder.c tables.c -L/usr/X11R6/lib -lm -lX11
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
  *
@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.14 2001-05-24 01:11:36 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.15 2001-06-18 12:33:58 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -125,6 +125,7 @@ int			opt_xds;
 int			opt_sliced;
 int			opt_profile;
 int			opt_ccsim;
+int			opt_wsssim;
 int			opt_pattern;
 int			opt_all;
 int			opt_raw;
@@ -155,45 +156,56 @@ struct bit_slicer {
 	unsigned int	frc;
 	int		frc_bits;
 	int		payload;
-	int		lsb_endian;
+	int		endian;
 };
 
 #define OVERSAMPLING 2		// 1, 2, 4, 8
 
-static inline void
+void
 init_bit_slicer(struct bit_slicer *d,
 	int raw_bytes, int sampling_rate, int cri_rate, int bit_rate,
-	unsigned int cri_frc, int cri_bits, int frc_bits, int payload, int modulation)
+	unsigned int cri_frc, unsigned int cri_mask,
+	int cri_bits, int frc_bits, int payload, int modulation)
 {
-	d->cri_mask		= (1 << cri_bits) - 1;
+	unsigned int c_mask = (-(cri_bits > 0)) >> (32 - cri_bits);
+	unsigned int f_mask = (-(frc_bits > 0)) >> (32 - frc_bits);
+
+	d->cri_mask		= cri_mask & c_mask;
 	d->cri		 	= (cri_frc >> frc_bits) & d->cri_mask;
 	d->cri_bytes		= raw_bytes
-		- ((long long) sampling_rate * (8 * payload + frc_bits)) / bit_rate;
+		- ((long long) sampling_rate * (payload + frc_bits)) / bit_rate;
 	d->cri_rate		= cri_rate;
 	d->oversampling_rate	= sampling_rate * OVERSAMPLING;
 	d->thresh		= 105 << 9;
-	d->frc			= cri_frc & ((1 << frc_bits) - 1);
+	d->frc			= cri_frc & f_mask;
 	d->frc_bits		= frc_bits;
 	d->step			= sampling_rate * 256.0 / bit_rate;
-	d->payload		= payload;
-	d->lsb_endian		= TRUE;
+
+	if (payload & 7) {
+		d->payload	= payload;
+		d->endian	= 3;
+	} else {
+		d->payload	= payload >> 3;
+		d->endian	= 1;
+	}
 
 	switch (modulation) {
 	case MOD_NRZ_MSB_ENDIAN:
-		d->lsb_endian = FALSE;
+		d->endian--;
 	case MOD_NRZ_LSB_ENDIAN:
 		d->phase_shift = sampling_rate * 256.0 / cri_rate * .5
 			         + sampling_rate * 256.0 / bit_rate * .5 + 128;
 		break;
 
 	case MOD_BIPHASE_MSB_ENDIAN:
-		d->lsb_endian = FALSE;
+		d->endian--;
 	case MOD_BIPHASE_LSB_ENDIAN:
 		d->phase_shift = sampling_rate * 256.0 / cri_rate * .5
 			         + sampling_rate * 256.0 / bit_rate * .25 + 128;
 		break;
 	}
 }
+
 
 int offset[32][1024];
 int thresh[32][1024];
@@ -206,6 +218,7 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw1, unsigned char *buf, int ro
 	unsigned int c = 0, t;
 	unsigned char b, b1 = 0, tr;
 	int pos = 0, q;
+// fprintf(stderr, "%08x\n", d->cri);
 
 	for (i = d->cri_bytes; i > 0; raw++, i--) {
 		tr = d->thresh >> 9;
@@ -241,7 +254,45 @@ thresh[row][pos++] = tr;
 						if (c ^= d->frc)
 							return FALSE;
 
-						if (d->lsb_endian) {
+						switch (d->endian) {
+						case 3:
+							for (j = 0; j < d->payload; j++) {
+					    			c >>= 1;
+offset[row][pos] = (i >> 8) + (raw - raw1);
+thresh[row][pos++] = tr;
+for (q = i >> 8; q < ((i + d->step) >> 8); q++) { 
+		tr = d->thresh >> 9;
+		d->thresh += 2 * ((int) raw[q+0] - tr) * nbabs(raw[q+1] - raw[q+0]);
+}
+								c += (raw[i >> 8] >= tr) << 7;
+			    					i += d->step;
+
+								if ((j & 7) == 7)
+									*buf++ = c;
+					    		}
+
+							*buf = c >> ((8 - d->payload) & 7);
+
+							break;
+
+						case 2:
+							for (j = 0; j < d->payload; j++) {
+		tr = d->thresh >> 9;
+		d->thresh += 4 * ((int) raw[(i>>8)+0] - tr) * nbabs(raw[(i>>8)+1] - raw[(i>>8)+0]);
+offset[row][pos] = (i >> 8) + (raw - raw1);
+thresh[row][pos++] = tr;
+								c = c * 2 + (raw[i >> 8] >= tr);
+			    					i += d->step;
+
+								if ((j & 7) == 7)
+									*buf++ = c;
+					    		}
+
+							*buf = c & ((1 << (d->payload & 7)) - 1);
+
+							break;
+
+						case 1:
 							for (j = d->payload; j > 0; j--) {
 								for (k = 0; k < 8; k++) {
 						    			c >>= 1;
@@ -257,7 +308,10 @@ for (q = i >> 8; q < ((i + d->step) >> 8); q++) {
 
 								*buf++ = c;
 					    		}
-						} else {
+							
+							break;
+
+						case 0:
 							for (j = d->payload; j > 0; j--) {
 								for (k = 0; k < 8; k++) {
 		tr = d->thresh >> 9;
@@ -270,6 +324,8 @@ thresh[row][pos++] = tr;
 
 								*buf++ = c;
 					    		}
+
+							break;
 						}
 
 			    			return TRUE;
@@ -295,7 +351,7 @@ thresh[row][pos++] = tr;
 
 #define MAX_RAW_BUFFERS 	5
 #define MAX_JOBS		8
-#define MAX_WAYS		4
+#define MAX_WAYS		8
 
 struct job {
 	unsigned int		id;
@@ -347,6 +403,8 @@ struct vbi_capture {
 #define SLICED_2xCAPTION_525		(1UL << 7)
 #define SLICED_NABTS			(1UL << 8)
 #define SLICED_TELETEXT_BD_525		(1UL << 9)
+#define SLICED_WSS_625			(1UL << 10)
+#define SLICED_WSS_CPR1204		(1UL << 11)
 #define SLICED_VBI_625			(1UL << 30)
 #define SLICED_VBI_525			(1UL << 31)
 
@@ -362,9 +420,10 @@ struct vbi_service_par {
 	int		scanning;	/* scanning system: 525 (FV = 59.94 Hz, FH = 15734 Hz),
 							    625 (FV = 50 Hz, FH = 15625 Hz) */
 	unsigned int	cri_frc;	/* Clock Run In and FRaming Code, LSB last txed bit of FRC */
+	unsigned int	cri_mask;
 	char		cri_bits;	/* cri_frc bits significant for identification, advice: ignore */
 	char		frc_bits;	/*  leading CRI bits; frc_bits at bit_rate */
-	char		payload;	/* in bytes */
+	short		payload;	/* in bits */
 	char		modulation;	/* payload modulation */
 };
 
@@ -374,81 +433,87 @@ vbi_services[] = {
 		SLICED_TELETEXT_B_L10_625, "Teletext System B Level 1.5, 625",
 		{ 7, 320 },
 		{ 22, 335 },
-		/*
-		    "F.4 Allocation of Teletext packets to VBI lines:
-		     Some existing Level 1 and 1.5 decoders may not decode Teletext
-		     signals on lines 6, 318 and 319. Thus these lines should be used
-		     for Level 2.5 or 3.5 enhancement data only, or non-Teletext signals
-		     (see annex P). Further information can be found in TR 101 233 [7]."
-		 */
 		10300, 6937500, 6937500, /* 444 x FH */
-		625, 0x00AAAAE4, 10, 6, 42, MOD_NRZ_LSB_ENDIAN
+		625, 0x00AAAAE4, ~0, 10, 6, 42 * 8, MOD_NRZ_LSB_ENDIAN
 	}, {
 		SLICED_TELETEXT_B_L25_625, "Teletext System B, 625",
 		{ 6, 318 },
 		{ 22, 335 },
 		10300, 6937500, 6937500, /* 444 x FH */
-		625, 0x00AAAAE4, 10, 6, 42, MOD_NRZ_LSB_ENDIAN
+		625, 0x00AAAAE4, ~0, 10, 6, 42 * 8, MOD_NRZ_LSB_ENDIAN
 	}, {
 		SLICED_VPS, "Video Programming System",
 		{ 16, 0 },
 		{ 16, 0 },
 		12500, 5000000, 2500000, /* 160 x FH */
-		625, 0xAAAA8A99, 24, 0, 13, MOD_BIPHASE_MSB_ENDIAN
+		625, 0xAAAA8A99, ~0, 24, 0, 13 * 8, MOD_BIPHASE_MSB_ENDIAN
+	}, {
+		SLICED_WSS_625, "Wide Screen Signalling 625",
+		{ 23, 0 },
+		{ 23, 0 },
+		11000, 5000000, 833333, /* 160/3 x FH */
+		625, 0xC71E3C1F, 0x924C99CE, 32, 0, 14 * 1, MOD_BIPHASE_LSB_ENDIAN
 	}, {
 		SLICED_CAPTION_625_F1, "Closed Caption 625, single field",
 		{ 22, 0 },
 		{ 22, 0 },
 		10500, 1000000, 500000, /* 32 x FH */
-		625, 0x00005551, 9, 2, 2, MOD_NRZ_LSB_ENDIAN
+		625, 0x00005551, ~0, 9, 2, 2 * 8, MOD_NRZ_LSB_ENDIAN
 	}, {
 		SLICED_CAPTION_625, "Closed Caption 625", /* Videotapes, LD */
 		{ 22, 335 },
 		{ 22, 335 },
 		10500, 1000000, 500000, /* 32 x FH */
-		625, 0x00005551, 9, 2, 2, MOD_NRZ_LSB_ENDIAN
+		625, 0x00005551, ~0, 9, 2, 2 * 8, MOD_NRZ_LSB_ENDIAN
 	}, {
 		SLICED_VBI_625, "VBI 625", /* Blank VBI */
 		{ 6, 318 },
 		{ 22, 335 },
 		10000, 1510000, 1510000,
-		625, 0, 0, 0, 10, 0 /* 10.0-2 ... 62.9+1 us */
+		625, 0, 0, 0, 0, 10 * 8, 0 /* 10.0-2 ... 62.9+1 us */
 	}, {
 		SLICED_NABTS, "Teletext System C, 525", /* NOT CONFIRMED */
 		{ 10, 0 },
 		{ 21, 0 },
 		10500, 5727272, 5727272,
-		525, 0x00AAAAE7, 10, 6, 33, MOD_NRZ_LSB_ENDIAN /* Tb. */
+		525, 0x00AAAAE7, ~0, 10, 6, 33 * 8, MOD_NRZ_LSB_ENDIAN /* Tb. */
+	}, {
+		SLICED_WSS_CPR1204, "Wide Screen Signalling EIA-J CPR-1204",
+		/* NOT CONFIRMED (EIA-J CPR-1204) */
+		{ 20, 0 },
+		{ 20, 0 },
+		11200, 3579545, 447443, /* 1/8 x FSC */
+		625, 0x0000FF00, 0x00003C3C, 16, 0, 20 * 1, MOD_NRZ_MSB_ENDIAN
 	}, {
 		SLICED_CAPTION_525_F1, "Closed Caption 525, single field",
 		{ 21, 0 },
 		{ 21, 0 },
 		10500, 1006976, 503488, /* 32 x FH */
-		525, 0x00005551, 9, 2, 2, MOD_NRZ_LSB_ENDIAN
+		525, 0x00005551, ~0, 9, 2, 2 * 8, MOD_NRZ_LSB_ENDIAN
 	}, {
 		SLICED_CAPTION_525, "Closed Caption 525",
 		{ 21, 284 },
 		{ 21, 284 },
 		10500, 1006976, 503488, /* 32 x FH */
-		525, 0x00005551, 9, 2, 2, MOD_NRZ_LSB_ENDIAN
+		525, 0x00005551, ~0, 9, 2, 2 * 8, MOD_NRZ_LSB_ENDIAN
 	}, {
 		SLICED_2xCAPTION_525, "2xCaption 525", /* NOT CONFIRMED */
 		{ 10, 0 },
 		{ 21, 0 },
 		10500, 1006976, 1006976, /* 64 x FH */
-		525, 0x000554ED, 8, 8, 4, MOD_NRZ_LSB_ENDIAN /* Tb. */
+		525, 0x000554ED, ~0, 8, 8, 4 * 8, MOD_NRZ_LSB_ENDIAN /* Tb. */
 	}, {
 		SLICED_TELETEXT_BD_525, "Teletext System B / D (Japan), 525", /* NOT CONFIRMED */
 		{ 10, 0 },
 		{ 21, 0 },
 		9600, 5727272, 5727272,
-		525, 0x00AAAAE4, 10, 6, 34, MOD_NRZ_LSB_ENDIAN /* Tb. */
+		525, 0x00AAAAE4, ~0, 10, 6, 34 * 8, MOD_NRZ_LSB_ENDIAN /* Tb. */
 	}, {
 		SLICED_VBI_525, "VBI 525", /* Blank VBI */
 		{ 10, 272 },
 		{ 21, 284 },
 		9500, 1510000, 1510000,
-		525, 0, 0, 0, 10, 0 /* 9.5-1 ... 62.4+1 us */
+		525, 0, 0, 0, 0, 10 * 8, 0 /* 9.5-1 ... 62.4+1 us */
 	},
 	{ 0 }
 };
@@ -579,6 +644,22 @@ decode(struct vbi_capture *vbi, unsigned char *raw1, vbi_sliced *out1)
 				if (!bit_slicer(&job->slicer, raw + job->offset, out->data, i))
 					continue;
 
+				if (job->id == SLICED_WSS_CPR1204) {
+					const int poly = (1 << 6) + (1 << 1) + 1;
+					int crc, j;
+					
+					crc = (out->data[0] << 12) + (out->data[1] << 4) + out->data[2];
+					crc |= (((1 << 6) - 1) << (14 + 6));
+
+					for (j = 14 + 6 - 1; j >= 0; j--) {
+						if (crc & ((1 << 6) << j))
+							crc ^= poly << j;
+					}
+
+					if (crc)
+						continue;
+				}
+
 				out->id = job->id;
 				if (i >= vbi->count[0])
 					out->line = (vbi->start[1] > 0) ? vbi->start[1] - vbi->count[0] + i : 0;
@@ -681,7 +762,7 @@ add_services(struct vbi_capture *vbi, unsigned int services, int strict)
 			goto eliminate;
 
 		signal = vbi_services[i].cri_bits / (double) vbi_services[i].cri_rate
-			 + (vbi_services[i].frc_bits + vbi_services[i].payload * 8)
+			 + (vbi_services[i].frc_bits + vbi_services[i].payload)
 			   / (double) vbi_services[i].bit_rate;
 
 		if (vbi->offset > 0 && strict > 0) {
@@ -781,6 +862,7 @@ add_services(struct vbi_capture *vbi, unsigned int services, int strict)
 		    		vbi_services[i].cri_rate,
 				vbi_services[i].bit_rate,
 				vbi_services[i].cri_frc,
+				vbi_services[i].cri_mask,
 				vbi_services[i].cri_bits,
 				vbi_services[i].frc_bits,
 				vbi_services[i].payload,
@@ -837,7 +919,7 @@ cc_sim(double t, double F, unsigned char b1, unsigned char b2)
 		int i, n;
 
 		t -= t3;
-		i = (t * F - .5);
+		i = (t * F - .0);
 		n = (bits >> i) & 3; // low = 0, up, down, high
 		if (n == 0)
 			return 0.0;
@@ -883,6 +965,146 @@ cc_gen(struct vbi_capture *vbi, unsigned char *buf)
 }
 
 /*
+ *  Wide Screen Signalling Simulator
+ */
+
+static inline double
+wss625_sim(double t, double F, unsigned int bits)
+{
+	static int twobit[] = { 0xE38, 0xE07, 0x1F8, 0x1C7 };
+	static char frame[] = "\0"
+			      "\1\1\1\1\1\0\0\0\1\1\1\0\0\0\1\1\1\0\0\0\1\1\1\0\0\0\1\1\1"
+			      "\0\0\0\1\1\1\1\0\0\0\1\1\1\1\0\0\0\0\0\1\1\1\1\1"
+			      "x";
+	double t1 = 11.0e-6 - .5 / F;
+	double t4 = t1 + (29 + 24 + 84) / F;
+	double ph;
+	int i, j, n;
+
+	frame[1 + 29 + 24] = bits & 1;
+
+	if (t < t1)
+		return 0.0;
+	else if (t < t4) {
+		t -= t1;
+		i = (t * F - .0);
+		if (i < 29 + 24) {
+			n = frame[i] + 2 * frame[i + 1];
+		} else {
+			j = i - 29 - 24;
+			n = twobit[(bits >> (j / 6)) & 3];
+			n = (n >> (j % 6)) & 3;
+		}
+
+		// low = 0, down, up, high
+		if (n == 0)
+			return 0.0;
+		else if (n == 3)
+			return 1.0;
+		if ((n ^ i) & 1) 
+			ph = M_PI * 2 * (t - 1 / F) * F / 4;
+		else // down
+			ph = M_PI * 2 * (t - 0 / F) * F / 4;
+		return sin(ph) * sin(ph);
+	} else
+		return 0.0;
+}
+
+static inline double
+wss525_sim(double t, double F, unsigned int bits)
+{
+	double t1 = 11.2e-6 - .5 / F;
+	double t4 = t1 + (2 + 14 + 6 + 1) / F;
+	double ph;
+	int i, j, n;
+
+	bits = bits * 2 + (2 << 21); // start bits 10, stop 0
+
+	if (t < t1)
+		return 0.0;
+	else if (t < t4) {
+		t -= t1;
+		i = (t * F - .0);
+		n = (bits >> (22 - i)) & 3; // low = 0, up, down, high
+
+		if (n == 0)
+			return 0.0;
+		else if (n == 3)
+			return 1.0;
+		if ((n ^ i) & 1) 
+			ph = M_PI * 2 * (t - 0 / F) * F / 4;
+		else // down
+			ph = M_PI * 2 * (t - 1 / F) * F / 4;
+		return sin(ph) * sin(ph);
+	} else
+		return 0.0;
+}
+
+static void
+wss_gen(struct vbi_capture *vbi, unsigned char *b1)
+{
+	unsigned int wss625_bits; /* 14 bits, lsb first */
+	unsigned int wss525_bits; /* 14 bits, msb first */
+	double start, inc = 1 / (double) vbi->sampling_rate;
+	unsigned char *buf;
+	int i, j, crc, row;
+
+	/* no row 23 here */
+	row = 0;
+	buf = b1 + row * vbi->samples_per_line;
+
+	if (vbi->offset)
+		start = vbi->offset / (double) vbi->sampling_rate;
+	else
+		start = 10e-6;
+
+	{
+		int g0 = 1, g1 = 2, g2 = 3, g3 = 4;
+		
+		wss625_bits = (g3 << 11) + (g2 << 8) + (g1 << 4) + g0;
+	}
+
+
+	for (i = 0; i < vbi->samples_per_line; i++)
+		buf[i] = wss625_sim(start + i * inc, 15625 * 320, wss625_bits) * 110 + 10;
+
+	{
+		const int poly = (1 << 6) + (1 << 1) + 1;
+		int b0 = 1, b1 = 1;
+
+		wss525_bits = (b0 << 13) + (b1 << 12);
+
+		crc = (((1 << 6) - 1) << (14 + 6)) + (wss525_bits << 6);
+
+		for (j = 14 + 6 - 1; j >= 0; j--) {
+			if (crc & ((1 << 6) << j))
+				crc ^= poly << j;
+		}
+	}
+
+	wss525_bits <<= 6;
+	wss525_bits |= crc;
+
+	fprintf(stderr, "<< %08x\n", wss525_bits);
+
+	if (vbi->start[0] >= 0)
+		row = MAX(MIN(0, 20 - vbi->start[0]), vbi->count[0] - 1);
+	else
+		row = vbi->count[0] - 1;
+
+	buf = b1 + row * vbi->samples_per_line;
+
+	if (vbi->offset)
+		start = vbi->offset / (double) vbi->sampling_rate;
+	else
+		start = 10e-6;
+
+	for (i = 0; i < vbi->samples_per_line; i++)
+		buf[i] = wss525_sim(start + i * inc, 447443, wss525_bits) * 110 + 10;
+}
+
+
+/*
  *  Device Specific Code / Callback Interface
  */
 
@@ -921,6 +1143,9 @@ wait_full_read(fifo *f)
 
 	if (opt_ccsim)
 		cc_gen(vbi, vbi->raw_buffer[0].data);
+
+	if (opt_wsssim)
+		wss_gen(vbi, vbi->raw_buffer[0].data);
 
 	b->used = sizeof(vbi_sliced) *
 		decode(vbi, vbi->raw_buffer[0].data,
@@ -1417,6 +1642,9 @@ wait_full_stream(fifo *f)
 	if (opt_ccsim)
 		cc_gen(vbi, vbi->raw_buffer[vbuf.index].data);
 
+	if (opt_wsssim)
+		wss_gen(vbi, vbi->raw_buffer[vbuf.index].data);
+
 	b->used = sizeof(vbi_sliced) *
 		decode(vbi, vbi->raw_buffer[vbuf.index].data,
 		       (vbi_sliced *) b->data);
@@ -1549,7 +1777,7 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name,
 				    vbi_services[i].bit_rate));
 
 			signal = vbi_services[i].cri_bits / (double) vbi_services[i].cri_rate
-				 + (vbi_services[i].frc_bits + vbi_services[i].payload * 8)
+				 + (vbi_services[i].frc_bits + vbi_services[i].payload)
 				   / (double) vbi_services[i].bit_rate;
 
 			offset = (vbi_services[i].offset / 1e9 - left_margin) * 27e6 + 0.5;
@@ -1866,28 +2094,7 @@ unham84(unsigned char *d)
 
 /* tables.c */
 
-extern const char * country_names_en[];
-
-extern const struct pdc_cni {
-	int		country;
-	char *		short_name;	/* 8 chars */
-	char *		long_name;
-	unsigned short	cni1;		/* Packet 8/30 format 1 */
-	unsigned short	cni2;		/* Packet 8/30 format 2 */
-	unsigned char	a, b;		/* Packet X/26 */
-} PDC_CNI[];
-
-extern const struct vps_cni {
-	int		country;
-	char *		short_name;
-	char *		long_name;
-	unsigned int	cni;
-} VPS_CNI[];
-
-extern const char *program_class[16];
-extern const char *program_type[8][16];
-
-/* end of tables.c */
+#include "tables.h"
 
 static const char *pcs_names[] = {
 	"unknown", "mono", "stereo", "bilingual"
@@ -2005,16 +2212,16 @@ decode_vps2(unsigned char *buf)
 	pty = buf[12];
 
 	if (cni)
-		for (j = 0; VPS_CNI[j].short_name; j++)
-			if (VPS_CNI[j].cni == cni) {
+		for (j = 0; PDC_VPS_CNI[j].short_name; j++)
+			if (PDC_VPS_CNI[j].cni4 == cni) {
 				printf(" Country: %s\n Station: %s%s\n",
-					country_names_en[VPS_CNI[j].country],
-					VPS_CNI[j].long_name,
+					country_names_en[PDC_VPS_CNI[j].country],
+					PDC_VPS_CNI[j].long_name,
 					(cni == 0x0DC3) ? ((buf[2] & 0x10) ? " (ZDF)" : " (ARD)") : "");
 				break;
 			}
 
-//	if (!cni || !VPS_CNI[j].short_name)
+//	if (!cni || !PDC_VPS_CNI[j].short_name)
 		printf(" CNI: %04x\n", cni);
 
 	printf(" Analog audio: %s\n", pcs_names[pcs]);
@@ -2053,26 +2260,26 @@ decode_pdc2(unsigned char *buf)
 		lci, luf, prf, mi);
 
 	if (cni) {
-		for (j = 0; VPS_CNI[j].short_name; j++)
-			if (VPS_CNI[j].cni == cni_vps) {
+		for (j = 0; PDC_VPS_CNI[j].short_name; j++)
+			if (PDC_VPS_CNI[j].cni4 == cni_vps) {
 				printf(" Country: %s\n Station: %s%s\n",
-					country_names_en[VPS_CNI[j].country],
-					VPS_CNI[j].long_name,
+					country_names_en[PDC_VPS_CNI[j].country],
+					PDC_VPS_CNI[j].long_name,
 					(cni_vps == 0x0DC3) ? ((buf[2] & 0x10) ? " (ZDF)" : " (ARD)") : "");
 				break;
 			}
 
-		if (!VPS_CNI[j].short_name)
-			for (j = 0; PDC_CNI[j].short_name; j++)
-				if (PDC_CNI[j].cni2 == cni) {
+		if (!PDC_VPS_CNI[j].short_name)
+			for (j = 0; PDC_VPS_CNI[j].short_name; j++)
+				if (PDC_VPS_CNI[j].cni2 == cni) {
 					printf(" Country: %s\n Station: %s\n",
-						country_names_en[PDC_CNI[j].country],
-						PDC_CNI[j].long_name);
+						country_names_en[PDC_VPS_CNI[j].country],
+						PDC_VPS_CNI[j].long_name);
 					break;
 				}
 	}
 
-//	if (!cni || !PDC_CNI[j].short_name)
+//	if (!cni || !PDC_VPS_CNI[j].short_name)
 		printf(" CNI: %04x\n", cni);
 
 	printf(" Analog audio: %s\n", pcs_names[pcs]);
@@ -2105,26 +2312,26 @@ decode_8301(unsigned char *buf)
 	utc_s = ((buf[17] >> 4) - 1) * 10 + ((buf[17] & 0xF) - 1);
 
 	if (cni) {
-		for (j = 0; VPS_CNI[j].short_name; j++)
-			if (VPS_CNI[j].cni == cni_vps) {
+		for (j = 0; PDC_VPS_CNI[j].short_name; j++)
+			if (PDC_VPS_CNI[j].cni4 == cni_vps) {
 				printf(" Country: %s\n Station: %s%s\n",
-					country_names_en[VPS_CNI[j].country],
-					VPS_CNI[j].long_name,
+					country_names_en[PDC_VPS_CNI[j].country],
+					PDC_VPS_CNI[j].long_name,
 					(cni_vps == 0x0DC3) ? ((buf[2] & 0x10) ? " (ZDF)" : " (ARD)") : "");
 				break;
 			}
 
-		if (!VPS_CNI[j].short_name)
-			for (j = 0; PDC_CNI[j].short_name; j++)
-				if (PDC_CNI[j].cni1 == cni) {
+		if (!PDC_VPS_CNI[j].short_name)
+			for (j = 0; PDC_VPS_CNI[j].short_name; j++)
+				if (PDC_VPS_CNI[j].cni1 == cni) {
 					printf(" Country: %s\n Station: %s\n",
-					    	country_names_en[PDC_CNI[j].country],
-						PDC_CNI[j].long_name);
+					    	country_names_en[PDC_VPS_CNI[j].country],
+						PDC_VPS_CNI[j].long_name);
 					break;
 				}
 	}
 
-//	if (!cni || !PDC_CNI[j].short_name)
+//	if (!cni || !PDC_VPS_CNI[j].short_name)
 		printf(" CNI: %04x\n", cni);
 
 	ti = (mjd - 40587) * 86400 + 43200;
@@ -2210,8 +2417,6 @@ decode_xds(unsigned char *buf)
 		c = printable(c);
 		putchar(c);
 		fflush(stdout);
-	} else {
-		// http://chroot.ath.cx/fade/etexts/hitch1.txt
 	}
 }
 
@@ -2243,6 +2448,68 @@ decode_caption(unsigned char *buf)
 	}
 }
 
+static void
+decode_wss_625(unsigned char *buf)
+{
+	static const char *formats[] = {
+		"Full format 4:3, 576 lines",
+		"Letterbox 14:9 centre, 504 lines",
+		"Letterbox 14:9 top, 504 lines",
+		"Letterbox 16:9 centre, 430 lines",
+		"Letterbox 16:9 top, 430 lines",
+		"Letterbox > 16:9 centre",
+		"Full format 14:9 centre, 576 lines",
+		"Anamorphic 16:9, 576 lines"
+	};
+	static const char *subtitles[] = {
+		"none",
+		"in active image area",
+		"out of active image area",
+		"?"
+	};
+	int g1 = buf[0] & 15;
+	int parity;
+
+	parity = g1;
+	parity ^= parity >> 2;
+	parity ^= parity >> 1;
+	g1 &= 7;
+
+	printf("WSS: ");
+	if (!(parity & 1))
+		printf("<parity error> ");
+	printf("%s; %s mode; %s colour coding;\n"
+	       "      %s helper; reserved b7=%d; %s\n"
+	       "      open subtitles: %s; %scopyright %s; copying %s\n",
+		formats[g1],
+		(buf[0] & 0x10) ? "film" : "camera",
+		(buf[0] & 0x20) ? "MA/CP" : "standard",
+		(buf[0] & 0x40) ? "modulated" : "no",
+		!!(buf[0] & 0x80),
+		(buf[1] & 0x01) ? "have TTX subtitles; " : "",
+		subtitles[(buf[1] >> 1) & 3],
+		(buf[1] & 0x08) ? "surround sound; " : "",
+		(buf[1] & 0x10) ? "asserted" : "unknown",
+		(buf[1] & 0x20) ? "restricted" : "not restricted");
+}
+
+static void
+decode_wss_cpr1204(unsigned char *buf)
+{
+	const int poly = (1 << 6) + (1 << 1) + 1;
+	int g = (buf[0] << 12) + (buf[1] << 4) + buf[2];
+	int j, crc;
+
+	crc = g | (((1 << 6) - 1) << (14 + 6));
+
+	for (j = 14 + 6 - 1; j >= 0; j--) {
+		if (crc & ((1 << 6) << j))
+			crc ^= poly << j;
+	}
+
+	fprintf(stderr, ">> %08x %08x\n", g, crc);
+}
+
 /*
  *  Sliced
  */
@@ -2250,6 +2517,8 @@ decode_caption(unsigned char *buf)
 #define SLICED_TELETEXT_B		(SLICED_TELETEXT_B_L10_625 | SLICED_TELETEXT_B_L25_625)
 #define SLICED_CAPTION			(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625 \
 					 | SLICED_CAPTION_525_F1 | SLICED_CAPTION_525)
+#define SLICED_WSS			(SLICED_WSS_625 | SLICED_WSS_CPR1204)
+
 static void
 decode_sliced(vbi_sliced *s, int lines)
 {
@@ -2260,6 +2529,10 @@ decode_sliced(vbi_sliced *s, int lines)
 			decode_ttx2(s->data, s->line);
 		} else if ((s->id & SLICED_CAPTION) && (opt_caption | opt_xds)) {
 			decode_caption(s->data);
+		} else if ((s->id & SLICED_WSS_625)) {
+			decode_wss_625(s->data);
+		} else if ((s->id & SLICED_WSS_CPR1204)) {
+			decode_wss_cpr1204(s->data);
 		}
 	}
 }
@@ -2276,7 +2549,7 @@ dump_sliced(vbi_sliced *s, int lines, double time)
 			if (s->id & vbi_services[i].id) {
 				printf("%04x %3d >", s->id, s->line);
 
-				for (j = 0; j < vbi_services[i].payload; j++) {
+				for (j = 0; j < (vbi_services[i].payload >> 3); j++) {
 					char c = printable(s->data[j]);
 
 					putchar(c);
@@ -2302,7 +2575,7 @@ dump_sliced_raw(vbi_sliced *s, int lines, double time)
 		for (i = 0; vbi_services[i].id; i++) {
 			if (s->id & vbi_services[i].id) {
 				fprintf(stderr, "%c%c%c", i, s->line & 0xFF, s->line >> 8);
-				fwrite(s->data, 1, vbi_services[i].payload, stderr);
+				fwrite(s->data, 1, vbi_services[i].payload >> 3, stderr);
 				break;
 			}
 		}
@@ -2614,6 +2887,7 @@ long_options[] = {
 	{ "sliced",			no_argument,		&opt_sliced,	1 },
 	{ "profile",			no_argument,		&opt_profile,	1 },
 	{ "ccsim",			no_argument,		&opt_ccsim,	1 },
+	{ "wsssim",			no_argument,		&opt_wsssim,	1 },
 	{ "pattern",			no_argument,		&opt_pattern,	1 },
 	{ "all",			no_argument,		&opt_all,	1 },
 	{ "graph",			no_argument,		&opt_graph,	1 },
@@ -2711,11 +2985,11 @@ main(int ac, char **av)
 	}
 
 		if (!(r = open_v4l2(&vbi, dev_name, 1,
-		    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION)))
+		    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION | SLICED_WSS)))
 			goto failure;
 	if (r < 0)
 		if (!(r = open_v4l(&vbi, dev_name, 1,
-		    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION)))
+		    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION | SLICED_WSS)))
 			goto failure;
 	if (r < 0)
 		goto failure;
@@ -2739,7 +3013,7 @@ main(int ac, char **av)
 		if (opt_sliced)
 			dump_sliced((vbi_sliced *) b->data, b->used / sizeof(vbi_sliced), b->time);
 
-		if (opt_teletext | opt_cni | opt_vps | opt_caption | opt_xds)
+		if (opt_teletext | opt_cni | opt_vps | opt_caption | opt_xds | opt_wsssim)
 			decode_sliced((vbi_sliced *) b->data, b->used / sizeof(vbi_sliced));
 
 		vbi->fifo.send_empty(&vbi->fifo, b);

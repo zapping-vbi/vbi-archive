@@ -100,6 +100,64 @@ vbi_event_handler(struct vbi *vbi, int event_mask,
 	return 1;
 }
 
+static void
+decode_wss_625(struct vbi *vbi, unsigned char *buf)
+{
+	int g1 = buf[0] & 15;
+	int parity;
+
+	parity = g1;
+	parity ^= parity >> 2;
+	parity ^= parity >> 1;
+	g1 &= 7;
+
+	if (!(parity & 1))
+		return;
+
+	if (0) {
+		static const char *formats[] = {
+			"Full format 4:3, 576 lines",
+			"Letterbox 14:9 centre, 504 lines",
+			"Letterbox 14:9 top, 504 lines",
+			"Letterbox 16:9 centre, 430 lines",
+			"Letterbox 16:9 top, 430 lines",
+			"Letterbox > 16:9 centre",
+			"Full format 14:9 centre, 576 lines",
+			"Anamorphic 16:9, 576 lines"
+		};
+		static const char *subtitles[] = {
+			"none",
+			"in active image area",
+			"out of active image area",
+			"?"
+		};
+
+		printf("WSS: %s; %s mode; %s colour coding;\n"
+		       "      %s helper; reserved b7=%d; %s\n"
+		       "      open subtitles: %s; %scopyright %s; copying %s\n",
+			formats[g1],
+			(buf[0] & 0x10) ? "film" : "camera",
+			(buf[0] & 0x20) ? "MA/CP" : "standard",
+			(buf[0] & 0x40) ? "modulated" : "no",
+			!!(buf[0] & 0x80),
+			(buf[1] & 0x01) ? "have TTX subtitles; " : "",
+			subtitles[(buf[1] >> 1) & 3],
+			(buf[1] & 0x08) ? "surround sound; " : "",
+			(buf[1] & 0x10) ? "asserted" : "unknown",
+			(buf[1] & 0x20) ? "restricted" : "not restricted");
+	}
+}
+
+static void
+decode_wss_cpr1204(struct vbi *vbi, unsigned char *buf)
+{
+	int b0 = buf[0] & 0x80;
+	int b1 = buf[0] & 0x40;
+
+	if (0)
+		printf("CPR: %d %d\n", !!b0, !!b1);
+}
+
 #define SLICED_TELETEXT_B	(SLICED_TELETEXT_B_L10_625 | SLICED_TELETEXT_B_L25_625)
 #define SLICED_CAPTION		(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625 \
 				 | SLICED_CAPTION_525_F1 | SLICED_CAPTION_525)
@@ -145,6 +203,10 @@ vbi_mainloop(void *p)
 				vbi_caption_dispatcher(vbi, s->line, s->data);
 			else if (s->id & SLICED_VPS)
 				vbi_vps(vbi, s->data);
+			else if (s->id & SLICED_WSS_625)
+				decode_wss_625(vbi, s->data);
+			else if (s->id & SLICED_WSS_CPR1204)
+				decode_wss_cpr1204(vbi, s->data);
 
 			s++;
 			items--;

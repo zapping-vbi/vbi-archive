@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2001-06-14 21:20+0200\n"
+"POT-Creation-Date: 2001-06-18 12:02+0200\n"
 "PO-Revision-Date: 2000-02-14 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -716,47 +716,47 @@ msgstr ""
 msgid "Sorry, but no plugins have been loaded"
 msgstr "No se ha cargado ningún plugin"
 
-#: src/plugin_properties.c:156
+#: src/plugin_properties.c:165
 msgid "Very low"
 msgstr "Muy baja"
 
-#: src/plugin_properties.c:158
+#: src/plugin_properties.c:167
 msgid "Low"
 msgstr "Baja"
 
-#: src/plugin_properties.c:160
+#: src/plugin_properties.c:169
 msgid "Below normal"
 msgstr "Por debajo de lo normal"
 
-#: src/plugin_properties.c:162
+#: src/plugin_properties.c:171
 msgid "Normal"
 msgstr ""
 
-#: src/plugin_properties.c:164
+#: src/plugin_properties.c:173
 msgid "Very high"
 msgstr "Muy alta"
 
-#: src/plugin_properties.c:166
+#: src/plugin_properties.c:175
 msgid "High"
 msgstr "Alta"
 
-#: src/plugin_properties.c:168
+#: src/plugin_properties.c:177
 msgid "Above normal"
 msgstr "Por encima de lo normal"
 
-#: src/plugin_properties.c:210
+#: src/plugin_properties.c:215
 msgid "This plugin has no public symbols"
 msgstr "Este plugin no tiene símbolos públicos"
 
-#: src/plugin_properties.c:232
+#: src/plugin_properties.c:237
 msgid "List of symbols exported by the plugin"
 msgstr "Lista de símbolos exportados por el plugin"
 
-#: src/plugin_properties.c:291
+#: src/plugin_properties.c:298
 msgid "Sorry, but the plugin couldn't be started"
 msgstr "Lo siento, el plugin no puede ser iniciado"
 
-#: src/plugin_properties.c:397
+#: src/plugin_properties.c:408
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Lo siento, el plugin no proporciona ayuda sobre esto"
 
@@ -819,134 +819,134 @@ msgstr "Analizando %x.%02x"
 msgid "VBI has been disabled"
 msgstr "VBI ha sido dishabilitado"
 
-#: src/ttxview.c:1424
+#: src/ttxview.c:1438
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> añadido a los marcadores"
 
-#: src/ttxview.c:1487
+#: src/ttxview.c:1501
 msgid "Any subpage"
 msgstr "Cualquier subpágina"
 
-#: src/ttxview.c:1794
+#: src/ttxview.c:1808
 #, c-format
 msgid "Export %s"
 msgstr "Exportar %s"
 
-#: src/ttxview.c:1808
+#: src/ttxview.c:1822
 msgid "Save as:"
 msgstr "Guardar como:"
 
-#: src/ttxview.c:1813
+#: src/ttxview.c:1827
 msgid "Select file you'll be exporting to"
 msgstr "Selecciona el fichero donde exportar"
 
-#: src/ttxview.c:1827
+#: src/ttxview.c:1841
 msgid "Options"
 msgstr "Opciones"
 
-#: src/ttxview.c:2017
+#: src/ttxview.c:2031
 msgid "You must first set the destination dir in the properties dialog"
 msgstr "Debes configurar el directorio destino en el diálogo de propiedades"
 
-#: src/ttxview.c:2026 src/ttxview.c:2794
+#: src/ttxview.c:2040 src/ttxview.c:2808
 msgid "No page loaded"
 msgstr "Ninguna página cargada"
 
-#: glade/glade_strings.c:243 src/ttxview.c:2032
+#: glade/glade_strings.c:243 src/ttxview.c:2046
 msgid "Zapzilla"
 msgstr ""
 
-#: src/ttxview.c:2061
+#: src/ttxview.c:2075
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr ""
 
-#: src/ttxview.c:2070
+#: src/ttxview.c:2084
 #, c-format
 msgid "%s saved"
 msgstr "%s guardada"
 
-#: src/ttxview.c:2081
+#: src/ttxview.c:2095
 #, c-format
 msgid "Export failed: %s"
 msgstr ""
 
-#: src/ttxview.c:2249
+#: src/ttxview.c:2263
 #, c-format
 msgid "Caption %x - %s"
 msgstr ""
 
-#: src/ttxview.c:2251
+#: src/ttxview.c:2265
 #, c-format
 msgid "Text %x - %s"
 msgstr ""
 
-#: src/ttxview.c:2255
+#: src/ttxview.c:2269
 #, c-format
 msgid "Caption %x"
 msgstr ""
 
-#: src/ttxview.c:2257
+#: src/ttxview.c:2271
 #, c-format
 msgid "Text %x"
 msgstr ""
 
-#: src/ttxview.c:2283
+#: src/ttxview.c:2297
 #, c-format
 msgid "%x: Unknown language"
 msgstr ""
 
-#: src/ttxview.c:2296 src/ttxview.c:2311 src/ttxview.c:2335 src/ttxview.c:2351
-#: src/ttxview.c:2367 src/ttxview.c:2383 src/ttxview.c:2399
+#: src/ttxview.c:2310 src/ttxview.c:2325 src/ttxview.c:2349 src/ttxview.c:2365
+#: src/ttxview.c:2381 src/ttxview.c:2397 src/ttxview.c:2413
 #, fuzzy, c-format
 msgid "Page %x"
 msgstr "Página %d"
 
-#: src/ttxview.c:2305
+#: src/ttxview.c:2319
 msgid "Index"
 msgstr ""
 
-#: src/ttxview.c:2329
+#: src/ttxview.c:2343
 msgid "Now and Next"
 msgstr ""
 
-#: src/ttxview.c:2345
+#: src/ttxview.c:2359
 #, fuzzy
 msgid "Current program"
 msgstr "Controlador:"
 
-#: src/ttxview.c:2361
+#: src/ttxview.c:2375
 msgid "Program Index"
 msgstr ""
 
-#: src/ttxview.c:2377
+#: src/ttxview.c:2391
 msgid "Program Schedule"
 msgstr ""
 
-#: src/ttxview.c:2393
+#: src/ttxview.c:2407
 msgid "Program Warning"
 msgstr ""
 
-#: src/ttxview.c:2413
+#: src/ttxview.c:2427
 #, fuzzy
 msgid "Subtitles"
 msgstr "_Subtítulos"
 
-#: src/ttxview.c:2415
+#: src/ttxview.c:2429
 msgid "Select subtitles page"
 msgstr ""
 
-#: src/ttxview.c:2488
+#: src/ttxview.c:2502
 #, c-format
 msgid "%s in %s"
 msgstr "%s en %s"
 
-#: src/ttxview.c:2803
+#: src/ttxview.c:2817
 msgid "Selecting - hold Shift for table mode"
 msgstr "Seleccionando - pulse Shift para modo tabla"
 
-#: src/ttxview.c:2917
+#: src/ttxview.c:2931
 msgid "Selection copied to clipboard"
 msgstr "Selección copiada al portapapeles"
 
@@ -2152,11 +2152,11 @@ msgstr "Convierte una fila de RGB555 a RGB24. Devuelve el destino."
 msgid "Converts a row in RGBA format to RGB24. Returns the destination."
 msgstr "Convierte una fila de RGBA a RGB24. Devuelve el destino."
 
-#: plugins/screenshot/screenshot.c:427 plugins/screenshot/screenshot.c:501
+#: plugins/screenshot/screenshot.c:435 plugins/screenshot/screenshot.c:511
 msgid "Screenshot"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:473
+#: plugins/screenshot/screenshot.c:483
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
@@ -2172,22 +2172,22 @@ msgstr ""
 "La calidad te permite especificar cuánta información se perderá al\n"
 "comprimir el JPEG."
 
-#: plugins/screenshot/screenshot.c:502
+#: plugins/screenshot/screenshot.c:512
 msgid "Take a JPEG screenshot [Ctrl+S]"
 msgstr "Guardar la imagen actual como JPEG [Ctrl+S]"
 
 #. Probably there is no mem even for this, but try anyway
-#: plugins/screenshot/screenshot.c:589 plugins/screenshot/screenshot.c:605
-#: plugins/screenshot/screenshot.c:614
+#: plugins/screenshot/screenshot.c:599 plugins/screenshot/screenshot.c:615
+#: plugins/screenshot/screenshot.c:624
 msgid "Sorry, not enough mem"
 msgstr ""
 
 # src/tveng.c:70
-#: plugins/screenshot/screenshot.c:670
+#: plugins/screenshot/screenshot.c:680
 msgid "Sorry, but I cannot write\n"
 msgstr "No se puede escribir.\n"
 
-#: plugins/screenshot/screenshot.c:672
+#: plugins/screenshot/screenshot.c:682
 msgid ""
 "\n"
 "The image won't be saved."
@@ -2195,15 +2195,15 @@ msgstr ""
 "\n"
 "No se guardará la imagen."
 
-#: plugins/screenshot/screenshot.c:752
+#: plugins/screenshot/screenshot.c:762
 msgid "Saving..."
 msgstr "Guardando..."
 
-#: plugins/screenshot/screenshot.c:763
+#: plugins/screenshot/screenshot.c:773
 msgid "Sorry, not enough resources for creating a new thread"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:767
+#: plugins/screenshot/screenshot.c:777
 msgid "There are too many threads"
 msgstr ""
 
@@ -2248,54 +2248,54 @@ msgstr "Este plugin permite utilizar LIRC."
 msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
 msgstr ""
 
-#: plugins/lirc/lirc.c:315
+#: plugins/lirc/lirc.c:321
 msgid "LIRC"
 msgstr ""
 
-#: plugins/lirc/lirc.c:514
+#: plugins/lirc/lirc.c:522
 msgid "Button"
 msgstr "Botón"
 
-#: plugins/lirc/lirc.c:521
+#: plugins/lirc/lirc.c:529
 msgid "Action"
 msgstr "Acción"
 
-#: plugins/lirc/lirc.c:538
+#: plugins/lirc/lirc.c:546
 msgid "Button:"
 msgstr "Botón:"
 
-#: plugins/lirc/lirc.c:549
+#: plugins/lirc/lirc.c:557
 msgid "Action:"
 msgstr "Acción:"
 
 # src/interface.c:362
-#: plugins/lirc/lirc.c:577 plugins/lirc/lirc.c:589
+#: plugins/lirc/lirc.c:585 plugins/lirc/lirc.c:597
 msgid "channel up"
 msgstr "canal arriba"
 
 # src/interface.c:405
-#: plugins/lirc/lirc.c:578
+#: plugins/lirc/lirc.c:586
 msgid "channel down"
 msgstr "canal abajo"
 
 # src/interface.c:362
-#: plugins/lirc/lirc.c:579
+#: plugins/lirc/lirc.c:587
 msgid "set channel"
 msgstr "cambiar al canal"
 
-#: plugins/lirc/lirc.c:580
+#: plugins/lirc/lirc.c:588
 msgid "power off"
 msgstr "apagar"
 
-#: plugins/lirc/lirc.c:623
+#: plugins/lirc/lirc.c:631
 msgid "1"
 msgstr ""
 
-#: plugins/lirc/lirc.c:632
+#: plugins/lirc/lirc.c:640
 msgid "Add"
 msgstr "Añadir"
 
-#: plugins/lirc/lirc.c:641
+#: plugins/lirc/lirc.c:649
 msgid "Delete"
 msgstr "Eliminar"
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: math.h,v 1.4 2001-05-14 22:31:25 garetxe Exp $ */
+/* $Id: math.h,v 1.5 2001-06-18 12:33:58 mschimek Exp $ */
 
 #ifndef MATH_H
 #define MATH_H
@@ -75,8 +75,9 @@ saturate(int val, int min, int max)
 
 /*
  *  Round integer v up to nearest integer multiple of a
+ *  ?
  */
-#define lalign(v, a) ((v) + (a) - (int)(v) % (a))
+// #define lalign(v, a) ((v) + (a) - (int)(v) % (a))
 
 /*
  *  Absolute value w/o a branch

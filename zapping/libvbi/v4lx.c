@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.17 2001-05-24 03:19:43 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.18 2001-06-18 12:33:58 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1056,6 +1056,7 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 #define SLICED_TELETEXT_B	(SLICED_TELETEXT_B_L10_625 | SLICED_TELETEXT_B_L25_625)
 #define SLICED_CAPTION		(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625 \
 				 | SLICED_CAPTION_525_F1 | SLICED_CAPTION_525)
+#define SLICED_WSS		(SLICED_WSS_625 | SLICED_WSS_CPR1204)
 
 /*
  *  Preliminary. Need something to re-open the
@@ -1093,12 +1094,12 @@ vbi_open_v4lx(char *dev_name, int given_fd, int buffered, int fifo_depth)
 	int r;
 
 	if (!(r = open_v4l2(&vbi, dev_name, buffered ? fifo_depth : 1,
-	    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION, -1, buffered)))
+	    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION | SLICED_WSS, -1, buffered)))
 		goto failure;
 
 	if (r < 0)
 		if (!(r = open_v4l(&vbi, dev_name, buffered ? fifo_depth : 1,
-		    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION,
+		    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION | SLICED_WSS,
 		    -1, given_fd, buffered)))
 			goto failure;
 	if (r < 0)

@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2001-06-14 21:20+0200\n"
-"PO-Revision-Date: 2001-06-02 01:34+02:00\n"
+"POT-Creation-Date: 2001-06-18 12:02+0200\n"
+"PO-Revision-Date: 2001-06-18 14:31+02:00\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -32,7 +32,6 @@ msgstr "VBI Unterstützung deaktivieren"
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr "Videostandard für Eingänge ohne Tuner einstellen"
 
-# Norm, barfly from Cheers.
 #: src/main.c:265
 msgid "NORM"
 msgstr "NORM"
@@ -331,17 +330,16 @@ msgstr ""
 "Kontrollzentrum unter Handlers/Url Navigator eingestellt ist"
 
 #: src/zvbi.c:413
-#, fuzzy, c-format
+#, c-format
 msgid " %s: Teletext Page %x"
-msgstr "%s: Teletext Seite %x"
+msgstr " %s: Teletext Seite %x"
 
 #: src/zvbi.c:416
-#, fuzzy, c-format
+#, c-format
 msgid " Teletext Page %x"
-msgstr "Teletext Seite %x"
+msgstr " Teletext Seite %x"
 
 #: src/zvbi.c:417
-#, fuzzy
 msgid "Open this page with Zapzilla"
 msgstr "Seite mit Zapzilla öffnen"
 
@@ -732,47 +730,47 @@ msgstr ""
 msgid "Sorry, but no plugins have been loaded"
 msgstr "Es wurden noch keine Plugins geladen"
 
-#: src/plugin_properties.c:156
+#: src/plugin_properties.c:165
 msgid "Very low"
 msgstr "Sehr niedrig"
 
-#: src/plugin_properties.c:158
+#: src/plugin_properties.c:167
 msgid "Low"
 msgstr "Niedrig"
 
-#: src/plugin_properties.c:160
+#: src/plugin_properties.c:169
 msgid "Below normal"
 msgstr "Niedriger"
 
-#: src/plugin_properties.c:162
+#: src/plugin_properties.c:171
 msgid "Normal"
 msgstr "Normal"
 
-#: src/plugin_properties.c:164
+#: src/plugin_properties.c:173
 msgid "Very high"
 msgstr "Sehr hoch"
 
-#: src/plugin_properties.c:166
+#: src/plugin_properties.c:175
 msgid "High"
 msgstr "Hoch"
 
-#: src/plugin_properties.c:168
+#: src/plugin_properties.c:177
 msgid "Above normal"
 msgstr "Höher"
 
-#: src/plugin_properties.c:210
+#: src/plugin_properties.c:215
 msgid "This plugin has no public symbols"
 msgstr "Dieses Plugin hat keine öffentlichen Symbole"
 
-#: src/plugin_properties.c:232
+#: src/plugin_properties.c:237
 msgid "List of symbols exported by the plugin"
 msgstr "Liste der vom Plugin exportierten Symbole"
 
-#: src/plugin_properties.c:291
+#: src/plugin_properties.c:298
 msgid "Sorry, but the plugin couldn't be started"
 msgstr "Das Plugin konnte leider nicht gestartet werden"
 
-#: src/plugin_properties.c:397
+#: src/plugin_properties.c:408
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Das Plugin bietet dazu leider keine Hilfe an"
 
@@ -835,132 +833,132 @@ msgstr "Durchsuche %x.%02x"
 msgid "VBI has been disabled"
 msgstr "VBI wurde deaktiviert"
 
-#: src/ttxview.c:1424
+#: src/ttxview.c:1438
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> zu den Lesezeichen hinzugefügt"
 
-#: src/ttxview.c:1487
+#: src/ttxview.c:1501
 msgid "Any subpage"
 msgstr "Beliebige Unterseite"
 
-#: src/ttxview.c:1794
+#: src/ttxview.c:1808
 #, c-format
 msgid "Export %s"
 msgstr "Ausgeben - %s"
 
-#: src/ttxview.c:1808
+#: src/ttxview.c:1822
 msgid "Save as:"
 msgstr "Speichern als:"
 
-#: src/ttxview.c:1813
+#: src/ttxview.c:1827
 msgid "Select file you'll be exporting to"
 msgstr "Wählen Sie den Dateinamen unter dem die Seite gespeichert wird"
 
-#: src/ttxview.c:1827
+#: src/ttxview.c:1841
 msgid "Options"
 msgstr "Optionen"
 
-#: src/ttxview.c:2017
+#: src/ttxview.c:2031
 msgid "You must first set the destination dir in the properties dialog"
 msgstr "Sie müssen erst das Zielverzeichnis im Eigenschaften Dialog einstellen"
 
-#: src/ttxview.c:2026 src/ttxview.c:2794
+#: src/ttxview.c:2040 src/ttxview.c:2808
 msgid "No page loaded"
 msgstr "Keine Seite geladen"
 
-#: glade/glade_strings.c:243 src/ttxview.c:2032
+#: glade/glade_strings.c:243 src/ttxview.c:2046
 msgid "Zapzilla"
 msgstr "Zapzilla"
 
-#: src/ttxview.c:2061
+#: src/ttxview.c:2075
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "Ausgabe als %s fehlgeschlagen: %s"
 
-#: src/ttxview.c:2070
+#: src/ttxview.c:2084
 #, c-format
 msgid "%s saved"
 msgstr "%s gespeichert"
 
-#: src/ttxview.c:2081
+#: src/ttxview.c:2095
 #, c-format
 msgid "Export failed: %s"
 msgstr "Ausgabe fehlgeschlagen: %s"
 
-#: src/ttxview.c:2249
+#: src/ttxview.c:2263
 #, c-format
 msgid "Caption %x - %s"
 msgstr "Caption %x - %s"
 
-#: src/ttxview.c:2251
+#: src/ttxview.c:2265
 #, c-format
 msgid "Text %x - %s"
 msgstr "Text %x - %s"
 
-#: src/ttxview.c:2255
+#: src/ttxview.c:2269
 #, c-format
 msgid "Caption %x"
 msgstr "Caption %x"
 
-#: src/ttxview.c:2257
+#: src/ttxview.c:2271
 #, c-format
 msgid "Text %x"
 msgstr "Text %x"
 
-#: src/ttxview.c:2283
+#: src/ttxview.c:2297
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: Unbekannte Sprache"
 
-#: src/ttxview.c:2296 src/ttxview.c:2311 src/ttxview.c:2335 src/ttxview.c:2351
-#: src/ttxview.c:2367 src/ttxview.c:2383 src/ttxview.c:2399
+#: src/ttxview.c:2310 src/ttxview.c:2325 src/ttxview.c:2349 src/ttxview.c:2365
+#: src/ttxview.c:2381 src/ttxview.c:2397 src/ttxview.c:2413
 #, c-format
 msgid "Page %x"
 msgstr "Seite %x"
 
-#: src/ttxview.c:2305
+#: src/ttxview.c:2319
 msgid "Index"
 msgstr "Inhalt"
 
-#: src/ttxview.c:2329
+#: src/ttxview.c:2343
 msgid "Now and Next"
 msgstr "Jetzt und gleich"
 
-#: src/ttxview.c:2345
+#: src/ttxview.c:2359
 msgid "Current program"
 msgstr "Über diese Sendung"
 
-#: src/ttxview.c:2361
+#: src/ttxview.c:2375
 msgid "Program Index"
 msgstr "Programm Index"
 
-#: src/ttxview.c:2377
+#: src/ttxview.c:2391
 msgid "Program Schedule"
 msgstr "Programmvorschau"
 
-#: src/ttxview.c:2393
+#: src/ttxview.c:2407
 msgid "Program Warning"
 msgstr "Programmhinweis"
 
-#: src/ttxview.c:2413
+#: src/ttxview.c:2427
 msgid "Subtitles"
 msgstr "Untertitel"
 
-#: src/ttxview.c:2415
+#: src/ttxview.c:2429
 msgid "Select subtitles page"
 msgstr "Untertitelseite wählen"
 
-#: src/ttxview.c:2488
+#: src/ttxview.c:2502
 #, c-format
 msgid "%s in %s"
 msgstr "%s in %s"
 
-#: src/ttxview.c:2803
+#: src/ttxview.c:2817
 msgid "Selecting - hold Shift for table mode"
 msgstr "Markieren - für Blockmodus Hochstelltaste gedrückt halten"
 
-#: src/ttxview.c:2917
+#: src/ttxview.c:2931
 msgid "Selection copied to clipboard"
 msgstr "Markierter Text zum Klemmbrett kopiert"
 
@@ -1968,9 +1966,8 @@ msgid "Foo"
 msgstr ""
 
 #: glade/glade_strings.c:282
-#, fuzzy
 msgid "_Colors"
-msgstr "Farbe"
+msgstr "_Farben"
 
 #: glade/glade_strings.c:283
 msgid "Edit Bookmarks"
@@ -2121,14 +2118,12 @@ msgid "Switch to the current channel when the bookmark is selected"
 msgstr "Bei der Auswahl des Lesezeichens zu diesem Kanal wechseln"
 
 #: glade/glade_strings.c:322
-#, fuzzy
 msgid "Text colors"
-msgstr "ANSI Farbcodes"
+msgstr "Textfarben"
 
 #: glade/glade_strings.c:323 glade/glade_strings.c:324
-#, fuzzy
 msgid "Reset"
-msgstr "_Größe ändern"
+msgstr "Zurücksetzen"
 
 #: plugins/screenshot/screenshot.c:35
 msgid "Screenshot saver"
@@ -2169,11 +2164,11 @@ msgid "Converts a row in RGBA format to RGB24. Returns the destination."
 msgstr ""
 "Wandelt eine Zeile im RGBA Format nach RGB24. Rückgabewert Zieladdresse."
 
-#: plugins/screenshot/screenshot.c:427 plugins/screenshot/screenshot.c:501
+#: plugins/screenshot/screenshot.c:435 plugins/screenshot/screenshot.c:511
 msgid "Screenshot"
 msgstr "Schnappschuß"
 
-#: plugins/screenshot/screenshot.c:473
+#: plugins/screenshot/screenshot.c:483
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
@@ -2189,22 +2184,22 @@ msgstr ""
 "Die Qualitätsoption verändert den Kompressionsaufwand und die\n"
 "Dateigröße."
 
-#: plugins/screenshot/screenshot.c:502
+#: plugins/screenshot/screenshot.c:512
 msgid "Take a JPEG screenshot [Ctrl+S]"
 msgstr "JPEG Standbild [Strg + S]"
 
 #. Probably there is no mem even for this, but try anyway
-#: plugins/screenshot/screenshot.c:589 plugins/screenshot/screenshot.c:605
-#: plugins/screenshot/screenshot.c:614
+#: plugins/screenshot/screenshot.c:599 plugins/screenshot/screenshot.c:615
+#: plugins/screenshot/screenshot.c:624
 msgid "Sorry, not enough mem"
 msgstr "Nicht genug Speicher"
 
 # src/tveng.c:70
-#: plugins/screenshot/screenshot.c:670
+#: plugins/screenshot/screenshot.c:680
 msgid "Sorry, but I cannot write\n"
 msgstr "Kann leider nicht schreiben.\n"
 
-#: plugins/screenshot/screenshot.c:672
+#: plugins/screenshot/screenshot.c:682
 msgid ""
 "\n"
 "The image won't be saved."
@@ -2212,15 +2207,15 @@ msgstr ""
 "\n"
 "Das Bild wird nicht gespeichert."
 
-#: plugins/screenshot/screenshot.c:752
+#: plugins/screenshot/screenshot.c:762
 msgid "Saving..."
 msgstr "Speichere..."
 
-#: plugins/screenshot/screenshot.c:763
+#: plugins/screenshot/screenshot.c:773
 msgid "Sorry, not enough resources for creating a new thread"
 msgstr "Resourcenmangel verhindert starten eines neuen Threads"
 
-#: plugins/screenshot/screenshot.c:767
+#: plugins/screenshot/screenshot.c:777
 msgid "There are too many threads"
 msgstr "Es gibt schon zu viele Threads"
 
@@ -2267,54 +2262,54 @@ msgstr "Diese Plugin erlaubt die Verwendung von LIRC."
 msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
 msgstr "Warnung: \"%s\" im Plugin %shat Hash 0x%x ggü. 0x%x"
 
-#: plugins/lirc/lirc.c:315
+#: plugins/lirc/lirc.c:321
 msgid "LIRC"
 msgstr "LIRC"
 
-#: plugins/lirc/lirc.c:514
+#: plugins/lirc/lirc.c:522
 msgid "Button"
 msgstr "Taste"
 
-#: plugins/lirc/lirc.c:521
+#: plugins/lirc/lirc.c:529
 msgid "Action"
 msgstr "Aktion"
 
-#: plugins/lirc/lirc.c:538
+#: plugins/lirc/lirc.c:546
 msgid "Button:"
 msgstr "Taste:"
 
-#: plugins/lirc/lirc.c:549
+#: plugins/lirc/lirc.c:557
 msgid "Action:"
 msgstr "Aktion:"
 
 # src/interface.c:362
-#: plugins/lirc/lirc.c:577 plugins/lirc/lirc.c:589
+#: plugins/lirc/lirc.c:585 plugins/lirc/lirc.c:597
 msgid "channel up"
 msgstr "Höherer Kanal"
 
 # src/interface.c:405
-#: plugins/lirc/lirc.c:578
+#: plugins/lirc/lirc.c:586
 msgid "channel down"
 msgstr "Niedrigerer Kanal"
 
 # src/interface.c:362
-#: plugins/lirc/lirc.c:579
+#: plugins/lirc/lirc.c:587
 msgid "set channel"
 msgstr "Kanal wählen"
 
-#: plugins/lirc/lirc.c:580
+#: plugins/lirc/lirc.c:588
 msgid "power off"
 msgstr "Ausschalten"
 
-#: plugins/lirc/lirc.c:623
+#: plugins/lirc/lirc.c:631
 msgid "1"
 msgstr "1"
 
-#: plugins/lirc/lirc.c:632
+#: plugins/lirc/lirc.c:640
 msgid "Add"
 msgstr "Hinzufügen"
 
-#: plugins/lirc/lirc.c:641
+#: plugins/lirc/lirc.c:649
 msgid "Delete"
 msgstr "Löschen"
 
