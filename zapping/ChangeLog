@@ -4,6 +4,8 @@
 	clicked on the new channel prompt.
 	* plugins/parrot: Made num_bundles configurable, size estimation
 	in the properties.
+	* Applied patches from Roger Fujii (Solaris
+	port). s/TRANSPARENT/TRANSPARENT_FULL/g.
 
 22.07.2001	parrot gui <garetxe@users.sf.net>
 

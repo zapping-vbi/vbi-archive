@@ -14,6 +14,7 @@ pkgdata_DATA = screenshot.glade
 CFLAGS = @CFLAGS@ $(PLUGIN_DEFAULT_FLAGS)
 
 INCLUDES = \
+$(X_CFLAGS) \
 -I$(top_srcdir)/intl \
 -I$(includedir)	\
 $(GNOME_INCLUDEDIR) \

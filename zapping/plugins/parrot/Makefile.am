@@ -2,17 +2,17 @@
 
 plugindir = $(PLUGIN_DEFAULT_DIR)
 
-plugin_LTLIBRARIES = liblirc.zapping.la
+plugin_LTLIBRARIES = libparrot.zapping.la
 
-liblirc_zapping_la_SOURCES = lirc.c lirc.h
+EXTRA_DIST = parrot.glade parrot_strings.h
 
-EXTRA_DIST = README
+libparrot_zapping_la_SOURCES = parrot.c
 
 CFLAGS = @CFLAGS@ $(PLUGIN_DEFAULT_FLAGS)
 
 INCLUDES = \
-$(X_CFLAGS) \
 -I$(top_srcdir)/intl \
 -I$(includedir)	\
 $(GNOME_INCLUDEDIR) \
+$(X_CFLAGS) \
 -I$(top_srcdir)/src ## Let the plugin access Zapping headers

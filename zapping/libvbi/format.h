@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.11 2001-07-21 11:52:25 mschimek Exp $ */
+/* $Id: format.h,v 1.12 2001-07-24 20:47:04 garetxe Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -50,7 +50,7 @@ typedef uint32_t	attr_rgba;
  *    or mandated by hardware limitations. TRANSPARENT_SPACE
  *    may appear in an otherwise OPAQUE display to create
  *    a 'window' effect.
- *  TRANSPARENT:
+ *  TRANSPARENT_FULL:
  *    Display video in place of background colour. Fall
  *    back as above.
  *  SEMI_TRANSPARENT:
@@ -70,7 +70,7 @@ typedef uint32_t	attr_rgba;
  *  opacity flag and current colour map.
  */
 typedef enum {
-	TRANSPARENT_SPACE, TRANSPARENT, SEMI_TRANSPARENT, OPAQUE
+	TRANSPARENT_SPACE, TRANSPARENT_FULL, SEMI_TRANSPARENT, OPAQUE
 } attr_opacity;
 
 /*

@@ -40,5 +40,5 @@ endif
 zapping_setup_fbSOURCES = \
 	zapping_setup_fb.c videodev.h
 
-zapping_setup_fb_LDADD = -L/usr/X11R6/lib -L/usr/lib -L/usr/X11/lib \
--lX11 -lXext -lXxf86dga
+zapping_setup_fb_LDADD = $(X_LIBS) \
+-lX11 -lXext -lXxf86dga $(X_EXTRA_LIBS)

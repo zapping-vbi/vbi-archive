@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.35 2001-07-21 11:52:25 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.36 2001-07-24 20:47:04 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -678,7 +678,7 @@ png_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 						TRANSPARENT_BLACK, rowstride);
 					break;
 
-				case TRANSPARENT:
+				case TRANSPARENT_FULL:
 					/*
 					 *  Transparent background, opaque foreground. Currently not used.
 					 *  Mind Teletext level 2.5 foreground and background transparency

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.28 2001-07-21 11:52:25 mschimek Exp $ */
+/* $Id: caption.c,v 1.29 2001-07-24 20:47:04 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1097,7 +1097,7 @@ caption_command(struct vbi *vbi, struct caption *cc,
 
 		case 0x2D:		/* Optional Attributes		001 c111  010 11xx */
 // not verified
-			ch->attr.opacity = TRANSPARENT;
+			ch->attr.opacity = TRANSPARENT_FULL;
 			break;
 
 		case 0x2E:		/* Optional Attributes		001 c111  010 11xx */
@@ -1530,7 +1530,7 @@ draw_row(ushort *canvas, attr_char *line)
 		}
 
 		switch (line[i].opacity) {
-		case TRANSPARENT:
+		case TRANSPARENT_FULL:
 		case SEMI_TRANSPARENT:
 			pen[0] = CHROMAKEY;
 			pen[1] = palette[line[i].foreground];

@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = \
+$(X_CFLAGS) \
 -I$(top_srcdir)/libvbi \
 -I$(top_srcdir)/intl \
 $(ARCH_CFLAGS) \

@@ -203,7 +203,11 @@ int test_pipe[2];
 void
 startup_zvbi(void)
 {
+#ifdef ENABLE_V4L
   zcc_bool(TRUE, "Enable VBI decoding", "enable_vbi");
+#else
+  zcc_bool(FALSE, "Enable VBI decoding", "enable_vbi");
+#endif
   zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
   zcc_char("/dev/vbi0", "VBI device", "vbi_device");
   zcc_int(0, "Default TTX region", "default_region");
@@ -217,6 +221,7 @@ startup_zvbi(void)
   zcc_int(1, "Operator messages", "op_trigger");
   zcc_int(INTERP_MODE, "Quality speed tradeoff", "qstradeoff");
 
+#ifdef ENABLE_V4L
   zconf_add_hook("/zapping/options/vbi/enable_vbi",
 		 (ZConfHook)on_vbi_prefs_changed,
 		 (gpointer)0xdeadbeef);
@@ -229,6 +234,7 @@ startup_zvbi(void)
 	   strerror(errno));
     exit(EXIT_FAILURE);
   }
+#endif
 }
 
 void shutdown_zvbi(void)
@@ -470,7 +476,7 @@ zvbi_open_device(void)
   gint index;
   int given_fd;
 
-  static int region_mapping[8] = {
+  int region_mapping[8] = {
     0, /* WCE */
     8, /* EE */
     16, /* WET */
@@ -481,6 +487,7 @@ zvbi_open_device(void)
     80 /* I */
   };
 
+#ifdef ENABLE_V4L
   D();
   if ((vbi) || (!zcg_bool(NULL, "enable_vbi")))
     return FALSE; /* this code isn't reentrant */
@@ -555,6 +562,7 @@ zvbi_open_device(void)
 	    "options/Enable VBI decoding."),
 	  GNOME_MESSAGE_BOX_ERROR, device, errno, strerror(errno));
   D();
+#endif
   return FALSE;
 }
 
