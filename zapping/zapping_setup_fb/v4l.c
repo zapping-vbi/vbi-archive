@@ -19,17 +19,17 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.1.2.2 2003-06-16 06:09:31 mschimek Exp $ */
+/* $Id: v4l.c,v 1.1.2.3 2003-09-24 18:36:06 mschimek Exp $ */
 
 #include "../config.h"
+
+#include "zapping_setup_fb.h"
 
 #ifdef ENABLE_V4L
 
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-
-#include "zapping_setup_fb.h"
 
 #include "../common/videodev.h"
 #include "../common/fprintf_videodev.h"
