@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.26 2001-07-27 05:52:24 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.27 2001-07-28 06:55:57 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -181,7 +181,7 @@ read_thread(void *p)
 
 				for (; stacked > 0; stacked--)
 					send_full_buffer2(&vbi->producer,
-						(buffer2 *) rem_head3(&stack));
+						PARENT(rem_head3(&stack), buffer2, node));
 
 				assert(!"read error in v4lx read thread"); /* XXX */
 			}
@@ -205,7 +205,7 @@ read_thread(void *p)
 			if (stacked >= (f->buffers.members >> 2)) {
 				/* Not enough space &| hopeless desynced */
 				for (stacked_time = 0.0; stacked > 0; stacked--) {
-					buffer2 *b = (buffer2 *) rem_head3(&stack);
+					buffer2 *b = PARENT(rem_head3(&stack), buffer2, node);
 					send_full_buffer2(&vbi->producer, b);
 				}
 			} else {
@@ -216,7 +216,7 @@ read_thread(void *p)
 			}
 		} else { /* (back) on track */ 
 			for (stacked_time = 0.0; stacked > 0; stacked--) {
-				buffer2 *b = (buffer2 *) rem_head3(&stack);
+				buffer2 *b = PARENT(rem_head3(&stack), buffer2, node);
 				b->time = last_time += vbi->time_per_frame; 
 				send_full_buffer2(&vbi->producer, b);
 			}

@@ -35,12 +35,12 @@
 #include "systems.h"
 #include "stream.h"
 
-buffer *		(* mux_output)(buffer *b);
+buffer2 *		(* mux_output)(buffer2 *b);
 
-static buffer		mux_buffer;
+static buffer2		mux_buffer;
 
-static buffer *
-output_stdout(buffer *b)
+static buffer2 *
+output_stdout(buffer2 *b)
 {
 	unsigned char *s;
 	ssize_t r, n;
@@ -49,7 +49,7 @@ output_stdout(buffer *b)
 		return &mux_buffer;
 
 	s = b->data;
-	n = b->used;
+	n = b->used; // XXX eof 
 
 	while (n > 0) {
 		r = write(STDOUT_FILENO, s, n);
@@ -72,11 +72,14 @@ init_output_stdout(void)
 	int bsize = (mux_syn == 4) ? 2324 /* VCD */ : PACKET_SIZE;
 
 	ASSERT("allocate mux buffer, %d bytes",
-		init_buffer(&mux_buffer, bsize), bsize);
+		init_buffer2(&mux_buffer, bsize), bsize);
 	/*
 	 *  Attn: mux_buffer.size determines the packet size, not PACKET_SIZE.
-	 *  All buffers shall have the same size, returning used <= size.
+	 *  All buffers shall have the same size,
+	 *  will send full buffers used <= size.
 	 */
+
+	mux_buffer.data = mux_buffer.allocated; /* XXX */
 
 	mux_output = output_stdout;
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: remote.c,v 1.7 2001-07-24 20:02:55 mschimek Exp $ */
+/* $Id: remote.c,v 1.8 2001-07-28 06:55:57 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "remote.h"
@@ -80,96 +80,21 @@ remote_stop(double time)
 }
 
 bool
-remote_sync(fifo *input_fifo, consumer *c, unsigned int this_module, double frame_period)
+remote_sync(consumer *c, unsigned int this_module, double frame_period)
 {
 	double last_time = -1;
-
-if (c) {
-	buffer2 *b2;
+	buffer2 *b;
 
 	c->fifo->start(c->fifo);
 
-	b2 = wait_full_buffer2(c);
+	b = wait_full_buffer2(c);
 
-	if (b2->used <= 0)
+	if (b->used <= 0)
 		FAIL("Premature end of file");
 
 	pthread_mutex_lock(&remote.mucon.mutex);
 
 	for (;;) { // XXX add timeout
-		if (b2->time == 0.0) { // offline
-			if (remote.start_time < DBL_MAX) {
-				printv(4, "RS %02x: accept start_time %f for %f, voted %02x/%02x\n",
-					this_module, remote.start_time, b2->time,
-					remote.vote, remote.modules);
-				if ((remote.vote |= this_module) == remote.modules)
-					break;
-				pthread_cond_broadcast(&remote.mucon.cond);
-			}
-			pthread_cond_wait(&remote.mucon.cond, &remote.mucon.mutex);
-			continue;
-		}
-if (0)
-		if (b2->time <= last_time)
-			FAIL("Invalid timestamps from %s: ..., %f, %f\n",
-				c->fifo->name, last_time, b2->time);
-
-		last_time = b2->time;
-
-		if (remote.start_time < b2->time) {
-			printv(4, "RS %02x: propose start_time %f, was %f\n",
-				this_module, b2->time, remote.start_time);
-			remote.start_time = b2->time;
-			remote.vote = this_module;
-			if (this_module == remote.modules)
-				break;
-			pthread_cond_broadcast(&remote.mucon.cond);
-			pthread_cond_wait(&remote.mucon.cond, &remote.mucon.mutex);
-			continue;
-		}
-
-		if (remote.start_time < b2->time + frame_period) {
-			printv(4, "RS %02x: accept start_time %f for %f, voted %02x/%02x\n",
-				this_module, remote.start_time, b2->time,
-				remote.vote, remote.modules);
-			if ((remote.vote |= this_module) == remote.modules)
-				break;
-		}
-
-		printv(4, "RS %02x: disagree start_time %f, discard %f\n",
-			this_module, remote.start_time, b2->time);
-
-		remote.vote &= ~this_module;
-
-		pthread_mutex_unlock(&remote.mucon.mutex);
-
-		send_empty_buffer2(c, b2);
-
-		b2 = wait_full_buffer2(c);
-
-		if (b2->used <= 0)
-			FAIL("Capture failure");
-
-		pthread_mutex_lock(&remote.mucon.mutex);
-	}
-
-	pthread_mutex_unlock(&remote.mucon.mutex);
-	pthread_cond_broadcast(&remote.mucon.cond);
-
-	unget_full_buffer2(c, b2);
-
-} else {
-	buffer *b;
-
-	input_fifo->start(input_fifo);
-
-	if (!(b = wait_full_buffer(input_fifo)))
-		FAIL("Premature end of file");
-	// XXX should pass b->used == 0 as EOF, b == NULL as failure
-
-	pthread_mutex_lock(&remote.mucon.mutex);
-
-	for (;;) {
 		if (b->time == 0.0) { // offline
 			if (remote.start_time < DBL_MAX) {
 				printv(4, "RS %02x: accept start_time %f for %f, voted %02x/%02x\n",
@@ -185,7 +110,7 @@ if (0)
 if (0)
 		if (b->time <= last_time)
 			FAIL("Invalid timestamps from %s: ..., %f, %f\n",
-				input_fifo->name, last_time, b->time);
+				c->fifo->name, last_time, b->time);
 
 		last_time = b->time;
 
@@ -216,9 +141,11 @@ if (0)
 
 		pthread_mutex_unlock(&remote.mucon.mutex);
 
-		send_empty_buffer(input_fifo, b);
+		send_empty_buffer2(c, b);
 
-		if (!(b = wait_full_buffer(input_fifo)))
+		b = wait_full_buffer2(c);
+
+		if (b->used <= 0)
 			FAIL("Capture failure");
 
 		pthread_mutex_lock(&remote.mucon.mutex);
@@ -227,9 +154,7 @@ if (0)
 	pthread_mutex_unlock(&remote.mucon.mutex);
 	pthread_cond_broadcast(&remote.mucon.cond);
 
-	unget_full_buffer(input_fifo, b);
-
-}
+	unget_full_buffer2(c, b);
 
 	return TRUE;
 }

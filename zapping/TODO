@@ -2,7 +2,6 @@ Outstanding issues for the next release (0.6.0)
 -----------------------------------------------
 	+ Finish parrot buffer for observing parrots.
 	+ Find/draw some icons for the parrot buffer plugin.
-	+ fifo->fifo2
 	+ Fix country size field width.
 	+ Reorganize toolbar, etc.
 

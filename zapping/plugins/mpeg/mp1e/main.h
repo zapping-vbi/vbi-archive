@@ -54,9 +54,4 @@ extern pthread_t audio_emulation_thread_id;
 extern pthread_mutex_t video_device_mutex;
 extern pthread_mutex_t audio_device_mutex;
 
-extern fifo *		ye_olde_audio_cap_fifo;
-
-extern unsigned char *	(* ye_olde_wait_frame)(double *, int *);
-extern void		(* ye_olde_frame_done)(int);
-
 #endif // MAIN.H

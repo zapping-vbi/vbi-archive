@@ -481,8 +481,8 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format,
       break;
     }
   d->format.sizeimage = d->image_size;
-  d->_f = f;
-  d->_b = b;
+  d->f = f; /* XXX */
+  d->b = b;
 }
 
 static void
@@ -531,7 +531,7 @@ static gint idle_handler(gpointer ignored)
   g_assert(b->used > 0);
 
   d = (capture_bundle*)b->data;
-  d->_b = b;
+  d->b = b; /* XXX */
 
   /* needs rebuilding */
   if (!d->timestamp || !d->image_type || !d->data ||
@@ -732,8 +732,7 @@ capture_stop(tveng_device_info *info)
 
   /* Free the memory used by the bundles */
   /* XXX should use the buffer2.destroy hook */
-  for (b = PARENT(capture_fifo.buffers.head, buffer2, added);
-       b->added.succ; b = PARENT(b->added.succ, buffer2, added))
+  for_all_nodes (b, &capture_fifo.buffers, added)
     if (b->data)
       clear_bundle((capture_bundle * ) b->data);
 
@@ -812,7 +811,7 @@ print_info(GtkWidget *main_window)
 /* mhs: capture_fifo is not mc-able due to
   capture_bundle write permission */
 #if 0
-fifo *
+fifo2 *
 get_capture_fifo (void)
 {
   return &capture_fifo;

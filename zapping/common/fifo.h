@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.20 2001-07-27 05:52:24 mschimek Exp $ */
+/* $Id: fifo.h,v 1.21 2001-07-28 06:55:57 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -350,6 +350,10 @@ recv_empty_buffer(fifo *f)
 	return b;
 }
 
+#ifndef FIFO_C
+#define fifo _oops_another_old_fifo_
+#endif
+
 /*
  *  NEW STUFF
  */
@@ -486,8 +490,6 @@ struct consumer {
  * Buffer time is usually noted in seconds TOD. Unfortunately too
  * many interfaces provide no interrupt time so we have no choice
  * but to query the system clock.
- *
- * Attn Y2K+39.
  *
  * Return value:
  * gettimeofday() in seconds and fractions, double.

@@ -36,12 +36,12 @@
 #include "stream.h"
 #include "../rtepriv.h"
 
-buffer *		(* mux_output)(buffer *b);
+buffer2 *		(* mux_output)(buffer2 *b);
 
-static buffer		mux_buffer;
+static buffer2		mux_buffer;
 
-static buffer *
-output(buffer *mbuf)
+static buffer2 *
+output(buffer2 *mbuf)
 {
 	if (!mbuf)
 		return &mux_buffer;
@@ -68,7 +68,7 @@ output(buffer *mbuf)
 int
 output_init( void )
 {
-	if (!init_buffer(&mux_buffer, PACKET_SIZE))
+	if (!init_buffer2(&mux_buffer, PACKET_SIZE))
 		return FALSE;
 
 	mux_output = output;
@@ -79,5 +79,5 @@ output_init( void )
 void
 output_end ( void )
 {
-	uninit_buffer(&mux_buffer);
+	destroy_buffer(&mux_buffer);
 }

@@ -365,6 +365,7 @@ main(int ac, char **av)
 	struct vbi_context *vbi;
 	int vps_offset;
 	fifo *f;
+#error new fifo
 
 	my_name = av[0];
 

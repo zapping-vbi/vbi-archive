@@ -1,3 +1,7 @@
+2001-07-28	<mschimek@users.sf.net>
+
+	* Converted remaining fifos to fifo2.
+
 2001-07-27	<mschimek@users.sf.net>
 
 	* Converted capture fifos to fifo2 in mp1e and rte.

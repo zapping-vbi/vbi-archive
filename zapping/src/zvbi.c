@@ -94,7 +94,9 @@ struct ttx_patch {
 };
 
 struct ttx_client {
-  fifo		mqueue;
+  fifo2		mqueue;
+  producer	mqueue_prod;
+  consumer	mqueue_cons;
   int		page, subpage; /* monitored page, subpage */
   int		id; /* of the client */
   pthread_mutex_t mutex;
@@ -612,14 +614,18 @@ send_ttx_message(struct ttx_client *client,
 		 void *data, int bytes)
 {
   ttx_message_data *d;
+  buffer2 *b;
+  
+  b = wait_empty_buffer2(&client->mqueue_prod);
 
-  buffer *b = wait_empty_buffer(&client->mqueue);
   d = (ttx_message_data*)b->data;
   d->msg = message;
   g_assert(bytes <= sizeof(ttx_message_data));
+
   if (data)
     memcpy(&(d->data), data, bytes);
-  send_full_buffer(&client->mqueue, b);
+
+  send_full_buffer2(&client->mqueue_prod, b);
 }
 
 static void
@@ -690,8 +696,13 @@ register_ttx_client(void)
       gdk_pixbuf_unref(simple);
     }
 
-  g_assert(init_buffered_fifo(&client->mqueue, "zvbi-mqueue", 16,
-			      sizeof(ttx_message_data)) > 0);
+  g_assert(init_buffered_fifo2(
+           &client->mqueue, "zvbi-mqueue",
+	   16, sizeof(ttx_message_data)) > 0);
+
+  add_producer(&client->mqueue, &client->mqueue_prod);
+  add_consumer(&client->mqueue, &client->mqueue_cons);
+
   pthread_mutex_lock(&clients_mutex);
   ttx_clients = g_list_append(ttx_clients, client);
   pthread_mutex_unlock(&clients_mutex);
@@ -760,7 +771,7 @@ enum ttx_message
 peek_ttx_message(int id, ttx_message_data *data)
 {
   struct ttx_client *client;
-  buffer *b;
+  buffer2 *b;
   enum ttx_message message;
   ttx_message_data *d;
 
@@ -768,13 +779,13 @@ peek_ttx_message(int id, ttx_message_data *data)
 
   if ((client = find_client(id)))
     {
-      b = recv_full_buffer(&client->mqueue);
+      b = recv_full_buffer2(&client->mqueue_cons);
       if (b)
 	{
 	  d = (ttx_message_data*)b->data;
 	  message = d->msg;
 	  memcpy(data, d, sizeof(ttx_message_data));
-	  send_empty_buffer(&client->mqueue, b);
+	  send_empty_buffer2(&client->mqueue_cons, b);
 	}
       else
 	message = TTX_NONE;
@@ -791,7 +802,7 @@ enum ttx_message
 get_ttx_message(int id, ttx_message_data *data)
 {
   struct ttx_client *client;
-  buffer *b;
+  buffer2 *b;
   enum ttx_message message;
   ttx_message_data *d;
 
@@ -799,12 +810,12 @@ get_ttx_message(int id, ttx_message_data *data)
 
   if ((client = find_client(id)))
     {
-      b = wait_full_buffer(&client->mqueue);
+      b = wait_full_buffer2(&client->mqueue_cons);
       g_assert(b != NULL);
       d = (ttx_message_data*)b->data;
       message = d->msg;
       memcpy(data, d, sizeof(ttx_message_data));
-      send_empty_buffer(&client->mqueue, b);
+      send_empty_buffer2(&client->mqueue_cons, b);
     }
   else
     message = TTX_BROKEN_PIPE;
@@ -817,10 +828,10 @@ get_ttx_message(int id, ttx_message_data *data)
 static void
 clear_message_queue(struct ttx_client *client)
 {
-  buffer *b;
+  buffer2 *b;
 
-  while ((b=recv_full_buffer(&client->mqueue)))
-    send_empty_buffer(&client->mqueue, b);
+  while ((b=recv_full_buffer(&client->mqueue_cons)))
+    send_empty_buffer(&client->mqueue_cons, b);
 }
 
 void

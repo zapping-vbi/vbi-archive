@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.15 2001-07-27 05:52:24 mschimek Exp $ */
+/* $Id: mp2.c,v 1.16 2001-07-28 06:55:57 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -70,7 +70,8 @@ sfsPerScfsi[4] __attribute__ ((aligned (4))) = {
 
 struct audio_seg aseg __attribute__ ((aligned (4096)));
 
-fifo *			audio_fifo;
+fifo2 *			audio_fifo;
+static producer		audio_prod;
 
 extern int		audio_num_frames;
 extern int		aud_buffers;
@@ -314,6 +315,8 @@ audio_init(int sampling_freq, int stereo, int audio_mode, int bit_rate, int psyc
 		AUDIO_STREAM, "audio-mp2",
 		2048 * channels, aud_buffers,
 		sampling_freq / (double) SAMPLES_PER_FRAME, bit_rate);
+
+	add_producer(audio_fifo, &audio_prod);
 }
 
 /*
@@ -340,16 +343,16 @@ adbits(struct audio_seg *mp2)
 static void
 terminate(void)
 {
-	buffer *obuf;
+	buffer2 *obuf;
 	extern volatile int mux_thread_done;
 
 	printv(2, "Audio: End of file\n");
 
 	while (!mux_thread_done) {
-		obuf = wait_empty_buffer(audio_fifo);
+		obuf = wait_empty_buffer2(&audio_prod);
 		obuf->used = 0;
 		// XXX other?
-		send_full_buffer(audio_fifo, obuf);
+		send_full_buffer2(&audio_prod, obuf);
 	}
 
 	pthread_exit(NULL);
@@ -481,11 +484,11 @@ mpeg_audio_layer_ii_mono(void *cap_fifo)
 	ASSERT("add audio consumer",
 		add_consumer((fifo2 *) cap_fifo, &cons));
 
-	remote_sync(NULL, &cons, MOD_AUDIO, aseg.frame_period);
+	remote_sync(&cons, MOD_AUDIO, aseg.frame_period);
 
 	for (;;) {
 		buffer2 *ibuf;
-		buffer *obuf;
+		buffer2 *obuf;
 		unsigned int adb, bpf;
 		double time;
 
@@ -579,7 +582,7 @@ mpeg_audio_layer_ii_mono(void *cap_fifo)
 
 		pr_end(36);
 
-		obuf = wait_empty_buffer(audio_fifo);
+		obuf = wait_empty_buffer2(&audio_prod);
 
 		bstart(&aseg.out, obuf->data);
 
@@ -648,7 +651,7 @@ mpeg_audio_layer_ii_mono(void *cap_fifo)
 		obuf->used = bpf;
 		obuf->time = time;
 
-		send_full_buffer(audio_fifo, obuf);
+		send_full_buffer2(&audio_prod, obuf);
 	}
 
 	return NULL; // never
@@ -664,11 +667,11 @@ mpeg_audio_layer_ii_stereo(void *cap_fifo)
 	ASSERT("add audio consumer",
 		add_consumer((fifo2 *) cap_fifo, &cons));
 
-	remote_sync(NULL, &cons, MOD_AUDIO, aseg.frame_period);
+	remote_sync(&cons, MOD_AUDIO, aseg.frame_period);
 
 	for (;;) {
 		buffer2 *ibuf;
-		buffer *obuf;
+		buffer2 *obuf;
 		unsigned int adb, bpf;
 		double time;
 
@@ -768,7 +771,7 @@ mpeg_audio_layer_ii_stereo(void *cap_fifo)
 
 		pr_end(36);
 
-		obuf = wait_empty_buffer(audio_fifo);
+		obuf = wait_empty_buffer2(&audio_prod);
 
 		bstart(&aseg.out, obuf->data);
 
@@ -875,7 +878,7 @@ mpeg_audio_layer_ii_stereo(void *cap_fifo)
 		obuf->used = bpf;
 		obuf->time = time;
 
-		send_full_buffer(audio_fifo, obuf);
+		send_full_buffer2(&audio_prod, obuf);
 	}
 
 	return NULL; // never

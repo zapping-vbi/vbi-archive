@@ -39,7 +39,7 @@ cache_close(struct cache *ca)
     int i;
 
     for (i = 0; i < HASH_SIZE; ++i)
-	while ((cp = (struct cache_page *) rem_head3(ca->hash + i))) {
+	while ((cp = PARENT(rem_head3(ca->hash + i), struct cache_page, node[0]))) {
 	    free(cp);
 	}
     free(ca);

@@ -59,9 +59,10 @@ typedef struct {
   double	timestamp;		/* time when the bundle was
 					   captured */
 
-  /* FIXME s/_f/f/g when fifo2 port finishes */
-  fifo2		*_f;			/* fifo this bundle belongs to */
-  buffer2	*_b;			/* buffer this bundle belongs to */
+  /* mhs: try to avoid; redundant when capture_bundle
+     becomes parent of buffer. */
+  fifo2		*f;			/* fifo this bundle belongs to */
+  buffer2	*b;			/* buffer this bundle belongs to */
 } capture_bundle;
 
 /*

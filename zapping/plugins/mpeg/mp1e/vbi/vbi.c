@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.11 2001-07-24 20:02:55 mschimek Exp $ */
+/* $Id: vbi.c,v 1.12 2001-07-28 06:55:57 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -39,7 +39,8 @@
 #endif
 
 static bool		do_pdc, do_subtitles;
-static fifo *		vbi_output_fifo;
+static fifo2 *		vbi_output_fifo;
+static producer         vbi_prod;
 
 extern int		video_num_frames;
 
@@ -85,30 +86,29 @@ teletext_packet(unsigned char *p, unsigned char *buf, int line)
 void *
 vbi_thread(void *F)
 {
-	consumer c;
-	buffer *obuf = NULL;
-	buffer2 *ibuf;
+	consumer cons;
+	buffer2 *obuf = NULL, *ibuf;
 	unsigned char *p = NULL, *p1 = NULL;
 	int vbi_frame_count = 0;
 	int items, parity = -1;
 	vbi_sliced *s;
 
-	ASSERT("add vbi cons", add_consumer((fifo2 *) F, &c));
+	ASSERT("add vbi cons", add_consumer((fifo2 *) F, &cons));
 
 	if (do_subtitles)
-		remote_sync(0, &c, MOD_SUBTITLES, 1 / 25.0);
+		remote_sync(&cons, MOD_SUBTITLES, 1 / 25.0);
 
 	while (vbi_frame_count < video_num_frames) { // XXX video XXX pdc
-		if (!(ibuf = wait_full_buffer2(&c)) || ibuf->used <= 0)
+		if (!(ibuf = wait_full_buffer2(&cons)) || ibuf->used <= 0)
 			break; // EOF or error
 
 		if (do_subtitles) {
 			if (remote_break(ibuf->time, 1 / 25.0)) {
-				send_empty_buffer2(&c, ibuf);
+				send_empty_buffer2(&cons, ibuf);
 				break;
 			}
 
-			obuf = wait_empty_buffer(vbi_output_fifo);
+			obuf = wait_empty_buffer2(&vbi_prod);
 			p1 = p = obuf->data;
 
 			parity = 0;
@@ -148,22 +148,22 @@ vbi_thread(void *F)
 			obuf->time = ibuf->time;
 			obuf->used = p - obuf->data;
 
-			send_full_buffer(vbi_output_fifo, obuf);
+			send_full_buffer2(&vbi_prod, obuf);
 		}
 
-		send_empty_buffer2(&c, ibuf);
+		send_empty_buffer2(&cons, ibuf);
 	}
 
 	printv(2, "VBI: End of file\n");
 
 	if (do_subtitles)
 		for (;;) {
-			obuf = wait_empty_buffer(vbi_output_fifo);
+			obuf = wait_empty_buffer2(&vbi_prod);
 			obuf->used = 0;
-			send_full_buffer(vbi_output_fifo, obuf);
+			send_full_buffer2(&vbi_prod, obuf);
 		}
 
-	rem_consumer(&c);
+	rem_consumer(&cons);
 
 	return NULL;
 }
@@ -183,6 +183,8 @@ vbi_init(fifo2 *f)
 		vbi_output_fifo = mux_add_input_stream(
 			PRIVATE_STREAM_1, "vbi-ps1",
 			32 * 46, 5, 25.0, 294400 /* peak */);
+
+		add_producer(vbi_output_fifo, &vbi_prod);
 	}
 
 	if (!do_pdc && !do_subtitles)

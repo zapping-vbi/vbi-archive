@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: remote.h,v 1.3 2001-07-24 20:02:55 mschimek Exp $ */
+/* $Id: remote.h,v 1.4 2001-07-28 06:55:57 mschimek Exp $ */
 
 #ifndef REMOTE_H
 #define REMOTE_H
@@ -40,7 +40,7 @@ extern struct remote {
 extern void	remote_init(unsigned int modules);
 extern bool	remote_start(double time);
 extern bool	remote_stop(double time);
-extern bool	remote_sync(fifo *input_fifo, consumer *c, unsigned int this_module, double frame_period);
+extern bool	remote_sync(consumer *c, unsigned int this_module, double frame_period);
 
 static inline int
 remote_break(double time, double frame_period)

@@ -18,11 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libaudio.h,v 1.2 2001-07-27 05:52:24 mschimek Exp $ */
+/* $Id: libaudio.h,v 1.3 2001-07-28 06:55:57 mschimek Exp $ */
 
 #include "../common/fifo.h"
 
-extern fifo *		audio_fifo;
+extern fifo2 *		audio_fifo;
 
 extern void *		mpeg_audio_layer_ii_mono(void *cap_fifo);
 extern void *		mpeg_audio_layer_ii_stereo(void *cap_fifo);

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.c,v 1.12 2001-07-24 20:02:55 mschimek Exp $ */
+/* $Id: stream.c,v 1.13 2001-07-28 06:55:57 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,16 +35,24 @@
 #include "systems.h"
 #include "stream.h"
 
-//mucon			mux_mucon;
-list			mux_input_streams;
+list3			mux_input_streams;
+
+static void mux_constructor(void) __attribute__ ((constructor));
+
+static void
+mux_constructor(void)
+{
+	init_list3(&mux_input_streams);
+}
 
 void
 mux_cleanup(void)
 {
 	stream *str;
 
-	while ((str = (stream *) rem_head(&mux_input_streams))) {
-		uninit_fifo(&str->fifo);
+	while ((str = PARENT(rem_head3(&mux_input_streams),
+			     stream, fifo.node))) {
+		destroy_fifo(&str->fifo);
 		free(str);
 	}
 }
@@ -55,9 +63,11 @@ mux_cleanup(void)
  *  buffers	1++
  *  frame_rate	24 Hz
  *  bit_rate	upper bound
+ *
+ *  Buffers' .data is supposed to contain a valid pointer.
  */
 
-fifo *
+fifo2 *
 mux_add_input_stream(int stream_id, char *name, int max_size, int buffers,
 	double frame_rate, int bit_rate)
 {
@@ -70,14 +80,16 @@ mux_add_input_stream(int stream_id, char *name, int max_size, int buffers,
 	str->frame_rate = frame_rate;
 	str->bit_rate = bit_rate;
 
-	buffers = init_buffered_fifo(&str->fifo, name, buffers, max_size);
+	buffers = init_buffered_fifo2(&str->fifo, name, buffers, max_size);
 
 	if (!buffers) {
 		free(str);
 		return NULL;
 	}
 
-	add_tail(&mux_input_streams, &str->node);
+	add_consumer(&str->fifo, &str->cons);
+
+	add_tail3(&mux_input_streams, &str->fifo.node);
 
 	return &str->fifo;
 }
@@ -87,25 +99,21 @@ stream_sink(void *unused)
 {
 	unsigned long long bytes_out = 0;
 	int num_streams = 0;
-	buffer *buf = NULL;
+	buffer2 *buf = NULL;
 	stream *str;
 
-	for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
+	for_all_nodes (str, &mux_input_streams, fifo.node) {
 		str->left = 1;
 		num_streams++;
 	}
 
 	while (num_streams > 0) {
-		for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next)
-			if (str->left && (buf = recv_full_buffer(&str->fifo)))
+		for_all_nodes (str, &mux_input_streams, fifo.node)
+			if (str->left && (buf = recv_full_buffer2(&str->cons)))
 				break;
 
-/*		if (!str) {
-			wait_mucon(&mux_mucon);
-			continue;
-			}*/
-
-		if (!buf->used) {
+		if (buf->used <= 0) {
+			/* XXX EOF/error */
 			str->left = 0;
 			num_streams--;
 			continue;
@@ -113,7 +121,7 @@ stream_sink(void *unused)
 
 		bytes_out += buf->used;
 
-		send_empty_buffer(&str->fifo, buf);
+		send_empty_buffer2(&str->cons, buf);
 
 		if (verbose > 0) {
 			double system_load = 1.0 - get_idle();
@@ -148,11 +156,11 @@ elementary_stream_bypass(void *unused)
 	}
 
 	for (;;) {
-		buffer *buf;
+		buffer2 *buf;
 
-		buf = wait_full_buffer(&str->fifo);
+		buf = wait_full_buffer2(&str->cons);
 
-		if (!buf->used) // end of stream
+		if (buf->used <= 0) // EOF / error
 			break;
 
 		frame_count++;
@@ -160,7 +168,7 @@ elementary_stream_bypass(void *unused)
 
 		buf = mux_output(buf);
 
-		send_empty_buffer(&str->fifo, buf);
+		send_empty_buffer2(&str->cons, buf);
 
 		if (verbose > 0) {
 			int min, sec, frame;
@@ -209,7 +217,7 @@ get_idle(void)
 	static double system_idle = 0.0;
 	static int upd_idle = 15;
 	double uptime, idle, period;
-	char buffer[80];
+	char buf[80];
 	ssize_t r;
 	int fd;
 
@@ -221,16 +229,16 @@ get_idle(void)
 	if ((fd = open("/proc/uptime", O_RDONLY)) < 0)
 		return system_idle;
 
-	r = read(fd, buffer, sizeof(buffer) - 1);
+	r = read(fd, buf, sizeof(buf) - 1);
 
 	close(fd);
 
 	if (r == -1)
 		return system_idle;
 
-	buffer[r] = 0;
+	buf[r] = 0;
 
-	sscanf(buffer, "%lf %lf", &uptime, &idle);
+	sscanf(buf, "%lf %lf", &uptime, &idle);
 
 	period = uptime - last_uptime;
 
@@ -365,66 +373,3 @@ mpeg_header_name(unsigned int code)
 		break;	
 	}
 }
-
-#if 0 // OBSOLETE
-
-void
-synchronize_capture_modules(bool start)
-{
-	double max_d = 1.5 / frame_rate_value[frame_rate_code];
-	int streams = 0, term = 30;
-	stream *str;
-
-	for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
-		if (start)
-			ASSERT("start capturing", (* str->cap_fifo->start)(str->cap_fifo));
-		streams++;
-	}
-
-	if (streams < 2)
-		return;
-
-	for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
-		str->buf = wait_full_buffer(str->cap_fifo); // XXX should pass b->used == 0 as EOF
-		if (!str->buf)
-			FAIL("Premature end of file");
-	}
-
-	while (term--) {
-		double tmin = +1e30, tmax = -1e30;
-		stream *smin = NULL;
-
-		for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
-			buffer *b = str->buf;
-
-			if (b->time > tmax)
-				tmax = b->time;  
-			if (b->time < tmin) {
-				tmin = b->time;
-				smin = str;
-			}
-		}
-
-		printv(3, "Sync window %f ... %f\n", tmin, tmax);
-
-		if ((tmax - tmin) <= max_d)
-			break;
-
-		if (!smin)
-			FAIL("Sync failure, no stream");
-
-		/* Skip frame */
-		send_empty_buffer(smin->cap_fifo, smin->buf);
-		smin->buf = wait_full_buffer(smin->cap_fifo);
-		if (!smin->buf)
-			FAIL("Premature end of file");
-	}
-
-	if (!term)
-		FAIL("Cannot sync, d=%f s", max_d);
-
-	for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next)
-		unget_full_buffer(str->cap_fifo, str->buf);
-}
-
-#endif

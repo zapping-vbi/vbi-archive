@@ -16,7 +16,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.23 2001-07-27 05:52:24 mschimek Exp $ */
+/* $Id: fifo.c,v 1.24 2001-07-28 06:55:57 mschimek Exp $ */
+
+#define FIFO_C
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -776,8 +778,7 @@ unlink_full_buffer(fifo2 *f)
 	if (!f->unlink_full_buffers || f->consumers.members < 2)
 		return NULL;
 
-	for (b = (buffer2 *) f->full.head; b->node.succ;
-	     b = (buffer2 *) b->node.succ) {
+	for_all_nodes (b, &f->full, node) {
 		if (0)
 			printf("Unlink cand %p <%s> en=%d de=%d co=%d us=%d\n",
 				b, (char *) b->data,
@@ -787,12 +788,9 @@ unlink_full_buffer(fifo2 *f)
 		if (b->enqueued >= b->dequeued
 		    && (b->enqueued * 2) >= b->consumers
 		    && b->used > 0) {
-			for (c = (consumer *) f->consumers.head;
-			     c->node.succ; c = (consumer *) c->node.succ) {
-				if (c->next_buffer == b) {
+			for_all_nodes (c, &f->consumers, node)
+				if (c->next_buffer == b)
 					c->next_buffer = (buffer2 *) b->node.succ;
-				}
-			}
 
 			b->consumers = 0;
 			b->dequeued = 0;
@@ -948,8 +946,7 @@ send_full2(producer *p, buffer2 *b)
 		 *  c->next_buffer is NULL after the consumer dequeued all
 		 *  buffers from the virtual f->full queue.
 		 */
-		for (c = (consumer *) f->consumers.head; c->node.succ;
-		     c = (consumer *) c->node.succ)
+		for_all_nodes (c, &f->consumers, node)
 			if (!c->next_buffer->node.succ)
 				c->next_buffer = b;
 

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.14 2001-07-27 05:52:24 mschimek Exp $ */
+/* $Id: alsa.c,v 1.15 2001-07-28 06:55:57 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -245,6 +245,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 		add_producer(&alsa->pcm.fifo, &alsa->pcm.producer));
 
 	alsa->pcm.fifo.user_data = alsa;
+	alsa->pcm.fifo.start = start;
 
 	b = PARENT(alsa->pcm.fifo.buffers.head, buffer2, added);
 

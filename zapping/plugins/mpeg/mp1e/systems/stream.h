@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.h,v 1.4 2001-07-24 20:02:55 mschimek Exp $ */
+/* $Id: stream.h,v 1.5 2001-07-28 06:55:57 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/types.h"
@@ -30,18 +30,23 @@
 #define CONST_BIT_RATE		FALSE
 #define PAYLOAD_ALIGNMENT	1
 
-extern buffer *			(* mux_output)(buffer *b);
+extern buffer2 *		(* mux_output)(buffer2 *b);
 
-typedef struct {
-	node			node;
-	fifo			fifo;
+typedef struct stream stream;
+typedef struct multiplexer multiplexer;
+
+struct stream {
+//	node			node;
+
+	fifo2			fifo;
+	consumer		cons;
 
 	int			stream_id;
 
 	int			bit_rate;
 	double			frame_rate;
 
-	buffer *		buf;
+	buffer2 *		buf;
 	unsigned char *		ptr;
 	int			left;
 
@@ -55,4 +60,9 @@ typedef struct {
 
 	double			cap_t0;
 	int			frame_count;
-} stream;
+};
+
+
+// list			mux_input_streams;
+
+

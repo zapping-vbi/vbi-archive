@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.46 2001-07-27 05:52:24 mschimek Exp $ */
+/* $Id: main.c,v 1.47 2001-07-28 06:55:57 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -184,7 +184,7 @@ main(int ac, char **av)
 				audio_cap_fifo = open_pcm_oss(pcm_dev, sampling_rate, stereo);
 			} else {
 				struct pcm_context {
-					fifo		fifo;
+					fifo2		fifo;
 					int		sampling_rate;
 					bool		stereo;
 				} *pcm;

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: list.h,v 1.7 2001-07-05 08:25:30 mschimek Exp $ */
+/* $Id: list.h,v 1.8 2001-07-28 06:55:57 mschimek Exp $ */
 
 #ifndef LIST_H
 #define LIST_H
@@ -155,7 +155,7 @@ rem_node(list *l, node *n)
 
 /*
  *  Your familiar doubly linked list type, plus member
- *  count for fast resource accounting and rwlock.
+ *  count for fast resource accounting and optional rwlock.
  *
  *  Warning: No verification of the validity of list and
  *  node parameters. The number of members must not
@@ -192,6 +192,20 @@ struct xlist {
 	int			members;
 	pthread_rwlock_t	rwlock;
 };
+
+/*
+ * list3 foo_list;
+ * struct foo { int baz; node bar; }, *foop;
+ *
+ * for_all_nodes(foop, &foo_list, bar)
+ *   foop->baz = 0;
+ *
+ * Not useful to delete list members.
+ */
+#define for_all_nodes(p, l, _node_)					\
+for ((p) = PARENT((l)->head, typeof(*(p)), _node_);			\
+     (p)->_node_.succ;							\
+     (p) = PARENT((p)->_node_.succ, typeof(*(p)), _node_))
 
 /**
  * destroy_list:

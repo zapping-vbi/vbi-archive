@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.8 2001-06-23 02:50:44 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.9 2001-07-28 06:55:57 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -132,7 +132,7 @@ PS_system_header(unsigned char *p, double system_rate_bound)
 	ph = p;
 	p += 12;
 
-	for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
+	for_all_nodes (str, &mux_input_streams, fifo.node) {
 		put(p, str->stream_id, 1);
 
 		if (IS_VIDEO_STREAM(str->stream_id)) {
@@ -216,15 +216,17 @@ PES_packet_header(unsigned char *p, stream *str)
 static inline bool
 next_access_unit(stream *str, double *ppts, unsigned char *ph)
 {
-	buffer *buf;
+	buffer2 *buf;
 
-	str->buf = buf = wait_full_buffer(&str->fifo);
+	str->buf = buf = wait_full_buffer2(&str->cons);
 
 	str->ptr  = buf->data;
 	str->left = buf->used;
 
-	if (!str->left)
+	if (buf->used <= 0) {
+		str->left = 0; /* XXX */
 		return FALSE;
+	}
 
 	if (!IS_AUDIO_STREAM(str->stream_id))
 		str->eff_bit_rate +=
@@ -272,10 +274,9 @@ schedule(void)
 	double dtsi_min = LARGE_DTS;
 	stream *s, *str;
 
-	s = (stream *) mux_input_streams.head;
 	str = NULL;
 
-	while (s) {
+	for_all_nodes (s, &mux_input_streams, fifo.node) {
 		double dtsi = s->dts;
 
 		if (s->buf)
@@ -285,8 +286,6 @@ schedule(void)
 			str = s;
 			dtsi_min = dtsi;
 		}
-
-		s = (stream *) s->node.next;
 	}
 
 	return str;
@@ -305,7 +304,7 @@ mpeg2_program_stream_mux(void *unused)
 	double system_overhead;
 	double ticks_per_pack;
 	double scr, pts, front_pts = 0.0;
-	buffer *buf;
+	buffer2 *buf;
 	stream *str;
 
 	{
@@ -315,7 +314,7 @@ mpeg2_program_stream_mux(void *unused)
 		int preload = 0;
 		int bit_rate = 0;
 
-		for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
+		for_all_nodes (str, &mux_input_streams, fifo.node) {
 			str->buf = NULL;
 			bit_rate += str->bit_rate;
 			str->eff_bit_rate = str->bit_rate;
@@ -324,24 +323,23 @@ mpeg2_program_stream_mux(void *unused)
 			if (IS_VIDEO_STREAM(str->stream_id) && str->frame_rate < video_frame_rate)
 				video_frame_rate = frame_rate;
 
-			buf = wait_full_buffer(&str->fifo);
+			buf = wait_full_buffer2(&str->cons);
 
-			if (!buf->used)
-				FAIL("Premature end of file");
+			if (buf->used <= 0)
+				FAIL("Premature end of file / error");
 
 			str->cap_t0 = buf->time;
 	    		preload += buf->used;
 
-			unget_full_buffer(&str->fifo, buf);
+			unget_full_buffer2(&str->cons, buf);
 
 			nstreams++;
 		}
 
 		buf = mux_output(NULL);
 
-		assert(buf
-		       && buf->size >= 512
-		       && buf->size <= 32768);
+		assert(buf && buf->size >= 512
+		           && buf->size <= 32768);
 
 		packet_size = buf->size;
 
@@ -356,7 +354,7 @@ mpeg2_program_stream_mux(void *unused)
 		scr = PS_SCR_offset / system_rate_bound * SYSTEM_TICKS;
 		ticks_per_pack = (packet_size * PACKETS_PER_PACK) / system_rate_bound * SYSTEM_TICKS;
 
-		for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
+		for_all_nodes (str, &mux_input_streams, fifo.node) {
 			if (!IS_VIDEO_STREAM(str->stream_id)) {
 				str->pts_offset = (double) SYSTEM_TICKS / (video_frame_rate * 1.0);
 				/* + 0.1 to schedule video frames first */
@@ -385,7 +383,7 @@ mpeg2_program_stream_mux(void *unused)
 			else {
 				int bit_rate = 0;
 
-				for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next)
+				for_all_nodes (str, &mux_input_streams, fifo.node)
 					bit_rate += str->eff_bit_rate;
 
 				system_rate = bit_rate * system_overhead / 8;
@@ -442,7 +440,7 @@ reschedule:
 			str->left -= n;
 
 			if (!str->left) {
-				send_empty_buffer(&str->fifo, str->buf);
+				send_empty_buffer2(&str->cons, str->buf);
 
 				str->buf = NULL;
 				str->dts += str->ticks_per_frame;
@@ -462,9 +460,8 @@ reschedule:
 
 		buf = mux_output(buf);
 
-		assert(buf &&
-		       buf->size >= 512 &&
-		       buf->size <= 32768);
+		assert(buf && buf->size >= 512
+		           && buf->size <= 32768);
 
 		packet_count++;
 		pack_packet_count++;
@@ -507,3 +504,5 @@ reschedule:
 
 	return NULL;
 }
+
+
