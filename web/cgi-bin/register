@@ -59,6 +59,10 @@ sub main
 
     foreach( @paramNames ) {
         if( /^(Twk)([0-9])(.*)/ ) {
+	    TWiki::redirect( $query, "http://zapping.sourceforge.net" );
+	    return;
+	}
+        if( /^(Twki)([0-9])(.*)/ ) {
             $value = $query->param( "$1$2$3" );
             $formDataRequired[@formDataRequired] = $2;
             $name = $3;
