@@ -95,7 +95,7 @@ dnl Check the PNG writing lib
 dnl ----------------------------------------------------------------------
 PNG_LIB=""
 HAVE_PNG="yes"
-AC_CHECK_LIB(png, png_destroy_write_struct, PNG_LIB="-lpng -lz", HAVE_PNG="no", -lz)
+AC_CHECK_LIB(png, png_destroy_write_struct, PNG_LIB="-lpng -lz -lm", HAVE_PNG="no", -lz -lm)
 dnl Zapzilla PNG export
 if test "x$HAVE_PNG" = "xyes"; then
 AC_DEFINE(HAVE_LIBPNG)
