@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.12.2.9 2003-07-29 03:40:52 mschimek Exp $ */
+/* $Id: audio.c,v 1.12.2.10 2003-08-24 23:51:43 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -388,7 +388,7 @@ audio_setup		(GtkWidget	*page)
 				mixer_open, mixer_select, NULL);
     gtk_widget_show (table);
     gtk_container_add (GTK_CONTAINER (alignment), table);
-    register_widget (table, "mixer_table");
+    register_widget (NULL, table, "mixer_table");
 
     label = gtk_label_new (_("Input:"));
     gtk_widget_show (label);
@@ -559,11 +559,11 @@ set_mute				(gint	        mode,
     GtkWidget *button;
     GtkCheckMenuItem *check;
 
-    button = lookup_widget (main_window, "tb-mute");
+    button = lookup_widget (main_window, "toolbar-mute");
 
     if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)) != mute)
       {
-	SIGNAL_HANDLER_BLOCK (button, on_remote_command1,
+	SIGNAL_HANDLER_BLOCK (button, on_python_command1,
 			      gtk_toggle_button_set_active
 			      (GTK_TOGGLE_BUTTON (button), mute));
       }
@@ -572,7 +572,7 @@ set_mute				(gint	        mode,
 
     if (check->active != mute)
       {
-	SIGNAL_HANDLER_BLOCK (check, on_remote_command1,
+	SIGNAL_HANDLER_BLOCK (check, on_python_command1,
 			      gtk_check_menu_item_set_active (check, mute));
       }
 
@@ -583,8 +583,13 @@ set_mute				(gint	        mode,
 
     if (osd)
       {
+	BonoboDockItem *dock_item;
+
+	dock_item = gnome_app_get_dock_item_by_name
+	  (GNOME_APP (main_window), GNOME_APP_TOOLBAR_NAME);
+
 	if (main_info->current_mode == TVENG_CAPTURE_PREVIEW ||
-	    !GTK_WIDGET_VISIBLE (lookup_widget (main_window, "bonobodockitem2")))
+	    !GTK_WIDGET_VISIBLE (GTK_WIDGET (dock_item)))
 	  osd_render_markup (NULL, mute ?
 			   _("<blue>audio off</blue>") :
 			   _("<yellow>AUDIO ON</yellow>"));
