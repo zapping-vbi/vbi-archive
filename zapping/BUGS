@@ -51,19 +51,12 @@ Zapping 0.7 bugs, need more work later:
   Not recently observed, perhaps fixed.
 * Mute button is on after unmute, quit, restart. Seems to be a driver
   effect.
-* bt8x8 has no PAL delay line, or is disabled in YUYV mode?
-* tveng2/bttv-0.8.x permits capture size exceeding hardware capability?
-* Audio mutes when switching from capture to fullscreen with
-  bttv-0.8.x and Xv/v4l, although Zapping sends XvSetPortAttribute
-  XV_MUTE 0. Works normal with bttv-0.7.
 * Doesn't always reset hue on startup?
 * drose: "Under mdk 9.1 the video capture stops for no reason.
   Start recording to a file -- come back in ten minutes, 1 - 3 minutes
   of video are stored and zapping wasn't running." Works for me.
 * Overlay doesn't work right with RANDR reduced resolution, apparently
   due to wrong frame buffer bpl.
-* bttv 0.9.14: with YUV 4:2:0 activation of VBI capturing can cause a
-  SCERR & driver reset, DQBUF -> EIO.
 
 Zapping 0.6 bugs, need verification:
 * RPM creates incorrect zsfb.capps 
@@ -85,18 +78,39 @@ tvengxv.c
   if they are implemented by the driver.
 * configure.in must check for different versions of xv.
 
-bktr driver:
-* Incomplete and broken in many ways, not always possible to work around.
-  For details search tvengbktr.c for "Bug".
-
-Debian
+Debian bugs
 * 126641 - zapping_remote, see also sf.net. Without X to do.
 * 168263 - Feature request, implemented in 0.7.
 * 198942 - Open.
 
-XFree86 stuff
--------------
+Kernel
+------
+bktr driver:
+* Incomplete and broken in many ways, not always possible to work around.
+  For details search tvengbktr.c for "Bug".
 
+sn9c102 1.0.8 driver:
+* CROPCAP overwrites type (was _IOR, now _IOWR).
+* G_INPUT requires cleared index input.
+* TRY_FMT does not copy data back to user space.
+* ENUM_FMT overwrites type.
+* NONBLOCK open fails with EAGAIN if the device has users, and it
+  seems the counter is never decremented when the USB device is
+  disconnected at close time.
+* mmap fails for > 1 buffers, apparently because
+  m.offset isn't page aligned.
+
+bttv driver:
+* 0.9.14: with YUV 4:2:0 activation of VBI capturing can cause a
+  SCERR & driver reset, DQBUF -> EIO.
+* bt8x8 has no PAL delay line, or is disabled in YUYV mode?
+* tveng2/bttv-0.8.x permits capture size exceeding hardware capability?
+* Audio mutes when switching from capture to fullscreen with
+  bttv-0.8.x and Xv/v4l, although Zapping sends XvSetPortAttribute
+  XV_MUTE 0. Works normal with bttv-0.7.
+
+XFree86/Xorg
+------------
 * XvQueryAdaptors seems to report wrong num_formats value, maybe a
   DIX or DDX bug.
 * XvListImageFormats, XvQueryPortAttributes not documented. Result

@@ -114,7 +114,9 @@ void remove_capture_handler (gint id);
 /*
  * The capture fifo.
  */
-extern zf_fifo *capture_fifo;
+extern zf_fifo capture_fifo;
+
+extern zf_fifo display_fifo;
 
 /*
  * Returns the zimage with the given pixformat contained in the
@@ -123,9 +125,22 @@ extern zf_fifo *capture_fifo;
  * send_empty the buffer. Also, you shouldn't free the image, it's a
  * reference to an static object.
  */
-zimage *retrieve_frame (capture_frame *frame,
-			tv_pixfmt pixfmt);
+zimage *
+retrieve_frame			(capture_frame *	frame,
+				 tv_pixfmt		pixfmt,
+				 gboolean		copy);
 tv_pixfmt
 native_capture_format		(void);
+
+typedef guint
+display_filter_fn		(zimage *		dst0,
+				 zimage *		dst1);
+gboolean
+remove_display_filter		(display_filter_fn *	filter);
+gboolean
+add_display_filter		(display_filter_fn *	filter,
+				 tv_pixfmt		fmt,
+				 guint			width,
+				 guint			height);
 
 #endif

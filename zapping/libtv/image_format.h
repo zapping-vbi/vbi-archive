@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.2 2004-11-03 06:38:53 mschimek Exp $ */
+/* $Id: image_format.h,v 1.3 2004-12-07 17:30:39 mschimek Exp $ */
 
 #ifndef __ZTV_IMAGE_FORMAT_H__
 #define __ZTV_IMAGE_FORMAT_H__
@@ -27,19 +27,15 @@
 
 TV_BEGIN_DECLS
 
-/** Color space identifier. No values defined yet. */
-typedef enum {
-	TV_COLOR_SPACE_NONE,				/**< */
-	TV_COLOR_SPACE_UNKNOWN = TV_COLOR_SPACE_NONE,	/**< */
-} tv_color_space;
-
 typedef struct {
 	/* Image width in pixels, for planar formats this refers to
-	   the Y plane and must be a multiple of tv_pixel_format.uv_hscale. */
+	   the largest plane. For YUV formats this must be a multiple
+	   of 1 << tv_pixel_format.uv_hscale. */
 	unsigned int		width;
 
 	/* Image height in pixels, for planar formats this refers to
-	   the Y plane and must be a multiple of tv_pixel_format.uv_vscale. */
+	   the largest plane. For YUV formats this must be a multiple
+	   of 1 << tv_pixel_format.uv_vscale. */
 	unsigned int		height;
 
 	/* For packed formats bytes_per_line >= (width * tv_pixel_format
@@ -68,7 +64,7 @@ typedef struct {
 	unsigned int		size;
 
 	tv_pixfmt		pixfmt;
-	tv_color_space		color_space;
+	tv_colspc		colspc;
 } tv_image_format;
 
 extern tv_bool
@@ -77,12 +73,16 @@ tv_image_format_init		(tv_image_format *	format,
 				 unsigned int		height,
 				 unsigned int		bytes_per_line,
 				 tv_pixfmt		pixfmt,
-				 tv_color_space		color_space);
+				 tv_colspc		colspc);
 extern tv_bool
 tv_image_format_is_valid	(const tv_image_format *format);
 extern void
 _tv_image_format_dump		(const tv_image_format *format,
 				 FILE *			fp);
+
+extern tv_bool
+tv_clear_image			(void *			image,
+				 const tv_image_format *format);
 
 TV_END_DECLS
 

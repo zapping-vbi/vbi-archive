@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.40 2004-09-10 04:58:51 mschimek Exp $ */
+/* $Id: fifo.c,v 1.41 2004-12-07 17:30:39 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -553,6 +553,9 @@ send_empty_unbuffered(zf_consumer *c, zf_buffer *b)
 	_pthread_mutex_lock(&f->producer->mutex);
 
 	add_head(&f->empty, &b->node);
+
+	if (f->buffer_done)
+		f->buffer_done(f, b);
 
 	_pthread_mutex_unlock(&f->producer->mutex);
 

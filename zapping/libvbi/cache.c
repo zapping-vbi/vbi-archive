@@ -36,7 +36,7 @@
 #endif
 
 #ifndef CACHE_CONSISTENCY
-#define CACHE_CONSISTENCY 1
+#define CACHE_CONSISTENCY 0
 #endif
 
 /** @internal */

@@ -3,8 +3,9 @@
 ## Don't forget to put these files into the distribution
 EXTRA_DIST = gen_conv.s zmarshalers.list 
 
-INCLUDES = -I$(top_srcdir) -D_GNU_SOURCE @DEFAULT_CFLAGS@ @COMMON_INCLUDES@ \
-	$(ZVBI_CFLAGS) $(LIBXML_CFLAGS)
+INCLUDES = -I$(top_srcdir) \
+	-D_GNU_SOURCE @DEFAULT_CFLAGS@ @COMMON_INCLUDES@ \
+	$(ZVBI_CFLAGS) $(LIBXML_CFLAGS)	@PG_CFLAGS@
 
 bin_PROGRAMS = zapping zapping_remote
 
@@ -12,7 +13,7 @@ COMMON_LIB = $(top_builddir)/common/libcommon.a
 TV_LIB = $(top_builddir)/libtv/libtv.a
 
 
-if BUILD_GEN_CONV
+if HAVE_MMX
 gen_conv_lib = libgen_conv.a
 endif
 
@@ -80,10 +81,12 @@ zapping_SOURCES = \
 	yuv2rgb.c yuv2rgb.h gen_conv.h \
 	zapping.c zapping.h \
 	zconf.c zconf.h \
+	zgconf.c zgconf.h \
 	zimage.c zimage.h \
 	zmarshalers.c zmarshalers.h \
 	zmisc.c zmisc.h \
 	zmodel.c zmodel.h \
+	zspinslider.c zspinslider.h \
 	zvbi.c zvbi.h \
 	zvideo.c zvideo.h
 

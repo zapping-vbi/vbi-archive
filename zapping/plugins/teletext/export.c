@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.2 2004-11-03 06:45:15 mschimek Exp $ */
+/* $Id: export.c,v 1.3 2004-12-07 17:30:43 mschimek Exp $ */
 
 #include "config.h"
 
@@ -173,7 +173,7 @@ create_menu			(GtkWidget *		table,
 	  continue;
 	}
 
-      g_object_set_data (G_OBJECT (menu_item), "key", oi->keyword);
+      z_object_set_const_data (G_OBJECT (menu_item), "key", oi->keyword);
       g_object_set_data (G_OBJECT (menu_item), "index", GINT_TO_POINTER (i));
 
       g_signal_connect (G_OBJECT (menu_item), "activate",
@@ -216,7 +216,7 @@ create_checkbutton		(GtkWidget *		table,
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (check_button),
 			      /* indicator */ FALSE);
   z_tooltip_set (check_button, oi->tooltip);
-  g_object_set_data (G_OBJECT (check_button), "key", oi->keyword);
+  z_object_set_const_data (G_OBJECT (check_button), "key", oi->keyword);
   g_signal_connect (G_OBJECT (check_button), "toggled",
 		    G_CALLBACK (on_control_changed), e);
 
@@ -266,7 +266,7 @@ create_slider			(GtkWidget *		table,
 
   g_free (zcname);
 
-  g_object_set_data (G_OBJECT (adj), "key", oi->keyword);
+  z_object_set_const_data (G_OBJECT (adj), "key", oi->keyword);
   g_signal_connect (adj, "value-changed", G_CALLBACK (on_control_changed), e);
 
   on_control_changed ((GtkWidget *) adj, e);
@@ -299,7 +299,7 @@ create_entry			(GtkWidget *		table,
   entry = gtk_entry_new ();
   z_tooltip_set (entry, oi->tooltip);
 
-  g_object_set_data (G_OBJECT (entry), "key", oi->keyword);
+  z_object_set_const_data (G_OBJECT (entry), "key", oi->keyword);
   g_signal_connect (G_OBJECT (entry), "changed", 
 		    G_CALLBACK (on_control_changed), e);
 
@@ -598,7 +598,7 @@ instance_init			(GTypeInstance *	instance,
 	  if (xm->tooltip)
 	    z_tooltip_set (menu_item, xm->tooltip);
 
-	  g_object_set_data (G_OBJECT (menu_item), "key", xm->keyword);
+	  z_object_set_const_data (G_OBJECT (menu_item), "key", xm->keyword);
 
 	  if (i == 0 || (format && 0 == strcmp (xm->keyword, format)))
 	    {

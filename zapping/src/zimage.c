@@ -157,13 +157,15 @@ void video_blit_frame (capture_frame *frame)
   int i;
   zimage *img;
 
- for (i=0; i<num_backends; i++) {
-    if ((img = retrieve_frame (frame, backends[i].pixfmt)))
-      {
-	zimage_blit (img);
-	return;
-      }
- }
+ for (i=0; i<num_backends; i++)
+   {
+     /* NOTE copy: we want the original zimage allocated by the backend. */
+     if ((img = retrieve_frame (frame, backends[i].pixfmt, /* copy */ TRUE)))
+       {
+	 zimage_blit (img);
+	 return;
+       }
+   }
 }
 
 void startup_zimage (void)

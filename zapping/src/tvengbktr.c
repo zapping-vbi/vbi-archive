@@ -1032,7 +1032,8 @@ init_pixfmt_lut			(tveng_device_info *	info)
 							 pixfmt.swap_shorts);
 			}
 
-			if (tv_pixel_format_to_pixfmt (&pf)) {
+			pf.pixfmt = tv_pixel_format_to_pixfmt (&pf);
+			if (TV_PIXFMT_UNKNOWN != pf.pixfmt) {
 				p_info->pixfmt_lut[pf.pixfmt] = i;
 				pixfmt_set |= TV_PIXFMT_SET (pf.pixfmt);
 			}

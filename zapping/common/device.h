@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.h,v 1.5 2004-08-13 01:12:17 mschimek Exp $ */
+/* $Id: device.h,v 1.6 2004-12-07 17:30:39 mschimek Exp $ */
 
 #ifndef DEVICE_H
 #define DEVICE_H
@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 
 #if defined (_IOC_SIZE) /* Linux */
 
@@ -66,6 +67,27 @@ extern void
 fprint_unknown_ioctl		(FILE *			fp,
 				 unsigned int		cmd,
 				 void *			arg);
+
+static __inline__ void
+timeval_subtract		(struct timeval *	delta,
+				 const struct timeval *	tv1,
+				 const struct timeval *	tv2)
+{
+	if (tv1->tv_usec < tv2->tv_usec) {
+		delta->tv_sec = tv1->tv_sec - tv2->tv_sec - 1;
+		delta->tv_usec = 1000000 + tv1->tv_usec - tv2->tv_usec;
+	} else {
+		delta->tv_sec = tv1->tv_sec - tv2->tv_sec;
+		delta->tv_usec = tv1->tv_usec - tv2->tv_usec;
+	}
+}
+
+extern void
+timeout_subtract_elapsed	(struct timeval *	result,
+				 const struct timeval *	timeout,
+				 const struct timeval *	now,
+				 const struct timeval *	start);
+
 extern int
 device_open			(FILE *			fp,
 				 const char *		pathname,

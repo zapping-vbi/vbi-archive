@@ -570,7 +570,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.191 2004-11-03 06:40:48 mschimek Exp $",
+	 "$Id: main.c,v 1.192 2004-12-07 17:30:45 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -886,6 +886,8 @@ int main(int argc, char * argv[])
       D();
     }
   D();
+  startup_capture();
+  D();
   /* Add the plugins to the GUI */
   p = g_list_first(plugin_list);
   while (p)
@@ -908,8 +910,6 @@ int main(int argc, char * argv[])
 					    "Overlay");
       z_action_set_sensitive (action, FALSE);
     }
-  D();
-  startup_capture();
   D();
   startup_teletext();
   D();

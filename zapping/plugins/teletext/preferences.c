@@ -19,11 +19,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preferences.c,v 1.1 2004-11-03 06:46:20 mschimek Exp $ */
+/* $Id: preferences.c,v 1.2 2004-12-07 17:30:43 mschimek Exp $ */
 
 #include "common/intl-priv.h"
 #include "libvbi/cache.h"
-#include "src/zmisc.h"
+#include "src/zgconf.h"
+#include "src/zspinslider.h"
 #include "main.h"
 #include "preferences.h"
 
@@ -244,7 +245,12 @@ instance_finalize		(GObject *		object)
   TeletextPrefs *prefs = TELETEXT_PREFS (object);
 
   if (prefs->change_set)
-    gconf_change_set_unref (prefs->change_set);
+    {
+      gconf_change_set_unref (prefs->change_set);
+      prefs->change_set = NULL;
+    }
+
+  parent_class->finalize (object);
 }
 
 static void
@@ -350,7 +356,7 @@ instance_init			(GTypeInstance *	instance,
 			    /* step */ 1,
 			    /* page incr, size */ 16, 16);
   widget = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL, NULL, 128, 0);
-  z_spinslider_set_value (widget, value);
+  z_spinslider_set_int_value (Z_SPINSLIDER (widget), value);
   gtk_widget_show (widget);
   gtk_table_attach (&prefs->table, widget,
 		    INDENT_COL + 1, INDENT_COL + 2,
@@ -372,7 +378,7 @@ instance_init			(GTypeInstance *	instance,
 			    /* step */ 1,
 			    /* page incr, size */ 16, 16);
   widget = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL, NULL, 64, 0);
-  z_spinslider_set_value (widget, value);
+  z_spinslider_set_int_value (Z_SPINSLIDER (widget), value);
   gtk_widget_show (widget);
   gtk_table_attach (&prefs->table, widget,
 		    INDENT_COL + 1, INDENT_COL + 2,

@@ -1683,7 +1683,9 @@ x11_xv_image_format_to_pixfmt	(const XvImageFormatValues *format)
 		pixel_format.mask.rgb.g = format->green_mask;
 		pixel_format.mask.rgb.b = format->blue_mask;
 
-		if (tv_pixel_format_to_pixfmt (&pixel_format))
+		pixel_format.pixfmt =
+		  tv_pixel_format_to_pixfmt (&pixel_format);
+		if (TV_PIXFMT_UNKNOWN != pixel_format.pixfmt)
 			return pixel_format.pixfmt;
 	}
 

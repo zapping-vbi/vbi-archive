@@ -1,3 +1,35 @@
+2004-12-07    <mschimek@users.sf.net>
+
+	* src/tveng25.c: Replaced tveng25_vbuf by tv_capture_buffer.
+	(get_supported_pixfmt_set): Try ENUM_FMT first. Don't TRY_FMT
+	  with buggy sn9c102.
+	(p_tveng25_open_device_file): Don't open O_NONBLOCK with buggy
+	  sn9c102. Factored out get_capabilities().
+	(tveng25_start_capturing): Map only one buffer with buggy sn9c102.
+	(tveng25_read_frame): Improved timeout. Proper handling of EINTR
+	  and EAGAIN.
+	(reset_crop_rect): Try VIDIOC_CROPCAP_OLD.
+	(set_control): Try VIDIOC_S_CTRL_OLD.
+	* src/tveng.h: Added tv_capture_buffer and TV_CAPS_QUEUE.
+	* libtv/pixel_format.h: Extended tv_color_space.
+	(tv_pixel_format): Replaced UV plane scales by shifts to eliminate
+	  time consuming divisions.
+	* libtv/pixel_format.h, libtv/pixel_format.c
+	(tv_pixel_format_from_pixfmt, tv_pixfmt_bytes_per_pixel,
+	 tv_pixel_format_to_pixfmt): Replaced
+	  tv_pixel_format_from_pixfmt code by static table to speed up
+	  format lookups.
+	* zapping_setup_fb/v4l.c (setup_v4l), zapping_setup_fb/v4l25.c
+	  (setup_v4l25), src/video_xv.c (image_new),
+	  src/video_gdkrgb.c (image_new), src/video_mem.c (planar_image_new),
+	  src/tveng.c (tveng_copy_frame, tv_clear_image): 
+	  libtv/screen.c, libtv/image_format.c (tv_image_format_init, 
+	  tv_image_format_is_valid): tv_pixel_format_from_pixfmt changed.
+	* common/videodev25.h: Updated from Linux 2.6.9.
+	* common/device.h, common/device.c:
+	(timeval_subtract, timeout_subtract_elapsed): New helper functions
+	  for proper select() timeout.
+
 2004-12-01    <mschimek@users.sf.net>
 
 	* src/tveng25.c: Added preliminary Bayer (SBGGR8) support with
@@ -15,7 +47,59 @@
 	* plugins/teletext/view.c,
 	* plugins/teletext/Makefile.am,
 	* libvbi/misc.h, libvbi/event.h:
-	(ZAPPING8): Let Makefile.am disable missing features.
+	(ZAPPING8): Let Makefile.am disable incomplete features.
+
+2004-11-20    <mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c: Fixed capture_format_id unset value. 
+	* plugins/mpeg/mpeg.c (video_callback), src/capture.h,
+	  src/capture.c: Added copy parameter to retrieve_frame to
+	  avoid unnecessary image copying (unfinished).
+	* libtv/image_format.c, libtv/image_format.h,
+	  src/tveng.c, src/tveng.h: Moved tv_clear_image from
+	  tveng.c to image_format.c. Color parameter unnecessary, removed.
+	* common/fifo.h, common/fifo.c (send_empty_unbuffered):
+	  Added buffer_done callback for tveng buffer queues.
+	* configure.in: Cleaned up. Improved SIMD checks.
+
+2004-11-18    <mschimek@users.sf.net>
+
+	* plugins/teletext/preferences.c, plugins/mpeg/options.c,
+	  src/v4linterface.c, src/channel_editor.c: Spinslider changes.
+	* src/zmisc.c, src/zmisc.h, src/zgconf.c, src/zgconf.h,
+	  src/Makefile.am:
+	  Moved zspinslider code from zmisc.(c|h) to new
+	  zspinslider.(c|h) and GObject-ified.
+	* libvbi/dlist.h (DLIST_CONSISTENCY),
+	  libvbi/cache.c (CACHE_CONSISTENCY): Seems to be ok, now
+	  disabled by default.
+
+2004-11-17    <mschimek@users.sf.net>
+
+	* src/zgconf.c, src/zgconf.h:
+	(z_gconf_check_button_new): Incorporated auto-update function.
+	(z_gconf_int_spinslider_new): Added.
+	* src/zmisc.c, src/zmisc.h, src/zgconf.c, src/zgconf.h,
+	  src/Makefile.am:
+	  Moved GConf helpers from zmisc.(c|h) to new zgconf.(c|h)
+	  and added a few missing set and auto-update functions.
+
+2004-11-16    <mschimek@users.sf.net>
+
+	* plugins/teletext/preferences.c (instance_finalize): Didn't
+	  finalize parent class.
+	* plugins/deinterlace/preferences.h,
+	  plugins/deinterlace/preferences.c,
+          plugins/deinterlace/main.c, plugins/deinterlace/main.h,
+	  plugins/deinterlace/Makefile.am: Added plugin interface and GUI.
+	* src/zmisc.h, src/zmisc.c (z_gconf_get_string): Added
+	  z_gconf_get_string().
+	* plugins/deinterlace: Corrected ref'ing of MMX globals in
+	  inline asm, cannot use -fPIC GOT pointer ebx. Checked with
+	  ditest that everything works.
+	* plugins/deinterlace/ditest.c: Added.
+	* plugins/deinterlace: Stole deinterlace plugins from DScaler,
+	  commented out Windows dialog code, ported asm to gcc.
 
 2004-11-12    <mschimek@users.sf.net>
 

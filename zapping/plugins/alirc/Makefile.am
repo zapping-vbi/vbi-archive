@@ -10,4 +10,4 @@ libalirc_zapping_la_SOURCES = alirc.c
 libalirc_zapping_la_LIBADD = $(LIRC_LIB)
 
 INCLUDES = -I$(top_srcdir) $(COMMON_INCLUDES) \
-	$(PLUGIN_DEFAULT_FLAGS)
+	$(PLUGIN_DEFAULT_FLAGS) @PG_CFLAGS@

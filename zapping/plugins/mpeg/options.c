@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.24 2004-11-03 06:52:25 mschimek Exp $ */
+/* $Id: options.c,v 1.25 2004-12-07 17:30:42 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -34,6 +34,7 @@
 
 #include "mpeg.h"
 #include "src/properties.h"
+#include "src/zspinslider.h"
 
 typedef struct grte_options {
   rte_context *         context;
@@ -761,8 +762,8 @@ grte_codec_create_menu		(rte_context *		context,
       g_assert (t != NULL);
       menu_item = gtk_menu_item_new_with_label (t);
       g_free (t);
-      g_object_set_data (G_OBJECT (menu_item), "keyword",
-			   (void *) cdinfo->keyword);
+      z_object_set_const_data (G_OBJECT (menu_item), "keyword",
+			       cdinfo->keyword);
       if (cdinfo->tooltip)
 	{
 	  t = g_locale_to_utf8 (R_(cdinfo->tooltip), -1, NULL, NULL, NULL);
@@ -970,8 +971,8 @@ grte_context_create_menu	(const gchar *		zc_root,
       menu_item = gtk_menu_item_new_with_label (label);
       g_free(label);
 
-      g_object_set_data (G_OBJECT (menu_item), "keyword",
-			   (void *) info->keyword);
+      z_object_set_const_data (G_OBJECT (menu_item), "keyword", info->keyword);
+
       if (info->tooltip)
 	{
 	  t = g_locale_to_utf8 (R_(info->tooltip), -1, NULL, NULL, NULL);

@@ -491,31 +491,6 @@ gchar*
 find_unused_name (const gchar * dir, const gchar * prefix,
 		  const gchar * suffix);
 
-/* hscale_adj and unit optional */
-GtkWidget *
-z_spinslider_new		(GtkAdjustment *spin_adj,
-				 GtkAdjustment *hscale_adj,
-				 const gchar *unit,
-				 gfloat reset_value,
-				 gint digits);
-GtkAdjustment *
-z_spinslider_get_spin_adj	(GtkWidget *hbox);
-GtkAdjustment *
-z_spinslider_get_hscale_adj	(GtkWidget *hbox);
-#define z_spinslider_get_adjustment(hbox) \
-  z_spinslider_get_spin_adj(hbox)
-gfloat
-z_spinslider_get_value		(GtkWidget *hbox);
-/* Change both adjustments or use this */
-void
-z_spinslider_set_value		(GtkWidget *hbox, gfloat value);
-void
-z_spinslider_set_reset_value	(GtkWidget *hbox,
-				 gfloat value);
-/* Change both adjustments or use this */
-void
-z_spinslider_adjustment_changed	(GtkWidget *hbox);
-
 typedef tv_device_node *
 z_device_entry_open_fn		(GtkWidget *		table,
 				 tv_device_node *	list,
@@ -646,56 +621,6 @@ z_set_overlay_buffer		(tveng_device_info *	info,
 				 const tv_screen *	screen,
 				 const GdkWindow *	window);
 extern void
-z_toggle_action_connect_gconf_key
-				(GtkToggleAction *	toggle_action,
-				 const gchar *		key);
-extern gboolean
-z_gconf_get			(gpointer		result,
-				 const gchar *		key,
-				 GConfValueType		type);
-extern void
-z_gconf_auto_update		(gpointer		var,
-				 const gchar *		key,
-				 GConfValueType		type);
-
-#define Z_GCONF_GET_NOTIFY(t1, t2, t3)					\
-static __inline__ gboolean						\
-z_gconf_get_##t1 (t2 *result, const gchar *key)				\
-{ return z_gconf_get (result, key, GCONF_VALUE_##t3); }			\
-static __inline__ void							\
-z_gconf_auto_update_##t1 (t2 *var, const gchar *key)			\
-{ z_gconf_auto_update (var, key, GCONF_VALUE_##t3); }
-
-Z_GCONF_GET_NOTIFY (bool, gboolean, BOOL)
-Z_GCONF_GET_NOTIFY (int, gint, INT)
-Z_GCONF_GET_NOTIFY (float, gdouble, FLOAT)
-
-extern gboolean
-z_gconf_set_bool		(const gchar *		key,
-				 gboolean		val);
-extern gboolean
-z_gconf_set_int			(const gchar *		key,
-				 gint			val);
-extern gboolean
-z_gconf_set_string		(const gchar *		key,
-				 const gchar *		val);
-extern gboolean
-z_gconf_get_string_enum		(gint *			enum_value,
-				 const gchar *		gconf_key,
-				 const GConfEnumStringPair *lookup_table);
-extern gboolean
-z_gconf_notify_add		(const gchar *		key,
-				 GConfClientNotifyFunc	func,
-				 gpointer		user_data);
-extern GtkWidget *
-z_gconf_combo_box_new		(const gchar **		option_menu,
-				 const gchar *		gconf_key,
-				 const GConfEnumStringPair *lookup_table);
-extern GtkWidget *
-z_gconf_check_button_new	(const gchar *		label,
-				 const gchar *		key,
-				 gboolean		active);
-extern void
 z_action_set_sensitive		(GtkAction *		action,
 				 gboolean		sensitive);
 extern void
@@ -711,6 +636,10 @@ extern gchar *
 z_strappend			(gchar *		string1,
 				 const gchar *		string2,
 				 ...);
+extern void
+z_object_set_const_data		(GObject *		object,
+				 const gchar *		key,
+				 const void *		data);
 
 /* Common constants for item position in Gtk insert functions. */
 #define PREPEND 0

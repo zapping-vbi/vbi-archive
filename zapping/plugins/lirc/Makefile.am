@@ -9,5 +9,5 @@ liblirc_zapping_la_SOURCES = lirc.c lirc.h
 EXTRA_DIST = README
 
 INCLUDES = -I$(top_srcdir) $(COMMON_INCLUDES) \
-	$(PLUGIN_DEFAULT_FLAGS)
+	$(PLUGIN_DEFAULT_FLAGS) @PG_CFLAGS@
 

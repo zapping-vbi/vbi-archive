@@ -914,7 +914,7 @@ preview (screenshot_data *data)
 {
   tveng_image_data old_data;
   tv_image_format old_format;
-  tv_pixel_format pixel_format;
+  const tv_pixel_format *pf;
 
   if (!data || !data->drawingarea || !data->pixbuf)
     return;
@@ -922,12 +922,12 @@ preview (screenshot_data *data)
   old_data = data->data;
   old_format = data->format;
 
-  tv_pixel_format_from_pixfmt (&pixel_format, data->format.pixfmt, 0);
+  pf = tv_pixel_format_from_pixfmt (data->format.pixfmt);
 
   data->data.linear.data =
     (char *) data->data.linear.data
     + (int) (((((data->format.width - PREVIEW_WIDTH) >> 1)
-	       * pixel_format.bits_per_pixel) >> 3)
+	       * pf->bits_per_pixel) >> 3)
 	     + (((data->format.height - PREVIEW_HEIGHT) >> 1)
 		& (unsigned int) -1) /* top field first */
 	     * data->data.linear.stride);
@@ -1161,8 +1161,8 @@ build_dialog (screenshot_data *data)
   for (i = 0; backends[i]; i++)
     {
       menu_item = gtk_menu_item_new_with_label (_(backends[i]->label));
-      g_object_set_data (G_OBJECT (menu_item), "keyword",
-			 (gpointer) backends[i]->keyword);
+      z_object_set_const_data (G_OBJECT (menu_item), "keyword",
+			       backends[i]->keyword);
       gtk_widget_show (menu_item);
       gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
@@ -1450,7 +1450,7 @@ screenshot_timeout (screenshot_data *data)
 static gboolean
 copy_image (screenshot_data *data, capture_frame *frame)
 {
-  zimage *image = retrieve_frame (frame, TV_PIXFMT_RGB24_LE);
+  zimage *image = retrieve_frame (frame, TV_PIXFMT_RGB24_LE, /* copy */ FALSE);
 
   if (!image)
     return FALSE;

@@ -1429,7 +1429,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 
 		for (i = 0; i < (unsigned int) p_info->mmbuf.frames; ++i) {
 			tv_clear_image (p_info->mmaped_data
-					+ p_info->mmbuf.offsets[i], 0,
+					+ p_info->mmbuf.offsets[i],
 					&info->capture.format);
 		}
 	}
@@ -1639,7 +1639,7 @@ get_overlay_buffer		(tveng_device_info *	info)
 				   (unsigned int) buffer.height,
 				   0,
 				   pig_depth_to_pixfmt ((unsigned) buffer.depth),
-				   TV_COLOR_SPACE_UNKNOWN))
+				   TV_COLSPC_UNKNOWN))
 		goto failure;
 
 	assert ((unsigned) buffer.bytesperline

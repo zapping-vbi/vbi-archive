@@ -118,6 +118,10 @@ struct capture_device {
   int	(*stop_capturing)(tveng_device_info *info);
   int	(*read_frame)(tveng_image_data *where,
 		      unsigned int time, tveng_device_info *info);
+  tv_bool (*queue_buffer)(tveng_device_info *info,
+			  const tv_capture_buffer *buffer);
+  const tv_capture_buffer * (*dequeue_buffer)(tveng_device_info *info,
+				      unsigned int time);
   double (*get_timestamp)(tveng_device_info *info);
 };
 
@@ -353,10 +357,6 @@ append_video_line		(tv_video_line **	list,
 				 unsigned int		size);
 
 
-extern void
-tveng_copy_frame		(unsigned char *	src,
-				 tveng_image_data *	where,
-				 tveng_device_info *	info);
 
 extern void
 ioctl_failure			(tveng_device_info *	info,

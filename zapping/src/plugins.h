@@ -84,6 +84,7 @@ struct plugin_info{
 
   /* Read only processing of the frame (gtk+ thread) */
   void (*plugin_read_frame) ( capture_frame * frame );
+  void (*plugin_capture_start)	( void );
   /* If the plugin is capturing using the provided fifo, it must stop
    when this call returns */
   void (*plugin_capture_stop)	( void );
@@ -160,6 +161,8 @@ gboolean plugin_running ( struct plugin_info * info);
 
 void plugin_read_frame (capture_frame * frame,
 			struct plugin_info * info);
+
+void plugin_capture_start ( struct plugin_info * info);
 
 void plugin_capture_stop ( struct plugin_info * info);
 

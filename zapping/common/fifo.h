@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.31 2004-09-10 04:58:51 mschimek Exp $ */
+/* $Id: fifo.h,v 1.32 2004-12-07 17:30:39 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -136,6 +136,8 @@ struct zf_fifo {
 	void *			user_data;
 
 	zf_buffer *		(* alloc_buffer)(ssize_t);
+
+	void			(* buffer_done)(zf_fifo *, zf_buffer *);
 };
 
 struct zf_producer {

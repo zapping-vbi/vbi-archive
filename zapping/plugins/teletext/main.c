@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.9 2004-11-11 14:35:41 mschimek Exp $ */
+/* $Id: main.c,v 1.10 2004-12-07 17:30:43 mschimek Exp $ */
 
 #include "config.h"
 
@@ -27,7 +27,7 @@
 #include "src/zconf.h"
 #include "src/plugin_common.h"
 #include "src/properties.h"
-#include "src/zmisc.h"
+#include "src/zgconf.h"
 #include "src/zvbi.h"		/* zvbi_add_decoder() */
 #include "src/remote.h"
 #include "view.h"

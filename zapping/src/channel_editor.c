@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.44 2004-11-03 06:43:53 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.45 2004-12-07 17:30:45 mschimek Exp $ */
 
 /*
   TODO:
@@ -42,6 +42,7 @@
 #define ZCONF_DOMAIN "/zapping/internal/properties/"
 #include "zconf.h"
 #include "zmisc.h"
+#include "zspinslider.h"
 #include "remote.h"
 #include "frequencies.h"
 #include "globals.h"
@@ -113,8 +114,7 @@ struct channel_editor
 
   GtkTable *		entry_table;
   GtkEntry *		entry_name;
-  GtkWidget *		entry_fine_tuning;		/* spinslider */
-  GtkAdjustment *	spinslider_adj;
+  ZSpinSlider *		entry_fine_tuning;
   GtkOptionMenu *	entry_standard;
   GtkOptionMenu *	entry_input;
   GtkWidget *		entry_accel;			/* z_key_entry */
@@ -418,8 +418,8 @@ entry_fine_tuning_set		(channel_editor *	ce,
   GtkAdjustment *hscale_adj;
   const tv_video_line *vi;
 
-  spin_adj = z_spinslider_get_spin_adj (ce->entry_fine_tuning);
-  hscale_adj = z_spinslider_get_hscale_adj (ce->entry_fine_tuning);
+  spin_adj = ce->entry_fine_tuning->spin_adj;
+  hscale_adj = ce->entry_fine_tuning->hscale_adj;
 
   if (frequency > 0)
     {
@@ -456,9 +456,9 @@ entry_fine_tuning_set		(channel_editor *	ce,
   if (0 == frequency
       || NULL == vi
       || vi->type != TV_VIDEO_LINE_TYPE_TUNER)
-    gtk_widget_set_sensitive (ce->entry_fine_tuning, FALSE);
+    gtk_widget_set_sensitive (GTK_WIDGET (ce->entry_fine_tuning), FALSE);
   else
-    gtk_widget_set_sensitive (ce->entry_fine_tuning, TRUE);
+    gtk_widget_set_sensitive (GTK_WIDGET (ce->entry_fine_tuning), TRUE);
 }
 
 static void
@@ -1195,7 +1195,7 @@ on_channel_selection_changed	(GtkTreeSelection *	selection _unused_,
 	 }
   );
 
-  SIGNAL_HANDLER_BLOCK (ce->spinslider_adj,
+  SIGNAL_HANDLER_BLOCK (ce->entry_fine_tuning->spin_adj,
 			(gpointer) on_entry_fine_tuning_value_changed,
 			entry_fine_tuning_set (ce, zapping->info, tc->frequ));
 
@@ -1891,6 +1891,7 @@ create_channel_editor		(void)
       {
 	GtkWidget *label;
 	GtkWidget *menu;
+	GtkAdjustment *adj;
 	  
 	ce->entry_table = GTK_TABLE (gtk_table_new (5, 2, FALSE));
 	gtk_widget_show (GTK_WIDGET (ce->entry_table));
@@ -1921,17 +1922,19 @@ create_channel_editor		(void)
 
 	LABEL (_("Fine tuning:"), 0, 2);
 
-	ce->spinslider_adj = GTK_ADJUSTMENT
+	adj = GTK_ADJUSTMENT
 	  (gtk_adjustment_new (0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
 	ce->entry_fine_tuning =
-	  z_spinslider_new (ce->spinslider_adj, NULL, _("MHz"), 0.0, 2);
-	gtk_widget_show (ce->entry_fine_tuning);
-	gtk_widget_set_sensitive (ce->entry_fine_tuning, FALSE);
-	gtk_table_attach (ce->entry_table, ce->entry_fine_tuning, 1, 2, 2, 3,
+	  Z_SPINSLIDER (z_spinslider_new (adj, NULL, _("MHz"), 0.0, 2));
+	gtk_widget_show (GTK_WIDGET (ce->entry_fine_tuning));
+	gtk_widget_set_sensitive (GTK_WIDGET (ce->entry_fine_tuning), FALSE);
+	gtk_table_attach (ce->entry_table,
+			  GTK_WIDGET (ce->entry_fine_tuning),
+			  1, 2, 2, 3,
 			  (GtkAttachOptions)(GTK_FILL),
 			  (GtkAttachOptions)(GTK_FILL), 0, 0);
-	g_signal_connect (G_OBJECT (ce->spinslider_adj), "value-changed",
+	g_signal_connect (G_OBJECT (adj), "value-changed",
 			  G_CALLBACK (on_entry_fine_tuning_value_changed), ce);
 
 	LABEL (_("Video standard:"), 0, 3);

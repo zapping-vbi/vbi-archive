@@ -51,8 +51,7 @@
 
 /* The capture fifo */
 #define NUM_BUNDLES 6 /* in capture_fifo */
-static zf_fifo				_capture_fifo;
-zf_fifo					*capture_fifo = &_capture_fifo;
+zf_fifo					capture_fifo;
 /* The frame producer */
 static pthread_t			capture_thread_id;
 static volatile gboolean		exit_capture_thread;
@@ -188,7 +187,7 @@ capture_thread (void *data)
   tveng_device_info *info = (tveng_device_info*)data;
   zf_producer prod;
 
-  zf_add_producer(capture_fifo, &prod);
+  zf_add_producer(&capture_fifo, &prod);
 
   while (!exit_capture_thread)
     {
@@ -469,16 +468,16 @@ gint capture_start (tveng_device_info *info, GtkWidget *window)
   /* XXX */
   dest_window = window;
 
-  zf_init_buffered_fifo (capture_fifo, "zapping-capture", 0, 0);
+  zf_init_buffered_fifo (&capture_fifo, "zapping-capture", 0, 0);
 
   for (i=0; i<NUM_BUNDLES; i++)
     {
       g_assert ((b = g_malloc0(sizeof(producer_buffer))));
       b->destroy = free_bundle;
-      zf_add_buffer (capture_fifo, b);
+      zf_add_buffer (&capture_fifo, b);
     }
 
-  zf_add_consumer (capture_fifo, cf_timeout_consumer);
+  zf_add_consumer (&capture_fifo, cf_timeout_consumer);
 
   exit_capture_thread = FALSE;
   capture_quit_ack = FALSE;
@@ -570,7 +569,7 @@ void capture_stop (void)
   formats = NULL;
   num_formats = 0;
 
-  zf_destroy_fifo (capture_fifo);
+  zf_destroy_fifo (&capture_fifo);
 }
 
 /*
@@ -915,7 +914,8 @@ remove_capture_handler (gint id)
 
 zimage*
 retrieve_frame (capture_frame *frame,
-		tv_pixfmt pixfmt)
+		tv_pixfmt pixfmt,
+		gboolean copy)
 {
   guint i;
   producer_buffer *pb = (producer_buffer*)frame;

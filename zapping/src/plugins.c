@@ -133,6 +133,10 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 		       (gpointer*)&(info->plugin_read_frame)))
     info->plugin_read_frame = NULL;
 
+  if (!info->get_symbol("plugin_capture_start", 0x1234,
+		       (gpointer*)&(info->plugin_capture_start)))
+    info->plugin_capture_start = NULL;
+
   if (!info->get_symbol("plugin_capture_stop", 0x1234,
 		       (gpointer*)&(info->plugin_capture_stop)))
     info->plugin_capture_stop = NULL;
@@ -521,6 +525,14 @@ void plugin_read_frame (capture_frame * frame,
 
   if (info -> plugin_read_frame)
     (*info->plugin_read_frame)(frame);
+}
+
+void plugin_capture_start (struct plugin_info * info)
+{
+  g_assert(info != NULL);
+
+  if (info -> plugin_capture_start)
+    (*info->plugin_capture_start)();
 }
 
 void plugin_capture_stop (struct plugin_info * info)

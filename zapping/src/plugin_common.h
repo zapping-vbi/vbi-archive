@@ -114,6 +114,7 @@ static void plugin_stop( void ) UNUSED ;
 static void plugin_load_config ( gchar * root_key ) UNUSED ;
 static void plugin_save_config ( gchar * root_key ) UNUSED ;
 static void plugin_read_frame ( capture_frame * frame ) UNUSED ;
+static void plugin_capture_start( void ) UNUSED ;
 static void plugin_capture_stop( void ) UNUSED ;
 static
 gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **

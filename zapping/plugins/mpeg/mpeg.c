@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.50 2004-11-03 06:52:25 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.51 2004-12-07 17:30:41 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -88,7 +88,7 @@ static gint			capture_h = 288;
 static GtkWidget *		saving_dialog;
 
 static volatile gboolean	active;
-static gint			capture_format_id;
+static gint			capture_format_id = -1;
 static tv_pixfmt		capture_pixfmt;
 
 /* XXX */
@@ -151,7 +151,8 @@ video_callback			(rte_context *		context _unused_,
 
     cf = PARENT (b, capture_frame, b);
 
-    zi = retrieve_frame (cf, capture_pixfmt);
+    /* XXX copy? */
+    zi = retrieve_frame (cf, capture_pixfmt, /* copy */ TRUE);
 
     if (NULL != zi)
       break;
@@ -375,9 +376,9 @@ do_stop				(void)
     free (audio_buf);
   audio_buf = NULL;
 
-  if (0 != capture_format_id)
+  if (-1 != capture_format_id)
     release_capture_format (capture_format_id);
-  capture_format_id = 0;
+  capture_format_id = -1;
 
   active = FALSE;
 }
@@ -485,12 +486,12 @@ do_start			(const gchar *		file_name)
 	  fmt.height = height;
 	  fmt.pixfmt = pixfmt;
 
-	  if (0 != capture_format_id)
+	  if (-1 != capture_format_id)
 	    release_capture_format (capture_format_id);
 
 	  capture_format_id = request_capture_format (&fmt);
 
-	  if (0 == capture_format_id)
+	  if (-1 == capture_format_id)
 	    {
 	      rte_context_delete (context);
 	      context_enc = NULL;
@@ -540,9 +541,9 @@ do_start			(const gchar *		file_name)
 	      if (captured_frame_rate < 0.0)
 		{
 		  rte_context_delete (context);
-		  if (0 != capture_format_id)
+		  if (-1 != capture_format_id)
 		    release_capture_format (capture_format_id);
-		  capture_format_id = 0;
+		  capture_format_id = -1;
 		  context_enc = NULL;
 		  return FALSE;
 		}
@@ -558,9 +559,9 @@ do_start			(const gchar *		file_name)
 	    {
 	      rte_context_delete (context);
 	      context_enc = NULL;
-	      if (0 != capture_format_id)
+	      if (-1 != capture_format_id)
 		release_capture_format (capture_format_id);
-	      capture_format_id = 0;
+	      capture_format_id = -1;
 
 	      /* FIXME */
 
@@ -680,7 +681,7 @@ do_start			(const gchar *		file_name)
   //  capture_lock ();
 
   if (video_codec)
-    zf_add_consumer (capture_fifo, &mpeg_consumer);
+    zf_add_consumer (&capture_fifo, &mpeg_consumer);
 
   if (!rte_start (context, 0.0, NULL, TRUE))
     {
@@ -709,9 +710,9 @@ do_start			(const gchar *		file_name)
     close_audio_device (audio_handle);
   audio_handle = NULL;
 
-  if (0 != capture_format_id)
+  if (-1 != capture_format_id)
     release_capture_format (capture_format_id);
-  capture_format_id = 0;
+  capture_format_id = -1;
 
   return FALSE;
 }

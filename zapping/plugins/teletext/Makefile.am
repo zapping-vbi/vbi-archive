@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-plugindir = $(PLUGIN_DEFAULT_DIR)
+plugindir = @PLUGIN_DEFAULT_DIR@
 
 plugin_LTLIBRARIES = libteletext.zapping.la
 
@@ -15,8 +15,12 @@ libteletext_zapping_la_SOURCES = \
 	view.c view.h \
 	window.c window.h
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src $(COMMON_INCLUDES) \
-	$(PLUGIN_DEFAULT_FLAGS) -Wunused-function -DZAPPING8
+INCLUDES = -I$(top_srcdir) \
+	@COMMON_INCLUDES@ \
+	@PLUGIN_DEFAULT_FLAGS@ \
+	@PG_CFLAGS@ \
+	-Wunused-function \
+	-DZAPPING8
 
 libteletext_zapping_la_LIBADD = \
 	$(top_builddir)/libvbi/libvbi.la \

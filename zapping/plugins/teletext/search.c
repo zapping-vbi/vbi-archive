@@ -19,9 +19,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.2 2004-11-03 06:46:44 mschimek Exp $ */
+/* $Id: search.c,v 1.3 2004-12-07 17:30:43 mschimek Exp $ */
 
-#include "src/zmisc.h"
+#include "src/zgconf.h"
 #include "main.h"		/* td */
 #include "search.h"
 
@@ -350,16 +350,19 @@ instance_init			(GTypeInstance *	instance,
   gtk_box_pack_start (vbox, widget, FALSE, FALSE, 3);
 
   widget = z_gconf_check_button_new (_("_Regular expression"),
-				     GCONF_DIR "/search/regexp", TRUE);
+				     GCONF_DIR "/search/regexp",
+				     NULL, TRUE);
   gtk_box_pack_start (vbox, widget, FALSE, FALSE, 3);
 
   widget = z_gconf_check_button_new (_("Search case _insensitive"),
-				     GCONF_DIR "/search/casefold", FALSE);
+				     GCONF_DIR "/search/casefold",
+				     NULL, FALSE);
   gtk_box_pack_start (vbox, widget, FALSE, FALSE, 3);
 
   /* Future stuff. */
   widget = z_gconf_check_button_new (_("_All channels"),
-				     GCONF_DIR "/search/all_channels", FALSE);
+				     GCONF_DIR "/search/all_channels",
+				     NULL, FALSE);
   gtk_widget_set_sensitive (widget, FALSE);
   gtk_box_pack_start (vbox, widget, FALSE, FALSE, 3);
 

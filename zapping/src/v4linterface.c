@@ -37,6 +37,7 @@
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zconf.h"
 #include "zmisc.h"
+#include "zspinslider.h"
 #include "interface.h"
 #include "zvbi.h"
 #include "osd.h"
@@ -246,11 +247,13 @@ on_tv_control_integer_changed	(tv_control *		ctrl,
 				 void *			user_data)
 {
   struct control *c = user_data;
+  ZSpinSlider *sp;
 
-  SIGNAL_HANDLER_BLOCK (z_spinslider_get_spin_adj (c->widget),
+  sp = Z_SPINSLIDER (c->widget);
+
+  SIGNAL_HANDLER_BLOCK (sp->spin_adj,
 			on_control_slider_changed,
-			z_spinslider_set_value (c->widget,
-						(gfloat) ctrl->value));
+			z_spinslider_set_int_value (sp, ctrl->value));
 }
 
 static void
@@ -271,7 +274,7 @@ create_slider			(struct control_window *cb,
   spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL,
 				 NULL, (gfloat) ctrl->reset, 0);
 
-  z_spinslider_set_value (spinslider, (gfloat) ctrl->value);
+  z_spinslider_set_int_value (Z_SPINSLIDER (spinslider), ctrl->value);
 
   add_control (cb, info, ctrl, control_symbol (ctrl), spinslider,
 	       adj, "value-changed", on_control_slider_changed,

@@ -24,8 +24,8 @@ EXTRA_DIST = \
 	$(structpr) \
 	$(BUILT_SOURCES)
 
-INCLUDES = $(DEFAULT_CFLAGS) $(UNICODE_CFLAGS) @COMMON_INCLUDES@
-	-I$(srcdir)
+INCLUDES = $(DEFAULT_CFLAGS) $(UNICODE_CFLAGS) @COMMON_INCLUDES@ \
+	-I$(srcdir) @PG_CFLAGS@
 
 _videodev.h: Makefile.am $(structpr) videodev.h
 	$(srcdir)/$(structpr) <$(srcdir)/videodev.h \

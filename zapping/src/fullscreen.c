@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.36 2004-11-03 06:41:26 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.37 2004-12-07 17:30:45 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -33,6 +33,7 @@
 #include <gdk/gdkx.h>
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zconf.h"
+#include "zgconf.h"
 #include "osd.h"
 #include "x11stuff.h"
 #include "interface.h"

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: window.c,v 1.6 2004-11-11 14:33:54 mschimek Exp $ */
+/* $Id: window.c,v 1.7 2004-12-07 17:30:43 mschimek Exp $ */
 
 #include "config.h"
 
@@ -28,6 +28,7 @@
 #include "src/remote.h"
 #include "src/i18n.h"
 #include "src/zvbi.h"
+#include "src/zgconf.h"
 #include "view.h"
 #include "main.h"
 #include "window.h"
@@ -737,7 +738,7 @@ key_press_event			(GtkWidget *		widget,
 }
 
 static gboolean
-on_button_press_event		(GtkWidget *		widget,
+on_button_press_event		(GtkWidget *		widget _unused_,
 				 GdkEventButton *	event,
 				 gpointer		user_data)
 {

@@ -17,9 +17,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: screen.c,v 1.4 2004-09-14 04:44:46 mschimek Exp $ */
+/* $Id: screen.c,v 1.5 2004-12-07 17:30:39 mschimek Exp $ */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdlib.h>		/* calloc(), free() */
 #include <X11/Xlib.h>
@@ -195,12 +197,12 @@ xinerama_query			(tv_screen **		list,
 #define TV_SCREEN_DGA_DEBUG 0
 #endif
 
-static tv_bool
-pixfmt_from_visuals		(tv_pixel_format *	format,
-				 Display *		display,
+static tv_pixfmt
+pixfmt_from_visuals		(Display *		display,
 				 int			screen_number,
 				 int			bpp_hint)
 {
+	tv_pixel_format format;
 	Visual *default_visual;
 	XVisualInfo *visuals;
 	XVisualInfo *v;
@@ -208,7 +210,7 @@ pixfmt_from_visuals		(tv_pixel_format *	format,
 	int n_items;
 	int i;
 
-	CLEAR (*format);
+	CLEAR (format);
 
 	default_visual = XDefaultVisual (display, screen_number);
 
@@ -242,33 +244,33 @@ pixfmt_from_visuals		(tv_pixel_format *	format,
 	if (!v || i < n_items) {
 		XFree (visuals);
 		printv ("PFD: No appropriate X visual available\n");
-		return FALSE;
+		return TV_PIXFMT_UNKNOWN;
 	}
 
 	/* v->depth counts RGB bits, not alpha. */
-	format->color_depth = v->depth;
+	format.color_depth = v->depth;
 
 	/* v->bits_per_rgb is not bits_per_pixel,
 	   we have to find that separately. */
 
-	format->mask.rgb.r = v->red_mask;
-	format->mask.rgb.g = v->green_mask;
-	format->mask.rgb.b = v->blue_mask;
+	format.mask.rgb.r = v->red_mask;
+	format.mask.rgb.g = v->green_mask;
+	format.mask.rgb.b = v->blue_mask;
 
 	XFree (visuals);
 
 	switch (bpp_hint) {
 	case 24:
 	case 32:
-		format->color_depth = 24;
-		format->bits_per_pixel = bpp_hint;
+		format.color_depth = 24;
+		format.bits_per_pixel = bpp_hint;
 		break;
 
 	default: /* BPP heuristic */
-		if (format->color_depth <= 8) {
-			format->bits_per_pixel = 8;
-		} else if (format->color_depth <= 16) {
-			format->bits_per_pixel = 16;
+		if (format.color_depth <= 8) {
+			format.bits_per_pixel = 8;
+		} else if (format.color_depth <= 16) {
+			format.bits_per_pixel = 16;
 		} else {
 			XPixmapFormatValues *formats;
 			XPixmapFormatValues *f;
@@ -285,7 +287,7 @@ pixfmt_from_visuals		(tv_pixel_format *	format,
 						formats[i].bits_per_pixel);
 
 				if ((unsigned int) formats[i].depth
-				    != format->color_depth)
+				    != format.color_depth)
 					continue;
 
 				if (formats[i].bits_per_pixel < 24)
@@ -302,10 +304,10 @@ pixfmt_from_visuals		(tv_pixel_format *	format,
 				XFree (formats);
 				printv ("PFD: Unknown frame buffer "
 					"bits per pixel\n");
-				return FALSE;
+				return TV_PIXFMT_UNKNOWN;
 			}
 
-			format->bits_per_pixel = f->bits_per_pixel;
+			format.bits_per_pixel = f->bits_per_pixel;
 
 			XFree (formats);
 		}
@@ -313,15 +315,15 @@ pixfmt_from_visuals		(tv_pixel_format *	format,
 		break;
 	}
 
-	format->big_endian = (MSBFirst == XImageByteOrder (display));
+	format.big_endian = (MSBFirst == XImageByteOrder (display));
 
-	if (tv_pixel_format_to_pixfmt (format)
-	    && TV_PIXFMT_UNKNOWN != format->pixfmt)
-		return TRUE;
+	format.pixfmt = tv_pixel_format_to_pixfmt (&format);
+	if (TV_PIXFMT_UNKNOWN != format.pixfmt)
+		return format.pixfmt;
 
 	printv ("PFD: Unknown frame buffer format\n");
 
-	return FALSE;
+	return TV_PIXFMT_UNKNOWN;
 }
 
 static tv_bool
@@ -330,17 +332,17 @@ display_pixfmt			(tv_screen *		list,
 				 int			bpp_hint)
 {
 	int screen_number;
-	tv_pixel_format format;
+	tv_pixfmt pixfmt;
 
 	/* Screen from XOpenDisplay() name. */
 	screen_number = XDefaultScreen (display);
 
-	if (!pixfmt_from_visuals (&format, display,
-				  screen_number, bpp_hint))
+	pixfmt = pixfmt_from_visuals (display, screen_number, bpp_hint);
+	if (TV_PIXFMT_UNKNOWN == pixfmt)
 		return FALSE;
 
 	for (; list; list = list->next)
-		list->target.format.pixfmt = format.pixfmt;
+		list->target.format.pixfmt = pixfmt;
 
 	return TRUE;
 }
@@ -350,9 +352,8 @@ display_pixfmt			(tv_screen *		list,
 /* man XF86DGA */
 #include <X11/extensions/xf86dga.h>
 
-static tv_bool
-pixfmt_from_dga_modes		(tv_pixel_format *	format,
-				 Display *		display,
+static tv_pixfmt
+pixfmt_from_dga_modes		(Display *		display,
 				 int			screen_number)
 {
 	XDGAMode *modes;
@@ -360,11 +361,9 @@ pixfmt_from_dga_modes		(tv_pixel_format *	format,
 	int n_items;
 	int i;
 
-	CLEAR (*format);
-
 	modes = XDGAQueryModes (display, screen_number, &n_items);
 	if (!modes)
-		return FALSE;
+		return TV_PIXFMT_UNKNOWN;
 
 	m = NULL;
 
@@ -393,19 +392,23 @@ pixfmt_from_dga_modes		(tv_pixel_format *	format,
 	}
 
 	if (m && i >= n_items) {
-		format->color_depth	= m->depth;
-		format->bits_per_pixel	= m->bitsPerPixel;
+		tv_pixel_format format;
 
-		format->mask.rgb.r	= m->redMask;
-		format->mask.rgb.g	= m->greenMask;
-		format->mask.rgb.b	= m->blueMask;
+		CLEAR (format);
 
-		format->big_endian	= (MSBFirst == m->byteOrder);
+		format.color_depth	= m->depth;
+		format.bits_per_pixel	= m->bitsPerPixel;
 
-		if (tv_pixel_format_to_pixfmt (format)
-		    && TV_PIXFMT_UNKNOWN != format->pixfmt) {
+		format.mask.rgb.r	= m->redMask;
+		format.mask.rgb.g	= m->greenMask;
+		format.mask.rgb.b	= m->blueMask;
+
+		format.big_endian	= (MSBFirst == m->byteOrder);
+
+		format.pixfmt = tv_pixel_format_to_pixfmt (&format);
+		if (TV_PIXFMT_UNKNOWN != format.pixfmt) {
 			XFree (modes);
-			return TRUE;
+			return format.pixfmt;
 		}
 	}
 
@@ -413,7 +416,7 @@ pixfmt_from_dga_modes		(tv_pixel_format *	format,
 
 	printv ("DGA: Ambiguous modes\n");
 
-	return FALSE;
+	return TV_PIXFMT_UNKNOWN;
 }
 
 static tv_bool
@@ -426,7 +429,7 @@ dga_query			(tv_screen *		list,
 	int major_version;
 	int minor_version;
 	int screen_number;
-	tv_pixel_format format;
+	tv_pixfmt pixfmt;
 
 	assert (NULL != list);
 	assert (NULL != display);
@@ -454,11 +457,16 @@ dga_query			(tv_screen *		list,
 	/* Screen from XOpenDisplay() name. */
 	screen_number = XDefaultScreen (display);
 
-	if (!(bpp_hint <= 0
-	      && major_version >= 2
-	      && pixfmt_from_dga_modes (&format, display, screen_number))
-	    && !pixfmt_from_visuals (&format, display,
-				     screen_number, bpp_hint))
+	pixfmt = TV_PIXFMT_UNKNOWN;
+
+	if (bpp_hint <= 0 && major_version >= 2)
+		pixfmt = pixfmt_from_dga_modes (display, screen_number);
+
+	if (TV_PIXFMT_UNKNOWN == pixfmt)
+		pixfmt = pixfmt_from_visuals (display,
+					      screen_number, bpp_hint);
+
+	if (TV_PIXFMT_UNKNOWN == pixfmt)
 		return FALSE;
 
 	for (; list; list = list->next)	{
@@ -467,10 +475,9 @@ dga_query			(tv_screen *		list,
 		int width;	/* of root window in pixels */
 		int banksize;	/* in bytes, usually video memory size */
 		int memsize;	/* ? */
-		unsigned int bits_per_line;
 
 		/* Must always be set. */
-		list->target.format.pixfmt = format.pixfmt;
+		list->target.format.pixfmt = pixfmt;
 
 		/* Fortunately these functions refer to physical screens,
 		   not the virtual Xinerama screen. */
@@ -504,14 +511,6 @@ dga_query			(tv_screen *		list,
 				banksize, banksize,
 				memsize, memsize);
 
-		bits_per_line = list->width * format.bits_per_pixel;
-		if (bits_per_line & 7) {
-			printv ("DGA: Unknown frame buffer "
-				"bits per pixel %u on screen %d\n",
-				format.bits_per_pixel, list->screen_number);
-			continue;
-		}
-
 		list->target.base = start;
 
 		list->target.x = list->x;
@@ -520,7 +519,8 @@ dga_query			(tv_screen *		list,
 		list->target.format.width = list->width;
 		list->target.format.height = list->height;
 
-		list->target.format.bytes_per_line = bits_per_line >>= 3;
+		list->target.format.bytes_per_line =
+			list->width * tv_pixfmt_bytes_per_pixel (pixfmt);
 
 		list->target.format.size =
 			list->height * list->target.format.bytes_per_line;

@@ -813,8 +813,8 @@ standard_properties_add		(GtkDialog	*dialog,
 			    groups[i].items[j].apply);
 	  g_object_set_data(G_OBJECT(page), "help",
 			    groups[i].items[j].help);
-	  g_object_set_data(G_OBJECT(page), "help_link_id",
-			    (gpointer) groups[i].items[j].help_link_id);
+	  z_object_set_const_data(G_OBJECT(page), "help_link_id",
+				  groups[i].items[j].help_link_id);
 	  g_object_set_data(G_OBJECT(page), "cancel",
 			    groups[i].items[j].cancel);
 
