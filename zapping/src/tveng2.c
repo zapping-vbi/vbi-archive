@@ -1669,6 +1669,16 @@ tveng2_detect_preview (tveng_device_info * info)
   info->fb_info.depth = fb.fmt.depth;
   info->fb_info.bytesperline = fb.fmt.bytesperline;
 
+  if (!tveng_detect_XF86DGA(info))
+    {
+      info->tveng_errno = -1;
+      t_error_msg("tveng_detect_XF86DGA",
+		  "No DGA present, make sure you enable it in"
+		  " /etc/X11/XF86Config.",
+		  info);
+      return 0;
+    }
+
   return 1;
 }
 
@@ -1712,6 +1722,8 @@ tveng2_set_preview_window(tveng_device_info * info)
 	  clip[i].next = ((i+1) == window.clipcount) ? NULL : &(clip[i+1]);
 	}
     }
+
+  tveng_set_preview_off(info);
 
   /* Set the new window */
   if (ioctl(info->fd, VIDIOC_S_WIN, &window))

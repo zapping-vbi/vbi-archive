@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.4 2001-03-21 21:44:21 garetxe Exp $
+ * $Id: fullscreen.c,v 1.5 2001-04-03 22:10:05 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -216,6 +216,7 @@ fullscreen_start(tveng_device_info * info)
   /* Needed for XV fullscreen */
   info->window.win = GDK_WINDOW_XWINDOW(da->window);
   info->window.gc = GDK_GC_XGC(da->style->white_gc);
+
   if (tveng_start_previewing(info, 1-zcg_int(NULL, "change_mode")) == -1)
     {
       ShowBox(_("Sorry, but cannot go fullscreen:\n%s"),
@@ -248,7 +249,9 @@ fullscreen_start(tveng_device_info * info)
 		     GTK_SIGNAL_FUNC(on_fullscreen_event),
   		     main_window);
 
-  osd_set_window(da, black_window);
+  osd_set_coords(info->window.x, info->window.y, info->window.width,
+  		 info->window.height);
+
   gtk_signal_connect(GTK_OBJECT(osd_model), "changed",
 		     GTK_SIGNAL_FUNC(osd_model_changed), info);
 

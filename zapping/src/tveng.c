@@ -1626,6 +1626,19 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
+  if (info->current_controller == TVENG_CONTROLLER_XV)
+    change_mode = 0; /* not needed */
+  else
+    if (!tveng_detect_XF86DGA(info))
+      {
+	info->tveng_errno = -1;
+	t_error_msg("tveng_detect_XF86DGA",
+		    "No DGA present, make sure you enable it in"
+		    " /etc/X11/XF86Config.",
+		    info);
+	return -1;
+      }
+
   /* special code, used only inside tveng, means remember from last
      time */
   if (change_mode == -1)

@@ -1,3 +1,11 @@
+3.04.2001	overlay+osd fixes <garetxe@users.sourceforge.net>
+
+	* overlay, tveng, osd: Made them play nice together under V4L[12].
+	* src/tveng: Print more verbose messages if no DGA present.
+	* src/tvengxv.c: Made it work without DGA.
+	* src/osd.c, fullscreen: Centered subtitles in fullscreen even if
+	VidMode changed.
+
 2.04.2001	accelerators <garetxe@users.sourceforge.net>
 
 	* controls: Added accelerators for hiding/showing menu bars

@@ -1,6 +1,8 @@
 Outstanding issues for the next release (0.6.0)
 -----------------------------------------------
 	+ Revamp GUI for closed caption, program info, etc.
+	+ Make sure overlaying, capture etc works as smoothly as
+	possible under v4l.
 	+ Redesign the internal capture structure (fifos and stuff).
 	+ Parrot buffer for observing parrots.
 	+ Add to the configure script and to the .spec deps the

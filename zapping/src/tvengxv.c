@@ -1076,23 +1076,16 @@ tvengxv_set_preview(int on, tveng_device_info * info)
 static int
 tvengxv_start_previewing (tveng_device_info * info)
 {
-  Display * dpy = info->private->display;
-  int dwidth, dheight; /* Width and height of the display */
-
-  if (!tveng_detect_XF86DGA(info))
-    return -1;
-
-  /* calculate coordinates for the preview window. We compute this for
-   the first display */
-  XF86DGAGetViewPortSize(dpy, DefaultScreen(dpy),
-			 &dwidth, &dheight);
+  int dummy;
+  Window win_ignore;
 
   tveng_stop_everything(info);
 
   t_assert(info -> current_mode == TVENG_NO_CAPTURE);
 
-  info->window.width = dwidth;
-  info->window.height = dheight;
+  XGetGeometry(info->private->display, info->window.win, &win_ignore,
+	       &dummy, &dummy, &info->window.width,
+	       &info->window.height, &dummy, &dummy);
 
   if (tveng_set_preview_on(info) == -1)
     return -1;

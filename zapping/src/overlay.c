@@ -347,8 +347,9 @@ on_osd_model_changed			(ZModel		*osd_model,
 {
   struct tveng_window window;
 
-  if (tv_info.clear_timeout_id >= 0 || !tv_info.needs_cleaning)
-    return; /* there will be flicker (something else has changed) */
+  if (tv_info.clear_timeout_id >= 0 || !tv_info.needs_cleaning ||
+      !tv_info.visible)
+    return; /* no need for this */
 
   if (tv_info.clips) {
     malloc_count --;

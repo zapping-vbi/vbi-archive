@@ -1954,7 +1954,7 @@ int tveng1_read_frame(void * where, unsigned int size,
 
   if (p_tveng1_dequeue(where, info) == -1)
     return -1;
-  
+
   /* Everything has been OK, return 0 (success) */
   return 0;
 }
@@ -2057,6 +2057,16 @@ tveng1_detect_preview (tveng_device_info * info)
   info->fb_info.depth = buffer.depth;
   info->fb_info.bytesperline = buffer.bytesperline;
 
+  if (!tveng_detect_XF86DGA(info))
+    {
+      info->tveng_errno = -1;
+      t_error_msg("tveng_detect_XF86DGA",
+		  "No DGA present, make sure you enable it in"
+		  " /etc/X11/XF86Config.",
+		  info);
+      return 0;
+    }
+
   return 1;
 }
 
@@ -2072,7 +2082,6 @@ tveng1_set_preview_window(tveng_device_info * info)
 {
   struct video_window v4l_window;
   struct video_clip * clips=NULL;
-  enum tveng_capture_mode mode;
   int i;
 
   t_assert(info != NULL);
@@ -2110,7 +2119,8 @@ tveng1_set_preview_window(tveng_device_info * info)
 	}
     }
 
-  mode = tveng_stop_everything(info);
+  /* Up to the caller to call _on */
+  tveng_set_preview_off(info);
 
   /* Set the new window */
   if (ioctl(info->fd, VIDIOCSWIN, &v4l_window))
@@ -2119,11 +2129,8 @@ tveng1_set_preview_window(tveng_device_info * info)
       t_error("VIDIOCSWIN", info);
       if (clips)
 	free(clips);
-      tveng_restart_everything(mode, info);
       return -1;
     }
-
-  tveng_restart_everything(mode, info);
 
   /* free allocated mem */
   if (clips)

@@ -57,8 +57,12 @@ struct osd_row {
 static struct osd_row * osd_matrix[MAX_ROWS];
 static struct fmt_page osd_page;
 
+/* For window mode */
 static GtkWidget *osd_window = NULL;
 static GtkWidget *osd_parent_window = NULL;
+/* For coords mode */
+static gint cx, cy, cw=-1, ch=-1;
+
 static gboolean osd_started = FALSE; /* shared between threads */
 static gboolean osd_status = FALSE;
 
@@ -90,6 +94,8 @@ startup_osd(void)
 			   osd_event, NULL);
 
   osd_model = ZMODEL(zmodel_new());
+
+  memset(&osd_page, 0, sizeof(struct fmt_page));
 }
 
 void
@@ -148,11 +154,18 @@ set_piece_geometry(int row, int piece)
   g_assert(piece >= 0);
   g_assert(piece < osd_matrix[row]->n_pieces);
 
-  if (!osd_window)
+  if (!osd_window && (cw < 0 || ch < 0))
     return; /* nop */
 
-  gdk_window_get_size(osd_window->window, &w, &h);
-  gdk_window_get_origin(osd_window->window, &x, &y);
+  if (osd_window)
+    {
+      gdk_window_get_size(osd_window->window, &w, &h);
+      gdk_window_get_origin(osd_window->window, &x, &y);
+    }
+  else
+    {
+      x = cx; y = cy; w = cw; h = ch;
+    }
 
   if (osd_page.columns < 40) /* naive cc test */
     {
@@ -210,6 +223,9 @@ osd_geometry_update(gboolean raise_if_visible)
     visible = x11_window_viewable(osd_window->window);
   else
     visible = FALSE;
+
+  if (cw > 0 && ch > 0)
+    visible = TRUE;
 
   for (i=0; i<osd_page.rows; i++)
     for (j=0; j<osd_matrix[i]->n_pieces; j++)
@@ -290,6 +306,8 @@ osd_set_window(GtkWidget *dest_window, GtkWidget *parent)
   if (osd_window)
     osd_unset_window();
 
+  ch = cw = -1;
+
   osd_window = dest_window;
   osd_parent_window = parent;
 
@@ -301,6 +319,20 @@ osd_set_window(GtkWidget *dest_window, GtkWidget *parent)
 		     NULL);
   gtk_signal_connect(GTK_OBJECT(parent), "event",
 		     GTK_SIGNAL_FUNC(on_osd_event), NULL);
+
+  osd_geometry_update(TRUE);
+}
+
+void
+osd_set_coords(gint x, gint y, gint w, gint h)
+{
+  if (osd_window)
+    osd_unset_window();
+
+  cx = x;
+  cy = y;
+  cw = w;
+  ch = h;
 
   osd_geometry_update(TRUE);
 }
@@ -326,7 +358,9 @@ osd_off(void)
   osd_status = FALSE;
   osd_clear();
 
-  osd_unset_window();
+  if (osd_window)
+    osd_unset_window();
+  cw = ch = -1;
 }
 
 static
@@ -520,7 +554,8 @@ add_piece(int col, int row, int width, attr_char *c)
 
   set_piece_geometry(row, osd_matrix[row]->n_pieces-1);
 
-  if (osd_window && x11_window_viewable(osd_window->window))
+  if ((osd_window && x11_window_viewable(osd_window->window)) ||
+      (cw > 0 && ch > 0))
     gtk_widget_show(pp->window);
 
   return osd_matrix[row]->n_pieces-1;

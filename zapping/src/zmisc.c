@@ -293,6 +293,13 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	  exit(1);
 	}
 
+      if (!tveng_detect_preview(info))
+	{
+	  ShowBox(_("Preview will not work: %s"),
+		  GNOME_MESSAGE_BOX_ERROR, info->error);
+	  return -1;
+	}
+
       format = zmisc_resolve_pixformat(tveng_get_display_depth(info),
 				       x11_get_byte_order());
 
