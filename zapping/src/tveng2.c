@@ -1207,7 +1207,7 @@ tveng2_get_tune(__u32 * freq, tveng_device_info * info)
 	*freq = 0;
       info->tveng_errno = -1;
       t_error_msg("tuners check",
-		  _("There are no tuners for the active input"),
+		  "There are no tuners for the active input",
 		  info);
       return -1;
     }
@@ -1218,7 +1218,6 @@ tveng2_get_tune(__u32 * freq, tveng_device_info * info)
       t_error("VIDIOC_G_FREQ", info);
       return -1;
     }
-
   /* Get more info about this tuner */
   tuner.input = info->inputs[info->cur_input].id;
   if (ioctl(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)

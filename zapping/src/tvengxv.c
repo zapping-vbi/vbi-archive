@@ -57,26 +57,36 @@ struct private_tvengxv_device_info
   int encodings; /* number of encodings */
   /* This atoms define the controls */
   Atom	encoding;
+  int encoding_max, encoding_min;
   Atom	color;
+  int color_max, color_min;
   Atom	hue;
+  int hue_max, hue_min;
   Atom	saturation;
+  int saturation_max, saturation_min;
   Atom	brightness;
+  int brightness_max, brightness_min;
   Atom	contrast;
+  int contrast_max, contrast_min;
   Atom	freq;
+  int freq_max, freq_min;
   Atom	mute;
+  int mute_max, mute_min;
   Atom	volume;
+  int volume_max, volume_min;
   Atom	colorkey;
+  int colorkey_max, colorkey_min;
 };
 
 /* Private, builds the controls structure */
 static int
-p_tveng1_build_controls(tveng_device_info * info);
+p_tvengxv_build_controls(tveng_device_info * info);
 
 static int
-p_tvengxv_open_device_file(tveng_device_info *info)
+p_tvengxv_open_device(tveng_device_info *info)
 {
   Display *dpy = info->private->display;
-  Window * root_window = DefaultRootWindow(dpy);
+  Window root_window = DefaultRootWindow(dpy);
   unsigned int version, revision, major_opcode, event_base,
     error_base;
   int nAdaptors;
@@ -162,8 +172,11 @@ int tvengxv_attach_device(const char* device_file,
   struct private_tvengxv_device_info * p_info =
     (struct private_tvengxv_device_info *)info;
   XvAttribute *at;
+  int attributes, i, error;
+  Display *dpy;
 
   t_assert(info != NULL);
+  dpy = info->private->display;;
 
   if (info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
@@ -207,8 +220,78 @@ int tvengxv_attach_device(const char* device_file,
   info -> current_mode = TVENG_NO_CAPTURE;
 
   /* Build the atoms */
-  /* FIXME: i'm here */
-
+  at = XvQueryPortAttributes(dpy, p_info->port, &attributes);
+  for (i=0; i<attributes; i++)
+    {
+      if (info->debug_level>0)
+	fprintf(stderr, "  TVeng Xv atom: %s%s%s (%i -> %i)\n",
+		at[i].name,
+		(at[i].flags & XvGettable) ? "gettable" : "",
+		(at[i].flags & XvSettable) ? "settable" : "",
+		at[i].min_value, at[i].max_value);
+      if (!strcmp("XV_ENCODING", at[i].name))
+	{
+	  p_info->encoding = XInternAtom(dpy, "XV_ENCODING", False);
+	  p_info->encoding_max = at[i].max_value;
+	  p_info->encoding_min = at[i].min_value;
+	}
+      if (!strcmp("XV_COLOR", at[i].name))
+	{
+	  p_info->color = XInternAtom(dpy, "XV_COLOR", False);
+	  p_info->color_max = at[i].max_value;
+	  p_info->color_min = at[i].min_value;
+	}
+      if (!strcmp("XV_HUE", at[i].name))
+	{
+	  p_info->hue = XInternAtom(dpy, "XV_HUE", False);
+	  p_info->hue_max = at[i].max_value;
+	  p_info->hue_min = at[i].min_value;
+	}
+      if (!strcmp("XV_SATURATION", at[i].name))
+	{
+	  p_info->saturation = XInternAtom(dpy, "XV_SATURATION",
+					   False);
+	  p_info->saturation_max = at[i].max_value;
+	  p_info->saturation_min = at[i].min_value;
+	}
+      if (!strcmp("XV_BRIGHTNESS", at[i].name))
+	{
+	  p_info->brightness = XInternAtom(dpy, "XV_BRIGHTNESS",
+					   False);
+	  p_info->brightness_max = at[i].max_value;
+	  p_info->brightness_min = at[i].min_value;
+	}
+      if (!strcmp("XV_CONTRAST", at[i].name))
+	{
+	  p_info->contrast = XInternAtom(dpy, "XV_CONTRAST", False);
+	  p_info->contrast_max = at[i].max_value;
+	  p_info->contrast_min = at[i].min_value;
+	}
+      if (!strcmp("XV_FREQ", at[i].name))
+	{
+	  p_info->freq = XInternAtom(dpy, "XV_FREQ", False);
+	  p_info->freq_max = at[i].max_value;
+	  p_info->freq_min = at[i].min_value;
+	}
+      if (!strcmp("XV_MUTE", at[i].name))
+	{
+	  p_info->mute = XInternAtom(dpy, "XV_MUTE", False);
+	  p_info->mute_max = at[i].max_value;
+	  p_info->mute_min = at[i].min_value;
+	}
+      if (!strcmp("XV_VOLUME", at[i].name))
+	{
+	  p_info->volume = XInternAtom(dpy, "XV_VOLUME", False);
+	  p_info->volume_max = at[i].max_value;
+	  p_info->volume_min = at[i].min_value;
+	}
+      if (!strcmp("XV_COLORKEY", at[i].name))
+	{
+	  p_info->colorkey = XInternAtom(dpy, "XV_COLORKEY", False);
+	  p_info->colorkey_max = at[i].max_value;
+	  p_info->colorkey_min = at[i].min_value;
+	}
+    }
   /* We have a valid device, get some info about it */
   /* Fill in inputs */
   info->inputs = NULL;
@@ -313,8 +396,6 @@ static void tvengxv_close_device(tveng_device_info * info)
   if (info -> controls)
     free(info -> controls);
 
-  /* fixme: Do the atoms need to be freed? from the man page it
-     doesn't look like it */
   /* clear the atoms */
   p_info->encoding = p_info->color = p_info->hue = p_info->saturation
     = p_info->brightness = p_info->contrast = p_info->freq =
@@ -329,8 +410,8 @@ static void tvengxv_close_device(tveng_device_info * info)
   info -> file_name = NULL;
 }
 
-/* Returns -11 if the input doesn't exist */
-static int
+/* Returns -1 if the input doesn't exist */
+static inline int
 tvengxv_find_input(const char *name, tveng_device_info *info)
 {
   int i;
@@ -349,7 +430,7 @@ tvengxv_get_inputs(tveng_device_info *info)
   struct private_tvengxv_device_info *p_info =
     (struct private_tvengxv_device_info*) info;
   char norm[64], input[64];
-  int i;
+  int i, val;
 
   t_assert(info != NULL);
 
@@ -374,46 +455,460 @@ tvengxv_get_inputs(tveng_device_info *info)
       info->inputs = realloc(info->inputs, (info->num_inputs+1)*
 			     sizeof(struct tveng_enum_input));
       info->inputs[info->num_inputs].id = i;
-      /* The XVideo extension provides very few info about encodings,
+      /* The XVideo extension provides very little info about encodings,
 	 we must just make something up */
       info->inputs[info->num_inputs].tuners = 1;
       snprintf(info->inputs[info->num_inputs].name, 32,
-	       p_info->ei[i].name);
+	       input);
       info->inputs[info->num_inputs].flags = TVENG_INPUT_TUNER |
 	TVENG_INPUT_AUDIO;
       info->inputs[info->num_inputs].type = TVENG_INPUT_TYPE_TV;
       info->num_inputs++;
     }
-  /* fixme: get the encoding, create the encoding atom */
+  /* Get the current input */
+  val = 0;
+  if (p_info->encoding != None)
+    XvGetPortAttribute(info->private->display, p_info->port,
+		       p_info->encoding, &val);
+
+  if ((2 == sscanf(p_info->ei[i].name, "%63[^-]-%63s", norm, input)) &&
+      (-1 != (i=tvengxv_find_input(input, info))))
+    info->cur_input = i;
+
+  return (info->num_inputs);
+}
+
+/*
+  Finds the XV encoding giving this standard and this input. Returns
+  -1 on error, the index in p_info->ei on success.
+*/
+static int
+tvengxv_find_encoding(const char *standard, const char *input,
+		      tveng_device_info *info)
+{
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info *) info;
+  int i;
+  char xv_norm[64], xv_input[64];
+
+  xv_norm[63] = xv_input[63] = 0;
+
+  for (i=0; i<p_info->encodings; i++)
+    {
+      if (2 != sscanf(p_info->ei[i].name, "%63[^-]-%63s", xv_norm,
+		      xv_input))
+	continue; /* not parseable */
+      
+      if ((!strcasecmp(xv_norm, standard)) && (!strcasecmp(xv_input,
+							   input)))
+	return i;
+    }
+
+  return -1;
 }
 
 static int
 tvengxv_set_input(struct tveng_enum_input * input,
 		  tveng_device_info * info)
 {
-  
+  int i=0;
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info*) info;
+
   t_assert(info != NULL);
   t_assert(input != NULL);
+
+  if (info->num_standards == 0)
+    return 0; /* No settable standards */
+
+  if (-1 ==
+      (i = tvengxv_find_encoding(info->standards[info->cur_standard].name,
+				 input->name, info)))
+    {
+      info->tveng_errno = -1;
+      t_error_msg("find_encoding",
+		  "the given encoding (%s, %s) couldn't be found",
+		  info, info->standards[info->cur_standard], input->name);
+      return 0; /* not found, no critical error though */
+    }
+
+  if (p_info->encoding != None)
+    XvSetPortAttribute(info->private->display, p_info->port,
+		       p_info->encoding, i);
+
+  info->cur_input = input->id;
+
+  return 0;
+}
+
+/* Returns -1 if the input doesn't exist */
+static inline int
+tvengxv_find_standard(const char *name, tveng_device_info *info)
+{
+  int i;
+
+  for (i=0; i<info->num_standards; i++)
+    if (!strcasecmp(name, info->standards[i].name))
+      return i;
+
+  return -1;
+}
+
+
+static int
+tvengxv_get_standards(tveng_device_info *info)
+{
+  Display *dpy;
+  struct private_tvengxv_device_info *p_info =
+    (struct private_tvengxv_device_info*) info;
+  char norm[64], input[64];
+  int i, val;
+
+  t_assert(info != NULL);
+
+  dpy = info->private->display;
+
+  norm[63] = input[63] = 0;
+
+  if (info->standards)
+    free(info->standards);
+
+  info->standards = NULL;
+  info->num_standards = 0;
+  info->cur_standard = 0;
+
+  for (i=0; i<p_info->encodings; i++)
+    {
+      if (2 != sscanf(p_info->ei[i].name, "%63[^-]-%63s", norm, input))
+	continue; /* not parseable */
+      if (-1 == tvengxv_find_standard(norm, info))
+	continue;
+      /* norm not present, add to the list */
+      info->standards = realloc(info->standards,
+				(info->num_standards+1)*
+			     sizeof(struct tveng_enumstd));
+      info->standards[info->num_standards].id = i;
+      snprintf(info->standards[info->num_standards].name, 32,
+	       norm);
+      info->standards[info->num_standards].index = i;
+      info->num_standards++;
+    }
+  /* Get the current input */
+  val = 0;
+  if (p_info->encoding != None)
+    XvGetPortAttribute(info->private->display, p_info->port,
+		       p_info->encoding, &val);
+
+  if ((2 == sscanf(p_info->ei[i].name, "%63[^-]-%63s", norm, input)) &&
+      (-1 != (i=tvengxv_find_standard(norm, info))))
+    info->cur_standard = i;
+
+  return (info->num_standards);
+}
+
+static int
+tvengxv_set_standard(struct tveng_enumstd * standard,
+		     tveng_device_info * info)
+{
+  int i=0;
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info*) info;
+
+  t_assert(info != NULL);
+  t_assert(standard != NULL);
+
+  if (info->num_inputs == 0)
+    return 0; /* No searchable inputs */
+
+  if (-1 ==
+      (i = tvengxv_find_encoding(standard->name,
+				 info->inputs[info->cur_input].name,
+				 info)))
+    {
+      info->tveng_errno = -1;
+      t_error_msg("find_encoding",
+		  "the given encoding (%s, %s) couldn't be found",
+		  info, standard->name, info->inputs[info->cur_input]);
+      return 0; /* not found, no critical error though */
+    }
+
+  if (p_info->encoding != None)
+    XvSetPortAttribute(info->private->display, p_info->port,
+		       p_info->encoding, i);
+
+  info->cur_standard = standard->index;
+
+  return 0;
+}
+
+static int
+p_tvengxv_append_control(struct tveng_control * new_control, 
+		       tveng_device_info * info)
+{
+  struct tveng_control * new_pointer = (struct tveng_control*)
+    realloc(info->controls, (info->num_controls+1)*
+	    sizeof(struct tveng_control));
+
+  if (!new_pointer)
+    {
+      info->tveng_errno = errno;
+      t_error("realloc", info);
+      return -1;
+    }
+  info->controls = new_pointer;
+
+  memcpy(&info->controls[info->num_controls], new_control, sizeof(struct
+							   tveng_control));
+  info->num_controls++;
+  return 0;
+}
+
+static int
+p_tvengxv_build_controls(tveng_device_info *info)
+{
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info *) info;
+  struct tveng_control control;
+
+  t_assert(info != NULL);
+
+  if (p_info->color != None)
+    {
+      control.id = (int)p_info->color;
+      snprintf(control.name, 32, _("Color"));
+      control.min = p_info->color_min;
+      control.max = p_info->color_max;
+      control.type = TVENG_CONTROL_SLIDER;
+      control.data = NULL;
+      if (p_tvengxv_append_control(&control, info) == -1)
+	return -1;
+    }
+  if (p_info->hue != None)
+    {
+      control.id = (int)p_info->hue;
+      snprintf(control.name, 32, _("Hue"));
+      control.min = p_info->hue_min;
+      control.max = p_info->hue_max;
+      control.type = TVENG_CONTROL_SLIDER;
+      control.data = NULL;
+      if (p_tvengxv_append_control(&control, info) == -1)
+	return -1;
+    }
+  if (p_info->saturation != None)
+    {
+      control.id = (int)p_info->saturation;
+      snprintf(control.name, 32, _("Saturation"));
+      control.min = p_info->saturation_min;
+      control.max = p_info->saturation_max;
+      control.type = TVENG_CONTROL_SLIDER;
+      control.data = NULL;
+      if (p_tvengxv_append_control(&control, info) == -1)
+	return -1;
+    }
+  if (p_info->brightness != None)
+    {
+      control.id = (int)p_info->brightness;
+      snprintf(control.name, 32, _("Brightness"));
+      control.min = p_info->brightness_min;
+      control.max = p_info->brightness_max;
+      control.type = TVENG_CONTROL_SLIDER;
+      control.data = NULL;
+      if (p_tvengxv_append_control(&control, info) == -1)
+	return -1;
+    }
+  if (p_info->contrast != None)
+    {
+      control.id = (int)p_info->contrast;
+      snprintf(control.name, 32, _("Contrast"));
+      control.min = p_info->contrast_min;
+      control.max = p_info->contrast_max;
+      control.type = TVENG_CONTROL_SLIDER;
+      control.data = NULL;
+      if (p_tvengxv_append_control(&control, info) == -1)
+	return -1;
+    }
+  if (p_info->mute != None)
+    {
+      control.id = (int)p_info->mute;
+      snprintf(control.name, 32, _("Mute"));
+      control.min = 0;
+      control.max = 1;
+      control.type = TVENG_CONTROL_CHECKBOX;
+      control.data = NULL;
+      if (p_tvengxv_append_control(&control, info) == -1)
+	return -1;
+    }
+  if (p_info->volume != None)
+    {
+      control.id = (int)p_info->volume;
+      snprintf(control.name, 32, _("Volume"));
+      control.min = p_info->volume_min;
+      control.max = p_info->volume_max;
+      control.type = TVENG_CONTROL_SLIDER;
+      control.data = NULL;
+      if (p_tvengxv_append_control(&control, info) == -1)
+	return -1;
+    }
+  /* fixme: Should we allow controls for freq, encoding and colorkey? */
+
+  /* fill in with the proper values */
+  return (tvengxv_update_controls(info));
+}
+
+static int
+tvengxv_update_controls(tveng_device_info *info)
+{
+  int i;
+  struct private_tvengxv_device_info *p_info =
+    (struct private_tvengxv_device_info *)info;
+
+  t_assert(info != NULL);
+
+  for (i=0; i<info->num_controls; i++)
+    XvGetPortAttribute(info->private->display,
+		       p_info->port,
+		       (Atom)info->controls[i].id,
+		       &(info->controls[i].cur_value));
+
+  return 0; /* Success */
+}
+
+static int
+tvengxv_set_control(struct tveng_control * control, int value,
+		    tveng_device_info * info)
+{
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info*) info;
+
+  t_assert(info != NULL);
+
+  if (value < control->min)
+    value = control->min;
+  if (value > control->max)
+    value = control->max;
+
+  XvSetPortAttribute(info->private->display,
+		     p_info->port,
+		     (Atom)control->id,
+		     value);
+
+  return (tvengxv_update_controls(info));
+}
+
+static int
+tvengxv_get_mute(tveng_device_info * info)
+{
+  /* FIXME: We should check that mute and freq aren't set to None */
+  int val;
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info*)info;
+
+  t_assert(info != NULL);
+
+  val = -1;
+  XvGetPortAttribute(info->private->display,
+		     p_info->port,
+		     p_info->mute,
+		     &val);
+
+  return val;
+}
+
+static int
+tvengxv_set_mute(int value, tveng_device_info * info)
+{
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info*)info;
+
+  t_assert(info != NULL);
+
+  XvSetPortAttribute(info->private->display,
+		     p_info->port,
+		     p_info->mute,
+		     value);
+
+  return 0;
+}
+
+static int
+tvengxv_tune_input(__u32 freq, tveng_device_info *info)
+{
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info*)info;
+
+  t_assert(info != NULL);
+
+  XvSetPortAttribute(info->private->display,
+		     p_info->port,
+		     p_info->freq,
+		     freq);
+
+  return 0;
+}
+
+static int
+tvengxv_get_signal_strength(int *strength, int *afc,
+			    tveng_device_info * info)
+{
+  /* Just make up something so the call doesn't fail */
+  if (strength)
+    *strength = 0;
+  if (afc)
+    *afc = 0;
+  return 0;
+}
+
+static int
+tvengxv_get_tune(__u32 * freq, tveng_device_info *info)
+{
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info*)info;
+
+  t_assert(info != NULL);
+
+  XvGetPortAttribute(info->private->display,
+		     p_info->port,
+		     p_info->freq,
+		     (int*)(&freq));
+
+  return 0;
+}
+
+static int
+tvengxv_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
+			 info)
+{
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info*)info;
+
+  t_assert(info != NULL);
+
+  if (min)
+    *min = p_info->freq_min;
+  if (max)
+    *max = p_info->freq_max;
+
+  return 0;
 }
 
 static struct tveng_module_info tvengxv_module_info = {
   tvengxv_attach_device,
   tvengxv_describe_controller,
   tvengxv_close_device,
-  NULL, //  tvengxv_get_inputs,
-  NULL, //  tvengxv_set_input,
-  NULL, //  tvengxv_get_standards,
-  NULL, //  tvengxv_set_standard,
+  tvengxv_get_inputs,
+  tvengxv_set_input,
+  tvengxv_get_standards,
+  tvengxv_set_standard,
   NULL, //  tvengxv_update_capture_format,
   NULL, //  tvengxv_set_capture_format,
-  NULL, //  tvengxv_update_controls,
-  NULL, //  tvengxv_set_control,
-  NULL, //  tvengxv_get_mute,
-  NULL, //  tvengxv_set_mute,
-  NULL, //  tvengxv_tune_input,
-  NULL, //  tvengxv_get_signal_strength,
-  NULL, //  tvengxv_get_tune,
-  NULL, //  tvengxv_get_tuner_bounds,
+  tvengxv_update_controls,
+  tvengxv_set_control,
+  tvengxv_get_mute,
+  tvengxv_set_mute,
+  tvengxv_tune_input,
+  tvengxv_get_signal_strength,
+  tvengxv_get_tune,
+  tvengxv_get_tuner_bounds,
   NULL, //  tvengxv_start_capturing,
   NULL, //  tvengxv_stop_capturing,
   NULL, //  tvengxv_read_frame,

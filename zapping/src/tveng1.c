@@ -967,10 +967,6 @@ struct p_tveng1_audio_decoding_entry audio_decoding_modes[] =
 /* private, add a control to the control structure, -1 means ENOMEM */
 static int
 p_tveng1_append_control(struct tveng_control * new_control, 
-		       tveng_device_info * info);
-
-static int
-p_tveng1_append_control(struct tveng_control * new_control, 
 		       tveng_device_info * info)
 {
   struct tveng_control * new_pointer = (struct tveng_control*)
@@ -992,8 +988,6 @@ p_tveng1_append_control(struct tveng_control * new_control,
 }
 
 /* tests if audio decoding selecting actually works, NULL if not */
-static char ** p_tveng1_test_audio_decode (tveng_device_info * info);
-
 static char ** p_tveng1_test_audio_decode (tveng_device_info * info)
 {
   struct video_audio audio;

@@ -1,3 +1,14 @@
+24.11.2000	Russian glyphs, XVideo <garetxe@users.sourceforge.net>
+
+	* libvbi/: Added font3 and font4, they are the Russian
+	glyphs. Contributed by Sergey Nikulin.
+	* libvbi/font.h: Added some prepocessor magic for using this fonts
+	(FONTS_RUSSIAN)
+	* src/tveng1.c: Fixed a couple of minor bugs and some stylistic
+	changes.
+	* src/tvengxv.c: standards, inputs, freq, controls done.
+	* src/tvengxv.h: Created.
+
 23.11.2000	More XVideo, tveng1 fixes <garetxe@users.sourceforge.net>
 
 	* tvengxv.c: Some more work into this, emulating TVeng api using

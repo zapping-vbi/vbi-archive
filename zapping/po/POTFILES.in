@@ -6,9 +6,9 @@ src/callbacks.c
 src/frequencies.c
 src/v4linterface.c
 src/zvbi.c
-src/tveng.c
-src/tveng1.c
-src/tveng2.c
+# src/tveng.c
+# src/tveng1.c
+# src/tveng2.c
 src/plugins.c
 src/zmisc.c
 src/zconf.c
@@ -16,7 +16,7 @@ src/properties.c
 src/channel_editor.c
 src/plugin_properties.c
 src/txtcontrols.c
-zapping_setup_fb/zapping_setup_fb.c
+# zapping_setup_fb/zapping_setup_fb.c
 glade/glade_strings.c
 plugins/screenshot/screenshot.c
 plugins/mpeg/plugin.c

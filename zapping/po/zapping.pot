@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-11-23 23:18+0100\n"
+"POT-Creation-Date: 2000-11-25 00:08+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -25,89 +25,89 @@ msgstr ""
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr ""
 
-#: src/main.c:182
+#: src/main.c:184
 msgid "Give the XImage bpp"
 msgstr ""
 
-#: src/main.c:183 src/main.c:192
+#: src/main.c:185 src/main.c:194
 msgid "BPP"
 msgstr ""
 
-#: src/main.c:191
+#: src/main.c:193
 msgid "Color depth of the X display"
 msgstr ""
 
-#: src/main.c:200
+#: src/main.c:202
 msgid "Set debug messages on"
 msgstr ""
 
-#: src/main.c:209
+#: src/main.c:211
 msgid "Disable VBI support"
 msgstr ""
 
-#: src/main.c:218
+#: src/main.c:220
 msgid "VBI support for old (<0.5.2) bttv drivers"
 msgstr ""
 
-#: src/main.c:227
+#: src/main.c:229
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr ""
 
-#: src/main.c:228
+#: src/main.c:230
 msgid "NORM"
 msgstr ""
 
-#: src/main.c:267
+#: src/main.c:269
 msgid "Sorry, but there is no module support"
 msgstr ""
 
-#: src/main.c:275
+#: src/main.c:277
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: src/main.c:282
+#: src/main.c:284
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:320
+#: src/main.c:322
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:341
+#: src/main.c:343
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:480
+#: src/main.c:482
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:483
+#: src/main.c:485
 msgid ", I will try starting capture mode"
 msgstr ""
 
-#: src/main.c:487
+#: src/main.c:489
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:500
+#: src/main.c:502
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:635
+#: src/main.c:637
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -119,7 +119,7 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:670
+#: src/main.c:672
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
@@ -268,263 +268,6 @@ msgstr ""
 #: src/v4linterface.c:384
 #, c-format
 msgid "Error adding %s"
-msgstr ""
-
-#: src/tveng.c:225
-msgid "TV"
-msgstr ""
-
-#: src/properties.c:139 src/properties.c:146 src/properties.c:153
-#: src/tveng.c:226
-msgid "Camera"
-msgstr ""
-
-#: src/tveng.c:1141
-msgid "zapping_setup_fb exited abnormally, check stderr"
-msgstr ""
-
-#: src/tveng.c:1151
-msgid "zapping_setup_fb failed to set up the video"
-msgstr ""
-
-#: src/tveng.c:1156
-msgid "Couldn't locate zapping_setup_fb, check your install"
-msgstr ""
-
-#: src/tveng.c:1200
-msgid "Cannot find an appropiate visual"
-msgstr ""
-
-#: src/tveng.c:1220
-msgid "Cannot figure out X depth"
-msgstr ""
-
-#: src/tveng.c:1579
-msgid "Warning: trying to stop window with no capture active\n"
-msgstr ""
-
-#: src/tveng1.c:125 src/tveng2.c:119
-#, c-format
-msgid "%s doesn't look like a valid capture device"
-msgstr ""
-
-#: src/tveng1.c:260
-msgid "No inputs for this device"
-msgstr ""
-
-#: src/tveng1.c:350 src/tveng2.c:329
-msgid "Cannot find appropiate palette for current display"
-msgstr ""
-
-#: src/tveng1.c:791 src/tveng2.c:729
-msgid "Cannot understand the actual palette"
-msgstr ""
-
-#. unknown
-#: src/tveng1.c:875 src/tveng2.c:804
-msgid "Cannot understand the given palette"
-msgstr ""
-
-#: src/tveng1.c:957
-msgid "Mono"
-msgstr ""
-
-#: src/tveng1.c:958
-msgid "Stereo"
-msgstr ""
-
-#: src/tveng1.c:959
-msgid "Alternate 1"
-msgstr ""
-
-#: src/tveng1.c:960
-msgid "Alternate 2"
-msgstr ""
-
-#: src/tveng1.c:1115 src/tveng1.c:1473 src/tveng1.c:1486 src/tveng2.c:916
-msgid "Mute"
-msgstr ""
-
-#: src/tveng1.c:1126 src/tveng2.c:915
-msgid "Volume"
-msgstr ""
-
-#: src/tveng1.c:1137 src/tveng2.c:922
-msgid "Bass"
-msgstr ""
-
-#: src/tveng1.c:1148 src/tveng2.c:920
-msgid "Treble"
-msgstr ""
-
-#: src/tveng1.c:1162 src/tveng2.c:918
-msgid "Balance"
-msgstr ""
-
-#: src/tveng1.c:1174
-msgid "Audio Decoding"
-msgstr ""
-
-#: src/tveng1.c:1188 src/tveng2.c:897
-msgid "Brightness"
-msgstr ""
-
-#: src/tveng1.c:1197 src/tveng2.c:900
-msgid "Hue"
-msgstr ""
-
-#: src/tveng1.c:1206
-msgid "Colour"
-msgstr ""
-
-#: src/tveng1.c:1215 src/tveng2.c:898
-msgid "Contrast"
-msgstr ""
-
-#: src/tveng1.c:1304
-msgid "Unknown decoding mode"
-msgstr ""
-
-#: src/tveng1.c:1326
-#, c-format
-msgid "Unknown control: %s (%d)"
-msgstr ""
-
-#: src/tveng1.c:1410
-#, c-format
-msgid "Unknown audio control: %s (%d)"
-msgstr ""
-
-#: src/tveng1.c:1448
-#, c-format
-msgid "Unknown video control: %s (%d)"
-msgstr ""
-
-#: src/tveng1.c:1609 src/tveng2.c:1210
-msgid "There are no tuners for the active input"
-msgstr ""
-
-#: src/tveng1.c:1758 src/tveng2.c:1434
-msgid "Warning: trying to stop capture with no capture active\n"
-msgstr ""
-
-#: src/tveng1.c:1818 src/tveng1.c:1889
-msgid "Cannot understand actual palette"
-msgstr ""
-
-#: src/tveng1.c:1831
-msgid "Grabber chip can't sync (no station tuned in?)"
-msgstr ""
-
-#: src/tveng1.c:1943 src/tveng2.c:1497
-msgid "Current capture mode is not READ"
-msgstr ""
-
-#: src/tveng1.c:1952 src/tveng2.c:1506
-msgid "Size check failed, quitting to avoid segfault"
-msgstr ""
-
-#: src/tveng1.c:2060 src/tveng2.c:1643
-msgid "The capability field says that there is no overlay"
-msgstr ""
-
-#: src/tveng1.c:2278 src/tveng2.c:1844
-msgid "Warning: trying to stop preview with no capture active\n"
-msgstr ""
-
-#: src/tveng2.c:130
-#, c-format
-msgid "Sorry, but \"%s\" cannot do streaming"
-msgstr ""
-
-#: src/tveng2.c:140
-#, c-format
-msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
-msgstr ""
-
-#: src/tveng2.c:899
-msgid "Saturation"
-msgstr ""
-
-#: src/tveng2.c:901
-msgid "Whiteness"
-msgstr ""
-
-#: src/tveng2.c:902
-msgid "Black level"
-msgstr ""
-
-#: src/tveng2.c:903
-msgid "White balance"
-msgstr ""
-
-#: src/tveng2.c:904
-msgid "Do white balance"
-msgstr ""
-
-#: src/tveng2.c:905
-msgid "Red balance"
-msgstr ""
-
-#: src/tveng2.c:906
-msgid "Blue balance"
-msgstr ""
-
-#: src/tveng2.c:907
-msgid "Gamma"
-msgstr ""
-
-#: src/tveng2.c:908
-msgid "Exposure"
-msgstr ""
-
-#: src/tveng2.c:909
-msgid "Auto gain"
-msgstr ""
-
-#: src/tveng2.c:910
-msgid "Gain"
-msgstr ""
-
-#: src/tveng2.c:911
-msgid "HCenter"
-msgstr ""
-
-#: src/tveng2.c:912
-msgid "VCenter"
-msgstr ""
-
-#: src/tveng2.c:913
-msgid "Horizontal flipping"
-msgstr ""
-
-#: src/tveng2.c:914
-msgid "Vertical flipping"
-msgstr ""
-
-#: src/tveng2.c:917
-msgid "Audio Mute"
-msgstr ""
-
-#: src/tveng2.c:919
-msgid "Audio Balance"
-msgstr ""
-
-#: src/tveng2.c:921
-msgid "Loudness"
-msgstr ""
-
-#: src/tveng2.c:973
-msgid "<Broken menu entry>"
-msgstr ""
-
-#: src/tveng2.c:983
-#, c-format
-msgid "V4L2: Unknown control type 0x%x (%s)\n"
-msgstr ""
-
-#: src/tveng2.c:1371
-msgid "Not enough buffers"
 msgstr ""
 
 #: src/plugins.c:73
@@ -729,6 +472,10 @@ msgstr ""
 msgid "TV input"
 msgstr ""
 
+#: src/properties.c:139 src/properties.c:146 src/properties.c:153
+msgid "Camera"
+msgstr ""
+
 #: src/properties.c:143
 #, c-format
 msgid "%s with a tuner"
@@ -833,74 +580,6 @@ msgstr ""
 
 #: src/plugin_properties.c:397
 msgid "Sorry, the plugin doesn't provide help for this"
-msgstr ""
-
-#: zapping_setup_fb/zapping_setup_fb.c:86
-msgid ""
-"Usage:\n"
-" zapping_setup_fb [OPTIONS], where OPTIONS stands for\n"
-" --device dev - The video device to open, /dev/video by default\n"
-" --display d  - The X display to use\n"
-" --bpp x      - Current X bpp\n"
-" --verbose    - Increments verbosity level\n"
-" --quiet      - Decrements verbosity level\n"
-" --help, -?   - Shows this message\n"
-" --usage      - The same as --help or -?\n"
-" --version    - Shows the program version\n"
-msgstr ""
-
-#: zapping_setup_fb/zapping_setup_fb.c:248
-msgid "Video device name seems to be missing\n"
-msgstr ""
-
-#: zapping_setup_fb/zapping_setup_fb.c:256
-msgid "X display name seems to be missing\n"
-msgstr ""
-
-#: zapping_setup_fb/zapping_setup_fb.c:265
-msgid "Real bpp seems to be missing\n"
-msgstr ""
-
-#: zapping_setup_fb/zapping_setup_fb.c:267
-#, c-format
-msgid "Imposible to understand --bpp %s, ignored\n"
-msgstr ""
-
-#: zapping_setup_fb/zapping_setup_fb.c:288
-#, c-format
-msgid "Unknown command line option %s, ignoring it\n"
-msgstr ""
-
-#. Print a short copyright notice if we aren't totally quiet
-#: zapping_setup_fb/zapping_setup_fb.c:299
-msgid ""
-"(C) 2000 Iñaki García Etxebarria.\n"
-"This program is under the GNU General Public License.\n"
-msgstr ""
-
-#: zapping_setup_fb/zapping_setup_fb.c:324
-#, c-format
-msgid "Given device %s has dots in it, cannot use it\n"
-msgstr ""
-
-#: zapping_setup_fb/zapping_setup_fb.c:334
-#, c-format
-msgid "Given device %s is too short, cannot use it\n"
-msgstr ""
-
-#: zapping_setup_fb/zapping_setup_fb.c:342
-#, c-format
-msgid "Given device %s doesn't start with /dev/, cannot use it\n"
-msgstr ""
-
-#: zapping_setup_fb/zapping_setup_fb.c:357
-#, c-format
-msgid "Cannot open given device %s\n"
-msgstr ""
-
-#: zapping_setup_fb/zapping_setup_fb.c:387
-#, c-format
-msgid "Cannot open display %s, quitting\n"
 msgstr ""
 
 #.

@@ -99,6 +99,8 @@ startup_teletext(void)
 #endif
   D();
   zvbi_set_mode(zcg_bool(NULL, "videotext_mode"));
+  if (zvbi_get_mode())
+    zcs_int(TVENG_NO_CAPTURE, "capture_mode");
   D();
 }
 

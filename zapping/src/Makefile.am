@@ -32,6 +32,7 @@ zapping_SOURCES = \
 	txtcontrols.c \
 	tveng1.c tveng1.h \
 	tveng2.c tveng2.h \
+	tvengxv.c tvengxv.h \
 	tveng.c tveng.h tveng_private.h \
 	x11stuff.c x11stuff.h \
 	overlay.c overlay.h \
