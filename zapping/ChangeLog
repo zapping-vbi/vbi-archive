@@ -3,6 +3,10 @@
 	* src/tveng25.c: Removed bayer hack, bayer is now a first class format.
 	* src/capture.c (rebuild_buffer): Fixed to handle cases where
 	  available capture formats do not intersect with requested formats.
+	* src/capture.c (change_capture_format): Always restart capturing,
+	  for now.
+	* src/tveng1.c (set_capture_format): Try common capture sizes on
+	  failure, helps pwc driver.
 
 2005-01-19    <mschimek@users.sf.net>
 
