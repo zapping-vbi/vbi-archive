@@ -9,7 +9,7 @@ url tags.
 <header>Latest CVS entries</header>
 <?php
 $file_location = "http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/~checkout~/zapping/zapping/ChangeLog?content-type=text/plain";
-$file = fopen($file_location, "r");
+$file = fopen("ChangeLog", "r");
 if ($file) {
   print("<pre>");
   for ($i=0; $i<50; $i++) {
