@@ -2,7 +2,6 @@
  * Simple XML->HTML converter for the web page in http://zapping.sf.net
  * Carsten theme.
  * (C) 2001 Iñaki García Etxebarria
- * -test-
  */
 #include <stdio.h>
 #include <stdlib.h>
