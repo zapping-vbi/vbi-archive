@@ -605,9 +605,6 @@ on_videotext1_activate                 (GtkMenuItem     *menuitem,
       return;
     }
 
-  if (zvbi_get_mode())
-    return;
-
   /* Stop any current capture mode */
   zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
 
@@ -616,9 +613,6 @@ on_videotext1_activate                 (GtkMenuItem     *menuitem,
 
   /* Redraw the current page */
   zvbi_window_updated(lookup_widget(main_window, "tv_screen"));
-
-  /* Show the controls */
-  gtk_widget_show(create_txtcontrols());
 }
 
 void

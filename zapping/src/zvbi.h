@@ -179,4 +179,29 @@ void zvbi_set_mode(gboolean on);
 */
 gboolean zvbi_get_mode(void);
 
+
+/*
+  GUI interaction stuff.
+  The routines here are for managing the history (go back and forward)
+  and the visited pages stuff.
+  The interact with the code in txtcontrols.c very strongly, but they
+  are too low-level for going there.
+*/
+/*
+  Sets the given (visited page) from the visited pages index. This
+  should only be called by on_history_select_row (txtcontrols.c)
+*/
+void zvbi_select_visited_page(gint index);
+
+/*
+  Goes to the next page in the history (just like 'Next' in most
+  navigators)
+*/
+void zvbi_history_next(void);
+
+/*
+ Goes to the previous page in history
+*/
+void zvbi_history_previous(void);
+
 #endif /* zvbi.h */

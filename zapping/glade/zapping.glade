@@ -1173,7 +1173,7 @@
 	    <wrap>False</wrap>
 	    <value>999</value>
 	    <lower>0</lower>
-	    <upper>10000</upper>
+	    <upper>999</upper>
 	    <step>1</step>
 	    <page>10</page>
 	    <page_size>10</page_size>
@@ -2505,9 +2505,14 @@ in the next release of this program.</label>
 
 	<widget>
 	  <class>GtkButton</class>
-	  <name>button14</name>
-	  <tooltip>Previous subpage</tooltip>
+	  <name>vtx_next_page</name>
+	  <tooltip>Next page</tooltip>
 	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>clicked</name>
+	    <handler>on_vtx_next_page_clicked</handler>
+	    <last_modification_time>Fri, 08 Sep 2000 13:58:00 GMT</last_modification_time>
+	  </signal>
 	  <stock_button>GNOME_STOCK_BUTTON_UP</stock_button>
 	  <child>
 	    <left_attach>1</left_attach>
@@ -2527,13 +2532,13 @@ in the next release of this program.</label>
 
 	<widget>
 	  <class>GtkButton</class>
-	  <name>vtx_previous</name>
-	  <tooltip>Previous page</tooltip>
+	  <name>vtx_history_previous</name>
+	  <tooltip>Previous history entry</tooltip>
 	  <can_focus>True</can_focus>
 	  <signal>
 	    <name>clicked</name>
-	    <handler>on_vtx_previous_clicked</handler>
-	    <last_modification_time>Wed, 06 Sep 2000 21:34:08 GMT</last_modification_time>
+	    <handler>on_vtx_history_previous_clicked</handler>
+	    <last_modification_time>Fri, 08 Sep 2000 13:59:27 GMT</last_modification_time>
 	  </signal>
 	  <stock_button>GNOME_STOCK_BUTTON_PREV</stock_button>
 	  <child>
@@ -2554,13 +2559,13 @@ in the next release of this program.</label>
 
 	<widget>
 	  <class>GtkButton</class>
-	  <name>vtx_next</name>
-	  <tooltip>Next page</tooltip>
+	  <name>vtx_history_next</name>
+	  <tooltip>Next history entry</tooltip>
 	  <can_focus>True</can_focus>
 	  <signal>
 	    <name>clicked</name>
-	    <handler>on_vtx_next_clicked</handler>
-	    <last_modification_time>Wed, 06 Sep 2000 21:34:47 GMT</last_modification_time>
+	    <handler>on_vtx_history_next_clicked</handler>
+	    <last_modification_time>Fri, 08 Sep 2000 13:59:11 GMT</last_modification_time>
 	  </signal>
 	  <stock_button>GNOME_STOCK_BUTTON_NEXT</stock_button>
 	  <child>
@@ -2581,9 +2586,14 @@ in the next release of this program.</label>
 
 	<widget>
 	  <class>GtkButton</class>
-	  <name>button17</name>
-	  <tooltip>Next subpage</tooltip>
+	  <name>vtx_previous_page</name>
+	  <tooltip>Previous page</tooltip>
 	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>clicked</name>
+	    <handler>on_vtx_previous_page_clicked</handler>
+	    <last_modification_time>Fri, 08 Sep 2000 14:31:32 GMT</last_modification_time>
+	  </signal>
 	  <stock_button>GNOME_STOCK_BUTTON_DOWN</stock_button>
 	  <child>
 	    <left_attach>1</left_attach>
@@ -2600,42 +2610,144 @@ in the next release of this program.</label>
 	    <yfill>False</yfill>
 	  </child>
 	</widget>
+
+	<widget>
+	  <class>GtkToggleButton</class>
+	  <name>freeze_page</name>
+	  <tooltip>Stop refreshing this page</tooltip>
+	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>toggled</name>
+	    <handler>on_freeze_page_toggled</handler>
+	    <last_modification_time>Fri, 08 Sep 2000 14:00:45 GMT</last_modification_time>
+	  </signal>
+	  <label>Freeze</label>
+	  <active>False</active>
+	  <child>
+	    <left_attach>1</left_attach>
+	    <right_attach>2</right_attach>
+	    <top_attach>1</top_attach>
+	    <bottom_attach>2</bottom_attach>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>False</xexpand>
+	    <yexpand>False</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>False</xfill>
+	    <yfill>False</yfill>
+	  </child>
+	</widget>
       </widget>
     </widget>
 
     <widget>
       <class>GtkVBox</class>
-      <name>vbox16</name>
-      <homogeneous>True</homogeneous>
+      <name>vbox20</name>
+      <homogeneous>False</homogeneous>
       <spacing>0</spacing>
       <child>
 	<padding>0</padding>
-	<expand>False</expand>
-	<fill>False</fill>
+	<expand>True</expand>
+	<fill>True</fill>
       </child>
 
       <widget>
-	<class>GtkLabel</class>
-	<name>label83</name>
-	<label>Visit:</label>
-	<justify>GTK_JUSTIFY_CENTER</justify>
-	<wrap>False</wrap>
-	<xalign>0.5</xalign>
-	<yalign>0.5</yalign>
-	<xpad>0</xpad>
-	<ypad>0</ypad>
+	<class>GtkVBox</class>
+	<name>vbox21</name>
+	<homogeneous>False</homogeneous>
+	<spacing>0</spacing>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
 	  <fill>False</fill>
 	</child>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label83</name>
+	  <label>Visit:</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkHBox</class>
+	  <name>hbox18</name>
+	  <homogeneous>True</homogeneous>
+	  <spacing>0</spacing>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+
+	  <widget>
+	    <class>GtkSpinButton</class>
+	    <name>manual_page</name>
+	    <tooltip>Page</tooltip>
+	    <can_focus>True</can_focus>
+	    <climb_rate>1</climb_rate>
+	    <digits>0</digits>
+	    <numeric>True</numeric>
+	    <update_policy>GTK_UPDATE_IF_VALID</update_policy>
+	    <snap>False</snap>
+	    <wrap>True</wrap>
+	    <value>100</value>
+	    <lower>100</lower>
+	    <upper>900</upper>
+	    <step>1</step>
+	    <page>10</page>
+	    <page_size>10</page_size>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GtkSpinButton</class>
+	    <name>manual_subpage</name>
+	    <tooltip>Subpage, -1 for looking to all subpages</tooltip>
+	    <can_focus>True</can_focus>
+	    <climb_rate>1</climb_rate>
+	    <digits>0</digits>
+	    <numeric>True</numeric>
+	    <update_policy>GTK_UPDATE_IF_VALID</update_policy>
+	    <snap>False</snap>
+	    <wrap>False</wrap>
+	    <value>-1</value>
+	    <lower>-1</lower>
+	    <upper>100</upper>
+	    <step>1</step>
+	    <page>10</page>
+	    <page_size>10</page_size>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+	  </widget>
+	</widget>
       </widget>
 
       <widget>
-	<class>GtkHBox</class>
-	<name>hbox18</name>
-	<homogeneous>True</homogeneous>
-	<spacing>0</spacing>
+	<class>GtkScrolledWindow</class>
+	<name>scrolledwindow11</name>
+	<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+	<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+	<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 	<child>
 	  <padding>0</padding>
 	  <expand>True</expand>
@@ -2643,70 +2755,34 @@ in the next release of this program.</label>
 	</child>
 
 	<widget>
-	  <class>GtkSpinButton</class>
-	  <name>spinbutton2</name>
-	  <tooltip>Page</tooltip>
+	  <class>GtkCList</class>
+	  <name>history</name>
+	  <height>217</height>
 	  <can_focus>True</can_focus>
-	  <climb_rate>1</climb_rate>
-	  <digits>0</digits>
-	  <numeric>True</numeric>
-	  <update_policy>GTK_UPDATE_IF_VALID</update_policy>
-	  <snap>False</snap>
-	  <wrap>True</wrap>
-	  <value>900</value>
-	  <lower>100</lower>
-	  <upper>900</upper>
-	  <step>1</step>
-	  <page>10</page>
-	  <page_size>10</page_size>
-	  <child>
-	    <padding>0</padding>
-	    <expand>True</expand>
-	    <fill>True</fill>
-	  </child>
-	</widget>
+	  <signal>
+	    <name>select_row</name>
+	    <handler>on_history_select_row</handler>
+	    <last_modification_time>Fri, 08 Sep 2000 13:50:35 GMT</last_modification_time>
+	  </signal>
+	  <columns>1</columns>
+	  <column_widths>80</column_widths>
+	  <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+	  <show_titles>True</show_titles>
+	  <shadow_type>GTK_SHADOW_IN</shadow_type>
 
-	<widget>
-	  <class>GtkSpinButton</class>
-	  <name>spinbutton3</name>
-	  <tooltip>Subpage, 0 for looking to all subpages</tooltip>
-	  <can_focus>True</can_focus>
-	  <climb_rate>1</climb_rate>
-	  <digits>0</digits>
-	  <numeric>True</numeric>
-	  <update_policy>GTK_UPDATE_IF_VALID</update_policy>
-	  <snap>False</snap>
-	  <wrap>False</wrap>
-	  <value>0</value>
-	  <lower>0</lower>
-	  <upper>30</upper>
-	  <step>1</step>
-	  <page>10</page>
-	  <page_size>10</page_size>
-	  <child>
-	    <padding>0</padding>
-	    <expand>True</expand>
-	    <fill>True</fill>
-	  </child>
+	  <widget>
+	    <class>GtkLabel</class>
+	    <child_name>CList:title</child_name>
+	    <name>label89</name>
+	    <label>Page</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	  </widget>
 	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkList</class>
-	<name>history</name>
-	<tooltip>History box</tooltip>
-	<signal>
-	  <name>selection_changed</name>
-	  <handler>on_history_selection_changed</handler>
-	  <last_modification_time>Wed, 06 Sep 2000 21:24:25 GMT</last_modification_time>
-	</signal>
-	<selection_mode>GTK_SELECTION_BROWSE</selection_mode>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>False</fill>
-	  <pack>GTK_PACK_END</pack>
-	</child>
       </widget>
     </widget>
   </widget>

@@ -314,15 +314,38 @@ on_txtcontrols_delete_event            (GtkWidget       *widget,
                                         gpointer         user_data);
 
 void
-on_history_selection_changed           (GtkList         *list,
+on_history_select_row                  (GtkCList        *history_clist,
+					gint             row,
+					gint             column,
+					GdkEventButton  *event,
 					gpointer         user_data);
 
 void
-on_vtx_previous_clicked                (GtkButton       *button,
+on_vtx_previous_page_clicked           (GtkButton       *button,
 					gpointer         user_data);
 
 void
-on_vtx_next_clicked                    (GtkButton       *button,
+on_vtx_next_page_clicked               (GtkButton       *button,
 					gpointer         user_data);
+
+void
+on_vtx_history_previous_clicked        (GtkButton       *button,
+					gpointer         user_data);
+
+void
+on_vtx_history_next_clicked            (GtkButton       *button,
+					gpointer         user_data);
+
+void
+on_freeze_page_toggled                 (GtkToggleButton *toggle,
+					gpointer         user_data);
+
+void
+on_manual_page_value_changed          (GtkAdjustment    *adj,
+				       GtkSpinButton    *spin);
+
+void
+on_manual_subpage_value_changed       (GtkAdjustment    *adj,
+				       GtkSpinButton    *spin);
 
 #endif /* __CALLBACKS_H__ */

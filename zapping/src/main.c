@@ -232,6 +232,9 @@ int main(int argc, char * argv[])
       gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "videotext1"));
+      /* Set the capture mode to a default value and disable VBI */
+      zcs_int(TVENG_CAPTURE_READ, "capture_mode");
+      zvbi_set_mode(FALSE);
     }
   /* Disable the View menu completely if it is redundant */
   if ((!zvbi_get_object()) && (disable_preview))

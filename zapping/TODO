@@ -1,7 +1,15 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Add videotext navigation controls, hot areas
-	+ Add button for freezing the teletext screen
-	+ Write the mpeg plugin
-	+ Bug fixes
+	+ xscreensaver-command -throttle
+	+ sed s/videotext/teletext/g
+	+ Add "hot areas"
 	> Release 0.5.3
+	+ Write the mpeg plugin (this is a MUST)
+	+ Make the 'freeze' teletext button work.
+	+ Bug fixes
+	> Release 0.5.4
+	+ Subtitles support
+	+ Xv support if present.
+	? Make the visited pages in the teletext browser a tree ? -
+		depends on feedback.
+	> Release 0.5.5

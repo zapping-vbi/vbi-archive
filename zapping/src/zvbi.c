@@ -40,11 +40,20 @@
 /* Manages config values for zconf (it saves me some typing) */
 #define ZCONF_DOMAIN "/zapping/options/vbi/"
 #include "zmisc.h"
+#include "callbacks.h"
 #include "zvbi.h"
 #include "interface.h"
 
-static struct vbi *vbi=NULL; /* holds the vbi object */
+/* fixme: The history_stack should keep track of subpages too */
 
+static struct vbi *vbi=NULL; /* holds the vbi object */
+static GtkWidget* txtcontrols=NULL; /* GUI controller for the TXT */
+static GList *history=NULL; /* visited pages, no duplicates, sorted by
+			     time of visit (most recent first) */
+static GList *history_stack=NULL; /* visited pages in order of time (oldest
+				     first), duplicates allowed */
+static gint history_stack_size=0; /* Number of items in history_stack */
+static gint history_sp=0; /* Pointer in the stack */
 static pthread_t zvbi_thread_id; /* Just a dummy thread to select() */
 static gboolean exit_thread = FALSE; /* just an atomic flag to tell the
 					thread to exit*/
@@ -75,6 +84,13 @@ static struct {
   int hour, min, sec;
 } last_info;
 
+#ifdef HAVE_GDKPIXBUF
+/* the current unscaled teletext page */
+static GdkPixbuf * teletext_page = NULL;
+/* The scaled version of the above */
+static GdkPixbuf * scaled_teletext_page = NULL;
+#endif
+
 /* Open the configured VBI device, FALSE on error */
 gboolean
 zvbi_open_device(void)
@@ -88,6 +104,7 @@ zvbi_open_device(void)
   zcc_char("/dev/vbi", "VBI device", "vbi_device");
   zcc_bool(TRUE, "Error correction", "erc");
   zcc_int(999, "Finetune range", "finetune");
+  srand(time(NULL));
 
   if ((vbi) || (!zcg_bool(NULL, "enable_vbi")))
     return FALSE; /* this code isn't reentrant */
@@ -136,6 +153,7 @@ zvbi_close_device(void)
     return;
 
   exit_thread = TRUE;
+  vbi_mode = FALSE;
 
   pthread_join(zvbi_thread_id, NULL);
   pthread_mutex_destroy(&(last_info.mutex));
@@ -216,7 +234,8 @@ event(struct dl_head *reqs, struct vt_event *ev)
 	/* Set the dirty flag on the page */
 	zvbi_set_page_state(vtp->pgno, vtp->subno, TRUE, time(NULL));
 	/* Now render the mem version of the page */
-	zvbi_render_monitored_page(vtp);
+	if (vbi_mode)
+	  zvbi_render_monitored_page(vtp);
 	break;
     case EV_XPACKET:
 	p = ev->p1;
@@ -474,6 +493,7 @@ void
 zvbi_monitor_page(gint page, gint subpage)
 {
   struct monitor_page * mp;
+  struct vt_page *vtp;
 
   mp = malloc(sizeof(struct monitor_page));
   if (!mp)
@@ -490,6 +510,23 @@ zvbi_monitor_page(gint page, gint subpage)
   pthread_mutex_lock(&(monitor_mutex));
   monitor = g_list_append(monitor, mp);
   pthread_mutex_unlock(&(monitor_mutex));
+  vtp = zvbi_get_page(page, subpage);
+  if (vtp)
+    {
+      /* Set the dirty flag on the page */
+      zvbi_set_page_state(vtp->pgno, vtp->subno, TRUE, time(NULL));
+      /* Now render the mem version of the page */
+      zvbi_render_monitored_page(vtp);
+    }
+  /* set the loading ... page if the requested page cannot be found */
+#ifdef HAVE_GDKPIXBUF
+  if (!vtp)
+    {
+      if (teletext_page)
+	gdk_pixbuf_unref(teletext_page);
+      teletext_page = NULL;
+    }
+#endif
 }
 
 /*
@@ -517,7 +554,7 @@ zvbi_forget_page(gint page, gint subpage)
       return; /* not found, but fail gracefuly */
     }
 
-  g_list_remove(monitor, mp);
+  monitor = g_list_remove(monitor, mp);
   pthread_mutex_destroy(&(mp->mutex));
   if (mp->mem)
     free(mp->mem);
@@ -625,10 +662,6 @@ zvbi_render_monitored_page(struct vt_page * vtp)
 }
 
 #ifdef HAVE_GDKPIXBUF
-/* the current unscaled teletext page */
-static GdkPixbuf * teletext_page = NULL;
-/* The scaled version of the above */
-static GdkPixbuf * scaled_teletext_page = NULL;
 /* frees the pixbuf memory */
 static void zvbi_free_pixbuf_mem(guchar *pixels, gpointer data)
 {
@@ -689,13 +722,13 @@ zvbi_update_pixbufs(gint page, gint subpage, gint w, gint h)
     {
       /* try to load something, so the program doesn't look like it's
 	 freezed */
-      srand(time(NULL));
       filename =
 	g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
 			"../pixmaps/zapping/vt_loading",
 			(rand()%2)+1);
       teletext_page = gdk_pixbuf_new_from_file(filename);
       g_free(filename);
+      do_update = TRUE;
       if (!teletext_page)
 	return FALSE;
     }
@@ -792,8 +825,23 @@ void zvbi_build_current_teletext_page(GtkWidget *widget)
 #endif /* HAVE_GDKPIXBUF */
 }
 
-/* Sets the current page/subpage */
-void zvbi_set_current_page(gint page, gint subpage)
+/* Set the given history buttons to their correct state */
+static void history_gui_setup(GtkWidget *prev,
+			      GtkWidget *next)
+{
+      if (history_stack_size > (history_sp+1))
+	gtk_widget_set_sensitive(next, TRUE);
+      else
+	gtk_widget_set_sensitive(next, FALSE);	
+
+      if (history_sp > 0)
+	gtk_widget_set_sensitive(prev, TRUE);
+      else
+	gtk_widget_set_sensitive(prev, FALSE);	
+}
+
+/* Sets the current page/subpage, no history keeping */
+static void zvbi_set_current_page_pure(gint page, gint subpage)
 {
   zvbi_forget_page(cur_page, cur_subpage);
 
@@ -802,6 +850,69 @@ void zvbi_set_current_page(gint page, gint subpage)
 
   zvbi_monitor_page(cur_page, cur_subpage);
   /* In the next zmisc_build_current_page the change will occur */
+}
+
+/* Sets the current page/subpage */
+void zvbi_set_current_page(gint page, gint subpage)
+{
+  /* history, txtcontrols */
+  gchar * clist_entry[1];
+  GtkCList *history_clist=NULL;
+  GtkWidget *vtx_history_previous=NULL;
+  GtkWidget *vtx_history_next=NULL;
+  GList *p;
+
+  if (txtcontrols)
+    {
+      history_clist = GTK_CLIST(lookup_widget(txtcontrols, "history"));
+      vtx_history_previous = lookup_widget(txtcontrols,
+					   "vtx_history_previous");
+      vtx_history_next = lookup_widget(txtcontrols,
+				       "vtx_history_next");
+    }
+
+  /* Append the current page to the history stack and set the history
+     pointer to the last entry */
+  history_stack = g_list_append(history_stack, GINT_TO_POINTER(page));
+  history_stack_size++;
+  history_sp = history_stack_size-1;
+
+  /* [GUI] enable/disable navigation controls, as needed */
+  if (txtcontrols)
+    history_gui_setup(vtx_history_previous, vtx_history_next);
+
+  /* Add this entry to the time sorted list */
+  if (g_list_find(history, GINT_TO_POINTER(page)))
+    history = g_list_remove(history, GINT_TO_POINTER(page));
+
+  history = g_list_prepend(history, GINT_TO_POINTER(page));
+  /* [GUI] update the view */
+  if (txtcontrols)
+    {
+      gtk_clist_freeze(history_clist);
+      gtk_clist_clear(history_clist);
+      p = g_list_first(history);
+      while (p)
+	{
+	  clist_entry[0]=g_strdup_printf("%x", GPOINTER_TO_INT(p->data));
+	  gtk_clist_append(history_clist, clist_entry);
+	  g_free(clist_entry[0]);
+	  p = p->next;
+	}
+      /*
+	Set the ignore select_row flag to FALSE
+	Rationale: The gtk_clist_select_row will raise a
+	<<select_row>> signal, that will call zvbi_set_current_page
+	again, hanging the program. This is a bit hackish, but avoids
+	the problem.
+      */
+      gtk_object_set_user_data(GTK_OBJECT(history_clist),
+			       GINT_TO_POINTER(TRUE));
+      gtk_clist_select_row(history_clist, 0, 0);
+      gtk_clist_thaw(history_clist);
+    }
+
+  zvbi_set_current_page_pure(page, subpage);
 }
 
 /* Gets the current page/subpage. Any of the pointers can be NULL */
@@ -819,10 +930,62 @@ void zvbi_get_current_page(gint* page, gint* subpage)
 */
 void zvbi_set_mode(gboolean on)
 {
+  GtkCList * history_clist;
+  GtkWidget *vtx_history_previous=NULL;
+  GtkWidget *vtx_history_next=NULL;
+  GList *p;
+  gchar * clist_entry[1];
+  GtkSpinButton *spin;
   g_assert((on == TRUE) || (on == FALSE));
 
-  if ((vbi_mode == on) || (!vbi))
+  if (!vbi)
     return; /* Nothing to do */
+
+  if (on && (txtcontrols == NULL))
+    {
+      txtcontrols = create_txtcontrols();
+      /* So the delete event can set the pointer to NULL */
+      gtk_object_set_user_data(GTK_OBJECT(txtcontrols), &txtcontrols);
+      /* Set up the manual page/subpage setting callbacks */
+      spin = GTK_SPIN_BUTTON(lookup_widget(txtcontrols, "manual_page"));
+      gtk_signal_connect(GTK_OBJECT(spin->adjustment),
+			 "value_changed",
+			 on_manual_page_value_changed, spin);
+      spin = GTK_SPIN_BUTTON(lookup_widget(txtcontrols, "manual_subpage"));
+      gtk_signal_connect(GTK_OBJECT(spin->adjustment),
+			 "value_changed",
+			 on_manual_subpage_value_changed, spin);
+      /* Make the history buttons show the real state */
+      vtx_history_previous = lookup_widget(txtcontrols,
+					   "vtx_history_previous");
+      vtx_history_next = lookup_widget(txtcontrols,
+				       "vtx_history_next");
+      history_gui_setup(vtx_history_previous, vtx_history_next);
+      /* Set the history CList to its correct value */
+      history_clist =
+	GTK_CLIST(lookup_widget(txtcontrols, "history"));
+      p = g_list_first(history);
+      while (p)
+	{
+	  clist_entry[0]=g_strdup_printf("%x", GPOINTER_TO_INT(p->data));
+	  gtk_clist_append(history_clist, clist_entry);
+	  g_free(clist_entry[0]);
+	  p = p->next;
+	}
+      /* Set the ignore select_row flag to FALSE */
+      gtk_object_set_user_data(GTK_OBJECT(history_clist),
+			       GINT_TO_POINTER(FALSE));
+      gtk_widget_show(txtcontrols);
+    }
+  else if ((!on) && (txtcontrols))
+    {
+      GtkWidget *p = txtcontrols;
+      on_txtcontrols_delete_event(txtcontrols, NULL, NULL);
+      gtk_widget_destroy(p);
+    }
+
+  if (on) /* force an update so the newest page appears */
+    zvbi_set_current_page_pure(cur_page, cur_subpage);
 
   vbi_mode = on;
 }
@@ -833,4 +996,69 @@ void zvbi_set_mode(gboolean on)
 gboolean zvbi_get_mode(void)
 {
   return vbi_mode;
+}
+
+/*
+  Sets the given (visited page) from the visited pages index. This
+  should only be called by on_history_select_row (txtcontrols.c)
+*/
+void zvbi_select_visited_page(gint index)
+{
+  gint page = GPOINTER_TO_INT(g_list_nth(history, index)->data);
+
+  zvbi_set_current_page(page, ANY_SUB);
+}
+
+/*
+  Goes to the next page in the history (just like 'Next' in most
+  navigators)
+*/
+void zvbi_history_next(void)
+{
+  gint page;
+  GtkWidget *vtx_history_previous, *vtx_history_next;
+
+  if (history_stack_size == (history_sp+1))
+    return;
+  history_sp++;
+
+  page = GPOINTER_TO_INT(g_list_nth(history_stack, history_sp)->data);
+
+  zvbi_set_current_page_pure(page, ANY_SUB);
+
+  if (txtcontrols)
+    {
+      vtx_history_previous = lookup_widget(txtcontrols,
+					   "vtx_history_previous");
+      vtx_history_next = lookup_widget(txtcontrols,
+				       "vtx_history_next");
+      history_gui_setup(vtx_history_previous, vtx_history_next);
+    }
+}
+
+/*
+ Goes to the previous page in history
+*/
+void zvbi_history_previous(void)
+{
+  gint page;
+  GtkWidget *vtx_history_previous, *vtx_history_next;
+
+  if (history_sp == 0)
+    return;
+
+  history_sp--;
+
+  page = GPOINTER_TO_INT(g_list_nth(history_stack, history_sp)->data);
+
+  zvbi_set_current_page_pure(page, ANY_SUB);
+
+  if (txtcontrols)
+    {
+      vtx_history_previous = lookup_widget(txtcontrols,
+					   "vtx_history_previous");
+      vtx_history_next = lookup_widget(txtcontrols,
+				       "vtx_history_next");
+      history_gui_setup(vtx_history_previous, vtx_history_next);
+    }
 }

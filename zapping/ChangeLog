@@ -1,10 +1,23 @@
+08.9.2000	History improved <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade: txtcontrols redesigned, now it only shows
+	the visited pages, not page + subpage. For using both, a tree
+	would be better. Added a 'Freeze' button.
+	* src/zvbi.c: Added a web-browser-like history, and a visited
+	pages list. It's easier to navigate now.
+
+07.9.2000	History implemented <garetxe@users.sourceforge.net>
+
+	* src/txtcontrols.c: Previous, next work for pages and subpages,
+	history is saved when setting pages.
+
 06.9.2000	VBI integrated <garetxe@users.sourceforge.net>
 
 	* glade/zapping.glade: VBI has been integrated into the GUI.
 	* src/callbacks.c: Added code for switching to VBI
 	* src/zvbi.c: Much less CPU usage (pre-rendered frames, draw only
 	when neccessary)
-	* pixmaps/vt_loading*: Two images (~10K) created for when the
+	* pixmaps/vt_loading*: Two images (~11K) created for when the
 	requested page isn't available.
 	* src/channel_editor.c: Uses VBI for getting the station names.
 	* src/main.c: Added config setting for saving the VBI state.
