@@ -54,6 +54,9 @@ static gchar * save_dir = NULL;
 static gboolean interlaced; /* Whether the image should be saved
 			       interlaced or not */
 
+static tveng_device_info * zapping_info = NULL; /* Info about the
+						   video device */
+
 /*
   TRUE if plugin_start has been called and plugin_process_frame
   hasn't
@@ -147,6 +150,7 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
   /* Usually this table is the only thing you will need to change */
   struct plugin_exported_symbol table_of_symbols[] =
   {
+    SYMBOL(plugin_init, 0x1234),
     SYMBOL(plugin_get_info, 0x1234),
     SYMBOL(plugin_close, 0x1234),
     SYMBOL(plugin_start, 0x1234),
@@ -214,6 +218,14 @@ void plugin_get_info (gchar ** canonical_name, gchar **
 }
 
 static
+gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
+{
+  zapping_info = info;
+
+  return TRUE;
+}
+
+static
 void plugin_close(void)
 {
   close_everything = TRUE;
@@ -230,7 +242,11 @@ void plugin_close(void)
 static
 gboolean plugin_start (void)
 {
-  save_screenshot = TRUE;
+  if (zapping_info->current_mode != TVENG_CAPTURE_READ)
+    ShowBox(_("You aren't in capture mode. Please switch to it before"
+	      " using this plugin."), GNOME_MESSAGE_BOX_INFO);
+  else
+    save_screenshot = TRUE;
 
   /* If everything has been ok, set the active flags and return TRUE
    */

@@ -1,12 +1,6 @@
 Outstanding issues for the next release
 ---------------------------------------
 	+ Update channel editor help (and shots) - docs in general
-	+ Any plugin should be able to switch to read mode and the
-switch back.
-	+ Modify the web page so it looks nice with Mozilla
-	+ Modify the web page to point to
-http://sourceforge.net/projects/zapping and add the reference to daily
-CVS snapshots at http://cvs.sourceforge.net/cvstarballs/zapping-cvsroot.tar.gz
 	+ Check that tarball and RPM installations work perfectly
 	> Release 0.5.2
 	+ Write the mpeg plugin

@@ -34,14 +34,22 @@ but it is broken now. This isn't a recommended practice, but I like
 it, so it's configurable.<br>
 <i>Resize using fixed increments</i> makes the main window resize in
 64x48 increments, keeping a good width/height ratio. This is the way
-Xawtv resizes, and some people (/me) are used to and like it .<br>
+Xawtv resizes, and some people (/me) are used to and like it.<br>
 <i>Start Zapping muted</i> switchs off the sound when starting the
 program.<br>
+<i>Avoid some flicker in preview mode</i> is only applicable to
+windowed preview mode. Instead of refreshing the whole screen when it
+gets corrupted, it only refreshes the corrupted area. The drawback is
+that the correupted are sometimes isn't correctly calculated, and some
+windows (usually just the main window) get corrupted.<br>
+<i>Ratio mode</i> will set some hints on the main window so a fixed
+width/height ratio is always kept. If the WM doesn't support this,
+this option will have no effect. Most Window Managers support it,
+though.<br>
 <i>Verbosity value given to zapping_setup_fb</i>. zapping_setup_fb is
 an auxiliary suid program used to startup the framebuffer. If this
 value is greater than 0, the program will print some debugging info
 useful when something doesn't work properly. This is equivalent to the
 --verbose command line option.
-
 </BODY>
 </HTML>

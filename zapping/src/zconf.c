@@ -240,7 +240,6 @@ zconf_init(const gchar * domain)
     xmlFreeDoc(doc); /* Free the memory, we don't need it any more */
 
   g_free(buffer);
-  g_free(home_dir);
 
   zconf_buffer = NULL;
 

@@ -1,4 +1,4 @@
-Known bugs with zapping
+Known bugs with zapping, don't report them
 ------------------------------------------
 * == Bug that needs fixing
 ! == Bug that needs fixing, very important
@@ -6,10 +6,7 @@ Known bugs with zapping
 
 	! Windowed mode doesn't detect the "anti-expose (cover)" event
 - how does xawtv do it?
-	! Windowed mode sometimes doesn't start correctly
 	! Find the cause for those /dev/dsp busy error messages (libesd
 <= 0.2.8 broken?)
 	* Add support in TVeng for tuner-less cards.
 	* YUV support if i have the time.
-	* Somehow the docs aren't displayed with the GnomeHelpBrowser
-but with Mozilla. Annoying, since Mozilla needs a lot of resources.

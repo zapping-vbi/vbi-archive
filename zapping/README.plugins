@@ -13,6 +13,12 @@ look to the sample plugins distributed to get an idea of how it
 works. The API has changed a lot since the last release, and i don't
 want to publish half-cooked docs. Sorry.
 
+*< Update, written when publishing the 0.5.2 version, no docs yet >*
+
+Actually, I don't think writing a buncha docs nobody will read except
+me is a good idea. If you are interested in writing a plugin, just
+mail me, you will have all my help.
+
 Where will zapping look for plugins
 -----------------------------------
 

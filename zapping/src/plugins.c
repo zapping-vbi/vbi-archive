@@ -293,11 +293,12 @@ gboolean plugin_bridge (gpointer * ptr, gchar * plugin, gchar *
 						exported symbols */
   gint num_exported_symbols=0; /* Number of exported symbols in the
 				plugin */
+
   if (!plugin)
     {
       if (ptr)
 	*ptr = GINT_TO_POINTER(0x2);
-      return FALSE; /* Zapping exports no plugins */
+      return FALSE; /* Zapping exports no symbols */
     }
   else /* We have to query the list of plugins */
     while (list)
@@ -710,7 +711,7 @@ GList * plugin_load_plugins ( void )
   g_free(plugin_path);
 
   /* Now load plugins in the home dir */
-  buffer = getenv("HOME");
+  buffer = g_get_home_dir();
   if (buffer)
     {
       g_assert(strlen(buffer) > 0);

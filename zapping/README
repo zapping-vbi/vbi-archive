@@ -1,16 +1,16 @@
-Zapping - The Gnome TV viewer
------------------------------
+Zapping - A GNOME TV viewer
+---------------------------
 	OK, here it is.
 	Some time ago I bought a TV card for my computer. In my Linux
 box there were only a few TV viewing programs, and none of them for
 Gnome. So I built a TV viewer following V4L2 spec (not compiled into
 the Kernel by default) from scratch, but trying to make it as complete
-as possible. This is version 0.5.0 of that software.
+as possible. This is version 0.5.2 of that software.
 
 INSTALLING
 ----------
 	To install this package just run as a normal user:
-./configure --datadir=`gnome-config --datadir` && make
+./configure && make
 	And as root:
 make install
 	Type './configure --help' for extra options you can give to
@@ -22,7 +22,8 @@ PROGRAM INFO
 	In releases of XFree prior to 4.0, if you capture with a
 screen depth over 16bpp, CPU usage jumps to 100%. This is actually a
 XFree thing, and it is solved with XFree 4.0. But fullscreen mode
-won't work with XF4.0, because DGA doesn't work by default.
+won't work with XF4.0, because DGA doesn't work by default with some
+drivers. This is usually fixed with XF4.0.1 (at least it fixed it for me).
 	The fullscreen mode uses framebuffer access. For using it,
 root privileges are needed. I created a small SUID program that sets
 up everything and returns. There is a potential secutiry flaw here (i
@@ -44,7 +45,7 @@ http://millennium.diads.com/bdirks/v4l2.htm
 http://me.in-berlin.de/~kraxel/bttv.html
 	Video for Linux home page. Actually the bttv page.
 http://www.gnome.org
-	The home page of the Gnome community. Lots of info about
+	The home page of the GNOME community. Lots of info about
 	projects and programming.
 http://www.gtk.org
 	The toolkit used to build Gnome and this program.
@@ -60,7 +61,10 @@ CONTACTING
 	You can direct any questions, dead threats, lost puppies,
 money you don't want and used books in Languages I don't know but
 would like to learn (Hebrew, to put an example) to 
-<garetxe@users.sourceforge.net>
+<garetxe at users.sourceforge.net>
+	Bugs should be reported using the mechanism described in the
+Web page:
+	http://zapping.sourceforge.net/index.html#Bugs
 
 	thanks and enjoy the TV (as difficult as that might seem),
 	Iñaki

@@ -131,7 +131,6 @@ int main(int argc, char * argv[])
 					       "zapping_setup_fb_verbosity"),
 				       main_info);
 
-
   /* try to run the auxiliary suid program */
   if (tveng_run_zapping_setup_fb(main_info) == -1)
     disable_preview = TRUE;
@@ -225,6 +224,10 @@ int main(int argc, char * argv[])
   tveng_set_standard_by_index(zcg_int(NULL, "current_standard"), main_info);
 
   update_standards_menu(main_window, main_info);
+
+  /* Process all events */
+  while (gtk_events_pending())
+    gtk_main_iteration();
 
   /* Sets the coords to the previous values, if the users wants to */
   if (zcg_bool(NULL, "keep_geometry"))

@@ -2,9 +2,14 @@
 
 	* src/zmisc.c: Fixed the segfault when quitting (i believe so, at
 	least).
-	* src/tveng.c: Fixed some memleaks with the X code.
-	* src/tveng.c: It now restores the VidMode correctly.
-
+	* src/tveng.c: Fixed some memleaks with the X code, and made it
+	restore the VidMode correctly when returning from fullscreen.
+	* src/zconf.c: Fixed the problems with the help being opened by
+	Mozilla - it was a mem-leak, g_get_home_dir returns a static
+	string, and I was g_free'ing it.
+	* plugins/screenshot: It now checks for capture mode before starting.
+	* help/C: I updated the docs and the screenshots.
+	
 22.7.2000	Windowed preview working <garetxe@users.sourceforge.net>
 
 	* src/zmisc.c: Fixed the last bugs with it except one, that i
