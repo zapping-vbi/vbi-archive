@@ -30,7 +30,7 @@ echo
 echo "Generating the Makefiles"
 echo "------------------------" && echo
 if test -e ./autogen.sh; then
-  (NOCONFIGURE="yes" && ./autogen.sh) || exit 1
+  NOCONFIGURE="yes" ./autogen.sh || exit 1
 fi
 if test ! x$1 = x; then
     ./configure --with-gnome-prefix=$1 || exit 1

@@ -1,3 +1,11 @@
+31.08.2002	<mschimek@users.sf.net>
+
+	* src/v4linterface.c: Increased nap time before unmuting after
+	  channel switch (in response to a bttv fix).
+	* src/main.c: Fixed widget lookup before main window creation bug.
+	* zapping_setup_fb/zapping_setup_fb.c: Had to restore pre-gcc3
+	  macro varargs for compatibility.
+
 19.06.2002	<mschimek@users.sf.net>
 
 	* src, glade, plugins: Added show tooltips option.
