@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.18 2002-05-07 06:39:16 mschimek Exp $ */
+/* $Id: video.h,v 1.19 2002-05-13 05:37:49 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -210,23 +210,32 @@ rc_picture_end(struct rc *rc, picture_type type,
 	}
 }
 
-typedef struct filter_param filter_param;
+typedef struct filter_param __attribute__ ((aligned (64))) filter_param;
 
 typedef int (filter_fn)(filter_param *, int col, int row) __attribute__ ((regparm (3)));
 
 struct filter_param {
-	void *			dest;		// 0
-	void *			src;		// 1
-	filter_fn *		func;		// 2
-	int			offset;		// 3
-	int			u_offset;	// 4
-	int			v_offset;	// 5
-	int			stride;		// 6
-	int			uv_stride;	// 7
-	int			clip_col;	// 8
-	int			clip_row;	// 9
-	int			resv[6];
-};
+	int16_t *		dest;		// 0
+	uint8_t *		src;
+	filter_fn *		func;		// 8
+	int			offset;
+
+	int			u_offset;	// 16
+	int			v_offset;
+	int			stride;		// 24
+	int			uv_stride;
+
+	int			clip_col;	// 32
+	int			clip_row;
+	int			clip_x;		// 40
+	int			clip_y;
+
+	mmx_t			lim;		// 48
+        int			tcol;		// 56
+        int			trow;
+
+	mmx_t			scratch[8];
+} __attribute__ ((aligned (64)));
 
 typedef struct stacked_frame {
 	uint8_t *	org;
@@ -243,7 +252,7 @@ typedef struct mblock_hist {
 
 typedef struct mpeg1_context mpeg1_context;
 
-struct mpeg1_context {
+struct mpeg1_context { 
 	filter_param	filter_param[2];
 
 	uint8_t		seq_header_template[32];
@@ -389,7 +398,6 @@ do {									\
 extern struct bs_rec	video_out video_align(32);
 
 extern int		dropped;
-extern int		(* filter)(unsigned char *, unsigned char *);
 extern const char *	filter_labels[];
 
 extern long long	video_frame_count;
@@ -401,7 +409,8 @@ extern long long	video_frames_dropped;
 extern void *		mpeg1_video_ipb(void *capture_fifo);
 
 extern void		conv_init(int);
-extern void		filter_init(rte_video_stream_params *par);
+extern void		filter_init(rte_video_stream_params *par,
+				    struct filter_param *fp);
 extern void		video_coding_size(int width, int height);
 extern int		video_look_ahead(char *gop_sequence);
 
@@ -416,7 +425,7 @@ enum {
 	CM_YUYV_VERTICAL_INTERPOLATION,
 	CM_YUYV_PROGRESSIVE,
 	CM_YUYV_PROGRESSIVE_TEMPORAL,
-	CM_YUYV_EXP,
+	CM_YUV_VERTICAL_DECIMATION,
 	CM_YUYV_EXP_VERTICAL_DECIMATION,
 	CM_YUYV_EXP2,
 	CM_YVU,
