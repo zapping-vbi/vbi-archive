@@ -1,7 +1,7 @@
 /*
  *  libzvbi
  *
- *  Copyright (C) 2002 Michael H. Schimek
+ *  Copyright (C) 2002-2003 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.2 2003-04-29 17:11:33 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.3 2003-06-16 06:04:37 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -27,6 +27,14 @@
 #include <string.h>
 
 /* Public */
+
+/**
+ * @addtogroup Basic Basic types
+ *
+ * Apart of redefining TRUE and FALSE libzvbi reserves all type,
+ * function, variable and constant names, and preprocessor symbols
+ * starting with vbi_ or VBI_.
+ */
 
 #ifndef DOXYGEN_SHOULD_IGNORE_THIS
 /* doxygen omits static objects */
@@ -58,6 +66,10 @@ typedef unsigned int vbi_nuid;
 /* preliminary */
 #define NUID0 0
 
+#ifndef __GNUC__
+#define __inline__
+#endif
+
 /* Private */
 
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
@@ -72,7 +84,11 @@ typedef unsigned int vbi_nuid;
 #define __builtin_expect(exp, c) (exp)
 #endif
 
+#undef __i386__
 #undef __i686__
+#if #cpu (i386)
+#define __i386__ 1
+#endif
 #if #cpu (i686)
 #define __i686__ 1
 #endif
@@ -137,8 +153,8 @@ do {									\
 
 #else /* !__GNUC__ */
 
-#define __inline__
 #define __builtin_expect(exp, c) (exp)
+#undef __i686__
 #define PACKED
 
 #undef ABS
