@@ -271,6 +271,17 @@ ioctl_failure			(tveng_device_info *	info,
 				 const char *		function_name,
 				 unsigned int		source_file_line,
 				 const char *		ioctl_name);
+#ifdef HAVE_STRNDUP
+#define tv_strndup strndup
+#else
+extern char *
+tv_strndup			(const char *		s,
+				 size_t			size);
+#endif
+
+extern char *
+tv_strdup_printf		(const char *		templ,
+				 ...);
 
 struct _tv_mixer_interface {
 	const char *		name;
