@@ -168,21 +168,12 @@ startup_teletext(void)
 {
   startup_zvbi();
 
-#ifdef HAVE_GDKPIXBUF
   if (disable_vbi)
     zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
 
   /* Make the vbi module open the device */
   D();
   zconf_touch("/zapping/options/vbi/enable_vbi");
-  D();
-
-#else
-  if (zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"))
-    ShowBox(_("There's no GdkPixbuf support, VBI has been disabled"),
-	    GNOME_MESSAGE_BOX_INFO);
-  zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
-#endif
   D();
 }
 
@@ -208,11 +199,25 @@ gint resize_timeout		( gpointer ignored )
 int main(int argc, char * argv[])
 {
   GtkWidget * tv_screen;
-  gchar * buffer;
   GList * p;
   gint x_bpp = -1;
   char *default_norm = NULL;
   char *video_device = NULL;
+  /* Some other common options in case the standard one fails */
+  char *fallback_devices[] =
+  {
+    "/dev/video",
+    "/dev/video0",
+    "/dev/v4l/video0",
+    "/dev/v4l/video",
+    "/dev/video1",
+    "/dev/video2",
+    "/dev/video3",
+    "/dev/v4l/video1",
+    "/dev/v4l/video2",
+    "/dev/v4l/video3"
+  };
+  gint num_fallbacks = sizeof(fallback_devices)/sizeof(char*);
 
   const struct poptOption options[] = {
     {
@@ -283,7 +288,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.94 2001-03-04 16:03:37 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.95 2001-03-15 21:59:32 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -330,13 +335,16 @@ int main(int argc, char * argv[])
       return 0;
     }
   D();
-  /* We must do this (running zapping_setup_fb) before attaching the
-     device because V4L and V4L2 don't support multiple capture opens
-  */
- open_device:
 
   if (video_device)
     zcs_char(video_device, "video_device");
+
+  if (!debug_msg)
+    tveng_set_zapping_setup_fb_verbosity(zcg_int(NULL,
+						 "zapping_setup_fb_verbosity"),
+					 main_info);
+  else
+    tveng_set_zapping_setup_fb_verbosity(3, main_info);
 
   main_info -> file_name = strdup(zcg_char(NULL, "video_device"));
 
@@ -346,43 +354,60 @@ int main(int argc, char * argv[])
       return 1;
     }
   D();
-  tveng_set_zapping_setup_fb_verbosity(zcg_int(NULL,
-					       "zapping_setup_fb_verbosity"),
-				       main_info);
-  D();
   /* try to run the auxiliary suid program */
   if (tveng_run_zapping_setup_fb(main_info) == -1)
     g_message("Error while executing zapping_setup_fb,\n"
 	      "Overlay might not work:\n%s", main_info->error);
   D();
   free(main_info -> file_name);
+
   D();
   if (tveng_attach_device(zcg_char(NULL, "video_device"),
 			  TVENG_ATTACH_XV,
 			  main_info) == -1)
     {
-      /* Check that the given device is /dev/video0, if it isn't, try
-	 it */
-      if (strcmp(zcg_char(NULL, "video_device"), "/dev/video0"))
-	{
-	  GtkWidget * question_box = gnome_message_box_new(
-               _("The specified device isn't \"/dev/video0\".\n"
-		 "Should I try it?"),
-	       GNOME_MESSAGE_BOX_QUESTION,
-	       GNOME_STOCK_BUTTON_YES,
-	       GNOME_STOCK_BUTTON_NO,
-	       NULL);
+      GtkWidget * question_box;
+      gint i;
+      gchar * buffer =
+	g_strdup_printf(_("Couldn't open %s, should I try "
+			  "some common options?"),
+			zcg_char(NULL, "video_device"));
+      question_box = gnome_message_box_new(buffer,
+					   GNOME_MESSAGE_BOX_QUESTION,
+					   GNOME_STOCK_BUTTON_YES,
+					   GNOME_STOCK_BUTTON_NO,
+					   NULL);
 
-	  gtk_window_set_title(GTK_WINDOW(question_box),
-			       zcg_char(NULL, "video_device"));
+      g_free(buffer);
+
+      gtk_window_set_title(GTK_WINDOW(question_box),
+			   zcg_char(NULL, "video_device"));
 	 
-	  switch (gnome_dialog_run(GNOME_DIALOG(question_box)))
+      if (!gnome_dialog_run(GNOME_DIALOG(question_box)))
+	{ /* retry */
+	  for (i = 0; i<num_fallbacks; i++)
 	    {
-	    case 0: /* Retry */
-	      zcs_char("/dev/video0", "video_device");
-	      goto open_device;
-	    default:
-	      break; /* Don't do anything */
+	      printf("trying device: %s\n", fallback_devices[i]);
+	      main_info -> file_name = strdup(fallback_devices[i]);
+  
+	      D();
+	      /* try to run the auxiliary suid program */
+	      if (tveng_run_zapping_setup_fb(main_info) == -1)
+		g_message("Error while executing zapping_setup_fb,\n"
+			  "Overlay might not work:\n%s", main_info->error);
+	      D();
+	      free(main_info -> file_name);
+
+	      if (tveng_attach_device(fallback_devices[i],
+				      TVENG_ATTACH_XV,
+				      main_info) != -1)
+		{
+		  zcs_char(fallback_devices[i], "video_device");
+		  ShowBox(_("%s suceeded, setting it as the new default"),
+			  GNOME_MESSAGE_BOX_INFO,
+			  fallback_devices[i]);
+		  goto device_ok;
+		}
 	    }
 	}
 
@@ -397,6 +422,8 @@ int main(int argc, char * argv[])
 
       return -1;
     }
+
+ device_ok:
   D();
   /* mute the device while we are starting up */
   tveng_set_mute(1, main_info);
@@ -568,13 +595,8 @@ static void shutdown_zapping(void)
   int i = 0;
   gchar * buffer = NULL;
   tveng_tuned_channel * channel;
-  gboolean do_screen_cleanup = FALSE;
 
   printv("Shutting down the beast:\n");
-
-  /* Stops any capture currently active */
-  if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
-    do_screen_cleanup = TRUE;
 
   if (was_fullscreen)
     zcs_int(TVENG_CAPTURE_PREVIEW, "capture_mode");
@@ -667,7 +689,8 @@ static void shutdown_zapping(void)
    * Tell the overlay engine to shut down and to do a cleanup if necessary
    */
   printv(" overlay");
-  shutdown_overlay(do_screen_cleanup);
+  shutdown_overlay();
+
   /*
    * Shuts down the capture engine
    */
@@ -699,7 +722,7 @@ static gboolean startup_zapping()
   /* Sets defaults for zconf */
   zcc_bool(TRUE, "Save and restore zapping geometry (non ICCM compliant)", 
 	   "keep_geometry");
-  zcc_bool(FALSE, "Resize by fixed increments", "fixed_increments");
+  zcc_bool(TRUE, "Resize by fixed increments", "fixed_increments");
   zcc_char(tveng_get_country_tune_by_id(0)->name,
 	     "The country you are currently in", "current_country");
   current_country = 

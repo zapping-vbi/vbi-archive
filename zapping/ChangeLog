@@ -1,3 +1,12 @@
+15.3.2001	more clean calls for Overlay <garetxe@users.sourceforge.net>
+
+	* src/overlay.c: Added some extra clean() calls (unmapping,
+	stopping), this should fix those ugly pixels left.
+	* src/main.c: Added a set of fallbacks in case /dev/video0 doesn't
+	open, should make devFS work too.
+	* src/capture.c: Capture mode speedup with XVideo scaler (1% cpu
+	usage, whew!).
+
 14.3.2001	DPMS in Xext <garetxe@users.sourceforge.net>
 
 	* configure.in: Applied patch by Dirk Meul to search for DPMS

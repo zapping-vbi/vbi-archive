@@ -55,6 +55,10 @@
 #include "plugins.h"
 #include "capture.h"
 
+/* Uncomment for faster capture (only if XVideo backend scaler present) */
+/* FIXME: Not production quality yet (properties, not hardcoded size) */
+#define NO_INTERLACE 1
+
 /* Some global stuff we need, see descriptions in main.c */
 extern GList		*plugin_list;
 extern gboolean		disable_xv; /* TRUE is XVideo should be
@@ -422,7 +426,7 @@ capture_process_frame(GtkWidget * widget, tveng_device_info * info)
 		    GDK_GC_XGC(widget->style->white_gc), xvimage,
 		    0, 0, xvimage->width, xvimage->height, /* source */
 		    0, 0, w, h, /* dest */
-		    False /* send event when done */);
+		    True /* send event when done */);
 #else
       XvPutImage(GDK_DISPLAY(), xvport,
 		 GDK_WINDOW_XWINDOW(widget->window),
@@ -457,14 +461,29 @@ capture_process_frame(GtkWidget * widget, tveng_device_info * info)
     }
 }
 
+static void set_capture_size(gint w, gint h, tveng_device_info *info)
+{
+#ifdef NO_INTERLACE
+  if (have_xv)
+    {
+      if (w > 384)
+	w = 384;
+      if (h > 288)
+	h = 288;
+    }
+#endif
+
+  if (tveng_set_capture_size(w, h, info) == -1)
+    ShowBox("Image resize failed: %s", GNOME_MESSAGE_BOX_WARNING,
+	    info->error);
+}
+
 static void
 on_tv_screen_size_allocate             (GtkWidget       *widget,
                                         GtkAllocation   *allocation,
                                         tveng_device_info *info)
 {
-  if (tveng_set_capture_size(allocation->width, allocation->height, 
-			     info) == -1)
-    g_warning(info->error);
+  set_capture_size(allocation->width, allocation->height, info);
 }
 
 static gint idle_handler(GtkWidget *tv_screen)
@@ -487,6 +506,10 @@ gint
 capture_start(GtkWidget * window, tveng_device_info *info)
 {
   enum tveng_frame_pixformat pixformat;
+  gint w, h;
+
+  g_assert(window != NULL);
+  g_assert(info != NULL);
 
   if (have_xv)
     pixformat = TVENG_PIX_YUYV;
@@ -496,7 +519,12 @@ capture_start(GtkWidget * window, tveng_device_info *info)
 
   printv("cap: setting format %d\n", pixformat);
 
+  gdk_window_get_size(window->window, &w, &h);
+
+  info->format.width = w;
+  info->format.height = h;
   info->format.pixformat = pixformat;
+
   if (tveng_set_capture_format(info) == -1)
     {
       ShowBox("Error starting capture: %s", GNOME_MESSAGE_BOX_ERROR,

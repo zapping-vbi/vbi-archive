@@ -114,10 +114,10 @@ overlay_get_clips(GdkWindow * window, gint * clipcount)
 {
   struct tveng_clip * clips;
 
-  g_assert(window != NULL);
   g_assert(clipcount != NULL);
 
-  if (tv_info.info->current_controller == TVENG_CONTROLLER_XV)
+  if (!window ||
+      tv_info.info->current_controller == TVENG_CONTROLLER_XV)
     {
       *clipcount = 0;
       return NULL;
@@ -288,7 +288,7 @@ on_main_overlay_event        (GtkWidget       *widget,
     case GDK_UNMAP:
       tv_info.visible = FALSE;
       overlay_sync(TRUE);
-      overlay_status_changed(FALSE);
+      overlay_status_changed(TRUE);
       break;
     case GDK_MAP:
       tv_info.visible = TRUE;
@@ -316,7 +316,7 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
 }
 
 /*
-3 * Called when the main overlay window is destroyed (shuts down the
+ * Called when the main overlay window is destroyed (shuts down the
  * timers)
  */
 static gboolean
@@ -461,17 +461,18 @@ overlay_stop(tveng_device_info *info)
       gtk_timeout_remove(tv_info.check_timeout_id);
       tv_info.check_timeout_id = -1;
     }
+
+  if (info->current_controller != TVENG_CONTROLLER_XV)
+    x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
 }
 
 /*
  * Shuts down the overlay engine
- * do_cleanup: TRUE if the screen is possibly corrupted
  */
 void
-shutdown_overlay(gboolean do_cleanup)
+shutdown_overlay(void )
 {
-  if (do_cleanup)
-    x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
+  /* Nothing to be done */
 }
 
 /*
@@ -525,7 +526,6 @@ overlay_sync(gboolean clean_screen)
       tveng_set_preview_window(tv_info.info);
       
       if (clean_screen)
-	x11_force_expose(0, 0, gdk_screen_width(),
-			 gdk_screen_height());
+	x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
     }
 }

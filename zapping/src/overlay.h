@@ -40,10 +40,9 @@ overlay_stop(tveng_device_info *info);
 
 /*
  * Shuts down the overlay engine
- * do_cleanup: TRUE if the screen should be cleaned
  */
 void
-shutdown_overlay(gboolean do_cleanup);
+shutdown_overlay(void);
 
 /*
  * Tells the overlay engine to sync the overlay with the window.
