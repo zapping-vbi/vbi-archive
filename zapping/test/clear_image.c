@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clear_image.c,v 1.1 2004-12-11 11:46:24 mschimek Exp $ */
+/* $Id: clear_image.c,v 1.2 2005-02-06 21:39:09 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -36,9 +36,9 @@ format_packed_size		(void)
 	if (0 == format.width || 0 == format.height)
 		return 0;
 
-	return format.offset
-		+ format.bytes_per_line	* (format.height - 1)
-		+ format.width * tv_pixfmt_bytes_per_pixel (format.pixfmt);
+	return format.offset[0]
+		+ format.bytes_per_line[0] * (format.height - 1)
+		+ ((format.width * format.pixel_format->bits_per_pixel) >> 3);
 }
 
 static void
@@ -56,14 +56,14 @@ test_packed			(uint8_t *		d,
 		fputc ('\n', stderr);
 	}
 
-	s = d + format.offset;
+	s = d + format.offset[0];
 
 	if (end > s)
 		memset (s, 0xAA, end - s);
 
 	r = tv_clear_image (d, &format);
 
-	if ((TV_PIXFMT_SET (format.pixfmt) & TV_PIXFMT_SET_YUV16)
+	if ((TV_PIXFMT_SET (format.pixel_format->pixfmt) & TV_PIXFMT_SET_YUV16)
 	    && (format.width & 1)) {
 		/* Permutations of YUYV. */
 		assert (!r);
@@ -72,34 +72,34 @@ test_packed			(uint8_t *		d,
 		assert (r);
 	}
 
-	bpp = tv_pixfmt_bytes_per_pixel (format.pixfmt);
+	bpp = format.pixel_format->bits_per_pixel >> 3;
 
 	for (y = 0; y < format.height; ++y) {
-		if (TV_PIXFMT_YUYV == format.pixfmt ||
-		    TV_PIXFMT_YVYU == format.pixfmt) {
+		if (TV_PIXFMT_YUYV == format.pixel_format->pixfmt ||
+		    TV_PIXFMT_YVYU == format.pixel_format->pixfmt) {
 			for (x = 0; x < format.width; ++x) {
 				assert (0x00 == *s++);
 				assert (0x80 == *s++);
 			}
-		} else if (TV_PIXFMT_UYVY == format.pixfmt ||
-			   TV_PIXFMT_VYUY == format.pixfmt) {
+		} else if (TV_PIXFMT_UYVY == format.pixel_format->pixfmt ||
+			   TV_PIXFMT_VYUY == format.pixel_format->pixfmt) {
 			for (x = 0; x < format.width; ++x) {
 				assert (0x80 == *s++);
 				assert (0x00 == *s++);
 			}
-		} else if (TV_PIXFMT_IS_YUV (format.pixfmt)) {
+		} else if (TV_PIXFMT_IS_YUV (format.pixel_format->pixfmt)) {
 			for (x = 0; x < format.width; ++x, s += bpp)
 				assert (0x00808000 == get_packed_pixel
-					(s, format.pixfmt));
+					(s, format.pixel_format->pixfmt));
 		} else {
 			for (x = 0; x < format.width; ++x, s += bpp)
 				assert (0x00000000 == get_packed_pixel
-					(s, format.pixfmt));
+					(s, format.pixel_format->pixfmt));
 		}
 
 		if (s < end)
 			for (x = format.width * bpp;
-			     x < format.bytes_per_line; ++x)
+			     x < format.bytes_per_line[0]; ++x)
 				assert (0xAA == *s++);
 	}
 }
@@ -112,38 +112,41 @@ test_planar			(void)
 static void
 test_packed1			(void)
 {
+	tv_pixfmt pixfmt;
+
 	if (1) {
 		fputc ('.', stderr);
 		fflush (stderr);
 	}
 
-	for (format.pixfmt = 0;
-	     format.pixfmt < TV_MAX_PIXFMTS;
-	     ++format.pixfmt) {
+	for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; ++pixfmt) {
 		unsigned int bpp;
 
-		if (!TV_PIXFMT_IS_PACKED (format.pixfmt))
+		if (!TV_PIXFMT_IS_PACKED (pixfmt))
 			continue;
 
+		format.pixel_format = tv_pixel_format_from_pixfmt (pixfmt);
+
 		if (0)
-			fprintf (stderr, "%s\n",
-				 tv_pixfmt_name (format.pixfmt));
+			fprintf (stderr, "%s\n", format.pixel_format->name);
 
-		bpp = tv_pixfmt_bytes_per_pixel (format.pixfmt);
+		bpp = format.pixel_format->bits_per_pixel >> 3;
 
-		format.bytes_per_line = format.width * bpp;
+		format.bytes_per_line[0] = format.width * bpp;
 
-		for (format.offset = 0; format.offset < 17; ++format.offset) {
+		for (format.offset[0] = 0;
+		     format.offset[0] < 17;
+		     ++format.offset[0]) {
 			format.size = format_packed_size ();
-			test_packed (buffer - format.offset,
-				     buffer - format.offset + format.size);
+			test_packed (buffer - format.offset[0],
+				     buffer - format.offset[0] + format.size);
 		}
 
-		format.offset = 0;
+		format.offset[0] = 0;
 
-		for (format.bytes_per_line = format.width * bpp;
-		     format.bytes_per_line < (format.width + 33) * bpp;
-		     ++format.bytes_per_line) {
+		for (format.bytes_per_line[0] = format.width * bpp;
+		     format.bytes_per_line[0] < (format.width + 33) * bpp;
+		     ++format.bytes_per_line[0]) {
 			format.size = format_packed_size ();
 			test_packed (buffer_end - format.size, buffer_end);
 		}
