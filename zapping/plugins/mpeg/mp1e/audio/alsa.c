@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.7 2000-11-11 02:32:21 mschimek Exp $ */
+/* $Id: alsa.c,v 1.8 2000-12-15 00:14:19 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -219,7 +219,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 		FAIL("Failed to prepare ALSA PCM plugin for recording (%d, %s)", err, snd_strerror(err));
 
 	ASSERT("init pcm/alsa capture fifo", init_callback_fifo(audio_cap_fifo = &alsa->pcm.fifo,
-		wait_full, send_empty, NULL, NULL, buffer_size, 1));
+		wait_full, send_empty, NULL, NULL, 1, buffer_size));
 
 	alsa->pcm.fifo.buffers[0].data = NULL;
 	alsa->pcm.fifo.buffers[0].used =

@@ -1,6 +1,4 @@
 /*
- *  MPEG-1 Real Time Encoder
- *
  *  Copyright (C) 1999-2000 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -18,13 +16,18 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.7 2000-12-11 22:19:40 garetxe Exp $ */
+/* $Id: fifo.c,v 1.8 2000-12-15 00:14:19 garetxe Exp $ */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include "fifo.h"
+#include "log.h"
 #include "alloc.h"
-#include "mmx.h"
 
-
+#ifndef CACHE_LINE
+#define CACHE_LINE 32
+#endif
 
 void
 uninit_buffer(buffer *b)
@@ -39,15 +42,15 @@ uninit_buffer(buffer *b)
 bool
 init_buffer(buffer *b, int size)
 {
-	if (!b)
-		return FALSE;
+	size_t page_size = (size_t) sysconf(_SC_PAGESIZE);
 
 	memset(b, 0, sizeof(buffer));
 
 	if (size > 0) {
 		b->data =
 		b->allocated =
-			calloc_aligned(size, size < 4096 ? CACHE_LINE : 4096);
+			calloc_aligned(size, (size < page_size) ?
+				CACHE_LINE : page_size);
 
 		if (!b->allocated)
 			return FALSE;
@@ -58,137 +61,247 @@ init_buffer(buffer *b, int size)
 	return TRUE;
 }
 
+void
+free_buffer_vec(buffer *bvec, int num_buffers)
+{
+	int i;
+
+	if (bvec) {
+		for (i = 0; i < num_buffers; i++)
+			uninit_buffer(bvec + i);
+
+		free(bvec);
+	}
+}
+
+int
+alloc_buffer_vec(buffer **bpp, int num_buffers, int buffer_size)
+{
+	int i;
+	buffer *bvec;
+
+	if (num_buffers <= 0) {
+		*bpp = NULL;
+		return 0;
+	}
+
+	if (!(bvec = calloc(num_buffers, sizeof(buffer))))
+		return 0;
+
+	for (i = 0; i < num_buffers; i++) {
+		if (!init_buffer(bvec + i, buffer_size))
+			break;
+
+		bvec[i].index = i;
+	}
+
+	if (i == 0) {
+		free(bvec);
+		bvec = 0;
+	}
+
+	*bpp = bvec;
+
+	return i;
+}
+
 static void
 dead_end(fifo *f)
 {
-	FAIL("Invalid fifo %p", f);
+	fprintf(stderr, "Internal error - invalid fifo %p", f);
+	exit(EXIT_FAILURE);
 }
 
 static bool
-tv_sucks(fifo *f)
+start(fifo *f)
 {
 	return TRUE;
 }
 
+static inline void
+dealloc_consumer_info(fifo *f, int index)
+{
+	buffer *b;
+	list * full=&(f->consumers[index].full);
+	mucon *consumer=&(f->consumers[index].consumer);
+
+	pthread_mutex_lock(&(consumer->mutex));
+	while ((b = (buffer*) rem_head(full)))
+		send_empty_buffer(f, b);
+	pthread_mutex_unlock(&(consumer->mutex));
+	mucon_destroy(consumer);
+
+	if (index<(f->num_consumers-1))
+		memcpy(&(f->consumers[index]),
+		       &(f->consumers[index+1]),
+		       ((f->num_consumers-1)-index)*sizeof(coninfo));
+
+	f->consumers = realloc(f->consumers,
+			       (--(f->num_consumers))*sizeof(coninfo));
+}
+
 void
-uninit_fifo(fifo * f)
+remove_consumer(fifo *f)
 {
 	int i;
+	pthread_t owner = pthread_self();
 
-	if (f->buffers) {
-		for (i = 0; i < f->num_buffers; i++)
-			uninit_buffer(&f->buffers[i]);
+	pthread_mutex_lock(&f->consumers_mutex);
+	for (i=0; i<f->num_consumers; i++)
+		if (pthread_equal(f->consumers[i].owner, owner)) {
+			dealloc_consumer_info(f, i);
+			break;
+		}
+	pthread_mutex_unlock(&f->consumers_mutex);
+}
 
-		free(f->buffers);
-	}
+static void
+uninit(fifo * f)
+{
+	pthread_mutex_lock(&f->consumers_mutex);
+	while (f->num_consumers)
+		dealloc_consumer_info(f, 0);
+	pthread_mutex_unlock(&f->consumers_mutex);
+
+	pthread_mutex_destroy(&f->consumers_mutex);
+
+	if (f->buffers)
+		free_buffer_vec(f->buffers, f->num_buffers);
 
 	mucon_destroy(&f->producer);
 
 	memset(f, 0, sizeof(fifo));
 
-	f->wait_full  = (buffer * (*)(fifo *)) dead_end;
-	f->send_empty = (void (*)(fifo *, buffer *)) dead_end;
-	f->wait_empty = (buffer * (*)(fifo *)) dead_end;
-	f->send_full  = (void (*)(fifo *, buffer *)) dead_end;
-
-	f->start = tv_sucks;
+	f->wait_full  = (buffer * (*)(fifo *))		 dead_end;
+	f->send_empty = (void     (*)(fifo *, buffer *)) dead_end;
+	f->wait_empty = (buffer * (*)(fifo *))		 dead_end;
+	f->send_full  = (void     (*)(fifo *, buffer *)) dead_end;
+	f->start      = (bool     (*)(fifo *))           dead_end;
+	f->uninit     = (void     (*)(fifo *))           dead_end;
 }
 
-int
-init_buffered_fifo(fifo *f, mucon *consumer, int size, int num_buffers)
+static void
+send_empty(fifo *f, buffer *b)
+{
+	pthread_mutex_lock(&f->producer.mutex);
+	
+	add_head(&f->empty, &b->node);
+	
+	pthread_mutex_unlock(&f->producer.mutex);
+	pthread_cond_broadcast(&f->producer.cond);
+}
+
+/*
+    No wait_*, recv_* because we don't bother callback
+    producers with unget_full.
+ */
+static void
+send_full(fifo *f, buffer *b)
 {
 	int i;
 
-	memset(f, 0, sizeof(fifo));
+	pthread_mutex_lock(&f->consumers_mutex);
 
-	if (num_buffers > 0) {
-		if (!(f->buffers = calloc(num_buffers, sizeof(buffer))))
-			return 0;
-		
-		for (i = 0; i < num_buffers; i++) {
-			if (!init_buffer(&f->buffers[i], size))
-				break;
-		
-			add_tail(&f->empty, &f->buffers[i].node);
+	if (f->num_consumers) {
+		b->refcount = f->num_consumers;
+
+		for (i=0; i<f->num_consumers; i++) {
+			pthread_mutex_lock(&(f->consumers[i].consumer.mutex));
+			add_tail(&(f->consumers[i].full), &b->node);
+			pthread_mutex_unlock(&(f->consumers[i].consumer.mutex));
+			pthread_cond_broadcast(&(f->consumers[i].consumer.cond));
 		}
-
-		for (i = 0; i < num_buffers; i++)
-			f->buffers[i].index = i;
-		
-		if (i == 0) {
-			free(f->buffers);
-			f->buffers = NULL;
-			return 0;
-		}
-
-		f->num_buffers = i;
+	} else {
+		b->refcount = 1;
+		send_empty(f, b);
+		printv(0, "Ignoring full buffer: no consumers in fifo %p\n", f);
 	}
 	
-	mucon_init(&f->producer);
-	f->consumer = consumer; /* NB the consumer mucon can be shared,
-				   cf. video, audio -> mux */
-
-	f->start = tv_sucks;
-
-	return f->num_buffers; // sic
+	pthread_mutex_unlock(&f->consumers_mutex);
 }
 
 int
 init_callback_fifo(fifo *f,
-	buffer * (* wait_full)(fifo *),
-	void     (* send_empty)(fifo *, buffer *),
-	buffer * (* wait_empty)(fifo *),
-	void     (* send_full)(fifo *, buffer *),
-	int size, int num_buffers)
+	buffer * (* custom_wait_full)(fifo *),
+	void     (* custom_send_empty)(fifo *, buffer *),
+	buffer * (* custom_wait_empty)(fifo *),
+	void     (* custom_send_full)(fifo *, buffer *),
+	int num_buffers, int buffer_size)
 {
 	int i;
+	pthread_mutexattr_t mutexattr;
 
 	memset(f, 0, sizeof(fifo));
 
-	if (!(f->buffers = calloc(num_buffers, sizeof(buffer))))
-		return 0;
-	
+	if (custom_send_full)
+		FAIL("send_full callback not allowed");
+
+	pthread_mutexattr_init(&mutexattr);
+	pthread_mutexattr_settype(&mutexattr,
+				  PTHREAD_MUTEX_RECURSIVE_NP);
+	pthread_mutex_init(&(f->consumers_mutex), &mutexattr);
+	pthread_mutexattr_destroy(&mutexattr);
+
 	if (num_buffers > 0) {
-		for (i = 0; i < num_buffers; i++) {
-			if (!init_buffer(&f->buffers[i], size))
-				break;
-		
-			add_tail(&f->empty, &f->buffers[i].node);
-		}
+		f->num_buffers = alloc_buffer_vec(&f->buffers,
+			num_buffers, buffer_size);
 
-		for (i = 0; i < num_buffers; i++)
-			f->buffers[i].index = i;
-
-		if (i == 0) {
-			free(f->buffers);
-			f->buffers = NULL;
+		if (f->num_buffers == 0)
 			return 0;
-		}
 
-		f->num_buffers = i;
+		for (i = 0; i < f->num_buffers; i++)
+			add_tail(&f->empty, &f->buffers[i].node);
 	}
 
 	mucon_init(&f->producer);
 
-	f->wait_full  = wait_full;
-	f->send_empty = send_empty;
-	f->wait_empty = wait_empty;
-	f->send_full  = send_full;
+	f->wait_full  = custom_wait_full  ? custom_wait_full  : NULL;
+	f->send_empty = custom_send_empty ? custom_send_empty : send_empty;
+	f->wait_empty = custom_wait_empty ? custom_wait_empty : NULL;
+	f->send_full  = custom_send_full  ? custom_send_full  : send_full;
 
-	f->start = tv_sucks;
+	/*
+	    The caller may want to know what the defaults were
+	    when overriding these.
+	 */
+	f->start = start;
+	f->uninit = uninit;
 
 	return f->num_buffers;
 }
 
 int
-buffers_queued(fifo *f)
+init_buffered_fifo(fifo *f, mucon *consumer, int num_buffers, int buffer_size)
+{
+	init_callback_fifo(f, NULL, NULL, NULL, NULL,
+		num_buffers, buffer_size);
+
+	if (num_buffers > 0 && f->num_buffers <= 0)
+		return 0;
+
+	/* there are no public consumer mucons in this implementation */
+	if (consumer)
+		FAIL("Custom consumer mucons not allowed");
+//	f->consumer = consumer;
+
+	return f->num_buffers;
+}
+
+int
+num_buffers_queued(fifo *f)
 {
 	node *n;
 	int i;
+	list *full; mucon *consumer;
 
-	pthread_mutex_lock(&f->consumer->mutex);
-	for (n = f->full.head, i = 0; n; n = n->next, i++); 
-	pthread_mutex_unlock(&f->consumer->mutex);
+	pthread_mutex_lock(&f->consumers_mutex);
+	query_consumer(f, &full, &consumer);
+	pthread_mutex_lock(&consumer->mutex);
+
+	for (n = full->head, i = 0; n; n = n->next, i++); 
+
+	pthread_mutex_unlock(&consumer->mutex);
+	pthread_mutex_unlock(&f->consumers_mutex);
 
 	return i;
 }

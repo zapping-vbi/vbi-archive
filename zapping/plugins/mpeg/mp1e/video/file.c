@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.4 2000-10-15 21:24:49 mschimek Exp $ */
+/* $Id: file.c,v 1.5 2000-12-15 00:14:19 garetxe Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -288,8 +288,8 @@ file_init(void)
 	filter_init(pitch);
 
 	ASSERT("init capture fifo", init_callback_fifo(&cap_fifo,
-		wait_full, send_empty, NULL, NULL, buffer_size,
-		video_look_ahead(gop_sequence)));
+		wait_full, send_empty, NULL, NULL,
+		video_look_ahead(gop_sequence), buffer_size));
 
 	printv(2, "Reading images %d x %d named '%s'\n",
 		width, height, cap_dev);

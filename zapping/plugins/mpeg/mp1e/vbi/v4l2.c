@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.5 2000-11-01 08:59:18 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.6 2000-12-15 00:14:19 garetxe Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -221,7 +221,7 @@ open_v4l2(struct v4l2_context *v4l2, char *dev_name)
 		printv(2, "%d vbi capture buffers granted\n", vrbuf.count);
 
 		ASSERT("init vbi capture fifo", init_callback_fifo(&v4l2->vbi.fifo,
-			wait_full_stream, send_empty_stream, NULL, NULL, 0, vrbuf.count));
+			wait_full_stream, send_empty_stream, NULL, NULL, vrbuf.count, 0));
 
 		v4l2->vbi.fifo.start = capture_on;
 		v4l2->vbi.fifo.user_data = v4l2;

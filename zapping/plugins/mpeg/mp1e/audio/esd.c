@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.6 2000-11-11 02:32:21 mschimek Exp $ */
+/* $Id: esd.c,v 1.7 2000-12-15 00:14:19 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -174,7 +174,7 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 		FAIL("Couldn't create esd recording socket");
 
 	ASSERT("init pcm/esd capture fifo", init_callback_fifo(&esd->pcm.fifo,
-		wait_full, send_empty, NULL, NULL, buffer_size, 1));
+		wait_full, send_empty, NULL, NULL, 1, buffer_size));
 
 	esd->pcm.fifo.buffers[0].data = NULL;
 	esd->pcm.fifo.buffers[0].used =

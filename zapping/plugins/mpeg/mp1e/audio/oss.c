@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.10 2000-11-11 02:32:21 mschimek Exp $ */
+/* $Id: oss.c,v 1.11 2000-12-15 00:14:19 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -200,7 +200,7 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	}
 
 	ASSERT("init pcm/oss capture fifo", init_callback_fifo(&oss->pcm.fifo,
-		wait_full, send_empty, NULL, NULL, buffer_size, 1));
+		wait_full, send_empty, NULL, NULL, 1, buffer_size));
 
 	oss->pcm.fifo.buffers[0].data = NULL;
 	oss->pcm.fifo.buffers[0].used =

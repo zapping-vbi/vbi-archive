@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.33 2000-11-30 09:36:37 mschimek Exp $ */
+/* $Id: main.c,v 1.34 2000-12-15 00:14:19 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -207,7 +207,7 @@ main(int ac, char **av)
 
 	/* Compression init */
 
-	mucon_init(&mux_mucon);
+//	mucon_init(&mux_mucon);
 
 	if (modules & MOD_AUDIO) {
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };

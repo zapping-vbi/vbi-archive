@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.11 2000-11-11 02:32:21 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.12 2000-12-15 00:14:19 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -488,8 +488,8 @@ reschedule:
 
 			if (0)
 				printv(1, ", fifo v=%5.2f%% a=%5.2f%%",
-					100.0 * buffers_queued(video_fifo) / video_fifo->num_buffers,
-					100.0 * buffers_queued(audio_fifo) / audio_fifo->num_buffers);
+					100.0 * num_buffers_queued(video_fifo) / video_fifo->num_buffers,
+					100.0 * num_buffers_queued(audio_fifo) / audio_fifo->num_buffers);
 
 			printv(1, (verbose > 3) ? "\n" : "  \r");
 

@@ -336,7 +336,6 @@ zvbi_get_time(gint * hour, gint * min, gint * sec)
 #undef FALSE // duh.
 #include "../common/fifo.h"
 
-/* thread function (just a loop that selects on the VBI device) */
 static void * zvbi_thread(void *p)
 {
   extern void vbi_teletext(struct vbi *vbi, buffer *b);

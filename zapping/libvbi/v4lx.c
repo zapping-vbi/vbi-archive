@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.2 2000-12-13 04:40:36 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.3 2000-12-15 00:14:19 garetxe Exp $ */
 
 #define _GNU_SOURCE
 
@@ -131,9 +131,10 @@ start_read(fifo *f)
 
 	if ((b = wait_full_read(f))) {
 		unget_full_buffer(f, b);
+		remove_consumer(f);
 		return TRUE; /* access should be finally granted */
 	}
-
+	remove_consumer(f);
 	return FALSE;
 }
 
@@ -523,7 +524,8 @@ wait_full_stream(fifo *f)
 	buffer *b;
 	int r = -1;
 
-	b = (buffer *) rem_head(&f->empty);
+	//	b = (buffer *) rem_head(&f->empty);
+	b = wait_empty_buffer(f);
 
 	while (r <= 0) {
 		FD_ZERO(&fds);
@@ -591,8 +593,10 @@ start_stream(fifo *f)
 
 	if ((b = wait_full_stream(f))) {
 		unget_full_buffer(f, b);
+		remove_consumer(f);
 		return TRUE;
 	}
+	remove_consumer(f);
 
 	return FALSE;
 }
@@ -747,7 +751,7 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 		vbi->streaming = TRUE;
 
 		if (!init_callback_fifo(&vbi->fifo,
-		    wait_full_stream, send_empty_stream, NULL, NULL, fifo_depth,
+			wait_full_stream, send_empty_stream, NULL, NULL, fifo_depth,
 		    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 			goto failure;
 		}

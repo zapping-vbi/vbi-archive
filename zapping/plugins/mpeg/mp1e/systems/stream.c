@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.c,v 1.8 2000-11-11 02:32:21 mschimek Exp $ */
+/* $Id: stream.c,v 1.9 2000-12-15 00:14:19 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +35,7 @@
 #include "systems.h"
 #include "stream.h"
 
-mucon			mux_mucon;
+//mucon			mux_mucon;
 list			mux_input_streams;
 
 void
@@ -71,7 +71,7 @@ mux_add_input_stream(int stream_id, int max_size, int buffers,
 	str->bit_rate = bit_rate;
 	str->cap_fifo = cap_fifo;
 
-	buffers = init_buffered_fifo(&str->fifo, &mux_mucon, max_size, buffers);
+	buffers = init_buffered_fifo(&str->fifo, NULL/*&mux_mucon*/, buffers, max_size);
 
 	if (!buffers) {
 		free(str);
@@ -101,10 +101,10 @@ stream_sink(void *unused)
 			if (str->left && (buf = recv_full_buffer(&str->fifo)))
 				break;
 
-		if (!str) {
+/*		if (!str) {
 			wait_mucon(&mux_mucon);
 			continue;
-		}
+			}*/
 
 		if (!buf->used) {
 			str->left = 0;

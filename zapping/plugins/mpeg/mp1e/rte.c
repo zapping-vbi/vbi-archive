@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.39 2000-11-12 22:25:36 garetxe Exp $ */
+/* $Id: rte.c,v 1.40 2000-12-15 00:14:19 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -114,14 +114,14 @@ wait_data(rte_context * context, int video)
 {
 	fifo * f;
 	buffer * b;
-	mucon * consumer;
+	mucon * consumer; list *full;
 	rteDataCallback * data_callback;
 	rteBufferCallback * buffer_callback;
 	rte_buffer rbuf;
 	enum rte_mux_mode stream = video ? RTE_VIDEO : RTE_AUDIO;
 	
 	nullcheck(context, return NULL);
-	
+
 	if (video) {
 		f = &context->private->vid;
 		data_callback = &context->private->video_data_callback;
@@ -133,12 +133,13 @@ wait_data(rte_context * context, int video)
 		buffer_callback = &context->private->audio_buffer_callback;
 	}
 
-	consumer = f->consumer;
+	pthread_mutex_lock(&f->consumers_mutex);
+	query_consumer(f, &full, &consumer);
 
 	/* do we have an available buffer from the push interface? */
 	pthread_mutex_lock(&consumer->mutex);
 
-	while (!(b = (buffer*) rem_head(&f->full))) {
+	while (!(b = (buffer*) rem_head(full))) {
 		if (*data_callback) { /* no, callback
 					 interface */
 			b = wait_empty_buffer(f);
@@ -151,6 +152,7 @@ wait_data(rte_context * context, int video)
 					 stream, context->private->user_data);
 			
 			pthread_mutex_unlock(&consumer->mutex);
+			pthread_mutex_unlock(&f->consumers_mutex);
 			return b;
 		} else if (*buffer_callback) {
 			b = wait_empty_buffer(f);
@@ -161,6 +163,7 @@ wait_data(rte_context * context, int video)
 			b->user_data = rbuf.user_data;
 
 			pthread_mutex_unlock(&consumer->mutex);
+			pthread_mutex_unlock(&f->consumers_mutex);
 			return b;
 		}
 		/* wait for the push interface */
@@ -168,7 +171,7 @@ wait_data(rte_context * context, int video)
 	}
 
 	pthread_mutex_unlock(&consumer->mutex);
-
+	pthread_mutex_unlock(&f->consumers_mutex);
 	return b;
 }
 
@@ -705,9 +708,10 @@ int rte_init_context ( rte_context * context )
 		if (context->private->video_buffered)
 			alloc_bytes = 0; /* no need for preallocated
 					    mem */
-		if (2 > init_buffered_fifo(&(context->private->vid),
-			  &(context->private->vid_consumer), alloc_bytes,
-				       video_look_ahead(gop_sequence))) {
+		if (2 > init_buffered_fifo(&(context->private->vid), NULL,
+					   /*&(context->private->vid_consumer)*/
+				       video_look_ahead(gop_sequence),
+					   alloc_bytes)) {
 			rte_error(context, "not enough mem");
 			return 0;
 		}
@@ -723,8 +727,8 @@ int rte_init_context ( rte_context * context )
 		else
 			alloc_bytes = 0;
 		if (4 > init_buffered_fifo(&(context->private->aud),
-		      &(context->private->aud_consumer), alloc_bytes,
-					   NUM_AUDIO_BUFFERS)) {
+					   NULL, /*&(context->private->aud_consumer)*/
+				   NUM_AUDIO_BUFFERS, alloc_bytes)) {
 			uninit_fifo(&(context->private->vid));
 			rte_error(context, "not enough mem");
 			return 0;
@@ -1195,7 +1199,7 @@ static void rte_audio_startup(void)
 /* Compression parameters */
 static void rte_compression_startup(void)
 {
-	mucon_init(&mux_mucon);
+//	mucon_init(&mux_mucon);
 }
 
 static void rte_audio_init(void) /* init audio capture */

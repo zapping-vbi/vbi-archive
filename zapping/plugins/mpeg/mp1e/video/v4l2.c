@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.7 2000-10-15 21:24:49 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.8 2000-12-15 00:14:19 garetxe Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -336,7 +336,7 @@ v4l2_init(void)
 	printv(2, "%d capture buffers granted\n", vrbuf.count);
 
 	ASSERT("init capture fifo", init_callback_fifo(&cap_fifo,
-		wait_full, send_empty, NULL, NULL, 0, vrbuf.count));
+		wait_full, send_empty, NULL, NULL, vrbuf.count, 0));
 
 	cap_fifo.start = capture_on;
 
