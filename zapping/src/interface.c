@@ -10,8 +10,9 @@
 #include <gnome.h>
 #include <glade/glade.h>
 
-#include "callbacks.h"
+//#include "callbacks.h"
 #include "interface.h"
+#include "zmisc.h"
 
 /* The widget is being destroyed, destroy the GladeXML tree attached
    to it too */
@@ -46,8 +47,9 @@ lookup_widget(GtkWidget * parent, const char * name)
 
       if (!widget)
 	{
-	  g_warning(_("Widget tree not found for %s"), name);
-	  return NULL; /* No way, it could not be found */
+	  RunBox("No widget tree found for %s, please contact the maintainer",
+		 GNOME_MESSAGE_BOX_ERROR, name);
+	  exit(1);
 	}
     }
 
@@ -55,8 +57,9 @@ lookup_widget(GtkWidget * parent, const char * name)
   widget = glade_xml_get_widget (tree, name);
   if (!widget)
     {
-      g_warning(_("Widget not found: %s"), name);
-      return NULL;
+      RunBox("Widget %s not found, please contact the maintainer",
+	     GNOME_MESSAGE_BOX_ERROR, name);
+      exit(1);
     }
 
   return widget;
@@ -74,12 +77,20 @@ build_widget(const char* name, const char* glade_file)
   GtkWidget * widget;
 
   if ( !xml )
-    return NULL;
+    {
+      RunBox("%s [%s] couldn't be found, please contact the maintainer",
+	     GNOME_MESSAGE_BOX_ERROR, glade_file, name);
+      exit(1);
+    }
 
   widget = glade_xml_get_widget(xml, name);
 
   if ( !widget )
-    return NULL;
+    {
+      RunBox("%s [%s] couldn't be loaded, please contact the maintainer",
+	     GNOME_MESSAGE_BOX_ERROR, glade_file, name);
+      exit(1);
+    }
 
   glade_xml_signal_autoconnect(xml);
 

@@ -47,9 +47,6 @@ extern enum tveng_capture_mode restore_mode; /* the mode set when we went
 
 /**** GLOBAL STUFF ****/
 
-/* fixme: hack, remove */
-int			forced_bpp=-1;
-
 /* These are accessed by other modules as extern variables */
 tveng_device_info	*main_info;
 gboolean		flag_exit_program = FALSE;
@@ -160,7 +157,6 @@ print_info(void)
 	  format->pixformat, format->bpp, format->sizeimage );
 
   fprintf(stderr, "detected x11 depth: %d\n", x11_get_bpp());
-  fprintf(stderr, "forced bpp: %d\n", forced_bpp);
 }
 
 int main(int argc, char * argv[])
@@ -177,15 +173,6 @@ int main(int argc, char * argv[])
   gboolean oldbttv = FALSE;
 
   const struct poptOption options[] = {
-    {
-      "forced-bpp",
-      'f',
-      POPT_ARG_INT,
-      &forced_bpp,
-      0,
-      N_("Give the XImage bpp"),
-      N_("BPP")
-    },
     {
       "bpp",
       'b',
@@ -259,7 +246,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.71 2000-12-17 22:12:56 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.72 2000-12-26 17:23:35 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -379,16 +366,6 @@ int main(int argc, char * argv[])
   D();
   main_window = create_zapping();
   D();
-  if (!main_window)
-    {
-      RunBox("Sorry, but " PACKAGE_DATA_DIR
-	     "/zapping.glade\ncouldn't"
-	     " be loaded. Check your installation.\n",
-	     GNOME_MESSAGE_BOX_ERROR);
-      tveng_device_info_destroy(main_info);
-      return 0;
-    }
-  D();
   tv_screen = lookup_widget(main_window, "tv_screen");
   printv("tv_screen is %p\n", (gpointer)tv_screen);
   g_assert(tv_screen != NULL);
@@ -449,9 +426,24 @@ int main(int argc, char * argv[])
       gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "separador5"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "separador6"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "separador6"));
       gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "videotext1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext2"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "videotext2"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "videotext3"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "new_ttxview"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview2"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "new_ttxview2"));
       /* Set the capture mode to a default value and disable VBI */
       if (zcg_int(NULL, "capture_mode") == TVENG_NO_CAPTURE)
 	zcs_int(TVENG_CAPTURE_READ, "capture_mode");
@@ -515,12 +507,17 @@ int main(int argc, char * argv[])
       gdk_window_move_resize(main_window->window, x, y, w, h);
     }
   D();
+  if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_extra"))
+    {
+      gtk_widget_hide(lookup_widget(main_window, "Inputs"));
+      gtk_widget_hide(lookup_widget(main_window, "Standards"));
+    }
+  D();
   gdk_window_set_back_pixmap(tv_screen->window, NULL, FALSE);
   if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"),
 			   main_info))
     fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
   D(); printv("going into main loop...\n");
-  gtk_widget_show(build_ttxview());
   while (!flag_exit_program)
     {
       while (gtk_events_pending())

@@ -677,14 +677,6 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
   GtkAdjustment * adj;
   gint page;
 
-  if (!mpeg_properties)
-    {
-      ShowBox("mpeg_properties.glade couldn't be found,\n"
-	      "the mpeg plugin properties cannot be added.",
-	      GNOME_MESSAGE_BOX_ERROR);
-      return;
-    }
-
   /* Set current values and connect callbacks */
   widget = lookup_widget(mpeg_properties, "fileentry1");
   widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));

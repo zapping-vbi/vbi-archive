@@ -20,3 +20,5 @@ Outstanding issues for the next release
 	+ Key combos for lazy guys like me (channels + mute)
 	+ Fullscreen channel tips.
 	+ GUI improvements (channel selection, controls, toolbar...)
+	+ Make it more independant from the video device (we should be
+	  able to attach to a different device while running)

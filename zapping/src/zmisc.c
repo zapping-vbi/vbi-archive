@@ -245,6 +245,9 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     case TVENG_CAPTURE_READ:
       capture_stop(info);
       break;
+    case TVENG_CAPTURE_WINDOW:
+      overlay_stop(info, main_window);
+      break;
     default:
       break;
     }

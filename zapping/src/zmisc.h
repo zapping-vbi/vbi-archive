@@ -46,14 +46,23 @@ do { \
 } while (FALSE)
 
 /* This one shows a modal, non-blocking message box */
-#define ShowBoxModal(MSG, MSGTYPE) \
-ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
-MSG, MSGTYPE, FALSE, TRUE)
+#define ShowBoxModal(MSG, MSGTYPE, args...) \
+do { \
+  gchar * tmp_str = g_strdup_printf(MSG,##args); \
+  ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
+	      tmp_str, MSGTYPE, FALSE, TRUE); \
+  g_free(tmp_str); \
+} while (FALSE)
+
 
 /* This one shows a modal, blocking message box */
-#define RunBox(MSG, MSGTYPE) \
-ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
-MSG, MSGTYPE, TRUE, TRUE)
+#define RunBox(MSG, MSGTYPE, args...) \
+do { \
+  gchar * tmp_str = g_strdup_printf(MSG,##args); \
+  ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
+	      tmp_str, MSGTYPE, TRUE, TRUE); \
+  g_free(tmp_str); \
+} while (FALSE)
 
 /* Some debug messages to track the startup */
 extern gboolean debug_msg;

@@ -33,6 +33,7 @@
 #include "plugins.h"
 #include "zconf.h"
 #include "zvbi.h"
+#include "ttxview.h"
 
 gboolean flag_exit_program; /* set this flag to TRUE to exit the program */
 extern GtkWidget * ToolBox; /* Here is stored the Toolbox (if any) */
@@ -59,6 +60,7 @@ gboolean startup_callbacks(void)
   zcc_int(480, "Height of the Zapping window", "h");
   zcc_int(0, "Currently tuned channel", "cur_tuned_channel");
   cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
+  zcc_bool(FALSE, "Hide th extra controls", "hide_extra");
 
   return TRUE;
 }
@@ -142,6 +144,26 @@ on_main_help1_activate                 (GtkMenuItem     *menuitem,
 
   if (tveng_restart_everything(cur_mode, main_info) == -1)
     ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
+}
+
+void
+on_hide_menubars1_activate             (GtkMenuItem     *menuitem,
+					gpointer         user_data)
+{
+  gint w, h;
+
+  if (zcg_bool(NULL, "hide_extra"))
+    {
+      zcs_bool(FALSE, "hide_extra");
+      gtk_widget_show(lookup_widget(main_window, "Inputs"));
+      gtk_widget_show(lookup_widget(main_window, "Standards")); 
+    }
+  else
+    {
+      zcs_bool(TRUE, "hide_extra");
+      gtk_widget_hide(lookup_widget(main_window, "Inputs"));
+      gtk_widget_hide(lookup_widget(main_window, "Standards"));
+    }
 }
 
 gboolean
@@ -349,6 +371,13 @@ on_videotext1_activate                 (GtkMenuItem     *menuitem,
 
   /* start vbi code */
   zvbi_set_mode(TRUE);
+}
+
+void
+on_new_ttxview_activate		       (GtkMenuItem	*menuitem,
+					gpointer	user_data)
+{
+  gtk_widget_show(build_ttxview());
 }
 
 void

@@ -57,12 +57,8 @@ x11_get_byte_order(void)
 gint
 x11_get_bpp(void)
 {
-  extern int forced_bpp;
   GdkImage * tmp_image;
   gint result;
-
-  if (forced_bpp > 0)
-    return forced_bpp;
 
   tmp_image =
     gdk_image_new(GDK_IMAGE_FASTEST, gdk_visual_get_system(), 16, 16);
@@ -82,10 +78,10 @@ x11_get_bpp(void)
  */
 static
 void x11_add_clip(int x1, int y1, int x2, int y2,
-		    struct tveng_clip ** clips, gint* num_clips)
+		  struct tveng_clip ** clips, gint* num_clips)
 {
   /* the border is because of the possible dword-alignings */
-  *clips = realloc(*clips, ((*num_clips)+1)*sizeof(struct tveng_clip));
+  *clips = g_realloc(*clips, ((*num_clips)+1)*sizeof(struct tveng_clip));
   (*clips)[*num_clips].x = x1;
   (*clips)[*num_clips].y = y1;
   (*clips)[*num_clips].width = x2-x1;
@@ -107,7 +103,7 @@ int xerror(Display * dpy, XErrorEvent *event)
 }
 
 /*
- * Returns a pointer to a clips struct (that you need to free()
+ * Returns a pointer to a clips struct (that you need to g_free()
  * afterwards if not NULL).
  * Pass the GdkWindow that you want to get the clip status of.
  * x, y, w, h are the coords of the overlay in that window.

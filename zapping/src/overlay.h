@@ -35,6 +35,12 @@ startup_overlay(gboolean use_xv, GtkWidget * window, GtkWidget *
 		main_window, tveng_device_info * info);
 
 /*
+ * Stops the overlay engine.
+ */
+void
+overlay_stop(tveng_device_info *info, GtkWidget *main_window);
+
+/*
  * Shuts down the overlay engine
  * do_cleanup: TRUE if the screen should be cleaned
  */

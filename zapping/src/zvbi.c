@@ -48,14 +48,11 @@
  *	- protect against vbi=NULL
  *	- remove old cruft
  *	- lower mem usage, improve performance
- *	- history_stack per client, history global
  */
 
 #undef TRUE
 #undef FALSE
 #include "../common/fifo.h"
-
-/* fixme: The history_stack should keep track of subpages too */
 
 static struct vbi *vbi=NULL; /* holds the vbi object */
 static GtkWidget* txtcontrols=NULL; /* GUI controller for the TXT */
@@ -378,7 +375,7 @@ build_client_page(struct ttx_client *client, struct vt_page *vtp)
     {
       if (client->scaled)
 	gdk_pixbuf_unref(client->scaled);
-      client->scaled = NULL;
+
       if ((client->w > 0) && (client->h > 0))
 	client->scaled = gdk_pixbuf_scale_simple(client->unscaled,
 						 client->w, client->h,
@@ -472,13 +469,15 @@ void render_ttx_page(int id, GdkDrawable *drawable,
 	    {
 	      if (client->scaled)
 		gdk_pixbuf_unref(client->scaled);
-	      client->scaled =
-		gdk_pixbuf_scale_simple(client->unscaled,
-					w, h, GDK_INTERP_BILINEAR);
+
+	      client->scaled = gdk_pixbuf_scale_simple(client->unscaled,
+						       w, h,
+						       GDK_INTERP_BILINEAR);
+
 	      client->w = w;
 	      client->h = h;
 	    }
-
+	  
 	  if (client->scaled)
 	    gdk_pixbuf_render_to_drawable(client->scaled,
 					  drawable,
@@ -593,10 +592,10 @@ event(struct dl_head *reqs, struct vt_event *ev)
 	
 	/* Set the dirty flag on the page */
 	notify_clients(vtp->pgno, vtp->subno, vtp);
-	//	zvbi_set_page_state(vtp->pgno, vtp->subno, TRUE, time(NULL));
+	zvbi_set_page_state(vtp->pgno, vtp->subno, TRUE, time(NULL));
 	/* Now render the mem version of the page */
-	//	if (vbi_mode)
-	//	  zvbi_render_monitored_page(vtp);
+	if (vbi_mode)
+	  zvbi_render_monitored_page(vtp);
 	break;
     case EV_XPACKET:
 	p = ev->p1;

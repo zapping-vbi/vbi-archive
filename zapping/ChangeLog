@@ -1,3 +1,10 @@
+26.12.2000	GUI changes <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade: Added some GUI elements to access the new
+	stuff, and the option to hide the Standards, Inputs optionmenus.
+	* src/overlay.c: Made it a bit more modular.
+	* src/callbacks.c: Code to handle the new GUi items, unfinished.
+
 23.12.2000	History done <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: History works now

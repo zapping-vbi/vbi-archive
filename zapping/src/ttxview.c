@@ -46,7 +46,6 @@ typedef struct {
   GdkCursor		*arrow; /* global? */
   int			id; /* TTX client id */
   guint			timeout; /* id */
-  gboolean		needs_redraw; /* isn't rendered yet */
   struct fmt_page	*fmt_page; /* current page, formatted */
   gint			page; /* page we are entering */
   gint			subpage; /* current subpage */
@@ -400,10 +399,12 @@ void on_ttxview_size_allocate		(GtkWidget	*widget,
 					 GtkAllocation	*allocation,
 					 ttxview_data	*data)
 {
-  data->needs_redraw = TRUE;
+  scale_image(widget, allocation->width, allocation->height, data);
 
-  gdk_window_clear_area_e(widget->window, 0, 0, allocation->width,
-			  allocation->height);
+  if (data->scaled)
+    gdk_draw_pixmap(widget->window, widget->style->white_gc,
+		    data->scaled, 0, 0, 0, 0,
+		    allocation->width, allocation->height);
 }
 
 static
@@ -411,18 +412,6 @@ gboolean on_ttxview_expose_event	(GtkWidget	*widget,
 					 GdkEventExpose	*event,
 					 ttxview_data	*data)
 {
-  gint w, h;
-
-  if (data->needs_redraw)
-    {
-      gdk_window_get_size(widget->window, &w, &h);
-      scale_image(widget, w, h, data);
-      data->needs_redraw = FALSE;
-    }
-
-  if (!data->scaled)
-    return TRUE;
-
   gdk_draw_pixmap(widget->window, widget->style->white_gc,
 		  data->scaled, event->area.x, event->area.y,
 		  event->area.x, event->area.y,
@@ -609,7 +598,6 @@ build_ttxview(void)
   data = g_malloc(sizeof(ttxview_data));
   memset(data, 0, sizeof(ttxview_data));
 
-  data->needs_redraw = TRUE;
   data->da = lookup_widget(ttxview, "drawingarea1");
   data->id = register_ttx_client();
   data->timeout =

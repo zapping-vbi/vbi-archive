@@ -168,7 +168,7 @@ overlay_clearing_timeout(gpointer data)
     { /* delay the update till the situation stabilizes */
       if (tv_info.clips)
 	{
-	  free(tv_info.clips);
+	  g_free(tv_info.clips);
 	  malloc_count --;
 	}
 
@@ -181,7 +181,7 @@ overlay_clearing_timeout(gpointer data)
 
   if (clips) {
     malloc_count --;
-    free(clips);
+    g_free(clips);
   }
 
   if ((tv_info.info->current_mode == TVENG_CAPTURE_WINDOW) &&
@@ -264,7 +264,7 @@ overlay_periodic_timeout(gpointer data)
 
   if (tv_info.clips) {
     malloc_count --;
-    free(tv_info.clips);
+    g_free(tv_info.clips);
   }
 
   tv_info.clips = clips;
@@ -315,13 +315,13 @@ on_main_overlay_delete_event           (GtkWidget       *widget,
                                         GdkEvent        *event,
                                         gpointer         user_data)
 {
-  if (tv_info.clear_timeout_id)
+  if (tv_info.clear_timeout_id >= 0)
     {
       gtk_timeout_remove(tv_info.clear_timeout_id);
       tv_info.clear_timeout_id = -1;
     }
 
-  if (tv_info.check_timeout_id)
+  if (tv_info.check_timeout_id >= 0)
     {
       gtk_timeout_remove(tv_info.check_timeout_id);
       tv_info.check_timeout_id = -1;
@@ -386,6 +386,33 @@ startup_overlay(gboolean use_xv, GtkWidget * window, GtkWidget *
 }
 
 /*
+ * Stops the overlay engine.
+ */
+void
+overlay_stop(tveng_device_info *info, GtkWidget *main_window)
+{
+  gtk_signal_disconnect_by_func(GTK_OBJECT(main_window),
+				GTK_SIGNAL_FUNC(on_main_overlay_event),
+				NULL);
+
+  gtk_signal_disconnect_by_func(GTK_OBJECT(main_window),
+				GTK_SIGNAL_FUNC(on_main_overlay_delete_event),
+				NULL);
+
+  if (tv_info.clear_timeout_id >= 0)
+    {
+      gtk_timeout_remove(tv_info.clear_timeout_id);
+      tv_info.clear_timeout_id = -1;
+    }
+
+  if (tv_info.check_timeout_id >= 0)
+    {
+      gtk_timeout_remove(tv_info.check_timeout_id);
+      tv_info.check_timeout_id = -1;
+    }
+}
+
+/*
  * Shuts down the overlay engine
  * do_cleanup: TRUE if the screen is possibly corrupted
  */
@@ -414,7 +441,7 @@ overlay_sync(gboolean clean_screen)
 
   if (tv_info.clips) {
     malloc_count --;
-    free(tv_info.clips);
+    g_free(tv_info.clips);
   }
 
   tv_info.info->window.x = tv_info.x;
@@ -429,7 +456,7 @@ overlay_sync(gboolean clean_screen)
   tveng_set_preview_window(tv_info.info);
 
   if (tv_info.clips) {
-    free(tv_info.clips);
+    g_free(tv_info.clips);
     malloc_count --;
   }
 
