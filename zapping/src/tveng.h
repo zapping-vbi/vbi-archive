@@ -59,7 +59,7 @@
 #include "libtv/callback.h"
 
 /* The video device capabilities flags */
-#define TVENG_CAPS_CAPTURE 1 /* Can capture to memory */
+#define TVENG_CAPS_CAPTURE (1 << 0) /* Can capture to memory */
 #define TVENG_CAPS_TUNER (1 << 1) /* Has some tuner */
 #define TVENG_CAPS_TELETEXT (1 << 2) /* Has teletext */
 #define TVENG_CAPS_OVERLAY (1 << 3) /* Can overlay to the framebuffer */
@@ -71,6 +71,7 @@
 #define TVENG_CAPS_MONOCHROME (1 << 8) /* greyscale only */
 #define TVENG_CAPS_SUBCAPTURE (1 << 9) /* Can capture only part of the
 					image */
+#define TVENG_CAPS_QUEUE (1 << 10) /* Has a buffer queue */
 
 /* The valid modes for opening the video device */
 enum tveng_attach_mode
@@ -412,6 +413,9 @@ struct _tv_video_standard {
 
 	/* Nominal frame rate, either 25 or 30000 / 1001 Hz. */
 	double			frame_rate;
+
+	/* Nominal frame period in 90 kHz ticks. */
+	unsigned int		frame_ticks;
 };
 
 static __inline__ tv_callback *
@@ -552,10 +556,18 @@ tv_audio_update			(tveng_device_info *	info);
  *  Video capture
  */
 
-tv_bool
-tv_clear_image			(void *			image,
-				 unsigned int		luma,
-				 const tv_image_format *format);
+typedef struct {
+	void *			data;
+	unsigned int		size;
+
+	double			sample_time;
+	uint64_t		stream_time;
+
+	const tv_image_format *	format;
+} tv_capture_buffer;
+
+extern tv_bool
+tv_capture_buffer_clear		(tv_capture_buffer *	cb);
 
 /* Convenience construction for managing image data */
 typedef union {
@@ -907,6 +919,12 @@ tveng_stop_capturing(tveng_device_info * info);
 */
 int tveng_read_frame(tveng_image_data * dest,
 		     unsigned int wait_time, tveng_device_info * info);
+tv_bool
+tv_queue_capture_buffer		(tveng_device_info *	info,
+				 const tv_capture_buffer *buffer);
+const tv_capture_buffer *
+tv_dequeue_capture_buffer	(tveng_device_info *	info,
+				 unsigned int		time);
 
 /*
   Gets the timestamp of the last read frame in seconds.
@@ -964,6 +982,11 @@ tv_set_overlay_xwindow		(tveng_device_info *	info,
 extern tv_bool
 tv_enable_overlay		(tveng_device_info *	info,
 				 tv_bool		enable);
+
+extern void
+tveng_copy_frame		(unsigned char *	src,
+				 tveng_image_data *	where,
+				 tveng_device_info *	info);
 
 /* 
    This is a convenience function, it returns the real screen depth in
