@@ -503,7 +503,7 @@ build_properties_contents	(GtkDialog	*dialog)
   vbox = gtk_vbox_new(FALSE, 0);
   gtk_widget_show(vbox);
   gtk_container_add(GTK_CONTAINER(frame), vbox);
-  register_widget(vbox, "group-container");
+  register_widget(NULL, vbox, "group-container");
 
   /* Create a notebook for holding the pages. Note that we don't rely
      on any of the notebook's features, we select the active page
@@ -519,7 +519,7 @@ build_properties_contents	(GtkDialog	*dialog)
   gtk_notebook_set_scrollable(notebook, FALSE);
   gtk_notebook_popup_disable(notebook);
   gtk_container_add(GTK_CONTAINER(frame), GTK_WIDGET(notebook));
-  register_widget(GTK_WIDGET(notebook), "properties-notebook");
+  register_widget(NULL, GTK_WIDGET(notebook), "properties-notebook");
 
   /* Put our logo when nothing is selected yet */
   if ((logo = z_load_pixmap ("logo.png")))
@@ -622,7 +622,7 @@ append_properties_group		(GtkDialog	*dialog,
   gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
   on_container_add(vbox, button, vbox);
   gtk_widget_show(button);
-  register_widget(button, buf);
+  register_widget(NULL, button, buf);
   g_signal_connect(G_OBJECT(button), "clicked",
 		   G_CALLBACK(open_properties_group),
 		   (gpointer)group);
@@ -635,7 +635,7 @@ append_properties_group		(GtkDialog	*dialog,
 			 g_strdup(group),
 			 g_free);
   /* Note that we don't show() contents */
-  register_widget(contents, buf);
+  register_widget(NULL, contents, buf);
   g_free(buf);
 }
 
@@ -687,11 +687,11 @@ append_properties_page		(GtkDialog	*dialog,
   g_free(buf);
 
   buf = g_strdup_printf("group-%s-item-%s", group, label);
-  register_widget(page, buf);
+  register_widget(NULL, page, buf);
   g_free(buf);
 
   buf = g_strdup_printf("group-%s-item-%s-radio", group, label);
-  register_widget(radio, buf);
+  register_widget(NULL, radio, buf);
   g_free(buf);
 }
 

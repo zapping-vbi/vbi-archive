@@ -22,7 +22,7 @@ lookup_widget (GtkWidget * parent, const gchar * name);
  * Registers a widget created by the app so lookup_widget finds it.
  */
 void
-register_widget (GtkWidget * widget, const char * name);
+register_widget (GtkWidget *parent, GtkWidget * widget, const char * name);
 
 /**
  * Builds the given widget from the given glade file.
@@ -40,6 +40,6 @@ create_zapping (void);
  * Builds the context menu for the main window.
  */
 GtkWidget*
-create_popup_menu1 (void);
+create_popup_menu1 (GdkEventButton *	event);
 
 #endif
