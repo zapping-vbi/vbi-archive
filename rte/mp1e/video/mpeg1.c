@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.11 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.12 2001-10-08 19:51:46 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1267,7 +1267,7 @@ beeframe(int n)
 				 *  (beyond MPEG-1).
 				 */
 
-				printv(3, "Skipping picture\n",);
+				printv(3, "Skipping picture\n");
 
 				obuf = wait_empty_buffer(&vseg.prod);
 
@@ -1801,6 +1801,7 @@ finish:
 #endif
 #endif
 
+#undef elements
 #define elements(array) (sizeof(array) / sizeof(array[0]))
 
 static void
