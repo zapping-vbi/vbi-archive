@@ -21,10 +21,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.1 2002-06-12 04:00:40 mschimek Exp $ */
+/* $Id: alsa.c,v 1.2 2002-06-19 19:57:29 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "../config.h"
 #endif
 
 #include "../common/log.h" 
