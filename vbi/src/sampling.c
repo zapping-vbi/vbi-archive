@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling.c,v 1.1.2.1 2004-01-30 00:40:11 mschimek Exp $ */
+/* $Id: sampling.c,v 1.1.2.2 2004-02-13 02:11:50 mschimek Exp $ */
 
 #include "raw_decoder.h"
 #include "errno.h"
@@ -112,7 +112,7 @@ vbi_sampling_par_verify		(const vbi_sampling_par *sp)
 	}
 
 	min_bpl = sp->samples_per_line
-		* VBI_PIXFMT_BYTES_PER_PIXEL (sp->sampling_format);
+		* vbi_pixfmt_bytes_per_pixel (sp->sampling_format);
 
 	if (sp->bytes_per_line < min_bpl) {
 		vbi_log_printf (__FUNCTION__,
@@ -477,7 +477,7 @@ vbi_sampling_par_from_services	(vbi_sampling_par *	sp,
 		sp->start[0] = 0;
 	}
 
-	sp->bytes_per_line	= sp->samples_per_line;
+	sp->bytes_per_line = sp->samples_per_line;
 
 	if (max_rate)
 		*max_rate = rate;
@@ -499,6 +499,7 @@ const char *
 vbi_videostd_name		(vbi_videostd		videostd)
 {
 	switch (videostd) {
+
 #undef CASE
 #define CASE(std) case VBI_VIDEOSTD_##std : return #std ;
 
@@ -524,187 +525,11 @@ vbi_videostd_name		(vbi_videostd		videostd)
 	CASE (SECAM_K1)
 	CASE (SECAM_L)
 
-	case VBI_VIDEOSTD_CUSTOM_BEGIN:
-	case VBI_VIDEOSTD_CUSTOM_END:
-		break;
+	case VBI_VIDEOSTD_CUSTOM_BEGIN ... VBI_VIDEOSTD_CUSTOM_END:
+		return "CUSTOM";
 
 		/* No default, gcc warns. */
 	}
 
 	return NULL;
-}
-
-/**
- * @param pixfmt
- *
- * Returns the name of a pixel format like VBI_PIXFMT_YUYV ->
- * "YUYV". This is mainly intended for debugging.
- * 
- * @return
- * Static ASCII string, NULL if @a pixfmt is invalid.
- */
-const char *
-vbi_pixfmt_name			(vbi_pixfmt		pixfmt)
-{
-	switch (pixfmt) {
-#undef CASE
-#define CASE(fmt) case VBI_PIXFMT_##fmt : return #fmt ;
-
-	CASE (NONE)
-	CASE (YUV444)
-	CASE (YVU444)
-	CASE (YUV422)
-	CASE (YVU422)
-	CASE (YUV411)
-	CASE (YVU411)
-	CASE (YUV420)
-	CASE (YVU420)
-	CASE (YUV410)
-	CASE (YVU410)
-	CASE (YUVA24_LE)
-	CASE (YUVA24_BE)
-	CASE (YVUA24_LE)
-	CASE (YVUA24_BE)
-	CASE (YUV24_LE)
-	CASE (YUV24_BE)
-	CASE (YVU24_LE)
-	CASE (YVU24_BE)
-	CASE (YUYV)
-	CASE (YVYU)
-	CASE (UYVY)
-	CASE (VYUY)
-	CASE (Y8)
-	CASE (RGBA24_LE)
-	CASE (RGBA24_BE)
-	CASE (BGRA24_LE)
-	CASE (BGRA24_BE)
-	CASE (RGB24_LE)
-	CASE (BGR24_LE)
-	CASE (RGB16_LE)
-	CASE (RGB16_BE)
-	CASE (BGR16_LE)
-	CASE (BGR16_BE)
-	CASE (RGBA15_LE)
-	CASE (RGBA15_BE)
-	CASE (BGRA15_LE)
-	CASE (BGRA15_BE)
-	CASE (ARGB15_LE)
-	CASE (ARGB15_BE)
-	CASE (ABGR15_LE)
-	CASE (ABGR15_BE)
-	CASE (RGBA12_LE)
-	CASE (RGBA12_BE)
-	CASE (BGRA12_LE)
-	CASE (BGRA12_BE)
-	CASE (ARGB12_LE)
-	CASE (ARGB12_BE)
-	CASE (ABGR12_LE)
-	CASE (ABGR12_BE)
-	CASE (RGB8)
-	CASE (BGR8)
-	CASE (RGBA7)
-	CASE (BGRA7)
-	CASE (ARGB7)
-	CASE (ABGR7)
-
-	case VBI_PIXFMT_RESERVED0:
-	case VBI_PIXFMT_RESERVED1:
-	case VBI_PIXFMT_RESERVED2:
-	case VBI_PIXFMT_RESERVED3:
-		break;
-
-		/* No default, gcc warns. */
-	}
-
-	return NULL;
-}
-
-unsigned int
-vbi_pixfmt_bytes_per_pixel	(vbi_pixfmt		pixfmt)
-{
-	switch (pixfmt) {
-	case VBI_PIXFMT_YUV444:
-	case VBI_PIXFMT_YVU444:
-	case VBI_PIXFMT_YUV422:
-	case VBI_PIXFMT_YVU422:
-	case VBI_PIXFMT_YUV411:
-	case VBI_PIXFMT_YVU411:
-	case VBI_PIXFMT_YUV420:
-	case VBI_PIXFMT_YVU420:
-	case VBI_PIXFMT_YUV410:
-	case VBI_PIXFMT_YVU410:
-		return 1;
-
-	case VBI_PIXFMT_YUVA24_LE:
-	case VBI_PIXFMT_YUVA24_BE:
-	case VBI_PIXFMT_YVUA24_LE:
-	case VBI_PIXFMT_YVUA24_BE:
-		return 4;
-
-	case VBI_PIXFMT_YUV24_LE:
-	case VBI_PIXFMT_YUV24_BE:
-	case VBI_PIXFMT_YVU24_LE:
-	case VBI_PIXFMT_YVU24_BE:
-		return 3;
-
-	case VBI_PIXFMT_YUYV:
-	case VBI_PIXFMT_YVYU:
-	case VBI_PIXFMT_UYVY:
-	case VBI_PIXFMT_VYUY:
-		return 2;
-
-	case VBI_PIXFMT_Y8:
-		return 1;
-
-	case VBI_PIXFMT_RGBA24_LE:
-	case VBI_PIXFMT_RGBA24_BE:
-	case VBI_PIXFMT_BGRA24_LE:
-	case VBI_PIXFMT_BGRA24_BE:
-		return 4;
-
-	case VBI_PIXFMT_RGB24_LE:
-	case VBI_PIXFMT_BGR24_LE:
-		return 3;
-
-	case VBI_PIXFMT_RGB16_LE:
-	case VBI_PIXFMT_RGB16_BE:
-	case VBI_PIXFMT_BGR16_LE:
-	case VBI_PIXFMT_BGR16_BE:
-	case VBI_PIXFMT_RGBA15_LE:
-	case VBI_PIXFMT_RGBA15_BE:
-	case VBI_PIXFMT_BGRA15_LE:
-	case VBI_PIXFMT_BGRA15_BE:
-	case VBI_PIXFMT_ARGB15_LE:
-	case VBI_PIXFMT_ARGB15_BE:
-	case VBI_PIXFMT_ABGR15_LE:
-	case VBI_PIXFMT_ABGR15_BE:
-	case VBI_PIXFMT_RGBA12_LE:
-	case VBI_PIXFMT_RGBA12_BE:
-	case VBI_PIXFMT_BGRA12_LE:
-	case VBI_PIXFMT_BGRA12_BE:
-	case VBI_PIXFMT_ARGB12_LE:
-	case VBI_PIXFMT_ARGB12_BE:
-	case VBI_PIXFMT_ABGR12_LE:
-	case VBI_PIXFMT_ABGR12_BE:
-		return 2;
-
-	case VBI_PIXFMT_RGB8:
-	case VBI_PIXFMT_BGR8:
-	case VBI_PIXFMT_RGBA7:
-	case VBI_PIXFMT_BGRA7:
-	case VBI_PIXFMT_ARGB7:
-	case VBI_PIXFMT_ABGR7:
-		return 1;
-
-	case VBI_PIXFMT_NONE:
-	case VBI_PIXFMT_RESERVED0:
-	case VBI_PIXFMT_RESERVED1:
-	case VBI_PIXFMT_RESERVED2:
-	case VBI_PIXFMT_RESERVED3:
-		break;
-
-		/* No default, gcc warns. */
-	}
-
-	return 0;
 }
