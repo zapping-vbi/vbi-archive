@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.48 2004-09-16 04:07:27 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.49 2004-09-20 04:43:48 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -1917,38 +1917,37 @@ plugin_start			(void)
 }
 
 static void
-plugin_remove_gui		(GnomeApp *		app)
+plugin_remove_gui		(GnomeApp *		app _unused_)
 {
-  GtkWidget *button = 
-    GTK_WIDGET (g_object_get_data (G_OBJECT (app), "mpeg_button"));
-  GtkWidget *toolbar1 = lookup_widget (GTK_WIDGET (app), "toolbar1");
+  GtkWidget *button;
 
-  gtk_container_remove (GTK_CONTAINER (toolbar1), button);
+  button = GTK_WIDGET (g_object_get_data (G_OBJECT (zapping), "mpeg_button"));
+  gtk_container_remove (GTK_CONTAINER (zapping->toolbar), button);
 }
 
 static const gchar *tooltip = N_("Record a video stream");
 
 static void
-plugin_add_gui			(GnomeApp *		app)
+plugin_add_gui			(GnomeApp *		app _unused_)
 {
-  GtkWidget *toolbar1 = lookup_widget (GTK_WIDGET (app), "toolbar1");
-  GtkWidget *button; /* The button to add */
-  GtkWidget *tmp_toolbar_icon;
+  GtkToolItem *tool_item;
 
-  tmp_toolbar_icon =
-    gtk_image_new_from_stock ("zapping-recordtb",
-			      GTK_ICON_SIZE_LARGE_TOOLBAR);
+  tool_item = gtk_tool_button_new (NULL, _("Record"));
+  gtk_widget_show (GTK_WIDGET (tool_item));
 
-  button = gtk_toolbar_append_item (GTK_TOOLBAR (toolbar1),
-				    _("Record"),
-				    _(tooltip), NULL, tmp_toolbar_icon,
-				    GTK_SIGNAL_FUNC (on_python_command1),
-				    (gpointer) "zapping.record()");
+  gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (tool_item),
+				"zapping-recordtb");
+
+  z_tooltip_set (GTK_WIDGET (tool_item), _(tooltip));
+
+  g_signal_connect (G_OBJECT (tool_item), "clicked",
+		    G_CALLBACK (on_python_command1),
+		    (gpointer) "zapping.record()");
+
+  gtk_toolbar_insert (zapping->toolbar, tool_item, APPEND);
 
   /* Set up the widget so we can find it later */
-  g_object_set_data (G_OBJECT (app), "mpeg_button", button);
-
-  gtk_widget_show (button);
+  g_object_set_data (G_OBJECT (zapping), "mpeg_button", tool_item);
 }
 
 static void

@@ -467,8 +467,7 @@ gint capture_start (tveng_device_info *info)
   idle_id = g_idle_add ((GSourceFunc) idle_handler, info);
 
   /* XXX */
-  g_signal_connect (G_OBJECT (lookup_widget (GTK_WIDGET (zapping),
-					     "tv-screen")),
+  g_signal_connect (G_OBJECT (zapping->video),
 		    "size-allocate",
 		    GTK_SIGNAL_FUNC (on_capture_canvas_allocate),
 		    zapping->info);
@@ -483,7 +482,7 @@ void capture_stop (void)
 
   /* XXX */
   g_signal_handlers_disconnect_by_func
-    (G_OBJECT (lookup_widget (GTK_WIDGET (zapping), "tv-screen")),
+    (G_OBJECT (zapping->video),
      GTK_SIGNAL_FUNC (on_capture_canvas_allocate),
      zapping->info);
 
@@ -561,7 +560,7 @@ find_request_size (capture_fmt *fmt, gint *width, gint *height)
   {
     GtkWidget *widget;
 
-    widget = lookup_widget (GTK_WIDGET (zapping), "tv-screen");
+    widget = GTK_WIDGET (zapping->video);
 
     *width = MAX (64, widget->allocation.width);
     *height = MAX (64 * 3/4, widget->allocation.height);
