@@ -310,7 +310,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.102 2001-04-24 23:38:46 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.103 2001-04-24 23:56:13 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -550,47 +550,6 @@ int main(int argc, char * argv[])
 	ShowBox(_("Capture mode couldn't be started:\n%s"),
 		GNOME_MESSAGE_BOX_ERROR, main_info->error);
   D();
-  /* hide toolbars and co. if necessary */
-  if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_controls"))
-    {
-      gtk_widget_hide(lookup_widget(main_window, "dockitem1"));
-      gtk_widget_hide(lookup_widget(main_window, "dockitem2"));
-      gtk_widget_queue_resize(main_window);
-
-      z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
-				      "hide_controls2"),
-			GNOME_STOCK_PIXMAP_BOOK_OPEN,
-			_("Show controls"),
-			_("Show the menu and the toolbar"));
-    }
-  if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_extra"))
-    {
-      gtk_widget_hide(lookup_widget(main_window, "Inputs"));
-      gtk_widget_hide(lookup_widget(main_window, "Standards"));
-      gtk_widget_hide(lookup_widget(main_window, "frame6"));
-      gtk_widget_queue_resize(main_window);
-
-      z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
-				      "hide_menubars2"),
-			GNOME_STOCK_PIXMAP_BOOK_OPEN,
-			_("Show extra controls"),
-			_("Show Input, Standards and subtitle selection"));
-    }
-  {
-    /* setup subtitles page button */
-    extern int zvbi_page;
-    GtkSpinButton *wzp =
-      GTK_SPIN_BUTTON(lookup_widget(main_window, "zvbi_page"));
-
-    zconf_get_integer(&zvbi_page,
-		      "/zapping/internal/callbacks/zvbi_page");
-
-    gtk_spin_button_set_adjustment(wzp, GTK_ADJUSTMENT(
-	    gtk_adjustment_new(bcd2dec(zvbi_page), 1, 899, 1, 10, 10)));
-    
-    gtk_spin_button_set_value(wzp, bcd2dec(zvbi_page));
-  }
-  D();
   /* Restore the input and the standard */
   if (zcg_int(NULL, "current_input"))
     z_switch_input(zcg_int(NULL, "current_input"), main_info);
@@ -600,16 +559,57 @@ int main(int argc, char * argv[])
 							 global_channel_list),
 		   main_info);
   D();
-  /* Sets the coords to the previous values, if the users wants to */
-  if (zcg_bool(NULL, "keep_geometry"))
-    gtk_timeout_add(500, resize_timeout, NULL);
-  D();
   if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"), main_info))
     printv("%s\n", main_info->error);
   if (!command)
     {
-      D(); printv("going into main loop...\n");
       gtk_widget_show(main_window);
+      resize_timeout(NULL);
+      /* hide toolbars and co. if necessary */
+      if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_controls"))
+	{
+	  gtk_widget_hide(lookup_widget(main_window, "dockitem1"));
+	  gtk_widget_hide(lookup_widget(main_window, "dockitem2"));
+	  gtk_widget_queue_resize(main_window);
+	  
+	  z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
+				      "hide_controls2"),
+			    GNOME_STOCK_PIXMAP_BOOK_OPEN,
+			    _("Show controls"),
+			    _("Show the menu and the toolbar"));
+	}
+      if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_extra"))
+	{
+	  gtk_widget_hide(lookup_widget(main_window, "Inputs"));
+	  gtk_widget_hide(lookup_widget(main_window, "Standards"));
+	  gtk_widget_hide(lookup_widget(main_window, "frame6"));
+	  gtk_widget_queue_resize(main_window);
+	  
+	  z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
+					  "hide_menubars2"),
+			    GNOME_STOCK_PIXMAP_BOOK_OPEN,
+			    _("Show extra controls"),
+			    _("Show Input, Standards and subtitle selection"));
+	}
+      {
+	/* setup subtitles page button */
+	extern int zvbi_page;
+	GtkSpinButton *wzp =
+	  GTK_SPIN_BUTTON(lookup_widget(main_window, "zvbi_page"));
+	
+	zconf_get_integer(&zvbi_page,
+			  "/zapping/internal/callbacks/zvbi_page");
+	
+	gtk_spin_button_set_adjustment(wzp, GTK_ADJUSTMENT(
+	   gtk_adjustment_new(bcd2dec(zvbi_page), 1, 899, 1, 10, 10)));
+	
+	gtk_spin_button_set_value(wzp, bcd2dec(zvbi_page));
+      }
+      D();
+      /* Sets the coords to the previous values, if the users wants to */
+      if (zcg_bool(NULL, "keep_geometry"))
+	gtk_timeout_add(500, resize_timeout, NULL);
+      D(); printv("going into main loop...\n");
       gtk_main();
     }
   else
