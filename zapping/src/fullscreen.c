@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.10 2003-09-29 07:06:52 mschimek Exp $
+ * $Id: fullscreen.c,v 1.21.2.11 2003-10-07 18:33:26 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -78,6 +78,9 @@ on_fullscreen_event		(GtkWidget *		widget,
     case GDK_BUTTON_PRESS:
       zmisc_switch_mode(last_mode, main_info);
       return TRUE;
+
+    default:
+      break;
     }
 
   return FALSE; /* pass on */
@@ -243,9 +246,6 @@ start_fullscreen		(tveng_device_info *	info)
   /* Needed for XV fullscreen */
   info->overlay_window.win = GDK_WINDOW_XWINDOW(da->window);
   info->overlay_window.gc = GDK_GC_XGC(da->style->white_gc);
-
-  if (!tv_set_overlay_buffer (info, &dga_param))
-    goto failure;
 
   vidmode = zcg_char (NULL, "fullscreen/vidmode");
 
