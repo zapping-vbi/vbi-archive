@@ -522,10 +522,11 @@ zmisc_switch_mode(display_mode new_dmode,
   timeout = (guint) gconf_client_get_int
     (gconf_client, "/apps/zapping/blank_cursor_timeout", &error);
 
-  if (error)
+  if (0 == timeout || error)
     {
       timeout = 1500; /* ms */
-      g_error_free (error);
+      if (error)
+	g_error_free (error);
     }
 
   if (zapping->display_mode == new_dmode
@@ -2807,10 +2808,15 @@ z_gconf_combo_box_new		(const gchar **		option_menu,
 	    }
 	}
     }
-  else
+  else if (error)
     {
       g_message ("GConf get '%s' error:\n%s\n", gconf_key, error->message);
       g_error_free (error);
+    }
+  else
+    {
+      /* Unset? */
+      gtk_combo_box_set_active (g->combo_box, 0);
     }
 
   g->lookup_table = lookup_table;
@@ -2843,11 +2849,16 @@ z_gconf_get_string_enum		(gint *			enum_value,
       r = gconf_string_to_enum (lookup_table, s, enum_value);
       g_free (s);
     }
-  else
+  else if (error)
     {
       g_message ("GConf get '%s' error:\n%s\n", gconf_key, error->message);
       g_error_free (error);
       r = FALSE;
+    }
+  else
+    {
+      /* Unset? */
+      return FALSE;
     }
 
   return r;
