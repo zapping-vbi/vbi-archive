@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.3 2000-11-27 06:56:01 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.4 2000-11-28 23:46:11 garetxe Exp $ */
 
 /*
     TODO:
@@ -848,6 +848,7 @@ cc_gen(struct vbi_capture *vbi, unsigned char *buf)
  */
 
 #define BTTV_VBISIZE		_IOR('v' , BASE_VIDIOCPRIVATE+8, int)
+#define BTTV_VERSION		_IOR('v' , BASE_VIDIOCPRIVATE+6, int)
 #define HAVE_V4L_VBI_FORMAT	0 // Linux 2.4
 
 static buffer *
@@ -907,6 +908,52 @@ capture_on_read(fifo *f)
 }
 
 static int
+get_v4l_cur_input(const char *video_device, struct vbi_capture *vbi)
+{
+	int video_fd, result;
+	struct video_channel vchan;
+
+	/* try with the VBI device */
+	memset(&vchan, 0, sizeof(struct video_channel));
+	vchan.channel = 0;
+	if (ioctl(vbi->fd, VIDIOCGCHAN, &vchan) != -1)
+		goto success;
+
+	/* fall back to the given video device */
+	if ((video_fd = open(video_device, O_RDONLY)) == -1)
+		goto failure;
+
+	memset(&vchan, 0, sizeof(struct video_channel));
+	vchan.channel = 0;
+	result = ioctl(video_fd, VIDIOCGCHAN, &vchan);
+	close(video_fd);
+	if (result == -1)
+	  goto failure;
+
+ success:
+	switch (vchan.norm) {
+	case VIDEO_MODE_NTSC:
+		vbi->scanning = 525;
+		break;
+
+	case VIDEO_MODE_PAL:
+	case VIDEO_MODE_SECAM:
+		vbi->scanning = 625;
+		break;
+
+	default:
+		vbi->scanning = 0; // 2 b guessed
+		opt_surrender = TRUE;
+		break;
+	}
+	return 0;
+
+ failure:
+
+	return -1;
+}
+
+static int
 open_v4l(struct vbi_capture **pvbi, char *dev_name,
 	int fifo_depth, unsigned int services)
 {
@@ -914,7 +961,6 @@ open_v4l(struct vbi_capture **pvbi, char *dev_name,
 	struct vbi_format vfmt;
 #endif
 	struct video_capability vcap;
-	struct video_channel vchan;
 	struct vbi_capture *vbi;
 	int max_rate, buffer_size;
 
@@ -942,29 +988,12 @@ open_v4l(struct vbi_capture **pvbi, char *dev_name,
 		goto failure;
 	}
 
-	if (ioctl(vbi->fd, VIDIOCGCHAN, &vchan) == -1) {
-		IODIAG("cannot query current input line (broken driver?)");
+	if (get_v4l_cur_input("/dev/video", vbi) == -1) {
+		DIAG("cannot get current input line (broken driver?)");
 		goto failure;
 	}
 
-	switch (vchan.norm) {
-	case VIDEO_MODE_NTSC:
-		vbi->scanning = 525;
-		break;
-
-	case VIDEO_MODE_PAL:
-	case VIDEO_MODE_SECAM:
-		vbi->scanning = 625;
-		break;
-
-	default:
-		vbi->scanning = 0; // 2 b guessed
-		opt_surrender = TRUE;
-		break;
-	}
-
 	max_rate = 0;
-
 #if HAVE_V4L_VBI_FORMAT
 
 	if (ioctl(vbi->fd, VIDIOCGVBIFMT, &vfmt) != -1) {
@@ -1068,11 +1097,13 @@ open_v4l(struct vbi_capture **pvbi, char *dev_name,
 		 *  driver I'll be glad to hear about it. Lesson: Don't
 		 *  call a v4l private ioctl without knowing who's
 		 *  listening.
+		 *  garetxe: This isn't reliable, bttv doesn't return
+		 *  anything useful in vcap.name.
 		 */
-		if (!strstr(vcap.name, "bttv") && !strstr(vcap.name, "BTTV")) {
+		/*		if (!strstr(vcap.name, "bttv") && !strstr(vcap.name, "BTTV")) {
 			DIAG("unable to identify driver, has no standard VBI interface");
 			goto failure;
-		}
+			}*/
 
 		switch (vbi->scanning) {
 		case 625:
@@ -1281,12 +1312,47 @@ capture_on_stream(fifo *f)
 }
 
 static int
+get_v4l2_standard(const char * video_device, struct vbi_capture * vbi,
+		  struct v4l2_format *fmt)
+{
+	int video_fd, return_value;
+	struct v4l2_standard vstd;
+
+	memset(fmt, 0, sizeof(struct v4l2_format));
+	fmt->type = V4L2_BUF_TYPE_VBI;
+	if ((ioctl(vbi->fd, VIDIOC_G_FMT, fmt) != -1) &&
+	    (ioctl(vbi->fd, VIDIOC_G_STD, &vstd) != -1))
+		goto success;
+
+	video_fd = open(video_device, O_NOIO);
+	if (video_fd == -1)
+		goto failure;
+
+	return_value = ioctl(video_fd, VIDIOC_G_STD, &vstd);
+	if (return_value != -1) {
+		memset(fmt, 0, sizeof(struct v4l2_format));
+		fmt->type = V4L2_BUF_TYPE_VBI;
+		return_value = ioctl(video_fd, VIDIOC_G_FMT, fmt);
+	}
+	close(video_fd);
+	if (return_value == -1)
+		goto failure;
+
+ success:
+	vbi->scanning = vstd.framelines;
+
+	return 0;
+
+ failure:
+	return -1;
+}
+
+static int
 open_v4l2(struct vbi_capture **pvbi, char *dev_name,
 	int fifo_depth, unsigned int services)
 {
 	struct v4l2_capability vcap;
 	struct v4l2_format vfmt;
-	struct v4l2_standard vstd;
 	struct v4l2_requestbuffers vrbuf;
 	struct v4l2_buffer vbuf;
 	struct vbi_capture *vbi;
@@ -1316,22 +1382,11 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name,
 		goto failure;
 	}
 
-	if (ioctl(vbi->fd, VIDIOC_G_STD, &vstd) == -1) {
-		IODIAG("cannot query current video standard (broken driver?)");
-		goto failure;
-	}
-
-	vbi->scanning = vstd.framelines;
-	// add_services() eliminates non 525/625
-
-	memset(&vfmt, 0, sizeof(vfmt));
-
-	vfmt.type = V4L2_BUF_TYPE_VBI;
-
-	if (ioctl(vbi->fd, VIDIOC_G_FMT, &vfmt) == -1) {
+	if (get_v4l2_standard("/dev/video", vbi, &vfmt) == -1) {
 		IODIAG("cannot query current VBI parameters (broken driver?)");
 		goto failure;
 	}
+	// add_services() eliminates non 525/625
 
 	max_rate = 0;
 
