@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
   <!--
-  Generated from index_modern.xml on Wed Mar 13 08:23:38 2002
+  Generated from index_modern.xml on Tue Apr  2 21:09:11 2002
   -->
   <head>
     <title>Zapping source code</title>
@@ -174,7 +174,13 @@
                   </tr>
                 </table>
               </td>
-              <td class="contents" width="100%" valign="top"><h2>New release</h2><ul><li><b>Zapping</b> 0.6.3 
+              <td class="contents" width="100%" valign="top"><h2>New release</h2><ul><li><b>Zapping</b> 0.6.4
+
+        <p>This is mostly a bugfix release, no new features. When you
+	use this version you should also install zvbi 0.1.1 which
+        adds more fixes.</p></li><li><b>zvbi</b> 0.1.1
+
+        <p>Bug fixes.</p></li><li><b>Zapping</b> 0.6.3 
 
         <p>A new year, a new release, a new maintainer. This
 	release does not include all improvements planned for 0.6.3,

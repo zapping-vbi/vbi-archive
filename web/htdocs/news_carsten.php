@@ -5,7 +5,7 @@
 Zapping -- Linux TV Viewer -- News page
 </title>
 <!--
-	Generated from news.xml on Wed Mar 13 08:23:38 2002
+	Generated from news.xml on Tue Apr  2 21:09:11 2002
 -->
 <meta name="description" content="Zapping is a TV Viewer Software for Linux/Unix. Zapping is Open Source and has the ability to use plugins, it has also nice extra build in features.">
 <meta name="language" content="en-us">
@@ -144,7 +144,13 @@ input.theme {
 height="480" alt=""></td>
 
 <!-- ###### Begin Text Table of Contents ############################### -->
-<td width="100%" height="100%" bgcolor="#000099" valign="top"><center><h2>New release</h2></center><ul><li><b>Zapping</b> 0.6.3 
+<td width="100%" height="100%" bgcolor="#000099" valign="top"><center><h2>New release</h2></center><ul><li><b>Zapping</b> 0.6.4
+
+        <p>This is mostly a bugfix release, no new features. When you
+	use this version you should also install zvbi 0.1.1 which
+        adds more fixes.</p></li><li><b>zvbi</b> 0.1.1
+
+        <p>Bug fixes.</p></li><li><b>Zapping</b> 0.6.3 
 
         <p>A new year, a new release, a new maintainer. This
 	release does not include all improvements planned for 0.6.3,
