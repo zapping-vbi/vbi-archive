@@ -24,6 +24,7 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <pthread.h>
 #include "osd.h"
+#include "zmisc.h"
 #include "../common/fifo.h"
 #include "../libvbi/ccfont.xbm"
 
@@ -117,7 +118,7 @@ startup_osd(void)
 
   pthread_mutex_lock(&osd_mutex);
 
-  g_assert(init_buffered_fifo(&osd_fifo, NULL, 6,
+  g_assert(init_buffered_fifo(&osd_fifo, NULL, 10,
 			      sizeof(struct osd_command)) > 2);
 
   for (i = 0; i<NUM_ROWS; i++)
@@ -157,6 +158,29 @@ shutdown_osd(void)
 }
 
 static void
+paint_piece (GtkWidget *widget, struct osd_piece *piece,
+	     gint x, gint y, gint width, gint height)
+{
+  gint w, h;
+
+  g_assert(osd_started == TRUE);
+  g_assert(widget != NULL);
+
+  gdk_window_get_size(widget->window, &w, &h);
+
+  if (width == -1)
+    {
+      width = w;
+      height = h;
+    }
+
+  if (piece->scaled)
+    z_pixbuf_render_to_drawable(piece->scaled, widget->window,
+				widget->style->white_gc,
+				x, y, width, height);
+}
+
+static void
 set_piece_geometry(int row, int piece)
 {
   gint x, y, w, h;
@@ -191,7 +215,17 @@ set_piece_geometry(int row, int piece)
 			 y+(row*h)/NUM_ROWS,
 			 dest_w, dest_h);
 
-  gdk_window_clear_area_e(p->window->window, 0, 0, w, h);
+  if ((!p->scaled)  ||
+      (gdk_pixbuf_get_width(p->scaled) != dest_w)  ||
+      (gdk_pixbuf_get_height(p->scaled) != dest_h))
+    {
+      if (p->scaled)
+	gdk_pixbuf_unref(p->scaled);
+      p->scaled = gdk_pixbuf_scale_simple(p->unscaled, dest_w,
+					  dest_h, GDK_INTERP_BILINEAR);
+    }
+
+  paint_piece(p->window, p, 0, 0, dest_w, dest_h);
 }
 
 static void
@@ -347,38 +381,20 @@ gboolean on_osd_expose_event		(GtkWidget	*widget,
 					 GdkEventExpose	*event,
 					 struct osd_piece *piece)
 {
-  gint w, h;
-
   g_assert(osd_started == TRUE);
-
-  gdk_window_get_size(widget->window, &w, &h);
 
   g_assert(piece != NULL);
   g_assert(widget == GTK_BIN(piece->window)->child);
- 
-  if ((!piece->scaled)  ||
-      (gdk_pixbuf_get_width(piece->scaled) != w)  ||
-      (gdk_pixbuf_get_height(piece->scaled) != h))
-    {
-      if (piece->scaled)
-	gdk_pixbuf_unref(piece->scaled);
-      piece->scaled = gdk_pixbuf_scale_simple(piece->unscaled, w, h,
-					      GDK_INTERP_BILINEAR);
-    }
-  if (piece->scaled)
-    gdk_pixbuf_render_to_drawable(piece->scaled, widget->window,
-				  widget->style->white_gc,
-				  event->area.x, event->area.y,
-				  event->area.x, event->area.y,
-				  event->area.width, event->area.height,
-				  GDK_RGB_DITHER_NORMAL,
-				  event->area.x, event->area.y);
+
+  paint_piece(widget, piece, event->area.x, event->area.y,
+	      event->area.width, event->area.height);
 
   return TRUE;
 }
 
 /* List of destroyed windows for reuse */
 static GList *window_pool = NULL;
+static GList *window_stack = NULL;
 
 static GtkWidget *
 get_window(void)
@@ -403,6 +419,7 @@ get_window(void)
   gtk_widget_realize(window);
 
   gdk_window_set_back_pixmap(da->window, NULL, FALSE);
+
   gdk_window_set_decorations(window->window, 0);
 
   gtk_window_set_transient_for(GTK_WINDOW(window),
@@ -426,7 +443,44 @@ unget_window(GtkWidget *window)
 }
 
 static void
-remove_piece(int row, int p_index)
+push_window(GtkWidget *window)
+{
+  window_stack = g_list_append(window_stack, window);
+}
+
+/* Unget all windows in the stack */
+static void
+clear_stack(void)
+{
+  GtkWidget *window;
+
+  while (window_stack)
+    {
+      window = GTK_WIDGET(g_list_last(window_stack)->data);
+      unget_window(window);
+      window_stack = g_list_remove(window_stack, window);
+    }
+}
+
+static GtkWidget *
+pop_window(void)
+{
+  GtkWidget *window = NULL;
+
+  if (window_stack)
+    {
+      window = GTK_WIDGET(g_list_last(window_stack)->data);
+      window_stack = g_list_remove(window_stack, window);
+    }
+
+  if (!window)
+    window = get_window();
+
+  return window;
+}
+
+static void
+remove_piece(int row, int p_index, int just_push)
 {
   struct osd_piece * p;
   GtkWidget *da;
@@ -451,7 +505,12 @@ remove_piece(int row, int p_index)
 				GTK_SIGNAL_FUNC(on_osd_expose_event), p);
 
   if (p->window)
-    unget_window(p->window);
+    {
+      if (!just_push)
+	unget_window(p->window);
+      else
+	push_window(p->window);
+    }
 
   if (p_index != (osd_matrix[row]->n_pieces - 1))
     memcpy(p, p+1,
@@ -467,8 +526,6 @@ add_piece(int col, int row, int width, attr_char *c)
   struct osd_piece p;
   GtkWidget *da;
   struct osd_piece *pp;
-  GdkEventExpose event;
-  gint w, h;
 
   g_assert(osd_started == TRUE);
   g_assert(row >= 0);
@@ -482,7 +539,7 @@ add_piece(int col, int row, int width, attr_char *c)
   p.start = col;
   p.c = g_malloc(width*sizeof(attr_char));
   memcpy(p.c, c, width*sizeof(attr_char));
-  p.window = get_window();
+  p.window = pop_window();
   da = GTK_BIN(p.window)->child;
 
   p.unscaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8,
@@ -495,29 +552,24 @@ add_piece(int col, int row, int width, attr_char *c)
 
   osd_matrix[row]->n_pieces++;
 
-  set_piece_geometry(row, osd_matrix[row]->n_pieces-1);
   gtk_signal_connect(GTK_OBJECT(da), "expose-event",
 		     GTK_SIGNAL_FUNC(on_osd_expose_event), pp);
 
-  gdk_window_get_size(da->window, &w, &h);
-
-  event.area.x = event.area.y = 0;
-  event.area.width = w; event.area.height = h;
-  on_osd_expose_event(da, &event, pp);
+  set_piece_geometry(row, osd_matrix[row]->n_pieces-1);
 
   gtk_widget_show(pp->window);
 
   return osd_matrix[row]->n_pieces-1;
 }
 
-static void osd_clear_row(int row)
+static void osd_clear_row(int row, int just_push)
 {
   g_assert(osd_started == TRUE);
   g_assert(row >= 0);
   g_assert(row < NUM_ROWS);
 
   while (osd_matrix[row]->n_pieces)
-    remove_piece(row, osd_matrix[row]->n_pieces-1);
+    remove_piece(row, osd_matrix[row]->n_pieces-1, just_push);
 }
 
 /* These routines (clear, render, roll_up) are the caption.c
@@ -531,7 +583,7 @@ void osd_clear(void)
   g_assert(osd_started == TRUE);
 
   for (i=0; i<NUM_ROWS; i++)
-    osd_clear_row(i);
+    osd_clear_row(i, 0);
 }
 
 void osd_render(attr_char *buffer, int row)
@@ -555,7 +607,7 @@ void osd_render(attr_char *buffer, int row)
     {
       /* FIXME: This produces flicker, we should allow rendering from
 	 an arbitrary row, there's no way to know from osd */
-      osd_clear_row(row);
+      osd_clear_row(row, 1);
       for (i = j = 0; i<NUM_COLS; i++)
 	{
 	  if ((buffer[i].opacity == TRANSPARENT_SPACE) &&
@@ -569,6 +621,7 @@ void osd_render(attr_char *buffer, int row)
 	}
       if (j)
 	add_piece(NUM_COLS-j, row, j, piece_buffer);
+      clear_stack();
     }
 }
 
@@ -581,7 +634,7 @@ void osd_roll_up(attr_char *buffer, int first_row, int last_row)
 
   for (; first_row < last_row; first_row++)
     {
-      osd_clear_row(first_row);
+      osd_clear_row(first_row, 0);
       tmp = osd_matrix[first_row];
       osd_matrix[first_row] = osd_matrix[first_row+1];
       osd_matrix[first_row+1] = tmp;

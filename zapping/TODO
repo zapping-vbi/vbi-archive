@@ -1,7 +1,9 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Integrate caption.c using osd.c
-	+ VBI can be opened/closed while running, try.
+	+ GUI for closed caption, program info, etc.
+	+ VBI can be opened/closed while running, try (we also need
+	some vbi_streamon, vbi_streamoff to suspend temporarily
+	streaming while changing inputs or standards).
 	+ Conceal/reveal
 	+ Configurable Vidmode
 	+ Parrot buffer for observing parrots.

@@ -198,4 +198,16 @@ z_pixbuf_copy_area		(GdkPixbuf	*src_pixbuf,
 				 gint		dest_x,
 				 gint		dest_y);
 
+/**
+ * Just like gdk_pixbuf_render_to_drawable but does clipping
+ */
+void
+z_pixbuf_render_to_drawable	(GdkPixbuf	*pixbuf,
+				 GdkWindow	*window,
+				 GdkGC		*gc,
+				 gint		x,
+				 gint		y,
+				 gint		width,
+				 gint		height);
+
 #endif /* ZMISC.H */

@@ -597,3 +597,37 @@ z_pixbuf_copy_area		(GdkPixbuf	*src_pixbuf,
   gdk_pixbuf_copy_area(src_pixbuf, src_x, src_y, width, height,
 		       dest_pixbuf, dest_x, dest_y);
 }
+
+void
+z_pixbuf_render_to_drawable	(GdkPixbuf	*pixbuf,
+				 GdkWindow	*window,
+				 GdkGC		*gc,
+				 gint		x,
+				 gint		y,
+				 gint		width,
+				 gint		height)
+{
+  gint w = gdk_pixbuf_get_width(pixbuf), h=gdk_pixbuf_get_height(pixbuf);
+
+  if (x < 0)
+    {
+      width += x;
+      x = 0;
+    }
+  if (y < 0)
+    {
+      height += 0;
+      y = 0;
+    }
+
+  if (x + width > w)
+    width = w - x;
+  if (y + height > h)
+    height = h - y;
+
+  if (width < 0 || height < 0)
+    return;
+
+  gdk_pixbuf_render_to_drawable(pixbuf, window, gc, x, y, x, y, width,
+				height, GDK_RGB_DITHER_NORMAL, x, y);
+}

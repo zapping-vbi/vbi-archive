@@ -1444,7 +1444,7 @@ tveng2_stop_capturing(tveng_device_info * info)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_STREAMOFF", info);
-      return -1;
+      /* No critical error, go on munmapping */
     }
 
   for (i = 0; i < p_info -> num_buffers; i++)
