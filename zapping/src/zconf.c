@@ -1590,7 +1590,8 @@ void on_key_model_changed		(GObject	*model,
 }
 
 static struct zconf_hook*
-real_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
+real_add_hook(const gchar * key_name, ZConfHook callback, gpointer data,
+	      gboolean wakeup)
 {
   struct zconf_key *key;
   struct zconf_hook *hook;
@@ -1624,13 +1625,16 @@ real_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
 		   G_CALLBACK(on_key_model_changed),
 		   hook);
 
+  if (wakeup)
+    callback(key->full_path, key->contents, data);
+
   return hook;
 }
 
 void
 zconf_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
 {
-  real_add_hook(key_name, callback, data);
+  real_add_hook(key_name, callback, data, FALSE);
 }
 
 static void
@@ -1655,10 +1659,11 @@ void
 zconf_add_hook_while_alive(GObject *object,
 			   const gchar * key_name,
 			   ZConfHook callback,
-			   gpointer data)
+			   gpointer data,
+			   gboolean wakeup)
 {
   struct zconf_hook *hook =
-    real_add_hook(key_name, callback, data);
+    real_add_hook(key_name, callback, data, wakeup);
 
   if (!hook)
     return;
@@ -1739,4 +1744,22 @@ zconf_touch(const gchar * key_name)
     return;
 
   zmodel_changed(key->model);
+}
+
+/*
+ *  Generic hooks
+ */
+
+void
+zconf_hook_widget_show		(const gchar *		key,
+				 gpointer		new_value_ptr,
+				 gpointer		user_data)
+{
+  gboolean show = * (gboolean *) new_value_ptr;
+  GtkWidget *widget = user_data;
+
+  if (show)
+    gtk_widget_show (widget);
+  else
+    gtk_widget_hide (widget);
 }

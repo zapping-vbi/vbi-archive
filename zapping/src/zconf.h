@@ -230,11 +230,12 @@ zconf_add_hook(const gchar * key, ZConfHook hook, gpointer data);
   key: The key we hook to.
   hook: The routine to be called.
   data: data to be passed to the hook.
+  wakeup: call routine once in advance.
 */
 void
 zconf_add_hook_while_alive(GObject *object,
 			   const gchar * key, ZConfHook hook,
-			   gpointer data);
+			   gpointer data, gboolean wakeup);
 
 /*
   Removes the given hook from the key.
@@ -283,5 +284,12 @@ zconf_get_z_key(where, ZCONF_DOMAIN key)
 #define zcc_z_key(value, desc, key) \
 zconf_create_z_key(value, desc, ZCONF_DOMAIN key)
 #endif /* ZCONF_DOMAIN */
+
+/* Generic hooks */
+
+extern void
+zconf_hook_widget_show		(const gchar *		key,
+				 gpointer		new_value_ptr,
+				 gpointer		user_data);
 
 #endif /* ZCONF.H */
