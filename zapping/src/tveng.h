@@ -19,6 +19,10 @@
 #ifndef __TVENG_H__
 #define __TVENG_H__
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
