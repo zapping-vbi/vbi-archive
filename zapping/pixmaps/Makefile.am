@@ -75,7 +75,8 @@ CLEANFILES = $(BUILT_SOURCES)
 
 %.h: @GDK_PIXBUF_CSOURCE@
 
-%.h: %.png
+%.h: %.png Makefile.am
 	echo -e "\n/* Generated file, do not edit! */\n" > $@
 	@GDK_PIXBUF_CSOURCE@ --struct --build-list \
-	  `echo $(<F) | sed -e 's%[^[:alnum:]]%_%g'` $< >> $@
+	  `echo $(<F) | sed -e 's%[^[:alnum:]]%_%g'` $< | \
+	  sed -e 's%data: \*/%data: */ (guint8 *)%g' >> $@
