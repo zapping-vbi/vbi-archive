@@ -2,10 +2,7 @@
  *  MPEG Real Time Encoder
  *  Advanced Linux Sound Architecture interface
  *
- *  Copyright (C) 2000, 2001, 2002 Michael H. Schimek
- *
- *  ALSA PCM interface based on http://revengershome.cjb.net/xmms-recorder
- *  Copyright (C) 2000 Thomas Skopkó <skopko@tigris.klte.hu>
+ *  Copyright (C) 2000-2003 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -21,625 +18,476 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.6 2002-12-14 00:43:44 mschimek Exp $ */
+/* $Id: alsa.c,v 1.7 2003-01-03 05:33:45 mschimek Exp $ */
 
 #include "../common/log.h" 
-
 #include "../audio/audio.h"
 
 #ifdef HAVE_ALSA
 
+#include <string.h>
+#include <ctype.h>
+
+#define ALSA_PCM_NEW_HW_PARAMS_API 1
+#define ALSA_PCM_NEW_SW_PARAMS_API 1
+
+#include <alsa/asoundlib.h>
+
+#include "../common/math.h" 
+
 #define ASSERT_ALSA(what, func, args...)				\
 do {									\
-	int _err;							\
+	int _err = func;						\
 									\
-	if ((_err = func) < 0) {					\
-		fprintf(stderr,	"%s:" __FILE__ ":" ISTF1(__LINE__) ": "	\
-			"Failed to " what " (%d, %s)\n",		\
-			program_invocation_short_name			\
-			 ,##args, _err, snd_strerror(_err));		\
-		exit(EXIT_FAILURE);					\
+	if (_err < 0) {							\
+		fprintf (stderr, "%s:" __FILE__ ":" ISTF1(__LINE__)	\
+			 ": Failed to " what " (%d, %s)\n",		\
+			 program_invocation_short_name			\
+			 ,##args, _err, snd_strerror (_err));		\
+		exit (EXIT_FAILURE);					\
 	} else if (verbose >= 3) {					\
-		fprintf(stderr,	"%s:" __FILE__ ":" ISTF1(__LINE__) ": "	\
-			what " - ok\n", program_invocation_short_name	\
+		fprintf (stderr, "%s:" __FILE__ ":" ISTF1(__LINE__)	\
+			 ": " what " - ok\n",				\
+			 program_invocation_short_name			\
 			 ,##args);					\
 	}								\
 } while (0)
 
-#include <string.h>
-#include <ctype.h>
-
-#include <sys/asoundlib.h>
-
-#include "../common/math.h" 
-
 #define ALSA_DROP_TEST(x) /* x */
 #define ALSA_TIME_LOG(x) /* x */
 
-extern int test_mode;
-/* 64 - capture raw audio as ./raw-audio */
-/* 256 - clock drift code */
-
-#if !defined(SND_LIB_MAJOR) || (SND_LIB_MAJOR == 0 && SND_LIB_MINOR < 9)
-
-static const int alsa_format_preference[][2] = {
-	{ SND_PCM_SFMT_S16_LE, RTE_SNDFMT_S16LE },
-	{ SND_PCM_SFMT_U16_LE, RTE_SNDFMT_U16LE },
-	{ SND_PCM_SFMT_U8, RTE_SNDFMT_U8 },
-	{ SND_PCM_SFMT_S8, RTE_SNDFMT_S8 },
-	{ -1, -1 }
-};
-
-/*
- *  ALSA Library (0.5.10b) PCM Device
- */
+typedef struct alsa_context alsa_context;
 
 struct alsa_context {
 	struct pcm_context	pcm;
 
 	snd_pcm_t *		handle;
-	snd_pcm_mmap_control_t *control;
-	uint8_t *		mmapped;
-	int			fd, fd2;
-	int			curr_frag;
-	int			num_frags;
+	snd_pcm_status_t *	status;
 
-	double			time;
-	double			slag;
-	struct tfmem		tfmem;
+	snd_pcm_sframes_t	period_size;
+	snd_pcm_uframes_t	offset;
+	snd_pcm_uframes_t	frames;
+
+	unsigned int		chunk_bytes;
+	unsigned int		frame_bytes;
+	double			chunk_time;
+	double			frame_time;
+
+	unsigned int		left;
+
+	int			first;
 };
 
+extern int test_mode;
+
 static void
-wait_full(fifo *f)
+recover				(alsa_context *		alsa,
+				 int			err)
+{
+	switch (err) {
+	case -EPIPE:
+		if (0 && snd_pcm_status (alsa->handle, alsa->status) == 0) {
+			struct timeval now, diff, tstamp;
+
+			gettimeofday (&now, 0);
+			snd_pcm_status_get_trigger_tstamp (alsa->status, &tstamp);
+			timersub (&now, &tstamp, &diff);
+			fprintf (stderr, "%.3f ms overrun\n",
+				 diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
+		}
+
+		ASSERT_ALSA ("recover from overrun",
+			     snd_pcm_prepare (alsa->handle));
+		break;
+
+	case -ESTRPIPE: /* XXX Suspended (power management) */
+	        while ((err = snd_pcm_resume (alsa->handle)) == -EAGAIN);
+			sleep (1);
+
+		ASSERT_ALSA ("recover from suspend",
+			     snd_pcm_prepare (alsa->handle));
+		break;
+
+	default:
+		FAIL ("Unexpected ALSA error %d\n", err);
+	}
+}
+
+static void
+wait_full			(fifo *			f)
 {
 	struct alsa_context *alsa = f->user_data;
-	buffer *b = PARENT(f->buffers.head, buffer, added);
-	struct timeval tv;
-	double now;
-	int frag, i;
+	buffer *b = PARENT (f->buffers.head, buffer, added);
+	int err;
 
-	assert(b->data == NULL); /* no queue */
+	if (alsa->left > 0) {
+		b->data += alsa->chunk_bytes;
+		b->used  = alsa->chunk_bytes;
 
-	ALSA_DROP_TEST(
-		if ((rand() % 100) > 95)
-			usleep(500000);
-	)
+		b->time += alsa->chunk_time;
 
-	while (!alsa->control->fragments[alsa->curr_frag].data) {
-		fd_set rdset;
-		ssize_t r;
+		send_full_buffer (&alsa->pcm.producer, b);
 
-		switch (alsa->control->status.status) {
-		case SND_PCM_STATUS_RUNNING:
-			break;
+		alsa->left -= alsa->chunk_bytes;
 
-		case SND_PCM_STATUS_OVERRUN:
-			/*
-			 *  XXX The buffer (fragment) time stamps will suffice
-			 *  to detect overrun, but we need some method to reliable
-			 *  stamp old fragments, ie. first_lost - current + number
-			 *  of lost fragments + number stored until gettimeofday.
-			 *  status.overrun doesn't seem to work.
-			 */
-			ASSERT_ALSA("prepare PCM channel",
-				snd_pcm_channel_prepare(alsa->handle,
-			     		SND_PCM_CHANNEL_CAPTURE));
+		return;
+	}
 
-			ASSERT_ALSA("restart PCM capturing",
-				snd_pcm_channel_go(alsa->handle,
-					SND_PCM_CHANNEL_CAPTURE));
+	for (;;) {
+		snd_pcm_sframes_t avail;
 
-			alsa->curr_frag = 0; /* correct? */
+		switch (snd_pcm_state (alsa->handle)) {
+		case SND_PCM_STATE_XRUN:
+			recover (alsa, -EPIPE);
+			alsa->first = 1;
+			continue;
 
+		case SND_PCM_STATE_SUSPENDED:
+			recover (alsa, -ESTRPIPE);
+			alsa->first = 1;
 			continue;
 
 		default:
-			FAIL("Uh-oh. Unexpected ALSA status %d, please report\n"
-			     "at http://zapping.sourceforge.net\n",
-			     alsa->control->status.status);
+			break;
 		}
 
-		FD_ZERO(&rdset);
-		FD_SET(alsa->fd, &rdset);
+		avail = snd_pcm_avail_update (alsa->handle);
 
-		tv.tv_sec = 2;
-		tv.tv_usec = 0;
+		if (avail < 0) {
+			recover (alsa, avail);
+			alsa->first = 1;
+			continue;
+		}
 
-		r = select(alsa->fd + 1, &rdset, NULL, NULL, &tv);
-
-		if (r == 0)
-			FAIL("ALSA read timeout");
-		else if (r < 0)
-			FAIL("ALSA select error (%d, %s)",
-			     errno, strerror(errno));
-	}
-
-	/* See oss.c for discussion */
-
-	i = 5; /* retries */
-
-	do {
-		frag = alsa->control->status.frag_io;
-		gettimeofday(&tv, NULL);
-	} while (frag != alsa->control->status.frag_io && i--);
-
-	if (frag < alsa->curr_frag)
-		frag += alsa->num_frags;
-
-	now = tv.tv_sec + tv.tv_usec * (1 / 1e6)
-		- (frag - alsa->curr_frag) * alsa->tfmem.ref;
-
-	if (alsa->time > 0) {
-		if (test_mode & 256) {
-			double dt = now - alsa->time;
-
-			if (dt - alsa->tfmem.err > alsa->tfmem.ref * 1.98) {
-				/* data lost, out of sync; XXX 1.98 bad */
-				alsa->time = now;
-
-				printv(0, "alsa dropped dt=%f t/b=%f\n",
-					 dt, alsa->tfmem.ref);
+		if (avail < alsa->period_size) {
+			if (alsa->first) {
+				alsa->first = 0;
+			
+				ASSERT_ALSA ("start alsa capturing",
+					     snd_pcm_start (alsa->handle));
 			} else {
-				alsa->time += mp1e_timestamp_filter
-					(&alsa->tfmem, dt, 0.05, 1e-7, 0.08);
+				err = snd_pcm_wait (alsa->handle, 2000 /* ms */);
+
+				if (err == 0) {
+					FAIL ("ALSA timeout\n");
+				} else if (err < 0) {
+					recover (alsa, err);
+					alsa->first = 1;
+				}
 			}
 
-			ALSA_TIME_LOG(printv(0, "alsa %f dt %+f err %+f t/b %+f\n",
-				now, dt, alsa->tfmem.err, alsa->tfmem.ref));
-		} else {
-			alsa->time += alsa->tfmem.ref;
+			continue;
 		}
-	} else {
-		snd_pcm_channel_status_t status;
-		double stime;
 
-                status.channel = SND_PCM_CHANNEL_CAPTURE;
-                ASSERT_ALSA("query ALSA channel status",
-			    snd_pcm_plugin_status(alsa->handle, &status));
+		{
+			const snd_pcm_channel_area_t *my_areas;
 
-		stime = status.stime.tv_sec                                                     
-                        + status.stime.tv_usec * (1 / 1e6);
+			alsa->frames = alsa->period_size;
 
-		alsa->time = now;
-		alsa->slag = stime - now;
+			err = snd_pcm_mmap_begin (alsa->handle, &my_areas,
+						  &alsa->offset, &alsa->frames);
+			if (err < 0) {
+				recover (alsa, err);
+				alsa->first = 1;
+				continue;
+			}
+	
+			b->data = ((char *) my_areas[0].addr) + (my_areas[0].first >> 3)
+				+ alsa->offset * alsa->frame_bytes;
+	
+			b->used = alsa->chunk_bytes;
 
-		ALSA_TIME_LOG(printv(0, "start %f stime %f lag %f\n",
-				     now, stime, alsa->slag));
+			alsa->left = alsa->frames * alsa->frame_bytes - alsa->chunk_bytes;
+		}
+
+		{
+			snd_timestamp_t tstamp; /* struct timeval */
+			snd_pcm_sframes_t delay;
+	
+			snd_pcm_status (alsa->handle, alsa->status);
+	
+			/* Silly. */
+			snd_pcm_status_get_tstamp (alsa->status, &tstamp);
+			delay = snd_pcm_status_get_delay (alsa->status);
+	
+			b->time = tstamp.tv_sec + tstamp.tv_usec * (1 / 1e6)
+				  + delay * alsa->frame_time;
+		}
+
+		break;
 	}
-
-	b->time = alsa->time + alsa->slag;
-	b->data = alsa->mmapped + alsa->control->fragments[alsa->curr_frag].addr;
-
-	if (test_mode & 64)
-		ASSERT("write raw audio data",
-		       write(alsa->fd2, b->data, b->used) == b->used);
-
-	send_full_buffer(&alsa->pcm.producer, b);
+		
+	send_full_buffer (&alsa->pcm.producer, b);
 }
 
 static void
-send_empty(consumer *c, buffer *b)
+send_empty			(consumer *		c,
+				 buffer *		b)
 {
-	struct alsa_context *alsa = c->fifo->user_data;
+	struct alsa_context *alsa = b->fifo->user_data;
 
 	// XXX
 	unlink_node(&c->fifo->full, &b->node);
 
-	b->data = NULL;
+	if (alsa->left == 0) {
+		snd_pcm_sframes_t actual;
 
-	alsa->control->fragments[alsa->curr_frag++].data = 0;
+		actual = snd_pcm_mmap_commit (alsa->handle,
+				              alsa->offset, alsa->frames);
 
-	if (alsa->curr_frag >= alsa->num_frags)
-		alsa->curr_frag = 0;
+		if (actual < 0 || actual != alsa->frames) {
+			recover (alsa, actual);
+			alsa->first = 1;
+		}
+
+		b->data = NULL;
+	}
 }
 
 static rte_bool
-start(fifo *f)
+start				(fifo *			f)
 {
 	struct alsa_context *alsa = f->user_data;
 
-	ASSERT_ALSA("start PCM capturing",
-		snd_pcm_channel_go(alsa->handle,
-				   SND_PCM_CHANNEL_CAPTURE));
+	ASSERT_ALSA ("start PCM capturing",
+		     snd_pcm_prepare (alsa->handle));
+
 	return TRUE;
 }
 
-void
-open_pcm_alsa(char *dev_name1, int sampling_rate, rte_bool stereo, fifo **f)
+static inline void
+select_sample_format		(alsa_context *		alsa,
+				 snd_pcm_hw_params_t *	params,
+				 rte_bool		stereo)
 {
-	struct alsa_context *alsa;
-	snd_pcm_info_t pcm_info;
-	snd_pcm_channel_info_t ch_info;
-	snd_pcm_channel_params_t params;
-	snd_pcm_channel_setup_t setup;
-	int card = 0, device = 0, bpf, i;
-	char *dev_name = dev_name1;
-	buffer *b;
+	static const int
+	preference [][3] = {
+		{ SND_PCM_FORMAT_S16_LE, RTE_SNDFMT_S16_LE, 2 },
+		{ SND_PCM_FORMAT_U16_LE, RTE_SNDFMT_U16_LE, 2 },
+		{ SND_PCM_FORMAT_U8,     RTE_SNDFMT_U8,     1 },
+		{ SND_PCM_FORMAT_S8,     RTE_SNDFMT_S8,     1 }
+	};
+	static const int num_formats = 4; 
+	unsigned int channels;
+	unsigned int i;
 
-	while (*dev_name && !isdigit(*dev_name))
-		dev_name++;
-
-	sscanf(dev_name, "%d,%d", &card, &device);
-
-	ASSERT("allocate pcm context",
-		(alsa = calloc(1, sizeof(struct alsa_context))));
-
-	alsa->pcm.format = RTE_SNDFMT_S16LE;
-	alsa->pcm.sampling_rate = sampling_rate;
-	alsa->pcm.stereo = stereo;
-
-	ASSERT_ALSA("open ALSA PCM card %d,%d",
-		snd_pcm_open(&alsa->handle, card, device, SND_PCM_OPEN_CAPTURE),
-		card, device);
-
-	alsa->fd = snd_pcm_file_descriptor(alsa->handle, SND_PCM_CHANNEL_CAPTURE);
-
-	if (test_mode & 64)
-		ASSERT("open raw audio file",
-		       (alsa->fd2 = open("raw-audio", O_WRONLY | O_CREAT, 0666)) != -1);
-
-	ASSERT_ALSA("obtain PCM device info",
-		snd_pcm_info(alsa->handle, &pcm_info));
-
-	memset(&ch_info, 0, sizeof(ch_info));
-	ch_info.channel = SND_PCM_CHANNEL_CAPTURE;
-
-	ASSERT_ALSA("obtain PCM capture channel info",
-		snd_pcm_channel_info(alsa->handle, &ch_info));
-
-	printv(2, "Opened ALSA 0.5 PCM device, card #%d device #%d (%s)\n",
-		card, device, pcm_info.name);
-
-	/*
-	 *  I get an error here: -77, File descriptor in bad state
-	 *  But xmms-r does the same, w/o error check.
-	 */
-	snd_pcm_capture_flush(alsa->handle);
-
-#define PROP_CHECK_FAILURE(why, args...)				\
-do {									\
-	FAIL("Sorry, ALSA device '%s' (%s), subdevice '%s'\n"		\
-	     why ".\n", dev_name1, pcm_info.name, ch_info.subname	\
-	     ,##args );							\
-} while (0)
-
-	/* XXX non-continuous rates, XXX could be converted */
-	if (ch_info.min_rate > sampling_rate
-	    || ch_info.max_rate < sampling_rate)
-		PROP_CHECK_FAILURE("supports only sampling frequencies %d ... %d Hz",
-				   ch_info.min_rate, ch_info.max_rate);
-
-	if ((ch_info.flags & (SND_PCM_CHNINFO_MMAP | SND_PCM_CHNINFO_BLOCK))
-		!= (SND_PCM_CHNINFO_MMAP | SND_PCM_CHNINFO_BLOCK))
-		PROP_CHECK_FAILURE("supports no memory mapping and block mode");
-
-	if (stereo)
-		if (!(ch_info.flags & SND_PCM_CHNINFO_INTERLEAVE))
-			PROP_CHECK_FAILURE("supports no interleaved stereo");
-
-	for (i = 0;; i++)
-		if (alsa_format_preference[i][0] < 0)
-			PROP_CHECK_FAILURE("doesn't support sample format U|S 8|16LE");
-		else if (ch_info.formats & (1 << alsa_format_preference[i][0]))
+	for (i = 0; i < num_formats; i++)
+		if (snd_pcm_hw_params_set_format
+	            (alsa->handle, params, preference[i][0]) == 0)
 			break;
 
-	alsa->pcm.format = alsa_format_preference[i][1]; /* rte_sndfmt */
+	ASSERT ("set suitable PCM sample format",
+	        i < num_formats);
 
-	if (snd_pcm_format_size(alsa_format_preference[i][0], 1) < 2)
-		printv(1, "Warning: ALSA device '%s' (%s), subdevice '%s'\n"
-		       "supports no 16 bit LE audio, will compress 8 bit audio\n",
-		       dev_name1, pcm_info.name, ch_info.subname);
+	alsa->pcm.format = preference[i][1];
 
-	bpf = snd_pcm_format_size(alsa_format_preference[i][0], 1 << stereo);
+	stereo = !!stereo;
 
-	/*
-	 *  xmms-r, makes no sense to me.
-	 */
-	snd_pcm_munmap(alsa->handle, SND_PCM_CHANNEL_CAPTURE);
-	snd_pcm_channel_flush(alsa->handle, SND_PCM_CHANNEL_CAPTURE);
+	ASSERT_ALSA ("set PCM number of channels to %d",
+		     snd_pcm_hw_params_set_channels
+		     (alsa->handle, params, 1 + stereo), 1 + stereo);
 
-	memset(&params, 0, sizeof(params));
+	channels = snd_pcm_hw_params_get_channels (params);
 
-	params.channel = SND_PCM_CHANNEL_CAPTURE;
-	params.mode = SND_PCM_MODE_BLOCK;
-	params.format.interleave = 1;
-	params.format.format = alsa_format_preference[i][0];
-	params.format.rate = sampling_rate;
-	params.format.voices = stereo + 1;
-	params.start_mode = SND_PCM_START_DATA;
-	params.stop_mode = SND_PCM_STOP_STOP;
-	/* unlike xmms-r, for time stamping: */
-	params.buf.block.frag_size = 4096 * bpf;
-	params.buf.block.frags_max = -1; /* ? */
-	params.buf.block.frags_min = 1;
-	params.time = 1;
+	if (channels != (1 + stereo))
+		FAIL ("Unable to set PCM number of channels to %d\n", 1 + stereo);
 
-	ASSERT_ALSA("set PCM channel parameters",
-		snd_pcm_channel_params(alsa->handle, &params));
-
-	ASSERT_ALSA("memory map audio buffers",
-		snd_pcm_mmap(alsa->handle, SND_PCM_CHANNEL_CAPTURE,
-			     &alsa->control, (void **) &alsa->mmapped));
-
-	/*
-	 *  xmms-r calls snd_pcm_plugin_prepare here, guess that
-	 *  should be channel_prepare.
-	 */
-	ASSERT_ALSA("prepare PCM channel",
-		snd_pcm_channel_prepare(alsa->handle, SND_PCM_CHANNEL_CAPTURE));
-
-	memset(&setup, 0, sizeof(setup));
-	setup.channel = SND_PCM_CHANNEL_CAPTURE;
-	setup.mode = SND_PCM_MODE_BLOCK; /* xmms-r, purpose? */
-
-	ASSERT_ALSA("query PCM setup",
-		snd_pcm_channel_setup(alsa->handle, &setup));
-
-	printv(3, "ALSA setup: ilv %d, format %d (%s), rate %d, voices %d, "
-	       "frags %d, frag_size %d, bpf %d\n",
-	       setup.format.interleave, setup.format.format,
-	       snd_pcm_get_format_name(setup.format.format),
-	       setup.format.rate, setup.format.voices,
-	       setup.buf.block.frags, setup.buf.block.frag_size, bpf);
-
-	if (setup.format.rate != sampling_rate)
-		PROP_CHECK_FAILURE("didn't accept sampling frequency %d, suggests %d Hz",
-			sampling_rate, setup.format.rate);
-
-	if (setup.buf.block.frags < 2)
-		PROP_CHECK_FAILURE("provided only one audio fragment, "
-				   "need at least two");
-
-	alsa->curr_frag = 0;
-	alsa->num_frags = setup.buf.block.frags;
-
-	alsa->time = 0.0;
-	mp1e_timestamp_init(&alsa->tfmem, (setup.buf.block.frag_size / bpf)
-		/ (double) sampling_rate);
-
-	*f = &alsa->pcm.fifo;
-
-	ASSERT("init alsa fifo", init_callback_fifo(*f, "audio-alsa1",
-		NULL, NULL, wait_full, send_empty,
-		1, 0));
-
-	ASSERT("init alsa producer",
-		add_producer(*f, &alsa->pcm.producer));
-
-	(*f)->user_data = alsa;
-	(*f)->start = start;
-
-	b = PARENT((*f)->buffers.head, buffer, added);
-
-	b->data = NULL;
-	b->used = setup.buf.block.frag_size;
-	b->offset = 0;
-}
-
-#else /* SND_LIB >= 0.9 */
-
-/*
- *  ALSA Library (0.9.0beta7) PCM Device
- *
- *  This is untested and time stamping chews on the gums,
- *  expect the worst. Try OSS.
- */
-
-struct alsa_context {
-	struct pcm_context	pcm;
-
-	snd_pcm_t *		handle;
-	int			sleep;
-	double			time, start;
-	double			buffer_period;
-};
-
-static void
-wait_full(fifo *f)
-{
-	struct alsa_context *alsa = f->user_data;
-	buffer *b = PARENT(f->buffers.head, buffer, added);
-	unsigned char *p;
-	double now;
-	ssize_t r, n;
-
-	assert(b->data == NULL); /* no queue */
-
-	for (p = b->allocated, n = b->size; n > 0;) {
-		r = snd_pcm_readi(alsa->handle, p, n);
-
-		if (r == -EINTR)
-			continue;
-
-		if (r == 0 || r == -EAGAIN) {
-			usleep(alsa->sleep);
-			continue;
-		}
-
-		ASSERT_ALSA("read PCM data, %d bytes", r, n);
-
-		p += r;
-		n -= r;
-
-		if (r < 200)
-			usleep(alsa->sleep);
-	}
-
-	now = current_time();
-
-	if (alsa->time > 0) {
-		double dt = now - alsa->time;
-		double ddt = alsa->buffer_period - dt;
-		double q = 128 * fabs(ddt) / alsa->buffer_period;
-
-		alsa->buffer_period = ddt * MIN(q, 0.999) + dt;
-		b->time = alsa->time + alsa->start;
-		alsa->time += alsa->buffer_period;
-	} else {
-		b->time = alsa->start = now;
-	}
-
-	b->data = b->allocated;
-
-	send_full_buffer(&alsa->pcm.producer, b);
-}
-
-static void
-send_empty(consumer *c, buffer *b)
-{
-	// XXX
-	unlink_node(&c->fifo->full, &b->node);
-
-	b->data = NULL;
-}
-
-static rte_bool
-start(fifo *f)
-{
-	struct alsa_context *alsa = f->user_data;
-
-	ASSERT_ALSA("start PCM capturing",
-		snd_pcm_prepare(alsa->handle));
-
-	return TRUE;
+	alsa->frame_bytes = preference[i][2] << stereo;
 }
 
 void
-open_pcm_alsa(char *dev_name, int sampling_rate, rte_bool stereo, fifo **f)
+open_pcm_alsa			(const char *		dev_name,
+				 unsigned int		sampling_rate,
+				 rte_bool		stereo,
+				 fifo **		f)
 {
-	struct alsa_context *alsa;
+	alsa_context *alsa;
 	snd_pcm_info_t *info;
 	snd_pcm_hw_params_t *params;
 	snd_pcm_sw_params_t *swparams;
-	int buffer_time = 500000; /* µs */
-	int period_size = 2048; /* frames (channel * bytes_per_sample) */
-	int buffer_size, err;
-	snd_output_t *log;
+	unsigned int buffer_size;
+	snd_output_t *logs;
+	int err;
 	buffer *b;
 
-	FAIL("Sorry, alsa 0.9 interface broken. Please use OSS interface (-p/dev/dsp).\n");
+	snd_pcm_info_alloca (&info);
+	snd_pcm_hw_params_alloca (&params);
+	snd_pcm_sw_params_alloca (&swparams);
 
-	snd_pcm_info_alloca(&info);
-	snd_pcm_hw_params_alloca(&params);
-	snd_pcm_sw_params_alloca(&swparams);
-
-	ASSERT("allocate pcm context",
-		(alsa = calloc(1, sizeof(struct alsa_context))));
+	ASSERT ("allocate pcm context",
+	    	(alsa = calloc (1, sizeof (*alsa))));
 
 	alsa->pcm.format = RTE_SNDFMT_S16_LE;
 	alsa->pcm.sampling_rate = sampling_rate;
 	alsa->pcm.stereo = stereo;
 
-	if (snd_output_stdio_attach(&log, stderr, 0) < 0)
-		log = NULL;
+	if (snd_output_stdio_attach (&logs, stderr, 0) < 0)
+		logs = NULL;
 
-	if (0 == strncasecmp(dev_name, "alsa", 4))
-		dev_name += 4;
-	while (*dev_name && !isalnum(*dev_name))
-		dev_name++;
-	if (!*dev_name)
-		dev_name = "default";
+	{
+		/* Just an arbitrary prefix selecting this interface */
+		if (0 == strncasecmp (dev_name, "alsa", 4))
+			dev_name += 4;
 
-	ASSERT_ALSA("open ALSA device '%s'",
-		snd_pcm_open(&alsa->handle, dev_name, SND_PCM_STREAM_CAPTURE, 0),
-		dev_name);
-	
-	ASSERT_ALSA("obtain snd_pcm_info", snd_pcm_info(alsa->handle, info));
+		/* Separator */
+		while (*dev_name && !isalnum (*dev_name))
+			dev_name++;
 
-	printv(2, "Opened ALSA 0.9 PCM device '%s' (%s)\n",
-		dev_name, snd_pcm_info_get_name(info));
-
-	ASSERT_ALSA("obtain PCM hw configuration",
-		snd_pcm_hw_params_any(alsa->handle, params));
-	ASSERT_ALSA("set PCM access mode",
-		snd_pcm_hw_params_set_access(alsa->handle,
-			params, SND_PCM_ACCESS_RW_INTERLEAVED));
-	ASSERT_ALSA("set PCM sample format signed 16 bit LE",
-		snd_pcm_hw_params_set_format(alsa->handle,
-			params, SND_PCM_FORMAT_S16_LE));
-	ASSERT_ALSA("set PCM channels to %d",
-		snd_pcm_hw_params_set_channels(alsa->handle,
-			params, 1 + !!stereo), 1 + !!stereo);
-	ASSERT_ALSA("set PCM sampling rate %d Hz",
-		snd_pcm_hw_params_set_rate_near(alsa->handle,
-			params, sampling_rate, 0), sampling_rate);
-	ASSERT_ALSA("set PCM DMA buffer size",
-		snd_pcm_hw_params_set_buffer_time_near(alsa->handle,
-			params, buffer_time, 0));
-	ASSERT_ALSA("set PCM DMA period size",
-		snd_pcm_hw_params_set_period_size(alsa->handle,
-			params, period_size, 0));
-	if ((err = snd_pcm_hw_params(alsa->handle, params)) < 0) {
-		fprintf(stderr, "%s:" __FILE__ ":" ISTF1(__LINE__) ": "
-			"Failed to install PCM hw parameters (%d, %s)",
-			program_invocation_short_name, err, snd_strerror(err));
-
-		if (log) snd_pcm_hw_params_dump(params, log);
-
-		exit(EXIT_FAILURE);
+		if (!*dev_name)
+			dev_name = "default";
 	}
 
-	period_size = snd_pcm_hw_params_get_period_size(params, 0);
-	buffer_size = snd_pcm_hw_params_get_buffer_size(params);
-	if (period_size == buffer_size) {
-		FAIL("Can't use period equal to buffer size %d", period_size);
-		exit(EXIT_FAILURE);
+	ASSERT_ALSA ("snd_pcm_status_malloc",
+		     snd_pcm_status_malloc (&alsa->status));
+
+	ASSERT_ALSA ("open ALSA device '%s'",
+		     snd_pcm_open (&alsa->handle, dev_name,
+			           SND_PCM_STREAM_CAPTURE,
+				   SND_PCM_NONBLOCK),
+		     dev_name);
+
+	ASSERT_ALSA ("obtain snd_pcm_info",
+		     snd_pcm_info (alsa->handle, info));
+
+	printv (2, "Opened ALSA 0.9 PCM device '%s' (%s)\n",
+	        dev_name, snd_pcm_info_get_name (info));
+
+	ASSERT_ALSA ("obtain PCM hw configuration",
+		     snd_pcm_hw_params_any (alsa->handle, params));
+
+	ASSERT_ALSA ("set PCM access mode",
+		     snd_pcm_hw_params_set_access
+		     (alsa->handle, params, SND_PCM_ACCESS_MMAP_INTERLEAVED));
+
+	select_sample_format (alsa, params, stereo);
+
+	ASSERT_ALSA ("set PCM sampling rate %d Hz",
+		     snd_pcm_hw_params_set_rate_near
+		     (alsa->handle, params, sampling_rate, NULL), sampling_rate);
+
+	snd_pcm_hw_params_get_rate (params, &sampling_rate);
+
+	alsa->pcm.sampling_rate = sampling_rate;
+
+	alsa->frame_time = 1.0 / sampling_rate;
+
+#if 0
+/* Why can't I get period_size < buffer_time/2 ? */
+
+	buffer_time = 500000; /* us */
+
+	ASSERT_ALSA ("set PCM DMA buffer size %f s",
+		     snd_pcm_hw_params_set_buffer_time_near
+		     (alsa->handle, params, buffer_time, NULL), buffer_time / 1e6);
+#endif
+	alsa->period_size = 8192; /* frames (= channels * bytes_per_sample) / interrupt */
+
+	ASSERT_ALSA ("set PCM DMA period size",
+		     snd_pcm_hw_params_set_period_size_near
+		     (alsa->handle, params, alsa->period_size, 0));
+
+	err = snd_pcm_hw_params (alsa->handle, params);
+
+	if (err < 0) {
+		fprintf (stderr, "%s:" __FILE__ ":" ISTF1(__LINE__) ": "
+			 "Failed to install PCM hw parameters (%d, %s)",
+			 program_invocation_short_name,
+			 err, snd_strerror (err));
+
+		if (logs)
+			snd_pcm_hw_params_dump (params, logs);
+
+		exit (EXIT_FAILURE);
 	}
 
-	ASSERT_ALSA("obtain PCM sw configuration",
-		snd_pcm_sw_params_current(alsa->handle, swparams));
-	ASSERT_ALSA("set PCM sw sleep min 0",
-		snd_pcm_sw_params_set_sleep_min(alsa->handle, swparams, 0));
-	ASSERT_ALSA("set PCM sw avail min %d",
-		snd_pcm_sw_params_set_avail_min(alsa->handle, swparams, period_size),
-		period_size);
-	ASSERT_ALSA("set PCM xfer align %d",
-		snd_pcm_sw_params_set_xfer_align(alsa->handle, swparams, period_size),
-		period_size);
-	if ((err = snd_pcm_sw_params(alsa->handle, swparams)) < 0) {
-		fprintf(stderr, "%s:" __FILE__ ":" ISTF1(__LINE__) ": "
-			"Failed to install PCM sw parameters (%d, %s)",
-			program_invocation_short_name, err, snd_strerror(err));
+	/* FIXME this must determine the minimum number of coded video and
+	   audio buffers to prevent overflow in the mux */
+	alsa->period_size = snd_pcm_hw_params_get_period_size (params, 0);
+	buffer_size = snd_pcm_hw_params_get_buffer_size (params);
 
-		if (log) snd_pcm_sw_params_dump(swparams, log);
+	if (buffer_size < (alsa->period_size * 2))
+		FAIL ("Bad buffer_size/period_size: %d/%d", buffer_size, (int) alsa->period_size);
 
-		exit(EXIT_FAILURE);
+	for (alsa->chunk_bytes = alsa->period_size;
+	     alsa->chunk_bytes >= 4096;
+	     alsa->chunk_bytes >>= 1)
+	         ;
+
+	alsa->chunk_bytes *= alsa->frame_bytes;
+	alsa->chunk_time = alsa->chunk_bytes * alsa->frame_time / alsa->frame_bytes;
+
+	printv (2, "Bounds buffer = %u fr; period = %u fr; chunk = %u B, %f s\n",
+		buffer_size, (int) alsa->period_size,
+		alsa->chunk_bytes, alsa->chunk_time);
+
+	ASSERT_ALSA ("obtain PCM sw configuration",
+		     snd_pcm_sw_params_current (alsa->handle, swparams));
+
+	ASSERT_ALSA ("set PCM sw sleep min 0",
+		     snd_pcm_sw_params_set_sleep_min
+		     (alsa->handle, swparams, 0));
+
+	ASSERT_ALSA ("set PCM sw avail min %d",
+		     snd_pcm_sw_params_set_avail_min
+		     (alsa->handle, swparams, alsa->period_size), (int) alsa->period_size);
+
+	ASSERT_ALSA ("set PCM xfer align %d",
+		     snd_pcm_sw_params_set_xfer_align
+		     (alsa->handle, swparams, alsa->period_size), (int) alsa->period_size);
+
+	ASSERT_ALSA ("set PCM tstamp mode",
+		     snd_pcm_sw_params_set_tstamp_mode
+		     (alsa->handle, swparams, SND_PCM_TSTAMP_MMAP));
+
+	err = snd_pcm_sw_params (alsa->handle, swparams);
+
+	if (err < 0) {
+		fprintf (stderr, "%s:" __FILE__ ":" ISTF1(__LINE__) ": "
+			 "Failed to install PCM sw parameters (%d, %s)",
+			 program_invocation_short_name,
+			 err, snd_strerror (err));
+
+		if (logs)
+			snd_pcm_sw_params_dump (swparams, logs);
+
+		exit (EXIT_FAILURE);
 	}
 
-	if (verbose >= 3 && log)
-		snd_pcm_dump(alsa->handle, log);
+	alsa->first = 1;
 
-	buffer_size = period_size << (stereo + 1);
-	alsa->sleep = 400000.0 * period_size / (double) sampling_rate;
+	if (verbose >= 3 && logs)
+		snd_pcm_dump (alsa->handle, logs);
 
 	*f = &alsa->pcm.fifo;
 
-	ASSERT("init alsa fifo", init_callback_fifo(*f, "audio-alsa2",
-		NULL, NULL, wait_full, send_empty,
-		1, buffer_size));
+	ASSERT ("init alsa fifo",
+	        init_callback_fifo (*f, "audio-alsa",
+				    NULL, NULL, wait_full, send_empty,
+				    1, buffer_size));
 
-	ASSERT("init alsa producer",
-		add_producer(*f, &alsa->pcm.producer));
+	ASSERT ("init alsa producer",
+		add_producer (*f, &alsa->pcm.producer));
 
 	(*f)->user_data = alsa;
 	(*f)->start = start;
 
-	b = PARENT((*f)->buffers.head, buffer, added);
+	b = PARENT ((*f)->buffers.head, buffer, added);
 
 	b->data = NULL;
 	b->used = b->size;
 	b->offset = 0;
 }
 
-#endif /* SND_LIB >= 0.9 */
-
 #else /* !HAVE_ALSA */
 
 void
-open_pcm_alsa(char *dev_name, int sampling_rate, rte_bool stereo, fifo **f)
+open_pcm_alsa			(const char *		dev_name,
+			         unsigned int		sampling_rate,
+				 rte_bool		stereo,
+				 fifo **		f)
 {
-	FAIL("Not compiled with ALSA interface.\n"
-	     "For more info about ALSA visit http://www.alsa-project.org\n");
+	FAIL ("Not compiled with ALSA interface.\n"
+	      "For more info about ALSA visit http://www.alsa-project.org\n");
 }
 
-#endif /* !HAVE_LIBASOUND */
+#endif /* !HAVE_ALSA */
