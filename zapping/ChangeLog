@@ -1,3 +1,14 @@
+14.1.2001	** bug <garetxe@users.sourceforge.net>
+
+	* common/ure.c: Fixed the "**" pattern bug.
+	* src/main.c: Definitively closed the auto-resizing bug (and the
+	many bugs its fix had caused :-)
+	* src/frequencies.c: South African frequency table, donated by
+	Jeremy Maccelary. Thanks!
+	* src/ttxview.c: Added popup menu support in attached views.
+	* zapping_setup_fb: Added not-running-as suid message, paranoid
+	security changes.
+
 14.1.2001	Search GUI <mschimek@users.sourceforge.net>
 
 	* Backward search added, remaining bugs fixed in the

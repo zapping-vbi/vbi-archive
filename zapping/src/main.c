@@ -70,14 +70,27 @@ static gint		newbttv = -1; /* Compatibility with old bttv
 static void shutdown_zapping(void);
 static gboolean startup_zapping(void);
 
-/* Fixes the infamous toolbar problem */
-static
-void on_tv_screen_size_request	(GtkWidget	*widget,
-				 GtkRequisition	*req,
-				 gpointer	*user_data)
+/*
+ * This removes the bug when resizing toolbar makes the tv_screen have
+ * 1 unit height.
+*/
+static gint old_height=160;
+static void
+on_tv_screen_size_allocate	(GtkWidget	*widget,
+				 GtkAllocation	*allocation,
+				 gpointer	data)
 {
-  req->width = 1;
-  req->height = widget->allocation.height;
+  gint oldw;
+
+  if (!main_window->window)
+    return;
+  
+  if (allocation->height == 1)
+    gdk_window_resize(main_window->window,
+		      main_window->allocation.width,
+		      old_height);
+  else
+    gdk_window_get_size(main_window->window, &oldw, &old_height);
 }
 
 /* Adjusts geometry */
@@ -115,7 +128,7 @@ static gint timeout_handler(gpointer unused)
       gdk_window_set_geometry_hints(main_window->window, &geometry,
 				    hints);
     }
-  
+
   return 1; /* Keep calling me */
 }
 
@@ -229,7 +242,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.79 2001-01-13 18:54:08 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.80 2001-01-14 20:52:09 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -337,13 +350,6 @@ int main(int argc, char * argv[])
       return -1;
     }
   D();
-  /* Do some checks for the preview */
-  /*  if ((!disable_preview) && (!tveng_detect_XF86DGA(main_info)))
-	disable_preview = TRUE;
-  D();
-  if ((!disable_preview) && (!tveng_detect_preview(main_info)))
-	disable_preview = TRUE;
-	D();*/
   /* Mute the device while we are starting Zapping */
   if (-1 == tveng_set_mute(1, main_info))
     fprintf(stderr, "%s\n", main_info->error);
@@ -351,10 +357,10 @@ int main(int argc, char * argv[])
   main_window = create_zapping();
   D();
   tv_screen = lookup_widget(main_window, "tv_screen");
-  printv("tv_screen is %p\n", (gpointer)tv_screen);
-  gtk_signal_connect(GTK_OBJECT(tv_screen), "size-request",
-		     GTK_SIGNAL_FUNC(on_tv_screen_size_request),
-		     NULL);
+  /* Avoid dumb resizes */
+  gtk_signal_connect(GTK_OBJECT(tv_screen), "size-allocate",
+		     GTK_SIGNAL_FUNC(on_tv_screen_size_allocate), NULL);
+  /* set periodically the geometry flags on the main window */
   gtk_timeout_add(50, (GtkFunction)timeout_handler, NULL);
   /* ensure that the main window is realized */
   gtk_widget_show(main_window);

@@ -24,7 +24,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #if 0
-static char rcsid[] = "$Id: ure.c,v 1.6 2001-01-13 18:54:08 garetxe Exp $";
+static char rcsid[] = "$Id: ure.c,v 1.7 2001-01-14 20:52:09 garetxe Exp $";
 #endif
 
 #include <stdlib.h>
@@ -1284,15 +1284,6 @@ _ure_re2nfa(ucs2_t *re, unsigned long relen, _ure_buffer_t *b)
        */
       (void) _ure_pop(b);
       break;
-    case '*':
-      state = _ure_make_expr(_URE_STAR, state, _URE_NOOP, b);
-      break;
-    case '+':
-      state = _ure_make_expr(_URE_PLUS, state, _URE_NOOP, b);
-      break;
-    case '?':
-      state = _ure_make_expr(_URE_QUEST, state, _URE_NOOP, b);
-      break;
     case '|':
       while ((top = _ure_peek(b)) == _URE_AND || top == _URE_OR)
 	/*
@@ -1307,6 +1298,25 @@ _ure_re2nfa(ucs2_t *re, unsigned long relen, _ure_buffer_t *b)
       _ure_push(state, b);
       _ure_push(_URE_OR, b);
       break;
+    case '*':
+      /* If this is the first char, treat as escaped */
+      if (re+1 != sp)
+	{
+	  state = _ure_make_expr(_URE_STAR, state, _URE_NOOP, b);
+	  break;
+	}
+    case '+':
+      if (re+1 != sp)
+	{
+	  state = _ure_make_expr(_URE_PLUS, state, _URE_NOOP, b);
+	  break;
+	}
+    case '?':
+      if (re+1 != sp)
+	{
+	  state = _ure_make_expr(_URE_QUEST, state, _URE_NOOP, b);
+	  break;
+	}
     default:
       sp--;
       sym = _ure_make_symbol(sp, ep - sp, &used, b);

@@ -56,7 +56,7 @@ void update_standards_menu(GtkWidget * widget, tveng_device_info *
     gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 		       GTK_SIGNAL_FUNC(on_standard_activate),
 		       GINT_TO_POINTER(i)); /* it should know about
-						  itself*/
+					       itself */
     gtk_widget_show (menu_item);
     gtk_menu_append(GTK_MENU (NewMenu), menu_item);
   }

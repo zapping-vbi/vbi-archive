@@ -39,10 +39,8 @@
 extern gboolean flag_exit_program;
 
 /*
-  TODO:
-	ttxview in main window (alpha et al)
-*/
-
+ * BUGS: No alpha yet.
+ */
 static GdkCursor	*hand=NULL;
 static GdkCursor	*arrow=NULL;
 static GtkWidget	*search_progress=NULL;
@@ -192,8 +190,8 @@ void scale_image			(GtkWidget	*wid,
       data->mask = gdk_pixmap_new(data->da->window, w, h, 1);
       g_assert(data->mask != NULL);
       resize_ttx_page(data->id, w, h);
-      render_ttx_mask(data->id, data->mask);
-      gdk_window_shape_combine_mask(data->da->window, data->mask, 0, 0);
+      // render_ttx_mask(data->id, data->mask);
+      // gdk_window_shape_combine_mask(data->da->window, data->mask, 0, 0);
       data->w = w;
       data->h = h;
     }
@@ -397,9 +395,9 @@ event_timeout				(ttxview_data	*data)
 	  gdk_window_get_size(data->da->window, &w, &h);
 	  if (data->mask)
 	    {
-	      render_ttx_mask(data->id, data->mask);
-	      gdk_window_shape_combine_mask(data->da->window, data->mask,
-					    0, 0);
+	      // render_ttx_mask(data->id, data->mask);
+	      // gdk_window_shape_combine_mask(data->da->window, data->mask,
+	      //			    0, 0);
 	    }
 	  gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
 	  data->subpage = data->fmt_page->vtp->subno;
@@ -1328,6 +1326,43 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
       }
 
   return popup;
+}
+
+void
+process_ttxview_menu_popup		(GtkWidget	*widget,
+					 GdkEventButton	*event,
+					 GtkMenu	*popup)
+{
+  gint w, h, col, row, page, subpage;
+  GtkMenu *menu;
+  ttxview_data *data = gtk_object_get_data(GTK_OBJECT(widget),
+					   "ttxview_data");
+
+  GtkWidget *menu_item;
+
+  if (!data)
+    return;
+
+  gdk_window_get_size(widget->window, &w, &h);
+  /* convert to fmt_page space */
+  col = (event->x*40)/w;
+  row = (event->y*25)/h;
+  page = data->fmt_page->data[row][col].link_page;
+  subpage = data->fmt_page->data[row][col].link_subpage;
+  if (subpage == (guchar)ANY_SUB)
+    subpage = ANY_SUB;  
+
+  menu = GTK_MENU(build_ttxview_popup(data, page, subpage));
+
+  menu_item =
+    z_gtk_pixmap_menu_item_new("Zapzilla", GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
+  gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), GTK_WIDGET(menu));
+  gtk_widget_show(GTK_WIDGET(menu));
+  gtk_widget_show(menu_item);
+  gtk_menu_insert(GTK_MENU(popup), menu_item, 1);
+  menu_item = gtk_menu_item_new();
+  gtk_widget_show(menu_item);
+  gtk_menu_insert(GTK_MENU(popup), menu_item, 2);
 }
 
 static gboolean

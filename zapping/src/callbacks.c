@@ -575,6 +575,7 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 					  spixmap);
 	  gtk_widget_show(spixmap);
 	}
+      process_ttxview_menu_popup(main_window, bevent, menu);
       gtk_menu_popup(menu, NULL, NULL, NULL,
 		     NULL, bevent->button, bevent->time);
       gtk_object_set_user_data(GTK_OBJECT(menu), zapping);

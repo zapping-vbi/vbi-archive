@@ -47,4 +47,13 @@ ttxview_attach			(GtkWidget	*parent,
 void
 ttxview_detach			(GtkWidget	*parent);
 
+/**
+ * If the given widget is a window acting as a TTXView, add to the
+ * given popup menu the TTXView entries
+ */
+void
+process_ttxview_menu_popup		(GtkWidget	*widget,
+					 GdkEventButton	*event,
+					 GtkMenu	*popup);
+
 #endif

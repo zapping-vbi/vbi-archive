@@ -27,7 +27,6 @@
 #  include <config.h>
 #endif
 
-#include <gnome.h>
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -53,8 +52,11 @@
 
 #include "../src/videodev.h" /* V4L header file */
 
+#define FALSE (0)
+#define TRUE (!FALSE)
+
 #define MAX_VERBOSE 2 /* Greatest verbosity allowed */
-#define ZSFB_VERSION "zapping_setup_fb 0.8.6" /* Current program version */
+#define ZSFB_VERSION "zapping_setup_fb 0.8.9" /* Current program version */
 
 /* Well, this isn't very clean, but anyway... */
 #define EXIT { \
@@ -79,20 +81,20 @@ void PrintUsage(void);
 void PM(char * message, int min_message);
 
 /* Returns TRUE if DGA can be found and works correctly */
-gboolean check_dga(Display * display, int screen);
+int check_dga(Display * display, int screen);
 
 void PrintUsage(void)
 {
-  printf(_("Usage:\n"
-	   " zapping_setup_fb [OPTIONS], where OPTIONS stands for\n"
-	   " --device dev - The video device to open, /dev/video by default\n"
-	   " --display d  - The X display to use\n"
-	   " --bpp x      - Current X bpp\n"
-	   " --verbose    - Increments verbosity level\n"
-	   " --quiet      - Decrements verbosity level\n"
-	   " --help, -?   - Shows this message\n"
-	   " --usage      - The same as --help or -?\n"
-	   " --version    - Shows the program version\n"));
+  printf("Usage:\n"
+	 " zapping_setup_fb [OPTIONS], where OPTIONS stands for\n"
+	 " --device dev - The video device to open, /dev/video by default\n"
+	 " --display d  - The X display to use\n"
+	 " --bpp x      - Current X bpp\n"
+	 " --verbose    - Increments verbosity level\n"
+	 " --quiet      - Decrements verbosity level\n"
+	 " --help, -?   - Shows this message\n"
+	 " --usage      - The same as --help or -?\n"
+	 " --version    - Shows the program version\n");
 }
 
 void PM(char * message, int min_message)
@@ -101,7 +103,7 @@ void PM(char * message, int min_message)
     fprintf(stderr, message);
 }
 
-gboolean check_dga(Display * display, int screen)
+int check_dga(Display * display, int screen)
 {
 #ifndef DISABLE_X_EXTENSIONS
   int event_base, error_base;
@@ -204,16 +206,16 @@ gboolean check_dga(Display * display, int screen)
   /* Print some info about the DGA device in --verbose mode */
   /* This is no security flaw since this info is user-readable anyway */
   PM("DGA info we got:\n", 1);
-  g_snprintf(buffer, 255, " - Version    : %d.%d\n", major_version,
-	     minor_version);
+  snprintf(buffer, 255, " - Version    : %d.%d\n", major_version,
+	   minor_version);
   PM(buffer, 1);
-  g_snprintf(buffer, 255, " - Viewport   : %dx%d\n", vp_width,
-	     vp_height);
+  snprintf(buffer, 255, " - Viewport   : %dx%d\n", vp_width,
+	   vp_height);
   PM(buffer, 1);
-  g_snprintf(buffer, 255, " - DGA info   : %d width at %p\n", width,
-	     (gpointer)addr);
+  snprintf(buffer, 255, " - DGA info   : %d width at %p\n", width,
+	   (void *)addr);
   PM(buffer, 1);
-  g_snprintf(buffer, 255, " - Screen bpp : %d\n", bpp);
+  snprintf(buffer, 255, " - Screen bpp : %d\n", bpp);
   PM(buffer, 1);
 
   return TRUE;
@@ -231,11 +233,11 @@ int main(int argc, char * argv[])
   int fd;
   int screen;
   int i; /* For args parsing */
-  gboolean print_usage = FALSE; /* --help, -? or --usage has been
+  int print_usage = FALSE; /* --help, -? or --usage has been
 				   specified */
   struct video_capability caps;
   struct video_buffer fb; /* The framebuffer device */
-  gboolean show_version = FALSE;
+  int show_version = FALSE;
 
   /* Parse given args */
   for (i = 1; i < argc; i++)
@@ -245,7 +247,7 @@ int main(int argc, char * argv[])
 	  /* New video device specified */
 	  if ((i+1) == argc)
 	    fprintf(stderr,
-		    _("Video device name seems to be missing\n"));
+		    "Video device name seems to be missing\n");
 	  else
 	    video_device = argv[++i];
 	}
@@ -253,7 +255,7 @@ int main(int argc, char * argv[])
 	{
 	  /* X display to use */
 	  if ((i+1) == argc)
-	    fprintf(stderr, _("X display name seems to be missing\n"));
+	    fprintf(stderr, "X display name seems to be missing\n");
 	  else
 	    display_name = argv[++i];
 	}
@@ -262,9 +264,9 @@ int main(int argc, char * argv[])
 	  /* We are told the real screen depth, no need for heuristics
 	   */
 	  if ((i+1) == argc)
-	    fprintf(stderr, _("Real bpp seems to be missing\n"));
+	    fprintf(stderr, "Real bpp seems to be missing\n");
 	  else if (!sscanf(argv[++i], "%d", &real_bpp))
-	    fprintf(stderr, _("Imposible to understand --bpp %s, ignored\n"),
+	    fprintf(stderr, "Imposible to understand --bpp %s, ignored\n",
 		    argv[i-1]);
 	}
       else if ((!strcasecmp(argv[i], "--help")) ||
@@ -285,7 +287,7 @@ int main(int argc, char * argv[])
 	show_version = TRUE;
       else
 	fprintf(stderr,
-		_("Unknown command line option %s, ignoring it\n"), argv[i]);
+		"Unknown command line option %s, ignoring it\n", argv[i]);
     }
 
   if (show_version)
@@ -296,14 +298,21 @@ int main(int argc, char * argv[])
 
   if (verbosity)
     /* Print a short copyright notice if we aren't totally quiet */
-    printf(_("(C) 2000 Iñaki García Etxebarria.\n"
-	     "This program is under the GNU General Public License.\n"));
+    printf("(C) 2000 Iñaki García Etxebarria.\n"
+	     "This program is under the GNU General Public License.\n");
 
   /* The user has asked for help, give it and exit */
   if (print_usage)
     {
       PrintUsage();
       return 0;
+    }
+
+  if (!video_device)
+    {
+      PM("Video device not given", 1);
+      PrintUsage();
+      return 1;
     }
 
   /* Print the scanned video device*/
@@ -321,7 +330,7 @@ int main(int argc, char * argv[])
       if (video_device[i] == '.')
 	{
 	  fprintf(stderr,
-		  _("Given device %s has dots in it, cannot use it\n"),
+		  "Given device %s has dots in it, cannot use it\n",
 		  video_device);
 	  return 1;
 	}
@@ -331,7 +340,7 @@ int main(int argc, char * argv[])
   if (strlen(video_device) < 7) /* Minimum size */
     {
       fprintf(stderr,
-	      _("Given device %s is too short, cannot use it\n"),
+	      "Given device %s is too short, cannot use it\n",
 	      video_device);
       return 1;      
     }
@@ -339,7 +348,7 @@ int main(int argc, char * argv[])
   if (strncmp(video_device, "/dev/", 5))
     {
       fprintf(stderr,
-	      _("Given device %s doesn't start with /dev/, cannot use it\n"),
+	      "Given device %s doesn't start with /dev/, cannot use it\n",
 	      video_device);
       return 1;
     }
@@ -354,7 +363,7 @@ int main(int argc, char * argv[])
 	perror("open()");
       if (verbosity)
 	fprintf(stderr, 
-		_("Cannot open given device %s\n"), video_device);
+		"Cannot open given device %s\n", video_device);
       return 1;
     }
 
@@ -384,7 +393,7 @@ int main(int argc, char * argv[])
   if (!display)
     {
       fprintf(stderr,
-	      _("Cannot open display %s, quitting\n"), display_name);
+	      "Cannot open display %s, quitting\n", display_name);
       close(fd);
       return 1;
     }
@@ -410,7 +419,7 @@ int main(int argc, char * argv[])
       EXIT
     }
 
-  fb.base = (gpointer) addr;
+  fb.base = (void *) addr;
   fb.width = width;
   fb.height = vp_height;
   fb.depth = bpp;
@@ -419,6 +428,9 @@ int main(int argc, char * argv[])
   PM("Setting new FB characteristics\n", 2);
   if (ioctl(fd, VIDIOCSFBUF, &fb))
     {
+      if ((errno == EPERM) && (geteuid()))
+	PM("This program must be run as root, or marked as SUID root\n",
+	   0);
       if (verbosity)
 	perror("VIDIOCSFBUF");
       EXIT

@@ -206,7 +206,9 @@ gchar *s = N_("Remove Bookmark");
 gchar *s = N_("Click here when you are done");
 gchar *s = N_("Search");
 gchar *s = N_("Regular Expression:");
-gchar *s = N_("Enter here the regular expression you want to look for. Click help if you don't know about regular expressions.");
-gchar *s = N_("Ignore case when matching");
+gchar *s = N_("Enter here the word or phrase you want to find.\n"
+              ". matches any character, .* matches zero or more characters. A preceding \\ escapes the special characters .*\\$^+?[]. Click help for more information about regular expressions.");
+gchar *s = N_("Search case insensitive");
+gchar *s = N_("Search backwards");
 gchar *s = N_("Search in progress...");
 gchar *s = N_("%P %%");
