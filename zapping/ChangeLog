@@ -1,4 +1,4 @@
-24.07.2001	gui improvements <garetxe@users.sf.net>
+24.07.2001	french translation <garetxe@users.sf.net>
 
 	* src/channel_editor.c: Doesn't add the channel if Cancel is
 	clicked on the new channel prompt.
@@ -6,6 +6,7 @@
 	in the properties.
 	* Applied patches from Roger Fujii (Solaris
 	port). s/TRANSPARENT/TRANSPARENT_FULL/g.
+	* Updated french translation (Christian Marillat)
 
 22.07.2001	parrot gui <garetxe@users.sf.net>
 
