@@ -4674,20 +4674,6 @@ tveng_copy_frame		(unsigned char *	src,
 }
 
 
-
-void
-_tv_image_format_dump		(const tv_image_format *format,
-				 FILE *			fp)
-{
-	fprintf (fp, "width=%u height=%u "
-		 "bpl=%u,%u offset=%u,%u,%u "
-		 "size=%u pixfmt=%s",
-		 format->width, format->height,
-		 format->bytes_per_line, format->uv_bytes_per_line,
-		 format->offset, format->u_offset, format->v_offset,
-		 format->size, tv_pixfmt_name (format->pixfmt));
-}
-
 static void
 clear_block1			(uint8_t *		d,
 				 unsigned int		value,

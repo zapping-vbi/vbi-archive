@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: screen.c,v 1.1 2004-09-10 04:56:36 mschimek Exp $ */
+/* $Id: screen.c,v 1.2 2004-09-10 09:09:47 mschimek Exp $ */
 
 #include <stdlib.h>		/* calloc(), free() */
 #include <X11/Xlib.h>
@@ -175,7 +175,7 @@ xinerama_query			(tv_screen **		list,
 #else /* !HAVE_XINERAMA_EXTENSION */
 
 static gboolean
-xinerama_query			(tv_screen **	list,
+xinerama_query			(tv_screen **		list,
 				 Display *		display)
 {
 	assert (NULL != list);
