@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.8 2002-10-04 13:51:23 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.9 2002-10-07 14:53:36 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -819,8 +819,8 @@ next_frame:
 				printv(3, "[GOP header, closed=%c]\n", "FT"[mpeg1->closed_gop]);
 
 				bputl(&video_out.bstream, GROUP_START_CODE, 32);
-				bputl(&video_out.bstream, (mpeg1->closed_gop << 19) + (0 << 6), 32);
-				/*
+				bputl(&video_out.bstream, (mpeg1->closed_gop << 6) + (1 << 19), 32);
+				/* FIXME
 				 *  time_code [25 w/marker_bit] omitted, closed_gop,
 				 *  broken_link '0', byte align [5]
 				 */

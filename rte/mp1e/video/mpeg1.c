@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.40 2002-10-02 20:50:42 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.41 2002-10-07 14:53:04 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -164,6 +164,82 @@ mblock_hp(int n)
 			"\tmovq %%mm0,7*16+0(%0); movq %%mm0,7*16+8(%0);\n"
 		:: "r" (&mblock[n][i]) : "memory");
 }
+
+#define VBV_TEST 1
+
+static int vbv_buffer_size;
+static int vbv_delay;
+static long long bitcnt_EOP;
+static long long bitcnt;
+
+/* test */
+static void
+calc_vbv_delay(int pict_type, double frame_rate, int bit_rate)
+{
+  double picture_delay;
+  static double next_ip_delay = 0.0; /* due to frame reordering delay */
+  static double decoding_time = 0.0;
+
+  /* number of 1/90000 s ticks until next picture is to be decoded */
+  if (pict_type == B_TYPE)
+  {
+        picture_delay = 90000.0/frame_rate; /* 1 frame */
+  }
+  else
+  {
+    /* I or P picture */
+      /* frame picture */
+      /* take frame reordering delay into account*/
+      picture_delay = next_ip_delay;
+          next_ip_delay = 90000.0/frame_rate;
+  }
+
+  if (decoding_time==0.0)
+  {
+    /* first call of calc_vbv_delay */
+    /* we start with a 7/8 filled VBV buffer (12.5% back-off) */
+    picture_delay = ((vbv_buffer_size*16384*7)/8)*90000.0/bit_rate;
+  }
+
+  /* VBV checks */
+
+  /* check for underflow (previous picture) */
+  if (decoding_time < bitcnt_EOP*90000.0/bit_rate)
+  {
+    /* picture not completely in buffer at intended decoding time */
+    printv(3, "vbv_delay underflow (decoding_time=%.1f, t_EOP=%.1f\n)",
+        decoding_time, bitcnt_EOP*90000.0/bit_rate);
+  }
+
+  /* when to decode current frame */
+  decoding_time += picture_delay;
+
+  /* warning: bitcount() may overflow (e.g. after 9 min. at 8 Mbit/s */
+  vbv_delay = (int)(decoding_time - bitcnt*90000.0/bit_rate);
+
+  /* check for overflow (current picture) */
+  if ((decoding_time - bitcnt_EOP*90000.0/bit_rate)
+      > (vbv_buffer_size*16384)*90000.0/bit_rate)
+  {
+     printv(3,"vbv_delay overflow!\n");
+  }
+
+  printv(4, "vbv_delay=%d (bitcount=%lld, decoding_time=%.2f (%.2f), bitcnt_EOP=%lld)\n",
+    vbv_delay,bitcnt,decoding_time,decoding_time/90000.0,bitcnt_EOP);
+
+  if (vbv_delay<1)
+  {
+    printv(3,"vbv_delay underflow: %d\n",vbv_delay);
+    vbv_delay = 1;
+  }
+
+  if (vbv_delay>65534)
+  {
+    printv(3,"vbv_delay overflow: %d\n",vbv_delay);
+    vbv_delay = 65534;
+  }
+}
+
 
 static inline void
 tmp_slice_i(mpeg1_context *mpeg1, bool motion)
@@ -315,12 +391,20 @@ tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
 	}
 
 	/* Picture header */
-
+#if VBV_TEST
+	emms();
+	bitcnt_EOP = bitcnt + btell(&video_out.bstream) + 32;
+	calc_vbv_delay(I_TYPE, mpeg1->coded_frame_rate, mpeg1->bit_rate);
+#endif
 	bepilog(&video_out.bstream);
-
 	bputl(&video_out.bstream, PICTURE_START_CODE, 32);
+#if VBV_TEST
+	bputl(&video_out.bstream, ((mpeg1->gop_frame_count & 1023) << 22)
+	      + (I_TYPE << 19) + ((vbv_delay & 0xFFFF) << 3) + (0 << 2), 32);
+#else
 	bputl(&video_out.bstream, ((mpeg1->gop_frame_count & 1023) << 22)
 	      + (I_TYPE << 19) + (NO_VBV << 3) + (0 << 2), 32);
+#endif
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
 	 *  extra_bit_picture '0', byte align '00'
@@ -338,7 +422,9 @@ tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
 	/* Rate control */
 
 	S = bflush(&video_out.bstream);
-
+#if VBV_TEST
+	bitcnt += S;
+#endif
 	rc_picture_end(&mpeg1->rc, &mpeg1->rc.f, I_TYPE, S, mb_num);
 
 	pr_end(21);
@@ -458,13 +544,20 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 	mb_skipped = 0;
 
 	/* Picture header */
-
+#if VBV_TEST
+	emms();
+	bitcnt_EOP = bitcnt + btell(&video_out.bstream) + 32;
+	calc_vbv_delay(P_TYPE, mpeg1->coded_frame_rate, mpeg1->bit_rate);
+#endif
 	bepilog(&video_out.bstream);
-
 	bputl(&video_out.bstream, PICTURE_START_CODE, 32);
-
+#if VBV_TEST
+	bputl(&video_out.bstream, ((mpeg1->gop_frame_count & 1023) << 19)
+	      + (P_TYPE << 16) + ((vbv_delay & 0xFFFF) << 0), 29);
+#else
 	bputl(&video_out.bstream, ((mpeg1->gop_frame_count & 1023) << 19)
 	      + (P_TYPE << 16) + NO_VBV, 29);
+#endif
 	bputl(&video_out.bstream, (0 << 10) + (M[0].f_code << 7) + (0 << 6), 11);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
@@ -756,7 +849,9 @@ if (!T3RT) quant = 2;
 	/* Rate control */
 
 	S = bflush(&video_out.bstream);
-	
+#if VBV_TEST
+	bitcnt += S;
+#endif	
 	*q1p |= (quant1 << 3);
 
 	rc_picture_end(&mpeg1->rc, &mpeg1->rc.f, P_TYPE, S, mb_num);
@@ -812,13 +907,20 @@ tmp_picture_b(mpeg1_context *mpeg1, unsigned char *org,
 	mb_type_last = -1;
 
 	/* Picture header */
-
+#if VBV_TEST
+	emms();
+	bitcnt_EOP = bitcnt + btell(&video_out.bstream) + 32;
+	calc_vbv_delay(B_TYPE, mpeg1->coded_frame_rate, mpeg1->bit_rate);
+#endif
 	bepilog(&video_out.bstream);
-
 	bputl(&video_out.bstream, PICTURE_START_CODE, 32);
-
+#if VBV_TEST
+	bputl(&video_out.bstream, ((mpeg1->gop_frame_count & 1023) << 19)
+	      + (B_TYPE << 16) + ((vbv_delay & 0xFFFF) << 0), 29);
+#else
 	bputl(&video_out.bstream, ((mpeg1->gop_frame_count & 1023) << 19)
 	      + (B_TYPE << 16) + NO_VBV, 29);
+#endif
 	bputl(&video_out.bstream, (0 << 10) + (M[0].f_code << 7) + (0 << 6)
 			            + (M[1].f_code << 3) + (0 << 2), 11);
 	/*
@@ -1142,7 +1244,9 @@ l2:
 	/* Rate control */
 
 	S = bflush(&video_out.bstream);
-
+#if VBV_TEST
+	bitcnt += S;
+#endif
 	*q1p |= (quant1 << 3);
 
 	rc_picture_end(&mpeg1->rc, &mpeg1->rc.f, B_TYPE, S, mb_num);
@@ -1273,7 +1377,18 @@ sequence_header(mpeg1_context *mpeg1)
 	bputl(&video_out.bstream, mpeg1->frame_rate_code, 4);		/* frame_rate_code */
 	bputl(&video_out.bstream, bit_rate_value & 0x3FFFF, 18);	/* bit_rate_value */
 	bputl(&video_out.bstream, 1, 1);				/* marker_bit */
-	bputl(&video_out.bstream, 0 & 0x3FF, 10);			/* vbv_buffer_size_value */
+
+#ifdef VBV_TEST
+if (mpeg1->coded_width <= 352 && mpeg1->coded_height <= 288)
+    vbv_buffer_size = 20; /* VCD default (?) 40 KiB; limit 29 * 16384 bit */
+else
+    vbv_buffer_size = 112; /* VCD default (?) */
+
+	bputl(&video_out.bstream, vbv_buffer_size & 0x3FF, 10);	/* vbv_buffer_size_value */
+#else
+	bputl(&video_out.bstream, 0 & 0x3FF, 10);		/* vbv_buffer_size_value */
+#endif
+
 	bputl(&video_out.bstream, 0, 1);				/* constrained_parameters_flag */
 	bputl(&video_out.bstream, 0, 1);				/* load_intra_quantizer_matrix */
 	bputl(&video_out.bstream, 0, 1);				/* load_non_intra_quantizer_matrix */
@@ -1867,9 +1982,14 @@ if (video_do_reset) {
 				printv(3, "[GOP header, closed=%c]\n", "FT"[mpeg1->closed_gop]);
 
 				bputl(&video_out.bstream, GROUP_START_CODE, 32);
-				bputl(&video_out.bstream, (mpeg1->closed_gop << 19) + (0 << 6), 32);
+				bputl(&video_out.bstream, (0 << 31)
+				      + (0 /* h */ << 26) + (0 << 20)
+				      + (1 << 19) + (0 << 13) + (0 << 7)
+				      + (mpeg1->closed_gop << 6) + (0 << 5) + 0, 32);
 				/*
-				 *  time_code [25 w/marker_bit] omitted, closed_gop,
+				 *  time_code omitted: drop_frame_flag, time_code_hours [5],
+				 *  time_code_minutes [6], marker_bit, time_code_seconds [6]
+				 *  time_code_pictures [6]; closed_gop,
 				 *  broken_link '0', byte align [5]
 				 */
 
