@@ -17,9 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.8 2003-10-16 18:16:11 mschimek Exp $ */
+/* $Id: io.c,v 1.8.2.1 2004-01-27 21:07:17 tomzo Exp $ */
 
 #include <assert.h>
+
+#include <unistd.h>
+#include <errno.h>
+#include <sys/time.h>
+#include <sys/types.h>
 
 #include "io.h"
 
@@ -329,23 +334,6 @@ vbi_capture_fd(vbi_capture *capture)
 }
 
 /**
- * @param capture Initialized vbi capture context, can be @c NULL.
- * 
- * @return
- * A file descriptor which can be used in poll or select system calls
- * to wait for VBI data.  If the device does not support this, value -1
- * will be returned.
- */
-int
-vbi_capture_get_poll_fd(vbi_capture *capture)
-{
-	if (capture)
-		return capture->get_poll_fd(capture);
-	else
-		return -1;
-}
-
-/**
  * @param capture Initialized vbi capture context.
  * @param flags Set to VBI_CHN_FLUSH_ONLY if the caller has already
  *   sucessfully switched the channel; in this case only the VBI queue
@@ -385,6 +373,26 @@ vbi_capture_channel_change(vbi_capture *capture,
 }
 
 /**
+ * @param capture Initialized vbi capture context.
+ * @param config Structure/union holding setup type and parameters
+ * 
+ * @return
+ * Returns TRUE if the configuration option and parameters are supported.
+ * Query functions return additional result values inside the given
+ * structure parameter.
+ */
+vbi_bool
+vbi_capture_setup(vbi_capture *capture, vbi_setup_parm *config)
+{
+	assert (capture != NULL);
+
+	if (capture->setup != NULL)
+		return capture->setup(capture, config);
+	else
+		return FALSE;
+}
+
+/**
  * @param capture Initialized vbi capture context, can be @c NULL.
  * 
  * Free all resources associated with the @a capture context.
@@ -395,3 +403,104 @@ vbi_capture_delete(vbi_capture *capture)
 	if (capture)
 		capture->_delete(capture);
 }
+
+/**
+ * @internal
+ *
+ * @param tv_start Actual time before select() was called
+ * @param timeout Timeout value given to select, will be reduced by the
+ *   difference since start time.
+ *
+ * @brief Substract time spent waiting in select from a given max. timeout struct
+ *
+ * This functions is intended for functions which call select() repeatedly
+ * with a given overall timeout.  After each select() call the time already
+ * spent in waiting has to be substracted from the timeout. (Note that we don't
+ * use the Linux select(2) feature to return the time not slept in the timeout
+ * struct, because that's not portable.)
+ * 
+ * @return
+ * No direct return; modifes timeout value in the struct pointed to by the
+ * third pointer argument as described above.
+ */
+void
+vbi_capture_io_update_timeout( struct timeval * tv_start,
+			       struct timeval * timeout )
+{
+	struct timeval delta;
+	struct timeval tv_stop;
+        int            errno_saved;
+
+        errno_saved = errno;
+	gettimeofday(&tv_stop, NULL);
+        errno = errno_saved;
+
+	/* first calculate difference between start and current time */
+	delta.tv_sec = tv_stop.tv_sec - tv_start->tv_sec;
+	if (tv_stop.tv_usec < tv_start->tv_usec)
+	{
+		delta.tv_usec = 1000000 + tv_stop.tv_usec - tv_start->tv_usec;
+		delta.tv_sec += 1;
+	}
+	else
+		delta.tv_usec = tv_stop.tv_usec - tv_start->tv_usec;
+
+	assert((delta.tv_sec >= 0) && (delta.tv_usec >= 0));
+
+	/* substract delta from the given max. timeout */
+	timeout->tv_sec -= delta.tv_sec;
+	if (timeout->tv_usec < delta.tv_usec)
+	{
+		timeout->tv_usec = 1000000 + timeout->tv_usec - delta.tv_usec;
+		timeout->tv_sec -= 1;
+	}
+	else
+		timeout->tv_usec -= delta.tv_usec;
+
+	/* check if timeout was underrun -> set rest timeout to zero */
+	if ( (timeout->tv_sec < 0) || (timeout->tv_usec < 0) )
+	{
+		timeout->tv_sec  = 0;
+		timeout->tv_usec = 0;
+	}
+}
+
+/**
+ * @internal
+ *
+ * @param fd file handle
+ * @param timeout maximum time to wait; when the function returns the
+ *   value is reduced by the time spent waiting.
+ *
+ * @brief Waits in select() for the given file handle to become readable.
+ *
+ * If the syscall is interrupted by an interrupt, the select() call
+ * is repeated with a timeout reduced by the time already spent
+ * waiting.
+ */
+int
+vbi_capture_io_select( int fd, struct timeval * timeout )
+{
+	struct timeval tv_start;
+	struct timeval tv;
+	fd_set fds;
+	int ret;
+
+	while (1) {
+		FD_ZERO(&fds);
+		FD_SET(fd, &fds);
+
+		tv = *timeout; /* Linux kernel overwrites this */
+		gettimeofday(&tv_start, NULL);
+
+		ret = select(fd + 1, &fds, NULL, NULL, &tv);
+
+		vbi_capture_io_update_timeout(&tv_start, timeout);
+
+		if ((ret < 0) && (errno == EINTR))
+			continue;
+
+		return ret;
+	}
+}
+
