@@ -58,6 +58,8 @@ struct plugin_info{
   /* This returns the protocol the plugin understands */
   gint (*plugin_protocol) (void);
 
+  gboolean (*get_symbol)(const gchar *name, gint hash, gpointer *ptr);
+
   /******* OPTATIVE FUNCTIONS *******/
   /* Init the plugin using the current video device, FALSE on error */
   gboolean (*plugin_init)(PluginBridge bridge, tveng_device_info *
@@ -182,5 +184,11 @@ GList * plugin_load_plugins ( void );
 
 /* Unloads all the plugins loaded in the GList */
 void plugin_unload_plugins(GList * list);
+
+extern struct plugin_info *
+plugin_by_name			(const gchar *		name);
+extern gpointer
+plugin_symbol			(const struct plugin_info *info,
+				 const gchar *		name);
 
 #endif

@@ -47,8 +47,6 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
   gchar * canonical_name;
   gchar * version;
   gint (*plugin_get_protocol)(void) = NULL;
-  gboolean (*plugin_get_symbol)(const gchar * name, gint hash,
-				gpointer * ptr);
 
   g_assert(info != NULL);
   g_assert(file_name != NULL);
@@ -83,8 +81,8 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
     }
 
   /* Get the other symbol */
-  if (!g_module_symbol(info->handle, "plugin_get_symbol",
-		       (gpointer*) &(plugin_get_symbol) ))
+  if (!g_module_symbol (info->handle, "plugin_get_symbol",
+			(gpointer *) &info->get_symbol))
     {
       g_warning(g_module_error());
       g_module_close(info->handle);
@@ -93,7 +91,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 
   /* plugin_get_info is the only compulsory symbol that must be
      present in the plugin's table of symbols */
-  if (!(*plugin_get_symbol)("plugin_get_info", 0x1234,
+  if (!info->get_symbol("plugin_get_info", 0x1234,
 			    (gpointer*)&(info->plugin_get_info)))
     {
       g_warning("plugin_get_info was not found in %s",
@@ -103,51 +101,51 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
     }
 
   /* Get the remaining symbols */
-  if (!(*plugin_get_symbol)("plugin_init", 0x1234,
+  if (!info->get_symbol("plugin_init", 0x1234,
 		       (gpointer*)&(info->plugin_init)))
     info->plugin_init = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_close", 0x1234,
+  if (!info->get_symbol("plugin_close", 0x1234,
 		       (gpointer*)&(info->plugin_close)))
     info->plugin_close = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_start", 0x1234,
+  if (!info->get_symbol("plugin_start", 0x1234,
 		       (gpointer*)&(info->plugin_start)))
     info->plugin_start = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_stop", 0x1234,
+  if (!info->get_symbol("plugin_stop", 0x1234,
 		       (gpointer*)&(info->plugin_stop)))
     info->plugin_stop = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_load_config", 0x1234,
+  if (!info->get_symbol("plugin_load_config", 0x1234,
 		       (gpointer*)&(info->plugin_load_config)))
     info->plugin_load_config = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_save_config", 0x1234,
+  if (!info->get_symbol("plugin_save_config", 0x1234,
 		       (gpointer*)&(info->plugin_save_config)))
     info->plugin_save_config = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_running", 0x1234,
+  if (!info->get_symbol("plugin_running", 0x1234,
 		       (gpointer*)&(info->plugin_running)))
     info->plugin_running = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_read_frame", 0x1234,
+  if (!info->get_symbol("plugin_read_frame", 0x1234,
 		       (gpointer*)&(info->plugin_read_frame)))
     info->plugin_read_frame = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_capture_stop", 0x1234,
+  if (!info->get_symbol("plugin_capture_stop", 0x1234,
 		       (gpointer*)&(info->plugin_capture_stop)))
     info->plugin_capture_stop = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_get_public_info", 0x1234,
+  if (!info->get_symbol("plugin_get_public_info", 0x1234,
 		       (gpointer*)&(info->plugin_get_public_info)))
     info->plugin_get_public_info = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_add_gui", 0x1234,
+  if (!info->get_symbol("plugin_add_gui", 0x1234,
 		       (gpointer*)&(info->plugin_add_gui)))
     info->plugin_add_gui = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_remove_gui", 0x1234,
+  if (!info->get_symbol("plugin_remove_gui", 0x1234,
 		       (gpointer*)&(info->plugin_remove_gui)))
     info->plugin_remove_gui = NULL;
 
@@ -156,11 +154,11 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
       (!info->plugin_remove_gui))
     info -> plugin_add_gui = info -> plugin_remove_gui = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_process_popup_menu", 0x1234,
+  if (!info->get_symbol("plugin_process_popup_menu", 0x1234,
 	    (gpointer*)&(info->plugin_process_popup_menu)))
     info->plugin_process_popup_menu = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_get_misc_info", 0x1234,
+  if (!info->get_symbol("plugin_get_misc_info", 0x1234,
 	    (gpointer*)&(info->plugin_get_misc_info)))
     info->plugin_get_misc_info = NULL;
 
@@ -257,6 +255,41 @@ void plugin_unload(struct plugin_info * info)
   g_free(info -> file_name);
   g_free(info -> canonical_name);
   g_module_close (info -> handle);
+}
+
+struct plugin_info *
+plugin_by_name			(const gchar *		name)
+{
+  GList *glist;
+
+  g_return_val_if_fail (NULL != name, NULL);
+
+  for (glist = g_list_first (plugin_list); glist; glist = glist->next)
+    {
+      struct plugin_info *info;
+
+      info = (struct plugin_info *) glist->data;
+
+      if (0 == strcmp (info->canonical_name, name))
+	return info;
+    }
+
+  return NULL;
+}
+
+gpointer
+plugin_symbol			(const struct plugin_info *info,
+				 const gchar *		name)
+{
+  gpointer ptr;
+
+  g_return_val_if_fail (NULL != info, NULL);
+  g_return_val_if_fail (NULL != name, NULL);
+
+  if (!info->get_symbol (name, 0x1234, &ptr))
+    return NULL;
+
+  return ptr;
 }
 
 /* FIXME: This is ancient, remote.h is much nicer */
