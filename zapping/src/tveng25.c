@@ -61,27 +61,33 @@
 #include "common/videodev25.h"
 #include "common/_videodev25.h"
 
+static void
+fprint_ioctl_arg		(FILE *			fp,
+				 unsigned int		cmd,
+				 int			rw,
+				 void *			arg)
+{
+	if (0 == ((cmd ^ VIDIOC_QUERYCAP) & (_IOC_TYPEMASK_ << IOC_TYPESHIFT)))
+		fprint_v4l25_ioctl_arg (fp, cmd, rw, arg);
+	else
+		fprint_v4l_ioctl_arg (fp, cmd, rw, arg);
+}
+
 /* This macro checks at compile time if the arg type is correct,
    device_ioctl() repeats the ioctl if interrupted (EINTR) and logs
-   the args and result if log_fp is non-zero. */
+   the args and result if log_fp is non-zero. When the ioctl failed
+   ioctl_failure() stores the cmd, caller and errno in info. */
 #define xioctl(info, cmd, arg)						\
-(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- ((0 == device_ioctl ((info)->log_fp, fprint_v4l25_ioctl_arg,		\
-		      (info)->fd, cmd, (void *)(arg))) ?		\
-  0 : (ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,		\
-		      __LINE__, # cmd), -1)))
+	(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),				\
+	 ((0 == device_ioctl ((info)->log_fp, fprint_ioctl_arg,		\
+			      (info)->fd, cmd, (void *)(arg))) ?	\
+	  0 : (ioctl_failure (info, __FILE__, __FUNCTION__,		\
+			      __LINE__, # cmd), -1)))
 
 #define xioctl_may_fail(info, cmd, arg)					\
-(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- device_ioctl ((info)->log_fp, fprint_v4l25_ioctl_arg,			\
-		      (info)->fd, cmd, (void *)(arg)))
-
-#define xioctl_v4l(info, cmd, arg)					\
-(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- ((0 == device_ioctl ((info)->log_fp, fprint_v4l_ioctl_arg,		\
-		      (info)->fd, cmd, (void *)(arg))) ?		\
-  0 : (ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,		\
-		      __LINE__, # cmd), -1)))
+	(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),				\
+	 device_ioctl ((info)->log_fp, fprint_ioctl_arg,		\
+		       (info)->fd, cmd, (void *)(arg)))
 
 /** @internal */
 struct xcontrol {
@@ -297,7 +303,7 @@ set_audio_mode			(tveng_device_info *	info,
 		if (p_info->use_v4l_audio) {
 			struct video_audio audio;
 
-			if (-1 == xioctl_v4l (info, VIDIOCGAUDIO, &audio)) {
+			if (-1 == xioctl (info, VIDIOCGAUDIO, &audio)) {
 				return FALSE;
 			}
 
@@ -308,7 +314,7 @@ set_audio_mode			(tveng_device_info *	info,
 
 			audio.mode = tv_audio_mode_to_v4l_mode (mode);
 
-			if (-1 == xioctl_v4l (info, VIDIOCSAUDIO, &audio)) {
+			if (-1 == xioctl (info, VIDIOCSAUDIO, &audio)) {
 				return FALSE;
 			}
 		} else {
@@ -1776,7 +1782,7 @@ dequeue_buffer			(tveng_device_info *	info,
 		}
 	}
 
- read_again:
+/* read_again: */
 	CLEAR (vbuf);
 	vbuf.type = p_info->buffers[0].vb.type;
 	vbuf.memory = V4L2_MEMORY_MMAP;
@@ -1799,8 +1805,9 @@ dequeue_buffer			(tveng_device_info *	info,
 
 			goto select_again_with_timeout;
 
-		case EINTR:
-			goto read_again;
+		/* xioctl/device_ioctl() handles EINTR. */
+		/* case EINTR:
+			goto read_again; */
 
 		default:
 			restart (info);
@@ -1862,9 +1869,6 @@ flush_buffers			(tveng_device_info *	info)
 			case EAGAIN:
 			case EBUSY:
 				return TRUE;
-
-			case EINTR:
-				continue;
 
 			default:
 				restart (info);
