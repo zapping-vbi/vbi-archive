@@ -54,6 +54,9 @@
 #include <X11/extensions/Xvlib.h>
 #endif
 
+#include "libtv/overlay_buffer.h"
+#include "libtv/clip_vector.h"
+
 /* The video device capabilities flags */
 #define TVENG_CAPS_CAPTURE 1 /* Can capture to memory */
 #define TVENG_CAPS_TUNER (1 << 1) /* Has some tuner */
@@ -102,10 +105,10 @@ enum tveng_attach_mode
 struct tveng_caps{
   char name[32]; /* canonical name for this interface */
   int flags; /* OR'ed flags, see the above #defines */
-  int channels; /* Number of radio/tv channels */
-  int audios; /* Number of audio devices */
-  int maxwidth, maxheight; /* Maximum capture dimensions */
-  int minwidth, minheight; /* minimum capture dimensions */
+  unsigned int channels; /* Number of radio/tv channels */
+  unsigned int audios; /* Number of audio devices */
+  unsigned int maxwidth, maxheight; /* Maximum capture dimensions */
+  unsigned int minwidth, minheight; /* minimum capture dimensions */
 };
 
 typedef struct _tveng_device_info tveng_device_info;
@@ -115,13 +118,6 @@ typedef struct _tveng_device_info tveng_device_info;
 
 
 
-
-typedef int tv_bool;
-
-#undef TRUE
-#define TRUE 1
-#undef FALSE
-#define FALSE 0
 
 /*
  *  Callbacks
@@ -169,7 +165,7 @@ struct _tv_device_node {
 	char *			label;		/* localized */
 	char *			bus;		/* localized */
 
-	char *			driver;		/* localized */
+  	char *			driver;		/* localized */
 	char *			version;	/* localized */
 
 	char *			device;		/* interface specific, usually "/dev/some" */
@@ -582,350 +578,6 @@ tv_set_audio_mode		(tveng_device_info *	info,
 extern tv_bool
 tv_audio_update			(tveng_device_info *	info);
 
-/*
- *  Pixel format
- */
-
-typedef enum {
-	TV_PIXFMT_NONE,
-	TV_PIXFMT_UNKNOWN = TV_PIXFMT_NONE,
-
-	TV_PIXFMT_RESERVED0,
-
-	/* Planar YUV formats */
-
-	TV_PIXFMT_YUV444,		/* 4x4 4x4 4x4 */
-	TV_PIXFMT_YVU444,
-	TV_PIXFMT_YUV422,		/* 4x4 2x4 2x4 */
-	TV_PIXFMT_YVU422,
-	TV_PIXFMT_YUV411,		/* 4x4 1x4 1x4 */
-	TV_PIXFMT_YVU411,
-	TV_PIXFMT_YUV420,		/* 4x4 2x2 2x2 */
-	TV_PIXFMT_YVU420,
-	TV_PIXFMT_YUV410,		/* 4x4 1x1 1x1 */
-	TV_PIXFMT_YVU410,
-
-	/* Packed YUV formats */	/* reg msb..lsb -> memory byte 0..3 */
-
-	TV_PIXFMT_YUVA24_LE,		/* AVUY -> LE  Y U V A  BE  A V U Y */
-	TV_PIXFMT_YUVA24_BE,
-	TV_PIXFMT_YVUA24_LE,		/* AUVY -> LE  Y V U A  BE  A U V Y */
-	TV_PIXFMT_YVUA24_BE,
-
-	TV_PIXFMT_AVUY24_BE = TV_PIXFMT_YUVA24_LE,
-	TV_PIXFMT_AVUY24_LE,		/* YUVA -> LE  A V U Y  BE  Y U V A */
-	TV_PIXFMT_AUVY24_BE,
-	TV_PIXFMT_AUVY24_LE,		/* YVUA -> LE  A U V Y  BE  Y V U A */
-
-	TV_PIXFMT_YUV24_LE,		/*  VUY -> LE  Y U V  BE  V U Y */
-	TV_PIXFMT_YUV24_BE,
-	TV_PIXFMT_YVU24_LE,		/*  UVY -> LE  Y V U  BE  U V Y */
-	TV_PIXFMT_YVU24_BE,
-
-	TV_PIXFMT_VUY24_BE = TV_PIXFMT_YUV24_LE,
-	TV_PIXFMT_VUY24_LE,		/*  YUV -> LE  V U Y  BE  Y U V */
-	TV_PIXFMT_UVY24_BE,
-	TV_PIXFMT_UVY24_LE,		/*  YVU -> LE  U V Y  BE  Y V U */
-
-	TV_PIXFMT_YUYV,			/* Y0 U Y1 V in memory */
-	TV_PIXFMT_YVYU,			/* Y0 V Y1 U */
-	TV_PIXFMT_UYVY,			/* U Y0 V Y1 */
-	TV_PIXFMT_VYUY,			/* V Y0 U Y1 */
-
-	TV_PIXFMT_RESERVED1,
-	TV_PIXFMT_Y8,			/* Y */
-
-	TV_PIXFMT_RESERVED2,
-	TV_PIXFMT_RESERVED3,
-
-	/* Packed RGB formats */
-
-	TV_PIXFMT_RGBA24_LE,		/* ABGR -> LE  R G B A  BE  A B G R */
-	TV_PIXFMT_RGBA24_BE,
-	TV_PIXFMT_BGRA24_LE,		/* ARGB -> LE  B G R A  BE  A R G B */
-	TV_PIXFMT_BGRA24_BE,
-
-	TV_PIXFMT_ABGR24_BE = TV_PIXFMT_RGBA24_LE,
-	TV_PIXFMT_ABGR24_LE,		/* RGBA -> LE  A B G R  BE  R G B A */
-	TV_PIXFMT_ARGB24_BE,
-	TV_PIXFMT_ARGB24_LE,		/* BGRA -> LE  A R G B  BE  B G R A */
-
-	TV_PIXFMT_RGB24_LE,		/*  BGR -> LE  R G B  BE  B G R */
-	TV_PIXFMT_BGR24_LE,		/*  RGB -> LE  B G R  BE  R G B */
-
-	TV_PIXFMT_BGR24_BE = TV_PIXFMT_RGB24_LE,
-	TV_PIXFMT_RGB24_BE,
-
-	TV_PIXFMT_RGB16_LE,		/* bbbbbggggggrrrrr msb..lsb */
-	TV_PIXFMT_RGB16_BE,
-	TV_PIXFMT_BGR16_LE,		/* rrrrrggggggbbbbb */
-	TV_PIXFMT_BGR16_BE,
-
-	TV_PIXFMT_RGBA15_LE,		/* abbbbbgggggrrrrr */
-	TV_PIXFMT_RGBA15_BE,
-	TV_PIXFMT_BGRA15_LE,		/* arrrrrgggggbbbbb */
-	TV_PIXFMT_BGRA15_BE,
-	TV_PIXFMT_ARGB15_LE,		/* bbbbbgggggrrrrra */
-	TV_PIXFMT_ARGB15_BE,
-	TV_PIXFMT_ABGR15_LE,		/* rrrrrgggggbbbbba */
-	TV_PIXFMT_ABGR15_BE,
-
-	TV_PIXFMT_RGBA12_LE,		/* aaaabbbbggggrrrr */
-	TV_PIXFMT_RGBA12_BE,
-	TV_PIXFMT_BGRA12_LE,		/* aaaarrrrggggbbbb */
-	TV_PIXFMT_BGRA12_BE,
-	TV_PIXFMT_ARGB12_LE,		/* bbbbggggrrrraaaa */
-	TV_PIXFMT_ARGB12_BE,
-	TV_PIXFMT_ABGR12_LE,		/* rrrrggggbbbbaaaa */
-	TV_PIXFMT_ABGR12_BE,
-
-	TV_PIXFMT_RGB8,			/* bbgggrrr */
-	TV_PIXFMT_BGR8,			/* rrrgggbb */
-
-	TV_PIXFMT_RGBA7,		/* abbgggrr */
-	TV_PIXFMT_BGRA7,		/* arrgggbb */
-	TV_PIXFMT_ARGB7,		/* bbgggrra */
-	TV_PIXFMT_ABGR7			/* rrgggbba */
-} tv_pixfmt;
-
-#define TV_MAX_PIXFMTS 64
-
-typedef uint64_t tv_pixfmt_set;
-
-#define TV_PIXFMT_SET(pixfmt) (((tv_pixfmt_set) 1) << (pixfmt))
-
-#define TV_PIXFMT_SET_UNKNOWN 0
-#define TV_PIXFMT_SET_EMPTY 0
-#define TV_PIXFMT_SET_YUV_PLANAR (+ TV_PIXFMT_SET (TV_PIXFMT_YUV444)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YVU444)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YUV422)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YVU422)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YUV411)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YVU411)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YUV420)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YVU420)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YUV410)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YVU410))
-#define TV_PIXFMT_SET_YUVA24     (+ TV_PIXFMT_SET (TV_PIXFMT_YUVA24_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YUVA24_BE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YVUA24_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YVUA24_BE))
-#define TV_PIXFMT_SET_YUV24	 (+ TV_PIXFMT_SET (TV_PIXFMT_YUV24_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YUV24_BE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YVU24_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YVU24_BE))
-#define TV_PIXFMT_SET_YUV16	 (+ TV_PIXFMT_SET (TV_PIXFMT_YUYV)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YVYU)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_UYVY)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_VYUY))
-#define TV_PIXFMT_SET_YUV_PACKED (+ TV_PIXFMT_SET_YUVA24		\
-				  + TV_PIXFMT_SET_YUV24			\
-				  + TV_PIXFMT_SET_YUV16			\
-				  + TV_PIXFMT_SET (TV_PIXFMT_Y8))
-#define TV_PIXFMT_SET_YUV	 (+ TV_PIXFMT_SET_YUV_PLANAR		\
-				  + TV_PIXFMT_SET_YUV_PACKED)
-#define TV_PIXFMT_SET_RGBA24	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGBA24_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_RGBA24_BE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA24_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA24_BE))
-#define TV_PIXFMT_SET_RGB24	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGB24_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_BGR24_LE))
-#define TV_PIXFMT_SET_RGB16	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGB16_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_RGB16_BE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_BGR16_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_BGR16_BE))
-#define TV_PIXFMT_SET_RGB15	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGBA15_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_RGBA15_BE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA15_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA15_BE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_ARGB15_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_ARGB15_BE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_ABGR15_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_ABGR15_BE))
-#define TV_PIXFMT_SET_RGB12	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGBA12_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_RGBA12_BE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA12_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA12_BE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_ARGB12_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_ARGB12_BE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_ABGR12_LE)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_ABGR12_BE))
-#define TV_PIXFMT_SET_RGB8	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGB8)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_BGR8))
-#define TV_PIXFMT_SET_RGB7	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGBA7)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA7)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_ARGB7)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_ABGR7))
-#define TV_PIXFMT_SET_RGB_PACKED (+ TV_PIXFMT_SET_RGBA24		\
-				  + TV_PIXFMT_SET_RGB24			\
-				  + TV_PIXFMT_SET_RGB16			\
-				  + TV_PIXFMT_SET_RGB15			\
-				  + TV_PIXFMT_SET_RGB12			\
-				  + TV_PIXFMT_SET_RGB8			\
-				  + TV_PIXFMT_SET_RGB7)
-#define TV_PIXFMT_SET_RGB	    TV_PIXFMT_SET_RGB_PACKED
-#define TV_PIXFMT_SET_PLANAR	    TV_PIXFMT_SET_YUV_PLANAR
-#define TV_PIXFMT_SET_PACKED	 (+ TV_PIXFMT_SET_YUV_PACKED		\
-				  + TV_PIXFMT_SET_RGB_PACKED)
-#define TV_PIXFMT_SET_ALL	 (+ TV_PIXFMT_SET_YUV			\
-				  + TV_PIXFMT_SET_RGB)
-
-#define TV_PIXFMT_IS_YUV(pixfmt)					\
-	(0 != (TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_YUV))
-#define TV_PIXFMT_IS_RGB(pixfmt)					\
-	(0 != (TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGB))
-#define TV_PIXFMT_IS_PLANAR(pixfmt)					\
-	(0 != (TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_PLANAR))
-#define TV_PIXFMT_IS_PACKED(pixfmt)					\
-	(0 != (TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_PACKED))
-
-#ifdef __GNUC__
-#define TV_PIXFMT_BYTES_PER_PIXEL(pixfmt)				\
-	(!__builtin_constant_p (pixfmt) ?				\
-	 tv_pixfmt_bytes_per_pixel (pixfmt) :				\
-	 ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_YUVA24) ? 4 :		\
-	  ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGBA24) ? 4 :	\
-	   ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_YUV24) ? 3 :	\
-	    ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGB24) ? 3 :	\
-	     ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_YUV16) ? 2 :	\
-	      ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGB16) ? 2 :	\
-	       ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGB15) ? 2 :	\
-	        ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGB12) ? 2 :	\
-		 1))))))))
-#else
-#define TV_PIXFMT_BYTES_PER_PIXEL(pixfmt)				\
-	(tv_pixfmt_bytes_per_pixel (pixfmt))
-#endif
-
-extern const char *
-tv_pixfmt_name			(tv_pixfmt		pixfmt);
-extern unsigned int
-tv_pixfmt_bytes_per_pixel	(tv_pixfmt		pixfmt);
-
-/*
- *  Broken-down pixel format
- */
-
-typedef struct _tv_pixel_format tv_pixel_format;
-
-struct _tv_pixel_format {
-	tv_pixfmt		pixfmt;
-	unsigned int		_reserved1;		/* color space */
-
-	/* Number of bits per pixel. For packed YUV 4:2:2 this is 16.
-	   For planar formats this refers to the Y plane only. */
-	unsigned int		bits_per_pixel;
-
-	/* Number of red, green and blue, or luma and chroma bits
-	   per pixel. Averaged if U and V plane are smaller than Y plane. */
-	unsigned int		color_depth;
-
-	/* Width and height of the U and V plane must be multiplied
-	   by these values to get the size of the Y plane. Will be
-           1, 2 or 4. */
-	unsigned int		uv_hscale;
-	unsigned int		uv_vscale;
-
-	/* Format is packed and pixels are stored in 16, 24 or 32 bit
-	   (bits_per_pixel) quantities with most significant byte
-	   first in memory. */
-	unsigned		big_endian	: 1;
-
-	/* Y, U and V color components are stored in separate arrays,
-	   first Y, then U and V. */
-	unsigned		planar		: 1;
-
-	/* For packed YUV 4:2:2, V pixel is stored before U pixel
-	   in memory. For planar YUV formats, V plane is stored
-	   before U plane in memory. */
-	unsigned		vu_order	: 1;
-
-	unsigned		_reserved2	: 29;
-
-	/* Bit masks describing size and position of color components
-	   in a in 8, 16, 24 or 32 bit (bits_per_pixel) quantity, as
-	   seen when reading a word from memory with proper endianess.
-	   For packed YUV 4:2:2 and planar formats y, u and v will be
-	   0xFF. The a (alpha) component can be zero. */
-	union {
-		struct {
-			unsigned int		r;
-			unsigned int		g;
-			unsigned int		b;
-			unsigned int		a;
-		}			rgb;
-		struct {
-			unsigned int		y;
-			unsigned int		u;
-			unsigned int		v;
-			unsigned int		a;
-		}			yuv;
-	}			mask;
-};
-
-extern tv_bool
-tv_pixfmt_to_pixel_format	(tv_pixel_format *	format,
-				 tv_pixfmt		pixfmt,
-				 unsigned int		reserved);
-extern tv_bool
-tv_pixel_format_to_pixfmt	(tv_pixel_format *	format);
-
-/*
- *  Image format
- */
-
-typedef struct _tv_image_format tv_image_format;
-
-struct _tv_image_format {
-	/* Image width in pixels, for planar formats this refers to
-	   the Y plane and must be a multiple of tv_pixel_format.uv_hscale. */
-	unsigned int		width;
-
-	/* Image height in pixels, for planar formats this refers to
-	   the Y plane and must be a multiple of tv_pixel_format.uv_vscale. */
-	unsigned int		height;
-
-	/* For packed formats bytes_per_line >= (width * tv_pixel_format
-	   .bits_per_pixel + 7) / 8. For planar formats this refers to
-	   the Y plane only, with implied y_size = bytes_per_line * height. */
-	unsigned int		bytes_per_line;
-
-	/* For planar formats only, refers to the U and V plane. */
-	unsigned int		uv_bytes_per_line;
-
-/* ATTENTION [u_|v_]offset and [uv_]bytes_per_line aren't
-   fully supported yet, don't use them. */
-
-	/* For packed formats the image offset in bytes from the buffer
-	   start. For planar formats this refers to the Y plane. */
-	unsigned int		offset;
-
-	/* For planar formats only, the byte offset of the U and V
-	   plane from the start of the buffer. */
-	unsigned int		u_offset;
-	unsigned int		v_offset;
-
-	/* Buffer size. For packed formats size >= offset + height
-	   * bytes_per_line. For planar formats size >=
-	   MAX (offset + y_size, u_offset + uv_size, v_offset + uv_size). */
-	unsigned int		size;
-
-	tv_pixfmt		pixfmt;
-	unsigned int		_reserved;		/* color space */
-};
-
-extern tv_bool
-tv_image_format_init		(tv_image_format *	format,
-				 unsigned int		width,
-				 unsigned int		height,
-				 unsigned int		bytes_per_line,
-				 tv_pixfmt		pixfmt,
-				 unsigned int		reserved);
-extern tv_bool
-tv_image_format_is_valid	(const tv_image_format *format);
-extern void
-_tv_image_format_dump		(const tv_image_format *format,
-				 FILE *			fp);
 
 /*
  *  Video capture
@@ -940,12 +592,12 @@ tv_clear_image			(void *			image,
 typedef union {
   struct {
     void*	data; /* Data, usually in rgb or yuyv formats */
-    int		stride; /* bytes per line */
+    unsigned int	stride; /* bytes per line */
   } linear;
   struct {
     void	*y, *u, *v; /* Pointers to the different fields */
-    int		y_stride; /* bytes per line of the Y field */
-    int		uv_stride; /* bytes per line of U or V fields */
+    unsigned int	y_stride; /* bytes per line of the Y field */
+    unsigned int	uv_stride; /* bytes per line of U or V fields */
   } planar;
 } tveng_image_data;
 
@@ -954,102 +606,6 @@ typedef union {
  *  Video overlay, see ROADMAP
  */
 
-typedef struct _tv_overlay_buffer tv_overlay_buffer;
-
-/* This is the target of DMA overlay, a continuous chunk of physical memory.
-   Usually it describes the visible portion of the graphics card's video
-   memory. */
-struct _tv_overlay_buffer {
-  	/* Memory address as seen by the video capture device, without
-	   virtual address translation by the CPU. Actually this assumes
-           graphic card and capture device share an address space, which is
-	   not necessarily true if the devices connect to different busses,
-	   but I'm not aware of any driver APIs considering this either. */
-	unsigned long		base;
-
-	tv_image_format		format;
-};
-
-/* Overlay clipping rectangle. These are regions you don't want
-   overlaid, with clipping coordinates relative to the overlay
-   window origin (not the overlay buffer). */
-
-typedef struct _tv_clip tv_clip;
-
-struct _tv_clip {
-	uint16_t		x1;
-	uint16_t		y1;
-	uint16_t		x2;
-	uint16_t		y2;
-};
-
-static __inline__ tv_bool
-tv_clip_equal			(const tv_clip *	clip1,
-				 const tv_clip *	clip2)
-{
-	if (sizeof (tv_clip) == 8)
-		return (* (uint64_t *) clip1) == (* (uint64_t *) clip2);
-	else
-		return (0 == ((clip1->x1 ^ clip2->x1) |
-			      (clip1->y1 ^ clip2->y1) |
-			      (clip1->x2 ^ clip2->x2) |
-			      (clip1->y2 ^ clip2->y2)));
-}
-
-typedef struct _tv_clip_vector tv_clip_vector;
-
-struct _tv_clip_vector {
-	tv_clip *		vector;
-	unsigned int		size;
-	unsigned int		capacity;
-};
-
-extern tv_bool
-tv_clip_vector_equal		(const tv_clip_vector *	vector1,
-				 const tv_clip_vector *	vector2);
-extern tv_bool
-tv_clip_vector_copy		(tv_clip_vector *	dst,
-				 const tv_clip_vector *	src);
-static __inline__ void
-tv_clip_vector_clear		(tv_clip_vector *	vector)
-{
-	vector->size = 0;
-}
-
-extern tv_bool
-tv_clip_vector_add_clip_xy	(tv_clip_vector *	vector,
-				 unsigned int		x1,
-				 unsigned int		y1,
-				 unsigned int		x2,
-				 unsigned int		y2);
-static __inline__ tv_bool
-tv_clip_vector_add_clip_wh	(tv_clip_vector *	vector,
-				 unsigned int		x,
-				 unsigned int		y,
-				 unsigned int		width,
-				 unsigned int		height)
-{
-	return tv_clip_vector_add_clip_xy
-	  (vector, x, y, x + width, y + height);
-}
-
-extern uint8_t *
-tv_clip_vector_to_clip_mask	(tv_clip_vector *	vector,
-				 unsigned int		width,
-				 unsigned int		height);
-
-static __inline__ void
-tv_clip_vector_init		(tv_clip_vector *	vector)
-{
-	memset (vector, 0, sizeof (*vector));
-}
-
-static __inline__ void
-tv_clip_vector_destroy		(tv_clip_vector *	vector)
-{
-	free (vector->vector);
-	tv_clip_vector_init (vector);
-}
 
 /* Overlay rectangle. This is what gets DMAed into the overlay
    buffer, minus clipping rectangles. Coordinates are relative
@@ -1065,10 +621,6 @@ struct _tv_window {
 
 	/* Invisible regions of window, coordinates relative x, y above. */
 	tv_clip_vector		clip_vector;
-
-  /* XXX to be removed */
-  Window win; /* window we are previewing to (only needed in XV mode) */
-  GC gc; /* gc associated with win */
 };
 
 static __inline__ void
@@ -1085,28 +637,28 @@ tv_window_init			(tv_window *		window)
 }
 
 
+/* Preliminary */
 
+/* That ought to be none, read, mmap, userp, overlay for tveng,
+   none, capture (read,mmap,userp), overlay, teletext for zm. */
+typedef enum {
+  CAPTURE_MODE_NONE,
+  CAPTURE_MODE_READ,
+  CAPTURE_MODE_OVERLAY,
+  CAPTURE_MODE_TELETEXT,
+} capture_mode;
 
-
-
-
-
-enum tveng_capture_mode
+enum old_tveng_capture_mode
 {
-  /* FIXME this describes window contents
-     and doesn't belong here since tveng maintains no windows.
-     Moreover some drivers [appear to, from client POV] support
-     capture and overlay simultaneously. */
+  /* We keep this for config compatibility. */
 
-  TVENG_NO_CAPTURE,		/* Capture isn't active */
-  TVENG_CAPTURE_READ,		/* Capture is through a read() call */
-  TVENG_CAPTURE_PREVIEW,       	/* Capture is through fullscreen overlays */
-  TVENG_CAPTURE_WINDOW,		/* Capture is through windowed overlays */
-
-  /* Doesn't belong here either, but I don't want to break
-     too many things at once. */
-  TVENG_TELETEXT
+  OLD_TVENG_NO_CAPTURE,		/* Capture isn't active */
+  OLD_TVENG_CAPTURE_READ,	/* Capture is through windowed read() call */
+  OLD_TVENG_CAPTURE_PREVIEW,   	/* Capture is through fullscreen overlays */
+  OLD_TVENG_CAPTURE_WINDOW,	/* Capture is through windowed overlays */
+  OLD_TVENG_TELETEXT,		/* Teletext in window */
 };
+
 
 /* The controller we are using for this device */
 enum tveng_controller
@@ -1124,7 +676,7 @@ struct _tveng_device_info
 {
   char * file_name; /* The name used to open() this fd */
   int fd; /* Video device file descriptor */
-  enum tveng_capture_mode current_mode; /* Current capture mode */
+  capture_mode capture_mode; /* Current capture mode */
   enum tveng_attach_mode attach_mode; /* Mode this was attached with
 				       */
   enum tveng_controller current_controller; /* Controller used */
@@ -1258,7 +810,7 @@ tv_next_video_standard		(const tveng_device_info *info,
 				 const tv_video_standard *standard);
 extern const tv_video_standard *
 tv_nth_video_standard		(tveng_device_info *	info,
-				 unsigned int		index);
+				 unsigned int		nth);
 extern unsigned int
 tv_video_standard_position	(tveng_device_info *	info,
 				 const tv_video_standard *standard);
@@ -1289,7 +841,7 @@ tv_next_control			(const tveng_device_info *info,
 				 const tv_control *	control);
 extern tv_control *
 tv_nth_control			(tveng_device_info *	info,
-				 unsigned int		index);
+				 unsigned int		nth);
 extern unsigned int
 tv_control_position		(tveng_device_info *	info,
 				 const tv_control *	control);
@@ -1350,6 +902,7 @@ void tveng_device_info_destroy(tveng_device_info * info);
   info: The structure to be associated with the device
 */
 int tveng_attach_device(const char* device_file,
+			Window window,
 			enum tveng_attach_mode attach_mode,
 			tveng_device_info * info);
 
@@ -1366,7 +919,7 @@ int tveng_attach_device(const char* device_file,
   to be freed.
 */
 void
-tveng_describe_controller(char ** short_str, char ** long_str,
+tveng_describe_controller(const char ** short_str, const char ** long_str,
 			  tveng_device_info * info);
 
 /*
@@ -1447,7 +1000,7 @@ tveng_stop_capturing(tveng_device_info * info);
    Note: if you want this call to be non-blocking, call it with time=0
 */
 int tveng_read_frame(tveng_image_data * dest,
-		     unsigned int time, tveng_device_info * info);
+		     unsigned int wait_time, tveng_device_info * info);
 
 /*
   Gets the timestamp of the last read frame in seconds.
@@ -1459,8 +1012,9 @@ double tveng_get_timestamp(tveng_device_info * info);
    error. Remember to check the value of width and height in the
    format struct since it can be different to the one requested. 
 */
-int tveng_set_capture_size(int width, int height, tveng_device_info *
-			   info);
+int tveng_set_capture_size(unsigned int width,
+			   unsigned int height,
+			   tveng_device_info *info);
 
 /* 
    Gets the actual size of the capture buffer in width and height.
@@ -1475,7 +1029,9 @@ tv_get_overlay_buffer		(tveng_device_info *	info,
 				 tv_overlay_buffer *	target);
 extern tv_bool
 tv_set_overlay_buffer		(tveng_device_info *	info,
-				 tv_overlay_buffer *	target);
+				 const char *		display_name,
+				 int			screen_number,
+				 const tv_overlay_buffer *target);
 extern tv_bool
 tv_set_overlay_xwindow		(tveng_device_info *	info,
 				 Window			window,
@@ -1680,12 +1236,12 @@ tv_mixer_line_update		(tv_audio_line *	line);
 
 extern tv_bool
 tv_mixer_line_get_volume	(tv_audio_line *	line,
-				 unsigned int *		left,
-				 unsigned int *		right);
+				 int *			left,
+				 int *			right);
 extern tv_bool
 tv_mixer_line_set_volume	(tv_audio_line *	line,
-				 unsigned int		left,
-				 unsigned int		right);
+				 int			left,
+				 int			right);
 extern tv_bool
 tv_mixer_line_get_mute		(tv_audio_line *	line,
 				 tv_bool *		mute);
