@@ -49,6 +49,8 @@ struct screenshot_data
   LineConverter 	Converter;
   gpointer		line_data;	/* Conversion line buffer */
 
+  gpointer		deint_data;
+
   gchar *		io_buffer;
   gint			io_buffer_size;	/* Allocated */
   gint			io_buffer_used;
@@ -94,11 +96,11 @@ struct screenshot_backend
 
 extern gboolean screenshot_close_everything;
 
+extern gchar *screenshot_deinterlace (screenshot_data *, gint);
 
-
-
-
-
-
-
+/*
+ *  Encoding backends
+ */
+extern screenshot_backend screenshot_backend_jpeg;
+extern screenshot_backend screenshot_backend_ppm;
 

@@ -7,7 +7,7 @@ plugin_LTLIBRARIES = libscreenshot.zapping.la
 EXTRA_DIST = screenshot.glade screenshot_strings.c
 
 libscreenshot_zapping_la_SOURCES = \
-	screenshot.c screenshot.h \
+	screenshot.c screenshot.h deint.c \
 	b_jpeg.c b_ppm.c
 
 libscreenshot_zapping_la_LIBADD = $(JPEG_LIB)

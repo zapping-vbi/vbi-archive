@@ -1,11 +1,12 @@
-8.12.2001	JPEG plugin <mschimek@users.sf.net>
+9.12.2001	JPEG plugin <mschimek@users.sf.net>
 
 	* Rewrote jpeg plugin. New attractions: screenshot dialog
-	  got a format selector, quality slider and preview,
-	  output size estimation. Like [Ctrl-S] the image is now
-	  grabbed on [S] rather than OK (could be optional).
-	  Added PPM backend. Electrified file name entry. Rest
-	  tomorrow.
+	  got a format selector, quality slider and preview (optional),
+	  output size estimation, simple deinterlace option, also
+	  previewed. Like [Ctrl-S] the image is now grabbed on [S]
+	  rather than OK (optional). Added PPM backend. Electrified
+	  file name entry, made dialog closing on filename-enter
+	  optional.
 
 7.12.2001	<mschimek@users.sf.net>
 

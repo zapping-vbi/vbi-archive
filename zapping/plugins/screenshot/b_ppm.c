@@ -38,7 +38,7 @@ backend_save (screenshot_data *data)
   free = data->io_buffer_size;
   dest_bpl = data->format.width * 3;
 
-  g_assert (free > 80);
+  g_assert (free > 80 && free > (dest_bpl + 80));
 
   n = snprintf (dest, 80, "P6 %d %d 255\n",
 		data->format.width, data->format.height);
@@ -48,17 +48,17 @@ backend_save (screenshot_data *data)
   /* NB lines is evaluated by parent thread to update the progress bar */
   for (data->lines = 0; data->lines < data->format.height; data->lines++)
     {
+      if (screenshot_close_everything || data->thread_abort)
+	{
+	  data->thread_abort = TRUE;
+	  break;
+	}
+
       if (free < dest_bpl)
 	{
 	  data->io_flush (data, data->io_buffer_size - free);
 	  dest = data->io_buffer;
 	  free = data->io_buffer_size;
-	}
-
-      if (screenshot_close_everything || data->thread_abort)
-	{
-	  data->thread_abort = TRUE;
-	  break;
 	}
 
       (data->Converter)(data->format.width, src, dest);
