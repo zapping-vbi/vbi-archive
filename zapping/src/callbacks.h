@@ -103,34 +103,6 @@ void
 on_channel_down1_activate              (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
-void
-on_plugins1_activate                   (GtkMenuItem     *menuitem,
-                                        gpointer         user_data);
-
-void
-on_clist2_select_row                   (GtkCList        *clist,
-                                        gint             row,
-                                        gint             column,
-                                        GdkEvent        *event,
-                                        gpointer         user_data);
-
-void
-on_button3_clicked                     (GtkButton       *button,
-                                        gpointer         user_data);
-
-void
-on_plugin_close_clicked                (GtkButton       *button,
-                                        gpointer         user_data);
-
-void
-on_plugin_apply_clicked                (GtkButton       *button,
-                                        gpointer         user_data);
-
-gboolean
-on_plugin_properties_delete_event      (GtkWidget       *widget,
-                                        GdkEvent        *event,
-                                        gpointer         user_data);
-
 /******************************************************************************
  Stuff located in properties.c
 ******************************************************************************/
@@ -215,6 +187,44 @@ on_clist1_select_row                   (GtkCList        *clist,
 gboolean
 on_channel_list_key_press_event        (GtkWidget       *widget,
                                         GdkEventKey     *event,
+                                        gpointer         user_data);
+
+/******************************************************************************
+ Stuff located in plugin_properties.c
+******************************************************************************/
+void
+on_plugins1_activate                   (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
+on_plugin_list_select_row              (GtkCList        *clist,
+					gint             row,
+					gint             column,
+					GdkEvent        *event,
+					gpointer         user_data);
+
+void
+on_symbol_list_select_row              (GtkCList        *clist,
+					gint             row,
+					gint             column,
+					GdkEvent        *event,
+					gpointer         user_data);
+
+void
+on_button3_clicked                     (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_plugin_start_clicked                (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_plugin_stop_clicked                 (GtkButton       *button,
+					gpointer         user_data);
+
+gboolean
+on_plugin_properties_delete_event      (GtkWidget       *widget,
+                                        GdkEvent        *event,
                                         gpointer         user_data);
 
 #endif /* __CALLBACKS_H__ */

@@ -100,10 +100,9 @@ void zconf_create_integer(gint new_value, const gchar * desc,
 gchar * zconf_get_string(gchar ** where, const gchar * path);
 
 /*
-  Sets an string value to the given string. Can fail if the string is
-  so large that we cannot g_strdup it. Returns FALSE on failure.
+  Sets an string value to the given string.
 */
-gboolean zconf_set_string(gchar * new_value, const gchar * path);
+void zconf_set_string(gchar * new_value, const gchar * path);
 
 /*
   Creates an string value. Sets desc to NULL to leave it

@@ -26,11 +26,11 @@
 #include "callbacks.h"
 #include "interface.h"
 #include "v4linterface.h"
-#include "plugins.h"
-#include "zconf.h"
 /* Manages config values for zconf (it saves me some typing) */
 #define ZCONF_DOMAIN "/zapping/internal/callbacks/"
 #include "zmisc.h"
+#include "plugins.h"
+#include "zconf.h"
 
 gboolean flag_exit_program; /* set this flag to TRUE to exit the program */
 GtkWidget * ToolBox = NULL; /* Here is stored the Toolbox (if any) */
@@ -83,8 +83,17 @@ on_exit2_activate                      (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
   GtkWidget * widget = lookup_widget(GTK_WIDGET(menuitem), "zapping");
-
+  GList * p;
   UpdateCoords(widget->window);
+
+  /* Tell the widget that the GUI is going to be closed */
+  p = g_list_first(plugin_list);
+  while (p)
+    {
+      plugin_remove_gui(GNOME_APP(widget), 
+			(struct plugin_info*)p->data);
+      p = p->next;
+    }
 
   flag_exit_program = TRUE;
 }
@@ -100,8 +109,9 @@ void
 on_plugin_writing1_activate            (GtkMenuItem     *menuitem,
 					gpointer         user_data)
 {
-  static GnomeHelpMenuEntry help_ref = { "zapping",
-					 "plugin_devel.html" };
+  GnomeHelpMenuEntry help_ref = { "zapping",
+				  "plugin_devel.html" };
+
   gnome_help_display (NULL, &help_ref);
 }
 
@@ -110,9 +120,18 @@ on_zapping_delete_event                (GtkWidget       *widget,
                                         GdkEvent        *event,
                                         gpointer         user_data)
 {
+  GList * p;
   flag_exit_program = TRUE;
-
   UpdateCoords(widget->window);
+
+  /* Tell the widget that the GUI is going to be closed */
+  p = g_list_first(plugin_list);
+  while (p)
+    {
+      plugin_remove_gui(GNOME_APP(widget), 
+			 (struct plugin_info*)p->data);
+      p = p->next;
+    }
 
   return FALSE;
 }
@@ -441,161 +460,4 @@ on_channel_down1_activate              (GtkMenuItem     *menuitem,
   /* Update the option menu */
   gtk_option_menu_set_history(GTK_OPTION_MENU (Channels),
 			      new_channel);
-}
-
-void
-on_plugins1_activate                   (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
-{
-  GtkWidget * plugin_properties = create_plugin_properties();
-  GtkWidget * text1 = lookup_widget(plugin_properties, "text1");
-  GList * p = g_list_first(plugin_list); /* Iterate through the
-					    plugins */
-  struct plugin_info * plug_info;
-  gchar * clist2_entries[4]; /* Contains the entries for the CList */
-  gchar buffer[256];
-  GtkWidget * clist2 = lookup_widget(plugin_properties, "clist2");
-  buffer[255] = 0;
-  
-  gtk_object_set_user_data(GTK_OBJECT(plugin_properties), menuitem);
-  gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
-  gtk_text_set_word_wrap(GTK_TEXT(text1), TRUE);
-
-  /* Add the plugins to the CList */
-  while (p)
-    {
-      plug_info = (struct plugin_info*) p->data;
-      clist2_entries[0] = plugin_get_canonical_name(plug_info);
-      clist2_entries[1] = plugin_get_name(plug_info);
-      g_snprintf(buffer, 255, "%d.%d.%d", plug_info -> major, plug_info ->
-		 minor, plug_info -> micro);
-      clist2_entries[2] = buffer;
-      clist2_entries[3] = plugin_running(plug_info) ? _("Yes") : _("No");
-      gtk_clist_append(GTK_CLIST(clist2), clist2_entries);
-      p = p->next;
-    }
-
-  gtk_widget_show(plugin_properties);
-}
-
-
-void
-on_clist2_select_row                   (GtkCList        *clist,
-                                        gint             row,
-                                        gint             column,
-                                        GdkEvent        *event,
-                                        gpointer         user_data)
-{
-  GdkColor blue;
-  struct plugin_info * plug_info;
-  GtkText * text1 = GTK_TEXT(lookup_widget(GTK_WIDGET(clist), "text1"));
-  gchar buffer[256];
-
-  /* lookup blue color */
-  gdk_color_parse("blue", &blue);
-  if (!gdk_colormap_alloc_color(gdk_rgb_get_cmap(), &blue,
-				TRUE, TRUE))
-    return;
-
-  plug_info = (struct plugin_info*) g_list_nth_data(plugin_list, row);
-  
-  gtk_text_freeze(text1); /* We are going to do a number of
-			     modifications */
-  /* Delete all previous contents */
-  gtk_editable_delete_text(GTK_EDITABLE(text1), 0, -1);
-
-  gtk_text_insert(text1, NULL, &blue, NULL, _("Plugin Description: "),
-		  -1);
-  gtk_text_insert(text1, NULL, NULL, NULL, plugin_get_info(plug_info), -1);
-
-  gtk_text_insert(text1, NULL, &blue, NULL, _("\nPlugin author: "), -1);
-  gtk_text_insert(text1, NULL, NULL, NULL, plugin_author(plug_info), -1);
-
-  g_snprintf(buffer, 255, "%d.%d.%d", plug_info -> zapping_major, plug_info ->
-	     zapping_minor, plug_info -> zapping_micro);
-
-  /* Adapt this and " required" to your own language structure freely */
-  gtk_text_insert(text1, NULL, NULL, NULL, _("\nZapping "), -1);
-  gtk_text_insert(text1, NULL, &blue, NULL, buffer, -1);
-  gtk_text_insert(text1, NULL, NULL, NULL, _(" required"), -1);
-
-  gtk_text_thaw(text1); /* Show the changes */
-  gdk_colormap_free_colors(gdk_rgb_get_cmap(), &blue, 1);
-}
-
-
-void
-on_button3_clicked                     (GtkButton       *button,
-                                        gpointer         user_data)
-{
-  GtkWidget * plugin_properties = lookup_widget(GTK_WIDGET(button),
-						"plugin_properties");
-
-  /* Activate the menuitem and close the widget */
-  gpointer menuitem = gtk_object_get_user_data(GTK_OBJECT(plugin_properties));
-  gtk_widget_set_sensitive(GTK_WIDGET(menuitem), TRUE);
-  gtk_widget_destroy(plugin_properties);
-}
-
-
-void
-on_plugin_close_clicked                (GtkButton       *button,
-                                        gpointer         user_data)
-{
-  /* We traverse the clist and call plugin_close on all the selected
-     plugins */
-  GtkWidget * clist2 = lookup_widget(GTK_WIDGET(button), "clist2");
-  int i = 0;
-  GList * ptr = GTK_CLIST(clist2) -> row_list;
-  struct plugin_info * plug_info;
-  
-  while (ptr)
-    {
-      plug_info = (struct plugin_info*)g_list_nth(plugin_list, i)->data;
-      if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
-	{
-	  plugin_stop(plug_info);
-	  gtk_clist_set_text(GTK_CLIST(clist2), i, 3,
-			     plugin_running(plug_info) ? _("Yes") : _("No"));
-	}
-      i++;
-      ptr = ptr -> next;
-    }
-}
-
-
-void
-on_plugin_apply_clicked                (GtkButton       *button,
-                                        gpointer         user_data)
-{
-  /* We traverse the clist and call plugin_start on all the selected
-     plugins, just a verbatim copy of the above */
-  GtkWidget * clist2 = lookup_widget(GTK_WIDGET(button), "clist2");
-  int i = 0;
-  GList * ptr = GTK_CLIST(clist2) -> row_list;
-  struct plugin_info * plug_info;
-  
-  while (ptr)
-    {
-      plug_info = (struct plugin_info*)g_list_nth(plugin_list, i)->data;
-      if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
-	{
-	  plugin_start(plug_info);
-	  gtk_clist_set_text(GTK_CLIST(clist2), i, 3,
-			     plugin_running(plug_info) ? _("Yes") : _("No"));
-	}
-      i++;
-      ptr = ptr -> next;
-    }
-}
-
-gboolean
-on_plugin_properties_delete_event      (GtkWidget       *widget,
-                                        GdkEvent        *event,
-                                        gpointer         user_data)
-{
-  gpointer menuitem = gtk_object_get_user_data(GTK_OBJECT(widget));
-  gtk_widget_set_sensitive(GTK_WIDGET(menuitem), TRUE);
-
-  return FALSE;
 }

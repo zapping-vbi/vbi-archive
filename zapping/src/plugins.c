@@ -15,14 +15,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-/*
-  This library is in charge of managing the plugins, and providing
-  them with a consistent API for communicating with the program
-  The plugins will be shared libraries open with dlopen, and with some
-  functions to make them appear as any other component
-*/
 
 #include "plugins.h"
+
+/* This is the main plugin list, it is only used in plugin_bridge */
+extern GList * plugin_list;
 
 /* This shouldn't be public */
 void plugin_foreach_free(struct plugin_info * info, void * user_data);
@@ -35,335 +32,514 @@ void plugin_foreach_free(struct plugin_info * info, void * user_data);
          be passed to the rest of functions in this library.
 */
 
+gboolean plugin_load(gchar * file_name, struct plugin_info * info);
+
 gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 {
-  gboolean (*plugin_validate_protocol)(gchar * protocol);
-  void (*plugin_get_version)(int * zapping_major, int * zapping_minor,
-			     int * zapping_micro, int * plugin_major,
-			     int * plugin_minor, int * plugin_micro);
-  struct ParseStruct * (*plugin_get_parse_struct)();
+  /* This variables are for querying the symbols */
+  gint i = 0;
+  gchar *symbol, *type, *description;
+  gpointer ptr;
+  gint hash;
+  /* This is used to get the canonical name */
+  gchar * canonical_name;
+  gchar * version;
 
+  g_assert(info != NULL);
+  g_assert(file_name != NULL);
 
-  /* Open the file resolving all undefined symbols now */
-  info -> handle = dlopen(file_name, RTLD_NOW);
-  if (!(info -> handle)) /* Failed */
+  memset (info, 0, sizeof(struct plugin_info));
+
+  info -> handle = g_module_open (file_name, 0);
+  if (!info -> handle)
+    return FALSE;
+
+  /* Check that the protocols we speak are the same */
+  if (!g_module_symbol(info -> handle, "zp_protocol",
+		       (gpointer*)&(info->plugin_protocol)))
     {
-      info -> error = dlerror();
+      g_module_close(info->handle);
       return FALSE;
     }
 
-  plugin_validate_protocol = dlsym(info -> handle, 
-				   "plugin_validate_protocol");
-
-  if ((info -> error = dlerror()) != NULL) /* Error */
+  if (((*info->plugin_protocol)()) != PLUGIN_PROTOCOL)
     {
-      dlclose(info->handle);
+      g_module_close(info->handle);
+      return FALSE;
+    }
+  /* Get the remaining compulsory symbols */
+  if (!g_module_symbol(info -> handle, "zp_init",
+		       (gpointer*)&(info->plugin_init)))
+    {
+      g_module_close(info->handle);
+      return FALSE;
+    }
+  if (!g_module_symbol(info -> handle, "zp_close",
+		       (gpointer*)&(info->plugin_close)))
+    {
+      g_module_close(info->handle);
+      return FALSE;
+    }
+  if (!g_module_symbol(info -> handle, "zp_start",
+		       (gpointer*)&(info->plugin_start)))
+    {
+      g_module_close(info->handle);
+      return FALSE;
+    }
+  if (!g_module_symbol(info -> handle, "zp_stop",
+		       (gpointer*)&(info->plugin_stop)))
+    {
+      g_module_close(info->handle);
+      return FALSE;
+    }
+  if (!g_module_symbol(info -> handle, "zp_load_config",
+		       (gpointer*)&(info->plugin_load_config)))
+    {
+      g_module_close(info->handle);
+      return FALSE;
+    }
+  if (!g_module_symbol(info -> handle, "zp_save_config",
+		       (gpointer*)&(info->plugin_save_config)))
+    {
+      g_module_close(info->handle);
+      return FALSE;
+    }
+  if (!g_module_symbol(info -> handle, "zp_get_info",
+		       (gpointer*)&(info->plugin_get_info)))
+    {
+      g_module_close(info->handle);
+      return FALSE;
+    }
+  if (!g_module_symbol(info -> handle, "zp_running",
+		       (gpointer*)&(info->plugin_running)))
+    {
+      g_module_close(info->handle);
+      return FALSE;
+    }
+  /* Now get the optative symbols */
+  g_module_symbol(info -> handle, "zp_process_frame",
+		  (gpointer*)&(info->plugin_process_frame));
+  g_module_symbol(info -> handle, "zp_get_public_info",
+		  (gpointer*)&(info->plugin_get_public_info));
+  g_module_symbol(info -> handle, "zp_add_properties",
+		  (gpointer*)&(info->plugin_add_properties));
+  g_module_symbol(info -> handle, "zp_activate_properties",
+		  (gpointer*)&(info->plugin_activate_properties));
+  g_module_symbol(info -> handle, "zp_help_properties",
+		  (gpointer*)&(info->plugin_help_properties));
+  /* Check that these three functions are present */
+   if ((!info -> plugin_add_properties) ||
+       (!info -> plugin_activate_properties) ||
+       (!info -> plugin_help_properties))
+     info -> plugin_add_properties =
+       (gpointer) info -> plugin_activate_properties
+       = (gpointer) info -> plugin_help_properties = NULL;
+  g_module_symbol(info -> handle, "zp_add_gui",
+		  (gpointer*)&(info->plugin_add_gui));
+  g_module_symbol(info -> handle, "zp_remove_gui",
+		  (gpointer*)&(info->plugin_remove_gui));
+  /* Check that the two functions are present */
+  if ((!info->plugin_add_gui) ||
+      (!info->plugin_remove_gui))
+    info -> plugin_add_gui = info -> plugin_remove_gui = NULL;
+
+  g_module_symbol(info -> handle, "zp_get_priority",
+		  (gpointer*)&(info->plugin_get_priority));
+
+  if (info -> plugin_get_priority)
+    info -> priority = (*info->plugin_get_priority)();
+  else
+    info -> priority = 0;
+
+  plugin_get_info(&canonical_name, NULL, NULL, NULL, NULL, NULL,
+		   info);
+  if ((!canonical_name) || (strlen(canonical_name) == 0))
+    {
+      g_module_close(info->handle);
+      g_warning(_("\"%s\" seems to be a valid plugin, but it doesn't "
+		  "provide a canonical name."), file_name);
+      return FALSE;
+    }
+  /* Get the version of the plugin */
+  version = plugin_get_version(info);
+  if (!version)
+    {
+      g_module_close(info->handle);
+      g_warning(_("\"%s\" doesn't provide a version"),
+		file_name);
+      return FALSE;
+    }
+  info -> major = info->minor = info->micro = 0;
+  if (sscanf(version, "%d.%d.%d", &(info->major), &(info->minor),
+      &(info->micro)) == 0)
+    {
+      g_warning(
+      _("Sorry, the version of the plugin cannot be parsed.\n"
+      "The version must be something like %%d[.%%d[%%d[other things]]]\n"
+	"The given version is %s.\nError loading \"%s\" (%s)"),
+      version, file_name, canonical_name);
+      g_module_close(info -> handle);
       return FALSE;
     }
 
-  /* The plugin should return TRUE in case it supports our protocol */
-  if (!(*plugin_validate_protocol)(PLUGIN_PROTOCOL))
-    {
-      info -> error = _("The plugin doesn't understand our protocol");
-      dlclose(info->handle);
-      return FALSE;
-    }
+  info -> canonical_name = g_strdup(canonical_name);
+  info -> file_name = g_strdup(file_name);
 
-  /* OK, the protocol is valid, resolve all symbols */
-  info -> plugin_get_info = dlsym(info -> handle, "plugin_get_info");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_get_name = dlsym(info -> handle, "plugin_get_name");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_get_canonical_name = dlsym(info -> handle, 
-					    "plugin_get_canonical_name");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  plugin_get_version = dlsym(info -> handle, "plugin_get_version");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_running = dlsym(info -> handle, "plugin_running");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_author = dlsym(info -> handle, "plugin_author");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_start = dlsym(info -> handle, "plugin_start");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_stop = dlsym(info -> handle, "plugin_stop");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  plugin_get_parse_struct = dlsym(info -> handle, 
-				  "plugin_get_parse_struct");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_add_properties = dlsym(info -> handle,
-					"plugin_add_properties");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_apply_properties = dlsym(info -> handle, 
-					  "plugin_apply_properties");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_help_properties = dlsym(info -> handle, 
-					  "plugin_help_properties");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_add_gui = dlsym(info -> handle, "plugin_add_gui");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_init = dlsym(info -> handle, "plugin_init");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_close = dlsym(info -> handle, "plugin_close");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_remove_gui = dlsym(info -> handle, "plugin_remove_gui");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> plugin_eat_frame = dlsym(info -> handle, "plugin_eat_frame");
-  if ((info -> error = dlerror()) != NULL)
-    {
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  /* Get the plugin version */
-  (*plugin_get_version)(&info->zapping_major, & info -> zapping_minor,
-			&info->zapping_micro, & info -> major,
-			&info->minor, &info -> micro);
-
-  /* if the canonical name is null, then there is an error */
-  if (!(*info->plugin_get_canonical_name)())
-    {
-      info -> error = _("The plugin doesn't provide a canonical name");
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
-  info -> parse_struct = (*plugin_get_parse_struct)();
-  if (!(info -> parse_struct))
-    {
-      info -> error = _("The plugin doesn't provide a parse struct");
-      dlclose(info -> handle);
-      return FALSE;
-    }
-
+  /* Get the exported symbols for the plugin */
+  info -> exported_symbols = NULL;
+  info -> num_exported_symbols = 0;
+  if (info->plugin_get_public_info)
+    while ((*info->plugin_get_public_info)(i, &ptr, &symbol, 
+					   &description, &type, &hash))
+      {
+	if ((!symbol) || (!type) || (!ptr) || (hash == -1))
+	  {
+	    i++;
+	    continue;
+	  }
+	 info->exported_symbols = (struct plugin_exported_symbol*)
+	   realloc(info->exported_symbols,
+		   sizeof(struct plugin_exported_symbol)*(i+1));
+	 if (!info->exported_symbols)
+	  g_error(_("There wasn't enough mem for allocating symbol %d in %s"),
+		  i+1, info->file_name);
+	
+	info->exported_symbols[i].symbol = g_strdup(symbol);
+ 	info->exported_symbols[i].type = g_strdup(type);
+	if (description)
+	  info->exported_symbols[i].description =
+	    g_strdup(description);
+	else
+	  info->exported_symbols[i].description =
+	    g_strdup(_("[No description provided]"));
+	info->exported_symbols[i].ptr = ptr;
+	info->exported_symbols[i].hash = hash;
+	info->num_exported_symbols++;
+	i++;
+      }
   return TRUE;
 }
 
 void plugin_unload(struct plugin_info * info)
 {
+  gint i;
+
   g_assert(info != NULL);
 
-  dlclose(info -> handle);
+  /* Tell the plugin to close itself */
+  plugin_close( info );
+
+  /* Free the memory of the exported symbols */
+  if (info -> num_exported_symbols > 0)
+    {
+      g_assert(info -> exported_symbols != NULL);
+      for (i=0; i < info->num_exported_symbols; i++)
+	{
+	  g_free(info->exported_symbols[i].symbol);
+	  g_free(info->exported_symbols[i].type);
+	  g_free(info->exported_symbols[i].description);
+	}
+      g_free(info -> exported_symbols);
+      info -> exported_symbols = NULL;
+    }
+  g_free(info -> file_name);
+  g_free(info -> canonical_name);
+  g_module_close (info -> handle);
+}
+
+/*
+  This is the bridge given to the plugins.
+*/
+gboolean plugin_bridge (gpointer * ptr, gchar * plugin, gchar *
+			symbol, gchar * type, gint hash);
+
+gboolean plugin_bridge (gpointer * ptr, gchar * plugin, gchar *
+			symbol, gchar * type, gint hash)
+{
+  gint i;
+  GList * list = g_list_first(plugin_list); /* From main.c */
+  struct plugin_info * info;
+  struct plugin_exported_symbol * es = NULL; /* A pointer to the table of
+						exported symbols */
+  gint num_exported_symbols=0; /* Number of exported symbols in the
+				plugin */
+  if (!plugin)
+    {
+      if (ptr)
+	*ptr = GINT_TO_POINTER(0x2);
+      return FALSE; /* Zapping exports no plugins */
+    }
+  else /* We have to query the list of plugins */
+    while (list)
+      {
+	info = (struct plugin_info*) list->data;
+	if (!strcasecmp(info->canonical_name, plugin))
+	  {
+	    es = info->exported_symbols;
+	    num_exported_symbols = info->num_exported_symbols;
+	    break;
+	  }
+	list = list->next;
+      }
+
+  if (!es)
+    {
+      if (ptr)
+	*ptr = GINT_TO_POINTER(0x1); /* Plugin not found */
+      return FALSE;
+    }
+
+  /* Now try to find the given symbol in the table of exported symbols
+   of the plugin */
+  for (i=0; i<num_exported_symbols; i++)
+    if (!strcmp(es[i].symbol, symbol))
+      {
+	if (es[i].hash != hash)
+	  {
+	    if (ptr)
+	      *ptr = GINT_TO_POINTER(0x3);
+	    /* Warn */
+	    g_warning(_("Check error: \"%s\" in plugin %s"
+			" was supposed to be \"%s\" but it is:"
+			"\"%s\". Hashes are %d vs. %d"), symbol,
+		      plugin ? plugin : "Zapping", type,
+		      es[i].type, hash, es[i].hash);
+	    return FALSE;
+	  }
+	if (ptr)
+	  *ptr = es[i].ptr;
+	return TRUE; /* Success */
+      }
+
+  if (ptr)
+    *ptr = GINT_TO_POINTER(0x2); /* Symbol not found in the plugin */
+  return FALSE;
 }
 
 /* This are wrappers to avoid the use of the pointers in the
    plugin_info struct just in case somewhen the plugin system changes */
-/* If the plugin returns NULL, then avoid SEGFAULT */
-gchar * plugin_get_name(struct plugin_info * info)
+gint plugin_protocol(struct plugin_info * info)
 {
-  gchar * returned_string = (*info->plugin_get_name)();
-  if (returned_string)
-    return returned_string;
-  else
-    return _("(Void name)");
+  g_assert(info != NULL);
+
+  return PLUGIN_PROTOCOL;
 }
 
-/* This function should never return NULL, since plugin_load should
-   fail if the canonical name is NULL */
-gchar * plugin_get_canonical_name(struct plugin_info * info)
+gboolean plugin_init ( tveng_device_info * device_info,
+			      struct plugin_info * info )
 {
-  return ((*info -> plugin_get_canonical_name)());
+  g_assert(info != NULL);
+
+  return (((*info->plugin_init)((PluginBridge)plugin_bridge,
+			      device_info)));
 }
 
-/* Gets the long descriptive string for the plugin */
-gchar * plugin_get_info(struct plugin_info * info)
-{
-  gchar * returned_string = (*info->plugin_get_info)();
-  if (!returned_string)
-    return _("(No description provided for this plugin)");
-  else
-    return returned_string;
-}
-
-/* Inits the plugin for the given device and returns TRUE if the
-   plugin coold be inited succesfully */
-gboolean plugin_init(tveng_device_info * info, struct plugin_info *
-		     plug_info)
-{
-  return ((*plug_info -> plugin_init)(info));
-}
-
-/* Closes the plugin, tells it to close all fds and so on */
 void plugin_close(struct plugin_info * info)
 {
-  (*info->plugin_close)();
+  g_assert(info != NULL);
+
+  ((*info->plugin_close))();
 }
 
-/* Starts the execution of the plugin, TRUE on success */
-gboolean plugin_start(struct plugin_info * info)
+gboolean plugin_start (struct plugin_info * info)
 {
-  return ((*info->plugin_start)());
+  g_assert(info != NULL);
+
+  return ((*info->plugin_start))();
 }
 
-/* stops (pauses) the execution of the plugin */
-void plugin_stop(struct plugin_info * info)
+void plugin_stop (struct plugin_info * info)
 {
-  (*info->plugin_stop)();
+  g_assert(info != NULL);
+
+  ((*info->plugin_stop))();
 }
 
-/* TRUE if the plugin says it's active */
-gboolean plugin_running(struct plugin_info * info)
+void plugin_load_config(struct plugin_info * info)
 {
-  return ((*info->plugin_running)());
+  gchar * key = NULL;
+  gchar * buffer = NULL;
+  g_assert(info != NULL);
+
+  plugin_get_info (&buffer, NULL, NULL, NULL, NULL, NULL, info);
+  key = g_strconcat("/zapping/plugins/", buffer, "/", NULL);
+  ((*info->plugin_load_config))(key);
+  g_free ( key );
 }
 
-/* Give a frame to the plugin so it can process it */
-void plugin_eat_frame(struct tveng_frame_format * frame, struct
-		      plugin_info * info)
+void plugin_save_config(struct plugin_info * info)
 {
-  (*info -> plugin_eat_frame)(frame);
+  gchar * key = NULL;
+  gchar * buffer = NULL;
+  g_assert(info != NULL);
+
+  plugin_get_info (&buffer, NULL, NULL, NULL, NULL, NULL, info);
+  key = g_strconcat("/zapping/plugins/", buffer, "/", NULL);
+  ((*info->plugin_save_config))(key);
+  g_free ( key );
 }
 
-/* Add the plugin to the GUI */
-void plugin_add_gui(GtkWidget * main_window, struct plugin_info * info)
+void plugin_get_info(gchar ** canonical_name, gchar **
+		      descriptive_name, gchar ** description, gchar
+		      ** short_description, gchar ** author, gchar **
+		      version, struct plugin_info * info)
 {
-  (*info->plugin_add_gui)(main_window);
+  g_assert(info != NULL);
+
+  ((*info->plugin_get_info))(canonical_name, descriptive_name,
+			     description, short_description, author,
+			     version);
 }
 
-/* Remove the plugin from the GUI */
-void plugin_remove_gui(GtkWidget * main_window, struct plugin_info * info)
+/* These functions are more convenient when accessing some individual
+   fields of the plugin's info */
+gchar * plugin_get_canonical_name (struct plugin_info * info)
 {
-  (*info->plugin_remove_gui)(main_window);
+  g_assert(info != NULL);
+
+  return (info -> canonical_name);
 }
 
-/* Let the plugin add a page to the property box */
-void plugin_add_properties(GnomePropertyBox * gpb, struct plugin_info
-			   * info)
+gchar * plugin_get_name (struct plugin_info * info)
 {
-  (*info->plugin_add_properties)(gpb);
+  gchar * buffer;
+  g_assert(info != NULL);
+
+  plugin_get_info(NULL, &buffer, NULL, NULL, NULL, NULL, info);
+  return buffer;
 }
 
-/* This function is called when apply'ing the changes of the
-   property box. The plugin should ignore (returning FALSE) this
-   call if n is not the property page it has created for itself */
-gboolean plugin_apply_properties(GnomePropertyBox * gpb, int n, struct
-				 plugin_info * info)
+gchar * plugin_get_description (struct plugin_info * info)
 {
-  return ((*info->plugin_apply_properties)(gpb, n));
+  gchar * buffer;
+  g_assert(info != NULL);
+  plugin_get_info(NULL, NULL, &buffer, NULL, NULL, NULL, info);
+  return buffer;
 }
 
-/* This one is similar to the above, but it is called when pressing
-   help on the Property Box */
-gboolean plugin_help_properties(GnomePropertyBox * gpb, int n,
-				struct plugin_info * info)
+gchar * plugin_get_short_description (struct plugin_info * info)
 {
-  return ((*info->plugin_apply_properties)(gpb, n));
+  gchar * buffer;
+  g_assert(info != NULL);
+  plugin_get_info(NULL, NULL, NULL, &buffer, NULL, NULL, info);
+  return buffer;
 }
 
-/* The name of the plugin author */
-gchar * plugin_author(struct plugin_info * info)
+gchar * plugin_get_author (struct plugin_info * info)
 {
-  gchar * returned_string = (*info->plugin_author)();
-  if (!returned_string)
-    return _("(Unknown author)");
+  gchar * buffer;
+  g_assert(info != NULL);
+  plugin_get_info(NULL, NULL, NULL, NULL, &buffer, NULL, info);
+  return buffer;
+}
+
+gchar * plugin_get_version (struct plugin_info * info)
+{
+  gchar * buffer;
+  g_assert(info != NULL);
+  plugin_get_info(NULL, NULL, NULL, NULL, NULL, &buffer, info);
+  return buffer;
+}
+
+gboolean plugin_running ( struct plugin_info * info)
+{
+  g_assert(info != NULL);
+
+  return (*(info->plugin_running))();
+}
+
+gpointer plugin_process_frame (gpointer data, struct
+				tveng_frame_format *
+				format, struct plugin_info * info)
+{
+  g_assert(format != NULL);
+  g_assert(data != NULL);
+  g_assert(info != NULL);
+
+  if (info -> plugin_process_frame)
+    return ((*info->plugin_process_frame))(data, format);
   else
-    return returned_string;
+    return data;
+}
+
+void plugin_add_properties (GnomePropertyBox * gpb, struct plugin_info
+				   * info)
+{
+  g_assert(info != NULL);
+  g_assert(gpb != NULL);
+  if (info -> plugin_add_properties)
+    ((*info->plugin_add_properties)(gpb));
+}
+
+gboolean plugin_activate_properties (GnomePropertyBox * gpb, gint
+				      page, struct plugin_info * info)
+{
+  g_assert(info != NULL);
+  g_assert(gpb != NULL);
+  if (info -> plugin_activate_properties)
+    return ((*info->plugin_activate_properties)(gpb, page));
+  else
+    return FALSE;
+}
+
+gboolean plugin_help_properties (GnomePropertyBox * gpb, gint page,
+				  struct plugin_info * info)
+{
+  g_assert(info != NULL);
+  g_assert(gpb != NULL);
+  if (info -> plugin_help_properties)
+    return ((*info->plugin_help_properties)(gpb, page));
+  else
+    return FALSE;
+}
+
+void plugin_add_gui (GnomeApp * app, struct plugin_info * info)
+{
+  g_assert(info != NULL);
+  g_assert(app != NULL);
+
+  if (info -> plugin_add_gui)
+    ((*info->plugin_add_gui)(app));
+}
+
+void plugin_remove_gui (GnomeApp * app, struct plugin_info * info)
+{
+  g_assert(info != NULL);
+  g_assert(app != NULL);
+
+  if (info -> plugin_remove_gui)
+    return ((*info->plugin_remove_gui)(app));
+}
+
+gint plugin_get_priority (struct plugin_info * info)
+{
+  g_assert(info != NULL);
+
+  return info -> priority;
 }
 
 /* Loads all the valid plugins in the given directory, and appends them to
    the given GList. It returns the new GList. The plugins should
    contain exp in their filename (usually called with exp = .zapping.so) */
-GList * plugin_load_plugins(gchar * directory, gchar * exp, GList * old)
+GList * plugin_load_plugins_in_dir( gchar * directory, gchar * exp,
+				    GList * old );
+
+GList * plugin_load_plugins_in_dir( gchar * directory, gchar * exp,
+				    GList * old )
 {
   struct dirent ** namelist;
   int n; /* Number of scanned items */
-  int major, minor, micro; /* Zapping version numbers */
   struct plugin_info plug;
   struct plugin_info * new_plugin; /* If plugin is OK, a copy will be
 				      allocated here */
+  GList * p;
+
   int i;
   gchar * filename; /* Complete path to the plugin to load */
-  int zapping_version, plugin_version; /* Numeric version values */
 
   g_assert(exp != NULL);
   g_assert(directory != NULL);
   g_assert(strlen(directory) > 0);
-  
-  major = minor = micro = 0; /* In case we cannot sscanf */
-
-  /* Get current zapping version */
-  sscanf(VERSION, "%d.%d.%d", &major, &minor, &micro);
-
-  zapping_version = major * 256 * 256 + minor * 256 + micro;
 
   n = scandir(directory, &namelist, 0, alphasort);
   if (n < 0)
@@ -376,29 +552,57 @@ GList * plugin_load_plugins(gchar * directory, gchar * exp, GList * old)
 
   for (i = 0; i < n; i++)
     {
-      if (!strstr(namelist[i] -> d_name, exp))
-	continue;
+      filename = strstr(namelist[i]->d_name, exp);
+
+      if ((!filename) || (strlen(exp) != strlen(filename)))
+	{
+	  free(namelist[i]);
+	  continue;
+	}
 
       filename = g_strconcat(directory, directory[strlen(directory)-1] ==
-			     '/' ? "" : "/", namelist[i] -> d_name, NULL);
+			     '/' ? "" : "/", namelist[i] -> d_name,
+			     NULL);
+      free (namelist[i]);
 
       if (!plugin_load(filename, &plug))
 	{
+	plugin_load_error:
 	  g_free(filename);
 	  continue;
 	}
-
-      g_free(filename);
-
-      /* Check that zapping is mature enough for this plugin */
-      plugin_version = plug.zapping_major * 256 * 256 +
-	plug.zapping_minor * 256 + plug.zapping_micro;
-
-      if (zapping_version < plugin_version)
+      /* Check whether there is no other other plugin with the same
+	 canonical name */
+      p = g_list_first(old);
+      while (p)
 	{
-	  plugin_unload(&plug);
-	  continue;
+	  new_plugin = (struct plugin_info*)p->data;
+	  if (!strcasecmp(new_plugin->canonical_name,
+			  plug.canonical_name))
+	    {
+	      /* Collision, load the highest version number */
+	      if (new_plugin->major > plug.major)
+		goto plugin_load_error;
+	      else if (new_plugin->major == plug.major)
+		{
+		  if (new_plugin->minor > plug.minor)
+		    goto plugin_load_error;
+		  else if (new_plugin->minor == plug.minor)
+		    {
+		      if (new_plugin->micro >= plug.micro)
+			goto plugin_load_error;
+		    }
+		}
+	      /* Replace the old one with the new one, just delete the
+	       old one */
+	      old = g_list_remove(old, new_plugin);
+	      plugin_unload(new_plugin);
+	      free(new_plugin);
+	      break; /* There is no need to continue querying */
+	    }
+	  p = p->next;
 	}
+      g_free(filename);
 
       /* This plugin is valid, copy it and add it to the GList */
       new_plugin = (struct plugin_info *) malloc(sizeof(struct plugin_info));
@@ -414,12 +618,110 @@ GList * plugin_load_plugins(gchar * directory, gchar * exp, GList * old)
       old = g_list_append(old, new_plugin);
     }
 
+  if (namelist)
+    free(namelist);
+
   return old;
+}
+
+/* This is the function used to sort the plugins by priority */
+gint plugin_sorter (struct plugin_info * a, struct plugin_info * b);
+
+gint plugin_sorter (struct plugin_info * a, struct plugin_info * b)
+{
+  g_assert(a != NULL);
+  g_assert(b != NULL);
+
+  return (b->priority - a->priority);
+}
+
+/* Loads all the plugins in the system */
+GList * plugin_load_plugins ( void )
+{
+  gchar * plugin_path; /* Path to the plugins */
+  gchar * buffer;
+  GList * list = NULL;
+  FILE * fd;
+  gint i;
+
+  /* First load plugins in $(prefix)/share/zapping/plugins */
+#ifdef PACKAGE_DATA_DIR
+  buffer = PACKAGE_DATA_DIR;
+#else
+  buffer = "/usr/share/zapping"; /* Choose by default this location */
+#endif
+
+  g_assert(strlen(buffer) > 0);
+  if (buffer[strlen(buffer)-1] == '/')
+    plugin_path = g_strconcat(buffer, "plugins", NULL);
+  else
+    plugin_path = g_strconcat(buffer, "/plugins", NULL);
+  /* Load all the plugins in this dir */
+  list = plugin_load_plugins_in_dir (plugin_path, PLUGIN_STRID, list);
+  g_free(plugin_path);
+
+  /* Now load plugins in the home dir */
+  buffer = getenv("HOME");
+  if (buffer)
+    {
+      g_assert(strlen(buffer) > 0);
+      if (buffer[strlen(buffer)-1] == '/')
+	plugin_path = g_strconcat(buffer, ".zapping/plugins", NULL);
+      else
+	plugin_path = g_strconcat(buffer, "/.zapping/plugins", NULL);
+      list = plugin_load_plugins_in_dir (plugin_path, PLUGIN_STRID,
+					 list);
+      g_free( plugin_path );
+
+      /* Now load ~/.zapping/plugins_dirs */
+      if (buffer[strlen(buffer)-1] == '/')
+	plugin_path = g_strconcat(buffer, ".zapping/plugin_dirs", NULL);
+      else
+	plugin_path = g_strconcat(buffer, "/.zapping/plugin_dirs",
+				  NULL);
+      fd = fopen (plugin_path, "r");
+      g_free(plugin_path);
+      if (fd)
+	{
+	  buffer = g_malloc(1024);
+	  while (fgets(buffer, 1024, fd))
+	    {
+	      plugin_path = buffer;
+	      /* Skip all spaces */
+	      while (*plugin_path == ' ')
+		plugin_path++;
+
+	      if ((strlen(plugin_path) == 0) || 
+		  (plugin_path[0] == '\n') ||
+		  (plugin_path[0] == '#')) /* Comments and empty lines
+					    */
+		continue;
+	      if (plugin_path[strlen(plugin_path)-1] == '\n')
+		plugin_path[strlen(plugin_path)-1] = 0;
+	      /* Remove all spaces at the end of the string */
+	      i = strlen(plugin_path)-1;
+	      while ((plugin_path[i] == ' ') && (i>=0))
+		{
+		  plugin_path[i--] = 0;
+		}
+	      if (strlen(plugin_path) == 0)
+		continue;
+	      list = plugin_load_plugins_in_dir (plugin_path,
+						 PLUGIN_STRID, list);
+	    }
+	  g_free (buffer);
+	}
+    }
+
+  list = g_list_sort (list, (GCompareFunc) plugin_sorter);
+
+  return list;
 }
 
 /* This function is called from g_list_foreach */
 void plugin_foreach_free(struct plugin_info * info, void * user_data)
 {
+  plugin_save_config(info);
   plugin_unload(info);
   free(info);
 }
@@ -427,6 +729,6 @@ void plugin_foreach_free(struct plugin_info * info, void * user_data)
 /* Unloads all the plugins loaded in the GList */
 void plugin_unload_plugins(GList * list)
 {
-  g_list_foreach(list, (GFunc) plugin_foreach_free, NULL);
-  g_list_free(list);
+  g_list_foreach ( list, (GFunc) plugin_foreach_free, NULL );
+  g_list_free ( list );
 }

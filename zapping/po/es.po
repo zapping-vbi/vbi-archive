@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.2\n"
-"POT-Creation-Date: 2000-04-25 00:31+0200\n"
+"POT-Creation-Date: 2000-04-28 18:10+0200\n"
 "PO-Revision-Date: 2000-02-14 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -13,55 +13,66 @@ msgstr ""
 "Content-Type: text/plain; charset=iso-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+#: src/main.c:85
+msgid "Sorry, but there is no module support"
+msgstr ""
+
 # src/callbacks.c:320 src/v4l2interface.c:89
-#: src/main.c:87
+#: src/main.c:94
 #, fuzzy
 msgid "Cannot get device info struct"
 msgstr "No puedo ajustar el canal de entrada"
 
-#: src/main.c:96
+#: src/main.c:103
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:135
+#: src/main.c:126
+#, c-format
+msgid ""
+"tveng_run_zapping_setup_fb: %s\n"
+"Fullscreen mode will not work"
+msgstr ""
+
+#: src/main.c:143
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:156
+#: src/main.c:164
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:218
+#: src/main.c:242
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
 # src/interface.c:405
-#: glade/glade_strings.c:31 src/main.c:270
+#: src/main.c:297
 msgid "Channel name"
 msgstr "Nombre del canal"
 
-#: src/main.c:274
+#: src/main.c:301
 msgid "Tuning frequence"
 msgstr ""
 
 # src/interface.c:405
-#: src/main.c:278
+#: src/main.c:305
 #, fuzzy
 msgid "Real channel name"
 msgstr "Nombre del canal"
 
 # src/v4l2interface.c:146
-#: src/main.c:283
+#: src/main.c:310
 #, fuzzy
 msgid "Country the channel is in"
 msgstr "No hay canales sintonizados"
 
-#: src/main.c:295
+#: src/main.c:322
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -73,30 +84,30 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:318
+#: src/main.c:351
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
 #. Sets defaults for zconf
-#: src/main.c:323
+#: src/main.c:356
 msgid "Save and restore zapping geometry (non ICCM compliant)"
 msgstr ""
 
 # src/interface.c:336
-#: src/main.c:326
+#: src/main.c:359
 #, fuzzy
 msgid "The country you are currently in"
 msgstr "Selecciona tu país"
 
-#: src/main.c:329
+#: src/main.c:362
 msgid "The device file to open on startup"
 msgstr ""
 
-#: src/main.c:331
+#: src/main.c:364
 msgid "TRUE if Zapping should be started without sound"
 msgstr ""
 
-#: src/main.c:333
+#: src/main.c:366
 #, fuzzy
 msgid "Verbosity value given to zapping_setup_fb"
 msgstr "Nivel de mensajes de zapping__setup__fb (un programa auxiliar)"
@@ -111,11 +122,11 @@ msgstr ""
 msgid "Widget not found: %s"
 msgstr ""
 
-#: glade/glade_strings.c:52 src/interface.c:131
+#: src/interface.c:131
 msgid "(C) Iñaki García Etxebarria"
 msgstr ""
 
-#: glade/glade_strings.c:53 src/interface.c:133
+#: src/interface.c:133
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr "La televisión para Gnome"
 
@@ -143,12 +154,12 @@ msgid "Currently tuned channel"
 msgstr "No hay canales sintonizados"
 
 # src/callbacks.c:320 src/v4l2interface.c:89
-#: src/callbacks.c:173
+#: src/callbacks.c:192
 msgid "Cannot set input"
 msgstr "No puedo ajustar el canal de entrada"
 
 # src/callbacks.c:338
-#: src/callbacks.c:192
+#: src/callbacks.c:211
 #, c-format
 msgid "Cannot tune given channel %d (no such channel)\n"
 msgstr "No puedo sintonizar el canal %d (no hay tal canal)\n"
@@ -156,47 +167,17 @@ msgstr "No puedo sintonizar el canal %d (no hay tal canal)\n"
 # src/callbacks.c:355
 #. Set the
 #. input freq
-#: src/callbacks.c:207
+#: src/callbacks.c:226
 msgid "Cannot tune input"
 msgstr "No puedo sintonizar el canal de entrada"
 
 # src/tveng.c:70
-#: src/callbacks.c:336
+#: src/callbacks.c:355
 msgid "Sorry, but cannot go fullscreen"
 msgstr "Perdón, pero no puedo iniciar el modo pantalla completa"
 
-#: src/callbacks.c:372
+#: src/callbacks.c:391
 msgid "I cannot find the main zapping window, weird..."
-msgstr ""
-
-#: src/callbacks.c:473 src/callbacks.c:559 src/callbacks.c:585
-msgid "Yes"
-msgstr ""
-
-#: src/callbacks.c:473 src/callbacks.c:559 src/callbacks.c:585
-msgid "No"
-msgstr ""
-
-#: src/callbacks.c:507
-msgid "Plugin Description: "
-msgstr ""
-
-#: src/callbacks.c:511
-msgid ""
-"\n"
-"Plugin author: "
-msgstr ""
-
-#. Adapt this and " required" to your own language structure freely
-#: src/callbacks.c:518
-#, fuzzy
-msgid ""
-"\n"
-"Zapping "
-msgstr "_Zappear"
-
-#: src/callbacks.c:520
-msgid " required"
 msgstr ""
 
 # src/frequencies.c:816
@@ -270,7 +251,7 @@ msgstr "(Canal sin nombre)"
 msgid "(Unknown real channel)"
 msgstr "Canal real desconocido"
 
-#: src/frequencies.c:1045
+#: src/channel_editor.c:291 src/frequencies.c:1045
 msgid "(Unknown country)"
 msgstr ""
 
@@ -550,30 +531,40 @@ msgstr ""
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
-#: src/plugins.c:67
-msgid "The plugin doesn't understand our protocol"
+#: src/plugins.c:161
+#, fuzzy, c-format
+msgid ""
+"\"%s\" seems to be a valid plugin, but it doesn't provide a canonical name."
 msgstr "El plugin no entiende nuestro protocolo"
 
-#: src/plugins.c:205
-#, fuzzy
-msgid "The plugin doesn't provide a canonical name"
-msgstr "El plugin no entiende nuestro protocolo"
-
-#: src/plugins.c:213
-#, fuzzy
-msgid "The plugin doesn't provide a parse struct"
-msgstr "El plugin no entiende nuestro protocolo"
-
-#: src/plugins.c:237
-msgid "(Void name)"
+#: src/plugins.c:170
+#, c-format
+msgid "\"%s\" doesn't provide a version"
 msgstr ""
 
-#: src/plugins.c:252
-msgid "(No description provided for this plugin)"
+#: src/plugins.c:179
+msgid ""
+"Sorry, the version of the plugin cannot be parsed.\n"
+"The version must be something like %%d[.%%d[%%d[other things]]]\n"
+"The given version is %s.\n"
+"Error loading \"%s\" (%s)"
 msgstr ""
 
-#: src/plugins.c:337
-msgid "(Unknown author)"
+#: src/plugins.c:206
+#, c-format
+msgid "There wasn't enough mem for allocating symbol %d in %s"
+msgstr ""
+
+#: src/plugins.c:216
+msgid "[No description provided]"
+msgstr ""
+
+#. Warn
+#: src/plugins.c:304
+#, c-format
+msgid ""
+"Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
+"Hashes are %d vs. %d"
 msgstr ""
 
 #. For translators: This will be precceeded by the domain (program) name
@@ -595,76 +586,76 @@ msgid ""
 "You should have write permissions to your home dir..."
 msgstr ""
 
-#: src/zconf.c:359 src/zconf.c:495 src/zconf.c:633 src/zconf.c:761
+#: src/zconf.c:359 src/zconf.c:494 src/zconf.c:628 src/zconf.c:756
 #, c-format
 msgid "Changing the value of %s from %s to %s"
 msgstr ""
 
-#: src/zconf.c:415 src/zconf.c:558 src/zconf.c:687 src/zconf.c:815
+#: src/zconf.c:415 src/zconf.c:553 src/zconf.c:682 src/zconf.c:810
 #, c-format
 msgid "Trying to create %s as %s, but it existed beforeas %s"
 msgstr ""
 
-#: src/zconf.c:1001
+#: src/zconf.c:996
 msgid "Integer"
 msgstr ""
 
-#: src/zconf.c:1003
+#: src/zconf.c:998
 msgid "String"
 msgstr ""
 
-#: src/zconf.c:1005
+#: src/zconf.c:1000
 msgid "Float"
 msgstr ""
 
-#: src/zconf.c:1007
+#: src/zconf.c:1002
 msgid "Boolean"
 msgstr ""
 
-#: src/zconf.c:1009
+#: src/zconf.c:1004
 msgid "Directory"
 msgstr ""
 
-#: src/zconf.c:1011
+#: src/zconf.c:1006
 msgid "Undefined"
 msgstr ""
 
-#: src/zconf.c:1013
+#: src/zconf.c:1008
 msgid "Unknown"
 msgstr ""
 
-#: src/zconf.c:1094
+#: src/zconf.c:1089
 #, c-format
 msgid "Sorry, the especified type \"%s\" is unknown\n"
 msgstr ""
 
 #. It already exists, warn
-#: src/zconf.c:1105
+#: src/zconf.c:1100
 #, c-format
 msgid "Duplicated node in the config tree: %s"
 msgstr ""
 
-#: src/zconf.c:1125
+#: src/zconf.c:1120
 #, c-format
 msgid "%s is empty, but it shouldn't be"
 msgstr ""
 
-#: src/zconf.c:1302
+#: src/zconf.c:1297
 #, c-format
 msgid "Removing %i consecutive slashes, this shouldn't happen"
 msgstr ""
 
-#: src/zconf.c:1319 src/zconf.c:1397 src/zconf.c:1433
+#: src/zconf.c:1314 src/zconf.c:1392 src/zconf.c:1428
 #, c-format
 msgid "Path item too long: %s"
 msgstr ""
 
-#: src/zconf.c:1380
+#: src/zconf.c:1375
 #, c-format
 msgid "Removing %d consecutive slashes, this shouldn't happen"
 msgstr ""
 
-#: src/zconf.c:1411
+#: src/zconf.c:1406
 #, c-format
 msgid "%s isn't your domain name, zconf will exit now"
 msgstr ""
@@ -746,9 +737,82 @@ msgstr ""
 msgid "%s with %d tuners"
 msgstr ""
 
-#: src/properties.c:282 src/properties.c:314
+#: src/properties.c:282
+msgid "No plugin accepts this page."
+msgstr ""
+
+#: src/properties.c:312
+msgid ""
+"The plugin that created the active page doesn'tprovide help for it. Sorry."
+msgstr ""
+
+#: src/channel_editor.c:124
+msgid "Sorry, but the current input has no tuners"
+msgstr ""
+
+#: src/channel_editor.c:251
 #, c-format
-msgid "%s (%d): This shouldn't have been reached\n"
+msgid "Cannot sscanf() unsigned integer from %s"
+msgstr ""
+
+#: src/channel_editor.c:425
+msgid "Sorry, but the help for this box isn't written yet"
+msgstr ""
+
+#: src/channel_editor.c:452
+msgid "s_channel could not be retrieved, strange..."
+msgstr ""
+
+#: src/channel_editor.c:457
+msgid "s_country could not be retrieved, strange..."
+msgstr ""
+
+#: src/channel_editor.c:462
+msgid "s_freq could not be retrieved, strange..."
+msgstr ""
+
+#: src/channel_editor.c:469
+msgid "The specified frequence cannot be parsed"
+msgstr ""
+
+#: src/channel_editor.c:479
+msgid "Returned country tune id is invalid"
+msgstr ""
+
+#: src/channel_editor.c:487
+#, c-format
+msgid "Channel %s cannot be found in current country: %s"
+msgstr ""
+
+#: src/channel_editor.c:493
+#, c-format
+msgid "Returned channel id (%d) is not valid"
+msgstr ""
+
+# src/tveng.c:70
+#: src/channel_editor.c:536
+#, fuzzy
+msgid "Sorry, but autotuning doesn't work yet"
+msgstr "Perdón, pero no puedo escribir\n"
+
+#: src/channel_editor.c:585
+msgid "Tuner could not be queried, check stderr"
+msgstr ""
+
+#: src/plugin_properties.c:56
+msgid "Sorry, but no plugins have been loaded"
+msgstr ""
+
+#: src/plugin_properties.c:183
+msgid "This plugin has no public symbols"
+msgstr ""
+
+#: src/plugin_properties.c:204
+msgid "List of symbols exported by the plugin"
+msgstr ""
+
+#: src/plugin_properties.c:259
+msgid "Sorry, but the plugin couldn't be started"
 msgstr ""
 
 #: zapping_setup_fb/zapping_setup_fb.c:77
@@ -833,64 +897,280 @@ msgid "Zapping"
 msgstr ""
 
 #: glade/glade_strings.c:8
+msgid "Manages the installed plug-ins"
+msgstr ""
+
+#: glade/glade_strings.c:9
 msgid "P_lugins"
 msgstr ""
 
+# src/interface.c:336
+#: glade/glade_strings.c:10
+#, fuzzy
+msgid "Edit here the channels you have tuned"
+msgstr "Selecciona tu país"
+
 # src/interface.c:29
-#: glade/glade_strings.c:9
+#: glade/glade_strings.c:11
 msgid "_TV Channels"
 msgstr "Canales de _Televisión"
 
-#: glade/glade_strings.c:10
+#: glade/glade_strings.c:12
 msgid "Use this to go fullscreen. Press ESC to return to Windowed mode"
 msgstr "Usa esto para activar el modo pantalla completa, ESC para volver"
 
-#: glade/glade_strings.c:11
+#: glade/glade_strings.c:13
 msgid "Go _Fullscreen"
 msgstr "_Pantalla Completa"
 
-#: glade/glade_strings.c:12
+#: glade/glade_strings.c:14
+msgid "This option is for returning to windowed mode from fullscreen"
+msgstr ""
+
+#: glade/glade_strings.c:15
 msgid "Go _Windowed"
 msgstr "En _Ventana"
 
-#: glade/glade_strings.c:13
+#: glade/glade_strings.c:16
+msgid "Options for when going Zapping"
+msgstr ""
+
+#: glade/glade_strings.c:17
 msgid "Go _Zapping"
 msgstr "_Zappear"
 
+#: glade/glade_strings.c:18
+msgid "Select the previous station in the channel list"
+msgstr ""
+
 # src/interface.c:362
-#: glade/glade_strings.c:14
+#: glade/glade_strings.c:19
 msgid "Channel up"
 msgstr "Canal arriba"
 
+#: glade/glade_strings.c:20
+msgid "Select the next station in the channel list"
+msgstr ""
+
 # src/interface.c:405
-#: glade/glade_strings.c:15
+#: glade/glade_strings.c:21
 msgid "Channel down"
 msgstr "Canal abajo"
 
-#: glade/glade_strings.c:16
+#: glade/glade_strings.c:22
+msgid "This document explains how to write a plugin for Zapping."
+msgstr ""
+
+#: glade/glade_strings.c:23
+msgid "_Plugin writing"
+msgstr ""
+
+#: glade/glade_strings.c:24
 msgid "Configure capture"
 msgstr "Configurar la captura"
 
 # src/interface.c:247
-#: glade/glade_strings.c:17
+#: glade/glade_strings.c:25
 msgid "Controls"
 msgstr "Controles"
 
-#: glade/glade_strings.c:18
-msgid "Save a screenshot as PNG"
-msgstr "Guardar la imagen actual como PNG"
+#: glade/glade_strings.c:26
+msgid "Video device capabilities"
+msgstr ""
 
-#: glade/glade_strings.c:19
-msgid "Screenshot"
+#: glade/glade_strings.c:27
+msgid "label30"
+msgstr ""
+
+#: glade/glade_strings.c:28
+msgid "Device name:"
+msgstr ""
+
+#: glade/glade_strings.c:29
+msgid "label27"
+msgstr ""
+
+#: glade/glade_strings.c:30
+msgid "label31"
+msgstr ""
+
+#: glade/glade_strings.c:31
+msgid "Current controller:"
+msgstr ""
+
+#: glade/glade_strings.c:32
+msgid "Device file:"
+msgstr ""
+
+#: glade/glade_strings.c:33
+msgid "Minimum capture size:"
+msgstr ""
+
+#: glade/glade_strings.c:34
+msgid "Maximum capture size:"
+msgstr ""
+
+#: glade/glade_strings.c:35
+msgid "label28"
+msgstr ""
+
+#: glade/glade_strings.c:36
+msgid "label29"
+msgstr ""
+
+#: glade/glade_strings.c:37
+msgid "Device info"
+msgstr ""
+
+#: glade/glade_strings.c:38
+#, fuzzy
+msgid "Avoid noise while changing channels"
+msgstr "Tratar de evitar ruido al cambiar canales"
+
+#: glade/glade_strings.c:39
+msgid "Save window geometry (some WM's don't like it)"
+msgstr ""
+
+#: glade/glade_strings.c:40
+msgid "Start Zapping muted"
+msgstr ""
+
+#: glade/glade_strings.c:41
+#, fuzzy
+msgid "Verbosity value given to zapping_setup_fb:"
+msgstr "Nivel de mensajes de zapping__setup__fb (un programa auxiliar)"
+
+#: glade/glade_strings.c:42
+msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
+msgstr ""
+
+#: glade/glade_strings.c:43
+msgid "General options"
+msgstr ""
+
+#: glade/glade_strings.c:44
+msgid "Plugin properties"
+msgstr ""
+
+#: glade/glade_strings.c:45
+msgid "Modules"
+msgstr ""
+
+#: glade/glade_strings.c:46
+msgid "label67 (Plugin name)"
+msgstr ""
+
+#: glade/glade_strings.c:47
+msgid "label68 (Plugin short description)"
+msgstr ""
+
+#: glade/glade_strings.c:48
+msgid "File:"
+msgstr ""
+
+#: glade/glade_strings.c:49
+msgid "This is the file where the plugin is located"
+msgstr ""
+
+#: glade/glade_strings.c:50
+msgid "text2"
+msgstr ""
+
+# src/interface.c:405
+#: glade/glade_strings.c:51
+#, fuzzy
+msgid "Canonical name:"
+msgstr "Nombre del canal"
+
+#: glade/glade_strings.c:52
+msgid "label69"
+msgstr ""
+
+#: glade/glade_strings.c:53
+msgid "Author:"
+msgstr ""
+
+#: glade/glade_strings.c:54
+msgid "label71"
+msgstr ""
+
+#: glade/glade_strings.c:55
+msgid "Plugin version:"
+msgstr ""
+
+#: glade/glade_strings.c:56
+msgid "label72"
+msgstr ""
+
+#: glade/glade_strings.c:57
+msgid "Plugin priority:"
+msgstr ""
+
+#: glade/glade_strings.c:58
+msgid "label73"
+msgstr ""
+
+#: glade/glade_strings.c:59
+msgid "Plugin description"
+msgstr ""
+
+#: glade/glade_strings.c:60
+msgid "text1"
+msgstr ""
+
+#: glade/glade_strings.c:61
+msgid "label76"
+msgstr ""
+
+#: glade/glade_strings.c:62
+msgid "Symbol"
+msgstr ""
+
+#: glade/glade_strings.c:63
+msgid "Hash"
+msgstr ""
+
+#: glade/glade_strings.c:64
+msgid "label74 (prototype)"
+msgstr ""
+
+#: glade/glade_strings.c:65
+msgid "label75 (symbol description)"
+msgstr ""
+
+# src/interface.c:448
+#: glade/glade_strings.c:66
+#, fuzzy
+msgid "Click here when you are done with the plugins"
+msgstr "Pulsa aquí cuando hayas acabado"
+
+#: glade/glade_strings.c:67
+msgid "Activate (start) the plugin"
+msgstr ""
+
+#: glade/glade_strings.c:68
+msgid "Start Plugin"
+msgstr ""
+
+#: glade/glade_strings.c:69
+msgid "Stop the plugin"
+msgstr ""
+
+#: glade/glade_strings.c:70
+msgid "Stop Plugin"
+msgstr ""
+
+#: glade/glade_strings.c:71
+msgid "dialog1"
 msgstr ""
 
 # src/interface.c:307
-#: glade/glade_strings.c:20
+#: glade/glade_strings.c:72
 msgid "Channel choosing"
 msgstr "Selector de canales"
 
 # src/interface.c:316
-#: glade/glade_strings.c:21
+#: glade/glade_strings.c:73
 msgid ""
 "Choose here the channels you want to use.\n"
 "If your country is not listed, please find out the frequencies used for\n"
@@ -903,149 +1183,177 @@ msgstr ""
 "del programa."
 
 # src/interface.c:336
-#: glade/glade_strings.c:25
+#: glade/glade_strings.c:77
 msgid "Select here the country you are in"
 msgstr "Selecciona tu país"
 
-#: glade/glade_strings.c:26
+#: glade/glade_strings.c:78
 msgid "Dummy country\n"
 msgstr ""
 
+# src/interface.c:336
+#: glade/glade_strings.c:80
+#, fuzzy
+msgid "Select here the channel you want to tune"
+msgstr "Selecciona tu país"
+
 # src/interface.c:362
-#: glade/glade_strings.c:28
+#: glade/glade_strings.c:81 glade/glade_strings.c:84
 msgid "Channel"
 msgstr "Canal"
 
 # src/interface.c:369
-#: glade/glade_strings.c:29
+#: glade/glade_strings.c:82
 msgid "Freq (kHz)"
 msgstr "Frec (kHz)"
 
+#: glade/glade_strings.c:83
+msgid "Alias"
+msgstr ""
+
+# src/interface.c:247
+#: glade/glade_strings.c:85
+#, fuzzy
+msgid "Country"
+msgstr "Contraste"
+
+#: glade/glade_strings.c:86
+msgid "kHz"
+msgstr ""
+
+#: glade/glade_strings.c:87
+msgid "label43"
+msgstr ""
+
+#: glade/glade_strings.c:88
+msgid "This tries to find the best signal around this frequence"
+msgstr ""
+
+#: glade/glade_strings.c:89
+msgid "A_utoTune"
+msgstr ""
+
 # src/interface.c:382
-#: glade/glade_strings.c:30
+#: glade/glade_strings.c:90
+#, fuzzy
+msgid "Enter here the alias you want to give to this channel:"
+msgstr "Pon aquí el nombre que le quieres dar a este canal"
+
+# src/interface.c:382
+#: glade/glade_strings.c:91
 msgid "Enter here the name you want to give to this channel"
 msgstr "Pon aquí el nombre que le quieres dar a este canal"
 
-# src/interface.c:412
-#: glade/glade_strings.c:32
-msgid "Real Channel"
-msgstr "Canal real"
-
-# src/interface.c:419
-#: glade/glade_strings.c:33
-msgid "Frequence (kHz)"
-msgstr "Frecuencia (kHz)"
-
-# src/interface.c:432
-#: glade/glade_strings.c:34
-msgid "Click here to add current channel"
-msgstr "Pulsa aquí para añadir el canal actual"
-
-# src/interface.c:440
-#: glade/glade_strings.c:35
-msgid "Click here to delete selected channels"
-msgstr "Pulsa aquí para borrar los canales seleccionados"
-
 # src/interface.c:448
-#: glade/glade_strings.c:36
+#: glade/glade_strings.c:92
 msgid "Click here when you are done"
 msgstr "Pulsa aquí cuando hayas acabado"
 
-#: glade/glade_strings.c:37
-msgid "File prefix: (saved files will be called prefix1.png, prefix2.png, ...)"
-msgstr "Prefijo: (se guardarán como prefijo1.png, prefijo2.png, ...)"
-
-#: glade/glade_strings.c:38
-msgid "Enter here the saved file prefix"
-msgstr "Introduzca aquí el prefijo al guardar los ficheros"
-
-#: glade/glade_strings.c:39
-msgid "Screenshot dir"
-msgstr "Directorio para los screenshots"
-
-#: glade/glade_strings.c:40
-msgid "Screenshot directory"
-msgstr "Directorio para los screenshots"
-
-#: glade/glade_strings.c:41
-msgid "Show progress bar while saving"
-msgstr "Muestra la barra de progreso al guardar"
-
-#: glade/glade_strings.c:42
-msgid "PNG capture"
-msgstr "Captura como PNG"
-
-#: glade/glade_strings.c:43
-msgid "(This changes will be applied when the video engine is restarted)"
-msgstr "(Estos cambios serán aplicados al reiniciar el engine de video)"
-
-#: glade/glade_strings.c:44
-msgid "Capture interlaced (allows higher resolutions)"
-msgstr "Captura entrelazada (permite resoluciones mayores)"
-
-#: glade/glade_strings.c:45
-msgid "Number of capture buffers we should try to use:"
-msgstr "Número de buffers de captura que intentaremos usar:"
-
-#: glade/glade_strings.c:46
-msgid "Video device to open (usually /dev/video0)"
-msgstr "Dispositivo de video a abrir (normalmente /dev/video)"
-
-#: glade/glade_strings.c:47
-msgid "Select video device"
-msgstr "Seleccionar dispositivo de video"
-
-#: glade/glade_strings.c:48
-msgid "Video Options"
-msgstr "Opciones de Video"
-
-#: glade/glade_strings.c:49
-msgid "Verbosity value given to zapping_setup_fb (a suid helper program)"
-msgstr "Nivel de mensajes de zapping__setup__fb (un programa auxiliar)"
-
-#: glade/glade_strings.c:50
-msgid "Try to avoid noise when changing TV channels"
-msgstr "Tratar de evitar ruido al cambiar canales"
-
-#: glade/glade_strings.c:51
-msgid "Miscelaneous"
-msgstr "Varios"
-
-#: glade/glade_strings.c:54
-msgid "Plugin properties"
-msgstr ""
-
-# src/interface.c:405
-#: glade/glade_strings.c:55
+# src/interface.c:432
+#: glade/glade_strings.c:93
 #, fuzzy
-msgid "Canonical Name"
-msgstr "Nombre del canal"
+msgid "Click this button if you want to discard current changes"
+msgstr "Pulsa aquí para añadir el canal actual"
 
-#: glade/glade_strings.c:56
-msgid "Name"
+# src/interface.c:432
+#: glade/glade_strings.c:94
+msgid "Click here to add current channel"
+msgstr "Pulsa aquí para añadir el canal actual"
+
+#: glade/glade_strings.c:95
+msgid "_Add"
 msgstr ""
 
-#: glade/glade_strings.c:57
-msgid "Version"
+# src/interface.c:440
+#: glade/glade_strings.c:96
+msgid "Click here to delete selected channels"
+msgstr "Pulsa aquí para borrar los canales seleccionados"
+
+#: glade/glade_strings.c:97
+msgid "_Remove"
 msgstr ""
 
-#: glade/glade_strings.c:58
-msgid "Active"
+#: glade/glade_strings.c:98
+msgid "This shows some help about this dialog"
 msgstr ""
 
-# src/interface.c:448
-#: glade/glade_strings.c:59
+#: plugins/screenshot/screenshot.c:23
+msgid "Screenshot saver"
+msgstr "Grabador de screenshots"
+
+#: plugins/screenshot/screenshot.c:25
+msgid ""
+"This plugin takes a screenshot of the current capture.\n"
+"It takes the screenshots in PNG format, and using the current screen depth"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:29
+msgid "This plugin takes a screenshot of the current capture."
+msgstr ""
+
+#~ msgid "Save a screenshot as PNG"
+#~ msgstr "Guardar la imagen actual como PNG"
+
+# src/interface.c:412
+#~ msgid "Real Channel"
+#~ msgstr "Canal real"
+
+# src/interface.c:419
+#~ msgid "Frequence (kHz)"
+#~ msgstr "Frecuencia (kHz)"
+
+#~ msgid ""
+#~ "File prefix: (saved files will be called prefix1.png, prefix2.png, ...)"
+#~ msgstr "Prefijo: (se guardarán como prefijo1.png, prefijo2.png, ...)"
+
+#~ msgid "Enter here the saved file prefix"
+#~ msgstr "Introduzca aquí el prefijo al guardar los ficheros"
+
+#~ msgid "Screenshot directory"
+#~ msgstr "Directorio para los screenshots"
+
+#~ msgid "Show progress bar while saving"
+#~ msgstr "Muestra la barra de progreso al guardar"
+
+#~ msgid "PNG capture"
+#~ msgstr "Captura como PNG"
+
+#~ msgid "(This changes will be applied when the video engine is restarted)"
+#~ msgstr "(Estos cambios serán aplicados al reiniciar el engine de video)"
+
+#~ msgid "Capture interlaced (allows higher resolutions)"
+#~ msgstr "Captura entrelazada (permite resoluciones mayores)"
+
+#~ msgid "Number of capture buffers we should try to use:"
+#~ msgstr "Número de buffers de captura que intentaremos usar:"
+
+#~ msgid "Video device to open (usually /dev/video0)"
+#~ msgstr "Dispositivo de video a abrir (normalmente /dev/video)"
+
+#~ msgid "Select video device"
+#~ msgstr "Seleccionar dispositivo de video"
+
+#~ msgid "Video Options"
+#~ msgstr "Opciones de Video"
+
+#~ msgid "Verbosity value given to zapping_setup_fb (a suid helper program)"
+#~ msgstr "Nivel de mensajes de zapping__setup__fb (un programa auxiliar)"
+
+#~ msgid "Miscelaneous"
+#~ msgstr "Varios"
+
 #, fuzzy
-msgid "Click here when you are done with the plugins"
-msgstr "Pulsa aquí cuando hayas acabado"
+#~ msgid ""
+#~ "\n"
+#~ "Zapping "
+#~ msgstr "_Zappear"
 
-#: glade/glade_strings.c:60
-msgid "Close the plugin"
-msgstr ""
+#~ msgid "The plugin doesn't understand our protocol"
+#~ msgstr "El plugin no entiende nuestro protocolo"
 
-#: glade/glade_strings.c:61
-msgid "Click here to apply (activate) the plugin"
-msgstr ""
+#, fuzzy
+#~ msgid "The plugin doesn't provide a parse struct"
+#~ msgstr "El plugin no entiende nuestro protocolo"
 
 # src/callbacks.c:320 src/v4l2interface.c:89
 #, fuzzy
@@ -1141,10 +1449,6 @@ msgstr ""
 
 #~ msgid "Error writing the PNG file\n"
 #~ msgstr "Error escribiendo el fichero PNG\n"
-
-# src/tveng.c:70
-#~ msgid "Sorry, but I cannot write\n"
-#~ msgstr "Perdón, pero no puedo escribir\n"
 
 # src/callbacks.c:355
 #~ msgid "Cannot take screenshot"

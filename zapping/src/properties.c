@@ -271,17 +271,16 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       while (p) /* Try with all the plugins until one of them accepts
 		   the call */
 	{
-	  if (plugin_apply_properties(gnomepropertybox, arg1,
-				      (struct plugin_info*) p->data))
+	  if (plugin_activate_properties(gnomepropertybox, arg1,
+					 (struct plugin_info*) p->data))
 	    break; /* returned TRUE: stop */
 	  p = p->next;
 	}
       /* This shouldn't ideally be reached, but a g_assert is too
 	 strong */
       if ((p == NULL) && (arg1 != -1))
-	fprintf(stderr, _("%s (%d): This shouldn't have been reached\n"), 
-	       __FILE__, __LINE__);
-      break;
+	ShowBox(_("No plugin accepts this page."),
+		GNOME_MESSAGE_BOX_INFO);
     }
 }
 
@@ -292,14 +291,13 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
                                         gpointer         user_data)
 {
   GList * p = g_list_first(plugin_list); /* Traverse all the plugins */
-  static GnomeHelpMenuEntry help_ref = { "zapping",
-				 "index.html" };
+  GnomeHelpMenuEntry help_ref = { "zapping",
+				  "index.html" };
 
   switch (arg1)
     {
     case 0:
     case 1:
-    case 2:
       gnome_help_display(NULL, &help_ref);
       break;
     default:
@@ -307,12 +305,13 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
 	{
 	  if (plugin_help_properties(gnomepropertybox, arg1,
 				     (struct plugin_info*) p->data))
-	    break;
+				     break;
 	  p = p->next;
 	}
       if (p == NULL)
-	fprintf(stderr, _("%s (%d): This shouldn't have been reached\n"),
-		__FILE__, __LINE__);
+	ShowBox(_("The plugin that created the active page doesn't"
+		  "provide help for it. Sorry."),
+		GNOME_MESSAGE_BOX_INFO);
     }
 }
 

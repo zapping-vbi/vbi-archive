@@ -465,10 +465,9 @@ gchar * zconf_get_string(gchar ** where, const gchar * path)
 }
 
 /*
-  Sets an string value to the given string. Can fail if the string is
-  so large that we cannot g_strdup it. Returns FALSE on failure.
+  Sets an string value to the given string.
 */
-gboolean zconf_set_string(gchar * new_value, const gchar * path)
+void zconf_set_string(gchar * new_value, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -515,11 +514,7 @@ gboolean zconf_set_string(gchar * new_value, const gchar * path)
   /* Set the new value */
   key->contents = g_strdup(new_value);
 
-  if (key->contents == NULL)
-    return FALSE;
-
   zconf_we = FALSE;
-  return TRUE;
 }
 
 /*
@@ -1419,6 +1414,8 @@ p_zconf_create(const gchar * key, struct zconf_key * starting_dir)
   /* Get the next item in the path */
   i++;
   j = i; /* Save a copy of i */
+  while (key[j] == '/')
+    j++;
   i = 0;
 
   /* Get the name */

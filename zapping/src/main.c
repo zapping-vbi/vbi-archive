@@ -21,24 +21,20 @@
 #endif
 
 #include <gnome.h>
+#include <gdk/gdkx.h>
 #include <gnome-xml/tree.h>
 #include <gnome-xml/parser.h>
-#include <gdk/gdkx.h>
 #include <glade/glade.h>
 #include <signal.h>
 
+#define ZCONF_DOMAIN "/zapping/options/main/"
+#include "zmisc.h"
 #include "interface.h"
 #include "tveng.h"
 #include "v4linterface.h"
 #include "plugins.h"
 #include "zconf.h"
 #include "frequencies.h"
-#define ZCONF_DOMAIN "/zapping/options/main/"
-#include "zmisc.h"
-
-/* FIXME: Disable preview if needed */
-/* FIXME: Be more verbose when receiving an error */
-/* FIXME: Complete support for plugins, but think first */
 
 /* These are accessed by callbacks.c as extern variables */
 tveng_device_info * main_info;
@@ -70,6 +66,10 @@ int main(int argc, char * argv[])
   GtkWidget * main_window;
   GtkWidget * tv_screen;
   gchar * buffer;
+  GList * p;
+  struct tveng_frame_format format;
+  gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
+				     work */
 
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
@@ -79,6 +79,13 @@ int main(int argc, char * argv[])
   /* Init libglade, gnome and zconf */
   gnome_init ("zapping", VERSION, argc, argv);
   glade_gnome_init();
+
+  if (!g_module_supported ())
+    {
+      ShowBox(_("Sorry, but there is no module support"),
+	      GNOME_MESSAGE_BOX_ERROR);
+      return 0;
+    }
 
   main_info = tveng_device_info_new( GDK_DISPLAY() );
 
@@ -116,9 +123,10 @@ int main(int argc, char * argv[])
   /* try to run the auxiliary suid program */
   if (tveng_run_zapping_setup_fb(main_info) == -1)
     {
-      fprintf(stderr, "tveng_run_zapping_setup_fb: %s\n",
-	      main_info->error);
-      fprintf(stderr, "FIXME: Preview should be disabled now\n");
+      g_warning(_("tveng_run_zapping_setup_fb: %s\n"
+		  "Fullscreen mode will not work"),
+		main_info->error);
+      disable_preview = TRUE;
     }
 
   free(main_info -> file_name);
@@ -180,6 +188,22 @@ int main(int argc, char * argv[])
   gtk_widget_set_usize(tv_screen, main_info->caps.minwidth,
 		       main_info->caps.minheight);
 
+  /* Add the plugins to the GUI */
+  p = g_list_first(plugin_list);
+  while (p)
+    {
+      plugin_add_gui(GNOME_APP(main_window),
+		     (struct plugin_info*)p->data);
+      p = p->next;
+    }
+
+  /* Disable preview if needed */
+  if (disable_preview)
+    {
+      gtk_widget_set_sensitive(lookup_widget(main_window, "view1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "view1"));
+    }
   gtk_widget_show(main_window);
 
   update_standards_menu(main_window, main_info);
@@ -212,6 +236,11 @@ int main(int argc, char * argv[])
       if (main_info -> current_mode != TVENG_CAPTURE_READ)
 	continue;
 
+      /* Reallocate the image, it might have changed beacuse of the
+	 plugins */
+      zimage_reallocate(main_info->format.width,
+			main_info->format.height);
+
       /* Avoid segfault */
       if (!zimage_get())
 	{
@@ -220,8 +249,7 @@ int main(int argc, char * argv[])
 	}
 
       /* Do the image processing here */
-      if (tveng_read_frame(((GdkImagePrivate*)zimage_get())-> ximage->
-			   data,
+      if (tveng_read_frame(zimage_get_data(),
 			   ((int)zimage_get()->bpl)*zimage_get()->height,
 			  50, main_info) == -1)
 	{
@@ -229,25 +257,29 @@ int main(int argc, char * argv[])
 	  continue;
 	}
 
-	gdk_draw_image(tv_screen -> window,
-		       tv_screen -> style -> white_gc,
-		       zimage_get(),
-		       0, 0, 0, 0,
-		       main_info->format.width,
-		       main_info->format.height);
+      /* Give the image to the plugins too */
+      memcpy(&format, &(main_info->format),
+	     sizeof(struct tveng_frame_format));
+      p = g_list_first(plugin_list);
+      while (p)
+	{
+	  plugin_process_frame(zimage_get_data(), &format,
+				(struct plugin_info*)p->data);
+	  zimage_reallocate(format.width, format.height);
+	  p = p->next;
+	}
+      gdk_draw_image(tv_screen -> window,
+		     tv_screen -> style -> white_gc,
+		     zimage_get(),
+		     0, 0, 0, 0,
+		     format.width,
+		     format.height);
     }
-
-  /* Mute the device again and close the device */
-  tveng_set_mute(1, main_info);
-  tveng_device_info_destroy(main_info);
 
   /* Closes all fd's, writes the config to HD, and that kind of things
    */
   shutdown_zapping();
-
-  /* Destroy the image that holds the capture */
-  zimage_destroy();
-
+  
   return 0;
 }
 
@@ -257,7 +289,7 @@ void shutdown_zapping(void)
   gchar * buffer = NULL;
   tveng_tuned_channel * channel;
 
-  /* Unloads all plugins */
+  /* Unloads all plugins, this tells them to save their config too */
   plugin_unload_plugins(plugin_list);
   plugin_list = NULL;
 
@@ -301,16 +333,22 @@ void shutdown_zapping(void)
 	      "   - or, more probably, you have found a bug in\n"
 	      "     Zapping. Please contact the author.\n"
 	      ), GNOME_MESSAGE_BOX_ERROR);
+
+  /* Mute the device again and close the device */
+  tveng_set_mute(1, main_info);
+  tveng_device_info_destroy(main_info);
+
+  /* Destroy the image that holds the capture */
+  zimage_destroy();
 }
 
 gboolean startup_zapping()
 {
-  gchar * home_plugins;
   int i = 0;
   gchar * buffer = NULL;
   gchar * buffer2 = NULL;
-  gchar * home_dir = g_get_home_dir();
   tveng_tuned_channel new_channel;
+  GList * p;
 
   /* Starts the configuration engine */
   if (!zconf_init("zapping"))
@@ -373,15 +411,23 @@ gboolean startup_zapping()
     return FALSE;
 
   /* Loads the modules */
-  plugin_list = plugin_load_plugins(PACKAGE_DATA_DIR "/plugins",
-				    PLUGIN_STRID, plugin_list);
+  plugin_list = plugin_load_plugins();
 
-  home_plugins = g_strconcat(home_dir, "/.zapping/plugins",
-			     NULL);
+  /* init them, and remove the ones that couldn't be inited */
+ restart_loop:
 
-  plugin_list = plugin_load_plugins(home_plugins, PLUGIN_STRID,
-				    plugin_list);
-  g_free(home_plugins);
-
+  p = g_list_first(plugin_list);
+  while (p)
+    {
+      plugin_load_config((struct plugin_info*)p->data);
+      if (!plugin_init(main_info, (struct plugin_info*)p->data))
+	{
+	  plugin_unload((struct plugin_info*)p->data);
+	  plugin_list = g_list_remove_link(plugin_list, p);
+	  g_list_free_1(p);
+	  goto restart_loop;
+	}
+      p = p->next;
+    }
   return TRUE;
 }

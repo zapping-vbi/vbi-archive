@@ -1,3 +1,20 @@
+/* Zapping (TV viewer for the Gnome Desktop)
+ * Copyright (C) 2000 Iñaki García Etxebarria
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 #ifndef __PLUGINS_H__
 #define __PLUGINS_H__
 
@@ -8,17 +25,30 @@
 /* Mainly for glib.h */
 #include <gnome.h>
 
-/* dlopen() and so on */
-#include <dlfcn.h>
-
 /* for scanning directories */
 #include <dirent.h>
 
+/* for dlopen() and friends */
+#include <gmodule.h>
+
 /* Mainly for ShowBox definition */
+#include "zmisc.h"
+
+/* For lookup_widget */
+#include "interface.h"
+
+/* Configuration saving and restoring */
+#include "zconf.h"
+
+/* Some definitions of exported functions are here */
+#include "callbacks.h"
+
+/* For the tveng structures */
 #include "tveng.h"
 
-/* The plugin protocol we are able to understand */
-#define PLUGIN_PROTOCOL "Zapping_Plugin_Protocol_1"
+/* Some definitions common to the plugins and Zapping */
+#define ZAPPING /* Tell this header that we are Zapping */
+#include "plugin_common.h"
 
 /* Any plugin should have this in its name */
 #define PLUGIN_STRID ".zapping.so"
@@ -26,124 +56,133 @@
 /* This structure holds the info needed for identifying and using a
    plugin */
 struct plugin_info{
-  gpointer handle;
-  int major, minor, micro; /* plugin version */
-  int zapping_major, zapping_minor, zapping_micro; /* Minimum zapping
-						      version */
-  gchar * error; /* In case of error, the error string is stored here */
-  gchar* (*plugin_get_info)(); /* Returns a pointer to the plugin info
-				(should be a long descriptive string) */
-  gchar* (*plugin_get_canonical_name)(); /* Pointer to the canonical
-					    name */
-  gchar* (*plugin_get_name)(); /* The name of the plugin */
+  GModule * handle; /* The handle to the plugin */
+  /* This returns the protocol the plugin understands */
+  gint (*plugin_protocol) (void);
   /* Init the plugin using the current video device, FALSE on error */
-  gboolean (*plugin_init)(tveng_device_info * info);
-  /* The plugin should start if it isn't started yet. This should be
-     called from plugin_init automagically if the config said so (the
-     plugin itself should take care of that) */
-  gboolean (*plugin_start)();
+  gboolean (*plugin_init)(PluginBridge bridge, tveng_device_info *
+			  info);
+  /* Close the plugin */
+  void (*plugin_close) (void);
+  /* The plugin should start to work when this is called */
+  gboolean (*plugin_start)( void );
   /* Stop the plugin if it is running */
-  void (*plugin_stop)();
-  /* Returns TRUE if the plugin is running */
-  gboolean (*plugin_running)();
-  /* The name(s) of the plugin author(s) */
-  gchar* (*plugin_author)();
-  /* Close plugin (for freeing memory, closing handles, etc) */
-  void (*plugin_close)();
-  /* Add the plugin to the GUI (update menus and toolbar), the
-     parameter is the main window */
-  void (*plugin_add_gui)(GtkWidget * main_window);
+  void (*plugin_stop) ( void );
+  /* Tells the plugin that it can now load its config */
+  void (*plugin_load_config) ( gchar * root_key );
+  /* Tells the plugin to save its config */
+  void (*plugin_save_config) ( gchar * root_key);
+  /* Gets some info about the plugin */
+  void (*plugin_get_info) ( gchar ** canonical_name, gchar **
+			    descriptive_name, gchar ** description,
+			    gchar ** short_description, gchar **
+			    author, gchar ** version);
+  /* Returns TRUE if the plugin is working */
+  gboolean (*plugin_running) ( void );
+
+  /******* OPTATIVE FUNCTIONS *******/
+  /* Lets the plugin process one frame */
+  gpointer (*plugin_process_frame) ( gpointer data, struct
+				     tveng_frame_format * format );
+  /* Used to query the public symbols from the plugin */
+  gboolean (*plugin_get_public_info) ( gint index, gpointer * ptr,
+				       gchar ** symbol, 
+				       gchar ** description,
+				       gchar ** type, gint * hash );
+  /* Add a property page to the properties dialog */
+  void (*plugin_add_properties) ( GnomePropertyBox * gpb );
+  /* Called when the OK or Apply buttons are pressed */
+  gboolean (*plugin_activate_properties) ( GnomePropertyBox * gpb, gint
+					   page );
+  /* Called when the help button is pressed */
+  gboolean (*plugin_help_properties) ( GnomePropertyBox * gpb, gint
+				       page );
+  /* Add the plugin to the GUI */
+  void (*plugin_add_gui) ( GnomeApp * app );
   /* Remove the plugin from the GUI */
-  void (*plugin_remove_gui)(GtkWidget * main_window);
-  /* Give a frame to the plugin in the current capture format. The
-     given frame is writable, so converter plugins don't segfault. The
-     format parameter holds the current frame characteristics, and can
-     also be modified (it's just a copy of the real v4l2_format
-     structure) */
-  void (*plugin_eat_frame)(struct tveng_frame_format * format);
-  /* Add the plugin entries to the property box, we should connect
-     callbacks from the plugin appropiately */
-  void (*plugin_add_properties)(GnomePropertyBox * gpb);
-  /* This function is called when apply'ing the changes of the
-     property box. The plugin should ignore (returning FALSE) this
-     call if n is not the property page it has created for itself */
-  gboolean (*plugin_apply_properties)(GnomePropertyBox * gpb, int n);
-  /* This one is similar to the above, but it is called when pressing
-     help on the Property Box */
-  gboolean (*plugin_help_properties)(GnomePropertyBox * gpb, int n);
-  /* The structure will be written to the config file just before
-     calling plugin_close and read just before calling plugin_init. */
-  struct ParseStruct * parse_struct;
+  void (*plugin_remove_gui) ( GnomeApp * app );
+  /* Get the priority of the plugin */
+  gint (*plugin_get_priority) ( void );
+
+  /******* Variables *********/
+  gint priority; /* Holds the desired priority for the plugin */
+  gchar * file_name; /* The name of the file that holds the plugin */
+  gchar * canonical_name; /* The canonical name of the plugin */
+  gint major, minor, micro; /* Plugin version number, used only
+			       internally */
+  /* The symbols that the plugin shares with other plugins */
+  gint num_exported_symbols;
+  struct plugin_exported_symbol * exported_symbols;
 };
 
-/* Loads a plugin */
-gboolean plugin_load(gchar * file_name, struct plugin_info * info);
 
-/* Unloads a plugin */
-void plugin_unload(struct plugin_info * info);
-
+/*
+  Wrappers to avoid having to access the struct's fields directly
+*/
 /* This are wrappers to avoid the use of the pointers in the
    plugin_info struct just in case somewhen the plugin system changes */
-/* If the plugin returns NULL, then avoid SEGFAULT */
-gchar * plugin_get_name(struct plugin_info * info);
+gint plugin_protocol(struct plugin_info * info);
 
-/* This function should never return NULL, since plugin_load should
-   fail if the canonical name is NULL */
-gchar * plugin_get_canonical_name(struct plugin_info * info);
+gboolean plugin_init ( tveng_device_info * device_info,
+		       struct plugin_info * info );
 
-/* Returns the long descriptive strings identifying the plugin and
-   descibing its use */
-gchar * plugin_get_info(struct plugin_info * info);
-
-/* Inits the plugin for the given device and returns TRUE if the
-   plugin coold be inited succesfully */
-gboolean plugin_init(tveng_device_info * info, struct plugin_info *
-		     plug_info);
-
-/* Closes the plugin, tells it to close all fds and so on */
 void plugin_close(struct plugin_info * info);
 
-/* Starts the execution of the plugin, TRUE on success */
-gboolean plugin_start(struct plugin_info * info);
+void plugin_unload(struct plugin_info * info);
 
-/* stops (pauses) the execution of the plugin */
-void plugin_stop(struct plugin_info * info);
+gboolean plugin_start (struct plugin_info * info);
 
-/* Returns TRUE if the plugin is running now */
-gboolean plugin_running(struct plugin_info * info);
+void plugin_stop (struct plugin_info * info);
 
-/* The name of the plugin author */
-gchar * plugin_author(struct plugin_info * info);
+void plugin_load_config(struct plugin_info * info);
 
-/* Add the plugin to the GUI */
-void plugin_add_gui(GtkWidget * main_window, struct plugin_info * info);
+void plugin_save_config(struct plugin_info * info);
 
-/* Remove the plugin from the GUI */
-void plugin_remove_gui(GtkWidget * main_window, struct plugin_info * info);
+void plugin_get_info(gchar ** canonical_name, gchar **
+		     descriptive_name, gchar ** description, gchar
+		     ** short_description, gchar ** author, gchar **
+		     version, struct plugin_info * info);
 
-/* Let the plugin add a page to the property box */
-void plugin_add_properties(GnomePropertyBox * gpb, struct plugin_info
-			   * info);
+/* These functions are more convenient when accessing some individual
+   fields of the plugin's info */
+gchar * plugin_get_canonical_name (struct plugin_info * info);
 
-/* This function is called when apply'ing the changes of the
-   property box. The plugin should ignore (returning FALSE) this
-   call if n is not the property page it has created for itself */
-gboolean plugin_apply_properties(GnomePropertyBox * gpb, int n, struct
-				 plugin_info * info);
+gchar * plugin_get_name (struct plugin_info * info);
 
-/* Give a frame to the plugin so it can process it */
-void plugin_eat_frame(struct tveng_frame_format * frame, struct
-		      plugin_info * info);
+gchar * plugin_get_description (struct plugin_info * info);
 
-/* This one is similar to the above, but it is called when pressing
-   help on the Property Box */
-gboolean plugin_help_properties(GnomePropertyBox * gpb, int n,
-				struct plugin_info * info);
+gchar * plugin_get_short_description (struct plugin_info * info);
 
-/* Loads all the valid plugins in the given directory, and appends them to
-   the given GList. It returns the new GList. The plugins should
-   contain exp in their filename (usually called with exp = .zapping.so) */
-GList * plugin_load_plugins(gchar * directory, gchar * exp, GList * old);
+gchar * plugin_get_author (struct plugin_info * info);
+
+gchar * plugin_get_version (struct plugin_info * info);
+
+gboolean plugin_running ( struct plugin_info * info);
+
+gpointer plugin_process_frame (gpointer data, struct
+			       tveng_frame_format *
+			       format, struct plugin_info * info);
+
+void plugin_add_properties (GnomePropertyBox * gpb, struct plugin_info
+			    * info);
+
+gboolean plugin_activate_properties (GnomePropertyBox * gpb, gint
+				     page, struct plugin_info * info);
+
+gboolean plugin_help_properties (GnomePropertyBox * gpb, gint page,
+				 struct plugin_info * info);
+
+void plugin_add_gui (GnomeApp * app, struct plugin_info * info);
+
+void plugin_remove_gui (GnomeApp * app, struct plugin_info * info);
+
+gint plugin_get_priority (struct plugin_info * info);
+
+/*
+  Loads the plugins, returning a GList. The data item of each element
+  in the GList points to a plugin_info structure.
+*/
+GList * plugin_load_plugins ( void );
 
 /* Unloads all the plugins loaded in the GList */
 void plugin_unload_plugins(GList * list);

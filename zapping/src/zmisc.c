@@ -16,6 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#include <gdk/gdkx.h>
 #include "zmisc.h"
 
 GdkImage * zimage = NULL; /* The buffer that holds the capture */
@@ -61,18 +62,43 @@ int ShowBoxReal(const gchar * sourcefile,
 GdkImage*
 zimage_reallocate(int new_width, int new_height)
 {
+  GdkImage * new_zimage;
+  gpointer new_data;
+  gint old_size;
+  gint new_size;
+
   if ((!zimage) || (zimage->width != new_width) || (zimage->height !=
 						    new_height))
     {
+      new_zimage = gdk_image_new(GDK_IMAGE_FASTEST,
+				 gdk_visual_get_system(),
+				 new_width,
+				 new_height);
+      if (!new_zimage)
+	{
+	  g_warning(_("Sorry, but a %dx%d image couldn't be "
+		      "allocated, the image will not be changed."),
+		    new_width, new_height);
+
+	  return zimage;
+	}
+      /*
+	A new image has been allocated, keep as much data as possible
+      */
       if (zimage)
-	gdk_image_destroy(zimage);
-
-      zimage = NULL;
-
-      zimage = gdk_image_new(GDK_IMAGE_FASTEST,
-				  gdk_visual_get_system(),
-				  new_width,
-				  new_height);
+	{
+	  old_size = zimage->height* zimage->bpl;
+	  new_size = new_zimage->height * new_zimage->bpl;
+	  new_data = ((GdkImagePrivate*)new_zimage) -> ximage-> data;
+	  if (old_size > new_size)
+	    memcpy(new_data, zimage_get_data(), new_size);
+	  else
+	    memcpy(new_data, zimage_get_data(), old_size);
+	  
+	  /* Destroy the old image, now it is useless */
+	  gdk_image_destroy(zimage);
+	}
+      zimage = new_zimage;
     }
 
   return zimage;
@@ -85,6 +111,15 @@ GdkImage*
 zimage_get(void)
 {
   return zimage;
+}
+
+/*
+  Returns a pointer to the image data
+*/
+gpointer
+zimage_get_data()
+{
+  return (((GdkImagePrivate*)zimage) -> ximage-> data);
 }
 
 /*
