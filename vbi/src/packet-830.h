@@ -1,7 +1,7 @@
 /*
- *  libzvbi - Video Programming System
+ *  libzvbi - Teletext packet decoder, packet 8/30
  *
- *  Copyright (C) 2000-2004 Michael H. Schimek
+ *  Copyright (C) 2003-2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,33 +17,35 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vps.h,v 1.1.2.2 2004-02-25 17:35:29 mschimek Exp $ */
+/* $Id: packet-830.h,v 1.1.2.1 2004-02-25 17:35:29 mschimek Exp $ */
 
-#ifndef VPS_H
-#define VPS_H
+#ifndef PACKET_830_H
+#define PACKET_830_H
 
-#include "misc.h"
 #include "pdc.h"
-#include "vbi.h"
 
 /* Public */
 
 /**
- * @addtogroup VPS
+ * @addtogroup Packet830
  * @{
  */
 extern vbi_bool
-vbi_decode_vps_cni		(unsigned int *		cni,
-				 const uint8_t		buffer[13]);
+vbi_decode_teletext_8301_cni	(unsigned int *		cni,
+				 const uint8_t		buffer[42]);
 extern vbi_bool
-vbi_decode_vps_pdc		(vbi_program_id *	pi,
-				 const uint8_t		buffer[13]);
+vbi_decode_teletext_8301_local_time
+				(time_t *		time,
+				 int *			gmtoff,
+				 const uint8_t		buffer[42]);
+extern vbi_bool
+vbi_decode_teletext_8302_cni	(unsigned int *		cni,
+				 const uint8_t		buffer[42]);
+extern vbi_bool
+vbi_decode_teletext_8302_pdc	(vbi_program_id *	pi,
+				 const uint8_t		buffer[42]);
 /** @} */
 
 /* Private */
 
-extern void
-vbi_decode_vps			(vbi_decoder *		vbi,
-				 const uint8_t		buffer[13]);
-
-#endif /* VPS_H */
+#endif /* PACKET_830_H */

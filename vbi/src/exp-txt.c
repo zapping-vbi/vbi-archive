@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.10.2.3 2003-10-16 18:15:07 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.10.2.4 2004-02-25 17:35:28 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,53 +29,67 @@
 #include <limits.h>
 #include <iconv.h>
 #include <assert.h>
+#include <setjmp.h>
 
 #include "lang.h"
 #include "export.h"
 #include "exp-txt.h"
 
+typedef struct {
+	uint16_t *		buffer;
+        uint16_t *		bp;
+	uint16_t *		end;
+} vec;
+
+#define MAX_COLORS N_ELEMENTS (((vbi_page *) 0)->color_map)
+
 typedef struct text_instance {
 	vbi_export		export;
 
 	/* Options */
+
 	int			format;
 	char *			charset;
 	unsigned		color : 1;
 	int			term;
 	int			gfx_chr;
+	vbi_bool		ascii_art;
+
+	/* Not used anymore, stored for compatibility. */
 	int			def_fg;
 	int			def_bg;
 
-	iconv_t			cd;
-	char			buf[32];
+	jmp_buf			main;
+
+	vec			text;
+
+	char			palette[MAX_COLORS];
 } text_instance;
 
 static vbi_export *
-text_new(void)
+text_new			(void)
 {
 	text_instance *text;
 
-	if (!(text = calloc(1, sizeof(*text))))
+	if (!(text = calloc (1, sizeof (*text))))
 		return NULL;
 
 	return &text->export;
 }
 
 static void
-text_delete(vbi_export *e)
+text_delete			(vbi_export *		e)
 {
-	text_instance *text = PARENT(e, text_instance, export);
+	text_instance *text = PARENT (e, text_instance, export);
 
-	if (text->charset)
-		free(text->charset);
+	free (text->charset);
+	free (text->text.buffer);
 
-	free(text);
+	free (text);
 }
 
-#define elements(array) (sizeof(array) / sizeof(array[0]))
-
 static const char *
-formats[] = {
+formats [] = {
 	N_("ASCII"),
 	N_("ISO-8859-1 (Latin-1 Western languages)"),
 	N_("ISO-8859-2 (Latin-2 Central and Eastern European languages)"),
@@ -90,23 +104,26 @@ formats[] = {
 };
 
 static const char *
-iconv_formats[] = {
-	"ASCII", "ISO-8859-1", "ISO-8859-2", "ISO-8859-4",
-	"ISO-8859-5", "ISO-8859-7", "ISO-8859-8", "ISO-8859-9",
-        "KOI8-R", "KOI8-U", "UTF-8"
+iconv_formats [] = {
+	"ASCII",
+	"ISO-8859-1",
+	"ISO-8859-2",
+	"ISO-8859-4",
+	"ISO-8859-5",
+	"ISO-8859-7",
+	"ISO-8859-8",
+	"ISO-8859-9",
+        "KOI8-R",
+	"KOI8-U",
+	"UTF-8"
 };
 
 static const char *
-color_names[] __attribute__ ((unused)) = {
-	N_("Black"), N_("Red"), N_("Green"), N_("Yellow"),
-	N_("Blue"), N_("Magenta"), N_("Cyan"), N_("White"),
-	N_("Any")
-};
-
-static const char *
-terminal[] __attribute__ ((unused)) = {
+terminal [] = {
 	/* TRANSLATORS: Terminal control codes menu */
-	N_("None"), N_("ANSI X3.64 / VT 100"), N_("VT 200")
+	N_("None"),
+	N_("ANSI X3.64 / VT 100"),
+	N_("VT 200")
 };
 
 enum {
@@ -115,67 +132,56 @@ enum {
 	TERMINAL_VT200,
 };
 
-static vbi_option_info
-text_options[] = {
+static const vbi_option_info
+option_info [] = {
 	VBI_OPTION_MENU_INITIALIZER
-	  /* TRANSLATORS: Text export format (ASCII, Unicode, ...) menu */
-	  ("format", N_("Format"),
-	   0, formats, elements(formats), NULL),
+	/* TRANSLATORS: Text export encoding (ASCII, Unicode, ...) menu */
+	("format", N_("Encoding"),
+	 0, formats, N_ELEMENTS (formats), NULL),
         /* one for users, another for programs */
 	VBI_OPTION_STRING_INITIALIZER
-	  ("charset", NULL, "", NULL),
+	("charset", NULL, "", NULL),
 	VBI_OPTION_STRING_INITIALIZER
-	  ("gfx_chr", N_("Graphics char"),
-	   "#", N_("Replacement for block graphic characters: "
-		   "a single character or decimal (32) or hex (0x20) code")),
+	("gfx_chr", N_("Graphics char"),
+	 "#", N_("Replacement for block graphic characters: "
+		 "a single character or decimal (32) or hex (0x20) code")),
+	VBI_OPTION_BOOL_INITIALIZER
+	("ascii_art", N_("ASCII art"),
+	 FALSE, N_("Replace graphic characters by ASCII art")),
 	VBI_OPTION_MENU_INITIALIZER
-	  ("control", N_("Control codes"),
-	   0, terminal, elements(terminal), NULL),
-#if 0 /* obsolete (I think) */
-	VBI_OPTION_MENU_INITIALIZER
-	  ("fg", N_("Foreground"),
-	   8 /* any */, color_names, elements(color_names),
-	   N_("Assumed terminal foreground color")),
-	VBI_OPTION_MENU_INITIALIZER
-	  ("bg", N_("Background"),
-	   8 /* any */, color_names, elements(color_names),
-	   N_("Assumed terminal background color"))
-#endif
+	("control", N_("Control codes"),
+	 0, terminal, N_ELEMENTS (terminal), NULL),
 };
 
-static vbi_option_info *
-option_enum(vbi_export *e, int index)
-{
-	if (index < 0 || index >= (int) elements(text_options))
-		return NULL;
-
-	return text_options + index;
-}
-
-#define KEYWORD(str) (strcmp (keyword, str) == 0)
+#define KEYWORD(str) (0 == strcmp (keyword, str))
 
 static vbi_bool
-option_get(vbi_export *e, const char *keyword, vbi_option_value *value)
+option_get			(vbi_export *		e,
+				 const char *		keyword,
+				 vbi_option_value *	value)
 {
-	text_instance *text = PARENT(e, text_instance, export);
+	text_instance *text = PARENT (e, text_instance, export);
 
-	if (KEYWORD("format")) {
+	if (KEYWORD ("format") || KEYWORD ("encoding")) {
 		value->num = text->format;
-	} else if (KEYWORD("charset")) {
-		if (!(value->str = vbi_export_strdup(e, NULL, text->charset)))
+	} else if (KEYWORD ("charset")) {
+		value->str = vbi_export_strdup (e, NULL, text->charset);
+		if (!value->str)
 			return FALSE;
-	} else if (KEYWORD("gfx_chr")) {
-		if (!(value->str = vbi_export_strdup(e, NULL, "x")))
+	} else if (KEYWORD ("gfx_chr")) {
+		if (!(value->str = vbi_export_strdup (e, NULL, "x")))
 			return FALSE;
 		value->str[0] = text->gfx_chr;
-	} else if (KEYWORD("control")) {
+	} else if (KEYWORD ("ascii_art")) {
+		value->num = text->ascii_art;
+	} else if (KEYWORD ("control")) {
 		value->num = text->term;
-	} else if (KEYWORD("fg")) {
+	} else if (KEYWORD ("fg")) {
 		value->num = text->def_fg;
-	} else if (KEYWORD("bg")) {
+	} else if (KEYWORD ("bg")) {
 		value->num = text->def_bg;
 	} else {
-		vbi_export_unknown_option(e, keyword);
+		vbi_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -183,218 +189,460 @@ option_get(vbi_export *e, const char *keyword, vbi_option_value *value)
 }
 
 static vbi_bool
-option_set(vbi_export *e, const char *keyword, va_list args)
+option_set			(vbi_export *		e,
+				 const char *		keyword,
+				 va_list		ap)
 {
-	text_instance *text = PARENT(e, text_instance, export);
+	text_instance *text = PARENT (e, text_instance, export);
 
-	if (KEYWORD("format")) {
-		unsigned int format = va_arg(args, unsigned int);
+	if (KEYWORD ("format") || KEYWORD ("encoding")) {
+		unsigned int format = va_arg (ap, unsigned int);
 
-		if (format >= elements(formats)) {
-			vbi_export_invalid_option(e, keyword, format);
+		if (format >= N_ELEMENTS (formats)) {
+			vbi_export_invalid_option (e, keyword, format);
 			return FALSE;
 		}
+
 		text->format = format;
-	} else if (KEYWORD("charset")) {
-		char *string = va_arg(args, char *);
+	} else if (KEYWORD ("charset")) {
+		const char *string = va_arg (ap, const char *);
 
 		if (!string) {
-			vbi_export_invalid_option(e, keyword, string);
+			vbi_export_invalid_option (e, keyword, string);
 			return FALSE;
-		} else if (!vbi_export_strdup(e, &text->charset, string))
+		} else if (!vbi_export_strdup (e, &text->charset, string))
 			return FALSE;
-	} else if (KEYWORD("gfx_chr")) {
-		char *s, *string = va_arg(args, char *);
+	} else if (KEYWORD ("gfx_chr")) {
+		const char *string = va_arg (ap, const char *);
+		char *s;
 		int value;
 
 		if (!string || !string[0]) {
-			vbi_export_invalid_option(e, keyword, string);
+			vbi_export_invalid_option (e, keyword, string);
 			return FALSE;
 		}
-		if (strlen(string) == 1) {
+
+		if (1 == strlen (string)) {
 			value = string[0];
 		} else {
-			value = strtol(string, &s, 0);
+			value = strtol (string, &s, 0);
+
 			if (s == string)
 				value = string[0];
 		}
-		text->gfx_chr = (value < 0x20 || value > 0xE000) ? 0x20 : value;
-	} else if (KEYWORD("control")) {
-		int term = va_arg(args, int);
 
-		if (term < 0 || term > 2) {
-			vbi_export_invalid_option(e, keyword, term);
+		text->gfx_chr = (value < 0x20 || value > 0xE000) ?
+			0x20 : value;
+	} else if (KEYWORD ("ascii_art")) {
+		text->ascii_art = !!va_arg (ap, vbi_bool);
+	} else if (KEYWORD ("control")) {
+		unsigned int term = va_arg (ap, unsigned int);
+
+		if (term > N_ELEMENTS (terminal)) {
+			vbi_export_invalid_option (e, keyword, term);
 			return FALSE;
 		}
+
 		text->term = term;
-	} else if (KEYWORD("fg")) {
-		int col = va_arg(args, int);
+	} else if (KEYWORD ("fg")) {
+		unsigned int col = va_arg (ap, unsigned int);
 
-		if (col < 0 || col > 8) {
-			vbi_export_invalid_option(e, keyword, col);
+		if (col > 8) {
+			vbi_export_invalid_option (e, keyword, col);
 			return FALSE;
 		}
+
 		text->def_fg = col;
-	} else if (KEYWORD("bg")) {
-		int col = va_arg(args, int);
+	} else if (KEYWORD ("bg")) {
+		unsigned int col = va_arg (ap, unsigned int);
 
-		if (col < 0 || col > 8) {
-			vbi_export_invalid_option(e, keyword, col);
+		if (col > 8) {
+			vbi_export_invalid_option (e, keyword, col);
 			return FALSE;
 		}
+
 		text->def_bg = col;
 	} else {
-		vbi_export_unknown_option(e, keyword);
+		vbi_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
 	return TRUE;
 }
 
-static __inline__ vbi_bool
-print_spaces			(iconv_t		cd,
-				 char **		pp,
-				 char *			end,
-				 unsigned int		spaces)
+static void
+extend				(text_instance *	text,
+				 vec *			v)
 {
-	for (; spaces > 0; spaces--)
-		if (!vbi_iconv_unicode (cd, pp, end - *pp, 0x0020))
-			return FALSE;
+	uint16_t *buffer;
+	unsigned int n;
+
+	n = v->end - v->buffer + 2048;
+
+	if (!(buffer = realloc (v->buffer, n * sizeof (*v->buffer)))) {
+		longjmp (text->main, -1);
+	}
+
+	v->bp = buffer + (v->bp - v->buffer);
+	v->buffer = buffer;
+	v->end = buffer + n;
+}
+
+static void
+put_spaces			(text_instance *	text,
+				 unsigned int		n)
+{
+	uint16_t *d;
+
+	if (text->text.bp + n > text->text.end)
+		extend (text, &text->text);
+
+	d = text->text.bp;
+
+	while (n-- > 0)
+		*d++ = 0x0020;
+
+	text->text.bp = d;
+}
+
+static __inline__ void
+putwc				(text_instance *	text,
+				 int			c)
+{
+	if (text->text.bp >= text->text.end)
+		extend (text, &text->text);
+
+	*text->text.bp++ = c;
+}
+
+static void
+create_palette			(text_instance *	text,
+				 const vbi_page *	pg)
+{
+	unsigned int j;
+
+	for (j = 0; j < N_ELEMENTS (text->palette); ++j) {
+		vbi_rgba color;
+		unsigned int i;
+		unsigned int imin;
+		int d;
+		int dmin;
+
+		color = pg->color_map[j];
+		imin = 0;
+		dmin = INT_MAX;
+
+		for (i = 0; i < 8; ++i) {
+			d  = ABS(       (i & 1) * 0xFF - VBI_R (color));
+			d += ABS(((i >> 1) & 1) * 0xFF - VBI_G (color));
+			d += ABS( (i >> 2)      * 0xFF - VBI_B (color));
+
+			if (d < dmin) {
+				dmin = d;
+				imin = i;
+			}
+		}
+
+		text->palette[j] = '0' + imin;
+	}
+}
+
+static vbi_bool
+put_attr			(text_instance *	text,
+				 vbi_char		old,
+				 vbi_char		cur)
+{
+	uint16_t *d;
+
+	if (text->text.bp + 32 >= text->text.end)
+		extend (text, &text->text);
+
+	d = text->text.bp;
+
+	/* Control sequences based on ECMA-48,
+	   http://www.ecma-international.org/ */
+
+	if (old.size != cur.size) {
+		switch (cur.size) {
+		case VBI_NORMAL_SIZE:
+			d[0] = 27;
+			d[1] = '#';
+			d[2] = '5';
+			d += 3;
+			break;
+
+		case VBI_DOUBLE_WIDTH:
+			d[0] = 27;
+			d[1] = '#';
+			d[2] = '6';
+			d += 3;
+			break;
+			
+		case VBI_DOUBLE_HEIGHT:
+		case VBI_DOUBLE_HEIGHT2:
+			break; /* ignore */
+			
+		case VBI_DOUBLE_SIZE:
+			d[0] = 27;
+			d[1] = '#';
+			d[2] = '3';
+			d += 3;
+			break;
+
+		case VBI_DOUBLE_SIZE2:
+			d[0] = 27;
+			d[1] = '#';
+			d[2] = '4';
+			d += 3;
+			break;
+
+		case VBI_OVER_TOP:
+		case VBI_OVER_BOTTOM:
+			return FALSE; /* don't print */
+		}
+	} else {
+		switch (cur.size) {
+		case VBI_OVER_TOP:
+		case VBI_OVER_BOTTOM:
+			return FALSE; /* don't print */
+
+		default:
+			break; /* no change */
+		}
+	}
+
+	/* SGR sequence */
+
+	d[0] = 27; /* CSI */
+	d[1] = '[';
+	d += 2;
+
+	if (TERMINAL_VT100 == text->term) {
+		if ((old.attr ^ cur.attr)
+		    & (VBI_UNDERLINE | VBI_BOLD | VBI_FLASH)) {
+			*d++ = ';'; /* \e[0; reset */
+			old.attr &= ~(VBI_UNDERLINE | VBI_BOLD | VBI_FLASH);
+			old.foreground = ~cur.foreground;
+			old.background = ~cur.background;
+		}
+	}
+
+	if ((old.attr ^ cur.attr) & VBI_BOLD) {
+		if (cur.attr & VBI_BOLD) {
+			d[0] = '1'; /* bold */
+			d[1] = ';';
+			d += 2;
+		} else {
+			d[0] = '2'; /* bold off */
+			d[1] = '2';
+			d[2] = ';';
+			d += 3;
+		}
+	}
+
+	if ((old.attr ^ cur.attr) & VBI_ITALIC) {
+		if (!(cur.attr & VBI_ITALIC))
+			*d++ = '2'; /* off */
+		d[0] = '3'; /* italic */
+		d[1] = ';';
+		d += 2;
+	}
+
+	if ((old.attr ^ cur.attr) & VBI_UNDERLINE) {
+		if (!(cur.attr & VBI_UNDERLINE))
+			*d++ = '2'; /* off */
+		d[0] = '4'; /* underline */
+		d[1] = ';';
+		d += 2;
+	}
+	
+	if ((old.attr ^ cur.attr) & VBI_FLASH) {
+		if (!(cur.attr & VBI_FLASH))
+			*d++ = '2'; /* steady */
+		d[0] = '5'; /* slowly blinking */
+		d[1] = ';';
+		d += 2;
+	}
+
+	/* ECMA-48 SGR offers conceal/reveal code, but we don't
+	   know if the terminal implements this correctly as
+	   requested by the caller. Proportional spacing needs
+	   further investigation. */
+	
+	if (old.foreground != cur.foreground) {
+		d[0] = '3';
+		d[1] = text->palette[cur.foreground];
+		d[2] = ';';
+		d += 3;
+	}
+	
+	if (old.background != cur.background) {
+		d[0] = '4';
+		d[1] = text->palette[cur.background];
+		d[2] = ';';
+		d += 3;
+	}
+
+	if ('[' == d[-1])
+		d -= 2; /* no change, remove CSI */
+	else
+		d[-1] = 'm'; /* replace last semicolon */
+
+	text->text.bp = d;
+
 	return TRUE;
 }
 
 /**
- * @param pg Source page.
- * @param buf Buffer to hold the output.
- * @param buf_size Size of the buffer in bytes. The function
- *   fails with return value 0 when the text would exceed the
- *   buffer capacity.
- * @param format Character set name for iconv() conversion,
- *   for example "ISO-8859-1". When @c NULL, the default is "UTF-8".
- * @param separator Copy this string verbatim into the buffer
- *   to separate rows. When @c NULL a default is provided,
- *   converted to the requested @a format. When @a flags contains
- *   @c VBI_TABLE the default separator is 0x0A, otherwise a
- *   space 0x20.
- * @param sep_size Length of the separator string in bytes.
- *   This permits separators containing zero bytes.
- * @param flags Optional set of the following flags:
- *   - @c VBI_TABLE: Scan page in table mode, printing all characters
- *     within the source rectangle including runs of spaces at
- *     the start and end of rows. When not given, scan all characters
- *     from @a column, @a row to @a column + @a width - 1,
- *     @a row + @a height - 1 and all intermediate rows to their
- *     full pg->columns width. In this mode runs of spaces at
- *     the start and end of rows collapse into single spaces,
- *     blank lines are suppressed.
- *   - @c VBI_RTL: Scan the page right to left (Hebrew, Arabic),
- *     otherwise left to right.
- *   - @c VBI_REVEAL: Reveal hidden characters otherwise
- *     printed as space.
- *   - @c VBI_FLASH_OFF: Print flashing characters in off state,
- *     i. e. as space.
- * @param column First source column, 0 ... pg->columns - 1.
- * @param row First source row, 0 ... pg->rows - 1.
- * @param width Number of columns to print, 1 ... pg->columns.
- * @param height Number of rows to print, 1 ... pg->rows.
- * 
- * Print a subsection of a Teletext or Closed Caption vbi_page,
- * rows separated, in the desired format. All character attributes
- * and colors will be lost. (Conversion to terminal control codes
- * is possible using the text export module.) Graphics characters,
- * DRCS and all characters not representable in the target format
- * will be replaced by spaces.
- * 
- * @return
- * Number of bytes written into @a buf, a value of zero when
- * some error occurred. In this case @a buf may contain incomplete
- * data. Note this function does not append a terminating zero
- * character.
+ * Like vbi_print_page_region(), but takes export options as va_list.
  */
 unsigned int
-vbi_print_page_region		(vbi_page *		pg,
-				 char *			buf,
-				 unsigned int		buf_size,
+vbi_print_page_region_va_list	(vbi_page *		pg,
+				 char *			buffer,
+				 unsigned int		buffer_size,
 				 const char *		format,
 				 const char *		separator,
-				 unsigned int		sep_size,
-				 vbi_export_flags	flags,
+				 unsigned int		separator_size,
 				 unsigned int		column,
 				 unsigned int		row,
 				 unsigned int		width,
-				 unsigned int		height)
+				 unsigned int		height,
+				 va_list		export_options)
 {
-	unsigned int y, row0, row1;
-	unsigned int x, column0, column1;
-	unsigned int doubleh, doubleh0;
-	iconv_t cd;
-	char *p, *end;
+	text_instance text;
+	vbi_bool option_table;
+	vbi_bool option_rtl;
+	unsigned int option_space_attr;
+	unsigned int y;
+	unsigned int row0;
+	unsigned int row1;
+	unsigned int column0;
+	unsigned int column1;
+	unsigned int doubleh;	/* current row */
+	unsigned int doubleh0;  /* previous row */
+	iconv_t	cd;
+	char *p;
+	char *buffer_end;
+	const vbi_char *acp;
+
+	assert (NULL != pg);
+	assert (NULL != buffer);
+
+	if (0 == buffer_size)
+		return 0;
 
 	if (0)
 		fprintf (stderr, "vbi_print_page_region '%s' "
-		         "flags=0x%x col=%d row=%d width=%d height=%d\n",
+		         "col=%d row=%d width=%d height=%d\n",
 			 format, column, row, width, height);
 
-	column0 = column;
-	row0 = row;
-	column1 = column + width - 1;
-	row1 = row + height - 1;
+	CLEAR (text.text);
 
-	if (pg == NULL
-	    || buf == NULL || buf_size == 0
-	    || column1 >= pg->columns
-	    || row1 >= pg->rows)
+	option_table = FALSE;
+	option_rtl = FALSE;
+	option_space_attr = 0;
+
+	for (;;) {
+		vbi_export_option option;
+
+		option = va_arg (export_options, vbi_export_option);
+
+		switch (option) {
+		case VBI_TABLE:
+			option_table = va_arg (export_options, vbi_bool);
+			break;
+
+		case VBI_RTL:
+			option_rtl = va_arg (export_options, vbi_bool);
+			break;
+
+		case VBI_REVEAL:
+			if (va_arg (export_options, vbi_bool))
+				option_space_attr &= ~VBI_CONCEAL;
+			else
+				option_space_attr |= VBI_CONCEAL;
+			break;
+
+		case VBI_FLASH_ON:
+			if (va_arg (export_options, vbi_bool))
+				option_space_attr &= ~VBI_FLASH;
+			else
+				option_space_attr |= VBI_FLASH;
+			break;
+
+		case VBI_SCALE:
+			va_arg (export_options, vbi_bool);
+			break;
+
+		default:
+			option = 0;
+			break;
+		}
+
+		if (0 == option)
+			break;
+	}
+
+	row0	= row;
+	row1	= row + height - 1;
+	column0	= column;
+	column1	= column + width - 1;
+
+	if (row1 >= pg->rows
+	    || column1 >= pg->columns)
 		return 0;
 
-	p = buf;
-	end = p + buf_size;
+	p = buffer;
+	buffer_end = buffer + buffer_size;
 
-	cd = vbi_iconv_open (format, &p, buf_size);
+	cd = vbi_iconv_ucs2_open (format, &p, buffer_size);
 
-	if (cd == (iconv_t) -1)
+	if ((iconv_t) -1 == cd)
 		return 0;
+
+	if (setjmp (text.main))
+		goto failure;
 
 	doubleh = 0;
 
-	for (y = row0; y <= row1; y++) {
-		unsigned int xs, xe, xl, yw;
+	acp = pg->text + row0 * pg->columns;
+
+	for (y = row0; y <= row1; ++y) {
+		unsigned int x, xs, xe, xl, xw;
 		unsigned int chars, spaces;
-		int adv;
+		int dir;
 
-		xs = ((flags & VBI_TABLE) || y == row0) ? column0 : 0;
-		xe = ((flags & VBI_TABLE) || y == row1) ? column1 : (pg->columns - 1);
-		yw = xe - xs;
+		xs = (option_table || y == row0) ? column0 : 0;
+		xe = (option_table || y == row1) ? column1 : (pg->columns - 1);
+		xw = xe - xs;
 
-		if (flags & VBI_RTL) {
+		dir = +1;
+
+		if (option_rtl) {
 			SWAP (xs, xe);
-			adv = -1;
-		} else {
-			adv = +1;
+			dir = -1;
 		}
 
-		xe += adv;
+		xe += dir;
 
-		if (!(flags & VBI_TABLE) && height == 2 && y == row0)
-			xl = (flags & VBI_RTL) ? column0 : column1;
+		if (!option_table && y == row0 && 2 == height)
+			xl = option_rtl ? column0 : column1;
 		else
 			xl = INT_MAX;
 
 		doubleh0 = doubleh;
+		doubleh = 0;
 
 		chars = 0;
 		spaces = 0;
-		doubleh = 0;
 
-		for (x = xs; x != xe; x += adv) {
-			vbi_char ac = pg->text[y * pg->columns + x];
+		for (x = xs; x != xe; x += dir) {
+			vbi_char ac = acp[x];
 
-			if (ac.flash && (flags & VBI_FLASH_OFF))
+			if (ac.attr & option_space_attr)
 				ac.unicode = 0x0020;
 
-			if (ac.conceal && !(flags & VBI_REVEAL))
-				ac.unicode = 0x0020;
-
-			if (flags & VBI_TABLE) {
+			if (option_table) {
 				if (ac.size > VBI_DOUBLE_SIZE)
 					ac.unicode = 0x0020;
 			} else {
@@ -419,401 +667,365 @@ vbi_print_page_region		(vbi_page *		pg,
 					break;
 				}
 
-				/*
-				 *  Special case two lines row0 ... row1, and all chars
-				 *  in row0, column0 ... column1 are double height: Skip
-				 *  row1, don't wrap around.
-				 */
+				/* Special case two lines row0 ... row1, and
+				   all chars in row0, column0 ... column1 are
+				   double height: Skip row1, don't wrap
+				   around. */
 				if (x == xl && doubleh >= chars) {
 					xe = xl;
 					y = row1;
 				}
 
-				if (ac.unicode == 0x0020 || !vbi_is_print (ac.unicode)) {
-					spaces++;
-					chars++;
+				if (0x0020 == ac.unicode
+				    || !vbi_is_print (ac.unicode)) {
+					++spaces;
+					++chars;
 					continue;
 				} else {
-					if (spaces < chars || y == row0) {
-						if (!print_spaces (cd, &p, end, spaces))
-							goto failure;
-					} else {
-						/* discard leading spaces */
-						spaces = 0;
-					}
+					if (spaces < chars || y == row0)
+						put_spaces (&text, spaces);
+					/* else discard leading spaces */
+
+					spaces = 0;
 				}
 			}
 
-			if (!vbi_iconv_unicode (cd, &p, end - p, ac.unicode))
-				goto failure;
+			putwc (&text, ac.unicode);
 
-			chars++;
+			++chars;
 		}
 
 		if (y < row1) {
-			/* Note flags & TABLE implies spaces == 0 */
-
-			if (spaces >= yw) {
+			/* Note option_table implies 0 == spaces. */
+			if (spaces >= xw) {
 				; /* suppress blank line */
 			} else {
-				; /* discard trailing spaces > 0 */
+				; /* discard trailing spaces */
 
 				if (separator) {
-					if (sep_size > (end - p))
+					unsigned int size;
+
+					size = text.text.bp - text.text.buffer;
+
+					if (!vbi_iconv_ucs2 (cd, &p,
+							     buffer_end - p,
+							     text.text.buffer,
+							     size))
 						goto failure;
 
-					memcpy (p, separator, sep_size);
-					p += sep_size;
-				} else {
-					if (!vbi_iconv_unicode (cd, &p, end - p,
-								(flags & VBI_TABLE) ?
-								0x000a : 0x0020))
+					text.text.bp = text.text.buffer;
+
+					if (separator_size
+					    > (unsigned int)(buffer_end - p))
 						goto failure;
+
+					memcpy (p, separator, separator_size);
+					p += separator_size;
+				} else {
+					putwc (&text, option_table ?
+					       0x000a : 0x0020);
 				}
 			}
 		} else {
+			/* Last row. */
+
 			if (doubleh0 > 0) {
-				; /* pretend this is a blank double height lower row */
+				; /* pretend this is the lower half of an
+				     all blank double height row */
 			} else {
-				/* flush trailing spaces */
-				if (!print_spaces (cd, &p, end, spaces))
-					goto failure;
+				/* Trailing spaces. */
+				put_spaces (&text, spaces);
 			}
 		}
+
+		acp += pg->columns;
 	}
 
-	vbi_iconv_close (cd);
+	if (!vbi_iconv_ucs2 (cd, &p, buffer_end - p,
+			     text.text.buffer,
+			     text.text.bp - text.text.buffer))
+		goto failure;
 
-	return p - buf;
+	vbi_iconv_ucs2_close (cd);
+
+	return p - buffer;
 
  failure:
-	iconv_close (cd);
+	free (text.text.buffer);
+
+	vbi_iconv_ucs2_close (cd);
 
 	return 0;
 }
 
 /**
  * @param pg Source page.
- * @param buf Buffer to hold the output.
- * @param buf_size Size of the buffer in bytes. The function
- *   fails with return value 0 when the text would exceed the
- *   buffer capacity.
+ * @param buffer Output buffer.
+ * @param buffer_size Size of the buffer in bytes.
  * @param format Character set name for iconv() conversion,
  *   for example "ISO-8859-1". When @c NULL, the default is "UTF-8".
- * @param flags Set of the following flags.
- *   - @c VBI_TABLE: Scan page in table mode, printing all characters
- *     within the source rectangle including runs of spaces at
- *     the start and end of rows. When @c not given, scan all characters
- *     from @a column, @a row to @a column + @a width - 1,
+ * @param separator This string is copied verbatim into the buffer
+ *   to separate rows. When @c NULL a default is provided,
+ *   converted to the requested @a format. In table mode the
+ *   default separator is character 0x0A, otherwise a space 0x20.
+ * @param separator_size Length of the separator string in bytes.
+ *   This permits separators containing zero bytes.
+ * @param export_options Array of export options, these are
+ *   vbi_export_option codes followed by a value. The last
+ *   option code must be @a 0.
+ *   The following export options are presently recognized:
+ *   - @c VBI_TABLE (vbi_bool): Scan page in table mode, printing
+ *     all characters within the source rectangle including runs of
+ *     spaces at the start and end of rows. When @c FALSE, scan
+ *     all characters from @a column, @a row to @a column + @a width - 1,
  *     @a row + @a height - 1 and all intermediate rows to their
  *     full pg->columns width. In this mode runs of spaces at
  *     the start and end of rows collapse into single spaces,
  *     blank lines are suppressed.
- *   - @c VBI_RTL: Scan the page right to left (Hebrew, Arabic),
- *     otherwise left to right.
- *   - @c VBI_REVEAL: Reveal hidden characters otherwise
- *     printed as space.
- *   - @c VBI_FLASH_OFF: Print flashing characters in off state,
- *     i. e. as space.
+ *   - @c VBI_RTL (vbi_bool): When @c TRUE scan the page right to
+ *     left (Hebrew, Arabic), otherwise left to right.
+ *   - @c VBI_REVEAL (vbi_bool): When @c TRUE reveal hidden
+ *     characters otherwise printed as space.
+ *   - @c VBI_FLASH_ON (vbi_bool): Print flashing characters in on (TRUE) or
+ *     off (FALSE) state.
+ * @param column First source column, 0 ... pg->columns - 1.
+ * @param row First source row, 0 ... pg->rows - 1.
+ * @param width Number of columns to print, 1 ... pg->columns.
+ * @param height Number of rows to print, 1 ... pg->rows.
+ * 
+ * Prints a subsection of a Teletext or Closed Caption vbi_page
+ * into a buffer. All character attributes and colors will be lost.
+ * (Conversion to terminal control codes is possible using the text
+ * export module.) Graphics characters and DRCS will be replaced
+ * by spaces.
+ * 
+ * @return
+ * Number of bytes written into @a buffer, a value of zero when
+ * some error occurred. In this case @a buffer may contain incomplete
+ * data. Note this function does not append a terminating zero
+ * character.
+ */
+unsigned int
+vbi_print_page_region		(vbi_page *		pg,
+				 char *			buffer,
+				 unsigned int		buffer_size,
+				 const char *		format,
+				 const char *		separator,
+				 unsigned int		separator_size,
+				 unsigned int		column,
+				 unsigned int		row,
+				 unsigned int		width,
+				 unsigned int		height,
+				 ...)
+{
+	unsigned int r;
+	va_list export_options;
+
+	va_start (export_options, height);
+	r = vbi_print_page_region_va_list (pg, buffer, buffer_size,
+					   format,
+					   separator, separator_size,
+					   column, row, width, height,
+					   export_options);
+	va_end (export_options);
+
+	return r;
+}
+
+/**
+ * Like vbi_print_page(), but takes export options as va_list.
+ */
+unsigned int
+vbi_print_page_va_list		(vbi_page *		pg,
+				 char *			buffer,
+				 unsigned int		buffer_size,
+				 const char *		format,
+				 va_list		export_options)
+{
+	return vbi_print_page_region_va_list (pg, buffer, buffer_size,
+					      format,
+					      /* separator */ NULL,
+					      /* separator_size */ 0,
+					      /* column */ 0, /* row */ 0,
+					      pg->columns, pg->rows,
+					      export_options);
+}
+
+/**
+ * @param pg Source page.
+ * @param buffer Output buffer.
+ * @param buffer_size Size of the buffer in bytes.
+ * @param format Character set name for iconv() conversion,
+ *   for example "ISO-8859-1". When @c NULL, the default is "UTF-8".
+ * @param export_options Array of export options, these are
+ *   vbi_export_option codes followed by a value. The last
+ *   option code must be @a 0.
+ *   The following export options are presently recognized:
+ *   - @c VBI_TABLE (vbi_bool): Scan page in table mode, printing
+ *     all characters within the source rectangle including runs of
+ *     spaces at the start and end of rows. When @c FALSE, scan
+ *     all characters from @a column, @a row to @a column + @a width - 1,
+ *     @a row + @a height - 1 and all intermediate rows to their
+ *     full pg->columns width. In this mode runs of spaces at
+ *     the start and end of rows collapse into single spaces,
+ *     blank lines are suppressed.
+ *   - @c VBI_RTL (vbi_bool): When @c TRUE scan the page right to
+ *     left (Hebrew, Arabic), otherwise left to right.
+ *   - @c VBI_REVEAL (vbi_bool): When @c TRUE reveal hidden
+ *     characters otherwise printed as space.
+ *   - @c VBI_FLASH_ON (vbi_bool): Print flashing characters in on (TRUE) or
+ *     off (FALSE) state.
  *
- * Print a Teletext or Closed Caption vbi_page in the desired
- * format. All character attributes and colors will be lost.
+ * Prints a Teletext or Closed Caption vbi_page into a buffer.
+ * All character attributes and colors will be lost.
  * (Conversion to terminal control codes is possible using the
- * text export module.) Graphics characters, DRCS and all
- * characters not representable in the target format will be
+ * text export module.) Graphics characters and DRCS will be
  * replaced by spaces.
  *
  * This is a specialization of vbi_print_page_region().
  *
  * @return
- * Number of bytes written into @a buf, a value of zero when
- * some error occurred. In this case @a buf may contain incomplete
+ * Number of bytes written into @a buffer, a value of zero when
+ * some error occurred. In this case @a buffer may contain incomplete
  * data. Note this function does not append a terminating zero
  * character.
  */
 unsigned int
 vbi_print_page			(vbi_page *		pg,
-				 char *			buf,
-				 unsigned int		buf_size,
+				 char *			buffer,
+				 unsigned int		buffer_size,
 				 const char *		format,
-				 vbi_export_flags	flags)
+				 ...)
 {
-	return vbi_print_page_region (pg, buf, buf_size, format,
-				      /* separator */ NULL, /* sep_size */ 0,
-				      flags,
-				      /* column */ 0, /* row */ 0,
-				      pg->columns, pg->rows);
+	unsigned int r;
+	va_list export_options;
+
+	va_start (export_options, format);
+	r = vbi_print_page_region_va_list (pg, buffer, buffer_size,
+					   format,
+					   /* separator */ NULL,
+					   /* separator_size */ 0,
+					   /* column */ 0, /* row */ 0,
+					   pg->columns, pg->rows,
+					   export_options);
+	va_end (export_options);
+
+	return r;
 }
 
-static inline uint16_t *
-stpcpy2				(uint16_t *		dst,
-				 const char *		src)
+static void
+xputwc				(text_instance *	text,
+				 unsigned int		c)
 {
-	while ((*dst = *src++))
-		dst++;
+	if (vbi_is_gfx (c)) {
+		if (text->ascii_art) {
+			c = vbi_teletext_ascii_art (c);
 
-	return dst;
-}
-
-static int
-match_color8			(vbi_rgba		color)
-{
-	unsigned int i, imin = 0;
-	int d, dmin = INT_MAX;
-
-	for (i = 0; i < 8; i++) {
-		d  = ABS(       (i & 1) * 0xFF - VBI_R (color));
-		d += ABS(((i >> 1) & 1) * 0xFF - VBI_G (color));
-		d += ABS( (i >> 2)      * 0xFF - VBI_B (color));
-
-		if (d < dmin) {
-			dmin = d;
-			imin = i;
+			if (!vbi_is_print (c))
+				c = text->gfx_chr;
+		} else {
+			c = text->gfx_chr;
 		}
+	} else if (!vbi_is_print (c)) {
+		c = 0x0020;
 	}
 
-	return imin;
-}
-
-static int
-print_char			(text_instance *	text,
-				 vbi_page *		pg,
-				 vbi_char		old,
-				 vbi_char		this)
-{
-	uint16_t buf[32];
-	uint16_t *p;
-	vbi_char chg, off;
-	char *d;
-
-	p = buf;
-
-	if (text->term != TERMINAL_NONE) {
-		assert (sizeof (vbi_char) == 8);
- 		union {
-			vbi_char		c;
-			uint64_t		i;
-		} u_old, u_tmp, u_this;
-
- 		u_old.c = old;
- 		u_this.c = this;
-  
- 		u_tmp.i = u_old.i ^ u_this.i; chg = u_tmp.c;
- 		u_tmp.i = u_tmp.i &~u_this.i; off = u_tmp.c;
-
-		/* Control sequences based on ECMA-48,
-		   http://www.ecma-international.org/ */
-
-		if (chg.size)
-			switch (this.size) {
-			case VBI_NORMAL_SIZE:
-				p = stpcpy2 (p, "\e#5");
-				break;
-			case VBI_DOUBLE_WIDTH:
-				p = stpcpy2 (p, "\e#6");
-				break;
-			case VBI_DOUBLE_HEIGHT:
-			case VBI_DOUBLE_HEIGHT2:
-				break; /* ignore */
-			case VBI_DOUBLE_SIZE:
-				p = stpcpy2 (p, "\e#3");
-				break;
-			case VBI_DOUBLE_SIZE2:
-				p = stpcpy2 (p, "\e#4");
-				break;
-			case VBI_OVER_TOP:
-			case VBI_OVER_BOTTOM:
-				return -1; /* don't print */
-			}
-
-		/* SGR sequence */
-
-		p = stpcpy2 (p, "\e["); /* CSI */
-
-		if (text->term == TERMINAL_VT100) {
-			if (off.underline || off.bold || off.flash) {
-				*p++ = ';'; /* \e[0; reset */
-				chg.underline = this.underline;
-				chg.bold = this.bold;
-				chg.flash = this.flash;
-				chg.foreground = ~0;
-				chg.background = ~0;
-			}
-		}
-
-		if (chg.bold) {
-			if (this.bold)
-				p = stpcpy2 (p, "1;"); /* bold */
-			else
-				p = stpcpy2 (p, "22;"); /* bold off */
-		}
-
-		if (chg.italic) {
-			if (!this.italic)
-				*p++ = '2'; /* off */
-			p = stpcpy2 (p, "3;"); /* italic */
-		}
-
-		if (chg.underline) {
-			if (!this.underline)
-				*p++ = '2'; /* off */
-			p = stpcpy2 (p, "4;"); /* underline */
-		}
-
-		if (chg.flash) {
-			if (!this.flash)
-				*p++ = '2'; /* steady */
-			p = stpcpy2 (p, "5;"); /* slowly blinking */
-		}
-
-
-		/* ECMA-48 SGR offers conceal/reveal code, but we don't
-		   know if the terminal implements this correctly as
-		   requested by the caller. Proportional spacing needs
-		   further investigation. */
-
-		if (chg.foreground) {
-			p = stpcpy2 (p, "30;");
-			p[-2] += match_color8 (pg->color_map[this.foreground]);
-		}
-
-		if (chg.background) {
-			p = stpcpy2 (p, "40;");
-			p[-2] += match_color8 (pg->color_map[this.background]);
-		}
-
-		if (p[-1] == '[')
-			p -= 2; /* no change */
-		else
-			p[-1] = 'm'; /* replace last semicolon */
-	}
-
-	if (!vbi_is_print (this.unicode)) {
-		if (vbi_is_gfx (this.unicode))
-			*p = text->gfx_chr;
-		else
-			*p = 0x0020;
-	} else {
-		*p = this.unicode;
-	}
-
-	p++;
-
-	d = text->buf;
-
-	if (!vbi_iconv (text->cd, &d, sizeof (text->buf), buf, p - buf)) {
-		vbi_export_write_error (&text->export);
-		return 0;
-	}
-
-	return d - text->buf;
+	putwc (text, c);
 }
 
 static vbi_bool
 export				(vbi_export *		e,
 				 FILE *			fp,
-				 vbi_page *		pg)
+				 const vbi_page *	pg)
 {
 	text_instance *text = PARENT (e, text_instance, export);
-	vbi_page page;
-	vbi_char *cp, old;
-	int column, row, n;
+	const vbi_char *acp;
+	vbi_char last;
+	unsigned int row;
+	unsigned int column;
 	const char *charset;
+	unsigned int size;
+
+	create_palette (text, pg);
+
+	text->text.bp = text->text.buffer;
+
+	acp = pg->text;
+
+	SET (last);
+
+	for (row = 0; row < pg->rows; ++row) {
+		uint16_t *d;
+
+		for (column = 0; column < pg->columns; ++column) {
+			if (TERMINAL_NONE != text->term) {
+				if (put_attr (text, last, *acp))
+					xputwc (text, acp->unicode);
+
+				last = *acp;
+			} else {
+				xputwc (text, acp->unicode);
+			}
+
+			++acp;
+		}
+
+		if (text->text.bp + 4 >= text->text.end)
+			extend (text, &text->text);
+
+		d = text->text.bp;
+
+		if (row + 1 >= pg->rows) {
+			if (TERMINAL_NONE != text->term) {
+				d[0] = 27; /* reset */
+				d[1] = '[';
+				d[2] = 'm';
+				d += 3;
+			}
+		}
+
+		d[0] = '\n';
+
+		text->text.bp = d + 1;
+	}
 
 	if (text->charset && text->charset[0])
 		charset = text->charset;
 	else
 		charset = iconv_formats[text->format];
 
-	text->cd = vbi_iconv_open (charset, NULL, 0); // XXX dstp
+	size = text->text.bp - text->text.buffer;
 
-	if (text->cd == (iconv_t) -1) {
-		vbi_export_error_printf (&text->export,
-			_("Character conversion Unicode (UCS-2) to %s not supported."),
-			charset);
-
+	if (!vbi_stdio_iconv_ucs2 (fp, charset, text->text.buffer, size)) {
+		vbi_export_write_error (&text->export);
 		return FALSE;
 	}
 
-	page = *pg;
-
-	/* optimize */
-
-	SET (old);
-
-	for (cp = page.text, row = 0;;) {
-		char *d;
-
-		for (column = 0; column < pg->columns; column++) {
-			n = print_char(text, &page, old, *cp);
-
-			if (n < 0) {
-				; /* skipped */
-			} else if (n == 0) {
-				goto error2;
-			} else if (n == 1) {
-				fputc (text->buf[0], fp);
-			} else {
-				fwrite (text->buf, 1, n, fp);
-			}
-
-			old = *cp++;
-		}
-
-		row++;
-
-		d = text->buf;
-
-		if (row >= pg->rows) {
-			if (text->term > 0) {
-				static const uint16_t buf[] = { '\e', '[', 'm', '\n' };
-
-				if (!vbi_iconv (text->cd, &d, sizeof (text->buf), buf, 4))
-					goto error;
-			} else {
-				if (!vbi_iconv_unicode (text->cd, &d, sizeof (text->buf), '\n'))
-					goto error;
-			}
-
-			fwrite (text->buf, 1, d - text->buf, fp);
-
-			break;
-		} else {
-			if (!vbi_iconv_unicode (text->cd, &d, sizeof (text->buf), '\n'))
-				goto error;
-
-			fwrite (text->buf, 1, d - text->buf, fp);
-		}
-	}
-
-	vbi_iconv_close (text->cd);
-
-	return !ferror (fp);
-
- error:
-	vbi_export_write_error (&text->export);
- error2:
-	iconv_close (text->cd);
-	return FALSE;
+	return TRUE;
 }
 
-static vbi_export_info
-info_text = {
-	.keyword	= "text",
-	.label		= N_("Text"),
-	.tooltip	= N_("Export this page as text file"),
+static const vbi_export_info
+export_info = {
+	.keyword		= "text",
+	.label			= N_("Text"),
+	.tooltip		= N_("Export this page as text file"),
 
-	.mime_type	= "text/plain",
-	.extension	= "txt",
+	.mime_type		= "text/plain",
+	.extension		= "txt",
 };
 
-vbi_export_class
-vbi_export_class_text = {
-	._public		= &info_text,
+const vbi_export_module
+vbi_export_module_text = {
+	.export_info		= &export_info,
+
 	._new			= text_new,
 	._delete		= text_delete,
-	.option_enum		= option_enum,
+
+	.option_info		= option_info,
+	.option_info_size	= N_ELEMENTS (option_info),
+
 	.option_get		= option_get,
 	.option_set		= option_set,
+
 	.export			= export
 };

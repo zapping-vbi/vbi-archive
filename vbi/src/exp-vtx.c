@@ -8,7 +8,8 @@
  *  Copyright (C) 1999 Paul Ortyl <ortylp@from.pl>
  *
  *  Based on code from VideoteXt 0.6
- *  Copyright (C) 1995, 1996, 1997 Martin Buck <martin-2.buck@student.uni-ulm.de>
+ *  Copyright (C) 1995, 1996, 1997 Martin Buck
+ *    <martin-2.buck@student.uni-ulm.de>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,18 +26,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.4.2.2 2003-06-16 06:05:24 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.4.2.3 2004-02-25 17:35:28 mschimek Exp $ */
 
-/*
- *  VTX is the file format used by the VideoteXt application. It stores
- *  Teletext pages in raw level 1.0 format. Level 1.5 additional characters
- *  (e.g. accents), the FLOF and TOP navigation bars and the level 2.5
- *  chrome will be lost. (People interested in an XML based successor to
- *  VTX drop us a mail.)
- *
- *  Since restoring the raw page from a fmt_page is complicated we violate
- *  encapsulation by fetching a raw copy from the cache. :-(
- */
+/* VTX is the file format used by the VideoteXt application. It stores
+   Teletext pages in raw level 1.0 format. Level 1.5 additional characters
+   (e.g. accents), the FLOF and TOP navigation bars and the level 2.5
+   chrome will be lost.
+ 
+   Since restoring the raw page from a fmt_page is complicated we violate
+   encapsulation by fetching a raw copy from the cache. :-( */
 
 #include "../config.h"
 
@@ -53,14 +51,14 @@
 #include "export.h"
 
 struct header {
-	char			signature[5];
-	unsigned char		pagenum_l;
-	unsigned char		pagenum_h;
-	unsigned char		hour;
-	unsigned char		minute;
-	unsigned char		charset;
-	unsigned char		wst_flags;
-	unsigned char		vtx_flags;
+	uint8_t			signature[5];
+	uint8_t			pagenum_l;
+	uint8_t			pagenum_h;
+	uint8_t			hour;
+	uint8_t			minute;
+	uint8_t			charset;
+	uint8_t			wst_flags;
+	uint8_t			vtx_flags;
 };
 
 /*
@@ -70,13 +68,14 @@ struct header {
 static vbi_bool
 export				(vbi_export *		e,
 				 FILE *			fp,
-				 vbi_page *		pg)
+				 const vbi_page *	pg)
 {
 	const vt_page *vtp;
 	struct header h;
 
 	if (pg->pgno < 0x100 || pg->pgno > 0x8FF) {
-		vbi_export_error_printf (e, _("Can only export Teletext pages."));
+		vbi_export_error_printf
+			(e, _("Can only export Teletext pages."));
 		return FALSE;
 	}
 
@@ -95,7 +94,8 @@ export				(vbi_export *		e,
 
 	if (vtp->function != PAGE_FUNCTION_UNKNOWN
 	    && vtp->function != PAGE_FUNCTION_LOP) {
-		vbi_export_error_printf (e, _("Cannot export this page, not displayable."));
+		vbi_export_error_printf
+			(e, _("Cannot export this page, not displayable."));
 		goto error;
 	}
 
@@ -133,24 +133,23 @@ export				(vbi_export *		e,
 	return FALSE;
 }
 
-static vbi_export_info
-info_vtx = {
-	.keyword	= "vtx",
-	.label		= N_("VTX"),
-	.tooltip	= N_("Export this page as VTX file, the format "
-			     "used by VideoteXt and vbidecode"),
+static const vbi_export_info
+export_info = {
+	.keyword		= "vtx",
+	.label			= N_("VTX"),
+	.tooltip		= N_("Export this page as VTX file, the "
+				     "format used by VideoteXt and vbidecode"),
 
 	/* From VideoteXt examples/mime.types */
-	.mime_type	= "application/videotext",
-	.extension	= "vtx",
+	.mime_type		= "application/videotext",
+	.extension		= "vtx",
 };
 
-vbi_export_class
-vbi_export_class_vtx = {
-	._public		= &info_vtx,
+const vbi_export_module
+vbi_export_module_vtx = {
+	.export_info		= &export_info,
 
 	/* no private data, no options */
+
 	.export			= export
 };
-
-VBI_AUTOREG_EXPORT_MODULE (vbi_export_class_vtx)

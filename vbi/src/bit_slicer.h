@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.h,v 1.1.2.1 2004-01-30 00:39:28 mschimek Exp $ */
+/* $Id: bit_slicer.h,v 1.1.2.2 2004-02-25 17:35:27 mschimek Exp $ */
 
 #ifndef BIT_SLICER_H
 #define BIT_SLICER_H
@@ -60,6 +60,8 @@ typedef enum {
  * @brief Bit slicer context.
  *
  * The contents of this structure are private.
+ *
+ * Call vbi_bit_slicer_new() to allocate a bit slicer context.
  */
 typedef struct _vbi_bit_slicer vbi_bit_slicer;
 

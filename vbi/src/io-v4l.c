@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.5 2004-01-30 00:43:03 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.6 2004-02-25 17:35:28 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -545,7 +545,7 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 	char *driver_name = _("driver unknown");
 	vbi_capture_v4l *v;
 
-	pthread_once (&vbi_init_once, vbi_init);
+	//	pthread_once (&vbi_init_once, vbi_init);
 
 	assert(services && *services != 0);
 
@@ -908,7 +908,7 @@ vbi_capture_v4l_sidecar_new(const char *dev_name, int given_fd,
 			    unsigned int *services, int strict,
 			    char **errorstr, vbi_bool trace)
 {
-	pthread_once (&vbi_init_once, vbi_init);
+  //	pthread_once (&vbi_init_once, vbi_init);
 	vbi_asprintf(errorstr, _("V4L interface not compiled."));
 	return NULL;
 }
@@ -918,7 +918,7 @@ vbi_capture_v4l_new(const char *dev_name, int scanning,
 		     unsigned int *services, int strict,
 		     char **errorstr, vbi_bool trace)
 {
-	pthread_once (&vbi_init_once, vbi_init);
+  //	pthread_once (&vbi_init_once, vbi_init);
 	vbi_asprintf(errorstr, _("V4L interface not compiled."));
 	return NULL;
 }

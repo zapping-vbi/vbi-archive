@@ -21,11 +21,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.h,v 1.5.2.2 2003-06-16 06:05:24 mschimek Exp $ */
+/* $Id: exp-txt.h,v 1.5.2.3 2004-02-25 17:35:28 mschimek Exp $ */
 
 #ifndef EXP_TXT_H
 #define EXP_TXT_H
 
+#include <stdarg.h>
 #include "format.h"
 
 /* Public */
@@ -35,23 +36,41 @@
  * @{
  */
 extern unsigned int
-vbi_print_page_region		(vbi_page *		pg,
-				 char *			buf,
-				 unsigned int		buf_size,
+vbi_print_page_region_va_list	(vbi_page *		pg,
+				 char *			buffer,
+				 unsigned int		buffer_size,
 				 const char *		format,
 				 const char *		separator,
-				 unsigned int		sep_size,
-				 vbi_export_flags	flags,
+				 unsigned int		separator_size,
 				 unsigned int		column,
 				 unsigned int		row,
 				 unsigned int		width,
-				 unsigned int		height);
+				 unsigned int		height,
+				 va_list		export_options);
+extern unsigned int
+vbi_print_page_region		(vbi_page *		pg,
+				 char *			buffer,
+				 unsigned int		buffer_size,
+				 const char *		format,
+				 const char *		separator,
+				 unsigned int		separator_size,
+				 unsigned int		column,
+				 unsigned int		row,
+				 unsigned int		width,
+				 unsigned int		height,
+				 ...);
+extern unsigned int
+vbi_print_page_va_list		(vbi_page *		pg,
+				 char *			buffer,
+				 unsigned int		buffer_size,
+				 const char *		format,
+				 va_list		export_options);
 extern unsigned int
 vbi_print_page			(vbi_page *		pg,
-				 char *			buf,
-				 unsigned int		buf_size,
+				 char *			buffer,
+				 unsigned int		buffer_size,
 				 const char *		format,
-				 vbi_export_flags	flags);
+				 ...);
 /** @} */
 
 /* Private */

@@ -1,3 +1,98 @@
+2004-02-25    <mschimek@users.sf.net>
+
+	* test/explist.c: dcgettext no longer necessary. 
+	* test/glyph.c, test/unicode.c: Use now public library functions to
+	  convert Teletext to Unicode.
+	* test/decode.c: New file.
+	* test/capture.c: Replaced VPS code by new library routines, moved
+	  some code into decode.c.
+	  (main): Added VBI_SLICED_VPS_F2 to output services. 
+	* test/Makefile.am: New file decode.c.
+	* src/xds.c (vbi_decode_xds_impulse_capture_id),
+	  src/vps.c (vbi_decode_vps_pdc): Added missing PDC (8302) flags.
+	* src/search.c, src/search.h: s/vbi_search_new/vbi_search_ucs2_new.
+	  Added vbi_search_utf8_new() which takes search string in UTF-8
+	  instead of UCS-2 encoding.  
+	  (vbi_search_next, vbi_search_next_va_list): Now takes Teletext
+	  page formatting options like vbi_format_vt_page(). Some doc
+	  and type fixes.
+	* src/pdc.h (VBI_PIL_MINUTE): Fixed.
+	  (vbi_program_id): Added mising PDC flags.
+	* src/pdc.c, src/pdc.h:
+	  (vbi_program_id_dump): Added.
+	* src/vbi.h, src/packet.c, src/packet-pfc.c, src/packet-pfc.h:
+	  Moved page format clear demux code into packet-pfc.c, packet-pfc.h.
+	* src/vt.h, src/packet.c, src/teletext.c: New Teletext page
+	  formatting option to set a default character set, another
+	  to override completely. vbi_teletext_set_default_region()
+	  obsolete now.
+	* src/network.c, src/network.h: Station names in struct vbi_network
+	  now in locale encoding instead of Latin-1. Country codes now
+	  client visible. Added country code from call sign. Added PDC-A
+	  CNI. CNI table updates.
+	* src/lang.c, src/lang.h: Teletext character set table now client
+	  accessible. Restored ASCII art replacement for Teletext gfx chars.
+	  Teletext and Closed Caption to Unicode functions now public.
+	* src/exp-txt.c, src/exp-html.c: Added export option to convert
+	  Teletext gfx chars to ASCII art.
+	* src/export.h, src/export.c, src/exp-vtx.c,
+	  src/exp-txt.c, src/exp-templ.c, src/exp-html.c, src/exp-gfx.c,
+	  Simplified the internal export interface. Const pointer fixes.
+	  Modifications for internal l10n of strings, no more dcgettext in
+	  clients necessary.
+	* src/exp-gfx.c (unicode_wstfont2_special): Replaced private code
+	  for Turkish currency sign (0xE800) by 0x20A4, 'LIRA SIGN Italy,
+	  Turkey' according to Unicode 3.1.
+	* src/event.h: struct pfc_block moved into new file packet-pfc.h.
+	* src/teletext.c, src/exp-gfx.c, src/exp-txt.c, src/exp-html.c,
+	  src/misc.h, src/format.h, src/caption.c:
+	  Replaced vbi_char flags bitfield by int. Bitfields are nice but
+	  difficult to port. Added COPY_SET_MASK, COPY_SET_COND helper macros
+	  to misc.h.
+	* src/caption.c (vbi_caption_color_level): vbi_transp_colomap
+	  obsolete, this is now implemented in export functions.
+	* src/Makefile.am: New files.
+	* doc/Doxyfile, doc/Doxyfile.in: New files.
+
+2004-02-18    <mschimek@users.sf.net>
+
+	* test/export.c: Test link callbacks. 
+	* src/vt.h: Magic numbers instead of 0++ for format options, less
+	  likely to be confused with incorrect parameters.
+	* src/vbi.c, src/vbi.h: (vbi_transp_colormap, vbi_set_brightness,
+	  vbi_set_contrast): Removed. Brightness and contrast are export
+	  module options now. 
+	* src/teletext.c (vbi_page_character_set): New function for
+	  html export since pg->font moved into vbi_page_private.
+	  (hyperlinks): Fixed.
+	  (top_index, vbi_format_vt_page_va_list): Replaced
+	  vbi_transp_colormap by straight copy, brightness and contrast
+	  change now in export modules.
+	* src/packet.c (vbi_convert_raw_page, vbi_convert_cached_page):
+	  vt_page copy size fix, tnx to valgrind. 
+	* src/misc.h: Moved NLS definitions into iconv.h.
+	* src/format.h: Replaced export flags by option va_list.
+	* src/export.c, src/export.h: Moved _zvbi_intl_domainname and iconv
+	  routines into iconv.c. Added callback interface for link export
+	  (currently supported for html only).
+	* src/exp-txt.c, src/exp-txt.h: Added output buffer and faster
+	  single pass iconv. iconv to file moved into iconv.c.
+	  (vbi_print_page_region, vbi_print_page): Replaced export flags
+	  by option va_list. Added vbi_print_page_region_va_list(),
+	  vbi_print_page_va_list().
+	  (export): Translate color map in advance.
+	* src/exp-html.c: Rewrote with output buffer, added link
+	  callbacks. Replaced different charsets by UTF-8 with faster inline
+	  conversion.
+	* src/exp-gfx.c, src/exp-gfx.h:
+	  (vbi_rgba_conv): Added brightness, contrast parameters. 
+	  (vbi_draw_cc_page_region, vbi_draw_cc_page): Replaced export flags
+	  by option va_list. Added brightness, contrast options. Added
+	  vbi_draw_cc_page_region_va_list(),
+	  vbi_draw_cc_page_va_list(). vbi_draw_vt_page* see
+	  vbi_draw_cc_page*.
+	* src/Makefile.am: New files conv.c, conv.h. 
+
 2004-02-13    <mschimek@users.sf.net>
 
 	* xds.c, xds.h: New file. XDS code moved here from caption.c. New

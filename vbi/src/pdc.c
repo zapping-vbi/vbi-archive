@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.1 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.2 2004-02-25 17:35:29 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -62,12 +62,49 @@ vbi_pil_dump			(vbi_pil		pil,
 		fputs ("No time", fp);
 		break;
 
+	/* ZDF line 329: 15-01 30:63 -? */
+
 	default:
 		fprintf (fp, "%05x (%02u-%02u %02u:%02u)",
 			 pil,
 			 VBI_PIL_MONTH (pil), VBI_PIL_DAY (pil),
 			 VBI_PIL_HOUR (pil), VBI_PIL_MINUTE (pil));
 	}
+}
+
+/**
+ * @internal
+ */
+void
+vbi_program_id_dump		(const vbi_program_id *	pi,
+				 FILE *			fp)
+{
+	static const char *pcs_audio [] = {
+		"UNKNOWN",
+		"MONO",
+		"STEREO",
+		"BILINGUAL"
+	};
+
+	fprintf (fp, "nuid=%llx ", pi->nuid);
+
+	if (0) {
+		fprintf (fp, "%02u-%02u %02u:%02u pil=",
+			 pi->month + 1, pi->day + 1,
+			 pi->hour, pi->minute);
+	} else {
+		fprintf (fp, "pil=");
+	}
+
+	vbi_pil_dump (pi->pil, fp);
+
+	fprintf (fp, " length=%u "
+		 "lci=%u luf=%u mi=%u prf=%u "
+		 "pcs=%s pty=%02x td=%u\n",
+		 pi->length,
+		 pi->lci, pi->luf, pi->mi, pi->prf,
+		 pcs_audio[pi->pcs_audio],
+		 pi->pty, pi->tape_delayed);
 }
 
 /**
@@ -542,13 +579,14 @@ vbi_page_mark_pdc		(vbi_page *		pg,
 				   standpoint it's better to make the
 				   sensitive area larger. */
 				for (j = 0; j < pg->columns; ++j) {
-					acp[j].pdc = TRUE;
+					acp[j].attr |= VBI_PDC;
 
 					switch (acp[j].size) {
 					case VBI_DOUBLE_HEIGHT:
 					case VBI_DOUBLE_SIZE:
 					case VBI_OVER_TOP:
-						acp[pg->columns].pdc = TRUE;
+						acp[pg->columns].attr |=
+							VBI_PDC;
 						break;
 
 					default:

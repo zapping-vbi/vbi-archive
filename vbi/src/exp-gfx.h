@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.h,v 1.2.2.3 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: exp-gfx.h,v 1.2.2.4 2004-02-25 17:35:28 mschimek Exp $ */
 
 #ifndef EXP_GFX_H
 #define EXP_GFX_H
@@ -32,38 +32,68 @@
 
 /* Public */
 
+#include <stdarg.h>
+
 /**
  * @addtogroup Render
  * @{
  */
 extern vbi_bool
-vbi_draw_vt_page_region		(const vbi_page *	pg,
+vbi_draw_vt_page_region_va_list	(const vbi_page *	pg,
 				 void *			buffer,
 				 const vbi_image_format *format,
-				 vbi_export_flags	flags,
 				 unsigned int		column,
 				 unsigned int		row,
 				 unsigned int		width,
-				 unsigned int		height);
+				 unsigned int		height,
+				 va_list		export_options);
+extern vbi_bool
+vbi_draw_vt_page_region		(const vbi_page *	pg,
+				 void *			buffer,
+				 const vbi_image_format *format,
+				 unsigned int		column,
+				 unsigned int		row,
+				 unsigned int		width,
+				 unsigned int		height,
+				 ...);
+extern vbi_bool
+vbi_draw_vt_page_va_list	(const vbi_page *	pg,
+				 void *			buffer,
+				 const vbi_image_format *format,
+				 va_list		export_options);
 extern vbi_bool
 vbi_draw_vt_page		(const vbi_page *	pg,
 				 void *			buffer,
 				 const vbi_image_format *format,
-				 vbi_export_flags	flags);
+				 ...);
+extern vbi_bool
+vbi_draw_cc_page_region_va_list	(const vbi_page *	pg,
+				 void *			buffer,
+				 const vbi_image_format *format,
+				 unsigned int		column,
+				 unsigned int		row,
+				 unsigned int		width,
+				 unsigned int		height,
+				 va_list		export_options);
 extern vbi_bool
 vbi_draw_cc_page_region		(const vbi_page *	pg,
 				 void *			buffer,
 				 const vbi_image_format *format,
-				 vbi_export_flags	flags,
 				 unsigned int		column,
 				 unsigned int		row,
 				 unsigned int		width,
-				 unsigned int		height);
+				 unsigned int		height,
+				 ...);
+extern vbi_bool
+vbi_draw_cc_page_va_list	(const vbi_page *	pg,
+				 void *			buffer,
+				 const vbi_image_format *format,
+				 va_list		export_options);
 extern vbi_bool
 vbi_draw_cc_page		(const vbi_page *	pg,
 				 void *			buffer,
 				 const vbi_image_format *format,
-				 vbi_export_flags	flags);
+				 ...);
 /** @} */
 
 /* Private */

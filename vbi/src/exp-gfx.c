@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.7.2.2 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.7.2.3 2004-02-25 17:35:28 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -69,7 +69,7 @@ unicode_wstfont2_special	(unsigned int		c,
 		0x02C7, 0x02C9, 0x02CA, 0x02CB, 0x02CD, 0x02CF, 0x02D8, 0x02D9,
 		0x02DA, 0x02DB, 0x02DC, 0x2014, 0x2018, 0x2019, 0x201C,	0x201D,
 		0x20A0, 0x2030, 0x20AA, 0x2122, 0x2126, 0x215B, 0x215C, 0x215D,
-		0x215E, 0x2190, 0x2191, 0x2192, 0x2193, 0x25A0, 0x266A, 0xE800,
+		0x215E, 0x2190, 0x2191, 0x2192, 0x2193, 0x25A0, 0x266A, 0x20A4,
 		0xE75F };
 	const unsigned int invalid = 357;
 	unsigned int i;
@@ -241,30 +241,40 @@ line_doubler			(void *			buffer,
 	 + (((m) & 0xFF00) << 16)					\
 	 + (((m) & 0xFF) << 8))
 
-#define RGBA_CONVC(v, n, m)						\
-	((FFS32 (m) > n) ?						\
-	 (v << (FFS32 (m) - n)) & m :					\
-	 (v >> (n - FFS32 (m))) & m)
+#define TRANS(v)							\
+	SATURATE((((((int)((v) & 0xFF) - 128)				\
+		  * contrast) >> 6) + brightness), 0, 255)
 
-/* Converts 0xAABBGGRR value v to another value, shifting and masking
+#define CONV(v, n, m)							\
+	((FFS32 (m) > n) ?						\
+	 ((v) << (FFS32 (m) - n)) & m :					\
+	 ((v) >> (n - FFS32 (m))) & m)
+
+#define TRANS_CONV(v, n, m)						\
+	((FFS32 (m) > 8) ?						\
+	 (TRANS ((v) >> (n - 8)) << (FFS32 (m) - 8)) & m :		\
+	 (TRANS ((v) >> (n - 8)) >> (8 - FFS32 (m))) & m)
+
+/* Converts 0xAABBGGRR value v to another value, transposing by
+   brightness and contrast, then shifting and masking
    color bits to positions given by r, g, b, a mask */  
 #define RGBA_CONV(v, r, g, b, a)					\
-	(+ RGBA_CONVC (v, 8, r)						\
-	 + RGBA_CONVC (v, 16, g)					\
-	 + RGBA_CONVC (v, 24, b)					\
-	 + RGBA_CONVC (v, 32, a))
+	(+ TRANS_CONV (v, 8, r)						\
+	 + TRANS_CONV (v, 16, g)					\
+	 + TRANS_CONV (v, 24, b)					\
+	 + CONV (v, 32, a))
 
 /* Like RGBA_CONV for reversed endian */
 #define RGBA_CONV_SWAB32(v, r, g, b, a)					\
-	(+ RGBA_CONVC (v, 8, SWAB32 (r))				\
-	 + RGBA_CONVC (v, 16, SWAB32 (g))				\
-	 + RGBA_CONVC (v, 24, SWAB32 (b))				\
-	 + RGBA_CONVC (v, 32, SWAB32 (a)))
+	(+ TRANS_CONV (v, 8, SWAB32 (r))				\
+	 + TRANS_CONV (v, 16, SWAB32 (g))				\
+	 + TRANS_CONV (v, 24, SWAB32 (b))				\
+	 + CONV (v, 32, SWAB32 (a)))
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 
 #define RGBA_CONV4(r, g, b, a, endian)					\
-	while (n-- > 0) {						\
+	while (color_size-- > 0) {					\
 		unsigned int value = *color++;				\
 									\
 		if (0 == endian)					\
@@ -275,7 +285,7 @@ line_doubler			(void *			buffer,
 	}
 
 #define RGBA_CONV2(r, g, b, a, endian)					\
-	while (n-- > 0) {						\
+	while (color_size-- > 0) {					\
 		unsigned int value = *color++;				\
 									\
 		value = RGBA_CONV (value, r, g, b, a);			\
@@ -291,7 +301,7 @@ line_doubler			(void *			buffer,
 #elif __BYTE_ORDER == __BIG_ENDIAN
 
 #define RGBA_CONV4(r, g, b, a, endian)					\
-	while (n-- > 0) {						\
+	while (color_size-- > 0) {					\
 		unsigned int value = *color++;				\
 									\
 		if (0 == endian)					\
@@ -302,7 +312,7 @@ line_doubler			(void *			buffer,
 	}
 
 #define RGBA_CONV2(r, g, b, a, endian)					\
-	while (n-- > 0) {						\
+	while (color_size-- > 0) {					\
 		unsigned int value = *color++;				\
 									\
 		value = RGBA_CONV (value, r, g, b, a);			\
@@ -320,7 +330,7 @@ line_doubler			(void *			buffer,
 #endif
 
 #define RGBA_CONV1(r, g, b, a)						\
-	while (n-- > 0) {						\
+	while (color_size-- > 0) {					\
 		unsigned int value = *color++;				\
 									\
 		*d++ = RGBA_CONV (value, r, g, b, a);			\
@@ -332,7 +342,11 @@ line_doubler			(void *			buffer,
  *   @a n entries of vbi_pixfmt_bytes_per_pixel(@a pixfmt) each.
  * @param pixfmt Pixel format to convert to.
  * @param color Array of vbi_rgba types.
- * @param color_size Size of @a color array, number of entries.
+ * @param color_size Number of elements in @a color array.
+ * @param brightness Change brightness: 0 dark ... 255 bright, 128
+ *   for no change.
+ * @param contrast Change contrast: -128 inverse ... 0 none ...
+ *   127 maximum, 64 for no change.
  *
  * Converts vbi_rgba types to pixels of desired format.
  *
@@ -346,7 +360,9 @@ static vbi_bool
 vbi_rgba_conv			(void *			buffer,
 				 vbi_pixfmt		pixfmt,
 				 const vbi_rgba *	color,
-				 unsigned int		n)
+				 unsigned int		color_size,
+				 int			brightness,
+				 int			contrast)
 {
 	uint8_t *d = buffer;
 
@@ -365,22 +381,22 @@ vbi_rgba_conv			(void *			buffer,
 		break;
 
 	case VBI_PIXFMT_RGB24_LE:
-		while (n-- > 0) {
+		while (color_size-- > 0) {
 			unsigned int value = *color++;
 
-			d[0] = value;
-			d[1] = value >> 8;
-			d[2] = value >> 16;
+			d[0] = TRANS (value & 0xFF);
+			d[1] = TRANS ((value >> 8) & 0xFF);
+			d[2] = TRANS ((value >> 16) & 0xFF);
 			d += 3;
 		}
 		break;
 	case VBI_PIXFMT_RGB24_BE:
-		while (n-- > 0) {
+		while (color_size-- > 0) {
 			unsigned int value = *color++;
 
-			d[0] = value >> 16;
-			d[1] = value >> 8;
-			d[2] = value;
+			d[0] = TRANS ((value >> 16) & 0xFF);
+			d[1] = TRANS ((value >> 8) & 0xFF);
+			d[2] = TRANS (value & 0xFF);
 			d += 3;
 		}
 		break;
@@ -694,9 +710,10 @@ do {									\
 	DRAW_CHAR (canvas, bytes_per_pixel, bytes_per_line,		\
 		   pen,							\
 		   ccfont3_bits, CCPL, CCW, CCH,			\
-		   unicode_ccfont3 (ac->unicode, ac->italic),		\
+		   unicode_ccfont3 (ac->unicode,			\
+				    ac->attr & VBI_ITALIC),		\
 		   /* bold */ 0,					\
-		   ac->underline << 12 /* cell row 12 */,		\
+		   (!!(ac->attr & VBI_UNDERLINE)) << 12 /* cell row */, \
 		   VBI_NORMAL_SIZE);					\
 } while (0)
 
@@ -723,15 +740,18 @@ do {									\
  * YUV pixel formats are not supported.
  */
 vbi_bool
-vbi_draw_cc_page_region		(const vbi_page *	pg,
+vbi_draw_cc_page_region_va_list	(const vbi_page *	pg,
 				 void *			buffer,
 				 const vbi_image_format *format,
-				 vbi_export_flags	flags,
 				 unsigned int		column,
 				 unsigned int		row,
 				 unsigned int		width,
-				 unsigned int		height)
+				 unsigned int		height,
+				 va_list		export_options)
 {
+	vbi_bool option_scale;
+	int brightness;
+	int contrast;
 	unsigned int color_map [N_ELEMENTS (pg->color_map)];
 	uint8_t *canvas;
 	unsigned int scaled_height;
@@ -760,7 +780,45 @@ vbi_draw_cc_page_region		(const vbi_page *	pg,
 		}
 	}
 
-	scaled_height = (flags & VBI_SCALE) ? 26 : 13;
+	option_scale = FALSE;
+	brightness = 128;
+	contrast = 64;
+
+	for (;;) {
+		vbi_export_option option;
+
+		option = va_arg (export_options, vbi_export_option);
+
+		switch (option) {
+		case VBI_TABLE:
+		case VBI_RTL:
+		case VBI_REVEAL:
+		case VBI_FLASH_ON:
+			va_arg (export_options, vbi_bool);
+			break;
+
+		case VBI_SCALE:
+			option_scale = va_arg (export_options, vbi_bool);
+			break;
+
+		case VBI_BRIGHTNESS:
+			brightness = va_arg (export_options, int);
+			break;
+
+		case VBI_CONTRAST:
+			contrast = va_arg (export_options, int);
+			break;
+
+		default:
+			option = 0;
+			break;
+		}
+
+		if (0 == option)
+			break;
+	}
+
+	scaled_height = option_scale ? 26 : 13;
 
 	if (width * 16 > format->width
 	    || height * scaled_height > format->height) {
@@ -773,7 +831,8 @@ vbi_draw_cc_page_region		(const vbi_page *	pg,
 	}
 
 	if (!vbi_rgba_conv (color_map, format->pixfmt,
-			    pg->color_map, N_ELEMENTS (pg->color_map)))
+			    pg->color_map, N_ELEMENTS (pg->color_map),
+			    brightness, contrast))
 		return FALSE;
 
 	canvas = ((uint8_t *) buffer) + format->offset;
@@ -796,7 +855,7 @@ vbi_draw_cc_page_region		(const vbi_page *	pg,
 
 	if (size > format->size) {
 		vbi_log_printf (__FUNCTION__,
-				"Image %u x %u, offset %u, bytes_per_line %u "
+				"Image %u x %u, offset %u, bytes_per_line %u " 
 				"> buffer size %u = 0x%08x",
 				format->width, format->height,
 				format->offset, bytes_per_line,
@@ -804,7 +863,7 @@ vbi_draw_cc_page_region		(const vbi_page *	pg,
 		return FALSE;
 	}
 
-	if (flags & VBI_SCALE)
+	if (option_scale)
 		bytes_per_line *= 2;
 
 	row_adv = bytes_per_line * CCH - bytes_per_pixel * width * CCW;
@@ -882,10 +941,32 @@ vbi_draw_cc_page_region		(const vbi_page *	pg,
 		assert (0);
 	}
 
-	if (flags & VBI_SCALE)
+	if (option_scale)
 		line_doubler (buffer, format);
 
 	return TRUE;
+}
+
+vbi_bool
+vbi_draw_cc_page_region		(const vbi_page *	pg,
+				 void *			buffer,
+				 const vbi_image_format *format,
+				 unsigned int		column,
+				 unsigned int		row,
+				 unsigned int		width,
+				 unsigned int		height,
+				 ...)
+{
+	vbi_bool r;
+	va_list export_options;
+
+	va_start (export_options, height);
+	r = vbi_draw_cc_page_region_va_list (pg, buffer, format,
+					     column, row, width, height,
+					     export_options);
+	va_end (export_options);
+
+	return r;
 }
 
 /**
@@ -911,13 +992,34 @@ vbi_draw_cc_page_region		(const vbi_page *	pg,
  * YUV pixel formats are not supported.
  */
 vbi_bool
+vbi_draw_cc_page_va_list	(const vbi_page *	pg,
+				 void *			buffer,
+				 const vbi_image_format *format,
+				 va_list		export_options)
+{
+	return vbi_draw_cc_page_region_va_list (pg, buffer, format,
+						/* column */ 0, /* row */ 0,
+						pg->columns, pg->rows,
+						export_options);
+}
+
+vbi_bool
 vbi_draw_cc_page		(const vbi_page *	pg,
 				 void *			buffer,
 				 const vbi_image_format *format,
-				 vbi_export_flags	flags)
+				 ...)
 {
-	return vbi_draw_cc_page_region (pg, buffer, format, flags,
-					0, 0, pg->columns, pg->rows);
+	vbi_bool r;
+	va_list export_options;
+
+	va_start (export_options, format);
+	r = vbi_draw_cc_page_region_va_list (pg, buffer, format,
+					     /* column */ 0, /* row */ 0,
+					     pg->columns, pg->rows,
+					     export_options);
+	va_end (export_options);
+
+	return r;
 }
 
 #define DRAW_VT_CHAR(bytes_per_pixel)					\
@@ -928,7 +1030,7 @@ do {									\
 	PIXEL (pen, 0, color_map, ac->background);			\
 	PIXEL (pen, 1, color_map, ac->foreground);			\
 									\
-	unicode = ((ac->conceal & conceal) || (ac->flash & off)) ?	\
+	unicode = (ac->attr & option_space_attr) ?			\
 		0x0020 : ac->unicode;					\
 									\
 	switch (ac->size) {						\
@@ -956,9 +1058,10 @@ do {									\
 				   bytes_per_line, pen,			\
 				   wstfont2_bits, TCPL, TCW, TCH,	\
 				   unicode_wstfont2 (unicode,		\
-						     ac->italic),	\
-				   ac->bold,				\
-				   ac->underline << 9 /* cell row 9 */,	\
+						ac->attr & VBI_ITALIC),	\
+				   ac->attr & VBI_BOLD,			\
+				   (!!(ac->attr & VBI_UNDERLINE)) << 9	\
+					/* cell row 9 */,		\
 				   ac->size);				\
 		}							\
 	}								\
@@ -972,8 +1075,8 @@ do {									\
  *   each.
  * @param flags Optional set of the following flags:
  *   - @c VBI_REVEAL: Draw characters flagged 'conceal' (see vbi_char).
- *   - @c VBI_FLASH_OFF: Draw characters flagged 'flash' (see vbi_char)
- *     in off state, i. e. like a space (U+0020).
+ *   - @c VBI_FLASH_ON: Draw characters flagged 'flash' (see vbi_char)
+ *     in on state, otherwise like a space (U+0020).
  *   - @c VBI_SCALE: Duplicate lines. In this case characters are 12 x 20
  *     pixels, suitable for frame (rather than field) overlay.
  * @param column First source column, 0 ... pg->columns - 1.
@@ -990,15 +1093,19 @@ do {									\
  * YUV pixel formats are not supported.
  */
 vbi_bool
-vbi_draw_vt_page_region		(const vbi_page *	pg,
+vbi_draw_vt_page_region_va_list	(const vbi_page *	pg,
 				 void *			buffer,
 				 const vbi_image_format *format,
-				 vbi_export_flags	flags,
 				 unsigned int		column,
 				 unsigned int		row,
 				 unsigned int		width,
-				 unsigned int		height)
+				 unsigned int		height,
+				 va_list		export_options)
 {
+	vbi_bool option_scale;
+	unsigned int option_space_attr;
+	int brightness;
+	int contrast;
 	unsigned int color_map [N_ELEMENTS (pg->color_map)];
 	uint8_t *canvas;
 	unsigned int scaled_height;
@@ -1006,8 +1113,6 @@ vbi_draw_vt_page_region		(const vbi_page *	pg,
 	unsigned int bytes_per_line;
 	unsigned int size;
 	unsigned int row_adv;
-	unsigned int conceal;
-	unsigned int off;
 
 	if (0) {
 		unsigned int i, j;
@@ -1026,7 +1131,54 @@ vbi_draw_vt_page_region		(const vbi_page *	pg,
 		}
 	}
 
-	scaled_height = (flags & VBI_SCALE) ? 20 : 10;
+	option_scale = FALSE;
+	option_space_attr = 0;
+	brightness = 128;
+	contrast = 64;
+
+	for (;;) {
+		vbi_export_option option;
+
+		option = va_arg (export_options, vbi_export_option);
+
+		switch (option) {
+		case VBI_TABLE:
+		case VBI_RTL:
+			va_arg (export_options, vbi_bool);
+			break;
+
+		case VBI_REVEAL:
+			COPY_SET_COND (option_space_attr, VBI_CONCEAL,
+				       !va_arg (export_options, vbi_bool));
+			break;
+
+		case VBI_FLASH_ON:
+			COPY_SET_COND (option_space_attr, VBI_FLASH,
+				       !va_arg (export_options, vbi_bool));
+			break;
+
+		case VBI_SCALE:
+			option_scale = va_arg (export_options, vbi_bool);
+			break;
+
+		case VBI_BRIGHTNESS:
+			brightness = va_arg (export_options, int);
+			break;
+
+		case VBI_CONTRAST:
+			contrast = va_arg (export_options, int);
+			break;
+
+		default:
+			option = 0;
+			break;
+		}
+
+		if (0 == option)
+			break;
+	}
+
+	scaled_height = option_scale ? 20 : 10;
 
 	if (width * 12 > format->width
 	    || height * scaled_height > format->height) {
@@ -1039,7 +1191,8 @@ vbi_draw_vt_page_region		(const vbi_page *	pg,
 	}
 
 	if (!vbi_rgba_conv (color_map, format->pixfmt,
-			    pg->color_map, N_ELEMENTS (color_map)))
+			    pg->color_map, N_ELEMENTS (color_map),
+			    brightness, contrast))
 		return FALSE;
 
 	canvas = ((uint8_t *) buffer) + format->offset;
@@ -1070,13 +1223,10 @@ vbi_draw_vt_page_region		(const vbi_page *	pg,
 		return FALSE;
 	}
 
-	if (flags & VBI_SCALE)
+	if (option_scale)
 		bytes_per_line *= 2;
 
 	row_adv = bytes_per_line * TCH - bytes_per_pixel * width * TCW;
-
-	conceal = !(flags & VBI_REVEAL);
-	off = !!(flags & VBI_FLASH_OFF);
 
 	switch (bytes_per_pixel) {
 	case 4:
@@ -1191,10 +1341,32 @@ vbi_draw_vt_page_region		(const vbi_page *	pg,
 		assert (0);
 	}
 
-	if (flags & VBI_SCALE)
+	if (option_scale)
 		line_doubler (buffer, format);
 
 	return TRUE;
+}
+
+vbi_bool
+vbi_draw_vt_page_region		(const vbi_page *	pg,
+				 void *			buffer,
+				 const vbi_image_format *format,
+				 unsigned int		column,
+				 unsigned int		row,
+				 unsigned int		width,
+				 unsigned int		height,
+				 ...)
+{
+	vbi_bool r;
+	va_list export_options;
+
+	va_start (export_options, height);
+	r = vbi_draw_vt_page_region_va_list (pg, buffer, format,
+					     column, row, width, height,
+					     export_options);
+	va_end (export_options);
+
+	return r;
 }
 
 /**
@@ -1205,7 +1377,7 @@ vbi_draw_vt_page_region		(const vbi_page *	pg,
  *   each.
  * @param flags Optional set of the following flags:
  *   - @c VBI_REVEAL: Draw characters flagged 'conceal' (see vbi_char).
- *   - @c VBI_FLASH_OFF: Draw characters flagged 'flash' (see vbi_char)
+ *   - @c VBI_FLASH_ON: Draw characters flagged 'flash' (see vbi_char)
  *     in off state, i. e. like a space (U+0020).
  *   - @c VBI_SCALE: Duplicate lines. In this case characters are 12 x 20
  *     pixels, suitable for frame (rather than field) overlay.
@@ -1219,83 +1391,92 @@ vbi_draw_vt_page_region		(const vbi_page *	pg,
  * YUV pixel formats are not supported.
  */
 vbi_bool
+vbi_draw_vt_page_va_list	(const vbi_page *	pg,
+				 void *			buffer,
+				 const vbi_image_format *format,
+				 va_list		export_options)
+{
+	return vbi_draw_vt_page_region_va_list (pg, buffer, format,
+						/* column */ 0, /* row */ 0,
+						pg->columns, pg->rows,
+						export_options);
+}
+
+vbi_bool
 vbi_draw_vt_page		(const vbi_page *	pg,
 				 void *			buffer,
 				 const vbi_image_format *format,
-				 vbi_export_flags	flags)
+				 ...)
 {
-	return vbi_draw_vt_page_region (pg, buffer, format, flags,
-					0, 0, pg->columns, pg->rows);
+	vbi_bool r;
+	va_list export_options;
+
+	va_start (export_options, format);
+	r = vbi_draw_vt_page_region_va_list (pg, buffer, format,
+					     /* column */ 0, /* row */ 0,
+					     pg->columns, pg->rows,
+					     export_options);
+	va_end (export_options);
+
+	return r;
 }
 
 /*
  *  Shared export options
  */
 
-typedef struct gfx_instance
-{
+typedef struct {
 	vbi_export		export;
 
 	/* Options */
-	unsigned		double_height : 1;
-	/*
-	 *  The raw image contains the same information a real TV
-	 *  would show, however a TV overlays the image on both fields.
-	 *  So raw pixel aspect is 2:1, and this option will double
-	 *  lines adding redundant information. The resulting images
-	 *  with pixel aspect 2:2 are still too narrow compared to a
-	 *  real TV closer to 4:3 (11 MHz TXT pixel clock), but I
-	 *  think one should export raw, not scaled data (which is
-	 *  still possible in Zapping using the screenshot plugin).
-	 */
+
+	/* The raw image contains the same information a real TV
+	   would show, however a TV overlays the image on both fields.
+	   So raw pixel aspect is 2:1, and this option will double
+	   lines adding redundant information. The resulting images
+	   with pixel aspect 2:2 are still too narrow compared to a
+	   real TV closer to 4:3 (11 MHz TXT pixel clock), but I
+	   think one should export raw, not scaled data (which is
+	   still possible in Zapping using the screenshot plugin). */
+	vbi_bool		double_height;
 } gfx_instance;
 
 static vbi_export *
-gfx_new(void)
+gfx_new				(void)
 {
 	gfx_instance *gfx;
 
-	if (!(gfx = calloc(1, sizeof(*gfx))))
+	if (!(gfx = calloc (1, sizeof (*gfx))))
 		return NULL;
 
 	return &gfx->export;
 }
 
 static void
-gfx_delete(vbi_export *e)
+gfx_delete			(vbi_export *		e)
 {
-	free(PARENT(e, gfx_instance, export));
+	free (PARENT (e, gfx_instance, export));
 }
 
-
-static vbi_option_info
-gfx_options[] = {
+static const vbi_option_info
+option_info [] = {
 	VBI_OPTION_BOOL_INITIALIZER
-	  ("aspect", N_("Correct aspect ratio"),
-	   TRUE, N_("Approach an image aspect ratio similar to "
-		    "a real TV. This will double the image size."))
+	("aspect", N_("Correct aspect ratio"),
+	 TRUE, N_("Approach an image aspect ratio similar to "
+		  "a real TV. This will double the image size."))
 };
 
-#define elements(array) (sizeof(array) / sizeof(array[0]))
-
-static vbi_option_info *
-option_enum(vbi_export *e, int index)
-{
-	if (index < 0 || index >= (int) elements(gfx_options))
-		return NULL;
-	else
-		return gfx_options + index;
-}
-
 static vbi_bool
-option_get(vbi_export *e, const char *keyword, vbi_option_value *value)
+option_get			(vbi_export *		e,
+				 const char *		keyword,
+				 vbi_option_value *	value)
 {
-	gfx_instance *gfx = PARENT(e, gfx_instance, export);
+	gfx_instance *gfx = PARENT (e, gfx_instance, export);
 
-	if (strcmp(keyword, "aspect") == 0) {
+	if (0 == strcmp (keyword, "aspect")) {
 		value->num = gfx->double_height;
 	} else {
-		vbi_export_unknown_option(e, keyword);
+		vbi_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -1303,14 +1484,16 @@ option_get(vbi_export *e, const char *keyword, vbi_option_value *value)
 }
 
 static vbi_bool
-option_set(vbi_export *e, const char *keyword, va_list args)
+option_set			(vbi_export *		e,
+				 const char *		keyword,
+				 va_list		ap)
 {
-	gfx_instance *gfx = PARENT(e, gfx_instance, export);
+	gfx_instance *gfx = PARENT (e, gfx_instance, export);
 
-	if (strcmp(keyword, "aspect") == 0) {
-		gfx->double_height = !!va_arg(args, int);
+	if (0 == strcmp (keyword, "aspect")) {
+		gfx->double_height = !!va_arg (ap, int);
 	} else {
-		vbi_export_unknown_option(e, keyword);
+		vbi_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -1322,9 +1505,9 @@ option_set(vbi_export *e, const char *keyword, va_list args)
  */
 
 static vbi_bool
-ppm_export			(vbi_export *		e,
+export_ppm			(vbi_export *		e,
 				 FILE *			fp,
-				 vbi_page *		pg)
+				 const vbi_page *	pg)
 {
 	gfx_instance *gfx = PARENT (e, gfx_instance, export);
 	vbi_image_format format;
@@ -1365,13 +1548,18 @@ ppm_export			(vbi_export *		e,
 
 		if (pg->columns < 40)
 			success = vbi_draw_cc_page_region
-				(pg, image, &format, 0, 0, row,
-				 pg->columns, /* rows */ 1);
+				(pg, image, &format,
+				 /* column */ 0, /* row */ row,
+				 pg->columns, /* rows */ 1,
+				 /* options */ 0);
 		else
 			success = vbi_draw_vt_page_region
 				(pg, image, &format,
-				 (e->reveal ? VBI_REVEAL : 0),
-				 0, row, pg->columns, /* rows */ 1);
+				 /* column */ 0, /* row */ row,
+				 pg->columns, /* rows */ 1,
+				 /* options: */
+				 VBI_REVEAL, e->reveal,
+				 0);
 
 		assert (success);
 
@@ -1411,28 +1599,31 @@ ppm_export			(vbi_export *		e,
 	return FALSE;
 }
 
-static vbi_export_info
-info_ppm = {
-	.keyword	= "ppm",
-	.label		= N_("PPM"),
-	.tooltip	= N_("Export this page as raw PPM image"),
+static const vbi_export_info
+export_info_ppm = {
+	.keyword		= "ppm",
+	.label			= N_("PPM"),
+	.tooltip		= N_("Export this page as raw PPM image"),
 
-	.mime_type	= "image/x-portable-pixmap",
-	.extension	= "ppm",
+	.mime_type		= "image/x-portable-pixmap",
+	.extension		= "ppm",
 };
 
-vbi_export_class
-vbi_export_class_ppm = {
-	._public		= &info_ppm,
+const vbi_export_module
+vbi_export_module_ppm = {
+	.export_info		= &export_info_ppm,
+
 	._new			= gfx_new,
 	._delete		= gfx_delete,
-	.option_enum		= option_enum,
+
+	.option_info		= option_info,
+	.option_info_size	= N_ELEMENTS (option_info),
+
 	.option_get		= option_get,
 	.option_set		= option_set,
-	.export			= ppm_export
-};
 
-VBI_AUTOREG_EXPORT_MODULE(vbi_export_class_ppm)
+	.export			= export_ppm
+};
 
 /*
  *  PNG - Portable Network Graphics File
@@ -1454,7 +1645,7 @@ png_draw_char			(uint8_t *		canvas,
 {
 	unsigned int unicode;
 
-	unicode = (ac->conceal & conceal) ?
+	unicode = ((ac->attr & VBI_CONCEAL) & conceal) ?
 		0x0020 : ac->unicode;
 
 	switch (ac->opacity) {
@@ -1518,23 +1709,29 @@ png_draw_char			(uint8_t *		canvas,
 		if (is_ttx) {
 			DRAW_CHAR (canvas, 1, bytes_per_line,
 				   pen, wstfont2_bits, TCPL, TCW, TCH,
-				   unicode_wstfont2 (unicode, ac->italic),
-				   ac->bold,
-				   ac->underline << 9 /* cell row 9 */,
+				   unicode_wstfont2 (unicode,
+						     ac->attr & VBI_ITALIC),
+				   ac->attr & VBI_BOLD,
+				   (!!(ac->attr & VBI_UNDERLINE)) << 9
+				   	/* cell row 9 */,
 				   ac->size);
 		} else {
 			DRAW_CHAR (canvas, 1, bytes_per_line,
 				   pen, ccfont3_bits, CCPL, CCW, CCH,
-				   unicode_ccfont3 (unicode, ac->italic),
+				   unicode_ccfont3 (unicode,
+						    ac->attr & VBI_ITALIC),
 				   /* bold */ 0,
-				   ac->underline << 12 /* cell row 12 */,
+				   (!!(ac->attr & VBI_UNDERLINE)) << 12
+				   	/* cell row 12 */,
 				   VBI_NORMAL_SIZE);
 		}
 	}
 }
 
 static vbi_bool
-png_export(vbi_export *e, FILE *fp, vbi_page *pg)
+export_png			(vbi_export *		e,
+				 FILE *			fp,
+				 const vbi_page *	pg)
 {
 	gfx_instance *gfx = PARENT (e, gfx_instance, export);
 	vbi_image_format format;
@@ -1613,7 +1810,7 @@ png_export(vbi_export *e, FILE *fp, vbi_page *pg)
 				break;
 			}
 
-			if (1)
+			if (0)
 				fprintf(stderr, "%2u %2u %04x %u\n",
 					row, column, ac->unicode, ac->size);
 
@@ -1772,27 +1969,30 @@ png_export(vbi_export *e, FILE *fp, vbi_page *pg)
 	return FALSE;
 }
 
-static vbi_export_info
-info_png = {
-	.keyword	= "png",
-	.label		= N_("PNG"),
-	.tooltip	= N_("Export this page as PNG image"),
+static const vbi_export_info
+export_info_png = {
+	.keyword		= "png",
+	.label			= N_("PNG"),
+	.tooltip		= N_("Export this page as PNG image"),
 
-	.mime_type	= "image/png",
-	.extension	= "png",
+	.mime_type		= "image/png",
+	.extension		= "png",
 };
 
-vbi_export_class
-vbi_export_class_png = {
-	._public	= &info_png,
-	._new		= gfx_new,
-	._delete	= gfx_delete,
-	.option_enum	= option_enum,
-	.option_get	= option_get,
-	.option_set	= option_set,
-	.export		= png_export
-};
+const vbi_export_module
+vbi_export_module_png = {
+	.export_info		= &export_info_png,
 
-VBI_AUTOREG_EXPORT_MODULE(vbi_export_class_png)
+	._new			= gfx_new,
+	._delete		= gfx_delete,
+
+	.option_info		= option_info,
+	.option_info_size	= N_ELEMENTS (option_info),
+
+	.option_get		= option_get,
+	.option_set		= option_set,
+
+	.export			= export_png
+};
 
 #endif /* HAVE_LIBPNG */

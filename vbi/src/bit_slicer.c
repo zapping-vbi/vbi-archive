@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.c,v 1.1.2.2 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: bit_slicer.c,v 1.1.2.3 2004-02-25 17:35:27 mschimek Exp $ */
 
 #include <stdlib.h>
 
@@ -42,7 +42,7 @@
    compile bit slicer functions for different pixel formats.
 
    I would use inline functions for proper type checking, but
-   unfortunately gcc 3.x limits the size of inlined functions. */
+   there's no guarantee the compiler really will inline. */
 
 #define GREEN2(raw, endian)						\
 	(((raw)[0 + endian] + (raw)[1 - endian] * 256) & bs->green_mask)
@@ -101,7 +101,7 @@ bit_slicer_##fmt		(vbi_bit_slicer *	bs,		\
 	unsigned int t;		/* t = raw[0] * j + raw[1] * (1 - j) */	\
 	unsigned int raw0;	/* oversampling temporary */		\
 	unsigned int raw1;						\
-	unsigned char b1;	/* last bit */				\
+	unsigned char b1;	/* previous bit */			\
 									\
 	thresh0 = bs->thresh;						\
 	raw += bs->skip;						\

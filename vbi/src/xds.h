@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds.h,v 1.1.2.1 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: xds.h,v 1.1.2.2 2004-02-25 17:35:29 mschimek Exp $ */
 
 #ifndef XDS_H
 #define XDS_H
@@ -31,6 +31,9 @@
 
 /* Public */
 
+#include <time.h>
+
+/** @ingroup XDSDemux */
 typedef enum {
 	VBI_XDS_CLASS_CURRENT = 0,
 	VBI_XDS_CLASS_FUTURE,
@@ -41,9 +44,15 @@ typedef enum {
 	VBI_XDS_CLASS_UNDEFINED,
 } vbi_xds_class;
 
+/** @ingroup XDSDemux */
 #define VBI_XDS_MAX_CLASSES (VBI_XDS_CLASS_UNDEFINED + 1)
 
-/* This is the CURRENT and FUTURE subclass. */
+/**
+ * @ingroup XDSDemux
+ *
+ * This is the VBI_XDS_CLASS_CURRENT and
+ * VBI_XDS_CLASS_FUTURE subclass.
+ */
 typedef enum {
 	VBI_XDS_PROGRAM_ID = 1,
 	VBI_XDS_PROGRAM_LENGTH,
@@ -58,12 +67,14 @@ typedef enum {
 	VBI_XDS_PROGRAM_DESCRIPTION_END = 0x18,
 } vbi_xds_subclass_program;
 
+/** @ingroup XDSDemux */
 typedef enum {
 	VBI_XDS_CHANNEL_NAME = 1,
 	VBI_XDS_CHANNEL_CALL_LETTERS,
 	VBI_XDS_CHANNEL_TAPE_DELAY,
 } vbi_xds_subclass_channel;
 
+/** @ingroup XDSDemux */
 typedef enum {
 	VBI_XDS_MISC_TIME_OF_DAY = 1,
 	VBI_XDS_MISC_IMPULSE_CAPTURE_ID,
@@ -71,21 +82,36 @@ typedef enum {
 	VBI_XDS_MISC_LOCAL_TIME_ZONE,
 } vbi_xds_subclass_misc;
 
+/** @ingroup XDSDemux */
 #define VBI_XDS_MAX_SUBCLASSES (0x18)
 
 /**
+ * @ingroup XDSDemux
  * Generic XDS subclass. You must cast to the appropriate
  * subclass type depending on the XDS class.
  */
 typedef unsigned int vbi_xds_subclass;
 
 /**
+ * @ingroup XDSDemux
  * @brief XDS demultiplexer context.
  *
  * The contents of this structure are private.
+ *
+ * Call vbi_xds_demux_new() to allocate
+ * a XDS demultiplexer context.
  */
 typedef struct vbi_xds_demux vbi_xds_demux;
 
+/**
+ * @ingroup XDSDemux
+ * @param xd
+ * @param user_data
+ * @param sp_class
+ * @param sp_subclass
+ * @param buffer
+ * @param buffer_size
+ */
 typedef void
 vbi_xds_demux_cb		(vbi_xds_demux *	xd,
 				 void *			user_data,
@@ -123,6 +149,10 @@ vbi_xds_demux_destroy		(vbi_xds_demux *	xd);
 
 /* Public */
 
+/**
+ * @addtogroup XDSDemux
+ * @{
+ */
 extern vbi_xds_demux *
 vbi_xds_demux_new		(vbi_xds_demux_cb *	cb,
 				 void *			user_data);
@@ -133,9 +163,14 @@ vbi_xds_demux_demux		(vbi_xds_demux *	xd,
 				 const uint8_t		buffer[2]);
 extern void
 vbi_xds_demux_reset		(vbi_xds_demux *	xd);
+/** @} */
 
 typedef unsigned int vbi_xds_date_flags; /* todo */
 
+/**
+ * @addtogroup XDSDecoder
+ * @{
+ */
 extern vbi_bool
 vbi_decode_xds_aspect_ratio	(vbi_aspect_ratio *	ar,
 				 const uint8_t *	buffer,
@@ -159,6 +194,7 @@ vbi_decode_xds_impulse_capture_id
 				(vbi_program_id *	pi,
 				 const uint8_t *	buffer,
 				 unsigned int		buffer_size);
+/** @} */
 
 /* Private */
 

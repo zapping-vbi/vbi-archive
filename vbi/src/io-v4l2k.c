@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2k.c,v 1.2.2.5 2004-01-30 00:43:03 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l2k.c,v 1.2.2.6 2004-02-25 17:35:28 mschimek Exp $";
 
 /*
  *  Around Oct-Nov 2002 the V4L2 API was revised for inclusion into
@@ -335,7 +335,7 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 	int max_rate, g_fmt;
 	int r;
 
-	pthread_once (&vbi_init_once, vbi_init);
+	//	pthread_once (&vbi_init_once, vbi_init);
 
 	assert(services && *services != 0);
 
@@ -773,7 +773,7 @@ vbi_capture_v4l2k_new(const char *dev_name, int fd, int buffers,
 		      unsigned int *services, int strict,
 		      char **errorstr, vbi_bool trace)
 {
-	pthread_once (&vbi_init_once, vbi_init);
+  //	pthread_once (&vbi_init_once, vbi_init);
 	vbi_asprintf(errorstr, _("V4L2 interface not compiled."));
 	return NULL;
 }

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-bktr.c,v 1.2.2.2 2004-01-30 00:43:03 mschimek Exp $";
+static char rcsid[] = "$Id: io-bktr.c,v 1.2.2.3 2004-02-25 17:35:28 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -191,7 +191,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 	char *driver_name = _("BKTR driver");
 	vbi_capture_bktr *v;
 
-	pthread_once (&vbi_init_once, vbi_init);
+	//	pthread_once (&vbi_init_once, vbi_init);
 
 	assert(services && *services != 0);
 
@@ -339,7 +339,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 				 char **		errstr,
 				 vbi_bool		trace)
 {
-	pthread_once (&vbi_init_once, vbi_init);
+  //	pthread_once (&vbi_init_once, vbi_init);
 
 	vbi_asprintf(errstr, _("BKTR interface not compiled."));
 
