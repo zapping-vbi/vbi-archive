@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: window.c,v 1.4 2004-11-03 06:47:31 mschimek Exp $ */
+/* $Id: window.c,v 1.5 2004-11-09 07:01:24 mschimek Exp $ */
 
 #include "config.h"
 
@@ -35,7 +35,7 @@
 static GObjectClass *		parent_class;
 
 static void
-on_vbi3_model_changed		(ZModel *		zmodel _unused_,
+on_zvbi_model_changed		(ZModel *		zmodel _unused_,
 				 TeletextWindow *	window)
 {
   gtk_widget_destroy (GTK_WIDGET (window));
@@ -904,7 +904,7 @@ instance_finalize		(GObject *		object)
   g_signal_handlers_disconnect_matched
     (G_OBJECT (zvbi_get_model ()),
      G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
-     0, 0, NULL, G_CALLBACK (on_vbi3_model_changed), window);
+     0, 0, NULL, G_CALLBACK (on_zvbi_model_changed), window);
 
   vbi3_network_destroy (&window->top_network);
 
@@ -1009,7 +1009,7 @@ instance_init			(GTypeInstance *	instance,
 		    G_CALLBACK (on_view_request_changed), window);
 
   g_signal_connect (G_OBJECT (zvbi_get_model ()), "changed",
-		    G_CALLBACK (on_vbi3_model_changed), window);
+		    G_CALLBACK (on_zvbi_model_changed), window);
 
   teletext_windows = g_list_append (teletext_windows, window);
 }

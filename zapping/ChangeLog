@@ -1,5 +1,16 @@
 2004-11-08    <mschimek@users.sf.net>
 
+	* libvbi/teletext_decoder.c (reset): Send network event too.
+	* src/zvbi.c (zvbi_channel_switched), plugins/teletext/main.c:
+	  Notify decoders of channel changes, including name.
+	* plugins/teletext/main.c, plugins/teletext/view.c: Moved
+	  zvbi decoder routines from view.c to main.c where the
+	  stuff belongs, and replaced sliced_list hack.
+	* src/zvbi.c: Added DVB PES reader for tests.
+	(on_vbi_device_changed): Added to semi-auto-apply device
+	  change with prefs apply button.
+	* src/zvbi.c, src/zvbi.h: New decoder add and remove funcs
+	  to replace the sliced_list hack.
 	* libvbi/exp-gfx.c (DRAW_CHAR): Double width bpl fix.
 	* libvbi/teletext.c (level_one_row): Wide char fix.
 
