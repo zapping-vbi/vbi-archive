@@ -8,4 +8,6 @@ The simple theme has everything in one page, use includes for achieving this.
 <include>download.xml</include>
 <include>contact.xml</include>
 <include>bugs.xml</include>
+<include>links.xml</include>
+<include>resources.xml</include>
 </document>

@@ -219,6 +219,10 @@ int main(int argc, char *argv[])
 	border-style: ridge;
 	padding: 2;
     }
+    .table {
+	border-style: ridge;
+	padding: 2;
+    }
   --></style>
   </head>
 
@@ -276,7 +280,7 @@ int main(int argc, char *argv[])
 		      <option value="carsten" <?php if ($theme=="carsten") echo "selected" ?>>Carsten</option>
 		      <option value="modern" <?php if ($theme=="modern") echo "selected" ?>>Modern</option>
 		      </select>
-		      <input type="submit" border="0" name="Submit" value="Change" class="theme">
+		      <input type="submit" name="Submit" value="Change" class="theme">
 		      </form>
                     </td>
                   </tr>

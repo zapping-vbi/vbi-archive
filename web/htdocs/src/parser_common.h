@@ -149,7 +149,8 @@ parse_html(xmlNodePtr node, xmlDocPtr doc, FILE *fp)
       ptr = ptr->next;
     }
 
-  if (strcasecmp(node->name, "img"))
+  if (strcasecmp(node->name, "img") &&
+      strcasecmp(node->name, "br"))
     fprintf(fp, "</%s>", node->name);
 }
 

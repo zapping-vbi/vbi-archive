@@ -340,7 +340,7 @@ input.theme {
 <option value="carsten" <?php if ($theme=="carsten") echo "selected" ?>>Carsten</option>
 <option value="modern" <?php if ($theme=="modern") echo "selected" ?>>Modern</option>
 </select>
-<input type="submit" border="0" name="Submit" value="Change" class="theme">
+<input type="submit" name="Submit" value="Change" class="theme">
 </form>
 </th>
 <th  width="60" height="10"><img src="images_carsten/spacebar.png" width="1" height="1" alt=""></th>

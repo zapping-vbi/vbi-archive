@@ -188,14 +188,14 @@ Concept. <b>Thanks</b>.<p>
 src="valid-html401.gif" alt="Valid HTML 4.01" height=31 width="88"></a>
 <a href="rescd.html"><img src="images_simple/gtcd.png" border="0"
 ALT="ResCD"></a>
-<form action="<?php echo $PHP_SELF ?>" method="POST">
 </center>
 <div align="right">
+<form action="<?php echo $PHP_SELF ?>" method="POST">
 <select name="sel_theme" title="Select your theme here">
 <option value="simple" <?php if ($theme=="simple") echo "selected" ?>>Simple</option>
 <option value="carsten" <?php if ($theme=="carsten") echo "selected" ?>>Carsten</option>
 <option value="modern" <?php if ($theme=="modern") echo "selected" ?>>Modern</option>
-</select><input type="submit" border="0" name="Submit" value="Select Theme">
+</select><input type="submit" name="Submit" value="Select Theme">
 </div>
 </form>
 </body>

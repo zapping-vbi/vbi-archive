@@ -4,6 +4,158 @@ title -> head
 abstract -> short text that describes the page (for themes that support it)
 -->
 <document title="Downloading" abstract="Downloading">
-<header>FIXME</header>
-Contents to be written.
+<header>Requirements</header>
+There are some requirements for running Zapping:
+<ul>
+<li>V4L, V4L2 or XVideo support for your card</li>
+<li>A working Gnome desktop, with the common libraries</li>
+<li>libunicode >= 0.4</li>
+</ul>
+If you have some required package missing, a good way to install
+them easily is getting a <a href="http://www.ximian.com">Ximian</a>
+GNOME desktop, following <a
+href="http://www.ximian.com/gethelix.php3">this link</a>.
+<p>
+Alternatively, if you have an RPM based distro, you can look for the
+packages using <a href="http://www.rpmfind.net">RPMFIND</a>. Debian
+users can get the debian packages from <a
+href="http://packages.debian.org/testing/graphics/zapping.html">testing</a>
+and <a
+href="http://packages.debian.org/unstable/graphics/zapping.html">unstable</a>,
+both maintained by Christian Marillat.
+</p>
+<p>
+If you want to compile it, make sure you have the appropiate development
+packages installed. For example, if compiling complains about AM_PATH_LIBGLADE,
+make sure you have libglade-devel correctly installed.
+</p>
+<p>
+The remote control plugin (alirc incarnation) needs the LIRC (Linux
+Infrared Remote Control) package. If not already part of your
+distribution you can download LIRC from <a
+href="http://www.lirc.org">http://www.lirc.org</a>.
+</p>
+<a name="CVS"></a>
+<header>Downloading CVS</header>
+To get the latest development version of zapping, you can access
+anonymously the cvs server. <b>Remember that there is no warranty that
+it will even compile.</b> This method is mainly for developers and people
+that want to have the very latest, probably very buggy,
+version. Use the following:
+<ol>
+<li><i>cvs -z3 -d:pserver:anonymous@cvs.zapping.sourceforge.net:/cvsroot/zapping
+login</i></li>
+<li>You will be asked for a password, just hit return.</li>
+<li><i>cvs -z3 -d:pserver:anonymous@cvs.zapping.sourceforge.net:/cvsroot/zapping
+co zapping</i>.<br></br>This will checkout the latest zapping release, from now on you can
+use:</li>
+<li><i>cvs -z3
+-d:pserver:anonymous@cvs.zapping.sourceforge.net:/cvsroot/zapping
+update -P</i><br></br>to update your local copy of the repository.</li>
+</ol>
+You can also <a
+href="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/zapping">browse</a>
+the CVS repository, or get daily <a
+href="http://cvs.sourceforge.net/cvstarballs/zapping-cvsroot.tar.gz">snapshots</a>
+of the CVS tree.
+<header>Downloading HTTP</header>
+You can get the releases through HTTP, just click on the desired
+release:
+<center>
+<TABLE CELLSPACING="0" BORDER="4" class="table" WIDTH="100%">
+<TR>
+<TH>Release number</TH><TH>Release date</TH><TH>Description</TH></TR>
+<TR>
+        <TD><a
+        href="http://sourceforge.net/project/showfiles.php?group_id=2599&amp;package_id=2569&amp;release_id=37004">0.6.0cvs</a></TD>
+        <TD>28.05.2001</TD>
+	<TD>I'm going away some days, this is a snapshot of what's in
+        CVS. New features (apart from the usual improvements) are:
+	<ul>
+	<li>MPEG plugin: needs the package <a
+        href="http://sourceforge.net/project/showfiles.php?group_id=2599&amp;release_id=37012">mp1e</a>
+        to be installed, it can be downloaded from the same place you
+        download Zapping. It's still a bit experimental, but works
+        stable for me.</li>
+	<li>Reworked capture code: The current one is much more
+        extensible than the old one, and apparently faster.</li>
+	<li>Support for Interactive TV (eacem, atvef) triggers.</li>
+	<li>Rolling headers in Zapzilla.</li>
+	<li>Page (TTX, CC) classification in Zapzilla.</li>
+	<li>Updated de.po, help/de.</li>
+	<li>Support for YVU420 XVideo acceleration.</li>
+	</ul></TD>
+</TR>
+<TR>
+        <TD><a href="http://sourceforge.net/project/showfiles.php?group_id=2599&amp;release_id=27990">0.5.92</a></TD>
+        <TD>20.03.2001</TD>
+	<TD>Support for cards with chromakey (Matrox Marvel, Rainbow
+        Runner and friends), build fixes, more TTX export improvements.</TD>
+</TR>
+<TR>
+        <TD><a href="http://sourceforge.net/project/showfiles.php?group_id=2599&amp;release_id=27593">0.5.91</a></TD>
+        <TD>17.03.2001</TD>
+	<TD>Bug fixes for the previous release, faster capture mode
+	under XVideo, better TTX export dialog.</TD>
+</TR>
+<TR>
+        <TD><a
+        href="http://download.sourceforge.net/zapping/zapping-0.5.9.tar.gz">0.5.9</a>
+	<ul>
+        <li><a
+        href="http://download.sourceforge.net/zapping/zapping-0.5.9.tar.bz2">BZ2</a></li>
+        <li><a
+        href="http://download.sourceforge.net/zapping/zapping-0.5.9-1.i386.rpm">RPM</a></li>
+        <li><a
+        href="http://download.sourceforge.net/zapping/zapping-0.5.9-1.src.rpm">SRPM</a></li>
+	</ul>
+	</TD>
+        <TD>10.03.2001</TD>
+	<TD>Vastly improved TTX decoder, support for CC and TTX
+	subtitles, LIRC support, security fixes, South African freq
+	table, XVideo fullscreen, German translation of help, de.po
+	and es.po updated, plus the usual bug fixes.</TD>
+</TR>
+<TR>
+        <TD><a
+        href="http://download.sourceforge.net/zapping/zapping-0.5.81.tar.gz">0.5.81</a>
+	<ul>
+        <li><a
+        href="http://download.sourceforge.net/zapping/zapping-0.5.81.tar.bz2">BZ2</a></li>
+	<li><a
+        href="http://download.sourceforge.net/zapping/zapping_0.5.81-1_i386.deb">DEB</a></li>
+        <li><a
+        href="http://download.sourceforge.net/zapping/zapping-0.5.81-1.i386.rpm">RPM</a></li>
+	</ul>
+	</TD>
+        <TD>07.12.2000</TD>
+	<TD>This release fixes some bugs in the XVideo support and
+        adds a Debian package. Everybody that had problems with the
+	previous release (Gdk-Error) should upgrade. There's a new
+	option --no-xv for the completely broken XVideo drivers.</TD>
+</TR>
+<TR>
+        <TD><a
+        href="http://download.sourceforge.net/zapping/zapping-0.5.8.tar.gz">0.5.8</a>
+        (<a
+        href="http://download.sourceforge.net/zapping/zapping-0.5.8-1.i386.rpm">RPM</a>
+        / <a
+        href="http://download.sourceforge.net/zapping/zapping-0.5.8.tar.bz2">BZ2</a>)</TD>
+        <TD>03.12.2000</TD>
+	<TD>XVideo support, Russian freq table and Russian Cyrillic chars for
+        Teletext. Screenshot plugin moved from PNG to JPEG. Added
+        de.po, ru.po, updated es.po and fr.po. Bug fixes.</TD>
+</TR>
+</TABLE>
+</center>
+<p>
+You can also see all the releases directly from the Sourceforge
+project page <a
+href="http://sourceforge.net/project/showfiles.php?group_id=2599">here</a>.
+</p>
+<p>Due to popular demand, the code that manages V4L and V4L2 has been
+published as a separate package. It is the module called <b>tveng</b>,
+and it is available from the <a
+href="http://sourceforge.net/projects/zapping">Sourceforge
+project page</a>.</p>
 </document>
