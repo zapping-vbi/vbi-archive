@@ -48,8 +48,6 @@ extern tveng_device_info	*main_info;
 extern GtkWidget		*main_window;
 extern gboolean			flag_exit_program;
 extern GList			*plugin_list;
-extern gint			disable_xv; /* TRUE is XVideo should be
-					       disabled */
 
 #define NUM_BUNDLES 6 /* in capture_fifo */
 static fifo		_capture_fifo;
@@ -582,7 +580,7 @@ print_info(GtkWidget *main_window)
  *	this consumer.
  * b) Display:
  *	The consumer that blits the data into the tvscreen.
- * c) Plugins (TODO):
+ * c) Plugins:
  *	Passes the data to the serial_read plugins.
  */
 
@@ -602,14 +600,6 @@ static gint idle_handler(gpointer ignored)
   print_info(main_window);
 
   b = wait_full_buffer(&cf_idle_consumer);
-
-  /*
-  if (!b)
-    {
-      usleep(2000);
-      return TRUE;
-    }
-  */
 
   cb = (capture_buffer*)b;
   d = &(cb->d);
@@ -760,8 +750,7 @@ capture_start(GtkWidget * window, tveng_device_info *info)
   have_xv = exit_capture_thread = FALSE;
   capture_locked = 0;
 
-  if (!disable_xv &&
-      xvz_grab_port(info))
+  if (xvz_grab_port(info))
     have_xv = TRUE;
 
   if (!request_default_format(w, h, info))

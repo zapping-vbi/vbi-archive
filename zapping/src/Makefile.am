@@ -49,7 +49,7 @@ zapping_SOURCES = \
 	tveng2.c tveng2.h \
 	tvengxv.c tvengxv.h \
 	tveng.c tveng.h tveng_private.h \
-	x11stuff.c x11stuff.h \
+	x11stuff.c x11stuff.h video_xv.c \
 	overlay.c overlay.h \
 	capture.c capture.h \
 	zvbi.c zvbi.h \

@@ -113,6 +113,16 @@ gboolean xvz_grab_port(tveng_device_info *info);
  */
 void xvz_ungrab_port(tveng_device_info *info);
 
+/**
+ * Inits the video backends.
+ */
+void startup_xvz(void);
+
+/**
+ * Closes the video backends.
+ */
+void shutdown_xvz(void);
+
 /* some useful constants */
 #ifndef OFF
 #define OFF FALSE
@@ -120,5 +130,26 @@ void xvz_ungrab_port(tveng_device_info *info);
 #ifndef ON
 #define ON TRUE
 #endif
+
+/**
+ * Struct for video backends
+ */
+typedef struct {
+  /* A descriptive name for the backend */
+  char		*name;
+  /* see xvz_grab_port, open devices in here, FALSE on error */
+  gboolean	(*grab)(tveng_device_info *info);
+  /* see xvz_ungrab_port, close devices */
+  void		(*ungrab)(tveng_device_info *info);
+  /* Create a suitable image, will always be called with the port
+     grabbed */
+  xvzImage*	(*image_new)(enum tveng_frame_pixformat pixformat,
+			     gint width, gint height);
+  /* Destroy the given image */
+  void		(*image_destroy)(xvzImage *image);
+  /* Put the image in the drawable, do scaling as necessary */
+  void		(*image_put)(xvzImage *image, GdkWindow *window,
+			     GdkGC *gc);
+} video_backend;
 
 #endif /* x11stuff.h */

@@ -374,348 +374,61 @@ x11_set_screensaver(gboolean on)
 }
 
 /**
- * XvImage handling.
+ * Accelerated backends handling.
  */
+extern gboolean		add_backend_xv(video_backend *xv);
 
-static gboolean have_mitshm;
+static gint num_backends = 0;
+static video_backend *backends = NULL;
+static gboolean port_grabbed = FALSE;
+static gint cur_backend = 0;
 
-/*
-  Comment out if you have problems with the Shm extension
-  (you keep getting a Gdk-error request_code:14x, minor_code:19)
-*/
-#define USE_XV_SHM 1
-
-struct _xvzImagePrivate {
-#ifdef USE_XV
-  gboolean		uses_shm;
-  XvImage		*image;
-#ifdef USE_XV_SHM
-  XShmSegmentInfo	shminfo; /* shared mem info for the xvimage */
-#endif
-#endif  
-};
-
-#ifdef USE_XV /* Real stuff */
-
-static unsigned int
-xv_mode_id(char * fourcc)
+static inline void
+add_backend(video_backend *p)
 {
-  return ((((uint32_t)(fourcc[0])<<0)|
-	   ((uint32_t)(fourcc[1])<<8)|
-	   ((uint32_t)(fourcc[2])<<16)|
-	   ((uint32_t)(fourcc[3])<<24)));
+  backends = g_realloc(backends, sizeof(video_backend)*(num_backends+1));
+  memcpy(backends + num_backends, p, sizeof(video_backend));
+  num_backends++;
 }
 
-#define YV12 xv_mode_id("YV12") /* YVU420 (planar, 12 bits) */
-#define UYVY xv_mode_id("UYVY") /* UYVY (packed, 16 bits) */
-#define YUY2 xv_mode_id("YUY2") /* YUYV (packed, 16 bits) */
-
-static XvPortID		xvport; /* Xv port we will use */
-static gboolean		port_grabbed = FALSE; /* We own a port */
-
-extern gint		disable_xv; /* TRUE if XV should be disabled */
-
-/**
- * Create a new XV image with the given attributes, returns NULL on error.
- */
-xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
-			gint w, gint h)
+void	startup_xvz(void)
 {
-  xvzImage *new_image = g_malloc0(sizeof(xvzImage));
-  struct _xvzImagePrivate * pimage = new_image->private =
-    g_malloc0(sizeof(struct _xvzImagePrivate));
-  void * image_data = NULL;
-  unsigned int xvmode = (pixformat == TVENG_PIX_YUYV) ? YUY2 : YV12;
-  double bpp = (pixformat == TVENG_PIX_YUYV) ? 2 : 1.5;
-  //  int old_sync;
+  video_backend tmp;
+  gint i;
 
-  // FIXME: Broken, returned param is a int (*function)(Display *)
-  // not sure what's the way to fetch old sync value.
-  //  old_sync = XSynchronize(GDK_DISPLAY(), True);
+  if (add_backend_xv(&tmp))
+    add_backend(&tmp);
 
-  if (!port_grabbed)
-    {
-      g_warning("XVPort not grabbed!");
-      goto error1;
-    }
+  if (!num_backends)
+    return;
 
-  pimage -> uses_shm = FALSE;
-
-#ifdef USE_XV_SHM
-
-  if (have_mitshm) /* just in case */
-    {
-      memset(&pimage->shminfo, 0, sizeof(XShmSegmentInfo));
-      pimage->image = XvShmCreateImage(GDK_DISPLAY(), xvport,
-	xvmode, NULL, w, h, &pimage->shminfo);
-
-      if (pimage->image)
-	{
-	  pimage->uses_shm = TRUE;
-
-	  pimage->shminfo.shmid =
-	    shmget(IPC_PRIVATE, pimage->image->data_size,
-		   IPC_CREAT | 0777);
-
-	  if (pimage->shminfo.shmid == -1)
-            {
-	      goto shm_error;
-	    }
-	  else
-	    {
-	      pimage->shminfo.shmaddr =
-		pimage->image->data = shmat(pimage->shminfo.shmid, 0, 0);
-
-	      shmctl(pimage->shminfo.shmid, IPC_RMID, 0);
-	      /* destroy when we terminate, now if shmat failed */
-
-	      if (pimage->shminfo.shmaddr == (void *) -1)
-	        goto shm_error;
-
-	      pimage->shminfo.readOnly = False;
-
-	      if (!XShmAttach(GDK_DISPLAY(), &pimage->shminfo))
-	        {
-		  g_assert(shmdt(pimage->shminfo.shmaddr) != -1);
- shm_error:
-		  XFree(pimage->image);
-		  pimage->image = NULL;
-	          pimage->uses_shm = FALSE;
-		}
-	    }
-	}
-    }
-
-#endif /* USE_XV_SHM */
-
-  if (!pimage->image)
-    {
-      image_data = malloc(bpp*w*h);
-      if (!image_data)
-	{
-	  g_warning("XV image data allocation failed");
-	  goto error1;
-	}
-      pimage->image =
-	XvCreateImage(GDK_DISPLAY(), xvport, xvmode,
-		      image_data, w, h);
-      if (!pimage->image)
-        goto error2;
-    }
-
-  // FIXME: see above
-  //  XSynchronize(GDK_DISPLAY(), old_sync);
-
-  new_image->w = new_image->private->image->width;
-  new_image->h = new_image->private->image->height;
-  new_image->data = new_image->private->image->data;
-  new_image->data_size = new_image->private->image->data_size;
-
-  return new_image;
-
- error2:
-  if (image_data)
-    free(image_data);
-
- error1:
-  g_free(new_image->private);
-  g_free(new_image);
-
-  // XSynchronize(GDK_DISPLAY(), old_sync);
-
-  return NULL;
+  printv("* Registered output video backends:\n");
+  for (i=0; i<num_backends; i++)
+    printv("\t+ %s\n", backends[i].name);
 }
 
-/**
- * Puts the image in the given drawable, scales to the drawable's size.
- */
-void xvzImage_put(xvzImage *image, GdkWindow *window, GdkGC *gc)
+void	shutdown_xvz(void)
 {
-  gint w, h;
-  struct _xvzImagePrivate *pimage = image->private;
-
-  g_assert(window != NULL);
-
-  if (!port_grabbed)
-    {
-      g_warning("XVPort not grabbed!");
-      return;
-    }
-
-  if (!pimage->image)
-    {
-      g_warning("Trying to put an empty XV image");
-      return;
-    }
-
-  gdk_window_get_size(window, &w, &h);
-
-#ifdef USE_XV_SHM
-  if (pimage->uses_shm)
-    XvShmPutImage(GDK_DISPLAY(), xvport,
-		  GDK_WINDOW_XWINDOW(window),
-		  GDK_GC_XGC(gc), pimage->image,
-		  0, 0, image->w, image->h, /* source */
-		  0, 0, w, h, /* dest */
-		  True);
-#endif
-
-  if (!pimage->uses_shm)
-    XvPutImage(GDK_DISPLAY(), xvport,
-	       GDK_WINDOW_XWINDOW(window),
-	       GDK_GC_XGC(gc), pimage->image,
-	       0, 0, image->w, image->h, /* source */
-	       0, 0, w, h /* dest */);
-}
-
-/**
- * Frees the data associated with the image
- */
-void xvzImage_destroy(xvzImage *image)
-{
-  struct _xvzImagePrivate *pimage = image->private;
-
-  g_assert(image != NULL);
-
-#ifdef USE_XV_SHM
-  if (pimage->uses_shm)
-    XShmDetach(GDK_DISPLAY(), &pimage->shminfo);
-#endif
-
-  if (!pimage->uses_shm)
-    free(pimage->image->data);
-
-  XFree(pimage->image);
-
-#ifdef USE_XV_SHM
-  if (pimage->uses_shm)
-    g_assert(shmdt(pimage->shminfo.shmaddr) != -1);
-#endif
-
-  g_free(image->private);
-  g_free(image);
+  g_free(backends);
 }
 
 gboolean xvz_grab_port(tveng_device_info *info)
 {
-  Display *dpy=GDK_DISPLAY();
-  Window root_window = GDK_ROOT_WINDOW();
-  unsigned int version, revision, major_opcode, event_base,
-    error_base;
-  int i, j=0, k=0;
-  int nAdaptors;
-  XvAdaptorInfo *pAdaptors, *pAdaptor;
-  XvImageFormatValues *pImgFormats=NULL;
-  int nImgFormats;
+  gint i;
 
-  if (disable_xv)
+  g_assert(port_grabbed == FALSE);
+
+  for (i = 0; i<num_backends; i++)
+    if (backends[i].grab(info))
+      break;
+
+  if (i == num_backends)
     return FALSE;
-  if (port_grabbed)
-    return TRUE;
 
-  if (Success != XvQueryExtension(dpy, &version, &revision,
-				  &major_opcode, &event_base,
-				  &error_base))
-    goto error1;
-
-  if (version < 2 || (version == 2 && revision < 2))
-    goto error1;
-
-  if (Success != XvQueryAdaptors(dpy, root_window, &nAdaptors,
-				 &pAdaptors))
-    goto error1;
-  if (nAdaptors <= 0)
-    goto error1;
-
-  /* Just for debugging, can be useful */
-  for (i=0; i<nAdaptors; i++)
-    {
-      pAdaptor = pAdaptors + i;
-      /* print some info about this adaptor */
-      printv("%d) Adaptor info:\n"
-	     "	- Base port id:		0x%x\n"
-	     "	- Number of ports:	%d\n"
-	     "	- Type:			%d\n"
-	     "	- Name:			%s\n"
-	     "	- Number of formats:	%d\n",
-	     i, (int)pAdaptor->base_id, (int) pAdaptor->num_ports,
-	     (int)pAdaptor->type, pAdaptor->name,
-	     (int)pAdaptor->num_formats);
-
-      if ((pAdaptor->type & XvInputMask) &&
-	  (pAdaptor->type & XvImageMask))
-	{ /* Image adaptor, check if some port fits our needs */
-	  for (j=0; j<pAdaptor->num_ports;j++)
-	    {
-	      xvport = pAdaptor->base_id + j;
-	      pImgFormats = XvListImageFormats(dpy, xvport,
-					       &nImgFormats);
-	      if (!pImgFormats || !nImgFormats)
-		continue;
-
-	      for (k=0; k<nImgFormats; k++)
-		printv("		[%d] %c%c%c%c (0x%x)\n", k,
-		       (char)(pImgFormats[k].id>>0)&0xff,
-		       (char)(pImgFormats[k].id>>8)&0xff,
-		       (char)(pImgFormats[k].id>>16)&0xff,
-		       (char)(pImgFormats[k].id>>24)&0xff,
-		       pImgFormats[k].id);
-	    }
-	}
-    }
-
-  /* The real thing */
-  for (i=0; i<nAdaptors; i++)
-    {
-      pAdaptor = pAdaptors + i;
-
-      if ((pAdaptor->type & XvInputMask) &&
-	  (pAdaptor->type & XvImageMask))
-	{ /* Image adaptor, check if some port fits our needs */
-	  for (j=0; j<pAdaptor->num_ports;j++)
-	    {
-	      xvport = pAdaptor->base_id + j;
-	      pImgFormats = XvListImageFormats(dpy, xvport,
-					       &nImgFormats);
-	      if (!pImgFormats || !nImgFormats)
-		continue;
-
-	      if (Success != XvGrabPort(dpy, xvport, CurrentTime))
-		continue;
-
-	      for (k=0; k<nImgFormats; k++)
-		if (pImgFormats[k].id == YUY2 ||
-		    pImgFormats[k].id == YV12)
-		  goto adaptor_found;
-
-	      XvUngrabPort(dpy, xvport, CurrentTime);
-	    }
-	}
-    }
-
-  if (i == nAdaptors)
-    goto error2;
-
-  /* success */
- adaptor_found:
-  printv("Adaptor #%d, image format #%d (0x%x), port #%d chosen\n",
-	 i, k, pImgFormats[k].id, j);
-  XvFreeAdaptorInfo(pAdaptors);
-
-  tveng_set_xv_port(xvport, info);
+  cur_backend = i;
   port_grabbed = TRUE;
 
-#ifdef USE_XV_SHM
-  have_mitshm = !!XShmQueryExtension(dpy);
-#endif
-
   return TRUE;
-
- error2:
-  XvFreeAdaptorInfo(pAdaptors);
-
- error1:
-  return FALSE;
 }
 
 void xvz_ungrab_port(tveng_device_info *info)
@@ -723,33 +436,26 @@ void xvz_ungrab_port(tveng_device_info *info)
   if (!port_grabbed)
     return;
 
-  XvUngrabPort(GDK_DISPLAY(), xvport, CurrentTime);
   port_grabbed = FALSE;
-  tveng_unset_xv_port(info);
+  backends[cur_backend].ungrab(info);
 }
-
-#else /* !USE_XV, useless stubs */
 
 xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
 			gint width, gint height)
 {
-  return NULL;
+  g_assert(port_grabbed == TRUE);
+
+  return backends[cur_backend].image_new(pixformat, width, height);
 }
 
 void xvzImage_put(xvzImage *image, GdkWindow *window, GdkGC *gc)
 {
+  g_assert(port_grabbed == TRUE);
+
+  backends[cur_backend].image_put(image, window, gc);
 }
 
 void xvzImage_destroy(xvzImage *image)
 {
+  backends[cur_backend].image_destroy(image);
 }
-
-gboolean xvz_grab_port(tveng_device_info *info)
-{
-  return FALSE;
-}
-
-void xvz_ungrab_port(tveng_device_info *info)
-{
-}
-#endif

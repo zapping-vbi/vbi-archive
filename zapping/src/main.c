@@ -415,7 +415,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.138 2001-10-14 10:15:51 garetxe Exp $",
+	 "$Id: main.c,v 1.139 2001-10-17 20:59:43 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
@@ -896,6 +896,12 @@ static void shutdown_zapping(void)
   printv(" audio");
   shutdown_audio();
 
+  /*
+   * The video output backends.
+   */
+  printv(" xvz");
+  shutdown_xvz();
+
   /* Close */
   printv(" video device");
   tveng_device_info_destroy(main_info);
@@ -1045,6 +1051,8 @@ static gboolean startup_zapping(gboolean load_plugins)
   D();
   /* Starts all modules */
   startup_v4linterface(main_info);
+  D();
+  startup_xvz();
   D();
   if (!startup_callbacks())
     return FALSE;
