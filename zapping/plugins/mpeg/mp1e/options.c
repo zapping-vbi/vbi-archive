@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.8 2000-09-30 19:38:44 mschimek Exp $ */
+/* $Id: options.c,v 1.9 2000-10-12 14:08:31 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,48 +37,8 @@
 #include "video/video.h"
 #include "audio/audio.h"
 #include "audio/mpeg.h"
+#include "options.h"
 
-/*
- *  Factory defaults, use system wide configuration file to customize
- */
-
-int			modules			= 3;			// 1 = Video, 2 = Audio, 4 = VBI
-int			mux_syn			= 2;			// 0 = null, elementary, MPEG-1, MPEG-2 PS 
-
-char *			cap_dev			= "/dev/video";
-char *			pcm_dev			= "/dev/dsp";
-char *			mix_dev			= "/dev/mixer";
-char *			vbi_dev			= "/dev/vbi";
-
-int			width			= 352;
-int			height			= 288;
-int			grab_width		= 352;
-int			grab_height		= 288;
-int			video_bit_rate		= 2300000;
-int			video_num_frames	= INT_MAX;
-char *			gop_sequence		= "IBBPBBPBBPBB";
-int			frames_per_seqhdr	= INT_MAX;
-int			filter_mode		= CM_YUV;
-double			frame_rate		= 1000.0;
-int			preview			= 0;			// 0 = none, XvImage/Tk, progressive
-char *			anno			= NULL;
-int			luma_only		= 0;			// boolean
-
-int			audio_bit_rate		= 80000;
-int			audio_bit_rate_stereo	= 160000;
-int			audio_num_frames	= INT_MAX;
-int			sampling_rate		= 44100;
-int			mix_line		= SOUND_MIXER_LINE;	// soundcard.h
-int			mix_volume		= 80;			// 0 <= n <= 100
-int			audio_mode		= AUDIO_MODE_MONO;
-int			psycho_loops		= 0;			// 0 = static, low, hi quality
-int			mute			= 0;			// bttv specific, boolean
-
-char *			subtitle_pages		= NULL;
-
-int			cap_buffers		= 12;			// capture -> video compression
-int			vid_buffers		= 8;			// video compression -> mux
-int			aud_buffers		= 32;			// audio compression -> mux
 /*
  *  NB vid_buffers and aud_buffers occupy physical memory only as fifo
  *  load requires. Consider page swapping delays. cap_buffers occupy

@@ -182,10 +182,6 @@ init_video(const char * cap_dev, int * width, int * height)
 		num_buffers++;
 	}
 
-	str_type = 1;
-	ASSERT("activate capturing",
-	       ioctl(fd, VIDIOC_STREAMON, &str_type) == 0);
-
 	old_mute.id = V4L2_CID_AUDIO_MUTE;
 
 	if (ioctl(fd, VIDIOC_G_CTRL, &old_mute) == 0) {
@@ -199,6 +195,10 @@ init_video(const char * cap_dev, int * width, int * height)
 		ASSERT("set mute control to %d",
 		       ioctl(fd, VIDIOC_S_CTRL, &new_mute) == 0, 0);
 	}
+
+	str_type = 1;
+	ASSERT("activate capturing",
+	       ioctl(fd, VIDIOC_STREAMON, &str_type) == 0);
 
 	return rate_code;
 }
@@ -451,14 +451,22 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr, "starting encode\n");
 
-	if (!rte_init_context(context) ||
-	    (!rte_start_encoding(context))) {
+	if (!rte_init_context(context)) {
+		fprintf(stderr, "cannot init the context: %s\n",
+			context->error);
+		rte_context_destroy(context);
+		return 0;
+	}
+
+	if (!rte_start_encoding(context)) {
 		fprintf(stderr, "cannot start encoding: %s\n",
 			context->error);
 		rte_context_destroy(context);
 		return 0;
 	}
+
 	fprintf(stderr, "going to bed (%d secs)\n", sleep_time);
+
 	// let rte encode video for some time
 	sleep(sleep_time);
 

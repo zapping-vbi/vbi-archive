@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.5 2000-10-08 18:03:52 garetxe Exp $ */
+/* $Id: fifo.h,v 1.6 2000-10-12 14:08:31 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -28,137 +28,8 @@
 #include "list.h"
 #include "types.h"
 #include "threads.h"
-
-/*
- *  Old stuff to be removed
- */
 #include "log.h"
 #include "alloc.h"
-
-/* FIXME: Michael, this is no longer needed, remove when you want */
-#if 0
-
-typedef struct {
-	node 			node;
-	unsigned char *		data;
-	unsigned char *		buffer;
-	int			size;
-	double			time;
-	int                     index; /* index in fifo.buffer */
-} _buffer;
-
-typedef struct {
-	pthread_mutex_t		mutex;
-	pthread_cond_t		cond;
-
-	list			full;
-	list			empty;
-
-	_buffer			buffer[64];
-	int                     num_buffers;
-
-	/* MUX parameters */	
-
-	int			in, out, max;
-	_buffer *		buf;
-
-	unsigned char *		ptr;
-	int			left;
-	double			time, tpb;
-	double			dts, tick;
-	double			rtime, rtick;
-} _fifo;
-
-static inline int
-_init_fifo(_fifo *f, char *purpose, int size, int buffers)
-{
-	int i;
-
-	memset(f, 0, sizeof(_fifo));
-
-	for (i = 0; i < 64 && i < buffers; i++) {
-		ASSERT("allocate %s buffer #%d",
-			(f->buffer[i].data =
-			 f->buffer[i].buffer =
-			 calloc_aligned(size, 32)) != NULL, purpose, i);
-
-		f->buffer[i].index = i;
-		f->buffer[i].size = size;
-
-		add_tail(&f->empty, &f->buffer[i].node);
-	}
-
-	pthread_mutex_init(&f->mutex, NULL);
-	pthread_cond_init(&f->cond, NULL);
-
-	f->num_buffers = i;
-
-	return i;
-}
-
-static inline void
-_free_fifo(_fifo * f)
-{
-	int i;
-
-	for (i = 0; i < f->num_buffers; i++)
-		free(f->buffer[i].data);
-
-	pthread_mutex_destroy(&f->mutex);
-	pthread_cond_destroy(&f->cond);
-
-	memset(f, 0, sizeof(_fifo));
-}
-
-static inline _buffer *
-_new_buffer(_fifo *f)
-{
-	_buffer *b;
-
-	pthread_mutex_lock(&f->mutex);
-
-	while (!(b = (_buffer *) rem_head(&f->empty)))
-		pthread_cond_wait(&f->cond, &f->mutex);
-
-	pthread_mutex_unlock(&f->mutex);
-
-	return b;
-}
-
-static inline void
-_send_buffer(_fifo *f, _buffer *b)
-{
-	FAIL("Obsolete");
-}
-
-/*
-  send_buffer uses mux_mutex and mux_cond, and that isn't what we want
-*/
-static inline void
-_send_out_buffer(_fifo *f, _buffer *b)
-{
-	pthread_mutex_lock(&f->mutex);
-
-	add_tail(&f->full, &b->node);
-
-	pthread_mutex_unlock(&f->mutex);
-
-	pthread_cond_broadcast(&f->cond);
-}
-
-static inline void
-_empty_buffer(_fifo *f, _buffer *b)
-{
-	pthread_mutex_lock(&f->mutex);
-
-	add_tail(&f->empty, &b->node);
-
-	pthread_mutex_unlock(&f->mutex);
-
-	pthread_cond_broadcast(&f->cond);
-}
-
-#endif /* disabled old stuff */
 
 /*
  *  New stuff(tm)

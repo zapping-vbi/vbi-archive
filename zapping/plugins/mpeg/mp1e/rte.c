@@ -157,7 +157,7 @@ static void default_write_callback ( void * data, size_t size,
 				     rte_context * context,
 				     void * user_data )
 {
-	int r;
+	size_t r;
 
 	while (size) {
 		r = write(context->private->fd, data, size);
@@ -1039,7 +1039,5 @@ static void rte_video_init(void) /* init video capture */
 			frame_rate = frame_rate_value[frame_rate_code];
 
 		video_init();
-
-		// video_start()
 	}
 }
