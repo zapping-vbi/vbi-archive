@@ -106,165 +106,9 @@ x11_get_bpp(void)
   return depth;
 }
 
-/*
- * Adds a clip to the given struct and incs num_clips.
- */
-static
-void x11_add_clip(int x1, int y1, int x2, int y2,
-		  struct tveng_clip ** clips, gint* num_clips)
-{
-  /* the border is because of the possible dword-alignings */
-  *clips = g_realloc(*clips, ((*num_clips)+1)*sizeof(struct tveng_clip));
-  (*clips)[*num_clips].x = x1;
-  (*clips)[*num_clips].y = y1;
-  (*clips)[*num_clips].width = x2-x1;
-  (*clips)[*num_clips].height = y2-y1;
-  (*num_clips)++;
-}
-
-/*
- * Do-nothing error handler. At certain times errors (specially
- * BadWindow) should be ignored. For example, when getting the clips,
- * a window can disappear while we are checking other windows. This
- * window will still be in our array, but will raise a BadWindow when
- * getting its attributes. Btw, this isn't a hack ;-)
- */
-static
-int xerror(Display * dpy, XErrorEvent *event)
-{
-  return 0;
-}
-
-/**
- * Stores in X, Y the absolute position (relative to the root window)
- * of the given window
- */
-static void
-get_absolute_pos(Window w, Window root, gint *x, gint *y)
-{
-  Display *dpy = GDK_DISPLAY();
-  Window *children;
-  XWindowAttributes wts;
-  int nchildren;
-
-  *x = *y = 0;
-
-  while (w != root)
-    {
-      XGetWindowAttributes(dpy, w, &wts);
-
-      *x += wts.x;
-      *y += wts.y;
-
-      XQueryTree(GDK_DISPLAY(), w, &root, &w, &children, &nchildren);
-      if (children)
-	XFree(children);
-    }
-}
 
 
-/*
- * Returns a pointer to a clips struct (that you need to g_free()
- * afterwards if not NULL).
- * Pass the GdkWindow that you want to get the clip status of.
- * x, y, w, h are the coords of the overlay in that window.
- */
-struct tveng_clip *
-x11_get_clips(GdkWindow *win, gint x, gint y, gint w, gint h,
-	      gint *return_num_clips)
-{
-  struct tveng_clip * clips = NULL;
-  int x1,y1,x2,y2;
-  Display *dpy = GDK_DISPLAY();
-  XWindowAttributes wts;
-  Window root, me, rroot, parent, *children;
-  uint nchildren, i;
-  gint num_clips=0;
-  int wx, wy, wwidth, wheight, swidth, sheight;
-  XErrorHandler olderror;
 
-  static void get_children_clips(Window id, Window stack_level)
-    {
-      gint paren_x, paren_y;
-
-      get_absolute_pos(id, root, &paren_x, &paren_y);
-
-      XQueryTree(dpy, id, &rroot, &parent, &children, &nchildren);
-
-      for (i = 0; i < nchildren; i++)
-	if (children[i]==stack_level)
-	  break;
-
-      if (i == nchildren)
-	i = 0;
-      else
-	i++;
-
-      /* enter error-ignore mode */
-      olderror = XSetErrorHandler(xerror);
-      for (; i<nchildren; i++) {
-	XGetWindowAttributes(dpy, children[i], &wts);
-	if (!(wts.map_state & IsViewable))
-	  continue;
-    
-	x1=(wts.x+paren_x)-wx;
-	y1=(wts.y+paren_y)-wy;
-	x2=x1+wts.width+2*wts.border_width;
-	y2=y1+wts.height+2*wts.border_width;
-	if ((x2 < 0) || (x1 > (int)wwidth) || (y2 < 0) || (y1 > (int)wheight))
-	  continue;
-    
-	if (x1<0)            x1=0;
-	if (y1<0)            y1=0;
-	if (x2>(int)wwidth)  x2=wwidth;
-	if (y2>(int)wheight) y2=wheight;
-	x11_add_clip(x1, y1, x2, y2, &clips, &num_clips);
-      }
-      XSetErrorHandler(olderror);
-      /* leave error-ignore mode */
-      
-      if (children)
-	XFree((char *) children);
-    }
-
-  if ((win == NULL) || (return_num_clips == NULL))
-    return NULL;
-
-  wx = x; wy = y; wwidth = w; wheight = h;
-
-  swidth = gdk_screen_width();
-  sheight = gdk_screen_height();
-  if (wx<0)
-    x11_add_clip(0, 0, (uint)(-wx), wheight, &clips, &num_clips);
-  if (wy<0)
-    x11_add_clip(0, 0, wwidth, (uint)(-wy), &clips, &num_clips);
-  if ((wx+wwidth) > swidth)
-    x11_add_clip(swidth-wx, 0, wwidth, wheight, &clips,
-		   &num_clips);
-  if ((wy+wheight) > sheight)
-    x11_add_clip(0, sheight-wy, wwidth, wheight, &clips, &num_clips);
-  
-  root=GDK_ROOT_WINDOW();
-  me=GDK_WINDOW_XWINDOW(win);
-
-  /* Get the cliplist of the childs of a given window */
-  get_children_clips(me, None);
-
-  /* Walk up to the root window and get clips */
-  for (;;) {
-    XQueryTree(dpy, me, &rroot, &parent, &children, &nchildren);
-    if (children)
-      XFree((char *) children);
-    if (root == parent)
-      break;
-    me = parent;
-  }
-
-  get_children_clips(root, me);
-
-  *return_num_clips = num_clips;
-  return clips;
-}
 
 /*
  * Maps and unmaps a window of the given (screen) geometry, thus
@@ -355,6 +199,7 @@ x11_window_viewable(GdkWindow *window)
  *  Window property & event helpers
  */
 
+/* FIXME not reentrant, add mutex or someth */
 static XErrorHandler	old_error_handler	= 0;
 static Bool		bad_window		= False;
 
@@ -459,15 +304,22 @@ gtk_window_send_x11_event	(GtkWindow *		window,
 	      l0, l1);
 }
 
-
-
 /*
  *  WindowManager hints for stay-on-top option
  */
 
+/* A function not directly supported by Gnome/Gtk+: Tell the window manager
+   to keep our (video) window above all other windows. */
+
 #ifndef X11STUFF_WM_HINTS_DEBUG
 #define X11STUFF_WM_HINTS_DEBUG 0
 #endif
+
+/*
+   Tested:		proto
+   IceWM 1.2.2		Gnome
+   Sawfish 1.2		NetWM
+*/
 
 static void
 dummy_window_on_top		(GtkWindow *		window,
@@ -494,6 +346,8 @@ wm_event_handler		(GdkXEvent *		xevent,
   return GDK_FILTER_REMOVE; /* ignore */
 }
 
+/* www.freedesktop.org/standards */
+
 enum {
   _NET_WM_STATE_REMOVE,
   _NET_WM_STATE_ADD,
@@ -505,7 +359,6 @@ static Atom _XA_NET_WM_STATE;
 static Atom _XA_NET_WM_STATE_ABOVE;
 static Atom _XA_NET_WM_STATE_FULLSCREEN;
 
-/* Tested: Sawfish 1.2 */
 static void
 net_wm_window_on_top		(GtkWindow *		window,
 				 gboolean		on)
@@ -527,7 +380,6 @@ enum {
 static Atom _XA_WIN_SUPPORTING_WM_CHECK;
 static Atom _XA_WIN_LAYER;
 
-/* Tested: IceWM 1.2.2 */
 static void
 gnome_window_on_top		(GtkWindow *		window,
 				 gboolean		on)
@@ -642,6 +494,10 @@ wm_hints_detect			(void)
 /*
  *  XFree86VidMode helpers
  */
+
+/* This is used to select a suitable screen resolution for fullscreen
+   video display. I.e. instead of scaling the video we can switch to
+   TV-like monitor frequencies ("Modeline" in XF86Config). */
 
 #ifndef X11STUFF_VIDMODE_DEBUG
 #define X11STUFF_VIDMODE_DEBUG 0
@@ -1190,6 +1046,9 @@ x11_vidmode_restore		(x11_vidmode_info *	list,
  *  Screensaver
  */
 
+/* This is used to temporarily disable any screensaver functions (blanking,
+   animation, monitor power down) while watching TV. */
+
 #ifndef X11STUFF_SCREENSAVER_DEBUG
 #define X11STUFF_SCREENSAVER_DEBUG 0
 #endif
@@ -1246,10 +1105,9 @@ find_xscreensaver_window	(Display *		display,
 
   /* We're walking the list of root-level windows and trying to find
      the one that has a particular property on it.  We need to trap
-     BadWindows errors while doing this, because it's possible that
+     BadWindow errors while doing this, because it's possible that
      some random window might get deleted in the meantime.  (That
-     window won't have been the one we're looking for.)
-   */
+     window won't have been the one we're looking for.) */
   old_error_handler = XSetErrorHandler (bad_window_handler);
 
   for (i = 0; i < nkids; i++)
@@ -1469,6 +1327,13 @@ x11_screensaver_init		(void)
 
 }
 
+/*
+ *  XF86DGA helpers
+ */
+
+/* This is used to determine the parameters (physical address, size, pixel
+   format) of a display for DMA video overlay. */
+
 #ifdef HAVE_DGA_EXTENSION
 
 #ifndef X11STUFF_DGA_DEBUG
@@ -1479,21 +1344,24 @@ x11_screensaver_init		(void)
 #include <X11/extensions/xf86dga.h>
 
 gboolean
-x11_dga_query			(x11_dga_parameters *	par,
+x11_dga_query			(tv_overlay_buffer *	target,
 				 const char *		display_name,
 				 int			bpp_hint)
 {
-  x11_dga_parameters param;
+  tv_overlay_buffer overlay_buffer;
   Display *display;
   int event_base, error_base;
   int major_version, minor_version;
   int screen;
   int flags;
+  
+  // XXX
+  int depth, bits_per_pixel;
 
-  if (par)
-    CLEAR (*par);
+  if (target)
+    CLEAR (*target);
   else
-    par = &param;
+    target = &overlay_buffer;
 
   if (display_name)
     {
@@ -1566,7 +1434,7 @@ x11_dga_query			(x11_dga_parameters *	par,
 	      (void *) start, width, banksize, banksize,
 	      memsize, memsize);
 
-    par->base = (void *) start;
+    target->base = (void *) start;
   }
 
   {
@@ -1581,8 +1449,8 @@ x11_dga_query			(x11_dga_parameters *	par,
       printv ("DGA root width=%u height=%u\n",
 	      wts.width, wts.height);
 
-    par->width  = wts.width;
-    par->height = wts.height;
+    target->width  = wts.width;
+    target->height = wts.height;
   }
 
   {
@@ -1599,7 +1467,7 @@ x11_dga_query			(x11_dga_parameters *	par,
 	  if (X11STUFF_DGA_DEBUG)
 	    printv ("DGA vi[%u] depth=%u\n", i, info[i].depth);
 
-	  par->depth = info[i].depth;
+	  depth = info[i].depth;
 	  break;
 	}
 
@@ -1608,7 +1476,7 @@ x11_dga_query			(x11_dga_parameters *	par,
     if (i >= nitems)
       {
 	printv ("DGA: No appropriate X visual available\n");
-	CLEAR (*par);
+	CLEAR (*target);
 	return FALSE;
       }
 
@@ -1617,7 +1485,7 @@ x11_dga_query			(x11_dga_parameters *	par,
       case 16:
       case 24:
       case 32:
-	par->bits_per_pixel = bpp_hint;
+	bits_per_pixel = bpp_hint;
 	break;
 
       default:
@@ -1627,7 +1495,7 @@ x11_dga_query			(x11_dga_parameters *	par,
 
 	  /* BPP heuristic */
 
-	  par->bits_per_pixel = 0;
+	  bits_per_pixel = 0;
 
 	  pf = XListPixmapFormats (display, &count);
 
@@ -1637,9 +1505,9 @@ x11_dga_query			(x11_dga_parameters *	par,
 		printv ("DGA pf[%u]: depth=%u bpp=%u\n",
 			i, pf[i].depth, pf[i].bits_per_pixel);
 
-	      if (pf[i].depth == par->depth)
+	      if (pf[i].depth == depth)
 		{
-		  par->bits_per_pixel = pf[i].bits_per_pixel;
+		  bits_per_pixel = pf[i].bits_per_pixel;
 		  break;
 		}
 	    }
@@ -1649,7 +1517,7 @@ x11_dga_query			(x11_dga_parameters *	par,
 	  if (i >= count)
 	    {
 	      printv ("DGA: Unknown frame buffer bits per pixel\n");
-	      CLEAR (*par);
+	      CLEAR (*target);
 	      return FALSE;
 	    }
 	}
@@ -1658,18 +1526,41 @@ x11_dga_query			(x11_dga_parameters *	par,
     /* XImageByteOrder() ? */
   }
 
-  par->bytes_per_line = par->width * par->bits_per_pixel;
+  target->bytes_per_line = target->width * bits_per_pixel;
 
-  if (par->bytes_per_line & 7)
+  if (target->bytes_per_line & 7)
     {
       printv ("DGA: Unknown frame buffer bits per pixel\n");
-      CLEAR (*par);
+      CLEAR (*target);
       return FALSE;
     }
 
-  par->bytes_per_line >>= 3;
+  target->bytes_per_line >>= 3;
 
-  par->size = par->height * par->bytes_per_line;
+  target->size = target->height * target->bytes_per_line;
+
+  switch (depth) {
+  case 15:
+    target->pixfmt = TVENG_PIX_RGB555; // XXX inexact
+    break;
+
+  case 16:
+    target->pixfmt = TVENG_PIX_RGB565; // XXX inexact
+    break;
+
+  case 24: // XXX RGB or BGR? 24??
+    target->pixfmt = TVENG_PIX_BGR32; // XXX inexact
+    break;
+
+  case 32: // XXX RGB or BGR? *depth* 32??
+    target->pixfmt = TVENG_PIX_BGR32; // XXX inexact
+    break;
+
+  default:
+    printv ("DGA: Unknown frame buffer depth\n");
+    CLEAR (*target);
+    return FALSE;
+  }
 
   return TRUE;
 }
@@ -1677,16 +1568,215 @@ x11_dga_query			(x11_dga_parameters *	par,
 #else /* !HAVE_DGA_EXTENSION */
 
 gboolean
-x11_dga_query			(x11_dga_parameters *	par,
+x11_dga_query			(tv_overlay_buffer *	target,
 				 const char *		display_name,
 				 int			bpp_hint)
 {
   printv ("DGA extension support not compiled in\n");
 
-  if (par)
-    CLEAR (*par);
+  if (target)
+    CLEAR (*target);
 
   return FALSE;
 }
 
 #endif /* !HAVE_DGA_EXTENSION */
+
+/*
+ *  Clipping helpers
+ */
+
+static tv_bool
+children_clips			(tv_clip_vector *	vector,
+				 Display *		display,
+				 Window			window,
+				 Window			stack_level,
+				 int			x,
+				 int			y,
+				 unsigned int		width,
+				 unsigned int		height,
+				 int			parent_x,
+				 int			parent_y)
+{
+	Window root;
+	Window parent;
+	Window *children;
+	unsigned int nchildren;
+	unsigned int i;
+
+	if (!XQueryTree (display, window, &root, &parent,
+			 &children, &nchildren))
+		return FALSE;
+
+	if (nchildren == 0)
+		return TRUE;
+
+	for (i = 0; i < nchildren; ++i)
+		if (children[i] == stack_level)
+			break;
+
+	if (i == nchildren)
+		i = 0;
+	else
+		++i;
+
+	/* We need to trap BadWindow errors while traversing the
+	   list of windows because they might get deleted in the
+	   meantime. */
+	old_error_handler = XSetErrorHandler (bad_window_handler);
+
+	for (; i < nchildren; ++i) {
+		XWindowAttributes wts;
+		int x1, y1;
+		int x2, y2;
+    
+		bad_window = FALSE;
+    
+		XGetWindowAttributes (display, children[i], &wts);
+    
+		if (bad_window)
+			continue;
+    
+		if (!(wts.map_state & IsViewable))
+			continue;
+		
+		x1 = (wts.x + parent_x - wts.border_width) - x;
+		y1 = (wts.y + parent_y - wts.border_width) - y;
+		x2 = x1 + wts.width + wts.border_width * 2;
+		y2 = y1 + wts.height + wts.border_width * 2;
+
+		if (x2 < 0 || x1 > (int) width ||
+		    y2 < 0 || y1 > (int) height)
+			continue;
+
+		if (!tv_clip_vector_add_clip_xy (vector,
+						 MAX (x1, 0),
+						 MAX (y1, 0),
+						 MIN (x2, (int) width),
+						 MIN (y2, (int) height)))
+			return FALSE;
+	}
+
+	XSetErrorHandler (old_error_handler);
+
+	XFree ((char *) children);
+
+	return TRUE;
+}
+
+/*
+ * x11_window_clip_vector:
+ * @vector: Initialized tv_clip_vector, clipping rectangles are stored here.
+ * @display:
+ * @window: Window "displaying" the overlaid video. Regions of the overlay
+ *   outside this window add to the clip vector. It also determines the
+ *   video layer, which other windows are visible "above" the video.
+ * @x, y, width, height: Top, left coordinates and size of the overlay.
+ *   Coordinates are relative to the target base address, i.e. the
+ *   root window. The overlay can lie partially or completely outside the
+ *   @window and @display.
+ *
+ * Returns a clip vector describing areas obscuring the @x, @y, @width,
+ * @height overlay rectangle. Clip coordinates in the vector will be
+ * relative to @x, @y.
+ *
+ * It should be obvious, but just in case: We cannot lock the X server,
+ * so the resulting clip vector is only a snapshot. It may be already
+ * outdated when returned. 
+ *
+ * Returns FALSE if unsuccessful, with random vector contents.
+ */
+tv_bool
+x11_window_clip_vector		(tv_clip_vector *	vector,
+				 Display *		display,
+				 Window			window,
+				 int			x,
+				 int			y,
+				 unsigned int		width,
+				 unsigned int		height)
+{
+	Window root;
+	int wx1, wy1;		/* window inner bounds, root relative */
+	int wx2, wy2;
+	int x2, y2;		/* x + width, y + height */
+	int wy1y, wy2y;		/* wy1, wy2 relative y */
+
+	tv_clip_vector_clear (vector);
+  
+	{
+		unsigned int width;
+		unsigned int height;
+		unsigned int dummy;
+		Window child;
+
+		if (!XGetGeometry (display, window, &root,
+				   &wx1, &wy1,
+				   &width, &height,
+				   /* border_width */ &dummy,
+				   /* depth */ &dummy))
+			return FALSE;
+
+		if (!XTranslateCoordinates (display, window, root,
+					    0, 0, &wx1, &wy1, &child))
+			return FALSE;
+
+		wx2 = wx1 + width;
+		wy2 = wy1 + height;
+	}
+
+	x2 = x + width;
+	y2 = y + height;
+
+	if (x >= wx2 || x2 <= wx1 ||
+	    y >= wy2 || y2 <= wy1)
+		return tv_clip_vector_add_clip_xy
+			(vector, 0, 0, width, height);
+
+	wy1y = wy1 - y;
+	wy2y = wy2 - y;
+
+	if (y < wy1)
+		if (!tv_clip_vector_add_clip_xy
+		    (vector, 0, 0, width, wy1y))
+			return FALSE;
+
+	if (x < wx1)
+		if (!tv_clip_vector_add_clip_xy
+		    (vector, 0, wy1y, wx1 - x, wy2y))
+			return FALSE;
+
+	if (x2 > wx2)
+		if (!tv_clip_vector_add_clip_xy
+		    (vector, wx2 - x, wy1y, width, wy2y))
+			return FALSE;
+
+	if (y2 > wy2)
+		if (!tv_clip_vector_add_clip_xy
+		    (vector, 0, wy2y, width, height))
+			return FALSE;
+
+	if (!children_clips (vector, display, window, None,
+			     x, y, width, height, wx1, wy1))
+		return FALSE;
+
+	for (;;) {
+		Window parent;
+		Window *children;
+		unsigned int nchildren;
+      
+		if (!XQueryTree (display, window, &root, &parent,
+				 &children, &nchildren))
+			return FALSE;
+
+		if (children)
+			XFree ((char *) children);
+      
+		if (root == parent)
+			break;
+
+		window = parent;
+	}
+
+	return children_clips (vector, display, root, window,
+			       x, y, width, height, 0, 0);
+}

@@ -26,7 +26,7 @@
 #endif
 #include <gtk/gtk.h>
 
-//#include <tveng.h>
+#include "tveng.h" /* tv_overlay_target */
 
 /*
  * Returns a pointer to the data contained in the given GdkImage
@@ -45,16 +45,6 @@ x11_get_byte_order(void);
  */
 gint
 x11_get_bpp(void);
-
-/*
- * Returns a pointer to a clips array (that you need to free()
- * afterwards if not NULL).
- * Pass the GdkWindow that you want to get the clip status of.
- * num_clips get filled with the number of clips in the array.
- */
-struct tveng_clip *
-x11_get_clips(GdkWindow * win, gint x, gint y, gint w, gint h, gint *
-	      num_clips);
 
 /*
  * Maps and unmaps a window of the given (screen) geometry, thus
@@ -137,31 +127,25 @@ x11_screensaver_init		(void);
 
 /* DGA routines */
 
-typedef struct _x11_dga_parameters x11_dga_parameters;
-
-struct _x11_dga_parameters {
-  void *		base;			/* frame buffer */
-  unsigned int		size;			/* 2048 * 768, bytes */
-
-  unsigned int		width;			/* 1024 */
-  unsigned int		height;			/* 768 */
-
-  /* XXX rgb1? 1rgb? 1bgr? bgr1? le/be? */
-  unsigned int		depth;			/* 15 */
-
-  unsigned int		bytes_per_line;		/* 2048 */
-  unsigned int		bits_per_pixel;		/* 16 */
-};
-
 gboolean
-x11_dga_query			(x11_dga_parameters *	par,
+x11_dga_query			(tv_overlay_buffer *	target,
 				 const char *		display_name,
 				 int			bpp_hint);
-
 static __inline__ gboolean
-x11_dga_present			(x11_dga_parameters *	par)
+x11_dga_present			(tv_overlay_buffer *	target)
 {
-  return par->base != 0;
+  return target->base != 0;
 }
+
+/* Clipping */
+
+extern tv_bool
+x11_window_clip_vector		(tv_clip_vector *	vector,
+				 Display *		display,
+				 Window			window,
+				 int			x,
+				 int			y,
+				 unsigned int		width,
+				 unsigned int		height);
 
 #endif /* x11stuff.h */
