@@ -612,7 +612,8 @@ build_properties_dialog			(void)
 
 void
 append_properties_group		(GtkDialog	*dialog,
-				 const gchar	*group)
+				 const gchar	*group,
+				 const gchar *	 group_i18n)
 {
   GtkWidget *button;
   GtkWidget *vbox = lookup_widget(GTK_WIDGET(dialog), "group-container");
@@ -623,7 +624,7 @@ append_properties_group		(GtkDialog	*dialog,
   if (find_widget(GTK_WIDGET(dialog), buf))
     return; /* The given group already exists */
 
-  button = gtk_button_new_with_label(group);
+  button = gtk_button_new_with_label(group_i18n);
   gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
   on_container_add(vbox, button, vbox);
   gtk_widget_show(button);
@@ -772,7 +773,7 @@ standard_properties_add		(GtkDialog	*dialog,
 
   for (i = 0; i<num_groups; i++)
     {
-      append_properties_group(dialog, _(groups[i].label));
+      append_properties_group(dialog, groups[i].label, _(groups[i].label));
 
       for (j = 0; j < groups[i].num_items; j++)
 	{

@@ -29,7 +29,8 @@ void append_property_handler (const property_handler *p);
  */
 void
 append_properties_group		(GtkDialog	*dialog,
-				 const gchar	*group);
+				 const gchar	*group,
+				 const gchar * group_i18n);
 
 /**
  * Sets up a properties dialog.

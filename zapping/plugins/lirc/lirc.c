@@ -327,7 +327,7 @@ custom_properties_add		(GtkDialog	*dialog,
 
   for (i = 0; i<num_groups; i++)
     {
-      append_properties_group(dialog, _(groups[i].label));
+      append_properties_group(dialog, groups[i].label, _(groups[i].label));
 
       for (j = 0; j<groups[i].num_items; j++)
 	{
