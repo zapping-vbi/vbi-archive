@@ -1,7 +1,7 @@
 /*
  * Zapping (TV viewer for the Gnome Desktop)
  *
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000 IÃ±aki GarcÃ­a Etxebarria
  * Copyright (C) 2003 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
@@ -378,7 +378,7 @@ main				(int			argc,
 	}
     }
 
-  message (1, "(C) 2000-2003 Iñaki G. Etxebarria, Michael H. Schimek.\n"
+  message (1, "(C) 2000-2003 IÃ±aki G. Etxebarria, Michael H. Schimek.\n"
 	   "This program is freely redistributable under the terms\n"
 	   "of the GNU General Public License.\n\n");
 
