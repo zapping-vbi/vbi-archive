@@ -2,6 +2,19 @@
 
 	* pl.po: Update by Paweł.
 
+16.12.2001	fixes <mschimek@users.sf.net>
+
+	* 176x144: bug in XvPutImage, driver side, deleted.
+	* Crash on exit: not recently observed, probably fixed.
+	* screenshot.c: Replaced "appx %.2f kB", appx w/2 decimals, yeah.
+	* capture.c: zapping --no-xv never cleared window regions
+	  not covered by image in case of exposure or image resizing
+	  (eg. mpeg plugin).
+	* zvbi.c: Fixed "last known station name" bug.
+	* export.c: Changed subno separator from '.' to '-'. Problems
+	  with new on_electric... but it's probably better to avoid
+	  two dots in filenames.
+
 14.12.2001	yet more channel stuff <mschimek@users.sf.net>
 
 	* channel_editor.c: Fixed random freq when modifying channel to

@@ -202,6 +202,15 @@ void
 zvbi_channel_switched(void);
 
 /*
+  Reset our knowledge about network and program,
+  update main title and info dialogs.
+*/
+void
+zvbi_reset_network_info(void);
+void
+zvbi_reset_program_info(void);
+
+/*
   Returns the current program title ("Foo", "Bar", "Unknown"),
   the returned string must be g_free'ed
 */

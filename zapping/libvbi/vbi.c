@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.79 2001-12-07 06:49:37 mschimek Exp $ */
+/* $Id: vbi.c,v 1.80 2001-12-17 05:28:11 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -899,6 +899,7 @@ vbi_close(struct vbi *vbi)
 
 	vbi_caption_destroy(vbi);
 
+	pthread_mutex_destroy(&vbi->prog_info_mutex);
 	pthread_mutex_destroy(&vbi->event_mutex);
 	pthread_mutex_destroy(&vbi->chswcd_mutex);
 
@@ -956,6 +957,7 @@ vbi_open(fifo *source)
 
 	pthread_mutex_init(&vbi->chswcd_mutex, NULL);
 	pthread_mutex_init(&vbi->event_mutex, NULL);
+	pthread_mutex_init(&vbi->prog_info_mutex, NULL);
 
 	vbi->time = 0.0;
 

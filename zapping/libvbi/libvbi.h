@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.52 2001-12-07 06:49:37 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.53 2001-12-17 05:28:11 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -538,7 +538,8 @@ extern void		vbi_reset_prog_info(vbi_program_info *pi);
  *  We have new information about the current or next program.
  *  ev.prog_info is a vbi_program_info pointer (due to size), read only.
  *
- *  XXX TTX not implemented yet
+ *  XXX TTX not implemented yet.
+ *  XXX change to get_prog_info. network ditto?
  */
 
 typedef struct {

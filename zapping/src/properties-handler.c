@@ -416,6 +416,7 @@ on_enable_vbi_toggled	(GtkWidget	*widget,
 }
 
 /* VBI */
+
 static void
 vbi_general_setup	(GtkWidget	*page)
 {
@@ -471,9 +472,36 @@ vbi_general_setup	(GtkWidget	*page)
 			    bcd2dec(zcg_int(NULL, "zvbi_page")));
 }
 
+typedef enum {
+  TOGGLE_FALSE,
+  TOGGLE_TRUE,
+  TOGGLE_TO_FALSE,
+  TOGGLE_TO_TRUE,
+} togglean;
+
+#define TOGGLE_CURRENT(t) ((t) & 1)
+#define TOGGLE_CHANGED(t) ((t) & 2)
+
+static togglean
+set_toggle		(GtkWidget *page,
+			 gchar *widget_name,
+			 gchar *zconf_name)
+{
+  gboolean new_state, old_state;
+  GtkWidget *widget;
+
+  widget = lookup_widget (page, widget_name);
+  new_state = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  old_state = zconf_get_boolean (NULL, zconf_name);
+  zconf_set_boolean (new_state, zconf_name);
+
+  return (old_state ^ new_state) * 2 + new_state;
+}
+
 static void
 vbi_general_apply	(GtkWidget	*page)
 {
+  togglean enable_vbi, use_vbi;
   GtkWidget *widget;
   gchar *text;
   gint index;
@@ -489,21 +517,27 @@ vbi_general_apply	(GtkWidget	*page)
     80 /* I */
   };
 
-  widget = lookup_widget(page, "checkbutton6"); /* enable VBI
-						   decoding */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/enable_vbi");
+  /* enable VBI decoding */
+  enable_vbi = set_toggle (page, "checkbutton6",
+			   "/zapping/options/vbi/enable_vbi");
+  /* Use VBI station names */
+  use_vbi = set_toggle (page, "checkbutton7",
+			"/zapping/options/vbi/use_vbi");
 
-  widget = lookup_widget(page, "checkbutton7"); /* Use VBI
-						   station names */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/use_vbi");
+  if (enable_vbi == TOGGLE_TO_FALSE)
+    {
+      /* XXX bad design */
+      zvbi_reset_program_info ();
+      zvbi_reset_network_info ();
+    }
+  else if (use_vbi == TOGGLE_TO_FALSE)
+    {
+      zvbi_reset_network_info ();
+    }
 
-  widget = lookup_widget(page, "checkbutton12"); /* Overlay TTX
-						    pages
-						    automagically */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/auto_overlay");
+  /* Overlay TTX pages automagically */
+  set_toggle (page, "checkbutton12",
+	      "/zapping/options/vbi/auto_overlay");
 
   widget = lookup_widget(page, "fileentry2"); /* VBI device entry */
   text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
@@ -684,3 +718,4 @@ void shutdown_properties_handler(void)
 {
   /* Nothing */
 }
+

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.38 2001-12-07 06:49:37 mschimek Exp $ */
+/* $Id: vbi.h,v 1.39 2001-12-17 05:28:11 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -61,6 +61,7 @@ struct vbi
 
 	vbi_trigger *		triggers;
 
+	pthread_mutex_t		prog_info_mutex;
 	vbi_program_info	prog_info[2];
 	int                     aspect_source;
 

@@ -44,13 +44,22 @@
 #include "tvengxv.h" /* XVideo specific headers */
 #include "tveng_private.h" /* private definitions */
 
-#define TVLOCK		pthread_mutex_lock(&(info->private->mutex))
-#define UNTVLOCK	pthread_mutex_unlock(&(info->private->mutex))
+#define TVLOCK								\
+({									\
+  /* fprintf (stderr, "TVLOCK   in " __PRETTY_FUNCTION__ "\n"); */	\
+  pthread_mutex_lock(&(info->private->mutex));				\
+})
+#define UNTVLOCK							\
+({									\
+  /* fprintf (stderr, "UNTVLOCK in " __PRETTY_FUNCTION__ "\n"); */	\
+  pthread_mutex_unlock(&(info->private->mutex));			\
+})
 
-#define RETURN_UNTVLOCK(X) \
-do { __typeof__(X) _unlocked_result = X; \
-     UNTVLOCK; \
-     return _unlocked_result; \
+#define RETURN_UNTVLOCK(X)						\
+do {									\
+  __typeof__(X) _unlocked_result = X;					\
+  UNTVLOCK;								\
+  return _unlocked_result;						\
 } while (0)
 
 #define TVUNSUPPORTED do { \
@@ -2262,3 +2271,18 @@ void tveng_mutex_unlock(tveng_device_info * info)
 {
   UNTVLOCK;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

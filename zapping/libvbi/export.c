@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.42 2001-09-11 07:13:41 mschimek Exp $ */
+/* $Id: export.c,v 1.43 2001-12-17 05:28:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -355,7 +355,7 @@ vbi_export_mkname(vbi_export *e, char *fmt,
 		case 'p':	// pageno[.subno]
 		    if (subno)
 			s = adjust(s,strcat(strcat(hexnum(buf, pgno),
-				"."), hexnum(buf2, subno)), ' ', width, 0);
+				"-"), hexnum(buf2, subno)), ' ', width, 0);
 		    else
 			s = adjust(s, hexnum(buf, pgno), ' ', width, 0);
 		    break;

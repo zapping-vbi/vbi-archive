@@ -1063,8 +1063,8 @@ on_drawingarea_expose_event             (GtkWidget      *widget,
   if (data->size_label)
     {
       if (data->size_est < (double)(1 << 20))
-	snprintf (buf, sizeof(buf) - 1, _("appx %.2f kB"),
-		  data->size_est / (double)(1 << 10));
+	snprintf (buf, sizeof(buf) - 1, _("appx %u KB"),
+		  (unsigned int)(data->size_est / (1 << 10)));
       else
 	snprintf (buf, sizeof(buf) - 1, _("appx %.2f MB"),
 		  data->size_est / (double)(1 << 20));

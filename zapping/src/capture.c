@@ -69,7 +69,8 @@ static gboolean		capture_locked;
 /* Where does the capture go to */
 static GtkWidget	*capture_canvas = NULL;
 static guint		idle_id=0; /* idle timeout */
-
+static gint		expose_w = -1;
+static gint		expose_h = -1;
 
 #define BUNDLE_FORMAT (zconf_get_integer(NULL, \
 					 "/zapping/options/main/yuv_format"))
@@ -643,6 +644,32 @@ print_info(GtkWidget *main_window)
   fprintf(stderr, "detected x11 depth: %d\n", x11_get_bpp());
 }
 
+/* Clear canvas minus image (to avoid flicker) */
+static void
+clear_canvas (GtkWidget *canvas, gint w, gint h, gint iw, int ih)
+{
+  gint y  = (h - ih) >> 1;
+  gint h2 = (h + ih) >> 1;
+  gint x  = (w - iw) >> 1;
+  gint w2 = (w + iw) >> 1;
+
+  expose_w = iw;
+  expose_h = ih;
+
+  if (y > 0)
+    gdk_draw_rectangle (canvas->window, canvas->style->black_gc, TRUE,
+			0, 0, w, y);
+  if (h2 > 0)
+    gdk_draw_rectangle (canvas->window, canvas->style->black_gc, TRUE,
+			0, y + ih, w, h2);
+  if (x > 0)
+    gdk_draw_rectangle (canvas->window, canvas->style->black_gc, TRUE,
+			0, y, x, ih);
+  if (w2 > 0)
+    gdk_draw_rectangle (canvas->window, canvas->style->black_gc, TRUE,
+			x + iw, y, w2, ih);
+}
+
 /*
  * This is an special consumer. It could have been splitted into these
  * three different consumers, each one with a very specific job:
@@ -689,6 +716,8 @@ static gint idle_handler(gpointer ignored)
       gdk_window_get_size(capture_canvas->window, &w, &h);
       iw = d->image.gdkimage->width;
       ih = d->image.gdkimage->height;
+      if (expose_w != iw || expose_h != ih)
+	clear_canvas (capture_canvas, w, h, iw, ih);
       gdk_draw_image(capture_canvas -> window,
 		     capture_canvas -> style -> white_gc,
 		     d->image.gdkimage,
@@ -727,6 +756,8 @@ static gint idle_handler(gpointer ignored)
 	      gdk_window_get_size(capture_canvas->window, &w, &h);
 	      iw = yuv_image->width;
 	      ih = yuv_image->height;
+	      if (expose_w != iw || expose_h != ih)
+		clear_canvas (capture_canvas, w, h, iw, ih);
 	      gdk_draw_image(capture_canvas -> window,
 			     capture_canvas -> style -> white_gc,
 			     yuv_image,
@@ -754,6 +785,8 @@ static gint idle_handler(gpointer ignored)
 		gdk_window_get_size(capture_canvas->window, &w, &h);
 		iw = yuv_image->width;
 		ih = yuv_image->height;
+		if (expose_w != iw || expose_h != ih)
+		  clear_canvas (capture_canvas, w, h, iw, ih);
 		gdk_draw_image(capture_canvas -> window,
 			       capture_canvas -> style -> white_gc,
 			       yuv_image,
@@ -800,6 +833,14 @@ on_capture_canvas_allocate             (GtkWidget       *widget,
                                         tveng_device_info *info)
 {
   request_default_format(allocation->width, allocation->height, info);
+}
+
+static void
+on_capture_expose_event		       (GtkWidget	*widget,
+					GdkEventExpose 	*event)
+{
+  expose_w = -1;
+  expose_h = -1;
 }
 
 gint
@@ -850,6 +891,10 @@ capture_start(GtkWidget * window, tveng_device_info *info)
   idle_id = gtk_idle_add((GtkFunction)idle_handler, window);
   gtk_signal_connect(GTK_OBJECT(window), "size-allocate",
 		     GTK_SIGNAL_FUNC(on_capture_canvas_allocate), info);
+  expose_w = -1;
+  expose_h = -1;
+  gtk_signal_connect(GTK_OBJECT(window), "expose_event",
+		     GTK_SIGNAL_FUNC(on_capture_expose_event), NULL);
 
   capture_canvas = window;
 
@@ -887,9 +932,15 @@ capture_stop(tveng_device_info *info)
   xvz_ungrab_port(info);
 
   if (!flag_exit_program)
-    gtk_signal_disconnect_by_func(GTK_OBJECT(capture_canvas),
-				  GTK_SIGNAL_FUNC(on_capture_canvas_allocate),
-				  main_info);
+    {
+      gtk_signal_disconnect_by_func(GTK_OBJECT(capture_canvas),
+				    GTK_SIGNAL_FUNC(on_capture_canvas_allocate),
+				    main_info);
+      gtk_signal_disconnect_by_func(GTK_OBJECT(capture_canvas),
+				    GTK_SIGNAL_FUNC (on_capture_expose_event),
+				    NULL);
+    }
+
   capture_canvas = NULL;
 }
 

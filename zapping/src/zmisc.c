@@ -819,7 +819,7 @@ z_replace_filename_extension (gchar *filename, gchar *new_ext)
   return name;
 }
 
-/* See ttx export for a demo */
+/* See ttx export or screenshot for a demo */
 void
 z_on_electric_filename (GtkWidget *w, gpointer user_data)
 {

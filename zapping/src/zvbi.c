@@ -497,6 +497,26 @@ acknowledge_trigger			(vbi_link	*link)
   g_free(buffer);
 }
 
+static void
+update_main_title (void)
+{
+  extern tveng_tuned_channel * global_channel_list;
+  extern int cur_tuned_channel;
+  tveng_tuned_channel *channel;
+  gchar *name = NULL;
+
+  if (*current_network.name)
+    name = current_network.name;
+  /* else switch away from known network */
+
+  channel = tveng_retrieve_tuned_channel_by_index(
+	      cur_tuned_channel, global_channel_list);
+  if (!channel)
+    z_set_main_title(NULL, name);
+  else if (!channel->name)
+    z_set_main_title(channel, name);
+}
+
 static gint trigger_timeout		(gint	client_id)
 {
   enum ttx_message msg;
@@ -508,28 +528,10 @@ static gint trigger_timeout		(gint	client_id)
       case TTX_PAGE_RECEIVED:
       case TTX_CHANNEL_SWITCHED:
 	break;
-
       case TTX_NETWORK_CHANGE:
       case TTX_PROG_INFO_CHANGE:
-	{
-	  extern tveng_tuned_channel * global_channel_list;
-	  extern int cur_tuned_channel;
-	  tveng_tuned_channel *channel;
-	  gchar *name = NULL;
-
-	  if (*current_network.name)
-		  name = current_network.name;
-	  /* else switch away from known network */
-
-	  channel = tveng_retrieve_tuned_channel_by_index(
-		      cur_tuned_channel, global_channel_list);
-	  if (!channel)
-	    z_set_main_title(NULL, name);
-	  else if (!channel->name)
-	    z_set_main_title(channel, name);
-
-	  break;
-	}
+	update_main_title();
+	break;
       case TTX_BROKEN_PIPE:
 	g_warning("Broken TTX pipe");
 	trigger_timeout_id = -1;
@@ -1490,7 +1492,7 @@ notify_clients(int page, int subpage,
 }
 
 static void
-notify_network(void)
+notify_clients_generic (enum ttx_message msg)
 {
   GList *p;
   struct ttx_client *client;
@@ -1498,39 +1500,19 @@ notify_network(void)
   if (!vbi)
     return;
 
-  pthread_mutex_lock(&clients_mutex);
-  p = g_list_first(ttx_clients);
-  while (p)
+  pthread_mutex_lock (&clients_mutex);
+
+  for (p = g_list_first (ttx_clients); p; p = p->next)
     {
-      client = (struct ttx_client*)p->data;
-      send_ttx_message(client, TTX_NETWORK_CHANGE, NULL, 0);
-      p = p->next;
+      client = (struct ttx_client *) p->data;
+      send_ttx_message (client, msg, NULL, 0);
     }
+
   pthread_mutex_unlock(&clients_mutex);
 }
 
 static void
-notify_prog_info(void)
-{
-  GList *p;
-  struct ttx_client *client;
-
-  if (!vbi)
-    return;
-
-  pthread_mutex_lock(&clients_mutex);
-  p = g_list_first(ttx_clients);
-  while (p)
-    {
-      client = (struct ttx_client*)p->data;
-      send_ttx_message(client, TTX_PROG_INFO_CHANGE, NULL, 0);
-      p = p->next;
-    }
-  pthread_mutex_unlock(&clients_mutex);
-}
-
-static void
-notify_trigger(const vbi_link *ld)
+notify_clients_trigger (const vbi_link *ld)
 {
   GList *p;
   struct ttx_client *client;
@@ -1693,7 +1675,7 @@ event(vbi_event *ev, void *unused)
 	  link.subpage = ANY_SUB;
 	  link.priority = 9;
 	  link.itv_type = link.autoload = 0;
-	  notify_trigger(&link);
+	  notify_clients_trigger (&link);
 	}
 #endif
 
@@ -1722,12 +1704,12 @@ event(vbi_event *ev, void *unused)
       else
 	  station_name_known = FALSE;
 
-      notify_network();
+      notify_clients_generic (TTX_NETWORK_CHANGE);
       pthread_mutex_unlock(&network_mutex);
       break;
 
     case VBI_EVENT_TRIGGER:
-      notify_trigger(ev->ev.trigger);
+      notify_clients_trigger (ev->ev.trigger);
       break;
 
     case VBI_EVENT_ASPECT:
@@ -1778,7 +1760,7 @@ event(vbi_event *ev, void *unused)
 
       pthread_mutex_unlock(&prog_info_mutex);
 
-      notify_prog_info();
+      notify_clients_generic (TTX_PROG_INFO_CHANGE);
 
       break;
     }
@@ -2299,6 +2281,33 @@ zvbi_name_unknown(void)
 }
 
 void
+zvbi_reset_program_info (void)
+{
+  pthread_mutex_lock(&prog_info_mutex);
+
+  vbi_reset_prog_info(&program_info[0]);
+  vbi_reset_prog_info(&program_info[1]);
+
+  pthread_mutex_unlock(&prog_info_mutex);
+
+  update_main_title();
+  notify_clients_generic (TTX_PROG_INFO_CHANGE);
+}
+
+void
+zvbi_reset_network_info (void)
+{
+  pthread_mutex_lock(&network_mutex);
+
+  memset(&current_network, 0, sizeof(current_network));
+
+  pthread_mutex_unlock(&network_mutex);
+
+  update_main_title();
+  notify_clients_generic (TTX_NETWORK_CHANGE);
+}
+
+void
 zvbi_channel_switched(void)
 {
   GList *p;
@@ -2311,13 +2320,6 @@ zvbi_channel_switched(void)
 
   osd_clear();
 
-  pthread_mutex_lock(&prog_info_mutex);
-
-  vbi_reset_prog_info(&program_info[0]);
-  vbi_reset_prog_info(&program_info[1]);
-
-  pthread_mutex_unlock(&prog_info_mutex);
-
   pthread_mutex_lock(&clients_mutex);
   p = g_list_first(ttx_clients);
   while (p)
@@ -2327,6 +2329,9 @@ zvbi_channel_switched(void)
       p = p->next;
     }
   pthread_mutex_unlock(&clients_mutex);
+
+  zvbi_reset_network_info ();
+  zvbi_reset_program_info ();
 }
 
 gchar *
@@ -2362,4 +2367,3 @@ zvbi_current_rating(void)
 
   return s;
 }
-

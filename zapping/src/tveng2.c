@@ -528,6 +528,7 @@ int tveng2_set_input(struct tveng_enum_input * input,
   if (input->id == 100)
     {
       fprintf (stdout, "Switch to fake tuner\n");
+      retcode = 0;
     }
   else
     {

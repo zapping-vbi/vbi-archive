@@ -26,6 +26,9 @@ Outstanding issues for the next release (0.6.2)
 	  receive TTX. (event timestamps?)
 	+ TTX program name
 	+ Volume bindings
+	+ Make Zapping UTF-8 clean (for now by moving all string ops
+          into one place, propose zmisc.c, avoiding strlen etc).
+	+ Finish WSS.
 
 > 0.7.0
 	+ Support for Python scripting, write all new gui handling as
@@ -48,12 +51,8 @@ Outstanding issues for the next release (0.6.2)
 	  timeout logic: If you don't move the mouse for some time xawtv will 
 	  hide the pointer. Any pointer motion event will show the pointer again."
 	+ TTX export ANSI colors needs improvement.
+	+ Mpeg plugin/mp1e very low frame rate interrupts display,
+	  probably a scheduling issue. Investigate if/how this can be avoided.
 
 please tell me about anything you think it's worth adding. 
 garetxe@users.sourceforge.net
-
-
-
-
-
-
