@@ -1,3 +1,7 @@
+15.11.2001	nl.po <garetxe@users.sf.net>
+
+	* nl.po: Added, contributed by Ime Smits and Reinout van Schowen.
+
 14.11.2001	Killed parrot <garetxe@users.sf.net>
 
 	* parrot: Removed from build tree.
