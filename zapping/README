@@ -9,7 +9,7 @@ as possible.
 
 INSTALLING
 ----------
-	To install this package just run './autogen.sh', 'make', and
+	To install this package just run './configure', 'make', and
 as root 'make install'. That will install Zapping in your computer. It
 won't create any icon, thought, but you can run it as 'zapping &'.
 
@@ -63,8 +63,7 @@ CONTACTING
 	You can direct any questions, dead threats, lost puppies,
 money you don't want and used books in Languages I don't know but
 would like to learn (Hebrew, to put an example) to 
-<garetxe@euskalnet.net> (This address can be changed if I put the
-project into SourceForge).
+<garetxe@users.sourceforge.net>
 
 	thanks and enjoy the TV (as difficult as that might seem),
 	Iñaki

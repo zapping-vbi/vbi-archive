@@ -1,3 +1,14 @@
+22.2.2000	Plugin support finished <garetxe@users.sourceforge.net>
+
+	* plugins.c:
+	* main.c: The plugin support is now completely integrated into
+	zapping.
+	
+20.2.2000	Plugin config saved <garetxe@users.sourceforge.net>
+
+	* plugins.c:
+	* main.c: Now the plugins can save/restore their configuration
+	
 19.2.2000	Plugin structure ready <garetxe@users.sourceforge.net>
 
 	* plugin.c: The plugin loading / unloading funtions work
