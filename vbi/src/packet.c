@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet.c,v 1.9.2.7 2004-02-18 07:54:31 mschimek Exp $ */
+/* $Id: packet.c,v 1.9.2.8 2004-02-25 17:29:17 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -132,7 +132,8 @@ dump_extension			(const vt_extension *	ext)
 	int i;
 
 	printf("Extension:\ndesignations %08x\n", ext->designations);
-	printf("char set primary %d secondary %d\n", ext->char_set[0], ext->char_set[1]);
+	printf("char set primary %d secondary %d valid %d\n",
+	       ext->charset_code[0], ext->charset_code[1], ext->charset_valid);
 	printf("default screen col %d row col %d\n", ext->def_screen_color, ext->def_row_color);
 	printf("bbg subst %d color table remapping %d, %d\n",
 		ext->fallback.black_bg_substitution, ext->foreground_clut, ext->background_clut);
@@ -537,14 +538,14 @@ page_language(const struct teletext *vt, const vt_page *vtp, int pgno, int natio
 	ext = (vtp && vtp->data.lop.ext) ?
 		&vtp->data.ext_lop.ext : &mag->extension;
 
-	char_set = ext->char_set[0];
+	char_set = ext->charset_code[0];
 
-	if (VALID_CHARACTER_SET(char_set))
+	if (vbi_character_set_from_code (char_set))
 		lang = char_set;
 
 	char_set = (char_set & ~7) + national;
 
-	if (VALID_CHARACTER_SET(char_set))
+	if (vbi_character_set_from_code (char_set))
 		lang = char_set;
 
 	return lang;
@@ -586,6 +587,7 @@ parse_mip_page(vbi_decoder *vbi, const vt_page *vtp,
 				     /* subno_mask */ 0,
 				     /* user access */ FALSE);
 		if (vtp) {
+			// XXX charset_valid?
 			vbi->vt.page_info[pgno - 0x100].language =
 				page_language(&vbi->vt, vtp, pgno, code & 7);
 
@@ -1160,7 +1162,6 @@ parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
 			break;
 
 		if (designation <= 1) {
-			const char *country, *name;
 			int cni;
 #if BSDATA_TEST
 			printf("\nPacket 8/30/%d:\n", designation);
@@ -1178,12 +1179,13 @@ parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
 					if (n->nuid != 0) {
 						vbi_chsw_reset(vbi, nuid);
 					}
-
+#if 0 // FIXME
 					vbi_network_from_nuid (n, nuid);
 					n->cycle = 1;
 
 					vbi->network.type = VBI_EVENT_NETWORK;
 					vbi_send_event(vbi, &vbi->network);
+#endif
 				}
 
 				n->cycle = 2;
@@ -1193,7 +1195,6 @@ parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
 
 		} else /* if (designation <= 3) */ {
 			int t, b[7];
-			const char *country, *name;
 			int cni;
 #if BSDATA_TEST
 			printf("\nPacket 8/30/%d:\n", designation);
@@ -1223,6 +1224,7 @@ parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
 
 				nuid = vbi_nuid_from_cni (VBI_CNI_TYPE_8302, cni);
 				if (nuid != n->nuid) {
+#if 0 // FIXME
 					if (n->nuid != 0) {
 						 vbi_chsw_reset(vbi, nuid);
 					}
@@ -1232,6 +1234,7 @@ parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
 
 					vbi->network.type = VBI_EVENT_NETWORK;
 					vbi_send_event(vbi, &vbi->network);
+#endif
 				}
 
 				n->cycle = 2;
@@ -1290,103 +1293,6 @@ parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
 	}
 
 	return TRUE;
-}
-
-#define FPC_BLOCK_SEPARATOR	0xC
-#define FPC_FILLER_BYTE		0x3
-
-static inline void
-vbi_reset_page_clear(struct page_clear *pc)
-{
-	pc->ci = 256;
-	pc->packet = 256;
-	pc->num_packets = 0;
-	pc->bi = 0;
-	pc->left = 0;
-	pc->pfc.application_id = -1;
-}
-
-static void
-parse_page_clear(struct page_clear *pc, uint8_t *p, int packet)
-{
-	int bp, col;
-
-	if ((pc->packet + 1) != packet || packet > pc->num_packets)
-		goto desync;
-
-	pc->packet = packet;
-
-	if ((bp = vbi_iham8(p[0]) * 3) < 0 || bp > 39)
-		goto desync;
-
-	for (col = 1; col < 40;) {
-		int bs;
-
-		if (pc->left > 0) {
-			int size = MIN(pc->left, 40 - col);
-
-			memcpy(pc->pfc.block + pc->bi, p + col, size);
-
-			pc->bi += size;
-			pc->left -= size;
-
-			if (pc->left > 0)
-				return; /* packet done */
-
-			col += size;
-
-			if (pc->pfc.application_id < 0) {
-				int sh = vbi_iham16p(pc->pfc.block)
-					+ vbi_iham16p(pc->pfc.block + 2) * 256;
-
-				pc->pfc.application_id = sh & 0x1F;
-				pc->pfc.block_size =
-					pc->left = sh >> 5;
-				pc->bi = 0;
-
-				continue;
-			} else {
-				int i;
-					
-				fprintf(stderr, "pfc %d %d\n",
-					pc->pfc.application_id,
-					pc->pfc.block_size);
-
-				for (i = 0; i < pc->pfc.block_size; i++) {
-					fputc(printable(pc->pfc.block[i]), stderr);
-
-					if ((i % 75) == 75)
-						fputc('\n', stderr);
-				}
-
-				fputc('\n', stderr);
-			}
-		}
-
-		if (col <= 1) {
-			if (bp >= 39)
-				return; /* no SH in this packet */
-			col = bp + 2;
-			bs = vbi_iham8(p[col - 1]);
-		} else
-			while ((bs = vbi_iham8(p[col++])) == FPC_FILLER_BYTE) {
-				if (col >= 40)
-					return; /* packet done */
-			}
-
-		if (bs != FPC_BLOCK_SEPARATOR)
-			goto desync;
-
-		pc->pfc.application_id = -1;
-		pc->left = 4; /* sizeof structure header */
-		pc->bi = 0;
-	}
-
-	return;
-
- desync:
-	// fprintf(stderr, "FPC reset\n");
-	vbi_reset_page_clear(pc);
 }
 
 static int
@@ -1778,8 +1684,9 @@ parse_28_29(vbi_decoder *vbi, uint8_t *p,
 		if (designation == 4 && (ext->designations & (1 << 0)))
 			bits(14 + 2 + 1 + 4);
 		else {
-			ext->char_set[0] = bits(7);
-			ext->char_set[1] = bits(7);
+			ext->charset_code[0] = bits(7);
+			ext->charset_code[1] = bits(7);
+			ext->charset_valid = TRUE;
 
 			ext->fallback.left_side_panel = bits(1);
 			ext->fallback.right_side_panel = bits(1);
@@ -2140,6 +2047,8 @@ vbi_decode_teletext(vbi_decoder *vbi, uint8_t *p)
 				cvtp->function = PAGE_FUNCTION_MOT;
 				pi->code = VBI_SYSTEM_PAGE;
 			} else if (FPC && pi->code == VBI_EPG_DATA) {
+cvtp->function = PAGE_FUNCTION_DISCARD;
+#if 0 // TODO
 				int stream = (cvtp->subno >> 8) & 15;
 
 				if (stream >= 2) {
@@ -2160,6 +2069,7 @@ vbi_decode_teletext(vbi_decoder *vbi, uint8_t *p)
 					pc->num_packets = ((cvtp->subno >> 4) & 7)
 						+ ((cvtp->subno >> 9) & 0x18);
 				}
+#endif
 			} else {
 				cvtp->function = PAGE_FUNCTION_UNKNOWN;
 
@@ -2313,7 +2223,9 @@ vbi_decode_teletext(vbi_decoder *vbi, uint8_t *p)
 			break;
 
 		case PAGE_FUNCTION_EPG:
+#if 0 // TODO
 			parse_page_clear(vbi->epg_pc + ((cvtp->subno >> 8) & 1), p, packet);
+#endif
 			break;
 
 		case PAGE_FUNCTION_LOP:
@@ -2417,6 +2329,7 @@ vbi_decode_teletext(vbi_decoder *vbi, uint8_t *p)
 		/*
 		 *  IDL packet (ETS 300 708)
 		 */
+	  // XXX not % 7 ?
 		switch (/* Channel */ pmag & 15) {
 		case 0: /* Packet 8/30 (ETS 300 706) */
 			if (!parse_8_30(vbi, p, packet))
@@ -2482,6 +2395,7 @@ default_color_map[40] = {
  * of this decoder as TV manufacturers do, this function can be used to
  * set a default for the extended bits. The "factory default" is 16.
  */
+#if 0
 void
 vbi_teletext_set_default_region(vbi_decoder *vbi, int default_region)
 {
@@ -2500,6 +2414,7 @@ vbi_teletext_set_default_region(vbi_decoder *vbi, int default_region)
 			default_region;
 	}
 }
+#endif
 
 /**
  * @param vbi Initialized vbi decoding context.
@@ -2537,11 +2452,13 @@ vbi_teletext_desync(vbi_decoder *vbi)
 	for (i = 0; i < 8; i++)
 		vbi->vt.raw_page[i].page->function = PAGE_FUNCTION_DISCARD;
 
+#if 0 // TODO
 	vbi_reset_page_clear(vbi->epg_pc + 0);
 	vbi_reset_page_clear(vbi->epg_pc + 1);
 
 	vbi->epg_pc[0].pfc.stream = 1;
 	vbi->epg_pc[1].pfc.stream = 2;
+#endif
 }
 
 /**
@@ -2592,7 +2509,7 @@ vbi_teletext_channel_switched(vbi_decoder *vbi)
 		memcpy(ext->color_map, default_color_map, sizeof(ext->color_map));
 	}
 
-	vbi_teletext_set_default_region(vbi, vbi->vt.region);
+//	vbi_teletext_set_default_region(vbi, vbi->vt.region);
 
 	vbi_teletext_desync(vbi);
 }
