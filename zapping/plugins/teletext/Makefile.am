@@ -16,10 +16,10 @@ libteletext_zapping_la_SOURCES = \
 	window.c window.h
 
 INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src $(COMMON_INCLUDES) \
-	$(PLUGIN_DEFAULT_FLAGS) -Wunused-function
+	$(PLUGIN_DEFAULT_FLAGS) -Wunused-function -DZAPPING8
 
 libteletext_zapping_la_LIBADD = \
-	$(top_builddir)/libvbi/libvbi.a \
+	$(top_builddir)/libvbi/libvbi.la \
 	$(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS)
 
 # must prevent link conflict with libzvbi 0.2

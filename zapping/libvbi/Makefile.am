@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-noinst_LIBRARIES = libvbi.a
+noinst_LTLIBRARIES = libvbi.la
 
 BUILT_SOURCES = \
 	wstfont2.xbm
@@ -12,9 +12,10 @@ EXTRA_DIST = \
 
 CLEANFILES = $(BUILT_SOURCES)
 
-INCLUDES = -I$(top_srcdir) -D_GNU_SOURCE -D_REENTRANT $(UNICODE_CFLAGS)
+INCLUDES = -I$(top_srcdir) -D_GNU_SOURCE -D_REENTRANT $(UNICODE_CFLAGS) \
+	-DZAPPING8
 
-libvbi_a_SOURCES = \
+libvbi_la_SOURCES = \
 	bcd.c bcd.h \
 	cache.c cache.h cache-priv.h \
 	conv.c conv.h \
@@ -44,7 +45,8 @@ libvbi_a_SOURCES = \
 	vt.h
 
 wstfont2.xbm: wstfont2.pbm fontgen.c Makefile.am
-	gcc $(top_srcdir)/libvbi/fontgen.c -o$(top_builddir)/libvbi/fontgen
+	gcc $(top_srcdir)/libvbi/fontgen.c -o$(top_builddir)/libvbi/fontgen \
+	  -DZAPPING8
 	$(top_builddir)/libvbi/fontgen xbm wstfont2 10 < $< > $@
 
 # must prevent link conflict with libvbi 0.2
