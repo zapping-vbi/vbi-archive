@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2.c,v 1.22 2003-10-16 18:16:11 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l2.c,v 1.22.2.1 2004-01-27 21:05:53 tomzo Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -631,23 +631,32 @@ v4l2_delete(vbi_capture *vc)
 	free(v);
 }
 
+static vbi_bool
+v4l2_setup(vbi_capture *vc, vbi_setup_parm *config)
+{
+	vbi_capture_v4l2 *v = PARENT(vc, vbi_capture_v4l2, capture);
+	vbi_bool result;
+
+	switch (config->type)
+	{
+	    case VBI_SETUP_GET_FD_TYPE:
+		config->u.get_fd_type.has_select = v->has_select;
+		config->u.get_fd_type.is_device  = TRUE;
+		result = TRUE;
+		break;
+	    default:
+		result = FALSE;
+		break;
+	}
+	return result;
+}
+
 static int
-v4l2_get_read_fd(vbi_capture *vc)
+v4l2_get_fd(vbi_capture *vc)
 {
 	vbi_capture_v4l2 *v = PARENT(vc, vbi_capture_v4l2, capture);
 
 	return v->fd;
-}
-
-static int
-v4l2_get_poll_fd(vbi_capture *vc)
-{
-	vbi_capture_v4l2 *v = PARENT(vc, vbi_capture_v4l2, capture);
-
-	if (v->has_select)
-		return v->fd;
-	else
-		return -1;
 }
 
 static int
@@ -936,8 +945,8 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 
 	v->capture.parameters = v4l2_parameters;
 	v->capture._delete = v4l2_delete;
-	v->capture.get_fd = v4l2_get_read_fd;
-	v->capture.get_poll_fd = v4l2_get_poll_fd;
+	v->capture.setup = v4l2_setup;
+	v->capture.get_fd = v4l2_get_fd;
 	v->capture.add_services = v4l2_add_services;
 	v->capture.channel_change = v4l2_channel_change;
 
