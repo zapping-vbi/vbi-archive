@@ -18,20 +18,22 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct.h,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: dct.h,v 1.2 2000-09-25 17:08:57 mschimek Exp $ */
 
 #define reg(n) __attribute__ ((regparm (n)))
 
 extern void		fdct_intra(void);
 extern unsigned int	fdct_inter(short iblock[6][8][8]) reg(1);
-extern void		mpeg1_idct_intra(unsigned char *new) reg(1);
-extern void		mpeg1_idct_inter(unsigned char *new, unsigned char *old, unsigned int cbp) reg(3);
+extern void		mpeg1_idct_intra(void);
+extern void		mpeg1_idct_inter(unsigned int cbp) reg(1);
 extern void		new_intra_quant(int quant_scale) reg(1);
 extern void		new_inter_quant(int quant_scale) reg(1);
 
 extern void		mmx_fdct_intra(void);
 extern unsigned int	mmx_fdct_inter(short iblock[6][8][8]) reg(1);
-extern void		mmx_mpeg1_idct_intra(unsigned char *new) reg(1);
-extern void		mmx_mpeg1_idct_inter(unsigned char *new, unsigned char *old, unsigned int cbp) reg(3);
+extern void		mmx_mpeg1_idct_intra(void);
+extern void		mmx_mpeg1_idct_inter(unsigned int cbp) reg(1);
 extern void		mmx_new_intra_quant(int quant_scale) reg(1);
 extern void		mmx_new_inter_quant(int quant_scale) reg(1);
+
+extern void		mmx_copy_refblock(void);

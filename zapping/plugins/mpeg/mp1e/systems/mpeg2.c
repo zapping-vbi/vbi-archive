@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.1 2000-08-10 18:51:19 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.2 2000-09-25 17:08:57 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -215,8 +215,9 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 		return FALSE;
 
 	if (IS_VIDEO_STREAM(str->stream_id))
-		str->eff_bit_rate = str->eff_bit_rate * (1.0 - Rvid) +
-			(buf->used * 8 * str->frame_rate) * Rvid;
+		str->eff_bit_rate +=
+			((buf->used * 8 * str->frame_rate)
+			 - str->eff_bit_rate) * Rvid;
 
 	if (ph) {
 		if (IS_VIDEO_STREAM(str->stream_id)) {

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.h,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: vlc.h,v 1.2 2000-09-25 17:08:57 mschimek Exp $ */
 
 typedef struct {
 	unsigned char		code;
@@ -57,8 +57,8 @@ extern int		mpeg1_encode_inter(short mblock[6][8][8], unsigned int cbp);
 extern int		mpeg2_encode_intra(void);
 extern int		mpeg2_encode_inter(short mblock[6][8][8], unsigned int cbp);
 
-extern int		mmx_mpeg1_encode_intra(void);
-extern int		mmx_mpeg1_encode_inter(short mblock[6][8][8], unsigned int cbp);
+extern int		p6_mpeg1_encode_intra(void);
+extern int		p6_mpeg1_encode_inter(short mblock[6][8][8], unsigned int cbp);
 
 static inline
 void reset_dct_pred(void)

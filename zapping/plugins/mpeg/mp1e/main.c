@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.20 2000-09-24 20:58:06 garetxe Exp $ */
+/* $Id: main.c,v 1.21 2000-09-25 17:08:57 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +38,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <asm/types.h>
-#include <linux/videodev.h>
+#include "videodev2.h"
 #include "audio/mpeg.h"
 #include "video/mpeg.h"
 #include "video/video.h"
@@ -459,8 +459,8 @@ main(int ac, char **av)
 	sigprocmask(SIG_UNBLOCK, &block_mask, NULL);
 	// Unblock only in main thread
 
-	if ((mux_mode & 3) != 3)
-		mux_syn = 0;
+	if ((mux_mode & 3) != 3 && mux_syn >= 2)
+		mux_syn = 1; // compatibility
 
 	/*
 	 *  XXX Thread these, not UI.
@@ -468,23 +468,29 @@ main(int ac, char **av)
 	 */
 	switch (mux_syn) {
 	case 0:
+		ASSERT("create stream nirvana thread",
+		       !pthread_create(&mux_thread, NULL,
+				       stream_sink, NULL));
+		break;
+	case 1:
 		ASSERT("create elementary stream thread",
 		       !pthread_create(&mux_thread, NULL,
 				       elementary_stream_bypass, NULL));
 		break;
-	case 1:
+	case 2:
 		ASSERT("create mpeg1 system mux",
 		       !pthread_create(&mux_thread, NULL,
 				       mpeg1_system_mux, NULL));
 		break;
-	case 2:
+	case 3:
 		printv(1, "MPEG-2 Program Stream");
-		ASSERT("create mpeg1 system mux",
+		ASSERT("create mpeg2 system mux",
 		       !pthread_create(&mux_thread, NULL,
 				       mpeg2_program_stream_mux, NULL));
 		break;
 	}
 
+	// unsafe: numframes, stop_time < mux finish time
 	/* wait until completition (SIGINT handler) */
 	do {
 		usleep(100000); /* 0.1 s*/

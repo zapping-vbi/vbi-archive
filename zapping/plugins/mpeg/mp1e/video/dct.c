@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct.c,v 1.3 2000-08-10 18:51:19 mschimek Exp $ */
+/* $Id: dct.c,v 1.4 2000-09-25 17:08:57 mschimek Exp $ */
 
 #include <assert.h>
 #include "../common/math.h"
@@ -287,13 +287,13 @@ mmx_new_inter_quant(int quant_scale)
 /* preliminary */
 
 void
-mmx_mpeg1_idct_intra(unsigned char *new)
+mmx_mpeg1_idct_intra(void)
 {
+	unsigned char *new = newref;
 	int i;
 
 	for (i = 0; i < 6; i++) {
-
-//    	mirror(mblock[1][i]);
+		new += mb_address.block[i].offset;
 
 asm("
 	movq 1*16+0*2(%0),%%mm6; psllw c3a,%%mm6; paddw c4,%%mm6; pmulhw 1*16+0*2(%1),%%mm6;
@@ -638,25 +638,25 @@ asm("
 	packuswb  5*16+4*2(%2), %%mm2;
 	packuswb  6*16+4*2(%2), %%mm1;
 	packuswb  7*16+4*2(%2), %%mm0;
-	
-	movq %%mm7, 0*8(%3);
-	movq %%mm6, 1*8(%3);
-	movq %%mm5, 2*8(%3);
-	movq %%mm4, 3*8(%3);
-	
-	movq %%mm3, 4*8(%3);
-	movq %%mm2, 5*8(%3);
-	movq %%mm1, 6*8(%3);
-	movq %%mm0, 7*8(%3);
-	
-1:	
-	
-" :: "r" (&mblock[1][i][0][0]), "r" (lut1p), "r" (&mblock[0][0][0][0]), "r" (new)
+
+	pushl	%0;
+	leal	(%3,%4),%0;
+	movq %%mm7, (%3);	// 0
+	movq %%mm6, (%3,%4);	// 1
+	movq %%mm5, (%3,%4,2);	// 2
+	movq %%mm4, (%0,%4,2);	// 3
+	leal	(%0,%4,4),%0;
+	movq %%mm3, (%3,%4,4);	// 4
+	movq %%mm2, (%0);	// 5
+	movq %%mm1, (%0,%4);	// 6
+	movq %%mm0, (%0,%4,2);	// 7
+	popl	%0;
+1:
+
+" :: "r" (&mblock[1][i][0][0]), "r" (lut1p), 
+  "r" (&mblock[0][0][0][0]), "r" (new), "r" (mb_address.block[i].pitch)
   : "cc", "memory" FPU_REGS);
 
-	new += 8 * 8;
-
-	// *new++ = saturate((unsigned int)(t[0][u] + 4096 + 16) >> 5, 0, 255);
     }
 
 }
@@ -664,15 +664,16 @@ asm("
 /* preliminary */
 
 void
-mmx_mpeg1_idct_inter(unsigned char *new, unsigned char *old, unsigned int cbp)
+mmx_mpeg1_idct_inter(unsigned int cbp)
 {
     int i;
     static short t1s[8][8] __attribute__ ((aligned (32)));
+    unsigned char *new = newref;
 
-  for (i = 0; i < 6; i++) 
+  for (i = 0; i < 6; i++) {
+   new += mb_address.block[i].offset;
     if (cbp & (0x20 >> i)) 
     {
-
 asm("
 	movq 1*16+0*2(%0),%%mm6; psllw c3b,%%mm6; paddw c4,%%mm6; pmulhw  1*16+0*2(%1),%%mm6;
 	movq 3*16+0*2(%0),%%mm7; psllw c3b,%%mm7; paddw c4,%%mm7; pmulhw  3*16+0*2(%1),%%mm7;
@@ -918,14 +919,14 @@ asm("
 	psraw $5,%%mm2; psraw $5,%%mm5;
 	psraw $5,%%mm3; psraw $5,%%mm4;
 
-	paddsw  0*16+4*2(%3),%%mm7;
-	paddsw  1*16+4*2(%3),%%mm6;
-	paddsw  2*16+4*2(%3),%%mm5;
-	paddsw  3*16+4*2(%3),%%mm4;
-	paddsw  4*16+4*2(%3),%%mm3;
-	paddsw  5*16+4*2(%3),%%mm2;
-	paddsw  6*16+4*2(%3),%%mm1;
-	paddsw  7*16+4*2(%3),%%mm0;
+	paddsw  0*16+4*2+3*768(%0),%%mm7;	// old reference
+	paddsw  1*16+4*2+3*768(%0),%%mm6;
+	paddsw  2*16+4*2+3*768(%0),%%mm5;
+	paddsw  3*16+4*2+3*768(%0),%%mm4;
+	paddsw  4*16+4*2+3*768(%0),%%mm3;
+	paddsw  5*16+4*2+3*768(%0),%%mm2;
+	paddsw  6*16+4*2+3*768(%0),%%mm1;
+	paddsw  7*16+4*2+3*768(%0),%%mm0;
 
 	movq %%mm7, 0*16+4*2(%4);
 	movq %%mm6, 1*16+4*2(%4);
@@ -1001,14 +1002,14 @@ asm("
 	psraw $5,%%mm2; psraw $5,%%mm5;
 	psraw $5,%%mm3; psraw $5,%%mm4;
 
-	paddsw  0*16+0*2(%3),%%mm7;
-	paddsw  1*16+0*2(%3),%%mm6;
-	paddsw  2*16+0*2(%3),%%mm5;
-	paddsw  3*16+0*2(%3),%%mm4;
-	paddsw  4*16+0*2(%3),%%mm3;
-	paddsw  5*16+0*2(%3),%%mm2;
-	paddsw  6*16+0*2(%3),%%mm1;
-	paddsw  7*16+0*2(%3),%%mm0;
+	paddsw  0*16+0*2+3*768(%0),%%mm7;
+	paddsw  1*16+0*2+3*768(%0),%%mm6;
+	paddsw  2*16+0*2+3*768(%0),%%mm5;
+	paddsw  3*16+0*2+3*768(%0),%%mm4;
+	paddsw  4*16+0*2+3*768(%0),%%mm3;
+	paddsw  5*16+0*2+3*768(%0),%%mm2;
+	paddsw  6*16+0*2+3*768(%0),%%mm1;
+	paddsw  7*16+0*2+3*768(%0),%%mm0;
 
 	packuswb  0*16+4*2(%4), %%mm7;
 	packuswb  1*16+4*2(%4), %%mm6;
@@ -1019,31 +1020,52 @@ asm("
 	packuswb  6*16+4*2(%4), %%mm1;
 	packuswb  7*16+4*2(%4), %%mm0;
 	
-	movq %%mm7, 0*8(%5);
-	movq %%mm6, 1*8(%5);
-	movq %%mm5, 2*8(%5);
-	movq %%mm4, 3*8(%5);
-	
-	movq %%mm3, 4*8(%5);
-	movq %%mm2, 5*8(%5);
-	movq %%mm1, 6*8(%5);
-	movq %%mm0, 7*8(%5);
+	pushl	%0;
+	leal	(%5,%3),%0;
+	movq %%mm7, (%5);	// 0
+	movq %%mm6, (%5,%3);	// 1
+	movq %%mm5, (%5,%3,2);	// 2
+	movq %%mm4, (%0,%3,2);	// 3
+	leal	(%0,%3,4),%0;
+	movq %%mm3, (%5,%3,4);	// 4
+	movq %%mm2, (%0);	// 5
+	movq %%mm1, (%0,%3);	// 6
+	movq %%mm0, (%0,%3,2);	// 7
+	popl	%0;
+
 " :: "r" (&mblock[0][i][0][0]),	// predicted
      "r" (lut2p),		// AAN/quant table
      "r" (&mblock[1][0][0][0]),	// temporary #1
-     "r" (&mblock[3][i][0][0]), // old reference
+     "r" (mb_address.block[i].pitch),
      "r" (&t1s[0][0]),		// temporary #2
      "r" (new)			// new reference
   : "cc", "memory" FPU_REGS);
 
-	new += 64;
-	old += 64;
-
     } else {
-//	for (j = 0; j < 64; j++)
-//	    *new++ = mblock[2][i][0][j];
-	__builtin_memcpy(new, old, 64);
-	new += 64;
-	old += 64;
+		asm("
+			pushl		%2;
+			leal		(%1,%3),%2;
+			movq		(%0),%%mm0;
+			movq		1*8(%0),%%mm1;
+			movq		2*8(%0),%%mm2;		packuswb 	%%mm1,%%mm0;
+			movq		3*8(%0),%%mm3;		movq 		%%mm0,(%1);		// 0
+			movq		4*8(%0),%%mm4;		packuswb	%%mm3,%%mm2;
+			movq		5*8(%0),%%mm5;		movq		%%mm2,(%1,%3);		// 1
+			movq		6*8(%0),%%mm6;		packuswb 	%%mm5,%%mm4;
+			movq		7*8(%0),%%mm7;		movq 		%%mm4,(%1,%3,2);	// 2
+			movq		8*8(%0),%%mm0;		packuswb	%%mm7,%%mm6;
+			movq		9*8(%0),%%mm1;		movq		%%mm6,(%2,%3,2);	// 3
+			leal		(%2,%3,4),%2;
+			movq		10*8(%0),%%mm2;		packuswb 	%%mm1,%%mm0;
+			movq		11*8(%0),%%mm3;		movq 		%%mm0,(%1,%3,4);	// 4
+			movq		12*8(%0),%%mm4;		packuswb	%%mm3,%%mm2;
+			movq		13*8(%0),%%mm5;		movq		%%mm2,(%2);		// 5
+			movq		14*8(%0),%%mm6;		packuswb 	%%mm5,%%mm4;
+			movq		15*8(%0),%%mm7;		movq 		%%mm4,(%2,%3);		// 6
+								packuswb	%%mm7,%%mm6;
+								movq		%%mm6,(%2,%3,2);	// 7
+			popl		%2;
+		" :: "r" (mblock[3][i]), "r" (new), "r" (0), "r" (mb_address.block[i].pitch));
     }
+  }
 }

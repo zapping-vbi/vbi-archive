@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: threads.h,v 1.1 2000-08-28 21:13:22 garetxe Exp $ */
+/* $Id: threads.h,v 1.2 2000-09-25 17:08:57 mschimek Exp $ */
 
 #ifndef PTHREAD_H
 #define PTHREAD_H
@@ -42,6 +42,14 @@ mucon_destroy(mucon *m)
 {
 	pthread_mutex_destroy(&m->mutex);
 	pthread_cond_destroy(&m->cond);
+}
+
+static inline void
+wait_mucon(mucon *m)
+{
+	pthread_mutex_lock(&m->mutex);
+	pthread_cond_wait(&m->cond, &m->mutex);
+	pthread_mutex_unlock(&m->mutex);
 }
 
 #endif // PTHREAD_H

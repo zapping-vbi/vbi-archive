@@ -78,7 +78,7 @@ extern int cpu_id(cpu_architecture arch);
 
 #endif
 
-#define CACHE_LINE 64 // power of two
+#define CACHE_LINE 32 // power of two
 
 static inline const unsigned int
 swab32(unsigned int x)

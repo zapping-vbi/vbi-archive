@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = audio common systems test video
+SUBDIRS = audio common systems video
 
 bin_PROGRAMS = mp1e rte_test
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: vlc.c,v 1.3 2000-09-25 17:08:57 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -258,17 +258,16 @@ vlc_init(void)
 
 	/*
 	 *  Forward zig-zag scanning pattern
-	 *  
-	 *  Reversed because the vlc routines count down, and
-	 *  mirrored to remove mirror operations in FDCT and
-	 *  IDCT.
 	 */
 	for (i = 0; i < 64; i++) {
-		iscan[0][63 - scan[0][0][i]] = (i & 7) * 8 + (i >> 3);
+//		iscan[0][63 - scan[0][0][i]] = (i & 7) * 8 + (i >> 3);
+		iscan[0][(scan[0][0][i] - 1) & 63] = (i & 7) * 8 + (i >> 3);
 	}
 }
 
 /* Reference */
+
+#if 0
 
 int
 mpeg1_encode_intra(void)
@@ -451,147 +450,4 @@ mpeg1_encode_inter(short iblock[6][8][8], unsigned int cbp)
 	return v;
 }
 
-// XXX not verified
-
-int
-mpeg2_encode_intra(void)
-{
-	int v = 0;
-
-	int
-	encode_block(short block[8][8], int *dc_pred, VLC8 *dc_vlc)
-	{
-		/* DC coefficient */
-
-		{
-			register int val = block[0][0] - *dc_pred, size;
-			
-			/*
-			 *  Find first set bit, starting at msb with 0 -> 0.
-			 */
-			asm("
-				bsrl		%1,%0
-				jnz		1f
-				movl		$-1,%0
-1:		    		incl		%0
-			" : "=r" (size) : "r" (abs(val)));
-
-			if (val < 0) {
-				val--;
-				val ^= (-1 << size);
-			}
-
-			bputl(&video_out, dc_vlc[size].code | val, dc_vlc[size].length);
-
-			*dc_pred = block[0][0];
-		}
-
-		/* AC coefficients */
-
-		{
-			VLC2 *p = ac_vlc_one;
-			int i;
-
-			for (i = 1; i < 64; i++) {
-	    			int ulevel, slevel = block[0][iscan[0][63 - i]];
-
-				if (slevel) {
-					ulevel = abs(slevel);
-
-		    			if (ulevel < (int) p->length) {
-						p += ulevel;
-						bputl(&video_out, (p->code << 1) | (slevel < 0), p->length);
-		    			} else if (ulevel > 255)
-						return 1;
-					else
-						bputl(&video_out, (1 << 18) | (p->code << 12) | slevel, 24);
-						// %000001 escape, 6 bit run, 12 bit slevel
-
-					p = ac_vlc_one; // run = 0
-				} else
-					p += p->length; // run++
-			}
-		}
-
-		return 0;
-	}
-
-	dc_dct_pred[1][0] = dc_dct_pred[0][0];
-	dc_dct_pred[1][1] = dc_dct_pred[0][1];
-	dc_dct_pred[1][2] = dc_dct_pred[0][2];
-
-	v  = encode_block(mblock[1][0], &dc_dct_pred[0][0], dc_vlc_intra[0]);
-	v |= encode_block(mblock[1][2], &dc_dct_pred[0][0], dc_vlc_intra[3]);
-	v |= encode_block(mblock[1][1], &dc_dct_pred[0][0], dc_vlc_intra[3]);
-	v |= encode_block(mblock[1][3], &dc_dct_pred[0][0], dc_vlc_intra[3]);
-	v |= encode_block(mblock[1][4], &dc_dct_pred[0][1], dc_vlc_intra[4]);
-	v |= encode_block(mblock[1][5], &dc_dct_pred[0][2], dc_vlc_intra[4]);
-
-	bputl(&video_out, 0x6, 4); // EOB '0110' (ISO 13818-2 Table B-15)
-
-	if (v) {
-		dc_dct_pred[0][0] = dc_dct_pred[1][0];
-		dc_dct_pred[0][1] = dc_dct_pred[1][1];
-		dc_dct_pred[0][2] = dc_dct_pred[1][2];
-	}
-
-	return v;
-}
-
-// XXX not verified
-
-int
-mpeg2_encode_inter(short iblock[6][8][8], unsigned int cbp)
-{
-	int v = 0;
-
-	int
-	encode_block(short block[8][8])
-	{
-		VLC2 *p = ac_vlc_zero; // ISO 13818-2 table B-14
-    		int i = 1, ulevel, slevel;
-
-		/* DC coefficient */
-
-		ulevel = abs(slevel = block[0][0]);
-
-		if (ulevel == 1) {
-			bputl(&video_out, 0x2 | ((slevel >> 31) & 1), 2);
-		} else
-			i = 0;
-
-		/* AC coefficients */
-
-		while (i < 64) {
-	    		if ((slevel = block[0][iscan[0][63 - i]])) {
-				ulevel = abs(slevel);
-
-		    		if (ulevel < (int) p->length) {
-					p += ulevel;
-					bputl(&video_out, p->code | ((slevel >> 31) & 1), p->length);
-				} else if (ulevel > 255)
-					return 1; // this could be escaped but our idct can't handle it
-				else
-					bputl(&video_out, (1 << 18) | (p->code << 12) | slevel, 24);
-					// %000001 escape, 6 bit run, 12 bit slevel
-
-				p = ac_vlc_zero; // run = 0
-			} else
-				p += p->length; // run++
-			i++;
-		}
-
-		bputl(&video_out, 0x2, 2);
-		return 0;
-	}
-
-	// watch cbp_order
-	if (cbp & (1 << 5)) v  = encode_block(iblock[0]);
-	if (cbp & (1 << 3)) v |= encode_block(iblock[2]);
-	if (cbp & (1 << 4)) v |= encode_block(iblock[1]);
-	if (cbp & (1 << 2)) v |= encode_block(iblock[3]);
-	if (cbp & (1 << 1)) v |= encode_block(iblock[4]);
-	if (cbp & (1 << 0)) v |= encode_block(iblock[5]);
-
-	return v;
-}
+#endif

@@ -19,9 +19,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: predict.h,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: predict.h,v 1.2 2000-09-25 17:08:57 mschimek Exp $ */
 
-extern short		mblock[7][6][8][8];
+#include "mblock.h"
 
 /*
  *  Forward prediction (P frames only)
@@ -30,7 +30,7 @@ extern short		mblock[7][6][8][8];
  *  mblock[3] = old_ref; 	// for reconstruction by idct_inter
  */
 static inline int
-predict_forward(unsigned char *from)
+predict_forward_packed(unsigned char *from)
 {
 	int i, n, s = 0, s2 = 0;
 
@@ -49,13 +49,52 @@ predict_forward(unsigned char *from)
 	return s2 * 256 - (s * s);
 }
 
+static inline int
+predict_forward_planar(unsigned char *from)
+{
+	int i, j, n, s = 0, s2 = 0;
+	unsigned char *p;
+
+	p = from;
+
+	for (i = 0; i < 16; i++) {
+		for (j = 0; j < 8; j++) {
+			mblock[1][0][i][j] = n = mblock[0][0][i][j] - p[j];
+			mblock[3][0][i][j] = p[j];
+			s += n;
+			s2 += n * n;
+			mblock[1][0][i + 16][j] = n = mblock[0][0][i + 16][j] - p[j + 8];
+			mblock[3][0][i + 16][j] = p[j + 8];
+			s += n;
+			s2 += n * n;
+		}
+
+		p += mb_address.block[0].pitch;
+	}
+
+	p = from + (mb_address.block[0].pitch + 1) * 8 + mb_address.block[4].offset;
+
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < 8; j++) {
+			mblock[1][4][i][j] = mblock[0][4][i][j] - p[j];
+			mblock[3][4][i][j] = p[j];
+			mblock[1][5][i][j] = mblock[0][5][i][j] - p[j + mb_address.block[5].offset];
+			mblock[3][5][i][j] = p[j + mb_address.block[5].offset];
+		}
+
+		p += mb_address.block[4].pitch;
+	}
+
+	return s2 * 256 - (s * s);
+}
+
 /*
  *  Backward prediction (B frames only, no reconstruction)
  *
  *  mblock[1] = org - new_ref;
  */
 static inline int
-predict_backward(unsigned char *from)
+predict_backward_packed(unsigned char *from)
 {
 	int i, n, s = 0;
 
@@ -78,7 +117,7 @@ predict_backward(unsigned char *from)
  *  mblock[3] = org - linear_interpolation(old_ref, new_ref);
  */
 static inline int
-predict_bidirectional(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2)
+predict_bidirectional_packed(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2)
 {
 	int i, n, si = 0, sf = 0, sb = 0;
 
@@ -103,147 +142,64 @@ predict_bidirectional(unsigned char *from1, unsigned char *from2, int *vmc1, int
 	return si;
 }
 
+static inline int
+predict_bidirectional_planar(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2)
+{
+	int i, j, n, si = 0, sf = 0, sb = 0;
+	unsigned char *p1, *p2;
+
+	p1 = from1;
+	p2 = from2;
+
+	for (i = 0; i < 16; i++) {
+		for (j = 0; j < 8; j++) {
+			mblock[1][0][i][j] = n = mblock[0][0][i][j] - p1[j];
+			sf += n * n; // forward
+			mblock[2][0][i][j] = n = mblock[0][0][i][j] - p2[j];
+			sb += n * n; // backward
+			mblock[3][0][i][j] = n = mblock[0][0][i][j] - ((p1[j] + p2[j] + 1) >> 1);
+			si += n * n; // interpolated	                   unsigned -> pavgb
+			mblock[1][0][i + 16][j] = n = mblock[0][0][i + 16][j] - p1[j + 8];
+			sf += n * n; // forward
+			mblock[2][0][i + 16][j] = n = mblock[0][0][i + 16][j] - p2[j + 8];
+			sb += n * n; // backward
+			mblock[3][0][i + 16][j] = n = mblock[0][0][i + 16][j] - ((p1[j + 8] + p2[j + 8] + 1) >> 1);
+			si += n * n; // interpolated	                   unsigned -> pavgb
+		}
+
+		p1 += mb_address.block[0].pitch;
+		p2 += mb_address.block[0].pitch;
+	}
+
+	p1 = from1 + (mb_address.block[0].pitch + 1) * 8 + mb_address.block[4].offset;
+	p2 = from2 + (mb_address.block[0].pitch + 1) * 8 + mb_address.block[4].offset;
+
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < 8; j++) {
+			mblock[1][4][i][j] = mblock[0][4][i][j] - p1[j];
+			mblock[2][4][i][j] = mblock[0][4][i][j] - p2[j];
+			mblock[3][4][i][j] = mblock[0][4][i][j] - ((p1[j] + p2[j] + 1) >> 1);
+			mblock[1][5][i][j] = mblock[0][5][i][j] - p1[j + mb_address.block[5].offset];
+			mblock[2][5][i][j] = mblock[0][5][i][j] - p2[j + mb_address.block[5].offset];
+			mblock[3][5][i][j] = mblock[0][5][i][j] - ((p1[j + mb_address.block[5].offset] + p2[j + mb_address.block[5].offset] + 1) >> 1);
+		}
+
+		p1 += mb_address.block[4].pitch;
+		p2 += mb_address.block[4].pitch;
+	}
+
+	*vmc1 = sf;
+	*vmc2 = sb;
+
+	return si;
+}
+
 /*
  *  MMX
  */
 
 static inline int
-mmx_predict_forward(unsigned char *from)
-{
-	int n;
-
-	asm volatile ("
-		movq		(%2,%3),%%mm0;
-		pxor		%%mm5,%%mm5;
-		movq		(%1,%3,2),%%mm2;
-		pxor		%%mm6,%%mm6;
-		movq		8(%1,%3,2),%%mm3;
-		pxor		%%mm7,%%mm7;
-
-		.align 16
-1:
-		movq		%%mm0,%%mm1;
-		punpcklbw	%%mm5,%%mm0;
-		punpckhbw	%%mm5,%%mm1;
-		psubw		%%mm0,%%mm2;
-		paddw		%%mm2,%%mm6;
-		psubw		%%mm1,%%mm3;
-		paddw		%%mm3,%%mm6;
-		movq		%%mm0,768*3+0(%1,%3,2);
-		movq		%%mm1,768*3+8(%1,%3,2);
-		movq		%%mm2,768*1+0(%1,%3,2);
-		movq		%%mm3,768*1+8(%1,%3,2);
-		pmaddwd		%%mm2,%%mm2;
-		pmaddwd		%%mm3,%%mm3;
-		paddd		%%mm2,%%mm7;
-		paddd		%%mm3,%%mm7;
-		movq		128(%2,%3),%%mm4;
-		movq		256+0(%1,%3,2),%%mm0;
-		movq		256+8(%1,%3,2),%%mm1;
-		movq		%%mm4,%%mm2;
-		punpcklbw	%%mm5,%%mm4;
-		punpckhbw	%%mm5,%%mm2;
-		psubw		%%mm4,%%mm0;
-		paddw		%%mm0,%%mm6;
-		psubw		%%mm2,%%mm1;
-		paddw		%%mm1,%%mm6;
-		movq		%%mm4,768*3+256+0(%1,%3,2);
-		movq		%%mm2,768*3+256+8(%1,%3,2);
-		movq		%%mm0,768*1+256+0(%1,%3,2);
-		movq		%%mm1,768*1+256+8(%1,%3,2);
-		pmaddwd		%%mm0,%%mm0;
-		pmaddwd		%%mm1,%%mm1;
-		paddd		%%mm0,%%mm7;
-		paddd		%%mm1,%%mm7;
-		movq		256(%2,%3),%%mm3;
-		movq		512+0(%1,%3,2),%%mm2;
-		movq		512+8(%1,%3,2),%%mm4;
-		movq		%%mm3,%%mm1;
-		punpcklbw	%%mm5,%%mm3;
-		punpckhbw	%%mm5,%%mm1;
-		psubw		%%mm3,%%mm2;
-		psubw		%%mm1,%%mm4;
-		movq		%%mm3,768*3+512+0(%1,%3,2);
-		movq		%%mm1,768*3+512+8(%1,%3,2);
-		movq		%%mm2,768*1+512+0(%1,%3,2);
-		movq		%%mm4,768*1+512+8(%1,%3,2);
-		movq		8(%2,%3),%%mm0;
-		movq		0+16(%1,%3,2),%%mm2;
-		movq		8+16(%1,%3,2),%%mm3;
-		leal		8(%3),%3;
-		decl		%4;
-		jne		1b;
-
-		movq		%%mm0,%%mm1;
-		punpcklbw	%%mm5,%%mm0;
-		punpckhbw	%%mm5,%%mm1;
-		psubw		%%mm0,%%mm2;
-		paddw		%%mm2,%%mm6;
-		psubw		%%mm1,%%mm3;
-		paddw		%%mm3,%%mm6;
-		movq		%%mm0,768*3+0(%1,%3,2);
-		movq		%%mm1,768*3+8(%1,%3,2);
-		movq		%%mm2,768*1+0(%1,%3,2);
-		movq		%%mm3,768*1+8(%1,%3,2);
-		pmaddwd		%%mm2,%%mm2;
-		pmaddwd		%%mm3,%%mm3;
-		paddd		%%mm2,%%mm7;
-		paddd		%%mm3,%%mm7;
-		movq		128(%2,%3),%%mm0;
-		movq		256+0(%1,%3,2),%%mm2;
-		movq		256+8(%1,%3,2),%%mm3;
-		movq		%%mm0,%%mm1;
-		punpcklbw	%%mm5,%%mm0;
-		punpckhbw	%%mm5,%%mm1;
-		psubw		%%mm0,%%mm2;
-		paddw		%%mm2,%%mm6;
-		psubw		%%mm1,%%mm3;
-		paddw		%%mm3,%%mm6;
-		movq		%%mm0,768*3+256+0(%1,%3,2);
-		movq		%%mm1,768*3+256+8(%1,%3,2);
-		movq		%%mm2,768*1+256+0(%1,%3,2);
-		movq		%%mm3,768*1+256+8(%1,%3,2);
-		pmaddwd		%%mm2,%%mm2;
-		pmaddwd		%%mm3,%%mm3;
-		paddd		%%mm2,%%mm7;
-		paddd		%%mm3,%%mm7;
-		movq		256(%2,%3),%%mm0;
-		movq		512+0(%1,%3,2),%%mm2;
-		movq		512+8(%1,%3,2),%%mm3;
-		movq		%%mm0,%%mm1;
-		punpcklbw	%%mm5,%%mm0;
-		punpckhbw	%%mm5,%%mm1;
-		psubw		%%mm0,%%mm2;
-		psubw		%%mm1,%%mm3;
-		movq		%%mm0,768*3+512+0(%1,%3,2);
-		movq		%%mm1,768*3+512+8(%1,%3,2);
-		movq		%%mm2,768*1+512+0(%1,%3,2);
-		movq		%%mm3,768*1+512+8(%1,%3,2);
-
-		pmaddwd		c1,%%mm6;
-		movq		%%mm7,%%mm4;
-		psrlq		$32,%%mm7;
-		paddd		%%mm4,%%mm7;
-		movq		%%mm6,%%mm5;
-		psrlq		$32,%%mm6;
-		paddd		%%mm5,%%mm6;
-		movd		%%mm6,%4;
-		imul		%4,%4;
-		pslld		$8,%%mm7;
-		movd		%%mm7,%0;
-		subl		%4,%0;
-	"
-	: "=&r" (n)
-	: "r" (&mblock[0][0][0][0]), "r" (from), "r" (0), "r" (15)
-	: "3", "4", "cc", "memory" FPU_REGS);
-
-	return n;
-}
-
-#define mmx_predict_backward mmx_predict_forward
-
-static inline int
-mmx_predict_bidirectional(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2)
+mmx_predict_bidirectional_packed(unsigned char *from1, unsigned char *from2, int *vmc1, int *vmc2)
 {
 	extern mmx_t c0, c1;
 	int n;

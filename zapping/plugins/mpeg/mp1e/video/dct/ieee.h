@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ieee.h,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: ieee.h,v 1.2 2000-09-25 17:08:57 mschimek Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -69,13 +69,6 @@ extern void fdct_test(char *name, dct_func *fdct, long minpix, long maxpix, long
 extern void ieee_1180(char *name, dct_func *idct);
 
 #define elements(block) (sizeof(block) / sizeof((block)[0][0]))
-
-#define swap(a, b)						\
-do {								\
-	__typeof__ (a) _t = (b);				\
-	(b) = (a);						\
-	(a) = _t;						\
-} while (0)
 
 #define mirror(block)						\
 do {								\

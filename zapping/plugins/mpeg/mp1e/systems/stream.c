@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.c,v 1.3 2000-09-23 03:56:14 mschimek Exp $ */
+/* $Id: stream.c,v 1.4 2000-09-25 17:08:57 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,6 +81,55 @@ mux_add_input_stream(int stream_id, int max_size, int buffers,
 	add_tail(&mux_input_streams, &str->node);
 
 	return &str->fifo;
+}
+
+void *
+stream_sink(void *unused)
+{
+	unsigned long long bytes_out = 0;
+	int num_streams = 0;
+	stream *str;
+
+	for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
+		str->left = 1;
+		num_streams++;
+	}
+
+	while (num_streams > 0) {
+		buffer *buf;
+
+		for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next)
+			if (str->left && (buf = __recv_full_buffer(&str->fifo)))
+				break;
+
+		if (!str) {
+			wait_mucon(&mux_mucon);
+			continue;
+		}
+
+		if (!buf->used) {
+			str->left = 0;
+			num_streams--;
+			continue;
+		}
+
+		bytes_out += buf->used;
+
+		send_empty_buffer(&str->fifo, buf);
+
+		if (verbose > 0) {
+			double system_load = 1.0 - get_idle();
+
+			printv(1, "%.3f MB >0, %.2f %% dropped, system load %.1f %%  %c",
+				bytes_out / (double)(1 << 20),
+				100.0 * video_frames_dropped / video_frame_count,
+				100.0 * system_load, (verbose > 3) ? '\n' : '\r');
+
+			fflush(stderr);
+		}
+	}
+
+	return NULL;
 }
 
 void *
@@ -325,6 +374,8 @@ synchronize_capture_modules(void)
 			ab = wait_full_buffer(audio_cap_fifo);
 		if (!vb)
 			vb = wait_full_buffer(video_cap_fifo);
+
+		// XXX should pass b->used == 0 as EOF
 		if (!ab || !vb)
 			FAIL("Premature end of file");
 

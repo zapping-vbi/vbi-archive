@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.7 2000-09-23 03:57:54 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.8 2000-09-25 17:08:57 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -97,26 +97,10 @@ static char *		banner;
 static unsigned char *	zerop_template;			// precompressed empty P picture
 static int		Sz;				// .. size in bytes
 
-static unsigned char *	oldref;				// past reference frame buffer
-static unsigned char *	newref;				// future reference frame buffer
-/*
- *  Reference buffer format is
- *  [mb_height]
- *  [mb_width]  - for all macroblocks of a frame
- *  [6]         - Y0, Y2, Y1, Y3, Cb, Cr
- *  [8][8]      - 8 bit unsigned samples, e. g. according to ITU-R Rec. 601
- */
-
-struct {
-	int		offset;
-	int		pitch;
-} mb_address[6];
-
 static int		warn[2];
 
-static double bits = 0;
-double gbits = 0;
-static double counts = 0;
+double video_eff_bit_rate;
+
 static int mb_cx_row, mb_cx_thresh;
 
 /* main.c */
@@ -131,11 +115,23 @@ extern double		video_stop_time;
 #define mpeg1_idct_intra mmx_mpeg1_idct_intra
 #define mpeg1_idct_inter mmx_mpeg1_idct_inter
 
-#define mpeg1_encode_intra mmx_mpeg1_encode_intra
-#define mpeg1_encode_inter mmx_mpeg1_encode_inter
+#define mpeg1_encode_intra p6_mpeg1_encode_intra
+#define mpeg1_encode_inter p6_mpeg1_encode_inter
 
-#define predict_forward mmx_predict_forward
-#define predict_backward mmx_predict_backward
+extern int p6_predict_forward_packed(unsigned char *) reg(1);
+extern int p6_predict_forward_planar(unsigned char *) reg(1);
+
+#define PACKED 1
+
+#if PACKED
+#define predict_forward		p6_predict_forward_packed
+#define predict_backward	p6_predict_forward_packed
+#define predict_bidirectional	mmx_predict_bidirectional_packed
+#else
+#define predict_forward		p6_predict_forward_planar
+#define predict_backward	p6_predict_forward_planar
+#define predict_bidirectional	predict_bidirectional_planar
+#endif
 
 static const unsigned char
 quant_res_inter[32] __attribute__ ((SECTION("video_tables") aligned (CACHE_LINE))) =
@@ -156,8 +152,8 @@ extern bool		temporal_interpolation;
 extern int		preview;
 extern void		packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
 
-int p_inter_bias = 65536 * 48,
-    b_inter_bias = 65536 * 96,
+int p_inter_bias = 65536 * 64, // 48,
+    b_inter_bias = 65536 * 128, // 96,
     quant_max = 31;
 
 fifo *			video_fifo;
@@ -282,12 +278,14 @@ do {									\
 									\
 			if (ref) {					\
 				pr_start(23, "IDCT intra");		\
-				mpeg1_idct_intra(new);			\
+				mpeg1_idct_intra();			\
 				pr_end(23);				\
 									\
-				new += 6 * 64;				\
+				mba_col();				\
 			}						\
 		}							\
+									\
+		mba_row();						\
 	}								\
 } while (0)
 
@@ -302,7 +300,6 @@ static int
 picture_i(unsigned char *org0, unsigned char *org1)
 {
 	double act, act_sum;
-	unsigned char *new;
 	int quant_sum;
 	int S, T, prev_quant, quant;
 	struct bs_rec mark;
@@ -332,10 +329,9 @@ picture_i(unsigned char *org0, unsigned char *org1)
 	quant_sum = 0;
 	act_sum = 0.0;
 
-	new = oldref;
-	oldref = newref;
-	newref = new;
+	swap(oldref, newref);
 
+	reset_mba();
 	reset_dct_pred();
 
 	slice = FALSE;
@@ -436,10 +432,10 @@ picture_i(unsigned char *org0, unsigned char *org1)
 
 			if (referenced) {
 				pr_start(23, "IDCT intra");
-				mpeg1_idct_intra(new); // mblock[1] -> new
+				mpeg1_idct_intra();		// mblock[1] -> newref
 				pr_end(23);
 
-				new += 6 * 64;
+				mba_col();
 			}
 #if TEST_PREVIEW
 			if (preview > 1) {
@@ -448,6 +444,8 @@ picture_i(unsigned char *org0, unsigned char *org1)
 			}
 #endif
 		}
+
+		mba_row();
 	}
 
 	emms();
@@ -456,7 +454,7 @@ picture_i(unsigned char *org0, unsigned char *org1)
 
 	S = bflush(&video_out);
 
-//	printv(4, "I %8.0f T=%d S=%d d0i=%f R=%d \n", gbits, T, S, d0i, R);
+//	printv(4, "I %8.0f T=%d S=%d d0i=%f R=%d \n", video_eff_bit_rate, T, S, d0i, R);
 
 	Xi = lroundn(S * (double) quant_sum / mb_num);
 
@@ -486,7 +484,6 @@ static int
 picture_p(unsigned char *org0, unsigned char *org1)
 {
 	double act, act_sum;
-	unsigned char *old, *new;
 	int quant_sum;
 	int S, T, quant, prev_quant, quant1 = 1;
 	struct bs_rec mark;
@@ -502,13 +499,12 @@ picture_p(unsigned char *org0, unsigned char *org1)
 
 	/* Initialize rate control parameters */
 
-	new = oldref;
-	old = oldref = newref;
-	newref = new;
+	swap(oldref, newref);
+	reset_mba();
 
 #if TEST_PREVIEW
 	if (preview > 1)
-		memcpy(new, old, 64 * 6 * mb_num);
+		memcpy(newref, oldref, 64 * 6 * mb_num);
 #endif
 
 	T = lroundn(R / ((np + ep) + ((ni + ei) * Xi + (nb + eb) * Xb / B_SHARE) / Xp));
@@ -578,7 +574,7 @@ picture_p(unsigned char *org0, unsigned char *org1)
 			pr_end(41);
 
 			pr_start(51, "Predict forward");
-			vmc = predict_forward(old);
+			vmc = predict_forward(oldref + mb_address.block[0].offset);
 			pr_end(51);
 
 			emms();
@@ -621,7 +617,7 @@ quant = quant_res_intra[saturate(quant >> 1, 1, quant_max)];
 
 				if (referenced) {
 					pr_start(23, "IDCT intra");
-					mpeg1_idct_intra(new); // mblock[0] -> new
+					mpeg1_idct_intra(); // mblock[0] -> new
 					pr_end(23);
 				}
 			} else {
@@ -669,8 +665,7 @@ lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
 
 					if (cbp == 0 && mb_count > 1 && mb_count < mb_num &&
 						(!motion || (dmv[0] | dmv[1]) == 0)) {
-
-						__builtin_memcpy(new, old, 6 * 64);
+						mmx_copy_refblock();
 
 						if (motion) {
 							PMV[0][0] = 0;
@@ -700,7 +695,7 @@ lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
 							}
 
 							bprolog(&video_out);
-							__builtin_memcpy(new, old, 6 * 64);
+							mmx_copy_refblock();
 							break;
 						} else {
 							if (motion && (MV[0][0] | MV[0][1])) {
@@ -747,7 +742,7 @@ lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
 				
 								if (referenced) {
 						    			pr_start(27, "IDCT inter");
-									mpeg1_idct_inter(new, old, cbp); // [0] & [3]
+									mpeg1_idct_inter(cbp); // [0] & [3]
 									pr_end(27);
 								}
 
@@ -771,11 +766,8 @@ lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
 				reset_dct_pred();
 			}
 
-			old += 6 * 64;
-			new += 6 * 64;
-
+			mba_col();
 			mb_count++;
-
 #if TEST_PREVIEW
 			if (preview > 1) {
 				emms();
@@ -783,6 +775,8 @@ lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
 			}
 #endif
 		}
+
+		mba_row();
 	}
 
 	emms();
@@ -795,7 +789,7 @@ lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
 
 	avg_act = act_sum / mb_num;
 
-	// printv(4, "P %8.0f T=%d S=%d d0p=%f\n", gbits, T, S, d0p);
+	// printv(4, "P %8.0f T=%d S=%d d0p=%f\n", video_eff_bit_rate, T, S, d0p);
 
 	Xp = lroundn(S * (double) quant_sum / mb_num);
 
@@ -823,7 +817,6 @@ static int
 picture_b(unsigned char *org0, unsigned char *org1)
 {
 	double act, act_sum;
-	unsigned char *old, *new;
 	short (* iblock)[6][8][8];
 	int quant_sum;
 	int S, T, quant, prev_quant, quant1 = 1;
@@ -841,8 +834,7 @@ picture_b(unsigned char *org0, unsigned char *org1)
 
 	/* Initialize rate control parameters */
 
-	old = oldref;
-	new = newref;
+	reset_mba();
 
 	T = lroundn(R / (((ni + ei) * Xi + (np + ep) * Xp) * B_SHARE / Xb + (nb + eb)));
 	/*
@@ -923,12 +915,14 @@ picture_b(unsigned char *org0, unsigned char *org1)
 
 			/* Choose prediction type */
 
-			if (closed_gop) {
-				vmc = predict_backward(new);
-				macroblock_type = MB_BACKWARD;
-				iblock = &mblock[1];
-			} else {
-				vmc = mmx_predict_bidirectional(old, new, &vmcf, &vmcb);
+			if (!closed_gop) {
+				pr_start(52, "Predict bidirectional");
+				vmc = predict_bidirectional(
+					oldref + mb_address.block[0].offset,
+					newref + mb_address.block[0].offset,
+					&vmcf, &vmcb);
+				pr_end(52);
+
 				macroblock_type = MB_INTERP;
 				iblock = &mblock[3];
 
@@ -941,6 +935,10 @@ picture_b(unsigned char *org0, unsigned char *org1)
 					macroblock_type = MB_BACKWARD;
 					iblock = &mblock[2];
 				}
+			} else {
+				vmc = predict_backward(newref + mb_address.block[0].offset);
+				macroblock_type = MB_BACKWARD;
+				iblock = &mblock[1];
 			}
 
 			emms();
@@ -1154,12 +1152,13 @@ picture_b(unsigned char *org0, unsigned char *org1)
 				reset_dct_pred();
 			}
 
-			old += 6 * 64;
-			new += 6 * 64;
+			mba_col();
 
 			mb_count++;
 			mb_type_last = macroblock_type;
 		}
+
+		mba_row();
 	}
 
 	emms();
@@ -1172,7 +1171,7 @@ picture_b(unsigned char *org0, unsigned char *org1)
 
 	avg_act = act_sum / mb_num;
 
-	// printv(4, "B %8.0f T=%d S=%d d0b=%f\n", gbits, T, S, d0b);
+	// printv(4, "B %8.0f T=%d S=%d d0b=%f\n", video_eff_bit_rate, T, S, d0b);
 
 	Xb = lroundn(S * (double) quant_sum / mb_num);
 
@@ -1304,16 +1303,18 @@ user_data(char *s)
 
 
 
+#define Rvbr (1.0 / 64)
+
 static inline void
 _send_full_buffer(fifo *f, buffer *b)
 {
-	bits += b->used * 8;
-	counts += 1.0 / 25.0;
-
-//	printv(0, "%8.0f\n", gbits);
+	video_eff_bit_rate +=
+		((b->used * 8) * frames_per_sec
+		 - video_eff_bit_rate) * Rvbr;
 
 	send_full_buffer(f, b);
 }
+
 
 static struct {
 	unsigned char * org[2];
@@ -1422,7 +1423,6 @@ mpeg1_video_ipb(void *unused)
 	bool done = FALSE;
 	char *seq = "";
 	buffer *obuf;
-int d3 = 3;
 
 	printv(3, "Video compression thread\n");
 
@@ -1631,12 +1631,6 @@ eb = Eb / gop_count;
 }
 gop_count++;
 //printv(0, "Eit=%f Ept=%f Ebt=%f \n", ei, ep, eb);
-gbits = (gbits + (bits / counts)) / 2.0;
-bits=0;
-counts=0;
-if (d3-- <= 0) {
-d3 = 3;
-}
 
 			printv(4, "Rewind sequence R=%d\n", R);
 
@@ -1832,23 +1826,38 @@ video_init(void)
 
 	if (bmax >= sizeof(stack) / sizeof(stack[0]))
 		FAIL("Too many successive B pictures");
-/*
-	if (preview || motion) {
-		for (i = 0; i < 4; i++)
-			mb_address[0].pitch = lalign(mb_width * 16, CACHE_LINE);
-		mb_address[1].offset = 0;
-		mb_address[2].offset = 8 - mb_address[0].pitch * 16;
-		mb_address[3].offset = 0;
-		mb_address[4].pitch =
-		mb_address[5].pitch = mb_address[0].pitch >> 1;
-		mb_address[5].offset = mb_address[4].pitch * mb_height;
-	} else { // not used
+
+
+	if (PACKED) {
 		for (i = 0; i < 6; i++) {
-			mb_address[i].offset = 64;
-			mb_address[i].pitch = 8;
+			mb_address.block[i].offset	= 64;
+			mb_address.block[i].pitch	= 8;
 		}
+
+		mb_address.col.lum	= 6 * 64;
+		mb_address.col.chrom	= 0;
+		mb_address.row.lum	= 0;
+		mb_address.row.chrom	= 0;
+		mb_address.chrom_0	= mb_address.block[4].offset;
+	} else {
+		for (i = 0; i < 6; i++)
+			mb_address.block[i].pitch = mb_width * ((i >= 4) ? 8 : 16);
+
+		mb_address.block[1].offset = mb_width * 16 * 8;
+		mb_address.block[2].offset = 8 - mb_width * 16 * 8;
+		mb_address.block[3].offset = mb_width * 16 * 8;
+		mb_address.block[4].offset = mb_num * 64 * 4 - mb_width * 16 * 8 - 8;
+		mb_address.block[5].offset = mb_num * 64;
+
+		mb_address.col.lum	= 16;
+		mb_address.col.chrom	= 8 - 16;
+		mb_address.row.lum	= mb_width * 16 * 15;
+		mb_address.row.chrom	= mb_width * (8 * 7 - 16 * 15);
+		mb_address.chrom_0	= mb_address.block[4].offset;
 	}
-*/
+
+
+
 	mb_cx_row = mb_height;
 	mb_cx_thresh = 100000;
 

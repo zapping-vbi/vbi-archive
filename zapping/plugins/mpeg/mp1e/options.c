@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.5 2000-08-12 02:14:37 mschimek Exp $ */
+/* $Id: options.c,v 1.6 2000-09-25 17:08:57 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +43,7 @@
  */
 
 int			mux_mode		= 3;			// 1 = Video, Audio, Both
-int			mux_syn			= 1;			// 0 = elementary, MPEG-1, MPEG-2 PS 
+int			mux_syn			= 2;			// 0 = null, elementary, MPEG-1, MPEG-2 PS 
 
 char *			cap_dev			= "/dev/video";
 char *			pcm_dev			= "/dev/dsp";
@@ -83,7 +83,7 @@ int			aud_buffers		= 32;			// audio compression -> mux
  */
 
 static const char *mux_options[] = { "", "video", "audio", "video_and_audio" };
-static const char *mux_syn_options[] = { "bypass", "mpeg1", "mpeg2-ps" };
+static const char *mux_syn_options[] = { "nirvana", "bypass", "mpeg1", "mpeg2-ps" };
 static const char *audio_options[] = { "stereo", "", "dual_channel", "mono" };
 static const char *mute_options[] = { "unmute", "mute", "ignore" };
 
@@ -460,8 +460,8 @@ parse_option(int c)
 			exit(EXIT_SUCCESS);
 
 		case 'X':
-			mux_syn = suboption(mux_syn_options, 3, 1);
-			if (mux_syn < 0 || mux_syn > 2)
+			mux_syn = suboption(mux_syn_options, 4, 2);
+			if (mux_syn < 0 || mux_syn > 3)
 				return FALSE;
 			break;
 

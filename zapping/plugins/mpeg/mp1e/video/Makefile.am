@@ -11,4 +11,5 @@ libvideo_a_SOURCES = \
 	mpeg1.c mpeg.h \
 	tables.c predict.h \
 	v4l.c v4l2.c video.h \
-	vlc.c vlc_mmx.s vlc.h
+	vlc.c vlc_mmx.s vlc.h \
+	motion_mmx.s

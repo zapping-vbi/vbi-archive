@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mblock.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: mblock.c,v 1.3 2000-09-25 17:08:57 mschimek Exp $ */
 
 #include "video.h"
 #include "../common/math.h"
@@ -28,12 +28,24 @@ int			mb_col, mb_row,			// current
 			mb_last_col, mb_last_row,
 			mb_num;
 
-short			mblock[7][6][8][8] __attribute__ ((aligned (CACHE_LINE)));
+unsigned char *		oldref;				// past reference frame buffer
+unsigned char *		newref;				// future reference frame buffer
+/*
+ *  Packet reference buffer format is
+ *  [mb_height]
+ *  [mb_width]  - for all macroblocks of a frame
+ *  [6]         - Y0, Y2, Y1, Y3, Cb, Cr
+ *  [8][8]      - 8 bit unsigned samples, e. g. according to ITU-R Rec. 601
+ */
+
+struct mb_addr		mb_address __attribute__ ((aligned (MIN(CACHE_LINE, 64))));
+
+short			mblock[7][6][8][8] __attribute__ ((aligned (4096)));
 /*
  *  Buffer for current macroblock
  *  [7]    - intra, forward, backward, interpolated
  *  [6]    - Y0, Y2, Y1, Y3, Cb, Cr
- *  [8][8] - 16 bit unsigned samples/dct coefficients
+ *  [8][8] - samples, block difference, dct coefficients
  */
 
 void

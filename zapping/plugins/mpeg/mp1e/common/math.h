@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: math.h,v 1.1 2000-08-09 09:40:14 mschimek Exp $ */
+/* $Id: math.h,v 1.2 2000-09-25 17:08:57 mschimek Exp $ */
 
 #ifndef MATH_H
 #define MATH_H
@@ -27,6 +27,13 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+#define swap(a, b)						\
+do {								\
+	__typeof__ (a) _t = (b);				\
+	(b) = (a);						\
+	(a) = _t;						\
+} while (0)
 
 static inline int
 saturate(int val, int min, int max)

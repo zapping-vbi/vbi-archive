@@ -18,13 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct_ref.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: dct_ref.c,v 1.3 2000-09-25 17:08:57 mschimek Exp $ */
 
-#include "../common/math.h"
 #include "dct.h"
 #include "mpeg.h"
 #include "video.h"
 #include "dct/ieee.h"
+#include "../common/math.h"
 
 #define FLOAT float
 
@@ -236,14 +236,17 @@ fdct_inter(short iblock[6][8][8])
 }
 
 void
-mpeg1_idct_intra(unsigned char *new)
+mpeg1_idct_intra(void)
 {
-	int i, j, val;
+	int i, j, k, val;
+	unsigned char *p, *new = newref;
 
 	emms();
 
 	for (i = 0; i < 6; i++)	{
 		FLOAT F[8][8], t[8][8];
+
+		new += mb_address.block[0].offset;
 
 		mirror(mblock[1][i]);
 
@@ -271,21 +274,29 @@ mpeg1_idct_intra(unsigned char *new)
 
 		mirror(F);
 
-		for (j = 0; j < 64; j++)
-			*new++ = saturate(lroundn(F[0][j]) + 128, 0, 255);
+		for (j = 0, p = new; j < 8; j++) {
+			for (k = 0; k < 8; k++)
+				p[k] = saturate(lroundn(F[j][k]) + 128, 0, 255);
+			p += mb_address.block[i].pitch;
+		}
 	}
 }
 
 void
-mpeg1_idct_inter(unsigned char *new, unsigned char *old, unsigned int cbp)
+mpeg1_idct_inter(unsigned int cbp)
 {
 	FLOAT F[8][8], t[8][8];
-	int i, j, val;
+	unsigned char *new = newref;
+	int i, j, k, val;
 
 	emms();
 
-	for (i = 0; i < 6; i++)
+	for (i = 0; i < 6; i++) {
+		new += mb_address.block[0].offset;
+
 		if (cbp & (0x20 >> i)) {
+			unsigned char *p = new;
+
 			mirror(mblock[0][i]);
 
 			for (j = 0; j < 64; j++) {
@@ -309,33 +320,39 @@ mpeg1_idct_inter(unsigned char *new, unsigned char *old, unsigned int cbp)
 
 			mirror(F);
 
-			for (j = 0; j < 64; j++)
+			for (j = 0; j < 8; j++) {
+				for (k = 0; k < 8; k++)
 #if 1
-				*new++ = saturate(lroundn(F[0][j]) + mblock[3][i][0][j], 0, 255);
+					p[k] = saturate(lroundn(F[j][k]) + mblock[3][i][j][k], 0, 255);
 #else
-				*new++ = saturate(saturate(lroundn(F[0][j]), -128, 127) + mblock[3][i][0][j], 0, 255);
+					p[k] = saturate(saturate(lroundn(F[j][k]), -128, 127) + mblock[3][i][j][k], 0, 255);
 #endif
+				p += mb_address.block[i].pitch;
+			}
 		} else {
-#if 1
-			for (j = 0; j < 64; j++)
-				*new++ = mblock[3][i][0][j];
-#else
-			__builtin_memcpy(new, old, 64);
-			new += 64;
-			old += 64;
-#endif
+			unsigned char *p = new;
+
+			for (j = 0; j < 8; j++) {
+				for (k = 0; k < 8; k++)
+					p[k] = mblock[3][i][j][k];
+				p += mb_address.block[i].pitch;
+			}
 		}
+	}
 }
 
 void
-mpeg2_idct_intra(unsigned char *new)
+mpeg2_idct_intra(void)
 {
-	int i, j, val, sum;
+	int i, j, k, val, sum;
+	unsigned char *p, *new = newref;
 
 	emms();
 
 	for (i = 0; i < 6; i++)	{
 		FLOAT F[8][8], t[8][8];
+
+		new += mb_address.block[0].offset;
 
 		mirror(mblock[1][i]);
 
@@ -363,21 +380,29 @@ mpeg2_idct_intra(unsigned char *new)
 
 		mirror(F);
 
-		for (j = 0; j < 64; j++)
-			*new++ = saturate(lroundn(F[0][j]) + 128, 0, 255);
+		for (j = 0, p = new; j < 8; j++) {
+			for (k = 0; k < 8; k++)
+				p[k] = saturate(lroundn(F[j][k]) + 128, 0, 255);
+			p += mb_address.block[i].pitch;
+		}
 	}
 }
 
 void
-mpeg2_idct_inter(unsigned char *new, unsigned char *old, unsigned int cbp)
+mpeg2_idct_inter(unsigned int cbp)
 {
 	FLOAT F[8][8], t[8][8];
-	int i, j, val, sum;
+	unsigned char *new = newref;
+	int i, j, k, val, sum;
 
 	emms();
 
-	for (i = 0; i < 6; i++)
+	for (i = 0; i < 6; i++) {
+		new += mb_address.block[0].offset;
+
 		if (cbp & (0x20 >> i)) {
+			unsigned char *p = new;
+
 			mirror(mblock[0][i]);
 
 			for (j = 0, sum = 0; j < 64; j++) {
@@ -403,22 +428,25 @@ mpeg2_idct_inter(unsigned char *new, unsigned char *old, unsigned int cbp)
 
 			mirror(F);
 
-			for (j = 0; j < 64; j++)
+			for (j = 0; j < 8; j++) {
+				for (k = 0; k < 8; k++)
 #if 1
-				*new++ = saturate(lroundn(F[0][j]) + mblock[3][i][0][j], 0, 255);
+					p[k] = saturate(lroundn(F[j][k]) + mblock[3][i][j][k], 0, 255);
 #else
-				*new++ = saturate(saturate(lroundn(F[0][j]), -128, 127) + mblock[3][i][0][j], 0, 255);
+					p[k] = saturate(saturate(lroundn(F[j][k]), -128, 127) + mblock[3][i][j][k], 0, 255);
 #endif
+				p += mb_address.block[i].pitch;
+			}
 		} else {
-#if 1
-			for (j = 0; j < 64; j++)
-				*new++ = mblock[3][i][0][j];
-#else
-			__builtin_memcpy(new, old, 64);
-			new += 64;
-			old += 64;
-#endif
+			unsigned char *p = new;
+
+			for (j = 0; j < 8; j++) {
+				for (k = 0; k < 8; k++)
+					p[k] = mblock[3][i][j][k];
+				p += mb_address.block[i].pitch;
+			}
 		}
+	}
 }
 
 void

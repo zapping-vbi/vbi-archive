@@ -18,10 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.5 2000-09-23 03:57:54 mschimek Exp $ */
+/* $Id: video.h,v 1.6 2000-09-25 17:08:57 mschimek Exp $ */
 
 #include "../common/bstream.h"
 #include "../common/fifo.h"
+#include "mblock.h"
 
 #define MAX_WIDTH 1024			// 1 ... 4096
 #define MAX_HEIGHT 1024			// 1 ... 2800
@@ -29,13 +30,6 @@
 #define video_align(n) __attribute__ ((aligned (n)))
 
 extern struct bs_rec	video_out video_align(32);
-
-extern int		mb_col, mb_row,
-			mb_width, mb_height,
-			mb_last_col, mb_last_row,
-			mb_num;
-
-extern short		mblock[7][6][8][8] video_align(4096);
 
 extern int		frame_rate_code;
 extern int		dropped;
