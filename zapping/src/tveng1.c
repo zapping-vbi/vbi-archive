@@ -1626,7 +1626,7 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
       snprintf(info->error, 256, 
 	       "%s doesn't look like a valid capture device", info
 	       -> file_name);
-      close(info -> fd);
+      device_close(0, info -> fd);
       return -1;
     }
 
@@ -1680,7 +1680,7 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
       || strstr (info->caps.name, "BT")) {
 	  int version;
 
-	  version = v4l_ioctl (info, BTTV_VERSION, (int *) 0);
+	  version = v4l_ioctl_nf (info, BTTV_VERSION, (int *) 0);
 
 	  if (version != -1)
 		  p_info->bttv_driver = TRUE;
@@ -1867,11 +1867,11 @@ XX();
       filename[sizeof(filename)-1] = 0;
       snprintf(filename, sizeof(filename)-1,
 	       "/proc/video/ov511/%d/button", minor);
-      p_info -> ogb_fd = open(filename, O_RDONLY);
+      p_info -> ogb_fd = device_open(0, filename, O_RDONLY, 0);
       if (p_info -> ogb_fd > 0 &&
 	  flock (p_info->ogb_fd, LOCK_EX | LOCK_NB) == -1)
 	{
-	  close(p_info -> ogb_fd);
+	  device_close(0, p_info -> ogb_fd);
 	  p_info -> ogb_fd = -1;
 	}
     }
