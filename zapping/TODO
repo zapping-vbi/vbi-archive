@@ -19,8 +19,7 @@ Outstanding issues for the next release (0.6.0)
 	+ --roottv switch (use Z as screensaver)
 	+ Save control values and restore on startup (per channel).
 	+ Save screenshots at arbitrary sizes.
-	+ In ttx search it will be more newbie friendly to make
-	  regexp optional. In progress window emphasis jumps between
+	+ In ttx search progress window emphasis jumps between
 	  Cancel and Prev, should be Cancel and Next. Is Cancel correct
 	  at the left? And it may be cleaner with an Abort (the search)
 	  and a Cancel (the dialog).
@@ -30,8 +29,7 @@ Outstanding issues for the next release (0.6.0)
 	+ Improve documentation.
 	+ Make controls move faster with the keyb, and avoid rounding
 	issues (maxvalue never reached because of integer rounding)
-	+ In ttx export: instead of "export dir", chop off and remember
-	  the last path entered. Make blockgfx replacement smarter.
+	+ TTX export: Make blockgfx replacement smarter.
 	+ Think about ttx header samples (p100) for stations not transmitting
 	  a CNI (instead of guessing the name from ttx). Needs some sort of
 	  raw dump, so users can send updates. Upd: Oops, we do have a raw

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.46 2001-08-14 16:36:48 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.47 2001-08-16 18:09:36 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -174,7 +174,8 @@ extern int		vbi_page_title(struct vbi *vbi, int pgno, int subno, char *buf);
 
 extern void		vbi_delete_search(void *p);
 extern void *		vbi_new_search(struct vbi *vbi, int pgno, int subno,
-				ucs2_t *pattern, int casefold, int (* progress)(struct fmt_page *pg));
+				ucs2_t *pattern, int casefold, int regexp,
+				int (* progress)(struct fmt_page *pg));
 extern int		vbi_next_search(void *p, struct fmt_page **pg, int dir);
 
 /*

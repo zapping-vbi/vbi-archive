@@ -237,6 +237,7 @@ startup_ttxview (void)
 
   zcc_char(g_get_home_dir(), "Directory to export pages to",
 	   "exportdir");
+  zcc_bool(FALSE, "URE regular expression", "ure_regexp");
   zcc_bool(FALSE, "URE matches disregarding case", "ure_casefold");
   zcc_bool(FALSE, "URE search backwards", "ure_backwards");
   zcc_bool(TRUE, "Reveal hidden characters", "reveal");
@@ -1196,6 +1197,9 @@ void on_ttxview_search_clicked		(GtkButton	*button,
   GtkToggleButton *checkbutton9 =
     GTK_TOGGLE_BUTTON(lookup_widget(GTK_WIDGET(ure_search),
 				    "checkbutton9"));
+  GtkToggleButton *checkbutton9a =
+    GTK_TOGGLE_BUTTON(lookup_widget(GTK_WIDGET(ure_search),
+				    "checkbutton9a"));
   GtkToggleButton *checkbutton10 =
     GTK_TOGGLE_BUTTON(lookup_widget(GTK_WIDGET(ure_search),
 				    "checkbutton10"));
@@ -1223,6 +1227,8 @@ void on_ttxview_search_clicked		(GtkButton	*button,
   gtk_widget_grab_focus(entry2);
 
   gtk_toggle_button_set_active(checkbutton9,
+			       zcg_bool(NULL, "ure_regexp"));
+  gtk_toggle_button_set_active(checkbutton9a,
 			       zcg_bool(NULL, "ure_casefold"));
   gtk_toggle_button_set_active(checkbutton10,
 			       zcg_bool(NULL, "ure_backwards"));
@@ -1232,7 +1238,8 @@ void on_ttxview_search_clicked		(GtkButton	*button,
   if (needle)
     needle = g_strdup(needle);
   
-  zcs_bool(gtk_toggle_button_get_active(checkbutton9), "ure_casefold");
+  zcs_bool(gtk_toggle_button_get_active(checkbutton9), "ure_regexp");
+  zcs_bool(gtk_toggle_button_get_active(checkbutton9a), "ure_casefold");
   zcs_bool(gtk_toggle_button_get_active(checkbutton10), "ure_backwards");
   gtk_widget_destroy(GTK_WIDGET(ure_search));
 
@@ -1247,6 +1254,7 @@ void on_ttxview_search_clicked		(GtkButton	*button,
 	    vbi_new_search(zvbi_get_object(),
 			   0x100, ANY_SUB, pattern,
 			   zcg_bool(NULL, "ure_casefold"),
+			   zcg_bool(NULL, "ure_regexp"),
 			   progress_update);
 	  free(pattern);
 	  if (search_context)
@@ -1836,15 +1844,40 @@ on_export_filename			(GtkWidget *w,
 					 gpointer user_data)
 {
   gchar **bpp = (gchar **) user_data;
+  gchar *basename = (gchar *)
+    gtk_object_get_data (GTK_OBJECT (w), "basename");
+  gchar *name = gtk_entry_get_text (GTK_ENTRY (w));
+  gint len, baselen;
 
-  g_assert(bpp != NULL);
+  g_assert(bpp != NULL && basename != NULL);
+  baselen = strlen(basename);
 
-  g_free(*bpp);
-  *bpp = g_strdup(gtk_entry_get_text (GTK_ENTRY (w)));
+  /* Tack basename on if no name or ends with '/' */
+  if ((len = strlen(name)) == 0 || name[len - 1] == '/')
+    {
+      gtk_entry_append_text (GTK_ENTRY (w), basename);
+      gtk_entry_set_position (GTK_ENTRY (w), len);
+    }
+  /* Cut off basename if not prepended by '/' */
+  else if (len > baselen
+	   && strcmp(&name[len - baselen], basename) == 0
+	   && name[len - baselen - 1] != '/')
+    {
+      name = g_strndup(name, len - baselen);
+      gtk_entry_set_text (GTK_ENTRY (w), name);
+      g_free(name);
+    }
+  else
+    {
+      g_free(*bpp);
+      *bpp = g_strdup(name);
+    }
 }
 
 static GtkWidget *
-create_export_dialog (gchar **bpp, ttxview_data *data,
+create_export_dialog (gchar **bpp,
+		      gchar *basename,
+		      ttxview_data *data,
 		      vbi_export *exp)
 {
   vbi_export_module *xm;
@@ -1882,6 +1915,7 @@ create_export_dialog (gchar **bpp, ttxview_data *data,
   gtk_box_pack_start_defaults (GTK_BOX (vbox), w);
 
   w = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(w));
+  gtk_object_set_data (GTK_OBJECT (w), "basename", (gpointer) basename);
   gtk_entry_set_text(GTK_ENTRY(w), *bpp);
   gtk_signal_connect (GTK_OBJECT (w), "changed",
 		      GTK_SIGNAL_FUNC (on_export_filename),
@@ -2066,23 +2100,7 @@ void export_ttx_page			(GtkWidget	*widget,
   extern vbi_network current_network; /* FIXME */
   vbi_network network;
   vbi_export *exp;
-  gchar *buffer, *buffer2;
-  char *filename;
   char *errstr;
-  gchar *b;
-  GtkWidget * dialog;
-
-  buffer = zcg_char(NULL, "exportdir");
-
-  if ((!buffer) ||
-      (!strlen(buffer)))
-    {
-      if (data->appbar)
-	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
-				_("You must first set the destination dir"
-				  " in the properties dialog"));
-      return;
-    }
 
   if (data->fmt_page->pgno < 0x100)
     {
@@ -2098,66 +2116,102 @@ void export_ttx_page			(GtkWidget	*widget,
 
   if ((exp = vbi_export_open(fmt, &network, &errstr)))
     {
-      /* Configure */
+      GtkWidget *dialog;
+      gchar *dirname, *name;
+      char *filename;
       gint result;
 
       filename =
 	vbi_export_mkname(exp, "%n-%p.%e",
 		      data->fmt_page->pgno, data->fmt_page->subno, NULL);
       g_assert(filename != NULL);
-      zcg_char(&buffer, "exportdir");
-      g_strstrip(buffer);
-      if (buffer[strlen(buffer)-1] != '/')
-	buffer2 = g_strconcat(buffer, "/", NULL);
-      else
-	buffer2 = g_strdup(buffer);
-      g_free(buffer);
-      zcs_char(buffer2, "exportdir");
-      if (!z_build_path(buffer2, &b))
-	{
-	  ShowBox(_("Cannot create destination dir for Zapzilla "
-		    "exports:\n%s\n%s"),
-		  GNOME_MESSAGE_BOX_WARNING, buffer2, b);
-	  g_free(b);
-	  g_free(buffer2);
-	  return;
-	}
-      buffer = g_strconcat(buffer2, filename, NULL);
-      g_free(buffer2);
 
-      dialog = create_export_dialog(&buffer, data, exp);
+      dirname = zcg_char(NULL, "exportdir");
+      if (dirname && strlen(dirname) > 0)
+	{
+	  gint trailing_slashes = 0, i;
+
+	  g_strstrip(dirname);
+
+	  for (i = strlen(dirname); i > 0 && dirname[i - 1] == '/'; i--)
+	    trailing_slashes++;
+
+	  if (trailing_slashes <= 0)
+	    name = g_strconcat(dirname, "/", filename, NULL);
+	  else if (trailing_slashes == 1)
+	    name = g_strconcat(dirname, filename, NULL);
+	  else
+	    {
+	      gchar *temp = g_strndup(dirname, i + 1);
+	      name = g_strconcat(dirname, filename, NULL);
+	      g_free(temp);
+	    }
+	}
+      else
+	{
+	  name = g_strdup(filename);
+	}
+
+      dialog = create_export_dialog(&name, filename, data, exp);
       result = gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
       if (result != 0)
-        return;
+	goto failure;
 
-      if (!vbi_export_name(exp, buffer, data->fmt_page))
+      g_strstrip(name);
+
+      dirname = g_dirname(name);
+      if (strcmp(dirname, ".") != 0 || name[0] == '.')
 	{
-	  buffer2 = g_strdup_printf(_("Export to %s failed: %s"), buffer,
-				    vbi_export_errstr(exp));
-	  g_warning(buffer2);
-	  if (data->appbar)
-	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer2);
-	  g_free(buffer2);
+	  gchar *errstr;
+
+	  if (!z_build_path(dirname, &errstr))
+	    {
+	      ShowBox(_("Cannot create destination dir for Zapzilla "
+			"export:\n%s\n%s"),
+		      GNOME_MESSAGE_BOX_WARNING, dirname, errstr);
+	      g_free(errstr);
+	      g_free(dirname);
+	      goto failure;
+	    }
+
+	  /* make absolute path? */
+	  zcs_char(dirname, "exportdir");
 	}
       else
 	{
-	  buffer2 = g_strdup_printf(_("%s saved"), buffer);
-	  if (data->appbar)
-	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer2);
-	  g_free(buffer2);
+	  zcs_char("", "exportdir");
 	}
+      g_free(dirname);
+
+      if (!vbi_export_name(exp, name, data->fmt_page))
+	{
+	  gchar *msg = g_strdup_printf(_("Export to %s failed: %s"),
+				       name, vbi_export_errstr(exp));
+	  g_warning(msg);
+	  if (data->appbar)
+	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar), msg);
+	  g_free(msg);
+	}
+      else if (data->appbar)
+	{
+	  gchar *msg = g_strdup_printf(_("%s saved"), name);
+ 	  gnome_appbar_set_status(GNOME_APPBAR(data->appbar), msg);
+	  g_free(msg);
+	}
+
+    failure:
+      g_free(name);
       free(filename);
-      g_free(buffer);
       vbi_export_close(exp);
     }
   else
     {
-      buffer = g_strdup_printf(_("Export failed: %s"), errstr);
+      gchar *msg = g_strdup_printf(_("Export failed: %s"), errstr);
       free(errstr);
-      g_warning(buffer);
+      g_warning(msg);
       if (data->appbar)
-	gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer);
-      g_free(buffer);
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar), msg);
+      g_free(msg);
     }
 }
 

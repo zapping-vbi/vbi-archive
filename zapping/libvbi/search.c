@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.18 2001-08-15 23:15:37 mschimek Exp $ */
+/* $Id: search.c,v 1.19 2001-08-16 18:09:36 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -381,40 +381,68 @@ vbi_delete_search(void *p)
 	free(s);
 }
 
-/*
- *  Prepare for the search.
- *
- *  <pgno>, <subno>
- *    The first (forward) or last (backward) page to visit.
- *  <casefold>
- *    Search case insensitive if TRUE.
- *  <progress> (NULL)
- *    A function called for each page scanned. Return
- *    FALSE to abort the search, <pg> is valid for display
- *    (e.g. pg->vtp->pgno).
- *
- *  Returns an opaque search context pointer or NULL.
- */
+/**
+ * vbi_new_search:
+ * @vbi: VBI decoding context.
+ * @pgno: 
+ * @subno: The first (forward) or last (backward) page to visit. 
+ * @pattern: The search pattern.
+ * @casefold: Boolean, search case insensitive.
+ * @regexp: Boolean, the search pattern is a regular expression.
+ * @progress: A function called for each page scanned, can be
+ *   NULL. Shall return FALSE to abort the search, @pg is valid
+ *   for display (e.g. pg->vtp->pgno).
+ * 
+ * Prepare for a search.
+ * 
+ * Return value:
+ * An opaque search context pointer or NULL. 
+ **/
 void *
 vbi_new_search(struct vbi *vbi,
-	int pgno, int subno,
-	ucs2_t *pattern, int casefold,
-	int (* progress)(struct fmt_page *pg))
+	       int pgno, int subno,
+	       ucs2_t *pattern, int casefold, int regexp,
+	       int (* progress)(struct fmt_page *pg))
 {
 	struct search *s;
+	ucs2_t *esc_pat = NULL;
+	int i, pat_len = ucs2_strlen(pattern);
 
 	if (!(s = calloc(1, sizeof(*s))))
 		return NULL;
 
-	if (!(s->ub = ure_buffer_create())) {
+	if (!regexp) {
+		if (!(esc_pat = malloc(sizeof(ucs2_t) * pat_len * 2))) {
+			free(s);
+			return NULL;
+		}
+
+		/* Triumph of the mind. */
+
+		for (i = 0; i < pat_len; i++) {
+			esc_pat[i * 2 + 0] = '\\';
+			esc_pat[i * 2 + 1] = pattern[i];
+		}
+
+		pattern = esc_pat;
+		pat_len *= 2;
+	}
+
+	if (!(s->ub = ure_buffer_create()))
+		goto abort;
+
+	if (!(s->ud = ure_compile(pattern, pat_len, casefold, s->ub))) {
+abort:
 		vbi_delete_search(s);
+
+		if (!regexp)
+			free(esc_pat);
+
 		return NULL;
 	}
 
-	if (!(s->ud = ure_compile(pattern, ucs2_strlen(pattern), casefold, s->ub))) {
-		vbi_delete_search(s);
-		return NULL;
-	}
+	if (!regexp)
+		free(esc_pat);
 
 	s->stop_pgno[0] = pgno;
 	s->stop_subno[0] = (subno == ANY_SUB) ? 0 : subno;

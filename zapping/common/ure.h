@@ -27,7 +27,7 @@
 #define _h_ure
 
 /*
- * $Id: ure.h,v 1.4 2001-01-12 23:13:42 garetxe Exp $
+ * $Id: ure.h,v 1.5 2001-08-16 18:09:36 mschimek Exp $
  */
 
 #include <stdio.h>
@@ -128,3 +128,5 @@ extern int ure_exec __((ure_dfa_t dfa, int flags,
 #endif
 
 #endif /* _h_ure */
+
+

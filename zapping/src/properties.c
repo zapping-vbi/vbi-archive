@@ -335,17 +335,6 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
-  /* Destination for Zapzilla exports */
-  widget = lookup_widget(zapping_properties, "fileentry3");
-  widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
-  gtk_entry_set_text(GTK_ENTRY(widget),
-		     zconf_get_string(NULL,
-				      "/zapping/ttxview/exportdir"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);  
-
   /* Default subtitle page */
   widget = lookup_widget(zapping_properties, "subtitle_page");
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
@@ -578,14 +567,6 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 	index = 3;
 
       zconf_set_integer(index, "/zapping/options/vbi/qstradeoff");
-
-      /* Directory for exporting */
-      widget = lookup_widget(pbox, "fileentry3");
-      text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
-					     TRUE);
-      if (text)
-	zconf_set_string(text, "/zapping/ttxview/exportdir");
-      g_free(text);
 
       widget = lookup_widget(pbox, "subtitle_page"); /* subtitle page */
       zvbi_page =

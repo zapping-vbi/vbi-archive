@@ -647,6 +647,7 @@ z_build_path(const gchar *path, gchar **error_description)
 
   if (!path || *path != '/')
     {
+      /* FIXME */
       if (error_description)
 	*error_description =
 	  g_strdup(_("The path must start with /"));
@@ -687,3 +688,5 @@ z_build_path(const gchar *path, gchar **error_description)
 
   return TRUE;
 }
+
+

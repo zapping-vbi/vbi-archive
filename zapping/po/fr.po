@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.0cvs\n"
-"POT-Creation-Date: 2001-08-15 23:22+0200\n"
+"POT-Creation-Date: 2001-08-16 18:33+0200\n"
 "PO-Revision-Date: 2001-07-04 18:08+0200\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -200,11 +200,11 @@ msgstr "(C) Iñaki García Etxebarria"
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr "Un visualiseur de TV pour l'environnement Gnome"
 
-#: glade/glade_strings.c:28 glade/glade_strings.c:220 src/callbacks.c:179
+#: glade/glade_strings.c:28 glade/glade_strings.c:222 src/callbacks.c:179
 msgid "Hide controls"
 msgstr "Cacher les contrôles"
 
-#: glade/glade_strings.c:27 glade/glade_strings.c:219 src/callbacks.c:180
+#: glade/glade_strings.c:27 glade/glade_strings.c:221 src/callbacks.c:180
 msgid "Hide the menu and the toolbar"
 msgstr "Cacher le menu et la barre d'outils"
 
@@ -640,16 +640,16 @@ msgstr "La pré-visualisation ne marchera pas : %s"
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI n'a pas été activé, ou il ne marche pas."
 
-#: src/zmisc.c:652
+#: src/zmisc.c:653
 msgid "The path must start with /"
 msgstr ""
 
-#: src/zmisc.c:667
+#: src/zmisc.c:668
 #, fuzzy, c-format
 msgid "Cannot create %s: %s"
 msgstr "Ne peut créer le fichier '%s' : %s"
 
-#: src/zmisc.c:680
+#: src/zmisc.c:681
 #, c-format
 msgid "%s is not a directory"
 msgstr ""
@@ -721,11 +721,11 @@ msgstr "%s avec un tuner"
 msgid "%s with %d tuners"
 msgstr "%s avec %d tuners"
 
-#: src/properties.c:640
+#: src/properties.c:621
 msgid "No plugin accepts this page."
 msgstr "Aucun greffon n'accepte cette page"
 
-#: src/properties.c:675
+#: src/properties.c:656
 msgid ""
 "The plugin that created the active page doesn't provide help for it. Sorry."
 msgstr "Le greffon qui à créer cette page ne fournis pas d'aide. Désolé."
@@ -748,7 +748,7 @@ msgstr "Chaîne"
 msgid "New channel name:"
 msgstr "choisir la chaîne"
 
-#: src/channel_editor.c:1277
+#: src/channel_editor.c:1307
 #, c-format
 msgid ""
 "Channel autosearching won't work with XVideo.\n"
@@ -763,7 +763,7 @@ msgstr ""
 "Erreur reportée :\n"
 "%s"
 
-#: src/channel_editor.c:1283
+#: src/channel_editor.c:1313
 msgid "Your current V4L/V4L2 driver cannot do, channel autosearching, sorry"
 msgstr ""
 "Votre pilote V4L/V4L2 ne peut pas faire la recherche automatique des "
@@ -818,200 +818,196 @@ msgstr "Désolé, mais le greffon ne peut être démarré"
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Le greffon ne fournis pas d'aide. Désolé."
 
-#: src/ttxview.c:526
+#: src/ttxview.c:527
 #, c-format
 msgid "Loading page %x..."
 msgstr "Chargement de la page %x..."
 
-#: src/ttxview.c:528
+#: src/ttxview.c:529
 #, c-format
 msgid "Loading subpage %x..."
 msgstr "Chargement de la sous-page %x..."
 
-#: src/ttxview.c:532 src/ttxview.c:826
+#: src/ttxview.c:533 src/ttxview.c:827
 msgid "Warning: Page not valid"
 msgstr "Avertissement : La page n'est pas valide"
 
-#: src/ttxview.c:661
+#: src/ttxview.c:662
 #, c-format
 msgid "Text export failed: %s"
 msgstr "L'export du texte à échoué : %s"
 
-#: src/ttxview.c:669
+#: src/ttxview.c:670
 #, c-format
 msgid "Selection failed: %s"
 msgstr "La sélection à échouée : %s"
 
-#: src/ttxview.c:745
+#: src/ttxview.c:746
 #, c-format
 msgid " Page %d"
 msgstr " Page %d"
 
-#: src/ttxview.c:749
+#: src/ttxview.c:750
 #, c-format
 msgid " Subpage %d"
 msgstr " Sous-page %d"
 
-#: src/ttxview.c:906 src/ttxview.c:934
+#: src/ttxview.c:907 src/ttxview.c:935
 msgid "No other subpage in the cache"
 msgstr "Pas d'autre sous-page dans le cache"
 
-#: src/ttxview.c:1006
+#: src/ttxview.c:1007
 msgid "Found"
 msgstr "Trouvé"
 
-#: src/ttxview.c:1025
+#: src/ttxview.c:1026
 msgid "Not found"
 msgstr "Non trouvé"
 
-#: src/ttxview.c:1046
+#: src/ttxview.c:1047
 #, fuzzy
 msgid "Empty cache"
 msgstr "Pas de cache"
 
-#: src/ttxview.c:1169
+#: src/ttxview.c:1170
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Parcourir %x.%02x"
 
-#: src/ttxview.c:1211
+#: src/ttxview.c:1215
 msgid "VBI has been disabled"
 msgstr "Le VBI n'a pas été activé"
 
-#: src/ttxview.c:1479
+#: src/ttxview.c:1487
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> ajouté aux signets"
 
-#: src/ttxview.c:1542
+#: src/ttxview.c:1550
 msgid "Any subpage"
 msgstr "N'importe qu'elle sous-page"
 
-#: src/ttxview.c:1849
+#: src/ttxview.c:1892
 #, c-format
 msgid "Export %s"
 msgstr "Export %s"
 
-#: src/ttxview.c:1863
+#: src/ttxview.c:1906
 msgid "Save as:"
 msgstr "Sauver sous :"
 
-#: src/ttxview.c:1868
+#: src/ttxview.c:1911
 msgid "Select file you'll be exporting to"
 msgstr "Sélectionner le fichier d'exportation"
 
-#: src/ttxview.c:1882
+#: src/ttxview.c:1926
 msgid "Options"
 msgstr "Options"
 
-#: src/ttxview.c:2072
-msgid "You must first set the destination dir in the properties dialog"
-msgstr "Vous devez d'abord sélectionner le répertoire de destination"
-
-#: src/ttxview.c:2081 src/ttxview.c:2863
+#: src/ttxview.c:2109 src/ttxview.c:2927
 msgid "No page loaded"
 msgstr "Pas de page chargée"
 
-#: glade/glade_strings.c:229 src/ttxview.c:2087
+#: glade/glade_strings.c:231 src/ttxview.c:2115
 msgid "Zapzilla"
 msgstr "Zapzilla"
 
-#: src/ttxview.c:2108
+#: src/ttxview.c:2169
 #, c-format
 msgid ""
-"Cannot create destination dir for Zapzilla exports:\n"
+"Cannot create destination dir for Zapzilla export:\n"
 "%s\n"
 "%s"
 msgstr ""
 
-#: src/ttxview.c:2125
+#: src/ttxview.c:2188
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "L'export de %s à échoué : %s"
 
-#: src/ttxview.c:2134
+#: src/ttxview.c:2197
 #, c-format
 msgid "%s saved"
 msgstr "%s sauvée"
 
-#: src/ttxview.c:2145
+#: src/ttxview.c:2209
 #, c-format
 msgid "Export failed: %s"
 msgstr "L'export à échoué : %s"
 
-#: src/ttxview.c:2314
+#: src/ttxview.c:2378
 #, c-format
 msgid "Caption %x - %s"
 msgstr "Sous-titre %x - %s"
 
-#: src/ttxview.c:2316
+#: src/ttxview.c:2380
 #, c-format
 msgid "Text %x - %s"
 msgstr "Texte %x - %s"
 
-#: src/ttxview.c:2320
+#: src/ttxview.c:2384
 #, c-format
 msgid "Caption %x"
 msgstr "Sous-titre %x"
 
-#: src/ttxview.c:2322
+#: src/ttxview.c:2386
 #, c-format
 msgid "Text %x"
 msgstr "Texte %x"
 
-#: src/ttxview.c:2348
+#: src/ttxview.c:2412
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: langage inconnu"
 
-#: src/ttxview.c:2361 src/ttxview.c:2376 src/ttxview.c:2400 src/ttxview.c:2416
-#: src/ttxview.c:2432 src/ttxview.c:2448 src/ttxview.c:2464
+#: src/ttxview.c:2425 src/ttxview.c:2440 src/ttxview.c:2464 src/ttxview.c:2480
+#: src/ttxview.c:2496 src/ttxview.c:2512 src/ttxview.c:2528
 #, c-format
 msgid "Page %x"
 msgstr "Page %x"
 
-#: src/ttxview.c:2370
+#: src/ttxview.c:2434
 msgid "Index"
 msgstr "Index"
 
-#: src/ttxview.c:2394
+#: src/ttxview.c:2458
 msgid "Now and Next"
 msgstr "Maintenant et suivant"
 
-#: src/ttxview.c:2410
+#: src/ttxview.c:2474
 msgid "Current program"
 msgstr "Programme courant"
 
-#: src/ttxview.c:2426
+#: src/ttxview.c:2490
 msgid "Program Index"
 msgstr "Index des programmes"
 
-#: src/ttxview.c:2442
+#: src/ttxview.c:2506
 msgid "Program Schedule"
 msgstr "Calendrier des programmes"
 
-#: src/ttxview.c:2458
+#: src/ttxview.c:2522
 msgid "Program Warning"
 msgstr "Préavis des programmes"
 
-#: src/ttxview.c:2478
+#: src/ttxview.c:2542
 msgid "Subtitles"
 msgstr "Sous-titres"
 
-#: src/ttxview.c:2480
+#: src/ttxview.c:2544
 msgid "Select subtitles page"
 msgstr "Choisir la page des sous-titres"
 
-#: src/ttxview.c:2553
+#: src/ttxview.c:2617
 #, c-format
 msgid "%s in %s"
 msgstr "%s dans %s"
 
-#: src/ttxview.c:2872
+#: src/ttxview.c:2936
 msgid "Selecting - hold Shift for table mode"
 msgstr "Sélection - appuyer sur Shift pour le mode table"
 
-#: src/ttxview.c:2992
+#: src/ttxview.c:3056
 msgid "Selection copied to clipboard"
 msgstr "Sélection copiée dans le presse papier"
 
@@ -1050,23 +1046,23 @@ msgstr ""
 "Utilisez ceci pour le plein écran. Appuyez sur ESC pour retourner en mode "
 "fenêtre"
 
-#: glade/glade_strings.c:14 glade/glade_strings.c:208
+#: glade/glade_strings.c:14 glade/glade_strings.c:210
 msgid "Go _Fullscreen"
 msgstr "P_lein écran"
 
-#: glade/glade_strings.c:15 glade/glade_strings.c:209
+#: glade/glade_strings.c:15 glade/glade_strings.c:211
 msgid "Use this to start the windowed overlay mode"
 msgstr "Utiliser ceci pour démarrer le mode overlay"
 
-#: glade/glade_strings.c:16 glade/glade_strings.c:210
+#: glade/glade_strings.c:16 glade/glade_strings.c:212
 msgid "Go _Previewing"
 msgstr "Faire la _Pré-visualisation"
 
-#: glade/glade_strings.c:17 glade/glade_strings.c:211
+#: glade/glade_strings.c:17 glade/glade_strings.c:213
 msgid "Use this to start the windowed capture mode"
 msgstr "Utiliser ceci pour démarrer la capture en fenêtre"
 
-#: glade/glade_strings.c:18 glade/glade_strings.c:212
+#: glade/glade_strings.c:18 glade/glade_strings.c:214
 msgid "Go _Capturing"
 msgstr "Faire la _Capture"
 
@@ -1074,15 +1070,15 @@ msgstr "Faire la _Capture"
 msgid "Use Zapping as a Teletext navigator"
 msgstr "Utiliser Zapping comme un navigateur Teletext"
 
-#: glade/glade_strings.c:20 glade/glade_strings.c:214
+#: glade/glade_strings.c:20 glade/glade_strings.c:216
 msgid "_Teletext"
 msgstr "_Teletext"
 
-#: glade/glade_strings.c:21 glade/glade_strings.c:215
+#: glade/glade_strings.c:21 glade/glade_strings.c:217
 msgid "Starts the Teletext decoder in a new window"
 msgstr "Démarrer le décodeur Teletext dans une nouvelle fenêtre"
 
-#: glade/glade_strings.c:22 glade/glade_strings.c:216
+#: glade/glade_strings.c:22 glade/glade_strings.c:218
 msgid "_New Teletext View"
 msgstr "_Nouvelle vue Teletext"
 
@@ -1557,533 +1553,543 @@ msgid "Freq (kHz)"
 msgstr "Freq (kHz)"
 
 #: glade/glade_strings.c:153
+#, fuzzy
+msgid "All add the channels in the current country to the channel list."
+msgstr "Chercher le_s chaînes dans le pays courant"
+
+#: glade/glade_strings.c:154
+#, fuzzy
+msgid "Add all the channels"
+msgstr "Pas de chaîne accordées"
+
+#: glade/glade_strings.c:155
 msgid "Alias"
 msgstr "Nom"
 
-#: glade/glade_strings.c:154
+#: glade/glade_strings.c:156
 msgid "ID"
 msgstr "ID"
 
-#: glade/glade_strings.c:155
+#: glade/glade_strings.c:157
 msgid "Country"
 msgstr "Pays"
 
-#: glade/glade_strings.c:156
+#: glade/glade_strings.c:158
 msgid "kHz"
 msgstr "kHz"
 
-#: glade/glade_strings.c:157
+#: glade/glade_strings.c:159
 msgid "Accelerator"
 msgstr "Accelerateur"
 
-#: glade/glade_strings.c:158
+#: glade/glade_strings.c:160
 msgid "Move selected channels one row up"
 msgstr "Déplacer la chaîne sélectionnée d'une ligne plus haut"
 
-#: glade/glade_strings.c:159
+#: glade/glade_strings.c:161
 msgid "Move selected channels one row down"
 msgstr "Déplacer la chaîne sélectionnée d'une ligne plus bas"
 
-#: glade/glade_strings.c:160
+#: glade/glade_strings.c:162
 msgid "Delete selected channels"
 msgstr "Effacer les chaînes sélectionnées"
 
-#: glade/glade_strings.c:161
+#: glade/glade_strings.c:163
 msgid "_Remove"
 msgstr "_Enlever"
 
-#: glade/glade_strings.c:162
+#: glade/glade_strings.c:164
 msgid "Click here to apply the current options to the selected channels"
 msgstr ""
 "Cliquez ici pour appliquer les options courantes à la chaîne sélectionnée"
 
-#: glade/glade_strings.c:163
+#: glade/glade_strings.c:165
 msgid "_Modify"
 msgstr "_Modifier"
 
-#: glade/glade_strings.c:164
+#: glade/glade_strings.c:166
 msgid "Select here the input to be attached to this channel"
 msgstr ""
 "Entrez ici le nom du périphérique que vous voulez attribuer à cette chaîne"
 
-#: glade/glade_strings.c:165
+#: glade/glade_strings.c:167
 msgid "Magical input"
 msgstr "Entrée magique"
 
-#: glade/glade_strings.c:166
+#: glade/glade_strings.c:168
 msgid "Select here the Standard this channel uses"
 msgstr "Sélectionner ici le standard utilisé par cette chaîne"
 
-#: glade/glade_strings.c:167
+#: glade/glade_strings.c:169
 msgid "Magical Standard"
 msgstr ""
 
-#: glade/glade_strings.c:168
+#: glade/glade_strings.c:170
 msgid "Select your country and click here to search for the available channels"
 msgstr "Sélectionner votre pays et cliquez ici pour chercher les chaînes"
 
-#: glade/glade_strings.c:169
+#: glade/glade_strings.c:171
 msgid "_Search for the available channels in the current country"
 msgstr "Chercher le_s chaînes dans le pays courant"
 
-#: glade/glade_strings.c:170
+#: glade/glade_strings.c:172
 #, fuzzy
 msgid "Frequency:"
 msgstr "Fréquence :"
 
-#: glade/glade_strings.c:171
+#: glade/glade_strings.c:173
 msgid "Enter here the alias you want to give to this channel:"
 msgstr "Entrez ici le nom que vous voulez donner à cette chaîne :"
 
-#: glade/glade_strings.c:172
+#: glade/glade_strings.c:174
 msgid "Enter here the name you want to give to this channel"
 msgstr "Entrer ici le nom que vous voulez donner à cette chaîne :"
 
-#: glade/glade_strings.c:173
+#: glade/glade_strings.c:175
 msgid "Ctrl"
 msgstr "Ctrl"
 
-#: glade/glade_strings.c:174
+#: glade/glade_strings.c:176
 msgid "Shift"
 msgstr "Shift"
 
-#: glade/glade_strings.c:175
+#: glade/glade_strings.c:177
 msgid "Alt"
 msgstr "Alt"
 
-#: glade/glade_strings.c:176
+#: glade/glade_strings.c:178
 msgid "Enter here the key you want to attach to this channel"
 msgstr "Entrer ici la touche que vous voulez attribuer à cette chaîne"
 
-#: glade/glade_strings.c:177
+#: glade/glade_strings.c:179
 msgid "Open the list of known keys"
 msgstr "Ouvrir la liste des clés connues"
 
-#: glade/glade_strings.c:178
+#: glade/glade_strings.c:180
 msgid "..."
 msgstr "..."
 
-#: glade/glade_strings.c:179 glade/glade_strings.c:185
-#: glade/glade_strings.c:272
+#: glade/glade_strings.c:181 glade/glade_strings.c:187
+#: glade/glade_strings.c:274
 msgid "Click here when you are done"
 msgstr "Cliquez ici une fois fini"
 
-#: glade/glade_strings.c:180
+#: glade/glade_strings.c:182
 msgid "Click this button if you want to discard current changes"
 msgstr "Cliquer ici si vous voulez annuler les changements effectués"
 
-#: glade/glade_strings.c:181
+#: glade/glade_strings.c:183
 msgid "Click here to add current channel"
 msgstr "Cliquer ici pour ajouter la chaîne courante"
 
-#: glade/glade_strings.c:182
+#: glade/glade_strings.c:184
 msgid "_Add"
 msgstr "_Ajouter"
 
-#: glade/glade_strings.c:183
+#: glade/glade_strings.c:185
 msgid "This shows some help about this dialog"
 msgstr "Ceci affiche une aide a propos de ce dialogue"
 
-#: glade/glade_strings.c:184
+#: glade/glade_strings.c:186
 msgid "Plugin properties"
 msgstr "Propriété du greffon"
 
-#: glade/glade_strings.c:186
+#: glade/glade_strings.c:188
 msgid "Run the plugin"
 msgstr "Démarrer ce greffon"
 
-#: glade/glade_strings.c:187
+#: glade/glade_strings.c:189
 msgid "_Start Plugin"
 msgstr "_Démarrer le greffon"
 
-#: glade/glade_strings.c:188
+#: glade/glade_strings.c:190
 msgid "Stop this plugin"
 msgstr "Arrêter ce greffon"
 
-#: glade/glade_strings.c:189
+#: glade/glade_strings.c:191
 msgid "S_top Plugin"
 msgstr "_Arrêter le greffon"
 
-#: glade/glade_strings.c:190
+#: glade/glade_strings.c:192
 msgid "Show the configuration options for this plugin"
 msgstr "Voir les options de configuration pour ce greffon"
 
-#: glade/glade_strings.c:191
+#: glade/glade_strings.c:193
 msgid "_Configure"
 msgstr "_Configurer"
 
-#: glade/glade_strings.c:192
+#: glade/glade_strings.c:194
 msgid "Plugins"
 msgstr "Greffons"
 
-#: glade/glade_strings.c:193
+#: glade/glade_strings.c:195
 msgid "Canonical name:"
 msgstr "Nom principal :"
 
-#: glade/glade_strings.c:194
+#: glade/glade_strings.c:196
 msgid "Author:"
 msgstr "Auteur :"
 
-#: glade/glade_strings.c:195
+#: glade/glade_strings.c:197
 msgid "Plugin version:"
 msgstr "Version du greffon :"
 
-#: glade/glade_strings.c:196
+#: glade/glade_strings.c:198
 msgid "Plugin priority:"
 msgstr "Priorité du greffon :"
 
-#: glade/glade_strings.c:197
+#: glade/glade_strings.c:199
 msgid "Plugin description"
 msgstr "Description du greffon"
 
-#: glade/glade_strings.c:198
+#: glade/glade_strings.c:200
 msgid "Properties"
 msgstr "Propriétés"
 
-#: glade/glade_strings.c:199
+#: glade/glade_strings.c:201
 msgid "Plugin location"
 msgstr "Location du greffon"
 
-#: glade/glade_strings.c:200
+#: glade/glade_strings.c:202
 msgid "This is the file where the plugin is located"
 msgstr "ceci est le fichier ou ce trouve le greffon"
 
-#: glade/glade_strings.c:201
+#: glade/glade_strings.c:203
 msgid "Symbol"
 msgstr "Symbole"
 
-#: glade/glade_strings.c:202
+#: glade/glade_strings.c:204
 msgid "Hash"
 msgstr "Hash"
 
-#: glade/glade_strings.c:203
+#: glade/glade_strings.c:205
 msgid "Description of the symbol"
 msgstr "Description du symbole"
 
-#: glade/glade_strings.c:204
+#: glade/glade_strings.c:206
 msgid "Advanced"
 msgstr "Avancé"
 
-#: glade/glade_strings.c:205
+#: glade/glade_strings.c:207
 msgid "The list of channels you have configured in the Channel Editor"
 msgstr "La liste des chaînes que vous avez configuré dans l'éditeur de chaîne"
 
-#: glade/glade_strings.c:206
+#: glade/glade_strings.c:208
 msgid "Channel list"
 msgstr "Liste des Chaîne"
 
-#: glade/glade_strings.c:207
+#: glade/glade_strings.c:209
 msgid "Use this for starting the fullscreen mode"
 msgstr "Utilisé ceci pour démarrer le mode plein écran"
 
-#: glade/glade_strings.c:213
+#: glade/glade_strings.c:215
 msgid "Use Zapping as a teletext navigator"
 msgstr "Utiliser Zapping comme un navigateur Teletext"
 
-#: glade/glade_strings.c:217
+#: glade/glade_strings.c:219
 msgid "Resize the main window, hide/show toolbars"
 msgstr "Redimensionner la fenêtre principale, cacher/voir la barre d'outils"
 
-#: glade/glade_strings.c:218
+#: glade/glade_strings.c:220
 msgid "_Appearance"
 msgstr "_Apparence"
 
-#: glade/glade_strings.c:221
+#: glade/glade_strings.c:223
 msgid "Resize to 768x576"
 msgstr "Redimensionner à 768x576"
 
-#: glade/glade_strings.c:222
+#: glade/glade_strings.c:224
 msgid "Resize to 720x576"
 msgstr "Redimensionner à 720x576"
 
-#: glade/glade_strings.c:223
+#: glade/glade_strings.c:225
 msgid "Resize to 640x480"
 msgstr "Redimensionner à 640x480"
 
-#: glade/glade_strings.c:224
+#: glade/glade_strings.c:226
 msgid "Resize to 384x288"
 msgstr "Redimensionner à 384x288"
 
-#: glade/glade_strings.c:225
+#: glade/glade_strings.c:227
 msgid "Resize to 352x288"
 msgstr "Redimensionner à 352x288"
 
-#: glade/glade_strings.c:226
+#: glade/glade_strings.c:228
 msgid "Resize to 320x240"
 msgstr "Redimensionner à 320x240"
 
-#: glade/glade_strings.c:227
+#: glade/glade_strings.c:229
 msgid "Searching..."
 msgstr "Recherche..."
 
-#: glade/glade_strings.c:228 glade/glade_strings.c:283
+#: glade/glade_strings.c:230 glade/glade_strings.c:285
 msgid "%P %%"
 msgstr "%P %%"
 
-#: glade/glade_strings.c:230
+#: glade/glade_strings.c:232
 msgid "Previous page in history"
 msgstr "Page précédente dans l'historique"
 
-#: glade/glade_strings.c:231
+#: glade/glade_strings.c:233
 msgid "Previous"
 msgstr "Précédente"
 
-#: glade/glade_strings.c:232
+#: glade/glade_strings.c:234
 msgid "Next page in history"
 msgstr "Entrée suivante dans l'historique"
 
-#: glade/glade_strings.c:233
+#: glade/glade_strings.c:235
 msgid "Next"
 msgstr "Suivant"
 
-#: glade/glade_strings.c:234
+#: glade/glade_strings.c:236
 msgid "Go to the index page [Home]"
 msgstr "Aller à la page d'index [Maison]"
 
-#: glade/glade_strings.c:235
+#: glade/glade_strings.c:237
 msgid "Home"
 msgstr "Maison"
 
-#: glade/glade_strings.c:236
+#: glade/glade_strings.c:238
 msgid "Clone the current Teletext window"
 msgstr "Cloner la fenêtre Teletext courante"
 
-#: glade/glade_strings.c:237 glade/glade_strings.c:255
+#: glade/glade_strings.c:239 glade/glade_strings.c:257
 msgid "Search for a given pattern in the cache"
 msgstr "Chercher un motif donné dans le cache"
 
-#: glade/glade_strings.c:238 glade/glade_strings.c:273
+#: glade/glade_strings.c:240 glade/glade_strings.c:275
 msgid "Search"
 msgstr "Recherche"
 
-#: glade/glade_strings.c:239
+#: glade/glade_strings.c:241
 msgid "Previous subpage in the cache [Left]"
 msgstr "Sous-page précédente dans le cache [Gauche]"
 
-#: glade/glade_strings.c:240
+#: glade/glade_strings.c:242
 msgid "<<"
 msgstr "<<"
 
-#: glade/glade_strings.c:241
+#: glade/glade_strings.c:243
 msgid "Previous subpage [-]"
 msgstr "Sous-page précédente [-]"
 
-#: glade/glade_strings.c:242
+#: glade/glade_strings.c:244
 msgid "<"
 msgstr "<"
 
-#: glade/glade_strings.c:243
+#: glade/glade_strings.c:245
 msgid "Hold the current subpage [H]"
 msgstr "Retenir la sous-page courante [H]"
 
-#: glade/glade_strings.c:244
+#: glade/glade_strings.c:246
 msgid "S0"
 msgstr "S0"
 
-#: glade/glade_strings.c:245
+#: glade/glade_strings.c:247
 msgid "Next subpage [+]"
 msgstr "Sous-page suivante [+]"
 
-#: glade/glade_strings.c:246
+#: glade/glade_strings.c:248
 msgid ">"
 msgstr ">"
 
-#: glade/glade_strings.c:247
+#: glade/glade_strings.c:249
 msgid "Next subpage in the cache [Right]"
 msgstr "Sous-page suivante dans le cache [Droite]"
 
-#: glade/glade_strings.c:248
+#: glade/glade_strings.c:250
 msgid ">>"
 msgstr ">>"
 
-#: glade/glade_strings.c:249
+#: glade/glade_strings.c:251
 msgid "100"
 msgstr "100"
 
-#: glade/glade_strings.c:250
+#: glade/glade_strings.c:252
 msgid "Reveal hidden characters [R]"
 msgstr "Afficher les caractères cachés [R]"
 
-#: glade/glade_strings.c:251
+#: glade/glade_strings.c:253
 msgid "R"
 msgstr "R"
 
-#: glade/glade_strings.c:252
+#: glade/glade_strings.c:254
 msgid "Exit TTX mode [Esc]"
 msgstr "Sortir du mode TTX [Esc]"
 
-#: glade/glade_strings.c:253
+#: glade/glade_strings.c:255
 msgid "Open this link in a new window"
 msgstr "Ouvrir ce lien dans une autre fenêtre"
 
-#: glade/glade_strings.c:254
+#: glade/glade_strings.c:256
 msgid "_Open in new window"
 msgstr "_Ouvrir dans une autre fenêtre"
 
-#: glade/glade_strings.c:256
+#: glade/glade_strings.c:258
 msgid "_Search..."
 msgstr "_Recherche..."
 
-#: glade/glade_strings.c:257
+#: glade/glade_strings.c:259
 msgid "Export the current page to different formats"
 msgstr "Exporter la page courante dans différent format"
 
-#: glade/glade_strings.c:258
+#: glade/glade_strings.c:260
 msgid "_Export"
 msgstr "_Exportation"
 
-#: glade/glade_strings.c:259
+#: glade/glade_strings.c:261
 msgid "Manage your bookmarks"
 msgstr "Arranger vos signets"
 
-#: glade/glade_strings.c:260
+#: glade/glade_strings.c:262
 msgid "_Bookmarks"
 msgstr "_Signets"
 
-#: glade/glade_strings.c:261
+#: glade/glade_strings.c:263
 msgid "Add the current page to the bookmarks"
 msgstr "Ajouter la page courante aux signets"
 
-#: glade/glade_strings.c:262
+#: glade/glade_strings.c:264
 msgid "_Add current page..."
 msgstr "_Ajouter la page courante..."
 
-#: glade/glade_strings.c:263
+#: glade/glade_strings.c:265
 msgid "Use this dialog to delete any bookmarks you wish to remove"
 msgstr ""
 "Utilisez cette boîte de dialogue pour effacer les signets que vous voulez "
 "enlever"
 
-#: glade/glade_strings.c:264
+#: glade/glade_strings.c:266
 msgid "_Edit Bookmarks..."
 msgstr "_Éditer les Signets..."
 
-#: glade/glade_strings.c:265
+#: glade/glade_strings.c:267
 #, fuzzy
 msgid "_Colors"
 msgstr "Couleur"
 
-#: glade/glade_strings.c:266
+#: glade/glade_strings.c:268
 msgid "Edit Bookmarks"
 msgstr "Éditer les Signets"
 
-#: glade/glade_strings.c:267
+#: glade/glade_strings.c:269
 msgid "Page"
 msgstr "Page"
 
-#: glade/glade_strings.c:268
+#: glade/glade_strings.c:270
 msgid "Subpage"
 msgstr "Sous-page"
 
-#: glade/glade_strings.c:269
+#: glade/glade_strings.c:271
 msgid "Description"
 msgstr "Description"
 
-#: glade/glade_strings.c:270
+#: glade/glade_strings.c:272
 msgid "Remove the currently selected bookmark"
 msgstr "Enlever le Signet sélectionné"
 
-#: glade/glade_strings.c:271
+#: glade/glade_strings.c:273
 msgid "Remove Bookmark"
 msgstr "Enlever Signet"
 
-#: glade/glade_strings.c:274
+#: glade/glade_strings.c:276
 msgid "Regular Expression:"
 msgstr "Expression régulière :"
 
-#: glade/glade_strings.c:275
+#: glade/glade_strings.c:277
 msgid "Search case insensitive"
 msgstr "Recherche avec la casse insensible"
 
-#: glade/glade_strings.c:276
+#: glade/glade_strings.c:278
 msgid "Search backwards"
 msgstr "Chercher en arrière"
 
-#: glade/glade_strings.c:277
+#: glade/glade_strings.c:279
 msgid "Search in progress..."
 msgstr "Recherche..."
 
-#: glade/glade_strings.c:278
+#: glade/glade_strings.c:280
 msgid "Cancel the current search"
 msgstr "Annuler la recherche"
 
-#: glade/glade_strings.c:279
+#: glade/glade_strings.c:281
 msgid "Search backwards for the previous match"
 msgstr "Chercher en arrière pour l'occurrence suivante"
 
-#: glade/glade_strings.c:280
+#: glade/glade_strings.c:282
 msgid "Search forwards for the next match"
 msgstr "Chercher en avant pour la prochaine occurrence"
 
-#: glade/glade_strings.c:281
+#: glade/glade_strings.c:283
 msgid "Start a new search"
 msgstr "Démarrer une nouvelle recherche"
 
-#: glade/glade_strings.c:282
+#: glade/glade_strings.c:284
 msgid "New"
 msgstr "Nouveau"
 
-#: glade/glade_strings.c:284
+#: glade/glade_strings.c:286
 msgid "Zapping error console"
 msgstr "Console d'erreur de Zapping"
 
-#: glade/glade_strings.c:285
+#: glade/glade_strings.c:287
 msgid "OK, let's go on"
 msgstr "OK, laissez faire"
 
-#: glade/glade_strings.c:286
+#: glade/glade_strings.c:288
 msgid "Remove all this mess"
 msgstr "Enlever toute cette pagaille"
 
-#: glade/glade_strings.c:287
+#: glade/glade_strings.c:289
 msgid "Clean console"
 msgstr "Nettoyer la console"
 
-#: glade/glade_strings.c:288
+#: glade/glade_strings.c:290
 msgid "VBI info"
 msgstr "Infos VBI"
 
-#: glade/glade_strings.c:289
+#: glade/glade_strings.c:291
 msgid "My curiosity has been fullfilled"
 msgstr "Ma curiosité à été remplie"
 
-#: glade/glade_strings.c:290
+#: glade/glade_strings.c:292
 msgid "Network info"
 msgstr "Infos réseau"
 
-#: glade/glade_strings.c:291
+#: glade/glade_strings.c:293
 msgid "Name:"
 msgstr "Nom :"
 
-#: glade/glade_strings.c:292
+#: glade/glade_strings.c:294
 msgid "Short Name:"
 msgstr "Nom court :"
 
-#: glade/glade_strings.c:293
+#: glade/glade_strings.c:295
 msgid "Network call letters:"
 msgstr "Lettres d'appel du réseau :"
 
-#: glade/glade_strings.c:294
+#: glade/glade_strings.c:296
 msgid "Tape delay"
 msgstr "Délai d'enregistrement"
 
-#: glade/glade_strings.c:295
+#: glade/glade_strings.c:297
 msgid "Known key names"
 msgstr "Nom de touche connu"
 
-#: glade/glade_strings.c:296
+#: glade/glade_strings.c:298
 msgid "Keys"
 msgstr "Touches"
 
-#: glade/glade_strings.c:297
+#: glade/glade_strings.c:299
 msgid "New bookmark:"
 msgstr "Nouveau signet :"
 
-#: glade/glade_strings.c:298
+#: glade/glade_strings.c:300
 msgid "Description:"
 msgstr "Description :"
 
-#: glade/glade_strings.c:299
+#: glade/glade_strings.c:301
 msgid ""
 "If checked, the current channel will be automatically selected when the "
 "bookmark is selected"
@@ -2091,16 +2097,16 @@ msgstr ""
 "Si activé, la chaîne courante sera automatiquement sélectionnée quand le "
 "signet est sélectionné"
 
-#: glade/glade_strings.c:300
+#: glade/glade_strings.c:302
 msgid "Switch to the current channel when the bookmark is selected"
 msgstr "Aller à la chaîne courante quand le signet est sélectionné"
 
-#: glade/glade_strings.c:301
+#: glade/glade_strings.c:303
 #, fuzzy
 msgid "Text colors"
 msgstr "Couleurs ANSI"
 
-#: glade/glade_strings.c:302 glade/glade_strings.c:303
+#: glade/glade_strings.c:304 glade/glade_strings.c:305
 msgid "Reset"
 msgstr ""
 
@@ -2594,7 +2600,7 @@ msgstr ""
 msgid "Unable to allocate %d KB image buffer"
 msgstr "Incapable d'allouer %d KO d'image tampon"
 
-#: libvbi/exp-gfx.c:489 libvbi/exp-gfx.c:747 libvbi/exp-html.c:299
+#: libvbi/exp-gfx.c:489 libvbi/exp-gfx.c:747 libvbi/exp-html.c:300
 #: libvbi/exp-vtx.c:119
 #, c-format
 msgid "Cannot create file '%s': %s"
@@ -2608,12 +2614,12 @@ msgstr "PPM"
 msgid "Export this page as PPM image"
 msgstr "Exporter cette page en une image PPM"
 
-#: libvbi/exp-gfx.c:808 libvbi/exp-html.c:502
+#: libvbi/exp-gfx.c:808 libvbi/exp-html.c:503
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr "Page Teletext %3x.%x"
 
-#: libvbi/exp-gfx.c:810 libvbi/exp-html.c:504
+#: libvbi/exp-gfx.c:810 libvbi/exp-html.c:505
 #, c-format
 msgid "Teletext Page %3x"
 msgstr "Page Teletext %3x"
@@ -2638,23 +2644,23 @@ msgstr ""
 "Replacement pour les blocs de caractère graphique : un single caractère ou "
 "décimal (32) ou hexa (0x20) code"
 
-#: libvbi/exp-html.c:103
+#: libvbi/exp-html.c:104
 msgid "Color (CSS)"
 msgstr ""
 
-#: libvbi/exp-html.c:104
+#: libvbi/exp-html.c:105
 msgid "Store the page colors using CSS attributes"
 msgstr ""
 
-#: libvbi/exp-html.c:106
+#: libvbi/exp-html.c:107
 msgid "HTML header"
 msgstr "En-tête HTML"
 
-#: libvbi/exp-html.c:107
+#: libvbi/exp-html.c:108
 msgid "Include HTML page header"
 msgstr "Inclure l'entête de page HTML"
 
-#: libvbi/exp-html.c:294
+#: libvbi/exp-html.c:295
 #, c-format
 msgid "Character conversion Unicode -> %s not supported"
 msgstr "Conversion de caractère Unicode -> %s non supporté"
@@ -2663,15 +2669,15 @@ msgstr "Conversion de caractère Unicode -> %s non supporté"
 #. *  "lang=\"en\" refers to "Teletext Page..." below,
 #. *  specify "de", "fr", "es" etc.
 #.
-#: libvbi/exp-html.c:492
+#: libvbi/exp-html.c:493
 msgid "<title lang=\"en\">"
 msgstr "<title lang=\"fr\">"
 
-#: libvbi/exp-html.c:730
+#: libvbi/exp-html.c:699
 msgid "HTML"
 msgstr "HTML"
 
-#: libvbi/exp-html.c:731
+#: libvbi/exp-html.c:700
 msgid "Export this page as HTML page"
 msgstr "Exporter cette page en HTML"
 
@@ -2922,6 +2928,9 @@ msgid ""
 "%s (%s) lacks a vbi read interface, possibly an output only device or a "
 "driver bug. %s\n"
 msgstr ""
+
+#~ msgid "You must first set the destination dir in the properties dialog"
+#~ msgstr "Vous devez d'abord sélectionner le répertoire de destination"
 
 #, fuzzy
 #~ msgid "label3"
