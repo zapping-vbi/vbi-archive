@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_REVISION($Id: configure.in,v 1.26 2004-04-21 16:59:28 mschimek Exp $)
+AC_REVISION($Id: configure.in,v 1.27 2004-05-21 05:34:09 mschimek Exp $)
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(mp1e, 1.9.5cvs)
@@ -206,3 +206,12 @@ echo "
         Files install in                        $bindir_rx
                                                 $mandir_rx
 "
+
+if which mp1e >/dev/null 2>&1; then
+  dir=`which mp1e | sed s%/mp1e\$%%`
+  version=`mp1e -V`
+  if test "$dir" != "$bindir_rx" -a "$dir" != "."; then
+    echo -e "\tWarning: found $version in your executable "
+    echo -e "\tsearch path in $dir\n"
+  fi
+fi

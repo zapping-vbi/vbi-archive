@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.h,v 1.3 2001-10-16 11:18:18 mschimek Exp $ */
+/* $Id: motion.h,v 1.4 2004-05-21 05:34:09 mschimek Exp $ */
 
 #ifndef MOTION_H
 #define MOTION_H
@@ -25,7 +25,7 @@
 #include "vlc.h"
 #include "mblock.h"
 
-#define reg(n) __attribute__ ((regparm (n)))
+/* #define reg(n) __attribute__ ((regparm (n))) */
 
 extern int		motion;
 extern int		mm_buf_offs;
@@ -38,9 +38,9 @@ typedef unsigned int (search_fn)(int *dhx, int *dhy, unsigned char *from,
 extern search_fn	mmx_search, _3dn_search, sse_search, sse2_search;
 extern search_fn *	search;
 
-extern unsigned int	predict_forward_packed(unsigned char *from) reg(1);
-extern unsigned int	predict_forward_planar(unsigned char *from) reg(1);
-extern unsigned int	predict_backward_packed(unsigned char *from) reg(1);
+extern unsigned int	predict_forward_packed(unsigned char *from);
+extern unsigned int	predict_forward_planar(unsigned char *from);
+extern unsigned int	predict_backward_packed(unsigned char *from);
 extern unsigned int	predict_bidirectional_packed(unsigned char *from1, unsigned char *from2, unsigned int *vmc1, unsigned int *vmc2);
 extern unsigned int	predict_bidirectional_planar(unsigned char *from1, unsigned char *from2, unsigned int *vmc1, unsigned int *vmc2);
 

@@ -1,3 +1,21 @@
+2004-05-21    <mschimek@users.sf.net>
+
+	* ffmpeg/libavcodec/i386/motion_est_mmx.c: Static global "bone"
+	  only referenced in asm, eliminated by gcc -O3.
+	* src/Makefile.am (librte.h): Generated invalid file with VPATH.
+
+2004-05-21  gettextize  <bug-gnu-gettext@gnu.org>
+
+	* Makefile.am (ACLOCAL_AMFLAGS): New variable.
+	(EXTRA_DIST): Add config.rpath.
+
+2004-05-21    <mschimek@users.sf.net>
+
+	* ffmpeg/libavcodec/mpegaudiodec.c (decode_frame): Label at end of
+	  compound statement not permitted.
+	* ffmpeg/libavcodec/i386/mpegvideo_mmx_template.c (RENAME): %%ebx
+	  not available with gcc 3.4.
+
 2004-04-01    <mschimek@users.sf.net>
 
 	* divx4linux: Updated for divx4linux 5.2, fixes Bug #872742.

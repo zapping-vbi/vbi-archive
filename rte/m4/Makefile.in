@@ -152,7 +152,7 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-EXTRA_DIST = \
+EXTRA_DIST = intdiv0.m4 inttypes.m4 inttypes_h.m4 inttypes-pri.m4 nls.m4 po.m4 stdint_h.m4 uintmax_t.m4 ulonglong.m4  \
 	codeset.m4 gettext.m4 glibc21.m4 iconv.m4 isc-posix.m4 \
 	lcmessage.m4 lib-ld.m4 lib-link.m4 lib-prefix.m4 progtest.m4 \
 	autogen.sh aclocal-include.m4 as.m4
@@ -163,7 +163,7 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 DIST_SOURCES =
-DIST_COMMON = Makefile.am Makefile.in
+DIST_COMMON = ChangeLog Makefile.am Makefile.in
 all: all-am
 
 .SUFFIXES:

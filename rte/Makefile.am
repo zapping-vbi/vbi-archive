@@ -16,6 +16,8 @@ SUBDIRS = \
 	$(DIVX4LINUX_SUBDIRS) \
 	m4 src test po doc
 
-EXTRA_DIST = BUGS rte.spec.in rte.spec depcomp
+EXTRA_DIST = config.rpath  BUGS rte.spec.in rte.spec depcomp
 
 DISTCLEANFILES = site_def.h
+
+ACLOCAL_AMFLAGS = -I m4

@@ -1,3 +1,14 @@
+2004-05-19    <mschimek@users.sf.net>
+
+	* common/mmx.h: Compiler identification update.
+	* video/motion.h: Troubles with gcc 3.4 and attribute regparm,
+	  removed.
+
+2004-04-23    <mschimek@users.sf.net>
+
+	* configure.in: Added check and warning about older version
+	  in other directory.
+
 2004-04-21    <mschimek@users.sf.net>
 
 	* common/device.c, common/device.h, common/structpr.pl,

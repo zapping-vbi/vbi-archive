@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.4 2004-04-21 16:57:15 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.5 2004-05-21 05:34:09 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -42,7 +42,7 @@
 
 #define _ioctl(info, cmd, arg)						\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- device_ioctl (log_fp, fprintf_ioctl_arg, fd, cmd, (void *)(arg)))
+ device_ioctl (log_fp, fprint_ioctl_arg, fd, cmd, (void *)(arg)))
 
 /* changed to _IOWR */
 #define OLD_VIDIOC_S_CTRL _IOW ('V', 28, struct v4l2_control) 

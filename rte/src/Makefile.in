@@ -583,7 +583,7 @@ librte.h: $(LIBRTE_HDRS)
 	echo -e "\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n" >> $@
 	for fi in $(LIBRTE_HDRS); do \
 		echo "/* $$fi */" >> $@; \
-		sed -e "/^\/\* Public/,/^\/\* Private/!d;/^\/\* Public/d;/^\/\* Private/d;s/\(\/\*\*.*\*\/\)//;/^[ 	]*\/\*\*/,/\*\/[ 	]*$$/d;" $$fi >> $@; \
+		sed -e "/^\/\* Public/,/^\/\* Private/!d;/^\/\* Public/d;/^\/\* Private/d;s/\(\/\*\*.*\*\/\)//;/^[ 	]*\/\*\*/,/\*\/[ 	]*$$/d;" $(srcdir)/$$fi >> $@; \
 	done
 	echo -e "\n#ifdef __cplusplus\n}\n#endif" >> $@
 	echo -e "\n#endif /* __LIBRTE_H__ */" >> $@
