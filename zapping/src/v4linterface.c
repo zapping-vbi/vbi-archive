@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "../site_def.h"
+#include "site_def.h"
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -41,6 +41,7 @@
 #include "globals.h"
 #include "audio.h"
 #include "mixer.h"
+#include "properties-handler.h"
 
 struct control_window;
 
@@ -227,7 +228,7 @@ control_symbol			(tv_control *		ctrl)
   symbol = NULL;
 
   for (i = 0; i < G_N_ELEMENTS (pixmaps); ++i)
-    if (ctrl->id == pixmaps[i].id)
+    if (0 && ctrl->id == pixmaps[i].id)
       {
 	symbol = gtk_image_new_from_stock (pixmaps[i].stock_id,
 					   GTK_ICON_SIZE_BUTTON);
@@ -589,6 +590,7 @@ on_control_window_key_press	(GtkWidget *		widget,
     }
 
   return on_user_key_press (widget, event, user_data)
+    || on_picture_size_key_press (widget, event, user_data)
     || on_channel_key_press (widget, event, user_data);
 }
 
@@ -714,9 +716,13 @@ update_control_box		(tveng_device_info *	info)
 
 
 
-
-
-
+/* XXX these functions change an a/v source property but
+   do not switch away from the current tveng_tuned_channel.
+   Maybe there should be a -1 tuned channel intended to
+   change on the fly, and a channel history to properly
+   switch back (channel up, down etc). We also need a
+   function to find a tuned channel already matching the
+   new configuration. */
 
 gboolean
 z_switch_input			(int hash, tveng_device_info *info)
@@ -972,7 +978,7 @@ store_control_values		(tveng_device_info *	info,
 
 	  value = ctrl->value;
 
-	  strncpy (tcc[i].name, ctrl->label, 32);
+	  g_strlcpy (tcc[i].name, ctrl->label, 32);
 	  tcc[i].name[31] = 0;
 
 	  if (ctrl->maximum > ctrl->minimum)
@@ -1068,7 +1074,7 @@ gchar *substitute_keywords	(gchar		*string,
 	     break;
 	   }
 	 case 5:
-	   buffer = g_strdup_printf("%d", tc->freq);
+	   buffer = g_strdup_printf("%d", tc->frequ / 1000);
 	   break;
 #if 0 /* Temporarily removed. ifdef HAVE_LIBZVBI */
 	 case 6: /* title */
@@ -1134,7 +1140,6 @@ void
 z_switch_channel		(tveng_tuned_channel *	channel,
 				 tveng_device_info *	info)
 {
-  gboolean avoid_noise;
   gboolean was_first_switch = first_switch;
   tveng_tuned_channel *tc;
   gboolean in_global_list;
@@ -1162,7 +1167,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
 	first_switch = FALSE;
     }
 
-  if ((avoid_noise = zcg_bool (NULL, "avoid_noise")))
+  /* Always: if ((avoid_noise = zcg_bool (NULL, "avoid_noise"))) */
     tv_quiet_set (main_info, TRUE);
 
   freeze_update();
@@ -1177,12 +1182,12 @@ z_switch_channel		(tveng_tuned_channel *	channel,
   if (channel->standard)
     z_switch_standard(channel->standard, info);
 
-  if (avoid_noise)
+  /* Always: if (avoid_noise) */
     reset_quiet (main_info, /* delay ms */ 500);
 
   if (info->cur_video_input
       && info->cur_video_input->type == TV_VIDEO_LINE_TYPE_TUNER)
-    if (!tv_set_tuner_frequency (info, channel->freq * 1000))
+    if (!tv_set_tuner_frequency (info, channel->frequ))
       ShowBox(info -> error, GTK_MESSAGE_ERROR);
 
   if (in_global_list)
@@ -2168,21 +2173,24 @@ startup_v4linterface(tveng_device_info *info)
 		     info);
 
   cmd_register ("channel_up", py_channel_up, METH_VARARGS,
-		_("Switches to the next channel"),
-		"zapping.channel_up()");
+		("Switch to higher channel"), "zapping.channel_up()");
   cmd_register ("channel_down", py_channel_down, METH_VARARGS,
-		_("Switches to the previous channel"),
-		"zapping.channel_down()");
-  cmd_register ("set_channel", py_set_channel, METH_VARARGS,
-		_("Switches to a channel given its index"),
-		"zapping.set_channel(5)");
-  cmd_register ("lookup_channel", py_lookup_channel, METH_VARARGS,
-		_("Switches to a channel given its name"),
-		"zapping.lookup_channel('Linux TV')");
+		("Switch to lower channel"), "zapping.channel_down()");
+  cmd_register ("set_channel", py_set_channel, METH_VARARGS);
+  cmd_register ("lookup_channel", py_lookup_channel, METH_VARARGS);
   cmd_register ("control_box", py_control_box, METH_VARARGS,
-		_("Opens the control box"), "zapping.control_box()");
+		("Control window"), "zapping.control_box()");
   cmd_register ("control_incr", py_control_incr, METH_VARARGS,
-		_("Increment control value"), "zapping.control_incr('volume', -1)");
+		("Increase brightness"), "zapping.control_incr('brightness',+1)",
+		("Decrease brightness"), "zapping.control_incr('brightness',-1)",
+		("Increase hue"), "zapping.control_incr('hue',+1)",
+		("Decrease hue"), "zapping.control_incr('hue',-1)",
+		("Increase contrast"), "zapping.control_incr('contrast',+1)",
+		("Decrease contrast"), "zapping.control_incr('contrast',-1)",
+		("Increase saturation"), "zapping.control_incr('saturation',+1)",
+		("Decrease saturation"), "zapping.control_incr('saturation',-1)",
+		("Increase volume"), "zapping.control_incr('volume',+1)",
+		("Decrease volume"), "zapping.control_incr('volume',-1)");
 
   zcc_char("Zapping: $(alias)", "Title format Z will use", "title_format");
   zcc_bool(FALSE, "Swap the page Up/Down bindings", "swap_up_down");
