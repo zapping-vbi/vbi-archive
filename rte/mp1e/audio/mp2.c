@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.19 2001-11-22 17:51:07 mschimek Exp $ */
+/* $Id: mp2.c,v 1.20 2001-12-05 07:22:46 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -686,6 +686,7 @@ mp1e_mp2_init(rte_codec *codec, unsigned int module,
 	bit_rate = bit_rate_value[mp2->mpeg_version][mp2->bit_rate_code];
 	bit_rate_per_ch = bit_rate / channels;
 
+	/* ATTN: this is part of the standard, don't change */
 	if (mp2->mpeg_version == MPEG_VERSION_2)
 		table = 4;
 	else if ((sampling_freq == 48000 && bit_rate_per_ch >= 56000) ||

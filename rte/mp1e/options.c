@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.8 2001-11-22 17:51:07 mschimek Exp $ */
+/* $Id: options.c,v 1.9 2001-12-05 07:22:45 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -639,8 +639,23 @@ options(int ac, char **av)
 
 	bark();
 
-	if (!isatty(STDIN_FILENO))
-		options_from_file("stdin", FALSE);
+	if (!isatty(STDIN_FILENO)) {
+		/* HvdH: ugly hack; check to see if the capture device is 'raw:'
+		   in that case, stdin if for raw YUV data, not options.
+		   cleaner solution is to reverse order; command line first,
+		   then stdin options. It makes sense to have stdin override
+		   command line options, but it might break stuff, so I won't 
+		   change the order */ 
+		for (c = 0; c < ac; c++) {
+			/* FIXME: very rough check for capture device */
+			if (strstr(av[c], "raw:")) {
+				c = -1;
+				break;
+			}
+		}
+		if (c >= 0)
+			options_from_file("stdin", FALSE);
+	}
 
 	while ((c = getopt_long(ac, av, OPT_STR, long_options, &index)) != -1)
 		if (!parse_option(c))

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.20 2001-11-27 04:38:24 mschimek Exp $ */
+/* $Id: main.c,v 1.21 2001-12-05 07:22:45 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -250,10 +250,13 @@ main(int ac, char **av)
 		if (!stat(cap_dev, &st) && S_ISCHR(st.st_mode)) {
 			if (!(video_cap_fifo = v4l2_init(&c_frame_rate)))
 				video_cap_fifo = v4l_init(&c_frame_rate);
-		} else
-			video_cap_fifo = file_init(&c_frame_rate);
-	}
-
+		} else if (!strncmp(cap_dev, "raw:", 4)) {
+			video_cap_fifo = raw_init(&c_frame_rate);
+		} else {
+ 			video_cap_fifo = file_init(&c_frame_rate);
+		}
+ 	}
+ 
 	if (modules & MOD_SUBTITLES) {
 		vbi_cap_fifo = vbi_open_v4lx(vbi_dev, -1, FALSE, 30);
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.10 2001-11-22 17:51:07 mschimek Exp $ */
+/* $Id: video.h,v 1.11 2001-12-05 07:22:46 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -357,6 +357,7 @@ extern void		conv_init(int);
 extern fifo *		v4l_init(double *frame_rate);
 extern fifo *		v4l2_init(double *frame_rate);
 extern fifo *		file_init(double *frame_rate);
+extern fifo *		raw_init(double *frame_rate);
 extern void		filter_init(int pitch);
 extern void		video_coding_size(int width, int height);
 extern int		video_look_ahead(char *gop_sequence);

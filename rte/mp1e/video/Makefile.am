@@ -24,5 +24,5 @@ libvideo_la_SOURCES = \
 	mpeg1.c mpeg.h video.h libvideo.h \
 	tables.c vlc.c vlc_mmx.s vlc.h \
 	motion.c motion_mmx.s motion.h \
-	file.c v4l.c v4l2.c \
+	file.c raw.c v4l.c v4l2.c \
 	$(SSE2_FILES)

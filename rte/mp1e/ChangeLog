@@ -1,3 +1,7 @@
+2001-12-03	YUV stream interface <mschimek@users.sf.net>
+
+	* Added, contributed by Harm van der Heijden.
+
 2001-11-28	Multiplexer fixes <mschimek@users.sf.net>
 
 	* systems/mpeg1.c, mpeg2.c, vcd.c: Fixed I picture PTS reorder
