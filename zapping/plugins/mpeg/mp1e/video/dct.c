@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct.c,v 1.7 2000-10-22 05:24:50 mschimek Exp $ */
+/* $Id: dct.c,v 1.8 2000-10-27 16:20:06 mschimek Exp $ */
 
 #include <assert.h>
 #include "../common/math.h"
@@ -28,19 +28,17 @@
 #include "mpeg.h"
 #include "video.h"
 
-static short LUT1[8][8][8];
-
 char sh1[8] = { 15, 14, 13, 13, 12, 12, 12, 11 };
 char sh2[8] = { 16, 14, 13, 13, 13, 12, 12, 12 };
 
 /*
  *  ((q > 16) ? q & ~1 : q) == ((ltp[q] * 2 + 1) << lts[q])
  */
-char ltp[32] = {
+char ltp[32] __attribute__ ((aligned (MIN(32, CACHE_LINE)))) = {
     0, 0, 0, 1, 0, 2, 1, 3, 0, 4, 2, 5, 1, 6, 3, 7,
     0, 0, 4, 4, 2, 2, 5, 5, 1, 1, 6, 6, 3, 3, 7, 7,
 };
-char lts[32] = { 
+char lts[32] __attribute__ ((aligned (MIN(32, CACHE_LINE)))) = { 
     0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
     4, 4, 1, 1, 2, 2, 1, 1, 3, 3, 1, 1, 2, 2, 1, 1,
 };
@@ -73,19 +71,21 @@ mmx_t cC2626_15 align(8);
 mmx_t cC6262_15 align(8);
 mmx_t mm8, mm9;
 
-
 char			mmx_q_fdct_intra_sh[32]			align(MIN(CACHE_LINE,32));
 short			mmx_q_fdct_intra_q_lut[8][8][8]		align(CACHE_LINE);
 short			mmx_q_fdct_inter_lut[6][8][2]		align(CACHE_LINE);
 short			mmx_q_fdct_inter_lut0[8][1]		align(CACHE_LINE);
 short			mmx_q_fdct_inter_q[32]			align(CACHE_LINE);
 mmx_t			mmx_q_idct_inter_tab[16]		align(CACHE_LINE);
+short			mmx_q_idct_intra_q_lut[8][8][8]		align(CACHE_LINE);
 
 mmx_t cfae;
 mmx_t csh;
 mmx_t crnd;
 mmx_t c3a, c5a;
 mmx_t c5b;
+mmx_t c1x;
+mmx_t shift, mask, mask0;
 
 #define R2 sqrt(2.0)
 
@@ -145,39 +145,6 @@ init_dct(void)
 	mmx_q_idct_inter_tab[13] = MMXRW(lroundn(S15*(C6+C2)/R2));
 	mmx_q_idct_inter_tab[14] = MMXRW(lroundn(S15*(C6-C2)/R2));
 	mmx_q_idct_inter_tab[15] = MMXRW(lroundn(S16*(C6-C2)/R2));
-
-	for (q = 0; q < 8; q++) {
-		for (v = 0; v < 8; v++) {
-			for (u = 0; u < 8; u++) {
-				double Cu, Cv, m;
-
-    				Cu = (u == 0) ? 1.0 : (cos(u * M_PI / 16.0) * sqrt(2.0));
-				Cv = (v == 0) ? 1.0 : (cos(v * M_PI / 16.0) * sqrt(2.0));
-
-				/* Inverse */
-
-				m = 1.0 * (Cu * Cv / 8.0);
-
-				if (v & 1)
-					m *= C6 * 2.0;
-				if (u & 1)
-					m *= C6 * 2.0;
-
-				if (v + u == 0) {
-					LUT1[q][v][u] = 0;
-				} else {
-					LUT1[q][v][u] = lroundn(
-	        				default_intra_quant_matrix[v][u]
-						* (q * 2 + 1)
-						/ 8.0
-						* m
-						* (double)(1 << sh1[q])
-						* ((v == 2) ? 0.5 : 1)
-					);
-				}
-			}
-		}
-	}
 
 	for (q = 0; q < 8; q++) {
 		for (sh = max = 0; max < 16384; sh++)
@@ -249,8 +216,21 @@ init_dct(void)
 
 	for (q = 0; q < 32; q++)
 		mmx_q_fdct_inter_q[q] = lroundn(S15 / q / 2.0);
-}
 
+	for (q = 0; q < 8; q++) {
+		for (v = 0; v < 8; v++)
+			for (u = 0; u < 8; u++)
+				if (u + v == 0)
+					mmx_q_idct_intra_q_lut[q][v][u] = 0;
+				else
+					mmx_q_idct_intra_q_lut[q][v][u] = 
+						4 * default_intra_quant_matrix[v][u] * (q * 2 + 1);
+
+//		dump(mmx_q_idct_intra_q_lut[q]);
+	}
+
+	c1x = MMXRW(((8 + 128 * 16) << 2) + 2);
+}
 
 void
 mmx_new_inter_quant(int quant_scale)
@@ -264,387 +244,4 @@ mmx_new_inter_quant(int quant_scale)
 	n |= -32767 << 16;
 	cfae.ud[0] = n;
 	cfae.ud[1] = n;
-}
-
-/* preliminary */
-
-void
-mmx_mpeg1_idct_intra(int quant_scale)
-{
-	unsigned char *new = newref;
-	int ltsi = lts[quant_scale];
-	int ltpi = ltp[quant_scale];
-	short *lut1p;
-	int i;
-
-	c3a.uq = 16 /* pmulh */ + 5 /* scale */ + ltsi - sh1[ltpi];
-	lut1p = &LUT1[ltpi][0][0];
-
-	for (i = 0; i < 6; i++) {
-		new += mb_address.block[i].offset;
-
-asm("
-	movq 1*16+0*2(%0),%%mm6; psllw c3a,%%mm6; paddw c4,%%mm6; pmulhw 1*16+0*2(%1),%%mm6;
-	movq 3*16+0*2(%0),%%mm7; psllw c3a,%%mm7; paddw c4,%%mm7; pmulhw 3*16+0*2(%1),%%mm7;
-	movq 5*16+0*2(%0),%%mm4; psllw c3a,%%mm4; paddw c4,%%mm4; pmulhw 5*16+0*2(%1),%%mm4;
-	movq 7*16+0*2(%0),%%mm5; psllw c3a,%%mm5; paddw c4,%%mm5; pmulhw 7*16+0*2(%1),%%mm5;
-
-	movq cC4_14,%%mm3;
-
-	movq %%mm7,%%mm0; paddsw %%mm4,%%mm7; psubsw %%mm0,%%mm4;
-	movq %%mm5,%%mm1; paddsw %%mm6,%%mm5; psubsw %%mm1,%%mm6;
-	
-	movq %%mm7,%%mm2; paddsw %%mm5,%%mm7; psubsw %%mm2,%%mm5;
-
-	psllw $2,%%mm7; pmulhw c1C6_13,%%mm7;
-	psllw $2,%%mm5; pmulhw cC4C6_14,%%mm5;
-
-	movq %%mm6,%%mm2; movq %%mm4,%%mm1;
-	paddsw %%mm6,%%mm6; paddsw %%mm4,%%mm4;
-	paddsw %%mm4,%%mm2; psubsw %%mm6,%%mm1;
-	pmulhw %%mm3,%%mm4; pmulhw %%mm3,%%mm6;
-
-	psubsw %%mm7,%%mm6;	
-	psubsw %%mm1,%%mm6;
-	psubsw %%mm6,%%mm5;	
-	paddsw %%mm2,%%mm4;
-	psubsw %%mm5,%%mm4;
-
-	movq %%mm4,mm8;
-
-	/* Top 8 x 4 even */
-
-	movq 2*16+0*2(%0),%%mm1; psllw c3a,%%mm1; paddw c4,%%mm1; pmulhw  2*16+0*2(%1),%%mm1;
-	movq 6*16+0*2(%0),%%mm0; psllw c3a,%%mm0; paddw c4,%%mm0; pmulhw  6*16+0*2(%1),%%mm0;
-
-	paddsw %%mm1,%%mm1; 
-	movq %%mm0,%%mm4; paddsw %%mm1,%%mm0; psubsw %%mm4,%%mm1;
-	movq %%mm1,%%mm4; paddsw %%mm4,%%mm4; pmulhw %%mm3,%%mm4;
-
-	paddsw %%mm4,%%mm1;
-	psubsw %%mm0,%%mm1;
-
-	movq 0*16+0*2(%0),%%mm2; psllw c3a,%%mm2; paddw c4,%%mm2; pmulhw 0*16+0*2(%1),%%mm2;
-	movq 4*16+0*2(%0),%%mm3; psllw c3a,%%mm3; paddw c4,%%mm3; pmulhw 4*16+0*2(%1),%%mm3;
-
-	movq 0*16+0*2(%0),%%mm4;
-	psllq $48,%%mm4;
-	psrlq $43,%%mm4;
-	paddw %%mm4,%%mm2;
-
-	movq %%mm3,%%mm4; paddsw %%mm2,%%mm3; psubsw %%mm4,%%mm2;
-	movq %%mm0,%%mm4; paddsw %%mm3,%%mm0; psubsw %%mm4,%%mm3;
-	movq %%mm1,%%mm4; paddsw %%mm2,%%mm1; psubsw %%mm4,%%mm2;
-
-	movq mm8,%%mm4;
-
-	paddw %%mm0,%%mm7; paddw %%mm0,%%mm0; psubw %%mm7,%%mm0;
-	paddw %%mm1,%%mm6; paddw %%mm1,%%mm1; psubw %%mm6,%%mm1;
-	paddw %%mm2,%%mm5; paddw %%mm2,%%mm2; psubw %%mm5,%%mm2;
-	paddw %%mm3,%%mm4; paddw %%mm3,%%mm3; psubw %%mm4,%%mm3;
-
-	movq %%mm0,mm8;
-
-	movq %%mm7,%%mm0;
-	punpcklwd %%mm6,%%mm7;	// 1b 0b 1a 0a
-	punpckhwd %%mm6,%%mm0;	// 1d 0d 1c 0c
-	movq %%mm5,%%mm6;
-	punpcklwd %%mm4,%%mm5;	// 3b 2b 3a 2a
-	punpckhwd %%mm4,%%mm6;	// 3d 2d 3c 2c
-	movq %%mm7,%%mm4;
-	punpckldq %%mm5,%%mm7;	// 3a 2a 1a 0a
-	movq %%mm7, 0*16+0*2(%2);
-	punpckhdq %%mm5,%%mm4;	// 3b 2b 1b 0b
-	movq %%mm4, 1*16+0*2(%2);
-	movq %%mm0,%%mm5;
-	punpckldq %%mm6,%%mm5;	// 3c 2c 1c 0c
-	movq %%mm5, 2*16+0*2(%2);
-	punpckhdq %%mm6,%%mm0;	// 3d 2d 1d 0d
-	movq %%mm0, 3*16+0*2(%2);
-
-	movq mm8,%%mm0;
-
-	movq %%mm3,%%mm7;
-	punpcklwd %%mm2,%%mm3;	// 1b 0b 1a 0a
-	punpckhwd %%mm2,%%mm7;	// 1d 0d 1c 0c
-	movq %%mm1,%%mm2;
-	punpcklwd %%mm0,%%mm1;	// 3b 2b 3a 2a
-	punpckhwd %%mm0,%%mm2;	// 3d 2d 3c 2c
-	movq %%mm3,%%mm0;
-	punpckldq %%mm1,%%mm3;	// 3a 2a 1a 0a
-	movq %%mm3, 0*16+4*2(%2);
-	punpckhdq %%mm1,%%mm0;	// 3b 2b 1b 0b
-	movq %%mm0, 1*16+4*2(%2);
-	movq %%mm7,%%mm1;
-	punpckldq %%mm2,%%mm1;	// 3c 2c 1c 0c
-	movq %%mm1, 2*16+4*2(%2);
-	punpckhdq %%mm2,%%mm7;	// 3d 2d 1d 0d
-	movq %%mm7, 3*16+4*2(%2);
-
-	
-	/* Bottom 8 x 4 odd */
-
-	movq 1*16+4*2(%0),%%mm6; psllw c3a,%%mm6; paddw c4,%%mm6; pmulhw  1*16+4*2(%1),%%mm6;
-	movq 3*16+4*2(%0),%%mm7; psllw c3a,%%mm7; paddw c4,%%mm7; pmulhw  3*16+4*2(%1),%%mm7;
-	movq 5*16+4*2(%0),%%mm4; psllw c3a,%%mm4; paddw c4,%%mm4; pmulhw  5*16+4*2(%1),%%mm4;
-	movq 7*16+4*2(%0),%%mm5; psllw c3a,%%mm5; paddw c4,%%mm5; pmulhw  7*16+4*2(%1),%%mm5;
-
-	movq %%mm7,%%mm0; paddsw %%mm4,%%mm7; psubsw %%mm0,%%mm4;
-	movq %%mm5,%%mm1; paddsw %%mm6,%%mm5; psubsw %%mm1,%%mm6;
-	movq %%mm7,%%mm2; paddsw %%mm5,%%mm7; psubsw %%mm2,%%mm5;
-
-	psllw $2,%%mm7; pmulhw c1C6_13,%%mm7;
-	psllw $2,%%mm5; pmulhw cC4C6_14,%%mm5;
-
-	movq %%mm6,%%mm0; movq %%mm4,%%mm1;
-	paddsw %%mm6,%%mm6; paddsw %%mm4,%%mm4;
-	paddsw %%mm4,%%mm0; psubsw %%mm6,%%mm1;
-
-	pmulhw cC4_14,%%mm4;	pmulhw cC4_14,%%mm6;
-
-	psubsw %%mm7,%%mm6;	
-	psubsw %%mm1,%%mm6;
-	psubsw %%mm6,%%mm5;	
-	paddsw %%mm0,%%mm4;
-	psubsw %%mm5,%%mm4;
-
-	movq %%mm4,mm8;
-
-	/* Bottom 8 x 4 even */
-
-	movq 2*16+4*2(%0),%%mm1; psllw c3a,%%mm1; paddw c4,%%mm1; pmulhw  2*16+4*2(%1),%%mm1;
-	movq 6*16+4*2(%0),%%mm0; psllw c3a,%%mm0; paddw c4,%%mm0; pmulhw  6*16+4*2(%1),%%mm0;
-
-	paddsw %%mm1,%%mm1; 
-	movq %%mm0,%%mm3; paddsw %%mm1,%%mm0; psubsw %%mm3,%%mm1;
-	movq %%mm1,%%mm4; 
-	pmulhw cC4_15,%%mm4;
-	
-	paddsw %%mm4,%%mm1;
-	psubsw %%mm0,%%mm1;
-
-	movq 0*16+4*2(%0),%%mm2; psllw c3a,%%mm2; paddw c4,%%mm2; pmulhw  0*16+4*2(%1),%%mm2;
-	movq 4*16+4*2(%0),%%mm3; psllw c3a,%%mm3; paddw c4,%%mm3; pmulhw  4*16+4*2(%1),%%mm3;
-
-	movq %%mm3,%%mm4; paddsw %%mm2,%%mm3; psubsw %%mm4,%%mm2;
-	movq %%mm0,%%mm4; paddsw %%mm3,%%mm0; psubsw %%mm4,%%mm3;
-	movq %%mm1,%%mm4; paddsw %%mm2,%%mm1; psubsw %%mm4,%%mm2;
-
-	movq mm8,%%mm4;
-
-	paddw %%mm0,%%mm7; paddw %%mm0,%%mm0; psubw %%mm7,%%mm0;
-	paddw %%mm1,%%mm6; paddw %%mm1,%%mm1; psubw %%mm6,%%mm1;
-	paddw %%mm2,%%mm5; paddw %%mm2,%%mm2; psubw %%mm5,%%mm2;
-	paddw %%mm3,%%mm4; paddw %%mm3,%%mm3; psubw %%mm4,%%mm3;
-
-	movq %%mm0,mm8;
-
-	movq %%mm7,%%mm0;
-	punpcklwd %%mm6,%%mm7;	// 1b 0b 1a 0a
-	punpckhwd %%mm6,%%mm0;	// 1d 0d 1c 0c
-	movq %%mm5,%%mm6;
-	punpcklwd %%mm4,%%mm5;	// 3b 2b 3a 2a
-	punpckhwd %%mm4,%%mm6;	// 3d 2d 3c 2c
-	movq %%mm7,%%mm4;
-	punpckldq %%mm5,%%mm7;	// 3a 2a 1a 0a
-	movq %%mm7, 4*16+0*2(%2);
-	punpckhdq %%mm5,%%mm4;	// 3b 2b 1b 0b
-	movq %%mm4, 5*16+0*2(%2);
-	movq %%mm0,%%mm5;
-	punpckldq %%mm6,%%mm0;	// 3c 2c 1c 0c
-	movq %%mm0, 6*16+0*2(%2);
-	punpckhdq %%mm6,%%mm5;	// 3d 2d 1d 0d
-	movq %%mm5, 7*16+0*2(%2);
-
-	movq mm8,%%mm0;
-
-	movq %%mm3,%%mm7;
-	punpcklwd %%mm2,%%mm3;	// 1b 0b 1a 0a
-	punpckhwd %%mm2,%%mm7;	// 1d 0d 1c 0c
-	movq %%mm1,%%mm2;
-	punpcklwd %%mm0,%%mm1;	// 3b 2b 3a 2a
-	punpckhwd %%mm0,%%mm2;	// 3d 2d 3c 2c
-	movq %%mm3,%%mm0;
-	punpckldq %%mm1,%%mm3;	// 3a 2a 1a 0a
-	movq %%mm3, 4*16+4*2(%2);
-	punpckhdq %%mm1,%%mm0;	// 3b 2b 1b 0b
-	movq %%mm0, 5*16+4*2(%2);
-	movq %%mm7,%%mm1;
-	punpckldq %%mm2,%%mm1;	// 3c 2c 1c 0c
-	movq %%mm1, 6*16+4*2(%2);
-	punpckhdq %%mm2,%%mm7;	// 3d 2d 1d 0d
-	movq %%mm7, 7*16+4*2(%2);
-
-	/* Right 4 x 8 odd */
-
-	movq 1*16+4*2(%2),%%mm6;
-	movq 3*16+4*2(%2),%%mm7;
-	movq 5*16+4*2(%2),%%mm4;
-	movq 7*16+4*2(%2),%%mm5;
-
-	movq %%mm7,%%mm0; paddsw %%mm4,%%mm7; psubsw %%mm0,%%mm4;
-	movq %%mm5,%%mm1; paddsw %%mm6,%%mm5; psubsw %%mm1,%%mm6;
-	movq %%mm7,%%mm2; paddsw %%mm5,%%mm7; psubsw %%mm2,%%mm5;
-
-	psllw $2,%%mm7; 
-	psllw $2,%%mm5; 
-/**/
-	pmulhw c1C6_13,%%mm7; 
-	pmulhw cC4C6_14,%%mm5; 
-
-	movq %%mm6,%%mm0; movq %%mm4,%%mm1;
-	paddsw %%mm6,%%mm6; paddsw %%mm4,%%mm4;
-	paddsw %%mm4,%%mm0; psubsw %%mm6,%%mm1;
-
-	pmulhw cC4_14,%%mm4;	pmulhw cC4_14,%%mm6;
-
-	psubsw %%mm7,%%mm6;	
-	psubsw %%mm1,%%mm6;
-	psubsw %%mm6,%%mm5;	
-	paddsw %%mm0,%%mm4;
-	psubsw %%mm5,%%mm4;
-
-	movq %%mm4,mm8;
-
-	/* Right 4 x 8 even */
-
-	movq 2*16+4*2(%2),%%mm1;
-	movq 6*16+4*2(%2),%%mm0;
-
-	movq %%mm0,%%mm3; paddsw %%mm1,%%mm0; psubsw %%mm3,%%mm1;
-	movq %%mm1,%%mm4; pmulhw cC4_15,%%mm4;
-	paddsw %%mm4,%%mm1;
-	psubsw %%mm0,%%mm1;
-
-	movq 0*16+4*2(%2),%%mm2;
-	movq 4*16+4*2(%2),%%mm3;
-
-	movq %%mm3,%%mm4; paddsw %%mm2,%%mm3; psubsw %%mm4,%%mm2;
-	movq %%mm0,%%mm4; paddsw %%mm3,%%mm0; psubsw %%mm4,%%mm3;
-	movq %%mm1,%%mm4; paddsw %%mm2,%%mm1; psubsw %%mm4,%%mm2;
-
-	movq mm8,%%mm4;
-
-	paddw c5a,%%mm0;
-	paddw c5a,%%mm1;
-	paddw c5a,%%mm2;
-	paddw c5a,%%mm3;
-
-	paddw %%mm0,%%mm7; paddw %%mm0,%%mm0; psubw %%mm7,%%mm0;
-	paddw %%mm1,%%mm6; paddw %%mm1,%%mm1; psubw %%mm6,%%mm1;
-	paddw %%mm2,%%mm5; paddw %%mm2,%%mm2; psubw %%mm5,%%mm2;
-	paddw %%mm3,%%mm4; paddw %%mm3,%%mm3; psubw %%mm4,%%mm3;
-
-	psraw $5,%%mm0; psraw $5,%%mm7;
-	psraw $5,%%mm1; psraw $5,%%mm6;
-	psraw $5,%%mm2; psraw $5,%%mm5;
-	psraw $5,%%mm3; psraw $5,%%mm4;
-
-	movq %%mm7, 0*16+4*2(%2);
-	movq %%mm6, 1*16+4*2(%2);
-	movq %%mm5, 2*16+4*2(%2);
-	movq %%mm4, 3*16+4*2(%2);
-	movq %%mm3, 4*16+4*2(%2);
-	movq %%mm2, 5*16+4*2(%2);
-	movq %%mm1, 6*16+4*2(%2);
-	movq %%mm0, 7*16+4*2(%2);
-
-	/* Left 4 x 8 odd */
-
-	movq 1*16+0*2(%2),%%mm6;
-	movq 3*16+0*2(%2),%%mm7;
-	movq 5*16+0*2(%2),%%mm4;
-	movq 7*16+0*2(%2),%%mm5;
-
-	movq %%mm7,%%mm0; paddsw %%mm4,%%mm7; psubsw %%mm0,%%mm4;
-	movq %%mm5,%%mm1; paddsw %%mm6,%%mm5; psubsw %%mm1,%%mm6;
-	movq %%mm7,%%mm2; paddsw %%mm5,%%mm7; psubsw %%mm2,%%mm5;
-
-	psllw $2,%%mm7; 
-	psllw $2,%%mm5; 
-/**/
-	pmulhw c1C6_13,%%mm7;	
-	pmulhw cC4C6_14,%%mm5;	
-
-	movq %%mm6,%%mm0; movq %%mm4,%%mm1;
-	paddsw %%mm6,%%mm6; paddsw %%mm4,%%mm4;
-	paddsw %%mm4,%%mm0; psubsw %%mm6,%%mm1;
-
-	pmulhw cC4_14,%%mm4;	pmulhw cC4_14,%%mm6;
-
-	psubsw %%mm7,%%mm6;	
-	psubsw %%mm1,%%mm6;
-	psubsw %%mm6,%%mm5;	
-	paddsw %%mm0,%%mm4;
-	psubsw %%mm5,%%mm4;
-
-	movq %%mm4,mm8;
-	movq %%mm5,mm9;
-
-	/* Left 4 x 8 even */
-
-	movq 2*16+0*2(%2),%%mm1;
-	movq 6*16+0*2(%2),%%mm0;
-	movq 0*16+0*2(%2),%%mm2;
-	movq 4*16+0*2(%2),%%mm3;
-
-	movq %%mm0,%%mm4; paddsw %%mm1,%%mm0; psubsw %%mm4,%%mm1;
-	movq %%mm1,%%mm5; pmulhw cC4_15,%%mm5;
-
-	paddsw %%mm5,%%mm1;
-	psubsw %%mm0,%%mm1;
-
-	movq %%mm3,%%mm4; paddsw %%mm2,%%mm3; psubsw %%mm4,%%mm2;
-	movq %%mm0,%%mm5; paddsw %%mm3,%%mm0; psubsw %%mm5,%%mm3;
-	movq %%mm1,%%mm4; paddsw %%mm2,%%mm1; psubsw %%mm4,%%mm2;
-
-	movq mm9,%%mm5;
-	movq mm8,%%mm4;
-
-	paddw c5a,%%mm0; 
-	paddw c5a,%%mm1; 
-	paddw c5a,%%mm2; 
-	paddw c5a,%%mm3; 
-
-	paddw %%mm0,%%mm7; paddw %%mm0,%%mm0; psubw %%mm7,%%mm0;
-	paddw %%mm1,%%mm6; paddw %%mm1,%%mm1; psubw %%mm6,%%mm1;
-	paddw %%mm2,%%mm5; paddw %%mm2,%%mm2; psubw %%mm5,%%mm2;
-	paddw %%mm3,%%mm4; paddw %%mm3,%%mm3; psubw %%mm4,%%mm3;
-
-	psraw $5,%%mm0; psraw $5,%%mm7;
-	psraw $5,%%mm1; psraw $5,%%mm6;
-	psraw $5,%%mm2; psraw $5,%%mm5;
-	psraw $5,%%mm3; psraw $5,%%mm4;
-
-	/* Prediction */
-
-	packuswb  0*16+4*2(%2), %%mm7;
-	packuswb  1*16+4*2(%2), %%mm6;
-	packuswb  2*16+4*2(%2), %%mm5;
-	packuswb  3*16+4*2(%2), %%mm4;
-	packuswb  4*16+4*2(%2), %%mm3;
-	packuswb  5*16+4*2(%2), %%mm2;
-	packuswb  6*16+4*2(%2), %%mm1;
-	packuswb  7*16+4*2(%2), %%mm0;
-
-	pushl	%0;
-	leal	(%3,%4),%0;
-	movq %%mm7, (%3);	// 0
-	movq %%mm6, (%3,%4);	// 1
-	movq %%mm5, (%3,%4,2);	// 2
-	movq %%mm4, (%0,%4,2);	// 3
-	leal	(%0,%4,4),%0;
-	movq %%mm3, (%3,%4,4);	// 4
-	movq %%mm2, (%0);	// 5
-	movq %%mm1, (%0,%4);	// 6
-	movq %%mm0, (%0,%4,2);	// 7
-	popl	%0;
-1:
-
-" :: "r" (&mblock[1][i][0][0]), "r" (lut1p), 
-  "r" (&mblock[0][0][0][0]), "r" (new), "r" (mb_address.block[i].pitch)
-  : "cc", "memory" FPU_REGS);
-
-    }
-
 }

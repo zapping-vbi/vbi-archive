@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.3 2000-10-17 21:55:41 garetxe Exp $ */
+/* $Id: global_data.c,v 1.4 2000-10-27 16:20:04 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,9 +67,9 @@ int			video_bit_rate		= 2300000;
 int			video_num_frames	= INT_MAX;
 char *			gop_sequence		= "IBBPBBPBBPBB";
 int			frames_per_seqhdr	= INT_MAX;
-int			filter_mode		= CM_YUV;
+int			filter_mode		= 5;			// CM_YUV
 double			frame_rate		= 1000.0;
-int			preview			= 0;			// 0 = none, XvImage/Tk, progressive
+int			preview			= 0;			// 0 = none, XvImage/GTK, progressive
 char *			anno			= NULL;
 int			luma_only		= 0;			// boolean
 
@@ -80,7 +80,7 @@ int			sampling_rate		= 44100;
 int			mix_line		= SOUND_MIXER_LINE;	// soundcard.h
 int			mix_volume		= 80;			// 0 <= n <= 100
 int			audio_mode		= AUDIO_MODE_MONO;
-int			psycho_loops		= 0;			// 0 = static, low, hi quality
+int			psycho_loops		= 0;			// 0 = static psy, low, hi quality
 int			mute			= 0;			// bttv specific, boolean
 
 char *			subtitle_pages		= NULL;

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.12 2000-10-22 05:24:50 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.13 2000-10-27 16:20:06 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -89,7 +89,8 @@ volatile double		Ti, Tmb;
 static double		Xi, Xp, Xb;			// global complexity measure
 static double		d0i, d0p, d0b;			// virtual buffer fullness
 static double		r31;				// reaction parameter
-static double		avg_act;			// average spatial activity
+static double		avg_acti;			// average spatial activity
+static double		avg_actp;
 static int		p_succ;
 
 static unsigned char 	seq_header_template[32] __attribute__ ((aligned (CACHE_LINE)));
@@ -97,8 +98,6 @@ static unsigned char 	seq_header_template[32] __attribute__ ((aligned (CACHE_LIN
 static char *		banner;
 static unsigned char *	zerop_template;			// precompressed empty P picture
 static int		Sz;				// .. size in bytes
-
-static int		warn[2];
 
 double video_eff_bit_rate;
 
@@ -112,7 +111,7 @@ extern double		video_stop_time;
 #define new_inter_quant mmx_new_inter_quant
 #define fdct_intra mmx_fdct_intra
 #define fdct_inter mmx_fdct_inter
-#define mpeg1_idct_intra mmx_mpeg1_idct_intra
+#define mpeg1_idct_intra mmx_mpeg1_idct_intra2
 #define mpeg1_idct_inter mmx_mpeg1_idct_inter
 
 #define mpeg1_encode_intra p6_mpeg1_encode_intra
@@ -145,8 +144,8 @@ extern bool		temporal_interpolation;
 extern int		preview;
 extern void		packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
 
-int p_inter_bias = 65536 * 48,
-    b_inter_bias = 65536 * 96,
+int p_inter_bias = 65536 * 48 * 2,
+    b_inter_bias = 65536 * 96 * 2,
     quant_max = 31;
 
 #define QS 1
@@ -240,48 +239,6 @@ do {									\
 	bprolog(&video_out);						\
 } while (0)
 
-#define pb_cx_intra(ref)						\
-do {									\
-	for (; mb_row < mb_height; mb_row++) {				\
-		for (mb_col = 0; mb_col < mb_width; mb_col++) {		\
-			int length, i;					\
-									\
-			pr_start(41, "Filter");				\
-			var = (*filter)(org0, org1); /* -> mblock[0] */	\
-			pr_end(41);					\
-									\
-			emms();						\
-									\
-			act_sum += act = var / 65536.0 + 1;		\
-			act = (2.0 * act + avg_act)			\
-				/ (act + 2.0 * avg_act);		\
-									\
-			quant = lroundn((bwritten(&video_out) - Ti)	\
-				* r31 * act);				\
-			quant = quant_res_intra[saturate(quant >> QS,	\
-				1, quant_max)];				\
-									\
-			Ti += Tmb;					\
-									\
-			pb_intra_mb(TRUE);				\
-									\
-			prev_quant = quant;				\
-			quant_sum += quant;				\
-			mb_skipped = 0;					\
-									\
-			if (ref) {					\
-				pr_start(23, "IDCT intra");		\
-				mpeg1_idct_intra(quant);		\
-				pr_end(23);				\
-									\
-				mba_col();				\
-			}						\
-		}							\
-									\
-		mba_row();						\
-	}								\
-} while (0)
-
 
 static const int motion = 0;
 static int MV[2][2] = {
@@ -322,7 +279,7 @@ picture_i(unsigned char *org0, unsigned char *org1)
 	quant_sum = 0;
 	act_sum = 0.0;
 
-//	swap(oldref, newref);
+	swap(oldref, newref);
 
 	reset_mba();
 	reset_dct_pred();
@@ -356,9 +313,8 @@ picture_i(unsigned char *org0, unsigned char *org1)
 
 			/* Calculate quantization factor */
 
-			act = var / 65536.0 + 1;
-			act_sum += act;
-			act = (2.0 * act + avg_act) / (act + 2.0 * avg_act);
+			act_sum += act = var / 65536.0 + 1;
+			act = (2.0 * act + avg_acti) / (act + 2.0 * avg_acti);
 			quant = quant_res_intra[saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max)];
 			/*
 			 *  quant_res_intra halves the quantization factor resolution above 16 to
@@ -368,7 +324,8 @@ picture_i(unsigned char *org0, unsigned char *org1)
 
 			Ti += Tmb;
 
-			if (quant >= 4 && nbabs(quant - prev_quant) <= 2)
+			if (quant >= 4 && quant > prev_quant &&
+			    nbabs(quant - prev_quant) <= 2)
 				quant = prev_quant;
 
 			/* Encode macroblock */
@@ -445,22 +402,12 @@ picture_i(unsigned char *org0, unsigned char *org1)
 
 	S = bflush(&video_out);
 
-//	printv(4, "I %8.0f T=%d S=%d d0i=%f R=%d \n", video_eff_bit_rate, T, S, d0i, R);
+	avg_acti = act_sum / mb_num;
 
 	Xi = lroundn(S * (double) quant_sum / mb_num);
 
 	d0i += S - T; // bits encoded - estimated bits
 
-	if (d0i > G4) {
-		if (!warn[0])
-			warn[0]++, fprintf(stderr, "Bit rate is too low, dropping frames\n");
-	} else if (d0i < -G4) {
-		if (!warn[1])
-			warn[1]++, fprintf(stderr, "Bit rate is too high, may run out of sync\n");
-	}
-
-	avg_act = act_sum / mb_num;
-			
 	pr_end(21);
 
 #if TEST_PREVIEW
@@ -474,14 +421,14 @@ picture_i(unsigned char *org0, unsigned char *org1)
 static int
 picture_p(unsigned char *org0, unsigned char *org1)
 {
-	double act, act_sum;
+	double act, act_sumi, act_sump;
 	int quant_sum;
 	int S, T, quant, prev_quant, quant1 = 1;
 	struct bs_rec mark;
 	unsigned char *q1p;
 	int var, vmc;
 	int mb_skipped, mb_count;
-	int rows, intra_count = 0;
+	int intra_count = 0;
 
 	printv(3, "Encoding P picture #%d GOP #%d, ref=%c\n",
 		video_frame_count, gop_frame_count, "FT"[referenced]);
@@ -491,6 +438,7 @@ picture_p(unsigned char *org0, unsigned char *org1)
 	/* Initialize rate control parameters */
 
 	swap(oldref, newref);
+
 	reset_mba();
 
 #if TEST_PREVIEW
@@ -508,7 +456,8 @@ picture_p(unsigned char *org0, unsigned char *org1)
 	Tmb = T / mb_num;
 
 	quant_sum = 0;
-	act_sum = 0.0;
+	act_sump = 0.0;
+	act_sumi = 0.0;
 
 	reset_dct_pred();
 	
@@ -542,18 +491,13 @@ picture_p(unsigned char *org0, unsigned char *org1)
 
 	bprolog(&video_out);
 
-	for (mb_row = 0, rows = mb_cx_row;; mb_row++) {
-		if (mb_row >= rows) {
-			if (mb_row >= mb_height)
-				break;
-
-			if (1 && intra_count >= mb_cx_thresh) {
-				pr_event(43, "P/cx trap");
-				pb_cx_intra(referenced);
-				break;
-			}
-
-			rows = mb_height;
+	for (mb_row = 0; mb_row < mb_height; mb_row++) {
+		if (1 && mb_row == mb_cx_row &&
+		    intra_count >= mb_cx_thresh) {
+			emms();
+			swap(oldref, newref);
+			pr_event(43, "P/cx trap");
+			return 0;
 		}
 
 		for (mb_col = 0; mb_col < mb_width; mb_col++) {
@@ -570,19 +514,21 @@ picture_p(unsigned char *org0, unsigned char *org1)
 
 			emms();
 
+			act_sumi += act = var / 65536.0 + 1;
+
 			/* Encode macroblock */
 
-			if (vmc > var || vmc > p_inter_bias) {
+			if (vmc > p_inter_bias) {
+//			if (vmc > var || vmc > p_inter_bias) {
 				int length, i;
 
 				/* Calculate quantization factor */
 
-				act_sum += act = var / 65536.0 + 1;
-				act = (2.0 * act + avg_act) / (act + 2.0 * avg_act);
+				act_sump += act;
+				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
 
-				quant = 
-lroundn((bwritten(&video_out) - Ti) * r31 * act);
-quant = quant_res_intra[saturate(quant >> QS, 1, quant_max)];
+				quant = lroundn((bwritten(&video_out) - Ti) * r31 * act);
+				quant = quant_res_intra[saturate(quant >> QS, 1, quant_max)];
 
 //				if (quant >= 4 && abs(quant - prev_quant) <= 2)
 //					quant = prev_quant;
@@ -617,11 +563,11 @@ quant = quant_res_intra[saturate(quant >> QS, 1, quant_max)];
 
 				/* Calculate quantization factor */
 
-				act_sum += act = vmc / 65536.0 + 1;
-				act = (2.0 * act + avg_act) / (act + 2.0 * avg_act);
+				act_sump += act = vmc / 65536.0 + 1;
+				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
 
-quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
-    				
+				quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
+
 //				if (quant >= 4 && abs(quant - prev_quant) <= 2)
 //					quant = prev_quant;
 
@@ -777,21 +723,12 @@ quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max)
 	
 	*q1p |= (quant1 << 3);
 
-	avg_act = act_sum / mb_num;
-
-	// printv(4, "P %8.0f T=%d S=%d d0p=%f\n", video_eff_bit_rate, T, S, d0p);
+	avg_actp = act_sump / mb_num;
+	avg_acti = act_sumi / mb_num;
 
 	Xp = lroundn(S * (double) quant_sum / mb_num);
 
 	d0p += S - T;
-
-	if (d0p > G4) {
-		if (!warn[0])
-			warn[0]++, fprintf(stderr, "Bit rate is too low, dropping frames\n");
-	} else if (d0p < -G4) {
-		if (!warn[1])
-			warn[1]++, fprintf(stderr, "Bit rate is too high, may run out of sync\n");
-	}
 
 	pr_end(24);
 
@@ -815,7 +752,6 @@ picture_b(unsigned char *org0, unsigned char *org1)
 	int var, vmc, vmcf, vmcb;
 	int macroblock_type, mb_type_last;
 	int mb_skipped, mb_count;
-	int rows, intra_count = 0;
 
 	printv(3, "Encoding B picture #%d GOP #%d, fwd=%c\n",
 		video_frame_count, gop_frame_count, "FT"[!closed_gop]);
@@ -881,20 +817,7 @@ picture_b(unsigned char *org0, unsigned char *org1)
 
 	bprolog(&video_out);
 
-	for (mb_row = 0, rows = mb_cx_row;; mb_row++) {
-		if (mb_row >= rows) {
-			if (mb_row >= mb_height)
-				break;
-
-			if (1 && intra_count >= mb_cx_thresh) {
-				pr_event(48, "B/cx trap");
-				pb_cx_intra(FALSE);
-				break;
-			}
-
-			rows = mb_height;
-		}
-
+	for (mb_row = 0; mb_row < mb_height; mb_row++) {
 		for (mb_col = 0; mb_col < mb_width; mb_col++) {
 
 			/* Read macroblock (MMX state) */
@@ -912,7 +835,26 @@ picture_b(unsigned char *org0, unsigned char *org1)
 					newref + mb_address.block[0].offset,
 					&vmcf, &vmcb);
 				pr_end(52);
+if (1) {
+	int i, n, s, s2, j = 4 * 64;
 
+	for (i = s = s2 = 0; i < j; i++) {
+		s += n = mblock[0][0][0][i];
+		s2 += n * n;
+	} var = s2 * j - (s * s);
+	for (i = s = s2 = 0; i < j; i++) {
+		s += n = mblock[1][0][0][i];
+		s2 += n * n;
+	} vmcf = s2 * j - (s * s);
+	for (i = s = s2 = 0; i < j; i++) {
+		s += n = mblock[2][0][0][i];
+		s2 += n * n;
+	} vmcb = s2 * j - (s * s);
+	for (i = s = s2 = 0; i < j; i++) {
+		s += n = mblock[3][0][0][i];
+		s2 += n * n;
+	} vmc = s2 * j - (s * s);
+}
 				macroblock_type = MB_INTERP;
 				iblock = &mblock[3];
 
@@ -932,30 +874,27 @@ picture_b(unsigned char *org0, unsigned char *org1)
 			}
 
 			emms();
-
+if (0)
 			vmc <<= 8;
 
 			/* Encode macroblock */
 
-			if (vmc > var || vmc > b_inter_bias) {
+			if (vmc > b_inter_bias) {
+//			if (vmc > var || vmc > b_inter_bias) {
 				int length;
 				int i;
 
 				/* Calculate quantization factor */
 
 				act_sum += act = var / 65536.0 + 1;
-				act = (2.0 * act + avg_act) / (act + 2.0 * avg_act);
-	
-	quant = lroundn((bwritten(&video_out) - Ti) * r31 * act);
-	quant = quant_res_intra[saturate(quant >> QS, 1, quant_max)];
+				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
 
-//				if (quant >= 4 && abs(quant - prev_quant) <= 2)
-//					quant = prev_quant;
+				quant = lroundn((bwritten(&video_out) - Ti) * r31 * act);
+				quant = quant_res_intra[saturate(quant >> QS, 1, quant_max)];
 
 				Ti += Tmb;
 
 				macroblock_type = MB_INTRA;
-				intra_count++;
 
 				pb_intra_mb(TRUE);
 
@@ -980,12 +919,9 @@ picture_b(unsigned char *org0, unsigned char *org1)
 				/* Calculate quantization factor */
 
 				act_sum += act = vmc / 65536.0 + 1;
-				act = (2.0 * act + avg_act) / (act + 2.0 * avg_act);
+				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
 
-quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
-
-//				if (quant >= 4 && abs(quant - prev_quant) <= 2)
-//					quant = prev_quant;
+				quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
 
 				Ti += Tmb;
 
@@ -1158,21 +1094,11 @@ quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max)
 
 	*q1p |= (quant1 << 3);
 
-	avg_act = act_sum / mb_num;
-
-	// printv(4, "B %8.0f T=%d S=%d d0b=%f\n", video_eff_bit_rate, T, S, d0b);
+	avg_actp = act_sum / mb_num;
 
 	Xb = lroundn(S * (double) quant_sum / mb_num);
 
 	d0b += S - T;
-
-	if (d0b > G4) {
-		if (!warn[0])
-			warn[0]++, fprintf(stderr, "Bit rate is too low, dropping frames\n");
-	} else if (d0b < -G4) {
-		if (!warn[1])
-			warn[1]++, fprintf(stderr, "Bit rate is too high, may run out of sync\n");
-	}
 
 	pr_end(25);
 
@@ -1321,20 +1247,25 @@ promote(int n)
 		printv(3, "Promoting stacked B picture #%d\n", i);
 
 		obuf = wait_empty_buffer(video_fifo);
-		bstart(&video_out, obuf->data);
 		referenced = TRUE;
-		Eb--;
+		Ep++; Eb--;
 
-		if (p_succ >= MAX_P_SUCC) {
-			p_succ = 0;
-			Ei++;
+		obuf->used = 0;
+
+		if (p_succ < MAX_P_SUCC) {
+			bstart(&video_out, obuf->data);
+			if ((obuf->used = picture_p(stack[i].org[0], stack[i].org[1]))) {
+				obuf->type = P_TYPE;
+				p_succ++;
+			}
+		}
+
+		if (!obuf->used) {
+			Ei++; Ep--;
+			bstart(&video_out, obuf->data);
 			obuf->used = picture_i(stack[i].org[0], stack[i].org[1]);
 			obuf->type = I_TYPE;
-		} else {
-			p_succ++;
-			Ep++;
-			obuf->used = picture_p(stack[i].org[0], stack[i].org[1]);
-			obuf->type = P_TYPE;
+			p_succ = 0;
 		}
 
 		if (stack[i].buffer)
@@ -1654,14 +1585,27 @@ gop_count++;
 
 		referenced = (seq[1] == 'P') || (seq[1] == 'B') || (sp > 1) || preview;
 
-		if (*seq++ == 'I') {
-			p_succ = 0;
+		obuf->used = 0;
+
+		if (*seq++ == 'P' && p_succ < MAX_P_SUCC) {
+			struct bs_rec mark;
+
+			brewind(&mark, &video_out);
+
+			if ((obuf->used = picture_p(this->org[0], this->org[1]))) {
+				obuf->type = P_TYPE;
+				p_succ++;
+			} else {
+				brewind(&video_out, &mark); // headers
+
+				obuf->used = picture_i(this->org[0], this->org[1]);
+				obuf->type = I_TYPE;
+				p_succ = 0;
+			}
+		} else {
 			obuf->used = picture_i(this->org[0], this->org[1]);
 			obuf->type = I_TYPE;
-		} else {
-			p_succ++;
-			obuf->used = picture_p(this->org[0], this->org[1]);
-			obuf->type = P_TYPE;
+			p_succ = 0;
 		}
 
 		if (this->buffer)
@@ -1726,7 +1670,8 @@ video_reset(void)
 	R	= 0;
 	r31	= (double) quant_max / lroundn(video_bit_rate / frame_rate * 1.0);
 	Tmin	= lroundn(video_bit_rate / frame_rate / 8.0);
-	avg_act	= 400.0;
+	avg_acti = 400.0;
+	avg_actp = 400.0;
 
 	Xi	= lroundn(160.0 * video_bit_rate / 115.0);
 	Xp	= lroundn( 60.0 * video_bit_rate / 115.0); 
@@ -1865,8 +1810,6 @@ video_init(void)
 		mb_address.row.chrom	= mb_width * (8 * 7 - 16 * 15);
 		mb_address.chrom_0	= mb_address.block[4].offset;
 	}
-
-
 
 	mb_cx_row = mb_height;
 	mb_cx_thresh = 100000;

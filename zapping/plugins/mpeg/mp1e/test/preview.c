@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preview.c,v 1.4 2000-10-26 10:56:16 mschimek Exp $ */
+/* $Id: preview.c,v 1.5 2000-10-27 16:20:06 mschimek Exp $ */
 
 #if defined(HAVE_LIBXV) && defined (TEST_PREVIEW)
 
@@ -79,8 +79,8 @@ static struct test_capture_param params[] =
 {
 	{"Video bit rate:", 2.3, 0.01, 0.01, 8, 2},
 	{"Force drop rate (%):", 0, 1, 0, 100, 0},
-	{"P inter bias:", 48, 1, 0, 256, 0},
-	{"B inter bias:", 96, 1, 0, 256, 0},
+	{"P inter bias:", 48, 1, 0, 512, 0},
+	{"B inter bias:", 96, 1, 0, 512, 0},
 	{"Frame rate:", 25, 0.01, 1, 30, 2},
 	{"Quantization limit:", 31, 1, 1, 31, 0}
 };
