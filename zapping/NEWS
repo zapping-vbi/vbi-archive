@@ -1,6 +1,10 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+0.7.3
+-----
+Bugfixes.
+
 0.7.2
 -----
 This version of Zapping requires Gtk+ 2.4.

@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.156 2004-10-09 05:42:12 mschimek Exp $
+dnl $Id: configure.in,v 1.157 2004-10-11 01:54:41 mschimek Exp $
 
-AC_INIT(zapping, 0.7.2,
+AC_INIT(zapping, 0.7.3,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)

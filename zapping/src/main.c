@@ -567,7 +567,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.188 2004-10-09 05:39:25 mschimek Exp $",
+	 "$Id: main.c,v 1.189 2004-10-11 01:54:44 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -884,7 +884,7 @@ int main(int argc, char * argv[])
       /* has no mute function */
       action = gtk_action_group_get_action (zapping->generic_action_group,
 					    "Mute");
-      gtk_action_set_visible (action, FALSE);
+      z_action_set_visible (action, FALSE);
       D();
     }
   D();

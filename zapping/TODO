@@ -1,6 +1,7 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Middle mouse button shouldn't be hardwired but run a Python command.
 * Prefs > Video: "Fullscreen screen resolution" might be a better name.
 * Fullscreen should always fill the visible screen, even if "no
   change" of resolution has been selected. Additionally Zapping should

@@ -10,7 +10,6 @@ Zapping 0.7.2:
 * Teletext toolbar reorientation is broken with
   gtk_toolbar_set_show_arrow FALSE (we use default TRUE now),
   seems to be a Gtk+ bug.
-* Doesn't compile without libzvbi.
 
 Zapping 0.7 bugs, need more work later:
 * Video size isn't always right on startup.

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-10-04 04:56+0200\n"
+"POT-Creation-Date: 2004-10-11 03:53+0200\n"
 "PO-Revision-Date: 2004-09-26 15:15+0200\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -389,7 +389,7 @@ msgstr "Le permite controlar Zapping a través de lirc"
 
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:411 plugins/mpeg/mpeg.c:2146
+#: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:2146
 #: plugins/screenshot/screenshot.c:1615 plugins/teletext/main.c:998
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
@@ -987,7 +987,7 @@ msgstr "Abrir en _Nueva ventana"
 msgid "_Open Link"
 msgstr "A_brir Vínculo"
 
-#: plugins/teletext/view.c:1584 plugins/teletext/window.c:202
+#: plugins/teletext/view.c:1584 plugins/teletext/window.c:205
 msgid "_New Window"
 msgstr "Nueva _Ventana"
 
@@ -1007,7 +1007,7 @@ msgstr "_Colores..."
 msgid "S_ubtitles"
 msgstr "S_ubtítulos"
 
-#: plugins/teletext/view.c:1614 plugins/teletext/window.c:207
+#: plugins/teletext/view.c:1614 plugins/teletext/window.c:210
 #: src/zapping.c:463
 msgid "_Bookmarks"
 msgstr "_Marcadores"
@@ -1047,24 +1047,24 @@ msgstr "Ir al índice"
 msgid "Save this page to a file"
 msgstr "Abrir esta página con Zapzilla"
 
-#: plugins/teletext/window.c:201 src/zapping.c:399
+#: plugins/teletext/window.c:204 src/zapping.c:399
 msgid "_File"
 msgstr "_Archivo"
 
-#: plugins/teletext/window.c:205 src/zapping.c:401
+#: plugins/teletext/window.c:208 src/zapping.c:401
 msgid "_Edit"
 msgstr "_Editar"
 
 # src/v4l2interface.c:344
-#: plugins/teletext/window.c:206 src/zapping.c:408
+#: plugins/teletext/window.c:209 src/zapping.c:408
 msgid "_View"
 msgstr "_Ver"
 
-#: plugins/teletext/window.c:266 src/zapping.c:441
+#: plugins/teletext/window.c:269 src/zapping.c:441
 msgid "Toolbar"
 msgstr "Barra de herramientas"
 
-#: plugins/teletext/window.c:268
+#: plugins/teletext/window.c:271
 #, fuzzy
 msgid "Statusbar"
 msgstr "Barra de _Estado"
@@ -1079,11 +1079,11 @@ msgstr "Entrada:"
 msgid "General Options"
 msgstr "Opciones generales"
 
-#: src/audio.c:629
+#: src/audio.c:630
 msgid "<span foreground=\"blue\">Audio off</span>"
 msgstr "<span foreground=\"blue\">Audio apagado</span>"
 
-#: src/audio.c:630
+#: src/audio.c:631
 msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr "<span foreground=\"yellow\">Audio encendido</span>"
 
@@ -1448,7 +1448,7 @@ msgstr ""
 "Lo siento, pero \"%s\" no se pudo abrir:\n"
 "%s"
 
-#: src/main.c:1166 src/zapzilla.c:165
+#: src/main.c:1172 src/zapzilla.c:165
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -1468,7 +1468,7 @@ msgstr ""
 "   - o, más probablemente, esto es un fallo de %s.\n"
 "     Por favor contacte con el autor.\n"
 
-#: src/main.c:1195
+#: src/main.c:1201
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Zapping no puede crear la configuración"
 
@@ -1714,11 +1714,11 @@ msgid "Zapping Properties"
 msgstr "Propiedades de Zapping"
 
 # src/frequencies.c:817
-#: src/subtitle.c:60
+#: src/subtitle.c:61
 msgid "_Disable"
 msgstr "_Dishabilitar"
 
-#: src/subtitle.c:129
+#: src/subtitle.c:130
 #, c-format
 msgid "Page %x"
 msgstr "Página %x"
@@ -1930,40 +1930,40 @@ msgstr "Ajustar %s"
 msgid "Controls"
 msgstr "Controles"
 
-#: src/v4linterface.c:1107 src/zmisc.c:1901
+#: src/v4linterface.c:1108 src/zmisc.c:1904
 msgid "Unknown"
 msgstr "Desconocido"
 
-#: src/v4linterface.c:1116 src/v4linterface.c:2214
+#: src/v4linterface.c:1117 src/v4linterface.c:2215
 msgid "Unnamed"
 msgstr "Sin nombre"
 
-#: src/v4linterface.c:1125
+#: src/v4linterface.c:1126
 msgid "No input"
 msgstr "Sin entradas"
 
 # src/v4l2interface.c:344
-#: src/v4linterface.c:1136
+#: src/v4linterface.c:1137
 msgid "No standard"
 msgstr "Sin estándares"
 
 # src/v4l2interface.c:344
-#: src/v4linterface.c:2104
+#: src/v4linterface.c:2105
 msgid "Video standards"
 msgstr "Estándares de vídeo"
 
-#: src/v4linterface.c:2124
+#: src/v4linterface.c:2125
 msgid "Audio inputs"
 msgstr "Entradas de audio"
 
-#: src/v4linterface.c:2144
+#: src/v4linterface.c:2145
 msgid "Video inputs"
 msgstr "Entradas de vídeo"
 
 # src/v4l2interface.c:146
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: src/v4linterface.c:2242
+#: src/v4linterface.c:2243
 msgid "No channels"
 msgstr "No hay canales"
 
@@ -2046,7 +2046,7 @@ msgstr "Conmutar el estado del audio"
 msgid "Menu"
 msgstr "Menu"
 
-#: src/zapping.c:443 src/zapping.c:1005
+#: src/zapping.c:443 src/zapping.c:1008
 msgid "Keep window on top"
 msgstr "Mantener la ventana encima del resto"
 
@@ -2076,7 +2076,7 @@ msgstr "_Nueva Vista TTX"
 msgid "Switch subtitles on or off"
 msgstr "Conmutar los subtítulos"
 
-#: src/zapping.c:1003
+#: src/zapping.c:1006
 msgid "Show menu and toolbar"
 msgstr "Mostrar el menu y la barra de herramientas"
 
@@ -2096,7 +2096,7 @@ msgstr "Zapzilla no se pudo iniciar"
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Zapzilla no puede crear la configuración"
 
-#: src/zmisc.c:664
+#: src/zmisc.c:667
 #, c-format
 msgid ""
 "Cannot start video overlay.\n"
@@ -2105,11 +2105,11 @@ msgstr ""
 "No se puede iniciar el overlay de vídeo.\n"
 "%s"
 
-#: src/zmisc.c:677
+#: src/zmisc.c:680
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI ha sido dishabilitado, o no funciona."
 
-#: src/zmisc.c:711
+#: src/zmisc.c:714
 #, c-format
 msgid ""
 "Cannot start fullscreen overlay.\n"
@@ -2118,62 +2118,62 @@ msgstr ""
 "No se puede iniciar el overlay a pantalla completa.\n"
 "%s"
 
-#: src/zmisc.c:988
+#: src/zmisc.c:991
 msgid "Hide the statusbar"
 msgstr "Ocultar la barra de estado"
 
-#: src/zmisc.c:1089
+#: src/zmisc.c:1092
 msgid "The path must start with /"
 msgstr "La ruta ha de comenzar por /"
 
-#: src/zmisc.c:1104
+#: src/zmisc.c:1107
 #, c-format
 msgid "Cannot create %s: %s"
 msgstr "No se puede crear %s: %s"
 
-#: src/zmisc.c:1117
+#: src/zmisc.c:1120
 #, c-format
 msgid "%s is not a directory"
 msgstr "%s no es un directorio"
 
-#: src/zmisc.c:1812 src/zmisc.c:1816
+#: src/zmisc.c:1815 src/zmisc.c:1819
 msgid "Reset"
 msgstr "Restablecer"
 
-#: src/zmisc.c:2096
+#: src/zmisc.c:2099
 msgid "Device:"
 msgstr "Dispositivo:"
 
-#: src/zmisc.c:2097
+#: src/zmisc.c:2100
 msgid "Driver:"
 msgstr "Controlador:"
 
-#: src/zmisc.c:2098
+#: src/zmisc.c:2101
 msgid "Device file:"
 msgstr "Fichero:"
 
-#: src/zmisc.c:2438
+#: src/zmisc.c:2441
 #, c-format
 msgid "%s exists."
 msgstr ""
 
-#: src/zmisc.c:2443
+#: src/zmisc.c:2446
 msgid "_Overwrite"
 msgstr ""
 
-#: src/zmisc.c:2448
+#: src/zmisc.c:2451
 #, fuzzy, c-format
 msgid "%s is a directory."
 msgstr "%s no es un directorio"
 
 #. TRANSLATORS: device file, pipe,
 #. socket etc.
-#: src/zmisc.c:2461
+#: src/zmisc.c:2464
 #, c-format
 msgid "%s is a special file."
 msgstr ""
 
-#: src/zmisc.c:2465
+#: src/zmisc.c:2468
 msgid "Continue"
 msgstr ""
 
