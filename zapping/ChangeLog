@@ -1,9 +1,13 @@
-01.3.2000	New module <garetxe@users.sourceforge.net>
+08.4.2000	zconf working <garetxe@users.sourceforge.net>
+
+	* zconf.c: Now it is written and appears to work fine.
+	
+01.4.2000	New module <garetxe@users.sourceforge.net>
 
 	* zmisc.c: Created, is a place for putting some misc functions
 	that didn't fit elsewhere.
 	
-01.3.2000	ZConf API created <garetxe@users.sourceforge.net>
+01.4.2000	ZConf API created <garetxe@users.sourceforge.net>
 
 	* zconf.h: It holds the new zconf API, but nothing of it is
 	implemented yet.

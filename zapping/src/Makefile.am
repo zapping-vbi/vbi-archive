@@ -15,7 +15,7 @@ zapping_SOURCES = \
 ##	io.c io.h \
 ##	v4l2interface.c v4l2interface.h \
 ##	plugins.c plugins.h \
-##	zconf.c zconf.h \
+	zconf.c zconf.h \
 	zmisc.c zmisc.h \
 	tveng.c tveng.h
 
