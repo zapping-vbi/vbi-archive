@@ -1,5 +1,4 @@
 # French translation for Zapping.
-# Copyright (C) YEAR Free Software Foundation, Inc.
 # Christian Marillat <marillat.christian@wanadoo.fr>, 2000.
 #
 msgid ""
@@ -855,9 +854,8 @@ msgid "Sorry, but the plugin couldn't be started"
 msgstr "Désolé, mais le plugin ne peut être démarré"
 
 #: src/plugin_properties.c:397
-#, fuzzy
 msgid "Sorry, the plugin doesn't provide help for this"
-msgstr "Désolé, mais le plugin ne peut être démarré"
+msgstr "Le plugin ne fournis pas d'aide. Désolé."
 
 #: zapping_setup_fb/zapping_setup_fb.c:83
 msgid ""
@@ -1262,9 +1260,8 @@ msgid "Properties"
 msgstr "Propriété"
 
 #: glade/glade_strings.c:93
-#, fuzzy
 msgid "Plugin location"
-msgstr "Description du plugin"
+msgstr "Location du plugin"
 
 #: glade/glade_strings.c:94
 msgid "This is the file where the plugin is located"
@@ -1296,7 +1293,7 @@ msgstr ""
 
 #: glade/glade_strings.c:101
 msgid "Advanced"
-msgstr ""
+msgstr "Avancé"
 
 #: plugins/screenshot/screenshot.c:31
 msgid "Screenshot saver"
