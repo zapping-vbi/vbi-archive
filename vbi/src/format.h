@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.4.2.2 2003-04-29 05:50:18 mschimek Exp $ */
+/* $Id: format.h,v 1.4.2.3 2003-06-16 06:04:29 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -395,16 +395,12 @@ typedef struct vbi_page {
 	vbi_opacity		boxed_opacity[2];
 } vbi_page;
 
-#if 0
-
 typedef enum {
-	VBI_EXP_TABLE =		(1 << 0),
-	VBI_EXP_RTL =		(1 << 1),
-	VBI_EXP_REVEAL =	(1 << 2),
-	VBI_EXP_FLASH_ON =	(1 << 3),
+	VBI_TABLE		= 1 << 0,
+	VBI_RTL			= 1 << 1,
+	VBI_REVEAL		= 1 << 2,
+	VBI_FLASH_OFF		= 1 << 3,
 } vbi_export_flags;
-
-#endif
 
 /* Private */
 
@@ -414,11 +410,44 @@ namespace vbi {
   class Char {
     vbi_char			ch;
   };
+
   class Page {
     vbi_page *			pg;
+
   public:
+    Page () { }; /* TODO */
+    ~Page () { }; /* TODO */
+    Page (Page& s)
+      {
+	if (pg == s.pg)
+	  return;
+	// unref pg
+	// copy s.pg
+      }
+    typedef Char		value_type;
+    typedef Char*		iterator;
     typedef const Char*		const_iterator;
+    typedef Char&		reference;
     typedef const Char&		const_reference;
+    typedef Char*		pointer;
+    typedef size_t		difference_type;
+    typedef size_t		size_type;
+    size_type size (void) const
+      { return pg->rows * pg->columns; }
+    iterator begin (void) const
+      { return pg->text; }
+    iterator end (void) const
+      { return pg->text + size (); }
+    size_type max_size (void) const
+      { return sizeof (pg->text) / sizeof (*pg->text); }
+    bool empty (void) const
+      { return 0 == (pg->columns | pg->rows); }
+    void swap (Page& b)
+      { swap (this->pg, b.pg); }
+    reference operator[] (size_type n) const
+      { return pg->text + n; }
+    reference at (unsigned int column, unsigned int row) const
+      { return pg->text + row * pg->columns + column; }
     Pgno pgno (void) const
       { return pg->pgno; }
     Subno subno (void) const
@@ -427,17 +456,53 @@ namespace vbi {
       { return pg->rows; }
     unsigned int columns (void) const
       { return pg->columns; }
-    const_iterator begin (void) const
-      { return pg->text; }
-    const_iterator end (void) const
-      { return pg->text + pg->rows * pg->columns; }
-    const_reference operator[] (size_t n) const
-      { return pg->text + n; }
+    /* teletext */
+    bool hyperlink	(vbi_link&		ld,
+			 unsigned int		column,
+			 unsigned int		row)
+      const
+      {
+	return vbi_page_hyperlink (pg, ld, column, row);
+      }
+    bool hyperlink	(vbi_link&		ld,
+			 const_reference	ref)
+      const
+      {
+	size_type i = &ref - pg->text;
+
+	return hyperlink (ld, i % pg->columns, i / pg->columns);
+      }
+    bool nav_link	(vbi_link&		ld,
+			 unsigned int		num)
+      const
+      {
+	return vbi_page_nav_link (pg, ld, num);
+      }
+    bool home_link	(vbi_link&		ld)
+      const
+      {
+	return vbi_page_nav_link (pg, ld, 5);
+      }
+    bool pdc_link	(vbi_pdc_preselection&	lp,
+			 unsigned int		column,
+			 unsigned int		row)
+      const
+      {
+	return vbi_page_pdc_link (pg, lp, column, row);
+      }
+    bool pdc_link	(vbi_pdc_preselection&	lp,
+			 const_reference	ref)
+      const
+      {
+	size_type i = &ref - pg->text;
+	return pdc_link (ld, i % pg->columns, i / pg->columns);
+      }
+
     /* exp-txt */
-    unsigned int print	(char *			buf,
+    unsigned int print	(char*			buf,
 			 unsigned int		buf_size,
-			 const char *		format,
-			 const char *		separator,
+			 const char*		format,
+			 const char*		separator,
 			 unsigned int		sep_size,
 			 vbi_export_flags	flags,
 			 unsigned int		column,
@@ -447,13 +512,11 @@ namespace vbi {
       {
 	return vbi_print_page_region (pg, buf, buf_size,
 				      format, separator, sep_size,
-				      flags & VBI_EXP_TABLE,
-				      flags & VBI_EXP_RTL,
-				      column, row, width, height);
+				      flags, column, row, width, height);
       }
-    unsigned int print	(char *			buf,
+    unsigned int print	(char*			buf,
 			 unsigned int		buf_size,
-			 const char *		format,
+			 const char*		format,
 			 vbi_export_flags	flags,
 			 unsigned int		column,
 			 unsigned int		row,
@@ -462,24 +525,20 @@ namespace vbi {
       {
 	return vbi_print_page_region (pg, buf, buf_size,
 				      format, NULL, 0,
-				      flags & VBI_EXP_TABLE,
-				      flags & VBI_EXP_RTL,
-				      column, row, width, height);
+				      flags, column, row, width, height);
       }
-    unsigned int print	(char *			buf,
+    unsigned int print	(char*			buf,
 			 unsigned int		buf_size,
-			 const char *		format = 0,
+			 const char*		format = 0,
 			 vbi_export_flags	flags = 0)
       {
 	return vbi_print_page_region (pg, buf, buf_size,
 				      format, NULL, 0,
-				      flags & VBI_EXP_TABLE,
-				      flags & VBI_EXP_RTL,
-				      0, 0, pg.columns, pg.rows);
+				      flags, 0, 0, pg.columns, pg.rows);
       }
     /* exp-gfx */
     void draw_vt_page	(vbi_pixfmt		fmt,
-			 char *			canvas,
+			 char*			canvas,
 			 unsigned int		stride,
 			 vbi_export_flags	flags,
 			 unsigned int		column,
@@ -488,21 +547,21 @@ namespace vbi {
 			 unsigned int		height)
       {
 	vbi_draw_vt_page_region (pg, fmt, canvas, stride,
-				 column, row, width, height,
-				 flags & VBI_EXP_REVEAL,
-				 flags & VBI_EXP_FLASH_ON);
+				 flags, column, row, width, height);
       }
     void draw_vt_page	(vbi_pixfmt		fmt,
-			 char *			canvas,
+			 char*			canvas,
 			 unsigned int		stride = 0,
 			 vbi_export_flags	flags = 0)
       {
 	vbi_draw_vt_page_region (pg, fmt, canvas, stride,
-				 0, 0, pg.columns, pg.rows,
-				 flags & VBI_EXP_REVEAL,
-				 flags & VBI_EXP_FLASH_ON);
+				 flags, 0, 0, pg.columns, pg.rows);
       }
   };
+
+  static inline void
+  swap (Page& a, Page& b) { swap (a.pg, b.pg); }
+
 }; /* namespace vbi */
 
 #endif
