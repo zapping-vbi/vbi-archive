@@ -1321,6 +1321,8 @@ request_capture_format		(tveng_device_info *	info,
 
   g_assert (NULL != info);
 
+  id = -1;
+
   if (debug_msg)
     {
       tv_pixfmt pixfmt;
