@@ -1,6 +1,6 @@
 noinst_LIBRARIES = libvbi.a
 
-EXTRA_DIST = font1.xbm font2.xbm font3.xbm font4.xbm README
+EXTRA_DIST = wstfont.xbm README
 
 ## Avoid warning messages (i'm not going to maintain this code)
 ## mhs testing new vbi code; CFLAGS = -w $(ARCH_CFLAGS)

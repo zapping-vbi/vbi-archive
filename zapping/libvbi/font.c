@@ -1,21 +1,5 @@
 #include "font.h"
 
-#include "font1.xbm"
-#include "font2.xbm"
-#include "font3.xbm"
-#include "font4.xbm"
-
-#if font1_width != font2_width || font1_height != font2_height
-#error different font sizes.
-#endif
-
-#if font3_width != font4_width || font3_height != font4_height
-#error different font sizes.
-#endif
-
-#if font1_width != font4_width || font1_height != font4_height
-#error different font sizes.
-#endif
 
 static int lang_code=0; /* Start with latin glyphs */
 
