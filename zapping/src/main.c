@@ -576,7 +576,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.196 2005-02-12 13:37:07 mschimek Exp $",
+	 "$Id: main.c,v 1.197 2005-02-15 17:19:31 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
@@ -944,6 +944,9 @@ int main(int argc, char * argv[])
   /* Closes all fd's, writes the config to HD, and that kind of things
      shutdown_zapping(); moved to zapping.c */
 
+  /* Python. */
+  shutdown_remote();
+
   return 0;
 }
 
@@ -1162,7 +1165,6 @@ void shutdown_zapping(void)
 
   printv(" cmd");
   shutdown_cmd ();
-  shutdown_remote();
 
   printv(".\nShutdown complete, goodbye.\n");
 }
