@@ -2,7 +2,7 @@
 
 SUBDIRS = C
 
-zapping_helpdir = `$(GNOME_CONFIG) --datadir`/gnome/help/zapping
+zapping_helpdir = $(datadir)/gnome/help/zapping
 
 uninstall-local:
 	if test -d $(zapping_helpdir); then \

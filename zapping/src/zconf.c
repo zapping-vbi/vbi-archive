@@ -46,11 +46,17 @@
 #include "zmisc.h" /* Misc common stuff */
 
 /*
-  Work around this little annoying incompatibility between libxml 1
+  Work around these little annoying incompatibilities between libxml 1
   and 2
 */
 #ifdef LIBXML_CHILDS
 #define children childs
+#endif
+
+#ifdef LIBXML_NO_ROOT
+/* Some people don't need this defines, but need the ones above */
+#define xmlDocSetRootElement(doc, node) (doc->root = node)
+#define xmlDocGetRootElement(doc) (doc->root)
 #endif
 
 /*

@@ -1,6 +1,5 @@
 %define  prefix  /usr
 %define  ver @VERSION@
-%define  gnome_prefix /usr
 
 Name: zapping
 Version: %{ver}
@@ -17,8 +16,9 @@ PreReq: /sbin/install-info
 Docdir: 	%{prefix}/doc
 
 Requires: gtk+ >= 1.2.6
-Requires: gnome-libs >= 1.0.57
+Requires: gnome-libs >= 1.0.40
 Requires: libxml >= 1.4.0
+Requires: libglade >= 0.9
 
 %description
 GNOME (GNU Network Object Model Environment) is a user-friendly set of
@@ -40,25 +40,33 @@ make
 [ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
 
 make prefix=$RPM_BUILD_ROOT%{prefix} install
-
+#
+# Auto detect the lang files.
+#
+if [ -f /usr/lib/rpm/find-lang.sh ] ; then
+ /usr/lib/rpm/find-lang.sh $RPM_BUILD_ROOT %name
+ sed "s:(644, root, root, 755):(444, bin, bin, 555):" %{name}.lang >tmp.lang && mv tmp.lang %{name}.lang
+fi
 
 %clean
 [ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
 
-%files
+%files -f %{name}.lang
+
+%defattr (4555, bin, bin)
+%{prefix}/bin/zapping_setup_fb
 
 %defattr (0555, bin, bin)
 %{prefix}/bin/zapping
-%{prefix}/bin/zapping_setup_fb
 %{prefix}/share/zapping/plugins/*.zapping.so
 %{prefix}/share/zapping/plugins/*.zapping.so.0.0.0
 
 %defattr (0444, bin, man, 0555)
-%{gnome_prefix}/share/zapping/*.glade
-%{gnome_prefix}/share/gnome/help/zapping/C/*.jpeg
-%{gnome_prefix}/share/gnome/help/zapping/C/*.html
-%{gnome_prefix}/share/gnome/help/zapping/C/*.dat
-%{gnome_prefix}/share/pixmaps/zapping/*
+%{prefix}/share/zapping/*.glade
+%{prefix}/share/gnome/help/zapping/C/*.jpeg
+%{prefix}/share/gnome/help/zapping/C/*.html
+%{prefix}/share/gnome/help/zapping/C/*.dat
+%{prefix}/share/pixmaps/zapping/*
 
 %defattr (0444, bin, bin, 555)
 %doc AUTHORS ChangeLog README COPYING TODO BUGS po/zapping.pot

@@ -6,7 +6,7 @@ device_info.jpeg general_options.jpeg topic.dat
 
 EXTRA_DIST = $(zapping_helpfiles)
 
-zapping_helpdir = `$(GNOME_CONFIG) --datadir`/gnome/help/zapping/C
+zapping_helpdir = $(datadir)/gnome/help/zapping/C
 
 install-data-local:
 	$(mkinstalldirs) $(zapping_helpdir)

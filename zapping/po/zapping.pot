@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-06-07 12:01+0200\n"
+"POT-Creation-Date: 2000-06-07 18:13+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -559,89 +559,89 @@ msgid ""
 msgstr ""
 
 #. For translators: This will be precceeded by the domain (program) name
-#: src/zconf.c:156
+#: src/zconf.c:162
 msgid " cannot determine your home dir"
 msgstr ""
 
-#: src/zconf.c:170
+#: src/zconf.c:176
 msgid "Cannot create config home dir, check your permissions"
 msgstr ""
 
-#: src/zconf.c:178
+#: src/zconf.c:184
 msgid "Cannot open config home dir, this is weird"
 msgstr ""
 
-#: src/zconf.c:272
+#: src/zconf.c:278
 msgid ""
 "Zapping cannot save configuration to disk\n"
 "You should have write permissions to your home dir..."
 msgstr ""
 
-#: src/zconf.c:367 src/zconf.c:502 src/zconf.c:636 src/zconf.c:764
+#: src/zconf.c:373 src/zconf.c:508 src/zconf.c:642 src/zconf.c:770
 #, c-format
 msgid "Changing the value of %s from %s to %s"
 msgstr ""
 
-#: src/zconf.c:423 src/zconf.c:561 src/zconf.c:690 src/zconf.c:818
+#: src/zconf.c:429 src/zconf.c:567 src/zconf.c:696 src/zconf.c:824
 #, c-format
 msgid "Trying to create %s as %s, but it existed before as %s"
 msgstr ""
 
-#: src/zconf.c:1004
+#: src/zconf.c:1010
 msgid "Integer"
 msgstr ""
 
-#: src/zconf.c:1006
+#: src/zconf.c:1012
 msgid "String"
 msgstr ""
 
-#: src/zconf.c:1008
+#: src/zconf.c:1014
 msgid "Float"
 msgstr ""
 
-#: src/zconf.c:1010
+#: src/zconf.c:1016
 msgid "Boolean"
 msgstr ""
 
-#: src/zconf.c:1012
+#: src/zconf.c:1018
 msgid "Directory"
 msgstr ""
 
-#: src/zconf.c:1014
+#: src/zconf.c:1020
 msgid "Undefined"
 msgstr ""
 
-#: src/zconf.c:1016
+#: src/zconf.c:1022
 msgid "Unknown"
 msgstr ""
 
-#: src/zconf.c:1097
+#: src/zconf.c:1103
 #, c-format
 msgid "Sorry, the especified type \"%s\" is unknown\n"
 msgstr ""
 
 #. It already exists, warn
-#: src/zconf.c:1108
+#: src/zconf.c:1114
 #, c-format
 msgid "Duplicated node in the config tree: %s"
 msgstr ""
 
-#: src/zconf.c:1128
+#: src/zconf.c:1134
 #, c-format
 msgid "%s is empty, but it shouldn't be"
 msgstr ""
 
-#: src/zconf.c:1305 src/zconf.c:1383
+#: src/zconf.c:1311 src/zconf.c:1389
 #, c-format
 msgid "Removing %d consecutive slashes, this shouldn't happen"
 msgstr ""
 
-#: src/zconf.c:1322 src/zconf.c:1400 src/zconf.c:1438
+#: src/zconf.c:1328 src/zconf.c:1406 src/zconf.c:1444
 #, c-format
 msgid "Path item too long: %s"
 msgstr ""
 
-#: src/zconf.c:1414
+#: src/zconf.c:1420
 #, c-format
 msgid "%s isn't your domain name, zconf will exit now"
 msgstr ""

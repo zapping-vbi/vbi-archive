@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.5.0\n"
-"POT-Creation-Date: 2000-06-07 12:01+0200\n"
+"POT-Creation-Date: 2000-06-07 15:39+0200\n"
 "PO-Revision-Date: 2000-06-06 16:47+0200\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -585,20 +585,20 @@ msgstr ""
 "changée."
 
 #. For translators: This will be precceeded by the domain (program) name
-#: src/zconf.c:156
+#: src/zconf.c:162
 msgid " cannot determine your home dir"
 msgstr " impossible de déterminer votre répertoire personnel"
 
-#: src/zconf.c:170
+#: src/zconf.c:176
 msgid "Cannot create config home dir, check your permissions"
 msgstr ""
 "Impossible de créer le répertoire de configuration, vérifié vos permissions"
 
-#: src/zconf.c:178
+#: src/zconf.c:184
 msgid "Cannot open config home dir, this is weird"
 msgstr "Impossible d'ouvrir la configuration, ce n'est pas bon"
 
-#: src/zconf.c:272
+#: src/zconf.c:278
 msgid ""
 "Zapping cannot save configuration to disk\n"
 "You should have write permissions to your home dir..."
@@ -606,71 +606,71 @@ msgstr ""
 "Zapping ne peu sauvegarder la configuration sur le disque\n"
 "Vous devriez avoir la permission d'écrire dans votre répertoire..."
 
-#: src/zconf.c:367 src/zconf.c:502 src/zconf.c:636 src/zconf.c:764
+#: src/zconf.c:373 src/zconf.c:508 src/zconf.c:642 src/zconf.c:770
 #, c-format
 msgid "Changing the value of %s from %s to %s"
 msgstr "Changer la valeur de %s a partir de %s a %s"
 
-#: src/zconf.c:423 src/zconf.c:561 src/zconf.c:690 src/zconf.c:818
+#: src/zconf.c:429 src/zconf.c:567 src/zconf.c:696 src/zconf.c:824
 #, c-format
 msgid "Trying to create %s as %s, but it existed before as %s"
 msgstr "Essai de créer %s a %s, mais il existait avant comme %s"
 
-#: src/zconf.c:1004
+#: src/zconf.c:1010
 msgid "Integer"
 msgstr "Entier"
 
-#: src/zconf.c:1006
+#: src/zconf.c:1012
 msgid "String"
 msgstr "Chaîne"
 
-#: src/zconf.c:1008
+#: src/zconf.c:1014
 msgid "Float"
 msgstr "Float"
 
-#: src/zconf.c:1010
+#: src/zconf.c:1016
 msgid "Boolean"
 msgstr "Boolean"
 
-#: src/zconf.c:1012
+#: src/zconf.c:1018
 msgid "Directory"
 msgstr "Répertoire"
 
-#: src/zconf.c:1014
+#: src/zconf.c:1020
 msgid "Undefined"
 msgstr "Non défini"
 
-#: src/zconf.c:1016
+#: src/zconf.c:1022
 msgid "Unknown"
 msgstr "Inconnu"
 
-#: src/zconf.c:1097
+#: src/zconf.c:1103
 #, c-format
 msgid "Sorry, the especified type \"%s\" is unknown\n"
 msgstr "Désolé, mais le type \"%s\" ets inconnu\n"
 
 #. It already exists, warn
-#: src/zconf.c:1108
+#: src/zconf.c:1114
 #, c-format
 msgid "Duplicated node in the config tree: %s"
 msgstr "Mode en double dans l'arbre de configuration %s"
 
-#: src/zconf.c:1128
+#: src/zconf.c:1134
 #, c-format
 msgid "%s is empty, but it shouldn't be"
 msgstr "%s est vide, mais il ne devrait pas l'être"
 
-#: src/zconf.c:1305 src/zconf.c:1383
+#: src/zconf.c:1311 src/zconf.c:1389
 #, c-format
 msgid "Removing %d consecutive slashes, this shouldn't happen"
 msgstr "Enlevement de %d slashes consécutifs, ceci ne devrait pas avoir lieu"
 
-#: src/zconf.c:1322 src/zconf.c:1400 src/zconf.c:1438
+#: src/zconf.c:1328 src/zconf.c:1406 src/zconf.c:1444
 #, c-format
 msgid "Path item too long: %s"
 msgstr "Chemin trop long: %s"
 
-#: src/zconf.c:1414
+#: src/zconf.c:1420
 #, c-format
 msgid "%s isn't your domain name, zconf will exit now"
 msgstr "%s n'est pas votre nom de domaine, zconf va se terminer maintenant"
@@ -681,7 +681,7 @@ msgstr "Le dialogue de propriétés ne peut pa être ouvert, désolé"
 
 #: src/properties.c:91
 msgid "Can capture to memory.\n"
-msgstr "Impossible de capturer la mémoire\n"
+msgstr "Peut capturer la mémoire\n"
 
 #: src/properties.c:93
 msgid "Has some tuner.\n"
@@ -693,7 +693,7 @@ msgstr "Support du service teletexte.\n"
 
 #: src/properties.c:97
 msgid "Can overlay the image.\n"
-msgstr "Ne peut pas overlay l'image.\n"
+msgstr "Peut overlay l'image.\n"
 
 #: src/properties.c:99
 msgid "Can chromakey the image.\n"

@@ -4,6 +4,7 @@
 	available.
 	* main.c: Zapping now saves the current input and the current
 	standard.
+	* zapping.spec.in: I got to build a RPM, seems to work.
 	
 06.6.2000	Lazy day <garetxe@users.sourceforge.net>
 

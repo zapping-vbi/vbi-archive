@@ -58,6 +58,12 @@ AC_MSG_RESULT(childs)
 AC_DEFINE(LIBXML_CHILDS),
 AC_MSG_RESULT(children))
 
+dnl ----------------------------------------------------------------------
+dnl Check for existance of xmlDocGetRootNode and friends
+dnl ----------------------------------------------------------------------
+AC_CHECK_LIB(xml, xmlDocGetRootNode,, AC_DEFINE(LIBXML_NO_ROOT))
+
+
 AM_PATH_LIBGLADE(,
 AC_MSG_ERROR(*** Cannot find libglade in your system. Is it installed? ***),
 gnome)
@@ -81,7 +87,7 @@ else
 fi
 
 dnl Subst PACKAGE_PIXMAPS_DIR.
-PACKAGE_PIXMAPS_DIR="`${GNOME_CONFIG} --datadir`/pixmaps/${PACKAGE}"
+PACKAGE_PIXMAPS_DIR="${datadir}/pixmaps/${PACKAGE}"
 AC_SUBST(PACKAGE_PIXMAPS_DIR)
 
 AC_OUTPUT([
