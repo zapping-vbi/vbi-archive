@@ -35,7 +35,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <math.h>
-#include "../common/ucs-2.h"
+#include "common/ucs-2.h"
 
 #include "tveng.h"
 /* Manages config values for zconf (it saves me some typing) */
@@ -53,7 +53,7 @@
 
 #undef TRUE
 #undef FALSE
-#include "../common/fifo.h"
+#include "common/fifo.h"
 
 #ifdef HAVE_LIBZVBI
 
@@ -2090,8 +2090,7 @@ startup_zvbi(void)
   zcc_int(INTERP_MODE, "Quality speed tradeoff", "qstradeoff");
 
   cmd_register ("closed_caption", py_closed_caption, METH_VARARGS,
-		_("Sets or toggles the display of closed caption"),
-		"zapping.closed_caption([1])");
+		("Closed Caption on/off"), "zapping.closed_caption()");
 
 #ifdef HAVE_LIBZVBI
   zconf_add_hook("/zapping/options/vbi/enable_vbi",
