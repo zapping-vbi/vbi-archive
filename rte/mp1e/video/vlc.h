@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.h,v 1.5 2002-06-12 04:00:17 mschimek Exp $ */
+/* $Id: vlc.h,v 1.6 2002-08-22 22:04:22 mschimek Exp $ */
 
 #ifndef VLC_H
 #define VLC_H
@@ -63,6 +63,11 @@ extern int		mp1e_mpeg2_encode_inter(short mblock[6][8][8],
 						unsigned int cbp);
 
 extern int		mp1e_p6_mpeg1_encode_intra(void);
+extern int		mp1e_p6_mpeg1_encode_inter(short mblock[6][8][8],
+						   unsigned int cbp);
+
+extern int		mp1e_p6_mpeg2_encode_intra_14(void);
+extern int		mp1e_p6_mpeg2_encode_intra_15(void);
 extern int		mp1e_p6_mpeg1_encode_inter(short mblock[6][8][8],
 						   unsigned int cbp);
 

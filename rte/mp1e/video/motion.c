@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.12 2002-06-24 03:20:23 mschimek Exp $ */
+/* $Id: motion.c,v 1.13 2002-08-22 22:04:22 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -2003,7 +2003,7 @@ mmx_psse_4(char t[16][16], char *p, int pitch)
 		" psllq		$32,%%mm5;\n"
 		" psubw		c1_15w,%%mm6;\n"
 		" por		%%mm5,%%mm0;\n"
-		" paddb		c4,%%mm4;\n"
+		" paddb		cw4,%%mm4;\n"
 
 		" movq		%%mm0,%%mm5;\n"
 		" pcmpgtb	%%mm3,%%mm5;\n"
@@ -2228,7 +2228,7 @@ mmx_psse_8(char t[16][16], char *p, int pitch)
 		" psllq		$32,%%mm5;\n"
 		" psubw		c1_15w,%%mm6;\n"
 		" por		%%mm5,%%mm0;\n"
-		" paddb		c4,%%mm4;\n"
+		" paddb		cw4,%%mm4;\n"
 
 		" movq		%%mm0,%%mm5;\n"
 		" pcmpgtb	%%mm3,%%mm5;\n"
@@ -2313,7 +2313,7 @@ mmx_psse_8(char t[16][16], char *p, int pitch)
 		" pxor		%%mm5,%%mm4;\n"
 		" pxor		%%mm4,%%mm2;\n"
 
-		" paddb		c4,%%mm0;\n"
+		" paddb		cw4,%%mm0;\n"
 
 		" movq		%%mm6,%%mm5;\n"
 		" psllq		$16,%%mm6;\n"
@@ -2550,7 +2550,7 @@ sse_psse_8(char t[16][16], char *p, int pitch)
 		" psllq		$32,%%mm5;\n"
 		" psubw		c1_15w,%%mm6;\n"
 		" por		%%mm5,%%mm0;\n"
-		" paddb		c4,%%mm4;\n"
+		" paddb		cw4,%%mm4;\n"
 
 		" movq		%%mm0,%%mm5;\n"
 		" pcmpgtb	%%mm3,%%mm5;\n"
@@ -2611,7 +2611,7 @@ sse_psse_8(char t[16][16], char *p, int pitch)
 		" pxor		%%mm4,%%mm2;\n"
 		" pshufw	$2*64+1*16+0*4+3,%%mm4,%%mm4;\n"
 
-		" paddb		c4,%%mm0;\n"
+		" paddb		cw4,%%mm0;\n"
 
 		" movq		%%mm1,%%mm5;\n"
 		" pcmpgtw	%%mm6,%%mm5;\n"

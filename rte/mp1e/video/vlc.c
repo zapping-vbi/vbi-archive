@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.c,v 1.5 2002-06-14 07:56:44 mschimek Exp $ */
+/* $Id: vlc.c,v 1.6 2002-08-22 22:04:22 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -51,7 +51,7 @@ escape (int run, int slevel, int ulevel, const int mpeg2)
 			return 1;
 		} else {
 			/* %000001 escape, 6 bit run, 12 bit slevel */
-			slevel |= (1 << 18) | (run << 12) | (slevel & 0xFFF);
+			slevel = (1 << 18) | (run << 12) | (slevel & 0xFFF);
 			len = 24;
 		}
 	} else {

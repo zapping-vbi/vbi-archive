@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvideo.h,v 1.8 2002-06-24 03:20:23 mschimek Exp $ */
+/* $Id: libvideo.h,v 1.9 2002-08-22 22:04:22 mschimek Exp $ */
 
 #include "rtepriv.h"
 #include "../systems/libsystems.h"
@@ -25,6 +25,7 @@
 #include "video.h" // XXX REMOVE
 
 extern rte_codec_class	mp1e_mpeg1_video_codec;
+extern rte_codec_class	mp1e_mpeg2_video_codec;
 
 extern void		mp1e_mpeg1_module_init(int test);
 extern void		mp1e_mpeg1_uninit(rte_codec *codec);
@@ -34,6 +35,15 @@ extern void		mp1e_mpeg1_init(rte_codec *codec, int cpu_type,
 					fifo *capture_fifo,
 					unsigned int module, multiplexer *mux);
 extern void *		mp1e_mpeg1(void *codec);
+
+extern void		mp1e_mpeg2_module_init(int test);
+extern void		mp1e_mpeg2_uninit(rte_codec *codec);
+extern void		mp1e_mpeg2_init(rte_codec *codec, int cpu_type,
+					int coded_width, int coded_height,
+					int motion_min, int motion_max,
+					fifo *capture_fifo,
+					unsigned int module, multiplexer *mux);
+extern void *		mp1e_mpeg2(void *codec);
 
 struct filter_param;
 

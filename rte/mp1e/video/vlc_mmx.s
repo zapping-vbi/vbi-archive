@@ -17,10 +17,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: vlc_mmx.s,v 1.4 2002-06-12 04:00:17 mschimek Exp $
-
-# int
-# p6_mpeg1_encode_intra(void)
+# $Id: vlc_mmx.s,v 1.5 2002-08-22 22:04:22 mschimek Exp $
 
 	.text
 	.align		16
@@ -151,9 +148,9 @@ mp1e_p6_mpeg1_encode_intra:
 
 6:	sall		$16-1,%edi;			
 	andl		$33023,%edx;			
+	addl		$28,%ebp;
 	cmpl		$255,%eax;			
 	leal		4194304(%edi,%edx),%ebx;
-	addl		$28,%ebp;
 	jle		4b;
 
 	movd		%mm6,%esp;
@@ -318,10 +315,10 @@ mp1e_p6_mpeg1_encode_inter:
 	jmp		9b;
 
 6:	sall		$16-1,%edi;
+	addb		$28,%bl;
 	cmpl		$255,%eax;			
 	andl		$33023,%ebp;			
 	leal		4194304(%edi,%ebp),%ebp;	
-	addb		$28,%bl;
 	jle		9b;
 
 	movd		%mm6,%esp;
@@ -360,3 +357,168 @@ mp1e_p6_mpeg1_encode_inter:
 	movl		%eax,(%ecx);			
 	jle		3b;
 	jmp		0b;
+
+	.text
+	.align		16
+	.globl		mp1e_p6_mpeg2_encode_intra_14
+
+mp1e_p6_mpeg2_encode_intra_14:
+
+	pushl		%ebp;
+	pushl		%edi;
+	pushl		%edx;
+	leal		mp1e_dc_vlc_intra,%edi;
+	pushl		%esi;
+	leal		mblock+0*128+768,%esi;
+	pushl		%ebx;
+	movl		video_out,%ebp;
+	pushl		%ecx;
+	movl		dc_dct_pred,%ebx;
+	call		1f;
+	movswl		mblock+0*128+768,%ebx;
+	leal		mblock+2*128+768,%esi;
+	leal		mp1e_dc_vlc_intra+12*8,%edi;
+	call		1f;
+	movswl		mblock+2*128+768,%ebx;
+	leal		mblock+1*128+768,%esi;
+	leal		mp1e_dc_vlc_intra+12*8,%edi;
+	call		1f;
+	movswl		mblock+1*128+768,%ebx;
+	leal		mblock+3*128+768,%esi;
+	leal		mp1e_dc_vlc_intra+12*8,%edi;
+	call		1f;
+	movl		dc_dct_pred+4,%ebx;
+	leal		mblock+4*128+768,%esi;
+	leal		mp1e_dc_vlc_intra+24*8,%edi;
+	call		1f;
+	movl		dc_dct_pred+8,%ebx;
+	leal		mblock+5*128+768,%esi;
+	leal		mp1e_dc_vlc_intra+24*8,%edi;
+	call		1f;
+	movswl		mblock+3*128+768,%eax;
+	movswl		mblock+4*128+768,%ebx;
+	movl		%eax,dc_dct_pred;
+	movswl		mblock+5*128+768,%ecx;
+	movl		%ebx,dc_dct_pred+4;
+	movl		%ecx,dc_dct_pred+8;
+	movl		%ebp,video_out;
+	movl		$video_out,%eax;
+	movl		$2,%ecx;
+	movl		$2,%edx;
+	call		mmx_bputl;
+	movl		(%esp),%ecx;
+	movl		4(%esp),%ebx;
+	movl		8(%esp),%esi;
+	xorl		%eax,%eax;
+	movl		12(%esp),%edx;
+	movl		16(%esp),%edi;
+	movl		20(%esp),%ebp;
+	leal		24(%esp),%esp;
+	ret;
+
+	.align	16
+
+1:	movd		%esp,%mm6;
+	movl		$0,%ecx;
+	movswl		(%esi),%eax;			
+	subl		%ebx,%eax;
+	movl		%eax,%ebx;
+	cdq;
+	xorl		%edx,%eax;
+	subl		%edx,%eax;			
+	bsrl		%eax,%ecx;
+	setnz		%al;
+	addl		%edx,%ebx;
+	movl		$-63,%esp;
+	addb		%al,%cl;
+	sall		%cl,%edx;
+	xorl		%edx,%ebx;			
+	orl		(%edi,%ecx,8),%ebx;
+	addl		4(%edi,%ecx,8),%ebp;
+	jmp		4f;
+
+	.align 16
+
+2:	movswl		(%esi,%ebx,2),%eax;
+	testl		%eax,%eax;
+	jne		3f;
+	movzbl		mp1e_iscan+63(%esp),%ebx;
+	addl		$2,%edi;
+	incl		%esp;
+	jle		2b;
+	movd		%mm6,%esp;
+	ret;
+
+3:	movzbl		1(%edi),%ecx;
+	cdq;
+	xorl		%edx,%eax;
+	subl		%edx,%eax;
+	cmpl		%ecx,%eax;
+	movzbl		(%edi),%ecx;
+	leal		(%eax,%ecx),%ecx;
+	jge		5f;
+	movzbl		(%edi,%ecx,2),%ebx;
+	subl		%edx,%ebx;
+	movzbl		1(%edi,%ecx,2),%ecx;
+	addl		%ecx,%ebp;
+4:	movl		$64,%edi;
+	movd		%ebx,%mm2;			
+	subl		%ebp,%edi;
+	movd		%edi,%mm1;			
+	jle		7f;
+	leal		mp1e_ac_vlc_zero,%edi;
+	psllq		%mm1,%mm2;
+	movzbl		mp1e_iscan+63(%esp),%ebx;		
+	incl		%esp;			
+	por		%mm2,%mm7;
+	jle		2b;
+	movd		%mm6,%esp;
+	ret;
+
+5:	subl		$mp1e_ac_vlc_zero,%edi;
+	movswl		(%esi,%ebx,2),%edx;		
+	andl		$4095,%edx;			
+	addl		$24,%ebp;
+	sall		$12-1,%edi;
+	cmpl		$255,%eax;
+	leal		262144(%edi,%edx),%ebx;
+	jle		4b;
+	movd		%mm6,%esp;
+	addl		$4,%esp;
+	movl		$1,%eax;
+	popl		%ecx;				
+	popl		%ebx;
+	popl		%esi;				
+	popl		%edx;
+	popl		%edi;				
+	popl		%ebp;
+	ret;
+
+	.align 16
+
+7:	movq		video_out+16,%mm3;		
+	movq		%mm2,%mm5;
+	leal		mp1e_ac_vlc_zero,%edi;		
+	pxor		%mm4,%mm4;
+	psubd		%mm1,%mm4;
+	movd		%mm4,%ebp;			
+	psubd		%mm4,%mm3;			
+	psrld		%mm4,%mm5;
+	movl		video_out+4,%ecx;
+	por		%mm5,%mm7;			
+	movd		%mm7,%eax;			
+	movzbl		mp1e_iscan+63(%esp),%ebx;		
+	psrlq		$32,%mm7;
+	bswap		%eax;
+	leal		8(%ecx),%edx;
+	movl		%eax,4(%ecx);
+	movd		%mm7,%eax;			
+	bswap		%eax;
+	psllq		%mm3,%mm2;
+	incl		%esp;
+	movq		%mm2,%mm7;
+	movl		%eax,(%ecx);			
+	movl		%edx,video_out+4;		
+	jle		2b;
+	movd		%mm6,%esp;
+	ret;

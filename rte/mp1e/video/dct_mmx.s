@@ -17,7 +17,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: dct_mmx.s,v 1.5 2002-05-13 05:38:42 mschimek Exp $
+# $Id: dct_mmx.s,v 1.6 2002-08-22 22:04:22 mschimek Exp $
 
 	.text
 	.align		16
@@ -343,13 +343,13 @@ mp1e_mmx_fdct_inter:
 	paddw		%mm5,%mm5;
 	paddw		%mm7,%mm4;
 	psubw		%mm6,%mm5;
-	paddw		c4,%mm6;
+	paddw		cw4,%mm6;
 	paddw		%mm7,%mm7;
 	movq		%mm2,%mm3;
 	psraw		$3,%mm6;
 	psubw		%mm4,%mm7;
 	punpcklwd	%mm6,%mm2;
-	paddw		c4,%mm7;
+	paddw		cw4,%mm7;
 	punpckhwd	%mm6,%mm3;
 	movq		%mm1,%mm0;
 	psraw		$3,%mm7;
@@ -456,13 +456,13 @@ mp1e_mmx_fdct_inter:
 	paddw		%mm5,%mm5;
 	psubw		%mm6,%mm5;
 	paddw		%mm1,%mm4;
-	paddw		c4,%mm6;
+	paddw		cw4,%mm6;
 	paddw		%mm1,%mm1;
 	psubw		%mm4,%mm1;
 	psraw		$3,%mm6;
 	movq		%mm2,%mm0;
 	punpcklwd	%mm6,%mm2;
-	paddw		c4,%mm1;
+	paddw		cw4,%mm1;
 	punpckhwd	%mm6,%mm0;
 	movq		%mm7,%mm3;
 	psraw		$3,%mm1;

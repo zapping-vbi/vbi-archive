@@ -2,7 +2,7 @@
 
 noinst_LTLIBRARIES = libaudio.la
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT -DFLOAT=float $(RTE_CFLAGS) \
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT -DFLOAT=float \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 libaudio_la_SOURCES = \
