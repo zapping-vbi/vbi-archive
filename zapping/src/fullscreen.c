@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.6 2001-04-04 21:29:23 garetxe Exp $
+ * $Id: fullscreen.c,v 1.7 2001-04-28 19:29:35 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -180,11 +180,8 @@ fullscreen_start(tveng_device_info * info)
   /* hide the cursor in fullscreen mode */
   gdk_window_set_cursor(da->window, fullscreen_cursor);
 
-  /* Draw on the drawing area */
-  gdk_draw_rectangle(da -> window,
-  		     da -> style -> black_gc,
-		     TRUE,
-		     0, 0, gdk_screen_width(), gdk_screen_height());
+  /* Set the window background to black */
+  gdk_window_set_background(da->window, &da->style->black);
 
   if (info->current_controller != TVENG_CONTROLLER_XV)
     {

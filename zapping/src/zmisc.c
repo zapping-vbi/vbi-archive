@@ -251,7 +251,6 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     {
       gtk_widget_hide(lookup_widget(main_window, "appbar2"));
       ttxview_detach(main_window);
-      tveng_close_device(info);
     }
 
   if (new_mode != TVENG_CAPTURE_PREVIEW)
@@ -260,17 +259,26 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   switch (new_mode)
     {
     case TVENG_CAPTURE_READ:
-      if (tveng_attach_device(zcg_char(NULL, "video_device"),
-			      TVENG_ATTACH_READ, info) == -1)
+      if (info->current_controller == TVENG_CONTROLLER_XV ||
+	  info->current_controller == TVENG_CONTROLLER_NONE)
 	{
-	  /* Try opening as XVideo as a last resort */
+	  if (info->current_controller != TVENG_CONTROLLER_NONE)
+	    tveng_close_device(info);
 	  if (tveng_attach_device(zcg_char(NULL, "video_device"),
-				  TVENG_ATTACH_XV, info) == -1)
+				  TVENG_ATTACH_READ, info) == -1)
 	    {
-	      RunBox("%s couldn't be opened\n:%s,\naborting",
-		     GNOME_MESSAGE_BOX_ERROR,
-		     zcg_char(NULL, "video_device"), info->error);
-	      exit(1);
+	      /* Try restoring as XVideo as a last resort */
+	      if (tveng_attach_device(zcg_char(NULL, "video_device"),
+				      TVENG_ATTACH_XV, info) == -1)
+		{
+		  RunBox("%s couldn't be opened\n:%s,\naborting",
+			 GNOME_MESSAGE_BOX_ERROR,
+			 zcg_char(NULL, "video_device"), info->error);
+		  exit(1);
+		}
+	      else
+		ShowBox("Capture mode not available:\n%s",
+			GNOME_MESSAGE_BOX_ERROR, info->error);
 	    }
 	}
       tveng_set_capture_size(w, h, info);
@@ -278,20 +286,22 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       break;
     case TVENG_CAPTURE_WINDOW:
       if (disable_preview) {
-	g_warning("preview has been disabled");
-	tveng_attach_device(zcg_char(NULL, "video_device"),
-			    TVENG_ATTACH_XV, info);
+	ShowBox("preview has been disabled", GNOME_MESSAGE_BOX_WARNING);
 	g_free(old_name);
 	return -1;
       }
 
-      if (tveng_attach_device(zcg_char(NULL, "video_device"),
-			      TVENG_ATTACH_XV, info)==-1)
+      if (info->current_controller != TVENG_CONTROLLER_XV)
 	{
-	  RunBox("%s couldn't be opened\n:%s, aborting",
-		 GNOME_MESSAGE_BOX_ERROR,
-		 zcg_char(NULL, "video_device"), info->error);
-	  exit(1);
+	  tveng_close_device(info);
+	  if (tveng_attach_device(zcg_char(NULL, "video_device"),
+				  TVENG_ATTACH_XV, info)==-1)
+	    {
+	      RunBox("%s couldn't be opened\n:%s, aborting",
+		     GNOME_MESSAGE_BOX_ERROR,
+		     zcg_char(NULL, "video_device"), info->error);
+	      exit(1);
+	    }
 	}
 
       if (!tveng_detect_preview(info))
@@ -334,20 +344,24 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	g_warning(info->error);
       break;
     case TVENG_CAPTURE_PREVIEW:
-      if (tveng_attach_device(zcg_char(NULL, "video_device"),
-			      TVENG_ATTACH_XV, info)==-1)
-      {
-	RunBox("%s couldn't be opened\n:%s,\naborting",
-	       GNOME_MESSAGE_BOX_ERROR,
-	       zcg_char(NULL, "video_device"), info->error);
-	exit(1);
-      }
-
       if (disable_preview) {
-	g_warning("preview has been disabled");
-	g_free (old_name);
+	ShowBox("preview has been disabled", GNOME_MESSAGE_BOX_WARNING);
+	g_free(old_name);
 	return -1;
       }
+
+      if (info->current_controller != TVENG_CONTROLLER_XV)
+	{
+	  tveng_close_device(info);
+	  if (tveng_attach_device(zcg_char(NULL, "video_device"),
+				  TVENG_ATTACH_XV, info)==-1)
+	    {
+	      RunBox("%s couldn't be opened\n:%s, aborting",
+		     GNOME_MESSAGE_BOX_ERROR,
+		     zcg_char(NULL, "video_device"), info->error);
+	      exit(1);
+	    }
+	}
 
       format = zmisc_resolve_pixformat(tveng_get_display_depth(info),
 				       x11_get_byte_order());

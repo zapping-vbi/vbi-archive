@@ -3,6 +3,7 @@
 	* src/tvengxv.c: Added support for this atom, allows for automatic
 	channel searching. Now let's see if the v4l.c maintainer in XFree
 	accepts my patch, and the rest of the world sees this too :-)
+	* src/zmisc.c: Reduce unnecessary open/close couples.
 
 27.4.2001	TVeng thread-safe <garetxe@users.sourceforge.net>
 

@@ -310,7 +310,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.104 2001-04-27 20:53:54 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.105 2001-04-28 19:29:35 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -385,6 +385,7 @@ int main(int argc, char * argv[])
   free(main_info -> file_name);
 
   D();
+
   if (tveng_attach_device(zcg_char(NULL, "video_device"),
 			  TVENG_ATTACH_XV,
 			  main_info) == -1)
