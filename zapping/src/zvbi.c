@@ -95,7 +95,7 @@ static pthread_mutex_t clients_mutex; /* FIXME: A rwlock is better for
 				       this */
 
 /* handler for a vbi event */
-static void event(struct dl_head *reqs, vbi_event *ev);
+static void event(vbi_event *ev, void *unused);
 
 /* Some info about the last processed header, protected by a mutex */
 static struct {
@@ -156,7 +156,7 @@ zvbi_open_device(void)
   if (vbi->cache)
     vbi->cache->op->mode(vbi->cache, CACHE_MODE_ERC, erc);
 
-  vbi_add_handler(vbi, ~0, event, NULL);
+  vbi_event_handler(vbi, ~0, event, NULL);
 
   last_info.name = NULL;
   last_info.hour = last_info.min = last_info.sec = -1;
@@ -166,7 +166,7 @@ zvbi_open_device(void)
 
   if (pthread_create(&zvbi_thread_id, NULL, vbi_mainloop, vbi))
     {
-      vbi_del_handler(vbi, event, NULL);
+      vbi_event_handler(vbi, 0, event, NULL);
       vbi_close(vbi);
       vbi = NULL;
       return FALSE;
@@ -856,7 +856,7 @@ zvbi_close_device(void)
   pthread_mutex_destroy(&(last_info.mutex));
   pthread_cond_destroy(&(last_info.xpacket_cond));
 
-  vbi_del_handler(vbi, event, NULL);
+  vbi_event_handler(vbi, 0, event, NULL);
   pthread_mutex_lock(&clients_mutex);
   destruction = g_list_first(ttx_clients);
   while (destruction)
@@ -885,7 +885,7 @@ zvbi_get_object(void)
 
 /* this is called when we receive a page, header, etc. */
 static void
-event(struct dl_head *reqs, vbi_event *ev)
+event(vbi_event *ev, void *unused)
 {
     unsigned char *p;
     int hour=0, min=0, sec=0;

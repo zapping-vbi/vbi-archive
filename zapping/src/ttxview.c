@@ -1435,6 +1435,13 @@ void export_ansi			(GtkWidget	*widget,
 }
 
 static
+void export_vtx				(GtkWidget	*widget,
+					 ttxview_data	*data)
+{
+  export_ttx_page(widget, data, "vtx");
+}
+
+static
 void on_bookmark_activated		(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
@@ -1486,6 +1493,9 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 #else
   gtk_widget_hide(lookup_widget(popup, "png1"));
 #endif
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "vtx1")),
+		     "activate",
+		     GTK_SIGNAL_FUNC(export_vtx), data);
   gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "ascii1")),
 		     "activate",
 		     GTK_SIGNAL_FUNC(export_ascii), data);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.5 2001-02-26 05:57:00 mschimek Exp $ */
+/* $Id: osd.h,v 1.6 2001-02-26 15:01:11 mschimek Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
@@ -24,7 +24,6 @@
 #include "../libvbi/format.h"
 #include "../libvbi/libvbi.h"
 
-#ifndef OSD_JUST_CC
 void startup_osd(void);
 void shutdown_osd(void);
 
@@ -39,14 +38,8 @@ void osd_set_window(GtkWidget *dest_window, GtkWidget *parent);
 void osd_render(attr_char *buffer, int row);
 void osd_clear(void);
 void osd_roll_up(attr_char *buffer, int first_row, int last_row);
-#endif /* osd_just_cc */
 
-/*
- * This is the (preliminary) caption.c counterpart of VBI_EVENT_PAGE.
- * The main GTK thread can call vbi_fetch_cc_page, pg->dirty tracks
- * changes between calls to speed up drawing and for smooth
- * rolling (if rendering is fast enough, anyway).
- */
-void cc_event(void *data, vbi_event *ev);
+void osd_event(void);
+void cc_event(vbi_event *ev, void *data);
 
 #endif /* osd.h */

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.4 2001-02-26 05:56:59 mschimek Exp $ */
+/* $Id: format.h,v 1.5 2001-02-26 15:01:11 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -124,10 +124,16 @@ typedef struct {
 #define ANY_SUB		0x3F7F
 #endif
 
+struct vbi; /* opaque */
 struct vbi_font_descr; /* lang.h */
 
 struct fmt_page
 {
+	/*
+	 *  Source context, libvbi.h internal use only (exp-vtx.h).
+	 */
+	struct vbi *		vbi;
+
 	/*
 	 *  Teletext page number, pgno 0x100 ... 0x8FF, subno 0 ... 0x3F7F
 	 *  or Closed Caption channel, pgno 1 ... 8, subno ANY_SUB.

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.16 2001-02-26 05:56:59 mschimek Exp $ */
+/* $Id: caption.c,v 1.17 2001-02-26 15:01:11 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,8 +39,6 @@
 #include "hamm.h"
 #include "tables.h"
 #include "lang.h"
-#define OSD_JUST_CC /* just the cc_* declarations */
-#include "../src/osd.h"
 
 #define XDS_DEBUG 0
 #define ITV_DISABLE 1
@@ -263,7 +261,12 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 			if (xds_strfu(vbi->network.name, buffer, length)) {
 				vbi->network.cycle = 1;
 			} else if (vbi->network.cycle == 1) {
-				vbi_send(vbi, VBI_EVENT_NETWORK, 0, 0, 0, 0, 0, &vbi->network);
+				vbi_event ev;
+
+				ev.type = VBI_EVENT_NETWORK;
+				ev.p1 = &vbi->network;
+				vbi_send_event(vbi, &ev);
+
 				vbi->network.cycle = 3;
 			}
 #if XDS_DEBUG
@@ -1279,12 +1282,15 @@ default_colour_map[8] = {
 };
 
 void
-vbi_init_caption(struct caption *cc)
+vbi_init_caption(struct vbi *vbi)
 {
+	struct caption *cc = &vbi->cc;
 	channel *ch;
 	int i;
 
 	memset(cc, 0, sizeof(struct caption));
+
+	pthread_mutex_init(&cc->mutex, NULL);
 
 	for (i = 0; i < 2; i++) {
 		cc->transp_space[i].foreground = WHITE;
@@ -1316,6 +1322,8 @@ vbi_init_caption(struct caption *cc)
 		set_cursor(ch, 1, ch->row);
 
 		ch->hidden = 0;
+
+		ch->pg[0].vbi = vbi;
 
 		ch->pg[0].pgno = CC_PAGE_BASE + i;
 		ch->pg[0].subno = ANY_SUB;
@@ -1383,7 +1391,7 @@ render(struct fmt_page *pg, int row)
 	event.type = VBI_EVENT_CAPTION;
 	event.pgno = pg->pgno;
 
-	cc_event(NULL, &event);
+	vbi_send_event(pg->vbi, &event);
 }
 
 static void
@@ -1398,7 +1406,7 @@ clear(struct fmt_page *pg)
 	event.type = VBI_EVENT_CAPTION;
 	event.pgno = pg->pgno;
 
-	cc_event(NULL, &event);
+	vbi_send_event(pg->vbi, &event);
 }
 
 static void
@@ -1420,7 +1428,7 @@ roll_up(struct fmt_page *pg, int first_row, int last_row)
 	event.type = VBI_EVENT_CAPTION;
 	event.pgno = pg->pgno;
 
-	cc_event(NULL, &event);
+	vbi_send_event(pg->vbi, &event);
 }
 
 #else /* TEST */
@@ -2072,7 +2080,7 @@ main(int ac, char **av)
 	if (!init_window(ac, av))
 		exit(EXIT_FAILURE);
 
-	vbi_init_caption(&vbi.caption);
+	vbi_init_caption(&vbi);
 
 	if (isatty(STDIN_FILENO))
 		hello_world();

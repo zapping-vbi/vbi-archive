@@ -5,9 +5,10 @@
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
 
-#include <vt.h>
+//#include <vt.h>
 //#include <lang.h>
 #include <dllist.h>
+#include <export.h>
 
 /*
     public interface:
@@ -132,7 +133,7 @@ typedef struct {
 } vbi_network;
 
 /*
- *  Event
+ *  Event (vbi.c)
  */
 
 #define VBI_EVENT_NONE		0
@@ -161,27 +162,24 @@ typedef struct {
 #define	VBI_EVENT_RESET		(1 << 6)	// ./.
 #define	VBI_EVENT_TIMER		(1 << 7)	// ./.
 
-typedef struct
-{
+typedef struct {
 	int			type;
 	int			pgno;
 	int			subno;
 
-    /* old cruft */
     void *resource;	/* struct xio_win *, struct vbi *, ... */
     int i1, i2, i3, i4;
     void *p1;
 } vbi_event;
 
-struct vbi_client
-{
-    struct dl_node node[1];
-	int			event_mask;
-    void (*handler)(void *data, vbi_event *ev);
-    void *data;
-};
+extern int		vbi_event_handler(struct vbi *vbi, int event_mask, void (* handler)(vbi_event *, void *), void *user_data); 
 
-#include <vbi.h>	/* XXX */
-#include <export.h>
+
+struct cache;
+struct vbi *vbi_open(char *vbi_dev_name, struct cache *ca, int fine_tune);
+void vbi_close(struct vbi *vbi);
+extern void *	vbi_mainloop(void *p);
+
+#include "vbi.h" /* XXX */
 
 #endif /* __LIBVBI_H__ */

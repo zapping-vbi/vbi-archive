@@ -1,3 +1,9 @@
+26.2.2001	TTX <mschimek@users.sourceforge.net>
+
+	* Added VTX export module, rationale <http://alevt.listbot.com/
+	  cgi-bin/subscriber?Act=view_message&list_id=alevt&msg_num=188&start_num=>
+	* Cleaned up events, made caption a genuine event.
+
 25.2.2001	caption ipc <mschimek@users.sourceforge.net>
 
 	* Renamed conceal button to reveal. Is reveal on all

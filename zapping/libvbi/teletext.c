@@ -307,6 +307,8 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 	int i, j, k, n, lines;
 	int xpgno, xsubno;
 
+	pg->vbi = vbi;
+
 	pg->subno = subno;
 
 	pg->rows = ROWS;
@@ -1616,6 +1618,8 @@ vbi_format_page(struct vbi *vbi,
 		return 0;
 
 	printv("\nFormatting page %03x/%04x\n", vtp->pgno, vtp->subno);
+
+	pg->vbi = vbi;
 
 	pg->pgno = vtp->pgno;
 	pg->subno = vtp->subno;

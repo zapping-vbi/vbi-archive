@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cc.h,v 1.5 2001-02-26 05:56:59 mschimek Exp $ */
+/* $Id: cc.h,v 1.6 2001-02-26 15:01:11 mschimek Exp $ */
 
 #ifndef CC_H
 #define CC_H
@@ -80,7 +80,7 @@ struct caption {
 
 struct vbi; /* parent of struct caption */
 
-extern void		vbi_init_caption(struct caption *cc);
+extern void		vbi_init_caption(struct vbi *vbi);
 extern void		vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf);
 
 #endif /* CC_H */

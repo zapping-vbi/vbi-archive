@@ -8,7 +8,6 @@
 #include <sys/ioctl.h>
 #include "os.h"
 #include "vbi.h"
-#include "vbi.h"
 #include "hamm.h"
 #include "lang.h"
 #include "export.h"
@@ -35,7 +34,6 @@ void
 vbi_send(struct vbi *vbi, int type, int pgno, int subno, int i1, int i2, int i3, void *p1)
 {
     vbi_event ev[1];
-    struct vbi_client *cl, *cln;
 
     ev->resource = vbi;
     ev->type = type;
@@ -46,9 +44,7 @@ vbi_send(struct vbi *vbi, int type, int pgno, int subno, int i1, int i2, int i3,
     ev->i3 = i3;
     ev->p1 = p1;
 
-	for (cl = (void *) vbi->clients->first; (cln = (void *) cl->node->next); cl = cln)
-		if (cl->event_mask & type)
-			cl->handler(cl->data, ev);
+    vbi_send_event(vbi, ev);
 }
 
 static void

@@ -40,6 +40,9 @@ enum osd_code {OSD_NOTHING, OSD_EVENT};
 static fifo osd_fifo;
 static pthread_mutex_t osd_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+#include "../libvbi/libvbi.h"
+extern struct vbi *zvbi_get_object(void);
+
 /*
  * Exact meaning of the fields might change, they cover the render,
  * clear and roll_up commands.
@@ -75,7 +78,6 @@ static gboolean osd_status = FALSE;
 
 static gint keeper_id = 0;
 
-/* forward */ void osd_event(void);
 
 /* Gets the events in the fifo */
 static gint
@@ -110,6 +112,7 @@ the_kommand_keeper		(gpointer	data)
 void
 startup_osd(void)
 {
+  struct vbi *vbi = zvbi_get_object();
   int i;
 
   if (osd_started)
@@ -130,17 +133,24 @@ startup_osd(void)
 
   keeper_id = gtk_timeout_add(50, the_kommand_keeper, NULL);
 
+  g_assert(vbi_event_handler(vbi, VBI_EVENT_CAPTION,
+                             cc_event, NULL) != 0);
+
   pthread_mutex_unlock(&osd_mutex);
 }
 
 void
 shutdown_osd(void)
 {
+  struct vbi *vbi = zvbi_get_object();
   int i;
 
   g_assert(osd_started == TRUE);
 
   pthread_mutex_lock(&osd_mutex);
+
+// oops: vbi == 0 here?
+//  vbi_event_handler(vbi, 0, cc_event, NULL);
 
   osd_clear();
 
@@ -668,10 +678,6 @@ void osd_roll_up(attr_char *buffer, int first_row, int last_row)
     }
 }
 
-struct vbi;
-extern struct vbi *zvbi_get_object(void);
-extern int vbi_fetch_cc_page(struct vbi *vbi, struct fmt_page *pg, int pgno);
-
 void osd_event(void)
 {
   struct vbi *vbi = zvbi_get_object();
@@ -728,7 +734,7 @@ send_cc_command(struct osd_command *c)
   pthread_mutex_unlock(&osd_mutex);
 }
 
-void cc_event(void *data, vbi_event *ev)
+void cc_event(vbi_event *ev, void *data)
 {
   struct osd_command c;
 

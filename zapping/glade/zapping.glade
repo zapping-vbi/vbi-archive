@@ -3180,7 +3180,7 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkMenuItem</class>
 	<name>html1</name>
-	<tooltip>Export the current page as HTML</tooltip>
+	<tooltip>Export the current page as HTML page</tooltip>
 	<label>_HTML</label>
 	<right_justify>False</right_justify>
       </widget>
@@ -3188,7 +3188,7 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkMenuItem</class>
 	<name>ppm1</name>
-	<tooltip>Export the current page as PPM</tooltip>
+	<tooltip>Export the current page as PPM image</tooltip>
 	<label>P_PM</label>
 	<right_justify>False</right_justify>
       </widget>
@@ -3196,7 +3196,7 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkMenuItem</class>
 	<name>png1</name>
-	<tooltip>Export the current page as PNG</tooltip>
+	<tooltip>Export the current page as PNG image</tooltip>
 	<label>P_NG</label>
 	<right_justify>False</right_justify>
       </widget>
@@ -3214,6 +3214,14 @@ in the next release of this program.</label>
 	<name>ansi1</name>
 	<tooltip>Export the current page as ANSI text</tooltip>
 	<label>ANS_I</label>
+	<right_justify>False</right_justify>
+      </widget>
+
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>vtx1</name>
+	<tooltip>Export the current page as VTX file</tooltip>
+	<label>_VTX</label>
 	<right_justify>False</right_justify>
       </widget>
     </widget>

@@ -15,47 +15,87 @@
 #include "tables.h"
 #include "libvbi.h"
 
-#include <pthread.h>
 #include "../common/fifo.h"
 #include "v4lx.h"
 #include "sliced.h"
 
+/*
+ *  When event_mask == 0, remove previously added handler,
+ *  otherwise add handler or change its event_mask.
+ *
+ *  The event_mask can be a combination of VBI_EVENT_*. When no handler
+ *  exists for an event, decoding the respective data (eg.
+ *  VBI_EVENT_PAGE, loading the cache with Teletext pages) is disabled.
+ *  Mind the vbi fifo producer which isn't controlled from here.
+ *
+ *  Safe to call from a handler or thread other than vbi_mainloop.
+ *  Returns boolean success.
+ */
 int
-vbi_add_handler(struct vbi *vbi, int event_mask, void *handler, void *data)
+vbi_event_handler(struct vbi *vbi, int event_mask,
+	void (* handler)
+	(vbi_event *, 
+	void *), 
+	void *user_data) 
 {
-    struct vbi_client *cl;
+	struct event_handler *eh, **ehp;
+	int found = 0, mask = 0, was_locked;
+	int activate;
 
-    if (!(cl = malloc(sizeof(*cl))))
-	return -1;
+	/* If was_locked we're a handler, no recursion. */
+	was_locked = pthread_mutex_trylock(&vbi->event_mutex);
 
-	cl->event_mask = event_mask;
-	vbi->event_mask |= event_mask;
+	ehp = &vbi->handlers;
 
-    cl->handler = handler;
-    cl->data = data;
-    dl_insert_last(vbi->clients, cl->node);
-    return 0;
-}
+	while ((eh = *ehp)) {
+		if (eh->handler == handler) {
+			found = 1;
 
-void
-vbi_del_handler(struct vbi *vbi, void *handler, void *data)
-{
-    struct vbi_client *cl;
+			if (!event_mask) {
+				*ehp = eh->next;
 
-    for (cl = (void *) vbi->clients->first; cl->node->next; cl = (void *) cl->node->next)
-	if (cl->handler == handler && cl->data == data)
-	{
-	    dl_remove(cl->node);
-	    break;
+				if (vbi->next_handler == eh)
+					vbi->next_handler = eh->next;
+						/* in event send loop */
+				free(eh);
+
+				continue;
+			} else
+				eh->event_mask = event_mask;
+		}
+
+		mask |= eh->event_mask;	
+		ehp = &eh->next;
 	}
 
+	if (!found && event_mask) {
+		if (!(eh = calloc(1, sizeof(*eh))))
+			return 0;
 
-	vbi->event_mask = 0;
+		eh->event_mask = event_mask;
+		mask |= event_mask;
 
-    for (cl = (void *) vbi->clients->first; cl->node->next; cl = (void *) cl->node->next)
-	vbi->event_mask |= cl->event_mask;
+		eh->handler = handler;
+		eh->user_data = user_data;
 
-    return;
+		*ehp = eh;
+	}
+
+	activate = mask & ~vbi->event_mask;
+
+	if (activate & VBI_EVENT_PAGE)
+		vbi_init_teletext(&vbi->vt);
+	if (activate & VBI_EVENT_CAPTION)
+		vbi_init_caption(vbi);
+	if (activate & VBI_EVENT_NETWORK)
+		memset(&vbi->network, 0, sizeof(vbi->network));
+
+	vbi->event_mask = mask;
+
+	if (!was_locked)
+		pthread_mutex_unlock(&vbi->event_mutex);
+
+	return 1;
 }
 
 #define SLICED_TELETEXT_B	(SLICED_TELETEXT_B_L10_625 | SLICED_TELETEXT_B_L25_625)
@@ -276,10 +316,10 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune)
 
     vbi->cache = ca;
 
-    dl_init(vbi->clients);
+	pthread_mutex_init(&vbi->event_mutex, NULL);
 
 	vbi_init_teletext(&vbi->vt);
-	vbi_init_caption(&vbi->cc);
+	vbi_init_caption(vbi);
 
 	vbi->vt.max_level = VBI_LEVEL_2p5;
 

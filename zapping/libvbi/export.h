@@ -5,7 +5,7 @@
 #include "lang.h"
 #include "../common/types.h"
 #include "format.h"
-#include "vbi.h"
+// #include "vbi.h"
 
 /* not public */
 extern int		vbi_format_page(struct vbi *vbi, struct fmt_page *pg,

@@ -24,6 +24,7 @@ extern struct export_module export_string[1];
 extern struct export_module export_html[1];
 extern struct export_module export_png[1];
 extern struct export_module export_ppm[1];
+extern struct export_module export_vtx[1];
 
 struct export_module *modules[] =
 {
@@ -35,6 +36,7 @@ struct export_module *modules[] =
 #ifdef HAVE_LIBPNG
     export_png,
 #endif
+    export_vtx,
     0
 };
 

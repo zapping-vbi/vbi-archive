@@ -299,4 +299,6 @@ extern struct vt_page *	vbi_convert_page(struct vbi *vbi, struct vt_page *vtp, b
 
 extern void		vbi_vps(struct vbi *vbi, unsigned char *p);
 
+extern void out_of_sync(struct vbi *vbi);
+
 #endif
