@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.15 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: lang.h,v 1.16 2005-01-31 07:15:41 mschimek Exp $ */
 
 #ifndef __ZVBI3_LANG_H__
 #define __ZVBI3_LANG_H__
@@ -101,14 +101,17 @@ typedef struct {
 } vbi3_character_set;
 
 extern const vbi3_character_set *
-vbi3_character_set_from_code	(vbi3_charset_code	code);
+vbi3_character_set_from_code	(vbi3_charset_code	code)
+  __attribute__ ((const));
 
 extern unsigned int
 vbi3_teletext_unicode		(vbi3_charset		charset,
 				 vbi3_subset		subset,
-				 unsigned int		c);
+				 unsigned int		c)
+  __attribute__ ((const));
 extern unsigned int
-vbi3_caption_unicode		(unsigned int		c);
+vbi3_caption_unicode		(unsigned int		c)
+  __attribute__ ((const));
 
 /**
  * @param unicode Unicode as in vbi3_char.
@@ -157,10 +160,12 @@ vbi3_is_drcs			(unsigned int		unicode)
 /* Private */
 
 extern unsigned int
-_vbi3_teletext_ascii_art		(unsigned int		c);
+_vbi3_teletext_ascii_art		(unsigned int		c)
+  __attribute__ ((const));
 extern unsigned int
 _vbi3_teletext_composed_unicode	(unsigned int		a,
-				 unsigned int		c);
+				 unsigned int		c)
+  __attribute__ ((const));
 
 VBI3_END_DECLS
 

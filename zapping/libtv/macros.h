@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: macros.h,v 1.1 2004-09-10 04:56:55 mschimek Exp $ */
+/* $Id: macros.h,v 1.2 2005-01-31 07:12:37 mschimek Exp $ */
 
 #ifndef __ZTV_MACROS_H__
 #define __ZTV_MACROS_H__
@@ -32,27 +32,23 @@
 
 TV_BEGIN_DECLS
 
-#if __GNUC__ >= 2
-   /* Inline this function at -O2 and higher. */
-#  define tv_inline static __inline__
+#if __GNUC__ >= 4
+#  define _tv_sentinel sentinel(0)
 #else
-#  define tv_inline static
+#  define _tv_sentinel
 #endif
 
 #if __GNUC__ >= 3
-   /* Function has no side effects and return value depends
-      only on parameters and non-volatile globals or
-      memory pointed to by parameters. */
-#  define tv_pure __attribute__ ((pure))
-   /* Function has no side effects and return value depends
-      only on parameters. */
-#  define tv_const __attribute__ ((const))
-   /* Function returns pointer which does not alias anything. */
-#  define tv_alloc __attribute__ ((malloc))
+#  define _tv_nonnull(args...) nonnull(args)
 #else
-#  define tv_pure
-#  define tv_const
-#  define tv_alloc
+#  define _tv_nonnull(args...)
+#endif
+
+#if __GNUC__ >= 2
+#  define tv_inline static __inline__
+#else
+#  define tv_inline static
+#  define __attribute__(args...)
 #endif
 
 #ifndef TRUE

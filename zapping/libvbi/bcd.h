@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.2 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: bcd.h,v 1.3 2005-01-31 07:18:03 mschimek Exp $ */
 
 #ifndef __ZVBI3_BCD_H__
 #define __ZVBI3_BCD_H__
@@ -47,9 +47,11 @@ VBI3_BEGIN_DECLS
 #define VBI3_BCD_DEC_MIN ((-VBI3_BCD_DEC_MAX) - 1)
 
 extern int
-vbi3_dec2bcd			(int			dec) vbi3_const;
+vbi3_dec2bcd			(int			dec)
+  __attribute__ ((const));
 extern int
-vbi3_bcd2dec			(int			bcd) vbi3_const;
+vbi3_bcd2dec			(int			bcd)
+  __attribute__ ((const));
 
 /**
  * @param a BCD number.
@@ -127,7 +129,8 @@ vbi3_is_bcd			(int			bcd)
 {
 	bcd &= ~VBI3_BCD_MIN;
 
-	return 0 == (((bcd + _VBI3_BCD_06) ^ bcd ^ _VBI3_BCD_06) & _VBI3_BCD_10);
+	return 0 == (((bcd + _VBI3_BCD_06) ^ bcd ^ _VBI3_BCD_06)
+		     & _VBI3_BCD_10);
 }
 
 /**

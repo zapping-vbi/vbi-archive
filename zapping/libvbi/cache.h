@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.15 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: cache.h,v 1.16 2005-01-31 07:17:52 mschimek Exp $ */
 
 #ifndef __ZVBI3_CACHE_H__
 #define __ZVBI3_CACHE_H__
@@ -77,8 +77,8 @@ typedef enum {
 
 /* in packet.c */
 extern const char *
-vbi3_ttx_page_type_name		(vbi3_ttx_page_type	type);
-
+vbi3_ttx_page_type_name		(vbi3_ttx_page_type	type)
+  __attribute__ ((const));
 /**
  * @brief Meta data and statistical info about a cached Teletext page.
  *
@@ -104,25 +104,29 @@ typedef struct {
 } vbi3_ttx_page_stat;
 
 extern void
-vbi3_ttx_page_stat_destroy	(vbi3_ttx_page_stat *	ps);
+vbi3_ttx_page_stat_destroy	(vbi3_ttx_page_stat *	ps)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
-vbi3_ttx_page_stat_init		(vbi3_ttx_page_stat *	ps);
+vbi3_ttx_page_stat_init		(vbi3_ttx_page_stat *	ps)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_cache_get_ttx_page_stat	(vbi3_cache *		ca,
 				 vbi3_ttx_page_stat *	ps,
 				 const vbi3_network *	nk,
-				 vbi3_pgno		pgno);
-
+				 vbi3_pgno		pgno)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 vbi3_cache_get_top_title		(vbi3_cache *		ca,
 				 vbi3_top_title *	tt,
 				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno,
-				 vbi3_subno		subno);
+				 vbi3_subno		subno)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_top_title *
 vbi3_cache_get_top_titles	(vbi3_cache *		ca,
 				 const vbi3_network *	nk,
-				 unsigned int *		n_elements);
+				 unsigned int *		n_elements)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 
 /**
  * @brief Values for the vbi3_format_option @c VBI3_WST_LEVEL.
@@ -154,18 +158,18 @@ typedef enum {
  * @brief Page formatting options.
  *
  * Pass formatting options as a vector of option pairs, consisting
- * of an option number and value. The last option number must be @c 0.
+ * of an option number and value. The last option number must be @c VBI3_END.
  *
  * function (foo, bar,
  *           VBI3_41_COLUMNS, TRUE,
  *           VBI3_DEFAULT_CHARSET_0, 15,
  *           VBI3_HEADER_ONLY, FALSE,
- *           0);
+ *           VBI3_END);
  */
-/* Note we use random numbering for safety because these
-   values are used in variable function arguments. Parameters shall
-   be only int or pointer (vbi3_bool is an int, enum is an int) for
-   proper automatic conversion. */
+/* We use random numbering assuming the variadic functions using these
+   values stop reading when they encounter an unknown number (VBI3_END is
+   zero). Parameters shall be only int or pointer (vbi3_bool is an int,
+   enum is an int) for proper automatic conversion. */
 typedef enum {
 	/**
 	 * Format only the first row.
@@ -244,41 +248,50 @@ vbi3_cache_get_teletext_page_va_list
 				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
-				 va_list		format_options);
+				 va_list		format_options)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern vbi3_page *
 vbi3_cache_get_teletext_page	(vbi3_cache *		ca,
 				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
-				 ...);
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 /* in cache.c */
 extern vbi3_network *
 vbi3_cache_get_networks		(vbi3_cache *		ca,
-				 unsigned int *		n_elements);
+				 unsigned int *		n_elements)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 /* in cache.c */
 extern void
 vbi3_cache_remove_event_handler	(vbi3_cache *		ca,
 				 vbi3_event_cb *	callback,
-				 void *			user_data);
+				 void *			user_data)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_cache_add_event_handler	(vbi3_cache *		ca,
 				 unsigned int		event_mask,
 				 vbi3_event_cb *	callback,
-				 void *			user_data);
+				 void *			user_data)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_cache_set_memory_limit	(vbi3_cache *		ca,
-				 unsigned int		limit);
+				 unsigned int		limit)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_cache_set_network_limit	(vbi3_cache *		ca,
-				 unsigned int		limit);
+				 unsigned int		limit)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_cache_unref		(vbi3_cache *		ca);
 extern vbi3_cache *
-vbi3_cache_ref			(vbi3_cache *		ca);
+vbi3_cache_ref			(vbi3_cache *		ca)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_cache_delete		(vbi3_cache *		ca);
 extern vbi3_cache *
-vbi3_cache_new			(void) vbi3_alloc;
+vbi3_cache_new			(void)
+  __attribute__ ((malloc));
 
 VBI3_END_DECLS
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: screen.h,v 1.1 2004-09-10 04:56:46 mschimek Exp $ */
+/* $Id: screen.h,v 1.2 2005-01-31 07:12:15 mschimek Exp $ */
 
 #ifndef __ZTV_SCREEN_H__
 #define __ZTV_SCREEN_H__
@@ -68,7 +68,9 @@ extern void
 tv_screen_list_delete		(tv_screen *		list);
 extern tv_screen *
 tv_screen_list_new		(const char *		display_name,
-				 int			bpp_hint);
+				 int			bpp_hint)
+  __attribute__ ((malloc,
+		  _tv_nonnull (1)));
 
 TV_END_DECLS
 

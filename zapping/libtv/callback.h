@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: callback.h,v 1.1 2004-10-03 10:03:36 mschimek Exp $ */
+/* $Id: callback.h,v 1.2 2005-01-31 07:13:17 mschimek Exp $ */
 
 #ifndef __ZTV_CALLBACK_H__
 #define __ZTV_CALLBACK_H__
@@ -34,18 +34,21 @@ tv_callback_fn			(void *			object,
 
 extern void
 tv_nullify_pointer		(void *			object,
-				 void *			user_data);
+				 void *			user_data)
+  __attribute__ ((_tv_nonnull (2)));
 
 extern tv_callback *
 tv_callback_add			(tv_callback **		list,
 				 tv_callback_fn *	notify,
 				 tv_callback_fn *	destroy,
-				 void *			user_data);
+				 void *			user_data)
+  __attribute__ ((_tv_nonnull (1)));
 extern void
 tv_callback_remove		(tv_callback *		cb);
 extern void
 tv_callback_delete		(tv_callback *		cb,
-				 void *			object);
+				 void *			object)
+  __attribute__ ((_tv_nonnull (2)));
 extern void
 tv_callback_remove_all		(tv_callback *		list,
 				 tv_callback_fn *	notify,
@@ -58,19 +61,23 @@ tv_callback_delete_all		(tv_callback *		list,
 				 void *			user_data,
 				 void *			object);
 extern void
-tv_callback_block		(tv_callback *		cb);
+tv_callback_block		(tv_callback *		cb)
+  __attribute__ ((_tv_nonnull (1)));
 extern void
 tv_callback_block_all		(tv_callback *		list,
 				 tv_callback_fn *	notify,
 				 tv_callback_fn *	destroy,
-				 void *			user_data);
+				 void *			user_data)
+  __attribute__ ((_tv_nonnull (1)));
 extern void
-tv_callback_unblock		(tv_callback *		cb);
+tv_callback_unblock		(tv_callback *		cb)
+  __attribute__ ((_tv_nonnull (1)));
 extern void
 tv_callback_unblock_all	       	(tv_callback *		list,
 				 tv_callback_fn *	notify,
 				 tv_callback_fn *	destroy,
-				 void *			user_data);
+				 void *			user_data)
+  __attribute__ ((_tv_nonnull (1)));
 
 #define TV_CALLBACK_BLOCK(cb, statement)				\
 do {									\

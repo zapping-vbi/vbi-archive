@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.h,v 1.2 2005-01-08 14:54:21 mschimek Exp $ */
+/* $Id: packet-830.h,v 1.3 2005-01-31 07:15:10 mschimek Exp $ */
 
 #ifndef __ZVBI3_PACKET_830_H__
 #define __ZVBI3_PACKET_830_H__
@@ -35,18 +35,22 @@ VBI3_BEGIN_DECLS
  */
 extern vbi3_bool
 vbi3_decode_teletext_8301_cni	(unsigned int *		cni,
-				 const uint8_t		buffer[42]);
+				 const uint8_t		buffer[42])
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern vbi3_bool
 vbi3_decode_teletext_8301_local_time
-				(time_t *		time,
+				(time_t *		tme,
 				 int *			gmtoff,
-				 const uint8_t		buffer[42]);
+				 const uint8_t		buffer[42])
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 vbi3_decode_teletext_8302_cni	(unsigned int *		cni,
-				 const uint8_t		buffer[42]);
+				 const uint8_t		buffer[42])
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern vbi3_bool
 vbi3_decode_teletext_8302_pdc	(vbi3_program_id *	pid,
-				 const uint8_t		buffer[42]);
+				 const uint8_t		buffer[42])
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 /** @} */
 
 VBI3_END_DECLS

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.5 2005-01-08 14:40:54 mschimek Exp $ */
+/* $Id: image_format.h,v 1.6 2005-01-31 07:12:57 mschimek Exp $ */
 
 #ifndef __ZTV_IMAGE_FORMAT_H__
 #define __ZTV_IMAGE_FORMAT_H__
@@ -62,28 +62,36 @@ tv_image_format_init		(tv_image_format *	format,
 				 unsigned int		height,
 				 unsigned int		bytes_per_line,
 				 tv_pixfmt		pixfmt,
-				 tv_colspc		colspc);
+				 tv_colspc		colspc)
+  __attribute__ ((_tv_nonnull (1)));
 extern tv_bool
-tv_image_format_is_valid	(const tv_image_format *format);
+tv_image_format_is_valid	(const tv_image_format *format)
+  __attribute__ ((_tv_nonnull (1)));
 extern void
 _tv_image_format_dump		(const tv_image_format *format,
-				 FILE *			fp);
+				 FILE *			fp)
+  __attribute__ ((_tv_nonnull (1, 2)));
 
 extern tv_bool
 tv_clear_image			(void *			image,
-				 const tv_image_format *format);
+				 const tv_image_format *format)
+  __attribute__ ((_tv_nonnull (1, 2)));
 extern void
 tv_memcpy			(void *			dst,
 				 const void *		src,
-				 size_t			n_bytes);
+				 size_t			n_bytes)
+  __attribute__ ((_tv_nonnull (1, 2)));
 extern tv_bool
 tv_copy_image			(void *			dst_image,
 				 const tv_image_format *dst_format,
 				 const void *		src_image,
-				 const tv_image_format *src_format);
+				 const tv_image_format *src_format)
+  __attribute__ ((_tv_nonnull (1, 2)));
 extern void *
 tv_new_image			(const void *		src_image,
-				 const tv_image_format *src_format);
+				 const tv_image_format *src_format)
+  __attribute__ ((malloc,
+		  _tv_nonnull (2)));
 
 TV_END_DECLS
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.2 2005-01-08 14:54:21 mschimek Exp $ */
+/* $Id: pdc.h,v 1.3 2005-01-31 07:14:12 mschimek Exp $ */
 
 #ifndef __ZVBI3_PDC_H__
 #define __ZVBI3_PDC_H__
@@ -175,16 +175,19 @@ typedef struct {
 } vbi3_program_id;
 
 extern void
-vbi3_program_id_destroy		(vbi3_program_id *	pid);
+vbi3_program_id_destroy		(vbi3_program_id *	pid)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_program_id_init		(vbi3_program_id *	pid,
-				 vbi3_pid_channel	channel);
+				 vbi3_pid_channel	channel)
+  __attribute__ ((_vbi3_nonnull (1)));
 
 /* Private */
 
 extern void
 _vbi3_program_id_dump		(const vbi3_program_id *	pid,
-				 FILE *			fp);
+				 FILE *			fp)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 
 /**
  * @brief VCR programming from Teletext.
@@ -268,36 +271,45 @@ typedef struct {
 } vbi3_preselection;
 
 extern time_t
-vbi3_preselection_time		(const vbi3_preselection *p);
+vbi3_preselection_time		(const vbi3_preselection *p)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
-vbi3_preselection_destroy	(vbi3_preselection *	p);
+vbi3_preselection_destroy	(vbi3_preselection *	p)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_preselection_copy		(vbi3_preselection *	dst,
-				 const vbi3_preselection *src);
+				 const vbi3_preselection *src)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
-vbi3_preselection_init		(vbi3_preselection *	p);
+vbi3_preselection_init		(vbi3_preselection *	p)
+  __attribute__ ((_vbi3_nonnull (1)));
 
 /* Private */
 
 extern void
 _vbi3_preselection_dump		(const vbi3_preselection *p,
-				 FILE *			fp);
+				 FILE *			fp)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern void
 _vbi3_preselection_array_dump	(const vbi3_preselection *p,
 				 unsigned int		n_elements,
-				 FILE *			fp);
+				 FILE *			fp)
+  __attribute__ ((_vbi3_nonnull (1, 3)));
 extern void
 _vbi3_preselection_array_delete	(vbi3_preselection *	p,
 				 unsigned int		n_elements);
 extern vbi3_preselection *
 _vbi3_preselection_array_dup	(const vbi3_preselection *p,
-				 unsigned int		n_elements);
+				 unsigned int		n_elements)
+  __attribute__ ((malloc));
 extern vbi3_preselection *
-_vbi3_preselection_array_new	(unsigned int		n_elements);
+_vbi3_preselection_array_new	(unsigned int		n_elements)
+  __attribute__ ((malloc));
 extern unsigned int
 _vbi3_pdc_method_a		(vbi3_preselection *	table,
 				 unsigned int		n_elements,
-				 const uint8_t		lop_raw[26][40]);
+				 const uint8_t		lop_raw[26][40])
+  __attribute__ ((_vbi3_nonnull (1, 3)));
 
 /** @} */
 

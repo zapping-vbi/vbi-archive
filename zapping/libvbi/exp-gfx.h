@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.h,v 1.2 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: exp-gfx.h,v 1.3 2005-01-31 07:17:13 mschimek Exp $ */
 
 #ifndef __ZVBI3_EXP_GFX_H__
 #define __ZVBI3_EXP_GFX_H__
@@ -47,7 +47,8 @@ vbi3_page_draw_teletext_region_va_list
 				 unsigned int		row,
 				 unsigned int		width,
 				 unsigned int		height,
-				 va_list		export_options);
+				 va_list		export_options)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 vbi3_page_draw_teletext_region	(const vbi3_page *	pg,
 				 void *			buffer,
@@ -56,17 +57,22 @@ vbi3_page_draw_teletext_region	(const vbi3_page *	pg,
 				 unsigned int		row,
 				 unsigned int		width,
 				 unsigned int		height,
-				 ...);
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3),
+		  _vbi3_sentinel));
 extern vbi3_bool
 vbi3_page_draw_teletext_va_list	(const vbi3_page *	pg,
 				 void *			buffer,
 				 const vbi3_image_format *format,
-				 va_list		export_options);
+				 va_list		export_options)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 vbi3_page_draw_teletext		(const vbi3_page *	pg,
 				 void *			buffer,
 				 const vbi3_image_format *format,
-				 ...);
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3),
+		  _vbi3_sentinel));
 extern vbi3_bool
 vbi3_page_draw_caption_region_va_list
 				(const vbi3_page *	pg,
@@ -76,7 +82,8 @@ vbi3_page_draw_caption_region_va_list
 				 unsigned int		row,
 				 unsigned int		width,
 				 unsigned int		height,
-				 va_list		export_options);
+				 va_list		export_options)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 vbi3_page_draw_caption_region	(const vbi3_page *	pg,
 				 void *			buffer,
@@ -85,17 +92,22 @@ vbi3_page_draw_caption_region	(const vbi3_page *	pg,
 				 unsigned int		row,
 				 unsigned int		width,
 				 unsigned int		height,
-				 ...);
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3),
+		  _vbi3_sentinel));
 extern vbi3_bool
 vbi3_page_draw_caption_va_list	(const vbi3_page *	pg,
 				 void *			buffer,
 				 const vbi3_image_format *format,
-				 va_list		export_options);
+				 va_list		export_options)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 vbi3_page_draw_caption		(const vbi3_page *	pg,
 				 void *			buffer,
 				 const vbi3_image_format *format,
-				 ...);
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2),
+		  _vbi3_sentinel));
 /** @} */
 
 VBI3_END_DECLS

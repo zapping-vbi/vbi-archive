@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: link.h,v 1.2 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: link.h,v 1.3 2005-01-31 07:15:31 mschimek Exp $ */
 
 #ifndef __ZVBI3_LINK_H__
 #define __ZVBI3_LINK_H__
@@ -75,7 +75,8 @@ typedef enum {
 } vbi3_link_type;
 
 extern const char *
-vbi3_link_type_name		(vbi3_link_type		type);
+vbi3_link_type_name		(vbi3_link_type		type)
+  __attribute__ ((const));
 
 /**
  * @ingroup Event
@@ -135,7 +136,7 @@ typedef struct {
 	 * page number. See vbi3_nuid.
 	 */
 	vbi3_network *			network;
-	// bah. ugly
+  /* bah. ugly */
 	vbi3_bool			nk_alloc;
 	/**
 	 * @a pgno and @a subno Teletext page number, see vbi3_pgno, vbi3_subno.
@@ -172,18 +173,22 @@ typedef struct {
 } vbi3_link;
 
 extern void
-vbi3_link_destroy		(vbi3_link *		lk);
+vbi3_link_destroy		(vbi3_link *		lk)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_link_copy			(vbi3_link *		dst,
-				 const vbi3_link *	src);
+				 const vbi3_link *	src)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
-vbi3_link_init			(vbi3_link *		lk);
+vbi3_link_init			(vbi3_link *		lk)
+  __attribute__ ((_vbi3_nonnull (1)));
 
 /* Private */
 
 extern void
 _vbi3_link_dump			(const vbi3_link *	lk,
-				 FILE *			fp);
+				 FILE *			fp)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 
 VBI3_END_DECLS
 

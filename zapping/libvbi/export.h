@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.34 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: export.h,v 1.35 2005-01-31 07:16:26 mschimek Exp $ */
 
 #ifndef __ZVBI3_EXPORT_H__
 #define __ZVBI3_EXPORT_H__
@@ -259,7 +259,7 @@ typedef vbi3_bool
 vbi3_export_link_cb		(vbi3_export *		e,
 				 void *			user_data,
 				 FILE *			fp,
-				 const vbi3_link *	link);
+				 const vbi3_link *	lnk);
 /**
  * @param e Export context passed to vbi3_export_stdio() or
  *   other output functions.
@@ -288,92 +288,113 @@ vbi3_export_pdc_cb		(vbi3_export *		e,
  * @{
  */
 extern const char *
-vbi3_export_errstr		(vbi3_export *		e);
+vbi3_export_errstr		(vbi3_export *		e)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_export_stdio		(vbi3_export *		e,
 				 FILE *			fp,
-				 const vbi3_page *	pg);
+				 const vbi3_page *	pg)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 vbi3_export_file			(vbi3_export *		e,
 				 const char *		name,
-				 const vbi3_page *	pg);
+				 const vbi3_page *	pg)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 #ifndef ZAPPING8
 extern vbi3_bool
-vbi3_export_stream_close		(vbi3_export *		e);
+vbi3_export_stream_close		(vbi3_export *		e)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_export_stream_stdio_va_list	(vbi3_export *		e,
 				 FILE *			fp,
 				 vbi3_decoder *		vbi,
 	    			 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
-				 va_list		format_options);
+				 va_list		format_options)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 vbi3_export_stream_stdio		(vbi3_export *		e,
 				 FILE *			fp,
 				 vbi3_decoder *		vbi,
 	    			 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
-				 ...);
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3),
+		  _vbi3_sentinel));
 extern vbi3_bool
 vbi3_export_stream_file_va_list	(vbi3_export *		e,
 				 const char *		name,
 				 vbi3_decoder *		vbi,
 	    			 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
-				 va_list		format_options);
+				 va_list		format_options)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 vbi3_export_stream_file		(vbi3_export *		e,
 				 const char *		name,
 				 vbi3_decoder *		vbi,
 	    			 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
-				 ...);
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3),
+		  _vbi3_sentinel));
 #endif /* !ZAPPING8 */
 extern void
 vbi3_export_set_link_cb		(vbi3_export *		e,
 				 vbi3_export_link_cb *	callback,
-				 void *			user_data);
+				 void *			user_data)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_export_set_pdc_cb		(vbi3_export *		e,
 				 vbi3_export_pdc_cb *	callback,
-				 void *			user_data);
+				 void *			user_data)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_export_set_timestamp	(vbi3_export *		e,
-				 double			timestamp);
+				 double			timestamp)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_export_option_menu_get	(vbi3_export *		e,
 				 const char *		keyword,
-				 unsigned int *		entry);
+				 unsigned int *		entry)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 vbi3_export_option_menu_set	(vbi3_export *		e,
 				 const char *		keyword,
-				 unsigned int		entry);
+				 unsigned int		entry)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern vbi3_bool
 vbi3_export_option_get		(vbi3_export *		e,
 				 const char *		keyword,
-				 vbi3_option_value *	value);
+				 vbi3_option_value *	value)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 vbi3_export_option_set		(vbi3_export *		e,
 				 const char *		keyword,
-				 ...);
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern const vbi3_option_info *
 vbi3_export_option_info_enum	(vbi3_export *		e,
-				 unsigned int		index);
+				 unsigned int		indx)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern const vbi3_option_info *
 vbi3_export_option_info_by_keyword
 				(vbi3_export *		e,
-				 const char *		keyword);
+				 const char *		keyword)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern const vbi3_export_info *
-vbi3_export_info_enum		(unsigned int		index);
+vbi3_export_info_enum		(unsigned int		indx);
 extern const vbi3_export_info *
 vbi3_export_info_by_keyword	(const char *		keyword);
 extern const vbi3_export_info *
-vbi3_export_info_from_export	(const vbi3_export *	e);
+vbi3_export_info_from_export	(const vbi3_export *	e)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_export_delete		(vbi3_export *		e);
 extern vbi3_export *
 vbi3_export_new			(const char *		keyword,
-				 char **		errstr);
+				 char **		errstr)
+  __attribute__ ((malloc));
 /** @} */
 
 VBI3_END_DECLS

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.h,v 1.4 2005-01-20 01:38:33 mschimek Exp $ */
+/* $Id: pixel_format.h,v 1.5 2005-01-31 07:12:26 mschimek Exp $ */
 
 #ifndef __ZTV_PIXEL_FORMAT_H__
 #define __ZTV_PIXEL_FORMAT_H__
@@ -255,9 +255,11 @@ typedef enum {
 } tv_colspc;
 
 extern const char *
-tv_pixfmt_name			(tv_pixfmt		pixfmt);
+tv_pixfmt_name			(tv_pixfmt		pixfmt)
+  __attribute__ ((const));
 extern unsigned int
-tv_pixfmt_bytes_per_pixel	(tv_pixfmt		pixfmt);
+tv_pixfmt_bytes_per_pixel	(tv_pixfmt		pixfmt)
+  __attribute__ ((const));
 
 /* Broken-down pixel format */
 
@@ -319,7 +321,8 @@ typedef struct {
 } tv_pixel_format;
 
 extern const tv_pixel_format *
-tv_pixel_format_from_pixfmt	(tv_pixfmt		pixfmt);
+tv_pixel_format_from_pixfmt	(tv_pixfmt		pixfmt)
+  __attribute__ ((const));
 extern tv_pixfmt
 tv_pixel_format_to_pixfmt	(const tv_pixel_format *format);
 

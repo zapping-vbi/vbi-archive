@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.2 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: image_format.h,v 1.3 2005-01-31 07:15:51 mschimek Exp $ */
 
 #ifndef __ZVBI3_IMAGE_FORMAT_H__
 #define __ZVBI3_IMAGE_FORMAT_H__
@@ -299,12 +299,14 @@ typedef uint64_t vbi3_pixfmt_set;
 #endif
 
 extern const char *
-vbi3_pixfmt_name			(vbi3_pixfmt		pixfmt)	vbi3_const;
+vbi3_pixfmt_name			(vbi3_pixfmt		pixfmt)
+  __attribute__ ((const));
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 extern unsigned int
-_vbi3_pixfmt_bytes_per_pixel	(vbi3_pixfmt		pixfmt) vbi3_const;
+_vbi3_pixfmt_bytes_per_pixel	(vbi3_pixfmt		pixfmt)
+  __attribute__ ((const));
 
 #endif
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.h,v 1.2 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: conv.h,v 1.3 2005-01-31 07:17:30 mschimek Exp $ */
 
 #ifndef __ZVBI3_CONV_H__
 #define __ZVBI3_CONV_H__
@@ -34,7 +34,8 @@ VBI3_BEGIN_DECLS
 extern iconv_t
 vbi3_iconv_ucs2_open		(const char *		dst_format,
 				 char **		dst,
-				 unsigned int		dst_size);
+				 unsigned int		dst_size)
+  __attribute__ ((_vbi3_nonnull (2)));
 extern void
 vbi3_iconv_ucs2_close		(iconv_t		cd);
 extern vbi3_bool
@@ -42,12 +43,14 @@ vbi3_iconv_ucs2			(iconv_t		cd,
 				 char **		dst,
 				 unsigned int		dst_size,
 				 const uint16_t *	src,
-				 unsigned int		src_size);
+				 unsigned int		src_size)
+  __attribute__ ((_vbi3_nonnull (2)));
 extern vbi3_bool
 vbi3_iconv_unicode		(iconv_t		cd,
 				 char **		dst,
 				 unsigned int		dst_size,
-				 unsigned int		unicode);
+				 unsigned int		unicode)
+  __attribute__ ((_vbi3_nonnull (2)));
 extern char *
 vbi3_strdup_iconv_ucs2		(const char *		dst_format,
 				 const uint16_t *	src,

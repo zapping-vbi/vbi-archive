@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.h,v 1.2 2005-01-08 14:54:21 mschimek Exp $ */
+/* $Id: teletext_decoder.h,v 1.3 2005-01-31 07:13:39 mschimek Exp $ */
 
 #ifndef __ZVBI3_TELETEXT_DECODER_H__
 #define __ZVBI3_TELETEXT_DECODER_H__
@@ -60,30 +60,37 @@ vbi3_teletext_decoder_search_utf8_new
 				 vbi3_bool		casefold,
 				 vbi3_bool		regexp,
 				 vbi3_search_progress_cb *progress,
-				 void *			user_data) vbi3_alloc;
+				 void *			user_data)
+  __attribute__ ((malloc,
+		  _vbi3_nonnull (1, 5)));
 extern vbi3_bool
 vbi3_teletext_decoder_get_top_title
 				(vbi3_teletext_decoder *	td,
 				 vbi3_top_title *	tt,
 				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno,
-				 vbi3_subno		subno);
+				 vbi3_subno		subno)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern vbi3_top_title *
 vbi3_teletext_decoder_get_top_titles
 				(vbi3_teletext_decoder *	td,
 				 const vbi3_network *	nk,
-				 unsigned int *		n_elements) vbi3_alloc;
+				 unsigned int *		n_elements)
+  __attribute__ ((malloc,
+		  _vbi3_nonnull (1, 3)));
 extern vbi3_bool
 vbi3_teletext_decoder_get_ttx_page_stat
 				(vbi3_teletext_decoder *	td,
 				 vbi3_ttx_page_stat *	ps,
 				 const vbi3_network *	nk,
-				 vbi3_pgno		pgno);
+				 vbi3_pgno		pgno)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern void
 vbi3_teletext_decoder_get_program_id
 				(vbi3_teletext_decoder *	td,
 				 vbi3_program_id *	pid,
-				 vbi3_pid_channel	channel);
+				 vbi3_pid_channel	channel)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern vbi3_page *
 vbi3_teletext_decoder_get_page_va_list
 				(vbi3_teletext_decoder *	td,
@@ -91,37 +98,47 @@ vbi3_teletext_decoder_get_page_va_list
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 va_list		format_options)
-     vbi3_alloc;
+  __attribute__ ((malloc,
+		  _vbi3_nonnull (1)));
 extern vbi3_page *
 vbi3_teletext_decoder_get_page	(vbi3_teletext_decoder *	td,
 				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
-				 ...) vbi3_alloc;
+				 ...)
+  __attribute__ ((malloc,
+		  _vbi3_nonnull (1),
+		  _vbi3_sentinel));
 extern vbi3_bool
 vbi3_teletext_decoder_get_network (vbi3_teletext_decoder *td,
-				  vbi3_network *		nk);
+				  vbi3_network *		nk)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern vbi3_cache *
-vbi3_teletext_decoder_get_cache	(vbi3_teletext_decoder *	td);
+vbi3_teletext_decoder_get_cache	(vbi3_teletext_decoder *	td)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_teletext_decoder_remove_event_handler
 				(vbi3_teletext_decoder *	td,
 				 vbi3_event_cb *		callback,
-				 void *			user_data);
+				 void *			user_data)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_teletext_decoder_add_event_handler
 				(vbi3_teletext_decoder *	td,
 				 unsigned int		event_mask,
 				 vbi3_event_cb *		callback,
-				 void *			user_data);
+				 void *			user_data)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_teletext_decoder_reset	(vbi3_teletext_decoder *	td,
 				 const vbi3_network *	nk,
-				 vbi3_videostd_set	videostd_set);
+				 vbi3_videostd_set	videostd_set)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 				 const uint8_t		buffer[42],
-				 double			timestamp);
+				 double			timestamp)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern void
 vbi3_teletext_decoder_delete	(vbi3_teletext_decoder *	td);
 
@@ -129,7 +146,7 @@ extern vbi3_teletext_decoder *
 vbi3_teletext_decoder_new	(vbi3_cache *		ca,
 				 const vbi3_network *	nk,
 				 vbi3_videostd_set	videostd_set)
-     vbi3_alloc;
+  __attribute__ ((malloc));
 
 /** @} */
 
