@@ -1,3 +1,11 @@
+18.09.2001	SGML renderer <garetxe@users.sf.net>
+
+	* osd.c: Wrote sgml gdk renderer, sgml tags still not
+	recognised (but that's easy).
+	* zmisc.c: Added hide button on status bar messages.
+	* zapping.spec.in: Now it should work under RH too, thanks to
+	Mark (mark at extension2.freeserve.co.uk) for his help with this.
+
 17.09.2001	OSD properties <garetxe@users.sf.net>
 
 	* osd.c: Finally(?) decided to try the gdk way, added properties

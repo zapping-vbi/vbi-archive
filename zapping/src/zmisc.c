@@ -629,10 +629,43 @@ z_change_menuitem			 (GtkWidget	*widget,
      }
 }
 
+static void
+appbar_hide(GtkWidget *appbar)
+{
+  gtk_widget_hide(appbar);
+  gtk_widget_queue_resize(main_window);
+}
+
+static void
+add_hide(GtkWidget *appbar)
+{
+  GtkWidget *old =
+    gtk_object_get_data(GTK_OBJECT(appbar), "hide_button");
+  GtkWidget *widget;
+
+  if (old)
+    return;
+
+  widget = gnome_stock_button(GNOME_STOCK_BUTTON_CLOSE);
+  set_tooltip(widget, _("Hide the status bar"));
+
+  if (widget)
+    gtk_box_pack_end(GTK_BOX(appbar), widget, FALSE, FALSE, 0);
+
+  gtk_widget_show(widget);
+  gtk_signal_connect_object(GTK_OBJECT(widget), "clicked",
+			    GTK_SIGNAL_FUNC(appbar_hide),
+			    GTK_OBJECT(appbar));
+
+  gtk_object_set_data(GTK_OBJECT(appbar), "hide_button", widget);
+}
+
 void z_status_print(const gchar *message)
 {
   GtkWidget *appbar2 =
     lookup_widget(main_window, "appbar2");
+
+  add_hide(appbar2);
 
   gnome_appbar_set_status(GNOME_APPBAR(appbar2), message);
   gtk_widget_show(appbar2);
@@ -651,6 +684,8 @@ void z_status_set_widget(GtkWidget * widget)
 
   if (widget)
     gtk_box_pack_end(GTK_BOX(appbar2), widget, FALSE, FALSE, 0);
+
+  add_hide(appbar2);
 
   gtk_object_set_data(GTK_OBJECT(appbar2), "old_widget", widget);
 

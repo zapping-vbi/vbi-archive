@@ -322,7 +322,8 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
     zconf_get_integer(NULL,
 		      "/zapping/options/osd/osd_type"));
 
-  update_sensitivity(widget);
+  gtk_widget_set_sensitive(lookup_widget(widget, "vbox38"),
+	   !zconf_get_integer(NULL, "/zapping/options/osd/osd_type"));
 
   gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
 		     GTK_SIGNAL_FUNC(on_property_item_changed),

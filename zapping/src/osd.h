@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.13 2001-09-03 22:19:58 garetxe Exp $ */
+/* $Id: osd.h,v 1.14 2001-09-18 23:07:00 garetxe Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
@@ -44,6 +44,15 @@ void osd_set_coords(gint x, gint y, gint w, gint h);
 void osd_render(void);
 void osd_clear(void);
 void osd_roll_up(attr_char *buffer, int first_row, int last_row);
+
+/**
+ * Formats and renders the given string, that should be in the current
+ * locale. The behaviour of this function is controlled by the OSD
+ * properties.
+ * @string: Chars to draw.
+ */
+void
+osd_render_sgml		(const char *string, ...);
 
 extern ZModel *osd_model; /* used for notification of changes */
 

@@ -37,7 +37,7 @@
 #define CELL_HEIGHT 26
 
 #define MAX_COLUMNS 48
-#define MAX_ROWS 25
+#define MAX_ROWS 26 /* 25 for TTX plus one for OSD */
 
 #include "libvbi/libvbi.h"
 extern struct vbi *zvbi_get_object(void);
@@ -159,7 +159,7 @@ paint_piece (GtkWidget *widget, struct osd_piece *piece,
 static void
 set_piece_geometry(int row, int piece)
 {
-  gint x, y, w, h;
+  gint x, y, w, h, rows, columns, start;
   struct osd_piece * p;
   gint dest_w, dest_h;
 
@@ -182,15 +182,7 @@ set_piece_geometry(int row, int piece)
       x = cx; y = cy; w = cw; h = ch;
     }
 
-  if (osd_page.columns < 40) /* naive cc test */
-    {
-      /* Text area 34x15 is (48, 45) - (591, 434) in a 640x480 screen */
-      x += (48*w)/640;
-      y += (45*h)/480;
-      w -= (96*w)/640;
-      h -= (90*h)/480;
-    }
-  else
+  if (osd_page.columns >= 40) /* naive cc test */
     {
       /* Text area 40x25 is (64, 38) - (703, 537) in a 768x576 screen */
       x += (64*w)/768;
@@ -198,18 +190,44 @@ set_piece_geometry(int row, int piece)
       w -= (128*w)/768;
       h -= (76*h)/576;
     }
+  else
+    {
+      /* Text area 34x15 is (48, 45) - (591, 434) in a 640x480 screen */
+      x += (48*w)/640;
+      y += (45*h)/480;
+      w -= (96*w)/640;
+      h -= (90*h)/480;
+    }
+
+  if (!osd_page.rows)
+    rows = 15;
+  else
+    rows = osd_page.rows;
+
+  if (!osd_page.columns)
+    columns = 34;
+  else
+    columns = osd_page.columns;
 
   p = &(osd_matrix[row]->pieces[piece]);
 
+  if (row == MAX_ROWS - 1) /* OSD text */
+    row = rows;
+
+  if (p->start < 0)
+    start = (columns-p->width)/2;
+  else
+    start = p->start;
+
   gtk_widget_realize(p->window);
 
-  dest_w = ((p->start+p->width)*w)/osd_page.columns
-           - (p->start*w)/osd_page.columns;
-  dest_h = ((row+1)*h)/osd_page.rows-(row*h)/osd_page.rows;
+  dest_w = ((start+p->width)*w)/columns
+           - (start*w)/columns;
+  dest_h = ((row+1)*h)/rows-(row*h)/rows;
 
   gdk_window_move_resize(p->window->window,
-			 x+(p->start*w)/osd_page.columns,
-			 y+(row*h)/osd_page.rows,
+			 x+(start*w)/columns,
+			 y+(row*h)/rows,
 			 dest_w, dest_h);
 
   if ((!p->scaled)  ||
@@ -246,7 +264,7 @@ osd_geometry_update(gboolean raise_if_visible)
   if (cw > 0 && ch > 0)
     visible = TRUE;
 
-  for (i=0; i<osd_page.rows; i++)
+  for (i=0; i<MAX_ROWS; i++)
     for (j=0; j<osd_matrix[i]->n_pieces; j++)
       {
 	set_piece_geometry(i, j);
@@ -596,6 +614,91 @@ add_piece(int col, int row, int width, attr_char *c)
   return osd_matrix[row]->n_pieces-1;
 }
 
+/* Draws the text */
+static void
+add_piece_osd(const gchar *buf)
+{
+  struct osd_piece p;
+  GtkWidget *da;
+  struct osd_piece *pp;
+  gint row = MAX_ROWS-1;
+  GdkPixmap *canvas;
+  GdkFont *font; /* FIXME: font, gc, fg and bg should be cached */
+  GdkColor fg, bg;
+  GdkGC *gc;
+  gint w, s_w, h, s_h;
+  gint lbearing, rbearing, width, ascent, descent;
+
+  g_assert(osd_started == TRUE);
+
+  memset(&p, 0, sizeof(p));
+
+  p.width = strlen(buf)*2;
+  p.start = -1;
+  p.window = pop_window();
+  da = GTK_BIN(p.window)->child;
+
+  /* Draw the text, scale and antialias */
+  gc = gdk_gc_new(da->window);
+  g_assert(gc != NULL);
+  fg.red = zcg_float(NULL, "fg_r") * 65535;
+  fg.green = zcg_float(NULL, "fg_g") * 65535;
+  fg.blue = zcg_float(NULL, "fg_b") * 65535;
+  if (!gdk_colormap_alloc_color(gdk_colormap_get_system(),
+				&fg, FALSE, TRUE))
+    g_error("Couldn't allocate fg");
+  bg.red = zcg_float(NULL, "bg_r") * 65535;
+  bg.green = zcg_float(NULL, "bg_g") * 65535;
+  bg.blue = zcg_float(NULL, "bg_b") * 65535;
+  if (!gdk_colormap_alloc_color(gdk_colormap_get_system(),
+				&bg, FALSE, TRUE))
+    g_error("Couldn't allocate bg");
+  gdk_gc_set_background(gc, &bg);
+  font = gdk_font_load(zcg_char(NULL, "font"));
+  if (!font)
+    {
+      g_warning("Cannot create fontset");
+      return;
+    }
+  gdk_font_ref(font);
+  gdk_string_extents(font, buf, &lbearing, &rbearing, &width, &ascent,
+		     &descent);
+  s_w = width;
+  s_h = ascent+descent;
+  w = s_w+width;
+  h = s_h*2;
+  gtk_widget_realize(da);
+  canvas = gdk_pixmap_new(da->window, w, h, -1);
+  g_assert(canvas);
+  gdk_gc_set_foreground(gc, &bg);
+  gdk_draw_rectangle(canvas, gc, TRUE, 0, 0, w, h);
+  gdk_gc_set_foreground(gc, &fg);
+  gdk_draw_string(canvas, font, gc, (w-s_w)/2, ascent+(h-s_h)/2, buf);
+  /* draw text to canvas, dump to pixbuf */
+  p.unscaled =
+    gdk_pixbuf_get_from_drawable(NULL, canvas,
+				 gdk_window_get_colormap(da->window),
+				 0, 0, 0, 0, w, h);
+  gdk_pixmap_unref(canvas);
+  gdk_colormap_free_colors(gdk_colormap_get_system(), &fg, 1);
+  gdk_colormap_free_colors(gdk_colormap_get_system(), &bg, 1);
+  gdk_font_unref(font);
+
+  pp = &(osd_matrix[row]->pieces[osd_matrix[row]->n_pieces]);
+  memcpy(pp, &p, sizeof(struct osd_piece));
+
+  osd_matrix[row]->n_pieces++;
+
+  gtk_signal_connect(GTK_OBJECT(da), "expose-event",
+		     GTK_SIGNAL_FUNC(on_osd_expose_event), pp);
+
+  set_piece_geometry(row, osd_matrix[row]->n_pieces-1);
+
+  if ((osd_window && x11_window_viewable(osd_window->window)) ||
+      (cw > 0 && ch > 0))
+    gtk_widget_show(pp->window);
+}
+
 static void osd_clear_row(int row, int just_push)
 {
   g_assert(osd_started == TRUE);
@@ -618,7 +721,7 @@ void osd_clear(void)
 
   g_assert(osd_started == TRUE);
 
-  for (i=0; i<osd_page.rows; i++)
+  for (i=0; i<MAX_ROWS; i++)
     osd_clear_row(i, 0);
 
   zmodel_changed(osd_model);
@@ -728,5 +831,92 @@ osd_event			(gpointer	   data,
   osd_render();
 }
 
+static void
+osd_render_osd_sgml	(const attr_char *chars, int len)
+{
+  int i;
+  gchar *buf = g_strdup("");
+  ucs2_t tmp[2];
+  GtkWidget *window;
 
+  tmp[1] = 0;
+  for (i=0; i<len; i++)
+    {
+      char *buf2, *buf3;
+      tmp[0] = chars[i].glyph;
+      buf2 = ucs22local(tmp);
+      buf3 = g_strconcat(buf, buf2, NULL);
+      free(buf2);
+      g_free(buf);
+      buf = buf3;
+    }
+
+  osd_clear_row(MAX_ROWS-1, FALSE);
+
+  window = pop_window();
+
+  add_piece_osd(buf);
+
+  g_free(buf);
+}
+
+void
+osd_render_sgml		(const char *string, ...)
+{
+  va_list args;
+  gchar *buf;
+  ucs2_t tmp[2];
+  int len, i;
+  attr_char *chars;
+  
+  if (!string)
+    return;
+  
+  va_start(args, string);
+  buf = g_strdup_vprintf(string, args);
+  va_end(args);
+
+  if (!(chars = sgml2attr_char(buf, &len)))
+    return;
+  g_free(buf);
+
+  switch (zcg_int(NULL, "osd_type"))
+    {
+    case 0: /* OSD */
+      osd_render_osd_sgml(chars, len);
+      break;
+    case 1: /* Status bar */
+      buf = g_strdup("");
+      tmp[1] = 0;
+      for (i=0; i<len; i++)
+	{
+	  char *buf2, *buf3;
+	  tmp[0] = chars[i].glyph;
+	  buf2 = ucs22local(tmp);
+	  buf3 = g_strconcat(buf, buf2, NULL);
+	  free(buf2);
+	  g_free(buf);
+	  buf = buf3;
+	}
+      z_status_print(buf);
+      g_free(buf);
+      break;
+    case 2: /* Console */
+      printf("OSD: ");
+      tmp[1] = 0;
+      for (i=0; i<len; i++)
+	{
+	  tmp[0] = chars[i].glyph;
+	  buf = ucs22local(tmp);
+	  printf(buf);
+	  free(buf);
+	}
+      printf("\n");
+      break;
+    default: /* ignore */
+      break;
+    }
+
+  free(chars);
+}
 
